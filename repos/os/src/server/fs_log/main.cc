@@ -12,13 +12,14 @@
  */
 
 /* Genode includes */
+#include <base/heap.h>
 #include <os/path.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <root/component.h>
 #include <os/server.h>
 #include <os/session_policy.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* Local includes */
 #include "log_file.h"
@@ -86,7 +87,7 @@ class Fs_log::Root_component :
 				 && policy.has_attribute("label_prefix")) {
 
 					if (!dir_path[1]) {
-						PERR("cannot merge an empty policy label");
+						Genode::error("cannot merge an empty policy label");
 						throw Root::Unavailable();
 					}
 
@@ -151,7 +152,6 @@ class Fs_log::Root_component :
 						offset = _fs.status(handle).size;
 
 				} catch (File_system::Lookup_failed) {
-					PDBG("create");
 					handle = _fs.file(dir_handle, file_name,
 					                  File_system::WRITE_ONLY, true);
 				}
@@ -162,22 +162,22 @@ class Fs_log::Root_component :
 				_log_files.insert(file);
 
 			} catch (Permission_denied) {
-				PERR("%s: permission denied", Path(file_name, dir_path).base());
+				error(Path(file_name, dir_path), ": permission denied");
 
 			} catch (No_space) {
-				PERR("file system out of space");
+				error("file system out of space");
 
 			} catch (Out_of_metadata) {
-				PERR("file system server out of metadata");
+				error("file system server out of metadata");
 
 			} catch (Invalid_name) {
-				PERR("%s: invalid path", Path(file_name, dir_path).base());
+				error(Path(file_name, dir_path), ": invalid path");
 
 			} catch (Name_too_long) {
-				PERR("%s: name too long", Path(file_name, dir_path).base());
+				error(Path(file_name, dir_path), ": name too long");
 
 			} catch (...) {
-				PERR("cannot open log file %s", Path(file_name, dir_path).base());
+				error("cannot open log file ", Path(file_name, dir_path));
 				throw;
 			}
 

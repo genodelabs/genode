@@ -50,7 +50,7 @@ void Config::reload()
 		_config_xml = _config_xml_node(_config_ds);
 
 	} catch (Genode::Xml_node::Invalid_syntax) {
-		PERR("Config file has invalid syntax");
+		Genode::error("Config file has invalid syntax");
 		_config_xml = fallback_config_xml();
 	}
 }
@@ -88,11 +88,11 @@ Config *Genode::config()
 			static Config config_inst;
 			return &config_inst;
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
-			PERR("Could not obtain config file");
+			Genode::error("Could not obtain config file");
 		} catch (Genode::Xml_node::Invalid_syntax) {
-			PERR("Config file has invalid syntax");
+			Genode::error("Config file has invalid syntax");
 		} catch(...) {
-			PERR("Config dataspace is invalid");
+			Genode::error("Config dataspace is invalid");
 		}
 	}
 	/* do not try again to construct 'config_inst' */

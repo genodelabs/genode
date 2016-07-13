@@ -28,7 +28,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <base/printf.h>
+#include <base/log.h>
 #include <input_session/connection.h>
 #include <input/event.h>
 #include <input/keycodes.h>
@@ -97,7 +97,7 @@ extern "C" {
 					                    &ksym));
 				break;
 			case Input::Event::WHEEL:
-				PWRN("Mouse wheel, not implemented yet!");
+				Genode::warning("mouse wheel, not implemented yet");
 				break;
 			default:
 				break;
@@ -112,7 +112,7 @@ extern "C" {
 		input = new(Genode::env()->heap()) Connection();
 		if(!input->cap().valid())
 		{
-			PERR("No input driver available!");
+			Genode::error("no input driver available!");
 			return;
 		}
 

@@ -150,9 +150,10 @@ class Genodefb :
 			          (h <= (ULONG)_next_fb_mode.height());
 
 			if (ok) {
-				PINF("fb resize : %dx%d@%zu -> %ux%u@%u",
-				     _virtual_fb_mode.width(), _virtual_fb_mode.height(),
-				     _virtual_fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
+				Genode::log("fb resize : ", _virtual_fb_mode.width(),
+				            "x", _virtual_fb_mode.height(), "@",
+				            _virtual_fb_mode.bytes_per_pixel() * 8, " -> ",
+				            w, "x", h, "@", bitsPerPixel);
 
 				if ((w < (ULONG)_next_fb_mode.width()) ||
 				    (h < (ULONG)_next_fb_mode.height())) {
@@ -171,9 +172,10 @@ class Genodefb :
 				result = S_OK;
 
 			} else
-				PWRN("fb resize : %dx%d@%zu -> %ux%u@%u ignored",
-				     _virtual_fb_mode.width(), _virtual_fb_mode.height(),
-				     _virtual_fb_mode.bytes_per_pixel() * 8, w, h, bitsPerPixel);
+				Genode::warning("fb resize : ", _virtual_fb_mode.width(),
+				                "x", _virtual_fb_mode.height(), "@",
+				                _virtual_fb_mode.bytes_per_pixel() * 8, " -> ",
+				                w, "x", h, "@", bitsPerPixel, " ignored");
 
 			*finished = true;
 

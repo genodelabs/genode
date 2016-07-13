@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <file_system_session/rpc_object.h>
+#include <base/heap.h>
 #include <ram_session/connection.h>
 #include <root/component.h>
 #include <vfs/dir_file_system.h>
@@ -39,7 +40,7 @@ namespace Vfs_server {
 	{
 		try { return Genode::config()->xml_node().sub_node("vfs"); }
 		catch (...) {
-			Genode::error("vfs not configured");
+			Genode::error("VFS not configured");
 			Genode::env()->parent()->exit(~0);
 			Genode::sleep_forever();
 		}

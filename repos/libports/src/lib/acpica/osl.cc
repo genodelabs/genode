@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <util/misc_math.h>
 
@@ -25,7 +25,7 @@ extern "C" {
 
 #define FAIL(retval) \
 	{ \
-		PERR("%s:%u called - dead", __func__, __LINE__); \
+		Genode::error(__func__, ":", __LINE__, " called - dead"); \
 		Genode::Lock lock; \
 		while (1) lock.lock(); \
 		return retval; \
@@ -46,7 +46,7 @@ void * AcpiOsAllocate (ACPI_SIZE size) {
 void AcpiOsFree (void *ptr)
 {
 	if (Genode::env()->heap()->need_size_for_free())
-		PWRN("%s called - warning - ptr=%p", __func__, ptr);
+		Genode::warning(__func__, " called - warning - ptr=", ptr);
 
 	Genode::env()->heap()->free(ptr, 0);
 }
@@ -70,7 +70,7 @@ void AcpiOsReleaseLock (ACPI_SPINLOCK h, ACPI_CPU_FLAGS flags)
 	Genode::Lock *lock = reinterpret_cast<Genode::Lock *>(h);
 
 	if (flags != AE_OK)
-		PWRN("warning - unknown flags in %s", __func__);
+		Genode::warning("warning - unknown flags in ", __func__);
 
 	lock->unlock();
 
@@ -226,7 +226,7 @@ ACPI_STATUS AcpiOsExecute(ACPI_EXECUTE_TYPE type, ACPI_OSD_EXEC_CALLBACK func,
 		deferred[i].context = context;
 		return AE_OK;
 	}
-	PERR("Queue full for deferred handlers");
+	Genode::error("queue full for deferred handlers");
 	return AE_BAD_PARAMETER;
 }
 
@@ -245,7 +245,7 @@ void AcpiOsWaitEventsComplete()
 
 void AcpiOsSleep (UINT64 sleep_ms)
 {
-	PDBG("%s %llu ms", __func__, sleep_ms);
+	Genode::log(__func__, " ", sleep_ms, " ms");
 
 	static Timer::Connection conn;
 	conn.msleep(sleep_ms);

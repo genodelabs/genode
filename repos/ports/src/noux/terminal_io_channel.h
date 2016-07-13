@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/string.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/ring_buffer.h>
 #include <terminal_session/connection.h>
 
@@ -78,7 +78,7 @@ namespace Noux {
 		bool read(Sysio *sysio) override
 		{
 			if (type != STDIN) {
-				PERR("attempt to read from terminal output channel");
+				error("attempt to read from terminal output channel");
 				return false;
 			}
 
@@ -183,19 +183,19 @@ namespace Noux {
 
 			case Vfs::File_io_service::IOCTL_OP_TIOCSETAF:
 				{
-					PDBG("OP_TIOCSETAF not implemented");
+					warning(__func__, ": OP_TIOCSETAF not implemented");
 					return false;
 				}
 
 			case Vfs::File_io_service::IOCTL_OP_TIOCSETAW:
 				{
-					PDBG("OP_TIOCSETAW not implemented");
+					warning(__func__, ": OP_TIOCSETAW not implemented");
 					return false;
 				}
 
 			default:
 
-				PDBG("invalid ioctl request %d", sysio->ioctl_in.request);
+				warning("invalid ioctl request ", (int)sysio->ioctl_in.request);
 				return false;
 			};
 		}

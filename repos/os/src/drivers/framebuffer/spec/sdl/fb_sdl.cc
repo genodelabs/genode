@@ -179,7 +179,7 @@ struct Main
 		 */
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		{
-			PERR("SDL_Init failed (%s)", SDL_GetError());
+			Genode::error("SDL_Init failed (", Genode::Cstring(SDL_GetError()), ")");
 			throw Sdl_init_failed();
 		}
 
@@ -189,22 +189,22 @@ struct Main
 		char driver[16] = { 0 };
 		SDL_VideoDriverName(driver, sizeof(driver));
 		if (::strcmp(driver, "x11") != 0) {
-			PERR("fb_sdl works on X11 only. Your SDL backend is \"%s\".", driver);
+			Genode::error("fb_sdl works on X11 only. "
+			              "Your SDL backend is ", Genode::Cstring(driver), ".");
 			throw Sdl_videodriver_not_supported();
 		}
 
 		SDL_Surface *screen = SDL_SetVideoMode(fb_mode.width(), fb_mode.height(),
 		                                       fb_mode.bytes_per_pixel()*8, SDL_SWSURFACE);
 		if (!screen) {
-			PERR("SDL_SetVideoMode failed (%s)", SDL_GetError());
+			Genode::error("SDL_SetVideoMode failed (", Genode::Cstring(SDL_GetError()), ")");
 			throw Sdl_setvideomode_failed();
 		}
 		fb_session.screen(screen);
 
 		SDL_ShowCursor(0);
 
-		Genode::printf("creating virtual framebuffer for mode %dx%d@%zd\n",
-		               fb_mode.width(), fb_mode.height(), fb_mode.bytes_per_pixel()*8);
+		Genode::log("creating virtual framebuffer for mode ", fb_mode);
 
 		env.parent().announce(env.ep().manage(fb_root));
 		env.parent().announce(env.ep().manage(input_root));

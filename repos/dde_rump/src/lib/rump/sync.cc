@@ -67,7 +67,7 @@ struct rumpuser_mtx
 
 					if (flags & RUMPUSER_MTX_KMUTEX) {
 						if (owner != nullptr)
-							PERR("OWNER already set on KMUTEX enter");
+							Genode::error("OWNER already set on KMUTEX enter");
 						owner = rumpuser_curlwp();
 					}
 
@@ -94,7 +94,7 @@ struct rumpuser_mtx
 
 		if (flags & RUMPUSER_MTX_KMUTEX) {
 			if (owner == nullptr)
-				PERR("OWNER not set on KMUTEX exit");
+				Genode::error("OWNER not set on KMUTEX exit");
 			owner = nullptr;
 		}
 

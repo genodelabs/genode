@@ -257,7 +257,7 @@ class File_system::Directory : public Node
 				throw Lookup_failed();
 
 			if (ret == -1)
-				Genode::error("Error during unlink of ", node_path.base());
+				Genode::error("error during unlink of ", node_path);
 		}
 };
 

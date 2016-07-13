@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <region_map/region_map.h>
 #include <ram_session/ram_session.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/synced_allocator.h>
 #include <base/thread.h>
 
@@ -61,8 +61,6 @@ class Stack_area_region_map : public Region_map
 
 		Ds_slab _ds_slab { platform()->core_mem_alloc() };
 
-		enum { verbose = false };
-
 	public:
 
 		/**
@@ -79,30 +77,23 @@ class Stack_area_region_map : public Region_map
 			Range_allocator *ra = platform_specific()->ram_alloc();
 			if (ra->alloc_aligned(size, &phys_base,
 				                  get_page_size_log2()).error()) {
-				PERR("could not allocate backing store for new stack");
+				error("could not allocate backing store for new stack");
 				return (addr_t)0;
 			}
-
-			if (verbose)
-				PDBG("phys_base = %p, size = 0x%zx", phys_base, size);
 
 			Dataspace_component *ds = new (&_ds_slab)
 				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
 			if (!ds) {
-				PERR("dataspace for core stack does not exist");
+				error("dataspace for core stack does not exist");
 				return (addr_t)0;
 			}
 
 			addr_t core_local_addr = stack_area_virtual_base() + (addr_t)local_addr;
 
-			if (verbose)
-				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",
-				     core_local_addr, ds->phys_addr(), ds->size());
-
 			if (!map_local(ds->phys_addr(), core_local_addr,
 			               ds->size() >> get_page_size_log2())) {
-				PERR("could not map phys %lx at local %lx",
-				     ds->phys_addr(), core_local_addr);
+				error("could not map phys ", Hex(ds->phys_addr()),
+				      " at local ", Hex(core_local_addr));
 				return (addr_t)0;
 			}
 

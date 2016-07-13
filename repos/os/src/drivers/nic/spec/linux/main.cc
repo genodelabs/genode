@@ -25,6 +25,7 @@
 
 /* Genode */
 #include <base/thread.h>
+#include <base/log.h>
 #include <nic/root.h>
 #include <nic/xml_node.h>
 #include <os/config.h>
@@ -81,14 +82,14 @@ class Linux_session_component : public Nic::Session_component
 
 			int fd = open("/dev/net/tun", O_RDWR);
 			if (fd < 0) {
-				PERR("could not open /dev/net/tun: no virtual network emulation");
+				Genode::error("could not open /dev/net/tun: no virtual network emulation");
 				/* this error is fatal */
 				throw Genode::Exception();
 			}
 
 			/* set fd to non-blocking */
 			if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
-				PERR("could not set /dev/net/tun to non-blocking");
+				Genode::error("could not set /dev/net/tun to non-blocking");
 				throw Genode::Exception();
 			}
 
@@ -99,16 +100,16 @@ class Linux_session_component : public Nic::Session_component
 			try {
 				Genode::Xml_node nic_node = Genode::config()->xml_node().sub_node("nic");
 				nic_node.attribute("tap").value(ifr.ifr_name, sizeof(ifr.ifr_name));
-				PINF("Using tap device \"%s\"", ifr.ifr_name);
+				Genode::log("using tap device \"", Genode::Cstring(ifr.ifr_name), "\"");
 			} catch (...) {
 				/* use tap0 if no config has been provided */
 				Genode::strncpy(ifr.ifr_name, "tap0", sizeof(ifr.ifr_name));
-				PINF("No config provided, using tap0");
+				Genode::log("no config provided, using tap0");
 			}
 
 			ret = ioctl(fd, TUNSETIFF, (void *) &ifr);
 			if (ret != 0) {
-				PERR("could not configure /dev/net/tun: no virtual network emulation");
+				Genode::error("could not configure /dev/net/tun: no virtual network emulation");
 				close(fd);
 				/* this error is fatal */
 				throw Genode::Exception();
@@ -129,7 +130,7 @@ class Linux_session_component : public Nic::Session_component
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				PWRN("Invalid tx packet");
+				warning("invalid tx packet");
 				return true;
 			}
 
@@ -142,7 +143,7 @@ class Linux_session_component : public Nic::Session_component
 				if (ret < 0 && errno == EAGAIN)
 					continue;
 
-				if (ret < 0) PERR("write: errno=%d", errno);
+				if (ret < 0) Genode::error("write: errno=", errno);
 			} while (ret < 0);
 
 			_tx.sink()->acknowledge_packet(packet);
@@ -201,13 +202,7 @@ class Linux_session_component : public Nic::Session_component
 			try {
 				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
 				nic_config.attribute("mac").value(&_mac_addr);
-				PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
-						_mac_addr.addr[0],
-						_mac_addr.addr[1],
-						_mac_addr.addr[2],
-						_mac_addr.addr[3],
-						_mac_addr.addr[4],
-						_mac_addr.addr[5]);
+				Genode::log("Using configured MAC address ", _mac_addr);
 			} catch (...) {
 				/* fall back to fake MAC address (unicast, locally managed) */
 				_mac_addr.addr[0] = 0x02;

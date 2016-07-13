@@ -14,7 +14,7 @@
 #ifndef _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 #define _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/misc_math.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <os/irq_activation.h>
@@ -120,7 +120,7 @@ class Lan9118 : public Nic::Session_component,
 				_timer.msleep(10);
 			}
 
-			PERR("timeout while waiting for completeness of MAC CSR access");
+			Genode::error("timeout while waiting for completeness of MAC CSR access");
 		}
 
 		/**
@@ -200,7 +200,7 @@ class Lan9118 : public Nic::Session_component,
 
 			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				PWRN("Invalid tx packet");
+				Genode::warning("Invalid tx packet");
 				return true;
 			}
 
@@ -208,7 +208,8 @@ class Lan9118 : public Nic::Session_component,
 			enum { MAX_PACKET_SIZE_LOG2 = 11 };
 			Genode::size_t const max_size = (1 << MAX_PACKET_SIZE_LOG2) - 1;
 			if (packet.size() > max_size) {
-				PERR("packet size %zd too large, limit is %zd", packet.size(), max_size);
+				Genode::error("packet size ", packet.size(), " too large, "
+				              "limit is ", max_size);
 				return true;
 			}
 
@@ -224,7 +225,7 @@ class Lan9118 : public Nic::Session_component,
 			/* check space left in tx data fifo */
 			Genode::size_t const fifo_avail = _reg_read(TX_FIFO_INF) & 0xffff;
 			if (fifo_avail < count*4 + sizeof(cmd_a) + sizeof(cmd_b)) {
-				PERR("tx fifo overrun, ignore packet");
+				Genode::error("tx fifo overrun, ignore packet");
 				_tx.sink()->acknowledge_packet(packet);
 				return false;
 			}
@@ -275,23 +276,25 @@ class Lan9118 : public Nic::Session_component,
 			unsigned long const id_rev     = _reg_read(ID_REV),
 			                    byte_order = _reg_read(BYTE_TEST);
 
-			PINF("id/rev:      0x%lx", id_rev);
-			PINF("byte order:  0x%lx", byte_order);
+			using namespace Genode;
+
+			log("id/rev:      ", Hex(id_rev));
+			log("byte order:  ", Hex(byte_order));
 
 			enum { EXPECTED_BYTE_ORDER = 0x87654321 };
 			if (byte_order != EXPECTED_BYTE_ORDER) {
-				PERR("invalid byte order, expected 0x%x", EXPECTED_BYTE_ORDER);
+				error("invalid byte order, expected ", Hex(EXPECTED_BYTE_ORDER));
 				throw Device_not_supported();
 			}
 
 			enum { EXPECTED_ID = 0x01180000 };
 			if ((id_rev & 0xffff0000) != EXPECTED_ID) {
-				PERR("device ID not supported, expected 0x%x", EXPECTED_ID);
+				error("device ID not supported, expected ", Hex(EXPECTED_ID));
 				throw Device_not_supported();
 			}
 
 			if (!_soft_reset()) {
-				PERR("soft reset timed out");
+				error("soft reset timed out");
 				throw Device_not_supported();
 			}
 
@@ -306,9 +309,7 @@ class Lan9118 : public Nic::Session_component,
 			_mac_addr.addr[1] = (mac_addr_lo >>  8) & 0xff;
 			_mac_addr.addr[0] = (mac_addr_lo >>  0) & 0xff;
 
-			PINF("MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
-			     _mac_addr.addr[5], _mac_addr.addr[4], _mac_addr.addr[3],
-			     _mac_addr.addr[2], _mac_addr.addr[1], _mac_addr.addr[0]);
+			log("MAC address: ", _mac_addr);
 
 			/* configure MAC */
 			enum { MAC_CR_TXEN = (1 << 3),
@@ -343,7 +344,8 @@ class Lan9118 : public Nic::Session_component,
 		 */
 		~Lan9118()
 		{
-			PINF("disable NIC");
+			Genode::log("disable NIC");
+
 			/* disable transmitter */
 			_reg_write(TX_CFG, 0);
 

@@ -89,7 +89,7 @@ static Subsystem_config_registry &subsystem_config_registry()
 
 	} catch (Genode::Xml_node::Nonexistent_sub_node) {
 
-		PERR("missing '<vfs>' configuration");
+		Genode::error("missing '<vfs>' configuration");
 		throw;
 	}
 }

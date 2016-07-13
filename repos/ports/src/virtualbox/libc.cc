@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <rtc_session/connection.h>
 
@@ -131,7 +131,7 @@ extern "C" char *getenv(const char *name)
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG_FLAGS") == 0)
 		return (char *)"thread";
 
-	PWRN("getenv called for non-existent variable \"%s\"", name);
+	Genode::warning("getenv called for non-existent variable \"", name, "\"");
 	return 0;
 }
 
@@ -165,7 +165,7 @@ extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
 extern "C" pid_t getpid(void)
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log(__func__, " called - rip ", __builtin_return_address(0));
 
 	return 1345;
 }
@@ -173,7 +173,7 @@ extern "C" pid_t getpid(void)
 extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log(__func__, " called - rip ", __builtin_return_address(0));
 
 	return -1;
 }
@@ -181,28 +181,28 @@ extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 extern "C" int _sigaction(int, const struct sigaction *, struct sigaction *)
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log(__func__, " called - rip ", __builtin_return_address(0));
 
 	return -1;
 }
 
 extern "C" int futimes(int fd, const struct timeval tv[2])
 {
-	PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+	Genode::log("%s called - rip %p", __func__, __builtin_return_address(0));
 	return 0;
 }
 
 extern "C" int lutimes(const char *filename, const struct timeval tv[2])
 {
-	PINF("%s called - file '%s' - rip %p", __func__, filename,
-	     __builtin_return_address(0));
+	Genode::log(__func__, ": called - file '", filename, "' - rip ",
+	            __builtin_return_address(0));
 	return 0;
 }
 
 extern "C" int _sigprocmask()
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log("%s called - rip %p", __func__, __builtin_return_address(0));
 
 	return 0;
 }
@@ -249,8 +249,7 @@ extern "C" int statfs(const char *path, struct statfs *buf)
 		buf->f_bavail = buf->f_blocks;
 
 	if (show_warning)
-		PWRN("statfs provides bogus values for '%s' (probably a shared folder)",
-		     path);
+		Genode::warning("statfs provides bogus values for '", path, "' (probably a shared folder)");
 
 	return res;
 }
@@ -259,7 +258,7 @@ extern "C" long pathconf(char const *path, int name)
 {
 	if (name == _PC_NAME_MAX) return 255;
 
-	PERR("pathconf does not support config option %d", name);
+	Genode::error("pathconf does not support config option ", name);
 	errno = EINVAL;
 	return -1;
 }

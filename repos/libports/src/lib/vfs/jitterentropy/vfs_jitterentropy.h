@@ -34,14 +34,14 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 		{
 			int err = jent_entropy_init();
 			if (err) {
-				PERR("jitterentropy library could not be initialized!");
+				Genode::error("jitterentropy library could not be initialized!");
 				return false;
 			}
 
 			/* use the default behaviour as specified in jitterentropy(3) */
 			_ec_stir = jent_entropy_collector_alloc(0, 0);
 			if (!_ec_stir) {
-				PERR("jitterentropy could not allocate entropy collector!");
+				Genode::error("jitterentropy could not allocate entropy collector!");
 				return false;
 			}
 

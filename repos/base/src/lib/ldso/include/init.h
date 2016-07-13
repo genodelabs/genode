@@ -68,7 +68,7 @@ struct Linker::Init : Genode::List<Object>
 		/* relocate */
 		for (; obj; obj = obj->next_init()) {
 			if (verbose_relocation)
-				PDBG("Relocate %s", obj->name());
+				Genode::log("Relocate ", obj->name());
 			obj->relocate();
 		}
 
@@ -94,7 +94,7 @@ struct Linker::Init : Genode::List<Object>
 			if (obj->dynamic()->init_function) {
 
 				if (verbose_relocation)
-					PDBG("%s init func %p", obj->name(), obj->dynamic()->init_function);
+					Genode::log(obj->name(), " init func ", obj->dynamic()->init_function);
 
 				obj->dynamic()->init_function();
 			}

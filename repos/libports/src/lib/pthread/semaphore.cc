@@ -13,7 +13,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <semaphore.h>
 
 using namespace Genode;
@@ -32,7 +32,7 @@ extern "C" {
 
 	int sem_close(sem_t *)
 	{
-		PDBG("not implemented");
+		warning(__func__, " not implemented");
 		return -1;
 	}
 
@@ -60,7 +60,7 @@ extern "C" {
 
 	sem_t *sem_open(const char *, int, ...)
 	{
-		PDBG("not implemented");
+		warning(__func__, " not implemented");
 		return 0;
 	}
 
@@ -74,21 +74,21 @@ extern "C" {
 
 	int sem_timedwait(sem_t * __restrict, const struct timespec * __restrict)
 	{
-		PDBG("not implemented");
+		warning(__func__, " not implemented");
 		return -1;
 	}
 
 
 	int sem_trywait(sem_t *)
 	{
-		PDBG("not implemented");
+		warning(__func__, " not implemented");
 		return -1;
 	}
 
 
 	int sem_unlink(const char *)
 	{
-		PDBG("not implemented");
+		warning(__func__, " not implemented");
 		return -1;
 	}
 

@@ -162,7 +162,7 @@ class Genode::Expanding_parent_client : public Parent_client
 		{
 			Lock::Guard guard(_lock);
 
-			PLOG("resource_request: %s", args.string());
+			log("resource_request: ", args.string());
 
 			/*
 			 * Issue request but don't block if a custom signal handler is

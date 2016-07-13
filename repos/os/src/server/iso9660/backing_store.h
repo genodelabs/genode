@@ -35,7 +35,7 @@ class Backing_store
 		{
 			virtual void detach_block(UMD umd)
 			{
-				PWRN("this should never be called");
+				Genode::warning(__func__, " this should never be called");
 			}
 		};
 
@@ -187,7 +187,6 @@ class Backing_store
 
 			/* skip blocks that are currently in the process of being assigned */
 			while (_curr_block()->user() == &_not_yet_assigned) {
-				PDBG("skipping not-yet assigned block");
 				_advance_curr_block();
 			}
 

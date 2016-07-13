@@ -13,10 +13,11 @@
 
 /* Genode includes */
 #include <util/volatile_object.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using Genode::Volatile_object;
 using Genode::Lazy_volatile_object;
+using Genode::log;
 
 
 struct Object
@@ -25,16 +26,16 @@ struct Object
 
 	Object(unsigned id) : id(id)
 	{
-		PLOG("construct Object %d", id);
+		log("construct Object ", id);
 	}
 
 	~Object()
 	{
-		PLOG("destruct Object %d", id);
+		log("destruct Object ", id);
 	}
 
-	void method()             { PLOG("method called on Object %d", id); }
-	void const_method() const { PLOG("const method called on Object %d", id); }
+	void method()             { log("method called on Object ", id); }
+	void const_method() const { log("const method called on Object ", id); }
 };
 
 
@@ -46,12 +47,12 @@ struct Member_with_reference
 
 	Member_with_reference(Object &reference) : reference(reference)
 	{
-		PLOG("construct Member_with_reference");
+		log("construct Member_with_reference");
 	}
 
 	~Member_with_reference()
 	{
-		PLOG("destruct Member_with_reference");
+		log("destruct Member_with_reference");
 	}
 };
 
@@ -65,12 +66,12 @@ struct Compound
 	:
 		member(object)
 	{
-		PLOG("construct Compound");
+		log("construct Compound");
 	}
 
 	~Compound()
 	{
-		PLOG("destruct Compound");
+		log("destruct Compound");
 	}
 };
 
@@ -90,16 +91,16 @@ struct Throwing
 	Throwing(Bool const &throws)
 	{
 		if (throws.b) {
-			PLOG("construct Throwing -> throw exception");
+			log("construct Throwing -> throw exception");
 			throw -1;
 		} else {
-			PLOG("construct Throwing -> don't throw");
+			log("construct Throwing -> don't throw");
 		}
 	}
 
 	virtual ~Throwing()
 	{
-		PLOG("destruct Throwing");
+		log("destruct Throwing");
 	}
 };
 
@@ -114,58 +115,58 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	printf("--- test-volatile_object started ---\n");
+	log("--- test-volatile_object started ---");
 
 	{
 		Object object_1(1);
 		Object object_2(2);
 
-		printf("-- create Compound object --\n");
+		log("-- create Compound object --");
 		Compound compound(object_1);
 
-		PLOG("compound.member.constructed returns %d",
-		     compound.member.constructed());
-		PLOG("compound.lazy_member.constructed returns %d",
-		     compound.lazy_member.constructed());
+		log("compound.member.constructed returns ",
+		    compound.member.constructed());
+		log("compound.lazy_member.constructed returns ",
+		    compound.lazy_member.constructed());
 
-		printf("-- construct lazy member --\n");
+		log("-- construct lazy member --");
 		compound.lazy_member.construct(object_2);
-		PLOG("compound.lazy_member.constructed returns %d",
-		     compound.lazy_member.constructed());
+		log("compound.lazy_member.constructed returns ",
+		    compound.lazy_member.constructed());
 
-		printf("-- call method on member (with reference to Object 1) --\n");
+		log("-- call method on member (with reference to Object 1) --");
 		call_const_method(compound);
 
-		printf("-- reconstruct member with Object 2 as reference --\n");
+		log("-- reconstruct member with Object 2 as reference --");
 		compound.member.construct(object_2);
 
-		printf("-- call method on member --\n");
+		log("-- call method on member --");
 		call_const_method(compound);
 
-		printf("-- destruct member --\n");
+		log("-- destruct member --");
 		compound.member.destruct();
 
-		printf("-- try to call method on member, catch exception --\n");
+		log("-- try to call method on member, catch exception --");
 		try {
 			call_const_method(compound); }
 		catch (typename Volatile_object<Member_with_reference>::Deref_unconstructed_object) {
-			PLOG("got exception, as expected"); }
+			log("got exception, as expected"); }
 
-		printf("-- destruct Compound and Objects 1 and 2 --\n");
+		log("-- destruct Compound and Objects 1 and 2 --");
 	}
 
 	try {
-		printf("-- construct Throwing object\n");
+		log("-- construct Throwing object");
 		Bool const b_false(false), b_true(true);
 
 		Volatile_object<Throwing> inst(b_false);
 		inst.construct(b_true);
-		PERR("expected contructor to throw");
+		Genode::error("expected contructor to throw");
 	} catch (int i) {
-		printf("-- catched exception as expected\n");
+		log("-- catched exception as expected");
 	}
 
-	printf("--- test-volatile_object finished ---\n");
+	log("--- test-volatile_object finished ---");
 
 	return 0;
 }

@@ -16,7 +16,8 @@
 #include <cxxabi.h>
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
+#include <util/string.h>
 
 extern "C" char __eh_frame_start__[];                  /* from linker script */
 extern "C" void __register_frame (const void *begin);  /* from libgcc_eh     */
@@ -58,11 +59,13 @@ void terminate_handler()
 
 	char *demangled_name = __cxa_demangle(t->name(), nullptr, nullptr, nullptr);
 	if (demangled_name) {
-		PERR("Uncaught exception of type '%s'", demangled_name);
+		Genode::error("Uncaught exception of type "
+		              "'", Genode::Cstring(demangled_name), "'");
 		free(demangled_name);
-	} else
-		PERR("Uncaught exception of type '%s' (use 'c++filt -t' to demangle)",
-		     t->name());
+	} else {
+		Genode::error("Uncaught exception of type '", t->name(), "' "
+		              "(use 'c++filt -t' to demangle)");
+	}
 }
 
 

@@ -16,7 +16,7 @@
 
 #include <base/ipc_msgbuf.h>
 #include <base/rpc_args.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Genode {
 
@@ -97,7 +97,7 @@ class Genode::Ipc_unmarshaller : Noncopyable
 			 *       condition triggers.
 			 */
 			if (_read_offset + size > _rcv_buf_size) {
-				PERR("message buffer overrun");
+				error("message buffer overrun");
 				return;
 			}
 

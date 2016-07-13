@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <mixer/channel.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
@@ -318,7 +318,7 @@ static int write_config(char const *file, char const *data, size_t length)
 
 	QFile mixer_file(file);
 	if (!mixer_file.open(QIODevice::WriteOnly)) {
-		PERR("could not open '%s'", file);
+		Genode::error("could not open '", file, "'");
 		return -1;
 	}
 
@@ -367,16 +367,16 @@ void Main_window::_update_config()
 						});
 
 						if (_verbose)
-							PLOG("label: '%s' volume: %d muted: %d", c->label().string(),
-							     combined ? vol   : w->volume(),
-							     combined ? muted : w->muted());
+							Genode::log("label: '", c->label(), "' "
+							            "volume: ", combined ? vol   : w->volume(), " "
+							            "muted: ",  combined ? muted : w->muted());
 					}
 				}
 			});
 		});
 		xml_used = xml.used();
 
-	} catch (...) { PWRN("could generate 'mixer.config'"); }
+	} catch (...) { Genode::warning("could generate 'mixer.config'"); }
 
 	write_config(config_file, xml_data, xml_used);
 }
@@ -411,7 +411,7 @@ void Main_window::_update_clients(Genode::Xml_node &channels)
 
 			_layout->addWidget(c);
 			resize(sizeHint());
-		} catch (Channel::Invalid_channel) { PWRN("invalid channel node"); }
+		} catch (Channel::Invalid_channel) { Genode::warning("invalid channel node"); }
 	});
 
 	client_registry()->remove_invalid();
@@ -455,7 +455,7 @@ Main_window::Main_window()
 		_default_out_volume = node.attribute_value<long>("out_volume", 0);
 		_default_volume     = node.attribute_value<long>("volume", 0);
 		_default_muted      = node.attribute_value<long>("muted", 1);
-	} catch (...) { PWRN("no <default> node found, fallback is 'muted=1'"); }
+	} catch (...) { Genode::warning("no <default> node found, fallback is 'muted=1'"); }
 }
 
 

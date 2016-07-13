@@ -456,7 +456,7 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 	Nic_client *nic_client = pThis->nic_client;
 
 	if (!nic_client)
-		PERR("nic_client not valid at destruction time");
+		Genode::error("nic_client not valid at destruction time");
 
 	if (nic_client)
 		Genode::Signal_transmitter(nic_client->dispatcher()).submit();

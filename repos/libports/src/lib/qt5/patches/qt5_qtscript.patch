@@ -6,10 +6,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 ---
  qtbase/src/corelib/global/qglobal.h                |    6 +++++-
  qtbase/src/corelib/kernel/qvariant_p.h             |    3 +++
- .../JavaScriptCore/runtime/Collector.cpp           |   21 ++++++++++++++++++++
- .../javascriptcore/JavaScriptCore/wtf/Assertions.h |   11 ++++++++++
+ .../JavaScriptCore/runtime/Collector.cpp           |   20 ++++++++++++++++++++
+ .../javascriptcore/JavaScriptCore/wtf/Assertions.h |   11 +++++++++++
  .../javascriptcore/JavaScriptCore/wtf/Platform.h   |    5 +++++
- 5 files changed, 45 insertions(+), 1 deletion(-)
+ 5 files changed, 44 insertions(+), 1 deletion(-)
 
 diff --git a/qtbase/src/corelib/global/qglobal.h b/qtbase/src/corelib/global/qglobal.h
 index 79e32fe..324c168 100644
@@ -50,16 +50,15 @@ index 4ec049e..e5e8dc4 100644
          m_x->is_shared = false;
          m_x->is_null = !m_copy;
 diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
-index d5adbd7..d9dd773 100644
+index d5adbd7..d2a5ad9 100644
 --- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
 +++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
-@@ -64,6 +64,13 @@
+@@ -64,6 +64,12 @@
  
  #include <OS.h>
  
 +#elif OS(GENODE)
 +
-+#include <base/printf.h>
 +#include <base/stdint.h>
 +#include <util/misc_math.h>
 +#include <thread_qt.h>
@@ -67,7 +66,7 @@ index d5adbd7..d9dd773 100644
  #elif OS(UNIX)
  
  #include <stdlib.h>
-@@ -209,6 +216,15 @@ NEVER_INLINE CollectorBlock* Heap::allocateBlock()
+@@ -209,6 +215,15 @@ NEVER_INLINE CollectorBlock* Heap::allocateBlock()
      void* address = _aligned_malloc(BLOCK_SIZE, BLOCK_SIZE);
  #endif
      memset(address, 0, BLOCK_SIZE);
@@ -83,7 +82,7 @@ index d5adbd7..d9dd773 100644
  #elif HAVE(POSIX_MEMALIGN)
      void* address;
      posix_memalign(&address, BLOCK_SIZE, BLOCK_SIZE);
-@@ -299,6 +315,9 @@ NEVER_INLINE void Heap::freeBlockPtr(CollectorBlock* block)
+@@ -299,6 +314,9 @@ NEVER_INLINE void Heap::freeBlockPtr(CollectorBlock* block)
  #else
      _aligned_free(block);
  #endif
@@ -93,7 +92,7 @@ index d5adbd7..d9dd773 100644
  #elif HAVE(POSIX_MEMALIGN)
      free(block);
  #else
-@@ -649,6 +668,8 @@ static inline void* currentThreadStackBase()
+@@ -649,6 +667,8 @@ static inline void* currentThreadStackBase()
      thread_info threadInfo;
      get_thread_info(find_thread(NULL), &threadInfo);
      return threadInfo.stack_end;
@@ -103,7 +102,7 @@ index d5adbd7..d9dd773 100644
      AtomicallyInitializedStatic(Mutex&, mutex = *new Mutex);
      MutexLocker locker(mutex);
 diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
-index 352a74b..6a1aea3 100644
+index 352a74b..20ef8b4 100644
 --- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
 +++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
 @@ -44,6 +44,10 @@
@@ -111,7 +110,7 @@ index 352a74b..6a1aea3 100644
  #include "Platform.h"
  
 +#if OS(GENODE)
-+#include <base/printf.h>
++#include <base/log.h>
 +#endif
 +
  #if COMPILER(MSVC)
@@ -123,8 +122,8 @@ index 352a74b..6a1aea3 100644
      } while(false)
 +#elif OS(GENODE)
 +#define CRASH() ( \
-+	PERR("QtScript CRASH in '%s'", WTF_PRETTY_FUNCTION), \
-+	PERR("  in %s:%d", __FILE__, __LINE__), \
++	Genode::error("QtScript CRASH in '", WTF_PRETTY_FUNCTION, "'"), \
++	Genode::error("  in ", __FILE__, ":", __LINE__), \
 +    *(int *)(uintptr_t)0xbbadbeef = 0, \
 +    ((void(*)())0)() /* More reliable, but doesn't say BBADBEEF */ \
 +)

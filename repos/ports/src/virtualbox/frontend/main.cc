@@ -14,7 +14,7 @@
 
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/config.h>
 
 /* Virtualbox includes */
@@ -202,8 +202,8 @@ int main(int argc, char **argv)
 		Xml_node::Attribute vm_name = node.attribute("vm_name");
 		vm_name.value(c_vbox_vmname, sizeof(c_vbox_vmname));
 	} catch (...) {
-		PERR("Missing attributes in configuration, minimum requirements: ");
-		PERR("  <config vbox_file=\"...\" vm_name=\"...\">" );
+		Genode::error("missing attributes in configuration, minimum requirements: ");
+		Genode::error("  <config vbox_file=\"...\" vm_name=\"...\">" );
 		throw;
 	}
 
@@ -213,11 +213,11 @@ int main(int argc, char **argv)
 
 	HRESULT hrc = setupmachine();
 	if (FAILED(hrc)) {
-		PERR("Start-up of VMM failed - reason 0x%x - exiting ...", hrc);
+		Genode::error("startup of VMM failed - reason ", hrc, " - exiting ...");
 		return -2;
 	}
 
-	PERR("VMM exiting ...");
+	Genode::error("VMM exiting ...");
 
 	return 0;
 }

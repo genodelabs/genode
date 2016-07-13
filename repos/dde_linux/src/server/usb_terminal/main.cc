@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  PL2303-USB-UART driver that exposes a terminal session
  * \author Sebastian Sumpf
  * \date   2014-12-17
@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/heap.h>
 #include <os/attached_ram_dataspace.h>
 #include <os/ring_buffer.h>
 #include <os/server.h>
@@ -18,7 +19,6 @@
 #include <terminal_session/terminal_session.h>
 #include <usb/usb.h>
 
-constexpr bool verbose = false;
 
 namespace Terminal {
 	class Main;
@@ -111,7 +111,7 @@ struct Usb::Pl2303_driver : Completion
 			for (int i = 0; i < p.transfer.actual_size; i++)
 				ring_buffer.add(data[i]);
 		} catch (Ring_buffer::Overflow) {
-			PWRN("Pl2303 buffer overflow");
+			Genode::warning("Pl2303 buffer overflow");
 		}
 
 		/* submit back to device (async) */
@@ -155,9 +155,9 @@ struct Usb::Pl2303_driver : Completion
 		enum { BUF = 128 };
 		char buffer[BUF];
 
-		PINF("PL2303 controller: ready");
-		PINF("Manufacturer     : %s", device.manufactorer_string.to_char(buffer, BUF));
-		PINF("Product          : %s", device.product_string.to_char(buffer, BUF));
+		Genode::log("PL2303 controller: ready");
+		Genode::log("Manufacturer     : ", Cstring(device.manufactorer_string.to_char(buffer, BUF)));
+		Genode::log("Product          : ", Cstring(device.product_string.to_char(buffer, BUF)));
 
 		Interface &iface = device.interface(0);
 		iface.claim();
@@ -183,16 +183,8 @@ struct Usb::Pl2303_driver : Completion
 		/* set baud rate to 115200 */
 		pl2303_config *cfg = (pl2303_config *)iface.content(p);
 
-		if (verbose)
-			PDBG("GET_LINE  %u %u %u %u\n",
-			     cfg->baud, cfg->stop_bits, cfg->parity, cfg->data_bits);
-
 		pl2303_config cfg_new;
 		*cfg = cfg_new;
-
-		if (verbose)
-			PDBG("SET_LINE  %u %u %u %u\n",
-			     cfg_new.baud, cfg_new.stop_bits, cfg_new.parity, cfg_new.data_bits);
 
 		iface.control_transfer(p, 0x21, 0x20, 0, 0, 100);
 		iface.release(p);
@@ -217,13 +209,8 @@ struct Usb::Pl2303_driver : Completion
 	 */
 	void state_change(unsigned)
 	{
-		if (connection.plugged()) {
-			if (verbose)
-				PDBG("Device: Plugged");
+		if (connection.plugged())
 			init();
-		}
-		else if (verbose)
-			PDBG("Device: Unplugged");
 	}
 
 	/**

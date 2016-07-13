@@ -15,6 +15,7 @@
 #define _INCLUDE__NIC_SESSION__NIC_SESSION_H_
 
 #include <dataspace/capability.h>
+#include <base/output.h>
 #include <base/signal.h>
 #include <base/rpc.h>
 #include <session/session.h>
@@ -33,7 +34,20 @@ namespace Nic {
 }
 
 
-struct Nic::Mac_address { char addr[6]; };
+struct Nic::Mac_address
+{
+	enum { NUM_ELEM = 6 };
+
+	char addr[NUM_ELEM];
+
+	void print(Genode::Output &out) const
+	{
+		using Genode::Hex;
+		for (unsigned i = 0; i < NUM_ELEM; i++)
+			Genode::print(out, i > 0 ? ":" : "",
+			                   Hex(addr[i], Hex::OMIT_PREFIX, Hex::PAD));
+	}
+};
 
 
 /*

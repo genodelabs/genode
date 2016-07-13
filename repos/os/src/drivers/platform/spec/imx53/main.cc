@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/rpc_server.h>
 #include <cap_session/connection.h>
@@ -75,7 +75,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 				_iomux.pwm_enable();
 				break;
 			default:
-				PWRN("Invalid device");
+				Genode::warning("invalid device");
 			};
 		}
 
@@ -86,7 +86,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 				_ccm.ipu_clk_disable();
 				break;
 			default:
-				PWRN("Invalid device");
+				Genode::warning("invalid device");
 			};
 		}
 
@@ -94,7 +94,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 		{
 			switch (dev) {
 			default:
-				PWRN("Invalid device");
+				Genode::warning("invalid device");
 			};
 		}
 
@@ -135,7 +135,7 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	PINF("--- i.MX53 platform driver ---\n");
+	Genode::log("--- i.MX53 platform driver ---");
 
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, 4096, "imx53_plat_ep");

@@ -67,8 +67,9 @@ class Acpi::Memory
 
 			/* sanity check that physical address is in range we support */
 			if ((phys & _align_mask(ACPI_REGION_SIZE_LOG2)) != high) {
-				PERR("acpi table out of range - 0x%lx not in [0x%lx,0x%lx)",
-				     phys, high, high + (1UL << ACPI_REGION_SIZE_LOG2) - 1);
+				addr_t const end = high + (1UL << ACPI_REGION_SIZE_LOG2) - 1;
+				error("acpi table out of range - ", Hex(phys), " "
+				      "not in ", Hex_range<addr_t>(high, end - high));
 				throw -1;
 			}
 

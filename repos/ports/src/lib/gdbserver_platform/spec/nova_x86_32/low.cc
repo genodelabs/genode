@@ -24,7 +24,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *value)
 
 	try { ts = get_current_thread_state(); }
 	catch (...) {
-		PERR("%s: could not get current thread state", __PRETTY_FUNCTION__);
+		error(__PRETTY_FUNCTION__, ": could not get current thread state");
 		return -1;
 	}
 
@@ -46,7 +46,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *value)
 		case ES:   cannot_fetch_register("ES"); return -1;
 		case FS:   cannot_fetch_register("FS"); return -1;
 		case GS:   cannot_fetch_register("GS"); return -1;
-		default:   PERR("unhandled register %d", regno); return -1;
+		default:   error("unhandled register ", regno); return -1;
 	}
 
 	return -1;
@@ -59,7 +59,7 @@ extern "C" void genode_store_register(int regno, unsigned long value)
 
 	try { ts = get_current_thread_state(); }
 	catch (...) {
-		PERR("%s: could not get current thread state", __PRETTY_FUNCTION__);
+		error(__PRETTY_FUNCTION__, ": could not get current thread state");
 		return;
 	}
 
@@ -81,7 +81,7 @@ extern "C" void genode_store_register(int regno, unsigned long value)
 		case ES:   cannot_store_register("ES", value); return;
 		case FS:   cannot_store_register("FS", value); return;
 		case GS:   cannot_store_register("GS", value); return;
-		default:   PERR("unhandled register %d", regno); return;
+		default:   error("unhandled register ", regno); return;
 	}
 
 	set_current_thread_state(ts);

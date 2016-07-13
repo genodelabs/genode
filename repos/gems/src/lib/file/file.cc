@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* gems includes */
 #include <gems/file.h>
@@ -42,7 +42,7 @@ File::File(char const *name, Genode::Allocator &alloc)
 {
 	int const fd = open(name, O_RDONLY);
 	if (read(fd, _data, _file_size) < 0) {
-		PERR("reading from file \"%s\" failed (error %d)", name, errno);
+		Genode::error("reading from file \"", name, "\" failed (error ", errno, ")");
 		throw Reading_failed();
 	}
 	close(fd);

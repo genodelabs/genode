@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <terminal_session/connection.h>
 
@@ -42,7 +42,7 @@ int main(int, char **)
 		int num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
 
 		if (verbose && (num_bytes > 0))
-			PDBG("got %d bytes", num_bytes);
+			log("got ", num_bytes, " bytes");
 
 		for (int i = 0; i < num_bytes; i++) {
 			if (read_buffer[i] == '\r') {

@@ -13,7 +13,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <regulator/component.h>
@@ -53,7 +53,7 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	PINF("--- Odroid-x2 platform driver ---");
+	log("--- Odroid-x2 platform driver ---");
 
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, 4096, "odroid_x2_plat_ep");
@@ -61,7 +61,7 @@ int main(int, char **)
 	static Regulator::Root reg_root(&ep, env()->heap(), driver_factory);
 	env()->parent()->announce(ep.manage(&reg_root));
 
-	PINF("--- Odroid-x2 platform driver. Done ---");
+	log("--- Odroid-x2 platform driver. Done ---");
 	sleep_forever();
 	return 0;
 }

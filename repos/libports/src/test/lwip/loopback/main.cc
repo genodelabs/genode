@@ -19,7 +19,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <util/string.h>
 
@@ -50,29 +50,29 @@ class Client : public Genode::Thread_deprecated<4096>
 			/* client loop */
 			while(true) {
 
-				PDBG("Create new socket ...");
+				Genode::log("Create new socket ...");
 				int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 				if (s < 0) {
-					PERR("No socket available!");
+					Genode::error("no socket available!");
 					continue;
 				}
 
-				PDBG("Connect to server ...");
+				Genode::log("Connect to server ...");
 				struct sockaddr_in addr;
 				addr.sin_port = htons(80);
 				addr.sin_family = AF_INET;
 				addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 				if((connect(s, (struct sockaddr *)&addr, sizeof(addr))) < 0) {
-					PERR("Could not connect!");
+					Genode::error("could not connect!");
 					close(s);
 					continue;
 				}
 
-				PDBG("Send request...");
+				Genode::log("Send request...");
 				unsigned long bytes = send(s, (char*)http_get_request,
 				                                Genode::strlen(http_get_request), 0);
 				if ( bytes < 0 ) {
-					PERR("Couldn't send request ...");
+					Genode::error("couldn't send request ...");
 					close(s);
 					continue;
 				}
@@ -84,8 +84,8 @@ class Client : public Genode::Thread_deprecated<4096>
 					buflen = recv(s, buf, 1024, 0);
 					if(buflen > 0) {
 						buf[buflen] = 0;
-						PDBG("Packet received!");
-						PDBG("Packet content:\n%s", buf);
+						Genode::log("Packet received!");
+						Genode::log("Packet content:\n", Genode::Cstring(buf));
 					} else
 						break;
 				}
@@ -115,7 +115,7 @@ void http_server_serve(int conn) {
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = recv(conn, buf, 1024, 0);
-	PDBG("Request received!");
+	Genode::log("Request received!");
 
 	/* Ignore receive errors */
 	if (buflen > 0) {
@@ -146,25 +146,25 @@ void http_server_serve(int conn) {
 int server() {
 	int s;
 
-	PDBG("Create new socket ...");
+	Genode::log("Create new socket ...");
 	if((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		PERR("No socket available!");
+		Genode::error("no socket available!");
 		return -1;
 	}
 
-	PDBG("Now, I will bind ...");
+	Genode::log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_port = htons(80);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		PERR("bind failed!");
+		Genode::error("bind failed!");
 		return -1;
 	}
 
-	PDBG("Now, I will listen ...");
+	Genode::log("Now, I will listen ...");
 	if(listen(s, 5)) {
-		PERR("listen failed!");
+		Genode::error("listen failed!");
 		return -1;
 	}
 
@@ -174,13 +174,13 @@ int server() {
 	 * Unblock client thread, wait for requests and handle them,
 	 * after that close the connection.
 	 */
-	PDBG("Start the loop ...");
+	Genode::log("Start the loop ...");
 	while(true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
 		int client = accept(s, &addr, &len);
 		if(client < 0) {
-			PWRN("Invalid socket from accept!");
+			Genode::warning("invalid socket from accept!");
 			continue;
 		}
 		http_server_serve(client);

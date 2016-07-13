@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <base/log.h>
 #include <os/server.h>
 #include <os/config.h>
 #include <os/static_root.h>
@@ -24,10 +25,6 @@
 
 /* local includes */
 #include "tuntap.h"
-
-
-static int const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 
 /* external symbols provided by Genode's startup code */
@@ -57,10 +54,7 @@ class Openvpn_thread : public Genode::Thread_deprecated<16UL * 1024 * sizeof (lo
 			Thread_deprecated("openvpn_main"),
 			_argc(argc), _argv(argv),
 			_exitcode(-1)
-		{
-			//for (int i = 0; i < _argc; i++)
-			//	PINF("_argv[%i]: '%s'", i, _argv[i]);
-		}
+		{ }
 
 		void entry()
 		{
@@ -111,7 +105,7 @@ class Openvpn_component : public Tuntap_device,
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				PWRN("Invalid tx packet");
+				Genode::warning("invalid tx packet");
 				return true;
 			}
 
@@ -145,7 +139,7 @@ class Openvpn_component : public Tuntap_device,
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
 		{
 			if (pipe(_pipefd)) {
-				PERR("could not create pipe");
+				Genode::error("could not create pipe");
 				throw Genode::Exception();
 			}
 		}
@@ -171,8 +165,6 @@ class Openvpn_component : public Tuntap_device,
 		/* tx */
 		int read(char *buf, Genode::size_t len)
 		{
-			PDBGV("buf:0x%p len:%zu", len);
-
 			Genode::memcpy(buf, _packet, len);
 			_packet = 0;
 
@@ -185,7 +177,6 @@ class Openvpn_component : public Tuntap_device,
 		/* rx */
 		int write(char const *buf, Genode::size_t len)
 		{
-			PDBGV("buf:0x%p len:%zu", len);
 			_handle_packet_stream();
 
 			if (!_rx.source()->ready_to_submit())
@@ -234,7 +225,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
+				Genode::error("insufficient 'ram_quota', got %zd, need %zd",
 				     ram_quota, tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
@@ -251,7 +242,6 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			 */
 			_tuntap_dev = component;
 
-			PDBGV("start OpenVPN main thread");
 			_thread = new (Genode::env()->heap()) Openvpn_thread(genode_argc, genode_argv);
 			_thread->start();
 

@@ -12,10 +12,19 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/component.h>
 #include <base/heap.h>
+
+
+namespace Genode {
+
+	static inline void print(Output &out, Affinity::Location location)
+	{
+		print(out, location.xpos(), ",", location.ypos());
+	}
+}
 
 
 enum { STACK_SIZE = sizeof(long)*1024, COUNT_VALUE = 10 * 1024 * 1024 };
@@ -32,8 +41,7 @@ struct Spinning_thread : Genode::Thread
 	{
 		barrier.unlock();
 
-		PINF("thread started on CPU %d,%d, spinning...",
-		     _location.xpos(), _location.ypos());
+		Genode::log("thread started on CPU ", _location, " spinning...");
 
 		unsigned round = 0;
 
@@ -42,8 +50,8 @@ struct Spinning_thread : Genode::Thread
 
 			/* show a life sign every now and then... */
 			if (cnt % COUNT_VALUE == 0) {
-				PINF("thread on CPU %d,%d keeps counting - round %u...\n",
-				     _location.xpos(), _location.ypos(), round++);
+				Genode::log("thread on CPU ", _location, " keeps counting - "
+				            "round ", round++, "...");
 			}
 		}
 	}
@@ -73,11 +81,11 @@ Main::Main(Genode::Env &env) : env(env)
 {
 	using namespace Genode;
 
-	printf("--- test-affinity started ---\n");
+	log("--- test-affinity started ---");
 
 	Affinity::Space cpus = env.cpu().affinity_space();
-	printf("Detected %ux%u CPU%s\n",
-	       cpus.width(), cpus.height(), cpus.total() > 1 ? "s." : ".");
+	log("Detected ", cpus.width(), "x", cpus.height(), " "
+	    "CPU", cpus.total() > 1 ? "s." : ".");
 
 	/* get some memory for the thread objects */
 	Spinning_thread ** threads = new (heap) Spinning_thread*[cpus.total()];
@@ -92,10 +100,10 @@ Main::Main(Genode::Env &env) : env(env)
 	for (unsigned i = 0; i < cpus.total(); i++)
 		threads[i]->barrier.lock();
 
-	printf("Threads started on a different CPU each.\n");
-	printf("You may inspect them using the kernel debugger - if you have one.\n");
-	printf("Main thread monitors client threads and prints the status of them.\n");
-	printf("Legend : D - DEAD, A - ALIVE\n");
+	log("Threads started on a different CPU each.");
+	log("You may inspect them using the kernel debugger - if you have one.");
+	log("Main thread monitors client threads and prints the status of them.");
+	log("Legend : D - DEAD, A - ALIVE");
 
 	volatile uint64_t cnt = 0;
 	unsigned round = 0;
@@ -116,7 +124,7 @@ Main::Main(Genode::Env &env) : env(env)
 				snprintf(output, 4, "%2u ", i);
 				output += 3;
 			}
-			printf("%s\n", output_buffer);
+			log(Cstring(output_buffer));
 
 			output = output_buffer;
 			snprintf(output, sizeof(text_round), text_round, round);
@@ -128,7 +136,7 @@ Main::Main(Genode::Env &env) : env(env)
 				output += 3;
 				thread_cnt[i] = threads[i]->cnt;
 			}
-			printf("%s\n", output_buffer);
+			log(Cstring(output_buffer));
 
 			round ++;
 		}

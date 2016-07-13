@@ -69,7 +69,7 @@ void Rom_logger::Main::_handle_update(unsigned)
 		rom_name = config()->xml_node().attribute_value("rom", rom_name);
 
 	} catch (...) {
-		PWRN("could not determine ROM name from config");
+		Genode::warning("could not determine ROM name from config");
 		return;
 	}
 
@@ -89,12 +89,12 @@ void Rom_logger::Main::_handle_update(unsigned)
 		_rom_ds->update();
 
 		if (_rom_ds->valid()) {
-			PLOG("ROM '%s':", _rom_name.string());
+			log("ROM '", _rom_name, "':");
 
 			Genode::print_lines<200>(_rom_ds->local_addr<char>(), _rom_ds->size(),
-			                         [&] (char const *line) { PLOG("  %s", line); });
+			                         [&] (char const *line) { Genode::log("  ", line); });
 		} else {
-			PLOG("ROM '%s' is invalid", _rom_name.string());
+			Genode::log("ROM '", _rom_name, "' is invalid");
 		}
 	}
 }

@@ -112,7 +112,6 @@ struct File_system::Connection : File_system::Connection_base
 	 */
 	void upgrade_ram()
 	{
-		PWRN("upgrading File_system session");
 		Genode::env()->parent()->upgrade(cap(), "ram=8K");
 	}
 

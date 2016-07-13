@@ -133,10 +133,8 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 			                                      _device_config.function_number(),
 			                                      pin);
 			if (irq_r) {
-				PINF("%x:%x.%x adjust IRQ as reported by ACPI: %u -> %u",
-				     _device_config.bus_number(),
-				     _device_config.device_number(),
-				     _device_config.function_number(), irq, irq_r);
+				Genode::log(_device_config, " adjust IRQ as reported by ACPI: ",
+				            irq, " -> ", irq_r);
 
 				_irq_line = irq = irq_r;
 			}

@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/attached_rom_dataspace.h>
 #include <util/list.h>
 
@@ -161,7 +161,7 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Context *c = _find_context(qtimer);
 		if (c == nullptr) {
-			PERR("qtimer: %p not found", qtimer);
+			Genode::error("qtimer: ", qtimer, " not found");
 			throw -1;
 		}
 
@@ -210,7 +210,7 @@ struct Timer_queue : public Qemu::Timer_queue
 		unsigned res = 0;
 
 		for (Context *c = _context_list.first(); c; c = c->next()) {
-			if (c->pending) PINF("timer: %p is pending", c);
+			if (c->pending) Genode::log("timer: ", c, " is pending");
 			res++;
 		}
 
@@ -229,11 +229,11 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p cb: %p data: %p", qtimer, cb, data);
+			Genode::log("qtimer: ", qtimer, " cb: ", cb, " data: ", data);
 
 		Context *c = _find_context(qtimer);
 		if (c != nullptr) {
-			PERR("qtimer: %p already registred", qtimer);
+			Genode::error("qtimer: ", qtimer, " already registred");
 			throw -1;
 		}
 
@@ -244,11 +244,11 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p", qtimer);
+			Genode::log("qtimer: ", qtimer);
 
 		Context *c = _find_context(qtimer);
 		if (c == nullptr) {
-			PERR("qtimer: %p not found", qtimer);
+			Genode::error("qtimer: ", qtimer, " not found");
 			throw -1;
 		}
 
@@ -262,11 +262,11 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p expire: %lld", qtimer, expire_abs);
+			Genode::log("qtimer: ", qtimer, " expire: ", expire_abs);
 
 		Context *c = _find_context(qtimer);
 		if (c == nullptr) {
-			PERR("qtimer: %p not found", qtimer);
+			Genode::error("qtimer: ", qtimer, " not found");
 			throw -1;
 		}
 
@@ -280,7 +280,7 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p", qtimer);
+			Genode::log("qtimer: ", qtimer);
 
 		_deactivate_timer(qtimer);
 	}

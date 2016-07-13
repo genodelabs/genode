@@ -171,7 +171,7 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			write<Control1>(v);
 
 			if (!wait_for<Control1::Clk_internal_stable>(1, _delayer)) {
-				PERR("could not set internal clock");
+				Genode::error("could not set internal clock");
 				throw Detection_failed();
 			}
 
@@ -196,13 +196,12 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			}
 
 			if (!wait_for<Control1::Srst_hc>(0, _delayer)) {
-				PERR("host-controller soft reset timed out");
+				Genode::error("host-controller soft reset timed out");
 				throw Detection_failed();
 			}
 
-			PLOG("SDHCI version: %u (specification %u.0)",
-			     read<Host_version::Vendor>(), read<Host_version::Spec>()+1);
-
+			Genode::log("SDHCI version: ", read<Host_version::Vendor>(), " "
+			            "(specification ", read<Host_version::Spec>() + 1, ".0)");
 
 			/*
 			 * Raspberry Pi (BCM2835) does not need to
@@ -229,19 +228,19 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			_set_and_enable_clock(240);
 
 			if (!issue_command(Go_idle_state())) {
-				PWRN("Go_idle_state command failed");
+				Genode::warning("Go_idle_state command failed");
 				throw Detection_failed();
 			}
 
 			_delayer.usleep(2000);
 
 			if (!issue_command(Send_if_cond())) {
-				PWRN("Send_if_cond command failed");
+				Genode::warning("Send_if_cond command failed");
 				throw Detection_failed();
 			}
 
 			if (read<Resp0>() != 0x1aa) {
-				PERR("unexpected response of Send_if_cond command");
+				Genode::error("unexpected response of Send_if_cond command");
 				throw Detection_failed();
 			}
 
@@ -256,7 +255,7 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			int i = 1000;
 			for (; i > 0; --i) {
 				if (!issue_command(Sd_send_op_cond(0x18000, true))) {
-					PWRN("Sd_send_op_cond command failed");
+					Genode::warning("Sd_send_op_cond command failed");
 					throw Detection_failed();
 				}
 
@@ -267,7 +266,7 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			}
 
 			if (i == 0) {
-				PERR("Sd_send_op_cond timed out, could no power-on SD card");
+				Genode::error("Sd_send_op_cond timed out, could no power-on SD card");
 				throw Detection_failed();
 			}
 
@@ -278,7 +277,7 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			 */
 			if (!issue_command(Set_bus_width(Set_bus_width::Arg::Bus_width::FOUR_BITS),
 			                   card_info.rca())) {
-				PWRN("Set_bus_width(FOUR_BITS) command failed");
+				Genode::warning("Set_bus_width(FOUR_BITS) command failed");
 				throw Detection_failed();
 			}
 
@@ -353,11 +352,10 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 		bool _issue_command(Sd_card::Command_base const &command)
 		{
 			if (verbose)
-				PLOG("-> index=0x%08x, arg=0x%08x, rsp_type=%d",
-				     command.index, command.arg, command.rsp_type);
+				Genode::log("-> ", command);
 
 			if (!_poll_and_wait_for<Status::Inhibit>(0)) {
-				PERR("controller inhibits issueing commands");
+				Genode::error("controller inhibits issueing commands");
 				return false;
 			}
 
@@ -397,7 +395,7 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			write<Cmdtm>(cmd);
 
 			if (!_poll_and_wait_for<Interrupt::Cmd_done>(1)) {
-				PERR("command timed out");
+				Genode::error("command timed out");
 				return false;
 			}
 
@@ -459,7 +457,8 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			_set_block_count(block_count);
 
 			if (!issue_command(Read_multiple_block(_block_to_command_address(block_number)))) {
-				PERR("Read_multiple_block failed, Status: 0x%08x", read<Status>());
+				Genode::error("Read_multiple_block failed, Status: ",
+				              Genode::Hex(read<Status>()));
 				return false;
 			}
 
@@ -482,8 +481,8 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			}
 
 			if (!_poll_and_wait_for<Interrupt::Data_done>(1)) {
-				PERR("completion of read request failed (interrupt status %08x)",
-				     read<Interrupt>());
+				Genode::error("completion of read request failed (interrupt "
+				              "status ", Genode::Hex(read<Interrupt>()), ")");
 				return false;
 			}
 
@@ -505,7 +504,8 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			_set_block_count(block_count);
 
 			if (!issue_command(Write_multiple_block(_block_to_command_address(block_number)))) {
-				PERR("Write_multiple_block failed, Status: 0x%08x", read<Status>());
+				Genode::error("Write_multiple_block failed, Status: ",
+				              Genode::Hex(read<Status>()));
 				return false;
 			}
 
@@ -522,8 +522,8 @@ struct Sdhci_controller : private Sdhci, public Sd_card::Host_controller
 			}
 
 			if (!_poll_and_wait_for<Interrupt::Data_done>(1)) {
-				PERR("completion of write request failed (interrupt status %08x)",
-				     read<Interrupt>());
+				Genode::error("completion of write request failed (interrupt "
+				              "status ", read<Interrupt>(), ")");
 				return false;
 			}
 

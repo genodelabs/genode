@@ -57,7 +57,7 @@ void Http::cmd_head()
 	int length = snprintf(_http_buf, HTTP_BUF, http_templ, "HEAD", _path, _host);
 
 	if (write(_fd, _http_buf, length) != length) {
-		error("Write error");
+		error("cmd_head: write error");
 		throw Http::Socket_error();
 	}
 }
@@ -67,12 +67,12 @@ void Http::connect()
 {
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) {
-		error("No socket avaiable");
+		error("connect: no socket avaiable");
 		throw Http::Socket_error();
 	}
 
 	if (::connect(_fd, _info->ai_addr, sizeof(*(_info->ai_addr))) < 0) {
-		error("Connect failed");
+		error("connect: connect failed");
 		throw Http::Socket_error();
 	}
 }
@@ -85,7 +85,7 @@ void Http::resolve_uri()
 {
 	struct addrinfo *info;
 	if (getaddrinfo(_host, _port, 0, &info)) {
-		error("Error: Host ", (const char*)_host, " not found");
+		error("host ", Cstring(_host), " not found");
 		throw Http::Uri_error();
 	}
 
@@ -102,14 +102,12 @@ Genode::size_t Http::read_header()
 		if (!read(_fd, &_http_buf[i], 1))
 			throw Http::Socket_closed();
 
-		/* DEBUG: Genode::printf("%c", _http_buf[i]); */
-
 		if (i >= 3 && _http_buf[i - 3] == '\r' && _http_buf[i - 2] == '\n'
 		 && _http_buf[i - 1] == '\r' && _http_buf[i - 0] == '\n')
 			header = false;
 
 		if (++i >= HTTP_BUF) {
-			error("Buffer overflow");
+			error("read_header: buffer overflow");
 			throw Http::Socket_error();
 		}
 	}
@@ -172,7 +170,7 @@ void Http::do_read(void * buf, size_t size)
 		int part;
 		if ((part = read(_fd, (void *)((addr_t)buf + buf_fill),
 		                      size - buf_fill)) <= 0) {
-			error("Error: Reading data (", errno, ")");
+			error("could not read data (", errno, ")");
 			throw Http::Socket_error();
 		}
 
@@ -270,7 +268,7 @@ void Http::cmd_get(size_t file_offset, size_t size, addr_t buffer)
 		}
 
 		if (_http_ret != HTTP_SUCC_PARTIAL) {
-			error("Error: Server returned ", _http_ret);
+			error("cmd_get: server returned ", _http_ret);
 			throw Http::Server_error();
 		}
 

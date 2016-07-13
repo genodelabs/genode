@@ -89,8 +89,8 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
 	/* allocate range in core's virtual address space */
 	void *virt_addr;
 	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
-		PERR("could not allocate virtual address range in core of size %zd\n",
-		     page_rounded_size);
+		error("could not allocate virtual address range in core of size ",
+		      page_rounded_size);
 		return;
 	}
 

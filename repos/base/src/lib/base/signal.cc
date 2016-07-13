@@ -189,12 +189,12 @@ Genode::Signal_context_registry *signal_context_registry()
 void Signal_context::submit(unsigned num)
 {
 	if (!_receiver) {
-		PWRN("signal context with no receiver");
+		warning("signal context with no receiver");
 		return;
 	}
 
 	if (!signal_context_registry()->test_and_lock(this)) {
-		PWRN("encountered dead signal context");
+		warning("encountered dead signal context");
 		return;
 	}
 
@@ -239,7 +239,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 			char buf[64];
 			snprintf(buf, sizeof(buf), "ram_quota=%zu", quota);
 
-			PINF("upgrading quota donation for PD session (%zu bytes)", quota);
+			log("upgrading quota donation for PD session (", quota, " bytes)");
 
 			env()->parent()->upgrade(env()->pd_session_cap(), buf);
 		}
@@ -284,12 +284,12 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 		Signal_context *context = (Signal_context *)(source_signal.imprint());
 
 		if (!context) {
-			PERR("received null signal imprint, stop signal handling");
+			error("received null signal imprint, stop signal handling");
 			sleep_forever();
 		}
 
 		if (!signal_context_registry()->test_and_lock(context)) {
-			PWRN("encountered dead signal context");
+			warning("encountered dead signal context");
 			continue;
 		}
 
@@ -298,7 +298,7 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 			Signal::Data signal(context, source_signal.num());
 			context->_receiver->local_submit(signal);
 		} else {
-			PWRN("signal context with no receiver");
+			warning("signal context with no receiver");
 		}
 
 		/* free context lock that was taken by 'test_and_lock' */

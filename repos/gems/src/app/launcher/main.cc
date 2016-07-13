@@ -180,7 +180,7 @@ void Launcher::Main::_handle_focus_update(unsigned)
 		_panel_dialog.focus_changed(label);
 
 	} catch (...) {
-		PWRN("no focus model available");
+		Genode::warning("no focus model available");
 	}
 }
 

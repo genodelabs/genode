@@ -125,7 +125,7 @@ void Nic::Loopback_component::_handle_packet_stream()
 		/* obtain packet */
 		Packet_descriptor const packet_from_client = _tx.sink()->get_packet();
 		if (!packet_from_client.size()) {
-			PWRN("received zero-size packet");
+			Genode::warning("received zero-size packet");
 			_rx.source()->release_packet(packet_to_client);
 			continue;
 		}
@@ -170,8 +170,8 @@ class Nic::Root : public Genode::Root_component<Loopback_component>
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
+				              "need ", tx_buf_size + rx_buf_size + session_size);
 				throw Root::Quota_exceeded();
 			}
 

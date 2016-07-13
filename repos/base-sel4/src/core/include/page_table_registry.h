@@ -53,8 +53,6 @@ class Genode::Page_table_registry
 
 				addr_t const addr;
 
-				static constexpr bool verbose = false;
-
 			private:
 
 				List<Entry> _entries;
@@ -93,7 +91,7 @@ class Genode::Page_table_registry
 				void insert_entry(Allocator &entry_alloc, addr_t addr, unsigned sel)
 				{
 					if (_entry_exists(addr)) {
-						PWRN("trying to insert page frame for 0x%lx twice", addr);
+						warning("trying to insert page frame for ", Hex(addr), " twice");
 						return;
 					}
 
@@ -110,10 +108,7 @@ class Genode::Page_table_registry
 						Entry &entry = lookup(addr);
 						_entries.remove(&entry);
 						destroy(entry_alloc, &entry);
-					} catch (Lookup_failed) {
-						if (verbose)
-							PWRN("trying to remove non-existing page frame for 0x%lx", addr);
-					}
+					} catch (Lookup_failed) { }
 				}
 
 				void flush_all(Allocator &entry_alloc)
@@ -156,7 +151,7 @@ class Genode::Page_table_registry
 					*out_addr = nullptr;
 
 					if (size > sizeof(Elem_space)) {
-						PERR("unexpected allocation size of %zd", size);
+						error("unexpected allocation size of ", size);
 						return false;
 					}
 
@@ -205,11 +200,9 @@ class Genode::Page_table_registry
 				if (_page_table_base(pt->addr) == _page_table_base(addr))
 					return *pt;
 			}
-			PDBG("page-table lookup failed");
+			warning(__func__, ": page-table lookup failed");
 			throw Lookup_failed();
 		}
-
-		static constexpr bool verbose = false;
 
 	public:
 
@@ -240,7 +233,7 @@ class Genode::Page_table_registry
 			/* XXX sel is unused */
 
 			if (_page_table_exists(addr)) {
-				PWRN("trying to insert page table for 0x%lx twice", addr);
+				warning("attempt to insert page table for ", Hex(addr), " twice");
 				return;
 			}
 
@@ -273,10 +266,7 @@ class Genode::Page_table_registry
 			try {
 				Page_table &page_table = _lookup(addr);
 				page_table.remove_entry(_page_table_entry_alloc, addr);
-			} catch (...) {
-				if (verbose)
-					PDBG("no PT entry found for virtual address 0x%lx", addr);
-			}
+			} catch (...) { }
 		}
 
 
@@ -302,10 +292,7 @@ class Genode::Page_table_registry
 				Page_table::Entry &entry      = page_table.lookup(addr);
 
 				fn(entry.sel);
-			} catch (...) {
-				if (verbose)
-					PDBG("no PT entry found for virtual address 0x%lx", addr);
-			}
+			} catch (...) { }
 		}
 
 		template <typename FN>

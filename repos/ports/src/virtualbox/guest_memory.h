@@ -25,9 +25,9 @@
 #undef  PAGE_SIZE
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/env.h>
 #include <base/lock.h>
+#include <base/log.h>
 #include <util/flex_iterator.h>
 #include <util/list.h>
 #include <os/attached_ram_dataspace.h>
@@ -117,10 +117,9 @@ class Guest_memory
 
 			void dump() const
 			{
-				Genode::printf("phys [0x%16lx-0x%16lx] -> virt [0x%16lx-0x%16lx] (dev='%s')\n",
-				               (long)_GCPhys, (long)_GCPhys + (long)_cb - 1,
-				               (long)_pv,     (long)_pv     + (long)_cb - 1,
-				               _pDevIns && _pDevIns->pReg ? _pDevIns->pReg->szName : 0);
+				Genode::log("phys ", Genode::Hex_range<RTGCPHYS>(_GCPhys, _cb),
+				            " -> virt ", Genode::Hex_range<Genode::addr_t>((Genode::addr_t)_pv, _cb),
+				            " (dev='", _pDevIns && _pDevIns->pReg ? _pDevIns->pReg->szName : 0, "'");
 			}
 
 			void *pv_at_offset(addr_t offset)
@@ -300,15 +299,15 @@ class Guest_memory
 
 		void dump() const
 		{
-			Genode::printf("guest-physical to VMM-local RAM mappings:\n");
+			Genode::log("guest-physical to VMM-local RAM mappings:");
 			for (Region const *r = _ram_regions.first(); r; r = r->next())
 				r->dump();
 
-			Genode::printf("guest-physical to VMM-local ROM mappings:\n");
+			Genode::log("guest-physical to VMM-local ROM mappings:");
 			for (Region const *r = _rom_regions.first(); r; r = r->next())
 				r->dump();
 
-			Genode::printf("guest-physical MMIO regions:\n");
+			Genode::log("guest-physical MMIO regions:");
 			for (Region const *r = _mmio_regions.first(); r; r = r->next())
 				r->dump();
 		}
@@ -361,9 +360,9 @@ class Guest_memory
 			Region *r = _lookup(vm_phys, size);
 
 			if (!r) {
-				PERR("Guest_memory::mmio_write: lookup failed - "
-				     "GCPhys=0x%llx, u32Value=0x%x, size=%zd",
-				     (Genode::uint64_t)vm_phys, u32Value, size);
+				Genode::error("Guest_memory::mmio_write: lookup failed - "
+				              "GCPhys=", Genode::Hex(vm_phys), " u32Value=",
+				              u32Value, " size=", size);
 				return VERR_IOM_MMIO_RANGE_NOT_FOUND;
 			}
 
@@ -385,9 +384,9 @@ class Guest_memory
 			Region *r = _lookup(vm_phys, size);
 
 			if (!r) {
-				PERR("Guest_memory::mmio_read: lookup faile - "
-				     "GCPhys=0x%llx, u32Value=0x%p, size=%zd",
-				     (Genode::uint64_t)vm_phys, u32Value, size);
+				Genode::error("Guest_memory::mmio_read: lookup faile - "
+				              "GCPhys=", Genode::Hex(vm_phys), " u32Value=",
+				              u32Value, " size=", size);
 				return VERR_IOM_MMIO_RANGE_NOT_FOUND;
 			}
 

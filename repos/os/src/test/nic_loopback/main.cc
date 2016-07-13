@@ -11,11 +11,20 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
 #include <timer_session/connection.h>
+
+namespace Genode {
+
+	static inline void print(Output &out, Packet_descriptor packet)
+	{
+		Genode::print(out, "offset=", packet.offset(), ", size=", packet.size());
+	}
+}
+
 
 using namespace Genode;
 
@@ -26,19 +35,18 @@ static bool single_packet_roundtrip(Nic::Session  *nic,
 {
 	Packet_descriptor tx_packet;
 
-	printf("single_packet_roundtrip(content='%c', packet_size=%zd)\n",
-	       content_pattern, packet_size);
+	log("single_packet_roundtrip(content='", Char(content_pattern), "', "
+	    "packet_size=", packet_size, ")");
 
 	/* allocate transmit packet */
 	try {
 		tx_packet = nic->tx()->alloc_packet(packet_size);
 	} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
-		PERR("tx packet alloc failed");
+		error(__func__, ": tx packet alloc failed");
 		return false;
 	}
 
-	printf("allocated tx packet (offset=%ld, size=%zd)\n",
-	       tx_packet.offset(), tx_packet.size());
+	log("allocated tx packet ", tx_packet);
 
 	/* fill packet with pattern */
 	char *tx_content = nic->tx()->packet_content(tx_packet);
@@ -52,7 +60,7 @@ static bool single_packet_roundtrip(Nic::Session  *nic,
 
 	if (ack_tx_packet.size()   != tx_packet.size()
 	 || ack_tx_packet.offset() != tx_packet.offset()) {
-		PERR("unexpected acked packet");
+		error("unexpected acked packet");
 		return false;
 	}
 
@@ -62,11 +70,10 @@ static bool single_packet_roundtrip(Nic::Session  *nic,
 	 * session.
 	 */
 	Packet_descriptor rx_packet = nic->rx()->get_packet();
-	printf("received rx packet (offset=%ld, size=%zd)\n",
-	       tx_packet.offset(), tx_packet.size());
+	log("received rx packet ", rx_packet);
 
 	if (rx_packet.size() != tx_packet.size()) {
-		PERR("sent and echoed packets differ in size");
+		error("sent and echoed packets differ in size");
 		return false;
 	}
 
@@ -74,7 +81,7 @@ static bool single_packet_roundtrip(Nic::Session  *nic,
 	char *rx_content = nic->rx()->packet_content(rx_packet);
 	for (unsigned i = 0; i < packet_size; i++)
 		if (rx_content[i] != tx_content[i]) {
-			PERR("sent and echoed packets have differnt content");
+			error("sent and echoed packets have differnt content");
 			return false;
 		}
 
@@ -140,28 +147,28 @@ static bool batch_packets(Nic::Session *nic, unsigned num_packets)
 			Packet_descriptor rx_packet = nic->rx()->get_packet();
 
 			if (!nic->rx()->ready_to_ack())
-				PWRN("not ready for ack, going to blocK");
+				warning("not ready for ack, going to blocK");
 
 			nic->rx()->acknowledge_packet(rx_packet);
 			rx_cnt++;
 			batch_rx_cnt++;
 		}
 
-		printf("acked %u packets, received %u packets "
-		       "-> tx: %u, acked: %u, rx: %u\n",
-		       batch_acked_cnt, batch_rx_cnt, tx_cnt, acked_cnt, rx_cnt);
+		log("acked ", batch_acked_cnt, " packets, "
+		    "received ", batch_rx_cnt, " packets "
+		    "-> tx: ", tx_cnt, ", acked: ", acked_cnt, ", rx: ", rx_cnt);
 
 		batch_cnt++;
 	}
 
-	printf("test used %u batches\n", batch_cnt);
+	log("test used ", batch_cnt, " batches");
 	return true;
 }
 
 
 int main(int, char **)
 {
-	printf("--- NIC loop-back test ---\n");
+	log("--- NIC loop-back test ---");
 
 	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
@@ -169,7 +176,7 @@ int main(int, char **)
 	bool config_test_batch     = true;
 
 	if (config_test_roundtrip) {
-		printf("-- test roundtrip two times (packet offsets should be the same) --\n");
+		log("-- test roundtrip two times (packet offsets should be the same) --");
 		Allocator_avl tx_block_alloc(env()->heap());
 		Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
 		single_packet_roundtrip(&nic, 'a', 100);
@@ -177,13 +184,13 @@ int main(int, char **)
 	}
 
 	if (config_test_batch) {
-		printf("-- test submitting and receiving batches of packets --\n");
+		log("-- test submitting and receiving batches of packets --");
 		Allocator_avl tx_block_alloc(env()->heap());
 		Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
 		enum { NUM_PACKETS = 1000 };
 		batch_packets(&nic, NUM_PACKETS);
 	}
 
-	printf("--- finished NIC loop-back test ---\n");
+	log("--- finished NIC loop-back test ---");
 	return 0;
 }

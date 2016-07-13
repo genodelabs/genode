@@ -12,7 +12,7 @@
 
 #include <base/allocator_avl.h>
 #include <base/component.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <irq_session/connection.h>
 #include <io_port_session/connection.h>
@@ -53,56 +53,56 @@ static void init_acpica(Acpica::Reportstate *report) {
 
 	ACPI_STATUS status = AcpiInitializeSubsystem();
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiInitializeSubsystem failed, status=", status);
 		return;
 	}
 
 	status = AcpiInitializeTables(nullptr, 0, true);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiInitializeTables failed, status=", status);
 		return;
 	}
 
 	status = AcpiLoadTables();
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiLoadTables failed, status=", status);
 		return;
 	}
 
 	status = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiEnableSubsystem failed, status=", status);
 		return;
 	}
 
 	status = AcpiInitializeObjects(ACPI_NO_DEVICE_INIT);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiInitializeObjects (no devices) failed, status=", status);
 		return;
 	}
 
 	/* Embedded controller */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C09"), Ec::detect, report, nullptr);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiGetDevices failed, status=", status);
 		return;
 	}
 
 	status = AcpiInitializeObjects(ACPI_FULL_INITIALIZATION);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiInitializeObjects (full init) failed, status=", status);
 		return;
 	}
 
 	status = AcpiUpdateAllGpes();
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiUpdateAllGpes failed, status=", status);
 		return;
 	}
 
 	status = AcpiEnableAllRuntimeGpes();
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiEnableAllRuntimeGpes failed, status=", status);
 		return;
 	}
 
@@ -113,33 +113,33 @@ static void init_acpica(Acpica::Reportstate *report) {
 	                                      Fixed::handle_power_button,
 	                                      acpi_fixed);
 	if (status != AE_OK)
-		PINF("failed   - power button registration - error=%u", status);
+		Genode::log("failed   - power button registration - error=", status);
 
 	status = AcpiInstallFixedEventHandler(ACPI_EVENT_SLEEP_BUTTON,
 	                                      Fixed::handle_sleep_button,
 	                                      acpi_fixed);
 	if (status != AE_OK)
-		PINF("failed   - sleep button registration - error=%u", status);
+		Genode::log("failed   - sleep button registration - error=", status);
 
 
 	/* AC Adapters and Power Source Objects */
 	status = AcpiGetDevices(ACPI_STRING("ACPI0003"), Ac::detect, report, nullptr);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiGetDevices (ACPI0003) failed, status=", status);
 		return;
 	}
 
 	/* Smart battery control devices */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C0A"), Battery::detect, report, nullptr);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiGetDevices (PNP0C0A) failed, status=", status);
 		return;
 	}
 
 	/* LID device */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C0D"), Lid::detect, report, nullptr);
 	if (status != AE_OK) {
-		PERR("%s:%u failed %u", __func__, __LINE__, status);
+		Genode::error("AcpiGetDevices (PNP0C0D) failed, status=", status);
 		return;
 	}
 }
@@ -177,7 +177,8 @@ struct Acpica::Statechange
 		if (_enable_poweroff && state == "poweroff") {
 			ACPI_STATUS res0 = AcpiEnterSleepStatePrep(5);
 			ACPI_STATUS res1 = AcpiEnterSleepState(5);
-			PERR("system poweroff failed - res=0x%x,0x%x", res0, res1);
+			Genode::error("system poweroff failed - "
+			              "res=", Genode::Hex(res0), ",", Genode::Hex(res1));
 			return;
 		}
 
@@ -188,10 +189,11 @@ struct Acpica::Statechange
 			} catch (...) { }
 
 			Genode::uint64_t const space_addr = AcpiGbl_FADT.ResetRegister.Address;
-			PERR("system reset failed - err=%x, reset=%u, spaceid=0x%x, "
-			     "addr=0x%llx", res,
-			     !!(AcpiGbl_FADT.Flags & ACPI_FADT_RESET_REGISTER),
-			     AcpiGbl_FADT.ResetRegister.SpaceId, space_addr);
+			Genode::error("system reset failed - "
+			              "err=", res, " "
+			              "reset=", !!(AcpiGbl_FADT.Flags & ACPI_FADT_RESET_REGISTER), " "
+			              "spaceid=", Genode::Hex(AcpiGbl_FADT.ResetRegister.SpaceId), " "
+			              "addr=", Genode::Hex(space_addr));
 		}
 	}
 };
@@ -232,13 +234,13 @@ struct Acpica::Main {
 
 		/* setup IRQ */
 		if (!irq_handler.handler) {
-			PWRN("no IRQ handling available");
+			Genode::warning("no IRQ handling available");
 			return;
 		}
 
 		_sci_conn.construct(irq_handler.irq);
 
-		PINF("SCI IRQ: %u", irq_handler.irq);
+		Genode::log("SCI IRQ: ", irq_handler.irq);
 
 		_sci_conn->sigh(_sci_irq);
 		_sci_conn->ack_irq();

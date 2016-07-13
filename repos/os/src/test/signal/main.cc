@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <base/sleep.h>
 #include <base/thread.h>
@@ -48,7 +48,7 @@ class Sender : Thread_deprecated<4096>
 					_submit_cnt++;
 
 					if (_verbose)
-						printf("submit signal %d\n", _submit_cnt);
+						log("submit signal ", _submit_cnt);
 
 					_transmitter.submit();
 
@@ -136,11 +136,9 @@ class Handler : Thread_deprecated<4096>
 					Signal signal = _receiver->wait_for_signal();
 
 					if (_verbose)
-						printf("handler %d got %u signal%s with context %p\n",
-						       _id,
-						       signal.num(),
-						       signal.num() == 1 ? "" : "s",
-						       signal.context());
+						log("handler ", _id, " got ", signal.num(), " "
+						    "signal", (signal.num() == 1 ? "" : "s"), " "
+						    "with context ", signal.context());
 
 					_receive_cnt += signal.num();
 					_activation_cnt++;
@@ -267,9 +265,9 @@ static void fast_sender_test()
 	enum { SENDER_INTERVAL  = 2*SPEED };
 	enum { FINISH_IDLE_TIME = 2*HANDLER_INTERVAL };
 
-	printf("\n");
-	printf("TEST %d: one sender, one handler, sender is faster than handler\n", ++test_cnt);
-	printf("\n");
+	log("");
+	log("TEST ", ++test_cnt, ": one sender, one handler, sender is faster than handler");
+	log("");
 
 	Signal_receiver receiver;
 	Id_signal_context context_123(123);
@@ -281,14 +279,14 @@ static void fast_sender_test()
 	timer.msleep(TEST_DURATION);
 
 	/* stop emitting signals */
-	printf("deactivate sender\n");
+	log("deactivate sender");
 	sender->idle();
 	timer.msleep(FINISH_IDLE_TIME);
 
-	printf("\n");
-	printf("sender submitted a total of %d signals\n", sender->submit_cnt());
-	printf("handler received a total of %d signals\n", handler->receive_cnt());
-	printf("\n");
+	log("");
+	log("sender submitted a total of ", sender->submit_cnt(), " signals");
+	log("handler received a total of ", handler->receive_cnt(), " signals");
+	log("");
 
 	if (sender->submit_cnt() != handler->receive_cnt())
 		throw Test_failed();
@@ -298,7 +296,7 @@ static void fast_sender_test()
 	destroy(env()->heap(), sender);
 	destroy(env()->heap(), handler);
 
-	printf("TEST %d FINISHED\n", test_cnt);
+	log("TEST ", test_cnt, " FINISHED");
 }
 
 
@@ -319,10 +317,9 @@ static void multiple_handlers_test()
 	enum { FINISH_IDLE_TIME = 2*HANDLER_INTERVAL };
 	enum { NUM_HANDLERS     = 4 };
 
-	printf("\n");
-	printf("TEST %d: one busy sender, %d handlers\n",
-	       ++test_cnt, NUM_HANDLERS);
-	printf("\n");
+	log("");
+	log("TEST ", ++test_cnt, ": one busy sender, ", (int)NUM_HANDLERS, " handlers");
+	log("");
 
 	Signal_receiver receiver;
 
@@ -336,7 +333,7 @@ static void multiple_handlers_test()
 	timer.msleep(TEST_DURATION);
 
 	/* stop emitting signals */
-	printf("stop generating new notifications\n");
+	log("stop generating new notifications");
 	sender->idle();
 	timer.msleep(FINISH_IDLE_TIME);
 
@@ -346,28 +343,25 @@ static void multiple_handlers_test()
 	timer.msleep(FINISH_IDLE_TIME);
 
 	/* print signal delivery statistics */
-	printf("\n");
-	printf("sender submitted a total of %d signals\n",
-	        sender->submit_cnt());
+	log("");
+	log("sender submitted a total of ", sender->submit_cnt(), " signals");
 	unsigned total_receive_cnt = 0;
 	for (int i = 0; i < NUM_HANDLERS; i++) {
-		printf("handler %d received a total of %d signals\n",
-		       i, handler[i]->receive_cnt());
+		log("handler ", i, " "
+		    "received a total of ", handler[i]->receive_cnt(), " signals");
 		total_receive_cnt += handler[i]->receive_cnt();
 	}
-	printf("all handlers received a total of %d signals\n",
-	       total_receive_cnt);
+	log("all handlers received a total of ", total_receive_cnt, " signals");
 
 	/* check if number of sent notifications match the received ones */
 	if (sender->submit_cnt() != total_receive_cnt)
 		throw Test_failed_with_unequal_sent_and_received_signals();
 
 	/* print activation statistics */
-	printf("\n");
+	log("");
 	for (int i = 0; i < NUM_HANDLERS; i++)
-		printf("handler %d was activated %d times\n",
-		       i, handler[i]->activation_cnt());
-	printf("\n");
+		log("handler ", i, " was activated ", handler[i]->activation_cnt(), " times");
+	log("");
 
 	/* check if handlers had been activated equally (tolerating a difference of one) */
 	for (int i = 0; i < NUM_HANDLERS; i++) {
@@ -385,7 +379,7 @@ static void multiple_handlers_test()
 	for (int i = 0; i < NUM_HANDLERS; i++)
 		destroy(env()->heap(), handler[i]);
 
-	printf("TEST %d FINISHED\n", test_cnt);
+	log("TEST ", test_cnt, " FINISHED");
 }
 
 
@@ -402,9 +396,9 @@ static void stress_test()
 	enum { DURATION_SECONDS = 5  };
 	enum { FINISH_IDLE_TIME = 100*SPEED };
 
-	printf("\n");
-	printf("TEST %d: stress test, busy signal transmission and handling\n", ++test_cnt);
-	printf("\n");
+	log("");
+	log("TEST ", ++test_cnt, ": stress test, busy signal transmission and handling");
+	log("");
 
 	Signal_receiver receiver;
 	Id_signal_context context_123(123);
@@ -414,28 +408,26 @@ static void stress_test()
 	                                              0, false);
 
 	for (int i = 1; i <= DURATION_SECONDS; i++) {
-		printf("%d/%d\n", i, DURATION_SECONDS);
+		log(i, "/", (int)DURATION_SECONDS);
 		timer.msleep(1000);
 	}
 
 	/* stop emitting signals */
-	printf("deactivate sender\n");
+	log("deactivate sender");
 	sender->idle();
 
 	while (handler->receive_cnt() < sender->submit_cnt()) {
-		printf("waiting for signals still in flight...");
+		log("waiting for signals still in flight...");
 		timer.msleep(FINISH_IDLE_TIME);
 	}
 
-	printf("\n");
-	printf("sender submitted a total of %d signals\n", sender->submit_cnt());
-	printf("handler received a total of %d signals\n", handler->receive_cnt());
-	printf("\n");
-	printf("processed %d notifications per second\n",
-	       (handler->receive_cnt())/DURATION_SECONDS);
-	printf("handler was activated %d times per second\n",
-	       (handler->activation_cnt())/DURATION_SECONDS);
-	printf("\n");
+	log("");
+	log("sender submitted a total of ", sender->submit_cnt(), " signals");
+	log("handler received a total of ", handler->receive_cnt(), " signals");
+	log("");
+	log("processed ", (handler->receive_cnt()/DURATION_SECONDS), " notifications per second");
+	log("handler was activated ", (handler->activation_cnt()/DURATION_SECONDS), " times per second");
+	log("");
 
 	if (sender->submit_cnt() != handler->receive_cnt())
 		throw Test_failed_with_unequal_sent_and_received_signals();
@@ -444,15 +436,15 @@ static void stress_test()
 	destroy(env()->heap(), sender);
 	destroy(env()->heap(), handler);
 
-	printf("TEST %d FINISHED\n", test_cnt);
+	log("TEST ", test_cnt, " FINISHED");
 }
 
 
 static void lazy_receivers_test()
 {
-	printf("\n");
-	printf("TEST %d: lazy and out-of-order signal reception test\n", ++test_cnt);
-	printf("\n");
+	log("");
+	log("TEST ", ++test_cnt, ": lazy and out-of-order signal reception test");
+	log("");
 
 	Signal_receiver rec_1, rec_2;
 	Signal_context rec_context_1, rec_context_2;
@@ -460,34 +452,34 @@ static void lazy_receivers_test()
 	Signal_transmitter transmitter_1(rec_1.manage(&rec_context_1));
 	Signal_transmitter transmitter_2(rec_2.manage(&rec_context_2));
 
-	printf("submit and receive signals with multiple receivers in order\n");
+	log("submit and receive signals with multiple receivers in order");
 	transmitter_1.submit();
 	transmitter_2.submit();
 
 	{
 		Signal signal = rec_1.wait_for_signal();
-		printf("returned from wait_for_signal for receiver 1\n");
+		log("returned from wait_for_signal for receiver 1");
 
 		signal = rec_2.wait_for_signal();
-		printf("returned from wait_for_signal for receiver 2\n");
+		log("returned from wait_for_signal for receiver 2");
 	}
 
-	printf("submit and receive signals with multiple receivers out of order\n");
+	log("submit and receive signals with multiple receivers out of order");
 	transmitter_1.submit();
 	transmitter_2.submit();
 
 	{
 		Signal signal = rec_2.wait_for_signal();
-		printf("returned from wait_for_signal for receiver 2\n");
+		log("returned from wait_for_signal for receiver 2");
 
 		signal = rec_1.wait_for_signal();
-		printf("returned from wait_for_signal for receiver 1\n");
+		log("returned from wait_for_signal for receiver 1");
 	}
 
 	rec_1.dissolve(&rec_context_1);
 	rec_2.dissolve(&rec_context_2);
 
-	printf("TEST %d FINISHED\n", test_cnt);
+	log("TEST ", test_cnt, " FINISHED");
 }
 
 
@@ -510,24 +502,24 @@ static void check_context_management()
 
 	/* stop sender after timeout */
 	timer.msleep(1000);
-	printf("suspend sender\n");
+	log("suspend sender");
 	sender->idle();
 
 	/* collect pending signals and dissolve context from receiver */
 	{
 		Signal signal = rec->wait_for_signal();
-		printf("got %d signal(s) from %p\n", signal.num(), signal.context());
+		log("got ", signal.num(), " signal(s) from ", signal.context());
 	}
 	rec->dissolve(context);
 
 	/* let sender spin for some time */
-	printf("resume sender\n");
+	log("resume sender");
 	sender->idle(false);
 	timer.msleep(1000);
-	printf("suspend sender\n");
+	log("suspend sender");
 	sender->idle();
 
-	printf("destroy sender\n");
+	log("destroy sender");
 	destroy(env()->heap(), sender);
 
 	destroy(env()->heap(), context);
@@ -593,7 +585,7 @@ static void synchronized_context_destruction_test()
 		signal_copy = signal_copy2;
 
 		if (signal_context_destroyed) {
-			PERR("signal context destroyed too early");
+			error("signal context destroyed too early");
 			sleep_forever();
 		}
 	}
@@ -608,20 +600,20 @@ static void many_managed_contexts()
 	for (unsigned round = 0; round < 10; ++round) {
 
 		unsigned const num_contexts = 200 + 5*round;
-		printf("round %u: create and manage %u contexts\n", round, num_contexts);
+		log("round ", round, ": create and manage ", num_contexts, " contexts");
 
 		Signal_receiver rec;
 
 		for (unsigned i = 0; i < num_contexts; ++i) {
 			Id_signal_context *context = new (env()->heap()) Id_signal_context(i);
 			if (!rec.manage(context).valid()) {
-				PERR("failed to manage signal context");
+				error("failed to manage signal context");
 				sleep_forever();
 			}
 		}
 	}
 
-	printf("many contexts finished\n");
+	log("many contexts finished");
 }
 
 
@@ -630,7 +622,7 @@ static void many_managed_contexts()
  */
 int main(int, char **)
 {
-	printf("--- signalling test ---\n");
+	log("--- signalling test ---");
 
 	fast_sender_test();
 	multiple_handlers_test();
@@ -640,6 +632,6 @@ int main(int, char **)
 	synchronized_context_destruction_test();
 	many_managed_contexts();
 
-	printf("--- signalling test finished ---\n");
+	log("--- signalling test finished ---");
 	return 0;
 }

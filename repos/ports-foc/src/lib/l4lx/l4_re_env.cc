@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <rom_session/connection.h>
 #include <dataspace/client.h>
 
@@ -25,7 +25,6 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static const bool DEBUG = false;
 static l4re_env_t __l4re_env;
 
 extern void* l4lx_kinfo;
@@ -38,9 +37,6 @@ extern "C" {
 	                                                l4re_env_t const *e)
 	{
 		using namespace L4lx;
-
-		if (DEBUG)
-			PDBG("name=%s l=%x", name, l);
 
 		try {
 			Genode::Rom_connection rom(name);
@@ -62,7 +58,7 @@ extern "C" {
 			entry->cap = ds->ref();
 			return entry;
 		} catch(Genode::Rom_connection::Rom_connection_failed) {
-			PWRN("File %s is missing", name);
+			Genode::warning(__func__, ": file ", name, " is missing");
 		}
 		return 0;
 	}

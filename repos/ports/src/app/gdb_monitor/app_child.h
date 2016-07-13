@@ -178,7 +178,7 @@ class Gdb_monitor::App_child : public Child_policy,
 
 					auto lambda = [&] (Child_session *session) {
 						if (!session) {
-							PERR("attempt to upgrade unknown session");
+							error("attempt to upgrade unknown session");
 							return;
 						}
 
@@ -208,7 +208,7 @@ class Gdb_monitor::App_child : public Child_policy,
 						session = s;
 
 						if (!session) {
-							PERR("attempt to close unknown session");
+							error("attempt to close unknown session");
 							return;
 						}
 						_sessions.remove(session);

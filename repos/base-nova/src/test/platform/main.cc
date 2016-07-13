@@ -13,7 +13,7 @@
  */
 
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 
 #include <util/touch.h>
@@ -53,7 +53,7 @@ void test_translate()
 	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
-		PERR("%s: ipc call failed %lx", __func__, rpc);
+		error(__func__, ": ipc call failed ", Hex(rpc));
 		ep.dissolve(&component);
 		return;
 	}
@@ -66,21 +66,21 @@ void test_translate()
 	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
-		PERR("%s: ipc call failed %lx", __func__, rpc);
+		error(__func__, ": ipc call failed ", Hex(rpc));
 		ep.dissolve(&component);
 		return;
 	}
 
 	Genode::Native_capability copy2 = Capability_space::import(local_name);
 
-	PINF("delegation session_cap->copy1->copy2 0x%lx->0x%lx->0x%lx",
-	     session_cap.local_name(), copy1.local_name(), copy2.local_name());
+	log("delegation session_cap->copy1->copy2 ",
+	    session_cap, "->", copy1, "->", copy2);
 
 	/* sanity checks translate which must work */
 	Genode::Native_capability got_cap = client.cap_cap(copy2.local_name());
 	if (got_cap.local_name() != copy1.local_name()) {
 		failed ++;
-		PERR("%u:%s translate failed", __LINE__, __func__);
+		error(__LINE__, ":", __func__, " translate failed");
 		ep.dissolve(&component);
 		return;
 	}
@@ -88,7 +88,7 @@ void test_translate()
 	got_cap = client.cap_cap(copy1.local_name());
 	if (got_cap.local_name() != session_cap.local_name()) {
 		failed ++;
-		PERR("%u:%s translate failed", __LINE__, __func__);
+		error(__LINE__, ":", __func__, " translate failed");
 		ep.dissolve(&component);
 		return;
 	}
@@ -96,7 +96,7 @@ void test_translate()
 	got_cap = client.cap_cap(session_cap.local_name());
 	if (got_cap.local_name() != session_cap.local_name()) {
 		failed ++;
-		PERR("%u:%s translate failed", __LINE__, __func__);
+		error(__LINE__, ":", __func__, " translate failed");
 		ep.dissolve(&component);
 		return;
 	}
@@ -114,7 +114,7 @@ void test_translate()
 	Genode::uint8_t res = Nova::lookup(crd_ses);
 	if (res != Nova::NOVA_OK || !crd_ses.is_null()) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x", __LINE__, res);
+		error(__LINE__, " - lookup call failed err=", Hex(res));
 		ep.dissolve(&component);
 		return;
 	}
@@ -123,7 +123,7 @@ void test_translate()
 	got_cap = client.cap_cap(copy2.local_name());
 	if (got_cap.local_name() != session_cap.local_name()) {
 		failed ++;
-		PERR("%u:%s translate failed", __LINE__, __func__);
+		error(__LINE__, ":", __func__, " translate failed");
 		ep.dissolve(&component);
 		return;
 	}
@@ -148,7 +148,7 @@ void test_revoke()
 	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
-		PERR("test_revoke ipc call failed %lx", rpc);
+		error("test_revoke ipc call failed ", Hex(rpc));
 		ep.dissolve(&component);
 		return;
 	}
@@ -161,7 +161,7 @@ void test_revoke()
 	    local_name == (addr_t)Native_thread::INVALID_INDEX)
 	{
 		failed ++;
-		PERR("test_revoke ipc call failed %lx", rpc);
+		error("test_revoke ipc call failed ", Hex(rpc));
 		ep.dissolve(&component);
 		return;
 	}
@@ -171,7 +171,7 @@ void test_revoke()
 	if (res != Nova::NOVA_OK || crd_dst.base() != local_name || crd_dst.type() != 3 ||
 	    crd_dst.order() != 0) {
 		failed ++;
-		PERR("%u - lookup call failed %x", __LINE__, res);
+		error(__LINE__, " - lookup call failed ", Hex(res));
 		ep.dissolve(&component);
 		return;
 	}
@@ -181,7 +181,7 @@ void test_revoke()
 	if (res != Nova::NOVA_OK || crd_ses.base() != (addr_t)copy_session_cap.local_name()
 	 || crd_ses.type() != 3 || crd_ses.order() != 0) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_ses.is_null());
+		error(__LINE__, " - lookup call failed err=", Hex(res), " is_null=", crd_ses.is_null());
 		ep.dissolve(&component);
 		return;
 	}
@@ -190,7 +190,7 @@ void test_revoke()
 	if (res != Nova::NOVA_OK || crd_dst.base() != local_name || crd_dst.type() != 3 ||
 	    crd_dst.order() != 0) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_dst.is_null());
+		error(__LINE__, " - lookup call failed err=", Hex(res), " is_null=", crd_dst.is_null());
 		ep.dissolve(&component);
 		return;
 	}
@@ -203,7 +203,7 @@ void test_revoke()
 	res = Nova::lookup(crd_ses);
 	if (res != Nova::NOVA_OK || !crd_ses.is_null()) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x", __LINE__, res);
+		error(__LINE__, " - lookup call failed err=", Hex(res));
 		ep.dissolve(&component);
 		return;
 	}
@@ -212,7 +212,7 @@ void test_revoke()
 	if (res != Nova::NOVA_OK || crd_dst.base() != local_name || crd_dst.type() != 3 ||
 	    crd_dst.order() != 0) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_dst.is_null());
+		error(__LINE__, " - lookup call failed err=", Hex(res), " is_null=", crd_dst.is_null());
 		ep.dissolve(&component);
 		return;
 	}
@@ -231,7 +231,7 @@ void test_revoke()
 	if (res != Nova::NOVA_OK || crd_ses.base() != (addr_t)copy_session_cap.local_name() ||
 	    crd_ses.type() != 3 || crd_ses.order() != 0) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_ses.is_null());
+		error(__LINE__, " - lookup call failed err=", Hex(res), " is_null=", crd_ses.is_null());
 		ep.dissolve(&component);
 		return;
 	}
@@ -244,7 +244,7 @@ void test_revoke()
 	if (res != Nova::NOVA_OK || crd_dst.base() != local_name || crd_dst.type() != 3 ||
 	    crd_dst.order() != 0) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_dst.is_null());
+		error(__LINE__, " - lookup call failed err=", Hex(res), " is_null=", crd_dst.is_null());
 		ep.dissolve(&component);
 		return;
 	}
@@ -257,7 +257,7 @@ void test_revoke()
 	res = Nova::lookup(crd_dst);
 	if (res != Nova::NOVA_OK || !crd_dst.is_null()) {
 		failed ++;
-		PERR("%u - lookup call failed err=%x is_null=%u", __LINE__, res, crd_dst.is_null());
+		error(__LINE__, " - lookup call failed err=", Hex(res), " is_null=", crd_dst.is_null());
 		return;
 	}
 }
@@ -346,9 +346,9 @@ void test_pat()
 	if (check_pat && diff_run * 100 / hip->tsc_freq) {
 		failed ++;
 
-		PERR("map=%llx remap=%llx --> diff=%llx freq_tsc=%u %llu us",
-		     map_run, remap_run, diff_run, hip->tsc_freq,
-		     diff_run * 1000 / hip->tsc_freq);
+		error("map=", Hex(map_run), " remap=", Hex(remap_run), " --> "
+		      "diff=", Hex(diff_run), " freq_tsc=", hip->tsc_freq, " ",
+		     diff_run * 1000 / hip->tsc_freq, " us");
 	}
 
 	Nova::revoke(Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all));
@@ -376,7 +376,7 @@ void test_server_oom()
 		Genode::Native_capability got_cap = client.void_cap();
 
 		if (!got_cap.valid()) {
-			PERR("%u cap id %lx invalid", i, got_cap.local_name());
+			error(i, " cap id ", Hex(got_cap.local_name()), " invalid");
 			failed ++;
 			break;
 		}
@@ -386,7 +386,7 @@ void test_server_oom()
 		idx.inc();
 
 		if (i % 5000 == 4999)
-			PINF("received %u. cap", i);
+			log("received ", i, ". cap");
 	}
 
 	/* XXX this code does does no longer work since the removal of 'solely_map' */
@@ -399,13 +399,13 @@ void test_server_oom()
 		send_cap.solely_map();
 
 		if (!client.cap_void(send_cap)) {
-			PERR("sending %4u. cap failed", i);
+			error("sending ", i, ". cap failed");
 			failed ++;
 			break;
 		}
 
 		if (i % 5000 == 4999)
-			PINF("sent %u. cap", i);
+			log("sent ", i, ". cap");
 	}
 #endif
 
@@ -423,7 +423,7 @@ class Greedy : public Thread_deprecated<4096> {
 
 		void entry()
 		{
-			PINF("starting");
+			log("starting");
 
 			enum { SUB_RM_SIZE = 2UL * 1024 * 1024 * 1024 };
 
@@ -436,8 +436,8 @@ class Greedy : public Thread_deprecated<4096> {
 
 			addr_t const page_fault_portal = native_thread().exc_pt_sel + 14;
 
-			PERR("cause mappings in range [0x%lx, 0x%lx) %p", mem,
-			     mem + SUB_RM_SIZE - 1, &mem);
+			log("cause mappings in range ",
+			    Hex_range<addr_t>(mem, SUB_RM_SIZE), " ", &mem);
 
 			for (addr_t map_to = mem; map_to < mem + SUB_RM_SIZE; map_to += 4096) {
 
@@ -450,7 +450,7 @@ class Greedy : public Thread_deprecated<4096> {
 				/* trigger faked page fault */
 				Genode::uint8_t res = Nova::call(page_fault_portal);
 				if (res != Nova::NOVA_OK) {
-					PINF("call result=%u", res);
+					log("call result=", res);
 					failed++;
 					return;
 				}
@@ -460,13 +460,13 @@ class Greedy : public Thread_deprecated<4096> {
 
 				/* print status information in interval of 32M */
 				if (!(map_to & (32UL * 1024 * 1024 - 1))) {
-					printf("0x%lx\n", map_to);
+					log(Hex(map_to));
 					/* trigger some work to see quota in kernel decreasing */
 //					Nova::Rights rwx(true, true, true);
 //					Nova::revoke(Nova::Mem_crd((map_to - 32 * 1024 * 1024) >> 12, 12, rwx));
 				}
 			}
-			printf("still alive - done\n");
+			log("still alive - done");
 		}
 };
 
@@ -483,16 +483,16 @@ void check(uint8_t res, const char *format, ...)
 	va_end(list);
 
 	if (res == Nova::NOVA_OK) {
-		PERR("res=%u %s - TEST FAILED", res, buf);
+		error("res=", res, " ", Cstring(buf), " - TEST FAILED");
 		failed++;
 	}
 	else
-		printf("res=%u %s\n", res, buf);
+		log("res=", res, " ", Cstring(buf));
 }
 
 int main(int argc, char **argv)
 {
-	printf("testing base-nova platform\n");
+	log("testing base-nova platform");
 
 	try {
 		Genode::config()->xml_node().attribute("check_pat").value(&check_pat);
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
 	core_pagefault_oom.join();
 
 	if (!failed)
-		printf("Test finished\n");
+		log("Test finished");
 
 	return -failed;
 }

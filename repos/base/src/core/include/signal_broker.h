@@ -80,7 +80,7 @@ class Genode::Signal_broker
 			_context_ep.apply(context_cap, [&] (Signal_context_component *c) {
 				context = c;
 				if (!context) {
-					PWRN("specified signal-context capability has wrong type");
+					warning("specified signal-context capability has wrong type");
 					return;
 				}
 
@@ -98,7 +98,7 @@ class Genode::Signal_broker
 					 * suppress this warning in release mode (SPECS +=
 					 * release).
 					 */
-					PDBG("invalid signal-context capability");
+					warning("invalid signal-context capability");
 					return;
 				}
 

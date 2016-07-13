@@ -199,7 +199,7 @@ struct Dwmmc : Genode::Mmio
 		write<Ctrl::Reset>(0x7);
 
 		if (!wait_for<Ctrl::Reset>(0, delayer, 100, 1000)) {
-			PERR("Could not reset host contoller");
+			Genode::error("Could not reset host contoller");
 			return false;
 		}
 
@@ -211,7 +211,7 @@ struct Dwmmc : Genode::Mmio
 		write<Ctrl::Reset>(0x2);
 
 		if (!wait_for<Ctrl::Reset>(0, delayer, 100, 1000))
-			PERR("Could not reset fifo");
+			Genode::error("Could not reset fifo");
 	}
 
 	void disable_irq()
@@ -241,7 +241,7 @@ struct Dwmmc : Genode::Mmio
 		write<Cmd>(cmd);
 
 		if (!wait_for<Cmd::Start_cmd>(0, delayer)) {
-			PERR("Update clock registers failed");
+			Genode::error("Update clock registers failed");
 			return false;
 		}
 
@@ -304,7 +304,14 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 				return block_count < MAX_BLOCKS ? 0 : block_count  - MAX_BLOCKS;
 			}
 
-			void dump() { PDBG("this: %p f: %x bytes: %u, addr: %x next: %x", this, flags, bytes, addr, next); }
+			void dump()
+			{
+				Genode::log("this: ",  this,               " "
+				            "flags: ", Genode::Hex(flags), " "
+				            "bytes: ", bytes,              " "
+				            "addr: ",  Genode::Hex(addr),  " "
+				            "next:",   Genode::Hex(next));
+			}
 		};
 
 		/*
@@ -349,20 +356,20 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			bus_width(BUS_WIDTH_1);
 
 			if (!issue_command(Go_idle_state())) {
-				PWRN("Go_idle_state command failed");
+				Genode::warning("Go_idle_state command failed");
 				throw Detection_failed();
 			}
 
 			_delayer.usleep(2000);
 
 			if (!issue_command(Send_if_cond())) {
-				PWRN("Send_if_cond command failed");
+				Genode::warning("Send_if_cond command failed");
 				throw Detection_failed();
 			}
 
 			 /* if this succeeds it is an SD card */
 			if ((read<Rsp0>() & 0xff) == 0xaa)
-				PINF("Found SD card");
+				Genode::log("Found SD card");
 
 			/*
 			 * We need to issue the same Mmc_send_op_cond command multiple
@@ -376,7 +383,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			unsigned arg = 0;
 			for (; i > 0; --i) {
 				if (!issue_command(Mmc_send_op_cond(arg, true))) {
-					PWRN("Sd_send_op_cond command failed");
+					Genode::warning("Sd_send_op_cond command failed");
 					throw Detection_failed();
 				}
 
@@ -390,7 +397,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			}
 
 			if (i == 0) {
-				PERR("Send_op_cond timed out, could no power-on SD/MMC card");
+				Genode::error("Send_op_cond timed out, could no power-on SD/MMC card");
 				throw Detection_failed();
 			}
 
@@ -399,14 +406,14 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			/* switch frequency to high speed */
 			enum { EXT_CSD_HS_TIMING = 185 };
 			if (!issue_command(Mmc_switch(EXT_CSD_HS_TIMING, 1))) {
-				PERR("Error setting high speed frequency");
+				Genode::error("Error setting high speed frequency");
 				throw Detection_failed();
 			}
 
 			enum { EXT_CSD_BUS_WIDTH = 183 };
 			/* set card to 8 bit */
 			if (!issue_command(Mmc_switch(EXT_CSD_BUS_WIDTH, 2))) {
-				PERR("Error setting card bus width");
+				Genode::error("Error setting card bus width");
 				throw Detection_failed();
 			}
 
@@ -414,7 +421,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 			/* set to eight bit transfer Bit */
 			if (!setup_bus(CLK_DIV_52Mhz, _delayer)) {
-				PERR("Error setting bus to high speed");
+				Genode::error("Error setting bus to high speed");
 				throw Detection_failed();
 			}
 
@@ -433,7 +440,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			size_t const max_idmac_block_count = IDMAC_DESC_MAX_ENTRIES * 8;
 
 			if (block_count > max_idmac_block_count) {
-				PERR("Block request too large");
+				Genode::error("Block request too large");
 				return false;
 			}
 
@@ -488,17 +495,17 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 				}
 
 				if (read<Rintsts::Response_error>()) {
-					PERR("Response error");
+					Genode::error("Response error");
 					return false;
 				}
 
 				if (read<Rintsts::Data_read_timeout>()) {
-					PERR("Data read timeout");
+					Genode::error("Data read timeout");
 					return false;
 				}
 
 				if (read<Rintsts::Data_crc_error>()) {
-					PERR("CRC error");
+					Genode::error("CRC error");
 					return false;
 				}
 			}
@@ -528,11 +535,11 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 		bool _issue_command(Sd_card::Command_base const &command)
 		{
 			if (verbose)
-				PLOG("-> index=0x%08x, arg=0x%08x, rsp_type=%d",
-				     command.index, command.arg, command.rsp_type);
+				Genode::log("-> ", command);
 
 			if (!wait_for<Status::Data_busy>(0, _delayer, 10000, 100)) {
-				PERR("wait for State::Data_busy timed out %x", read<Status>());
+				Genode::error("wait for State::Data_busy timed out ",
+				              Genode::Hex(read<Status>()));
 				return false;
 			}
 
@@ -571,20 +578,19 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			write<Cmd>(cmd);
 
 			if (!wait_for<Rintsts::Command_done>(1, _delayer, 10000, 100)) {
-				PERR("Command failed Rintst: %x Mintst: %x Status: %x", read<Rintsts>(), read<Mintsts>(), read<Status>());
+				Genode::error("command failed "
+				              "Rintst: ", read<Rintsts>(), " "
+				              "Mintst: ", read<Mintsts>(), " "
+				              "Status: ", read<Status>());
 
 				if (read<Rintsts::Response_timeout>())
-					PWRN("timeout");
+					Genode::warning("timeout");
 
 				if (read<Rintsts::Response_error>())
-					PWRN("Repsonse error");
+					Genode::warning("repsonse error");
 
 				return false;
 			}
-
-			if (verbose)
-				PDBG("IRQ: Rintsts %x transfer %s", read<Rintsts>(),
-				      command.transfer == Sd_card::TRANSFER_NONE ? "none" : "data");
 
 			/* acknowledge interrupt */
 			write<Rintsts::Command_done>(1);
@@ -628,7 +634,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 				throw Detection_failed();
 
 			if (!wait_for<Rintsts::Data_transfer_over>(1, _delayer)) {
-				PERR("Error retrieving extented CSD");
+				Genode::error("cannot retrieve extented CSD");
 				throw Detection_failed();
 			}
 			/* clear IRQ */
@@ -639,7 +645,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 			/* read revision */
 			if (csd.read<Sd_card::Ext_csd::Revision>() < 2) {
-				PERR("Extented CSD revision is < 2");
+				Genode::error("extented CSD revision is < 2");
 				throw Detection_failed();
 			}
 
@@ -662,14 +668,15 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 				return false;
 
 			if (!_issue_command(Sd_card::Read_multiple_block(block_number))) {
-				PERR("Read_multiple_block failed, Status: 0x%08x", read<Status>());
+				Genode::error("Read_multiple_block failed, Status: ",
+				              Genode::Hex(read<Status>()));
 				return false;
 			}
 
 			bool complete = _wait_for_transfer_complete();
 
 			if (!_issue_command(Sd_card::Stop_transmission())) {
-				PERR("Unable to stop transmission");
+				Genode::error("unable to stop transmission");
 				return false;
 			}
 
@@ -683,14 +690,15 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 				return false;
 
 			if (!_issue_command(Sd_card::Write_multiple_block(block_number))) {
-				PERR("Read_multiple_block failed, Status: 0x%08x", read<Status>());
+				Genode::error("Read_multiple_block failed, Status: ",
+				              Genode::Hex(read<Status>()));
 				return false;
 			}
 
 			bool complete = _wait_for_transfer_complete();
 
 			if (!_issue_command(Sd_card::Stop_transmission())) {
-				PERR("Unable to stop transmission");
+				Genode::error("unable to stop transmission");
 				return false;
 			}
 

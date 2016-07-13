@@ -45,7 +45,7 @@ void Irq_session_component::ack_irq()
 void Irq_session_component::sigh(Signal_context_capability cap)
 {
 	if (_sig_cap.valid()) {
-		PWRN("signal handler already registered for IRQ %u", _irq_number);
+		warning("signal handler already registered for IRQ ", _irq_number);
 		return;
 	}
 
@@ -53,7 +53,7 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 
 	if (Kernel::new_irq((addr_t)&_kernel_object, _irq_number,
 	                    Capability_space::capid(_sig_cap)))
-		PWRN("invalid signal handler for IRQ %u", _irq_number);
+		warning("invalid signal handler for IRQ ", _irq_number);
 }
 
 
@@ -86,7 +86,7 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 
 	/* allocate interrupt */
 	if (_irq_alloc->alloc_addr(1, _irq_number).error()) {
-		PERR("unavailable interrupt %d requested", _irq_number);
+		error("unavailable interrupt ", _irq_number, " requested");
 		throw Root::Invalid_args();
 	}
 

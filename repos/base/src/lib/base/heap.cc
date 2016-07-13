@@ -13,7 +13,7 @@
 
 #include <util/construct_at.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/heap.h>
 #include <base/lock.h>
 
@@ -86,10 +86,10 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 		new_ds_cap = _ds_pool.ram_session->alloc(size);
 		ds_addr = _ds_pool.region_map->attach(new_ds_cap);
 	} catch (Ram_session::Alloc_failed) {
-		PWRN("could not allocate new dataspace of size %zu", size);
+		warning("could not allocate new dataspace of size ", size);
 		return 0;
 	} catch (Region_map::Attach_failed) {
-		PWRN("could not attach dataspace");
+		warning("could not attach dataspace");
 		_ds_pool.ram_session->free(new_ds_cap);
 		return 0;
 	}
@@ -98,7 +98,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 		/* allocate the Dataspace structure */
 		if (_unsynchronized_alloc(sizeof(Heap::Dataspace), &ds_meta_data_addr) < 0) {
-			PWRN("could not allocate dataspace meta data");
+			warning("could not allocate dataspace meta data");
 			return 0;
 		}
 
@@ -109,7 +109,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 		/* allocate the Dataspace structure */
 		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).error()) {
-			PWRN("could not allocate dataspace meta data - this should never happen");
+			warning("could not allocate dataspace meta data - this should never happen");
 			return 0;
 		}
 
@@ -152,7 +152,7 @@ bool Heap::_unsynchronized_alloc(size_t size, void **out_addr)
 		Heap::Dataspace *ds = _allocate_dataspace(dataspace_size, true);
 
 		if (!ds) {
-			PWRN("could not allocate dataspace");
+			warning("could not allocate dataspace");
 			return false;
 		}
 

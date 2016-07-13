@@ -39,7 +39,7 @@ namespace Noux {
 
 			Genode::Session_capability session(const char *args, Affinity const &) override
 			{
-				PDBG("not implemented");
+				warning(__func__, " not implemented");
 				return Genode::Session_capability();
 			}
 
@@ -50,7 +50,7 @@ namespace Noux {
 
 			void close(Genode::Session_capability session) override
 			{
-				PDBG("not implemented");
+				warning(__func__, " not implemented");
 			}
 	};
 }

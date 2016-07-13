@@ -75,7 +75,7 @@ class Genode::Acpi_table
 				if (local)
 					return base + (local - io_mem.local_addr<uint8_t>());
 			} catch (...) {
-				PWRN("failed to scan EBDA for RSDP root");
+				Genode::warning("failed to scan EBDA for RSDP root");
 			}
 
 			return 0;

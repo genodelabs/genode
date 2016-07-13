@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <block/component.h>
 #include <os/session_policy.h>
@@ -125,7 +126,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 			if (num < 0) {
 				error("rejecting session request, no matching policy for '", label, "'",
 				      model_buf[0] == 0 ? ""
-				      : " (model=", (char const *)model_buf, " serial=", (char const *)sn_buf, ")");
+				      : " (model=", Cstring(model_buf), " serial=", Cstring(sn_buf), ")");
 				throw Root::Invalid_args();
 			}
 

@@ -15,6 +15,7 @@
 /* base includes */
 #include <base/component.h>
 #include <base/log.h>
+#include <base/heap.h>
 #include <util/avl_tree.h>
 
 /* os includes */
@@ -234,7 +235,8 @@ struct Transform::Main {
 				else
 					throw 5;
 			} catch (...) {
-				String<64> invalid_node(map_node.addr(), map_node.size());
+				String<64> invalid_node(Genode::Cstring(map_node.addr(),
+				                                        map_node.size()));
 				Genode::error("map item : '", invalid_node.string(), "'");
 				/* we want a well formated configuration ! - die */
 				class Invalid_config {} exception;

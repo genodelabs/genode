@@ -46,7 +46,7 @@ struct Genode::Session_label : String<160>
 				if (!strcmp(_separator(), full + i, _separator_len()))
 					return full + i + _separator_len();
 
-			return Session_label(full);
+			return Session_label(Cstring(full));
 		}
 
 		/**
@@ -66,7 +66,7 @@ struct Genode::Session_label : String<160>
 					break;
 
 			/* construct new label with only the prefix part */
-			return Session_label(full, prefix_len);
+			return Session_label(Cstring(full, prefix_len));
 		}
 };
 
@@ -81,7 +81,7 @@ namespace Genode {
 		char buf[Session_label::capacity()];
 		Arg_string::find_arg(args, "label").string(buf, sizeof(buf), "");
 
-		return Session_label(buf);
+		return Session_label(Cstring(buf));
 	}
 
 	/**
@@ -100,7 +100,7 @@ namespace Genode {
 		char buf[Session_label::capacity()];
 		snprintf(buf, sizeof(buf), "%s -> %s", prefix.string(), label.string());
 
-		return Session_label(buf);
+		return Session_label(Cstring(buf));
 	}
 }
 

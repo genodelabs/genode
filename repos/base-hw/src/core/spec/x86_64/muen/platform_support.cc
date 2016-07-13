@@ -82,11 +82,11 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 
 	struct Sinfo::Dev_info dev_info;
 	if (!sinfo()->get_dev_info(sid, &dev_info)) {
-		PERR("error retrieving Muen info for device with SID 0x%x", sid);
+		error("error retrieving Muen info for device with SID ", Hex(sid));
 		return false;
 	}
 	if (!dev_info.msi_capable) {
-		PERR("device 0x%x not configured for MSI", sid);
+		error("device ", Hex(sid), " not configured for MSI");
 		return false;
 	}
 
@@ -94,8 +94,8 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 	address = Msi_address::to_msi_addr(dev_info.irte_start);
 	irq_number = dev_info.irq_start;
 
-	PDBG("enabling MSI for device with SID 0x%x: IRTE %d, IRQ %d",
-		 sid, dev_info.irte_start, irq_number);
+	log("enabling MSI for device with SID ", Hex(sid), ": "
+	    "IRTE ", dev_info.irte_start, ", IRQ ", irq_number);
 	return true;
 }
 
@@ -110,7 +110,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 	if (!result.size) {
 		struct Sinfo::Memregion_info region;
 		if (!sinfo()->get_memregion_info("ram", &region)) {
-			PERR("Unable to retrieve base-hw ram region");
+			error("Unable to retrieve base-hw ram region");
 			return 0;
 		}
 

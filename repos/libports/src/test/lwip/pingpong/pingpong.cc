@@ -22,8 +22,6 @@ forgepacket(Packet *p, uint32_t id)
 {
 	p->h.id = id;
 	p->d[p->h.dsize - 1] = (id % 128);
-
-	//PLOG("payload for %u = %u", id, (id % 128));
 }
 
 int
@@ -34,8 +32,6 @@ checkpacket(size_t n, Packet *p)
 		printf("ERROR: packetsize mismatch!\n");
 		return -1;
 	}
-
-	//PLOG("header: %u, data: %u", n - p->h.dsize, n - sizeof (Packetheader));
 
 	/* check packet type */
 	if (p->h.type != Tping) {

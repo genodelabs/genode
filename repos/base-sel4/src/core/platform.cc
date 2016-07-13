@@ -184,10 +184,9 @@ void Platform::_init_allocators()
 
 	if (verbose_boot_info) {
 		log("core image:");
-		log("  virtual address range [",
-		    Hex(core_virt_beg, Hex::OMIT_PREFIX, Hex::PAD), ",",
-		    Hex(core_virt_end, Hex::OMIT_PREFIX, Hex::PAD), ") size=",
-		    Hex(core_size));
+		log("  virtual address range ",
+		    Hex_range<addr_t>(core_virt_beg, core_virt_end - core_virt_beg), " "
+		    "size=", Hex(core_size));
 	}
 
 	/* preserve sel4 boot info page in core's virtual address space */
@@ -391,7 +390,7 @@ void Platform::_init_rom_modules()
 			_phys_cnode.copy(initial_cspace, Cnode_index(module_frame_sel + i),
 			                                 Cnode_index(dst_frame + i));
 
-		PLOG("boot module '%s' (%zd bytes)", header->name, header->size);
+		log("boot module '", header->name, "' (", header->size, " bytes)");
 
 		/*
 		 * Register ROM module, the base address refers to location of the
@@ -452,8 +451,7 @@ Platform::Platform()
 	/*
 	 * Log statistics about allocator initialization
 	 */
-	log("VM area at [", Hex(_vm_base, Hex::OMIT_PREFIX, Hex::PAD), ",",
-	    Hex(_vm_base + _vm_size, Hex::OMIT_PREFIX, Hex::PAD), ")");
+	log("VM area at ", Hex_range<addr_t>(_vm_base, _vm_size));
 
 	if (verbose_boot_info) {
 		log(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();

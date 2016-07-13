@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <base/capability.h>
@@ -22,6 +22,7 @@
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
 #include <base/internal/capability_space_tpl.h>
+#include <base/internal/globals.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -81,7 +82,8 @@ static bool wait_for_page_fault(Pistachio::L4_ThreadId_t &from,
 
 	enum { EXPECT = 2 };
 	if (L4_IpcFailed(res) || (L4_UntypedWords(res)) != EXPECT) {
-		PERR("got %ld words, expected %d", L4_UntypedWords(res), EXPECT);
+		error(__func__, ": got ", L4_UntypedWords(res), " words, "
+		      "expected ", (int)EXPECT);
 		return false;
 	}
 	L4_Store(res, &msg);
@@ -112,7 +114,8 @@ static bool reply_and_wait_for_page_fault(Pistachio::L4_ThreadId_t  to,
 
 	enum { EXPECT = 2 };
 	if (L4_IpcFailed(res) || (L4_UntypedWords(res)) != EXPECT) {
-		PERR("got %ld words, expected %d", L4_UntypedWords(res), EXPECT);
+		error(__func__, ": got ", L4_UntypedWords(res), " words, "
+		      "expected ", (int)EXPECT);
 		return wait_for_page_fault(from, pf_addr, pf_ip, flags);
 	}
 	L4_Store(res, &msg);
@@ -130,8 +133,6 @@ static bool reply_and_wait_for_page_fault(Pistachio::L4_ThreadId_t  to,
 
 static void _core_pager_loop()
 {
-	if (verbose) PDBG("Core pager running.");
-
 	using namespace Pistachio;
 
 	L4_ThreadId_t t;
@@ -163,28 +164,26 @@ static void _core_pager_loop()
 			continue;
 		}
 
-		PDBG("Got page fault (pf_addr = %08lx, pf_ip = %08lx, flags = %08lx).",
-		     pf_addr, pf_ip, flags);
-		print_l4_thread_id(L4_GlobalId(t));
+		log(L4_GlobalId(t));
 
 		/* check for NULL pointer */
 		if (pf_addr < page_size) {
-			PERR("possible null pointer %s at address %lx at EIP %lx in",
-			     write_fault(flags) ? "WRITE" : "READ/EXEC", pf_addr, pf_ip);
-			print_l4_thread_id(t);
+			error("possible null pointer ",
+			      write_fault(flags) ? "WRITE" : "READ/EXEC", " at "
+			      "address ", Hex(pf_addr), " at EIP ", Hex(pf_ip), " in ", t);
+
 			/* do not unblock faulter */
 			break;
 		} else if (!_core_address_ranges().valid_addr(pf_addr)) {
 			/* page-fault address is not in RAM */
 
-			PERR("%s access outside of RAM at %lx IP %lx",
-			     write_fault(flags) ? "WRITE" : "READ", pf_addr, pf_ip);
-			print_l4_thread_id(t);
+			error(write_fault(flags) ? "WRITE" : "READ", " access outside of RAM "
+			      "at ", Hex(pf_addr), " IP ", Hex(pf_ip), " by ", t);
+
 			/* do not unblock faulter */
 			break;
 		} else if (verbose_core_pf) {
-			PDBG("pfa=%lx ip=%lx in", pf_addr, pf_ip);
-			print_l4_thread_id(t);
+			log(__func__, ": pfa=", Hex(pf_addr), " ip=", Hex(pf_ip), " by ", t);
 		}
 
 		/* my pf handler is sigma0 - just touch the appropriate page */
@@ -263,16 +262,14 @@ struct Region
 	{
 		return (((base + size) > start) && (base < end));
 	}
+
+	void print(Genode::Output &out) const
+	{
+		size_t const size = end - start;
+		Genode::print(out, Hex_range<addr_t>(start, size), " ",
+		                   "size: ", Hex(size, Hex::PREFIX, Hex::PAD));
+	}
 };
-
-
-/**
- * Log region
- */
-static inline void print_region(Region r)
-{
-	printf("[%08lx,%08lx) %08lx", r.start, r.end, r.end - r.start);
-}
 
 
 /**
@@ -281,13 +278,12 @@ static inline void print_region(Region r)
 static inline void add_region(Region r, Range_allocator &alloc)
 {
 	if (r.start >= r.end) {
-		PERR("(start = 0x%08lx, end = 0x%08lx)\n", r.start, r.end);
+		error(__func__, ": bad range ", r);
 		panic("add_region called with bogus parameters.");
 	}
 
-	if (verbose_region_alloc) {
-		printf("%p    add: ", &alloc); print_region(r); printf("\n");
-	}
+	if (verbose_region_alloc)
+		log(&alloc, "    add: ", r);
 
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
@@ -305,9 +301,8 @@ static inline void remove_region(Region r, Range_allocator &alloc)
 	if (r.start >= r.end)
 		panic("remove_region called with bogus parameters.");
 
-	if (verbose_region_alloc) {
-		printf("%p remove: ", &alloc); print_region(r); printf("\n");
-	}
+	if (verbose_region_alloc)
+		log(&alloc, " remove: ", r);
 
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
@@ -358,12 +353,10 @@ static void dump_kip_memdesc(Pistachio::L4_KernelInterfacePage_t *kip)
 	for (L4_Word_t i = 0; i < num_desc; i++) {
 		L4_MemoryDesc_t *d = L4_MemoryDesc(kip, i);
 
-		printf("mem %ld: [0x%08lx, 0x%08lx) type=0x%lx (%s) %s\n",
-		       i,
-		       L4_Low(d),
-		       L4_High(d)+1,
-		       L4_Type(d), types[L4_Type(d) & 0xF],
-		       L4_IsVirtual(d) ? "Virtual" : "Non-Virtual");
+		log("mem ", i, ": ",
+		    Hex_range<addr_t>(L4_Low(d), L4_High(d) - L4_Low(d) + 1), " "
+		    "type=", Hex(L4_Type(d)), " (", types[L4_Type(d) & 0xf], ") ",
+		    L4_IsVirtual(d) ? "Virtual" : "Non-Virtual");
 	}
 }
 
@@ -417,7 +410,7 @@ void Platform::_setup_mem_alloc()
 		/* mask out that size bit */
 		page_size_mask &= ~size;
 
-		printf("Trying to allocate %uK pages from sigma0.\n", size >> 10);
+		log("Trying to allocate ", size >> 10, "K pages from sigma0.");
 
 		/*
 		 * Suck out sigma0. The spec says that we get only "conventional
@@ -455,7 +448,7 @@ void Platform::_setup_mem_alloc()
 			}
 		} while (succ);
 
-		printf("Got %uK in %uK pieces.\n", bytes_got >> 10, size >> 10);
+		log("Got ", bytes_got >> 10, "K in ", size >> 10, "K pieces.");
 	}
 }
 
@@ -498,11 +491,11 @@ void Platform::_setup_basics()
 		panic("we got something but not the KIP");
 
 	if (verbose) {
-		printf("\n");
-		printf("KIP @ %p\n", kip);
-		printf("    magic: %08lx\n", kip->magic);
-		printf("  version: %08lx\n", kip->ApiVersion.raw);
-		printf(" BootInfo: %08lx\n", kip->BootInfo);
+		log("");
+		log("KIP @ ", kip);
+		log("    magic: ", Hex(kip->magic,          Hex::PREFIX, Hex::PAD));
+		log("  version: ", Hex(kip->ApiVersion.raw, Hex::PREFIX, Hex::PAD));
+		log(" BootInfo: ", Hex(kip->BootInfo,       Hex::PREFIX, Hex::PAD));
 	}
 
 	dump_kip_memdesc(kip);
@@ -530,7 +523,7 @@ void Platform::_setup_basics()
 
 	/* done magic */
 
-	if (verbose) printf("MBI @ %p\n", mb_info_ptr);
+	if (verbose) log("MBI @ ", mb_info_ptr);
 
 	/* get UTCB memory */
 	Platform_pd::touch_utcb_space();
@@ -553,7 +546,7 @@ void Platform::_setup_basics()
 		if (!L4_IsVirtual(md)) continue;
 
 		if (_vm_start != 0x0 || _vm_size != 0x0) {
-			PWRN("KIP has multiple virtual-memory descriptors. Taking only the first.");
+			warning("KIP has multiple virtual-memory descriptors. Taking only the first.");
 			break;
 		}
 
@@ -564,8 +557,9 @@ void Platform::_setup_basics()
 		_vm_start = max((L4_Word_t)0x1000, L4_MemoryDescLow(md));
 		_vm_size  = L4_MemoryDescHigh(md) - _vm_start + 1;
 
-		printf("KIP reports virtual memory region at [%lx,%lx)\n",
-		       L4_MemoryDescLow(md), L4_MemoryDescHigh(md));
+		log("KIP reports virtual memory region at ",
+		    Hex_range<addr_t>(L4_MemoryDescLow(md),
+		                      L4_MemoryDescHigh(md) - L4_MemoryDescLow(md)));
 	}
 
 	/* configure core's virtual memory, exclude KIP, stack area */
@@ -611,9 +605,7 @@ void Platform::_setup_rom()
 		_rom_fs.insert(new_rom);
 
 		if (verbose)
-			printf(" mod[%d] [%p,%p) %s\n", i,
-			       (void *)new_rom->addr(), ((char *)new_rom->addr()) + new_rom->size(),
-			       new_rom->name());
+			log(" mod[", i, "] ", *new_rom);
 
 		/* zero remainder of last ROM page */
 		size_t count = page_size - rom.size() % page_size;
@@ -651,6 +643,8 @@ Platform::Platform() :
 	if (initialized) panic("Platform constructed twice!");
 	initialized = true;
 
+	init_log();
+
 	_setup_basics();
 	_setup_preemption();
 	_setup_mem_alloc();
@@ -664,13 +658,13 @@ Platform::Platform() :
 	 * hold the meta data for the ROM modules as initialized by '_setup_rom'.
 	 */
 	if (verbose) {
-		printf(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
-		printf(":region_alloc: "); _region_alloc()->dump_addr_tree();
-		printf(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
-		printf(":io_port: ");      _io_port_alloc()->dump_addr_tree();
-		printf(":irq: ");          _irq_alloc()->dump_addr_tree();
-		printf(":rom_fs: ");       _rom_fs.print_fs();
-		printf(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
+		log(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
+		log(":region_alloc: "); _region_alloc()->dump_addr_tree();
+		log(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
+		log(":io_port: ");      _io_port_alloc()->dump_addr_tree();
+		log(":irq: ");          _irq_alloc()->dump_addr_tree();
+		log(":rom_fs: ");       _rom_fs.print_fs();
+		log(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
 	}
 
 	/*

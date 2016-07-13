@@ -15,7 +15,6 @@
 #define _INCLUDE__UTIL__VOLATILE_OBJECT_H_
 
 #include <util/construct_at.h>
-#include <base/printf.h>
 #include <base/stdint.h>
 
 namespace Genode {
@@ -61,11 +60,8 @@ class Genode::Volatile_object
 
 		void _check_constructed() const
 		{
-			if (!_constructed) {
-				PDBG("Deref_unconstructed_object");
-				PDBG("bt: %p", __builtin_return_address(0));
+			if (!_constructed)
 				throw Deref_unconstructed_object();
-			}
 		}
 
 	protected:

@@ -183,19 +183,19 @@ namespace Genode {
 
 			Cpu_session *cpu_session() override
 			{
-				PWRN("%s:%u not implemented", __FILE__, __LINE__);
+				warning(__func__, " not implemented");
 				return 0;
 			}
 
 			Cpu_session_capability cpu_session_cap() override
 			{
-				PWRN("%s:%u not implemented", __FILE__, __LINE__);
+				warning(__func__, " not implemented");
 				return Cpu_session_capability();
 			}
 
 			Pd_session_capability pd_session_cap() override
 			{
-				PWRN("%s:%u not implemented", __FILE__, __LINE__);
+				warning(__func__, " not implemented");
 				return Pd_session_capability();
 			}
 

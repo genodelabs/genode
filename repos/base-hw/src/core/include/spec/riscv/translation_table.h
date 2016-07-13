@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  RISCV Sv39 page table format
  * \author Sebastian Sumpf
  * \date   2015-08-04
@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/misc_math.h>
 #include <util/register.h>
+#include <base/log.h>
 
 /* Core includes */
 #include <cpu.h>
@@ -175,7 +176,7 @@ class Sv39::Level_x_translation_table
 			/* sanity check vo bits 38 to 63 must be equal */
 			addr_t sanity = vo >> 38;
 			if (sanity != 0 && sanity != 0x3ffffff) {
-				PERR("Invalid virtual address: %lx", vo);
+				Genode::error("invalid virtual address: ", vo);
 				throw Invalid_range();
 			}
 
@@ -302,7 +303,7 @@ class Sv39::Level_x_translation_table
 		Level_x_translation_table()
 		{
 			if (!_aligned((addr_t)this, ALIGNM_LOG2)) {
-				PWRN("misaligned address");
+				Genode::warning("misaligned address");
 				throw Misaligned();
 			}
 
@@ -371,7 +372,7 @@ namespace Sv39 {
 			{
 				if ((vo & ~BLOCK_MASK) || (pa & ~BLOCK_MASK) ||
 				    size < BLOCK_SIZE) {
-					PWRN("invalid range");
+					Genode::warning("invalid range");
 					throw Invalid_range();
 				}
 

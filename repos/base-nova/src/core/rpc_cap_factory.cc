@@ -43,8 +43,12 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, add
 	if (res == NOVA_OK)
 		return Capability_space::import(pt_sel);
 
-	PERR("cap_session - cap=%lx:%lx addr=%lx mtd=%lx xpt=%lx res=%u",
-	     ec_sel, ep.local_name(), entry, mtd, pt_sel, res);
+	error("cap alloc - "
+	      "cap=",   Hex(ec_sel), ":", Hex(ep.local_name()), " "
+	      "entry=", Hex(entry),  " "
+	      "mtd=",   Hex(mtd),    " "
+	      "xpt=",   Hex(pt_sel), " "
+	      "res=",   res);
 
 	_list.remove(pt_cap);
 	destroy(&_slab, pt_cap);
@@ -72,7 +76,7 @@ void Rpc_cap_factory::free(Native_capability cap)
 			return;
 		}
 	}
-	PDBG("invalid cap object");
+	warning("attempt to free invalid cap object");
 }
 
 

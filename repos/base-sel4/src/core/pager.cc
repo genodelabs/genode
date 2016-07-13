@@ -26,8 +26,6 @@
 
 using namespace Genode;
 
-static bool const verbose = false;
-
 
 struct Fault_info
 {
@@ -40,10 +38,7 @@ struct Fault_info
 		ip(seL4_GetMR(0)),
 		pf(seL4_GetMR(1)),
 		write(seL4_Fault_isWriteFault(seL4_GetMR(3)))
-	{
-		if (verbose)
-			PINF("PF: ip=0x%lx, pf=0x%lx, write=%d", ip, pf, write);
-	}
+	{ }
 };
 
 

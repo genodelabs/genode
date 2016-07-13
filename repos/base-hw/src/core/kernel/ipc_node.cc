@@ -176,7 +176,7 @@ void Ipc_node::send_request(Ipc_node * const callee, capid_t capid, bool help,
                             unsigned rcv_caps)
 {
 	if (_state != INACTIVE) {
-		PERR("IPC send request: bad state");
+		Genode::error("IPC send request: bad state");
 		return;
 	}
 	Genode::Allocator &slab = pd()->platform_pd()->capability_slab();
@@ -202,8 +202,8 @@ Ipc_node * Ipc_node::helping_sink() {
 
 bool Ipc_node::await_request(unsigned rcv_caps)
 {
-	if (_state != INACTIVE) {		
-		PERR("IPC await request: bad state");
+	if (_state != INACTIVE) {
+		Genode::error("IPC await request: bad state");
 		return true;
 	}
 	Genode::Allocator &slab = pd()->platform_pd()->capability_slab();

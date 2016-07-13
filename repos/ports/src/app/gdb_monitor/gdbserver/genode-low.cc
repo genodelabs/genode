@@ -27,7 +27,7 @@ extern "C" {
 int linux_detach_one_lwp (struct inferior_list_entry *entry, void *args);
 }
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/service.h>
 #include <cap_session/connection.h>
 #include <cpu_thread/client.h>
@@ -74,8 +74,8 @@ static void genode_stop_thread(unsigned long lwpid)
 	Cpu_thread_component *cpu_thread = csc->lookup_cpu_thread(lwpid);
 
 	if (!cpu_thread) {
-		PERR("%s: could not find CPU thread object for lwpid %lu",
-		     __PRETTY_FUNCTION__, lwpid);
+		error(__PRETTY_FUNCTION__, ": "
+		      "could not find CPU thread object for lwpid ", lwpid);
 		return;
 	}
 
@@ -137,7 +137,8 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 					continue;
 				} else {
 					if (verbose)
-						PDBG("input_interrupt, count = %d c = %d ('%c')", cc, c, c);
+						log("input_interrupt, "
+						    "count=", cc, " c=", c, " ('", Char(c), "%c')");
 				}
 
 			} else if (FD_ISSET(_new_thread_pipe[0], &readset)) {
@@ -171,7 +172,7 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 				unsigned long lwpid = csc->lwpid(thread_cap);
 
 				if (verbose)
-					PDBG("thread %lu received signal %d", lwpid, signal);
+					log("thread ", lwpid, " received signal ", signal);
 
 				if (signal == SIGTRAP) {
 
@@ -201,7 +202,7 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 				} else if (signal == SIGINFO) {
 
 					if (verbose)
-						PDBG("received SIGINFO for new lwpid %lu", lwpid);
+						log("received SIGINFO for new lwpid ", lwpid);
 
 					if (lwpid != GENODE_MAIN_LWPID)
 						write(_new_thread_pipe[1], &lwpid, sizeof(lwpid));
@@ -256,7 +257,7 @@ extern "C" long ptrace(enum __ptrace_request request, pid_t pid, void *addr, voi
 		case PTRACE_GETREGSET: request_str = "PTRACE_GETREGSET";  break;
 	}
 
-	PWRN("ptrace(%s (0x%x)) called - not implemented!", request_str, request);
+	warning("ptrace(", request_str, " (", Hex(request), ")) called - not implemented!");
 
 	errno = EINVAL;
 	return -1;
@@ -268,7 +269,7 @@ extern "C" int fork()
 	/* create the thread announcement pipe */
 
 	if (pipe(_new_thread_pipe) != 0) {
-		PERR("could not create the 'new thread' pipe");
+		error("could not create the 'new thread' pipe");
 		return -1;
 	}
 
@@ -279,7 +280,7 @@ extern "C" int fork()
 		Rom_connection ldso_rom("ld.lib.so");
 		ldso_cap = clone_rom(ldso_rom.dataspace());
 	} catch (...) {
-		PDBG("ld.lib.so not found");
+		warning("ld.lib.so not found");
 	}
 
 	/* extract target filename from config file */
@@ -289,10 +290,10 @@ extern "C" int fork()
 	try {
 		config()->xml_node().sub_node("target").attribute("name").value(filename, sizeof(filename));
 	} catch (Xml_node::Nonexistent_sub_node) {
-		PERR("Error: Missing '<target>' sub node.");
+		error("missing '<target>' sub node");
 		return -1;
 	} catch (Xml_node::Nonexistent_attribute) {
-		PERR("Error: Missing 'name' attribute of '<target>' sub node.");
+		error("missing 'name' attribute of '<target>' sub node");
 		return -1;
 	}
 
@@ -311,7 +312,7 @@ extern "C" int fork()
 		else
 			throw Xml_node::Exception();
 	} catch (...) {
-		PERR("Error: could not find a valid <preserve> config node");
+		error("could not find a valid <preserve> config node");
 		return -1;
 	}
 
@@ -321,11 +322,11 @@ extern "C" int fork()
 	char *unique_name = filename;
 	Capability<Rom_dataspace> file_cap;
 	try {
-		static Rom_connection rom(prefixed_label(Session_label(unique_name),
-		                                         Session_label(filename)).string());
+		static Rom_connection rom(prefixed_label(Session_label(Cstring(unique_name)),
+		                                         Session_label(Cstring(filename))).string());
 		file_cap = rom.dataspace();
 	} catch (Rom_connection::Rom_connection_failed) {
-		Genode::printf("Error: Could not access file \"%s\" from ROM service.\n", filename);
+		error("could not access ROM module \"", Cstring(filename), "\"");
 		return -1;
 	}
 
@@ -378,8 +379,8 @@ extern "C" int kill(pid_t pid, int sig)
 	Thread_capability thread_cap = csc->thread_cap(pid);
 
 	if (!thread_cap.valid()) {
-		PERR("%s: could not find thread capability for lwpid %d",
-		     __PRETTY_FUNCTION__, pid);
+		error(__PRETTY_FUNCTION__, ": "
+		      "could not find thread capability for pid ", pid);
 		return -1;
 	}
 
@@ -433,7 +434,7 @@ int genode_detach(int pid)
 int genode_kill(int pid)
 {
     /* TODO */
-    if (verbose) PDBG("not implemented, just detaching instead...");
+    if (verbose) warning(__func__, " not implemented, just detaching instead...");
 
     return genode_detach(pid);
 }
@@ -446,8 +447,7 @@ void genode_continue_thread(unsigned long lwpid, int single_step)
 	Cpu_thread_component *cpu_thread = csc->lookup_cpu_thread(lwpid);
 
 	if (!cpu_thread) {
-		PERR("%s: could not find CPU thread object for lwpid %lu",
-		     __PRETTY_FUNCTION__, lwpid);
+		error(__func__, ": " "could not find CPU thread object for lwpid ", lwpid);
 		return;
 	}
 
@@ -478,7 +478,7 @@ void genode_fetch_registers(struct regcache *regcache, int regno)
 
 void genode_store_registers(struct regcache *regcache, int regno)
 {
-	if (verbose) PDBG("genode_store_registers(): regno = %d", regno);
+	if (verbose) log(__func__, ": regno=", regno);
 
 	unsigned long reg_content = 0;
 
@@ -548,7 +548,7 @@ class Memory_model
 					                                          0, _region->offset());
 				} catch (Region_map::Attach_failed) {
 					flush();
-					PERR("Memory_model: RM attach failed");
+					error(__func__, ": RM attach failed");
 				}
 			}
 
@@ -602,7 +602,7 @@ class Memory_model
 			unsigned char *local_base = _update_curr_region(region);
 
 			if (!local_base) {
-				PWRN("Memory model: no memory at address %p", addr);
+				warning(__func__, ": no memory at address ", addr);
 				throw No_memory_at_address();
 			}
 
@@ -610,7 +610,7 @@ class Memory_model
 				local_base[offset_in_region];
 
 			if (verbose)
-				Genode::printf("read addr=%p, value=%x\n", addr, value);
+				log(__func__, ": read addr=", addr, ", value=", Hex(value));
 
 			return value;
 		}
@@ -618,7 +618,7 @@ class Memory_model
 		void write(void *addr, unsigned char value)
 		{
 			if (verbose)
-				Genode::printf("write addr=%p, value=%x\n", addr, value);
+				log(__func__, ": write addr=", addr, ", value=", Hex(value));
 
 			Lock::Guard guard(_lock);
 
@@ -629,8 +629,8 @@ class Memory_model
 			unsigned char *local_base = _update_curr_region(region);
 
 			if (!local_base) {
-				PWRN("Memory model: no memory at address %p", addr);
-				PWRN("(attempted to write %x)", (int)value);
+				warning(__func__, ": no memory at address=", addr);
+				warning("(attempted to write ", Hex(value), ")");
 				throw No_memory_at_address();
 			}
 
@@ -658,7 +658,7 @@ unsigned char genode_read_memory_byte(void *addr)
 int genode_read_memory(CORE_ADDR memaddr, unsigned char *myaddr, int len)
 {
 	if (verbose)
-		PDBG("genode_read_memory(%llx, %p, %d)", memaddr, myaddr, len);
+		log(__func__, "(", Hex(memaddr), ", ", myaddr, ", ", len, ")");
 
 	if (myaddr)
 		try {
@@ -681,7 +681,7 @@ void genode_write_memory_byte(void *addr, unsigned char value)
 int genode_write_memory (CORE_ADDR memaddr, const unsigned char *myaddr, int len)
 {
 	if (verbose)
-		PDBG("genode_write_memory(%llx, %p, %d)", memaddr, myaddr, len);
+		log(__func__, "(", Hex(memaddr), ", ", myaddr, ", ", len, ")");
 
 	if (myaddr && (len > 0)) {
 		if (debug_threads) {

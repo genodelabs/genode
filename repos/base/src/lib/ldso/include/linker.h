@@ -34,7 +34,7 @@ constexpr bool verbose_exception  = false;
 constexpr bool verbose_shared     = false;
 constexpr bool verbose_loading    = false;
 
-extern Elf::Addr           etext;
+extern Elf::Addr etext;
 
 /**
  * Forward declartions and helpers

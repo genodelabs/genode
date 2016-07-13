@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__WEAK_PTR_H_
 
 #include <base/lock.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/list.h>
 
 namespace Genode {
@@ -140,8 +140,8 @@ class Genode::Weak_object_base
 		~Weak_object_base()
 		{
 			if (_list.first())
-				PERR("Weak object %p not destructed properly "
-				     "there are still dangling pointers to it", this);
+				error("Weak object ", this, " not destructed properly "
+				     "there are still dangling pointers to it");
 		}
 
 		void disassociate(Weak_ptr_base *ptr)

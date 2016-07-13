@@ -191,7 +191,7 @@ class Decorator::Config
 			auto lambda = [&] (Xml_node node) {
 
 				if (_num_window_controls >= MAX_WINDOW_CONTROLS) {
-					PWRN("number of configured window controls exceeds maximum");
+					Genode::warning("number of configured window controls exceeds maximum");
 					return;
 				}
 

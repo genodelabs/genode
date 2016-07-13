@@ -12,7 +12,7 @@
  */
 
 #include <util/string.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <rm_session/connection.h>
@@ -26,7 +26,7 @@ using namespace Genode;
 
 static void fail(char const *message)
 {
-	PERR("FAIL: %s", message);
+	error("FAIL: ", message);
 	class Test_failed{};
 	throw Test_failed();
 }
@@ -43,7 +43,7 @@ static char const *test_pattern_2() {
 static void fill_ds_with_test_pattern(char const *pattern,
                                       Dataspace_capability ds, size_t offset)
 {
-	printf("fill dataspace with information\n");
+	log("fill dataspace with information");
 	char *content = env()->rm_session()->attach(ds);
 	strncpy(content + offset, pattern, ~0);
 	env()->rm_session()->detach(content);
@@ -59,9 +59,9 @@ static void validate_pattern_at(char const *pattern, char const *ptr)
 
 int main(int, char **)
 {
-	printf("--- sub-rm test ---\n");
+	log("--- sub-rm test ---");
 
-	printf("create RM connection\n");
+	log("create RM connection");
 	enum { SUB_RM_SIZE = 1024*1024 };
 	Rm_connection rm;
 
@@ -77,22 +77,22 @@ int main(int, char **)
 	fill_ds_with_test_pattern(test_pattern_2(), ds, 4096);
 
 	if (!support_attach_sub_any) {
-		printf("attach RAM ds to any position at sub rm - this should fail\n");
+		log("attach RAM ds to any position at sub rm - this should fail");
 		try {
 			sub_rm.attach(ds, 0, 0, false, (addr_t)0);
 			fail("sub rm attach_any unexpectedly did not fail");
 		}
 		catch (Region_map::Out_of_metadata) {
-			printf("attach failed as expected\n"); }
+			log("attach failed as expected"); }
 	}
 
-	printf("attach RAM ds to a fixed position at sub rm\n");
+	log("attach RAM ds to a fixed position at sub rm");
 
 	enum { DS_SUB_OFFSET = 4096 };
 	if ((addr_t)sub_rm.attach_at(ds, DS_SUB_OFFSET, 0, 0) != DS_SUB_OFFSET)
 		fail("attach_at return-value mismatch");
 
-	printf("attach sub rm at local address space\n");
+	log("attach sub rm at local address space");
 
 	/*
 	 * We use a fixed local address here because this makes the address space
@@ -106,7 +106,7 @@ int main(int, char **)
 	char *sub_rm_base = env()->rm_session()->attach_at(sub_rm.dataspace(),
 	                                                   LOCAL_ATTACH_ADDR);
 
-	printf("validate pattern in sub rm\n");
+	log("validate pattern in sub rm");
 	validate_pattern_at(test_pattern(), sub_rm_base + DS_SUB_OFFSET);
 
 	/*
@@ -114,12 +114,12 @@ int main(int, char **)
 	 * space. Now, test further populating the already attached sub rm session.
 	 */
 
-	printf("attach RAM ds at another fixed position at sub rm\n");
+	log("attach RAM ds at another fixed position at sub rm");
 	enum { DS_SUB_OFFSET_2 = 0x40000 };
 	if ((addr_t)sub_rm.attach_at(ds, DS_SUB_OFFSET_2, 0, 0) != DS_SUB_OFFSET_2)
 		fail("attach_at return-value mismatch");
 
-	printf("validate pattern in second mapping in sub rm\n");
+	log("validate pattern in second mapping in sub rm");
 	validate_pattern_at(test_pattern(), sub_rm_base + DS_SUB_OFFSET_2);
 
 	/*
@@ -131,30 +131,30 @@ int main(int, char **)
 		fail("undetected boundary conflict\n");
 	}
 	catch (Region_map::Region_conflict) {
-		printf("attaching beyond sub RM boundary failed as expected\n"); }
+		log("attaching beyond sub RM boundary failed as expected"); }
 
 	/*
 	 * Check for working region - conflict detection
 	 */
-	printf("attaching RAM ds to a conflicting region\n");
+	log("attaching RAM ds to a conflicting region");
 	try {
 		sub_rm.attach_at(ds, DS_SUB_OFFSET + 4096, 0, 0);
 		fail("region conflict went undetected\n");
 	}
 	catch (Region_map::Region_conflict) {
-		printf("attaching conflicting region failed as expected\n"); }
+		log("attaching conflicting region failed as expected"); }
 
 	if (attach_twice_forbidden) {
 		/*
 		 * Try to double-attach the same sub RM session. This should fail
 		 */
-		printf("attach sub rm again at local address space\n");
+		log("attach sub rm again at local address space");
 		try {
 			env()->rm_session()->attach(sub_rm.dataspace());
 			fail("double attachment of sub RM session went undetected\n");
 		}
 		catch (Region_map::Out_of_metadata) {
-			printf("doubly attaching sub RM session failed as expected\n"); }
+			log("doubly attaching sub RM session failed as expected"); }
 	}
 
 	/*
@@ -163,7 +163,7 @@ int main(int, char **)
 	 * of the region. The region size should be automatically reduced by one
 	 * page.
 	 */
-	printf("attach RAM ds with offset\n");
+	log("attach RAM ds with offset");
 	enum { DS_SUB_OFFSET_3 = 0x80000 };
 	sub_rm.attach_at(ds, DS_SUB_OFFSET_3, 0, 4096);
 	validate_pattern_at(test_pattern_2(), sub_rm_base + DS_SUB_OFFSET_3);
@@ -172,7 +172,7 @@ int main(int, char **)
 	 * Add the size parameter to the mix, attaching only a window of two pages
 	 * starting with the second page.
 	 */
-	printf("attach RAM ds with offset and size\n");
+	log("attach RAM ds with offset and size");
 	enum { DS_SUB_OFFSET_4 = 0xc0000 };
 	sub_rm.attach_at(ds, DS_SUB_OFFSET_4, 2*4096, 4096);
 	validate_pattern_at(test_pattern_2(), sub_rm_base + DS_SUB_OFFSET_4);
@@ -183,7 +183,7 @@ int main(int, char **)
 	 */
 	sub_rm.detach((void *)DS_SUB_OFFSET);
 
-	printf("--- end of sub-rm test ---\n");
+	log("--- end of sub-rm test ---");
 
 	/*
 	 * Do not return from main function to allow the run script to inspect the

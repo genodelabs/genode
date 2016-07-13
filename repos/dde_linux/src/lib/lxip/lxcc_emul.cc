@@ -571,7 +571,7 @@ size_t csum_and_copy_from_iter(void *addr, size_t bytes, __wsum *csum, struct io
 			__wsum next = csum_and_copy_from_user(iov->iov_base, kdata, copy_len, 0, &err);
 
 			if (err) {
-				PERR("%s: err: %d - sleeping", __func__, err);
+				Genode::error(__func__, ": err: ", err, " - sleeping");
 				Genode::sleep_forever();
 			}
 
@@ -611,7 +611,7 @@ size_t csum_and_copy_to_iter(void *addr, size_t bytes, __wsum *csum, struct iov_
 			__wsum next = csum_and_copy_to_user(kdata, iov->iov_base, copy_len, 0, &err);
 
 			if (err) {
-				PERR("%s: err: %d - sleeping", __func__, err);
+				Genode::error(__func__, ": err: ", err, " - sleeping");
 				Genode::sleep_forever();
 			}
 

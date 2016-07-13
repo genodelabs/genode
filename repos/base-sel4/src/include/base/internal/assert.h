@@ -27,7 +27,7 @@
 	do { if (!(e)) { \
 		char line_buf[32]; \
 		Genode::snprintf(line_buf, sizeof(line_buf), "%d", __LINE__); \
-		kernel_debugger_outstring(ESC_ERR "Assertion failed: " #e ESC_END "\n"); \
+		kernel_debugger_outstring("Assertion failed: " #e "\n"); \
 		kernel_debugger_outstring(__FILE__ ":"); \
 		kernel_debugger_outstring(line_buf); \
 		kernel_debugger_panic("\n"); \

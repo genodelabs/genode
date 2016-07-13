@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/rpc_server.h>
 #include <cap_session/connection.h>
@@ -106,12 +106,12 @@ namespace Iso {
 			Rom_component(char *path)
 			{
 				if ((_file = File::scan_cache(path))) {
-					PINF("cache hit for file %s", path);
+					Genode::log("cache hit for file ", Genode::Cstring(path));
 					return;
 				}
 
 				_file = new(env()->heap()) File(path);
-				PINF("request for file %s", path);
+				Genode::log("request for file ", Genode::Cstring(path));
 
 				File::cache()->insert(_file);
 			}
@@ -140,7 +140,7 @@ namespace Iso {
 				strncpy(_path, label.last_element().string(), sizeof(_path));
 
 				if (verbose)
-					PDBG("Request for file %s lrn %zu", _path, strlen(_path));
+					Genode::log("Request for file ", Cstring(_path), " len ", strlen(_path));
 
 				try {
 					return new (md_alloc()) Rom_component(_path);

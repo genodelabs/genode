@@ -211,7 +211,7 @@ class Guest_memory
 				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
 
 			} catch (Genode::Rm_session::Region_conflict) {
-				PERR("region conflict");
+				Genode::error("region conflict");
 			}
 		}
 
@@ -690,7 +690,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		void _register_handler(Genode::addr_t exc_base, Nova::Mtd mtd)
 		{
 			if (!register_handler<EV, Vcpu_dispatcher, FUNC>(exc_base, mtd))
-				PERR("could not register handler %lx", exc_base + EV);
+				Genode::error("could not register handler ", Genode::Hex(exc_base + EV));
 		}
 
 	public:

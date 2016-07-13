@@ -24,7 +24,7 @@
 /* Genode includes */
 #include <terminal_session/connection.h>
 #include <util/misc_math.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/thread.h>
 
@@ -309,8 +309,8 @@ namespace {
 						}
 					}
 				default:
-					PERR("fcntl(): command %d args %ld not supported - terminal",
-					     cmd, arg);
+					Genode::warning("fcntl(): command ", cmd, " args ", arg, " "
+					                "not supported - terminal");
 					return -1;
 				}
 			}

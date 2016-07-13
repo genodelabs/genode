@@ -31,6 +31,9 @@ namespace Usb_filter {
 	using Genode::Xml_generator;
 	using Genode::Attached_rom_dataspace;
 	using Genode::snprintf;
+	using Genode::error;
+	using Genode::log;
+	using Genode::warning;
 
 	struct Device_registry;
 	struct Main;
@@ -155,7 +158,7 @@ class Usb_filter::Device_registry
 				File_system::Dir_handle root_dir = _fs.dir("/", false);
 				_file = _fs.file(root_dir, config_file, File_system::READ_WRITE, false);
 			} catch (...) {
-				PERR("Could not open '%s'", config_file);
+				error("could not open '", config_file, "'");
 				return;
 			}
 
@@ -163,7 +166,7 @@ class Usb_filter::Device_registry
 			size_t n = File_system::read(_fs, _file, old_file,
 			                                   sizeof(old_file));
 			if (n == 0) {
-				PERR("Could not read '%s'", config_file);
+				error("could not read '", config_file, "'");
 				return;
 			}
 
@@ -188,7 +191,7 @@ class Usb_filter::Device_registry
 				});
 
 				if (!drv_config.has_sub_node("raw"))
-					PINF("enable raw support in usb_drv");
+					log("enable raw support in usb_drv");
 
 				xml.node("raw", [&] {
 					xml.node("report", [&] {
@@ -211,11 +214,11 @@ class Usb_filter::Device_registry
 
 			new_file[xml.used()] = 0;
 			if (verbose)
-				PLOG("new usb_drv configuration:\n%s", new_file);
+				log("new usb_drv configuration:\n", Cstring(new_file));
 
 			n = File_system::write(_fs, _file, new_file, xml.used());
 			if (n == 0)
-				PERR("Could not write '%s'", config_file);
+				error("could not write '", config_file, "'");
 
 			_fs.close(_file);
 		}
@@ -230,7 +233,7 @@ class Usb_filter::Device_registry
 			if (!_devices_rom.valid()) return;
 
 			if (verbose)
-				PLOG("device report:\n%s", _devices_rom.local_addr<char>());
+				log("device report:\n", _devices_rom.local_addr<char const>());
 
 			Xml_node usb_devices(_devices_rom.local_addr<char>(), _devices_rom.size());
 
@@ -240,7 +243,7 @@ class Usb_filter::Device_registry
 		bool _check_config(Xml_node &drv_config)
 		{
 			if (!drv_config.has_sub_node("raw")) {
-				PERR("Could not access <raw> node");
+				error("could not access <raw> node");
 				return false;
 			}
 
@@ -256,8 +259,9 @@ class Usb_filter::Device_registry
 				});
 
 				if (verbose && !result)
-					PWRN("No matching policy was created for device %d-%d (%x:%x)",
-					     entry.bus, entry.dev, entry.vendor, entry.product);
+					warning("No matching policy was created for "
+					        "device ", entry.bus, "-", entry.dev, " "
+					        "(", entry.vendor, ":", entry.product, ")");
 			};
 			_for_each_entry(check_policy);
 
@@ -397,7 +401,7 @@ class Usb_filter::Device_registry
 			try {
 				config.sub_node("client").attribute("label").value(&_client_label);
 			} catch (...) {
-				PERR("Could not update client label");
+				error("could not update client label");
 			}
 		}
 };

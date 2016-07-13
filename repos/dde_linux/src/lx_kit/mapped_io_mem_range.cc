@@ -96,8 +96,8 @@ void *Lx::ioremap(addr_t phys_addr, unsigned long size,
 
 		if (r->phys_range(phys_addr, size)) {
 			void * const virt = (void *)(r->virt() + phys_addr - r->phys());
-			PLOG("ioremap: return sub range phys 0x%lx (size %lx) to virt 0x%lx",
-			     (long)phys_addr, (long)size, (long)virt);
+			log("ioremap: return sub range phys ", Hex(phys_addr), " "
+			    "(size ", size, ") to virt ", virt);
 			return virt;
 		}
 	}
@@ -108,8 +108,8 @@ void *Lx::ioremap(addr_t phys_addr, unsigned long size,
 		                               size, offset);
 
 	if (!ds_cap.valid()) {
-		PERR("Failed to request I/O memory: [%lx,%lx)", phys_addr,
-		     phys_addr + size);
+		error("failed to request I/O memory: ",
+		      Hex_range<addr_t>(phys_addr, size));
 		return nullptr;
 	}
 
@@ -119,8 +119,8 @@ void *Lx::ioremap(addr_t phys_addr, unsigned long size,
 
 	ranges.insert(io_mem);
 
-	PLOG("ioremap: mapped phys 0x%lx (size %lx) to virt 0x%lx",
-	     (long)phys_addr, (long)size, (long)io_mem->virt());
+	log("ioremap: mapped phys ", Hex(phys_addr), " (size ", size, ") "
+	    "to virt ", Hex(io_mem->virt()));
 
 	return (void *)io_mem->virt();
 }

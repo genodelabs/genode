@@ -86,7 +86,7 @@ class Trace_buffer_monitor
 			_buffer(env()->rm_session()->attach(ds_cap)),
 			_curr_entry(_buffer->first())
 		{
-			PLOG("monitor subject:%d buffer:0x%lx", _id.id, (addr_t)_buffer);
+			log("monitor subject:", _id.id, " buffer:", Hex((addr_t)_buffer));
 		}
 
 		~Trace_buffer_monitor()
@@ -99,9 +99,9 @@ class Trace_buffer_monitor
 
 		void dump()
 		{
-			PLOG("overflows: %u", _buffer->wrapped());
+			log("overflows: ", _buffer->wrapped());
 
-			PLOG("read all remaining events");
+			log("read all remaining events");
 			for (; !_curr_entry.last(); _curr_entry = _buffer->next(_curr_entry)) {
 				/* omit empty entries */
 				if (_curr_entry.length() == 0)
@@ -109,7 +109,7 @@ class Trace_buffer_monitor
 
 				const char *data = _terminate_entry(_curr_entry);
 				if (data)
-					PLOG("%s", data);
+					log(data);
 			}
 
 			/* reset after we read all available entries */
@@ -120,7 +120,7 @@ class Trace_buffer_monitor
 
 static void test_out_of_metadata()
 {
-	printf("test Out_of_metadata exception of Trace::Session::subjects call\n");
+	log("test Out_of_metadata exception of Trace::Session::subjects call");
 
 	/*
 	 * The call of 'subjects' will prompt core's TRACE service to import those
@@ -141,7 +141,7 @@ static void test_out_of_metadata()
 		struct Unexpectedly_got_no_exception{};
 		throw  Unexpectedly_got_no_exception();
 	} catch (Genode::Parent::Service_denied) {
-		printf("got Genode::Parent::Service_denied exception as expected\n");
+		log("got Genode::Parent::Service_denied exception as expected");
 	}
 
 	try {
@@ -153,10 +153,10 @@ static void test_out_of_metadata()
 		throw  Unexpectedly_got_no_exception();
 
 	} catch (Trace::Out_of_metadata) {
-		printf("got Trace::Out_of_metadata exception as expected\n");
+		log("got Trace::Out_of_metadata exception as expected");
 	}
 
-	printf("passed Out_of_metadata test\n");
+	log("passed Out_of_metadata test");
 }
 
 
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- test-trace started ---\n");
+	log("--- test-trace started ---");
 
 	test_out_of_metadata();
 
@@ -207,10 +207,12 @@ int main(int argc, char **argv)
 					env()->rm_session()->detach(rom);
 				}
 			} catch (...) {
-				PERR("could not load module '%s' for label '%s'", policy_module, policy_label);
+				error("could not load module '", Cstring(policy_module), "' for "
+				      "label '", Cstring(policy_label), "'");
 			}
 
-			PINF("load module: '%s' for label: '%s'", policy_module, policy_label);
+			log("load module: '", Cstring(policy_module), "' for "
+			    "label: '", Cstring(policy_label), "'");
 
 			if (policy.last("trace_policy")) break;
 		}
@@ -224,33 +226,33 @@ int main(int argc, char **argv)
 		Trace::Subject_id subjects[32];
 		size_t num_subjects = trace.subjects(subjects, 32);
 
-		printf("%zd tracing subjects present\n", num_subjects);
+		log(num_subjects, " tracing subjects present");
 
 		for (size_t i = 0; i < num_subjects; i++) {
 
 			Trace::Subject_info info = trace.subject_info(subjects[i]);
-			printf("ID:%d label:\"%s\" name:\"%s\" state:%s policy:%d time:%lld\n",
-			       subjects[i].id,
-			       info.session_label().string(),
-			       info.thread_name().string(),
-			       state_name(info.state()),
-			       info.policy_id().id,
-			       info.execution_time().value);
+			log("ID:",      subjects[i].id,           " "
+			    "label:\"", info.session_label(),   "\" "
+			    "name:\"",  info.thread_name(),     "\" "
+			    "state:",   state_name(info.state()), " "
+			    "policy:",  info.policy_id().id,      " "
+			    "time:",    info.execution_time().value);
 
 			/* enable tracing */
 			if (!policy_set
 			    && strcmp(info.session_label().string(), policy_label) == 0
 			    && strcmp(info.thread_name().string(), "test-thread") == 0) {
 				try {
-					PINF("enable tracing for thread:'%s' with policy:%d",
-					     info.thread_name().string(), policy_id.id);
+					log("enable tracing for "
+					    "thread:'", info.thread_name().string(), "' with "
+					    "policy:", policy_id.id);
 
 					trace.trace(subjects[i].id, policy_id, 16384U);
 
 					Dataspace_capability ds_cap = trace.buffer(subjects[i].id);
 					test_monitor = new (env()->heap()) Trace_buffer_monitor(subjects[i].id, ds_cap);
 
-				} catch (Trace::Source_is_dead) { PERR("source is dead"); }
+				} catch (Trace::Source_is_dead) { error("source is dead"); }
 
 				policy_set = true;
 			}
@@ -266,6 +268,6 @@ int main(int argc, char **argv)
 	if (test_monitor)
 		destroy(env()->heap(), test_monitor);
 
-	printf("--- test-trace finished ---\n");
+	log("--- test-trace finished ---");
 	return 0;
 }

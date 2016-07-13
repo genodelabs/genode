@@ -58,7 +58,7 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::state(Thread_state)
 {
-	PDBG("Not implemented");
+	warning("Platform_thread::state not implemented");
 	throw Cpu_thread::State_access_failed();
 }
 

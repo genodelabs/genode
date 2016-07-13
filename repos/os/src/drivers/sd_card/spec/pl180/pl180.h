@@ -16,7 +16,7 @@
 
 #include <base/env.h>
 #include <base/lock.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/irq_activation.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <timer_session/connection.h>
@@ -115,35 +115,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 
 		void _clear_status() { _write_reg(Clear, ~0); }
 
-		void _log_status() const
-		{
-			unsigned s = _read_reg(Status);
-
-			PLOG("pl180 status:\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
-			     (s & CmdCrcFail)      ? "    CmdCrcFail\n" : "",
-			     (s & DataCrcFail)     ? "    DataCrcFail\n" : "",
-			     (s & CmdTimeOut)      ? "    CmdTimeOut\n" : "",
-			     (s & DataTimeOut)     ? "    DataTimeOut\n" : "",
-			     (s & TxUnderrun)      ? "    TxUnderrun\n" : "",
-			     (s & RxUnderrun)      ? "    RxUnderrun\n" : "",
-			     (s & CmdRespEnd)      ? "    CmdRespEnd\n" : "",
-			     (s & CmdSent)         ? "    CmdSent\n" : "",
-			     (s & DataEnd)         ? "    DataEnd\n" : "",
-			     (s & StartBitErr)     ? "    StartBitErr\n" : "",
-			     (s & DataBlockEnd)    ? "    DataBlockEnd\n" : "",
-			     (s & CmdActive)       ? "    CmdActive\n" : "",
-			     (s & TxActive)        ? "    TxActive\n" : "",
-			     (s & RxActive)        ? "    RxActive\n" : "",
-			     (s & TxFifoHalfEmpty) ? "    TxFifoHalfEmpty\n" : "",
-			     (s & RxFifoHalfFull)  ? "    RxFifoHalfFull\n" : "",
-			     (s & TxFifoFull)      ? "    TxFifoFull\n" : "",
-			     (s & RxFifoFull)      ? "    RxFifoFull\n" : "",
-			     (s & TxFifoEmpty)     ? "    TxFifoEmpty\n" : "",
-			     (s & RxFifoEmpty)     ? "    RxFifoEmpty\n" : "",
-			     (s & TxDataAvlbl)     ? "    TxDataAvlbl\n" : "",
-			     (s & RxDataAvlbl)     ? "    RxDataAvlbl\n" : "");
-		}
-
 	public:
 
 		Pl180(Genode::addr_t mmio_base, Genode::size_t mmio_size)
@@ -168,8 +139,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		{
 			Genode::Lock::Guard g(_mutex);
 
-			PINF("%s: %02x", __func__, irq_number);
-			_log_status();
 			_clear_status();
 		}
 

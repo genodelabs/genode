@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <ipc_pager.h>
@@ -45,7 +45,7 @@ void Ipc_pager::wait_for_fault()
 		            L4_IPC_NEVER, &result);
 
 		if (L4_IPC_IS_ERROR(result))
-			PERR("Ipc error %lx", L4_IPC_ERROR(result));
+			error(__func__, ": IPC error ", Hex(L4_IPC_ERROR(result)));
 
 	} while (L4_IPC_IS_ERROR(result));
 }
@@ -62,7 +62,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	                      L4_IPC_SEND_TIMEOUT_0, &result);
 
 	if (L4_IPC_IS_ERROR(result)) {
-		PERR("Ipc error %lx", L4_IPC_ERROR(result));
+		error(__func__, ": IPC error ", Hex(L4_IPC_ERROR(result)));
 
 		/* ignore all errors and wait for next proper message */
 		wait_for_fault();

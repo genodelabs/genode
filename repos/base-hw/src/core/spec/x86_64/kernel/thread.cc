@@ -24,13 +24,13 @@ void Kernel::Thread::_mmu_exception()
 	_fault_signal = (addr_t)_fault.signal_context();
 	_fault_addr   = Cpu::Cr2::read();
 
-	/**
-	 * core should never raise a page-fault,
-	 * if this happens print out an error message with debug information
+	/*
+	 * Core should never raise a page-fault. If this happens, print out an
+	 * error message with debug information.
 	 */
 	if (_pd == Kernel::core_pd())
-		PERR("Pagefault in core thread (%s): ip=%p fault=%p",
-		     label(), (void*)ip, (void*)_fault_addr);
+		Genode::error("page fault in core thread (", label(), "): "
+		              "ip=", Genode::Hex(ip), " fault=", Genode::Hex(_fault_addr));
 
 	_fault.submit();
 	return;

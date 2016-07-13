@@ -118,13 +118,13 @@ namespace Genode {
 
 			Thread_state state()
 			{
-				PDBG("Not implemented");
+				warning("Not implemented");
 				throw Cpu_thread::State_access_failed();
 			}
 
 			void state(Thread_state)
 			{
-				PDBG("Not implemented");
+				warning("Not implemented");
 				throw Cpu_thread::State_access_failed();
 			}
 

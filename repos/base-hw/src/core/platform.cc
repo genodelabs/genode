@@ -200,7 +200,7 @@ Platform::Platform()
 
 void Core_parent::exit(int exit_value)
 {
-	log(__PRETTY_FUNCTION__, "not implemented");
+	warning(__PRETTY_FUNCTION__, "not implemented");
 	while (1);
 }
 

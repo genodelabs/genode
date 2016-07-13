@@ -52,12 +52,12 @@ namespace Genode {
 	inline void backtrace()
 	{
 		using namespace Genode;
-		printf("\nbacktrace\n");
-		printf(" %p\n", __builtin_return_address(0));
-		printf(" %p\n", __builtin_return_address(1));
-		printf(" %p\n", __builtin_return_address(2));
-		printf(" %p\n", __builtin_return_address(3));
-		printf(" %p\n", __builtin_return_address(4));
+		log("\nbacktrace");
+		log(" ", __builtin_return_address(0));
+		log(" ", __builtin_return_address(1));
+		log(" ", __builtin_return_address(2));
+		log(" ", __builtin_return_address(3));
+		log(" ", __builtin_return_address(4));
 	}
 
 

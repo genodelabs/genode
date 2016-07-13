@@ -57,7 +57,7 @@ class Decorator::Window : public Window_base
 					char buf[128];
 					Genode::snprintf(buf, sizeof(buf), "%d", id);
 
-					_nitpicker.enqueue<Command::Title>(_handle, buf);
+					_nitpicker.enqueue<Command::Title>(_handle, Genode::Cstring(buf));
 				}
 			}
 

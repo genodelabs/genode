@@ -21,7 +21,7 @@
 
 /* Genode includes */
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <block_session/connection.h>
@@ -120,7 +120,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 				obj = obj->find(reinterpret_cast<Genode::addr_t>(source_addr));
 
 			if (!obj) {
-				PWRN("Unknown MessageDisk object - drop ack of block session");
+				Genode::warning("unknown MessageDisk object - drop ack of block session");
 				continue;
 			}
 
@@ -137,7 +137,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 		    !(packet.operation() == Block::Packet_descriptor::Opcode::READ ||
 		      packet.operation() == Block::Packet_descriptor::Opcode::WRITE)) {
 
-			PDBG("Getting block failed !");
+			Genode::warning("getting block failed");
 
 			MessageDiskCommit mdc(disknr, msg->usertag,
 			                      MessageDisk::DISK_STATUS_DEVICE);
@@ -157,7 +157,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 					// check for bounds
 					if (dma_addr >= _backing_store_base + _backing_store_size
 					 || dma_addr < _backing_store_base) {
-						PERR("dma bounds violation");
+						Genode::error("dma bounds violation");
 					} else
 						memcpy(dma_addr, source_addr + sector,
 						       msg->dma[i].bytecount);

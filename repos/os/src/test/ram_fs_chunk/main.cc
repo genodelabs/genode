@@ -6,7 +6,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <ram_fs/chunk.h>
 
 namespace File_system {
@@ -46,49 +46,53 @@ namespace Genode {
 };
 
 
-static void dump(File_system::Chunk_level_0 &chunk)
-{
-	using namespace File_system;
+namespace Genode {
 
-	static char read_buf[Chunk_level_0::SIZE];
+	/**
+	 * Helper for the formatted output of a chunk state
+	 */
+	static inline void print(Output &out, File_system::Chunk_level_0 const &chunk)
+	{
+		using namespace File_system;
+	
+		static char read_buf[Chunk_level_0::SIZE];
+	
+		size_t used_size = chunk.used_size();
+	
+		struct File_size_out_of_bounds { };
+		if (used_size > Chunk_level_0::SIZE)
+			throw File_size_out_of_bounds();
+	
+		chunk.read(read_buf, used_size, 0);
+	
+		Genode::print(out, "content (size=", used_size, "): ");
 
-	size_t used_size = chunk.used_size();
-
-	struct File_size_out_of_bounds { };
-	if (used_size > Chunk_level_0::SIZE)
-		throw File_size_out_of_bounds();
-
-	chunk.read(read_buf, used_size, 0);
-
-	printf("content (size=%zd): \"", used_size);
-	for (unsigned i = 0; i < used_size; i++) {
-		char c = read_buf[i];
-		if (c)
-			printf("%c", c);
-		else
-			printf(".");
+		Genode::print(out, "\"");
+		for (unsigned i = 0; i < used_size; i++) {
+			char const c = read_buf[i];
+			if (c)
+				Genode::print(out, Genode::Char(c));
+			else
+				Genode::print(out, ".");
+		}
+		Genode::print(out, "\"");
 	}
-	printf("\"\n");
 }
 
 
 static void write(File_system::Chunk_level_0 &chunk,
                   char const *str, Genode::off_t seek_offset)
 {
-	using namespace Genode;
-	printf("write \"%s\" at offset %ld -> ", str, seek_offset);
-	chunk.write(str, strlen(str), seek_offset);
-	dump(chunk);
+	chunk.write(str, Genode::strlen(str), seek_offset);
+	Genode::log("write \"", str, "\" at offset ", seek_offset, " -> ", chunk);
 }
 
 
 static void truncate(File_system::Chunk_level_0 &chunk,
                      File_system::file_size_t size)
 {
-	using namespace Genode;
-	printf("trunc(%zd) -> ", (size_t)size);
 	chunk.truncate(size);
-	dump(chunk);
+	Genode::log("trunc(", size, ") -> ", chunk);
 }
 
 
@@ -97,13 +101,13 @@ int main(int, char **)
 	using namespace File_system;
 	using namespace Genode;
 
-	printf("--- ram_fs_chunk test ---\n");
+	log("--- ram_fs_chunk test ---");
 
-	PINF("chunk sizes");
-	PINF("  level 0: payload=%d sizeof=%zd", Chunk_level_0::SIZE, sizeof(Chunk_level_0));
-	PINF("  level 1: payload=%d sizeof=%zd", Chunk_level_1::SIZE, sizeof(Chunk_level_1));
-	PINF("  level 2: payload=%d sizeof=%zd", Chunk_level_2::SIZE, sizeof(Chunk_level_2));
-	PINF("  level 3: payload=%d sizeof=%zd", Chunk_level_3::SIZE, sizeof(Chunk_level_3));
+	log("chunk sizes");
+	log("  level 0: payload=", (int)Chunk_level_0::SIZE, " sizeof=", sizeof(Chunk_level_0));
+	log("  level 1: payload=", (int)Chunk_level_1::SIZE, " sizeof=", sizeof(Chunk_level_1));
+	log("  level 2: payload=", (int)Chunk_level_2::SIZE, " sizeof=", sizeof(Chunk_level_2));
+	log("  level 3: payload=", (int)Chunk_level_3::SIZE, " sizeof=", sizeof(Chunk_level_3));
 
 	static Allocator_tracer alloc(*env()->heap());
 
@@ -125,7 +129,7 @@ int main(int, char **)
 			truncate(chunk, i);
 	}
 
-	printf("allocator: sum=%zd\n", alloc.sum());
+	log("allocator: sum=", alloc.sum());
 
 	return 0;
 }

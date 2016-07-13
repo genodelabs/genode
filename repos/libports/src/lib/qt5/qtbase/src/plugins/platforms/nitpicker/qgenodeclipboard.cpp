@@ -76,7 +76,7 @@ QMimeData *QGenodeClipboard::mimeData(QClipboard::Mode mode)
 
 	if (!_clipboard_ds->valid()) {
 		if (verbose)
-			PERR("invalid clipboard dataspace");
+			Genode::error("invalid clipboard dataspace");
 		return 0;
 	}
 
@@ -86,7 +86,7 @@ QMimeData *QGenodeClipboard::mimeData(QClipboard::Mode mode)
 		Genode::Xml_node node(xml_data);
 
 		if (!node.has_type("clipboard")) {
-			PERR("invalid clipboard xml syntax");
+			Genode::error("invalid clipboard xml syntax");
 			return 0;
 		}
 
@@ -95,7 +95,7 @@ QMimeData *QGenodeClipboard::mimeData(QClipboard::Mode mode)
 		_decoded_clipboard_content = (char*)malloc(node.content_size());
 
 		if (!_decoded_clipboard_content) {
-			PERR("could not allocate buffer for decoded clipboard content");
+			Genode::error("could not allocate buffer for decoded clipboard content");
 			return 0;
 		}
 
@@ -104,7 +104,7 @@ QMimeData *QGenodeClipboard::mimeData(QClipboard::Mode mode)
 		                                                          node.content_size())));
 
 	} catch (Genode::Xml_node::Invalid_syntax) {
-		PERR("invalid clipboard xml syntax");
+		Genode::error("invalid clipboard xml syntax");
 		return 0;
 	}
 
@@ -127,7 +127,7 @@ void QGenodeClipboard::setMimeData(QMimeData *data, QClipboard::Mode mode)
 		Genode::Reporter::Xml_generator xml(*_clipboard_reporter, [&] () {
 			xml.append_sanitized(utf8text.constData(), utf8text.size()); });
 	} catch (...) {
-		PERR("could not write clipboard data");
+		Genode::error("could not write clipboard data");
 	}
 }
 

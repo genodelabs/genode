@@ -250,7 +250,7 @@ class Lx_kit::Timer : public Lx::Timer
 		{
 			Context *ctx = _find_context(timer);
 			if (!ctx) {
-				PERR("schedule unknown timer %p", timer);
+				Genode::error("schedule unknown timer ", timer);
 				return -1; /* XXX better use 0 as rv? */
 			}
 

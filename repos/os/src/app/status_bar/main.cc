@@ -40,7 +40,7 @@ static Genode::String<N> read_string_attribute(Genode::Xml_node node, char const
 	try {
 		char buf[N];
 		node.attribute(attr).value(buf, sizeof(buf));
-		return Genode::String<N>(buf);
+		return Genode::String<N>(Genode::Cstring(buf));
 	}
 	catch (...) {
 		return default_value; }
@@ -131,7 +131,7 @@ void Status_bar_buffer::draw(Domain_name const &domain_name,
                              Color              color)
 {
 	if (mode.format() != Framebuffer::Mode::RGB565) {
-		PERR("pixel format not supported");
+		Genode::error("pixel format not supported");
 		return;
 	}
 
@@ -245,7 +245,7 @@ void Main::handle_focus(unsigned)
 		color       = node.attribute_value("color", Color(0, 0, 0));
 	}
 	catch (...) {
-		PWRN("could not parse focus report"); }
+		Genode::warning("could not parse focus report"); }
 
 	draw_status_bar();
 }

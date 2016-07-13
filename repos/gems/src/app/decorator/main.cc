@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <nitpicker_session/connection.h>
 #include <os/pixel_rgb565.h>
@@ -155,7 +155,7 @@ struct Decorator::Main : Window_factory_base
 				return new (env()->heap())
 					Window(attribute(window_node, "id", 0UL), nitpicker, animator, config);
 			} catch (Nitpicker::Session::Out_of_metadata) {
-				PINF("Handle Out_of_metadata of nitpicker session - upgrade by 8K");
+				Genode::log("Handle Out_of_metadata of nitpicker session - upgrade by 8K");
 				Genode::env()->parent()->upgrade(nitpicker.cap(), "ram_quota=8192");
 			}
 		}

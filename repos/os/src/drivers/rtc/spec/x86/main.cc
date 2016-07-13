@@ -13,6 +13,7 @@
 
 /* Genode */
 #include <base/env.h>
+#include <base/heap.h>
 #include <os/server.h>
 #include <root/component.h>
 #include <rtc_session/rtc_session.h>

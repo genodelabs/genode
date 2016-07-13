@@ -28,7 +28,7 @@ void Serial::_push(char const c)
 void Serial::_flush()
 {
 	_push(0);
-	printf("[vm] %s\n", local_addr<char>());
+	log("[vm] ", local_addr<char const>());
 	_off = 0;
 }
 
@@ -48,7 +48,7 @@ void Serial::handle(Vm_base * const vm)
 	switch (vm->smc_arg_1()) {
 	case SEND: _send(vm); break;
 	default:
-		PERR("Unknown function %lu requested on VMM serial", vm->smc_arg_1());
+		Genode::error("Unknown function ", vm->smc_arg_1(), " requested on VMM serial");
 		break;
 	}
 }

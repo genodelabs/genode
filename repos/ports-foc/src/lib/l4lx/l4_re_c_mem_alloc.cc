@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/capability.h>
 #include <rm_session/connection.h>
 
@@ -26,17 +26,12 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static const bool DEBUG = false;
-
 extern "C" {
 
 	long l4re_ma_alloc(unsigned long size, l4re_ds_t const mem,
 	                   unsigned long flags)
 	{
 		using namespace L4lx;
-
-		if (DEBUG)
-			PDBG("size=%lx mem=%lx flags=%lx", size, mem, flags);
 
 		Dataspace *ds;
 		if (Genode::log2(size) >= Chunked_dataspace::CHUNK_SIZE_LOG2) {
@@ -60,7 +55,7 @@ extern "C" {
 
 	long l4re_ma_free(l4re_ds_t const mem)
 	{
-		PWRN("%s: Not implemented yet!",__func__);
+		Genode::warning(__func__, " not implemented");
 		return 0;
 	}
 

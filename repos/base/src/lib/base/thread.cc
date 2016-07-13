@@ -255,8 +255,8 @@ Thread::Thread(Env &env, Name const &name, size_t stack_size)
 Thread::~Thread()
 {
 	if (Thread::myself() == this) {
-		PERR("thread '%s' tried to self de-struct - sleeping forever.",
-		     _stack->name().string());
+		error("thread '", _stack->name().string(), "' "
+		      "tried to self de-struct - sleeping forever.");
 		sleep_forever();
 	}
 

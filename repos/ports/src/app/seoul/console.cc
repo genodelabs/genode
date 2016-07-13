@@ -223,7 +223,7 @@ void Vancouver_console::entry()
 	try {
 		framebuffer = new (env()->heap()) Framebuffer::Connection();
 	} catch (...) {
-		PERR("Headless mode - no framebuffer session available");
+		Genode::error("Headless mode - no framebuffer session available");
 		_startup_lock.unlock();
 		return;
 	}

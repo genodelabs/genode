@@ -27,7 +27,7 @@
 #include <util/misc_math.h>
 #include <util/xml_node.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <rom_session/connection.h>
 
 
@@ -99,7 +99,7 @@ class Boot_module_provider
 					size_t const src_len = Dataspace_client(ds).size();
 
 					if (src_len > dst_len) {
-						PDBG("src_len=%zd dst_len=%zd", src_len, dst_len);
+						warning(__func__, ": src_len=", src_len, " dst_len=", dst_len);
 						throw Destination_buffer_too_small();
 					}
 
@@ -134,22 +134,21 @@ class Boot_module_provider
 					return mod_node.content_size();
 				}
 
-				PWRN("XML node %d in multiboot node has unexpected type",
-				     module_index);
+				warning("XML node ", module_index, " in multiboot node has unexpected type");
 
 				throw Module_loading_failed();
 			}
 			catch (Xml_node::Nonexistent_sub_node) { }
 			catch (Xml_node::Nonexistent_attribute) { }
 			catch (Destination_buffer_too_small) {
-				PERR("Boot_module_provider: destination buffer too small"); }
-			catch (Genode::Rm_session::Attach_failed) {
-				PERR("Boot_module_provider: Rm_session::Attach_failed");
+				error("Boot_module_provider: destination buffer too small"); }
+			catch (Region_map::Attach_failed) {
+				error("Boot_module_provider: Region_map::Attach_failed");
 				throw Module_loading_failed(); }
-			catch (Genode::Rom_connection::Rom_connection_failed) {
-				PERR("Boot_module_provider: Rom_connection_failed"); }
+			catch (Rom_connection::Rom_connection_failed) {
+				error("Boot_module_provider: Rom_connection_failed"); }
 			catch (...) {
-				PERR("Boot_module_provider: Spurious exception");
+				error("Boot_module_provider: Spurious exception");
 				throw Module_loading_failed();
 			}
 
@@ -223,8 +222,7 @@ class Boot_module_provider
 					return cmd_len;
 				}
 
-				PWRN("XML node %d in multiboot node has unexpected type",
-				     module_index);
+				warning("XML node ", module_index, " in multiboot node has unexpected type");
 
 				return 0;
 			}

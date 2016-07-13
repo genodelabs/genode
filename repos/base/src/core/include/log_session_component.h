@@ -16,6 +16,7 @@
 
 #include <util/string.h>
 #include <base/printf.h>
+#include <base/log.h>
 #include <base/rpc_server.h>
 #include <log_session/log_session.h>
 
@@ -47,7 +48,7 @@ namespace Genode {
 			size_t write(String const &string_buf)
 			{
 				if (!(string_buf.valid_string())) {
-					PERR("corrupted string");
+					error("corrupted string");
 					return 0;
 				}
 
@@ -77,14 +78,14 @@ namespace Genode {
 					if (string[i] == '\n') {
 						memcpy(buf, string + from_i, i - from_i);
 						buf[i - from_i] = 0;
-						printf("[%s] %s\n", _label, buf);
+						log("[", Cstring(_label), "] ", Cstring(buf));
 						from_i = i + 1;
 					}
 				}
 
 				/* if last character of string was not a line break, add one */
 				if (from_i < len)
-					printf("[%s] %s\n", _label, string + from_i);
+					log("[", Cstring(_label), "] ", Cstring(string + from_i));
 
 				return len;
 			}

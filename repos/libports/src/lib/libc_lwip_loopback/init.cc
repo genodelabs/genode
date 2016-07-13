@@ -12,7 +12,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 #include <lwip/genode.h>
 
@@ -20,7 +20,7 @@ extern void create_lwip_plugin();
 
 void __attribute__((constructor)) init_loopback(void)
 {
-	PDBG("init_loopback()\n");
+	Genode::log(__func__);
 
 	/* make sure the libc_lwip plugin has been created */
 	create_lwip_plugin();

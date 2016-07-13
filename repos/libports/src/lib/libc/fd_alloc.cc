@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <util/construct_at.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* libc plugin interface */
 #include <libc-plugin/fd_alloc.h>
@@ -62,8 +62,8 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).ok());
 
 	if (!alloc_ok) {
-		PERR("could not allocate libc_fd %d%s",
-		     libc_fd, libc_fd == ANY_FD ? " (any)" : "");
+		error("could not allocate libc_fd ", libc_fd,
+		      libc_fd == ANY_FD ? " (any)" : "");
 		return 0;
 	}
 

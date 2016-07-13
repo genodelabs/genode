@@ -13,7 +13,7 @@
 
 #include <util/construct_at.h>
 #include <base/heap.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -50,11 +50,11 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 		ds_cap = _ram_session.alloc(size);
 		block  = _region_map.attach(ds_cap);
 	} catch (Region_map::Attach_failed) {
-		PERR("Could not attach dataspace to local address space");
+		error("Could not attach dataspace to local address space");
 		_ram_session.free(ds_cap);
 		return false;
 	} catch (Ram_session::Alloc_failed) {
-		PERR("Could not allocate dataspace with size %zu", size);
+		error("Could not allocate dataspace with size %zu", size);
 		return false;
 	}
 

@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/server.h>
 
 namespace Framebuffer
@@ -78,7 +78,7 @@ class Framebuffer::Driver
 			case FORMAT_RGB565:
 				return 2;
 			default:
-				PERR("unknown pixel format");
+				error("unknown pixel format");
 				return 0;
 			}
 		}

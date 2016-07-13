@@ -33,8 +33,8 @@ void Linker::dump_link_map(Object *o)
 		if (o->is_binary())
 			continue;
 
-		Genode::printf("  " EFMT " .. " EFMT ": %s\n",
-		                o->link_map()->addr, o->link_map()->addr + o->size() - 1,
-		                o->name());
+		Genode::log("  ",   Genode::Hex(o->link_map()->addr),
+		            " .. ", Genode::Hex(o->link_map()->addr + o->size() - 1),
+		            ": ", o->name());
 	}
 }

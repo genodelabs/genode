@@ -38,10 +38,6 @@ extern "C" {
 }
 
 
-static const bool verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
-
-
 /**
  * Miscellaneous methods used for converting the key string
  */
@@ -236,7 +232,7 @@ namespace Cgd {
 					bool use_key = Genode::strcmp(method_val, "key") == 0 ? true : false;
 
 					if (!use_key) {
-						PERR("no valid method specified.");
+						Genode::error("no valid method specified.");
 						throw Genode::Exception();
 					}
 
@@ -252,12 +248,12 @@ namespace Cgd {
 					size_t enc_key_len = Genode::strlen(enc_key);
 
 					if (enc_key_len != VALID_ENCODED_KEY_LEN) {
-						PERR("incorrect encoded key found.");
+						Genode::error("incorrect encoded key found.");
 						throw Genode::Exception();
 					}
 
 					if (!_decode_key_string(_params->key, enc_key, enc_key_len)) {
-						PERR("could not decode key string.");
+						Genode::error("could not decode key string.");
 						throw Genode::Exception();
 					}
 
@@ -266,7 +262,7 @@ namespace Cgd {
 					/* let cgd(4) figure out the right blocksize */
 					_params->blocksize = -1;
 				} else {
-					PERR("no <params> node found.");
+					Genode::error("no <params> node found.");
 					throw Genode::Exception();
 				}
 			}
@@ -315,7 +311,7 @@ Cgd::Device::Device(int fd)
 		rump_sys_ioctl(_fd, CGDIOCCLR, &ci);
 		rump_sys_close(_fd);
 
-		PERR("could not read geometry of '%s'", CGD_RAW_DEVICE);
+		Genode::error("could not read geometry of '", CGD_RAW_DEVICE, "'");
 		throw Genode::Exception();
 	}
 
@@ -399,12 +395,9 @@ Cgd::Device *Cgd::Device::configure(Genode::Allocator *alloc, Cgd::Params const 
 {
 	int fd = rump_sys_open(CGD_RAW_DEVICE, O_RDWR);
 	if (fd == -1) {
-		PERR("could not open '%s'", CGD_RAW_DEVICE);
+		Genode::error("could not open '", CGD_RAW_DEVICE, "'");
 		throw Genode::Exception();
 	}
-
-	PDBGV("dev: '%s' alg: '%s' ivmethod: '%s' blocksize: %zu keylen: %zu",
-	      dev, p->algorithm, p->ivmethod, p->blocksize, p->keylen);
 
 	/* perform configuration of cgd device */
 	cgd_ioctl ci;
@@ -421,7 +414,7 @@ Cgd::Device *Cgd::Device::configure(Genode::Allocator *alloc, Cgd::Params const 
 	if (err == -1) {
 		rump_sys_close(fd);
 
-		PERR("could not configure '%s'", CGD_RAW_DEVICE);
+		Genode::error("could not configure '", CGD_RAW_DEVICE, "'");
 		throw Genode::Exception();
 	}
 
@@ -438,7 +431,7 @@ Cgd::Device *Cgd::Device::configure(Genode::Allocator *alloc, Cgd::Params const 
 		rump_sys_ioctl(fd, CGDIOCCLR, &ci);
 		rump_sys_close(fd);
 
-		PERR("could not get cgd information.");
+		Genode::error("could not get cgd information.");
 		throw Genode::Exception();
 	}
 
@@ -459,7 +452,7 @@ Cgd::Device *Cgd::init(Genode::Allocator *alloc, Server::Entrypoint &ep)
 	/* register block device */
 	if (rump_pub_etfs_register(GENODE_DEVICE, GENODE_BLOCK_SESSION,
 	                           RUMP_ETFS_BLK)) {
-		PERR("could not register '%s' within rumpkernel", GENODE_DEVICE);
+		Genode::error("could not register '", GENODE_DEVICE, "' within rumpkernel");
 		throw Genode::Exception();
 	}
 
@@ -488,12 +481,12 @@ Cgd::Device *Cgd::init(Genode::Allocator *alloc, Server::Entrypoint &ep)
 			break;
 		}
 	case Cgd::Config::ACTION_INVALID:
-		PERR("invalid action declared");
+		Genode::error("invalid action declared");
 		throw Genode::Exception();
 		break;
 	}
 
-	PINF("exporting '%s' as Block_session", cgd_dev->name());
+	Genode::log("exporting '", cgd_dev->name(), "' as block session");
 
 	return cgd_dev;
 }

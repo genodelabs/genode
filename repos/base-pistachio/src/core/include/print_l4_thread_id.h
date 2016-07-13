@@ -1,7 +1,7 @@
 /*
- * \brief  Pistachio-specific thread helper
- * \author Julian Stecklina
- * \date   2008-02-20
+ * \brief  Pistachio-specific helper for printing thread IDs
+ * \author Norman Feske
+ * \date   2016-08-15
  */
 
 /*
@@ -14,31 +14,50 @@
 #ifndef _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_
 #define _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_
 
-#include <base/printf.h>
+#include <base/output.h>
 
 namespace Pistachio {
 #include <l4/types.h>
+}
 
-	inline void print_l4_thread_id(L4_ThreadId_t t)
+namespace Genode { struct Formatted_tid; }
+
+
+struct Genode::Formatted_tid
+{
+	Pistachio::L4_ThreadId_t tid;
+
+	explicit Formatted_tid(Pistachio::L4_ThreadId_t tid) : tid(tid) { }
+
+	void print(Output &out) const
 	{
-		if (L4_IsLocalId(t)) {
-			Genode::printf("THREAD (local) %02lx (raw %08lx)\n",
-			               t.local.X.local_id, t.raw);
+		using namespace Pistachio;
+		using Genode::print;
 
-		} else if (L4_IsGlobalId(t)) {
-			Genode::printf("THREAD (global) %02lx (version %lx) (raw %08lx)\n",
-			                t.global.X.thread_no, t.global.X.version, t.raw);
+		if (L4_IsLocalId(tid)) {
+
+			unsigned char const local_id = tid.local.X.local_id;
+			print(out, "THREAD (local) ",
+			           Hex(local_id, Hex::OMIT_PREFIX, Hex::PAD), " "
+			           "(raw ", Hex(tid.raw, Hex::OMIT_PREFIX, Hex::PAD), ")");
+
+		} else if (L4_IsGlobalId(tid)) {
+			unsigned char const global_id = tid.global.X.thread_no;
+			print(out, "THREAD (global) ",
+			           Hex(global_id, Hex::OMIT_PREFIX, Hex::PAD), " "
+			           "(version ", Hex(tid.global.X.version, Hex::OMIT_PREFIX), ") ",
+			           "(raw ",     Hex(tid.raw, Hex::OMIT_PREFIX, Hex::PAD), ")");
 
 		} else {
 			const char *name;
 
-			if (t == L4_nilthread) name = "nilthread";
-			else if (t == L4_anythread) name = "anythread";
-			else name = "???";
+			if      (tid == L4_nilthread) name = "nilthread";
+			else if (tid == L4_anythread) name = "anythread";
+			else                          name = "???";
 
-			Genode::printf("THREAD (%s)\n", name);
+			print(out, "THREAD (", name, ")");
 		}
 	}
-}
+};
 
 #endif /* _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_ */

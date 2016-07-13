@@ -1,4 +1,3 @@
-
 /*
  * \brief   OKL4 thread facility
  * \author  Julian Stecklina
@@ -15,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <util/misc_math.h>
 
@@ -43,7 +42,7 @@ using namespace Okl4;
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
 	if (!_platform_pd) {
-		PWRN("thread %d is not bound to a PD", _thread_id);
+		warning("thread ", _thread_id, " is not bound to a PD");
 		return -1;
 	}
 
@@ -89,8 +88,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	                           scheduler, pager, exception_handler,
 	                           resources, (void *)utcb_location);
 	if (ret != 1) {
-		PERR("L4_ThreadControl returned %d, error code=%d",
-		     ret, (int)L4_ErrorCode());
+		error("L4_ThreadControl returned ", ret, ", error=", ret, L4_ErrorCode());
 		return -1;
 	}
 
@@ -111,7 +109,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	/* assign priority */
 	if (!L4_Set_Priority(new_thread_id,
 	                     Cpu_session::scale_priority(DEFAULT_PRIORITY, _priority)))
-		PWRN("Could not set thread prioritry to default");
+		warning("could not set thread prioritry to default");
 
 	set_l4_thread_id(new_thread_id);
 	return 0;
@@ -145,7 +143,7 @@ void Platform_thread::unbind()
 	                                 L4_nilthread, L4_nilthread, L4_nilthread, ~0, 0);
 
 	if (res != 1)
-		PERR("Deleting thread 0x%08lx failed. Continuing...", _l4_thread_id.raw);
+		error("deleting thread ", Hex(_l4_thread_id.raw), " failed");
 
 	_thread_id    = THREAD_INVALID;
 	_l4_thread_id = L4_nilthread;

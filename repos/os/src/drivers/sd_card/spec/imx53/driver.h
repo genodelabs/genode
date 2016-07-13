@@ -16,7 +16,7 @@
 
 #include <util/mmio.h>
 #include <os/attached_io_mem_dataspace.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <timer_session/connection.h>
 #include <block/component.h>
 #include <drivers/board_base.h>
@@ -60,8 +60,8 @@ class Block::Imx53_driver : public Block::Driver
 		{
 			Sd_card::Card_info const card_info = _controller.card_info();
 
-			PLOG("SD card detected");
-			PLOG("capacity: %zd MiB", card_info.capacity_mb());
+			log("SD card detected");
+			log("capacity: ", card_info.capacity_mb(), " MiB");
 		}
 
 

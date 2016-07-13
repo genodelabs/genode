@@ -20,7 +20,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* Libc plugin includes */
 #include <libc-plugin/fd_alloc.h>
@@ -140,7 +140,7 @@ struct Plugin : Libc::Plugin
 
 Plugin::Plugin(char const *address_config) : socketcall(Lxip::init(address_config))
 {
-	PDBG("using the lxip libc plugin");
+	Genode::log("using the lxip libc plugin");
 }
 
 
@@ -260,7 +260,7 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 
 		default:
 
-			PERR("unsupported fcntl() request: %d", cmd);
+			Genode::error("unsupported fcntl() request: ", cmd);
 			errno = ENOSYS;
 			return -1;
 	}
@@ -308,8 +308,7 @@ int Plugin::getsockopt(Libc::File_descriptor *sockfdo, int level,
                             int optname, void *optval, socklen_t *optlen)
 {
 	if (level != SOL_SOCKET) {
-		PERR("%s: Unsupported level %d, we only support SOL_SOCKET for now",
-		     __func__, level);
+		Genode::error(__func__, ": Unsupported level ", level, ", we only support SOL_SOCKET for now");
 		errno = EBADF;
 		return -1;
 	}
@@ -342,7 +341,7 @@ int Plugin::ioctl(Libc::File_descriptor *sockfdo, int request, char *argp)
 
 		default:
 
-			PERR("unsupported ioctl() request");
+			Genode::error("unsupported ioctl() request");
 			errno = ENOSYS;
 			return -1;
 	}
@@ -497,8 +496,7 @@ int Plugin::setsockopt(Libc::File_descriptor *sockfdo, int level,
                        socklen_t optlen)
 {
 	if (level != SOL_SOCKET) {
-		PERR("%s: Unsupported level %d, we only support SOL_SOCKET for now",
-		     __func__, level);
+		Genode::error(__func__, ": Unsupported level ",  level, ", we only support SOL_SOCKET for now");
 		errno = EBADF;
 		return -1;
 	}
@@ -546,7 +544,7 @@ int Plugin::linux_family(const struct sockaddr *addr, socklen_t addrlen)
 
 		default:
 
-			PERR("Unsupported socket BSD-protocol %u\n", addr->sa_family);
+				Genode::error("unsupported socket BSD protocol ", addr->sa_family);
 			return 0;
 	}
 
@@ -569,7 +567,7 @@ int Plugin::bsd_family(struct sockaddr *addr)
 
 		default:
 
-			PERR("Unsupported socket Linux-protocol %u\n", addr->sa_family);
+			Genode::error("unsupported socket Linux protocol ", addr->sa_family);
 			return 0;
 	}
 }
@@ -580,19 +578,19 @@ int Plugin::translate_msg_flags(int bsd_flags)
 	using namespace Lxip;
 	int f = 0;
 
-	if (bsd_flags & MSG_OOB)  f |= LINUX_MSG_OOB;
-	if (bsd_flags & MSG_PEEK) f |= LINUX_MSG_PEEK;
-	if (bsd_flags & MSG_DONTROUTE) f |= LINUX_MSG_DONTROUTE;
-	if (bsd_flags & MSG_EOR)  f |= LINUX_MSG_EOR;
-	if (bsd_flags & MSG_TRUNC)  f |= LINUX_MSG_TRUNC;
-	if (bsd_flags & MSG_CTRUNC)  f |= LINUX_MSG_CTRUNC;
-	if (bsd_flags & MSG_WAITALL)  f |= LINUX_MSG_WAITALL;
-	if (bsd_flags & MSG_NOTIFICATION) PWRN("MSG_NOTIFICATION ignored");
-	if (bsd_flags & MSG_DONTWAIT) f |= LINUX_MSG_DONTWAIT;
-	if (bsd_flags & MSG_EOF)  f |= LINUX_MSG_EOF;
-	if (bsd_flags & MSG_NBIO) PWRN("MSG_NBIO ignored");
-	if (bsd_flags & MSG_NOSIGNAL)  f |= LINUX_MSG_NOSIGNAL;
-	if (bsd_flags & MSG_COMPAT)  f |= LINUX_MSG_COMPAT;
+	if (bsd_flags & MSG_OOB)          f |= LINUX_MSG_OOB;
+	if (bsd_flags & MSG_PEEK)         f |= LINUX_MSG_PEEK;
+	if (bsd_flags & MSG_DONTROUTE)    f |= LINUX_MSG_DONTROUTE;
+	if (bsd_flags & MSG_EOR)          f |= LINUX_MSG_EOR;
+	if (bsd_flags & MSG_TRUNC)        f |= LINUX_MSG_TRUNC;
+	if (bsd_flags & MSG_CTRUNC)       f |= LINUX_MSG_CTRUNC;
+	if (bsd_flags & MSG_WAITALL)      f |= LINUX_MSG_WAITALL;
+	if (bsd_flags & MSG_NOTIFICATION) Genode::warning("MSG_NOTIFICATION ignored");
+	if (bsd_flags & MSG_DONTWAIT)     f |= LINUX_MSG_DONTWAIT;
+	if (bsd_flags & MSG_EOF)          f |= LINUX_MSG_EOF;
+	if (bsd_flags & MSG_NBIO)         Genode::warning("MSG_NBIO ignored");
+	if (bsd_flags & MSG_NOSIGNAL)     f |= LINUX_MSG_NOSIGNAL;
+	if (bsd_flags & MSG_COMPAT)       f |= LINUX_MSG_COMPAT;
 
 	return f;
 }
@@ -642,7 +640,7 @@ int Plugin::translate_ops_linux(int optname)
 		if (sockopts[i] == optname)
 			return i;
 	
-	PERR("Unsupported sockopt %d\n", optname);
+	Genode::error("unsupported sockopt ", optname);
 	return -1;
 }
 

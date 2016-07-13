@@ -133,7 +133,7 @@ class Init::Child_policy_handle_cpu_priorities
 
 			long discarded_prio_lsb_bits_mask = (1 << _prio_levels_log2) - 1;
 			if (priority & discarded_prio_lsb_bits_mask) {
-				PWRN("priority band too small, losing least-significant priority bits");
+				warning("priority band too small, losing least-significant priority bits");
 			}
 			priority >>= _prio_levels_log2;
 
@@ -281,7 +281,7 @@ class Init::Child_policy_redirect_rom_file
 			Session_label const to(_to);
 
 			Session_label const prefixed_to =
-				prefixed_label(prefix.valid() ? prefix : nullptr, to);
+				prefixed_label(prefix.valid() ? prefix : Session_label(), to);
 
 			Arg_string::set_arg_string(args, args_len, "label", prefixed_to.string());
 		}

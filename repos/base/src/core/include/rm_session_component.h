@@ -92,7 +92,7 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 
 			_ep.apply(rm, [&] (Region_map_component *rmc) {
 				if (!rmc) {
-					PWRN("could not look up region map to destruct");
+					warning("could not look up region map to destruct");
 					return;
 				}
 

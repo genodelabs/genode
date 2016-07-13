@@ -38,7 +38,7 @@ void Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
 	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top()))
-		PERR("failed to start thread");
+		error("failed to start thread");
 }
 
 

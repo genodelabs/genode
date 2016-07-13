@@ -47,7 +47,7 @@ extern "C" int dl_iterate_phdr(int (*callback) (Phdr_info *info, Genode::size_t 
 		info.phnum = e->file()->phdr.count;
 
 		if (verbose_exception)
-			PDBG("%s reloc " EFMT, e->name(), e->reloc_base());
+			Genode::log(e->name(), " reloc ", Genode::Hex(e->reloc_base()));
 
 		if ((err = callback(&info, sizeof(Phdr_info), data)))
 			break;

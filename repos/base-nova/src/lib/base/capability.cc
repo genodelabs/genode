@@ -11,8 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
-
 /* base-internal includes */
 #include <base/internal/capability_data.h>
 

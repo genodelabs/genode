@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <irq_session/irq_session.h>
 
 #include "platform.h"
@@ -84,5 +84,5 @@ void Genode::Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 	 * Set mode
 	 */
 	if (l4_error(l4_icu_set_mode(L4_BASE_ICU_CAP, irq_number, mode)))
-		PERR("Setting mode for  IRQ%u failed", irq_number);
+		error("setting mode for IRQ ", irq_number, " failed");
 }

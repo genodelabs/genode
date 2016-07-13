@@ -13,7 +13,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 #define LWIP_COMPAT_SOCKETS 0
 
@@ -221,7 +221,7 @@ struct Plugin : Libc::Plugin
 
 Plugin::Plugin()
 {
-	PDBG("using the lwIP libc plugin\n");
+	Genode::log("using the lwIP libc plugin");
 
 	lwip_tcpip_init();
 }
@@ -285,7 +285,7 @@ Libc::File_descriptor *Plugin::accept(Libc::File_descriptor *sockfdo,
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
 
 	if (!fd)
-		PERR("could not allocate file descriptor");
+		Genode::error("could not allocate file descriptor");
 
 	return fd;
 }
@@ -338,7 +338,7 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 		result = lwip_fcntl(s, cmd, (val & O_NONBLOCK) ? lwip_O_NONBLOCK : 0);
 		break;
 	default:
-		PERR("libc_lwip: unsupported fcntl() request: %d", cmd);
+		Genode::error("libc_lwip: unsupported fcntl() request: ", cmd);
 		break;
 	}
 
@@ -398,7 +398,7 @@ int Plugin::ioctl(Libc::File_descriptor *sockfdo, int request, char *argp)
 		return lwip_ioctl(get_lwip_fd(sockfdo), lwip_FIONREAD, argp);;
 		break;
 	default:
-		PERR("unsupported ioctl() request");
+		Genode::error("unsupported ioctl() request");
 		errno = ENOSYS;
 		return -1;
 	}
@@ -566,7 +566,7 @@ Libc::File_descriptor *Plugin::socket(int domain, int type, int protocol)
 	int lwip_fd = lwip_socket(domain, type, protocol);
 
 	if (lwip_fd == -1) {
-		PERR("lwip_socket() failed");
+		Genode::error("lwip_socket() failed");
 		return 0;
 	}
 

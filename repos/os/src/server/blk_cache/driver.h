@@ -15,6 +15,7 @@
 #include <block_session/connection.h>
 #include <block/component.h>
 #include <os/packet_allocator.h>
+#include <os/server.h>
 
 #include "chunk.h"
 
@@ -165,10 +166,10 @@ class Driver : public Block::Driver
 				write(r->cli.block_number(), r->cli.block_count(),
 				      r->buffer, r->cli);
 			} catch(Block::Driver::Request_congestion) {
-				Genode::warning("cli (", r->cli.block_number(),
-				                " ", r->cli.block_count(),
-				                ") srv (", r->srv.block_number(),
-				                " ", r->srv.block_count(), ")");
+				Genode::warning("cli (", r->cli.block_number(), " ",
+				                         r->cli.block_count(), ") "
+				                "srv (", r->srv.block_number(), " ",
+				                         r->srv.block_count(), ")");
 			}
 		}
 
@@ -215,7 +216,7 @@ class Driver : public Block::Driver
 		 */
 		void _request(Block::sector_t           block_number,
 		              Genode::size_t            block_count,
-					  char * const              buffer,
+		              char * const              buffer,
 		              Block::Packet_descriptor &packet)
 		{
 			Block::Packet_descriptor p_to_dev;

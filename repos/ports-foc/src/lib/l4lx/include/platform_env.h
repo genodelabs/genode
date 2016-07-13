@@ -21,7 +21,7 @@
 #define _PLATFORM_ENV_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <rm_session/client.h>
@@ -71,8 +71,9 @@ struct Upgradeable_client : CLIENT
 
 	void upgrade_ram(Genode::size_t quota)
 	{
-		PINF("upgrading quota donation for Env::%s (%zd bytes)",
-		     CLIENT::Rpc_interface::service_name(), quota);
+		Genode::log("upgrading quota donation for "
+		            "Env::", CLIENT::Rpc_interface::service_name(), " "
+		            "(", quota, " bytes)");
 
 		char buf[128];
 		Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", quota);

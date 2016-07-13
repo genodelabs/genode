@@ -194,7 +194,7 @@ class Wm::Window_registry
 			Window * const win = _lookup(id);
 
 			if (!win) {
-				PWRN("lookup for window ID %d failed", id.value);
+				Genode::warning("lookup for window ID ", id.value, " failed");
 				return;
 			}
 

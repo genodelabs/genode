@@ -24,9 +24,9 @@ class Nonpci::Ps2 : public Platform::Device_component
 			IRQ_KEYBOARD     = 1,
 			IRQ_MOUSE        = 12,
 
-			ACCESS_WIDTH     = 1,                                               
-			REG_DATA         = 0x60,                                            
-			REG_STATUS       = 0x64,  
+			ACCESS_WIDTH     = 1,
+			REG_DATA         = 0x60,
+			REG_STATUS       = 0x64,
 		};
 
 		Platform::Irq_session_component _irq_mouse;
@@ -52,10 +52,10 @@ class Nonpci::Ps2 : public Platform::Device_component
 		{
 			switch (virt_irq) {
 				case 0:
-					PINF("PS2 uses IRQ, vector 0x%x", IRQ_KEYBOARD);
+					Genode::log("PS2 uses IRQ, vector ", Genode::Hex(IRQ_KEYBOARD));
 					return Device_component::irq(virt_irq);
 				case 1:
-					PINF("PS2 uses IRQ, vector 0x%x", IRQ_MOUSE);
+					Genode::log("PS2 uses IRQ, vector ", Genode::Hex(IRQ_MOUSE));
 					return _irq_mouse.cap();
 				default:
 					return Genode::Irq_session_capability();
@@ -132,13 +132,13 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 			break;
 
 	if (devices_i >= sizeof(devices) / sizeof(devices[0])) {
-		PERR("unknown '%s' device name", device_name);
+		Genode::error("unknown '", device_name, " device name");
 		return Device_capability();
 	}
 
 	if (!permit_device(devices[devices_i])) {
-		PERR("Denied access to device '%s' for session '%s'", device_name,
-		     _label.string());
+		Genode::error("denied access to device '", device_name, "' for "
+		              "session '", _label, "'");
 		return Device_capability();
 	}
 

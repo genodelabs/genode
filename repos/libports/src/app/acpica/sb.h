@@ -40,7 +40,8 @@ class Battery : Acpica::Callback<Battery> {
 			ACPI_STATUS res = AcpiInstallNotifyHandler (sb, ACPI_DEVICE_NOTIFY,
 			                                            handler, dev_obj);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' "
+				              "res=", Genode::Hex(res));
 				delete dev_obj;
 				return AE_OK;
 			}
@@ -48,7 +49,8 @@ class Battery : Acpica::Callback<Battery> {
 			Acpica::Buffer<char [8]> battery_name;
 			AcpiGetName (sb, ACPI_SINGLE_NAME, &battery_name);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' battery name res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' battery name "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -56,7 +58,8 @@ class Battery : Acpica::Callback<Battery> {
 			res = AcpiEvaluateObjectTyped(sb, ACPI_STRING("_STA"), nullptr, &sta,
 			                              ACPI_TYPE_INTEGER);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' _STA res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' _STA "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -67,7 +70,8 @@ class Battery : Acpica::Callback<Battery> {
 			                              ACPI_TYPE_PACKAGE);
 			ACPI_OBJECT * obj = reinterpret_cast<ACPI_OBJECT *>(battery.object);
 			if (ACPI_FAILURE(res) || !obj) {
-				PERR("failed   - '%s' _BIF res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' _BIF "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -80,20 +84,23 @@ class Battery : Acpica::Callback<Battery> {
 			    obj->Package.Elements[10].Type != ACPI_TYPE_STRING ||
 			    obj->Package.Elements[9].Type != ACPI_TYPE_STRING)
 			{
-				PINF("detected - battery '%s' - unknown state (0x%llx%s)",
-				     battery_name.object, val,
-				     val & ACPI_STA_BATTERY_PRESENT ? "" : "(not present)");
+				Genode::log("detected - battery "
+				            "'", Genode::Cstring(battery_name.object), "' - "
+				            "unknown state (", Genode::Hex(val),
+				            val & ACPI_STA_BATTERY_PRESENT ? "" : "(not present)",
+				            ")");
 				return AE_OK;
 			}
 
-			PINF("detected - battery '%s' type='%s' OEM='%s' state=0x%llx%s "
-			     "model='%s' serial='%s'",
-			     battery_name.object,
-			     obj->Package.Elements[11].String.Pointer,
-			     obj->Package.Elements[12].String.Pointer,
-			     val, val & ACPI_STA_BATTERY_PRESENT ? "" : "(not present)",
-			     obj->Package.Elements[10].String.Pointer,
-			     obj->Package.Elements[9].String.Pointer);
+			using Genode::Cstring;
+			Genode::log("detected - battery "
+			            "'", Cstring(battery_name.object), "' "
+			            "type='",   Cstring(obj->Package.Elements[11].String.Pointer), "' "
+			            "OEM='",    Cstring(obj->Package.Elements[12].String.Pointer), "' "
+			            "state=",   Genode::Hex(val),
+			                        val & ACPI_STA_BATTERY_PRESENT ? "" : "(not present)", " "
+			            "model='",  Cstring(obj->Package.Elements[10].String.Pointer), "' "
+			            "serial='", Cstring(obj->Package.Elements[9].String.Pointer), "'");
 
 			return AE_OK;
 		}
@@ -113,7 +120,7 @@ class Battery : Acpica::Callback<Battery> {
 			                                          ACPI_TYPE_PACKAGE);
 			ACPI_OBJECT * obj = reinterpret_cast<ACPI_OBJECT *>(battery.object);
 			if (ACPI_FAILURE(res) || !obj || obj->Package.Count != 13) {
-				PERR("failed   - '%s' _BIF res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' _BIF res=", Genode::Hex(res));
 				return; 
 			}
 
@@ -179,7 +186,7 @@ class Battery : Acpica::Callback<Battery> {
 			ACPI_OBJECT * obj = reinterpret_cast<ACPI_OBJECT *>(dynamic.object);
 			if (ACPI_FAILURE(res) || !obj || 
 			    obj->Package.Count != 4) {
-				PERR("failed   - '%s' _BST res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' _BST res=", Genode::Hex(res));
 				return;
 			}
 

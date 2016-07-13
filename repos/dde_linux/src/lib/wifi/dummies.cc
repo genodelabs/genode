@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/printf.h>
 #include <base/sleep.h>
 
 extern "C" {
@@ -27,34 +26,41 @@ enum {
 
 #define DUMMY(retval, name) \
 	DUMMY name(void) { \
-	if (SHOW_DUMMY) \
-		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
-	return retval; \
-}
+		if (SHOW_DUMMY) \
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "not implemented"); \
+		return retval; \
+	}
 
 #define DUMMY_SKIP(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SKIP) \
-			Genode::log( #name " called (from ", __builtin_return_address(0), ") skipped"); \
-	return retval; \
-}
-
-#define DUMMY_STOP(retval, name) \
-	DUMMY name(void) { \
-		do { \
-			Genode::warning( #name " called (from ", __builtin_return_address(0), ") stopped"); \
-			Genode::sleep_forever(); \
-		} while (0); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "skipped"); \
+		return retval; \
+	}
 
 #define DUMMY_RET(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_RET) \
-			Genode::warning( #name " called (from ", __builtin_return_address(0), ") return ", \
-			                retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
+
+#define DUMMY_STOP(retval, name) \
+	DUMMY name(void) { \
+		do { \
+			Genode::warning(__func__, ": " #name " called " \
+			               "(from ", __builtin_return_address(0), ") " \
+			               "stopped"); \
+			Genode::sleep_forever(); \
+		} while (0); \
+		return retval; \
+	}
 
 /* return sucessful */
 DUMMY_RET(0, netdev_kobject_init)

@@ -18,6 +18,7 @@
 #include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <base/thread.h>
+#include <base/printf.h>
 #include <cpu_session/client.h>
 #include <pd_session/capability.h>
 

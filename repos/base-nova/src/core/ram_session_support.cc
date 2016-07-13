@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/thread.h>
 
 /* core includes */

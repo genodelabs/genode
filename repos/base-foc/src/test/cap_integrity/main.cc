@@ -15,6 +15,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/log.h>
 #include <log_session/connection.h>
 #include <foc/capability_space.h>
 
@@ -26,7 +27,7 @@ using namespace Fiasco;
 
 int main(int argc, char **argv)
 {
-	printf("--- capability integrity test ---\n");
+	log("--- capability integrity test ---");
 
 	enum { COUNT = 1000 };
 
@@ -48,6 +49,6 @@ int main(int argc, char **argv)
 		} catch(...) { }
 	}
 
-	printf("--- finished capability integrity test ---\n");
+	log("--- finished capability integrity test ---");
 	return 0;
 }

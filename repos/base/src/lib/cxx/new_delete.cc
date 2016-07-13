@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator.h>
 #include <base/sleep.h>
 
@@ -43,8 +43,8 @@ static void try_dealloc(void *ptr, Deallocator &dealloc)
 	 * the size argument.
 	 */
 	if (dealloc.need_size_for_free()) {
-		PERR("C++ runtime: delete called with allocator, which needs "
-		     "'size' on free. Blocking before leaking memory...");
+		Genode::error("C++ runtime: delete called with allocator, which needs "
+		              "'size' on free. Blocking before leaking memory...");
 		sleep_forever();
 	}
 
@@ -69,6 +69,6 @@ void operator delete (void *ptr, Deallocator &dealloc) { try_dealloc(ptr,  deall
  */
 __attribute__((weak)) void operator delete (void *)
 {
-	PERR("cxx: operator delete (void *) called - not implemented. "
-	      "A working implementation is available in the 'stdcxx' library.");
+	Genode::error("cxx: operator delete (void *) called - not implemented. "
+	              "A working implementation is available in the 'stdcxx' library.");
 }

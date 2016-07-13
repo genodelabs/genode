@@ -77,46 +77,4 @@ struct Subject_state
 	Segment idtr;
 } __attribute__((packed));
 
-
-/**
- * Print subject state information
- */
-inline void dump_register_state(Subject_state * state)
-{
-	PINF("subject state");
-	PLOG("ip:sp:efl ax:bx:cx:dx:si:di %lx:%lx:%lx %lx:%lx:%lx:%lx:%lx:%lx",
-	     state->Rip, state->Rsp, state->Rflags,
-	     state->Regs.Rax, state->Regs.Rbx, state->Regs.Rcx, state->Regs.Rdx,
-		 state->Regs.Rsi, state->Regs.Rdi);
-
-	PLOG("cs base:limit:sel:ar %lx:%x:%x:%x", state->cs.base,
-	     state->cs.limit, state->cs.sel, state->cs.access);
-	PLOG("ds base:limit:sel:ar %lx:%x:%x:%x", state->ds.base,
-	     state->ds.limit, state->ds.sel, state->ds.access);
-	PLOG("es base:limit:sel:ar %lx:%x:%x:%x", state->es.base,
-	     state->es.limit, state->es.sel, state->es.access);
-	PLOG("fs base:limit:sel:ar %lx:%x:%x:%x", state->fs.base,
-	     state->fs.limit, state->fs.sel, state->fs.access);
-	PLOG("gs base:limit:sel:ar %lx:%x:%x:%x", state->gs.base,
-	     state->gs.limit, state->gs.sel, state->gs.access);
-	PLOG("ss base:limit:sel:ar %lx:%x:%x:%x", state->ss.base,
-	     state->ss.limit, state->ss.sel, state->ss.access);
-
-	PLOG("cr0:cr2:cr3:cr4 %lx:%lx:%lx:%lx",
-	     state->Cr0, state->Regs.Cr2, state->Cr3, state->Cr4);
-
-	PLOG("ldtr base:limit:sel:ar %lx:%x:%x:%x", state->ldtr.base,
-	     state->ldtr.limit, state->ldtr.sel, state->ldtr.access);
-	PLOG("tr base:limit:sel:ar %lx:%x:%x:%x", state->tr.base,
-	     state->tr.limit, state->tr.sel, state->tr.access);
-
-	PLOG("gdtr base:limit %lx:%x", state->gdtr.base, state->gdtr.limit);
-	PLOG("idtr base:limit %lx:%x", state->idtr.base, state->idtr.limit);
-
-	PLOG("sysenter cs:eip:esp %lx %lx %lx", state->Sysenter_cs,
-	     state->Sysenter_eip, state->Sysenter_esp);
-
-	PLOG("%x", state->Intr_state);
-}
-
 #endif /* _VIRTUALBOX__SPEC__MUEN__VCPU_H_ */

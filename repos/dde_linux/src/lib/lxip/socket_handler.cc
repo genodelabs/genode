@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/signal.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 
 /* local includes */
@@ -415,9 +415,6 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 
 		void dispatch(unsigned num)
 		{
-			if (verbose)
-				PDBG("SOCKET dispatch %u", _call.opcode);
-
 			switch (_call.opcode) {
 
 				case OP_ACCEPT   : _do_accept();   break;
@@ -438,7 +435,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 
 				default:
 					_handle.socket = 0;
-					PWRN("Unkown opcode: %u\n", _call.opcode);
+					Genode::warning("unkown opcode: ", (int)_call.opcode);
 			}
 
 			_unblock();

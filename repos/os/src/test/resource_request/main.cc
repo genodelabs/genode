@@ -15,7 +15,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <ram_session/connection.h>
 
 
@@ -27,14 +27,14 @@ static Genode::size_t used_quota()
 
 static void print_quota_stats()
 {
-	PLOG("quota: avail=%zd used=%zd",
-	     Genode::env()->ram_session()->avail(), used_quota());
+	Genode::log("quota: avail=", Genode::env()->ram_session()->avail(), " "
+	            "used=", used_quota());
 }
 
 
 #define ASSERT(cond) \
 	if (!(cond)) { \
-		PERR("assertion %s failed", #cond); \
+		Genode::error("assertion ", #cond, " failed"); \
 		return -2; }
 
 
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- test-resource_request started ---\n");
+	log("--- test-resource_request started ---");
 
 	/*
 	 * Consume initial quota to let the test trigger the corner cases of
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	if (wasted_quota)
 		env()->ram_session()->alloc(wasted_quota);
 
-	printf("wasted available quota of %zd bytes\n", wasted_quota);
+	log("wasted available quota of ", wasted_quota, " bytes");
 
 	print_quota_stats();
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	 * Note that the construction of the signal receiver will consume a part
 	 * of the quota we preserved as 'KEEP_QUOTA'.
 	 */
-	printf("\n-- draining signal session --\n");
+	log("\n-- draining signal session --");
 	{
 		enum { NUM_SIG_CTX = 2000U };
 		static Signal_context  sig_ctx[NUM_SIG_CTX];
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	 * Because, we don't have any RAM quota left, we need to issue another
 	 * resource request to the parent.
 	 */
-	printf("\n-- out-of-memory during session request --\n");
+	log("\n-- out-of-memory during session request --");
 	static Ram_connection ram;
 	ram.ref_account(env()->ram_session_cap());
 	print_quota_stats();
@@ -103,10 +103,10 @@ int main(int argc, char **argv)
 	 * Quota transfers from the process' RAM session may result in resource
 	 * requests, too.
 	 */
-	printf("\n-- out-of-memory during transfer-quota --\n");
+	log("\n-- out-of-memory during transfer-quota --");
 	int ret = env()->ram_session()->transfer_quota(ram.cap(), 512*1024);
 	if (ret != 0) {
-		PERR("transfer quota failed (ret = %d)", ret);
+		error("transfer quota failed (ret = ", ret, ")");
 		return -1;
 	}
 	print_quota_stats();
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	 * Finally, resource requests could be caused by a regular allocation,
 	 * which is the most likely case in normal scenarios.
 	 */
-	printf("\n-- out-of-memory during RAM allocation --\n");
+	log("\n-- out-of-memory during RAM allocation --");
 	env()->ram_session()->alloc(512*1024);
 	print_quota_stats();
 	size_t used_quota_after_alloc = used_quota();
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 	ASSERT(used_quota_after_transfer        == used_quota_after_session_request);
 	ASSERT(used_quota_after_alloc           >  used_quota_after_transfer);
 
-	printf("--- finished test-resource_request ---\n");
+	log("--- finished test-resource_request ---");
 
 	return 0;
 }

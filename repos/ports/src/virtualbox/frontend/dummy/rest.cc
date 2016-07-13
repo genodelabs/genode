@@ -1,5 +1,3 @@
-#include <base/printf.h>
-
 #include "dummy/macros.h"
 
 static bool debug = false;

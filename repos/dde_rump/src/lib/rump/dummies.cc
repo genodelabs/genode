@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 extern "C" {
 
@@ -22,7 +22,8 @@ enum {
 #define DUMMY(retval, name) \
 	int name(void) { \
 	if (SHOW_DUMMY) \
-		PDBG(#name " called (from %p) not implemented", __builtin_return_address(0)); \
+		Genode::warning(#name " called (from ", __builtin_return_address(0), ") " \
+		                "not implemented"); \
 	return retval; \
 }
 

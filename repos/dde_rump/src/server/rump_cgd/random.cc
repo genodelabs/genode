@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/random.h>
 
 extern "C" {
@@ -47,7 +47,7 @@ struct Entropy
 	{
 		int err;
 		if ((err = Jitter::jent_read_entropy(ec_stir, buf, len) < 0)) {
-			PERR("Failed to read entropy: %d", err);
+			Genode::error("failed to read entropy: ", err);
 			return 0;
 		}
 

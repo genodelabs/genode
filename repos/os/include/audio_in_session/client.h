@@ -107,8 +107,8 @@ class Audio_in::Session_client : public Genode::Rpc_client<Session>
 		void wait_for_progress()
 		{
 			if (!_progress.cap.valid()) {
-				PWRN("Progress signal is not installed, will not block "
-				     "(enable in 'Audio_in::Connection')");
+				Genode::warning("Progress signal is not installed, will not block "
+				                "(enable in 'Audio_in::Connection')");
 				return;
 			}
 

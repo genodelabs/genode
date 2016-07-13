@@ -129,10 +129,8 @@ class Pdf_view
 				mode(Framebuffer::Connection::mode()),
 				base(Genode::env()->rm_session()->attach(dataspace()))
 			{
-				PDBG("Framebuffer is %dx%d\n", mode.width(), mode.height());
-
 				if (mode.format() != Framebuffer::Mode::RGB565) {
-					PERR("Color modes other than RGB565 are not supported. Exiting.");
+					Genode::error("Color modes other than RGB565 are not supported. Exiting.");
 					throw Non_supported_framebuffer_mode();
 				}
 			}
@@ -160,14 +158,14 @@ class Pdf_view
 
 			int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
 			if (fd < 0) {
-				PERR("Could not open input file \"%s\", Exiting.", file_name);
+				Genode::error("Could not open input file \"", file_name, "\", Exiting.");
 				throw Invalid_input_file_name();
 			}
 			pdfapp_open(&_pdfapp, (char *)file_name, fd, 0);
 
 			if (_pdfapp.image->n != 4) {
-				PERR("Unexpected color depth, expected 4, got %d, Exiting.",
-				     _pdfapp.image->n);
+				Genode::error("Unexpected color depth, expected 4, got ",
+				              _pdfapp.image->n, ", Exiting.");
 				throw Unexpected_document_color_depth();
 			}
 		}
@@ -214,7 +212,6 @@ extern "C" void _sigprocmask()
 
 void winrepaint(pdfapp_t *pdfapp)
 {
-	PDBG("called");
 	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
 	pdf_view->show();
 }
@@ -222,63 +219,63 @@ void winrepaint(pdfapp_t *pdfapp)
 
 void winrepaintsearch(pdfapp_t *)
 {
-	PDBG("not implemented");
+	Genode::warning(__func__, " not implemented");
 }
 
 
 void wincursor(pdfapp_t *, int curs)
 {
-	PDBG("curs=%d - not implemented", curs);
+	Genode::warning(__func__, " curs=%d - not implemented", curs);
 }
 
 
 void winerror(pdfapp_t *, fz_error error)
 {
-	PDBG("error=%d", error);
+	Genode::error("winerror: error=", error);
 	Genode::sleep_forever();
 }
 
 
 void winwarn(pdfapp_t *, char *msg)
 {
-	PWRN("MuPDF: %s", msg);
+	Genode::warning("MuPDF: ", Genode::Cstring(msg));
 }
 
 
 void winhelp(pdfapp_t *)
 {
-	PDBG("not implemented");
+	Genode::warning(__func__, " not implemented");
 }
 
 
 char *winpassword(pdfapp_t *, char *)
 {
-	PDBG("not implemented");
+	Genode::warning(__func__, " not implemented");
 	return NULL;
 }
 
 
 void winclose(pdfapp_t *app)
 {
-	PDBG("not implemented");
+	Genode::warning(__func__, " not implemented");
 }
 
 
 void winreloadfile(pdfapp_t *)
 {
-	PDBG("not implemented");
+	Genode::warning(__func__, " not implemented");
 }
 
 
 void wintitle(pdfapp_t *app, char *s)
 {
-	PDBG("s=\"%s\" - not implemented", s);
+	Genode::warning(__func__, " not implemented");
 }
 
 
 void winresize(pdfapp_t *app, int w, int h)
 {
-	PDBG("not implemented, w=%d, h=%d", w, h);
+	Genode::warning(__func__, " not implemented");
 }
 
 
@@ -328,8 +325,6 @@ int main(int, char **)
 			if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
 			if (ev.type() == Input::Event::PRESS && key_cnt == 1) {
-
-				PDBG("key %d pressed", ev.code());
 
 				int const ascii = keycode_to_ascii(ev.code());
 				if (ascii)

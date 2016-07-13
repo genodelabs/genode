@@ -125,7 +125,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 				}
 
 			} catch (...) {
-				PWRN("no menu hover model available");
+				Genode::warning("no menu hover model available");
 			}
 		}
 
@@ -169,7 +169,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 
 			void upgrade(Genode::Session_capability, const char *args) override
 			{
-				PDBG("upgrade called args: '%s'", args);
+				Genode::log("upgrade called args: '", args, "'");
 			}
 
 			void close(Genode::Session_capability) override { }

@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/service.h>
+#include <base/heap.h>
 
 /* Core includes */
 #include <platform_services.h>

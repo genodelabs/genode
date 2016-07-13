@@ -73,7 +73,7 @@ namespace Genode {
 			Rom_dataspace_capability fg_dataspace()
 			{
 				if (!_fg.size() && !_bg_has_pending_data) {
-					PERR("Error: no data loaded");
+					Genode::error("no data loaded");
 					return Rom_dataspace_capability();
 				}
 

@@ -17,7 +17,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 /*
  * from gcc/config/arm/unwind-arm.h
@@ -31,7 +31,7 @@ typedef unsigned _Unwind_Ptr __attribute__((__mode__(__pointer__)));
 extern "C" _Unwind_Ptr __attribute__((weak)) dl_unwind_find_exidx(_Unwind_Ptr pc, int *pcount);
 extern "C" _Unwind_Ptr dl_unwind_find_exidx(_Unwind_Ptr pc, int *pcount)
 {
-	PERR("Ops called");
+	Genode::error("dl_unwind_find_exidx called");
 	return 0;
 }
 

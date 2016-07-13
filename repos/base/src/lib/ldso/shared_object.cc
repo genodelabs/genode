@@ -55,7 +55,7 @@ Genode::Shared_object::Shared_object(char const *file, unsigned flags)
 	using namespace Linker;
 
 	if (verbose_shared)
-		PDBG("open '%s'", file ? file : "binary");
+		Genode::log("LD: open '", file ? file : "binary", "'");
 
 	try {
 		Genode::Lock::Guard guard(shared_object_lock());
@@ -80,7 +80,7 @@ void *Genode::Shared_object::_lookup(const char *name) const
 	using namespace Linker;
 
 	if (verbose_shared)
-		PDBG("lookup '%s'", name);
+		Genode::log("LD: shared object lookup '", name, "'");
 
 	try {
 		Genode::Lock::Guard guard(Object::lock());
@@ -105,7 +105,7 @@ Genode::Shared_object::~Shared_object()
 	using namespace Linker;
 
 	if (verbose_shared)
-		PDBG("close");
+		Genode::log("LD: close shared object");
 
 	Genode::Lock::Guard guard(shared_object_lock());
 	destroy(Genode::env()->heap(), to_root(_handle));
@@ -117,13 +117,14 @@ Genode::Address_info::Address_info(Genode::addr_t address)
 	using namespace Genode;
 
 	if (verbose_shared)
-		PDBG("request: %lx", address);
+		Genode::log("LD: address-info request: ", Genode::Hex(address));
 
 	Linker::Object *e = find_obj(address);
 	e->info(address, *this);
 
 	if (verbose_shared)
-		PDBG("Found: obj: %s sym: %s addr: %lx", path, name, addr);
+		Genode::log("LD: found address info: obj: ", path, " sym: ", name,
+		            " addr: ", Genode::Hex(addr));
 }
 
 

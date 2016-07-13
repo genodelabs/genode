@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <util/arg_string.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 
 /* core-local includes */
@@ -112,7 +112,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 
 		int tmp_binary_fd = lx_open(filename, O_CREAT | O_EXCL | O_WRONLY, S_IRWXU);
 		if (tmp_binary_fd < 0) {
-			PERR("Could not create file '%s'", filename);
+			error("Could not create file '", filename, "'");
 			return; /* XXX reflect error to client */
 		}
 
@@ -205,6 +205,6 @@ void Native_pd_component::start(Capability<Dataspace> binary)
 		if (ds)
 			_start(*ds);
 		else
-			PERR("failed to lookup binary to start");
+			error("failed to lookup binary to start");
 	});
 };

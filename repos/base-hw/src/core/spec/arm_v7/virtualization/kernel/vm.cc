@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/log.h>
 #include <assert.h>
 #include <platform_pd.h>
 #include <kernel/vm.h>
@@ -59,7 +60,7 @@ struct Kernel::Vm_irq : Kernel::Irq
 		Cpu_job & job = cpu_pool()->executing_cpu()->scheduled_job();
 		Vm *vm = dynamic_cast<Vm*>(&job);
 		if (!vm)
-			PERR("VM timer interrupt while VM is not runnning!");
+			Genode::error("VM timer interrupt while VM is not runnning!");
 		else
 			vm->inject_irq(_irq_nr);
 	}

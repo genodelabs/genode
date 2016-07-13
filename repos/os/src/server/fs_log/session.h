@@ -67,7 +67,7 @@ class Fs_log::Unlabeled_session_component : public Session_component
 		size_t write(Log_session::String const &msg)
 		{
 			if (!msg.valid_string()) {
-				PERR("corrupted string");
+				Genode::error("corrupted string");
 				return 0;
 			}
 
@@ -104,7 +104,7 @@ class Fs_log::Labeled_session_component : public Session_component
 		size_t write(Log_session::String const &msg)
 		{
 			if (!msg.valid_string()) {
-				PERR("corrupted string");
+				Genode::error("corrupted string");
 				return 0;
 			}
 

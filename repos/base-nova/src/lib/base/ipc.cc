@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/ipc.h>
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/ipc.h>
@@ -51,7 +51,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	/* the protocol value is unused as the badge is delivered by the kernel */
 	if (!copy_msgbuf_to_utcb(utcb, snd_msg, 0)) {
-		PERR("could not setup IPC");
+		error("could not setup IPC");
 		throw Ipc_error();
 	}
 

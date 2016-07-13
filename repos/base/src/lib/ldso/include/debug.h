@@ -14,7 +14,8 @@
 #ifndef _INCLUDE__DEBUG_H_
 #define _INCLUDE__DEBUG_H_
 
-#include <base/printf.h>
+#include <util/string.h>
+#include <base/log.h>
 #include <elf.h>
 
 constexpr bool verbose_link_map = false;
@@ -127,8 +128,9 @@ struct Linker::Link_map
 			return;
 
 		for (Link_map *m = first; m; m = m->next)
-			PINF("MAP: addr: " EFMT " dynamic: %p %s m: %p p: %p n: %p",
-			     m->addr, m->dynamic, m->path, m, m->prev, m->next);
+			Genode::log("MAP: addr: ", Genode::Hex(m->addr),
+			            " dynamic: ", m->dynamic, " ", Genode::Cstring(m->path),
+			            " m: ", m, " p: ", m->prev, " n: ", m->next);
 	}
 };
 

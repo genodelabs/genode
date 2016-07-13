@@ -62,18 +62,20 @@ void Gpio::process_config(Gpio::Driver &driver)
 					driver.direction(num, true);
 				} else throw Invalid_mode();
 
-				PINF("gpio %d mode %s value=%d", num, mode, value);
+				Genode::log("gpio ",  num, " "
+				            "mode ",  Genode::Cstring(mode), " "
+				            "value=", value);
 
 			} catch(Genode::Xml_node::Nonexistent_attribute) {
-				PWRN("Missing attribute. Ignore node.");
+				Genode::warning("missing attribute. Ignore node.");
 			} catch(Gpio::Invalid_gpio_number) {
-				PWRN("Invalid GPIO number %d. Ignore node", num);
+				Genode::warning("invalid GPIO number ", num, ", ignore node");
 			}
 			if (gpio_node.last("gpio")) break;
 		}
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) {
-		PWRN("No GPIO config");
+		Genode::warning("no GPIO config");
 	}
 }
 

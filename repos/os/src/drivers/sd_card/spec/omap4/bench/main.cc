@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <timer_session/connection.h>
 #include <os/attached_ram_dataspace.h>
 
@@ -45,7 +45,7 @@ static void run_benchmark(Block::Driver  &driver,
 {
 	using namespace Genode;
 
-	PLOG("request_size=%zd bytes", request_size);
+	log("request_size=", request_size, " bytes");
 
 	size_t const time_before_ms = timer.elapsed_ms();
 
@@ -72,8 +72,8 @@ static void run_benchmark(Block::Driver  &driver,
 	size_t const buffer_size_kb = buffer_size / 1024;
 	size_t const throughput_kb_per_sec = (1000*buffer_size_kb) / duration_ms;
 
-	PLOG("      -> duration:   %zd ms", duration_ms);
-	PLOG("         throughput: %zd KiB/sec", throughput_kb_per_sec);
+	log("      -> duration:   ", duration_ms,           " ms");
+	log("         throughput: ", throughput_kb_per_sec, " KiB/sec");
 }
 
 
@@ -83,7 +83,7 @@ struct Main
 	{
 		using namespace Genode;
 
-		printf("--- OMAP4 SD card benchmark ---\n");
+		log("--- OMAP4 SD card benchmark ---");
 
 		bool const use_dma = false;
 
@@ -106,12 +106,12 @@ struct Main
 		 * Benchmark reading from SD card
 		 */
 
-		printf("\n-- reading from SD card --\n");
+		log("\n-- reading from SD card --");
 
 		struct Read : Operation
 		{
 			void operator () (Block::Driver &driver,
-							  addr_t number, size_t count, addr_t phys, char *virt)
+			                  addr_t number, size_t count, addr_t phys, char *virt)
 			{
 				Block::Packet_descriptor p;
 				if (driver.dma_enabled())
@@ -123,7 +123,7 @@ struct Main
 
 		for (unsigned i = 0; request_sizes[i]; i++)
 			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-						  request_sizes[i], read_operation);
+			              request_sizes[i], read_operation);
 
 		/*
 		 * Benchmark writing to SD card
@@ -133,12 +133,12 @@ struct Main
 		 * its original content.
 		 */
 
-		printf("\n-- writing to SD card --\n");
+		log("\n-- writing to SD card --");
 
 		struct Write : Operation
 		{
 			void operator () (Block::Driver &driver,
-							  addr_t number, size_t count, addr_t phys, char *virt)
+			                  addr_t number, size_t count, addr_t phys, char *virt)
 			{
 				Block::Packet_descriptor p;
 				if (driver.dma_enabled())
@@ -150,9 +150,9 @@ struct Main
 
 		for (unsigned i = 0; request_sizes[i]; i++)
 			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-						  request_sizes[i], write_operation);
+			              request_sizes[i], write_operation);
 
-		printf("\n--- OMAP4 SD card benchmark finished ---\n");
+		log("\n--- OMAP4 SD card benchmark finished ---");
 	}
 };
 

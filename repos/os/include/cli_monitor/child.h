@@ -331,7 +331,7 @@ class Child_base : public Genode::Child_policy
 
 		void exit(int exit_value) override
 		{
-			PINF("subsystem \"%s\" exited with value %d", name(), exit_value);
+			Genode::log("subsystem \"", name(), "\" exited with value ", exit_value);
 			_exited = true;
 
 			/* trigger destruction of the child */

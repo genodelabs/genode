@@ -20,10 +20,10 @@ void parse_config()
 	try {
 		long counter = 1;
 		Genode::config()->xml_node().sub_node("counter").value(&counter);
-		Genode::printf("obtained counter value %ld from config\n", counter);
+		Genode::log("obtained counter value ", counter, " from config");
 
 	} catch (...) {
-		PERR("Error while parsing the configuration");
+		Genode::error("could not parse configuration");
 	}
 }
 

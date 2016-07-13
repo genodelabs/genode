@@ -116,7 +116,7 @@ class Bomb_child : private Bomb_child_resources,
 			_entrypoint.activate();
 		}
 
-		~Bomb_child() { PLOG("%s", __PRETTY_FUNCTION__); }
+		~Bomb_child() { Genode::log(__PRETTY_FUNCTION__); }
 
 
 		/****************************
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 	unsigned const sleeptime   = node.attribute_value("sleep", 2000U);
 	unsigned long const demand = node.attribute_value("demand", 1024UL * 1024);
 
-	printf("--- bomb started ---\n");
+	log("--- bomb started ---");
 
 	/* connect to core's cap service used for creating parent capabilities */
 	Cap_connection cap;
@@ -273,12 +273,11 @@ int main(int argc, char **argv)
 	unsigned long avail = env()->ram_session()->avail();
 	unsigned long amount = (avail - demand) / children;
 	if (amount < (demand * children)) {
-		PLOG("I'm a leaf node - generation %u - not enough memory.",
-		     generation);
+		log("I'm a leaf node - generation ", generation, " - not enough memory.");
 		sleep_forever();
 	}
 	if (generation == 0) {
-		PLOG("I'm a leaf node - generation 0");
+		log("I'm a leaf node - generation 0");
 		sleep_forever();
 	}
 
@@ -298,7 +297,7 @@ int main(int argc, char **argv)
 		}
 
 		timer()->msleep(sleeptime);
-		PINF("[%03d] It's time to kill all my children...", round);
+		log("[", round, "] It's time to kill all my children...");
 
 		while (1) {
 			Bomb_child *c;
@@ -312,12 +311,12 @@ int main(int argc, char **argv)
 			else break;
 		}
 
-		PINF("[%03d] Done.", round);
+		log("[", round, "] Done.");
 	}
 
 	/* master if we have a timer connection */
 	if (timer())
-		PINF("Done. Going to sleep");
+		log("Done. Going to sleep");
 
 	sleep_forever();
 	return 0;

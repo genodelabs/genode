@@ -49,8 +49,6 @@ QWidget *NitpickerPlugin::create(const QString &mimeType, const QUrl &url,
 	                            QString("-1");
     int max_height = max_height_string.remove("px").toInt();
 
-    PDBG("max_width = %d, max_height = %d", max_width, max_height);
-
     NitpickerPluginWidget *m_widget = new NitpickerPluginWidget(this, url, args_string, max_width, max_height);
     m_widget->url = url;
     m_widget->argumentNames = argumentNames;

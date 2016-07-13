@@ -12,7 +12,7 @@
  */
 
 /* Genode */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/env.h>
 #include <cpu_session/connection.h>
@@ -76,9 +76,10 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 	if (rtthread->cbStack < stack_size)
 		stack_size = rtthread->cbStack;
 	else
-		PWRN("requested stack for thread '%s' of %zu Bytes is too large, "
-		     "limit to %zu Bytes", rtthread->szName, rtthread->cbStack,
-		     stack_size);
+		Genode::warning("requested stack for "
+		                "thread '", Genode::Cstring(rtthread->szName), "' "
+		                "of ", rtthread->cbStack, " Bytes is too large, "
+		                "limit to ", stack_size, " Bytes");
 
 	/* sanity check - emt and vcpu thread have to have same prio class */
 	if (strstr(rtthread->szName, "EMT") == rtthread->szName)
@@ -133,14 +134,14 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 		try {
 			return create_thread(thread, attr, start_routine, arg);
 		} catch (Cpu_session::Out_of_metadata) {
-			PWRN("Upgrading memory for creation of thread '%s'",
-			     rtthread->szName);
+			log("Upgrading memory for creation of "
+			    "thread '", Cstring(rtthread->szName), "'");
 			env()->parent()->upgrade(cpu_connection(rtthread->enmType)->cap(),
 			                         "ram_quota=4096");
 		} catch (...) { break; }
 	}
 
-	PERR("Could not create vbox pthread - halt");
+	Genode::error("could not create vbox pthread - halt");
 	Genode::Lock lock(Genode::Lock::LOCKED);
 	lock.lock();
 	return EAGAIN;

@@ -23,8 +23,6 @@ namespace Vfs { class Fs_file_system; }
 
 class Vfs::Fs_file_system : public File_system
 {
-	enum { verbose = false };
-
 	private:
 
 		/*
@@ -536,10 +534,6 @@ class Vfs::Fs_file_system : public File_system
 			}
 
 			bool const create = vfs_mode & OPEN_MODE_CREATE;
-
-			if (create)
-				if (verbose)
-					PDBG("creation of file %s requested", file_name.base() + 1);
 
 			try {
 				::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);

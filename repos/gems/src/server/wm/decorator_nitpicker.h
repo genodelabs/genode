@@ -431,7 +431,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 				_execute_command(_command_buffer.get(i));
 			}
 			catch (...) {
-				PWRN("unhandled exception while processing command from decorator");
+				Genode::warning("unhandled exception while processing command from decorator");
 			}
 		}
 		_nitpicker_session.execute();

@@ -21,7 +21,7 @@
 #include <cap_session/connection.h>
 #include <input_session/input_session.h>
 #include <input/event.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/server.h>
 
 using namespace Genode;
@@ -83,7 +83,7 @@ struct Main
 		/* create dataspace for event buffer that is shared with the client */
 		try { ev_ds_cap = env()->ram_session()->alloc(MAX_EVENTS*sizeof(Input::Event)); }
 		catch (Ram_session::Alloc_failed) {
-			PERR("Could not allocate dataspace for event buffer");
+			Genode::error("could not allocate dataspace for event buffer");
 			throw Genode::Exception();
 		}
 

@@ -37,20 +37,20 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 			& get_page_mask();
 
 		if (use_local_addr) {
-			PERR("Parameter 'use_local_addr' not supported within core");
+			error("parameter 'use_local_addr' not supported within core");
 			return nullptr;
 		}
 
 		if (offset) {
-			PERR("Parameter 'offset' not supported within core");
+			error("parameter 'offset' not supported within core");
 			return nullptr;
 		}
 
 		/* allocate range in core's virtual address space */
 		void *virt_addr;
 		if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
-			PERR("Could not allocate virtual address range in core of size %zd\n",
-			     page_rounded_size);
+			error("could not allocate virtual address range in core of size ",
+			      page_rounded_size);
 			return nullptr;
 		}
 

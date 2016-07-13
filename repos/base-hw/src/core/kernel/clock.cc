@@ -79,7 +79,6 @@ time_t Clock::update_time()
 	/* update time */
 	time_t const old_value = _last_timeout_duration;
 	time_t const new_value = _timer->value(_cpu_id);
-//	PERR("%lu %lu", old_value, new_value);
 	time_t const duration  = old_value > new_value ? old_value - new_value : 1;
 	_time += duration;
 	return duration;

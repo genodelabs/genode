@@ -25,7 +25,6 @@
 #include <util/retry.h>
 
 /* Linux emulation environment includes */
-#include <lx_kit/internal/debug.h>
 #include <lx_kit/internal/list.h>
 #include <lx_kit/internal/io_port.h>
 
@@ -136,22 +135,12 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 				if (res.type() == Device::Resource::MEMORY) flags |= IORESOURCE_MEM;
 				this->resource[i].flags = flags;
 
-				PDBGV("this=%p base: %x size: %x type: %u",
-				     this, res.base(), res.size(), res.type());
-
 				/* request port I/O session */
 				if (res.type() == Device::Resource::IO) {
 					uint8_t const virt_bar = _client.phys_bar_to_virt(i);
 					_io_port.session(res.base(), res.size(), _client.io_port(virt_bar));
 					io = true;
-					PDBGV("I/O [%u-%u)",
-					       res.base(), res.base() + res.size());
 				}
-
-				/* request I/O memory (write combined) */
-				if (res.type() == Device::Resource::MEMORY)
-					PDBGV("I/O memory [%x-%x)", res.base(),
-					     res.base() + res.size());
 			}
 
 			/* enable bus master and io bits */

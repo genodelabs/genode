@@ -16,6 +16,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/log.h>
+#include <base/heap.h>
 #include <block/component.h>
 #include <block/driver.h>
 #include <block_session/connection.h>
@@ -72,7 +73,7 @@ struct Usb::Block_driver : Usb::Completion,
 	void handle_state_change()
 	{
 		if (!usb.plugged()) {
-			PDBG("Device unplugged");
+			Genode::log("Device unplugged");
 			device_plugged = false;
 			return;
 		}
@@ -82,7 +83,7 @@ struct Usb::Block_driver : Usb::Completion,
 			return;
 		}
 
-		PDBG("Device plugged");
+		Genode::log("Device plugged");
 
 		if (!initialize()) {
 			return;
@@ -590,7 +591,7 @@ struct Usb::Block_driver : Usb::Completion,
 			Genode::error("complete error: packet not succeded");
 			if (req.pending) {
 				Genode::error("request pending: tag: ", active_tag, " read: ",
-				              (int)req.read, " buffer: ", req.buffer, " lba: ",
+				              (int)req.read, " buffer: ", (void *)req.buffer, " lba: ",
 				              req.lba, " size: ", req.size);
 				ack_pending_request(false);
 			}
@@ -662,7 +663,7 @@ struct Usb::Block_driver : Usb::Completion,
 			uint8_t const status = csw.sts();
 			if (status != Csw::PASSED) {
 				Genode::error("CSW failed: ", Hex(status, Hex::PREFIX, Hex::PAD),
-				              " read: ", (int)req.read, " buffer: ", req.buffer,
+				              " read: ", (int)req.read, " buffer: ", (void *)req.buffer,
 				              " lba: ", req.lba, " size: ", req.size);
 				break;
 			}

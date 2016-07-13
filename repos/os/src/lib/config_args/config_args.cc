@@ -12,6 +12,7 @@
  */
 
 #include <os/config.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -40,7 +41,7 @@ void init_config_args(void)
 	catch (Xml_node::Nonexistent_sub_node) { }
 	catch (Xml_node::Nonexistent_attribute)
 	{
-		PERR("<arg> node has no 'value' attribute, ignoring further <arg> nodes");
+		error("<arg> node has no 'value' attribute, ignoring further <arg> nodes");
 	}
 
 	if (argc == 0)

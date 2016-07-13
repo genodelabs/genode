@@ -1,5 +1,11 @@
 include $(REP_DIR)/lib/mk/virtualbox-common.inc
 
+#
+# Prevent inclusion of the Genode::Log definition after the vbox #define
+# of 'Log'. Otherwise, the attemt to compile base/log.h will fail.
+#
+VBOX_CC_OPT += -include base/log.h
+
 SRC_CC += Devices/Input/DrvKeyboardQueue.cpp
 SRC_CC += Devices/Input/DrvMouseQueue.cpp
 SRC_CC += Devices/USB/DrvVUSBRootHub.cpp

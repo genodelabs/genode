@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Packet stream helper
  * \author Sebastian Sumpf
  * \date   2014-12-08
@@ -83,8 +83,9 @@ class Usb::Packet_handler
 		{
 			/* is size larger than packet stream */
 			if (size > _connection.source()->bulk_buffer_size()) {
-				PERR("Packet allocation of (%zu bytes) too large, buffer has %zu bytes",
-				     size, _connection.source()->bulk_buffer_size());
+				Genode::error("packet allocation of (", size, " bytes) too large, "
+				              "buffer has ", _connection.source()->bulk_buffer_size(),
+				              " bytes");
 				throw Usb::Session::Tx::Source::Packet_alloc_failed();
 			}
 

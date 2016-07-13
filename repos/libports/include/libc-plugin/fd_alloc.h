@@ -17,7 +17,7 @@
 
 #include <base/allocator_avl.h>
 #include <base/lock.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/path.h>
 
 /* libc includes */
@@ -53,8 +53,8 @@ namespace Libc {
 				size_t const path_size = ::strlen(newpath) + 1;
 				char *buf = (char*)malloc(path_size);
 				if (!buf) {
-					PERR("could not allocate path buffer for libc_fd %d%s",
-					     libc_fd, libc_fd == ANY_FD ? " (any)" : "");
+					Genode::error("could not allocate path buffer for libc_fd ",
+					              libc_fd, libc_fd == ANY_FD ? " (any)" : "");
 					return;
 				}
 				::memcpy(buf, newpath, path_size);

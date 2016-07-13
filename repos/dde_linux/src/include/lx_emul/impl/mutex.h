@@ -72,11 +72,11 @@ void mutex_lock(struct mutex *m)
 void mutex_unlock(struct mutex *m)
 {
 	if (m->state == MUTEX_UNLOCKED) {
-		PERR("Bug: multiple mutex unlock detected");
+		Genode::error("bug: multiple mutex unlock detected");
 		Genode::sleep_forever();
 	}
 	if (m->holder != Lx::scheduler().current()) {
-		PERR("Bug: mutex unlock by task not holding the mutex");
+		Genode::error("bug: mutex unlock by task not holding the mutex");
 		Genode::sleep_forever();
 	}
 

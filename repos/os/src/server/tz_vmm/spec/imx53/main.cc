@@ -71,7 +71,7 @@ class Vmm::Vmm : public Thread_deprecated<8192>
 			case SERIAL:      _serial.handle(_vm); break;
 			case BLOCK:       _block.handle(_vm);  break;
 			default:
-				PERR("Unknown hypervisor call!");
+				Genode::error("unknown hypervisor call!");
 				_vm->dump();
 			};
 		}
@@ -88,7 +88,7 @@ class Vmm::Vmm : public Thread_deprecated<8192>
 			switch (_vm->state()->cpu_exception) {
 			case Cpu_state::DATA_ABORT:
 				if (!_handle_data_abort()) {
-					PERR("Could not handle data-abort will exit!");
+					Genode::error("could not handle data-abort will exit!");
 					return false;
 				}
 				break;
@@ -96,7 +96,7 @@ class Vmm::Vmm : public Thread_deprecated<8192>
 				_handle_hypervisor_call();
 				break;
 			default:
-				PERR("Curious exception occured");
+				Genode::error("curious exception occured");
 				_vm->dump();
 				return false;
 			}
@@ -118,7 +118,7 @@ class Vmm::Vmm : public Thread_deprecated<8192>
 					if (_handle_vm())
 						_vm->run();
 				} else {
-					PWRN("Invalid context");
+					Genode::warning("invalid context");
 					continue;
 				}
 				on_vmm_exit();
@@ -146,7 +146,7 @@ int main()
 	             KERNEL_OFFSET, MACH_TYPE_QSB);
 	static Vmm::Vmm vmm(&vm);
 
-	PINF("Start virtual machine ...");
+	Genode::log("Start virtual machine ...");
 	vmm.start();
 
 	sleep_forever();

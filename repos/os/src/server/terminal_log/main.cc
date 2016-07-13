@@ -57,7 +57,7 @@ namespace Genode {
 			size_t write(String const &string_buf)
 			{
 				if (!(string_buf.valid_string())) {
-					PERR("corrupted string");
+					Genode::error("corrupted string");
 					return 0;
 				}
 

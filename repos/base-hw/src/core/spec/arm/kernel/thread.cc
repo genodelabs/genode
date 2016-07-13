@@ -39,15 +39,15 @@ void Thread::exception(unsigned const cpu)
 		return;
 	case UNDEFINED_INSTRUCTION:
 		if (_cpu->retry_undefined_instr(*this)) { return; }
-		PWRN("%s -> %s: undefined instruction at ip=%p",
-		     pd_label(), label(), (void*)ip);
+		Genode::warning(pd_label(), " -> ", label(), ": "
+		                "undefined instruction at ip=", Genode::Hex(ip));
 		_stop();
 		return;
 	case RESET:
 		return;
 	default:
-		PWRN("%s -> %s: triggered an unknown exception %lu",
-		     pd_label(), label(), (unsigned long)cpu_exception);
+		Genode::warning(pd_label(), " -> ", label(), ": "
+		                "triggered an unknown exception ", cpu_exception);
 		_stop();
 		return;
 	}
@@ -61,21 +61,24 @@ void Thread::_mmu_exception()
 		_fault_pd     = (addr_t)_pd->platform_pd();
 		_fault_signal = (addr_t)_fault.signal_context();
 
-		/**
-		 * core should never raise a page-fault,
-		 * if this happens print out an error message with debug information
+		/*
+		 * Core should never raise a page-fault. If this happens, print out an
+		 * error message with debug information.
 		 */
 		if (_pd == Kernel::core_pd())
-			PERR("Pagefault in core thread (%s): ip=%p fault=%p",
-			     label(), (void*)ip, (void*)_fault_addr);
+			Genode::error("page fault in core thread (", label(), "): "
+			              "ip=", Genode::Hex(ip), " fault=", Genode::Hex(_fault_addr));
 
 		_fault.submit();
 		return;
 	}
-	PERR("%s -> %s: raised unhandled %s DFSR=0x%08x ISFR=0x%08x "
-	     "DFAR=0x%08x ip=0x%08lx sp=0x%08lx", pd_label(), label(),
-	     cpu_exception == DATA_ABORT ? "data abort" : "prefetch abort",
-	     Cpu::Dfsr::read(), Cpu::Ifsr::read(), Cpu::Dfar::read(), ip, sp);
+	Genode::error(pd_label(), " -> ", label(), ": raised unhandled ",
+	              cpu_exception == DATA_ABORT ? "data abort" : "prefetch abort", " "
+	              "DFSR=", Genode::Hex(Cpu::Dfsr::read()), " "
+	              "ISFR=", Genode::Hex(Cpu::Ifsr::read()), " "
+	              "DFAR=", Genode::Hex(Cpu::Dfar::read()), " "
+	              "ip=",   Genode::Hex(ip),                " "
+	              "sp=",   Genode::Hex(sp));
 }
 
 

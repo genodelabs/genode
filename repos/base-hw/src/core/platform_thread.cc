@@ -69,7 +69,7 @@ Platform_thread::Platform_thread(const char * const label,
 	/* create UTCB for a core thread */
 	void *utcb_phys;
 	if (!platform()->ram_alloc()->alloc(sizeof(Native_utcb), &utcb_phys)) {
-		PERR("failed to allocate UTCB");
+		error("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
 	map_local((addr_t)utcb_phys, (addr_t)_utcb_core_addr,
@@ -94,7 +94,7 @@ Platform_thread::Platform_thread(size_t const quota,
 		_utcb = core_env()->ram_session()->alloc(sizeof(Native_utcb),
 		                                         CACHED);
 	} catch (...) {
-		PERR("failed to allocate UTCB");
+		error("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
 	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
@@ -107,7 +107,7 @@ void Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
 {
 	/* check if thread is already in another protection domain */
 	if (_pd && _pd != pd) {
-		PERR("thread already in another protection domain");
+		error("thread already in another protection domain");
 		return;
 	}
 
@@ -139,7 +139,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 			/* lock the address space */
 			Locked_ptr<Address_space> locked_ptr(_address_space);
 			if (!locked_ptr.valid()) {
-				PERR("invalid RM client");
+				error("invalid RM client");
 				return -1;
 			};
 			Page_flags const flags = Page_flags::apply_mapping(true, CACHED, false);
@@ -147,7 +147,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
 			if (!as->insert_translation((addr_t)_utcb_pd_addr, dsc->phys_addr(),
 			                            sizeof(Native_utcb), flags)) {
-				PERR("failed to attach UTCB");
+				error("failed to attach UTCB");
 				return -1;
 			}
 			return 0;
@@ -161,7 +161,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 	/* start executing new thread */
 	if (!_pd) {
-		PWRN("No protection domain associated!");
+		error("no protection domain associated!");
 		return -1;
 	}
 
@@ -190,7 +190,7 @@ void Platform_thread::pager(Pager_object * const pager)
 	if (route_thread_event(kernel_object(), Thread_event_id::FAULT,
 	                       pager ? Capability_space::capid(pager->cap())
 	                             : cap_id_invalid()))
-		PERR("failed to set pager object for thread %s", label());
+		error("failed to set pager object for thread ", label());
 
 	_pager = pager;
 }

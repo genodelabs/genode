@@ -93,10 +93,12 @@ class Vmm_memory
 				return r->local_addr<void>();
 
 			} catch (Ram_session::Alloc_failed) {
-				PERR("Vmm_memory::alloc(0x%zx): RAM allocation failed", cb);
+				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
+				              "RAM allocation failed");
 				throw;
 			} catch (Region_map::Attach_failed) {
-				PERR("Vmm_memory::alloc(0x%zx): RM attach failed", cb);
+				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
+				              "RM attach failed");
 				throw;
 			}
 

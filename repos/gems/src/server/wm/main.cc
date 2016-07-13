@@ -86,7 +86,7 @@ struct Wm::Main
 			}
 
 		} catch (...) {
-			PWRN("no focus model available");
+			Genode::warning("no focus model available");
 		}
 	}
 

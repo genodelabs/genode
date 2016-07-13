@@ -187,7 +187,7 @@ struct Mkdir_test : public Stress_test
 	: Stress_test(vfs, parent)
 	{
 		try { mkdir_a(1); } catch (...) {
-			error("failed at '",path,"' after ",count," directories");
+			error("failed at '", path, "' after ", count, " directories");
 		}
 	}
 
@@ -231,7 +231,7 @@ struct Populate_test : public Stress_test
 			return;
 
 		default:
-			Genode::String<2> dir_name(&dir_type, 1);
+			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
 			error("bad directory '", dir_name, "' at the end of '", path, "'");
 			throw Exception();
 		}
@@ -297,7 +297,7 @@ struct Write_test : public Stress_test
 			return;
 
 		default:
-			Genode::String<2> dir_name(&dir_type, 1);
+			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
 			error("bad directory ",dir_name," at the end of '", path, "'");
 			throw Exception();
 		}
@@ -365,7 +365,7 @@ struct Read_test : public Stress_test
 			return;
 
 		default:
-			Genode::String<2> dir_name(&dir_type, 1);
+			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
 			error("bad directory ",dir_name," at the end of '", path, "'");
 			throw Exception();
 		}

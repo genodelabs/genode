@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/list.h>
 #include <util/string.h>
@@ -86,7 +86,7 @@ struct Linker::Elf_object : Object, Genode::Fifo<Elf_object>::Element
 			return;
 
 		if (verbose_loading)
-			PDBG("destroy: %s", name());
+			Genode::log("LD: destroy ELF object: ", name());
 
 		/* remove from link map */
 		Debug::state_change(Debug::DELETE, &map);
@@ -288,13 +288,13 @@ Elf::Addr Ld::jmp_slot(Dependency const *dep, Elf::Size index)
 	Genode::Lock::Guard guard(Elf_object::lock());
 
 	if (verbose_relocation)
-		PDBG("SLOT %p " EFMT, dep->obj, index);
+		Genode::log("LD: SLOT ", dep->obj, " ", Genode::Hex(index));
 
 	try {
 		Reloc_jmpslot slot(dep, dep->obj->dynamic()->pltrel_type, 
 		                   dep->obj->dynamic()->pltrel, index);
 		return slot.target_addr();
-	} catch (...) { PERR("LD: Jump slot relocation failed. FATAL!"); }
+	} catch (...) { Genode::error("LD: jump slot relocation failed. FATAL!"); }
 
 	return 0;
 }
@@ -405,7 +405,7 @@ Object *Linker::load(char const *path, Dependency *dep, unsigned flags)
 	for (Object *e = Elf_object::obj_list()->head(); e; e = e->next_obj()) {
 
 		if (verbose_loading)
-			PDBG("LOAD: %s == %s", Linker::file(path), e->name());
+			Genode::log("LOAD: ", Linker::file(path), " == ", e->name());
 
 		if (!Genode::strcmp(Linker::file(path), e->name())) {
 			e->load();
@@ -432,7 +432,7 @@ Elf::Sym const *Linker::lookup_symbol(unsigned sym_index, Dependency const *dep,
 	Elf::Sym   const *symbol = e->symbol(sym_index);
 
 	if (!symbol) {
-		PWRN("LD: Unkown symbol index %x", sym_index);
+		Genode::warning("LD: unknown symbol index ", Genode::Hex(sym_index));
 		return 0;
 	}
 
@@ -465,7 +465,9 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const *dep,
 		if ((symbol = elf->lookup_symbol(name, hash)) && (symbol->st_value || undef)) {
 
 			if (dep->root && verbose_lookup)
-				PINF("Lookup %s obj_src %s st %p info %x weak: %u", name, elf->name(), symbol, symbol->st_info, symbol->weak());
+				Genode::log("LD: lookup ", name, " obj_src ", elf->name(),
+				            " st ", symbol, " info ", Genode::Hex(symbol->st_info),
+				            " weak: ", symbol->weak());
 
 			if (!undef && symbol->st_shndx == SHN_UNDEF)
 				continue;
@@ -487,13 +489,13 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const *dep,
 		if (binary && dep != binary->dep.head()) {
 			return lookup_symbol(name, binary->dep.head(), base, undef, other);
 		} else {
-			PERR("Could not lookup symbol \"%s\"", name);
+			Genode::error("LD: could not lookup symbol \"", name, "\"");
 			throw Not_found();
 		}
 	}
 
 	if (dep->root && verbose_lookup)
-		PDBG("Return %p", weak_symbol);
+		Genode::log("LD: return ", weak_symbol);
 
 	if (!weak_symbol)
 		throw Not_found();
@@ -563,17 +565,18 @@ void Component::construct(Genode::Env &env)
 	try {
 		binary = new(Genode::env()->heap()) Binary();
 	} catch (...) {
-			PERR("LD: Failed to load program");
-			throw Failed_to_load_program();
+		Genode::error("LD: failed to load program");
+		throw Failed_to_load_program();
 	}
 
 	/* print loaded object information */
 	try {
 		if (verbose) {
-			PINF("  %lx .. %lx: stack area",
-			     Genode::Thread::stack_area_virtual_base(),
-			     Genode::Thread::stack_area_virtual_base() +
-			     Genode::Thread::stack_area_virtual_size() - 1);
+			using namespace Genode;
+			log("  ",   Hex(Thread::stack_area_virtual_base()),
+			    " .. ", Hex(Thread::stack_area_virtual_base() +
+			                Thread::stack_area_virtual_size() - 1),
+			    ": stack area");
 			dump_link_map(Elf_object::obj_list()->head());
 		}
 	} catch (...) {  }

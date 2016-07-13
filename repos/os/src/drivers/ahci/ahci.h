@@ -16,6 +16,7 @@
 
 #include <block/component.h>
 #include <os/attached_mmio.h>
+#include <os/server.h>
 #include <util/retry.h>
 #include <util/volatile_object.h>
 
@@ -426,7 +427,7 @@ struct Port : Genode::Mmio
 	{
 		stop();
 		if (!wait_for<Cmd::Cr>(0, Hba::delayer(), 500, 1000))
-			PERR("failed to stop command list processing");
+			Genode::error("failed to stop command list processing");
 	}
 
 	virtual ~Port()
@@ -574,12 +575,12 @@ struct Port : Genode::Mmio
 			return;
 
 		if (!wait_for<Tfd::Sts_bsy>(0, hba.delayer(), 500, 1000)) {
-			PERR("HBA busy unable to start command processing.");
+			Genode::error("HBA busy unable to start command processing.");
 			return;
 		}
 
 		if (!wait_for<Tfd::Sts_drq>(0, hba.delayer(), 500, 1000)) {
-			PERR("HBA in DRQ unable to start command processing.");
+			Genode::error("HBA in DRQ unable to start command processing.");
 			return;
 		}
 
@@ -675,14 +676,14 @@ struct Port : Genode::Mmio
 	void reset()
 	{
 		if (read<Cmd::St>())
-			PWRN("CMD.ST bit set during device reset --> unknown behavior");
+			Genode::warning("CMD.ST bit set during device reset --> unknown behavior");
 
 		write<Sctl::Det>(1);
 		hba.delayer().usleep(1000);
 		write<Sctl::Det>(0);
 
 		if (!wait_for<Ssts::Dec>(Ssts::Dec::ESTABLISHED, hba.delayer()))
-			PWRN("Port reset failed");
+			Genode::warning("Port reset failed");
 	}
 
 	/**
@@ -813,13 +814,13 @@ struct Port_driver : Port, Block::Driver
 	{
 		/* max. PRDT size is 4MB */
 		if (count * block_size() > 4 * 1024 * 1024) {
-			PERR("error: maximum supported packet size is 4MB");
+			Genode::error("error: maximum supported packet size is 4MB");
 			throw Io_error();
 		}
 
 		/* sanity check */
 		if (block_number + count > block_count()) {
-			PERR("error: requested blocks are outside of device");
+			Genode::error("error: requested blocks are outside of device");
 			throw Io_error();
 		}
 	}

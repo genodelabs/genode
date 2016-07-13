@@ -15,7 +15,7 @@
 #include <base/allocator_avl.h>
 #include <base/env.h>
 #include <base/exception.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/misc_math.h>
 #include <util/string.h>
 #include <nic/packet_allocator.h>
@@ -52,7 +52,8 @@ struct Counter : public Genode::Thread_deprecated<8192>
 		int interval = 5;
 		while(1) {
 			_timer.msleep(interval * 1000);
-			PDBG("LX Packets %d/s bytes/s: %d", cnt / interval, size / interval);
+			Genode::log("LX Packets ", cnt/interval, "/s "
+			            "bytes/s: ", size / interval);
 			cnt = 0;
 			size = 0;
 		}
@@ -120,7 +121,7 @@ namespace {
 					receiver.wait_for_signal();
 
 					if (l4_error(l4_irq_trigger(_cap)) != -1)
-						PWRN("IRQ net trigger failed\n");
+						warning("IRQ net trigger failed");
 				}
 			}
 

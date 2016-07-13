@@ -25,14 +25,14 @@ enum {
 #define DUMMY(retval, name) \
 DUMMY name(void) { \
 	if (SHOW_DUMMY) \
-		Genode::log( #name " called (from ", __builtin_return_address(0), ") not implemented"); \
+		Genode::warning( #name " called (from ", __builtin_return_address(0), ") not implemented"); \
 	return retval; \
 }
 
 #define DUMMY_SKIP(retval, name) \
 DUMMY name(void) { \
 	if (SHOW_SKIP) \
-		Genode::log( #name " called (from ", __builtin_return_address(0), ") skipped"); \
+		Genode::warning( #name " called (from ", __builtin_return_address(0), ") skipped"); \
 	return retval; \
 }
 

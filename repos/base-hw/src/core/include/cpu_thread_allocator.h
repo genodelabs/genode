@@ -14,7 +14,7 @@
 #ifndef _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
 #define _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator.h>
 
 namespace Genode
@@ -49,14 +49,16 @@ namespace Genode
 			void free(void *addr, size_t size) override {
 				_alloc->free(addr, size); }
 
-			size_t consumed() const override {
-				PDBG("Unexpected call");
+			size_t consumed() const override
+			{
+				warning(__func__, "unexpectedly called");
 				while (1) ;
 				return 0;
 			}
 
-			size_t overhead(size_t size) const override {
-				PDBG("Unexpected call");
+			size_t overhead(size_t size) const override
+			{
+				warning(__func__, "unexpectedly called");
 				while (1) ;
 				return 0;
 			}

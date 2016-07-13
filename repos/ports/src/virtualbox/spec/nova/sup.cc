@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/semaphore.h>
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
@@ -75,13 +75,14 @@ void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 		pVM->hm.s.vmx.fSupported = hip->has_feature_vmx();
 
 		if (hip->has_feature_svm() || hip->has_feature_vmx()) {
-			PINF("Using %s virtualization extension.",
-			     hip->has_feature_svm() ? "SVM" : "VMX");
+			Genode::log("Using ",
+			            hip->has_feature_svm() ? "SVM" : "VMX", " "
+			            "virtualization extension.");
 			return;
 		}
 	} catch (...) { /* if we get an exception let hardware support off */ }
 
-	PWRN("No virtualization hardware acceleration available");
+	Genode::warning("No virtualization hardware acceleration available");
 }
 
 
@@ -156,7 +157,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	}
 
 	default:
-		PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
+		Genode::error("SUPR3CallVMMR0Ex: unhandled uOperation ", uOperation);
 		return VERR_GENERAL_FAILURE;
 	}
 }
@@ -180,7 +181,7 @@ uint64_t genode_cpu_hz()
 			cpu_freq = hip->tsc_freq * 1000;
 
 		} catch (...) {
-			PERR("could not read out CPU frequency.");
+			Genode::error("could not read out CPU frequency");
 			Genode::Lock lock;
 			lock.lock();
 		}
@@ -255,12 +256,6 @@ bool Vmm_memory::revoke_from_vm(Mem_region *r)
 
 extern "C" void pthread_yield(void)
 {
-/*
-	char _name[64];
-	Genode::Thread::myself()->name(_name, sizeof(_name));
-	PERR("pthread_yield %p - '%s'", __builtin_return_address(0), _name);
-	Assert(!"pthread_yield called");
-*/
 	Nova::ec_ctrl(Nova::EC_YIELD);
 }
 

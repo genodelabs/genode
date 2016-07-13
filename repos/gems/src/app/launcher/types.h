@@ -32,7 +32,7 @@ namespace Launcher {
 		 */
 		char selector[Nitpicker::Session::Label::size()];
 		snprintf(selector, sizeof(selector), "%s ->", label.string());
-		return Nitpicker::Session::Label(selector);
+		return Nitpicker::Session::Label(Cstring(selector));
 	}
 
 	using Decorator::area_attribute;

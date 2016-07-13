@@ -14,7 +14,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
+#include <base/heap.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <gpio/component.h>
@@ -41,7 +42,7 @@ struct Main
 	{
 		using namespace Genode;
 
-		printf("--- omap4 gpio driver ---\n");
+		log("--- omap4 gpio driver ---");
 
 		Gpio::process_config(driver);
 

@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__SPEC__RPI__PIC_H_
 
 /* Genode includes */
+#include <base/log.h>
 #include <util/mmio.h>
 
 /* core includes */
@@ -101,7 +102,7 @@ class Genode::Usb_dwc_otg : Mmio
 
 			stat_cnt++;
 			if (stat_cnt == 8000) {
-				PLOG("kicked: %d filtered: %d  triggered: %d", kick_cnt, filter_cnt, trigger_cnt);
+				log("kicked: ", kick_cnt, " filtered: ", filter_cnt, " triggered: ", trigger_cnt);
 				stat_cnt = 0;
 			}
 

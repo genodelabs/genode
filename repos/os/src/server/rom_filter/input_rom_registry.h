@@ -191,8 +191,8 @@ class Rom_filter::Input_rom_registry
 						if (content_node.has_type(expected.string()))
 							return _query_value(input_node.sub_node(), content_node);
 						else
-							PWRN("top-level node <%s> missing in input ROM %s",
-							     expected.string(), name().string());
+							Genode::warning("top-level node <", expected, "> "
+							                "missing in input ROM ", name());
 
 					} catch (...) { }
 

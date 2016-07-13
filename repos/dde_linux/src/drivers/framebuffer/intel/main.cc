@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/config.h>
 

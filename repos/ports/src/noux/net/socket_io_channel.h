@@ -16,7 +16,7 @@
 #define _NOUX__SOCKET_IO_CHANNEL_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* Noux includes */
 #include <io_channel.h>
@@ -87,7 +87,7 @@ namespace Noux {
 				case EINVAL:      sysio->error.read = Vfs::File_io_service::READ_ERR_INVALID;     break;
 				case EIO:         sysio->error.read = Vfs::File_io_service::READ_ERR_IO;          break;
 				default:
-					PDBG("unhandled errno: %d", errno);
+					log(__func__, ": unhandled errno: ", (int)errno);
 					break;
 				}
 
@@ -111,7 +111,7 @@ namespace Noux {
 				case EINVAL:      sysio->error.read = Vfs::File_io_service::READ_ERR_INVALID;     break;
 				case EIO:         sysio->error.read = Vfs::File_io_service::READ_ERR_IO;          break;
 				default:
-					PDBG("unhandled errno: %d", errno);
+					log(__func__, ": unhandled errno: ", (int)errno);
 					break;
 				}
 
@@ -126,8 +126,8 @@ namespace Noux {
 				case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS: cmd = F_GETFL; break;
 				case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS: cmd = F_SETFL; break;
 				default:
-					PDBG("invalid fcntl command: %d", sysio->fcntl_in.cmd);
-					     sysio->error.fcntl = Sysio::FCNTL_ERR_CMD_INVALID;
+					log("invalid fcntl command: ", (int)sysio->fcntl_in.cmd);
+					sysio->error.fcntl = Sysio::FCNTL_ERR_CMD_INVALID;
 					return false;
 				}
 
@@ -147,7 +147,7 @@ namespace Noux {
 
 				case Vfs::File_io_service::IOCTL_OP_FIONBIO: request = FIONBIO; break;
 				default:
-					PDBG("invalid ioctl request: %d", sysio->ioctl_in.request);
+					log(__func__, ": invalid ioctl request: ", (int)sysio->ioctl_in.request);
 					return false;
 				}
 				int result = ::ioctl(_socket, request, NULL);
@@ -231,7 +231,7 @@ namespace Noux {
 					case EOPNOTSUPP:  sysio->error.accept = Sysio::ACCEPT_ERR_NOT_SUPPORTED; break;
 					case EWOULDBLOCK: sysio->error.accept = Sysio::ACCEPT_ERR_WOULD_BLOCK;   break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -251,7 +251,7 @@ namespace Noux {
 					case EINVAL:     sysio->error.bind = Sysio::BIND_ERR_INVALID;     break;
 					case ENOMEM:     sysio->error.bind = Sysio::BIND_ERR_NO_MEMORY;   break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -276,7 +276,7 @@ namespace Noux {
 					case EHOSTUNREACH: sysio->error.connect = Sysio::CONNECT_ERR_NO_ROUTE;     break;
 
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -309,7 +309,7 @@ namespace Noux {
 					case EADDRINUSE: sysio->error.listen = Sysio::LISTEN_ERR_ADDR_IN_USE;   break;
 					case EOPNOTSUPP: sysio->error.listen = Sysio::LISTEN_ERR_NOT_SUPPORTED; break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -328,7 +328,7 @@ namespace Noux {
 					case EINVAL:      sysio->error.recv = Sysio::RECV_ERR_INVALID;          break;
 					case ENOTCONN:    sysio->error.recv = Sysio::RECV_ERR_NOT_CONNECTED;    break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -351,7 +351,7 @@ namespace Noux {
 					case EINVAL:      sysio->error.recv = Sysio::RECV_ERR_INVALID;          break;
 					case ENOTCONN:    sysio->error.recv = Sysio::RECV_ERR_NOT_CONNECTED;    break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, " unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -371,8 +371,8 @@ namespace Noux {
 				switch (sysio->setsockopt_in.optname) {
 				case SO_DEBUG:
 				case SO_LINGER:
-					PWRN("SOL_SOCKET option '%d' is currently not supported, however we report success",
-					     sysio->setsockopt_in.optname);
+					warning("SOL_SOCKET option '", sysio->setsockopt_in.optname, "' "
+					        "is currently not supported, however we report success");
 					return true;
 				}
 
@@ -398,7 +398,7 @@ namespace Noux {
 					case EISCONN:     sysio->error.send = Sysio::SEND_ERR_IS_CONNECTED;     break;
 					case ENOMEM:      sysio->error.send = Sysio::SEND_ERR_NO_MEMORY;        break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -424,7 +424,7 @@ namespace Noux {
 					case EISCONN:     sysio->error.send = Sysio::SEND_ERR_IS_CONNECTED;     break;
 					case ENOMEM:      sysio->error.send = Sysio::SEND_ERR_NO_MEMORY;        break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}
@@ -442,7 +442,7 @@ namespace Noux {
 					switch (errno) {
 					case ENOTCONN: sysio->error.shutdown = Sysio::SHUTDOWN_ERR_NOT_CONNECTED; break;
 					default:
-						PDBG("unhandled errno: %d", errno);
+						log(__func__, ": unhandled errno: ", (int)errno);
 						break;
 					}
 				}

@@ -57,7 +57,7 @@ struct Nitpicker_buffer
 		nitpicker.buffer(mode, true);
 
 		if (mode.format() != Framebuffer::Mode::RGB565) {
-			PWRN("Color mode %d not supported\n", (int)mode.format());
+			Genode::warning("color mode ", mode, " not supported");
 			return Genode::Dataspace_capability();
 		}
 

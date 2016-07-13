@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/allocator_avl.h>
 
@@ -66,9 +66,9 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 			_mem_allocated -= _size;
 
 			Genode::env()->ram_session()->free(_ds);
-			PWRN("free up %lu %lu/%lu hit=%lu/%lu avail=%zu",
-			     _size, _mem_allocated, _mem_unused, hit, hit_coarse,
-			     Genode::env()->ram_session()->avail());
+			Genode::log("free up ", _size, " ", _mem_allocated, "/",
+			            _mem_unused, " hit=", hit, "/", hit_coarse, " avail=",
+			            Genode::env()->ram_session()->avail());
 		}
 
 		void unused()
@@ -165,9 +165,10 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 			if (ds_obj && ds_obj->_used_size == cb)
 				ds_obj->unused();
 			else {
-				PERR("%s unknown memory region %p(%lx)+%zx(%lx)",
-				     __func__, pv, ds_obj ? ds_obj->ds_virt() : 0,
-				     cb, ds_obj ? ds_obj->_size : 0);
+				Genode::error(__func__, " unknown memory region ", pv, "(",
+				              Genode::Hex(ds_obj ? ds_obj->ds_virt() : 0),
+				              ")+", Genode::Hex(cb), "(",
+				              Genode::Hex(ds_obj ? ds_obj->_size : 0), ")");
 			}
 		}
 };
@@ -228,7 +229,7 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 
 		return local_addr;
 	} catch (...) {
-		PERR("Could not allocate RTMem* memory of size=%zx", cb);
+		Genode::error("Could not allocate RTMem* memory of size=", cb);
 		return nullptr;
 	}
 }

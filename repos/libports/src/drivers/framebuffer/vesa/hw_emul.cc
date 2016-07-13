@@ -18,7 +18,7 @@
  */
 
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 #include "hw_emul.h"
 
@@ -37,6 +37,29 @@ enum {
 	PCI_ADDR_REG = 0xcf8,
 	PCI_DATA_REG = 0xcfc
 };
+
+
+/**
+ * Helper for the formatted output of a (bus, device, function) triple
+ */
+struct Devfn
+{
+	unsigned short devfn;
+
+	explicit Devfn(unsigned short devfn) : devfn(devfn) { }
+
+	void print(Genode::Output &out) const
+	{
+		unsigned char const bus =  devfn >> 8,
+		                    dev = (devfn >> 3) & 0x1f,
+		                    fn  =  devfn & 0x7;
+
+		Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+		                   Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), ".",
+		                   Hex(fn,  Hex::OMIT_PREFIX));
+	}
+};
+
 
 class Pci_card
 {
@@ -73,7 +96,7 @@ class Pci_card
 			}
 
 			if (!device_cap.valid()) {
-				PERR("PCI VGA card not found. Sleeping...");
+				Genode::error("PCI VGA card not found. Sleeping...");
 				sleep_forever();
 			}
 
@@ -90,11 +113,11 @@ class Pci_card
 			_devfn = bus << 8 | dev << 3 | fn;
 
 			if (verbose)
-				PDBG("Found PCI VGA at %x:%x.%x", bus, dev, fn);
+				Genode::log("Found PCI VGA at ", Devfn(_devfn));
 		}
 
-		Platform::Device_client &device()       { return _device; }
-		unsigned short      devfn()  const { return _devfn; }
+		Platform::Device_client &device() { return _device; }
+		unsigned short devfn()  const { return _devfn; }
 };
 
 
@@ -124,15 +147,14 @@ static bool handle_pci_port_write(unsigned short port, T val)
 		 */
 		{
 			if (sizeof(T) != 4) {
-				PWRN("writing with size %zx not supported", sizeof(T));
+				warning("writing with size ", sizeof(T), " not supported", sizeof(T));
 				return true;
 			}
 
-			unsigned devfn = (val >> 8) & 0xffff;
+			unsigned const devfn = (val >> 8) & 0xffff;
 			if (devfn != pci_card()->devfn()) {
 				if (verbose)
-					PWRN("accessing unknown PCI device %02x:%02x.%x",
-					     devfn >> 8, (devfn >> 3) & 0x1f, devfn & 0x7);
+					warning("accessing unknown PCI device ", Devfn(devfn));
 				pci_cfg_addr_valid = false;
 				return true;
 			}
@@ -145,7 +167,7 @@ static bool handle_pci_port_write(unsigned short port, T val)
 		}
 
 	case PCI_DATA_REG:
-		PWRN("writing data register not supported (value=0x%x)", (int)val);
+		warning("writing data register not supported (value=", Hex(val), ")");
 		return true;
 
 	default:
@@ -203,7 +225,7 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 					unsigned bar = (pci_cfg_addr - 0x10) / 4;
 					Platform::Device::Resource res = pci_card()->device().resource(bar);
 					if (res.type() == Platform::Device::Resource::INVALID) {
-						PWRN("requested PCI resource 0x%x invalid", bar);
+						warning("requested PCI resource ", bar, " invalid");
 						*val = 0;
 						return true;
 					}
@@ -213,7 +235,7 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 				}
 
 			default:
-				PWRN("unexpected configuration address 0x%x", pci_cfg_addr);
+				warning("unexpected configuration address ", Hex(pci_cfg_addr));
 				return true;
 			}
 

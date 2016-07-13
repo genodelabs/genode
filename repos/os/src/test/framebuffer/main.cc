@@ -139,8 +139,7 @@ void Test_environment::_mode_handle()
 
 	_fb_ds.construct(_fb.dataspace());
 
-	Genode::log("framebuffer is ", _mode.width(), "x", _mode.height(),
-	            "@", (int)_mode.format());
+	Genode::log("framebuffer is ", _mode);
 
 	if (_mode.bytes_per_pixel() != 2) {
 		Genode::error("pixel format not supported");

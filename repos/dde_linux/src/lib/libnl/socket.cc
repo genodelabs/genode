@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 #include <util/list.h>
 #include <util/string.h>
@@ -52,7 +52,7 @@ extern "C" {
 static const bool trace = true;
 #define TRACE() \
 	do { if (trace) \
-			PDBG("called from: %p", __builtin_return_address(0)); \
+			Genode::log("called from: ", __builtin_return_address(0)); \
 	} while (0)
 
 
@@ -168,7 +168,7 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 {
 	Socket *s = Socket_registry::find(sockfd);
 	if (!s) {
-		PERR("sockfd %d not in registry", sockfd);
+		Genode::error("sockfd ", sockfd, " not in registry");
 		errno = EBADF;
 		return -1;
 	}
@@ -203,8 +203,8 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
 	}
 
 	if (msg->msg_iovlen > Wifi::Msghdr::MAX_IOV_LEN) {
-		PERR("%s: %d exceeds maximum iov length (%d)",
-		     __func__, msg->msg_iovlen, Wifi::Msghdr::MAX_IOV_LEN);
+		Genode::error(__func__, ": ", msg->msg_iovlen, " exceeds maximum iov "
+		              "length (", (int)Wifi::Msghdr::MAX_IOV_LEN, ")");
 		errno = EINVAL;
 		return -1;
 	}
@@ -257,18 +257,18 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
 	}
 
 	if (msg->msg_iovlen > Wifi::Msghdr::MAX_IOV_LEN) {
-		PERR("%s: %d exceeds maximum iov length (%d)",
-		     __func__, msg->msg_iovlen, Wifi::Msghdr::MAX_IOV_LEN);
+		Genode::error(__func__, ": ", msg->msg_iovlen, " exceeds maximum iov "
+		              "length (", (int)Wifi::Msghdr::MAX_IOV_LEN, ")");
 		errno = EINVAL;
 		return -1;
 	}
 	if (msg->msg_controllen != 0) {
-		PERR("%s: msg_control not supported", __func__);
+		Genode::error(__func__, ": msg_control not supported");
 		errno = EINVAL;
 		return -1;
 	}
 	if (flags != 0) {
-		PERR("%s: flags not supported", __func__);
+		Genode::error(__func__, ": flags not supported");
 		errno = EOPNOTSUPP;
 		return -1;
 	}
@@ -437,7 +437,7 @@ int fcntl(int fd, int cmd, ... /* arg */ )
 			return 0;
 		}
 	default:
-		PWRN("fcntl: unknown request: %d", cmd);
+		Genode::warning("fcntl: unknown request: ", cmd);
 		break;
 	}
 

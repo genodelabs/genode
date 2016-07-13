@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <base/snprintf.h>
@@ -30,6 +29,7 @@
 /* base-internal includes */
 #include <base/internal/stack_area.h>
 #include <base/internal/native_utcb.h>
+#include <base/internal/globals.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -124,13 +124,12 @@ static void page_fault_handler()
 	                 (pf_type & Ipc_pager::ERR_W) ? Region_map::State::WRITE_FAULT
 	                                              : Region_map::State::READ_FAULT, 0);
 
-	printf("\nstack pointer 0x%lx, qualifiers 0x%lx %s%s%s%s%s\n",
-	       pf_sp, pf_type,
-	       pf_type & Ipc_pager::ERR_I ? "I" : "i",
-	       pf_type & Ipc_pager::ERR_R ? "R" : "r",
-	       pf_type & Ipc_pager::ERR_U ? "U" : "u",
-	       pf_type & Ipc_pager::ERR_W ? "W" : "w",
-	       pf_type & Ipc_pager::ERR_P ? "P" : "p");
+	log("\nstack pointer ", Hex(pf_sp), ", qualifiers ", Hex(pf_type), " ",
+	    pf_type & Ipc_pager::ERR_I ? "I" : "i",
+	    pf_type & Ipc_pager::ERR_R ? "R" : "r",
+	    pf_type & Ipc_pager::ERR_U ? "U" : "u",
+	    pf_type & Ipc_pager::ERR_W ? "W" : "w",
+	    pf_type & Ipc_pager::ERR_P ? "P" : "p");
 
 	if ((stack_area_virtual_base() <= pf_sp) &&
 		(pf_sp < stack_area_virtual_base() +
@@ -144,8 +143,7 @@ static void page_fault_handler()
 		Nova::Utcb * utcb_fault = reinterpret_cast<Nova::Utcb *>(utcb_addr_f);
 		unsigned last_items = utcb_fault->msg_items();
 
-		printf("faulter utcb %p, last message item count %u\n",
-		       utcb_fault, last_items);
+		log("faulter utcb ", utcb_fault, ", last message item count ", last_items);
 
 		for (unsigned i = 0; i < last_items; i++) {
 			Nova::Utcb::Item * item = utcb_fault->get_item(i);
@@ -156,11 +154,13 @@ static void page_fault_handler()
 			if (crd.is_null())
 				continue;
 
-			printf("%u - type=%x rights=0x%x region=0x%lx+0x%lx "
-			       "hotspot %lx(%lx) - %s\n", i, crd.type(), crd.rights(),
-			       crd.addr(), 1UL << (12 +crd.order()),
-			       crd.hotspot(item->hotspot), item->hotspot,
-			       item->is_del() ? "delegated" : "translated");
+			log(i, " - "
+			    "type=",    Hex(crd.type()), " "
+			    "rights=",  Hex(crd.rights()), " "
+			    "region=",  Hex(crd.addr()), "+", Hex(1UL << (12 + crd.order())), " "
+			    "hotspot=", Hex(crd.hotspot(item->hotspot)),
+			                "(", Hex(item->hotspot), ")"
+			    " - ", item->is_del() ? "delegated" : "translated");
 		}
 	}
 
@@ -187,11 +187,13 @@ static void page_fault_handler()
 	};
 
 	int count = 1;
-	printf("  #%d %08lx %08lx\n", count++, pf_sp, pf_ip);
+	log("  #", count++, " ", Hex(pf_sp, Hex::PREFIX, Hex::PAD), " ",
+	                         Hex(pf_ip, Hex::PREFIX, Hex::PAD));
 
 	Core_img dump(pf_sp);
 	while (dump.ip_valid()) {
-		printf("  #%d %p %08lx\n", count++, dump.ip(), *dump.ip());
+		log("  #", count++, " ", Hex((addr_t)dump.ip(), Hex::PREFIX, Hex::PAD),
+		                    " ", Hex(*dump.ip(),        Hex::PREFIX, Hex::PAD));
 		dump.next_ip();
 	}
 
@@ -237,7 +239,7 @@ static void init_core_page_fault_handler()
 	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
 	                        EXC_BASE, GLOBAL);
 	if (ret)
-		PDBG("create_ec returned %u", ret);
+		log(__func__, ": create_ec returned ", ret);
 
 	/* set up page-fault portal */
 	create_pt(PT_SEL_PAGE_FAULT, __core_pd_sel, ec_sel,
@@ -308,6 +310,7 @@ Platform::Platform() :
 	/*
 	 * Now that we can access the I/O ports for comport 0, printf works...
 	 */
+	init_log();
 
 	/*
 	 * remap main utcb to default utcb address
@@ -316,26 +319,26 @@ Platform::Platform() :
 	 */
 	if (map_local(__main_thread_utcb, (addr_t)__main_thread_utcb,
 	              (addr_t)main_thread_utcb(), 1, Rights(true, true, false))) {
-		PERR("could not remap utcb of main thread");
+		error("could not remap utcb of main thread");
 		nova_die();
 	}
 
 	/* sanity checks */
 	if (hip->sel_exc + 3 > NUM_INITIAL_PT_RESERVED) {
-		printf("configuration error\n");
+		error("configuration error (NUM_INITIAL_PT_RESERVED)");
 		nova_die();
 	}
 
 	/* map idle SCs */
 	unsigned const log2cpu = log2(hip->cpu_max());
 	if ((1U << log2cpu) != hip->cpu_max()) {
-		PERR("number of max CPUs is not of power of 2");
+		error("number of max CPUs is not of power of 2");
 		nova_die();
 	}
 
 	sc_idle_base = cap_map()->insert(log2cpu + 1);
 	if (sc_idle_base & ((1UL << log2cpu) - 1)) {
-		PERR("unaligned sc_idle_base value %lx", sc_idle_base);
+		error("unaligned sc_idle_base value ", Hex(sc_idle_base));
 		nova_die();
 	}
 	if(map_local(__main_thread_utcb, Obj_crd(0, log2cpu),
@@ -353,7 +356,7 @@ Platform::Platform() :
 		uint8_t res = Nova::sc_ctrl(sc_idle_base + i, n_time);
 		if (res != Nova::NOVA_OK) {
 			sc_init = false;
-			printf("%u %u %llu - failed\n", i, res, n_time);
+			error(i, " ", res, " ", n_time, " - failed");
 		}
 	}
 	if (!sc_init)
@@ -371,13 +374,13 @@ Platform::Platform() :
 
 	if (verbose_boot_info) {
 		if (hip->has_feature_vmx())
-			printf("Hypervisor features VMX\n");
+			log("Hypervisor features VMX");
 		if (hip->has_feature_svm())
-			printf("Hypervisor features SVM\n");
-		printf("Hypervisor reports %ux%u CPU%c - boot CPU is %lu\n",
-		       _cpus.width(), _cpus.height(), _cpus.total() > 1 ? 's' : ' ', boot_cpu());
+			log("Hypervisor features SVM");
+		log("Hypervisor reports ", _cpus.width(), "x", _cpus.height(), " "
+		    "CPU", _cpus.total() > 1 ? "s" : " ", " - boot CPU is ", boot_cpu());
 		if (!cpuid_invariant_tsc())
-			PWRN("CPU has no invariant TSC.");
+			warning("CPU has no invariant TSC.");
 	}
 
 	/* initialize core allocators */
@@ -385,7 +388,7 @@ Platform::Platform() :
 	                            / hip->mem_desc_size;
 
 	if (verbose_boot_info)
-		printf("Hypervisor info page contains %zd memory descriptors:\n", num_mem_desc);
+		log("Hypervisor info page contains ", num_mem_desc, " memory descriptors:");
 
 	addr_t mem_desc_base = ((addr_t)hip + hip->mem_desc_offset);
 
@@ -429,9 +432,10 @@ Platform::Platform() :
 		if (stack_area_virtual_base() <= check[i] &&
 			check[i] < stack_area_virtual_base() + stack_area_virtual_size())
 		{
-			PERR("overlapping area - [%lx, %lx) vs %lx",
-			     stack_area_virtual_base(), stack_area_virtual_base() +
-			     stack_area_virtual_size(), check[i]);
+			error("overlapping area - ",
+			      Hex_range<addr_t>(stack_area_virtual_base(),
+			                        stack_area_virtual_size()), " vs ",
+			      Hex(check[i]));
 			nova_die();
 		}
 	}
@@ -447,9 +451,12 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
-		if (verbose_boot_info)
-			printf("detected physical memory: 0x%16llx - size: 0x%llx\n",
-			        mem_desc->addr, mem_desc->size);
+		if (verbose_boot_info) {
+			addr_t const base = mem_desc->addr;
+			size_t const size = mem_desc->size;
+			log("detected physical memory: ", Hex(base, Hex::PREFIX, Hex::PAD),
+			    " - size: ", Hex(size, Hex::PREFIX, Hex::PAD));
+		}
 
 		if (!mem_desc->size) continue;
 
@@ -465,7 +472,8 @@ Platform::Platform() :
 			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
 
 		if (verbose_boot_info)
-			printf("use      physical memory: 0x%16lx - size: 0x%zx\n", base, size);
+			log("use      physical memory: ", Hex(base, Hex::PREFIX, Hex::PAD),
+			    " - size: ", Hex(size, Hex::PREFIX, Hex::PAD));
 
 		_io_mem_alloc.remove_range(base, size);
 		ram_alloc()->add_range(base, size);
@@ -538,10 +546,11 @@ Platform::Platform() :
 			    (mem_d->addr >= mem_desc->addr + mem_desc->size))
 				continue;
 
-			PERR("region overlap [0x%8llx+0x%8llx] (%d) with "
-			     "[0x%8llx+0x%8llx] (%d)",
-			     mem_desc->addr, mem_desc->size, mem_desc->type,
-			     mem_d->addr, mem_d->size, mem_d->type);
+			error("region overlap ",
+			      Hex_range<addr_t>(mem_desc->addr, mem_desc->size), " "
+			      "(", (int)mem_desc->type, ") with ",
+			      Hex_range<addr_t>(mem_d->addr, mem_d->size), " "
+			      "(", (int)mem_d->type, ")");
 			nova_die();
 		}
 	}
@@ -579,18 +588,14 @@ Platform::Platform() :
 		addr_t core_local_addr = _map_pages(rom_mem_start >> get_page_size_log2(),
 		                                    pages_mapped);
 		if (!core_local_addr) {
-			PERR("could not map multi boot module");
+			error("could not map multi boot module");
 			nova_die();
 		}
 
 		/* adjust core_local_addr of module if it was not page aligned */
 		core_local_addr += mem_desc->addr - rom_mem_start;
 
-		if (verbose_boot_info)
-			printf("map multi-boot module: physical 0x%8lx+0x%8llx"
-			       " - ", (addr_t)mem_desc->addr, mem_desc->size);
-
-		char * name;
+		char *name = nullptr;
 		if (aux_in_rom_area) {
 			aux = core_local_addr + (mem_desc->aux - mem_desc->addr);
 			aux_len = strlen(reinterpret_cast<char const *>(aux)) + 1;
@@ -629,7 +634,7 @@ Platform::Platform() :
 					prev_cmd_line_page = curr_cmd_line_page;
 
 					if (!mapped_cmd_line) {
-						PERR("could not map command line");
+						error("could not map command line");
 						nova_die();
 					}
 				}
@@ -646,7 +651,11 @@ Platform::Platform() :
 		memset(reinterpret_cast<void *>(zero_out), 0, round_page(zero_out) -
 		       zero_out);
 
-		printf("%s\n", name);
+		if (verbose_boot_info)
+			log("map multi-boot module: physical ",
+			    Hex((addr_t)mem_desc->addr, Hex::PREFIX, Hex::PAD), "+",
+			    Hex((size_t)mem_desc->size, Hex::PREFIX, Hex::PAD), " - ",
+			    Cstring(name));
 
 		/* revoke mapping of rom module - not needed */
 		unmap_local(__main_thread_utcb, trunc_page(core_local_addr),
@@ -686,9 +695,9 @@ Platform::Platform() :
 	_gsi_base_sel = (hip->mem_desc_offset - hip->cpu_desc_offset) / hip->cpu_desc_size;
 
 	if (verbose_boot_info) {
-		printf(":virt_alloc: "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		printf(":phys_alloc: "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		printf(":io_mem_alloc: "); _io_mem_alloc()->dump_addr_tree();
+		log(":virt_alloc: "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+		log(":phys_alloc: "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+		log(":io_mem_alloc: "); _io_mem_alloc()->dump_addr_tree();
 	}
 
 	/* add capability selector ranges to map */
@@ -705,13 +714,6 @@ Platform::Platform() :
 		*range = Cap_range(index);
 
 		cap_map()->insert(range);
-
-/*
-		if (verbose_boot_info)
-			printf("add cap range [0x%8lx:0x%8lx) - physical 0x%8lx -> 0x%8lx\n",
-			       range->base(),
-			       range->base() + range->elements(), phys_addr, core_local_addr);
-*/
 
 		index = range->base() + range->elements();
 	}

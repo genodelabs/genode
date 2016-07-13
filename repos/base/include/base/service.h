@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__SERVICE_H_
 
 #include <root/client.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/list.h>
 #include <ram_session/client.h>
 #include <base/env.h>
@@ -223,7 +223,7 @@ class Genode::Parent_service : public Service
 		{
 			try { return env()->parent()->session(name(), args, affinity); }
 			catch (Parent::Unavailable) {
-				PWRN("parent has no service \"%s\"", name());
+				warning("parent has no service \"", name(), "\"");
 				throw Unavailable();
 			}
 			catch (Parent::Quota_exceeded) { throw Quota_exceeded(); }
@@ -395,14 +395,13 @@ class Genode::Service_registry
 				 * Lets sleep a night over it.
 				 */
 				if (!service) {
-					printf("%s: service %s not yet available - sleeping\n",
-					       client_name, name);
+					log(client_name, ": service ", name, " not yet available - sleeping");
 
 					try {
 						client->sleep();
-						printf("%s: service %s got available\n", client_name, name);
+						log(client_name, ": service ", name, " got available");
 					} catch (Blocking_canceled) {
-						printf("%s: cancel waiting for service\n", client_name);
+						log(client_name, ": cancel waiting for service");
 						break;
 					}
 				}

@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/thread.h>
 #include <base/lock.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -26,33 +26,25 @@ namespace Vmm {
 
 	using namespace Genode;
 
-	void printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
-}
+	/**
+	 * Print message while preserving the UTCB content
+	 */
+	template <typename... ARGS>
+	void log(ARGS... args)
+	{
+		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
 
+		static Lock        lock;
+		static Utcb_backup utcb_backup;
 
-/**
- * Print message while preserving the UTCB content
- */
-inline void Vmm::printf(const char *format, ...)
-{
-	va_list list;
-	va_start(list, format);
+		Lock::Guard guard(lock);
 
-	struct Utcb_backup { char buf[Nova::Utcb::size()]; };
+		utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 
-	static Lock        lock;
-	static Utcb_backup utcb_backup;
+		Genode::log("VMM: ", args...);
 
-	Lock::Guard guard(lock);
-
-	utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
-
-	Genode::printf("VMM: ");
-	Genode::vprintf(format, list);
-
-	*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
-
-	va_end(list);
+		*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
+	}
 }
 
 #endif /* _INCLUDE__VMM__PRINTF_H_ */

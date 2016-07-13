@@ -18,7 +18,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <util/string.h>
 #include <nic/packet_allocator.h>
@@ -44,14 +44,15 @@ const static char http_index_html[] =
  *
  * \param conn  socket connected to the client
  */
-void http_server_serve(int conn) {
+void http_server_serve(int conn)
+{
 	char    buf[1024];
 	ssize_t buflen;
 
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = lwip_recv(conn, buf, 1024, 0);
-	PLOG("Packet received!");
+	Genode::log("Packet received!");
 
 	/* Ignore all receive errors */
 	if (buflen > 0) {
@@ -65,7 +66,7 @@ void http_server_serve(int conn) {
 			buf[3] == ' ' &&
 			buf[4] == '/' ) {
 
-			PLOG("Will send response");
+			Genode::log("Will send response");
 
 			/* Send http header */
 			lwip_send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
@@ -88,39 +89,39 @@ int main()
 	/* Initialize network stack  */
 	if (lwip_nic_init(inet_addr("10.0.2.55"), inet_addr("255.255.255.0"),
 	                  inet_addr("10.0.2.1"), BUF_SIZE, BUF_SIZE)) {
-		PERR("We got no IP address!");
+		Genode::error("got no IP address!");
 		return -1;
 	}
 
-	PLOG("Create new socket ...");
+	Genode::log("Create new socket ...");
 	if((s = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		PERR("No socket available!");
+		Genode::error("no socket available!");
 		return -1;
 	}
 
-	PLOG("Now, I will bind ...");
+	Genode::log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_port = htons(80);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(lwip_bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		PERR("bind failed!");
+		Genode::error("bind failed!");
 		return -1;
 	}
 
-	PLOG("Now, I will listen ...");
+	Genode::log("Now, I will listen ...");
 	if(lwip_listen(s, 5)) {
-		PERR("listen failed!");
+		Genode::error("listen failed!");
 		return -1;
 	}
 
-	PLOG("Start the server loop ...");
+	Genode::log("Start the server loop ...");
 	while(true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
 		int client = lwip_accept(s, &addr, &len);
 		if(client < 0) {
-			PWRN("Invalid socket from accept!");
+			Genode::warning("invalid socket from accept!");
 			continue;
 		}
 		http_server_serve(client);

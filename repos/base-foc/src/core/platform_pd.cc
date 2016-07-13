@@ -77,7 +77,7 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 		return true;
 	}
 
-	PERR("thread alloc failed");
+	error("thread alloc failed");
 	return false;
 }
 
@@ -124,7 +124,7 @@ Platform_pd::Platform_pd(Allocator *, char const *)
 	l4_msgtag_t tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
 	                                         _task.local.data()->kcap(), utcb_area);
 	if (l4_msgtag_has_error(tag))
-		PERR("pd creation failed");
+		error("pd creation failed");
 }
 
 

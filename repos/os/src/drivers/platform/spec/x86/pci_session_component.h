@@ -193,7 +193,7 @@ namespace Platform {
 						throw Out_of_metadata();
 
 					if (Genode::env()->ram_session()->transfer_quota(ram_ref_cap, DEVICE_PD_RAM_QUOTA)) {
-						PERR("Transferring quota for device pd failed");
+						Genode::error("Transferring quota for device pd failed");
 						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
 						throw Platform::Session::Fatal();
 					}
@@ -207,8 +207,8 @@ namespace Platform {
 						Session_capability session = Genode::Root_client(policy->root()).session("", Affinity());
 						child = Device_pd_client(Genode::reinterpret_cap_cast<Device_pd>(session));
 					} catch (Genode::Rom_connection::Rom_connection_failed) {
-						PWRN("PCI device protection domain for IOMMU support "
-						     "is not available");
+						Genode::warning("PCI device protection domain for IOMMU support "
+						                "is not available");
 
 						if (policy) {
 							destroy(md_alloc, policy);
@@ -220,7 +220,7 @@ namespace Platform {
 						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
 						throw Out_of_metadata();
 					} catch(...) {
-						PERR("unknown exception");
+						Genode::error("unknown exception");
 						md_alloc.upgrade(DEVICE_PD_RAM_QUOTA);
 						throw Platform::Session::Fatal();
 					}
@@ -518,11 +518,12 @@ namespace Platform {
 						if (!find_dev_in_policy(policy_device, DOUBLET))
 							return;
 
-						PERR("'%s' - device '%s' is part of more than one policy",
-						     _label.string(), policy_device);
+							Genode::error("'", _label, "' - device "
+							              "'", Genode::Cstring(policy_device), "' "
+							              "is part of more than one policy");
 					} catch (Genode::Xml_node::Nonexistent_attribute) {
-						PERR("'%s' - device node misses a 'name' attribute",
-						     _label.string());
+						Genode::error("'", _label, "' - device node "
+						              "misses a 'name' attribute");
 					}
 					throw Genode::Root::Unavailable();
 				});
@@ -546,8 +547,8 @@ namespace Platform {
 
 						class_sub_prog = class_subclass_prog(alias_class);
 						if (class_sub_prog >= INVALID_CLASS) {
-							PERR("'%s' - invalid 'class' attribute '%s'",
-							     _label.string(), alias_class);
+							Genode::error("'", _label, "' - invalid 'class' ",
+							              "attribute '", Genode::Cstring(alias_class), "'");
 							throw Genode::Root::Unavailable();
 						}
 					} catch (Xml_attribute::Nonexistent_attribute) { }
@@ -557,8 +558,7 @@ namespace Platform {
 						/* sanity check that 'class' is the only attribute */
 						try {
 							node.attribute(1);
-							PERR("'%s' - attributes beside 'class' detected",
-							     _label.string());
+							Genode::error("'", _label, "' - attributes beside 'class' detected");
 							throw Genode::Root::Unavailable();
 						} catch (Xml_attribute::Nonexistent_attribute) { }
 
@@ -569,8 +569,8 @@ namespace Platform {
 					/* no 'class' attribute - now check for valid bdf triple */
 					try {
 						node.attribute(3);
-						PERR("'%s' - invalid number of pci node attributes",
-						     _label.string());
+						Genode::error("'", _label, "' - "
+						              "invalid number of pci node attributes");
 						throw Genode::Root::Unavailable();
 					} catch (Xml_attribute::Nonexistent_attribute) { }
 
@@ -590,12 +590,14 @@ namespace Platform {
 						if (!find_dev_in_policy(bus, device, function, DOUBLET))
 							return;
 
-						PERR("'%s' - device '%2x:%2x.%x' is part of more than "
-						     "one policy", _label.string(), bus, device,
-						     function);
+						Genode::error("'", _label, "' - device '",
+						              Genode::Hex(bus), ":",
+						              Genode::Hex(device), ".", function, "' "
+						              "is part of more than one policy");
+
 					} catch (Xml_attribute::Nonexistent_attribute) {
-						PERR("'%s' - invalid pci node attributes for bdf",
-						     _label.string());
+						Genode::error("'", _label, "' - "
+						              "invalid pci node attributes for bdf");
 					}
 					throw Genode::Root::Unavailable();
 				});
@@ -723,9 +725,11 @@ namespace Platform {
 						if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
 						    Device_config::MAX_DEVICES * device +
 						    function, 1))
-							PERR("Device %2x:%2x.%u is used by more than one "
-							     "driver - session '%s'.", bus, device, function,
-							     _label.string());
+							Genode::error("Device ",
+							              Genode::Hex(bus), ":",
+							              Genode::Hex(device), ".", function, " "
+							              "is used by more than one driver - "
+							              "session '", _label, "'.");
 						else
 							bdf_in_use.set(Device_config::MAX_BUSES * bus +
 							               Device_config::MAX_DEVICES * device +
@@ -800,7 +804,7 @@ namespace Platform {
 							_device_pd->child.attach_dma_mem(rmrr_cap);
 					}
 				} catch (...) {
-					PERR("assignment to device pd or of RMRR region failed");
+					Genode::error("assignment to device pd or of RMRR region failed");
 				}
 			}
 
@@ -1073,8 +1077,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				return new (md_alloc()) Session_component(ep(), md_alloc(),
 				                                          args, _device_pd_ep);
 			} catch (Genode::Session_policy::No_policy_defined) {
-				PERR("Invalid session request, no matching policy for '%s'",
-				     Genode::label_from_args(args).string());
+				Genode::error("Invalid session request, no matching policy for ",
+				              "'", Genode::label_from_args(args).string(), "'");
 				throw Genode::Root::Unavailable();
 			}
 		}
@@ -1110,7 +1114,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				try {
 					_parse_report_rom(acpi_rom);
 				} catch (...) {
-					PERR("PCI config space data could not be parsed.");
+					Genode::error("PCI config space data could not be parsed.");
 				}
 			}
 		}
@@ -1131,7 +1135,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			const bool feature_reset = Fadt::Features::Reset::get(fadt.features);
 
 			if (!feature_reset) {
-				PWRN("system reset failed - feature not supported");
+				Genode::warning("system reset failed - feature not supported");
 				return;
 			}
 
@@ -1146,7 +1150,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				access_size = Device::ACCESS_32BIT;
 				break;
 			case Fadt::Gas::Access_size::QWORD:
-				PERR("system reset failed - unsupported access size");
+				Genode::error("system reset failed - unsupported access size");
 				return;
 			default:
 				break;
@@ -1155,6 +1159,6 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			config_access.system_reset(fadt.reset_addr, fadt.reset_value,
 			                           access_size);
 			/* if we are getting here - the reset failed */
-			PINF("system reset failed");
+			Genode::warning("system reset failed");
 		}
 };

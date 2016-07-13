@@ -14,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <irq_root.h>
@@ -36,7 +36,7 @@ static bool irq_ctrl(Genode::addr_t irq_sel,
 	                               msi_addr, msi_data, sig_sel);
 
 	if (res != Nova::NOVA_OK)
-		PERR("setting up MSI failed - error %u", res);
+		error("setting up MSI failed - error ", res);
 
 	/* nova syscall interface specifies msi addr/data to be 32bit */
 	msi_addr = msi_addr & ~0U;
@@ -61,7 +61,7 @@ static void deassociate(Genode::addr_t irq_sel)
 	addr_t dummy1 = 0, dummy2 = 0;
 
 	if (!irq_ctrl(irq_sel, dummy1, dummy2, irq_sel))
-		PWRN("Irq could not be de-associated");
+		warning("Irq could not be de-associated");
 }
 
 
@@ -129,7 +129,7 @@ void Irq_object::sigh(Signal_context_capability cap)
 void Irq_object::ack_irq()
 {
 	if (Nova::NOVA_OK != Nova::sm_ctrl(irq_sel(), Nova::SEMAPHORE_DOWN))
-		PERR("Unmasking irq of selector 0x%lx failed", irq_sel());
+		error("Unmasking irq of selector ", irq_sel(), " failed");
 }
 
 
@@ -145,7 +145,7 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 	int ret = map_local((Nova::Utcb *)Thread::myself()->utcb(),
 	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
 	if (ret) {
-		PERR("Getting IRQ from kernel failed - %u", irq);
+		error("getting IRQ from kernel failed - ", irq);
 		throw Root::Unavailable();
 	}
 
@@ -217,7 +217,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	}
 
 	if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
-		PERR("Unavailable IRQ 0x%lx requested", irq_number);
+		error("unavailable IRQ ", irq_number, " requested");
 		throw Root::Unavailable();
 	}
 

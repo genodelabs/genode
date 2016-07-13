@@ -155,8 +155,7 @@ namespace Noux {
 bool Noux::Child::syscall(Noux::Session::Syscall sc)
 {
 	if (trace_syscalls)
-		Genode::printf("PID %d -> SYSCALL %s\n",
-		               pid(), Noux::Session::syscall_name(sc));
+		log("PID ", pid(), " -> SYSCALL ", Noux::Session::syscall_name(sc));
 
 	bool result = false;
 
@@ -515,8 +514,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 					if (_sysio->select_in.timeout.zero() || timeout_reached) {
 						/*
-						if (timeout_reached) PINF("timeout_reached");
-						else                 PINF("timeout.zero()");
+						if (timeout_reached) log("timeout_reached");
+						else                 log("timeout.zero()");
 						*/
 						_sysio->select_out.fds.num_rd = 0;
 						_sysio->select_out.fds.num_wr = 0;
@@ -657,7 +656,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					Family_member::remove(exited);
 
 					if (verbose)
-						PINF("submit exit signal for PID %d", exited->pid());
+						log("submit exit signal for PID ", exited->pid());
 					static_cast<Child *>(exited)->submit_exit_signal();
 
 				} else {
@@ -897,9 +896,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 	catch (Invalid_fd) {
 		_sysio->error.general = Vfs::Directory_service::ERR_FD_INVALID;
-		PERR("Invalid file descriptor"); }
+		error("invalid file descriptor"); }
 
-	catch (...) { PERR("Unexpected exception"); }
+	catch (...) { error("unexpected exception"); }
 
 	/* handle signals which might have occured */
 	while (!_pending_signals.empty() &&
@@ -945,7 +944,7 @@ static Noux::Args const &args_of_init_process()
 		}
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
-	catch (Noux::Args::Overrun) { PERR("Argument buffer overrun"); }
+	catch (Noux::Args::Overrun) { Genode::error("argument buffer overrun"); }
 
 	return args;
 }
@@ -1058,7 +1057,7 @@ static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
 			path, sizeof(path));
 
 		if (root.open(path, mode, &vfs_handle) != Directory_service::OPEN_OK) {
-			PERR("failed to connect %s to '%s'", stdio_name, path);
+			error("failed to connect ", stdio_name, " to '", Cstring(path), "'");
 			Genode::env()->parent()->exit(1);
 		}
 
@@ -1066,7 +1065,7 @@ static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
 			Vfs_io_channel(path, root.leaf_path(path), &root, vfs_handle, sig_rec);
 
 	} catch (Genode::Xml_node::Nonexistent_attribute) {
-		PWRN("%s VFS path not defined, connecting to Terminal session", stdio_name);
+		warning(stdio_name, " VFS path not defined, connecting to terminal session");
 	}
 
 	return new (Genode::env()->heap())
@@ -1113,7 +1112,7 @@ void *operator new (Genode::size_t size) {
 void operator delete (void * ptr)
 {
 	if (Genode::env()->heap()->need_size_for_free()) {
-		PWRN("leaking memory");
+		Genode::warning("leaking memory");
 		return;
 	}
 
@@ -1134,7 +1133,7 @@ struct File_system_factory : Vfs::File_system_factory
 int main(int argc, char **argv)
 {
 	using namespace Noux;
-	PINF("--- noux started ---");
+	log("--- noux started ---");
 
 	/* whitelist of service requests to be routed to the parent */
 	static Genode::Service_registry parent_services;
@@ -1248,11 +1247,10 @@ int main(int argc, char **argv)
 		destruct_queue.flush();
 
 		if (verbose_quota)
-			PINF("quota: avail=%zd, used=%zd",
-				 env()->ram_session()->avail(),
-				 env()->ram_session()->used());
+			log("quota: avail=", env()->ram_session()->avail(), " "
+			    "used=",         env()->ram_session()->used());
 	}
 
-	PINF("--- exiting noux ---");
+	log("--- exiting noux ---");
 	return exit_value;
 }

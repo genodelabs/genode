@@ -21,11 +21,10 @@
 #include <ipxe/settings.h>
 #include <ipxe/netdevice.h>
 #include <ipxe/timer2.h>
+
 /* local includes */
 #include <dde_support.h>
 #include "local.h"
-
-#define PDBG(fmt, ...) dde_printf(fmt "\n", ##__VA_ARGS__)
 
 
 /***************************

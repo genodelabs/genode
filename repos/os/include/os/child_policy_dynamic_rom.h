@@ -98,7 +98,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			Lock::Guard guard(_lock);
 
 			if (!_ram) {
-				PERR("Error: No backing store for loading ROM data");
+				Genode::error("no backing store for loading ROM data");
 				return;
 			}
 
@@ -123,7 +123,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			Lock::Guard guard(_lock);
 
 			if (!_fg.size() && !_bg_has_pending_data) {
-				PERR("Error: no data loaded");
+				Genode::error("no data loaded");
 				return Rom_dataspace_capability();
 			}
 

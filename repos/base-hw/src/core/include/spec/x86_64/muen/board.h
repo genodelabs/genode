@@ -14,6 +14,8 @@
 #ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__BOARD_H_
 #define _CORE__INCLUDE__SPEC__X86_64__MUEN__BOARD_H_
 
+#include <base/internal/globals.h>
+
 namespace Genode
 {
 	struct Board
@@ -31,7 +33,7 @@ namespace Genode
 			TIMER_VECTOR_USER   = 50,
 		};
 
-		void init() { }
+		void init() { Genode::init_log(); }
 	};
 }
 

@@ -49,7 +49,7 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 			try {
 				_event_queue.add(event);
 			} catch (Input::Event_queue::Overflow) {
-				PWRN("input overflow - resetting queue");
+				Genode::warning("input overflow - resetting queue");
 				_event_queue.reset();
 			}
 		}

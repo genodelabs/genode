@@ -17,7 +17,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/child.h>
@@ -31,6 +31,7 @@
 
 using namespace Genode;
 
+
 /***********
  ** Child **
  ***********/
@@ -40,19 +41,19 @@ enum { MANAGED_ADDR = 0x10000000 };
 
 void read_at(addr_t addr)
 {
-	printf("perform read operation at 0x%p\n", (void *)addr);
+	log("perform read operation at ", Hex(addr));
 	int value = *(int *)addr;
-	printf("read value %x\n", value);
+	log("read value ", Hex(value));
 }
 
 void modify(addr_t addr)
 {
-	printf("modify memory at 0x%p to %x\n", (void *)addr, ++(*(int *)addr));
+	log("modify memory at ", Hex(addr), " to ", Hex(++(*(int *)addr)));
 }
 
 void main_child()
 {
-	printf("child role started\n");
+	log("child role started");
 
 	/* perform illegal access */
 	read_at(MANAGED_ADDR);
@@ -60,7 +61,7 @@ void main_child()
 	while (true)
 		modify(MANAGED_ADDR);
 
-	printf("--- child role of region-manager fault test finished ---\n");
+	log("--- child role of region-manager fault test finished ---");
 }
 
 
@@ -136,7 +137,7 @@ class Test_child : public Child_policy
 
 void main_parent(Dataspace_capability elf_ds)
 {
-	printf("parent role started\n");
+	log("parent role started");
 
 	/* create environment for new child */
 	static Pd_connection  pd;
@@ -165,28 +166,29 @@ void main_parent(Dataspace_capability elf_ds)
 
 	for (int i = 0; i < 4; i++) {
 
-		printf("wait for region-manager fault\n");
+		log("wait for region-manager fault");
 		fault_handler.wait_for_signal();
-		printf("received region-manager fault signal, request fault state\n");
+		log("received region-manager fault signal, request fault state");
 
 		Region_map::State state = address_space.state();
 
-		printf("rm session state is %s, pf_addr=0x%p\n",
-		       state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
-		       state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
-		       state.type == Region_map::State::EXEC_FAULT  ? "EXEC_FAULT"  : "READY",
-		       (void *)state.addr);
+		char const *state_name =
+			state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
+			state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
+			state.type == Region_map::State::EXEC_FAULT  ? "EXEC_FAULT"  : "READY";
+
+		log("rm session state is ", state_name, ", pf_addr=", Hex(state.addr));
 
 		/* ignore spuriuous fault signal */
 		if (state.type == Region_map::State::READY) {
-			PINF("ignoring spurious fault signal");
+			log("ignoring spurious fault signal");
 			continue;
 		}
 
 		addr_t child_virt_addr = state.addr & ~(4096 - 1);
 
 		/* allocate dataspace to resolve the fault */
-		printf("attach dataspace to the child at 0x%p\n", (void *)child_virt_addr);
+		log("attach dataspace to the child at ", Hex(child_virt_addr));
 		*local_addr = 0x1234;
 
 		address_space.attach_at(ds, child_virt_addr);
@@ -194,15 +196,15 @@ void main_parent(Dataspace_capability elf_ds)
 		/* wait until our child modifies the dataspace content */
 		while (*local_addr == 0x1234);
 
-		printf("child modified dataspace content, new value is %x\n", *local_addr);
+		log("child modified dataspace content, new value is ", Hex(*local_addr));
 
-		printf("revoke dataspace from child\n");
+		log("revoke dataspace from child");
 		address_space.detach((void *)child_virt_addr);
 	}
 
 	fault_handler.dissolve(&signal_context);
 
-	printf("--- parent role of region-manager fault test finished ---\n");
+	log("--- parent role of region-manager fault test finished ---");
 }
 
 
@@ -212,7 +214,7 @@ void main_parent(Dataspace_capability elf_ds)
 
 int main(int argc, char **argv)
 {
-	printf("--- region-manager fault test ---\n");
+	log("--- region-manager fault test ---");
 
 	/* obtain own elf file from rom service */
 	try {

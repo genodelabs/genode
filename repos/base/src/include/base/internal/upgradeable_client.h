@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__UPGRADEABLE_CLIENT_H_
 
 #include <base/env.h>
+#include <base/log.h>
 
 namespace Genode { template <typename> struct Upgradeable_client; }
 
@@ -33,8 +34,8 @@ struct Genode::Upgradeable_client : CLIENT
 
 	void upgrade_ram(size_t quota)
 	{
-		PINF("upgrading quota donation for Env::%s (%zu bytes)",
-		     CLIENT::Rpc_interface::service_name(), quota);
+		log("upgrading quota donation for Env::", CLIENT::Rpc_interface::service_name(),
+		    " (", quota, " bytes)");
 
 		char buf[128];
 		snprintf(buf, sizeof(buf), "ram_quota=%zu", quota);

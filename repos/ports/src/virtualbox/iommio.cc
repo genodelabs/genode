@@ -11,9 +11,6 @@
  * version 2.
  */
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* VirtualBox includes */
 #include "IOMInternal.h"
 #include <VBox/vmm/vm.h>
@@ -48,8 +45,6 @@ VMMR3_INT_DECL(int) IOMR3Init(PVM pVM)
 
 int IOMR3Term(PVM)
 {
-	if (verbose)
-		PDBG("called");
 	return VINF_SUCCESS;
 }
 
@@ -72,12 +67,6 @@ int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
                         R3PTRTYPE(PFNIOMMMIOFILL)  pfnFillCallback,
                         uint32_t fFlags, const char *pszDesc)
 {
-	if (verbose)
-		PLOG("%s: GCPhys=0x%llx cb=0x%x pszDesc=%s rd=%p wr=%p fl=%p flags=%x",
-		     __PRETTY_FUNCTION__,
-		     (Genode::uint64_t)GCPhysStart, cbRange, pszDesc,
-		     pfnWriteCallback, pfnReadCallback, pfnFillCallback, fFlags);
-
 	REMR3NotifyHandlerPhysicalRegister(pVM, PGMPHYSHANDLERTYPE_MMIO,
 	                                   GCPhysStart, cbRange, true);
 
@@ -93,10 +82,6 @@ int IOMR3MmioRegisterR3(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
 int IOMR3MmioDeregister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart,
                         uint32_t cbRange)
 {
-	if (verbose)
-		PLOG("%s: GCPhys=0x%llx cb=0x%x", __PRETTY_FUNCTION__,
-		     (Genode::uint64_t)GCPhysStart, cbRange);
-
 	bool status = guest_memory()->remove_mmio_mapping(GCPhysStart, cbRange);
 	if (status)
 		return VINF_SUCCESS;
@@ -190,16 +175,11 @@ VMMDECL(VBOXSTRICTRC) IOMMMIORead(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
 int IOMMMIOMapMMIO2Page(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS GCPhysRemapped,
                         uint64_t fPageFlags)
 {
-	if (verbose)
-		PDBG("called - %llx %llx", (Genode::uint64_t)GCPhys,
-		     (Genode::uint64_t)GCPhysRemapped);
 	return VINF_SUCCESS;
 }
 
 
 int IOMMMIOResetRegion(PVM pVM, RTGCPHYS GCPhys)
 {
-	if (verbose)
-		PDBG("called - %llx", (Genode::uint64_t)GCPhys);
 	return VINF_SUCCESS;
 }

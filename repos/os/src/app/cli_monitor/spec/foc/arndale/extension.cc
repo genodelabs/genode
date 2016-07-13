@@ -51,7 +51,7 @@ void init_extension(Command_registry &commands)
 		static Regulator::Connection reg(Regulator::CLK_CPU);
 		static Cpufreq_command cpufreq_command(reg);
 		commands.insert(&cpufreq_command);
-	} catch (...) { PDBG("No regulator session available!"); };
+	} catch (...) { Genode::warning("no regulator session available!"); };
 
 	static Kdebug_command kdebug_command;
 	commands.insert(&kdebug_command);

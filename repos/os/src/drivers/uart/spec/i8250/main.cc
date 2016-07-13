@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <os/config.h>
 
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- i8250 UART driver started ---\n");
+	log("--- i8250 UART driver started ---");
 
 	/**
 	 * Factory used by 'Uart::Root' at session creation/destruction time
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 			enum { BAUD = 115200 };
 			if (baudrate == 0)
 			{
-				PINF("Baudrate is not defined. Use default 115200");
+				warning("Baudrate is not defined. Use default 115200");
 				baudrate = BAUD;
 			}
 

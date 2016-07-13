@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/log.h>
 #include <base/ipc.h>
 #include <base/blocking.h>
@@ -176,7 +175,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		if (L4_IPC_ERROR(ipc_result) == L4_IPC_RECANCELED)
 			throw Genode::Blocking_canceled();
 
-		PERR("ipc_call error %lx", L4_IPC_ERROR(ipc_result));
+		error("ipc_call error ", Hex(L4_IPC_ERROR(ipc_result)));
 		throw Genode::Ipc_error();
 	}
 
@@ -204,7 +203,7 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	            L4_IPC_SEND_TIMEOUT_0, &result);
 
 	if (L4_IPC_IS_ERROR(result))
-		PERR("ipc_send error %lx, ignored", L4_IPC_ERROR(result));
+		error("ipc_send error ", Hex(L4_IPC_ERROR(result)), ", ignored");
 }
 
 
@@ -251,7 +250,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		 * incoming message.
 		 */
 		if (L4_IPC_IS_ERROR(ipc_result)) {
-			PERR("ipc_reply_and_wait error %lx", L4_IPC_ERROR(ipc_result));
+			error("ipc_reply_and_wait error ", Hex(L4_IPC_ERROR(ipc_result)));
 		} else {
 			need_to_wait = false;
 		}
@@ -265,7 +264,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		            L4_IPC_NEVER, &ipc_result);
 
 		if (L4_IPC_IS_ERROR(ipc_result)) {
-			PERR("ipc_wait error %lx", L4_IPC_ERROR(ipc_result));
+			error("ipc_wait error ", Hex(L4_IPC_ERROR(ipc_result)));
 		} else {
 			need_to_wait = false;
 		}

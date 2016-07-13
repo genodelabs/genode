@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <input_session/connection.h>
@@ -193,8 +193,8 @@ class GenodeConsole : public Console {
 			size_t shape_size = shape_array.size() - (shape - and_mask);
 
 			if (shape_size > Vbox_pointer::MAX_SHAPE_SIZE) {
-				PERR("%s: shape data buffer is too small for %zu bytes",
-				     __func__, shape_size);
+				Genode::error(__func__, ": shape data buffer is too small "
+				              "for ", shape_size, " bytes");
 				return;
 			}
 

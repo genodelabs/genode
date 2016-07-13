@@ -41,7 +41,7 @@ index 1cedd3a..646be07 100644
          // Get the first nonempty value from $LC_ALL, $LC_CTYPE, and $LANG
          // environment variables.
 diff --git a/qtbase/src/corelib/global/qlogging.cpp b/qtbase/src/corelib/global/qlogging.cpp
-index c8293be..c7e9422 100644
+index c8293be..02b7e40 100644
 --- a/qtbase/src/corelib/global/qlogging.cpp
 +++ b/qtbase/src/corelib/global/qlogging.cpp
 @@ -61,6 +61,10 @@
@@ -49,7 +49,7 @@ index c8293be..c7e9422 100644
  #endif
  
 +#ifdef Q_OS_GENODE
-+#include <base/printf.h>
++#include <base/log.h>
 +#endif
 +
  #include <stdio.h>
@@ -60,7 +60,7 @@ index c8293be..c7e9422 100644
  #if defined(QT_USE_SLOG2)
      slog2_default_handler(type, logMessage.toLocal8Bit().constData());
 +#elif defined(Q_OS_GENODE)
-+    PDBG("%s", logMessage.toLocal8Bit().constData());
++    Genode::log(logMessage.toLocal8Bit().constData());
  #elif defined(Q_OS_ANDROID)
      static bool logToAndroid = qEnvironmentVariableIsEmpty("QT_ANDROID_PLAIN_LOG");
      if (logToAndroid) {
@@ -273,7 +273,7 @@ index 100e014..00263a0 100644
  #endif
  }
 diff --git a/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp b/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp
-index 69363bc..0a7aa7d 100644
+index 69363bc..be1a7cf 100644
 --- a/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp
 +++ b/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp
 @@ -74,6 +74,11 @@
@@ -282,7 +282,7 @@ index 69363bc..0a7aa7d 100644
  
 +#ifdef Q_OS_GENODE
 +#include <timer_session/connection.h>
-+#define perror PERR
++#define perror Genode::error
 +#endif /* Q_OS_GENODE */
 +
  QT_BEGIN_NAMESPACE

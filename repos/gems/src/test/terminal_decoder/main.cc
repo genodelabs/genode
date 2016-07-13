@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/misc_math.h>
 #include <util/string.h>
 
@@ -42,8 +42,6 @@ class Static_character_screen : public Terminal::Character_screen
 
 		void output(Terminal::Character c)
 		{
-//			Genode::printf("output '%c'\n", c.ascii());
-
 			if (c.ascii() > 0x10)
 				_char_array.set(_cursor_pos, c);
 			_cursor_pos.x++;
@@ -52,7 +50,6 @@ class Static_character_screen : public Terminal::Character_screen
 				_cursor_pos.y++;
 			}
 			if (_cursor_pos.y >= _boundary.height) {
-//				_char_array.newline();
 				_cursor_pos.y = _boundary.height - 1;
 			}
 		}
@@ -134,7 +131,6 @@ class Static_character_screen : public Terminal::Character_screen
 
 		void hpa(int x)
 		{
-			PDBG("hpa %d", x);
 		}
 
 		void hts()
@@ -227,7 +223,6 @@ class Static_character_screen : public Terminal::Character_screen
 
 		void vpa(int y)
 		{
-			PDBG("vpa %d", y);
 		}
 };
 
@@ -236,7 +231,7 @@ void Static_character_screen::dump() const
 {
 	using namespace Terminal;
 
-	Genode::printf("--- screen dump follows ---\n");
+	Genode::log("--- screen dump follows ---");
 
 	Boundary const boundary = _char_array.boundary();
 	for (int y = 0; y < boundary.height; y++) {
@@ -253,10 +248,10 @@ void Static_character_screen::dump() const
 		}
 
 		line[boundary.width] = 0;
-		Genode::printf("%s\n", line);
+		Genode::log(Genode::Cstring(line));
 	}
 
-	Genode::printf("--- end of screen dump ---\n");
+	Genode::log("--- end of screen dump ---");
 }
 
 

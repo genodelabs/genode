@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/rpc_server.h>
 #include <cap_session/connection.h>
@@ -106,7 +106,7 @@ int main(int, char **)
 {
 	using namespace Platform;
 
-	PINF("--- Raspberry Pi platform driver ---\n");
+	Genode::log("--- Raspberry Pi platform driver ---");
 
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, 4096, "rpi_plat_ep");

@@ -14,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/semaphore.h>
 #include <timer_session/connection.h>
 
@@ -71,11 +71,11 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 
 		case VMMR0_DO_GVMM_SCHED_POLL:
 			/* called by 'vmR3HaltGlobal1Halt' */
-			PDBG("SUPR3CallVMMR0Ex: VMMR0_DO_GVMM_SCHED_POLL");
+			Genode::log(__func__, ": SUPR3CallVMMR0Ex: VMMR0_DO_GVMM_SCHED_POLL");
 			return VINF_SUCCESS;
 
 		default:
-			PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
+			Genode::error("SUPR3CallVMMR0Ex: unhandled uOperation ", (int)uOperation);
 			return VERR_GENERAL_FAILURE;
 	}
 }
@@ -131,9 +131,9 @@ HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
 
 bool Vmm_memory::revoke_from_vm(Mem_region *r)
 {
-	PWRN("%s unimplemented", __func__);
+	Genode::warning(__func__, " unimplemented");
 	return false;
 }
 
 
-extern "C" void pthread_yield() { PWRN("%s unimplemented", __func__); }
+extern "C" void pthread_yield() { Genode::warning(__func__, " unimplemented"); }

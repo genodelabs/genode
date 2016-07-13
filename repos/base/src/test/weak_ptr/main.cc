@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/thread.h>
 #include <base/weak_ptr.h>
@@ -53,8 +53,8 @@ static void assert_weak_ptr_cnt(Genode::Weak_object_base const *obj,
 	obj->debug_info();
 
 	if (expected_cnt != weak_ptr_cnt) {
-		PERR("unexpected count, expected %d, got %d",
-		     expected_cnt, weak_ptr_cnt);
+		Genode::error("unexpected count, expected ", expected_cnt, ", "
+		              "got ", weak_ptr_cnt);
 		throw Fatal_error();
 	}
 }
@@ -67,7 +67,7 @@ static void assert_weak_ptr_valid(Genode::Weak_ptr_base const &ptr, bool valid)
 	if (weak_ptr_valid == valid)
 		return;
 
-	PERR("weak pointer unexpectedly %s", valid ? "valid" : "invalid");
+	Genode::error("weak pointer unexpectedly ", valid ? "valid" : "invalid");
 	throw Fatal_error();
 }
 
@@ -95,7 +95,7 @@ static void test_weak_pointer_tracking()
 {
 	using namespace Genode;
 
-	PLOG("construct invalid weak pointer");
+	log("construct invalid weak pointer");
 	{
 		Weak_ptr<Object> ptr;
 		assert_weak_ptr_valid(ptr, false);
@@ -111,22 +111,22 @@ static void test_weak_pointer_tracking()
 
 	assert_weak_ptr_cnt(obj, 2);
 
-	PLOG("test: assign weak pointer to itself");
+	log("test: assign weak pointer to itself");
 	ptr_2 = ptr_2;
 	assert_weak_ptr_cnt(obj, 2);
 	assert_weak_ptr_valid(ptr_2, true);
 
 	{
-		PLOG("test: assign weak pointer to another");
+		log("test: assign weak pointer to another");
 		Weak_ptr<Object> ptr_3 = ptr_2;
 		assert_weak_ptr_cnt(obj, 3);
 
-		PLOG("test: destruct weak pointer");
+		log("test: destruct weak pointer");
 		/* 'ptr_3' gets destructed when leaving the scope */
 	}
 	assert_weak_ptr_cnt(obj, 2);
 
-	PLOG("destruct object");
+	log("destruct object");
 	destroy(env()->heap(), obj);
 
 	/*
@@ -150,9 +150,9 @@ struct Destruct_thread : Genode::Thread_deprecated<4096>
 	void entry()
 	{
 		using namespace Genode;
-		PLOG("thread: going to destroy object");
+		log("thread: going to destroy object");
 		destroy(env()->heap(), obj);
-		PLOG("thread: destruction completed, job done");
+		log("thread: destruction completed, job done");
 	}
 
 	Destruct_thread(O *obj) : Thread_deprecated("object_destructor"), obj(obj) { }
@@ -164,8 +164,8 @@ static void assert_constructed(bool expect_constructed)
 	if (object_constructed == expect_constructed)
 		return;
 
-	PERR("object unexpectedly %sconstructed",
-	     !object_constructed ? "not" : "");
+	Genode::error("object unexpectedly ",
+	              !object_constructed ? "not " : "", "constructed");
 	throw Fatal_error();
 }
 
@@ -222,31 +222,31 @@ static void test_acquisition_failure()
 {
 	using namespace Genode;
 
-	PLOG("create object and weak pointer");
+	log("create object and weak pointer");
 	Object *obj = new (env()->heap()) Object;
 	Weak_ptr<Object> ptr = obj->weak_ptr();
 
-	PLOG("try to acquire possession over the object");
+	log("try to acquire possession over the object");
 	{
 		Locked_ptr<Object> locked_ptr(ptr);
 
 		if (!locked_ptr.valid()) {
-			PERR("locked pointer unexpectedly invalid");
+			error("locked pointer unexpectedly invalid");
 			throw Fatal_error();
 		}
 
 		/* release lock */
 	}
 
-	PLOG("destroy object");
+	log("destroy object");
 	destroy(env()->heap(), obj);
 
-	PLOG("try again, this time we should get an invalid pointer");
+	log("try again, this time we should get an invalid pointer");
 	{
 		Locked_ptr<Object> locked_ptr(ptr);
 
 		if (locked_ptr.valid()) {
-			PERR("locked pointer unexpectedly valid");
+			error("locked pointer unexpectedly valid");
 			throw Fatal_error();
 		}
 	}
@@ -314,20 +314,20 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- test-weak_ptr started ---\n");
+	log("--- test-weak_ptr started ---");
 
-	printf("\n-- test tracking of weak pointers --\n");
+	log("\n-- test tracking of weak pointers --");
 	test_weak_pointer_tracking();
 
-	printf("\n-- test deferred destruction --\n");
+	log("\n-- test deferred destruction --");
 	test_deferred_destruction();
 
-	printf("\n-- test acquisition failure --\n");
+	log("\n-- test acquisition failure --");
 	test_acquisition_failure();
 
-	printf("\n-- test acquisition during destruction --\n");
+	log("\n-- test acquisition during destruction --");
 	test_acquisition_during_destruction();
 
-	printf("\n--- finished test-weak_ptr ---\n");
+	log("\n--- finished test-weak_ptr ---");
 	return 0;
 }

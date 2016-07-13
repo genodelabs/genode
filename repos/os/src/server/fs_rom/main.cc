@@ -20,6 +20,7 @@
 #include <base/component.h>
 #include <base/session_label.h>
 #include <util/arg_string.h>
+#include <base/heap.h>
 #include <base/log.h>
 
 

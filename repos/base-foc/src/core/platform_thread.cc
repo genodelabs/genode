@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/ipc.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 /* core includes */
@@ -241,7 +241,7 @@ void Platform_thread::_create_thread()
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,
 	                                           _thread.local.data()->kcap());
 	if (l4_msgtag_has_error(tag))
-		PERR("cannot create more thread kernel-objects!");
+		error("cannot create more thread kernel-objects!");
 
 	/* create initial gate for thread */
 	_gate.local = thread_cap_factory().alloc(_thread.local);

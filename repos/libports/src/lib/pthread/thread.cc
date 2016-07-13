@@ -13,7 +13,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <os/timed_semaphore.h>
@@ -140,8 +140,8 @@ extern "C" {
 		 */
 
 		if (!_pthread_main_np()) {
-			PERR("pthread_self() called from alien thread named '%s'",
-			     myself->name().string());
+			error("pthread_self() called from alien thread named ",
+			      "'", myself->name().string(), "'");
 
 			return nullptr;
 		}
@@ -167,7 +167,7 @@ extern "C" {
 	                          size_t *stacksize)
 	{
 		/* FIXME */
-		PWRN("pthread_attr_getstack() called, might not work correctly");
+		warning("pthread_attr_getstack() called, might not work correctly");
 
 		if (!attr || !*attr || !stackaddr || !stacksize)
 			return EINVAL;
@@ -433,7 +433,7 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		PDBG("not implemented yet");
+		warning(__func__, " not implemented yet");
 
 		return 0;
 	}
@@ -445,7 +445,7 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		PDBG("not implemented yet");
+		warning(__func__, " not implemented yet");
 
 		return 0;
 	}

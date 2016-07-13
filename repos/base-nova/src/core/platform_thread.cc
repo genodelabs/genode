@@ -14,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <ipc_pager.h>
@@ -39,7 +39,7 @@ using namespace Genode;
 
 void Platform_thread::affinity(Affinity::Location location)
 {
-	PERR("dynamic affinity change not supported on NOVA");
+	error("dynamic affinity change not supported on NOVA");
 }
 
 
@@ -51,20 +51,20 @@ int Platform_thread::start(void *ip, void *sp)
 	using namespace Nova;
 
 	if (!_pager) {
-		PERR("pager undefined");
+		error("pager undefined");
 		return -1;
 	}
 
 	if (!_pd || (main_thread() && !vcpu() &&
 	             _pd->parent_pt_sel() == Native_thread::INVALID_INDEX)) {
-		PERR("protection domain undefined");
+		error("protection domain undefined");
 		return -2;
 	}
 
 	addr_t const pt_oom = _pager->get_oom_portal();
 	if (!pt_oom || map_local((Utcb *)Thread::myself()->utcb(),
 	                         Obj_crd(pt_oom, 0), Obj_crd(_sel_pt_oom(), 0))) {
-		PERR("setup of out-of-memory notification portal - failed");
+		error("setup of out-of-memory notification portal - failed");
 		return -8;
 	}
 
@@ -73,7 +73,7 @@ int Platform_thread::start(void *ip, void *sp)
 		addr_t const utcb       = vcpu() ? 0 : round_page(initial_sp);
 
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
-			PERR("exception base not specified");
+			error("exception base not specified");
 			return -3;
 		}
 
@@ -85,7 +85,7 @@ int Platform_thread::start(void *ip, void *sp)
 			                utcb, initial_sp, _sel_exc_base, !worker());
 			if (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK != _pager->handle_oom()) {
 				_pager->assign_pd(Native_thread::INVALID_INDEX);
-				PERR("creation of new thread failed %u", res);
+				error("creation of new thread failed ", res);
 				return -4;
 			}
 		} while (res != Nova::NOVA_OK);
@@ -103,7 +103,7 @@ int Platform_thread::start(void *ip, void *sp)
 	}
 
 	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
-		PERR("thread already started");
+		error("thread already started");
 		return -5;
 	}
 
@@ -139,7 +139,7 @@ int Platform_thread::start(void *ip, void *sp)
 	uint8_t res = create_pd(pd_sel, pd_core_sel, initial_pts,
 	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE, UPPER_LIMIT_PAGES);
 	if (res != NOVA_OK) {
-		PERR("create_pd returned %d", res);
+		error("create_pd returned ", res);
 		goto cleanup_pd;
 	}
 
@@ -148,7 +148,7 @@ int Platform_thread::start(void *ip, void *sp)
 	res = create_ec(_sel_ec(), pd_sel, _location.xpos(), pd_utcb, 0, 0,
 	                THREAD_GLOBAL);
 	if (res != NOVA_OK) {
-		PERR("create_ec returned %d", res);
+		error("create_ec returned ", res);
 		goto cleanup_pd;
 	}
 
@@ -179,7 +179,7 @@ int Platform_thread::start(void *ip, void *sp)
 		_pager->initial_esp(0);
 		_pager->assign_pd(Native_thread::INVALID_INDEX);
 
-		PERR("create_sc returned %d", res);
+		error("create_sc returned ", res);
 		goto cleanup_ec;
 	}
 
@@ -214,8 +214,7 @@ void Platform_thread::resume()
 		uint8_t res;
 		do {
 			if (!_pd) {
-				PERR("protection domain undefined %s - resuming thread failed",
-				     __PRETTY_FUNCTION__);
+				error("protection domain undefined - resuming thread failed");
 				return;
 			}
 			res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
@@ -305,7 +304,7 @@ const char * Platform_thread::pd_name() const {
 Weak_ptr<Address_space> Platform_thread::address_space()
 {
 	if (!_pd) {
-		PERR("protection domain undefined %s", __PRETTY_FUNCTION__);
+		error(__PRETTY_FUNCTION__, ": protection domain undefined");
 		return Weak_ptr<Address_space>();
 	}
 	return _pd->Address_space::weak_ptr();
@@ -325,7 +324,7 @@ unsigned long long Platform_thread::execution_time() const
 
 	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);
 	if (res != Nova::NOVA_OK)
-		PDBG("sc_ctrl failed res=%x", res);
+		warning("sc_ctrl failed res=", res);
 
 	return time;
 }
@@ -341,12 +340,12 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 	_name(name)
 {
 	if (_priority == 0) {
-		PWRN("priority of thread '%s' below minimum - boost to 1", _name.string());
+		warning("priority of thread '", _name, "' below minimum - boost to 1");
 		_priority = 1;
 	}
 	if (_priority > Nova::Qpd::DEFAULT_PRIORITY) {
-		PWRN("priority of thread '%s' above maximum - limit to %u",
-		     _name.string(), Nova::Qpd::DEFAULT_PRIORITY);
+		warning("priority of thread '", _name, "' above maximum - limit to ",
+		        (unsigned)Nova::Qpd::DEFAULT_PRIORITY);
 		_priority = Nova::Qpd::DEFAULT_PRIORITY;
 	}
 }

@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/native_capability.h>
 
 /* core includes */
@@ -56,7 +56,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 Signal_source::Signal Signal_source_component::wait_for_signal()
 {
 	if (_signal_queue.empty()) {
-		PWRN("unexpected call of wait_for_signal");
+		warning("unexpected call of wait_for_signal");
 		return Signal(0, 0);
 	}
 
@@ -79,7 +79,7 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
 	                                        _blocking_semaphore.data()->kcap());
 	if (l4_error(res))
-		PERR("Allocation of irq object failed!");
+		error("Allocation of irq object failed!");
 }
 
 
