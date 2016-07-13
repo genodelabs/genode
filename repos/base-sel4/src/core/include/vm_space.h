@@ -113,8 +113,10 @@ class Genode::Vm_space
 					                 LEAF_CNODE_SIZE_LOG2, phys_alloc);
 				}
 
-				void destruct(Cap_sel_alloc &cap_sel_alloc)
+				void destruct(Cap_sel_alloc &cap_sel_alloc,
+				               Range_allocator &phys_alloc)
 				{
+					_cnode->destruct(phys_alloc);
 					cap_sel_alloc.free(_cnode->sel());
 				}
 
@@ -306,16 +308,31 @@ class Genode::Vm_space
 			_vm_pad_cnode.copy(cspace, _vm_3rd_cnode.sel(), Cnode_index(0));
 
 			/* insert 2nd-level VM-pad CNode into 1st-level CNode */
-			_top_level_cnode.copy(cspace, _vm_pad_cnode.sel(), Cnode_index(id));
+			_top_level_cnode.copy(cspace, _vm_pad_cnode.sel(), Cnode_index(_id));
 		}
 
 		~Vm_space()
 		{
-			_cap_sel_alloc.free(_vm_pad_cnode.sel());
-			_cap_sel_alloc.free(_vm_3rd_cnode.sel());
+			/* delete copy of the mapping's page-frame selectors */
+			_page_table_registry.apply_to_and_destruct_all([&] (unsigned idx) {
+				_leaf_cnode(idx).remove(_leaf_cnode_entry(idx));
 
-			for (unsigned i = 0; i < NUM_LEAF_CNODES; i++)
-				_vm_cnodes[i].destruct(_cap_sel_alloc);
+				_sel_alloc.free(idx);
+			});
+
+			for (unsigned i = 0; i < NUM_LEAF_CNODES; i++) {
+				_vm_3rd_cnode.remove(Cnode_index(i));
+				_vm_cnodes[i].destruct(_cap_sel_alloc, _phys_alloc);
+			}
+			_vm_pad_cnode.remove(Cnode_index(0));
+			_top_level_cnode.remove(Cnode_index(_id));
+
+			_vm_3rd_cnode.destruct(_phys_alloc);
+			_vm_pad_cnode.destruct(_phys_alloc);
+
+			_cap_sel_alloc.free(_vm_3rd_cnode.sel());
+			_cap_sel_alloc.free(_vm_pad_cnode.sel());
+
 		}
 
 		void map(addr_t from_phys, addr_t to_virt, size_t num_pages,

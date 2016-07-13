@@ -53,6 +53,12 @@ struct Genode::Untyped_memory
 	}
 
 
+	static inline void free_page(Range_allocator &phys_alloc, Genode::addr_t addr)
+	{
+		phys_alloc.free(reinterpret_cast<void *>(addr));
+	}
+
+
 	/**
 	 * Local utility solely used by 'untyped_sel' and 'frame_sel'
 	 */

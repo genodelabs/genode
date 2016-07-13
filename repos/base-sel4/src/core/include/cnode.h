@@ -109,6 +109,10 @@ class Genode::Cnode_base
 
 class Genode::Cnode : public Cnode_base, Noncopyable
 {
+	private:
+
+		addr_t _phys = 0UL;
+
 	public:
 
 		class Untyped_lookup_failed : Exception { };
@@ -135,7 +139,7 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 		:
 			Cnode_base(dst_idx, size_log2)
 		{
-			create<Cnode_kobj>(phys_alloc, parent_sel, dst_idx, size_log2);
+			_phys = create<Cnode_kobj>(phys_alloc, parent_sel, dst_idx, size_log2);
 		}
 
 		/**
@@ -160,13 +164,35 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 			create<Cnode_kobj>(untyped_pool, parent_sel, dst_idx, size_log2);
 		}
 
-		~Cnode()
+		void destruct(Range_allocator &phys_alloc)
 		{
-			/* convert CNode back to untyped memory */
-
 			/* revert phys allocation */
 
-			PDBG("not implemented");
+			if (!_phys) {
+				error("invalid call to destruct Cnode");
+				return;
+			}
+
+			int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
+			                            sel().value(), 32);
+			if (ret != seL4_NoError)
+				error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
+				      Hex(sel().value()), ") returned ", ret);
+
+			Untyped_memory::free_page(phys_alloc, _phys);
+
+			_phys = ~0UL;
+		}
+
+		~Cnode()
+		{
+			if (_phys == ~0UL)
+				return;
+
+			/* convert CNode back to untyped memory */
+
+			error(__FUNCTION__, " - not implemented phys=", Hex(_phys),
+			      " sel=", Hex(sel().value()));
 		}
 };
 

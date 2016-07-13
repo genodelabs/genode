@@ -79,6 +79,8 @@ class Genode::Page_table_registry
 
 				Page_table(addr_t addr) : addr(addr) { }
 
+				Entry *first() { return _entries.first(); }
+
 				Entry &lookup(addr_t addr)
 				{
 					for (Entry *e = _entries.first(); e; e = e->next()) {
@@ -221,6 +223,12 @@ class Genode::Page_table_registry
 		 */
 		Page_table_registry(Allocator &md_alloc) { }
 
+		~Page_table_registry()
+		{
+			if (_page_tables.first())
+				error("still entries in page table registry in destruction");
+		}
+
 		/**
 		 * Register page table
 		 *
@@ -297,6 +305,22 @@ class Genode::Page_table_registry
 			} catch (...) {
 				if (verbose)
 					PDBG("no PT entry found for virtual address 0x%lx", addr);
+			}
+		}
+
+		template <typename FN>
+		void apply_to_and_destruct_all(FN const &fn)
+		{
+			for (Page_table *pt; (pt = _page_tables.first());) {
+
+				Page_table::Entry *entry = pt->first();
+				for (; entry; entry = entry->next())
+					fn(entry->sel);
+
+				pt->flush_all(_page_table_entry_alloc);
+
+				_page_tables.remove(pt);
+				destroy(_page_table_alloc, pt);
 			}
 		}
 };
