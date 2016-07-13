@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <input/keycodes.h>
+#include <util/xml_node.h>
 
 /* local includes */
 #include "session.h"
@@ -23,6 +24,8 @@
 class Global_keys
 {
 	private:
+
+		typedef Genode::Xml_node Xml_node;
 
 		struct Policy
 		{
@@ -50,7 +53,7 @@ class Global_keys
 		Session *global_receiver(Input::Keycode key) {
 			return _valid(key) ? _policies[key]._session : 0; }
 
-		void apply_config(Session_list &session_list);
+		void apply_config(Xml_node config, Session_list &session_list);
 };
 
 #endif /* _GLOBAL_KEYS_H_ */

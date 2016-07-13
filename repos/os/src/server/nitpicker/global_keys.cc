@@ -11,9 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <os/config.h>
-
 /* local includes */
 #include "global_keys.h"
 
@@ -28,30 +25,28 @@ Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
 }
 
 
-void Global_keys::apply_config(Session_list &session_list)
+void Global_keys::apply_config(Xml_node config, Session_list &session_list)
 {
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
 		_policies[i] = Policy();
 
 	char const *node_type = "global-key";
 
-	using Genode::Xml_node;
 	try {
-		Xml_node node = Genode::config()->xml_node().sub_node(node_type);
+		Xml_node node = config.sub_node(node_type);
 
 		for (; ; node = node.next(node_type)) {
 
 			if (!node.has_attribute("name")) {
-				PWRN("attribute 'name' missing in <global-key> config node");
+				Genode::warning("attribute 'name' missing in <global-key> config node");
 				continue;
 			}
 
-			char name[32]; name[0] = 0;
-			node.attribute("name").value(name, sizeof(name));
-
-			Policy * policy = _lookup_policy(name);
+			typedef Genode::String<32> Name;
+			Name name = node.attribute_value("name", Name());
+			Policy * policy = _lookup_policy(name.string());
 			if (!policy) {
-				PWRN("invalid key name \"%s\"", name);
+				Genode::warning("invalid key name \"", name, "\"");
 				continue;
 			}
 
@@ -60,7 +55,7 @@ void Global_keys::apply_config(Session_list &session_list)
 				continue;
 
 			if (!node.has_attribute("label")) {
-				PWRN("missing 'label' attribute for key %s", name);
+				Genode::warning("missing 'label' attribute for key ", name);
 				continue;
 			}
 
