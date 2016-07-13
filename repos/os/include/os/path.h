@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/string.h>
+#include <base/output.h>
 
 namespace Genode {
 
@@ -326,6 +327,11 @@ class Genode::Path_base
 		{
 			return strcmp(_path, other) != 0;
 		}
+
+		/**
+		 * Print path to output stream
+		 */
+		void print(Genode::Output &output) const { output.out_string(base()); }
 };
 
 
