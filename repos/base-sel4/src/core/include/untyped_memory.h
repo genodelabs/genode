@@ -39,7 +39,7 @@ struct Genode::Untyped_memory
 			                         get_page_size_log2());
 
 		if (alloc_ret.error()) {
-			PERR("%s: allocation of untyped memory failed", __FUNCTION__);
+			error(__PRETTY_FUNCTION__, ": allocation of untyped memory failed");
 			throw Phys_alloc_failed();
 		}
 
@@ -110,11 +110,45 @@ struct Genode::Untyped_memory
 			                                    node_offset,
 			                                    num_objects);
 
-			if (ret != 0) {
-				PERR("%s: seL4_Untyped_RetypeAtOffset (IA32_4K) returned %d",
-				     __FUNCTION__, ret);
+			if (ret != seL4_NoError) {
+				error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset (IA32_4K) "
+				      "returned ", ret);
 				return;
 			}
+		}
+	}
+
+
+	/**
+	 * Free up page frames and turn it so into untyped memory
+	 */
+	static inline void convert_to_untyped_frames(addr_t const phys_addr,
+	                                             addr_t const phys_size)
+	{
+		seL4_Untyped const service = Core_cspace::PHYS_CNODE_SEL;
+		int const space_size = Core_cspace::NUM_PHYS_SEL_LOG2;
+
+		for (addr_t phys = phys_addr; phys < phys_addr + phys_size;
+		     phys += get_page_size()) {
+
+			int const index = phys >> get_page_size_log2();
+			/**
+			 * Without the revoke, one gets sporadically
+			 *  Untyped Retype: Insufficient memory ( xx bytes needed, x bytes
+			 *                                        available)
+			 * for the phys_addr when it gets reused.
+			 */
+			int ret = seL4_CNode_Revoke(service, index, space_size);
+			if (ret != seL4_NoError)
+				error(__FUNCTION__, ": seL4_CNode_Revoke returned ", ret);
+
+			/**
+			 * Without the delete, one gets:
+			 *  Untyped Retype: Slot #xxxx in destination window non-empty
+			 */
+			ret = seL4_CNode_Delete(service, index, space_size);
+			if (ret != seL4_NoError)
+				error(__FUNCTION__, ": seL4_CNode_Delete returned ", ret);
 		}
 	}
 };

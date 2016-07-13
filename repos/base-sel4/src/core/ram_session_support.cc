@@ -32,7 +32,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
 
 void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 {
-	PDBG("not implemented");
+	Untyped_memory::convert_to_untyped_frames(ds->phys_addr(), ds->size());
 }
 
 

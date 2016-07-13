@@ -75,7 +75,12 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
                                         unsigned size)
 {
-	return unmap_local(virt_addr, size / get_page_size());
+	if (!unmap_local(virt_addr, size / get_page_size()))
+		return false;
+
+	Untyped_memory::convert_to_untyped_frames(phys_addr, size);
+
+	return true;
 }
 
 

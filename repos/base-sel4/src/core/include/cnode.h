@@ -71,7 +71,10 @@ class Genode::Cnode_base
 		 */
 		void remove(Index idx)
 		{
-			seL4_CNode_Delete(sel().value(), idx.value(), size_log2());
+			int ret = seL4_CNode_Delete(sel().value(), idx.value(), size_log2());
+			if (ret != seL4_NoError)
+				error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
+				      Hex(idx.value()), ") returned ", ret);
 		}
 
 		/**
