@@ -14,7 +14,6 @@
 #ifndef _INCLUDE__BASE__OUTPUT_H_
 #define _INCLUDE__BASE__OUTPUT_H_
 
-#include <util/string.h>
 #include <base/stdint.h>
 
 namespace Genode { struct Output; }

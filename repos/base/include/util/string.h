@@ -16,6 +16,7 @@
 #define _INCLUDE__UTIL__STRING_H_
 
 #include <base/stdint.h>
+#include <base/output.h>
 #include <util/misc_math.h>
 #include <cpu/string.h>
 
@@ -557,6 +558,8 @@ class Genode::String
 		{
 			return strcmp(string(), other.string()) != 0;
 		}
+
+		void print(Output &out) const { Genode::print(out, string()); }
 };
 
 #endif /* _INCLUDE__UTIL__STRING_H_ */
