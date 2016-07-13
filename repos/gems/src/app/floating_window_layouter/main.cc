@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
@@ -481,7 +481,7 @@ void Floating_window_layouter::Main::handle_window_list_update(unsigned)
 	try {
 		import_window_list(window_list.xml()); }
 	catch (...) {
-		PERR("Error while importing window list"); }
+		Genode::error("could not import window list"); }
 
 	generate_window_layout_model();
 }

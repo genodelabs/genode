@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <core_region_map.h>
@@ -58,12 +58,12 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 			throw Invalid_dataspace();
 
 		if (use_local_addr) {
-			PERR("Parameter 'use_local_addr' not supported within core");
+			error("Parameter 'use_local_addr' not supported within core");
 			return nullptr;
 		}
 
 		if (offset) {
-			PERR("Parameter 'offset' not supported within core");
+			error("Parameter 'offset' not supported within core");
 			return nullptr;
 		}
 

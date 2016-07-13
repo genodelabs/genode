@@ -1,20 +1,21 @@
 #ifndef ____H_MACROS
 #define ____H_MACROS
 
-#include <base/printf.h>
+#include <base/log.h>
 
 #define TRACE(X) \
 	{ \
 		if (debug) \
-			PDBG(" called (%s) - eip=%p", __FILE__, \
-			     __builtin_return_address(0)); \
+			Genode::log(__func__, " called (", __FILE__, ") - eip=", \
+			            __builtin_return_address(0)); \
 		return X; \
 	}
 
 #define DUMMY(X) \
 	{ \
-		PERR("%s called (%s:%u), not implemented, eip=%p", __func__, __FILE__, __LINE__, \
-		     __builtin_return_address(0)); \
+		Genode::error(__func__, " called (", __FILE__, ":", __LINE__, "), " \
+		              "not implemented, eip=", \
+		              __builtin_return_address(0)); \
 		while (1) \
 			asm volatile ("ud2a"); \
 		\
@@ -24,8 +25,9 @@
 #define DUMMY_STATIC(X) \
 	{ \
 		static X dummy; \
-		PERR("%s called (%s), not implemented, eip=%p", __func__, __FILE__, \
-		     __builtin_return_address(0)); \
+		Genode::error(__func__, " called (", __FILE__, "), " \
+		              "not implemented, eip=", \
+		              __builtin_return_address(0)); \
 		while (1) \
 			asm volatile ("ud2a"); \
 		\

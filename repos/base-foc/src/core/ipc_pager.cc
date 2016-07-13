@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 
 /* core includes */
@@ -82,7 +82,7 @@ void Ipc_pager::wait_for_fault()
 			_parse(label);
 			return;
 		}
-		PERR("Ipc error %d in pagefault from %lx", err, label & ~0x3);
+		error("Ipc error ", err, " in pagefault from ", Hex(label & ~0x3));
 	} while (true);
 }
 
@@ -115,7 +115,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	                            &label, L4_IPC_SEND_TIMEOUT_0);
 	int err = l4_ipc_error(_tag, l4_utcb());
 	if (err) {
-		PERR("Ipc error %d in pagefault from %lx", err, label & ~0x3);
+		error("Ipc error ", err, " in pagefault from ", Hex(label & ~0x3));
 		wait_for_fault();
 	} else
 		_parse(label);

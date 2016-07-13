@@ -131,8 +131,7 @@ class Genode::Slave_policy : public Genode::Child_policy
 				return service;
 
 			if (!_service_permitted(service_name)) {
-				PERR("%s: illegal session request of service \"%s\"",
-				     name(), service_name);
+				error(name(), ": illegal session request of service \"", service_name, "\"");
 				return 0;
 			}
 

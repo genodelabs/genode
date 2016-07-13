@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
@@ -51,7 +51,11 @@ int main(int, char **)
 	} catch (...) { }
 	_state = _tmp>0;
 
-	PDBG("--- GPIO Signals test [LED pin: %d, Input pin: %d, Output pin: %d, Initial state: %d] ---", _gpio_pin, _gpio_pin_in, _gpio_pin_out, _state);
+	log("--- GPIO Signals test [LED "
+	    "pin: ",           _gpio_pin, ", "
+	    "Input pin: ",     _gpio_pin_in, ", "
+	    "Output pin: ",    _gpio_pin_out, ", "
+	    "Initial state: ", _state, "] ---");
 
 	Gpio::Connection _led(_gpio_pin);
 	Gpio::Connection _signal_input(_gpio_pin_in);
@@ -98,10 +102,10 @@ int main(int, char **)
 		 */
 		if(!_state)
 		{
-			PDBG("Led going OFF");
+			Genode::log("Led going OFF");
 		}else
 		{
-			PDBG("Led going ON");
+			Genode::log("Led going ON");
 		}
 
 		irq.ack_irq();

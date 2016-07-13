@@ -64,14 +64,14 @@ void fetch_register(const char *reg_name,
 	value = thread_state_reg;
 
 	if (verbose)
-		PDBG("%s = %8lx", reg_name, value);
+		log(__func__, ": ", reg_name, " = ", Hex(value));
 }
 
 
 void cannot_fetch_register(const char *reg_name)
 {
 	if (verbose)
-		PDBG("cannot fetch register %s", reg_name);
+		log("cannot fetch register ", reg_name);
 }
 
 
@@ -80,7 +80,7 @@ bool store_register(const char *reg_name,
                     unsigned long value)
 {
 	if (verbose)
-		PDBG("%s = %8lx", reg_name, value);
+		log(__func__, ": ", reg_name, " = ", Hex(value));
 
 	if (thread_state_reg == value)
 		return false;
@@ -94,5 +94,5 @@ bool store_register(const char *reg_name,
 void cannot_store_register(const char *reg_name, unsigned long value)
 {
 	if (verbose)
-		PDBG("cannot set contents of register %s (%8lx)", reg_name, value);
+		log("cannot set contents of register ", reg_name, " (", Hex(value), ")");
 }

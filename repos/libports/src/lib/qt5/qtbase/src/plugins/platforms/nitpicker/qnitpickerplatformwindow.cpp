@@ -95,9 +95,6 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 
 		case Input::Event::PRESS:
 
-			if (qnpw_verbose)
-				PDBG("PRESS");
-
 			/* make this window the focused window */
 			requestActivateWindow();
 
@@ -122,9 +119,6 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 
 		case Input::Event::RELEASE:
 
-			if (qnpw_verbose)
-				PDBG("RELEASE");
-
 			switch (ev->code()) {
 				case Input::BTN_LEFT:
 					_mouse_button_state &= ~Qt::LeftButton;
@@ -145,9 +139,6 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 			break;
 
 		case Input::Event::WHEEL:
-
-			if (qnpw_verbose)
-				PDBG("WHEEL");
 
 			QWindowSystemInterface::handleWheelEvent(window(),
 					                                 local_position,

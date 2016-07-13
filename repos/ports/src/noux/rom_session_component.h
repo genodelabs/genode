@@ -35,7 +35,7 @@ namespace Noux {
 
 		void poke(addr_t dst_offset, void const *src, size_t len)
 		{
-			PERR("Attempt to poke onto a ROM dataspace");
+			error("attempt to poke onto a ROM dataspace");
 		}
 	};
 
@@ -70,9 +70,10 @@ namespace Noux {
 				 * the '_ds_info' member.
 				 */
 				_ds_registry.apply(_ds_info.ds_cap(), [this] (Dataspace_info *info) {
+
 					if (!info) {
-					PERR("~Rom_session_component: unexpected !info");
-					return;
+						error("~Rom_session_component: unexpected !info");
+						return;
 					}
 
 					_ds_registry.remove(&_ds_info);

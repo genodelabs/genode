@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/heap.h>
 #include <framebuffer_session/connection.h>
 #include <input_session/connection.h>
@@ -187,7 +187,7 @@ static void convert_char_array_to_pixels(Cell_array<Char_cell> *cell_array,
 		if (cell_array->line_dirty(line)) {
 
 			if (verbose)
-				Genode::printf("convert line %d\n", line);
+				Genode::log("convert line ", line);
 
 			unsigned x = 0;
 			for (unsigned column = 0; column < cell_array->num_cols(); column++) {
@@ -303,7 +303,7 @@ namespace Terminal {
 			Genode::Dataspace_capability _init_fb()
 			{
 				if (_fb_mode.format() != Framebuffer::Mode::RGB565) {
-					PERR("Color mode %d not supported", _fb_mode.format());
+					Genode::error("color mode ", _fb_mode, " not supported");
 					return Genode::Dataspace_capability();
 				}
 
@@ -344,10 +344,10 @@ namespace Terminal {
 			{
 				using namespace Genode;
 
-				printf("new terminal session:\n");
-				printf("  framebuffer has %dx%d pixels\n", _fb_mode.width(), _fb_mode.height());
-				printf("  character size is %dx%d pixels\n", _char_width, _char_height);
-				printf("  terminal size is %dx%d characters\n", _columns, _lines);
+				log("new terminal session:");
+				log("  framebuffer has mode ", _fb_mode);
+				log("  character size is ", _char_width, "x", _char_height, " pixels");
+				log("  terminal size is ", _columns, "x", _lines, " characters");
 
 				framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 
@@ -418,8 +418,6 @@ namespace Terminal {
 				unsigned char *src = _io_buffer.local_addr<unsigned char>();
 
 				for (unsigned i = 0; i < num_bytes; i++) {
-					if (verbose)
-						Genode::printf("%c (%d)\n", src[i], (int)src[i]);
 
 					/* submit character to sequence decoder */
 					_decoder.insert(src[i]);
@@ -464,7 +462,7 @@ namespace Terminal {
 
 			Session_component *_create_session(const char *args)
 			{
-				Genode::printf("create terminal session\n");
+				Genode::log("create terminal session");
 
 				/*
 				 * XXX read I/O buffer size from args
@@ -506,7 +504,7 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	PDBG("--- terminal service started ---");
+	log("--- terminal service started ---");
 
 	static Framebuffer::Connection framebuffer;
 	static Input::Connection       input;
@@ -567,8 +565,8 @@ int main(int, char **)
 	static Font font(font_data);
 	static Font_family font_family(font);
 
-	printf("cell size is %dx%d\n", (int)font_family.cell_width(),
-	                               (int)font_family.cell_height());
+	log("cell size is ", (int)font_family.cell_width(),
+	    "x", (int)font_family.cell_height());
 
 	static Terminal::Flush_callback_registry flush_callback_registry;
 

@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <block_session/connection.h>
 
 /* Ffat includes */
@@ -37,22 +37,22 @@ extern "C" DSTATUS disk_initialize (BYTE drv)
 	static bool initialized = false;
 
 	if (verbose)
-		PDBG("disk_initialize(drv=%u) called.", drv);
+		Genode::log("disk_initialize(drv=", drv, ") called.");
 
 	if (drv != 0) {
-		PERR("Only one disk drive is supported at this time.");
+		Genode::error("only one disk drive is supported at this time.");
 		return STA_NOINIT;
 	}
 
 	if (initialized) {
-		PERR("drv 0 has already been initialized.");
+		Genode::error("drv 0 has already been initialized.");
 		return STA_NOINIT;
 	}
 
 	try {
 		_block_connection = new (Genode::env()->heap()) Block::Connection(&_block_alloc);
 	} catch(...) {
-		PERR("could not open block connection");
+		Genode::error("could not open block connection");
 		return STA_NOINIT;
 	}
 
@@ -63,17 +63,17 @@ extern "C" DSTATUS disk_initialize (BYTE drv)
 
 	/* check for read- and write-capability */
 	if (!ops.supported(Block::Packet_descriptor::READ)) {
-		PERR("Block device not readable!");
+		Genode::error("block device not readable!");
 		destroy(env()->heap(), _block_connection);
 		return STA_NOINIT;
 	}
 	if (!ops.supported(Block::Packet_descriptor::WRITE)) {
-		PINF("Block device not writeable!");
+		Genode::warning("block device not writeable!");
 	}
 
 	if (verbose)
-		PDBG("We have %llu blocks with a size of %zu bytes",
-		     _blk_cnt, _blk_size);
+		Genode::log(__func__, ": We have ", _blk_cnt, " blocks with a "
+		            "size of ", _blk_size, " bytes");
 
 	initialized = true;
 
@@ -84,7 +84,7 @@ extern "C" DSTATUS disk_initialize (BYTE drv)
 extern "C" DSTATUS disk_status (BYTE drv)
 {
 	if (drv != 0) {
-		PERR("Only one disk drive is supported at this time.");
+		Genode::error("only one disk drive is supported at this time.");
 		return STA_NODISK;
 	}
 
@@ -95,11 +95,11 @@ extern "C" DSTATUS disk_status (BYTE drv)
 extern "C" DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 {
 	if (verbose)
-		PDBG("disk_read(drv=%u, buff=%p, sector=%u, count=%u) called.",
-		     drv, buff, (unsigned int)sector, count);
+		Genode::log(__func__, ": disk_read(drv=", drv, ", buff=", buff, ", "
+		            "sector=", sector, ", count=", count, ") called.");
 
 	if (drv != 0) {
-		PERR("Only one disk drive is supported at this time.");
+		Genode::error("only one disk drive is supported at this time.");
 		return RES_ERROR;
 	}
 
@@ -111,19 +111,12 @@ extern "C" DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 
 	/* check for success of operation */
 	if (!p.succeeded()) {
-		PERR("Could not read block(s)");
+		Genode::error("could not read block(s)");
 		_source->release_packet(p);
 		return RES_ERROR;
 	}
 
 	memcpy(buff, _source->packet_content(p), count * _blk_size);
-
-#if 0
-	PDBG("read() successful, contents of buff = \n");
-
-	for (unsigned int i = 0; i < count * _blk_size; i++)
-		PDBG("%8x: %2x %c", i, buff[i], buff[i] >= 32 ? buff[i] : '-');
-#endif
 
 	_source->release_packet(p);
 	return RES_OK;
@@ -134,11 +127,11 @@ extern "C" DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 extern "C" DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 {
 	if (verbose)
-		PDBG("disk_write(drv=%u, buff=%p, sector=%u, count=%u) called.",
-		     drv, buff, (unsigned int)sector, count);
+		Genode::log(__func__, ": disk_write(drv=", drv, ", buff=", buff, ", "
+		            "sector=", sector, ", count=", count, ") called.");
 
 	if (drv != 0) {
-		PERR("Only one disk drive is supported at this time.");
+		Genode::error("only one disk drive is supported at this time.");
 		return RES_ERROR;
 	}
 
@@ -153,7 +146,7 @@ extern "C" DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE cou
 
 	/* check for success of operation */
 	if (!p.succeeded()) {
-		PERR("Could not write block(s)");
+		Genode::error("could not write block(s)");
 		_source->release_packet(p);
 		return RES_ERROR;
 	}
@@ -166,15 +159,15 @@ extern "C" DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE cou
 
 extern "C" DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
 {
-	PWRN("disk_ioctl(drv=%u, ctrl=%u, buff=%p) called - not yet implemented.",
-	     drv, ctrl, buff);
+	Genode::warning(__func__, "(drv=", drv, ", ctrl=", ctrl, ", buff=", buff, ") "
+	                "called - not yet implemented.");
 	return RES_OK;
 }
 
 
 extern "C" DWORD get_fattime(void)
 {
-	PWRN("get_fattime() called - not yet implemented.");
+	Genode::warning(__func__, "() called - not yet implemented.");
 	return 0;
 }
 

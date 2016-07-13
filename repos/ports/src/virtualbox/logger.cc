@@ -80,7 +80,8 @@ namespace {
 			{
 				switch (cmd) {
 					case F_GETFL: return O_WRONLY;
-					default: PERR("fcntl(): command %d not supported", cmd); return -1;
+					default: Genode::error("fcntl(): command ", cmd, " not supported");
+					         return -1;
 				}
 			}
 

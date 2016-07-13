@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
 
 /* test specific includes */
 #include "server.h"

@@ -12,9 +12,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* core-local includes */
 #include <util.h>
 #include <pd_session_component.h>

@@ -11,6 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/log.h>
+
 /* core includes */
 #include <kernel/cpu_scheduler.h>
 #include <assert.h>
@@ -189,7 +192,7 @@ void Cpu_scheduler::remove(Share * const s)
 	 *
 	 */
 	if (s == _head) {
-		PERR("Removing the head of the CPU scheduler isn't supported by now.");
+		Genode::error("Removing the head of the CPU scheduler isn't supported by now.");
 		while (1) ;
 	}
 	if (s->_ready) { _fills.remove(s); }

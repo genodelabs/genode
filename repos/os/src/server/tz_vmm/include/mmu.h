@@ -62,7 +62,7 @@ class Mmu
 
 		Genode::addr_t _supersection(Genode::addr_t fe, Genode::addr_t va)
 		{
-			PWRN("Not implemented yet!");
+			Genode::warning(__func__, " not implemented yet!");
 			return 0;
 		}
 

@@ -18,6 +18,7 @@
 #include <base/allocator_avl.h>
 #include <base/signal.h>
 #include <base/tslab.h>
+#include <base/heap.h>
 #include <util/list.h>
 #include <block_session/connection.h>
 

@@ -161,12 +161,12 @@ struct Linker::Elf_file : File
 	bool check_compat(Elf::Ehdr const *ehdr)
 	{
 		if (memcmp(ehdr, ELFMAG, SELFMAG) != 0) {
-			PERR("LD: binary is not an ELF");
+			Genode::error("LD: binary is not an ELF");
 			return false;
 		}
 
 		if (ehdr->e_ident[EI_CLASS] != ELFCLASS) {
-			PERR("LD: support for 32/64-bit objects only");
+			Genode::error("LD: support for 32/64-bit objects only");
 			return false;
 		}
 
@@ -215,7 +215,7 @@ struct Linker::Elf_file : File
 				continue;
 
 			if (ph->p_align & (0x1000 - 1)) {
-				PERR("LD: Unsupported alignment %p", (void *)ph->p_align);
+				Genode::error("LD: Unsupported alignment ", (void *)ph->p_align);
 				throw Incompatible();
 			}
 
@@ -244,8 +244,9 @@ struct Linker::Elf_file : File
 		reloc_base = (start == reloc_base) ?  0 : reloc_base;
 
 		if (verbose_loading)
-			PDBG("reloc_base: " EFMT " start: " EFMT " end: " EFMT,
-			     reloc_base, start, reloc_base + start + size);
+			Genode::log("LD: reloc_base: ", Genode::Hex(reloc_base),
+			            " start: ", Genode::Hex(start),
+			            " end: ", Genode::Hex(reloc_base + start + size));
 
 		for (unsigned i = 0; i < p.count; i++) {
 			Elf::Phdr *ph = &p.phdr[i];
@@ -257,7 +258,7 @@ struct Linker::Elf_file : File
 				load_segment_rw(*ph, i);
 
 			else {
-				PERR("LD: Non-RW/RX segment");
+				Genode::error("LD: Non-RW/RX segment");
 				throw Invalid_file();
 			}
 		}
@@ -321,7 +322,8 @@ struct Linker::Elf_file : File
 File const *Linker::load(char const *path, bool load)
 {
 	if (verbose_loading)
-		PDBG("loading: %s (PHDRS only: %s)", path, load ? "no" : "yes");
+		Genode::log("LD loading: ", path, " "
+		            "(PHDRS only: ", load ? "no" : "yes", ")");
 
 	Elf_file *file = new (env()->heap()) Elf_file(Linker::file(path), load);
 	return file;

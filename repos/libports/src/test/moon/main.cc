@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <timer_session/connection.h>
 
 /* Lua includes */
@@ -74,13 +74,13 @@ static int l_log(lua_State *lua)
 
 	for (int i = 1; i <= n; ++i) {
 		if (lua_isstring(lua, i))
-			PLOG("%s", lua_tostring(lua, i));
+			Genode::log(lua_tostring(lua, i));
 		else if (lua_isnil(lua, i))
-			PLOG("%s", "nil");
+			Genode::log("nil");
 		else if (lua_isboolean(lua, i))
-			PLOG("%s", lua_toboolean(lua, i) ? "true" : "false");
+			Genode::log(lua_toboolean(lua, i) ? "true" : "false");
 		else
-			PLOG("%s: %p", luaL_typename(lua, i), lua_topointer(lua, i));
+			Genode::log(luaL_typename(lua, i), ": ", lua_topointer(lua, i));
 	}
 
 	return 0;
@@ -127,7 +127,7 @@ int main()
 	luaL_register(lua, "Genode", l_genode);
 
 	if (luaL_dostring(lua, exec_string) != 0)
-		PLOG("%s\n", lua_tostring(lua, -1));
+		Genode::log(lua_tostring(lua, -1));
 
 	lua_close(lua);
 }

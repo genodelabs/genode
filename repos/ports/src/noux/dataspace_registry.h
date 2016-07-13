@@ -153,7 +153,7 @@ namespace Noux {
 		{
 			auto lambda = [this] (Static_dataspace_info *info) {
 				if (!info) {
-					PERR("lookup of binary ds info failed");
+					error("lookup of binary ds info failed");
 					return;
 				}
 
@@ -173,7 +173,7 @@ namespace Noux {
 
 		void poke(addr_t dst_offset, void const *src, size_t len)
 		{
-			PERR("Attempt to poke onto a static dataspace");
+			error("attempt to poke onto a static dataspace");
 		}
 	};
 }

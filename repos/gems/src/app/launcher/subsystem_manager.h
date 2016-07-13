@@ -157,7 +157,7 @@ class Launcher::Subsystem_manager
 				return string_attribute(subsystem.sub_node("binary"),
 				                        "name", Child::Binary_name(""));
 			} catch (Xml_node::Nonexistent_sub_node) {
-				PERR("missing <binary> definition");
+				Genode::error("missing <binary> definition");
 				throw Invalid_config();
 			}
 		}
@@ -178,7 +178,7 @@ class Launcher::Subsystem_manager
 					}
 				});
 			} catch (...) {
-				PERR("invalid RAM resource declaration");
+				Genode::error("invalid RAM resource declaration");
 				throw Invalid_config();
 			}
 
@@ -209,7 +209,7 @@ class Launcher::Subsystem_manager
 
 			Ram_config const ram_config = _ram_config(subsystem);
 
-			PINF("starting child '%s'", label.string());
+			Genode::log("starting child '", label.string(), "'");
 
 			try {
 				Child *child = new (env()->heap())
@@ -229,7 +229,7 @@ class Launcher::Subsystem_manager
 				child->start();
 
 			} catch (Rom_connection::Rom_connection_failed) {
-				PERR("binary \"%s\" is missing", binary_name.string());
+				Genode::error("binary \"", binary_name, "\" is missing");
 				throw Invalid_config();
 			}
 		}

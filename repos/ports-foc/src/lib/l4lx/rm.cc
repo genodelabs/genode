@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <rm_session/connection.h>
 #include <base/capability.h>
 #include <util/misc_math.h>
@@ -27,9 +27,6 @@ namespace Fiasco {
 }
 
 using namespace L4lx;
-
-static const bool DEBUG_SEARCH = false; /* print information about the search
-                                           for alternative address ranges */
 
 Region* Region_manager::find_region(Genode::addr_t *addr, Genode::size_t *size)
 {
@@ -117,7 +114,6 @@ Region* Region_manager::reserve_range(Genode::size_t size, int align,
 
 			addr = start ? env()->rm_session()->attach_at(rm->dataspace(), start)
 			             : env()->rm_session()->attach(rm->dataspace());
-			//PDBG("attach done addr=%p!", addr);
 			break;
 		} catch(Rm_session::Attach_failed e) {
 			destroy(env()->heap(), rm);
@@ -126,23 +122,23 @@ Region* Region_manager::reserve_range(Genode::size_t size, int align,
 				/* the original start address might have a different alignment */
 				addr_t aligned_start = align_addr(start, align);
 				if (aligned_start != start) {
-					if (DEBUG_SEARCH)
-						PDBG("attach failed: start=%lx, trying %lx instead",
-							 start, aligned_start);
 					start = aligned_start;
 				} else {
 					if (start <= ((addr_t)~0 - 2*(1 << align) + 1)) {
-						if (DEBUG_SEARCH)
-							PDBG("attach failed: start=%lx, trying %lx instead",
-								 start, start + (1 << align));
 						start += (1 << align);
 					} else {
-						PWRN("attach failed: start=%lx, size=0x%zx, align=%d", original_start, size, align);
+						warning(__func__, ": attach failed: "
+						        "start=", Hex(original_start), " "
+						        "size=",  Hex(size),           " "
+						        "align=", align);
 						return 0;
 					}
 				}
 			} else {
-				PWRN("attach failed: start=0, size=0x%zx, align=%d", size, align);
+				warning(__func__, ": attach failed: "
+				        "start=", Hex(original_start), " "
+				        "size=",  Hex(size),           " "
+				        "align=", align);
 				return 0;
 			}
 		}
@@ -174,18 +170,18 @@ void Region_manager::reserve_range(Genode::addr_t addr, Genode::size_t size,
 void Region_manager::dump()
 {
 	Genode::addr_t addr = 0;
-	Genode::printf("Region map:\n");
+	Genode::log("Region map:");
 	while (true) {
 		Allocator_avl_base::Block *b = _find_by_address(addr);
 		Region *r = metadata((void*)addr);
 		if (!b)
 			return;
-		Genode::printf("     0x%08lx - 0x%08lx ",
-		               b->addr(), b->addr() + b->size());
-		if (b->used())
-			Genode::printf("[%s]\n", (r && r->ds()) ? r->ds()->name() : "reserved");
-		else
-			Genode::printf("[unused]\n");
+
+		Genode::log("     ", Genode::Hex_range<Genode::addr_t>(b->addr(), b->size()),
+		            " [", b->used() ? ((r && r->ds()) ? r->ds()->name() : "reserved")
+		                            : "unused",
+		            "]");
+
 		addr = b->addr() + b->size();
 	}
 };
@@ -222,7 +218,7 @@ void Region_manager::remove_mapping(void *virt)
 	l4_fpage_t fpage = l4_fpage((l4_addr_t)virt, L4_LOG2_PAGESIZE, L4_FPAGE_RW);
 	l4_msgtag_t tag  = l4_task_unmap(L4_BASE_TASK_CAP, fpage, L4_FP_ALL_SPACES);
 	if (l4_error(tag))
-		PWRN("unmapping %p failed with error %ld!", virt, l4_error(tag));
+		Genode::warning("unmapping ", virt, " failed, error=", l4_error(tag));
 
 	Mapping *m = _virt_to_phys(virt);
 	if (m) {
@@ -259,8 +255,8 @@ void Region_manager::map(void *phys)
 			l4_msgtag_t tag = l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
 			                              snd_fpage, (l4_addr_t)m->virt());
 			if (l4_error(tag)) {
-				PERR("mapping from %p to %p failed with error %ld!",
-					 phys, m->virt(), l4_error(tag));
+				Genode::error("mapping from ", phys, " to ", m->virt(), " "
+				              "failed, error=", l4_error(tag));
 			}
 			m = m->next();
 		}

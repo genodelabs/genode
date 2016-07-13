@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/exception.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core-local includes */
 #include <sel4_boot_info.h>
@@ -219,8 +219,8 @@ class Genode::Initial_untyped_pool
 					                                    num_objects);
 
 					if (ret != 0) {
-						PERR("%s: seL4_Untyped_Retype (untyped) returned %d",
-						     __FUNCTION__, ret);
+						error(__func__, ": seL4_Untyped_Retype (untyped) "
+						      "returned ", ret);
 						return;
 					}
 				}

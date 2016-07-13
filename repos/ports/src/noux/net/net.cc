@@ -66,7 +66,7 @@ static void select_notify()
 
 void init_network()
 {
-	PINF("--- noux: initialize network ---");
+	log("--- noux: initialize network ---");
 
 	if (!libc_select_notify)
 		libc_select_notify = select_notify;

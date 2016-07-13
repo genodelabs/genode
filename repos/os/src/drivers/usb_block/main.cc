@@ -16,6 +16,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/log.h>
+#include <base/heap.h>
 #include <block/component.h>
 #include <block/driver.h>
 #include <block_session/connection.h>
@@ -72,7 +73,7 @@ struct Usb::Block_driver : Usb::Completion,
 	void handle_state_change()
 	{
 		if (!usb.plugged()) {
-			PDBG("Device unplugged");
+			Genode::log("Device unplugged");
 			device_plugged = false;
 			return;
 		}
@@ -82,7 +83,7 @@ struct Usb::Block_driver : Usb::Completion,
 			return;
 		}
 
-		PDBG("Device plugged");
+		Genode::log("Device plugged");
 
 		if (!initialize()) {
 			return;

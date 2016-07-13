@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/rpc_server.h>
 #include <base/env.h>
 
@@ -94,8 +93,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	utcb->msg[0] = 0xdead;
 	utcb->set_msg_word(1);
 	if (uint8_t res = call(_cap.local_name()))
-		PERR("%8p - could not clean up entry point of thread 0x%p - res %u",
-		     utcb, this->utcb(), res);
+		error(utcb, " - could not clean up entry point of thread ", this->utcb(), " - res ", res);
 }
 
 
@@ -140,7 +138,7 @@ void Rpc_entrypoint::_activation_entry()
 	/* in case of a portal cleanup call we are done here - just reply */
 	if (ep._cap.local_name() == (long)id_pt) {
 		if (!rcv_window.prepare_rcv_window(utcb))
-			PWRN("out of capability selectors for handling server requests");
+			warning("out of capability selectors for handling server requests");
 
 		ep._rcv_buf.reset();
 		reply(utcb, exc, ep._snd_buf);
@@ -153,8 +151,7 @@ void Rpc_entrypoint::_activation_entry()
 	/* atomically lookup and lock referenced object */
 	auto lambda = [&] (Rpc_object_base *obj) {
 		if (!obj) {
-			PERR("could not look up server object, return from call id_pt=%lx",
-			     id_pt);
+			error("could not look up server object, return from call id_pt=", id_pt);
 			return;
 		}
 
@@ -166,7 +163,7 @@ void Rpc_entrypoint::_activation_entry()
 	ep.apply(id_pt, lambda);
 
 	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)ep.utcb()))
-		PWRN("out of capability selectors for handling server requests");
+		warning("out of capability selectors for handling server requests");
 
 	ep._rcv_buf.reset();
 	reply(utcb, exc, ep._snd_buf);
@@ -238,7 +235,7 @@ Rpc_entrypoint::~Rpc_entrypoint()
 	typedef Object_pool<Rpc_object_base> Pool;
 
 	Pool::remove_all([&] (Rpc_object_base *obj) {
-		PWRN("Object pool not empty in %s", __func__);
+		warning("object pool not empty in ", __func__);
 		_dissolve(obj);
 	});
 

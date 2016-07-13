@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <os/attached_rom_dataspace.h>
 
 /* VirtualBox includes */

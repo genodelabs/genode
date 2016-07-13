@@ -57,7 +57,7 @@ namespace {
 				{
 					if (_from.valid() && _to.valid() &&
 					    Ram_session_client(_from).transfer_quota(_to, quantum)) {
-						PWRN("not enough quota for a donation of %zu bytes", quantum);
+						warning("not enough quota for a donation of ", quantum, " bytes");
 						throw Parent::Quota_exceeded();
 					}
 				}
@@ -202,7 +202,7 @@ void Child::_remove_session(Child::Session *s)
 
 	/* return session quota to the ram session of the child */
 	if (_policy.ref_ram_session()->transfer_quota(_ram, s->donated_ram_quota()))
-		PERR("We ran out of our own quota");
+		error("We ran out of our own quota");
 
 	destroy(heap(), s);
 }
@@ -218,7 +218,7 @@ Service &Child::_parent_service()
 void Child::_close(Session* s)
 {
 	if (!s) {
-		PWRN("no session structure found");
+		warning("no session structure found");
 		return;
 	}
 
@@ -233,8 +233,7 @@ void Child::_close(Session* s)
 	 */
 	try { s->service()->close(s->cap()); }
 	catch (Blocking_canceled) {
-		PDBG("Got Blocking_canceled exception during %s->close call\n",
-		     s->ident()); }
+		warning("Got Blocking_canceled exception during ", s->ident(), "->close call"); }
 
 	/*
 	 * If the session was provided by a child of us,
@@ -249,7 +248,7 @@ void Child::_close(Session* s)
 		Ram_session_client server_ram(s->service()->ram_session_cap());
 		if (server_ram.transfer_quota(_policy.ref_ram_cap(),
 		                              s->donated_ram_quota())) {
-			PERR("Misbehaving server '%s'!", s->service()->name());
+			error("Misbehaving server '", s->service()->name(), "'!");
 		}
 	}
 
@@ -378,12 +377,12 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 			targeted_service = session->service();
 
 		if (!targeted_service) {
-			PWRN("could not lookup service for session upgrade");
+			warning("could not lookup service for session upgrade");
 			return;
 		}
 
 		if (!args.valid_string()) {
-			PWRN("no valid session-upgrade arguments");
+			warning("no valid session-upgrade arguments");
 			return;
 		}
 

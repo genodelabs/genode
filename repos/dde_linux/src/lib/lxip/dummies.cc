@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Dummy functions
  * \author Sebastian Sumpf
  * \date   2013-08-26
@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 
 
@@ -28,40 +28,50 @@ enum {
 
 #define DUMMY(retval, name) \
 	DUMMY name(void) { \
-	if (SHOW_DUMMY) \
-		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
-	return retval; \
-}
+		if (SHOW_DUMMY) \
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "not implemented"); \
+		return retval; \
+	}
 
 #define DUMMY_SKIP(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SKIP) \
-			PLOG( #name " called (from %p) skipped", __builtin_return_address(0)); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "skipped"); \
+		return retval; \
+	}
 
 #define DUMMY_RET(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_RET) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
 
 #define DUMMY_SHOW(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SHOW) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
 
 #define DUMMY_STOP(retval, name) \
 	DUMMY name(void) { \
 		do { \
-			PWRN( #name " called (from %p) stopped", __builtin_return_address(0)); \
+			Genode::warning(__func__, ": " #name " called " \
+			               "(from ", __builtin_return_address(0), ") " \
+			               "stopped"); \
 			Genode::sleep_forever(); \
 		} while (0); \
 		return retval; \
-}
+	}
 
 
 /*

@@ -93,7 +93,7 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 
 			const Status::access_t status = _current_descriptor().status;
 			if (!Status::Start_of_frame::get(status) || !Status::End_of_frame::get(status)) {
-				PWRN("Package splitted over more than one descriptor. Package ignored!");
+				warning("Package splitted over more than one descriptor. Package ignored!");
 
 				_set_package_processed();
 				return 0;
@@ -101,7 +101,7 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 
 			const size_t length = Status::Length::get(status);
 			if (length > max_length) {
-				PWRN("Buffer for received package to small. Package ignored!");
+				warning("Buffer for received package to small. Package ignored!");
 
 				_set_package_processed();
 				return 0;
@@ -120,11 +120,11 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 		{
 			static unsigned int old_data[0x1F];
 
-			PDBG("Rx buffer:");
+			log("Rx buffer:");
 			const unsigned int* const cur_data = local_addr<unsigned int>();
 			for (unsigned i=0; i<sizeof(old_data)/sizeof(old_data[0]); i++) {
 				if (cur_data[i] != old_data[i]) {
-					PDBG("%04x: %08x -> %08x", i*4, old_data[i], cur_data[i]);
+					log(i*4, ": ", Hex(old_data[i]), " -> ", Hex(cur_data[i]));
 				}
 			}
 			memcpy(old_data, cur_data, sizeof(old_data));

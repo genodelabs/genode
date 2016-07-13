@@ -237,7 +237,7 @@ class Device_registry
 		Device_registry()
 		{
 			try { _init(); }
-			catch(...) { PERR("blk: config parsing error"); }
+			catch(...) { Genode::error("blk: config parsing error"); }
 		}
 
 	public:
@@ -353,7 +353,7 @@ void Vmm::Block::_name(Vm_base * const vm)
 		strncpy((char *)_buf, dev->name(), _buf_size);
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 	}
 }
 
@@ -366,7 +366,7 @@ void Vmm::Block::_block_count(Vm_base * const vm)
 		vm->smc_ret(dev->block_count());
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 		vm->smc_ret(0);
 	}
 }
@@ -380,7 +380,7 @@ void Vmm::Block::_block_size(Vm_base * const vm)
 		vm->smc_ret(dev->block_size());
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 		vm->smc_ret(0);
 	}
 }
@@ -394,7 +394,7 @@ void Vmm::Block::_queue_size(Vm_base * const vm)
 		vm->smc_ret(dev->session()->tx()->bulk_buffer_size());
 		return;
 
-	} catch (Device_registry::Bad_device_id) { PERR("Bad block device ID"); }
+	} catch (Device_registry::Bad_device_id) { Genode::error("bad block device ID"); }
 	vm->smc_ret(0);
 }
 
@@ -407,7 +407,7 @@ void Vmm::Block::_writeable(Vm_base * const vm)
 		vm->smc_ret(dev->writeable());
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 		vm->smc_ret(0);
 	}
 }
@@ -421,7 +421,7 @@ void Vmm::Block::_irq(Vm_base * const vm)
 		vm->smc_ret(dev->irq());
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 		vm->smc_ret(0);
 	}
 }
@@ -440,7 +440,7 @@ void Vmm::Block::_buffer(Vm_base * const vm)
 	buf_err |= buf_base <  ram->base();
 	buf_err |= buf_top  >= ram_top;
 	if (buf_err) {
-		PERR("Illegal block buffer constraints");
+		Genode::error("illegal block buffer constraints");
 		return;
 	}
 	addr_t const buf_off = buf_base - ram->base();
@@ -472,15 +472,15 @@ void Vmm::Block::_new_request(Vm_base * const vm)
 		vm->smc_ret((long)addr, p.offset());
 
 	} catch (Request_cache::Full) {
-		PERR("Block request cache full");
+		Genode::error("block request cache full");
 		vm->smc_ret(0, 0);
 
 	} catch (::Block::Session::Tx::Source::Packet_alloc_failed) {
-		PERR("Failed to allocate packet for block request");
+		Genode::error("failed to allocate packet for block request");
 		vm->smc_ret(0, 0);
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 		vm->smc_ret(0, 0);
 	}
 }
@@ -513,10 +513,10 @@ void Vmm::Block::_submit_request(Vm_base * const vm)
 		dev->session()->tx()->submit_packet(p);
 
 	} catch (Oversized_request) {
-		PERR("Oversized block request");
+		Genode::error("oversized block request");
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 	}
 }
 
@@ -556,11 +556,11 @@ void Vmm::Block::_collect_reply(Vm_base * const vm)
 		vm->smc_ret(1);
 
 	} catch (Oversized_request) {
-		PERR("Oversized block request");
+		Genode::error("oversized block request");
 		vm->smc_ret(-1);
 
 	} catch (Device_registry::Bad_device_id) {
-		PERR("Bad block device ID");
+		Genode::error("bad block device ID");
 		vm->smc_ret(-1);
 	}
 }
@@ -596,7 +596,7 @@ void Vmm::Block::handle(Vm_base * const vm)
 	case BUFFER:         _buffer(vm);         break;
 	case NAME:           _name(vm);           break;
 	default:
-		PERR("Unknown function %lu requested on VMM block", vm->smc_arg_1());
+		Genode::error("Unknown function ", vm->smc_arg_1(), " requested on VMM block");
 		break;
 	}
 }

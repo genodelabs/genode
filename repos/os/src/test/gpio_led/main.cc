@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
@@ -38,20 +38,21 @@ int main(int, char **)
 		Genode::config()->xml_node().attribute("times").value(&_times);
 	} catch (...) { }
 
-	PDBG("--- GPIO Led test [GPIO Pin: %d, Timer delay: %d, Times: %d] ---",_gpio_pin, _delay, _times);
+	Genode::log("--- GPIO Led test [GPIO Pin: ", _gpio_pin, ", "
+	            "Timer delay: ", _delay, ", Times: ", _times, "] ---");
 
 	Gpio::Connection _led(_gpio_pin);
 	Timer::Connection _timer;
 
 	while(_times--)
 	{
-		PDBG("Remains blinks: %d",_times);
+		Genode::log("Remains blinks: ",_times);
 		_led.write(false);
 		_timer.msleep(_delay);
 		_led.write(true);
 		_timer.msleep(_delay);
 	}
 
-	Genode::printf("Test finished\n");
+	Genode::log("Test finished");
 	return 0;
 }

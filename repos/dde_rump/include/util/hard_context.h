@@ -21,6 +21,7 @@ extern "C" {
 }
 
 #include <base/thread.h>
+#include <base/log.h>
 
 
 /*************
@@ -66,7 +67,7 @@ class Hard_context_thread : public Hard_context,
 		void entry()
 		{
 			_func(_arg);
-			PDBG("Returned from func");
+			Genode::log(__func__, " returned from func");
 		}
 
 	public:

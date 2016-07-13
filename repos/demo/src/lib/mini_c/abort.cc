@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 
 extern "C" void *abort(void)
 {
-	PDBG("abort called");
+	Genode::warning("abort called");
 	Genode::sleep_forever();
 	return 0;
 }

@@ -232,7 +232,7 @@ namespace Genode {
 			 * On Pistachio, we don't use directed unmap but rely on the
 			 * in-kernel mapping database. See 'region_map_support.cc'.
 			 */
-			void flush(addr_t, size_t) { PDBG("not implemented"); }
+			void flush(addr_t, size_t) { warning(__func__, "not implemented"); }
 	};
 }
 

@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__NOVA__UTIL_H_
 #define _INCLUDE__NOVA__UTIL_H_
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 
 __attribute__((always_inline))
@@ -51,7 +51,8 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 	utcb->crd_rcv = orig_crd;
 
 	if (res)
-		PERR("request of event (%lu) capability selector failed (res=%u)", event, res);
+		Genode::error("request of event (", event, ") ",
+		              "capability selector failed (res=", res, ")");
 }
 
 
@@ -111,6 +112,6 @@ inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
 	utcb->crd_rcv = orig_crd;
 
 	if (res)
-		PERR("setting exception portals for vCPU failed %u", res);
+		Genode::error("setting exception portals for vCPU failed res=", res);
 }
 #endif /* _INCLUDE__NOVA__UTIL_H_ */

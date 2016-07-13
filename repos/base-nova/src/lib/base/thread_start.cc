@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/env.h>
 #include <base/rpc_client.h>
@@ -47,8 +47,8 @@ void Thread::_thread_start()
 		Thread::myself()->entry();
 	} catch (...) {
 		try {
-			PERR("Thread '%s' died because of an uncaught exception",
-			     Thread::myself()->name().string());
+			error("Thread '", Thread::myself()->name(), "' "
+			      "died because of an uncaught exception");
 		} catch (...) {
 			/* die in a noisy way */
 			nova_die();

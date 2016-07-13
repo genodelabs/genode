@@ -168,5 +168,5 @@ Lx::Work * Lx::Work::alloc_work_queue(Genode::Allocator *alloc, char const *name
 
 void Lx::Work::free_work_queue(Lx::Work *w)
 {
-	PERR("%s: IMPLEMENT ME", __func__);
+	Genode::error(__func__, ": IMPLEMENT ME");
 }

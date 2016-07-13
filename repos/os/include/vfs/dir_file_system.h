@@ -235,14 +235,14 @@ class Vfs::Dir_file_system : public File_system
 					continue;
 				}
 
-				PERR("failed to create <%s> VFS node", sub_node.type().string());
+				Genode::error("failed to create <", sub_node.type(), "> VFS node");
 				try {
 					String<64> value;
 					for (unsigned i = 0; i < 16; ++i) {
 						Xml_attribute attr = sub_node.attribute(i);
 						attr.value(&value);
 
-						PERR("\t%s=\"%s\"", attr.name().string(), value.string());
+						Genode::error("\t", attr.name(), "=\"", value, "\"");
 					}
 				} catch (Xml_node::Nonexistent_attribute) { }
 			}

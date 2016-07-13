@@ -13,14 +13,14 @@
 
 /* Genode includes */
 #include <base/synced_interface.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 
 struct Adder
 {
 	int add(int a, int b)
 	{
-		PLOG("adding %d + %d", a, b);
+		Genode::log("adding ", a, " + ", b);
 		return a + b;
 	}
 };
@@ -28,8 +28,8 @@ struct Adder
 
 struct Pseudo_lock
 {
-	void lock()   { PLOG("lock"); }
-	void unlock() { PLOG("unlock"); }
+	void lock()   { Genode::log("lock"); }
+	void unlock() { Genode::log("unlock"); }
 };
 
 
@@ -44,6 +44,6 @@ int main(int, char **)
 
 	int const res = synced_adder()->add(13, 14);
 
-	PLOG("result is %d", res);
+	log("result is ", res);
 	return 0;
 }

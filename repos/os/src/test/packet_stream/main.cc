@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/thread.h>
 #include <base/allocator_avl.h>
@@ -34,11 +34,11 @@ enum { STACK_SIZE = 4096 };
 
 void Genode::Packet_stream_base::_debug_print_buffers()
 {
-	Genode::printf("_ds_local_base       = 0x%p\n",        _ds_local_base);
-	Genode::printf("_submit_queue_offset = 0x%lx\n", _submit_queue_offset);
-	Genode::printf("_ack_queue_offset    = 0x%lx\n",    _ack_queue_offset);
-	Genode::printf("_bulk_buffer_offset  = 0x%lx\n",  _bulk_buffer_offset);
-	Genode::printf("_bulk_buffer_size    = 0x%zx (%zd)\n", _bulk_buffer_size, _bulk_buffer_size);
+	Genode::log("_ds_local_base       = ", _ds_local_base);
+	Genode::log("_submit_queue_offset = ", Genode::Hex(_submit_queue_offset));
+	Genode::log("_ack_queue_offset    = ", Genode::Hex(_ack_queue_offset));
+	Genode::log("_bulk_buffer_offset  = ", Genode::Hex(_bulk_buffer_offset));
+	Genode::log("_bulk_buffer_size    = ", Genode::Hex(_bulk_buffer_size));
 }
 
 
@@ -66,9 +66,9 @@ class Source : private Genode::Thread_deprecated<STACK_SIZE>,
 
 					char *content = packet_content(packet);
 					if (!content) {
-						PWRN("Source: invalid packet");
+						Genode::warning("source: invalid packet");
 					}
-					Genode::printf("Source: allocated packet (offset=0x%lx, size=0x%zd\n",
+					Genode::log("Source: allocated packet (offset=0x%lx, size=0x%zd\n",
 					               packet.offset(), packet.size());
 
 					for (unsigned i = 0; i < packet.size(); i++)
@@ -76,15 +76,15 @@ class Source : private Genode::Thread_deprecated<STACK_SIZE>,
 
 					bool is_blocking = !ready_to_submit();
 					if (is_blocking)
-						Genode::printf("Source: submit queue is full, going to block\n");
+						Genode::log("Source: submit queue is full, going to block");
 
 					submit_packet(packet);
 
 					if (is_blocking)
-						Genode::printf("Source: returned from submit_packet function\n");
+						Genode::log("Source: returned from submit_packet function");
 
 				} catch (Packet_stream_source<>::Packet_alloc_failed) {
-					PDBG("Source: Packet allocation failed");
+					Genode::error("Source: Packet allocation failed");
 				}
 			}
 		}
@@ -93,26 +93,27 @@ class Source : private Genode::Thread_deprecated<STACK_SIZE>,
 		{
 			for (unsigned i = 0; i < cnt; i++) {
 				if (!ack_avail())
-					Genode::printf("Source: acknowledgement queue is empty, going to block\n");
+					Genode::log("Source: acknowledgement queue is empty, going to block");
 
 				Packet_descriptor packet = get_acked_packet();
 				char *content = packet_content(packet);
 				if (!content) {
-					PWRN("Source: invalid packet");
+					Genode::warning("source: invalid packet");
 
 				} else {
 
 					/* validate packet content */
 					for (unsigned i = 0; i < packet.size(); i++) {
 						if (content[i] != (char)i) {
-							PERR("Source: packet content is corrupted\n");
+							Genode::error("source: packet content is corrupted");
 							break;
 						}
 					}
 				}
 
-				Genode::printf("Source: release packet (offset=0x%lx, size=0x%zd\n",
-				               packet.offset(), packet.size());
+				Genode::log("Source: release packet ("
+				            "offset=", Genode::Hex(packet.offset()), ", "
+				            "size=",   packet.size(), ")");
 				release_packet(packet);
 			}
 		}
@@ -147,7 +148,7 @@ class Source : private Genode::Thread_deprecated<STACK_SIZE>,
 			_lock(Genode::Lock::LOCKED),
 			_cnt(0)
 		{
-			Genode::printf("Source: packet stream buffers:");
+			Genode::log("Source: packet stream buffers:");
 			debug_print_buffers();
 			start();
 		}
@@ -184,19 +185,20 @@ class Sink : private Genode::Thread_deprecated<STACK_SIZE>,
 			for (unsigned i = 0; i < cnt; i++) {
 
 				if (!packet_avail())
-					Genode::printf("Sink: no packet available, going to block\n");
+					Genode::log("Sink: no packet available, going to block");
 
 				Packet_descriptor packet = get_packet();
 
 				char *content = packet_content(packet);
 				if (!content)
-					PWRN("Invalid packet");
+					Genode::warning("invalid packet");
 
-				Genode::printf("Sink: got packet (offset=0x%lx, size=0x%zd\n",
-				               packet.offset(), packet.size());
+				Genode::log("Sink: got packet ("
+				            "offset=", Genode::Hex(packet.offset()), ", "
+				            "size=",   packet.size(), ")");
 
 				if (!ready_to_ack())
-					Genode::printf("Sink: ack queue is full, going to block\n");
+					Genode::log("Sink: ack queue is full, going to block");
 
 				acknowledge_packet(packet);
 			}
@@ -227,7 +229,7 @@ class Sink : private Genode::Thread_deprecated<STACK_SIZE>,
 			_lock(Genode::Lock::LOCKED),
 			_cnt(0)
 		{
-			Genode::printf("Sink: packet stream buffers:");
+			Genode::log("Sink: packet stream buffers:");
 			debug_print_buffers();
 			start();
 		}
@@ -248,19 +250,20 @@ void test_1_good_case(Timer::Session *timer, Source *source, Sink *sink,
 
 		enum { DELAY = 200 };
 
-		Genode::printf("- round %u -", i);
+		Genode::log("- round ", i, " -");
 
-		Genode::printf("generate %u packets, fitting in bulk buffer and submit queue\n", batch_size);
+		Genode::log("generate ", batch_size, " packets, "
+		            "fitting in bulk buffer and submit queue");
 		source->generate(batch_size);
 
 		timer->msleep(DELAY);
 
-		Genode::printf("process %u packets\n", batch_size);
+		Genode::log("process ", batch_size, " packets");
 		sink->process(batch_size);
 
 		timer->msleep(DELAY);
 
-		Genode::printf("acknowledge %u packets\n", batch_size);
+		Genode::log("acknowledge ",  batch_size, " packets");
 		source->acknowledge(batch_size);
 
 		timer->msleep(DELAY);
@@ -276,17 +279,17 @@ void test_2_flood_submit(Timer::Session *timer, Source *source, Sink *sink)
 	source->generate(PACKETS);
 	timer->msleep(DELAY);
 
-	Genode::printf("- source should block, process 3 packets, source should wake up -\n");
+	Genode::log("- source should block, process 3 packets, source should wake up -");
 
 	sink->process(1);
 	timer->msleep(5*DELAY);
 	sink->process(2);
 
-	Genode::printf("- let source acknowledge %u packets -\n", 3);
+	Genode::log("- let source acknowledge 3 packets -");
 	source->acknowledge(3);
 	timer->msleep(DELAY);
 
-	Genode::printf("- process and acknowledge the remaining packets in batches 3 -\n");
+	Genode::log("- process and acknowledge the remaining packets in batches 3 -\n");
 	for (int i = 0; i < 2; i++) {
 		sink->process(3);
 		timer->msleep(DELAY);
@@ -301,7 +304,7 @@ using namespace Genode;
 
 int main(int, char **)
 {
-	printf("--- packet stream test ---\n");
+	log("--- packet stream test ---");
 
 	Timer::Connection timer;
 
@@ -319,15 +322,15 @@ int main(int, char **)
 
 	timer.msleep(1000);
 
-	printf("\n-- test 1: good case, no queue pressure, no blocking  --\n");
+	log("\n-- test 1: good case, no queue pressure, no blocking  --");
 	test_1_good_case(&timer, &source, &sink, 3, 5);
 
-	printf("\n-- test 2: flood submit queue, sender blocks, gets woken up  --\n");
+	log("\n-- test 2: flood submit queue, sender blocks, gets woken up  --");
 	test_2_flood_submit(&timer, &source, &sink);
 
-	printf("waiting to settle down\n");
+	log("waiting to settle down");
 	timer.msleep(2*1000);
 
-	printf("--- end of packet stream test ---\n");
+	log("--- end of packet stream test ---");
 	return 0;
 }

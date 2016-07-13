@@ -17,6 +17,8 @@
 
 #include <base/log.h>
 #include <base/component.h>
+#include <base/allocator_avl.h>
+#include <base/heap.h>
 #include <root/component.h>
 #include <block/driver.h>
 
@@ -81,7 +83,7 @@ class Block::Session_component : public Block::Session_component_base,
 		inline void _ack_packet(Packet_descriptor &packet)
 		{
 			if (!tx_sink()->ready_to_ack())
-				error("Not ready to ack!");
+				error("not ready to ack!");
 
 			tx_sink()->acknowledge_packet(packet);
 			_p_in_fly--;
@@ -175,7 +177,7 @@ class Block::Session_component : public Block::Session_component_base,
 		 */
 		Session_component(Driver_factory     &driver_factory,
 		                  Genode::Entrypoint &ep,
-		                  size_t buf_size)
+		                  size_t              buf_size)
 		: Session_component_base(driver_factory, buf_size),
 		  Driver_session(_rq_ds, ep.rpc_ep()),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
@@ -293,10 +295,12 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		 * \param driver_factory  factory to create and destroy driver backend
 		 */
 		Root(Genode::Entrypoint &ep,
-		     Allocator &md_alloc,
-		     Driver_factory &driver_factory)
-		: Root_component(ep, md_alloc),
-		  _driver_factory(driver_factory), _ep(ep) { }
+		     Allocator          &md_alloc,
+		     Driver_factory     &driver_factory)
+		:
+			Root_component(ep, md_alloc),
+			_driver_factory(driver_factory), _ep(ep)
+		{ }
 };
 
 #endif /* _INCLUDE__BLOCK__COMPONENT_H_ */

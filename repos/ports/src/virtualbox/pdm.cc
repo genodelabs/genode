@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 /* VirtualBox includes */
@@ -26,7 +26,7 @@
 
 static void RCSymbolDummy()
 {
-	PDBG("unexpected call of RC symbol");
+	Genode::log(__func__, ": unexpected call of RC symbol");
 	for (;;);
 }
 
@@ -130,7 +130,7 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 		}
 	}
 
-	PERR("pszModule=%s pszSymbol=%s", pszModule, pszSymbol);
+	Genode::error("pszModule=", pszModule, " pszSymbol=", pszSymbol);
 
 	return VERR_SYMBOL_NOT_FOUND;
 }

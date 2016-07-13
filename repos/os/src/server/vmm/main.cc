@@ -165,7 +165,7 @@ class Vm {
 
 				Exception() : Exception("undefined") {}
 
-				void print() { PERR("%s", _buf); }
+				void print() { Genode::error(Genode::Cstring(_buf)); }
 		};
 
 
@@ -177,7 +177,9 @@ class Vm {
 		  _ram(RAM_ADDRESS, ram_size, (Genode::addr_t)_vm_ram.local_addr<void>()),
 		  _state((State*)Genode::env()->rm_session()->attach(_vm_con.cpu_state()))
 		{
-			PINF("ram is at %lx", Genode::Dataspace_client(_vm_ram.cap()).phys_addr());
+			Genode::log("ram is at ",
+			            Genode::Hex(Genode::Dataspace_client(_vm_ram.cap()).phys_addr()));
+
 			_vm_con.exception_handler(sig_cap);
 			_vm_con.attach(_vm_ram.cap(), RAM_ADDRESS);
 			_vm_con.attach_pic(0x2C002000);
@@ -203,7 +205,7 @@ class Vm {
 			_state->gic_lr[2]  = 0;
 			_state->gic_lr[3]  = 0;
 
-			PINF("ready to run");
+			Genode::log("ready to run");
 		}
 
 		void run()                { if (_active) _vm_con.run();   }
@@ -366,12 +368,14 @@ class Vmm
 					if (reg) reg = reg->find_by_encoding(Iss::mask_encoding(v));
 
 					if (!reg) {
-						PERR("Unknown cp15 access @ ip=%08lx:", state->ip);
-						PERR("%s: c15 %d r%d c%d c%d %d",
-							 Iss::Direction::get(v) ? "read" : "write",
-							 Iss::Opcode1::get(v), Iss::Register::get(v),
-							 Iss::Crn::get(v), Iss::Crm::get(v),
-							 Iss::Opcode2::get(v));
+						Genode::error("unknown cp15 access @ ip=", state->ip, ":");
+						Genode::error(Iss::Direction::get(v) ? "read" : "write",
+						              ": "
+						              "c15 ", Iss::Opcode1::get(v), " "
+						              "r",    Iss::Register::get(v),   " "
+						              "c",    Iss::Crn::get(v),        " "
+						              "c",    Iss::Crm::get(v), " ",
+						                      Iss::Opcode2::get(v));
 						return false;
 					}
 
@@ -379,8 +383,8 @@ class Vmm
 						*(state->r(Iss::Register::get(v))) = reg->read(state);
 					} else {                      /* write access */
 						if (!reg->writeable()) {
-							PERR("Writing to cp15 register %s not allowed!",
-							     reg->name());
+							Genode::error("writing to cp15 register ",
+							              reg->name(), " not allowed!");
 							return false;
 						}
 						reg->write(state, *(state->r(Iss::Register::get(v))));
@@ -814,7 +818,7 @@ class Vmm
 						_irqs[irq].cpu_state = Irq::PENDING;
 
 					if (_irqs[irq].distr_state == Irq::DISABLED) {
-						PWRN("Disabled irq %u injected", irq);
+						Genode::warning("disabled irq ", irq, " injected");
 						return;
 					}
 
@@ -1316,7 +1320,7 @@ int main()
 	static Vmm vmm;
 
 	try {
-		PINF("Start virtual machine ...");
+		Genode::log("Start virtual machine ...");
 		vmm.run();
 	} catch(Vm::Exception &e) {
 		e.print();

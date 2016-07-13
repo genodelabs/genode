@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__REGION_REGISTRY_
 
 #include <dataspace/capability.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Genode {
 	class Region;
@@ -97,8 +97,7 @@ class Genode::Region_registry
 				if (!_map[i].used()) break;
 
 			if (i == MAX_REGIONS) {
-				PERR("maximum number of %d regions reached",
-				     MAX_REGIONS);
+				error("maximum number of ", (unsigned)MAX_REGIONS, " regions reached");
 				return -1;
 			}
 

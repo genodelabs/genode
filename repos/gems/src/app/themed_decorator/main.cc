@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
@@ -129,9 +129,7 @@ struct Decorator::Main : Window_factory_base
 			pointer.construct("pointer");
 			pointer->sigh(pointer_dispatcher);
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
-			PINF("pointer information unavailable");
-
-			PDBG("constructed=%d", pointer.constructed());
+			Genode::log("pointer information unavailable");
 		}
 
 		nitpicker.framebuffer()->sync_sigh(nitpicker_sync_dispatcher);

@@ -28,7 +28,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <framebuffer_session/connection.h>
 
@@ -60,7 +60,7 @@ extern "C" {
 			framebuffer = new(Genode::env()->heap()) Framebuffer::Connection();
 		if (!framebuffer->cap().valid())
 		{
-			PERR("Couldn't get framebuffer session!");
+			Genode::error("couldn't obtain framebuffer session");
 			return 0;
 		}
 		return 1;
@@ -72,7 +72,7 @@ extern "C" {
 	 */
 	static void Genode_Fb_DeleteDevice(SDL_VideoDevice *device)
 	{
-		PDBG("Free framebuffer session object");
+		Genode::log("free framebuffer session object");
 		if(framebuffer != 0)
 			Genode::destroy(Genode::env()->heap(), framebuffer);
 		framebuffer = 0;
@@ -149,7 +149,7 @@ extern "C" {
 	{
 		if(framebuffer == 0)
 		{
-			PERR("Framebuffer isn't initialized!");
+			Genode::error("framebuffer isn't initialized");
 			return -1;
 		}
 
@@ -157,14 +157,15 @@ extern "C" {
 		scr_mode = framebuffer->mode();
 		t->info.current_w = scr_mode.width();
 		t->info.current_h = scr_mode.height();
-		PDBG("Framebuffer has width=%d and height=%d",
-		     t->info.current_w, t->info.current_h);
+		Genode::log("Framebuffer has "
+		            "width=",  t->info.current_w, " "
+		            "height=", t->info.current_h);
 
 		/* set mode specific values */
 		switch(scr_mode.format())
 		{
 		case Framebuffer::Mode::RGB565:
-			PDBG("We use pixelformat rgb565.");
+			Genode::log("We use pixelformat rgb565.");
 			vformat->BitsPerPixel  = 16;
 			vformat->BytesPerPixel = scr_mode.bytes_per_pixel();
 			vformat->Rmask = 0x0000f800;
@@ -184,7 +185,7 @@ extern "C" {
 		/* Map the buffer */
 		Genode::Dataspace_capability fb_ds_cap = framebuffer->dataspace();
 		if (!fb_ds_cap.valid()) {
-			PERR("Could not request dataspace for frame buffer");
+			Genode::error("could not request dataspace for frame buffer");
 			return -1;
 		}
 		t->hidden->buffer = Genode::env()->rm_session()->attach(fb_ds_cap);
@@ -221,18 +222,18 @@ extern "C" {
 	                                    int width, int height,
 	                                    int bpp, Uint32 flags)
 	{
-		PDBG("Set video mode to: width=%d height=%d bpp=%d",
-		     width, height, bpp);
+		Genode::log("Set video mode to: "
+		            "width=", width, " " "height=", height, " " "bpp=", bpp);
 
 		if ( ! t->hidden->buffer ) {
-			PERR("No buffer for requested mode");
+			Genode::error("no buffer for requested mode");
 			return(0);
 		}
 		SDL_memset(t->hidden->buffer, 0, width * height * (bpp / 8));
 
 		/* Allocate the new pixel format for the screen */
 		if ( ! SDL_ReallocFormat(current, bpp, 0, 0, 0, 0) ) {
-			PERR("Couldn't allocate new pixel format for requested mode");
+			Genode::error("couldn't allocate new pixel format for requested mode");
 			return(0);
 		}
 
@@ -252,7 +253,7 @@ extern "C" {
 	static int Genode_Fb_AllocHWSurface(SDL_VideoDevice *t,
 	                                    SDL_Surface *surface)
 	{
-		PDBG("Not supported yet ...");
+		Genode::log(__func__, " not supported yet ...");
 		return -1;
 	}
 
@@ -260,7 +261,7 @@ extern "C" {
 	static void Genode_Fb_FreeHWSurface(SDL_VideoDevice *t,
 	                                    SDL_Surface *surface)
 	{
-		PDBG("Not supported yet ...");
+		Genode::log(__func__, " not supported yet ...");
 	}
 
 
@@ -270,7 +271,7 @@ extern "C" {
 	static int Genode_Fb_LockHWSurface(SDL_VideoDevice *t,
 	                                   SDL_Surface *surface)
 	{
-		PDBG("Not supported yet ...");
+		Genode::log(__func__, " not supported yet ...");
 		return 0;
 	}
 
@@ -278,7 +279,7 @@ extern "C" {
 	static void Genode_Fb_UnlockHWSurface(SDL_VideoDevice *t,
 	                                      SDL_Surface *surface)
 	{
-		PDBG("Not supported yet ...");
+		Genode::log(__func__, " not supported yet ...");
 	}
 
 
@@ -303,7 +304,7 @@ extern "C" {
 	int Genode_Fb_SetColors(SDL_VideoDevice *t, int firstcolor,
 	                        int ncolors, SDL_Color *colors)
 	{
-		PWRN("Not implemented yet");
+		Genode::warning(__func__, " not implemented yet");
 		return 1;
 	}
 
@@ -314,7 +315,7 @@ extern "C" {
 	 */
 	void Genode_Fb_VideoQuit(SDL_VideoDevice *t)
 	{
-		PDBG("Quit video device ...");
+		Genode::log("Quit video device ...");
 		if (t->screen->pixels != 0)
 		{
 			SDL_free(t->screen->pixels);

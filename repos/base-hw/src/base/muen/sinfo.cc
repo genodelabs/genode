@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 #include <muen/sinfo.h>
@@ -24,16 +24,16 @@ static bool log_channel(
 		void *data)
 {
 	if (channel->has_event || channel->has_vector) {
-		PDBG("muen-sinfo: [%s with %s %03d] %s\n",
-		     channel->writable ? "writer" : "reader",
-		     channel->has_event ? "event " : "vector",
-		     channel->has_event ? channel->event_number : channel->vector,
-		     channel->name);
+		Genode::log("muen-sinfo: [",
+		            channel->writable ? "writer" : "reader", " with ",
+		            channel->has_event ? "event " : "vector", " ",
+		            channel->has_event ? channel->event_number : channel->vector,
+		            "] ", channel->name);
 	} else {
-		PDBG("muen-sinfo: [%s with no %s ] %s\n",
-		     channel->writable ? "writer" : "reader",
-		     channel->writable ? "event " : "vector",
-		     channel->name);
+		Genode::log("muen-sinfo: [",
+		            channel->writable ? "writer" : "reader", " with no ",
+		            channel->writable ? "event " : "vector", " ",
+		            "] ", channel->name);
 	}
 
 	return true;
@@ -41,14 +41,14 @@ static bool log_channel(
 
 
 /* Log memory region information */
-static bool log_memregion(
-		const struct Genode::Sinfo::Memregion_info * const region,
-		void *data)
+static bool log_memregion(const struct Genode::Sinfo::Memregion_info * const region,
+                          void *data)
 {
-	PDBG("muen-sinfo: [addr 0x%016llx size 0x%016llx %s%s] %s\n",
-	     region->address, region->size,
-	     region->writable ? "rw" : "ro",
-	     region->executable ? "x" : "-", region->name);
+	Genode::log("muen-sinfo: [addr ", Genode::Hex(region->address), " "
+	            "size ", Genode::Hex(region->size), " ",
+	            region->writable ? "rw" : "ro",
+	            region->executable ? "x" : "-",
+	            "] ", region->name);
 	return true;
 }
 
@@ -72,7 +72,7 @@ Sinfo::Sinfo(const addr_t base_addr)
 	sinfo = ((subject_info_type *)base_addr);
 
 	if (!check_magic()) {
-		PERR("muen-sinfo: Subject information MAGIC mismatch\n");
+		Genode::error("muen-sinfo: Subject information MAGIC mismatch");
 		return;
 	}
 }
@@ -207,19 +207,19 @@ uint64_t Sinfo::get_sched_end(void)
 void Sinfo::log_status()
 {
 	if (!sinfo) {
-		PINF("Sinfo API not initialized");
+		Genode::log("Sinfo API not initialized");
 		return;
 	}
 	if (!check_magic()) {
-		PINF("Sinfo MAGIC not found");
+		Genode::log("Sinfo MAGIC not found");
 		return;
 	}
 
-	PINF("muen-sinfo: Subject information exports %d memory region(s)\n",
-	     sinfo->memregion_count);
+	Genode::log("muen-sinfo: Subject information exports ",
+	            sinfo->memregion_count, " memory region(s)");
 	for_each_memregion(log_memregion, 0);
-	PINF("muen-sinfo: Subject information exports %d channel(s)\n",
-	     sinfo->channel_info_count);
+	Genode::log("muen-sinfo: Subject information exports ",
+	            sinfo->channel_info_count, " channel(s)");
 	for_each_channel(log_channel, 0);
 }
 

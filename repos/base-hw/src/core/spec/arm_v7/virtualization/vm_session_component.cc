@@ -30,7 +30,7 @@ void Vm_session_component::exception_handler(Signal_context_capability handler)
 
 	if (!create((void*)_ds.core_local_addr(), Capability_space::capid(handler),
 	            cma->phys_addr(_table)))
-		PWRN("Cannot instantiate vm kernel object, invalid signal context?");
+		Genode::warning("Cannot instantiate vm kernel object, invalid signal context?");
 }
 
 
@@ -42,10 +42,10 @@ void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size
 		_table->insert_translation(vm_addr, phys_addr, size, pflags, _tt_alloc);
 		return;
 	} catch(Allocator::Out_of_memory) {
-		PERR("Translation table needs to much RAM");
+		Genode::error("Translation table needs to much RAM");
 	} catch(...) {
-		PERR("Invalid mapping %p -> %p (%zx)", (void*)phys_addr,
-		     (void*)vm_addr, size);
+		Genode::error("Invalid mapping ", Genode::Hex(phys_addr), " -> ",
+		              Genode::Hex(vm_addr), " (", size, ")");
 	}
 }
 
@@ -86,7 +86,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
 	/* get some aligned space for the translation table */
 	if (!cma->alloc_aligned(sizeof(Translation_table), (void**)&tt,
 	                        Translation_table::ALIGNM_LOG2).ok()) {
-		PERR("failed to allocate kernel object");
+		error("failed to allocate kernel object");
 		throw Root::Quota_exceeded();
 	}
 

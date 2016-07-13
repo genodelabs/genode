@@ -17,7 +17,7 @@ extern "C" {
 #define _private private
 }
 
-#include <base/printf.h>
+#include <base/log.h>
 #include "cpu_session_component.h"
 #include "reg-arm.h"
 #include "gdbserver_platform_helper.h"
@@ -51,7 +51,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *value)
 
 	try { ts = get_current_thread_state(); }
 	catch (...) {
-		PERR("%s: could not get current thread state", __PRETTY_FUNCTION__);
+		error(__PRETTY_FUNCTION__, ": could not get current thread state");
 		return -1;
 	}
 
@@ -106,7 +106,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *value)
 			case F7:   cannot_fetch_register("F7"); return -1;
 			case FPS:  cannot_fetch_register("FPS"); return -1;
 			case CPSR: cannot_fetch_register("CPSR"); return -1;
-			default:   PERR("unhandled register %d", regno); return -1;
+			default:   error("unhandled register ", regno); return -1;
 		}
 
 	} else {
@@ -139,7 +139,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *value)
 			case F7:   cannot_fetch_register("F7"); return -1;
 			case FPS:  cannot_fetch_register("FPS"); return -1;
 			case CPSR: fetch_register("CPSR", ts.cpsr,  *value); return 0;
-			default:   PERR("unhandled register %d", regno); return -1;
+			default:   error("unhandled register ", regno); return -1;
 		}
 	}
 
@@ -153,12 +153,12 @@ extern "C" void genode_store_register(int regno, unsigned long value)
 
 	try { ts = get_current_thread_state(); }
 	catch (...) {
-		PERR("%s: could not get current thread state", __PRETTY_FUNCTION__);
+		error(__PRETTY_FUNCTION__, ": could not get current thread state");
 		return;
 	}
 
 	if (in_syscall(ts)) {
-		PDBG("cannot set registers while thread is in syscall");
+		log("cannot set registers while thread is in syscall");
 		return;
 	}
 

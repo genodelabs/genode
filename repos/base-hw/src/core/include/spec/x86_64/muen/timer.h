@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 
 /* base includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <kernel/types.h>
 
 /* core includes */
@@ -70,18 +70,19 @@ class Genode::Timer
 
 			struct Sinfo::Memregion_info region;
 			if (!sinfo()->get_memregion_info("timed_event", &region)) {
-				PERR("muen-timer: Unable to retrieve timed event region");
+				error("muen-timer: Unable to retrieve timed event region");
 				throw Invalid_region();
 			}
 
 			_event_page = (Subject_timed_event *)region.address;
 			_event_page->event_nr = Board::TIMER_EVENT_KERNEL;
-			PINF("muen-timer: Page @0x%llx, frequency %llu kHz, event %u",
-			     region.address, _tics_per_ms, _event_page->event_nr);
+			log("muen-timer: Page @", Hex(region.address), ", "
+			    "frequency ", _tics_per_ms, " kHz, "
+			    "event ", (unsigned)_event_page->event_nr);
 
 			if (sinfo()->get_memregion_info("monitor_timed_event", &region)) {
-				PINF("muen-timer: Found guest timed event page @0x%llx"
-					 " -> enabling preemption", region.address);
+				log("muen-timer: Found guest timed event page @", Hex(region.address),
+				    " -> enabling preemption");
 				_guest_event_page = (Subject_timed_event *)region.address;
 				_guest_event_page->event_nr = Board::TIMER_EVENT_PREEMPT;
 			}

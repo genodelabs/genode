@@ -3,6 +3,12 @@ VBOX_CC_OPT += -DVBOX_WITH_GENERIC_SESSION_WATCHER
 
 include $(REP_DIR)/lib/mk/virtualbox-common.inc
 
+#
+# Prevent inclusion of the Genode::Log definition after the vbox #define
+# of 'Log'. Otherwise, the attemt to compile base/log.h will fail.
+#
+VBOX_CC_OPT += -include base/log.h
+
 CC_WARN += -Wall
 
 TARGET = virtualbox

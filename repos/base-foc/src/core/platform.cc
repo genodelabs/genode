@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
@@ -21,6 +21,7 @@
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/globals.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -45,11 +46,6 @@ static l4_kernel_info_t *kip;
 }
 
 using namespace Genode;
-
-
-static const bool verbose              = true;
-static const bool verbose_core_pf      = false;
-static const bool verbose_region_alloc = false;
 
 
 /***********************************
@@ -90,7 +86,7 @@ static void _core_pager_loop()
 			tag = l4_ipc_wait(utcb, &label, L4_IPC_NEVER);
 
 		if (!tag.is_page_fault()) {
-			PWRN("Received something different than a pagefault, ignoring ...");
+			warning("received something different than a pagefault, ignoring ...");
 			continue;
 		}
 
@@ -102,21 +98,20 @@ static void _core_pager_loop()
 		if (pfa < (l4_umword_t)L4_PAGESIZE) {
 
 			/* NULL pointer access */
-			PERR("Possible null pointer %s at %lx IP %lx",
-			     rw ? "WRITE" : "READ", pfa, ip);
+			error("Possible null pointer ", rw ? "WRITE" : "READ", " "
+			      "at ", Hex(pfa), " IP ", Hex(ip));
 			/* do not unblock faulter */
 			send_reply = false;
 			continue;
 		} else if (!_core_address_ranges().valid_addr(pfa)) {
 
 			/* page-fault address is not in RAM */
-			PERR("%s access outside of RAM at %lx IP %lx",
-			     rw ? "WRITE" : "READ", pfa, ip);
+			error(rw ? "WRITE" : "READ", " access outside of RAM "
+			      "at ", Hex(pfa), " IP ", Hex(ip));
 			/* do not unblock faulter */
 			send_reply = false;
 			continue;
-		} else if (verbose_core_pf)
-			PDBG("pfa=%lx ip=%lx", pfa, ip);
+		}
 
 		/* my pf handler is sigma0 - just touch the appropriate page */
 		if (rw)
@@ -162,7 +157,7 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
 	l4_thread_control_exc_handler(thread().local.data()->kcap());
 	l4_msgtag_t tag = l4_thread_control_commit(L4_BASE_THREAD_CAP);
 	if (l4_msgtag_has_error(tag))
-		PWRN("l4_thread_control_commit failed!");
+		warning("l4_thread_control_commit failed!");
 }
 
 
@@ -196,23 +191,10 @@ struct Region
 
 
 /**
- * Log region
- */
-static inline void print_region(Region r)
-{
-	printf("[%08lx,%08lx) %08lx", r.start, r.end, r.end - r.start);
-}
-
-
-/**
  * Add region to allocator
  */
 static inline void add_region(Region r, Range_allocator &alloc)
 {
-	if (verbose_region_alloc) {
-		printf("%p    add: ", &alloc); print_region(r); printf("\n");
-	}
-
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
 	addr_t end   = round_page(r.end);
@@ -226,10 +208,6 @@ static inline void add_region(Region r, Range_allocator &alloc)
  */
 static inline void remove_region(Region r, Range_allocator &alloc)
 {
-	if (verbose_region_alloc) {
-		printf("%p remove: ", &alloc); print_region(r); printf("\n");
-	}
-
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
 	addr_t end   = round_page(r.end);
@@ -366,15 +344,10 @@ void Platform::_setup_basics()
 	if (kip->magic != L4_KERNEL_INFO_MAGIC)
 		panic("Sigma0 mapped something but not the KIP");
 
-	if (verbose) {
-		printf("\n");
-		printf("KIP @ %p\n", kip);
-		printf("    magic: %08zx\n", (size_t)kip->magic);
-		printf("  version: %08zx\n", (size_t)kip->version);
-		printf("         sigma0 "); printf(" esp: %08lx  eip: %08lx\n", kip->sigma0_esp, kip->sigma0_eip);
-		printf("         sigma1 "); printf(" esp: %08lx  eip: %08lx\n", kip->sigma1_esp, kip->sigma1_eip);
-		printf("           root "); printf(" esp: %08lx  eip: %08lx\n", kip->root_esp, kip->root_eip);
-	}
+	log("");
+	log("KIP @ ", kip);
+	log("    magic: ", Hex(kip->magic));
+	log("  version: ", Hex(kip->version));
 
 	/* add KIP as ROM module */
 	_kip_rom = Rom_module((addr_t)kip, L4_PAGESIZE, "l4v2_kip");
@@ -382,7 +355,7 @@ void Platform::_setup_basics()
 
 	/* update multi-boot info pointer from KIP */
 	addr_t mb_info_addr = kip->user_ptr;
-	if (verbose) printf("MBI @ %lx\n", mb_info_addr);
+	log("MBI @ ", Hex(mb_info_addr));
 
 	/* parse memory descriptors - look for virtual memory configuration */
 	/* XXX we support only one VM region (here and also inside RM) */
@@ -447,11 +420,6 @@ void Platform::_setup_rom()
 		/* map module */
 		touch_ro((const void*)new_rom->addr(), new_rom->size());
 
-		if (verbose)
-			printf(" mod[%d] [%p,%p) %s\n", i,
-			       (void *)new_rom->addr(), ((char *)new_rom->addr()) + new_rom->size(),
-			       new_rom->name());
-
 		/* zero remainder of last ROM page */
 		size_t count = L4_PAGESIZE - rom.size() % L4_PAGESIZE;
 		if (count != L4_PAGESIZE)
@@ -485,21 +453,21 @@ Platform::Platform() :
 	if (initialized) panic("Platform constructed twice!");
 	initialized = true;
 
+	init_log();
+
 	_setup_basics();
 	_setup_mem_alloc();
 	_setup_io_port_alloc();
 	_setup_irq_alloc();
 	_setup_rom();
 
-	if (verbose) {
-		printf(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
-		printf(":region_alloc: "); _region_alloc()->dump_addr_tree();
-		printf(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
-		printf(":io_port: ");      _io_port_alloc()->dump_addr_tree();
-		printf(":irq: ");          _irq_alloc()->dump_addr_tree();
-		printf(":rom_fs: ");       _rom_fs.print_fs();
-		printf(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
-	}
+	log(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
+	log(":region_alloc: "); _region_alloc()->dump_addr_tree();
+	log(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
+	log(":io_port: ");      _io_port_alloc()->dump_addr_tree();
+	log(":irq: ");          _irq_alloc()->dump_addr_tree();
+	log(":rom_fs: ");       _rom_fs.print_fs();
+	log(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
 
 	Core_cap_index* pdi =
 		reinterpret_cast<Core_cap_index*>(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_TASK_CAP));
@@ -546,7 +514,7 @@ Affinity::Space Platform::affinity_space() const
 	l4_msgtag_t res = l4_scheduler_info(L4_BASE_SCHEDULER_CAP, &cpus_max,
 	                                    &cpus);
 	if (l4_error(res)) {
-		PERR("could not detect number of CPUs - assuming 1 CPU");
+		error("could not detect number of CPUs - assuming 1 CPU");
 		return 1;
 	}
 

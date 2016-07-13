@@ -15,12 +15,10 @@
 #include <cpu_session_component.h>
 
 using namespace Genode;
-using namespace Pistachio;
 
 
 Dataspace_capability Cpu_thread_component::utcb()
 {
-	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
 	return Dataspace_capability();
 }
 

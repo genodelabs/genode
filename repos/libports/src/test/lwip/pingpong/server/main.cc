@@ -152,17 +152,6 @@ main(int argc, char *argv[])
 
 	verbose = 0;
 
-#if 0
-	Genode::Xml_node argv_node = Genode::config()->xml_node().sub_node("argv");
-	try {
-		argv_node.attribute("listenip" ).value(listenip, sizeof(listenip));
-		argv_node.attribute("verbose").value( &verbose );
-	} catch(...) {
-		PERR("listenip was not specified!");
-		return 1;
-	}
-#endif
-
 	recvping(listenip);
 
 	return 0;

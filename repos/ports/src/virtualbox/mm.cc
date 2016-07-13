@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
@@ -199,7 +199,6 @@ int MMR3HyperInitFinalize(PVM)
 
 int MMR3HyperSetGuard(PVM, void* ptr, size_t, bool)
 {
-//	PDBG("called %p", ptr);
 	return VINF_SUCCESS;
 }
 
@@ -291,8 +290,6 @@ int MMR3HyperMapHCPhys(PVM pVM, void *pvR3, RTR0PTR pvR0, RTHCPHYS HCPhys,
 
 int MMR3HyperReserve(PVM pVM, unsigned cb, const char *pszDesc, PRTGCPTR pGCPtr)
 {
-//	PINF("MMR3HyperReserve: cb=0x%x, pszDesc=%s", cb, pszDesc);
-
 	return VINF_SUCCESS;
 }
 
@@ -301,10 +298,6 @@ int MMR3HyperMapMMIO2(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
                       RTGCPHYS off, RTGCPHYS cb, const char *pszDesc,
                       PRTRCPTR pRCPtr)
 {
-/*
-	PLOG("MMR3HyperMapMMIO2: pszDesc=%s iRegion=%u off=0x%lx cb=0x%zx",
-	     pszDesc, iRegion, (long)off, (size_t)cb);
-*/
 	return VINF_SUCCESS;
 }
 

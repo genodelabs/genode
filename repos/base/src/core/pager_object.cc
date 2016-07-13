@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <pager.h>
@@ -22,7 +22,7 @@ using namespace Genode;
 
 void Pager_object::wake_up()
 {
-	PWRN("user-level page fault handling is not supported on this platform");
+	warning("user-level page fault handling is not supported on this platform");
 }
 
 

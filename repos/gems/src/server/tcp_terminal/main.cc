@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <util/misc_math.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/heap.h>
 #include <root/component.h>
@@ -84,7 +84,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 		{
 			int listen_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 			if (listen_sd == -1) {
-				PERR("socket creation failed");
+				Genode::error("socket creation failed");
 				return -1;
 			}
 
@@ -94,16 +94,16 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			sockaddr.sin_addr.s_addr = INADDR_ANY;
 
 			if (bind(listen_sd, (struct sockaddr *)&sockaddr, sizeof(sockaddr))) {
-				PERR("bind to port %d failed", tcp_port);
+				Genode::error("bind to port ", tcp_port, " failed");
 				return -1;
 			}
 
 			if (listen(listen_sd, 1)) {
-				PERR("listen failed");
+				Genode::error("listen failed");
 				return -1;
 			}
 
-			Genode::printf("listening on port %d...\n", tcp_port);
+			Genode::log("listening on port ", tcp_port, "...");
 			return listen_sd;
 		}
 
@@ -160,7 +160,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			_sd = accept(_listen_sd, &addr, &len);
 
 			if (_sd != -1)
-				Genode::printf("connection established\n");
+				Genode::log("connection established");
 
 			/*
 			 * Inform client about the finished initialization of the terminal
@@ -184,7 +184,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 		void fill_read_buffer_and_notify_client()
 		{
 			if (_read_buf_bytes_used) {
-				PWRN("read buffer already in use");
+				Genode::warning("read buffer already in use");
 				return;
 			}
 
@@ -440,7 +440,7 @@ namespace Terminal {
 
 				/* write data to socket, assuming that it won't block */
 				if (::write(sd(), _io_buffer.local_addr<char>(), num_bytes) < 0)
-					PERR("write error, dropping data");
+					Genode::error("write error, dropping data");
 			}
 
 			Genode::Dataspace_capability _dataspace()
@@ -512,7 +512,7 @@ int main()
 {
 	using namespace Genode;
 
-	Genode::printf("--- TCP terminal started ---\n");
+	Genode::log("--- TCP terminal started ---");
 
 	/* initialize entry point that serves the root interface */
 	enum { STACK_SIZE = 4*4096 };

@@ -19,6 +19,7 @@
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <base/component.h>
+#include <base/heap.h>
 
 #include "undef.h"
 

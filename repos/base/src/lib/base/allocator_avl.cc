@@ -12,7 +12,7 @@
  */
 
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -186,8 +186,9 @@ void Allocator_avl_base::_revert_allocations_and_ranges()
 	}
 
 	if (dangling_allocations)
-		PWRN("%zd dangling allocation%s at allocator destruction time",
-		     dangling_allocations, (dangling_allocations > 1) ? "s" : "");
+		warning(dangling_allocations, " dangling allocation",
+		        (dangling_allocations > 1) ? "s" : "",
+		        " at allocator destruction time");
 
 	/* remove ranges */
 	while (Block *block = _addr_tree.first())
@@ -353,8 +354,8 @@ void Allocator_avl_base::free(void *addr)
 	size_t new_size = b->size();
 
 	if (new_addr != (addr_t)addr)
-		PERR("%s: given address (0x%p) is not the block start address (0x%lx)",
-		     __PRETTY_FUNCTION__, addr, new_addr);
+		error(__PRETTY_FUNCTION__, ": given address (", addr, ") "
+		      "is not the block start address (", (void *)new_addr, ")");
 
 	_destroy_block(b);
 

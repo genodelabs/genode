@@ -16,6 +16,7 @@
 #include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/snprintf.h>
+#include <base/tslab.h>
 #include <cap_session/connection.h>
 #include <nic/xml_node.h>
 #include <nic/component.h>

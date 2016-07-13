@@ -26,8 +26,6 @@
 /* local includes */
 #include <gpio.h>
 
-static int verbose = 0;
-
 namespace Gpio { class Odroid_x2_driver; }
 
 
@@ -50,9 +48,7 @@ class Gpio::Odroid_x2_driver : public Driver
 			handle_irq();
 		}
 
-		void handle_irq(){
-			PDBG("IRQ\n");
-		}
+		void handle_irq() { }
 
 		Gpio::Reg *_gpio_reg(int gpio_pin)
 		{
@@ -67,7 +63,7 @@ class Gpio::Odroid_x2_driver : public Driver
 				case 40 ... 46:
 					return &_reg4;
 				default:
-					PERR("no Gpio_bank for pin %d available", gpio_pin);
+					Genode::error("no Gpio_bank for pin ", gpio_pin, " available");
 					return 0;
 			}
 		}
@@ -105,15 +101,6 @@ class Gpio::Odroid_x2_driver : public Driver
 			Genode::off_t offset   = _bank_offset[pos_gpio];
 			int           gpio     = gpio_pin - sum_gpio;
 
-			if ( verbose) {
-				PDBG("gpio=%d", gpio);
-				PDBG("gpio_pin=%d", gpio_pin);
-				PDBG("gpio_input=%d", input ? 0: 0x1);
-				PDBG("gpio_pos=%d", pos_gpio);
-				PDBG("gpio_sum=%d", sum_gpio);
-				PDBG("gpio_off_set=%d", (int)offset);
-			}
-
 			Reg* reg = _gpio_reg(gpio_pin);
 			reg->set_direction(gpio, input, offset);
 		}
@@ -125,14 +112,6 @@ class Gpio::Odroid_x2_driver : public Driver
 			Genode::off_t offset   = _bank_offset[pos_gpio];
 			int           gpio     = gpio_pin - sum_gpio;
 
-			if ( verbose) {
-				PDBG("gpio=%d", gpio);
-				PDBG("gpio_pin=%d", gpio_pin);
-				PDBG("gpio_level=%d", level ? 0: 0x1);
-				PDBG("gpio_pos=%d", pos_gpio);
-				PDBG("gpio_sum=%d", sum_gpio);
-				PDBG("gpio_off_set=%d", (int)offset);
-			}
 			Reg* reg = _gpio_reg(gpio_pin);
 			reg->write_pin(gpio, level, offset);
 		}
@@ -143,13 +122,6 @@ class Gpio::Odroid_x2_driver : public Driver
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
 			Genode::off_t offset   = _bank_offset[pos_gpio];
 			int           gpio     = gpio_pin - sum_gpio;
-			if ( verbose) {
-				PDBG("gpio=%d", gpio);
-				PDBG("gpio_pin=%d", gpio_pin);
-				PDBG("gpio_pos=%d", pos_gpio);
-				PDBG("gpio_sum=%d", sum_gpio);
-				PDBG("gpio_off_set=%d", (int)offset);
-			}
 
 			Reg* reg = _gpio_reg(gpio_pin);
 			return reg->read_pin(gpio, offset) ;
@@ -157,15 +129,13 @@ class Gpio::Odroid_x2_driver : public Driver
 		}
 
 		void debounce_enable(unsigned gpio, bool enable) {
-			PWRN("Not supported!"); }
+			Genode::warning("debounce_enable not supported!"); }
 
 		void debounce_time(unsigned gpio, unsigned long us) {
-			PWRN("Not supported!"); }
+			Genode::warning("debounce_time not supported!"); }
 
 		void falling_detect(unsigned gpio_pin)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
-
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
 			Genode::off_t offset   = _irq_offset[pos_gpio];
@@ -177,8 +147,6 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		void rising_detect(unsigned gpio_pin)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
-
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
 			Genode::off_t offset   = _irq_offset[pos_gpio];
@@ -191,7 +159,6 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		void high_detect(unsigned gpio_pin)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
 			Genode::off_t offset   = _irq_offset[pos_gpio];
@@ -204,8 +171,6 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		void low_detect(unsigned gpio_pin)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
-
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
 			Genode::off_t offset   = _irq_offset[pos_gpio];
@@ -218,28 +183,23 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		void irq_enable(unsigned gpio_pin, bool enable)
 		{
-			if (verbose) PDBG("gpio=%d enable=%d", gpio_pin, enable);
 			_irq_enabled[gpio_pin] = enable;
 		}
 
 		void ack_irq(unsigned gpio_pin)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
-
 			_irq.ack_irq();
 		}
 
 		void register_signal(unsigned gpio_pin,
 		                     Genode::Signal_context_capability cap)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
 			_sig_cap[gpio_pin] = cap;
 
 		}
 
 		void unregister_signal(unsigned gpio_pin)
 		{
-			if (verbose) PDBG("gpio=%d", gpio_pin);
 			Genode::Signal_context_capability cap;
 			_sig_cap[gpio_pin] = cap;
 

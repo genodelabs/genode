@@ -42,7 +42,7 @@ clone_rom(Genode::Capability<Genode::Rom_dataspace> rom_cap)
 	Capability<Ram_dataspace> clone_cap = env()->ram_session()->alloc(rom_size);
 
 	if (!clone_cap.valid()) {
-		PERR("%s: memory allocation for cloned dataspace failed", __func__);
+		error(__func__, ": memory allocation for cloned dataspace failed");
 		return Capability<Ram_dataspace>();
 	}
 

@@ -178,7 +178,7 @@ struct Main
 			try {
 				if (use_file) {
 					Genode::log("Creating RAM-basd block device populated by file='",
-					            (char const*)file, "' with block size ", block_size);
+					            Genode::Cstring(file), "' with block size ", block_size);
 					return new (&alloc) Ram_blk(env, alloc, file, block_size);
 				} else {
 					Genode::log("Creating RAM-based block device with size ",

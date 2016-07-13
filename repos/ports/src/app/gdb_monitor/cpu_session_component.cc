@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <cpu_session_component.h>
 #include <util/list.h>
@@ -109,7 +109,7 @@ int Cpu_session_component::send_signal(Thread_capability thread_cap,
 			Signal_transmitter(cpu_thread->sigint_signal_context_cap()).submit();
 			return 1;
 		default:
-			PERR("unexpected signal %d", signo);
+			error("unexpected signal ", signo);
 			return 0;
 	}
 }
@@ -268,8 +268,8 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 		_thread_list.remove(cpu_thread);
 		destroy(_md_alloc, cpu_thread);
 	} else
-		PERR("%s: could not find thread info for the given thread capability",
-		     __PRETTY_FUNCTION__);
+		error(__PRETTY_FUNCTION__, ": "
+		      "could not find thread info for the given thread capability");
 
 	_parent_cpu_session.kill_thread(thread_cap);
 }

@@ -20,7 +20,8 @@
 #include <base/rpc_server.h>
 #include <base/sleep.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/heap.h>
+#include <base/log.h>
 #include <os/config.h>
 #include <base/session_label.h>
 
@@ -115,7 +116,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			}
 
 			if (!file_found) {
-				PERR("couldn't find file '%s', empty result", _filename);
+				Genode::error("couldn't find file '", _filename, "', empty result");
 				return Genode::Ram_dataspace_capability();
 			}
 
@@ -127,7 +128,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 				/* get content of file copied into dataspace and return */
 				_copy_content_to_dataspace(file_ds);
 			} catch (...) {
-				PERR("couldn't allocate memory for file, empty result\n");
+				Genode::error("couldn't allocate memory for file, empty result");
 				return file_ds;
 			}
 
@@ -186,7 +187,7 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 			Session_label const label = label_from_args(args);
 			Session_label const module_name = label.last_element();
 
-			PINF("connection for module '%s' requested", module_name.string());
+			Genode::log("connection for module '", module_name, "' requested");
 
 			/* create new session for the requested file */
 			return new (md_alloc()) Rom_session_component(_tar_addr, _tar_size,
@@ -225,7 +226,7 @@ int main(void)
 			config()->xml_node().sub_node("archive");
 		archive_node.attribute("name").value(tar_filename, sizeof(tar_filename));
 	} catch (...) {
-		PERR("Could not read 'filename' argument from config");
+		Genode::error("could not read 'filename' argument from config");
 		return -1;
 	}
 
@@ -237,11 +238,11 @@ int main(void)
 		tar_base = env()->rm_session()->attach(tar_rom.dataspace());
 		tar_size = Dataspace_client(tar_rom.dataspace()).size();
 	} catch (...) {
-		PERR("Could not obtain tar archive from ROM service");
+		Genode::error("could not obtain tar archive from ROM service");
 		return -2;
 	}
 
-	PINF("using tar archive '%s' with size %zd", tar_filename, tar_size);
+	Genode::log("using tar archive '", Cstring(tar_filename), "' with size ", tar_size);
 
 	/* connection to capability service needed to create capabilities */
 	static Cap_connection cap;

@@ -16,7 +16,7 @@
 #include <cap_session/connection.h>
 #include <timer_session/connection.h>
 #include <dataspace/client.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <os/config.h>
 #include <os/static_root.h>
@@ -81,7 +81,7 @@ class Framebuffer::Session_component
 			_phys_base(Dataspace_client(_ds).phys_addr())
 		{
 			if (driver.init_drv(width, height, _format, output, _phys_base)) {
-				PERR("Could not initialize display");
+				error("could not initialize display");
 				struct Could_not_initialize_display : Exception { };
 				throw Could_not_initialize_display();
 			}
@@ -137,7 +137,7 @@ struct Main
 			}
 		}
 		catch (...) {
-			PDBG("using default configuration: HDMI@%dx%d", width, height);
+			log("using default configuration: HDMI@", width, "x", height);
 		}
 
 		/* let entrypoint serve the framebuffer session and root interfaces */

@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <os/attached_ram_dataspace.h>
 #include <util/string.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Noux {
 
@@ -90,7 +90,7 @@ namespace Noux {
 			{
 				for (unsigned i = 0, j = 0; _buf[i] && (i < _buf_size - 2);
 				     i += strlen(&_buf[i]) + 1, j++)
-					PINF("arg(%u): \"%s\"", j, &_buf[i]);
+					log("arg(", j, "): \"", Cstring(&_buf[i]), "\"");
 			}
 	};
 

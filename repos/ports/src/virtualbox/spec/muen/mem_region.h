@@ -84,11 +84,11 @@ struct Mem_region : Genode::List<Mem_region>::Element,
 
 			struct Genode::Sinfo::Memregion_info region1, region4;
 			if (!sinfo.get_memregion_info("vm_ram_1", &region1)) {
-				PERR("Unable to retrieve vm_ram_1 region");
+				Genode::error("unable to retrieve vm_ram_1 region");
 				return 0;
 			}
 			if (!sinfo.get_memregion_info("vm_ram_4", &region4)) {
-				PERR("Unable to retrieve vm_ram_4 region");
+				Genode::error("unable to retrieve vm_ram_4 region");
 				return 0;
 			}
 
@@ -102,7 +102,7 @@ struct Mem_region : Genode::List<Mem_region>::Element,
 
 			if (cur_region.size == 0)
 			{
-				PERR("Region size is zero!!!");
+				Genode::error("region size is zero!!!");
 				return 0;
 			}
 			counter++;
@@ -110,7 +110,8 @@ struct Mem_region : Genode::List<Mem_region>::Element,
 		}
 
 		if (size > cur_region.size)
-			PERR("Size: 0x%zx, cur_region.size: 0x%zx", size, cur_region.size);
+			Genode::error("size: ", Genode::Hex(size), ", "
+			              "cur_region.size: ", Genode::Hex(cur_region.size));
 		Assert(size <= cur_region.size);
 
 		return cur_region.base;

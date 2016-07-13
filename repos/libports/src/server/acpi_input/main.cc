@@ -15,6 +15,7 @@
 /* base includes */
 #include <base/component.h>
 #include <base/log.h>
+#include <base/heap.h>
 #include <util/avl_tree.h>
 
 /* os includes */

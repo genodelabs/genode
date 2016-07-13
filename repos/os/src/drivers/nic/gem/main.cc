@@ -45,13 +45,7 @@ class Gem_session_component
 			try {
 				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
 				nic_config.attribute("mac").value(&mac_addr);
-				PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
-						mac_addr.addr[0],
-						mac_addr.addr[1],
-						mac_addr.addr[2],
-						mac_addr.addr[3],
-						mac_addr.addr[4],
-						mac_addr.addr[5]	);
+				Genode::log("Using configured MAC address ", mac_addr);
 			} catch (...) {
 				/* fall back to fake MAC address (unicast, locally managed) */
 				mac_addr.addr[0] = 0x02;

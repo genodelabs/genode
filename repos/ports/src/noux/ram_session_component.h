@@ -80,8 +80,8 @@ namespace Noux {
 		void poke(addr_t dst_offset, void const *src, size_t len)
 		{
 			if ((dst_offset >= size()) || (dst_offset + len > size())) {
-			 	PERR("illegal attemt to write beyond dataspace boundary");
-			 	return;
+				error("illegal attemt to write beyond dataspace boundary");
+				return;
 			}
 
 			char *dst = 0;
@@ -159,7 +159,7 @@ namespace Noux {
 					ds_info = rdi;
 
 					if (!ds_info) {
-						PERR("RAM free: dataspace lookup failed");
+						error("RAM free: dataspace lookup failed");
 						return;
 					}
 

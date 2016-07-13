@@ -119,7 +119,7 @@ int main(int, char **)
 	using namespace Framebuffer;
 	using namespace Genode;
 
-	printf("--- fb_drv started ---\n");
+	log("--- fb_drv started ---");
 
 	static Platform::Connection platform;
 

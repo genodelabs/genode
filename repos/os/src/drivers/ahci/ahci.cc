@@ -104,16 +104,21 @@ struct Ahci
 
 	void info()
 	{
-		PINF("\tversion: %x.%04x", hba.read<Hba::Version::Major>(),
-		                           hba.read<Hba::Version::Minor>());
-		PINF("\tcommand slots: %u", hba.command_slots());
-		PINF("\tnative command queuing: %s", hba.ncq() ? "yes" : "no");
-		PINF("\t64 bit support: %s", hba.supports_64bit() ? "yes" : "no");
+		using Genode::log;
+
+		log("version: "
+		    "major=", Genode::Hex(hba.read<Hba::Version::Major>()), " "
+		    "minor=", Genode::Hex(hba.read<Hba::Version::Minor>()));
+		log("command slots: ", hba.command_slots());
+		log("native command queuing: ", hba.ncq() ? "yes" : "no");
+		log("64-bit support: ", hba.supports_64bit() ? "yes" : "no");
 	}
 
 	void scan_ports(Genode::Region_map &rm)
 	{
-		PINF("\tnumber of ports: %u pi: %x", hba.port_count(), hba.read<Hba::Pi>());
+		Genode::log("number of ports: ", hba.port_count(), " "
+		            "pi: ", Genode::Hex(hba.read<Hba::Pi>()));
+
 		unsigned available = hba.read<Hba::Pi>();
 		for (unsigned i = 0; i < hba.port_count(); i++) {
 
@@ -126,7 +131,7 @@ struct Ahci
 			/* check for ATA/ATAPI devices */
 			unsigned sig = port.read<Port::Sig>();
 			if (!atapi(sig) && !ata(sig)) {
-				PINF("\t\t#%u: off", i);
+				Genode::log("\t\t#", i, ": off");
 				continue;
 			}
 
@@ -134,9 +139,9 @@ struct Ahci
 
 			bool enabled = false;
 			try { enabled = port.enable(); }
-			catch (Port::Not_ready) { PERR("Could not enable port %u", i); }
+			catch (Port::Not_ready) { Genode::error("could not enable port ", i); }
 
-			PINF("\t\t#%u: %s", i, atapi(sig) ? "ATAPI" : "ATA");
+			Genode::log("\t\t#", i, ": ", atapi(sig) ? "ATAPI" : "ATA");
 
 			if (!enabled)
 				continue;
@@ -156,7 +161,7 @@ struct Ahci
 					break;
 
 				default:
-					PWRN("Device signature %x unsupported", sig);
+					Genode::warning("device signature ", Genode::Hex(sig), " unsupported");
 			}
 		}
 	};

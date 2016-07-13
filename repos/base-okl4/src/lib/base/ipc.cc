@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/log.h>
 #include <base/ipc.h>
 #include <base/blocking.h>
@@ -93,8 +92,9 @@ static L4_Word_t extract_msg_from_utcb(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg
 	unsigned const num_data_words = num_msg_words - data_start_idx;
 
 	if (num_data_words*sizeof(L4_Word_t) > rcv_msg.capacity()) {
-		PERR("receive message buffer too small msg size=%zd, buf size=%zd",
-		     num_data_words*sizeof(L4_Word_t), rcv_msg.capacity());
+		error("receive message buffer too small,"
+		      "msg size=", num_data_words*sizeof(L4_Word_t), ", "
+		      "buf size=", rcv_msg.capacity());
 		return Rpc_exception_code::INVALID_OBJECT;
 	}
 
@@ -197,7 +197,7 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	L4_MsgTag_t rcv_tag = L4_Reply(Capability_space::ipc_cap_data(caller).dst);
 
 	if (L4_IpcFailed(rcv_tag))
-		PERR("ipc error in _reply - gets ignored");
+		error("ipc error in ipc_reply - gets ignored");
 }
 
 

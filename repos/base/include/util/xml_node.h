@@ -105,7 +105,7 @@ class Genode::Xml_attribute
 
 		typedef String<64> Name;
 		Name name() const {
-			return Name(_name.start(), _name.len()); }
+			return Name(Cstring(_name.start(), _name.len())); }
 
 		/**
 		 * Return true if attribute has specified type
@@ -171,7 +171,7 @@ class Genode::Xml_attribute
 		{
 			char buf[N];
 			value(buf, sizeof(buf));
-			*out = String<N>(buf);
+			*out = String<N>(Cstring(buf));
 		}
 
 		/**
@@ -599,7 +599,7 @@ class Genode::Xml_node
 		Type type() const
 		{
 			Token name = _start_tag.name();
-			return Type(name.start(), name.len());
+			return Type(Cstring(name.start(), name.len()));
 		}
 
 		/**
@@ -705,7 +705,7 @@ class Genode::Xml_node
 			char buf[STRING::capacity() + 1];
 			size_t const len = decoded_content(buf, sizeof(buf));
 			buf[min(len, STRING::capacity())] = 0;
-			return STRING(buf);
+			return STRING(Cstring(buf));
 		}
 
 		/**

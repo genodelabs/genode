@@ -14,13 +14,14 @@
 
 #include <base/env.h>
 #include <base/slab.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_guard.h>
 #include <timer_session/connection.h>
 
 
 using Genode::size_t;
-using Genode::printf;
+using Genode::log;
+using Genode::error;
 
 
 struct Array_of_slab_elements
@@ -50,7 +51,7 @@ struct Array_of_slab_elements
 	{
 		elem = (void **)Genode::env()->heap()->alloc(_elem_array_size());
 
-		printf(" allocate %zu elements\n", num_elem);
+		log(" allocate ", num_elem, " elements");
 		for (size_t i = 0; i < num_elem; i++)
 			if (!slab.alloc(slab_size, &elem[i]))
 				throw Alloc_failed();
@@ -58,7 +59,7 @@ struct Array_of_slab_elements
 
 	~Array_of_slab_elements()
 	{
-		printf(" free %zu elements\n", num_elem);
+		log(" free ", num_elem, " elements");
 		for (size_t i = 0; i < num_elem; i++)
 			slab.free(elem[i], slab_size);
 
@@ -69,7 +70,7 @@ struct Array_of_slab_elements
 
 int main(int argc, char **argv)
 {
-	printf("--- slab test ---\n");
+	log("--- slab test ---");
 
 	static Timer::Connection timer;
 
@@ -80,15 +81,16 @@ int main(int argc, char **argv)
 		Genode::Slab slab(SLAB_SIZE, BLOCK_SIZE, nullptr, &alloc);
 
 		for (unsigned i = 1; i <= 10; i++) {
-			printf("round %u (used quota: %zu, time: %ld ms)\n",
-			       i, alloc.consumed(), timer.elapsed_ms());
+			log("round ", i, " ("
+			    "used quota: ", alloc.consumed(), " "
+			    "time: ", timer.elapsed_ms(), " ms)");
 
 			Array_of_slab_elements array(slab, i*100000, SLAB_SIZE);
-			printf(" allocation completed (used quota: %zu", alloc.consumed());
+			log(" allocation completed (used quota: ", alloc.consumed(), ")");
 		}
 
-		printf(" finished (used quota: %zu, time: %ld ms)\n",
-		       alloc.consumed(), timer.elapsed_ms());
+		log(" finished (used quota: ", alloc.consumed(), ", "
+		    "time: ", timer.elapsed_ms(), " ms)");
 
 		/*
 		 * The slab keeps two empty blocks around. For the test, we also need to
@@ -97,15 +99,15 @@ int main(int argc, char **argv)
 		 */
 		enum { HEAP_OVERHEAD = 36 };
 		if (alloc.consumed() > 2*(BLOCK_SIZE + HEAP_OVERHEAD)) {
-			PERR("slab failed to release empty slab blocks");
+			error("slab failed to release empty slab blocks");
 			return -1;
 		}
 	}
 
 	/* validate slab destruction */
-	printf("destructed slab (used quota: %zu)\n", alloc.consumed());
+	log("destructed slab (used quota: ", alloc.consumed(), ")");
 	if (alloc.consumed() > 0) {
-		PERR("slab failed to release all backing store");
+		error("slab failed to release all backing store");
 		return -2;
 	}
 

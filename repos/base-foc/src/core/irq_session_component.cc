@@ -14,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/arg_string.h>
 #include <util/bit_array.h>
 
@@ -100,9 +100,8 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 	_polarity = polarity;
 
 	using namespace Fiasco;
-	if (l4_error(l4_factory_create_irq(L4_BASE_FACTORY_CAP,
-	                                   _capability()))) {
-		PERR("l4_factory_create_irq failed!");
+	if (l4_error(l4_factory_create_irq(L4_BASE_FACTORY_CAP, _capability()))) {
+		error("l4_factory_create_irq failed!");
 		return false;
 	}
 
@@ -111,7 +110,7 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 		gsi |= L4_ICU_FLAG_MSI;
 
 	if (l4_error(l4_icu_bind(L4_BASE_ICU_CAP, gsi, _capability()))) {
-		PERR("Binding IRQ %u to the ICU failed", _irq);
+		error("Binding IRQ ", _irq, " to the ICU failed");
 		return false;
 	}
 
@@ -121,13 +120,13 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 
 	if (l4_error(l4_irq_attach(_capability(), reinterpret_cast<l4_umword_t>(this),
 	                           Interrupt_handler::handler_cap()))) {
-		PERR("Error attaching to IRQ %u", _irq);
+		error("cannot attach to IRQ ", _irq);
 		return false;
 	}
 
 	if (_msi_addr && l4_error(l4_icu_msi_info(L4_BASE_ICU_CAP, gsi,
 	                                          &_msi_data))) {
-		PERR("Error getting MSI info");
+		error("cannot get MSI info");
 		return false;
 	}
 
@@ -142,7 +141,7 @@ void Genode::Irq_object::ack_irq()
 	int err;
 	l4_msgtag_t tag = l4_irq_unmask(_capability());
 	if ((err = l4_ipc_error(tag, l4_utcb())))
-		PERR("IRQ unmask: %d\n", err);
+		error("IRQ unmask: ", err);
 }
 
 
@@ -167,10 +166,10 @@ Genode::Irq_object::~Irq_object()
 		gsi |= L4_ICU_FLAG_MSI;
 
 	if (l4_error(l4_irq_detach(_capability())))
-		PERR("Error detaching IRQ");
+		error("cannot detach IRQ");
 
 	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, gsi, _capability())))
-		PERR("Error unbinding IRQ");
+		error("cannot unbind IRQ");
 
 	cap_map()->remove(_cap);
 }
@@ -191,13 +190,13 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi) {
 		if (msi_alloc.get(irq_args.irq_number(), 1)) {
-			PERR("Unavailable MSI %ld requested.",  irq_args.irq_number());
+			error("unavailable MSI ", irq_args.irq_number(), " requested");
 			throw Root::Unavailable();
 		}
 		msi_alloc.set(irq_args.irq_number(), 1);
 	} else {
 		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_args.irq_number()).error()) {
-			PERR("Unavailable IRQ %ld requested.", irq_args.irq_number());
+			error("unavailable IRQ ", irq_args.irq_number(), " requested");
 			throw Root::Unavailable();
 		}
 	}
@@ -263,7 +262,7 @@ void Interrupt_handler::entry()
 	while (true) {
 		tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
 		if ((err = l4_ipc_error(tag, l4_utcb())))
-			PERR("IRQ receive: %d\n", err);
+			error("IRQ receive: ", err);
 		else {
 			Irq_object * irq_object = reinterpret_cast<Irq_object *>(label);
 			irq_object->notify();

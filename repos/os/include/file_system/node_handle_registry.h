@@ -173,10 +173,8 @@ namespace File_system {
 			{
 				Genode::Lock::Guard guard(_lock);
 
-				if (!_in_range(h1.value) || !_in_range(h2.value)) {
-					PDBG("refer_to_same_node -> Invalid_handle");
+				if (!_in_range(h1.value) || !_in_range(h2.value))
 					throw Invalid_handle();
-				}
 
 				return _nodes[h1.value] == _nodes[h2.value];
 			}
@@ -192,10 +190,8 @@ namespace File_system {
 					throw Invalid_handle();
 
 				Node_base *node = dynamic_cast<Node_base *>(_nodes[handle.value]);
-				if (!node) {
-					PDBG("Invalid_handle");
+				if (!node)
 					throw Invalid_handle();
-				}
 
 				node->lock();
 				Node_lock_guard node_lock_guard(node);

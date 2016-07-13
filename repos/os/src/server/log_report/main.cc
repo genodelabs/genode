@@ -16,6 +16,7 @@
 #include <base/heap.h>
 #include <base/env.h>
 #include <base/session_label.h>
+#include <base/printf.h>
 #include <root/component.h>
 #include <os/server.h>
 #include <os/attached_ram_dataspace.h>

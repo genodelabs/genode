@@ -62,6 +62,15 @@ namespace Genode {
 	void print(Output &output, char const *);
 
 	/**
+	 * Disallow printing non-const character buffers
+	 *
+	 * For 'char *' types, it is unclear whether the argument should be printed
+	 * as a pointer or a string. The call must resolve this ambiguity by either
+	 * casting the argument to 'void *' or wrapping it in a 'Cstring' object.
+	 */
+	void print(Output &, char *) = delete;
+
+	/**
 	 * Print pointer value
 	 */
 	void print(Output &output, void const *);

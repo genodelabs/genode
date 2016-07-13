@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/sleep.h>
 
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- test-cpufreq started ---\n");
+	log("--- test-cpufreq started ---");
 
 	static Timer::Connection     timer;
 	static Regulator::Connection cpu_regulator(Regulator::CLK_CPU);
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 
 	while (true) {
 		timer.msleep(10000);
-		PINF("Setting CPU frequency %s", high ? "low" : "high");
+		log("Setting CPU frequency ", high ? "low" : "high");
 		cpu_regulator.level(high ? Regulator::CPU_FREQ_200
 		                         : Regulator::CPU_FREQ_1600);
 		high = !high;

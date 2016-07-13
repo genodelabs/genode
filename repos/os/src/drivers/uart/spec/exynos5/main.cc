@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <os/config.h>
 #include <cap_session/connection.h>
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	PINF("--- Exynos5 UART driver started ---\n");
+	log("--- Exynos5 UART driver started ---");
 
 	/**
 	 * Factory used by 'Terminal::Root' at session creation/destruction time
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
 			if (baudrate == 0)
 			{
-				PDBG("Baudrate is not defined. Use default 115200");
+				warning("Baudrate is not defined. Use default 115200");
 				baudrate = BAUD_115200;
 			}
 

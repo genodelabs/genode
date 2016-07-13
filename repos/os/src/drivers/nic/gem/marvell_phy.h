@@ -255,15 +255,15 @@ namespace Genode
 						 Bmsr::Full_10::get(phyreg) &&
 						 Bmsr::Anegcapable::get(phyreg)) {
 						/* Found a valid PHY address */
-						PDBG("Default phy address %d is valid\n", _phyaddr);
+						log("default phy address ", (int)_phyaddr, " is valid");
 						return;
 					} else {
-						PDBG("PHY address is not setup correctly %d\n", _phyaddr);
+						log("PHY address is not setup correctly ", (int)_phyaddr);
 						_phyaddr = -1;
 					}
 				}
 
-				PDBG("detecting phy address\n");
+				log("detecting phy address");
 				if (_phyaddr == -1) {
 					/* detect the PHY address */
 					for (int i = 31; i >= 0; i--) {
@@ -273,12 +273,12 @@ namespace Genode
 							 Bmsr::Full_10::get(phyreg) &&
 							 Bmsr::Anegcapable::get(phyreg)) {
 							/* Found a valid PHY address */
-							PDBG("Found valid phy address, %d\n", i);
+							log("found valid phy address, ", i);
 							return;
 						}
 					}
 				}
-				PDBG("PHY is not detected\n");
+				warning("PHY is not detected");
 				_phyaddr = -1;
 			}
 
@@ -336,7 +336,7 @@ namespace Genode
 					return result;
 
 				if (result == 0) {
-					PDBG("Config not changed");
+					log("config not changed");
 					/* Advertisment hasn't changed, but maybe aneg was never on to
 					 * begin with?  Or maybe phy was isolated? */
 					uint16_t ctl = phy_read<Bmcr>();
@@ -344,7 +344,7 @@ namespace Genode
 					if (!Bmcr::Anenable::get(ctl) || Bmcr::Isolate::get(ctl))
 						result = 1; /* do restart aneg */
 				} else {
-					PDBG("Config changed");
+					log("config changed");
 				}
 
 				/* Only restart aneg if we are advertising something different
@@ -431,7 +431,7 @@ namespace Genode
 				}
 
 				if (phy_read<Bmcr::Reset>()) {
-					PWRN("PHY reset timed out\n");
+					warning("PHY reset timed out");
 					throw Phy_timeout_after_reset();
 				}
 
@@ -470,13 +470,13 @@ namespace Genode
 				if ( Bmsr::Anegcapable::get(mii_reg) && !Bmsr::Anegcomplete::get(mii_reg) ) {
 					int i = 0;
 
-					Genode::printf("Waiting for PHY auto negotiation to complete");
+					Genode::log("waiting for PHY auto negotiation to complete");
 					while (!Bmsr::Anegcomplete::get(mii_reg)) {
 						/*
 						 * Timeout reached ?
 						 */
 						if (i > PHY_AUTONEGOTIATE_TIMEOUT) {
-							PWRN(" TIMEOUT !\n");
+							warning(" TIMEOUT !");
 							_link_up = false;
 							return 0;
 						}
@@ -487,7 +487,7 @@ namespace Genode
 
 						mii_reg = phy_read<Bmsr>();
 					}
-					Genode::printf(" done\n");
+					Genode::log(" done");
 					_link_up = true;
 				} else {
 					/* Read the link a second time to clear the latched state */
@@ -514,11 +514,11 @@ namespace Genode
 					 !Phy_stat::Spddone::get(stat)) {
 					int i = 0;
 
-					PDBG("Waiting for PHY realtime link");
+					log("waiting for PHY realtime link");
 					while (!phy_read<Phy_stat::Spddone>()) {
 						/* Timeout reached ? */
 						if (i > PHY_AUTONEGOTIATE_TIMEOUT) {
-							PWRN(" TIMEOUT !");
+							warning(" TIMEOUT !");
 							_link_up = false;
 							break;
 						}
@@ -527,7 +527,7 @@ namespace Genode
 							Genode::printf(".");
 						_timer.msleep(1);
 					}
-					PINF(" done");
+					log(" done");
 					_timer.msleep(500);
 				} else {
 					if (Phy_stat::Link::get(stat))
@@ -562,7 +562,7 @@ namespace Genode
 				phy_detection();
 
 				uint32_t phy_id = get_phy_id();
-				PDBG("The found phy has the id %08x", phy_id);
+				log("the found phy has the id ", Hex(phy_id));
 
 				phy_reset();
 				m88e1310_config();

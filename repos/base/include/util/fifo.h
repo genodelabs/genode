@@ -14,8 +14,6 @@
 #ifndef _INCLUDE__UTIL__FIFO_H_
 #define _INCLUDE__UTIL__FIFO_H_
 
-#include <base/printf.h>
-
 namespace Genode {
 	
 	template<typename> class Fifo;

@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 extern "C" {
 	typedef long DUMMY;
@@ -24,24 +24,30 @@ enum {
 
 #define DUMMY(retval, name) \
 	DUMMY name(void) { \
-	if (SHOW_DUMMY) \
-		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
-	return retval; \
-}
+		if (SHOW_DUMMY) \
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "not implemented"); \
+		return retval; \
+	}
 
 #define DUMMY_SKIP(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SKIP) \
-			PLOG( #name " called (from %p) skipped", __builtin_return_address(0)); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "skipped"); \
+		return retval; \
+	}
 
 #define DUMMY_RET(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_RET) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
 
 DUMMY(0, getprotobyname)
 DUMMY(0, getprotobynumber)

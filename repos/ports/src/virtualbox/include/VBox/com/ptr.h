@@ -3,7 +3,7 @@
 
 #include <VBox/com/defs.h>
 
-#include <base/printf.h>
+#include <base/log.h>
 
 template <typename T>
 class ComPtr {
@@ -23,7 +23,7 @@ class ComPtr {
 		ComPtr<T> (X *obj) : _obj(dynamic_cast<T*>(obj))
 		{
 			if (!_obj)
-				PDBG("dynamic cast failed");
+				Genode::log(__func__, ": dynamic cast failed");
 		}
 
 		template <class T2>
@@ -49,7 +49,7 @@ class ComPtr {
 		{
 			_obj = dynamic_cast<T*>(p);
 			if (!_obj)
-				PDBG("dynamic cast failed");
+				Genode::log(__func__, ": dynamic cast failed");
 			return *this;
 		}
 

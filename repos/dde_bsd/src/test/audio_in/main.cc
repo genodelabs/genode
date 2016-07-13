@@ -16,7 +16,7 @@
 /* Genode includes */
 #include <audio_out_session/connection.h>
 #include <audio_in_session/connection.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
 #include <os/config.h>
@@ -88,8 +88,8 @@ class Recording
 			unsigned pos  = _stream.pos();
 			unsigned tail = _stream.tail();
 
-			PWRN("record overrun, pos: %u tail: %u overriden: %u",
-			     pos, tail, tail - pos);
+			Genode::warning("record overrun, pos: ", pos, " tail: ", tail, " ",
+			                "overriden: ", tail - pos);
 
 			/*
 			 * Normally you would handle this case properly by saving all
@@ -123,7 +123,7 @@ class Recording
 
 int main(int argc, char *argv[])
 {
-	PDBG("--- Audio_in test ---\n");
+	Genode::log("--- Audio_in test ---");
 
 	using namespace Genode;
 

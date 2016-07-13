@@ -29,9 +29,6 @@ namespace Okl4 { extern "C" {
 using namespace Genode;
 
 
-static const bool verbose = false;
-
-
 /****************************
  ** Private object members **
  ****************************/
@@ -61,8 +58,7 @@ void Platform_pd::_create_pd(bool syscall)
 	                          resources, &old_resources);
 
 	if (ret != 1)
-		PERR("L4_SpaceControl(new) returned %d, error code=%d",
-		     ret, (int)L4_ErrorCode());
+		error("L4_SpaceControl(new) returned ", ret, ", error=", L4_ErrorCode());
 }
 
 
@@ -87,8 +83,7 @@ void Platform_pd::_destroy_pd()
 	                          resources, &old_resources);
 
 	if (ret != 1)
-		PERR("L4_SpaceControl(delete) returned %d, error code=%d",
-		     ret, (int)L4_ErrorCode());
+		error("L4_SpaceControl(delete) returned ", ret, ", error=", L4_ErrorCode());
 }
 
 
@@ -166,7 +161,8 @@ int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
 void Platform_pd::_free_thread(int thread_id)
 {
 	if (!_threads[thread_id])
-		PWRN("double-free of thread %x.%x detected", _pd_id, thread_id);
+		warning("double-free of thread ",
+		        Hex(_pd_id), ".", Hex(thread_id), " detected");
 
 	_threads[thread_id] = 0;
 }
@@ -186,7 +182,7 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 
 	int t = _alloc_thread(thread_id, thread);
 	if (t < 0) {
-		PERR("thread alloc failed");
+		error("thread alloc failed");
 		return false;
 	}
 	thread_id = t;
@@ -206,8 +202,6 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 	thread->unbind();
 
 	_free_thread(thread_id);
-
-	if (verbose) _debug_log_threads();
 }
 
 
@@ -232,23 +226,17 @@ void Platform_pd::space_pager(Platform_thread *thread)
 	                      resources, &old_resources);
 
 	if (ret != 1)
-		PERR("L4_SpaceControl(new space_pager...) returned %d, error code=%d",
-		     ret, (int)L4_ErrorCode());
+		error("L4_SpaceControl(new space_pager...) returned ", ret, ", error=",
+		      L4_ErrorCode());
 
 	/* grant the pager mapping rights regarding this space */
 	if(!L4_AllowUserMapping(pager_space, 0x0, 0xff000000))
-		PERR("Failed to delegate pt access to %lx, error %lx",
-		     pager_space.raw, L4_ErrorCode());
+		error("failed to delegate pt access to ", Hex(pager_space.raw), ", "
+		      "error=", L4_ErrorCode());
 }
 
 
-void Platform_pd::_setup_address_space()
-{
-	PERR("not yet implemented");
-}
-
-
-static const bool verbose_unmap = false;
+void Platform_pd::_setup_address_space() { }
 
 
 static void unmap_log2_range(unsigned pd_id, addr_t base, size_t size_log2)
@@ -259,8 +247,8 @@ static void unmap_log2_range(unsigned pd_id, addr_t base, size_t size_log2)
 	L4_FpageAddRightsTo(&fpage, L4_FullyAccessible);
 	int ret = L4_UnmapFpage(L4_SpaceId(pd_id), fpage);
 	if (ret != 1)
-		PERR("could not unmap page at %p from space %x (Error Code %ld)",
-		     (void *)base, pd_id, L4_ErrorCode());
+		error("could not unmap page at ", Hex(base), " from space ", Hex(pd_id), ", "
+		      "error=", L4_ErrorCode());
 }
 
 
@@ -270,9 +258,6 @@ void Platform_pd::flush(addr_t addr, size_t size)
 
 	L4_Word_t remaining_size = size;
 	L4_Word_t size_log2      = get_page_size_log2();
-
-	if (verbose_unmap)
-		printf("PD %d: unmap [%lx,%lx)\n", _pd_id, addr, addr + size);
 
 	/*
 	 * Let unmap granularity ('size_log2') grow
@@ -334,7 +319,7 @@ Platform_pd::Platform_pd(Allocator *, char const *label)
 	_pd_id = _alloc_pd();
 
 	if (_pd_id > PD_MAX)
-		PERR("pd alloc failed");
+		error("pd alloc failed");
 
 	_create_pd(true);
 }
@@ -352,18 +337,3 @@ Platform_pd::~Platform_pd()
 	_free_pd();
 }
 
-
-/***********************
- ** Debugging support **
- ***********************/
-
-void Platform_pd::_debug_log_threads()
-{
-	PWRN("_debug_log_threads disabled.");
-}
-
-
-void Platform_pd::_debug_log_pds()
-{
-	PWRN("_debug_log_pds disabled.");
-}

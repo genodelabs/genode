@@ -296,9 +296,6 @@ size_t copy_from_iter(void *addr, size_t bytes, struct iov_iter *i)
 		iov++;
 	}
 
-	// PDBG("addr: %p bytes: %zu iov_base: %p iov_len: %zu len: %zu",
-	//      addr, bytes, i->iov->iov_base, i->iov->iov_len, len);
-
 	return bytes;
 }
 
@@ -325,9 +322,6 @@ size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
 		}
 		iov++;
 	}
-
-	// PDBG("addr: %p bytes: %zu iov_base: %p iov_len: %zu len: %zu",
-	//      addr, bytes, i->iov->iov_base, i->iov->iov_len, len);
 
 	return bytes;
 }

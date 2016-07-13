@@ -28,7 +28,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 	page->paddr = Genode::Dataspace_client(ds_cap).phys_addr();
 
 	if (!page->addr) {
-		PERR("alloc_pages: %zu failed", size);
+		Genode::error("alloc_pages: ", size, " failed");
 		kfree(page);
 		return 0;
 	}

@@ -110,8 +110,8 @@ class Audio_out::Session_client : public Genode::Rpc_client<Session>
 		void wait_for_progress()
 		{
 			if (!_progress.cap.valid()) {
-				PWRN("Progress signal is not installed, will not block "
-				     "(enable in 'Audio_out::Connection')");
+				Genode::warning("Progress signal is not installed, will not block "
+				                "(enable in 'Audio_out::Connection')");
 				return;
 			}
 
@@ -127,8 +127,8 @@ class Audio_out::Session_client : public Genode::Rpc_client<Session>
 		void wait_for_alloc()
 		{ 
 			if (!_alloc.cap.valid()) {
-				PWRN("Alloc signal is not installed, will not block "
-				     "(enable in 'Audio_out::Connection')");
+				Genode::warning("Alloc signal is not installed, will not block "
+				                "(enable in 'Audio_out::Connection')");
 				return;
 			}
 

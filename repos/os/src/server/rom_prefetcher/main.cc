@@ -17,9 +17,10 @@
 #include <root/component.h>
 #include <dataspace/client.h>
 #include <base/rpc_server.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/sleep.h>
+#include <base/heap.h>
 #include <os/config.h>
 #include <timer_session/connection.h>
 #include <base/session_label.h>
@@ -125,10 +126,10 @@ int main(int argc, char **argv)
 
 			try {
 				Rom_connection rom(name);
-				PINF("prefetching ROM file  %s", name);
+				log("prefetching ROM module ", Cstring(name));
 				prefetch_dataspace(rom.dataspace());
 			} catch (...) {
-				PERR("could not open ROM file %s", name);
+				error("could not open ROM module ", Cstring(name));
 			}
 
 			/* proceed with next XML node */

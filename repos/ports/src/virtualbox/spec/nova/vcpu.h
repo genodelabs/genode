@@ -16,7 +16,7 @@
 #define _VIRTUALBOX__SPEC__NOVA__VCPU_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/semaphore.h>
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
@@ -174,13 +174,14 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				Assert(utcb->flags & X86_EFL_IF);
 
 				if (utcb->intr_state != INTERRUPT_STATE_NONE)
-					Vmm::printf("intr state %x %x\n", utcb->intr_state, utcb->intr_state & 0xF);
+					Vmm::log("intr state ", Genode::Hex(utcb->intr_state),
+					         " ", Genode::Hex(utcb->intr_state & 0xf));
 
 				Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
 
 /*
 				if (!continue_hw_accelerated(utcb))
-					Vmm::printf("WARNING - recall ignored during IRQ delivery\n");
+					Vmm::log("WARNING - recall ignored during IRQ delivery");
 */
 				/* got recall during irq injection and the guest is ready for
 				 * delivery of IRQ - just continue */
@@ -227,7 +228,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
 			if (unmap) {
-				PERR("unmap not implemented\n");
+				Vmm::log("error: unmap not implemented");
 				Nova::reply(_stack_reply);
 			}
 
@@ -296,9 +297,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				res = utcb->append_item(crd, flexpage.hotspot, USER_PD, GUEST_PGT);
 
 				if (debug_map_memory)
-					Vmm::printf("map guest mem %p+%x -> %lx - reason %lx\n",
-					            flexpage.addr, 1UL << flexpage.log2_order,
-					            flexpage.hotspot, reason);
+					Vmm::log("map guest mem ", Genode::Hex(flexpage.addr),
+					         "+", 1UL << flexpage.log2_order, " -> ", 
+					         Genode::Hex(flexpage.hotspot), " reason=", reason);
 			} while (res);
 
 			Nova::reply(_stack_reply);
@@ -312,7 +313,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		void _register_handler(Genode::addr_t exc_base, Nova::Mtd mtd)
 		{
 			if (!register_handler<EV, Vcpu_handler, FUNC>(exc_base, mtd))
-				PERR("could not register handler %lx", exc_base + EV);
+				Genode::error("could not register handler ",
+				              Genode::Hex(exc_base + EV));
 		}
 
 
@@ -616,8 +618,11 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			_last_inj_error = utcb->inj_error;
 
 /*
-			Vmm::printf("type:info:vector %x:%x:%x intr:actv - %x:%x mtd %x\n",
-			     Event.n.u3Type, utcb->inj_info, u8Vector, utcb->intr_state, utcb->actv_state, utcb->mtd);
+			Vmm::log("type:info:vector ", Genode::Hex(Event.n.u3Type),
+			         Genode::Hex(utcb->inj_info), Genode::Hex(u8Vector),
+			         " intr:actv - ", Genode::Hex(utcb->intr_state),
+			         Genode::Hex(utcb->actv_state), " mtd ",
+			         Genode::Hex(utcb->mtd));
 */
 			utcb->mtd = Nova::Mtd::INJ | Nova::Mtd::FPU;
 			Nova::reply(_stack_reply);
@@ -645,13 +650,13 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 #define VERBOSE_VM(flag) \
 			do { \
 				if (VM_FF_IS_PENDING(_current_vm, flag)) \
-					Vmm::printf("flag " #flag " pending\n"); \
+					Vmm::log("flag ", flag, " pending"); \
 			} while (0)
 
 #define VERBOSE_VMCPU(flag) \
 			do { \
 				if (VMCPU_FF_IS_PENDING(_current_vcpu, flag)) \
-					Vmm::printf("flag " #flag " pending\n"); \
+					Vmm::log("flag ", flag, " pending"); \
 			} while (0)
 
 			if (verbose) {
@@ -732,7 +737,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			using namespace Nova;
 
 			if (ec_ctrl(EC_RECALL, _ec_sel) != NOVA_OK) {
-				PERR("recall failed");
+				Genode::error("recall failed");
 				Genode::Lock lock(Genode::Lock::LOCKED);
 				lock.lock();
 			}
@@ -746,88 +751,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		void wake_up()
 		{
 			_halt_sem.up();
-		}
-
-		inline void dump_register_state(PCPUMCTX pCtx)
-		{
-			PINF("pCtx");
-			PLOG("ip:sp:efl ax:bx:cx:dx:si:di %llx:%llx:%llx"
-			     " %llx:%llx:%llx:%llx:%llx:%llx",
-			     pCtx->rip, pCtx->rsp, pCtx->rflags.u, pCtx->rax, pCtx->rbx,
-			     pCtx->rcx, pCtx->rdx, pCtx->rsi, pCtx->rdi);
-
-			PLOG("cs.attr.n.u4LimitHigh=0x%x", pCtx->cs.Attr.n.u4LimitHigh);
-
-			PLOG("cs base:limit:sel:ar %llx:%x:%x:%x", pCtx->cs.u64Base,
-			     pCtx->cs.u32Limit, pCtx->cs.Sel, pCtx->cs.Attr.u);
-			PLOG("ds base:limit:sel:ar %llx:%x:%x:%x", pCtx->ds.u64Base,
-			     pCtx->ds.u32Limit, pCtx->ds.Sel, pCtx->ds.Attr.u);
-			PLOG("es base:limit:sel:ar %llx:%x:%x:%x", pCtx->es.u64Base,
-			     pCtx->es.u32Limit, pCtx->es.Sel, pCtx->es.Attr.u);
-			PLOG("fs base:limit:sel:ar %llx:%x:%x:%x", pCtx->fs.u64Base,
-			     pCtx->fs.u32Limit, pCtx->fs.Sel, pCtx->fs.Attr.u);
-			PLOG("gs base:limit:sel:ar %llx:%x:%x:%x", pCtx->gs.u64Base,
-			     pCtx->gs.u32Limit, pCtx->gs.Sel, pCtx->gs.Attr.u);
-			PLOG("ss base:limit:sel:ar %llx:%x:%x:%x", pCtx->ss.u64Base,
-			     pCtx->ss.u32Limit, pCtx->ss.Sel, pCtx->ss.Attr.u);
-
-			PLOG("cr0:cr2:cr3:cr4 %llx:%llx:%llx:%llx",
-			     pCtx->cr0, pCtx->cr2, pCtx->cr3, pCtx->cr4);
-
-			PLOG("ldtr base:limit:sel:ar %llx:%x:%x:%x", pCtx->ldtr.u64Base,
-			     pCtx->ldtr.u32Limit, pCtx->ldtr.Sel, pCtx->ldtr.Attr.u);
-			PLOG("tr base:limit:sel:ar %llx:%x:%x:%x", pCtx->tr.u64Base,
-			     pCtx->tr.u32Limit, pCtx->tr.Sel, pCtx->tr.Attr.u);
-
-			PLOG("gdtr base:limit %llx:%x", pCtx->gdtr.pGdt, pCtx->gdtr.cbGdt);
-			PLOG("idtr base:limit %llx:%x", pCtx->idtr.pIdt, pCtx->idtr.cbIdt);
-
-			PLOG("dr 0:1:2:3:4:5:6:7 %llx:%llx:%llx:%llx:%llx:%llx:%llx:%llx",
-			     pCtx->dr[0], pCtx->dr[1], pCtx->dr[2], pCtx->dr[3],
-			     pCtx->dr[4], pCtx->dr[5], pCtx->dr[6], pCtx->dr[7]);
-
-			PLOG("sysenter cs:eip:esp %llx %llx %llx", pCtx->SysEnter.cs,
-			     pCtx->SysEnter.eip, pCtx->SysEnter.esp);
-		}
-
-		inline void dump_register_state(Nova::Utcb * utcb)
-		{
-			PINF("utcb");
-			PLOG("ip:sp:efl ax:bx:cx:dx:si:di %lx:%lx:%lx"
-			     " %lx:%lx:%lx:%lx:%lx:%lx",
-			     utcb->ip, utcb->sp, utcb->flags, utcb->ax, utcb->bx,
-			     utcb->cx, utcb->dx, utcb->si, utcb->di);
-
-			PLOG("cs base:limit:sel:ar %lx:%x:%x:%x", utcb->cs.base,
-			     utcb->cs.limit, utcb->cs.sel, utcb->cs.ar);
-			PLOG("ds base:limit:sel:ar %lx:%x:%x:%x", utcb->ds.base,
-			     utcb->ds.limit, utcb->ds.sel, utcb->ds.ar);
-			PLOG("es base:limit:sel:ar %lx:%x:%x:%x", utcb->es.base,
-			     utcb->es.limit, utcb->es.sel, utcb->es.ar);
-			PLOG("fs base:limit:sel:ar %lx:%x:%x:%x", utcb->fs.base,
-			     utcb->fs.limit, utcb->fs.sel, utcb->fs.ar);
-			PLOG("gs base:limit:sel:ar %lx:%x:%x:%x", utcb->gs.base,
-			     utcb->gs.limit, utcb->gs.sel, utcb->gs.ar);
-			PLOG("ss base:limit:sel:ar %lx:%x:%x:%x", utcb->ss.base,
-			     utcb->ss.limit, utcb->ss.sel, utcb->ss.ar);
-
-			PLOG("cr0:cr2:cr3:cr4 %lx:%lx:%lx:%lx",
-			     utcb->cr0, utcb->cr2, utcb->cr3, utcb->cr4);
-
-			PLOG("ldtr base:limit:sel:ar %lx:%x:%x:%x", utcb->ldtr.base,
-			     utcb->ldtr.limit, utcb->ldtr.sel, utcb->ldtr.ar);
-			PLOG("tr base:limit:sel:ar %lx:%x:%x:%x", utcb->tr.base,
-			     utcb->tr.limit, utcb->tr.sel, utcb->tr.ar);
-
-			PLOG("gdtr base:limit %lx:%x", utcb->gdtr.base, utcb->gdtr.limit);
-			PLOG("idtr base:limit %lx:%x", utcb->idtr.base, utcb->idtr.limit);
-
-			PLOG("dr 7 %lx", utcb->dr7);
-
-			PLOG("sysenter cs:eip:esp %lx %lx %lx", utcb->sysenter_cs,
-			     utcb->sysenter_ip, utcb->sysenter_sp);
-
-			PLOG("%x %x %x", utcb->intr_state, utcb->actv_state, utcb->mtd);
 		}
 
 		int run_hw(PVMR0 pVMR0)
@@ -854,7 +777,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			if (!vbox_to_utcb(utcb, pVM, pVCpu) ||
 				!hw_load_state(utcb, pVM, pVCpu)) {
 
-				PERR("loading vCPU state failed");
+				Genode::error("loading vCPU state failed");
 				return VERR_INTERNAL_ERROR;
 			}
 			
@@ -902,7 +825,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			if (!utcb_to_vbox(utcb, pVM, pVCpu) ||
 				!hw_save_state(utcb, pVM, pVCpu)) {
 
-				PERR("saving vCPU state failed");
+				Genode::error("saving vCPU state failed");
 				return VERR_INTERNAL_ERROR;
 			}
 

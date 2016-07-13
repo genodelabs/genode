@@ -77,7 +77,8 @@ class Test::Throughput
 
 				Block::Packet_descriptor p = _session.tx()->get_acked_packet();
 				if (!p.succeeded())
-					PERR("Packet error: block: %llu count: %zu", p.block_number(), p.block_count());
+					error("packet error: block: ", p.block_number(), " "
+					      "count: ", p.block_count());
 
 				if (!_read_done || (_read_done &&  p.operation() == Block::Packet_descriptor::WRITE))
 					_bytes += p.size();
@@ -133,8 +134,8 @@ class Test::Throughput
 			Block::Session::Operations blk_ops;
 			_session.info(&_blk_count, &_blk_size, &blk_ops);
 
-			PWRN("block count %llu size %zu", _blk_count, _blk_size);
-			PINF("read/write %u KB ...", TEST_SIZE / 1024);
+			warning("block count ", _blk_count, " size ", _blk_size);
+			log("read/write ", TEST_SIZE / 1024, " KB ...");
 			_start = _timer.elapsed_ms();
 			_submit();
 		}

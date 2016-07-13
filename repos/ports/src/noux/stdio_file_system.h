@@ -15,7 +15,7 @@
 #define _NOUX__STDIO_FILE_SYSTEM_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <vfs/single_file_system.h>
 
@@ -93,13 +93,12 @@ namespace Noux {
 
 				case Vfs::File_io_service::IOCTL_OP_TIOCSETAW:
 					{
-						PDBG("OP_TIOCSETAW not implemented");
+						warning(__func__, ": OP_TIOCSETAW not implemented");
 						return IOCTL_ERR_INVALID;
 					}
 
 				default:
-
-					PDBG("invalid ioctl(request=0x%x)", opcode);
+					warning(__func__, ": invalid ioctl(request=", Hex(opcode), ")");
 					break;
 				}
 

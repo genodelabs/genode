@@ -27,8 +27,6 @@
 /* local includes */
 #include "gpio.h"
 
-static int verbose = 0;
-
 
 class Imx53_driver : public Gpio::Driver
 {
@@ -154,7 +152,7 @@ class Imx53_driver : public Gpio::Driver
 				return &_gpio_bank_6;
 			}
 
-			PERR("no Gpio_bank for pin %d available", gpio);
+			Genode::error("no Gpio_bank for pin ", gpio, " available");
 			return 0;
 		}
 
@@ -199,8 +197,6 @@ class Imx53_driver : public Gpio::Driver
 
 		void direction(unsigned gpio, bool input)
 		{
-			if (verbose) PDBG("gpio=%d input=%d", gpio, input);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Dir>(input ? 0 : 1,
 			                               _gpio_index(gpio));
@@ -208,8 +204,6 @@ class Imx53_driver : public Gpio::Driver
 
 		void write(unsigned gpio, bool level)
 		{
-			if (verbose) PDBG("gpio=%d level=%d", gpio, level);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 
 			gpio_reg->write<Gpio_reg::Data>(level ? 1 : 0,
@@ -218,26 +212,22 @@ class Imx53_driver : public Gpio::Driver
 
 		bool read(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			return gpio_reg->read<Gpio_reg::Pad_stat>(_gpio_index(gpio));
 		}
 
 		void debounce_enable(unsigned gpio, bool enable)
 		{
-			PWRN("Not supported!");
+			Genode::warning("debounce enable not supported");
 		}
 
 		void debounce_time(unsigned gpio, unsigned long us)
 		{
-			PWRN("Not supported!");
+			Genode::warning("debounce time not supported");
 		}
 
 		void falling_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::FAL_EDGE,
 			                                    _gpio_index(gpio));
@@ -245,8 +235,6 @@ class Imx53_driver : public Gpio::Driver
 
 		void rising_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::RIS_EDGE,
 			                                    _gpio_index(gpio));
@@ -254,8 +242,6 @@ class Imx53_driver : public Gpio::Driver
 
 		void high_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::HIGH_LEVEL,
 			                                    _gpio_index(gpio));
@@ -263,8 +249,6 @@ class Imx53_driver : public Gpio::Driver
 
 		void low_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::LOW_LEVEL,
 			                                    _gpio_index(gpio));
@@ -272,29 +256,21 @@ class Imx53_driver : public Gpio::Driver
 
 		void irq_enable(unsigned gpio, bool enable)
 		{
-			if (verbose) PDBG("gpio=%d enable=%d", gpio, enable);
-
 			_gpio_bank(gpio)->irq(_gpio_index(gpio), enable);
 		}
 
 		void ack_irq(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d ack_irq", gpio);
-
 			_gpio_bank(gpio)->ack_irq(_gpio_index(gpio));
 		}
 
 		void register_signal(unsigned gpio,
 		                     Genode::Signal_context_capability cap)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			_gpio_bank(gpio)->sigh(_gpio_index(gpio), cap); }
 
 		void unregister_signal(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Genode::Signal_context_capability cap;
 			_gpio_bank(gpio)->sigh(_gpio_index(gpio), cap);
 		}

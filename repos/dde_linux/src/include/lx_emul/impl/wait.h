@@ -18,8 +18,8 @@
 void prepare_to_wait(wait_queue_head_t *q, wait_queue_t *w, int state)
 {
 	if (!q) {
-		PWRN("prepare_to_wait: wait_queue_head_t is 0, ignore, called from: %p",
-		    __builtin_return_address(0));
+		Genode::warning("prepare_to_wait: wait_queue_head_t is 0, ignore, "
+		                "called from: ", __builtin_return_address(0));
 		return;
 	}
 
@@ -39,8 +39,8 @@ void prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_t *w, int state)
 void finish_wait(wait_queue_head_t *q, wait_queue_t *w)
 {
 	if (!q) {
-		PWRN("finish_wait: wait_queue_head_t is 0, ignore, called from: %p",
-		    __builtin_return_address(0));
+		Genode::warning("finish_wait: wait_queue_head_t is 0, ignore, ",
+		                "called from: ", __builtin_return_address(0));
 		return;
 	}
 

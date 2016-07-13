@@ -34,7 +34,7 @@ size_t Session_component::subjects()
 
 	} catch (Allocator::Out_of_memory) {
 
-		PWRN("TRACE session ran out of memory");
+		warning("TRACE session ran out of memory");
 		throw Out_of_metadata();
 	}
 

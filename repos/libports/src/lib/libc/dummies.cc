@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <stddef.h>
 #include <errno.h>
 
@@ -37,7 +37,7 @@ extern "C" {
 #define DUMMY(ret_type, ret_val, name, args) __attribute__((weak)) \
 ret_type name args \
 { \
-	PDBG( #name " not implemented"); \
+	Genode::warning(__func__, ": " #name " not implemented"); \
 	errno = ENOSYS;						\
 	return ret_val; \
 }
@@ -128,7 +128,7 @@ DUMMY(pid_t , -1, _wait4, (pid_t, int *, int, struct rusage *))
 
 void ksem_init(void)
 {
-	PDBG("ksem_init called, not yet implemented!");
+	Genode::warning(__func__, " called, not yet implemented!");
 	while (1);
 }
 
@@ -139,7 +139,8 @@ int __attribute__((weak)) madvise(void *addr, size_t length, int advice)
 		/* ignore hint */
 		return 0;
 
-	PDBG("called, not implemented - %p+%zx advice=%d", addr, length, advice);
+	Genode::warning(__func__, " called, not implemented - ", addr, "+",
+	                Genode::Hex(length), " advice=", advice);
 	errno = ENOSYS;
 	return -1;
 }

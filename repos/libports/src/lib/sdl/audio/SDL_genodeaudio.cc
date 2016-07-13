@@ -15,7 +15,7 @@
  */
 
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <audio_out_session/connection.h>
 #include <os/config.h>
@@ -29,6 +29,8 @@ using Genode::env;
 using Genode::Allocator_avl;
 using Genode::Signal_context;
 using Genode::Signal_receiver;
+using Genode::log;
+using Genode::Hex;
 
 static const char *channel_names[] = { "front left", "front right" };
 static float volume = 1.0;
@@ -151,7 +153,7 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 				                      false, channel == 0 ? true : false);
 			_this->hidden->audio[channel]->start();
 		} catch(Genode::Parent::Service_denied) {
-			PERR("Could not connect to 'Audio_out' service.");
+			Genode::error("could not connect to 'Audio_out' service");
 
 			while(--channel > 0)
 				destroy(env()->heap(), _this->hidden->audio[channel]);
@@ -255,10 +257,10 @@ static void GENODEAUD_CloseAudio(_THIS)
 
 static int GENODEAUD_OpenAudio(_THIS, SDL_AudioSpec *spec)
 {
-	PDBG("requested freq = %d", spec->freq);
-	PDBG("requested format = 0x%x", spec->format);
-	PDBG("requested samples = %u", spec->samples);
-	PDBG("requested size = %u", spec->size);
+	log("requested freq=",    spec->freq);
+	log("          format=",  Hex(spec->format));
+	log("          samples=", spec->samples);
+	log("          size=",    spec->size);
 
 	spec->channels = AUDIO_CHANNELS;
 	spec->format = AUDIO_S16LSB;

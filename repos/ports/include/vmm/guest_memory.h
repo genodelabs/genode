@@ -62,7 +62,7 @@ struct Vmm::Virtual_reservation : private Rm_connection, Region_map_client
 			                               PAGE_SIZE, 0, PAGE_SIZE);
 
 		} catch (Rm_session::Region_conflict) {
-			PERR("region conflict while attaching guest-physical memory");
+			error("region conflict while attaching guest-physical memory");
 		}
 	}
 

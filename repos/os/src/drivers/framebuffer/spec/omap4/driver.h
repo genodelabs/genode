@@ -153,17 +153,17 @@ bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 	_hdmi.write<Hdmi::Video_cfg::Start>(0);
 
 	if (!_hdmi.issue_pwr_pll_command(Hdmi::Pwr_ctrl::ALL_OFF, _delayer)) {
-		PERR("Powering off HDMI timed out\n");
+		error("powering off HDMI timed out");
 		return false;
 	}
 
 	if (!_hdmi.issue_pwr_pll_command(Hdmi::Pwr_ctrl::BOTH_ON_ALL_CLKS, _delayer)) {
-		PERR("Powering on HDMI timed out\n");
+		error("powering on HDMI timed out");
 		return false;
 	}
 
 	if (!_hdmi.reset_pll(_delayer)) {
-		PERR("Resetting HDMI PLL timed out\n");
+		error("resetting HDMI PLL timed out");
 		return false;
 	}
 
@@ -182,12 +182,12 @@ bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 	_hdmi.write<Hdmi::Cfg4::Regmf>(0x35555);
 
 	if (!_hdmi.pll_go(_delayer)) {
-		PERR("HDMI PLL GO timed out");
+		error("HDMI PLL GO timed out");
 		return false;
 	}
 
 	if (!_hdmi.issue_pwr_phy_command(Hdmi::Pwr_ctrl::LDOON, _delayer)) {
-		PERR("HDMI Phy power on timed out");
+		error("HDMI Phy power on timed out");
 		return false;
 	}
 
@@ -195,7 +195,7 @@ bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 	_hdmi.write<Hdmi::Txphy_digital_ctrl>(0xf0000000);
 
 	if (!_hdmi.issue_pwr_phy_command(Hdmi::Pwr_ctrl::TXON, _delayer)) {
-		PERR("HDMI Txphy power on timed out");
+		error("HDMI Txphy power on timed out");
 		return false;
 	}
 
@@ -246,7 +246,7 @@ bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 	_dispc.write<Dispc::Control1::Go_tv>(1);
 
 	if (!_dispc.wait_for<Dispc::Control1::Go_tv>(Dispc::Control1::Go_tv::HW_UPDATE_DONE, _delayer)) {
-		PERR("Go_tv timed out");
+		error("Go_tv timed out");
 		return false;
 	}
 
@@ -272,7 +272,7 @@ bool Framebuffer::Driver::init(size_t width, size_t height,
 			ret = _init_hdmi(phys_base);
 			break;
 		default:
-			PERR("Unknown output %d specified", output);
+			error("unknown output ", (int)output, " specified");
 	}
 	return ret;
 }

@@ -319,7 +319,7 @@ struct Io_memory : public Bus_space
 
 int Bsd::probe_drivers(Genode::Env &env, Genode::Allocator &alloc)
 {
-	PINF("--- probe drivers ---");
+	Genode::log("--- probe drivers ---");
 	static Pci_driver drv(env, alloc);
 	return drv.probe();
 }
@@ -529,8 +529,8 @@ extern "C" int bus_dmamap_load(bus_dma_tag_t tag, bus_dmamap_t dmam, void *buf,
 
 extern "C" void bus_dmamap_unload(bus_dma_tag_t, bus_dmamap_t)
 {
-	Genode::log("not implemented, called from ",
-	            __builtin_return_address(0));
+	Genode::warning("not implemented, called from ",
+	                __builtin_return_address(0));
 }
 
 
@@ -590,7 +590,7 @@ extern "C" void bus_dmamem_unmap(bus_dma_tag_t, caddr_t, size_t) { }
 extern "C" paddr_t bus_dmamem_mmap(bus_dma_tag_t, bus_dma_segment_t *,
                                    int, off_t, int, int)
 {
-	Genode::log("not implemented, called from ",
-	            __builtin_return_address(0));
+	Genode::warning("not implemented, called from ",
+	                __builtin_return_address(0));
 	return 0;
 }

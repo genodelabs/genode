@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 
 /* base-internal includes */
@@ -41,8 +41,9 @@ void Thread::_init_platform_thread(size_t, Type type)
 	thread_info.init(utcb_virt_addr);
 
 	if (!map_local(thread_info.ipc_buffer_phys, utcb_virt_addr, 1)) {
-		PERR("could not map IPC buffer phys %lx at local %lx",
-		     thread_info.ipc_buffer_phys, utcb_virt_addr);
+		error(__func__, ": could not map IPC buffer "
+		      "phys=",   Hex(thread_info.ipc_buffer_phys), " "
+		      "local=%", Hex(utcb_virt_addr));
 	}
 
 	native_thread().tcb_sel  = thread_info.tcb_sel.value();
@@ -103,6 +104,6 @@ void Thread::start()
 
 void Thread::cancel_blocking()
 {
-	PWRN("not implemented");
+	warning(__func__, " not implemented");
 }
 

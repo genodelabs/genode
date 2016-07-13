@@ -102,13 +102,12 @@ struct Main
 			}
 			catch (...) { }
 
-			log("Using file=", file, " as device with block size ",
-			    blk_sz, ".");
+			log("Using file=", file, " as device with block size ", blk_sz, ".");
 
 			try {
 				return new (&heap) Rom_blk(env, file, blk_sz);
 			} catch(Rom_connection::Rom_connection_failed) {
-				error("Cannot open file ", file, ".");
+				error("cannot open file ", file);
 			}
 			throw Root::Unavailable();
 		}

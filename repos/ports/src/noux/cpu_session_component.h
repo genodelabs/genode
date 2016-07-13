@@ -104,7 +104,7 @@ namespace Noux {
 					return cap;
 				}
 
-				PERR("maximum number of threads per session reached");
+				error("maximum number of threads per session reached");
 				throw Thread_creation_failed();
 			}
 

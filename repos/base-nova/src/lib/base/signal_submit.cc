@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <base/signal.h>
+#include <base/log.h>
 #include <base/trace/events.h>
 
 /* NOVA includes */
@@ -40,8 +41,7 @@ void Signal_transmitter::submit(unsigned cnt)
 	if (res == NOVA_OK)
 		return;
 
-	PDBG("submitting signal failed - error %u - context=0x%lx", res,
-	     _context.local_name());
+	warning("submitting signal failed - error ", res, " - context=", _context);
 
 	_context = Signal_context_capability();
 }

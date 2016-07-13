@@ -11,7 +11,6 @@
  * version 2.
  */
 
-#include <base/printf.h>
 #include <base/log.h>
 #include <util/xml_node.h>
 
@@ -141,8 +140,9 @@ void fireStateChangedEvent(IEventSource* aSource,
 void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal,
                            CBSTR a_id, CBSTR a_message)
 {
-	PERR("%s : %u %s %s", __func__, a_fatal,
-	     Utf8Str(a_id).c_str(), Utf8Str(a_message).c_str());
+	Genode::error(__func__, " : ", a_fatal, " ",
+	              Utf8Str(a_id).c_str(), " ",
+	              Utf8Str(a_message).c_str());
 
 	TRACE();
 }
@@ -162,7 +162,7 @@ void GenodeConsole::update_video_mode()
 	if (fb && (fb->w() == 0) && (fb->h() == 0)) {
 		/* interpret a size of 0x0 as indication to quit VirtualBox */
 		if (PowerButton() != S_OK)
-			PERR("ACPI shutdown failed");
+			Genode::error("ACPI shutdown failed");
 		return;
 	}
 
@@ -478,7 +478,7 @@ int vboxClipboardReadData (VBOXCLIPBOARDCLIENTDATA *pClient, uint32_t format,
 	clipboard_rom->update();
 
 	if (!clipboard_rom->valid()) {
-		PERR("invalid clipboard dataspace");
+		Genode::error("invalid clipboard dataspace");
 		return VERR_NOT_SUPPORTED;
 	}
 
@@ -488,7 +488,7 @@ int vboxClipboardReadData (VBOXCLIPBOARDCLIENTDATA *pClient, uint32_t format,
 
 		Genode::Xml_node node(data);
 		if (!node.has_type("clipboard")) {
-			PERR("invalid clipboard xml syntax");
+			Genode::error("invalid clipboard xml syntax");
 			return VERR_INVALID_PARAMETER;
 		}
 
@@ -497,7 +497,7 @@ int vboxClipboardReadData (VBOXCLIPBOARDCLIENTDATA *pClient, uint32_t format,
 		decoded_clipboard_content = (char*)malloc(node.content_size());
 
 		if (!decoded_clipboard_content) {
-			PERR("could not allocate buffer for decoded clipboard content");
+			Genode::error("could not allocate buffer for decoded clipboard content");
 			return 0;
 		}
 
@@ -519,7 +519,7 @@ int vboxClipboardReadData (VBOXCLIPBOARDCLIENTDATA *pClient, uint32_t format,
 			*pcbActual = 0;
 
 	} catch (Genode::Xml_node::Invalid_syntax) {
-		PERR("invalid clipboard xml syntax");
+		Genode::error("invalid clipboard xml syntax");
 		return VERR_INVALID_PARAMETER;
 	}
 
@@ -545,7 +545,7 @@ void vboxClipboardWriteData (VBOXCLIPBOARDCLIENTDATA *pClient, void *pv,
 		Genode::Reporter::Xml_generator xml(*clipboard_reporter, [&] () {
 			xml.append_sanitized(message, strlen(message)); });
 	} catch (...) {
-		PERR("could not write clipboard data");
+		Genode::error("could not write clipboard data");
 	}
 
 	RTStrFree(message);

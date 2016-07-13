@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/lock.h>
 
 /* core includes */
@@ -48,12 +48,12 @@ void Pager_entrypoint::entry()
 		apply(_pager.badge(), [&] (Pager_object *obj) {
 			/* the pager_object might be destroyed, while we got the message */
 			if (!obj) {
-				PWRN("No pager object found!");
+				warning("no pager object found!");
 				return;
 			}
 
 			switch (_pager.msg_type()) {
-	
+
 			case Ipc_pager::PAGEFAULT:
 			case Ipc_pager::EXCEPTION:
 				{
@@ -69,8 +69,9 @@ void Pager_entrypoint::entry()
 					/* handle request */
 					if (obj->pager(_pager)) {
 						/* could not resolv - leave thread in pagefault */
-						PDBG("Could not resolve pf=%p ip=%p",
-						     (void*)_pager.fault_addr(), (void*)_pager.fault_ip());
+						warning("could not resolve "
+						        "pf=", Hex(_pager.fault_addr()), " ",
+						        "ip=", Hex(_pager.fault_ip()));
 					} else {
 						_pager.set_reply_dst(Native_thread(obj->badge()));
 						reply_pending = true;
@@ -131,7 +132,7 @@ void Pager_entrypoint::entry()
 				}
 
 			default:
-				PERR("Got unknown message type %x!", _pager.msg_type());
+				error("got unknown message type ", Hex(_pager.msg_type()));
 			}
 		});
 	};

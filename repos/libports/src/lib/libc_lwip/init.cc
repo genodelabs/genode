@@ -12,12 +12,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
-
 extern void create_lwip_plugin();
 
 void __attribute__((constructor)) init_libc_lwip(void)
 {
-	PDBG("init_libc_lwip()\n");
 	create_lwip_plugin();
 }

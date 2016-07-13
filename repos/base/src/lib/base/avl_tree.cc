@@ -12,7 +12,7 @@
  */
 
 #include <util/avl_tree.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -89,7 +89,7 @@ void Avl_node_base::_rebalance_subtree(Avl_node_base *node, Policy &policy)
 void Avl_node_base::insert(Avl_node_base *node, Policy &policy)
 {
 	if (node == this) {
-		PERR("Inserting element %p twice into avl tree!", node);
+		error("inserting element ", node, " twice into avl tree!");
 		return;
 	}
 
@@ -118,7 +118,7 @@ void Avl_node_base::remove(Policy &policy)
 	Avl_node_base *l  = _child[0];
 
 	if (!_parent)
-		PERR("Error: tried to remove AVL node that is not in an AVL tree");
+		error("tried to remove AVL node that is not in an AVL tree");
 
 	if (l) {
 

@@ -78,7 +78,7 @@ bool Trace::Logger::_evaluate_control()
 		Dataspace_capability policy_ds = Cpu_thread_client(thread_cap).trace_policy();
 
 		if (!policy_ds.valid()) {
-			PWRN("could not obtain trace policy");
+			warning("could not obtain trace policy");
 			control->error();
 			enabled = false;
 			return false;
@@ -104,7 +104,7 @@ bool Trace::Logger::_evaluate_control()
 		Dataspace_capability buffer_ds = Cpu_thread_client(thread_cap).trace_buffer();
 
 		if (!buffer_ds.valid()) {
-			PWRN("could not obtain trace buffer");
+			warning("could not obtain trace buffer");
 			control->error();
 			enabled = false;
 			return false;
@@ -144,7 +144,7 @@ void Trace::Logger::init(Thread_capability thread, Cpu_session *cpu_session,
 	Dataspace_capability ds = cpu->trace_control();
 	size_t size             = Dataspace_client(ds).size();
 	if ((index + 1)*sizeof(Trace::Control) > size) {
-		PERR("thread control index is out of range");
+		error("thread control index is out of range");
 		return;
 	}
 

@@ -151,7 +151,7 @@ void Menu_view::Main::handle_dialog_update(unsigned)
 		root_widget.update(dialog_xml);
 		root_widget.size(root_widget.min_size());
 	} catch (...) {
-		PERR("failed to construct widget tree");
+		Genode::error("failed to construct widget tree");
 	}
 
 	schedule_redraw = true;

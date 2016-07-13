@@ -23,6 +23,7 @@
 #include <base/allocator_avl.h>
 #include <base/env.h>
 #include <base/printf.h>
+#include <base/log.h>
 #include <base/slab.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
@@ -234,7 +235,7 @@ struct Pci_driver
 
 			return _region.mapped_base;
 		} catch (...) {
-			PERR("failed to allocate dma memory");
+			Genode::error("failed to allocate dma memory");
 			return 0;
 		}
 	}
@@ -322,7 +323,7 @@ static Irq_handler *_irq_handler;
 extern "C" int dde_interrupt_attach(void(*handler)(void *), void *priv)
 {
 	if (_irq_handler) {
-		PERR("Irq_handler already registered");
+		Genode::error("Irq_handler already registered");
 		Genode::sleep_forever();
 	}
 
@@ -366,8 +367,10 @@ extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
 {
 	void *ptr;
 	if (allocator().alloc_aligned(size, &ptr, Genode::log2(align)).error()) {
-		PERR("memory allocation failed in alloc_memblock (size=%zu, align=%zx,"
-		     " offset=%zx)", (Genode::size_t)size, (Genode::size_t)align, (Genode::size_t)offset);
+		Genode::error("memory allocation failed in alloc_memblock ("
+		              "size=",   size, " "
+		              "align=",  Genode::Hex(align), " "
+		              "offset=", Genode::Hex(offset), ")");
 		return 0;
 	}
 	return ptr;
@@ -450,7 +453,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 		using namespace Genode;
 
 		if (_index == ELEMENTS) {
-			PERR("Slab-backend exhausted!");
+			error("slab backend exhausted!");
 			return false;
 		}
 
@@ -492,7 +495,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 		done = _alloc_block();
 		if (!done) {
-			PERR("Backend allocator exhausted\n");
+			Genode::error("backend allocator exhausted");
 			return false;
 		}
 
@@ -641,7 +644,7 @@ static Io_memory *_io_mem;
 extern "C" int dde_request_iomem(dde_addr_t start, dde_addr_t *vaddr)
 {
 	if (_io_mem) {
-		PERR("Io_memory already requested");
+		Genode::error("Io_memory already requested");
 		Genode::sleep_forever();
 	}
 

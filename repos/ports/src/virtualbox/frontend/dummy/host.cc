@@ -1,5 +1,3 @@
-#include <base/printf.h>
-
 #include "VirtualBoxBase.h"
 
 #include <VBox/usbfilter.h>

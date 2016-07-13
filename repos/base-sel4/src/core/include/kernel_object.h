@@ -129,8 +129,8 @@ namespace Genode {
 		                                    num_objects);
 
 		if (ret != 0) {
-			PERR("seL4_Untyped_RetypeAtOffset (%s) returned %d",
-			     KOBJ::name(), ret);
+			error("seL4_Untyped_RetypeAtOffset (", KOBJ::name(), ") "
+			      "returned ", ret);
 			throw Retype_untyped_failed();
 		}
 
@@ -183,8 +183,7 @@ namespace Genode {
 		                                    num_objects);
 
 		if (ret != 0) {
-			PERR("seL4_Untyped_Retype (%s) returned %d",
-			     KOBJ::name(), ret);
+			error("seL4_Untyped_Retype (", KOBJ::name(), ") returned ", ret);
 			throw Retype_untyped_failed();
 		}
 	}

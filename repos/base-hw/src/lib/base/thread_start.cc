@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>
@@ -58,7 +58,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	/* remap initial main-thread UTCB according to stack-area spec */
 	try { rm->attach_at(Hw::_main_thread_utcb_ds, utcb_new, utcb_size); }
 	catch(...) {
-		PERR("failed to re-map UTCB");
+		error("failed to re-map UTCB");
 		while (1) ;
 	}
 	/* adjust initial object state in case of a main thread */
@@ -92,7 +92,7 @@ void Thread::start()
 		             stack_virtual_size() - size - stack_area_virtual_base();
 		env_stack_area_region_map->attach_at(ds, dst, size);
 	} catch (...) {
-		PERR("failed to attach userland stack");
+		error("failed to attach userland stack");
 		sleep_forever();
 	}
 	/* start thread with its initial IP and aligned SP */

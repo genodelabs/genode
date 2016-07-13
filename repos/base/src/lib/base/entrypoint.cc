@@ -69,7 +69,7 @@ void Entrypoint::_process_incoming_signals()
 			 */
 			retry<Genode::Blocking_canceled>(
 				[&] () { _signal_proxy_cap.call<Signal_proxy::Rpc_signal>(); },
-				[]  () { PWRN("blocking canceled during signal processing"); }
+				[]  () { warning("blocking canceled during signal processing"); }
 			);
 
 		} while (!_suspended_callback);
@@ -176,7 +176,7 @@ Entrypoint::Entrypoint(Env &env)
 	try {
 		constructor_cap.call<Constructor::Rpc_construct>();
 	} catch (Genode::Blocking_canceled) {
-		PWRN("blocking canceled in entrypoint constructor");
+		warning("blocking canceled in entrypoint constructor");
 	}
 
 	_rpc_ep->dissolve(&constructor);

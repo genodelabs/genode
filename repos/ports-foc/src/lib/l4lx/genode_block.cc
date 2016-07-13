@@ -12,7 +12,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <block_session/connection.h>
 #include <os/config.h>
@@ -64,7 +64,7 @@ namespace {
 			{
 				int idx = _find(0);
 				if (idx == 0) {
-					PERR("Req cache full!");
+					Genode::error("Req cache full!");
 					enter_kdebug("Req_cache");
 				}
 
@@ -75,7 +75,7 @@ namespace {
 			{
 				int idx = _find(packet);
 				if (idx == 0) {
-					PERR("Req cache entry not found!");
+					Genode::error("Req cache entry not found!");
 					enter_kdebug("Req_cache");
 				}
 
@@ -168,7 +168,7 @@ namespace {
 					for (unsigned i = 0; i < _count; i++) {
 						if (_devs[i]->context() == s.context()) {
 							if (l4_error(l4_irq_trigger(_devs[i]->irq_cap())) != -1)
-								PWRN("IRQ block trigger failed\n");
+								Genode::warning("IRQ block trigger failed");
 							break;
 						}
 					}
@@ -234,7 +234,7 @@ extern "C" {
 						j++;
 					}
 				}
-			} catch(...) { PWRN("config parsing error!"); }
+			} catch(...) { Genode::warning("config parsing error!"); }
 		}
 		return count;
 	}
@@ -243,7 +243,7 @@ extern "C" {
 	const char* genode_block_name(unsigned idx)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return 0;
 		}
 		return devices[idx]->name();
@@ -253,7 +253,7 @@ extern "C" {
 	l4_cap_idx_t genode_block_irq_cap(unsigned idx)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return 0;
 		}
 		return devices[idx]->irq_cap();
@@ -278,7 +278,7 @@ extern "C" {
 	                      int *write, unsigned long *queue_sz)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return;
 		}
 
@@ -295,7 +295,7 @@ extern "C" {
 	                           void *req, unsigned long *offset)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return 0;
 		}
 
@@ -317,7 +317,7 @@ extern "C" {
 	                         unsigned long size, unsigned long long disc_offset, int write)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return;
 		}
 
@@ -336,7 +336,7 @@ extern "C" {
 	void genode_block_collect_responses(unsigned idx)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return;
 		}
 

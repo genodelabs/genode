@@ -5,7 +5,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 
 /* libc and ncurses includes */
@@ -111,7 +111,7 @@ Ncurses::Ncurses()
 	char const *device_name = "/dev/terminal";
 	int fd = open(device_name, O_RDWR);
 	if (fd < 0) {
-		PERR("Error: could not open %s", device_name);
+		Genode::error("could not open ", device_name);
 		return;
 	}
 	dup2(fd, 0);

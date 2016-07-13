@@ -193,8 +193,8 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		if (_focused_domain.valid() && _domain(writer) == _focused_domain)
 			return true;
 
-		PWRN("unexpected attempt by '%s' to write to '%s'",
-		     writer.label().string(), module.name().string());
+		warning("unexpected attempt by '", writer.label(), "' "
+		        "to write to '", module.name(), "'");
 
 		return false;
 	}

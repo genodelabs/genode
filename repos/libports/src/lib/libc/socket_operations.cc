@@ -29,15 +29,6 @@
 using namespace Libc;
 
 
-#ifdef GENODE_RELEASE
-#undef PERR
-#define PERR(...)
-#endif /* GENODE_RELEASE */
-
-static bool const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
-
-
 extern "C" int _accept(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	return accept(libc_fd, addr, addrlen);
@@ -83,7 +74,7 @@ extern "C" void freeaddrinfo(struct addrinfo *res)
 	plugin = plugin_registry()->get_plugin_for_freeaddrinfo(res);
 
 	if (!plugin) {
-		PERR("no plugin found for freeaddrinfo()");
+		Genode::error("no plugin found for freeaddrinfo()");
 		return;
 	}
 
@@ -100,7 +91,7 @@ extern "C" int getaddrinfo(const char *node, const char *service,
 	plugin = plugin_registry()->get_plugin_for_getaddrinfo(node, service, hints, res);
 
 	if (!plugin) {
-		PERR("no plugin found for getaddrinfo()");
+		Genode::error("no plugin found for getaddrinfo()");
 		return -1;
 	}
 
@@ -210,13 +201,13 @@ extern "C" int socket(int domain, int type, int protocol)
 	plugin = plugin_registry()->get_plugin_for_socket(domain, type, protocol);
 
 	if (!plugin) {
-		PERR("no plugin found for socket()");
+		Genode::error("no plugin found for socket()");
 		return -1;
 	}
 
 	new_fdo = plugin->socket(domain, type, protocol);
 	if (!new_fdo) {
-		PERR("plugin()->socket() failed");
+		Genode::error("plugin()->socket() failed");
 		return -1;
 	}
 

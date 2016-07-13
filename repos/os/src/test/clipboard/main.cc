@@ -87,7 +87,7 @@ class Subsystem
 		{
 			char buf[Label::capacity()];
 			Genode::snprintf(buf, sizeof(buf), "%s -> clipboard", _name.string());
-			return Label(buf);
+			return Label(Genode::Cstring(buf));
 		}
 
 		Genode::Attached_rom_dataspace _import_rom;
@@ -101,7 +101,7 @@ class Subsystem
 		static void _log_lines(char const *string, Genode::size_t len)
 		{
 			Genode::print_lines<200>(string, len,
-			                         [&] (char const *line) { PLOG("  %s", line); });
+			                         [&] (char const *line) { Genode::log("  ", line); });
 		}
 
 		void _handle_import(unsigned)
@@ -111,7 +111,7 @@ class Subsystem
 				throw Unexpected_clipboard_import();
 			}
 
-			PLOG("\n%s: import new content:", _name.string());
+			log("\n", _name, ": import new content:");
 
 			_import_rom.update();
 
@@ -182,7 +182,7 @@ class Subsystem
 				});
 			});
 
-			PLOG("\n%s: export content:", _name.string());
+			log("\n", _name, ": export content:");
 			_log_lines(_export_report_ds.local_addr<char>(), xml.used());
 
 			_export_report.submit(xml.used());
@@ -264,13 +264,13 @@ struct Server::Main : Handle_step_fn
 
 	void _enter_state(State state)
 	{
-		PINF("\n-> entering state %s", _state_name(state));
+		log("\n-> entering state ", _state_name(state));
 		_state = state;
 	}
 
 	void handle_step(unsigned cnt) override
 	{
-		PLOG("\n -- state %s --", _state_name(_state));
+		log("\n -- state ", _state_name(_state), " --");
 
 		char const * const cat_picture         = "cat picture";
 		char const * const private_key         = "private key";

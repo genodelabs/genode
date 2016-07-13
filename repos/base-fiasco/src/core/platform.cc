@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
@@ -22,6 +22,7 @@
 #include <base/internal/fiasco_thread_helper.h>
 #include <base/internal/stack_area.h>
 #include <base/internal/capability_space_tpl.h>
+#include <base/internal/globals.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -42,11 +43,6 @@ namespace Fiasco {
 }
 
 using namespace Genode;
-
-
-static const bool verbose              = true;
-static const bool verbose_core_pf      = false;
-static const bool verbose_region_alloc = false;
 
 
 /***********************************
@@ -107,21 +103,22 @@ static void _core_pager_loop()
 		if (pfa < L4_PAGESIZE) {
 
 			/* NULL pointer access */
-			PERR("Possible null pointer %s in %x.%02x at %lx IP %lx",
-			     rw ? "WRITE" : "READ", (int)t.id.task, (int)t.id.lthread, pfa, dw1);
+			error("possible null pointer ", rw ? "WRITE" : "READ", " "
+			      "in ", (int)t.id.task, ".", (int)t.id.lthread, " "
+			      "at ", Hex(pfa), " IP ", dw1);
 			/* do not unblock faulter */
 			send_reply = false;
 			continue;
 		} else if (!_core_address_ranges().valid_addr(pfa)) {
 
 			/* page-fault address is not in RAM */
-			PERR("%s access outside of RAM in %x.%02x at %lx IP %lx",
-			     rw ? "WRITE" : "READ", (int)t.id.task, (int)t.id.lthread, pfa, dw1);
+			error(rw ? "WRITE" : "READ", " access outside of RAM "
+			      "in ", (int)t.id.task, ".", (int)t.id.lthread, " "
+			      "at ", Hex(pfa), " IP ", dw1);
 			/* do not unblock faulter */
 			send_reply = false;
 			continue;
-		} else if (verbose_core_pf)
-			PDBG("pfa=%lx ip=%lx thread %x.%02x", pfa, dw1, (int)t.id.task, (int)t.id.lthread);
+		}
 
 		/* my pf handler is sigma0 - just touch the appropriate page */
 		if (rw)
@@ -206,23 +203,10 @@ struct Region
 
 
 /**
- * Log region
- */
-static inline void print_region(Region r)
-{
-	printf("[%08lx,%08lx) %08lx", r.start, r.end, r.end - r.start);
-}
-
-
-/**
  * Add region to allocator
  */
 static inline void add_region(Region r, Range_allocator &alloc)
 {
-	if (verbose_region_alloc) {
-		printf("%p    add: ", &alloc); print_region(r); printf("\n");
-	}
-
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
 	addr_t end   = round_page(r.end);
@@ -236,10 +220,6 @@ static inline void add_region(Region r, Range_allocator &alloc)
  */
 static inline void remove_region(Region r, Range_allocator &alloc)
 {
-	if (verbose_region_alloc) {
-		printf("%p remove: ", &alloc); print_region(r); printf("\n");
-	}
-
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
 	addr_t end   = round_page(r.end);
@@ -350,7 +330,7 @@ static Fiasco::l4_kernel_info_t *get_kip()
 
 	bool amok = false;
 	if (err) {
-		printf("IPC error %d\n", err);
+		raw("IPC error ", err, " while accessing the KIP");
 		amok = true;
 	}
 	if (!l4_ipc_fpage_received(r)) {
@@ -367,16 +347,6 @@ static Fiasco::l4_kernel_info_t *get_kip()
 	if (kip->magic != L4_KERNEL_INFO_MAGIC)
 		panic("Sigma0 mapped something but not the KIP");
 
-	if (verbose) {
-		printf("\n");
-		printf("KIP @ %p\n", kip);
-		printf("    magic: %08x\n", kip->magic);
-		printf("  version: %08x\n", kip->version);
-		printf("         sigma0 "); printf(" esp: %08lx  eip: %08lx\n", kip->sigma0_esp, kip->sigma0_eip);
-		printf("         sigma1 "); printf(" esp: %08lx  eip: %08lx\n", kip->sigma1_esp, kip->sigma1_eip);
-		printf("           root "); printf(" esp: %08lx  eip: %08lx\n", kip->root_esp, kip->root_eip);
-	}
-
 	return kip;
 }
 
@@ -392,7 +362,7 @@ void Platform::_setup_basics()
 
 	/* update multi-boot info pointer from KIP */
 	addr_t mb_info_addr = kip->user_ptr;
-	if (verbose) printf("MBI @ 0x%lx\n", mb_info_addr);
+	log("MBI @ ", Hex(mb_info_addr));
 
 	/* parse memory descriptors - look for virtual memory configuration */
 	/* XXX we support only one VM region (here and also inside RM) */
@@ -451,10 +421,9 @@ void Platform::_setup_rom()
 		Rom_module *new_rom = new(core_mem_alloc()) Rom_module(rom);
 		_rom_fs.insert(new_rom);
 
-		if (verbose)
-			printf(" mod[%d] [%p,%p) %s\n", i,
-			       (void *)new_rom->addr(), ((char *)new_rom->addr()) + new_rom->size(),
-			       new_rom->name());
+		log(" mod[", i, "] ",
+		    Hex_range<addr_t>(new_rom->addr(), new_rom->size()), " ",
+		    new_rom->name());
 
 		/* zero remainder of last ROM page */
 		size_t count = L4_PAGESIZE - rom.size() % L4_PAGESIZE;
@@ -484,21 +453,21 @@ Platform::Platform() :
 	if (initialized) panic("Platform constructed twice!");
 	initialized = true;
 
+	init_log();
+
 	_setup_basics();
 	_setup_mem_alloc();
 	_setup_io_port_alloc();
 	_setup_irq_alloc();
 	_setup_rom();
 
-	if (verbose) {
-		printf(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
-		printf(":region_alloc: "); _region_alloc()->dump_addr_tree();
-		printf(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
-		printf(":io_port: ");      _io_port_alloc()->dump_addr_tree();
-		printf(":irq: ");          _irq_alloc()->dump_addr_tree();
-		printf(":rom_fs: ");       _rom_fs.print_fs();
-		printf(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
-	}
+	log(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
+	log(":region_alloc: "); _region_alloc()->dump_addr_tree();
+	log(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
+	log(":io_port: ");      _io_port_alloc()->dump_addr_tree();
+	log(":irq: ");          _irq_alloc()->dump_addr_tree();
+	log(":rom_fs: ");       _rom_fs.print_fs();
+	log(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
 
 	Fiasco::l4_threadid_t myself = Fiasco::l4_myself();
 

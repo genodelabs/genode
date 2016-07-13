@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <pl011_defs.h>
 #include <os/config.h>
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- PL011 UART driver started ---\n");
+	log("--- PL011 UART driver started ---");
 
 	/**
 	 * Factory used by 'Uart::Root' at session creation/destruction time
@@ -48,7 +48,8 @@ int main(int argc, char **argv)
 		Uart::Driver *create(unsigned index, unsigned /* baudrate */,
 		                     Uart::Char_avail_callback &callback)
 		{
-			PINF("Setting baudrate is not supported yet. Use default 115200.");
+			warning("Setting baudrate is not supported yet. Use default 115200.");
+
 			/*
 			 * We assume the underlying kernel uses UART0 and, therefore, start at
 			 * index 1 for the user-level driver.

@@ -55,7 +55,8 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 		static void _log_lines(char const *string, size_t len)
 		{
 			Genode::print_lines<200>(string, len,
-			                         [&] (char const *line) { Genode::log("  ", line); });
+			                         [&] (char const *line)
+			                         { Genode::log("  ", line); });
 		}
 
 	public:
@@ -87,7 +88,7 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 			length = Genode::min(length, _ds.size());
 
 			if (_verbose) {
-				Genode::log("report '", _module.name().string(), "'");
+				Genode::log("report '", _module.name(), "'");
 				_log_lines(_ds.local_addr<char>(), length);
 			}
 

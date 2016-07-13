@@ -94,7 +94,7 @@ Signal_context::~Signal_context()
 	 * dissolving it from the signal receiver.
 	 */
 	if (_receiver)
-		PERR("Destructing undissolved signal context");
+		error("Destructing undissolved signal context");
 }
 
 
@@ -152,7 +152,7 @@ Signal Signal_receiver::pending_signal()
 		context->_curr_signal = Signal::Data(0, 0);
 
 		if (result.num == 0)
-			PWRN("returning signal with num == 0");
+			warning("returning signal with num == 0");
 
 		Trace::Signal_received trace_event(*context, result.num);
 

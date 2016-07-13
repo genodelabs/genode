@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* EGL includes */
 #define EGL_EGLEXT_PROTOTYPES
@@ -36,7 +36,7 @@ QNitpickerGLContext::QNitpickerGLContext(QOpenGLContext *context)
     : QPlatformOpenGLContext()
 {
 	if (qnglc_verbose)
-		PDBG("called");
+		Genode::log(__func__, "called");
 
 	if (!eglBindAPI(EGL_OPENGL_API))
     	qFatal("eglBindAPI() failed");
@@ -51,7 +51,7 @@ QNitpickerGLContext::QNitpickerGLContext(QOpenGLContext *context)
 		qFatal("eglInitialize() failed");
 
 	if (qnglc_verbose)
-		PDBG("eglInitialize() returned major: %d, minor: %d", major, minor);
+		Genode::log("eglInitialize() returned major: ", major, ", minor: ", minor);
 
     _egl_config = q_configFromGLFormat(_egl_display, context->format(), false, EGL_PBUFFER_BIT);
     if (_egl_config == 0)
@@ -68,7 +68,7 @@ QNitpickerGLContext::QNitpickerGLContext(QOpenGLContext *context)
 bool QNitpickerGLContext::makeCurrent(QPlatformSurface *surface)
 {
 	if (qnglc_verbose)
-		PDBG("called");
+		Genode::log(__func__, " called");
 
 	doneCurrent();
 
@@ -79,7 +79,7 @@ bool QNitpickerGLContext::makeCurrent(QPlatformSurface *surface)
 		                             w->framebuffer() };
 
 	if (qnglc_verbose)
-		PDBG("w->framebuffer() = %p", w->framebuffer());
+		Genode::log(__func__, ": w->framebuffer()=", w->framebuffer());
 
 	if (w->egl_surface() != EGL_NO_SURFACE)
 		if (!eglDestroySurface(_egl_display, w->egl_surface()))
@@ -103,7 +103,7 @@ bool QNitpickerGLContext::makeCurrent(QPlatformSurface *surface)
 void QNitpickerGLContext::doneCurrent()
 {
 	if (qnglc_verbose)
-		PDBG("called");
+		Genode::log(__func__, " called");
 
 	if (!eglMakeCurrent(_egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT))
 		qFatal("eglMakeCurrent() failed");
@@ -113,7 +113,7 @@ void QNitpickerGLContext::doneCurrent()
 void QNitpickerGLContext::swapBuffers(QPlatformSurface *surface)
 {
 	if (qnglc_verbose)
-		PDBG("called");
+		Genode::log(__func__, " called");
 
 	QNitpickerPlatformWindow *w = static_cast<QNitpickerPlatformWindow*>(surface);
 
@@ -127,7 +127,8 @@ void QNitpickerGLContext::swapBuffers(QPlatformSurface *surface)
 void (*QNitpickerGLContext::getProcAddress(const QByteArray &procName)) ()
 {
 	if (qnglc_verbose)
-		PDBG("procName = %s, pointer = %p", procName.constData(), eglGetProcAddress(procName.constData())); 
+		Genode::log("procName=", procName.constData(), " , "
+		            "pointer=", eglGetProcAddress(procName.constData()));
 
 	return static_cast<QFunctionPointer>(eglGetProcAddress(procName.constData()));
 }

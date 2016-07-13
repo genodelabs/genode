@@ -63,8 +63,9 @@ namespace Genode {
 			            L4_IPC_NEVER, &ipc_result);
 
 			if (L4_IPC_IS_ERROR(ipc_result)) {
-				PWRN("could not locally remap 0x%lx to 0x%lx, error code is %ld",
-				     from_addr, to_addr, L4_IPC_ERROR(ipc_result));
+				warning("could not locally remap ", Hex(from_addr), " "
+				        "to ", Hex(to_addr), ", "
+				        "error code is ", L4_IPC_ERROR(ipc_result));
 				return false;
 			}
 		}
@@ -79,7 +80,7 @@ namespace Genode {
 	 */
 	inline void unmap_local(addr_t virt, size_t num_pages)
 	{
-		PERR("unmap_local() called - not implemented yet");
+		error("unmap_local() called - not implemented yet");
 	}
 }
 

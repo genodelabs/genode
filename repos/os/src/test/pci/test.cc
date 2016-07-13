@@ -12,7 +12,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <platform_session/connection.h>
 #include <platform_device/client.h>
 
@@ -27,7 +27,7 @@ enum { INTEL_VENDOR_ID = 0x8086 };
 static void print_device_info(Platform::Device_capability device_cap)
 {
 	if (!device_cap.valid()) {
-		PERR("Invalid device capability");
+		error("invalid device capability");
 		return;
 	}
 
@@ -39,26 +39,33 @@ static void print_device_info(Platform::Device_capability device_cap)
 	unsigned short device_id = device.device_id();
 	unsigned      class_code = device.class_code() >> 8;
 
-	printf("%02x:%02x.%x %04x: %04x:%04x (Vendor %s)\n",
-	       bus, dev, fun, class_code, vendor_id, device_id,
-	       vendor_id == INTEL_VENDOR_ID ? "Intel" : "unknown");
+	log(Hex(bus, Hex::OMIT_PREFIX), ":",
+	    Hex(dev, Hex::OMIT_PREFIX), ".",
+	    Hex(fun, Hex::OMIT_PREFIX), " "
+	    "class=", Hex(class_code), " "
+	    "vendor=", Hex(vendor_id), " ",
+	               (vendor_id == INTEL_VENDOR_ID ? "(Intel)" : "(unknown)"),
+	    "device=", Hex(device_id));
 
 	for (int resource_id = 0; resource_id < 6; resource_id++) {
 
-		Platform::Device::Resource resource = device.resource(resource_id);
+		typedef Platform::Device::Resource Resource;
 
-		if (resource.type() != Platform::Device::Resource::INVALID)
-			printf("  Resource %d (%s): base=0x%08x size=0x%08x %s\n", resource_id,
-			       resource.type() == Platform::Device::Resource::IO ? "I/O" : "MEM",
-			       resource.base(), resource.size(),
-			       resource.prefetchable() ? "prefetchable" : "");
+		Resource const resource = device.resource(resource_id);
+
+		if (resource.type() != Resource::INVALID)
+			log("  Resource ", resource_id, " "
+			    "(", (resource.type() == Resource::IO ? "I/O" : "MEM"), "): "
+				"base=", Genode::Hex(resource.base()), " "
+				"size=", Genode::Hex(resource.size()), " ",
+			    (resource.prefetchable() ? "prefetchable" : ""));
 	}
 }
 
 
 int main(int argc, char **argv)
 {
-	printf("--- Platform test started ---\n");
+	log("--- Platform test started ---");
 
 	/* open session to pci service */
 	static Platform::Connection pci;
@@ -80,7 +87,7 @@ int main(int argc, char **argv)
 	/* release last device */
 	pci.release_device(prev_device_cap);
 
-	printf("--- Platform test finished ---\n");
+	log("--- Platform test finished ---");
 
 	return 0;
 }

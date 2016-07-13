@@ -90,7 +90,7 @@ index 5702c59..3d616b5 100644
  QT_BEGIN_NAMESPACE
 diff --git a/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 new file mode 100644
-index 0000000..de6f632
+index 0000000..a3dc893
 --- /dev/null
 +++ b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 @@ -0,0 +1,706 @@
@@ -126,7 +126,7 @@ index 0000000..de6f632
 +// Minimal include to get access to abort, fprintf and friends for bootstrapping
 +// messages.
 +
-+#include <base/printf.h>
++#include <base/log.h>
 +#include <region_map/client.h>
 +#include <rm_session/connection.h>
 +#include <util/avl_tree.h>
@@ -153,7 +153,7 @@ index 0000000..de6f632
 +static const pthread_t kNoThread = (pthread_t) 0;
 +
 +#undef UNIMPLEMENTED
-+#define UNIMPLEMENTED(...) PDBG("UNIMPLEMENTED")
++#define UNIMPLEMENTED(...) Genode::log(func, "UNIMPLEMENTED")
 +
 +
 +double ceiling(double x) {
@@ -352,7 +352,7 @@ index 0000000..de6f632
 +						return;
 +					} catch (Genode::Region_map::Region_conflict) {
 +						if (verbose)
-+							PDBG("could not attach at address 0x%lx", _base_addr);
++							Genode::log(func, "could not attach at address 0x", _base_addr);
 +					}
 +				}
 +				throw Region_map::Region_conflict();
@@ -379,8 +379,8 @@ index 0000000..de6f632
 +		Attached_region_map *find_by_addr(Genode::addr_t addr)
 +		{
 +			if (verbose)
-+				PDBG("addr = 0x%lx, _base_addr = 0x%lx, _end_addr = 0x%lx",
-+				     addr, _base_addr, _base_addr + _size);
++				Genode::log(func, "addr = 0x", addr, "_base_addr = 0x", _base_addr,
++				            "_end_addr = 0x", _base_addr + _size);
 +			if ((addr >= _base_addr) && (addr < _base_addr + _size))
 +				return this;
 +
@@ -411,12 +411,12 @@ index 0000000..de6f632
 +  try {
 +    rm = new Attached_region_map(size, alignment);
 +  } catch (Attached_region_map::Region_conflict) {
-+	PDBG("could not reserve region");
++	Genode::log(func, "could not reserve region");
 +	return 0;
 +  }
 +  vm_registry().insert(rm);
 +  if (verbose)
-+    PDBG("base_addr = 0x%p", rm->base_addr());
++    Genode::log(func, "base_addr = ", rm->base_addr());
 +  return rm->base_addr();
 +}
 +
@@ -427,7 +427,7 @@ index 0000000..de6f632
 +
 +VirtualMemory::VirtualMemory(size_t size) {
 +  if (verbose)
-+    PDBG("size = 0x%zx", size);
++    Genode::log(func, "size = 0x", size);
 +  address_ = ReserveRegion(size);
 +  size_ = size;
 +}
@@ -435,7 +435,7 @@ index 0000000..de6f632
 +
 +VirtualMemory::VirtualMemory(size_t size, size_t alignment) {
 +  if (verbose)
-+    PDBG("size = 0x%zx, alignment = 0x%zx", size, alignment);
++    Genode::log(func, "size = 0x", size, ", alignment = 0x", alignment);
 +  address_ = reserve_region(size, alignment);
 +  size_ = size;
 +}
@@ -485,12 +485,12 @@ index 0000000..de6f632
 +
 +bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
 +  if (verbose)
-+    PDBG("base = 0x%p, size = 0x%zx", base, size);
++    Genode::log(func, "base = 0x", base, ", size = 0x", size);
 +  Attached_region_map *rm = vm_registry().first();
 +  rm = rm->find_by_addr((Genode::addr_t)base);
 +  if (!rm) {
 +    if (verbose)
-+      PDBG("could not find RM connection");
++      Genode::log(func, "could not find RM connection");
 +    return false;
 +  }
 +
@@ -510,7 +510,7 @@ index 0000000..de6f632
 +bool VirtualMemory::UncommitRegion(void* base, size_t size) {
 +  UNIMPLEMENTED();
 +  if (verbose)
-+    PDBG("base = 0x%p, size = 0x%zx", base, size);
++    Genode::log(func, "base = 0x", base, ", size = 0x", size);
 +  return false;
 +}
 +
@@ -529,7 +529,7 @@ index 0000000..de6f632
 +   */
 +
 +  if (verbose)
-+    PDBG("base = 0x%p, size = 0x%zx", base, size);
++    Genode::log(func, "base = 0x", base, ", size = 0x", size);
 +  Attached_rm_connection *rm = vm_registry().first();
 +  /* XXX: also pass the size for checking? */
 +  rm = rm->find_by_addr((Genode::addr_t)base);

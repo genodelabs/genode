@@ -12,6 +12,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/log.h>
+
+/* base-internal includes */
+#include <base/internal/globals.h>  /* init_log() */
+
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
@@ -35,13 +41,15 @@ void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd, Genode::Board&)
 
 	fpu().init();
 
+	Genode::init_log();
+
 	/*
-	 * Please do not remove the PINF(), because the serial constructor requires
+	 * Please do not remove the log(), because the serial constructor requires
 	 * access to the Bios Data Area, which is available in the initial
 	 * translation table set, but not in the final tables used after
 	 * Cr3::write().
 	 */
-	PINF("Switch to core's final translation table");
+	Genode::log("Switch to core's final translation table");
 
 	Cr3::write(Cr3::init((addr_t)core_pd.translation_table()));
 

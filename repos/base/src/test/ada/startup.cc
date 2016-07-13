@@ -5,7 +5,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /**
  * Declaration of the Ada main procedure
@@ -17,7 +17,7 @@ extern "C" void _ada_main(void);
  */
 extern "C" void __gnat_eh_personality()
 {
-	PDBG("not implemented");
+	Genode::warning(__func__, " not implemented");
 }
 
 /**

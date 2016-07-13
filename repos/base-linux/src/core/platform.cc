@@ -173,7 +173,7 @@ namespace Genode {
 		 * as well as in Genode processes.
 		 */
 		if (socket_pair.server_sd != -1 || socket_pair.client_sd != -1)
-			PERR("%s called for IPC server which should never happen", __func__);
+			error(__func__, " called for IPC server which should never happen");
 	}
 }
 

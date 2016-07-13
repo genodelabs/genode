@@ -40,7 +40,7 @@ namespace Genode {
  ** Signal context **
  ********************/
 
-void Signal_context::submit(unsigned) { PERR("not implemented"); }
+void Signal_context::submit(unsigned) { Genode::error("not implemented"); }
 
 
 /************************
@@ -67,7 +67,7 @@ Signal_receiver::Signal_receiver()
 			_cap = env()->pd_session()->alloc_signal_source();
 		},
 		[&] () {
-			PINF("upgrading quota donation for PD session");
+			log("upgrading quota donation for PD session");
 			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
 		}
 	);
@@ -105,7 +105,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 			return c->_cap;
 		},
 		[&] () {
-			PINF("upgrading quota donation for PD session");
+			log("upgrading quota donation for PD session");
 			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
 		}
 	);
@@ -118,7 +118,7 @@ void Signal_receiver::block_for_signal()
 {
 	/* wait for a signal */
 	if (Kernel::await_signal(Capability_space::capid(_cap))) {
-		PERR("failed to receive signal");
+		Genode::error("failed to receive signal");
 		return;
 	}
 	/* read signal data */
@@ -137,4 +137,4 @@ void Signal_receiver::block_for_signal()
 }
 
 
-void Signal_receiver::local_submit(Signal::Data) { PERR("not implemented"); }
+void Signal_receiver::local_submit(Signal::Data) { Genode::error("not implemented"); }

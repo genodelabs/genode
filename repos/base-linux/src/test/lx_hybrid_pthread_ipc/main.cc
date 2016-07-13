@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* libc includes */
 #include <pthread.h>
@@ -31,7 +31,7 @@ static Genode::Lock *main_wait_lock()
 
 static void *pthread_entry(void *)
 {
-	PINF("first message");
+	Genode::log("first message");
 
 	/*
 	 * Without the lazy initialization of 'Thread' objects for threads
@@ -42,7 +42,7 @@ static void *pthread_entry(void *)
 	 * will appear in the LOG output.
 	 */
 
-	PINF("second message");
+	Genode::log("second message");
 
 	main_wait_lock()->unlock();
 	return 0;
@@ -61,7 +61,7 @@ Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
  */
 void Component::construct(Genode::Env &env)
 {
-	Genode::printf("--- pthread IPC test ---\n");
+	Genode::log("--- pthread IPC test ---");
 
 	/* create thread w/o Genode's thread API */
 	pthread_t pth;
@@ -70,7 +70,7 @@ void Component::construct(Genode::Env &env)
 	/* wait until 'pthread_entry' finished */
 	main_wait_lock()->lock();
 
-	Genode::printf("--- finished pthread IPC test ---\n");
+	Genode::log("--- finished pthread IPC test ---");
 	exit_status = 0;
 	env.ep().schedule_suspend(exit_on_suspended, nullptr);
 }

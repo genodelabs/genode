@@ -14,6 +14,7 @@
 #include "sched.h"
 #include <base/allocator_avl.h>
 #include <base/thread.h>
+#include <base/printf.h>
 #include <block_session/connection.h>
 #include <rump_fs/fs.h>
 #include <util/list.h>
@@ -84,7 +85,7 @@ class Backend : public Hard_context_thread
 				p = p->next();
 			}
 
-			PERR("Pending packet not found");
+			Genode::error("pending packet not found");
 			return 0;
 		}
 		
@@ -99,7 +100,7 @@ class Backend : public Hard_context_thread
 					return &_p[idx];
 				}
 			}
-			PWRN("Dequeue returned 0");
+			Genode::warning("dequeue returned 0");
 			return 0;
 		}
 
@@ -132,7 +133,7 @@ class Backend : public Hard_context_thread
 
 				int dummy;
 				if (verbose)
-					PDBG("BIO done  p: %p bio %p", p, p->donearg);
+					Genode::log("BIO done  p: ", p, " bio ", p->donearg);
 
 				rumpkern_sched(0, 0);
 				if (p->biodone)
@@ -221,7 +222,7 @@ class Backend : public Hard_context_thread
 			_session.tx_channel()->sigh_ack_avail(_disp_ack);
 			_session.tx_channel()->sigh_ready_to_submit(_disp_submit);
 			_session.info(&_blk_cnt, &_blk_size, &_blk_ops);
-			PDBG("Backend blk_size %zu", _blk_size);
+			Genode::log("Backend blk_size ", _blk_size);
 			Genode::memset(_p, 0, sizeof(_p));
 			start();
 		}
@@ -248,7 +249,7 @@ class Backend : public Hard_context_thread
 					return &_p[idx];
 				}
 			}
-			PWRN("Alloc returned 0");
+			Genode::warning("alloc returned 0");
 			return 0;
 		}
 
@@ -268,7 +269,7 @@ static Backend *backend()
 	try {
 		_b = new(Genode::env()->heap())Backend();
 	} catch (Genode::Parent::Service_denied) {
-		PERR("Opening block session denied!");
+		Genode::error("opening block session denied!");
 	}
 	rumpkern_sched(nlocks, 0);
 
@@ -314,8 +315,13 @@ void rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 	Packet *p = backend()->alloc();
 
 	if (verbose)
-		PDBG("fd: %d op: %d len: %zu off: %lx p %p bio %p sync %u", fd, op, dlen, (unsigned long)off,
-		     p, donearg, !!(op & RUMPUSER_BIO_SYNC));
+		Genode::log("fd: ",   fd,   " "
+		            "op: ",   op,   " "
+		            "len: ",  dlen, " "
+		            "off: ",  Genode::Hex((unsigned long)off), " "
+		            "p: ",    p,       " "
+		            "bio ",   donearg, " "
+		            "sync: ", !!(op & RUMPUSER_BIO_SYNC));
 
 	p->opcode= op & RUMPUSER_BIO_WRITE ? Block::Packet_descriptor::WRITE :
 	                                     Block::Packet_descriptor::READ;

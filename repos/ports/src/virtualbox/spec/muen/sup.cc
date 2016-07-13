@@ -14,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <timer_session/connection.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <rom_session/connection.h>
@@ -97,7 +97,7 @@ static Genode::Sinfo * sinfo()
 					(addr_t)env()->rm_session()->attach(sinfo_rom.dataspace()));
 			ptr = &sinfo;
 		} catch (...) {
-			PERR("Unable to attach Sinfo ROM");
+			error("unable to attach Sinfo ROM");
 			Assert(false);
 		}
 	}
@@ -118,7 +118,7 @@ bool setup_subject_state()
 	struct Sinfo::Memregion_info region;
 
 	if (!sinfo()->get_memregion_info("monitor_state", &region)) {
-		PERR("Unable to retrieve monitor state region");
+		error("unable to retrieve monitor state region");
 		return false;
 	}
 
@@ -128,7 +128,7 @@ bool setup_subject_state()
 		cur_state = subject_ds.local_addr<struct Subject_state>();
 		return true;
 	} catch (...) {
-		PERR("Unable to attach subject state I/O mem dataspace");
+		error("unable to attach subject state I/O mem dataspace");
 	}
 	return false;
 }
@@ -147,7 +147,7 @@ bool setup_subject_interrupts()
 	struct Sinfo::Memregion_info region;
 
 	if (!sinfo()->get_memregion_info("monitor_interrupts", &region)) {
-		PERR("Unable to retrieve monitor interrupts region");
+		error("unable to retrieve monitor interrupts region");
 		return false;
 	}
 
@@ -158,7 +158,7 @@ bool setup_subject_interrupts()
 		guest_interrupts = &g;
 		return true;
 	} catch (...) {
-		PERR("Unable to attach subject interrupts I/O mem dataspace");
+		error("unable to attach subject interrupts I/O mem dataspace");
 	}
 	return false;
 }
@@ -196,7 +196,7 @@ inline uint64_t get_reg_val (struct Subject_state *cur_state, unsigned reg)
 			return cur_state->Regs.Rdi;
 			break;
 		default:
-			PERR("Invalid register %u", reg);
+			Genode::error("invalid register ", reg);
 			return 0;
 	}
 }
@@ -229,7 +229,7 @@ inline bool set_cr(struct Subject_state *cur_state, unsigned cr, uint64_t value)
 			res = true;
 			break;
 		default:
-			PERR("Invalid control register %u", cr);
+			Genode::error("invalid control register ", cr);
 			res = false;
 	}
 
@@ -254,7 +254,7 @@ inline bool handle_cr(struct Subject_state *cur_state)
 			res = set_cr(cur_state, cr, get_reg_val(cur_state, reg));
 			break;
 		default:
-			PERR("Invalid control register %u access %u, reg %u", cr, acc, reg);
+			Genode::error("Invalid control register ", cr, " access ", acc, ", reg ", reg);
 			return false;
 	}
 
@@ -632,7 +632,7 @@ int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 		return rc;
 	}
 
-	PERR("SUPR3CallVMMR0Fast: unhandled uOperation %d", uOperation);
+	Genode::error("SUPR3CallVMMR0Fast: unhandled uOperation ", (int)uOperation);
 	return VERR_INTERNAL_ERROR;
 }
 
@@ -695,7 +695,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 			return VINF_SUCCESS;
 
 		default:
-			PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
+			Genode::error("SUPR3CallVMMR0Ex: unhandled uOperation ", (int)uOperation);
 			return VERR_GENERAL_FAILURE;
 	}
 }
@@ -741,7 +741,7 @@ uint64_t genode_cpu_hz()
 	if (!cpu_freq) {
 		cpu_freq = sinfo()->get_tsc_khz() * 1000;
 		if (!cpu_freq)
-			PERR("Unable to determine CPU frequency");
+			Genode::error("unable to determine CPU frequency");
 	}
 	return cpu_freq;
 }
@@ -756,7 +756,7 @@ HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
 		return rc;
 
 	if (cCpus != 1) {
-		PWRN("Configured CPUs %u not supported, reducing to 1.", cCpus);
+		Genode::warning("configured CPUs ", cCpus, " not supported, reducing to 1.");
 		rc = machine->COMSETTER(CPUCount)(1);
 		if (FAILED(rc))
 			return rc;
@@ -781,4 +781,4 @@ bool Vmm_memory::revoke_from_vm(Mem_region *r)
 }
 
 
-extern "C" void pthread_yield() { PWRN("%s unimplemented", __func__); }
+extern "C" void pthread_yield() { Genode::warning(__func__, " unimplemented"); }

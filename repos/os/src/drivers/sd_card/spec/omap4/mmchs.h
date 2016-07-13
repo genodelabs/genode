@@ -347,12 +347,12 @@ struct Mmchs : Genode::Mmio
 		 * the timing here.
 		 */
 		if (!wait_for<Sysctl::Src>(1, delayer, 1000, 0)) {
-			PERR("reset of cmd line timed out (src != 1)");
+			Genode::error("reset of cmd line timed out (src != 1)");
 			return false;
 		}
 
 		if (!wait_for<Sysctl::Src>(0, delayer, 1000, 0)) {
-			PERR("reset of cmd line timed out (src != 0)");
+			Genode::error("reset of cmd line timed out (src != 0)");
 			return false;
 		}
 
@@ -365,7 +365,7 @@ struct Mmchs : Genode::Mmio
 		write<Sysctl::Sra>(1);
 
 		if (!wait_for<Sysctl::Sra>(1, delayer, 1000, 0)) {
-			PERR("soft reset all timed out (src != 1)");
+			Genode::error("soft reset all timed out (src != 1)");
 			return false;
 		}
 
@@ -401,7 +401,7 @@ struct Mmchs : Genode::Mmio
 		write<Hctl::Sdbp>(Hctl::Sdbp::POWER_ON);
 
 		if (!wait_for<Hctl::Sdbp>(1, delayer)) {
-			PERR("setting Hctl::Sdbp timed out");
+			Genode::error("setting Hctl::Sdbp timed out");
 			return false;
 		}
 		return true;
@@ -427,7 +427,7 @@ struct Mmchs : Genode::Mmio
 
 		/* wait for clock to become stable */
 		if (!wait_for<Sysctl::Ics>(1, delayer)) {
-			PERR("clock enable timed out");
+			Genode::error("clock enable timed out");
 			return false;
 		}
 
@@ -467,7 +467,7 @@ struct Mmchs : Genode::Mmio
 		write<Cmd>(0);
 
 		if (!wait_for<Stat::Cc>(1, delayer, 1000*1000, 0)) {
-			PERR("init stream timed out");
+			Genode::error("init stream timed out");
 			return false;
 		}
 
@@ -514,7 +514,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			set_bus_power(VOLTAGE_3_0);
 
 			if (!sd_bus_power_on(_delayer)) {
-				PERR("sd_bus_power failed");
+				Genode::error("sd_bus_power failed");
 			}
 
 			disable_irq();
@@ -525,12 +525,12 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 
 			stop_clock();
 			if (!set_and_enable_clock(CLOCK_DIV_240, _delayer)) {
-				PERR("set_clock failed");
+				Genode::error("set_clock failed");
 				throw Detection_failed();
 			}
 
 			if (!init_stream(_delayer)) {
-				PERR("sending the initialization stream failed");
+				Genode::error("sending the initialization stream failed");
 				throw Detection_failed();
 			}
 
@@ -539,19 +539,19 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			_delayer.usleep(1000);
 
 			if (!issue_command(Go_idle_state())) {
-				PWRN("Go_idle_state command failed");
+				Genode::error("Go_idle_state command failed");
 				throw Detection_failed();
 			}
 
 			_delayer.usleep(2000);
 
 			if (!issue_command(Send_if_cond())) {
-				PWRN("Send_if_cond command failed");
+				Genode::error("Send_if_cond command failed");
 				throw Detection_failed();
 			}
 
 			if (read<Rsp10>() != 0x1aa) {
-				PERR("unexpected response of Send_if_cond command");
+				Genode::error("unexpected response of Send_if_cond command");
 				throw Detection_failed();
 			}
 
@@ -566,7 +566,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			int i = 1000;
 			for (; i > 0; --i) {
 				if (!issue_command(Sd_send_op_cond(0x18000, true))) {
-					PWRN("Sd_send_op_cond command failed");
+					Genode::warning("Sd_send_op_cond command failed");
 					throw Detection_failed();
 				}
 
@@ -577,7 +577,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			}
 
 			if (i == 0) {
-				PERR("Sd_send_op_cond timed out, could no power-on SD card");
+				Genode::error("Sd_send_op_cond timed out, could no power-on SD card");
 				throw Detection_failed();
 			}
 
@@ -588,7 +588,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			 */
 			if (!issue_command(Set_bus_width(Set_bus_width::Arg::Bus_width::FOUR_BITS),
 			                   card_info.rca())) {
-				PWRN("Set_bus_width(FOUR_BITS) command failed");
+				Genode::warning("Set_bus_width(FOUR_BITS) command failed");
 				throw Detection_failed();
 			}
 
@@ -598,7 +598,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 
 			stop_clock();
 			if (!set_and_enable_clock(CLOCK_DIV_0, _delayer)) {
-				PERR("set_clock failed");
+				Genode::error("set_clock failed");
 				throw Detection_failed();
 			}
 
@@ -640,7 +640,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			 *     supported by the controller.
 			 */
 			if (block_count*BLOCK_SIZE > max_adma_request_size*ADMA_DESC_MAX_ENTRIES) {
-				PERR("Block request too large");
+				Genode::error("Block request too large");
 				return false;
 			}
 
@@ -694,7 +694,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		{
 			if (!wait_for<Stat::Tc>(1, _delayer, 1000*1000, 0)
 			 && !wait_for<Stat::Tc>(1, _delayer)) {
-				PERR("Stat::Tc timed out");
+				Genode::error("Stat::Tc timed out");
 				return false;
 			}
 
@@ -707,7 +707,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		{
 			if (!wait_for<Pstate::Bre>(1, _delayer, 1000*1000, 0)
 			 && !wait_for<Pstate::Bre>(1, _delayer)) {
-				PERR("Pstate::Bre timed out");
+				Genode::error("Pstate::Bre timed out");
 				return false;
 			}
 			return true;
@@ -717,7 +717,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		{
 			if (!wait_for<Pstate::Bwe>(1, _delayer, 1000*1000, 0)
 			 && !wait_for<Pstate::Bwe>(1, _delayer)) {
-				PERR("Pstate::Bwe timed out");
+				Genode::error("Pstate::Bwe timed out");
 				return false;
 			}
 			return true;
@@ -745,16 +745,17 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 					write<Stat::Tc>(1);
 
 					if (read<Stat>() != 0)
-						PWRN("unexpected state (Stat: 0x%x Blen: 0x%x Nblk: %d)",
-						     read<Stat>(), read<Blk::Blen>(), read<Blk::Nblk>());
+						Genode::warning("unexpected state ("
+						                "Stat: ", Genode::Hex(read<Stat>()), " "
+						                "Blen: ", Genode::Hex(read<Blk::Blen>()), " "
+						                "Nblk: ", read<Blk::Nblk>());
 
 					return true;
 				}
 
-				PWRN("unexpected interrupt, Stat: 0x%08x", read<Stat>());
+				Genode::warning("unexpected interrupt, Stat: ", Genode::Hex(read<Stat>()));
 			}
 		}
-
 
 	public:
 
@@ -790,11 +791,10 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		bool _issue_command(Sd_card::Command_base const &command)
 		{
 			if (verbose)
-				PLOG("-> index=0x%08x, arg=0x%08x, rsp_type=%d",
-				     command.index, command.arg, command.rsp_type);
+				Genode::log("-> ", command);
 
 			if (!wait_for<Pstate::Cmdi>(0, _delayer)) {
-				PERR("wait for Pstate::Cmdi timed out");
+				Genode::error("wait for Pstate::Cmdi timed out");
 				return false;
 			}
 
@@ -841,9 +841,9 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			for (unsigned long i = 0; i < 1000*1000; i++) {
 				Stat::access_t const stat = read<Stat>();
 				if (Stat::Erri::get(stat)) {
-					PWRN("SD command error");
+					Genode::warning("SD command error");
 					if (Stat::Cto::get(stat))
-						PWRN("timeout");
+						Genode::warning("timeout");
 
 					reset_cmd_line(_delayer);
 					write<Stat::Cc>(~0);
@@ -858,7 +858,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			}
 
 			if (verbose)
-				PLOG("<- %s", result ? "succeeded" : "timed out");
+				Genode::log("<- ", result ? "succeeded" : "timed out");
 
 			/* clear status of command-completed bit */
 			write<Stat::Cc>(1);
@@ -910,7 +910,8 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			write<Blk::Nblk>(block_count);
 
 			if (!issue_command(Read_multiple_block(block_number))) {
-				PERR("Read_multiple_block failed, Stat: 0x%08x", read<Stat>());
+				Genode::error("Read_multiple_block failed, Stat: ",
+				              Genode::Hex(read<Stat>()));
 				return false;
 			}
 
@@ -940,7 +941,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			write<Blk::Nblk>(block_count);
 
 			if (!issue_command(Write_multiple_block(block_number))) {
-				PERR("Write_multiple_block failed");
+				Genode::error("Write_multiple_block failed");
 				return false;
 			}
 
@@ -973,7 +974,8 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			_setup_adma_descriptor_table(block_count, out_buffer_phys);
 
 			if (!issue_command(Read_multiple_block(block_number))) {
-				PERR("Read_multiple_block failed, Stat: 0x%08x", read<Stat>());
+				Genode::error("Read_multiple_block failed, Stat: ",
+				              Genode::Hex(read<Stat>()));
 				return false;
 			}
 
@@ -996,7 +998,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			_setup_adma_descriptor_table(block_count, buffer_phys);
 
 			if (!issue_command(Write_multiple_block(block_number))) {
-				PERR("Write_multiple_block failed");
+				Genode::error("Write_multiple_block failed");
 				return false;
 			}
 

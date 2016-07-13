@@ -48,8 +48,9 @@ static inline Nova::mword_t copy_utcb_to_msgbuf(Nova::Utcb             &utcb,
 	size_t        num_data_words = num_msg_words - 1;
 
 	if (num_data_words*sizeof(mword_t) > rcv_msg.capacity()) {
-		PERR("receive message buffer too small msg size=%zx, buf size=%zd",
-		     num_data_words*sizeof(mword_t), rcv_msg.capacity());
+		error("receive message buffer too small msg "
+		      "size=", num_data_words*sizeof(mword_t), " "
+		      "buf size=", rcv_msg.capacity());
 		num_data_words = rcv_msg.capacity()/sizeof(mword_t);
 	}
 
@@ -91,7 +92,7 @@ static inline bool copy_msgbuf_to_utcb(Nova::Utcb                &utcb,
 
 	enum { NUM_MSG_REGS = 256 };
 	if (num_msg_words > NUM_MSG_REGS) {
-		PERR("Message does not fit into UTCB message registers\n");
+		error("message does not fit into UTCB message registers");
 		num_msg_words = NUM_MSG_REGS;
 	}
 

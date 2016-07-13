@@ -248,7 +248,7 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 		void update(Xml_node subsystems)
 		{
 			if (_elements.first()) {
-				PERR("subsequent updates are not supported");
+				Genode::error("subsequent updates are not supported");
 				return;
 			}
 

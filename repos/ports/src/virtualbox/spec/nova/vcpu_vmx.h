@@ -91,7 +91,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 		__attribute__((noreturn)) void _vmx_triple()
 		{
-			Vmm::printf("triple fault - dead\n");
+			Vmm::error("triple fault - dead");
 			exit(-1);
 		}
 
@@ -110,12 +110,13 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			unsigned const dubious = utcb->inj_info |
 			                         utcb->intr_state | utcb->actv_state;
 			if (dubious)
-				Vmm::printf("%s - dubious - inj_info=0x%x inj_error=%x"
-				            " intr_state=0x%x actv_state=0x%x\n", __func__,
-				            utcb->inj_info, utcb->inj_error,
-				            utcb->intr_state, utcb->actv_state);
+				Vmm::warning(__func__, " - dubious -"
+				             " inj_info=", Genode::Hex(utcb->inj_info),
+				             " inj_error=", Genode::Hex(utcb->inj_error),
+				             " intr_state=", Genode::Hex(utcb->intr_state),
+				             " actv_state=", Genode::Hex(utcb->actv_state));
 
-			Vmm::printf("invalid guest state - dead\n");
+			Vmm::error("invalid guest state - dead");
 			exit(-1);
 		}
 

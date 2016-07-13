@@ -17,7 +17,7 @@
 #define _LX_KIT__INTERNAL__TASK_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/sleep.h>
 
@@ -89,7 +89,7 @@ class Lx::Task : public Lx_kit::List<Lx::Task>::Element
 			case STATE_WAIT_BLOCKED:  return false;
 			}
 
-			PERR("state %d not handled by switch", _state);
+			Genode::error("state ", (int)_state, " not handled by switch");
 			Genode::sleep_forever();
 		}
 
@@ -125,7 +125,7 @@ class Lx::Task : public Lx_kit::List<Lx::Task>::Element
 			if (_wait_le_enqueued && _wait_list == list) return;
 
 			if (_wait_le_enqueued) {
-				PERR("%p already queued in %p", this, _wait_list);
+				Genode::error(this, " already queued in ", _wait_list);
 				Genode::sleep_forever();
 			}
 
@@ -137,12 +137,12 @@ class Lx::Task : public Lx_kit::List<Lx::Task>::Element
 		void wait_dequeue(List *list)
 		{
 			if (!_wait_le_enqueued) {
-				PERR("%p not queued", this);
+				Genode::error(this, " not queued");
 				Genode::sleep_forever();
 			}
 			
 			if (_wait_list != list) {
-				PERR("especially not in list %p", list);
+				Genode::error("especially not in list ", list);
 				Genode::sleep_forever();
 			}
 
@@ -218,7 +218,7 @@ class Lx::Task : public Lx_kit::List<Lx::Task>::Element
 			}
 
 			/* never reached */
-			PERR("Unexpected return of Task");
+			Genode::error("unexpected return of task");
 			Genode::sleep_forever();
 		}
 

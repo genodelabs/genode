@@ -133,7 +133,7 @@ class I8042
 				 * functions).
 				 */
 				if (attempts == 0) {
-					PERR("Failed to read from port");
+					Genode::error("failed to read from port");
 					return 0;
 				}
 
@@ -209,7 +209,7 @@ class I8042
 				attempts--;
 
 			if (attempts == 0) {
-				PERR("No data available");
+				Genode::error("no data available");
 				return RET_INVALID;
 			}
 
@@ -279,19 +279,19 @@ class I8042
 			/* run self tests */
 			_command(CMD_TEST);
 			if ((ret = _wait_data()) != RET_TEST_OK) {
-				Genode::printf("i8042: self test failed (%x)\n", ret);
+				Genode::log("i8042: self test failed (", Genode::Hex(ret), ")");
 				return;
 			}
 
 			_command(CMD_KBD_TEST);
 			if ((ret = _wait_data()) != RET_KBD_TEST_OK) {
-				Genode::printf("i8042: kbd test failed (%x)\n", ret);
+				Genode::log("i8042: kbd test failed (", Genode::Hex(ret), ")");
 				return;
 			}
 
 			_command(CMD_AUX_TEST);
 			if ((ret = _wait_data()) != RET_AUX_TEST_OK) {
-				Genode::printf("i8042: aux test failed (%x)\n", ret);
+				Genode::log("I8042: aux test failed (", Genode::Hex(ret), ")");
 				return;
 			}
 

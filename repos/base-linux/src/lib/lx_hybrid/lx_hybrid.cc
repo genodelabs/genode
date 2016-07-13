@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/log.h>
 #include <base/component.h>
 #include <linux_syscalls.h>
@@ -307,32 +306,32 @@ namespace Genode {
 
 			void wait_for_construction()
 			{
-				PERR("wait_for_construction() called for an adopted thread");
+				error("wait_for_construction() called for an adopted thread");
 			}
 
 			void constructed()
 			{
-				PERR("constructed() called for an adopted thread");
+				error("constructed() called for an adopted thread");
 			}
 
 			void wait_for_start()
 			{
-				PERR("wait_for_start() called for an adopted thread");
+				error("wait_for_start() called for an adopted thread");
 			}
 
 			void started()
 			{
-				PERR("started() called for an adopted thread");
+				error("started() called for an adopted thread");
 			}
 
 			void wait_for_join()
 			{
-				PERR("wait_for_join() called for an adopted thread");
+				error("wait_for_join() called for an adopted thread");
 			}
 
 			void joined()
 			{
-				PERR("joined() called for an adopted thread");
+				error("joined() called for an adopted thread");
 			}
 	};
 }
@@ -464,8 +463,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 
 	int const ret = pthread_create(&meta_data->pt, 0, thread_start, meta_data);
 	if (ret) {
-		PERR("pthread_create failed (returned %d, errno=%d)",
-		     ret, errno);
+		error("pthread_create failed (returned ", ret, ", errno=", errno, ")");
 		destroy(env()->heap(), meta_data);
 		throw Out_of_stack_space();
 	}
@@ -511,8 +509,8 @@ Thread::~Thread()
 	if (needs_join) {
 		int const ret = pthread_join(native_thread().meta_data->pt, 0);
 		if (ret)
-			PWRN("pthread_join unexpectedly returned with %d (errno=%d)",
-			     ret, errno);
+			warning("pthread_join unexpectedly returned "
+			        "with ", ret, " (errno=", errno, ")");
 	}
 
 	Thread_meta_data_created *meta_data =

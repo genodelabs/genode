@@ -17,7 +17,7 @@
 #include <noux_session/noux_session.h>
 #include <noux_session/capability.h>
 #include <base/rpc_client.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Noux {
 
@@ -39,7 +39,7 @@ namespace Noux {
 				bool result = call<Rpc_syscall>(sc);
 
 				if ((result == false) && verbose)
-					PERR("syscall %s failed", syscall_name(sc));
+					error("syscall ", syscall_name(sc), " failed");
 
 				return result;
 			}

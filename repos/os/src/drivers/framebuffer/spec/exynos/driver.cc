@@ -136,7 +136,7 @@ class I2c_interface : public Attached_mmio
 			write<Stat::Busy>(0);
 			write<Con::Irq_pending>(0);
 			if (read<Stat::Busy>()) {
-				PWRN("I2C got stuck after transfer, forcely terminate");
+				warning("I2C got stuck after transfer, forcely terminate");
 				write<Stat::Txrx_en>(0);
 			}
 		}
@@ -157,7 +157,7 @@ class I2c_interface : public Attached_mmio
 			Start_msg::Addr::set(start, slave);
 			Start_msg::Rx::set(start, !tx);
 			if (!wait_for<Stat::Busy>(0, *delayer())) {
-				PERR("I2C to busy to do transfer");
+				error("I2C to busy to do transfer");
 				return -1;
 			}
 			/* enable signal receipt */
@@ -192,7 +192,7 @@ class I2c_interface : public Attached_mmio
 				if (read<Con::Irq_pending>() && !read<Stat::Last_bit>()) return 1;
 				delayer()->usleep(TX_DELAY_US);
 			}
-			PERR("I2C ack not received");
+			error("I2C ack not received");
 			return 0;
 		}
 
@@ -202,7 +202,7 @@ class I2c_interface : public Attached_mmio
 		bool _arbitration_error()
 		{
 			if (read<Stat::Arbitr>()) {
-				PERR("I2C arbitration failed");
+				error("I2C arbitration failed");
 				return 1;
 			}
 			return 0;
@@ -293,7 +293,7 @@ class I2c_interface : public Attached_mmio
 		{
 			/* check receive buffer and initialize message transfer */
 			if (!buf_size) {
-				PERR("zero-sized receive buffer");
+				error("zero-sized receive buffer");
 				return -1;
 			}
 			if (_start_m_transfer(slave, 0)) return -1;
@@ -483,7 +483,7 @@ class Video_mixer : public Attached_mmio
 				write<M0_g0_cfg::Color_format>(4);
 				break;
 			default:
-				PERR("framebuffer format not supported");
+				error("framebuffer format not supported");
 				return -1;
 			}
 			/* window measurements */
@@ -536,7 +536,7 @@ class Video_mixer : public Attached_mmio
 				Cfg::Hd_mode::set(cfg, 1);
 				break;
 			default:
-				PERR("framebuffer height not supported");
+				error("framebuffer height not supported");
 				return -1;
 			}
 			Cfg::Scan_mode::set(cfg, 1); /* progressive */
@@ -623,7 +623,7 @@ class I2c_hdmi : public I2c_interface
 				cfg_size = sizeof(cfg_148_5)/sizeof(cfg_148_5[0]);
 				break;
 			default:
-				PERR("pixel clock not supported");
+				error("pixel clock not supported");
 				return -1;
 			}
 			if (m_transmit(HDMI_PHY_SLAVE, cfg, cfg_size)) { return -1; }
@@ -988,7 +988,7 @@ class Hdmi : public Attached_mmio
 				aspect_ratio   = _16_9;
 				cea_video_mode = 16;
 			} else {
-				PERR("resolution not supported");
+				error("resolution not supported");
 				return -1;
 			}
 			/* set-up HDMI PHY */
@@ -1044,7 +1044,7 @@ class Hdmi : public Attached_mmio
 				write<Avi_data_2>(PIC_RATIO_16_9 | AVI_RATIO_SAME_AS_PIC);
 				break;
 			default:
-				PERR("aspect ratio not supported");
+				error("aspect ratio not supported");
 				return -1;
 			}
 			write<Avi_data_4>(cea_video_mode);
@@ -1089,12 +1089,12 @@ class Hdmi : public Attached_mmio
 				_setup_mode_16();
 				break;
 			default:
-				PERR("mode not supported");
+				error("mode not supported");
 				return -1;
 			}
 			/* wait for PHY PLLs to get steady */
 			if (!wait_for<Phy_status_0::Phy_ready>(1, *delayer(), 10)) {
-				PERR("HDMI PHY not ready");
+				error("HDMI PHY not ready");
 				return -1;
 			}
 			/* turn on core and timing generator */
@@ -1128,7 +1128,7 @@ int Framebuffer::Driver::init_drv(size_t width, size_t height, Format format,
 		if (_init_hdmi(fb_phys)) { return -1; }
 		return 0;
 	default:
-		PERR("output not supported");
+		error("output not supported");
 		return -1;
 	}
 }

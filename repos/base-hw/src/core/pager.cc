@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes*/
 #include <pager.h>
@@ -86,9 +86,10 @@ void Pager_object::unresolved_page_fault_occurred()
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
-		PERR("%s -> %s: unresolved pagefault at ip=%lx sp=%lx fault address=%lx",
-		     pt->pd()->label(), pt->label(), pt->kernel_object()->ip,
-		     pt->kernel_object()->sp, pt->kernel_object()->fault_addr());
+		error(pt->pd()->label(), " -> ", pt->label(), ": unresolved pagefault at "
+		      "ip=", pt->kernel_object()->ip, " "
+		      "sp=", pt->kernel_object()->sp, " "
+		      "fault address=", pt->kernel_object()->fault_addr());
 }
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,

@@ -14,7 +14,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/timed_semaphore.h>
 
 #include <libc-plugin/plugin_registry.h>
@@ -103,7 +103,7 @@ static int selscan(int nfds, fd_set *in_readfds, fd_set *in_writefds,
 				}
 				nready += plugin_nready;
 			} else if (plugin_nready < 0) {
-				PERR("plugin->select() returned error value %d", plugin_nready);
+				Genode::error("plugin->select() returned error value ", plugin_nready);
 			}
 		}
 	}

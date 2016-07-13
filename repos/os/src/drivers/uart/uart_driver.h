@@ -46,7 +46,7 @@ namespace Uart {
 		 */
 		virtual void baud_rate(int /*bits_per_second*/)
 		{
-			PINF("Setting baudrate is not supported yet. Use default 115200.");
+			Genode::warning("Setting baudrate is not supported yet. Use default 115200.");
 		}
 	};
 

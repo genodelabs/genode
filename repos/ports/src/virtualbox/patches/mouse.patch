@@ -8,7 +8,7 @@ index 9d0a8d2..7eb6a09 100644
  /**
   * @interface_method_impl{PDMIMOUSEPORT,pfnPutEvent}
   */
-+#include <base/printf.h>
++#include <base/log.h>
  static DECLCALLBACK(int) drvMouseQueuePutEvent(PPDMIMOUSEPORT pInterface,
                                                 int32_t dx, int32_t dy,
                                                 int32_t dz, int32_t dw,
@@ -17,7 +17,7 @@ index 9d0a8d2..7eb6a09 100644
          return VINF_SUCCESS;
      }
 -    return VERR_PDM_NO_QUEUE_ITEMS;
-+    PERR("%s - drop event", __func__);
++    Genode::error(__func__, " - drop event");
 +    return VINF_SUCCESS;
  }
  
@@ -27,7 +27,7 @@ index 9d0a8d2..7eb6a09 100644
          return VINF_SUCCESS;
      }
 -    return VERR_PDM_NO_QUEUE_ITEMS;
-+    PERR("%s - drop event", __func__);
++    Genode::error(__func__, " - drop event");
 +    return VINF_SUCCESS;
  }
  

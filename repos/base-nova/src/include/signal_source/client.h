@@ -90,7 +90,7 @@ namespace Genode {
 					/* block on semaphore until signal context was submitted */
 					if (uint8_t res = si_ctrl(_sem.local_name(), SEMAPHORE_DOWN,
 					                  imprint, count))
-						PWRN("signal reception failed - error %u", res);
+						warning("signal reception failed - error ", res);
 
 				} while (imprint == 0);
 

@@ -11,7 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
 #include <util/arg_string.h>
 #include <rom_session_component.h>
 #include <root/root.h>

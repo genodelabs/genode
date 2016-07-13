@@ -47,18 +47,18 @@ class Test
 
 				virtual void print_error()
 				{
-					Genode::error("couldn't ", _write ? "write" : "read",
-					              " block ", _nr, " - ", _nr+_cnt);
+					Genode::error("couldn't ", _write ? "write" : "read", " "
+					              "block ", _nr, " - ", _nr+_cnt);
 				}
 		};
 
 		struct Submit_queue_full : Exception {
 			void print_error() {
-				Genode::error("The submit queue is full!"); } };
+				Genode::error("submit queue is full!"); } };
 
 		struct Timeout : Exception {
 			void print_error() {
-				Genode::error("Test timed out!"); } };
+				Genode::error("test timed out!"); } };
 
 		virtual void perform()         = 0;
 		virtual void ack_avail()       = 0;
@@ -175,7 +175,7 @@ struct Write_test : Test
 {
 	struct Invalid_dimensions : Exception {
 		void print_error() {
-			Genode::error("Invalid bulk buffer, or batch size!"); } };
+			Genode::error("invalid bulk buffer, or batch size!"); } };
 
 	struct Integrity_exception : Block_exception
 	{
@@ -184,7 +184,7 @@ struct Write_test : Test
 
 		void print_error()
 		{
-			Genode::error("Integrity check failed: block ", _nr, " - ",
+			Genode::error("integrity check failed: block ", _nr, " - ",
 			              _nr+_cnt);
 		}
 	};
@@ -323,7 +323,7 @@ struct Violation_test : Test
 
 		void print_error()
 		{
-			Genode::error("Range check failed: access to block ", _nr,
+			Genode::error("range check failed: access to block ", _nr,
 			              " - ", _nr+_cnt, " succeeded");
 		}
 	};
@@ -427,9 +427,9 @@ void Component::construct(Genode::Env &env)
 
 		log("Tests finished successfully!");
 	} catch(Genode::Parent::Service_denied) {
-		error("Opening block session was denied!");
+		error("opening block session was denied!");
 	} catch(Test::Exception &e) {
-		error("Test failed!");
+		error("test failed!");
 		e.print_error();
 	}
 }

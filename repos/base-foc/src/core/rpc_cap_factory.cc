@@ -71,7 +71,7 @@ void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
 	                              l4_obj_fpage(local.data()->kcap(), 0, L4_FPAGE_RWX),
 	                              ((l4_cap_idx_t)remote) | L4_ITEM_MAP);
 	if (l4_msgtag_has_error(tag))
-		PERR("mapping cap failed");
+		error("mapping cap failed");
 }
 
 
@@ -119,7 +119,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		                                         idx->kcap(),
 		                                         ref->pt()->thread().local.data()->kcap(), id);
 		if (l4_msgtag_has_error(tag)) {
-			PERR("l4_factory_create_gate failed!");
+			error("l4_factory_create_gate failed!");
 			cap_map()->remove(idx);
 			platform_specific()->cap_id_alloc()->free(id);
 			return cap;
@@ -132,7 +132,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		idx->pt(ref->pt());
 		cap = Native_capability(*idx);
 	} catch (Cap_id_allocator::Out_of_ids) {
-		PERR("Out of capability ids");
+		error("out of capability IDs");
 	}
 
 	/*
@@ -224,7 +224,7 @@ void Genode::Capability_map::remove(Genode::Cap_index* i)
 			                                l4_obj_fpage(i->kcap(), 0, L4_FPAGE_RWX),
 			                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
 			if (l4_msgtag_has_error(tag))
-				PERR("destruction of ipc-gate %lx failed!", (unsigned long) i->kcap());
+				error("destruction of ipc-gate ", i->kcap(), " failed!");
 
 
 			platform_specific()->cap_id_alloc()->free(i->id());

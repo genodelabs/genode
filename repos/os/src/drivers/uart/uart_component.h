@@ -117,7 +117,7 @@ namespace Uart {
 				 && _read_number(height) == ';'
 				 && _read_number(width)  == 'R') {
 
-					PINF("detected terminal size %dx%d", width, height);
+					Genode::log("detected terminal size ", width, "x", height);
 					return Size(width, height);
 				}
 
@@ -238,10 +238,10 @@ namespace Uart {
 						Session_component(_driver_factory, index, baudrate, detect_size);
 
 				} catch (Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"uart\" attribute in policy definition");
+					Genode::error("Missing \"uart\" attribute in policy definition");
 					throw Root::Unavailable();
 				} catch (Session_policy::No_policy_defined) {
-					PERR("Invalid session request, no matching policy");
+					Genode::error("Invalid session request, no matching policy");
 					throw Root::Unavailable();
 				}
 			}

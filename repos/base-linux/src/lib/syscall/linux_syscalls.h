@@ -57,7 +57,7 @@ extern "C" void wait_for_continue(void);
 		char str[128];                                             \
 		Genode::snprintf(str, sizeof(str),                         \
 		                 ESC_ERR fmt ESC_END "\n", ##__VA_ARGS__); \
-		Genode::raw((char const *)str);                            \
+		Genode::raw(Genode::Cstring(str));                         \
 	} while (0)
 
 

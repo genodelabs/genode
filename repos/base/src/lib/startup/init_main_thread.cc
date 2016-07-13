@@ -16,7 +16,6 @@
 /* Genode includes */
 #include <util/construct_at.h>
 #include <base/env.h>
-#include <base/printf.h>
 #include <base/thread.h>
 
 /* base-internal includes */

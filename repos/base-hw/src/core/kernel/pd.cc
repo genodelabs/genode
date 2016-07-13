@@ -14,6 +14,7 @@
 
 /* core includes */
 #include <kernel/pd.h>
+#include <base/log.h>
 #include <util.h>
 
 /* Genode includes */
@@ -62,7 +63,7 @@ void Mode_transition_control::map(Genode::Translation_table * tt,
 		tt->insert_translation(Genode::trunc_page(VIRT_BASE), phys_base, SIZE,
 		                       Genode::Page_flags::mode_transition(), alloc);
 	} catch(...) {
-		PERR("Inserting exception vector in page table failed!"); }
+		Genode::error("inserting exception vector in page table failed!"); }
 }
 
 

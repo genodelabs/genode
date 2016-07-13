@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/alarm.h>
 
 using namespace Genode;
@@ -20,7 +20,7 @@ using namespace Genode;
 void Alarm_scheduler::_unsynchronized_enqueue(Alarm *alarm)
 {
 	if (alarm->_active) {
-		PERR("trying to insert the same alarm twice!");
+		error("trying to insert the same alarm twice!");
 		return;
 	}
 

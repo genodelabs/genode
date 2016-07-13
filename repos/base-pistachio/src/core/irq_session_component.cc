@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
@@ -54,7 +54,7 @@ void Irq_object::_wait_for_irq()
 	L4_MsgTag_t res = L4_Call(irq_thread);
 
 	if (L4_IpcFailed(res))
-		PERR("ipc error while waiting for interrupt.");
+		error("ipc error while waiting for interrupt");
 }
 
 
@@ -68,7 +68,7 @@ void Irq_object::start()
 void Irq_object::entry()
 {
 	if (!_associate()) {
-		PERR("Could not associate with IRQ 0x%x", _irq);
+		error("could not associate with IRQ ", Hex(_irq));
 		return;
 	}
 
@@ -88,7 +88,7 @@ void Irq_object::entry()
 	L4_MsgTag_t res = L4_Receive(irq_thread);
 
 	if (L4_IpcFailed(res))
-		PERR("ipc error while attaching to interrupt.");
+		error("ipc error while attaching to interrupt");
 
 	/*
 	 * Now, the IRQ is masked. To receive the next IRQ we have to send
@@ -138,7 +138,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		throw Root::Unavailable();
 
 	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
-		PERR("Unavailable IRQ 0x%x requested", _irq_number);
+		error("unavailable IRQ ", Hex(_irq_number), " requested");
 		throw Root::Unavailable();
 	}
 
@@ -151,7 +151,7 @@ Irq_session_component::~Irq_session_component()
 	L4_Word_t res = L4_DeassociateInterrupt(irqno_to_threadid(_irq_number));
 
 	if (res != 1)
-		PERR("L4_DeassociateInterrupt failed");
+		error("L4_DeassociateInterrupt failed");
 }
 
 

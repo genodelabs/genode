@@ -80,24 +80,24 @@ bool test_loop(Timer::Session *timer, Alarm::Time timeout1, Alarm::Time timeout2
 
 int main(int, char **)
 {
-	printf("--- timed-semaphore test ---\n");
+	log("--- timed-semaphore test ---");
 
 	Timer::Connection timer;
 
-	printf("--- test 1: good case, no timeout triggers  --\n");
+	log("--- test 1: good case, no timeout triggers  --");
 	if(!test_loop(&timer, 1000, 100, 10)) {
-		PERR("Test 1 failed!");
+		error("Test 1 failed!");
 		return -1;
 	}
-	printf("--- everything went ok  --\n");
+	log("--- everything went ok  --");
 
-	printf("--- test 2: triggers timeouts --\n");
+	log("--- test 2: triggers timeouts --");
 	if(test_loop(&timer, 100, 1000, 10)) {
-		PERR("Test 2 failed!");
+		error("Test 2 failed!");
 		return -2;
 	}
-	printf("--- everything went ok  --\n");
+	log("--- everything went ok  --");
 
-	printf("--- end of timed-semaphore test ---\n");
+	log("--- end of timed-semaphore test ---");
 	return 0;
 }

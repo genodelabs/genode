@@ -15,7 +15,7 @@
 #define _BLOCK_DRIVER_H_
 
 /* General includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <block_session/connection.h>
 #include <block/component.h>
 #include <os/packet_allocator.h>
@@ -44,7 +44,7 @@ class Driver : public Block::Driver
 			try {
 				_cgd_device = Cgd::init(Genode::env()->heap(), ep);
 			} catch (...) {
-				PERR("could not initialize cgd device.");
+				Genode::error("could not initialize cgd device.");
 				throw Genode::Root::Unavailable();
 			}
 
@@ -67,7 +67,7 @@ class Driver : public Block::Driver
 		bool _range_valid(Block::sector_t num, Genode::size_t count)
 		{
 			if (num + count > _blk_cnt) {
-				PERR("requested block %llu-%llu out of range!", num, num + count);
+				Genode::error("requested block ", num, "-", num + count, " out of range!");
 				return false;
 			}
 

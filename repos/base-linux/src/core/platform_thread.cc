@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <util/token.h>
 #include <util/misc_math.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* local includes */
 #include "platform_thread.h"
@@ -100,20 +100,19 @@ Platform_thread::~Platform_thread()
 
 void Platform_thread::cancel_blocking()
 {
-	PDBG("send cancel-blocking signal to %ld\n", _tid);
 	lx_tgkill(_pid, _tid, LX_SIGUSR1);
 }
 
 
 void Platform_thread::pause()
 {
-	PDBG("not implemented");
+	warning(__func__, "not implemented");
 }
 
 
 void Platform_thread::resume()
 {
-	PDBG("not implemented");
+	warning(__func__, "not implemented");
 }
 
 

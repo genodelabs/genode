@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Driver for PCI-bus platforms
  * \author Sebastian Sumpf
  * \date   2015-04-29
@@ -49,23 +49,21 @@ struct X86_hba : Platform::Hba
 			[&] () { env.parent().upgrade(pci.cap(), "ram_quota=4096"); });
 
 		if (!pci_device_cap.valid()) {
-			PERR("No AHCI controller found");
+			Genode::error("no AHCI controller found");
 				throw -1;
 		}
 
 		/* construct pci client */
 		pci_device.construct(pci_device_cap);
-		PINF("AHCI found (vendor: %04x device: %04x class:"
-		     " %08x)\n", pci_device->vendor_id(),
-		     pci_device->device_id(), pci_device->class_code());
+		Genode::log("AHCI found ("
+		            "vendor: ", pci_device->vendor_id(), " "
+		            "device: ", pci_device->device_id(), " "
+		            "class: ", pci_device->class_code(), ")");
 
 		/* read base address of controller */
 		Platform::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
 		res_base = resource.base();
 		res_size = resource.size();
-
-		if (verbose)
-			PDBG("base: %lx size: %zx", res_base, res_size);
 
 		/* enable bus master */
 		uint16_t cmd = pci_device->config_read(PCI_CMD, Platform::Device::ACCESS_16BIT);
@@ -92,7 +90,7 @@ struct X86_hba : Platform::Hba
 			if (msi & MSI_ENABLED) {
 				_config_write(cap + 2, msi ^ MSI_CAP,
 				              Platform::Device::ACCESS_8BIT);
-				PINF("Disabled MSIs %x", msi);
+				Genode::log("disabled MSI ", msi);
 			}
 		}
 	}

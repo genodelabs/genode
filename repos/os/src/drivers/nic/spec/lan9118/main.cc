@@ -56,8 +56,8 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				error("insufficient 'ram_quota', got ", ram_quota, ", "
+				      "need ", tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
 
@@ -84,7 +84,7 @@ struct Server::Main
 
 	Main(Entrypoint &ep) : ep(ep)
 	{
-		printf("--- LAN9118 NIC driver started ---\n");
+		log("--- LAN9118 NIC driver started ---");
 		Genode::env()->parent()->announce(ep.manage(nic_root));
 	}
 };

@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <util/string.h>
@@ -63,7 +63,7 @@ extern "C" void wpa_report_connect_event(struct wpa_supplicant *wpa_s)
 				xml.attribute("state", "connected");
 			});
 		});
-	} catch (...) { PWRN("could not report connected state"); }
+	} catch (...) { Genode::warning("could not report connected state"); }
 }
 
 
@@ -88,7 +88,7 @@ extern "C" void wpa_report_disconnect_event(struct wpa_supplicant *wpa_s)
 			});
 
 		});
-	} catch (...) { PWRN("could not report disconnected state"); }
+	} catch (...) { Genode::warning("could not report disconnected state"); }
 }
 
 
@@ -139,5 +139,5 @@ extern "C" void wpa_report_scan_results(struct wpa_supplicant *wpa_s)
 				});
 			}
 		});
-	} catch (...) { PWRN("could not report scan results"); }
+	} catch (...) { Genode::warning("could not report scan results"); }
 }

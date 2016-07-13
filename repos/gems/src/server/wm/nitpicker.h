@@ -877,7 +877,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				_view_handle_registry.free(handle); }
 
 			catch (View_handle_registry::Lookup_failed) {
-				PWRN("view lookup failed while releasing view handle");
+				Genode::warning("view lookup failed while releasing view handle");
 				return;
 			}
 		}
@@ -893,7 +893,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				try {
 					_execute_command(_command_buffer.get(i)); }
 				catch (View_handle_registry::Lookup_failed) {
-					PWRN("view lookup failed during command execution"); }
+					Genode::warning("view lookup failed during command execution"); }
 			}
 
 			/* propagate window-list changes to the layouter */
@@ -1186,7 +1186,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 			auto lambda = [&] (Rpc_object_base *session) {
 				if (!session) {
-					PDBG("session lookup failed");
+					Genode::warning("session lookup failed");
 					return;
 				}
 

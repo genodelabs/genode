@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <os/path.h>
 
@@ -36,9 +36,6 @@ using namespace Genode;
 
 void *operator new (size_t, void *ptr) { return ptr; }
 
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
-static bool const verbose = false;
-
 /* a little helper to prevent code duplication */
 static inline int check_result(int res)
 {
@@ -59,31 +56,20 @@ static inline int check_result(int res)
  ** override libc defaults **
  ****************************/
 
-/*
-extern "C" int access(const char *pathname, int mode)
-{
-	PDBGV("pathname: %s", pathname);
-	return check_result(Fuse::fuse()->op.access(pathname, mode));
-}
-*/
-
 extern "C" int chmod(const char *path, mode_t mode)
 {
-	PDBGV("path: %s", path);
 	return check_result(Fuse::fuse()->op.chmod(path, mode));
 }
 
 
 extern "C" int chown(const char *path, uid_t uid, gid_t gid)
 {
-	PDBGV("path: %s", path);
 	return check_result(Fuse::fuse()->op.chown(path, uid, gid));
 }
 
 
 extern "C" int link(const char *oldpath, const char *newpath)
 {
-	PDBGV("oldpath: %s", oldpath);
 	return check_result(Fuse::fuse()->op.link(oldpath, newpath));
 }
 
@@ -132,7 +118,7 @@ namespace {
 			Plugin() : Libc::Plugin(PLUGIN_PRIORITY)
 			{
 				if (!Fuse::init_fs()) {
-					PERR("FUSE fs initialization failed");
+					error("FUSE fs initialization failed");
 					return;
 				}
 			}
@@ -145,7 +131,6 @@ namespace {
 
 			bool supports_mkdir(const char *path, mode_t mode)
 			{
-				PDBGV("path: %s", path);
 				if (Fuse::initialized() == 0)
 					return false;
 
@@ -154,8 +139,6 @@ namespace {
 
 			bool supports_open(const char *pathname, int flags)
 			{
-				PDBGV("pathname: %s", pathname);
-
 				if (Genode::strcmp(pathname, "/dev/blkdev") == 0)
 					return false;
 
@@ -167,7 +150,6 @@ namespace {
 
 			bool supports_readlink(const char *path, char *buf, ::size_t bufsiz)
 			{
-				PDBGV("path: %s", path);
 				if (Fuse::initialized() == 0)
 					return false;
 
@@ -176,7 +158,6 @@ namespace {
 
 			bool supports_rmdir(const char *path)
 			{
-				PDBGV("path: %s", path);
 				if (Fuse::fuse() == 0)
 					return false;
 				return true;
@@ -184,7 +165,6 @@ namespace {
 
 			bool supports_stat(const char *path)
 			{
-				PDBGV("path: %s", path);
 				if (Fuse::initialized() == 0)
 					return false;
 
@@ -193,7 +173,6 @@ namespace {
 
 			bool supports_symlink(const char *oldpath, const char *newpath)
 			{
-				PDBGV("path: %s", oldpath);
 				if (Fuse::fuse() == 0)
 					return false;
 				return true;
@@ -201,7 +180,6 @@ namespace {
 
 			bool supports_unlink(const char *path)
 			{
-				PDBGV("path: %s", path);
 				if (Fuse::fuse() == 0)
 					return false;
 				return true;
@@ -211,8 +189,6 @@ namespace {
 			int close(Libc::File_descriptor *fd)
 			{
 				Plugin_context *ctx = context(fd);
-
-				PDBGV("path: %s", ctx->path.string());
 
 				Fuse::fuse()->op.release(ctx->path.string(), &ctx->file_info);
 
@@ -235,7 +211,7 @@ namespace {
 					ctx->fd_flags = arg;
 					return 0;
 				default:
-					PDBG("cmd %d not supported", cmd);
+					warning(__func__, ": cmd ", cmd, " not supported");
 					return -1;
 				}
 
@@ -245,8 +221,6 @@ namespace {
 			int fstat(Libc::File_descriptor *fd, struct stat *buf)
 			{
 				Plugin_context *ctx = context(fd);
-
-				PDBGV("path: %s", ctx->path.string());
 
 				Genode::memset(buf, 0, sizeof (struct stat));
 
@@ -262,8 +236,6 @@ namespace {
 			int fstatfs(Libc::File_descriptor *fd, struct statfs *buf)
 			{
 				Plugin_context *ctx = context(fd);
-
-				PDBGV("path: %s", ctx->path.string());
 
 				struct statvfs vfs;
 
@@ -292,8 +264,6 @@ namespace {
 			{
 				Plugin_context *ctx = context(fd);
 
-				PDBGV("path: %s", ctx->path.string());
-
 				int res = Fuse::fuse()->op.ftruncate(ctx->path.string(), length,
 				                                     &ctx->file_info);
 				if (res != 0) {
@@ -308,10 +278,9 @@ namespace {
 			                        ::off_t *basep)
 			{
 				Plugin_context *ctx = context(fd);
-				PDBGV("path: %s", ctx->path.string());
 
 				if (nbytes < sizeof (struct dirent)) {
-					PERR("buf too small");
+					error(__func__, ": buf too small");
 					errno = ENOMEM;
 					return -1;
 				}
@@ -372,7 +341,6 @@ namespace {
 			::off_t lseek(Libc::File_descriptor *fd, ::off_t offset, int whence)
 			{
 				Plugin_context *ctx = context(fd);
-				PDBGV("path: %s", ctx->path.string());
 
 				switch (whence) {
 				case SEEK_SET:
@@ -400,7 +368,6 @@ namespace {
 
 			int mkdir(const char *pathname, mode_t mode)
 			{
-				PDBGV("pathname: %s", pathname);
 				int res = Fuse::fuse()->op.mkdir(pathname, mode);
 
 				return check_result(res);
@@ -409,7 +376,6 @@ namespace {
 			Libc::File_descriptor *open(const char *pathname, int flags)
 			{
 				/* XXX evaluate flags */
-				PDBGV("pathname: %s", pathname);
 
 				Plugin_context *context = new (Genode::env()->heap())
 					Plugin_context(pathname, flags);
@@ -431,7 +397,7 @@ namespace {
 							case 0:
 								break;
 							default:
-								PERR("could not create '%s'", pathname);
+								error(__func__, ": could not create '", pathname, "'");
 								destroy(env()->heap(), context);
 								return 0;
 						}
@@ -468,7 +434,6 @@ namespace {
 			ssize_t read(Libc::File_descriptor *fd, void *buf, ::size_t count)
 			{
 				Plugin_context *ctx = context(fd);
-				PDBGV("path: %s", ctx->path.string());
 
 				int res = Fuse::fuse()->op.read(ctx->path.string(),
 				                                reinterpret_cast<char*>(buf),
@@ -484,8 +449,6 @@ namespace {
 
 			ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
 			{
-				PDBGV("path: %s", path);
-
 				int res = Fuse::fuse()->op.readlink(path, buf, bufsiz);
 				if (res < 0) {
 					errno = -res;
@@ -502,7 +465,6 @@ namespace {
 
 			int rename(const char *oldpath, const char *newpath)
 			{
-				PDBGV("oldpath: %s newpath: %s", oldpath, newpath);
 				int res = Fuse::fuse()->op.rename(oldpath, newpath);
 
 				return check_result(res);
@@ -510,7 +472,6 @@ namespace {
 
 			int rmdir(const char *path)
 			{
-				PDBGV("path: %s", path);
 				int res = Fuse::fuse()->op.rmdir(path);
 
 				return check_result(res);
@@ -518,7 +479,6 @@ namespace {
 
 			int stat(const char *path, struct stat *buf)
 			{
-				PDBGV("path: %s", path);
 				Genode::memset(buf, 0, sizeof (buf));
 
 				int res = Fuse::fuse()->op.getattr(path, buf);
@@ -528,7 +488,6 @@ namespace {
 
 			int symlink(const char *oldpath, const char *newpath)
 			{
-				PDBGV("oldpath: %s newpath: %s", oldpath, newpath);
 				int res = Fuse::fuse()->op.symlink(oldpath, newpath);
 
 				return check_result(res);
@@ -536,7 +495,6 @@ namespace {
 
 			int unlink(const char *path)
 			{
-				PDBGV("path: %s", path);
 				int res = Fuse::fuse()->op.unlink(path);
 
 				return check_result(res);
@@ -546,7 +504,6 @@ namespace {
 			{
 				Plugin_context *ctx = context(fd);
 
-				PDBGV("path: %s", ctx->path.string());
 				int res = Fuse::fuse()->op.write(ctx->path.string(),
 				                                 reinterpret_cast<const char*>(buf),
 				                                 count, ctx->offset, &ctx->file_info);
@@ -574,6 +531,5 @@ void __attribute__((constructor)) init_libc_fuse(void)
 	extern void init_libc_vfs(void);
 	init_libc_vfs();
 
-	PDBGV("using the libc_fuse plugin");
 	static Plugin plugin;
 }

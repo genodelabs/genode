@@ -435,7 +435,7 @@ namespace Noux {
 					_args.dump();
 
 				if (!forked && !_elf._binary_ds.valid()) {
-					PERR("Lookup of executable \"%s\" failed", binary_name);
+					error("lookup of executable \"", binary_name, "\" failed");
 
 					_destruct();
 					throw Binary_does_not_exist();
@@ -464,7 +464,7 @@ namespace Noux {
 			void submit_exit_signal()
 			{
 				if (init_process(this)) {
-					PINF("init process exited");
+					log("init process exited");
 
 					/* trigger exit of main event loop */
 					init_process_exited(_child_policy.exit_value());
@@ -573,7 +573,7 @@ namespace Noux {
 				try {
 					_pending_signals.add(sig);
 				} catch (Signal_queue::Overflow) {
-					PERR("signal queue is full - signal dropped");
+					error("signal queue is full - signal dropped");
 				}
 
 				_blocker.unlock();

@@ -17,6 +17,7 @@
 #include <audio_out_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <root/component.h>
 

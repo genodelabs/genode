@@ -52,7 +52,7 @@ static inline void flush_stack_area()
 
 	int ret;
 	if ((ret = lx_munmap(base, size)) < 0) {
-		PERR("%s: failed ret=%d", __func__, ret);
+		error(__func__, ": failed ret=", ret);
 		throw Region_map::Region_conflict();
 	}
 }
@@ -71,9 +71,7 @@ static inline Genode::addr_t reserve_stack_area()
 	/* reserve at local address failed - unmap incorrect mapping */
 	if (addr_in != addr_out) {
 		lx_munmap((void *)addr_out, size);
-
-		PERR("%s: failed addr_in=%p addr_out=%p ret=%ld)", __func__,
-		     addr_in, addr_out, (long)addr_out);
+		error(__func__, ": failed addr_in=", addr_in, " addr_out=", addr_out);
 		throw Region_map::Region_conflict();
 	}
 

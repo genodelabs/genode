@@ -23,12 +23,18 @@
 #include <base/internal/unmanaged_singleton.h>
 
 
-#define P(fmt,...)                                                    \
-	do {                                                              \
-		int dummy;                                                    \
-		Genode::printf(ESC_INF "[%lx] %s:%u " fmt ESC_END "\n",       \
-		               (unsigned long)&dummy >> 20,                   \
-		               __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); \
+/* escape sequences for highlighting debug message prefixes */
+#define LIBC_ESC_START "\033[32m"
+#define LIBC_ESC_END   "\033[0m"
+
+#define P(...)                                           \
+	do {                                                 \
+		int dummy;                                       \
+		using namespace Genode;                          \
+		Hex ctx((addr_t)&dummy >> 20, Hex::OMIT_PREFIX); \
+		log(LIBC_ESC_START "[", ctx, "] ",               \
+		    __PRETTY_FUNCTION__, ":", __LINE__,          \
+		    LIBC_ESC_END "  ", ##__VA_ARGS__);           \
 	} while (0)
 
 
@@ -95,7 +101,7 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 
 		Task(Genode::Env &env) : _env(env) { }
 
-		~Task() { PERR("%s should not be executed!", __PRETTY_FUNCTION__); }
+		~Task() { Genode::error(__PRETTY_FUNCTION__, " should not be executed!"); }
 
 		void run()
 		{

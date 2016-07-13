@@ -60,21 +60,23 @@ class Ec : Acpica::Callback<Ec> {
 
 			ACPI_GPE_EVENT_INFO * ev = AcpiEvGetGpeEventInfo(ec->gpe_block, gpe);
 			if (!ev || !ec->ec_cmdsta || !ec->ec_data) {
-				PERR("unknown GPE 0x%x", gpe);
+				Genode::error("unknown GPE ", Genode::Hex(gpe));
 				return AE_OK; /* GPE is disabled and must be enabled explicitly */
 			}
 
 			if ((ACPI_GPE_DISPATCH_TYPE (ev->Flags) != ACPI_GPE_DISPATCH_HANDLER) ||
 			    !ev->Dispatch.Handler) {
-				PERR("unknown dispatch type, GPE 0x%x, flags=0x%x type=0x%x",
-				     gpe, ev->Flags, ACPI_GPE_DISPATCH_TYPE (ev->Flags));
+				Genode::error("unknown dispatch type, "
+				              "GPE ",   Genode::Hex(gpe), ", "
+				              "flags=", Genode::Hex(ev->Flags), " "
+				              "type=",  Genode::Hex(ACPI_GPE_DISPATCH_TYPE(ev->Flags)));
 				return AE_OK; /* GPE is disabled and must be enabled explicitly */
 			}
 
 			State::access_t state = ec->ec_cmdsta->inb(ec->ec_port_cmdsta);
 
 			if (!State::Sci_evt::get(state)) {
-				PERR("unknown status 0x%x", state);
+			Genode::error("unknown status ", Genode::Hex(state));
 				return ACPI_REENABLE_GPE; /* gpe is acked and re-enabled */
 			}
 
@@ -90,8 +92,8 @@ class Ec : Acpica::Callback<Ec> {
 				state = ec->ec_cmdsta->inb(ec->ec_port_cmdsta);
 
 				if (!ec->_report)
-					PINF("ec event - status 0x%x data 0x%x round=%u", state,
-					     data, ++cnt);
+					Genode::log("ec event - status ", Genode::Hex(state), " "
+					            "data ", Genode::Hex(data), " round=", ++cnt);
 			} while (State::Out_ful::get(state));
 
 			if (ec->_report) {
@@ -123,20 +125,14 @@ class Ec : Acpica::Callback<Ec> {
 				return AE_OK;
 
 			if (resource->Type != ACPI_RESOURCE_TYPE_IO) {
-				PWRN("unknown resource type %u", resource->Type);
+				Genode::warning("unknown resource type ", (int)resource->Type);
 				return AE_OK;
 			}
-/*
-			PDBG("TYPE IO: IoDecode 0x%x, alignment 0x%x, AddressLen 0x%x "
-			      "min 0x%x max 0x%x",
-			      resource->Data.Io.IoDecode, resource->Data.Io.Alignment,
-			      resource->Data.Io.AddressLength, resource->Data.Io.Minimum,
-			      resource->Data.Io.Maximum);
-*/
+
 			/* first port is data, second is status/cmd */
 			if (resource->Data.Io.AddressLength != 1)
-				PERR("unsupported address length of %u",
-				     resource->Data.Io.AddressLength);
+				Genode::error("unsupported address length of ",
+				              resource->Data.Io.AddressLength);
 
 			if (!ec->ec_data) {
 				ec->ec_port_data = resource->Data.Io.Minimum;
@@ -146,7 +142,7 @@ class Ec : Acpica::Callback<Ec> {
 				ec->ec_port_cmdsta = resource->Data.Io.Minimum;
 				ec->ec_cmdsta = new (Genode::env()->heap()) Genode::Io_port_connection(ec->ec_port_cmdsta, 1);
 			} else
-				PERR("unknown io_port");
+				Genode::error("unknown io_port");
 
 			return AE_OK;
 		}
@@ -161,7 +157,7 @@ class Ec : Acpica::Callback<Ec> {
 			unsigned char *result = reinterpret_cast<unsigned char *>(value);
 
 			if (bytes * 8 != bitwidth) {
-				PERR("unsupport bit width of %u", bitwidth);
+				Genode::error("unsupport bit width of ", bitwidth);
 				return AE_BAD_PARAMETER;
 			}
 
@@ -223,7 +219,8 @@ class Ec : Acpica::Callback<Ec> {
 			ACPI_STATUS res = AcpiWalkResources(ec, ACPI_STRING("_CRS"),
 			                                    Ec::detect_io_ports, ec_obj);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' _CRS res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' _CRS "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -231,7 +228,8 @@ class Ec : Acpica::Callback<Ec> {
 			                                     handler_ec, nullptr,
 			                                     ec_obj);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' spacehandler res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' spacehandler "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -239,7 +237,8 @@ class Ec : Acpica::Callback<Ec> {
 			res = AcpiEvaluateObjectTyped(ec, ACPI_STRING("_GPE"), nullptr,
 			                              &sta, ACPI_TYPE_INTEGER);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' _STA res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' _STA "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -248,7 +247,8 @@ class Ec : Acpica::Callback<Ec> {
 			/* if ec_obj->gpe_block stays null - it's GPE0/GPE1 */
 			res = AcpiGetGpeDevice(gpe_to_enable, &ec_obj->gpe_block);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' get_device res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' get_device "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
@@ -256,17 +256,19 @@ class Ec : Acpica::Callback<Ec> {
 			                            ACPI_GPE_LEVEL_TRIGGERED, handler_gpe,
 			                            ec_obj);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' install_device res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' install_device "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
 			res = AcpiEnableGpe (ec_obj->gpe_block, gpe_to_enable);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' enable_gpe res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' enable_gpe "
+				              "res=", Genode::Hex(res));
 				return AE_OK;
 			}
 
-			PINF("detected - ec");
+			Genode::log("detected - ec");
 
 			if (ec_obj->_report)
 				ec_obj->_report->add_notify(ec_obj);

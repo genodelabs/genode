@@ -39,8 +39,6 @@ extern void* l4lx_kinfo;    /* pointer to the KIP */
 
 extern "C" int linux_main(int argc, char **argv); /* l4linux entry function */
 
-static const bool DEBUG = false;
-
 static void parse_cmdline(char*** cmd, int *num)
 {
 	using namespace Genode;
@@ -53,12 +51,9 @@ static void parse_cmdline(char*** cmd, int *num)
 	try {
 		config()->xml_node().attribute("args").value(arg_str, sizeof(arg_str));
 	} catch(...) {
-		PWRN("Couldn't parse commandline from config!");
+		warning("couldn't parse commandline from config!");
 		arg_str[0] = 0;
 	}
-
-	if (DEBUG)
-		PDBG("Read the following commandline from config: %s", arg_str);
 
 	unsigned i = 1;
 	words[0] = (char*) "vmlinux";
@@ -142,15 +137,12 @@ int main(int, char**)
 	int    cmd_num = 0;
 	char** cmdline = 0;
 
-	PINF("Booting L4Linux ...");
+	Genode::log("Booting L4Linux ...");
 
 	register_reserved_areas();
 	map_kip();
 	prepare_l4re_env();
 	parse_cmdline(&cmdline, &cmd_num);
-
-	if (DEBUG)
-		L4lx::Env::env()->rm()->dump();
 
 	return linux_main(cmd_num, cmdline);
 }

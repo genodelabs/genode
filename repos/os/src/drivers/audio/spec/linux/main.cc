@@ -20,6 +20,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/sleep.h>
+#include <base/heap.h>
 #include <root/component.h>
 #include <audio_out_session/rpc_object.h>
 #include <util/misc_math.h>

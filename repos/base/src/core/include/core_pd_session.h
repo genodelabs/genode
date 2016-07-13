@@ -85,7 +85,7 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 		{
 			_signal_source_ep.apply(cap, [&] (Signal_context_component *context) {
 				if (!context) {
-					PDBG("invalid signal-context capability");
+					warning("invalid signal-context capability");
 					return;
 				}
 

@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <util/string.h>
 #include <timer_session/connection.h>
@@ -48,7 +48,7 @@ int main()
 
 	if( lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE))
 	{
-		PERR("We got no IP address!");
+		Genode::error("got no IP address!");
 		return 0;
 	}
 
@@ -56,30 +56,30 @@ int main()
 		_timer.msleep(2000);
 
 
-		PDBG("Create new socket ...");
+		Genode::log("Create new socket ...");
 		int s = lwip_socket(AF_INET, SOCK_STREAM, 0 );
 		if (s < 0) {
-			PERR("No socket available!");
+			Genode::error("no socket available!");
 			continue;
 		}
 
-		PDBG("Connect to server ...");
+		Genode::log("Connect to server ...");
 		struct sockaddr_in addr;
 		addr.sin_port = htons(80);
 		addr.sin_family = AF_INET;
 		addr.sin_addr.s_addr = inet_addr(serv_addr);
 
 		if((lwip_connect(s, (struct sockaddr *)&addr, sizeof(addr))) < 0) {
-			PERR("Could not connect!");
+			Genode::error("could not connect!");
 			lwip_close(s);
 			continue;
 		}
 
-		PDBG("Send request...");
+		Genode::log("Send request...");
 		unsigned long bytes = lwip_send(s, (char*)http_get_request,
 		                                Genode::strlen(http_get_request), 0);
 		if ( bytes < 0 ) {
-			PERR("Couldn't send request ...");
+			Genode::error("couldn't send request ...");
 			lwip_close(s);
 			continue;
 		}
@@ -91,8 +91,8 @@ int main()
 			buflen = lwip_recv(s, buf, 1024, 0);
 			if(buflen > 0) {
 				buf[buflen] = 0;
-				PDBG("Packet received!");
-				PDBG("Packet content:\n%s", buf);
+				Genode::log("Packet received!");
+				Genode::log("Packet content:\n", Cstring(buf));
 			} else
 				break;
 		}

@@ -81,7 +81,7 @@ class Genode::Signal_broker
 			auto lambda = [&] (Signal_source_component *s) {
 
 				if (!s) {
-					PERR("unknown signal source");
+					error("unknown signal source");
 					return;
 				}
 
@@ -104,7 +104,7 @@ class Genode::Signal_broker
 		{
 			auto lambda = [&] (Signal_source_component *s) {
 				if (!s) {
-					PERR("unknown signal source");
+					error("unknown signal source");
 					throw Invalid_signal_source();
 				}
 
@@ -124,7 +124,7 @@ class Genode::Signal_broker
 			auto lambda = [&] (Signal_context_component *c) {
 
 				if (!c) {
-					PERR("unknown signal context");
+					error("unknown signal context");
 					return;
 				}
 

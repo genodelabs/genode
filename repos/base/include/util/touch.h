@@ -14,8 +14,6 @@
 #ifndef _INCLUDE__UTIL__TOUCH_H_
 #define _INCLUDE__UTIL__TOUCH_H_
 
-#include <base/printf.h>
-
 namespace Genode {
 
 	/** Touch one byte at address read only */

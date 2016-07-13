@@ -94,7 +94,7 @@ Session_capability Core_parent::session(Parent::Service_name const &name,
 	if (service)
 		return service->session(args.string(), affinity);
 
-	PWRN("service_name=\"%s\" arg=\"%s\" not handled", name.string(), args.string());
+	warning("service_name=\"", name.string(), "\" args=\"", args.string(), "\" not handled");
 	return Session_capability();
 }
 
@@ -233,8 +233,6 @@ int main()
 
 	log("Genode ", Genode::version_string);
 
-	PDBG("--- create local services ---");
-
 	static Trace::Policy_registry trace_policies;
 
 	/*
@@ -291,15 +289,13 @@ int main()
 	/* make platform-specific services known to service pool */
 	platform_add_local_services(e, &sliced_heap, &local_services);
 
-	PDBG("--- start init ---");
-
 	/* obtain ROM session with init binary */
 	Rom_session_capability init_rom_session_cap;
 	try {
 		static Rom_connection rom("init");
 		init_rom_session_cap = rom.cap(); }
 	catch (...) {
-		PERR("ROM module \"init\" not present"); }
+		error("ROM module \"init\" not present"); }
 
 	/* create ram session for init and transfer some of our own quota */
 	Ram_session_capability init_ram_session_cap
@@ -320,7 +316,7 @@ int main()
 	         core's heap and not accounted by the component's meta data allocator */
 	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 224*1024;
 	env()->ram_session()->transfer_quota(init_ram_session_cap, init_quota);
-	PDBG("transferred %zu MB to init", init_quota / (1024*1024));
+	log("", init_quota / (1024*1024), " MiB RAM assigned to init");
 
 	Pd_connection init_pd("init");
 	Core_child *init = new (env()->heap())
@@ -328,16 +324,12 @@ int main()
 		           init_pd, init_ram_session_cap, init_cpu.cap(),
 		           local_services);
 
-	PDBG("--- init created, waiting for exit condition ---");
 	platform()->wait_for_exit();
 
-	PDBG("--- destroying init ---");
 	destroy(env()->heap(), init);
 
 	rom_root.close(init_rom_session_cap);
 	ram_root.close(init_ram_session_cap);
-
-	PDBG("--- core main says good bye ---");
 
 	return 0;
 }

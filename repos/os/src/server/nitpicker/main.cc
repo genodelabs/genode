@@ -16,6 +16,7 @@
 #include <base/log.h>
 #include <base/component.h>
 #include <base/allocator_guard.h>
+#include <base/heap.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <input/event.h>

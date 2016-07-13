@@ -15,7 +15,6 @@
 #ifndef _CORE__INCLUDE__CORE_PARENT_H_
 #define _CORE__INCLUDE__CORE_PARENT_H_
 
-#include <base/printf.h>
 #include <parent/parent.h>
 
 namespace Genode { struct Core_parent; }

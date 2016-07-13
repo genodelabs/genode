@@ -7,7 +7,7 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/shared_object.h>
 #include <base/snprintf.h>
 
@@ -39,7 +39,7 @@ void *dlopen(const char *name, int mode)
 	/* error on unsupported mode values */
 	if (mode & ~supported) {
 		snprintf(err_str, MAX_ERR, "Unsupported mode 0x%x\n", mode & ~supported);
-		PERR("dlopen: %s", err_str);
+		error("dlopen: ", Cstring(err_str));
 		return nullptr;
 	}
 
@@ -101,20 +101,20 @@ int dlclose(void *handle)
 
 int dlinfo(void *handle, int request, void *p)
 {
-	PERR("%s not implemented", __func__);
+	error(__func__, " not implemented");
 	return 0;
 }
 
 
 dlfunc_t dlfunc(void *handle, const char *name)
 {
-	PERR("%s not implemented", __func__);
+	error(__func__, " not implemented");
 	return 0;
 }
 
 
 void *dlvsym(void *handle, const char *name, const char *version)
 {
-	PERR("%s not implemented", __func__);
+	error(__func__, " not implemented");
 	return nullptr;
 }

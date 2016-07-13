@@ -33,7 +33,7 @@ int Table::setup_request(size_t const size, addr_t const buffer_phys)
 	/* sanity check */
 	static size_t constexpr max_size = _max_desc * Desc::Length::max;
 	if (size > max_size) {
-		PERR("Block request too large");
+		Genode::error("block request too large");
 		return -1;
 	}
 	/* install new descriptors till they cover all requested bytes */

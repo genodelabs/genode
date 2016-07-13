@@ -1,7 +1,7 @@
 #ifndef ____H_VIRTUALBOXBASEIMPL
 #define ____H_VIRTUALBOXBASEIMPL
 
-#include <base/printf.h>
+#include <base/log.h>
 
 #include <iprt/cdefs.h>
 #include <iprt/thread.h>
@@ -153,23 +153,23 @@ class Shareable
 		Shareable<T> () : _verbose(false), _obj(nullptr) { }
 
 		/* operators */
-		T * operator->() const  { if (_verbose) PDBG("called"); return _obj; }
+		T * operator->() const  { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); return _obj; }
 
 		bool isNull() const { return _obj == nullptr; }
 		bool operator!() const { return isNull(); }
 
-		void allocate() { if (_verbose) PDBG("called %p %u", __builtin_return_address(0), sizeof(*_obj)); _obj = new T; }
-		void attach(T * t) { if (_verbose) PDBG("called"); }
-		void attach(Shareable &s) { if (_verbose) PDBG("called"); }
-		void share(const Shareable &s) { if (_verbose) PDBG("called"); _obj = s._obj; }
-		void share(T * obj) { if (_verbose) PDBG("called"); _obj = obj; }
-		void free() { if (_verbose) PDBG("called"); }
-		void attachCopy(const T *) { if(_verbose) PDBG("called"); }
-		void attachCopy(const Shareable &) { if (_verbose)PDBG("called"); }
+		void allocate() { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); _obj = new T; }
+		void attach(T * t) { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); }
+		void attach(Shareable &s) { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); }
+		void share(const Shareable &s) { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); _obj = s._obj; }
+		void share(T * obj) { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); _obj = obj; }
+		void free() { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); }
+		void attachCopy(const T *) { if(_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); }
+		void attachCopy(const Shareable &) { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); }
 
-		T *data() const { if (_verbose) PDBG("called"); return _obj; }
+		T *data() const { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); return _obj; }
 
-		bool isShared() const { if (_verbose) PDBG("called"); return false; }
+		bool isShared() const { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); return false; }
 };
 
 template <typename T>
@@ -189,7 +189,7 @@ class Backupable : public Shareable<T>
 
 		HRESULT backupEx() { return S_OK; }
 
-		T *backedUpData() const { PDBG("called"); return nullptr; }
+		T *backedUpData() const { Genode::log(__PRETTY_FUNCTION__, " called"); return nullptr; }
 		bool isBackedUp() const { return false; }
 };
 

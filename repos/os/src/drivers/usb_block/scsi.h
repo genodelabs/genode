@@ -126,13 +126,13 @@ struct Scsi::Inquiry_response : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("--- Dump INQUIRY data ---");
-		PLOG("Dt:      0x%02x", read<Dt>());
-		PLOG("Rm::Rmb: %u ", read<Rm::Rmb>());
-		PLOG("Ver:     0x%02x", read<Ver>());
-		PLOG("Rdf:     0x%02x", read<Rdf>());
-		PLOG("Al:      %u", read<Al>());
-		PLOG("Flg:     0x%02x", read<Flg>());
+		Genode::log("--- Dump INQUIRY data ---");
+		Genode::log("Dt:      ", Genode::Hex(read<Dt>()));
+		Genode::log("Rm::Rmb: ", read<Rm::Rmb>());
+		Genode::log("Ver:     ", Genode::Hex(read<Ver>()));
+		Genode::log("Rdf:     ", Genode::Hex(read<Rdf>()));
+		Genode::log("Al:      ", read<Al>());
+		Genode::log("Flg:     ", Genode::Hex(read<Flg>()));
 	}
 };
 
@@ -162,12 +162,12 @@ struct Scsi::Request_sense_response : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("--- Dump REQUEST_SENSE data ---");
-		PLOG("Rc::V:   %u", read<Rc::V>());
-		PLOG("Rc::Ec:  0x%02x", read<Rc::Ec>());
-		PLOG("Flg::Sk: 0x%02x", read<Flg::Sk>());
-		PLOG("Asc:     0x%02x", read<Asc>());
-		PLOG("Asq:     0x%02x", read<Asq>());
+		Genode::log("--- Dump REQUEST_SENSE data ---");
+		Genode::log("Rc::V:   ", read<Rc::V>());
+		Genode::log("Rc::Ec:  ", Genode::Hex(read<Rc::Ec>()));
+		Genode::log("Flg::Sk: ", Genode::Hex(read<Flg::Sk>()));
+		Genode::log("Asc:     ", Genode::Hex(read<Asc>()));
+		Genode::log("Asq:     ", Genode::Hex(read<Asq>()));
 	}
 };
 
@@ -186,9 +186,9 @@ struct Scsi::Capacity_response_10 : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("--- Dump READ_CAPACITY_10 data ---");
-		PLOG("Bc: 0x%04x", block_count());
-		PLOG("Bs: 0x%04x", block_size());
+		Genode::log("--- Dump READ_CAPACITY_10 data ---");
+		Genode::log("Bc: ", Genode::Hex(block_count()));
+		Genode::log("Bs: ", Genode::Hex(block_size()));
 	}
 };
 
@@ -207,9 +207,9 @@ struct Scsi::Capacity_response_16 : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("--- Dump READ_CAPACITY_16 data ---");
-		PLOG("Bc: 0x%08llx", block_count());
-		PLOG("Bs: 0x%04x",   block_size());
+		Genode::log("--- Dump READ_CAPACITY_16 data ---");
+		Genode::log("Bc: ", Genode::Hex(block_count()));
+		Genode::log("Bs: ", Genode::Hex(block_size()));
 	}
 };
 
@@ -230,10 +230,10 @@ struct Scsi::Cmd_6 : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("Op:  0x%02x", read<Op>());
-		PLOG("Lba: 0x%02x", be16(read<Lba>()));
-		PLOG("Len: %u", read<Len>());
-		PLOG("Ctl: 0x%02x", read<Ctl>());
+		Genode::log("Op:  ", Genode::Hex(read<Op>()));
+		Genode::log("Lba: ", Genode::Hex(be16(read<Lba>())));
+		Genode::log("Len: ", read<Len>());
+		Genode::log("Ctl: ", Genode::Hex(read<Ctl>()));
 	}
 };
 
@@ -294,11 +294,11 @@ struct Scsi::Start_stop : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("Op:        0x%02x", read<Op>());
-		PLOG("I::Immed:  %u", read<I::Immed>());
-		PLOG("Flg::Pwc:  0x%02x", read<Flg::Pwc>());
-		PLOG("Flg::Loej: %u", read<Flg::Loej>());
-		PLOG("Flg::St:   %u", read<Flg::St>());
+		Genode::log("Op:        ", Genode::Hex(read<Op>()));
+		Genode::log("I::Immed:  ", read<I::Immed>());
+		Genode::log("Flg::Pwc:  ", Genode::Hex(read<Flg::Pwc>()));
+		Genode::log("Flg::Loej: ", read<Flg::Loej>());
+		Genode::log("Flg::St:   ", read<Flg::St>());
 	}
 };
 
@@ -319,10 +319,10 @@ struct Scsi::Cmd_10 : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("Op:  0x%0x", read<Op>());
-		PLOG("Lba: 0x%0x", be32(read<Lba>()));
-		PLOG("Len: %u",    be16(read<Len>()));
-		PLOG("Ctl: 0x%0x", read<Ctl>());
+		Genode::log("Op:  ", Genode::Hex(read<Op>()));
+		Genode::log("Lba: ", Genode::Hex(be32(read<Lba>())));
+		Genode::log("Len: ", be16(read<Len>()));
+		Genode::log("Ctl: ", Genode::Hex(read<Ctl>()));
 	}
 };
 
@@ -380,10 +380,10 @@ struct Scsi::Cmd_16 : Genode::Mmio
 
 	void dump()
 	{
-		PLOG("Op:  0x%0x",   read<Op>());
-		PLOG("Lba: 0x%0llx", be64(read<Lba>()));
-		PLOG("Len: %u",      be32(read<Len>()));
-		PLOG("Ctl: 0x%0x",   read<Ctl>());
+		Genode::log("Op:  ", Genode::Hex(read<Op>()));
+		Genode::log("Lba: ", Genode::Hex(be64(read<Lba>())));
+		Genode::log("Len: ", be32(read<Len>()));
+		Genode::log("Ctl: ", Genode::Hex(read<Ctl>()));
 	}
 };
 

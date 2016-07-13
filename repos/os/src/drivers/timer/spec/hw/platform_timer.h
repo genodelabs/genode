@@ -58,9 +58,9 @@ class Platform_timer
 			_curr_time_us(0), _last_timeout_us(0),
 			_max_timeout_us(Kernel::timeout_max_us())
 		{
-			PINF("Maximum timeout %lu us", _max_timeout_us);
+			Genode::log("maximum timeout ", _max_timeout_us, " us");
 			if (max_timeout() < min_timeout()) {
-				PERR("Minimum timeout greater then maximum timeout");
+				Genode::error("minimum timeout greater then maximum timeout");
 				throw Genode::Exception();
 			}
 		}
