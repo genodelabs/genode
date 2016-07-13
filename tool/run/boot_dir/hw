@@ -11,7 +11,7 @@ proc run_boot_dir_hook { } {
 
 
 proc run_boot_string { } {
-	return "kernel initialized"
+	return "\nkernel initialized"
 }
 
 

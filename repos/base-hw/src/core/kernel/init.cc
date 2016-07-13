@@ -60,7 +60,7 @@ extern "C" void init_kernel()
 
 	Core_thread::singleton();
 
-	Genode::printf("kernel initialized\n");
+	Genode::printf("\nkernel initialized\n");
 
 	test();
 

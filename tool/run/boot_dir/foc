@@ -248,7 +248,7 @@ proc run_boot_dir_arm {binaries} {
 
 
 proc run_boot_string { } {
-	return "L4 Bootstrapper"
+	return "\nL4 Bootstrapper"
 }
 
 

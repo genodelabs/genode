@@ -15,7 +15,7 @@ proc run_boot_dir_hook { } {
 
 
 proc run_boot_string { } {
-	return "Starting node #0"
+	return "\n\rStarting node #0"
 }
 
 

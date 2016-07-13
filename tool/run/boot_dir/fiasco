@@ -60,7 +60,7 @@ set fiasco_serial_esc_arg "-serial_esc "
 
 
 proc run_boot_string { } {
-	return "L4 Bootstrapper"
+	return "\nL4 Bootstrapper"
 }
 
 
