@@ -141,6 +141,7 @@ append config_of_app {
 
 	<start name="nit_fb" priority="-1">
 		<resource name="RAM" quantum="8M" />
+		<config/>
 		<provides>
 			<service name="Framebuffer" />
 			<service name="Input" />

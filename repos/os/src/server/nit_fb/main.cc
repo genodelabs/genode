@@ -16,18 +16,16 @@
 #include <input/component.h>
 #include <os/surface.h>
 #include <input/event.h>
-#include <os/config.h>
 #include <os/static_root.h>
-#include <os/server.h>
-#include <os/attached_dataspace.h>
-#include <timer_session/connection.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 
 namespace Nit_fb {
 
 	struct Main;
 
 	using Genode::Static_root;
-	using Genode::Signal_rpc_member;
+	using Genode::Signal_handler;
 
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Area  Area;
@@ -38,18 +36,6 @@ namespace Nit_fb {
 /***************
  ** Utilities **
  ***************/
-
-/**
- * Read integer value from config attribute
- */
-long config_arg(const char *attr, long default_value)
-{
-	long res = default_value;
-	try { Genode::config()->xml_node().attribute(attr).value(&res); }
-	catch (...) { }
-	return res;
-}
-
 
 /**
  * Translate input event
@@ -225,9 +211,11 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 struct Nit_fb::Main : View_updater
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
 
-	Nitpicker::Connection nitpicker;
+	Genode::Attached_rom_dataspace config_rom { env, "config" };
+
+	Nitpicker::Connection nitpicker { env };
 
 	Point position;
 
@@ -239,9 +227,10 @@ struct Nit_fb::Main : View_updater
 
 	Framebuffer::Mode _initial_mode()
 	{
-		return Framebuffer::Mode(config_arg("width",  nitpicker.mode().width()),
-		                         config_arg("height", nitpicker.mode().height()),
-		                         nitpicker.mode().format());
+		return Framebuffer::Mode(
+			config_rom.xml().attribute_value("width",  (unsigned)nitpicker.mode().width()),
+			config_rom.xml().attribute_value("height", (unsigned)nitpicker.mode().height()),
+			nitpicker.mode().format());
 	}
 
 	/*
@@ -253,8 +242,8 @@ struct Nit_fb::Main : View_updater
 	/*
 	 * Attach root interfaces to the entry point
 	 */
-	Static_root<Input::Session>       input_root { ep.manage(input_session) };
-	Static_root<Framebuffer::Session> fb_root    { ep.manage(fb_session) };
+	Static_root<Input::Session>       input_root { env.ep().manage(input_session) };
+	Static_root<Framebuffer::Session> fb_root    { env.ep().manage(fb_session) };
 
 	/**
 	 * View_updater interface
@@ -268,17 +257,18 @@ struct Nit_fb::Main : View_updater
 		nitpicker.execute();
 	}
 
-	void handle_config_update(unsigned)
+	void handle_config_update()
 	{
-		Genode::config()->reload();
+		config_rom.update();
 
 		Framebuffer::Mode const nit_mode = nitpicker.mode();
 
-		position = Point(config_arg("xpos", 0),
-		                 config_arg("ypos", 0));
+		position = Point(config_rom.xml().attribute_value("xpos", 0U),
+		                 config_rom.xml().attribute_value("ypos", 0U));
 
-		fb_session.size(Area(config_arg("width",  nit_mode.width()),
-		                     config_arg("height", nit_mode.height())));
+		fb_session.size(Area(
+			config_rom.xml().attribute_value("width",  (unsigned)nit_mode.width()),
+			config_rom.xml().attribute_value("height", (unsigned)nit_mode.height())));
 
 		/*
 		 * Simulate a client call Framebuffer::Session::mode to make the
@@ -286,27 +276,27 @@ struct Nit_fb::Main : View_updater
 		 */
 		fb_session.mode();
 
-		PINF("using xywh=(%d,%d,%d,%d)",
-		     position.x(), position.x(),
-		     fb_session.size().w(), fb_session.size().h());
+		Genode::log("using xywh=(", position.x(), ",", position.x(),
+		                         ",", fb_session.size().w(),
+		                         ",", fb_session.size().h(), ")");
 
 		update_view();
 	}
 
-	Signal_rpc_member<Main> config_update_dispatcher =
-		{ ep, *this, &Main::handle_config_update};
+	Signal_handler<Main> config_update_handler =
+		{ env.ep(), *this, &Main::handle_config_update };
 
-	void handle_mode_update(unsigned)
+	void handle_mode_update()
 	{
 		Framebuffer::Mode const nit_mode = nitpicker.mode();
 
 		fb_session.size(Area(nit_mode.width(), nit_mode.height()));
 	}
 
-	Signal_rpc_member<Main> mode_update_dispatcher =
-		{ ep, *this, &Main::handle_mode_update};
+	Signal_handler<Main> mode_update_handler =
+		{ env.ep(), *this, &Main::handle_mode_update };
 
-	void handle_input(unsigned)
+	void handle_input()
 	{
 		Input::Event const * const events = input_ds.local_addr<Input::Event>();
 
@@ -315,46 +305,42 @@ struct Nit_fb::Main : View_updater
 			input_session.submit(translate_event(events[i], position, fb_session.size()));
 	}
 
-	Signal_rpc_member<Main> input_dispatcher =
-		{ ep, *this, &Main::handle_input};
+	Signal_handler<Main> input_handler =
+		{ env.ep(), *this, &Main::handle_input };
 
 	/**
 	 * Constructor
 	 */
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Env &env) : env(env)
 	{
 		input_session.event_queue().enabled(true);
 
 		/*
 		 * Announce services
 		 */
-		Genode::env()->parent()->announce(ep.manage(fb_root));
-		Genode::env()->parent()->announce(ep.manage(input_root));
+		env.parent().announce(env.ep().manage(fb_root));
+		env.parent().announce(env.ep().manage(input_root));
 
 		/*
 		 * Apply initial configuration
 		 */
-		handle_config_update(0);
+		handle_config_update();
 
 		/*
 		 * Register signal handlers
 		 */
-		Genode::config()->sigh(config_update_dispatcher);
-		nitpicker.mode_sigh(mode_update_dispatcher);
-		nitpicker.input()->sigh(input_dispatcher);
+		config_rom.sigh(config_update_handler);
+		nitpicker.mode_sigh(mode_update_handler);
+		nitpicker.input()->sigh(input_handler);
 	}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
+Genode::size_t Component::stack_size() { return 4*1024*sizeof(long); }
 
-	char const *name() { return "nit_fb_ep"; }
+void Component::construct(Genode::Env &env) { static Nit_fb::Main inst(env); }
 
-	size_t stack_size() { return 4*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep) { static Nit_fb::Main inst(ep); }
-}
