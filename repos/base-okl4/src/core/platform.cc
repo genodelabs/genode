@@ -62,7 +62,8 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 	return map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size) {
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
+                                        unsigned size) {
 	return unmap_local(virt_addr, size / get_page_size()); }
 
 

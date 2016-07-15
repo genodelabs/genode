@@ -83,7 +83,7 @@ void Mapped_mem_allocator::free(void *addr, size_t size)
 	Block *b = static_cast<Block *>(_virt_alloc->_find_by_address((addr_t)addr));
 	if (!b) return;
 
-	_unmap_local((addr_t)addr, b->size());
+	_unmap_local((addr_t)addr, (addr_t)b->map_addr, b->size());
 	_phys_alloc->free(b->map_addr, b->size());
 	_virt_alloc->free(addr, b->size());
 }

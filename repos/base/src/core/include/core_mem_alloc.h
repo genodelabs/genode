@@ -136,9 +136,10 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 * Note: has to be implemented by platform specific code
 		 *
 		 * \param virt_addr  start address of virtual range
+		 * \param phys_addr  start address of physical range
 		 * \param size       size of range
 		 */
-		bool _unmap_local(addr_t virt_addr, unsigned size);
+		bool _unmap_local(addr_t virt_addr, addr_t phys_addr, unsigned size);
 
 
 		/***********************************
