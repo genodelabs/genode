@@ -153,7 +153,7 @@ class Genode::Vm_space
 		 */
 		unsigned _idx_to_sel(unsigned idx) const { return (_id << 20) | idx; }
 
-		void _map_page(addr_t from_phys, addr_t to_virt, bool flush_support)
+		bool _map_page(addr_t from_phys, addr_t to_virt, bool flush_support)
 		{
 			/* allocate page-table entry selector */
 			unsigned pte_idx = _sel_alloc.alloc();
@@ -196,9 +196,13 @@ class Genode::Vm_space
 
 				int const ret = seL4_X86_Page_Map(service, pd, vaddr, rights, attr);
 
-				if (ret != seL4_NoError)
-					error("seL4_X86_Page_Map to ", Hex(vaddr), " returned ", ret);
+				if (ret != seL4_NoError) {
+					error("seL4_X86_Page_Map to ", Hex(from_phys), "->",
+					      Hex(to_virt), " returned ", ret);
+					return false;
+				}
 			}
+			return true;
 		}
 
 		void _unmap_page(addr_t virt)
@@ -346,6 +350,17 @@ class Genode::Vm_space
 				/* check if we need to add a page table to core's VM space */
 				if (!_page_table_registry.has_page_table_at(to_virt + offset))
 					_alloc_and_map_page_table(to_virt + offset);
+
+				if (_map_page(from_phys + offset, to_virt + offset, flush_support))
+					continue;
+
+				/* XXX - Why this quirk is necessary - shouldn't happen ?!? */
+
+				error("mapping failed - retry once ", Hex(from_phys + offset),
+				      " -> ", Hex(to_virt + offset));
+
+				_page_table_registry.forget_page_table_entry(to_virt + offset);
+				_alloc_and_map_page_table(to_virt + offset);
 
 				_map_page(from_phys + offset, to_virt + offset, flush_support);
 			}
