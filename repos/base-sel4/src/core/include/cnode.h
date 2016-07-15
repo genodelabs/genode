@@ -164,13 +164,21 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 			create<Cnode_kobj>(untyped_pool, parent_sel, dst_idx, size_log2);
 		}
 
-		void destruct(Range_allocator &phys_alloc)
+		void destruct(Range_allocator &phys_alloc, bool revoke = false)
 		{
 			/* revert phys allocation */
 
 			if (!_phys) {
 				error("invalid call to destruct Cnode");
 				return;
+			}
+
+			if (revoke) {
+				int ret = seL4_CNode_Revoke(seL4_CapInitThreadCNode,
+				                            sel().value(), 32);
+				if (ret)
+					error(__PRETTY_FUNCTION__, ": seL4_CNode_Revoke (",
+					      Hex(sel().value()), ") returned ", ret);
 			}
 
 			int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,

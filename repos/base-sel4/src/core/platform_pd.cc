@@ -196,11 +196,12 @@ Platform_pd::~Platform_pd()
 {
 	for (unsigned i = 0; i < sizeof(_cspace_cnode_2nd) /
 	                         sizeof(_cspace_cnode_2nd[0]); i++) {
-		_cspace_cnode_2nd[i]->destruct(*platform()->ram_alloc());
+		_cspace_cnode_1st.remove(Cnode_index(i));
+		_cspace_cnode_2nd[i]->destruct(*platform()->ram_alloc(), true);
 		platform_specific()->core_sel_alloc().free(_cspace_cnode_2nd[i]->sel());
 	}
 
-	_cspace_cnode_1st.destruct(*platform()->ram_alloc());
+	_cspace_cnode_1st.destruct(*platform()->ram_alloc(), true);
 	platform_specific()->core_sel_alloc().free(_cspace_cnode_1st.sel());
 
 	/* invalidate weak pointers to this object */
