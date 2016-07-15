@@ -340,12 +340,13 @@ class Genode::Vm_space
 		{
 			Lock::Guard guard(_lock);
 
-			/* check if we need to add a page table to core's VM space */
-			if (!_page_table_registry.has_page_table_at(to_virt))
-				_alloc_and_map_page_table(to_virt);
-
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
+
+				/* check if we need to add a page table to core's VM space */
+				if (!_page_table_registry.has_page_table_at(to_virt + offset))
+					_alloc_and_map_page_table(to_virt + offset);
+
 				_map_page(from_phys + offset, to_virt + offset, flush_support);
 			}
 		}
