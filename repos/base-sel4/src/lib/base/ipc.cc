@@ -60,6 +60,22 @@ static unsigned &rcv_sel()
 }
 
 
+/*****************************
+ ** Startup library support **
+ *****************************/
+
+void prepare_reinit_main_thread()
+{
+	/**
+	 * Reset selector to invalid, so that a new fresh will be allocated.
+	 * The IPC buffer of the thread must be configured to point to the
+	 * receive selector which is done by Capability_space::alloc_rcv_sel(),
+	 * which finally calls seL4_SetCapReceivePath();
+	 */
+	rcv_sel() = 0;
+}
+
+
 /**
  * Convert Genode::Msgbuf_base content into seL4 message
  *

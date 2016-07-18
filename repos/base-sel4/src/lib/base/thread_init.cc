@@ -13,12 +13,16 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
-#include <base/sleep.h>
+#include <base/internal/native_thread.h>
 
 using namespace Genode;
 
 
 void Thread::_init_platform_thread(size_t, Type type)
 {
+	/**
+	 * Reset to default values. The default values trigger initial allocations
+	 * and associations the thread, like IPCbuffer in ipc.cc.
+	 */
+	native_thread() = Native_thread();
 }
