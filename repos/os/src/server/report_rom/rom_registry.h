@@ -137,7 +137,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 				  catch (Session_policy::No_policy_defined) { }
 			}
 
-			warning("no valid policy for ROM request \", rom_label.string(), \"");
+			warning("no valid policy for ROM request '", rom_label.string(), "'");
 			throw Root::Invalid_args();
 		}
 

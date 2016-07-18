@@ -33,8 +33,7 @@ install_config {
 		<start name="test-report_rom">
 			<resource name="RAM" quantum="2M"/>
 			<route>
-				<service name="ROM">
-					<if-arg key="label" value="brightness"/>
+				<service name="ROM" label="brightness">
 					<child name="report_rom"/>
 				</service>
 				<any-service> <parent/> <any-child/> </any-service>
