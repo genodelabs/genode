@@ -47,11 +47,12 @@ struct Segment
 struct Subject_state
 {
 	struct Cpu_registers Regs;
-	Genode::uint64_t Exit_reason;
+	Genode::uint32_t Exit_reason;
+	Genode::uint32_t Intr_state;
+	Genode::uint32_t Interrupt_info;
+	Genode::uint32_t Sysenter_cs;
 	Genode::uint64_t Exit_qualification;
 	Genode::uint64_t Guest_phys_addr;
-	Genode::uint64_t Intr_state;
-	Genode::uint64_t Interrupt_info;
 	Genode::uint64_t Instruction_len;
 	Genode::uint64_t Rip;
 	Genode::uint64_t Rsp;
@@ -62,7 +63,6 @@ struct Subject_state
 	Genode::uint64_t Shadow_cr4;
 	Genode::uint64_t Rflags;
 	Genode::uint64_t Ia32_efer;
-	Genode::uint64_t Sysenter_cs;
 	Genode::uint64_t Sysenter_esp;
 	Genode::uint64_t Sysenter_eip;
 	Segment cs;
