@@ -51,13 +51,18 @@ class Genode::Platform_pd : public Address_space
 		/*
 		 * Allocator for core-managed selectors within the PD's CSpace
 		 */
-		struct Sel_alloc : Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2>
+		typedef Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2> Sel_bit_alloc;
+
+		struct Sel_alloc : Sel_bit_alloc
 		{
 			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
 		};
 
 		Sel_alloc _sel_alloc;
 		Lock _sel_alloc_lock;
+
+		Cap_sel alloc_sel();
+		void free_sel(Cap_sel sel);
 
 	public:
 
@@ -100,10 +105,6 @@ class Genode::Platform_pd : public Address_space
 		/*****************************
 		 ** seL4-specific interface **
 		 *****************************/
-
-		Cap_sel alloc_sel();
-
-		void free_sel(Cap_sel sel);
 
 		Cnode &cspace_cnode(Cap_sel sel)
 		{

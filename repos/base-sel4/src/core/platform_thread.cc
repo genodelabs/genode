@@ -117,18 +117,12 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	ASSERT(_pd);
 	ASSERT(_pager);
 
-	/* allocate fault handler selector in the PD's CSpace */
-	_fault_handler_sel = _pd->alloc_sel();
-
 	/* pager endpoint in core */
 	Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
 
 	/* install page-fault handler endpoint selector to the PD's CSpace */
 	_pd->cspace_cnode(_fault_handler_sel).copy(platform_specific()->core_cnode(),
 	                                           pager_sel, _fault_handler_sel);
-
-	/* allocate endpoint selector in the PD's CSpace */
-	_ep_sel = _pd->alloc_sel();
 
 	/* install the thread's endpoint selector to the PD's CSpace */
 	_pd->cspace_cnode(_ep_sel).copy(platform_specific()->core_cnode(),

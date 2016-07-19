@@ -56,6 +56,19 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 {
 	ASSERT(thread);
 
+	try {
+		/* allocate fault handler selector in the PD's CSpace */
+		thread->_fault_handler_sel = alloc_sel();
+		/* allocate endpoint selector in the PD's CSpace */
+		thread->_ep_sel = alloc_sel();
+	} catch (Platform_pd::Sel_bit_alloc::Out_of_indices) {
+		if (thread->_fault_handler_sel.value()) {
+			free_sel(thread->_fault_handler_sel);
+			thread->_fault_handler_sel = Cap_sel(0);
+		}
+		return false;
+	}
+
 	thread->_pd = this;
 
 	/*
