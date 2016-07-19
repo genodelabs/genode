@@ -17,6 +17,7 @@
 #include <base/thread.h>
 #include <base/snprintf.h>
 #include <base/sleep.h>
+#include <base/log.h>
 #include <linux_native_cpu/client.h>
 #include <cpu_thread/client.h>
 
@@ -55,6 +56,9 @@ void Thread::_thread_start()
 	size_t  stack_size = thread->_stack->top() - thread->_stack->base();
 
 	lx_sigaltstack(stack_base, stack_size);
+	if (stack_size < 0x1000)
+		raw("small stack of ", stack_size, " bytes for \"", thread->name(),
+		    "\" may may break Linux signal handling");
 
 	/*
 	 * Set signal handler such that canceled system calls get not
