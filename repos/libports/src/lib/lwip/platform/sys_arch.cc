@@ -15,12 +15,12 @@
 #include <base/printf.h>
 #include <base/env.h>
 #include <base/lock.h>
+#include <base/sleep.h>
 #include <parent/parent.h>
 #include <os/timed_semaphore.h>
 
 /* LwIP includes */
 #include <lwip/genode.h>
-#include <timer.h>
 #include <ring_buffer.h>
 #include <thread.h>
 #include <verbose.h>
