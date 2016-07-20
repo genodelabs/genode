@@ -125,7 +125,7 @@ class Core_child : public Child_policy
 		Ram_session_client _ram;
 		Cpu_session_client _cpu;
 
-		Child::Initial_thread _initial_thread { _cpu, _pd, "name" };
+		Child::Initial_thread _initial_thread { _cpu, _pd, "init_main" };
 
 		Region_map_client _address_space;
 
@@ -141,7 +141,7 @@ class Core_child : public Child_policy
 		           Cpu_session_capability cpu,
 		           Service_registry &services)
 		:
-			_entrypoint(nullptr, STACK_SIZE, "name", false),
+			_entrypoint(nullptr, STACK_SIZE, "init_child", false),
 			_local_services(services),
 			_pd(pd), _ram(ram), _cpu(cpu),
 			_address_space(Pd_session_client(pd).address_space()),
