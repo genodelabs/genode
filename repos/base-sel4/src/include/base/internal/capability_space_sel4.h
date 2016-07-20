@@ -95,6 +95,7 @@ namespace Genode { namespace Capability_space {
 namespace Genode
 {
 	enum {
+		INITIAL_SEL_LOCK   = 0,
 		INITIAL_SEL_PARENT = 1,
 		INITIAL_SEL_CNODE  = 2,
 		INITIAL_SEL_END

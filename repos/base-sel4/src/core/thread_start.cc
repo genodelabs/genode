@@ -33,6 +33,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 
 	if (type == MAIN) {
 		native_thread().tcb_sel = seL4_CapInitThreadTCB;
+		native_thread().lock_sel = INITIAL_SEL_LOCK;
 		return;
 	}
 
@@ -44,8 +45,9 @@ void Thread::_init_platform_thread(size_t, Type type)
 		     thread_info.ipc_buffer_phys, utcb_virt_addr);
 	}
 
-	native_thread().tcb_sel = thread_info.tcb_sel.value();
-	native_thread().ep_sel  = thread_info.ep_sel.value();
+	native_thread().tcb_sel  = thread_info.tcb_sel.value();
+	native_thread().ep_sel   = thread_info.ep_sel.value();
+	native_thread().lock_sel = thread_info.lock_sel.value();
 
 	Platform &platform = *platform_specific();
 
@@ -53,7 +55,15 @@ void Thread::_init_platform_thread(size_t, Type type)
 	int const ret = seL4_TCB_SetSpace(native_thread().tcb_sel, 0,
 	                                  platform.top_cnode().sel().value(), no_cap_data,
 	                                  seL4_CapInitThreadPD, no_cap_data);
-	ASSERT(ret == 0);
+	ASSERT(ret == seL4_NoError);
+
+	/* mint notification object with badge - used by Genode::Lock */
+	Cap_sel unbadged_sel = thread_info.lock_sel;
+	Cap_sel lock_sel = platform.core_sel_alloc().alloc();
+
+	platform.core_cnode().mint(platform.core_cnode(), unbadged_sel, lock_sel);
+
+	native_thread().lock_sel = lock_sel.value();
 }
 
 

@@ -30,7 +30,7 @@ struct Genode::Native_utcb
 
 		addr_t raw[IPC_BUFFER_SIZE/sizeof(addr_t)];
 
-		struct { addr_t ep_sel; };
+		struct { addr_t ep_sel; addr_t lock_sel; }; 
 	};
 };
 

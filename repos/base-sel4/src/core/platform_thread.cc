@@ -80,7 +80,8 @@ void Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_
  ** Utilities to support the Platform_thread interface **
  ********************************************************/
 
-static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel)
+static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
+                                   Cap_sel lock_sel)
 {
 	/* IPC buffer is one page */
 	size_t const page_rounded_size = get_page_size();
@@ -99,6 +100,7 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel)
 	/* populate IPC buffer with thread information */
 	Native_utcb &utcb = *(Native_utcb *)virt_addr;
 	utcb.ep_sel = ep_sel.value();
+	utcb.lock_sel = lock_sel.value();
 
 	/* unmap IPC buffer from core */
 	unmap_local((addr_t)virt_addr, 1);
@@ -128,12 +130,16 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	_pd->cspace_cnode(_ep_sel).copy(platform_specific()->core_cnode(),
 	                                _info.ep_sel, _ep_sel);
 
+	/* install the thread's notification object to the PD's CSpace */
+	_pd->cspace_cnode(_lock_sel).mint(platform_specific()->core_cnode(),
+	                                  _info.lock_sel, _lock_sel);
+
 	/*
 	 * Populate the thread's IPC buffer with initial information about the
 	 * thread. Once started, the thread picks up this information in the
 	 * 'Thread::_thread_bootstrap' method.
 	 */
-	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel);
+	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel, _lock_sel);
 
 	/* bind thread to PD and CSpace */
 	seL4_CapData_t const guard_cap_data =
@@ -211,7 +217,7 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::cancel_blocking()
 {
-	warning(__PRETTY_FUNCTION__, " not implemented");
+	seL4_Signal(_info.lock_sel.value());
 }
 
 
@@ -247,6 +253,16 @@ Platform_thread::~Platform_thread()
 		seL4_TCB_Suspend(_info.tcb_sel.value());
 		_pd->unbind_thread(this);
 	}
+
+	if (_pager) {
+		Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
+		seL4_CNode_Revoke(seL4_CapInitThreadCNode, pager_sel.value(), 32);
+	}
+
+	seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.lock_sel.value(), 32);
+	seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.ep_sel.value(), 32);
+
+	_info.destruct();
 
 	platform_thread_registry().remove(*this);
 	platform_specific()->core_sel_alloc().free(_pager_obj_sel);

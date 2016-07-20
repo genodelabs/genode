@@ -430,6 +430,22 @@ Platform::Platform()
 	               _core_page_table_registry,
 	               "core")
 {
+	/* create notification object for Genode::Lock used by this first thread */
+	Cap_sel lock_sel (INITIAL_SEL_LOCK);
+	Cap_sel core_sel = _core_sel_alloc.alloc();
+
+	create<Notification_kobj>(*ram_alloc(), core_cnode().sel(), core_sel);
+
+	/* mint a copy of the notification object with badge of lock_sel */
+	_core_cnode.mint(_core_cnode, core_sel, lock_sel);
+
+	/* test signal/wakeup once */
+	seL4_Word sender;
+	seL4_Signal(lock_sel.value());
+	seL4_Wait(lock_sel.value(), &sender);
+
+	ASSERT(sender == INITIAL_SEL_LOCK);
+
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
 

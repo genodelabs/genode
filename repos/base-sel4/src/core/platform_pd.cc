@@ -61,10 +61,16 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 		thread->_fault_handler_sel = alloc_sel();
 		/* allocate endpoint selector in the PD's CSpace */
 		thread->_ep_sel = alloc_sel();
+		/* allocate asynchronous selector used for locks in the PD's CSpace */
+		thread->_lock_sel = thread->_utcb ? alloc_sel() : Cap_sel(INITIAL_SEL_LOCK);
 	} catch (Platform_pd::Sel_bit_alloc::Out_of_indices) {
 		if (thread->_fault_handler_sel.value()) {
 			free_sel(thread->_fault_handler_sel);
 			thread->_fault_handler_sel = Cap_sel(0);
+		}
+		if (thread->_ep_sel.value()) {
+			free_sel(thread->_ep_sel);
+			thread->_ep_sel = Cap_sel(0);
 		}
 		return false;
 	}
@@ -94,6 +100,11 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 {
 	if (!thread)
 		return;
+
+	if (thread->_utcb)
+		free_sel(thread->_lock_sel);
+	free_sel(thread->_fault_handler_sel);
+	free_sel(thread->_ep_sel);
 
 	if (thread->_utcb)
 		_vm_space.unmap(thread->_utcb, 1);

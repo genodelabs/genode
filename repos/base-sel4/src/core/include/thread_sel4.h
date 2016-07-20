@@ -34,6 +34,7 @@ namespace Genode {
 	{
 		Cap_sel tcb_sel { 0 };
 		Cap_sel ep_sel  { 0 };
+		Cap_sel lock_sel { 0 };
 
 		addr_t ipc_buffer_phys = 0;
 
@@ -42,6 +43,8 @@ namespace Genode {
 		Thread_info() { }
 
 		inline void init(addr_t const utcb_virt_addr);
+		inline void destruct();
+
 	};
 
 	/**
@@ -69,6 +72,10 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr)
 	ep_sel = platform.core_sel_alloc().alloc();
 	create<Endpoint_kobj>(phys_alloc, platform.core_cnode().sel(), ep_sel);
 
+	/* allocate asynchronous object within core's CSpace */
+	lock_sel = platform.core_sel_alloc().alloc();
+	create<Notification_kobj>(phys_alloc, platform.core_cnode().sel(), lock_sel);
+
 	/* assign IPC buffer to thread */
 	{
 		/* determine page frame selector of the allocated IPC buffer */
@@ -82,6 +89,30 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr)
 	/* set scheduling priority */
 	enum { PRIORITY_MAX = 0xff };
 	seL4_TCB_SetPriority(tcb_sel.value(), PRIORITY_MAX);
+}
+
+
+void Genode::Thread_info::destruct()
+{
+	if (lock_sel.value()) {
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, lock_sel.value(), 32);
+		platform_specific()->core_sel_alloc().free(lock_sel);
+	}
+	if (ep_sel.value()) {
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, ep_sel.value(), 32);
+		platform_specific()->core_sel_alloc().free(ep_sel);
+	}
+	if (tcb_sel.value()) {
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, tcb_sel.value(), 32);
+		platform_specific()->core_sel_alloc().free(tcb_sel);
+	}
+
+	if (ipc_buffer_phys) {
+		Platform &platform = *platform_specific();
+		Range_allocator &phys_alloc = *platform.ram_alloc();
+		Untyped_memory::convert_to_untyped_frames(ipc_buffer_phys, 4096);
+		Untyped_memory::free_page(phys_alloc, ipc_buffer_phys);
+	}
 }
 
 
