@@ -14,6 +14,7 @@
 #ifndef _ATA_DRIVER_H_
 #define _ATA_DRIVER_H_
 
+#include <base/log.h>
 #include "ahci.h"
 
 using namespace Genode;
@@ -105,6 +106,8 @@ struct String
 	{
 		return strcmp(buf, other) == 0;
 	}
+
+	void print(Genode::Output &out) const { Genode::print(out, (char const *)buf); }
 };
 
 
