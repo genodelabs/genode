@@ -1,0 +1,12 @@
+--- src/kernel/sel4/src/plat/pc99/machine/ioapic.c
++++ src/kernel/sel4/src/plat/pc99/machine/ioapic.c
+@@ -127,6 +127,9 @@ void ioapic_mask(bool_t mask, uint32_t ioapic, uint32_t pin)
+         return;
+     }
+     if (mask) {
++        /* only mask level triggered interrupts */
++        if (!(ioredtbl_state[index] & IOREDTBL_LOW_TRIGGER_MODE_LEVEL)) 
++            return;
+         ioredtbl_state[index] |= IOREDTBL_LOW_INTERRUPT_MASK;
+     } else {
+         ioredtbl_state[index] &= ~IOREDTBL_LOW_INTERRUPT_MASK;

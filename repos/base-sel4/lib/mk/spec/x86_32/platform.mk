@@ -93,13 +93,13 @@ $(BUILD_BASE_DIR)/include/sel4/sel4_arch/invocation.h: $(LIBSEL4_DIR)/sel4_arch_
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
-	                 --xml $< --libsel4 --dest $@
+	                 --xml $< --libsel4 --sel4_arch --dest $@
 
 $(BUILD_BASE_DIR)/include/sel4/arch/invocation.h: $(LIBSEL4_DIR)/arch_include/x86/interfaces/sel4arch.xml
 	$(MSG_CONVERT)arch/$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
-	                 --xml $< --libsel4 --sel4_arch --dest $@
+	                 --xml $< --libsel4 --arch --dest $@
 
 SEL4_CLIENT_H_SRC := $(LIBSEL4_DIR)/sel4_arch_include/ia32/interfaces/sel4arch.xml \
                      $(LIBSEL4_DIR)/arch_include/x86/interfaces/sel4arch.xml \

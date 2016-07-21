@@ -174,7 +174,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on seL4"
 		puts $fh " kernel /boot/bender norelocate"
-		puts $fh " module /sel4"
+		puts $fh " module /sel4 disable_iommu"
 		puts $fh " module /image.elf"
 
 		close $fh
@@ -193,7 +193,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender norelocate"
-		puts $fh " load /sel4"
+		puts $fh " load /sel4 disable_iommu"
 		puts $fh " load /image.elf"
 		close $fh
 

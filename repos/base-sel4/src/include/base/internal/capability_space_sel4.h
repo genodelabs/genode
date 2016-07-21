@@ -102,7 +102,7 @@ namespace Genode
 	};
 
 	enum {
-		CSPACE_SIZE_LOG2_1ST      = 4,
+		CSPACE_SIZE_LOG2_1ST      = 6,
 		CSPACE_SIZE_LOG2_2ND      = 8,
 		CSPACE_SIZE_LOG2          = CSPACE_SIZE_LOG2_1ST + CSPACE_SIZE_LOG2_2ND,
 		NUM_CORE_MANAGED_SEL_LOG2 = 8,
@@ -211,12 +211,12 @@ class Genode::Capability_space_sel4
 		template <typename... ARGS>
 		Native_capability::Data &create_capability(Cap_sel cap_sel, ARGS... args)
 		{
-			Lock::Guard guard(_lock);
-
 			addr_t const sel = cap_sel.value();
 
-			ASSERT(!_caps_data[sel].rpc_obj_key().valid());
 			ASSERT(sel < NUM_CAPS);
+			ASSERT(!_caps_data[sel].rpc_obj_key().valid());
+
+			Lock::Guard guard(_lock);
 
 			_caps_data[sel] = Tree_managed_data(args...);
 

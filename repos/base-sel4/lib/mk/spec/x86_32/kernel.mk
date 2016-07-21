@@ -17,7 +17,6 @@ build_kernel:
 	$(VERBOSE)$(MAKE) \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
 	          ARCH=x86 SEL4_ARCH=ia32 PLAT=pc99 DEBUG=1 \
-	          CONFIG_KERNEL_EXTRA_CPPFLAGS="-DCONFIG_PRINTING=y -DCONFIG_USER_STACK_TRACE_LENGTH=16" \
 	          LDFLAGS+=-nostdlib LDFLAGS+=-Wl,-nostdlib \
 	          $(addprefix LDFLAGS+=$(LINKER_OPT_PREFIX),$(LD_MARCH)) \
 	          CFLAGS+="-fno-builtin-printf -O3" \
