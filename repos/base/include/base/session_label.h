@@ -91,10 +91,10 @@ namespace Genode {
 	inline Session_label prefixed_label(String<N1> const &prefix,
 	                                    String<N2> const &label)
 	{
-		if (!prefix.valid())
+		if (!prefix.valid() || prefix == "")
 			return Session_label(label.string());
 
-		if (!label.valid())
+		if (!label.valid() || label == "")
 			return Session_label(prefix.string());
 
 		char buf[Session_label::capacity()];
