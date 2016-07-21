@@ -1,0 +1,11 @@
+--- src/kernel/sel4/src/api/syscall.c
++++ src/kernel/sel4/src/api/syscall.c
+@@ -325,7 +325,7 @@ handleReply(void)
+     }
+ 
+     case cap_null_cap:
+-        userError("Attempted reply operation when no reply cap present.");
++//        userError("Attempted reply operation when no reply cap present.");
+         return;
+ 
+     default:
