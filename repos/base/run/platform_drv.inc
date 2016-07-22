@@ -79,7 +79,7 @@ proc append_platform_drv_config {} {
 	<start name=\"acpi_drv\" [platform_drv_priority]>"
 
 		append config {
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="3M"/>
 		<route>
 			<service name="LOG"> <parent/> </service>
 			<service name="IO_MEM"> <parent/> </service>
