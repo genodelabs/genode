@@ -76,7 +76,7 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 	:
 		Genode::Connection<Session>(env, _session(env.parent(), label, root,
 		                                          writeable, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc)
+		Session_client(cap(), tx_block_alloc, env.rm())
 	{ }
 
 	/**
@@ -94,7 +94,7 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 	:
 		Genode::Connection<Session>(_session(*Genode::env()->parent(), label,
 		                                     root, writeable, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc)
+		Session_client(cap(), tx_block_alloc, *Genode::env()->rm_session())
 	{ }
 };
 

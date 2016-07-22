@@ -45,9 +45,10 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		 *                      interface
 		 */
 		Rpc_object(Genode::Dataspace_capability  ds,
-		           Genode::Range_allocator      *buffer_alloc,
+		           Genode::Region_map           &rm,
+		           Genode::Range_allocator      &buffer_alloc,
 		           Genode::Rpc_entrypoint       &ep)
-		: _ep(ep), _cap(_ep.manage(this)), _source(buffer_alloc, ds),
+		: _ep(ep), _cap(_ep.manage(this)), _source(ds, rm, buffer_alloc),
 
 		  /* init signal handlers with default handlers of source */
 		  _sigh_ready_to_submit(_source.sigh_ready_to_submit()),

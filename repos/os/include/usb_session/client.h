@@ -41,11 +41,12 @@ class Usb::Session_client : public Genode::Rpc_client<Session>
 		 *                         transmission buffer
 		 */
 		Session_client(Session_capability       session,
-		               Genode::Range_allocator *tx_buffer_alloc,
+		               Genode::Range_allocator &tx_buffer_alloc,
+		               Genode::Region_map      &rm,
 		               Genode::Signal_context_capability state_change)
 		:
 			Genode::Rpc_client<Session>(session),
-			_tx(call<Rpc_tx_cap>(), tx_buffer_alloc)
+			_tx(call<Rpc_tx_cap>(), rm, tx_buffer_alloc)
 		{
 			if (state_change.valid())
 				sigh_state_change(state_change);

@@ -144,7 +144,8 @@ class Source : private Genode::Thread_deprecated<STACK_SIZE>,
 			/* init bulk buffer allocator, storing its meta data on the heap */
 			Thread_deprecated("source"),
 			Genode::Allocator_avl(Genode::env()->heap()),
-			Packet_stream_source<Test_packet_stream_policy>(this, ds_cap),
+			Packet_stream_source<Test_packet_stream_policy>(
+				ds_cap, *Genode::env()->rm_session(), *this),
 			_operation(OP_NONE),
 			_lock(Genode::Lock::LOCKED),
 			_cnt(0)
@@ -225,7 +226,8 @@ class Sink : private Genode::Thread_deprecated<STACK_SIZE>,
 		Sink(Genode::Dataspace_capability ds_cap)
 		:
 			Thread_deprecated("sink"),
-			Packet_stream_sink<Test_packet_stream_policy>(ds_cap),
+			Packet_stream_sink<Test_packet_stream_policy>(
+				ds_cap, *Genode::env()->rm_session()),
 			_operation(OP_NONE),
 			_lock(Genode::Lock::LOCKED),
 			_cnt(0)

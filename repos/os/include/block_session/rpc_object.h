@@ -38,7 +38,7 @@ class Block::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc
 		 */
 		Session_rpc_object(Genode::Dataspace_capability tx_ds,
 		                   Genode::Rpc_entrypoint &ep)
-		: _tx(tx_ds, ep) { }
+		: _tx(tx_ds, *Genode::env()->rm_session(), ep) { }
 
 		/**
 		 * Return capability to packet-stream channel

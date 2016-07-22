@@ -42,9 +42,11 @@ class Packet_stream_rx::Client : public Genode::Rpc_client<CHANNEL>
 		/**
 		 * Constructor
 		 */
-		Client(Genode::Capability<CHANNEL> channel_cap) :
+		Client(Genode::Capability<CHANNEL> channel_cap,
+		       Genode::Region_map &rm)
+		:
 			Genode::Rpc_client<CHANNEL>(channel_cap),
-			_sink(Base::template call<Rpc_dataspace>())
+			_sink(Base::template call<Rpc_dataspace>(), rm)
 		{
 			/* wire data-flow signals for the packet receiver */
 			_sink.register_sigh_ack_avail(Base::template call<Rpc_ack_avail>());

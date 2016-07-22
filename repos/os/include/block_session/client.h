@@ -37,10 +37,11 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		 *                         transmission buffer
 		 */
 		Session_client(Session_capability       session,
-		               Genode::Range_allocator *tx_buffer_alloc)
+		               Genode::Range_allocator &tx_buffer_alloc,
+		               Genode::Region_map      &rm)
 		:
 			Genode::Rpc_client<Session>(session),
-			_tx(call<Rpc_tx_cap>(), tx_buffer_alloc)
+			_tx(call<Rpc_tx_cap>(), rm, tx_buffer_alloc)
 		{ }
 
 

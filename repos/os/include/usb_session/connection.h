@@ -46,7 +46,7 @@ struct Usb::Connection : Genode::Connection<Session>, Session_client
 	                                     Genode::Signal_context_capability())
 	:
 		Genode::Connection<Session>(env, _session(env.parent(), label, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc, sigh_state_changed)
+		Session_client(cap(), *tx_block_alloc, env.rm(), sigh_state_changed)
 	{ }
 
 	/**
@@ -63,7 +63,7 @@ struct Usb::Connection : Genode::Connection<Session>, Session_client
 	               Genode::Signal_context_capability())
 	:
 		Genode::Connection<Session>(_session(*Genode::env()->parent(), label, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc, sigh_state_changed)
+		Session_client(cap(), *tx_block_alloc, *Genode::env()->rm_session(), sigh_state_changed)
 	{ }
 };
 

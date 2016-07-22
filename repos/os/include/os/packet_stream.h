@@ -433,6 +433,7 @@ class Genode::Packet_stream_base
 
 	protected:
 
+		Genode::Region_map          &_rm;
 		Genode::Dataspace_capability _ds_cap;
 		void                        *_ds_local_base;
 
@@ -449,13 +450,14 @@ class Genode::Packet_stream_base
 		 * \throw                    'Transport_dataspace_too_small'
 		 */
 		Packet_stream_base(Genode::Dataspace_capability transport_ds,
+		                   Genode::Region_map &rm,
 		                   Genode::size_t submit_queue_size,
 		                   Genode::size_t ack_queue_size)
 		:
-			_ds_cap(transport_ds),
+			_rm(rm), _ds_cap(transport_ds),
 
 			/* map dataspace locally */
-			_ds_local_base(Genode::env()->rm_session()->attach(_ds_cap)),
+			_ds_local_base(rm.attach(_ds_cap)),
 			_submit_queue_offset(0),
 			_ack_queue_offset(_submit_queue_offset + submit_queue_size),
 			_bulk_buffer_offset(_ack_queue_offset + ack_queue_size)
@@ -479,7 +481,7 @@ class Genode::Packet_stream_base
 			 */
 			try {
 				/* unmap transport dataspace locally */
-				Genode::env()->rm_session()->detach(_ds_local_base);
+				_rm.detach(_ds_local_base);
 			} catch (...) { }
 		}
 
@@ -541,7 +543,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		typedef typename POLICY::Ack_queue    Ack_queue;
 		typedef typename POLICY::Content_type Content_type;
 
-		Genode::Range_allocator *_packet_alloc;
+		Genode::Range_allocator &_packet_alloc;
 
 		Packet_descriptor_transmitter<Submit_queue> _submit_transmitter;
 		Packet_descriptor_receiver<Ack_queue>       _ack_receiver;
@@ -558,6 +560,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 *
 		 * \param transport_ds  dataspace used for communication buffer shared
 		 *                      between source and sink
+		 * \param rm            region to map buffer dataspace into
 		 * \param packet_alloc  allocator for managing packet allocation within
 		 *                      the shared communication buffer
 		 *
@@ -565,10 +568,11 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 * initialized by the constructor using dataspace-relative offsets
 		 * rather than pointers.
 		 */
-		Packet_stream_source(Genode::Range_allocator      *packet_alloc,
-		                     Genode::Dataspace_capability  transport_ds_cap)
+		Packet_stream_source(Genode::Dataspace_capability  transport_ds_cap,
+		                     Genode::Region_map           &rm,
+		                     Genode::Range_allocator      &packet_alloc)
 		:
-			Packet_stream_base(transport_ds_cap,
+			Packet_stream_base(transport_ds_cap, rm,
 			                   sizeof(Submit_queue),
 			                   sizeof(Ack_queue)),
 			_packet_alloc(packet_alloc),
@@ -580,13 +584,13 @@ class Genode::Packet_stream_source : private Packet_stream_base
 			                                      Ack_queue::CONSUMER))
 		{
 			/* initialize packet allocator */
-			_packet_alloc->add_range(_bulk_buffer_offset,
+			_packet_alloc.add_range(_bulk_buffer_offset,
 			                         _bulk_buffer_size);
 		}
 
 		~Packet_stream_source()
 		{
-			_packet_alloc->remove_range(_bulk_buffer_offset,
+			_packet_alloc.remove_range(_bulk_buffer_offset,
 			                            _bulk_buffer_size);
 		}
 
@@ -643,7 +647,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		Packet_descriptor alloc_packet(Genode::size_t size, int align = POLICY::Packet_descriptor::PACKET_ALIGNMENT)
 		{
 			void *base = 0;
-			if (size && _packet_alloc->alloc_aligned(size, &base, align).error())
+			if (size && _packet_alloc.alloc_aligned(size, &base, align).error())
 				throw Packet_alloc_failed();
 
 			return Packet_descriptor((Genode::off_t)base, size);
@@ -706,7 +710,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		void release_packet(Packet_descriptor packet)
 		{
 			if (packet.size())
-				_packet_alloc->free((void *)packet.offset(), packet.size());
+				_packet_alloc.free((void *)packet.offset(), packet.size());
 		}
 
 		void debug_print_buffers() {
@@ -743,9 +747,10 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		 * \param transport_ds  dataspace used for communication buffer shared between
 		 *                      source and sink
 		 */
-		Packet_stream_sink(Genode::Dataspace_capability transport_ds)
+		Packet_stream_sink(Genode::Dataspace_capability transport_ds,
+		                   Genode::Region_map &rm)
 		:
-			Packet_stream_base(transport_ds, sizeof(Submit_queue), sizeof(Ack_queue)),
+			Packet_stream_base(transport_ds, rm, sizeof(Submit_queue), sizeof(Ack_queue)),
 
 			/* construct packet-descriptor queues */
 			_submit_receiver(construct_at<Submit_queue>(_submit_queue_local_base(),

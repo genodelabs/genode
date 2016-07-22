@@ -55,7 +55,7 @@ struct Nic::Connection : Genode::Connection<Session>, Session_client
 	:
 		Genode::Connection<Session>(env, _session(env.parent(), label,
 		                                          tx_buf_size, rx_buf_size)),
-		Session_client(cap(), tx_block_alloc)
+		Session_client(cap(), *tx_block_alloc, env.rm())
 	{ }
 
 	/**
@@ -72,7 +72,7 @@ struct Nic::Connection : Genode::Connection<Session>, Session_client
 	:
 		Genode::Connection<Session>(_session(*Genode::env()->parent(), label,
 		                                     tx_buf_size, rx_buf_size)),
-		Session_client(cap(), tx_block_alloc)
+		Session_client(cap(), *tx_block_alloc, *Genode::env()->rm_session())
 	{ }
 };
 
