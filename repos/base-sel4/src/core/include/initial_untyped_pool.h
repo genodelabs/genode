@@ -65,6 +65,26 @@ class Genode::Initial_untyped_pool
 			{ }
 		};
 
+	private:
+
+		/**
+		 * Calculate free index after allocation
+		 */
+		addr_t _align_offset(Range &range, size_t size_log2)
+		{
+			/*
+			 * The seL4 kernel naturally aligns allocations within untuped
+			 * memory ranges. So we have to apply the same policy to our
+			 * shadow version of the kernel's 'FreeIndex'.
+			 */
+			addr_t const aligned_free_offset = align_addr(range.free_offset,
+			                                              size_log2);
+
+			return aligned_free_offset + (1 << size_log2);
+		}
+
+	public:
+
 		/**
 		 * Apply functor to each untyped memory range
 		 *
@@ -105,38 +125,47 @@ class Genode::Initial_untyped_pool
 			 */
 			for_each_range([&] (Range &range) {
 
-				if (sel != UNKNOWN)
-					return;
-
-				/*
-				 * The seL4 kernel naturally aligns allocations within untuped
-				 * memory ranges. So we have to apply the same policy to our
-				 * shadow version of the kernel's 'FreeIndex'.
-				 */
-				addr_t const aligned_free_offset = align_addr(range.free_offset, size_log2);
-
 				/* calculate free index after allocation */
-				addr_t const new_free_offset = aligned_free_offset + (1 << size_log2);
+				addr_t const new_free_offset = _align_offset(range, size_log2);
 
 				/* check if allocation fits within current untyped memory range */
-				if (new_free_offset <= range.size) {
+				if (new_free_offset > range.size)
+					return;
 
-					/*
-					 * We found a matching range, consume 'size' and report the
-					 * selector. The returned selector is used by the caller
-					 * of 'alloc' to perform the actual kernel-object creation.
-					 */
-					range.free_offset = new_free_offset;
-
-					/* return selector is matching range */
+				if (sel == UNKNOWN) {
 					sel = range.sel;
+					return;
 				}
+
+				/* check which range is smaller - take that */
+				addr_t const rest = range.size - new_free_offset;
+
+				Range best_fit(*this, sel);
+				addr_t const new_free_offset_best = _align_offset(best_fit, size_log2);
+				addr_t const rest_best = best_fit.size - new_free_offset_best;
+
+				if (rest_best >= rest)
+					/* current range fits better then best range */
+					sel = range.sel;
 			});
 
-			if (sel == UNKNOWN)
+			if (sel == UNKNOWN) {
+				warning("Initial_untyped_pool exhausted");
 				throw Initial_untyped_pool_exhausted();
+			}
 
-			return sel;
+			Range best_fit(*this, sel);
+			addr_t const new_free_offset = _align_offset(best_fit, size_log2);
+			ASSERT(new_free_offset <= best_fit.size);
+
+			/*
+			 * We found a matching range, consume 'size' and report the
+			 * selector. The returned selector is used by the caller
+			 * of 'alloc' to perform the actual kernel-object creation.
+			 */
+			best_fit.free_offset = new_free_offset;
+
+			return best_fit.sel;
 		}
 
 		/**
