@@ -238,7 +238,7 @@ class Genode::Vm_space
 		 *
 		 * \throw Alloc_page_table_failed
 		 */
-		void _alloc_and_map_page_table(addr_t to_virt)
+		void _alloc_and_map_page_table(addr_t to_virt, bool core_vm)
 		{
 			/* allocate page-table selector */
 			unsigned const pt_idx = _sel_alloc.alloc();
@@ -246,11 +246,21 @@ class Genode::Vm_space
 			/* XXX account the consumed backing store */
 
 			try {
+				/* XXX evil manual unlock/lock pattern */
+				if (core_vm)
+					_lock.unlock();
+
 				create<Page_table_kobj>(_phys_alloc,
 				                        _leaf_cnode(pt_idx).sel(),
 				                        _leaf_cnode_entry(pt_idx));
 
-			} catch (...) { throw Alloc_page_table_failed(); }
+				if (core_vm)
+					_lock.lock();
+			} catch (...) {
+				if (core_vm)
+					_lock.lock();
+				 throw Alloc_page_table_failed();
+			}
 
 			Cap_sel const pt_sel(_idx_to_sel(pt_idx));
 
@@ -349,7 +359,7 @@ class Genode::Vm_space
 
 				/* check if we need to add a page table to core's VM space */
 				if (!_page_table_registry.has_page_table_at(to_virt + offset))
-					_alloc_and_map_page_table(to_virt + offset);
+					_alloc_and_map_page_table(to_virt + offset, !flush_support);
 
 				if (_map_page(from_phys + offset, to_virt + offset, flush_support))
 					continue;
@@ -360,7 +370,7 @@ class Genode::Vm_space
 				      " -> ", Hex(to_virt + offset));
 
 				_page_table_registry.forget_page_table_entry(to_virt + offset);
-				_alloc_and_map_page_table(to_virt + offset);
+				_alloc_and_map_page_table(to_virt + offset, !flush_support);
 
 				_map_page(from_phys + offset, to_virt + offset, flush_support);
 			}
