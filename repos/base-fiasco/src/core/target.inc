@@ -16,6 +16,7 @@ SRC_CC      += stack_area.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                io_port_session_component.cc \
+               io_port_session_support.cc \
                irq_session_component.cc \
                main.cc \
                multiboot_info.cc \

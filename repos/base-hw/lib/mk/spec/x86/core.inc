@@ -18,6 +18,7 @@ SRC_CC += spec/x86/cpu.cc
 SRC_CC += spec/x86/fpu.cc
 SRC_CC += spec/x86/bios_data_area.cc
 SRC_CC += spec/x86/io_port_session_component.cc
+SRC_CC += spec/x86/io_port_session_support.cc
 
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/core.inc

@@ -18,6 +18,7 @@ SRC_CC       = stack_area.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                io_port_session_component.cc \
+               io_port_session_support.cc \
                ipc_pager.cc \
                irq_session_component.cc \
                main.cc \
@@ -59,6 +60,7 @@ vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath region_map_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
+vpath io_port_session_support.cc   $(GEN_CORE_DIR)/spec/x86
 vpath io_mem_session_component.cc  $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc    $(GEN_CORE_DIR)
 vpath dataspace_component.cc       $(GEN_CORE_DIR)
