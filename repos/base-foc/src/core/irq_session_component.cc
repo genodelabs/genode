@@ -20,6 +20,7 @@
 
 /* core includes */
 #include <irq_root.h>
+#include <irq_args.h>
 #include <irq_session_component.h>
 #include <platform.h>
 #include <util.h>
@@ -185,60 +186,26 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 :
 	_irq_number(~0U), _irq_alloc(irq_alloc)
 {
-	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
+	Irq_args const irq_args(args);
+
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi) {
-		if (msi_alloc.get(irq_number, 1)) {
-			PERR("Unavailable MSI %ld requested.",  irq_number);
+		if (msi_alloc.get(irq_args.irq_number(), 1)) {
+			PERR("Unavailable MSI %ld requested.",  irq_args.irq_number());
 			throw Root::Unavailable();
 		}
-		msi_alloc.set(irq_number, 1);
+		msi_alloc.set(irq_args.irq_number(), 1);
 	} else {
-		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
-			PERR("Unavailable IRQ %ld requested.", irq_number);
+		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_args.irq_number()).error()) {
+			PERR("Unavailable IRQ %ld requested.", irq_args.irq_number());
 			throw Root::Unavailable();
 		}
 	}
 
-	_irq_number = irq_number;
+	_irq_number = irq_args.irq_number();
 
-	long irq_t = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
-	long irq_p = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
-
-	Irq_session::Trigger irq_trigger;
-	Irq_session::Polarity irq_polarity;
-
-	switch(irq_t) {
-		case -1:
-		case Irq_session::TRIGGER_UNCHANGED:
-			irq_trigger = Irq_session::TRIGGER_UNCHANGED;
-			break;
-		case Irq_session::TRIGGER_EDGE:
-			irq_trigger = Irq_session::TRIGGER_EDGE;
-			break;
-		case Irq_session::TRIGGER_LEVEL:
-			irq_trigger = Irq_session::TRIGGER_LEVEL;
-			break;
-		default:
-			throw Root::Unavailable();
-	}
-
-	switch(irq_p) {
-		case -1:
-		case POLARITY_UNCHANGED:
-			irq_polarity = POLARITY_UNCHANGED;
-			break;
-		case POLARITY_HIGH:
-			irq_polarity = POLARITY_HIGH;
-			break;
-		case POLARITY_LOW:
-			irq_polarity = POLARITY_LOW;
-			break;
-		default:
-			throw Root::Unavailable();
-	}
-
-	_irq_object.associate(_irq_number, msi, irq_trigger, irq_polarity);
+	_irq_object.associate(_irq_number, msi, irq_args.trigger(),
+	                      irq_args.polarity());
 }
 
 
