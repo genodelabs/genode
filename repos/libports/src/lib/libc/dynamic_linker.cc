@@ -54,7 +54,7 @@ static Shared_object *to_object(void *handle)
 
 void *dlopen(const char *name, int mode)
 {
-	int supported = RTLD_LAZY | RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE;
+	int supported = RTLD_LAZY | RTLD_NOW | RTLD_LOCAL | RTLD_GLOBAL | RTLD_NODELETE;
 
 	/* error on unsupported mode values */
 	if (mode & ~supported) {
