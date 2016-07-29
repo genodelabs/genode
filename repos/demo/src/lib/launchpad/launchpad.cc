@@ -394,7 +394,7 @@ class Child_destructor_thread : Thread_deprecated<2*4096>
 					 * bit to proceed and reset the watchdog counter to give
 					 * the next blocking operation a chance to execute.
 					 */
-					cancel_blocking();
+					child->cancel_blocking();
 					_watchdog_cnt = 0;
 				}
 			}

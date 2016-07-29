@@ -87,13 +87,6 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	if (utcb == reinterpret_cast<Utcb *>(this->utcb()))
 		return;
 
-	/*
-	 * Required outside of core. E.g. launchpad needs it to forcefully kill
-	 * a client which blocks on a session opening request where the service
-	 * is not up yet.
-	 */
-	cancel_blocking();
-
 	/* activate entrypoint now - otherwise cleanup call will block forever */
 	_delay_start.unlock();
 
