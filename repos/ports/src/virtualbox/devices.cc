@@ -76,7 +76,8 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
  *   - 'pciSetIrqInternal()' in DevPCI.cpp
  *   - '_PIC' and '_PRT' ACPI methods in vbox.dsl
  */
-bool force_ioapic()
+
+static bool read_force_ioapic_from_config()
 {
 	try {
 		Genode::Attached_rom_dataspace config("config");
@@ -84,4 +85,11 @@ bool force_ioapic()
 	} catch (Genode::Rom_connection::Rom_connection_failed) {
 		return false;
 	}
+}
+
+bool force_ioapic()
+{
+	/* read only once from config ROM */
+	static bool force = read_force_ioapic_from_config();
+	return force;
 }
