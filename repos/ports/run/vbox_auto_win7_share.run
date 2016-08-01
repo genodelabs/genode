@@ -72,6 +72,7 @@ set flavor   "win7"
 set vdi_image "${flavor}.vdi"
 # Write overlay back to harddisk if set to 0
 set use_ram_fs 0
+set use_overlay_from_disk 0
 set overlay_image "overlay_${flavor}.vdi"
 
 set use_usb 0

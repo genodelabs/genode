@@ -83,7 +83,12 @@ append config {
 	<start name="rump_fs" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
-		<config fs="ext2fs"> <default-policy root="/" writeable="yes"/> </config>
+		<config fs="ext2fs">}
+append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
+			<policy label="overlay_from_disk" root="/ram" writeable="yes"/>}
+append config {
+			<default-policy root="/" writeable="yes"/>
+		</config>
 		<route>
 			<any-service><child name="part_blk"/> <parent/><any-child/></any-service>
 		</route>
@@ -103,6 +108,24 @@ append_if [expr $use_ram_fs] config {
 			<!-- constrain sessions according to their labels -->
 			<policy label="vbox -> from_ram_fs" root="/ram" writeable="yes"/>
 		</config>
+		<route>}
+append_if [expr $use_ram_fs && $use_overlay_from_disk] config "<service name=\"ROM\" label=\"${overlay_image}\">"
+append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
+			<child name="overlay_from_disk"/></service>}
+append_if [expr $use_ram_fs] config {
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+	</start>}
+
+append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
+	<start name="overlay_from_disk" priority="-1">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="256M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="File_system"><child name="rump_fs"/></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>}
 
 append_platform_drv_config
@@ -251,7 +274,7 @@ append boot_modules {
 }
 
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
-lappend_if [expr $use_ram_fs]             boot_modules ${overlay_image}
+lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules ${overlay_image}
 
 # platform-specific modules
 lappend_if [expr         $use_ps2] boot_modules ps2_drv
