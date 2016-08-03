@@ -58,15 +58,12 @@ proc qt5_start_nodes { feature_arg } {
 			<route> }
 	append_if [use_fb_sdl feature] start_nodes { 
 				<service name="Framebuffer"> <child name="fb_sdl" /> </service>
-				<service name="Input"> <child name="fb_sdl" /> </service>
 	}
 	append_if [use_fb_drv feature] start_nodes {
 				<service name="Framebuffer"> <child name="fb_drv" /> </service>
 	}
-	append_if [use_ps2_drv feature] start_nodes {
-				<service name="Input"> <child name="ps2_drv" /> </service>
-	}
 	append start_nodes {
+				<service name="Input">  <child name="input_merger"/> </service>
 				<service name="Report"> <child name="report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
