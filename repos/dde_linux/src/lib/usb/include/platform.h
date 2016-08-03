@@ -68,6 +68,9 @@ struct Services
 				screen_width = screen_height = 0;
 				log("Could not read screen resolution in config node");
 			}
+
+			log("Configured HID screen with %lux%lu (multitouch=%s)",
+			     screen_width, screen_height, multitouch ? "true" : "false");
 		} catch (Xml_node::Nonexistent_sub_node) {
 			log("No <hid> config node found - not starting the USB HID (Input) service");
 		}
