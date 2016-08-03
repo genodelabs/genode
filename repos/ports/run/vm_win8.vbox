@@ -32,7 +32,7 @@
         <HardwareVirtForce enabled="false"/>
       </CPU>
       <Memory RAMSize="1024" PageFusion="false"/>
-      <HID Pointing="PS2Mouse" Keyboard="PS2Keyboard"/>
+      <HID Pointing="USBMultiTouch" Keyboard="USBKeyboard"/>
       <HPET enabled="false"/>
       <Chipset type="PIIX3"/>
       <Boot>
