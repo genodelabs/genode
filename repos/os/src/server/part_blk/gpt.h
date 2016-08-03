@@ -15,7 +15,7 @@
 #define _PART_BLK__GPT_H_
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <block_session/client.h>
 
 #include "driver.h"
@@ -24,7 +24,6 @@
 namespace {
 
 static bool const verbose = false;
-#define PLOGV(...) do { if (verbose) PLOG(__VA_ARGS__); } while (0)
 
 /* simple bitwise CRC32 checking */
 static inline Genode::uint32_t crc32(void const * const buf, Genode::size_t size)
@@ -110,23 +109,27 @@ class Gpt : public Block::Partition_table
 
 			void dump_hdr(bool check_primary)
 			{
-				PLOGV("GPT %s header:", check_primary ? "primary" : "backup");
-				PLOGV(" rev: %u", _revision);
-				PLOGV(" size: %u", _hdr_size);
-				PLOGV(" crc: %x", _hdr_crc);
-				PLOGV(" reserved: %u", _reserved);
-				PLOGV(" hdr lba: %llu", _hdr_lba);
-				PLOGV(" bak lba: %llu", _backup_hdr_lba);
-				PLOGV(" part start lba: %llu", _part_lba_start);
-				PLOGV(" part end lba: %llu", _part_lba_end);
-				PLOGV(" guid: %s", _guid.to_string());
-				PLOGV(" gpe lba: %llu", _gpe_lba);
-				PLOGV(" entries: %u", _entries);
-				PLOGV(" entry size: %u", _entry_size);
-				PLOGV(" gpe crc: %x", _gpe_crc);
+				if (!verbose) return;
+
+				using namespace Genode;
+
+				log("GPT ", check_primary ? "primary" : "backup", " header:");
+				log(" rev: ", (unsigned) _revision);
+				log(" size: ", (unsigned) _hdr_size);
+				log(" crc: ", Hex(_hdr_crc, Hex::OMIT_PREFIX));
+				log(" reserved: ", (unsigned) _reserved);
+				log(" hdr lba: ", (unsigned long long) _hdr_lba);
+				log(" bak lba: ", (unsigned long long) _backup_hdr_lba);
+				log(" part start lba: ", (unsigned long long) _part_lba_start);
+				log(" part end lba: ", (unsigned long long) _part_lba_end);
+				log(" guid: ", _guid.to_string());
+				log(" gpe lba: ", (unsigned long long) _gpe_lba);
+				log(" entries: ", (unsigned) _entries);
+				log(" entry size: ", (unsigned) _entry_size);
+				log(" gpe crc: ", Hex(_gpe_crc, Hex::OMIT_PREFIX));
 			}
 
-			bool valid(bool check_primary = true)
+			bool valid(Block::Driver &driver, bool check_primary = true)
 			{
 				dump_hdr(check_primary);
 
@@ -138,7 +141,7 @@ class Gpt : public Block::Partition_table
 				Genode::uint32_t crc = _hdr_crc;
 				_hdr_crc = 0;
 				if (crc32(this, _hdr_size) != crc) {
-					PERR("Wrong GPT header checksum");
+					Genode::error("Wrong GPT header checksum");
 					return false;
 				}
 
@@ -149,15 +152,15 @@ class Gpt : public Block::Partition_table
 
 				/* check GPT entry array */
 				Genode::size_t length = _entries * _entry_size;
-				Sector gpe(_gpe_lba, length / Block::Driver::driver().blk_size());
+				Sector gpe(driver, _gpe_lba, length / driver.blk_size());
 				if (crc32(gpe.addr<void *>(), length) != _gpe_crc)
 					return false;
 
 				if (check_primary) {
 					/* check backup gpt header */
-					Sector backup_hdr(_backup_hdr_lba, 1);
-					if (!backup_hdr.addr<Gpt_hdr*>()->valid(false)) {
-						PWRN("Backup GPT header is corrupted");
+					Sector backup_hdr(driver, _backup_hdr_lba, 1);
+					if (!backup_hdr.addr<Gpt_hdr*>()->valid(driver, false)) {
+						Genode::warning("Backup GPT header is corrupted");
 					}
 				}
 
@@ -226,11 +229,11 @@ class Gpt : public Block::Partition_table
 		 */
 		void _parse_gpt(Gpt_hdr *gpt)
 		{
-			if (!(gpt->valid()))
+			if (!(gpt->valid(driver)))
 				throw Genode::Exception();
 
-			Sector entry_array(gpt->_gpe_lba,
-			                   gpt->_entries * gpt->_entry_size / Block::Driver::driver().blk_size());
+			Sector entry_array(driver, gpt->_gpe_lba,
+			                   gpt->_entries * gpt->_entry_size / driver.blk_size());
 			Gpt_entry *entries = entry_array.addr<Gpt_entry *>();
 
 			for (int i = 0; i < MAX_PARTITIONS; i++) {
@@ -242,42 +245,30 @@ class Gpt : public Block::Partition_table
 				Genode::uint64_t start  = e->_lba_start;
 				Genode::uint64_t length = e->_lba_end - e->_lba_start + 1; /* [...) */
 
-				_part_list[i] = new (Genode::env()->heap()) Block::Partition(start, length);
+				_part_list[i] = new (&heap) Block::Partition(start, length);
 
-				PINF("Partition %d: LBA %llu (%llu blocks) type: '%s' name: '%s'",
-				     i + 1, start, length, e->_type.to_string(), e->name());
+				Genode::log("Partition ", i + 1, ": LBA ", start, " (", length,
+				            " blocks) type: '", e->_type.to_string(),
+				            "' name: '", e->name(), "'");
 			}
-		}
-
-		Gpt()
-		{
-			Sector s(Gpt_hdr::HEADER_LBA, 1);
-			_parse_gpt(s.addr<Gpt_hdr *>());
-
-			/*
-			 * we read all partition information,
-			 * now it's safe to turn in asynchronous mode
-			 */
-			Block::Driver::driver().work_asynchronously();
 		}
 
 	public:
 
+		using Partition_table::Partition_table;
+
 		Block::Partition *partition(int num) {
 			return (num <= MAX_PARTITIONS && num > 0) ? _part_list[num-1] : 0; }
 
-		bool avail()
+		bool parse()
 		{
+			Sector s(driver, Gpt_hdr::HEADER_LBA, 1);
+			_parse_gpt(s.addr<Gpt_hdr *>());
+
 			for (unsigned num = 0; num < MAX_PARTITIONS; num++)
 				if (_part_list[num])
 					return true;
 			return false;
-		}
-
-		static Gpt& table()
-		{
-			static Gpt table;
-			return table;
 		}
 };
 

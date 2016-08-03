@@ -16,7 +16,7 @@
 #define _PART_BLK__PARTITION_TABLE_H_
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <block_session/client.h>
 
 #include "driver.h"
@@ -43,23 +43,25 @@ struct Block::Partition_table
 		{
 			private:
 
-				Session_client   &_session;
-				Packet_descriptor _p;
+				Session_client    &_session;
+				Packet_descriptor  _p;
 
 			public:
 
-				Sector(unsigned long blk_nr,
+				Sector(Driver       &driver,
+				       unsigned long blk_nr,
 				       unsigned long count,
-				       bool write = false)
-				: _session(Driver::driver().session()),
-				  _p(_session.dma_alloc_packet(Driver::driver().blk_size() * count),
+				       bool          write = false)
+				: _session(driver.session()),
+				  _p(_session.dma_alloc_packet(driver.blk_size() * count),
 				     write ? Packet_descriptor::WRITE : Packet_descriptor::READ,
 				     blk_nr, count)
 				{
 					_session.tx()->submit_packet(_p);
 					_p = _session.tx()->get_acked_packet();
 					if (!_p.succeeded())
-						PERR("Could not access block %llu", _p.block_number());
+						Genode::error("Could not access block ",
+						              (unsigned long long)_p.block_number());
 				}
 
 				~Sector() { _session.tx()->release_packet(_p); }
@@ -68,9 +70,15 @@ struct Block::Partition_table
 					return reinterpret_cast<T>(_session.tx()->packet_content(_p)); }
 		};
 
+		Genode::Heap & heap;
+		Driver       & driver;
+
+		Partition_table(Genode::Heap & h, Driver & d)
+		: heap(h), driver(d) {}
+
 		virtual Partition *partition(int num) = 0;
 
-		virtual bool avail() = 0;
+		virtual bool parse() = 0;
 };
 
 #endif /* _PART_BLK__PARTITION_TABLE_H_ */
