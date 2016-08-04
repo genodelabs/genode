@@ -24,7 +24,9 @@
 
 /* Qt includes */
 #include <qpa/qplatformwindow.h>
+#include <qpa/qwindowsysteminterface.h>
 #include <qevdevkeyboardhandler_p.h>
+#include <qtouchdevice.h>
 
 /* Qoost includes */
 #include <qoost/qmember.h>
@@ -64,8 +66,13 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _input_signal_dispatcher;
 		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _mode_changed_signal_dispatcher;
 
+		QVector<QWindowSystemInterface::TouchPoint>  _touch_points { 16 };
+		QTouchDevice                                *_touch_device;
+		QTouchDevice * _init_touch_device();
+
 		void _process_mouse_event(Input::Event *ev);
 		void _process_key_event(Input::Event *ev);
+		void _process_touch_events(QList<Input::Event> const &events);
 
 		Nitpicker::Session::View_handle _create_view();
 		void _adjust_and_set_geometry(const QRect &rect);
