@@ -68,6 +68,6 @@ build_boot_image $boot_modules
 # Execute test case
 #
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic -m 96"
 
 run_genode_until "--- finished fault_detection test ---.*\n" 30

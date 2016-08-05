@@ -65,6 +65,6 @@ build_boot_image { core init timer test-blk-srv blk_cache test-blk-cli }
 #
 # Qemu
 #
-append qemu_args " -nographic -m 64 "
+append qemu_args " -nographic -m 96 "
 
 run_genode_until "Tests finished successfully.*\n" 60
