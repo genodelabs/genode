@@ -69,6 +69,15 @@ void Genode::print(Output &output, long long value)
 	out_signed<long long>(value, 10, [&] (char c) { output.out_char(c); });
 }
 
+void Genode::print(Output &output, float value)
+{
+	out_float<float>(value, 10, 3, [&] (char c) { output.out_char(c); });
+}
+
+void Genode::print(Output &output, double value)
+{
+	out_float<double>(value, 10, 6, [&] (char c) { output.out_char(c); });
+}
 
 void Genode::print(Output &output, Hex const &value)
 {

@@ -31,7 +31,6 @@ static inline char ascii(int digit, int uppercase = 0)
 	return digit + '0';
 }
 
-
 /**
  * Output signed value with the specified base
  */
@@ -107,6 +106,38 @@ static inline void out_unsigned(T value, unsigned base, int pad,
 		out_char(buf[i]);
 }
 
+/**
+ * Output floating point value
+ */
+template <typename T, typename OUT_CHAR_FN>
+static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_FN const &out_char)
+{
+	/* set flag if value is negative */
+	int neg = value < 0 ? 1 : 0;
+
+	/* get absolute value */
+	value = value < 0 ? -value : value;
+
+	uint64_t integer = (uint64_t)value;
+
+	if (neg)
+		out_char('-');
+
+	out_unsigned(integer, base, 0, out_char);
+	out_char('.');
+
+	if (length) {
+		do {
+			value -= integer;
+			value = value*base;
+
+			integer = (int64_t)value;
+			out_char(ascii(integer));
+
+			length--;
+		} while (length && (value > 0.0));
+	}
+}
 
 namespace Genode { template <size_t, typename> class Buffered_output; }
 
