@@ -287,7 +287,7 @@ struct Timeout : Genode::Signal_dispatcher<Timeout>
 };
 
 
-static void __wait_event(signed long timeout)
+static void wait_for_timeout(signed long timeout)
 {
 	static Timer::Connection timer;
 	Timeout to(timer, timeout);
@@ -307,7 +307,7 @@ long schedule_timeout_uninterruptible(signed long timeout)
 signed long schedule_timeout(signed long timeout)
 {
 	long start = jiffies;
-	__wait_event(timeout);
+	wait_for_timeout(timeout);
 	timeout -= jiffies - start;
 	return timeout < 0 ? 0 : timeout;
 }
@@ -315,7 +315,7 @@ signed long schedule_timeout(signed long timeout)
 
 void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
 {
-	__wait_event(0);
+	wait_for_timeout(0);
 }
 
 
