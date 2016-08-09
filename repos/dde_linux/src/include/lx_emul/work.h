@@ -186,8 +186,9 @@ void add_wait_queue_exclusive(wait_queue_head_t *, wait_queue_t *);
 void remove_wait_queue(wait_queue_head_t *, wait_queue_t *);
 
 /* our wait event implementation - it's okay as value */
-void __wait_event(wait_queue_head_t);
+void ___wait_event(wait_queue_head_t*);
 
+#define __wait_event(wq) ___wait_event(&wq)
 #define _wait_event(wq, condition) while (!(condition)) { __wait_event(wq); }
 #define wait_event(wq, condition) ({ _wait_event(wq, condition); })
 #define wait_event_interruptible(wq, condition) ({ _wait_event(wq, condition); 0; })
