@@ -86,6 +86,7 @@ Firmware_list fw_list[] = {
 	{ "iwlwifi-7260-17.ucode",   1049284, "iwlwifi-7260-16.ucode" },
 	{ "iwlwifi-7265-16.ucode",   1180356, nullptr },
 	{ "iwlwifi-7265D-16.ucode",  1384500, nullptr },
+	{ "iwlwifi-7265D-19.ucode",  1384500, "iwlwifi-7265D-16.ucode" },
 	{ "iwlwifi-8000C-16.ucode",  2351636, nullptr },
 	{ "iwlwifi-8000C-19.ucode",  2351636, "iwlwifi-8000C-16.ucode" }
 };
