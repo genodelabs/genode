@@ -49,17 +49,15 @@ struct Ahci
 	Port_driver   *ports[MAX_PORTS];
 	bool           port_claimed[MAX_PORTS];
 
-	Signal_rpc_member<Ahci> irq;
-	Signal_rpc_member<Ahci> device_ready;
-	unsigned                ready_count = 0;
-	bool                    enable_atapi;
+	Signal_handler<Ahci> irq;
+	unsigned             ready_count = 0;
+	bool                 enable_atapi;
 
 	Ahci(Genode::Env &env, Genode::Allocator &alloc,
 	     Ahci_root &root, bool support_atapi)
 	:
 		env(env), alloc(alloc),
 		root(root), irq(root.entrypoint(), *this, &Ahci::handle_irq),
-		device_ready(root.entrypoint(), *this, &Ahci::ready),
 		enable_atapi(support_atapi)
 	{
 		info();
@@ -87,7 +85,7 @@ struct Ahci
 	/**
 	 * Forward IRQs to ports
 	 */
-	void handle_irq(unsigned)
+	void handle_irq()
 	{
 		unsigned port_list = hba.read<Hba::Is>();
 		while (port_list) {
@@ -103,17 +101,6 @@ struct Ahci
 		/* ack at interrupt controller */
 		platform_hba.ack_irq();
 	}
-
-	void ready(unsigned cnt)
-	{
-		ready_count -= cnt;
-		if (ready_count)
-			return;
-
-		/* announce service */
-		root.announce();
-	}
-
 
 	void info()
 	{
@@ -158,14 +145,14 @@ struct Ahci
 			switch (sig) {
 
 				case ATA_SIG:
-					ports[i] = new (&alloc) Ata_driver(alloc, port, device_ready);
-					ready_count++;
+					ports[i] = new (&alloc) Ata_driver(alloc, port, root,
+					                                   ready_count);
 					break;
 
 				case ATAPI_SIG:
 				case ATAPI_SIG_QEMU:
-					ports[i] = new (&alloc) Atapi_driver(port, device_ready);
-					ready_count++;
+					ports[i] = new (&alloc) Atapi_driver(port, root,
+					                                     ready_count);
 					break;
 
 				default:

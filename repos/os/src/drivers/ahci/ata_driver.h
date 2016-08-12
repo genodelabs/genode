@@ -188,8 +188,8 @@ struct Ata_driver : Port_driver
 	Block::Packet_descriptor                  pending[32];
 
 	Ata_driver(Genode::Allocator &alloc,
-	           Port &port, Signal_context_capability state_change)
-	: Port_driver(port, state_change), alloc(alloc)
+	           Port &port, Ahci_root &root, unsigned &sem)
+	: Port_driver(port, root, sem), alloc(alloc)
 	{
 		Port::init();
 		identify_device();

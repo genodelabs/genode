@@ -24,8 +24,8 @@ struct Atapi_driver : Port_driver
 	unsigned                 sense_tries = 0;
 	Block::Packet_descriptor pending;
 
-	Atapi_driver(Port &port, Signal_context_capability state_change)
-	: Port_driver(port, state_change)
+	Atapi_driver(Port &port, Ahci_root &root, unsigned &sem)
+	: Port_driver(port, root, sem)
 	{
 		Port::init();
 		Port::write<Cmd::Atapi>(1);

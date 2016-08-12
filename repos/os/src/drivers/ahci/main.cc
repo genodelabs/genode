@@ -52,8 +52,9 @@ class Session_component : public Block::Session_component
 {
 	public:
 
-		Session_component(Block::Driver_factory     &driver_factory,
-		                  Server::Entrypoint       &ep, Genode::size_t buf_size)
+		Session_component(Block::Driver_factory &driver_factory,
+		                  Genode::Entrypoint    &ep,
+		                  Genode::size_t         buf_size)
 		: Block::Session_component(driver_factory, ep, buf_size) { }
 
 		Block::Driver_factory &factory() { return _driver_factory; }

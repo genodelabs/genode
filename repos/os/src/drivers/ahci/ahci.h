@@ -29,7 +29,7 @@ namespace Platform {
 
 struct Ahci_root
 {
-	virtual Server::Entrypoint &entrypoint() = 0;
+	virtual Genode::Entrypoint &entrypoint() = 0;
 	virtual void announce()                  = 0;
 };
 
@@ -792,15 +792,22 @@ struct Port : Genode::Mmio
 
 struct Port_driver : Port, Block::Driver
 {
-	Genode::Signal_context_capability state_change_cap;
+	Ahci_root &root;
+	unsigned  &sem;
 
-	Port_driver(Port &port, Genode::Signal_context_capability state_change_cap)
-	: Port(port), state_change_cap(state_change_cap)
-	{ }
+	Port_driver(Port &port, Ahci_root &root, unsigned &sem)
+	: Port(port), root(root), sem(sem) {
+		sem++; }
 
 	virtual void handle_irq() = 0;
 
-	void state_change() { Genode::Signal_transmitter(state_change_cap).submit(); }
+	void state_change()
+	{
+		if (--sem) return;
+
+		/* announce service */
+		root.announce();
+	}
 
 	void sanity_check(Block::sector_t block_number, Genode::size_t count)
 	{

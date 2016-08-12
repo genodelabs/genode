@@ -223,7 +223,7 @@ void scsi_add_device(struct scsi_device *sdev)
 	 */
 	if (!announce) {
 		PREPARE_WORK(&delayed, ack_packet);
-		static Block::Root root(_signal->ep(), &Lx::Malloc::mem(), factory);
+		static Block::Root root(_signal->ep(), Lx::Malloc::mem(), factory);
 		_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
 		announce = true;
 	}
