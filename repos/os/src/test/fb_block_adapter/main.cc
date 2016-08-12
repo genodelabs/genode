@@ -99,32 +99,27 @@ class Driver : public Block::Driver
 
 struct Factory : Block::Driver_factory
 {
-		Block::Driver *create() {
-		return new (Genode::env()->heap()) Driver(); }
+	Genode::Heap &heap;
 
-	void destroy(Block::Driver *driver) {
-		Genode::destroy(Genode::env()->heap(), driver); }
+	Factory(Genode::Heap &heap) : heap(heap) {}
+
+	Block::Driver *create() { return new (&heap) Driver(); }
+
+	void destroy(Block::Driver *driver) { Genode::destroy(&heap, driver); }
 };
 
 
 struct Main
 {
-	Server::Entrypoint &ep;
-	struct Factory      factory;
-	Block::Root         root;
+	Genode::Env    &env;
+	Genode::Heap    heap { env.ram(), env.rm() };
+	struct Factory  factory { heap };
+	Block::Root     root { env.ep(), heap, factory };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory) {
-		Genode::env()->parent()->announce(ep.manage(root)); }
+	Main(Genode::Env &env) : env(env) {
+		env.parent().announce(env.ep().manage(root)); }
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "fb_blk_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main m(env);         }

@@ -26,15 +26,15 @@ class Usb::Packet_handler
 		Usb::Connection                  &_connection;
 		Genode::Entrypoint               &_ep;
 
-		Signal_rpc_member<Packet_handler> _rpc_ack_avail =
+		Signal_handler<Packet_handler> _rpc_ack_avail =
 			{_ep, *this, &Packet_handler::_packet_handler };
 
-		Signal_rpc_member<Packet_handler> _rpc_ready_submit =
+		Signal_handler<Packet_handler> _rpc_ready_submit =
 			{ _ep, *this, &Packet_handler::_ready_handler };
 
 		bool _ready_submit = true;
 
-		void _packet_handler(unsigned)
+		void _packet_handler()
 		{
 			if (!_ready_submit)
 				return;
@@ -49,7 +49,7 @@ class Usb::Packet_handler
 			}
 		}
 
-		void _ready_handler(unsigned)
+		void _ready_handler()
 		{
 			_ready_submit = true;
 		};
@@ -76,7 +76,7 @@ class Usb::Packet_handler
 
 		void wait_for_packet()
 		{
-			packet_avail() ? _packet_handler(0) : _ep.wait_and_dispatch_one_signal();
+			packet_avail() ? _packet_handler() : _ep.wait_and_dispatch_one_signal();
 		}
 
 		Packet_descriptor alloc(size_t size)
@@ -117,7 +117,7 @@ class Usb::Packet_handler
 			 * retrieve packets.
 			 */
 			if (packet_avail())
-				_packet_handler(0);
+				_packet_handler();
 		}
 
 		void *content(Packet_descriptor &p)

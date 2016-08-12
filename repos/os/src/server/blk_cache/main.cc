@@ -5,19 +5,19 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <os/server.h>
+#include <base/component.h>
 
 #include "lru.h"
 #include "driver.h"
 
-
-template <typename POLICY> Driver<POLICY>* Driver<POLICY>::_instance = 0;
+using Policy = Lru_policy;
+static Driver<Policy> * driver = nullptr;
 
 
 /**
@@ -29,15 +29,16 @@ void Driver<POLICY>::Policy::sync(const typename POLICY::Element *e, char *dst)
 	Cache::offset_t off =
 		static_cast<const Driver<POLICY>::Chunk_level_4*>(e)->base_offset();
 
-	if (!Driver::instance()->blk()->tx()->ready_to_submit())
+	if (!driver) throw Write_failed(off);
+
+	if (!driver->blk()->tx()->ready_to_submit())
 		throw Write_failed(off);
 	try {
 		Block::Packet_descriptor
-			p(Driver::instance()->blk()->dma_alloc_packet(Driver::CACHE_BLK_SIZE),
-		      Block::Packet_descriptor::WRITE,
-		      off / Driver::instance()->blk_sz(),
-		      Driver::CACHE_BLK_SIZE / Driver::instance()->blk_sz());
-		Driver::instance()->blk()->tx()->submit_packet(p);
+			p(driver->blk()->dma_alloc_packet(Driver::CACHE_BLK_SIZE),
+		      Block::Packet_descriptor::WRITE, off / driver->blk_sz(),
+		      Driver::CACHE_BLK_SIZE / driver->blk_sz());
+		driver->blk()->tx()->submit_packet(p);
 	} catch(Block::Session::Tx::Source::Packet_alloc_failed) {
 		throw Write_failed(off);
 	}
@@ -46,39 +47,44 @@ void Driver<POLICY>::Policy::sync(const typename POLICY::Element *e, char *dst)
 
 struct Main
 {
-	Server::Entrypoint &ep;
-
+	template <typename T>
 	struct Factory : Block::Driver_factory
 	{
-		Server::Entrypoint &ep;
+		Genode::Env  &env;
+		Genode::Heap &heap;
 
-		Factory(Server::Entrypoint &ep) : ep(ep) {}
+		Factory(Genode::Env &env, Genode::Heap &heap) : env(env), heap(heap) {}
 
-		Block::Driver *create() { return Driver<Lru_policy>::instance(ep); }
-		void destroy(Block::Driver *driver) { Driver<Lru_policy>::destroy(); }
-	} factory;
+		Block::Driver *create()
+		{
+			driver = new (&heap) ::Driver<T>(env, heap);
+			return driver;
+		}
 
-	void resource_handler(unsigned) { }
+		void destroy(Block::Driver *driver) {
+			Genode::destroy(&heap, static_cast<::Driver<T>*>(driver)); }
+	};
 
-	Block::Root                     root;
-	Server::Signal_rpc_member<Main> resource_dispatcher;
+	void resource_handler() { }
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), factory(ep), root(ep, Genode::env()->heap(), factory),
-	  resource_dispatcher(ep, *this, &Main::resource_handler)
+	Genode::Env                 &env;
+	Genode::Heap                 heap    { env.ram(), env.rm()     };
+	Factory<Lru_policy>          factory { env, heap               };
+	Block::Root                  root    { env.ep(), heap, factory };
+	Genode::Signal_handler<Main> resource_dispatcher {
+		env.ep(), *this, &Main::resource_handler };
+
+	Main(Genode::Env &env) : env(env)
 	{
-		Genode::env()->parent()->announce(ep.manage(root));
-		Genode::env()->parent()->resource_avail_sigh(resource_dispatcher);
+		env.parent().announce(env.ep().manage(root));
+		env.parent().resource_avail_sigh(resource_dispatcher);
 	}
 };
 
 
-/************
- ** Server **
- ************/
+Genode::size_t Component::stack_size() {
+	return 2048*sizeof(Genode::addr_t); }
 
-namespace Server {
-	char const *name()             { return "blk_cache_ep";      }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
+
+void Component::construct(Genode::Env &env) {
+	static Main server(env); }
