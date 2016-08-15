@@ -110,8 +110,8 @@ class Net::Udp_packet
 		 * |  4 bytes   |  4 bytes   |   1 byte   |  1 byte  |  2 bytes   |
 		 *  --------------------------------------------------------------
 		 */
-		void calc_checksum(Ipv4_packet::Ipv4_address src,
-		                   Ipv4_packet::Ipv4_address dst)
+		void calc_checksum(Ipv4_address src,
+		                   Ipv4_address dst)
 		{
 			/* have to reset the checksum field for calculation */
 			_checksum = 0;

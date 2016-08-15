@@ -15,16 +15,17 @@
 #define _INCLUDE__NIC_SESSION__NIC_SESSION_H_
 
 #include <dataspace/capability.h>
-#include <base/output.h>
 #include <base/signal.h>
 #include <base/rpc.h>
 #include <session/session.h>
 #include <packet_stream_tx/packet_stream_tx.h>
 #include <packet_stream_rx/packet_stream_rx.h>
+#include <net/mac_address.h>
 
 namespace Nic {
 
-	struct Mac_address;
+	using Mac_address = Net::Mac_address;
+
 	struct Session;
 
 	using Genode::Packet_stream_sink;
@@ -32,22 +33,6 @@ namespace Nic {
 
 	typedef Genode::Packet_descriptor Packet_descriptor;
 }
-
-
-struct Nic::Mac_address
-{
-	enum { NUM_ELEM = 6 };
-
-	char addr[NUM_ELEM];
-
-	void print(Genode::Output &out) const
-	{
-		using Genode::Hex;
-		for (unsigned i = 0; i < NUM_ELEM; i++)
-			Genode::print(out, i > 0 ? ":" : "",
-			                   Hex(addr[i], Hex::OMIT_PREFIX, Hex::PAD));
-	}
-};
 
 
 /*

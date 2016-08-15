@@ -53,7 +53,7 @@ struct Main
 			handle_config();
 
 			/* show MAC address to use */
-			Net::Ethernet_frame::Mac_address mac(nic.mac());
+			Net::Mac_address mac(nic.mac());
 			Genode::log("--- NIC bridge started (mac=", mac, ") ---");
 
 			/* announce at parent */

@@ -81,7 +81,7 @@ class Openvpn_component : public Tuntap_device,
 {
 	private:
 
-		Nic::Mac_address          _mac_addr {{ 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 }};
+		Nic::Mac_address _mac_addr;
 
 		char const *_packet;
 
@@ -138,6 +138,8 @@ class Openvpn_component : public Tuntap_device,
 		                  Server::Entrypoint  &ep)
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
 		{
+			char buf[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
+			_mac_addr = Nic::Mac_address((void*)buf);
 			if (pipe(_pipefd)) {
 				Genode::error("could not create pipe");
 				throw Genode::Exception();

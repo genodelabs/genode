@@ -120,15 +120,15 @@ class Net::Session_component : public  Net::Stream_allocator,
 		 * \param rx_buf_size  buffer size for rx channel
 		 * \param vmac         virtual mac address
 		 */
-		Session_component(Genode::Ram_session        &ram,
-		                  Genode::Region_map         &rm,
-		                  Genode::Entrypoint         &ep,
-		                  Genode::size_t              amount,
-		                  Genode::size_t              tx_buf_size,
-		                  Genode::size_t              rx_buf_size,
-		                  Ethernet_frame::Mac_address vmac,
-		                  Net::Nic                   &nic,
-		                  char                       *ip_addr = 0);
+		Session_component(Genode::Ram_session &ram,
+		                  Genode::Region_map  &rm,
+		                  Genode::Entrypoint  &ep,
+		                  Genode::size_t       amount,
+		                  Genode::size_t       tx_buf_size,
+		                  Genode::size_t       rx_buf_size,
+		                  Mac_address          vmac,
+		                  Net::Nic            &nic,
+		                  char                *ip_addr = 0);
 
 		~Session_component();
 
@@ -146,7 +146,7 @@ class Net::Session_component : public  Net::Stream_allocator,
 				Genode::Signal_transmitter(_link_state_sigh).submit();
 		}
 
-		void set_ipv4_address(Ipv4_packet::Ipv4_address ip_addr);
+		void set_ipv4_address(Ipv4_address ip_addr);
 
 
 		/****************************************

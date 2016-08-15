@@ -34,7 +34,7 @@ class Nic_worker : public Genode::Thread_deprecated<STACK_SIZE>
 	private:
 
 		Nic::Connection  *_nic;       /* nic-session */
-		Net::Ethernet_frame::Mac_address _mac;
+		Net::Mac_address _mac;
 
 		struct stat {
 			Genode::uint64_t size;
