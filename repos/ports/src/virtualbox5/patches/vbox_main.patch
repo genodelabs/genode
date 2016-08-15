@@ -1,0 +1,1079 @@
+vbox_main.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h b/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
+index f0ec275..78a390e 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
++++ b/src/app/virtualbox/src/VBox/Main/include/NetworkServiceRunner.h
+@@ -15,6 +15,9 @@
+  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+  */
+ 
++#ifndef ____H_H_NetworkServiceRunner
++#define ____H_H_NetworkServiceRunner
++
+ #include <iprt/err.h>
+ #include <iprt/types.h>
+ #include <iprt/string.h>
+@@ -55,3 +58,5 @@ private:
+     struct Data;
+     Data *m;
+ };
++
++#endif /* ____H_H_NetworkServiceRunner */
+diff --git a/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h b/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
+index 66f2b31..0ac7ab8 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/ProgressProxyImpl.h
+@@ -52,7 +52,7 @@ public:
+ #if !defined (VBOX_COM_INPROC)
+                  VirtualBox *pParent,
+ #endif
+-                 IUnknown *pInitiator,
++                 void *pInitiator,
+                  CBSTR bstrDescription,
+                  BOOL fCancelable,
+                  ULONG uTotalOperationsWeight,
+diff --git a/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h b/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
+index b0f600e..bcd6b4c 100644
+--- a/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/SessionImpl.h
+@@ -24,6 +24,8 @@
+ # include "win/resource.h"
+ #endif
+ 
++class GenodeConsole;
++
+ #ifdef RT_OS_WINDOWS
+ [threading(free)]
+ #endif
+@@ -122,7 +124,7 @@ private:
+     ComPtr<IInternalMachineControl> mControl;
+ 
+ #ifndef VBOX_COM_INPROC_API_CLIENT
+-    ComObjPtr<Console> mConsole;
++    ComObjPtr<GenodeConsole> mConsole;
+ #endif
+ 
+     ComPtr<IMachine> mRemoteMachine;
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
+index 182f267..90b8716 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/EventImpl.cpp
+@@ -1263,7 +1263,8 @@ STDMETHODIMP EventSource::EventProcessed(IEventListener *aListener,
+  */
+ class ATL_NO_VTABLE PassiveEventListener :
+     public VirtualBoxBase,
+-    VBOX_SCRIPTABLE_IMPL(IEventListener)
++    public IEventListener
++//    VBOX_SCRIPTABLE_IMPL(IEventListener)
+ {
+ public:
+ 
+@@ -1302,7 +1303,8 @@ public:
+ /* Proxy listener class, used to aggregate multiple event sources into one */
+ class ATL_NO_VTABLE ProxyEventListener :
+     public VirtualBoxBase,
+-    VBOX_SCRIPTABLE_IMPL(IEventListener)
++    public IEventListener
++//    VBOX_SCRIPTABLE_IMPL(IEventListener)
+ {
+     ComPtr<IEventSource> mSource;
+ public:
+@@ -1349,8 +1351,9 @@ public:
+ };
+ 
+ class ATL_NO_VTABLE EventSourceAggregator :
+-    public VirtualBoxBase,
+-    VBOX_SCRIPTABLE_IMPL(IEventSource)
++//    public VirtualBoxBase,
++    public EventSource
++//    VBOX_SCRIPTABLE_IMPL(IEventSource)
+ {
+     typedef std::list <ComPtr<IEventSource> > EventSourceList;
+     /* key is weak reference */
+@@ -1417,6 +1420,7 @@ public:
+     HRESULT removeProxyListener(IEventListener *aListener);
+ };
+ 
++#if 0
+ #ifdef VBOX_WITH_XPCOM
+ NS_DECL_CLASSINFO(ProxyEventListener)
+ NS_IMPL_THREADSAFE_ISUPPORTS1_CI(ProxyEventListener, IEventListener)
+@@ -1431,6 +1435,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1_CI(EventSource, IEventSource)
+ NS_DECL_CLASSINFO(EventSourceAggregator)
+ NS_IMPL_THREADSAFE_ISUPPORTS1_CI(EventSourceAggregator, IEventSource)
+ #endif
++#endif
+ 
+ 
+ STDMETHODIMP EventSource::CreateListener(IEventListener **aListener)
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
+index fa3ecea..ac1a203 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/ProgressImpl.cpp
+@@ -20,9 +20,9 @@
+ 
+ 
+ #if defined(VBOX_WITH_XPCOM)
+-#include <nsIServiceManager.h>
+-#include <nsIExceptionService.h>
+-#include <nsCOMPtr.h>
++//#include <nsIServiceManager.h>
++//#include <nsIExceptionService.h>
++//#include <nsCOMPtr.h>
+ #endif /* defined(VBOX_WITH_XPCOM) */
+ 
+ #include "ProgressImpl.h"
+@@ -368,6 +370,7 @@ HRESULT Progress::i_notifyComplete(HRESULT aResultCode)
+         if (rc == S_OK && err)
+             rc = err.queryInterfaceTo(errorInfo.asOutParam());
+ #else /* !defined(VBOX_WITH_XPCOM) */
++/*
+         nsCOMPtr<nsIExceptionService> es;
+         es = do_GetService(NS_EXCEPTIONSERVICE_CONTRACTID, &rc);
+         if (NS_SUCCEEDED(rc))
+@@ -374,6 +376,7 @@ HRESULT Progress::i_notifyComplete(HRESULT aResultCode)
+                 }
+             }
+         }
++*/
+ #endif /* !defined(VBOX_WITH_XPCOM) */
+ 
+         AssertMsg(rc == S_OK, ("Couldn't get error info (rc=%08X) while trying to set a failed result (%08X)!\n",
+diff --git a/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp b/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
+index b43f5a6..6aef9df 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-all/VirtualBoxBase.cpp
+@@ -23,6 +23,7 @@
+ 
+ #include <typeinfo>
+ 
++#if 0
+ #if !defined(VBOX_WITH_XPCOM)
+ #include <windows.h>
+ #include <dbghelp.h>
+@@ -31,6 +32,7 @@
+ #include <nsIServiceManager.h>
+ #include <nsIExceptionService.h>
+ #endif /* !defined(VBOX_WITH_XPCOM) */
++#endif
+ 
+ #include "VirtualBoxBase.h"
+ #include "AutoCaller.h"
+@@ -296,6 +298,7 @@ void VirtualBoxBase::releaseCaller()
+     AssertMsgFailed (("mState = %d!", mState));
+ }
+ 
++#if 0
+ /**
+  * Handles unexpected exceptions by turning them into COM errors in release
+  * builds or by hitting a breakpoint in the release builds.
+@@ -770,6 +773,7 @@ void VirtualBoxBase::clearError(void)
+ #endif
+ }
+ 
++#endif /* if 0 */
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+ //
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
+index 652f2df..877b775 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/MouseImpl.cpp
+@@ -816,7 +816,11 @@ HRESULT Mouse::putEventMultiTouch(LONG aCount,
+         }
+     }
+ 
+-    if (SUCCEEDED(rc))
++    /*
++     * Contrary to the comment of the previous if clause, the usb model
++     * triggers various assertions if 0 contacts are propagated.
++     */
++    if (SUCCEEDED(rc) && cContacts)
+     {
+         rc = reportMultiTouchEventToDevice(cContacts, cContacts? pau64Contacts: NULL, (uint32_t)aScanTime);
+ 
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
+index 6ea10d3..267be48 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/SessionImpl.cpp
+@@ -17,11 +17,15 @@
+  * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
+  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+  */
++#include "console.h"
+ 
+ #include "SessionImpl.h"
+ #include "ConsoleImpl.h"
++#include "MachineImpl.h"
+ #include "Global.h"
++#if 0
+ #include "ClientTokenHolder.h"
++#endif
+ 
+ #include "AutoCaller.h"
+ #include "Logging.h"
+@@ -329,7 +334,9 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
+ 
+     /* query IInternalMachineControl interface */
+     mControl = aMachine;
++#if 0
+     AssertReturn(!!mControl, E_FAIL);
++#endif
+ 
+ #ifndef VBOX_COM_INPROC_API_CLIENT
+     HRESULT rc = mConsole.createObject();
+@@ -349,6 +356,7 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
+     AssertPtr(aToken);
+ #endif /* VBOX_WITH_GENERIC_SESSION_WATCHER */
+     /* create the machine client token */
++#if 0
+     try
+     {
+ #ifndef VBOX_WITH_GENERIC_SESSION_WATCHER
+@@ -367,6 +375,7 @@ STDMETHODIMP Session::AssignMachine(IMachine *aMachine, LockType_T aLockType,
+     {
+         rc = E_OUTOFMEMORY;
+     }
++#endif
+ 
+     /*
+      *  Reference the VirtualBox object to ensure the server is up
+@@ -1217,12 +1226,14 @@ HRESULT Session::unlockMachine(bool aFinalRelease, bool aFromServer, AutoWriteLo
+ 
+     if (mType == SessionType_WriteLock)
+     {
++#if 0
+         if (mClientTokenHolder)
+         {
+             delete mClientTokenHolder;
+             mClientTokenHolder = NULL;
+         }
+ 
++#endif
+         if (!aFinalRelease && !aFromServer)
+         {
+             /*
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp b/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
+index 7fa0f99..d85976d 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/VBoxDriversRegister.cpp
+@@ -25,7 +25,9 @@
+ #include "VMMDev.h"
+ #include "AudioSnifferInterface.h"
+ #include "Nvram.h"
++#if 0
+ #include "UsbWebcamInterface.h"
++#endif
+ #ifdef VBOX_WITH_USB_CARDREADER
+ # include "UsbCardReader.h"
+ #endif
+@@ -46,7 +48,7 @@
+  * @param   pCallbacks      Pointer to the callback table.
+  * @param   u32Version      VBox version number.
+  */
+-extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_t u32Version)
++extern "C" DECLEXPORT(int) VBoxDriversRegister_Main(PCPDMDRVREGCB pCallbacks, uint32_t u32Version)
+ {
+     LogFlow(("VBoxDriversRegister: u32Version=%#x\n", u32Version));
+     AssertReleaseMsg(u32Version == VBOX_VERSION, ("u32Version=%#x VBOX_VERSION=%#x\n", u32Version, VBOX_VERSION));
+@@ -67,6 +69,7 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
+     if (RT_FAILURE(rc))
+         return rc;
+ 
++#if 0
+     rc = pCallbacks->pfnRegister(pCallbacks, &AudioVRDE::DrvReg);
+     if (RT_FAILURE(rc))
+         return rc;
+@@ -78,6 +81,7 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
+     rc = pCallbacks->pfnRegister(pCallbacks, &EmWebcam::DrvReg);
+     if (RT_FAILURE(rc))
+         return rc;
++#endif
+ 
+ #ifdef VBOX_WITH_USB_CARDREADER
+     rc = pCallbacks->pfnRegister(pCallbacks, &UsbCardReader::DrvReg);
+diff --git a/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp b/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
+index b4f4da4..a341e45 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
+@@ -553,7 +553,9 @@ DECLCALLBACK(int) vmmdevIsPageFusionEnabled(PPDMIVMMDEVCONNECTOR pInterface, boo
+ {
+     PDRVMAINVMMDEV pDrv = PDMIVMMDEVCONNECTOR_2_MAINVMMDEV(pInterface);
+     Console *pConsole = pDrv->pVMMDev->getParent();
++#if 0
+     BOOL           val = 0;
++#endif
+ 
+     if (!pfPageFusionEnabled)
+         return VERR_INVALID_POINTER;
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp b/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
+index be0afb8..54d5ba4 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
+@@ -179,11 +179,7 @@ Machine::ClientToken::ClientToken(const ComObjPtr<Machine> &pMachine,
+         {
+             mClientToken = pToken;
+             if (mClientToken)
+-            {
+-                rc = mClientToken->AddRef();
+-                if (FAILED(rc))
+-                    mClientToken = NULL;
+-            }
++               mClientToken->AddRef();
+         }
+     }
+     pToken.setNull();
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
+index 3a7507d..ce9a2b3 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImplCloneVM.cpp
+@@ -889,7 +889,7 @@ HRESULT MachineCloneVM::start(IProgress **pProgress)
+         rc = d->pProgress.createObject();
+         if (FAILED(rc)) throw rc;
+         rc = d->pProgress->init(p->i_getVirtualBox(),
+-                                static_cast<IMachine*>(d->pSrcMachine) /* aInitiator */,
++                                nullptr /* aInitiator */,
+                                 Bstr(p->tr("Cloning Machine")).raw(),
+                                 true /* fCancellable */,
+                                 uCount,
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
+index ddce18b..55065d2 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/SnapshotImpl.cpp
+@@ -2863,7 +2864,7 @@ void SessionMachine::deleteSnapshotHandler(DeleteSnapshotTask &aTask)
+                 pAtt = findAttachment(pMachine->mMediaData->mAttachments, it->mpSource);
+                 ComObjPtr<Snapshot> pChildSnapshot = task.m_pSnapshot->i_getFirstChild();
+                 if (pChildSnapshot)
+                 {
+-                    pMachine = pChildSnapshot->i_getSnapshotMachine();
++                    pMachine = &*pChildSnapshot->i_getSnapshotMachine();
+                     childSnapshotId = pChildSnapshot->i_getId();
+                 }
+                 pAtt = i_findAttachment(pMachine->mMediaData->mAttachments, it->mpSource);
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
+index a717aff..3d52b9f 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/VRDEServerImpl.cpp
+@@ -486,6 +486,7 @@ STDMETHODIMP VRDEServer::GetVRDEProperty(IN_BSTR aKey, BSTR *aValue)
+     return S_OK;
+ }
+ 
++#if 0
+ static int loadVRDELibrary(const char *pszLibraryName, RTLDRMOD *phmod, PFNVRDESUPPORTEDPROPERTIES *ppfn)
+ {
+     int rc = VINF_SUCCESS;
+@@ -530,6 +531,7 @@ static int loadVRDELibrary(const char *pszLibraryName, RTLDRMOD *phmod, PFNVRDES
+ 
+     return rc;
+ }
++#endif
+ 
+ STDMETHODIMP VRDEServer::COMGETTER(VRDEProperties)(ComSafeArrayOut(BSTR, aProperties))
+ {
+@@ -584,13 +586,14 @@ STDMETHODIMP VRDEServer::COMGETTER(VRDEProperties)(ComSafeArrayOut(BSTR, aProper
+         /*
+          * Load the VRDE library and start the server, if it is enabled.
+          */
+-        PFNVRDESUPPORTEDPROPERTIES pfn = NULL;
++//        PFNVRDESUPPORTEDPROPERTIES pfn = NULL;
+         RTLDRMOD hmod = NIL_RTLDRMOD;
+-        vrc = loadVRDELibrary(strVrdeLibrary.c_str(), &hmod, &pfn);
++//        vrc = loadVRDELibrary(strVrdeLibrary.c_str(), &hmod, &pfn);
++        vrc = !vrc;
+         Log(("VRDEPROP: load library [%s] rc %Rrc\n", strVrdeLibrary.c_str(), vrc));
+         if (RT_SUCCESS(vrc))
+         {
+-            const char * const *papszNames = pfn();
++            const char * const *papszNames = nullptr; //pfn();
+ 
+             if (papszNames)
+             {
+--- a/src/app/virtualbox/include/iprt/string.h
++++ b/src/app/virtualbox/include/iprt/string.h
+@@ -113,12 +113,6 @@
+ RT_C_DECLS_END
+ #endif
+ 
+-#if !defined(RT_OS_LINUX) || !defined(_GNU_SOURCE)
+-RT_C_DECLS_BEGIN
+-void *memrchr(const char *pv, int ch, size_t cb);
+-RT_C_DECLS_END
+-#endif
+-
+ 
+ /** @def RT_USE_RTC_3629
+  * When defined the UTF-8 range will stop at  0x10ffff.  If not defined, the
+--- a/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/ConsoleImpl.h
+@@ -211,10 +212,12 @@
+                               ULONG aBalloonedVMM, ULONG aSharedVMM,
+                               ULONG aVmNetRx, ULONG aVmNetTx)
+     {
++#if 0
+         mControl->ReportVmStatistics(aValidStats, aCpuUser, aCpuKernel, aCpuIdle,
+                                      aMemTotal, aMemFree, aMemBalloon, aMemShared,
+                                      aMemCache, aPageTotal, aAllocVMM, aFreeVMM,
+                                      aBalloonedVMM, aSharedVMM, aVmNetRx, aVmNetTx);
++#endif /* if 0 */
+     }
+     void i_enableVMMStatistics(BOOL aEnable);
+ 
+@@ -225,13 +228,13 @@
+ 
+     // callback callers (partly; for some events console callbacks are notified
+     // directly from IInternalSessionControl event handlers declared above)
+-    void i_onMousePointerShapeChange(bool fVisible, bool fAlpha,
+-                                     uint32_t xHot, uint32_t yHot,
+-                                     uint32_t width, uint32_t height,
+-                                     const uint8_t *pu8Shape,
+-                                     uint32_t cbShape);
+-    void i_onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelative,
+-                                   BOOL supportsMT, BOOL needsHostCursor);
++    virtual void i_onMousePointerShapeChange(bool fVisible, bool fAlpha,
++                                             uint32_t xHot, uint32_t yHot,
++                                             uint32_t width, uint32_t height,
++                                             const uint8_t *pu8Shape,
++                                             uint32_t cbShape) = 0;
++    virtual void i_onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelative,
++                                           BOOL supportsMT, BOOL needsHostCursor) = 0;
+     void i_onStateChange(MachineState_T aMachineState);
+     void i_onAdditionsStateChange();
+     void i_onAdditionsOutdated();
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
+@@ -43,7 +43,7 @@
+ #include <algorithm>
+ #include <list>
+ 
+-#include <openssl/rand.h>
++//#include <openssl/rand.h>
+ 
+ typedef std::list<Guid> GuidList;
+ 
+@@ -787,7 +787,7 @@
+     delete pTask;
+ 
+     /* complete the progress if run asynchronously */
+-    if (!pProgress.isNull())
++    if (pProgress && !pProgress.isNull())
+         pProgress->i_notifyComplete(rc);
+ 
+     LogFlowFunc(("rc=%Rhrc\n", rc));
+@@ -2530,7 +2530,7 @@
+ 
+         pProgress.createObject();
+         rc = pProgress->init(m->pVirtualBox,
+-                             static_cast<IMedium*>(this),
++                             nullptr,
+                              (mediumVariantFlags & MediumVariant_Fixed)
+                                ? BstrFmt(tr("Creating fixed medium storage unit '%s'"), m->strLocationFull.c_str()).raw()
+                                : BstrFmt(tr("Creating dynamic medium storage unit '%s'"), m->strLocationFull.c_str()).raw(),
+--- a/src/app/virtualbox/src/VBox/HostServices/SharedFolders/vbsf.cpp
++++ b/src/app/virtualbox/src/VBox/HostServices/SharedFolders/vbsf.cpp
+@@ -1865,7 +1865,6 @@
+ 
+     char *pszFullNewPath = NULL;
+     char *pszFullOldPath = NULL;
+-    const char *pszOldPath = (const char *)pOldPath->String.utf8;
+ 
+     /* XXX: no support for UCS2 at the moment. */
+     if (!BIT_FLAG(pClient->fu32Flags, SHFL_CF_UTF8))
+--- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleVRDPServer.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleVRDPServer.cpp
+@@ -43,7 +43,9 @@
+ 
+ #include <VBox/err.h>
+ #include <VBox/RemoteDesktop/VRDEOrders.h>
++#if 0
+ #include <VBox/com/listeners.h>
++#endif
+ #include <VBox/HostServices/VBoxCrOpenGLSvc.h>
+ 
+ class VRDPConsoleListener
+@@ -125,9 +127,11 @@
+     ConsoleVRDPServer *m_server;
+ };
+ 
++#if 0
+ typedef ListenerImpl<VRDPConsoleListener, ConsoleVRDPServer*> VRDPConsoleListenerImpl;
+ 
+ VBOX_LISTENER_DECLARE(VRDPConsoleListenerImpl)
++#endif
+ 
+ #ifdef DEBUG_sunlover
+ #define LOGDUMPPTR Log
+@@ -1344,7 +1348,7 @@
+     m_InputSynch.fClientNumLock    = false;
+     m_InputSynch.fClientCapsLock   = false;
+     m_InputSynch.fClientScrollLock = false;
+-
++#if 0
+     {
+         ComPtr<IEventSource> es;
+         console->COMGETTER(EventSource)(es.asOutParam());
+@@ -1358,7 +1362,7 @@
+         eventTypes.push_back(VBoxEventType_OnKeyboardLedsChanged);
+         es->RegisterListener(mConsoleListener, ComSafeArrayAsInParam(eventTypes), true);
+     }
+-
++#endif
+     mVRDPBindPort = -1;
+ 
+ #ifndef VBOX_WITH_VRDEAUTH_IN_VBOXSVC
+@@ -1395,6 +1399,7 @@
+ {
+     Stop();
+ 
++#if 0
+     if (mConsoleListener)
+     {
+         ComPtr<IEventSource> es;
+@@ -1402,6 +1407,7 @@
+         es->UnregisterListener(mConsoleListener);
+         mConsoleListener.setNull();
+     }
++#endif
+ 
+     unsigned i;
+     for (i = 0; i < RT_ELEMENTS(maSourceBitmaps); i++)
+--- a/src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/VirtualBoxImpl.cpp
+@@ -42,7 +42,7 @@
+ #include <VBox/settings.h>
+ #include <VBox/version.h>
+ 
+-#include <package-generated.h>
++//#include <package-generated.h>
+ 
+ #include <algorithm>
+ #include <set>
+@@ -76,7 +76,7 @@
+ #include "AutoCaller.h"
+ #include "Logging.h"
+ 
+-#include <QMTranslator.h>
++//#include <QMTranslator.h>
+ 
+ #ifdef RT_OS_WINDOWS
+ # include "win/svchlp.h"
+@@ -4069,6 +4069,9 @@
+  */
+ HRESULT VirtualBox::i_saveSettings()
+ {
++	Genode::log(__func__, " skipped");
++	return S_OK;
++
+     AutoCaller autoCaller(this);
+     AssertComRCReturn(autoCaller.rc(), autoCaller.rc());
+ 
+@@ -5044,8 +5047,8 @@
+ 
+     return rc;
+ #else
+-    NOREF(aName);
+-    NOREF(aNatNetwork);
++    NOREF(aNetworkName);
++    NOREF(aNetwork);
+     return E_NOTIMPL;
+ #endif
+ }
+@@ -5080,7 +5083,7 @@
+     found.queryInterfaceTo(aNetwork.asOutParam());
+     return rc;
+ #else
+-    NOREF(aName);
++    NOREF(aNetwork);
+     NOREF(aNetworkName);
+     return E_NOTIMPL;
+ #endif
+--- a/src/app/virtualbox/src/VBox/Runtime/common/err/errmsgxpcom.cpp
++++ b/src/app/virtualbox/src/VBox/Runtime/common/err/errmsgxpcom.cpp
+@@ -106,9 +106,11 @@
+     MY_ERR("NS_ERROR_FILE_ACCESS_DENIED",           "NS_ERROR_FILE_ACCESS_DENIED",                  UINT32_C(0x80520015)),
+     MY_ERR("NS_SUCCESS_FILE_DIRECTORY_EMPTY",       "NS_SUCCESS_FILE_DIRECTORY_EMPTY",              UINT32_C(0x00520001)),
+ 
++#if 0
+ #if defined(VBOX) && !defined(IN_GUEST) && !defined(DOXYGEN_RUNNING)
+ # include "errmsgvboxcomdata.h"
+ #endif
++#endif
+ 
+     { NULL, NULL, 0 }
+ #undef MY_ERR
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+@@ -8227,8 +8227,14 @@
+ {
+     AutoCaller autoCaller(this);
+     AssertComRCReturnRC(autoCaller.rc());
++#if 0
+     AssertComRCReturn(   getObjectState().getState() == ObjectState::InInit
+                       || getObjectState().getState() == ObjectState::Limited, E_FAIL);
++#else
++    if (getObjectState().getState() == ObjectState::InInit ||
++        getObjectState().getState() == ObjectState::Limited, E_FAIL)
++        Genode::log(__func__, " skip assertion");
++#endif
+ 
+     AssertReturn(!mData->mAccessible, E_FAIL);
+ 
+@@ -13316,8 +13322,9 @@
+         Assert(mData->mSession.mProgress.isNull());
+         ComObjPtr<ProgressProxy> progress;
+         progress.createObject();
+-        ComPtr<IUnknown> pPeer(mPeer);
+-        progress->init(mParent, pPeer,
++        Genode::log(__func__, " skip pPeer construction");
++//        ComPtr<IUnknown> pPeer(mPeer);
++        progress->init(mParent, nullptr,
+                        Bstr(tr("Closing session")).raw(),
+                        FALSE /* aCancelable */);
+         progress.queryInterfaceTo(aProgress.asOutParam());
+--- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl.cpp
+@@ -75,7 +75,9 @@
+ 
+ #include <VBox/com/array.h>
+ #include "VBox/com/ErrorInfo.h"
++#if 0
+ #include <VBox/com/listeners.h>
++#endif
+ 
+ #include <iprt/asm.h>
+ #include <iprt/buildconfig.h>
+@@ -237,6 +239,8 @@
+     {}
+ };
+ 
++#if 0
++
+ // Handler for global events
+ ////////////////////////////////////////////////////////////////////////////////
+ inline static const char *networkAdapterTypeToName(NetworkAdapterType_T adapterType);
+@@ -346,6 +350,7 @@
+ 
+ VBOX_LISTENER_DECLARE(VmEventListenerImpl)
+ 
++#endif /* #if 0 */
+ 
+ // constructor / destructor
+ /////////////////////////////////////////////////////////////////////////////
+@@ -512,6 +517,7 @@
+         rc = mDisplay->init(this);
+         AssertComRCReturnRC(rc);
+ 
++#if 0
+         unconst(mVRDEServerInfo).createObject();
+         rc = mVRDEServerInfo->init(this);
+         AssertComRCReturnRC(rc);
+@@ -520,6 +526,7 @@
+         rc = mEmulatedUSB->init(this);
+         AssertComRCReturnRC(rc);
+ 
++#endif
+         /* Grab global and machine shared folder lists */
+ 
+         rc = i_fetchSharedFolders(true /* aGlobal */);
+@@ -527,10 +534,12 @@
+         rc = i_fetchSharedFolders(false /* aGlobal */);
+         AssertComRCReturnRC(rc);
+ 
++#if 0
+         /* Create other child objects */
+ 
+         unconst(mConsoleVRDPServer) = new ConsoleVRDPServer(this);
+         AssertReturn(mConsoleVRDPServer, E_FAIL);
++#endif
+ 
+         /* Figure out size of meAttachmentType vector */
+         ComPtr<IVirtualBox> pVirtualBox;
+@@ -558,8 +567,10 @@
+             || enmFirmwareType == FirmwareType_EFI64
+             || enmFirmwareType == FirmwareType_EFIDUAL)
+         {
++#if 0
+             unconst(mNvram) = new Nvram(this);
+             AssertReturn(mNvram, E_FAIL);
++#endif
+         }
+ 
+ #ifdef VBOX_WITH_USB_CARDREADER
+@@ -573,6 +584,7 @@
+         unconst(m_pKeyStore) = new SecretKeyStore(true /* fKeyBufNonPageable */);
+         AssertReturn(m_pKeyStore, E_FAIL);
+ 
++#if 0
+         /* VirtualBox events registration. */
+         {
+             ComPtr<IEventSource> pES;
+@@ -590,6 +602,7 @@
+             rc = pES->RegisterListener(aVmListener, ComSafeArrayAsInParam(eventTypes), true);
+             AssertComRC(rc);
+         }
++#endif
+     }
+ 
+     /* Confirm a successful initialization when it's the case */
+@@ -606,6 +619,7 @@
+     return S_OK;
+ }
+ 
++#if 0
+ /**
+  * Uninitializes the Console object.
+  */
+@@ -1014,6 +1028,8 @@
+ 
+ #endif /* VBOX_WITH_GUEST_PROPS */
+ 
++#endif /* #if 0 */
++
+ bool Console::i_isResetTurnedIntoPowerOff(void)
+ {
+     Bstr value;
+@@ -1943,8 +1959,11 @@
+ 
+ HRESULT Console::getEmulatedUSB(ComPtr<IEmulatedUSB> &aEmulatedUSB)
+ {
++	Assert(!"emulated USB issue!!!");
++#if 0
+     /* mEmulatedUSB is constant during life time, no need to lock */
+     mEmulatedUSB.queryInterfaceTo(aEmulatedUSB.asOutParam());
++#endif
+ 
+     return S_OK;
+ }
+@@ -6614,6 +6634,7 @@
+     fireStateChangedEvent(mEventSource, machineState);
+ }
+ 
++#if 0
+ void Console::i_onAdditionsStateChange()
+ {
+     AutoCaller autoCaller(this);
+@@ -6621,6 +6642,7 @@
+ 
+     fireAdditionsStateChangedEvent(mEventSource);
+ }
++#endif
+ 
+ /**
+  * @remarks This notification only is for reporting an incompatible
+@@ -6920,6 +6942,8 @@
+         }
+     }
+ 
++#if 0
++
+     char szError[RTPATH_MAX + 128];
+     int vrc = com::VBoxLogRelCreate("VM", logFile.c_str(),
+                                     RTLOGFLAGS_PREFIX_TIME_PROG | RTLOGFLAGS_RESTRICT_GROUPS,
+@@ -6940,6 +6964,8 @@
+     if (SUCCEEDED(hrc) || cHistoryFiles)
+         RTDirFlush(logDir.c_str());
+ 
++#endif /* if 0 */
++
+     return hrc;
+ }
+ 
+@@ -6951,6 +6977,8 @@
+  * @param   aProgress       Where to return the progress object.
+  * @param   aPaused         true if PowerUpPaused called.
+  */
++extern "C" VirtualBox * genode_global_vbox_pointer;
++
+ HRESULT Console::i_powerUp(IProgress **aProgress, bool aPaused)
+ {
+ 
+@@ -7228,7 +7255,8 @@
+                 ++cOperations;
+                 ulTotalOperationsWeight += 1;
+             }
+-            rc = pPowerupProgress->init(static_cast<IConsole *>(this),
++            rc = pPowerupProgress->init(genode_global_vbox_pointer,
++                                        static_cast<IConsole *>(this),
+                                         progressDesc.raw(),
+                                         TRUE, // Cancelable
+                                         cOperations,
+@@ -7240,13 +7268,15 @@
+         else if (    mMachineState == MachineState_Saved
+             ||  (!fTeleporterEnabled && !fFaultToleranceSyncEnabled))
+         {
+-            rc = pPowerupProgress->init(static_cast<IConsole *>(this),
++            rc = pPowerupProgress->init(genode_global_vbox_pointer,
++                                        static_cast<IConsole *>(this),
+                                         progressDesc.raw(),
+                                         FALSE /* aCancelable */);
+         }
+         else if (fTeleporterEnabled)
+         {
+-            rc = pPowerupProgress->init(static_cast<IConsole *>(this),
++            rc = pPowerupProgress->init(genode_global_vbox_pointer,
++                                        static_cast<IConsole *>(this),
+                                         progressDesc.raw(),
+                                         TRUE /* aCancelable */,
+                                         3    /* cOperations */,
+@@ -7256,7 +7286,8 @@
+         }
+         else if (fFaultToleranceSyncEnabled)
+         {
+-            rc = pPowerupProgress->init(static_cast<IConsole *>(this),
++            rc = pPowerupProgress->init(genode_global_vbox_pointer,
++                                        static_cast<IConsole *>(this),
+                                         progressDesc.raw(),
+                                         TRUE /* aCancelable */,
+                                         3    /* cOperations */,
+@@ -8598,6 +8631,7 @@
+                       Address.c_str(), uuid.raw()));
+ 
+     void *pvRemoteBackend = NULL;
++#if 0
+     if (fRemote)
+     {
+         RemoteUSBDevice *pRemoteUSBDevice = static_cast<RemoteUSBDevice *>(aHostDevice);
+@@ -8605,7 +8639,7 @@
+         if (!pvRemoteBackend)
+             return E_INVALIDARG; /* The clientId is invalid then. */
+     }
+-
++#endif
+     USHORT portVersion = 0;
+     hrc = aHostDevice->COMGETTER(PortVersion)(&portVersion);
+     AssertComRCReturnRC(hrc);
+@@ -8719,12 +8753,13 @@
+         i_setErrorStatic(hrc2, "GetRemote() failed");
+ 
+     PCRTUUID pUuid = aHostDevice->i_id().raw();
++#if 0
+     if (fRemote)
+     {
+         Guid guid(*pUuid);
+         i_consoleVRDPServer()->USBBackendReleasePointer(&guid);
+     }
+-
++#endif
+     alock.release();
+     int vrc = VMR3ReqCallWaitU(ptrVM.rawUVM(), 0 /* idDstCpu (saved state, see #6232) */,
+                                (PFNRT)i_usbDetachCallback, 5,
+@@ -8768,7 +8803,7 @@
+     return vrc;
+ }
+ #endif /* VBOX_WITH_USB */
+-
++#if 0
+ /* Note: FreeBSD needs this whether netflt is used or not. */
+ #if ((defined(RT_OS_LINUX) && !defined(VBOX_WITH_NETFLT)) || defined(RT_OS_FREEBSD))
+ /**
+@@ -9004,6 +9039,8 @@
+ }
+ #endif /* (RT_OS_LINUX || RT_OS_FREEBSD) && !VBOX_WITH_NETFLT */
+ 
++#endif /* #if 0 */
++
+ /**
+  * Called at power down to terminate host interface networking.
+  *
+@@ -9464,6 +9501,7 @@
+         /* Create the VRDP server. In case of headless operation, this will
+          * also create the framebuffer, required at VM creation.
+          */
++#if 0
+         ConsoleVRDPServer *server = pConsole->i_consoleVRDPServer();
+         Assert(server);
+ 
+@@ -9510,6 +9548,7 @@
+                      vrc, errMsg.c_str()));
+             throw i_setErrorStatic(E_FAIL, errMsg.c_str());
+         }
++#endif
+ 
+         ComPtr<IMachine> pMachine = pConsole->i_machine();
+         ULONG cCpus = 1;
+@@ -9534,8 +9573,10 @@
+ 
+         alock.acquire();
+ 
++#if 0
+         /* Enable client connections to the server. */
+         pConsole->i_consoleVRDPServer()->EnableConnections();
++#endif
+ 
+         if (RT_SUCCESS(vrc))
+         {
+--- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleImpl2.cpp
+@@ -128,6 +128,7 @@
+ *********************************************************************************************************************************/
+ static Utf8Str *GetExtraDataBoth(IVirtualBox *pVirtualBox, IMachine *pMachine, const char *pszName, Utf8Str *pStrValue);
+ 
++#if 0
+ 
+ /* Darwin compile kludge */
+ #undef PVM
+@@ -135,6 +136,7 @@
+ /* Comment out the following line to remove VMWare compatibility hack. */
+ #define VMWARE_NET_IN_SLOT_11
+ 
++#endif
+ /**
+  * Translate IDE StorageControllerType_T to string representation.
+  */
+@@ -529,6 +531,7 @@
+     return VINF_SUCCESS;
+ }
+ 
++#if 0
+ #ifdef VBOX_WITH_PCI_PASSTHROUGH
+ HRESULT Console::i_attachRawPCIDevices(PUVM pUVM, BusAssignmentManager *pBusMgr, PCFGMNODE pDevices)
+ {
+@@ -668,6 +671,7 @@
+ }
+ #endif
+ 
++#endif /* if 0 */
+ 
+ void Console::i_attachStatusDriver(PCFGMNODE pCtlInst, PPDMLED *papLeds,
+                                    uint64_t uFirst, uint64_t uLast,
+@@ -2625,6 +2629,7 @@
+          * Parallel (LPT) Ports
+          */
+         /* parallel enabled mask to be passed to dev ACPI */
++#if 0
+         uint16_t auParallelIoPortBase[SchemaDefs::ParallelPortCount] = {0};
+         uint8_t auParallelIrq[SchemaDefs::ParallelPortCount] = {0};
+         InsertConfigNode(pDevices, "parallel", &pDev);
+@@ -2661,7 +2666,7 @@
+                 InsertConfigString(pLunL1,  "DevicePath", bstr);
+             }
+         }
+-
++#endif
+         /*
+          * VMM Device
+          */
+@@ -3083,12 +3088,13 @@
+                 InsertConfigInteger(pCfg,  "Serial3IoPortBase", auSerialIoPortBase[3]);
+                 InsertConfigInteger(pCfg,  "Serial3Irq", auSerialIrq[3]);
+             }
+-
++#if 0
+             InsertConfigInteger(pCfg,  "Parallel0IoPortBase", auParallelIoPortBase[0]);
+             InsertConfigInteger(pCfg,  "Parallel0Irq", auParallelIrq[0]);
+ 
+             InsertConfigInteger(pCfg,  "Parallel1IoPortBase", auParallelIoPortBase[1]);
+             InsertConfigInteger(pCfg,  "Parallel1Irq", auParallelIrq[1]);
++#endif
+ 
+             InsertConfigNode(pInst,    "LUN#0", &pLunL0);
+             InsertConfigString(pLunL0, "Driver",               "ACPIHost");
+@@ -3820,6 +3826,8 @@
+         ComPtr<IMedium> pMedium;
+         hrc = pMediumAtt->COMGETTER(Medium)(pMedium.asOutParam());                          H();
+ 
++#if 0
++
+         /*
+          * 1. Only check this for hard disk images.
+          * 2. Only check during VM creation and not later, especially not during
+@@ -4004,6 +4012,8 @@
+             }
+         }
+ 
++#endif  /* if 0 */
++
+         if (pMedium)
+         {
+             BOOL fHostDrive;
+@@ -4134,7 +4144,7 @@
+     // InsertConfig* throws
+     try
+     {
+-        int rc = VINF_SUCCESS;
++//        int rc = VINF_SUCCESS;
+         HRESULT hrc;
+         Bstr bstr;
+         PCFGMNODE pLunL1 = NULL;
+--- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
+@@ -956,7 +956,9 @@
+ 
+     /* Inform the VRDP server about the change of display parameters. */
+     LogRelFlowFunc(("Calling VRDP\n"));
++#if 0
+     mParent->i_consoleVRDPServer()->SendResize();
++#endif
+ 
+     /* And re-send the seamless rectangles if necessary. */
+     if (mfSeamlessEnabled)
+@@ -1076,7 +1078,9 @@
+          * either in VideoAccelFlush or displayVBVAUpdateProcess.
+          * Inform the server here only if VBVA is disabled.
+          */
++#if 0
+         mParent->i_consoleVRDPServer()->SendUpdateBitmap(uScreenId, x, y, w, h);
++#endif
+     }
+ }
+ 
+@@ -2452,8 +2456,10 @@
+         rc = VERR_INVALID_PARAMETER;
+     }
+ 
++#if 0
+     if (RT_SUCCESS(rc))
+         pDisplay->mParent->i_consoleVRDPServer()->SendUpdateBitmap(aScreenId, x, y, width, height);
++#endif
+ 
+     return rc;
+ }
+@@ -3023,6 +3029,7 @@
+          * The server can now process redraw requests from clients or initial
+          * fullscreen updates for new clients.
+          */
++#if 0
+         for (uScreenId = 0; uScreenId < pDisplay->mcMonitors; uScreenId++)
+         {
+             DISPLAYFBINFO *pFBInfo = &pDisplay->maFramebuffers[uScreenId];
+@@ -3030,6 +3037,7 @@
+             Assert(pDisplay->mParent && pDisplay->mParent->i_consoleVRDPServer());
+             pDisplay->mParent->i_consoleVRDPServer()->SendUpdate(uScreenId, NULL, 0);
+         }
++#endif
+     }
+ 
+ #ifdef VBOX_WITH_VPX
+@@ -3830,7 +3838,9 @@
+     pHdrUnconst->y -= (int16_t)pFBInfo->yOrigin;
+ 
+     /* @todo new SendUpdate entry which can get a separate cmd header or coords. */
++#if 0
+     pThis->mParent->i_consoleVRDPServer()->SendUpdate(uScreenId, pCmd, (uint32_t)cbCmd);
++#endif
+ 
+     *pHdrUnconst = hdrSaved;
+ }
+@@ -4031,7 +4041,9 @@
+         {
+             /* VRDP server still need this notification. */
+             LogRelFlowFunc(("Calling VRDP\n"));
++#if 0
+             pThis->mParent->i_consoleVRDPServer()->SendResize();
++#endif
+         }
+         return VINF_SUCCESS;
+     }
+--- a/src/app/virtualbox/src/VBox/Main/src-server/SystemPropertiesImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/SystemPropertiesImpl.cpp
+@@ -1191,8 +1191,8 @@
+ HRESULT SystemProperties::i_setLoggingLevel(const com::Utf8Str &aLoggingLevel)
+ {
+     Utf8Str useLoggingLevel(aLoggingLevel);
+-    if (useLoggingLevel.isEmpty())
+-        useLoggingLevel = VBOXSVC_LOG_DEFAULT;
++//    if (useLoggingLevel.isEmpty())
++//        useLoggingLevel = VBOXSVC_LOG_DEFAULT;
+     int rc = RTLogGroupSettings(RTLogRelGetDefaultInstance(), useLoggingLevel.c_str());
+     //  If failed and not the default logging level - try to use the default logging level.
+     if (RT_FAILURE(rc))

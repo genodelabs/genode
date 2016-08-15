@@ -69,6 +69,10 @@ if {(![have_spec nova] && ![have_spec hw_x86_64_muen])} {
 }
 
 set flavor   "win7"
+
+set use_vbox4 1
+set use_vbox5 0
+
 set vdi_image "${flavor}.vdi"
 # Write overlay back to harddisk if set to 0
 set use_ram_fs 0

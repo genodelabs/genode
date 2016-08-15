@@ -1,0 +1,137 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/PGM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/PGM.cpp
+@@ -2159,7 +2159,7 @@
+ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
+ {
+     int rc;
+-
++#if 0
+     /*
+      * Reserve space for the dynamic mappings.
+      * Initialize the dynamic mapping pages with dummy pages to simply the cache.
+@@ -2180,6 +2180,7 @@
+         rc = PGMMap(pVM, pVM->pgm.s.pbDynPageMapBaseGC + offDynMap, HCPhysDummy, PAGE_SIZE, 0);
+         AssertRCReturn(rc, rc);
+     }
++#endif /* #if 0 */
+ 
+     /*
+      * Determine the max physical address width (MAXPHYADDR) and apply it to
+@@ -2377,7 +2378,7 @@
+      * (One or more of them have changed, that's why we're here.)
+      */
+     pVM->pgm.s.pMappingsRC = MMHyperR3ToRC(pVM, pVM->pgm.s.pMappingsR3);
+-    for (PPGMMAPPING pCur = pVM->pgm.s.pMappingsR3; pCur->pNextR3; pCur = pCur->pNextR3)
++    for (PPGMMAPPING pCur = pVM->pgm.s.pMappingsR3; pCur && pCur->pNextR3; pCur = pCur->pNextR3)
+         pCur->pNextRC = MMHyperR3ToRC(pVM, pCur->pNextR3);
+ 
+     /* Relocate GC addresses of Page Tables. */
+@@ -2390,6 +2391,7 @@
+         }
+     }
+ 
++#if 0
+     /*
+      * Dynamic page mapping area.
+      */
+@@ -2412,6 +2414,7 @@
+             paPages[iPage].uPte.pPae    += offDelta;
+         }
+     }
++#endif /* #if 0 */
+ 
+     /*
+      * The Zero page.
+--- a/src/app/virtualbox/src/VBox/VMM/VMMAll/PGMAllHandler.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMAll/PGMAllHandler.cpp
+@@ -263,6 +263,9 @@
+  * @param   pCur    The physical handler.
+  * @param   pRam    The RAM range.
+  */
++#include <base/log.h>
++extern "C" bool PGMUnmapMemoryGenode(void *, size_t size);
++
+ static int pgmHandlerPhysicalSetRamFlagsAndFlushShadowPTs(PVM pVM, PPGMPHYSHANDLER pCur, PPGMRAMRANGE pRam)
+ {
+     /*
+@@ -298,6 +301,13 @@
+         i++;
+     }
+ 
++    if (pRam->pvR3 != 0) {
++        if (pCur->cPages != pRam->cb / 4096)
++            Genode::warning("dubious ? phys=", Genode::Hex(pRam->GCPhys));
++
++        PGMUnmapMemoryGenode(pRam->pvR3, pRam->cb);
++    }
++
+     if (fFlushTLBs)
+     {
+         PGM_INVL_ALL_VCPU_TLBS(pVM);
+--- a/src/app/virtualbox/include/VBox/vmm/vm.h
++++ b/src/app/virtualbox/include/VBox/vmm/vm.h
+@@ -1011,7 +1011,7 @@
+ #ifdef ___PGMInternal_h
+         struct PGM  s;
+ #endif
+-        uint8_t     padding[4096*2+6080];      /* multiple of 64 */
++        uint8_t     padding[4096*4 + 6080];      /* multiple of 64 */
+     } pgm;
+ 
+     /** HM part. */
+--- a/src/app/virtualbox/include/VBox/param.h
++++ b/src/app/virtualbox/include/VBox/param.h
+@@ -92,13 +92,13 @@
+  */
+ /** The number of handy pages.
+  * This should be a power of two. */
+-#define PGM_HANDY_PAGES             128
++#define PGM_HANDY_PAGES             512
+ /** The threshold at which allocation of more handy pages is flagged. */
+-#define PGM_HANDY_PAGES_SET_FF      32
++#define PGM_HANDY_PAGES_SET_FF      0
+ /** The threshold at which we will allocate more when in ring-3.
+  * This is must be smaller than both PGM_HANDY_PAGES_SET_FF and
+  * PGM_HANDY_PAGES_MIN. */
+-#define PGM_HANDY_PAGES_R3_ALLOC    8
++#define PGM_HANDY_PAGES_R3_ALLOC    0
+ /** The threshold at which we will allocate more when in ring-0 or raw mode.
+  * The idea is that we should never go below this threshold while in ring-0 or
+  * raw mode because of PGM_HANDY_PAGES_RZ_TO_R3. However, should this happen and
+@@ -107,16 +107,16 @@
+  *
+  * This is must be smaller than both PGM_HANDY_PAGES_SET_FF and
+  * PGM_HANDY_PAGES_MIN. */
+-#define PGM_HANDY_PAGES_RZ_ALLOC    8
++#define PGM_HANDY_PAGES_RZ_ALLOC    0
+ /** The threshold at which we force return to R3 ASAP.
+  * The idea is that this should be large enough to get out of any code and up to
+  * the main EM loop when we are out of memory.
+  * This must be less or equal to PGM_HANDY_PAGES_MIN. */
+-#define PGM_HANDY_PAGES_RZ_TO_R3    24
++#define PGM_HANDY_PAGES_RZ_TO_R3    0
+ /** The minimum number of handy pages (after allocation).
+  * This must be greater or equal to PGM_HANDY_PAGES_SET_FF.
+  * Another name would be PGM_HANDY_PAGES_EXTRA_RESERVATION or _PARANOIA. :-) */
+-#define PGM_HANDY_PAGES_MIN         32
++#define PGM_HANDY_PAGES_MIN         0
+ /** @} */
+ 
+ 
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/PGMPhys.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/PGMPhys.cpp
+@@ -4518,6 +4518,14 @@
+         if (pVM->pgm.s.aHandyPages[i].idPage == idPage)
+         {
+             pVM->pgm.s.aHandyPages[i].idPage = NIL_GMM_PAGEID;
++            /**
++              * Required to avoid assertion during reboot of a VM on Genode.
++              * could be it solves the
++              * "todo re-test this later. Appeared to be a PGM init bug." in
++              * src/VBox/VMM/VMMR0/GMMR0.cpp of VBox 5.0.12
++              * - todo: send email to vbox mailing list about that
++              */
++            pVM->pgm.s.aHandyPages[i].HCPhysGCPhys = NIL_RTHCPHYS;
+             break;
+         }
+         if (pVM->pgm.s.aHandyPages[i].idSharedPage == idPage)

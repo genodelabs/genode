@@ -1,0 +1,46 @@
+vmmdev.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
+index 8ce46a8..a6b84b0 100644
+--- a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
+@@ -2179,6 +2179,10 @@ static int vmmdevReqHandler_GetPageSharingStatus(PVMMDEV pThis, VMMDevRequestHea
+                     ("%u\n", pReq->header.size), VERR_INVALID_PARAMETER);
+ 
+     pReq->fEnabled = false;
++
++    if (!pThis || !pThis->pDrv || !pThis->pDrv->pfnIsPageFusionEnabled)
++        return VINF_SUCCESS;
++
+     int rc = pThis->pDrv->pfnIsPageFusionEnabled(pThis->pDrv, &pReq->fEnabled);
+     if (RT_FAILURE(rc))
+         pReq->fEnabled = false;
+@@ -2404,7 +2408,6 @@ static int vmmdevReqDispatcher(PVMMDEV pThis, VMMDevRequestHeader *pReqHdr, RTGC
+             pReqHdr->rc = vmmdevReqHandler_HGCMCall(pThis, pReqHdr, GCPhysReqHdr);
+             *pfDelayedUnlock = true;
+             break;
+-#endif /* VBOX_WITH_HGCM */
+ 
+         case VMMDevReq_HGCMCancel:
+             pReqHdr->rc = vmmdevReqHandler_HGCMCancel(pThis, pReqHdr, GCPhysReqHdr);
+@@ -2414,6 +2417,7 @@ static int vmmdevReqDispatcher(PVMMDEV pThis, VMMDevRequestHeader *pReqHdr, RTGC
+         case VMMDevReq_HGCMCancel2:
+             pReqHdr->rc = vmmdevReqHandler_HGCMCancel2(pThis, pReqHdr);
+             break;
++#endif /* VBOX_WITH_HGCM */
+ 
+         case VMMDevReq_VideoAccelEnable:
+             pReqHdr->rc = vmmdevReqHandler_VideoAccelEnable(pThis, pReqHdr);
+diff --git a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
+index d495599..21dfada 100644
+--- a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
+@@ -19,7 +19,7 @@
+ /*********************************************************************************************************************************
+ *   Header Files                                                                                                                 *
+ *********************************************************************************************************************************/
+-#define LOG_GROUP LOG_GROUP_DEV_VMM
++#define LOG_GROUP LOG_GROUP_HGCM
+ #include <iprt/alloc.h>
+ #include <iprt/asm.h>
+ #include <iprt/assert.h>

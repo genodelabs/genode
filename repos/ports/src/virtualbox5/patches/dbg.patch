@@ -1,0 +1,51 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/DBGF.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/DBGF.cpp
+@@ -152,6 +152,7 @@
+             rc = dbgfR3RegInit(pUVM);
+             if (RT_SUCCESS(rc))
+             {
++#if 0
+                 rc = dbgfR3AsInit(pUVM);
+                 if (RT_SUCCESS(rc))
+                 {
+@@ -164,7 +165,9 @@
+                             rc = dbgfR3PlugInInit(pUVM);
+                             if (RT_SUCCESS(rc))
+                             {
++#endif
+                                 return VINF_SUCCESS;
++#if 0
+                             }
+                             dbgfR3OSTerm(pUVM);
+                         }
+@@ -172,6 +175,7 @@
+                     dbgfR3AsTerm(pUVM);
+                 }
+                 dbgfR3RegTerm(pUVM);
++#endif
+             }
+             dbgfR3TraceTerm(pVM);
+         }
+@@ -190,10 +194,11 @@
+ VMMR3_INT_DECL(int) DBGFR3Term(PVM pVM)
+ {
+     PUVM pUVM = pVM->pUVM;
+-
++#if 0
+     dbgfR3PlugInTerm(pUVM);
+     dbgfR3OSTerm(pUVM);
+     dbgfR3AsTerm(pUVM);
++#endif
+     dbgfR3RegTerm(pUVM);
+     dbgfR3TraceTerm(pVM);
+     dbgfR3InfoTerm(pUVM);
+@@ -310,7 +315,9 @@
+ VMMR3_INT_DECL(void) DBGFR3Relocate(PVM pVM, RTGCINTPTR offDelta)
+ {
+     dbgfR3TraceRelocate(pVM);
++#if 0
+     dbgfR3AsRelocate(pVM->pUVM, offDelta);
++#endif
+ }
+ 
+ 
