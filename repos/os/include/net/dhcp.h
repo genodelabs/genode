@@ -195,17 +195,17 @@ class Net::Dhcp_packet
 
 		bool broadcast() { return _flags & BROADCAST;    }
 
-		Ipv4_packet::Ipv4_address ciaddr() {
-			return Ipv4_packet::Ipv4_address(&_ciaddr);  }
-		Ipv4_packet::Ipv4_address yiaddr() {
-			return Ipv4_packet::Ipv4_address(&_yiaddr);  }
-		Ipv4_packet::Ipv4_address siaddr() {
-			return Ipv4_packet::Ipv4_address(&_siaddr);  }
-		Ipv4_packet::Ipv4_address giaddr() {
-			return Ipv4_packet::Ipv4_address(&_giaddr);  }
+		Ipv4_address ciaddr() {
+			return Ipv4_address(&_ciaddr);  }
+		Ipv4_address yiaddr() {
+			return Ipv4_address(&_yiaddr);  }
+		Ipv4_address siaddr() {
+			return Ipv4_address(&_siaddr);  }
+		Ipv4_address giaddr() {
+			return Ipv4_address(&_giaddr);  }
 
-		Ethernet_frame::Mac_address client_mac() {
-			return Ethernet_frame::Mac_address(&_chaddr); }
+		Mac_address client_mac() {
+			return Mac_address(&_chaddr); }
 
 		const char* server_name()  { return (const char*) &_sname; }
 		const char* file()         { return (const char*) &_file;  }
@@ -239,16 +239,16 @@ class Net::Dhcp_packet
 		void broadcast(bool broadcast) {
 			_flags = broadcast ? BROADCAST : 0;       }
 
-		void ciaddr(Ipv4_packet::Ipv4_address ciaddr) {
+		void ciaddr(Ipv4_address ciaddr) {
 			ciaddr.copy(&_ciaddr); }
-		void yiaddr(Ipv4_packet::Ipv4_address yiaddr) {
+		void yiaddr(Ipv4_address yiaddr) {
 			yiaddr.copy(&_yiaddr); }
-		void siaddr(Ipv4_packet::Ipv4_address siaddr) {
+		void siaddr(Ipv4_address siaddr) {
 			siaddr.copy(&_siaddr); }
-		void giaddr(Ipv4_packet::Ipv4_address giaddr) {
+		void giaddr(Ipv4_address giaddr) {
 			giaddr.copy(&_giaddr); }
 
-		void client_mac(Ethernet_frame::Mac_address mac) {
+		void client_mac(Mac_address mac) {
 			mac.copy(&_chaddr); }
 
 

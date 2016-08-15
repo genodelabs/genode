@@ -35,8 +35,8 @@ namespace Net {
 	 */
 	template <typename ADDRESS> class Address_node;
 
-	using Ipv4_address_node = Address_node<Ipv4_packet::Ipv4_address>;
-	using Mac_address_node  = Address_node<Ethernet_frame::Mac_address>;
+	using Ipv4_address_node = Address_node<Ipv4_address>;
+	using Mac_address_node  = Address_node<Mac_address>;
 }
 
 

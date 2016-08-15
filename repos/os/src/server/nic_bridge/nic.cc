@@ -42,7 +42,7 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 			 * and destination MAC and IP addresses, and set the opcode
 			 * to reply, and then push the packet back to the NIC driver.
 			 */
-			Ipv4_packet::Ipv4_address old_src_ip = arp->src_ip();
+			Ipv4_address old_src_ip = arp->src_ip();
 			arp->opcode(Arp_packet::REPLY);
 			arp->dst_mac(arp->src_mac());
 			arp->src_mac(mac());

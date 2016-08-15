@@ -16,13 +16,18 @@
 
 /* Genode */
 #include <base/exception.h>
-#include <base/output.h>
 #include <util/string.h>
 
 #include <util/endian.h>
 #include <net/netaddress.h>
 
-namespace Net { class Ipv4_packet; }
+namespace Net
+{
+	enum { IPV4_ADDR_LEN = 4 };
+	typedef Network_address<IPV4_ADDR_LEN, '.', false> Ipv4_address;
+
+	class Ipv4_packet;
+}
 
 
 /**
@@ -51,20 +56,7 @@ class Net::Ipv4_packet
 	public:
 
 		enum Size {
-			ADDR_LEN = 4, /* Ip address length in bytes */
-		};
-
-		struct Ipv4_address : Network_address<ADDR_LEN>
-		{
-			using Network_address<ADDR_LEN>::Network_address;
-
-			void print(Genode::Output &output) const
-			{
-				for (unsigned i = 0; i < ADDR_LEN; i++) {
-					Genode::print(output, (unsigned) addr[i]);
-					if (i < ADDR_LEN-1) output.out_char('.');
-				}
-			}
+			ADDR_LEN = IPV4_ADDR_LEN, /* Ip address length in bytes */
 		};
 
 		static const Ipv4_address CURRENT;    /* current network   */

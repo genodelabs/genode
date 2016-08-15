@@ -45,7 +45,7 @@ namespace Net {
 
 
 			/* reference MAC address */
-			static Ethernet_frame::Mac_address mac_addr_base;
+			static Mac_address mac_addr_base;
 
 			Mac_allocator() { Genode::memset(&_msbs, 0, sizeof(_msbs)); }
 
@@ -56,12 +56,12 @@ namespace Net {
 			 * \throws Alloc_failed if no more MAC addresses are available.
 			 * \return MAC address
 			 */
-			Ethernet_frame::Mac_address alloc()
+			Mac_address alloc()
 			{
 				for (int i=0; i < MSB_MAX; i++) {
 					if (!_msbs[i].used) {
 						_msbs[i].used = 1;
-						Ethernet_frame::Mac_address mac = mac_addr_base;
+						Mac_address mac = mac_addr_base;
 						mac.addr[5] = i;
 						return mac;
 					}
@@ -72,7 +72,7 @@ namespace Net {
 			/**
 			 * Frees a formerly allocated MAC address.
 			 */
-			void free(Ethernet_frame::Mac_address mac) {
+			void free(Mac_address mac) {
 				_msbs[(unsigned)mac.addr[5]].used = 0; }
 	};
 }

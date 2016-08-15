@@ -58,7 +58,8 @@ class Nic::Loopback_component : public Nic::Session_component
 
 		Mac_address mac_address() override
 		{
-			Mac_address result = {{1,2,3,4,5,6}};
+			char buf[] = {1,2,3,4,5,6};
+			Mac_address result((void*)buf);
 			return result;
 		}
 

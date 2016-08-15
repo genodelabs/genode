@@ -27,7 +27,7 @@ struct Scanner_policy_number
 typedef ::Genode::Token<Scanner_policy_number> Token;
 
 
-Ipv4_packet::Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
+Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 {
 	Ipv4_address  ip_addr;
 	Token         t(ip);
@@ -78,5 +78,5 @@ Genode::uint16_t Ipv4_packet::calculate_checksum(Ipv4_packet const &packet)
 }
 
 
-const Ipv4_packet::Ipv4_address Ipv4_packet::CURRENT((Genode::uint8_t)0x00);
-const Ipv4_packet::Ipv4_address Ipv4_packet::BROADCAST((Genode::uint8_t)0xFF);
+const Ipv4_address Ipv4_packet::CURRENT((Genode::uint8_t)0x00);
+const Ipv4_address Ipv4_packet::BROADCAST((Genode::uint8_t)0xFF);
