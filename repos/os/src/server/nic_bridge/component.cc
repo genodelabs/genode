@@ -63,7 +63,7 @@ bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 				Dhcp_packet(size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
 			if (dhcp->op() == Dhcp_packet::REQUEST) {
 				dhcp->broadcast(true);
-				udp->calc_checksum(ip->src(), ip->dst());
+				udp->update_checksum(ip->src(), ip->dst());
 			}
 		}
 	}
