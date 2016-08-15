@@ -68,7 +68,10 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
+			<libc stdout="/dev/log" stderr="/dev/log"
+			      ip_addr="10.0.2.55" netmask="255.255.255.0"
+			      gateway="10.0.2.1" http_port="80"
+			>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -80,7 +83,10 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
+			<libc
+				stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
+				http_port="80"
+			>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -108,7 +114,6 @@ set boot_modules {
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         ps2] boot_modules ps2_drv
 
 append_platform_drv_boot_modules
 
