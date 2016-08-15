@@ -6,6 +6,9 @@ assert_spec 64bit
 
 set flavor   "win81_64"
 
+set use_vbox4 1
+set use_vbox5 0
+
 # Write overlay back to harddisk if set to 0
 set use_ram_fs 0
 set use_overlay_from_disk 0

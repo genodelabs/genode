@@ -1,0 +1,16 @@
+vga_vbva.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp b/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp
+index 28ab4a8..1cc8e6b 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp
+@@ -546,7 +546,8 @@ static int vbvaDisable (unsigned uScreenId, PVGASTATE pVGAState, VBVACONTEXT *pC
+         pVGAState->fGuestCaps = 0;
+         pVGAState->pDrv->pfnVBVAGuestCapabilityUpdate(pVGAState->pDrv, pVGAState->fGuestCaps);
+     }
+-    pVGAState->pDrv->pfnVBVADisable(pVGAState->pDrv, uScreenId);
++    if (pVGAState->pDrv->pfnVBVADisable)
++        pVGAState->pDrv->pfnVBVADisable(pVGAState->pDrv, uScreenId);
+     return VINF_SUCCESS;
+ }
+ 

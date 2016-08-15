@@ -9,7 +9,7 @@ if {[have_include "power_on/qemu"]} {
 }
 
 append build_components {
-	core init virtualbox
+	core init
 	server/part_blk
 	server/rump_fs
 	server/fs_rom
@@ -18,6 +18,8 @@ append build_components {
 	drivers/timer
 }
 
+lappend_if [expr $use_vbox4]  build_components virtualbox
+lappend_if [expr $use_vbox5]  build_components virtualbox5
 lappend_if [expr $use_ps2]    build_components drivers/input
 lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
@@ -270,9 +272,11 @@ append boot_modules {
 	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
-	virtualbox qemu-usb.lib.so
+	qemu-usb.lib.so
 }
 
+lappend_if [expr $use_vbox4] boot_modules virtualbox
+lappend_if [expr $use_vbox5] boot_modules virtualbox5
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules ${overlay_image}
 
