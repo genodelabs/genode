@@ -106,7 +106,5 @@ struct Main
 };
 
 
-namespace Component {
-	size_t stack_size()      { return 2*1024*sizeof(long); }
-	void construct(Env &env) { static Main m(env);         }
-}
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main m(env);         }
