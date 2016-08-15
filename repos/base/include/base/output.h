@@ -168,6 +168,21 @@ namespace Genode {
 	void print(Output &output, Hex const &);
 
 	/**
+	 * Helper for the output of an individual character
+	 *
+	 * When printing a 'char' value, it appears as an integral number. By
+	 * wrapping the value in a 'Char' object, it appears as character instead.
+	 */
+	struct Char
+	{
+		char const c;
+
+		explicit Char(char c) : c(c) { }
+
+		void print(Output &output) const { output.out_char(c); }
+	};
+
+	/**
 	 * Print information about object 'obj'
 	 *
 	 * The object type must provide a const 'print(Output &)' method that
