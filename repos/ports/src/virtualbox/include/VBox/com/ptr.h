@@ -60,6 +60,7 @@ class ComPtr {
 		}
 
 		bool isNull () const    { return _obj == nullptr; }
+		bool isNotNull() const  { return _obj != nullptr; }
 
 		T ** asOutParam() { return &_obj; }
 
