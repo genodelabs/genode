@@ -39,3 +39,10 @@ int _nanosleep(const struct timespec *req, struct timespec *rem)
 
 	return 0;
 }
+
+
+extern "C" __attribute__((weak))
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+	return _nanosleep(req, rem);
+}
