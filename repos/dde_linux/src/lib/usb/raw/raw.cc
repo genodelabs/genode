@@ -634,8 +634,12 @@ class Usb::Session_component : public Session_rpc_object,
 		void config_descriptor(Device_descriptor *device_descr,
 		                       Config_descriptor *config_descr) override
 		{
-			Genode::memcpy(device_descr, &_device->udev->descriptor,   sizeof(usb_device_descriptor));
-			Genode::memcpy(config_descr, &_device->udev->actconfig->desc, sizeof(usb_config_descriptor));
+			Genode::memcpy(device_descr, &_device->udev->descriptor, sizeof(usb_device_descriptor));
+
+			if (_device->udev->actconfig)
+				Genode::memcpy(config_descr, &_device->udev->actconfig->desc, sizeof(usb_config_descriptor));
+			else
+				Genode::memset(config_descr, 0, sizeof(usb_config_descriptor));
 
 			device_descr->bus   = _device->udev->bus->busnum;
 			device_descr->num   = _device->udev->devnum;
