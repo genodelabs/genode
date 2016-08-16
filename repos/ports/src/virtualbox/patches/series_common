@@ -1,0 +1,17 @@
+acpi_drv.patch
+avoid_yield.patch
+dev_e1000.patch
+eminternal.patch
+hostservice.patch
+iconv.patch
+mouse.patch
+network.patch
+pdm_driver.patch
+poke.patch
+posix.patch
+rem_irq.patch
+serial.patch
+sharedfolder_pagelist.patch
+time-log-deadlock.patch
+tm_retries.patch
+vmdk.patch
