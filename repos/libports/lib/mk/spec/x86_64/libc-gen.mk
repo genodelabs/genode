@@ -12,7 +12,7 @@ FILTER_OUT_S += fabs.S modf.S
 FILTER_OUT_C += frexp.c
 
 SRC_S  = $(filter-out $(FILTER_OUT_S),$(notdir $(wildcard $(LIBC_GEN_AMD64_DIR)/*.S)))
-SRC_C += flt_rounds.c
+SRC_C += $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_GEN_AMD64_DIR)/*.c)))
 
 vpath %.c $(LIBC_GEN_AMD64_DIR)
 vpath %.S $(LIBC_GEN_AMD64_DIR)
