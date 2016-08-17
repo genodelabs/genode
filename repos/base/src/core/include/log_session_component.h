@@ -25,7 +25,7 @@ namespace Genode {
 	{
 		public:
 
-			enum { LABEL_LEN = 64 };
+			enum { LABEL_LEN = 128 };
 
 		private:
 
