@@ -23,6 +23,7 @@
 #include <VBox/vmm/cfgm.h>
 #include <VBox/err.h>
 #include <VBox/vmm/gmm.h>
+#include "MMInternal.h"
 #include <VBox/vmm/vm.h>
 #include <VBox/vmm/pgm.h>
 #include <iprt/err.h>
@@ -165,14 +166,14 @@ int MMR3HeapAllocZEx(PVM pVM, MMTAG enmTag, size_t cbSize, void **ppv)
 
 int MMR3HyperInitFinalize(PVM)
 {
-	Genode::log(__func__, "called");
+	Genode::log(__func__, " called");
 	return VINF_SUCCESS;
 }
 
 
 int MMR3HyperSetGuard(PVM, void* ptr, size_t, bool)
 {
-	Genode::log(__func__, "called ", ptr);
+	Genode::log(__func__, " called ", ptr);
 	return VINF_SUCCESS;
 }
 
@@ -238,7 +239,7 @@ int MMHyperDupMem(PVM pVM, const void *pvSrc, size_t cb,
 
 bool MMHyperIsInsideArea(PVM, RTGCPTR ptr)
 {
-	Genode::log(__func__, "called");
+	Genode::log(__func__, " called");
 
 	return false;
 }
@@ -361,12 +362,18 @@ int MMR3InitPaging(PVM pVM)
      */
     if (cbRam > offRamHole)
     {
+        pVM->mm.s.cbRamBelow4GB = offRamHole;
         rc = PGMR3PhysRegisterRam(pVM, 0, offRamHole, "Base RAM");
         if (RT_SUCCESS(rc))
+        {
+            pVM->mm.s.cbRamAbove4GB = cbRam - offRamHole;
             rc = PGMR3PhysRegisterRam(pVM, _4G, cbRam - offRamHole, "Above 4GB Base RAM");
-    }
-    else
+        }
+    } else {
+        pVM->mm.s.cbRamBelow4GB = cbRam;
+        pVM->mm.s.cbRamAbove4GB = 0;
         rc = PGMR3PhysRegisterRam(pVM, 0, RT_MIN(cbRam, offRamHole), "Base RAM");
+    }
 
     LogFlow(("MMR3InitPaging: returns %Rrc\n", rc));
     return rc;
@@ -457,6 +464,20 @@ VMMDECL(uint32_t) MMHyperHeapPtrToOffset(PVM pVM, void *pv)
 	Assert (reinterpret_cast<void *>(offset) == pv);
 
 	return offset;
+}
+
+
+VMMR3DECL(uint32_t) MMR3PhysGetRamSizeBelow4GB(PVM pVM)
+{
+	VM_ASSERT_VALID_EXT_RETURN(pVM, UINT32_MAX);
+	return pVM->mm.s.cbRamBelow4GB;
+}
+
+
+VMMR3DECL(uint64_t) MMR3PhysGetRamSizeAbove4GB(PVM pVM)
+{
+	VM_ASSERT_VALID_EXT_RETURN(pVM, UINT64_MAX);
+	return pVM->mm.s.cbRamAbove4GB;
 }
 
 

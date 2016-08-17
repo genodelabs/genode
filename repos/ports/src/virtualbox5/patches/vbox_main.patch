@@ -277,36 +277,20 @@ index 7fa0f99..d85976d 100644
  {
      LogFlow(("VBoxDriversRegister: u32Version=%#x\n", u32Version));
      AssertReleaseMsg(u32Version == VBOX_VERSION, ("u32Version=%#x VBOX_VERSION=%#x\n", u32Version, VBOX_VERSION));
-@@ -67,6 +69,7 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
+@@ -79,11 +79,11 @@
+     rc = pCallbacks->pfnRegister(pCallbacks, &Nvram::DrvReg);
      if (RT_FAILURE(rc))
          return rc;
- 
+-
 +#if 0
-     rc = pCallbacks->pfnRegister(pCallbacks, &AudioVRDE::DrvReg);
-     if (RT_FAILURE(rc))
-         return rc;
-@@ -78,6 +81,7 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
      rc = pCallbacks->pfnRegister(pCallbacks, &EmWebcam::DrvReg);
      if (RT_FAILURE(rc))
          return rc;
+-
 +#endif
- 
  #ifdef VBOX_WITH_USB_CARDREADER
      rc = pCallbacks->pfnRegister(pCallbacks, &UsbCardReader::DrvReg);
-diff --git a/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp b/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
-index b4f4da4..a341e45 100644
---- a/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
-+++ b/src/app/virtualbox/src/VBox/Main/src-client/VMMDevInterface.cpp
-@@ -553,7 +553,9 @@ DECLCALLBACK(int) vmmdevIsPageFusionEnabled(PPDMIVMMDEVCONNECTOR pInterface, boo
- {
-     PDRVMAINVMMDEV pDrv = PDMIVMMDEVCONNECTOR_2_MAINVMMDEV(pInterface);
-     Console *pConsole = pDrv->pVMMDev->getParent();
-+#if 0
-     BOOL           val = 0;
-+#endif
- 
-     if (!pfPageFusionEnabled)
-         return VERR_INVALID_POINTER;
+     if (RT_FAILURE(rc))
 diff --git a/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp b/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
 index be0afb8..54d5ba4 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-server/ClientToken.cpp
@@ -395,7 +379,7 @@ index a717aff..3d52b9f 100644
  RT_C_DECLS_END
  #endif
  
--#if !defined(RT_OS_LINUX) || !defined(_GNU_SOURCE)
+-#if (!defined(RT_OS_LINUX) || !defined(_GNU_SOURCE)) && !defined(RT_OS_FREEBSD) && !defined(RT_OS_NETBSD)
 -RT_C_DECLS_BEGIN
 -void *memrchr(const char *pv, int ch, size_t cb);
 -RT_C_DECLS_END
@@ -440,45 +424,6 @@ index a717aff..3d52b9f 100644
      void i_onStateChange(MachineState_T aMachineState);
      void i_onAdditionsStateChange();
      void i_onAdditionsOutdated();
---- a/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
-+++ b/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
-@@ -43,7 +43,7 @@
- #include <algorithm>
- #include <list>
- 
--#include <openssl/rand.h>
-+//#include <openssl/rand.h>
- 
- typedef std::list<Guid> GuidList;
- 
-@@ -787,7 +787,7 @@
-     delete pTask;
- 
-     /* complete the progress if run asynchronously */
--    if (!pProgress.isNull())
-+    if (pProgress && !pProgress.isNull())
-         pProgress->i_notifyComplete(rc);
- 
-     LogFlowFunc(("rc=%Rhrc\n", rc));
-@@ -2530,7 +2530,7 @@
- 
-         pProgress.createObject();
-         rc = pProgress->init(m->pVirtualBox,
--                             static_cast<IMedium*>(this),
-+                             nullptr,
-                              (mediumVariantFlags & MediumVariant_Fixed)
-                                ? BstrFmt(tr("Creating fixed medium storage unit '%s'"), m->strLocationFull.c_str()).raw()
-                                : BstrFmt(tr("Creating dynamic medium storage unit '%s'"), m->strLocationFull.c_str()).raw(),
---- a/src/app/virtualbox/src/VBox/HostServices/SharedFolders/vbsf.cpp
-+++ b/src/app/virtualbox/src/VBox/HostServices/SharedFolders/vbsf.cpp
-@@ -1865,7 +1865,6 @@
- 
-     char *pszFullNewPath = NULL;
-     char *pszFullOldPath = NULL;
--    const char *pszOldPath = (const char *)pOldPath->String.utf8;
- 
-     /* XXX: no support for UCS2 at the moment. */
-     if (!BIT_FLAG(pClient->fu32Flags, SHFL_CF_UTF8))
 --- a/src/app/virtualbox/src/VBox/Main/src-client/ConsoleVRDPServer.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/ConsoleVRDPServer.cpp
 @@ -43,7 +43,9 @@
@@ -986,15 +931,6 @@ index a717aff..3d52b9f 100644
          if (pMedium)
          {
              BOOL fHostDrive;
-@@ -4134,7 +4144,7 @@
-     // InsertConfig* throws
-     try
-     {
--        int rc = VINF_SUCCESS;
-+//        int rc = VINF_SUCCESS;
-         HRESULT hrc;
-         Bstr bstr;
-         PCFGMNODE pLunL1 = NULL;
 @@ -5440,6 +5450,9 @@
 
  #undef H
@@ -1057,9 +993,9 @@ index a717aff..3d52b9f 100644
 @@ -3830,7 +3838,9 @@
      pHdrUnconst->y -= (int16_t)pFBInfo->yOrigin;
  
-     /* @todo new SendUpdate entry which can get a separate cmd header or coords. */
+     /** @todo new SendUpdate entry which can get a separate cmd header or coords. */
 +#if 0
-     pThis->mParent->i_consoleVRDPServer()->SendUpdate(uScreenId, pCmd, (uint32_t)cbCmd);
+     pThis->mParent->i_consoleVRDPServer()->SendUpdate(uScreenId, pHdrUnconst, (uint32_t)cbCmd);
 +#endif
  
      *pHdrUnconst = hdrSaved;
@@ -1087,3 +1023,18 @@ index a717aff..3d52b9f 100644
      int rc = RTLogGroupSettings(RTLogRelGetDefaultInstance(), useLoggingLevel.c_str());
      //  If failed and not the default logging level - try to use the default logging level.
      if (RT_FAILURE(rc))
+--- a/src/app/virtualbox/src/VBox/Runtime/r3/posix/semevent-posix.cpp
++++ b/src/app/virtualbox/src/VBox/Runtime/r3/posix/semevent-posix.cpp
+@@ -49,10 +49,12 @@
+ # define pthread_yield() pthread_yield_np()
+ #endif
+ 
++#if 0
+ #if defined(RT_OS_SOLARIS) || defined(RT_OS_HAIKU) || defined(RT_OS_FREEBSD) || defined(RT_OS_NETBSD)
+ # include <sched.h>
+ # define pthread_yield() sched_yield()
+ #endif
++#endif
+ 
+ 
+ /*********************************************************************************************************************************

@@ -1,15 +1,17 @@
 --- a/src/app/virtualbox/src/VBox/VMM/VMMR3/PGM.cpp
 +++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/PGM.cpp
-@@ -2159,7 +2159,7 @@
+@@ -2165,8 +2165,8 @@
+  */
  VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
  {
-     int rc;
+-    int rc = VERR_IPE_UNINITIALIZED_STATUS; /* (MSC incorrectly thinks it can be usused uninitialized) */
 -
++    int rc = VINF_SUCCESS; //VERR_IPE_UNINITIALIZED_STATUS; /* (MSC incorrectly thinks it can be usused uninitialized) */
 +#if 0
      /*
       * Reserve space for the dynamic mappings.
       * Initialize the dynamic mapping pages with dummy pages to simply the cache.
-@@ -2180,6 +2180,7 @@
+@@ -2187,6 +2187,7 @@
          rc = PGMMap(pVM, pVM->pgm.s.pbDynPageMapBaseGC + offDynMap, HCPhysDummy, PAGE_SIZE, 0);
          AssertRCReturn(rc, rc);
      }
@@ -17,7 +19,7 @@
  
      /*
       * Determine the max physical address width (MAXPHYADDR) and apply it to
-@@ -2377,7 +2378,7 @@
+@@ -2384,7 +2385,7 @@
       * (One or more of them have changed, that's why we're here.)
       */
      pVM->pgm.s.pMappingsRC = MMHyperR3ToRC(pVM, pVM->pgm.s.pMappingsR3);
@@ -26,7 +28,7 @@
          pCur->pNextRC = MMHyperR3ToRC(pVM, pCur->pNextR3);
  
      /* Relocate GC addresses of Page Tables. */
-@@ -2390,6 +2391,7 @@
+@@ -2397,6 +2398,7 @@
          }
      }
  
@@ -34,7 +36,7 @@
      /*
       * Dynamic page mapping area.
       */
-@@ -2412,6 +2414,7 @@
+@@ -2419,6 +2421,7 @@
              paPages[iPage].uPte.pPae    += offDelta;
          }
      }

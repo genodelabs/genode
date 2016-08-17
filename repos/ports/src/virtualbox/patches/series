@@ -7,6 +7,8 @@ vga_vbva.patch
 vmmdev.patch
 usb.patch
 vbox_dd.patch
+ide.patch
+rem_irq.patch
 force_ioapic.patch
 vbox-cpuhotplug.dsl.patch
 dev_e1000.patch

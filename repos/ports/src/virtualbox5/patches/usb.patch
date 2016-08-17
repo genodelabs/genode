@@ -4,21 +4,14 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp b/src/ap
 index a51bc36..bed42e8 100644
 --- a/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/USB/USBProxyDevice.cpp
-@@ -843,10 +843,14 @@ static DECLCALLBACK(int) usbProxyConstruct(PPDMUSBINS pUsbIns, int iInstance, PC
+@@ -843,6 +843,7 @@ static DECLCALLBACK(int) usbProxyConstruct(PPDMUSBINS pUsbIns, int iInstance, PC
      /*
       * Select backend and open the device.
       */
-+
 +    return PDMUSB_SET_ERROR(pUsbIns, VERR_NOT_SUPPORTED, N_("USBProxy: not supported on Genode"));
-+#if 0
-     if (!fRemote)
-         pThis->pOps = &g_USBProxyDeviceHost;
-     else
-         pThis->pOps = &g_USBProxyDeviceVRDP;
-+#endif /* if 0 */
- 
-     pThis->pvInstanceDataR3 = RTMemAllocZ(pThis->pOps->cbBackend);
-     if (!pThis->pvInstanceDataR3)
+     rc = VERR_NOT_FOUND;
+     for (unsigned i = 0; i < RT_ELEMENTS(g_aUsbProxies); i++)
+     {
 diff --git a/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp b/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
 index 4790fcb..d649ad6 100644
 --- a/src/app/virtualbox/src/VBox/Devices/USB/VUSBDevice.cpp
@@ -29,7 +22,7 @@ index 4790fcb..d649ad6 100644
          /* Process any URBs waiting to be cancelled first. */
 -        int rc = RTReqQueueProcess(pDev->hReqQueueSync, 0); /* Don't wait if there is nothing to do. */
 +        int rc = RTReqQueueProcess(pDev->hReqQueueSync, pDev->enmState == VUSB_DEVICE_STATE_RESET ? 5 : 0); /* if in reset state (takes 10ms) sleep a bit - otherwise this thread consumes in this loop a lot of cpu time */
-         Assert(RT_SUCCESS(rc) || rc == VERR_TIMEOUT);
+         Assert(RT_SUCCESS(rc) || rc == VERR_TIMEOUT); NOREF(rc);
      }
  
 diff --git a/src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp b/src/app/virtualbox/src/VBox/Devices/build/VBoxDD.cpp
@@ -87,11 +80,73 @@ index 2f01f69..9b13e37 100644
  #ifdef VBOX_WITH_USB
      HRESULT rc = mUSBDeviceFilters->i_notifyProxy(false /* aInsertFilters */);
      AssertComRC(rc);
-diff --git a/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
-index 09b42f5..c179ca6 100644
 --- a/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-server/USBDeviceFiltersImpl.cpp
-@@ -1037,13 +1037,10 @@ HRESULT USBDeviceFilters::notifyProxy(bool aInsertFilters)
+@@ -386,7 +386,7 @@
+         ComAssertRet(pProxySvc, E_FAIL);
+ 
+         ComAssertRet(pFilter->i_getId() == NULL, E_FAIL);
+-        pFilter->i_getId() = pProxySvc->insertFilter(&pFilter->i_getData().mUSBFilter);
++//        pFilter->i_getId() = pProxySvc->insertFilter(&pFilter->i_getData().mUSBFilter);
+     }
+ 
+     alock.release();
+@@ -452,7 +452,7 @@
+         ComAssertRet(pProxySvc, E_FAIL);
+ 
+         ComAssertRet(pFilter->i_getId() != NULL, E_FAIL);
+-        pProxySvc->removeFilter(pFilter->i_getId());
++//        pProxySvc->removeFilter(pFilter->i_getId());
+         pFilter->i_getId() = NULL;
+     }
+ 
+@@ -606,7 +606,7 @@
+                 {
+                     USBDeviceFilter *pFilter = *it;
+                     Assert(pFilter->i_getId() != NULL);
+-                    pProxySvc->removeFilter(pFilter->i_getId());
++//                    pProxySvc->removeFilter(pFilter->i_getId());
+                     pFilter->i_getId() = NULL;
+                 }
+ 
+@@ -631,7 +631,7 @@
+                     {
+                         USBDeviceFilter *pFilter = *it; /* resolve ambiguity */
+                         Assert(pFilter->i_getId() == NULL);
+-                        pFilter->i_getId() = pProxySvc->insertFilter(&pFilter->i_getData().mUSBFilter);
++//                        pFilter->i_getId() = pProxySvc->insertFilter(&pFilter->i_getData().mUSBFilter);
+                     }
+                 }
+                 ++it;
+@@ -841,12 +841,12 @@
+                 if (aFilter->i_getData().mData.fActive)
+                 {
+                     ComAssertRet(aFilter->i_getId() == NULL, E_FAIL);
+-                    aFilter->i_getId() = pProxySvc->insertFilter(&aFilter->i_getData().mUSBFilter);
++//                    aFilter->i_getId() = pProxySvc->insertFilter(&aFilter->i_getData().mUSBFilter);
+                 }
+                 else
+                 {
+                     ComAssertRet(aFilter->i_getId() != NULL, E_FAIL);
+-                    pProxySvc->removeFilter(aFilter->i_getId());
++//                    pProxySvc->removeFilter(aFilter->i_getId());
+                     aFilter->i_getId() = NULL;
+                 }
+             }
+@@ -857,10 +857,10 @@
+             {
+                 /* update the filter in the proxy */
+                 ComAssertRet(aFilter->i_getId() != NULL, E_FAIL);
+-                pProxySvc->removeFilter(aFilter->i_getId());
++//                pProxySvc->removeFilter(aFilter->i_getId());
+                 if (aFilter->i_getData().mRemote.isMatch(false))
+                 {
+-                    aFilter->i_getId() = pProxySvc->insertFilter(&aFilter->i_getData().mUSBFilter);
++//                    aFilter->i_getId() = pProxySvc->insertFilter(&aFilter->i_getData().mUSBFilter);
+                 }
+             }
+         }
+@@ -1027,13 +1027,10 @@
      LogFlowThisFunc(("aInsertFilters=%RTbool\n", aInsertFilters));
  
      AutoCaller autoCaller(this);
@@ -106,8 +161,8 @@ index 09b42f5..c179ca6 100644
      DeviceFilterList::const_iterator it = m->llDeviceFilters->begin();
      while (it != m->llDeviceFilters->end())
      {
-@@ -1054,6 +1051,9 @@ HRESULT USBDeviceFilters::notifyProxy(bool aInsertFilters)
-             && pFilter->getData().mRemote.isMatch(false) /* and if the filter is NOT remote */
+@@ -1044,10 +1041,13 @@
+             && pFilter->i_getData().mRemote.isMatch(false) /* and if the filter is NOT remote */
             )
          {
 +            USBProxyService *pProxySvc = m->pHost->i_usbProxyService();
@@ -115,4 +170,18 @@ index 09b42f5..c179ca6 100644
 +
              if (aInsertFilters)
              {
-                 AssertReturn(pFilter->getId() == NULL, E_FAIL);
+                 AssertReturn(pFilter->i_getId() == NULL, E_FAIL);
+-                pFilter->i_getId() = pProxySvc->insertFilter(&pFilter->i_getData().mUSBFilter);
++//                pFilter->i_getId() = pProxySvc->insertFilter(&pFilter->i_getData().mUSBFilter);
+             }
+             else
+             {
+@@ -1056,7 +1056,7 @@
+                  * process crash for example. So, don't assert that ID != NULL. */
+                 if (pFilter->i_getId() != NULL)
+                 {
+-                    pProxySvc->removeFilter(pFilter->i_getId());
++//                    pProxySvc->removeFilter(pFilter->i_getId());
+                     pFilter->i_getId() = NULL;
+                 }
+             }

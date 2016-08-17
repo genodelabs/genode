@@ -29,14 +29,3 @@ index 8ce46a8..a6b84b0 100644
      int rc = pThis->pDrv->pfnIsPageFusionEnabled(pThis->pDrv, &pReq->fEnabled);
      if (RT_FAILURE(rc))
          pReq->fEnabled = false;
-+++ a/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
-+++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
-@@ -2805,7 +2805,7 @@
-          * Debug logging.
-          */
-         RTLogPrintf("\n\nThe VM was reset:\n");
--        DBGFR3Info(pVM->pUVM, "cpum", "verbose", NULL);
-+//        DBGFR3Info(pVM->pUVM, "cpum", "verbose", NULL);
- #endif
- 
-         /*

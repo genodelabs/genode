@@ -23,6 +23,7 @@ SRC_CC += Main/src-all/PCIDeviceAttachmentImpl.cpp
 SRC_CC += Main/src-all/ProgressImpl.cpp
 SRC_CC += Main/src-all/SecretKeyStore.cpp
 SRC_CC += Main/src-all/SharedFolderImpl.cpp
+SRC_CC += Main/src-all/ThreadTask.cpp
 SRC_CC += Main/src-all/VirtualBoxBase.cpp
 
 SRC_CC += Main/src-client/AdditionsFacilityImpl.cpp
@@ -43,13 +44,14 @@ SRC_CC += Main/src-client/HGCMThread.cpp
 SRC_CC += Main/src-client/KeyboardImpl.cpp
 SRC_CC += Main/src-client/MachineDebuggerImpl.cpp
 SRC_CC += Main/src-client/MouseImpl.cpp
+SRC_CC += Main/src-client/Nvram.cpp
 SRC_CC += Main/src-client/RemoteUSBBackend.cpp
 SRC_CC += Main/src-client/RemoteUSBDeviceImpl.cpp
 SRC_CC += Main/src-client/SessionImpl.cpp
+SRC_CC += Main/src-client/USBDeviceImpl.cpp
 SRC_CC += Main/src-client/UsbWebcamInterface.cpp
 SRC_CC += Main/src-client/VBoxDriversRegister.cpp
 SRC_CC += Main/src-client/VMMDevInterface.cpp
-SRC_CC += Main/src-client/USBDeviceImpl.cpp
 
 SRC_CC += Main/src-server/AudioAdapterImpl.cpp
 SRC_CC += Main/src-server/BandwidthControlImpl.cpp

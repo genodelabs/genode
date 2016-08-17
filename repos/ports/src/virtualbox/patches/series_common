@@ -8,7 +8,6 @@ network.patch
 pdm_driver.patch
 poke.patch
 posix.patch
-rem_irq.patch
 serial.patch
 sharedfolder_pagelist.patch
 time-log-deadlock.patch

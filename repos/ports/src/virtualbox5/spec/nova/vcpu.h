@@ -557,7 +557,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 			/* tell rem compiler that FPU register changed XXX optimizations ? */
 			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_FPU_REM); /* redundant ? XXX */
-			pVCpu->cpum.s.fUseFlags |=  (CPUM_USED_FPU | CPUM_USED_FPU_SINCE_REM); /* redundant ? XXX */
+			pVCpu->cpum.s.fUseFlags |=  (CPUM_USED_FPU_GUEST | CPUM_USED_FPU_SINCE_REM); /* redundant ? XXX */
 			
 			if (utcb->intr_state != 0) {
 				Assert(utcb->intr_state == BLOCKING_BY_STI ||

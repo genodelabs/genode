@@ -10,6 +10,8 @@ GENERIC_SRC_CC = $(notdir $(wildcard $(VBOX_DIR)/Runtime/generic/*.cpp))
 
 FILTERED_OUT_SRC_CC = fs-stubs-generic.cpp \
                       http-curl.cpp \
+                      mppresent-generic.cpp \
+                      mppresent-generic-online.cpp \
                       semrw-lockless-generic.cpp \
                       tls-generic.cpp \
                       RTDirExists-generic.cpp \
@@ -52,6 +54,7 @@ SRC_CC += Runtime/common/log/logformat.cpp
 SRC_CC += Runtime/common/misc/assert.cpp
 SRC_CC += Runtime/common/misc/buildconfig.cpp
 SRC_CC += Runtime/common/misc/cidr.cpp
+SRC_CC += Runtime/common/misc/circbuf.cpp
 SRC_CC += Runtime/common/misc/lockvalidator.cpp
 SRC_CC += Runtime/common/misc/once.cpp
 SRC_CC += Runtime/common/misc/req.cpp
@@ -71,6 +74,7 @@ SRC_CC += Runtime/common/path/RTPathAbsDup.cpp
 SRC_CC += Runtime/common/path/RTPathAbsEx.cpp
 SRC_CC += Runtime/common/path/RTPathAppendEx.cpp
 SRC_CC += Runtime/common/path/RTPathCalcRelative.cpp
+SRC_CC += Runtime/common/path/RTPathEnsureTrailingSeparator.cpp
 SRC_CC += Runtime/common/path/RTPathExt.cpp
 SRC_CC += Runtime/common/path/RTPathFilename.cpp
 SRC_CC += Runtime/common/path/RTPathHasPath.cpp
@@ -161,6 +165,7 @@ SRC_S  += Runtime/common/asm/ASMAtomicUoReadU64.as
 SRC_S  += Runtime/common/asm/ASMAtomicXchgU64.asm
 SRC_S  += Runtime/common/asm/ASMCpuIdExSlow.asm
 SRC_S  += Runtime/common/asm/ASMGetXcr0.asm
+SRC_S  += Runtime/common/asm/ASMMemFirstMismatchingU8.asm
 
 SRC_CC += Runtime/common/err/errmsg.cpp
 Runtime/common/err/errmsg.o: errmsgdata.h

@@ -113,6 +113,7 @@ int  FTMSetCheckpoint(PVM, FTMCHECKPOINTTYPE)                                   
 int  FTMR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
 
 int  GIMR3Init(PVM)                                                             TRACE(VINF_SUCCESS)
+int  GIMR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
 void GIMR3Reset(PVM)                                                            TRACE()
 bool GIMIsEnabled(PVM)                                                          TRACE(false)
 bool GIMIsParavirtTscEnabled(PVM)                                               TRACE(false)

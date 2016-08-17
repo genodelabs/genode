@@ -115,6 +115,8 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	using Genode::Attached_ram_dataspace;
 	Attached_ram_dataspace * ds = new Attached_ram_dataspace(Genode::env()->ram_session(), cPages * 4096); /* XXX PAGE_SIZE ? */
 	*ppvPages = ds->local_addr<void>();
+	if (pR0Ptr)
+		*pR0Ptr = reinterpret_cast<RTR0PTR>(*ppvPages);
 
 	Genode::log(__func__, " cPages ", cPages, " alloc=", *ppvPages, " done");
 

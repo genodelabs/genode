@@ -3,6 +3,7 @@
 
 #include <iprt/types.h>
 
+#include <xpcom/nsISupports.h>
 #include <nsID.h>
 
 #define ATL_NO_VTABLE

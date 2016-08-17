@@ -85,6 +85,9 @@ SRC_CC += VMM/VMMR3/IOM.cpp
 SRC_CC += VMM/VMMAll/IOMAll.cpp
 SRC_CC += VMM/VMMAll/IOMAllMMIO.cpp
 
+SRC_CC += VMM/VMMR3/APIC.cpp
+SRC_CC += VMM/VMMAll/APICAll.cpp
+
 CC_OPT += -DVBOX_IN_VMM
 
 # definitions needed by SSM.cpp

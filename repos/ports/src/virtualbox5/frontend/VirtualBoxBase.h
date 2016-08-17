@@ -1,7 +1,7 @@
 #ifndef ____H_VIRTUALBOXBASEIMPL
 #define ____H_VIRTUALBOXBASEIMPL
 
-#include <base/log.h>
+//#include <base/log.h>
 
 #include <iprt/cdefs.h>
 #include <iprt/thread.h>
@@ -58,6 +58,9 @@ class VirtualBoxBase : public VirtualBoxTranslatable
 		/** Primary state of this object */
 		ObjectState mState;
 
+		/** Slot of this object in the saFactoryStats array */
+		uint32_t iFactoryStat;
+
 		/** Thread that caused the last state change */
 		RTTHREAD mStateChangeThread;
 		/** Total number of active calls to this object */
@@ -78,9 +81,8 @@ class VirtualBoxBase : public VirtualBoxTranslatable
 
 	protected:
 
-		HRESULT   BaseFinalConstruct() { return S_OK; }
-
-		void   BaseFinalRelease() { }
+		HRESULT BaseFinalConstruct();
+		void BaseFinalRelease();
 
 	public:
 
@@ -462,6 +464,26 @@ class Backupable : public Shareable<T>
  */
   #define VIRTUALBOXBASE_ADD_ERRORINFO_SUPPORT(cls, iface) \
     VIRTUALBOXBASE_ADD_VIRTUAL_COMPONENT_METHODS(cls, iface)
+
+#define VBOX_TWEAK_INTERFACE_ENTRY(iface)
+
+/** Structure for counting the currently existing and ever created objects
+ * for each component name. */
+typedef struct CLASSFACTORY_STAT
+{
+    const char *psz;
+    uint64_t current;
+    uint64_t overall;
+} CLASSFACTORY_STAT;
+
+/** Maximum number of component names to deal with. There will be debug
+ * assertions if the value is too low. Since the table is global and its
+ * entries are reasonably small, it's not worth squeezing out the last bit. */
+#define CLASSFACTORYSTATS_MAX 128
+
+/* global variables (defined in VirtualBoxBase.cpp) */
+extern CLASSFACTORY_STAT g_aClassFactoryStats[CLASSFACTORYSTATS_MAX];
+extern RWLockHandle *g_pClassFactoryStatsLock;
 
 #include "GenodeImpl.h"
 

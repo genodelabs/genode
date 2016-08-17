@@ -189,3 +189,11 @@ HRESULT Host::findUSBDeviceByAddress(const com::Utf8Str &,
 	DUMMY(E_FAIL)
 HRESULT Host::findUSBDeviceById(const com::Guid &, ComPtr<IHostUSBDevice> &)
 	DUMMY(E_FAIL)
+
+HRESULT Host::addUSBDeviceSource(const com::Utf8Str &, const com::Utf8Str &,
+                                 const com::Utf8Str &,
+                                 const std::vector<com::Utf8Str> &,
+                                 const std::vector<com::Utf8Str> &)
+	DUMMY(E_FAIL)
+HRESULT Host::removeUSBDeviceSource(const com::Utf8Str &aId)
+	DUMMY(E_FAIL)

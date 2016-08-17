@@ -124,10 +124,14 @@ DUMMY(RTMemDupExTag)
 DUMMY(RTMemDupTag)
 DUMMY(RTMemExecFree)
 
+DUMMY(RTMpGetPresentCount)
+
 DUMMY(SELMR3GetSelectorInfo)
 DUMMY(SELMR3GetShadowSelectorInfo)
 
 DUMMY(SUPReadTscWithDelta)
+DUMMY(SUPR3ContAlloc)
+DUMMY(SUPR3ContFree)
 DUMMY(SUPR3HardenedLdrLoadPlugIn)
 DUMMY(SUPR3PageAlloc)
 DUMMY(SUPR3PageFree)
@@ -197,6 +201,7 @@ DUMMY(RTTimeLocalExplode)
 DUMMY(RTSymlinkCreate)
 DUMMY(RTSymlinkRead)
 DUMMY(RTSymlinkDelete)
+DUMMY(RTSystemQueryAvailableRam)
 
 DUMMY(RTNetIPv6PseudoChecksumEx)
 
@@ -208,8 +213,8 @@ DUMMY(RTZipXarFsStreamFromIoStream)
 DUMMY(FTMR3CancelStandby)
 DUMMY(FTMR3PowerOn)
 
+DUMMY(GIMExecHypercallInstr)
 DUMMY(GIMReadMsr)
-DUMMY(GIMR3Term)
 DUMMY(GIMWriteMsr)
 
 } /* extern "C" */

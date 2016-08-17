@@ -15,8 +15,6 @@ SRC_CC = frontend/main.cc frontend/console.cc \
          hm.cc thread.cc dynlib.cc unimpl.cc
 
 # use implementation of VBOX 4
-vpath devices.cc $(REP_DIR)/src/virtualbox
-vpath drivers.cc $(REP_DIR)/src/virtualbox
 vpath dynlib.cc  $(REP_DIR)/src/virtualbox
 vpath libc.cc    $(REP_DIR)/src/virtualbox
 vpath logger.cc  $(REP_DIR)/src/virtualbox

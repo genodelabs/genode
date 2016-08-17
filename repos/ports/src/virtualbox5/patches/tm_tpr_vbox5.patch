@@ -1,0 +1,11 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMAll/APICAll.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMAll/APICAll.cpp
+@@ -2264,7 +2264,7 @@
+ APICBOTHCBDECL(uint8_t) apicGetTpr(PPDMDEVINS pDevIns, PVMCPU pVCpu, bool *pfPending, uint8_t *pu8PendingIntr)
+ {
+     RT_NOREF_PV(pDevIns);
+-    VMCPU_ASSERT_EMT(pVCpu);
++    //VMCPU_ASSERT_EMT(pVCpu);
+     PCXAPICPAGE pXApicPage = VMCPU_TO_CXAPICPAGE(pVCpu);
+ 
+     if (pfPending)

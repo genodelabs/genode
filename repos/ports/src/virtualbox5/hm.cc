@@ -83,17 +83,17 @@ VMMR3_INT_DECL(int) HMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 	int rc = SUPR3CallVMMR0Ex(pVM->pVMR0, 0 /*idCpu*/, VMMR0_DO_HM_SETUP_VM, 0, NULL);
 
 	if (rc == VINF_SUCCESS) {
-		CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_SEP);
+		CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_SEP);
 
 		/* nova kernel supports solely on 64bit the following features */
 		if (sizeof(void *) > 4 && enable_pae_nx) {
-			CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_PAE);
-			CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_NX);
+			CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_PAE);
+			CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_NX);
 		}
 		if (sizeof(void *) > 4 && enable_64bit) {
-			CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_LONG_MODE);
-			CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_SYSCALL);
-	        CPUMSetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_LAHF);
+			CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_LONG_MODE);
+			CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_SYSCALL);
+	        CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_LAHF);
 		}
 	}
 
@@ -110,7 +110,7 @@ VMMDECL(bool) HMIsEnabledNotMacro(PVM pVM)
 VMMR3DECL(bool) HMR3IsVmxPreemptionTimerUsed(PVM pVM)
 {
 	if (VERBOSE_HM)
-		Genode::log(__func__, "called");
+		Genode::log(__func__, " called");
 
 	return false;
 }
@@ -200,9 +200,23 @@ VMMR3_INT_DECL(void) HMR3PagingModeChanged(PVM pVM, PVMCPU pVCpu, PGMMODE enmSha
 VMM_INT_DECL(int) HMFlushTLBOnAllVCpus(PVM pVM)
 {
 	if (VERBOSE_HM)
-		Genode::log(__func__, "called");
+		Genode::log(__func__, " called");
 	return VINF_SUCCESS;
 }
 
 VBOXSTRICTRC HMR3RestartPendingIOInstr(PVM, PVMCPU, PCPUMCTX) {
 	return VERR_NOT_FOUND; }
+
+
+VMMR3DECL(bool) HMR3IsPostedIntrsEnabled(PUVM pUVM)
+{
+	Genode::log(__func__, " called");
+	return false;
+}
+
+
+VMMR3DECL(bool) HMR3IsVirtApicRegsEnabled(PUVM pUVM)
+{
+	Genode::log(__func__, " called");
+	return false;
+}
