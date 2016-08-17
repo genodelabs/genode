@@ -21,7 +21,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <os/config.h>
 
+using namespace Genode;
 
 int main(void)
 {
@@ -33,10 +35,17 @@ int main(void)
 		return -1;
 	}
 
+	unsigned port = 0;
+	Xml_node libc_node = config()->xml_node().sub_node("libc");
+	try { libc_node.attribute("port").value(&port); }
+	catch (...) {
+		error("Missing \"port\" attribute.");
+		throw Xml_node::Nonexistent_attribute();
+	}
 	Genode::log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
-	in_addr.sin_port = htons(1337);
+	in_addr.sin_port = htons(port);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
 		Genode::error("bind failed!");
@@ -50,7 +59,7 @@ int main(void)
 		socklen_t len = sizeof(addr);
 
 		char buf[4096];
-		memset(buf, 0, sizeof(buf));
+		::memset(buf, 0, sizeof(buf));
 
 		ssize_t n = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr*)&addr, &len);
 
