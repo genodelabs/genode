@@ -110,6 +110,10 @@ namespace Genode {
 
 	/**
 	 * Write 'args' as a warning message to the log
+	 *
+	 * The message is automatically prefixed with "Warning: ". Please refer to
+	 * the description of the 'error' function regarding the convention of
+	 * formatting error/warning messages.
 	 */
 	template <typename... ARGS>
 	void warning(ARGS &&... args) { Log::log().output(Log::WARNING, args...); }
@@ -117,6 +121,11 @@ namespace Genode {
 
 	/**
 	 * Write 'args' as an error message to the log
+	 *
+	 * The message is automatically prefixed with "Error: ". Hence, the
+	 * message argument does not need to additionally state that it is an error
+	 * message. By convention, the actual message should be brief, starting
+	 * with a lower-case character.
 	 */
 	template <typename... ARGS>
 	void error(ARGS &&... args) { Log::log().output(Log::ERROR, args...); }
@@ -125,7 +134,7 @@ namespace Genode {
 	/**
 	 * Write 'args' directly via the kernel (i.e., kernel debugger)
 	 *
-	 * This function is intended for temporarly debugging purposes only.
+	 * This function is intended for temporarily debugging purposes only.
 	 */
 	template <typename... ARGS>
 	void raw(ARGS &&... args) { Raw::output(args...); }
