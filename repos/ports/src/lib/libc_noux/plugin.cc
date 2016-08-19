@@ -1023,10 +1023,10 @@ namespace {
 			log(__func__, ": filename=", filename);
 
 			for (int i = 0; argv[i]; i++)
-				log(__func__, "argv[", i, "]='", Cstring(argv[i]), "'");
+				log(__func__, "argv[", i, "]='", Genode::Cstring(argv[i]), "'");
 
 			for (int i = 0; envp[i]; i++)
-				log(__func__, "envp[", i, "]='", Cstring(envp[i]), "'");
+				log(__func__, "envp[", i, "]='", Genode::Cstring(envp[i]), "'");
 		}
 
 		Genode::strncpy(sysio()->execve_in.filename, filename, sizeof(sysio()->execve_in.filename));
@@ -1315,7 +1315,7 @@ namespace {
 		case TIOCGETA:
 			{
 				if (verbose)
-					log(__func__, ": TIOCGETA - argp=", argp);
+					log(__func__, ": TIOCGETA - argp=", (void *)argp);
 				::termios *termios = (::termios *)argp;
 
 				termios->c_iflag = 0;
@@ -1738,7 +1738,7 @@ namespace {
 		Genode::memcpy(buf, sysio()->readlink_out.chunk, size);
 
 		if (verbose)
-			log(__func__, ": result=", Cstring(buf));
+			log(__func__, ": result=", Genode::Cstring(buf));
 
 		return size;
 	}
