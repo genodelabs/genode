@@ -34,13 +34,13 @@ addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
 
 void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 {
-	Dataspace_component *ds;
+	Dataspace_component *ds = nullptr;
 	_ds_ep->apply(ds_cap, [&] (Dataspace_component *c)
 	{
-		ds = c;
+		if (!c) return;
+		if (!c->owner(this)) return;
 
-		if (!ds) return;
-		if (!ds->owner(this)) return;
+		ds = c;
 
 		size_t ds_size = ds->size();
 
@@ -62,7 +62,8 @@ void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 	});
 
 	/* call dataspace destructors and free memory */
-	destroy(&_ds_slab, ds);
+	if (ds)
+		destroy(&_ds_slab, ds);
 }
 
 
