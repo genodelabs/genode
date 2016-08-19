@@ -78,15 +78,19 @@ class Genode::Signal_broker
 			Signal_context_component *context;
 
 			_context_ep.apply(context_cap, [&] (Signal_context_component *c) {
-				context = c;
-				if (!context) {
+
+				if (!c) {
 					warning("specified signal-context capability has wrong type");
 					return;
 				}
 
+				context = c;
+
 				_context_ep.dissolve(context);
 			});
-			destroy(&_contexts_slab, context);
+
+			if (context)
+				destroy(&_contexts_slab, context);
 		}
 
 		void submit(Signal_context_capability cap, unsigned cnt)
