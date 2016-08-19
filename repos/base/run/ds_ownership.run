@@ -33,10 +33,7 @@ install_config {
 
 build_boot_image "core init test-ds_ownership"
 
-run_genode_until {.*Test ended.*\.} 10
+append qemu_args "-nographic -m 64"
 
-grep_output {\[init -\> test-ds_ownership\] Test ended}
+run_genode_until {.*test succeeded.*\n} 10
 
-compare_output_to {
-	[init -> test-ds_ownership] Test ended successfully.
-}
