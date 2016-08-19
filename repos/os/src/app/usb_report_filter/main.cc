@@ -214,7 +214,7 @@ class Usb_filter::Device_registry
 
 			new_file[xml.used()] = 0;
 			if (verbose)
-				log("new usb_drv configuration:\n", new_file);
+				log("new usb_drv configuration:\n", Cstring(new_file));
 
 			n = File_system::write(_fs, _file, new_file, xml.used());
 			if (n == 0)

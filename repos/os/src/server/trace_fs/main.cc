@@ -972,7 +972,8 @@ class File_system::Root : public Root_component<Session_component>
 					Genode::error("Missing \"root\" attribute in policy definition");
 					throw Root::Unavailable();
 				} catch (Lookup_failed) {
-					Genode::error("Session root directory \"", root, "\" does not exist");
+					Genode::error("session root directory "
+					              "\"", Genode::Cstring(root), "\" does not exist");
 					throw Root::Unavailable();
 				}
 

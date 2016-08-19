@@ -207,12 +207,12 @@ int main(int argc, char **argv)
 					env()->rm_session()->detach(rom);
 				}
 			} catch (...) {
-				error("could not load module '", policy_module, "' for "
-				      "label '", policy_label, "'");
+				error("could not load module '", Cstring(policy_module), "' for "
+				      "label '", Cstring(policy_label), "'");
 			}
 
-			log("load module: '", policy_module, "' for "
-			    "label: '", policy_label, "'");
+			log("load module: '", Cstring(policy_module), "' for "
+			    "label: '", Cstring(policy_label), "'");
 
 			if (policy.last("trace_policy")) break;
 		}

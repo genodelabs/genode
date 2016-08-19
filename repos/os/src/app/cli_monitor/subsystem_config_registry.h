@@ -94,7 +94,7 @@ class Subsystem_config_registry
 			Vfs::Vfs_handle::Guard handle_guard(handle);
 
 			if (open_result != Vfs::Directory_service::OPEN_OK) {
-				error("could not open '", path.base(), "', err=", (int)open_result);
+				error("could not open '", path, "', err=", (int)open_result);
 				throw Nonexistent_subsystem_config();
 			}
 
@@ -103,7 +103,7 @@ class Subsystem_config_registry
 				handle->fs().read(handle, _config_buf, sizeof(_config_buf), out_count);
 
 			if (read_result != Vfs::File_io_service::READ_OK) {
-				error("could not read '", path.base(), "', err=", (int)read_result);
+				error("could not read '", path, "', err=", (int)read_result);
 				throw Nonexistent_subsystem_config();
 			}
 

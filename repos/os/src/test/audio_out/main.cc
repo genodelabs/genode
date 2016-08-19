@@ -81,7 +81,7 @@ class Track : Thread_deprecated<8192>
 
 			if (verbose)
 				log(_file, " size is ", ds_client.size(), " bytes "
-				    "(attached to ", base, ")");
+				    "(attached to ", (void *)base, ")");
 
 			size_t file_size = ds_client.size();
 			for (int i = 0; i < CHN_CNT; ++i)

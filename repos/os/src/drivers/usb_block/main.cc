@@ -591,7 +591,7 @@ struct Usb::Block_driver : Usb::Completion,
 			Genode::error("complete error: packet not succeded");
 			if (req.pending) {
 				Genode::error("request pending: tag: ", active_tag, " read: ",
-				              (int)req.read, " buffer: ", req.buffer, " lba: ",
+				              (int)req.read, " buffer: ", (void *)req.buffer, " lba: ",
 				              req.lba, " size: ", req.size);
 				ack_pending_request(false);
 			}
@@ -663,7 +663,7 @@ struct Usb::Block_driver : Usb::Completion,
 			uint8_t const status = csw.sts();
 			if (status != Csw::PASSED) {
 				Genode::error("CSW failed: ", Hex(status, Hex::PREFIX, Hex::PAD),
-				              " read: ", (int)req.read, " buffer: ", req.buffer,
+				              " read: ", (int)req.read, " buffer: ", (void *)req.buffer,
 				              " lba: ", req.lba, " size: ", req.size);
 				break;
 			}
