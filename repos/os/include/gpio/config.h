@@ -62,7 +62,9 @@ void Gpio::process_config(Gpio::Driver &driver)
 					driver.direction(num, true);
 				} else throw Invalid_mode();
 
-				Genode::log("gpio ", num, " mode ", mode, " value=", value);
+				Genode::log("gpio ",  num, " "
+				            "mode ",  Genode::Cstring(mode), " "
+				            "value=", value);
 
 			} catch(Genode::Xml_node::Nonexistent_attribute) {
 				Genode::warning("missing attribute. Ignore node.");

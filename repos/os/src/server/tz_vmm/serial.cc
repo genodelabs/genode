@@ -28,7 +28,7 @@ void Serial::_push(char const c)
 void Serial::_flush()
 {
 	_push(0);
-	log("[vm] ", local_addr<char>());
+	log("[vm] ", local_addr<char const>());
 	_off = 0;
 }
 
