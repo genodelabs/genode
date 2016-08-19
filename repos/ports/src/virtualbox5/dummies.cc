@@ -169,7 +169,7 @@ char *pdmR3FileR3(const char * file, bool)
 	char * pv = reinterpret_cast<char *>(RTMemTmpAllocZ(1));
 
 	if (trace)
-		Genode::log(__func__, ": file ", file, " ", pv, " ", __builtin_return_address(0));
+		Genode::log(__func__, ": file ", file, " ", (void *)pv, " ", __builtin_return_address(0));
 
 	TRACE(pv)
 }

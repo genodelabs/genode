@@ -409,7 +409,7 @@ char * MMR3HeapAPrintfVU(PUVM pUVM, MMTAG enmTag, const char *pszFormat, va_list
     if (pszRet)
         memcpy(pszRet, psz, cch + 1);
     RTStrFree(psz);
-	Genode::log(__func__, " called ", pszRet, " ", pszFormat);
+	Genode::log(__func__, " called ", Genode::Cstring(pszRet), " ", Genode::Cstring(pszFormat));
     return pszRet;
 }
 
