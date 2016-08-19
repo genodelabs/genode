@@ -238,7 +238,7 @@ void winerror(pdfapp_t *, fz_error error)
 
 void winwarn(pdfapp_t *, char *msg)
 {
-	Genode::warning("MuPDF: ", msg);
+	Genode::warning("MuPDF: ", Genode::Cstring(msg));
 }
 
 

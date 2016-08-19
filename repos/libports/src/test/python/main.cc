@@ -58,7 +58,7 @@ int main()
 		return 1;
 	}
 
-	Genode::log("Found script: ", name);
+	Genode::log("Found script: ", Genode::Cstring(name));
 	fp._file = open(name, 0, 0);
 	fp._read = __sread;
 	fp._cookie = &fp;

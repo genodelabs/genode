@@ -138,8 +138,8 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 			}
 
 			/* add new timeline */
-			Timeline *t = new (Genode::env()->heap()) Timeline(subject_id,
-			                                                   Cstring(label));
+			Timeline *t = new (Genode::env()->heap())
+				Timeline(subject_id, Genode::Cstring(label));
 			_timelines.insert(t);
 			return t;
 		}

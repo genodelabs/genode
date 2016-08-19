@@ -248,7 +248,7 @@ void Static_character_screen::dump() const
 		}
 
 		line[boundary.width] = 0;
-		Genode::log(line);
+		Genode::log(Genode::Cstring(line));
 	}
 
 	Genode::log("--- end of screen dump ---");

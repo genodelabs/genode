@@ -53,7 +53,7 @@ class Main_window : public Compound_widget<QWidget, QVBoxLayout>
 					Genode::config()->xml_node().sub_node("mediafile")
 						.attribute("name").value(buf, sizeof(buf));
 				} catch(...) {
-					PWRN("no <mediafile> config node found, using \"mediafile\"");
+					Genode::warning("no <mediafile> config node found, using \"mediafile\"");
 				}
 			}
 		} _mediafile_name;

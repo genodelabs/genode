@@ -309,7 +309,7 @@ class Lan9118 : public Nic::Session_component,
 			_mac_addr.addr[1] = (mac_addr_lo >>  8) & 0xff;
 			_mac_addr.addr[0] = (mac_addr_lo >>  0) & 0xff;
 
-			log("MAC address: ", _mac_addr");
+			log("MAC address: ", _mac_addr);
 
 			/* configure MAC */
 			enum { MAC_CR_TXEN = (1 << 3),

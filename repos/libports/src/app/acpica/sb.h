@@ -84,20 +84,23 @@ class Battery : Acpica::Callback<Battery> {
 			    obj->Package.Elements[10].Type != ACPI_TYPE_STRING ||
 			    obj->Package.Elements[9].Type != ACPI_TYPE_STRING)
 			{
-				Genode::log("detected - battery '", battery_name.object, "' - "
+				Genode::log("detected - battery "
+				            "'", Genode::Cstring(battery_name.object), "' - "
 				            "unknown state (", Genode::Hex(val),
 				            val & ACPI_STA_BATTERY_PRESENT ? "" : "(not present)",
 				            ")");
 				return AE_OK;
 			}
 
-			Genode::log("detected - battery '", battery_name.object, "' "
-			            "type='",   obj->Package.Elements[11].String.Pointer, "' "
-			            "OEM='",    obj->Package.Elements[12].String.Pointer, "' "
+			using Genode::Cstring;
+			Genode::log("detected - battery "
+			            "'", Cstring(battery_name.object), "' "
+			            "type='",   Cstring(obj->Package.Elements[11].String.Pointer), "' "
+			            "OEM='",    Cstring(obj->Package.Elements[12].String.Pointer), "' "
 			            "state=",   Genode::Hex(val),
 			                        val & ACPI_STA_BATTERY_PRESENT ? "" : "(not present)", " "
-			            "model='",  obj->Package.Elements[10].String.Pointer, "' "
-			            "serial='", obj->Package.Elements[9].String.Pointer, "'");
+			            "model='",  Cstring(obj->Package.Elements[10].String.Pointer), "' "
+			            "serial='", Cstring(obj->Package.Elements[9].String.Pointer), "'");
 
 			return AE_OK;
 		}

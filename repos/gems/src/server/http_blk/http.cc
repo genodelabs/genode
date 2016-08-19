@@ -85,7 +85,7 @@ void Http::resolve_uri()
 {
 	struct addrinfo *info;
 	if (getaddrinfo(_host, _port, 0, &info)) {
-		error("host ", _host, " not found");
+		error("host ", Cstring(_host), " not found");
 		throw Http::Uri_error();
 	}
 

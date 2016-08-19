@@ -406,7 +406,7 @@ class Plugin : public Libc::Plugin
 			dirent->d_namlen = ::strlen(dirent->d_name);
 
 			if (verbose)
-				Genode::log("found dir entry ", dirent->d_name);
+				Genode::log("found dir entry ", Genode::Cstring(dirent->d_name));
 
 			*basep += sizeof(struct dirent);
 			return sizeof(struct dirent);

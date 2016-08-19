@@ -20,7 +20,6 @@
 #include <vmm/printf.h>
 
 using Genode::Cap_connection;
-using Genode::printf;
 using Genode::sleep_forever;
 
 
@@ -51,7 +50,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread>
 
 		void _svm_startup()
 		{
-			Vmm::printf("_svm_startup called\n");
+			Vmm::log("_svm_startup called");
 		}
 
 	public:
@@ -86,12 +85,12 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread>
 
 int main(int argc, char **argv)
 {
-	printf("--- VBox started ---\n");
+	Genode::log("--- VBox started ---");
 
 	static Cap_connection cap;
 	static Vcpu_dispatcher vcpu_dispatcher(cap, Vcpu_dispatcher::SVM);
 
-	printf("going to sleep forever...\n");
+	Genode::log("going to sleep forever...");
 	sleep_forever();
 	return 0;
 }
