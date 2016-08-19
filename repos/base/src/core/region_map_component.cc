@@ -36,7 +36,7 @@ struct Genode::Region_map_component::Fault_area
 	size_t _size_log2;
 
 	addr_t _upper_bound() const {
-		return (_size_log2 == ~0UL) ? ~0 : (_base + (1 << _size_log2) - 1); }
+		return (_size_log2 == ~0UL) ? ~0UL : (_base + (1UL << _size_log2) - 1); }
 
 	/**
 	 * Default constructor, constructs invalid fault area
@@ -47,7 +47,7 @@ struct Genode::Region_map_component::Fault_area
 	 * Constructor, fault area spans the maximum address-space size
 	 */
 	Fault_area(addr_t fault_addr) :
-		_fault_addr(fault_addr), _base(0), _size_log2(~0) { }
+		_fault_addr(fault_addr), _base(0), _size_log2(~0UL) { }
 
 	/**
 	 * Constrain fault area to specified region
@@ -84,7 +84,7 @@ struct Genode::Region_map_component::Fault_area
 				break;
 
 			/* check against upper bound of region */
-			if (try_base + (1 << try_size_log2) - 1 > region_base + region_size - 1)
+			if (try_base + (1UL << try_size_log2) - 1 > region_base + region_size - 1)
 				break;
 
 			/* flexpage is compatible with fault area, use it */
@@ -110,7 +110,7 @@ struct Genode::Region_map_component::Fault_area
 		if (size_log2 >= _size_log2)
 			return;
 
-		_base = _fault_addr & ~((1 << size_log2) - 1);
+		_base = _fault_addr & ~((1UL << size_log2) - 1);
 		_size_log2 = size_log2;
 	}
 
@@ -136,7 +136,7 @@ struct Genode::Region_map_component::Fault_area
 		 */
 		size_t n = get_page_size_log2();
 		size_t const min_size_log2 = min(a1._size_log2, a2._size_log2);
-		for (; n < min_size_log2 && !(diff & (1 << n)); n++);
+		for (; n < min_size_log2 && !(diff & (1UL << n)); n++);
 
 		return n;
 	}
