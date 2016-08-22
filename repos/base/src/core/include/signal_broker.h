@@ -75,7 +75,7 @@ class Genode::Signal_broker
 
 		void free_context(Signal_context_capability context_cap)
 		{
-			Signal_context_component *context;
+			Signal_context_component *context = nullptr;
 
 			_context_ep.apply(context_cap, [&] (Signal_context_component *c) {
 
