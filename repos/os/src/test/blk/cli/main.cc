@@ -383,7 +383,7 @@ void perform(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms = 0)
 
 
 Genode::size_t Component::stack_size() {
-	return 2048*sizeof(Genode::addr_t); }
+	return 4096*sizeof(Genode::addr_t); }
 
 
 void Component::construct(Genode::Env &env)
