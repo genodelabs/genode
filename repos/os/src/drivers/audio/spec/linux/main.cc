@@ -283,7 +283,7 @@ struct Audio_out::Main
 		int err = audio_drv_init(dev);
 		if (err) {
 			if (err == -1) {
-				Genode::error("could not open ALSA device ", dev);
+				Genode::error("could not open ALSA device ", Genode::Cstring(dev));
 			} else {
 				Genode::error("could not initialize driver error ", err);
 			}

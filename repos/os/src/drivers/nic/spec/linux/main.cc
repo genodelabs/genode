@@ -100,7 +100,7 @@ class Linux_session_component : public Nic::Session_component
 			try {
 				Genode::Xml_node nic_node = Genode::config()->xml_node().sub_node("nic");
 				nic_node.attribute("tap").value(ifr.ifr_name, sizeof(ifr.ifr_name));
-				Genode::log("using tap device \"", ifr.ifr_name, "\"");
+				Genode::log("using tap device \"", Genode::Cstring(ifr.ifr_name), "\"");
 			} catch (...) {
 				/* use tap0 if no config has been provided */
 				Genode::strncpy(ifr.ifr_name, "tap0", sizeof(ifr.ifr_name));

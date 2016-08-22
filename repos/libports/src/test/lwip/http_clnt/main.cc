@@ -92,7 +92,7 @@ int main()
 			if(buflen > 0) {
 				buf[buflen] = 0;
 				Genode::log("Packet received!");
-				Genode::log("Packet content:\n", Cstring(buf));
+				Genode::log("Packet content:\n", Genode::Cstring(buf));
 			} else
 				break;
 		}

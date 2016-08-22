@@ -96,7 +96,7 @@ const char *command_name(long request)
 
 static void dump_ioctl(long request)
 {
-	Genode::log("ioctl(request=", Genode::Hex(request), ",
+	Genode::log("ioctl(request=", Genode::Hex(request), ", ",
 	            (request & 0xe0000000) == IOC_OUT   ? "out"   :
 	            (request & 0xe0000000) == IOC_IN    ? "in"    :
 	            (request & 0xe0000000) == IOC_INOUT ? "inout" : "void", ", "
@@ -200,9 +200,12 @@ namespace {
 			           Libc::File_descriptor *fd, ::off_t offset)
 			{
 				using namespace Genode;
-				Genode::log(__func__ ": addr=", addr, ", length=", length, ", "
-				            "prot=", Genode::Hex(prot), ", flags=", Genode::Hex(flags), ", offset=0x%lx",
-				      addr, length, prot, flags, (long)offset);
+				log(__func__, ": "
+				    "addr=",   addr,       ", "
+				    "length=", length,     ", "
+				    "prot=",   Hex(prot),  ", "
+				    "flags=",  Hex(flags), ", "
+				    "offset=", Hex(offset));
 
 				return (void *)offset;
 			}
