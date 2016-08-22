@@ -154,6 +154,7 @@ SRC_CC += Runtime/r3/posix/utf8-posix.cpp
 SRC_CC += Runtime/r3/process.cpp
 SRC_CC += Runtime/r3/stream.cpp
 SRC_CC += Runtime/VBox/log-vbox.cpp
+SRC_S  += Runtime/common/asm/ASMAtomicCmpXchgExU64.asm
 SRC_S  += Runtime/common/asm/ASMAtomicCmpXchgU64.asm
 SRC_S  += Runtime/common/asm/ASMAtomicReadU64.asm
 SRC_S  += Runtime/common/asm/ASMAtomicUoReadU64.as

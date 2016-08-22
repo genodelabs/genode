@@ -196,7 +196,7 @@ struct Timer_queue : public Qemu::Timer_queue
 	 ** TMTimer callback **
 	 **********************/
 
-	static void tm_timer_cb(PPDMDEVINS pDevIns, PTMTIMER pTimer, void *pvUser)
+	static DECLCALLBACK(void) tm_timer_cb(PPDMDEVINS pDevIns, PTMTIMER pTimer, void *pvUser)
 	{
 		PXHCI pThis    = PDMINS_2_DATA(pDevIns, PXHCI);
 		Timer_queue *q = pThis->timer_queue;

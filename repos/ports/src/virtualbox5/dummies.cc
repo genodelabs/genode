@@ -98,23 +98,8 @@ int  DBGFR3AsSymbolByAddr(PUVM, RTDBGAS, PCDBGFADDRESS, uint32_t, PRTGCINTPTR,
 /* called by 'VMMR3InitRC', but we don't use GC */
 void CPUMPushHyper(PVMCPU, uint32_t)                                            TRACE()
 
-/*
-int  PGMHandlerPhysicalPageTempOff(PVM, RTGCPHYS, RTGCPHYS)                     TRACE(VINF_SUCCESS)
-void PGMPhysReleasePageMappingLock(PVM, PPGMPAGEMAPLOCK)                        TRACE()
-int  PGMR3CheckIntegrity(PVM)                                                   TRACE(VINF_SUCCESS)
-*/
 int  PGMR3FinalizeMappings(PVM)                                                 TRACE(VINF_SUCCESS)
-//int  PGMR3InitCompleted(PVM, VMINITCOMPLETED)                                   TRACE(VINF_SUCCESS)
-//int  PGMR3InitDynMap(PVM)                                                       TRACE(VINF_SUCCESS)
-//int  PGMR3InitFinalize(PVM)                                                     TRACE(VINF_SUCCESS)
-//int  pgmPoolSyncCR3(PVMCPU)                                                     TRACE(VINF_SUCCESS)
-/*
-int PGMR3HandlerVirtualRegister(PVM, PVMCPU, PGMVIRTHANDLERTYPE, RTGCPTR,
-                                RTGCPTR, void *, RTRCPTR, const char *)         TRACE(VINF_SUCCESS)
-int  PGMHandlerVirtualDeregister(PVM, RTGCPTR)                                  TRACE(VINF_SUCCESS)
-void PGMR3Relocate(PVM, RTGCINTPTR)                                             TRACE()
-*/
-int pgmR3InitSavedState(PVM pVM, uint64_t cbRam)                                TRACE(VINF_SUCCESS)
+int  pgmR3InitSavedState(PVM pVM, uint64_t cbRam)                               TRACE(VINF_SUCCESS)
 
 int  vmmR3SwitcherInit(PVM pVM)                                                 TRACE(VINF_SUCCESS)
 void vmmR3SwitcherRelocate(PVM, RTGCINTPTR)                                     TRACE()
