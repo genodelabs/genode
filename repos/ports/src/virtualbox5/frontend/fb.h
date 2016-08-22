@@ -19,7 +19,7 @@
 
 #include <os/texture_rgb565.h>
 #include <os/texture_rgb888.h>
-#include <gems/dither_painter.h>
+#include <os/dither_painter.h>
 
 /* VirtualBox includes */
 
