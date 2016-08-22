@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__GEMS__DITHER_PAINTER_H_
-#define _INCLUDE__GEMS__DITHER_PAINTER_H_
+#ifndef _INCLUDE__OS__DITHER_PAINTER_H_
+#define _INCLUDE__OS__DITHER_PAINTER_H_
 
 /* Genode includes */
 #include <util/dither_matrix.h>
@@ -97,4 +97,4 @@ struct Dither_painter
 	}
 };
 
-#endif /* _INCLUDE__GEMS__DITHER_PAINTER_H_ */
+#endif /* _INCLUDE__OS__DITHER_PAINTER_H_ */
