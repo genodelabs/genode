@@ -322,8 +322,8 @@ extern "C" int fork()
 	char *unique_name = filename;
 	Capability<Rom_dataspace> file_cap;
 	try {
-		static Rom_connection rom(prefixed_label(Session_label(unique_name),
-		                                         Session_label(filename)).string());
+		static Rom_connection rom(prefixed_label(Session_label(Cstring(unique_name)),
+		                                         Session_label(Cstring(filename))).string());
 		file_cap = rom.dataspace();
 	} catch (Rom_connection::Rom_connection_failed) {
 		error("could not access ROM module \"", Cstring(filename), "\"");
