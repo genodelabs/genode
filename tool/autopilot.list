@@ -67,3 +67,4 @@ rust
 xml_node
 fpu
 ds_ownership
+fs_log
