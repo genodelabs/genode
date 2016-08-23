@@ -40,7 +40,7 @@
 
 extern "C" bool PGMUnmapMemoryGenode(void *, size_t);
 
-static Sub_rm_connection vm_memory(4096ULL * 1024 * 1024);
+static Sub_rm_connection vm_memory((sizeof(void *) == 4 ? 2UL : 4UL) * 1024 * 1024 * 1024);
 
 static Genode::List<Vcpu_handler> &vcpu_handler_list()
 {
