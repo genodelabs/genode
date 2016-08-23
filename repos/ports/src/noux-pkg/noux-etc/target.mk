@@ -21,9 +21,9 @@ copy-contrib-files:
 		cp $(ETC_CONTRIB_DIR)/$$i $(TARGET_DIR) ; \
 	done
 
-generate-files:
+generate-files: copy-contrib-files
 	$(VERBOSE)echo 'nameserver 8.8.8.8' > $(TARGET_DIR)/resolv.conf
 
-$(BUILD_BIN_DIR)/$(TARGET): copy-contrib-files generate-files
+$(BUILD_BIN_DIR)/$(TARGET): generate-files
 
 $(TARGET): $(BUILD_BIN_DIR)/$(TARGET)
