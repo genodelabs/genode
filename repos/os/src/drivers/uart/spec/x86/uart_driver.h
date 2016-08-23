@@ -1,37 +1,54 @@
 /*
  * \brief  i8250 UART driver
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2011-09-12
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _DRIVERS__UART__SPEC__I8250__I8250_H_
-#define _DRIVERS__UART__SPEC__I8250__I8250_H_
+#ifndef _UART_DRIVER_H_
+#define _UART_DRIVER_H_
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/lock.h>
-#include <base/printf.h>
-#include <os/irq_activation.h>
 #include <io_port_session/connection.h>
 
+enum { UARTS_NUM = 4 }; /* needed by base class definitions */
+
 /* local includes */
-#include <uart_driver.h>
+#include <uart_driver_base.h>
 
-
-class I8250 : public Uart::Driver, public Genode::Irq_handler
+class Uart::Driver : public Uart::Driver_base
 {
 	private:
 
-		unsigned _port_base;
-
+		unsigned                   _port_base;
 		Genode::Io_port_connection _io_port;
+
+		/**
+		 * Return I/O port base for specified UART
+		 */
+		static unsigned _io_port_base(int index)
+		{
+			static unsigned port_base[] = { 0x3f8, 0x2f8, 0x3e8, 0x2e8 };
+			return port_base[index & 0x3];
+		}
+
+		/**
+		 * Return irq number for specified UART
+		 */
+		static int _irq_number(int index)
+		{
+			static int irq[] = { 4, 3, 4, 3 };
+			Genode::log("open IRQ ", irq[index & 0x3], "\n");
+			return irq[index & 0x3];
+		}
 
 		/**
 		 * Register offsets relative to '_port_base'
@@ -47,6 +64,8 @@ class I8250 : public Uart::Driver, public Genode::Irq_handler
 			DLLO = 0,
 			DLHI = 1,
 		};
+
+		enum { BAUD_115200 = 115200 };
 
 		/**
 		 * Read byte from i8250 register
@@ -84,42 +103,29 @@ class I8250 : public Uart::Driver, public Genode::Irq_handler
 			_inb<MSR>();
 		}
 
-		Uart::Char_avail_callback &_char_avail_callback;
-
-		enum { IRQ_STACK_SIZE = 4096 };
-		Genode::Irq_activation _irq_activation;
+		unsigned _baud_rate(unsigned baud_rate)
+		{
+			if (baud_rate != BAUD_115200)
+				Genode::warning("baud_rate ", baud_rate,
+				                " not supported, set to default\n");
+			return BAUD_115200;
+		}
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		I8250(unsigned port_base, int irq_number, unsigned baud,
-		      Uart::Char_avail_callback &callback)
-		:
-			_port_base(port_base),
-			_io_port(port_base, 0xf),
-			_char_avail_callback(callback),
-			_irq_activation(irq_number, *this, IRQ_STACK_SIZE)
-		{
-			_init_comport(baud);
-		}
+		Driver(Genode::Env &env, unsigned index, unsigned baud,
+		       Uart::Char_avail_functor &func)
+		: Driver_base(env, _irq_number(index), func),
+		  _port_base(_io_port_base(index)),
+		  _io_port(_port_base, 0xf) {
+			_init_comport(_baud_rate(baud)); }
 
-		/***************************
-		 ** IRQ handler interface **
-		 ***************************/
-
-		void handle_irq(int irq_number)
-		{
-			/* inform client about the availability of data */
-			_char_avail_callback();
-		}
 
 		/***************************
 		 ** UART driver interface **
 		 ***************************/
 
-		void put_char(char c)
+		void put_char(char c) override
 		{
 			/* wait until serial port is ready */
 			while (!(_inb<LSR>() & 0x60));
@@ -128,20 +134,20 @@ class I8250 : public Uart::Driver, public Genode::Irq_handler
 			_outb<TRB>(c);
 		}
 
-		bool char_avail()
+		bool char_avail() override
 		{
 			return _inb<LSR>() & 1;
 		}
 
-		char get_char()
+		char get_char() override
 		{
 			return _inb<TRB>();
 		}
 
-		void baud_rate(int bits_per_second)
+		void baud_rate(int bits_per_second) override
 		{
 			_init_comport(bits_per_second);
 		}
 };
 
-#endif /* _DRIVERS__UART__SPEC__I8250__I8250_H_ */
+#endif /* _UART_DRIVER_H_ */
