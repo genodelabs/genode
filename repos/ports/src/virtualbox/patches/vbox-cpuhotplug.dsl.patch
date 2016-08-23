@@ -1,0 +1,30 @@
+--- a/src/app/virtualbox/src/VBox/Devices/PC/vbox-cpuhotplug.dsl
++++ b/src/app/virtualbox/src/VBox/Devices/PC/vbox-cpuhotplug.dsl
+@@ -27,6 +27,18 @@
+         Return(LEqual(CPUL, 0x01))
+     }
+ 
++    // Method to notify the VMM that a CPU is not
++    // in use anymore and can be safely removed.
++    // Using the extra method here because the CPUL
++    // register identifer clashes with the CPUL object defined
++    // below making iasl starting with version 20150930 fail.
++    //
++    // Think of CPLO as "CPU Lock Open"
++    Method(CPLO, 1)
++    {
++        Store (Arg0, CPUL)
++    }
++
+     Scope (\_SB)
+     {
+ 
+@@ -73,7 +85,7 @@
+             }                                                              \
+             Method(_EJ0, 1)                                                \
+             {                                                              \
+-                Store(id, CPUL) /* Unlock the CPU */                       \
++                CPLO(id) /* Unlock the CPU */                              \
+                 Return                                                     \
+             }                                                              \
+         }                                                                  \

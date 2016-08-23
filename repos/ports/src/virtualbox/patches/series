@@ -9,3 +9,4 @@ usb.patch
 tm_smp.patch
 vbox_dd.patch
 force_ioapic.patch
+vbox-cpuhotplug.dsl.patch
