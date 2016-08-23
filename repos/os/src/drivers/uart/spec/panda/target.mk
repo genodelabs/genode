@@ -1,3 +1,3 @@
-REQUIRES = exynos5
+REQUIRES = panda
 
 include $(REP_DIR)/src/drivers/uart/target.inc
