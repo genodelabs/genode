@@ -2,6 +2,8 @@
 # Windows 7 64bit in VirtualBox
 #
 
+assert_spec 64bit
+
 set flavor   "win7_64"
 
 set use_vbox4 1
