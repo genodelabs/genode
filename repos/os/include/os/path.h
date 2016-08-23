@@ -341,8 +341,8 @@ class Genode::Path_base
 
 
 template <unsigned MAX_LEN>
-class Genode::Path : public Path_base {
-
+class Genode::Path : public Path_base
+{
 	private:
 
 		char _buf[MAX_LEN];
@@ -371,8 +371,16 @@ class Genode::Path : public Path_base {
 			return *this;
 		}
 
+		Path(Path const &other) : Path_base(_buf, sizeof(_buf), other._buf) { }
+
+		Path& operator=(Path const &other)
+		{
+			Genode::strncpy(_buf, other._buf, MAX_LEN);
+			return *this;
+		}
+
 		template <unsigned N>
-		Path& operator=(Path<N> &other)
+		Path& operator=(Path<N> const &other)
 		{
 			Genode::strncpy(_buf, other._buf, MAX_LEN);
 			return *this;
