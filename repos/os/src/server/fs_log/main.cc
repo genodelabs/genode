@@ -17,6 +17,7 @@
 #include <file_system/util.h>
 #include <os/path.h>
 #include <os/session_policy.h>
+#include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <root/component.h>
 #include <base/component.h>
@@ -183,7 +184,7 @@ class Fs_log::Root_component :
 
 			/* fill the ack queue with packets so sessions never need to alloc */
 			File_system::Session::Tx::Source &source = *_fs.tx();
-			for (int i = 0; i < QUEUE_SIZE; ++i)
+			for (int i = 0; i < QUEUE_SIZE-1; ++i)
 				source.submit_packet(source.alloc_packet(PACKET_SIZE));
 
 			env.parent().announce(env.ep().manage(*this));
@@ -198,7 +199,7 @@ class Fs_log::Root_component :
 
 namespace Component {
 
-	Genode::size_t stack_size() { return 3*1024*sizeof(long); }
+	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
 
 	void construct(Genode::Env &env)
 	{
