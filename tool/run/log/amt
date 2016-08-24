@@ -23,6 +23,10 @@ proc log_amt_filter { } {
 	return [get_cmd_arg_first --log-amt-filter ""]
 }
 
+proc log_amt_timeout { } {
+	return [get_cmd_arg_first --log-amt-timeout "30"]
+}
+
 ##
 # Log output of the test machine using Intel's AMT
 #
@@ -64,7 +68,7 @@ proc run_log { wait_for_re timeout_value } {
 	if {$wait_for_re == "forever"} {
 		set timeout -1
 	} else {
-		set timeout [expr $timeout_value + 30]
+		set timeout [expr $timeout_value + [log_amt_timeout]]
 	}
 	set exit_result 1
 
