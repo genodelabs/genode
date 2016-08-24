@@ -18,8 +18,8 @@
 /* Genode includes */
 #include <os/attached_mmio.h>
 #include <nic_session/nic_session.h>
+#include <irq_session/connection.h>
 #include <timer_session/connection.h>
-#include <os/irq_activation.h>
 #include <nic/component.h>
 
 /* local includes */
@@ -38,8 +38,7 @@ namespace Genode
 	:
 		private Genode::Attached_mmio,
 		public Nic::Session_component,
-		public Phyio,
-		public Genode::Irq_handler
+		public Phyio
 	{
 		private:
 			/**
@@ -263,16 +262,13 @@ namespace Genode
 			class Unkown_ethernet_speed : public Genode::Exception {};
 
 
-			Timer::Connection _timer;
-
-			System_control _sys_ctrl;
-			Tx_buffer_descriptor _tx_buffer;
-			Rx_buffer_descriptor _rx_buffer;
-
-			enum { IRQ_STACK_SIZE = 4096 };
-			const Genode::Irq_activation _irq_activation;
-
-			Marvel_phy _phy;
+			Timer::Connection                   _timer;
+			System_control                      _sys_ctrl;
+			Tx_buffer_descriptor                _tx_buffer;
+			Rx_buffer_descriptor                _rx_buffer;
+			Genode::Irq_connection              _irq;
+			Genode::Signal_handler<Cadence_gem> _irq_handler;
+			Marvel_phy                          _phy;
 
 
 			void _init()
@@ -398,6 +394,61 @@ namespace Genode
 				_mdio_wait();
 			}
 
+			virtual void _handle_irq()
+			{
+				/* 16.3.9 Receiving Frames */
+				/* read interrupt status, to detect the interrupt reasone */
+				const Interrupt_status::access_t status = read<Interrupt_status>();
+				const Rx_status::access_t rxStatus = read<Rx_status>();
+
+				/* FIXME strangely, this handler is also called without any status bit set in Interrupt_status */
+				if ( Interrupt_status::Rx_complete::get(status) ) {
+
+					while (_rx_buffer.package_available()) {
+						// TODO use this buffer directly as the destination for the DMA controller
+						// to minimize the overrun errors
+						const size_t buffer_size = _rx_buffer.package_length();
+
+						/* allocate rx packet buffer */
+						Nic::Packet_descriptor p;
+						try {
+							p = _rx.source()->alloc_packet(buffer_size);
+						} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
+
+						char *dst = (char *)_rx.source()->packet_content(p);
+
+						/*
+						 * copy data from rx buffer to new allocated buffer.
+						 * Has to be copied,
+						 * because the extern allocater possibly is using the cache.
+						 */
+						if ( _rx_buffer.get_package(dst, buffer_size) != buffer_size ) {
+							PWRN("Package not fully copiied. Package ignored.");
+							break;
+						}
+
+						/* clearing error flags */
+						write<Interrupt_status::Rx_used_read>(1);
+						write<Rx_status::Buffer_not_available>(1);
+
+						/* comit buffer to system services */
+						_rx.source()->submit_packet(p);
+					}
+
+					/* check, if there was lost some packages */
+					const uint16_t lost_packages = read<Rx_overrun_errors::Counter>();
+					if (lost_packages > 0) {
+						PWRN("%d packages lost (%d packages successfully received)!",
+							 lost_packages, read<Frames_received>());
+					}
+
+					/* reset reveive complete interrupt */
+					write<Rx_status>(Rx_status::Frame_reveived::bits(1));
+					write<Interrupt_status>(Interrupt_status::Rx_complete::bits(1));
+				}
+
+				_irq.ack_irq();
+			}
 
 		public:
 			/**
@@ -414,9 +465,12 @@ namespace Genode
 			:
 				Genode::Attached_mmio(base, size),
 				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
-				_irq_activation(irq, *this, IRQ_STACK_SIZE),
+				_irq(irq),
+				_irq_handler(ep, *this, &Cadence_gem::_handle_irq),
 				_phy(*this)
 			{
+				_irq.sigh(_irq_handler);
+				_irq.ack_irq();
 				_deinit();
 				_init();
 			}
@@ -504,64 +558,6 @@ namespace Genode
 					_rx.source()->release_packet(_rx.source()->get_acked_packet());
 
 				while (_send()) ;
-			}
-
-			/******************************
-			 ** Irq_activation interface **
-			 ******************************/
-
-			virtual void handle_irq(int irq_number)
-			{
-				/* 16.3.9 Receiving Frames */
-				/* read interrupt status, to detect the interrupt reasone */
-				const Interrupt_status::access_t status = read<Interrupt_status>();
-				const Rx_status::access_t rxStatus = read<Rx_status>();
-
-				/* FIXME strangely, this handler is also called without any status bit set in Interrupt_status */
-				if ( Interrupt_status::Rx_complete::get(status) ) {
-
-					while (_rx_buffer.package_available()) {
-						// TODO use this buffer directly as the destination for the DMA controller
-						// to minimize the overrun errors
-						const size_t buffer_size = _rx_buffer.package_length();
-
-						/* allocate rx packet buffer */
-						Nic::Packet_descriptor p;
-						try {
-							p = _rx.source()->alloc_packet(buffer_size);
-						} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
-
-						char *dst = (char *)_rx.source()->packet_content(p);
-
-						/*
-						 * copy data from rx buffer to new allocated buffer.
-						 * Has to be copied,
-						 * because the extern allocater possibly is using the cache.
-						 */
-						if ( _rx_buffer.get_package(dst, buffer_size) != buffer_size ) {
-							PWRN("Package not fully copiied. Package ignored.");
-							return;
-						}
-
-						/* clearing error flags */
-						write<Interrupt_status::Rx_used_read>(1);
-						write<Rx_status::Buffer_not_available>(1);
-
-						/* comit buffer to system services */
-						_rx.source()->submit_packet(p);
-					}
-
-					/* check, if there was lost some packages */
-					const uint16_t lost_packages = read<Rx_overrun_errors::Counter>();
-					if (lost_packages > 0) {
-						PWRN("%d packages lost (%d packages successfully received)!",
-							 lost_packages, read<Frames_received>());
-					}
-
-					/* reset reveive complete interrupt */
-					write<Rx_status>(Rx_status::Frame_reveived::bits(1));
-					write<Interrupt_status>(Interrupt_status::Rx_complete::bits(1));
-				}
 			}
 	};
 }
