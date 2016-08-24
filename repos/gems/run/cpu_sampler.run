@@ -1,0 +1,90 @@
+if { ![have_spec foc] && ![have_spec hw] && ![have_spec nova] &&
+     ![have_spec okl4] && ![have_spec sel4] } {
+	puts "Run script is not supported on this platform"
+	exit 0
+}
+
+build {
+	core
+	init
+	drivers/timer
+	server/cpu_sampler
+	test/cpu_sampler
+}
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="CAP"/>
+			<service name="CPU"/>
+			<service name="IO_PORT"/>
+			<service name="IRQ"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RAM"/>
+			<service name="ROM"/>
+			<service name="RM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Timer"/>
+			</provides>
+		</start>
+		<start name="cpu_sampler">
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="CPU"/>
+			</provides>
+			<config sample_interval_ms="100" sample_duration_s="1">
+				<policy label="init -> test-cpu_sampler -> ep" />
+			</config>
+		</start>
+		<start name="init">
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<parent-provides>
+					<service name="CAP"/>
+					<service name="LOG"/>
+					<service name="RM"/>
+					<service name="SIGNAL"/>
+				</parent-provides>
+				<default-route>
+					<any-service> <parent/> </any-service>
+				</default-route>
+				<start name="test-cpu_sampler">
+					<resource name="RAM" quantum="1M"/>
+					<config ld_verbose="yes"/>
+				</start>
+			</config>
+			<route>
+				<service name="CPU"> <child name="cpu_sampler"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+	</config>
+}
+
+build_boot_image {
+	core
+	init
+	timer
+	cpu_sampler
+	test-cpu_sampler
+}
+
+append qemu_args "-nographic -m 128"
+
+set match_string "Test started. func: 0x(\[0-9a-f\]+).*\n"
+
+run_genode_until "$match_string" 10
+
+regexp $match_string $output all func
+
+run_genode_until "\\\[init -> cpu_sampler -> samples -> init -> test-cpu_sampler -> ep\\\.1] \[0\]*$func" 2 [output_spawn_id]

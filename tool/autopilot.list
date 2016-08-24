@@ -68,3 +68,4 @@ xml_node
 fpu
 ds_ownership
 fs_log
+cpu_sampler
