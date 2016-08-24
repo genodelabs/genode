@@ -146,35 +146,38 @@ namespace Genode {
 	 * wrapped into an 'Hex' object, thereby selecting the corresponding
 	 * overloaded 'print' function below.
 	 */
-	struct Hex
+	class Hex
 	{
-		enum Prefix { PREFIX, OMIT_PREFIX };
-		enum Pad    { PAD,    NO_PAD };
+		public:
 
-		unsigned long const value;
-		size_t        const digits;
-		Prefix        const prefix;
-		Pad           const pad;
+			enum Prefix { PREFIX, OMIT_PREFIX };
+			enum Pad    { PAD,    NO_PAD };
 
-		/**
-		 * Constructor
-		 *
-		 * \param prefix  by default, the value is prepended with the prefix
-		 *                '0x'. The prefix can be suppressed by specifying
-		 *                'OMIT_PREFIX' as argument.
-		 * \param pad     by default, leading zeros are stripped from the
-		 *                output. If set to 'PAD', the leading zeros will be
-		 *                printed.
-		 */
-		template <typename T>
-		explicit Hex(T value, Prefix prefix = PREFIX, Pad pad = NO_PAD)
-		: value(value), digits(2*sizeof(T)), prefix(prefix), pad(pad) { }
+		private:
+
+			unsigned long long const _value;
+			size_t             const _digits;
+			Prefix             const _prefix;
+			Pad                const _pad;
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param prefix  by default, the value is prepended with the prefix
+			 *                '0x'. The prefix can be suppressed by specifying
+			 *                'OMIT_PREFIX' as argument.
+			 * \param pad     by default, leading zeros are stripped from the
+			 *                output. If set to 'PAD', the leading zeros will be
+			 *                printed.
+			 */
+			template <typename T>
+			explicit Hex(T value, Prefix prefix = PREFIX, Pad pad = NO_PAD)
+			: _value(value), _digits(2*sizeof(T)), _prefix(prefix), _pad(pad) { }
+
+			void print(Output &output) const;
 	};
-
-	/**
-	 * Print hexadecimal number
-	 */
-	void print(Output &output, Hex const &);
 
 	/**
 	 * Print range as hexadecimal format
