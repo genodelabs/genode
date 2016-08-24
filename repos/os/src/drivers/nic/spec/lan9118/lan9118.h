@@ -1,11 +1,12 @@
 /*
  * \brief  LAN9118 NIC driver
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2011-05-21
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,15 +15,14 @@
 #ifndef _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 #define _DRIVERS__NIC__SPEC__LAN9118__LAN9118_H_
 
+#include <base/attached_io_mem_dataspace.h>
 #include <base/log.h>
 #include <util/misc_math.h>
-#include <os/attached_io_mem_dataspace.h>
-#include <os/irq_activation.h>
+#include <irq_session/connection.h>
 #include <timer_session/connection.h>
 #include <nic/component.h>
 
-class Lan9118 : public Nic::Session_component,
-                public Genode::Irq_handler
+class Lan9118 : public Nic::Session_component
 {
 	private:
 
@@ -72,9 +72,8 @@ class Lan9118 : public Nic::Session_component,
 		volatile Genode::uint32_t        *_reg_base;
 		Timer::Connection                 _timer;
 		Nic::Mac_address                  _mac_addr;
-
-		enum { IRQ_STACK_SIZE = 4096 };
-		Genode::Irq_activation _irq_activation;
+		Genode::Irq_connection            _irq;
+		Genode::Signal_handler<Lan9118>   _irq_handler;
 
 		/**
 		 * Information about a received packet, used internally
@@ -249,6 +248,43 @@ class Lan9118 : public Nic::Session_component,
 			while (_send()) ;
 		}
 
+		void _handle_irq()
+		{
+			using namespace Genode;
+
+			_handle_packet_stream();
+
+			while (_rx_packet_avail() && _rx.source()->ready_to_submit()) {
+
+				/* read packet from NIC, copy to client buffer */
+				Rx_packet_info packet = _rx_packet_info();
+
+				/* align size to 32-bit boundary */
+				size_t const size = align_addr(packet.size, 2);
+
+				/* allocate rx packet buffer */
+				Nic::Packet_descriptor p;
+				try {
+					p = _rx.source()->alloc_packet(size);
+				} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
+
+				uint32_t *dst = (uint32_t *)_rx.source()->packet_content(p);
+
+				/* calculate number of words to be read from rx fifo */
+				size_t count = min(size, _rx_data_pending()) >> 2;
+
+				/* copy payload from rx fifo to client buffer */
+				for (; count--; )
+					*dst++ = _reg_read(RX_DATA_FIFO);
+
+				_rx.source()->submit_packet(p);
+			}
+
+			/* acknowledge all pending irqs */
+			_reg_write(INT_STS, ~0);
+
+			_irq.ack_irq();
+		}
 
 	public:
 
@@ -266,13 +302,17 @@ class Lan9118 : public Nic::Session_component,
 		        Genode::size_t const tx_buf_size,
 		        Genode::size_t const rx_buf_size,
 		        Genode::Allocator   &rx_block_md_alloc,
-		        Genode::Ram_session &ram_session,
-		        Server::Entrypoint  &ep)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
-			_mmio(mmio_base, mmio_size),
-			_reg_base(_mmio.local_addr<Genode::uint32_t>()),
-			_irq_activation(irq, *this, IRQ_STACK_SIZE)
+		        Genode::Env         &env)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+		                    env.ram(), env.ep()),
+		  _mmio(env, mmio_base, mmio_size),
+		  _reg_base(_mmio.local_addr<Genode::uint32_t>()),
+		  _irq(env, irq),
+		  _irq_handler(env.ep(), *this, &Lan9118::_handle_irq)
 		{
+			_irq.sigh(_irq_handler);
+			_irq.ack_irq();
+
 			unsigned long const id_rev     = _reg_read(ID_REV),
 			                    byte_order = _reg_read(BYTE_TEST);
 
@@ -366,47 +406,6 @@ class Lan9118 : public Nic::Session_component,
 		{
 			/* XXX always return true for now */
 			return true;
-		}
-
-
-		/******************************
-		 ** Irq_activation interface **
-		 ******************************/
-
-		void handle_irq(int)
-		{
-			using namespace Genode;
-
-			_handle_packet_stream();
-
-			while (_rx_packet_avail() && _rx.source()->ready_to_submit()) {
-
-				/* read packet from NIC, copy to client buffer */
-				Rx_packet_info packet = _rx_packet_info();
-
-				/* align size to 32-bit boundary */
-				size_t const size = align_addr(packet.size, 2);
-
-				/* allocate rx packet buffer */
-				Nic::Packet_descriptor p;
-				try {
-					p = _rx.source()->alloc_packet(size);
-				} catch (Session::Rx::Source::Packet_alloc_failed) { return; }
-
-				uint32_t *dst = (uint32_t *)_rx.source()->packet_content(p);
-
-				/* calculate number of words to be read from rx fifo */
-				size_t count = min(size, _rx_data_pending()) >> 2;
-
-				/* copy payload from rx fifo to client buffer */
-				for (; count--; )
-					*dst++ = _reg_read(RX_DATA_FIFO);
-
-				_rx.source()->submit_packet(p);
-			}
-
-			/* acknowledge all pending irqs */
-			_reg_write(INT_STS, ~0);
 		}
 };
 
