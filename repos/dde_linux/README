@@ -108,6 +108,69 @@ devices hardware address. If this is the case and no 'mac' attribute is given a
 fallback address will be assigned to the network device. Note that the fallback
 address will always be the same.
 
+
+RAW
+~~~
+
+Allows raw access to USB devices via the 'Usb' session interface.
+
+Configuration snippet:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="8M"/>
+!  <provides><service name="Usb"/></provides>
+!  <config uhci="yes" ehci="yes" xhci="yes">
+!    <raw>
+!        <report devices="yes"/>
+!    </raw>
+!  </config>
+!</start>
+
+The optional 'devices' report lists the connected devices and gets updated
+when devices are added or removed.
+
+Example report:
+
+!<devices>
+!  <device label="usb-1-7" vendor_id="0x1f75" product_id="0x0917" bus="0x0001" dev="0x0007"/>
+!  <device label="usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
+!  <device label="usb-1-4" vendor_id="0x17ef" product_id="0x4816" bus="0x0001" dev="0x0004"/>
+!  <device label="usb-1-3" vendor_id="0x0a5c" product_id="0x217f" bus="0x0001" dev="0x0003"/>
+!  <device label="usb-2-2" vendor_id="0x8087" product_id="0x0020" bus="0x0002" dev="0x0002"/>
+!  <device label="usb-1-2" vendor_id="0x8087" product_id="0x0020" bus="0x0001" dev="0x0002"/>
+!  <device label="usb-2-1" vendor_id="0x1d6b" product_id="0x0002" bus="0x0002" dev="0x0001"/>
+!  <device label="usb-1-1" vendor_id="0x1d6b" product_id="0x0002" bus="0x0001" dev="0x0001"/>
+!</devices>
+
+For every device a unique identifier is generated that is used to access the
+USB device. Only devices that have a valid policy configured at the USB driver
+can be accessed by a client. The following configuration allows 'comp1' to
+access the device 'usb-1-6':
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="8M"/>
+!  <provides><service name="Usb"/></provides>
+!  <config uhci="yes" ehci="yes" xhci="yes">
+!    <raw>
+!        <report devices="yes"/>
+!        <policy label="comp1 -> usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
+!    </raw>
+!  </config>
+!</start>
+
+In addition to the mandatory 'label' attribute the policy node also
+contains optional attribute tuples of which at least one has to be present.
+The 'vendor_id' and 'product_id' tuple selects a device regardless of its
+location on the USB bus and is mostly used in static configurations. The
+'bus' and 'dev' tuple selects a specific device via its bus locations and
+device address. It is mostly used in dynamic configurations because the device
+address is not fixed and may change every time the same device is plugged in.
+
+The configuration of the USB driver can be changed at runtime to satisfy
+dynamic configurations or rather policies when using the 'Usb' session
+interface.
+
+
 LXIP
 ####
 
@@ -204,67 +267,6 @@ component can control the wireless driver. An example therefore is the Qt
 based component in 'src/app/qt_wifi_connect'.
 
 Currently only WPA/WPA2 protection using a pre-shared key is supported.
-
-RAW
-~~~
-
-Allows raw access to USB devices via the 'Usb' session interface.
-
-Configuration snippet:
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="8M"/>
-!  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ehci="yes" xhci="yes">
-!    <raw>
-!        <report devices="yes"/>
-!    </raw>
-!  </config>
-!</start>
-
-The optional 'devices' report lists the connected devices and gets updated
-when devices are added or removed.
-
-Example report:
-
-!<devices>
-!  <device label="usb-1-7" vendor_id="0x1f75" product_id="0x0917" bus="0x0001" dev="0x0007"/>
-!  <device label="usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
-!  <device label="usb-1-4" vendor_id="0x17ef" product_id="0x4816" bus="0x0001" dev="0x0004"/>
-!  <device label="usb-1-3" vendor_id="0x0a5c" product_id="0x217f" bus="0x0001" dev="0x0003"/>
-!  <device label="usb-2-2" vendor_id="0x8087" product_id="0x0020" bus="0x0002" dev="0x0002"/>
-!  <device label="usb-1-2" vendor_id="0x8087" product_id="0x0020" bus="0x0001" dev="0x0002"/>
-!  <device label="usb-2-1" vendor_id="0x1d6b" product_id="0x0002" bus="0x0002" dev="0x0001"/>
-!  <device label="usb-1-1" vendor_id="0x1d6b" product_id="0x0002" bus="0x0001" dev="0x0001"/>
-!</devices>
-
-For every device a unique identifier is generated that is used to access the
-USB device. Only devices that have a valid policy configured at the USB driver
-can be accessed by a client. The following configuration allows 'comp1' to
-access the device 'usb-1-6':
-
-!<start name="usb_drv">
-!  <resource name="RAM" quantum="8M"/>
-!  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ehci="yes" xhci="yes">
-!    <raw>
-!        <report devices="yes"/>
-!        <policy label="comp1 -> usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>
-!    </raw>
-!  </config>
-!</start>
-
-In addition to the mandatory 'label' attribute the policy node also
-contains optional attribute tuples of which at least one has to be present.
-The 'vendor_id' and 'product_id' tuple selects a device regardless of its
-location on the USB bus and is mostly used in static configurations. The
-'bus' and 'dev' tuple selects a specific device via its bus locations and
-device address. It is mostly used in dynamic configurations because the device
-address is not fixed and may change every time the same device is plugged in.
-
-The configuration of the USB driver can be changed at runtime to satisfy
-dynamic configurations or rather policies when using the 'Usb' session
-interface.
 
 
 lx_kit
