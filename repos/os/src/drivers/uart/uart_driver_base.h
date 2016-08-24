@@ -62,7 +62,11 @@ class Uart::Driver_base
 		/**
 		 * Handle interrupt
 		 */
-		virtual void handle_irq() { _char_avail(); }
+		virtual void handle_irq()
+		{
+			_char_avail();
+			_irq.ack_irq();
+		}
 
 		/**
 		 * Write character to UART
