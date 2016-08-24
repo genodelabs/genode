@@ -309,7 +309,7 @@ foreach platform $platforms {
 	if {[info exists ::env(RUN_OPT_AUTOPILOT)]} {
 		set kernel [exec echo $platform |& sed {s/_.*//}]
 
-		exec echo "RUN_OPT=--include boot_dir/$kernel $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
+		exec echo "RUN_OPT=--include boot_dir/$kernel --autopilot $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
 	}
 }
 
