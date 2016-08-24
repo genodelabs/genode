@@ -1,0 +1,81 @@
+This component implements a CPU service which samples the instruction pointer
+of the configured threads on a regular basis for the purpose of statistical
+profiling.
+
+The collected samples are written to the LOG session with an individual label
+for each thread. By using the 'fs_log' component, the sample data can be
+written into separate files if desired.
+
+Configuration options
+---------------------
+
+! <config sample_interval_ms="100" sample_duration_s="1">
+!   <policy label="init -> test-cpu_sampler -> ep" />
+! </config>
+
+The 'sample_interval_ms' attribute configures the time between two samples in
+milliseconds.
+
+The 'sample_duration_s' attribute configures the overall duration of the
+sampling activity in seconds.
+
+The policy configures the threads to be sampled.
+
+The clients of the CPU sampler component must be at least grand children of the
+initial init process to have their CPU sessions routed correctly. An example
+configuration using a sub-init process can be found in the 'cpu_sampler.run'
+script.
+
+Evaluation
+----------
+
+Currently, some basic tools for the evaluation of the sampled addresses are
+available at
+
+[https://github.com/cproc/genode_stuff/tree/cpu_sampler-16.08]
+
+* Filtering the sampled addresses from the Genode log output
+
+  ! filter_sampled_addresses_from_log <file containing the Genode log output>
+
+  This script extracts the sampled addresses from a file containing the Genode
+  log output and saves them in the file 'sampled_addresses.txt'. It is not
+  needed when the addresses have already been written into a separate file by
+  the 'fs_log' component. The match string (label) in the script might need to
+  be adapted for the specific scenario.
+
+* Filtering the shared library load addresses from the Genode log output
+
+  ! filter_ldso_addresses_from_log <file containing the Genode log output>
+
+  This script extracts the shared library load addresses from a file containing
+  the Genode log output and saves them in the file 'ldso_addresses.txt'. To have
+  these addresses appear in the Genode log output, the sampled component should
+  be configured with the 'ld_verbose="yes"' XML attribute if it uses shared
+  libraries. If multiple components in a scenario are configured with this
+  attribute, the script needs to be adapted to match a specific label.
+
+* Generating statistics
+
+  ! generate_statistics <ELF image> <file with sampled addresses> [<file with ldso addresses>]
+
+  This script generates the files 'statistics_by_function.txt' and
+  'statistics_by_address.txt'.
+
+  The first argument is the name of the ELF image of the sampled component.
+  The second argument is the name of a file containing the sampled addresses.
+  The third argument is the name of a file containing the shared library load
+  addresses. It is only needed if the sampled component uses shared libraries.
+
+  The 'statistics_by_function.txt' file lists the names of the sampled
+  functions, sorted by the highest sample count. Each line comprehends
+  all sampled addresses which belong to the particular function.
+
+  The 'statistics_by_address.txt' file is more detailed than the
+  'statistics_by_function.txt' file. It lists the sampled addresses, sorted by
+  the highest sample count, together with the name and file location of the
+  function the particular address belongs to.
+
+The 'generate_statistics' script uses the 'backtrace' script to determine the
+function names and file locations. The best location to use the scripts is
+the 'build/.../bin' directory, where all the shared libraries can be found.
