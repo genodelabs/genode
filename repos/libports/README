@@ -9,7 +9,7 @@ task of downloading and preparing the library source codes. You can select
 individual packages that have to be prepared by specifying their base names
 (without the version number) as command-line argument. For example, the
 following command prepares both the C library and the Freetype library:
-! ./tool/ports/prepare_port PKG="libc freetype"
+! ./tool/ports/prepare_port libc freetype
 
 To compile and link against 3rd-party libraries of the 'libports' repository,
 you have to include the repository into the build process by appending it to the
