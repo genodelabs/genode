@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,16 +14,13 @@
 #ifndef _DRIVERS__SD_CARD__SPEC__PL180__PL180_H_
 #define _DRIVERS__SD_CARD__SPEC__PL180__PL180_H_
 
-#include <base/env.h>
-#include <base/lock.h>
 #include <base/log.h>
-#include <os/irq_activation.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <timer_session/connection.h>
 
 #include "host_driver.h"
 
-class Pl180 : public Host_driver, public Genode::Irq_handler
+class Pl180 : public Host_driver
 {
 	private:
 
@@ -85,8 +82,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		Genode::Attached_io_mem_dataspace  _io_mem;
 		Genode::uint32_t volatile         *_base;
 
-		mutable Genode::Lock               _mutex;
-
 		Genode::uint32_t _read_reg(Register reg) const
 		{
 			return _base[reg >> 2];
@@ -131,16 +126,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 			_clear_status();
 		}
 
-		/***************************
-		 ** IRQ handler interface **
-		 ***************************/
-
-		void handle_irq(int irq_number)
-		{
-			Genode::Lock::Guard g(_mutex);
-
-			_clear_status();
-		}
 
 		/***************************
 		 ** Host driver interface **
@@ -149,8 +134,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		void request(unsigned char  cmd,
 		             unsigned      *out_resp)
 		{
-			Genode::Lock::Guard g(_mutex);
-
 			_write_reg(Argument, 0);
 			_write_command(cmd, (out_resp != 0));
 			if (out_resp)
@@ -162,8 +145,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		             unsigned       arg,
 		             unsigned      *out_resp)
 		{
-			Genode::Lock::Guard g(_mutex);
-
 			_write_reg(Argument, arg);
 			_write_command(cmd, (out_resp != 0));
 			if (out_resp)
@@ -176,8 +157,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		                  unsigned       length,
 		                  unsigned      *out_resp)
 		{
-			Genode::Lock::Guard g(_mutex);
-
 			/*
 			 * FIXME on real hardware the blocksize must be written into
 			 * DataCtrl:BlockSize.
@@ -199,8 +178,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		                   unsigned       length,
 		                   unsigned      *out_resp)
 		{
-			Genode::Lock::Guard g(_mutex);
-
 			/*
 			 * FIXME on real hardware the blocksize must be written into
 			 * DataCtrl:BlockSize.
@@ -220,8 +197,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		void read_data(unsigned  length,
 		               char     *out_buffer)
 		{
-			Genode::Lock::Guard g(_mutex);
-
 			unsigned *buf = reinterpret_cast<unsigned *>(out_buffer);
 			for (unsigned count = 0; count < length / 4; ) {
 				/*
@@ -238,8 +213,6 @@ class Pl180 : public Host_driver, public Genode::Irq_handler
 		void write_data(unsigned    length,
 		                char const *buffer)
 		{
-			Genode::Lock::Guard g(_mutex);
-
 			enum { FIFO_SIZE = 16 };
 
 			unsigned const *buf = reinterpret_cast<unsigned const *>(buffer);
