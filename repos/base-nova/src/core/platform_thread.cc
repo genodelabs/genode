@@ -181,7 +181,8 @@ int Platform_thread::start(void *ip, void *sp)
 
 		error("create_sc returned ", res);
 		goto cleanup_ec;
-	}
+	} else
+		_features |= SC_CREATED;
 
 	return 0;
 
@@ -210,24 +211,26 @@ void Platform_thread::resume()
 {
 	using namespace Nova;
 
-	if (!worker()) {
-		uint8_t res;
-		do {
-			if (!_pd) {
-				error("protection domain undefined - resuming thread failed");
-				return;
-			}
-			res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
-			                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
-		} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
-
-		if (res == NOVA_OK) return;
+	if (worker() || sc_created()) {
+		if (_pager)
+			_pager->wake_up();
+		return;
 	}
 
-	if (!_pager) return;
+	uint8_t res;
+	do {
+		if (!_pd) {
+			error("protection domain undefined - resuming thread failed");
+			return;
+		}
+		res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+		                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
+	} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
 
-	/* Thread was paused beforehand and blocked in pager - wake up pager */
-	_pager->wake_up();
+	if (res == NOVA_OK)
+		_features |= SC_CREATED;
+	else
+		error("create_sc failed ", res);
 }
 
 
@@ -315,11 +318,8 @@ unsigned long long Platform_thread::execution_time() const
 {
 	unsigned long long time = 0;
 
-	/*
-	 * For local ECs, we simply return 0 as local ECs are executed with the
-	 * time of their callers.
-	 */
-	if (worker())
+	/* for ECs without a SC we simply return 0 */
+	if (!sc_created())
 		return time;
 
 	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);
