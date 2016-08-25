@@ -126,7 +126,7 @@ void net_mac(void* mac, unsigned long size)
 {
 	enum { MAC_LEN = 17, ETH_ALEN = 6, };
 
-	unsigned char str[MAC_LEN + 1];
+	char str[MAC_LEN + 1];
 	using namespace Genode;
 
 	Nic::Mac_address m = _nic_client->nic()->mac_address();
