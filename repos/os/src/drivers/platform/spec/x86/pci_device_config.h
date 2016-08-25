@@ -149,7 +149,9 @@ namespace Platform {
 			{
 				using Genode::print;
 				using Genode::Hex;
-				print(out, Hex(_bus), ":", Hex(_device), ":", Hex(_function));
+				print(out, Hex(_bus, Hex::Prefix::OMIT_PREFIX),
+				      ":", Hex(_device, Hex::Prefix::OMIT_PREFIX),
+				      ".", Hex(_function, Hex::Prefix::OMIT_PREFIX));
 			}
 
 			Genode::uint16_t bdf () {

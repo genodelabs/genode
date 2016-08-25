@@ -158,7 +158,9 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		{
 			using Genode::print;
 			using Genode::Hex;
-			print(out, Hex(v >> 8), ":", Hex((v >> 3) & 3), ".", Hex(v & 0x7));
+			print(out, Hex(v >> 8, Hex::Prefix::OMIT_PREFIX), ":",
+			      Hex((v >> 3) & 3, Hex::Prefix::OMIT_PREFIX), ".",
+			      Hex(v & 0x7, Hex::Prefix::OMIT_PREFIX));
 		}
 	};
 
