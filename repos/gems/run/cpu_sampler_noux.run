@@ -1,0 +1,270 @@
+if { ![have_spec foc] && ![have_spec nova] &&
+     ![have_spec okl4] && ![have_spec sel4] } {
+	puts "Run script is not supported on this platform"
+	exit 0
+}
+
+#
+# On OMAP4 where no PS/2 is available, we rely on USB HID
+#
+proc use_usb_input { } { return [expr ![have_spec ps2] && [have_spec usb]] }
+
+set build_components {
+	core init drivers/timer noux/minimal lib/libc_noux
+	drivers/framebuffer drivers/input
+	server/terminal server/ram_fs
+	server/log_terminal
+	test/libports/ncurses
+	server/fs_log
+	server/cpu_sampler
+	test/cpu_sampler
+}
+
+lappend_if [use_usb_input]  build_components drivers/usb
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+#
+# Build Noux packages only once
+#
+foreach pkg {bash coreutils vim diffutils} {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+# write default vimrc file
+set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+puts $vimrc_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $vimrc_fd
+
+# strip all binaries prior archiving
+exec sh -c "find bin/bash/ bin/vim/ bin/coreutils/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+
+exec tar cfv bin/bash.tar      -h -C bin/bash .
+exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
+exec tar cfv bin/vim.tar       -h -C bin/vim .
+exec tar cfv bin/diffutils.tar -h -C bin/diffutils .
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>}
+
+append_platform_drv_config
+
+append_if [expr [have_spec framebuffer] && ![get_cmd_switch --autopilot]] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_if [use_usb_input] config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
+	</start> }
+
+append_if [get_cmd_switch --autopilot] config {
+	<start name="terminal">
+		<binary name="log_terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+	</start> }
+
+append_if [expr ![get_cmd_switch --autopilot]] config {
+	<start name="terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<config>
+			<keyboard layout="de"/>
+			<font size="12" />
+		</config>
+	</start> }
+
+append config {
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<content>
+				<dir name="home">
+					<inline name=".bashrc"> }
+append_if [get_cmd_switch --autopilot] config {
+						FILE=/samples/cpu_sampler/samples/init/test-cpu_sampler/ep.*.log
+						while true; do if [ -e $FILE ]; then cat $FILE; fi; done }
+append_if [expr ![get_cmd_switch --autopilot]] config {
+						echo "The sample data will appear in the /samples directory" }
+append config {
+					</inline>
+				</dir>
+				<dir name="samples"/>
+				<dir name="tmp"/>
+			</content>
+			<!-- constrain sessions according to their labels -->
+			<policy label="fs_log"          root="/samples"    writeable="yes" />
+			<policy label="noux -> home"    root="/home"       writeable="yes" />
+			<policy label="noux -> samples" root="/samples" />
+			<policy label="noux -> tmp"     root="/tmp"        writeable="yes" />
+		</config>
+	</start>
+
+	<start name="fs_log">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="LOG"/></provides>
+		<config>
+			<policy label="cpu_sampler" merge="true"/>
+		</config>
+	</start>
+
+	<start name="cpu_sampler">
+		<resource name="RAM" quantum="32M"/>
+		<provides>
+			<service name="CPU"/>
+		</provides>
+		<config sample_interval_ms="1000" sample_duration_s="10">
+			<policy label_prefix="init -> test-cpu_sampler ->" />
+		</config>
+		<route>
+			<service name="LOG" label_prefix="samples"> <child name="fs_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="init">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<parent-provides>
+				<service name="CAP"/>
+				<service name="LOG"/>
+				<service name="RM"/>
+				<service name="SIGNAL"/>
+			</parent-provides>
+			<default-route>
+				<any-service> <parent/> </any-service>
+			</default-route>
+			<start name="test-cpu_sampler">
+				<resource name="RAM" quantum="4M"/>
+				<config ld_verbose="yes"/>
+			</start>
+		</config>
+		<route>
+			<service name="CPU"> <child name="cpu_sampler"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="noux">
+		<resource name="RAM" quantum="1G" />
+		<config>
+			<fstab>
+				<tar name="coreutils.tar" />
+				<tar name="vim.tar" />
+				<tar name="diffutils.tar" />
+				<tar name="bash.tar" />
+
+				<dir name="dev"> <zero/> <null/> </dir>
+
+				<dir name="home"> <fs label="home" /> </dir>
+				<dir name="samples"> <fs label="samples" /> </dir>
+				<dir name="tmp"> <fs label="tmp" /> </dir>
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="linux" />
+				<env name="HOME" value="/home" />
+			</start>
+		</config>
+		<route>
+			<service name="Terminal"> <child name="terminal"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal ram_fs log_terminal
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
+	bash.tar coreutils.tar diffutils.tar vim.tar
+	fs_log cpu_sampler test-cpu_sampler
+}
+
+# platform-specific modules
+lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [use_usb_input]         boot_modules usb_drv
+lappend_if [have_spec gpio]        boot_modules gpio_drv
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+if {[have_spec x86_64]} {
+	# bash.tar is really huge when built for x86_64
+	append qemu_args " -m 320 "
+} else {
+	append qemu_args " -m 256 "
+}
+
+if { ![get_cmd_switch --autopilot] } { run_genode_until forever }
+
+# autopilot test
+
+append qemu_args " -nographic "
+
+set match_string "Test started. func: 0x(\[0-9a-f\]+).*\n"
+
+run_genode_until "$match_string" 120
+
+regexp $match_string $output all func
+
+run_genode_until "\\\[init -> terminal] \[0\]*$func" 60 [output_spawn_id]
+
+exec rm bin/bash.tar
