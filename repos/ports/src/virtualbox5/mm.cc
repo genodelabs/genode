@@ -413,19 +413,28 @@ char * MMR3HeapAPrintfVU(PUVM pUVM, MMTAG enmTag, const char *pszFormat, va_list
     return pszRet;
 }
 
-
-VMMR3DECL(RTHCPHYS) MMR3HyperHCVirt2HCPhys(PVM pVM, void *pvR3)
+static inline RTHCPHYS convert_ptr(void *ptr)
 {
-	RTHCPHYS same = reinterpret_cast<RTHCPHYS>(pvR3);
-	Genode::log(__func__, " called ", pvR3);
-	return same;
+	RTHCPHYS uint64ptr = 0;
+
+	static_assert(sizeof(RTHCPHYS) == 8, "unexpected RTHCPHYS size");
+
+	if (sizeof(void *) == sizeof(RTHCPHYS))
+		uint64ptr = reinterpret_cast<RTHCPHYS>(ptr);
+	else {
+		/* avoid sign extension if upper bit of pvR3 address is set */
+		uint32_t uint32ptr = reinterpret_cast<uint32_t>(ptr);
+		uint64ptr = uint32ptr;
+	}
+
+	return uint64ptr;
 }
 
+VMMR3DECL(RTHCPHYS) MMR3HyperHCVirt2HCPhys(PVM pVM, void *pvR3) {
+	return convert_ptr(pvR3); }
 
-VMMDECL(RTHCPHYS) MMPage2Phys(PVM pVM, void *pvPage)
-{
-	return reinterpret_cast<RTHCPHYS>(pvPage);
-}
+VMMDECL(RTHCPHYS) MMPage2Phys(PVM pVM, void *pvPage) {
+	return convert_ptr(pvPage); }
 
 
 VMMR3DECL(void *) MMR3PageAlloc(PVM pVM)
@@ -447,6 +456,11 @@ int MMR3ReserveHandyPages(PVM pVM, uint32_t cHandyPages)
 
 VMMDECL(void *) MMHyperHeapOffsetToPtr(PVM pVM, uint32_t offHeap)
 {
+	if (sizeof(void*) == 8) {
+		uint64_t ptr = offHeap;
+		return reinterpret_cast<void *>(ptr);
+	}
+
 	return reinterpret_cast<void *>(offHeap);
 }
 

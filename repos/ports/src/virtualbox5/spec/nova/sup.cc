@@ -40,6 +40,10 @@
 
 extern "C" bool PGMUnmapMemoryGenode(void *, size_t);
 
+/* XXX does not work on 32bit host - since vm memory is from 0 - 4G and
+ * such large areas can't be attached to a process
+ * We need several sub_rm areas .... XXX
+ */
 static Sub_rm_connection vm_memory((sizeof(void *) == 4 ? 2UL : 4UL) * 1024 * 1024 * 1024);
 
 static Genode::List<Vcpu_handler> &vcpu_handler_list()
