@@ -57,6 +57,53 @@ static __attribute__((constructor)) Thread * main_thread()
 }
 
 
+void Pthread_registry::insert(pthread_t thread)
+{
+	/* prevent multiple insertions at the same location */
+	static Genode::Lock insert_lock;
+	Genode::Lock::Guard insert_lock_guard(insert_lock);
+
+	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
+		if (_array[i] == 0) {
+			_array[i] = thread;
+			return;
+		}
+	}
+
+	Genode::error("pthread registry overflow, pthread_self() might fail");
+}
+
+
+void Pthread_registry::remove(pthread_t thread)
+{
+	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
+		if (_array[i] == thread) {
+			_array[i] = 0;
+			return;
+		}
+	}
+
+	Genode::error("could not remove unknown pthread from registry");
+}
+
+
+bool Pthread_registry::contains(pthread_t thread)
+{
+	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++)
+		if (_array[i] == thread)
+			return true;
+
+	return false;
+}
+
+
+Pthread_registry &pthread_registry()
+{
+	static Pthread_registry instance;
+	return instance;
+}
+
+
 extern "C" {
 
 	/* Thread */
@@ -129,9 +176,10 @@ extern "C" {
 	{
 		Thread *myself = Thread::myself();
 
-		pthread_t pthread = dynamic_cast<pthread_t>(myself);
-		if (pthread)
-			return pthread;
+		pthread_t pthread_myself = static_cast<pthread_t>(myself);
+
+		if (pthread_registry().contains(pthread_myself))
+			return pthread_myself;
 
 		/*
 		 * We pass here if the main thread or an alien thread calls
