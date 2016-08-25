@@ -77,6 +77,8 @@ class Net::Arp_packet
 		 ** ARP parameters **
 		 ********************/
 
+		enum Protocol_address_type { IPV4 = 0x0800 };
+
 		enum Hardware_type {
 			ETHERNET                = 0x0001,
 			EXP_ETHERNET            = 0x0002,
@@ -223,6 +225,28 @@ class Net::Arp_packet
 		/******************************
 		 ** ARP field write-accessors **
 		 ******************************/
+
+		/**
+		 * \return link layer type (Arp_packet::Hardware_type).
+		 */
+		void hardware_address_type(Genode::uint16_t v) {
+			_hw_addr_type = host_to_big_endian(v); }
+
+		/**
+		 * \return network/internet layer type (Ether_frame::EtherType).
+		 */
+		void protocol_address_type(Genode::uint16_t v) {
+			_prot_addr_type = host_to_big_endian(v); }
+
+		/**
+		 * \return size in bytes of hardware address.
+		 */
+		void hardware_address_size(Genode::uint8_t v) { _hw_addr_sz = v; }
+
+		/**
+		 * \return size in bytes of protocol address.
+		 */
+		void protocol_address_size(Genode::uint8_t v) { _prot_addr_sz = v; }
 
 		/**
 		 * Set Operation code.
