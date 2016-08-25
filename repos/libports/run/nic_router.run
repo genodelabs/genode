@@ -1,0 +1,394 @@
+#
+# Build
+#
+
+set tcp_up_to_down_1   1
+set tcp_up_to_down_2   1
+set tcp_down_to_up_1   1
+set udp_down_to_down_1 1
+set udp_up_to_down_1   1
+set udp_down_to_up_1   1
+
+set build_components {
+	core init drivers/timer drivers/nic server/nic_router server/nic_bridge
+	test/lwip/http_srv_static test/lwip/http_clnt test/lxip/udp_echo
+	test/lxip/udp_client
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append config {
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+
+	<start name="nic_router">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config rtt_sec="3" verbose="no">
+
+			<policy label="uplink" src="10.0.2.55">
+				<ip dst="192.168.1.18/32" label="http_srv_1" />
+				<ip dst="10.0.2.0/24">
+					<tcp dst="29"   label="commander"/>
+					<tcp dst="80"   label="keen" via="192.168.1.18" />
+					<tcp dst="8080"              via="192.168.1.72" />
+					<tcp dst="10"   label="earthworm"/>
+					<tcp dst="2345" label="jim"/>
+				</ip>
+				<ip dst="10.0.0.0/16"     label="link" />
+				<ip dst="192.168.1.72/31" label="http_srv_2" />
+				<ip dst="10.0.2.55/32">
+					<tcp dst="132"  label="samus"      to="192.168.1.72"
+					     via="192.168.1.14" />
+
+					<tcp dst="80"   label="pacman" />
+					<tcp dst="80"   label="http_srv_1" to="192.168.1.18" />
+					<tcp dst="8080" />
+					<udp dst="1337" label="udp_srv_1"  to="10.0.99.55"
+					     via="10.0.99.55" />
+
+					<udp dst="1"    label="udp_srv_2"  to="18.17.16.15" />
+					<tcp dst="8080" label="http_srv_2" to="192.168.1.72" />
+				</ip>
+			</policy>
+
+			<policy label="http_srv_1" src="192.168.1.1" nat="yes" nat-tcp-ports="4">
+				<ip dst="10.0.0.0/19"   label="uplink" via="10.0.6.1" />
+				<ip dst="10.0.2.128/25" label="uplink" via="10.0.3.1" />
+				<ip dst="10.0.2.0/24"   label="uplink" />
+			</policy>
+
+			<policy label="http_srv_2" src="192.168.1.1" nat="yes" nat-tcp-ports="2">
+				<ip dst="10.0.2.0/24" label="uplink" />
+			</policy>
+
+			<policy label="http_clnt_3" src="100.200.0.1" nat="yes" nat-tcp-ports="4">
+				<ip dst="10.0.6.0/23" label="uplink" via="10.0.4.1" />
+				<ip dst="10.0.0.0/16" />
+				<ip dst="10.0.2.0/24" label="uplink" />
+			</policy>
+
+			<policy label="udp_srv_1" src="10.0.99.33" nat="yes" nat-udp-ports="1">
+				<ip dst="10.0.2.0/24"  label="uplink" />
+				<ip dst="10.0.98.0/24" label="udp_clnt_1" />
+			</policy>
+
+			<policy label="udp_srv_2" src="18.17.15.14">
+				<ip dst="10.0.2.0/24" label="uplink" />
+			</policy>
+
+			<policy label="udp_clnt_1" src="10.0.98.33">
+				<ip dst="10.0.98.33/32">
+					<udp dst="1337" label="udp_srv_1" to="10.0.99.55"
+					     via="10.0.99.55"/>
+				</ip>
+			</policy>
+
+			<policy label="udp_clnt_3" src="217.13.192.1" nat="yes" nat-udp-ports="2">
+				<ip dst="10.0.0.0/18" label="uplink" />
+			</policy>
+
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_bridge">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config>
+			<policy label="nic_router" ip_addr="10.0.2.55"/>
+			<policy label="http_srv_3" ip_addr="10.0.2.11"/>
+			<policy label="udp_clnt_2" ip_addr="10.0.2.123"/>
+			<policy label="udp_srv_3"  ip_addr="10.0.2.70"/>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append_if $udp_down_to_down_1 config {
+
+	<start name="udp_clnt_1">
+		<binary  name="test-lxip_udp_client" />
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.98.55"
+			      gateway="10.0.98.33" netmask="255.255.255.0"
+			      server_ip="10.0.98.33" server_port="1337">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+
+	<start name="udp_srv_1">
+		<binary  name="test-lxip_udp_echo" />
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.99.55"
+			      gateway="10.0.99.33" netmask="255.255.255.0" port="1337">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
+
+append_if $udp_up_to_down_1 config {
+
+	<start name="udp_clnt_2">
+		<binary  name="test-lxip_udp_client" />
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.123"
+			      gateway="10.0.2.55" netmask="255.255.255.0"
+			      server_ip="10.0.2.55" server_port="1">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+
+	<start name="udp_srv_2">
+		<binary  name="test-lxip_udp_echo" />
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="18.17.16.15"
+			      gateway="18.17.15.14" netmask="255.255.0.0" port="1">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
+
+append_if $udp_down_to_up_1 config {
+
+	<start name="udp_clnt_3">
+		<binary  name="test-lxip_udp_client" />
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="217.13.192.2"
+			      gateway="217.13.192.1" netmask="255.255.192.0"
+			      server_ip="10.0.2.70" server_port="65535">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+
+	<start name="udp_srv_3">
+		<binary  name="test-lxip_udp_echo" />
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.70"
+			      netmask="255.255.255.0" gateway="10.0.2.1" port="65535">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
+
+append_if $tcp_up_to_down_1 config {
+
+	<start name="http_srv_1">
+		<binary name="test-lwip_httpsrv_static"/>
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="192.168.1.18"
+			      netmask="255.255.255.0" gateway="192.168.1.1" http_port="80">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+	<start name="http_clnt_1">
+		<binary name="test-http_clnt"/>
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
+			      http_port="80">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
+
+append_if $tcp_up_to_down_2 config {
+
+	<start name="http_srv_2">
+		<binary name="test-lwip_httpsrv_static"/>
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="192.168.1.72"
+			      netmask="255.255.255.0" gateway="192.168.1.1"
+			      http_port="8080">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+	<start name="http_clnt_2">
+		<binary name="test-http_clnt"/>
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
+			      http_port="8080">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
+
+append_if $tcp_down_to_up_1 config {
+
+	<start name="http_srv_3">
+		<binary name="test-lwip_httpsrv_static"/>
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.11"
+			      netmask="255.255.255.0" gateway="10.0.2.1"  http_port="2345">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+	<start name="http_clnt_3">
+		<binary name="test-http_clnt"/>
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="100.200.0.128"
+			      netmask="255.255.0.0" gateway="100.200.0.1"
+			      server_ip="10.0.2.11" http_port="2345">
+
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
+
+append config { </config> }
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+
+	core init timer nic_drv nic_router nic_bridge ld.lib.so libc.lib.so
+	libc_resolv.lib.so lwip.lib.so lxip.lib.so test-http_clnt
+	test-lwip_httpsrv_static test-lxip_udp_echo test-lxip_udp_client
+}
+
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir udp:5555::1337 "
+
+#
+# FIXME: For unknown reasons, there seems to be a problem in the NIC router
+#        with the destruction of NIC sessions that had TCP connections running.
+#        This is why sometimes not all HTTP clients exit properly. Thus, look
+#        merely for 4 client exits (at least 3xUDP 1xTCP) by now.
+#
+run_genode_until ".*child \".*_clnt_.\" exited with exit value 0.*\n.*child \".*_clnt_.\" exited with exit value 0.*\n.*child \".*_clnt_.\" exited with exit value 0.*\n.*child \".*_clnt_.\" exited with exit value 0.*\n" 100
