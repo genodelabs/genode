@@ -77,6 +77,9 @@ struct Net::Network_address
 		}
 		return true;
 	}
+
+	bool operator!=(const Network_address &other) const {
+		return !(*this == other); }
 };
 
 #endif /* _NET__NETADDRESS_H_ */
