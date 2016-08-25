@@ -33,5 +33,7 @@ install_config {
 
 build_boot_image "core init test-ds_ownership"
 
+append qemu_args "-nographic -m 64"
+
 run_genode_until {.*test succeeded.*\n} 10
 
