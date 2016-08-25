@@ -21,7 +21,13 @@
 #include <util/endian.h>
 #include <net/mac_address.h>
 
-namespace Net { class Ethernet_frame; }
+namespace Net
+{
+	class Ethernet_frame;
+
+	template <Genode::size_t DATA_SIZE>
+	class Ethernet_frame_sized;
+}
 
 
 /**
@@ -57,6 +63,7 @@ class Net::Ethernet_frame
 
 		class No_ethernet_frame : Genode::Exception {};
 
+		enum { MIN_SIZE = 64 };
 
 		/**
 		 * Id representing encapsulated protocol.
@@ -175,6 +182,34 @@ class Net::Ethernet_frame
 		 */
 		void * operator new(Genode::size_t size, void* addr) {
 			return addr; }
+
+} __attribute__((packed));
+
+
+template <Genode::size_t DATA_SIZE>
+class Net::Ethernet_frame_sized : public Ethernet_frame
+{
+	private:
+
+		enum {
+			HS = sizeof(Ethernet_frame),
+			DS = DATA_SIZE + HS >= MIN_SIZE ? DATA_SIZE : MIN_SIZE - HS,
+		};
+
+		Genode::uint8_t  _data[DS];
+		Genode::uint32_t _checksum;
+
+	public:
+
+		Ethernet_frame_sized(Mac_address dst_in, Mac_address src_in,
+		                     Ether_type type_in)
+		:
+			Ethernet_frame(sizeof(Ethernet_frame))
+		{
+			dst(dst_in);
+			src(src_in);
+			type(type_in);
+		}
 
 } __attribute__((packed));
 
