@@ -17,6 +17,7 @@
 /* Genode */
 #include <base/exception.h>
 #include <util/string.h>
+#include <util/token.h>
 
 #include <util/endian.h>
 #include <net/netaddress.h>
@@ -25,6 +26,8 @@ namespace Net
 {
 	enum { IPV4_ADDR_LEN = 4 };
 	typedef Network_address<IPV4_ADDR_LEN, '.', false> Ipv4_address;
+
+	class Ipv4_address_prefix;
 
 	class Ipv4_packet;
 }
@@ -193,5 +196,81 @@ class Net::Ipv4_packet
 			return addr; }
 
 } __attribute__((packed));
+
+
+struct Net::Ipv4_address_prefix
+{
+	Ipv4_address    address;
+	Genode::uint8_t prefix = 0;
+};
+
+
+namespace Genode {
+
+	inline size_t ascii_to(char const *s, Net::Ipv4_address &result);
+
+	inline size_t ascii_to(char const *s, Net::Ipv4_address_prefix &result);
+}
+
+
+Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address &result)
+{
+	using namespace Net;
+
+	struct Scanner_policy_number
+	{
+		static bool identifier_char(char c, unsigned  i ) {
+			return Genode::is_digit(c) && c !='.'; }
+	};
+
+	typedef ::Genode::Token<Scanner_policy_number> Token;
+
+	Ipv4_address  ip_addr;
+	Token         t(s);
+	char          tmpstr[4];
+	int           cnt = 0;
+	unsigned char ipb[4] = {0};
+	size_t        size = 0;
+
+	while(t) {
+		if (t.type() == Token::WHITESPACE || t[0] == '.') {
+			t = t.next();
+			size++;
+			continue;
+		}
+		t.string(tmpstr, sizeof(tmpstr));
+
+		unsigned long tmpc = 0;
+		size += Genode::ascii_to(tmpstr, tmpc);
+		ipb[cnt] = tmpc & 0xFF;
+		t = t.next();
+
+		if (cnt == 4)
+			break;
+		cnt++;
+	}
+
+	if (cnt == 4) {
+		result.addr[0] = ipb[0];
+		result.addr[1] = ipb[1];
+		result.addr[2] = ipb[2];
+		result.addr[3] = ipb[3];
+		return size;
+	}
+
+	return 0;
+}
+
+
+Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address_prefix &result)
+{
+	size_t size = ascii_to(s, result.address);
+	if (!size || s[size] != '/') { return 0; }
+	char const * prefix = &s[size + 1];
+	size_t const prefix_size = ascii_to_unsigned(prefix, result.prefix, 10);
+	if (!prefix_size) { return 0; }
+	size += prefix_size + 1;
+	return size;
+}
 
 #endif /* _IPV4_H_ */
