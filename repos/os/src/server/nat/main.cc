@@ -42,8 +42,7 @@ class Main
 		Uplink              _uplink;
 		Net::Root           _root;
 
-		void _read_ports(Genode::Xml_node &route, char const *name,
-		                 Port_allocator &_port_alloc);
+		void _read_ports(Genode::Xml_node &route, char const *name);
 
 	public:
 
