@@ -7,7 +7,7 @@ DOWNLOADS := ffat.archive
 # 'http://elm-chan.org/fsw/ff/ff007e.zip' because the elm-chan webserver
 # does not like wget.
 #
-URL(ffat) := http://genode.org/files/ff007e.zip
+URL(ffat) := https://genode.org/files/ff007e.zip
 SHA(ffat) := 3379ad817e1c4f9993ae2722e86235ec85d7e36d
 DIR(ffat) := src/lib/ffat
 
