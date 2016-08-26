@@ -1,6 +1,7 @@
 /*
  * \brief  Allocator for UDP/TCP ports
  * \author Martin Stein
+ * \author Stefan Kalkowski
  * \date   2016-08-19
  */
 
@@ -17,18 +18,21 @@
 /* Genode includes */
 #include <util/bit_allocator.h>
 
-namespace Net {
+namespace Net { class Port_allocator; }
 
-	enum { NR_OF_PORTS = ((Genode::uint16_t)~0) + 1 };
-
-	struct Port_allocator;
-}
-
-struct Net::Port_allocator : Genode::Bit_allocator<NR_OF_PORTS>
+class Net::Port_allocator
 {
-	struct Failed_to_reserve_port_0 : Genode::Exception { };
+	private:
 
-	Port_allocator();
+		enum { FIRST = 49152, COUNT = 16384 };
+
+		Genode::Bit_allocator<COUNT> _alloc;
+
+	public:
+
+		Genode::uint16_t alloc() { return _alloc.alloc() + FIRST; }
+
+		void free(Genode::uint16_t port) { _alloc.free(port-FIRST); }
 };
 
 #endif /* _PORT_ALLOCATOR_H_ */

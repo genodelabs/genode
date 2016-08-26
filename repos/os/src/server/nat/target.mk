@@ -3,7 +3,7 @@ TARGET = nat
 LIBS += base net config server
 
 SRC_CC += arp_waiter.cc ip_route.cc proxy.cc
-SRC_CC += port_allocator.cc port_route.cc component.cc
+SRC_CC += port_route.cc component.cc
 SRC_CC += mac_allocator.cc main.cc uplink.cc interface.cc arp_cache.cc
 
 INC_DIR += $(PRG_DIR)

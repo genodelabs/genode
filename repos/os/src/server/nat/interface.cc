@@ -287,7 +287,7 @@ void Interface::_handle_ip(Ethernet_frame *eth, Genode::size_t eth_size,
 	catch (Ipv4_packet::No_ip_packet) { log("Invalid IP packet"); return; }
 
 	uint8_t      tlp      = ip->protocol();
-	size_t       tlp_size = ip_size - sizeof(Ipv4_packet);
+	size_t       tlp_size = ip->total_length() - ip->header_length()*4;
 	void        *tlp_ptr  = tlp_packet(tlp, ip, tlp_size);
 	uint16_t     dst_port = tlp_dst_port(tlp, tlp_ptr);
 	Interface   *interface  = nullptr;
