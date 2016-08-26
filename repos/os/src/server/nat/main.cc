@@ -51,8 +51,7 @@ class Main
 };
 
 
-void Main::_read_ports(Xml_node &route, char const *name,
-                       Port_allocator &port_alloc)
+void Main::_read_ports(Xml_node &route, char const *name)
 {
 	try {
 		for (Xml_node port = route.sub_node(name); ; port = port.next(name)) {
@@ -61,8 +60,6 @@ void Main::_read_ports(Xml_node &route, char const *name,
 				warning("missing 'dst' attribute in port route");
 				continue;
 			}
-			try { port_alloc.alloc_index(dst); }
-			catch (Port_allocator::Already_allocated) { continue; }
 			if (_verbose) {
 				log("Reserve ", name, " ", dst); }
 		}
@@ -92,8 +89,8 @@ Main::Main(Server::Entrypoint &ep)
 			try {
 				Xml_node route = policy.sub_node("ip");
 				for (; ; route = route.next("ip")) {
-					_read_ports(route, "tcp", _tcp_port_alloc);
-					_read_ports(route, "udp", _udp_port_alloc);
+					_read_ports(route, "tcp");
+					_read_ports(route, "udp");
 				}
 			} catch (Xml_node::Nonexistent_sub_node) { }
 		}
