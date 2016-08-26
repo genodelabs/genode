@@ -413,28 +413,13 @@ char * MMR3HeapAPrintfVU(PUVM pUVM, MMTAG enmTag, const char *pszFormat, va_list
     return pszRet;
 }
 
-static inline RTHCPHYS convert_ptr(void *ptr)
-{
-	RTHCPHYS uint64ptr = 0;
-
-	static_assert(sizeof(RTHCPHYS) == 8, "unexpected RTHCPHYS size");
-
-	if (sizeof(void *) == sizeof(RTHCPHYS))
-		uint64ptr = reinterpret_cast<RTHCPHYS>(ptr);
-	else {
-		/* avoid sign extension if upper bit of pvR3 address is set */
-		uint32_t uint32ptr = reinterpret_cast<uint32_t>(ptr);
-		uint64ptr = uint32ptr;
-	}
-
-	return uint64ptr;
-}
 
 VMMR3DECL(RTHCPHYS) MMR3HyperHCVirt2HCPhys(PVM pVM, void *pvR3) {
-	return convert_ptr(pvR3); }
+	return (RTHCPHYS)(uintptr_t)pvR3; }
+
 
 VMMDECL(RTHCPHYS) MMPage2Phys(PVM pVM, void *pvPage) {
-	return convert_ptr(pvPage); }
+	return (RTHCPHYS)(uintptr_t)pvPage; }
 
 
 VMMR3DECL(void *) MMR3PageAlloc(PVM pVM)
