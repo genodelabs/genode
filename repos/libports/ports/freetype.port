@@ -3,9 +3,9 @@ VERSION := 2.3.9
 
 DOWNLOADS := freetype.archive
 
-BASE_URL := https://savory.googlecode.com/files
+BASE_URL := https://sourceforge.net/projects/freetype/files/freetype2
 
-URL(freetype) := $(BASE_URL)/freetype-$(VERSION).tar.gz
+URL(freetype) := $(BASE_URL)/$(VERSION)/freetype-$(VERSION).tar.gz
 SIG(freetype) := ${URL(freetype)}.sig
 KEY(freetype) := wl@gnu.org
 SHA(freetype) := 2c82a4f87b076c13d878129c8651645803585ff4

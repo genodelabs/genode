@@ -2,7 +2,7 @@ LICENSE   := GPLv3
 VERSION   := 1.0.1
 DOWNLOADS := exfat.archive
 
-URL(exfat) := https://exfat.googlecode.com/files/fuse-exfat-$(VERSION).tar.gz
+URL(exfat) := https://genode.org/files/fuse-exfat-$(VERSION).tar.gz
 SHA(exfat) := e24d2322797c26fb3bff5952c23f52f3274e887f
 DIR(exfat) := src/lib/exfat
 
