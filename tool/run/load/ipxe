@@ -55,7 +55,7 @@ proc create_ipxe_iso_config { } {
 		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
 		puts $fh "#!ipxe"
 		puts $fh "sanboot [run_name].iso || goto failed"
-		puts $fh
+		puts $fh ""
 		puts $fh ":failed"
 		puts $fh "echo Booting failed, dropping to shell"
 		puts $fh "shell"
