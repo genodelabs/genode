@@ -14,6 +14,7 @@
 
 #include <base/component.h>
 #include <base/log.h>
+#include <base/heap.h>
 #include <root/component.h>
 #include <hello_session/hello_session.h>
 #include <base/rpc_server.h>
