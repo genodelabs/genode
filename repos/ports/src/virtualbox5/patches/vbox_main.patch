@@ -995,6 +995,16 @@ index a717aff..3d52b9f 100644
          HRESULT hrc;
          Bstr bstr;
          PCFGMNODE pLunL1 = NULL;
+@@ -5440,6 +5450,9 @@
+
+ #undef H
+
++    /* store the slot index for session labeling */
++    InsertConfigInteger(pCfg, "Slot", uInstance);
++
+     return VINF_SUCCESS;
+ }
+
 --- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 @@ -956,7 +956,9 @@
