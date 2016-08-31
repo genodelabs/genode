@@ -4,6 +4,40 @@
                                ===========
 
 
+Genode OS Framework release 16.08 | 2016-08-31
+##############################################
+
+| Genode 16.08 makes the entirety of the framework's drivers, protocol stacks,
+| and libraries available on the seL4 kernel, brings VirtualBox 4 to the Muen
+| separation kernel, and hosts VirtualBox 5 on top of the NOVA kernel. Further
+| highlights are virtual networking and TOR, profound Zynq board support, and
+| tools for statistical profiling.
+
+With the current release, the interoperability of Genode with different
+OS kernels comes to a great effect. By completing the implementation of
+the framework's base mechanisms for seL4, literally hundreds of existing Genode
+components become suddenly available to the seL4 community. In a different
+arena, Genode serves as enabler to run commodity OSes like Windows via
+VirtualBox on top of the Muen separation kernel.
+
+The cross-kernel portability of components is certainly a key feature of the
+framework and version 16.08 pushes this idea even further by attaining binary
+compatibility across the various supported kernels. In fact, compiled once,
+the same component can be executed on kernels as different as seL4 and Linux.
+
+Speaking of components, the current release extends the framework's library
+of ready-to-use building blocks in several areas. Most prominently, there
+are new network-related components for routing traffic, using TOR, and for
+distributing Genode over the network. Other added components are concerned
+with improving the use of Genode as a general-purpose OS, or to aid the
+optimization of components by the means of statistical profiling.
+Version 16.08 is further complemented with added board support for devices
+based on Xilinx Zynq, including drivers for GPIO, video DMA, SD cards, and I2C.
+
+These and many more topics are covered in detail by the
+[http:/documentation/release-notes/16.08 - release documentation of version 16.08...]
+
+
 Genode OS Framework release 16.05 | 2016-05-27
 ##############################################
 
