@@ -1,0 +1,1126 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 16.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The formal verification of software has become an intriguing direction to
+overcome the current state of omnipresent bug-ridden software. The seL4 kernel
+is a landmark in this field of research. It is a formally verified
+high-performance microkernel that is designed to scale towards dynamic yet
+highly secure systems. However, until now, seL4 was not accompanied with a
+scalable user land. The seL4 user-land development is primarily concerned with
+static use cases and the hosting of virtual machines. With Genode 16.08, we
+finally unleash the potential of seL4 to scale to highly dynamic and flexible
+systems by making the entirety of Genode components available on this kernel.
+Section [Interactive and dynamic workloads on top of the seL4 kernel] explains
+this line of work in detail.
+
+Speaking of formal verification, the developers of the Muen separation kernel
+share the principle convictions with the seL4 community, but focus on static
+partitioned systems and apply a different tool set (Ada/SPARK). With Genode
+16.08, users of the Muen separation kernel become able to leverage Genode to
+run VirtualBox 4 on top of Muen.
+Section [VirtualBox 4 on top of the Muen separation kernel] tells the story
+behind this line of work. As we consider VirtualBox a key feature of
+Genode, we continuously improve it. In particular, we are happy to make a
+first version of VirtualBox 5 available on top of the NOVA kernel (Section
+[Experimental version of VirtualBox 5 for NOVA]).
+
+Another focus of the current release is the framework's network
+infrastructure. Section [Virtual networking and support for TOR] introduces a
+new network-routing component along with the ability to use the TOR network.
+Section [Network-transparent ROM sessions to a remote Genode system] presents
+the transparent use of Genode's ROM services over the network.
+
+Further highlights of the current release are new tools for statistical
+profiling (Section [Statistical profiling]), profound support for Xilinx Zynq
+boards (Section [Execution on bare Zynq hardware (base-hw)]), and new
+components to support the use of Genode as general-purpose OS (Section
+[Utility servers for base services]).
+
+
+Interactive and dynamic workloads on top of the seL4 kernel
+###########################################################
+
+[https://sel4.systems - seL4] is a modern microkernel that undergoes formal
+verification and promises to be a firm foundation for trustworthy systems.
+Genode - as operating system framework - on top of a microkernel pursues goals
+of the same direction. Even though seL4 is designed to accommodate dynamic
+systems in principle (in contrast to static separation kernels), so far the
+seL4 community focused on static workloads on top of their kernel. Most
+current seL4-related projects employ the
+[https://wiki.sel4.systems/CAmkES - CAmkES] framework, which allows the
+creation of static component-based systems. The combination of seL4 with
+Genode would unleash the full potential of seL4 by enabling seL4-based systems
+to scale to dynamic application domains. With far more than a hundred
+ready-to-use components, Genode provides a rich library of building blocks,
+starting from native device drivers, resource multiplexers, over protocol
+stacks, application frameworks (e.g., Qt), to applications (e.g., web browser
+Arora).
+
+With the potential synergies of both projects in mind, we already added basic
+Genode/seL4 platform support in the past releases. The existing experimental
+support was sufficient to showcase the principal feasibility of this
+combination - admittedly mainly to technical enthusiasts. With the current
+release, we ramp up the platform support of Genode/seL4 to a degree that most
+interactive and dynamic workloads of Genode can be executed on seL4 out of the
+box.
+
+We updated the seL4 kernel to version 3.2.0 and enabled all available
+time-tested x86 Genode drivers for this kernel. The main working items have
+been the implementation of interrupts, I/O port access, memory-mapped I/O
+access, the support for asynchronous notifications, and the lifetime
+management (freeing) of resources in Genode's core component.
+
+We tested many of our existing system scenarios on Qemu and on native x86
+hardware and are happy to report that the following drivers are fully
+functional for Genode/seL4: the PIT timer, PS/2, USB stack, AHCI driver, ACPI
+driver, VESA driver, audio driver, Intel wireless stack, and Intel graphics
+driver. All automated test scenarios are now routinely executed nightly on
+QEMU and on native hardware as done by Genode Labs for all supported kernels.
+
+[image sel4_screenshot]
+  Screenshot of various Genode components running directly on seL4. The Noux
+  environment on the bottom left allows the use of GNU software such as bash,
+  coreutils, and vim as one subsystem. Each of noux, the Qt5 application on
+  the right, and the front-most 3D demo application are independent subsystems
+  that cannot interfere with each other unless explicitly permitted by the
+  system policy. Under the hood, the scenario is supported by several device
+  drivers (e.g., USB, PS/2, VESA) whereby each driver is executed in a
+  dedicated protection domain.
+
+Minor adjustments and patches to the seL4 kernel were necessary, which we are
+currently contributing back to the seL4 community. The changes concern device
+memory required by ACPI, VESA, and Intel graphics; the IRQ IOAPIC handling,
+and the system-call bindings. As Genode facilitates the use of shared
+libraries, the system-call bindings had to be adjusted to be usable from
+position-independent code. A minor seL4 extension to determine the I/O ports
+for the serial cards via the BIOS data area has already reached the upstream
+seL4 repository.
+
+
+Limitations
+-----------
+
+Still, some working areas for Genode/seL4 remain open for the future, namely:
+
+* Message signaled interrupt (MSI) support
+* Support of platforms other than 32-bit x86
+* Multi-processor support
+* Complete Genode capability integrity support (currently, there exist a few
+  corner cases where Genode cannot determine the integrity of a capability
+  supplied as an RPC argument)
+* All-encompassing capability lifetime management (currently, not all
+  kernel capability selectors are freed)
+* Thread priorities
+* IOMMU support
+* Virtual machine monitor support
+* Limit of physical memory: The usable physical memory must be
+  below a kernel constant named PADDR_TOP (0x1fc00000, ~508 MB).
+  Additionally, some allocators for memory and capabilities in Genode/seL4 are
+  statically dimensioned, which may not suit x86 machines with a lot of
+  memory.
+* Support for page-table attributes (currently, the seL4 version of Genode
+  cannot benefit from write-combined access to the framebuffer, which
+  yields rather poor graphics performance)
+
+
+Try Genode/seL4 at home
+-----------------------
+
+For those who like to give the scenario depicted above a try, we have prepared
+a ready-to-use ISO image:
+
+:Download the ISO image of the Genode/seL4 example scenario:
+
+  [https://genode.org/files/release-16.08/sel4.iso]
+
+# Download the sel4.iso file
+
+# Copy the ISO image to the USB stick,
+  e.g., on Linux with the following command:
+
+  ! sudo dd if=sel4.iso of=/dev/sdx bs=10M
+
+  _(where /dev/sdx must be replaced with the device node of your USB stick)_
+
+# Change the BIOS setting to boot from USB and reboot
+
+We tested the scenario on Lenovo Thinkpads such as x201, x250, or T430. Note
+that the scenario uses the VESA driver (as opposed to the native Intel
+graphics driver), which may not work on all machines.
+
+Due to the missing support for write-combined framebuffer access, the graphics
+performance is not optimal. To get an idea about the performance of Genode
+with this feature in place, you may give the same scenario on NOVA a spin:
+
+:Download the ISO image of the Genode/NOVA example scenario:
+
+  [https://genode.org/files/release-16.08/nova.iso]
+
+Alternatively to using real hardware, you may boot either ISO image in a
+virtual machine such as VirtualBox. You can find a working VM configuration
+here (the IOAPIC must be enabled):
+
+:Download a VM configuration for seL4 on VirtualBox:
+
+  [https://genode.org/files/release-16.08/sel4.ova]
+
+# Import the OVA file as VirtualBox appliance
+
+# Edit the configuration to select the ISO image as boot medium
+
+
+Virtual networking and support for TOR
+######################################
+
+For sharing one network interface among multiple applications, Genode comes
+with a component called NIC bridge, which multiplexes several IP addresses
+over one network device. However, in limited environments where a device is
+restricted to a particular IP address, or where the IP address space is
+exhausted, the NIC-bridge component is not the tool of choice. To share one IP
+address between different network components that use their individual TCP/IP
+stack, functionality was missing. The idea of a component for virtual Network
+Address Translation (NAT) between multiple NIC sessions came up and has been
+repeatedly discussed in the past. We eventually started to work on an
+implementation of this idea. During the development, we continued the
+brain-storming, looked at the problem from different perspectives and use
+cases, and iteratively refined the design. We ultimately realized that the
+concept would have potential beyond common NAT. The implementation and
+configuration of the NAT component seemed to be easy to combine with features
+of managed switches and layer-3 routers such as:
+
+* Routing without NAT
+* Client-bound routing rules
+* Translation between virtual LANs
+* Port forwarding
+
+This is why at some point, we renamed the component to NIC router and treated
+the initial NAT functionality merely as a flavour of the new feature set. One
+use case that influenced the development of the NIC router in particular was
+the integration of TOR into Genode scenarios.
+
+[image nic_router_tor]
+
+The TOR component is a NIC-session client that comprises its own TCP/IP stack,
+and listens to SOCK5 proxy connections of clients. It uses the same TCP/IP
+stack to establish connections to the TOR network. To protect applications
+that shall access the internet through TOR only, it is crucial that they can
+communicate to the TOR component itself, but to no other network component.
+Here the NIC router comes into play. Its configuration allows TCP connections
+from a web client to port 9050 of the TOR component only. The TOR component
+itself does not have a route to the web client but can respond to SOCK5
+connection requests from it. The "uplink" - meaning the NIC session - to the
+NIC driver and the outer network shall not send anything to either the web
+client or the TOR component, except for responses to TCP requests of the TOR
+component to the TOR network. The following NIC-router configuration depicts
+how to achieve this routing setup:
+
+! <config>
+!     <policy label="uplink"     src="10.1.1.2"/>
+!     <policy label="tor"        src="10.1.2.1" nat="yes" nat-tcp-ports="100">
+!         <ip dst="0.0.0.0/0" label="uplink" via="10.1.1.1"/>
+!     </policy>
+!     <policy label="web-client" src="10.1.3.1" nat="yes" nat-tcp-ports="100">
+!         <ip dst="10.1.3.1/32">
+!             <tcp dst="9050" label="tor" to="10.1.2.2"/>
+!         </ip>
+!     </policy>
+! </config>
+
+The configuration states that all connected components use disjoint IP
+subnets. The NIC router acts as a NAT gateway between them, and - dependent on
+its role - uses the IP addresses 10.1.1.2, 10.1.2.1, or 10.1.3.1 as its
+gateway address. Moreover, it states that the web client can open up to
+hundred TCP connections concurrently to the TOR component restricted to port
+9050, and the TOR component in turn can open up to hundred TCP connections to
+the outer network regardless of the target IP address or port number. For a
+detailed explanation of all configuration items, you may refer to the README
+of the NIC router at _repos/os/src/server/nic_router/README_.
+
+Having the TOR port and the new NIC router available in Genode's components
+kit, we are now able to move single network applications, or even whole
+virtual machines into the TOR network. In contrast to existing approaches, the
+crucial code base needed to anonymize the network traffic, namely the TOR
+proxy component, depends on a much less complex code base. As it directly runs
+on top of Genode and does not depend on a virtualization environment, or a
+legacy monolithic kernel OS, we can reduce its TCB by orders of magnitude. The
+above-mentioned example scenario, whose run-script can be found in the
+Genode-world repository under _run/eigentor.run_ comprises approximately 460K
+compiled lines of code when running on top of the NOVA kernel. Thereby the
+lion's share of the quantity is introduced by the TOR software itself, and its
+library dependencies like OpenSSL. If we do not consider the TOR component
+itself, the trusted computing base sums up to 60K lines-of-code in our
+example. Compare this to for instance 1500K compiled lines of Linux kernel
+code when using an Ubuntu 14.04 distribution kernel alone, not to mention init
+process, Glibc, etc..
+
+Especially in combination with virtualization this scenario might become an
+interesting technological base for approaches like TAILS or Whonix.
+
+
+VirtualBox on top of the Muen and NOVA kernels
+##############################################
+
+The ability to run VirtualBox on top of a microkernel has become a key feature
+of Genode. For this reason, the current release pushes the VirtualBox support
+forward in two interesting ways. First, VirtualBox has become available on top
+of the Muen separation kernel. This undertaking is described in Section
+[VirtualBox 4 on top of the Muen separation kernel]. Second, we explored the
+use of VirtualBox 5 on top of the NOVA kernel - to a great success! This
+endeavour is covered in Section [Experimental version of VirtualBox 5 for NOVA].
+
+
+VirtualBox 4 on top of the Muen separation kernel
+=================================================
+
+_This section was written by Adrian-Ken Rueegsegger and Reto Buerki who_
+_conducted the described line of work independent from Genode Labs._
+
+Overview
+--------
+
+As briefly mentioned in the Genode
+[https://genode.org/documentation/release-notes/16.05 - 16.05 release notes],
+we have been working on VirtualBox support for 'hw_x68_64_muen'. The
+implementation has finally reached a stage where all necessary features have
+been realized and it has been integrated into Genode's mainline. This means
+that you can now run strongly isolated Windows VMs on the Muen separation
+kernel offering a user experience that is on par with VirtualBox on NOVA.
+
+When we started our work on Genode, our initial plan was to leverage its
+VirtualBox support as a means to run Windows on Muen. As a first step we ported
+the base-hw kernel - back then ARM-only - to the 64-bit Intel architecture. The
+resulting 'hw_x86_64' platform was included in the
+[https://genode.org/documentation/release-notes/15.05#Principal_support_for_the_64-bit_x86_architecture - 15.05 release].
+
+Building on top of 'hw_x86_64', we then implemented support for running the
+base-hw kernel as guest on the Muen separation kernel. As the porting work
+progressed quite quickly, this line of work became part of Genode
+[https://genode.org/documentation/release-notes/15.08#Genode_on_top_of_the_Muen_Separation_Kernel - 15.08].
+
+Having laid the groundwork, we could then tackle the task we initially set out
+to do: bringing VirtualBox to Muen.
+
+
+Architecture
+------------
+
+[image muen_virtualbox_architecture]
+
+On Muen, Genode runs as a guest in VMX non-root mode without special
+privileges. VirtualBox is executed as a user-level component, which makes the
+architecture special in the sense that the virtual-machine monitor (VMM)
+itself is running inside a strongly isolated VM.
+
+The guest VM managed by VirtualBox is a separate Muen subject with statically
+assigned resources. Access to the guest VM memory is enabled by mapping it
+into the VMM's address space at a certain offset specified in the Muen system
+policy. Similarly, the guest subject state is mapped at a predefined address
+so VirtualBox can manipulate e.g., register values etc. After the initial
+setup, hardware-accelerated execution of the guest VM is started by triggering
+a handover event defined in the Muen system policy. The guest VM is then
+executed in place of the Genode subject.
+
+Control is handed back to VirtualBox when a trap occurs during the execution
+of the guest VM, e.g., the guest accesses resources of a device that is
+emulated by a VirtualBox device model. Furthermore a handover back to the VMM
+can be forced by using the Muen timed event mechanism. This prevents CPU
+monopolization by the guest VM and ensures that VirtualBox gets its required
+share of execution time.
+
+Even though the VirtualBox support on Muen draws largely from the existing
+NOVA implementation, there are some key differences. One aspect, as mentioned
+above, is that VirtualBox and its managed VM are never executed
+simultaneously. From the perspective of the base-hw kernel, switching to and
+from the guest VM is similar to the normal/secure world switch of
+[https://genode.org/documentation/articles/trustzone - ARM TrustZone]. This
+enabled us to reuse the existing base-hw VM session interface.
+
+Whereas on NOVA, guest VM memory is donated by the VirtualBox component, the
+guest has its own distinct physical memory specified in the Muen system
+policy. Thus the guest-VM resources, including memory, are all static and
+VirtualBox does not need to map and unmap resources at runtime.
+
+Since guests on Muen run in hardware-accelerated mode as much as possible,
+VirtualBox does not need to emulate entire classes of instructions. One
+important example is that the guest VM directly uses the hardware FPU and the
+VMM does not emulate floating point instructions. Therefore, it does not need
+to have access to the FPU state. This greatly reduces the implementation
+complexity and avoids potential issues due to the loading of an invalid FPU
+state.
+
+As mentioned above, the most intriguing peculiarity is that on
+'hw_x86_64_muen', VirtualBox itself is running in VMX non-root mode and thus
+as a guest VM. This means that the VMM is executed like any other Muen subject
+without special privileges, retaining the strong isolation properties offered
+by the Muen SK. Despite this architectural difference, there is no noticeable
+performance hit due to the extensive use of hardware accelerated
+virtualization.
+
+
+Implementation
+--------------
+
+The necessary extensions to the 'hw_x86_64_muen' kernel primarily consist of
+the implementation of the VM session interface. A VM session is a special
+base-hw kernel thread that represents the execution state of the guest VM. It
+is scheduled when the guest VM is ready to continue execution.
+
+The 'Vm::proceed' function implements the switch to the mode-transition
+assembly code declared at the '_vt_vm_entry' label. The entry enables
+interrupts and initiates a handover to the guest VM by invoking the event
+specified in the Muen system policy. On return from the guest VM, the VM
+thread is paused and the VM session client (VirtualBox) is signaled. Once
+VirtualBox has performed all necessary actions, the guest VM is resumed via
+invocation of the VM session 'run' function.
+
+Another adjustment to the kernel is the use of Muen timed events for guest VM
+preemption. The timer driver writes the tick count of the next kernel timer to
+the guest timed events page. This causes the guest VM to be preempted at the
+requested tick count and ensures that the guest VM cannot monopolize the CPU
+if no traps occur.
+
+On the VirtualBox side, we implemented the hwaccl layer for Muen. The main
+task of this layer is keeping the guest VM machine state between VirtualBox
+and the hardware accelerated execution on Muen in sync.
+
+Depending on the guest VM exit reason, the hwaccl code decides whether to use
+instruction emulation or to resume the guest VM in hardware accelerated mode.
+If a trap occurred that cannot be handled by the virtualization hardware,
+execution is handed to VirtualBox's recompiler that then emulates the next
+instruction.
+
+Furthermore, this code also takes care of guest VM interrupts. Pending
+interrupts are injected via the Muen subject pending interrupts mechanism.
+IRQs are transferred from the VirtualBox trap manager state to the pending
+interrupts region. If an IRQ remains pending upon returning from the guest VM,
+it is copied back to the trap manager state and cleared in the subject
+interrupts region.
+
+
+Taking VirtualBox on Muen for a spin
+------------------------------------
+
+Follow the [https://genode.org/documentation/platforms/muen - tutorial section]
+to prepare your system for Muen.
+
+As a next step, create a VirtualBox VM with a 32-bit guest OS of your choice
+and install the guest additions
+[http://download.virtualbox.org/virtualbox/4.3.36/VBoxGuestAdditions_4.3.36.iso].
+In this tutorial, we chose Windows 7.
+
+Note: use guest additions close to the VirtualBox version of Genode. We have
+successfully tested versions 4.3.16 and 4.3.36.
+
+Name the virtual disk image 'win7.vdi' and create an (empty) overlay VDI as
+follows:
+
+! vboxmanage createhd --filename overlay_win7.vdi --size $size --format vdi
+
+The VDI size (in MiB) must match the capacity of the 'win7.vdi':
+
+! vboxmanage showhdinfo win7.vdi
+
+* Setup a hard disk with 4 partitions
+* Format the fourth partition with an ext2 file system
+* Copy 'win7.vdi' to the root directory of the ext2 partition
+* Copy 'overlay_win7.vdi' to the _ram/_ directory of the ext2 partition
+
+The directory structure of partition 4 should look as follows:
+
+! /win7.vdi
+! /ram/overlay_win7.vdi
+
+Adjust the VDI UUIDs to match the ones of the Genode
+[https://github.com/genodelabs/genode/blob/master/repos/ports/run/vm_win7.vbox#L12 - repo/ports/run/vm_win7.vbox]
+file:
+
+! vboxmanage internalcommands sethduuid win7.vdi 8e55fcfc-4c09-4173-9066-341968be4864
+! vboxmanage internalcommands sethduuid ram/overlay_win7.vdi 4c5ed34f-f6cf-48e8-808d-2c06f0d11464
+
+Prepare the necessary ports as follows:
+
+! tool/ports/prepare_port dde_bsd dde_ipxe dde_rump dde_linux virtualbox libc stdcxx libiconv x86emu qemu-usb muen
+
+Create and enter the Muen build directory:
+
+! tool/create_builddir hw_x86_64_muen
+! cd build/hw_x86_64_muen
+! sed -i 's/#REPOSITORIES +=/REPOSITORIES +=/g' etc/build.conf
+! echo 'MAKE += -j5' >> etc/build.conf
+
+Build the 'vbox_auto_win7' scenario:
+
+! make run/vbox_auto_win7
+
+This produces a multiboot system image, which can be found at
+_var/run/vbox_auto_win7/image.bin_.
+
+
+Limitations
+-----------
+
+The current implementation of the 'hw_x86_64_muen' VirtualBox support has the
+following limitations:
+
+* No 64-bit Windows guest support
+* No multicore guest support
+
+Apart from these restrictions, the implementation of VirtualBox on Muen offers
+the same functionality and comparable performance as VirtualBox on NOVA.
+
+
+Conclusion
+----------
+
+While implementing VirtualBox support for 'hw_x86_64_muen', we encountered
+several issues which required some effort to resolve. The visible effects
+ranged from VirtualBox's guru meditation, over guest kernel panics, to stalled
+guests and erratic guest behavior (e.g., guest execution slow-down after some
+time). To make things worse, these errors were not deterministically
+reproducible and instrumenting the code could change the observable error.
+
+One particular source of problems was the correct injection of guest
+interrupts. The first approach was to define a Muen event for each guest
+interrupt within the policy. When VirtualBox had a pending guest interrupt,
+the corresponding event was triggered to mark it for injection upon guest VM
+resumption. This approach revealed several problems.
+
+One such issue was that interrupts could get lost due to a mismatch between
+effective guest VM and VirtualBox machine state, e.g., the guest VM had
+interrupts disabled and execution was handed back to the recompiler before the
+pending interrupt could be injected.
+
+Scalability raised another issue, since all possible guest interrupts needed
+to be specified in advance in the Muen system policy. The problem was further
+compounded as guest interrupts vary depending on the operating system.
+
+We resolved the issue by enabling monitor subjects (VirtualBox) to access the
+Muen pending interrupts data structure of the associated guest VM. This simple
+enhancement of Muen allows VirtualBox to directly mark guest interrupts
+pending without having to trigger a Muen event or having to extend the Muen
+kernel. Furthermore, keeping the pending interrupt state of the guest VM and
+the VirtualBox machine state in sync has become trivial and thus no interrupts
+are lost.
+
+[image hw_x86_64_muen-virtualbox-win7-bsod]
+
+Another cause for grief was that, by default, VirtualBox scenarios on Genode
+are configured to use multiple CPUs. This could lead to guest state corruption
+since multiple emulation threads (EMT) were operating on the same subject
+state. Once we had discovered the underlying cause for this problem, we
+remedied the issue by clamping the guest processor count to one.
+
+Looking back at the adventurous journey beginning with the base-hw x86_64 port
+and culminating in the VirtualBox support for Muen, we are quite happy on how
+we were able to achieve the goal we initially set out to accomplish. We would
+like to thank the always helpful guys at Genode Labs for their support and the
+rewarding collaboration!
+
+
+Experimental version of VirtualBox 5 for NOVA
+=============================================
+
+We experimented with upgrading our VirtualBox 4 port to the newer VirtualBox 5
+version in order to keep up with the current developments at Oracle.
+Additionally, we used this experimental work as an opportunity to explore the
+reduction of the number of Genode-specific modifications of VirtualBox. We
+found that we could indeed use most of the original PGM source code (Page
+Manager and Monitor), which we originally replaced by a custom Genode
+implementation. This is a great relief for further maintenance. One major
+benefit using the original code is that it enabled us to use the IEM component
+of VirtualBox - an instruction emulator - as virtualization back end for the
+handling of I/O operations. The IEM has far less overhead than the
+traditionally used QEMU-based REM (Recompiled Execution Monitor).
+
+The current state is sufficient to execute 32-bit Windows 7 VMs on 64-bit
+Genode/NOVA. Since the port is still incomplete and largely untested for other
+VMs, and to avoid trouble with the newly added VirtualBox 4 Genode/Muen
+support, we decided to make this port available as separate VMM besides the
+VirtualBox 4 VMM and the Seoul VMM on Genode/NOVA.
+
+To test-drive VirtualBox 5 on NOVA, please refer to the run script at
+_ports/run/vbox_auto_win7_vbox5.run_.
+
+
+Functional enhancements
+=======================
+
+Virtual AHCI controller
+-----------------------
+
+By adding the device model for the AHCI controller to our version of
+VirtualBox, virtual machines become able to use virtual SATA disks. This way,
+we can benefit from the more efficient virtualization of AHCI compared to IDE
+and - at the same time - Genode's version of VirtualBox becomes more
+interoperable with existing VirtualBox configurations.
+
+
+Configuration option to enable the virtual XHCI controller
+----------------------------------------------------------
+
+The virtual XHCI controller, which is used for passing-through host USB
+devices to a VM, is now disabled by default and can be enabled with the new
+
+! <config xhci="yes">
+
+configuration option.
+
+
+Configuration option to enforce the use of the IOAPIC
+-----------------------------------------------------
+
+The virtual PCI model delivers IRQs to the PIC by default and to the IOAPIC
+only if the guest operating system selected the IOAPIC via ACPI method calls.
+When running a guest operating system which uses the IOAPIC, but does not call
+these ACPI methods (for example Genode on NOVA), the new configuration option
+
+! <config force_ioapic="yes">
+
+enforces the delivery of PCI IRQs to the IOAPIC.
+
+
+Base framework
+##############
+
+Cultivation of the new text-output API
+======================================
+
+The
+[https://genode.org/documentation/release-notes/16.05#The_great_API_renovation - previous release]
+overhauled the framework's API in several areas to ease the development of
+components that are robust, secure, and easy to assess. One of the changes was
+abolishing the use of format strings in favour of a much simpler and more
+flexible text-output facility based on C++11 variadic templates.
+
+During the past release cycle, we adapted almost all Genode components to the
+new text-output API. In the process (we reworked over 700 source files), we
+refined the API in three ways.
+
+First, we supplemented the log output functions provided by _base/log.h_ with
+the new 'Genode::raw' function that prints output directly via a low-level
+kernel mechanism, if available. Since the implementation of this function does
+not rely on any Genode functionality but invokes the underlying kernel
+directly, it is ideal for instrumenting low-level framework code. Since it
+offers the same flexibility as the other output functions with respect to the
+printable types, it supersedes any formerly used kernel-specific debugging
+utilities.
+
+Second, we added overloads of the 'print' function for the basic types
+'signed', 'unsigned', 'bool', 'float', and 'double'. Individual characters can
+be printed using a new 'Char' helper type.
+
+Third, we supplemented types that are often used by components with 'print'
+methods. Thereby, objects of such types can be directly passed to an output
+function to produce a useful textual representation. The covered types include
+'Capability' (which reveals the kernel-specific representation), 'String',
+'Framebuffer::Mode', and 'Mac_address'.
+
+While adjusting the log messages, we repeatedly stumbled over the problem that
+printing 'char *' arguments is ambiguous. It is unclear whether to print the
+argument as pointer or null-terminated string. To overcome this problem, we
+introduced a new type 'Cstring' that allows the caller to express that the
+argument should be handled as null-terminated string. As a nice side effect,
+with this type in place, the optional 'len' argument of the 'String' class
+could be removed. Instead of supplying a pair of ('char const *', 'size_t'),
+the constructor accepts a 'Cstring'. This, in turn, clears the way to let the
+'String' constructor use the new output mechanism to assemble a string from
+multiple arguments (and thereby getting rid of 'snprintf' within Genode in the
+near future).
+
+To enforce the explicit resolution of the 'char *' ambiguity at compile time,
+the 'char *' overload of the 'print' function is marked as deleted.
+
+*Note* that the rework prompted us to clean up the framework's base headers at
+a few places that may interfere with components using those headers. I.e., we
+removed unused includes from _root/component.h_, specifically _base/heap.h_
+and _ram_session/ram_session.h_. Hence, components that relied on the implicit
+inclusion of those headers have to manually include those headers now.
+
+
+Revised utilities for the handling of session labels
+====================================================
+
+We changed the construction argument of the 'Session_label' to make it more
+flexible to use. Originally, the class took an entire session-argument string
+as argument and extracted the label portion. The new version takes the
+verbatim label as argument. The extraction of the label from an argument
+string must be manually done via function 'label_from_args' now. This way, the
+label operations become self-descriptive in the code. At the same time, this
+change will ease our plan to eventually abandon the ancient session-argument
+syntax in the future.
+
+Note that this *API change* affects the semantics of existing code but
+unfortunately does not trigger a compile error for components that rely on the
+original meaning! Of course, we updated all mainline Genode components, but
+custom components outside the Genode source tree should be revisited with
+respect to the use of the 'Session_label' utility.
+
+
+Low-level OS infrastructure
+###########################
+
+Network-transparent ROM sessions to a remote Genode system
+==========================================================
+
+For building Genode-based distributed systems, a communication mechanism that
+interconnects multiple Genode devices is required. As a first step, we added
+proxy components to the world repository that transparently forward ROM
+sessions to a remote Genode system. As "ROM" represents one of the most common
+session interfaces, the proxy components already enable the distribution of
+many existing Genode applications.
+
+[image remote_rom]
+
+The basic usage scenario comprises two hosts (A and B) that are connected to
+the same network and are both running a NIC driver. One of the hosts (A) is
+running the application that shall communicate with the ROM service running on
+the other host (B). In order to establish this communication transparently,
+init is configured such that the application component connects to the ROM
+client proxy, which acts as a proxy ROM service. On host B, init is configured
+such that the ROM service proxy connects to the actual ROM service. Both proxy
+components connect to the corresponding NIC driver and use a minimalistic
+IP-based protocol to transport the data and signals of the ROM session.
+Furthermore, the proxy components must be configured with static IP addresses
+and the module name of the ROM session. Optionally, the ROMs can be populated
+with default content.
+
+For testing purposes you can use the _ROM logger_ as an application and the
+_dynamic-ROM_ component as a ROM service.
+
+!<start name="rom_logger">
+!   <resource name="RAM" quantum="4M"/>
+!   <config rom="remote"/>
+!   <route>
+!      <service name="ROM"> <child name="remote_rom_client"/> </service>
+!      <any-service> <parent/> </any-service>
+!   </route>
+!</start>
+!
+!<start name="remote_rom_client">
+!   <resource name="RAM" quantum="8M"/>
+!   <provides><service name="ROM"/></provides>
+!   <config>
+!      <remote_rom name="remote" src="192.168.42.11" dst="192.168.42.10">
+!         <default> <foobar/> </default>
+!      </remote_rom>
+!   </config>
+!</start>
+!
+!<start name="dynamic_rom">
+!   <resource name="RAM" quantum="4M"/>
+!   <provides><service name="ROM"/></provides>
+!   <config verbose="yes">
+!      <rom name="remote">
+!         <sleep milliseconds="1000"/>
+!         <inline description="disable">
+!            <test enabled="no"/>
+!         </inline>
+!         <sleep milliseconds="5000"/>
+!         <inline description="enable">
+!            <test enabled="yes"/>
+!         </inline>
+!         <sleep milliseconds="10000"/>
+!         <inline description="finished"/>
+!      </rom>
+!   </config>
+!</start>
+!
+!<start name="remote_rom_server">
+!   <resource name="RAM" quantum="8M"/>
+!   <route>
+!      <service name="ROM"> <child name="dynamic_rom"/> </service>
+!      <any-service> <any-child/> <parent/> </any-service>
+!   </route>
+!   <config>
+!      <remote_rom name="remote" src="192.168.42.10" dst="192.168.42.11">
+!         <default> <foobar/> </default>
+!      </remote_rom>
+!   </config>
+!</start>
+
+Note that the implementation is not inherently tied to the NIC session or the
+IP-based protocol but is actually intended to be modular and extensible e.g.,
+to use arbitrary inter-system communication and existing protocols. In order
+to achieve this, the implementation is split into a ROM-specific part and a
+back-end part. The back end is implemented as a library and used by both the
+client and server proxies. In summary, the client proxy implements the
+'Rom_receiver_base' and registers an instance at the back end, whereas the
+server proxy implements the 'Rom_forwarder_base' and registers it at the back
+end. You can find the base classes at _include/remote_rom/_.
+
+Thanks to Johannes Schlatow for this implementation.
+
+
+Statistical profiling
+=====================
+
+The new CPU-sampler component implements a CPU service that samples the
+instruction pointer of configured threads on a regular basis for the purpose
+of statistical profiling. The following image illustrates the integration of
+this component in an interactive scenario:
+
+[image cpu_sampler]
+
+The CPU sampler provides the CPU service to the subsystem under test. Even if
+this subsystem consists only of a single component, it must be started by a
+sub-init process to have its CPU session routed correctly. The CPU sampler
+then collects the instruction pointer samples and writes these to an
+individually labelled LOG session per sampled thread. The FS-LOG component
+receives the sample data over the LOG session and writes it into separate
+files in a RAM file system, which can be read from an interactive Noux shell.
+
+This scenario, as well as a simpler scenario - without FS LOG, the RAM file
+system, and Noux - can be built from a run script in the _gems_ repository.
+
+Configuration
+-------------
+
+The CPU-sampler component has the following configuration options:
+
+! <config sample_interval_ms="100" sample_duration_s="1">
+!   <policy label="init -> test-cpu_sampler -> ep"/>
+! </config>
+
+The 'sample_interval_ms' attribute configures the sample rate in milliseconds.
+The 'sample_duration_s' attribute configures the overall duration of the
+sampling activity in seconds. The policy label denotes the threads to be
+sampled.
+
+
+Evaluation
+----------
+
+At the moment, some basic tools for the evaluation of the sampled addresses are
+available at
+
+[https://github.com/cproc/genode_stuff/tree/cpu_sampler-16.08]
+
+These scripts should be understood as a proof-of-concept. Due to a Perl
+dependency, they do not yet work with noux.
+
+* Filtering the sampled addresses from the Genode log output
+
+  ! filter_sampled_addresses_from_log <file containing the Genode log output>
+
+  This script extracts the sampled addresses from a file containing the Genode
+  log output and saves them in the file 'sampled_addresses.txt'. It is not
+  needed when the addresses have already been written into a separate file by
+  the 'fs_log' component. The match string (label) in the script might need to
+  be adapted for the specific scenario.
+
+* Filtering the shared library load addresses from the Genode log output
+
+  ! filter_ldso_addresses_from_log <file containing the Genode log output>
+
+  This script extracts the shared library load addresses from a file
+  containing the Genode log output and saves them in the file
+  'ldso_addresses.txt'. To have these addresses appear in the Genode log
+  output, the sampled component should be configured with the
+  'ld_verbose="yes"' XML attribute if it uses shared libraries. If multiple
+  components in a scenario are configured with this attribute, the script
+  needs to be adapted to match a specific label.
+
+* Generating statistics
+
+  ! generate_statistics <ELF image> <file with sampled addresses> [<file with ldso addresses>]
+
+  This script generates the files 'statistics_by_function.txt' and
+  'statistics_by_address.txt'.
+
+  The first argument is the name of the ELF image of the sampled component.
+  The second argument is the name of a file containing the sampled addresses.
+  The third argument is the name of a file containing the shared library load
+  addresses. It is required only if the sampled component uses shared
+  libraries.
+
+  The 'statistics_by_function.txt' file lists the names of the sampled
+  functions, sorted by the highest sample count. Each line encompasses all
+  sampled addresses that belong to the particular function.
+
+  The 'statistics_by_address.txt' file is more detailed than the
+  'statistics_by_function.txt' file. It lists the sampled addresses, sorted by
+  the highest sample count, together with the name and file location of the
+  function the particular address belongs to.
+
+The 'generate_statistics' script uses the 'backtrace' script to determine the
+function names and file locations. The best location to use the scripts is the
+'build/.../bin' directory, where all the shared libraries can be found.
+
+
+Init configuration changes
+==========================
+
+We refined the label-based server-side policy-selection mechanism introduced in
+[http://genode.org/documentation/release-notes/15.11#Label-dependent_session_routing - version 15.11]
+to limit the damage of spelling mistakes in manually crafted configurations.
+I.e., consider the following policy of a file-system server with a misspelled
+'label_prefix' attribute:
+
+! <policy prefix_label="trusted_client" root="/" writeable="yes"/>
+
+Because the file-system server does not find any of the 'label',
+'label_prefix', or 'label_suffix' attributes, it would conclude that this
+policy is a default policy, which is certainly against the intention of the
+policy writer. We now enforce the presence of at least one of those
+attributes. An all-matching policy can be explicitly expressed by the new
+'<default-policy>' node, which is intuitively clearer than an empty '<policy>'
+node. When editing a configuration by hand, one would need to take a
+deliberate effort to specify such a policy. A spelling mistake would not yield
+an overly permissive policy.
+
+
+Configurable mapping of ACPI events to input events
+===================================================
+
+With the previous release, we added support for the detection of dynamic ACPI
+status changes like some Fn * keys, Lid close/open, and battery status
+information. Unfortunately, not all state changes are reported the same way on
+different notebooks, e.g., Fn * keys may get reported as ordinary PS/2 input
+events, or are reported via the embedded controller. Lid close/open changes
+may be reported by a ACPI Lid event or by the embedded controller.
+
+To be able to handle those different event sources uniformly in Genode
+applications, we added a component that transforms ACPI events to Genode
+input-session events. The component is located at
+_repos/libports/server/acpi_input_ and can be configured as shown below:
+
+! <start name="acpi_input">
+!  <resource name="RAM" quantum="1M"/>
+!   <provides><service name="Input"/></provides>
+!   <config>
+!   <!-- example mapping - adapt to your target notebook !!! -->
+!   <!-- as="PRESS_RELEASE" is default if nothing specified -->
+!   <map acpi="ec"      value="25"      to_key="KEY_VENDOR"/>
+!   <map acpi="ec"      value="20"      to_key="KEY_BRIGHTNESSUP"/>
+!   <map acpi="ec"      value="21"      to_key="KEY_BRIGHTNESSDOWN"/>
+!   <map acpi="fixed"   value="0"       to_key="KEY_POWER"  as="PRESS_RELEASE"/>
+!   <map acpi="lid"     value="CLOSED"  to_key="KEY_SLEEP"  as="PRESS"/>
+!   <map acpi="lid"     value="OPEN"    to_key="KEY_SLEEP"  as="RELEASE"/>
+!   <map acpi="ac"      value="ONLINE"  to_key="KEY_WAKEUP"/>
+!   <map acpi="ac"      value="OFFLINE" to_key="KEY_SLEEP"/>
+!   <map acpi="battery" value="0"       to_key="KEY_BATTERY"/>
+! ...
+
+The ACPI event source can be the embedded controller (ec), a fixed ACPI event
+(fixed), the notebook lid (lid), an ACPI battery (battery), or the ACPI
+alternating current (ac) status. The value of the event source can be
+mapped to a Genode input session key as either a single press or release
+input event or as both.
+
+
+Utility servers for base services
+=================================
+
+Four new servers were added to the world repository. These so-called "shim
+servers" do not provide services by themselves but are imposed between clients
+and true servers to provide some additional feature.
+
+The _ROM-fallback_ server was created for scenarios where a system is expected
+to be populated with new components in a dynamic and intuitive way. ROM
+requests that arrive at the _ROM-fallback_ server are forwarded through a list
+of possible routes and the first successfully opened session is returned. An
+example use would be to fetch objects remotely that are not present initially
+using a networked ROM server, or in the future to override objects provided by
+a package manager with local versions.
+
+:ROM fallback at the Genode-World repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/server/rom_fallback]
+
+When using the framework as a primary operating system, there is a need to
+view log information both in real-time and retrospectively without the aid of
+an external host. The new _LOG-tee_ server can be used to duplicate and
+reroute log streams at arbitrary points in the component tree. As an example,
+this allows information to be simultaneously directed on-screen and to local
+storage.
+
+:LOG-tee at the Genode-World repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/server/log_tee]
+
+Users occasionally need to remap keys and buttons. While traditional operating
+systems provide such facilities with very broad granularity, the _input-remap_
+server allows arbitrary key-code remapping between any dedicated input server
+and client.
+
+:Input remapper at the Genode-World repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/server/input_remap]
+
+When emulating gaming hardware, there is often a need to resize original
+display hardware to modern outputs. This is typically implemented in emulation
+software or at worst the entire native display resolution is downgraded to
+match an original output. The _framebuffer-upscale_ server performs scaling of
+small client framebuffers to larger framebuffers servers, isolating this task
+to a general and reusable component.
+
+:Framebuffer upscaler at the Genode-World repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/server/fb_upscale]
+
+Thanks to Emery Hemingway for contributing the components described!
+
+
+Libraries and applications
+##########################
+
+Ported 3rd-party software
+=========================
+
+The current release introduces _diffutils_ and _less_ to the Genode's runtime
+environment for Unix software (called Noux).
+
+Furthermore, the libraries _libxml2_ and _mbed TLS_ were added to the
+[https://github.com/genodelabs/genode-world - Genode-world] repository. Thanks
+to Menno Valkema for the initial port of mbed TLS!
+
+
+File-downloading component based on libcurl
+===========================================
+
+A native front end to the curl library was crafted, _fetchurl_. This utility
+is intended as a source or package management primitive.
+
+:Fetchurl at the Genode-World repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/app/fetchurl]
+
+As a warning, fetchurl sidesteps the verification of transport layer security
+and is expected to be used where content can be verified out-of-band.
+
+
+Minimalistic audio player component based on libav
+==================================================
+
+This component is a simple front-end to libav. It will play all tracks from
+a given playlist and can report the currently played track as well as its
+progress.
+
+:Audio player at the Genode-World repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/app/audio_player]
+
+For more information on how to use and configure the audio player, please
+have a look at its README file at _repos/world/src/app/audio_player/_.
+
+
+RISC-V front-end server
+=======================
+
+In version
+[http://genode.org/documentation/release-notes/16.02#New_support_for_the_RISC-V_CPU_architecture - 16.02],
+Genode gained support for the RISC-V CPU architecture. Genode can be executed
+on either a simulator or a synthesized FPGA softcore, e.g., on Xilinx Zynq
+FPGAs. On the latter platform, the RISC-V core is a secondary CPU that
+accompanies an ARM core built-in in the FPGA. The ARM core usually runs a
+Linux-based system. The Linux-based system interacts with the RISC-V system
+via a so-called front-end server, which allows the management of the RISC-V
+core and the retrieval of log output.
+
+Thanks to the added Zynq support described in Section
+[Execution on bare Zynq hardware (base-hw)], it is possible to run Genode
+on the ARM core of Zynq FPGAs as well. So a single Zynq FPGA can effectively
+host two Genode systems at the same time: one running on a RISC-V softcore CPU
+and one running on ARM. A ported version of the RISC-V front-end server
+enables the ARM-based Genode system to interact with the RISC-V-based Genode
+system. This scenario is described in detail in the README file of the port:
+
+:RISC-V front-end server at the Genode-world repository:
+
+  [https://github.com/genodelabs/genode-world/tree/master/src/app/fesrv]
+
+Thanks to Menno Valkema of [https://nlcsl.com/ - NLCSL] for contributing this
+line of work!
+
+
+Platforms
+#########
+
+Binary compatibility across all supported kernels
+=================================================
+
+Since its inception, Genode provides a uniform component API that abstracts
+from the underlying kernel. This way, a component developed once for one
+kernel can be easily re-targeted to other kernels by mere re-compilation. With
+version 16.08, we go even a step further: Dynamically linked executables and
+libraries have become kernel-agnostic. A single binary is able to run on
+various kernels with no recompilation required.
+
+To make this possible, two steps were needed:
+
+* The Genode ABI - the binary interface provided by Genode's dynamic
+  linker - had to become void of any kernel specifics. The kernel-specific
+  code is now completely encapsulated within the dynamic linker and Genode's
+  core component.
+
+* The Genode API - the header files as included by components during their
+  compilation - must not reveal any types or interfaces of a specific kernel.
+  The representation of all Genode types had to be generalized. By default,
+  any peculiarities of the underlying kernel remain invisible to components
+  now.
+
+This effort required us to form a holistic view of the kernel interfaces of
+all 8 kernels supported by Genode, which made the topic very challenging and
+exciting. The biggest stumbling blocks were the parts of the API that were
+traditionally mapped directly to kernel-specific data types, in particular the
+representation of capabilities. The generalized capability type is based on
+the version originally developed for base-sel4. All traditional L4 kernels and
+Linux use the same implementation of the capability-lifetime management. On
+base-hw, NOVA, Fiasco.OC, and seL4, custom implementations (based on their
+original mechanisms) are used, with the potential to unify them further in the
+future.
+
+At the current stage, all dynamically linked programs (such as any program
+that uses the C library) are no longer tied to a specific kernel but can be
+directly executed on any kernel supported by Genode. E.g., a Qt5 application -
+once built for Genode - can be run directly on Linux and seL4 with no
+recompilation needed. This paves the ground for the efficient implementation
+of binary packages in the near future.
+
+It is still possible to create kernel-specific components that leverage
+certain kernel features that are not accessible through Genode's API. For
+example, our version of VirtualBox facilitates the direct use of the kernel.
+Or Genode's set of pseudo device drivers for Linux interact directly with the
+Linux kernel. But those components are rare exceptions.
+
+
+Execution on bare Zynq hardware (base-hw)
+=========================================
+
+Support for Xilinx Zynq-based hardware has been added to the world repository
+by the means of additional drivers and spec files. Due to the fact that there
+is a rather large number of Zynq-based hardware available, adding these as
+separate build targets to the main repository was not practical. Instead, we
+went for the approach of adding SPECS for the different boards. Another
+benefit of this is that these can be specified in a separate repository.
+
+When creating a 'hw_zynq' build directory, 'zynq_qemu' is added to the SPECS
+by default. You can replace this with one of the following in order to run the
+image on an actual zynq-based board:
+
+* zynq_parallella
+* zynq_zedboard
+* zynq_zc706
+* zynq_zc702
+
+Note that changing the SPECS might require a 'make clean'.
+
+Furthermore, we added driver components for the SD card, GPIO, I2C and Video
+DMA to the world repository.
+
+Thanks to Timo Wischer, Mark Albers, and Johannes Schlatow!
+
+
+Removal of stale features
+#########################
+
+We removed the *TAR file-system* server because it is superseded by the VFS
+server with its built-in support for mounting TAR archives.
+
