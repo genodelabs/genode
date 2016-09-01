@@ -13,12 +13,9 @@
 #pragma once
 
 /* Genode includes */
-#include <base/printf.h>
-#include <base/thread.h>
 #include <base/env.h>
-#include <base/sleep.h>
-
-#include <cap_session/connection.h>
+#include <base/thread.h>
+#include <base/rpc_client.h>
 #include <base/rpc_server.h>
 
 /* NOVA includes */

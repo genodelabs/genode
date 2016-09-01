@@ -12,8 +12,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/thread.h>
-
 /* Genode includes */
 #include <base/thread.h>
 
