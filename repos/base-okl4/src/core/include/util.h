@@ -113,15 +113,6 @@ namespace Genode {
 		return trunc_page(page + get_page_size() - 1);
 	}
 
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long faulter_badge)
-	{
-		log(pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ", " (",
-		    msg, " pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " "
-		    "from ", Hex(faulter_badge), ")");
-	}
-
 	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
 
 	inline size_t constrain_map_size_log2(size_t size_log2) { return size_log2; }

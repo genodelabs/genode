@@ -120,9 +120,8 @@ static void page_fault_handler()
 	addr_t pf_sp   = utcb->sp;
 	addr_t pf_type = utcb->qual[0];
 
-	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
-	                 (pf_type & Ipc_pager::ERR_W) ? Region_map::State::WRITE_FAULT
-	                                              : Region_map::State::READ_FAULT, 0);
+	error("\nPAGE-FAULT IN CORE addr=", Hex(pf_addr), " ip=", Hex(pf_ip),
+	      " (", (pf_type & Ipc_pager::ERR_W) ? "write" : "read", ")");
 
 	log("\nstack pointer ", Hex(pf_sp), ", qualifiers ", Hex(pf_type), " ",
 	    pf_type & Ipc_pager::ERR_I ? "I" : "i",

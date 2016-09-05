@@ -41,19 +41,6 @@ namespace Genode {
 	}
 
 
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long faulter_badge)
-	{
-		Platform_thread * faulter = reinterpret_cast<Platform_thread *>(faulter_badge);
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx '%s':'%s')\n", msg,
-		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
-		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge, faulter ? faulter->pd_name() : "unknown",
-		       faulter ? faulter->name() : "unknown");
-	}
-
-
 	inline void backtrace()
 	{
 		using namespace Genode;

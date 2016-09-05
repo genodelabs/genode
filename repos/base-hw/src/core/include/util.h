@@ -104,41 +104,6 @@ namespace Genode
 		if (size_log2<20) return 12;
 		return 20;
 	}
-
-	/**
-	 * Print debug output on page faults
-	 *
-	 * \param fault_msg      introductory message
-	 * \param fault_addr     target address of the fault access
-	 * \param fault_ip       instruction pointer of the faulter
-	 * \param fault_type     access type of fault
-	 * \param faulter_badge  user identification of faulter
-	 */
-	inline void print_page_fault(char const * const fault_msg,
-	                             addr_t const fault_addr,
-	                             addr_t const fault_ip,
-	                             Region_map::State::Fault_type const fault_type,
-	                             unsigned const faulter_badge);
-}
-
-
-void Genode::print_page_fault(char const * const fault_msg,
-                              addr_t const fault_addr,
-                              addr_t const fault_ip,
-                              Region_map::State::Fault_type const fault_type,
-                              unsigned const faulter_badge)
-{
-	const char read[] = "read from";
-	const char write[] = "write to";
-	printf("\033[31m%s\033[0m (faulter %x", fault_msg, faulter_badge);
-	printf(" with IP %p attempts to", (void *)fault_ip);
-	printf(" %s", fault_type == Region_map::State::READ_FAULT ? read : write);
-	printf(" address %p)\n", (void *)fault_addr);
-	if (ACTIVITY_TABLE_ON_FAULTS) {
-		printf("---------- activity table ----------\n");
-		Kernel::print_char(0);
-		printf("\n");
-	}
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */

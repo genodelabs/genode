@@ -18,6 +18,7 @@
 #include <base/thread.h>
 #include <base/object_pool.h>
 #include <base/capability.h>
+#include <base/session_label.h>
 #include <cap_session/cap_session.h>
 #include <pager/capability.h>
 
@@ -152,7 +153,9 @@ namespace Genode {
 
 			Pager_object(Cpu_session_capability cpu_session_cap,
 			             Thread_capability thread_cap,
-			             unsigned long badge, Affinity::Location location);
+			             unsigned long badge, Affinity::Location location,
+			             Genode::Session_label const &,
+			             Cpu_session::Name const &);
 
 			virtual ~Pager_object();
 
@@ -362,6 +365,8 @@ namespace Genode {
 			                   const char * pd     = "core",
 			                   const char * thread = "unknown",
 			                   Policy = Policy::UPGRADE_CORE_TO_DST);
+
+			void print(Output &out) const;
 	};
 
 	/**

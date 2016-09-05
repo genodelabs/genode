@@ -101,12 +101,15 @@ Ipc_pager::Ipc_pager() : _last(0), _reply_sel(0) { }
  ** Pager object **
  ******************/
 
-Pager_object::Pager_object(Cpu_session_capability cpu_sesion,
+Pager_object::Pager_object(Cpu_session_capability cpu_session,
                            Thread_capability thread,
-                           unsigned long badge, Affinity::Location location)
+                           unsigned long badge, Affinity::Location location,
+                           Session_label const &pd_label,
+                           Cpu_session::Name const &name)
 :
-	_badge(badge), _cpu_session_cap(cpu_sesion), _thread_cap(thread),
-	_reply_cap(platform_specific()->core_sel_alloc().alloc())
+	_badge(badge), _cpu_session_cap(cpu_session), _thread_cap(thread),
+	_reply_cap(platform_specific()->core_sel_alloc().alloc()),
+	_pd_label(pd_label), _name(name)
 { }
 
 
@@ -192,8 +195,12 @@ void Pager_entrypoint::entry()
 
 			/* send reply if page-fault handling succeeded */
 			reply_pending = !obj->pager(_pager);
-			if (!reply_pending)
+			if (!reply_pending) {
+				warning("page-fault, ", *obj,
+				        " ip=", Hex(_pager.fault_ip()),
+				        " pf-addr=", Hex(_pager.fault_addr()));
 				_pager.reply_save_caller(obj->reply_cap_sel());
+			}
 		});
 	}
 }

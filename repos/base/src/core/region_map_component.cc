@@ -149,6 +149,17 @@ struct Genode::Region_map_component::Fault_area
 
 using namespace Genode;
 
+static void print_page_fault(char const *msg,
+                             addr_t pf_addr,
+                             addr_t pf_ip,
+                             Region_map::State::Fault_type pf_type,
+                             Pager_object const &obj)
+{
+	log(msg, " (",
+	    pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
+	    " pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " from ", obj, ")");
+}
+
 
 /***********************
  ** Region-map client **
@@ -168,7 +179,7 @@ int Rm_client::pager(Ipc_pager &pager)
 	addr_t pf_ip   = pager.fault_ip();
 
 	if (verbose_page_faults)
-		print_page_fault("page fault", pf_addr, pf_ip, pf_type, badge());
+		print_page_fault("page fault", pf_addr, pf_ip, pf_type, *this);
 
 	auto lambda = [&] (Region_map_component *region_map,
 	                   Rm_region            *region,
@@ -187,7 +198,7 @@ int Rm_client::pager(Ipc_pager &pager)
 			/* print a warning if it's no managed-dataspace */
 			if (region_map == member_rm())
 				print_page_fault("no RM attachment", pf_addr, pf_ip,
-				                 pf_type, badge());
+				                 pf_type, *this);
 
 			/* register fault at responsible region map */
 			if (region_map)
@@ -223,7 +234,7 @@ int Rm_client::pager(Ipc_pager &pager)
 
 			/* attempted there is no attachment return an error condition */
 			print_page_fault("attempted write at read-only memory",
-			                 pf_addr, pf_ip, pf_type, badge());
+			                 pf_addr, pf_ip, pf_type, *this);
 
 			/* register fault at responsible region map */
 			region_map->fault(this, src_fault_area.fault_addr(), pf_type);

@@ -107,18 +107,6 @@ namespace Genode {
 		return trunc_page(addr + get_page_size() - 1);
 	}
 
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long badge)
-	{
-		Pistachio::L4_ThreadId_t tid;
-		tid.raw = badge;
-		log(msg, " (",
-		    pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ", " "
-		    "pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " "
-		    "from ", Formatted_tid(tid), ")");
-	}
-
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t phys_addr) {
 		return core_local_addr; }
 

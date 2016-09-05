@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__PAGER_H_
 
 /* Genode includes */
+#include <base/session_label.h>
 #include <base/thread.h>
 #include <base/object_pool.h>
 #include <base/signal.h>
@@ -142,7 +143,8 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		 */
 		Pager_object(Cpu_session_capability cpu_session_cap,
 		             Thread_capability thread_cap, unsigned const badge,
-		             Affinity::Location);
+		             Affinity::Location, Session_label const&,
+		             Cpu_session::Name const&);
 
 		/**
 		 * User identification of pager object
@@ -170,6 +172,8 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		 * Called when a page-fault finally could not be resolved
 		 */
 		void unresolved_page_fault_occurred();
+
+		void print(Output &out) const;
 
 
 		/******************

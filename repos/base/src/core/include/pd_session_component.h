@@ -18,6 +18,7 @@
 
 /* Genode includes */
 #include <base/allocator_guard.h>
+#include <base/session_label.h>
 #include <base/rpc_server.h>
 #include <pd_session/pd_session.h>
 #include <util/arg_string.h>
@@ -133,6 +134,8 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 		{
 			return _address_space;
 		}
+
+		Session_label label() { return Session_label(_label.string); }
 
 
 		/**************************

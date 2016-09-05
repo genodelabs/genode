@@ -20,6 +20,7 @@
 #include <util/list.h>
 #include <base/allocator.h>
 #include <base/rpc_server.h>
+#include <base/session_label.h>
 #include <region_map/region_map.h>
 
 /* core includes */
@@ -73,7 +74,8 @@ struct Genode::Rm_client : Pager_object, Rm_member
 	Rm_client(Cpu_session_capability, Thread_capability, 
 	          Region_map_component *rm, unsigned long badge,
 	          Weak_ptr<Address_space> &address_space,
-	          Affinity::Location location)
+	          Affinity::Location location, Cpu_session::Name const&,
+	          Session_label const&)
 	{ }
 };
 

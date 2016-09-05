@@ -126,7 +126,9 @@ static void _core_pager_loop()
 
 Platform::Sigma0::Sigma0(Cap_index* i)
 :
-	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
+	Pager_object(Cpu_session_capability(), Thread_capability(),
+	             0, Affinity::Location(), Session_label(),
+	             Cpu_session::Name("sigma0"))
 {
 	/*
 	 * We use the Pager_object here in a slightly different manner,
@@ -139,7 +141,9 @@ Platform::Sigma0::Sigma0(Cap_index* i)
 Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
 :
 	Platform_thread("core.pager"),
-	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
+	Pager_object(Cpu_session_capability(), Thread_capability(),
+	             0, Affinity::Location(), Session_label(),
+	             Cpu_session::Name(name()))
 {
 	Platform_thread::pager(sigma0);
 

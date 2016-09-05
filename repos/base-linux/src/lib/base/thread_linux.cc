@@ -58,7 +58,7 @@ void Thread::_thread_start()
 	lx_sigaltstack(stack_base, stack_size);
 	if (stack_size < 0x1000)
 		raw("small stack of ", stack_size, " bytes for \"", thread->name(),
-		    "\" may may break Linux signal handling");
+		    "\" may break Linux signal handling");
 
 	/*
 	 * Set signal handler such that canceled system calls get not

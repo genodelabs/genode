@@ -470,6 +470,15 @@ void Pager_object::cleanup_call()
 }
 
 
+void Pager_object::print(Output &out) const
+{
+	Platform_thread * faulter = reinterpret_cast<Platform_thread *>(_badge);
+	Genode::print(out, "pager_object: pd='",
+			faulter ? faulter->pd_name() : "unknown", "' thread='",
+			faulter ? faulter->name() : "unknown", "'");
+}
+
+
 static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
                              addr_t eip, Pager_object * oom_handler)
 {
@@ -564,7 +573,8 @@ Exception_handlers::Exception_handlers(Pager_object *obj)
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Thread_capability thread_cap, unsigned long badge,
-                           Affinity::Location location)
+                           Affinity::Location location, Session_label const &,
+                           Cpu_session::Name const &)
 :
 	_badge(badge),
 	_selectors(cap_map()->insert(2)),

@@ -21,6 +21,7 @@
 #include <base/capability.h>
 #include <pager.h>
 #include <base/allocator_avl.h>
+#include <base/session_label.h>
 #include <base/synced_allocator.h>
 #include <base/signal.h>
 #include <base/rpc_server.h>
@@ -190,10 +191,12 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 		          Thread_capability thread,
 		          Region_map_component *rm, unsigned long badge,
 		          Weak_ptr<Address_space> &address_space,
-		          Affinity::Location location)
+		          Affinity::Location location,
+		          Session_label     const &pd_label,
+		          Cpu_session::Name const &name)
 		:
-			Pager_object(cpu_session, thread, badge, location), Rm_faulter(this),
-			_region_map(rm), _address_space(address_space)
+			Pager_object(cpu_session, thread, badge, location, pd_label, name),
+			Rm_faulter(this), _region_map(rm), _address_space(address_space)
 		{ }
 
 		int pager(Ipc_pager &pager);

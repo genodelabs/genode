@@ -86,15 +86,24 @@ void Pager_object::unresolved_page_fault_occurred()
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
-		error(pt->pd()->label(), " -> ", pt->label(), ": unresolved pagefault at "
-		      "ip=", pt->kernel_object()->ip, " "
-		      "sp=", pt->kernel_object()->sp, " "
-		      "fault address=", pt->kernel_object()->fault_addr());
+		warning("page fault, pager_object: pd='", pt->pd()->label(),
+		        "' thread='", pt->label(),
+		        "' ip=", Hex(pt->kernel_object()->ip),
+		        " pf-addr=", Hex(pt->kernel_object()->fault_addr()));
+}
+
+void Pager_object::print(Output &out) const
+{
+	Platform_thread * const pt = (Platform_thread *)badge();
+	if (pt && pt->pd())
+		Genode::print(out, "pager_object: pd='", pt->pd()->label(),
+		                   "' thread='", pt->label(), "'");
 }
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Thread_capability thread_cap, unsigned const badge,
-                           Affinity::Location)
+                           Affinity::Location, Session_label const &,
+                           Cpu_session::Name const &)
 :
 	Object_pool<Pager_object>::Entry(Kernel_object<Kernel::Signal_context>::_cap),
 	_badge(badge), _cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap)

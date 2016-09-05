@@ -204,7 +204,9 @@ static void _core_pager_loop()
 
 Platform::Sigma0::Sigma0()
 :
-	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
+	Pager_object(Cpu_session_capability(), Thread_capability(),
+	             0, Affinity::Location(),
+	             Session_label(), Cpu_session::Name("sigma0"))
 {
 	cap(Capability_space::import(Pistachio::get_sigma0(), Rpc_obj_key()));
 }
@@ -220,7 +222,9 @@ Platform::Sigma0 *Platform::sigma0()
 Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 :
 	Platform_thread(0, "core.pager"),
-	Pager_object(Cpu_session_capability(), Thread_capability(), 0, Affinity::Location())
+	Pager_object(Cpu_session_capability(), Thread_capability(),
+	             0, Affinity::Location(),
+	             Session_label(), Cpu_session::Name(name()))
 {
 	Platform_thread::pager(sigma0());
 

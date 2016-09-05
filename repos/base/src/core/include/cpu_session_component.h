@@ -18,9 +18,9 @@
 #include <util/list.h>
 #include <base/allocator_guard.h>
 #include <base/lock.h>
+#include <base/session_label.h>
 #include <base/rpc_server.h>
 #include <cpu_session/cpu_session.h>
-#include <base/session_label.h>
 
 /* core includes */
 #include <pager.h>
