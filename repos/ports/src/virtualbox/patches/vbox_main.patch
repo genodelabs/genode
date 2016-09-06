@@ -1495,21 +1495,6 @@ index 3889a01..5fcb53c 100644
      cchBufLeft = sizeof(szPath) - cchBufLeft;
  
      int vrc = VINF_SUCCESS;
-@@ -8096,10 +8100,14 @@ HRESULT Machine::launchVMProcess(IInternalSessionControl *aControl,
-         }
-         strSupStartLogArg.append(strStartupLogFile);
-     }
-+#if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_VBOXSDL) || defined(VBOX_WITH_HEADLESS)
-     const char *pszSupStartupLogArg = strSupStartLogArg.c_str();
-+#endif
- #else
-+#if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_VBOXSDL) || defined(VBOX_WITH_HEADLESS)
-     const char *pszSupStartupLogArg = NULL;
- #endif
-+#endif
- 
- 
- #ifdef VBOX_WITH_QTGUI
 @@ -8500,6 +8508,7 @@ HRESULT Machine::prepareRegister()
  
      // Ensure the settings are saved. If we are going to be registered and
@@ -1835,3 +1820,18 @@ index 3520c9c..e3288af 100644
      int rc = RTLogGroupSettings(RTLogRelDefaultInstance(), useLoggingLevel.c_str());
      //  If failed and not the default logging level - try to use the default logging level.
      if (RT_FAILURE(rc))
+--- a/src/app/virtualbox/include/iprt/string.h
++++ b/src/app/virtualbox/include/iprt/string.h
+@@ -113,12 +113,6 @@
+ RT_C_DECLS_END
+ #endif
+ 
+-#if !defined(RT_OS_LINUX) || !defined(_GNU_SOURCE)
+-RT_C_DECLS_BEGIN
+-void *memrchr(const char *pv, int ch, size_t cb);
+-RT_C_DECLS_END
+-#endif
+-
+ 
+ /** @def RT_USE_RTC_3629
+  * When defined the UTF-8 range will stop at  0x10ffff.  If not defined, the

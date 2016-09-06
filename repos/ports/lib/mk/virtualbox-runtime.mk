@@ -3,7 +3,7 @@ include $(REP_DIR)/lib/mk/virtualbox-common.inc
 INC_DIR += $(VBOX_DIR)/Runtime/include
 
 INC_DIR += $(VIRTUALBOX_DIR)/src/libs/liblzf-3.4
-INC_DIR += $(VIRTUALBOX_DIR)/src/libs/zlib-1.2.6
+INC_DIR += $(VIRTUALBOX_DIR)/src/libs/zlib-1.2.8
 INC_DIR += $(call select_from_ports,libiconv)/include/iconv
 
 GENERIC_SRC_CC = $(notdir $(wildcard $(VBOX_DIR)/Runtime/generic/*.cpp))
@@ -13,6 +13,7 @@ FILTERED_OUT_SRC_CC = RTLogDefaultInit-generic.cpp \
                       semrw-lockless-generic.cpp \
                       tls-generic.cpp \
                       fs-stubs-generic.cpp \
+                      http-curl.cpp \
                       RTSemEventMultiWait-2-ex-generic.cpp \
                       RTLogWriteStdErr-generic.cpp \
                       RTLogWriteStdOut-generic.cpp \
@@ -23,7 +24,8 @@ FILTERED_OUT_SRC_CC = RTLogDefaultInit-generic.cpp \
                       RTFileExists-generic.cpp \
                       RTSemMutexRequest-generic.cpp \
                       RTSemMutexRequestDebug-generic.cpp \
-                      RTDirExists-generic.cpp
+                      RTDirExists-generic.cpp \
+                      RTMpOnPair-generic.cpp
 
 CC_WARN += -Wno-unused-variable
 
