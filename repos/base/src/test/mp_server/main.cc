@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	printf("Detected %ux%u CPU%s\n",
 	       cpus.width(), cpus.height(), cpus.total() > 1 ? "s." : ".");
 
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = 2*1024*sizeof(long) };
 
 	static Cap_connection cap;
 	Rpc_entrypoint ** eps = new (env()->heap()) Rpc_entrypoint*[cpus.total()];
