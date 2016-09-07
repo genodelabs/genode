@@ -39,8 +39,9 @@ class Kernel::Timeout : public Genode::List<Timeout>::Element
 	private:
 
 		bool   _listed = false;
-		time_t _start  = 0;
-		time_t _end    = 0;
+		time_t _start;
+		time_t _end;
+		bool   _end_period;
 
 	public:
 
@@ -62,12 +63,11 @@ class Kernel::Clock
 		unsigned const        _cpu_id;
 		Timer * const         _timer;
 		time_t                _time = 0;
-		Genode::List<Timeout> _timeout_list;
+		bool                  _time_period = false;
+		Genode::List<Timeout> _timeout_list[2];
 		time_t                _last_timeout_duration = 0;
 
-		void _insert_timeout(Timeout * const timeout);
-
-		void _remove_timeout(Timeout * const timeout);
+		bool _time_overflow(time_t const duration) const;
 
 	public:
 
