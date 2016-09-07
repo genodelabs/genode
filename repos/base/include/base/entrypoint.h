@@ -61,7 +61,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 			:
 				Thread(env, "signal_proxy", STACK_SIZE),
 				ep(ep)
-			{ }
+			{ start(); }
 
 			void entry() override { ep._process_incoming_signals(); }
 		};
