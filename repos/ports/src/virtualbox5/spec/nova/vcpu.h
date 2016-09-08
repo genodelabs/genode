@@ -327,6 +327,13 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		{
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
+			/* avoid utcb corruption by requesting tpr state early */
+			bool interrupt_pending    = false;
+			uint8_t tpr               = 0;
+			uint8_t pending_interrupt = 0;
+			PDMApicGetTPR(pVCpu, &tpr, &interrupt_pending, &pending_interrupt);
+
+			/* don't call function hereafter which may corrupt the utcb ! */
 			using namespace Nova;
 
 			utcb->mtd |= Mtd::EIP;
@@ -420,10 +427,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			utcb->write_kernel_gs_base(pCtx->msrKERNELGSBASE);
 
 			/* from HMVMXR0.cpp */
-			bool interrupt_pending    = false;
-			uint8_t tpr               = 0;
-			uint8_t pending_interrupt = 0;
-			PDMApicGetTPR(pVCpu, &tpr, &interrupt_pending, &pending_interrupt);
 			utcb->mtd |= Mtd::TPR;
 			utcb->write_tpr(tpr);
 			utcb->write_tpr_threshold(0);
@@ -435,8 +438,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				else
 					utcb->write_tpr_threshold(tpr_priority);
 			}
-
-			Assert(!(VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
 			return true;
 		}
@@ -515,7 +516,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			if (pCtx->msrKERNELGSBASE != utcb->read_kernel_gs_base())
 				CPUMSetGuestMsr(pVCpu, MSR_K8_KERNEL_GS_BASE, utcb->read_kernel_gs_base());
 
-			PDMApicSetTPR(pVCpu, utcb->read_tpr());
+			const uint32_t tpr = utcb->read_tpr();
 
 			VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_TO_R3);
 
@@ -530,12 +531,18 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			} else
 				VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
 
+			/* functions that corrupt utcb (e.g. when logging enabled) */
+			PDMApicSetTPR(pVCpu, tpr);
+
 			return true;
 		}
 
 
 		inline bool check_to_request_irq_window(Nova::Utcb * utcb, PVMCPU pVCpu)
 		{
+			if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
+				return false;
+
 			if (!TRPMHasTrap(pVCpu) &&
 				!VMCPU_FF_IS_PENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC |
 				                             VMCPU_FF_INTERRUPT_PIC)))
@@ -563,6 +570,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			Assert(_irq_win);
 			_irq_win = false;
 
+			/* request current tpr state from guest, it may block IRQs */
+			PDMApicSetTPR(pVCpu, utcb->read_tpr());
+
 			if (!TRPMHasTrap(pVCpu)) {
 
 				bool res = VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_INTERRUPT_NMI);
@@ -577,6 +587,13 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 					rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
 					Assert(RT_SUCCESS(rc));
+				}
+
+				if (!TRPMHasTrap(pVCpu)) {
+					/* happens if PDMApicSetTPR (see above) mask IRQ */
+					utcb->inj_info = IRQ_INJ_NONE;
+					utcb->mtd      = Nova::Mtd::INJ | Nova::Mtd::FPU;
+					Nova::reply(_stack_reply);
 				}
 			}
 
@@ -632,8 +649,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		inline bool continue_hw_accelerated(Nova::Utcb * utcb, bool verbose = false)
 		{
-			Assert(!(VMCPU_FF_IS_SET(_current_vcpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
-
 			uint32_t check_vm = VM_FF_HM_TO_R3_MASK | VM_FF_REQUEST
 			                    | VM_FF_PGM_POOL_FLUSH_PENDING
 			                    | VM_FF_PDM_DMA;
