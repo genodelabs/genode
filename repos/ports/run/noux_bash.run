@@ -220,3 +220,7 @@ if {[have_spec x86_64]} {
 run_genode_until forever
 
 exec rm bin/bash.tar
+exec rm bin/coreutils.tar
+exec rm bin/diffutils.tar
+exec rm bin/less.tar
+exec rm bin/vim.tar
