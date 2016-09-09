@@ -114,10 +114,10 @@ class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
 {
 	private:
 
-		Pager_object         *_pager_object;
-		Lock                  _lock;
-		Region_map_component *_faulting_region_map;
-		Region_map::State     _fault_state;
+		Pager_object                   *_pager_object;
+		Lock                            _lock;
+		Weak_ptr<Region_map_component>  _faulting_region_map;
+		Region_map::State               _fault_state;
 
 	public:
 
@@ -129,7 +129,7 @@ class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
 		 * Currently, there is only one pager in core.
 		 */
 		Rm_faulter(Pager_object *pager_object) :
-			_pager_object(pager_object), _faulting_region_map(0) { }
+			_pager_object(pager_object) { }
 
 		/**
 		 * Assign fault state
@@ -218,7 +218,8 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 };
 
 
-class Genode::Region_map_component : public Rpc_object<Region_map>,
+class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_map_component>,
+                                     public Rpc_object<Region_map>,
                                      public List<Region_map_component>::Element
 {
 	private:

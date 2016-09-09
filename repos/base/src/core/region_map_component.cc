@@ -273,7 +273,7 @@ void Rm_faulter::fault(Region_map_component *faulting_region_map,
 {
 	Lock::Guard lock_guard(_lock);
 
-	_faulting_region_map = faulting_region_map;
+	_faulting_region_map = faulting_region_map->weak_ptr();
 	_fault_state         = fault_state;
 
 	_pager_object->unresolved_page_fault_occurred();
@@ -285,10 +285,14 @@ void Rm_faulter::dissolve_from_faulting_region_map(Region_map_component * caller
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	if (_faulting_region_map)
-		_faulting_region_map->discard_faulter(this, _faulting_region_map != caller);
+	{
+		Locked_ptr<Region_map_component> locked_ptr(_faulting_region_map);
 
-	_faulting_region_map = 0;
+		if (locked_ptr.valid())
+			locked_ptr->discard_faulter(this, &*locked_ptr != caller);
+	}
+
+	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
 }
 
 
@@ -297,7 +301,7 @@ void Rm_faulter::continue_after_resolved_fault()
 	Lock::Guard lock_guard(_lock);
 
 	_pager_object->wake_up();
-	_faulting_region_map = 0;
+	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
 	_fault_state = Region_map::State();
 }
 
@@ -653,6 +657,8 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
 Region_map_component::~Region_map_component()
 {
 	_ds_ep->dissolve(this);
+
+	lock_for_destruction();
 
 	/* dissolve all clients from pager entrypoint */
 	Rm_client *cl;
