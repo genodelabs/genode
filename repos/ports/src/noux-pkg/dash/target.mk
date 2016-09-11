@@ -3,6 +3,6 @@
 # compiler command line, but also in the 'sys/param.h' header of the FreeBSD
 # libc.
 #
-NOUX_CFLAGS = -UBSD
+CFLAGS = -UBSD
 
 include $(REP_DIR)/mk/noux.mk

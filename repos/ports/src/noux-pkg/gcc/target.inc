@@ -1,37 +1,37 @@
 PWD = $(shell pwd)
 
-NOUX_PKG_DIR = $(call select_from_ports,gcc)/src/noux-pkg/gcc
+PKG_DIR = $(call select_from_ports,gcc)/src/noux-pkg/gcc
 
-NOUX_CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
-                      --target=$(GCC_TARGET) \
-                      --enable-languages=c,c++ \
-                      --disable-libgo \
-                      --disable-libssp \
-                      --disable-libquadmath \
-                      --disable-libffi \
-                      --enable-targets=all \
-                      --with-gnu-as \
-                      --with-gnu-ld \
-                      --disable-tls \
-                      --disable-threads \
-                      --disable-hosted-libstdcxx \
-                      --enable-shared \
-                      --enable-multiarch \
-                      --disable-sjlj-exceptions
+CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
+                 --target=$(GCC_TARGET) \
+                 --enable-languages=c,c++ \
+                 --disable-libgo \
+                 --disable-libssp \
+                 --disable-libquadmath \
+                 --disable-libffi \
+                 --enable-targets=all \
+                 --with-gnu-as \
+                 --with-gnu-ld \
+                 --disable-tls \
+                 --disable-threads \
+                 --disable-hosted-libstdcxx \
+                 --enable-shared \
+                 --enable-multiarch \
+                 --disable-sjlj-exceptions
 
-NOUX_ENV += host_configargs="$(HOST_CONFIG_ARGS)" \
-            target_configargs="$(TARGET_CONFIG_ARGS)"
+ENV += host_configargs="$(HOST_CONFIG_ARGS)" \
+       target_configargs="$(TARGET_CONFIG_ARGS)"
 
-NOUX_ENV += CC_FOR_TARGET=$(CC) CXX_FOR_TARGET=$(CXX) GCC_FOR_TARGET=$(CC) CPP_FOR_TARGET="$(CC) -E" \
-            LD_FOR_TARGET=$(LD) AS_FOR_TARGET=$(AS) AR_FOR_TARGET=$(AR)
+ENV += CC_FOR_TARGET=$(CC) CXX_FOR_TARGET=$(CXX) GCC_FOR_TARGET=$(CC) CPP_FOR_TARGET="$(CC) -E" \
+       LD_FOR_TARGET=$(LD) AS_FOR_TARGET=$(AS) AR_FOR_TARGET=$(AR)
 
 # libgcc does not evaluate CPPFLAGS_FOR_TARGET, so everything is put into CFLAGS_FOR_TARGET here
-NOUX_ENV += CFLAGS_FOR_TARGET='-I$(BASE_DIR)/../../tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC'
+ENV += CFLAGS_FOR_TARGET='-I$(BASE_DIR)/../../tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC'
 
 # libsupc++
-NOUX_ENV += CXXFLAGS_FOR_TARGET='-fPIC'
+ENV += CXXFLAGS_FOR_TARGET='-fPIC'
 
-NOUX_MAKE_ENV += MULTILIB_OPTIONS="m64/m32" MULTILIB_DIRNAMES="64 32"
+MAKE_ENV += MULTILIB_OPTIONS="m64/m32" MULTILIB_DIRNAMES="64 32"
 
 #
 # We link libraries to the final binaries using the 'LIBS' variable.  But
@@ -41,7 +41,7 @@ NOUX_MAKE_ENV += MULTILIB_OPTIONS="m64/m32" MULTILIB_DIRNAMES="64 32"
 
 LIBS = gmp mpfr mpc
 
-NOUX_LDFLAGS += -L$(PWD)
+LDFLAGS += -L$(PWD)
 
 .SECONDARY: dummy_libs
 dummy_libs: libgmp.a libmpfr.a libmpc.a libc.a
@@ -60,4 +60,4 @@ include $(REP_DIR)/mk/noux.mk
 # Unfortunately, the use of '--start-group' and '--end-group' does not suffice
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
-NOUX_LIBS += -Wl,--start-group $(sort $(LINK_ITEMS)) $(sort $(LINK_ITEMS)) $(LIBGCC) -Wl,--end-group
+LDLIBS += -Wl,--start-group $(sort $(LINK_ITEMS)) $(sort $(LINK_ITEMS)) $(LIBGCC) -Wl,--end-group

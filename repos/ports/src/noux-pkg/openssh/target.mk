@@ -5,27 +5,27 @@ TARGET = openssh
 # while compiling (e.g. -DSSH_PATH) and in the end the $prefix and
 # $exec_prefix path differ.
 #
-NOUX_CONFIGURE_ARGS += --disable-ip6 \
-                       --with-md5-passwords  \
-                       --without-zlib-version-check \
-                       --with-ssl-engine \
-                       --disable-finger \
-                       --disable-gopher \
-                       --disable-news \
-                       --disable-ftp \
-                       --disable-rpath-hack \
-                       --disable-utmpx \
-                       --disable-strip \
-                       --exec-prefix= \
-                       --bindir=/bin \
-                       --sbindir=/bin \
-                       --libexecdir=/bin
+CONFIGURE_ARGS += --disable-ip6 \
+                  --with-md5-passwords  \
+                  --without-zlib-version-check \
+                  --with-ssl-engine \
+                  --disable-finger \
+                  --disable-gopher \
+                  --disable-news \
+                  --disable-ftp \
+                  --disable-rpath-hack \
+                  --disable-utmpx \
+                  --disable-strip \
+                  --exec-prefix= \
+                  --bindir=/bin \
+                  --sbindir=/bin \
+                  --libexecdir=/bin
 
-NOUX_INSTALL_TARGET  = install
+INSTALL_TARGET  = install
 
 LIBS += libcrypto libssl zlib libc_resolv
 
-noux_built.tag: Makefile Makefile_patch
+built.tag: Makefile Makefile_patch
 
 Makefile_patch: Makefile
 	@#
@@ -52,7 +52,7 @@ Makefile_patch: Makefile
 #
 Makefile: dummy_libs
 
-NOUX_LDFLAGS += -L$(PWD)
+LDFLAGS += -L$(PWD)
 
 dummy_libs: libz.a libcrypto.a libssl.a
 

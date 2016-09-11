@@ -7,7 +7,7 @@ LIBS   = ncurses
 #
 Makefile: dummy_libs
 
-NOUX_LDFLAGS += -L$(PWD)
+LDFLAGS += -L$(PWD)
 
 dummy_libs: libncursesw.a
 

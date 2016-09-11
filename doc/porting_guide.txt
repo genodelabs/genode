@@ -826,12 +826,12 @@ Build rules for Noux packages are located in _<genode-dir>/ports/src/noux-pkgs_.
 
 The _tar/target.mk_ corresponding to GNU tar looks like this:
 
-! NOUX_CONFIGURE_ARGS = --bindir=/bin \
-!                       --libexecdir=/libexec
+! CONFIGURE_ARGS = --bindir=/bin \
+!                  --libexecdir=/libexec
 !
 ! include $(REP_DIR)/mk/noux.mk
 
-The variable 'NOUX_CONFIGURE_ARGS' contains the options that are
+The variable 'CONFIGURE_ARGS' contains the options that are
 passed on to Autoconf's configure script. The Noux specific build
 rules in _noux.mk_ always have to be included last.
 
@@ -1051,24 +1051,24 @@ porting a program to Noux:
 ! # while compiling (e.g. -DSSH_PATH) and in the end the $prefix and
 ! # $exec_prefix path differ.
 !
-! NOUX_CONFIGURE_ARGS += --disable-ip6 \
-!                        […]
-!                        --exec-prefix= \
-!                        --bindir=/bin \
-!                        --sbindir=/bin \
-!                        --libexecdir=/bin
+! CONFIGURE_ARGS += --disable-ip6 \
+!                   […]
+!                   --exec-prefix= \
+!                   --bindir=/bin \
+!                   --sbindir=/bin \
+!                   --libexecdir=/bin
 
 In addition to the normal configure options, we have to also define the
 path prefixes. The OpenSSH build system embeds certain paths in the
 ssh binary, which need to be changed for Noux.
 
-! NOUX_INSTALL_TARGET  = install
+! INSTALL_TARGET  = install
 
 Normally the Noux build rules (_noux.mk_) execute 'make install-strip' to
 explicitly install binaries that are stripped of their debug symbols. The
 generated Makefile of OpenSSH does not use this target. It automatically
 strips the binaries when executing 'make install'. Therefore, we set the
-variable 'NOUX_INSTALL_TARGET' to override the default behaviour of the
+variable 'INSTALL_TARGET' to override the default behaviour of the
 Noux build rules.
 
 ! LIBS += libcrypto libssl zlib libc_resolv
@@ -1118,7 +1118,7 @@ script by providing dummy libraries:
 ! #
 ! Makefile: dummy_libs
 !
-! NOUX_LDFLAGS += -L$(PWD)
+! LDFLAGS += -L$(PWD)
 !
 ! dummy_libs: libz.a libcrypto.a libssl.a
 !
