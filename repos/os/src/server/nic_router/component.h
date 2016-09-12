@@ -15,123 +15,93 @@
 #define _COMPONENT_H_
 
 /* Genode includes */
+#include <base/allocator_guard.h>
 #include <root/component.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
-#include <net/ipv4.h>
-#include <base/allocator_guard.h>
+#include <nic_bridge/mac_allocator.h>
 
 /* local includes */
-#include <mac_allocator.h>
 #include <interface.h>
 
 namespace Net {
 
-	class Port_allocator;
-	class Guarded_range_allocator;
+	class Domain;
 	class Communication_buffer;
-	class Tx_rx_communication_buffers;
+	class Session_component_base;
 	class Session_component;
 	class Root;
 }
 
 
-class Net::Guarded_range_allocator
+class Net::Communication_buffer : public Genode::Ram_dataspace_capability
 {
 	private:
+
+		Genode::Ram_session &_ram;
+
+	public:
+
+		Communication_buffer(Genode::Ram_session  &ram,
+		                     Genode::size_t const  size);
+
+		~Communication_buffer() { _ram.free(*this); }
+};
+
+
+class Net::Session_component_base
+{
+	protected:
 
 		Genode::Allocator_guard _guarded_alloc;
 		Nic::Packet_allocator   _range_alloc;
+		Communication_buffer    _tx_buf;
+		Communication_buffer    _rx_buf;
 
 	public:
 
-		Guarded_range_allocator(Genode::Allocator   &backing_store,
-		                        Genode::size_t const amount);
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Genode::Allocator_guard &guarded_allocator() { return _guarded_alloc; }
-		Genode::Range_allocator &range_allocator();
+		Session_component_base(Genode::Allocator    &guarded_alloc_backing,
+		                       Genode::size_t const  guarded_alloc_amount,
+		                       Genode::Ram_session  &buf_ram,
+		                       Genode::size_t const  tx_buf_size,
+		                       Genode::size_t const  rx_buf_size);
 };
 
 
-struct Net::Communication_buffer : Genode::Ram_dataspace_capability
-{
-	Communication_buffer(Genode::size_t const size);
-
-	~Communication_buffer() { Genode::env()->ram_session()->free(*this); }
-
-	Genode::Dataspace_capability dataspace() { return *this; }
-};
-
-
-class Net::Tx_rx_communication_buffers
+class Net::Session_component : public Session_component_base,
+                               public ::Nic::Session_rpc_object,
+                               public Interface
 {
 	private:
 
-		Communication_buffer _tx_buf, _rx_buf;
+		/********************
+		 ** Net::Interface **
+		 ********************/
+
+		Packet_stream_sink   &_sink()   { return *_tx.sink(); }
+		Packet_stream_source &_source() { return *_rx.source(); }
 
 	public:
 
-		Tx_rx_communication_buffers(Genode::size_t const tx_size,
-		                            Genode::size_t const rx_size);
-
-		Genode::Dataspace_capability tx_ds() { return _tx_buf.dataspace(); }
-		Genode::Dataspace_capability rx_ds() { return _rx_buf.dataspace(); }
-};
-
-
-class Net::Session_component : public  Guarded_range_allocator,
-                               private Tx_rx_communication_buffers,
-                               public  ::Nic::Session_rpc_object,
-                               public  Interface
-{
-	private:
-
-		void _arp_broadcast(Interface &interface, Ipv4_address ip_addr);
-
-	public:
-
-		Session_component(Genode::Allocator  &allocator,
-		                  Genode::size_t      amount,
-		                  Genode::size_t      tx_buf_size,
-		                  Genode::size_t      rx_buf_size,
-		                  Mac_address         vmac,
-		                  Server::Entrypoint &ep,
-		                  Mac_address         router_mac,
-		                  Ipv4_address        router_ip,
-		                  char const         *args,
-		                  Port_allocator     &tcp_port_alloc,
-		                  Port_allocator     &udp_port_alloc,
-		                  Tcp_proxy_list     &tcp_proxys,
-		                  Udp_proxy_list     &udp_proxys,
-		                  unsigned            rtt_sec,
-		                  Interface_tree     &interface_tree,
-		                  Arp_cache          &arp_cache,
-		                  Arp_waiter_list    &arp_waiters,
-		                  bool                verbose);
-
-		~Session_component();
+		Session_component(Genode::Allocator    &alloc,
+		                  Genode::Timer        &timer,
+		                  Genode::size_t const  amount,
+		                  Genode::Ram_session  &buf_ram,
+		                  Genode::size_t const  tx_buf_size,
+		                  Genode::size_t const  rx_buf_size,
+		                  Mac_address    const  mac,
+		                  Genode::Entrypoint   &ep,
+		                  Mac_address    const &router_mac,
+		                  Domain               &domain);
 
 
 		/******************
 		 ** Nic::Session **
 		 ******************/
 
-		Mac_address mac_address() { return Interface::mac(); }
+		Mac_address mac_address() { return _mac; }
 		bool link_state();
 		void link_state_sigh(Genode::Signal_context_capability sigh);
-
-
-		/********************
-		 ** Net::Interface **
-		 ********************/
-
-		Packet_stream_sink<Nic::Session::Policy>   *sink()   { return _tx.sink(); }
-		Packet_stream_source<Nic::Session::Policy> *source() { return _rx.source(); }
 };
 
 
@@ -139,40 +109,28 @@ class Net::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		Mac_allocator       _mac_alloc;
-		Server::Entrypoint &_ep;
-		Mac_address         _router_mac;
-		Port_allocator     &_tcp_port_alloc;
-		Port_allocator     &_udp_port_alloc;
-		Tcp_proxy_list     &_tcp_proxys;
-		Udp_proxy_list     &_udp_proxys;
-		unsigned            _rtt_sec;
-		Interface_tree     &_interface_tree;
-		Arp_cache          &_arp_cache;
-		Arp_waiter_list    &_arp_waiters;
-		bool                _verbose;
+		Genode::Timer       &_timer;
+		Mac_allocator        _mac_alloc;
+		Genode::Entrypoint  &_ep;
+		Mac_address const    _router_mac;
+		Configuration       &_config;
+		Genode::Ram_session &_buf_ram;
 
 
 		/********************
 		 ** Root_component **
 		 ********************/
 
-		Session_component *_create_session(const char *args);
+		Session_component *_create_session(char const *args);
 
 	public:
 
-		Root(Server::Entrypoint &ep,
-		     Genode::Allocator  &md_alloc,
-		     Mac_address         router_mac,
-		     Port_allocator     &tcp_port_alloc,
-		     Port_allocator     &udp_port_alloc,
-		     Tcp_proxy_list     &tcp_proxys,
-		     Udp_proxy_list     &udp_proxys,
-		     unsigned            rtt_sec,
-		     Interface_tree     &interface_tree,
-		     Arp_cache          &arp_cache,
-		     Arp_waiter_list    &arp_waiters,
-		     bool                verbose);
+		Root(Genode::Entrypoint  &ep,
+		     Genode::Timer       &timer,
+		     Genode::Allocator   &alloc,
+		     Mac_address const   &router_mac,
+		     Configuration       &config,
+		     Genode::Ram_session &buf_ram);
 };
 
 #endif /* _COMPONENT_H_ */

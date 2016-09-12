@@ -18,8 +18,33 @@ using namespace Net;
 using namespace Genode;
 
 
-Port_allocator::Port_allocator()
+Genode::uint16_t Port_allocator_guard::alloc()
 {
-	try { alloc_index(0); }
-	catch (Already_allocated) { throw Failed_to_reserve_port_0(); }
+	if (_used == _max) {
+		throw Out_of_indices(); }
+
+	uint16_t const port = _port_alloc.alloc();
+	_used++;
+	return port;
+}
+
+
+void Port_allocator_guard::free(Genode::uint16_t port)
+{
+	_port_alloc.free(port);
+	_used = _used ? _used - 1 : 0;
+}
+
+
+Port_allocator_guard::Port_allocator_guard(Port_allocator & port_alloc,
+                                           unsigned const max)
+:
+	_port_alloc(port_alloc), _max(max)
+{ }
+
+
+bool Net::dynamic_port(uint16_t const port)
+{
+	return port >= Port_allocator::FIRST &&
+	       port < (uint32_t)Port_allocator::FIRST + Port_allocator::COUNT;
 }

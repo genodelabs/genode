@@ -20,13 +20,13 @@
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 #include <nic_session/connection.h>
+#include <nic_bridge/mac_allocator.h>
 #include <os/ram_session_guard.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <util/arg_string.h>
 
 #include <address_node.h>
-#include <mac.h>
 #include <nic.h>
 #include <packet_handler.h>
 

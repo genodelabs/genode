@@ -76,3 +76,4 @@ usb_hid
 smartcard
 new_delete
 timeout
+nic_router

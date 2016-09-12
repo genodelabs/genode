@@ -1,5 +1,5 @@
 /*
- * \brief  Aspect of waiting for an ARP reply
+ * \brief  Remember packets that wait for ARP replies at different interfaces
  * \author Martin Stein
  * \date   2016-08-19
  */
@@ -11,50 +11,52 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <net/ipv4.h>
-#include <nic_session/nic_session.h>
-#include <util/list.h>
-
 #ifndef _ARP_WAITER_H_
 #define _ARP_WAITER_H_
 
+/* Genode includes */
+#include <net/ipv4.h>
+#include <util/list.h>
+#include <nic_session/nic_session.h>
+
 namespace Net {
 
-	using ::Nic::Packet_descriptor;
+	using Packet_descriptor = ::Nic::Packet_descriptor;
 	class Interface;
-	class Ethernet_frame;
 	class Arp_waiter;
-	class Arp_cache_entry;
-	using Arp_waiter_list = Genode::List<Arp_waiter>;
+	using Arp_waiter_list_element = Genode::List_element<Arp_waiter>;
+	using Arp_waiter_list         = Genode::List<Arp_waiter_list_element >;
 }
 
-class Net::Arp_waiter : public Genode::List<Arp_waiter>::Element
+
+class Net::Arp_waiter
 {
 	private:
 
-		Interface            &_interface;
-		Ipv4_address          _ip_addr;
-		Ethernet_frame       &_eth;
-		Genode::size_t const  _eth_size;
-		Packet_descriptor    &_packet;
+		Arp_waiter_list_element  _src_le;
+		Interface               &_src;
+		Arp_waiter_list_element  _dst_le;
+		Interface               &_dst;
+		Ipv4_address      const  _ip;
+		Packet_descriptor const  _packet;
 
 	public:
 
-		Arp_waiter(Interface &interface, Ipv4_address ip_addr,
-		           Ethernet_frame &eth, Genode::size_t const eth_size,
-		           Packet_descriptor &packet);
+		Arp_waiter(Interface               &src,
+		           Interface               &dst,
+		           Ipv4_address      const &ip,
+		           Packet_descriptor const &packet);
 
-		bool new_arp_cache_entry(Arp_cache_entry &entry);
+		~Arp_waiter();
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Interface      &interface() const { return _interface; }
-		Ethernet_frame &eth()       const { return _eth; }
-		Genode::size_t  eth_size()  const { return _eth_size; }
+		Interface               &src()    const { return _src; }
+		Ipv4_address      const &ip()     const { return _ip; }
+		Packet_descriptor const &packet() const { return _packet; }
 };
 
 #endif /* _ARP_WAITER_H_ */

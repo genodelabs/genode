@@ -2,6 +2,9 @@
 # Build
 #
 
+# the lwip/http_clnt requires FOC
+assert_spec foc
+
 set tcp_up_to_down_1   1
 set tcp_up_to_down_2   1
 set tcp_down_to_up_1   1
@@ -63,67 +66,40 @@ append config {
 		<provides><service name="Nic"/></provides>
 		<config rtt_sec="3" verbose="no">
 
-			<policy label="uplink" src="10.0.2.55">
-				<ip dst="192.168.1.18/32" label="http_srv_1" />
-				<ip dst="10.0.2.0/24">
-					<tcp dst="29"   label="commander"/>
-					<tcp dst="80"   label="keen" via="192.168.1.18" />
-					<tcp dst="8080"              via="192.168.1.72" />
-					<tcp dst="10"   label="earthworm"/>
-					<tcp dst="2345" label="jim"/>
-				</ip>
-				<ip dst="10.0.0.0/16"     label="link" />
-				<ip dst="192.168.1.72/31" label="http_srv_2" />
-				<ip dst="10.0.2.55/32">
-					<tcp dst="132"  label="samus"      to="192.168.1.72"
-					     via="192.168.1.14" />
+			<policy label_prefix="udp_client_1"  domain="udp_client_1"  />
+			<policy label_prefix="http_client_3" domain="http_client_3" />
+			<policy label_prefix="udp_client_3"  domain="udp_client_3"  />
+			<policy label_prefix="http_server_1" domain="http_server_1" />
+			<policy label_prefix="http_server_2" domain="http_server_2" />
+			<policy label_prefix="udp_server_1"  domain="udp_server_1"  />
+			<policy label_prefix="udp_server_2"  domain="udp_server_2"  />
 
-					<tcp dst="80"   label="pacman" />
-					<tcp dst="80"   label="http_srv_1" to="192.168.1.18" />
-					<tcp dst="8080" />
-					<udp dst="1337" label="udp_srv_1"  to="10.0.99.55"
-					     via="10.0.99.55" />
+			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
+				<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
+				<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
+				<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />
+				<nat domain="http_client_3" tcp-ports="6" />
+				<ip dst="217.13.192.0/24" domain="udp_client_3" />
+			</domain>
 
-					<udp dst="1"    label="udp_srv_2"  to="18.17.16.15" />
-					<tcp dst="8080" label="http_srv_2" to="192.168.1.72" />
-				</ip>
-			</policy>
+			<domain name="udp_client_1" interface="10.0.98.33/24">
+				<udp-forward port="1337" domain="udp_server_1" to="10.0.99.55" />
+			</domain>
 
-			<policy label_prefix="http_srv_1" src="192.168.1.1" nat="yes" nat-tcp-ports="4">
-				<ip dst="10.0.0.0/19"   label="uplink" via="10.0.6.1" />
-				<ip dst="10.0.2.128/25" label="uplink" via="10.0.3.1" />
-				<ip dst="10.0.2.0/24"   label="uplink" />
-			</policy>
+			<domain name="http_client_3" interface="100.200.0.1/24">
+				<tcp dst="10.0.0.0/16">
+					<permit port="2345" domain="uplink" />
+				</tcp>
+			</domain>
 
-			<policy label_prefix="http_srv_2" src="192.168.1.1" nat="yes" nat-tcp-ports="2">
-				<ip dst="10.0.2.0/24" label="uplink" />
-			</policy>
+			<domain name="udp_client_3" interface="217.13.192.1/24">
+				<ip dst="10.0.2.0/24" domain="uplink" />
+			</domain>
 
-			<policy label_prefix="http_clnt_3" src="100.200.0.1" nat="yes" nat-tcp-ports="4">
-				<ip dst="10.0.6.0/23" label="uplink" via="10.0.4.1" />
-				<ip dst="10.0.0.0/16" />
-				<ip dst="10.0.2.0/24" label="uplink" />
-			</policy>
-
-			<policy label_prefix="udp_srv_1" src="10.0.99.33" nat="yes" nat-udp-ports="1">
-				<ip dst="10.0.2.0/24"  label="uplink" />
-				<ip dst="10.0.98.0/24" label="udp_clnt_1" />
-			</policy>
-
-			<policy label_prefix="udp_srv_2" src="18.17.15.14">
-				<ip dst="10.0.2.0/24" label="uplink" />
-			</policy>
-
-			<policy label_prefix="udp_clnt_1" src="10.0.98.33">
-				<ip dst="10.0.98.33/32">
-					<udp dst="1337" label="udp_srv_1" to="10.0.99.55"
-					     via="10.0.99.55"/>
-				</ip>
-			</policy>
-
-			<policy label_prefix="udp_clnt_3" src="217.13.192.1" nat="yes" nat-udp-ports="2">
-				<ip dst="10.0.0.0/18" label="uplink" />
-			</policy>
+			<domain name="http_server_1" interface="192.168.1.1/24" />
+			<domain name="http_server_2" interface="192.168.2.1/24" />
+			<domain name="udp_server_1"  interface="10.0.99.33/24"  />
+			<domain name="udp_server_2"  interface="18.17.16.14/24" />
 
 		</config>
 		<route>
@@ -136,10 +112,10 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config>
-			<policy label_prefix="nic_router" ip_addr="10.0.2.55"/>
-			<policy label_prefix="http_srv_3" ip_addr="10.0.2.11"/>
-			<policy label_prefix="udp_clnt_2" ip_addr="10.0.2.123"/>
-			<policy label_prefix="udp_srv_3"  ip_addr="10.0.2.70"/>
+			<policy label_prefix="nic_router"    ip_addr="10.0.2.55"  />
+			<policy label_prefix="http_server_3" ip_addr="10.0.2.11"  />
+			<policy label_prefix="udp_client_2"  ip_addr="10.0.2.123" />
+			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.70"  />
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_drv"/> </service>
@@ -149,7 +125,7 @@ append config {
 
 append_if $udp_down_to_down_1 config {
 
-	<start name="udp_clnt_1">
+	<start name="udp_client_1">
 		<binary  name="test-lxip_udp_client" />
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -166,7 +142,7 @@ append_if $udp_down_to_down_1 config {
 		</config>
 	</start>
 
-	<start name="udp_srv_1">
+	<start name="udp_server_1">
 		<binary  name="test-lxip_udp_echo" />
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -184,7 +160,7 @@ append_if $udp_down_to_down_1 config {
 
 append_if $udp_up_to_down_1 config {
 
-	<start name="udp_clnt_2">
+	<start name="udp_client_2">
 		<binary  name="test-lxip_udp_client" />
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -201,7 +177,7 @@ append_if $udp_up_to_down_1 config {
 		</config>
 	</start>
 
-	<start name="udp_srv_2">
+	<start name="udp_server_2">
 		<binary  name="test-lxip_udp_echo" />
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -210,7 +186,7 @@ append_if $udp_up_to_down_1 config {
 		</route>
 		<config ld_verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="18.17.16.15"
-			      gateway="18.17.15.14" netmask="255.255.0.0" port="1">
+			      gateway="18.17.16.14" netmask="255.255.0.0" port="1">
 
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
@@ -219,7 +195,7 @@ append_if $udp_up_to_down_1 config {
 
 append_if $udp_down_to_up_1 config {
 
-	<start name="udp_clnt_3">
+	<start name="udp_client_3">
 		<binary  name="test-lxip_udp_client" />
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -236,7 +212,7 @@ append_if $udp_down_to_up_1 config {
 		</config>
 	</start>
 
-	<start name="udp_srv_3">
+	<start name="udp_server_3">
 		<binary  name="test-lxip_udp_echo" />
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -245,7 +221,7 @@ append_if $udp_down_to_up_1 config {
 		</route>
 		<config ld_verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.70"
-			      netmask="255.255.255.0" gateway="10.0.2.1" port="65535">
+			      netmask="255.255.255.0" gateway="10.0.2.55" port="65535">
 
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
@@ -254,7 +230,7 @@ append_if $udp_down_to_up_1 config {
 
 append_if $tcp_up_to_down_1 config {
 
-	<start name="http_srv_1">
+	<start name="http_server_1">
 		<binary name="test-lwip_httpsrv_static"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -269,7 +245,7 @@ append_if $tcp_up_to_down_1 config {
 			</libc>
 		</config>
 	</start>
-	<start name="http_clnt_1">
+	<start name="http_client_1">
 		<binary name="test-http_clnt"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -287,7 +263,7 @@ append_if $tcp_up_to_down_1 config {
 
 append_if $tcp_up_to_down_2 config {
 
-	<start name="http_srv_2">
+	<start name="http_server_2">
 		<binary name="test-lwip_httpsrv_static"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -295,15 +271,15 @@ append_if $tcp_up_to_down_2 config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="192.168.1.72"
-			      netmask="255.255.255.0" gateway="192.168.1.1"
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="192.168.2.72"
+			      netmask="255.255.255.0" gateway="192.168.2.1"
 			      http_port="8080">
 
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
 	</start>
-	<start name="http_clnt_2">
+	<start name="http_client_2">
 		<binary name="test-http_clnt"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -321,7 +297,7 @@ append_if $tcp_up_to_down_2 config {
 
 append_if $tcp_down_to_up_1 config {
 
-	<start name="http_srv_3">
+	<start name="http_server_3">
 		<binary name="test-lwip_httpsrv_static"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -336,7 +312,7 @@ append_if $tcp_down_to_up_1 config {
 			</libc>
 		</config>
 	</start>
-	<start name="http_clnt_3">
+	<start name="http_client_3">
 		<binary name="test-http_clnt"/>
 		<resource name="RAM" quantum="2M"/>
 		<route>
@@ -378,17 +354,11 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 # qemu config
-append qemu_args " -m 128 -nographic "
+append qemu_args " -m 256 -nographic "
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -redir udp:5555::1337 "
 
-#
-# FIXME: For unknown reasons, there seems to be a problem in the NIC router
-#        with the destruction of NIC sessions that had TCP connections running.
-#        This is why sometimes not all HTTP clients exit properly. Thus, look
-#        merely for 4 client exits (at least 3xUDP 1xTCP) by now.
-#
-run_genode_until ".*child \".*_clnt_.\" exited with exit value 0.*\n.*child \".*_clnt_.\" exited with exit value 0.*\n.*child \".*_clnt_.\" exited with exit value 0.*\n.*child \".*_clnt_.\" exited with exit value 0.*\n" 100
+run_genode_until ".*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n" 60

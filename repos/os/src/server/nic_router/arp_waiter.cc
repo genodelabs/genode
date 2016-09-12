@@ -13,25 +13,27 @@
 
 /* local includes */
 #include <arp_waiter.h>
-#include <arp_cache.h>
 #include <interface.h>
 
 using namespace Net;
 using namespace Genode;
 
 
-Arp_waiter::Arp_waiter(Interface &interface, Ipv4_address ip_addr,
-                       Ethernet_frame &eth, size_t const eth_size,
-                       Packet_descriptor &packet)
+Arp_waiter::Arp_waiter(Interface               &src,
+                       Interface               &dst,
+                       Ipv4_address      const &ip,
+                       Packet_descriptor const &packet)
 :
-	_interface(interface), _ip_addr(ip_addr), _eth(eth), _eth_size(eth_size),
+	_src_le(this), _src(src), _dst_le(this), _dst(dst), _ip(ip),
 	_packet(packet)
-{ }
-
-
-bool Arp_waiter::new_arp_cache_entry(Arp_cache_entry &entry)
 {
-	if (!(entry.ip_addr() == _ip_addr)) { return false; }
-	_interface.continue_handle_ethernet(&_eth, _eth_size, &_packet);
-	return true;
+	_src.own_arp_waiters().insert(&_src_le);
+	_dst.foreign_arp_waiters().insert(&_dst_le);
+}
+
+
+Arp_waiter::~Arp_waiter()
+{
+	_src.own_arp_waiters().remove(&_src_le);
+	_dst.foreign_arp_waiters().remove(&_dst_le);
 }

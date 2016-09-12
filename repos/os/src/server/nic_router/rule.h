@@ -1,7 +1,7 @@
 /*
- * \brief  MAC-address allocator
+ * \brief  Base of each routing rule
  * \author Martin Stein
- * \date   2016-10-24
+ * \date   2016-08-19
  */
 
 /*
@@ -11,7 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <nic_bridge/mac_allocator.h>
+#ifndef _RULE_H_
+#define _RULE_H_
 
-Net::Mac_address Net::Mac_allocator::mac_addr_base(0x03);
+/* Genode includes */
+#include <base/exception.h>
+
+namespace Net { struct Rule { struct Invalid : Genode::Exception { }; }; }
+
+#endif /* _RULE_H_ */

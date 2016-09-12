@@ -7,202 +7,390 @@
 Brief
 #####
 
-The nic_router component can be used to individually route IPv4 packets between
-multiple NIC sessions. Thereby, it can translate between different IP subnets.
-The component supports port forwarding, as well as the partitioning of the TCP
-and UDP port spaces.
+The 'nic_router' component can be used to individually route IPv4 packets
+between multiple NIC sessions. Thereby, it can translate between different
+subnets. The component supports IP routing, TCP and UDP routing, the
+partitioning of the TCP and UDP port spaces, port forwarding, and NAT.
 
 
-Basic routing
-#############
+Basics
+######
 
-The nic_router component provides multiple sessions of the 'NIC' service
+The 'nic_router' component provides multiple sessions of the 'NIC' service
 (downlinks) while requesting one 'NIC' session (the uplink) itself. Through
 common Genode session routing, the uplink can be connected to any other NIC
 server. Inside the component, uplink and downlinks are treated the same. Its
-routing algorithm is ultimately controlled through the configuration. For each
-NIC session there must be a policy:
+routing algorithm is ultimately controlled through the configuration. NIC
+sessions are assigned to domains. Each domain represents one subnet and a
+corresponding routing configuration. Currently, each domain can contain
+only one NIC session at a time. The assigment of sessions to domains is
+controlled through the the common Genode session-policy tag:
 
-! <policy label="uplink"       src="192.168.1.3" />
-! <policy label="http_servers" src="10.0.2.1"    />
+! <policy label_prefix="http_server" domain="http_servers" />
+! <policy label_prefix="imap_server" domain="imap_servers" />
 
-The 'label' attribute must match the session label respectively 'uplink' for the
-uplink session. The 'src' attribute contains a static IPv4 identity that
-represents the nic_router with respect to that session. This identity is used
-when doing Network-Address-Translation to the session. Moreover, a policy tag
-may contain multiple 'ip' sub-tags:
+The domain name can be freely choosen but must be unique. There is no need
+to have a policy for the uplink. It is automatically assigned to the domain
+named "uplink". For each domain there must be a domain tag:
 
-! <ip dst="192.168.1.0/24" label="uplink"       />
-! <ip dst="10.0.0.0/16"    label="http_servers" />
+! <domain name="uplink"       interface="10.0.2.55/24"    />
+! <domain name="http_servers" interface="192.168.1.18/24" />
+! <domain name="imap_servers" interface="192.168.2.17/24" />
 
-Each 'ip' tag defines a routing rule for IPv4 packets that are sent by the
-session of the surrounding policy. Such a rule needs at least a 'dst' attribute
-that contains an IPv4 address prefix. When the nic_router receives an IPv4
-packet, it goes top-down through all the rules of the session, checking whether
-the packet destination matches the 'dst' attribute. The first rule that matches
-is inspected deeper. The next thing to be read is the 'label' attribute that
-names the target session of the rule. If the label points to a valid session,
-the packet could now be routed via this rule. But the IP rule is only remembered
-as fallback yet because it may contain sub-tags for preferred UDP and TCP
-routing:
+The 'interface' attribute defines two things at once. First, it tells the
+router which subnet can be found behind this domain, and second, which IP
+identity the router shall use in case it has to communicate as itself with
+the subnet.
 
-! <udp dst="443" label="udp_servers"  />
-! <tcp dst="80"  label="http_servers" />
+Additionaly, the optional 'gateway' attribute can be set for a domain:
 
-Those tags work pretty similar to the IP rules. The 'dst' attribute defines
-the port that a packet must be addressed to for a match. The 'label' attribute
-again points to the target session. If no matching UDP or TCP rule with a
-valid target session is found inside the matching IP rule, the nic_router
-falls back to the IP rule. If the target session of the matching IP rule isn't
-valid, it continues with the next matching IP rule, and so on.
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1" />
+
+It defines the standard gateway of the subnet behind this domain. If a packet
+shall be routed to this domain and its final IP destination does not match
+the subnet, its Ethernet destination is set to the MAC address of the gateway.
+If a gateway isn't given for a domain, such packets get dropped.
+
+For each domain, the routing of packets from this domain can be configured
+individually by adding subtags to the corresponding domain tag. There are
+multiple types of subtags expressing different types of routing rules. The
+following table gives a brief overview over the different subtags and their
+meaning:
+
+ Subtag                     | Description
+---------------------------------------------------------------
+ <tcp-forward port="X" />   | Port forwarding for TCP port X *
+---------------------------------------------------------------
+ <udp-forward port="X" />   | Port forwarding for UDP port X *
+---------------------------------------------------------------
+ <tcp dst="X">              | Routing TCP packets that target
+    <permit-any />          | IP range X *
+ </tcp>                     |
+---------------------------------------------------------------
+ <udp dst="X">              | Routing UDP packets that target
+    <permit-any />          | IP range X *
+ </udp>                     |
+---------------------------------------------------------------
+ <tcp dst="X">              | Routing TCP packets that target
+    <permit port="Y" />     | IP range X and port Y or Z *
+    <permit port="Z" />     |
+ </tcp>                     |
+---------------------------------------------------------------
+ <udp dst="X">              | Routing UDP packets that target
+    <permit port="Y" />     | IP range X and port Y or Z *
+    <permit port="Z" />     |
+ </udp>                     |
+---------------------------------------------------------------
+ <ip dst="X" />             | Routing IP packets that target
+                            | IP range X
+
+A detailed explanation of the different routing rules is given in the
+following sections of this document. For all rules marked with a star, the
+router also keeps track of corresponding TCP connections and UDP
+pseudo-connections. With these so-called link states, corresponding reply
+packets are automatically routed back. The user doesn't have to add an
+additional back-routing rule for that.
+
+Now having this variety of ways of routing a packet, it is absolutely legal
+that for one packet the domain may contain multiple rules that are applicable.
+And additionally, there may even be a link state that fits. The router's
+choice, however, is always deterministic. It follows a simple priority scheme:
+
+1) Link states
+2) Port forwarding rules
+3) Longest prefix match amongst TCP respectively UDP rules
+   3.1) Subrule that permits any port
+   3.2) Subrules that permit specific ports
+4) Longest prefix match amongst IP rules
 
 
-Modify destination and gateway
-##############################
+IP rules
+########
 
-All three, the 'ip', 'udp', and 'tcp' tag may have further attributes 'to'
-and/or 'via'. Both attributes define an IPv4 address. The address in the 'to'
-attribute replaces the IPv4 destination of an affected packet. The address in
-the 'via' attribute is the gateway for that rule. This means, when searching
-for the next Ethernet destination of an affected packet, the nic_router uses the
-'via' address as criterion. If not set, the 'via' address is always the IPv4
-destination of the packet. Hence, if only the 'to' attribute is set for a
-rule, the value is also used as 'via' address.
+These are examples for IP rules:
 
-! <udp ...                 via="192.168.2.1" />
-! <ip  ... to="10.0.2.234" via="192.168.2.1" />
-! <tcp ... to="10.0.2.234"                   />
+! <ip dst="10.0.2.0/24"     domain="intranet"  />
+! <ip dst="192.168.1.18/32" domain="my_server" />
+! <ip dst="0.0.0.0/0"       domain="uplink"    />
+
+IP rules only apply to IPv4 packets from the session of the surrounding
+domain. The 'dst' attribute is compared with the IP destination of the packet.
+The rule with the longest prefix match is taken. The packet is then routed to
+the domain given in the rule.
+
+IP rules work pretty simple. They merely affect the Ethernet header of a
+packet and they don't imply link-state tracking. This has consequences. First,
+IP rules do not automatically route back reply packets from the remote side.
+If you like to enable bidirectional communication via IP rules, both domains
+must have an appropriate rule in their domain tag. And second, IP rules do not
+consider a NAT configuration (Section [Configuring NAT]). As this could lead
+to unexpected leakage of local IP addresses and ports, you should use the
+combination of IP rules and NAT only with great care.
 
 
-Network address translation
-###########################
+TCP and UDP rules
+#################
 
-The nic_router component can translate between different IPv4 subnets of clients,
-and "uplink". When enabled within the policy of a client:
+TCP and UDP rules must always be accompanied by one or more port permission
+rules to get effective:
 
-! <policy ... nat="yes" />
+! <tcp dst="192.168.1.18/32">
+!    <permit port="70" domain="gopher_servers" />
+!    <permit port="80" domain="http_servers" />
+! </tcp>
+! <udp dst="10.0.2.0/24">
+!    <permit-any domain="uplink" />
+! </udp>
 
-the source address of all IPv4 packets of that client is replaced by the 'src'
-value of the applied target session. And the TCP/UDP source port is replaced
-by a dynamically allocated source port of the applied target session. There is
-an exception from the latter. If the source port of the packet matches a
-TCP/UDP rule of the applied target session, the packet is assumed to be a
-reply to a port-forwarded request from the counterside. In this case, the
-source port remains unchanged to enable the receiver to correlate the packet
-correctly.
+TCP rules only apply to TCP packets and UDP rules only to UDP packets from the
+session of the surrounding domain. The 'dst' attribute is compared with the IP
+destination of the packet. The rule with the longest prefix match is taken.
+If the rule contains a 'permit-any' subrule or a 'permit' subrule whose 'port'
+attribute matches the destination port of the packet, the packet is routed to
+the domain given in the subrule.
 
-For partitioning the TCP/UDP port space, e.g., the source ports regarding the
-'uplink' session between different client sessions, one can configure how many
-ports may be used concurrently per client session:
+For bidirectional traffic, you'll need only one TCP or UDP rule describing the
+client-to-server direction. The server-sided domain doesn't need a rule as the
+router correlates replies to the client-sided rule (and only those) via a link
+state (Section [Link states]) that was created at the clients initial request.
 
-! <policy ... nat="yes"                    nat-udp-ports="1001" />
-! <policy ... nat="yes" nat-tcp-ports="43" nat-udp-ports="21"   />
-! <policy ... nat="yes" nat-tcp-ports="3"                       />
+TCP and UDP rules consider whether the router shall apply NAT
+(Section [Configuring NAT]) for the client side. If this is the case, source
+IP and port are replaced by the router's IP identity and a free port at the
+server-sided domain. Also the corresponding link state takes this in account
+to change back the destination of the replies.
 
-The ports attribute contains the maximum number of ports that the nic_router
-assigns to the given session. This is necessary to avoid that a NIC session
-can run Denial-of-Service attacks against the nic_router by occupying all of
-its ports.
 
-For both, UDP and TCP activities, the nic_router holds link states. The link
-states enable the nic_router to re-direct related packets from the counterside
-correctly without the need for additional routing rules. Such link state rules
-are the most preferred way of routing. Before the nic_router starts looking
-for IP, UDP, or TCP rules for a packet, it tries to find a matching rule
-amongst the link states.
+Port-forwarding rules
+#####################
 
-As link state rules are created on demand and are bound to an active
-connection between two peers, it is desirable to clear them away as soon as
-they are not needed anymore. A precise algorithm for that enables the NIC
-sessions to get the maximum out of their resources (ports, RAM). A TCP state
-rule corresponding is held until the nic_router observes the four-way
-termination handshake of TCP and two times the estimated round-trip time has
-passed. The nic_router currently doesn't estimate any round-trip times by
-itself. Instead it expects an attribute 'rtt_sec' in its 'config' tag:
+These are examples for port-forwarding rules:
+
+! <tcp-forward port="80" domain="http_servers" to="192.168.1.18" />
+! <udp-forward port="69" domain="tftp_servers" to="192.168.2.23" />
+
+Port-forwarding rules only apply to packets that come from the session of the
+surrounding domain and are addressed to the router's IP identity at this
+domain (Section [Basics]). Amongst those, 'tcp-forward' rules only apply to
+the TCP packets and 'udp-forward' rules only to the UDP packets. The 'port'
+attribute is compared with the packet's destination port. If a matching rule
+is found, the IP destination of the packet is changed to the value of the 'to'
+attribute. Then, the packet is routed to the domain given in the rule. Note
+that the router accepts only system and registered ports (0 to 49151) for port
+forwarding.
+
+For bidirectional traffic, you'll need only one port-forwarding rule
+describing the client-to-server direction. The server-sided domain doesn't
+need a rule as the router correlates replies to the client-sided rule (and
+only those) via a link state (Section [Link states]) that was created at the
+clients initial request.
+
+It's in the nature of port forwarding that it comes along with NAT for the
+server side. However, the router only translates the server IP. The port
+remains unchanged. For the client side, port-forwarding rules apply NAT only
+when configured (Section [Configuring NAT]). If this is the case, client IP
+and port are translated.
+
+
+Link states
+###########
+
+Each time a packet gets routed by using a TCP, UDP, or port-forwarding rule,
+the router creates a link state. From then on, all packets that belong
+to the exchange this first packet initiated and come from one of the two
+involved domains are routed by the link state and not by a rule. The costs
+for the link state are paid by the session that sent the first packet.
+
+If a link state exists for a packet, it is unambiguously correlated through
+the source IP and port as well as the destination IP and port. This is also
+the case if the transfer includes NAT no matter of what kind or for which
+side.
+
+It is desirable to discard a link state as soon as it is not needed anymore.
+The more precise the algorithm for that, the more efficient can NIC sessions
+use their resources (ports, RAM), and the less is the risk for DoS attacks.
+In order to meet this requirement, the router needs to know the round-trip
+time of the exchange behind a link state. This value is given through the
+attribute 'rtt_sec' in the router's configuration:
 
 ! <config rtt_sec="3"> ... </config>
 
-This would set the round-trip time to three seconds which means that link
-state rules wait six seconds after a termination handshake before they close
-themselves. As UDP has no notion of connections, UDP state rules are simply
-held for a duration of two times the round-trip time after the last packet.
-This way, the peers can keep alive a UDP pseudo-connection by frequently
-sending empty packets.
+This would set the round-trip time to three seconds. The value is used for all
+link states so you should choose it with care. If it is too low, replies that
+normally need no routing rule may get lost. If it is too high, link states are
+held longer than necessary.
+
+In general, each link state is discarded after a duration of two times the
+round-trip time without a matching packet. For UDP link states, this is the
+only rule and better known as hole punching. It allows peers to keep alive a
+UDP pseudo-connection through the router by frequently sending empty packets.
+The need for such a pseudo-connection arises from the router's demand to
+support NAT for UDP transfers and the consequence of keeping the corresponding
+mapping information.
+
+The lifetime management of TCP link states, in contrast, is more complex. In
+addition to the common timeout, they may be discarded even if they still
+receive packets. This is the case when the router observed the four-way
+termination handshake of TCP and two times the round-trip time has passed.
+
+
+Configuring NAT
+###############
+
+In contrast to routing rules that affect packets coming from their domain,
+NAT rules affect packets that go to their domain:
+
+! <domain name="uplink" interface="10.0.2.55/24">
+!    <nat domain="http_client" tcp-ports="6" />
+! </domain>
+
+This would tell the router to apply NAT for the HTTP client when it speaks to
+the uplink. This means, it affects all packets from the HTTP client that get
+routed to the uplink by using a UDP, TCP, or port-forwarding rule respectively
+a corresponding link state. If this is the case, the packet's source IP
+address is changed to "10.0.2.55" and the source port is replaced by a free
+source port of the router. When saying "free source port" this actually means
+a port that the router currently doesn't use at the destination domain. So,
+at each domain, the router has two complete port spaces for source NAT
+available. One for UDP and one for TCP. Each port space contains the IANA
+dynamic port range 49152 to 65535.
+
+As you can see, the NAT rule also has a 'tcp-ports' attribute. It restricts
+how many TCP source ports of the uplink the HTTP client may use at a time. The
+same goes also for UDP:
+
+! <nat domain="tftp_client" udp-ports="13" />
+
+And even combined:
+
+! <nat domain="intranet" tcp-ports="43" udp-ports="21" />
+
+If one of the two attributes is not set, this means that no port shall be used
+for this protocol which effectively disables it. Thus, at least one of the two
+attributes must be set for the NAT rule to be sensible. Restricting the port
+usage is necessary to avoid that a client can run Denial-of-Service attacks
+against the destination domain by occupying all of its ports.
 
 
 Examples
 ########
 
-This paragraph will list and explain some interesting configuration snippets.
-A comprehensive example of how to use the nic_router can be found in the test
-script 'libports/run/nic_router.run' .
+This section will list and explain some interesting configuration snippets. A
+comprehensive example of how to use the router can be found in the test script
+'libports/run/nic_router.run'. The environment for the examples shall be as
+follows. There are two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 that
+connect as Virtnet A and B to the router. The standard gateway of the virtual
+networks is the NIC router with IP 192.168.*.1 . The router's uplink leads to
+the NIC driver that connects the machine with your home network 10.0.2.0/24.
+Your home network is connected to the internet through its standard gateway
+10.0.2.1 .
 
 
-Accessing a private server network
-==================================
+Connecting local networks
+=========================
 
-In this example, we assume that there is a HTTP server "behind" the nic_router
-(downlink) listening at port 80. Through the uplink session, several clients
-may ask the nic_router for HTTP. The nic_router has the following
-configuration:
+Let's assume we simply want the virtual networks and the home network to be
+able to talk to each other. Furthermore, the virtual networks shall be able to
+use the internet connection of your home network. The router would have the
+following configuration:
 
-! <policy label="uplink" src="10.0.2.55">
-!    <ip dst="10.0.2.55/32">
-!       <tcp dst="80" label="http_servers" to="192.168.1.2" />
-!    </ip>
-! </policy>
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
 !
-! <policy label="http_servers" src="192.168.1.1" nat="yes" nat-tcp-ports="30">
-!    <ip dst="10.0.2.0/24" label="uplink" />
-! </policy>
-
-The uplink IP rule matches only packets that directly address the nic_router's
-uplink identity. Amongst those packets, the ones to TCP port 80 also match the
-TCP sub-rule. The TCP sub-rule is rated higher than the surrounding IP rule
-and thus gets applied. Consequently, the nic_router replaces the IPv4
-destination of the packets with the 'to' value (which is the local server
-address), then looks up and installs the next Ethernet destination for the
-given server address, and finally sends the packet on the servers NIC session.
-All other packets from the uplink are dropped. Even those that address the
-nic_router directly but with another port. This is because, although the IP
-rule still matches, it specifies no target session.
-
-If the server sends back reply packets to the client, they address the clients
-public IP because the IPv4 source of the previous request wasn't modified.
-Thus, these packets match the IP rule in the server policy and get forwarded
-to the uplink. But furthermore, the nic_router is configured do NAT for the
-server (with 30 simultaneous TCP connections allowed). Hence, the nic_router
-replaces the IPv4 source in the server replies by its uplink identity
-'10.0.2.55'. The source port, at the other hand, is not replaced because it
-matches a TCP rule in the uplink policy. This way, the client is able to
-associate the replies to its TCP connection with the server.
-
-
-Using public servers from a private network
-===========================================
-
-Let's assume we have a UDP client "behind" the nic_router and like to talk to an
-"outside" server. An example configuration for that would be:
-
-! <policy label="uplink" src="10.0.2.55" />
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1/24">
+!    <ip dst="192.168.1.0/24" domain="virtnet_a"/>
+!    <ip dst="192.168.2.0/24" domain="virtnet_b"/>
+! </domain>
 !
-! <policy label="udp_clients" src="100.200.0.1" nat="yes" nat-udp-ports="2">
-!    <ip dst="10.0.2.0/24" label="uplink" />
-! </policy>
+! <domain name="virtnet_a" interface="192.168.1.1/24">
+!    <ip dst="192.168.2.0/24" domain="virtnet_b"/>
+!    <ip dst="0.0.0.0/0"      domain="uplink"/>
+! </domain>
+!
+! <domain name="virtnet_b" interface="192.168.2.1/24">
+!    <ip dst="192.168.1.0/24" domain="virtnet_a"/>
+!    <ip dst="0.0.0.0/0"      domain="uplink"/>
+! </domain>
 
-UDP packets from the client to the public network match the clients IP rule
-and therefore are forwarded to the uplink. Because of the NAT attributes, the
-packets are modified to have '10.0.2.55' as IPv4 source and a free UDP port of
-the uplink session as source port. The client is allowed to open a maximum of
-two such connections at a time. The uplink doesn't need any rules to forward
-the replies for the UDP client correctly as long as the server replies in
-time. This is because the nic_router still holds the link state of the initial
-UDP packet from the client and can use it to map back IP address and port.
+IP packets from Virtnet A and uplink that target an IP address 192.168.2.* are
+routed to Virtnet B. IP packets from Virtnet B and uplink that target an IP
+address 192.168.1.* are routed to Virtnet A. Packets that are addressed to
+hosts in the same local network should never reach the router as they can be
+transmitted directly. If there's a packet from one of the virtual networks
+that doesn't target 192.168.1.* or 192.168.2.*, the IP 0.0.0.0/0 rules route
+them to the uplink. If these packets target an IP 10.0.2.*, the router sends
+them directly to the host in your home network. Otherwise, the router sends
+them to your gateway 10.0.2.1 . Note that none of the packets is modified on
+layer 2 or higher, so, no NAT is done by the router to hide the virtual
+networks.
 
 
-Limitations
-###########
+Clients in a private network
+============================
 
-Currently, different client sessions should not share the same subnet to be able
-to communicate with each other, because forwarding broadcast packets (e.g., ARP
-packets) between different clients of the same subnet is not supported yet.
+Now we have some clients in Virtnet A that like to talk to the internet as
+well as to the home network. We want them to be hidden via NAT when they do so
+and to be limited to HTTP+TLS/SSL and IMAP+TLS/SSL when talking to the
+internet. The router would have the following configuration:
+
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1/24">
+!    <nat domain="virtnet_a" tcp_ports="1000" udp_ports="1000">
+! </domain>
+!
+! <domain name="virtnet_a" interface="192.168.1.1/24">
+!    <tcp dst="10.0.2.0/24"><permit-any domain="uplink" /></tcp>
+!    <udp dst="10.0.2.0/24"><permit-any domain="uplink" /></udp>
+!    <tcp dst="0.0.0.0/0">
+!       <permit port="443" domain="uplink" />
+!       <permit port="993" domain="uplink" />
+!    </tcp>
+! </domain>
+
+From the packets that come from Virtnet A, those that target an IP 10.0.2.*
+are routed to the uplink without inspecting the port. At the uplink, the
+router notices that it shall apply NAT for Virtnet A. It replaces the source
+IP with 10.0.2.55 and allocates one of its uplink source ports for the
+exchange. On replies to Virtnet-A packets from the home network, the router
+translates IP and port back using the corresponding link state. For packets
+from Virtnet A that target other IPs, only the 0.0.0.0/0 rule applies and only
+if the packet targets TCP port 443 or 993. Both ports route the packet to the
+uplink where, again, NAT is applied and the packets are sent to the gateway
+10.0.2.1 .
+
+
+Servers in a private network
+============================
+
+In this example, we assume that there are three servers in Virtnet A. An HTTP
+server at port 80 with IP 192.168.1.2, a GOPHER server at port 70 with IP
+192.168.1.3, and a TFTP server at port 69 with IP 192.168.1.4 . Now you want
+the servers (and only them) to be reachable to the home network via the
+router's IP and to the internet via your gateway. The router would have the
+following configuration:
+
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
+!    <tcp-forward port="80" domain="virtnet_a" to="192.168.1.2" />
+!    <tcp-forward port="70" domain="virtnet_a" to="192.168.1.3" />
+!    <udp-forward port="69" domain="virtnet_a" to="192.168.1.4" />
+! </domain>
+!
+! <domain name="virtnet_a" interface="192.168.1.1/24" />
+! <domain name="virtnet_b" interface="192.168.1.1/24" />
+
+Amongst the packets that come from the uplink, only those that are addressed
+to 10.0.2.55 and TCP port 80, TCP port 70, or UDP port 69 are forwarded.
+All these packets are forwarded to Virtnet A. But beforehand, their IP
+destination is adapted. TCP-port-80 packets are redirected to 192.168.1.2,
+TCP-port-70 packets to 192.168.1.3, and UDP-port-69 packets to 192.168.1.4.
+
+Amongst the packets that come from Virtnet A, only those that match a link
+state at the uplink are forwarded, because the Virtnet-A domain contains no
+rules. Thus, Virtnet A can only talk to the uplink in the context of
+TCP-connections or UDP pseudo-connections that were opened by clients behind
+the uplink. The servers IP addresses never leave Virtnet A.

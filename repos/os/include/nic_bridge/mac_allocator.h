@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _MAC_H_
-#define _MAC_H_
+#ifndef _MAC_ALLOCATOR_H_
+#define _MAC_ALLOCATOR_H_
 
-/* Genode */
+/* Genode includes */
 #include <base/exception.h>
 #include <net/ethernet.h>
 
@@ -22,7 +22,7 @@ namespace Net {
 
 	/**
 	 * The MAC allocator is used to administer MAC addresses for
-	 * the proxy-ARP's client's.
+	 * NIC session clients.
 	 */
 	class Mac_allocator
 	{
@@ -77,4 +77,4 @@ namespace Net {
 	};
 }
 
-#endif /* _MAC_H_ */
+#endif /* _MAC_ALLOCATOR_H_ */

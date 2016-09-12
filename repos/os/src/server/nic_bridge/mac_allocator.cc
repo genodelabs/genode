@@ -11,7 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <mac.h>
+/* Genode includes */
+#include <nic_bridge/mac_allocator.h>
 
 /**
  * We take the range 02:02:02:02:02:XX for our MAC address allocator,

@@ -16,18 +16,16 @@
 
 /* Genode includes */
 #include <nic_session/connection.h>
+#include <nic/packet_allocator.h>
 
 /* local includes */
 #include <interface.h>
 
-namespace Net {
-
-	class Port_allocator;
-	class Uplink;
-}
+namespace Net { class Uplink; }
 
 class Net::Uplink : public Nic::Packet_allocator,
-                    public Nic::Connection, public Net::Interface
+                    public Nic::Connection,
+                    public Interface
 {
 	private:
 
@@ -36,28 +34,29 @@ class Net::Uplink : public Nic::Packet_allocator,
 			BUF_SIZE = Nic::Session::QUEUE_SIZE * PKT_SIZE,
 		};
 
-		Ipv4_address _read_src();
-
-	public:
-
-		Uplink(Server::Entrypoint &ep,
-		       Port_allocator     &tcp_port_alloc,
-		       Port_allocator     &udp_port_alloc,
-		       Tcp_proxy_list     &tcp_proxys,
-		       Udp_proxy_list     &udp_proxys,
-		       unsigned            rtt_sec,
-		       Interface_tree     &interface_tree,
-		       Arp_cache          &arp_cache,
-		       Arp_waiter_list    &arp_waiters,
-		       bool                verbose);
+		Ipv4_address_prefix _read_interface();
 
 
 		/********************
 		 ** Net::Interface **
 		 ********************/
 
-		Packet_stream_sink<Nic::Session::Policy>   *sink()   { return rx(); }
-		Packet_stream_source<Nic::Session::Policy> *source() { return tx(); }
+		Packet_stream_sink   &_sink()   { return *rx(); }
+		Packet_stream_source &_source() { return *tx(); }
+
+	public:
+
+		Uplink(Genode::Entrypoint &ep,
+		       Genode::Timer      &timer,
+		       Genode::Allocator  &alloc,
+		       Configuration      &config);
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Mac_address const &router_mac() const { return _router_mac; }
 };
 
 #endif /* _UPLINK_H_ */
