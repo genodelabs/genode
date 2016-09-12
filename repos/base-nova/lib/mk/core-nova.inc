@@ -37,6 +37,7 @@ SRC_CC      += stack_area.cc \
                region_map_support.cc \
                rom_session_component.cc \
                thread_start.cc \
+               thread_no_execution_time.cc \
                bios_data_area.cc \
                trace_session_component.cc
 
@@ -68,4 +69,5 @@ vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath stack_area.cc                $(GEN_CORE_DIR)
 vpath core_printf.cc               $(BASE_DIR)/src/lib/base
+vpath thread_no_execution_time.cc  $(BASE_DIR)/src/lib/base
 vpath %.cc                         $(REP_DIR)/src/core

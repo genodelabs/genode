@@ -32,15 +32,17 @@ struct Genode::Trace::Rpc_call
 {
 	char        const *rpc_name;
 	Msgbuf_base const &msg;
+	unsigned long long execution_time;
 
 	Rpc_call(char const *rpc_name, Msgbuf_base const &msg)
 	: rpc_name(rpc_name), msg(msg)
 	{
+		execution_time = Thread::myself()->execution_time();
 		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.rpc_call(dst, rpc_name, msg); }
+		return policy.rpc_call(dst, rpc_name, msg, execution_time); }
 };
 
 
@@ -48,59 +50,69 @@ struct Genode::Trace::Rpc_returned
 {
 	char        const *rpc_name;
 	Msgbuf_base const &msg;
+	unsigned long long execution_time;
 
 	Rpc_returned(char const *rpc_name, Msgbuf_base const &msg)
 	: rpc_name(rpc_name), msg(msg)
 	{
+		execution_time = Thread::myself()->execution_time();
 		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.rpc_returned(dst, rpc_name, msg); }
+		return policy.rpc_returned(dst, rpc_name, msg, execution_time); }
 };
 
 
 struct Genode::Trace::Rpc_dispatch
 {
 	char const *rpc_name;
+	unsigned long long execution_time;
 
 	Rpc_dispatch(char const *rpc_name)
 	:
 		rpc_name(rpc_name)
 	{
+		execution_time = Thread::myself()->execution_time();
 		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.rpc_dispatch(dst, rpc_name); }
+		return policy.rpc_dispatch(dst, rpc_name, execution_time); }
 };
 
 
 struct Genode::Trace::Rpc_reply
 {
 	char const *rpc_name;
+	unsigned long long execution_time;
 
 	Rpc_reply(char const *rpc_name)
 	:
 		rpc_name(rpc_name)
 	{
+		execution_time = Thread::myself()->execution_time();
 		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.rpc_reply(dst, rpc_name); }
+		return policy.rpc_reply(dst, rpc_name, execution_time); }
 };
 
 
 struct Genode::Trace::Signal_submit
 {
 	unsigned const num;
+	unsigned long long execution_time;
 
 	Signal_submit(unsigned const num) : num(num)
-	{ Thread::trace(this); }
+	{
+		execution_time = Thread::myself()->execution_time();
+		Thread::trace(this);
+	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.signal_submit(dst, num); }
+		return policy.signal_submit(dst, num, execution_time); }
 };
 
 
@@ -109,15 +121,18 @@ struct Genode::Trace::Signal_received
 	Signal_context const &signal_context;
 	unsigned const num;
 
+	unsigned long long execution_time;
+
 	Signal_received(Signal_context const &signal_context, unsigned num)
 	:
 		signal_context(signal_context), num(num)
 	{
+		execution_time = Thread::myself()->execution_time();
 		Thread::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.signal_received(dst, signal_context, num); }
+		return policy.signal_received(dst, signal_context, num, execution_time); }
 };
 
 

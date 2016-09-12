@@ -36,6 +36,7 @@ SRC_CC       = stack_area.cc \
                rom_session_component.cc \
                signal_source_component.cc \
                thread_start.cc \
+               thread_no_execution_time.cc \
                trace_session_component.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
@@ -66,4 +67,5 @@ vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath core_region_map.cc          $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
+vpath thread_no_execution_time.cc $(BASE_DIR)/src/lib/base
 vpath %.cc                        $(REP_DIR)/src/core

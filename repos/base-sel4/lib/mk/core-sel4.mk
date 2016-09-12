@@ -17,6 +17,7 @@ SRC_CC      += \
                io_port_session_component.cc \
                io_port_session_support.cc \
                thread_start.cc \
+               thread_no_execution_time.cc \
                platform_thread.cc \
                platform_pd.cc \
                platform_services.cc \
@@ -63,5 +64,6 @@ vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc        $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath default_log.cc               $(GEN_CORE_DIR)
+vpath thread_no_execution_time.cc  $(BASE_DIR)/src/lib/base
 vpath %.cc                         $(REP_DIR)/src/core
 

@@ -41,6 +41,7 @@ SRC_CC += region_map_component.cc
 SRC_CC += rom_session_component.cc
 SRC_CC += trace_session_component.cc
 SRC_CC += thread_start.cc
+SRC_CC += thread_no_execution_time.cc
 SRC_CC += env.cc
 SRC_CC += region_map_support.cc
 SRC_CC += pager.cc
@@ -70,3 +71,4 @@ CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
 vpath % $(BASE_DIR)/../base-hw/src/core
 vpath % $(BASE_DIR)/src/core
 vpath % $(BASE_DIR)/src/lib/startup
+vpath % $(BASE_DIR)/src/lib/base

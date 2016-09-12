@@ -35,6 +35,7 @@ SRC_CC      += stack_area.cc \
                rom_session_component.cc \
                signal_source_component.cc \
                thread_start.cc \
+               thread_no_execution_time.cc \
                trace_session_component.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
@@ -70,4 +71,5 @@ vpath default_log.cc              $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
+vpath thread_no_execution_time.cc $(BASE_DIR)/src/lib/base
 vpath %.cc                        $(REP_DIR)/src/core

@@ -32,12 +32,12 @@ namespace Genode {
 struct Genode::Trace::Policy_module
 {
 	size_t (*max_event_size)  ();
-	size_t (*rpc_call)        (char *, char const *, Msgbuf_base const &);
-	size_t (*rpc_returned)    (char *, char const *, Msgbuf_base const &);
-	size_t (*rpc_dispatch)    (char *, char const *);
-	size_t (*rpc_reply)       (char *, char const *);
-	size_t (*signal_submit)   (char *, unsigned const);
-	size_t (*signal_received) (char *, Signal_context const &, unsigned const);
+	size_t (*rpc_call)        (char *, char const *, Msgbuf_base const &, unsigned long long);
+	size_t (*rpc_returned)    (char *, char const *, Msgbuf_base const &, unsigned long long);
+	size_t (*rpc_dispatch)    (char *, char const *, unsigned long long);
+	size_t (*rpc_reply)       (char *, char const *, unsigned long long);
+	size_t (*signal_submit)   (char *, unsigned const, unsigned long long);
+	size_t (*signal_received) (char *, Signal_context const &, unsigned const, unsigned long long);
 };
 
 #endif /* _INCLUDE__BASE__TRACE__POLICY_H_ */

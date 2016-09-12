@@ -410,6 +410,12 @@ class Genode::Thread
 		 */
 		template <typename EVENT>
 		static void trace(EVENT const *event) { _logger()->log(event); }
+
+		/**
+		 * Get thread execution time (platform specific)
+		 */
+		unsigned long long execution_time();
+
 };
 
 
