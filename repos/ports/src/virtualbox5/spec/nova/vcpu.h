@@ -206,9 +206,23 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				Nova::reply(_stack_reply);
 			}
 
-			/* nothing to do at all - continue hardware accelerated */
+			unsigned long utcb_tpr    = utcb->read_tpr();
+			bool interrupt_pending    = false;
+			uint8_t tpr               = 0;
+			uint8_t pending_interrupt = 0;
+			PDMApicGetTPR(_current_vcpu, &tpr, &interrupt_pending, &pending_interrupt);
 
-			Assert(!_irq_win);
+			/* we have a pending interrupt but nothing should be requested ? */
+			if (interrupt_pending) {
+				PDMApicSetTPR(_current_vcpu, utcb_tpr);
+
+				utcb->mtd = Nova::Mtd::FPU;
+				_irq_win = check_to_request_irq_window(utcb, _current_vcpu);
+				if (_irq_win)
+					Nova::reply(_stack_reply);
+			}
+
+			/* nothing to do at all - continue hardware accelerated */
 
 			/*
 			 * Print a debug message if there actually IS something to do now.
@@ -217,7 +231,14 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			 * by a recall request, but we haven't verified this for each flag
 			 * yet.
 			 */
+			utcb->mtd = Nova::Mtd::FPU;
 			continue_hw_accelerated(utcb, true);
+
+			if (_irq_win) {
+				_irq_win = false;
+				utcb->inj_info  = IRQ_INJ_NONE;
+				utcb->mtd      |= Nova::Mtd::INJ;
+			}
 
 			Nova::reply(_stack_reply);
 		}
@@ -517,6 +538,20 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				CPUMSetGuestMsr(pVCpu, MSR_K8_KERNEL_GS_BASE, utcb->read_kernel_gs_base());
 
 			const uint32_t tpr = utcb->read_tpr();
+
+			/* reset message transfer descriptor for next invocation */
+			Assert (!(utcb->inj_info & IRQ_INJ_VALID_MASK));
+			/* Reset irq window next time if we are still requesting it */
+			next_utcb.mtd = _irq_win ? Nova::Mtd::INJ : 0;
+
+			next_utcb.intr_state = utcb->intr_state;
+			next_utcb.ctrl[0]    = utcb->ctrl[0];
+			next_utcb.ctrl[1]    = utcb->ctrl[1];
+
+			if (next_utcb.intr_state & 3) {
+				next_utcb.intr_state &= ~3U;
+				next_utcb.mtd        |= Nova::Mtd::STA;
+			}
 
 			VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_TO_R3);
 
@@ -854,20 +889,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 				Genode::error("saving vCPU state failed");
 				return VERR_INTERNAL_ERROR;
-			}
-
-			/* reset message transfer descriptor for next invocation */
-			Assert (!(utcb->inj_info & IRQ_INJ_VALID_MASK));
-			/* Reset irq window next time if we are still requesting it */
-			next_utcb.mtd = _irq_win ? Mtd::INJ : 0;
-
-			next_utcb.intr_state = utcb->intr_state;
-			next_utcb.ctrl[0]    = utcb->ctrl[0];
-			next_utcb.ctrl[1]    = utcb->ctrl[1];
-
-			if (next_utcb.intr_state & 3) {
-				next_utcb.intr_state &= ~3U;
-				next_utcb.mtd        |= Mtd::STA;
 			}
 
 #ifdef VBOX_WITH_REM

@@ -1,0 +1,43 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -1934,6 +1947,7 @@
+  *
+  * @thread  EMT (actually EMT0, but we fend off the others)
+  */
++#include <VBox/vmm/trpm.h>
+ VMMR3DECL(void) TMR3TimerQueuesDo(PVM pVM)
+ {
+     /*
+@@ -1947,6 +1961,32 @@
+         Assert(pVM->cCpus > 1);
+         return;
+     }
++
++    /*
++     * It may happen that a EMT thread has an inconsistent IRQ state
++     * (Why the hell XXX ? - SMP 64bit Win7 - especially during early bootup).
++     * Poke the EMT threads so that they may get back to VMM and update
++     * and synchronize IRQ state in recall handler. This code may issue to
++     * often a POKE, since we check state of concurrently running EMT threads!
++     */
++    for (unsigned i = 0; i < pVM->cCpus; i++) {
++        if (i == pVCpuDst->idCpu)
++            continue;
++
++        bool interrupt_pending = false;
++        uint8_t tpr = 0;
++        uint8_t pending_interrupt;
++        PDMApicGetTPR(&pVM->aCpus[i], &tpr, &interrupt_pending, &pending_interrupt);
++
++        asm volatile ("":::"memory");
++        if ((VMCPU_GET_STATE(&pVM->aCpus[i]) == VMCPUSTATE_STARTED_EXEC)
++            && !TRPMHasTrap(&pVM->aCpus[i])
++            && !VMCPU_FF_IS_PENDING(&pVM->aCpus[i], (VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC))
++            && interrupt_pending) {
++            SUPR3CallVMMR0Ex(pVM->pVMR0, i, VMMR0_DO_GVMM_SCHED_POKE, 0, NULL);
++        }
++    }
++
+     STAM_PROFILE_START(&pVM->tm.s.StatDoQueues, a);
+     Log2(("TMR3TimerQueuesDo:\n"));
+     Assert(!pVM->tm.s.fRunningQueues);

@@ -14,3 +14,4 @@ sharedfolder_pagelist.patch
 time-log-deadlock.patch
 tm_retries.patch
 vmdk.patch
+tm_tpr.patch
