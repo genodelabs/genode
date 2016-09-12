@@ -112,7 +112,6 @@ class GenodeConsole : public Console {
 
 		Input::Connection                         _input;
 		Genode::Signal_receiver                   _receiver;
-		Input::Event                             *_ev_buf;
 		unsigned                                  _ax, _ay;
 		bool                                      _last_received_motion_event_was_absolute;
 		Report::Connection                        _shape_report_connection;
@@ -140,7 +139,6 @@ class GenodeConsole : public Console {
 		GenodeConsole()
 		:
 			Console(),
-			_ev_buf(static_cast<Input::Event *>(Genode::env()->rm_session()->attach(_input.dataspace()))),
 			_ax(0), _ay(0),
 			_last_received_motion_event_was_absolute(false),
 			_shape_report_connection("shape", sizeof(Vbox_pointer::Shape_report)),

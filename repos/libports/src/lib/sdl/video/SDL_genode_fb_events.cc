@@ -41,7 +41,6 @@ extern "C" {
 #include "SDL_genode_fb_events.h"
 
 	static Input::Connection *input = 0;
-	static Input::Event *ev_buf = 0;
 	static const int KEYNUM_MAX = 512;
 	static SDLKey keymap[KEYNUM_MAX];
 	static int buttonmap[KEYNUM_MAX];
@@ -61,10 +60,7 @@ extern "C" {
 	{
 		if (!input->pending())
 			return;
-		int num_ev = input->flush();
-		for (int src_ev_cnt = 0; src_ev_cnt < num_ev; src_ev_cnt++)
-		{
-			Input::Event curr = ev_buf[src_ev_cnt];
+		input->for_each_event([&] (Input::Event const &curr) {
 			SDL_keysym ksym;
 			switch(curr.type())
 			{
@@ -102,7 +98,7 @@ extern "C" {
 			default:
 				break;
 			}
-		}
+		});
 	}
 
 
@@ -115,9 +111,6 @@ extern "C" {
 			Genode::error("no input driver available!");
 			return;
 		}
-
-		/* Attach event buffer to address space */
-		ev_buf = Genode::env()->rm_session()->attach(input->dataspace());
 
 		/* Prepare button mappings */
 		for (int i=0; i<KEYNUM_MAX; i++)

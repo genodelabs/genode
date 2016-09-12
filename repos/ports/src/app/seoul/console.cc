@@ -61,16 +61,16 @@ struct Ps2_mouse_packet : Genode::Register<32>
 };
 
 
-static bool mouse_event(Input::Event const *ev)
+static bool mouse_event(Input::Event const &ev)
 {
 	using Input::Event;
-	if (ev->type() == Event::PRESS || ev->type() == Event::RELEASE) {
-		if (ev->code() == Input::BTN_LEFT)   return true;
-		if (ev->code() == Input::BTN_MIDDLE) return true;
-		if (ev->code() == Input::BTN_RIGHT)  return true;
+	if (ev.type() == Event::PRESS || ev.type() == Event::RELEASE) {
+		if (ev.code() == Input::BTN_LEFT)   return true;
+		if (ev.code() == Input::BTN_MIDDLE) return true;
+		if (ev.code() == Input::BTN_RIGHT)  return true;
 	}
 
-	if (ev->type() == Event::MOTION)
+	if (ev.type() == Event::MOTION)
 		return true;
 
 	return false;
@@ -82,28 +82,28 @@ static bool mouse_event(Input::Event const *ev)
  *
  * This function updates _left, _middle, and _right as a side effect.
  */
-unsigned Vancouver_console::_input_to_ps2mouse(Input::Event const *ev)
+unsigned Vancouver_console::_input_to_ps2mouse(Input::Event const &ev)
 {
 	/* track state of mouse buttons */
 	using Input::Event;
-	if (ev->type() == Event::PRESS || ev->type() == Event::RELEASE) {
-		bool const pressed = ev->type() == Event::PRESS;
-		if (ev->code() == Input::BTN_LEFT)   _left   = pressed;
-		if (ev->code() == Input::BTN_MIDDLE) _middle = pressed;
-		if (ev->code() == Input::BTN_RIGHT)  _right  = pressed;
+	if (ev.type() == Event::PRESS || ev.type() == Event::RELEASE) {
+		bool const pressed = ev.type() == Event::PRESS;
+		if (ev.code() == Input::BTN_LEFT)   _left   = pressed;
+		if (ev.code() == Input::BTN_MIDDLE) _middle = pressed;
+		if (ev.code() == Input::BTN_RIGHT)  _right  = pressed;
 	}
 
 	int rx;
 	int ry;
 
-	if (ev->absolute_motion()) {
+	if (ev.absolute_motion()) {
 		static Input::Event last_event;
-		rx = ev->ax() - last_event.ax();
-		ry = ev->ay() - last_event.ay();
-		last_event = *ev;
+		rx = ev.ax() - last_event.ax();
+		ry = ev.ay() - last_event.ay();
+		last_event = ev;
 	} else {
-		rx = ev->rx();
-		ry = ev->ry();
+		rx = ev.rx();
+		ry = ev.ry();
 	}
 
 	/* clamp relative motion vector to bounds */
@@ -228,11 +228,6 @@ void Vancouver_console::entry()
 		return;
 	}
 
-	Genode::Dataspace_capability ev_ds_cap = input.dataspace();
-
-	Input::Event *ev_buf = static_cast<Input::Event *>
-	                       (env()->rm_session()->attach(ev_ds_cap));
-
 	_fb_size = Dataspace_client(framebuffer->dataspace()).size();
 	_fb_mode = framebuffer->mode();
 
@@ -335,10 +330,8 @@ void Vancouver_console::entry()
 			timer.msleep(10);
 		}
 
-		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
+		input.for_each_event([&] (Input::Event const &ev) {
 			if (!fb_active) fb_active = true;
-
-			Input::Event *ev = &ev_buf[i];
 
 			/* update mouse model (PS2) */
 			if (mouse_event(ev)) {
@@ -346,17 +339,17 @@ void Vancouver_console::entry()
 				_motherboard()->bus_input.send(msg);
 			}
 
-			if (ev->type() == Input::Event::PRESS)   {
-				if (ev->code() <= 0xee) {
-					vkeyb.handle_keycode_press(ev->code());
+			if (ev.type() == Input::Event::PRESS)   {
+				if (ev.code() <= 0xee) {
+					vkeyb.handle_keycode_press(ev.code());
 				}
 			}
-			if (ev->type() == Input::Event::RELEASE) {
-				if (ev->code() <= 0xee) { /* keyboard event */
-					vkeyb.handle_keycode_release(ev->code());
+			if (ev.type() == Input::Event::RELEASE) {
+				if (ev.code() <= 0xee) { /* keyboard event */
+					vkeyb.handle_keycode_release(ev.code());
 				}
 			}
-		}
+		});
 	}
 }
 

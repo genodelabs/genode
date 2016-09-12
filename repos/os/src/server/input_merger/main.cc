@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,10 +14,12 @@
 /* Genode includes */
 #include <input/component.h>
 #include <input_session/connection.h>
-#include <os/attached_dataspace.h>
-#include <os/config.h>
-#include <os/server.h>
 #include <os/static_root.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/attached_dataspace.h>
+#include <base/heap.h>
+#include <base/session_label.h>
 #include <util/list.h>
 
 
@@ -25,39 +27,34 @@ namespace Input_merger
 {
 	using namespace Genode;
 
-	class Input_source : public List<Input_source>::Element
-	{
-		private:
-
-			Input::Session_capability _create_session(const char *label)
-			{
-				char session_args[sizeof(Parent::Session_args)] { 0 };
-
-				Arg_string::set_arg(session_args, sizeof(Parent::Session_args),
-				                    "ram_quota", "16K");
-				Arg_string::set_arg_string(session_args, sizeof(Parent::Session_args),
-				                    "label", label);
-
-				return env()->parent()->session<Input::Session>(session_args);
-			}
-
-		public:
-
-			Input::Session_client session_client;
-			Attached_dataspace    dataspace;
-
-			Input_source(const char *label)
-			: session_client(_create_session(label)),
-		  	  dataspace(session_client.dataspace()) { }
-
-		  	~Input_source()
-		  	{
-				env()->parent()->close(session_client);
-		  	}
-	};
-
+	struct Input_source;
 	struct Main;
+
+	typedef List<Input_source> Input_sources;
+	typedef String<Session_label::capacity()> Label;
 }
+
+
+struct Input_merger::Input_source : Input_sources::Element
+{
+	Input::Connection         conn;
+	Input::Session_component &sink;
+
+	Genode::Signal_handler<Input_source> event_handler;
+
+	void handle_events()
+	{
+		conn.for_each_event([&] (Input::Event const &e) { sink.submit(e); });
+	}
+
+	Input_source(Genode::Env &env, Label const &label, Input::Session_component &sink)
+	:
+		conn(env, label.string()), sink(sink),
+		event_handler(env.ep(), *this, &Input_source::handle_events)
+	{
+		conn.sigh(event_handler);
+	}
+};
 
 
 /******************
@@ -66,104 +63,86 @@ namespace Input_merger
 
 struct Input_merger::Main
 {
-	Server::Entrypoint &ep;
-	List<Input_source> input_source_list;
+	Env &env;
+
+	Attached_rom_dataspace config_rom { env, "config" };
+
+	Heap heap { env.ram(), env.rm() };
+
+	Input_sources input_source_list;
 
 	/*
 	 * Input session provided to our client
 	 */
-	Input::Session_component input_session_component;
+	Input::Session_component input_session_component { env, env.ram() };
 
 	/*
 	 * Attach root interface to the entry point
 	 */
-	Static_root<Input::Session> input_root { ep.manage(input_session_component) };
+	Static_root<Input::Session> input_root { env.ep().manage(input_session_component) };
 
-	void handle_input(unsigned)
+	void handle_config_update()
 	{
-		for (Input_source *input_source = input_source_list.first();
-		     input_source;
-		     input_source = input_source->next()) {
+		config_rom.update();
 
-			Input::Event const * const events =
-				input_source->dataspace.local_addr<Input::Event>();
-
-			unsigned const num = input_source->session_client.flush();
-			for (unsigned i = 0; i < num; i++)
-				input_session_component.submit(events[i]);
-		}
-	}
-
-	Signal_rpc_member<Main> input_dispatcher =
-		{ ep, *this, &Main::handle_input};
-
-
-	void handle_config_update(unsigned)
-	{
-		Genode::config()->reload();
-
-		for (Input_source *input_source;
-		     (input_source = input_source_list.first()); ) {
+		while (Input_source *input_source = input_source_list.first()) {
 			input_source_list.remove(input_source);
-			destroy(env()->heap(), input_source);
+			destroy(heap, input_source);
 		}
 
-		try {
-			for (Xml_node input_node = config()->xml_node().sub_node("input");
-			     ;
-			     input_node = input_node.next("input")) {
+		config_rom.xml().for_each_sub_node("input", [&] (Xml_node input_node) {
+			try {
+				Label label;
+				input_node.attribute("label").value(&label);
 
-				char label_buf[128];
-				input_node.attribute("label").value(label_buf, sizeof(label_buf));
+				try {
+					Input_source *input_source = new (heap)
+						Input_source(env, label.string(), input_session_component);
 
-				Input_source *input_source(new (env()->heap()) Input_source(label_buf));
+					input_source_list.insert(input_source);
 
-				input_source_list.insert(input_source);
-
-				input_source->session_client.sigh(input_dispatcher);
+				} catch (Genode::Parent::Service_denied) {
+					error("parent denied input source '", label, "'");
+				}
+			} catch (Xml_node::Nonexistent_attribute) {
+				error("ignoring invalid input node '", input_node);
 			}
-		} catch (Xml_node::Nonexistent_sub_node) { }
-
+		});
 	}
 
-	Signal_rpc_member<Main> config_update_dispatcher =
-		{ ep, *this, &Main::handle_config_update};
+	Signal_handler<Main> config_update_handler
+		{ env.ep(), *this, &Main::handle_config_update };
 
 	/**
 	 * Constructor
 	 */
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Env &env) : env(env)
 	{
 		input_session_component.event_queue().enabled(true);
 
 		/*
 		 * Apply initial configuration
 		 */
-		handle_config_update(0);
+		handle_config_update();
 
 		/*
 		 * Register signal handler
 		 */
-		Genode::config()->sigh(config_update_dispatcher);
+		config_rom.sigh(config_update_handler);
 
 		/*
 		 * Announce service
 		 */
-		Genode::env()->parent()->announce(ep.manage(input_root));
+		env.parent().announce(env.ep().manage(input_root));
 	}
 
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
+Genode::size_t Component::stack_size() { return 4*1024*sizeof(Genode::addr_t); }
 
-	char const *name() { return "input_merger_ep"; }
-
-	size_t stack_size() { return 4*1024*sizeof(addr_t); }
-
-	void construct(Entrypoint &ep) { static Input_merger::Main inst(ep); }
-}
+void Component::construct(Genode::Env &env) { static Input_merger::Main inst(env); }

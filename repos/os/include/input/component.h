@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -29,12 +29,33 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 {
 	private:
 
-		Genode::Attached_ram_dataspace _ds { Genode::env()->ram_session(),
-		                                     Event_queue::QUEUE_SIZE*sizeof(Input::Event) };
+		Genode::Attached_ram_dataspace _ds;
 
 		Event_queue _event_queue;
 
 	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param env  Env containing local region map
+		 * \param ram  Ram session at which to allocate session buffer
+		 */
+		Session_component(Genode::Env &env, Genode::Ram_session &ram)
+		: _ds(ram, env.rm(),
+		      Event_queue::QUEUE_SIZE*sizeof(Input::Event)) { }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated
+		 */
+		Session_component()
+		: _ds(*Genode::env()->ram_session(),
+		      *Genode::env()->rm_session(),
+		      Event_queue::QUEUE_SIZE*sizeof(Input::Event))
+		{ }
 
 		/**
 		 * Return reference to event queue of the session

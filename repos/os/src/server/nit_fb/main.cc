@@ -236,7 +236,7 @@ struct Nit_fb::Main : View_updater
 	/*
 	 * Input and framebuffer sessions provided to our client
 	 */
-	Input::Session_component       input_session;
+	Input::Session_component       input_session { env, env.ram() };
 	Framebuffer::Session_component fb_session { nitpicker, *this, _initial_mode() };
 
 	/*

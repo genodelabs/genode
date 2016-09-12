@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2015 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,15 +14,14 @@
 
 /* Genode */
 #include <base/env.h>
-#include <base/sleep.h>
 #include <base/signal.h>
+#include <base/heap.h>
+#include <base/component.h>
 #include <base/rpc_server.h>
 #include <root/component.h>
-#include <cap_session/connection.h>
 #include <input_session/input_session.h>
 #include <input/event.h>
 #include <base/log.h>
-#include <os/server.h>
 
 using namespace Genode;
 
@@ -66,39 +65,40 @@ namespace Input {
 
 		public:
 
-			Root(Rpc_entrypoint *session_ep, Allocator *md_alloc)
-			: Root_component<Session_component>(session_ep, md_alloc) { }
+			Root(Genode::Entrypoint &ep, Allocator &md_alloc)
+			: Root_component<Session_component>(ep, md_alloc) { }
 	};
 }
 
 
 struct Main
 {
-	Server::Entrypoint &ep;
-	Input::Root         root;
+	Genode::Sliced_heap heap;
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(&ep.rpc_ep(), Genode::env()->heap())
+	Input::Root root;
+
+	Main(Genode::Env &env)
+	:
+		heap(env.ram(), env.rm()),
+		root(env.ep(), heap)
 	{
 		/* create dataspace for event buffer that is shared with the client */
-		try { ev_ds_cap = env()->ram_session()->alloc(MAX_EVENTS*sizeof(Input::Event)); }
+		try { ev_ds_cap = env.ram().alloc(MAX_EVENTS*sizeof(Input::Event)); }
 		catch (Ram_session::Alloc_failed) {
 			Genode::error("could not allocate dataspace for event buffer");
 			throw Genode::Exception();
 		}
 
 		/* tell parent about the service */
-		env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()             { return "input_drv_ep";    }
-	size_t stack_size()            { return 2048*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);   }
-}
+Genode::size_t Component::stack_size() { return 2048*sizeof(long); }
+
+void Component::construct(Genode::Env &env) { static Main server(env); }

@@ -189,9 +189,7 @@ void GenodeConsole::handle_input(unsigned)
 	_vbox_mouse->COMGETTER(RelativeSupported)(&guest_rel);
 	_vbox_mouse->COMGETTER(MultiTouchSupported)(&guest_multi);
 
-	for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
-		Input::Event &ev = _ev_buf[i];
-
+	_input.for_each_event([&] (Input::Event const &ev) {
 		bool const press   = ev.type() == Input::Event::PRESS;
 		bool const release = ev.type() == Input::Event::RELEASE;
 		bool const key     = press || release;
@@ -322,7 +320,7 @@ void GenodeConsole::handle_input(unsigned)
 			mt_events[mt_number++] = RT_MAKE_U64_FROM_U16(x, y, s, 0);
 		}
 
-	}
+	});
 
 	/* if there are elements - send it */
 	if (mt_number)

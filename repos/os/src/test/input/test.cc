@@ -38,12 +38,12 @@ static char const * ev_type(Input::Event::Type type)
 }
 
 
-static char const * key_name(Input::Event *ev)
+static char const * key_name(Input::Event const &ev)
 {
-	if (ev->type() == Input::Event::MOTION)
+	if (ev.type() == Input::Event::MOTION)
 		return "";
 
-	return Input::key_name(static_cast<Input::Keycode>(ev->code()));
+	return Input::key_name(static_cast<Input::Keycode>(ev.code()));
 }
 
 
@@ -54,8 +54,6 @@ class Test_environment
 		Genode::Env &_env;
 
 		Input::Connection _input;
-
-		Input::Event *_ev_buf = { _env.rm().attach(_input.dataspace()) };
 
 		Genode::Signal_handler<Test_environment> _input_sigh;
 
@@ -71,8 +69,6 @@ class Test_environment
 		{
 			log("--- Input test is up ---");
 
-			log("input buffer at ", _ev_buf);
-
 			_input.sigh(_input_sigh);
 		}
 };
@@ -85,25 +81,22 @@ void Test_environment::_handle_input()
 	 */
 	int key_cnt = 0;
 
-	for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
-
+	_input.for_each_event([&] (Input::Event const &ev) {
 		event_count++;
 
-		Input::Event *ev = &_ev_buf[i];
-
-		if (ev->type() == Input::Event::PRESS)   key_cnt++;
-		if (ev->type() == Input::Event::RELEASE) key_cnt--;
+		if (ev.type() == Input::Event::PRESS)   key_cnt++;
+		if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
 		/* log event */
 		log("Input event #", event_count, "\t"
-		    "type=",         ev_type(ev->type()), "\t"
-		    "code=",         ev->code(),          "\t"
-		    "rx=",           ev->rx(),            "\t"
-		    "ry=",           ev->ry(),            "\t"
-		    "ax=",           ev->ax(),            "\t"
-		    "ay=",           ev->ay(),            "\t"
+		    "type=",         ev_type(ev.type()), "\t"
+		    "code=",         ev.code(),          "\t"
+		    "rx=",           ev.rx(),            "\t"
+		    "ry=",           ev.ry(),            "\t"
+		    "ax=",           ev.ax(),            "\t"
+		    "ay=",           ev.ay(),            "\t"
 		    "key_cnt=",      key_cnt, "\t", key_name(ev));
-	}
+	});
 }
 
 void Component::construct(Genode::Env &env)

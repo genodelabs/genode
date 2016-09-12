@@ -308,7 +308,6 @@ int main(int, char **)
 	static Input::Connection input;
 	static Timer::Connection timer;
 
-	Input::Event *ev_buf = Genode::env()->rm_session()->attach(input.dataspace());
 	int key_cnt = 0;
 
 	/*
@@ -317,10 +316,7 @@ int main(int, char **)
 	for (;;) {
 		while (!input.pending()) timer.msleep(20);
 
-		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
-
-			Input::Event const &ev = ev_buf[i];
-
+		input.for_each_event([&] (Input::Event const &ev) {
 			if (ev.type() == Input::Event::PRESS)   key_cnt++;
 			if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
@@ -330,7 +326,7 @@ int main(int, char **)
 				if (ascii)
 					pdf_view.handle_key(ascii);
 			}
-		}
+		});
 	}
 	Genode::sleep_forever();
 	return 0;

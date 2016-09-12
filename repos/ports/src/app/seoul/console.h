@@ -55,7 +55,7 @@ class Vancouver_console : public Thread_deprecated<8192>, public StaticReceiver<
 		Framebuffer::Mode            _fb_mode;
 		bool                         _left, _middle, _right;
 
-		unsigned _input_to_ps2mouse(Input::Event const *);
+		unsigned _input_to_ps2mouse(Input::Event const &);
 
 	public:
 

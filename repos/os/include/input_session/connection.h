@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2008-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,12 +22,20 @@ namespace Input { struct Connection; }
 struct Input::Connection : Genode::Connection<Session>, Session_client
 {
 	/**
+	 * Issue session request
+	 *
+	 * \noapi
+	 */
+	Capability<Input::Session> _session(Genode::Parent &parent, char const *label) {
+		return session(parent, "ram_quota=16K, label=\"%s\"", label); }
+
+	/**
 	 * Constructor
 	 */
-	Connection(Genode::Env &env)
+	Connection(Genode::Env &env, char const *label = "")
 	:
-		Genode::Connection<Session>(env, session(env.parent(), "ram_quota=16K")),
-		Session_client(cap())
+		Genode::Connection<Input::Session>(env, _session(env.parent(), label)),
+		Session_client(env, cap())
 	{ }
 
 	/**
@@ -39,7 +47,8 @@ struct Input::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection()
 	:
-		Genode::Connection<Session>(session("ram_quota=16K")),
+		Genode::Connection<Input::Session>(
+			session(*Genode::env()->parent(), "ram_quota=16K")),
 		Session_client(cap())
 	{ }
 };
