@@ -906,6 +906,9 @@ class Genode::Xml_node
 			try { sub_node(type); return true; } catch (...) { }
 			return false;
 		}
+
+		void print(Output &output) const {
+			output.out_string(addr(), size()); }
 };
 
 #endif /* _INCLUDE__UTIL__XML_NODE_H_ */
