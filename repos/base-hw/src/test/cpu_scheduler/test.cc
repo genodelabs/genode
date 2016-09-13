@@ -11,9 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
+
 /* core includes */
 #include <kernel/cpu_scheduler.h>
-#include <kernel/test.h>
 
 /*
  * Utilities
@@ -43,7 +44,7 @@ Data * data()
 
 void done()
 {
-	Genode::printf("[test] done\n");
+	Genode::log("done");
 	while (1) ;
 }
 
@@ -100,18 +101,18 @@ void update_check(unsigned const l, unsigned const c, unsigned const t,
 	data()->scheduler.update(c);
 	unsigned const st = time();
 	if (t != st) {
-		Genode::printf("[test] wrong time %u in line %u\n", st, l);
+		Genode::log("wrong time ", st, " in line ", l);
 		done();
 	}
 	Cpu_share * const hs = data()->scheduler.head();
 	unsigned const hq = data()->scheduler.head_quota();
 	if (hs != share(s)) {
 		unsigned const hi = share_id(hs);
-		Genode::printf("[test] wrong share %u in line %u\n", hi, l);
+		Genode::log("wrong share ", hi, " in line ", l);
 		done();
 	}
 	if (hq != q) {
-		Genode::printf("[test] wrong quota %u in line %u\n", hq, l);
+		Genode::log("wrong quota ", hq, " in line ", l);
 		done();
 	}
 }
@@ -120,7 +121,7 @@ void ready_check(unsigned const l, unsigned const s, bool const x)
 {
 	bool const y = data()->scheduler.ready_check(share(s));
 	if (y != x) {
-		Genode::printf("[test] wrong check result %u in line %u\n", y, l);
+		Genode::log("wrong check result ", y, " in line ", l);
 		done();
 	}
 }
@@ -144,7 +145,7 @@ void ready_check(unsigned const l, unsigned const s, bool const x)
 /**
  * Main routine
  */
-void Kernel::test()
+void Component::construct(Genode::Env &)
 {
 	/*
 	 * Step-by-step testing

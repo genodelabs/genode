@@ -15,7 +15,6 @@
 /* core includes */
 #include <kernel/pd.h>
 #include <kernel/kernel.h>
-#include <kernel/test.h>
 #include <platform_pd.h>
 #include <pic.h>
 #include <board.h>
@@ -61,8 +60,6 @@ extern "C" void init_kernel()
 	Core_thread::singleton();
 
 	Genode::printf("\nkernel initialized\n");
-
-	test();
 
 	kernel();
 }

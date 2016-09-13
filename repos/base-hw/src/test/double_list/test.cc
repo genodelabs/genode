@@ -12,12 +12,11 @@
  */
 
 /* base includes */
-#include <base/stdint.h>
-#include <base/printf.h>
+#include <base/component.h>
+#include <base/log.h>
 
 /* core includes */
 #include <kernel/double_list.h>
-#include <kernel/test.h>
 
 
 /*
@@ -38,7 +37,7 @@ struct Item : Item_load, Double_list_item
 
 	Item(unsigned const id) : _id(id) { x = 1; y = 2; z = 3; }
 
-	void iteration() { Genode::printf(" %u", _id); }
+	void iteration() { Genode::log(_id); }
 };
 
 struct Data
@@ -63,7 +62,7 @@ Data * data()
 
 void done()
 {
-	Genode::printf("[test] done\n");
+	Genode::log("done");
 	while (1) ;
 }
 
@@ -72,22 +71,21 @@ void check(unsigned i1, unsigned l)
 	Item * const i2 = data()->list.head();
 	if (i1 && i2) {
 		if(i1 == i2->_id) { return; }
-		Genode::printf("[test] head %u in line %u\n", i2->_id, l);
+		Genode::log("head ", i2->_id, " in line ", l);
 		done();
 	} else if (i1 && !i2) {
-		Genode::printf("[test] empty in line %u\n", l);
+		Genode::log("empty in line ", l);
 		done();
 	} else if (!i1 && i2){
-		Genode::printf("[test] non-empty %u in line %u\n", i2->_id, l);
+		Genode::log("non-empty ", i2->_id, " in line ", l);
 		done();
 	}
 }
 
 void print_each()
 {
-	Genode::printf("[test] print each");
+	Genode::log("print each");
 	data()->list.for_each([] (Item * const i) { i->iteration(); });
-	Genode::printf("\n");
 }
 
 Item * item(unsigned const i) {
@@ -110,7 +108,7 @@ Item * item(unsigned const i) {
 /**
  * Main routine
  */
-void Kernel::test()
+void Component::construct(Genode::Env &)
 {
 	/*
 	 * Step-by-step testing

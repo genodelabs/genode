@@ -5,17 +5,28 @@
 #
 
 # build program images
-build "test/cpu_scheduler"
+build "core init test/cpu_scheduler"
 
 # create directory where the boot files are written to
 create_boot_directory
 
 # the init config is not used but the build system needs it
-install_config {<dummy/>}
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-cpu_scheduler">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>}
 
 # create single boot image from the compiled program images
-set core_test 1
-build_boot_image "test-cpu_scheduler"
+build_boot_image "core init test-cpu_scheduler"
 
 # configure qemu to use 64 MB RAM and avoid GUI mode
 append qemu_args " -m 64 -nographic"
@@ -24,5 +35,5 @@ append qemu_args " -m 64 -nographic"
 run_genode_until "done.*\n" 10
 
 # check the output
-grep_output {\[test\]}
-compare_output_to { [test] done }
+grep_output {\[init -> test-cpu_scheduler\]}
+compare_output_to { [init -> test-cpu_scheduler] done }

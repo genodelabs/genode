@@ -4,11 +4,9 @@
 # \date   2011-12-16
 #
 
-# set target name that this configuration applies to
-TARGET = test-double_list
+TARGET  = test-double_list
+INC_DIR = $(REP_DIR)/src/core/include
+SRC_CC  = test.cc double_list.cc
+LIBS    = base
 
-# library that provides the whole configuration
-LIBS += core
-
-# add C++ sources
-SRC_CC += kernel/test.cc
+vpath double_list.cc $(REP_DIR)/src/core/kernel

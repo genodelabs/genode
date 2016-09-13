@@ -5,17 +5,29 @@
 #
 
 # build program images
-build "test/double_list"
+build "core init test/double_list"
 
 # create directory where the boot files are written to
 create_boot_directory
 
 # the init config is not used but the build system needs it
-install_config {<dummy/>}
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-double_list">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
 
 # create single boot image from the compiled program images
-set core_test 1
-build_boot_image "test-double_list"
+build_boot_image "core init test-double_list"
 
 # configure qemu to use 64 MB RAM and avoid GUI mode
 append qemu_args " -m 64 -nographic"
@@ -24,12 +36,31 @@ append qemu_args " -m 64 -nographic"
 run_genode_until "done.*\n" 10
 
 # check the output
-grep_output {\[test\]}
+grep_output {\[init -> test-double_list\]}
 compare_output_to {
-	[test] print each
-	[test] print each 1
-	[test] print each 3 2 5 7 6 4 1
-	[test] print each 8 9 2 5 1 7 6 4 3
-	[test] print each 7 8
-	[test] done
+	[init -> test-double_list] print each
+	[init -> test-double_list] print each
+	[init -> test-double_list] 1
+	[init -> test-double_list] print each
+	[init -> test-double_list] 3
+	[init -> test-double_list] 2
+	[init -> test-double_list] 5
+	[init -> test-double_list] 7
+	[init -> test-double_list] 6
+	[init -> test-double_list] 4
+	[init -> test-double_list] 1
+	[init -> test-double_list] print each
+	[init -> test-double_list] 8
+	[init -> test-double_list] 9
+	[init -> test-double_list] 2
+	[init -> test-double_list] 5
+	[init -> test-double_list] 1
+	[init -> test-double_list] 7
+	[init -> test-double_list] 6
+	[init -> test-double_list] 4
+	[init -> test-double_list] 3
+	[init -> test-double_list] print each
+	[init -> test-double_list] 7
+	[init -> test-double_list] 8
+	[init -> test-double_list] done
 }
