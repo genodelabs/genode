@@ -25,7 +25,6 @@ all: l4_build_arch_undefined
 endif
 
 L4_PKG_DIR   = $(L4_SRC_DIR)/l4/pkg
-STARTUP_LIB  =
 PKG_TAGS     = $(addsuffix .tag,$(PKGS))
 
 ifeq ($(VERBOSE),)

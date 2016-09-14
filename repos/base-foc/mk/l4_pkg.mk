@@ -35,7 +35,6 @@ endif
 L4_BUILD_DIR = $(BUILD_BASE_DIR)/l4
 L4_BUILD_OPT = SYSTEM_TARGET=$(CROSS_DEV_PREFIX)
 L4_PKG_DIR  := $(call select_from_ports,foc)/src/kernel/foc/l4/pkg
-STARTUP_LIB  =
 PKG_TAGS     = $(addsuffix .tag,$(PKGS))
 
 $(TARGET): $(PKG_TAGS)

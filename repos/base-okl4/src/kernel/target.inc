@@ -2,7 +2,6 @@ TARGET           = kernel
 OKL4_SRC_DIR     = $(call select_from_ports,okl4)/src/kernel/okl4
 OKL4_BUILD_DIR   = $(BUILD_BASE_DIR)/kernel
 REQUIRES        += okl4
-STARTUP_LIB      =
 LIBS             = kernel
 SRC_O           += $(addprefix $(OKL4_BUILD_DIR)/asm/,$(addsuffix .o,$(basename $(SRC_SPP))))
 SRC_CC          += $(subst $(OKL4_SRC_DIR)/,,$(wildcard $(OKL4_SRC_DIR)/pistachio/kdb/src/*.cc)) \
