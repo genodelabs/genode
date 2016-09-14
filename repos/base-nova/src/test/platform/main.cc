@@ -707,8 +707,6 @@ Main::Main(Env &env) : env(env)
 		check(res, "pt_ctrl %2u", i);
 	}
 
-	test_delegate_revoke_smp(env);
-
 	/* test PAT kernel feature */
 	test_pat(env);
 
@@ -717,6 +715,9 @@ Main::Main(Env &env) : env(env)
 
 	/* test translate together with special revoke */
 	test_translate(env);
+
+	/* test SMP delegate/revoke */
+	test_delegate_revoke_smp(env);
 
 	/**
 	 * Test to provoke out of memory during capability transfer of
