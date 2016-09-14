@@ -39,7 +39,7 @@ int main(void)
 	log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
-	in_addr.sin_port = htons(8765);
+	in_addr.sin_port = htons(49252);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
 		error("bind failed!");
