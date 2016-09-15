@@ -23,8 +23,8 @@ namespace Kernel
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_pause_current_thread() { return  0; }
-	constexpr Call_arg call_id_resume_local_thread()  { return  1; }
+	constexpr Call_arg call_id_stop_thread()          { return  0; }
+	constexpr Call_arg call_id_restart_thread()       { return  1; }
 	constexpr Call_arg call_id_yield_thread()         { return  2; }
 	constexpr Call_arg call_id_send_request_msg()     { return  3; }
 	constexpr Call_arg call_id_send_reply_msg()       { return  4; }
@@ -118,38 +118,56 @@ namespace Kernel
 
 
 	/**
-	 * Pause execution of calling thread
+	 * Wait for a user event signaled by a 'restart_thread' syscall
+	 *
+	 * The stop syscall always targets the calling thread that, therefore must
+	 * be in the 'active' thread state. The thread then switches to the
+	 * 'stopped' thread state in wich it waits for a restart. The restart
+	 * syscall can only be used on a thread in the 'stopped' or the 'active'
+	 * thread state. The thread then switches back to the 'active' thread
+	 * state and the syscall returns whether the thread was stopped. Both
+	 * syscalls are not core-restricted. In contrast to the 'stop' syscall,
+	 * 'restart' may target any thread in the same PD as the caller. Thread
+	 * state and UTCB content of a thread don't change while in the 'stopped'
+	 * state. The 'stop/restart' feature is used when an active thread wants
+	 * to wait for an event that is not known to the kernel. Actually, the
+	 * syscalls are used when waiting for locks and when doing infinite
+	 * waiting on thread exit.
 	 */
-	inline void pause_current_thread()
+	inline void stop_thread()
 	{
-		call(call_id_pause_current_thread());
+		call(call_id_stop_thread());
 	}
 
 
 	/**
-	 * Cancel blocking of a thread of the current domain if possible
+	 * End blocking of a stopped thread
 	 *
 	 * \param thread_id  capability id of the targeted thread
 	 *
-	 * \return  wether thread was in a cancelable blocking beforehand
+	 * \return  wether the thread was stopped beforehand
+	 *
+	 * For details see the 'stop_thread' syscall.
 	 */
-	inline bool resume_local_thread(capid_t const thread_id)
+	inline bool restart_thread(capid_t const thread_id)
 	{
-		return call(call_id_resume_local_thread(), thread_id);
+		return call(call_id_restart_thread(), thread_id);
 	}
 
 
 	/**
-	 * Let the current thread give up its remaining timeslice
+	 * Yield the callers remaining CPU time for this super period
 	 *
-	 * \param thread_id  capability id of the benefited thread
-	 *
-	 * If thread_id is valid the call will resume the targeted thread
-	 * additionally.
+	 * Does its best that the caller is scheduled as few as possible in the
+	 * current scheduling super-period without touching the thread or pause
+	 * state of the thread. In the next superperiod, however, the thread is
+	 * scheduled 'normal' again. The syscall is not core-restricted and always
+	 * targets the caller. It is actually used in locks to help another thread
+	 * reach a desired point in execution by releasing pressure from the CPU.
 	 */
-	inline void yield_thread(capid_t const thread_id)
+	inline void yield_thread()
 	{
-		call(call_id_yield_thread(), thread_id);
+		call(call_id_yield_thread());
 	}
 
 	/**

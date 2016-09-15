@@ -24,12 +24,12 @@ void Kernel::Thread::_call_update_data_region() { }
 void Kernel::Thread::_call_update_instr_region() { }
 
 
-void Kernel::Thread_event::_signal_acknowledged() { _thread->_resume(); }
+void Kernel::Thread_event::_signal_acknowledged() { _thread->_restart(); }
 
 
 void Kernel::Thread::_mmu_exception()
 {
-	_become_inactive(AWAITS_RESUME);
+	_become_inactive(AWAITS_RESTART);
 	_fault_pd     = (addr_t)_pd->platform_pd();
 	_fault_signal = (addr_t)_fault.signal_context();
 	_fault_addr   = Cpu::Cr2::read();

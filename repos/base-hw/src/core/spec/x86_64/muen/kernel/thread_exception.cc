@@ -27,11 +27,11 @@ void Thread::exception(unsigned const cpu)
 	case NO_MATH_COPROC:
 		if (_cpu->fpu().fault(*this)) { return; }
 		Genode::warning(*this, ": FPU error");
-		_stop();
+		_die();
 		return;
 	case UNDEFINED_INSTRUCTION:
 		Genode::warning(*this, ": undefined instruction at ip=", (void*)ip);
-		_stop();
+		_die();
 		return;
 	case SUPERVISOR_CALL:
 		_call();
@@ -44,5 +44,5 @@ void Thread::exception(unsigned const cpu)
 	}
 	Genode::warning(*this, ": triggered unknown exception ", trapno,
 	                " with error code ", errcode, " at ip=%p", (void*)ip);
-	_stop();
+	_die();
 }

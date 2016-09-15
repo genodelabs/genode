@@ -58,6 +58,7 @@ namespace Kernel
 	constexpr Call_arg call_id_ack_irq()                { return 120; }
 	constexpr Call_arg call_id_new_obj()                { return 121; }
 	constexpr Call_arg call_id_delete_obj()             { return 122; }
+	constexpr Call_arg call_id_cancel_thread_blocking() { return 123; }
 
 	/**
 	 * Update locally effective domain configuration to in-memory state
@@ -87,13 +88,38 @@ namespace Kernel
 
 
 	/**
-	 * Pause execution of a specific thread
+	 * Pause execution of a thread until 'resume_thread' is called on it
 	 *
 	 * \param thread  pointer to thread kernel object
+	 *
+	 * This doesn't affect the state of the thread (IPC, signalling, etc.) but
+	 * merely wether the thread is allowed for scheduling or not. The pause
+	 * state simply masks the thread state when it comes to scheduling. In
+	 * contrast to the 'stopped' thread state, which is described in the
+	 * documentation of the 'stop_thread/resume_thread' syscalls, the pause
+	 * state doesn't freeze the thread state and the UTCB content of a thread.
+	 * However, the register state of a thread doesn't change while paused.
+	 * The 'pause' and 'resume' syscalls are both core-restricted and may
+	 * target any thread. They are used as back end for the CPU session calls
+	 * 'pause' and 'resume'. The 'pause/resume' feature is made for
+	 * applications like the GDB monitor that transparently want to stop and
+	 * continue the execution of a thread no matter what state the thread is
+	 * in.
 	 */
 	inline void pause_thread(Thread * const thread)
 	{
 		call(call_id_pause_thread(), (Call_arg)thread);
+	}
+
+
+	/**
+	 * End blocking of a paused thread
+	 *
+	 * \param thread  pointer to thread kernel object
+	 */
+	inline void resume_thread(Thread * const thread)
+	{
+		call(call_id_resume_thread(), (Call_arg)thread);
 	}
 
 
@@ -117,15 +143,23 @@ namespace Kernel
 
 
 	/**
-	 * Cancel blocking of a thread if possible
+	 * Cancel blocking of a thread if it is in a cancelable blocking state
 	 *
 	 * \param thread  pointer to thread kernel object
 	 *
-	 * \return  wether thread was in a cancelable blocking beforehand
+	 * Does cleanly cancel a cancelable blocking thread state (IPC, signalling,
+	 * stopped). The thread whose blocking was cancelled goes back to the
+	 * 'active' thread state. If needed, it receives a syscall return value
+	 * that reflects the cancellation. This syscall doesn't affect the pause
+	 * state of the thread (see the 'pause_thread' syscall) which means that
+	 * the thread may still be not allowed for scheduling. The syscall is
+	 * core-restricted and may target any thread. It is actually used to
+	 * limit the time a parent waits for a server when closing a session
+	 * of one of its children.
 	 */
-	inline bool resume_thread(Thread * const thread)
+	inline void cancel_thread_blocking(Thread * const thread)
 	{
-		return call(call_id_resume_thread(), (Call_arg)thread);
+		call(call_id_cancel_thread_blocking(), (Call_arg)thread);
 	}
 
 

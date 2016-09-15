@@ -110,35 +110,6 @@ void Thread::_await_request_failed()
 }
 
 
-bool Thread::_resume()
-{
-	switch (_state) {
-	case AWAITS_RESUME:
-		_become_active();
-		return true;
-	case AWAITS_IPC:
-		Ipc_node::cancel_waiting();
-		return true;
-	case AWAITS_SIGNAL:
-		Signal_handler::cancel_waiting();
-		user_arg_0(-1);
-		_become_active();
-		return true;
-	case AWAITS_SIGNAL_CONTEXT_KILL:
-		Signal_context_killer::cancel_waiting();
-		return true;
-	default:
-		return false;
-	}
-}
-
-
-void Thread::_pause()
-{
-	assert(_state == AWAITS_RESUME || _state == ACTIVE);
-	_become_inactive(AWAITS_RESUME);
-}
-
 void Thread::_deactivate_used_shares()
 {
 	Cpu_job::_deactivate_own_share();
@@ -155,30 +126,23 @@ void Thread::_activate_used_shares()
 
 void Thread::_become_active()
 {
-	if (_state != ACTIVE) { _activate_used_shares(); }
+	if (_state != ACTIVE && !_paused) { _activate_used_shares(); }
 	_state = ACTIVE;
 }
 
 
 void Thread::_become_inactive(State const s)
 {
-	if (_state == ACTIVE) { _deactivate_used_shares(); }
+	if (_state == ACTIVE && !_paused) { _deactivate_used_shares(); }
 	_state = s;
 }
 
 
-void Thread::_stop() { _become_inactive(STOPPED); }
+void Thread::_die() { _become_inactive(DEAD); }
 
 
 Cpu_job * Thread::helping_sink() {
 	return static_cast<Thread *>(Ipc_node::helping_sink()); }
-
-
-void Thread::_receive_yielded_cpu()
-{
-	if (_state == AWAITS_RESUME) { _become_active(); }
-	else { Genode::warning("failed to receive yielded CPU"); }
-}
 
 
 void Thread::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
@@ -236,31 +200,90 @@ void Thread::_call_start_thread()
 }
 
 
-void Thread::_call_pause_current_thread() { _pause(); }
-
-
-void Thread::_call_pause_thread() {
-	reinterpret_cast<Thread*>(user_arg_1())->_pause(); }
-
-
-void Thread::_call_resume_thread() {
-	user_arg_0(reinterpret_cast<Thread*>(user_arg_1())->_resume()); }
-
-
-void Thread::_call_resume_local_thread()
+void Thread::_call_pause_thread()
 {
-	if (!pd()) return;
+	Thread &thread = *reinterpret_cast<Thread*>(user_arg_1());
+	if (thread._state == ACTIVE && !thread._paused) {
+		thread._deactivate_used_shares(); }
 
-	/* lookup thread */
+	thread._paused = true;
+}
+
+
+void Thread::_call_resume_thread()
+{
+	Thread &thread = *reinterpret_cast<Thread*>(user_arg_1());
+	if (thread._state == ACTIVE && thread._paused) {
+		thread._activate_used_shares(); }
+
+	thread._paused = false;
+}
+
+
+void Thread::_call_stop_thread()
+{
+	assert(_state == ACTIVE);
+	_become_inactive(AWAITS_RESTART);
+}
+
+
+void Thread::_call_restart_thread()
+{
+	if (!pd()) {
+		return; }
+
 	Thread * const thread = pd()->cap_tree().find<Thread>(user_arg_1());
 	if (!thread || pd() != thread->pd()) {
 		warning(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
-		        " to resume it");
-		_stop();
+		        " to restart it");
+		_die();
 		return;
 	}
-	/* resume thread */
-	user_arg_0(thread->_resume());
+	user_arg_0(thread->_restart());
+}
+
+
+bool Thread::_restart()
+{
+	assert(_state == ACTIVE || _state == AWAITS_RESTART);
+	if (_state != AWAITS_RESTART) { return false; }
+	_become_active();
+	return true;
+}
+
+
+void Thread::_call_cancel_thread_blocking()
+{
+	reinterpret_cast<Thread*>(user_arg_1())->_cancel_blocking();
+}
+
+
+void Thread::_cancel_blocking()
+{
+	switch (_state) {
+	case AWAITS_RESTART:
+		_become_active();
+		return;
+	case AWAITS_IPC:
+		Ipc_node::cancel_waiting();
+		return;
+	case AWAITS_SIGNAL:
+		Signal_handler::cancel_waiting();
+		user_arg_0(-1);
+		_become_active();
+		return;
+	case AWAITS_SIGNAL_CONTEXT_KILL:
+		Signal_context_killer::cancel_waiting();
+		return;
+	case ACTIVE:
+		return;
+	case DEAD:
+		Genode::error("can't cancel blocking of dead thread");
+		return;
+	case AWAITS_START:
+		Genode::error("can't cancel blocking of not yet started thread");
+		return;
+	}
 }
 
 
@@ -273,8 +296,6 @@ void Thread_event::submit() { if (_signal_context) _signal_context->submit(1); }
 
 void Thread::_call_yield_thread()
 {
-	Thread * const t = pd()->cap_tree().find<Thread>(user_arg_1());
-	if (t) { t->_receive_yielded_cpu(); }
 	Cpu_job::_yield();
 }
 
@@ -525,8 +546,8 @@ void Thread::_call()
 	switch (call_id) {
 	case call_id_update_data_region():   _call_update_data_region(); return;
 	case call_id_update_instr_region():  _call_update_instr_region(); return;
-	case call_id_pause_current_thread(): _call_pause_current_thread(); return;
-	case call_id_resume_local_thread():  _call_resume_local_thread(); return;
+	case call_id_stop_thread():          _call_stop_thread(); return;
+	case call_id_restart_thread():       _call_restart_thread(); return;
 	case call_id_yield_thread():         _call_yield_thread(); return;
 	case call_id_send_request_msg():     _call_send_request_msg(); return;
 	case call_id_send_reply_msg():       _call_send_reply_msg(); return;
@@ -545,7 +566,7 @@ void Thread::_call()
 		/* check wether this is a core thread */
 		if (!_core()) {
 			Genode::warning(*this, ": not entitled to do kernel call");
-			_stop();
+			_die();
 			return;
 		}
 	}
@@ -556,6 +577,7 @@ void Thread::_call()
 	case call_id_delete_thread():          _call_delete<Thread>(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;
+	case call_id_cancel_thread_blocking(): _call_cancel_thread_blocking(); return;
 	case call_id_route_thread_event():     _call_route_thread_event(); return;
 	case call_id_update_pd():              _call_update_pd(); return;
 	case call_id_new_pd():
@@ -582,7 +604,7 @@ void Thread::_call()
 	case call_id_delete_obj():             _call_delete_obj(); return;
 	default:
 		Genode::warning(*this, ": unknown kernel call");
-		_stop();
+		_die();
 		return;
 	}
 	} catch (Genode::Allocator::Out_of_memory &e) { user_arg_0(-2); }

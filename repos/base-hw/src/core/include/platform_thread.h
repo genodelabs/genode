@@ -147,7 +147,8 @@ namespace Genode {
 			/**
 			 * Cancel currently blocking operation
 			 */
-			void cancel_blocking() { resume(); }
+			void cancel_blocking() {
+				Kernel::cancel_thread_blocking(kernel_object()); }
 
 			/**
 			 * Set CPU quota of the thread to 'quota'

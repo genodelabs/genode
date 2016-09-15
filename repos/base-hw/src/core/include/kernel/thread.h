@@ -86,15 +86,17 @@ class Kernel::Thread
 
 	private:
 
+		enum { START_VERBOSE = 0 };
+
 		enum State
 		{
 			ACTIVE                      = 1,
 			AWAITS_START                = 2,
 			AWAITS_IPC                  = 3,
-			AWAITS_RESUME               = 4,
+			AWAITS_RESTART              = 4,
 			AWAITS_SIGNAL               = 5,
 			AWAITS_SIGNAL_CONTEXT_KILL  = 6,
-			STOPPED                     = 7,
+			DEAD                        = 7,
 		};
 
 		Thread_event       _fault;
@@ -106,6 +108,7 @@ class Kernel::Thread
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
 		capid_t            _timeout_sigid = 0;
+		bool               _paused = false;
 
 		void _init();
 
@@ -162,21 +165,9 @@ class Kernel::Thread
 		void _deactivate_used_shares();
 
 		/**
-		 * Pause execution
-		 */
-		void _pause();
-
-		/**
 		 * Suspend unrecoverably from execution
 		 */
-		void _stop();
-
-		/**
-		 * Cancel blocking if possible
-		 *
-		 * \return  wether thread was in a cancelable blocking beforehand
-		 */
-		bool _resume();
+		void _die();
 
 		/**
 		 * Handle an exception thrown by the memory management unit
@@ -193,6 +184,10 @@ class Kernel::Thread
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
 
+		void _cancel_blocking();
+
+		bool _restart();
+
 
 		/*********************************************************
 		 ** Kernel-call back-ends, see kernel-interface headers **
@@ -201,10 +196,11 @@ class Kernel::Thread
 		void _call_new_thread();
 		void _call_thread_quota();
 		void _call_start_thread();
-		void _call_pause_current_thread();
+		void _call_stop_thread();
 		void _call_pause_thread();
 		void _call_resume_thread();
-		void _call_resume_local_thread();
+		void _call_cancel_thread_blocking();
+		void _call_restart_thread();
 		void _call_yield_thread();
 		void _call_await_request_msg();
 		void _call_send_request_msg();
@@ -281,7 +277,7 @@ class Kernel::Thread
 		 ** Cpu_domain_update **
 		 ***********************/
 
-		void _cpu_domain_update_unblocks() { _resume(); }
+		void _cpu_domain_update_unblocks() { _restart(); }
 
 	public:
 

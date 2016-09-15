@@ -178,7 +178,7 @@ namespace Genode {
 			inline Rom_fs *rom_fs() { return &_rom_fs; }
 
 			inline void wait_for_exit() {
-				while (1) { Kernel::pause_current_thread(); } };
+				while (1) { Kernel::stop_thread(); } };
 
 			bool supports_direct_unmap() const { return 1; }
 
