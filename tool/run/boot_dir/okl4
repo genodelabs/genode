@@ -97,7 +97,7 @@ set weaver_xml_template {
 		</config>
 	</kernel>
 
-	<rootprogram file="core" virtpool="virtual" physpool="physical" />
+	<rootprogram file="core" virtpool="virtual" physpool="physical" direct="true" />
 }
 
 
@@ -106,16 +106,17 @@ proc run_boot_string { } {
 }
 
 
+proc core_link_address { } { return "0x03000000" }
+
+
 ##
 # Populate directory with binaries on OKL4
 #
 proc run_boot_dir {binaries} {
 	global weaver_xml_template
 
-	#
-	# Strip binaries
-	#
-	copy_and_strip_genode_binaries_to_run_dir $binaries
+	build_core_image $binaries
+	exec mv [run_dir]/image.elf [run_dir].image
 
 	#
 	# Build kernel if needed
@@ -138,15 +139,8 @@ proc run_boot_dir {binaries} {
 	puts $fh {<!DOCTYPE image SYSTEM "weaver-1.1.dtd">}
 	puts $fh {<image>}
 	regsub okl4_kernel $weaver_xml_template "[run_dir]/kernel" weaver_xml_template
-	regsub core $weaver_xml_template "[run_dir]/genode/core" weaver_xml_template
+	regsub core $weaver_xml_template "[run_dir].image" weaver_xml_template
 	puts $fh $weaver_xml_template
-	puts $fh {	<pd name="modules">}
-	puts $fh "		<memsection name=\"config\" file=\"[run_dir]/genode/config\" direct=\"true\" />"
-	foreach binary $binaries {
-		if {$binary != "core"} {
-			puts $fh "		<memsection name=\"$binary\" file=\"[run_dir]/genode/$binary\" direct=\"true\" />" }
-	}
-	puts $fh {	</pd>}
 	puts $fh {</image>}
 	close $fh
 
@@ -159,7 +153,6 @@ proc run_boot_dir {binaries} {
 		exit -6
 	}
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
-	exec cp [run_dir]/image.elf [run_dir].elf
 
 	#
 	# Keep only the ELF boot image, but remove stripped binaries

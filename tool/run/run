@@ -46,10 +46,6 @@ proc build {targets} {
 
 	if {[get_cmd_switch --skip-build]} return
 
-	if {[info exists run_boot_dir_hook]} {
-		run_boot_dir_hook
-	}
-
 	regsub -all {\s\s+} $targets " " targets
 	puts "building targets: $targets"
 	set timeout 10000
@@ -542,6 +538,20 @@ proc run_power_off { } { return true; }
 
 
 ##
+# Default core linker options
+#
+proc core_ld_opts { } {
+	set ret { -Wl,-T }
+	lappend ret "-Wl,[genode_dir]/repos/base/src/ld/genode.ld"
+	return $ret
+}
+
+##
+# Default core link address
+#
+proc core_link_address { } { return "0x01000000" }
+
+##
 # Check if a specific file is included
 #
 proc have_include { name } {
@@ -623,6 +633,127 @@ proc check_installed {command} {
 	puts stderr "        packet containing '$command', or make it available in your PATH variable.\n"
 
 	exit 1
+}
+
+
+##
+# Generate assembly code aggregating boot-module data from specified files.
+#
+proc generate_boot_modules_asm {path modules} {
+
+	# architecture dependent definitions
+	if {[have_spec "64bit"]} { set address_type ".quad"
+	} else                   { set address_type ".long" }
+
+	# header
+	set asm_src {}
+	append asm_src ".set MIN_PAGE_SIZE_LOG2, 12\n"
+	append asm_src ".set DATA_ACCESS_ALIGNM_LOG2, 3\n"
+	append asm_src "\n"
+	append asm_src ".section .data\n"
+	append asm_src "\n"
+	append asm_src ".p2align DATA_ACCESS_ALIGNM_LOG2\n"
+	append asm_src ".global _boot_modules_headers_begin\n"
+	append asm_src "_boot_modules_headers_begin:\n"
+	append asm_src "\n"
+
+	# module list
+	set i 0
+	foreach module $modules {
+		incr i
+		append asm_src "${address_type} _boot_module_${i}_name\n"
+		append asm_src "${address_type} _boot_module_${i}_begin\n"
+		append asm_src "${address_type} _boot_module_${i}_end -"
+		append asm_src " _boot_module_${i}_begin\n"
+		append asm_src "\n"
+	}
+	append asm_src ".global _boot_modules_headers_end\n"
+	append asm_src "_boot_modules_headers_end:\n"
+	append asm_src "\n"
+
+	# module names
+	set i 0
+	foreach module $modules {
+	        incr i
+		append asm_src ".p2align DATA_ACCESS_ALIGNM_LOG2\n"
+		append asm_src "_boot_module_${i}_name:\n"
+		append asm_src ".string \"${module}\"\n"
+		append asm_src ".byte 0\n"
+		append asm_src "\n"
+	}
+
+	# header end
+	append asm_src ".section .data.boot_modules_binaries\n"
+	append asm_src "\n"
+	append asm_src ".global _boot_modules_binaries_begin\n"
+	append asm_src "_boot_modules_binaries_begin:\n"
+	append asm_src "\n"
+
+	# module data
+	set i 0
+	foreach module $modules {
+		incr i
+		append asm_src ".p2align MIN_PAGE_SIZE_LOG2\n"
+		append asm_src "_boot_module_${i}_begin:\n"
+		append asm_src ".incbin \"${path}/${module}\"\n"
+		append asm_src "_boot_module_${i}_end:\n"
+		append asm_src "\n"
+	}
+
+	append asm_src ".global _boot_modules_binaries_end\n"
+	append asm_src "_boot_modules_binaries_end:\n"
+
+	return $asm_src
+}
+
+
+##
+# Link core image containing given modules
+#
+proc build_core {lib modules target} {
+
+	# generate assembly code aggregating the modules data
+	set asm_src [generate_boot_modules_asm [run_dir]/genode $modules]
+
+	# architecture dependent definitions
+	set arch {}
+	if {[have_spec "x86_64"]} { set arch -m64 }
+	if {[have_spec "x86_32"]} { set arch -m32 }
+
+	# determine the libgcc
+	set libgcc [exec [cross_dev_prefix]gcc -print-libgcc-file-name {*}$arch]
+
+	# compile the boot modules into one object file
+	exec [cross_dev_prefix]gcc {*}$arch -c -x assembler -o [run_dir].boot_modules.o - << $asm_src
+
+	# link final image
+	exec [cross_dev_prefix]g++ {*}$arch -nostdlib {*}[core_ld_opts] \
+	                           -Wl,-z -Wl,max-page-size=0x1000 \
+	                           -Wl,-Ttext=[core_link_address] -Wl,-gc-sections \
+	                           -Wl,-nostdlib -Wl,--whole-archive -Wl,--start-group \
+	                           $lib [run_dir].boot_modules.o -Wl,--no-whole-archive \
+	                           -Wl,--end-group $libgcc -o $target
+}
+
+
+##
+# Generate bootable core image containing all boot-modules
+#
+proc build_core_image {binaries} {
+	# boot module list without core
+	set idx [lsearch $binaries "core"]
+	set modules [lreplace $binaries $idx $idx]
+
+	# strip binaries
+	copy_and_strip_genode_binaries_to_run_dir $modules
+	lappend modules "config"
+
+	# create core binary without modules for debugging
+	build_core core/core.o {} [run_dir].core
+
+	# create core binary containing the boot modules
+	build_core core/core.o $modules [run_dir]/image.elf
+	exec [cross_dev_prefix]strip [run_dir]/image.elf
 }
 
 

@@ -16,6 +16,7 @@
 #include <base/log.h>
 
 /* core includes */
+#include <boot_modules.h>
 #include <core_parent.h>
 #include <map_local.h>
 #include <platform.h>
@@ -36,22 +37,6 @@ extern int _prog_img_beg;
 extern int _prog_img_end;
 
 void __attribute__((weak)) Kernel::init_trustzone(Pic & pic) { }
-
-/**
- * Format of a boot-module header
- */
-struct Bm_header
-{
-	long name; /* physical address of null-terminated string */
-	long base; /* physical address of module data */
-	long size; /* size of module data in bytes */
-};
-
-extern Bm_header _boot_modules_headers_begin;
-extern Bm_header _boot_modules_headers_end;
-extern int       _boot_modules_binaries_begin;
-extern int       _boot_modules_binaries_end;
-
 
 /**
  * Helper to initialise allocators through include/exclude region lists
@@ -152,7 +137,7 @@ Platform::Platform()
 	_init_io_mem_alloc();
 
 	/* add boot modules to ROM FS */
-	Bm_header * header = &_boot_modules_headers_begin;
+	Boot_modules_header * header = &_boot_modules_headers_begin;
 	for (; header < &_boot_modules_headers_end; header++) {
 		Rom_module * rom_module = new (core_mem_alloc())
 			Rom_module(header->base, header->size, (const char*)header->name);

@@ -1,5 +1,3 @@
-TARGET       = core
-
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 SRC_CC      += \

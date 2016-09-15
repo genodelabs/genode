@@ -73,7 +73,8 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 	Elf_segment seg;
 
 	for (unsigned n = 0; (seg = elf.get_segment(n)).valid(); ++n) {
-		if (seg.flags().skip) continue;
+		if (seg.flags().skip)    continue;
+		if (seg.mem_size() == 0) continue;
 
 		/* same values for r/o and r/w segments */
 		addr_t const addr = (addr_t)seg.start();

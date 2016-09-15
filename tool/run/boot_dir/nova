@@ -29,6 +29,15 @@ proc run_boot_string { } {
 }
 
 
+proc core_link_address { } { return "0x100000" }
+
+proc core_ld_opts { } {
+	set ret { -Wl,-T }
+	lappend ret "-Wl,[genode_dir]/repos/base/src/ld/genode.ld"
+	lappend ret "-Wl,[genode_dir]/repos/base-nova/src/core/core-bss.ld"
+	return $ret
+}
+
 ##
 # Populate directory with binaries on NOVA
 #
@@ -37,7 +46,7 @@ proc run_boot_dir {binaries} {
 	#
 	# Collect contents of the ISO image
 	#
-	copy_and_strip_genode_binaries_to_run_dir $binaries
+	build_core_image $binaries
 
 	if {![nova_external]} { build { kernel } }
 
@@ -60,11 +69,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "\ntitle Genode on NOVA"
 		puts $fh " kernel /boot/bender"
 		puts $fh " module /hypervisor iommu serial novpid novga"
-		puts $fh " module /genode/core"
-		puts $fh " module /genode/config"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " modulenounzip /genode/$binary" } }
+		puts $fh " module /image.elf"
 		close $fh
 	}
 
@@ -85,11 +90,7 @@ proc run_boot_dir {binaries} {
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
 		puts $fh " load /hypervisor iommu serial novpid novga"
-		puts $fh " load /genode/core"
-		puts $fh " load /genode/config"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " load /genode/$binary" } }
+		puts $fh " load /image.elf"
 		close $fh
 
 		generate_tftp_config

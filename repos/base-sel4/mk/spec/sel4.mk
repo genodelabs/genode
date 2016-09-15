@@ -1,5 +1,3 @@
-LD_TEXT_ADDR ?= 0x01000000
-
 #
 # Clean rule for removing the side effects of building the platform library
 #

@@ -12,9 +12,6 @@ SPECS += hw imx6
 # configure multiprocessor mode
 NR_OF_CPUS = 1
 
-# set address where to link the text segment at
-LD_TEXT_ADDR ?= 0x10001000
-
 # include implied specs
 include $(call select_from_repositories,mk/spec/hw.mk)
 include $(call select_from_repositories,mk/spec/imx6.mk)

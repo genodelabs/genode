@@ -25,6 +25,7 @@
 #include <base/internal/globals.h>
 
 /* core includes */
+#include <boot_modules.h>
 #include <core_parent.h>
 #include <map_local.h>
 #include <platform.h>
@@ -46,8 +47,8 @@ namespace Pistachio {
 using namespace Genode;
 
 
-static const bool verbose              = false;
-static const bool verbose_core_pf      = false;
+static const bool verbose              = true;
+static const bool verbose_core_pf      = true;
 static const bool verbose_region_alloc = false;
 
 
@@ -508,9 +509,6 @@ void Platform::_setup_basics()
 	_kip_rom = Rom_module((addr_t)kip, sizeof(L4_KernelInterfacePage_t), "pistachio_kip");
 	_rom_fs.insert(&_kip_rom);
 
-	/* update multi-boot info pointer from KIP */
-	void *mb_info_ptr = (void *)kip->BootInfo;
-
 	// Get virtual bootinfo address.
 
 	L4_Fpage_t bipage = L4_Sigma0_GetPage(get_sigma0(),
@@ -519,15 +517,7 @@ void Platform::_setup_basics()
 	if (L4_IsNilFpage(bipage))
 		panic("Could not map BootInfo.");
 
-	if (!L4_BootInfo_Valid(mb_info_ptr))
-		panic("No valid boot info.");
-
-	if (L4_BootInfo_Size(mb_info_ptr) > get_page_size())
-		panic("TODO Our multiboot info is bigger than a page...");
-
 	/* done magic */
-
-	if (verbose) log("MBI @ ", mb_info_ptr);
 
 	/* get UTCB memory */
 	Platform_pd::touch_utcb_space();
@@ -572,11 +562,9 @@ void Platform::_setup_basics()
 	_region_alloc.remove_range(stack_area_virtual_base(),
 	                           stack_area_virtual_size());
 
-	/* remove KIP and MBI area from region and IO_MEM allocator */
+	/* remove KIP area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _region_alloc);
 	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _io_mem_alloc);
-	remove_region(Region((addr_t)mb_info_ptr, (addr_t)mb_info_ptr + _mb_info.size()), _region_alloc);
-	remove_region(Region((addr_t)mb_info_ptr, (addr_t)mb_info_ptr + _mb_info.size()), _io_mem_alloc);
 
 	/* remove utcb area */
 	addr_t utcb_ptr = (addr_t)Platform_pd::_core_utcb_ptr;
@@ -597,31 +585,12 @@ void Platform::_setup_basics()
 
 void Platform::_setup_rom()
 {
-	Rom_module rom;
-
-	Pistachio::L4_Word_t page_size = Pistachio::get_page_size();
-
-	for (unsigned i = 0; i < _mb_info.num_modules();  i++) {
-		if (!(rom = _mb_info.get_module(i)).valid()) continue;
-
-		Rom_module *new_rom = new(core_mem_alloc()) Rom_module(rom);
-
-		_rom_fs.insert(new_rom);
-
-		if (verbose)
-			log(" mod[", i, "] ", *new_rom);
-
-		/* zero remainder of last ROM page */
-		size_t count = page_size - rom.size() % page_size;
-		if (count != page_size)
-			memset(reinterpret_cast<void *>(rom.addr() + rom.size()), 0, count);
-
-		/* remove ROM area from region and IO_MEM allocator */
-		remove_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _region_alloc);
-		remove_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _io_mem_alloc);
-
-		/* add area to core-accessible ranges */
-		add_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _core_address_ranges());
+	/* add boot modules to ROM FS */
+	Boot_modules_header * header = &_boot_modules_headers_begin;
+	for (; header < &_boot_modules_headers_end; header++) {
+		Rom_module * rom = new (core_mem_alloc())
+			Rom_module(header->base, header->size, (const char*)header->name);
+		_rom_fs.insert(rom);
 	}
 }
 
@@ -637,8 +606,7 @@ Platform_pd *Platform::core_pd()
 Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc()),
-	_mb_info(init_kip()->BootInfo)
+	_region_alloc(core_mem_alloc())
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.

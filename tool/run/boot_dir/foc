@@ -76,19 +76,6 @@ proc reset_target { {spawn_id_arg -1} } {
 }
 
 
-proc copy_and_strip_binaries {binaries} {
-
-	#
-	# Collect contents of the boot image
-	#
-	foreach binary $binaries {
-		exec cp bin/$binary [run_dir]/genode
-		catch {
-			exec [cross_dev_prefix]strip [run_dir]/genode/$binary }
-	}
-}
-
-
 proc bin_dir { } {
 	if {[have_spec x86_32]}  { return "[l4_dir]/bin/x86_586" }
 	if {[have_spec x86_64]}  { return "[l4_dir]/bin/amd64_K8" }
@@ -101,13 +88,23 @@ proc bin_dir { } {
 
 set fiasco_serial_esc_arg "-serial_esc "
 
-proc run_boot_dir_x86 {binaries} {
+proc core_link_address { } {
+	if {[have_spec x86      ]} { return "0x01100000" }
+	if {[have_spec arndale  ]} { return "0x80100000" }
+	if {[have_spec rpi      ]} { return "0x00800000" }
+	if {[have_spec panda    ]} { return "0xa0000000" }
+	if {[have_spec pbxa9    ]} { return "0x76000000" }
+	if {[have_spec odroid_x2]} { return "0x80100000" }
+	if {[have_spec imx53    ]} { return "0x70140000" }
 
+	puts stderr "Error: platform not supported, core link address unknown"
+	exit 1
+}
+
+proc run_boot_dir_x86 {binaries} {
 	global fiasco_serial_esc_arg
 
 	exec mkdir -p [run_dir]/fiasco
-
-	copy_and_strip_binaries $binaries
 
 	set foc_targets { }
 	if {![fiasco_external] && ![file exists kernel]} { lappend foc_targets kernel }
@@ -146,12 +143,7 @@ proc run_boot_dir_x86 {binaries} {
 		puts $fh " module /fiasco/bootstrap"
 		puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
 		puts $fh " module /fiasco/sigma0"
-		puts $fh " module /genode/core"
-		puts $fh " module /genode/config"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " module /genode/$binary" } }
-		puts $fh " vbeset 0x117 506070"
+		puts $fh " module /image.elf"
 		close $fh
 	}
 
@@ -174,11 +166,7 @@ proc run_boot_dir_x86 {binaries} {
 		puts $fh " load /fiasco/bootstrap"
 		puts $fh " load /fiasco/fiasco -serial_esc"
 		puts $fh " load /fiasco/sigma0"
-		puts $fh " load /genode/core"
-		puts $fh " load /genode/config"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " load /genode/$binary" } }
+		puts $fh " load /image.elf"
 		close $fh
 
 		generate_tftp_config
@@ -197,8 +185,6 @@ proc run_boot_dir_arm {binaries} {
 	global run_target
 	global fiasco_serial_esc_arg
 
-	copy_and_strip_binaries $binaries
-
 	build "kernel sigma0 bootstrap"
 
 	#
@@ -209,11 +195,7 @@ proc run_boot_dir_arm {binaries} {
 	puts $fh "modaddr 0x01100000\n"
 	puts $fh "entry    genode"
 	puts $fh "kernel   [fiasco] $fiasco_serial_esc_arg"
-	puts $fh "roottask genode/core"
-	puts $fh "module   genode/config"
-	foreach binary $binaries {
-		if {$binary != "core"} {
-			puts $fh "module   genode/$binary" } }
+	puts $fh "roottask image.elf"
 	close $fh
 
 
@@ -229,6 +211,7 @@ proc run_boot_dir_arm {binaries} {
 		exit -4
 	}
 
+	exec cp [run_dir]/image.elf [run_dir]/core.elf
 	exec cp [bin_dir]/bootstrap.elf [run_dir]/image.elf
 	run_image [run_dir]/image.elf
 
@@ -256,6 +239,8 @@ proc run_boot_string { } {
 # Populate boot directory with binaries on fiasco.OC
 #
 proc run_boot_dir {binaries} {
+	build_core_image $binaries
+
 	if {[have_spec x86]} { return [run_boot_dir_x86 $binaries] }
 	if {[have_spec arm]} { return [run_boot_dir_arm $binaries] }
 }

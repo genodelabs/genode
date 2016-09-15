@@ -1,3 +1,3 @@
-include $(REP_DIR)/lib/mk/core.inc
+SRC_CC += spec/x86_32/pager.cc
 
-vpath %.cc $(REP_DIR)/src/core/spec/x86_32
+include $(REP_DIR)/lib/mk/core.inc

@@ -17,6 +17,7 @@ PHDRS
 {
 	ro PT_LOAD;
 	rw PT_LOAD;
+	boot PT_LOAD FLAGS(4);
 }
 
 SECTIONS
@@ -118,17 +119,11 @@ SECTIONS
 	}
 	_bss_end = ALIGN(4);
 
+	/* separate location for the binaries of the boot modules */
+	.data.boot_modules_binaries : { *(.data.boot_modules_binaries) } : boot
+
 	/* end of program image -- must be after last section */
 	_prog_img_end = .;
-
-	/*
-	 * Separate location for the binaries of the boot modules
-	 *
-	 * This is merely used by base-hw yet to enable on-demand mapping.
-	 * Must be a subsection of data as object copy may not copy the content
-	 * to the uImage otherwise.
-	 */
-	.data.boot_modules_binaries : { *(.data.boot_modules_binaries) } : rw
 
 	/DISCARD/ : {
 		*(.note)

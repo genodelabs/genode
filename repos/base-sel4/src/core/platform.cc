@@ -17,6 +17,7 @@
 #include <base/log.h>
 
 /* core includes */
+#include <boot_modules.h>
 #include <core_parent.h>
 #include <platform.h>
 #include <map_local.h>
@@ -38,23 +39,6 @@ static bool const verbose_boot_info = true;
 
 /* virtual address range consumed by core's program image */
 extern unsigned _prog_img_beg, _prog_img_end;
-
-
-/******************
- ** Boot modules **
- ******************/
-
-struct Boot_module_header
-{
-	char   const *name;  /* physical address of null-terminated string */
-	addr_t const  base;  /* physical address of module data */
-	size_t const  size;  /* size of module data in bytes */
-};
-
-extern Boot_module_header _boot_modules_headers_begin;
-extern Boot_module_header _boot_modules_headers_end;
-extern int                _boot_modules_binaries_begin;
-extern int                _boot_modules_binaries_end;
 
 
 /****************************************
@@ -176,7 +160,7 @@ void Platform::_init_allocators()
 	 *     attempt to map a page frame.
 	 */
 	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
-	             core_virt_end = round_page((addr_t)&_boot_modules_binaries_end)
+	             core_virt_end = round_page((addr_t)&_prog_img_end)
 	                           + 4096;
 	size_t const core_size     = core_virt_end - core_virt_beg;
 
@@ -366,7 +350,7 @@ void Platform::_init_rom_modules()
 	addr_t const modules_first_frame_sel = bi.userImageFrames.start
 	                                     + (modules_core_offset >> get_page_size_log2());
 
-	Boot_module_header const *header = &_boot_modules_headers_begin;
+	Boot_modules_header const *header = &_boot_modules_headers_begin;
 	for (; header < &_boot_modules_headers_end; header++) {
 
 		/* offset relative to first module */

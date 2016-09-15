@@ -24,12 +24,12 @@
 #include <base/internal/globals.h>
 
 /* core includes */
+#include <boot_modules.h>
 #include <core_parent.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <util.h>
-#include <multiboot.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -397,8 +397,6 @@ void Platform::_setup_basics()
 	/* remove KIP and MBI area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + L4_PAGESIZE), _region_alloc);
 	remove_region(Region((addr_t)kip, (addr_t)kip + L4_PAGESIZE), _io_mem_alloc);
-	remove_region(Region(mb_info_addr, mb_info_addr + _mb_info.size()), _region_alloc);
-	remove_region(Region(mb_info_addr, mb_info_addr + _mb_info.size()), _io_mem_alloc);
 
 	/* remove core program image memory from region and IO_MEM allocator */
 	addr_t img_start = (addr_t) &_prog_img_beg;
@@ -413,28 +411,12 @@ void Platform::_setup_basics()
 
 void Platform::_setup_rom()
 {
-	Rom_module rom;
-
-	for (unsigned i = FIRST_ROM; i < _mb_info.num_modules();  i++) {
-		if (!(rom = _mb_info.get_module(i)).valid()) continue;
-
-		Rom_module *new_rom = new(core_mem_alloc()) Rom_module(rom);
-		_rom_fs.insert(new_rom);
-
-		/* map module */
-		touch_ro((const void*)new_rom->addr(), new_rom->size());
-
-		/* zero remainder of last ROM page */
-		size_t count = L4_PAGESIZE - rom.size() % L4_PAGESIZE;
-		if (count != L4_PAGESIZE)
-			memset(reinterpret_cast<void *>(rom.addr() + rom.size()), 0, count);
-
-		/* remove ROM area from region and IO_MEM allocator */
-		remove_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _region_alloc);
-		remove_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _io_mem_alloc);
-
-		/* add area to core-accessible ranges */
-		add_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _core_address_ranges());
+	/* add boot modules to ROM FS */
+	Boot_modules_header * header = &_boot_modules_headers_begin;
+	for (; header < &_boot_modules_headers_end; header++) {
+		Rom_module * rom = new (core_mem_alloc())
+			Rom_module(header->base, header->size, (const char*)header->name);
+		_rom_fs.insert(rom);
 	}
 
 	Rom_module *kip_rom = new(core_mem_alloc())
@@ -447,7 +429,6 @@ Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
 	_region_alloc(core_mem_alloc()), _cap_id_alloc(core_mem_alloc()),
-	_mb_info(sigma0_map_kip()->user_ptr, true),
 	_sigma0(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_PAGER_CAP))
 {
 	/*

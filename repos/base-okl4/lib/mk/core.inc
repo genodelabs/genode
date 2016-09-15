@@ -1,4 +1,4 @@
-TARGET = core
+CC_OPT_PIC =
 
 LIBS += boot_info base-common
 

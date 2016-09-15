@@ -10,9 +10,6 @@ SPECS += hw panda
 # configure multiprocessor mode
 NR_OF_CPUS = 2
 
-# set address where to link the text segment at
-LD_TEXT_ADDR ?= 0x81000000
-
 # include implied specs
 include $(call select_from_repositories,mk/spec/hw.mk)
 include $(call select_from_repositories,mk/spec/panda.mk)

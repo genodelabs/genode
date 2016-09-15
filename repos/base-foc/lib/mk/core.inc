@@ -1,4 +1,3 @@
-TARGET       = core
 REQUIRES    += foc
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
@@ -20,7 +19,6 @@ SRC_CC      += stack_area.cc \
                ipc_pager.cc \
                irq_session_component.cc \
                main.cc \
-               multiboot_info.cc \
                pager.cc \
                pager_object.cc \
                pd_session_component.cc \
@@ -59,7 +57,6 @@ vpath default_log.cc              $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath main.cc                     $(GEN_CORE_DIR)
-vpath multiboot_info.cc           $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
 vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)

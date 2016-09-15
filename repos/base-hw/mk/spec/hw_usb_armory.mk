@@ -10,9 +10,6 @@ SPECS += hw usb_armory imx53 trustzone
 # configure multiprocessor mode
 NR_OF_CPUS = 1
 
-# set address where to link the text segment at
-LD_TEXT_ADDR ?= 0x72000000
-
 # add repository relative include paths
 REP_INC_DIR += include/spec/usb_armory
 

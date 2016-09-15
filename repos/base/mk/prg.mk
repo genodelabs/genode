@@ -52,6 +52,7 @@ include $(BASE_DIR)/mk/global.mk
 #
 # Assemble linker options for static and dynamic linkage
 #
+LD_TEXT_ADDR ?= 0x01000000
 ifneq ($(LD_TEXT_ADDR),)
 CXX_LINK_OPT += -Wl,-Ttext=$(LD_TEXT_ADDR)
 endif

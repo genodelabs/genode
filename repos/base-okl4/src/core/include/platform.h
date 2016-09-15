@@ -61,6 +61,8 @@ namespace Genode {
 			 */
 			addr_t             _utcb_base;
 
+			void _setup_rom();
+
 		public:
 
 			/**
@@ -98,18 +100,6 @@ namespace Genode {
 			static int bi_add_phys_mem(Okl4::bi_name_t,
 			                           Okl4::uintptr_t, Okl4::uintptr_t,
 			                           const Okl4::bi_user_data_t *);
-
-			static int bi_export_object(Okl4::bi_name_t, Okl4::bi_name_t,
-			                            Okl4::bi_export_type_t, char *,
-			                            Okl4::size_t,
-			                            const Okl4::bi_user_data_t *);
-
-			static Okl4::bi_name_t bi_new_ms(Okl4::bi_name_t,
-			                                 Okl4::uintptr_t, Okl4::uintptr_t,
-			                                 Okl4::uintptr_t, Okl4::uintptr_t,
-			                                 Okl4::bi_name_t, Okl4::bi_name_t,
-			                                 Okl4::bi_name_t,
-			                                 const Okl4::bi_user_data_t *);
 
 			/********************************
 			 ** Generic platform interface **

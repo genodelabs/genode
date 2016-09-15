@@ -12,11 +12,6 @@ L4_INC_DIR   += $(L4_BUILD_DIR)/include/x86/l4v2 \
                 $(L4_BUILD_DIR)/include/x86
 
 #
-# Linker options that are specific for x86
-#
-LD_TEXT_ADDR ?= 0x01000000
-
-#
 # Also include less-specific configuration last
 #
 include $(call select_from_repositories,mk/spec/x86_32.mk)

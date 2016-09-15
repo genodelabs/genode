@@ -21,7 +21,6 @@
 #include "platform_generic.h"
 #include "platform_thread.h"
 #include "platform_pd.h"
-#include "multiboot.h"
 
 
 namespace Genode {
@@ -40,7 +39,6 @@ namespace Genode {
 			Phys_allocator   _io_port_alloc;  /* I/O port allocator */
 			Phys_allocator   _irq_alloc;      /* IRQ allocator */
 			Phys_allocator   _region_alloc;   /* virtual memory allocator for core */
-			Multiboot_info   _mb_info;        /* multiboot information */
 			Rom_fs           _rom_fs;         /* ROM file system */
 			Rom_module       _kip_rom;        /* ROM module for Fiasco KIP */
 
@@ -57,7 +55,6 @@ namespace Genode {
 			 *
 			 * - Map and provide KIP as ROM module
 			 * - Initializes region allocator
-			 * - Initializes multiboot info structure
 			 */
 			void _setup_basics();
 

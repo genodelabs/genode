@@ -30,7 +30,6 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <util.h>
-#include <multiboot.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -364,10 +363,6 @@ void Platform::_setup_basics()
 	_kip_rom = Rom_module((addr_t)kip, L4_PAGESIZE, "l4v2_kip");
 	_rom_fs.insert(&_kip_rom);
 
-	/* update multi-boot info pointer from KIP */
-	addr_t mb_info_addr = kip->user_ptr;
-	log("MBI @ ", Hex(mb_info_addr));
-
 	/* parse memory descriptors - look for virtual memory configuration */
 	/* XXX we support only one VM region (here and also inside RM) */
 	using L4::Kip::Mem_desc;
@@ -398,11 +393,9 @@ void Platform::_setup_basics()
 	/* FIXME if the kernel helps to find out max address - use info here */
 	_io_mem_alloc.add_range(0, ~0);
 
-	/* remove KIP and MBI area from region and IO_MEM allocator */
+	/* remove KIP area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + L4_PAGESIZE), _region_alloc);
 	remove_region(Region((addr_t)kip, (addr_t)kip + L4_PAGESIZE), _io_mem_alloc);
-	remove_region(Region(mb_info_addr, mb_info_addr + _mb_info.size()), _region_alloc);
-	remove_region(Region(mb_info_addr, mb_info_addr + _mb_info.size()), _io_mem_alloc);
 
 	/* remove core program image memory from region and IO_MEM allocator */
 	addr_t img_start = (addr_t) &_prog_img_beg;
@@ -417,29 +410,12 @@ void Platform::_setup_basics()
 
 void Platform::_setup_rom()
 {
-	Rom_module rom;
-
-	for (unsigned i = FIRST_ROM; i < _mb_info.num_modules();  i++) {
-		if (!(rom = _mb_info.get_module(i)).valid()) continue;
-
-		Rom_module *new_rom = new(core_mem_alloc()) Rom_module(rom);
-		_rom_fs.insert(new_rom);
-
-		log(" mod[", i, "] ",
-		    Hex_range<addr_t>(new_rom->addr(), new_rom->size()), " ",
-		    new_rom->name());
-
-		/* zero remainder of last ROM page */
-		size_t count = L4_PAGESIZE - rom.size() % L4_PAGESIZE;
-		if (count != L4_PAGESIZE)
-			memset(reinterpret_cast<void *>(rom.addr() + rom.size()), 0, count);
-
-		/* remove ROM area from region and IO_MEM allocator */
-		remove_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _region_alloc);
-		remove_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _io_mem_alloc);
-
-		/* add area to core-accessible ranges */
-		add_region(Region(new_rom->addr(), new_rom->addr() + new_rom->size()), _core_address_ranges());
+	/* add boot modules to ROM FS */
+	Boot_modules_header * header = &_boot_modules_headers_begin;
+	for (; header < &_boot_modules_headers_end; header++) {
+		Rom_module * rom = new (core_mem_alloc())
+			Rom_module(header->base, header->size, (const char*)header->name);
+		_rom_fs.insert(rom);
 	}
 }
 
@@ -447,8 +423,7 @@ void Platform::_setup_rom()
 Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc()),
-	_mb_info(get_kip()->user_ptr, true)
+	_region_alloc(core_mem_alloc())
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.

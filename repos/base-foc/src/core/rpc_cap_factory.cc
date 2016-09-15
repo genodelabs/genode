@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <base/capability.h>
+#include <base/printf.h>
 #include <util/misc_math.h>
 
 /* core includes */

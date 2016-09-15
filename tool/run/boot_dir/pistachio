@@ -67,18 +67,16 @@ proc run_boot_string { } {
 	return "\n\r\033\\\[1m\033\\\[33mL4Ka::Pistachio -"
 }
 
+proc core_link_address { } { return "0x02000000" }
 
 ##
 # Populdate boot directory with binaries on pistachio
 #
 proc run_boot_dir {binaries} {
 
-	exec mkdir -p [run_dir]/pistachio
+	build_core_image $binaries
 
-	#
-	# Collect contents of the ISO image
-	#
-	copy_and_strip_genode_binaries_to_run_dir $binaries
+	exec mkdir -p [run_dir]/pistachio
 
 	if {![kernel_external] && ![file exists [pistachio_kernel]]} { build { kernel } }
 
@@ -105,11 +103,7 @@ proc run_boot_dir {binaries} {
 		puts $fh " kernel /pistachio/kickstart"
 		puts $fh " module /pistachio/kernel"
 		puts $fh " module /pistachio/sigma0"
-		puts $fh " module /genode/core"
-		puts $fh " module /genode/config"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " module /genode/$binary" } }
+		puts $fh " module /image.elf"
 		close $fh
 	}
 
@@ -132,12 +126,7 @@ proc run_boot_dir {binaries} {
 		puts $fh " load /pistachio/kickstart"
 		puts $fh " load /pistachio/kernel"
 		puts $fh " load /pistachio/sigma0"
-		puts $fh " load /genode/core"
-		puts $fh " load /genode/config"
-		puts $fh " load /genode/config"
-		foreach binary $binaries {
-			if {$binary != "core"} {
-				puts $fh " load /genode/$binary" } }
+		puts $fh " load /image.elf"
 		close $fh
 
 		generate_tftp_config

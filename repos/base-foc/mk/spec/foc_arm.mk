@@ -5,11 +5,6 @@
 SPECS += foc
 
 #
-# Linker options that are specific for arm
-#
-LD_TEXT_ADDR ?= 0x01000000
-
-#
 # ARM-specific L4/sys headers
 #
 L4_INC_DIR  = $(BUILD_BASE_DIR)/include/arm

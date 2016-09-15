@@ -5,6 +5,6 @@ SRC_CC   += spec/arm/platform_arm.cc \
 # override default stack-area location
 INC_DIR  += $(REP_DIR)/src/include/spec/arm
 
-include $(REP_DIR)/src/core/target.inc
+include $(REP_DIR)/lib/mk/core.inc
 
 vpath platform_services.cc $(GEN_CORE_DIR)

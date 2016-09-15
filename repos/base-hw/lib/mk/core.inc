@@ -62,21 +62,8 @@ SRC_CC += kernel/object.cc
 SRC_CC += init_main_thread.cc
 SRC_CC += capability.cc
 
-# add assembly sources
-SRC_S += boot_modules.s
-
 # provide Genode version information
 include $(BASE_DIR)/src/core/version.inc
-
-# switch to build-specific boot-modules if further images shall be available
-ifneq ($(wildcard $(BUILD_BASE_DIR)/boot_modules.s),)
-  BOOT_MODULES_VPATH = $(BUILD_BASE_DIR)
-  INC_DIR += $(BOOT_MODULES_VPATH)
-else
-  # use dummy boot-modules per default
-  BOOT_MODULES_VPATH = $(BASE_DIR)/../base-hw/src/core/
-endif
-vpath boot_modules.s $(BOOT_MODULES_VPATH)
 
 # declare source locations
 vpath % $(BASE_DIR)/../base-hw/src/core

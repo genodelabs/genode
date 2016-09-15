@@ -24,6 +24,7 @@
 #include <base/internal/globals.h>
 
 /* core includes */
+#include <boot_modules.h>
 #include <core_parent.h>
 #include <platform.h>
 #include <platform_thread.h>
@@ -37,19 +38,6 @@ namespace Okl4 {
 }
 
 using namespace Genode;
-
-
-enum { MAX_BOOT_MODULES = 64 };
-enum { MAX_BOOT_MODULE_NAME_LEN = 32 };
-static struct
-{
-	char name[MAX_BOOT_MODULE_NAME_LEN];
-	addr_t base;
-	size_t size;
-} boot_modules[MAX_BOOT_MODULES];
-
-static int num_boot_module_memsects;
-static int num_boot_module_objects;
 
 
 /****************************************
@@ -105,68 +93,15 @@ int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 }
 
 
-int Platform::bi_export_object(Okl4::bi_name_t pd, Okl4::bi_name_t obj,
-                               Okl4::bi_export_type_t export_type, char *key,
-                               Okl4::size_t key_len, const Okl4::bi_user_data_t * data)
+void Platform::_setup_rom()
 {
-	/*
-	 * We walk the boot info only once and collect all memory section
-	 * objects. Each time we detect a memory section outside of roottask
-	 * (PD 0), we increment the boot module index.
-	 */
-
-	/* reset module index (roottask objects appear before other pd's objects) */
-	if (pd == 0) num_boot_module_objects = 0;
-
-	if (export_type != Okl4::BI_EXPORT_MEMSECTION_CAP)
-		return 0;
-
-	if (num_boot_module_objects >= MAX_BOOT_MODULES) {
-		error("maximum number of boot modules exceeded");
-		return -1;
+	/* add boot modules to ROM FS */
+	Boot_modules_header * header = &_boot_modules_headers_begin;
+	for (; header < &_boot_modules_headers_end; header++) {
+		Rom_module * rom = new (core_mem_alloc())
+			Rom_module(header->base, header->size, (const char*)header->name);
+		_rom_fs.insert(rom);
 	}
-
-	/* copy name from object key */
-	key_len = min((int)key_len, MAX_BOOT_MODULE_NAME_LEN - 1);
-	for (unsigned i = 0; i < key_len; i++) {
-
-		/* convert letter to lower-case */
-		char c = key[i];
-		if (c >= 'A' && c <= 'Z')
-			c -= 'A' - 'a';
-
-		boot_modules[num_boot_module_objects].name[i] = c;
-	}
-	/* null-terminate string */
-	boot_modules[num_boot_module_objects].name[key_len] = 0;
-
-	num_boot_module_objects++;
-	return 0;
-}
-
-
-Okl4::bi_name_t Platform::bi_new_ms(Okl4::bi_name_t owner,
-                                    Okl4::uintptr_t base, Okl4::uintptr_t size,
-                                    Okl4::uintptr_t flags, Okl4::uintptr_t attr,
-                                    Okl4::bi_name_t physpool, Okl4::bi_name_t virtpool,
-                                    Okl4::bi_name_t zone, const Okl4::bi_user_data_t *data)
-{
-	/* reset module index (see comment in 'bi_export_object') */
-	if (owner == 0) num_boot_module_memsects = 0;
-
-	/* ignore memory pools other than pool 3 (this is just a heuristic) */
-	if (virtpool != 3) return 0;
-
-	if (num_boot_module_memsects >= MAX_BOOT_MODULES) {
-		error("maximum number of boot modules exceeded");
-		return -1;
-	}
-
-	boot_modules[num_boot_module_memsects].base = base;
-	boot_modules[num_boot_module_memsects].size = size;
-
-	num_boot_module_memsects++;
-	return 0;
 }
 
 
@@ -227,20 +162,8 @@ Platform::Platform() :
 	callbacks.init_mem      = Platform::bi_init_mem;
 	callbacks.add_virt_mem  = Platform::bi_add_virt_mem;
 	callbacks.add_phys_mem  = Platform::bi_add_phys_mem;
-	callbacks.export_object = Platform::bi_export_object;
-	callbacks.new_ms        = Platform::bi_new_ms;
 
 	Okl4::bootinfo_parse((void *)boot_info_addr, &callbacks, this);
-
-	/* make gathered boot-module info known to '_rom_fs' */
-	int num_boot_modules = min(num_boot_module_objects, num_boot_module_memsects);
-	for (int i = 0; i < num_boot_modules; i++) {
-		Rom_module *r = new (&_rom_slab)
-		                Rom_module(boot_modules[i].base,
-		                           boot_modules[i].size,
-		                           boot_modules[i].name);
-		_rom_fs.insert(r);
-	}
 
 	/* initialize interrupt allocator */
 	_irq_alloc.add_range(0, 0x10);
@@ -250,6 +173,8 @@ Platform::Platform() :
 
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
+
+	_setup_rom();
 
 	/* preserve stack area in core's virtual address space */
 	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
