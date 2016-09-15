@@ -19,7 +19,7 @@ using namespace Genode;
 
 void Allocator_avl_base::Block::dump()
 {
-	printf(" Block: [%08lx,%08lx) size=%08zx avail=%08zx max_avail=%08zx\n",
+	printf(" Block: [%08lx,%08lx) size=%08lx avail=%08lx max_avail=%08lx\n",
 	       addr(), addr() + size(), size(), avail(), max_avail());
 }
 

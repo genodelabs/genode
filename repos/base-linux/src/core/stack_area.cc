@@ -90,9 +90,9 @@ class Stack_area_ram_session : public Genode::Ram_session
 
 		int transfer_quota(Genode::Ram_session_capability, Genode::size_t) { return 0; }
 
-		size_t quota() { return 0; }
+		Genode::size_t quota() { return 0; }
 
-		size_t used() { return 0; }
+		Genode::size_t used() { return 0; }
 };
 
 

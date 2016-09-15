@@ -50,7 +50,7 @@ namespace Libc {
 		void path(char const *newpath)
 		{
 			if (newpath) {
-				size_t const path_size = ::strlen(newpath) + 1;
+				Genode::size_t const path_size = ::strlen(newpath) + 1;
 				char *buf = (char*)malloc(path_size);
 				if (!buf) {
 					Genode::error("could not allocate path buffer for libc_fd ",

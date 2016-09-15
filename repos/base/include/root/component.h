@@ -245,7 +245,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			char adjusted_args[MAX_ARGS_LEN];
 			strncpy(adjusted_args, args.string(), sizeof(adjusted_args));
 			char ram_quota_buf[64];
-			snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%zu",
+			snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%lu",
 			         remaining_ram_quota);
 			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
 			                    "ram_quota", ram_quota_buf);

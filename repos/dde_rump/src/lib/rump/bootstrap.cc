@@ -199,7 +199,7 @@ static void _dl_init(Genode::Shared_object::Link_map const *map,
 	if (verbose)
 		log("MI: start: ", mi_start, " end: ", mi_end);
 	if (mi_start && mi_end)
-		mod_init(mi_start, (size_t)(mi_end-mi_start));
+		mod_init(mi_start, (Genode::size_t)(mi_end-mi_start));
 
 	rc_start = obj->lookup<rump_component **>("__start_link_set_rump_components");
 	rc_end   = obj->lookup<rump_component **>("__stop_link_set_rump_components");

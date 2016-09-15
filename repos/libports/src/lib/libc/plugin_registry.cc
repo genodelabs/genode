@@ -67,7 +67,7 @@ Plugin *Plugin_registry::get_plugin_for_pipe() {
 	GET_PLUGIN_FOR(pipe) }
 
 
-Plugin *Plugin_registry::get_plugin_for_readlink(const char *path, char *buf, size_t bufsiz) {
+Plugin *Plugin_registry::get_plugin_for_readlink(const char *path, char *buf, ::size_t bufsiz) {
 	GET_PLUGIN_FOR(readlink, path, buf, bufsiz) }
 
 

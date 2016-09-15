@@ -27,7 +27,7 @@ struct Uart::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection(Genode::Env &env)
 	:
-		Genode::Connection<Session>(env, session(env.parent(), "ram_quota=%zd", 2*4096)),
+		Genode::Connection<Session>(env, session(env.parent(), "ram_quota=%ld", 2*4096)),
 		Session_client(cap())
 	{
 		Terminal::Connection::wait_for_connection(cap());
@@ -42,7 +42,7 @@ struct Uart::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection()
 	:
-		Genode::Connection<Session>(session("ram_quota=%zd", 2*4096)),
+		Genode::Connection<Session>(session("ram_quota=%ld", 2*4096)),
 		Session_client(cap())
 	{
 		Terminal::Connection::wait_for_connection(cap());

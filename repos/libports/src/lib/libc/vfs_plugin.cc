@@ -213,16 +213,16 @@ class Libc::Vfs_plugin : public Libc::Plugin
 
 		~Vfs_plugin() { }
 
-		bool supports_access(const char *, int)              override { return true; }
-		bool supports_mkdir(const char *, mode_t)            override { return true; }
-		bool supports_open(const char *, int)                override { return true; }
-		bool supports_readlink(const char *, char *, size_t) override { return true; }
-		bool supports_rename(const char *, const char *)     override { return true; }
-		bool supports_rmdir(const char *)                    override { return true; }
-		bool supports_stat(const char *)                     override { return true; }
-		bool supports_symlink(const char *, const char *)    override { return true; }
-		bool supports_unlink(const char *)                   override { return true; }
-		bool supports_mmap()                                 override { return true; }
+		bool supports_access(const char *, int)                override { return true; }
+		bool supports_mkdir(const char *, mode_t)              override { return true; }
+		bool supports_open(const char *, int)                  override { return true; }
+		bool supports_readlink(const char *, char *, ::size_t) override { return true; }
+		bool supports_rename(const char *, const char *)       override { return true; }
+		bool supports_rmdir(const char *)                      override { return true; }
+		bool supports_stat(const char *)                       override { return true; }
+		bool supports_symlink(const char *, const char *)      override { return true; }
+		bool supports_unlink(const char *)                     override { return true; }
+		bool supports_mmap()                                   override { return true; }
 
 		Libc::File_descriptor *open(const char *, int, int libc_fd);
 
@@ -244,7 +244,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		::off_t lseek(Libc::File_descriptor *fd, ::off_t offset, int whence) override;
 		int     mkdir(const char *, mode_t) override;
 		ssize_t read(Libc::File_descriptor *, void *, ::size_t) override;
-		ssize_t readlink(const char *, char *, size_t) override;
+		ssize_t readlink(const char *, char *, ::size_t) override;
 		int     rename(const char *, const char *) override;
 		int     rmdir(const char *) override;
 		int     stat(const char *, struct stat *) override;
@@ -747,7 +747,7 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 }
 
 
-ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, size_t buf_size)
+ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_size)
 {
 	typedef Vfs::Directory_service::Readlink_result Result;
 

@@ -145,10 +145,12 @@ int main()
 #include <base/thread.h>
 #include <base/env.h>
 
-/* libc includes */
+/* host libc includes */
+#define size_t __SIZE_TYPE__ /* see comment in 'linux_syscalls.h' */
 #include <pthread.h>
 #include <stdio.h>
 #include <errno.h>
+#undef size_t
 
 using namespace Genode;
 

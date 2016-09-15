@@ -931,20 +931,20 @@ namespace {
 				}
 			}
 
-			bool supports_access(const char *, int)              { return true; }
+			bool supports_access(const char *, int)                { return true; }
 			bool supports_execve(char const *, char *const[],
-			                     char *const[])                  { return true; }
-			bool supports_open(char const *, int)                { return true; }
-			bool supports_stat(char const *)                     { return true; }
-			bool supports_symlink(char const *, char const*)     { return true; }
-			bool supports_pipe()                                 { return true; }
-			bool supports_unlink(char const *)                   { return true; }
-			bool supports_readlink(const char *, char *, size_t) { return true; }
-			bool supports_rename(const char *, const char *)     { return true; }
-			bool supports_rmdir(char const *)                    { return true; }
-			bool supports_mkdir(const char *, mode_t)            { return true; }
-			bool supports_socket(int, int, int)                  { return true; }
-			bool supports_mmap()                                 { return true; }
+			                     char *const[])                    { return true; }
+			bool supports_open(char const *, int)                  { return true; }
+			bool supports_stat(char const *)                       { return true; }
+			bool supports_symlink(char const *, char const*)       { return true; }
+			bool supports_pipe()                                   { return true; }
+			bool supports_unlink(char const *)                     { return true; }
+			bool supports_readlink(const char *, char *, ::size_t) { return true; }
+			bool supports_rename(const char *, const char *)       { return true; }
+			bool supports_rmdir(char const *)                      { return true; }
+			bool supports_mkdir(const char *, mode_t)              { return true; }
+			bool supports_socket(int, int, int)                    { return true; }
+			bool supports_mmap()                                   { return true; }
 
 			int access(char const *, int);
 			Libc::File_descriptor *open(char const *, int);
@@ -962,7 +962,7 @@ namespace {
 			ssize_t getdirentries(Libc::File_descriptor *, char *, ::size_t, ::off_t *);
 			::off_t lseek(Libc::File_descriptor *, ::off_t offset, int whence);
 			ssize_t read(Libc::File_descriptor *, void *, ::size_t);
-			ssize_t readlink(const char *path, char *buf, size_t bufsiz);
+			ssize_t readlink(const char *path, char *buf, ::size_t bufsiz);
 			int rename(const char *oldpath, const char *newpath);
 			int rmdir(char const *path);
 			int stat(char const *, struct stat *);
@@ -1715,7 +1715,7 @@ namespace {
 	}
 
 
-	ssize_t Plugin::readlink(const char *path, char *buf, size_t bufsiz)
+	ssize_t Plugin::readlink(const char *path, char *buf, ::size_t bufsiz)
 	{
 		if (verbose)
 			log(__func__, ": path=", path, ", bufsiz=", bufsiz);
@@ -2049,7 +2049,7 @@ namespace {
 	}
 
 
-	ssize_t Plugin::recvfrom(Libc::File_descriptor *fd, void *buf, size_t len, int flags,
+	ssize_t Plugin::recvfrom(Libc::File_descriptor *fd, void *buf, ::size_t len, int flags,
 	                         struct sockaddr *src_addr, socklen_t *addrlen)
 	{
 		if (!buf) { errno = EFAULT; return -1; }

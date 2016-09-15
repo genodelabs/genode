@@ -34,7 +34,7 @@ struct Nic::Connection : Genode::Connection<Session>, Session_client
 	                                  Genode::size_t rx_buf_size)
 	{
 		return session(parent,
-		               "ram_quota=%zd, tx_buf_size=%zd, rx_buf_size=%zd, label=\"%s\"",
+		               "ram_quota=%ld, tx_buf_size=%ld, rx_buf_size=%ld, label=\"%s\"",
 		               6*4096 + tx_buf_size + rx_buf_size, tx_buf_size, rx_buf_size, label);
 	}
 

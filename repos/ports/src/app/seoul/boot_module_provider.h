@@ -96,7 +96,7 @@ class Boot_module_provider
 					 */
 					Rom_connection rom(name);
 					Dataspace_capability ds = rom.dataspace();
-					size_t const src_len = Dataspace_client(ds).size();
+					Genode::size_t const src_len = Dataspace_client(ds).size();
 
 					if (src_len > dst_len) {
 						warning(__func__, ": src_len=", src_len, " dst_len=", dst_len);
@@ -173,12 +173,12 @@ class Boot_module_provider
 
 				if (mod_node.has_type("rom") || mod_node.has_type("inline")) {
 
-					size_t cmd_len = 0;
+					Genode::size_t cmd_len = 0;
 
 					char name[MODULE_NAME_MAX_LEN];
 					mod_node.attribute("name").value(name, sizeof(name));
 
-					size_t const name_len = Genode::strlen(name);
+					Genode::size_t const name_len = Genode::strlen(name);
 
 					/*
 					 * Check if destination buffer can hold the name including

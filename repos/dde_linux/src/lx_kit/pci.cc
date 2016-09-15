@@ -85,12 +85,12 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 		cap = env()->ram_session()->alloc(size);
 		o = new (env()->heap())	Ram_object(cap);
 	} else {
-		size_t donate = size;
+		Genode::size_t donate = size;
 		cap = retry<Platform::Session::Out_of_metadata>(
 			[&] () { return Lx::pci()->alloc_dma_buffer(size); },
 			[&] () {
 				char quota[32];
-				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 				                 donate);
 				Genode::env()->parent()->upgrade(Lx::pci()->cap(), quota);
 				donate = donate * 2 > size ? 4096 : donate * 2;

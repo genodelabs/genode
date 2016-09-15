@@ -29,7 +29,7 @@ struct Gpio::Connection : Genode::Connection<Session>, Session_client
 	Connection(Genode::Env &env, unsigned long gpio_pin)
 	:
 		Genode::Connection<Session>(env, session(env.parent(),
-		                                         "ram_quota=8K, gpio=%zd", gpio_pin)),
+		                                         "ram_quota=8K, gpio=%ld", gpio_pin)),
 		Session_client(cap())
 	{ }
 

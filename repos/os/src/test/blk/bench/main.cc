@@ -25,6 +25,8 @@ class Test::Throughput
 {
 	private:
 
+		typedef Genode::size_t size_t;
+
 		Allocator_avl     _alloc{env()->heap() };
 		Block::Connection _session { &_alloc, TX_BUFFER };
 		Timer::Connection _timer;
@@ -100,7 +102,7 @@ class Test::Throughput
 				return;
 
 			_stop = _timer.elapsed_ms();
-			::printf("%s %zu KB in %lu ms (%.02f MB/s)\n",
+			::printf("%s %lu KB in %lu ms (%.02f MB/s)\n",
 			         !_read_done ? "Read" : "Wrote",
 			         _bytes / 1024, _stop - _start,
 			         ((double)_bytes / (1024 * 1024)) / ((double)(_stop - _start) / 1000));
@@ -152,8 +154,9 @@ struct Test::Main
 
 
 namespace Server {
-	char const *name()       { return "block_bench_ep"; };
-	size_t      stack_size() { return 2*1024*sizeof(long); }
+
+	char const *name()          { return "block_bench_ep"; };
+	Genode::size_t stack_size() { return 2*1024*sizeof(long); }
 
 	void construct(Entrypoint &ep)
 	{

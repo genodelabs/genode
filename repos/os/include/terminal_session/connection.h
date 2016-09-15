@@ -50,7 +50,7 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 	Connection(Genode::Env &env, char const *label = "")
 	:
 		Genode::Connection<Session>(env, session(env.parent(),
-		                                         "ram_quota=%zd, label=\"%s\"",
+		                                         "ram_quota=%ld, label=\"%s\"",
 		                                         2*4096, label)),
 		Session_client(cap())
 	{

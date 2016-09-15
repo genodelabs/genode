@@ -296,20 +296,20 @@ struct Pci_device : public Qemu::Pci_device
 	void raise_interrupt(int level) override {
 		PDMDevHlpPCISetIrqNoWait(pci_dev, 0, level); }
 
-	int read_dma(Qemu::addr_t addr, void *buf, size_t size) override {
+	int read_dma(Qemu::addr_t addr, void *buf, Qemu::size_t size) override {
 		return PDMDevHlpPhysRead(pci_dev, addr, buf, size); }
 
-	int write_dma(Qemu::addr_t addr, void const *buf, size_t size) override {
+	int write_dma(Qemu::addr_t addr, void const *buf, Qemu::size_t size) override {
 		return PDMDevHlpPhysWrite(pci_dev, addr, buf, size); }
 
-	void *map_dma(Qemu::addr_t base, size_t size)
+	void *map_dma(Qemu::addr_t base, Qemu::size_t size)
 	{
 		void *addr;
 		PGMR3PhysTlbGCPhys2Ptr(nullptr, base, true, &addr);
 		return addr;
 	}
 
-	void unmap_dma(void *addr, size_t size) { }
+	void unmap_dma(void *addr, Qemu::size_t size) { }
 };
 
 

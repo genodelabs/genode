@@ -27,7 +27,7 @@ using Genode::size_t;
 using Kernel::Double_list_typed;
 using Kernel::Double_list_item;
 
-void * operator new(size_t s, void * p) { return p; }
+void * operator new(__SIZE_TYPE__ s, void * p) { return p; }
 
 struct Item_load { char volatile x, y, z; };
 

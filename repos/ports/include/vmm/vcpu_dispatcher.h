@@ -69,7 +69,7 @@ class Vmm::Vcpu_dispatcher : public T
 
 		unsigned int exit_reason = 0;
 
-		Vcpu_dispatcher(size_t stack_size, Pd_session &pd,
+		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location)
 		:
@@ -84,7 +84,7 @@ class Vmm::Vcpu_dispatcher : public T
 		}
 
 		template <typename X>
-		Vcpu_dispatcher(size_t stack_size, Pd_session &pd,
+		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
 		                X attr, void *(*start_routine) (void *), void *arg)

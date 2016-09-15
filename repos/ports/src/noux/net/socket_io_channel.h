@@ -69,7 +69,7 @@ namespace Noux {
 			 * Io_channel interface implementation (only needed methods)
 			 */
 
-			bool write(Sysio *sysio, size_t &count)
+			bool write(Sysio *sysio, ::size_t &count)
 			{
 				ssize_t result = ::write(_socket, sysio->write_in.chunk,
 				                         sysio->write_in.count);
@@ -96,7 +96,7 @@ namespace Noux {
 
 			bool read(Sysio *sysio)
 			{
-				size_t const max_count = Genode::min(sysio->read_in.count, sizeof(sysio->read_out.chunk));
+				::size_t const max_count = Genode::min(sysio->read_in.count, sizeof(sysio->read_out.chunk));
 
 				ssize_t result = ::read(_socket, sysio->read_out.chunk, max_count);
 
@@ -490,7 +490,7 @@ namespace Noux {
 
 			Io_channel_backend *backend() { return _backend; }
 
-			bool write(Sysio *sysio, size_t &count)
+			bool write(Sysio *sysio, ::size_t &count)
 			{
 				return _backend->write(sysio, count);
 			}

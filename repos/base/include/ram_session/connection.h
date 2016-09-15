@@ -33,7 +33,7 @@ struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
 	                                 addr_t phys_start, size_t phys_size)
 	{
 		return session(parent,
-		               "ram_quota=%u, phys_start=0x%lx, phys_size=0x%zx, "
+		               "ram_quota=%u, phys_start=0x%lx, phys_size=0x%lx, "
 		               "label=\"%s\"", RAM_QUOTA, phys_start, phys_size, label);
 	}
 

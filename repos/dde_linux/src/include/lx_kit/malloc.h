@@ -32,6 +32,8 @@ class Lx::Malloc : public Genode::Allocator
 {
 	public:
 
+		typedef Genode::size_t size_t;
+
 		enum { MAX_SIZE_LOG2 = 16 /* 64 KiB */ };
 
 		/**

@@ -237,7 +237,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 		[&] () {
 			size_t const quota = 1024*sizeof(long);
 			char buf[64];
-			snprintf(buf, sizeof(buf), "ram_quota=%zu", quota);
+			snprintf(buf, sizeof(buf), "ram_quota=%ld", quota);
 
 			log("upgrading quota donation for PD session (", quota, " bytes)");
 

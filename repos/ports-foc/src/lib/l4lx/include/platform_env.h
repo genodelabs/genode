@@ -76,7 +76,7 @@ struct Upgradeable_client : CLIENT
 		            "(", quota, " bytes)");
 
 		char buf[128];
-		Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", quota);
+		Genode::snprintf(buf, sizeof(buf), "ram_quota=%ld", quota);
 
 		Genode::env()->parent()->upgrade(_cap, buf);
 	}

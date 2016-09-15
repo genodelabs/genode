@@ -11,16 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <util/construct_at.h>
 #include <base/allocator_avl.h>
 #include <base/log.h>
 
 using namespace Genode;
-
-
-/**
- * Placement operator - tool for directly calling a constructor
- */
-inline void *operator new(size_t, void *at) { return at; }
 
 
 /**************************
@@ -102,13 +97,11 @@ void Allocator_avl_base::Block::recompute()
 
 Allocator_avl_base::Block *Allocator_avl_base::_alloc_block_metadata()
 {
-	void *b = 0;
+	void *b = nullptr;
 	if (_md_alloc->alloc(sizeof(Block), &b))
+		return construct_at<Block>(b, 0, 0, 0);
 
-		/* call constructor by using the placement new operator */
-		return new((Block *)b) Block(0, 0, 0);
-
-	return 0;
+	return nullptr;
 }
 
 
@@ -131,7 +124,7 @@ int Allocator_avl_base::_add_block(Block *block_metadata,
 		return -1;
 
 	/* call constructor for new block */
-	new (block_metadata) Block(base, size, used);
+	construct_at<Block>(block_metadata, base, size, used);
 
 	/* insert block into avl tree */
 	_addr_tree.insert(block_metadata);

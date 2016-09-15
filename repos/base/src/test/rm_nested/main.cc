@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 
 	printf("attached sub dataspace at local address 0x%p\n", addr);
 	Dataspace_client client(region_map.dataspace());
-	printf("sub dataspace size is %zu should be %u\n", client.size(), MANAGED_SIZE);
+	printf("sub dataspace size is %lu should be %u\n", client.size(), MANAGED_SIZE);
 
 	/*
 	 * Walk through the address range belonging to the region map

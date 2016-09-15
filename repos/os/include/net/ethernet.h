@@ -180,8 +180,7 @@ class Net::Ethernet_frame
 		/**
 		 * Placement new operator.
 		 */
-		void * operator new(Genode::size_t size, void* addr) {
-			return addr; }
+		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
 
 } __attribute__((packed));
 

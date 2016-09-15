@@ -32,18 +32,28 @@
 #define _GNU_SOURCE 1 /* needed to enable the definition of 'stat64' */
 #endif
 
+/* Genode includes */
+#include <util/string.h>
+#include <base/printf.h>
+#include <base/snprintf.h>
+#include <base/log.h>
+
+/*
+ * Resolve ambiguity between 'Genode::size_t' and the host's header's 'size_t'.
+ */
+#define size_t __SIZE_TYPE__
+
 /* Linux includes */
 #include <linux/futex.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sched.h>
 #include <sys/syscall.h>
+#include <sys/un.h>
+#include <sys/socket.h>
+#include <sys/mman.h>
 
-/* Genode includes */
-#include <util/string.h>
-#include <base/printf.h>
-#include <base/snprintf.h>
-#include <base/log.h>
+#undef size_t
 
 
 /***********************************
@@ -197,7 +207,7 @@ inline void *lx_mmap(void *start, Genode::size_t length, int prot, int flags,
 }
 
 
-inline int lx_munmap(void *addr, size_t length)
+inline int lx_munmap(void *addr, Genode::size_t length)
 {
 	return lx_syscall(SYS_munmap, addr, length);
 }

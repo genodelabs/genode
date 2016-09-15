@@ -29,7 +29,7 @@ struct Loader::Connection : Genode::Connection<Session>, Session_client
 	Connection(Genode::Env &env, size_t ram_quota)
 	:
 		Genode::Connection<Session>(env, session(env.parent(),
-		                                         "ram_quota=%zd", ram_quota)),
+		                                         "ram_quota=%ld", ram_quota)),
 		Session_client(cap())
 	{ }
 
@@ -42,7 +42,7 @@ struct Loader::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection(size_t ram_quota)
 	:
-		Genode::Connection<Session>(session("ram_quota=%zd", ram_quota)),
+		Genode::Connection<Session>(session("ram_quota=%ld", ram_quota)),
 		Session_client(cap())
 	{ }
 };

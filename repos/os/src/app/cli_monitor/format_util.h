@@ -25,12 +25,12 @@ static inline size_t format_number(char *dst, size_t len, size_t const value,
                                    size_t const quotient, char const *unit)
 {
 	size_t const integer   = value / quotient;
-	size_t const n         = snprintf(dst, len, "%zd.", integer);
+	size_t const n         = snprintf(dst, len, "%ld.", integer);
 	size_t const remainder = ((value - (integer * quotient))*100) / quotient;
 
 	if (len == n) return n;
 
-	return n + snprintf(dst + n, len - n, "%s%zd%s",
+	return n + snprintf(dst + n, len - n, "%s%ld%s",
 	                    remainder < 10 ? "0" : "", remainder, unit);
 }
 
@@ -48,7 +48,7 @@ static inline size_t format_bytes(char *dst, size_t len, size_t bytes)
 	if (bytes > KB)
 		return format_number(dst, len, bytes, KB, " KiB");
 
-	return snprintf(dst, len, "%zd bytes", bytes);
+	return snprintf(dst, len, "%ld bytes", bytes);
 }
 
 

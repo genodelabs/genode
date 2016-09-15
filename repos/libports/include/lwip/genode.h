@@ -44,8 +44,8 @@ void lwip_tcpip_init(void);
 int lwip_nic_init(genode_int32_t ip_addr,
                   genode_int32_t netmask,
                   genode_int32_t gateway,
-                  __SIZE_TYPE__  tx_buf_size,
-                  __SIZE_TYPE__  rx_buf_size);
+                  unsigned long  tx_buf_size,
+                  unsigned long  rx_buf_size);
 
 /**
  * Pass on link-state changes to lwIP

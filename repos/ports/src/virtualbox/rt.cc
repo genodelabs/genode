@@ -135,7 +135,7 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 				MEMORY_CACHED = 16 * 1024 * 1024,
 			};
 
-			size_t cbx = cb * 4;
+			::size_t cbx = cb * 4;
 			while (_unused_ds.first() && cbx &&
 			       (_mem_allocated + cb > MEMORY_MAX ||
 			        _mem_unused + cb > MEMORY_CACHED ||
@@ -214,10 +214,10 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 		Ram_dataspace_capability ds = env()->ram_session()->alloc(cb);
 		Assert(ds.valid());
 
-		size_t        const whole_size = 0;
-		Genode::off_t const offset     = 0;
-		bool          const any_addr   = false;
-		void *              any_local_addr = nullptr;
+		Genode::size_t const whole_size = 0;
+		Genode::off_t  const offset     = 0;
+		bool           const any_addr   = false;
+		void *               any_local_addr = nullptr;
 
 		void * local_addr = env()->rm_session()->attach(ds, whole_size, offset,
 		                                                any_addr, any_local_addr,

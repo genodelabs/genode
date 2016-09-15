@@ -34,7 +34,6 @@
 
 using namespace Genode;
 
-void *operator new (size_t, void *ptr) { return ptr; }
 
 /* a little helper to prevent code duplication */
 static inline int check_result(int res)

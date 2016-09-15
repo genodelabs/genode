@@ -18,10 +18,8 @@
 #include <base/thread.h>
 #include <rm_session/rm_session.h>
 
-#include <linux_syscalls.h>
-
 /* Linux includes */
-#include <sys/mman.h>
+#include <linux_syscalls.h>
 
 
 extern Genode::addr_t _stack_area_start;
@@ -47,8 +45,8 @@ static inline void flush_stack_area()
 {
 	using namespace Genode;
 
-	void * const base = (void *)stack_area_virtual_base();
-	size_t const size = stack_area_virtual_size();
+	void         * const base = (void *)stack_area_virtual_base();
+	Genode::size_t const size = stack_area_virtual_size();
 
 	int ret;
 	if ((ret = lx_munmap(base, size)) < 0) {
@@ -61,6 +59,7 @@ static inline void flush_stack_area()
 static inline Genode::addr_t reserve_stack_area()
 {
 	using namespace Genode;
+	using Genode::size_t;
 
 	int const flags       = MAP_ANONYMOUS | MAP_PRIVATE;
 	int const prot        = PROT_NONE;

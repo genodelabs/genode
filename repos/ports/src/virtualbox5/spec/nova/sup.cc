@@ -38,7 +38,7 @@
 
 #include "mm.h"
 
-extern "C" bool PGMUnmapMemoryGenode(void *, size_t);
+extern "C" bool PGMUnmapMemoryGenode(void *, ::size_t);
 
 /* XXX does not work on 32bit host - since vm memory is from 0 - 4G and
  * such large areas can't be attached to a process
@@ -103,7 +103,7 @@ int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 	return VERR_INTERNAL_ERROR;
 }
 
-int SUPR3PageAllocEx(size_t cPages, uint32_t fFlags, void **ppvPages,
+int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
                      PRTR0PTR pR0Ptr, PSUPPAGE paPages)
 {
 	Assert(ppvPages);
@@ -496,7 +496,7 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 }
 
 
-bool PGMUnmapMemoryGenode(void * vmm_local, size_t size)
+bool PGMUnmapMemoryGenode(void * vmm_local, ::size_t size)
 {
 	Assert(vmm_local);
 
@@ -530,14 +530,14 @@ extern "C" void pthread_yield(void)
 }
 
 
-void *operator new (Genode::size_t size, int log2_align)
+void *operator new (__SIZE_TYPE__ size, int log2_align)
 {
 	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
 	return heap.alloc(size, log2_align);
 }
 
 
-bool create_emt_vcpu(pthread_t * pthread, size_t stack,
+bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
                      const pthread_attr_t *attr,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,

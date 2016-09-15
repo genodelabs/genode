@@ -55,7 +55,7 @@ static inline T * Genode::construct_at(void *at, ARGS &&... args)
 	{
 		Placeable(ARGS &&... args) : T(args...) { }
 
-		void * operator new (size_t, void *ptr) { return ptr; }
+		void * operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 		void   operator delete (void *, void *) { }
 
 		/**

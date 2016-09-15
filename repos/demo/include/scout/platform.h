@@ -34,7 +34,7 @@ namespace Scout {
 }
 
 
-inline void *operator new(Genode::size_t size)
+inline void *operator new(__SIZE_TYPE__ size)
 {
 	using Genode::env;
 	void *addr = env()->heap()->alloc(size);

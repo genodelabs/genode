@@ -1099,7 +1099,8 @@ Genode::Lock &Noux::signal_lock()
 }
 
 
-void *operator new (Genode::size_t size) {
+void *operator new (__SIZE_TYPE__ size)
+{
 	void * ptr = Genode::env()->heap()->alloc(size);
 	if (!ptr)
 		return ptr;

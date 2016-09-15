@@ -107,7 +107,7 @@ class Genode::Expanding_parent_client : public Parent_client
 							.ulong_value(0);
 
 					char buf[128];
-					snprintf(buf, sizeof(buf), "ram_quota=%zu", ram_quota);
+					snprintf(buf, sizeof(buf), "ram_quota=%lu", ram_quota);
 
 					resource_request(Resource_args(buf));
 				},

@@ -400,7 +400,7 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	USBHostDevice     *d = USB_HOST_DEVICE(udev);
 	Usb_host_device *dev = (Usb_host_device *)d->data;
 
-	size_t size = 0;
+	Genode::size_t size = 0;
 	unsigned timeout = 0;
 	Usb::Packet_descriptor::Type type = Usb::Packet_descriptor::BULK;
 

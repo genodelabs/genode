@@ -304,7 +304,7 @@ int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
  ** Random pool **
  *****************/
 
-int rumpuser_getrandom(void *buf, size_t buflen, int flags, size_t *retp)
+int rumpuser_getrandom(void *buf, size_t buflen, int flags, __SIZE_TYPE__ *retp)
 {
 	return rumpuser_getrandom_backend(buf, buflen, flags, retp);
 }

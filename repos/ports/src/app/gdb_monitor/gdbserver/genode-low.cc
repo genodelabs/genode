@@ -484,13 +484,13 @@ void genode_store_registers(struct regcache *regcache, int regno)
 
 	if (regno == -1) {
 		for (regno = 0; regno < the_low_target.num_regs; regno++) {
-			if ((size_t)register_size(regno) <= sizeof(reg_content)) {
+			if ((Genode::size_t)register_size(regno) <= sizeof(reg_content)) {
 				collect_register(regcache, regno, &reg_content);
 				genode_store_register(regno, reg_content);
 			}
 		}
 	} else {
-		if ((size_t)register_size(regno) <= sizeof(reg_content)) {
+		if ((Genode::size_t)register_size(regno) <= sizeof(reg_content)) {
 			collect_register(regcache, regno, &reg_content);
 			genode_store_register(regno, reg_content);
 		}

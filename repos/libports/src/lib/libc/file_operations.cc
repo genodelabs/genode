@@ -548,7 +548,7 @@ extern "C" ssize_t read(int libc_fd, void *buf, ::size_t count)
 }
 
 
-extern "C" ssize_t readlink(const char *path, char *buf, size_t bufsiz)
+extern "C" ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
 {
 	try {
 		Absolute_path resolved_path;

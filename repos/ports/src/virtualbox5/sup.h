@@ -26,7 +26,7 @@
  * Returns true if a vCPU could be started. If false we run without
  * hardware acceleration support.
  */
-bool create_emt_vcpu(pthread_t * pthread, size_t stack,
+bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
                      const pthread_attr_t *attr,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,

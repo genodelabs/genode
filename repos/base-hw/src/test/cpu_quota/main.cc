@@ -168,8 +168,8 @@ int main()
 	sync_sig.threshold(3);
 	sync_sig.sync();
 	Cpu_session::Quota quota = Genode::env()->cpu_session()->quota();
-	Genode::printf("quota super period %zu\n", quota.super_period_us);
-	Genode::printf("quota %zu\n", quota.us);
+	Genode::printf("quota super period %lu\n", quota.super_period_us);
+	Genode::printf("quota %lu\n", quota.us);
 	counter_a.result();
 	counter_b.result();
 	printf("done\n");

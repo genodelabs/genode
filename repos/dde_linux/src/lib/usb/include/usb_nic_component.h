@@ -20,6 +20,7 @@
 
 namespace Usb_nic {
 	using namespace Genode;
+	using Genode::size_t;
 	class  Session_component;
 	struct Device;
 };
@@ -231,6 +232,7 @@ class Root : public Root_component
 		Usb_nic::Session_component *_create_session(const char *args)
 		{
 			using namespace Genode;
+			using Genode::size_t;
 
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -247,7 +249,7 @@ class Root : public Root_component
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				Genode::error("insufficient 'ram_quota', got ", ram_quota, " need %zd",
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, " need %ld",
 				              tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}

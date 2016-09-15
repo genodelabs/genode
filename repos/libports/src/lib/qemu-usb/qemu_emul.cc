@@ -530,9 +530,9 @@ struct Controller : public Qemu::Controller
 		}
 	}
 
-	size_t mmio_size() const { return _mmio_size; }
+	Genode::size_t mmio_size() const { return _mmio_size; }
 
-	int    mmio_read(Genode::off_t offset, void *buf, size_t size)
+	int    mmio_read(Genode::off_t offset, void *buf, Genode::size_t size)
 	{
 		Genode::Lock::Guard g(_lock);
 		Mmio &mmio        = find_region(offset);
@@ -558,7 +558,7 @@ struct Controller : public Qemu::Controller
 		return 0;
 	}
 
-	int    mmio_write(Genode::off_t offset, void const *buf, size_t size)
+	int    mmio_write(Genode::off_t offset, void const *buf, Genode::size_t size)
 	{
 		Genode::Lock::Guard g(_lock);
 		Mmio &mmio        = find_region(offset);

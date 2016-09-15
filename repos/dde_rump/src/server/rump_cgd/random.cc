@@ -56,7 +56,7 @@ struct Entropy
 };
 
 
-int rumpuser_getrandom_backend(void *buf, size_t buflen, int flags, size_t *retp)
+int rumpuser_getrandom_backend(void *buf, size_t buflen, int flags, __SIZE_TYPE__ *retp)
 {
 	*retp = Entropy::e()->read((char *)buf, buflen);
 	*retp = buflen;

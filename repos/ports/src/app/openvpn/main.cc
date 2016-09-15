@@ -211,6 +211,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 		Openvpn_component *_create_session(const char *args)
 		{
 			using namespace Genode;
+			using Genode::size_t;
 
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -227,8 +228,8 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				Genode::error("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				Genode::error("insufficient 'ram_quota', got %ld, need %ld",
+				              ram_quota, tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
 
@@ -287,6 +288,6 @@ struct Main
 
 namespace Server {
 	char const *name()             { return "openvpn_ep"; }
-	size_t stack_size()            { return 8 * 1024 * sizeof (addr_t); }
+	Genode::size_t stack_size()    { return 8 * 1024 * sizeof (addr_t); }
 	void construct(Entrypoint &ep) { static Main server(ep); }
 }

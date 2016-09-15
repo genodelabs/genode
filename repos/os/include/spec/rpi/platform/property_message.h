@@ -117,7 +117,7 @@ struct Platform::Property_message
 			template <typename... ARGS>
 			Placeable(ARGS... args) : T(args...) { }
 
-			inline void *operator new (size_t, void *ptr) { return ptr; }
+			inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 		};
 
 		template <typename T, typename... ARGS>
@@ -160,7 +160,7 @@ struct Platform::Property_message
 			construct_request<TAG>(0, request_args...);
 		}
 
-		inline void *operator new (size_t, void *ptr) { return ptr; }
+		inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 	};
 
 	void reset()
@@ -220,7 +220,7 @@ struct Platform::Property_message
 		}
 	}
 
-	inline void *operator new (size_t, void *ptr) { return ptr; }
+	inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 };
 
 #endif /* _PLATFORM__PROPERTY_MESSAGE_H_ */

@@ -218,7 +218,7 @@ int PGMR3PhysMMIO2Unmap(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
                         RTGCPHYS GCPhys)
 {
 	RTGCPHYS GCPhysStart = GCPhys;
-	size_t size = 1;
+	Genode::size_t size = 1;
 	bool io = vmm_memory()->lookup_range(GCPhysStart, size);
 	Assert(io);
 	Assert(GCPhysStart == GCPhys);
@@ -264,7 +264,7 @@ int PGMR3HandlerPhysicalRegister(PVM pVM, PGMPHYSHANDLERTYPE enmType,
 
 int PGMHandlerPhysicalDeregister(PVM pVM, RTGCPHYS GCPhys)
 {
-	size_t size = 1;
+	Genode::size_t size = 1;
 
 #ifdef VBOX_WITH_REM
 	PFNPGMR3PHYSHANDLER pfnHandlerR3 = 0;
@@ -570,7 +570,7 @@ extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
 	}
 
 	RTGCPHYS map_start = GCPhys;
-	size_t map_size = 1;
+	Genode::size_t map_size = 1;
 
 	bool io = vmm_memory()->lookup_range(map_start, map_size);
 	Assert(io);

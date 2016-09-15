@@ -173,6 +173,7 @@ class Root : public Genode::Root_component<Wifi_session_component,
 		Wifi_session_component *_create_session(const char *args)
 		{
 			using namespace Genode;
+			using Genode::size_t;
 
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);

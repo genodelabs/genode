@@ -83,6 +83,7 @@ drm_display_mode *
 Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 {
 	using namespace Genode;
+	using Genode::size_t;
 
 	/* try to read configuration for connector */
 	try {

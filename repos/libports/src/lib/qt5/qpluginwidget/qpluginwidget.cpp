@@ -109,7 +109,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 
 		Genode::log(__func__, ": file_size_uncompressed=", file_size);
 
-		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0) + file_size;
+		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0) + file_size;
 
 		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
 			Genode::error("quota exceeded");
@@ -159,7 +159,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 			_pc->commit_rom_module(file_name.toUtf8().constData());
 		}
 	} else {
-		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0);
+		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0);
 
 		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
 			_plugin_loading_state = QUOTA_EXCEEDED_ERROR;

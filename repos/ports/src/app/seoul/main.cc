@@ -931,7 +931,7 @@ class Machine : public StaticReceiver<Machine>
 				msg.phys = _guest_memory.remaining_size;
 
 				if (verbose_debug)
-					Logging::printf("-> allocated from guest %08zx+%lx\n",
+					Logging::printf("-> allocated from guest %08lx+%lx\n",
 					                _guest_memory.remaining_size, msg.value);
 				return true;
 

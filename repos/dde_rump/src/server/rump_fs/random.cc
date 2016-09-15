@@ -14,7 +14,7 @@
 #include <util/random.h>
 
 
-int rumpuser_getrandom_backend(void *buf, Genode::size_t buflen, int flags, Genode::size_t *retp)
+int rumpuser_getrandom_backend(void *buf, Genode::size_t buflen, int flags, __SIZE_TYPE__ *retp)
 {
 	*retp = buflen;
 	return 0;

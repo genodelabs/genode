@@ -33,7 +33,7 @@
 #include <lx_kit/scheduler.h>
 
 
-typedef Genode::size_t size_t;
+typedef ::size_t       size_t;
 typedef Genode::addr_t addr_t;
 
 

@@ -178,7 +178,7 @@ struct Pci_driver
 			[&] () { client.config_write(devfn, val, _access_size(val)); } ,
 			[&] () {
 				char quota[32];
-				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 				                 donate);
 				Genode::env()->parent()->upgrade(_pci.cap(), quota);
 				donate *= 2;
@@ -224,7 +224,7 @@ struct Pci_driver
 				[&] () { return _pci.alloc_dma_buffer(size); },
 				[&] () {
 					char quota[32];
-					Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+					Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 					                 donate);
 					Genode::env()->parent()->upgrade(_pci.cap(), quota);
 					donate = donate * 2 > size ? 4096 : donate * 2;

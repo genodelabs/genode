@@ -29,6 +29,7 @@ namespace Allocator {
 namespace Allocator {
 
 	using namespace Genode;
+	using Genode::size_t;
 
 	struct Default_allocator_policy
 	{

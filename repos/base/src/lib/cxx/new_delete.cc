@@ -30,10 +30,10 @@ static void *try_alloc(Allocator *alloc, size_t size)
 }
 
 
-void *operator new    (size_t s, Allocator *a) { return try_alloc(a, s); }
-void *operator new [] (size_t s, Allocator *a) { return try_alloc(a, s); }
-void *operator new    (size_t s, Allocator &a) { return a.alloc(s); }
-void *operator new [] (size_t s, Allocator &a) { return a.alloc(s); }
+void *operator new    (__SIZE_TYPE__ s, Allocator *a) { return try_alloc(a, s); }
+void *operator new [] (__SIZE_TYPE__ s, Allocator *a) { return try_alloc(a, s); }
+void *operator new    (__SIZE_TYPE__ s, Allocator &a) { return a.alloc(s); }
+void *operator new [] (__SIZE_TYPE__ s, Allocator &a) { return a.alloc(s); }
 
 
 static void try_dealloc(void *ptr, Deallocator &dealloc)

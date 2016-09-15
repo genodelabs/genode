@@ -28,8 +28,6 @@
 
 /* Linux includes */
 #include <linux_syscalls.h>
-#include <sys/un.h>
-#include <sys/socket.h>
 
 using namespace Genode;
 
@@ -69,7 +67,7 @@ struct Protocol_header
 	/* badge of invoked object (on call) / exception code (on reply) */
 	unsigned long protocol_word;
 
-	size_t num_caps;
+	Genode::size_t num_caps;
 
 	/* badges of the transferred capability arguments */
 	unsigned long badges[Msgbuf_base::MAX_CAPS_PER_MSG];

@@ -793,6 +793,7 @@ class Usb::Root : public Genode::Root_component<Session_component>
 		Session_component *_create_session(const char *args)
 		{
 			using namespace Genode;
+			using Genode::size_t;
 
 			Session_label const label = label_from_args(args);
 			try {

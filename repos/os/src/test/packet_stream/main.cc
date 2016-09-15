@@ -68,8 +68,9 @@ class Source : private Genode::Thread_deprecated<STACK_SIZE>,
 					if (!content) {
 						Genode::warning("source: invalid packet");
 					}
-					Genode::log("Source: allocated packet (offset=0x%lx, size=0x%zd\n",
-					               packet.offset(), packet.size());
+					Genode::log("Source: allocated packet ("
+					            "offset=", Genode::Hex(packet.offset()), " "
+					            "size=",   Genode::Hex(packet.size()), ")");
 
 					for (unsigned i = 0; i < packet.size(); i++)
 						content[i] = i;

@@ -474,7 +474,7 @@ namespace Terminal {
 				/*
 				 * XXX read I/O buffer size from args
 				 */
-				size_t io_buffer_size = 4096;
+				Genode::size_t io_buffer_size = 4096;
 
 				try {
 					Session_label const label = label_from_args(args);

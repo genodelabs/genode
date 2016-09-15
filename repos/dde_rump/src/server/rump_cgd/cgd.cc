@@ -349,7 +349,7 @@ char const *Cgd::Device::name() const { return CGD_RAW_DEVICE; }
  *
  * \return bytes read
  */
-size_t Cgd::Device::read(char *dst, size_t len, seek_off_t seek_offset)
+Genode::size_t Cgd::Device::read(char *dst, Genode::size_t len, seek_off_t seek_offset)
 {
 	ssize_t ret = rump_sys_pread(_fd, dst, len, seek_offset);
 
@@ -366,7 +366,7 @@ size_t Cgd::Device::read(char *dst, size_t len, seek_off_t seek_offset)
  *
  * \return bytes written
  */
-size_t Cgd::Device::write(char const *src, size_t len, seek_off_t seek_offset)
+Genode::size_t Cgd::Device::write(char const *src, Genode::size_t len, seek_off_t seek_offset)
 {
 	/* should we append? */
 	if (seek_offset == ~0ULL) {

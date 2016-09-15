@@ -37,6 +37,8 @@ namespace Libc {
 
 			int _priority;
 
+			typedef Genode::size_t size_t;
+
 		public:
 
 			Plugin(int priority = 0);
@@ -54,7 +56,7 @@ namespace Libc {
 			                                  struct ::addrinfo **res);
 			virtual bool supports_open(const char *pathname, int flags);
 			virtual bool supports_pipe();
-			virtual bool supports_readlink(const char *path, char *buf, size_t bufsiz);
+			virtual bool supports_readlink(const char *path, char *buf, ::size_t bufsiz);
 			virtual bool supports_rename(const char *oldpath, const char *newpath);
 			virtual bool supports_rmdir(const char *path);
 			virtual bool supports_select(int nfds,

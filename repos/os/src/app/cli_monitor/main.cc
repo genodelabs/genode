@@ -35,7 +35,7 @@
 using Genode::Xml_node;
 
 
-inline void *operator new (size_t size)
+inline void *operator new (__SIZE_TYPE__ size)
 {
 	return Genode::env()->heap()->alloc(size);
 }

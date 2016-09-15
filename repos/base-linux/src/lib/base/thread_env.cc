@@ -43,7 +43,7 @@ extern "C" int stdout_write(char const *);
 extern "C" __attribute__((weak)) int stdout_write(char const *s)
 {
 	raw(s);
-	return strlen(s);
+	return Genode::strlen(s);
 }
 
 /**

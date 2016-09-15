@@ -40,7 +40,7 @@
  *
  * \param p  destination address
  */
-inline void * operator new(Genode::size_t, void * p) { return p; }
+inline void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
 /**
  * Helper class for the use of unmanaged_singleton with the singleton pattern

@@ -153,7 +153,7 @@ class Child_base : public Genode::Child_policy
 				return; /* resource request in flight */
 
 			char buf[128];
-			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", amount);
+			Genode::snprintf(buf, sizeof(buf), "ram_quota=%ld", amount);
 			_withdraw_on_yield_response = greedy;
 			_child.yield(buf);
 		}

@@ -405,7 +405,7 @@ extern "C" int pci_mapreg_map(struct pci_attach_args *pa,
 		                             Platform::Device::ACCESS_16BIT); },
 		[&] () {
 			char quota[32];
-			Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+			Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 			                 donate);
 			drv->env().parent().upgrade(drv->pci().cap(), quota);
 			donate *= 2;

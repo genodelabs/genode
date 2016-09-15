@@ -103,7 +103,7 @@ struct X86_hba : Platform::Hba
 			[&] () { pci_device->config_write(op, cmd, width); },
 			[&] () {
 				char quota[32];
-				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 				                 donate);
 				env.parent().upgrade(pci.cap(), quota);
 				donate *= 2;
@@ -135,7 +135,7 @@ struct X86_hba : Platform::Hba
 			[&] () { return pci.alloc_dma_buffer(size); },
 			[&] () {
 				char quota[32];
-				snprintf(quota, sizeof(quota), "ram_quota=%zd", donate);
+				snprintf(quota, sizeof(quota), "ram_quota=%ld", donate);
 				env.parent().upgrade(pci.cap(), quota);
 				donate = donate * 2 > size ? 4096 : donate * 2;
 			});

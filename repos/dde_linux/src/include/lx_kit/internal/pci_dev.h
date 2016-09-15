@@ -189,7 +189,7 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 				[&] () { _client.config_write(devfn, val, _access_size(val)); },
 				[&] () {
 					char quota[32];
-					Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+					Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 					                 donate);
 					Genode::env()->parent()->upgrade(pci()->cap(), quota);
 					donate *= 2;

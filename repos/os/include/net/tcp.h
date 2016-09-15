@@ -134,7 +134,7 @@ class Net::Tcp_packet
 		/**
 		 * Placement new
 		 */
-		void * operator new(size_t size, void * addr) { return addr; }
+		void * operator new(__SIZE_TYPE__ size, void * addr) { return addr; }
 
 } __attribute__((packed));
 

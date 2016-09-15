@@ -65,7 +65,7 @@ struct Backdrop::Main
 
 		Attached_dataspace fb_ds { _ds_cap(nitpicker) };
 
-		size_t surface_num_bytes() const
+		Genode::size_t surface_num_bytes() const
 		{
 			return size().count()*mode.bytes_per_pixel();
 		}

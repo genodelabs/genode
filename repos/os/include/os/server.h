@@ -28,7 +28,11 @@ namespace Server {
 	 ** Functions to be provided by the server implementation **
 	 ***********************************************************/
 
-	size_t stack_size();
+	/*
+	 * Avoid the ambiguity of 'size_t' if the header is included from
+	 * libc-using code.
+	 */
+	Genode::size_t stack_size();
 
 	char const *name();
 

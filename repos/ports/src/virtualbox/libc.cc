@@ -38,20 +38,18 @@
 
 static const bool verbose = false;
 
-using Genode::size_t;
-
 /*
  * We cannot use the libc's version of malloc because it does not satisfies
  * the alignment constraints asserted by 'Runtime/r3/alloc.cpp'.
  */
 
-extern "C" void *malloc(size_t size)
+extern "C" void *malloc(::size_t size)
 {
 	return Libc::mem_alloc()->alloc(size, Genode::log2(RTMEM_ALIGNMENT));
 }
 
 
-extern "C" void *calloc(size_t nmemb, size_t size)
+extern "C" void *calloc(::size_t nmemb, ::size_t size)
 {
 	void *ret = malloc(nmemb*size);
 	if (ret)
@@ -66,7 +64,7 @@ extern "C" void free(void *ptr)
 }
 
 
-extern "C" void *realloc(void *ptr, Genode::size_t size)
+extern "C" void *realloc(void *ptr, ::size_t size)
 {
 	if (!ptr)
 		return malloc(size);

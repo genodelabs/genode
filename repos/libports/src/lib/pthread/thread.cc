@@ -212,7 +212,7 @@ extern "C" {
 
 	int pthread_attr_getstack(const pthread_attr_t *attr,
 	                          void **stackaddr,
-	                          size_t *stacksize)
+	                          ::size_t *stacksize)
 	{
 		/* FIXME */
 		warning("pthread_attr_getstack() called, might not work correctly");

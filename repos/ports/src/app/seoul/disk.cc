@@ -217,7 +217,7 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 		                                   &_diskcon[msg.disknr].blk_size,
 		                                   &_diskcon[msg.disknr].ops);
 
-		Logging::printf("Got info: %llu blocks (%zu B), ops (R: %x, W:%x)\n ",
+		Logging::printf("Got info: %llu blocks (%lu B), ops (R: %x, W:%x)\n ",
 		        _diskcon[msg.disknr].blk_cnt,
 		        _diskcon[msg.disknr].blk_size,
 		        _diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::READ),

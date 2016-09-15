@@ -125,8 +125,7 @@ class Net::Dhcp_packet
 				/**
 				 * Placement new.
 				 */
-				void * operator new(Genode::size_t size, void* addr) {
-					return addr; }
+				void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
 		} __attribute__((packed));
 
 
@@ -272,8 +271,7 @@ class Net::Dhcp_packet
 		/**
 		 * Placement new.
 		 */
-		void * operator new(Genode::size_t size, void* addr) {
-			return addr; }
+		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
 
 } __attribute__((packed));
 

@@ -329,7 +329,7 @@ Cpu_session_component::~Cpu_session_component()
 int Cpu_session_component::ref_account(Cpu_session_capability) { return -1; }
 
 
-int Cpu_session_component::transfer_quota(Cpu_session_capability, size_t) { return -1; }
+int Cpu_session_component::transfer_quota(Cpu_session_capability, Genode::size_t) { return -1; }
 
 
 Cpu_session::Quota Cpu_session_component::quota() { return Quota(); }

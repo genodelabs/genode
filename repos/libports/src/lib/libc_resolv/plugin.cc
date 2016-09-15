@@ -25,8 +25,6 @@
 #include <netdb.h>
 
 
-void *operator new (size_t, void *ptr) { return ptr; }
-
 extern "C" void libc_freeaddrinfo(struct ::addrinfo *);
 extern "C" int libc_getaddrinfo(const char *, const char *,
                                 const struct ::addrinfo *,

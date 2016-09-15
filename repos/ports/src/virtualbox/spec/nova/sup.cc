@@ -260,7 +260,7 @@ extern "C" void pthread_yield(void)
 }
 
 
-void *operator new (Genode::size_t size, int log2_align)
+void *operator new (__SIZE_TYPE__ size, int log2_align)
 {
 	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
 	return heap.alloc(size, log2_align);
