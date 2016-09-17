@@ -4,9 +4,10 @@
 # \author  Christian Helmuth
 # \date    2009-02-05
 
-ISO    ?= genode
-ISODIR  = $(abspath $(ISO))
-ISOIMG  = $(abspath $(ISO).iso)
+ISO     ?= genode
+ISOTOOL ?= mkisofs
+ISODIR   = $(abspath $(ISO))
+ISOIMG   = $(abspath $(ISO).iso)
 
 default help:
 	@echo "--- available commands ---"
@@ -30,10 +31,10 @@ default help:
 # parameter 1  filename of ISO image
 # parameter 2  path of directory containing file tree for the ISO image
 #
-gen_iso_image = mkisofs     -f -l -R -hide-rr-moved -jcharset utf-8 \
-                            -no-emul-boot -boot-load-size 4 -boot-info-table \
-                            -b boot/isolinux/isolinux.bin \
-                            -o $(1) $(2)
+gen_iso_image = $(ISOTOOL) -f -l -R -hide-rr-moved -jcharset utf-8 \
+                           -no-emul-boot -boot-load-size 4 -boot-info-table \
+                           -b boot/isolinux/isolinux.bin \
+                           -o $(1) $(2)
 
 $(ISOIMG) iso:
 	@$(call gen_iso_image, $(ISOIMG) $(ISODIR))
