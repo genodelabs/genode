@@ -80,12 +80,14 @@ if {$use_usb_driver}    { set network_driver "usb_drv" }
 if {$use_nic_driver}    { set network_driver "nic_drv" }
 if {$use_wifi_driver}   { set network_driver "wifi_drv" }
 
-set build_components {
+append build_components {
 	core init
 	drivers/timer
+	app/netperf
 }
 
-append     build_components     " $netperf_target "
+append_socket_fs_build_components
+
 lappend_if $use_nic_driver      build_components drivers/nic
 lappend_if $use_usb_driver      build_components drivers/usb
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -290,22 +292,26 @@ append_platform_drv_config
 
 append config {
 	<start name="netserver_genode" caps="220" priority="-1">
-}
-append config "<binary name=\"$netperf_app\"/>"
-append config {
+	<binary name="netserver"/>
 		<resource name="RAM" quantum="32M"/>
 		<config>
 			<arg value="netserver"/>
 			<arg value="-D"/>
 			<arg value="-4"/>
 			<arg value="-f"/>
-			<libc tx_buf_size="2M" rx_buf_size="2M"}
-append_if [expr [have_spec linux] && !$use_nic_router] config " ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
-append config {
-			      stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
 			<vfs>
 				<dir name="dev">
 					<log/> <inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="socket">
+					<} [socket_fs_plugin] { }
+if {[expr [have_spec linux] && !$use_nic_router]} {
+	append config " ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
+} else {
+	append config " dhcp=\"yes\""
+}
+append config {/>
 				</dir>
 			</vfs>
 		</config>}
@@ -331,13 +337,14 @@ install_config $config
 #
 
 # generic modules
-set boot_modules {
+append boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
+	netserver
 }
 
-append                     boot_modules " $netperf_app "
-append                     boot_modules " $netperf_stack "
+append_socket_fs_boot_modules
+
 lappend_if $use_nic_bridge boot_modules nic_bridge
 lappend_if $use_nic_router boot_modules nic_router
 

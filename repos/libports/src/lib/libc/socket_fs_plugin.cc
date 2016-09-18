@@ -468,7 +468,7 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	/* TODO EOPNOTSUPP - no SOCK_STREAM */
 	/* TODO ECONNABORTED */
 
-	char accept_buf[8];
+	char accept_buf[MAX_CONTROL_PATH_LEN];
 	{
 		int n = 0;
 		/* XXX currently reading accept may return without new connection */

@@ -1,0 +1,20 @@
+LICENSE   := BSD
+VERSION   := 2.0.3
+DOWNLOADS := lwip.archive
+
+URL(lwip) := http://download.savannah.nongnu.org/releases/lwip/lwip-$(VERSION).zip
+SHA(lwip) := 1488829ca48890cc7e5e86c5e76a74b32a1bc9ac8dc01b2177b3a937650e9730
+DIR(lwip) := src/lib/lwip
+
+UNPACKED_DIR := src/lib/lwip/lwip-$(VERSION)
+
+DIRS := \
+	include/lwip/lwip \
+	include/lwip/lwip/priv \
+	include/lwip/lwip/prot \
+	include/lwip/netif \
+
+DIR_CONTENT(include/lwip/lwip/priv) := $(UNPACKED_DIR)/src/include/lwip/priv/*.h
+DIR_CONTENT(include/lwip/lwip/prot) := $(UNPACKED_DIR)/src/include/lwip/prot/*.h
+DIR_CONTENT(include/lwip/lwip)      := $(UNPACKED_DIR)/src/include/lwip/*.h
+DIR_CONTENT(include/lwip/netif)     := $(UNPACKED_DIR)/src/include/netif/*.h

@@ -1,0 +1,135 @@
+#
+# \brief  Test of fetchurl
+# \author Emery Hemingway
+# \date   2016-06-05
+#
+
+if {[have_spec odroid_xu] || [have_spec linux] ||
+    [expr [have_spec imx53] && [have_spec trustzone]]} {
+	puts "Run script does not support this platform."
+	exit 0
+}
+
+set build_components {
+	app/fetchurl
+	core init
+	drivers/nic
+	drivers/timer
+	server/report_rom
+}
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+append_platform_drv_build_components
+append_socket_fs_build_components
+
+lappend_if [expr {[nic_drv_binary] == "nic_drv"}] build_components drivers/nic
+lappend_if [expr {[nic_drv_binary] == "usb_drv"}] build_components drivers/usb
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<service name="Report"> <child name="report_rom"/> </service>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\" caps=\"140\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv" caps="120">
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="16M"/>
+		<provides> <service name="Nic"/> </provides>
+		} [nic_drv_config] {
+	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> <service name="Report"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="fetchurl" caps="500">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<report progress="yes"/>
+			<vfs>
+				<dir name="dev">
+					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
+					<inline name="random">01234567890123456789</inline>
+				</dir>
+				<dir name="socket"> <} [socket_fs_plugin] { dhcp="yes"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+			<fetch url="http://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+# generic modules
+set boot_modules {
+	core init ld.lib.so
+	curl.lib.so
+	fetchurl
+	libc.lib.so vfs.lib.so
+	libcrypto.lib.so
+	libssh.lib.so
+	libssl.lib.so
+	pthread.lib.so
+	timer
+	zlib.lib.so
+	report_rom
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+# vfs plugin modules
+append_socket_fs_boot_modules
+
+lappend boot_modules [nic_drv_binary]
+
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
+
+build_boot_image $boot_modules
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append                        qemu_args " -nographic -net user"
+
+run_genode_until {child "fetchurl" exited with exit value 0} 120
