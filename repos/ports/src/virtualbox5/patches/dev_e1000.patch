@@ -1,0 +1,36 @@
+dev_e1000.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+index b8f9ebf..aa3eb87 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -5721,22 +5721,29 @@ static int e1kRegReadUnaligned(PE1KSTATE pThis, uint32_t offReg, void *pv, uint3
+             rc = g_aE1kRegMap[index].pfnRead(pThis, offReg & 0xFFFFFFFC, index, &u32);
+             u32 &= mask;
+             //e1kCsLeave(pThis);
++#ifdef DEBUG
+             E1kLog2(("%s At %08X read  %s          from %s (%s)\n",
+                     pThis->szPrf, offReg, e1kU32toHex(u32, mask, buf), g_aE1kRegMap[index].abbrev, g_aE1kRegMap[index].name));
+             Log6(("%s At %08X read  %s          from %s (%s) [UNALIGNED]\n",
+                   pThis->szPrf, offReg, e1kU32toHex(u32, mask, buf), g_aE1kRegMap[index].abbrev, g_aE1kRegMap[index].name));
++#endif
+             /* Shift back the result. */
+             u32 >>= shift;
+         }
++#ifdef DEBUG
+         else
+             E1kLog(("%s At %08X read (%s) attempt from write-only register %s (%s)\n",
+                     pThis->szPrf, offReg, e1kU32toHex(u32, mask, buf), g_aE1kRegMap[index].abbrev, g_aE1kRegMap[index].name));
++#endif
++
+         if (IOM_SUCCESS(rc))
+             STAM_COUNTER_INC(&pThis->aStatRegReads[index]);
+     }
++#ifdef DEBUG
+     else
+         E1kLog(("%s At %08X read (%s) attempt from non-existing register\n",
+                 pThis->szPrf, offReg, e1kU32toHex(u32, mask, buf)));
++#endif
+ 
+     memcpy(pv, &u32, cb);
+     return rc;

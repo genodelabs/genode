@@ -1,6 +1,5 @@
 acpi_drv.patch
 avoid_yield.patch
-dev_e1000.patch
 eminternal.patch
 hostservice.patch
 iconv.patch
