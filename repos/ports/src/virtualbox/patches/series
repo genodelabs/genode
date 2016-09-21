@@ -6,7 +6,6 @@ vga_fb.patch
 vga_vbva.patch
 vmmdev.patch
 usb.patch
-tm_smp.patch
 vbox_dd.patch
 force_ioapic.patch
 vbox-cpuhotplug.dsl.patch

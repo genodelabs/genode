@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/semaphore.h>
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
@@ -88,7 +87,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		bool _irq_win;
 
 		unsigned int      _cpu_id;
-		Genode::Semaphore _halt_sem;
 
 		unsigned int _last_inj_info;
 		unsigned int _last_inj_error;
@@ -758,14 +756,18 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			}
 		}
 
-		void halt()
+		void halt(Genode::uint64_t tsc_abs)
 		{
-			_halt_sem.down();
+			Assert(utcb() == Thread::myself()->utcb());
+
+			Genode::addr_t sem = native_thread().exc_pt_sel + Nova::SM_SEL_EC;
+			Nova::sm_ctrl(sem, Nova::SEMAPHORE_DOWNZERO, tsc_abs);
 		}
 
 		void wake_up()
 		{
-			_halt_sem.up();
+			Genode::addr_t sem = native_thread().exc_pt_sel + Nova::SM_SEL_EC;
+			Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
 		}
 
 		int run_hw(PVMR0 pVMR0)

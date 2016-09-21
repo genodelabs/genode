@@ -148,15 +148,24 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 
 	case VMMR0_DO_GVMM_SCHED_HALT:
 	{
+		const uint64_t u64NowGip = RTTimeNanoTS();
+		const uint64_t ns_diff = u64Arg > u64NowGip ? u64Arg - u64NowGip : 0;
+
+		if (!ns_diff)
+			return VINF_SUCCESS;
+
+		uint64_t const tsc_offset = genode_cpu_hz() * ns_diff / (1000*1000*1000);
+		uint64_t const tsc_abs    = Genode::Trace::timestamp() + tsc_offset;
+
+		using namespace Genode;
+
+		if (ns_diff > RT_NS_1SEC)
+			warning(" more than 1 sec vcpu halt ", ns_diff, " ns");
+
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-/*
-		char txt_name[32];
-		Genode::Thread_base::myself()->name(txt_name, sizeof(txt_name));
-		PINF("%s - halt - rip=%p", txt_name, __builtin_return_address(0));
-*/
-		vcpu_handler->halt();
-//		PINF("%s - woken up", txt_name);
+		vcpu_handler->halt(tsc_abs);
+
 		return VINF_SUCCESS;
 	}
 
@@ -164,11 +173,11 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	{
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-/*
-		char txt_name[32];
-		Genode::Thread_base::myself()->name(txt_name, sizeof(txt_name));
-		PINF("%s - wakeup - rip=%p", txt_name, __builtin_return_address(0));
-*/
+
+		/* don't wake the currently running thread again */
+		if (vcpu_handler->utcb() == Genode::Thread::myself()->utcb())
+			return VINF_SUCCESS;
+
 		vcpu_handler->wake_up();
 		return VINF_SUCCESS;
 	}
