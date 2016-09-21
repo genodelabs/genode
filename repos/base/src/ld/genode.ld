@@ -53,8 +53,6 @@ SECTIONS
 
 	. = ALIGN(0x1000);
 
-	_prog_img_data = .;
-
 	.data : {
 		/*
 		 * Leave space for parent capability parameters at start of data

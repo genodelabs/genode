@@ -212,7 +212,6 @@ SECTIONS
    * set's * DT_PLTGOT to .got instead of .got.plt */
   .got            : { *(.got.plt) *(.got) }
 
-  _prog_img_data = .;
   .data           :
   {
     /*
