@@ -45,7 +45,6 @@ DUMMY(HMR3RestartPendingIOInstr)
 DUMMY(HMR3EnablePatching)
 DUMMY(HMR3DisablePatching)
 DUMMY(HMGetPaePdpes)
-DUMMY(HMR3ResetCpu)
 DUMMY(HMSetSingleInstruction)
 
 DUMMY(IEMExecOne)

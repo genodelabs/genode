@@ -152,3 +152,6 @@ VMMR3DECL(bool) HMR3CanExecuteGuest(PVM pVM, PCPUMCTX pCtx)
 
 
 VMM_INT_DECL(int) HMFlushTLB(PVMCPU pVCpu) { return VINF_SUCCESS; }
+
+
+void HMR3ResetCpu(PVMCPU pVCpu) { }
