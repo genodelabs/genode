@@ -22,15 +22,28 @@
 #include <util/endian.h>
 #include <net/netaddress.h>
 
+namespace Genode { class Output; }
+
 namespace Net
 {
 	enum { IPV4_ADDR_LEN = 4 };
-	typedef Network_address<IPV4_ADDR_LEN, '.', false> Ipv4_address;
+
+	class Ipv4_address;
 
 	class Ipv4_address_prefix;
 
 	class Ipv4_packet;
 }
+
+
+struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
+{
+	Ipv4_address(Genode::uint8_t value = 0) : Network_address(value) { }
+
+	Ipv4_address(void *src) : Network_address(src) { }
+
+	bool valid() const { return *this != Ipv4_address(); }
+};
 
 
 /**
@@ -200,7 +213,11 @@ class Net::Ipv4_packet
 struct Net::Ipv4_address_prefix
 {
 	Ipv4_address    address;
-	Genode::uint8_t prefix = 0;
+	Genode::uint8_t prefix = 32;
+
+	bool valid() const { return address.valid(); }
+
+	void print(Genode::Output &output) const;
 };
 
 

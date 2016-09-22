@@ -80,3 +80,9 @@ Genode::uint16_t Ipv4_packet::calculate_checksum(Ipv4_packet const &packet)
 
 const Ipv4_address Ipv4_packet::CURRENT((Genode::uint8_t)0x00);
 const Ipv4_address Ipv4_packet::BROADCAST((Genode::uint8_t)0xFF);
+
+
+void Ipv4_address_prefix::print(Genode::Output &output) const
+{
+	Genode::print(output, address, "/", prefix);
+}
