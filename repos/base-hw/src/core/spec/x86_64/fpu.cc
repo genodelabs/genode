@@ -1,5 +1,5 @@
 /*
- * \brief   FPU implementation specific to x86
+ * \brief   FPU implementation specific to x86_64
  * \author  Stefan Kalkowski
  * \date    2016-01-19
  */

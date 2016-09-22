@@ -17,6 +17,16 @@
 #include <kernel/thread.h>
 #include <kernel/pd.h>
 
+
+void Kernel::Thread::_call_update_data_region() { }
+
+
+void Kernel::Thread::_call_update_instr_region() { }
+
+
+void Kernel::Thread_event::_signal_acknowledged() { _thread->_resume(); }
+
+
 void Kernel::Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESUME);

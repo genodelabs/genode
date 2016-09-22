@@ -1,5 +1,5 @@
 /*
- * \brief  x86 FPU driver for core
+ * \brief  x86_64 FPU driver for core
  * \author Adrian-Ken Rueegsegger
  * \author Martin stein
  * \author Reto Buerki
@@ -14,8 +14,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SPEC__X86__FPU_H_
-#define _SPEC__X86__FPU_H_
+#ifndef _SPEC__X86_64__FPU_H_
+#define _SPEC__X86_64__FPU_H_
 
 /* Genode includes */
 #include <base/stdint.h>
@@ -142,4 +142,4 @@ class Genode::Fpu
 			if (_context == &context) _context = nullptr; }
 };
 
-#endif /* _SPEC__X86__FPU_H_ */
+#endif /* _SPEC__X86_64__FPU_H_ */
