@@ -1,0 +1,42 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMAll/TMAllVirtual.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMAll/TMAllVirtual.cpp
+@@ -437,7 +437,7 @@
+     bool            fStop       = false;
+     const uint64_t  u64Prev     = pVM->tm.s.u64VirtualSyncCatchUpPrev;
+     uint64_t        u64Delta    = u64 - u64Prev;
+-    if (RT_LIKELY(!(u64Delta >> 32)))
++    if (RT_LIKELY(!(u64Delta >> 63)))
+     {
+         uint64_t u64Sub = ASMMultU64ByU32DivByU32(u64Delta, pVM->tm.s.u32VirtualSyncCatchUpPercentage, 100);
+         if (off > u64Sub + pVM->tm.s.offVirtualSyncGivenUp)
+@@ -770,7 +770,7 @@
+                 ||  cOuterTries <= 0)
+             {
+                 uint64_t u64Delta = u64 - u64Prev;
+-                if (RT_LIKELY(!(u64Delta >> 32)))
++                if (RT_LIKELY(!(u64Delta >> 63)))
+                 {
+                     uint64_t u64Sub = ASMMultU64ByU32DivByU32(u64Delta, u32Pct, 100);
+                     if (off > u64Sub + offGivenUp)
+--- a/src/app/virtualbox/src/VBox/VMM/VMMAll/TMAll.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMAll/TMAll.cpp
+@@ -857,7 +857,7 @@
+                 ||  cOuterTries <= 0)
+             {
+                 uint64_t u64Delta = u64Now - u64Prev;
+-                if (RT_LIKELY(!(u64Delta >> 32)))
++                if (RT_LIKELY(!(u64Delta >> 63)))
+                 {
+                     uint64_t u64Sub = ASMMultU64ByU32DivByU32(u64Delta, u32Pct, 100);
+                     if (off > u64Sub + offGivenUp)
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -2149,7 +2160,7 @@
+         if (pVM->tm.s.fVirtualSyncCatchUp)
+         {
+             uint64_t u64Delta = u64VirtualNow - pVM->tm.s.u64VirtualSyncCatchUpPrev;
+-            if (RT_LIKELY(!(u64Delta >> 32)))
++            if (RT_LIKELY(!(u64Delta >> 63)))
+             {
+                 uint64_t u64Sub = ASMMultU64ByU32DivByU32(u64Delta, pVM->tm.s.u32VirtualSyncCatchUpPercentage, 100);
+                 if (off > u64Sub + offSyncGivenUp)
