@@ -730,11 +730,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		             void *(*start_routine) (void *), void *arg,
 		             Genode::Cpu_session * cpu_session,
 		             Genode::Affinity::Location location,
-		             unsigned int cpu_id)
+		             unsigned int cpu_id, const char * name)
 		:
 			Vmm::Vcpu_dispatcher<pthread>(stack_size, *Genode::env()->pd_session(),
 			                              cpu_session, location, 
-			                              attr ? *attr : 0, start_routine, arg),
+			                              attr ? *attr : 0, start_routine,
+			                              arg, name),
 			_vcpu(cpu_session, location),
 			_ec_sel(Genode::cap_map()->insert()),
 			_irq_win(false),

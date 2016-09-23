@@ -292,7 +292,7 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
-                     unsigned int cpu_id)
+                     unsigned int cpu_id, const char * name)
 {
 	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
 
@@ -304,12 +304,12 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 	if (hip->has_feature_vmx())
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(stack, attr, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id);
+		                                           cpu_id, name);
 
 	if (hip->has_feature_svm())
 		vcpu_handler = new (0x10) Vcpu_handler_svm(stack, attr, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id);
+		                                           cpu_id, name);
 
 	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
 

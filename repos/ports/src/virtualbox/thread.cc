@@ -95,7 +95,7 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		Genode::Affinity::Location location(space.location_of_index(cpu_id));
 
 		if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg,
-		                    cpu_session, location, cpu_id))
+		                    cpu_session, location, cpu_id, rtthread->szName))
 			return 0;
 		/*
 		 * The virtualization layer had no need to setup the EMT

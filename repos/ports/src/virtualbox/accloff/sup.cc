@@ -86,7 +86,8 @@ bool create_emt_vcpu(pthread_t * thread, size_t stack_size,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
-                     unsigned int cpu_id)
+                     unsigned int cpu_id,
+                     const char * name)
 {
 	/* no hardware acceleration support */
 	return false;

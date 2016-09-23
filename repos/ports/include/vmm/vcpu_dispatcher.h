@@ -71,9 +71,10 @@ class Vmm::Vcpu_dispatcher : public T
 
 		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
-		                Genode::Affinity::Location location)
+		                Genode::Affinity::Location location,
+		                const char * name = "vCPU dispatcher")
 		:
-			T(WEIGHT, "vCPU dispatcher", stack_size, location), _pd(pd)
+			T(WEIGHT, name, stack_size, location), _pd(pd)
 		{
 			using namespace Genode;
 
@@ -87,8 +88,9 @@ class Vmm::Vcpu_dispatcher : public T
 		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
-		                X attr, void *(*start_routine) (void *), void *arg)
-		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr, location),
+		                X attr, void *(*start_routine) (void *), void *arg,
+		                const char * name = "vCPU dispatcher")
+		: T(attr, start_routine, arg, stack_size, name, nullptr, location),
 		  _pd(pd)
 		{
 			using namespace Genode;
