@@ -187,6 +187,12 @@ void Framebuffer::Driver::update_mode()
 		                                      _preferred_mode(c)); });
 	}
 
+	/* force virtual framebuffer size if requested */
+	if (int w = _session.force_width_from_config())
+		_config._lx.width = min(_config._lx.width, w);
+	if (int h = _session.force_height_from_config())
+		_config._lx.height = min(_config._lx.height, h);
+
 	if (old._lx.addr)  Lx::iounmap(old._lx.addr);
 	/* drm_crtc.h in drm_framebuffer_funcs definition: use drm_fb_remove */
 	if (old._lx.lx_fb) drm_framebuffer_remove(old._lx.lx_fb);

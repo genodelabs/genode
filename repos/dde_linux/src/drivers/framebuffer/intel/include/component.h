@@ -120,6 +120,16 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Genode::Xml_node config() { return _config.xml(); }
 
+		int force_width_from_config()
+		{
+			return _config.xml().attribute_value<unsigned>("force_width", 0);
+		}
+
+		int force_height_from_config()
+		{
+			return _config.xml().attribute_value<unsigned>("force_height", 0);
+		}
+
 
 		/***********************************
 		 ** Framebuffer session interface **
