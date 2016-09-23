@@ -510,7 +510,8 @@ template <uint8_t EV>
 void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
                                           void (* __attribute__((regparm(1))) func)(addr_t))
 {
-	unsigned use_cpu = obj->location.xpos();
+	unsigned use_cpu = obj->location().xpos();
+
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
 		warning("invalid CPU parameter used in pager object");
 		throw Region_map::Invalid_thread();
@@ -581,8 +582,8 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	_client_exc_pt_sel(cap_map()->insert(NUM_INITIAL_PT_LOG2)),
 	_client_exc_vcpu(Native_thread::INVALID_INDEX),
 	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
-	_exceptions(this),
-	location(location)
+	_location(location),
+	_exceptions(this)
 {
 	uint8_t res;
 
@@ -870,7 +871,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 addr_t Pager_object::get_oom_portal()
 {
 	addr_t const pt_oom     = sel_oom_portal();
-	unsigned const use_cpu  = location.xpos();
+	unsigned const use_cpu  = _location.xpos();
 
 	if (kernel_hip()->is_cpu_enabled(use_cpu) && pager_threads[use_cpu]) {
 		addr_t const ec_sel     = pager_threads[use_cpu]->native_thread().ec_sel;
@@ -953,7 +954,7 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	/* let handle pager_object of pager thread on same CPU */
-	unsigned use_cpu = obj->location.xpos();
+	unsigned use_cpu = obj->location().xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
 		warning("invalid CPU parameter used in pager object");
 		return Pager_capability();
