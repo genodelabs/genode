@@ -115,7 +115,7 @@ namespace Init {
 	 */
 	static inline Genode::size_t avail_slack_ram_quota()
 	{
-		Genode::size_t const preserve = 128*1024;
+		Genode::size_t const preserve = 148*1024;
 		Genode::size_t const avail    = Genode::env()->ram_session()->avail();
 
 		return avail > preserve ? avail - preserve : 0;
