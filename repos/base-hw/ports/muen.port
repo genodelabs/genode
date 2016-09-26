@@ -2,16 +2,11 @@ LICENSE   := GPLv3
 VERSION   := git
 DOWNLOADS := muen.git
 
-URL(muen) := http://git.codelabs.ch/git/muen.git
-REV(muen) := a724693a9e4d64cfc6bd5fe992f569d793d7165f
+URL(muen) := https://git.codelabs.ch/git/muen.git
+REV(muen) := b3a80069da73b05e0feb0db9d69460601e19d5f7
 DIR(muen) := src/kernel/muen
 
 $(call check_tool,git)
 $(call check_tool,iasl)
 $(call check_tool,tidy)
 $(call check_tool,xsltproc)
-
-default: contrib_download
-contrib_download: _dirs
-	@$(MSG_PREFIX)download contrib
-	$(VERBOSE)$(MAKE) -C src/kernel/muen/contrib download QUIET=true
