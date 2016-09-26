@@ -804,8 +804,8 @@ class Usb::Root : public Genode::Root_component<Session_component>
 				size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 				size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
-				unsigned long vendor  = policy.attribute_value<unsigned long>("vendor", 0);
-				unsigned long product = policy.attribute_value<unsigned long>("product", 0);
+				unsigned long vendor  = policy.attribute_value<unsigned long>("vendor_id", 0);
+				unsigned long product = policy.attribute_value<unsigned long>("product_id", 0);
 				unsigned long bus     = policy.attribute_value<unsigned long>("bus", 0);
 				unsigned long dev     = policy.attribute_value<unsigned long>("dev", 0);
 
