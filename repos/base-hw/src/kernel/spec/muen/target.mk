@@ -18,14 +18,20 @@ BUILD_OPTS      = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) NO_PROOF=true
 ifneq ($(filter muen, $(SPECS)),)
 $(TARGET): $(MUEN_DST_DIR)
 	$(MSG_BUILD)Muen kernel
-	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR) $(BUILD_OPTS) kernel > $(MUEN_LOG) 2>&1
+	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR) $(BUILD_OPTS) kernel >> $(MUEN_LOG) 2>&1
 	$(MSG_BUILD)Muen components
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/components \
-		COMPONENTS=$(MUEN_COMPONENTS) $(BUILD_OPTS) > $(MUEN_LOG) 2>&1
+		COMPONENTS=$(MUEN_COMPONENTS) $(BUILD_OPTS) >> $(MUEN_LOG) 2>&1
 
-$(MUEN_DST_DIR): $(MUEN_SRC_DIR)
+$(MUEN_DST_DIR): download_contrib
 	$(VERBOSE)mkdir -p $(MUEN_DST_DIR)
 	$(VERBOSE)tar c -C $(MUEN_SRC_DIR) . | tar x -C $(MUEN_DST_DIR)
+
+download_contrib: $(MUEN_SRC_DIR)
+	$(MSG_BUILD)Muen contrib
+	$(VERBOSE)cd $(MUEN_SRC_DIR) && git submodule update --init tools/mugenschedcfg > $(MUEN_LOG) 2>&1
+	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_SRC_DIR)/contrib \
+		QUIET=true download >> $(MUEN_LOG) 2>&1
 
 clean cleanall: clean_muen
 
