@@ -64,6 +64,8 @@ class Genode::Heap : public Allocator
 
 			~Dataspace_pool();
 
+			void remove_and_free(Dataspace &);
+
 			void reassign_resources(Ram_session *ram, Region_map *rm) {
 				ram_session = ram, region_map = rm; }
 		};
