@@ -13,7 +13,7 @@
 
 #include <util/string.h>
 #include <base/log.h>
-#include <base/env.h>
+#include <base/component.h>
 #include <base/sleep.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
@@ -40,13 +40,13 @@ static char const *test_pattern_2() {
 	return "A second pattern to verify dataspace content"; }
 
 
-static void fill_ds_with_test_pattern(char const *pattern,
+static void fill_ds_with_test_pattern(Env &env, char const *pattern,
                                       Dataspace_capability ds, size_t offset)
 {
 	log("fill dataspace with information");
-	char *content = env()->rm_session()->attach(ds);
+	char *content = env.rm().attach(ds);
 	strncpy(content + offset, pattern, ~0);
-	env()->rm_session()->detach(content);
+	env.rm().detach(content);
 }
 
 
@@ -57,24 +57,37 @@ static void validate_pattern_at(char const *pattern, char const *ptr)
 }
 
 
-int main(int, char **)
+void Component::construct(Env &env)
 {
 	log("--- sub-rm test ---");
 
 	log("create RM connection");
 	enum { SUB_RM_SIZE = 1024*1024 };
-	Rm_connection rm;
+	Rm_connection rm(env);
 
+	/*
+	 * Free and re-allocate the region map to excersize the 'destroy'
+	 * operation.
+	 */
+	{
+		log("create and destroy region map");
+		Capability<Region_map> rm_cap = rm.create(SUB_RM_SIZE);
+		rm.destroy(rm_cap);
+	}
+
+	/*
+	 * Create region cap to be used for the actual test
+	 */
+	log("create managed dataspace");
 	Region_map_client sub_rm(rm.create(SUB_RM_SIZE));
-
 	enum { DS_SIZE = 4*4096 };
-	Ram_dataspace_capability ds = env()->ram_session()->alloc(DS_SIZE);
+	Ram_dataspace_capability ds = env.ram().alloc(DS_SIZE);
 
 	/*
 	 * Write test patterns to the start and the second page of the RAM ds
 	 */
-	fill_ds_with_test_pattern(test_pattern(), ds, 0);
-	fill_ds_with_test_pattern(test_pattern_2(), ds, 4096);
+	fill_ds_with_test_pattern(env, test_pattern(), ds, 0);
+	fill_ds_with_test_pattern(env, test_pattern_2(), ds, 4096);
 
 	if (!support_attach_sub_any) {
 		log("attach RAM ds to any position at sub rm - this should fail");
@@ -103,8 +116,8 @@ int main(int, char **)
 	 * vdso page to this location. reason ... keeping fingers crossed.
 	 */
 	enum { LOCAL_ATTACH_ADDR = 0x60000000 };
-	char *sub_rm_base = env()->rm_session()->attach_at(sub_rm.dataspace(),
-	                                                   LOCAL_ATTACH_ADDR);
+	char *sub_rm_base = env.rm().attach_at(sub_rm.dataspace(),
+	                                       LOCAL_ATTACH_ADDR);
 
 	log("validate pattern in sub rm");
 	validate_pattern_at(test_pattern(), sub_rm_base + DS_SUB_OFFSET);
@@ -150,7 +163,7 @@ int main(int, char **)
 		 */
 		log("attach sub rm again at local address space");
 		try {
-			env()->rm_session()->attach(sub_rm.dataspace());
+			env.rm().attach(sub_rm.dataspace());
 			fail("double attachment of sub RM session went undetected\n");
 		}
 		catch (Region_map::Out_of_metadata) {
@@ -190,5 +203,5 @@ int main(int, char **)
 	 * memory mappings after completing the test.
 	 */
 	sleep_forever();
-	return 0;
+	
 }

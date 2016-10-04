@@ -120,6 +120,10 @@ int main(int argc, char **argv)
 
 	receiver.dissolve(&context);
 
-	printf("--- finished nested region map test ---\n");
+	log("test destruction of region_map");
+	Capability<Region_map> rcap = rm.create(4096);
+	rm.destroy(rcap);
+
+	log("--- finished nested region map test ---");
 	return 0;
 }

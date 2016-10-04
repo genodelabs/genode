@@ -36,12 +36,6 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 		Lock                       _region_maps_lock;
 		List<Region_map_component> _region_maps;
 
-		void _destroy(Region_map_component &rmc)
-		{
-			_region_maps.remove(&rmc);
-			Genode::destroy(_md_alloc, &rmc);
-		}
-
 	public:
 
 		/**
@@ -59,8 +53,10 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 		{
 			Lock::Guard guard(_region_maps_lock);
 
-			while (Region_map_component *rmc = _region_maps.first())
-				_destroy(*rmc);
+			while (Region_map_component *rmc = _region_maps.first()) {
+				_region_maps.remove(rmc);
+				Genode::destroy(_md_alloc, rmc);
+			}
 		}
 
 		/**
@@ -89,18 +85,24 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 			catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
 		}
 
-		void destroy(Capability<Region_map> rm) override
+		void destroy(Capability<Region_map> cap) override
 		{
 			Lock::Guard guard(_region_maps_lock);
 
-			_ep.apply(rm, [&] (Region_map_component *rmc) {
+			Region_map_component *rm = nullptr;
+
+			_ep.apply(cap, [&] (Region_map_component *rmc) {
 				if (!rmc) {
 					warning("could not look up region map to destruct");
 					return;
 				}
 
-				_destroy(*rmc);
+				_region_maps.remove(rmc);
+				rm = rmc;
 			});
+
+			if (rm)
+				Genode::destroy(_md_alloc, rm);
 		}
 };
 
