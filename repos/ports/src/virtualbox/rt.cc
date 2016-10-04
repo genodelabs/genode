@@ -26,6 +26,16 @@
 #include <iprt/time.h>
 #include <internal/iprt.h>
 
+#include "mm.h"
+
+enum {
+	MEMORY_MAX = 64 * 1024 * 1024,
+	MEMORY_CACHED = 16 * 1024 * 1024,
+};
+
+/* using managed dataspace to have all addresses within a 1 << 31 bit range */
+static Sub_rm_connection rt_memory(2 * MEMORY_MAX);
+
 class Avl_ds : public Genode::Avl_node<Avl_ds>
 {
 	private:
@@ -129,12 +139,6 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 
 		static void memory_freeup(Genode::addr_t const cb)
 		{
-			/* free up memory if we hit some chosen limits */
-			enum {
-				MEMORY_MAX = 64 * 1024 * 1024,
-				MEMORY_CACHED = 16 * 1024 * 1024,
-			};
-
 			::size_t cbx = cb * 4;
 			while (_unused_ds.first() && cbx &&
 			       (_mem_allocated + cb > MEMORY_MAX ||
@@ -219,9 +223,9 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 		bool           const any_addr   = false;
 		void *               any_local_addr = nullptr;
 
-		void * local_addr = env()->rm_session()->attach(ds, whole_size, offset,
-		                                                any_addr, any_local_addr,
-		                                                executable);
+		void * local_addr = rt_memory.attach(ds, whole_size, offset,
+		                                     any_addr, any_local_addr,
+		                                     executable);
 
 		Assert(local_addr);
 

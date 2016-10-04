@@ -23,7 +23,12 @@
 #include <VBox/com/ptr.h>
 #include <iprt/param.h>
 
+#if VBOX_VERSION_MAJOR == 4
 #include "MachineImpl.h"
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine);
+
+HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
+#endif
 
 /**
  * Returns true if a vCPU could be started. If false we run without
@@ -45,9 +50,5 @@ Genode::Cpu_session * get_vcpu_cpu_session();
 
 void genode_VMMR0_DO_GVMM_CREATE_VM(PSUPVMMR0REQHDR pReqHdr);
 void genode_VMMR0_DO_GVMM_REGISTER_VMCPU(PVMR0 pVMR0, VMCPUID idCpu);
-
-HRESULT genode_setup_machine(ComObjPtr<Machine> machine);
-
-HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
 
 #endif /* _SUP_H_ */
