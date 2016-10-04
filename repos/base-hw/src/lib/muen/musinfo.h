@@ -15,9 +15,10 @@
 #define _LIB__MUEN__MUSINFO_H_
 
 #include <base/stdint.h>
+#include <muen/sinfo.h>
 
 #define MUEN_SUBJECT_INFO_MAGIC	0x01006f666e69756dULL
-#define MAX_NAME_LENGTH		63
+
 #define MAX_RESOURCE_COUNT	255
 #define NO_RESOURCE			0
 
@@ -25,17 +26,20 @@ using namespace Genode;
 
 struct name_type {
 	uint8_t length;
-	char data[MAX_NAME_LENGTH];
+	char data[Sinfo::MAX_NAME_LENGTH];
 } __attribute__((packed));
 
 #define MEM_WRITABLE_FLAG   (1 << 0)
 #define MEM_EXECUTABLE_FLAG (1 << 1)
 
 struct memregion_type {
+	enum Sinfo::Content content;
 	uint64_t address;
 	uint64_t size;
+	uint8_t hash[Sinfo::HASH_LENGTH];
 	uint8_t flags;
-	char padding[7];
+	uint16_t pattern;
+	char padding[1];
 } __attribute__((packed, aligned (8)));
 
 #define CHAN_EVENT_FLAG  (1 << 0)

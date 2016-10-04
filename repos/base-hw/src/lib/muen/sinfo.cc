@@ -12,6 +12,7 @@
  */
 
 #include <base/log.h>
+#include <base/snprintf.h>
 #include <util/string.h>
 
 #include <muen/sinfo.h>
@@ -40,15 +41,48 @@ static bool log_channel(
 }
 
 
+static const char * const content_names[] = {
+	"uninitialized", "fill", "file",
+};
+
+uint8_t no_hash[Sinfo::HASH_LENGTH] = {0};
+
+/* Return true if given buffer contains a hash */
+static bool hash_available(const uint8_t * const first)
+{
+	return memcmp(first, no_hash, Sinfo::HASH_LENGTH) != 0;
+}
+
+
+/* Convert given hash to hex string */
+static const char * const hash_to_hex(char *buffer, const unsigned char *first)
+{
+	int i;
+	for (i = 0; i < Sinfo::HASH_LENGTH; i++)
+		snprintf(&buffer[i * 2], 3, "%02x", (unsigned int)*first++);
+	return buffer;
+}
+
+
 /* Log memory region information */
 static bool log_memregion(const struct Genode::Sinfo::Memregion_info * const region,
                           void *data)
 {
-	Genode::log("muen-sinfo: [addr ", Genode::Hex(region->address), " "
-	            "size ", Genode::Hex(region->size), " ",
+	char hash_str[65];
+
+	Genode::log("muen-sinfo: [", content_names[region->content],
+	            ", addr ", Genode::Hex(region->address),
+	            " size ", Genode::Hex(region->size), " ",
 	            region->writable ? "rw" : "ro",
 	            region->executable ? "x" : "-",
 	            "] ", region->name);
+
+	if (region->content == Sinfo::CONTENT_FILL)
+		Genode::log("muen-sinfo:  [pattern ", region->pattern, "]");
+	if (hash_available(region->hash))
+		Genode::log("muen-sinfo:  [hash 0x",
+		            hash_to_hex(hash_str, region->hash), "]");
+
 	return true;
 }
 
@@ -233,8 +267,12 @@ void Sinfo::fill_memregion_data(uint8_t idx, struct Memregion_info *region)
 	memset(&region->name, 0, MAX_NAME_LENGTH + 1);
 	memcpy(&region->name, resource.name.data, resource.name.length);
 
+	memcpy(&region->hash, memregion.hash, HASH_LENGTH);
+
+	region->content    = memregion.content;
 	region->address    = memregion.address;
 	region->size       = memregion.size;
+	region->pattern    = memregion.pattern;
 	region->writable   = memregion.flags & MEM_WRITABLE_FLAG;
 	region->executable = memregion.flags & MEM_EXECUTABLE_FLAG;
 }
