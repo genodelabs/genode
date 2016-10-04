@@ -35,19 +35,29 @@ class Genode::Sinfo
 
 		enum Config {
 			PHYSICAL_BASE_ADDR = 0xe00000000,
-			SIZE               = 0x7000,
+			SIZE               = 0x9000,
 			MAX_NAME_LENGTH    = 63,
+			HASH_LENGTH        = 32,
 		};
 
 		Sinfo(const addr_t base_addr);
 
+		enum Content {
+			CONTENT_UNINITIALIZED,
+			CONTENT_FILL,
+			CONTENT_FILE,
+		};
+
 		/* Structure holding information about a memory region */
 		struct Memregion_info {
+			enum Content content;
 			char name[MAX_NAME_LENGTH + 1];
 			uint64_t address;
 			uint64_t size;
 			bool writable;
 			bool executable;
+			uint8_t hash[HASH_LENGTH];
+			uint16_t pattern;
 		};
 
 		/* Structure holding information about a Muen channel */
