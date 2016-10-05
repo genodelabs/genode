@@ -304,7 +304,7 @@ puts $noux_id "sleep 5"
 puts $noux_id "done"
 
 # Wait until VM signaled shutdown state
-run_genode_until {\[init -\> vbox\] EMT      PDMR3PowerOff: .* ns run time} 120 $serial_id
+run_genode_until {\[init\] child "vbox" exited with exit value 0} 120 $serial_id
 
 # SHA1 of copied file
 puts $noux_id "sha1sum to/test.bin"

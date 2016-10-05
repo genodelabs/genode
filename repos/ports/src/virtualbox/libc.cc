@@ -111,12 +111,12 @@ extern "C" char *getenv(const char *name)
 		               "+rem_printf.e.l.f"
 //		               "+rem_run.e.l.f"
 //		               "+pgm.e.l.f"
-		               "+pdm"
+//		               "+pdm"
 //		               "+cpum.e.l.f"
 //		               "+dev_pcnet.e.l.f"
 //		               "+dev_pic.e.l.f"
 //		               "+dev_apic.e.l.f"
-		               "+dev_vmm.e"
+//		               "+dev_vmm.e"
 //		               "+usb_mouse.e.l.f"
 //		               "+main.e.l.f"
 //		               "+hgcm.e.l.f"
@@ -129,7 +129,6 @@ extern "C" char *getenv(const char *name)
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG_FLAGS") == 0)
 		return (char *)"thread";
 
-	Genode::warning("getenv called for non-existent variable \"", name, "\"");
 	return 0;
 }
 

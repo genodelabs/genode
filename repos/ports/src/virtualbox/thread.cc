@@ -75,11 +75,6 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 
 	if (rtthread->cbStack < stack_size)
 		stack_size = rtthread->cbStack;
-	else
-		Genode::warning("requested stack for "
-		                "thread '", Genode::Cstring(rtthread->szName), "' "
-		                "of ", rtthread->cbStack, " Bytes is too large, "
-		                "limit to ", stack_size, " Bytes");
 
 	/* sanity check - emt and vcpu thread have to have same prio class */
 	if (strstr(rtthread->szName, "EMT") == rtthread->szName)
