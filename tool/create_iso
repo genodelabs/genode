@@ -22,8 +22,7 @@ default help:
 	@echo "  $(ISODIR)"
 	@echo "and adapt"
 	@echo "  $(ISODIR)/boot/grub/menu.lst"
-	@echo "to your configuration's needs. A sample directory tree can be found in"
-	@echo "tool/boot/genode."
+	@echo "to your configuration's needs."
 
 #
 # Function to generate bootable ISO images
