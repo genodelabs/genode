@@ -13,8 +13,6 @@
 
 /* Genode includes */
 #include <os/attached_ram_dataspace.h>
-#include <base/semaphore.h>
-#include <os/timed_semaphore.h>
 #include <trace/timestamp.h>
 
 /* Genode/Virtualbox includes */
@@ -184,44 +182,35 @@ uint32_t SUPSemEventMultiGetResolution(PSUPDRVSESSION)
 	return 100000*10; /* called by 'vmR3HaltGlobal1Init' */
 }
 
+
 int SUPSemEventCreate(PSUPDRVSESSION pSession, PSUPSEMEVENT phEvent)
 {
-	*phEvent = (SUPSEMEVENT)new Genode::Semaphore();
-	return VINF_SUCCESS;
+	return RTSemEventCreate((PRTSEMEVENT)phEvent);
 }
 
 
 int SUPSemEventClose(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent)
 {
-	if (hEvent)
-		delete reinterpret_cast<Genode::Semaphore *>(hEvent);
-	return VINF_SUCCESS;
+	Assert (hEvent);
+
+	return RTSemEventDestroy((RTSEMEVENT)hEvent);
 }
 
 
 int SUPSemEventSignal(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent)
 {
-	if (hEvent)
-		reinterpret_cast<Genode::Semaphore *>(hEvent)->up();
-	else
-		Genode::error(__FUNCTION__, " called - not implemented");
+	Assert (hEvent);
 
-	return VINF_SUCCESS;	
+	return RTSemEventSignal((RTSEMEVENT)hEvent);
 }
 
 
 int SUPSemEventWaitNoResume(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent,
                             uint32_t cMillies)
 {
-	if (hEvent && cMillies == RT_INDEFINITE_WAIT)
-		reinterpret_cast<Genode::Semaphore *>(hEvent)->down();
-	else {
-		Genode::error(__FUNCTION__, " called millis=", cMillies,
-		              " - not implemented");
-		reinterpret_cast<Genode::Semaphore *>(hEvent)->down();
-	}
+	Assert (hEvent);
 
-	return VINF_SUCCESS;	
+	return RTSemEventWaitNoResume((RTSEMEVENT)hEvent, cMillies);
 }
 
 
@@ -271,7 +260,7 @@ int SUPR3CallVMMR0(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 	AssertMsg(uOperation != VMMR0_DO_VMMR0_TERM &&
 	          uOperation != VMMR0_DO_CALL_HYPERVISOR &&
 	          uOperation != VMMR0_DO_GVMM_DESTROY_VM,
-	          ("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation));
+	          ("SUPR3CallVMMR0: unhandled uOperation %d", uOperation));
 	return VERR_GENERAL_FAILURE;
 }
 
