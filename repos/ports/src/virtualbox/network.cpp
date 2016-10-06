@@ -89,6 +89,8 @@ class Nic_client
 		Genode::Signal_dispatcher<Nic_client> _rx_ready_to_ack_dispatcher;
 		Genode::Signal_dispatcher<Nic_client> _destruct_dispatcher;
 
+		bool _link_up = false;
+
 		/* VM <-> device driver (down) <-> nic_client (up) <-> nic session */
 		PPDMINETWORKDOWN   _down_rx;
 		PPDMINETWORKCONFIG _down_rx_config;
@@ -115,9 +117,11 @@ class Nic_client
 
 		void _handle_link_state(unsigned)
 		{
+			_link_up = _nic.link_state();
+
 			_down_rx_config->pfnSetLinkState(_down_rx_config,
-			                                 _nic.link_state() ? PDMNETWORKLINKSTATE_UP
-			                                                   : PDMNETWORKLINKSTATE_DOWN);
+			                                 _link_up ? PDMNETWORKLINKSTATE_UP
+			                                          : PDMNETWORKLINKSTATE_DOWN);
 		}
 
 		/**
@@ -167,16 +171,22 @@ class Nic_client
 			_destruct_dispatcher(_sig_rec, *this, &Nic_client::_handle_destruct),
 			_down_rx(drvtap->pIAboveNet),
 			_down_rx_config(drvtap->pIAboveConfig)
-		{
-			_nic.link_state_sigh(_link_state_dispatcher);
-			_nic.rx_channel()->sigh_packet_avail(_rx_packet_avail_dispatcher);
-			_nic.rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
-		}
+		{ }
 
 		~Nic_client()
 		{
 			using namespace Genode;
 			destroy(env()->heap(), _tx_block_alloc);
+		}
+
+		void enable_signals()
+		{
+			_nic.link_state_sigh(_link_state_dispatcher);
+			_nic.rx_channel()->sigh_packet_avail(_rx_packet_avail_dispatcher);
+			_nic.rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
+
+			/* set initial link-state */
+			_handle_link_state(1);
 		}
 
 		Genode::Signal_context_capability &dispatcher()  { return _destruct_dispatcher; }
@@ -185,6 +195,8 @@ class Nic_client
 
 		int send_packet(void *packet, uint32_t packet_len)
 		{
+			if (!_link_up) { return VERR_NET_DOWN; }
+
 			Nic::Packet_descriptor tx_packet = _alloc_tx_packet(packet_len);
 
 			char *tx_content = _nic.tx()->packet_content(tx_packet);
@@ -548,6 +560,14 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 }
 
 
+static DECLCALLBACK(void) drvNicPowerOn(PPDMDRVINS pDrvIns)
+{
+	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
+
+	if (pThis && pThis->nic_client)
+		pThis->nic_client->enable_signals();
+}
+
 /**
  * Nic network transport driver registration record.
  */
@@ -579,8 +599,7 @@ const PDMDRVREG g_DrvHostInterface =
 	NULL,
 	/* pfnIOCtl */
 	NULL,
-	/* pfnPowerOn */
-	NULL,
+	drvNicPowerOn,
 	/* pfnReset */
 	NULL,
 	/* pfnSuspend */
