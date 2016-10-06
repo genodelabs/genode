@@ -226,10 +226,10 @@ class Genode::Core_platform_pd : public Genode::Platform_pd
 		 * on some ARM SoCs.
 		 *
 		 * \param start   physical/virtual start address of area
-		 * \param end     physical/virtual end address of area
+		 * \param size    size of area
 		 * \param io_mem  true if it should be marked as device memory
 		 */
-		void _map(addr_t start, addr_t end, bool io_mem);
+		void _map(addr_t start, size_t size, bool io_mem);
 
 	public:
 

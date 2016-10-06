@@ -25,12 +25,6 @@
 
 namespace Genode
 {
-	struct Native_region
-	{
-		addr_t base;
-		size_t size;
-	};
-
 	enum {
 		ACTIVITY_TABLE_ON_FAULTS = 0,
 	};

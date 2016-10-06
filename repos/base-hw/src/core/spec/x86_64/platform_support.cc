@@ -18,6 +18,8 @@
 #include <kernel/kernel.h>
 #include <multiboot.h>
 
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Genode;
 
 /* contains physical pointer to multiboot */
@@ -25,21 +27,12 @@ extern "C" Genode::addr_t __initial_bx;
 
 void Platform::_init_additional() { };
 
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::MMIO_LAPIC_BASE,  Board::MMIO_LAPIC_SIZE  },
-		{ Board::MMIO_IOAPIC_BASE, Board::MMIO_IOAPIC_SIZE },
-		{ 0, 0}
-	};
-
-	unsigned const max = sizeof(_regions) / sizeof(_regions[0]);
-
-	if (!_regions[max - 1].size)
-		_regions[max - 1] = { __initial_bx & ~0xFFFUL, get_page_size() };
-
-	return i < max ? &_regions[i] : nullptr;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::MMIO_LAPIC_BASE,  Board::MMIO_LAPIC_SIZE  },
+		Memory_region { Board::MMIO_IOAPIC_BASE, Board::MMIO_IOAPIC_SIZE },
+		Memory_region { __initial_bx & ~0xFFFUL, get_page_size() });
 }
 
 
@@ -57,32 +50,32 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 }
 
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[16];
+	static Memory_region_array ram;
 
-	Multiboot_info::Mmap v = Genode::Multiboot_info(__initial_bx).phys_ram(i);
-	if (!v.base)
-		return nullptr;
+	/* initialize memory pool */
+	if (ram.count() == 0) {
+		using Mmap = Multiboot_info::Mmap;
 
-	Multiboot_info::Mmap::Addr::access_t base = v.read<Multiboot_info::Mmap::Addr>();
-	Multiboot_info::Mmap::Length::access_t size = v.read<Multiboot_info::Mmap::Length>();
+		for (unsigned i = 0; true; i++) {
+			Mmap v = Multiboot_info(__initial_bx).phys_ram(i);
+			if (!v.base) break;
 
-	unsigned const max = sizeof(_regions) / sizeof(_regions[0]);
+			Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
+			Mmap::Length::access_t size = v.read<Mmap::Length>();
 
-	if (i < max && _regions[i].size == 0) {
-		if (base == 0 && size >= get_page_size()) {
 			/*
 			 * Exclude first physical page, so that it will become part of the
 			 * MMIO allocator. The framebuffer requests this page as MMIO.
 			 */
-			base  = get_page_size();
-			size -= get_page_size();
+			if (base == 0 && size >= get_page_size()) {
+				base  = get_page_size();
+				size -= get_page_size();
+			}
+			ram.add(Memory_region { base, size });
 		}
-		_regions[i] = { base, size };
-	} else if (i >= max)
-		warning("physical ram region ", (void*)base, "+", (size_t)size,
-		        " will be not used");
+	}
 
-	return i < max ? &_regions[i] : nullptr;
+	return ram;
 }

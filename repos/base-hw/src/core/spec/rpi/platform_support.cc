@@ -16,46 +16,29 @@
 #include <board.h>
 #include <cpu.h>
 
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Genode;
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::RAM_0_BASE, Board::RAM_0_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::RAM_0_BASE, Board::RAM_0_SIZE });
 }
 
 
-Native_region * mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ 0x20000000, 0x22000000 },
-		{ 0x50000000, 0x10000000 },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		/* UART */
-		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE },
-
-		/* system timer */
-		{ Board::SYSTEM_TIMER_MMIO_BASE, Board::SYSTEM_TIMER_MMIO_SIZE },
-
-		/* IRQ controller */
-		{ Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
-
-		/* DWC OTG USB controller (used for in-kernel SOF IRQ handling) */
-		{ Board::USB_DWC_OTG_BASE, Board::USB_DWC_OTG_SIZE },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::PL011_0_MMIO_BASE,       /* UART */
+		                Board::PL011_0_MMIO_SIZE },
+		Memory_region { Board::SYSTEM_TIMER_MMIO_BASE,  /* system timer */
+		                Board::SYSTEM_TIMER_MMIO_SIZE },
+		Memory_region { Board::IRQ_CONTROLLER_BASE,     /* IRQ controller */
+		                Board::IRQ_CONTROLLER_SIZE },
+		Memory_region { Board::USB_DWC_OTG_BASE,        /* DWC OTG USB */
+		                Board::USB_DWC_OTG_SIZE }       /* controller  */
+	);
 }
 
 

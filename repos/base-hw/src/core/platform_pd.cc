@@ -201,18 +201,13 @@ Translation_table_allocator * const Core_platform_pd::_table_alloc()
 }
 
 
-void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
+void Core_platform_pd::_map(addr_t start, size_t size, bool io_mem)
 {
 	const Page_flags flags =
 		Page_flags::apply_mapping(true, io_mem ? UNCACHED : CACHED, io_mem);
 
-	start = trunc_page(start);
+	if (start < VIRT_ADDR_SPACE_START) error("mapping outside of core's vm");
 
-	/* omitt regions before vm_start */
-	if (start < VIRT_ADDR_SPACE_START)
-		start = VIRT_ADDR_SPACE_START;
-
-	size_t size  = round_page(end) - start;
 	try {
 		_table()->insert_translation(start, start, size, flags, _table_alloc());
 	} catch(Allocator::Out_of_memory) {
@@ -229,17 +224,11 @@ Core_platform_pd::Core_platform_pd()
 	/* map exception vector for core */
 	Kernel::mtc()->map(_table(), _table_alloc());
 
-	/* map core's program image */
-	_map((addr_t)&_prog_img_beg, (addr_t)&_prog_img_end, false);
-
-	/* map core's page table allocator */
-	_map(Platform::core_translation_tables(),
-	     Platform::core_translation_tables() +
-	     Platform::core_translation_tables_size(), false);
+	/* map core's ram regions */
+	Platform::core_ram_regions().for_each([this] (Memory_region const &r) {
+		_map(r.base, r.size, false); });
 
 	/* map core's mmio regions */
-	Native_region * r = Platform::_core_only_mmio_regions(0);
-	for (unsigned i = 0; r;
-		 r = Platform::_core_only_mmio_regions(++i))
-		_map(r->base, r->base + r->size, true);
+	Platform::core_mmio_regions().for_each([this] (Memory_region const &r) {
+		_map(r.base, r.size, true); });
 }

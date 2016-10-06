@@ -16,19 +16,22 @@
 #include <board.h>
 #include <cpu.h>
 
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Genode;
 
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[] = { { 0, 128 * 1024 * 1024 } };
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { 0, 128 * 1024 * 1024 } );
 }
 
 
 Cpu::User_context::User_context() { }
 
-Native_region * Platform::_core_only_mmio_regions(unsigned) { return 0; }
+Memory_region_array & Platform::core_mmio_regions() {
+	return *unmanaged_singleton<Memory_region_array>(); }
 
 void Platform::_init_io_port_alloc() { }
 

@@ -17,6 +17,7 @@
 
 /* core includes */
 #include <boot_modules.h>
+#include <memory_region.h>
 #include <core_parent.h>
 #include <map_local.h>
 #include <platform.h>
@@ -29,43 +30,12 @@
 #include <trustzone.h>
 
 /* base-internal includes */
+#include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
 
 using namespace Genode;
 
-extern int _prog_img_beg;
-extern int _prog_img_end;
-
 void __attribute__((weak)) Kernel::init_trustzone(Pic & pic) { }
-
-/**
- * Helper to initialise allocators through include/exclude region lists
- */
-static void init_alloc(Range_allocator * const alloc,
-                       Region_pool incl_regions, Region_pool excl_regions,
-                       unsigned const granu_log2 = 0)
-{
-	/* make all include regions available */
-	Native_region * r = incl_regions(0);
-	for (unsigned i = 0; r; r = incl_regions(++i)) {
-		if (granu_log2) {
-			addr_t const b = trunc(r->base, granu_log2);
-			addr_t const s = round(r->size, granu_log2);
-			alloc->add_range(b, s);
-		}
-		else alloc->add_range(r->base, r->size);
-	}
-	/* preserve all exclude regions */
-	r = excl_regions(0);
-	for (unsigned i = 0; r; r = excl_regions(++i)) {
-		if (granu_log2) {
-			addr_t const b = trunc(r->base, granu_log2);
-			addr_t const s = round(r->size, granu_log2);
-			alloc->remove_range(b, s);
-		}
-		else alloc->remove_range(r->base, r->size);
-	}
-}
 
 
 /**************
@@ -80,50 +50,46 @@ addr_t Platform::core_translation_tables()
 }
 
 
-Native_region * Platform::_core_only_ram_regions(unsigned const i)
+Genode::Memory_region_array & Platform::core_ram_regions()
 {
-	static Native_region _r[] =
-	{
-		/* core image */
-		{ (addr_t)&_prog_img_beg,
-		  (size_t)((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg) },
-
-		/* boot modules */
-		{ (addr_t)&_boot_modules_binaries_begin,
-		  (size_t)((addr_t)&_boot_modules_binaries_end -
-		           (addr_t)&_boot_modules_binaries_begin) },
-
-		/* translation table allocator */
-		{ core_translation_tables(), core_translation_tables_size() }
-	};
-	return i < sizeof(_r)/sizeof(_r[0]) ? &_r[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { (addr_t)&_prog_img_beg,
+		                (size_t)((addr_t)&_prog_img_end -
+		                         (addr_t)&_prog_img_beg) },
+		Memory_region { core_translation_tables(),
+		                core_translation_tables_size() });
 }
 
-static Native_region * virt_region(unsigned const i) {
-	static Native_region r = { VIRT_ADDR_SPACE_START, VIRT_ADDR_SPACE_SIZE };
-	return i ? 0 : &r; }
+
+void Platform::_init_io_mem_alloc()
+{
+	/* add entire adress space minus the RAM memory regions */
+	_io_mem_alloc.add_range(0, ~0x0UL);
+	Platform::ram_regions().for_each([this] (Memory_region const &r) {
+		_io_mem_alloc.remove_range(r.base, r.size); });
+
+	/* remove IOMEM of core from its virtual address space allocator */
+	Platform::core_mmio_regions().for_each([this] (Memory_region const &r) {
+		_core_mem_alloc.virt_alloc()->remove_range(r.base, r.size);});
+};
 
 
 Platform::Platform()
 :
 	_io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc()),
-	_vm_start(VIRT_ADDR_SPACE_START), _vm_size(VIRT_ADDR_SPACE_SIZE)
+	_irq_alloc(core_mem_alloc())
 {
-	/*
-	 * Initialise platform resource allocators.
-	 * Core mem alloc must come first because it is
-	 * used by the other allocators.
-	 */
-	init_alloc(_core_mem_alloc.phys_alloc(), _ram_regions,
-	           _core_only_ram_regions, get_page_size_log2());
-	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
-	           _core_only_ram_regions, get_page_size_log2());
-
-	/* preserve stack area in core's virtual address space */
+	_core_mem_alloc.virt_alloc()->add_range(VIRT_ADDR_SPACE_START,
+	                                        VIRT_ADDR_SPACE_SIZE);
 	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
 	                                           stack_area_virtual_size());
+
+	Platform::ram_regions().for_each([this] (Memory_region const & region) {
+		_core_mem_alloc.phys_alloc()->add_range(region.base, region.size); });
+
+	core_ram_regions().for_each([this] (Memory_region const & region) {
+		_core_mem_alloc.phys_alloc()->remove_range(region.base, region.size); });
 
 	_init_io_port_alloc();
 

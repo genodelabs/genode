@@ -17,45 +17,33 @@
 #include <cpu.h>
 #include <pic.h>
 
+/* base-internal includes */
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Genode;
 
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::RAM_0_BASE, Board::RAM_0_SIZE },
-		{ Board::RAM_1_BASE, Board::RAM_1_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::RAM_0_BASE, Board::RAM_0_SIZE },
+		Memory_region { Board::RAM_1_BASE, Board::RAM_1_SIZE });
 }
 
 
-Native_region * mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::MMIO_0_BASE, Board::MMIO_0_SIZE },
-		{ Board::MMIO_1_BASE, Board::MMIO_1_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
+	return *unmanaged_singleton<Memory_region_array>(
 		/* core timer and PIC */
-		{ Board::CORTEX_A9_PRIVATE_MEM_BASE, Board::CORTEX_A9_PRIVATE_MEM_SIZE },
+		Memory_region { Board::CORTEX_A9_PRIVATE_MEM_BASE,
+		                Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE },
+		Memory_region { Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE },
 
 		/* L2 Cache Controller */
-		{ Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+		Memory_region { Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }
+	);
 }
 
 

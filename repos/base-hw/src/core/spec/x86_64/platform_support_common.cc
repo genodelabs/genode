@@ -25,31 +25,6 @@ void Platform::_init_io_port_alloc()
 }
 
 
-/**
- * Remove given exclude memory regions from specified allocator.
- */
-static void alloc_exclude_regions(Range_allocator * const alloc,
-                                  Region_pool excl_regions)
-{
-	Native_region * r = excl_regions(0);
-	for (unsigned i = 0; r; r = excl_regions(++i))
-		alloc->remove_range(r->base, r->size);
-}
-
-
-void Platform::_init_io_mem_alloc()
-{
-	/* add entire adress space minus the RAM memory regions */
-	_io_mem_alloc.add_range(0, ~0x0UL);
-	alloc_exclude_regions(&_io_mem_alloc, _ram_regions);
-	alloc_exclude_regions(&_io_mem_alloc, _core_only_ram_regions);
-	alloc_exclude_regions(&_io_mem_alloc, _core_only_mmio_regions);
-
-	/* exclude all mmio regions from virt allocator of core */
-	alloc_exclude_regions(_core_mem_alloc.virt_alloc(), _core_only_mmio_regions);
-}
-
-
 long Platform::irq(long const user_irq)
 {
 	/* remap IRQ requests to fit I/O APIC configuration */

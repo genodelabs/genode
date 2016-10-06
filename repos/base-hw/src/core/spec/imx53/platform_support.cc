@@ -14,48 +14,29 @@
 /* core includes */
 #include <platform.h>
 #include <board.h>
-#include <pic.h>
 #include <cpu.h>
+
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::RAM0_BASE, Board::RAM0_SIZE },
-		{ Board::RAM1_BASE, Board::RAM1_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::RAM0_BASE, Board::RAM0_SIZE },
+		Memory_region { Board::RAM1_BASE, Board::RAM1_SIZE });
 }
 
 
-Native_region * mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ 0x07000000, 0x1000000  }, /* security controller */
-		{ 0x10000000, 0x30000000 }, /* SATA, IPU, GPU      */
-		{ 0x50000000, 0x20000000 }, /* Misc.               */
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		/* core UART */
-		{ Board::UART_1_MMIO_BASE, Board::UART_1_MMIO_SIZE },
-
-		/* core timer */
-		{ Board::EPIT_1_MMIO_BASE, Board::EPIT_1_MMIO_SIZE },
-
-		/* interrupt controller */
-		{ Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::UART_1_MMIO_BASE,       /* UART */
+		                Board::UART_1_MMIO_SIZE },
+		Memory_region { Board::EPIT_1_MMIO_BASE,       /* timer */
+		                Board::EPIT_1_MMIO_SIZE },
+		Memory_region { Board::IRQ_CONTROLLER_BASE,    /* irq controller */
+		                Board::IRQ_CONTROLLER_SIZE });
 }
 
 

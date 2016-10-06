@@ -14,40 +14,23 @@
 /* core includes */
 #include <board.h>
 #include <platform.h>
-#include <pic.h>
-#include <cpu.h>
-#include <timer.h>
+
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::RAM_0_BASE, Board::RAM_0_SIZE },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::RAM_0_BASE, Board::RAM_0_SIZE } );
 }
 
 
-Native_region * mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::MMIO_0_BASE, Board::MMIO_0_SIZE },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		{ Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
-		{ Board::MCT_MMIO_BASE, Board::MCT_MMIO_SIZE },
-		{ Board::UART_2_MMIO_BASE, 0x1000 },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE },
+		Memory_region { Board::MCT_MMIO_BASE, Board::MCT_MMIO_SIZE },
+		Memory_region { Board::UART_2_MMIO_BASE, 0x1000 });
 }

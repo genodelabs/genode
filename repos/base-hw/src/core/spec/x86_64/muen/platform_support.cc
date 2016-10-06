@@ -20,6 +20,8 @@
 #include <platform.h>
 #include <sinfo_instance.h>
 
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Genode;
 
 struct Mmconf_address : Register<64>
@@ -57,18 +59,15 @@ struct Msi_address : Register<32>
 };
 
 
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		/* Sinfo pages */
-		{ Sinfo::PHYSICAL_BASE_ADDR, Sinfo::SIZE },
-		/* Timer page */
-		{ Board::TIMER_BASE_ADDR, Board::TIMER_SIZE },
-		/* Optional guest timed event page for preemption */
-		{ Board::TIMER_PREEMPT_BASE_ADDR, Board::TIMER_PREEMPT_SIZE },
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Sinfo::PHYSICAL_BASE_ADDR,      /* Sinfo pages */
+		                Sinfo::SIZE },
+		Memory_region { Board::TIMER_BASE_ADDR,         /* Timer page */
+		                Board::TIMER_SIZE },
+		Memory_region { Board::TIMER_PREEMPT_BASE_ADDR, /* Timed event page */
+		                Board::TIMER_PREEMPT_SIZE });   /* for preemption   */
 }
 
 
@@ -100,23 +99,18 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 }
 
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	if (i)
-		return 0;
+	static Memory_region_array ram;
 
-	static Native_region result = { .base = 0, .size = 0 };
-
-	if (!result.size) {
+	if (ram.count() == 0) {
 		struct Sinfo::Memregion_info region;
-		if (!sinfo()->get_memregion_info("ram", &region)) {
+		if (!sinfo()->get_memregion_info("ram", &region))
 			error("Unable to retrieve base-hw ram region");
-			return 0;
-		}
-
-		result = { .base = region.address, .size = region.size };
+		else
+			ram.add(Memory_region { region.address, region.size });
 	}
-	return &result;
+	return ram;
 }
 
 

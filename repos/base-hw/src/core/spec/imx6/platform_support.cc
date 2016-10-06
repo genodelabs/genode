@@ -17,42 +17,26 @@
 #include <platform.h>
 #include <cpu.h>
 
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Genode;
 
-Native_region * Platform::_ram_regions(unsigned const i)
+Memory_region_array & Platform::ram_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::RAM0_BASE, Board::RAM0_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::RAM0_BASE, Board::RAM0_SIZE });
 }
 
 
-Native_region * mmio_regions(unsigned const i)
+Memory_region_array & Platform::core_mmio_regions()
 {
-	static Native_region _regions[] =
-	{
-		{ Board::MMIO_BASE, Board::MMIO_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_mmio_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		/* core UART */
-		{ Board::UART_1_MMIO_BASE, Board::UART_1_MMIO_SIZE },
-
-		/* CPU-local core MMIO like interrupt controller and timer */
-		{ Board::CORTEX_A9_PRIVATE_MEM_BASE, Board::CORTEX_A9_PRIVATE_MEM_SIZE },
-
-		/* l2 cache controller */
-		{ Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+	return *unmanaged_singleton<Memory_region_array>(
+		Memory_region { Board::UART_1_MMIO_BASE,                     /* UART */
+		                Board::UART_1_MMIO_SIZE },
+		Memory_region { Board::CORTEX_A9_PRIVATE_MEM_BASE, /* irq controller */
+		                Board::CORTEX_A9_PRIVATE_MEM_SIZE },    /* and timer */
+		Memory_region { Board::PL310_MMIO_BASE,       /* l2 cache controller */
+		                Board::PL310_MMIO_SIZE });
 }
 
 
