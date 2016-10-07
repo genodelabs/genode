@@ -47,7 +47,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
 	<start name="nic_bridge">

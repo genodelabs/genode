@@ -177,7 +177,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	append_if [use_nic_drv feature] start_nodes {
 		<start name="nic_drv">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="4M"/>
 			<provides><service name="Nic"/></provides>
 		</start>
 	}
