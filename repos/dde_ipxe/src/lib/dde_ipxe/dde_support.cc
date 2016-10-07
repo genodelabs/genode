@@ -437,8 +437,8 @@ struct Slab_backend_alloc : public Genode::Allocator,
                             public Genode::Region_map_client
 {
 	enum {
-		VM_SIZE    = 1024 * 1024,
-		BLOCK_SIZE =  64 * 1024,
+		VM_SIZE    = 2 * 1024 * 1024,
+		BLOCK_SIZE =       64 * 1024,
 		ELEMENTS   = VM_SIZE / BLOCK_SIZE,
 	};
 
@@ -546,13 +546,12 @@ struct Slab
 		NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 	};
 
-	Slab_backend_alloc &_back_alloc;
 	Slab_alloc         *_allocator[NUM_SLABS];
 	Genode::addr_t      _start;
 	Genode::addr_t      _end;
 
 	Slab(Slab_backend_alloc &alloc)
-	: _back_alloc(alloc), _start(alloc.start()), _end(alloc.end())
+	: _start(alloc.start()), _end(alloc.end())
 	{
 		for (unsigned i = 0; i < NUM_SLABS; i++)
 			_allocator[i] = new (Genode::env()->heap())
