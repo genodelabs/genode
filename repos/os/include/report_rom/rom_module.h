@@ -117,6 +117,9 @@ struct Rom::Module : Module_list::Element, Readable_module
 
 		Name _name;
 
+		Genode::Ram_session &_ram;
+		Genode::Region_map  &_rm;
+
 		Read_policy  const &_read_policy;
 		Write_policy const &_write_policy;
 
@@ -152,17 +155,24 @@ struct Rom::Module : Module_list::Element, Readable_module
 		/**
 		 * Constructor
 		 *
+		 * \param ram           RAM session from which to allocate the module's
+		 *                      backing store
+		 * \param rm            region map of the local address space, needed
+		 *                      to access the allocated backing store
 		 * \param name          module name
 		 * \param read_policy   policy hook function that is evaluated each
 		 *                      time when the module content is obtained
 		 * \param write_policy  policy hook function that is evaluated each
 		 *                      time when the module content is changed
 		 */
-		Module(Name         const &name,
-		       Read_policy  const &read_policy,
-		       Write_policy const &write_policy)
+		Module(Genode::Ram_session &ram,
+		       Genode::Region_map  &rm,
+		       Name          const &name,
+		       Read_policy   const &read_policy,
+		       Write_policy  const &write_policy)
 		:
-			_name(name), _read_policy(read_policy), _write_policy(write_policy)
+			_name(name), _ram(ram), _rm(rm),
+			_read_policy(read_policy), _write_policy(write_policy)
 		{ }
 
 
@@ -240,7 +250,7 @@ struct Rom::Module : Module_list::Element, Readable_module
 			 * append a zero termination to textual reports.
 			 */
 			if (!_ds.constructed() || _ds->size() < (src_len + 1))
-				_ds.construct(Genode::env()->ram_session(), (src_len + 1));
+				_ds.construct(_ram, _rm, (src_len + 1));
 
 			/* copy content into backing store */
 			_size = src_len;

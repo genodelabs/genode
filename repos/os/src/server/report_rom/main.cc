@@ -32,7 +32,7 @@ struct Report_rom::Main
 
 	Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
 
-	Rom::Registry rom_registry { sliced_heap, config_rom };
+	Rom::Registry rom_registry { sliced_heap, env.ram(), env.rm(), config_rom };
 
 	Genode::Attached_rom_dataspace config_rom { env, "config" };
 

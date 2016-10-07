@@ -25,7 +25,9 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 {
 	private:
 
-		Genode::Allocator &_md_alloc;
+		Genode::Allocator              &_md_alloc;
+		Genode::Ram_session            &_ram;
+		Genode::Region_map             &_rm;
 		Genode::Attached_rom_dataspace &_config_rom;
 
 		Module_list _modules;
@@ -70,7 +72,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 			/* XXX if we run out of memory, the server will abort */
 
 			Module * const module = new (&_md_alloc)
-				Module(name, _read_write_policy, _read_write_policy);
+				Module(_ram, _rm, name, _read_write_policy, _read_write_policy);
 
 			_modules.insert(module);
 			return *module;
@@ -144,9 +146,10 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 	public:
 
 		Registry(Genode::Allocator &md_alloc,
+		         Genode::Ram_session &ram, Genode::Region_map &rm,
 		         Genode::Attached_rom_dataspace &config_rom)
 		:
-			_md_alloc(md_alloc), _config_rom(config_rom)
+			_md_alloc(md_alloc), _ram(ram), _rm(rm), _config_rom(config_rom)
 		{ }
 
 		Module &lookup(Writer &writer, Module::Name const &name) override

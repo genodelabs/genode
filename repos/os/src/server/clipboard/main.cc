@@ -59,10 +59,11 @@ struct Rom::Registry : Rom::Registry_for_reader, Rom::Registry_for_writer
 	/**
 	 * Constructor
 	 */
-	Registry(Module::Read_policy  const &read_policy,
+	Registry(Genode::Ram_session &ram, Genode::Region_map &rm,
+	         Module::Read_policy  const &read_policy,
 	         Module::Write_policy const &write_policy)
 	:
-		module("clipboard", read_policy, write_policy)
+		module(ram, rm, "clipboard", read_policy, write_policy)
 	{ }
 };
 
@@ -199,7 +200,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		return false;
 	}
 
-	Rom::Registry _rom_registry { *this, *this };
+	Rom::Registry _rom_registry { _env.ram(), _env.rm(), *this, *this };
 
 	Report::Root report_root = { _env, _sliced_heap, _rom_registry, verbose };
 	Rom   ::Root    rom_root = { _env, _sliced_heap, _rom_registry };
