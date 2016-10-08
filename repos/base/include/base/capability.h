@@ -115,8 +115,7 @@ class Genode::Capability : public Untyped_capability
 		 * Perform RPC call, arguments passed a as nested 'Ref_tuple' object
 		 */
 		template <typename IF>
-		void _call(typename IF::Client_args &args,
-		           typename IF::Ret_type    &ret) const;
+		typename IF::Ret_type _call(typename IF::Client_args &args) const;
 
 		/**
 		 * Shortcut for querying argument types used in 'call' methods
@@ -136,27 +135,6 @@ class Genode::Capability : public Untyped_capability
 			(void)to;
 			return cap;
 		}
-
-		/**
-		 * Wrapper for the return type instantiated by 'call' overloads
-		 *
-		 * Each 'call' overload creates an instance of the return value
-		 * type as local variable. A reference to this variable is passed
-		 * to the '_call' method, which will assign its value. Even
-		 * though the variable does not need to be initialized prior the
-		 * call of '_call', the GCC will still complain "warning: ‘ret’ may
-		 * be used uninitialized in this function". Wrapping the return
-		 * value in a struct silences the compiler.
-		 */
-		template <typename IF>
-		struct Return
-		{
-			typedef typename Trait::Call_return<typename IF::Ret_type>::Type
-				Return_type;
-
-			volatile Return_type _value;
-			Return_type &value() { return *(Return_type *)(&_value); }
-		};
 
 	public:
 
@@ -185,9 +163,7 @@ class Genode::Capability : public Untyped_capability
 		call() const
 		{
 			Meta::Empty e;
-			Return<IF> ret;
-			_call<IF>(e, ret.value());
-			return ret.value();
+			return _call<IF>(e);
 		}
 
 		template <typename IF>
@@ -196,9 +172,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 
 		template <typename IF>
@@ -207,9 +181,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, v2, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 
 		template <typename IF>
@@ -219,9 +191,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, v2, v3, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 
 		template <typename IF>
@@ -231,9 +201,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, v2, v3, v4, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 
 		template <typename IF>
@@ -244,9 +212,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, v2, v3, v4, v5, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 
 		template <typename IF>
@@ -257,9 +223,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, v2, v3, v4, v5, v6, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 
 		template <typename IF>
@@ -271,9 +235,7 @@ class Genode::Capability : public Untyped_capability
 		{
 			Meta::Empty e;
 			typename IF::Client_args args(v1, v2, v3, v4, v5, v6, v7, e);
-			Return<IF> ret;
-			_call<IF>(args, ret.value());
-			return ret.value();
+			return _call<IF>(args);
 		}
 };
 

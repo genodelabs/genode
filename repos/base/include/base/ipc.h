@@ -17,6 +17,7 @@
 #include <base/ipc_msgbuf.h>
 #include <base/rpc_args.h>
 #include <base/log.h>
+#include <util/meta.h>
 
 namespace Genode {
 
@@ -65,9 +66,15 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		template <typename IT>
 		void extract(Capability<IT> &typed_cap)
 		{
-			Native_capability untyped_cap;
-			extract(untyped_cap);
-			typed_cap = reinterpret_cap_cast<IT>(untyped_cap);
+			typed_cap = extract(Meta::Overload_selector<Capability<IT> >());
+		}
+
+		template<typename IT>
+		Capability<IT> extract(Meta::Overload_selector<Capability<IT> >)
+		{
+			Native_capability untyped_cap =
+				extract(Meta::Overload_selector<Native_capability>());
+			return reinterpret_cap_cast<IT>(untyped_cap);
 		}
 
 		/**
@@ -75,9 +82,15 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		 */
 		void extract(Native_capability &cap)
 		{
-			cap = _read_cap_index < _rcv_msg.used_caps()
-			    ? _rcv_msg.cap(_read_cap_index) : Native_capability();
+			cap = extract(Meta::Overload_selector<Native_capability>());
+		}
+
+		Native_capability extract(Meta::Overload_selector<Native_capability>)
+		{
+			Native_capability cap = _read_cap_index < _rcv_msg.used_caps()
+			                      ? _rcv_msg.cap(_read_cap_index) : Native_capability();
 			_read_cap_index++;
+			return cap;
 		}
 
 		/**
@@ -86,8 +99,6 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		template <size_t SIZE>
 		void extract(Rpc_in_buffer<SIZE> &b)
 		{
-			size_t size = 0;
-			extract(size);
 			b = Rpc_in_buffer<SIZE>(0, 0);
 
 			/*
@@ -96,13 +107,23 @@ class Genode::Ipc_unmarshaller : Noncopyable
 			 * Note: The addr of the Rpc_in_buffer_base is a null pointer when this
 			 *       condition triggers.
 			 */
+			try {
+				b = extract(Meta::Overload_selector<Rpc_in_buffer<SIZE> >());
+			} catch (Ipc_error) { }
+		}
+
+		template<size_t SIZE>
+		Rpc_in_buffer<SIZE> extract(Meta::Overload_selector<Rpc_in_buffer<SIZE> >)
+		{
+			size_t size = extract(Meta::Overload_selector<size_t>());
 			if (_read_offset + size > _rcv_buf_size) {
 				error("message buffer overrun");
-				return;
+				throw Ipc_error();
 			}
 
-			b = Rpc_in_buffer<SIZE>(&_rcv_buf[_read_offset], size);
+			Rpc_in_buffer<SIZE> buf(&_rcv_buf[_read_offset], size);
 			_read_offset += align_natural(size);
+			return buf;
 		}
 
 		/**
@@ -111,14 +132,22 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		template <typename T>
 		void extract(T &value)
 		{
+			value = extract(Meta::Overload_selector<T>());
+		}
+
+		template <typename T>
+		T extract(Meta::Overload_selector<T>)
+		{
 			/* check receive buffer range */
-			if (_read_offset + sizeof(T) > _rcv_buf_size) return;
+			if (_read_offset + sizeof(T) > _rcv_buf_size) throw Ipc_error();
 
 			/* return value from receive buffer */
-			value = *reinterpret_cast<T *>(&_rcv_buf[_read_offset]);
+			T value = *reinterpret_cast<T *>(&_rcv_buf[_read_offset]);
 
 			/* increment read pointer to next dword-aligned value */
 			_read_offset += align_natural(sizeof(T));
+
+			return value;
 		}
 
 		Ipc_unmarshaller(Msgbuf_base &rcv_msg) : _rcv_msg(rcv_msg) { }

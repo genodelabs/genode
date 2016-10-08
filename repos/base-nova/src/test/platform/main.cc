@@ -157,10 +157,12 @@ void test_revoke(Genode::Env &env)
 
 	Genode::Native_capability copy_session_cap = Capability_space::import(local_name);
 
+	local_name = Native_thread::INVALID_INDEX;
 	rpc = Test::cap_void_manual(copy_session_cap, copy_session_cap, local_name);
 	if (rpc != Genode::Rpc_exception_code::SUCCESS ||
 	    local_name == (addr_t)copy_session_cap.local_name() ||
-	    local_name == (addr_t)Native_thread::INVALID_INDEX)
+	    local_name == (addr_t)Native_thread::INVALID_INDEX ||
+	    local_name == (addr_t)session_cap.local_name())
 	{
 		failed ++;
 		error("test_revoke ipc call failed ", Hex(rpc));

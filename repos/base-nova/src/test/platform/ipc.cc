@@ -24,6 +24,9 @@ long Test::cap_void_manual(Genode::Native_capability dst,
                            Genode::Native_capability arg1,
                            Genode::addr_t &local_reply)
 {
+	if (!arg1.valid())
+		return Genode::Rpc_exception_code::INVALID_OBJECT;
+
 	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
@@ -38,9 +41,6 @@ long Test::cap_void_manual(Genode::Native_capability dst,
 	utcb->msg[1]  = 0;
 	utcb->set_msg_word(2);
 
-	if (!arg1.valid())
-		return Genode::Rpc_exception_code::INVALID_OBJECT;
-
 	Nova::Crd crd = Genode::Capability_space::crd(arg1);
 	if (!utcb->append_item(crd, 0, false, false, false))
 		return Genode::Rpc_exception_code::INVALID_OBJECT;
@@ -50,7 +50,7 @@ long Test::cap_void_manual(Genode::Native_capability dst,
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
 
-	local_reply = utcb->msg[2];
-	return (res == Nova::NOVA_OK && utcb->msg_words() == 3)
+	local_reply = utcb->msg[1];
+	return (res == Nova::NOVA_OK && utcb->msg_words() == 3 && utcb->msg[2])
 	       ? utcb->msg[0] : Genode::Rpc_exception_code::INVALID_OBJECT;
 }

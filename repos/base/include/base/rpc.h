@@ -43,9 +43,9 @@
 		typedef ::Genode::Trait::Call_return<ret_type>::Type Ret_type; \
 		\
 		template <typename SERVER, typename RET> \
-		static void serve(SERVER &server, Server_args &args, RET &ret) { \
-			::Genode::Meta::call_member<RET, SERVER, Server_args> \
-				(ret, server, args, &SERVER::func_name); } \
+		static RET serve(SERVER &server, Server_args &args) { \
+			return ::Genode::Meta::call_member<RET, SERVER, Server_args> \
+				(server, args, &SERVER::func_name); } \
 		\
 		static const char* name() { return #func_name; } \
 	};
