@@ -19,6 +19,9 @@
 
 #include "musinfo.h"
 
+static_assert(sizeof(subject_info_type) <= Sinfo::SIZE,
+	 "Size of subject info type larger than Sinfo::SIZE.");
+
 /* Log channel information */
 static bool log_channel(
 		const struct Genode::Sinfo::Channel_info * const channel,
