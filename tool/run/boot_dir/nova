@@ -59,7 +59,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on NOVA"
 		puts $fh " kernel /boot/bender"
-		puts $fh " module /hypervisor iommu serial novpid"
+		puts $fh " module /hypervisor iommu serial novpid novga"
 		puts $fh " module /genode/core"
 		puts $fh " module /genode/config"
 		foreach binary $binaries {
@@ -84,7 +84,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /hypervisor iommu serial novpid"
+		puts $fh " load /hypervisor iommu serial novpid novga"
 		puts $fh " load /genode/core"
 		puts $fh " load /genode/config"
 		foreach binary $binaries {
