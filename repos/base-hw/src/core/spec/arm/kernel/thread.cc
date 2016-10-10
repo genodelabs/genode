@@ -39,15 +39,15 @@ void Thread::exception(unsigned const cpu)
 		return;
 	case UNDEFINED_INSTRUCTION:
 		if (_cpu->retry_undefined_instr(*this)) { return; }
-		Genode::warning(pd_label(), " -> ", label(), ": "
-		                "undefined instruction at ip=", Genode::Hex(ip));
+		Genode::warning(*this, ": undefined instruction at ip=",
+		                Genode::Hex(ip));
 		_stop();
 		return;
 	case RESET:
 		return;
 	default:
-		Genode::warning(pd_label(), " -> ", label(), ": "
-		                "triggered an unknown exception ", cpu_exception);
+		Genode::warning(*this, ": triggered an unknown exception ",
+		                cpu_exception);
 		_stop();
 		return;
 	}
@@ -72,7 +72,7 @@ void Thread::_mmu_exception()
 		_fault.submit();
 		return;
 	}
-	Genode::error(pd_label(), " -> ", label(), ": raised unhandled ",
+	Genode::error(*this, ": raised unhandled ",
 	              cpu_exception == DATA_ABORT ? "data abort" : "prefetch abort", " "
 	              "DFSR=", Genode::Hex(Cpu::Dfsr::read()), " "
 	              "ISFR=", Genode::Hex(Cpu::Ifsr::read()), " "

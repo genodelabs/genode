@@ -17,7 +17,6 @@
 #define _CORE__INCLUDE__IRQ_OBJECT_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <irq_session/irq_session.h>
 #include <cap_index.h>
 

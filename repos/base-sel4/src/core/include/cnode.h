@@ -59,8 +59,8 @@ class Genode::Cnode_base
 			int const ret = seL4_CNode_Copy(service, dest_index, dest_depth,
 			                                src_root, src_index, src_depth, rights);
 			if (ret != 0) {
-				PWRN("%s: seL4_CNode_Copy (0x%lx) returned %d", __FUNCTION__,
-				     from_idx.value(), ret);
+				warning(__FUNCTION__, ": seL4_CNode_Copy (",
+				        (void*)from_idx.value(), ") returned ", ret);
 			}
 		}
 
@@ -112,8 +112,8 @@ class Genode::Cnode_base
 			int const ret = seL4_CNode_Move(service, dest_index, dest_depth,
 			                                src_root, src_index, src_depth);
 			if (ret != 0) {
-				PWRN("%s: seL4_CNode_Move (0x%lx) returned %d", __FUNCTION__,
-				     from_idx.value(), ret);
+				warning(__FUNCTION__, ": seL4_CNode_Move (",
+				        (void*)from_idx.value(), ") returned ", ret);
 			}
 		}
 

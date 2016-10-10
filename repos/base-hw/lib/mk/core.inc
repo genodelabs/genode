@@ -17,7 +17,6 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/include
 INC_DIR += $(BASE_DIR)/src/include
 
 # add C++ sources
-SRC_CC += console.cc
 SRC_CC += cpu_session_component.cc
 SRC_CC += cpu_session_support.cc
 SRC_CC += cpu_thread_component.cc

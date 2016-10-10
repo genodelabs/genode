@@ -17,9 +17,6 @@
 #ifndef _CORE__INCLUDE__THREAD_SEL4_H_
 #define _CORE__INCLUDE__THREAD_SEL4_H_
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* base-internal includes */
 #include <base/internal/assert.h>
 

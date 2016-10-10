@@ -15,11 +15,7 @@
 #define _CORE__INCLUDE__SPEC__X86_64__MUEN__SINFO_INSTANCE_H_
 
 /* base includes */
-#include <base/printf.h>
 #include <muen/sinfo.h>
-
-/* core includes */
-#include <board.h>
 
 namespace Genode
 {

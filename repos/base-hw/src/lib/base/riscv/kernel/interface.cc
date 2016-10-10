@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <kernel/interface.h>
 
 using namespace Kernel;

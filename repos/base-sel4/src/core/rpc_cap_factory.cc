@@ -33,7 +33,7 @@ Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory *owner,
                                           Native_capability ep)
 {
 	if (!ep.valid()) {
-		PWRN("Invalid entrypoint capability");
+		warning("Invalid entrypoint capability");
 		return Native_capability();
 	}
 

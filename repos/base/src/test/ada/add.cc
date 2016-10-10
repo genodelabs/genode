@@ -5,20 +5,20 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
-using namespace Genode;
+using Genode::log;
 
 
 extern "C" void add(int a, int b, int *result)
 {
-	printf("add called with a=%d, b=%d, result at address 0x%p\n",
-	       a, b, result);
+	log("add called with a=", a, ", b=", b, ", result at address ",
+	     (void*)result);
 	*result = a + b;
 }
 
 
 extern "C" void print_int(int a)
 {
-	printf("print_int called with argument %d\n", a);
+	log("print_int called with argument ", a);
 }

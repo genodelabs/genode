@@ -23,7 +23,6 @@
 #include <util/string.h>
 #include <util/misc_math.h>
 #include <base/rpc_server.h>
-#include <base/printf.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
@@ -79,7 +78,7 @@ namespace Genode {
 			:
 				_size(size), _addr(phys_addr), _fd(-1), _owner(_owner)
 			{
-				PWRN("Should only be used for IOMEM and not within Linux.");
+				warning("Should only be used for IOMEM and not within Linux.");
 				_fname.buf[0] = 0;
 			}
 

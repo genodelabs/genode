@@ -3,7 +3,7 @@ TARGET       = core
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 SRC_CC      += stack_area.cc \
-               core_printf.cc \
+               core_log.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
@@ -74,5 +74,4 @@ vpath default_log.cc              $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
-vpath core_printf.cc              $(BASE_DIR)/src/lib/base
 vpath %.cc                        $(REP_DIR)/src/core

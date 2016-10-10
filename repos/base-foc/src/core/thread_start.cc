@@ -33,7 +33,7 @@ using namespace Genode;
 
 void Thread::_deinit_platform_thread()
 {
-	PWRN("%s: not implemented yet!", __func__);
+	warning(__func__, ": not implemented yet!");
 }
 
 

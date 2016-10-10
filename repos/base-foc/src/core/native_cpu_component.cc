@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <native_cpu_component.h>
@@ -42,7 +42,7 @@ void Genode::Native_cpu_component::enable_vcpu(Genode::Thread_capability thread_
 
 		l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
 		if (l4_msgtag_has_error(tag))
-			PWRN("l4_thread_vcpu_control failed");
+			warning("l4_thread_vcpu_control failed");
 	};
 	_thread_ep.apply(thread_cap, lambda);
 }
@@ -81,7 +81,7 @@ Genode::Native_capability Genode::Native_cpu_component::alloc_irq()
 	Cap_index* i = cap_map()->insert(platform_specific()->cap_id_alloc()->alloc());
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, i->kcap());
 	if (l4_error(res)) {
-		PWRN("Allocation of irq object failed!");
+		warning("Allocation of irq object failed!");
 		return Genode::Native_capability();
 	}
 

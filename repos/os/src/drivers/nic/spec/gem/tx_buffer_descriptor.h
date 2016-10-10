@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__DRIVERS__NIC__GEM__TX_BUFFER_DESCRIPTOR_H_
 #define _INCLUDE__DRIVERS__NIC__GEM__TX_BUFFER_DESCRIPTOR_H_
 
+#include <base/log.h>
 #include <timer_session/connection.h>
 
 #include "buffer_descriptor.h"
@@ -50,7 +51,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 		void add_to_queue(const char* const packet, const size_t size)
 		{
 			if (size > MAX_PACKAGE_SIZE) {
-				PWRN("Ethernet package to big. Not sent!");
+				warning("Ethernet package to big. Not sent!");
 				return;
 			}
 

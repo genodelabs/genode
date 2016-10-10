@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
@@ -50,19 +50,6 @@ namespace Genode {
 		log(" ", __builtin_return_address(2));
 		log(" ", __builtin_return_address(3));
 		log(" ", __builtin_return_address(4));
-	}
-
-
-	inline void hexdump(void *addr)
-	{
-		unsigned char *s = (unsigned char *)addr;
-		printf("\nhexdump at 0x%p:\n", addr);
-		for (unsigned j = 0; j < 4; j++) {
-			printf("  ");
-			for (unsigned i = 0; i < 16; i++)
-				printf("0x%02x ", s[j*16 + i]);
-			printf("\n");
-		}
 	}
 }
 

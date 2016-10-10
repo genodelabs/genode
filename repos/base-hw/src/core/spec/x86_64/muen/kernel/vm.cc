@@ -50,8 +50,8 @@ void Kernel::Vm::exception(unsigned const cpu_id)
 		_context->submit(1);
 		return;
 	}
-	PWRN("VM: triggered unknown exception %lu with error code %lu",
-		 _state->trapno, _state->errcode);
+	Genode::warning("VM: triggered unknown exception ", _state->trapno,
+	                " with error code ", _state->errcode);
 	assert(false);
 }
 

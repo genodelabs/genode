@@ -252,10 +252,6 @@ void Ipc_node::cancel_waiting()
 }
 
 
-char const * Ipc_node::pd_label() const {
-	return (_pd) ? _pd->platform_pd()->label() : "?"; }
-
-
 Ipc_node::~Ipc_node()
 {
 	_cancel_request_queue();

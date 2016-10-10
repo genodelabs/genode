@@ -13,7 +13,6 @@
 
 /* base includes */
 #include <base/capability.h>
-#include <base/printf.h>
 
 /* base-internal includes */
 #include <base/internal/capability_data.h>

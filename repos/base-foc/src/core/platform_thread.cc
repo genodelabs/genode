@@ -48,8 +48,8 @@ int Platform_thread::start(void *ip, void *sp)
 	l4_thread_control_bind((l4_utcb_t *)_utcb, _platform_pd->native_task().data()->kcap());
 	l4_msgtag_t tag = l4_thread_control_commit(_thread.local.data()->kcap());
 	if (l4_msgtag_has_error(tag)) {
-		PWRN("l4_thread_control_commit for %lx failed!",
-		     (unsigned long) _thread.local.data()->kcap());
+		warning("l4_thread_control_commit for ",
+		        Hex(_thread.local.data()->kcap()), " failed!");
 		return -1;
 	}
 
@@ -59,7 +59,7 @@ int Platform_thread::start(void *ip, void *sp)
 	tag = l4_thread_ex_regs(_thread.local.data()->kcap(), (l4_addr_t) ip,
 	                        (l4_addr_t) sp, 0);
 	if (l4_msgtag_has_error(tag)) {
-		PWRN("l4_thread_ex_regs failed!");
+		warning("l4_thread_ex_regs failed!");
 		return -1;
 	}
 
@@ -161,8 +161,8 @@ void Platform_thread::unbind()
 		l4_thread_control_pager(_gate.remote);
 		l4_thread_control_exc_handler(_gate.remote);
 		if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local.data()->kcap())))
-			PWRN("l4_thread_control_commit for %lx failed!",
-				 (unsigned long) _thread.local.data()->kcap());
+			warning("l4_thread_control_commit for ",
+			        Hex(_thread.local.data()->kcap()), " failed!");
 
 		/* now force it into a pagefault */
 		l4_thread_ex_regs(_thread.local.data()->kcap(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
@@ -219,7 +219,8 @@ void Platform_thread::affinity(Affinity::Location location)
 	l4_msgtag_t tag = l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP,
 	                                          _thread.local.data()->kcap(), &params);
 	if (l4_error(tag))
-		PWRN("setting affinity of %lx to %d failed!", _thread.local.data()->kcap(), cpu);
+		warning("setting affinity of ", Hex(_thread.local.data()->kcap()),
+		        " to ", cpu, " failed!");
 }
 
 
@@ -254,12 +255,12 @@ void Platform_thread::_finalize_construction(const char *name)
 	l4_msgtag_t tag = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
 	                                        _irq.local.data()->kcap());
 	if (l4_msgtag_has_error(tag))
-		PWRN("creating thread's irq failed");
+		warning("creating thread's irq failed");
 
 	/* attach thread to irq */
 	tag = l4_irq_attach(_irq.local.data()->kcap(), 0, _thread.local.data()->kcap());
 	if (l4_msgtag_has_error(tag))
-		PWRN("attaching thread's irq failed");
+		warning("attaching thread's irq failed");
 
 	/* set human readable name in kernel debugger */
 	strncpy(_name, name, sizeof(_name));

@@ -13,7 +13,7 @@
 
 /* base includes */
 #include <base/capability.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/bit_allocator.h>
 
 /* base-internal includes */
@@ -156,7 +156,7 @@ void Capability_space::reset_sel(unsigned sel)
 {
 	int ret = seL4_CNode_Delete(INITIAL_SEL_CNODE, sel, CSPACE_SIZE_LOG2);
 	if (ret != 0)
-		PWRN("seL4_CNode_Delete returned %d", ret);
+		warning("seL4_CNode_Delete returned ", ret);
 }
 
 

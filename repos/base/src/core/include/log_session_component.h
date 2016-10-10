@@ -15,7 +15,6 @@
 #define _CORE__INCLUDE__LOG_SESSION_COMPONENT_H_
 
 #include <util/string.h>
-#include <base/printf.h>
 #include <base/log.h>
 #include <base/rpc_server.h>
 #include <log_session/log_session.h>
@@ -54,22 +53,6 @@ namespace Genode {
 
 				char const *string = string_buf.string();
 				size_t len = strlen(string);
-
-				/*
-				 * Heuristic: The Log console implementation flushes
-				 *            the output preferably in front of escape
-				 *            sequences. If the line contains only
-				 *            the escape sequence, we skip the printing
-				 *            of the label and cut the line break (last
-				 *            character).
-				 */
-				enum { ESC = 27 };
-				if ((string[0] == ESC) && (len == 5) && (string[4] == '\n')) {
-					char buf[5];
-					strncpy(buf, string, 5);
-					printf("%s", buf);
-					return len;
-				}
 
 				char buf[string_buf.MAX_SIZE];
 				unsigned from_i = 0;

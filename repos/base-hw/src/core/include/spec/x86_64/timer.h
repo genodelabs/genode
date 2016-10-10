@@ -21,7 +21,6 @@
 /* Genode includes */
 #include <util/mmio.h>
 #include <base/stdint.h>
-#include <base/printf.h>
 
 /* core includes */
 #include <port_io.h>

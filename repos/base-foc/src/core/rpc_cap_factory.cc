@@ -92,7 +92,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 	Native_capability cap;
 
 	if (!ep.valid()) {
-		PWRN("Invalid reference capability!");
+		warning("Invalid reference capability!");
 		return cap;
 	}
 
@@ -110,7 +110,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		Core_cap_index* idx = static_cast<Core_cap_index*>(cap_map()->insert(id));
 
 		if (!idx) {
-			PWRN("Out of capability indices!");
+			warning("Out of capability indices!");
 			platform_specific()->cap_id_alloc()->free(id);
 			return cap;
 		}
@@ -164,7 +164,7 @@ void Rpc_cap_factory::free(Native_capability cap)
 		if (e) {
 			_pool.remove(e);
 		} else
-			PWRN("Could not find capability to be deleted");
+			warning("Could not find capability to be deleted");
 	});
 	if (entry) destroy(_md_alloc, entry);
 }

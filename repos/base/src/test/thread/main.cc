@@ -18,7 +18,6 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <base/printf.h>
 #include <util/volatile_object.h>
 #include <cpu_session/connection.h>
 #include <cpu_thread/client.h>
@@ -94,9 +93,8 @@ static void test_stack_alignment_varargs(char const *format, ...)
 {
 	va_list list;
 	va_start(list, format);
-
-	vprintf(format, list);
-
+	log(va_arg(list, double));
+	log(va_arg(list, double));
 	va_end(list);
 }
 

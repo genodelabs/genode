@@ -1,0 +1,36 @@
+build "core init test/log"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-log">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-log"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "Test done.*\n" 10
+
+grep_output {\[init -\> test-log\]}
+
+compare_output_to {
+[init -> test-log] hex range:          [0e00,1680)
+[init -> test-log] empty hex range:    [0abc0000,0abc0000) (empty!)
+[init -> test-log] hex range to limit: [f8,ff]
+[init -> test-log] invalid hex range:  [f8,08) (overflow!)
+[init -> test-log] negative hex char:  0xfe
+[init -> test-log] positive hex char:  0x02
+[init -> test-log] Test done.
+}

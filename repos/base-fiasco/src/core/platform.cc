@@ -338,7 +338,7 @@ static Fiasco::l4_kernel_info_t *get_kip()
 		amok = true;
 	}
 	if (!l4_ipc_fpage_received(r)) {
-		printf("No fpage received\n");
+		warning("No fpage received");
 		amok = true;
 	}
 

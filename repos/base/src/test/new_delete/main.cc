@@ -12,14 +12,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 
-using Genode::printf;
+using Genode::log;
 using Genode::destroy;
 
 
-#define L() printf("  %s\n", __func__)
+#define L() log("  ", __func__)
 
 
 struct A     { int a; A() { L(); } virtual ~A() { L(); } };
@@ -32,7 +32,7 @@ struct E : C, D
 {
 	int e;
 
-	E(bool thro) { L(); if (thro) { printf("throw exception\n"); throw 1; } }
+	E(bool thro) { L(); if (thro) { log("throw exception"); throw 1; } }
 
 	virtual ~E() { L(); }
 };
@@ -64,14 +64,14 @@ struct Allocator : Genode::Allocator
 	{
 		*p = heap.alloc(size);
 
-		printf("Allocator::alloc()\n");
+		log("Allocator::alloc()");
 
 		return *p != 0;
 	}
 
 	void free(void *p, Genode::size_t size) override
 	{
-		printf("Allocator::free()\n");
+		log("Allocator::free()");
 		heap.free(p, size);
 	}
 };
@@ -95,7 +95,7 @@ int main()
 	try {
 		E *e = new (&a)  E(true);
 		destroy(&a, e);
-	} catch (...) { printf("exception caught\n"); }
+	} catch (...) { log("exception caught"); }
 
 	/*************************
 	 ** Allocator reference **
@@ -111,5 +111,5 @@ int main()
 	try {
 		E *e = new (a)  E(true);
 		destroy(&a, e);
-	} catch (...) { printf("exception caught\n"); }
+	} catch (...) { log("exception caught"); }
 }

@@ -26,7 +26,17 @@ using namespace Genode;
 static Log *log_ptr;
 
 
-Log &Log::log() { return *log_ptr; }
+Log &Log::log()
+{
+	/*
+	 * Ensure the log is initialized before use. This is only needed for
+	 * components that do not initialize the log explicitly in the startup
+	 * code, i.e., Linux hybrid components.
+	 */
+	Genode::init_log();
+
+	return *log_ptr;
+}
 
 
 extern "C" int stdout_write(const char *s);

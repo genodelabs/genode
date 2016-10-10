@@ -15,7 +15,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>

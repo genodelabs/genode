@@ -207,7 +207,7 @@ namespace Genode {
 
 			Cpu_session_capability cpu_session_cap() override
 			{
-				PWRN("%s:%u not implemented", __FILE__, __LINE__);
+				warning(__FILE__, ":", __LINE__, " not implemented");
 				return Cpu_session_capability();
 			}
 	};

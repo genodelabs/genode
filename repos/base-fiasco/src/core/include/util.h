@@ -18,7 +18,6 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <base/printf.h>
 #include <region_map/region_map.h>
 #include <util/touch.h>
 

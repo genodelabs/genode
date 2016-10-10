@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <util/misc_math.h>
 #include <util/register.h>
-#include <base/printf.h>
 
 /* base-hw includes */
 #include <page_flags.h>

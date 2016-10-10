@@ -22,6 +22,7 @@
 
 /* base includes */
 #include <base/internal/unmanaged_singleton.h>
+#include <base/internal/globals.h>
 
 using namespace Kernel;
 
@@ -59,7 +60,9 @@ extern "C" void init_kernel()
 
 	Core_thread::singleton();
 
-	Genode::printf("\nkernel initialized\n");
+	Genode::init_log();
+	Genode::log("");
+	Genode::log("kernel initialized");
 
 	kernel();
 }

@@ -63,7 +63,7 @@ void Pager_entrypoint::entry()
 			/* fetch fault data */
 			Platform_thread * const pt = (Platform_thread *)po->badge();
 			if (!pt) {
-				PWRN("failed to get platform thread of faulter");
+				Genode::warning("failed to get platform thread of faulter");
 				return;
 			}
 

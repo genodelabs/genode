@@ -19,7 +19,6 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <base/printf.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
 

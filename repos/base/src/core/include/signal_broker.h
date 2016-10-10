@@ -97,11 +97,6 @@ class Genode::Signal_broker
 		{
 			_source_ep.apply(cap, [&] (Signal_context_component *context) {
 				if (!context) {
-					/*
-					 * We do not use PWRN() to enable the build system to
-					 * suppress this warning in release mode (SPECS +=
-					 * release).
-					 */
 					warning("invalid signal-context capability");
 					return;
 				}

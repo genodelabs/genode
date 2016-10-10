@@ -109,7 +109,6 @@ void Genode::call_global_static_constructors() { }
 
 int main()
 {
-	Genode::init_log();
 	Genode::bootstrap_component();
 
 	/* never reached */

@@ -14,9 +14,6 @@
 #ifndef _CORE__INCLUDE__PLATFORM_H_
 #define _CORE__INCLUDE__PLATFORM_H_
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* local includes */
 #include <platform_generic.h>
 #include <core_mem_alloc.h>

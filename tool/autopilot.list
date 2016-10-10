@@ -61,7 +61,7 @@ stdcxx
 nic_loopback
 platform
 report_rom
-printf
+log
 rom_filter
 clipboard
 rust

@@ -25,7 +25,7 @@ void Kernel::Cpu_idle::exception(unsigned const cpu)
 		return;
 	}
 
-	PWRN("Unknown exception %lu with error code %lu at ip=%p", trapno,
-	     errcode, (void *)ip);
+	Genode::warning("Unknown exception ", trapno, " with error code ", errcode,
+	                " at ip=", (void *)ip);
 	assert(0);
 }

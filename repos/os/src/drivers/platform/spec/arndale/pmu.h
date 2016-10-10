@@ -14,13 +14,14 @@
 #ifndef _DRIVERS__PLATFORM__SPEC__ARNDALE__PMU_H_
 #define _DRIVERS__PLATFORM__SPEC__ARNDALE__PMU_H_
 
+#include <base/log.h>
 #include <regulator/consts.h>
 #include <regulator/driver.h>
 #include <drivers/board_base.h>
 #include <os/attached_mmio.h>
 
 using namespace Regulator;
-
+using Genode::warning;
 
 class Pmu : public Regulator::Driver,
             public Genode::Attached_mmio
@@ -132,7 +133,7 @@ class Pmu : public Regulator::Driver,
 				write<Hdmi_phy_control>(hpc);
 				break; }
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -149,7 +150,7 @@ class Pmu : public Regulator::Driver,
 				write<Sata_phy_control::Enable>(0);
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -192,7 +193,7 @@ class Pmu : public Regulator::Driver,
 		{
 			switch (id) {
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -200,7 +201,7 @@ class Pmu : public Regulator::Driver,
 		{
 			switch (id) {
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 			return 0;
 		}
@@ -223,7 +224,7 @@ class Pmu : public Regulator::Driver,
 			case PWR_SATA:
 				return read<Sata_phy_control::Enable>();
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 			return true;
 		}

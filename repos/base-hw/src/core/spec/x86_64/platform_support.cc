@@ -81,7 +81,8 @@ Native_region * Platform::_ram_regions(unsigned const i)
 		}
 		_regions[i] = { base, size };
 	} else if (i >= max)
-		PWRN("physical ram region 0x%llx+0x%llx will be not used", base, size);
+		warning("physical ram region ", (void*)base, "+", (size_t)size,
+		        " will be not used");
 
 	return i < max ? &_regions[i] : nullptr;
 }
