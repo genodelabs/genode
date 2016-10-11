@@ -1,5 +1,37 @@
 --- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
 +++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -1900,6 +1900,8 @@
+     PVMCPU  pVCpuDst = &pVM->aCpus[pVM->tm.s.idTimerCpu];
+     NOREF(pTimer);
+ 
++    bool ff_scheduled = false;
++
+     AssertCompile(TMCLOCK_MAX == 4);
+ #ifdef DEBUG_Sander /* very annoying, keep it private. */
+     if (VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER))
+@@ -1916,6 +1918,7 @@
+         && !pVM->tm.s.fRunningQueues
+        )
+     {
++        ff_scheduled = true;
+         Log5(("TM(%u): FF: 0 -> 1\n", __LINE__));
+         VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
+ #ifdef VBOX_WITH_REM
+@@ -1924,6 +1927,14 @@
+         VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM /** @todo | VMNOTIFYFF_FLAGS_POKE ?*/);
+         STAM_COUNTER_INC(&pVM->tm.s.StatTimerCallbackSetFF);
+     }
++
++    if (!ff_scheduled
++        && VMCPU_FF_IS_PENDING(pVCpuDst, VMCPU_FF_TIMER)
++        && VMCPU_GET_STATE(pVCpuDst) == VMCPUSTATE_STARTED_EXEC
++       )
++    {
++       VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_POKE);
++    }
+ }
+ 
+ 
 @@ -1934,6 +1947,7 @@
   *
   * @thread  EMT (actually EMT0, but we fend off the others)
