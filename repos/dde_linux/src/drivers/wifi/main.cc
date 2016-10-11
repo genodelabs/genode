@@ -25,7 +25,7 @@
 
 typedef long long ssize_t;
 
-extern void wifi_init(Genode::Env&, Genode::Lock&);
+extern void wifi_init(Genode::Env&, Genode::Lock&, bool);
 extern "C" void wpa_conf_reload(void);
 extern "C" ssize_t wpa_write_conf(char const *, Genode::size_t);
 
@@ -232,6 +232,12 @@ struct Main
 	{
 		bool const verbose = config_rom.xml().attribute_value("verbose", false);
 
+		/*
+		 * Forcefully disable 11n but for convenience the attribute is used the
+		 * other way araound.
+		 */
+		bool const disable_11n = !config_rom.xml().attribute_value("use_11n", true);
+
 		wpa = new (&heap) Wpa_thread(env, wpa_startup_lock(), verbose);
 
 		wpa->start();
@@ -242,7 +248,7 @@ struct Main
 			Genode::warning("could not create Wlan_configration handler");
 		}
 
-		wifi_init(env, wpa_startup_lock());
+		wifi_init(env, wpa_startup_lock(), disable_11n);
 	}
 };
 

@@ -268,6 +268,10 @@ based component in 'src/app/qt_wifi_connect'.
 
 Currently only WPA/WPA2 protection using a pre-shared key is supported.
 
+On certain cards, e.g. Intel Wireless 6200 ABG, it may be necessary to disable
+the 11n mode. This can be achieved by setting the 'use_11n' attribute in
+the config node to 'no'.
+
 
 lx_kit
 ######

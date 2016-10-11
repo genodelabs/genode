@@ -43,6 +43,8 @@ extern "C" void module_arc4_init(void);
 extern "C" void module_chainiv_module_init(void);
 extern "C" void module_krng_mod_init(void);
 
+extern "C" unsigned int *module_param_11n_disable;
+
 struct workqueue_struct *system_power_efficient_wq;
 struct workqueue_struct *system_wq;
 
@@ -130,7 +132,7 @@ static void run_linux(void *)
 unsigned long jiffies;
 
 
-void wifi_init(Genode::Env &env, Genode::Lock &lock)
+void wifi_init(Genode::Env &env, Genode::Lock &lock, bool disable_11n)
 {
 	Lx_kit::construct_env(env);
 
@@ -149,6 +151,12 @@ void wifi_init(Genode::Env &env, Genode::Lock &lock)
 
 	Lx::socket_init(env.ep(), Lx_kit::env().heap());
 	Lx::nic_init(env, Lx_kit::env().heap());
+
+	/* set IWL_DISABLE_HT_ALL if disable 11n is requested */
+	if (disable_11n) {
+		Genode::log("Disable 11n mode");
+		*module_param_11n_disable = 1;
+	}
 
 	/* Linux task (handles the initialization only currently) */
 	static Lx::Task linux(run_linux, nullptr, "linux",
