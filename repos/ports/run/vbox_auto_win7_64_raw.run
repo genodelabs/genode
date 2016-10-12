@@ -4,16 +4,15 @@
 
 assert_spec 64bit
 
-set flavor   "win7_64"
+set flavor   "win7_64_raw"
 
 set use_vbox4 1
 set use_vbox5 0
 
-set use_rumpfs 1
-# Write overlay only into ram
-set use_ram_fs 1
-# However read initial overlay from disk
-set use_overlay_from_disk 1
+# use vm image from a raw disk partition
+set use_rumpfs 0
+set use_ram_fs 0
+set use_overlay_from_disk 0
 
 set use_usb 1
 set use_ps2 [have_spec ps2]

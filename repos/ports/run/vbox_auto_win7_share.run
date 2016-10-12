@@ -78,6 +78,7 @@ set vdi_image "${flavor}.vdi"
 set use_ram_fs 0
 set use_overlay_from_disk 0
 set overlay_image "overlay_${flavor}.vdi"
+set use_rumpfs 1
 
 set use_usb 0
 set use_ps2 [have_spec ps2]

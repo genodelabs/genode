@@ -11,13 +11,13 @@ if {[have_include "power_on/qemu"]} {
 append build_components {
 	core init
 	server/part_blk
-	server/rump_fs
 	server/fs_rom
 	drivers/ahci
 	drivers/framebuffer
 	drivers/timer
 }
 
+lappend_if [expr $use_rumpfs] build_components server/rump_fs
 lappend_if [expr $use_vbox4]  build_components virtualbox
 lappend_if [expr $use_vbox5]  build_components virtualbox5
 lappend_if [expr $use_ps2]    build_components drivers/input
@@ -78,17 +78,23 @@ append config {
 		<route>
 			<any-service><child name="ahci_drv"/> <parent/><any-child/></any-service>
 		</route>
-		<config>
-			<policy label="rump_fs" partition="4"/>
+		<config>}
+append_if [expr $use_rumpfs] config {
+			<policy label="rump_fs" partition="4"/>}
+append_if [expr !$use_rumpfs] config {
+			<policy label="vbox -> raw" partition="3"/>}
+append config {
 		</config>
-	</start>
+	</start>}
+
+append_if [expr $use_rumpfs] config {
 	<start name="rump_fs" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
 		<config fs="ext2fs">}
-append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
+append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label="overlay_from_disk" root="/ram" writeable="yes"/>}
-append config {
+append_if [expr $use_rumpfs] config {
 			<default-policy root="/" writeable="yes"/>
 		</config>
 		<route>
@@ -124,8 +130,10 @@ append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 		<binary name="fs_rom"/>
 		<resource name="RAM" quantum="256M"/>
 		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"><child name="rump_fs"/></service>
+		<route>}
+append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
+			<service name="File_system"><child name="rump_fs"/></service>}
+append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>}
@@ -271,10 +279,12 @@ append boot_modules {
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
 	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
-	rump.lib.so rump_fs.lib.so rump_fs
 	qemu-usb.lib.so
 }
 
+lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
+lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
+lappend_if [expr $use_rumpfs] boot_modules rump_fs
 lappend_if [expr $use_vbox4] boot_modules virtualbox
 lappend_if [expr $use_vbox5] boot_modules virtualbox5
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs

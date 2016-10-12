@@ -10,6 +10,7 @@ if {[have_include "power_on/qemu"]} {
 }
 
 set vdi_image "${flavor}.vdi"
+set raw_image "${flavor}.vmdk"
 set vbox_file "vm_${flavor}.vbox"
 set overlay_image "overlay_${flavor}.vdi"
 
@@ -21,6 +22,7 @@ set build_components {
 	app/vbox_pointer
 	server/nit_fb
 	server/report_rom
+	server/dynamic_rom
 }
 
 set boot_modules {
@@ -31,6 +33,7 @@ set boot_modules {
 	vbox_pointer
 	nit_fb
 	report_rom
+	dynamic_rom
 }
 
 set config_of_app {
@@ -94,14 +97,12 @@ append config_of_app {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<rom>
-				<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
-				<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
-				<policy label="vbox_pointer -> shape"               report="vbox -> shape"/>
-				<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
-				<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
-				<policy label="vbox -> usb_devices"                 report="usb_report_filter -> usb_devices"/>
-			</rom>
+			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
+			<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
+			<policy label="vbox_pointer -> shape"               report="vbox -> shape"/>
+			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
+			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
+			<policy label="vbox -> usb_devices"                 report="usb_report_filter -> usb_devices"/>
 		</config>
 	</start>
 
@@ -141,11 +142,43 @@ append config_of_app {
 
 	<start name="nit_fb" priority="-1">
 		<resource name="RAM" quantum="8M" />
-		<config/>
+		<configfile name="nit_fb.config"/>
 		<provides>
 			<service name="Framebuffer" />
 			<service name="Input" />
 		</provides>
+		<route>
+			<service name="ROM" label="nit_fb.config"> <child name="nit_fb-config"/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+		</route>
+	</start>
+
+	<start name="nit_fb-config" priority="-1">
+		<binary name="dynamic_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config>
+			<rom name="nit_fb.config">
+				<inline description="standard">
+					<config/>
+				</inline>
+				<sleep milliseconds="60000" />}
+
+append_if [expr !$use_rumpfs] config_of_app {
+				<inline description="shutdown">
+					<config width="0" height="0"/>
+				</inline>
+				<sleep milliseconds="600000" />}
+
+append config_of_app {
+			</rom>
+		</config>
+		<route>
+			<service name="RM">     <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="Timer">     <child name="timer"/>     </service>
+		</route>
 	</start>
 
 	<start name="vbox" priority="-2">}
@@ -161,15 +194,26 @@ append config_of_app "
 append config_of_app {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
-					<dir name="dev"> <log/> <rtc/> </dir>}
+					<dir name="dev">
+						<log/> <rtc/>}
+
+append_if [expr !$use_rumpfs] config_of_app {
+						<block name="sda3" label="raw" block_buffer_count="128" />}
+append config_of_app {
+						</dir>}
 
 append_if [expr $use_ram_fs] config_of_app {
 					<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
 
 append config_of_app "
 					<rom name=\"${vbox_file}\"/>"
+append_if [expr !$use_rumpfs] config_of_app "
+					<rom name=\"${raw_image}\"/>"
+
+append_if [expr $use_rumpfs || $use_ram_fs] config_of_app {
+					<fs />}
+
 append config_of_app {
-					<fs />
 				</vfs>
 			</libc>
 		</config>
@@ -181,8 +225,11 @@ append_if [expr $use_ram_fs] config_of_app {
 				<child name="ram_fs"/>
 			</service>}
 
+append_if [expr $use_rumpfs] config_of_app {
+			<service name="File_system"> <child name="rump_fs"/> </service>}
+append_if [expr !$use_rumpfs] config_of_app {
+			<service name="Block"> <child name="part_blk"/> </service>}
 append config_of_app {
-			<service name="File_system"> <child name="rump_fs"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb" /> </service>
 			<service name="Input"> <child name="nit_fb" /> </service>
 			<service name="Report"><child name="report_rom" /></service>
@@ -199,12 +246,26 @@ source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 # copy vbox configuration to bin directory
 exec cp ${genode_dir}/repos/ports/run/${vbox_file} bin/.
 
+if {!$use_rumpfs} {
+	exec cp ${genode_dir}/repos/ports/run/${raw_image} bin/.
+}
+
 append boot_modules " ${vbox_file} "
+append_if [expr !$use_rumpfs] boot_modules " ${raw_image} "
 
 build_boot_image $boot_modules
 
 run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: no, hostWindowMapping: no, graphics: no} 70
-run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} 170 [output_spawn_id]
+if {$use_rumpfs} {
+	run_genode_until {\[init -\> vbox\].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} 170 [output_spawn_id]
+} else {
+	run_genode_until {\[init\] child "vbox" exited with exit value 0} 60 [output_spawn_id]
+	# give block driver bit time to write data to disk
+	sleep 5
+}
 
 # cleanup bin directory - remove vbox file
 exec rm bin/${vbox_file}
+if {!$use_rumpfs} {
+	exec rm bin/${raw_image}
+}

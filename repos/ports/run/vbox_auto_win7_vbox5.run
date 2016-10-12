@@ -10,6 +10,7 @@ set flavor   "win7"
 set use_vbox4 0
 set use_vbox5 5
 
+set use_rumpfs 1
 # Write overlay only into ram
 set use_ram_fs 1
 # However read initial overlay from disk
