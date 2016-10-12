@@ -21,11 +21,11 @@ CC_OPT          += -pipe \
                    -fno-stack-protector -fvisibility-inlines-hidden \
                    -fno-asynchronous-unwind-tables -std=gnu++0x 
 ifeq ($(filter-out $(SPECS),32bit),)
-CC_WARN         += -Wframe-larger-than=64
+CC_WARN         += -Wframe-larger-than=92
 CC_OPT          += -mpreferred-stack-boundary=2 -mregparm=3
 else
 ifeq ($(filter-out $(SPECS),64bit),)
-CC_WARN         += -Wframe-larger-than=144
+CC_WARN         += -Wframe-larger-than=240
 CC_OPT          += -mpreferred-stack-boundary=4 -mcmodel=kernel -mno-red-zone
 else
 $(error Unsupported environment)
