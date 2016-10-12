@@ -95,7 +95,9 @@ void *memset(void *s, int c, size_t n) {
 
 
 void free(void *p) {
-	Genode::env()->heap()->free(p, 0); }
+	if (!p) return;
+	Genode::env()->heap()->free(p, 0);
+}
 
 
 void q_printf(char const *fmt, ...)
