@@ -32,7 +32,7 @@ usb.archive: dwc_otg.git
 #
 SRC_DIR_USB  := src/lib/usb
 VERSION_USB  := 4.4.3
-URL(usb)     := http://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB).tar.xz
+URL(usb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB).tar.xz
 SHA(usb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(usb)     := $(SRC_DIR_USB)
 TAR_OPT(usb) := --strip-components=1 --files-from $(REP_DIR)/usb.list
@@ -51,7 +51,7 @@ DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
 #
 SRC_DIR_INTEL_FB  := src/drivers/framebuffer/intel
 VERSION_INTEL_FB  := 4.4.3
-URL(intel_fb)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
+URL(intel_fb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
 SHA(intel_fb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
 TAR_OPT(intel_fb) := --strip-components=1  --files-from $(REP_DIR)/intel_fb.list
@@ -62,7 +62,7 @@ HASH_INPUT        += $(REP_DIR)/intel_fb.list
 #
 SRC_DIR_WIFI  := src/lib/wifi
 VERSION_WIFI  := 4.4.3
-URL(wifi)     := https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
+URL(wifi)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
 SHA(wifi)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(wifi)     := $(SRC_DIR_WIFI)
 TAR_OPT(wifi) := --strip-components=1  --files-from $(REP_DIR)/wifi.list
@@ -73,7 +73,7 @@ HASH_INPUT    += $(REP_DIR)/wifi.list
 #
 SRC_DIR_LXIP  := src/lib/lxip
 VERSION_LXIP  := 4.4.3
-URL(lxip)     := http://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_LXIP).tar.xz
+URL(lxip)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_LXIP).tar.xz
 SHA(lxip)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(lxip)     := $(SRC_DIR_LXIP)
 TAR_OPT(lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip.list
@@ -83,7 +83,7 @@ HASH_INPUT    += $(REP_DIR)/lxip.list
 #
 # libnl sources
 #
-URL(libnl) := http://www.infradead.org/~tgr/libnl/files/libnl-3.2.25.tar.gz
+URL(libnl) := https://www.infradead.org/~tgr/libnl/files/libnl-3.2.25.tar.gz
 SHA(libnl) := b7a4981f7edf7398256d35fd3c0b87bc84ae27d1
 DIR(libnl) := src/lib/libnl
 
@@ -105,7 +105,7 @@ generate_libnl_files: $(DOWNLOADS)
 #
 # wpa_supplicant sources
 #
-URL(wpa_supplicant) := http://w1.fi/releases/wpa_supplicant-2.2.tar.gz
+URL(wpa_supplicant) := https://w1.fi/releases/wpa_supplicant-2.2.tar.gz
 SHA(wpa_supplicant) := 0c2ff4fd2e2f6325147cca0357d6c9f524efa26a
 DIR(wpa_supplicant) := src/app/wpa_supplicant
 
