@@ -1,9 +1,22 @@
+From 09d2a5728b640e264d27457a7abd12abf446ef0b Mon Sep 17 00:00:00 2001
+From: Hinnerk van Bruinehsen <h.v.bruinehsen@fu-berlin.de>
+Date: Thu, 13 Oct 2016 17:40:40 +0200
+Subject: [PATCH 1/2] build
+
+---
+ Makefile.in          | 2 +-
+ builtins/Makefile.in | 2 +-
+ configure            | 2 +-
+ lib/intl/l10nflist.c | 2 +-
+ shell.c              | 6 ++++++
+ 5 files changed, 10 insertions(+), 4 deletions(-)
+
 diff --git a/Makefile.in b/Makefile.in
-index f01d49c..4f20534 100644
+index c7b62bc..7480326 100644
 --- a/Makefile.in
 +++ b/Makefile.in
-@@ -753,7 +753,7 @@ install:	.made installdirs
- 	-( cd $(PO_DIR) ; $(MAKE) $(MFLAGS) DESTDIR=$(DESTDIR) $@ )
+@@ -802,7 +802,7 @@ install:	.made installdirs
+ 	-( cd $(LOADABLES_DIR) && $(MAKE) $(MFLAGS) DESTDIR=$(DESTDIR) $@ )
  
  install-strip:
 -	$(MAKE) $(MFLAGS) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' \
@@ -12,35 +25,33 @@ index f01d49c..4f20534 100644
  		DESTDIR=$(DESTDIR) install
  
 diff --git a/builtins/Makefile.in b/builtins/Makefile.in
-index 42f8cb8..ba7d855 100644
+index bbb96c3..f48fb77 100644
 --- a/builtins/Makefile.in
 +++ b/builtins/Makefile.in
-@@ -68,7 +68,7 @@ LDFLAGS = @LDFLAGS@ $(LOCAL_LDFLAGS) $(CFLAGS)
+@@ -69,7 +69,7 @@ LIBS = @LIBS@
+ LDFLAGS = @LDFLAGS@ $(LOCAL_LDFLAGS) $(CFLAGS)
  LDFLAGS_FOR_BUILD = @LDFLAGS_FOR_BUILD@ $(LOCAL_LDFLAGS) $(CFLAGS_FOR_BUILD)
  LOCAL_LDFLAGS = @LOCAL_LDFLAGS@
- #LIBS_FOR_BUILD = @LIBS_FOR_BUILD@
--LIBS_FOR_BUILD = $(LIBS)
-+#LIBS_FOR_BUILD = $(LIBS)
+-LIBS_FOR_BUILD = @LIBS_FOR_BUILD@
++#LIBS_FOR_BUILD = @LIBS_FOR_BUILD@
+ #LIBS_FOR_BUILD = $(LIBS)
  
  BASHINCDIR = ${topdir}/include
- 
 diff --git a/configure b/configure
-index 875bbbf..19ce633 100755
+index 60f86d6..3399a33 100755
 --- a/configure
 +++ b/configure
-@@ -28398,8 +28398,8 @@ if test "${bash_cv_getcwd_malloc+set}" = set; then
- else
-   if test "$cross_compiling" = yes; then
-   { $as_echo "$as_me:$LINENO: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no" >&5
--$as_echo "$as_me: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no" >&2;}
+@@ -14644,7 +14644,7 @@ else
+   if test "$cross_compiling" = yes; then :
+   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no" >&5
+ $as_echo "$as_me: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no" >&2;}
 -    bash_cv_getcwd_malloc=no
-+$as_echo "$as_me: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to yes" >&2;}
 +    bash_cv_getcwd_malloc=yes
  
  else
-   cat >conftest.$ac_ext <<_ACEOF
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 diff --git a/lib/intl/l10nflist.c b/lib/intl/l10nflist.c
-index 9f02487..8b0e94e 100644
+index 4ce284a..d7e4123 100644
 --- a/lib/intl/l10nflist.c
 +++ b/lib/intl/l10nflist.c
 @@ -33,7 +33,7 @@
@@ -53,10 +64,10 @@ index 9f02487..8b0e94e 100644
  #include <ctype.h>
  #include <sys/types.h>
 diff --git a/shell.c b/shell.c
-index 8dadb0b..1cadd61 100644
+index 45b77f9..ddf0e66 100644
 --- a/shell.c
 +++ b/shell.c
-@@ -364,6 +364,12 @@ main (argc, argv, env)
+@@ -379,6 +379,12 @@ main (argc, argv, env)
    env = environ;
  #endif /* __OPENNT */
  
@@ -69,3 +80,6 @@ index 8dadb0b..1cadd61 100644
    USE_VAR(argc);
    USE_VAR(argv);
    USE_VAR(env);
+-- 
+2.10.1
+

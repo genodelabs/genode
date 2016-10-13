@@ -1,0 +1,13 @@
+diff --git a/support/Makefile.in b/support/Makefile.in
+index 9ed7021..9d2d697 100644
+--- a/support/Makefile.in
++++ b/support/Makefile.in
+@@ -73,7 +73,7 @@ OBJ1 =	man2html.o
+ 	$(RM) $@
+ 	$(CC_FOR_BUILD) -c $(CCFLAGS_FOR_BUILD) $<
+ 
+-all: man2html$(EXEEXT)
++all: 
+ 
+ man2html$(EXEEXT): $(OBJ1)
+ 	$(CC_FOR_BUILD) $(CCFLAGS_FOR_BUILD) $(OBJ1) -o $@ ${LIBS_FOR_BUILD}
