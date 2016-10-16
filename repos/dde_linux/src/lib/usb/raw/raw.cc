@@ -643,6 +643,9 @@ class Usb::Session_component : public Session_rpc_object,
 
 		void claim_interface(unsigned interface_num) override
 		{
+			if (!_device)
+				throw Device_not_found();
+
 			usb_interface *iface   = _device->interface(interface_num);
 			if (!iface)
 				throw Interface_not_found();
@@ -653,6 +656,9 @@ class Usb::Session_component : public Session_rpc_object,
 
 		void release_interface(unsigned interface_num) override
 		{
+			if (!_device)
+				throw Device_not_found();
+
 			usb_interface *iface = _device->interface(interface_num);
 			if (!iface)
 				throw Interface_not_found();
@@ -663,6 +669,9 @@ class Usb::Session_component : public Session_rpc_object,
 		void config_descriptor(Device_descriptor *device_descr,
 		                       Config_descriptor *config_descr) override
 		{
+			if (!_device)
+				throw Device_not_found();
+
 			Genode::memcpy(device_descr, &_device->udev->descriptor, sizeof(usb_device_descriptor));
 
 			if (_device->udev->actconfig)
@@ -677,6 +686,9 @@ class Usb::Session_component : public Session_rpc_object,
 
 		unsigned alt_settings(unsigned index) override
 		{
+			if (!_device)
+				throw Device_not_found();
+
 			return _device->interface(index)->num_altsetting;
 		}
 
