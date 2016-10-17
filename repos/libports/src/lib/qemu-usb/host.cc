@@ -401,7 +401,6 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	Usb_host_device *dev = (Usb_host_device *)d->data;
 
 	Genode::size_t size = 0;
-	unsigned timeout = 0;
 	Usb::Packet_descriptor::Type type = Usb::Packet_descriptor::BULK;
 
 	switch (usb_ep_get_type(udev, p->pid, p->ep->nr)) {
@@ -412,21 +411,6 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	case USB_ENDPOINT_XFER_INT:
 		type = Usb::Packet_descriptor::IRQ;
 		size = p->iov.size;
-
-		/* values match usb_drv */
-		switch (udev->speed) {
-		case USB_SPEED_SUPER:
-			timeout = 1<<15;
-			break;
-		case USB_SPEED_HIGH:
-			timeout = 1<<13;
-			break;
-		case USB_SPEED_FULL:
-		case USB_SPEED_LOW:
-			timeout = 1<<7;
-			break;
-		default: break;
-		}
 		break;
 	default:
 		error("not supported data request");
@@ -436,9 +420,9 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	bool const in = p->pid == USB_TOKEN_IN;
 
 	Usb::Packet_descriptor packet = dev->alloc_packet(size);
-	packet.type             = type;
-	packet.transfer.ep      = p->ep->nr | (in ? USB_DIR_IN : 0);
-	packet.transfer.timeout = timeout;
+	packet.type                      = type;
+	packet.transfer.ep               = p->ep->nr | (in ? USB_DIR_IN : 0);
+	packet.transfer.polling_interval = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
 
 	if (!in) {
 		char * const content = dev->usb_raw.source()->packet_content(packet);

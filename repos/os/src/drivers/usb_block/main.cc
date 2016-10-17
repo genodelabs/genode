@@ -304,7 +304,7 @@ struct Usb::Block_driver : Usb::Completion,
 		Usb::Endpoint         &ep = iface.endpoint(OUT);
 		Usb::Packet_descriptor  p = iface.alloc(CBW_VALID_SIZE);
 		memcpy(iface.content(p), cb, CBW_VALID_SIZE);
-		iface.bulk_transfer(p, ep, 0, block, &c);
+		iface.bulk_transfer(p, ep, block, &c);
 	}
 
 	/**
@@ -316,7 +316,7 @@ struct Usb::Block_driver : Usb::Completion,
 		Usb::Interface     &iface = device.interface(active_interface);
 		Usb::Endpoint         &ep = iface.endpoint(IN);
 		Usb::Packet_descriptor  p = iface.alloc(CSW_VALID_SIZE);
-		iface.bulk_transfer(p, ep, 0, block, &c);
+		iface.bulk_transfer(p, ep, block, &c);
 	}
 
 	/**
@@ -327,7 +327,7 @@ struct Usb::Block_driver : Usb::Completion,
 		Usb::Interface     &iface = device.interface(active_interface);
 		Usb::Endpoint         &ep = iface.endpoint(IN);
 		Usb::Packet_descriptor  p = iface.alloc(size);
-		iface.bulk_transfer(p, ep, 0, block, &c);
+		iface.bulk_transfer(p, ep, block, &c);
 	}
 
 	/**
@@ -548,7 +548,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 		if (!req.read) memcpy(iface.content(p), req.buffer, req.size);
 
-		iface.bulk_transfer(p, ep, 0, false, this);
+		iface.bulk_transfer(p, ep, false, this);
 
 		return true;
 	}

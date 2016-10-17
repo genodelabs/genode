@@ -320,7 +320,7 @@ class Usb::Interface : public Meta_data
 			else _handler.submit(p);
 		}
 
-		void bulk_transfer(Packet_descriptor &p, Endpoint &ep, int timeout,
+		void bulk_transfer(Packet_descriptor &p, Endpoint &ep,
 		                   bool block = true, Completion *c = nullptr)
 		{
 			_check();
@@ -331,14 +331,15 @@ class Usb::Interface : public Meta_data
 			p.type              = Usb::Packet_descriptor::BULK;
 			p.succeded          = false;
 			p.transfer.ep       = ep.address;
-			p.transfer.timeout  = timeout;
 			p.completion        = c;
 
 			if(block) Sync_completion sync(_handler, p);
 			else _handler.submit(p);
 		}
 
-		void interrupt_transfer(Packet_descriptor &p, Endpoint &ep, int timeout,
+		void interrupt_transfer(Packet_descriptor &p, Endpoint &ep,
+		                        int polling_interval =
+		                        	Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL,
 		                        bool block = true, Completion *c = nullptr)
 		{
 			_check();
@@ -346,11 +347,11 @@ class Usb::Interface : public Meta_data
 			if (!ep.is_interrupt())
 				throw Session::Invalid_endpoint();
 
-			p.type             = Usb::Packet_descriptor::IRQ;
-			p.succeded         = false;
-			p.transfer.ep      = ep.address;
-			p.transfer.timeout = timeout;
-			p.completion       = c;
+			p.type                      = Usb::Packet_descriptor::IRQ;
+			p.succeded                  = false;
+			p.transfer.ep               = ep.address;
+			p.transfer.polling_interval = polling_interval;
+			p.completion                = c;
 
 			if(block) Sync_completion sync(_handler, p);
 			else _handler.submit(p);

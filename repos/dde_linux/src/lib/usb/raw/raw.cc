@@ -297,7 +297,8 @@ class Usb::Worker
 			urb *bulk_urb = usb_alloc_urb(0, GFP_KERNEL);
 			if (!bulk_urb) {
 				error("Failed to allocate bulk URB");
-				kfree(buf);
+				dma_free(buf);
+				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
 				return false;
 			}
 
@@ -308,8 +309,15 @@ class Usb::Worker
 			usb_fill_bulk_urb(bulk_urb, _device->udev, pipe, buf, p.size(),
 			                 _async_complete, data);
 
-			if (usb_submit_urb(bulk_urb, GFP_KERNEL))
-				error("Failed to submit URB");
+			int ret = usb_submit_urb(bulk_urb, GFP_KERNEL);
+			if (ret != 0) {
+				error("Failed to submit URB, error: ", ret);
+				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
+				kfree(data);
+				usb_free_urb(bulk_urb);
+				dma_free(buf);
+				return false;
+			}
 
 			return true;
 		}
@@ -332,7 +340,8 @@ class Usb::Worker
 			urb *irq_urb = usb_alloc_urb(0, GFP_KERNEL);
 			if (!irq_urb) {
 				error("Failed to allocate interrupt URB");
-				kfree(buf);
+				dma_free(buf);
+				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
 				return false;
 			}
 
@@ -340,11 +349,29 @@ class Usb::Worker
 			data->packet   = p;
 			data->worker   = this;
 
-			usb_fill_int_urb(irq_urb, _device->udev, pipe, buf, p.size(),
-			                 _async_complete, data, p.transfer.timeout);
+			int polling_interval;
 
-			if (usb_submit_urb(irq_urb, GFP_KERNEL))
-				error("Failed to submit URB");
+			if (p.transfer.polling_interval == Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL) {
+
+				usb_host_endpoint *ep = read ? _device->udev->ep_in[p.transfer.ep & 0x0f]
+				                             : _device->udev->ep_out[p.transfer.ep & 0x0f];
+				polling_interval = ep->desc.bInterval;
+
+			} else
+				polling_interval = p.transfer.polling_interval;
+
+			usb_fill_int_urb(irq_urb, _device->udev, pipe, buf, p.size(),
+			                 _async_complete, data, polling_interval);
+
+			int ret = usb_submit_urb(irq_urb, GFP_KERNEL);
+			if (ret != 0) {
+				error("Failed to submit URB, error: ", ret);
+				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
+				kfree(data);
+				usb_free_urb(irq_urb);
+				dma_free(buf);
+				return false;
+			}
 
 			return true;
 		}
@@ -436,10 +463,12 @@ class Usb::Worker
 					case Packet_descriptor::BULK:
 						if (_bulk(p, !!(p.transfer.ep & USB_DIR_IN)))
 							continue;
+						break;
 
 					case Packet_descriptor::IRQ:
 						if (_irq(p, !!(p.transfer.ep & USB_DIR_IN)))
 							continue;
+						break;
 
 					case Packet_descriptor::ALT_SETTING:
 						_alt_setting(p);
