@@ -166,6 +166,12 @@ char *strcpy(char *to, const char *from)
 }
 
 
+char *strncpy(char *dst, const char* src, size_t n)
+{
+	return Genode::strncpy(dst, src, n);
+}
+
+
 char *strchr(const char *p, int ch)
 {
 	char c;
@@ -244,6 +250,30 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 		dest[len] = '\0';
 	}
 	return ret;
+}
+
+
+/* from linux/lib/string.c */
+char *strstr(char const *s1, char const *s2)
+{
+	size_t l1, l2;
+
+	l2 = strlen(s2);
+	if (!l2)
+		return (char *)s1;
+	l1 = strlen(s1);
+	while (l1 >= l2) {
+		l1--;
+		if (!memcmp(s1, s2, l2))
+			return (char *)s1;
+		s1++;
+	}
+	return NULL;
+}
+
+void *memset(void *s, int c, size_t n)
+{
+	return Genode::memset(s, c, n);
 }
 
 
