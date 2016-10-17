@@ -30,38 +30,27 @@ int main(void)
 {
 	int s;
 	static Timer::Connection _timer;
-	_timer.msleep(2000);
-	log("Create new socket ...");
-	if((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		error("No socket available!");
-		return -1;
-	}
-	log("Now, I will bind ...");
-	struct sockaddr_in in_addr;
-	in_addr.sin_family = AF_INET;
-	in_addr.sin_port = htons(49252);
-	in_addr.sin_addr.s_addr = INADDR_ANY;
-	if(bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		error("bind failed!");
-		return -1;
-	}
-	enum { ADDR_STR_SZ = 16 };
-	char serv_addr[ADDR_STR_SZ] = { 0 };
-	Xml_node libc_node = config()->xml_node().sub_node("libc");
-	try { libc_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
-	catch(...) {
-		error("Missing \"server_ip\" attribute.");
-		throw Xml_node::Nonexistent_attribute();
-	}
-	unsigned port = 0;
-	try { libc_node.attribute("server_port").value(&port); }
-	catch (...) {
-		error("Missing \"server_port\" attribute.");
-		throw Xml_node::Nonexistent_attribute();
-	}
 	log("Start the client loop ...");
 	for(int j = 0; j != 5; ++j) {
 		_timer.msleep(2000);
+		if((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+			error("No socket available!");
+			return -1;
+		}
+		enum { ADDR_STR_SZ = 16 };
+		char serv_addr[ADDR_STR_SZ] = { 0 };
+		Xml_node libc_node = config()->xml_node().sub_node("libc");
+		try { libc_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
+		catch(...) {
+			error("Missing \"server_ip\" attribute.");
+			throw Xml_node::Nonexistent_attribute();
+		}
+		unsigned port = 0;
+		try { libc_node.attribute("server_port").value(&port); }
+		catch (...) {
+			error("Missing \"server_port\" attribute.");
+			throw Xml_node::Nonexistent_attribute();
+		}
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;
 		socklen_t len = sizeof(addr);
