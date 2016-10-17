@@ -218,6 +218,8 @@ struct Net::Ipv4_address_prefix
 	bool valid() const { return address.valid(); }
 
 	void print(Genode::Output &output) const;
+
+	bool prefix_matches(Ipv4_address const &ip) const;
 };
 
 

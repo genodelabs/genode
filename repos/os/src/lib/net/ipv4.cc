@@ -16,19 +16,20 @@
 
 #include <net/ipv4.h>
 
+using namespace Genode;
 using namespace Net;
 
 struct Scanner_policy_number
 {
-		static bool identifier_char(char c, unsigned  i ) {
-			return Genode::is_digit(c) && c !='.'; }
+	static bool identifier_char(char c, unsigned  i ) {
+		return Genode::is_digit(c) && c !='.'; }
 };
-
-typedef ::Genode::Token<Scanner_policy_number> Token;
 
 
 Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 {
+	using Token = ::Genode::Token<Scanner_policy_number>;
+
 	Ipv4_address  ip_addr;
 	Token         t(ip);
 	char          tmpstr[4];
@@ -85,4 +86,19 @@ const Ipv4_address Ipv4_packet::BROADCAST((Genode::uint8_t)0xFF);
 void Ipv4_address_prefix::print(Genode::Output &output) const
 {
 	Genode::print(output, address, "/", prefix);
+}
+
+bool Ipv4_address_prefix::prefix_matches(Ipv4_address const &ip) const
+{
+	uint8_t prefix_left = prefix;
+	uint8_t byte = 0;
+	for (; prefix_left >= 8; prefix_left -= 8, byte++) {
+		if (ip.addr[byte] != address.addr[byte]) {
+			return false; }
+	}
+	if (prefix_left == 0) {
+		return true; }
+
+	uint8_t const mask = ~(0xff >> prefix_left);
+	return !((ip.addr[byte] ^ address.addr[byte]) & mask);
 }
