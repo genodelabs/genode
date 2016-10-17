@@ -246,12 +246,18 @@ namespace Libc_pipe {
 
 			case F_SETFL:
 				{
-					constexpr long supported_flags = O_NONBLOCK;
+					/*
+					 * O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_TRUNC, O_EXCL
+					 * are ignored
+					 */
+					constexpr long supported_flags = O_NONBLOCK
+						| O_RDONLY | O_WRONLY | O_RDWR
+						| O_CREAT | O_TRUNC | O_EXCL;
 
 					context(pipefdo)->set_nonblock(arg & O_NONBLOCK);
 
 					if ((arg & ~supported_flags) == 0)
-						break;
+						return 0;
 
 					/* unsupported flags present */
 
