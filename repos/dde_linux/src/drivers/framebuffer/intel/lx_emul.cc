@@ -188,7 +188,8 @@ void Framebuffer::Driver::update_mode()
 	}
 
 	if (old._lx.addr)  Lx::iounmap(old._lx.addr);
-	if (old._lx.lx_fb) old._lx.lx_fb->funcs->destroy(old._lx.lx_fb);
+	/* drm_crtc.h in drm_framebuffer_funcs definition: use drm_fb_remove */
+	if (old._lx.lx_fb) drm_framebuffer_remove(old._lx.lx_fb);
 }
 
 

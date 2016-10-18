@@ -193,5 +193,6 @@ PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
 
 # INTEL FB
 PATCH_OPT(patches/intel_fb_export_api.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
+PATCH_OPT(patches/intel_fb_drm_remove.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
 
 # vi: set ft=make :
