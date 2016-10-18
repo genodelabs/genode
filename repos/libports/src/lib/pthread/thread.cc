@@ -320,6 +320,57 @@ extern "C" {
 			return 0;
 		}
 
+		int trylock()
+		{
+			if (mutexattr.type == PTHREAD_MUTEX_RECURSIVE) {
+
+				Lock::Guard lock_guard(owner_and_counter_lock);
+
+				if (lock_count == 0) {
+					owner = pthread_self();
+					lock_count++;
+					mutex_lock.lock();
+					return 0;
+				}
+
+				/* the mutex is already locked */
+				if (pthread_self() == owner) {
+					lock_count++;
+					return 0;
+				} else {
+					return EBUSY;
+				}
+			}
+
+			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
+
+				Lock::Guard lock_guard(owner_and_counter_lock);
+
+				if (lock_count == 0) {
+					owner = pthread_self();
+					mutex_lock.lock();
+					return 0;
+				}
+
+				/* the mutex is already locked */
+				if (pthread_self() != owner) {
+					return EBUSY;
+				} else
+					return EDEADLK;
+			}
+
+			/* PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_DEFAULT */
+			Lock::Guard lock_guard(owner_and_counter_lock);
+
+			if (lock_count == 0) {
+				owner = pthread_self();
+				mutex_lock.lock();
+				return 0;
+			}
+
+			return EBUSY;
+		}
+
 		int unlock()
 		{
 
@@ -428,6 +479,18 @@ extern "C" {
 		(*mutex)->lock();
 
 		return 0;
+	}
+
+
+	int pthread_mutex_trylock(pthread_mutex_t *mutex)
+	{
+		if (!mutex)
+			return EINVAL;
+
+		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
+			pthread_mutex_init(mutex, 0);
+
+		return (*mutex)->trylock();
 	}
 
 
