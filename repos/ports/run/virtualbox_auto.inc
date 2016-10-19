@@ -25,6 +25,8 @@ lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
 lappend_if [have_spec x86]    build_components drivers/rtc
 lappend_if [expr $use_ram_fs || $use_usb] build_components server/ram_fs
+lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
+lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 # override defaults of platform_drv.inc
@@ -37,7 +39,14 @@ build $build_components
 create_boot_directory
 
 set config {
-<config verbose="yes" prio_levels="4">
+<config verbose="yes" prio_levels="4">}
+
+if {$use_vms > 1} {
+	append config "
+	<affinity-space width=\"${affinity_space_width}\" height=\"1\"/>"
+}
+
+append config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -51,6 +60,9 @@ set config {
 
 append_if [have_spec muen] config {
 		<service name="VM"/>}
+
+append_if [expr $use_cpu_load] config {
+		<service name="TRACE"/>}
 
 append config {
 	</parent-provides>
@@ -67,10 +79,6 @@ append config {
 		<config>
 			<policy label="part_blk" device="0"/>
 		</config>
-		<route>
-			<service name="IRQ"><child name="acpi_drv"/></service>
-			<any-service> <parent/> <any-child/></any-service>
-		</route>
 	</start>
 	<start name="part_blk" priority="-1">
 		<resource name="RAM" quantum="10M"/>
@@ -82,7 +90,7 @@ append config {
 append_if [expr $use_rumpfs] config {
 			<policy label="rump_fs" partition="4"/>}
 append_if [expr !$use_rumpfs] config {
-			<policy label="vbox -> raw" partition="3"/>}
+			<policy label="vbox1 -> raw" partition="3"/>}
 append config {
 		</config>
 	</start>}
@@ -91,7 +99,8 @@ append_if [expr $use_rumpfs] config {
 	<start name="rump_fs" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
-		<config fs="ext2fs">}
+		<config ld_verbose="yes" fs="ext2fs">}
+
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label="overlay_from_disk" root="/ram" writeable="yes"/>}
 append_if [expr $use_rumpfs] config {
@@ -103,18 +112,27 @@ append_if [expr $use_rumpfs] config {
 	</start>}
 
 append_if [expr $use_ram_fs] config {
-	<start name="ram_fs" priority="-1">
-		<resource name="RAM" quantum="512M"/>
+	<start name="ram_fs" priority="-1">}
+append_if [expr $use_ram_fs] config "
+		<resource name=\"RAM\" quantum=\"[expr $use_vms * 3 * 128]M\"/>"
+append_if [expr $use_ram_fs] config {
 		<provides><service name="File_system"/></provides>
 		<config>
-			<content>
-				<dir name="ram"> }
-append_if [expr $use_ram_fs] config "<rom name=\"${overlay_image}\"/>"
+			<content>}
+for { set i 1} { $i <= ${use_vms} } { incr i} {
+append_if [expr $use_ram_fs] config "
+				<dir name=\"ram${i}\">
+					<rom name=\"${overlay_image}\"/>
+				</dir>"
+}
 append_if [expr $use_ram_fs] config {
-				</dir>
 			</content>
-			<!-- constrain sessions according to their labels -->
-			<policy label="vbox -> from_ram_fs" root="/ram" writeable="yes"/>
+			<!-- constrain sessions according to their labels -->}
+for { set i 1} { $i <= ${use_vms} } { incr i} {
+append_if [expr $use_ram_fs] config "
+			<policy label=\"vbox${i} -> from_ram_fs\" root=\"/ram${i}\" writeable=\"yes\"/>"
+}
+append_if [expr $use_ram_fs] config {
 		</config>
 		<route>}
 append_if [expr $use_ram_fs && $use_overlay_from_disk] config "<service name=\"ROM\" label=\"${overlay_image}\">"
@@ -128,7 +146,7 @@ append_if [expr $use_ram_fs] config {
 append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 	<start name="overlay_from_disk" priority="-1">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="256M"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides><service name="ROM"/></provides>
 		<route>}
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
@@ -144,9 +162,31 @@ append_if [expr $use_ps2] config {
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
+		<config/>
+	</start>}
+
+append_if [expr $use_cpu_load] config {
+	<start name="trace_subject_reporter" priority="-1">
+		<resource name="RAM" quantum="6M"/>
+		<config period_ms="500">
+			<report activity="yes" affinity="yes"/>
+		</config>
 		<route>
-			<service name="IRQ"><child name="acpi_drv"/></service>
-			<any-service> <parent/> <any-child/></any-service>
+			<service name="TRACE"><parent/></service>
+			<service name="LOG"><parent/></service>
+			<service name="Timer"><child name="timer"/></service>
+			<service name="Report"><child name="report_rom"/></service>
+		</route>
+	</start>
+
+	<start name="cpu_load_display" priority="-1">
+		<resource name="RAM" quantum="6M"/>
+		<config/>
+		<route>
+			<service name="LOG"><parent/></service>
+			<service name="Timer"><child name="timer"/></service>
+			<service name="ROM" label="trace_subjects"><child name="report_rom"/></service>
+			<service name="Nitpicker"><child name="nitpicker"/></service>
 		</route>
 	</start>}
 
@@ -175,7 +215,7 @@ append_if [expr $use_usb] config {
 				<inline name="usb_report_filter.config">
 <config>
 	<!-- USB device whitelist -->
-	<client label="vbox"/>
+	<client label="vbox1"/>
 	<device vendor_id="0x13fe" product_id="0x5200"/> <!-- platinum stick -->
 	<device vendor_id="0x148f" product_id="0x2573"/> <!-- ralink wifi -->
 	<device vendor_id="0x1f75" product_id="0x0917"/> <!-- intenso stick -->
@@ -242,7 +282,6 @@ append_if [expr $use_usb] config {
 		</provides>
 		<configfile name="usb_drv.config"/>
 		<route>
-			<service name="IRQ"><child name="acpi_drv"/></service>
 			<service name="Report"><child name="report_rom"/></service>
 			<service name="ROM" label="usb_drv.config"><child name="usb_config_rom"/></service>
 			<any-service><parent/><any-child/></any-service>
@@ -289,6 +328,8 @@ lappend_if [expr $use_vbox4] boot_modules virtualbox
 lappend_if [expr $use_vbox5] boot_modules virtualbox5
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules ${overlay_image}
+lappend_if [expr    $use_cpu_load] boot_modules trace_subject_reporter
+lappend_if [expr    $use_cpu_load] boot_modules cpu_load_display
 
 # platform-specific modules
 lappend_if [expr         $use_ps2] boot_modules ps2_drv

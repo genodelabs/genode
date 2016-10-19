@@ -83,6 +83,9 @@ set use_rumpfs 1
 set use_usb 0
 set use_ps2 [have_spec ps2]
 
+set use_vms 1
+set use_cpu_load 0
+
 #
 # Create .bat file to be executed by Win VM
 #
