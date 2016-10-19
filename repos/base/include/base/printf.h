@@ -55,33 +55,10 @@ namespace Genode {
  * Suppress debug messages in release version
  */
 #ifdef GENODE_RELEASE
-#define DO_PDBG false
 #define DO_PWRN false
 #else
-#define DO_PDBG true
 #define DO_PWRN true
 #endif /* GENODE_RELEASE */
-
-/**
- * Print debug message with function name
- *
- * We're using heavy CPP wizardry here to prevent compiler errors after macro
- * expansion. Each macro works as follows:
- *
- * - Support one format string plus zero or more arguments.
- * - Put all static strings (including the format string) in the first argument
- *   of the call to printf() and let the compiler merge them.
- * - Append the function name (magic static string variable) as first argument.
- * - (Optionally) append the arguments to the macro with ", ##__VA_ARGS__". CPP
- *   only appends the comma and arguments if __VA__ARGS__ is not empty,
- *   otherwise nothing (not even the comma) is appended.
- */
-#define PDBG(fmt, ...) \
-	do { \
-		if (DO_PDBG) \
-			Genode::printf("%s: " ESC_DBG fmt ESC_END "\n", \
-			               __PRETTY_FUNCTION__, ##__VA_ARGS__ ); \
-	} while (0)
 
 /**
  * Print log message
