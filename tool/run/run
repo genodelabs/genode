@@ -737,7 +737,7 @@ proc generate_boot_modules_asm {path modules} {
 ##
 # Link core image containing given modules
 #
-proc build_core {lib modules target} {
+proc build_core {lib modules target link_address} {
 
 	# generate assembly code aggregating the modules data
 	set asm_src [generate_boot_modules_asm [run_dir]/genode $modules]
@@ -756,7 +756,7 @@ proc build_core {lib modules target} {
 	# link final image
 	exec [cross_dev_prefix]g++ {*}$arch -nostdlib {*}[core_ld_opts] \
 	                           -Wl,-z -Wl,max-page-size=0x1000 \
-	                           -Wl,-Ttext=[core_link_address] -Wl,-gc-sections \
+	                           -Wl,-Ttext=$link_address -Wl,-gc-sections \
 	                           -Wl,-nostdlib -Wl,--whole-archive -Wl,--start-group \
 	                           $lib [run_dir].boot_modules.o -Wl,--no-whole-archive \
 	                           -Wl,--end-group $libgcc -o $target
@@ -779,10 +779,10 @@ proc build_core_image {binaries} {
 	set core_obj core/[kernel_specific_binary core.o]
 
 	# create core binary without modules for debugging
-	build_core $core_obj {} [run_dir].core
+	build_core $core_obj {} [run_dir].core [core_link_address]
 
 	# create core binary containing the boot modules
-	build_core $core_obj $modules [run_dir]/image.elf
+	build_core $core_obj $modules [run_dir]/image.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
 	# remove individual binaries, which are now contained in 'image.elf'
