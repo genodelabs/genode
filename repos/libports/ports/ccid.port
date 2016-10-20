@@ -1,0 +1,7 @@
+LICENSE   := LGPL
+DOWNLOADS := ccid.archive
+VERSION   := 1.4.24
+
+URL(ccid) := https://alioth.debian.org/frs/download.php/file/4171/ccid-$(VERSION).tar.bz2
+SHA(ccid) := b01e975fd49e277b392b4ec43936ab24d4838e99
+DIR(ccid) := src/lib/ccid

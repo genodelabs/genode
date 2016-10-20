@@ -1,0 +1,22 @@
+Configuration:
+
+The CCID library loads the '/ifd-ccid.bundle/Contents/Info.plist" file, which
+can be made available from a ROM module in the VFS of the application:
+
+When the CCID library is built, it creates a file 'Info.plist' in the 'bin'
+directory, which contains information about the supported card readers.
+This file is loaded by the library at runtime as
+'/ifd-ccid.bundle/Contents/Info.plist' and can be made accessible at this
+location in the VFS configuration of the application:
+
+<config>
+	<libc>
+		<vfs>
+			<dir name="ifd-ccid.bundle">
+				<dir name="Contents">
+					<rom name="Info.plist"/>
+				</dir>
+			</dir>
+		</vfs>
+	</libc>
+</config>
