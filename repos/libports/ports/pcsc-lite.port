@@ -1,0 +1,13 @@
+LICENSE   := LGPL
+DOWNLOADS := pcsc-lite.archive
+VERSION   := 1.8.18
+
+URL(pcsc-lite) := https://alioth.debian.org/frs/download.php/file/4179/pcsc-lite-$(VERSION).tar.bz2
+SHA(pcsc-lite) := 2a2552f7196457f5750efad1b29affd0a9620890
+DIR(pcsc-lite) := src/lib/pcsc-lite
+
+DIRS := include/PCSC
+DIR_CONTENT(include/PCSC) := $(addprefix src/lib/pcsc-lite/src/PCSC/,debuglog.h ifdhandler.h pcsclite.h reader.h winscard.h wintypes.h)
+
+PATCHES := src/lib/pcsc-lite/pcsc-lite.patch
+PATCH_OPT := -p1 -d src/lib/pcsc-lite

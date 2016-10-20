@@ -1,0 +1,124 @@
+#
+# Smartcard test
+#
+# NOTE: The vendor id and product id of the USB card reader to be used must be
+#       configured for the application and for the USB driver.
+#
+
+if { [have_include "power_on/qemu"] || [have_spec linux] } {
+	puts "Run script does not support Qemu or Linux"
+	exit 0
+}
+
+if { [get_cmd_switch --autopilot] && ![have_spec x86] } {
+	puts "Run script is only supported in autopilot mode on x86 platforms"
+	exit 0
+}
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/usb
+	test/smartcard
+}
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="16M"/>
+		<provides><service name="Usb"/></provides>
+		<config uhci="yes" ehci="yes" xhci="yes" bios_handoff="no">
+			<raw>
+				<policy label="test-smartcard -> usb_device" vendor_id="0x04e6" product_id="0x5116"/>
+			</raw>
+		</config>
+	</start>
+	<start name="test-smartcard">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<dir name="ifd-ccid.bundle">
+						<dir name="Contents">
+							<rom name="Info.plist"/>
+						</dir>
+					</dir>
+					<inline name="config.pcsc-lite">
+						<config vendor_id="0x04e6" product_id="0x5116"/>
+					</inline>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer usb_drv test-smartcard
+	ld.lib.so pcsc-lite.lib.so ccid.lib.so libusb.lib.so
+	libc.lib.so libc_pipe.lib.so pthread.lib.so
+	Info.plist
+}
+
+lappend_if [have_spec gpio]             boot_modules gpio_drv
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+run_genode_until { Response: 62 0A 82 01 38 83 02 3F 00 8A 01 05 90 00} 30
+
+exec rm bin/Info.plist

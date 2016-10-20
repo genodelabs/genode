@@ -72,3 +72,4 @@ fs_log
 cpu_sampler
 cpu_sampler_noux
 usb_hid
+smartcard

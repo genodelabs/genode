@@ -1,0 +1,12 @@
+The USB card reader to be used by an application must be configured with its
+vendor id and product id in a file '/config.pcsc-lite':
+
+<config>
+	<libc>
+		<vfs>
+			<inline name="config.pcsc-lite">
+				<config vendor_id="0xXXXX" product_id="0xXXXX"/>
+			</inline>
+		</vfs>
+	</libc>
+</config>

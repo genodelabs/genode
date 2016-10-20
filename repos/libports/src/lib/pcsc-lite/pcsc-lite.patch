@@ -1,0 +1,760 @@
+pcsc-lite.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/debug.c         |    3 
+ src/readerfactory.c |    2 
+ src/winscard_clnt.c |  377 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 374 insertions(+), 8 deletions(-)
+
+diff --git a/src/debug.c b/src/debug.c
+index d2fb5bf..1f6bccc 100644
+--- a/src/debug.c
++++ b/src/debug.c
+@@ -101,6 +101,7 @@ static void log_init(void)
+ 	}
+ } /* log_init */
+ 
++#ifndef GENODE
+ void log_msg(const int priority, const char *fmt, ...)
+ {
+ 	char DebugBuffer[DEBUG_BUF_SIZE];
+@@ -150,6 +151,6 @@ void log_msg(const int priority, const char *fmt, ...)
+ 			fprintf(stderr, "%s\n", DebugBuffer);
+ 	}
+ } /* log_msg */
+-
++#endif
+ #endif
+ 
+diff --git a/src/readerfactory.c b/src/readerfactory.c
+index 4f97892..3bec158 100644
+--- a/src/readerfactory.c
++++ b/src/readerfactory.c
+@@ -1399,7 +1399,7 @@ void RFCleanupReaders(void)
+  * Wait until all connected readers have a chance to power up a possibly
+  * inserted card.
+  */
+-#ifdef USE_USB
++#if defined(USE_USB) || defined(GENODE)
+ void RFWaitForReaderInit(void)
+ {
+ 	int i, need_to_wait;
+diff --git a/src/winscard_clnt.c b/src/winscard_clnt.c
+index 94d4cf5..bf18c7c 100644
+--- a/src/winscard_clnt.c
++++ b/src/winscard_clnt.c
+@@ -113,6 +113,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ #include <sys/time.h>
+ #include <pthread.h>
+ #include <sys/wait.h>
++#include <stdio.h>
+ 
+ #include "misc.h"
+ #include "pcscd.h"
+@@ -143,6 +144,52 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+ static char sharing_shall_block = TRUE;
+ 
++#ifdef GENODE
++
++static int event_pipe[2];
++
++extern void initialize_pcsc_lite();
++
++LONG MSGSignalClient(uint32_t filedes, LONG rv)
++{
++	ssize_t bytes_written = write(filedes, &rv, sizeof(rv));
++
++	if (bytes_written == sizeof(rv))
++		return SCARD_S_SUCCESS;
++	else
++		return SCARD_F_UNKNOWN_ERROR;
++}
++
++extern LONG SCardEstablishContextImpl(DWORD dwScope, LPCVOID pvReserved1,
++                                      LPCVOID pvReserved2,
++                                      LPSCARDCONTEXT phContext);
++extern LONG SCardReleaseContextImpl(SCARDCONTEXT hContext);
++extern LONG SCardConnectImpl(SCARDCONTEXT hContext, LPCSTR szReader,
++                             DWORD dwShareMode, DWORD dwPreferredProtocols,
++                             LPSCARDHANDLE phCard, LPDWORD pdwActiveProtocol);
++extern LONG SCardReconnectImpl(SCARDHANDLE hCard, DWORD dwShareMode,
++                               DWORD dwPreferredProtocols, DWORD dwInitialization,
++                               LPDWORD pdwActiveProtocol);
++extern LONG SCardDisconnectImpl(SCARDHANDLE hCard, DWORD dwDisposition);
++extern LONG SCardBeginTransactionImpl(SCARDHANDLE hCard);
++extern LONG SCardEndTransactionImpl(SCARDHANDLE hCard, DWORD dwDisposition);
++extern LONG SCardStatusImpl(SCARDHANDLE hCard, LPSTR szReaderNames,
++                            LPDWORD pcchReaderLen, LPDWORD pdwState,
++                            LPDWORD pdwProtocol, LPBYTE pbAtr, LPDWORD pcbAtrLen);
++extern LONG SCardControlImpl(SCARDHANDLE hCard, DWORD dwControlCode,
++                             LPCVOID pbSendBuffer, DWORD cbSendLength,
++                             LPVOID pbRecvBuffer, DWORD cbRecvLength, LPDWORD lpBytesReturned);
++extern LONG SCardGetAttribImpl(SCARDHANDLE hCard, DWORD dwAttrId, LPBYTE pbAttr,
++                               LPDWORD pcbAttrLen);
++extern LONG SCardSetAttribImpl(SCARDHANDLE hCard, DWORD dwAttrId, LPCBYTE pbAttr,
++                               DWORD cbAttrLen);
++extern LONG SCardTransmitImpl(SCARDHANDLE hCard,
++                              const SCARD_IO_REQUEST *pioSendPci,
++                              LPCBYTE pbSendBuffer, DWORD cbSendLength,
++                              SCARD_IO_REQUEST *pioRecvPci, LPBYTE pbRecvBuffer,
++                              LPDWORD pcbRecvLength);
++#endif
++
+ #define COLOR_RED "\33[01;31m"
+ #define COLOR_GREEN "\33[32m"
+ #define COLOR_BLUE "\33[34m"
+@@ -355,7 +402,11 @@ static pthread_mutex_t clientMutex = PTHREAD_MUTEX_INITIALIZER;
+ /**
+  * Area used to read status information about the readers.
+  */
++#ifndef GENODE
+ static READER_STATE readerStates[PCSCLITE_MAX_READERS_CONTEXTS];
++#else
++extern READER_STATE readerStates[PCSCLITE_MAX_READERS_CONTEXTS];
++#endif
+ 
+ /** Protocol Control Information for T=0 */
+ PCSC_API const SCARD_IO_REQUEST g_rgSCardT0Pci = { SCARD_PROTOCOL_T0, sizeof(SCARD_IO_REQUEST) };
+@@ -451,17 +502,22 @@ LONG SCardEstablishContext(DWORD dwScope, LPCVOID pvReserved1,
+ 	API_TRACE_IN("%ld, %p, %p", dwScope, pvReserved1, pvReserved2)
+ 	PROFILE_START
+ 
++#ifndef GENODE
+ 	/* Check if the server is running */
+ 	rv = SCardCheckDaemonAvailability();
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#endif
+ 
+ 	(void)SCardLockThread();
+ 	rv = SCardEstablishContextTH(dwScope, pvReserved1,
+ 		pvReserved2, phContext);
+ 	(void)SCardUnlockThread();
+ 
++#ifndef GENODE
+ end:
++#endif
++
+ 	PROFILE_END(rv)
+ 	API_TRACE_OUT("%ld", *phContext)
+ 
+@@ -548,7 +604,7 @@ static LONG SCardEstablishContextTH(DWORD dwScope,
+ 		isExecuted = 1;
+ 	}
+ 
+-
++#ifndef GENODE
+ 	/* Establishes a connection to the server */
+ 	if (ClientSetupSession(&dwClientID) != 0)
+ 	{
+@@ -582,6 +638,17 @@ static LONG SCardEstablishContextTH(DWORD dwScope,
+ 		if (veStr.rv != SCARD_S_SUCCESS)
+ 			return veStr.rv;
+ 	}
++#else
++
++	initialize_pcsc_lite();
++
++	rv = pipe(event_pipe);
++	if (rv < 0) {
++		fprintf(stderr, "Could not create pipe\n");
++		return rv;
++	}
++
++#endif
+ 
+ again:
+ 	/*
+@@ -591,6 +658,7 @@ again:
+ 	scEstablishStruct.hContext = 0;
+ 	scEstablishStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_ESTABLISH_CONTEXT, dwClientID,
+ 		sizeof(scEstablishStruct), (void *) &scEstablishStruct);
+ 
+@@ -605,6 +673,21 @@ again:
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		return rv;
++#else
++
++	struct establish_struct esStr;
++	SCARDCONTEXT hContext;
++
++	esStr = scEstablishStruct;
++
++	hContext = esStr.hContext;
++	esStr.rv = SCardEstablishContextImpl(esStr.dwScope, 0, 0,
++		&hContext);
++	esStr.hContext = hContext;
++
++	scEstablishStruct = esStr;
++
++#endif
+ 
+ 	if (scEstablishStruct.rv != SCARD_S_SUCCESS)
+ 		return scEstablishStruct.rv;
+@@ -669,6 +752,7 @@ LONG SCardReleaseContext(SCARDCONTEXT hContext)
+ 	scReleaseStruct.hContext = hContext;
+ 	scReleaseStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_RELEASE_CONTEXT,
+ 		currentContextMap->dwClientID,
+ 		sizeof(scReleaseStruct), (void *) &scReleaseStruct);
+@@ -684,9 +768,23 @@ LONG SCardReleaseContext(SCARDCONTEXT hContext)
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct release_struct reStr;
++
++	reStr = scReleaseStruct;
++
++	reStr.rv = SCardReleaseContextImpl(reStr.hContext);
++
++	scReleaseStruct = reStr;
++
++#endif
+ 
+ 	rv = scReleaseStruct.rv;
++
++#ifndef GENODE
+ end:
++#endif
+ 	(void)pthread_mutex_unlock(&currentContextMap->mMutex);
+ 
+ 	/*
+@@ -805,6 +903,8 @@ LONG SCardConnect(SCARDCONTEXT hContext, LPCSTR szReader,
+ 	scConnectStruct.dwActiveProtocol = 0;
+ 	scConnectStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
++
+ 	rv = MessageSendWithHeader(SCARD_CONNECT, currentContextMap->dwClientID,
+ 		sizeof(scConnectStruct), (void *) &scConnectStruct);
+ 
+@@ -820,6 +920,29 @@ LONG SCardConnect(SCARDCONTEXT hContext, LPCSTR szReader,
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
+ 
++#else
++
++	struct connect_struct coStr;
++	SCARDHANDLE hCard;
++	DWORD dwActiveProtocol;
++
++	coStr = scConnectStruct;
++
++	coStr.szReader[sizeof(coStr.szReader)-1] = 0;
++	hCard = coStr.hCard;
++	dwActiveProtocol = coStr.dwActiveProtocol;
++
++	coStr.rv = SCardConnectImpl(coStr.hContext, coStr.szReader,
++		coStr.dwShareMode, coStr.dwPreferredProtocols,
++		&hCard, &dwActiveProtocol);
++
++	coStr.hCard = hCard;
++	coStr.dwActiveProtocol = dwActiveProtocol;
++
++	scConnectStruct = coStr;
++
++#endif
++
+ 	*phCard = scConnectStruct.hCard;
+ 	*pdwActiveProtocol = scConnectStruct.dwActiveProtocol;
+ 
+@@ -833,7 +956,10 @@ LONG SCardConnect(SCARDCONTEXT hContext, LPCSTR szReader,
+ 	else
+ 		rv = scConnectStruct.rv;
+ 
++#ifndef GENODE
+ end:
++#endif
++
+ 	(void)pthread_mutex_unlock(&currentContextMap->mMutex);
+ 
+ 	PROFILE_END(rv)
+@@ -948,6 +1074,7 @@ retry:
+ 	scReconnectStruct.dwActiveProtocol = *pdwActiveProtocol;
+ 	scReconnectStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_RECONNECT, currentContextMap->dwClientID,
+ 		sizeof(scReconnectStruct), (void *) &scReconnectStruct);
+ 
+@@ -962,6 +1089,21 @@ retry:
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct reconnect_struct rcStr;
++	DWORD dwActiveProtocol;
++
++	rcStr = scReconnectStruct;
++
++	rcStr.rv = SCardReconnectImpl(rcStr.hCard, rcStr.dwShareMode,
++		rcStr.dwPreferredProtocols, rcStr.dwInitialization,
++		&dwActiveProtocol);
++	rcStr.dwActiveProtocol = dwActiveProtocol;
++
++	scReconnectStruct = rcStr;
++
++#endif
+ 
+ 	rv = scReconnectStruct.rv;
+ 
+@@ -974,7 +1116,9 @@ retry:
+ 
+ 	*pdwActiveProtocol = scReconnectStruct.dwActiveProtocol;
+ 
++#ifndef GENODE
+ end:
++#endif
+ 	(void)pthread_mutex_unlock(&currentContextMap->mMutex);
+ 
+ 	PROFILE_END(rv)
+@@ -1039,6 +1183,7 @@ LONG SCardDisconnect(SCARDHANDLE hCard, DWORD dwDisposition)
+ 	scDisconnectStruct.dwDisposition = dwDisposition;
+ 	scDisconnectStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_DISCONNECT, currentContextMap->dwClientID,
+ 		sizeof(scDisconnectStruct), (void *) &scDisconnectStruct);
+ 
+@@ -1053,12 +1198,25 @@ LONG SCardDisconnect(SCARDHANDLE hCard, DWORD dwDisposition)
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct disconnect_struct diStr;
++
++	diStr = scDisconnectStruct;
++
++	diStr.rv = SCardDisconnectImpl(diStr.hCard, diStr.dwDisposition);
++
++	scDisconnectStruct = diStr;
++
++#endif
+ 
+ 	if (SCARD_S_SUCCESS == scDisconnectStruct.rv)
+ 		(void)SCardRemoveHandle(hCard);
+ 	rv = scDisconnectStruct.rv;
+ 
++#ifndef GENODE
+ end:
++#endif
+ 	(void)pthread_mutex_unlock(&currentContextMap->mMutex);
+ 
+ error:
+@@ -1132,6 +1290,7 @@ LONG SCardBeginTransaction(SCARDHANDLE hCard)
+ 		scBeginStruct.hCard = hCard;
+ 		scBeginStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 		rv = MessageSendWithHeader(SCARD_BEGIN_TRANSACTION,
+ 			currentContextMap->dwClientID,
+ 			sizeof(scBeginStruct), (void *) &scBeginStruct);
+@@ -1147,6 +1306,17 @@ LONG SCardBeginTransaction(SCARDHANDLE hCard)
+ 
+ 		if (rv != SCARD_S_SUCCESS)
+ 			break;
++#else
++
++		struct begin_struct beStr;
++
++		beStr = scBeginStruct;
++
++		beStr.rv = SCardBeginTransactionImpl(beStr.hCard);
++
++		scBeginStruct = beStr;
++
++#endif
+ 
+ 		rv = scBeginStruct.rv;
+ 
+@@ -1227,6 +1397,7 @@ LONG SCardEndTransaction(SCARDHANDLE hCard, DWORD dwDisposition)
+ 	scEndStruct.dwDisposition = dwDisposition;
+ 	scEndStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_END_TRANSACTION,
+ 		currentContextMap->dwClientID,
+ 		sizeof(scEndStruct), (void *) &scEndStruct);
+@@ -1242,6 +1413,18 @@ LONG SCardEndTransaction(SCARDHANDLE hCard, DWORD dwDisposition)
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct end_struct enStr;
++
++	enStr = scEndStruct;
++
++	enStr.rv = SCardEndTransactionImpl(enStr.hCard,
++		enStr.dwDisposition);
++
++	scEndStruct = enStr;
++
++#endif
+ 
+ 	/*
+ 	 * This helps prevent starvation
+@@ -1250,7 +1433,9 @@ LONG SCardEndTransaction(SCARDHANDLE hCard, DWORD dwDisposition)
+ 	(void)SYS_USleep(randnum);
+ 	rv = scEndStruct.rv;
+ 
++#ifndef GENODE
+ end:
++#endif
+ 	(void)pthread_mutex_unlock(&currentContextMap->mMutex);
+ 
+ 	PROFILE_END(rv)
+@@ -1426,6 +1611,7 @@ retry:
+ 	memset(&scStatusStruct, 0, sizeof(scStatusStruct));
+ 	scStatusStruct.hCard = hCard;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_STATUS, currentContextMap->dwClientID,
+ 		sizeof(scStatusStruct), (void *) &scStatusStruct);
+ 
+@@ -1440,6 +1626,19 @@ retry:
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct status_struct stStr;
++
++	stStr = scStatusStruct;
++
++	/* only hCard and return value are used by the client */
++	stStr.rv = SCardStatusImpl(stStr.hCard, NULL, NULL, NULL,
++		NULL, 0, NULL);
++
++	scStatusStruct = stStr;
++
++#endif
+ 
+ 	rv = scStatusStruct.rv;
+ 
+@@ -2036,7 +2235,7 @@ LONG SCardGetStatusChange(SCARDCONTEXT hContext, DWORD dwTimeout,
+ 
+ 				/* another thread can do SCardCancel() */
+ 				currentContextMap->cancellable = TRUE;
+-
++#ifndef GENODE
+ 				rv = MessageSendWithHeader(CMD_WAIT_READER_STATE_CHANGE,
+ 					currentContextMap->dwClientID,
+ 					sizeof(waitStatusStruct), &waitStatusStruct);
+@@ -2050,13 +2249,45 @@ LONG SCardGetStatusChange(SCARDCONTEXT hContext, DWORD dwTimeout,
+ 				rv = MessageReceiveTimeout(CMD_WAIT_READER_STATE_CHANGE,
+ 					&waitStatusStruct, sizeof(waitStatusStruct),
+ 					currentContextMap->dwClientID, dwTime);
++#else
++
++				EHRegisterClientForEvent(event_pipe[1]);
++
++				fd_set readfds;
++				struct timeval timeout;
+ 
++				timeout.tv_sec = dwTime / 1000;
++				timeout.tv_usec = (dwTime % 1000) * 1000;
++
++				FD_ZERO(&readfds);
++				FD_SET(event_pipe[0], &readfds);
++
++				rv = select(event_pipe[0] + 1, &readfds, NULL, NULL, &timeout);
++
++				if ((rv > 0) && (FD_ISSET(event_pipe[0], &readfds))) {
++					/* got an event */
++					rv = read(event_pipe[0], &waitStatusStruct.rv, sizeof(waitStatusStruct.rv));
++					if (rv == sizeof(waitStatusStruct.rv)) {
++						rv = SCARD_S_SUCCESS;
++					} else {
++						fprintf(stderr, "Error reading event from pipe\n");
++						rv = SCARD_F_UNKNOWN_ERROR;
++					}
++				} else if (rv == 0) {
++					/* timeout */
++					rv = SCARD_E_TIMEOUT;
++				} else {
++					rv = SCARD_F_UNKNOWN_ERROR;
++				}
++
++#endif
+ 				/* another thread can do SCardCancel() */
+ 				currentContextMap->cancellable = FALSE;
+ 
+ 				/* timeout */
+ 				if (SCARD_E_TIMEOUT == rv)
+ 				{
++#ifndef GENODE
+ 					/* ask server to remove us from the event list */
+ 					rv = MessageSendWithHeader(CMD_STOP_WAITING_READER_STATE_CHANGE,
+ 						currentContextMap->dwClientID,
+@@ -2072,6 +2303,18 @@ LONG SCardGetStatusChange(SCARDCONTEXT hContext, DWORD dwTimeout,
+ 
+ 					if (rv != SCARD_S_SUCCESS)
+ 						goto end;
++#else
++
++					struct wait_reader_state_change waStr;
++
++					waStr = waitStatusStruct;
++
++					/* add the client fd to the list */
++					waStr.rv = EHUnregisterClientForEvent(event_pipe[1]);
++
++					waitStatusStruct = waStr;
++
++#endif
+ 				}
+ 
+ 				if (rv != SCARD_S_SUCCESS)
+@@ -2222,6 +2465,7 @@ LONG SCardControl(SCARDHANDLE hCard, DWORD dwControlCode, LPCVOID pbSendBuffer,
+ 	scControlStruct.dwBytesReturned = 0;
+ 	scControlStruct.rv = 0;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_CONTROL, currentContextMap->dwClientID,
+ 		sizeof(scControlStruct), &scControlStruct);
+ 
+@@ -2255,6 +2499,26 @@ LONG SCardControl(SCARDHANDLE hCard, DWORD dwControlCode, LPCVOID pbSendBuffer,
+ 
+ 	}
+ 
++#else
++
++	struct control_struct ctStr;
++	DWORD dwBytesReturned;
++
++	ctStr = scControlStruct;
++
++	dwBytesReturned = ctStr.dwBytesReturned;
++
++	ctStr.rv = SCardControlImpl(ctStr.hCard, ctStr.dwControlCode,
++		pbSendBuffer, ctStr.cbSendLength,
++		pbRecvBuffer, ctStr.cbRecvLength,
++		&dwBytesReturned);
++
++	ctStr.dwBytesReturned = dwBytesReturned;
++
++	scControlStruct = ctStr;
++
++#endif
++
+ 	if (NULL != lpBytesReturned)
+ 		*lpBytesReturned = scControlStruct.dwBytesReturned;
+ 
+@@ -2519,6 +2783,7 @@ static LONG SCardGetSetAttrib(SCARDHANDLE hCard, int command, DWORD dwAttrId,
+ 		/* we can get up to the communication buffer size */
+ 		scGetSetStruct.cbAttrLen = sizeof scGetSetStruct.pbAttr;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(command, currentContextMap->dwClientID,
+ 		sizeof(scGetSetStruct), &scGetSetStruct);
+ 
+@@ -2533,6 +2798,38 @@ static LONG SCardGetSetAttrib(SCARDHANDLE hCard, int command, DWORD dwAttrId,
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	if (command == SCARD_GET_ATTRIB) {
++
++		struct getset_struct gsStr;
++		DWORD cbAttrLen;
++
++		gsStr = scGetSetStruct;
++
++		cbAttrLen = gsStr.cbAttrLen;
++
++		gsStr.rv = SCardGetAttribImpl(gsStr.hCard, gsStr.dwAttrId,
++			gsStr.pbAttr, &cbAttrLen);
++
++		gsStr.cbAttrLen = cbAttrLen;
++
++		scGetSetStruct = gsStr;
++
++	} else if (command == SCARD_SET_ATTRIB) {
++
++		struct getset_struct gsStr;
++
++		gsStr = scGetSetStruct;
++
++		gsStr.rv = SCardSetAttribImpl(gsStr.hCard, gsStr.dwAttrId,
++			gsStr.pbAttr, gsStr.cbAttrLen);
++
++		scGetSetStruct = gsStr;
++
++	}
++
++#endif
+ 
+ 	if ((SCARD_S_SUCCESS == scGetSetStruct.rv) && (SCARD_GET_ATTRIB == command))
+ 	{
+@@ -2679,6 +2976,7 @@ retry:
+ 		scTransmitStruct.ioRecvPciLength = sizeof(SCARD_IO_REQUEST);
+ 	}
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_TRANSMIT, currentContextMap->dwClientID,
+ 		sizeof(scTransmitStruct), (void *) &scTransmitStruct);
+ 
+@@ -2700,16 +2998,51 @@ retry:
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct transmit_struct trStr;
++	SCARD_IO_REQUEST ioSendPci;
++	SCARD_IO_REQUEST ioRecvPci;
++	DWORD cbRecvLength;
++
++	trStr = scTransmitStruct;
++
++	ioSendPci.dwProtocol = trStr.ioSendPciProtocol;
++	ioSendPci.cbPciLength = trStr.ioSendPciLength;
++	ioRecvPci.dwProtocol = trStr.ioRecvPciProtocol;
++	ioRecvPci.cbPciLength = trStr.ioRecvPciLength;
++	cbRecvLength = *pcbRecvLength;
++
++	trStr.rv = SCardTransmitImpl(trStr.hCard, &ioSendPci,
++		pbSendBuffer, trStr.cbSendLength, &ioRecvPci,
++		pbRecvBuffer, &cbRecvLength);
++
++	if (cbRecvLength > trStr.pcbRecvLength)
++		/* The client buffer is not large enough.
++		 * The pbRecvBuffer buffer will NOT be sent a few
++		 * lines bellow. So no buffer overflow is expected. */
++		trStr.rv = SCARD_E_INSUFFICIENT_BUFFER;
++
++	trStr.ioSendPciProtocol = ioSendPci.dwProtocol;
++	trStr.ioSendPciLength = ioSendPci.cbPciLength;
++	trStr.ioRecvPciProtocol = ioRecvPci.dwProtocol;
++	trStr.ioRecvPciLength = ioRecvPci.cbPciLength;
++	trStr.pcbRecvLength = cbRecvLength;
++
++	scTransmitStruct = trStr;
++
++#endif
+ 
+ 	if (SCARD_S_SUCCESS == scTransmitStruct.rv)
+ 	{
++#ifndef GENODE
+ 		/* read the received buffer */
+ 		rv = MessageReceive(pbRecvBuffer, scTransmitStruct.pcbRecvLength,
+ 			currentContextMap->dwClientID);
+ 
+ 		if (rv != SCARD_S_SUCCESS)
+ 			goto end;
+-
++#endif
+ 		if (pioRecvPci)
+ 		{
+ 			pioRecvPci->dwProtocol = scTransmitStruct.ioRecvPciProtocol;
+@@ -3070,7 +3403,9 @@ LONG SCardCancel(SCARDCONTEXT hContext)
+ {
+ 	SCONTEXTMAP * currentContextMap;
+ 	LONG rv = SCARD_S_SUCCESS;
++#ifndef GENODE
+ 	uint32_t dwClientID = 0;
++#endif
+ 	struct cancel_struct scCancelStruct;
+ 
+ 	PROFILE_START
+@@ -3092,16 +3427,18 @@ LONG SCardCancel(SCARDCONTEXT hContext)
+ 		goto error;
+ 	}
+ 
++#ifndef GENODE
+ 	/* create a new connection to the server */
+ 	if (ClientSetupSession(&dwClientID) != 0)
+ 	{
+ 		rv = SCARD_E_NO_SERVICE;
+ 		goto error;
+ 	}
+-
++#endif
+ 	scCancelStruct.hContext = hContext;
+ 	scCancelStruct.rv = SCARD_S_SUCCESS;
+ 
++#ifndef GENODE
+ 	rv = MessageSendWithHeader(SCARD_CANCEL, dwClientID,
+ 		sizeof(scCancelStruct), (void *) &scCancelStruct);
+ 
+@@ -3115,11 +3452,29 @@ LONG SCardCancel(SCARDCONTEXT hContext)
+ 
+ 	if (rv != SCARD_S_SUCCESS)
+ 		goto end;
++#else
++
++	struct cancel_struct caStr;
++
++	caStr = scCancelStruct;
++
++	uint32_t fd = event_pipe[1];
++	caStr.rv = MSGSignalClient(fd, SCARD_E_CANCELLED);
++
++	/* the client should not receive the event
++	 * notification now the waiting has been cancelled */
++	EHUnregisterClientForEvent(fd);
++
++	scCancelStruct = caStr;
++
++#endif
+ 
+ 	rv = scCancelStruct.rv;
++#ifndef GENODE
+ end:
+-	ClientCloseSession(dwClientID);
+ 
++	ClientCloseSession(dwClientID);
++#endif
+ error:
+ 	PROFILE_END(rv)
+ 	API_TRACE_OUT("")
+@@ -3314,7 +3669,12 @@ static LONG SCardCleanContext(SCONTEXTMAP * targetContextMap)
+ 	CHANNEL_MAP * currentChannelMap;
+ 
+ 	targetContextMap->hContext = 0;
++#ifndef GENODE
+ 	(void)ClientCloseSession(targetContextMap->dwClientID);
++#else
++	close(event_pipe[0]);
++	close(event_pipe[1]);
++#endif
+ 	targetContextMap->dwClientID = 0;
+ 	(void)pthread_mutex_destroy(&targetContextMap->mMutex);
+ 
+@@ -3490,6 +3850,7 @@ LONG SCardCheckDaemonAvailability(void)
+ 
+ static LONG getReaderStates(SCONTEXTMAP * currentContextMap)
+ {
++#ifndef GENODE
+ 	int32_t dwClientID = currentContextMap->dwClientID;
+ 	LONG rv;
+ 
+@@ -3501,7 +3862,11 @@ static LONG getReaderStates(SCONTEXTMAP * currentContextMap)
+ 	rv = MessageReceive(&readerStates, sizeof(readerStates), dwClientID);
+ 	if (rv != SCARD_S_SUCCESS)
+ 		return rv;
++#else
++
++	/* wait until all readers are ready */
++	RFWaitForReaderInit();
+ 
+ 	return SCARD_S_SUCCESS;
++#endif
+ }
+-
