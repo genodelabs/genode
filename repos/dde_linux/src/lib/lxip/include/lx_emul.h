@@ -3188,10 +3188,14 @@ static inline bool ipv4_is_loopback(__be32 addr)
 
 void get_random_bytes(void *buf, int nbytes);
 
-static inline void get_random_once(void *buf, int nbytes)
-{
-	return get_random_bytes(buf, nbytes);
-}
+#define get_random_once(buf, nbytes)           \
+	({                                         \
+		static bool initialized = false;       \
+		if (!initialized) {                    \
+			get_random_bytes((buf), (nbytes)); \
+			initialized = true;                \
+		}                                      \
+	})
 
 u32 prandom_u32(void);
 
