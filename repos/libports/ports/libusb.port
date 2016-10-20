@@ -1,0 +1,13 @@
+LICENSE   := LGPL
+DOWNLOADS := libusb.archive
+VERSION   := 1.0.20
+
+URL(libusb) := http://prdownloads.sourceforge.net/libusb/libusb-$(VERSION).tar.bz2
+SHA(libusb) := 9537243f165927bde74ad742e6b3effb0bd50cd2
+DIR(libusb) := src/lib/libusb
+
+DIRS := include/libusb
+DIR_CONTENT(include/libusb) := src/lib/libusb/libusb/libusb.h
+
+PATCHES := src/lib/libusb/libusb.patch
+PATCH_OPT := -p1 -d src/lib/libusb

@@ -1,0 +1,13 @@
+Currently, libusb supports a single USB device, which it requests from the USB
+driver with the 'usb_device' label.
+
+The policy of the USB driver configures the actual device to be provided to
+the application using libusb:
+
+<config>
+	<raw>
+		<policy label="application -> usb_device" vendor_id="0xXXXX" product_id="0xXXXX"/>
+	</raw>
+</config>
+
+See also the README file of the USB driver for additional policy attributes.
