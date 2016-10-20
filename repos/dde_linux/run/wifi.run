@@ -7,8 +7,7 @@ set build_components {
 	drivers/timer drivers/wifi
 	drivers/rtc
 	server/report_rom
-	server/ram_fs
-	server/fs_rom
+	server/dynamic_rom
 	test/lwip/http_srv
 	lib/vfs/jitterentropy
 }
@@ -60,55 +59,44 @@ set config {
 	</start>
 	<start name="report_rom">
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config> <rom/> </config>
-	</start>
-	<start name="config_fs">
-		<binary name="ram_fs"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<policy label="config_rom" root="/"/>
-			<policy label="wifi_drv -> config" root="/" writeable="yes"/>
-			<content>
-				<inline name="wlan_configuration">}
-append config "
-					<selected_network ssid=\"$::env(GENODE_WIFI_SSID)\" protection=\"WPA-PSK\" psk=\"$::env(GENODE_WIFI_PSK)\"/>"
-append config {
-				</inline>
-				<inline name="wpa_supplicant.conf"></inline>
-			</content>
-		</config>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config/>
 	</start>
 	<start name="config_rom">
-		<binary name="fs_rom"/>
+		<binary name="dynamic_rom"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"> <child name="config_fs" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
+		<config verbose="yes">
+			<rom name="wlan_configuration">
+				<inline description="DISCONNECT"> <selected_network/> </inline>
+				<sleep milliseconds="10000"/> <!-- 10 seconds -->
+				<inline description="CONNECT">}
+append config "<selected_network ssid=\"$::env(GENODE_WIFI_SSID)\" protection=\"WPA-PSK\" psk=\"$::env(GENODE_WIFI_PSK)\"/>"
+append config {
+				</inline>
+				<sleep milliseconds="300000"/> <!-- 5 minutes -->
+			</rom>
+		</config>
 	</start>
 	<start name="wifi_drv">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
-		<config ld_verbose="yes" verbose="yes">
+		<config ld_verbose="yes" verbose="yes" connected_scan_interval="30">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
 					<dir name="dev"> <log/> <rtc/>
 						<jitterentropy name="random"/>
 						<jitterentropy name="urandom"/>
 					</dir>
-					<dir name="config"> <fs label="config"/> </dir>
+					<dir name="config"> <ram/> </dir>
 				</vfs>
 			</libc>
 		</config>
 		<route>
-			<service name="Rtc"> <any-child /> </service>
-			<service name="File_system"> <child name="config_fs"/> </service>
+			<service name="Rtc"> <any-child/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM"> <if-arg key="label" value="wlan_configuration" /> <child name="config_rom" /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
+			<service name="ROM" label="wlan_configuration"> <child name="config_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
 
@@ -143,7 +131,7 @@ set firmware_modules {
 
 # generic modules
 set boot_modules {
-	core init timer rtc_drv ram_fs report_rom fs_rom
+	core init timer rtc_drv report_rom dynamic_rom
 	vfs_jitterentropy.lib.so
 	ld.lib.so
 	libc.lib.so libcrypto.lib.so libssl.lib.so

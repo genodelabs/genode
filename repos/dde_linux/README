@@ -197,14 +197,7 @@ Configuration snippet:
 !           <jitterentropy name="random"/>
 !           <jitterentropy name="urandom"/>
 !        </dir>
-!        <inline name="wpa_supplicant.conf">
-!network={
-!  id_str="foobar"
-!  ssid="foobar"
-!  key_mgmt=WPA-PSK
-!  psk="foobarfoobar"
-!}
-!        </inline>
+!        <dir name="config"> <ram/> </dir>
 !      </vfs>
 !    </libc>
 !  </config>
@@ -213,6 +206,17 @@ Configuration snippet:
 !    <any-service> <parent/> <any-child /> </any-service>
 !  </route>
 !</start
+
+Per default, the driver scans for available networks only when not
+connected. This can be changed with the 'connected_scan_interval'
+config attribute, which specifies the interval for connected scans in
+seconds, e.g.
+
+!<config connected_scan_interval="30">...</config>
+
+Also, the driver can be switched to verbose logging with
+
+!<config verbose="yes">...</config>
 
 The wifi_drv creates two distinct reports to communicate its state and
 information about the wireless infrastructure to other components. The

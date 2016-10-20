@@ -981,11 +981,9 @@ void __free_page_frag(void *addr)
 
 void __free_pages(struct page *page, unsigned int order)
 {
-	if (!atomic_dec_and_test(&page->_count)) {
-		Genode::warning("attempting to free page ", page, " with _count: ",
-		                atomic_read(&page->_count));
+	if (!atomic_dec_and_test(&page->_count))
+		/* reference counter did not drop to zero - do not free yet */
 		return;
-	}
 
 	Addr_to_page_mapping::remove(page);
 

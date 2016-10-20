@@ -30,14 +30,31 @@
 /* local includes */
 #include "includes.h"
 #include "common.h"
+#include "eloop.h"
 #include "wpa_supplicant_i.h"
+#include "driver_i.h"
+#include "scan.h"
 
 
 static char const *conf_file = "/config/wpa_supplicant.conf";
 
+static int connected_scan_interval;
 
-int wpa_main(int debug_msg)
+static void connected_scan_handler(void *eloop_ctx, void *user_ctx)
 {
+	struct wpa_supplicant *wpa_s = (struct wpa_supplicant *)eloop_ctx;
+
+	if (wpa_s->wpa_state >= WPA_ASSOCIATED)
+		wpa_supplicant_req_scan(wpa_s, 0, 0);
+
+	eloop_register_timeout(connected_scan_interval, 0, connected_scan_handler, wpa_s, 0);
+}
+
+
+int wpa_main(int debug_msg, int interval)
+{
+	connected_scan_interval = interval;
+
 	struct wpa_interface iface;
 	int exitcode = 0;
 	struct wpa_params params;
@@ -59,6 +76,10 @@ int wpa_main(int debug_msg)
 	if (wpa_supplicant_add_iface(global, &iface) == NULL)
 		exitcode = -1;
 
+	if (connected_scan_interval > 0)
+		eloop_register_timeout(connected_scan_interval, 0,
+		                       connected_scan_handler, global->ifaces, 0);
+
 	if (exitcode == 0)
 		exitcode = wpa_supplicant_run(global);
 
@@ -78,7 +99,7 @@ void wpa_conf_reload(void)
 
 int wpa_write_conf(char const *buffer, size_t len)
 {
-	int fd = open(conf_file, O_TRUNC|O_WRONLY);
+	int fd = open(conf_file, O_CREAT|O_TRUNC|O_WRONLY);
 	if (fd == -1)
 		return -1;
 

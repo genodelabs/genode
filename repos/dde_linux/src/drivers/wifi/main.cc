@@ -230,7 +230,8 @@ struct Main
 
 	Main(Genode::Env &env) : env(env)
 	{
-		bool const verbose = config_rom.xml().attribute_value("verbose", false);
+		bool const verbose  = config_rom.xml().attribute_value("verbose", false);
+		long const interval = config_rom.xml().attribute_value("connected_scan_interval", 0L);
 
 		/*
 		 * Forcefully disable 11n but for convenience the attribute is used the
@@ -238,7 +239,7 @@ struct Main
 		 */
 		bool const disable_11n = !config_rom.xml().attribute_value("use_11n", true);
 
-		wpa = new (&heap) Wpa_thread(env, wpa_startup_lock(), verbose);
+		wpa = new (&heap) Wpa_thread(env, wpa_startup_lock(), verbose, interval);
 
 		wpa->start();
 
