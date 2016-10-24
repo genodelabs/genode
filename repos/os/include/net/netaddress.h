@@ -80,6 +80,7 @@ struct Net::Network_address
 
 	bool operator!=(const Network_address &other) const {
 		return !(*this == other); }
-};
+}
+__attribute__((packed));
 
 #endif /* _NET__NETADDRESS_H_ */

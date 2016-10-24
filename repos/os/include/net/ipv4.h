@@ -43,7 +43,8 @@ struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
 	Ipv4_address(void *src) : Network_address(src) { }
 
 	bool valid() const { return *this != Ipv4_address(); }
-};
+}
+__attribute__((packed));
 
 
 /**
