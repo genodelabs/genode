@@ -70,6 +70,9 @@ class Block::Driver
 				if (ret) _dispatcher.dispatch(_cli, reply);
 				return ret;
 			}
+
+			bool same_dispatcher(Block_dispatcher &same) {
+				return &same == &_dispatcher; }
 	};
 
 	private:
@@ -151,6 +154,22 @@ class Block::Driver
 				               addr, size);
 
 			_session.tx()->submit_packet(p);
+		}
+
+		void remove_dispatcher(Block_dispatcher &dispatcher)
+		{
+			for (Request *r = _r_list.first(); r;) {
+				if (!r->same_dispatcher(dispatcher)) {
+					r = r->next();
+					continue;
+				}
+
+				Request *remove = r;
+				r = r->next();
+
+				_r_list.remove(remove);
+				Genode::destroy(&_r_slab, remove);
+			}
 		}
 };
 

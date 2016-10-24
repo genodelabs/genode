@@ -87,8 +87,10 @@ class Block::Session_component : public Block::Session_rpc_object,
 			try {
 				_driver.io(write, off, cnt, addr, *this, _p_to_handle);
 			} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-				_req_queue_full = true;
-				Session_component::wait_queue().insert(this);
+				if (!_req_queue_full) {
+					_req_queue_full = true;
+					Session_component::wait_queue().insert(this);
+				}
 			}
 		}
 
@@ -139,6 +141,15 @@ class Block::Session_component : public Block::Session_rpc_object,
 			_tx.sigh_packet_avail(_sink_submit);
 		}
 
+		~Session_component()
+		{
+			_driver.remove_dispatcher(*this);
+
+			if (_req_queue_full)
+				wait_queue().remove(this);
+		}
+
+		Ram_dataspace_capability const rq_ds() const { return _rq_ds; }
 		Partition *partition() { return _partition; }
 
 		void dispatch(Packet_descriptor &request, Packet_descriptor &reply)
@@ -165,7 +176,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 
 		static void wake_up()
 		{
-			for (Session_component *c = wait_queue().first(); c; c = c->next())
+			for (; Session_component *c = wait_queue().first();)
 			{
 				wait_queue().remove(c);
 				c->_req_queue_full = false;
@@ -204,10 +215,17 @@ class Block::Root :
 
 	protected:
 
+		void _destroy_session(Session_component *session) override
+		{
+			Ram_dataspace_capability rq_ds = session->rq_ds();
+			Genode::Root_component<Session_component>::_destroy_session(session);
+			_env.ram().free(rq_ds);
+		}
+
 		/**
 		 * Always returns the singleton block-session component
 		 */
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			long num = -1;
 
