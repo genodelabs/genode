@@ -87,6 +87,13 @@ class Genode::Sinfo
 		bool check_magic(void);
 
 		/*
+		 * Return subject name.
+		 *
+		 * The function returns NULL if the subject name cannot be retrieved.
+		 */
+		const char * const get_subject_name(void);
+
+		/*
 		 * Return information for a channel given by name.
 		 *
 		 * If no channel with given name exists, False is returned. The
@@ -173,6 +180,8 @@ class Genode::Sinfo
 	private:
 
 		subject_info_type * sinfo;
+		char subject_name[MAX_NAME_LENGTH + 1];
+		bool subject_name_set = false;
 
 		/*
 		 * Fill memregion struct with memory region info from resource given by

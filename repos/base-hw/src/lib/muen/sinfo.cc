@@ -121,6 +121,22 @@ bool Sinfo::check_magic(void)
 }
 
 
+const char * const Sinfo::get_subject_name(void)
+{
+	if (!check_magic())
+		return nullptr;
+
+	if (!subject_name_set)
+	{
+		memset(subject_name, 0, MAX_NAME_LENGTH + 1);
+		memcpy(subject_name, &sinfo->name.data, sinfo->name.length);
+		subject_name_set = true;
+	}
+
+	return subject_name;
+}
+
+
 bool Sinfo::get_channel_info(const char * const name,
                              struct Channel_info *channel)
 {
@@ -252,6 +268,8 @@ void Sinfo::log_status()
 		return;
 	}
 
+	Genode::log("muen-sinfo: Subject name is '",
+				Sinfo::get_subject_name(), "'");
 	Genode::log("muen-sinfo: Subject information exports ",
 	            sinfo->memregion_count, " memory region(s)");
 	for_each_memregion(log_memregion, 0);

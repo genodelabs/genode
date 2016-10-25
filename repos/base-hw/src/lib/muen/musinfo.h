@@ -72,6 +72,7 @@ struct dev_info_type {
 
 struct subject_info_type {
 	uint64_t magic;
+	struct name_type name;
 	uint8_t resource_count;
 	uint8_t memregion_count;
 	uint8_t channel_info_count;
