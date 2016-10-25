@@ -595,18 +595,6 @@ class Genode::String
 			}
 		};
 
-		template <typename... T>
-		void _init(T &&... args)
-		{
-			/* initialize string content */
-			Local_output output(_buf);
-			Genode::print(output, args...);
-
-			/* add terminating null */
-			_buf[output.num_chars()] = 0;
-			_len = output.num_chars() + 1;
-		}
-
 	public:
 
 		constexpr static size_t size() { return CAPACITY; }
@@ -616,6 +604,12 @@ class Genode::String
 		/**
 		 * Constructor
 		 *
+		 * The constructor accepts a non-zero number of arguments, which
+		 * are concatenated in the resulting 'String' object. In order to
+		 * generate the textual representation of the arguments, the
+		 * argument types must support the 'Output' interface, e.g., by
+		 * providing 'print' method.
+		 *
 		 * If the textual representation of the supplied arguments exceeds
 		 * 'CAPACITY', the resulting string gets truncated. The caller may
 		 * check for this condition by evaluating the 'length' of the
@@ -623,8 +617,17 @@ class Genode::String
 		 * may fit perfectly into the buffer or may have been truncated.
 		 * In general, it would be safe to assume the latter.
 		 */
-		template <typename T>
-		String(T const &arg) { _init(arg); }
+		template <typename T, typename... TAIL>
+		String(T const &arg, TAIL &&... args)
+		{
+			/* initialize string content */
+			Local_output output(_buf);
+			Genode::print(output, arg, args...);
+
+			/* add terminating null */
+			_buf[output.num_chars()] = 0;
+			_len = output.num_chars() + 1;
+		}
 
 		/**
 		 * Copy constructor

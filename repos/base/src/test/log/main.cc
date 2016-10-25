@@ -26,5 +26,9 @@ void Component::construct(Genode::Env &env)
 	log("invalid hex range:  ", Hex_range<uint8_t>(0xf8, 0x10));
 	log("negative hex char:  ", Hex((char)-2LL, Hex::PREFIX, Hex::PAD));
 	log("positive hex char:  ", Hex((char) 2LL, Hex::PREFIX, Hex::PAD));
+
+	typedef String<128> Label;
+	log("multiarg string:    ", Label(Char('"'), "parent -> child.", 7, Char('"')));
+
 	log("Test done.");
 }
