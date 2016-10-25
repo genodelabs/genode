@@ -187,15 +187,6 @@ size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 	if (!ds_cap.valid())
 		return Local_capability<Dataspace>::deref(ds_cap)->size();
 
-	/* use RPC if called from a different thread */
-	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Region_map_mmap::_lock during RPC */
-		_lock.unlock();
-		Genode::size_t size = Dataspace_client(ds_cap).size();
-		_lock.lock();
-		return size;
-	}
-
 	/* use local function call if called from the entrypoint */
 	return core_env()->entrypoint()->apply(ds_cap, [] (Dataspace *ds) {
 		return ds ? ds->size() : 0; });
@@ -204,15 +195,6 @@ size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 
 int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 {
-	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Region_map_mmap::_lock during RPC */
-		_lock.unlock();
-		Untyped_capability fd_cap = Linux_dataspace_client(ds_cap).fd();
-		int socket = Capability_space::ipc_cap_data(fd_cap).dst.socket;
-		_lock.lock();
-		return socket;
-	}
-
 	Capability<Linux_dataspace> lx_ds_cap = static_cap_cast<Linux_dataspace>(ds_cap);
 
 	/*
@@ -231,14 +213,6 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 
 bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {
-	if (!core_env()->entrypoint()->is_myself()) {
-		/* release Region_map_mmap::_lock during RPC */
-		_lock.unlock();
-		bool writable = Dataspace_client(ds_cap).writable();
-		_lock.lock();
-		return writable;
-	}
-
 	return core_env()->entrypoint()->apply(ds_cap, [] (Dataspace *ds) {
 		return ds ? ds->writable() : false; });
 }

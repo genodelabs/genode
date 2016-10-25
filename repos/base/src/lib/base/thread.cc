@@ -77,14 +77,6 @@ void Stack::size(size_t const size)
 Stack *
 Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 {
-	/*
-	 * Synchronize stack list when creating new threads from multiple threads
-	 *
-	 * XXX: remove interim fix
-	 */
-	static Lock alloc_lock;
-	Lock::Guard _lock_guard(alloc_lock);
-
 	/* allocate stack */
 	Stack *stack = Stack_allocator::stack_allocator().alloc(this, main_thread);
 	if (!stack)

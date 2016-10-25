@@ -35,7 +35,6 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 {
 	private:
 
-		Lock            _lock;    /* protect '_rmap' */
 		Region_registry _rmap;
 		bool      const _sub_rm;  /* false if region map is root */
 		size_t    const _size;
