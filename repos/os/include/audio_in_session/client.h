@@ -33,6 +33,7 @@ struct Audio_in::Signal
 	Genode::Signal_context_capability cap;
 
 	Signal() : cap(recv.manage(&context)) { }
+	~Signal() { recv.dissolve(&context); }
 
 	void wait() { recv.wait_for_signal(); }
 };
