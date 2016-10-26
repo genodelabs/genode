@@ -202,7 +202,17 @@ void Framebuffer::Driver::generate_report()
 		struct drm_connector *c;
 		list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
 		                    head)
-			if (list_empty(&c->modes)) c->funcs->fill_modes(c, 0, 0);
+		{
+			/*
+			 * All states unequal to disconnected are handled as connected,
+			 * since some displays stay in unknown state if not fill_modes()
+			 * is called at least one time.
+			 */
+			bool connected = c->status != connector_status_disconnected;
+			if ((connected && list_empty(&c->modes)) ||
+			    (!connected && !list_empty(&c->modes)))
+				c->funcs->fill_modes(c, 0, 0);
+		}
 	}
 
 	/* check for report configuration option */
