@@ -64,14 +64,7 @@ int try_module_get(struct module *);
  *************************/
 
 #define module_param(name, type, perm)
-
-/*
- * For our shenanigans to work we have to define charp (used by the
- * iwlwifi module).
- */
-#define charp char*
-#define module_param_named(name, value, type, perm) \
-	type *module_param_ ## name = &value;
+#define module_param_named(name, value, type, perm)
 
 #define module_param_unsafe(name, type, perm)
 #define module_param_named_unsafe(name, value, type, perm)

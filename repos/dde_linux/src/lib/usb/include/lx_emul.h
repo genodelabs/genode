@@ -509,8 +509,6 @@ int isprint(int);
  ** linux/moduleparam.h **
  *************************/
 
-#define module_param(name, type, perm)
-#define module_param_named(name, value, type, perm)
 #define module_param_array_named(name, array, type, nump, perm)
 #define module_param_string(name, string, len, perm)
 #define core_param(name, var, type, perm)
