@@ -2,7 +2,7 @@ LICENSE   := GPLv2
 VERSION   := 1.42.9
 DOWNLOADS := e2fsprogs.git
 
-URL(e2fsprogs) := https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
+URL(e2fsprogs) := http://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
 REV(e2fsprogs) := v$(VERSION)
 DIR(e2fsprogs) := src/noux-pkg/e2fsprogs
 
