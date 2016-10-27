@@ -49,16 +49,20 @@ class Vfs::Block_file_system : public Single_file_system
 		bool                        _readable;
 		bool                        _writeable;
 
+		Genode::Signal_receiver           _signal_receiver;
+		Genode::Signal_context            _signal_context;
+		Genode::Signal_context_capability _source_submit_cap;
+
 		file_size _block_io(file_size nr, void *buf, file_size sz,
 		                    bool write, bool bulk = false)
 		{
-			Lock::Guard guard(_lock);
-
 			Block::Packet_descriptor::Opcode op;
 			op = write ? Block::Packet_descriptor::WRITE : Block::Packet_descriptor::READ;
 
 			file_size packet_size  = bulk ? sz : _block_size;
 			file_size packet_count = bulk ? (sz / _block_size) : 1;
+
+			Block::Packet_descriptor packet;
 
 			/* sanity check */
 			if (packet_count > _block_buffer_count) {
@@ -66,8 +70,26 @@ class Vfs::Block_file_system : public Single_file_system
 				packet_count = _block_buffer_count;
 			}
 
-			Block::Packet_descriptor p(_tx_source->alloc_packet(packet_size), op,
-			                           nr, packet_count);
+			while (true) {
+				try {
+					Lock::Guard guard(_lock);
+
+					packet = _tx_source->alloc_packet(packet_size);
+					break;
+				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
+					if (!_tx_source->ready_to_submit())
+						_signal_receiver.wait_for_signal();
+					else {
+						if (packet_count > 1) {
+							packet_size  /= 2;
+							packet_count /= 2;
+						}
+					}
+				}
+			}
+			Lock::Guard guard(_lock);
+
+			Block::Packet_descriptor p(packet, op, nr, packet_count);
 
 			if (write)
 				Genode::memcpy(_tx_source->packet_content(p), buf, packet_size);
@@ -102,7 +124,8 @@ class Vfs::Block_file_system : public Single_file_system
 			_block(env, &_tx_block_alloc, 128*1024, _label.string()),
 			_tx_source(_block.tx()),
 			_readable(false),
-			_writeable(false)
+			_writeable(false),
+			_source_submit_cap(_signal_receiver.manage(&_signal_context))
 		{
 			try { config.attribute("block_buffer_count").value(&_block_buffer_count); }
 			catch (...) { }
@@ -113,10 +136,14 @@ class Vfs::Block_file_system : public Single_file_system
 			_writeable = _block_ops.supported(Block::Packet_descriptor::WRITE);
 
 			_block_buffer = new (_alloc) char[_block_buffer_count * _block_size];
+
+			_block.tx_channel()->sigh_ready_to_submit(_source_submit_cap);
 		}
 
 		~Block_file_system()
 		{
+			_signal_receiver.dissolve(&_signal_context);
+
 			destroy(_alloc, _block_buffer);
 		}
 
