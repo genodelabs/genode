@@ -545,6 +545,8 @@ class Genode::Cstring
 		{ }
 
 		void print(Output &out) const { out.out_string(_str, _len); }
+
+		size_t length() const { return _len; }
 };
 
 
@@ -627,6 +629,17 @@ class Genode::String
 			/* add terminating null */
 			_buf[output.num_chars()] = 0;
 			_len = output.num_chars() + 1;
+		}
+
+		/**
+		 * Constructor
+		 *
+		 * Overload for the common case of constructing a 'String' from a
+		 * string literal.
+		 */
+		String(char const *cstr) : _len(min(Genode::strlen(cstr) + 1, CAPACITY))
+		{
+			Genode::strncpy(_buf, cstr, _len);
 		}
 
 		/**
