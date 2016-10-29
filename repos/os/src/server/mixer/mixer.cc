@@ -17,7 +17,7 @@
  */
 
 /*
- * Copyright (C) 2009-2015 Genode Labs GmbH
+ * Copyright (C) 2009-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -25,17 +25,18 @@
 
 /* Genode includes */
 #include <mixer/channel.h>
-#include <os/config.h>
 #include <os/reporter.h>
-#include <os/server.h>
 #include <root/component.h>
 #include <util/retry.h>
 #include <util/string.h>
 #include <util/xml_node.h>
 #include <audio_out_session/connection.h>
 #include <audio_out_session/rpc_object.h>
-#include <cap_session/connection.h>
 #include <timer_session/connection.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
+#include <base/component.h>
+#include <base/log.h>
 
 
 static bool verbose = false;
@@ -138,17 +139,15 @@ class Audio_out::Mixer
 {
 	private:
 
-		/*
-		 * Signal handler
-		 */
-		Genode::Signal_rpc_member<Audio_out::Mixer> _dispatcher;
-		Genode::Signal_rpc_member<Audio_out::Mixer> _dispatcher_config;
+		Genode::Env &env;
+
+		Genode::Attached_rom_dataspace _config_rom { env, "config" };
 
 		/*
 		 * Mixer output Audio_out connection
 		 */
-		Connection  _left;
-		Connection  _right;
+		Connection  _left  { env, "left",  false, true };
+		Connection  _right { env, "right", false, true };;
 		Connection *_out[MAX_CHANNELS];
 		float       _out_volume[MAX_CHANNELS];
 
@@ -408,7 +407,7 @@ class Audio_out::Mixer
 		 * Handle progress signals from Audio_out session and data available signals
 		 * from each mixer client
 		 */
-		void _handle(unsigned)
+		void _handle()
 		{
 			_advance_position();
 			_mix();
@@ -443,23 +442,16 @@ class Audio_out::Mixer
 		/**
 		 * Handle ROM update signals
 		 */
-		void _handle_config_update(unsigned sig_num)
+		void _handle_config_update()
 		{
 			using namespace Genode;
 
-			config()->reload();
+			_config_rom.update();
 
-			Xml_node config_node = config()->xml_node();
+			Xml_node config_node = _config_rom.xml();
 			verbose = config_node.attribute_value("verbose", verbose);
 
 			_set_default_config(config_node);
-
-			/* set initial out volume */
-			if (sig_num == 0) {
-				for_each_index(MAX_CHANNELS, [&] (int const i) {
-					_out_volume[i] = _default_out_volume;
-				});
-			}
 
 			try {
 				Xml_node channel_list_node = config_node.sub_node("channel_list");
@@ -510,17 +502,21 @@ class Audio_out::Mixer
 			_mix(true);
 		}
 
+		/*
+		 * Signal handlers
+		 */
+		Genode::Signal_handler<Audio_out::Mixer> _handler
+			{ env.ep(), *this, &Audio_out::Mixer::_handle };
+
+		Genode::Signal_handler<Audio_out::Mixer> _handler_config
+			{ env.ep(), *this, &Audio_out::Mixer::_handle_config_update  };
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Mixer(Server::Entrypoint &ep)
-		:
-			_dispatcher(ep, *this, &Audio_out::Mixer::_handle),
-			_dispatcher_config(ep, *this, &Audio_out::Mixer::_handle_config_update),
-			_left("left", false, true),
-			_right("right", false, true)
+		Mixer(Genode::Env &env) : env(env)
 		{
 			_out[LEFT]  = &_left;
 			_out[RIGHT] = &_right;
@@ -528,8 +524,8 @@ class Audio_out::Mixer
 			_out_volume[LEFT]  = _default_out_volume;
 			_out_volume[RIGHT] = _default_out_volume;
 
-			Genode::config()->sigh(_dispatcher_config);
-			_handle_config_update(0);
+			_config_rom.sigh(_handler_config);
+			_handle_config_update();
 
 			_report_channels();
 		}
@@ -539,7 +535,7 @@ class Audio_out::Mixer
 		 */
 		void start()
 		{
-			_out[LEFT]->progress_sigh(_dispatcher);
+			_out[LEFT]->progress_sigh(_handler);
 			for_each_index(MAX_CHANNELS, [&] (int const i) { _out[i]->start(); });
 		}
 
@@ -569,7 +565,7 @@ class Audio_out::Mixer
 			    "channel: \"",   string_from_number(ch), "\" "
 			    "nr: ",          (int)ch, " "
 			    "volume: ",      (int)(MAX_VOLUME*session.volume), " "
-			    "muted: %d",     session.muted);
+			    "muted: ",     session.muted);
 
 			_channels[ch].insert(&session);
 			_report_channels();
@@ -591,7 +587,7 @@ class Audio_out::Mixer
 		/**
 		 * Get signal context that handles data avaiable as well as progress signal
 		 */
-		Genode::Signal_context_capability sig_cap() { return _dispatcher; }
+		Genode::Signal_context_capability sig_cap() { return _handler; }
 
 		/**
 		 * Report current channels
@@ -700,36 +696,37 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	public:
 
-		Root(Server::Entrypoint &ep,
+		Root(Genode::Entrypoint &ep,
 		     Mixer              &mixer,
 		     Genode::Allocator  &md_alloc)
 		: Root_component(&ep.rpc_ep(), &md_alloc), _mixer(mixer) { }
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server { struct Main; }
+namespace Mixer { struct Main; }
 
-
-struct Server::Main
+struct Mixer::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
 
-	Audio_out::Mixer mixer = { ep };
-	Audio_out::Root  root  = { ep, mixer, *Genode::env()->heap() };
+	Genode::Sliced_heap heap { env.ram(), env.rm() };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Audio_out::Mixer mixer = { env };
+	Audio_out::Root  root  = { env.ep(), mixer, heap };
+
+	Main(Genode::Env &env) : env(env)
 	{
-		Genode::env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-namespace Server {
-	char const *name()             { return "mixer_ep";            }
-	size_t      stack_size()       { return 4*1024*sizeof(addr_t); }
-	void construct(Entrypoint &ep) { static Main server(ep);       }
-}
+Genode::size_t Component::stack_size() {
+	return 4*1024*sizeof(Genode::addr_t); }
+
+void Component::construct(Genode::Env &env) {
+	static Mixer::Main inst(env); }
