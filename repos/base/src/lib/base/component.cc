@@ -16,6 +16,9 @@
 #include <base/component.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 
 namespace {
 
@@ -41,6 +44,11 @@ namespace {
 		{
 			return Genode::env()->cpu_session_cap();
 		}
+
+		Genode::Pd_session_capability pd_session_cap() override
+		{
+			return Genode::env()->pd_session_cap();
+		}
 	};
 }
 
@@ -60,6 +68,8 @@ namespace Genode {
 struct Genode::Startup
 {
 	::Env env { ep };
+
+	bool const exception_handling = (init_exception_handling(env), true);
 
 	/*
 	 * The construction of the main entrypoint does never return.

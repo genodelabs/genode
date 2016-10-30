@@ -26,15 +26,15 @@ void binary_ready_hook_for_gdb() { }
 extern "C" void brk(Linker::Debug *, Linker::Link_map *) { }
 
 
-void Linker::dump_link_map(Object *o)
+void Linker::dump_link_map(Object const &obj)
 {
-	for (; o; o = o->next_obj()) {
+	for (Object const *o = &obj; o; o = o->next_obj()) {
 
 		if (o->is_binary())
 			continue;
 
-		Genode::log("  ",   Genode::Hex(o->link_map()->addr),
-		            " .. ", Genode::Hex(o->link_map()->addr + o->size() - 1),
-		            ": ", o->name());
+		log("  ",   Hex(o->link_map().addr),
+		    " .. ", Hex(o->link_map().addr + o->size() - 1),
+		    ": ", o->name());
 	}
 }

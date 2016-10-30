@@ -87,6 +87,13 @@ namespace Genode {
 	 */
 
 	extern void (*call_component_construct)(Genode::Env &) __attribute__((weak));
+
+	/*
+	 * This function is normally provided by the cxx library, which is not
+	 * used for lx_hybrid programs. For lx_hybrid programs, the exception
+	 * handling is initialized by the host system's regular startup code.
+	 */
+	void init_exception_handling(Env &) { }
 }
 
 static void lx_hybrid_component_construct(Genode::Env &env)

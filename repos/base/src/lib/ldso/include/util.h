@@ -21,11 +21,11 @@ namespace Linker {
 	 */
 	template <typename T>
 	static inline T trunc_page(T addr) {
-		return addr & Genode::_align_mask((T)12); }
+		return addr & _align_mask((T)12); }
 
 	template <typename T>
 	static inline T round_page(T addr) {
-		return Genode::align_addr(addr, (T)12); }
+		return align_addr(addr, (T)12); }
 
 	/**
 	 * Extract file name from path

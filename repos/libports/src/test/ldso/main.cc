@@ -14,6 +14,8 @@
 #include <base/printf.h>
 #include <rom_session/connection.h>
 #include <base/env.h>
+#include <base/heap.h>
+#include <base/component.h>
 #include <base/shared_object.h>
 
 using namespace Genode;
@@ -166,7 +168,7 @@ static void test_dynamic_cast()
  ** Shared-object API **
  ***********************/
 
-static void test_shared_object_api()
+static void test_shared_object_api(Env &env, Allocator &alloc)
 {
 	/*
 	 * When loading the shared object, we expect the global constructor
@@ -175,15 +177,18 @@ static void test_shared_object_api()
 	 * 'lib_dl_so' is a local variable such that its destructor is called
 	 * when leaving the scope of the function.
 	 */
-	Shared_object lib_dl_so("test-ldso_lib_dl.lib.so");
+	Shared_object lib_dl_so(env, alloc, "test-ldso_lib_dl.lib.so",
+	                        Shared_object::BIND_LAZY, Shared_object::DONT_KEEP);
 }
 
 
 /**
  * Main function of LDSO test
  */
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
+	static Heap heap(env.ram(), env.rm());
+
 	printf("\n");
 	printf("Dynamic-linker test\n");
 	printf("===================\n");
@@ -250,12 +255,11 @@ int main(int argc, char **argv)
 
 	printf("Shared-object API\n");
 	printf("-----------------\n");
-	test_shared_object_api();
+	test_shared_object_api(env, heap);
 	printf("\n");
 
 	printf("Destruction\n");
 	printf("-----------\n");
 
-	/* test if return value is propagated correctly by dynamic linker */
-	return 123;
+	Libc::exit(123);
 }

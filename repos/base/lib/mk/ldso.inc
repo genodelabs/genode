@@ -4,7 +4,7 @@ DIR        = $(REP_DIR)/src/lib/ldso
 include $(BASE_DIR)/mk/base-libs.mk
 
 LIBS         = $(BASE_LIBS)
-SRC_CC       = main.cc test.cc exception.cc file.cc dependency.cc debug.cc \
+SRC_CC       = main.cc test.cc exception.cc dependency.cc debug.cc \
                shared_object.cc
 SRC_S        = jmp_slot.s
 INC_DIR     += $(DIR)/include

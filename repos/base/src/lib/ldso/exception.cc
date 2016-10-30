@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/log.h>
 #include <linker.h>
 
 
@@ -32,12 +33,12 @@ struct Phdr_info
 };
 
 
-extern "C" int dl_iterate_phdr(int (*callback) (Phdr_info *info, Genode::size_t size, void *data), void *data)
+extern "C" int dl_iterate_phdr(int (*callback) (Phdr_info *info, size_t size, void *data), void *data)
 {
 	int err = 0;
 	Phdr_info info;
 
-	Genode::Lock::Guard guard(Object::lock());
+	Lock::Guard guard(lock());
 
 	for (Object *e = obj_list_head();e; e = e->next_obj()) {
 
@@ -47,7 +48,7 @@ extern "C" int dl_iterate_phdr(int (*callback) (Phdr_info *info, Genode::size_t 
 		info.phnum = e->file()->phdr.count;
 
 		if (verbose_exception)
-			Genode::log(e->name(), " reloc ", Genode::Hex(e->reloc_base()));
+			log(e->name(), " reloc ", Hex(e->reloc_base()));
 
 		if ((err = callback(&info, sizeof(Phdr_info), data)))
 			break;
@@ -87,16 +88,10 @@ extern "C" unsigned long dl_unwind_find_exidx(unsigned long pc, int *pcount)
 	enum { EXIDX_ENTRY_SIZE = 8 };
 	*pcount = 0;
 
-	/*
-	 * Since this function may be called before the main function, load linker's
-	 * program header now
-	 */
-	load_linker_phdr();
+	for (Object *e = obj_list_head(); e; e = e->next_obj()) {
 
-	for (Object *e = obj_list_head(); e; e = e->next_obj())
-	{
 		/* address of first PT_LOAD header */
-		Genode::addr_t base = e->reloc_base() + e->file()->start;
+		addr_t base = e->reloc_base() + e->file()->start;
 
 		/* is the 'pc' somewhere within this ELF image */
 		if ((pc < base) || (pc >= base + e->file()->size))

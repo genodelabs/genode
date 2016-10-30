@@ -132,14 +132,17 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 		/**
 		 * \throw Factory_not_available
 		 */
-		Vfs::File_system_factory &_load_factory(Genode::Allocator  &alloc,
+		Vfs::File_system_factory &_load_factory(Genode::Env        &env,
+		                                        Genode::Allocator  &alloc,
 		                                        Library_name const &lib_name)
 		{
 			Genode::Shared_object *shared_object = nullptr;
 
 			try {
 				shared_object = new (alloc)
-					Genode::Shared_object(lib_name.string());
+					Genode::Shared_object(env, alloc, lib_name.string(),
+					                      Genode::Shared_object::BIND_LAZY,
+					                      Genode::Shared_object::DONT_KEEP);
 
 				typedef Vfs::File_system_factory *(*Query_fn)();
 
@@ -147,7 +150,7 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 				return *query_fn();
 
-			} catch (Genode::Shared_object::Invalid_file) {
+			} catch (Genode::Shared_object::Invalid_rom_module) {
 				PWRN("could not open '%s'", lib_name.string());
 				throw Factory_not_available();
 
@@ -160,13 +163,15 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 			}
 		}
 
-		bool _probe_external_factory(Genode::Allocator &alloc, Genode::Xml_node node)
+		bool _probe_external_factory(Genode::Env &env, Genode::Allocator &alloc,
+		                             Genode::Xml_node node)
 		{
 			Library_name const lib_name = _library_name(_node_name(node));
 
 			try {
 				_list.insert(new (alloc)
-					External_entry(_node_name(node).string(), _load_factory(alloc, lib_name)));
+					External_entry(_node_name(node).string(),
+					               _load_factory(env, alloc, lib_name)));
 				return true;
 
 			} catch (Factory_not_available) { return false; }
@@ -187,7 +192,7 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 			try {
 				/* probe for file system implementation available as shared lib */
-				if (_probe_external_factory(alloc, node)) {
+				if (_probe_external_factory(env, alloc, node)) {
 					/* try again with the new file system type loaded */
 					if (Vfs::File_system *fs = _try_create(env, alloc, node))
 						return fs;

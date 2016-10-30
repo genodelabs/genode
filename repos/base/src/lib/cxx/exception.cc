@@ -19,6 +19,9 @@
 #include <base/log.h>
 #include <util/string.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 extern "C" char __eh_frame_start__[];                  /* from linker script */
 extern "C" void __register_frame (const void *begin);  /* from libgcc_eh     */
 extern "C" char *__cxa_demangle(const char *mangled_name,
@@ -69,13 +72,46 @@ void terminate_handler()
 }
 
 
+/**
+ * Init program headers of the dynamic linker
+ *
+ * The weak function is used for statically linked binaries. The
+ * dynamic linker provides an implementation that loads the program
+ * headers of the linker. This must be done before the first exception
+ * is thrown.
+ */
+void Genode::init_ldso_phdr(Env &) __attribute__((weak));
+void Genode::init_ldso_phdr(Env &) { }
+
+
 /*
  * Initialization
  */
-
-void init_exception_handling()
+void Genode::init_exception_handling(Env &env)
 {
+	init_ldso_phdr(env);
+	init_cxx_heap(env);
+
 	__register_frame(__eh_frame_start__);
 
 	std::set_terminate(terminate_handler);
+
+	/*
+	 * Trigger first exception. This step has two purposes.
+	 * First, it enables us to detect problems related to exception handling as
+	 * early as possible. If there are problems with the C++ support library,
+	 * it is much easier to debug them at this early stage. Otherwise problems
+	 * with half-working exception handling cause subtle failures that are hard
+	 * to interpret.
+	 *
+	 * Second, the C++ support library allocates data structures lazily on the
+	 * first occurrence of an exception. In some corner cases, this allocation
+	 * consumes several KB of stack. This is usually not a problem when the
+	 * first exception is triggered from the main thread but it becomes an
+	 * issue when the first exception is thrown from the stack of a thread with
+	 * a specially tailored (and otherwise sufficient) stack size. By throwing
+	 * an exception here, we mitigate this issue by eagerly performing those
+	 * allocations.
+	 */
+	try { throw 1; } catch (...) { }
 }

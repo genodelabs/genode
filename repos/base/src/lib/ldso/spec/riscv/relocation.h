@@ -51,7 +51,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 		 */
 		void _relative(Elf::Rela const *rel, Elf::Addr *addr)
 		{
-			*addr = _dep->obj->reloc_base() + rel->addend;
+			*addr = _dep.obj().reloc_base() + rel->addend;
 		}
 
 		/**
@@ -68,23 +68,23 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 			*addr = reloc_base + sym->st_value + (addend ? rel->addend : 0);
 			if (verbose_reloc(_dep))
-				Genode::log("LD: GLOB DAT ", addr, " -> ", Genode::Hex(*addr),
-				            " r ", Genode::Hex(reloc_base),
-				            " v ", Genode::Hex(sym->st_value));
+				log("LD: GLOB DAT ", addr, " -> ", Hex(*addr),
+				    " r ", Hex(reloc_base),
+				    " v ", Hex(sym->st_value));
 		}
 
 	public:
 
-		Reloc_non_plt(Dependency const *dep, Elf::Rela const *rel, unsigned long size)
+		Reloc_non_plt(Dependency const &dep, Elf::Rela const *rel, unsigned long size)
 		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rela const *end = rel + (size / sizeof(Elf::Rela));
 
 			for (; rel < end; rel++) {
-				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
+				Elf::Addr *addr = (Elf::Addr *)(_dep.obj().reloc_base() + rel->offset);
 
 				if (verbose_reloc(_dep))
-					Genode::log("LD: reloc: ", rel, " type: ", (int)rel->type());
+					log("LD: reloc: ", rel, " type: ", (int)rel->type());
 
 				switch(rel->type()) {
 					case R_JMPSLOT:  _glob_dat_64(rel, addr, false); break;
@@ -92,8 +92,8 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 					case R_RELATIVE: _relative(rel, addr);           break;
 
 					default:
-						if (!_dep->obj->is_linker()) {
-							Genode::warning("LD: unkown relocation ", (int)rel->type());
+						if (!_dep.obj().is_linker()) {
+							warning("LD: unkown relocation ", (int)rel->type());
 							throw Incompatible();
 						}
 						break;
@@ -101,10 +101,10 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			}
 		}
 
-		Reloc_non_plt(Dependency const *dep, Elf::Rel const *, unsigned long, bool)
+		Reloc_non_plt(Dependency const &dep, Elf::Rel const *, unsigned long, bool)
 		: Reloc_non_plt_generic(dep)
 		{
-			Genode::error("LD: DT_REL not supported");
+			error("LD: DT_REL not supported");
 			throw Incompatible();
 		}
 };

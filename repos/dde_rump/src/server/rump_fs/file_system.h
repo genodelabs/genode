@@ -13,6 +13,11 @@
 #ifndef _FILE_SYSTEM_H_
 #define _FILE_SYSTEM_H_
 
+/* Genode includes */
+#include <util/xml_node.h>
+#include <base/env.h>
+#include <base/allocator.h>
+
 extern "C" {
 #include <sys/cdefs.h>
 #include <sys/errno.h>
@@ -26,7 +31,7 @@ extern "C" {
 }
 
 namespace File_system {
-	void init();
+	void init(Genode::Env &, Genode::Allocator &heap, Genode::Xml_node config);
 	bool supports_symlinks();
 }
 

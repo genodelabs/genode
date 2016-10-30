@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
+#include <base/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
 #include <os/session_policy.h>
 #include <root/component.h>
@@ -481,16 +482,20 @@ struct File_system::Main
 	Genode::Signal_handler<Main> sync_handler
 		{ env.ep(), *this, &Main::sync };
 
+	Heap heap { env.ram(), env.rm() };
+
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap = { env.ram(), env.rm() };
+	Sliced_heap sliced_heap { env.ram(), env.rm() };
 
-	Root fs_root = { env, sliced_heap };
+	Root fs_root { env, sliced_heap };
+
+	Attached_rom_dataspace config { env, "config" };
 
 	Main(Genode::Env &env) : env(env)
 	{
-		File_system::init();
+		File_system::init(env, heap, config.xml());
 
 			/* set all bits but the stickies */
 		rump_sys_umask(S_ISUID|S_ISGID|S_ISVTX);

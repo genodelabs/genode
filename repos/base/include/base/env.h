@@ -18,8 +18,8 @@
 #include <base/entrypoint.h>
 #include <ram_session/capability.h>
 #include <cpu_session/capability.h>
+#include <pd_session/capability.h>
 #include <rm_session/rm_session.h>
-#include <pd_session/pd_session.h>
 
 /* maintain compatibility to deprecated API */
 #include <deprecated/env.h>
@@ -64,6 +64,15 @@ struct Genode::Env
 
 	virtual Ram_session_capability ram_session_cap() = 0;
 	virtual Cpu_session_capability cpu_session_cap() = 0;
+
+	/*
+	 * XXX temporary
+	 *
+	 * The PD session capability is solely used for upgrading the PD session,
+	 * e.g., when the dynamic linker attaches dataspaces to the linker area.
+	 * Once we add 'Env::upgrade', we can remove this accessor.
+	 */
+	virtual Pd_session_capability pd_session_cap()  = 0;
 };
 
 #endif /* _INCLUDE__BASE__ENV_H_ */

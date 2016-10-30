@@ -1,4 +1,5 @@
 CXX_SRC_CC += misc.cc new_delete.cc malloc_free.cc exception.cc guard.cc
+INC_DIR += $(REP_DIR)/src/include
 # We need the libsupc++ include directory
 STDINC = yes
 

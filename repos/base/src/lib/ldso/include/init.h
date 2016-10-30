@@ -25,7 +25,7 @@ namespace Linker {
 /**
  * Handle static construction and relocation of ELF files
  */
-struct Linker::Init : Genode::List<Object>
+struct Linker::Init : List<Object>
 {
 	bool in_progress = false;
 	bool restart     = false;
@@ -39,7 +39,7 @@ struct Linker::Init : Genode::List<Object>
 	Object *contains(char const *file)
 	{
 		for (Object *elf = first(); elf; elf = elf->next_init())
-			if (!Genode::strcmp(file, elf->name()))
+			if (!strcmp(file, elf->name()))
 				return elf;
 
 		return nullptr;
@@ -52,24 +52,25 @@ struct Linker::Init : Genode::List<Object>
 		insert(elf);
 
 		/* re-order dependencies */
-		for (Dynamic::Needed *n = elf->dynamic()->needed.head(); n; n = n->next()) {
-			char const *path = n->path(elf->dynamic()->strtab);
-			Object *e;
+		elf->dynamic().for_each_dependency([&] (char const *path) {
 
-			if ((e = contains(Linker::file(path))))
+//		for (Dynamic::Needed *n = elf->dynamic().needed.head(); n; n = n->next()) {
+//			char const *path = n->path(elf->dynamic().strtab);
+
+			if (Object *e = contains(Linker::file(path)))
 				reorder(e);
-		}
+		});
 	}
 
-	void initialize()
+	void initialize(Bind bind)
 	{
 		Object *obj = first();
 
 		/* relocate */
 		for (; obj; obj = obj->next_init()) {
 			if (verbose_relocation)
-				Genode::log("Relocate ", obj->name());
-			obj->relocate();
+				log("Relocate ", obj->name());
+			obj->relocate(bind);
 		}
 
 		/*
@@ -91,13 +92,7 @@ struct Linker::Init : Genode::List<Object>
 			Object *next = obj->next_init();
 			remove(obj);
 
-			if (obj->dynamic()->init_function) {
-
-				if (verbose_relocation)
-					Genode::log(obj->name(), " init func ", obj->dynamic()->init_function);
-
-				obj->dynamic()->init_function();
-			}
+			obj->dynamic().call_init_function();
 
 			obj = restart ? first() : next;
 			restart = false;

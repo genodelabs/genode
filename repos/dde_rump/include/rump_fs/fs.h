@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Definitions for FS front-end
  * \author Sebastian Sumpf
  * \date   2014-01-22

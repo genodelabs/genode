@@ -17,7 +17,7 @@ extern "C" {
 #include <elf.h>
 }
 
-#include <base/env.h>
+#include <rump/bootstrap.h>
 #include <base/log.h>
 #include <base/shared_object.h>
 #include <util/string.h>
@@ -35,7 +35,46 @@ typedef Elf32_Sym Elf_Sym;
 static bool const verbose = false;
 
 
-static Genode::Shared_object  *obj_main;
+static Genode::Shared_object *obj_main;
+static Genode::Env           *env_ptr;
+static Genode::Allocator     *heap_ptr;
+
+
+void rump_bootstrap_init(Genode::Env &env, Genode::Allocator &alloc)
+{
+	/* ignore subsequent calls */
+	if (env_ptr)
+		return;
+
+	env_ptr  = &env;
+	heap_ptr = &alloc;
+}
+
+
+/**
+ * Exception type
+ */
+class Missing_call_of_rump_bootstrap_init { };
+
+
+static Genode::Env &env()
+{
+	if (!env_ptr)
+		throw Missing_call_of_rump_bootstrap_init();
+
+	return *env_ptr;
+}
+
+
+static Genode::Allocator &heap()
+{
+	if (!heap_ptr)
+		throw Missing_call_of_rump_bootstrap_init();
+
+	return *heap_ptr;
+}
+
+
 
 struct Sym_tab
 {
@@ -183,13 +222,17 @@ struct Sym_tab
  * Call init functions of libraries
  */
 static void _dl_init(Genode::Shared_object::Link_map const *map,
-                    rump_modinit_fn mod_init,
-                    rump_compload_fn comp_init)
+                     rump_modinit_fn mod_init,
+                     rump_compload_fn comp_init)
 {
 	using namespace Genode;
-	Shared_object *obj;
-	try { obj = new (Genode::env()->heap()) Shared_object(map->path); }
-	catch (...) { error("Could not dlopen ", map->path); return; }
+	Shared_object *obj = nullptr;
+	try {
+		obj = new (heap()) Shared_object(::env(), heap(), map->path,
+		                                 Shared_object::BIND_LAZY,
+		                                 Shared_object::DONT_KEEP);
+	}
+	catch (...) { error("could not dlopen ", map->path); return; }
 
 	struct modinfo **mi_start, **mi_end;
 	struct rump_component **rc_start, **rc_end;
@@ -218,9 +261,14 @@ void rumpuser_dl_bootstrap(rump_modinit_fn domodinit, rump_symload_fn symload,
 	/* open main program and request link map */
 	using namespace Genode;
 
-	obj_main = new (env()->heap()) Shared_object(nullptr, Shared_object::NOW);
+	try {
+		obj_main = new (heap()) Shared_object(::env(), heap(), nullptr,
+		                                      Shared_object::BIND_NOW,
+		                                      Shared_object::KEEP);
+	}
+	catch (...) { error("could not dlopen the main executable"); return; }
 
-	Shared_object::Link_map const *map = obj_main->link_map();
+	Shared_object::Link_map const *map = &obj_main->link_map();
 	for (; map->next; map = map->next) ;
 
 	Shared_object::Link_map const *curr_map;

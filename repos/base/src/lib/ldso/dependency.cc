@@ -19,63 +19,77 @@
 /**
  * Dependency node
  */
-Linker::Dependency::Dependency(char const *path, Root_object *root,
-                               Genode::Fifo<Dependency> * const dep,
-                               unsigned flags)
-	: obj(load(path, this, flags)), root(root)
+Linker::Dependency::Dependency(Env &env, Allocator &md_alloc,
+                               char const *path, Root_object *root,
+                               Fifo<Dependency> &deps,
+                               Keep keep)
+:
+	_obj(load(env, md_alloc, path, *this, keep)),
+	_root(root),
+	_md_alloc(&md_alloc)
 {
-	dep->enqueue(this);
-	load_needed(dep, flags);
+	deps.enqueue(this);
+	load_needed(env, *_md_alloc, deps, keep);
 }
 
 
 Linker::Dependency::~Dependency()
 {
-	if (obj->unload()) {
+	if (!_obj.unload())
+		return;
 
-		if (verbose_loading)
-			Genode::log("Destroy: ", obj->name());
+	if (verbose_loading)
+		log("Destroy: ", _obj.name());
 
-		destroy(Genode::env()->heap(), obj);
-	}
+	destroy(_md_alloc, &_obj);
 }
 
 
-bool Linker::Dependency::in_dep(char const *file,
-                                Genode::Fifo<Dependency> * const dep)
+bool Linker::Dependency::in_dep(char const *file, Fifo<Dependency> const &dep)
 {
-	for (Dependency *d = dep->head(); d; d = d->next())
-		if (!Genode::strcmp(file, d->obj->name()))
+	for (Dependency const *d = dep.head(); d; d = d->next())
+		if (!strcmp(file, d->obj().name()))
 			return true;
 
 	return false;
 }
 
 
-void Linker::Dependency::load_needed(Genode::Fifo<Dependency> * const dep,
-                                     unsigned flags)
+void Linker::Dependency::load_needed(Env &env, Allocator &md_alloc,
+                                     Fifo<Dependency> &deps, Keep keep)
 {
-	for (Dynamic::Needed *n = obj->dynamic()->needed.head(); n; n = n->next()) {
-		char const *path = n->path(obj->dynamic()->strtab);
+	_obj.dynamic().for_each_dependency([&] (char const *path) {
 
-		Object *o;
-		if (!in_dep(Linker::file(path), dep))
-			new (Genode::env()->heap()) Dependency(path, root, dep, flags);
+		if (!in_dep(Linker::file(path), deps))
+			new (md_alloc) Dependency(env, md_alloc, path, _root, deps, keep);
 
 		/* re-order initializer list, if needed object has been already added */
-		else if ((o = Init::list()->contains(Linker::file(path))))
+		else if (Object *o = Init::list()->contains(Linker::file(path)))
 			Init::list()->reorder(o);
-	}
+	});
 }
 
 
-Linker::Root_object::Root_object(char const *path, unsigned flags)
+Linker::Dependency const &Linker::Dependency::first() const
 {
-	new (Genode::env()->heap()) Dependency(path, this, &dep, flags);
+	return _root ? *_root->first_dep() : *this;
+}
+
+
+Linker::Root_object::Root_object(Env &env, Allocator &md_alloc,
+                                 char const *path, Bind bind, Keep keep)
+:
+	_md_alloc(md_alloc)
+{
+	/*
+	 * The life time of 'Dependency' objects is managed via reference
+	 * counting. Hence, we don't need to remember them here.
+	 */
+	new (md_alloc) Dependency(env, md_alloc, path, this, _deps, keep);
 
 	/* provide Genode base library access */
-	new (Genode::env()->heap()) Dependency(linker_name(), this, &dep);
+	new (md_alloc) Dependency(env, md_alloc, linker_name(), this, _deps, DONT_KEEP);
 
 	/* relocate and call constructors */
-	Init::list()->initialize();
+	Init::list()->initialize(bind);
 }

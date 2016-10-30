@@ -94,28 +94,6 @@ extern "C" void init_main_thread()
 	(void*)env();
 	init_log();
 
-	/* initialize exception handling */
-	init_exception_handling();
-
-	/*
-	 * Trigger first exception. This step has two purposes.
-	 * First, it enables us to detect problems related to exception handling as
-	 * early as possible. If there are problems with the C++ support library,
-	 * it is much easier to debug them at this early stage. Otherwise problems
-	 * with half-working exception handling cause subtle failures that are hard
-	 * to interpret.
-	 *
-	 * Second, the C++ support library allocates data structures lazily on the
-	 * first occurrence of an exception. This allocation traverses into
-	 * Genode's heap and, in some corner cases, consumes several KB of stack.
-	 * This is usually not a problem when the first exception is triggered from
-	 * the main thread but it becomes an issue when the first exception is
-	 * thrown from the stack of a thread with a specially tailored (and
-	 * otherwise sufficient) stack size. By throwing an exception here, we
-	 * mitigate this issue by eagerly performing those allocations.
-	 */
-	try { throw 1; } catch (...) { }
-
 	/* create a thread object for the main thread */
 	main_thread();
 

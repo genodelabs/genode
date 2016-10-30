@@ -18,14 +18,21 @@
 #include <base/log.h>
 #include <elf.h>
 
-constexpr bool verbose_link_map = false;
+/* local includes */
+#include <types.h>
+
+constexpr bool verbose_link_map  = false;
+constexpr bool verbose_lookup    = false;
+constexpr bool verbose_exception = false;
+constexpr bool verbose_shared    = false;
+constexpr bool verbose_loading   = false;
 
 namespace Linker {
 	struct Debug;
 	struct Link_map;
 
 	struct Object;
-	void dump_link_map(Object *o);
+	void dump_link_map(Object const &);
 }
 
 /*
@@ -128,9 +135,9 @@ struct Linker::Link_map
 			return;
 
 		for (Link_map *m = first; m; m = m->next)
-			Genode::log("MAP: addr: ", Genode::Hex(m->addr),
-			            " dynamic: ", m->dynamic, " ", Genode::Cstring(m->path),
-			            " m: ", m, " p: ", m->prev, " n: ", m->next);
+			log("MAP: addr: ", Hex(m->addr),
+			    " dynamic: ", m->dynamic, " ", Cstring(m->path),
+			    " m: ", m, " p: ", m->prev, " n: ", m->next);
 	}
 };
 

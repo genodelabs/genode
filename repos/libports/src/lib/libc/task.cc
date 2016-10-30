@@ -23,6 +23,7 @@
 #include <internal/call_func.h>
 #include <base/internal/unmanaged_singleton.h>
 #include "vfs_plugin.h"
+#include "libc_init.h"
 
 
 /* escape sequences for highlighting debug message prefixes */
@@ -203,6 +204,9 @@ namespace Genode { extern void (*call_component_construct)(Genode::Env &); }
 
 void Libc::call_component_construct(Genode::Env &env)
 {
+	/* pass Genode::Env to libc subsystems that depend on it */
+	init_dl(env);
+
 	task = unmanaged_singleton<Libc::Task>(env);
 	task->run();
 }

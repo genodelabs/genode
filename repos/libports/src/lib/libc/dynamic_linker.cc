@@ -11,6 +11,9 @@
 #include <base/shared_object.h>
 #include <base/snprintf.h>
 
+/* libc-internal includes */
+#include <libc_init.h>
+
 extern "C" {
 #include <dlfcn.h>
 }
@@ -23,6 +26,19 @@ static char err_str[MAX_ERR];
 char *dlerror(void)
 {
 	return err_str;
+}
+
+
+static Genode::Env *genode_env = nullptr;
+
+
+namespace Libc {
+
+	void init_dl(Genode::Env &env)
+	{
+		if (!genode_env)
+			genode_env = &env;
+	}
 }
 
 
@@ -39,21 +55,28 @@ void *dlopen(const char *name, int mode)
 	/* error on unsupported mode values */
 	if (mode & ~supported) {
 		snprintf(err_str, MAX_ERR, "Unsupported mode 0x%x\n", mode & ~supported);
-		error("dlopen: ", Cstring(err_str));
+		error(__func__, ": ", Cstring(err_str));
 		return nullptr;
 	}
 
-	Shared_object *obj = 0;
-	unsigned flags = mode & RTLD_NOW ? Shared_object::NOW : Shared_object::LAZY;
-	flags |= mode & RTLD_NODELETE ? Shared_object::KEEP : 0;
+	Shared_object::Bind const bind =
+		(mode & RTLD_NOW) ? Shared_object::BIND_NOW : Shared_object::BIND_LAZY;
+
+	Shared_object::Keep const keep =
+		(mode & RTLD_NODELETE) ? Shared_object::KEEP : Shared_object::DONT_KEEP;
+
+	if (!genode_env) {
+		error(__func__, ": support for dynamic linking not initialized");
+		return nullptr;
+	}
 
 	try {
-		obj = new (env()->heap()) Shared_object(name, flags);
+		return new (env()->heap())
+			Shared_object(*genode_env, *env()->heap(), name, bind, keep);
 	} catch (...) {
 		snprintf(err_str, MAX_ERR, "Unable to open file %s\n", name);
 	}
-
-	return (void *)obj;
+	return nullptr;
 }
 
 

@@ -14,37 +14,44 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <base/heap.h>
 #include <util/string.h>
+#include <util/volatile_object.h>
+
+/* base-internal includes */
+#include <base/internal/globals.h>
 
 using namespace Genode;
+
+
+static Lazy_volatile_object<Heap> &cxx_heap()
+{
+	static Lazy_volatile_object<Heap> heap;
+	return heap;
+}
 
 
 /**
  * Return heap partition for the private use within the cxx library.
  *
- * If we used the 'env()->heap()' with the C++ runtime, we would run into a
- * deadlock when a 'Ram_session::Alloc_failed' exception is thrown from within
- * 'Heap::alloc'. For creating the exception object, the C++ runtime calls
- * '__cxa_allocate_exception', which, in turn, calls 'malloc'. If our 'malloc'
- * implementation called 'env()->heap()->alloc()', we would end up in a
- * recursive attempt to obtain the 'env()->heap()' lock.
- *
- * By using a dedicated heap instance for the cxx library, we avoid this
- * circular condition.
+ * For creating the exception object, the C++ runtime calls
+ * '__cxa_allocate_exception', which, in turn, calls 'malloc'. The cxx library
+ * uses a local implementation of 'malloc' using a dedicated heap instance.
  */
-static Heap *cxx_heap()
+void Genode::init_cxx_heap(Env &env)
 {
+	if (cxx_heap().constructed()) return;
+
 	/*
 	 * Exception frames are small. Hence, a small static backing store suffices
-	 * for the cxx heap partition in the normal case. The 'env()->ram_session'
+	 * for the cxx heap partition in the normal case. The 'env.ram()' session
 	 * is used only if the demand exceeds the capacity of the 'initial_block'.
 	 */
 	static char initial_block[1024*sizeof(long)];
-	static Heap heap(env()->ram_session(), env()->rm_session(),
-	                 Heap::UNLIMITED, initial_block, sizeof(initial_block));
-	return &heap;
+	cxx_heap().construct(&env.ram(), &env.rm(),
+	                     Heap::UNLIMITED, initial_block, sizeof(initial_block));
 }
 
 

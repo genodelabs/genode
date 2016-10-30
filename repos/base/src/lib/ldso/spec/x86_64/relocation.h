@@ -45,7 +45,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 		 */
 		void _relative(Elf::Rela const *rel, Elf::Addr *addr)
 		{
-			*addr = _dep->obj->reloc_base() + rel->addend;
+			*addr = _dep.obj().reloc_base() + rel->addend;
 		}
 
 		/**
@@ -62,19 +62,19 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 			*addr = reloc_base + sym->st_value + (addend ? rel->addend : 0);
 			if (verbose_reloc(_dep))
-				Genode::log("GLOB DAT ", addr, " -> ", *addr,
-				            " r ", reloc_base, " v ", sym->st_value);
+				log("GLOB DAT ", addr, " -> ", *addr,
+				    " r ", reloc_base, " v ", sym->st_value);
 		}
 
 	public:
 
-		Reloc_non_plt(Dependency const *dep, Elf::Rela const *rel, unsigned long size)
+		Reloc_non_plt(Dependency const &dep, Elf::Rela const *rel, unsigned long size)
 		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rela const *end = rel + (size / sizeof(Elf::Rela));
 
 			for (; rel < end; rel++) {
-				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
+				Elf::Addr *addr = (Elf::Addr *)(_dep.obj().reloc_base() + rel->offset);
 
 				switch(rel->type()) {
 					case R_64:       _glob_dat_64(rel, addr, true);  break;
@@ -83,8 +83,8 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 					case R_RELATIVE: _relative(rel, addr);           break;
 
 					default:
-						if (!_dep->obj->is_linker()) {
-							Genode::warning("LD: Unkown relocation ", (int)rel->type());
+						if (!_dep.obj().is_linker()) {
+							warning("LD: Unkown relocation ", (int)rel->type());
 							throw Incompatible();
 						}
 						break;
@@ -92,10 +92,10 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			}
 		}
 
-		Reloc_non_plt(Dependency const *dep, Elf::Rel const *, unsigned long, bool)
+		Reloc_non_plt(Dependency const &dep, Elf::Rel const *, unsigned long, bool)
 		: Reloc_non_plt_generic(dep)
 		{
-			Genode::error("LD: DT_REL not supported");
+			error("LD: DT_REL not supported");
 			throw Incompatible();
 		}
 };

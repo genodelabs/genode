@@ -52,27 +52,27 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 		void _relative(Elf::Rel const *rel, Elf::Addr *addr)
 		{
-			if (_dep->obj->reloc_base())
-				*addr += _dep->obj->reloc_base();
+			if (_dep.obj().reloc_base())
+				*addr += _dep.obj().reloc_base();
 		}
 
 	public:
 
-		Reloc_non_plt(Dependency const *dep, Elf::Rela const *, unsigned long)
+		Reloc_non_plt(Dependency const &dep, Elf::Rela const *, unsigned long)
 		: Reloc_non_plt_generic(dep)
 		{
-			Genode::error("LD: DT_RELA not supported");
+			error("LD: DT_RELA not supported");
 			throw Incompatible();
 		}
 
-		Reloc_non_plt(Dependency const *dep, Elf::Rel const *rel, unsigned long size,
+		Reloc_non_plt(Dependency const &dep, Elf::Rel const *rel, unsigned long size,
 		              bool second_pass)
 		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rel const *end = rel + (size / sizeof(Elf::Rel));
 
 			for (; rel < end; rel++) {
-				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
+				Elf::Addr *addr = (Elf::Addr *)(_dep.obj().reloc_base() + rel->offset);
 
 				if (second_pass && rel->type() != R_GLOB_DAT)
 					continue;
@@ -84,8 +84,8 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 					case R_COPY    : _copy<Elf::Rel>(rel, addr); break;
 					case R_RELATIVE: _relative(rel, addr);       break;
 					default:
-						if (_dep->root) {
-							Genode::warning("LD: Unkown relocation ", (int)rel->type());
+						if (_dep.root()) {
+							warning("LD: Unkown relocation ", (int)rel->type());
 							throw Incompatible();
 						}
 						break;
