@@ -16,6 +16,7 @@
 #include <audio_in_session/rpc_object.h>
 #include <audio_out_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/session_label.h>
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/log.h>
@@ -233,10 +234,16 @@ struct Audio_out::Root_policy
 		Arg_string::find_arg(args, "channel").string(channel_name,
 		                                             sizeof(channel_name),
 		                                             "left");
-		if (!Out::channel_number(channel_name, &channel_number))
+		if (!Out::channel_number(channel_name, &channel_number)) {
+			Genode::error("invalid output channel '",(char const *)channel_name,"' requested, "
+			              "denying '",Genode::label_from_args(args),"'");
 			throw ::Root::Invalid_args();
-		if (Audio_out::channel_acquired[channel_number])
+		}
+		if (Audio_out::channel_acquired[channel_number]) {
+			Genode::error("output channel '",(char const *)channel_name,"' is unavailable, "
+			              "denying '",Genode::label_from_args(args),"'");
 			throw ::Root::Unavailable();
+		}
 	}
 
 	void release() { }
@@ -408,7 +415,8 @@ struct Audio_in::Root_policy
 		if ((ram_quota < session_size) ||
 		    (sizeof(Stream) > (ram_quota - session_size))) {
 			Genode::error("insufficient 'ram_quota', got ", ram_quota,
-			              " need ", sizeof(Stream) + session_size);
+			              " need ", sizeof(Stream) + session_size,
+			              ", denying '",Genode::label_from_args(args),"'");
 			throw Genode::Root::Quota_exceeded();
 		}
 
@@ -417,10 +425,16 @@ struct Audio_in::Root_policy
 		Arg_string::find_arg(args, "channel").string(channel_name,
 		                                             sizeof(channel_name),
 		                                             "left");
-		if (!In::channel_number(channel_name, &channel_number))
+		if (!In::channel_number(channel_name, &channel_number)) {
+			Genode::error("invalid input channel '",(char const *)channel_name,"' requested, "
+			              "denying '",Genode::label_from_args(args),"'");
 			throw ::Root::Invalid_args();
-		if (Audio_in::channel_acquired)
+		}
+		if (Audio_in::channel_acquired) {
+			Genode::error("input channel '",(char const *)channel_name,"' is unavailable, "
+			              "denying '",Genode::label_from_args(args),"'");
 			throw Genode::Root::Unavailable();
+		}
 	}
 
 	void release() { }
