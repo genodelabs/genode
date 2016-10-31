@@ -57,6 +57,11 @@ struct Platform::Device_pd_client : Genode::Rpc_client<Device_pd>
 struct Platform::Device_pd_component : Genode::Rpc_object<Device_pd,
                                                           Device_pd_component>
 {
+	Genode::Region_map &_address_space;
+
+	Device_pd_component(Genode::Region_map &address_space)
+	: _address_space(address_space) { }
+
 	void attach_dma_mem(Genode::Dataspace_capability);
 	void assign_pci(Genode::Io_mem_dataspace_capability, Genode::uint16_t);
 };
