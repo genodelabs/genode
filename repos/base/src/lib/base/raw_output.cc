@@ -19,10 +19,8 @@
 #include <base/internal/output.h>
 #include <base/internal/raw_write_string.h>
 
-using namespace Genode;
 
-
-Output &Raw::_output()
+Genode::Output &Genode::Raw::_output()
 {
 	struct Write_fn { void operator () (char const *s) { raw_write_string(s); } };
 

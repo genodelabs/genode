@@ -17,8 +17,6 @@
 
 #include <base/output.h>
 
-using namespace Genode;
-
 
 /**
  * Convert digit to ASCII value
@@ -114,6 +112,8 @@ static inline void out_unsigned(T value, unsigned base, int pad,
 template <typename T, typename OUT_CHAR_FN>
 static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_FN const &out_char)
 {
+	using namespace Genode;
+
 	/* set flag if value is negative */
 	int neg = value < 0 ? 1 : 0;
 
@@ -154,7 +154,7 @@ namespace Genode { template <size_t, typename> class Buffered_output; }
  * The 'WRITE_FN' functor is called with a null-terminated 'char const *'
  * as argument.
  */
-template <size_t BUF_SIZE, typename BACKEND_WRITE_FN>
+template <Genode::size_t BUF_SIZE, typename BACKEND_WRITE_FN>
 class Genode::Buffered_output : public Output
 {
 	private:
