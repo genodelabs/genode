@@ -142,6 +142,14 @@ class Genode::Volatile_object
 		MT const *operator -> () const { _check_constructed(); return _const_ptr(); }
 
 		MT &operator * () { _check_constructed(); return *_ptr(); }
+
+		void print(Output &out) const
+		{
+			if (_constructed)
+				_const_ptr()->print(out);
+			else
+				out.out_string("<unconstructed>");
+		}
 };
 
 
