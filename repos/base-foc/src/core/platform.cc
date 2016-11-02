@@ -446,13 +446,13 @@ Platform::Platform() :
 	_setup_irq_alloc();
 	_setup_rom();
 
-	log(":ram_alloc: ");    _ram_alloc()->dump_addr_tree();
-	log(":region_alloc: "); _region_alloc()->dump_addr_tree();
-	log(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
-	log(":io_port: ");      _io_port_alloc()->dump_addr_tree();
-	log(":irq: ");          _irq_alloc()->dump_addr_tree();
-	log(":rom_fs: ");       _rom_fs.print_fs();
-	log(":core ranges: ");  _core_address_ranges()()->dump_addr_tree();
+	log(":ram_alloc: ",    _ram_alloc);
+	log(":region_alloc: ", _region_alloc);
+	log(":io_mem: ",       _io_mem_alloc);
+	log(":io_port: ",      _io_port_alloc);
+	log(":irq: ",          _irq_alloc);
+	log(":rom_fs: ");      _rom_fs.print_fs();
+	log(":core ranges: ",  _core_address_ranges());
 
 	Core_cap_index* pdi =
 		reinterpret_cast<Core_cap_index*>(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_TASK_CAP));

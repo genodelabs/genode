@@ -60,6 +60,8 @@ class Genode::Synced_range_allocator : public Range_allocator
 		Guard operator () ()       { return _synced_object(); }
 		Guard operator () () const { return _synced_object(); }
 
+		void print(Output &out) const { _synced_object()->print(out); }
+
 
 		/*************************
 		 ** Allocator interface **

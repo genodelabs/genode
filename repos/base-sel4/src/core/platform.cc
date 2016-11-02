@@ -438,10 +438,10 @@ Platform::Platform()
 	log("VM area at ", Hex_range<addr_t>(_vm_base, _vm_size));
 
 	if (verbose_boot_info) {
-		log(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		log(":unused_phys_alloc:"); _unused_phys_alloc()->dump_addr_tree();
-		log(":virt_alloc:       "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		log(":io_mem_alloc:     "); _io_mem_alloc()->dump_addr_tree();
+		log(":phys_alloc:       ", *_core_mem_alloc.phys_alloc());
+		log(":unused_phys_alloc:",  _unused_phys_alloc);
+		log(":virt_alloc:       ", *_core_mem_alloc.virt_alloc());
+		log(":io_mem_alloc:     ",  _io_mem_alloc);
 	}
 
 	_init_rom_modules();

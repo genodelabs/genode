@@ -185,11 +185,11 @@ Platform::Platform() :
 
 	init_log();
 
-	log(":phys_alloc: "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-	log(":virt_alloc: "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-	log(":io_mem: ");     _io_mem_alloc()->dump_addr_tree();
-	log(":io_port: ");    _io_port_alloc()->dump_addr_tree();
-	log(":irq: ");        _irq_alloc()->dump_addr_tree();
+	log(":phys_alloc: ", *_core_mem_alloc.phys_alloc());
+	log(":virt_alloc: ", *_core_mem_alloc.virt_alloc());
+	log(":io_mem: ",      _io_mem_alloc);
+	log(":io_port: ",     _io_port_alloc);
+	log(":irq: ",         _irq_alloc);
 	log(":rom_fs: ");     _rom_fs.print_fs();
 
 	/* setup task object for core task */

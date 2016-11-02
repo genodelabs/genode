@@ -628,10 +628,10 @@ Platform::Platform() :
 	_gsi_base_sel = (hip->mem_desc_offset - hip->cpu_desc_offset) / hip->cpu_desc_size;
 
 	if (verbose_boot_info) {
-		log(":virt_alloc: "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		log(":phys_alloc: "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		log(":io_mem_alloc: "); _io_mem_alloc()->dump_addr_tree();
-		log(":rom_fs: "); _rom_fs.print_fs();
+		log(":virt_alloc: ",  *_core_mem_alloc.virt_alloc());
+		log(":phys_alloc: ",  *_core_mem_alloc.phys_alloc());
+		log(":io_mem_alloc: ", _io_mem_alloc);
+		log(":rom_fs: ");      _rom_fs.print_fs();
 	}
 
 	/* add capability selector ranges to map */

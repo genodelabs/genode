@@ -16,6 +16,7 @@
 
 #include <base/allocator.h>
 #include <base/tslab.h>
+#include <base/output.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
 
@@ -150,20 +151,6 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 * Return sum of available memory in subtree
 				 */
 				size_t avail_in_subtree(void);
-
-				/**
-				 * Debug hook
-				 *
-				 * \noapi
-				 */
-				void dump();
-
-				/**
-				 * Debug hook
-				 *
-				 * \noapi
-				 */
-				void dump_dot(int indent = 0);
 		};
 
 	private:
@@ -252,12 +239,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 */
 		bool any_block_addr(addr_t *out_addr);
 
-		/**
-		 * Debug hook
-		 *
-		 * \noapi
-		 */
-		void dump_addr_tree(Block *addr_node = 0);
+		void print(Output &out) const;
 
 
 		/*******************************

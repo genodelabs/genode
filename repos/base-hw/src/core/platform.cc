@@ -147,30 +147,12 @@ Platform::Platform()
 	_init_additional();
 
 	/* print ressource summary */
-	log("Core virtual memory allocator");
-	log("---------------------");
-	(*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-	log("\n");
-	log("RAM memory allocator");
-	log("---------------------");
-	(*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-	log("");
-	log("IO memory allocator");
-	log("-------------------");
-	_io_mem_alloc()->dump_addr_tree();
-	log("");
-	log("IO port allocator");
-	log("-------------------");
-	_io_port_alloc()->dump_addr_tree();
-	log("");
-	log("IRQ allocator");
-	log("-------------------");
-	_irq_alloc()->dump_addr_tree();
-	log("");
-	log("ROM filesystem");
-	log("--------------");
-	_rom_fs.print_fs();
-	log("");
+	log(":virt_alloc: ",   *_core_mem_alloc.virt_alloc());
+	log(":phys_alloc: ",   *_core_mem_alloc.phys_alloc());
+	log(":io_mem_alloc: ",  _io_mem_alloc);
+	log(":io_port_alloc: ", _io_port_alloc);
+	log(":irq_alloc: ",     _irq_alloc);
+	log(":rom_fs: ");       _rom_fs.print_fs();
 }
 
 
