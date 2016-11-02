@@ -161,6 +161,19 @@ struct Genode::Avl_node : Avl_node_base
 	 * \noapi
 	 */
 	void recompute() { }
+
+	/**
+	 * Apply a functor (read-only) to every node within this subtree
+	 *
+	 * \param functor  function that takes a const NT reference
+	 */
+	template <typename FUNC>
+	void for_each(FUNC && functor) const
+	{
+		if (NT * l = child(Avl_node<NT>::LEFT))  l->for_each(functor);
+		functor(*static_cast<NT const *>(this));
+		if (NT * r = child(Avl_node<NT>::RIGHT)) r->for_each(functor);
+	}
 };
 
 
@@ -209,6 +222,17 @@ class Genode::Avl_tree : Avl_node<NT>
 		 * \return  first node, or nullptr if the tree is empty
 		 */
 		inline NT *first() const { return this->child(Avl_node<NT>::LEFT); }
+
+		/**
+		 * Apply a functor (read-only) to every node within the tree
+		 *
+		 * \param functor  function that takes a const NT reference
+		 *
+		 * The iteration order corresponds to the order of the keys
+		 */
+		template <typename FUNC>
+		void for_each(FUNC && functor) const {
+			if (first()) first()->for_each(functor); }
 };
 
 #endif /* _INCLUDE__UTIL__AVL_TREE_H_ */
