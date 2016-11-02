@@ -23,8 +23,8 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
                                              const char     *args)
 :
 	_rom_module(_find_rom(rom_fs, args)),
-	_ds(_rom_module ? _rom_module->size() : 0,
-	    _rom_module ? _rom_module->addr() : 0, CACHED, false, 0),
+	_ds(_rom_module ? _rom_module->size : 0,
+	    _rom_module ? _rom_module->addr : 0, CACHED, false, 0),
 	_ds_ep(ds_ep)
 {
 	/* ROM module not found */

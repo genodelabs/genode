@@ -1,11 +1,12 @@
 /**
  * \brief  Read-only memory modules
  * \author Christian Helmuth
+ * \author Stefan Kalkowski
  * \date   2006-05-15
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,92 +15,48 @@
 #ifndef _CORE__INCLUDE__ROM_FS_H_
 #define _CORE__INCLUDE__ROM_FS_H_
 
-#include <base/stdint.h>
-#include <base/log.h>
-#include <util/avl_tree.h>
+#include <base/output.h>
 #include <util/avl_string.h>
 
 namespace Genode {
+	struct Rom_module;
+	struct Rom_fs;
+}
 
-	/**
-	 * Convert module command line to module base name
-	 *
-	 * The conversion is performed in place. The returned
-	 * pointer refers to a substring of the 'name' argument.
-	 */
-	inline char *commandline_to_basename(char *name)
+
+struct Genode::Rom_module : Genode::Avl_string_base
+{
+	addr_t const addr = 0;
+	size_t const size = 0;
+
+	Rom_module() : Avl_string_base(nullptr) { }
+
+	Rom_module(addr_t const addr, size_t const size, char const * const name)
+	: Avl_string_base(name), addr(addr), size(size) { }
+
+	bool valid() const { return size ? true : false; }
+
+	void print(Genode::Output & out) const {
+		Genode::print(out, Hex_range<addr_t>(addr, size), " ", name()); }
+};
+
+
+struct Genode::Rom_fs : Genode::Avl_tree<Genode::Avl_string_base>
+{
+	Rom_module const * find(char const * const name) const
 	{
-		for (char *c = name; *c != 0; c++) {
-			if (*c == '/') name = c + 1;
-			if (*c == ' ') {
-				*c = 0;
-				break;
-			}
-		}
-		return name;
+		return first() ? (Rom_module const *)first()->find_by_name(name)
+		               : nullptr;
 	}
 
-	class Rom_module : public Avl_string_base
+	void print(Genode::Output & out) const
 	{
-		private:
+		if (!first()) Genode::print(out, "No modules in Rom_fs\n");
 
-			/* Location of module in memory and size */
-			addr_t _addr;
-			size_t _size;
-
-		public:
-
-			/** Standard constructor creates invalid object */
-			Rom_module()
-			: Avl_string_base(0), _addr(0), _size(0) { }
-
-			Rom_module(addr_t addr, size_t size, const char *name)
-			: Avl_string_base(name), _addr(addr), _size(size) { }
-
-			/** Check validity */
-			bool valid() { return _size ? true : false; }
-
-			/** Accessor functions */
-			addr_t addr() const { return _addr; }
-			size_t size() const { return _size; }
-
-			void print(Output &out) const
-			{
-				Genode::print(out, Hex_range<addr_t>(_addr, _size), " ", name());
-			}
-	};
-
-	class Rom_fs : public Avl_tree<Avl_string_base>
-	{
-		public:
-
-			Rom_module * find(const char *name)
-			{
-				return first() ? (Rom_module *)first()->find_by_name(name) : 0;
-			}
-
-			/* DEBUG */
-			void print_fs(Rom_module *r = 0)
-			{
-				if (!r) {
-					Rom_module *first_module = (Rom_module *)first();
-					if (first_module) {
-						log("ROM modules:");
-						print_fs(first_module);
-					} else {
-						log("No modules in Rom_fs ", this);
-					}
-				} else {
-
-					log(" ROM: ", Hex_range<addr_t>(r->addr(), r->size()), " ",
-					    r->name());
-
-					Rom_module *child;
-					if ((child = (Rom_module *)r->child(Rom_module::LEFT)))  print_fs(child);
-					if ((child = (Rom_module *)r->child(Rom_module::RIGHT))) print_fs(child);
-				}
-			}
-	};
-}
+		Genode::print(out, "ROM modules:\n");
+		for_each([&] (Avl_string_base const & rom) {
+			Genode::print(out, " ROM: ", *static_cast<Rom_module const *>(&rom), "\n"); });
+	}
+};
 
 #endif /* _CORE__INCLUDE__ROM_FS_H_ */

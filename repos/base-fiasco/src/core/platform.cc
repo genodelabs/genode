@@ -315,6 +315,10 @@ static Fiasco::l4_kernel_info_t *get_kip()
 {
 	using namespace Fiasco;
 
+	static l4_kernel_info_t *kip = nullptr;
+
+	if (kip) return kip;
+
 	int err;
 
 	/* region allocator is not setup yet */
@@ -345,7 +349,7 @@ static Fiasco::l4_kernel_info_t *get_kip()
 		panic("kip mapping failed");
 
 	/* store mapping base from received mapping */
-	l4_kernel_info_t *kip = (l4_kernel_info_t *)dw0;
+	kip = (l4_kernel_info_t *)dw0;
 
 	if (kip->magic != L4_KERNEL_INFO_MAGIC)
 		panic("Sigma0 mapped something but not the KIP");
@@ -360,7 +364,6 @@ void Platform::_setup_basics()
 	l4_kernel_info_t * kip = get_kip();
 
 	/* add KIP as ROM module */
-	_kip_rom = Rom_module((addr_t)kip, L4_PAGESIZE, "l4v2_kip");
 	_rom_fs.insert(&_kip_rom);
 
 	/* parse memory descriptors - look for virtual memory configuration */
@@ -423,7 +426,8 @@ void Platform::_setup_rom()
 Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc())
+	_region_alloc(core_mem_alloc()),
+	_kip_rom((addr_t)get_kip(), L4_PAGESIZE, "l4v2_kip")
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.
@@ -445,7 +449,7 @@ Platform::Platform() :
 	log(":io_mem: ",        _io_mem_alloc);
 	log(":io_port: ",       _io_port_alloc);
 	log(":irq: ",           _irq_alloc);
-	log(":rom_fs: ");       _rom_fs.print_fs();
+	log(":rom_fs: ",        _rom_fs);
 	log(":core ranges: ",   _core_address_ranges);
 
 	Fiasco::l4_threadid_t myself = Fiasco::l4_myself();

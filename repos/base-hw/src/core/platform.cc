@@ -152,7 +152,7 @@ Platform::Platform()
 	log(":io_mem_alloc: ",  _io_mem_alloc);
 	log(":io_port_alloc: ", _io_port_alloc);
 	log(":irq_alloc: ",     _irq_alloc);
-	log(":rom_fs: ");       _rom_fs.print_fs();
+	log(":rom_fs: ",        _rom_fs);
 }
 
 

@@ -471,20 +471,6 @@ void Platform::_setup_preemption()
 }
 
 
-static Pistachio::L4_KernelInterfacePage_t *init_kip()
-{
-	using namespace Pistachio;
-
-	/* completely map program image */
-	addr_t beg = trunc_page((addr_t)&_prog_img_beg);
-	addr_t end = round_page((addr_t)&_prog_img_end);
-	for ( ; beg < end; beg += Pistachio::get_page_size())
-		L4_Sigma0_GetPage(get_sigma0(), L4_Fpage(beg, Pistachio::get_page_size()));
-
-	return get_kip();
-}
-
-
 void Platform::_setup_basics()
 {
 	using namespace Pistachio;
@@ -506,7 +492,6 @@ void Platform::_setup_basics()
 	dump_kip_memdesc(kip);
 
 	/* add KIP as ROM module */
-	_kip_rom = Rom_module((addr_t)kip, sizeof(L4_KernelInterfacePage_t), "pistachio_kip");
 	_rom_fs.insert(&_kip_rom);
 
 	// Get virtual bootinfo address.
@@ -606,7 +591,9 @@ Platform_pd *Platform::core_pd()
 Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc())
+	_region_alloc(core_mem_alloc()),
+	_kip_rom((addr_t)Pistachio::get_kip(),
+	         sizeof(Pistachio::L4_KernelInterfacePage_t), "pistachio_kip")
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.
@@ -635,7 +622,7 @@ Platform::Platform() :
 		log(":io_mem: ",        _io_mem_alloc);
 		log(":io_port: ",       _io_port_alloc);
 		log(":irq: ",           _irq_alloc);
-		log(":rom_fs: ");       _rom_fs.print_fs();
+		log(":rom_fs: ",        _rom_fs);
 		log(":core ranges: ",   _core_address_ranges);
 	}
 

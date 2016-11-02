@@ -26,12 +26,12 @@ namespace Genode {
 	{
 		private:
 
-			Rom_module              *_rom_module;
+			Rom_module const        *_rom_module;
 			Dataspace_component      _ds;
 			Rpc_entrypoint          *_ds_ep;
 			Rom_dataspace_capability _ds_cap;
 
-			Rom_module * _find_rom(Rom_fs *rom_fs, const char *args)
+			Rom_module const * _find_rom(Rom_fs *rom_fs, const char *args)
 			{
 				/* extract label */
 				Session_label const label = label_from_args(args);

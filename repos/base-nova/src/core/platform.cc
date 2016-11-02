@@ -631,7 +631,7 @@ Platform::Platform() :
 		log(":virt_alloc: ",  *_core_mem_alloc.virt_alloc());
 		log(":phys_alloc: ",  *_core_mem_alloc.phys_alloc());
 		log(":io_mem_alloc: ", _io_mem_alloc);
-		log(":rom_fs: ");      _rom_fs.print_fs();
+		log(":rom_fs: ",       _rom_fs);
 	}
 
 	/* add capability selector ranges to map */
