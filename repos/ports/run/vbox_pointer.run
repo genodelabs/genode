@@ -71,11 +71,9 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<rom>
-				<policy label="pointer -> hover" report="nitpicker -> hover"/>
-				<policy label="pointer -> xray"  report="nitpicker -> xray"/>
-				<policy label="pointer -> focus" report="nitpicker -> focus"/>
-			</rom>
+			<policy label="pointer -> hover" report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"  report="nitpicker -> xray"/>
+			<policy label="pointer -> focus" report="nitpicker -> focus"/>
 		</config>
 		<route>
 			<service name="RM">     <parent/> </service>
@@ -112,12 +110,10 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<rom>
-				<policy label="pointer -> arrow"  report="shape-arrow -> shape"/>
-				<policy label="pointer -> blade"  report="shape-blade -> shape"/>
-				<policy label="pointer -> bladex" report="shape-bladex -> shape"/>
-				<policy label="pointer -> smiley" report="shape-smiley -> shape"/>
-			</rom>
+			<policy label="pointer -> arrow"  report="shape-arrow -> shape"/>
+			<policy label="pointer -> blade"  report="shape-blade -> shape"/>
+			<policy label="pointer -> bladex" report="shape-bladex -> shape"/>
+			<policy label="pointer -> smiley" report="shape-smiley -> shape"/>
 		</config>
 		<route>
 			<service name="RM">     <parent/> </service>

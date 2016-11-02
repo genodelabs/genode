@@ -40,9 +40,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
-			<rom>
-				<policy label="clipboard -> focus" report="test-clipboard -> focus"/>
-			</rom>
+			<policy label="clipboard -> focus" report="test-clipboard -> focus"/>
 		</config>
 	</start>
 

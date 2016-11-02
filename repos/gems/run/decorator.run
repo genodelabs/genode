@@ -49,9 +49,7 @@ append config {
 		<provides> <service name="ROM" />
 		           <service name="Report" /> </provides>
 		<config>
-			<rom>
-				<policy label="decorator -> pointer" report="nitpicker -> pointer"/>
-			</rom>
+			<policy label="decorator -> pointer" report="nitpicker -> pointer"/>
 		</config>
 	</start>
 	<start name="nitpicker">

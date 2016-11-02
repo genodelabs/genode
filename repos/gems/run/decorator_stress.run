@@ -114,12 +114,10 @@ append config {
 		<provides> <service name="ROM" />
 		           <service name="Report" /> </provides>
 		<config>
-			<rom>
-				<policy label="decorator -> pointer"
-				       report="nitpicker -> pointer"/>
-				<policy label="decorator -> window_layout"
-				       report="test-decorator_stress -> window_layout"/>
-			</rom>
+			<policy label="decorator -> pointer"
+			       report="nitpicker -> pointer"/>
+			<policy label="decorator -> window_layout"
+			       report="test-decorator_stress -> window_layout"/>
 		</config>
 	</start>
 	<start name="test-decorator_stress">

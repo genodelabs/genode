@@ -315,9 +315,7 @@ append_if $use_fancy_stuff config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<rom>
-				<policy label="status_bar -> focus" report="nitpicker -> focus"/>
-			</rom>
+			<policy label="status_bar -> focus" report="nitpicker -> focus"/>
 		</config>
 	</start>
 	<start name="launchpad" priority="-2">

@@ -63,9 +63,7 @@ append config {
 				<service name="Report"/>
 			</provides>
 			<config verbose="yes">
-				<rom>
-					<policy label="to_whom_it_may_concern" report="mixer -> channel_list"/>
-				</rom>
+				<policy label="to_whom_it_may_concern" report="mixer -> channel_list"/>
 			</config>
 		</start>
 

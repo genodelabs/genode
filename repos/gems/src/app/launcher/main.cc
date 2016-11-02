@@ -44,14 +44,14 @@ struct Launcher::Main
 	Genode::Cap_connection _cap;
 
 	char const *_report_rom_config =
-		"<config> <rom>"
+		"<config>"
 		"  <policy label=\"menu_dialog\"    report=\"menu_dialog\"/>"
 		"  <policy label=\"menu_hover\"     report=\"menu_hover\"/>"
 		"  <policy label=\"panel_dialog\"   report=\"panel_dialog\"/>"
 		"  <policy label=\"panel_hover\"    report=\"panel_hover\"/>"
 		"  <policy label=\"context_dialog\" report=\"context_dialog\"/>"
 		"  <policy label=\"context_hover\"  report=\"context_hover\"/>"
-		"</rom> </config>";
+		"</config>";
 
 	Report_rom_slave _report_rom_slave = { _cap, *env()->ram_session(), _report_rom_config };
 

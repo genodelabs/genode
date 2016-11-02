@@ -155,11 +155,9 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<rom>
-				<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
-				<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
-				<policy label="virtualbox -> usb_devices"           report="usb_report_filter -> usb_devices"/>
-			</rom>
+			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
+			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
+			<policy label="virtualbox -> usb_devices"           report="usb_report_filter -> usb_devices"/>
 		</config>
 	</start>
 

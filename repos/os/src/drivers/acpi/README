@@ -27,9 +27,7 @@ Usage
 !    <service name="Report" />
 !  </provides>
 !  <config>
-!    <rom>
-!      <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
-!    </rom>
+!    <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
 !  </config>
 !</start>
 !
