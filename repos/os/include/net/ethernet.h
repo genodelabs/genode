@@ -128,17 +128,17 @@ class Net::Ethernet_frame
 		/**
 		 * \return destination MAC address of frame.
 		 */
-		Mac_address dst() { return Mac_address(&_dst_mac); }
+		Mac_address dst() const { return Mac_address((void *)&_dst_mac); }
 
 		/**
 		 * \return source MAC address of frame.
 		 */
-		Mac_address src() { return Mac_address(&_src_mac); }
+		Mac_address src() const { return Mac_address((void *)&_src_mac); }
 
 		/**
 		 * \return EtherType - type of encapsulated protocol.
 		 */
-		Genode::uint16_t type() { return host_to_big_endian(_type); }
+		Genode::uint16_t type() const { return host_to_big_endian(_type); }
 
 		/**
 		 * \return payload data.
@@ -181,6 +181,13 @@ class Net::Ethernet_frame
 		 * Placement new operator.
 		 */
 		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
 
 } __attribute__((packed));
 

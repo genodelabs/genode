@@ -14,10 +14,29 @@
 #include <util/token.h>
 #include <util/string.h>
 
+#include <net/udp.h>
+#include <net/tcp.h>
 #include <net/ipv4.h>
 
 using namespace Genode;
 using namespace Net;
+
+
+void Net::Ipv4_packet::print(Genode::Output &output) const
+{
+	Genode::print(output, "\033[32mIPV4\033[0m ", src(), " > ", dst(), " ");
+	switch (protocol()) {
+	case Tcp_packet::IP_ID:
+		Genode::print(output,
+		              *reinterpret_cast<Tcp_packet const *>(data<void>()));
+		break;
+	case Udp_packet::IP_ID:
+		Genode::print(output,
+		              *reinterpret_cast<Udp_packet const *>(data<void>()));
+		break;
+	default: ; }
+}
+
 
 struct Scanner_policy_number
 {

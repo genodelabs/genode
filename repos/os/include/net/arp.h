@@ -195,31 +195,31 @@ class Net::Arp_packet
 		/**
 		 * \return operation code (Arp_packet::Opcode).
 		 */
-		Genode::uint16_t opcode() { return host_to_big_endian(_opcode); }
+		Genode::uint16_t opcode() const { return host_to_big_endian(_opcode); }
 
 		/**
 		 * \return source MAC address.
 		 */
-		Mac_address src_mac() {
-			return Mac_address(&_src_mac_addr); }
+		Mac_address src_mac() const {
+			return Mac_address((void *)&_src_mac_addr); }
 
 		/**
 		 * \return source IP address.
 		 */
-		Ipv4_address src_ip() {
-			return Ipv4_address(&_src_ip_addr); }
+		Ipv4_address src_ip() const {
+			return Ipv4_address((void *)&_src_ip_addr); }
 
 		/**
 		 * \return destination MAC address.
 		 */
-		Mac_address dst_mac() {
-			return Mac_address(&_dst_mac_addr); }
+		Mac_address dst_mac() const {
+			return Mac_address((void *)&_dst_mac_addr); }
 
 		/**
 		 * \return destination IP address.
 		 */
-		Ipv4_address dst_ip() {
-			return Ipv4_address(&_dst_ip_addr); }
+		Ipv4_address dst_ip() const {
+			return Ipv4_address((void *)&_dst_ip_addr); }
 
 
 		/******************************
@@ -297,7 +297,7 @@ class Net::Arp_packet
 		 * \return true when ARP packet really targets ethernet
 		 *         address resolution with respect to IPv4 addresses.
 		 */
-		bool ethernet_ipv4() {
+		bool ethernet_ipv4() const {
 			return (   host_to_big_endian(_hw_addr_type)   == ETHERNET
 			        && host_to_big_endian(_prot_addr_type) == Ethernet_frame::IPV4
 			        && _hw_addr_sz   == Ethernet_frame::ADDR_LEN
@@ -313,6 +313,13 @@ class Net::Arp_packet
 		 * Placement new
 		 */
 		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+
+
+		/*********
+		 ** Log **
+		 *********/
+
+		void print(Genode::Output &output) const;
 
 } __attribute__((packed));
 

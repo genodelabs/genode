@@ -172,12 +172,12 @@ class Net::Ipv4_packet
 
 		Genode::size_t   fragment_offset() { return _fragment_offset;      }
 		Genode::uint8_t  time_to_live()    { return _time_to_live;         }
-		Genode::uint8_t  protocol()        { return _protocol;             }
+		Genode::uint8_t  protocol() const  { return _protocol;             }
 
 		Genode::uint16_t checksum() { return host_to_big_endian(_header_checksum); }
 
-		Ipv4_address dst() { return Ipv4_address(&_dst_addr); }
-		Ipv4_address src() { return Ipv4_address(&_src_addr); }
+		Ipv4_address dst() const { return Ipv4_address((void *)&_dst_addr); }
+		Ipv4_address src() const { return Ipv4_address((void *)&_src_addr); }
 
 		template <typename T> T const * header() const { return (T const *)(this); }
 		template <typename T> T *       data()         { return (T *)(_data); }
@@ -206,6 +206,13 @@ class Net::Ipv4_packet
 		 * Placement new.
 		 */
 		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
 
 } __attribute__((packed));
 

@@ -75,10 +75,10 @@ class Net::Udp_packet
 		 ** UDP field read-accessors **
 		 ******************************/
 
-		Genode::uint16_t src_port()  { return host_to_big_endian(_src_port); }
-		Genode::uint16_t dst_port()  { return host_to_big_endian(_dst_port); }
-		Genode::uint16_t length()    { return host_to_big_endian(_length);   }
-		Genode::uint16_t checksum()  { return host_to_big_endian(_checksum); }
+		Genode::uint16_t src_port() const { return host_to_big_endian(_src_port); }
+		Genode::uint16_t dst_port() const { return host_to_big_endian(_dst_port); }
+		Genode::uint16_t length()   const { return host_to_big_endian(_length);   }
+		Genode::uint16_t checksum() const { return host_to_big_endian(_checksum); }
 
 		void src_port(Genode::uint16_t p) { _src_port = host_to_big_endian(p); }
 		void dst_port(Genode::uint16_t p) { _dst_port = host_to_big_endian(p); }
@@ -155,6 +155,14 @@ class Net::Udp_packet
 			/* one's complement of sum */
 			_checksum = host_to_big_endian((Genode::uint16_t) ~sum);
 		}
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
+
 } __attribute__((packed));
 
 #endif /* _UDP_H_ */

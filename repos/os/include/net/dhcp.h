@@ -185,12 +185,12 @@ class Net::Dhcp_packet
 		 ** DHCP field read-accessors **
 		 *******************************/
 
-		Genode::uint8_t   op()    { return _op;          }
-		Genode::uint8_t   htype() { return _htype;       }
-		Genode::uint8_t   hlen()  { return _hlen;        }
-		Genode::uint8_t   hops()  { return _hops;        }
-		Genode::uint32_t  xid()   { return host_to_big_endian(_xid);  }
-		Genode::uint16_t  secs()  { return host_to_big_endian(_secs); }
+		Genode::uint8_t  op()    const { return _op;                       }
+		Genode::uint8_t  htype() const { return _htype;                    }
+		Genode::uint8_t  hlen()  const { return _hlen;                     }
+		Genode::uint8_t  hops()  const { return _hops;                     }
+		Genode::uint32_t xid()   const { return host_to_big_endian(_xid);  }
+		Genode::uint16_t secs()  const { return host_to_big_endian(_secs); }
 
 		bool broadcast() { return _flags & BROADCAST;    }
 
@@ -198,13 +198,13 @@ class Net::Dhcp_packet
 			return Ipv4_address(&_ciaddr);  }
 		Ipv4_address yiaddr() {
 			return Ipv4_address(&_yiaddr);  }
-		Ipv4_address siaddr() {
-			return Ipv4_address(&_siaddr);  }
+		Ipv4_address siaddr() const {
+			return Ipv4_address((void *)&_siaddr);  }
 		Ipv4_address giaddr() {
 			return Ipv4_address(&_giaddr);  }
 
-		Mac_address client_mac() {
-			return Mac_address(&_chaddr); }
+		Mac_address client_mac() const {
+			return Mac_address((void *)&_chaddr); }
 
 		const char* server_name()  { return (const char*) &_sname; }
 		const char* file()         { return (const char*) &_file;  }
@@ -255,7 +255,7 @@ class Net::Dhcp_packet
 		 ** Convenience methods **
 		 *************************/
 
-		static bool is_dhcp(Udp_packet *udp)
+		static bool is_dhcp(Udp_packet const *udp)
 		{
 			return ((udp->src_port() == Dhcp_packet::BOOTPC ||
 			         udp->src_port() == Dhcp_packet::BOOTPS) &&
@@ -272,6 +272,13 @@ class Net::Dhcp_packet
 		 * Placement new.
 		 */
 		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
 
 } __attribute__((packed));
 
