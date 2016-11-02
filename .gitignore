@@ -5,35 +5,5 @@
 
 /build
 /contrib
-/repos/base-codezero/contrib
-/repos/base-fiasco/contrib
-/repos/base-fiasco/download
-/repos/base-foc/contrib
-/repos/base-pistachio/contrib
-/repos/dde_ipxe/contrib
-/repos/dde_linux/contrib
-/repos/dde_linux/download
-/repos/dde_oss/contrib
-/repos/dde_oss/download
-/repos/dde_rump/contrib
-/repos/dde_rump/include/rump
-/repos/libports/contrib
-/repos/libports/download
-/repos/ports-foc/contrib
-/repos/ports-okl4/contrib
-/repos/ports-okl4/download
-/repos/ports/contrib
-/repos/ports/download
-/repos/ports/src/app/arora/html
-/repos/qt4/contrib
-/repos/qt4/download
-/repos/qt4/tool/bootstrap
-/repos/qt4/tool/misc/var
-/repos/qt4/tool/moc
-/repos/qt4/tool/qmake/*.d
-/repos/qt4/tool/qmake/*.o
-/repos/qt4/tool/qmake/qmake
-/repos/qt4/tool/rcc
-/repos/qt4/tool/uic
 /repos/world
 
