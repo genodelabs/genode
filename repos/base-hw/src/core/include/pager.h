@@ -26,17 +26,12 @@
 
 /* core-local includes */
 #include <kernel/signal_receiver.h>
+#include <mapping.h>
 #include <object.h>
 #include <rpc_cap_factory.h>
 
 namespace Genode
 {
-
-	/**
-	 * Translation of a virtual page frame
-	 */
-	struct Mapping;
-
 	/**
 	 * Interface between the generic paging system and the base-hw backend
 	 */
@@ -54,32 +49,6 @@ namespace Genode
 
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
-
-struct Genode::Mapping
-{
-	addr_t          virt_address;
-	addr_t          phys_address;
-	Cache_attribute cacheable;
-	bool            io_mem;
-	unsigned        size_log2;
-	bool            writable;
-
-	/**
-	 * Constructor for invalid mappings
-	 */
-	Mapping();
-
-	/**
-	 * Constructor for valid mappings
-	 */
-	Mapping(addr_t const va, addr_t const pa, Cache_attribute const c,
-	        bool const io, unsigned const sl2, bool const w);
-
-	/**
-	 * Prepare for the application of the mapping
-	 */
-	void prepare_map_operation();
-};
 
 class Genode::Ipc_pager
 {
