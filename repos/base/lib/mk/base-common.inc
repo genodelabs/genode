@@ -10,6 +10,7 @@ SRC_CC += avl_tree.cc
 SRC_CC += slab.cc
 SRC_CC += allocator_avl.cc
 SRC_CC += heap.cc sliced_heap.cc
+SRC_CC += registry.cc
 SRC_CC += console.cc
 SRC_CC += output.cc
 SRC_CC += child.cc
