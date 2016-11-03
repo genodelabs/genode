@@ -35,7 +35,7 @@ static const char *http_get_request =
 using namespace Genode;
 
 
-template <size_t N>
+template <Genode::size_t N>
 static Genode::String<N> read_string_attribute(Genode::Xml_node node, char const *attr,
                                                Genode::String<N> default_value)
 {
