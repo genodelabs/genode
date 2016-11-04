@@ -16,6 +16,7 @@
 
 #include <util/construct_at.h>
 #include <base/stdint.h>
+#include <util/noncopyable.h>
 
 namespace Genode {
 	template<typename> class Volatile_object;
@@ -35,7 +36,7 @@ namespace Genode {
  * \param  MT type
  */
 template <typename MT>
-class Genode::Volatile_object
+class Genode::Volatile_object : Noncopyable
 {
 	private:
 
