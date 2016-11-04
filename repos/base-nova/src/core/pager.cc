@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/sleep.h>
 #include <util/construct_at.h>
 #include <rm_session/rm_session.h>
 
@@ -23,6 +22,7 @@
 
 /* core-local includes */
 #include <pager.h>
+#include <platform.h>
 #include <platform_thread.h>
 #include <imprint_badge.h>
 
@@ -49,7 +49,7 @@ static Nova::Hip * kernel_hip()
 }
 
 /* pager activation threads storage and handling - one thread per CPU */
-enum { PAGER_CPUS = 128, PAGER_STACK_SIZE = 2*4096 };
+enum { PAGER_CPUS = Platform::MAX_SUPPORTED_CPUS, PAGER_STACK_SIZE = 2*4096 };
 
 static char pager_activation_mem[sizeof (Pager_activation<PAGER_STACK_SIZE>) * PAGER_CPUS];
 static Pager_activation_base * pager_threads[PAGER_CPUS];
@@ -67,7 +67,7 @@ static unsigned which_cpu(Pager_activation_base * pager)
 	}
 
 	/* pager of boot CPU */
-	return Affinity::Location().xpos();
+	return 0;
 }
 
 
@@ -510,14 +510,16 @@ template <uint8_t EV>
 void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
                                           void (* __attribute__((regparm(1))) func)(addr_t))
 {
-	unsigned use_cpu = obj->location().xpos();
+	unsigned const genode_cpu_id = obj->location().xpos();
+	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
 
-	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
+	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
+	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
 		throw Region_map::Invalid_thread();
 	}
 
-	addr_t const ec_sel = pager_threads[use_cpu]->native_thread().ec_sel;
+	addr_t const ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
 
 	/* compiler generates instance of exception entry if not specified */
 	addr_t entry = func ? (addr_t)func : (addr_t)(&_handler<EV>);
@@ -604,13 +606,15 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	}
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
-	unsigned use_cpu = location.xpos();
-	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
+	unsigned const genode_cpu_id = location.xpos();
+	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
+	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
+	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
 		throw Region_map::Invalid_thread();
 	}
 
-	addr_t ec_sel    = pager_threads[use_cpu]->native_thread().ec_sel;
+	addr_t ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
 
 	/* create portal for page-fault handler - 14 */
 	_exceptions.register_handler<14>(this, Mtd::QUAL | Mtd::EIP,
@@ -870,12 +874,14 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 
 addr_t Pager_object::get_oom_portal()
 {
-	addr_t const pt_oom     = sel_oom_portal();
-	unsigned const use_cpu  = _location.xpos();
+	addr_t   const pt_oom        = sel_oom_portal();
+	unsigned const genode_cpu_id = _location.xpos();
+	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
 
-	if (kernel_hip()->is_cpu_enabled(use_cpu) && pager_threads[use_cpu]) {
-		addr_t const ec_sel     = pager_threads[use_cpu]->native_thread().ec_sel;
+	if (kernel_hip()->is_cpu_enabled(kernel_cpu_id) &&
+	    pager_threads[genode_cpu_id]) {
 
+		addr_t const ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
 		uint8_t res = create_portal(pt_oom, __core_pd_sel, ec_sel, Mtd(0),
 		                            reinterpret_cast<addr_t>(_oom_handler),
 		                            this);
@@ -940,8 +946,9 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
 	typedef Pager_activation<PAGER_STACK_SIZE> Pager;
 	Pager * pager_of_cpu = reinterpret_cast<Pager *>(&pager_activation_mem);
 
-	for (unsigned i = 0; i < kernel_hip()->cpu_max(); i++, pager_of_cpu++) {
-		if (!kernel_hip()->is_cpu_enabled(i))
+	for (unsigned i = 0; i < kernel_hip()->cpus(); i++, pager_of_cpu++) {
+		unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(i);
+		if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id))
 			continue;
 
 		pager_threads[i] = pager_of_cpu;
@@ -954,13 +961,15 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	/* let handle pager_object of pager thread on same CPU */
-	unsigned use_cpu = obj->location().xpos();
-	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
+	unsigned const genode_cpu_id = obj->location().xpos();
+	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
+	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
+	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
 		return Pager_capability();
 	}
 	Native_capability pager_thread_cap =
-		Capability_space::import(pager_threads[use_cpu]->native_thread().ec_sel);
+		Capability_space::import(pager_threads[genode_cpu_id]->native_thread().ec_sel);
 
 	/* request creation of portal bind to pager thread */
 	Native_capability cap_session =

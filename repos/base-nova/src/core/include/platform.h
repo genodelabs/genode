@@ -23,6 +23,10 @@ namespace Genode {
 
 	class Platform : public Platform_generic
 	{
+		public:
+
+			enum { MAX_SUPPORTED_CPUS = 64};
+
 		private:
 
 			Core_mem_allocator _core_mem_alloc; /* core-accessible memory  */
@@ -40,6 +44,9 @@ namespace Genode {
 
 			/* available CPUs */
 			Affinity::Space _cpus;
+
+			/* map of virtual cpu ids in Genode to kernel cpu ids */
+			uint8_t map_cpu_ids[MAX_SUPPORTED_CPUS];
 
 			addr_t _map_pages(addr_t phys_page, addr_t pages);
 
@@ -88,6 +95,11 @@ namespace Genode {
 			 */
 			size_t region_alloc_size_at(void * addr) {
 				return (*_core_mem_alloc.virt_alloc())()->size_at(addr); }
+
+			/**
+			 * Return kernel CPU ID for given Genode CPU
+			 */
+			unsigned kernel_cpu_id(unsigned genode_cpu_id);
 	};
 }
 

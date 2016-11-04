@@ -126,6 +126,13 @@ namespace Nova {
 		bool has_feature_vmx() const { return feature_flags & (1 << 1); }
 		bool has_feature_svm() const { return feature_flags & (1 << 2); }
 
+		struct Cpu_desc {
+			uint8_t flags;
+			uint8_t thread;
+			uint8_t core;
+			uint8_t package;
+		} __attribute__((packed));
+
 		unsigned cpu_max() const {
 			return (mem_desc_offset - cpu_desc_offset) / cpu_desc_size; }
 
@@ -139,16 +146,63 @@ namespace Nova {
 			return cpu_num;
 		}
 
-		bool is_cpu_enabled(unsigned i) const {
+		Cpu_desc const * cpu_desc_of_cpu(unsigned i) const {
 			if (i >= cpu_max())
-				return false;
+				return nullptr;
 
-			const char * cpu_desc = reinterpret_cast<const char *>(this) +
-			                        cpu_desc_offset + i * cpu_desc_size;
-
-			return (*cpu_desc) & 0x1;
+			unsigned long desc_addr = reinterpret_cast<unsigned long>(this) +
+			                          cpu_desc_offset + i * cpu_desc_size;
+			return reinterpret_cast<Cpu_desc const * const>(desc_addr);
 		}
 
+		bool is_cpu_enabled(unsigned i) const {
+			Cpu_desc const * const desc = cpu_desc_of_cpu(i);
+			return desc ? desc->flags & 0x1 : false;
+		}
+
+		/**
+		 * Map kernel cpu ids to virtual cpu ids.
+		 * Assign first all cores on all packages with thread 0 to virtual
+		 * cpu id numbers, afterwards all (hyper-)threads.
+		 */
+		bool remap_cpu_ids(uint8_t *map_cpus, unsigned const boot_cpu) const {
+			unsigned const num_cpus = cpus();
+			unsigned cpu_i = 0;
+
+			/* assign boot cpu ever the virtual cpu id 0 */
+			Cpu_desc const * const boot = cpu_desc_of_cpu(boot_cpu);
+			if (!boot || !is_cpu_enabled(boot_cpu))
+				return false;
+
+			map_cpus[cpu_i++] = boot_cpu;
+			if (cpu_i >= num_cpus)
+				return true;
+
+			/* assign remaining cores and afterwards all threads to the ids */
+			for (uint8_t thread = 0; thread < 255; thread++) {
+				for (uint8_t package = 0; package < 255; package++) {
+					for (uint8_t core = 0; core < 255; core++) {
+						for (unsigned i = 0; i < cpu_max(); i++) {
+							if (i == boot_cpu || !is_cpu_enabled(i))
+								continue;
+
+							Cpu_desc const * const c = cpu_desc_of_cpu(i);
+							if (!c)
+								continue;
+
+							if (!(c->package == package && c->core == core &&
+							      c->thread == thread))
+								continue;
+
+							map_cpus [cpu_i++] = i;
+							if (cpu_i >= num_cpus)
+								return true;
+						}
+					}
+				}
+			}
+			return false;
+		}
 	} __attribute__((packed));
 
 

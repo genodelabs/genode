@@ -25,6 +25,7 @@
 
 /* core includes */
 #include <nova_util.h>
+#include <platform.h>
 #include <platform_pd.h>
 
 using namespace Genode;
@@ -102,7 +103,8 @@ void Thread::start()
 
 	/* create local EC */
 	enum { LOCAL_THREAD = false };
-	uint8_t res = create_ec(native_thread().ec_sel, pd_sel, location.xpos(),
+	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(location.xpos());
+	uint8_t res = create_ec(native_thread().ec_sel, pd_sel, kernel_cpu_id,
 	                        utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
 		error("create_ec returned ", res, " cpu=", location.xpos());

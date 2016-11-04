@@ -63,13 +63,6 @@ Utcb *__main_thread_utcb;
  */
 extern unsigned _prog_img_beg, _prog_img_end;
 
-
-
-extern addr_t sc_idle_base;
-addr_t sc_idle_base = 0;
-
-
-
 /**
  *  Capability selector of root PD
  */
@@ -335,6 +328,17 @@ Platform::Platform() :
 		nova_die();
 	}
 
+	/* init genode cpu ids based on kernel cpu ids (used for syscalls) */
+	if (sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]) < hip->cpu_max()) {
+		error("number of max CPUs is larger than expected - ", hip->cpu_max(),
+		      " vs ", sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]));
+		nova_die();
+	}
+	if (!hip->remap_cpu_ids(map_cpu_ids, boot_cpu())) {
+		error("re-ording cpu_id failed");
+		nova_die();
+	}
+
 	/* map idle SCs */
 	unsigned const log2cpu = log2(hip->cpu_max());
 	if ((1U << log2cpu) != hip->cpu_max()) {
@@ -342,13 +346,13 @@ Platform::Platform() :
 		nova_die();
 	}
 
-	sc_idle_base = cap_map()->insert(log2cpu + 1);
+	addr_t sc_idle_base = cap_map()->insert(log2cpu + 1);
 	if (sc_idle_base & ((1UL << log2cpu) - 1)) {
 		error("unaligned sc_idle_base value ", Hex(sc_idle_base));
 		nova_die();
 	}
-	if(map_local(__main_thread_utcb, Obj_crd(0, log2cpu),
-	             Obj_crd(sc_idle_base, log2cpu), true))
+	if (map_local(__main_thread_utcb, Obj_crd(0, log2cpu),
+	              Obj_crd(sc_idle_base, log2cpu), true))
 		nova_die();
 
 	/* test reading out idle SCs */
@@ -384,9 +388,18 @@ Platform::Platform() :
 		if (hip->has_feature_svm())
 			log("Hypervisor features SVM");
 		log("Hypervisor reports ", _cpus.width(), "x", _cpus.height(), " "
-		    "CPU", _cpus.total() > 1 ? "s" : " ", " - boot CPU is ", boot_cpu());
+		    "CPU", _cpus.total() > 1 ? "s" : " ");
 		if (!cpuid_invariant_tsc())
 			warning("CPU has no invariant TSC.");
+
+		log("CPU ID (genode->kernel:package:core:thread) remapping");
+		unsigned const cpus = hip->cpus();
+		for (unsigned i = 0; i < cpus; i++)
+			log(" remap (", i, "->", map_cpu_ids[i], ":",
+			      hip->cpu_desc_of_cpu(map_cpu_ids[i])->package, ":",
+			      hip->cpu_desc_of_cpu(map_cpu_ids[i])->core, ":",
+			      hip->cpu_desc_of_cpu(map_cpu_ids[i])->thread, ") ",
+			      boot_cpu() == map_cpu_ids[i] ? "boot cpu" : "");
 	}
 
 	/* initialize core allocators */
@@ -653,9 +666,11 @@ Platform::Platform() :
 	}
 
 	/* add idle ECs to trace sources */
-	for (unsigned i = 0; i < hip->cpu_max(); i++) {
+	for (unsigned genode_cpu_id = 0; genode_cpu_id < _cpus.width(); genode_cpu_id++) {
 
-		if (!hip->is_cpu_enabled(i))
+		unsigned kernel_cpu_id = Platform::kernel_cpu_id(genode_cpu_id);
+
+		if (!hip->is_cpu_enabled(kernel_cpu_id))
 			continue;
 
 		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
@@ -686,11 +701,22 @@ Platform::Platform() :
 		};
 
 		Idle_trace_source *source = new (core_mem_alloc())
-			Idle_trace_source(Affinity::Location(i, 0, hip->cpu_max(), 1),
-			                  sc_idle_base + i);
+			Idle_trace_source(Affinity::Location(kernel_cpu_id, 0,
+			                                     _cpus.width(), 1),
+			                  sc_idle_base + kernel_cpu_id);
 
 		Trace::sources().insert(source);
 	}
+}
+
+
+unsigned Platform::kernel_cpu_id(unsigned genode_cpu_id)
+{
+	if (genode_cpu_id >= sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0])) {
+		error("invalid genode cpu id ", genode_cpu_id);
+		return ~0U;
+	}
+	return map_cpu_ids[genode_cpu_id];
 }
 
 
