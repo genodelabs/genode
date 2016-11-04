@@ -40,17 +40,6 @@ namespace Genode {
 		return size_log2 > MAX_MAP_LOG2 ? MAX_MAP_LOG2 : size_log2;
 	}
 
-
-	inline void backtrace()
-	{
-		using namespace Genode;
-		log("\nbacktrace");
-		log(" ", __builtin_return_address(0));
-		log(" ", __builtin_return_address(1));
-		log(" ", __builtin_return_address(2));
-		log(" ", __builtin_return_address(3));
-		log(" ", __builtin_return_address(4));
-	}
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */
