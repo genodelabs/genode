@@ -233,7 +233,7 @@ namespace Genode {
 	 * Print a variable number of arguments
 	 */
 	template <typename HEAD, typename... TAIL>
-	static inline void print(Output &output, HEAD const &head, TAIL... tail)
+	static inline void print(Output &output, HEAD const &head, TAIL &&... tail)
 	{
 		Output::out_args(output, head, tail...);
 	}
