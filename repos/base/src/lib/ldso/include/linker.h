@@ -103,12 +103,6 @@ namespace Linker {
 	 * Global ELF access lock
 	 */
 	Lock &lock();
-
-	/**
-	 * Invariants
-	 */
-	constexpr char const *binary_name() { return "binary"; }
-	constexpr char const *linker_name() { return "ld.lib.so"; }
 }
 
 

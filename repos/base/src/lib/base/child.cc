@@ -43,12 +43,16 @@ namespace {
 
 			public:
 
+				class Quota_exceeded : Exception { };
+
 				/**
 				 * Constructor
 				 *
 				 * \param quantim  number of bytes to transfer
 				 * \param from     donator RAM session
 				 * \param to       receiver RAM session
+				 *
+				 * \throw Quota_exceeded
 				 */
 				Transfer(size_t quantum,
 				         Ram_session_capability from,
@@ -58,7 +62,7 @@ namespace {
 					if (_from.valid() && _to.valid() &&
 					    Ram_session_client(_from).transfer_quota(_to, quantum)) {
 						warning("not enough quota for a donation of ", quantum, " bytes");
-						throw Parent::Quota_exceeded();
+						throw Quota_exceeded();
 					}
 				}
 
@@ -83,198 +87,15 @@ namespace {
 }
 
 
-/********************
- ** Child::Session **
- ********************/
-
-class Child::Session : public Object_pool<Session>::Entry,
-                       public List<Session>::Element
-{
-	private:
-
-		enum { IDENT_LEN = 16 };
-
-		/**
-		 * Session capability at the server
-		 */
-		Session_capability _cap;
-
-		/**
-		 * Service interface that was used to create the session
-		 */
-		Service *_service;
-
-		/**
-		 * Server implementing the session
-		 *
-		 * Even though we can normally determine the server of the session via
-		 * '_service->server()', this does not apply when destructing a server.
-		 * During destruction, we use the 'Server' pointer as opaque key for
-		 * revoking active sessions of the server. So we keep a copy
-		 * independent of the 'Service' object.
-		 */
-		Server *_server;
-
-		/**
-		 * Total of quota associated with this session
-		 */
-		size_t _donated_ram_quota;
-
-		/**
-		 * Name of session, used for debugging
-		 */
-		char _ident[IDENT_LEN];
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param session    session capability
-		 * \param service    service that implements the session
-		 * \param ram_quota  initial quota donation associated with
-		 *                   the session
-		 * \param ident      optional session identifier, used for
-		 *                   debugging
-		 */
-		Session(Session_capability session, Service *service,
-		        size_t ram_quota, const char *ident = "<noname>")
-		:
-			Object_pool<Session>::Entry(session), _cap(session),
-			_service(service), _server(service->server()),
-			_donated_ram_quota(ram_quota) {
-			strncpy(_ident, ident, sizeof(_ident)); }
-
-		/**
-		 * Default constructor creates invalid session
-		 */
-		Session() : _service(0), _donated_ram_quota(0) { }
-
-		/**
-		 * Extend amount of ram attached to the session
-		 */
-		void upgrade_ram_quota(size_t ram_quota) {
-			_donated_ram_quota += ram_quota; }
-
-		/**
-		 * Accessors
-		 */
-		Session_capability cap()               const { return _cap; }
-		size_t             donated_ram_quota() const { return _donated_ram_quota; }
-		bool               valid()             const { return _service != 0; }
-		Service           *service()           const { return _service; }
-		Server            *server()            const { return _server; }
-		const char        *ident()             const { return _ident; }
-};
-
-
 /***********
  ** Child **
  ***********/
 
-void Child::_add_session(Child::Session const &s)
+template <typename SESSION>
+static Service &parent_service()
 {
-	Lock::Guard lock_guard(_lock);
-
-	/*
-	 * Store session information in a new child's meta data structure.  The
-	 * allocation from 'heap()' may throw a 'Ram_session::Quota_exceeded'
-	 * exception.
-	 */
-	Session *session = 0;
-	try {
-		session = new (heap())
-		          Session(s.cap(), s.service(),
-		                  s.donated_ram_quota(), s.ident()); }
-	catch (Allocator::Out_of_memory) {
-		throw Parent::Quota_exceeded(); }
-
-	/* these functions may also throw 'Ram_session::Quota_exceeded' */
-	_session_pool.insert(session);
-	_session_list.insert(session);
-}
-
-
-void Child::_remove_session(Child::Session *s)
-{
-	/* forget about this session */
-	_session_list.remove(s);
-
-	/* return session quota to the ram session of the child */
-	if (_policy.ref_ram_session()->transfer_quota(_ram, s->donated_ram_quota()))
-		error("We ran out of our own quota");
-
-	destroy(heap(), s);
-}
-
-
-Service &Child::_parent_service()
-{
-	static Parent_service parent_service("");
-	return parent_service;
-}
-
-
-void Child::_close(Session* s)
-{
-	if (!s) {
-		warning("no session structure found");
-		return;
-	}
-
-	/*
-	 * There is a chance that the server is not responding to the 'close' call,
-	 * making us block infinitely. However, by using core's cancel-blocking
-	 * mechanism, we can cancel the 'close' call by another (watchdog) thread
-	 * that invokes 'cancel_blocking' at our thread after a timeout. The
-	 * unblocking is reflected at the API level as an 'Blocking_canceled'
-	 * exception. We catch this exception to proceed with normal operation
-	 * after being unblocked.
-	 */
-	try { s->service()->close(s->cap()); }
-	catch (Blocking_canceled) {
-		warning("Got Blocking_canceled exception during ", s->ident(), "->close call"); }
-
-	/*
-	 * If the session was provided by a child of us,
-	 * 'server()->ram_session_cap()' returns the RAM session of the
-	 * corresponding child. Since the session to the server is closed now, we
-	 * expect that the server released all donated resources and we can
-	 * decrease the servers' quota.
-	 *
-	 * If this goes wrong, the server is misbehaving.
-	 */
-	if (s->service()->ram_session_cap().valid()) {
-		Ram_session_client server_ram(s->service()->ram_session_cap());
-		if (server_ram.transfer_quota(_policy.ref_ram_cap(),
-		                              s->donated_ram_quota())) {
-			error("Misbehaving server '", s->service()->name(), "'!");
-		}
-	}
-
-	{
-		Lock::Guard lock_guard(_lock);
-		_remove_session(s);
-	}
-}
-
-
-void Child::revoke_server(Server const *server)
-{
-	Lock::Guard lock_guard(_lock);
-
-	while (1) {
-		/* search session belonging to the specified server */
-		Session *s = _session_list.first();
-		for ( ; s && (s->server() != server); s = s->next());
-
-		/* if no matching session exists, we are done */
-		if (!s) return;
-
-		_session_pool.apply(s->cap(), [&] (Session *s) {
-			if (s) _session_pool.remove(s); });
-		_remove_session(s);
-	}
+	static Parent_service service(SESSION::service_name());
+	return service;
 }
 
 
@@ -298,133 +119,374 @@ void Child::notify_resource_avail() const
 }
 
 
-void Child::announce(Parent::Service_name const &name, Root_capability root)
+void Child::announce(Parent::Service_name const &name)
 {
 	if (!name.valid_string()) return;
 
-	_policy.announce_service(name.string(), root, heap(), &_server);
+	_policy.announce_service(name.string());
 }
 
 
-Session_capability Child::session(Parent::Service_name const &name,
+void Child::session_sigh(Signal_context_capability sigh)
+{
+	_session_sigh = sigh;
+
+	if (!_session_sigh.valid())
+		return;
+
+	/*
+	 * Deliver pending session response if a session became available before
+	 * the signal handler got installed. This can happen for the very first
+	 * asynchronously created session of a component. In 'component.cc', the
+	 * signal handler is registered as response of the session request that
+	 * needs asynchronous handling.
+	 */
+	_id_space.for_each<Session_state const>([&] (Session_state const &session) {
+		if (session.phase == Session_state::AVAILABLE
+		 && sigh.valid() && session.async_client_notify)
+			Signal_transmitter(sigh).submit(); });
+}
+
+
+/**
+ * Create session-state object for a dynamically created session
+ *
+ * \throw Parent::Quota_exceeded
+ * \throw Parent::Service_denied
+ */
+Session_state &
+create_session(Child_policy::Name const &child_name, Service &service,
+               Session_state::Factory &factory, Id_space<Parent::Client> &id_space,
+               Parent::Client::Id id, Session_state::Args const &args,
+               Affinity const &affinity)
+{
+	try {
+		return service.create_session(factory, id_space, id, args, affinity);
+	}
+	catch (Allocator::Out_of_memory) {
+		error("could not allocate session meta data for child ", child_name);
+		throw Parent::Quota_exceeded();
+	}
+	catch (Id_space<Parent::Client>::Conflicting_id) {
+
+		error(child_name, " requested conflicting session ID ", id, " "
+		      "(service=", service.name(), " args=", args, ")");
+
+		id_space.apply<Session_state>(id, [&] (Session_state &session) {
+			error("existing session: ", session); });
+	}
+	throw Parent::Service_denied();
+}
+
+
+Session_capability Child::session(Parent::Client::Id id,
+                                  Parent::Service_name const &name,
                                   Parent::Session_args const &args,
                                   Affinity             const &affinity)
 {
 	if (!name.valid_string() || !args.valid_string()) throw Unavailable();
 
-	/* return sessions that we created for the child */
-	if (!strcmp("Env::ram_session", name.string())) return _ram;
-	if (!strcmp("Env::cpu_session", name.string())) return _cpu;
-	if (!strcmp("Env::pd_session",  name.string())) return _pd;
+	char argbuf[Parent::Session_args::MAX_SIZE];
 
 	/* filter session arguments according to the child policy */
-	strncpy(_args, args.string(), sizeof(_args));
-	_policy.filter_session_args(name.string(), _args, sizeof(_args));
+	strncpy(argbuf, args.string(), sizeof(argbuf));
+	_policy.filter_session_args(name.string(), argbuf, sizeof(argbuf));
 
 	/* filter session affinity */
 	Affinity const filtered_affinity = _policy.filter_session_affinity(affinity);
 
+	/* may throw a 'Parent::Service_denied' exception */
+	Service &service = _policy.resolve_session_request(name.string(), argbuf);
+
+	Session_state &session =
+		create_session(_policy.name(), service, _session_factory,
+		               _id_space, id, argbuf, filtered_affinity);
+
+	session.ready_callback = this;
+	session.closed_callback = this;
+
 	/* transfer the quota donation from the child's account to ourself */
-	size_t ram_quota = Arg_string::find_arg(_args, "ram_quota").ulong_value(0);
+	size_t ram_quota = Arg_string::find_arg(argbuf, "ram_quota").ulong_value(0);
 
-	Transfer donation_from_child(ram_quota, _ram, _policy.ref_ram_cap());
+	try {
+		Transfer donation_from_child(ram_quota, _ram.cap(), _policy.ref_ram_cap());
 
-	Service *service = _policy.resolve_session_request(name.string(), _args);
+		/* transfer session quota from ourself to the service provider */
+		Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
+		                             service.ram());
 
-	/* raise an error if no matching service provider could be found */
-	if (!service)
-		throw Service_denied();
+		/* try to dispatch session request synchronously */
+		service.initiate_request(session);
 
-	/* transfer session quota from ourself to the service provider */
-	Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
-	                             service->ram_session_cap());
+		if (session.phase == Session_state::INVALID_ARGS) {
+			_revert_quota_and_destroy(session);
+			throw Service_denied();
+		}
 
-	/* create session */
-	Session_capability cap;
-	try { cap = service->session(_args, filtered_affinity); }
-	catch (Service::Invalid_args)   { throw Service_denied(); }
-	catch (Service::Unavailable)    { throw Service_denied(); }
-	catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
+		/* finish transaction */
+		donation_from_child.acknowledge();
+		donation_to_service.acknowledge();
+	}
+	catch (Transfer::Quota_exceeded) {
+		/*
+		 * Release session meta data if one of the quota transfers went wrong.
+		 */
+		session.destroy();
+		throw Parent::Quota_exceeded();
+	}
 
-	/* register session */
-	try { _add_session(Session(cap, service, ram_quota, name.string())); }
-	catch (Ram_session::Quota_exceeded) { throw Quota_exceeded(); }
+	/*
+	 * Copy out the session cap before we are potentially kicking off the
+	 * asynchonous request handling at the server to avoid doule-read
+	 * issues with the session.cap, which will be asynchronously assigned
+	 * by the server side.
+	 */
+	Session_capability cap = session.cap;
 
-	/* finish transaction */
-	donation_from_child.acknowledge();
-	donation_to_service.acknowledge();
+	/* if request was not handled synchronously, kick off async operation */
+	if (session.phase == Session_state::CREATE_REQUESTED)
+		service.wakeup();
+
+	if (cap.valid())
+		session.phase = Session_state::CAP_HANDED_OUT;
 
 	return cap;
 }
 
 
-void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &args)
+Session_capability Child::session_cap(Client::Id id)
 {
-	Service *targeted_service = 0;
+	Session_capability cap;
 
-	/* check of upgrade refers to an Env:: resource */
-	if (to_session.local_name() == _ram.local_name())
-		targeted_service = &_ram_service;
-	if (to_session.local_name() == _cpu.local_name())
-		targeted_service = &_cpu_service;
-	if (to_session.local_name() == _pd.local_name())
-		targeted_service = &_pd_service;
+	auto lamda = [&] (Session_state &session) {
 
-	/* check if upgrade refers to server */
-	_session_pool.apply(to_session, [&] (Session *session)
-	{
-		if (session)
-			targeted_service = session->service();
+		if (session.phase == Session_state::INVALID_ARGS) {
 
-		if (!targeted_service) {
-			warning("could not lookup service for session upgrade");
-			return;
+			/*
+			 * Implicity discard the session request when delivering an
+			 * exception because the exception will trigger the deallocation
+			 * of the session ID at the child anyway.
+			 */
+			_revert_quota_and_destroy(session);
+			throw Parent::Service_denied();
 		}
 
-		if (!args.valid_string()) {
-			warning("no valid session-upgrade arguments");
+		if (!session.alive())
+			warning(_policy.name(), ": attempt to request cap for unavailable session: ", session);
+
+		if (session.cap.valid())
+			session.phase = Session_state::CAP_HANDED_OUT;
+
+		cap = session.cap;
+	};
+
+	try {
+		_id_space.apply<Session_state>(id, lamda); }
+
+	catch (Id_space<Parent::Client>::Unknown_id) {
+		warning(_policy.name(), " requested session cap for unknown ID"); }
+
+	return cap;
+}
+
+
+Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const &args)
+{
+	if (!args.valid_string()) {
+		warning("no valid session-upgrade arguments");
+		return UPGRADE_DONE;
+	}
+
+	Upgrade_result result = UPGRADE_PENDING;
+
+	_id_space.apply<Session_state>(id, [&] (Session_state &session) {
+
+		if (session.phase != Session_state::CAP_HANDED_OUT) {
+			warning("attempt to upgrade session in invalid state");
 			return;
 		}
 
 		size_t const ram_quota =
 			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
 
-		/* transfer quota from client to ourself */
-		Transfer donation_from_child(ram_quota, _ram, _policy.ref_ram_cap());
+		try {
+			/* transfer quota from client to ourself */
+			Transfer donation_from_child(ram_quota, _ram.cap(), _policy.ref_ram_cap());
 
-		/* transfer session quota from ourself to the service provider */
-		Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
-		                             targeted_service->ram_session_cap());
+			/* transfer session quota from ourself to the service provider */
+			Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
+			                             session.service().ram());
 
-		try { targeted_service->upgrade(to_session, args.string()); }
-		catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
+			session.increase_donated_quota(ram_quota);
+			session.phase = Session_state::UPGRADE_REQUESTED;
 
-		/* remember new amount attached to the session */
-		if (session)
-			session->upgrade_ram_quota(ram_quota);
+			session.service().initiate_request(session);
 
-		/* finish transaction */
-		donation_from_child.acknowledge();
-		donation_to_service.acknowledge();
+			/* finish transaction */
+			donation_from_child.acknowledge();
+			donation_to_service.acknowledge();
+		}
+		catch (Transfer::Quota_exceeded) {
+			warning(_policy.name(), ": upgrade of ", session.service().name(), " failed");
+			throw Parent::Quota_exceeded();
+		}
+
+		if (session.phase == Session_state::CAP_HANDED_OUT) {
+			result = UPGRADE_DONE;
+			return;
+		}
+
+		session.service().wakeup();
 	});
+	return result;
 }
 
 
-void Child::close(Session_capability session_cap)
+void Child::_revert_quota_and_destroy(Session_state &session)
+{
+	try {
+		/* transfer session quota from the service to ourself */
+		Transfer donation_from_service(session.donated_ram_quota(),
+		                               session.service().ram(), _policy.ref_ram_cap());
+
+		/* transfer session quota from ourself to the client (our child) */
+		Transfer donation_to_client(session.donated_ram_quota(),
+		                            _policy.ref_ram_cap(), ram_session_cap());
+		/* finish transaction */
+		donation_from_service.acknowledge();
+		donation_to_client.acknowledge();
+	}
+	catch (Transfer::Quota_exceeded) {
+		warning(_policy.name(), ": could not revert session quota (", session, ")"); }
+
+	session.destroy();
+}
+
+
+Child::Close_result Child::_close(Session_state &session)
+{
+	/*
+	 * If session could not be established, destruct session immediately
+	 * without involving the server
+	 */
+	if (session.phase == Session_state::INVALID_ARGS) {
+		_revert_quota_and_destroy(session);
+		return CLOSE_DONE;
+	}
+
+	/* close session if alive */
+	if (session.alive()) {
+		session.phase = Session_state::CLOSE_REQUESTED;
+		session.service().initiate_request(session);
+	}
+
+	/*
+	 * The service may have completed the close request immediately (e.g.,
+	 * a locally implemented service). In this case, we can skip the
+	 * asynchonous handling.
+	 */
+
+	if (session.phase == Session_state::CLOSED) {
+		_revert_quota_and_destroy(session);
+		return CLOSE_DONE;
+	}
+
+	session.discard_id_at_client();
+	session.service().wakeup();
+
+	return CLOSE_PENDING;
+}
+
+
+Child::Close_result Child::close(Client::Id id)
 {
 	/* refuse to close the child's initial sessions */
-	if (session_cap.local_name() == _ram.local_name()
-	 || session_cap.local_name() == _cpu.local_name()
-	 || session_cap.local_name() == _pd.local_name())
-		return;
+	if (Parent::Env::session_id(id))
+		return CLOSE_DONE;
 
-	Session *session = nullptr;
-	_session_pool.apply(session_cap, [&] (Session *s)
-	{
-		session = s;
-		if (s) _session_pool.remove(s);
-	});
-	_close(session);
+	try {
+		Close_result result = CLOSE_PENDING;
+		auto lamda = [&] (Session_state &session) { result = _close(session); };
+		_id_space.apply<Session_state>(id, lamda);
+		return result;
+	}
+	catch (Id_space<Parent::Client>::Unknown_id) { return CLOSE_DONE; }
+}
+
+
+void Child::session_ready(Session_state &session)
+{
+	if (_session_sigh.valid() && session.async_client_notify)
+		Signal_transmitter(_session_sigh).submit();
+}
+
+
+void Child::session_closed(Session_state &session)
+{
+	/*
+	 * If the session was provided by a child of us, 'service.ram()' returns
+	 * the RAM session of the corresponding child. Since the session to the
+	 * server is closed now, we expect the server to have released all donated
+	 * resources so that we can decrease the servers' quota.
+	 *
+	 * If this goes wrong, the server is misbehaving.
+	 */
+	_revert_quota_and_destroy(session);
+
+	if (_session_sigh.valid())
+		Signal_transmitter(_session_sigh).submit();
+}
+
+
+void Child::session_response(Server::Id id, Session_response response)
+{
+	try {
+		_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
+
+			switch (response) {
+
+			case Parent::SESSION_CLOSED:
+				session.phase = Session_state::CLOSED;
+				if (session.closed_callback)
+					session.closed_callback->session_closed(session);
+				break;
+
+			case Parent::INVALID_ARGS:
+				session.phase = Session_state::INVALID_ARGS;
+				if (session.ready_callback)
+					session.ready_callback->session_ready(session);
+				break;
+
+			case Parent::SESSION_OK:
+				if (session.phase == Session_state::UPGRADE_REQUESTED) {
+					session.phase = Session_state::CAP_HANDED_OUT;
+					if (session.ready_callback)
+						session.ready_callback->session_ready(session);
+				}
+				break;
+			}
+		});
+	} catch (Child_policy::Nonexistent_id_space) { }
+}
+
+
+void Child::deliver_session_cap(Server::Id id, Session_capability cap)
+{
+	try {
+		_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
+
+			if (session.cap.valid()) {
+				error("attempt to assign session cap twice");
+				return;
+			}
+
+			session.cap   = cap;
+			session.phase = Session_state::AVAILABLE;
+
+			if (session.ready_callback)
+				session.ready_callback->session_ready(session);
+		});
+	} catch (Child_policy::Nonexistent_id_space) { }
 }
 
 
@@ -474,32 +536,41 @@ Parent::Resource_args Child::yield_request()
 void Child::yield_response() { _policy.yield_response(); }
 
 
-Child::Child(Dataspace_capability    elf_ds,
-             Dataspace_capability    ldso_ds,
-             Pd_session_capability   pd_cap,
-             Pd_session             &pd,
-             Ram_session_capability  ram_cap,
-             Ram_session            &ram,
-             Cpu_session_capability  cpu_cap,
-             Initial_thread_base    &initial_thread,
-             Region_map             &local_rm,
-             Region_map             &remote_rm,
+namespace {
+
+	/**
+	 * Return interface for interacting with the child's address space
+	 *
+	 * Depending on the return value of 'Child_policy::address_space', we
+	 * either interact with a local object of via an RPC client stub.
+	 */
+	struct Child_address_space
+	{
+		Region_map_client _rm_client;
+		Region_map       &_rm;
+
+		Child_address_space(Pd_session &pd, Child_policy &policy)
+		:
+			_rm_client(pd.address_space()),
+			_rm(policy.address_space(pd) ? *policy.address_space(pd) : _rm_client)
+		{ }
+
+		Region_map &region_map() { return _rm; }
+	};
+}
+
+
+Child::Child(Region_map             &local_rm,
              Rpc_entrypoint         &entrypoint,
-             Child_policy           &policy,
-             Service                &pd_service,
-             Service                &ram_service,
-             Service                &cpu_service)
+             Child_policy           &policy)
 try :
-	_pd(pd_cap), _ram(ram_cap), _cpu(cpu_cap),
-	_pd_service(pd_service),
-	_ram_service(ram_service),
-	_cpu_service(cpu_service),
-	_heap(&ram, &local_rm),
+	_policy(policy),
+	_heap(&_ram.session(), &local_rm),
 	_entrypoint(entrypoint),
 	_parent_cap(_entrypoint.manage(this)),
-	_policy(policy),
-	_server(_ram),
-	_process(elf_ds, ldso_ds, pd_cap, pd, ram, initial_thread, local_rm, remote_rm,
+	_process(_binary.session().dataspace(), _linker_dataspace(),
+	         _pd.cap(), _pd.session(), _ram.session(), _initial_thread, local_rm,
+	         Child_address_space(_pd.session(), _policy).region_map(),
 	         _parent_cap)
 { }
 catch (Cpu_session::Thread_creation_failed) { throw Process_startup_failed(); }
@@ -512,8 +583,48 @@ catch (Region_map::Attach_failed)           { throw Process_startup_failed(); }
 Child::~Child()
 {
 	_entrypoint.dissolve(this);
-	_policy.unregister_services();
 
-	_session_pool.remove_all([&] (Session *s) { _close(s); });
+	/*
+	 * Purge the meta data about any dangling sessions provided by the child to
+	 * other children.
+	 *
+	 * Note that the session quota is not transferred back to the respective
+	 * clients.
+	 *
+	 * All the session meta data is lost after this point. In principle, we
+	 * could accumulate the to-be-replenished quota at each client. Once the
+	 * server is completely destroyed (and we thereby regained all of the
+	 * server's resources, the RAM sessions of the clients could be updated.
+	 * However, a client of a suddenly disappearing server is expected to be in
+	 * trouble anyway and likely to get stuck on the next attempt to interact
+	 * with the server. So the added complexity of reverting the session quotas
+	 * would be to no benefit.
+	 */
+	try {
+		auto lambda = [&] (Session_state &s) { _revert_quota_and_destroy(s); };
+		while (_policy.server_id_space().apply_any<Session_state>(lambda));
+	}
+	catch (Child_policy::Nonexistent_id_space) { }
+
+	/*
+	 * Remove statically created env sessions from the child's ID space.
+	 */
+	auto discard_id_fn = [&] (Session_state &s) { s.discard_id_at_client(); };
+
+	_id_space.apply<Session_state>(Env::ram(), discard_id_fn);
+	_id_space.apply<Session_state>(Env::cpu(), discard_id_fn);
+	_id_space.apply<Session_state>(Env::pd(),  discard_id_fn);
+	_id_space.apply<Session_state>(Env::log(), discard_id_fn);
+
+	/*
+	 * Remove dynamically created sessions from the child's ID space.
+	 */
+	auto close_fn = [&] (Session_state &session) {
+		session.closed_callback = nullptr;
+		session.ready_callback  = nullptr;
+		_close(session);
+	};
+
+	while (_id_space.apply_any<Session_state>(close_fn));
 }
 

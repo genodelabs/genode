@@ -56,6 +56,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 			error("create_thread: invalid PD argument");
 			throw Thread_creation_failed();
 		}
+
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
 		thread = new (&_thread_alloc)
 			Cpu_thread_component(

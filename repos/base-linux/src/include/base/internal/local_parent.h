@@ -23,7 +23,11 @@
 /* base-internal includes */
 #include <base/internal/expanding_parent_client.h>
 
-namespace Genode { class Local_parent; }
+namespace Genode {
+
+	class Local_session;
+	class Local_parent;
+}
 
 
 /**
@@ -42,6 +46,7 @@ class Genode::Local_parent : public Expanding_parent_client
 	private:
 
 		Allocator &_alloc;
+		Id_space<Client> _local_sessions_id_space;
 
 	public:
 
@@ -49,10 +54,9 @@ class Genode::Local_parent : public Expanding_parent_client
 		 ** Parent interface **
 		 **********************/
 
-		Session_capability session(Service_name const &,
-		                           Session_args const &,
-		                           Affinity     const & = Affinity());
-		void close(Session_capability);
+		Session_capability session(Client::Id, Service_name const &, Session_args const &,
+		                           Affinity const & = Affinity()) override;
+		Close_result close(Client::Id) override;
 
 		/**
 		 * Constructor

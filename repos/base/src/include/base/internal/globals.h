@@ -17,11 +17,14 @@
 #ifndef _INCLUDE__BASE__INTERNAL__GLOBALS_H_
 #define _INCLUDE__BASE__INTERNAL__GLOBALS_H_
 
+#include <parent/parent.h>
+
 namespace Genode {
 
 	class Region_map;
 	class Ram_session;
 	class Env;
+	class Local_session_id_space;
 
 	extern Region_map  *env_stack_area_region_map;
 	extern Ram_session *env_stack_area_ram_session;
@@ -30,7 +33,11 @@ namespace Genode {
 	void init_cxx_heap(Env &);
 	void init_ldso_phdr(Env &);
 	void init_signal_thread(Env &);
+	void init_root_proxy(Env &);
 	void init_log();
+
+	Id_space<Parent::Client> &env_session_id_space();
+	Env &internal_env();
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__GLOBALS_H_ */

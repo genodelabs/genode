@@ -16,38 +16,83 @@
 #define _CORE__INCLUDE__CORE_PARENT_H_
 
 #include <parent/parent.h>
+#include <base/service.h>
+#include <base/allocator.h>
 
-namespace Genode { struct Core_parent; }
+namespace Genode {
+
+	template <typename> struct Core_service;
+	struct Core_parent;
+}
+
+
+template <typename SESSION>
+struct Genode::Core_service : Local_service<SESSION>, Registry<Service>::Element
+{
+	Core_service(Registry<Service>                        &registry,
+	             typename Local_service<SESSION>::Factory &factory)
+	:
+		Local_service<SESSION>(factory),
+		Registry<Service>::Element(registry, *this)
+	{ }
+};
 
 
 /**
- * In fact, Core has _no_ parent. But most of our libraries could work
- * seamlessly inside Core too, if it had one. Core_parent fills this gap.
+ * Core has no parent. But most of Genode's library code could work seamlessly
+ * inside core if it had one. Core_parent fills this gap.
  */
-struct Genode::Core_parent : Parent
+class Genode::Core_parent : public Parent
 {
-	void exit(int);
+	private:
 
-	void announce(Service_name const &, Root_capability) { }
+		Id_space<Client>   _id_space;
+		Allocator         &_alloc;
+		Registry<Service> &_services;
 
-	Session_capability session(Service_name const &, Session_args const &,
-	                           Affinity const &);
+	public:
 
-	void upgrade(Session_capability, Upgrade_args const &) { throw Quota_exceeded(); }
+		/**
+		 * Constructor
+		 *
+		 * \alloc  allocator to be used for allocating core-local
+		 *         'Session_state' objects
+		 */
+		Core_parent(Allocator &alloc, Registry<Service> &services)
+		: _alloc(alloc), _services(services) { }
 
-	void close(Session_capability) { }
+		void exit(int) override;
 
-	Thread_capability main_thread_cap() const { return Thread_capability(); }
+		void announce(Service_name const &) override { }
 
-	void resource_avail_sigh(Signal_context_capability) { }
+		void session_sigh(Signal_context_capability) override { }
 
-	void resource_request(Resource_args const &) { }
+		Session_capability session(Client::Id, Service_name const &, Session_args const &,
+		                           Affinity const &) override;
 
-	void yield_sigh(Signal_context_capability) { }
+		Session_capability session_cap(Client::Id) override { return Session_capability(); }
 
-	Resource_args yield_request() { return Resource_args(); }
+		Upgrade_result upgrade(Client::Id, Upgrade_args const &) override {
+			throw Quota_exceeded(); }
 
-	void yield_response() { }
+		Close_result close(Client::Id) override { return CLOSE_DONE; }
+
+		void session_response(Server::Id, Session_response) override { }
+
+		void deliver_session_cap(Server::Id,
+		                         Session_capability) override { }
+
+		Thread_capability main_thread_cap() const override { return Thread_capability(); }
+
+		void resource_avail_sigh(Signal_context_capability) override { }
+
+		void resource_request(Resource_args const &) override { }
+
+		void yield_sigh(Signal_context_capability) override { }
+
+		Resource_args yield_request() override { return Resource_args(); }
+
+		void yield_response() override { }
 };
 
 #endif /* _CORE__INCLUDE__CORE_PARENT_H_ */

@@ -29,8 +29,9 @@ struct Genode::Expanding_region_map_client : Region_map_client
 {
 	Upgradeable_client<Genode::Pd_session_client> _pd_client;
 
-	Expanding_region_map_client(Pd_session_capability pd, Capability<Region_map> rm)
-	: Region_map_client(rm), _pd_client(pd) { }
+	Expanding_region_map_client(Pd_session_capability pd, Capability<Region_map> rm,
+	                            Parent::Client::Id pd_id)
+	: Region_map_client(rm), _pd_client(pd, pd_id) { }
 
 	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
 	                  bool use_local_addr, Local_addr local_addr,

@@ -23,11 +23,20 @@
 #include <dataspace/capability.h>
 #include <pd_session/pd_session.h>
 
-namespace Genode { struct Cpu_session; }
+namespace Genode {
+
+	struct Cpu_session;
+	struct Cpu_session_client;
+}
 
 
 struct Genode::Cpu_session : Session
 {
+	static const char *service_name() { return "CPU"; }
+
+	typedef Cpu_session_client Client;
+
+
 	/*********************
 	 ** Exception types **
 	 *********************/
@@ -36,7 +45,6 @@ struct Genode::Cpu_session : Session
 	class Quota_exceeded         : public Thread_creation_failed { };
 	class Out_of_metadata        : public Exception { };
 
-	static const char *service_name() { return "CPU"; }
 
 	enum { THREAD_NAME_LEN = 32 };
 	enum { PRIORITY_LIMIT = 1 << 16 };

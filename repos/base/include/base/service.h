@@ -14,100 +14,42 @@
 #ifndef _INCLUDE__BASE__SERVICE_H_
 #define _INCLUDE__BASE__SERVICE_H_
 
-#include <root/client.h>
-#include <base/log.h>
 #include <util/list.h>
 #include <ram_session/client.h>
 #include <base/env.h>
+#include <base/session_state.h>
+#include <base/log.h>
+#include <base/registry.h>
 
 namespace Genode {
 
-	class Client;
-	class Server;
 	class Service;
-	class Local_service;
+	template <typename> class Session_factory;
+	template <typename> class Local_service;
 	class Parent_service;
 	class Child_service;
-	class Service_registry;
 }
 
 
-/**
- * Client role
- *
- * A client is someone who applies for a service. If the service is not
- * available yet, we enqueue the client into a wait queue and wake him up
- * as soon as the requested service gets available.
- */
-class Genode::Client : public List<Client>::Element
-{
-	private:
-
-		Cancelable_lock _service_apply_lock;
-		const char     *_apply_for;
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Client(): _service_apply_lock(Lock::LOCKED), _apply_for(0) { }
-
-		virtual ~Client() { }
-
-		/**
-		 * Set/Request service name that we are currently applying for
-		 */
-		void apply_for(const char *apply_for) { _apply_for = apply_for; }
-		const char *apply_for() { return _apply_for; }
-
-		/**
-		 * Service wait queue support
-		 */
-		void sleep()  { _service_apply_lock.lock(); }
-		void wakeup() { _service_apply_lock.unlock(); }
-};
-
-
-/**
- * Server role
- *
- * A server is a process that provides one or multiple services. For the
- * most part, this class is used as an opaque key to represent the server
- * role.
- */
-class Genode::Server
-{
-	private:
-
-		Ram_session_capability _ram;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param ram  RAM session capability of the server process used,
-		 *             for quota transfers from/to the server
-		 */
-		Server(Ram_session_capability ram): _ram(ram) { }
-
-		/**
-		 * Return RAM session capability of the server process
-		 */
-		Ram_session_capability ram_session_cap() const { return _ram; }
-};
-
-
-class Genode::Service : public List<Service>::Element
+class Genode::Service : Noncopyable
 {
 	public:
 
-		enum { MAX_NAME_LEN = 32 };
+		typedef Session_state::Name Name;
 
 	private:
 
-		char _name[MAX_NAME_LEN];
+		Name                   const _name;
+		Ram_session_capability const _ram;
+
+	protected:
+
+		typedef Session_state::Factory Factory;
+
+		/**
+		 * Return factory to use for creating 'Session_state' objects
+		 */
+		virtual Factory &_factory(Factory &client_factory) { return client_factory; }
 
 	public:
 
@@ -123,52 +65,52 @@ class Genode::Service : public List<Service>::Element
 		 * Constructor
 		 *
 		 * \param name  service name
+		 * \param ram   RAM session to receive/withdraw session quota
 		 */
-		Service(const char *name) { strncpy(_name, name, sizeof(_name)); }
+		Service(Name const &name, Ram_session_capability ram)
+		: _name(name), _ram(ram) { }
 
 		virtual ~Service() { }
 
 		/**
 		 * Return service name
 		 */
-		const char *name() const { return _name; }
+		Name const &name() const { return _name; }
 
 		/**
-		 * Create session
+		 * Create new session-state object
 		 *
-		 * \param args      session-construction arguments
-		 * \param affinity  preferred CPU affinity of session
+		 * The 'service' argument for the 'Session_state' corresponds to this
+		 * session state. All subsequent 'Session_state' arguments correspond
+		 * to the forwarded 'args'.
+		 */
+		template <typename... ARGS>
+		Session_state &create_session(Factory &client_factory, ARGS &&... args)
+		{
+			return _factory(client_factory).create(*this, args...);
+		}
+
+		/**
+		 * Attempt the immediate (synchronous) creation of a session
 		 *
-		 * \throw Invalid_args
-		 * \throw Unavailable
-		 * \throw Quota_exceeded
+		 * Sessions to local services and parent services are usually created
+		 * immediately during the dispatching of the 'Parent::session' request.
+		 * In these cases, it is not needed to wait for an asynchronous
+		 * response.
 		 */
-		virtual Session_capability session(char const *args,
-		                                   Affinity const &affinity) = 0;
+		virtual void initiate_request(Session_state &session) = 0;
 
 		/**
-		 * Extend resource donation to an existing session
+		 * Wake up service to query session requests
 		 */
-		virtual void upgrade(Session_capability session, const char *args) = 0;
-
-		/**
-		 * Close session
-		 */
-		virtual void close(Session_capability /*session*/) { }
-
-		/**
-		 * Return server providing the service
-		 */
-		virtual Server *server() const { return 0; }
+		virtual void wakeup() { }
 
 		/**
 		 * Return the RAM session to be used for trading resources
 		 */
-		Ram_session_capability ram_session_cap()
+		Ram_session_capability ram() const
 		{
-			if (server())
-				return server()->ram_session_cap();
-			return Ram_session_capability();
+			return _ram;
 		}
 };
 
@@ -176,36 +118,118 @@ class Genode::Service : public List<Service>::Element
 /**
  * Representation of a locally implemented service
  */
+template <typename SESSION>
 class Genode::Local_service : public Service
 {
+	public:
+
+		struct Factory
+		{
+			typedef Session_state::Args Args;
+
+			class Denied : Exception { };
+
+			/**
+			 * \throw Denied
+			 */
+			virtual SESSION &create(Args const &, Affinity)  = 0;
+
+			virtual void upgrade(SESSION &, Args const &) = 0;
+			virtual void destroy(SESSION &)               = 0;
+		};
+
+		/**
+		 * Factory of a local service that provides a single static session
+		 */
+		class Single_session_factory : public Factory
+		{
+			private:
+
+				typedef Session_state::Args Args;
+
+				SESSION &_s;
+
+			public:
+
+				Single_session_factory(SESSION &session) : _s(session) { }
+
+				SESSION &create  (Args const &, Affinity)  override { return _s; }
+				void     upgrade (SESSION &, Args const &) override { }
+				void     destroy (SESSION &)               override { }
+		};
+
 	private:
 
-		Root *_root;
+		Factory &_factory;
+
+		template <typename FUNC>
+		void _apply_to_rpc_obj(Session_state &session, FUNC const &fn)
+		{
+			SESSION *rpc_obj = dynamic_cast<SESSION *>(session.local_ptr);
+
+			if (rpc_obj)
+				fn(*rpc_obj);
+			else
+				warning("local ", SESSION::service_name(), " session "
+				        "(", session.args(), ") has no valid RPC object");
+		}
 
 	public:
 
-		Local_service(const char *name, Root *root)
-		: Service(name), _root(root) { }
+		/**
+		 * Constructor
+		 */
+		Local_service(Factory &factory)
+		:
+			Service(SESSION::service_name(), Ram_session_capability()),
+			_factory(factory)
+		{ }
 
-		Session_capability session(const char *args, Affinity const &affinity) override
+		void initiate_request(Session_state &session) override
 		{
-			try { return _root->session(args, affinity); }
-			catch (Root::Invalid_args)   { throw Invalid_args(); }
-			catch (Root::Unavailable)    { throw Unavailable(); }
-			catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
-			catch (Genode::Ipc_error)    { throw Unavailable();  }
-		}
+			switch (session.phase) {
 
-		void upgrade(Session_capability session, const char *args) override
-		{
-			try { _root->upgrade(session, args); }
-			catch (Genode::Ipc_error)      { throw Unavailable();    }
-		}
+			case Session_state::CREATE_REQUESTED:
 
-		void close(Session_capability session) override
-		{
-			try { _root->close(session); }
-			catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
+				try {
+					SESSION &rpc_obj = _factory.create(session.args(),
+					                                   session.affinity());
+					session.local_ptr = &rpc_obj;
+					session.cap       = rpc_obj.cap();
+					session.phase     = Session_state::AVAILABLE;
+				}
+				catch (typename Factory::Denied) {
+					session.phase = Session_state::INVALID_ARGS; }
+
+				break;
+
+			case Session_state::UPGRADE_REQUESTED:
+				{
+					String<64> const args("ram_quota=", session.ram_upgrade);
+
+					_apply_to_rpc_obj(session, [&] (SESSION &rpc_obj) {
+						_factory.upgrade(rpc_obj, args.string()); });
+
+					session.phase = Session_state::CAP_HANDED_OUT;
+					session.confirm_ram_upgrade();
+				}
+				break;
+
+			case Session_state::CLOSE_REQUESTED:
+				{
+					_apply_to_rpc_obj(session, [&] (SESSION &rpc_obj) {
+						_factory.destroy(rpc_obj); });
+
+					session.phase = Session_state::CLOSED;
+				}
+				break;
+
+			case Session_state::INVALID_ARGS:
+			case Session_state::AVAILABLE:
+			case Session_state::CAP_HANDED_OUT:
+			case Session_state::CLOSED:
+				break;
+			}
 		}
 };
 
@@ -215,31 +239,88 @@ class Genode::Local_service : public Service
  */
 class Genode::Parent_service : public Service
 {
+	private:
+
+		/*
+		 * \deprecated
+		 */
+		Env &_env_deprecated();
+		Env &_env;
+
 	public:
 
-		Parent_service(const char *name) : Service(name) { }
+		/**
+		 * Constructor
+		 */
+		Parent_service(Env &env, Service::Name const &name)
+		: Service(name, Ram_session_capability()), _env(env) { }
 
-		Session_capability session(const char *args, Affinity const &affinity) override
+		/**
+		 * Constructor
+		 *
+		 * \deprecated
+		 */
+		Parent_service(Service::Name const &name)
+		: Service(name, Ram_session_capability()), _env(_env_deprecated()) { }
+
+		void initiate_request(Session_state &session) override
 		{
-			try { return env()->parent()->session(name(), args, affinity); }
-			catch (Parent::Unavailable) {
-				warning("parent has no service \"", name(), "\"");
-				throw Unavailable();
+			switch (session.phase) {
+
+			case Session_state::CREATE_REQUESTED:
+
+				session.id_at_parent.construct(session.parent_client,
+				                               _env.id_space());
+				try {
+					session.cap = _env.session(name().string(),
+					                           session.id_at_parent->id(),
+					                           session.args().string(),
+					                           session.affinity());
+
+					session.phase = Session_state::AVAILABLE;
+				}
+				catch (Parent::Quota_exceeded) {
+					session.id_at_parent.destruct();
+					session.phase = Session_state::INVALID_ARGS; }
+
+				catch (Parent::Service_denied) {
+					session.id_at_parent.destruct();
+					session.phase = Session_state::INVALID_ARGS; }
+
+				break;
+
+			case Session_state::UPGRADE_REQUESTED:
+				{
+					String<64> const args("ram_quota=", session.ram_upgrade);
+
+					if (!session.id_at_parent.constructed())
+						error("invalid parent-session state: ", session);
+
+					try {
+						_env.upgrade(session.id_at_parent->id(), args.string()); }
+					catch (Parent::Quota_exceeded) {
+						warning("quota exceeded while upgrading parent session"); }
+
+					session.confirm_ram_upgrade();
+					session.phase = Session_state::CAP_HANDED_OUT;
+				}
+				break;
+
+			case Session_state::CLOSE_REQUESTED:
+
+				if (session.id_at_parent.constructed())
+					_env.close(session.id_at_parent->id());
+
+				session.id_at_parent.destruct();
+				session.phase = Session_state::CLOSED;
+				break;
+
+			case Session_state::INVALID_ARGS:
+			case Session_state::AVAILABLE:
+			case Session_state::CAP_HANDED_OUT:
+			case Session_state::CLOSED:
+				break;
 			}
-			catch (Parent::Quota_exceeded) { throw Quota_exceeded(); }
-			catch (Genode::Ipc_error)      { throw Unavailable();    }
-		}
-
-		void upgrade(Session_capability session, const char *args) override
-		{
-			try { env()->parent()->upgrade(session, args); }
-			catch (Genode::Ipc_error)    { throw Unavailable();    }
-		}
-
-		void close(Session_capability session) override
-		{
-			try { env()->parent()->close(session); }
-			catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
 		}
 };
 
@@ -249,205 +330,66 @@ class Genode::Parent_service : public Service
  */
 class Genode::Child_service : public Service
 {
+	public:
+
+		struct Wakeup { virtual void wakeup_child_service() = 0; };
+
 	private:
 
-		Root_capability _root_cap;
-		Root_client     _root;
-		Server         *_server;
+		Id_space<Parent::Server> &_server_id_space;
+
+		Session_state::Factory &_server_factory;
+
+		Wakeup &_wakeup;
+
+	protected:
+
+		/*
+		 * In contrast to local services and parent services, session-state
+		 * objects for child services are owned by the server. This enables
+		 * the server to asynchronouly respond to close requests when the
+		 * client is already gone.
+		 */
+		Factory &_factory(Factory &) override { return _server_factory; }
 
 	public:
+
 
 		/**
 		 * Constructor
 		 *
-		 * \param name    name of service
-		 * \param root    capability to root interface
-		 * \param server  server process providing the service
-		 */
-		Child_service(const char     *name,
-		              Root_capability root,
-		              Server         *server)
-		: Service(name), _root_cap(root), _root(root), _server(server) { }
-
-		Server *server() const override { return _server; }
-
-		Session_capability session(const char *args, Affinity const &affinity) override
-		{
-			if (!_root_cap.valid())
-				throw Unavailable();
-
-			try { return _root.session(args, affinity); }
-			catch (Root::Invalid_args)   { throw Invalid_args();   }
-			catch (Root::Unavailable)    { throw Unavailable();    }
-			catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
-			catch (Genode::Ipc_error)    { throw Unavailable();    }
-		}
-
-		void upgrade(Session_capability sc, const char *args) override
-		{
-			if (!_root_cap.valid())
-				throw Unavailable();
-
-			try { _root.upgrade(sc, args); }
-			catch (Root::Invalid_args)   { throw Invalid_args();   }
-			catch (Root::Unavailable)    { throw Unavailable();    }
-			catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
-			catch (Genode::Ipc_error)    { throw Unavailable();    }
-		}
-
-		void close(Session_capability sc) override
-		{
-			try { _root.close(sc); }
-			catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
-		}
-};
-
-
-/**
- * Container for holding service representations
- */
-class Genode::Service_registry
-{
-	protected:
-
-		Lock          _service_wait_queue_lock;
-		List<Client>  _service_wait_queue;
-		List<Service> _services;
-
-	public:
-
-		/**
-		 * Probe for service with specified name
+		 * \param factory  server-side session-state factory
+		 * \param name     name of service
+		 * \param ram      recipient of session quota
+		 * \param wakeup   callback to be notified on the arrival of new
+		 *                 session requests
 		 *
-		 * \param name    service name
-		 * \param server  server providing the service,
-		 *                default (0) for any server
 		 */
-		Service *find(const char *name, Server *server = 0)
+		Child_service(Id_space<Parent::Server> &server_id_space,
+		              Session_state::Factory   &factory,
+		              Service::Name      const &name,
+		              Ram_session_capability    ram,
+		              Wakeup                   &wakeup)
+		:
+			Service(name, ram),
+			_server_id_space(server_id_space),
+			_server_factory(factory), _wakeup(wakeup)
+		{ }
+
+		void initiate_request(Session_state &session) override
 		{
-			if (!name) return 0;
+			if (!session.id_at_server.constructed())
+				session.id_at_server.construct(session, _server_id_space);
 
-			Lock::Guard lock_guard(_service_wait_queue_lock);
-
-			for (Service *s = _services.first(); s; s = s->next())
-				if (strcmp(s->name(), name) == 0
-				 && (!server || s->server() == server)) return s;
-
-			return 0;
+			session.async_client_notify = true;
 		}
 
-		/**
-		 * Check if service name is ambiguous
-		 *
-		 * \return true  if the same service is provided multiple
-		 *               times
-		 */
-		bool is_ambiguous(const char *name)
+		bool has_id_space(Id_space<Parent::Server> const &id_space) const
 		{
-			Lock::Guard lock_guard(_service_wait_queue_lock);
-
-			/* count number of services with the specified name */
-			unsigned cnt = 0;
-			for (Service *s = _services.first(); s; s = s->next())
-				cnt += (strcmp(s->name(), name) == 0);
-			return cnt > 1;
+			return &_server_id_space == &id_space;
 		}
 
-		/**
-		 * Return first service provided by specified server
-		 */
-		Service *find_by_server(Server *server)
-		{
-			Lock::Guard lock_guard(_service_wait_queue_lock);
-
-			for (Service *s = _services.first(); s; s = s->next())
-				if (s->server() == server)
-					return s;
-
-			return 0;
-		}
-
-		/**
-		 * Wait for service
-		 *
-		 * This method is called by the clients's thread when requesting a
-		 * session creation. It blocks if the requested service is not
-		 * available.
-		 *
-		 * \return  service structure that matches the request or
-		 *          0 if the waiting was canceled.
-		 */
-		Service *wait_for_service(const char *name, Client *client, const char *client_name)
-		{
-			Service *service;
-
-			client->apply_for(name);
-
-			_service_wait_queue_lock.lock();
-			_service_wait_queue.insert(client);
-			_service_wait_queue_lock.unlock();
-
-			do {
-				service = find(name);
-
-				/*
-				 * The service that we are seeking is not available today.
-				 * Lets sleep a night over it.
-				 */
-				if (!service) {
-					log(client_name, ": service ", name, " not yet available - sleeping");
-
-					try {
-						client->sleep();
-						log(client_name, ": service ", name, " got available");
-					} catch (Blocking_canceled) {
-						log(client_name, ": cancel waiting for service");
-						break;
-					}
-				}
-
-			} while (!service);
-
-			/* we got what we needed, stop applying */
-			_service_wait_queue_lock.lock();
-			_service_wait_queue.remove(client);
-			_service_wait_queue_lock.unlock();
-
-			client->apply_for(0);
-
-			return service;
-		}
-
-		/**
-		 * Register service
-		 *
-		 * This method is called by the server's thread.
-		 */
-		void insert(Service *service)
-		{
-			/* make new service known */
-			_services.insert(service);
-
-			/* wake up applicants waiting for the service */
-			Lock::Guard lock_guard(_service_wait_queue_lock);
-			for (Client *c = _service_wait_queue.first(); c; c = c->next())
-				if (strcmp(service->name(), c->apply_for()) == 0)
-					c->wakeup();
-		}
-
-		/**
-		 * Unregister service
-		 */
-		void remove(Service *service) { _services.remove(service); }
-
-		/**
-		 * Unregister all services
-		 */
-		void remove_all()
-		{
-			while (_services.first())
-				remove(_services.first());
-		}
+		void wakeup() override { _wakeup.wakeup_child_service(); }
 };
 
 #endif /* _INCLUDE__BASE__SERVICE_H_ */

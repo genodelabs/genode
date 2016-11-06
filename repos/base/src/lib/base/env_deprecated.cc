@@ -13,6 +13,9 @@
  */
 
 #include <base/internal/platform_env.h>
+#include <base/internal/globals.h>
+#include <base/connection.h>
+#include <base/service.h>
 
 namespace Genode {
 

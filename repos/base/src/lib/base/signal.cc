@@ -241,7 +241,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 
 			log("upgrading quota donation for PD session (", quota, " bytes)");
 
-			env()->parent()->upgrade(env()->pd_session_cap(), buf);
+			env()->parent()->upgrade(Parent::Env::pd(), buf);
 		}
 	);
 

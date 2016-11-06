@@ -27,7 +27,7 @@ namespace Genode { struct Expanding_cpu_session_client; }
 
 struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_session_client>
 {
-	Expanding_cpu_session_client(Genode::Cpu_session_capability cap)
+	Expanding_cpu_session_client(Genode::Cpu_session_capability cap, Parent::Client::Id id)
 	:
 		/*
 		 * We need to upcast the capability because on some platforms (i.e.,
@@ -35,7 +35,7 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 		 * interface ('Nova_cpu_session').
 		 */
 		Upgradeable_client<Genode::Cpu_session_client>
-			(static_cap_cast<Genode::Cpu_session_client::Rpc_interface>(cap))
+			(static_cap_cast<Genode::Cpu_session_client::Rpc_interface>(cap), id)
 	{ }
 
 	Thread_capability

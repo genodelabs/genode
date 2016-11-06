@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/service.h>
 
-/* Core includes */
+/* core includes */
 #include <core_env.h>
 #include <platform.h>
 #include <platform_services.h>
@@ -24,18 +24,15 @@
 /*
  * Add I/O port service and virtualization specific vm service
  */
-void Genode::platform_add_local_services(Genode::Rpc_entrypoint *ep,
-                                         Genode::Sliced_heap *sh,
-                                         Genode::Service_registry *ls)
+void Genode::platform_add_local_services(Rpc_entrypoint *ep,
+                                         Sliced_heap *sh,
+                                         Registry<Service> *services)
 {
-	using namespace Genode;
-
 	static Vm_root vm_root(ep, sh);
-	static Local_service vm_ls(Vm_session::service_name(), &vm_root);
+	static Core_service<Vm_session_component> vm_ls(*services, vm_root);
+
 	static Io_port_root io_port_root(core_env()->pd_session(),
 	                                 platform()->io_port_alloc(), sh);
-	static Local_service io_port_ls(Io_port_session::service_name(),
-	                                &io_port_root);
-	ls->insert(&vm_ls);
-	ls->insert(&io_port_ls);
+	static Core_service<Io_port_session_component> io_port_ls(*services,
+	                                                          io_port_root);
 }

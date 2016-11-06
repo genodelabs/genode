@@ -172,7 +172,7 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 	Main(Genode::Env &env)
 	: env(env),
 	  alloc(env.ram(), env.rm()),
-	  cpu_root(env.ep().rpc_ep(), env.ep().rpc_ep(), alloc, thread_list, *this),
+	  cpu_root(env.ep().rpc_ep(), env.ep().rpc_ep(), env, alloc, thread_list, *this),
 	  config(env, "config")
 	{
 		/*

@@ -55,18 +55,18 @@ class Cpu_sampler::Cpu_session_component : public Rpc_object<Cpu_session>
 {
 	private:
 
-		Rpc_entrypoint                      &_thread_ep;
-
-		Cpu_session_client                   _parent_cpu_session;
-		Allocator                           &_md_alloc;
-		Thread_list                         &_thread_list;
-		Thread_list_change_handler          &_thread_list_change_handler;
-		Session_label                        _session_label;
-		unsigned int                         _next_thread_id = 0;
-
-		Capability<Cpu_session::Native_cpu>  _native_cpu_cap;
-
-		Capability<Cpu_session::Native_cpu>  _setup_native_cpu();
+		Rpc_entrypoint                          &_thread_ep;
+		Env                                     &_env;
+		Parent::Client                           _parent_client;
+		Id_space<Parent::Client>::Element const  _id_space_element;
+		Cpu_session_client                       _parent_cpu_session;
+		Allocator                               &_md_alloc;
+		Thread_list                             &_thread_list;
+		Thread_list_change_handler              &_thread_list_change_handler;
+		Session_label                            _session_label;
+		unsigned int                             _next_thread_id = 0;
+		Capability<Cpu_session::Native_cpu>      _native_cpu_cap;
+		Capability<Cpu_session::Native_cpu>      _setup_native_cpu();
 		void _cleanup_native_cpu();
 
 	public:
@@ -79,6 +79,7 @@ class Cpu_sampler::Cpu_session_component : public Rpc_object<Cpu_session>
 		 * Constructor
 		 */
 		Cpu_session_component(Rpc_entrypoint             &thread_ep,
+		                      Env                        &env,
 		                      Allocator                  &md_alloc,
 		                      Thread_list                &thread_list,
 		                      Thread_list_change_handler &thread_list_change_handler,
@@ -88,6 +89,8 @@ class Cpu_sampler::Cpu_session_component : public Rpc_object<Cpu_session>
 		 * Destructor
 		 */
 		~Cpu_session_component();
+
+		void upgrade_ram_quota(size_t ram_quota);
 
 
 		/***************************

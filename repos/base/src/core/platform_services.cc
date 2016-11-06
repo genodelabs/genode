@@ -15,5 +15,5 @@
 #include <platform_services.h>
 
 
-void Genode::platform_add_local_services(Rpc_entrypoint*, Sliced_heap*,
-                                         Service_registry*) { }
+void Genode::platform_add_local_services(Rpc_entrypoint *, Sliced_heap*,
+                                         Registry<Service> *) { }

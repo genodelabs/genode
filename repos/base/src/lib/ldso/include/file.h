@@ -75,14 +75,32 @@ struct Linker::File
  */
 struct Linker::Elf_file : File
 {
-	Env                     &env;
-	Rom_connection           rom;
-	Ram_dataspace_capability ram_cap[Phdr::MAX_PHDR];
-	bool               const loaded;
+	Env                                 &env;
+	Lazy_volatile_object<Rom_connection> rom_connection;
+	Rom_session_client                   rom;
+	Ram_dataspace_capability             ram_cap[Phdr::MAX_PHDR];
+	bool                           const loaded;
+
+	typedef String<64> Name;
+
+	Rom_session_capability _rom_cap(Name const &name)
+	{
+		/* request the linker and binary from the component environment */
+		Session_capability cap;
+		if (name == binary_name())
+			cap = env.parent().session_cap(Parent::Env::binary());
+		if (name == linker_name())
+			cap = env.parent().session_cap(Parent::Env::linker());
+		if (cap.valid())
+			return reinterpret_cap_cast<Rom_session>(cap);
+
+		rom_connection.construct(env, name.string());
+		return *rom_connection;
+	}
 
 	Elf_file(Env &env, Allocator &md_alloc, char const *name, bool load)
 	:
-		env(env), rom(env, name), loaded(load)
+		env(env), rom(_rom_cap(name)), loaded(load)
 	{
 		load_phdr();
 

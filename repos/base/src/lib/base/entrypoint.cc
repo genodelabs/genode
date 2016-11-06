@@ -85,6 +85,7 @@ void Entrypoint::_process_incoming_signals()
 		_suspended_callback();
 
 		init_signal_thread(_env);
+
 		_rpc_ep.construct(&_env.pd(), Component::stack_size(), initial_ep_name());
 		_signal_proxy_cap = manage(_signal_proxy);
 		_sig_rec.construct();
@@ -164,6 +165,9 @@ Entrypoint::Entrypoint(Env &env)
 {
 	/* initialize signalling after initializing but before calling the entrypoint */
 	init_signal_thread(_env);
+
+	/* initialize emulation of the original synchronous root interface */
+	init_root_proxy(_env);
 
 	/*
 	 * Invoke Component::construct function in the context of the entrypoint.

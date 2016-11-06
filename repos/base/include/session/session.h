@@ -21,13 +21,13 @@
  */
 #include <base/rpc.h>
 
-namespace Genode { class Session; }
+namespace Genode { struct Session; }
 
 
 /**
  * Base class of session interfaces
  */
-class Genode::Session
+struct Genode::Session
 {
 	/*
 	 * Each session interface must implement the class function 'service_name'
@@ -35,6 +35,8 @@ class Genode::Session
 	 * This function returns the name of the service provided via the session
 	 * interface.
 	 */
+
+	virtual ~Session() { }
 };
 
 #endif /* _INCLUDE__SESSION__SESSION_H_ */

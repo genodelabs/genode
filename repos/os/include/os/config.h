@@ -26,7 +26,7 @@ namespace Genode {
 	/**
 	 * Return singleton instance of config
 	 */
-	Config *config();
+	Volatile_object<Config> &config();
 }
 
 

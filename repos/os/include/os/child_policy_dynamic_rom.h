@@ -2,6 +2,9 @@
  * \brief  Child policy helper for supplying dynamic ROM modules
  * \author Norman Feske
  * \date   2012-04-04
+ *
+ * \deprecated use 'Local_service::Single_session_service' combined with
+ *             'Dynamic_rom_session' instead
  */
 
 /*
@@ -73,7 +76,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		                              Rpc_entrypoint &ep,
 		                              Ram_session    *ram)
 		:
-			Service("ROM"),
+			Service("ROM", Ram_session_capability()),
 			_ram(ram),
 			_fg(0, 0), _bg(0, 0),
 			_bg_has_pending_data(false),
@@ -147,11 +150,31 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 ** Service interface **
 		 ***********************/
 
-		Session_capability session(const char *, Affinity const &) {
-			return _rom_session_cap; }
+		void initiate_request(Session_state &session) override
+		{
+			switch (session.phase) {
 
-		void upgrade(Session_capability, const char *) { }
-		void close(Session_capability) { }
+			case Session_state::CREATE_REQUESTED:
+				session.cap   = _rom_session_cap;
+				session.phase = Session_state::AVAILABLE;
+				break;
+
+			case Session_state::UPGRADE_REQUESTED:
+				session.phase = Session_state::CAP_HANDED_OUT;
+				session.confirm_ram_upgrade();
+				break;
+
+			case Session_state::CLOSE_REQUESTED:
+				session.phase = Session_state::CLOSED;
+				break;
+
+			case Session_state::INVALID_ARGS:
+			case Session_state::AVAILABLE:
+			case Session_state::CAP_HANDED_OUT:
+			case Session_state::CLOSED:
+				break;
+			}
+		}
 
 
 		/**********************

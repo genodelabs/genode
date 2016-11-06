@@ -17,30 +17,40 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
+#include <base/local_connection.h>
 #include <base/child.h>
 #include <init/child_policy.h>
-#include <ram_session/connection.h>
-#include <cpu_session/connection.h>
-#include <rm_session/connection.h>
-#include <pd_session/connection.h>
 #include <os/child_policy_dynamic_rom.h>
+#include <os/session_requester.h>
 
-namespace Genode {
-
-	class Slave_policy;
-	class Slave;
-}
+namespace Genode { struct Slave; }
 
 
-/**
- * Slave-policy class
- *
- * This class provides a convenience policy for single-service slaves using a
- * white list of parent services.
- */
-class Genode::Slave_policy : public Genode::Child_policy
+struct Genode::Slave
 {
+	typedef Session_state::Args Args;
+
+	class Policy;
+
+	template <typename>
+	class Connection_base;
+
+	template <typename>
+	struct Connection;
+};
+
+
+class Genode::Slave::Policy : public Child_policy
+{
+	public:
+
+		typedef Child_policy::Name Name;
+		typedef Session_label      Label;
+
 	protected:
+
+		typedef Registered<Genode::Parent_service> Parent_service;
+		typedef Registry<Parent_service>           Parent_services;
 
 		/**
 		 * Return white list of services the slave is permitted to use
@@ -51,58 +61,66 @@ class Genode::Slave_policy : public Genode::Child_policy
 
 	private:
 
-		char const                           *_label;
-		Genode::Service_registry              _parent_services;
-		Genode::Rpc_entrypoint               &_entrypoint;
-		Genode::Rom_connection                _binary_rom;
+		Label                           const _label;
+		Binary_name                     const _binary_name;
+		Ram_session_client                    _ram;
+		Genode::Parent_service                _binary_service;
+		size_t                                _ram_quota;
+		Parent_services                       _parent_services;
+		Rpc_entrypoint                       &_ep;
 		Init::Child_policy_enforce_labeling   _labeling_policy;
-		Init::Child_policy_provide_rom_file   _binary_policy;
-		Genode::Child_policy_dynamic_rom_file _config_policy;
+		Child_policy_dynamic_rom_file         _config_policy;
 
-		bool _service_permitted(const char *service_name)
+		bool _service_permitted(Service::Name const &service_name) const
 		{
 			for (const char **s = _permitted_services(); *s; ++s)
-				if (!Genode::strcmp(service_name, *s))
+				if (service_name == *s)
 					return true;
 
 			return false;
 		}
 
+		Session_requester _session_requester;
+
 	public:
+
+		class Connection;
 
 		/**
 		 * Slave-policy constructor
 		 *
-		 * \param label       name of the program to start
-		 * \param entrypoint  entrypoint used to provide local services
-		 *                    such as the config ROM service
-		 * \param ram         RAM session used for buffering config data
+		 * \param ep        entrypoint used to provide local services
+		 *                  such as the config ROM service
+		 * \param local_rm  local address space, needed to populate dataspaces
+		 *                  provided to the child (config, session_requests)
 		 *
-		 * If 'ram' is set to 0, no configuration can be supplied to the
-		 * slave.
+		 * \throw Ram_session::Alloc_failed by 'Child_policy_dynamic_rom_file'
+		 * \throw Rm_session::Attach_failed by 'Child_policy_dynamic_rom_file'
 		 */
-		Slave_policy(const char             *label,
-		             Genode::Rpc_entrypoint &entrypoint,
-		             Genode::Ram_session    *ram = 0,
-		             const char             *binary = nullptr)
+		Policy(Label            const &label,
+		       Name             const &binary_name,
+		       Rpc_entrypoint         &ep,
+		       Region_map             &rm,
+		       Ram_session_capability  ram_cap,
+		       size_t                  ram_quota)
 		:
-			_label(label),
-			_entrypoint(entrypoint),
-			_binary_rom(binary ? prefixed_label(Session_label(label),
-			                                    Session_label(binary)).string() : label),
-			_labeling_policy(_label),
-			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
-			_config_policy("config", _entrypoint, ram)
-		{ }
-
-		Genode::Dataspace_capability binary() { return _binary_rom.dataspace(); }
+			_label(label), _binary_name(binary_name), _ram(ram_cap),
+			_binary_service(Rom_session::service_name()),
+			_ram_quota(ram_quota), _ep(ep), _labeling_policy(_label.string()),
+			_config_policy("config", _ep, &_ram),
+			_session_requester(ep, _ram, rm)
+		{
+			configure("<config/>");
+		}
 
 		/**
 		 * Assign new configuration to slave
+		 *
+		 * \param config  new configuration as null-terminated string
 		 */
 		void configure(char const *config)
 		{
-			_config_policy.load(config, Genode::strlen(config) + 1);
+			_config_policy.load(config, strlen(config) + 1);
 		}
 
 		void configure(char const *config, size_t len)
@@ -110,106 +128,187 @@ class Genode::Slave_policy : public Genode::Child_policy
 			_config_policy.load(config, len);
 		}
 
+		void trigger_session_requests()
+		{
+			_session_requester.trigger_update();
+		}
+
 
 		/****************************
 		 ** Child_policy interface **
 		 ****************************/
 
-		const char *name() const { return _label; }
+		Name name() const override { return _label; }
 
-		Genode::Service *resolve_session_request(const char *service_name,
-		                                         const char *args)
+		Binary_name binary_name() const override { return _binary_name; }
+
+		Ram_session           &ref_ram()           override { return _ram; }
+		Ram_session_capability ref_ram_cap() const override { return _ram; }
+
+		void init(Ram_session &session, Ram_session_capability cap) override
 		{
-			Genode::Service *service = 0;
+			session.ref_account(_ram);
+			_ram.transfer_quota(cap, _ram_quota);
+		}
 
-			/* check for binary file request */
-			if ((service = _binary_policy.resolve_session_request(service_name, args)))
-				return service;
-
+		Service &resolve_session_request(Service::Name       const &service_name,
+		                                 Session_state::Args const &args)
+		{
 			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name, args)))
-				return service;
+			if (Service *s = _config_policy.resolve_session_request(service_name.string(), args.string()))
+				return *s;
+
+			if (service_name == "ROM") {
+				Session_label const rom_name(label_from_args(args.string()).last_element());
+				if (rom_name == _binary_name)       return _binary_service;
+				if (rom_name == "session_requests") return _session_requester.service();
+			}
 
 			if (!_service_permitted(service_name)) {
-				error(name(), ": illegal session request of service \"", service_name, "\"");
-				return 0;
+				error(name(), ": illegal session request of "
+				      "service \"", service_name, "\" (", args, ")");
+				throw Parent::Service_denied();
 			}
 
 			/* fill parent service registry on demand */
-			if (!(service = _parent_services.find(service_name))) {
-				service = new (Genode::env()->heap())
-				          Genode::Parent_service(service_name);
-				_parent_services.insert(service);
-			}
+			Parent_service *service = nullptr;
+			_parent_services.for_each([&] (Parent_service &s) {
+				if (!service && s.name() == service_name)
+					service = &s; });
 
-			/* return parent service */
-			return service;
+			if (!service)
+				service = new (env()->heap())
+					Parent_service(_parent_services, service_name);
+
+			return *service;
 		}
 
-		void filter_session_args(const char *service,
-		                         char *args, Genode::size_t args_len)
+		Id_space<Parent::Server> &server_id_space() override {
+			return _session_requester.id_space(); }
+
+		void filter_session_args(Service::Name const &service,
+		                         char *args, size_t args_len)
 		{
-			_labeling_policy.filter_session_args(service, args, args_len);
+			_labeling_policy.filter_session_args(service.string(), args, args_len);
 		}
 };
 
 
-class Genode::Slave
+template <typename CONNECTION>
+class Genode::Slave::Connection_base
 {
-	private:
+	protected:
 
-		struct Resources
+		/* each connection appears as a separate client */
+		Id_space<Parent::Client> _id_space;
+
+		Policy &_policy;
+
+		struct Service : Genode::Service, Session_state::Ready_callback,
+		                                  Session_state::Closed_callback
 		{
-			Genode::Pd_connection  pd;
-			Genode::Ram_connection ram;
-			Genode::Cpu_connection cpu;
+			Id_space<Parent::Server> &_id_space;
 
-			class Quota_exceeded : public Genode::Exception { };
+			Lock _lock { Lock::LOCKED };
+			bool _alive = false;
 
-			Resources(const char *label, Genode::size_t ram_quota,
-			          Ram_session_capability ram_ref_cap)
-			: pd(label), ram(label), cpu(label)
+			Service(Policy &policy)
+			:
+				Genode::Service(CONNECTION::service_name(), policy.ref_ram_cap()),
+				_id_space(policy.server_id_space())
+			{ }
+
+			void initiate_request(Session_state &session) override
 			{
-				ram.ref_account(ram_ref_cap);
-				Ram_session_client ram_ref(ram_ref_cap);
+				switch (session.phase) {
 
-				if (ram_ref.transfer_quota(ram.cap(), ram_quota))
-					throw Quota_exceeded();
+				case Session_state::CREATE_REQUESTED:
+
+					if (!session.id_at_server.constructed())
+						session.id_at_server.construct(session, _id_space);
+
+					session.ready_callback = this;
+					session.async_client_notify = true;
+					break;
+
+				case Session_state::UPGRADE_REQUESTED:
+					warning("upgrading slaves is not implemented");
+					session.phase = Session_state::CAP_HANDED_OUT;
+					break;
+
+				case Session_state::CLOSE_REQUESTED:
+					warning("closing slave connections is not implemented");
+					session.phase = Session_state::CLOSED;
+					break;
+
+				case Session_state::INVALID_ARGS:
+				case Session_state::AVAILABLE:
+				case Session_state::CAP_HANDED_OUT:
+				case Session_state::CLOSED:
+					break;
+				}
 			}
-		} _resources;
 
-		Genode::Child::Initial_thread _initial_thread;
+			void wakeup() override { }
 
-		Genode::Region_map_client _address_space { _resources.pd.address_space() };
-		Genode::Child             _child;
+			/**
+			 * Session_state::Ready_callback
+			 */
+			void session_ready(Session_state &session) override
+			{
+				_alive = session.alive();
+				_lock.unlock();
+			}
 
-	public:
+			/**
+			 * Session_state::Closed_callback
+			 */
+			void session_closed(Session_state &s) override { _lock.unlock(); }
 
-		Slave(Genode::Rpc_entrypoint &entrypoint,
-		      Slave_policy           &slave_policy,
-		      Genode::size_t          ram_quota,
-		      Ram_session_capability  ram_ref_cap = env()->ram_session_cap(),
-		      Dataspace_capability    ldso_ds = Dataspace_capability())
+		} _service;
+
+		Local_connection<CONNECTION> _connection;
+
+		Connection_base(Policy &policy, Args const &args, Affinity const &affinity)
 		:
-			_resources(slave_policy.name(), ram_quota, ram_ref_cap),
-			_initial_thread(_resources.cpu, _resources.pd, slave_policy.name()),
-			_child(slave_policy.binary(), ldso_ds, _resources.pd, _resources.pd,
-			       _resources.ram, _resources.ram, _resources.cpu, _initial_thread,
-			       *env()->rm_session(), _address_space, entrypoint, slave_policy)
-		{ }
+			_policy(policy), _service(_policy),
+			_connection(_service, _id_space, { 1 }, args, affinity)
+		{
+			_policy.trigger_session_requests();
+			_service._lock.lock();
+			if (!_service._alive)
+				throw Parent::Service_denied();
+		}
 
-		Genode::Ram_connection &ram() { return _resources.ram; }
+		~Connection_base()
+		{
+			_policy.trigger_session_requests();
+			_service._lock.lock();
+		}
+
+		typedef typename CONNECTION::Session_type SESSION;
+
+		Capability<SESSION> _cap() const { return _connection.cap(); }
+};
 
 
-		/***************************************
-		 ** Wrappers of the 'Child' interface **
-		 ***************************************/
-
-		void yield(Genode::Parent::Resource_args const &args) {
-			_child.yield(args); }
-
-		void notify_resource_avail() const {
-			_child.notify_resource_avail(); }
+template <typename CONNECTION>
+struct Genode::Slave::Connection : private Connection_base<CONNECTION>,
+                                   public  CONNECTION::Client
+{
+	/**
+	 * Constructor
+	 *
+	 * \throw Parent::Service_denied   parent denies session request
+	 * \throw Parent::Quota_exceeded   our own quota does not suffice for
+	 *                                 the creation of the new session
+	 */
+	Connection(Slave::Policy &policy, Args const &args,
+	           Affinity const &affinity = Affinity())
+	:
+		Connection_base<CONNECTION>(policy, args, affinity),
+		CONNECTION::Client(Connection_base<CONNECTION>::_cap())
+	{ }
 };
 
 #endif /* _INCLUDE__OS__SLAVE_H_ */

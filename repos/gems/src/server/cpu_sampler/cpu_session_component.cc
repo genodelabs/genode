@@ -89,20 +89,31 @@ Cpu_sampler::Cpu_session_component::trace_control()
 }
 
 
-Cpu_sampler::Cpu_session_component::Cpu_session_component(
-                        Rpc_entrypoint             &thread_ep,
-                        Allocator                  &md_alloc,
-                        Thread_list                &thread_list,
-                        Thread_list_change_handler &thread_list_change_handler,
-                        char                 const *args)
+Cpu_sampler::
+Cpu_session_component::
+Cpu_session_component(Rpc_entrypoint             &thread_ep,
+                      Env                        &env,
+                      Allocator                  &md_alloc,
+                      Thread_list                &thread_list,
+                      Thread_list_change_handler &thread_list_change_handler,
+                      char                 const *args)
 : _thread_ep(thread_ep),
-  _parent_cpu_session(env()->parent()->session<Cpu_session>(args)),
+  _env(env),
+  _id_space_element(_parent_client, _env.id_space()),
+  _parent_cpu_session(_env.session<Cpu_session>(_id_space_element.id(), args, Affinity())),
   _md_alloc(md_alloc),
   _thread_list(thread_list),
   _thread_list_change_handler(thread_list_change_handler),
   _session_label(label_from_args(args)),
   _native_cpu_cap(_setup_native_cpu())
 { }
+
+
+void Cpu_sampler::Cpu_session_component::upgrade_ram_quota(size_t ram_quota)
+{
+	String<64> const args("ram_quota=", ram_quota);
+	_env.upgrade(_id_space_element.id(), args.string());
+}
 
 
 Cpu_sampler::Cpu_session_component::~Cpu_session_component()

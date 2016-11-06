@@ -19,12 +19,18 @@
 #include <base/rpc_args.h>
 #include <session/session.h>
 
-namespace Genode { struct Log_session; }
+namespace Genode {
+	
+	struct Log_session;
+	struct Log_session_client;
+}
 
 
 struct Genode::Log_session : Session
 {
 	static const char *service_name() { return "LOG"; }
+
+	typedef Log_session_client Client;
 
 	virtual ~Log_session() { }
 

@@ -18,11 +18,14 @@
 #include <base/heap.h>
 #include <base/service.h>
 #include <base/lock.h>
+#include <base/local_connection.h>
 #include <util/arg_string.h>
-#include <ram_session/capability.h>
+#include <ram_session/connection.h>
 #include <region_map/client.h>
-#include <pd_session/client.h>
-#include <cpu_session/client.h>
+#include <pd_session/connection.h>
+#include <cpu_session/connection.h>
+#include <log_session/connection.h>
+#include <rom_session/connection.h>
 #include <parent/capability.h>
 
 namespace Genode {
@@ -41,44 +44,47 @@ namespace Genode {
  */
 struct Genode::Child_policy
 {
+	typedef String<64> Name;
+	typedef String<64> Binary_name;
+	typedef String<64> Linker_name;
+
 	virtual ~Child_policy() { }
 
 	/**
-	 * Return process name of the child
+	 * Name of the child used as the child's label prefix
 	 */
-	virtual const char *name() const = 0;
+	virtual Name name() const = 0;
+
+	/**
+	 * ROM module name of the binary to start
+	 */
+	virtual Binary_name binary_name() const { return name(); }
+
+	/**
+	 * ROM module name of the dynamic linker
+	 */
+	virtual Linker_name linker_name() const { return "ld.lib.so"; }
 
 	/**
 	 * Determine service to provide a session request
 	 *
-	 * \return  Service to be contacted for the new session, or
-	 *          0 if session request could not be resolved
+	 * \return  service to be contacted for the new session
+	 *
+	 * \throw Parent::Service_denied
 	 */
-	virtual Service *resolve_session_request(const char * /*service_name*/,
-	                                         const char * /*args*/)
-	{ return 0; }
+	virtual Service &resolve_session_request(Service::Name       const &,
+	                                         Session_state::Args const &) = 0;
 
 	/**
 	 * Apply transformations to session arguments
 	 */
-	virtual void filter_session_args(const char * /*service*/,
+	virtual void filter_session_args(Service::Name const &,
 	                                 char * /*args*/, size_t /*args_len*/) { }
 
 	/**
 	 * Register a service provided by the child
-	 *
-	 * \param name   service name
-	 * \param root   interface for creating sessions for the service
-	 * \param alloc  allocator to be used for child-specific
-	 *               meta-data allocations
-	 * \return       true if announcement succeeded, or false if
-	 *               child is not permitted to announce service
 	 */
-	virtual bool announce_service(const char            * /*name*/,
-	                              Root_capability         /*root*/,
-	                              Allocator             * /*alloc*/,
-	                              Server                * /*server*/)
-	{ return false; }
+	virtual void announce_service(Service::Name const &) { }
 
 	/**
 	 * Apply session affinity policy
@@ -90,11 +96,6 @@ struct Genode::Child_policy
 	{
 		return affinity;
 	}
-
-	/**
-	 * Unregister services that had been provided by the child
-	 */
-	virtual void unregister_services() { }
 
 	/**
 	 * Exit child
@@ -110,8 +111,8 @@ struct Genode::Child_policy
 	 * The RAM session returned by this method is used for session-quota
 	 * transfers.
 	 */
-	virtual Ram_session *ref_ram_session() { return env()->ram_session(); }
-	virtual Ram_session_capability ref_ram_cap() const { return env()->ram_session_cap(); }
+	virtual Ram_session           &ref_ram() = 0;
+	virtual Ram_session_capability ref_ram_cap() const = 0;
 
 	/**
 	 * Respond to the release of resources by the child
@@ -125,6 +126,56 @@ struct Genode::Child_policy
 	 * Take action on additional resource needs by the child
 	 */
 	virtual void resource_request(Parent::Resource_args const &) { }
+
+	/**
+	 * Initialize the child's RAM session
+	 *
+	 * The function must define the child's reference account and transfer
+	 * the child's initial RAM quota.
+	 */
+	virtual void init(Ram_session &, Capability<Ram_session>) = 0;
+
+	/**
+	 * Initialize the child's CPU session
+	 *
+	 * The function may install an exception signal handler or assign CPU quota
+	 * to the child.
+	 */
+	virtual void init(Cpu_session &, Capability<Cpu_session>) { }
+
+	/**
+	 * Initialize the child's PD session
+	 *
+	 * The function may install a region-map fault handler for the child's
+	 * address space ('Pd_session::address_space');.
+	 */
+	virtual void init(Pd_session &, Capability<Pd_session>) { }
+
+	class Nonexistent_id_space : Exception { };
+
+	/**
+	 * ID space for sessions provided by the child
+	 *
+	 * \throw Nonexistent_id_space
+	 */
+	virtual Id_space<Parent::Server> &server_id_space() { throw Nonexistent_id_space(); }
+
+	/**
+	 * Return region map for the child's address space
+	 *
+	 * \param pd  the child's PD session capability
+	 *
+	 * By default, the function returns a 'nullptr'. In this case, the 'Child'
+	 * interacts with the address space of the child's PD session via RPC calls
+	 * to the 'Pd_session::address_space'.
+	 *
+	 * By overriding the default, those RPC calls can be omitted, which is
+	 * useful if the child's PD session (including the PD's address space) is
+	 * virtualized by the parent. If the virtual PD session is served by the
+	 * same entrypoint as the child's parent interface, an RPC call to 'pd'
+	 * would otherwise produce a deadlock.
+	 */
+	virtual Region_map *address_space(Pd_session &) { return nullptr; }
 };
 
 
@@ -150,9 +201,11 @@ struct Genode::Child_policy
  * to our account, and subsequently transfer the same amount from our
  * account to the client.
  */
-class Genode::Child : protected Rpc_object<Parent>
+class Genode::Child : protected Rpc_object<Parent>,
+                      Session_state::Ready_callback,
+                      Session_state::Closed_callback
 {
-	public:
+	private:
 
 		struct Initial_thread_base
 		{
@@ -192,51 +245,113 @@ class Genode::Child : protected Rpc_object<Parent>
 				Capability<Cpu_thread> cap() { return _cap; }
 		};
 
-	private:
-
-		class Session;
-
-		/* PD session representing the protection domain of the child */
-		Pd_session_capability   _pd;
-
-		/* RAM session that contains the quota of the child */
-		Ram_session_capability  _ram;
-
-		/* CPU session that contains the quota of the child */
-		Cpu_session_capability  _cpu;
-
-		/* services where the PD, RAM, and CPU resources come from */
-		Service                &_pd_service;
-		Service                &_ram_service;
-		Service                &_cpu_service;
-
-		/* heap for child-specific allocations using the child's quota */
-		Heap                    _heap;
-
-		Rpc_entrypoint         &_entrypoint;
-		Parent_capability       _parent_cap;
-
 		/* child policy */
-		Child_policy           &_policy;
+		Child_policy &_policy;
 
 		/* sessions opened by the child */
-		Lock                    _lock;   /* protect list manipulation */
-		Object_pool<Session>    _session_pool;
-		List<Session>           _session_list;
+		Id_space<Client> _id_space;
 
-		/* server role */
-		Server                 _server;
+		typedef Session_state::Args Args;
 
-		/* session-argument buffer */
-		char _args[Parent::Session_args::MAX_SIZE];
+		template <typename CONNECTION>
+		struct Env_connection
+		{
+			typedef String<64> Label;
+
+			Args const                   _args;
+			Service                     &_service;
+			Local_connection<CONNECTION> _connection;
+
+			/**
+			 * Construct session arguments with the child policy applied
+			 */
+			Args _construct_args(Child_policy &policy, Label const &label)
+			{
+				/* copy original arguments into modifiable buffer */
+				char buf[Session_state::Args::capacity()];
+				buf[0] = 0;
+
+				/* supply label as session argument */
+				if (label.valid())
+					Arg_string::set_arg_string(buf, sizeof(buf), "label", label.string());
+
+				/* apply policy to argument buffer */
+				policy.filter_session_args(CONNECTION::service_name(), buf, sizeof(buf));
+
+				return Session_state::Args(Cstring(buf));
+			}
+
+			Env_connection(Child_policy &policy, Id_space<Parent::Client> &id_space,
+			               Id_space<Parent::Client>::Id id, Label const &label = Label())
+			:
+				_args(_construct_args(policy, label)),
+				_service(policy.resolve_session_request(CONNECTION::service_name(), _args)),
+				_connection(_service, id_space, id, _args,
+				            policy.filter_session_affinity(Affinity()))
+			{ }
+
+			typedef typename CONNECTION::Session_type SESSION;
+
+			SESSION             &session()  { return _connection.session(); }
+			Capability<SESSION> cap() const { return _connection.cap(); }
+		};
+
+		Env_connection<Ram_connection> _ram { _policy,
+			_id_space, Parent::Env::ram() };
+
+		Env_connection<Pd_connection> _pd { _policy,
+			_id_space, Parent::Env::pd() };
+
+		Env_connection<Cpu_connection> _cpu { _policy,
+			_id_space, Parent::Env::cpu() };
+
+		Env_connection<Log_connection> _log { _policy,
+			_id_space, Parent::Env::log() };
+
+		Env_connection<Rom_connection> _binary { _policy,
+			_id_space, Parent::Env::binary(), _policy.binary_name() };
+
+		Lazy_volatile_object<Env_connection<Rom_connection> > _linker { _policy,
+			_id_space, Parent::Env::linker(), _policy.linker_name() };
+
+		/* call 'Child_policy::init' methods for the environment sessions */
+		void _init_env_sessions()
+		{
+			_policy.init(_ram.session(), _ram.cap());
+			_policy.init(_cpu.session(), _cpu.cap());
+			_policy.init(_pd.session(),  _pd.cap());
+		}
+		bool const _env_sessions_initialized = ( _init_env_sessions(), true );
+
+		Dataspace_capability _linker_dataspace()
+		{
+			try {
+				_linker.construct(_policy, _id_space,
+				                  Parent::Env::linker(), _policy.linker_name());
+				return _linker->session().dataspace();
+			}
+			catch (Parent::Service_denied) { return Rom_dataspace_capability(); }
+		}
+
+		/* heap for child-specific allocations using the child's quota */
+		Heap _heap;
+
+		/* factory for dynamically created  session-state objects */
+		Session_state::Factory _session_factory { _heap };
+
+		Rpc_entrypoint    &_entrypoint;
+		Parent_capability  _parent_cap;
 
 		/* signal handlers registered by the child */
 		Signal_context_capability _resource_avail_sigh;
 		Signal_context_capability _yield_sigh;
+		Signal_context_capability _session_sigh;
 
 		/* arguments fetched by the child in response to a yield signal */
 		Lock          _yield_request_lock;
 		Resource_args _yield_request_args;
+
+		Initial_thread _initial_thread { _cpu.session(), _pd.cap(), "initial" };
 
 		struct Process
 		{
@@ -313,30 +428,19 @@ class Genode::Child : protected Rpc_object<Parent>
 
 		Process _process;
 
-		/**
-		 * Attach session information to a child
-		 *
-		 * \throw Ram_session::Quota_exceeded  the child's heap partition cannot
-		 *                                     hold the session meta data
-		 */
-		void _add_session(const Session &s);
+		void _revert_quota_and_destroy(Session_state &);
+
+		Close_result _close(Session_state &);
 
 		/**
-		 * Close session and revert quota donation associated with it
+		 * Session_state::Ready_callback
 		 */
-		void _remove_session(Session *s);
-
-		void _close(Session *s);
+		void session_ready(Session_state &session) override;
 
 		/**
-		 * Return service interface targetting the parent
-		 *
-		 * The service returned by this method is used as default
-		 * provider for the RAM, CPU, and RM resources of the child. It is
-		 * solely used for targeting resource donations during
-		 * 'Parent::upgrade_quota()' calls.
+		 * Session_state::Closed_callback
 		 */
-		static Service &_parent_service();
+		void session_closed(Session_state &) override;
 
 	public:
 
@@ -357,60 +461,18 @@ class Genode::Child : protected Rpc_object<Parent>
 		/**
 		 * Constructor
 		 *
-		 * \param elf_ds          dataspace that contains the ELF binary
-		 * \param ldso_ds         dataspace that contains the dynamic linker,
-		 *                        started if 'elf_ds' is a dynamically linked
-		 *                        executable
-		 * \param pd_cap          capability of the new protection domain,
-		 *                        used as argument for creating the initial
-		 *                        thread, and handed out to the child as its
-		 *                        environment
-		 * \param pd              PD session used for assigning the parent
-		 *                        capability of the new process
-		 * \param ram_cap         RAM session capability handed out to the
-		 *                        child as its environment
-		 * \param ram             RAM session used to allocate the BSS and
-		 *                        DATA segments and as backing store for the
-		 *                        local heap partition to keep child-specific
-		 *                        meta data
-		 * \param cpu_cap         CPU session capability handed out to the
-		 *                        child as its environment
-		 * \param initial_thread  initial thread of the new protection domain
-		 * \param local_rm        local address space
-		 * \param remote_rm       address space of new protection domain
-		 * \param pd_service      provider of the 'pd' session
-		 * \param ram_service     provider of the 'ram' session
-		 * \param cpu_service     provider of the 'cpu' session
+		 * \param rm          local address space, usually 'env.rm()'
+		 * \param entrypoint  entrypoint used to serve the parent interface of
+		 *                    the child
+		 * \param policy      policy for the child
 		 *
+		 * \throw Parent::Service_denied  if the initial sessions for the
+		 *                                child's environment could not be
+		 *                                opened
 		 * \throw Ram_session::Alloc_failed
 		 * \throw Process_startup_failed
-		 *
-		 * Usually, the pairs of 'pd' and 'pd_cap', 'initial_thread' and
-		 * 'cpu_cap', 'ram' and 'ram_cap' belong to each other. References to
-		 * the session interfaces are passed as separate arguments in addition
-		 * to the capabilities to allow the creator of a child to operate on
-		 * locally implemented interfaces during the child initialization.
-		 *
-		 * The 'ram_service', 'cpu_service', and 'pd_service' arguments are
-		 * needed to direct quota upgrades referring to the resources of
-		 * the child environment. By default, we expect that these
-		 * resources are provided by the parent.
 		 */
-		Child(Dataspace_capability    elf_ds,
-		      Dataspace_capability    ldso_ds,
-		      Pd_session_capability   pd_cap,
-		      Pd_session             &pd,
-		      Ram_session_capability  ram_cap,
-		      Ram_session            &ram,
-		      Cpu_session_capability  cpu_cap,
-		      Initial_thread_base    &initial_thread,
-		      Region_map             &local_rm,
-		      Region_map             &remote_rm,
-		      Rpc_entrypoint         &entrypoint,
-		      Child_policy           &policy,
-		      Service                &pd_service  = _parent_service(),
-		      Service                &ram_service = _parent_service(),
-		      Service                &cpu_service = _parent_service());
+		Child(Region_map &rm, Rpc_entrypoint &entrypoint, Child_policy &policy);
 
 		/**
 		 * Destructor
@@ -421,25 +483,40 @@ class Genode::Child : protected Rpc_object<Parent>
 		virtual ~Child();
 
 		/**
-		 * Return heap that uses the child's quota
+		 * RAM quota unconditionally consumed by the child's environment
 		 */
-		Allocator *heap() { return &_heap; }
-
-		Pd_session_capability  pd_session_cap()  const { return _pd; }
-		Ram_session_capability ram_session_cap() const { return _ram; }
-		Cpu_session_capability cpu_session_cap() const { return _cpu; }
-		Parent_capability      parent_cap()      const { return cap(); }
+		static size_t env_ram_quota()
+		{
+			return Cpu_connection::RAM_QUOTA + Ram_connection::RAM_QUOTA +
+			        Pd_connection::RAM_QUOTA + Log_connection::RAM_QUOTA +
+			     2*Rom_connection::RAM_QUOTA;
+		}
 
 		/**
-		 * Discard all sessions to specified service
-		 *
-		 * When this method is called, we assume the server protection
-		 * domain to be dead and all that all server quota was already
-		 * transferred back to our own 'env()->ram_session()' account. Note
-		 * that the specified server object may not exist anymore. We do
-		 * not de-reference the server argument in here!
+		 * Deduce session costs from usable ram quota
 		 */
-		void revoke_server(const Server *server);
+		static size_t effective_ram_quota(size_t const ram_quota)
+		{
+			if (ram_quota < env_ram_quota())
+				return 0;
+
+			return ram_quota - env_ram_quota();
+		}
+
+		/**
+		 * Return heap that uses the child's quota
+		 */
+		Allocator &heap() { return _heap; }
+
+		Ram_session_capability ram_session_cap() const { return _ram.cap(); }
+
+		Parent_capability parent_cap() const { return cap(); }
+
+		Ram_session &ram() { return _ram.session(); }
+		Cpu_session &cpu() { return _cpu.session(); }
+		Pd_session  &pd()  { return _pd .session(); }
+
+		Session_state::Factory &session_factory() { return _session_factory; }
 
 		/**
 		 * Instruct the child to yield resources
@@ -461,12 +538,16 @@ class Genode::Child : protected Rpc_object<Parent>
 		 ** Parent interface **
 		 **********************/
 
-		void announce(Service_name const &, Root_capability) override;
-		Session_capability session(Service_name const &, Session_args const &,
-		                           Affinity const &) override;
-		void upgrade(Session_capability, Upgrade_args const &) override;
-		void close(Session_capability) override;
+		void announce(Service_name const &) override;
+		void session_sigh(Signal_context_capability) override;
+		Session_capability session(Client::Id, Service_name const &,
+		                           Session_args const &, Affinity const &) override;
+		Session_capability session_cap(Client::Id) override;
+		Upgrade_result upgrade(Client::Id, Upgrade_args const &) override;
+		Close_result close(Client::Id) override;
 		void exit(int) override;
+		void session_response(Server::Id, Session_response) override;
+		void deliver_session_cap(Server::Id, Session_capability) override;
 		Thread_capability main_thread_cap() const override;
 		void resource_avail_sigh(Signal_context_capability) override;
 		void resource_request(Resource_args const &) override;

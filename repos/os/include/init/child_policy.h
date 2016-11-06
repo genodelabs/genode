@@ -19,9 +19,11 @@
 #include <base/child.h>
 #include <base/rpc_server.h>
 #include <base/session_label.h>
+#include <base/attached_ram_dataspace.h>
 #include <util/arg_string.h>
 #include <rom_session/connection.h>
 #include <base/session_label.h>
+#include <os/dynamic_rom_session.h>
 
 namespace Init {
 
@@ -29,8 +31,17 @@ namespace Init {
 	class Child_policy_enforce_labeling;
 	class Child_policy_handle_cpu_priorities;
 	class Child_policy_provide_rom_file;
+	class Child_policy_provide_dynamic_rom;
 	class Child_policy_redirect_rom_file;
 	class Traditional_child_policy;
+
+	using Genode::Attached_ram_dataspace;
+	using Genode::size_t;
+	using Genode::Session_label;
+	using Genode::error;
+	using Genode::log;
+	using Genode::Service;
+	using Genode::Session_state;
 }
 
 
@@ -154,79 +165,48 @@ class Init::Child_policy_provide_rom_file
 
 		struct Local_rom_session_component : Genode::Rpc_object<Genode::Rom_session>
 		{
+			Genode::Rpc_entrypoint      &ep;
 			Genode::Dataspace_capability ds_cap;
 
 			/**
 			 * Constructor
 			 */
-			Local_rom_session_component(Genode::Dataspace_capability ds)
-			: ds_cap(ds) { }
+			Local_rom_session_component(Genode::Rpc_entrypoint &ep,
+			                            Genode::Dataspace_capability ds)
+			: ep(ep), ds_cap(ds) { ep.manage(this); }
+
+			~Local_rom_session_component() { ep.dissolve(this); }
 
 
 			/***************************
 			 ** ROM session interface **
 			 ***************************/
 
-			Genode::Rom_dataspace_capability dataspace() {
+			Genode::Rom_dataspace_capability dataspace() override {
 				return Genode::static_cap_cast<Genode::Rom_dataspace>(ds_cap); }
 
-			void sigh(Genode::Signal_context_capability) { }
+			void sigh(Genode::Signal_context_capability) override { }
 
-		} _local_rom_session;
+		} _session;
 
-		Genode::Rpc_entrypoint *_ep;
-		Genode::Rom_session_capability _rom_session_cap;
+		Genode::Session_label const _module_name;
 
-		Genode::Session_label _module_name;
+		typedef Genode::Local_service<Local_rom_session_component> Service;
 
-		struct Local_rom_service : public Genode::Service
-		{
-			Genode::Rom_session_capability _rom_cap;
-			bool                           _valid;
-
-			/**
-			 * Constructor
-			 *
-			 * \param rom_cap  capability to return on session requests
-			 * \param valid    true if local rom service is backed by a
-			 *                 valid dataspace
-			 */
-			Local_rom_service(Genode::Rom_session_capability rom_cap, bool valid)
-			: Genode::Service("ROM"), _rom_cap(rom_cap), _valid(valid) { }
-
-			Genode::Session_capability session(char const * /*args*/,
-			                                   Genode::Affinity const &)
-			{
-				if (!_valid)
-					throw Invalid_args();
-
-				return _rom_cap;
-			}
-
-			void upgrade(Genode::Session_capability, const char * /*args*/) { }
-			void close(Genode::Session_capability) { }
-
-		} _local_rom_service;
+		Service::Single_session_factory _session_factory { _session };
+		Service                         _service { _session_factory };
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Child_policy_provide_rom_file(const char                  *module_name,
+		Child_policy_provide_rom_file(Genode::Session_label const &module_name,
 		                              Genode::Dataspace_capability ds_cap,
 		                              Genode::Rpc_entrypoint      *ep)
 		:
-			_local_rom_session(ds_cap), _ep(ep),
-			_rom_session_cap(_ep->manage(&_local_rom_session)),
-			_module_name(module_name),
-			_local_rom_service(_rom_session_cap, ds_cap.valid())
+			_session(*ep, ds_cap), _module_name(module_name)
 		{ }
-
-		/**
-		 * Destructor
-		 */
-		~Child_policy_provide_rom_file() { _ep->dissolve(&_local_rom_session); }
 
 		Genode::Service *resolve_session_request(const char *service_name,
 		                                         const char *args)
@@ -238,7 +218,7 @@ class Init::Child_policy_provide_rom_file
 			{
 				Genode::Session_label const label = Genode::label_from_args(args);
 				return label.last_element() == _module_name
-				       ? &_local_rom_service : nullptr;
+				       ? &_service : nullptr;
 			}
 		}
 };

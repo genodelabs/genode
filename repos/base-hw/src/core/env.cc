@@ -18,4 +18,4 @@
 #include <base/internal/native_env.h>
 
 
-void Genode::upgrade_pd_session_quota(Genode::size_t quota) { assert(false); }
+void Genode::upgrade_pd_quota_non_blocking(Genode::size_t quota) { assert(false); }

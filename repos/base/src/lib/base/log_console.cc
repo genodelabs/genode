@@ -26,10 +26,21 @@ class Log_console : public Console
 
 		enum { _BUF_SIZE = Log_session::MAX_STRING_LEN };
 
-		Log_connection _log;
-		char           _buf[_BUF_SIZE];
-		unsigned       _num_chars;
-		Lock           _lock;
+
+		struct Log : Log_session_client
+		{
+			Session_capability _cap() {
+				return env()->parent()->session_cap(Parent::Env::log()); }
+
+			Log() : Log_session_client(reinterpret_cap_cast<Log_session>(_cap()))
+			{ }
+		};
+
+		Log _log;
+
+		char     _buf[_BUF_SIZE];
+		unsigned _num_chars;
+		Lock     _lock;
 
 		void _flush()
 		{
@@ -77,7 +88,7 @@ class Log_console : public Console
 		/**
 		 * Return LOG session interface
 		 */
-		Log_session *log_session() { return &_log; }
+		Log_session &log_session() { return _log; }
 
 		/**
 		 * Re-establish LOG session
@@ -85,13 +96,13 @@ class Log_console : public Console
 		void reconnect()
 		{
 			/*
-			 * Note that the destructor of old 'Log_connection' is not called.
-			 * This is not needed because the only designated use of this
-			 * function is the startup procedure of noux processes created
-			 * via fork. At the point of calling this function, the new child
-			 * has no valid capability to the original LOG session anyway.
+			 * We cannot use a 'Volatile_object' because we have to skip
+			 * the object destruction inside a freshly forked process.
+			 * Otherwise, the attempt to destruct the capability contained
+			 * in the 'Log' object would result in an inconsistent ref counter
+			 * of the respective capability-space element.
 			 */
-			new (&_log) Log_connection;
+			construct_at<Log>(&_log);
 		}
 };
 
@@ -109,7 +120,7 @@ static Log_console *stdout_log_console() { return unmanaged_singleton<Log_consol
  */
 extern "C" int stdout_write(const char *s)
 {
-	return stdout_log_console()->log_session()->write(s);
+	return stdout_log_console()->log_session().write(s);
 }
 
 

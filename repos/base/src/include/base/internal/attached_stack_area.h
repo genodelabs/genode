@@ -30,7 +30,8 @@ struct Genode::Attached_stack_area : Expanding_region_map_client
 {
 	Attached_stack_area(Parent &parent, Pd_session_capability pd)
 	:
-		Expanding_region_map_client(pd, Pd_session_client(pd).stack_area())
+		Expanding_region_map_client(pd, Pd_session_client(pd).stack_area(),
+		                            Parent::Env::pd())
 	{
 		Region_map_client address_space(Pd_session_client(pd).address_space());
 

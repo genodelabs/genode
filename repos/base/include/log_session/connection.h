@@ -23,14 +23,16 @@ namespace Genode { struct Log_connection; }
 
 struct Genode::Log_connection : Connection<Log_session>, Log_session_client
 {
+	enum { RAM_QUOTA = 8*1024UL };
+
 	/**
 	 * Constructor
 	 */
 	Log_connection(Env &env, Session_label label = Session_label())
 	:
 		Connection<Log_session>(env, session(env.parent(),
-		                                     "ram_quota=8K, label=\"%s\"",
-		                                     label.string())),
+		                                     "ram_quota=%ld, label=\"%s\"",
+		                                     RAM_QUOTA, label.string())),
 		Log_session_client(cap())
 	{ }
 
@@ -43,8 +45,8 @@ struct Genode::Log_connection : Connection<Log_session>, Log_session_client
 	 */
 	Log_connection(Session_label label = Session_label())
 	:
-		Connection<Log_session>(session("ram_quota=8K, label=\"%s\"",
-		                                label.string())),
+		Connection<Log_session>(session("ram_quota=%ld, label=\"%s\"",
+		                                RAM_QUOTA, label.string())),
 		Log_session_client(cap())
 	{ }
 };

@@ -119,7 +119,6 @@ struct Genode::Env_deprecated
 	 * \noapi
 	 */
 	virtual void reinit_main_thread(Capability<Region_map> &stack_area_rm) = 0;
-
 };
 
 #endif /* _INCLUDE__DEPRECATED__ENV_H_ */

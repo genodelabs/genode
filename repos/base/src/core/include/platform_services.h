@@ -14,11 +14,12 @@
 #ifndef _CORE__INCLUDE__PLATFORM_SERVICES_H_
 #define _CORE__INCLUDE__PLATFORM_SERVICES_H_
 
+#include <base/service.h>
+
 namespace Genode {
 
 	class Rpc_entrypoint;
 	class Sliced_heap;
-	class Service_registry;
 
 
 	/**
@@ -31,7 +32,7 @@ namespace Genode {
 	 */
 	void platform_add_local_services(Rpc_entrypoint *ep,
 	                                 Sliced_heap *md,
-	                                 Service_registry *reg);
+	                                 Registry<Service> *reg);
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_SERVICES_H_ */

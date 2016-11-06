@@ -20,7 +20,9 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
+#include <base/internal/native_env.h>
 #include <base/internal/capability_space.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
 
@@ -63,12 +65,10 @@ void Signal_transmitter::submit(unsigned cnt)
 Signal_receiver::Signal_receiver()
 {
 	retry<Pd_session::Out_of_metadata>(
-		[&] () {
-			_cap = env()->pd_session()->alloc_signal_source();
-		},
+		[&] () { _cap = internal_env().pd().alloc_signal_source(); },
 		[&] () {
 			log("upgrading quota donation for PD session");
-			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
+			internal_env().upgrade(Parent::Env::pd(), "ram_quota=8K");
 		}
 	);
 }
@@ -104,11 +104,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 			_contexts.insert(&c->_receiver_le);
 			return c->_cap;
 		},
-		[&] () {
-			log("upgrading quota donation for PD session");
-			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
-		}
-	);
+		[&] () { upgrade_pd_quota_non_blocking(1024 * sizeof(addr_t)); });
 
 	return c->_cap;
 }

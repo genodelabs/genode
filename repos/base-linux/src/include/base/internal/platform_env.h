@@ -69,9 +69,9 @@ class Genode::Platform_env_base : public Env_deprecated
 		                  Pd_session_capability  pd_cap)
 		:
 			_ram_session_cap(ram_cap),
-			_ram_session_client(_ram_session_cap),
+			_ram_session_client(_ram_session_cap, Parent::Env::ram()),
 			_cpu_session_cap(cpu_cap),
-			_cpu_session_client(cpu_cap),
+			_cpu_session_client(cpu_cap, Parent::Env::cpu()),
 			_region_map_mmap(false),
 			_pd_session_cap(pd_cap),
 			_local_pd_session(_pd_session_cap)

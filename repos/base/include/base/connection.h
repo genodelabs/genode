@@ -16,20 +16,56 @@
 
 #include <base/env.h>
 #include <base/capability.h>
+#include <base/log.h>
 
-namespace Genode { template <typename> class Connection; }
+namespace Genode {
+
+	class Connection_base;
+	template <typename> class Connection;
+}
+
+
+class Genode::Connection_base : public Noncopyable
+{
+	protected:
+
+		Env &_env;
+
+		Parent::Client _parent_client;
+
+		Id_space<Parent::Client>::Element const _id_space_element;
+
+		void _block_for_session_response();
+
+	public:
+
+		Connection_base(Env &env)
+		:
+			_env(env),
+			_id_space_element(_parent_client, _env.id_space())
+		{ }
+
+		/**
+		 * Legacy constructor
+		 *
+		 * \noapi
+		 */
+		Connection_base();
+
+		void upgrade_ram(size_t bytes)
+		{
+			String<64> const args("ram_quota=", bytes);
+			_env.upgrade(_id_space_element.id(), args.string());
+		}
+};
 
 
 /**
  * Representation of an open connection to a service
  */
 template <typename SESSION_TYPE>
-class Genode::Connection : public Noncopyable
+class Genode::Connection : public Connection_base
 {
-	public:
-
-		enum On_destruction { CLOSE = false, KEEP_OPEN = true };
-
 	private:
 
 		/*
@@ -37,14 +73,11 @@ class Genode::Connection : public Noncopyable
 		 * 'session' method that is called before the 'Connection' is
 		 * constructed.
 		 */
+
 		enum { FORMAT_STRING_SIZE = Parent::Session_args::MAX_SIZE };
 
 		char _session_args[FORMAT_STRING_SIZE];
 		char _affinity_arg[sizeof(Affinity)];
-
-		Parent &_parent;
-
-		On_destruction _on_destruction;
 
 		void _session(Parent &parent,
 		              Affinity const &affinity,
@@ -63,7 +96,8 @@ class Genode::Connection : public Noncopyable
 			memcpy(&affinity, _affinity_arg, sizeof(Affinity));
 
 			try {
-				return env()->parent()->session<SESSION_TYPE>(_session_args, affinity); }
+				return _env.session<SESSION_TYPE>(_id_space_element.id(),
+				                                  _session_args, affinity); }
 			catch (...) {
 				error(SESSION_TYPE::service_name(), "-session creation failed "
 				      "(", Cstring(_session_args), ")");
@@ -75,20 +109,15 @@ class Genode::Connection : public Noncopyable
 
 	public:
 
+		typedef SESSION_TYPE Session_type;
+
 		/**
 		 * Constructor
-		 *
-		 * \param od   session policy applied when destructing the connection
-		 *
-		 * The 'op' argument defines whether the session should automatically
-		 * be closed by the destructor of the connection (CLOSE), or the
-		 * session should stay open (KEEP_OPEN). The latter is useful in
-		 * situations where the creator a connection merely passes the
-		 * session capability of the connection to another party but never
-		 * invokes any of the session's RPC functions.
 		 */
-		Connection(Env &env, Capability<SESSION_TYPE>, On_destruction od = CLOSE)
-		: _parent(env.parent()), _on_destruction(od) { }
+		Connection(Env &env, Capability<SESSION_TYPE>)
+		:
+			Connection_base(env), _cap(_request_cap())
+		{ }
 
 		/**
 		 * Constructor
@@ -97,27 +126,17 @@ class Genode::Connection : public Noncopyable
 		 * \deprecated  Use the constructor with 'Env &' as first
 		 *              argument instead
 		 */
-		Connection(Capability<SESSION_TYPE>, On_destruction od = CLOSE)
-		: _parent(*env()->parent()), _on_destruction(od) { }
+		Connection(Capability<SESSION_TYPE>) : _cap(_request_cap()) { }
 
 		/**
 		 * Destructor
 		 */
-		~Connection()
-		{
-			if (_on_destruction == CLOSE)
-				_parent.close(_cap);
-		}
+		~Connection() { _env.close(_id_space_element.id()); }
 
 		/**
 		 * Return session capability
 		 */
 		Capability<SESSION_TYPE> cap() const { return _cap; }
-
-		/**
-		 * Define session policy
-		 */
-		void on_destruction(On_destruction od) { _on_destruction = od; }
 
 		/**
 		 * Issue session request to the parent

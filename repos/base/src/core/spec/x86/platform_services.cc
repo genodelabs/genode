@@ -26,11 +26,11 @@
  */
 void Genode::platform_add_local_services(Rpc_entrypoint*,
                                          Sliced_heap *sliced_heap,
-                                         Service_registry *local_services)
+                                         Registry<Service> *local_services)
 {
 	static Io_port_root io_port_root(core_env()->pd_session(),
 	                                 platform()->io_port_alloc(), sliced_heap);
-	static Local_service io_port_ls(Io_port_session::service_name(),
-	                                &io_port_root);
-	local_services->insert(&io_port_ls);
+
+	static Core_service<Io_port_session_component>
+		io_port_ls(*local_services, io_port_root);
 }

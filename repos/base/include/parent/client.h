@@ -27,18 +27,32 @@ struct Genode::Parent_client : Rpc_client<Parent>
 
 	void exit(int exit_value) override { call<Rpc_exit>(exit_value); }
 
-	void announce(Service_name const &service, Root_capability root) override {
-		call<Rpc_announce>(service, root); }
+	void announce(Service_name const &service) override {
+		call<Rpc_announce>(service); }
 
-	Session_capability session(Service_name const &service,
+	void session_sigh(Signal_context_capability sigh) override {
+		call<Rpc_session_sigh>(sigh); }
+
+	Session_capability session(Client::Id          id,
+	                           Service_name const &service,
 	                           Session_args const &args,
 	                           Affinity     const &affinity) override {
-		return call<Rpc_session>(service, args, affinity); }
+		return call<Rpc_session>(id, service, args, affinity); }
 
-	void upgrade(Session_capability to_session, Upgrade_args const &args) override {
-		call<Rpc_upgrade>(to_session, args); }
+	Session_capability session_cap(Client::Id id) override {
+		return call<Rpc_session_cap>(id); }
 
-	void close(Session_capability session) override { call<Rpc_close>(session); }
+	Upgrade_result upgrade(Client::Id to_session, Upgrade_args const &args) override {
+		return call<Rpc_upgrade>(to_session, args); }
+
+	Close_result close(Client::Id id) override { return call<Rpc_close>(id); }
+
+	void session_response(Id_space<Server>::Id id, Session_response response) override {
+		call<Rpc_session_response>(id, response); }
+
+	void deliver_session_cap(Id_space<Server>::Id id,
+	                         Session_capability cap) override {
+		call<Rpc_deliver_session_cap>(id, cap); }
 
 	Thread_capability main_thread_cap() const override {
 		return call<Rpc_main_thread>(); }

@@ -17,6 +17,9 @@
 #include <base/rpc_server.h>
 #include <pd_session/client.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 /* NOVA-specific part of the PD session interface */
 #include <nova_native_pd/client.h>
 
@@ -37,11 +40,7 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capabili
 				return native_pd.alloc_rpc_cap(ep, entry, 0);
 			},
 			[&] () {
-				Pd_session_client *client =
-					dynamic_cast<Pd_session_client*>(&pd);
-
-				if (client)
-					env()->parent()->upgrade(*client, "ram_quota=16K");
+				internal_env().upgrade(Parent::Env::pd(), "ram_quota=16K");
 			});
 
 	native_pd.imprint_rpc_cap(new_obj_cap, new_obj_cap.local_name());

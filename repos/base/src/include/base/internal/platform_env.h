@@ -48,9 +48,9 @@ class Genode::Platform_env : public Env_deprecated,
 		struct Resources
 		{
 			template <typename T>
-			Capability<T> request(Parent &parent, char const *service)
+			Capability<T> request(Parent &parent, Parent::Client::Id id)
 			{
-				return static_cap_cast<T>(parent.session(service, ""));
+				return static_cap_cast<T>(parent.session_cap(id));
 			}
 
 			Expanding_ram_session_client ram;
@@ -60,10 +60,12 @@ class Genode::Platform_env : public Env_deprecated,
 
 			Resources(Parent &parent)
 			:
-				ram(request<Ram_session>(parent, "Env::ram_session")),
-				cpu(request<Cpu_session>(parent, "Env::cpu_session")),
-				pd (request<Pd_session> (parent, "Env::pd_session")),
-				rm (pd, pd.address_space())
+				ram(request<Ram_session>(parent, Parent::Env::ram()),
+				                         Parent::Env::ram()),
+				cpu(request<Cpu_session>(parent, Parent::Env::cpu()),
+				                         Parent::Env::cpu()),
+				pd (request<Pd_session> (parent, Parent::Env::pd())),
+				rm (pd, pd.address_space(), Parent::Env::pd())
 			{ }
 		};
 

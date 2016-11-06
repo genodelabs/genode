@@ -12,18 +12,14 @@
  */
 
 /* Genode includes */
-#include <pd_session/client.h>
 #include <base/env.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/native_env.h>
 
-
-void Genode::upgrade_pd_session_quota(Genode::size_t quota)
+void Genode::upgrade_pd_quota_non_blocking(size_t quota)
 {
-	char buf[128];
-	snprintf(buf, sizeof(buf), "ram_quota=%lu", quota);
-	Pd_session_capability cap =
-		*static_cast<Pd_session_client*>(env()->pd_session());
-	env()->parent()->upgrade(cap, buf);
+	internal_env().parent().upgrade(Parent::Env::pd(),
+	                                String<64>("ram_quota=", quota).string());
 }

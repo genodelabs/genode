@@ -73,6 +73,61 @@ struct Genode::Env
 	 * Once we add 'Env::upgrade', we can remove this accessor.
 	 */
 	virtual Pd_session_capability pd_session_cap()  = 0;
+
+	/**
+	 * ID space of sessions obtained from the parent
+	 */
+	virtual Id_space<Parent::Client> &id_space() = 0;
+
+	virtual Session_capability session(Parent::Service_name const &,
+	                                   Parent::Client::Id,
+	                                   Parent::Session_args const &,
+	                                   Affinity             const &) = 0;
+
+	/**
+	 * Create session to a service
+	 *
+	 * \param SESSION_TYPE     session interface type
+	 * \param id               session ID of new session
+	 * \param args             session constructor arguments
+	 * \param affinity         preferred CPU affinity for the session
+	 *
+	 * \throw Service_denied   parent denies session request
+	 * \throw Quota_exceeded   our own quota does not suffice for
+	 *                         the creation of the new session
+	 * \throw Unavailable
+	 *
+	 * This method blocks until the session is available or an error
+	 * occurred.
+	 */
+	template <typename SESSION_TYPE>
+	Capability<SESSION_TYPE> session(Parent::Client::Id          id,
+	                                 Parent::Session_args const &args,
+	                                 Affinity             const &affinity)
+	{
+		Session_capability cap = session(SESSION_TYPE::service_name(),
+		                                 id, args, affinity);
+		return static_cap_cast<SESSION_TYPE>(cap);
+	}
+
+	/**
+	 * Upgrade session quota
+	 *
+	 * \param id    ID of recipient session
+	 * \param args  description of the amount of quota to transfer
+	 *
+	 * \throw Quota_exceeded  quota could not be transferred
+	 *
+	 * The 'args' argument has the same principle format as the 'args'
+	 * argument of the 'session' operation.
+	 */
+	virtual void upgrade(Parent::Client::Id id,
+	                     Parent::Upgrade_args const &args) = 0;
+
+	/**
+	 * Close session and block until the session is gone
+	 */
+	virtual void close(Parent::Client::Id) = 0;
 };
 
 #endif /* _INCLUDE__BASE__ENV_H_ */

@@ -24,6 +24,7 @@
 #include <core_pd_session.h>
 #include <ram_session_component.h>
 #include <core_pd_session.h>
+#include <base/service.h>
 
 /* base-internal includes */
 #include <base/internal/platform_env.h>
@@ -138,8 +139,6 @@ namespace Genode {
 
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
-			Core_parent _core_parent;
-
 			/*
 			 * Initialize the stack area before creating the first thread,
 			 * which happens to be the '_entrypoint'.
@@ -162,6 +161,10 @@ namespace Genode {
 
 			Heap                         _heap;
 			Ram_session_capability const _ram_session_cap;
+
+			Registry<Service> _services;
+
+			Core_parent _core_parent { _heap, _services };
 
 		public:
 
@@ -210,6 +213,8 @@ namespace Genode {
 				warning(__FILE__, ":", __LINE__, " not implemented");
 				return Cpu_session_capability();
 			}
+
+			Registry<Service> &services() { return _services; }
 	};
 
 

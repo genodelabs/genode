@@ -20,9 +20,13 @@
 namespace Genode
 {
 	/**
-	 * Upgrade quota of the PD session within my Genode environment
+	 * Upgrade quota of the PD session within my Genode environment non-blocking
+	 *
+	 * This function doesn't lock the environment when upgrading. This is
+	 * needed when doing upgrades in situations where the environment is
+	 * already locked due to the operation that triggered the upgrade.
 	 */
-	void upgrade_pd_session_quota(Genode::size_t);
+	void upgrade_pd_quota_non_blocking(size_t);
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_ */

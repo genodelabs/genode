@@ -27,6 +27,7 @@ namespace Genode {
 	struct Ram_dataspace;
 	typedef Capability<Ram_dataspace> Ram_dataspace_capability;
 
+	struct Ram_session_client;
 	struct Ram_session;
 }
 
@@ -40,6 +41,8 @@ struct Genode::Ram_dataspace : Dataspace { };
 struct Genode::Ram_session : Session
 {
 	static const char *service_name() { return "RAM"; }
+
+	typedef Ram_session_client Client;
 
 
 	/*********************

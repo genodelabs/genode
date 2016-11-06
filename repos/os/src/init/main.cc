@@ -1,16 +1,17 @@
 /*
- * \brief  Init process
+ * \brief  Init component
  * \author Norman Feske
  * \date   2010-04-27
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <init/child.h>
 #include <base/sleep.h>
 #include <os/config.h>
@@ -65,7 +66,7 @@ inline Genode::Affinity::Space read_affinity_space()
 /**
  * Read parent-provided services from config
  */
-inline void determine_parent_services(Genode::Service_registry *services)
+inline void determine_parent_services(Genode::Registry<Init::Parent_service> *services)
 {
 	using namespace Genode;
 
@@ -75,11 +76,10 @@ inline void determine_parent_services(Genode::Service_registry *services)
 	Xml_node node = config()->xml_node().sub_node("parent-provides").sub_node("service");
 	for (; ; node = node.next("service")) {
 
-		char service_name[Genode::Service::MAX_NAME_LEN];
+		char service_name[Genode::Service::Name::capacity()];
 		node.attribute("name").value(service_name, sizeof(service_name));
 
-		Parent_service *s = new (env()->heap()) Parent_service(service_name);
-		services->insert(s);
+		new (env()->heap()) Init::Parent_service(*services, service_name);
 		if (Init::config_verbose)
 			log("  service \"", Cstring(service_name), "\"");
 
@@ -231,13 +231,6 @@ class Init::Child_registry : public Name_registry, Child_list
 			return _aliases.first() ? _aliases.first() : 0;
 		}
 
-		void revoke_server(Genode::Server const *server)
-		{
-			Genode::List_element<Child> *curr = first();
-			for (; curr; curr = curr->next())
-				curr->object()->_child.revoke_server(server);
-		}
-
 
 		/*****************************
 		 ** Name-registry interface **
@@ -260,41 +253,24 @@ class Init::Child_registry : public Name_registry, Child_list
 			return true;
 		}
 
-		Genode::Server *lookup_server(const char *name) const
+		Name deref_alias(Name const &name) override
 		{
-			/*
-			 * Check if an alias with the specified name exists. If so,
-			 * look up the server referred to by the alias.
-			 */
 			for (Alias const *a = _aliases.first(); a; a = a->next())
-				if (Alias::Name(name) == a->name)
-					name = a->child.string();
+				if (name == a->name)
+					return a->child;
 
-			/* look up child with the name */
-			Genode::List_element<Child> const *curr = first();
-			for (; curr; curr = curr->next())
-				if (curr->object()->has_name(name))
-					return curr->object()->server();
-
-			return 0;
+			return name;
 		}
 };
 
 
-int main(int, char **)
+void Component::construct(Genode::Env &env)
 {
 	using namespace Init;
 	using namespace Genode;
 
-	/* obtain dynamic linker */
-	Dataspace_capability ldso_ds;
-	try {
-		static Rom_connection rom("ld.lib.so");
-		ldso_ds = rom.dataspace();
-	} catch (...) { }
-
-	static Service_registry parent_services;
-	static Service_registry child_services;
+	static Registry<Init::Parent_service> parent_services;
+	static Registry<Routed_service>       child_services;
 	static Child_registry   children;
 	static Cap_connection   cap;
 
@@ -306,7 +282,7 @@ int main(int, char **)
 	Signal_context  sig_ctx_res_avail;
 	config()->sigh(sig_rec.manage(&sig_ctx_config));
 	/* prevent init to block for resource upgrades (never satisfied by core) */
-	env()->parent()->resource_avail_sigh(sig_rec.manage(&sig_ctx_res_avail));
+	Genode::env()->parent()->resource_avail_sigh(sig_rec.manage(&sig_ctx_res_avail));
 
 	for (;;) {
 
@@ -327,7 +303,7 @@ int main(int, char **)
 		config()->xml_node().for_each_sub_node("alias", [&] (Xml_node alias_node) {
 
 			try {
-				children.insert_alias(new (env()->heap()) Alias(alias_node));
+				children.insert_alias(new (Genode::env()->heap()) Alias(alias_node));
 			}
 			catch (Alias::Name_is_missing) {
 				warning("missing 'name' attribute in '<alias>' entry"); }
@@ -341,12 +317,11 @@ int main(int, char **)
 			config()->xml_node().for_each_sub_node("start", [&] (Xml_node start_node) {
 
 				try {
-					children.insert(new (env()->heap())
-					                Init::Child(start_node, default_route_node,
+					children.insert(new (Genode::env()->heap())
+					                Init::Child(env, start_node, default_route_node,
 					                            children, read_prio_levels(),
 					                            read_affinity_space(),
-					                            parent_services, child_services, cap,
-					                            ldso_ds));
+					                            parent_services, child_services));
 				}
 				catch (Rom_connection::Rom_connection_failed) {
 					/*
@@ -354,6 +329,11 @@ int main(int, char **)
 					 * by the Rom_connection constructor.
 					 */
 				}
+				catch (Ram_session::Alloc_failed) {
+					warning("failed to allocate memory during child construction"); }
+				catch (Region_map::Attach_failed) {
+					warning("failed to attach dataspace to local address space "
+					        "during child construction"); }
 			});
 
 			/* start children */
@@ -386,35 +366,22 @@ int main(int, char **)
 		while (children.any()) {
 			Init::Child *child = children.any();
 			children.remove(child);
-			Genode::Server const *server = child->server();
-			destroy(env()->heap(), child);
-
-			/*
-			 * The killed child may have provided services to other children.
-			 * Since the server is dead by now, we cannot close its sessions
-			 * in the cooperative way. Instead, we need to instruct each
-			 * other child to forget about session associated with the dead
-			 * server. Note that the 'child' pointer points a a no-more
-			 * existing object. It is only used to identify the corresponding
-			 * session. It must never by de-referenced!
-			 */
-			children.revoke_server(server);
+			destroy(Genode::env()->heap(), child);
 		}
 
 		/* remove all known aliases */
 		while (children.any_alias()) {
 			Init::Alias *alias = children.any_alias();
 			children.remove_alias(alias);
-			destroy(env()->heap(), alias);
+			destroy(Genode::env()->heap(), alias);
 		}
 
 		/* reset knowledge about parent services */
-		parent_services.remove_all();
+		parent_services.for_each([&] (Init::Parent_service &service) {
+			destroy(Genode::env()->heap(), &service); });
 
 		/* reload config */
 		try { config()->reload(); } catch (...) { }
 	}
-
-	return 0;
 }
 

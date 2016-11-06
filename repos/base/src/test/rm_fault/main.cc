@@ -4,10 +4,10 @@
  * \date   2008-09-24
  *
  * This program starts itself as child. When started, it first determines
- * wheather it is parent or child by requesting its own file from the ROM
- * service. Because the program blocks all session-creation calls for the
- * ROM service, each program instance can determine its parent or child
- * role by the checking the result of the session creation.
+ * wheather it is parent or child by requesting a RM session. Because the
+ * program blocks all session-creation calls for the RM service, each program
+ * instance can determine its parent or child role by the checking the result
+ * of the session creation.
  */
 
 /*
@@ -17,17 +17,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <base/log.h>
-#include <base/env.h>
-#include <base/sleep.h>
 #include <base/child.h>
-#include <pd_session/connection.h>
 #include <rm_session/connection.h>
-#include <ram_session/connection.h>
-#include <rom_session/connection.h>
-#include <cpu_session/connection.h>
-#include <cap_session/connection.h>
-#include <rm_session/client.h>
+#include <os/attached_ram_dataspace.h>
 
 using namespace Genode;
 
@@ -69,108 +63,135 @@ void main_child()
  ** Parent **
  ************/
 
-class Test_child : public Child_policy
+class Test_child_policy : public Child_policy
 {
+	public:
+
+		typedef Registered<Genode::Parent_service> Parent_service;
+		typedef Registry<Parent_service>           Parent_services;
+
 	private:
 
-		enum { STACK_SIZE = 8*1024 };
-
-		/*
-		 * Entry point used for serving the parent interface
-		 */
-		Rpc_entrypoint _entrypoint;
-
-		Region_map_client     _address_space;
-		Pd_session_client     _pd;
-		Ram_session_client    _ram;
-		Cpu_session_client    _cpu;
-		Child::Initial_thread _initial_thread;
-
-		Child _child;
-
-		Parent_service _log_service;
+		Env                            &_env;
+		Parent_services                &_parent_services;
+		Signal_context_capability const _fault_handler_sigh;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Test_child(Genode::Dataspace_capability    elf_ds,
-		           Genode::Pd_connection          &pd,
-		           Genode::Ram_session_capability  ram,
-		           Genode::Cpu_session_capability  cpu,
-		           Genode::Cap_session            *cap)
+		Test_child_policy(Env &env, Parent_services &parent_services,
+		                  Signal_context_capability fault_handler_sigh)
 		:
-			_entrypoint(cap, STACK_SIZE, "child", false),
-			_address_space(pd.address_space()), _pd(pd), _ram(ram), _cpu(cpu),
-			_initial_thread(_cpu, _pd, "child"),
-			_child(elf_ds, Dataspace_capability(), _pd, _pd, _ram, _ram,
-			       _cpu, _initial_thread, *env()->rm_session(), _address_space,
-			       _entrypoint, *this),
-			_log_service("LOG")
-		{
-			/* start execution of the new child */
-			_entrypoint.activate();
-		}
+			_env(env),
+			_parent_services(parent_services),
+			_fault_handler_sigh(fault_handler_sigh)
+		{ }
 
 
 		/****************************
 		 ** Child-policy interface **
 		 ****************************/
 
-		const char *name() const { return "rmchild"; }
+		Name name() const override { return "rmchild"; }
 
-		Service *resolve_session_request(const char *service, const char *)
+		Binary_name binary_name() const override { return "test-rm_fault"; }
+
+		Ram_session &ref_ram() override { return _env.ram(); }
+
+		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
+
+		void init(Ram_session &session, Ram_session_capability cap) override
 		{
-			/* forward white-listed session requests to our parent */
-			return !strcmp(service, "LOG") ? &_log_service : 0;
+			enum { CHILD_QUOTA = 1*1024*1024 };
+			session.ref_account(_env.ram_session_cap());
+			_env.ram().transfer_quota(cap, CHILD_QUOTA);
 		}
 
-		void filter_session_args(const char *service,
+		void init(Pd_session &session, Pd_session_capability cap) override
+		{
+			Region_map_client address_space(session.address_space());
+			address_space.fault_handler(_fault_handler_sigh);
+		}
+
+		Service &resolve_session_request(Service::Name const &service_name,
+		                                 Session_state::Args const &args) override
+		{
+			Service *service = nullptr;
+			_parent_services.for_each([&] (Service &s) {
+				if (!service && service_name == s.name())
+					service = &s; });
+
+			if (!service)
+				throw Parent::Service_denied();
+
+			return *service;
+		}
+
+		void filter_session_args(Service::Name const &,
 		                         char *args, size_t args_len)
 		{
-			/* define session label for sessions forwarded to our parent */
-			Arg_string::set_arg_string(args, args_len, "label", "child");
+			/* prefix session label */
+			Session_label const orig(label_from_args(args));
+			Arg_string::set_arg_string(args, args_len, "label",
+			                           prefixed_label(name(), orig).string());
 		}
 };
 
 
-void main_parent(Dataspace_capability elf_ds)
+struct Main_parent
 {
-	log("parent role started");
+	Env &_env;
 
-	/* create environment for new child */
-	static Pd_connection  pd;
-	static Ram_connection ram;
-	static Cpu_connection cpu;
-	static Cap_connection cap;
+	Signal_handler<Main_parent> _fault_handler {
+		_env.ep(), *this, &Main_parent::_handle_fault };
 
-	/* transfer some of our own ram quota to the new child */
-	enum { CHILD_QUOTA = 1*1024*1024 };
-	ram.ref_account(env()->ram_session_cap());
-	env()->ram_session()->transfer_quota(ram.cap(), CHILD_QUOTA);
+	Heap _heap { _env.ram(), _env.rm() };
 
-	static Signal_receiver fault_handler;
+	/* parent services */
+	struct Parent_services : Test_child_policy::Parent_services
+	{
+		Allocator &alloc;
 
-	/* register fault handler at the child's address space */
-	static Signal_context signal_context;
-	Region_map_client address_space(pd.address_space());
-	address_space.fault_handler(fault_handler.manage(&signal_context));
+		Parent_services(Allocator &alloc) : alloc(alloc)
+		{
+			static const char *names[] = {
+				"RAM", "PD", "CPU", "ROM", "LOG", 0 };
+			for (unsigned i = 0; names[i]; i++)
+				new (alloc) Test_child_policy::Parent_service(*this, names[i]);
+		}
+
+		~Parent_services()
+		{
+			for_each([&] (Test_child_policy::Parent_service &s) { destroy(alloc, &s); });
+		}
+	} _parent_services { _heap };
 
 	/* create child */
-	static Test_child child(elf_ds, pd, ram.cap(), cpu.cap(), &cap);
+	Test_child_policy _child_policy { _env, _parent_services, _fault_handler };
 
-	/* allocate dataspace used for creating shared memory between parent and child */
-	Dataspace_capability ds = env()->ram_session()->alloc(4096);
-	volatile int *local_addr = env()->rm_session()->attach(ds);
+	Child _child { _env.rm(), _env.ep().rpc_ep(), _child_policy };
 
-	for (int i = 0; i < 4; i++) {
+	Region_map_client _address_space { _child.pd().address_space() };
 
-		log("wait for region-manager fault");
-		fault_handler.wait_for_signal();
-		log("received region-manager fault signal, request fault state");
+	/* dataspace used for creating shared memory between parent and child */
+	Attached_ram_dataspace _ds { _env.ram(), _env.rm(), 4096 };
 
-		Region_map::State state = address_space.state();
+	unsigned _fault_cnt = 0;
+
+	long volatile &_child_value() { return *_ds.local_addr<long volatile>(); }
+
+	void _handle_fault()
+	{
+		if (_fault_cnt++ == 4) {
+			log("--- parent role of region-manager fault test finished ---");
+			_env.parent().exit(0);
+		}
+
+		log("received region-map fault signal, request fault state");
+
+		Region_map::State state = _address_space.state();
 
 		char const *state_name =
 			state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
@@ -182,47 +203,45 @@ void main_parent(Dataspace_capability elf_ds)
 		/* ignore spuriuous fault signal */
 		if (state.type == Region_map::State::READY) {
 			log("ignoring spurious fault signal");
-			continue;
+			return;
 		}
 
 		addr_t child_virt_addr = state.addr & ~(4096 - 1);
 
 		/* allocate dataspace to resolve the fault */
 		log("attach dataspace to the child at ", Hex(child_virt_addr));
-		*local_addr = 0x1234;
+		_child_value() = 0x1234;
 
-		address_space.attach_at(ds, child_virt_addr);
+		_address_space.attach_at(_ds.cap(), child_virt_addr);
 
-		/* wait until our child modifies the dataspace content */
-		while (*local_addr == 0x1234);
+		/* poll until our child modifies the dataspace content */
+		while (_child_value() == 0x1234);
 
-		log("child modified dataspace content, new value is ", Hex(*local_addr));
+		log("child modified dataspace content, new value is ",
+		    Hex(_child_value()));
 
 		log("revoke dataspace from child");
-		address_space.detach((void *)child_virt_addr);
+		_address_space.detach((void *)child_virt_addr);
 	}
 
-	fault_handler.dissolve(&signal_context);
-
-	log("--- parent role of region-manager fault test finished ---");
-}
+	Main_parent(Env &env) : _env(env) { }
+};
 
 
-/*************************
- ** Common main program **
- *************************/
-
-int main(int argc, char **argv)
+void Component::construct(Env &env)
 {
 	log("--- region-manager fault test ---");
 
-	/* obtain own elf file from rom service */
 	try {
-		static Rom_connection rom("test-rm_fault");
-		main_parent(rom.dataspace());
-	} catch (Genode::Rom_connection::Rom_connection_failed) {
+		/*
+		 * Distinguish parent from child by requesting an service that is only
+		 * available to the parent.
+		 */
+		Rm_connection rm;
+		static Main_parent parent(env);
+		log("-- parent role started --");
+	}
+	catch (Parent::Service_denied) {
 		main_child();
 	}
-
-	return 0;
 }

@@ -18,10 +18,15 @@
 #include <base/rpc.h>
 #include <base/rpc_args.h>
 #include <base/thread.h>
+#include <base/id_space.h>
 #include <session/capability.h>
 #include <root/capability.h>
 
-namespace Genode { class Parent; }
+namespace Genode {
+
+	class Session_state;
+	class Parent;
+}
 
 
 class Genode::Parent
@@ -61,12 +66,34 @@ class Genode::Parent
 		typedef Rpc_in_buffer<160> Session_args;
 		typedef Rpc_in_buffer<160> Upgrade_args;
 
+		struct Client { typedef Id_space<Client>::Id Id; };
+		struct Server { typedef Id_space<Server>::Id Id; };
+
+		/**
+		 * Predefined session IDs corresponding to the environment sessions
+		 * created by the parent at the component-construction time
+		 */
+		struct Env
+		{
+			static Client::Id ram()     { return { 1 }; }
+			static Client::Id cpu()     { return { 2 }; }
+			static Client::Id pd()      { return { 3 }; }
+			static Client::Id log()     { return { 4 }; }
+			static Client::Id binary()  { return { 5 }; }
+			static Client::Id linker()  { return { 6 }; }
+
+			/**
+			 * True if session ID refers to an environment session
+			 */
+			static bool session_id(Client::Id id) {
+				return id.value >= 1 && id.value <= 6; }
+		};
+
 		/**
 		 * Use 'String' instead of 'Rpc_in_buffer' because 'Resource_args'
 		 * is used as both in and out parameter.
 		 */
 		typedef String<160> Resource_args;
-
 
 		virtual ~Parent() { }
 
@@ -78,9 +105,20 @@ class Genode::Parent
 		/**
 		 * Announce service to the parent
 		 */
-		virtual void announce(Service_name const &service_name,
-		                      Root_capability service_root) = 0;
+		virtual void announce(Service_name const &service_name) = 0;
 
+		/**
+		 * Emulation of the original synchronous root interface
+		 *
+		 * This function transparently spawns a proxy "root" entrypoint that
+		 * dispatches asynchronous session-management operations (as issued
+		 * by the parent) to the local root interfaces via component-local
+		 * RPC calls.
+		 *
+		 * The function solely exists for API compatibility.
+		 */
+		static void announce(Service_name const &service_name,
+		                     Root_capability service_root);
 
 		/**
 		 * Announce service to the parent
@@ -110,8 +148,14 @@ class Genode::Parent
 		}
 
 		/**
+		 * Register signal handler for session notifications
+		 */
+		virtual void session_sigh(Signal_context_capability) = 0;
+
+		/**
 		 * Create session to a service
 		 *
+		 * \param id               client-side ID of new session
 		 * \param service_name     name of the requested interface
 		 * \param args             session constructor arguments
 		 * \param affinity         preferred CPU affinity for the session
@@ -119,60 +163,73 @@ class Genode::Parent
 		 * \throw Service_denied   parent denies session request
 		 * \throw Quota_exceeded   our own quota does not suffice for
 		 *                         the creation of the new session
+		 *
+		 * \return session capability of the new session is immediately
+		 *         available, or an invalid capability
+		 *
+		 * If the returned capability is invalid, the request is pending at the
+		 * server. The parent delivers a signal to the handler as registered
+		 * via 'session_sigh' once the server responded to the request. Now the
+		 * session capability can be picked up by calling 'session_cap'.
+		 *
 		 * \throw Unavailable
-		 *
-		 * \return                 untyped capability to new session
-		 *
-		 * The use of this method is discouraged. Please use the type safe
-		 * 'session()' template instead.
 		 */
-		virtual Session_capability session(Service_name const &service_name,
+		virtual Session_capability session(Client::Id          id,
+		                                   Service_name const &service_name,
 		                                   Session_args const &args,
 		                                   Affinity     const &affinity = Affinity()) = 0;
 
 		/**
-		 * Create session to a service
+		 * Request session capability
 		 *
-		 * \param SESSION_TYPE     session interface type
-		 * \param args             session constructor arguments
-		 * \param affinity         preferred CPU affinity for the session
+		 * \throw Service_denied
 		 *
-		 * \throw Service_denied   parent denies session request
-		 * \throw Quota_exceeded   our own quota does not suffice for
-		 *                         the creation of the new session
-		 * \throw Unavailable
-		 *
-		 * \return                 capability to new session
+		 * In the exception case, the parent implicitly closes the session.
 		 */
-		template <typename SESSION_TYPE>
-		Capability<SESSION_TYPE> session(Session_args const &args,
-		                                 Affinity     const &affinity = Affinity())
-		{
-			Session_capability cap = session(SESSION_TYPE::service_name(),
-			                                 args, affinity);
-			return reinterpret_cap_cast<SESSION_TYPE>(cap);
-		}
+		virtual Session_capability session_cap(Client::Id id) = 0;
+
+		enum Upgrade_result { UPGRADE_DONE, UPGRADE_PENDING };
 
 		/**
 		 * Transfer our quota to the server that provides the specified session
 		 *
-		 * \param to_session recipient session
+		 * \param id         ID of recipient session
 		 * \param args       description of the amount of quota to transfer
 		 *
 		 * \throw Quota_exceeded  quota could not be transferred
 		 *
 		 * The 'args' argument has the same principle format as the 'args'
 		 * argument of the 'session' operation.
-		 * The error case indicates that there is not enough unused quota on
-		 * the source side.
 		 */
-		virtual void upgrade(Session_capability to_session,
-		                     Upgrade_args const &args) = 0;
+		virtual Upgrade_result upgrade(Client::Id to_session,
+		                               Upgrade_args const &args) = 0;
+
+		enum Close_result { CLOSE_DONE, CLOSE_PENDING };
 
 		/**
 		 * Close session
 		 */
-		virtual void close(Session_capability session) = 0;
+		virtual Close_result close(Client::Id) = 0;
+
+		/*
+		 * Interface for providing services
+		 */
+
+		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS };
+
+		/**
+		 * Set state of a session provided by the child service
+		 */
+		virtual void session_response(Server::Id, Session_response) = 0;
+
+		/**
+		 * Deliver capability for a new session provided by the child service
+		 */
+		virtual void deliver_session_cap(Server::Id, Session_capability) = 0;
+
+		/*
+		 * Dynamic resource balancing
+		 */
 
 		/**
 		 * Provide thread_cap of main thread
@@ -233,14 +290,23 @@ class Genode::Parent
 
 		GENODE_RPC(Rpc_exit, void, exit, int);
 		GENODE_RPC(Rpc_announce, void, announce,
-		           Service_name const &, Root_capability);
+		           Service_name const &);
+		GENODE_RPC(Rpc_session_sigh, void, session_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_session, Session_capability, session,
 		                 GENODE_TYPE_LIST(Service_denied, Quota_exceeded, Unavailable),
-		                 Service_name const &, Session_args const &, Affinity const &);
-		GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
+		                 Client::Id, Service_name const &, Session_args const &,
+		                 Affinity const &);
+		GENODE_RPC_THROW(Rpc_session_cap, Session_capability, session_cap,
+		                 GENODE_TYPE_LIST(Service_denied, Quota_exceeded, Unavailable),
+		                 Client::Id);
+		GENODE_RPC_THROW(Rpc_upgrade, Upgrade_result, upgrade,
 		                 GENODE_TYPE_LIST(Quota_exceeded),
-		                 Session_capability, Upgrade_args const &);
-		GENODE_RPC(Rpc_close, void, close, Session_capability);
+		                 Client::Id, Upgrade_args const &);
+		GENODE_RPC(Rpc_close, Close_result, close, Client::Id);
+		GENODE_RPC(Rpc_session_response, void, session_response,
+		           Server::Id, Session_response);
+		GENODE_RPC(Rpc_deliver_session_cap, void, deliver_session_cap,
+		           Server::Id, Session_capability);
 		GENODE_RPC(Rpc_main_thread, Thread_capability, main_thread_cap);
 		GENODE_RPC(Rpc_resource_avail_sigh, void, resource_avail_sigh,
 		           Signal_context_capability);
@@ -250,10 +316,12 @@ class Genode::Parent
 		GENODE_RPC(Rpc_yield_request, Resource_args, yield_request);
 		GENODE_RPC(Rpc_yield_response, void, yield_response);
 
-		GENODE_RPC_INTERFACE(Rpc_exit, Rpc_announce, Rpc_session, Rpc_upgrade,
-		                     Rpc_close, Rpc_main_thread, Rpc_resource_avail_sigh,
-		                     Rpc_resource_request, Rpc_yield_sigh, Rpc_yield_request,
-		                     Rpc_yield_response);
+		GENODE_RPC_INTERFACE(Rpc_exit, Rpc_announce, Rpc_session_sigh,
+		                     Rpc_session, Rpc_session_cap, Rpc_upgrade,
+		                     Rpc_close, Rpc_session_response, Rpc_main_thread,
+		                     Rpc_deliver_session_cap, Rpc_resource_avail_sigh,
+		                     Rpc_resource_request, Rpc_yield_sigh,
+		                     Rpc_yield_request, Rpc_yield_response);
 };
 
 

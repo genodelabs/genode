@@ -50,7 +50,7 @@ void Config::reload()
 		_config_xml = _config_xml_node(_config_ds);
 
 	} catch (Genode::Xml_node::Invalid_syntax) {
-		Genode::error("Config file has invalid syntax");
+		Genode::error("config ROM has invalid syntax");
 		_config_xml = fallback_config_xml();
 	}
 }
@@ -80,13 +80,13 @@ Config::Config()
 { }
 
 
-Config *Genode::config()
+Volatile_object<Config> &Genode::config()
 {
 	static bool config_failed = false;
 	if (!config_failed) {
 		try {
-			static Config config_inst;
-			return &config_inst;
+			static Volatile_object<Config> config_inst;
+			return config_inst;
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
 			Genode::error("Could not obtain config file");
 		} catch (Genode::Xml_node::Invalid_syntax) {
@@ -97,6 +97,7 @@ Config *Genode::config()
 	}
 	/* do not try again to construct 'config_inst' */
 	config_failed = true;
-	return 0;
+	class Config_construction_failed : Genode::Exception { };
+	throw Config_construction_failed();
 }
 

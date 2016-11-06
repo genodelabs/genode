@@ -21,6 +21,7 @@
 #include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <base/entrypoint.h>
+#include <base/service.h>
 #include <util/arg_string.h>
 #include <base/log.h>
 
@@ -95,6 +96,7 @@ struct Genode::Multiple_clients
  */
 template <typename SESSION_TYPE, typename POLICY>
 class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
+                               public Local_service<SESSION_TYPE>::Factory,
                                private POLICY
 {
 	private:
@@ -112,6 +114,53 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * creating a new session.
 		 */
 		Allocator *_md_alloc;
+
+		/*
+		 * Used by both the legacy 'Root::session' and the new 'Factory::create'
+		 */
+		SESSION_TYPE &_create(Session_state::Args const &args, Affinity affinity)
+		{
+			POLICY::aquire(args.string());
+
+			/*
+			 * We need to decrease 'ram_quota' by
+			 * the size of the session object.
+			 */
+			size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
+			size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
+
+			if (needed > ram_quota) {
+				error("insufficient ram quota, provided=", ram_quota,
+				      ", required=", needed);
+				throw Root::Quota_exceeded();
+			}
+
+			size_t const remaining_ram_quota = ram_quota - needed;
+
+			/*
+			 * Deduce ram quota needed for allocating the session object from the
+			 * donated ram quota.
+			 *
+			 * XXX  the size of the 'adjusted_args' buffer should dependent
+			 *      on the message-buffer size and stack size.
+			 */
+			enum { MAX_ARGS_LEN = 256 };
+			char adjusted_args[MAX_ARGS_LEN];
+			strncpy(adjusted_args, args.string(), sizeof(adjusted_args));
+			char ram_quota_buf[64];
+			snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%lu",
+			         remaining_ram_quota);
+			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
+			                    "ram_quota", ram_quota_buf);
+
+			SESSION_TYPE *s = 0;
+			try { s = _create_session(adjusted_args, affinity); }
+			catch (Allocator::Out_of_memory) { throw Root::Unavailable(); }
+
+			_ep->manage(s);
+
+			return *s;
+		}
 
 	protected:
 
@@ -169,7 +218,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		virtual void _upgrade_session(SESSION_TYPE *, const char *) { }
 
 		virtual void _destroy_session(SESSION_TYPE *session) {
-			destroy(_md_alloc, session); }
+			Genode::destroy(_md_alloc, session); }
 
 		/**
 		 * Return allocator to allocate server object in '_create_session()'
@@ -208,6 +257,31 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		{ }
 
 
+		/**************************************
+		 ** Local_service::Factory interface **
+		 **************************************/
+
+		SESSION_TYPE &create(Session_state::Args const &args,
+		                     Affinity affinity) override
+		{
+			try {
+				return _create(args, affinity); }
+			catch (...) {
+				throw typename Local_service<SESSION_TYPE>::Factory::Denied(); }
+		}
+
+		void upgrade(SESSION_TYPE &session,
+		             Session_state::Args const &args) override
+		{
+			_upgrade_session(&session, args.string());
+		}
+
+		void destroy(SESSION_TYPE &session) override
+		{
+			close(session.cap());
+		}
+
+
 		/********************
 		 ** Root interface **
 		 ********************/
@@ -216,45 +290,8 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		                           Affinity           const &affinity) override
 		{
 			if (!args.valid_string()) throw Root::Invalid_args();
-
-			POLICY::aquire(args.string());
-
-			/*
-			 * We need to decrease 'ram_quota' by
-			 * the size of the session object.
-			 */
-			size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
-			size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
-
-			if (needed > ram_quota) {
-				error("Insufficient ram quota, provided=", ram_quota,
-				      ", required=", needed);
-				throw Root::Quota_exceeded();
-			}
-
-			size_t const remaining_ram_quota = ram_quota - needed;
-
-			/*
-			 * Deduce ram quota needed for allocating the session object from the
-			 * donated ram quota.
-			 *
-			 * XXX  the size of the 'adjusted_args' buffer should dependent
-			 *      on the message-buffer size and stack size.
-			 */
-			enum { MAX_ARGS_LEN = 256 };
-			char adjusted_args[MAX_ARGS_LEN];
-			strncpy(adjusted_args, args.string(), sizeof(adjusted_args));
-			char ram_quota_buf[64];
-			snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%lu",
-			         remaining_ram_quota);
-			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
-			                    "ram_quota", ram_quota_buf);
-
-			SESSION_TYPE *s = 0;
-			try { s = _create_session(adjusted_args, affinity); }
-			catch (Allocator::Out_of_memory) { throw Root::Unavailable(); }
-
-			return _ep->manage(s);
+			SESSION_TYPE &session = _create(args.string(), affinity);
+			return session.cap();
 		}
 
 		void upgrade(Session_capability session, Root::Upgrade_args const &args) override

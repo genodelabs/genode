@@ -116,8 +116,6 @@ namespace Genode {
 
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
-			Core_parent _core_parent;
-
 			enum { ENTRYPOINT_STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
 			/*
@@ -143,6 +141,10 @@ namespace Genode {
 			Pd_session_client         _pd_session_client;
 
 			Heap _heap;
+
+			Registry<Service> _services;
+
+			Core_parent _core_parent { _heap, _services };
 
 		public:
 
@@ -202,6 +204,8 @@ namespace Genode {
 			void reinit(Capability<Parent>::Raw) override { }
 
 			void reinit_main_thread(Capability<Region_map> &) override { }
+
+			Registry<Service> &services() { return _services; }
 	};
 
 

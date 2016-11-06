@@ -26,8 +26,8 @@ namespace Genode { class Expanding_ram_session_client; }
 
 struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_session_client>
 {
-	Expanding_ram_session_client(Ram_session_capability cap)
-	: Upgradeable_client<Genode::Ram_session_client>(cap) { }
+	Expanding_ram_session_client(Ram_session_capability cap, Parent::Client::Id id)
+	: Upgradeable_client<Genode::Ram_session_client>(cap, id) { }
 
 	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED) override
 	{

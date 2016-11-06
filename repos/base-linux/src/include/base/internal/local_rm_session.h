@@ -19,17 +19,22 @@
 #include <base/allocator.h>
 
 /* base-internal includes */
+#include <base/internal/local_session.h>
 #include <base/internal/region_map_mmap.h>
 #include <base/internal/local_capability.h>
 
 namespace Genode { struct Local_rm_session; }
 
 
-struct Genode::Local_rm_session : Rm_session
+struct Genode::Local_rm_session : Rm_session, Local_session
 {
 	Allocator &md_alloc;
 
-	Local_rm_session(Allocator &md_alloc) : md_alloc(md_alloc) { }
+	Local_rm_session(Allocator &md_alloc, Id_space<Parent::Client> &id_space,
+	                 Parent::Client::Id id)
+	:
+		Local_session(id_space, id, *this), md_alloc(md_alloc)
+	{ }
 
 	Capability<Region_map> create(size_t size)
 	{

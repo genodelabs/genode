@@ -78,8 +78,10 @@ int Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t am
 
 	/* decrease quota limit of this session - check against used quota */
 	if (_quota_limit < amount + _payload) {
-		warning("Insufficient quota for transfer: ", Cstring(_label));
-		warning("  have ", _quota_limit - _payload, ", need ", amount);
+		warning("insufficient quota for transfer: "
+		        "'", Cstring(_label), "' to '", Cstring(dst->_label), "' "
+		        "have ", (_quota_limit - _payload)/1024, " KiB, "
+		        "need ", amount/1024, " KiB");
 		return -3;
 	}
 
@@ -262,6 +264,10 @@ int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap
 {
 	auto lambda = [&] (Ram_session_component *dst) {
 		return _transfer_quota(dst, amount); };
+
+	if (this->cap() == ram_session_cap)
+		return 0;
+
 	return _ram_session_ep->apply(ram_session_cap, lambda);
 }
 

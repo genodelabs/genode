@@ -96,7 +96,7 @@ class Linker::Region_map
 				[&] () {
 					return _rm.attach_at(ds, local_addr - _base, size, offset);
 				},
-				[&] () { _env.parent().upgrade(_env.pd_session_cap(), "ram_quota=8K"); });
+				[&] () { _env.upgrade(Parent::Env::pd(), "ram_quota=8K"); });
 		}
 
 		/**
@@ -109,7 +109,7 @@ class Linker::Region_map
 				[&] () {
 					return _rm.attach_executable(ds, local_addr - _base, size, offset);
 				},
-				[&] () { _env.parent().upgrade(_env.pd_session_cap(), "ram_quota=8K"); });
+				[&] () { _env.upgrade(Parent::Env::pd(), "ram_quota=8K"); });
 		}
 
 		void detach(Local_addr local_addr) { _rm.detach((addr_t)local_addr - _base); }

@@ -59,37 +59,44 @@ bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds)
  ** Local_parent **
  ******************/
 
-Session_capability Local_parent::session(Service_name const &service_name,
+Session_capability Local_parent::session(Parent::Client::Id  id,
+                                         Service_name const &service_name,
                                          Session_args const &args,
                                          Affinity     const &affinity)
 {
-	if (strcmp(service_name.string(), Rm_session::service_name()) == 0)
-	{
-		Local_rm_session *session = new (_alloc) Local_rm_session(_alloc);
+	if (strcmp(service_name.string(), Rm_session::service_name()) == 0) {
 
-		return Local_capability<Session>::local_cap(session);
+		Local_rm_session *local_rm_session = new (_alloc)
+			Local_rm_session(_alloc, _local_sessions_id_space, id);
+
+		return local_rm_session->local_session_cap();
 	}
 
-	return Expanding_parent_client::session(service_name, args, affinity);
+	return Expanding_parent_client::session(id, service_name, args, affinity);
 }
 
 
-void Local_parent::close(Session_capability session)
+Parent::Close_result Local_parent::close(Client::Id id)
 {
+	auto close_local_fn = [&] (Local_session &local_session)
+	{
+		Capability<Rm_session> rm =
+			static_cap_cast<Rm_session>(local_session.local_session_cap());
+		destroy(_alloc, Local_capability<Rm_session>::deref(rm));
+	};
+
 	/*
-	 * Handle non-local capabilities
+	 * Local RM sessions are present in the '_local_sessions_id_space'. If the
+	 * apply succeeds, 'id' referred to the local session. Otherwise, we
+	 * forward the request to the parent.
 	 */
-	if (session.valid()) {
-		Parent_client::close(session);
-		return;
+	try {
+		_local_sessions_id_space.apply<Local_session>(id, close_local_fn);
+		return CLOSE_DONE;
 	}
+	catch (Id_space<Client>::Unknown_id) { }
 
-	/*
-	 * Detect capability to local RM session
-	 */
-	Capability<Rm_session> rm = static_cap_cast<Rm_session>(session);
-
-	destroy(_alloc, Local_capability<Rm_session>::deref(rm));
+	return Parent_client::close(id);
 }
 
 
@@ -148,9 +155,9 @@ Local_parent &Platform_env::_parent()
 
 Platform_env::Platform_env()
 :
-	Platform_env_base(static_cap_cast<Ram_session>(_parent().session("Env::ram_session", "")),
-	                  static_cap_cast<Cpu_session>(_parent().session("Env::cpu_session", "")),
-	                  static_cap_cast<Pd_session> (_parent().session("Env::pd_session",  ""))),
+	Platform_env_base(static_cap_cast<Ram_session>(_parent().session_cap(Parent::Env::ram())),
+	                  static_cap_cast<Cpu_session>(_parent().session_cap(Parent::Env::cpu())),
+	                  static_cap_cast<Pd_session> (_parent().session_cap(Parent::Env::pd()))),
 	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session()),
 	_emergency_ram_ds(ram_session()->alloc(_emergency_ram_size()))
 {

@@ -42,10 +42,6 @@
 using namespace Genode;
 
 
-/* pool of provided core services */
-static Service_registry local_services;
-
-
 /***************************************
  ** Core environment/platform support **
  ***************************************/
@@ -85,17 +81,30 @@ Platform_generic *Genode::platform() { return platform_specific(); }
  ** Core parent support **
  *************************/
 
-Session_capability Core_parent::session(Parent::Service_name const &name,
+Session_capability Core_parent::session(Parent::Client::Id          id,
+                                        Parent::Service_name const &name,
                                         Parent::Session_args const &args,
                                         Affinity             const &affinity)
 {
-	Service *service = local_services.find(name.string());
+	Session_capability cap;
 
-	if (service)
-		return service->session(args.string(), affinity);
+	_services.for_each([&] (Service &service) {
 
-	warning("service_name=\"", name.string(), "\" args=\"", args.string(), "\" not handled");
-	return Session_capability();
+		if ((service.name() != name.string()) || cap.valid())
+			return;
+
+		Session_state &session = *new (_alloc)
+			Session_state(service, _id_space, id, args.string(), affinity);
+
+		service.initiate_request(session);
+
+		cap = session.cap;
+	});
+
+	if (!cap.valid())
+		error("unexpected core-parent ", name.string(), " session request");
+
+	return cap;
 }
 
 
@@ -113,21 +122,15 @@ class Core_child : public Child_policy
 		Rpc_entrypoint _entrypoint;
 		enum { STACK_SIZE = 2 * 1024 * sizeof(Genode::addr_t)};
 
-		Service_registry &_local_services;
+		Registry<Service> &_services;
 
-		/*
-		 * Dynamic linker, does not need to be valid because init is statically
-		 * linked
-		 */
-		Dataspace_capability _ldso_ds;
+		Capability<Ram_session> _core_ram_cap;
+		Ram_session            &_core_ram;
 
-		Pd_session_client  _pd;
-		Ram_session_client _ram;
-		Cpu_session_client _cpu;
+		Capability<Cpu_session> _core_cpu_cap;
+		Cpu_session            &_core_cpu;
 
-		Child::Initial_thread _initial_thread { _cpu, _pd, "init_main" };
-
-		Region_map_client _address_space;
+		size_t const _ram_quota;
 
 		Child _child;
 
@@ -136,20 +139,16 @@ class Core_child : public Child_policy
 		/**
 		 * Constructor
 		 */
-		Core_child(Dataspace_capability elf_ds, Pd_session_capability pd,
-		           Ram_session_capability ram,
-		           Cpu_session_capability cpu,
-		           Service_registry &services)
+		Core_child(Registry<Service> &services, Ram_session &core_ram,
+		           Capability<Ram_session> core_ram_cap, size_t ram_quota,
+		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap)
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init_child", false),
-			_local_services(services),
-			_pd(pd), _ram(ram), _cpu(cpu),
-			_address_space(Pd_session_client(pd).address_space()),
-			_child(elf_ds, _ldso_ds, _pd, _pd, _ram, _ram, _cpu, _initial_thread,
-			       *env()->rm_session(), _address_space, _entrypoint, *this,
-			       *_local_services.find(Pd_session::service_name()),
-			       *_local_services.find(Ram_session::service_name()),
-			       *_local_services.find(Cpu_session::service_name()))
+			_services(services),
+			_core_ram_cap(core_ram_cap), _core_ram(core_ram),
+			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
+			_ram_quota(Child::effective_ram_quota(ram_quota)),
+			_child(*env()->rm_session(), _entrypoint, *this)
 		{
 			_entrypoint.activate();
 		}
@@ -159,8 +158,7 @@ class Core_child : public Child_policy
 		 ** Child-policy interface **
 		 ****************************/
 
-		void filter_session_args(const char *, char *args,
-					 Genode::size_t args_len)
+		void filter_session_args(Service::Name const &, char *args, size_t args_len) override
 		{
 			using namespace Genode;
 
@@ -177,13 +175,36 @@ class Core_child : public Child_policy
 			Arg_string::set_arg(args, args_len, "label", value_buf);
 		}
 
+		Name name() const { return "init"; }
 
-		const char *name() const { return "init"; }
-
-		Service *resolve_session_request(const char *service, const char *)
+		Service &resolve_session_request(Service::Name const &name,
+		                                 Session_state::Args const &args) override
 		{
-			return _local_services.find(service);
+			Service *service = nullptr;
+			_services.for_each([&] (Service &s) {
+				if (!service && s.name() == name)
+					service = &s; });
+
+			if (!service)
+				throw Parent::Service_denied();
+
+			return *service;
 		}
+
+		void init(Ram_session &session, Capability<Ram_session> cap) override
+		{
+			session.ref_account(_core_ram_cap);
+			_core_ram.transfer_quota(cap, _ram_quota);
+		}
+
+		void init(Cpu_session &session, Capability<Cpu_session> cap) override
+		{
+			session.ref_account(_core_cpu_cap);
+			_core_cpu.transfer_quota(cap, Cpu_session::quota_lim_upscale(100, 100));
+		}
+
+		Ram_session           &ref_ram()           { return _core_ram; }
+		Ram_session_capability ref_ram_cap() const { return _core_ram_cap; }
 };
 
 
@@ -240,6 +261,8 @@ int main()
 	 */
 	Rpc_entrypoint *e = core_env()->entrypoint();
 
+	Registry<Service> &services = core_env()->services();
+
 	/*
 	 * Allocate session meta data on distinct dataspaces to enable independent
 	 * destruction (to enable quota trading) of session component objects.
@@ -266,70 +289,42 @@ int main()
 	                                  platform()->irq_alloc(), &sliced_heap);
 	static Trace::Root  trace_root   (e, &sliced_heap, Trace::sources(), trace_policies);
 
-	/*
-	 * Play our role as parent of init and declare our services.
-	 */
-
-	static Local_service ls[] = {
-		Local_service(Rom_session::service_name(),     &rom_root),
-		Local_service(Ram_session::service_name(),     &ram_root),
-		Local_service(Rm_session::service_name(),      &rm_root),
-		Local_service(Cpu_session::service_name(),     &cpu_root),
-		Local_service(Pd_session::service_name(),      &pd_root),
-		Local_service(Log_session::service_name(),     &log_root),
-		Local_service(Io_mem_session::service_name(),  &io_mem_root),
-		Local_service(Irq_session::service_name(),     &irq_root),
-		Local_service(Trace::Session::service_name(),  &trace_root)
-	};
-
-	/* make our local services known to service pool */
-	for (unsigned i = 0; i < sizeof(ls) / sizeof(Local_service); i++)
-		local_services.insert(&ls[i]);
+	static Core_service<Rom_session_component>    rom_service    (services, rom_root);
+	static Core_service<Ram_session_component>    ram_service    (services, ram_root);
+	static Core_service<Rm_session_component>     rm_service     (services, rm_root);
+	static Core_service<Cpu_session_component>    cpu_service    (services, cpu_root);
+	static Core_service<Pd_session_component>     pd_service     (services, pd_root);
+	static Core_service<Log_session_component>    log_service    (services, log_root);
+	static Core_service<Io_mem_session_component> io_mem_service (services, io_mem_root);
+	static Core_service<Irq_session_component>    irq_service    (services, irq_root);
+	static Core_service<Trace::Session_component> trace_service  (services, trace_root);
 
 	/* make platform-specific services known to service pool */
-	platform_add_local_services(e, &sliced_heap, &local_services);
+	platform_add_local_services(e, &sliced_heap, &services);
 
-	/* obtain ROM session with init binary */
-	Rom_session_capability init_rom_session_cap;
-	try {
-		static Rom_connection rom("init");
-		init_rom_session_cap = rom.cap(); }
-	catch (...) {
-		error("ROM module \"init\" not present"); }
-
-	/* create ram session for init and transfer some of our own quota */
-	Ram_session_capability init_ram_session_cap
-		= static_cap_cast<Ram_session>(ram_root.session("ram_quota=32K", Affinity()));
-	Ram_session_client(init_ram_session_cap).ref_account(env()->ram_session_cap());
-
-	/* create CPU session for init and transfer all of the CPU quota to it */
+	/* create CPU session representing core */
 	static Cpu_session_component
-		cpu(e, e, &pager_ep, &sliced_heap, Trace::sources(),
-		    "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
-	Cpu_session_capability cpu_cap = core_env()->entrypoint()->manage(&cpu);
-	Cpu_connection init_cpu("init");
-	init_cpu.ref_account(cpu_cap);
-	cpu.transfer_quota(init_cpu, Cpu_session::quota_lim_upscale(100, 100));
+		core_cpu(e, e, &pager_ep, &sliced_heap, Trace::sources(),
+		         "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
+	Cpu_session_capability core_cpu_cap = core_env()->entrypoint()->manage(&core_cpu);
 
-	/* transfer all left memory to init, but leave some memory left for core */
-	/* NOTE: exception objects thrown in core components are currently allocated on
-	         core's heap and not accounted by the component's meta data allocator */
-	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 224*1024;
-	env()->ram_session()->transfer_quota(init_ram_session_cap, init_quota);
-	log("", init_quota / (1024*1024), " MiB RAM assigned to init");
+	/*
+	 * Transfer all left memory to init, but leave some memory left for core
+	 *
+	 * NOTE: exception objects thrown in core components are currently
+	 * allocated on core's heap and not accounted by the component's meta data
+	 * allocator
+	 */
 
-	Pd_connection init_pd("init");
-	Core_child *init = new (env()->heap())
-		Core_child(Rom_session_client(init_rom_session_cap).dataspace(),
-		           init_pd, init_ram_session_cap, init_cpu.cap(),
-		           local_services);
+	Genode::size_t const ram_quota = platform()->ram_alloc()->avail() - 224*1024;
+	log("", ram_quota / (1024*1024), " MiB RAM assigned to init");
+
+	static Volatile_object<Core_child>
+		init(services, *env()->ram_session(), env()->ram_session_cap(),
+		     ram_quota, core_cpu, core_cpu_cap);
 
 	platform()->wait_for_exit();
 
-	destroy(env()->heap(), init);
-
-	rom_root.close(init_rom_session_cap);
-	ram_root.close(init_ram_session_cap);
-
+	init.destruct();
 	return 0;
 }

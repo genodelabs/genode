@@ -15,21 +15,21 @@
 #include <base/service.h>
 #include <base/heap.h>
 
-/* Core includes */
+/* core includes */
 #include <platform_services.h>
+#include <core_parent.h>        /* for 'Core_service' type */
 #include <vm_root.h>
 
 
 /*
  * Add ARM virtualization specific vm service
  */
-void Genode::platform_add_local_services(Genode::Rpc_entrypoint *ep,
-                                         Genode::Sliced_heap *sh,
-                                         Genode::Service_registry *ls)
+void Genode::platform_add_local_services(Rpc_entrypoint *ep,
+                                         Sliced_heap *sh,
+                                         Registry<Service> *services)
 {
 	using namespace Genode;
 
 	static Vm_root vm_root(ep, sh);
-	static Local_service vm_ls(Vm_session::service_name(), &vm_root);
-	ls->insert(&vm_ls);
+	static Core_service<Vm_session_component> vm_service(*services, vm_root);
 }

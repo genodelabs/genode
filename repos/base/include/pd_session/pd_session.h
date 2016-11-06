@@ -25,6 +25,7 @@
 namespace Genode {
 
 	struct Pd_session;
+	struct Pd_session_client;
 	struct Parent;
 	struct Signal_context;
 }
@@ -33,6 +34,8 @@ namespace Genode {
 struct Genode::Pd_session : Session
 {
 	static const char *service_name() { return "PD"; }
+
+	typedef Pd_session_client Client;
 
 	virtual ~Pd_session() { }
 

@@ -25,6 +25,7 @@ namespace Genode {
 
 	struct Rom_dataspace;
 	struct Rom_session;
+	struct Rom_session_client;
 
 	typedef Capability<Rom_dataspace> Rom_dataspace_capability;
 }
@@ -36,6 +37,8 @@ struct Genode::Rom_dataspace : Dataspace { };
 struct Genode::Rom_session : Session
 {
 	static const char *service_name() { return "ROM"; }
+
+	typedef Rom_session_client Client;
 
 	virtual ~Rom_session() { }
 

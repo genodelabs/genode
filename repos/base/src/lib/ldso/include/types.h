@@ -38,6 +38,12 @@ namespace Linker {
 
 	enum Bind { BIND_LAZY = Shared_object::BIND_LAZY,
 	            BIND_NOW  = Shared_object::BIND_NOW };
+
+	/**
+	 * Invariants
+	 */
+	constexpr char const *binary_name() { return "binary"; }
+	constexpr char const *linker_name() { return "ld.lib.so"; }
 }
 
 #endif /* _INCLUDE__TYPES_H_ */
