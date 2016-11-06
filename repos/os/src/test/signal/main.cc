@@ -11,12 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <base/signal.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <timer_session/connection.h>
-#include <cap_session/connection.h>
 #include <util/misc_math.h>
 
 using namespace Genode;
@@ -25,17 +26,17 @@ using namespace Genode;
 /**
  * Transmit signals in a periodic fashion
  */
-class Sender : Thread_deprecated<4096>
+class Sender : Thread
 {
 	private:
 
-		Signal_transmitter _transmitter;
 		Timer::Connection  _timer;        /* timer connection for local use           */
-		unsigned           _interval_ms;  /* interval between signals in milliseconds */
+		Signal_transmitter _transmitter;
+		unsigned     const _interval_ms;  /* interval between signals in milliseconds */
 		bool               _stop;         /* state for destruction protocol           */
 		unsigned           _submit_cnt;   /* statistics                               */
 		bool               _idle;         /* suppress the submission of signals       */
-		bool               _verbose;      /* print activities                         */
+		bool         const _verbose;      /* print activities                         */
 
 		/**
 		 * Sender thread submits signals every '_interval_ms' milliseconds
@@ -68,10 +69,11 @@ class Sender : Thread_deprecated<4096>
 		 * \param interval_ms  interval between signals
 		 * \param verbose      print status information
 		 */
-		Sender(Signal_context_capability context,
+		Sender(Env &env, Signal_context_capability context,
 		       unsigned interval_ms, bool verbose = true)
 		:
-			Thread_deprecated("sender"),
+			Thread(env, "sender", 4096*sizeof(long)),
+			_timer(env),
 			_transmitter(context),
 			_interval_ms(interval_ms),
 			_stop(false),
@@ -110,20 +112,20 @@ class Sender : Thread_deprecated<4096>
 /**
  * Signal handler receives signals and takes some time to handle each
  */
-class Handler : Thread_deprecated<4096>
+class Handler : Thread
 {
 	private:
 
-		unsigned         _dispatch_ms;      /* time needed for dispatching a signal         */
-		unsigned         _id;               /* unique ID of signal handler for debug output */
-		static unsigned  _id_cnt;           /* counter for producing unique IDs             */
-		Signal_receiver *_receiver;         /* signal endpoint                              */
 		Timer::Connection _timer;           /* timer connection for local use               */
+		unsigned    const _dispatch_ms;     /* time needed for dispatching a signal         */
+		unsigned    const _id;              /* unique ID of signal handler for debug output */
+		static unsigned   _id_cnt;          /* counter for producing unique IDs             */
+		Signal_receiver  &_receiver;        /* signal endpoint                              */
 		bool              _stop;            /* state for destruction protocol               */
 		unsigned          _receive_cnt;     /* number of received notifications             */
 		unsigned          _activation_cnt;  /* number of invocations of the signal handler  */
 		bool              _idle;            /* suppress the further handling of signals     */
-		bool              _verbose;         /* print status information                     */
+		bool        const _verbose;         /* print status information                     */
 
 		/**
 		 * Signal handler needs '_dispatch_ms' milliseconds for each signal
@@ -133,7 +135,7 @@ class Handler : Thread_deprecated<4096>
 			while (!_stop) {
 
 				if (!_idle) {
-					Signal signal = _receiver->wait_for_signal();
+					Signal signal = _receiver.wait_for_signal();
 
 					if (_verbose)
 						log("handler ", _id, " got ", signal.num(), " "
@@ -158,9 +160,10 @@ class Handler : Thread_deprecated<4096>
 		 * \param dispatch_ms  duration of signal-handler activity
 		 * \param verbose      print status information
 		 */
-		Handler(Signal_receiver *receiver, unsigned dispatch_ms, bool verbose = true)
+		Handler(Env &env, Signal_receiver &receiver, unsigned dispatch_ms, bool verbose = true)
 		:
-			Thread_deprecated("handler"),
+			Thread(env, "handler", 4096*sizeof(long)),
+			_timer(env),
 			_dispatch_ms(dispatch_ms),
 			_id(++_id_cnt),
 			_receiver(receiver),
@@ -215,18 +218,6 @@ static unsigned test_cnt = 0;
 
 
 /**
- * Timer connection to be used by the main program
- */
-static Timer::Connection timer;
-
-
-/**
- * Connection to CAP service used for allocating signal-context capabilities
- */
-static Genode::Cap_connection cap;
-
-
-/**
  * Symbolic error codes
  */
 class Test_failed { };
@@ -257,7 +248,7 @@ class Id_signal_context : public Signal_context
  * submitted notifications on the sender side does not match the number of
  * notifications received at the signal handler.
  */
-static void fast_sender_test()
+static void fast_sender_test(Env &env)
 {
 	enum { SPEED            = 10 };
 	enum { TEST_DURATION    = 50*SPEED };
@@ -272,9 +263,12 @@ static void fast_sender_test()
 	Signal_receiver receiver;
 	Id_signal_context context_123(123);
 
-	Handler *handler = new (env()->heap()) Handler(&receiver, HANDLER_INTERVAL, false);
-	Sender  *sender  = new (env()->heap()) Sender(receiver.manage(&context_123),
-	                                              SENDER_INTERVAL, false);
+	Heap heap(env.ram(), env.rm());
+	Timer::Connection timer(env);
+
+	Handler *handler = new (heap) Handler(env, receiver, HANDLER_INTERVAL, false);
+	Sender  *sender  = new (heap) Sender(env, receiver.manage(&context_123),
+	                                     SENDER_INTERVAL, false);
 
 	timer.msleep(TEST_DURATION);
 
@@ -293,8 +287,8 @@ static void fast_sender_test()
 
 	receiver.dissolve(&context_123);
 
-	destroy(env()->heap(), sender);
-	destroy(env()->heap(), handler);
+	destroy(heap, sender);
+	destroy(heap, handler);
 
 	log("TEST ", test_cnt, " FINISHED");
 }
@@ -308,7 +302,7 @@ static void fast_sender_test()
  * Furthermore, if operating in non-descrete mode, the total number of sent and
  * handled notifications is checked.
  */
-static void multiple_handlers_test()
+static void multiple_handlers_test(Env &env)
 {
 	enum { SPEED            = 10 };
 	enum { TEST_DURATION    = 50*SPEED };
@@ -321,14 +315,16 @@ static void multiple_handlers_test()
 	log("TEST ", ++test_cnt, ": one busy sender, ", (int)NUM_HANDLERS, " handlers");
 	log("");
 
+	Heap heap(env.ram(), env.rm());
+	Timer::Connection timer(env);
 	Signal_receiver receiver;
 
 	Handler *handler[NUM_HANDLERS];
 	for (int i = 0; i < NUM_HANDLERS; i++)
-		handler[i] = new (env()->heap()) Handler(&receiver, HANDLER_INTERVAL);
+		handler[i] = new (heap) Handler(env, receiver, HANDLER_INTERVAL);
 
 	Id_signal_context context_123(123);
-	Sender *sender = new (env()->heap()) Sender(receiver.manage(&context_123), SENDER_INTERVAL);
+	Sender *sender = new (heap) Sender(env, receiver.manage(&context_123), SENDER_INTERVAL);
 
 	timer.msleep(TEST_DURATION);
 
@@ -375,9 +371,9 @@ static void multiple_handlers_test()
 
 	/* cleanup */
 	receiver.dissolve(&context_123);
-	destroy(env()->heap(), sender);
+	destroy(heap, sender);
 	for (int i = 0; i < NUM_HANDLERS; i++)
-		destroy(env()->heap(), handler[i]);
+		destroy(heap, handler[i]);
 
 	log("TEST ", test_cnt, " FINISHED");
 }
@@ -390,7 +386,7 @@ static void multiple_handlers_test()
  * We produce and handle notifications as fast as possible via spinning
  * loops at the sender and handler side.
  */
-static void stress_test()
+static void stress_test(Env &env)
 {
 	enum { SPEED            = 10 };
 	enum { DURATION_SECONDS = 5  };
@@ -400,12 +396,14 @@ static void stress_test()
 	log("TEST ", ++test_cnt, ": stress test, busy signal transmission and handling");
 	log("");
 
+	Timer::Connection timer(env);
+	Heap heap(env.ram(), env.rm());
 	Signal_receiver receiver;
 	Id_signal_context context_123(123);
 
-	Handler *handler = new (env()->heap()) Handler(&receiver, 0, false);
-	Sender  *sender  = new (env()->heap()) Sender(receiver.manage(&context_123),
-	                                              0, false);
+	Handler *handler = new (heap) Handler(env, receiver, 0, false);
+	Sender  *sender  = new (heap) Sender(env, receiver.manage(&context_123),
+	                                     0, false);
 
 	for (int i = 1; i <= DURATION_SECONDS; i++) {
 		log(i, "/", (int)DURATION_SECONDS);
@@ -433,14 +431,14 @@ static void stress_test()
 		throw Test_failed_with_unequal_sent_and_received_signals();
 
 	receiver.dissolve(&context_123);
-	destroy(env()->heap(), sender);
-	destroy(env()->heap(), handler);
+	destroy(heap, sender);
+	destroy(heap, handler);
 
 	log("TEST ", test_cnt, " FINISHED");
 }
 
 
-static void lazy_receivers_test()
+static void lazy_receivers_test(Env &env)
 {
 	log("");
 	log("TEST ", ++test_cnt, ": lazy and out-of-order signal reception test");
@@ -486,19 +484,22 @@ static void lazy_receivers_test()
 /**
  * Try correct initialization and cleanup of receiver/context
  */
-static void check_context_management()
+static void check_context_management(Env &env)
 {
 	Id_signal_context         *context;
 	Signal_receiver           *rec;
 	Signal_context_capability  cap;
 
+	Timer::Connection timer(env);
+	Heap heap(env.ram(), env.rm());
+
 	/* setup receiver side */
-	context = new (env()->heap()) Id_signal_context(321);
-	rec     = new (env()->heap()) Signal_receiver;
+	context = new (heap) Id_signal_context(321);
+	rec     = new (heap) Signal_receiver;
 	cap     = rec->manage(context);
 
 	/* spawn sender */
-	Sender *sender = new (env()->heap()) Sender(cap, 500);
+	Sender *sender = new (heap) Sender(env, cap, 500);
 
 	/* stop sender after timeout */
 	timer.msleep(1000);
@@ -520,10 +521,10 @@ static void check_context_management()
 	sender->idle();
 
 	log("destroy sender");
-	destroy(env()->heap(), sender);
+	destroy(heap, sender);
 
-	destroy(env()->heap(), context);
-	destroy(env()->heap(), rec);
+	destroy(heap, context);
+	destroy(heap, rec);
 }
 
 
@@ -558,11 +559,13 @@ class Signal_context_destroyer : public Thread_deprecated<4096>
 };
 
 
-static void synchronized_context_destruction_test()
+static void synchronized_context_destruction_test(Env &env)
 {
 	Signal_receiver receiver;
+	Timer::Connection timer(env);
+	static Heap heap(env.ram(), env.rm());
 
-	Signal_context *context = new (env()->heap()) Signal_context;
+	Signal_context *context = new (heap) Signal_context;
 
 	Signal_transmitter transmitter(receiver.manage(context));
 	transmitter.submit();
@@ -595,8 +598,9 @@ static void synchronized_context_destruction_test()
 }
 
 
-static void many_managed_contexts()
+static void many_managed_contexts(Env &env)
 {
+	static Heap heap(env.ram(), env.rm());
 	for (unsigned round = 0; round < 10; ++round) {
 
 		unsigned const num_contexts = 200 + 5*round;
@@ -605,7 +609,7 @@ static void many_managed_contexts()
 		Signal_receiver rec;
 
 		for (unsigned i = 0; i < num_contexts; ++i) {
-			Id_signal_context *context = new (env()->heap()) Id_signal_context(i);
+			Id_signal_context *context = new (heap) Id_signal_context(i);
 			if (!rec.manage(context).valid()) {
 				error("failed to manage signal context");
 				sleep_forever();
@@ -617,21 +621,18 @@ static void many_managed_contexts()
 }
 
 
-/**
- * Main program
- */
-int main(int, char **)
+void Component::construct(Genode::Env &env)
 {
 	log("--- signalling test ---");
 
-	fast_sender_test();
-	multiple_handlers_test();
-	stress_test();
-	lazy_receivers_test();
-	check_context_management();
-	synchronized_context_destruction_test();
-	many_managed_contexts();
+	fast_sender_test(env);
+	multiple_handlers_test(env);
+	stress_test(env);
+	lazy_receivers_test(env);
+	check_context_management(env);
+	synchronized_context_destruction_test(env);
+	many_managed_contexts(env);
 
 	log("--- signalling test finished ---");
-	return 0;
+	env.parent().exit(0);
 }

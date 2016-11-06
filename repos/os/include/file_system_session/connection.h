@@ -112,7 +112,7 @@ struct File_system::Connection : File_system::Connection_base
 	 */
 	void upgrade_ram()
 	{
-		Genode::env()->parent()->upgrade(cap(), "ram=8K");
+		File_system::Connection_base::upgrade_ram(8*1024);
 	}
 
 	enum { UPGRADE_ATTEMPTS = 2 };

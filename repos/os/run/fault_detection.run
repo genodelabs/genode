@@ -48,6 +48,12 @@ install_config {
 		<start name="loader">
 			<resource name="RAM" quantum="10M"/>
 			<provides> <service name="Loader"/> </provides>
+			<config>
+				<policy label="test-fault_detection">
+					<parent-rom name="test-segfault"/>
+					<parent-rom name="init"/>
+				</policy>
+			</config>
 		</start>
 		<start name="test-fault_detection">
 			<resource name="RAM" quantum="10M"/>

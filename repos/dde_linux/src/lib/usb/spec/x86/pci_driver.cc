@@ -60,9 +60,7 @@ class Pci_dev_list
 			 * Functor that is called if the platform driver throws a
 			 * 'Out_of_metadata' exception.
 			 */
-			auto handler = [&] () {
-				Lx_kit::env().env().parent().upgrade(Lx::pci()->cap(),
-				                                               "ram_quota=4096"); };
+			auto handler = [&] () { Lx::pci()->upgrade_ram(4096); };
 
 			/*
 			 * Obtain first device, the operation may exceed the session quota.

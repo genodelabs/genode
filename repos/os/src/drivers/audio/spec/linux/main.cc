@@ -305,7 +305,4 @@ struct Audio_out::Main
  ** Component **
  ***************/
 
-namespace Component {
-	Genode::size_t stack_size()      { return 2*1024*sizeof(addr_t);     }
-	void construct(Genode::Env &env) { static Audio_out::Main main(env); }
-}
+void Component::construct(Genode::Env &env) { static Audio_out::Main main(env); }

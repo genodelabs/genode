@@ -62,11 +62,8 @@ struct Expanding_region_map_client : Genode::Region_map_client
 				if (Genode::env()->ram_session()->avail() < UPGRADE_QUOTA)
 					throw;
 
-				char buf[32];
-				Genode::snprintf(buf, sizeof(buf), "ram_quota=%u",
-				UPGRADE_QUOTA);
-
-				_env.parent().upgrade(_env.pd_session_cap(), buf);
+				Genode::String<32> arg("ram_quota=", (unsigned)UPGRADE_QUOTA);
+				_env.upgrade(Genode::Parent::Env::pd(), arg.string());
 			}
 		);
 	}

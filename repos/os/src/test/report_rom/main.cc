@@ -12,6 +12,7 @@
  */
 
 #include <base/log.h>
+#include <base/component.h>
 #include <os/reporter.h>
 #include <os/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
@@ -20,7 +21,7 @@
 #define ASSERT(cond) \
 	if (!(cond)) { \
 		Genode::error("assertion ", #cond, " failed"); \
-		return -2; }
+		throw -2; }
 
 
 static void report_brightness(Genode::Reporter &reporter, int value)
@@ -30,7 +31,7 @@ static void report_brightness(Genode::Reporter &reporter, int value)
 }
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
 
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
 	brightness_reporter.enabled(false);
 
 	/* give report_rom some time to close the report session */
-	static Timer::Connection timer;
+	Timer::Connection timer;
 	timer.msleep(250);
 
 	brightness_rom.update();
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
 		Reporter again("brightness");
 		again.enabled(true);
 		error("expected Service_denied");
-		return -3;
+		throw -3;
 	} catch (Genode::Parent::Service_denied) {
 		log("ROM client: catched Parent::Service_denied - OK");
 	}
@@ -98,5 +99,5 @@ int main(int argc, char **argv)
 
 	sig_rec.dissolve(&sig_ctx);
 
-	return 0;
+	env.parent().exit(0);
 }

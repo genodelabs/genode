@@ -29,150 +29,100 @@ namespace Loader {
 
 	using namespace Genode;
 
+	typedef Registered<Parent_service> Parent_service;
+	typedef Registry<Parent_service>   Parent_services;
+
 	class Child : public Child_policy
 	{
 		private:
 
-			typedef String<Session::Name::MAX_SIZE> Label;
+			Env &_env;
 
-			Label _label;
+			Session_label const _label;
+			Name          const _binary_name;
 
-			Rpc_entrypoint &_ep;
+			size_t const _ram_quota;
 
-			struct Resources
-			{
-				Pd_connection  pd;
-				Ram_connection ram;
-				Cpu_connection cpu;
+			Parent_services &_parent_services;
 
-				Resources(char const *label,
-				          Ram_session_client       &ram_session_client,
-				          size_t                    ram_quota,
-				          Signal_context_capability fault_sigh)
-				: pd(label), ram(label), cpu(label)
-				{
-					/* deduce session costs from usable ram quota */
-					size_t session_donations = Cpu_connection::RAM_QUOTA +
-					                           Ram_connection::RAM_QUOTA;
-
-					if (ram_quota > session_donations)
-						ram_quota -= session_donations;
-					else ram_quota = 0;
-
-					ram.ref_account(ram_session_client);
-					ram_session_client.transfer_quota(ram.cap(), ram_quota);
-
-					/*
-					 * Install CPU exception and RM fault handler assigned by
-					 * the loader client via 'Loader_session::fault_handler'.
-					 */
-					cpu.exception_sigh(fault_sigh);
-					Region_map_client address_space(pd.address_space());
-					address_space.fault_handler(fault_sigh);
-				}
-			} _resources;
-
-			Genode::Child::Initial_thread _initial_thread { _resources.cpu,
-			                                                _resources.pd,
-			                                                _label.string() };
-
-			Region_map_client _address_space { _resources.pd.address_space() };
-
-			Service_registry &_parent_services;
 			Service &_local_nitpicker_service;
 			Service &_local_rom_service;
 			Service &_local_cpu_service;
 			Service &_local_pd_service;
 
-			Rom_session_client _binary_rom_session;
-
-			Init::Child_policy_provide_rom_file _binary_policy;
 			Init::Child_policy_enforce_labeling _labeling_policy;
 
 			Genode::Child _child;
 
-			Rom_session_capability _rom_session(char const *name)
-			{
-				try {
-					char args[Session::Name::MAX_SIZE];
-					snprintf(args, sizeof(args), "ram_quota=4K, label=\"%s\"", name);
-					return static_cap_cast<Rom_session>(_local_rom_service.session(args, Affinity()));
-				} catch (Genode::Parent::Service_denied) {
-					Genode::error("Lookup for ROM module \"", name, "\" failed");
-					throw;
-				}
-			}
-
 		public:
 
-			Child(char                const *binary_name,
-			      char                const *label,
-			      Dataspace_capability       ldso_ds,
-			      Rpc_entrypoint            &ep,
-			      Ram_session_client        &ram_session_client,
+			Child(Env                       &env,
+			      Name                const &binary_name,
+			      Session_label       const &label,
 			      size_t                     ram_quota,
-			      Service_registry          &parent_services,
+			      Parent_services           &parent_services,
 			      Service                   &local_rom_service,
 			      Service                   &local_cpu_service,
 			      Service                   &local_pd_service,
 			      Service                   &local_nitpicker_service,
 			      Signal_context_capability fault_sigh)
 			:
+				_env(env),
 				_label(label),
-				_ep(ep),
-				_resources(_label.string(), ram_session_client, ram_quota, fault_sigh),
+				_binary_name(binary_name),
+				_ram_quota(Genode::Child::effective_ram_quota(ram_quota)),
 				_parent_services(parent_services),
 				_local_nitpicker_service(local_nitpicker_service),
 				_local_rom_service(local_rom_service),
 				_local_cpu_service(local_cpu_service),
 				_local_pd_service(local_pd_service),
-				_binary_rom_session(_rom_session(binary_name)),
-				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string()),
-				_child(_binary_rom_session.dataspace(), ldso_ds,
-				       _resources.pd,  _resources.pd,
-				       _resources.ram, _resources.ram,
-				       _resources.cpu, _initial_thread,
-				       *env()->rm_session(), _address_space, _ep, *this)
+				_child(_env.rm(), _env.ep().rpc_ep(), *this)
 			{ }
 
-			~Child()
-			{
-				_local_rom_service.close(_binary_rom_session);
-			}
+			~Child() { }
 
 
 			/****************************
 			 ** Child-policy interface **
 			 ****************************/
 
-			char const *name() const override { return _label.string(); }
+			Name name() const override { return _label; }
 
-			void filter_session_args(char const *service, char *args, size_t args_len) override
+			Binary_name binary_name() const override { return _binary_name; }
+
+			Ram_session           &ref_ram()           override { return _env.ram(); }
+			Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
+
+			void init(Ram_session &ram, Ram_session_capability ram_cap) override
 			{
-				_labeling_policy.filter_session_args(service, args, args_len);
+				ram.ref_account(ref_ram_cap());
+				ref_ram().transfer_quota(ram_cap, _ram_quota);
 			}
 
-			Service *resolve_session_request(const char *name,
-			                                 const char *args) override
+			void filter_session_args(Service::Name const &service, char *args, size_t args_len) override
 			{
-				Service *service = 0;
+				_labeling_policy.filter_session_args(service.string(), args, args_len);
+			}
 
-				if ((service = _binary_policy.resolve_session_request(name, args)))
-					return service;
-
-				if (!strcmp(name, "Nitpicker")) return &_local_nitpicker_service;
-				if (!strcmp(name, "ROM"))       return &_local_rom_service;
-				if (!strcmp(name, "CPU"))       return &_local_cpu_service;
-				if (!strcmp(name, "PD"))        return &_local_pd_service;
+			Service &resolve_session_request(Service::Name const &name,
+			                                 Session_state::Args const &args) override
+			{
+				if (name == "Nitpicker") return _local_nitpicker_service;
+				if (name == "ROM")       return _local_rom_service;
+				if (name == "CPU")       return _local_cpu_service;
+				if (name == "PD")        return _local_pd_service;
 
 				/* populate session-local parent service registry on demand */
-				service = _parent_services.find(name);
-				if (!service) {
-					service = new (env()->heap()) Parent_service(name);
-					_parent_services.insert(service);
-				}
-				return service;
+				Service *service = nullptr;
+				_parent_services.for_each([&] (Parent_service &s) {
+					if (s.name() == name)
+						service = &s; });
+
+				if (service)
+					return *service;
+
+				return *new (env()->heap()) Parent_service(_parent_services, name);
 			}
 	};
 }

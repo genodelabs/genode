@@ -22,6 +22,8 @@ namespace Report { struct Connection; }
 
 struct Report::Connection : Genode::Connection<Session>, Session_client
 {
+	enum { RAM_QUOTA = 4*4096 }; /* value used for 'Slave::Connection' */
+
 	/**
 	 * Issue session request
 	 *

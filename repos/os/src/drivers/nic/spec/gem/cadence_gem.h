@@ -481,6 +481,8 @@ namespace Genode
 				_deinit();
 			}
 
+			using Nic::Session_component::cap;
+
 
 			void phy_write(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data)
 			{

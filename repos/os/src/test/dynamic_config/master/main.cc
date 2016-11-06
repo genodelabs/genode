@@ -5,63 +5,78 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <os/slave.h>
 #include <timer_session/connection.h>
-#include <cap_session/connection.h>
 
 
-struct Test_slave_policy : Genode::Slave_policy
+namespace Test {
+
+	using namespace Genode;
+
+	struct Policy;
+	struct Main;
+}
+
+
+struct Test::Policy : Genode::Slave::Policy
 {
 	const char **_permitted_services() const
 	{
 		static const char *permitted_services[] = {
-			"RM", "LOG", 0 };
+			"CPU", "RAM", "ROM", "PD", "LOG", 0 };
 
 		return permitted_services;
 	};
 
-	Test_slave_policy(char const *name, Genode::Rpc_entrypoint &ep)
-	: Genode::Slave_policy(name, ep, Genode::env()->ram_session())
+	Policy(Genode::Env &env, Name const &name)
+	:
+		Genode::Slave::Policy(name, name, env.ep().rpc_ep(), env.rm(),
+		                      env.ram_session_cap(), 1024*1024)
 	{ }
 };
 
 
-int main(int, char **)
+struct Test::Main
 {
-	using namespace Genode;
+	Env &_env;
 
-	enum { STACK_SIZE = 2*4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "slave_ep");
+	Policy _policy { _env, "test-dynamic_config" };
 
-	static Test_slave_policy slave_policy("test-dynamic_config", ep);
+	unsigned _cnt = 0;
 
-	/* define initial config for slave */
-	slave_policy.configure("<config><counter>-1</counter></config>");
-
-	static Genode::Slave slave(ep, slave_policy, 768*1024);
-
-	/* update slave config at regular intervals */
-	int counter = 0;
-	for (;;) {
-
-		static Timer::Connection timer;
-		timer.msleep(250);
-
-		/* re-generate configuration */
-		char buf[100];
-		Genode::snprintf(buf, sizeof(buf),
-		                 "<config><counter>%d</counter></config>",
-		                 counter++);
-
-		slave_policy.configure(buf);
+	void _configure()
+	{
+		String<256> const config("<config><counter>", _cnt, "</counter></config>");
+		_policy.configure(config.string());
+		_cnt++;
 	}
-	return 0;
-}
+
+	Child _child { _env.rm(), _env.ep().rpc_ep(), _policy };
+
+	Timer::Connection timer { _env };
+
+	Signal_handler<Main> _timeout_handler { _env.ep(), *this, &Main::_handle_timeout };
+
+	void _handle_timeout() { _configure(); }
+
+	Main(Env &env) : _env(env)
+	{
+		/* update slave config at regular intervals */
+		timer.sigh(_timeout_handler);
+		timer.trigger_periodic(250*1000);
+
+		/* define initial config for slave before returning to entrypoint */
+		_configure();
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Test::Main main(env); }

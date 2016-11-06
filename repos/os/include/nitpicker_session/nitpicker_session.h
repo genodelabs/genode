@@ -24,6 +24,7 @@
 
 namespace Nitpicker {
 	using Genode::size_t;
+	struct Session_client;
 	struct View;
 	typedef Genode::Capability<View> View_capability;
 	struct Session;
@@ -36,6 +37,8 @@ namespace Nitpicker {
 struct Nitpicker::Session : Genode::Session
 {
 	static const char *service_name() { return "Nitpicker"; }
+
+	typedef Session_client Client;
 
 	/**
 	 * Session-local view handle

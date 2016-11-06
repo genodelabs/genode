@@ -73,6 +73,7 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(Genode::uin
 			_io_mem[i].insert(io_mem);
 			return io_mem->cap();
 		} catch (Genode::Allocator::Out_of_memory) {
+			Genode::error("Quota_exceeded in Device_component::io_mem");
 			throw Quota_exceeded();
 		} catch (...) {
 			return Genode::Io_mem_session_capability();
@@ -116,9 +117,9 @@ void Platform::Device_component::config_write(unsigned char address,
 	}
 
 	/* assign device to device_pd */
-	if (address == PCI_CMD_REG && value & PCI_CMD_DMA && _session) {
+	if (address == PCI_CMD_REG && value & PCI_CMD_DMA) {
 		try {
-			_session->assign_device(this);
+			_session.assign_device(this);
 		} catch (Platform::Session::Out_of_metadata) {
 			throw Quota_exceeded();
 		} catch (...) {
@@ -145,14 +146,14 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 		_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
 		                                                   _irq_line, ~0UL);
 
-		_ep->manage(_irq_session);
+		_ep.manage(_irq_session);
 		return _irq_session->cap();
 	}
 
 	_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
 	                                                   _configure_irq(_irq_line),
-	                                                   (!_session->msi_usage() || !_msi_cap()) ? ~0UL : _config_space);
-	_ep->manage(_irq_session);
+	                                                   (!_session.msi_usage() || !_msi_cap()) ? ~0UL : _config_space);
+	_ep.manage(_irq_session);
 
 	Genode::uint16_t msi_cap = _msi_cap();
 

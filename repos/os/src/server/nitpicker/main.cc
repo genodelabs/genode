@@ -1072,7 +1072,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			session->destroy_all_views();
 			_mode.forget(*session);
 
-			destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), session);
 		}
 
 	public:

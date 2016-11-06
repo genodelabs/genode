@@ -691,7 +691,7 @@ class Audio_out::Root : public Audio_out::Root_component
 		void _destroy_session(Session_component *session)
 		{
 			if (--_sessions == 0) _mixer.stop();
-			destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), session);
 		}
 
 	public:

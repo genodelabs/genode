@@ -188,10 +188,7 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 			Genode::retry<Platform::Device::Quota_exceeded>(
 				[&] () { _client.config_write(devfn, val, _access_size(val)); },
 				[&] () {
-					char quota[32];
-					Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
-					                 donate);
-					Genode::env()->parent()->upgrade(pci()->cap(), quota);
+					pci()->upgrade_ram(donate);
 					donate *= 2;
 				});
 		}
@@ -230,9 +227,7 @@ void Lx::for_each_pci_device(FUNC const &func)
 	 * Functor that is called if the platform driver throws a
 	 * 'Out_of_metadata' exception.
 	 */
-	auto handler = [&] () {
-		Genode::env()->parent()->upgrade(Lx::pci()->cap(),
-		                                 "ram_quota=4096"); };
+	auto handler = [&] () { Lx::pci()->upgrade_ram(4096); };
 
 	/*
 	 * Obtain first device, the operation may exceed the session quota.

@@ -25,6 +25,7 @@ install_config {
 		<start name="test-resource_yield">
 			<resource name="RAM" quantum="16M"/>
 			<provides> <service name="ROM" /> </provides>
+			<config/>
 		</start>
 	</config>
 }

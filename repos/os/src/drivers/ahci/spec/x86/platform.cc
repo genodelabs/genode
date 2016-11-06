@@ -46,7 +46,7 @@ struct X86_hba : Platform::Hba
 		pci_device_cap = retry<Platform::Session::Out_of_metadata>(
 			[&] () { return pci.next_device(pci_device_cap, AHCI_DEVICE,
 				                            CLASS_MASK); },
-			[&] () { env.parent().upgrade(pci.cap(), "ram_quota=4096"); });
+			[&] () { pci.upgrade_ram(4096); });
 
 		if (!pci_device_cap.valid()) {
 			Genode::error("no AHCI controller found");
@@ -102,10 +102,7 @@ struct X86_hba : Platform::Hba
 		Genode::retry<Platform::Device::Quota_exceeded>(
 			[&] () { pci_device->config_write(op, cmd, width); },
 			[&] () {
-				char quota[32];
-				Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
-				                 donate);
-				env.parent().upgrade(pci.cap(), quota);
+				pci.upgrade_ram(donate);
 				donate *= 2;
 			});
 	}
@@ -134,9 +131,7 @@ struct X86_hba : Platform::Hba
 		return retry<Platform::Session::Out_of_metadata>(
 			[&] () { return pci.alloc_dma_buffer(size); },
 			[&] () {
-				char quota[32];
-				snprintf(quota, sizeof(quota), "ram_quota=%ld", donate);
-				env.parent().upgrade(pci.cap(), quota);
+				pci.upgrade_ram(donate);
 				donate = donate * 2 > size ? 4096 : donate * 2;
 			});
 	}

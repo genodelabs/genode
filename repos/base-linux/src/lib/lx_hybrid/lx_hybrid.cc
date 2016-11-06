@@ -109,6 +109,12 @@ void (*Genode::call_component_construct)(Genode::Env &) = &lx_hybrid_component_c
  */
 void Genode::call_global_static_constructors() { }
 
+Genode::size_t Component::stack_size() __attribute__((weak));
+Genode::size_t Component::stack_size()
+{
+	return 16UL * 1024 * sizeof(Genode::addr_t);
+}
+
 /*
  * Hybrid components are not allowed to implement legacy main(). This enables
  * us to hook in and bootstrap components as usual.

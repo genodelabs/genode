@@ -12,9 +12,8 @@
  */
 
 /* Genode */
-#include <base/env.h>
+#include <base/component.h>
 #include <base/heap.h>
-#include <os/server.h>
 #include <root/component.h>
 #include <rtc_session/rtc_session.h>
 
@@ -52,7 +51,7 @@ class Rtc::Root : public Genode::Root_component<Session_component>
 
 	public:
 
-		Root(Server::Entrypoint &ep, Allocator &md_alloc)
+		Root(Entrypoint &ep, Allocator &md_alloc)
 		:
 			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc)
 		{
@@ -64,23 +63,14 @@ class Rtc::Root : public Genode::Root_component<Session_component>
 
 struct Rtc::Main
 {
-	Server::Entrypoint &ep;
+	Env &env;
 
-	Sliced_heap sliced_heap { env()->ram_session(), env()->rm_session() };
+	Sliced_heap sliced_heap { env.ram(), env.rm() };
 
-	Root root { ep, sliced_heap };
+	Root root { env.ep(), sliced_heap };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
-	{
-		env()->parent()->announce(ep.manage(root));
-	}
+	Main(Env &env) : env(env) { env.parent().announce(env.ep().manage(root)); }
 };
 
 
-/**********************
- ** Server framework **
- **********************/
-
-char const *   Server::name()                            { return "rtc_ep"; }
-Genode::size_t Server::stack_size()                      { return 1024 * sizeof(long); }
-void           Server::construct(Server::Entrypoint &ep) { static Rtc::Main inst(ep); }
+void Component::construct(Genode::Env &env) { static Rtc::Main main(env); }

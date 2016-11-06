@@ -177,10 +177,7 @@ struct Pci_driver
 		Genode::retry<Platform::Device::Quota_exceeded>(
 			[&] () { client.config_write(devfn, val, _access_size(val)); } ,
 			[&] () {
-				char quota[32];
-				Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
-				                 donate);
-				Genode::env()->parent()->upgrade(_pci.cap(), quota);
+				_pci.upgrade_ram(donate);
 				donate *= 2;
 			});
 	}
@@ -223,10 +220,7 @@ struct Pci_driver
 			Ram_dataspace_capability ram_cap = Genode::retry<Platform::Session::Out_of_metadata>(
 				[&] () { return _pci.alloc_dma_buffer(size); },
 				[&] () {
-					char quota[32];
-					Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
-					                 donate);
-					Genode::env()->parent()->upgrade(_pci.cap(), quota);
+					_pci.upgrade_ram(donate);
 					donate = donate * 2 > size ? 4096 : donate * 2;
 				});
 

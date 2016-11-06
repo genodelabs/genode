@@ -75,7 +75,7 @@ class Pci_card
 			 * Iterate through all accessible devices.
 			 */
 			Platform::Device_capability prev_device_cap, device_cap;
-			Genode::env()->parent()->upgrade(_pci_drv.cap(), "ram_quota=4096");
+			_pci_drv.upgrade_ram(4096);
 			for (device_cap = _pci_drv.first_device();
 			     device_cap.valid();
 			     device_cap = _pci_drv.next_device(prev_device_cap)) {

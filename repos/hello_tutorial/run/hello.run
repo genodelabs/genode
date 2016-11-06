@@ -35,4 +35,5 @@ build_boot_image { core init hello_client hello_server }
 
 append qemu_args " -nographic "
 
+run_genode_until forever
 run_genode_until "hello test completed.*\n" 10

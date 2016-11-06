@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/list.h>
+#include <base/registry.h>
 #include <base/child.h>
 #include <init/child_policy.h>
 #include <os/child_policy_dynamic_rom.h>
@@ -41,48 +42,29 @@ class Child_base : public Genode::Child_policy
 
 		typedef Genode::size_t size_t;
 
+		typedef Genode::Registered<Genode::Parent_service> Parent_service;
+		typedef Genode::Registry<Parent_service>           Parent_services;
+
 	private:
 
 		Ram &_ram;
 
 		Genode::Session_label const _label;
+		Binary_name           const _binary_name;
+
+		Genode::Ram_session_capability _ref_ram_cap;
+		Genode::Ram_session           &_ref_ram;
 
 		size_t _ram_quota;
 		size_t _ram_limit;
 
-		struct Resources
-		{
-			Genode::Pd_connection  pd;
-			Genode::Ram_connection ram;
-			Genode::Cpu_connection cpu;
-
-			Resources(const char *label, Genode::size_t ram_quota)
-			: pd(label), ram(label), cpu(label)
-			{
-				if (ram_quota >  DONATED_RAM_QUOTA)
-					ram_quota -= DONATED_RAM_QUOTA;
-				else
-					throw Quota_exceeded();
-				ram.ref_account(Genode::env()->ram_session_cap());
-				if (Genode::env()->ram_session()->transfer_quota(ram.cap(), ram_quota) != 0)
-					throw Quota_exceeded();
-			}
-		} _resources;
-
-		Genode::Child::Initial_thread _initial_thread { _resources.cpu, _resources.pd,
-		                                                _label.string() };
-
-		Genode::Region_map_client _address_space { _resources.pd.address_space() };
-		Genode::Service_registry  _parent_services;
-		Genode::Rom_connection    _binary_rom;
+		Parent_services _parent_services;
 
 		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
 		Genode::Rpc_entrypoint _entrypoint;
 
 		Init::Child_policy_enforce_labeling   _labeling_policy;
-		Init::Child_policy_provide_rom_file   _binary_policy;
 		Genode::Child_policy_dynamic_rom_file _config_policy;
-		Genode::Child                         _child;
 
 		/**
 		 * If set to true, immediately withdraw resources yielded by the child
@@ -101,35 +83,39 @@ class Child_base : public Genode::Child_policy
 		/* true if child is scheduled for destruction */
 		bool _exited = false;
 
+		Genode::Child _child;
+
 	public:
 
+		/**
+		 * Constructor
+		 *
+		 * \param ref_ram  used as reference account for the child'd RAM
+		 *                 session and for allocating the backing store
+		 *                 for the child's configuration
+		 */
 		Child_base(Ram                              &ram,
-		           char                       const *label,
-		           char                       const *binary,
-		           Genode::Cap_session              &cap_session,
+		           Name                       const &label,
+		           Binary_name                const &binary_name,
+		           Genode::Pd_session               &pd_session,
+		           Genode::Ram_session              &ref_ram,
+		           Genode::Ram_session_capability    ref_ram_cap,
+		           Genode::Region_map               &local_rm,
 		           Genode::size_t                    ram_quota,
 		           Genode::size_t                    ram_limit,
 		           Genode::Signal_context_capability yield_response_sig_cap,
-		           Genode::Signal_context_capability exit_sig_cap,
-		           Genode::Dataspace_capability      ldso_ds)
+		           Genode::Signal_context_capability exit_sig_cap)
 		:
 			_ram(ram),
-			_label(label),
-			_ram_quota(ram_quota),
-			_ram_limit(ram_limit),
-			_resources(_label.string(), _ram_quota),
-			_binary_rom(Genode::prefixed_label(Genode::Session_label(label),
-			                                   Genode::Session_label(binary)).string()),
-			_entrypoint(&cap_session, ENTRYPOINT_STACK_SIZE, _label.string(), false),
+			_label(label), _binary_name(binary_name),
+			_ref_ram_cap(ref_ram_cap), _ref_ram(ref_ram),
+			_ram_quota(ram_quota), _ram_limit(ram_limit),
+			_entrypoint(&pd_session, ENTRYPOINT_STACK_SIZE, _label.string(), false),
 			_labeling_policy(_label.string()),
-			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
-			_config_policy("config", _entrypoint, &_resources.ram),
-			_child(_binary_rom.dataspace(), ldso_ds, _resources.pd, _resources.pd,
-			       _resources.ram, _resources.ram, _resources.cpu, _initial_thread,
-			       *Genode::env()->rm_session(), _address_space,
-			       _entrypoint, *this),
+			_config_policy("config", _entrypoint, &ref_ram),
 			_yield_response_sigh_cap(yield_response_sig_cap),
-			_exit_sig_cap(exit_sig_cap)
+			_exit_sig_cap(exit_sig_cap),
+			_child(local_rm, _entrypoint, *this)
 		{ }
 
 		Genode::Session_label label() const { return _label; }
@@ -176,7 +162,7 @@ class Child_base : public Genode::Child_policy
 			if (!amount)
 				return;
 
-			_ram.withdraw_from(_resources.ram.cap(), amount);
+			_ram.withdraw_from(_child.ram_session_cap(), amount);
 			_ram_quota -= amount;
 		}
 
@@ -187,12 +173,12 @@ class Child_base : public Genode::Child_policy
 		 */
 		void upgrade_ram_quota(size_t amount)
 		{
-			_ram.transfer_to(_resources.ram.cap(), amount);
+			_ram.transfer_to(_child.ram_session_cap(), amount);
 			_ram_quota += amount;
 
 			/* wake up child if resource request is in flight */
 			size_t const req = requested_ram_quota();
-			if (req && _resources.ram.avail() >= req) {
+			if (req && _child.ram().avail() >= req) {
 				_child.notify_resource_avail();
 
 				/* clear request state */
@@ -258,9 +244,9 @@ class Child_base : public Genode::Child_policy
 		{
 			return Ram_status(_ram_quota,
 			                  _ram_limit,
-			                  _ram_quota - _resources.ram.quota(),
-			                  _resources.ram.used(),
-			                  _resources.ram.avail(),
+			                  _ram_quota - _child.ram().quota(),
+			                  _child.ram().used(),
+			                  _child.ram().avail(),
 			                  requested_ram_quota());
 		}
 
@@ -274,36 +260,41 @@ class Child_base : public Genode::Child_policy
 		 ** Child_policy interface **
 		 ****************************/
 
-		const char *name() const { return _label.string(); }
+		Name name() const override { return _label.string(); }
 
-		Genode::Service *resolve_session_request(const char *service_name,
-		                                         const char *args)
+		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
+		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }
+
+		void init(Genode::Ram_session &session, Genode::Ram_session_capability cap) override
 		{
-			Genode::Service *service = 0;
-
-			/* check for binary file request */
-			if ((service = _binary_policy.resolve_session_request(service_name, args)))
-				return service;
-
-			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name, args)))
-				return service;
-
-			/* fill parent service registry on demand */
-			if (!(service = _parent_services.find(service_name))) {
-				service = new (Genode::env()->heap())
-				          Genode::Parent_service(service_name);
-				_parent_services.insert(service);
-			}
-
-			/* return parent service */
-			return service;
+			session.ref_account(_ref_ram_cap);
+			_ref_ram.transfer_quota(cap, _ram_quota);
 		}
 
-		void filter_session_args(const char *service,
-		                         char *args, Genode::size_t args_len)
+		Genode::Service &resolve_session_request(Genode::Service::Name const &name,
+		                                         Genode::Session_state::Args const &args) override
 		{
-			_labeling_policy.filter_session_args(service, args, args_len);
+			Genode::Service *service = nullptr;
+
+			/* check for config file request */
+			if ((service = _config_policy.resolve_session_request(name.string(), args.string())))
+				return *service;
+
+			/* populate session-local parent service registry on demand */
+			_parent_services.for_each([&] (Parent_service &s) {
+				if (s.name() == name)
+					service = &s; });
+
+			if (service)
+				return *service;
+
+			return *new (Genode::env()->heap()) Parent_service(_parent_services, name);
+		}
+
+		void filter_session_args(Genode::Service::Name const &service,
+		                         char *args, Genode::size_t args_len) override
+		{
+			_labeling_policy.filter_session_args(service.string(), args, args_len);
 		}
 
 		void yield_response()
@@ -311,8 +302,8 @@ class Child_base : public Genode::Child_policy
 			if (_withdraw_on_yield_response) {
 				enum { RESERVE = 4*1024*1024 };
 
-				size_t amount = _resources.ram.avail() < RESERVE
-				                ? 0 : _resources.ram.avail() - RESERVE;
+				size_t amount = _child.ram().avail() < RESERVE
+				                ? 0 : _child.ram().avail() - RESERVE;
 
 				/* try to immediately withdraw freed-up resources */
 				try { withdraw_ram_quota(amount); }

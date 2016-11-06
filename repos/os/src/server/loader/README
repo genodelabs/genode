@@ -3,3 +3,10 @@ subsystems via a session interface. The resources for the new subsystem are
 provided by the client when opening the session. The client has no control over
 the functioning of the subsystem except for the controlling the lifetime of the
 subsystem.
+
+By default, the loaded subsystem can access only those ROM modules that were
+loaded into the loader session by the loader client. However, it is possible
+to define a whitelist of ROM modules to be obtained from the loader's parent.
+For an example, refer to the example 'run/loader.run' script.
+
+

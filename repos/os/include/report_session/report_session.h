@@ -44,12 +44,15 @@ namespace Report {
 	using Genode::size_t;
 
 	struct Session;
+	struct Session_client;
 }
 
 
 struct Report::Session : Genode::Session
 {
 	static const char *service_name() { return "Report"; }
+
+	typedef Session_client Client;
 
 	/**
 	 * Request the dataspace used to carry reports and responses

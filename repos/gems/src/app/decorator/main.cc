@@ -156,7 +156,7 @@ struct Decorator::Main : Window_factory_base
 					Window(attribute(window_node, "id", 0UL), nitpicker, animator, config);
 			} catch (Nitpicker::Session::Out_of_metadata) {
 				Genode::log("Handle Out_of_metadata of nitpicker session - upgrade by 8K");
-				Genode::env()->parent()->upgrade(nitpicker.cap(), "ram_quota=8192");
+				nitpicker.upgrade_ram(8192);
 			}
 		}
 		return 0;

@@ -46,9 +46,6 @@ static int exit_status;
 static void exit_on_suspended() { exit(exit_status); }
 
 
-Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
-
-
 struct Unexpected_errno_change { };
 
 /*

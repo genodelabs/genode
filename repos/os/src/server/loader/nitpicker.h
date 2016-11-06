@@ -39,7 +39,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 		 */
 		Genode::Signal_context_capability _view_ready_sigh;
 
-		Genode::Rpc_entrypoint &_ep;
+		Genode::Entrypoint &_ep;
 
 		Area _max_size;
 
@@ -148,7 +148,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * Constructor
 		 */
-		Session_component(Genode::Rpc_entrypoint            &ep,
+		Session_component(Genode::Entrypoint                &ep,
 		                  Genode::Ram_session               &ram,
 		                  Area                               max_size,
 		                  Nitpicker::View_capability         parent_view,
@@ -166,10 +166,18 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 			_view_handle(_nitpicker.create_view(_parent_view_handle)),
 
 			_proxy_input(_nitpicker.input_session(), _motion_delta),
-			_proxy_input_cap(_ep.manage(&_proxy_input)),
+			_proxy_input_cap(_ep.manage(_proxy_input)),
 
 			_command_ds(&ram, sizeof(Command_buffer))
-		{ }
+		{
+			_ep.manage(*this);
+		}
+
+		~Session_component()
+		{ 
+			_ep.dissolve(_proxy_input);
+			_ep.dissolve(*this);
+		}
 
 
 		/*********************************
