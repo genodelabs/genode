@@ -131,7 +131,6 @@ namespace Platform {
 
 			Genode::Rpc_entrypoint                     *_ep;
 			Genode::Allocator_guard                     _md_alloc;
-			Genode::Tslab<Device_component, 4096 - 64>  _device_slab;
 			Genode::List<Device_component>              _device_list;
 			Genode::Rpc_entrypoint                     &_device_pd_ep;
 
@@ -501,7 +500,6 @@ namespace Platform {
 			:
 				_ep(ep),
 				_md_alloc(md_alloc, Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
-				_device_slab(&_md_alloc),
 				_device_pd_ep(device_pd_ep),
 				_resources(_md_alloc),
 				_label(Genode::label_from_args(args)),
@@ -717,7 +715,7 @@ namespace Platform {
 					 * device and return its capability.
 					 */
 					try {
-						Device_component * dev = new (_device_slab)
+						Device_component * dev = new (_md_alloc)
 							Device_component(config, config_space, _ep, this,
 							                 &_md_alloc);
 
@@ -773,7 +771,7 @@ namespace Platform {
 				if (!device) return;
 
 				if (device->config().valid())
-					destroy(_device_slab, device);
+					destroy(_md_alloc, device);
 				else
 					destroy(_md_alloc, device);
 			}
