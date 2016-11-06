@@ -18,7 +18,7 @@
   */
 
 /* base includes */
-#include <io_mem_session/connection.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <util/misc_math.h>
 #include <util/mmio.h>
 
@@ -1116,27 +1116,13 @@ class Acpi_table
 {
 	private:
 
-		Genode::Env       &env;
-		Genode::Allocator &alloc;
+		Genode::Env       &_env;
+		Genode::Allocator &_alloc;
 
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
 
-		/**
-		 * Map table and return address and session cap
-		 */
-		uint8_t *_map_io(addr_t base, size_t size, Io_mem_session_capability &cap)
-		{
-			Io_mem_connection io_mem(base, size);
-			io_mem.on_destruction(Io_mem_connection::KEEP_OPEN);
-			Io_mem_dataspace_capability io_ds = io_mem.dataspace();
-			if (!io_ds.valid())
-				throw -1;
-
-			uint8_t *ret = env.rm().attach(io_ds, size);
-			cap = io_mem.cap();
-			return ret;
-		}
+		Genode::Lazy_volatile_object<Genode::Attached_io_mem_dataspace> _mmio;
 
 		/**
 		 * Search for RSDP pointer signature in area
@@ -1152,30 +1138,33 @@ class Acpi_table
 
 		/**
 		 * Return 'Root System Descriptor Pointer' (ACPI spec 5.2.5.1)
+		 *
+		 * As a side effect, the function initializes the '_mmio' member.
 		 */
-		uint8_t *_rsdp(Io_mem_session_capability &cap)
+		uint8_t *_rsdp()
 		{
-			uint8_t *area = 0;
-
 			/* try BIOS area (0xe0000 - 0xfffffh)*/
 			try {
-				area = _search_rsdp(_map_io(BIOS_BASE, BIOS_SIZE, cap));
-				return area;
-			} catch (...) { env.parent().close(cap); }
+				_mmio.construct(_env, BIOS_BASE, BIOS_SIZE);
+				return _search_rsdp(_mmio->local_addr<uint8_t>());
+			}
+			catch (...) { }
 
 			/* search EBDA (BIOS addr + 0x40e) */
 			try {
-				area = _map_io(0x0, 0x1000, cap);
-				if (area) {
-					unsigned short base = (*reinterpret_cast<unsigned short *>(area + 0x40e)) << 4;
-					env.parent().close(cap);
-					area = _map_io(base, 1024, cap);
-					area = _search_rsdp(area);
-				}
-				return area;
-			} catch (...) { env.parent().close(cap); }
+				/* read RSDP base address from EBDA */
 
-			return 0;
+				_mmio.construct(_env, 0x0, 0x1000);
+				uint8_t const * const ebda = _mmio->local_addr<uint8_t const>();
+				unsigned short const rsdp_phys =
+					(*reinterpret_cast<unsigned short const *>(ebda + 0x40e)) << 4;
+
+				_mmio.construct(_env, rsdp_phys, 0x1000);
+				return _search_rsdp(_mmio->local_addr<uint8_t>());
+			}
+			catch (...) { }
+
+			return nullptr;
 		}
 
 		template <typename T>
@@ -1232,11 +1221,9 @@ class Acpi_table
 	public:
 
 		Acpi_table(Genode::Env &env, Genode::Allocator &alloc)
-		: env(env), alloc(alloc)
+		: _env(env), _alloc(alloc)
 		{
-			Io_mem_session_capability io_mem;
-
-			uint8_t * ptr_rsdp = _rsdp(io_mem);
+			uint8_t * ptr_rsdp = _rsdp();
 
 			struct rsdp {
 				char     signature[8];
@@ -1273,7 +1260,7 @@ class Acpi_table
 			addr_t const xsdt = rsdp->xsdt;
 			uint8_t const acpi_revision = rsdp->revision;
 			/* drop rsdp io_mem mapping since rsdt/xsdt may overlap */
-			env.parent().close(io_mem);
+			_mmio.destruct();
 
 			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */

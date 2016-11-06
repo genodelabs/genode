@@ -18,11 +18,11 @@
 #include <audio_out_session/connection.h>
 #include <base/log.h>
 #include <base/sleep.h>
+#include <base/attached_rom_dataspace.h>
 #include <dataspace/client.h>
 #include <input_session/connection.h>
 #include <input/event.h>
 #include <os/config.h>
-#include <rom_session/connection.h>
 
 
 using namespace Genode;
@@ -45,35 +45,21 @@ class Click
 {
 	private:
 
-		Audio_out::Connection *_audio_out[CHANNELS];
-		char const            *_base;
-		Genode::size_t         _size;
+		Lazy_volatile_object<Audio_out::Connection> _audio_out[CHANNELS];
+
+		Attached_rom_dataspace _sample_ds;
+		char     const * const _base = _sample_ds.local_addr<char const>();
+		size_t           const _size = _sample_ds.size();
 
 	public:
 
-		Click(char const *file)
+		Click(char const *file) : _sample_ds(file)
 		{
 			for (int i = 0; i < CHANNELS; ++i) {
 				/* allocation signal for first channel only */
-				_audio_out[i] = new (env()->heap())
-					Audio_out::Connection(channel_names[i], i == 0);
+				_audio_out[i].construct(channel_names[i], i == 0);
 				_audio_out[i]->start();
 			}
-
-			Dataspace_capability  ds_cap;
-
-			try {
-				Rom_connection rom(file);
-				rom.on_destruction(Rom_connection::KEEP_OPEN);
-				ds_cap = rom.dataspace();
-				_base = env()->rm_session()->attach(ds_cap);
-			} catch (...) {
-				error("could not open: ", file);
-				return;
-			}
-
-			Dataspace_client ds_client(ds_cap);
-			_size = ds_client.size();
 		}
 
 		void play()

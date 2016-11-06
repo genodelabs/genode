@@ -34,6 +34,7 @@ static Dataspace_capability io_mem_cap;
 
 static const bool verbose = false;
 
+
 /***************
  ** Utilities **
  ***************/
@@ -152,8 +153,9 @@ int Framebuffer_drv::map_io_mem(addr_t base, size_t size, bool write_combined,
                                 void **out_addr, addr_t addr,
                                 Dataspace_capability *out_io_ds)
 {
-	Io_mem_connection io_mem(base, size, write_combined);
-	io_mem.on_destruction(Io_mem_connection::KEEP_OPEN);
+	Io_mem_connection &io_mem = *new (env()->heap())
+		Io_mem_connection(base, size, write_combined);
+
 	Io_mem_dataspace_capability io_ds = io_mem.dataspace();
 	if (!io_ds.valid())
 		return -2;

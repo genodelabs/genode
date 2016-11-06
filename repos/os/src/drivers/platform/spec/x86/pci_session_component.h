@@ -82,10 +82,11 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 
 	private:
 
-		Genode::uint64_t _start, _end;
-		Genode::Io_mem_dataspace_capability _cap;
+		Genode::uint64_t               const _start, _end;
+		Genode::Io_mem_dataspace_capability  _cap;
+		Genode::List<Bdf>                    _bdf_list;
 
-		Genode::List<Bdf> _bdf_list;
+		Genode::Lazy_volatile_object<Genode::Io_mem_connection> _io_mem;
 
 	public:
 
@@ -93,7 +94,8 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 		: _start(start), _end(end)
 		{ }
 
-		Genode::Io_mem_dataspace_capability match(Device_config config) {
+		Genode::Io_mem_dataspace_capability match(Device_config config)
+		{
 			Genode::uint8_t bus      = config.bus_number();
 			Genode::uint8_t device   = config.device_number();
 			Genode::uint8_t function = config.function_number();
@@ -105,10 +107,8 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 				if (_cap.valid())
 					return _cap;
 
-				Genode::Io_mem_connection io_mem(_start, _end - _start + 1);
-				io_mem.on_destruction(Genode::Io_mem_connection::KEEP_OPEN);
-				_cap = io_mem.dataspace();
-
+				_io_mem.construct(_start, _end - _start + 1);
+				_cap = _io_mem->dataspace();
 				return _cap;
 			}
 			return Genode::Io_mem_dataspace_capability();

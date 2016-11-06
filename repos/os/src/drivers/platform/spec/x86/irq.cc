@@ -213,8 +213,7 @@ class Platform::Irq_component : public Proxy
 void Platform::Irq_session_component::ack_irq()
 {
 	if (msi()) {
-		Genode::Irq_session_client irq_msi(_irq_cap);
-		irq_msi.ack_irq();
+		_irq_conn->ack_irq();
 		return;
 	}
 
@@ -246,16 +245,13 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 			try {
 				using namespace Genode;
 
-				Irq_connection conn(msi, Irq_session::TRIGGER_UNCHANGED,
+				_irq_conn.construct(msi, Irq_session::TRIGGER_UNCHANGED,
 				                    Irq_session::POLARITY_UNCHANGED,
 				                    pci_config_space);
 
-				_msi_info = conn.info();
+				_msi_info = _irq_conn->info();
 				if (_msi_info.type == Irq_session::Info::Type::MSI) {
-					_gsi     = msi;
-					_irq_cap = conn;
-
-					conn.on_destruction(Irq_connection::KEEP_OPEN);
+					_gsi = msi;
 					return;
 				}
 			} catch (Genode::Parent::Service_denied) { }
@@ -289,10 +285,7 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 Platform::Irq_session_component::~Irq_session_component()
 {
 	if (msi()) {
-		Genode::Irq_session_client irq_msi(_irq_cap);
-		irq_msi.sigh(Genode::Signal_context_capability());
-
-		Genode::env()->parent()->close(_irq_cap);
+		_irq_conn->sigh(Genode::Signal_context_capability());
 
 		irq_alloc.free_msi(_gsi);
 		return;
@@ -309,10 +302,9 @@ Platform::Irq_session_component::~Irq_session_component()
 
 void Platform::Irq_session_component::sigh(Genode::Signal_context_capability sigh)
 {
-	if (msi()) {
+	if (_irq_conn.constructed()) {
 		/* register signal handler for msi directly at parent */
-		Genode::Irq_session_client irq_msi(_irq_cap);
-		irq_msi.sigh(sigh);
+		_irq_conn->sigh(sigh);
 		return;
 	}
 

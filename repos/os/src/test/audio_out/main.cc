@@ -18,6 +18,7 @@
 #include <audio_out_session/connection.h>
 #include <base/log.h>
 #include <base/sleep.h>
+#include <base/attached_rom_dataspace.h>
 #include <rom_session/connection.h>
 #include <dataspace/client.h>
 #include <os/config.h>
@@ -46,44 +47,30 @@ class Track : Thread_deprecated<8192>
 {
 	private:
 
-		const char            *_file;
-		Audio_out::Connection *_audio_out[CHN_CNT];
+		Lazy_volatile_object<Audio_out::Connection> _audio_out[CHN_CNT];
+
+		String<64> const _name;
+
+		Attached_rom_dataspace _sample_ds { _name.string() };
+		char     const * const _base = _sample_ds.local_addr<char const>();
+		size_t           const _size = _sample_ds.size();
 
 	public:
 
-		Track(const char *file) : Thread_deprecated("track"), _file(file)
+		Track(const char *name) : Thread_deprecated("track"), _name(name)
 		{
 			for (int i = 0; i < CHN_CNT; ++i) {
 				/* allocation signal for first channel only */
-				_audio_out[i] = new (env()->heap())
-				                Audio_out::Connection(channel_names[i],
-				                                      i == 0 ? true : false);
+				_audio_out[i].construct(channel_names[i], i == 0);
 			}
 		}
 
 		void entry()
 		{
-			char *base;
-			Dataspace_capability ds_cap;
-
-			try {
-				Rom_connection rom(_file);
-				rom.on_destruction(Rom_connection::KEEP_OPEN);
-				ds_cap = rom.dataspace();
-				base = env()->rm_session()->attach(ds_cap);
-			}
-			catch (...) {
-				error("could not open: ", _file);
-				return;
-			}
-
-			Dataspace_client ds_client(ds_cap);
-
 			if (verbose)
-				log(_file, " size is ", ds_client.size(), " bytes "
-				    "(attached to ", (void *)base, ")");
+				log(_name, " size is ", _size, " bytes "
+				    "(attached to ", (void *)_base, ")");
 
-			size_t file_size = ds_client.size();
 			for (int i = 0; i < CHN_CNT; ++i)
 				_audio_out[i]->start();
 
@@ -91,7 +78,7 @@ class Track : Thread_deprecated<8192>
 			while (1) {
 
 				for (size_t offset = 0, cnt = 1;
-				     offset < file_size;
+				     offset < _size;
 				     offset += PERIOD_FSIZE, ++cnt) {
 
 					/*
@@ -99,8 +86,8 @@ class Track : Thread_deprecated<8192>
 					 * is the size of the period except at the end of the
 					 * file.
 					 */
-					size_t chunk = (offset + PERIOD_FSIZE > file_size)
-					               ? (file_size - offset) / CHN_CNT / FRAME_SIZE
+					size_t chunk = (offset + PERIOD_FSIZE > _size)
+					               ? (_size - offset) / CHN_CNT / FRAME_SIZE
 					               : PERIOD;
 
 					Packet *p[CHN_CNT];
@@ -118,7 +105,7 @@ class Track : Thread_deprecated<8192>
 						p[chn] = _audio_out[chn]->stream()->get(pos);
 
 					/* copy channel contents into sessions */
-					float *content = (float *)(base + offset);
+					float *content = (float *)(_base + offset);
 					for (unsigned c = 0; c < CHN_CNT * chunk; c += CHN_CNT)
 						for (int i = 0; i < CHN_CNT; ++i)
 							p[i]->content()[c / 2] = content[c + i];
@@ -131,14 +118,14 @@ class Track : Thread_deprecated<8192>
 					}
 
 					if (verbose)
-						log(_file, " submit packet ",
+						log(_name, " submit packet ",
 						    _audio_out[0]->stream()->packet_position((p[0])));
 
 					for (int i = 0; i < CHN_CNT; i++)
 						_audio_out[i]->submit(p[i]);
 				}
 
-				log("played '", _file, "' ", ++cnt, " time(s)");
+				log("played '", _name, "' ", ++cnt, " time(s)");
 			}
 		}
 

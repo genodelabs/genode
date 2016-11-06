@@ -14,11 +14,8 @@
 #pragma once
 
 #include <base/rpc_server.h>
-
 #include <util/list.h>
-
-#include <irq_session/irq_session.h>
-#include <irq_session/capability.h>
+#include <irq_session/connection.h>
 
 /* platform local includes */
 #include <irq_proxy.h>
@@ -36,10 +33,11 @@ class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_se
 {
 	private:
 
-		unsigned                        _gsi;
-		Genode::Irq_sigh                _irq_sigh;
-		Genode::Irq_session_capability  _irq_cap;
-		Genode::Irq_session::Info       _msi_info;
+		unsigned                  _gsi;
+		Genode::Irq_sigh          _irq_sigh;
+		Genode::Irq_session::Info _msi_info;
+
+		Genode::Lazy_volatile_object<Genode::Irq_connection> _irq_conn;
 
 	public:
 
@@ -50,7 +48,7 @@ class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_se
 
 		bool msi()
 		{
-			return _irq_cap.valid() &&
+			return _irq_conn.constructed() &&
 			       _msi_info.type == Genode::Irq_session::Info::Type::MSI;
 		}
 
