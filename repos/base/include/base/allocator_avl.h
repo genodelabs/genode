@@ -193,6 +193,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 	protected:
 
+		Avl_tree<Block> const & _block_tree() const { return _addr_tree; }
+
 		/**
 		 * Clean up the allocator and detect dangling allocations
 		 *
