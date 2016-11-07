@@ -36,7 +36,7 @@ namespace Genode
 							 "sev\n");
 			}
 
-			static bool is_smp() { return true; }
+			static constexpr bool SMP = true;
 	};
 }
 

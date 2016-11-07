@@ -16,6 +16,7 @@
 
 /* core includes */
 #include <board.h>
+#include <platform.h>
 
 /* Genode includes */
 #include <drivers/uart_base.h>
@@ -36,7 +37,7 @@ namespace Genode
 			 */
 			Serial(unsigned const baud_rate)
 			:
-				Tl16c750_base(Board::TL16C750_3_MMIO_BASE,
+				Tl16c750_base(Platform::mmio_to_virt(Board::TL16C750_3_MMIO_BASE),
 				              Board::TL16C750_CLOCK, baud_rate)
 			{ }
 	};

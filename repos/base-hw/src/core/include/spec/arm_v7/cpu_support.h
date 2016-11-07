@@ -120,20 +120,6 @@ class Genode::Arm_v7 : public Arm
 		};
 
 		/**
-		 * Invalidate all branch predictions
-		 */
-		static void invalidate_branch_predicts() {
-			asm volatile ("mcr p15, 0, r0, c7, c5, 6" ::: "r0"); };
-
-		/**
-		 * Switch on MMU and caches
-		 *
-		 * \param pd  kernel's pd object
-		 */
-		void enable_mmu_and_caches(Kernel::Pd& pd);
-
-
-		/**
 		 * Finish all previous data transfers
 		 */
 		static void data_synchronization_barrier() { asm volatile ("dsb"); }

@@ -96,59 +96,16 @@ class Genode::Ioapic : public Mmio
 		 *       32 bits so only the necessary half of the IRT entry is
 		 *       updated.
 		 */
-		void _update_irt_entry(unsigned irq)
-		{
-			Irte::access_t irte;
-
-			write<Ioregsel>(IOREDTBL + 2 * irq);
-			irte = read<Iowin>();
-
-			Irte::Pol::set(irte, _irq_mode[irq].polarity);
-			Irte::Trg::set(irte, _irq_mode[irq].trigger_mode);
-
-			write<Ioregsel>(IOREDTBL + 2 * irq);
-			write<Iowin>(irte);
-		}
+		void _update_irt_entry(unsigned irq);
 
 		/**
 		 * Create redirection table entry for given IRQ
 		 */
-		Irte::access_t _create_irt_entry(unsigned const irq)
-		{
-			Irte::access_t irte = REMAP_BASE + irq;
-			Irte::Mask::set(irte, 1);
-
-			Irte::Pol::set(irte, _irq_mode[irq].polarity);
-			Irte::Trg::set(irte, _irq_mode[irq].trigger_mode);
-
-			return irte;
-		}
+		Irte::access_t _create_irt_entry(unsigned const irq);
 
 	public:
 
-		Ioapic() : Mmio(Board::MMIO_IOAPIC_BASE)
-		{
-			for (unsigned i = 0; i < IRQ_COUNT; i++)
-			{
-				/* set legacy/ISA IRQs to edge, high */
-				if (i <= Board::ISA_IRQ_END) {
-					_irq_mode[i].trigger_mode = TRIGGER_EDGE;
-					_irq_mode[i].polarity = POLARITY_HIGH;
-				} else {
-					_irq_mode[i].trigger_mode = TRIGGER_LEVEL;
-					_irq_mode[i].polarity = POLARITY_LOW;
-				}
-
-				/* remap all IRQs managed by I/O APIC */
-				if (i < IRTE_COUNT) {
-					Irte::access_t irte = _create_irt_entry(i);
-					write<Ioregsel>(IOREDTBL + 2 * i + 1);
-					write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
-					write<Ioregsel>(IOREDTBL + 2 * i);
-					write<Iowin>(irte);
-				}
-			}
-		};
+		Ioapic();
 
 		/**
 		 * Set/unset mask bit of IRTE for given vector
@@ -156,32 +113,7 @@ class Genode::Ioapic : public Mmio
 		 * \param vector  targeted vector
 		 * \param set     whether to set or to unset the mask bit
 		 */
-		void toggle_mask(unsigned const vector, bool const set)
-		{
-			/*
-			 * Ignore toggle requests for vectors not handled by the I/O APIC.
-			 */
-			if (vector < REMAP_BASE || vector >= REMAP_BASE + IRTE_COUNT) {
-				return;
-			}
-
-			const unsigned irq = vector - REMAP_BASE;
-
-			/*
-			 * Only mask existing RTEs and do *not* mask edge-triggered
-			 * interrupts to avoid losing them while masked, see Intel
-			 * 82093AA I/O Advanced Programmable Interrupt Controller
-			 * (IOAPIC) specification, section 3.4.2, "Interrupt Mask"
-			 * flag and edge-triggered interrupts or:
-			 * http://yarchive.net/comp/linux/edge_triggered_interrupts.html
-			 */
-			if (_edge_triggered(irq) && set) { return; }
-
-			write<Ioregsel>(IOREDTBL + (2 * irq));
-			Irte::access_t irte = read<Iowin>();
-			Irte::Mask::set(irte, set);
-			write<Iowin>(irte);
-		}
+		void toggle_mask(unsigned const vector, bool const set);
 
 		/**
 		 * Setup mode of an IRQ to specified trigger mode and polarity
@@ -228,19 +160,7 @@ class Genode::Pic : public Mmio
 		 * \return index of first ISR bit set starting at index one, zero if no
 		 *         bit is set.
 		 */
-		inline unsigned get_lowest_bit(void)
-		{
-			unsigned bit, vec_base = 0;
-
-			for (unsigned i = 0; i < 8 * 4; i += 4) {
-				bit = __builtin_ffs(read<Isr>(i));
-				if (bit) {
-					return vec_base + bit;
-				}
-				vec_base += 32;
-			}
-			return 0;
-		}
+		inline unsigned get_lowest_bit(void);
 
 	public:
 
@@ -277,6 +197,6 @@ class Genode::Pic : public Mmio
 		void trigger_ip_interrupt(unsigned) { }
 };
 
-namespace Kernel { class Pic : public Genode::Pic { }; }
+namespace Kernel { using Genode::Pic; }
 
 #endif /* _CORE__INCLUDE__SPEC__X86_64__PIC_H_ */

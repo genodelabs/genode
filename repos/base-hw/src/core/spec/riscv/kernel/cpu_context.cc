@@ -23,4 +23,6 @@ void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
 	 * stack, i.e. increasing sp by the size of one stack.
 	 */
 	sp = sp + stack_size;
+	translation_table(table);
+	protection_domain(0);
 }

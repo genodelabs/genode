@@ -169,8 +169,8 @@ class Genode::Arm
 			{
 				access_t v = Ba::masked((addr_t)table);
 				Rgn::set(v, CACHEABLE);
-				S::set(v, Kernel::board().is_smp() ? 1 : 0);
-				if (Kernel::board().is_smp()) Irgn::set(v, CACHEABLE);
+				S::set(v, Board::SMP ? 1 : 0);
+				if (Board::SMP) Irgn::set(v, CACHEABLE);
 				else C::set(v, 1);
 				return v;
 			}
@@ -489,11 +489,26 @@ class Genode::Arm
 		void clean_invalidate_data_cache();
 
 		/**
+		 * Invalidate all branch predictions
+		 */
+		static void invalidate_branch_predicts() {
+			asm volatile ("mcr p15, 0, r0, c7, c5, 6" ::: "r0"); };
+
+		/**
 		 * Switch on MMU and caches
 		 *
-		 * \param pd  kernel's pd object
+		 * \param table  page tables physical address
 		 */
-		void enable_mmu_and_caches(Kernel::Pd & pd);
+		void enable_mmu_and_caches(Genode::addr_t table)
+		{
+			invalidate_tlb();
+			Cidr::write(0);
+			Dacr::write(Dacr::init_virt_kernel());
+			Ttbr0::write(Ttbr0::init(table));
+			Ttbcr::write(0);
+			Sctlr::enable_mmu_and_caches();
+			invalidate_branch_predicts();
+		}
 
 		/**
 		 * Invalidate all TLB entries of the address space named 'pid'
@@ -504,7 +519,7 @@ class Genode::Arm
 		/**
 		 * Invalidate all TLB entries
 		 */
-		void invalidate_tlb() {
+		static void invalidate_tlb() {
 			asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0) : ); }
 
 		static constexpr addr_t line_size = 1 << Board::CACHE_LINE_SIZE_LOG2;

@@ -13,8 +13,7 @@
 
 /* core includes */
 #include <cpu.h>
-
-namespace Kernel { void prepare_hypervisor(void); }
+#include <translation_table.h>
 
 static unsigned char hyp_mode_stack[1024];
 
@@ -61,6 +60,25 @@ static inline void prepare_nonsecure_world()
 }
 
 
+static inline void prepare_hypervisor(Genode::Translation_table & table)
+{
+	using Genode::Cpu;
+
+	/* set hypervisor exception vector */
+	Cpu::hyp_exception_entry_at((void*)0xfff00000); /* FIXME */
+
+	/* set hypervisor's translation table */
+	Cpu::Httbr::translation_table((Genode::addr_t)&table);
+
+	/* prepare MMU usage by hypervisor code */
+	Cpu::Htcr::write(Cpu::Ttbcr::init_virt_kernel());
+	Cpu::Hcptr::write(Cpu::Hcptr::init());
+	Cpu::Hmair0::write(Cpu::Mair0::init_virt_kernel());
+	Cpu::Vtcr::write(Cpu::Vtcr::init());
+	Cpu::Hsctlr::write(Cpu::Sctlr::init_value());
+}
+
+
 static inline void switch_to_supervisor_mode()
 {
 	using Psr = Genode::Cpu::Psr;
@@ -82,9 +100,9 @@ static inline void switch_to_supervisor_mode()
 }
 
 
-void Genode::Cpu::init()
+void Genode::Cpu::init(Genode::Translation_table & table)
 {
 	prepare_nonsecure_world();
-	Kernel::prepare_hypervisor();
+	prepare_hypervisor(table);
 	switch_to_supervisor_mode();
 }

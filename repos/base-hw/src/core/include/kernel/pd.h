@@ -36,7 +36,7 @@ namespace Kernel
 	 * control provides a simple interface to access the code from within
 	 * the kernel.
 	 */
-	class Mode_transition_control;
+	struct Mode_transition_control;
 
 	/**
 	 * Return the system wide mode-transition control
@@ -49,86 +49,40 @@ namespace Kernel
 	class Pd;
 }
 
-class Kernel::Mode_transition_control
+
+struct Kernel::Mode_transition_control
 {
-	friend class Pd;
+	/**
+	 * Map the mode transition page to a virtual address space
+	 *
+	 * \param tt     translation buffer of the address space
+	 * \param alloc  translation table allocator used for the mapping
+	 */
+	void map(Genode::Translation_table * tt,
+	         Genode::Translation_table_allocator * alloc);
 
-	private:
+	/**
+	 * Continue execution of client context
+	 *
+	 * \param context           targeted CPU context
+	 * \param cpu               kernel name of targeted CPU
+	 * \param entry_raw         raw pointer to assembly entry-code
+	 * \param context_ptr_base  base address of client-context pointer region
+	 */
+	void switch_to(Cpu::Context * const context,
+	               unsigned const cpu,
+	               addr_t const entry_raw,
+	               addr_t const context_ptr_base);
 
-		/*
-		 * set the table allocator to the current minimum of bits-of-one-mword
-		 * this is a limitation of the Bit_allocator used within this allocator.
-		 * actually only one page-mapping is needed by the MTC allocator
-		 */
-		typedef Genode::Translation_table_allocator_tpl<64> Allocator;
-		typedef Genode::Translation_table  Table;
-
-		Allocator   _alloc;
-		Table       _table;
-		Cpu_context _master;
-
-		/**
-		 * Return size of the mode transition
-		 */
-		static size_t _size();
-
-		/**
-		 * Return size of master-context space in the mode transition
-		 */
-		static size_t _master_context_size();
-
-		/**
-		 * Return virtual address of the user entry-code
-		 */
-		static addr_t _virt_user_entry();
-
-	public:
-
-		enum {
-			SIZE       = Cpu::mtc_size,
-			VIRT_BASE  = Cpu::exception_entry,
-			ALIGN_LOG2 = Genode::Translation_table::ALIGNM_LOG2,
-			ALIGN      = 1 << ALIGN_LOG2,
-		};
-
-		/**
-		 * Constructor
-		 *
-		 * \param c  CPU context for kernel mode entry
-		 */
-		Mode_transition_control();
-
-		/**
-		 * Map the mode transition page to a virtual address space
-		 *
-		 * \param tt     translation buffer of the address space
-		 * \param alloc  translation table allocator used for the mapping
-		 */
-		void map(Genode::Translation_table * tt,
-		         Genode::Translation_table_allocator * alloc);
-
-		/**
-		 * Continue execution of client context
-		 *
-		 * \param context           targeted CPU context
-		 * \param cpu               kernel name of targeted CPU
-		 * \param entry_raw         raw pointer to assembly entry-code
-		 * \param context_ptr_base  base address of client-context pointer region
-		 */
-		void switch_to(Cpu::Context * const context,
-		               unsigned const cpu,
-		               addr_t const entry_raw,
-		               addr_t const context_ptr_base);
-
-		/**
-		 * Continue execution of user context
-		 *
-		 * \param context           targeted CPU context
-		 * \param cpu               kernel name of targeted CPU
-		 */
-		 void switch_to_user(Cpu::Context * const context,
-		                     unsigned const cpu);
-} __attribute__((aligned(Mode_transition_control::ALIGN)));
+	/**
+	 * Continue execution of user context
+	 *
+	 * \param context           targeted CPU context
+	 * \param cpu               kernel name of targeted CPU
+	 */
+	 void switch_to_user(Cpu::Context * const context,
+	                     unsigned const cpu);
+};
 
 
 class Kernel::Pd : public Cpu::Pd,

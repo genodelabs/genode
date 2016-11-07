@@ -36,7 +36,7 @@ void Vm_session_component::exception_handler(Signal_context_capability handler)
 
 void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size)
 {
-	Page_flags pflags = Page_flags::apply_mapping(true, CACHED, false);
+	Page_flags pflags { RW, NO_EXEC, USER, NO_GLOBAL, RAM, CACHED };
 
 	try {
 		_table->insert_translation(vm_addr, phys_addr, size, pflags, _tt_alloc);

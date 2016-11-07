@@ -19,15 +19,9 @@
 #include <spec/arm/pl310.h>
 #include <spec/cortex_a9/board_support.h>
 
-namespace Genode
-{
-	class Board;
-}
+namespace Genode { class Board; }
 
 
-/**
- * Board driver for core
- */
 class Genode::Board : public Cortex_a9::Board
 {
 	public:
@@ -35,7 +29,7 @@ class Genode::Board : public Cortex_a9::Board
 		using Base = Cortex_a9::Board;
 
 		/**
-		 * Frontend to monitor firmware running in the secure world
+		 * Frontend to firmware running in the secure world
 		 */
 		struct Secure_monitor
 		{
@@ -63,7 +57,7 @@ class Genode::Board : public Cortex_a9::Board
 		{
 			private:
 
-				Secure_monitor & _monitor;
+				Secure_monitor _monitor;
 
 				unsigned long _init_value()
 				{
@@ -90,9 +84,7 @@ class Genode::Board : public Cortex_a9::Board
 
 			public:
 
-				L2_cache(Secure_monitor & monitor)
-				: Base::L2_cache(Genode::Board_base::PL310_MMIO_BASE),
-				  _monitor(monitor)
+				L2_cache(Genode::addr_t mmio) : Base::L2_cache(mmio)
 				{
 					_monitor.call(Secure_monitor::L2_CACHE_AUX_REG,
 					              _init_value());
@@ -118,17 +110,11 @@ class Genode::Board : public Cortex_a9::Board
 					_monitor.call(Secure_monitor::L2_CACHE_ENABLE_REG, 0); }
 		};
 
+		L2_cache & l2_cache() { return _l2_cache; }
+
 	private:
 
-		Secure_monitor _monitor;
-		L2_cache       _l2_cache;
-
-	public:
-
-		Board() : _l2_cache(_monitor) { _l2_cache.disable(); }
-
-		L2_cache       & l2_cache() { return _l2_cache; }
-		Secure_monitor & monitor()  { return _monitor;  }
+		L2_cache _l2_cache { Base::l2_cache().base };
 };
 
 #endif /* _CORE__INCLUDE__SPEC__PANDA__BOARD_H_ */

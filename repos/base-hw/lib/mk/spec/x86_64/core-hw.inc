@@ -27,7 +27,5 @@ SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/platform_support_common.cc
 
-NR_OF_CPUS = 1
-
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/core-hw.inc

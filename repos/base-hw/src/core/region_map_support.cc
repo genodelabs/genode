@@ -81,8 +81,8 @@ void Pager_entrypoint::entry()
 				if (!locked_ptr.valid()) return;
 
 				Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
-				as->insert_translation(_mapping.virt, _mapping.phys,
-				                       _mapping.size, _mapping.flags);
+				as->insert_translation(_mapping.virt(), _mapping.phys(),
+				                       _mapping.size(), _mapping.flags());
 			}
 
 			/* let pager object go back to no-fault state */

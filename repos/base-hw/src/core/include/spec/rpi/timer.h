@@ -44,35 +44,18 @@ class Genode::Timer : public Mmio
 
 	public:
 
-		Timer() : Mmio(Board::SYSTEM_TIMER_MMIO_BASE) { }
+		Timer();
 
 		static unsigned interrupt_id(unsigned const) {
 			return Board::SYSTEM_TIMER_IRQ; }
 
-		void start_one_shot(time_t const tics, unsigned const)
-		{
-			write<Cs::M1>(1);
-			read<Cs>();
-			write<Clo>(0);
-			write<Cmp>(read<Clo>() + tics);
-		}
-
-		time_t tics_to_us(time_t const tics) const {
-			return (tics / TICS_PER_MS) * 1000; }
-
-		time_t us_to_tics(time_t const us) const {
-			return (us / 1000) * TICS_PER_MS; }
-
-		time_t max_value() { return (Clo::access_t)~0; }
-
-		time_t value(unsigned const)
-		{
-			Cmp::access_t const cmp = read<Cmp>();
-			Clo::access_t const clo = read<Clo>();
-			return cmp > clo ? cmp - clo : 0;
-		}
+		void   start_one_shot(time_t const tics, unsigned const);
+		time_t tics_to_us(time_t const tics) const;
+		time_t us_to_tics(time_t const us) const;
+		time_t max_value();
+		time_t value(unsigned const);
 };
 
-namespace Kernel { class Timer : public Genode::Timer { }; }
+namespace Kernel { using Genode::Timer; }
 
 #endif /* _CORE__INCLUDE__SPEC__RPI__TIMER_H_ */

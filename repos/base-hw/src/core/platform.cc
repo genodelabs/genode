@@ -42,36 +42,44 @@ void __attribute__((weak)) Kernel::init_trustzone(Pic & pic) { }
  ** Platform **
  **************/
 
-addr_t Platform::core_translation_tables()
-{
-	size_t sz = max((size_t)Translation_table::TABLE_LEVEL_X_SIZE_LOG2,
-	                get_page_size_log2());
-	return align_addr<addr_t>((addr_t)&_boot_modules_binaries_end, sz);
-}
+Bootinfo const & Platform::_bootinfo() {
+	return *reinterpret_cast<Bootinfo*>(round_page((addr_t)&_prog_img_end)); }
 
+addr_t Platform::mmio_to_virt(addr_t mmio) {
+	return _bootinfo().core_mmio.virt_addr(mmio); }
 
-Genode::Memory_region_array & Platform::core_ram_regions()
-{
-	return *unmanaged_singleton<Memory_region_array>(
-		Memory_region { (addr_t)&_prog_img_beg,
-		                (size_t)((addr_t)&_prog_img_end -
-		                         (addr_t)&_prog_img_beg) },
-		Memory_region { core_translation_tables(),
-		                core_translation_tables_size() });
-}
+Translation_table * Platform::core_translation_table() {
+	return _bootinfo().table; }
 
+Translation_table_allocator * Platform::core_translation_table_allocator() {
+	return _bootinfo().table_allocator->alloc(); }
 
 void Platform::_init_io_mem_alloc()
 {
 	/* add entire adress space minus the RAM memory regions */
 	_io_mem_alloc.add_range(0, ~0x0UL);
-	Platform::ram_regions().for_each([this] (Memory_region const &r) {
+	_bootinfo().ram_regions.for_each([this] (Memory_region const &r) {
 		_io_mem_alloc.remove_range(r.base, r.size); });
-
-	/* remove IOMEM of core from its virtual address space allocator */
-	Platform::core_mmio_regions().for_each([this] (Memory_region const &r) {
-		_core_mem_alloc.virt_alloc()->remove_range(r.base, r.size);});
 };
+
+
+Memory_region_array const & Platform::_core_virt_regions()
+{
+	return *unmanaged_singleton<Memory_region_array>(
+	Memory_region(stack_area_virtual_base(), stack_area_virtual_size()));
+}
+
+
+addr_t Platform::core_phys_addr(addr_t virt)
+{
+	addr_t ret = 0;
+	_bootinfo().elf_mappings.for_each([&] (Mapping const & m)
+	{
+		if (virt >= m.virt() && virt < (m.virt() + m.size()))
+			ret = (virt - m.virt()) + m.phys();
+	});
+	return ret;
+}
 
 
 Platform::Platform()
@@ -82,14 +90,12 @@ Platform::Platform()
 {
 	_core_mem_alloc.virt_alloc()->add_range(VIRT_ADDR_SPACE_START,
 	                                        VIRT_ADDR_SPACE_SIZE);
-	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
-	                                           stack_area_virtual_size());
-
-	Platform::ram_regions().for_each([this] (Memory_region const & region) {
+	_core_virt_regions().for_each([this] (Memory_region const & r) {
+		_core_mem_alloc.virt_alloc()->remove_range(r.base, r.size); });
+	_bootinfo().elf_mappings.for_each([this] (Mapping const & m) {
+		_core_mem_alloc.virt_alloc()->remove_range(m.virt(), m.size()); });
+	_bootinfo().ram_regions.for_each([this] (Memory_region const & region) {
 		_core_mem_alloc.phys_alloc()->add_range(region.base, region.size); });
-
-	core_ram_regions().for_each([this] (Memory_region const & region) {
-		_core_mem_alloc.phys_alloc()->remove_range(region.base, region.size); });
 
 	_init_io_port_alloc();
 
@@ -106,7 +112,8 @@ Platform::Platform()
 	Boot_modules_header * header = &_boot_modules_headers_begin;
 	for (; header < &_boot_modules_headers_end; header++) {
 		Rom_module * rom_module = new (core_mem_alloc())
-			Rom_module(header->base, header->size, (const char*)header->name);
+			Rom_module(Platform::core_phys_addr(header->base), header->size,
+			           (const char*)header->name);
 		_rom_fs.insert(rom_module);
 	}
 

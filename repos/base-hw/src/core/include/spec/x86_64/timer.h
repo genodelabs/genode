@@ -73,77 +73,28 @@ class Genode::Timer : public Mmio
 		uint32_t _tics_per_ms = 0;
 
 		/* Measure LAPIC timer frequency using PIT channel 2 */
-		uint32_t _pit_calc_timer_freq(void)
-		{
-			uint32_t t_start, t_end;
-
-			/* Set channel gate high and disable speaker */
-			outb(PIT_CH2_GATE, (inb(0x61) & ~0x02) | 0x01);
-
-			/* Set timer counter (mode 0, binary count) */
-			outb(PIT_MODE, 0xb0);
-			outb(PIT_CH2_DATA, PIT_SLEEP_TICS & 0xff);
-			outb(PIT_CH2_DATA, PIT_SLEEP_TICS >> 8);
-
-			write<Tmr_initial>(~0U);
-
-			t_start = read<Tmr_current>();
-			while ((inb(PIT_CH2_GATE) & 0x20) == 0)
-			{
-				asm volatile("pause" : : : "memory");
-			}
-			t_end = read<Tmr_current>();
-
-			write<Tmr_initial>(0);
-
-			return (t_start - t_end) / PIT_SLEEP_MS;
-		}
+		uint32_t _pit_calc_timer_freq(void);
 
 	public:
 
-		Timer() : Mmio(Board::MMIO_LAPIC_BASE)
-		{
-			write<Divide_configuration::Divide_value>(
-				Divide_configuration::Divide_value::MAX);
-
-			/* Enable LAPIC timer in one-shot mode */
-			write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);
-			write<Tmr_lvt::Delivery>(0);
-			write<Tmr_lvt::Mask>(0);
-			write<Tmr_lvt::Timer_mode>(0);
-
-			/* Calculate timer frequency */
-			_tics_per_ms = _pit_calc_timer_freq();
-		}
+		Timer();
 
 		/**
 		 * Disable PIT timer channel. This is necessary since BIOS sets up
 		 * channel 0 to fire periodically.
 		 */
-		static void disable_pit()
-		{
-			outb(PIT_MODE, 0x30);
-			outb(PIT_CH0_DATA, 0);
-			outb(PIT_CH0_DATA, 0);
-		}
+		static void disable_pit();
 
 		static unsigned interrupt_id(unsigned const) {
 			return Board::TIMER_VECTOR_KERNEL; }
 
-		void start_one_shot(time_t const tics, unsigned const) {
-			write<Tmr_initial>(tics); }
-
-		time_t tics_to_us(time_t const tics) const {
-			return (tics / _tics_per_ms) * 1000; }
-
-		time_t us_to_tics(time_t const us) const {
-			return (us / 1000) * _tics_per_ms; }
-
-		time_t max_value() { return (Tmr_initial::access_t)~0; }
-
-		time_t value(unsigned const) { return read<Tmr_current>(); }
+		void start_one_shot(time_t const tics, unsigned const);
+		time_t tics_to_us(time_t const tics) const;
+		time_t us_to_tics(time_t const us) const;
+		time_t max_value();
+		time_t value(unsigned const);
 };
 
-namespace Kernel { class Timer : public Genode::Timer { }; }
+namespace Kernel { using Genode::Timer; }
 
 #endif /* _CORE__INCLUDE__SPEC__X86_64__TIMER_H_ */

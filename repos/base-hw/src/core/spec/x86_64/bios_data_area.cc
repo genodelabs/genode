@@ -13,7 +13,8 @@
 
 /* core includes */
 #include <bios_data_area.h>
+#include <platform.h>
 
 using namespace Genode;
 
-addr_t Bios_data_area::_mmio_base_virt() { return 0x1ff000; }
+addr_t Bios_data_area::_mmio_base_virt() { return Platform::mmio_to_virt(0); }

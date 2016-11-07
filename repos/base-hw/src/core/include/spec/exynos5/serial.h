@@ -17,6 +17,7 @@
 
 /* core includes */
 #include <board.h>
+#include <platform.h>
 
 /* Genode includes */
 #include <drivers/uart_base.h>
@@ -37,7 +38,7 @@ namespace Genode
 			 */
 			Serial(unsigned const baud_rate)
 			:
-				Exynos_uart_base(Board::UART_2_MMIO_BASE,
+				Exynos_uart_base(Platform::mmio_to_virt(Board::UART_2_MMIO_BASE),
 				                 Board::UART_2_CLOCK, baud_rate)
 			{ }
 	};

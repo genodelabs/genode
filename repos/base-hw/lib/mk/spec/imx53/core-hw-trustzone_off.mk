@@ -12,5 +12,4 @@ SRC_CC += spec/imx53/pic.cc
 SRC_CC += platform_services.cc
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/imx53/core-hw-trustzone.inc
-include $(REP_DIR)/lib/mk/core-hw-trustzone.inc
+include $(REP_DIR)/lib/mk/spec/imx53/core-hw.inc

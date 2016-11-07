@@ -1,0 +1,191 @@
+/*
+ * \brief  Platform implementation
+ * \author Stefan Kalkowski
+ * \date   2016-10-19
+ */
+
+/*
+ * Copyright (C) 2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* base-internal includes */
+#include <base/internal/crt0.h>
+
+/* core includes */
+#include <assert.h>
+#include <boot_modules.h>
+#include <platform.h>
+
+
+/*****************************
+ ** Platform::Ram_allocator **
+ *****************************/
+
+void * Platform::Ram_allocator::alloc_aligned(size_t size, unsigned align)
+{
+	using namespace Genode;
+
+	void * ret;
+	assert(Base::alloc_aligned(round_page(size), &ret,
+	                           max(align, get_page_size_log2())).ok());
+	return ret;
+}
+
+
+bool Platform::Ram_allocator::alloc(size_t size, void **out_addr)
+{
+	*out_addr = alloc_aligned(size, 0);
+	return true;
+}
+
+
+void Platform::Ram_allocator::add(Memory_region const & region) {
+	add_range(region.base, region.size); }
+
+
+void Platform::Ram_allocator::remove(Memory_region const & region) {
+	remove_range(region.base, region.size); }
+
+
+/******************
+ ** Platform::Pd **
+ ******************/
+
+Platform::Pd::Pd(Platform::Ram_allocator & alloc)
+: table_base(alloc.alloc_aligned(sizeof(Bootinfo::Table),
+                                 Bootinfo::Table::ALIGNM_LOG2)),
+  allocator_base(alloc.alloc_aligned(sizeof(Bootinfo::Table_allocator),
+                                     Bootinfo::Table::ALIGNM_LOG2)),
+  table(*Genode::construct_at<Bootinfo::Table>(table_base)),
+  allocator(*Genode::construct_at<Bootinfo::Table_allocator>(allocator_base))
+{
+	using namespace Genode;
+	map_insert(Mapping((addr_t)table_base, (addr_t)table_base,
+	                   sizeof(Bootinfo::Table), PAGE_FLAGS_KERN_DATA));
+	map_insert(Mapping((addr_t)allocator_base, (addr_t)allocator_base,
+	                   sizeof(Bootinfo::Table_allocator), PAGE_FLAGS_KERN_DATA));
+}
+
+
+void Platform::Pd::map(Mapping m)
+{
+	try {
+		table.insert_translation(m.virt(), m.phys(), m.size(), m.flags(),
+		                         allocator.alloc());
+	} catch(Genode::Allocator::Out_of_memory) {
+		Genode::error("translation table needs to much RAM");
+	} catch (...) {
+		Genode::error("invalid mapping ", m);
+	}
+}
+
+
+void Platform::Pd::map_insert(Mapping m)
+{
+	mappings.add(m);
+	map(m);
+}
+
+
+/**************
+ ** Platform **
+ **************/
+
+addr_t Platform::_load_elf()
+{
+	using namespace Genode;
+
+	addr_t start = ~0UL;
+	addr_t end   = 0;
+	auto lambda = [&] (Genode::Elf_segment & segment) {
+		void * phys       = (void*)(core_elf_addr + segment.file_offset());
+		start             = min(start, (addr_t) phys);
+		size_t const size = round_page(segment.mem_size());
+
+		if (segment.flags().w) {
+			unsigned align_log2;
+			for (align_log2 = 0; align_log2 < 8*sizeof(addr_t); align_log2++)
+				if ((addr_t)(1 << align_log2) & (addr_t)phys) break;
+
+			void * const dst = ram_alloc.alloc_aligned(segment.mem_size(),
+			                                           align_log2);
+			memcpy(dst, phys, segment.file_size());
+
+			if (size > segment.file_size())
+				memset((void *)((addr_t)dst + segment.file_size()),
+				       0, size - segment.file_size());
+
+			phys = dst;
+		}
+
+		//FIXME: set read-only, privileged and global accordingly
+		Page_flags flags{RW, segment.flags().x ? EXEC : NO_EXEC,
+		                 USER, NO_GLOBAL, RAM, CACHED};
+		Mapping m((addr_t)phys, (addr_t)segment.start(), size, flags);
+		core_pd->map_insert(m);
+		end = max(end, (addr_t)segment.start() + size);
+	};
+	core_elf.for_each_segment(lambda);
+	return end;
+}
+
+
+void Platform::start_core()
+{
+	typedef void (* Entry)();
+	Entry __attribute__((noreturn)) const entry
+		= reinterpret_cast<Entry>(core_elf.entry());
+	entry();
+}
+
+
+static constexpr Genode::Boot_modules_header & header() {
+	return *((Genode::Boot_modules_header*) &_boot_modules_headers_begin); }
+
+
+Platform::Platform()
+: bootstrap_region((addr_t)&_prog_img_beg,
+                   ((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg)),
+  core_pd(ram_alloc),
+  core_elf_addr(header().base),
+  core_elf(core_elf_addr)
+{
+	using namespace Genode;
+
+	/* prepare the ram allocator */
+	board.early_ram_regions.for_each([this] (Memory_region const & region) {
+		ram_alloc.add(region); });
+	ram_alloc.remove(bootstrap_region);
+
+	/* now we can use the ram allocator for core's pd */
+	core_pd.construct(ram_alloc);
+
+	/* temporarily map all bootstrap memory 1:1 for transition to core */
+	// FIXME do not insert as mapping for core
+	core_pd->map_insert(Mapping(bootstrap_region.base, bootstrap_region.base,
+	                            bootstrap_region.size, PAGE_FLAGS_KERN_TEXT));
+
+	/* map memory-mapped I/O for core */
+	board.core_mmio.for_each_mapping([&] (Mapping const & m) {
+		core_pd->map_insert(m); });
+
+	/* load ELF */
+	addr_t const elf_end = _load_elf();
+
+	/* setup boot info page */
+	void * bi_base = ram_alloc.alloc(sizeof(Bootinfo));
+	core_pd->map_insert(Mapping((addr_t)bi_base, elf_end, sizeof(Bootinfo),
+								PAGE_FLAGS_KERN_TEXT));
+	Bootinfo & bootinfo =
+		*construct_at<Bootinfo>(bi_base, &core_pd->table, &core_pd->allocator,
+		                        core_pd->mappings, board.core_mmio);
+
+	/* add all left RAM to bootinfo */
+	ram_alloc.for_each_free_region([&] (Memory_region const & r) {
+		bootinfo.ram_regions.add(r); });
+	board.late_ram_regions.for_each([&] (Memory_region const & r) {
+		bootinfo.ram_regions.add(r); });
+}

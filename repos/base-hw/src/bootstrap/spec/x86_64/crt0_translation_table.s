@@ -2,11 +2,12 @@
  * \brief   Initial pagetables for x86_64
  * \author  Adrian-Ken Rueegsegger
  * \author  Reto Buerki
+ * \author  Stefan Kalkowski
  * \date    2015-04-22
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,10 +18,10 @@
 .data
 
 	/********************************************
-	 ** Identity mapping from 2MiB to 1GiB     **
+	 ** Identity mapping from 4KiB to 1GiB     **
 	 ** plus mappings for LAPIC, I/O APIC MMIO **
 	 ** Page 0 containing the Bios Data Area   **
-	 ** gets mapped to 2MB - 4K readonly.      **
+	 ** gets mapped to 2MiB - 4KiB readonly.   **
 	 ********************************************/
 
 	/* PML4 */
@@ -57,5 +58,10 @@
 
 	.p2align MIN_PAGE_SIZE_LOG2
 	_kernel_pt_bda:
-	.fill 511, 8, 0x0
+	.fill 1, 8, 0x0
+	.set entry, 0x118f
+	.rept 510
+	.quad entry
+	.set entry, entry + 0x1000
+	.endr
 	.quad 0x000001

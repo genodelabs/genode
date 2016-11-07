@@ -17,11 +17,9 @@
 #include <root/root.h>
 
 /* core includes */
+#include <assert.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
-
-extern int _prog_img_beg;
-extern int _prog_img_end;
 
 using namespace Genode;
 
@@ -69,7 +67,8 @@ void Hw::Address_space::flush(addr_t virt, size_t size)
 	Lock::Guard guard(_lock);
 
 	try {
-		if (_tt) _tt->remove_translation(virt, size, _tt_alloc);
+		assert(_tt);
+		_tt->remove_translation(virt, size, _tt_alloc);
 
 		/* update translation caches */
 		Kernel::update_pd(_kernel_pd);
@@ -81,7 +80,8 @@ void Hw::Address_space::flush(addr_t virt, size_t size)
 
 Hw::Address_space::Address_space(Kernel::Pd* pd, Translation_table * tt,
                                  Translation_table_allocator * tt_alloc)
-: _tt(tt), _tt_phys(tt), _tt_alloc(tt_alloc), _kernel_pd(pd) { }
+: _tt(tt), _tt_phys(tt), _tt_alloc(tt_alloc), _kernel_pd(pd) {
+	Kernel::mtc()->map(_tt, _tt_alloc); }
 
 
 Hw::Address_space::Address_space(Kernel::Pd * pd)
@@ -180,55 +180,12 @@ Platform_pd::~Platform_pd()
  ** Core_platform_pd implementation **
  *************************************/
 
-Translation_table * const Core_platform_pd::_table()
-{
-	return unmanaged_singleton<Translation_table,
-	                           1 << Translation_table::ALIGNM_LOG2>();
-}
-
-
-Translation_table_allocator * const Core_platform_pd::_table_alloc()
-{
-	constexpr size_t count = Genode::Translation_table::CORE_TRANS_TABLE_COUNT;
-	using Allocator = Translation_table_allocator_tpl<count>;
-
-	static Allocator * alloc = nullptr;
-	if (!alloc) {
-		void * base = (void*) Platform::core_translation_tables();
-		alloc = construct_at<Allocator>(base);
-	}
-	return alloc->alloc();
-}
-
-
-void Core_platform_pd::_map(addr_t start, size_t size, bool io_mem)
-{
-	const Page_flags flags =
-		Page_flags::apply_mapping(true, io_mem ? UNCACHED : CACHED, io_mem);
-
-	if (start < VIRT_ADDR_SPACE_START) error("mapping outside of core's vm");
-
-	try {
-		_table()->insert_translation(start, start, size, flags, _table_alloc());
-	} catch(Allocator::Out_of_memory) {
-		error("translation table needs to much RAM");
-	} catch(...) {
-		error("invalid mapping ", Hex(start), " size=", size);
-	}
-}
-
+extern int _mt_master_context_begin;
 
 Core_platform_pd::Core_platform_pd()
-: Platform_pd(_table(), _table_alloc())
+: Platform_pd(Platform::core_translation_table(),
+              Platform::core_translation_table_allocator())
 {
-	/* map exception vector for core */
-	Kernel::mtc()->map(_table(), _table_alloc());
-
-	/* map core's ram regions */
-	Platform::core_ram_regions().for_each([this] (Memory_region const &r) {
-		_map(r.base, r.size, false); });
-
-	/* map core's mmio regions */
-	Platform::core_mmio_regions().for_each([this] (Memory_region const &r) {
-		_map(r.base, r.size, true); });
+	Genode::construct_at<Kernel::Cpu_context>(&_mt_master_context_begin,
+	                                          translation_table_phys());
 }

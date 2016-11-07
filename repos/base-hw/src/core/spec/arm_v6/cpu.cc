@@ -21,20 +21,6 @@ void Genode::Arm::clean_invalidate_data_cache() {
 	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : ); }
 
 
-void Genode::Arm::enable_mmu_and_caches(Kernel::Pd& pd)
-{
-	/* check for mapping restrictions */
-	assert(!Cpu::restricted_page_mappings());
-
-	invalidate_tlb();
-	Cidr::write(pd.asid);
-	Dacr::write(Dacr::init_virt_kernel());
-	Ttbr0::write(Ttbr0::init((Genode::addr_t)pd.translation_table()));
-	Ttbcr::write(0);
-	Sctlr::enable_mmu_and_caches();
-}
-
-
 void Genode::Cpu::translation_added(Genode::addr_t const addr,
                                     Genode::size_t const size)
 {

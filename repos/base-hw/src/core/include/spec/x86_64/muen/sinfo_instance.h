@@ -16,6 +16,7 @@
 
 /* base includes */
 #include <muen/sinfo.h>
+#include <platform.h>
 
 namespace Genode
 {
@@ -23,7 +24,7 @@ namespace Genode
 	 * Return sinfo singleton
 	 */
 	static Sinfo * sinfo() {
-		static Sinfo singleton(Sinfo::PHYSICAL_BASE_ADDR);
+		static Sinfo singleton(Platform::mmio_to_virt(Sinfo::PHYSICAL_BASE_ADDR));
 		return &singleton;
 	}
 }

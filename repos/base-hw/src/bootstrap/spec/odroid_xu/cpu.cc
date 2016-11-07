@@ -13,4 +13,4 @@
 
 #include <cpu.h>
 
-void Genode::Cpu::init() {}
+void Genode::Cpu::init(Genode::Translation_table&) {}

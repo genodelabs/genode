@@ -13,6 +13,7 @@
 
 /* core includes */
 #include <pic.h>
+#include <platform.h>
 
 using namespace Genode;
 
@@ -42,4 +43,14 @@ void Pic::init_cpu_local()
 
 	/* enable device */
 	_cpui.write<Cpui::Ctlr::Enable>(1);
+}
+
+
+Pic::Pic()
+: _distr(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_DISTR_BASE)),
+  _cpui (Platform::mmio_to_virt(Board::IRQ_CONTROLLER_CPU_BASE)),
+  _last_iar(Cpui::Iar::Irq_id::bits(spurious_id)),
+  _max_irq(_distr.max_irq())
+{
+	_init();
 }

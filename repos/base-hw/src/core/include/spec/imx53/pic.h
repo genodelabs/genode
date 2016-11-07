@@ -20,13 +20,8 @@
 /* core includes */
 #include <board.h>
 
-namespace Genode
-{
-	/**
-	 * Programmable interrupt controller for core
-	 */
-	class Pic;
-}
+namespace Genode { class Pic; }
+
 
 class Genode::Pic : public Mmio
 {
@@ -101,10 +96,9 @@ class Genode::Pic : public Mmio
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Pic() : Mmio(Board::IRQ_CONTROLLER_BASE)
+		Pic();
+
+		void init_cpu_local()
 		{
 			for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 				write<Intsec::Nonsecure>(1, i);
@@ -172,10 +166,9 @@ class Genode::Pic : public Mmio
 		 *************/
 
 		void trigger_ip_interrupt(unsigned) { }
-		void init_cpu_local() { }
 		void finish_request() { }
 };
 
-namespace Kernel { class Pic : public Genode::Pic { }; }
+namespace Kernel { using Pic = Genode::Pic; }
 
 #endif /* _CORE__INCLUDE__SPEC__IMX53__PIC_H_ */

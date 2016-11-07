@@ -20,6 +20,7 @@
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
 #include <base/internal/native_utcb.h>
+#include <base/internal/crt0.h>
 
 /* core includes */
 #include <assert.h>
@@ -647,14 +648,15 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
 Core_thread::Core_thread()
 : Core_object<Thread>(Cpu_priority::MAX, 0, "core")
 {
-	using Genode::Native_utcb;
+	using namespace Genode;
 
 	static Native_utcb * const utcb =
-		unmanaged_singleton<Native_utcb, Genode::get_page_size()>();
+		unmanaged_singleton<Native_utcb, get_page_size()>();
+	static addr_t const utcb_phys = Platform::core_phys_addr((addr_t)utcb);
 
 	/* map UTCB */
-	Genode::map_local((addr_t)utcb, (addr_t)Genode::utcb_main_thread(),
-	                  sizeof(Native_utcb) / Genode::get_page_size());
+	Genode::map_local(utcb_phys, (addr_t)utcb_main_thread(),
+	                  sizeof(Native_utcb) / get_page_size());
 
 	utcb->cap_add(core_capid());
 	utcb->cap_add(cap_id_invalid());

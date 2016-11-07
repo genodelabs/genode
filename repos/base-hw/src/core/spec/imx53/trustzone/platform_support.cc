@@ -64,26 +64,4 @@ void Kernel::init_trustzone(Pic & pic)
 }
 
 
-Memory_region_array & Platform::ram_regions()
-{
-	return *unmanaged_singleton<Memory_region_array>(
-		Memory_region { Trustzone::SECURE_RAM_BASE,
-		                Trustzone::SECURE_RAM_SIZE });
-}
-
-
-Memory_region_array & Platform::core_mmio_regions()
-{
-	return *unmanaged_singleton<Memory_region_array>(
-		Memory_region { Board::UART_1_MMIO_BASE,                /* UART */
-		                Board::UART_1_MMIO_SIZE },
-		Memory_region { Board::EPIT_1_MMIO_BASE,               /* timer */
-		                Board::EPIT_1_MMIO_SIZE },
-		Memory_region { Board::IRQ_CONTROLLER_BASE,   /* irq controller */
-		                Board::IRQ_CONTROLLER_SIZE },
-		Memory_region { Board::CSU_BASE,       /* central security unit */
-		                Board::CSU_SIZE });
-}
-
-
 Cpu::User_context::User_context() { cpsr = Psr::init_user_with_trustzone(); }

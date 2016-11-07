@@ -9,9 +9,6 @@ REQUIRES = muen
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/include/spec/x86_64/muen
 
-# add assembly sources
-SRC_S += spec/x86_64/muen/kernel/crt0_translation_table.s
-
 # add C++ sources
 SRC_CC += spec/x86_64/muen/kernel/cpu_exception.cc
 SRC_CC += spec/x86_64/muen/kernel/thread_exception.cc

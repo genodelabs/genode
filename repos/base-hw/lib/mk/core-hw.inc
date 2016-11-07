@@ -23,6 +23,7 @@ SRC_CC += core_rpc_cap_alloc.cc
 SRC_CC += dataspace_component.cc
 SRC_CC += default_log.cc
 SRC_CC += dump_alloc.cc
+SRC_CC += kernel_log.cc
 SRC_CC += io_mem_session_component.cc
 SRC_CC += io_mem_session_support.cc
 SRC_CC += irq_session_component.cc
@@ -62,6 +63,7 @@ SRC_CC += capability.cc
 include $(BASE_DIR)/src/core/version.inc
 
 # configure multiprocessor mode
+NR_OF_CPUS ?= 1
 CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
 
 # declare source locations

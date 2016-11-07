@@ -28,6 +28,30 @@
 
 .section .text
 
+/*
+ * On virtualization exceptions the CPU has to jump to one of the following
+ * 7 entry vectors to switch to a kernel context.
+ */
+.p2align 12
+.global _vt_host_entry
+_vt_host_entry:
+	b _vt_rst_entry
+	b _vt_und_entry    /* undefined instruction  */
+	b _vt_svc_entry    /* hypervisor call        */
+	b _vt_pab_entry    /* prefetch abort         */
+	b _vt_dab_entry    /* data abort             */
+	b _vt_trp_entry    /* hypervisor trap        */
+	b _vt_irq_entry    /* interrupt request      */
+	_vm_exit 7          /* fast interrupt request */
+
+_vt_rst_entry: _vm_exit 1
+_vt_und_entry: _vm_exit 2
+_vt_svc_entry: _vm_exit 3
+_vt_pab_entry: _vm_exit 4
+_vt_dab_entry: _vm_exit 5
+_vt_irq_entry: _vm_exit 6
+_vt_trp_entry: _vm_exit 8
+
 /* space for a copy of the host context */
 .p2align 2
 .global _vt_host_context_ptr
@@ -148,28 +172,3 @@ _vt_vm_entry:
 	cps   #SVC_MODE
 	ldm   r0!, {r5 - r12}
 	hvc   #0
-
-/*
- * On virtualization exceptions the CPU has to jump to one of the following
- * 7 entry vectors to switch to a kernel context.
- */
-.p2align 5
-.global _vt_host_entry
-_vt_host_entry:
-	b _vt_rst_entry
-	b _vt_und_entry    /* undefined instruction  */
-	b _vt_svc_entry    /* hypervisor call        */
-	b _vt_pab_entry    /* prefetch abort         */
-	b _vt_dab_entry    /* data abort             */
-	b _vt_trp_entry    /* hypervisor trap        */
-	b _vt_irq_entry    /* interrupt request      */
-	_vm_exit 7          /* fast interrupt request */
-
-_vt_rst_entry: _vm_exit 1
-_vt_und_entry: _vm_exit 2
-_vt_svc_entry: _vm_exit 3
-_vt_pab_entry: _vm_exit 4
-_vt_dab_entry: _vm_exit 5
-_vt_irq_entry: _vm_exit 6
-_vt_trp_entry: _vm_exit 8
-

@@ -59,18 +59,6 @@ struct Msi_address : Register<32>
 };
 
 
-Memory_region_array & Platform::core_mmio_regions()
-{
-	return *unmanaged_singleton<Memory_region_array>(
-		Memory_region { Sinfo::PHYSICAL_BASE_ADDR,      /* Sinfo pages */
-		                Sinfo::SIZE },
-		Memory_region { Board::TIMER_BASE_ADDR,         /* Timer page */
-		                Board::TIMER_SIZE },
-		Memory_region { Board::TIMER_PREEMPT_BASE_ADDR, /* Timed event page */
-		                Board::TIMER_PREEMPT_SIZE });   /* for preemption   */
-}
-
-
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
 
 
@@ -96,21 +84,6 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 	log("enabling MSI for device with SID ", Hex(sid), ": "
 	    "IRTE ", dev_info.irte_start, ", IRQ ", irq_number);
 	return true;
-}
-
-
-Memory_region_array & Platform::ram_regions()
-{
-	static Memory_region_array ram;
-
-	if (ram.count() == 0) {
-		struct Sinfo::Memregion_info region;
-		if (!sinfo()->get_memregion_info("ram", &region))
-			error("Unable to retrieve base-hw ram region");
-		else
-			ram.add(Memory_region { region.address, region.size });
-	}
-	return ram;
 }
 
 

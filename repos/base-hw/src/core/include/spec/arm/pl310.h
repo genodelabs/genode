@@ -19,10 +19,7 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-namespace Arm
-{
-	struct Pl310;
-}
+namespace Arm { struct Pl310; }
 
 
 /**
@@ -68,7 +65,8 @@ class Arm::Pl310 : public Genode::Mmio
 
 		Pl310(Genode::addr_t const base) : Mmio(base) { }
 
-		void enable() {}
+		void enable()  {}
+		void disable() {}
 
 		void clean_invalidate()
 		{

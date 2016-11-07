@@ -22,5 +22,4 @@ SRC_CC += spec/arm_v7/trustzone/vm_session_component.cc
 SRC_S += spec/arm_v7/trustzone/mode_transition.s
 
 # include less specific configuration
-include $(REP_DIR)/lib/mk/spec/imx53/core-hw-trustzone.inc
-include $(REP_DIR)/lib/mk/core-hw-trustzone.inc
+include $(REP_DIR)/lib/mk/spec/imx53/core-hw.inc

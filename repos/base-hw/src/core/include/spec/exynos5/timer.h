@@ -19,6 +19,7 @@
 
 /* core include */
 #include <board.h>
+#include <platform.h>
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -207,7 +208,7 @@ class Genode::Timer : public Mmio
 		 */
 		Timer()
 		:
-			Mmio(Board::MCT_MMIO_BASE),
+			Mmio(Platform::mmio_to_virt(Board::MCT_MMIO_BASE)),
 			_tics_per_ms(_calc_tics_per_ms(Board::MCT_CLOCK))
 		{
 			Mct_cfg::access_t mct_cfg = 0;

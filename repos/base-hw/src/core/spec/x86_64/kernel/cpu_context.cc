@@ -13,6 +13,7 @@
 
 /* core includes */
 #include <kernel/cpu.h>
+#include <base/log.h>
 
 void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
 {
@@ -21,5 +22,6 @@ void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
 	 * of all CPU's kernel stacks, on this uni-processor platform
 	 * it is sufficient to increase it by the stack's size
 	 */
-	sp = sp + stack_size;
+	sp  = sp + stack_size;
+	cr3 = Genode::Cpu::Cr3::init(table);
 }

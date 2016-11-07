@@ -43,24 +43,22 @@ Genode::Board & Kernel::board() {
  */
 extern "C" void init_kernel()
 {
-	/*
-	 * As atomic operations are broken in physical mode on some platforms
-	 * we must avoid the use of 'cmpxchg' by now (includes not using any
-	 * local static objects.
-	 */
-
-	board().init();
+	static volatile bool initialized = false;
+	if (Cpu::executing_id()) while (!initialized) ;
 
 	/* initialize cpu pool */
 	cpu_pool();
 
 	/* initialize current cpu */
-	cpu_pool()->cpu(Cpu::executing_id())->init(*pic(), *core_pd(), board());
+	cpu_pool()->cpu(Cpu::executing_id())->init(*pic()/*, *core_pd(), board()*/);
 
 	Core_thread::singleton();
 
-	Genode::log("");
-	Genode::log("kernel initialized");
+	if (!Cpu::executing_id()) {
+		initialized = true;
+		Genode::log("");
+		Genode::log("kernel initialized");
+	}
 
 	kernel();
 }

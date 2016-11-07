@@ -27,7 +27,6 @@
 
 /* core includes */
 #include <fpu.h>
-#include <timer.h>
 
 namespace Genode {
 	class Cpu;

@@ -210,17 +210,7 @@ class Genode::Pic
 
 		enum { NR_OF_IRQ = Distr::nr_of_irq };
 
-		/**
-		 * Constructor
-		 */
-		Pic()
-		: _distr(Board::IRQ_CONTROLLER_DISTR_BASE),
-		  _cpui (Board::IRQ_CONTROLLER_CPU_BASE),
-		  _last_iar(Cpui::Iar::Irq_id::bits(spurious_id)),
-		  _max_irq(_distr.max_irq())
-		{
-			_init();
-		}
+		Pic();
 
 		/**
 		 * Initialize CPU local interface of the controller

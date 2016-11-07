@@ -13,8 +13,11 @@
 
 /* core includes */
 #include <pic.h>
+#include <platform.h>
 
 using namespace Genode;
+
+Pic::Pic() : Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE)) { }
 
 void Pic::_init_security_ext() { }
 

@@ -17,11 +17,7 @@
 /* core includes */
 #include <spec/cortex_a9/cpu_support.h>
 
-namespace Genode
-{
-	class Cpu;
-}
-
+namespace Genode { class Cpu; }
 
 /**
  * Override the Cortex A9 Cpu driver, because some registers can be accessed
@@ -33,7 +29,7 @@ class Genode::Cpu : public Genode::Cortex_a9
 
 		struct Actlr : Cortex_a9::Actlr
 		{
-			static void enable_smp();
+			static void enable_smp(Board&);
 		};
 };
 

@@ -16,30 +16,28 @@
 
 /* core includes */
 #include <board.h>
+#include <platform.h>
 
 /* Genode includes */
 #include <drivers/uart_base.h>
 
-namespace Genode
-{
-	/**
-	 * Serial output driver for core
-	 */
-	class Serial : public Pl011_base
-	{
-		public:
+namespace Genode { class Serial; }
 
-			/**
-			 * Constructor
-			 *
-			 * \param baud_rate  targeted transfer baud-rate
-			 */
-			Serial(unsigned const baud_rate)
-			:
-				Pl011_base(Board::PL011_0_MMIO_BASE,
-				           Board::PL011_0_CLOCK, baud_rate)
-			{ }
-	};
-}
+
+class Genode::Serial : public Pl011_base
+{
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param baud_rate  targeted transfer baud-rate
+		 */
+		Serial(unsigned const baud_rate)
+		:
+			Pl011_base(Platform::mmio_to_virt(Board::PL011_0_MMIO_BASE),
+			           Board::PL011_0_CLOCK, baud_rate)
+		{ }
+};
 
 #endif /* _CORE__INCLUDE__SPEC__PL011__SERIAL_H_ */

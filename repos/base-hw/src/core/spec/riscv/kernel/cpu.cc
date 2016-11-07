@@ -20,49 +20,15 @@ using namespace Kernel;
 
 extern Genode::addr_t _mt_client_context_ptr;
 
-struct Mstatus : Genode::Register<64>
+void Kernel::Cpu::init(Kernel::Pic &pic/*, Kernel::Pd & core_pd,
+                       Genode::Board & board*/)
 {
-	enum {
-		USER       = 0,
-		SUPERVISOR = 1,
-		MACHINE    = 3,
-		Sv39       = 9,
-	};
-	struct Ie    : Bitfield<0, 1> { };
-	struct Priv  : Bitfield<1, 2> { };
-	struct Ie1   : Bitfield<3, 1> { };
-	struct Priv1 : Bitfield<4, 2> { };
-	struct Fs    : Bitfield<12, 2> { enum { INITIAL = 1 }; };
-	struct Vm    : Bitfield<17, 5> { };
-	struct Mprv  : Bitfield<16, 1> { };
-};
-
-
-void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd,
-                       Genode::Board & board)
-{
-	/* read status register */
-	Mstatus::access_t mstatus = 0;
-
-	Mstatus::Vm::set(mstatus, Mstatus::Sv39);         /* enable Sv39 paging  */
-	Mstatus::Fs::set(mstatus, Mstatus::Fs::INITIAL);  /* enable FPU          */
-	Mstatus::Ie1::set(mstatus, 1);                    /* user mode interrupt */
-	Mstatus::Priv1::set(mstatus, Mstatus::USER);      /* set user mode       */
-	Mstatus::Ie::set(mstatus, 0);                     /* disable interrupts  */
-	Mstatus::Priv::set(mstatus, Mstatus::SUPERVISOR); /* set supervisor mode */
-
 	addr_t client_context_ptr_off = (addr_t)&_mt_client_context_ptr & 0xfff;
 	addr_t client_context_ptr     = exception_entry | client_context_ptr_off;
-	asm volatile ("csrw sasid,   %0\n" /* address space id  */
-	              "csrw sptbr,   %1\n" /* set page table    */
-	              "csrw mstatus, %2\n" /* change mode       */
-	              "csrw stvec,   %3\n" /* exception vector  */
-	              "csrw sscratch,%4\n" /* master conext ptr */
+	asm volatile ("csrw stvec,   %0\n" /* exception vector  */
+	              "csrw sscratch,%1\n" /* master conext ptr */
 	              :
-	              : "r" (core_pd.asid),
-	                "r" (core_pd.translation_table()),
-	                "r" (mstatus),
-	                "r" (exception_entry),
+	              : "r" (exception_entry),
 	                "r" (client_context_ptr)
 	              : "memory");
 }

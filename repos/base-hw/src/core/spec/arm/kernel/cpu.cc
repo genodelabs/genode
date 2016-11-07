@@ -19,26 +19,16 @@
 #include <pic.h>
 #include <trustzone.h>
 
-void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd,
-                       Genode::Board & board)
+void Kernel::Cpu::init(Kernel::Pic &pic)
 {
-	Sctlr::init();
-
-	/* switch to core address space */
-	Cpu::enable_mmu_and_caches(core_pd);
-
-	/*
-	 * TrustZone initialization code
-	 */
-	init_trustzone(pic);
-
-	/*
-	 * Enable performance counter
-	 */
-	perf_counter()->enable();
-
 	/* locally initialize interrupt controller */
 	pic.init_cpu_local();
+
+	/* TrustZone initialization code */
+	init_trustzone(pic);
+
+	/* enable performance counter */
+	perf_counter()->enable();
 
 	/* enable timer interrupt */
 	pic.unmask(Timer::interrupt_id(id()), id());

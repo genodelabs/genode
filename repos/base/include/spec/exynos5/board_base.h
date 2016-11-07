@@ -35,6 +35,7 @@ struct Genode::Exynos5
 		IRQ_CONTROLLER_BASE         = 0x10480000,
 		IRQ_CONTROLLER_SIZE         = 0x00010000,
 		IRQ_CONTROLLER_VT_CTRL_BASE = 0x10484000,
+		IRQ_CONTROLLER_VT_CTRL_SIZE = 0x1000,
 		IRQ_CONTROLLER_VT_CPU_BASE  = 0x10486000,
 		IRQ_CONTROLLER_VT_CPU_SIZE  = 0x1000,
 
@@ -44,6 +45,7 @@ struct Genode::Exynos5
 
 		/* UART */
 		UART_2_MMIO_BASE = 0x12C20000,
+		UART_2_MMIO_SIZE = 0x1000,
 		UART_2_IRQ       = 85,
 
 		/* pulse-width-modulation timer  */

@@ -5,5 +5,7 @@
 # \date   2012-10-24
 #
 
+REQUIRES = imx53
+
 # add library dependencies
 LIBS += core-hw-trustzone_off

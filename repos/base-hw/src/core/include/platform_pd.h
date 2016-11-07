@@ -211,29 +211,9 @@ class Genode::Platform_pd : public Hw::Address_space,
 };
 
 
-class Genode::Core_platform_pd : public Genode::Platform_pd
+struct Genode::Core_platform_pd : Genode::Platform_pd
 {
-	private:
-
-		static inline Translation_table           * const _table();
-		static inline Translation_table_allocator * const _table_alloc();
-
-		/**
-		 * Establish initial one-to-one mappings for core/kernel.
-		 * This function avoids to take the core-pd's translation table
-		 * lock in contrast to normal translation insertions to
-		 * circumvent strex/ldrex problems in early bootstrap code
-		 * on some ARM SoCs.
-		 *
-		 * \param start   physical/virtual start address of area
-		 * \param size    size of area
-		 * \param io_mem  true if it should be marked as device memory
-		 */
-		void _map(addr_t start, size_t size, bool io_mem);
-
-	public:
-
-		Core_platform_pd();
+	Core_platform_pd();
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

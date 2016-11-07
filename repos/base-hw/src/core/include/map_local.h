@@ -30,8 +30,7 @@ namespace Genode {
 	 * \return true on success
 	 */
 	bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
-	               Page_flags flags = { true, true, false, false,
-	                                    false, CACHED });
+	               Page_flags flags = PAGE_FLAGS_KERN_DATA);
 
 	/**
 	 * Unmap pages from core's address space

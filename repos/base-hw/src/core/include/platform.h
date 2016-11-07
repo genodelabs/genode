@@ -25,6 +25,7 @@
 #include <kernel/core_interface.h>
 
 /* core includes */
+#include <bootinfo.h>
 #include <translation_table_allocator_tpl.h>
 #include <platform_generic.h>
 #include <core_region_map.h>
@@ -45,6 +46,9 @@ namespace Genode {
 			Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
 			Phys_allocator     _irq_alloc;      /* IRQ allocator          */
 			Rom_fs             _rom_fs;         /* ROM file system        */
+
+			static Genode::Bootinfo const &            _bootinfo();
+			static Genode::Memory_region_array const & _core_virt_regions();
 
 			/**
 			 * Initialize I/O port allocator
@@ -68,8 +72,9 @@ namespace Genode {
 
 		public:
 
-
 			Platform();
+
+			static addr_t mmio_to_virt(addr_t mmio);
 
 			/**
 			 * Return platform IRQ-number for user IRQ-number 'user_irq'
@@ -99,23 +104,12 @@ namespace Genode {
 			static bool get_msi_params(const addr_t mmconf,
 			                           addr_t &address, addr_t &data,
 			                           unsigned &irq_number);
-			/**
-			 * Return address of cores translation table allocator
-			 */
-			static addr_t core_translation_tables();
 
-			/**
-			 * Return size of cores translation table allocator
-			 */
-			static constexpr size_t core_translation_tables_size()
-			{
-				return round_page(sizeof(Translation_table_allocator_tpl<
-				                         Translation_table::CORE_TRANS_TABLE_COUNT>));
-			}
+			static addr_t core_phys_addr(addr_t virt);
 
-			static Genode::Memory_region_array & ram_regions();
-			static Memory_region_array &         core_ram_regions();
-			static Genode::Memory_region_array & core_mmio_regions();
+			static Translation_table * core_translation_table();
+
+			static Translation_table_allocator * core_translation_table_allocator();
 
 
 			/********************************

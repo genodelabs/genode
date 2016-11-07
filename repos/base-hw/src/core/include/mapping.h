@@ -14,39 +14,50 @@
 #ifndef _MAPPING_H_
 #define _MAPPING_H_
 
-#include <base/output.h>
+#include <memory_region.h>
 #include <page_flags.h>
 
-namespace Genode { struct Mapping; }
+namespace Genode { class Mapping; }
 
-struct Genode::Mapping
+class Genode::Mapping
 {
-	addr_t     phys = 0;
-	addr_t     virt = 0;
-	size_t     size = 0;
-	Page_flags flags;
+	private:
 
-	Mapping() {}
+		Memory_region _phys { 0, 0 };
+		addr_t        _virt = 0;
+		Page_flags    _flags { RO, NO_EXEC, KERN, NO_GLOBAL, RAM, CACHED };
 
-	Mapping(addr_t virt, addr_t phys, Cache_attribute cacheable,
-	        bool io, unsigned size_log2, bool writeable)
-	: phys(phys), virt(virt), size(1 << size_log2),
-	  flags{ writeable, true, false, false, io, cacheable } {}
+	public:
 
-	Mapping(addr_t phys, addr_t virt, size_t size, Page_flags flags)
-	: phys(phys), virt(virt), size(size), flags(flags) {}
+		Mapping() {}
 
-	void print(Output & out) const
-	{
-		Genode::print(out, "phys=", (void*)phys, " => virt=", (void*) virt,
-		              " (size=", Hex(size, Hex::PREFIX, Hex::PAD),
-		              " page-flags: ", flags, ")");
-	}
+		Mapping(addr_t phys, addr_t virt, size_t size, Page_flags flags)
+		: _phys(phys, size), _virt(virt), _flags(flags) {}
 
-	/**
-	 * Dummy implementation used by generic region_map code
-	 */
-	void prepare_map_operation() {}
+		void print(Output & out) const
+		{
+			Genode::print(out, "physical region(", _phys,
+			              ") => virtual address=", (void*) _virt,
+			              " with page-flags: ", _flags, ")");
+		}
+
+		addr_t     phys()  const { return _phys.base; }
+		addr_t     virt()  const { return _virt;      }
+		size_t     size()  const { return _phys.size; }
+		Page_flags flags() const { return _flags;     }
+
+
+		/***********************************************
+		 ** Interface used by generic region_map code **
+		 ***********************************************/
+
+		Mapping(addr_t virt, addr_t phys, Cache_attribute cacheable,
+				bool io, unsigned size_log2, bool writeable)
+			: _phys(phys, 1 << size_log2), _virt(virt),
+			  _flags { writeable ? RW : RO, EXEC, USER, NO_GLOBAL,
+			           io ? DEVICE : RAM, cacheable } {}
+
+		void prepare_map_operation() const {}
 };
 
 #endif /* _MAPPING_H_ */

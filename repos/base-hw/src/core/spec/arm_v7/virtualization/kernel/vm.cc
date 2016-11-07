@@ -32,11 +32,6 @@ namespace Kernel
 	 * Kernel private virtualization interrupts, delivered to VM/VMMs
 	 */
 	struct Vm_irq;
-
-	/**
-	 * Cpu-specific initialization for virtualization support
-	 */
-	void prepare_hypervisor(void);
 }
 
 using namespace Kernel;
@@ -44,8 +39,6 @@ using namespace Kernel;
 extern void *         _vt_vm_entry;
 extern void *         _vt_host_entry;
 extern Genode::addr_t _vt_vm_context_ptr;
-extern Genode::addr_t _vt_host_context_ptr;
-extern Genode::addr_t _mt_master_context_begin;
 
 
 struct Kernel::Vm_irq : Kernel::Irq
@@ -82,7 +75,7 @@ struct Kernel::Virtual_pic : Genode::Mmio
 	Vm_irq irq = Genode::Board::VT_MAINTAINANCE_IRQ;
 
 	Virtual_pic()
-	: Genode::Mmio(Genode::Board::IRQ_CONTROLLER_VT_CTRL_BASE) { }
+	: Genode::Mmio(Genode::Platform::mmio_to_virt(Genode::Board::IRQ_CONTROLLER_VT_CTRL_BASE)) { }
 
 	static Virtual_pic& pic()
 	{
@@ -177,28 +170,6 @@ struct Kernel::Virtual_timer
 		             "r" (s->timer_val), "r" (s->timer_ctrl));
 	}
 };
-
-
-void Kernel::prepare_hypervisor()
-{
-	/* set hypervisor exception vector */
-	Cpu::hyp_exception_entry_at(&_vt_host_entry);
-
-	/* set hypervisor's translation table */
-	Genode::Translation_table * table =
-		core_pd()->platform_pd()->translation_table_phys();
-	Cpu::Httbr::translation_table((addr_t)table);
-
-	/* prepare MMU usage by hypervisor code */
-	Cpu::Htcr::write(Cpu::Ttbcr::init_virt_kernel());
-	Cpu::Hcptr::write(Cpu::Hcptr::init());
-	Cpu::Hmair0::write(Cpu::Mair0::init_virt_kernel());
-	Cpu::Vtcr::write(Cpu::Vtcr::init());
-	Cpu::Hsctlr::write(Cpu::Sctlr::init_value());
-
-	/* initialize host context used in virtualization world switch */
-	*((void**)&_vt_host_context_ptr) = &_mt_master_context_begin;
-}
 
 
 using Vmid_allocator = Genode::Bit_allocator<256>;

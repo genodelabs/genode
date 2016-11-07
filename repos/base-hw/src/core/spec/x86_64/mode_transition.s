@@ -307,48 +307,7 @@
 	.quad MT_IRQ_STACK
 	.space 76
 
-	/******************************************
-	 ** Global Descriptor Table (GDT)        **
-	 ** See Intel SDM Vol. 3A, section 3.5.1 **
-	 ******************************************/
-
-	.align 4
-	.space 2
-
-	.global _mt_gdt_ptr
-	.global _mt_gdt_start
-	_mt_gdt_ptr:
-	.word _mt_gdt_end - _mt_gdt_start - 1 /* limit        */
-	.long _mt_gdt_start                   /* base address */
-
-	.align 8
-	_mt_gdt_start:
-	/* Null descriptor */
-	.quad 0
-	/* 64-bit code segment descriptor */
-	.long 0
-	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
-	.long 0x209800
-	/* 64-bit data segment descriptor */
-	.long 0
-	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
-	.long 0x209300
-	/* 64-bit user code segment descriptor */
-	.long 0
-	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
-	.long 0x20f800
-	/* 64-bit user data segment descriptor */
-	.long 0
-	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
-	.long 0x20f300
-	/* Task segment descriptor */
-	.long (MT_TSS & 0xffff) << 16 | TSS_LIMIT
-	/* GDTE_PRESENT | GDTE_SYS_TSS */
-	.long ((MT_TSS >> 24) & 0xff) << 24 | ((MT_TSS >> 16) & 0xff) | TSS_TYPE
-	.long MT_TSS >> 32
-	.long 0
-	.global _mt_gdt_end
-	_mt_gdt_end:
+	_define_gdt MT_TSS
 
 	/************************************************
 	 ** Temporary interrupt stack                  **

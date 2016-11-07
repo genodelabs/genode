@@ -16,6 +16,7 @@
 
 /* core includes */
 #include <board.h>
+#include <platform.h>
 
 /* Genode includes */
 #include <drivers/uart_base.h>
@@ -36,7 +37,7 @@ class Genode::Serial : public Xilinx_uartps_base
 		 */
 		Serial(unsigned const baud_rate)
 		:
-			Xilinx_uartps_base(Board::UART_0_MMIO_BASE,
+			Xilinx_uartps_base(Platform::mmio_to_virt(Board::UART_0_MMIO_BASE),
 			                   Board::UART_CLOCK, baud_rate)
 		{ }
 };

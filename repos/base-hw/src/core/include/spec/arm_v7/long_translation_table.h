@@ -203,7 +203,9 @@ class Genode::Long_translation_table
 
 				static typename Descriptor::access_t create(Page_flags const &f)
 				{
-					if (f.device) {  return Attribute_index::bits(DEVICE); }
+					if (f.type == Genode::DEVICE)
+						return Attribute_index::bits(DEVICE);
+
 					switch (f.cacheable) {
 					case CACHED:         return Attribute_index::bits(CACHED);
 					case WRITE_COMBINED:

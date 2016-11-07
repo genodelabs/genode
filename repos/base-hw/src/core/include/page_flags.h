@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,48 +17,55 @@
 #include <base/cache.h>
 #include <base/output.h>
 
-namespace Genode { struct Page_flags; }
+namespace Genode {
+
+	enum Writeable   { RO, RW            };
+	enum Executeable { NO_EXEC, EXEC     };
+	enum Privileged  { USER, KERN        };
+	enum Global      { NO_GLOBAL, GLOBAL };
+	enum Type        { RAM, DEVICE       };
+
+	struct Page_flags;
+}
 
 struct Genode::Page_flags
 {
-	bool            writeable;
-	bool            executable;
-	bool            privileged;
-	bool            global;
-	bool            device;
+	Writeable       writeable;
+	Executeable     executable;
+	Privileged      privileged;
+	Global          global;
+	Type            type;
 	Cache_attribute cacheable;
-
-	/**
-	 * Create flag POD for Genode pagers
-	 */
-	static const Page_flags
-	apply_mapping(bool const writeable,
-	              Cache_attribute const cacheable,
-	              bool const io_mem) {
-		return Page_flags { writeable, true, false, false,
-			                io_mem, cacheable }; }
-
-	/**
-	 * Create flag POD for the mode transition region
-	 */
-	static const Page_flags mode_transition() {
-		return Page_flags { true, true, true, true, false, CACHED }; }
 
 	void print(Output & out) const
 	{
 		using Genode::print;
 
-		print(out, writeable  ? "writeable, " : "readonly, ",
-		           executable ? "exec, "      : "noexec, ");
-		if (privileged) print(out, "privileged, ");
-		if (global)     print(out, "global, ");
-		if (device)     print(out, "iomem, ");
+		print(out, (writeable == RW)   ? "writeable, " : "readonly, ",
+		           (executable ==EXEC) ? "exec, "      : "noexec, ");
+		if (privileged == KERN)   print(out, "privileged, ");
+		if (global     == GLOBAL) print(out, "global, ");
+		if (type       == DEVICE) print(out, "iomem, ");
 		switch (cacheable) {
-			case UNCACHED:       print(out, "uncached");       break;
-			case CACHED:         print(out, "cached");         break;
-			case WRITE_COMBINED: print(out, "write-combined"); break;
+			case UNCACHED:        print(out, "uncached");       break;
+			case CACHED:          print(out, "cached");         break;
+			case WRITE_COMBINED:  print(out, "write-combined"); break;
 		};
 	}
 };
+
+
+namespace Genode {
+	static constexpr Page_flags PAGE_FLAGS_KERN_IO
+		{ RW, NO_EXEC, USER, NO_GLOBAL, DEVICE, UNCACHED };
+	static constexpr Page_flags PAGE_FLAGS_KERN_DATA
+		{ RW, EXEC,    USER, NO_GLOBAL, RAM,    CACHED   };
+	static constexpr Page_flags PAGE_FLAGS_KERN_TEXT
+		{ RW, EXEC,    USER, NO_GLOBAL, RAM,    CACHED   };
+	static constexpr Page_flags PAGE_FLAGS_KERN_EXCEP
+		{ RW, EXEC,    USER, GLOBAL,    RAM,    CACHED   };
+	static constexpr Page_flags PAGE_FLAGS_UTCB
+		{ RW, NO_EXEC, USER, NO_GLOBAL, RAM,    CACHED   };
+}
 
 #endif /* _CORE__INCLUDE__PAGE_FLAGS_H_ */

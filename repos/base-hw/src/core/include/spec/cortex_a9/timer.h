@@ -70,13 +70,7 @@ class Genode::Timer : public Mmio
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Timer() : Mmio(Board::PRIVATE_TIMER_MMIO_BASE)
-		{
-			write<Control::Timer_enable>(0);
-		}
+		Timer();
 
 		/**
 		 * Return kernel name of timer interrupt
@@ -89,21 +83,7 @@ class Genode::Timer : public Mmio
 		 *
 		 * \param tics  delay of timer interrupt
 		 */
-		void start_one_shot(time_t const tics, unsigned const)
-		{
-			enum { PRESCALER = Board::CORTEX_A9_PRIVATE_TIMER_DIV - 1 };
-
-			/* reset timer */
-			write<Interrupt_status::Event>(1);
-			Control::access_t control = 0;
-			Control::Irq_enable::set(control, 1);
-			Control::Prescaler::set(control, PRESCALER);
-			write<Control>(control);
-
-			/* load timer and start decrementing */
-			write<Load>(tics);
-			write<Control::Timer_enable>(1);
-		}
+		void start_one_shot(time_t const tics, unsigned const);
 
 		time_t tics_to_us(time_t const tics) const {
 			return (tics / TICS_PER_MS) * 1000; }
@@ -119,6 +99,6 @@ class Genode::Timer : public Mmio
 		time_t max_value() { return (Load::access_t)~0; }
 };
 
-namespace Kernel { class Timer : public Genode::Timer { }; }
+namespace Kernel { using Genode::Timer; }
 
 #endif /* _CORE__INCLUDE__SPEC__CORTEX_A9__TIMER_H_ */

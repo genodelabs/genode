@@ -61,15 +61,18 @@ class Genode::Translation
 		_create(Page_flags const & f, addr_t const pa)
 		{
 			typename T::access_t v = T::Pa::masked(pa);
-			T::S::set(v, Kernel::board().is_smp());
+			T::S::set(v, Board::SMP);
 			T::Ng::set(v, !f.global);
 			T::Xn::set(v, !f.executable);
-			if (f.device) { T::Tex::set(v, _device_tex()); }
-			else {
-			switch (f.cacheable) {
-			case         CACHED: T::Tex::set(v, 5);
-			case WRITE_COMBINED: T::B::set(v, 1);   break;
-			case       UNCACHED: T::Tex::set(v, 1); break; } }
+			if (f.type == DEVICE) {
+				T::Tex::set(v, _device_tex());
+			} else {
+				switch (f.cacheable) {
+					case         CACHED: T::Tex::set(v, 5);
+					case WRITE_COMBINED: T::B::set(v, 1);   break;
+					case       UNCACHED: T::Tex::set(v, 1); break;
+				}
+			}
 			if (f.writeable) if (f.privileged) T::Ap::set(v, 1);
 				             else              T::Ap::set(v, 3);
 			else             if (f.privileged) T::Ap::set(v, 5);

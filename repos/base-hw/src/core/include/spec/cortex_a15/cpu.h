@@ -16,6 +16,7 @@
 #define _CORE__INCLUDE__SPEC__CORTEX_A15__CPU_H_
 
 /* core includes */
+#include <translation_table.h>
 #include <spec/arm_v7/cpu_support.h>
 
 namespace Genode { class Cpu; }
@@ -431,7 +432,22 @@ class Genode::Cpu : public Arm_v7
 		 * Hook function called at the very beginning
 		 * of the local cpu initialization
 		 */
-		void init();
+		void init(Genode::Translation_table&);
+
+		/**
+		 * Switch on MMU and caches
+		 *
+		 * \param table  physical page table address
+		 */
+		void enable_mmu_and_caches(Genode::addr_t table)
+		{
+			Cpu::Mair0::write(Cpu::Mair0::init_virt_kernel());
+			Cpu::Dacr::write(Cpu::Dacr::init_virt_kernel());
+			Cpu::Ttbr0::write(Cpu::Ttbr0::init(table, 0));
+			Cpu::Ttbcr::write(Cpu::Ttbcr::init_virt_kernel());
+			Cpu::Sctlr::enable_mmu_and_caches();
+			invalidate_branch_predicts();
+		}
 
 
 		/*************

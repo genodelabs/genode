@@ -101,7 +101,7 @@ namespace Genode {
 			typedef Csl<0x78> Csl30;
 			typedef Csl<0x7c> Csl31;
 
-			Csu(addr_t const base) : Mmio(base)
+			Csu(addr_t const base) : Mmio(Platform::mmio_to_virt(base))
 			{
 				/* Power (CCM, SRC, DPLLIP1-4, GPC and OWIRE) */
 				write<Csl09::Slave_a>(Csl00::UNSECURE);

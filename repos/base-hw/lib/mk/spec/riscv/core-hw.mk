@@ -9,7 +9,6 @@ SRC_CC += spec/riscv/kernel/cpu_context.cc
 SRC_CC += spec/riscv/kernel/thread.cc
 SRC_CC += spec/riscv/kernel/pd.cc
 SRC_CC += spec/riscv/kernel/cpu.cc
-SRC_CC += spec/riscv/kernel/exception_vector.cc
 SRC_CC += spec/riscv/platform_support.cc
 SRC_CC += spec/riscv/cpu.cc
 
@@ -17,8 +16,6 @@ SRC_CC += spec/riscv/cpu.cc
 SRC_S += spec/riscv/mode_transition.s
 SRC_S += spec/riscv/kernel/crt0.s
 SRC_S += spec/riscv/crt0.s
-
-NR_OF_CPUS = 1
 
 # include less specific configuration
 include $(REP_DIR)/lib/mk/core-hw.inc

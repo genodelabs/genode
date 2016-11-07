@@ -43,7 +43,6 @@ void Genode::Cpu::Context::init(addr_t const table, bool core)
 	 */
 	eflags = EFLAGS_IF_SET;
 	if (core) eflags |= EFLAGS_IOPL_3;
-	else Gdt::init();
 }
 
 

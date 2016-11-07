@@ -74,7 +74,7 @@ class Genode::Cortex_a9 : public Arm_v7
 			static void write(access_t const v) {
 				asm volatile ("mcr p15, 0, %0, c1, c0, 1" :: "r" (v) : ); }
 
-			static void enable_smp()
+			static void enable_smp(Board&)
 			{
 				access_t v = read();
 				Smp::set(v, 1);

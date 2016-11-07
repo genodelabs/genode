@@ -25,18 +25,5 @@ Kernel::Lock & Kernel::data_lock() {
 	return *unmanaged_singleton<Kernel::Lock>(); }
 
 
-/**
- * Setup non-boot CPUs
- */
-extern "C" void init_kernel_mp()
-{
-	using namespace Kernel;
-
-	cpu_pool()->cpu(Genode::Cpu::executing_id())->init(*pic(), *core_pd(), board());
-
-	kernel();
-}
-
-
 void Kernel::Cpu_domain_update::_domain_update() {
 	cpu_pool()->cpu(Cpu::executing_id())->invalidate_tlb_by_pid(_domain_id); }

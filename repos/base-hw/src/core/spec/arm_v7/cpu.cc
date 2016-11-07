@@ -13,7 +13,6 @@
  */
 
 #include <cpu.h>
-#include <kernel/pd.h>
 
 /**
  * Helpers that increase readability of MCR and MRC commands

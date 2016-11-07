@@ -22,6 +22,7 @@
 
 /* core includes */
 #include <board.h>
+#include <platform.h>
 
 namespace Genode { class Timer; }
 
@@ -135,10 +136,7 @@ class Genode::Timer : public Mmio
 			return Board::EPIT_1_IRQ;
 		}
 
-		/**
-		 * Constructor
-		 */
-		Timer() : Mmio(Board::EPIT_1_MMIO_BASE) { }
+		Timer() : Mmio(Platform::mmio_to_virt(Board::EPIT_1_MMIO_BASE)) { }
 
 		/**
 		 * Start single timeout run
@@ -174,6 +172,6 @@ class Genode::Timer : public Mmio
 			return read<Sr::Ocif>() ? 0 : read<Cnt>(); }
 };
 
-namespace Kernel { class Timer : public Genode::Timer { }; }
+namespace Kernel { using Timer = Genode::Timer; }
 
 #endif /* _CORE__INCLUDE__SPEC__IMX53__TIMER_H_ */

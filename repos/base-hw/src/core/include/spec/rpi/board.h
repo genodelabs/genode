@@ -18,16 +18,13 @@
 /* core includes */
 #include <drivers/board_base.h>
 
-namespace Genode
+namespace Genode { struct Board; }
+
+struct Genode::Board : Board_base
 {
-	class Board : public Board_base
-	{
-		public:
+	void init() { }
 
-			void init() { }
-
-			static bool is_smp() { return false; }
-	};
-}
+	static constexpr bool SMP = false;
+};
 
 #endif /* _CORE__INCLUDE__BOARD_H_ */

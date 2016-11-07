@@ -61,7 +61,7 @@ namespace Kernel
 	Cpu_pool * cpu_pool();
 }
 
-class Kernel::Cpu_context : Genode::Cpu::Context
+class Kernel::Cpu_context : public Genode::Cpu::Context
 {
 	private:
 
@@ -292,7 +292,7 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 		 * \param core_pd  core's pd object
 		 * \param board    object encapsulating board specifics
 		 */
-		void init(Pic &pic, Kernel::Pd &core_pd, Genode::Board & board);
+		void init(Pic &pic/*, Kernel::Pd &core_pd, Genode::Board & board*/);
 
 		/**
 		 * Raise the IPI of the CPU

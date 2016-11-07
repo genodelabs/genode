@@ -6,8 +6,7 @@ proc binary_name_gpio_drv  { } { return "hw_gpio_drv" }
 
 proc run_boot_string { } { return "\nkernel initialized" }
 
-
-proc core_link_address { } {
+proc bootstrap_link_address { } {
 	if {[have_spec "odroid_xu"]}  { return "0x80000000" }
 	if {[have_spec "pbxa9"]}      { return "0x70000000" }
 	if {[have_spec "usb_armory"]} { return "0x72000000" }
@@ -24,6 +23,12 @@ proc core_link_address { } {
 	exit -1
 }
 
+proc core_link_address { } {
+	if {[have_spec "riscv"]}      { return "0x1000000" }
+	scan [bootstrap_link_address] 0x%x link_address
+	return [format 0x%08x [expr {$link_address + 0x10000000}]]
+}
+
 
 ##
 # Populate boot directory with binaries on hw
@@ -37,9 +42,31 @@ proc run_boot_dir {binaries} {
 		close $fh
 	}
 
-	build { lib/ld/hw }
+	build { lib/ld/hw bootstrap }
 
-	build_core_image $binaries
+	# boot module list without core
+	set idx [lsearch $binaries "core"]
+	set modules [lreplace $binaries $idx $idx]
+
+	# strip binaries
+	copy_and_strip_genode_binaries_to_run_dir $modules
+	lappend modules "config"
+
+	puts "core link address is [core_link_address]"
+
+	set core_obj core/hw/core.o
+	set bootstrap_obj bootstrap/hw/bootstrap.o
+
+	# create core and bootstrap binary without modules for debugging
+	build_core $core_obj      {} [run_dir].core      [core_link_address]
+	build_core $bootstrap_obj {} [run_dir].bootstrap [bootstrap_link_address]
+
+	# create core binary containing the boot modules
+	build_core $core_obj $modules [run_dir]/genode/core.elf [core_link_address]
+	exec [cross_dev_prefix]strip [run_dir]/genode/core.elf
+	build_core $bootstrap_obj { core.elf } [run_dir]/image.elf [bootstrap_link_address]
+	exec rm -f [run_dir]/genode/core.elf
+	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 		#
