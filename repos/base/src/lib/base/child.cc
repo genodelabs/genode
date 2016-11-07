@@ -333,7 +333,11 @@ Session_capability Child::session(Parent::Service_name const &name,
 
 	/* raise an error if no matching service provider could be found */
 	if (!service)
+	{
+		Genode::error("service not found (name:", name.string(),
+		              " args:", args.string(), ")");
 		throw Service_denied();
+	}
 
 	/* transfer session quota from ourself to the service provider */
 	Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
@@ -342,9 +346,21 @@ Session_capability Child::session(Parent::Service_name const &name,
 	/* create session */
 	Session_capability cap;
 	try { cap = service->session(_args, filtered_affinity); }
-	catch (Service::Invalid_args)   { throw Service_denied(); }
-	catch (Service::Unavailable)    { throw Service_denied(); }
-	catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
+	catch (Service::Invalid_args)
+	{
+		Genode::error("create session failed -> invalid args:", args.string());
+		throw Service_denied();
+	}
+	catch (Service::Unavailable)
+	{
+		Genode::error("create session failed -> unavailable");
+		throw Service_denied();
+	}
+	catch (Service::Quota_exceeded)
+	{
+		Genode::error("create session failed -> quota");
+		throw Quota_exceeded();
+	}
 
 	/* register session */
 	try { _add_session(Session(cap, service, ram_quota, name.string())); }
