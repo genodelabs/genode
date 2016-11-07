@@ -1,0 +1,72 @@
+#
+# Build
+#
+
+build "core init drivers/timer test/timeout"
+
+#
+# Boot image
+#
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service><parent/><any-child/></any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="10M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="test">
+			<binary name="test-timeout"/>
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init timer test-timeout"
+
+#
+# Execution
+#
+
+append qemu_args "-nographic -m 64"
+
+#
+# We check for each timeout that has a distance of at least 200ms to each
+# other timeout:
+#
+#    0 ms
+#    0 ms
+#  700 ms -> check for  700 ms
+# 1000 ms -> check for 1000 ms
+# 1400 ms -> check for  700 ms
+# 2000 ms
+# 2100 ms
+# 2800 ms -> check for  700 ms
+# 3000 ms -> check for 1000 ms
+# 3250 ms -> check for 3250 ms
+# 3500 ms -> check for  700 ms
+# 4000 ms -> check for 1000 ms
+# 4200 ms -> check for  700 ms
+# 4900 ms
+# 5000 ms
+# 5200 ms -> check for 5200 ms
+# 5600 ms -> check for  700 ms
+# 6000 ms -> check for 1000 ms
+#
+
+run_genode_until ".*700ms timeout.*\n.*1000ms timeout.*\n.*700ms timeout.*\n.*700ms timeout.*\n.*1000ms timeout.*\n.*3250ms timeout.*\n.*700ms timeout.*\n.*1000ms timeout.*\n.*700ms timeout.*\n.*5200ms timeout.*\n.*700ms timeout.*\n.*1000ms timeout.*\n" 20
