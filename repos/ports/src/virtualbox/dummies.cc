@@ -11,7 +11,8 @@
  * version 2.
  */
 
-#include <base/printf.h>
+#include <util/string.h>
+#include <base/log.h>
 
 #include <string.h> /* libc memcpy */
 
@@ -37,8 +38,8 @@ static const bool trace = false;
 #define TRACE(retval) \
 	{ \
 		if (trace) \
-			PDBG("called, return dummy, eip=%p", \
-			     __builtin_return_address(0)); \
+			Genode::log(__func__, " called, return dummy, eip=", \
+			            __builtin_return_address(0)); \
 		return retval; \
 	}
 
@@ -69,8 +70,9 @@ RTDECL(int) RTMemProtect(void *pv, size_t cb, unsigned fProtect) RT_NO_THROW
 
 	type[3] = 0;
 
-	PDBG("called - not implemented - 0x%p+%0zx protect %x - '%s'",
-	     pv, cb, fProtect, type);
+	Genode::warning(__func__, " called - not implemented - ", pv, "+",
+	                Genode::Hex(cb), " protect ", Genode::Hex(fProtect), " - "
+	                "'", Genode::Cstring(type), "'");
 
 	return VINF_SUCCESS;
 }
@@ -103,7 +105,7 @@ int  DBGFR3AsSymbolByAddr(PUVM, RTDBGAS, PCDBGFADDRESS, uint32_t, PRTGCINTPTR,
 int DBGFR3Term(PVM)                                                             TRACE(VINF_SUCCESS)
 int DBGFR3Event(PVM pVM, DBGFEVENTTYPE enmEvent)
 {
-	PDBG("%u", enmEvent);
+	Genode::log(__func__, ": ", (int)enmEvent);
 
 	TRACE(VERR_NOT_SUPPORTED)
 }
@@ -190,7 +192,7 @@ char *pdmR3FileR3(const char * file, bool)
 	char * pv = reinterpret_cast<char *>(RTMemTmpAllocZ(1));
 
 	if (trace)
-		PDBG("file %s %s %p", file, pv, __builtin_return_address(0));
+		Genode::log(__func__, ": file ", file, " ", (void *)pv, " ", __builtin_return_address(0));
 
 	TRACE(pv)
 }

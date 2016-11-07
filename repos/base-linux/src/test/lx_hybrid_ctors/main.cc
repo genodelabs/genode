@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* local includes */
 #include "testlib.h"
@@ -28,7 +28,7 @@ struct Testapp_testclass
 {
 	Testapp_testclass()
 	{
-		Genode::printf("Global static constructor of Genode application called\n");
+		Genode::log("Global static constructor of Genode application called");
 	}
 
 	void dummy() { }
@@ -52,7 +52,7 @@ Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
  */
 void Component::construct(Genode::Env &env)
 {
-	printf("--- lx_hybrid global static constructor test ---\n");
+	log("--- lx_hybrid global static constructor test ---");
 
 	/*
 	 * Call a dummy function on each test object to make sure that the
@@ -61,7 +61,7 @@ void Component::construct(Genode::Env &env)
 	testlib_testobject.dummy();
 	testapp_testobject.dummy();
 
-	printf("--- returning from main ---\n");
+	log("--- returning from main ---");
 	exit_status = 0;
 	env.ep().schedule_suspend(exit_on_suspended, nullptr);
 }

@@ -10,7 +10,7 @@
 #include <cap_session/connection.h>
 #include <timer_session/connection.h>
 #include <dataspace/client.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <os/static_root.h>
 #include <os/config.h>
@@ -80,7 +80,7 @@ class Framebuffer::Session_component :
 		  _ipu(driver.ipu())
 		{
 			if (!driver.init(Dataspace_client(_fb_ds).phys_addr())) {
-				PERR("Could not initialize display");
+				error("could not initialize display");
 				struct Could_not_initialize_display : Exception { };
 				throw Could_not_initialize_display();
 			}
@@ -114,18 +114,13 @@ class Framebuffer::Session_component :
 
 static bool config_attribute(const char *attr_name)
 {
-	bool result = false;
-	try {
-		result =
-			Genode::config()->xml_node().attribute(attr_name).has_value("yes"); }
-	catch (...) {}
-	return result;
+	return Genode::config()->xml_node().attribute_value(attr_name, false);
 }
 
 
 int main(int, char **)
 {
-	Genode::printf("Starting i.MX53 framebuffer driver\n");
+	Genode::log("--- i.MX53 framebuffer driver ---");
 
 	using namespace Framebuffer;
 

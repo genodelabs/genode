@@ -40,7 +40,6 @@ class Lx::Pci_dev_registry
 
 		void insert(Pci_dev *pci_dev)
 		{
-			PDBG("insert pci_dev %p", pci_dev);
 			_devs.insert(pci_dev);
 		}
 
@@ -74,7 +73,8 @@ class Lx::Pci_dev_registry
 				return Genode::Io_mem_session_client(io_mem_cap).dataspace();
 			}
 
-			PERR("Device using i/o memory of address %lx is unknown", phys);
+			Genode::error("device using I/O memory of address ",
+			              Genode::Hex(phys), " is unknown");
 			return Genode::Io_mem_dataspace_capability();
 		}
 
@@ -88,7 +88,7 @@ class Lx::Pci_dev_registry
 					return value;
 			}
 
-			PWRN("I/O port(%u) read failed", port);
+			Genode::warning("I/O port(", port, ") read failed");
 			return (T)~0;
 		}
 
@@ -100,7 +100,7 @@ class Lx::Pci_dev_registry
 				if (d->io_port().out<T>(port, value))
 					return;
 
-			PWRN("I/O port(%u) write failed", port);
+			Genode::warning("I/O port(", port, ") write failed");
 		}
 };
 

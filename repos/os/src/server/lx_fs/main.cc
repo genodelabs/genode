@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/heap.h>
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
@@ -96,7 +97,7 @@ class File_system::Session_component : public Session_rpc_object
 
 				_process_packet_op(packet, *node);
 			}
-			catch (Invalid_handle)     { PERR("Invalid_handle");     }
+			catch (Invalid_handle) { Genode::error("Invalid_handle"); }
 
 			/*
 			 * The 'acknowledge_packet' function cannot block because we
@@ -138,7 +139,7 @@ class File_system::Session_component : public Session_rpc_object
 		static void _assert_valid_path(char const *path)
 		{
 			if (!path || path[0] != '/') {
-				PWRN("malformed path '%s'", path);
+				Genode::warning("malformed path '", path, "'");
 				throw Lookup_failed();
 			}
 		}
@@ -204,7 +205,7 @@ class File_system::Session_component : public Session_rpc_object
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 		{
-			PERR("%s not implemented", __func__);
+			Genode::error(__func__, " not implemented");
 			return Symlink_handle();
 		}
 
@@ -270,19 +271,19 @@ class File_system::Session_component : public Session_rpc_object
 				return s;
 			}
 
-			PERR("%s for symlinks not implemented", __func__);
+			Genode::error(__func__, " for symlinks not implemented");
 
 			return Status();
 		}
 
 		void control(Node_handle, Control)
 		{
-			PERR("%s not implemented", __func__);
+			Genode::error(__func__, " not implemented");
 		}
 
 		void unlink(Dir_handle, Name const &)
 		{
-			PERR("%s not implemented", __func__);
+			Genode::error(__func__, " not implemented");
 		}
 
 		void truncate(File_handle file_handle, file_size_t size)
@@ -297,7 +298,7 @@ class File_system::Session_component : public Session_rpc_object
 
 		void move(Dir_handle, Name const &, Dir_handle, Name const &)
 		{
-			PERR("%s not implemented", __func__);
+			Genode::error(__func__, " not implemented");
 		}
 
 		void sigh(Node_handle node_handle, Signal_context_capability sigh)
@@ -310,7 +311,7 @@ class File_system::Session_component : public Session_rpc_object
 		 * reminder because besides testing, there is currently no
 		 * use-case.
 		 */
-		void sync(Node_handle) override { PWRN("sync() not implemented!"); }
+		void sync(Node_handle) override { Genode::warning("sync() not implemented!"); }
 };
 
 
@@ -336,7 +337,7 @@ class File_system::Root : public Root_component<Session_component>
 			char root[ROOT_MAX_LEN];
 			root[0] = 0;
 
-			Session_label  label(args);
+			Session_label const label = label_from_args(args);
 			try {
 				Session_policy policy(label);
 
@@ -353,7 +354,8 @@ class File_system::Root : public Root_component<Session_component>
 					 * lookup, we remove all leading slashes.
 					 */
 					if (root[0] != '/') {
-						PERR("Root directory must start with / but is \"%s\"", root);
+						Genode::error("Root directory must start with / but is \"",
+						              Genode::Cstring(root), "\"");
 						throw Root::Unavailable();
 					}
 
@@ -363,19 +365,17 @@ class File_system::Root : public Root_component<Session_component>
 					if (*root_dir == 0)
 						root_dir = ".";
 				} catch (Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"root\" attribute in policy definition");
+					Genode::error("missing \"root\" attribute in policy definition");
 					throw Root::Unavailable();
 				}
 
 				/*
 				 * Determine if write access is permitted for the session.
 				 */
-				try {
-					writeable = policy.attribute("writeable").has_value("yes");
-				} catch (Xml_node::Nonexistent_attribute) { }
+				writeable = policy.attribute_value("writeable", false);
 
 			} catch (Session_policy::No_policy_defined) {
-				PERR("Invalid session request, no matching policy");
+				Genode::error("invalid session request, no matching policy");
 				throw Root::Unavailable();
 			}
 
@@ -385,7 +385,7 @@ class File_system::Root : public Root_component<Session_component>
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size) {
-				PERR("%s requested a session with a zero length transmission buffer", label.string());
+				Genode::error(label, " requested a session with a zero length transmission buffer");
 				throw Root::Invalid_args();
 			}
 
@@ -395,8 +395,8 @@ class File_system::Root : public Root_component<Session_component>
 			 */
 			size_t session_size = sizeof(Session_component) + tx_buf_size;
 			if (max((size_t)4096, session_size) > ram_quota) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, session_size);
+				Genode::error("insufficient 'ram_quota', "
+				              "got ", ram_quota, ", need ", session_size);
 				throw Root::Quota_exceeded();
 			}
 
@@ -404,7 +404,8 @@ class File_system::Root : public Root_component<Session_component>
 				return new (md_alloc())
 				       Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
 			} catch (Lookup_failed) {
-				PERR("Session root directory \"%s\" does not exist", root);
+				Genode::error("session root directory \"", Genode::Cstring(root), "\" "
+				              "does not exist");
 				throw Root::Unavailable();
 			}
 		}

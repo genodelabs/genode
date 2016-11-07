@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -88,7 +88,8 @@ class Genode::Slave_policy : public Genode::Child_policy
 		:
 			_label(label),
 			_entrypoint(entrypoint),
-			_binary_rom(binary ? binary : _label, _label),
+			_binary_rom(binary ? prefixed_label(Session_label(label),
+			                                    Session_label(binary)).string() : label),
 			_labeling_policy(_label),
 			_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
 			_config_policy("config", _entrypoint, ram)
@@ -130,8 +131,7 @@ class Genode::Slave_policy : public Genode::Child_policy
 				return service;
 
 			if (!_service_permitted(service_name)) {
-				PERR("%s: illegal session request of service \"%s\"",
-				     name(), service_name);
+				error(name(), ": illegal session request of service \"", service_name, "\"");
 				return 0;
 			}
 

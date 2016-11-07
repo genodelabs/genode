@@ -19,7 +19,7 @@
 #include <base/ipc.h>
 #include <base/object_pool.h>
 #include <base/lock.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/trace/events.h>
 #include <cap_session/cap_session.h>
 
@@ -161,7 +161,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		                                Ipc_unmarshaller &, Msgbuf_base &,
 		                                Meta::Overload_selector<Meta::Empty>)
 		{
-			PERR("invalid opcode %ld\n", opcode.value);
+			error("invalid opcode ", opcode.value);
 			return Rpc_exception_code(Rpc_exception_code::INVALID_OPCODE);
 		}
 
@@ -442,6 +442,13 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * This method is solely needed on Linux.
 		 */
 		bool is_myself() const;
+
+		/**
+		 * Required outside of core. E.g. launchpad needs it to forcefully kill
+		 * a client which blocks on a session opening request where the service
+		 * is not up yet.
+		 */
+		void cancel_blocking() { Thread::cancel_blocking(); }
 };
 
 #endif /* _INCLUDE__BASE__RPC_SERVER_H_ */

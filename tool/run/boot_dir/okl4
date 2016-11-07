@@ -102,7 +102,7 @@ set weaver_xml_template {
 
 
 proc run_boot_string { } {
-	return "OKL4 -"
+	return "\n\r\033\\\[1m\033\\\[33mOKL4 -"
 }
 
 

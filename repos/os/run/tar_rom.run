@@ -43,7 +43,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="tar_rom">
-		<resource name="RAM" quantum="5200K"/>
+		<resource name="RAM" quantum="6M"/>
 		<provides><service name="ROM"/></provides>
 		<config>
 			<archive name="archive.tar"/>
@@ -75,7 +75,7 @@ exec sh -c "cd bin; tar cfh archive.tar test-timer"
 
 build_boot_image "core init timer tar_rom archive.tar"
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic -m 96"
 
 run_genode_until "--- timer test ---" 10
 

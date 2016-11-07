@@ -18,12 +18,11 @@
 #define _INCLUDE__ROOT__COMPONENT_H_
 
 #include <root/root.h>
+#include <base/allocator.h>
 #include <base/rpc_server.h>
-#include <base/heap.h>
 #include <base/entrypoint.h>
-#include <ram_session/ram_session.h>
 #include <util/arg_string.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Genode {
 
@@ -228,8 +227,8 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
 
 			if (needed > ram_quota) {
-				PERR("Insufficient ram quota, provided=%zu, required=%zu",
-				     ram_quota, needed);
+				error("Insufficient ram quota, provided=", ram_quota,
+				      ", required=", needed);
 				throw Root::Quota_exceeded();
 			}
 
@@ -246,14 +245,14 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			char adjusted_args[MAX_ARGS_LEN];
 			strncpy(adjusted_args, args.string(), sizeof(adjusted_args));
 			char ram_quota_buf[64];
-			snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%zu",
+			snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%lu",
 			         remaining_ram_quota);
 			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
 			                    "ram_quota", ram_quota_buf);
 
 			SESSION_TYPE *s = 0;
 			try { s = _create_session(adjusted_args, affinity); }
-			catch (Allocator::Out_of_memory) { throw Root::Quota_exceeded(); }
+			catch (Allocator::Out_of_memory) { throw Root::Unavailable(); }
 
 			return _ep->manage(s);
 		}

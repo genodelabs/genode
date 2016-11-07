@@ -359,10 +359,6 @@ Separate components:
 :'os/src/server/ram_fs':
   A file-system implementation that keeps all data in memory.
 
-:'os/src/server/tar_fs':
-  A read-only file-system implementation that reads data from a TAR archive,
-  which, in turn, is provided by a ROM service.
-
 :'dde_rump/src/server/rump_fs':
   A file-system server that contains various file-systems ported from the
   NetBSD kernel.
@@ -459,6 +455,9 @@ Separate components:
 :'os/src/server/input_merger':
   A component that merges input events from multiple sources into a single
   stream.
+
+:'libports/src/server/acpi_input':
+  A component that transforms ACPI events into Genode input events.
 
 :'gems/src/server/nit_fader':
   A wrapper for nitpicker's session interface that applies alpha-blending to

@@ -38,15 +38,6 @@
 using namespace Libc;
 
 
-#ifdef GENODE_RELEASE
-#undef PERR
-#define PERR(...)
-#endif /* GENODE_RELEASE */
-
-static bool const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
-
-
 Libc::Mmap_registry *Libc::mmap_registry()
 {
 	static Libc::Mmap_registry registry;
@@ -91,27 +82,22 @@ class Symlink_resolve_error { };
 
 static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 {
-	PDBGV("path = %s", path);
-
 	char path_element[PATH_MAX];
 	char symlink_target[PATH_MAX];
 
 	Absolute_path current_iteration_working_path;
 	Absolute_path next_iteration_working_path(path, cwd().base());
-	PDBGV("absolute_path = %s", next_iteration_working_path.base());
 
 	enum { FOLLOW_LIMIT = 10 };
 	int follow_count = 0;
 	bool symlink_resolved_in_this_iteration;
 	do {
-		PDBGV("new iteration");
 		if (follow_count++ == FOLLOW_LIMIT) {
 			errno = ELOOP;
 			throw Symlink_resolve_error();
 		}
 
-		current_iteration_working_path.import(next_iteration_working_path.base());
-		PDBGV("current_iteration_working_path = %s", current_iteration_working_path.base());
+		current_iteration_working_path = next_iteration_working_path;
 
 		next_iteration_working_path.import("");
 		symlink_resolved_in_this_iteration = false;
@@ -125,17 +111,13 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 			}
 
 			t.string(path_element, sizeof(path_element));
-			PDBGV("path_element = %s", path_element);
 
 			try {
-				next_iteration_working_path.append("/");
-				next_iteration_working_path.append(path_element);
+				next_iteration_working_path.append_element(path_element);
 			} catch (Genode::Path_base::Path_too_long) {
 				errno = ENAMETOOLONG;
 				throw Symlink_resolve_error();
 			}
-
-			PDBGV("working_path_new = %s", next_iteration_working_path.base());
 
 			/*
 			 * If a symlink has been resolved in this iteration, the remaining
@@ -146,11 +128,9 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 				int res;
 				FNAME_FUNC_WRAPPER_GENERIC(res = , stat, next_iteration_working_path.base(), &stat_buf);
 				if (res == -1) {
-					PDBGV("stat() failed for %s", next_iteration_working_path.base());
 					throw Symlink_resolve_error();
 				}
 				if (S_ISLNK(stat_buf.st_mode)) {
-					PDBGV("found symlink: %s", next_iteration_working_path.base());
 					FNAME_FUNC_WRAPPER_GENERIC(res = , readlink,
 					                           next_iteration_working_path.base(),
 					                           symlink_target, sizeof(symlink_target) - 1);
@@ -167,33 +147,28 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 						/* relative target */
 						next_iteration_working_path.strip_last_element();
 						try {
-							next_iteration_working_path.append(symlink_target);
+							next_iteration_working_path.append_element(symlink_target);
 						} catch (Genode::Path_base::Path_too_long) {
 							errno = ENAMETOOLONG;
 							throw Symlink_resolve_error();
 						}
 					}
-					PDBGV("resolved symlink to: %s", next_iteration_working_path.base());
 					symlink_resolved_in_this_iteration = true;
 				}
 			}
 
 			t = t.next();
 		}
-		PDBGV("token end");
 
 	} while (symlink_resolved_in_this_iteration);
 
-	resolved_path.import(next_iteration_working_path.base());
+	resolved_path = next_iteration_working_path;
 	resolved_path.remove_trailing('/');
-	PDBGV("resolved_path = %s", resolved_path.base());
 }
 
 
 static void resolve_symlinks_except_last_element(char const *path, Absolute_path &resolved_path)
 {
-	PDBGV("path = %s", path);
-
 	Absolute_path absolute_path_without_last_element(path, cwd().base());
 	absolute_path_without_last_element.strip_last_element();
 
@@ -203,7 +178,7 @@ static void resolve_symlinks_except_last_element(char const *path, Absolute_path
 	Absolute_path absolute_path_last_element(path, cwd().base());
 	absolute_path_last_element.keep_only_last_element();
 	try {
-		resolved_path.append(absolute_path_last_element.base());
+		resolved_path.append_element(absolute_path_last_element.base());
 	} catch (Genode::Path_base::Path_too_long) {
 		errno = ENAMETOOLONG;
 		throw Symlink_resolve_error();
@@ -363,9 +338,8 @@ extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flag
 	Libc::Absolute_path abs_path;
 
 	if (libc_fd == AT_FDCWD) {
-		getcwd(abs_path.base(), abs_path.capacity());
-		abs_path.append("/");
-		abs_path.append(path);
+		abs_path = cwd();
+		abs_path.append_element(path);
 	} else {
 		Libc::File_descriptor *fd =
 			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
@@ -449,7 +423,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 	/* lookup plugin responsible for file descriptor */
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "mmap");
 	if (!fd || !fd->plugin || !fd->plugin->supports_mmap()) {
-		PWRN("mmap not supported for file descriptor %d", libc_fd);
+		Genode::warning("mmap not supported for file descriptor ", libc_fd);
 		errno = EBADF;
 		return (void *)INVALID_FD;
 	}
@@ -463,7 +437,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 extern "C" int munmap(void *start, ::size_t length)
 {
 	if (!mmap_registry()->registered(start)) {
-		PWRN("munmap: could not lookup plugin for address %p", start);
+		Genode::warning("munmap: could not lookup plugin for address ", start);
 		errno = EINVAL;
 		return -1;
 	}
@@ -488,8 +462,6 @@ extern "C" int munmap(void *start, ::size_t length)
 
 extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
 {
-	PDBGV("pathname = %s", pathname);
-
 	Absolute_path resolved_path;
 
 	Plugin *plugin;
@@ -514,18 +486,16 @@ extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
 		}
 	}
 
-	PDBGV("resolved path = %s", resolved_path.base());
-
 	plugin = plugin_registry()->get_plugin_for_open(resolved_path.base(), flags);
 
 	if (!plugin) {
-		PERR("no plugin found for open(\"%s\", %d)", pathname, flags);
+		Genode::error("no plugin found for open(\"", pathname, "\", ", flags, ")");
 		return -1;
 	}
 
 	new_fdo = plugin->open(resolved_path.base(), flags);
 	if (!new_fdo) {
-		PERR("plugin()->open(\"%s\") failed", pathname);
+		Genode::error("plugin()->open(\"", pathname, "\") failed");
 		return -1;
 	}
 	new_fdo->path(resolved_path.base());
@@ -552,12 +522,12 @@ extern "C" int pipe(int pipefd[2])
 	plugin = plugin_registry()->get_plugin_for_pipe();
 
 	if (!plugin) {
-		PERR("no plugin found for pipe()");
+		Genode::error("no plugin found for pipe()");
 		return -1;
 	}
 
 	if (plugin->pipe(pipefdo) == -1) {
-		PERR("plugin()->pipe() failed");
+		Genode::error("plugin()->pipe() failed");
 		return -1;
 	}
 
@@ -578,7 +548,7 @@ extern "C" ssize_t read(int libc_fd, void *buf, ::size_t count)
 }
 
 
-extern "C" ssize_t readlink(const char *path, char *buf, size_t bufsiz)
+extern "C" ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
 {
 	try {
 		Absolute_path resolved_path;
@@ -617,7 +587,6 @@ extern "C" int rmdir(const char *path)
 
 extern "C" int stat(const char *path, struct stat *buf)
 {
-	PDBGV("path = %s", path);
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks(path, resolved_path);
@@ -670,6 +639,5 @@ extern "C" ssize_t write(int libc_fd, const void *buf, ::size_t count) {
 extern "C" int __getcwd(char *dst, ::size_t dst_size)
 {
 	Genode::strncpy(dst, cwd().base(), dst_size);
-	PDBGV("cwd = %s", dst);
 	return 0;
 }

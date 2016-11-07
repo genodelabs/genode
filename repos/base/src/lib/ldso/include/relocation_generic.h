@@ -48,7 +48,7 @@ struct Linker::Plt_got
 	Plt_got(Dependency const *dep, Elf::Addr *pltgot)
 	{
 		if (verbose_relocation)
-			PDBG("OBJ: %s (%p)", dep->obj->name(), dep);
+			Genode::log("OBJ: ", dep->obj->name(), " (", dep, ")");
 
 		pltgot[1] = (Elf::Addr) dep;        /* ELF object */
 		pltgot[2] = (Elf::Addr) &_jmp_slot; /* Linker entry */
@@ -66,7 +66,7 @@ struct Linker::Reloc_plt_generic
 	                  Elf::Rel const *start, unsigned long size)
 	{
 		if (type != TYPE) {
-			PERR("LD: Unsupported PLT relocation type: %u", type);
+			Genode::error("LD: Unsupported PLT relocation type: ", (int)type);
 			throw Incompatible();
 		}
 
@@ -75,7 +75,7 @@ struct Linker::Reloc_plt_generic
 		for (; rel < end; rel++) {
 
 			if (rel->type() != JMPSLOT) {
-				PERR("LD: Unsupported PLT relocation %u", rel->type());
+				Genode::error("LD: Unsupported PLT relocation ", (int)rel->type());
 				throw Incompatible();
 			}
 
@@ -102,7 +102,8 @@ class Linker::Reloc_non_plt_generic
 		void _copy(REL const *rel, Elf::Addr *addr)
 		{
 			if (!_dep->obj->is_binary()) {
-				PERR("LD: Copy relocation in DSO (%s at %p)", _dep->obj->name(), addr);
+				Genode::error("LD: copy relocation in DSO "
+				              "(", _dep->obj->name(), " at ", addr, ")");
 				throw Incompatible();
 			}
 
@@ -111,7 +112,7 @@ class Linker::Reloc_non_plt_generic
 
 			 /* search symbol in other objects, do not return undefined symbols */
 			if (!(sym = lookup_symbol(rel->sym(), _dep, &reloc_base, false, true))) {
-				PWRN("LD: Symbol not found");
+				Genode::warning("LD: symbol not found");
 				return;
 			}
 
@@ -119,8 +120,9 @@ class Linker::Reloc_non_plt_generic
 			Genode::memcpy(addr, (void *)src, sym->st_size);
 
 			if (verbose_relocation)
-				PDBG("Copy relocation: " EFMT " -> %p (0x" EFMT " bytes) val: " EFMT "\n",
-				      src, addr, sym->st_size, sym->st_value);
+				Genode::log("Copy relocation: ", Genode::Hex(src),
+				            " -> ", addr, " (", Genode::Hex(sym->st_size), " bytes)"
+				            " val: ", Genode::Hex(sym->st_value));
 		}
 
 	public:
@@ -143,7 +145,7 @@ class Linker::Reloc_jmpslot_generic
 		                      Elf::Size const index)
 		{
 			if (type != TYPE) {
-				PERR("LD: Unsupported JMP relocation type: %u", type);
+				Genode::error("LD: unsupported JMP relocation type: ", (int)type);
 				throw Incompatible();
 			}
 		
@@ -152,7 +154,7 @@ class Linker::Reloc_jmpslot_generic
 			Elf::Addr      reloc_base;
 
 			if (!(sym = lookup_symbol(rel->sym(), dep, &reloc_base))) {
-				PWRN("LD: Symbol not found");
+				Genode::warning("LD: symbol not found");
 				return;
 			}
 
@@ -162,8 +164,9 @@ class Linker::Reloc_jmpslot_generic
 
 
 			if (verbose_relocation) {
-				PDBG("jmp: rbase " EFMT " s: %p sval: " EFMT, reloc_base, sym, sym->st_value);
-				PDBG("jmp_slot at %p -> " EFMT, _addr, *_addr);
+				Genode::log("jmp: rbase ", Genode::Hex(reloc_base),
+				            " s: ", sym, " sval: ", Genode::Hex(sym->st_value));
+				Genode::log("jmp_slot at ", _addr, " -> ", *_addr);
 			}
 		}
 

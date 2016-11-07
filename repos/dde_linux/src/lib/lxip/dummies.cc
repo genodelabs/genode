@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Dummy functions
  * \author Sebastian Sumpf
  * \date   2013-08-26
@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 
 
@@ -28,40 +28,50 @@ enum {
 
 #define DUMMY(retval, name) \
 	DUMMY name(void) { \
-	if (SHOW_DUMMY) \
-		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
-	return retval; \
-}
+		if (SHOW_DUMMY) \
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "not implemented"); \
+		return retval; \
+	}
 
 #define DUMMY_SKIP(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SKIP) \
-			PLOG( #name " called (from %p) skipped", __builtin_return_address(0)); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "skipped"); \
+		return retval; \
+	}
 
 #define DUMMY_RET(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_RET) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
 
 #define DUMMY_SHOW(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SHOW) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
 
 #define DUMMY_STOP(retval, name) \
 	DUMMY name(void) { \
 		do { \
-			PWRN( #name " called (from %p) stopped", __builtin_return_address(0)); \
+			Genode::warning(__func__, ": " #name " called " \
+			               "(from ", __builtin_return_address(0), ") " \
+			               "stopped"); \
 			Genode::sleep_forever(); \
 		} while (0); \
 		return retval; \
-}
+	}
 
 
 /*
@@ -228,7 +238,6 @@ DUMMY(-1, dump_stack)
 DUMMY(-1, ether_addr_equal_64bits)
 DUMMY(-1, exit_fn)
 DUMMY(-1, file_inode)
-DUMMY(-1, fls64)
 DUMMY(-1, free_pages)
 DUMMY(-1, from_kgid)
 DUMMY(-1, from_kgid_munged)
@@ -304,16 +313,10 @@ DUMMY(-1, ip_mc_up)
 DUMMY(-1, ip_mroute_getsockopt)
 DUMMY(-1, ip_mroute_opt)
 DUMMY(-1, ip_mroute_setsockopt)
-DUMMY(-1, ipv4_is_lbcast)
 DUMMY(-1, ipv4_is_local_multicast)
-DUMMY(-1, ipv4_is_zeronet)
 DUMMY(-1, irqs_disabled)
-DUMMY(-1, is_a_nulls)
-DUMMY(-1, is_multicast_ether_addr)
-DUMMY(-1, is_valid_ether_addr)
 DUMMY(-1, is_vlan_dev)
 DUMMY(-1, kernel_sendmsg)
-DUMMY(-1, kmem_cache_destroy)
 DUMMY(-1, kobject_put)
 DUMMY(-1, kobject_uevent)
 DUMMY(-1, krealloc)
@@ -329,8 +332,6 @@ DUMMY(-1, linkwatch_fire_event)
 DUMMY(-1, linkwatch_forget_dev)
 DUMMY(-1, linkwatch_init_dev)
 DUMMY(-1, linkwatch_run_queue)
-DUMMY(-1, list_del_rcu)
-DUMMY(-1, list_replace_rcu)
 DUMMY(-1, local_softirq_pending)
 DUMMY(-1, lockdep_rtnl_is_held)
 DUMMY(-1, min)
@@ -404,7 +405,6 @@ DUMMY(-1, request_module)
 DUMMY(-1, round_jiffies)
 DUMMY(-1, round_jiffies_relative)
 DUMMY(-1, round_jiffies_up)
-DUMMY(-1, roundup_pow_of_two)
 DUMMY(-1, rt_genid_bump)
 DUMMY(-1, rtnetlink_init)
 DUMMY(-1, __rtnl_unlock)
@@ -486,9 +486,6 @@ DUMMY(-1, tcp_peer_is_proven)
 DUMMY(-1, tcp_remember_stamp)
 DUMMY(-1, tcp_tw_remember_stamp)
 DUMMY(-1, tcp_update_metrics)
-DUMMY(-1, test_and_clear_bit)
-DUMMY(-1, test_and_set_bit)
-DUMMY(-1, test_bit)
 DUMMY(-1, textsearch_find)
 DUMMY(-1, __this_cpu_read)
 DUMMY_SKIP(-1, trace_napi_poll)
@@ -517,7 +514,6 @@ DUMMY(-1, wake_up_interruptible_sync_poll)
 DUMMY(-1, WARN_ONCE)
 DUMMY(-1, write_seqcount_begin)
 DUMMY(-1, write_seqcount_end)
-DUMMY(-1, xchg)
 DUMMY(-1, xfrm4_policy_check_reverse)
 DUMMY(-1, xfrm4_route_forward)
 DUMMY(-1, xfrm4_udp_encap_rcv)
@@ -546,8 +542,6 @@ DUMMY_STOP(0, copy_from_iter_nocache)
 DUMMY(0, csum_ipv6_magic)
 DUMMY(0, csum_replace4)
 DUMMY(0, file_ns_capable)
-DUMMY(0, find_first_bit)
-DUMMY(0, find_next_bit)
 DUMMY(0, flow_keys_buf_dissector)
 DUMMY(0, fnhe_genid)
 DUMMY(0, gfpflags_allow_blocking)

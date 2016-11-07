@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <stddef.h>
 #include <errno.h>
 
@@ -37,7 +37,7 @@ extern "C" {
 #define DUMMY(ret_type, ret_val, name, args) __attribute__((weak)) \
 ret_type name args \
 { \
-	PDBG( #name " not implemented"); \
+	Genode::warning(__func__, ": " #name " not implemented"); \
 	errno = ENOSYS;						\
 	return ret_val; \
 }
@@ -47,9 +47,7 @@ DUMMY(int   , -1, chown, (const char *, uid_t, gid_t))
 DUMMY(int   , -1, chroot, (const char *))
 DUMMY(char *,  0, crypt, (const char *, const char *))
 DUMMY(DB *  ,  0, dbopen, (const char *, int, int, DBTYPE, const void *))
-DUMMY(int   , -1, dup, (int))
 DUMMY(u_int32_t, 0, __default_hash, (const void *, size_t));
-DUMMY(int   , -1, dup2, (int, int))
 DUMMY(void  ,   , endpwent, (void))
 DUMMY(int   ,  0, fchmod, (int, mode_t))
 DUMMY(int   , -1, fchown, (int, uid_t, gid_t))
@@ -86,7 +84,6 @@ DUMMY(int   , -1, mkfifo, (const char *, mode_t))
 DUMMY(int   , -1, mknod, (const char *, mode_t, dev_t))
 DUMMY(int   , -1, mprotect, (const void *, size_t, int))
 DUMMY(void *,  0, ___mtctxres, (void))
-DUMMY(int   , -1, nanosleep, (const timespec *, timespec *))
 DUMMY(void *,  0, __nsdefaultsrc, (void))
 DUMMY(int   , -1, _nsdispatch, (void))
 DUMMY(long  , -1, pathconf, (const char *, int))
@@ -96,7 +93,6 @@ DUMMY(void *,  0, sbrk, (intptr_t))
 DUMMY(int   , -1, sched_setparam, (pid_t, const sched_param *))
 DUMMY(int   , -1, sched_setscheduler, (pid_t, int, const sched_param *))
 DUMMY(int   , -1, sched_yield, (void))
-DUMMY(int   , -1, _select, (void))
 DUMMY(int   , -1, __semctl, (void))
 DUMMY(int   , -1, setcontext, (const ucontext_t *))
 DUMMY(int   , -1, setegid, (uid_t))
@@ -132,7 +128,7 @@ DUMMY(pid_t , -1, _wait4, (pid_t, int *, int, struct rusage *))
 
 void ksem_init(void)
 {
-	PDBG("ksem_init called, not yet implemented!");
+	Genode::warning(__func__, " called, not yet implemented!");
 	while (1);
 }
 
@@ -143,7 +139,8 @@ int __attribute__((weak)) madvise(void *addr, size_t length, int advice)
 		/* ignore hint */
 		return 0;
 
-	PDBG("called, not implemented - %p+%zx advice=%d", addr, length, advice);
+	Genode::warning(__func__, " called, not implemented - ", addr, "+",
+	                Genode::Hex(length), " advice=", advice);
 	errno = ENOSYS;
 	return -1;
 }

@@ -58,17 +58,6 @@ void Measurement::data(Net::Ethernet_frame * eth, Genode::size_t size)
 	_stat.count ++;
 	_stat.size += size;
 
-	if (false) {
-		for (unsigned i=0; i < 5; i++)
-			Genode::printf("%2x:", eth->src().addr[i]);
-		Genode::printf("%2x -> ", eth->src().addr[5]);
-		for (unsigned i=0; i < 5; i++)
-			Genode::printf("%2x:", eth->dst().addr[i]);
-		Genode::printf("%2x ", eth->dst().addr[5]);
-		Genode::printf("rx %lu:%llu, drop %lu:%llu\n", _stat.count, _stat.size,
-		               _drop.count, _drop.size);
-	}
-
 	if (status != IS_MAGIC)
 		return;
 
@@ -86,14 +75,12 @@ void Measurement::data(Net::Ethernet_frame * eth, Genode::size_t size)
 	if (time_elapsed_ms)
 		kbits_raw  = (_stat.size + _drop.size) / time_elapsed_ms * 8;
 
-	printf("%lu kBit/s (raw %lu kBit/s), runtime %lu ms\n",
-	       kbits_test, kbits_raw, time_elapsed_ms);
-	printf("%lu kiBytes (+ %lu kiBytes dropped)\n",
-	       (unsigned long)(_stat.size / 1024),
-	       (unsigned long)(_drop.size / 1024));
-	printf("%lu packets (+ %lu packets dropped)\n",
-	       _stat.count, _drop.count);
-	printf("\n");
+	log(kbits_test, " kBit/s (raw ", kbits_raw, " kBit/s), "
+	    "runtime ", time_elapsed_ms, " ms");
+	log((unsigned long)(_stat.size / 1024), " kiBytes (+ ",
+	    (unsigned long)(_drop.size / 1024), " kiBytes dropped)");
+	log(_stat.count, " packets (+ ", _drop.count, " packets dropped)");
+	log("");
 
 	_stat.size = _stat.count = _drop.size = _drop.count = 0;
 

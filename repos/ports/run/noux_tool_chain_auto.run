@@ -8,8 +8,8 @@ if {[have_include "power_on/qemu"]} {
 	puts "\nAuto test running on Qemu is not recommended.\n"
 	exit 0
 }
-if {[have_spec pistachio]} {
-	puts "Pistachio is unsupported."
+if {[have_spec pistachio] || [have_spec sel4]} {
+	puts "Platform is unsupported."
 	exit 0
 }
 

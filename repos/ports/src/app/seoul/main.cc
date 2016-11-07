@@ -35,7 +35,6 @@
 #include <util/touch.h>
 #include <base/sleep.h>
 #include <base/rpc_server.h>
-#include <base/native_types.h>
 #include <util/misc_math.h>
 #include <rom_session/connection.h>
 #include <rm_session/connection.h>
@@ -212,7 +211,7 @@ class Guest_memory
 				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
 
 			} catch (Genode::Rm_session::Region_conflict) {
-				PERR("region conflict");
+				Genode::error("region conflict");
 			}
 		}
 
@@ -691,7 +690,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		void _register_handler(Genode::addr_t exc_base, Nova::Mtd mtd)
 		{
 			if (!register_handler<EV, Vcpu_dispatcher, FUNC>(exc_base, mtd))
-				PERR("could not register handler %lx", exc_base + EV);
+				Genode::error("could not register handler ", Genode::Hex(exc_base + EV));
 		}
 
 	public:
@@ -932,7 +931,7 @@ class Machine : public StaticReceiver<Machine>
 				msg.phys = _guest_memory.remaining_size;
 
 				if (verbose_debug)
-					Logging::printf("-> allocated from guest %08zx+%lx\n",
+					Logging::printf("-> allocated from guest %08lx+%lx\n",
 					                _guest_memory.remaining_size, msg.value);
 				return true;
 

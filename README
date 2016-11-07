@@ -33,6 +33,31 @@ the kernel that fits best with the requirements at hand for the particular
 usage scenario.
 
 
+Documentation
+#############
+
+The primary documentation is the book "Genode Foundations", which is available
+on the front page of Genode website:
+
+:Download the book "Genode Foundations":
+
+  [https://genode.org]
+
+The book describes Genode in a holistic and comprehensive way. It equips you
+with a thorough understanding of the architecture, assists developers with the
+explanation of the development environment and system configuration, and
+provides a look under the hood of the framework. Furthermore, it contains the
+specification of the framework's programming interface.
+
+The project has a quarterly release cycle. Each version is accompanied with
+detailed release documentation, which is available at the documentation
+section of the project website:
+
+:Release documentation:
+
+  [https://genode.org/documentation/release-notes/]
+
+
 Directory overview
 ##################
 
@@ -62,6 +87,18 @@ The source tree is composed of the following subdirectories:
   contained in the directory.
 
 
+Additional community-maintained components
+##########################################
+
+The components found within the main source tree are complemented by a growing
+library of additional software, which can be seamlessly integrated into Genode
+system scenarios.
+
+:Genode-world repository:
+
+  [https://github.com/genodelabs/genode-world]
+
+
 Contact
 #######
 
@@ -71,4 +108,16 @@ mailing list. Please feel welcome to join in!
 :Genode Mailing Lists:
 
   [https://genode.org/community/mailing-lists]
+
+
+Commercial support
+##################
+
+The driving force behind the Genode OS Framework is the German company Genode
+Labs. The company offers commercial licensing, trainings, support, and
+contracted development work:
+
+:Genode Labs website:
+
+  [https://www.genode-labs.com]
 

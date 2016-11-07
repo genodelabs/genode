@@ -125,7 +125,7 @@ class Domain_registry
 			if (value == "no")  return Entry::LABEL_NO;
 			if (value == "yes") return Entry::LABEL_YES;
 
-			PWRN("invalid value of label attribute in <domain>");
+			Genode::warning("invalid value of label attribute in <domain>");
 			return Entry::LABEL_YES;
 		}
 
@@ -148,7 +148,7 @@ class Domain_registry
 			if (value == "focused") return Entry::HOVER_FOCUSED;
 			if (value == "always")  return Entry::HOVER_ALWAYS;
 
-			PWRN("invalid value of hover attribute in <domain>");
+			Genode::warning("invalid value of hover attribute in <domain>");
 			return Entry::HOVER_FOCUSED;
 		}
 
@@ -161,7 +161,7 @@ class Domain_registry
 			if (value == "click")     return Entry::FOCUS_CLICK;
 			if (value == "transient") return Entry::FOCUS_TRANSIENT;
 
-			PWRN("invalid value of focus attribute in <domain>");
+			Genode::warning("invalid value of focus attribute in <domain>");
 			return Entry::FOCUS_NONE;
 		}
 
@@ -176,7 +176,7 @@ class Domain_registry
 			if (value == "bottom_right") return Entry::ORIGIN_BOTTOM_RIGHT;
 			if (value == "pointer")      return Entry::ORIGIN_POINTER;
 
-			PWRN("invalid value of origin attribute in <domain>");
+			Genode::warning("invalid value of origin attribute in <domain>");
 			return Entry::ORIGIN_BOTTOM_LEFT;
 		}
 
@@ -191,19 +191,19 @@ class Domain_registry
 			} catch (...) { }
 
 			if (!name_defined) {
-				PERR("no valid domain name specified");
+				Genode::error("no valid domain name specified");
 				return;
 			}
 
 			Entry::Name const name(buf);
 
 			if (lookup(name)) {
-				PERR("domain name \"%s\" is not unique", name.string());
+				Genode::error("domain name \"", name, "\" is not unique");
 				return;
 			}
 
 			if (!domain.has_attribute("layer")) {
-				PERR("no layer specified for domain \"%s\"", name.string());
+				Genode::error("no layer specified for domain \"", name, "\"");
 				return;
 			}
 

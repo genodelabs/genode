@@ -200,8 +200,7 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 		 ** Accessors **
 		 ***************/
 
-		Pd * const   pd() const { return _pd; }
-		char const * pd_label() const;
+		Pd * const pd() const { return _pd; }
 		Genode::Native_utcb * utcb() { return _utcb; }
 };
 

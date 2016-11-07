@@ -11,7 +11,7 @@ proc run_boot_dir_hook { } {
 
 
 proc run_boot_string { } {
-	return "kernel initialized"
+	return "\nkernel initialized"
 }
 
 
@@ -19,16 +19,6 @@ proc run_boot_string { } {
 # Populate boot directory with binaries on hw
 #
 proc run_boot_dir {binaries} {
-
-	# adapt to wether this is a core-internal test or a common scenario
-	global core_test
-	if {[info exists core_test]} {
-		set core_bin "test-[run_name]"
-		set core_target "test/[run_name]"
-	} else {
-		set core_bin "core"
-		set core_target "core"
-	}
 
 	# generate static ACPI report for platform driver on Muen
 	if {[have_spec "hw_x86_64_muen"]} {
@@ -82,7 +72,7 @@ proc run_boot_dir {binaries} {
 	# generate header for each boot module except core
 	set i 1
 	foreach binary $binaries {
-		if {$binary == $core_bin} { continue }
+		if {$binary == "core"} { continue }
 		exec echo -e \
 			"\n${address_type} _boot_module_${i}_name" \
 			"\n${address_type} _boot_module_${i}_begin" \
@@ -99,7 +89,7 @@ proc run_boot_dir {binaries} {
 	# generate name string for each module except core
 	set i 1
 	foreach binary $binaries {
-		if {$binary == $core_bin} { continue }
+		if {$binary == "core"} { continue }
 		exec echo -e \
 			"\n.p2align DATA_ACCESS_ALIGNM_LOG2" \
 			"\n_boot_module_${i}_name:" \
@@ -117,7 +107,7 @@ proc run_boot_dir {binaries} {
 	# include raw data of modules consecutively but page aligned
 	set i 1
 	foreach binary $binaries {
-		if {$binary == $core_bin} { continue }
+		if {$binary == "core"} { continue }
 		exec echo -e \
 			"\n.p2align MIN_PAGE_SIZE_LOG2" \
 			"\n_boot_module_${i}_begin:" \
@@ -135,10 +125,10 @@ proc run_boot_dir {binaries} {
 	exec ln -s $boot_modules boot_modules.s
 
 	# recompile core with boot modules
-	exec cp -L bin/$core_bin $core_target/$core_bin.standalone
-	exec find . -type f -name $core_bin -delete
+	exec cp -L bin/core core/core.standalone
+	exec find . -type f -name core -delete
 	set timeout 10000
-	set pid [eval "spawn make $core_target"]
+	set pid [eval "spawn make core"]
 	expect { eof { } }
 	if {[lindex [wait $pid] end] != 0} {
 		clean_boot_modules
@@ -154,10 +144,10 @@ proc run_boot_dir {binaries} {
 
 	if {[have_spec "x86_64"]} {
 		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
-		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
+		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/core $elf_img
 	}
 	if {[expr [have_spec "arm"] || [have_spec "x86_32"] || [have_spec "riscv"]]} {
-		exec cp -L bin/$core_bin $elf_img
+		exec cp -L bin/core $elf_img
 	}
 
 	exec [cross_dev_prefix]strip $elf_img
@@ -239,6 +229,6 @@ proc run_boot_dir {binaries} {
 	}
 
 	# retrieve stand-alone core
-	exec cp $core_target/$core_bin.standalone bin/$core_bin
-	exec rm $core_target/$core_bin.standalone
+	exec cp core/core.standalone bin/core
+	exec rm core/core.standalone
 }

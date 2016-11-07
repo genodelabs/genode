@@ -14,11 +14,11 @@
 #define _INCLUDE__USB__USB_H_
 
 #include <base/allocator.h>
+#include <base/entrypoint.h>
 #include <usb/types.h>
 #include <usb/packet_handler.h>
 #include <usb_session/connection.h>
-
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Usb {
 
@@ -104,8 +104,11 @@ class Usb::Endpoint : public Endpoint_descriptor
 		void dump()
 		{
 			if (verbose_descr)
-				PLOG("\tEndpoint: len: %x type: %x address: %x attributes: %x",
-				     length, type, address, attributes);
+				Genode::log("\tEndpoint: "
+				            "len: ",        Genode::Hex(length),  " "
+				            "type: ",       Genode::Hex(type),    " "
+				            "address: ",    Genode::Hex(address), " "
+				            "attributes: ", Genode::Hex(attributes));
 		}
 };
 
@@ -158,10 +161,16 @@ class Usb::Alternate_interface : public Interface_descriptor,
 			if (!verbose_descr)
 				return;
 
-			PWRN("Interface: len: %x: type: %x  number: %x alt_setting: %x",
-			      length, type, number, alt_settings);
-			PWRN("           num_endpoints: %x class: %x subclass: %x: protocol: %x",
-			     num_endpoints, iclass, isubclass, iprotocol);
+			Genode::warning("Interface: "
+			                "len: ",          Genode::Hex(length), " "
+			                "type: ",         Genode::Hex(type),   " "
+			                "number: ",       Genode::Hex(number), " "
+			                "alt_settings: ", Genode::Hex(alt_settings));
+			Genode::warning("           "
+			                "num_endpoints: ", Genode::Hex(num_endpoints), " "
+			                "class: ",         Genode::Hex(iclass),        " ",
+			                "subclass: ",      Genode::Hex(isubclass),     " "
+			                "protocol: ",      Genode::Hex(iprotocol));
 		}
 };
 
@@ -311,7 +320,7 @@ class Usb::Interface : public Meta_data
 			else _handler.submit(p);
 		}
 
-		void bulk_transfer(Packet_descriptor &p, Endpoint &ep, int timeout,
+		void bulk_transfer(Packet_descriptor &p, Endpoint &ep,
 		                   bool block = true, Completion *c = nullptr)
 		{
 			_check();
@@ -322,14 +331,15 @@ class Usb::Interface : public Meta_data
 			p.type              = Usb::Packet_descriptor::BULK;
 			p.succeded          = false;
 			p.transfer.ep       = ep.address;
-			p.transfer.timeout  = timeout;
 			p.completion        = c;
 
 			if(block) Sync_completion sync(_handler, p);
 			else _handler.submit(p);
 		}
 
-		void interrupt_transfer(Packet_descriptor &p, Endpoint &ep, int timeout,
+		void interrupt_transfer(Packet_descriptor &p, Endpoint &ep,
+		                        int polling_interval =
+		                        	Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL,
 		                        bool block = true, Completion *c = nullptr)
 		{
 			_check();
@@ -337,11 +347,11 @@ class Usb::Interface : public Meta_data
 			if (!ep.is_interrupt())
 				throw Session::Invalid_endpoint();
 
-			p.type             = Usb::Packet_descriptor::IRQ;
-			p.succeded         = false;
-			p.transfer.ep      = ep.address;
-			p.transfer.timeout = timeout;
-			p.completion       = c;
+			p.type                      = Usb::Packet_descriptor::IRQ;
+			p.succeded                  = false;
+			p.transfer.ep               = ep.address;
+			p.transfer.polling_interval = polling_interval;
+			p.completion                = c;
 
 			if(block) Sync_completion sync(_handler, p);
 			else _handler.submit(p);
@@ -382,7 +392,7 @@ class Usb::Config : public Config_descriptor,
 				for (unsigned j = 0; j < alt_settings; j++) {
 					_connection.interface_descriptor(i, j, &descr);
 					if (descr.number != i)
-						PERR("Interface number != index");
+						error("Interface number != index");
 
 					_interfaces[descr.number]->_add(new(_md_alloc) Alternate_interface(descr, md));
 				}
@@ -409,8 +419,12 @@ class Usb::Config : public Config_descriptor,
 		void dump()
 		{
 			if (verbose_descr)
-				PINF("Config: len: %x type %x total_len: %x num_intf: %x config_value: %x",
-				      length, type, total_length, num_interfaces, config_value);
+				log("Config: "
+				    "len: ",          Genode::Hex(length),         " "
+				    "type: ",         Genode::Hex(type),           " "
+				    "total_length: ", Genode::Hex(total_length),   " "
+				    "num_intf: ",     Genode::Hex(num_interfaces), " "
+				    "config_value: ", Genode::Hex(config_value));
 		}
 };
 
@@ -451,7 +465,7 @@ class Usb::Device : public Meta_data
 		String serial_number_string;
 
 		Device(Genode::Allocator * const md_alloc, Connection &connection,
-		       Server::Entrypoint &ep)
+		       Genode::Entrypoint &ep)
 		: Meta_data(md_alloc, connection, _handler), _handler(connection, ep)
 		{ }
 
@@ -519,12 +533,12 @@ class Usb::Device : public Meta_data
 		void set_configuration(uint8_t num)
 		{
 			if (!config) {
-				PERR("No current configuration found");
+				Genode::error("No current configuration found");
 				return;
 			}
 
 			if (!num || num > device_descr.num_configs) {
-				PERR("Valid configuration values: 1 ... %u", device_descr.num_configs);
+				Genode::error("Valid configuration values: 1 ... ", device_descr.num_configs);
 				return;
 			}
 
@@ -551,11 +565,19 @@ class Usb::Device : public Meta_data
 			if (!verbose_descr)
 				return;
 
-			PINF("Device: len: %x type: %x class: %x sub-class: %x proto: %x max_packet: %x",
-			     device_descr.length, device_descr.type, device_descr.dclass, device_descr.dsubclass,
-			     device_descr.dprotocol, device_descr.max_packet_size);
-			PINF("        vendor: %x product: %x configs: %x",
-			     device_descr.vendor_id, device_descr.product_id, device_descr.num_configs);
+			using Genode::Hex;
+
+			Genode::log("Device: "
+			            "len: ",        Hex(device_descr.length),    " "
+			            "type: " ,      Hex(device_descr.type),      " "
+			            "class: ",      Hex(device_descr.dclass),    " "
+			            "sub-class: ",  Hex(device_descr.dsubclass), " "
+			            "proto: ",      Hex(device_descr.dprotocol), " "
+			            "max_packet: ", Hex(device_descr.max_packet_size));
+			Genode::log("        "
+			            "vendor: ",     Hex(device_descr.vendor_id),  " "
+			            "product: ",    Hex(device_descr.product_id), " "
+			            "configs: ",    Hex(device_descr.num_configs));
 		}
 };
 

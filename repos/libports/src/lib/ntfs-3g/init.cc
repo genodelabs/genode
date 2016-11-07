@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 #include <fuse.h>
@@ -48,7 +48,7 @@ bool Fuse::init_fs(void)
 
 	*ctx = reinterpret_cast<ntfs_fuse_context_t *>(malloc(sizeof (ntfs_fuse_context_t)));
 	if (!*ctx) {
-		PERR("out-of-memory");
+		Genode::error("out of memory");
 		return false;
 	}
 
@@ -69,17 +69,17 @@ bool Fuse::init_fs(void)
 	};
 	*/
 
-	PLOG("libc_fuse_ntfs-3g: try to mount /dev/blkdev...");
+	Genode::log("libc_fuse_ntfs-3g: try to mount /dev/blkdev...");
 
 	int err = ntfs_open("/dev/blkdev");
 	if (err) {
-		PERR("libc_fuse_ntfs-3g: could not mount /dev/blkdev");
+		Genode::error("libc_fuse_ntfs-3g: could not mount /dev/blkdev");
 		return false;
 	}
 
 	fh = fuse_new(fc, NULL, &ntfs_3g_ops, sizeof (ntfs_3g_ops), NULL);
 	if (fh == 0) {
-		PERR("libc_fuse_exfat: fuse_new() failed");
+		Genode::error("libc_fuse_exfat: fuse_new() failed");
 		ntfs_close();
 		return false;
 	}
@@ -92,7 +92,7 @@ bool Fuse::init_fs(void)
 
 void Fuse::deinit_fs(void)
 {
-	PLOG("libc_fuse_ntfs-3g: unmount /dev/blkdev...");
+	Genode::log("libc_fuse_ntfs-3g: unmount /dev/blkdev...");
 	ntfs_close();
 
 	free(*ntfs_fuse_ctx());
@@ -101,7 +101,7 @@ void Fuse::deinit_fs(void)
 
 void Fuse::sync_fs(void)
 {
-	PLOG("libc_fuse_ntfs-3g: sync file system...");
+	Genode::log("libc_fuse_ntfs-3g: sync file system...");
 	ntfs_device_sync((*ntfs_fuse_ctx())->vol->dev);
 }
 

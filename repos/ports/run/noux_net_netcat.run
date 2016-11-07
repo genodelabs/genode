@@ -1,7 +1,7 @@
 set use_usb_driver   [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
 set use_nic_driver   [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec linux] && ![have_spec hw_odroid_xu] && ![have_spec hw_wand_quad]]
 
-if {[expr !$use_usb_driver && !$use_nic_driver]} {
+if {[expr !$use_usb_driver && !$use_nic_driver || [expr [have_include "power_on/qemu"] && [have_spec zynq]]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 set build_components {
@@ -90,6 +90,7 @@ append config {
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
+		<config/>
 		<route>}
 append_if $use_nic_driver config {
 			<service name="Nic"> <child name="nic_drv"/></service>}
@@ -116,7 +117,7 @@ append_if [have_spec gpio] config {
 
 append_if $use_usb_driver config {
 	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
+		<resource name="RAM" quantum="14M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Input"/>
@@ -193,18 +194,14 @@ if {[have_include "power_on/qemu"]} {
 	run_genode_until {.*got IP address.*\n} 60
 	set serial_id [output_spawn_id]
 } else {
-	#
-	# We have to look for 'got IP address' twice because tcp_terminal
-	# as well as noux_net will request one and we do not know the
-	# order in advance.
-	run_genode_until {.*got IP address.*} 60
+	# wait until we got both IP addresses in the output afterwards
+	run_genode_until {.*got IP address.*\n.*got IP address.*\n} 60
 	set serial_id [output_spawn_id]
-	run_genode_until {.*got IP address.*\n} 10 $serial_id
 
-	regexp {\[init -> noux_net\] .{1,5}got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output noux_ip_addr
+	regexp {\[init -> noux_net\] got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output noux_ip_addr
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $noux_ip_addr noux_ip_addr
 
-	regexp {\[init -> tcp_terminal\] .{1,5}got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output serial_ip_addr
+	regexp {\[init -> tcp_terminal\] got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output serial_ip_addr
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $serial_ip_addr serial_ip_addr
 
 	# connect to Genode target and reading log output via network connection
@@ -214,7 +211,13 @@ if {[have_include "power_on/qemu"]} {
 
 sleep 4
 
+
 puts "--- serial '$serial_ip_addr' noux '$noux_ip_addr'"
+#
+# This usage of netcat needs the OpenBSD nc command and will not
+# work with GNU netcat because it will not close the connection
+# automatically after sending the string.
+#
 exec echo -e "Hello Genode" | netcat $noux_ip_addr 5555 &
 
 run_genode_until {exited with exit value 1} 20 $serial_id

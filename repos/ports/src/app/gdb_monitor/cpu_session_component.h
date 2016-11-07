@@ -18,6 +18,7 @@
 #include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <base/thread.h>
+#include <base/printf.h>
 #include <cpu_session/client.h>
 #include <pd_session/capability.h>
 
@@ -103,7 +104,7 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		Affinity::Space affinity_space() const override;
 		Dataspace_capability trace_control() override;
 		int ref_account(Cpu_session_capability c) override;
-		int transfer_quota(Cpu_session_capability c, size_t q) override;
+		int transfer_quota(Cpu_session_capability c, Genode::size_t q) override;
 		Quota quota() override;
 		Capability<Native_cpu> native_cpu() override;
 };

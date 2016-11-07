@@ -33,12 +33,7 @@ namespace File_system {
 
 			size_t read(char *dst, size_t len, seek_off_t seek_offset)
 			{
-				bool verbose = false;
-
 				using namespace Ffat;
-
-				if (verbose)
-					PDBG("len = %zu, seek_offset = %llu", len, seek_offset);
 
 				UINT result;
 
@@ -51,20 +46,20 @@ namespace File_system {
 					case FR_OK:
 						break;
 					case FR_INVALID_OBJECT:
-						PERR("f_lseek() failed with error code FR_INVALID_OBJECT");
+						Genode::error("f_lseek() failed with error code FR_INVALID_OBJECT");
 						return 0;
 					case FR_DISK_ERR:
-						PERR("f_lseek() failed with error code FR_DISK_ERR");
+						Genode::error("f_lseek() failed with error code FR_DISK_ERR");
 						return 0;
 					case FR_INT_ERR:
-						PERR("f_lseek() failed with error code FR_INT_ERR");
+						Genode::error("f_lseek() failed with error code FR_INT_ERR");
 						return 0;
 					case FR_NOT_READY:
-						PERR("f_lseek() failed with error code FR_NOT_READY");
+						Genode::error("f_lseek() failed with error code FR_NOT_READY");
 						return 0;
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_lseek() returned an unexpected error code");
+						Genode::error("f_lseek() returned an unexpected error code");
 						return 0;
 				}
 
@@ -72,38 +67,31 @@ namespace File_system {
 
 				switch(res) {
 					case FR_OK:
-						if (verbose)
-							PDBG("result = %d", result);
 						return result;
 					case FR_DENIED:
-						PDBG("f_read() failed with error code FR_DENIED");
+						Genode::warning("f_read() failed with error code FR_DENIED");
 						return 0;
 					case FR_INVALID_OBJECT:
-						PERR("f_read() failed with error code FR_INVALID_OBJECT");
+						Genode::error("f_read() failed with error code FR_INVALID_OBJECT");
 						return 0;
 					case FR_DISK_ERR:
-						PERR("f_read() failed with error code FR_DISK_ERR");
+						Genode::error("f_read() failed with error code FR_DISK_ERR");
 						return 0;
 					case FR_INT_ERR:
-						PERR("f_read() failed with error code FR_INT_ERR");
+						Genode::error("f_read() failed with error code FR_INT_ERR");
 						return 0;
 					case FR_NOT_READY:
-						PERR("f_read() failed with error code FR_NOT_READY");
+						Genode::error("f_read() failed with error code FR_NOT_READY");
 						return 0;
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_read() returned an unexpected error code");
+						Genode::error("f_read() returned an unexpected error code");
 						return 0;
 				}
 			}
 
 			size_t write(char const *src, size_t len, seek_off_t seek_offset)
 			{
-				bool verbose = false;
-
-				if (verbose)
-					PDBG("len = %zu, seek_offset = %llu", len, seek_offset);
-
 				using namespace Ffat;
 
 				UINT result;
@@ -117,20 +105,20 @@ namespace File_system {
 					case FR_OK:
 						break;
 					case FR_INVALID_OBJECT:
-						PERR("f_lseek() failed with error code FR_INVALID_OBJECT");
+						Genode::error("f_lseek() failed with error code FR_INVALID_OBJECT");
 						return 0;
 					case FR_DISK_ERR:
-						PERR("f_lseek() failed with error code FR_DISK_ERR");
+						Genode::error("f_lseek() failed with error code FR_DISK_ERR");
 						return 0;
 					case FR_INT_ERR:
-						PERR("f_lseek() failed with error code FR_INT_ERR");
+						Genode::error("f_lseek() failed with error code FR_INT_ERR");
 						return 0;
 					case FR_NOT_READY:
-						PERR("f_lseek() failed with error code FR_NOT_READY");
+						Genode::error("f_lseek() failed with error code FR_NOT_READY");
 						return 0;
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_lseek() returned an unexpected error code");
+						Genode::error("f_lseek() returned an unexpected error code");
 						return 0;
 				}
 
@@ -138,27 +126,25 @@ namespace File_system {
 
 				switch(res) {
 					case FR_OK:
-						if (verbose)
-							PDBG("result = %d", result);
 						return result;
 					case FR_DENIED:
-						PERR("f_write() failed with error code FR_DENIED");
+						Genode::error("f_write() failed with error code FR_DENIED");
 						return 0;
 					case FR_INVALID_OBJECT:
-						PERR("f_write() failed with error code FR_INVALID_OBJECT");
+						Genode::error("f_write() failed with error code FR_INVALID_OBJECT");
 						return 0;
 					case FR_DISK_ERR:
-						PERR("f_write() failed with error code FR_DISK_ERR");
+						Genode::error("f_write() failed with error code FR_DISK_ERR");
 						return 0;
 					case FR_INT_ERR:
-						PERR("f_write() failed with error code FR_INT_ERR");
+						Genode::error("f_write() failed with error code FR_INT_ERR");
 						return 0;
 					case FR_NOT_READY:
-						PERR("f_write() failed with error code FR_NOT_READY");
+						Genode::error("f_write() failed with error code FR_NOT_READY");
 						return 0;
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_write() returned an unexpected error code");
+						Genode::error("f_write() returned an unexpected error code");
 						return 0;
 				}
 			}

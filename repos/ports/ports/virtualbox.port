@@ -1,20 +1,22 @@
 LICENSE         := GPLv2
-VERSION         := 4.3.16
+VERSION         := 4.3.40
 DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
 VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
-VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-95972.zip
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-110317.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := e4c23b713e8715b8e0172fa066f2197756e901fe
+SHA(virtualbox) := 89f9f702e94afe7dccacb76c34792038564edbdc
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/app/virtualbox_sdk
-SHA(virtualbox_sdk) := 8f95a891a6cb5f712fcb0ed34f2b8bf6b1e59f4c
+SHA(virtualbox_sdk) := 438e2994a0103c5e10b61d29b1bca68287ecb134
 
-PATCHES_DIR := src/virtualbox/patches
+PATCHES_DIR       := src/virtualbox/patches
+PATCHES_DIR_VBOX4 := src/virtualbox/patches
 PATCHES := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/series))
+PATCHES += $(addprefix $(PATCHES_DIR_VBOX4)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR_VBOX4)/series_common))
 PATCH_OPT := -p1
 
 $(call check_tool,xsltproc)
@@ -45,7 +47,7 @@ VBOX_MAIN_SRV += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
 VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AudioSnifferInterface
 VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
 VBOX_MAIN_INC += BandwidthGroupImpl BIOSSettingsImpl BusAssignmentManager Nvram
-VBOX_MAIN_INC += ClientToken ConsoleEvents ConsoleImpl DHCPServerImpl DisplayImpl HostImpl
+VBOX_MAIN_INC += ClientToken ConsoleImpl DHCPServerImpl DisplayImpl HostImpl
 VBOX_MAIN_INC += DisplayUtils EventImpl FramebufferImpl Global
 VBOX_MAIN_INC += GuestCtrlImplPrivate GuestDirectoryImpl GuestDnDImpl Logging
 VBOX_MAIN_INC += GuestFileImpl GuestFsObjInfoImpl GuestImpl GuestOSTypeImpl
@@ -89,7 +91,7 @@ VBOX_CONTENT += $(addprefix include/VBox/, $(VBOX_INC))
 VBOX_CONTENT += $(addprefix include/VBox/com/, $(VBOX_INC_COM))
 VBOX_CONTENT += $(addprefix include/VBox/HostServices/, $(VBOX_INC_HOST))
 
-VBOX_CONTENT += src/libs/zlib-1.2.6 src/libs/liblzf-3.4 src/libs/libxml2-2.6.31
+VBOX_CONTENT += src/libs/zlib-1.2.8 src/libs/liblzf-3.4 src/libs/libxml2-2.9.2
 VBOX_CONTENT += src/recompiler include/VBox/vmm include/iprt Config.kmk
 
 

@@ -53,9 +53,6 @@ QPaintDevice *QNitpickerWindowSurface::paintDevice()
 
     if (_framebuffer_changed) {
 
-    	if (verbose)
-    		PDBG("framebuffer changed");
-
     	_framebuffer_changed = false;
     	/*
     	 * It can happen that 'resize()' was not called yet, so the size needs

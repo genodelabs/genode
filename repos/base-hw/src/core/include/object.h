@@ -14,13 +14,17 @@
 #ifndef _CORE__INCLUDE__OBJECT_H_
 #define _CORE__INCLUDE__OBJECT_H_
 
-#include <base/native_types.h>
-#include <kernel/interface.h>
-#include <kernel/object.h>
+/* Genode includes */
 #include <util/construct_at.h>
 
-namespace Genode
-{
+/* base-internal includes */
+#include <base/internal/capability_space.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
+#include <kernel/object.h>
+
+namespace Genode {
 	/**
 	 * Represents a kernel object in core
 	 *
@@ -51,9 +55,11 @@ class Genode::Kernel_object
 		 */
 		template <typename... ARGS>
 		Kernel_object(bool syscall, ARGS &&... args)
-		: _cap(syscall ? T::syscall_create(&_data, args...)
-		               : Kernel::cap_id_invalid()) {
-			if (!syscall) construct_at<T>(&_data, args...); }
+		: _cap(Capability_space::import(syscall ? T::syscall_create(&_data, args...)
+		                                        : Kernel::cap_id_invalid()))
+		{
+			if (!syscall) construct_at<T>(&_data, args...);
+		}
 
 		~Kernel_object() { T::syscall_destroy(kernel_object()); }
 
@@ -66,7 +72,7 @@ class Genode::Kernel_object
 		bool create(ARGS &&... args)
 		{
 			if (_cap.valid()) return false;
-			_cap = T::syscall_create(&_data, args...);
+			_cap = Capability_space::import(T::syscall_create(&_data, args...));
 			return _cap.valid();
 		}
 };

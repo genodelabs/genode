@@ -74,7 +74,7 @@ struct Platform::Device : Platform::Abstract_device
 			/**
 			 * Return base address of resource
 			 */
-			unsigned base()
+			unsigned base() const
 			{
 				/*
 				 * Mask out the resource-description bits of the base
@@ -87,12 +87,12 @@ struct Platform::Device : Platform::Abstract_device
 			/**
 			 * Return resource size in bytes
 			 */
-			unsigned size() { return _size; }
+			unsigned size() const { return _size; }
 
 			/**
 			 * Return true if resource is prefetchable memory
 			 */
-			bool prefetchable()
+			bool prefetchable() const
 			{
 				return type() == MEMORY && (_bar & (1 << 3));
 			}
@@ -100,7 +100,7 @@ struct Platform::Device : Platform::Abstract_device
 			/**
 			 * Return resource type
 			 */
-			Type type()
+			Type type() const
 			{
 				if (_bar == 0)
 					return INVALID;

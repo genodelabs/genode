@@ -51,6 +51,8 @@ class Genode::Thread
 		typedef Cpu_session::Name   Name;
 		typedef Cpu_session::Weight Weight;
 
+		struct Stack_info { addr_t base; addr_t top; };
+
 	private:
 
 		/**
@@ -319,14 +321,14 @@ class Genode::Thread
 		Native_thread &native_thread();
 
 		/**
-		 * Return top of stack
+		 * Return top of primary stack
 		 *
 		 * \return  pointer just after first stack element
 		 */
 		void *stack_top() const;
 
 		/**
-		 * Return base of stack
+		 * Return base of primary stack
 		 *
 		 * \return  pointer to last stack element
 		 */
@@ -353,6 +355,11 @@ class Genode::Thread
 		 * \return  pointer to caller's 'Thread' object
 		 */
 		static Thread *myself();
+
+		/**
+		 * Return information about the current stack
+		 */
+		static Stack_info mystack();
 
 		/**
 		 * Ensure that the stack has a given size at the minimum

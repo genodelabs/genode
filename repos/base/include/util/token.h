@@ -90,7 +90,9 @@ class Genode::Token
 		/**
 		 * Return true if token is valid
 		 */
-		operator bool () const { return _start && _len; }
+		bool valid() const { return _start && _len; }
+
+		operator bool () const { return valid(); }
 
 		/**
 		 * Access single characters of token
@@ -104,6 +106,37 @@ class Genode::Token
 		 * Return next token
 		 */
 		Token next() const { return Token(_start + _len, _max_len - _len); }
+
+		/**
+		 * Return next token after delimiter
+		 */
+		Token next_after(char const *delim)
+		{
+			size_t const len = strlen(delim);
+
+			if (!valid() || len > _max_len)
+				return Token();
+
+			char const *s = _start;
+			for (size_t rest = _max_len; rest >= len; --rest, ++s)
+				if (strcmp(s, delim, len) == 0)
+					return Token(s, rest).next();
+
+			return Token();
+		}
+
+		/**
+		 * Return true if token starts with pattern
+		 */
+		bool matches(char const *pattern)
+		{
+			size_t const len = strlen(pattern);
+
+			if (!valid() || len > _max_len)
+				return false;
+
+			return strcmp(pattern, _start, len) == 0;
+		}
 
 		/**
 		 * Return next non-whitespace token

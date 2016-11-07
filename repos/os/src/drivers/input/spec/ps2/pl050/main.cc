@@ -44,11 +44,9 @@ struct Main
 	Irq_handler  ps2_mouse_irq;
 	Irq_handler  ps2_keybd_irq;
 
-	bool _check_verbose(const char * verbose) {
-		using namespace Genode;
-		try {
-			return config()->xml_node().attribute(verbose).has_value("yes");
-		} catch (...) { return false; }
+	bool _check_verbose(const char * verbose)
+	{
+		return Genode::config()->xml_node().attribute_value(verbose, false);
 	}
 
 	Main(Server::Entrypoint &ep)
@@ -72,6 +70,6 @@ struct Main
 
 namespace Server {
 	char const *name()             { return "ps2_drv_ep";      }
-	size_t stack_size()            { return 1024*sizeof(long); }
+	size_t stack_size()            { return 2048*sizeof(long); }
 	void construct(Entrypoint &ep) { static Main server(ep);   }
 }

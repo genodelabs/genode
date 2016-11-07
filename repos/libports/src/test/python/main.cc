@@ -15,7 +15,7 @@
 #include <python2.6/Python.h>
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/config.h>
 
 /* libc includes */
@@ -37,9 +37,9 @@ static bool process_config(char **file)
 		return true;
 	}
 	catch (Xml_node::Nonexistent_sub_node) {
-		PERR("No 'config/script' sub node in config found"); }
+		Genode::error("no 'config/script' sub node in config found"); }
 	catch (Xml_node::Nonexistent_attribute) {
-		PERR("No 'name' attribute in 'script' node found"); }
+		Genode::error("no 'name' attribute in 'script' node found"); }
 
 	return false;
 }
@@ -54,11 +54,11 @@ int main()
 
 	char *name;
 	if (!process_config(&name)) {
-		PERR("No script found");
+		Genode::error("no script found");
 		return 1;
 	}
 
-	PDBG("Found script: %s", name);
+	Genode::log("Found script: ", Genode::Cstring(name));
 	fp._file = open(name, 0, 0);
 	fp._read = __sread;
 	fp._cookie = &fp;
@@ -70,7 +70,7 @@ int main()
 	Py_InteractiveFlag = 0;
 	Py_Initialize();
 
-	PDBG("Starting python ...");
+	Genode::log("Starting python ...");
 	PyRun_SimpleFile(&fp, name);
 
 	return 0;

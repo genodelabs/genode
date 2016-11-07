@@ -161,7 +161,7 @@ class Scout::Canvas : public Canvas_base
 
 			Texture<PT> *texture = static_cast<Texture<PT> *>(texture_base);
 
-			size_t const num_pixels = texture->size().count();
+			Genode::size_t const num_pixels = texture->size().count();
 
 			if (texture->alpha())
 				env()->heap()->free(texture->alpha(), num_pixels);

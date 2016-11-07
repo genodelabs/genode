@@ -48,6 +48,13 @@ namespace Genode {
 	};
 
 
+	struct Notification_kobj
+	{
+		enum { SEL4_TYPE = seL4_NotificationObject, SIZE_LOG2 = 4 };
+		static char const *name() { return "notification"; }
+	};
+
+
 	struct Cnode_kobj
 	{
 		enum { SEL4_TYPE = seL4_CapTableObject, SIZE_LOG2 = 4 };
@@ -57,14 +64,14 @@ namespace Genode {
 
 	struct Page_table_kobj
 	{
-		enum { SEL4_TYPE = seL4_IA32_PageTableObject, SIZE_LOG2 = 12 };
+		enum { SEL4_TYPE = seL4_X86_PageTableObject, SIZE_LOG2 = 12 };
 		static char const *name() { return "page table"; }
 	};
 
 
 	struct Page_directory_kobj
 	{
-		enum { SEL4_TYPE = seL4_IA32_PageDirectoryObject, SIZE_LOG2 = 12 };
+		enum { SEL4_TYPE = seL4_X86_PageDirectoryObject, SIZE_LOG2 = 12 };
 		static char const *name() { return "page directory"; }
 	};
 
@@ -122,13 +129,10 @@ namespace Genode {
 		                                    num_objects);
 
 		if (ret != 0) {
-			PERR("seL4_Untyped_RetypeAtOffset (%s) returned %d",
-			     KOBJ::name(), ret);
+			error("seL4_Untyped_RetypeAtOffset (", KOBJ::name(), ") "
+			      "returned ", ret);
 			throw Retype_untyped_failed();
 		}
-
-		PLOG("created kernel object '%s' at 0x%lx -> root=%lu index=%lu",
-		     KOBJ::name(), phys_addr, dst_cnode_sel.value(), dst_idx.value());
 
 		return phys_addr;
 	}
@@ -179,8 +183,7 @@ namespace Genode {
 		                                    num_objects);
 
 		if (ret != 0) {
-			PERR("seL4_Untyped_Retype (%s) returned %d",
-			     KOBJ::name(), ret);
+			error("seL4_Untyped_Retype (", KOBJ::name(), ") returned ", ret);
 			throw Retype_untyped_failed();
 		}
 	}

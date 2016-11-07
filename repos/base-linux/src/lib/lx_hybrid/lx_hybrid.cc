@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/component.h>
 #include <linux_syscalls.h>
 #include <linux_native_cpu/client.h>
@@ -20,9 +20,8 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
+#include <base/internal/platform_env.h>
 
-
-extern "C" int raw_write_str(const char *str);
 
 /**
  * Define stack area
@@ -39,7 +38,7 @@ enum { verbose_atexit = false };
 int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 {
 	if (verbose_atexit)
-		raw_write_str("genode___cxa_atexit called, not implemented\n");
+		Genode::raw("genode___cxa_atexit called, not implemented\n");
 	return 0;
 }
 
@@ -72,7 +71,7 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
 	 */
-	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 }
 
 namespace Genode {
@@ -110,7 +109,6 @@ void Genode::call_global_static_constructors() { }
 
 int main()
 {
-	Genode::init_log();
 	Genode::bootstrap_component();
 
 	/* never reached */
@@ -146,10 +144,12 @@ int main()
 #include <base/thread.h>
 #include <base/env.h>
 
-/* libc includes */
+/* host libc includes */
+#define size_t __SIZE_TYPE__ /* see comment in 'linux_syscalls.h' */
 #include <pthread.h>
 #include <stdio.h>
 #include <errno.h>
+#undef size_t
 
 using namespace Genode;
 
@@ -307,32 +307,32 @@ namespace Genode {
 
 			void wait_for_construction()
 			{
-				PERR("wait_for_construction() called for an adopted thread");
+				error("wait_for_construction() called for an adopted thread");
 			}
 
 			void constructed()
 			{
-				PERR("constructed() called for an adopted thread");
+				error("constructed() called for an adopted thread");
 			}
 
 			void wait_for_start()
 			{
-				PERR("wait_for_start() called for an adopted thread");
+				error("wait_for_start() called for an adopted thread");
 			}
 
 			void started()
 			{
-				PERR("started() called for an adopted thread");
+				error("started() called for an adopted thread");
 			}
 
 			void wait_for_join()
 			{
-				PERR("wait_for_join() called for an adopted thread");
+				error("wait_for_join() called for an adopted thread");
 			}
 
 			void joined()
 			{
-				PERR("joined() called for an adopted thread");
+				error("joined() called for an adopted thread");
 			}
 	};
 }
@@ -346,12 +346,12 @@ static void adopt_thread(Native_thread::Meta_data *meta_data)
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
 	 */
-	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/*
 	 * Prevent children from becoming zombies. (SIG_IGN = 1)
 	 */
-	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
+	lx_sigaction(LX_SIGCHLD, (void (*)(int))1, false);
 
 	/* assign 'Native_thread::Meta_data' pointer to TLS entry */
 	pthread_setspecific(tls_key(), meta_data);
@@ -464,8 +464,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 
 	int const ret = pthread_create(&meta_data->pt, 0, thread_start, meta_data);
 	if (ret) {
-		PERR("pthread_create failed (returned %d, errno=%d)",
-		     ret, errno);
+		error("pthread_create failed (returned ", ret, ", errno=", errno, ")");
 		destroy(env()->heap(), meta_data);
 		throw Out_of_stack_space();
 	}
@@ -511,8 +510,8 @@ Thread::~Thread()
 	if (needs_join) {
 		int const ret = pthread_join(native_thread().meta_data->pt, 0);
 		if (ret)
-			PWRN("pthread_join unexpectedly returned with %d (errno=%d)",
-			     ret, errno);
+			warning("pthread_join unexpectedly returned "
+			        "with ", ret, " (errno=", errno, ")");
 	}
 
 	Thread_meta_data_created *meta_data =
@@ -525,4 +524,18 @@ Thread::~Thread()
 
 	/* inform core about the killed thread */
 	_cpu_session->kill_thread(_thread_cap);
+}
+
+
+/******************
+ ** Platform_env **
+ ******************/
+
+void Platform_env::_attach_stack_area()
+{
+	/*
+	 * Omit attaching the stack area to the local address space for hybrid
+	 * components. Otherwise, it may collide with the (randomized) loading
+	 * locations of shared objects or the binary.
+	 */
 }

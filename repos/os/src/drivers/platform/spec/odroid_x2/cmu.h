@@ -20,7 +20,7 @@
 #include <regulator/driver.h>
 #include <drivers/board_base.h>
 #include <os/attached_mmio.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Regulator;
 
@@ -182,7 +182,8 @@ class Cmu : public Regulator::Driver,
 
 		void _cpu_clk_freq(unsigned long level)
 		{
-			PINF("Changing CPU frequency to %lu",level);
+			using namespace Genode;
+			log("Changing CPU frequency to ",level);
 			unsigned freq;
 			switch (level) {
 			case CPU_FREQ_200:
@@ -207,9 +208,9 @@ class Cmu : public Regulator::Driver,
 				freq = 6;
 				break;
 			default:
-				PWRN("Unsupported CPU frequency level %ld", level);
-				PWRN("Supported values are 200, 400, 600, 800, 1000, 1200, 14000 MHz");
-				PWRN("and 1, 1.2, 1.4, 1.6, 1.7 GHz");
+				warning("Unsupported CPU frequency level ", level);
+				warning("Supported values are 200, 400, 600, 800, 1000, 1200, 14000 MHz");
+				warning("and 1, 1.2, 1.4, 1.6, 1.7 GHz");
 				return;
 			};
 
@@ -252,7 +253,7 @@ class Cmu : public Regulator::Driver,
 			       != Clk_mux_stat_cpu::Core_sel::MOUT_APLL) ;
 
 			_cpu_freq = static_cast<Cpu_clock_freq>(level);
-			PINF("End of Changing CPU frequency to %lu",level);
+			Genode::log("changed CPU frequency to ",level);
 		}
 
 
@@ -288,7 +289,7 @@ class Cmu : public Regulator::Driver,
 				_hdmi_enable();
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				Genode::warning("enabling regulator unsupported for ", names[id].name);
 			}
 		}
 
@@ -301,7 +302,7 @@ class Cmu : public Regulator::Driver,
 				return write<Clk_gate_ip_fsys::Usbhost20>(0);
 			}
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				Genode::warning("disabling regulator unsupported for ", names[id].name);
 			}
 		}
 
@@ -339,7 +340,7 @@ class Cmu : public Regulator::Driver,
 				_cpu_clk_freq(level);
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				Genode::warning("level setting unsupported for ", names[id].name);
 			}
 		}
 
@@ -349,7 +350,7 @@ class Cmu : public Regulator::Driver,
 			case CLK_CPU:
 				return _cpu_freq;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				Genode::warning("level requesting unsupported for ", names[id].name);
 			}
 			return 0;
 		}
@@ -368,7 +369,7 @@ class Cmu : public Regulator::Driver,
 			case CLK_USB20:
 				return read<Clk_gate_ip_fsys::Usbhost20>();
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				Genode::warning("state request unsupported for ", names[id].name);
 			}
 			return true;
 		}

@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <base/heap.h>
 #include <root/component.h>
 #include <os/server.h>
 #include <os/attached_ram_dataspace.h>
@@ -50,7 +51,7 @@ class Buffered_output
 			_buf[_index] = 0;
 
 			/* flush buffered characters to LOG */
-			Genode::printf(_buf);
+			Genode::log(Genode::Cstring(_buf));
 
 			/* reset */
 			_index = 0;
@@ -67,9 +68,10 @@ class Buffered_output
 
 			for (unsigned i = 0; i < consume_bytes; i++) {
 				char const c = src[i];
-				_buf[_index++] = c;
 				if (c == '\n')
 					_flush();
+				else
+					_buf[_index++] = c;
 			}
 
 			if (_remaining_capacity() == 0)

@@ -72,15 +72,25 @@ diff --git a/drivers/net/wireless/iwlwifi/mvm/mac80211.c b/drivers/net/wireless/
 index 9a856e5..e70f9b7 100644
 --- a/drivers/net/wireless/iwlwifi/mvm/mac80211.c
 +++ b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
-@@ -1923,7 +1923,7 @@ struct ieee80211_ops iwl_mvm_hw_ops = {
+@@ -566,7 +566,9 @@
+ 	else
+ 		hw->wiphy->flags &= ~WIPHY_FLAG_PS_ON_BY_DEFAULT;
+ 
++/* don't enable broken scheduled scanning
+ 	hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
++*/
+ 	hw->wiphy->max_sched_scan_ssids = PROBE_OPTION_MAX;
+ 	hw->wiphy->max_match_sets = IWL_SCAN_MAX_PROFILES;
+ 	/* we create the 802.11 header and zero length SSID IE. */
+@@ -4200,7 +4202,7 @@
  	.add_interface = iwl_mvm_mac_add_interface,
  	.remove_interface = iwl_mvm_mac_remove_interface,
  	.config = iwl_mvm_mac_config,
 -	.prepare_multicast = iwl_mvm_prepare_multicast,
 +	.prepare_multicast = 0,
  	.configure_filter = iwl_mvm_configure_filter,
+ 	.config_iface_filter = iwl_mvm_config_iface_filter,
  	.bss_info_changed = iwl_mvm_bss_info_changed,
- 	.hw_scan = iwl_mvm_mac_hw_scan,
 diff --git a/drivers/net/wireless/iwlwifi/mvm/mvm.h b/drivers/net/wireless/iwlwifi/mvm/mvm.h
 index 2b0ba1f..8de16d0 100644
 --- a/drivers/net/wireless/iwlwifi/mvm/mvm.h

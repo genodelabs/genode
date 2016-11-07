@@ -180,8 +180,8 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 
 					} else {
 
-						PWRN("replay: missing ds_info for dataspace at addr 0x%lx",
-						     curr->local_addr);
+						warning("replay: missing ds_info for dataspace at addr ",
+						        Hex(curr->local_addr));
 
 						/*
 						 * If the dataspace is not a RAM dataspace, assume that
@@ -205,8 +205,8 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 					 */
 					if (!ds.valid()) {
 						if (verbose_replay)
-							PWRN("replay: skip dataspace of region 0x%lx",
-							     curr->local_addr);
+							warning("replay: skip dataspace of region ",
+							        Hex(curr->local_addr));
 						return;
 					}
 
@@ -255,10 +255,12 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 					info->register_user(*region);
 				} else {
 					if (verbose_attach) {
-						PWRN("Trying to attach unknown dataspace type ds=%ld", ds.local_name());
-						PWRN("  ds_info@%p at 0x%lx size=%zd offset=0x%lx",
-						     info, (long)local_addr,
-						     Dataspace_client(ds).size(), (long)offset);
+						warning("trying to attach unknown dataspace type "
+						        "ds=",         ds.local_name(), " "
+						        "info@",       info,            " "
+						        "local_addr=", Hex(local_addr), " "
+						        "size=",       Dataspace_client(ds).size(), " "
+						        "offset=",     Hex(offset));
 					}
 				}
 			};
@@ -280,8 +282,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 				Lock::Guard guard(_region_lock);
 				region = _lookup_region_by_addr(local_addr);
 				if (!region) {
-					PWRN("Attempt to detach unknown region at 0x%p",
-					     (void *)local_addr);
+					warning("attempt to detach unknown region at ", (void *)local_addr);
 					return;
 				}
 
@@ -370,7 +371,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 
 				Region *region = _lookup_region_by_addr(dst_addr);
 				if (!region) {
-					PERR("poke: no region at 0x%lx", dst_addr);
+					error("poke: no region at ", Hex(dst_addr));
 					return;
 				}
 
@@ -379,12 +380,12 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 				 * type refers to the same region.
 				 */
 				if (region != _lookup_region_by_addr(dst_addr + len - 1)) {
-					PERR("attempt to write beyond region boundary");
+					error("attempt to write beyond region boundary");
 					return;
 				}
 
 				if (region->offset) {
-					PERR("poke: writing to region with offset is not supported");
+					error("poke: writing to region with offset is not supported");
 					return;
 				}
 
@@ -394,7 +395,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 
 			_ds_registry.apply(ds_cap, [&] (Dataspace_info *info) {
 				if (!info) {
-					PERR("attempt to write to unknown dataspace type");
+					error("attempt to write to unknown dataspace type");
 					for (;;);
 				}
 				info->poke(dst_addr - local_addr, src, len);

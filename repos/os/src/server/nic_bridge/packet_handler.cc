@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/lock.h>
+#include <base/log.h>
 #include <net/arp.h>
 #include <net/dhcp.h>
 #include <net/ethernet.h>
@@ -23,19 +23,16 @@
 
 using namespace Net;
 
-static const bool verbose = true;
-
-void Packet_handler::_ready_to_submit(unsigned)
+void Packet_handler::_ready_to_submit()
 {
 	/* as long as packets are available, and we can ack them */
 	while (sink()->packet_avail()) {
 		_packet = sink()->get_packet();
-		if (!_packet.valid()) continue;
+		if (!_packet.size()) continue;
 		handle_ethernet(sink()->packet_content(_packet), _packet.size());
 
 		if (!sink()->ready_to_ack()) {
-			if (verbose)
-				PWRN("ack state FULL");
+			Genode::warning("ack state FULL");
 			return;
 		}
 
@@ -44,7 +41,7 @@ void Packet_handler::_ready_to_submit(unsigned)
 }
 
 
-void Packet_handler::_ready_to_ack(unsigned)
+void Packet_handler::_ready_to_ack()
 {
 	/* check for acknowledgements */
 	while (source()->ack_avail())
@@ -52,11 +49,11 @@ void Packet_handler::_ready_to_ack(unsigned)
 }
 
 
-void Packet_handler::_link_state(unsigned)
+void Packet_handler::_link_state()
 {
-	Mac_address_node *node = _vlan.mac_list()->first();
+	Mac_address_node *node = _vlan.mac_list.first();
 	while (node) {
-		node->component()->link_state_changed();
+		node->component().link_state_changed();
 		node = node->next();
 	}
 }
@@ -68,10 +65,10 @@ void Packet_handler::broadcast_to_clients(Ethernet_frame *eth, Genode::size_t si
 	if (eth->dst() == Ethernet_frame::BROADCAST) {
 		/* iterate through the list of clients */
 		Mac_address_node *node =
-			_vlan.mac_list()->first();
+			_vlan.mac_list.first();
 		while (node) {
 			/* deliver packet */
-			node->component()->send(eth, size);
+			node->component().send(eth, size);
 			node = node->next();
 		}
 	}
@@ -97,15 +94,15 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 		broadcast_to_clients(eth, size);
 		finalize_packet(eth, size);
 	} catch(Arp_packet::No_arp_packet) {
-		PWRN("Invalid ARP packet!");
+		Genode::warning("Invalid ARP packet!");
 	} catch(Ethernet_frame::No_ethernet_frame) {
-		PWRN("Invalid ethernet frame");
+		Genode::warning("Invalid ethernet frame");
 	} catch(Dhcp_packet::No_dhcp_packet) {
-		PWRN("Invalid IPv4 packet!");
+		Genode::warning("Invalid IPv4 packet!");
 	} catch(Ipv4_packet::No_ip_packet) {
-		PWRN("Invalid IPv4 packet!");
+		Genode::warning("Invalid IPv4 packet!");
 	} catch(Udp_packet::No_udp_packet) {
-		PWRN("Invalid UDP packet!");
+		Genode::warning("Invalid UDP packet!");
 	}
 }
 
@@ -119,13 +116,12 @@ void Packet_handler::send(Ethernet_frame *eth, Genode::size_t size)
 		Genode::memcpy((void*)content, (void*)eth, size);
 		source()->submit_packet(packet);
 	} catch(Packet_stream_source< ::Nic::Session::Policy>::Packet_alloc_failed) {
-		if (verbose)
-			PWRN("Packet dropped");
+		Genode::warning("Packet dropped");
 	}
 }
 
 
-Packet_handler::Packet_handler(Server::Entrypoint &ep, Vlan &vlan)
+Packet_handler::Packet_handler(Genode::Entrypoint &ep, Vlan &vlan)
 : _vlan(vlan),
   _sink_ack(ep, *this, &Packet_handler::_ack_avail),
   _sink_submit(ep, *this, &Packet_handler::_ready_to_submit),

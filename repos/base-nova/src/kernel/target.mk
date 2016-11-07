@@ -3,7 +3,6 @@ include $(call select_from_repositories,mk/spec/nova.mk)
 TARGET           = hypervisor
 REQUIRES         = x86 nova
 NOVA_BUILD_DIR   = $(BUILD_BASE_DIR)/kernel
-STARTUP_LIB      =
 SRC_CC           = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.cpp)))
 SRC_S            = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.S)))
 INC_DIR          = $(NOVA_SRC_DIR)/include
@@ -22,11 +21,11 @@ CC_OPT          += -pipe \
                    -fno-stack-protector -fvisibility-inlines-hidden \
                    -fno-asynchronous-unwind-tables -std=gnu++0x 
 ifeq ($(filter-out $(SPECS),32bit),)
-CC_WARN         += -Wframe-larger-than=64
+CC_WARN         += -Wframe-larger-than=92
 CC_OPT          += -mpreferred-stack-boundary=2 -mregparm=3
 else
 ifeq ($(filter-out $(SPECS),64bit),)
-CC_WARN         += -Wframe-larger-than=144
+CC_WARN         += -Wframe-larger-than=240
 CC_OPT          += -mpreferred-stack-boundary=4 -mcmodel=kernel -mno-red-zone
 else
 $(error Unsupported environment)

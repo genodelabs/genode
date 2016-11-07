@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <util/register.h>
-#include <base/printf.h>
 
 /* core includes */
 #include <util.h>

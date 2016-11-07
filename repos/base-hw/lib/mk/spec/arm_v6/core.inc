@@ -6,18 +6,18 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_HW_DIR)/src/core/include/spec/arm_v6
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/arm_v6
 
 # add C++ sources
 SRC_CC += spec/arm_v6/cpu.cc
 SRC_CC += spec/arm/kernel/cpu_context.cc
 SRC_CC += spec/arm/kernel/cpu.cc
 SRC_CC += spec/arm/kernel/thread_update_pd.cc
-SRC_CC += kernel/vm_thread.cc
+SRC_CC += kernel/vm_thread_off.cc
 SRC_CC += kernel/kernel.cc
 
 # add assembly sources
 SRC_S += spec/arm_v6/mode_transition.s
 
 # include less specific configuration
-include $(BASE_HW_DIR)/lib/mk/spec/arm/core.inc
+include $(BASE_DIR)/../base-hw/lib/mk/spec/arm/core.inc

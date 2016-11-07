@@ -50,7 +50,8 @@ set config {
 	<start name="test-lxip_udp_echo">
 		<resource name="RAM" quantum="2M"/>
 		<config ld_verbose="yes">
-			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.55" gateway="10.0.2.1" netmask="255.255.255.0">
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.55"
+			      gateway="10.0.2.1" netmask="255.255.255.0" port="1337">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -118,7 +119,7 @@ append qemu_args " -m 128 -nographic "
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
-append qemu_args " -net user -redir tcp:5555::80 "
+append qemu_args " -net user -redir udp:5555::1337 "
 
 run_genode_until forever
 

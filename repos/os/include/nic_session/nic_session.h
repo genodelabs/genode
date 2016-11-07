@@ -20,10 +20,12 @@
 #include <session/session.h>
 #include <packet_stream_tx/packet_stream_tx.h>
 #include <packet_stream_rx/packet_stream_rx.h>
+#include <net/mac_address.h>
 
 namespace Nic {
 
-	struct Mac_address;
+	using Mac_address = Net::Mac_address;
+
 	struct Session;
 
 	using Genode::Packet_stream_sink;
@@ -31,9 +33,6 @@ namespace Nic {
 
 	typedef Genode::Packet_descriptor Packet_descriptor;
 }
-
-
-struct Nic::Mac_address { char addr[6]; };
 
 
 /*

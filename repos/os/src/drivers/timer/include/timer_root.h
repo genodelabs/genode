@@ -43,7 +43,7 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 			Genode::size_t ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 			if (ram_quota < sizeof(Session_component)) {
-				PWRN("Insufficient donated ram_quota (%zd bytes), require %zd bytes",
+				PWRN("Insufficient donated ram_quota (%ld bytes), require %zd bytes",
 				     ram_quota, sizeof(Session_component));
 			}
 

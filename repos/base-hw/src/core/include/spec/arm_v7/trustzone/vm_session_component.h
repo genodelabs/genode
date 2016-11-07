@@ -64,13 +64,13 @@ class Genode::Vm_session_component
 		void pause(void);
 
 		void attach(Dataspace_capability ds_cap, addr_t vm_addr) {
-			PWRN("Not implemented for TrustZone case"); }
+			warning("Not implemented for TrustZone case"); }
 
 		void attach_pic(addr_t vm_addr) {
-			PWRN("Not implemented for TrustZone case"); }
+			warning("Not implemented for TrustZone case"); }
 
 		void detach(addr_t vm_addr, size_t size) {
-			PWRN("Not implemented for TrustZone case"); }
+			warning("Not implemented for TrustZone case"); }
 };
 
 #endif /* _CORE__INCLUDE__SPEC__ARM_V7__TRUSTZONE__VM_SESSION_COMPONENT_H_ */

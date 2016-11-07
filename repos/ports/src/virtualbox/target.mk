@@ -3,6 +3,12 @@ VBOX_CC_OPT += -DVBOX_WITH_GENERIC_SESSION_WATCHER
 
 include $(REP_DIR)/lib/mk/virtualbox-common.inc
 
+#
+# Prevent inclusion of the Genode::Log definition after the vbox #define
+# of 'Log'. Otherwise, the attemt to compile base/log.h will fail.
+#
+VBOX_CC_OPT += -include base/log.h
+
 CC_WARN += -Wall
 
 TARGET = virtualbox
@@ -11,7 +17,7 @@ SRC_CC = frontend/main.cc frontend/console.cc \
          frontend/VBoxAPIWrap/TokenWrap.cpp \
          frontend/VirtualBoxErrorInfoImpl.cpp \
          devices.cc drivers.cc dummies.cc libc.cc \
-         logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc iommio.cc ioport.cc \
+         logger.cc mm.cc pdm.cc rt.cc sup.cc iommio.cc ioport.cc \
          hm.cc thread.cc dynlib.cc unimpl.cc
 
 LIBS  += base

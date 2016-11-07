@@ -48,7 +48,8 @@ void __wake_up(wait_queue_head_t *wq, bool all)
 {
 	Wait_list *list = static_cast<Wait_list *>(wq->list);
 	if (!list) {
-		PWRN("wait_queue_head_t is empty, wq: %p called from: %p", wq, __builtin_return_address(0));
+		Genode::warning("wait_queue_head_t is empty, wq: ", wq, " "
+		                "called from: ", __builtin_return_address(0));
 		return;
 	}
 
@@ -68,13 +69,13 @@ void wake_up_interruptible_sync_poll(wait_queue_head_t *wq, int)
 }
 
 
-void __wait_event(wait_queue_head_t wq)
+void ___wait_event(wait_queue_head_t *wq)
 {
-	Wait_list *list = static_cast<Wait_list *>(wq.list);
+	Wait_list *list = static_cast<Wait_list *>(wq->list);
 	if (!list) {
-		PWRN("__wait_event():dd empty list in wq: %p", &wq);
-		init_waitqueue_head(&wq);
-		list = static_cast<Wait_list *>(wq.list);
+		Genode::warning("__wait_event():dd empty list in wq: ", wq);
+		init_waitqueue_head(wq);
+		list = static_cast<Wait_list *>(wq->list);
 	}
 
 	Lx::Task *task = Lx::scheduler().current();

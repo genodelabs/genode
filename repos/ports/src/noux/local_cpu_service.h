@@ -39,7 +39,7 @@ namespace Noux {
 
 			Genode::Session_capability session(const char *args, Affinity const &)
 			{
-				PDBG("Implement me!");
+				Genode::warning(__func__, ": implement me!");
 				return Genode::Session_capability();
 			}
 
@@ -50,7 +50,7 @@ namespace Noux {
 
 			void close(Genode::Session_capability session)
 			{
-				PDBG("Implement me!");
+				Genode::warning(__func__, ": implement me!");
 			}
 	};
 }

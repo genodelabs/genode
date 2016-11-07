@@ -73,7 +73,7 @@ class File_system::Directory : public Node
 					switch (res) {
 					case 0: break;
 					default:
-						PERR("could not create '%s'", path);
+							Genode::error("could not create '", path, "'");
 						throw Lookup_failed();
 					}
 
@@ -85,24 +85,24 @@ class File_system::Directory : public Node
 					int err = -res;
 					switch (err) {
 						case EACCES:
-							PERR("op.mkdir() permission denied");
+							Genode::error("op.mkdir() permission denied");
 							throw Permission_denied();
 						case EEXIST:
 							throw Node_already_exists();
 						case EIO:
-							PERR("op.mkdir() I/O error occurred");
+							Genode::error("op.mkdir() I/O error occurred");
 							throw Lookup_failed();
 						case ENOENT:
 							throw Lookup_failed();
 						case ENOTDIR:
 							throw Lookup_failed();
 						case ENOSPC:
-							PERR("op.mkdir() error while expanding directory");
+							Genode::error("op.mkdir() error while expanding directory");
 							throw Lookup_failed();
 						case EROFS:
 							throw Permission_denied();
 						default:
-							PERR("op.mkdir() returned unexpected error code: %d", res);
+							Genode::error("op.mkdir() returned unexpected error code: ", res);
 							throw Lookup_failed();
 					}
 				}
@@ -195,12 +195,12 @@ class File_system::Directory : public Node
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
 			if (len < sizeof(Directory_entry)) {
-				PERR("read buffer too small for directory entry");
+				Genode::error("read buffer too small for directory entry");
 				return 0;
 			}
 
 			if (seek_offset % sizeof(Directory_entry)) {
-				PERR("seek offset not aligned to sizeof(Directory_entry)");
+				Genode::error("seek offset not aligned to sizeof(Directory_entry)");
 				return 0;
 			}
 

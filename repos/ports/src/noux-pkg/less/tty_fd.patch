@@ -1,0 +1,12 @@
++++ src/noux-pkg/less/ttyin.c	2012-06-15 14:49:18.465893032 +0200
+@@ -74,7 +74,9 @@
+ 	/* The __open() system call translates "/dev/tty" to "con". */
+ 	tty = __open("/dev/tty", OPEN_READ);
+ #else
+-	tty = open("/dev/tty", OPEN_READ);
++	//tty = open("/dev/tty", OPEN_READ);
++	/* we currently do not have actual terminal devs on NOUX. */
++	tty = 0;
+ #endif
+ 	if (tty < 0)
+ 		tty = 2;

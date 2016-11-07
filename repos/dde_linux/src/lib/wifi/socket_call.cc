@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* local includes */
 #include <lx.h>
@@ -135,7 +135,7 @@ class Lx::Socket
 		{
 			struct socket *sock = static_cast<struct socket*>(_call.handle->socket);
 			if (!sock)
-				PERR("BUG: sock is zero");
+				Genode::error("BUG: sock is zero");
 
 			return sock;
 		}
@@ -151,7 +151,7 @@ class Lx::Socket
 				return;
 			}
 
-			PERR("sock_create_kern failed, res: %d", res);
+			Genode::error("sock_create_kern failed, res: ", res);
 			_call.socket.result = nullptr;
 			_call.err           = res;
 		}
@@ -306,7 +306,7 @@ class Lx::Socket
 					sock->sk->sk_wq = &wq[i];
 				}
 
-				long t = jiffies + msecs_to_jiffies(timeout);
+				long t = msecs_to_jiffies(timeout);
 				timeout_triggered = !schedule_timeout(t);
 
 				task->wait_dequeue(&wait_list);
@@ -334,7 +334,7 @@ class Lx::Socket
 
 	public:
 
-		Socket(Server::Entrypoint &ep)
+		Socket(Genode::Entrypoint &ep)
 		:
 			_dispatcher(ep, *this, &Lx::Socket::_handle),
 			_task(run_socketcall, nullptr, "socketcall",
@@ -359,7 +359,7 @@ class Lx::Socket
 
 			default:
 				_call.err = -EINVAL;
-				PWRN("unknown opcode: %u", _call.opcode);
+				Genode::warning("unknown opcode: ", (int)_call.opcode);
 				break;
 			}
 
@@ -376,12 +376,14 @@ class Lx::Socket
 
 
 static Lx::Socket *_socket;
+static Genode::Allocator *_alloc;
 
 
-void Lx::socket_init(Server::Entrypoint &ep)
+void Lx::socket_init(Genode::Entrypoint &ep, Genode::Allocator &alloc)
 {
 	static Lx::Socket socket_ctx(ep);
 	_socket = &socket_ctx;
+	_alloc = &alloc;
 }
 
 
@@ -422,7 +424,7 @@ Wifi::Socket *Socket_call::socket(int domain, int type, int protocol)
 	if (_call.socket.result == 0)
 		return 0;
 
-	Wifi::Socket *s = new (Genode::env()->heap()) Wifi::Socket(_call.socket.result);
+	Wifi::Socket *s = new (_alloc) Wifi::Socket(_call.socket.result);
 
 	return s;
 }
@@ -435,10 +437,11 @@ int Socket_call::close(Socket *s)
 
 	_socket->submit_and_block();
 
-	if (_call.err)
-		PWRN("error %d on close()", _call.err);
+	if (_call.err) {
+		Genode::error("closing socket failed: ", _call.err);
+	}
 
-	destroy(Genode::env()->heap(), s);
+	destroy(_alloc, s);
 	return 0;
 }
 

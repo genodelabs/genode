@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 #include <base/env.h>
 #include <util/misc_math.h>  /* for 'max' */
@@ -157,7 +157,7 @@ class Winsys : public pipe_winsys
 	_update_buffer(struct pipe_winsys *ws,
 	               void *context_private)
 	{
-		PDBG("not implemented");
+		Genode::warning(__func__, " not implemented");
 	}
 
 	static void
@@ -199,8 +199,11 @@ class Winsys : public pipe_winsys
 	                       unsigned tex_usage,
 	                       unsigned *stride)
 	{
-		Genode::printf("Winsys::_surface_buffer_create: format=%d, stride=%d, usage=%d, tex_usage=%x)\n",
-		               format, *stride, usage, tex_usage);
+		Genode::log("Winsys::_surface_buffer_create: "
+		            "format=",    (int)format,  ", "
+		            "stride=",    *stride,      ", "
+		            "usage=",     usage,        ", "
+		            "tex_usage=", Genode::Hex(tex_usage));
 
 		unsigned nblocksy = util_format_get_nblocksy(format, height);
 
@@ -235,7 +238,7 @@ class Winsys : public pipe_winsys
 	                 struct pipe_fence_handle **ptr,
 	                 struct pipe_fence_handle *fence)
 	{
-		PDBG("not implemented");
+		Genode::warning(__func__, " not implemented");
 	}
 
 	static int
@@ -243,7 +246,7 @@ class Winsys : public pipe_winsys
 	                 struct pipe_fence_handle *fence,
 	                 unsigned flag )
 	{
-		PDBG("not implemented"); return 0;
+		Genode::warning(__func__, " not implemented"); return 0;
 	}
 
 	static int
@@ -251,7 +254,7 @@ class Winsys : public pipe_winsys
 	              struct pipe_fence_handle *fence,
 	              unsigned flag )
 	{
-		PDBG("not implemented"); return 0;
+		Genode::warning(__func__, " not implemented"); return 0;
 	}
 
 	public:
@@ -322,7 +325,7 @@ class Surface : public native_surface
 		static boolean
 		_flush_frontbuffer(struct native_surface *nsurf)
 		{
-			PDBG("not implemented"); return 0;
+			Genode::warning(__func__, " not implemented"); return 0;
 		}
 
 		static boolean
@@ -388,7 +391,7 @@ class Surface : public native_surface
 		static void
 		_wait(struct native_surface *nsurf)
 		{
-			PDBG("not implemented");
+			Genode::warning(__func__, " not implemented");
 		}
 
 	public:
@@ -471,7 +474,7 @@ class Display : public native_display
 		const native_connector **conn_list =
 			(const native_connector **)malloc(sizeof(native_connector **));
 		conn_list[0] = &conn;
-		printf("called, return 1 connector\n");
+		Genode::log("called, return 1 connector");
 
 		if (num_connectors) *num_connectors = 1;
 		if (num_crtcs)      *num_crtcs = 1;
@@ -572,7 +575,7 @@ class Display : public native_display
 		}
 
 		if (format != PIPE_FORMAT_NONE) {
-			printf("support depth and stencil buffer\n");
+			Genode::log("support depth and stencil buffer");
 			config->depth_format           = format;
 			config->stencil_format         = format;
 			config->mode.depthBits         = 24;
@@ -586,7 +589,7 @@ class Display : public native_display
 
 		config->scanout_bit = TRUE;
 
-		printf("returning 1 config at %p\n", config);
+		Genode::log("returning 1 config at ", config);
 
 		*num_configs = NUM_CONFIGS;
 		return configs;
@@ -597,7 +600,7 @@ class Display : public native_display
 	                     EGLNativePixmapType pix,
 	                     const struct native_config *nconf)
 	{
-		PDBG("not implemented"); return 0;
+		Genode::warning(__func__, " not implemented"); return 0;
 	}
 
 	static struct native_surface *
@@ -617,7 +620,7 @@ class Display : public native_display
 	                       EGLNativePixmapType pix,
 	                       const struct native_config *nconf)
 	{
-		PDBG("not implemented"); return 0;
+		Genode::warning(__func__, " not implemented"); return 0;
 	}
 
 	static struct native_surface *
@@ -625,7 +628,7 @@ class Display : public native_display
 	                        const struct native_config *nconf,
 	                        uint width, uint height)
 	{
-		PDBG("not implemented"); return 0;
+		Genode::warning(__func__, " not implemented"); return 0;
 	}
 
 	public:
@@ -645,8 +648,8 @@ class Display : public native_display
 				_mode.width        = genode_framebuffer()->width();
 				_mode.height       = genode_framebuffer()->height();
 			} catch (Genode::Parent::Service_denied) {
-				PWRN("EGL driver: could not create a Framebuffer session. "
-					 "Screen surfaces cannot be used.");
+				Genode::warning("EGL driver: could not create a Framebuffer session. "
+				                "Screen surfaces cannot be used.");
 				_mode.width  = 1;
 				_mode.height = 1;
 			}
@@ -670,7 +673,7 @@ class Display : public native_display
 				screen = softpipe_create_screen(&_winsys);
 			}
 
-			PWRN("returned from init display->screen");
+			Genode::warning("returned from init display->screen");
 
 			destroy                = _destroy;
 			get_param              = _get_param;
@@ -697,7 +700,7 @@ boolean Surface::_swap_buffers(struct native_surface *nsurf)
 	timer.msleep(5);
 
 	if (!texture) {
-		PERR("surface has no texture");
+		Genode::error("surface has no texture");
 		return FALSE;
 	}
 
@@ -708,13 +711,13 @@ boolean Surface::_swap_buffers(struct native_surface *nsurf)
 	                                    this_surface->height());
 
 	if (!transfer) {
-		PERR("could not create transfer object");
+		Genode::error("could not create transfer object");
 		return FALSE;
 	}
 
 	void *data = screen->transfer_map(screen, transfer);
 	if (!data) {
-		PERR("transfer failed");
+		Genode::error("transfer failed");
 		screen->tex_transfer_destroy(transfer);
 		return FALSE;
 	}
@@ -766,7 +769,7 @@ extern "C" const char *native_get_name(void)
 extern "C" struct native_probe *
 native_create_probe(EGLNativeDisplayType dpy)
 {
-	PDBG("not yet implemented dpy=%d", dpy);
+	Genode::warning(__func__, " not yet implemented dpy=", dpy);
 	return 0;
 }
 
@@ -774,7 +777,7 @@ native_create_probe(EGLNativeDisplayType dpy)
 extern "C" enum native_probe_result
 native_get_probe_result(struct native_probe *nprobe)
 {
-	PDBG("not yet implemented");
+	Genode::warning(__func__, " not yet implemented");
 	return NATIVE_PROBE_UNKNOWN;
 }
 
@@ -801,12 +804,12 @@ native_create_display(EGLNativeDisplayType dpy,
 		if (drm_api_create)
 			api = drm_api_create();
 		else
-			PWRN("could not obtain symbol \"drm_api_create\" in driver \"%s\"",
-			     driver_filename);
+			Genode::warning("could not obtain symbol \"drm_api_create\" in driver ",
+			                "'", driver_filename, "'");
 	}
 
 	if (!api) {
-		PWRN("falling back to softpipe driver");
+		Genode::warning("falling back to softpipe driver");
 
 		/*
 		 * Performing clflush is not needed when using software rendering.

@@ -19,9 +19,9 @@ int main(int argc, char *argv[])
 		Block::Connection blk(&alloc);
 		blk.info(&blk_cnt, &blk_sz, &blk_ops);
 
-		PINF("block device with block size %zd sector count %lld",
-		     blk_sz, blk_cnt);
-		PLOG("read first block");
+		Genode::log("block device with block size ", blk_sz, " sector count ", blk_cnt);
+
+		Genode::log("read first block");
 
 		Block::Packet_descriptor p(blk.tx()->alloc_packet(blk_sz),
 		                           Block::Packet_descriptor::READ, 0, 1);
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 		p = blk.tx()->get_acked_packet();
 
 		if (!p.succeeded()) {
-			PERR("could not read first block");
+			Genode::error("could not read first block");
 			blk.tx()->release_packet(p);
 			return 1;
 		}
@@ -37,9 +37,8 @@ int main(int argc, char *argv[])
 		Genode::memcpy(buffer, blk.tx()->packet_content(p), blk_sz);
 
 		/* XXX compare content */
-		/* PERR("block content: '%s'", buffer); */
 	} catch(Genode::Parent::Service_denied) {
-		PERR("Opening block session was denied!");
+		Genode::error("opening block session was denied");
 		return -1;
 	}
 

@@ -143,8 +143,6 @@ class Genode::Packet_descriptor
 
 		Genode::off_t  offset() const { return _offset; }
 		Genode::size_t size()   const { return _size; }
-
-		bool valid() const { return _size != 0; }
 };
 
 
@@ -645,10 +643,17 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		Packet_descriptor alloc_packet(Genode::size_t size, int align = POLICY::Packet_descriptor::PACKET_ALIGNMENT)
 		{
 			void *base = 0;
-			if (_packet_alloc->alloc_aligned(size, &base, align).error())
+			if (size && _packet_alloc->alloc_aligned(size, &base, align).error())
 				throw Packet_alloc_failed();
 
 			return Packet_descriptor((Genode::off_t)base, size);
+		}
+
+		bool packet_valid(Packet_descriptor packet)
+		{
+			return (packet.offset() >= _bulk_buffer_offset
+				 && packet.offset() < _bulk_buffer_offset + (Genode::off_t)_bulk_buffer_size
+				 && packet.offset() + packet.size() <= _bulk_buffer_offset + _bulk_buffer_size);
 		}
 
 		/**
@@ -658,7 +663,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 */
 		Content_type *packet_content(Packet_descriptor packet)
 		{
-			if (!packet.valid() || packet.size() < sizeof(Content_type))
+			if (!packet_valid(packet) || packet.size() < sizeof(Content_type))
 				return 0;
 
 			return (Content_type *)((Genode::addr_t)_ds_local_base + packet.offset());
@@ -700,7 +705,8 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 */
 		void release_packet(Packet_descriptor packet)
 		{
-			_packet_alloc->free((void *)packet.offset(), packet.size());
+			if (packet.size())
+				_packet_alloc->free((void *)packet.offset(), packet.size());
 		}
 
 		void debug_print_buffers() {
@@ -807,8 +813,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		Packet_descriptor get_packet()
 		{
 			Packet_descriptor packet;
-			do { _submit_receiver.rx(&packet); }
-			while (!packet_valid(packet));
+			_submit_receiver.rx(&packet);
 			return packet;
 		}
 
@@ -829,7 +834,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		 */
 		Content_type *packet_content(Packet_descriptor packet)
 		{
-			if (!packet.valid() || packet.size() < sizeof(Content_type))
+			if (!packet_valid(packet) || packet.size() < sizeof(Content_type))
 				return 0;
 
 			return (Content_type *)((Genode::addr_t)_ds_local_base + packet.offset());

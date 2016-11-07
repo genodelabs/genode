@@ -37,6 +37,8 @@ namespace Genode {
 			explicit Cap_sel(addr_t value) : _value(value) { }
 
 			addr_t value() const { return _value; }
+
+			void print(Output &out) const { Genode::print(out, "sel=", _value); }
 	};
 }
 
@@ -56,6 +58,8 @@ namespace Genode { namespace Capability_space {
 
 		Ipc_cap_data(Rpc_obj_key rpc_obj_key, unsigned sel)
 		: rpc_obj_key(rpc_obj_key), sel(sel) { }
+
+		void print(Output &out) const { Genode::print(out, sel, ",", rpc_obj_key); }
 	};
 
 	/**
@@ -91,14 +95,17 @@ namespace Genode { namespace Capability_space {
 namespace Genode
 {
 	enum {
+		INITIAL_SEL_LOCK   = 0,
 		INITIAL_SEL_PARENT = 1,
 		INITIAL_SEL_CNODE  = 2,
 		INITIAL_SEL_END
 	};
 
 	enum {
-		CSPACE_SIZE_LOG2          = 8,
-		NUM_CORE_MANAGED_SEL_LOG2 = 7,
+		CSPACE_SIZE_LOG2_1ST      = 6,
+		CSPACE_SIZE_LOG2_2ND      = 8,
+		CSPACE_SIZE_LOG2          = CSPACE_SIZE_LOG2_1ST + CSPACE_SIZE_LOG2_2ND,
+		NUM_CORE_MANAGED_SEL_LOG2 = 8,
 	};
 };
 
@@ -111,7 +118,7 @@ namespace Genode
  * First, core must keep track of all capabilities of the system. Hence, its
  * capability space must be dimensioned larger.
  *
- * Second, core has to maintain the information about the CAP session that
+ * Second, core has to maintain the information about the PD session that
  * was used to allocate the capability to prevent misbehaving clients from
  * freeing capabilities allocated from another component. This information
  * is part of the core-specific 'Native_capability::Data' structure.
@@ -204,12 +211,12 @@ class Genode::Capability_space_sel4
 		template <typename... ARGS>
 		Native_capability::Data &create_capability(Cap_sel cap_sel, ARGS... args)
 		{
-			Lock::Guard guard(_lock);
-
 			addr_t const sel = cap_sel.value();
 
-			ASSERT(!_caps_data[sel].rpc_obj_key().valid());
 			ASSERT(sel < NUM_CAPS);
+			ASSERT(!_caps_data[sel].rpc_obj_key().valid());
+
+			Lock::Guard guard(_lock);
 
 			_caps_data[sel] = Tree_managed_data(args...);
 
@@ -249,6 +256,11 @@ class Genode::Capability_space_sel4
 		Rpc_obj_key rpc_obj_key(Data const &data) const
 		{
 			return data.rpc_obj_key();
+		}
+
+		void print(Output &out, Data const &data) const
+		{
+			ipc_cap_data(data).print(out);
 		}
 
 		Capability_space::Ipc_cap_data ipc_cap_data(Data const &data) const

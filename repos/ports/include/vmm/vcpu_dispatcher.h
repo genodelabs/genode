@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/retry.h>
 #include <nova_native_pd/client.h>
+#include <nova/capability_space.h>
 
 namespace Vmm {
 
@@ -68,11 +69,12 @@ class Vmm::Vcpu_dispatcher : public T
 
 		unsigned int exit_reason = 0;
 
-		Vcpu_dispatcher(size_t stack_size, Pd_session &pd,
+		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
-		                Genode::Affinity::Location location)
+		                Genode::Affinity::Location location,
+		                const char * name = "vCPU dispatcher")
 		:
-			T(WEIGHT, "vCPU dispatcher", stack_size, location), _pd(pd)
+			T(WEIGHT, name, stack_size, location), _pd(pd)
 		{
 			using namespace Genode;
 
@@ -83,11 +85,12 @@ class Vmm::Vcpu_dispatcher : public T
 		}
 
 		template <typename X>
-		Vcpu_dispatcher(size_t stack_size, Pd_session &pd,
+		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
-		                X attr, void *(*start_routine) (void *), void *arg)
-		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr, location),
+		                X attr, void *(*start_routine) (void *), void *arg,
+		                const char * name = "vCPU dispatcher")
+		: T(attr, start_routine, arg, stack_size, name, nullptr, location),
 		  _pd(pd)
 		{
 			using namespace Genode;
@@ -108,18 +111,20 @@ class Vmm::Vcpu_dispatcher : public T
 			 */
 			void (*entry)() = &_portal_entry<EV, DISPATCHER, FUNC>;
 
-			/* Create the portal at the desired selector index */
-			_native_pd.rcv_window(exc_base + EV);
-
-			Native_capability thread_cap(T::native_thread().ec_sel);
+			/* create the portal at the desired selector index (EV) */
+			Native_capability thread_cap =
+				Capability_space::import(T::native_thread().ec_sel);
 
 			Untyped_capability handler =
 				retry<Genode::Pd_session::Out_of_metadata>(
 					[&] () {
+						/* manually define selector used for RPC result */
+						Thread::myself()->native_thread().client_rcv_sel = exc_base + EV;
 						return _native_pd.alloc_rpc_cap(thread_cap, (addr_t)entry,
 						                                mtd.value());
 					},
 					[&] () {
+						Thread::myself()->native_thread().reset_client_rcv_sel();
 						Pd_session_client *client =
 							dynamic_cast<Pd_session_client*>(&_pd);
 
@@ -127,7 +132,10 @@ class Vmm::Vcpu_dispatcher : public T
 							env()->parent()->upgrade(*client, "ram_quota=16K");
 					});
 
-			return handler.valid() && (exc_base + EV == handler.local_name());
+			/* revert selector allocation to automatic mode of operation */
+			Thread::myself()->native_thread().reset_client_rcv_sel();
+
+			return handler.valid() && (exc_base + EV == (addr_t)handler.local_name());
 		}
 
 		/**

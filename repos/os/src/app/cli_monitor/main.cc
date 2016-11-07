@@ -35,7 +35,7 @@
 using Genode::Xml_node;
 
 
-inline void *operator new (size_t size)
+inline void *operator new (__SIZE_TYPE__ size)
 {
 	return Genode::env()->heap()->alloc(size);
 }
@@ -89,7 +89,7 @@ static Subsystem_config_registry &subsystem_config_registry()
 
 	} catch (Genode::Xml_node::Nonexistent_sub_node) {
 
-		PERR("missing '<vfs>' configuration");
+		Genode::error("missing '<vfs>' configuration");
 		throw;
 	}
 }

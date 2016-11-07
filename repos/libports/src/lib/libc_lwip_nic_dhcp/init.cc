@@ -12,7 +12,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <parent/parent.h>
 
 #include <os/config.h>
@@ -35,7 +35,7 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 {
 	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
-	PDBG("init_nic_dhcp()\n");
+	Genode::log(__func__);
 
 	bool provide_etc_resolv_conf = true;
 
@@ -52,10 +52,7 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	try {
 		Genode::Xml_node libc_node = Genode::config()->xml_node().sub_node("libc");
 
-		try {
-			if (libc_node.attribute("resolv").has_value("no"))
-				provide_etc_resolv_conf = false;
-		} catch(...) { }
+		provide_etc_resolv_conf = libc_node.attribute_value("resolv", provide_etc_resolv_conf);
 
 		try {
 			libc_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));
@@ -82,21 +79,22 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 		    (strlen(netmask_str) != 0) ||
 		    (strlen(gateway_str) != 0)) {
 			if (strlen(ip_addr_str) == 0) {
-				PERR("Missing \"ip_addr\" attribute. Ignoring network interface config.");
+				Genode::error("missing \"ip_addr\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			} else if (strlen(netmask_str) == 0) {
-				PERR("Missing \"netmask\" attribute. Ignoring network interface config.");
+				Genode::error("missing \"netmask\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			} else if (strlen(gateway_str) == 0) {
-				PERR("Missing \"gateway\" attribute. Ignoring network interface config.");
+				Genode::error("missing \"gateway\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			}
 		} else
 			throw -1;
 
-		PDBG("static network interface: ip_addr=%s netmask=%s gateway=%s ",
-		     ip_addr_str, netmask_str, gateway_str
-		);
+		Genode::log("static network interface: "
+		            "ip_addr=", Genode::Cstring(ip_addr_str), " "
+		            "netmask=", Genode::Cstring(netmask_str), " "
+		            "gateway=", Genode::Cstring(gateway_str));
 
 		genode_uint32_t ip, nm, gw;
 		
@@ -105,7 +103,7 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 		gw = inet_addr(gateway_str);
 
 		if (ip == INADDR_NONE || nm == INADDR_NONE || gw == INADDR_NONE) {
-			PERR("Invalid network interface config.");
+			Genode::error("invalid network interface config");
 			throw -1;
 		} else {
 			ip_addr = ip;
@@ -114,7 +112,7 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 		}
 	}
 	catch (...) {
-		PINF("Using DHCP for interface configuration.");
+		Genode::log("Using DHCP for interface configuration.");
 	}
 
 	/* make sure the libc_lwip plugin has been created */

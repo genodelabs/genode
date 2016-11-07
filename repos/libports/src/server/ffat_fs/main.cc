@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,6 +20,8 @@
 #include <os/config.h>
 #include <os/session_policy.h>
 #include <util/xml_node.h>
+#include <base/heap.h>
+#include <base/log.h>
 
 /* local includes */
 #include <directory.h>
@@ -43,10 +45,6 @@ using namespace Genode;
 
 static Lock _ffat_lock;
 typedef Lock_guard<Lock> Ffat_lock_guard;
-
-
-static bool const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 
 /*************************
@@ -94,12 +92,10 @@ namespace File_system {
 				switch (packet.operation()) {
 
 					case Packet_descriptor::READ:
-						PDBGV("READ");
 						res_length = node.read((char *)content, length, offset);
 						break;
 
 					case Packet_descriptor::WRITE:
-						PDBGV("WRITE");
 						res_length = node.write((char const *)content, length, offset);
 						break;
 				}
@@ -119,7 +115,7 @@ namespace File_system {
 					Node *node = _handle_registry.lookup(packet.handle());
 					_process_packet_op(packet, *node);
 				}
-				catch (Invalid_handle)     { PERR("Invalid_handle");     }
+				catch (Invalid_handle)     { error("Invalid_handle");     }
 
 				/*
 				 * The 'acknowledge_packet' function cannot block because we
@@ -161,7 +157,7 @@ namespace File_system {
 			static void _assert_valid_path(char const *path)
 			{
 				if (!valid_path(path)) {
-					PWRN("malformed path '%s'", path);
+					warning("malformed path '", path, "'");
 					throw Lookup_failed();
 				}
 			}
@@ -206,12 +202,6 @@ namespace File_system {
 			File_handle file(Dir_handle dir_handle, Name const &name,
 			                 Mode mode, bool create)
 			{
-				PDBGV("_root = %s, dir_name = %s, name = %s, create = %d",
-				      _root.name(),
-				      _handle_registry.lookup(dir_handle)->name(),
-				      name.string(),
-				      create);
-
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
 				if (!valid_filename(name.string()))
@@ -265,23 +255,23 @@ namespace File_system {
 					case FR_WRITE_PROTECTED:
 						throw Permission_denied();
 					case FR_NOT_READY:
-						PERR("f_open() failed with error code FR_NOT_READY");
+						error("f_open() failed with error code FR_NOT_READY");
 						throw Lookup_failed();
 					case FR_DISK_ERR:
-						PERR("f_open() failed with error code FR_DISK_ERR");
+						error("f_open() failed with error code FR_DISK_ERR");
 						throw Lookup_failed();
 					case FR_INT_ERR:
-						PERR("f_open() failed with error code FR_INT_ERR");
+						error("f_open() failed with error code FR_INT_ERR");
 						throw Lookup_failed();
 					case FR_NOT_ENABLED:
-						PERR("f_open() failed with error code FR_NOT_ENABLED");
+						error("f_open() failed with error code FR_NOT_ENABLED");
 						throw Lookup_failed();
 					case FR_NO_FILESYSTEM:
-						PERR("f_open() failed with error code FR_NO_FILESYSTEM");
+						error("f_open() failed with error code FR_NO_FILESYSTEM");
 						throw Lookup_failed();
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_open() returned an unexpected error code");
+						error("f_open() returned an unexpected error code");
 						throw Lookup_failed();
 				}
 			}
@@ -294,9 +284,6 @@ namespace File_system {
 
 			Dir_handle dir(Path const &path, bool create)
 			{
-				PDBGV("_root = %s, path = %s, create = %d",
-					  _root.name(), path.string(), create);
-
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
 				if (create && !_writable)
@@ -333,13 +320,10 @@ namespace File_system {
 							case FR_OK:
 								break;
 							case FR_NO_PATH:
-								PDBGV("f_mkdir() failed with error code FR_NO_PATH");
 								throw Lookup_failed();
 							case FR_INVALID_NAME:
-								PDBGV("f_mkdir() failed with error code FR_INVALID_NAME");
 								throw Name_too_long();
 							case FR_INVALID_DRIVE:
-								PDBGV("f_mkdir() failed with error code FR_INVALID_DRIVE");
 								throw Name_too_long();
 							case FR_DENIED:
 							case FR_WRITE_PROTECTED:
@@ -347,27 +331,26 @@ namespace File_system {
 							case FR_EXIST:
 								throw Node_already_exists();
 							case FR_NOT_READY:
-								PERR("f_mkdir() failed with error code FR_NOT_READY");
+								error("f_mkdir() failed with error code FR_NOT_READY");
 								throw Lookup_failed();
 							case FR_DISK_ERR:
-								PERR("f_mkdir() failed with error code FR_DISK_ERR");
+								error("f_mkdir() failed with error code FR_DISK_ERR");
 								throw Lookup_failed();
 							case FR_INT_ERR:
-								PERR("f_mkdir() failed with error code FR_INT_ERR");
+								error("f_mkdir() failed with error code FR_INT_ERR");
 								throw Lookup_failed();
 							case FR_NOT_ENABLED:
-								PERR("f_mkdir() failed with error code FR_NOT_ENABLED");
+								error("f_mkdir() failed with error code FR_NOT_ENABLED");
 								throw Lookup_failed();
 							case FR_NO_FILESYSTEM:
-								PERR("f_mkdir() failed with error code FR_NO_FILESYSTEM");
+								error("f_mkdir() failed with error code FR_NO_FILESYSTEM");
 								throw Lookup_failed();
 							default:
 								/* not supposed to occur according to the libffat documentation */
-								PERR("f_mkdir() returned an unexpected error code");
+								error("f_mkdir() returned an unexpected error code");
 								throw Lookup_failed();
 						}
 					} catch (Exception e) {
-						PDBGV("exception occured while trying to create directory");
 						destroy(env()->heap(), dir_node);
 						throw e;
 					}
@@ -382,32 +365,29 @@ namespace File_system {
 							dir_node->ffat_dir(ffat_dir);
 							return _handle_registry.alloc(dir_node);
 						case FR_NO_PATH:
-							PDBGV("f_opendir() failed with error code FR_NO_PATH");
 							throw Lookup_failed();
 						case FR_INVALID_NAME:
-							PDBGV("f_opendir() failed with error code FR_INVALID_NAME");
 							throw Name_too_long();
 						case FR_INVALID_DRIVE:
-							PDBGV("f_opendir() failed with error code FR_INVALID_DRIVE");
 							throw Name_too_long();
 						case FR_NOT_READY:
-							PERR("f_opendir() failed with error code FR_NOT_READY");
+							error("f_opendir() failed with error code FR_NOT_READY");
 							throw Lookup_failed();
 						case FR_DISK_ERR:
-							PERR("f_opendir() failed with error code FR_DISK_ERR");
+							error("f_opendir() failed with error code FR_DISK_ERR");
 							throw Lookup_failed();
 						case FR_INT_ERR:
-							PERR("f_opendir() failed with error code FR_INT_ERR");
+							error("f_opendir() failed with error code FR_INT_ERR");
 							throw Lookup_failed();
 						case FR_NOT_ENABLED:
-							PERR("f_opendir() failed with error code FR_NOT_ENABLED");
+							error("f_opendir() failed with error code FR_NOT_ENABLED");
 							throw Lookup_failed();
 						case FR_NO_FILESYSTEM:
-							PERR("f_opendir() failed with error code FR_NO_FILESYSTEM");
+							error("f_opendir() failed with error code FR_NO_FILESYSTEM");
 							throw Lookup_failed();
 						default:
 							/* not supposed to occur according to the libffat documentation */
-							PERR("f_opendir() returned an unexpected error code");
+							error("f_opendir() returned an unexpected error code");
 							throw Lookup_failed();
 					}
 				} catch (Exception e) {
@@ -418,8 +398,6 @@ namespace File_system {
 
 			Node_handle node(Path const &path)
 			{
-				PDBGV("path = %s", path.string());
-
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
 				if (!valid_path(path.string()))
@@ -459,23 +437,23 @@ namespace File_system {
 							case FR_INVALID_DRIVE:
 								throw Lookup_failed();
 							case FR_DISK_ERR:
-								PERR("f_stat() failed with error code FR_DISK_ERR");
+								error("f_stat() failed with error code FR_DISK_ERR");
 								throw Lookup_failed();
 							case FR_INT_ERR:
-								PERR("f_stat() failed with error code FR_INT_ERR");
+								error("f_stat() failed with error code FR_INT_ERR");
 								throw Lookup_failed();
 							case FR_NOT_READY:
-								PERR("f_stat() failed with error code FR_NOT_READY");
+								error("f_stat() failed with error code FR_NOT_READY");
 								throw Lookup_failed();
 							case FR_NOT_ENABLED:
-								PERR("f_stat() failed with error code FR_NOT_ENABLED");
+								error("f_stat() failed with error code FR_NOT_ENABLED");
 								throw Lookup_failed();
 							case FR_NO_FILESYSTEM:
-								PERR("f_stat() failed with error code FR_NO_FILESYSTEM");
+								error("f_stat() failed with error code FR_NO_FILESYSTEM");
 								throw Lookup_failed();
 							default:
 								/* not supposed to occur according to the libffat documentation */
-								PERR("f_stat() returned an unexpected error code");
+								error("f_stat() returned an unexpected error code");
 								throw Lookup_failed();
 						}
 					} catch (Exception e) {
@@ -496,11 +474,9 @@ namespace File_system {
 				try {
 					node = _handle_registry.lookup(handle);
 				} catch(Invalid_handle) {
-					PERR("close() called with invalid handle");
+					error("close() called with invalid handle");
 					return;
 				}
-
-				PDBGV("name = %s", node->name());
 
 				/* free the handle */
 				_handle_registry.free(handle);
@@ -518,20 +494,20 @@ namespace File_system {
 						case FR_OK:
 							return;
 						case FR_INVALID_OBJECT:
-							PERR("f_close() failed with error code FR_INVALID_OBJECT");
+							error("f_close() failed with error code FR_INVALID_OBJECT");
 							return;
 						case FR_DISK_ERR:
-							PERR("f_close() failed with error code FR_DISK_ERR");
+							error("f_close() failed with error code FR_DISK_ERR");
 							return;
 						case FR_INT_ERR:
-							PERR("f_close() failed with error code FR_INT_ERR");
+							error("f_close() failed with error code FR_INT_ERR");
 							return;
 						case FR_NOT_READY:
-							PERR("f_close() failed with error code FR_NOT_READY");
+							error("f_close() failed with error code FR_NOT_READY");
 							return;
 						default:
 							/* not supposed to occur according to the libffat documentation */
-							PERR("f_close() returned an unexpected error code");
+							error("f_close() returned an unexpected error code");
 							return;
 					}
 				}
@@ -547,8 +523,6 @@ namespace File_system {
 				status.mode  = 0;
 
 				Node *node = _handle_registry.lookup(node_handle);
-
-				PDBGV("name = %s", node->name());
 
 				using namespace Ffat;
 
@@ -566,49 +540,46 @@ namespace File_system {
 						case FR_OK:
 							break;
 						case FR_NO_FILE:
-							PERR("f_stat() failed with error code FR_NO_FILE");
+							error("f_stat() failed with error code FR_NO_FILE");
 							return status;
 						case FR_NO_PATH:
-							PERR("f_stat() failed with error code FR_NO_PATH");
+							error("f_stat() failed with error code FR_NO_PATH");
 							return status;
 						case FR_INVALID_NAME:
-							PERR("f_stat() failed with error code FR_INVALID_NAME");
+							error("f_stat() failed with error code FR_INVALID_NAME");
 							return status;
 						case FR_INVALID_DRIVE:
-							PERR("f_stat() failed with error code FR_INVALID_DRIVE");
+							error("f_stat() failed with error code FR_INVALID_DRIVE");
 							return status;
 						case FR_DISK_ERR:
-							PERR("f_stat() failed with error code FR_DISK_ERR");
+							error("f_stat() failed with error code FR_DISK_ERR");
 							return status;
 						case FR_INT_ERR:
-							PERR("f_stat() failed with error code FR_INT_ERR");
+							error("f_stat() failed with error code FR_INT_ERR");
 							return status;
 						case FR_NOT_READY:
-							PERR("f_stat() failed with error code FR_NOT_READY");
+							error("f_stat() failed with error code FR_NOT_READY");
 							return status;
 						case FR_NOT_ENABLED:
-							PERR("f_stat() failed with error code FR_NOT_ENABLED");
+							error("f_stat() failed with error code FR_NOT_ENABLED");
 							return status;
 						case FR_NO_FILESYSTEM:
-							PERR("f_stat() failed with error code FR_NO_FILESYSTEM");
+							error("f_stat() failed with error code FR_NO_FILESYSTEM");
 							return status;
 						default:
 							/* not supposed to occur according to the libffat documentation */
-							PERR("f_stat() returned an unexpected error code");
+							error("f_stat() returned an unexpected error code");
 							return status;
 					}
 
 					if ((ffat_file_info.fattrib & AM_DIR) == AM_DIR) {
-						PDBGV("MODE_DIRECTORY");
 						status.mode = File_system::Status::MODE_DIRECTORY; }
 					else {
-						PDBGV("MODE_FILE");
 						status.mode = File_system::Status::MODE_FILE;
 						status.size = ffat_file_info.fsize;
 					}
 
 				} else {
-					PDBGV("MODE_DIRECTORY");
 					status.mode = File_system::Status::MODE_DIRECTORY;
 				}
 
@@ -645,8 +616,6 @@ namespace File_system {
 
 			void unlink(Dir_handle dir_handle, Name const &name)
 			{
-				PDBGV("name = %s", name.string());
-
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
 				if (!valid_filename(name.string()))
@@ -682,31 +651,29 @@ namespace File_system {
 					case FR_WRITE_PROTECTED:
 						throw Permission_denied();
 					case FR_DISK_ERR:
-						PERR("f_unlink() failed with error code FR_DISK_ERR");
+						error("f_unlink() failed with error code FR_DISK_ERR");
 						return;
 					case FR_INT_ERR:
-						PERR("f_unlink() failed with error code FR_INT_ERR");
+						error("f_unlink() failed with error code FR_INT_ERR");
 						return;
 					case FR_NOT_READY:
-						PERR("f_unlink() failed with error code FR_NOT_READY");
+						error("f_unlink() failed with error code FR_NOT_READY");
 						return;
 					case FR_NOT_ENABLED:
-						PERR("f_unlink() failed with error code FR_NOT_ENABLED");
+						error("f_unlink() failed with error code FR_NOT_ENABLED");
 						return;
 					case FR_NO_FILESYSTEM:
-						PERR("f_unlink() failed with error code FR_NO_FILESYSTEM");
+						error("f_unlink() failed with error code FR_NO_FILESYSTEM");
 						return;
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_unlink() returned an unexpected error code");
+						error("f_unlink() returned an unexpected error code");
 						return;
 				}
 			}
 
 			void truncate(File_handle file_handle, file_size_t size)
 			{
-				PDBGV("truncate()");
-
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
 				if (!_writable)
@@ -724,25 +691,25 @@ namespace File_system {
 					case FR_OK:
 						/* according to the FatFs documentation this can happen */
 						if (f_tell(file->ffat_fil()) != size) {
-							PERR("f_lseek() could not seek to offset %llu", size);
+							error("f_lseek() could not seek to offset ", size);
 							return;
 						}
 						break;
 					case FR_DISK_ERR:
-						PERR("f_lseek() failed with error code FR_DISK_ERR");
+						error("f_lseek() failed with error code FR_DISK_ERR");
 						return;
 					case FR_INT_ERR:
-						PERR("f_lseek() failed with error code FR_INT_ERR");
+						error("f_lseek() failed with error code FR_INT_ERR");
 						return;
 					case FR_NOT_READY:
-						PERR("f_lseek() failed with error code FR_NOT_READY");
+						error("f_lseek() failed with error code FR_NOT_READY");
 						return;
 					case FR_INVALID_OBJECT:
-						PERR("f_lseek() failed with error code FR_INVALID_OBJECT");
+						error("f_lseek() failed with error code FR_INVALID_OBJECT");
 						throw Invalid_handle();
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_lseek() returned an unexpected error code");
+						error("f_lseek() returned an unexpected error code");
 						return;
 				}
 
@@ -752,23 +719,23 @@ namespace File_system {
 					case FR_OK:
 						return;
 					case FR_INVALID_OBJECT:
-						PERR("f_truncate() failed with error code FR_INVALID_OBJECT");
+						error("f_truncate() failed with error code FR_INVALID_OBJECT");
 						throw Invalid_handle();
 					case FR_DISK_ERR:
-						PERR("f_truncate() failed with error code FR_DISK_ERR");
+						error("f_truncate() failed with error code FR_DISK_ERR");
 						return;
 					case FR_INT_ERR:
-						PERR("f_truncate() failed with error code FR_INT_ERR");
+						error("f_truncate() failed with error code FR_INT_ERR");
 						return;
 					case FR_NOT_READY:
-						PERR("f_truncate() failed with error code FR_NOT_READY");
+						error("f_truncate() failed with error code FR_NOT_READY");
 						return;
 					case FR_TIMEOUT:
-						PERR("f_truncate() failed with error code FR_TIMEOUT");
+						error("f_truncate() failed with error code FR_TIMEOUT");
 						return;
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_truncate() returned an unexpected error code");
+						error("f_truncate() returned an unexpected error code");
 						return;
 				}
 			}
@@ -776,8 +743,6 @@ namespace File_system {
 			void move(Dir_handle from_dir_handle, Name const &from_name,
 			          Dir_handle to_dir_handle,   Name const &to_name)
 			{
-				PDBGV("from_name = %s, to_name = %s", from_name.string(), to_name.string());
-
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
 				if (!_writable)
@@ -803,9 +768,6 @@ namespace File_system {
 					throw Invalid_name();
 				}
 
-				PDBGV("from_path = %s", absolute_from_path.base());
-				PDBGV("to_path = %s", absolute_to_path.base());
-
 				using namespace Ffat;
 
 				FRESULT res = f_rename(absolute_from_path.base(), absolute_to_path.base());
@@ -820,36 +782,36 @@ namespace File_system {
 					case FR_INVALID_DRIVE:
 						throw Invalid_name();
 					case FR_EXIST:
-						PERR("f_rename() failed with error code FR_EXIST");
+						error("f_rename() failed with error code FR_EXIST");
 						throw Invalid_name();
 					case FR_DENIED:
 					case FR_WRITE_PROTECTED:
 						throw Permission_denied();
 					case FR_DISK_ERR:
-						PERR("f_rename() failed with error code FR_DISK_ERR");
+						error("f_rename() failed with error code FR_DISK_ERR");
 						throw Lookup_failed();
 					case FR_INT_ERR:
-						PERR("f_rename() failed with error code FR_INT_ERR");
+						error("f_rename() failed with error code FR_INT_ERR");
 						throw Lookup_failed();
 					case FR_NOT_READY:
-						PERR("f_rename() failed with error code FR_NOT_READY");
+						error("f_rename() failed with error code FR_NOT_READY");
 						throw Lookup_failed();
 					case FR_NOT_ENABLED:
-						PERR("f_rename() failed with error code FR_NOT_ENABLED");
+						error("f_rename() failed with error code FR_NOT_ENABLED");
 						throw Lookup_failed();
 					case FR_NO_FILESYSTEM:
-						PERR("f_rename() failed with error code FR_NO_FILESYSTEM");
+						error("f_rename() failed with error code FR_NO_FILESYSTEM");
 						throw Lookup_failed();
 					default:
 						/* not supposed to occur according to the libffat documentation */
-						PERR("f_rename() returned an unexpected error code");
+						error("f_rename() returned an unexpected error code");
 						throw Lookup_failed();
 				}
 			}
 
 			void sigh(Node_handle, Genode::Signal_context_capability)
 			{
-				PWRN("File_system::Session::sigh not supported");
+				error("File_system::Session::sigh not supported");
 			}
 	};
 
@@ -877,7 +839,7 @@ namespace File_system {
 				char root[ROOT_MAX_LEN];
 				root[0] = 0;
 
-				Session_label  label(args);
+				Session_label const label = label_from_args(args);
 				try {
 					Session_policy policy(label);
 
@@ -913,45 +875,43 @@ namespace File_system {
 								case FR_INVALID_DRIVE:
 									throw Lookup_failed();
 								case FR_NOT_READY:
-									PERR("f_chdir() failed with error code FR_NOT_READY");
+									error("f_chdir() failed with error code FR_NOT_READY");
 									throw Root::Unavailable();
 								case FR_DISK_ERR:
-									PERR("f_chdir() failed with error code FR_DISK_ERR");
+									error("f_chdir() failed with error code FR_DISK_ERR");
 									throw Root::Unavailable();
 								case FR_INT_ERR:
-									PERR("f_chdir() failed with error code FR_INT_ERR");
+									error("f_chdir() failed with error code FR_INT_ERR");
 									throw Root::Unavailable();
 								case FR_NOT_ENABLED:
-									PERR("f_chdir() failed with error code FR_NOT_ENABLED");
+									error("f_chdir() failed with error code FR_NOT_ENABLED");
 									throw Root::Unavailable();
 								case FR_NO_FILESYSTEM:
-									PERR("f_chdir() failed with error code FR_NO_FILESYSTEM");
+									error("f_chdir() failed with error code FR_NO_FILESYSTEM");
 									throw Root::Unavailable();
 								default:
 									/* not supposed to occur according to the libffat documentation */
-									PERR("f_chdir() returned an unexpected error code");
+									error("f_chdir() returned an unexpected error code");
 									throw Root::Unavailable();
 							}
 
 							session_root_dir = new (env()->heap()) Directory(root);
 						}
 					} catch (Xml_node::Nonexistent_attribute) {
-						PERR("Missing \"root\" attribute in policy definition");
+						error("missing \"root\" attribute in policy definition");
 						throw Root::Unavailable();
 					} catch (Lookup_failed) {
-						PERR("Session root directory \"%s\" does not exist", root);
+						error("session root directory \"", Cstring(root), "\" does not exist");
 						throw Root::Unavailable();
 					}
 
 					/*
 					 * Determine if write access is permitted for the session.
 					 */
-					try {
-						writeable = policy.attribute("writeable").has_value("yes");
-					} catch (Xml_node::Nonexistent_attribute) { }
+					writeable = policy.attribute_value("writeable", false);
 
 				} catch (Session_policy::No_policy_defined) {
-					PERR("Invalid session request, no matching policy");
+					error("Invalid session request, no matching policy");
 					throw Root::Unavailable();
 				}
 
@@ -961,7 +921,7 @@ namespace File_system {
 					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 				if (!tx_buf_size) {
-					PERR("%s requested a session with a zero length transmission buffer", label.string());
+					error(label, " requested a session with a zero length transmission buffer");
 					throw Root::Invalid_args();
 				}
 
@@ -971,8 +931,8 @@ namespace File_system {
 				 */
 				size_t session_size = sizeof(Session_component) + tx_buf_size;
 				if (max((size_t)4096, session_size) > ram_quota) {
-					PERR("insufficient 'ram_quota', got %zd, need %zd",
-					     ram_quota, session_size);
+					error("insufficient 'ram_quota', got ", ram_quota, ", "
+					      "need ", session_size);
 					throw Root::Quota_exceeded();
 				}
 				return new (md_alloc())
@@ -1008,10 +968,8 @@ int main(int, char **)
 	static Ffat::FATFS _fatfs;
 
 	/* mount the file system */
-	PDBGV("Mounting device %u ...\n\n", 0);
-
 	if (f_mount(0, &_fatfs) != Ffat::FR_OK) {
-		PERR("Mount failed\n");
+		error("mount failed");
 		return -1;
 	}
 

@@ -14,6 +14,9 @@
 #ifndef _CORE__INCLUDE__IMPRINT_BADGE_H_
 #define _CORE__INCLUDE__IMPRINT_BADGE_H_
 
+/* NOVA includes */
+#include <nova/syscalls.h>
+
 static inline bool imprint_badge(unsigned long pt_sel, unsigned long badge)
 {
 	using namespace Nova;

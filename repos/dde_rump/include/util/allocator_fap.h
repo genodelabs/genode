@@ -29,6 +29,7 @@ namespace Allocator {
 namespace Allocator {
 
 	using namespace Genode;
+	using Genode::size_t;
 
 	struct Default_allocator_policy
 	{
@@ -77,7 +78,7 @@ namespace Allocator {
 					return false;
 
 				if (_index == ELEMENTS) {
-					PERR("Slab-backend exhausted!");
+					error("slab backend exhausted!");
 					return false;
 				}
 
@@ -90,11 +91,11 @@ namespace Allocator {
 					/* lookup phys. address */
 					_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
 				} catch (Genode::Ram_session::Quota_exceeded) {
-					PWRN("Backend allocator exhausted");
+					warning("backend allocator exhausted");
 					_quota_exceeded = true;
 					return false;
 				} catch (Genode::Region_map::Attach_failed) {
-					PWRN("Backend VM region exhausted");
+					warning("backend VM region exhausted");
 					_quota_exceeded = true;
 					return false;
 				}
@@ -147,8 +148,8 @@ namespace Allocator {
 					return 0;
 
 				if (_range.alloc_aligned(size, &addr, align).error()) {
-					PERR("Backend allocator: Unable to allocate memory (size: %zu align: %d:)",
-					     size, align);
+					error("backend allocator: Unable to allocate memory "
+					      "(size: ", size, " align: ", align, ")");
 					return 0;
 				}
 

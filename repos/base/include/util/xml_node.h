@@ -105,7 +105,7 @@ class Genode::Xml_attribute
 
 		typedef String<64> Name;
 		Name name() const {
-			return Name(_name.start(), _name.len()); }
+			return Name(Cstring(_name.start(), _name.len())); }
 
 		/**
 		 * Return true if attribute has specified type
@@ -171,7 +171,7 @@ class Genode::Xml_attribute
 		{
 			char buf[N];
 			value(buf, sizeof(buf));
-			*out = String<N>(buf);
+			*out = String<N>(Cstring(buf));
 		}
 
 		/**
@@ -346,20 +346,6 @@ class Genode::Xml_node
 				Token _next;   /* token following the comment */
 				bool  _valid;  /* true if comment is well formed */
 
-				/**
-				 * Check if token sequence matches specified character sequence
-				 *
-				 * \param t  start of token sequence
-				 * \param s  null-terminated character sequence
-				 */
-				static bool _match(Token t, const char *s)
-				{
-					for (int i = 0; s[i]; t = t.next(), i++)
-						if (t[0] != s[i])
-							return false;
-					return true;
-				}
-
 			public:
 
 				/**
@@ -369,18 +355,16 @@ class Genode::Xml_node
 				 */
 				Comment(Token t) : _valid(false)
 				{
-					/* check for comment-start tag */
-					if (!_match(t, "<!--"))
+					/* check for comment start */
+					if (!t.matches("<!--"))
 						return;
 
-					/* search for comment-end tag */
-					for ( ; t && !_match(t, "-->"); t = t.next());
+					/* skip four single characters for "<!--" */
+					t = t.next().next().next().next();
 
-					if (t.type() == Token::END)
-						return;
-
-					_next  = t.next().next().next();
-					_valid = true;
+					/* find token after comment delimiter */
+					_next  = t.next_after("-->");
+					_valid = _next.valid();
 				}
 
 				/**
@@ -615,7 +599,7 @@ class Genode::Xml_node
 		Type type() const
 		{
 			Token name = _start_tag.name();
-			return Type(name.start(), name.len());
+			return Type(Cstring(name.start(), name.len()));
 		}
 
 		/**
@@ -721,7 +705,7 @@ class Genode::Xml_node
 			char buf[STRING::capacity() + 1];
 			size_t const len = decoded_content(buf, sizeof(buf));
 			buf[min(len, STRING::capacity())] = 0;
-			return STRING(buf);
+			return STRING(Cstring(buf));
 		}
 
 		/**
@@ -922,6 +906,9 @@ class Genode::Xml_node
 			try { sub_node(type); return true; } catch (...) { }
 			return false;
 		}
+
+		void print(Output &output) const {
+			output.out_string(addr(), size()); }
 };
 
 #endif /* _INCLUDE__UTIL__XML_NODE_H_ */

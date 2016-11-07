@@ -19,7 +19,7 @@
 #include <base/lock.h>
 #include <base/capability.h>
 #include <base/tslab.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Genode { class Rpc_cap_factory; }
 
@@ -56,7 +56,7 @@ class Genode::Rpc_cap_factory
 
 		Native_capability alloc(Native_capability)
 		{
-			PWRN("unexpected call to non-implemented Rpc_cap_factory::alloc");
+			warning("unexpected call to non-implemented Rpc_cap_factory::alloc");
 			return Native_capability();
 		}
 

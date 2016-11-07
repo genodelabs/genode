@@ -66,10 +66,3 @@ of Genode.
 
   Autopilot is a tool for the automatic execution of run scripts among multiple
   base platforms.
-
-:'prepare.mk':
-
-  Tool for downloading and integrating 3rd-party source codes with Genode.
-  This file is included by the makefiles in the root of source-code
-  repositories that interface with 3rd-party code, e.g., libports and ports.
-

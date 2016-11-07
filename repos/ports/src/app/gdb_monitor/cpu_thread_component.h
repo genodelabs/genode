@@ -111,7 +111,7 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 			_cpu_session_component.thread_ep().manage(this);
 
 			if (pipe(_pipefd) != 0)
-				PERR("could not create pipe");
+				error("could not create pipe");
 		}
 
 		~Cpu_thread_component()
@@ -166,7 +166,7 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 					Signal_transmitter(sigint_signal_context_cap()).submit();
 					return 1;
 				default:
-					PERR("unexpected signal %d", signo);
+					error("unexpected signal ", signo);
 					return 0;
 			}
 		}
@@ -178,7 +178,7 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 				_initial_sigtrap_pending = false;
 
 				if (_verbose)
-					PDBG("received initial SIGTRAP for lwpid %lu", _lwpid);
+					log("received initial SIGTRAP for lwpid ", _lwpid);
 
 				if (_lwpid == GENODE_MAIN_LWPID) {
 					_remove_breakpoint_at_first_instruction();
@@ -210,26 +210,26 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 			switch (signo) {
 				case SIGSTOP:
 					if (_verbose)
-						PDBG("delivering SIGSTOP to thread %lu", _lwpid);
+						log("delivering SIGSTOP to thread ", _lwpid);
 					break;
 				case SIGTRAP:
 					if (_verbose)
-						PDBG("delivering SIGTRAP to thread %lu", _lwpid);
+						log("delivering SIGTRAP to thread ", _lwpid);
 					break;
 				case SIGSEGV:
 					if (_verbose)
-						PDBG("delivering SIGSEGV to thread %lu", _lwpid);
+						log("delivering SIGSEGV to thread ", _lwpid);
 					break;
 				case SIGINT:
 					if (_verbose)
-						PDBG("delivering SIGINT to thread %lu", _lwpid);
+						log("delivering SIGINT to thread ", _lwpid);
 					break;
 				case SIGINFO:
 					if (_verbose)
-						PDBG("delivering initial SIGSTOP to thread %lu", _lwpid);
+						log("delivering initial SIGSTOP to thread ", _lwpid);
 					break;
 				default:
-					PERR("unexpected signal %d", signo);
+					error("unexpected signal ", signo);
 			}
 
 			write(_pipefd[1], &signo, sizeof(signo));

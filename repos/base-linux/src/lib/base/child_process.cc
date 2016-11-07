@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/child.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <linux_native_pd/client.h>
 
 /* base-internal includes */
@@ -79,7 +79,7 @@ Child::Process::Process(Dataspace_capability  elf_ds,
 	addr_t elf_addr;
 	try { elf_addr = local_rm.attach(elf_ds); }
 	catch (Region_map::Attach_failed) {
-		PERR("local attach of ELF executable failed"); throw; }
+		error("local attach of ELF executable failed"); throw; }
 
 	/* setup ELF object and read program entry pointer */
 	Elf_binary elf(elf_addr);
@@ -97,7 +97,7 @@ Child::Process::Process(Dataspace_capability  elf_ds,
 	if (dynamically_linked) {
 
 		if (!ldso_ds.valid()) {
-			PERR("attempt to start dynamic executable without dynamic linker");
+			error("attempt to start dynamic executable without dynamic linker");
 			throw Missing_dynamic_linker();
 		}
 

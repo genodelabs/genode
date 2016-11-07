@@ -5,19 +5,17 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/exception.h>
-#include <base/printf.h>
-#include <os/config.h>
-#include <os/server.h>
-#include <rom_session/connection.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <block/component.h>
-#include <block/driver.h>
+#include <rom_session/connection.h>
 
 using namespace Genode;
 
@@ -25,29 +23,27 @@ class Rom_blk : public Block::Driver
 {
 	private:
 
+		Env                 &_env;
 		Rom_connection       _rom;
-		Dataspace_capability _file_cap;  /* rom-file capability */
-		addr_t               _file_addr; /* start address of attached file */
-		size_t               _file_sz;   /* file size */
-		size_t               _blk_sz;    /* block size */
-		size_t               _blk_cnt;   /* block count */
+		size_t               _blk_sz;
+		Dataspace_capability _file_cap  = _rom.dataspace();
+		addr_t               _file_addr = _env.rm().attach(_file_cap);
+		size_t               _file_sz   = Dataspace_client(_file_cap).size();
+		size_t               _blk_cnt   = _file_sz / _blk_sz;
 
 	public:
 
-		Rom_blk(const char *name, size_t blk_sz)
-		: _rom(name),
-		  _file_cap(_rom.dataspace()),
-		  _file_addr(env()->rm_session()->attach(_file_cap)),
-		  _file_sz(Dataspace_client(_file_cap).size()),
-		  _blk_sz(blk_sz),
-		  _blk_cnt(_file_sz/_blk_sz) { }
+		using String = Genode::String<64UL>;
+
+		Rom_blk(Env &env, String &name, size_t blk_sz)
+		: _env(env), _rom(env, name.string()), _blk_sz(blk_sz) {}
 
 
 		/****************************
 		 ** Block-driver interface **
 		 ****************************/
 
-		Genode::size_t  block_size()  { return _blk_sz;  }
+		size_t          block_size()  { return _blk_sz;  }
 		Block::sector_t block_count() { return _blk_cnt; }
 
 		Block::Session::Operations ops()
@@ -57,16 +53,16 @@ class Rom_blk : public Block::Driver
 			return o;
 		}
 
-		void read(Block::sector_t    block_number,
-		          Genode::size_t     block_count,
-		          char*              buffer,
+		void read(Block::sector_t           block_number,
+		          size_t                    block_count,
+		          char*                     buffer,
 		          Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
 			if ((block_number + block_count > _file_sz / _blk_sz)
 				|| block_number < 0) {
-				PWRN("requested blocks %lld-%lld out of range!",
-					 block_number, block_number + block_count);
+				warning("requested blocks ", block_number, "-",
+				        block_number + block_count, " out of range!");
 				return;
 			}
 
@@ -83,49 +79,49 @@ class Rom_blk : public Block::Driver
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Env &env;
+	Heap heap { env.ram(), env.rm() };
 
 	struct Factory : Block::Driver_factory
 	{
+		Env  &env;
+		Heap &heap;
+
+		Factory(Env &env, Heap &heap)
+		: env(env), heap(heap) {}
+
 		Block::Driver *create()
 		{
-			char   file[64];
+			Rom_blk::String file;
 			size_t blk_sz = 512;
 
 			try {
-				config()->xml_node().attribute("file").value(file, sizeof(file));
-				config()->xml_node().attribute("block_size").value(&blk_sz);
+				Attached_rom_dataspace config(env, "config");
+				config.xml().attribute("file").value(&file);
+				config.xml().attribute("block_size").value(&blk_sz);
 			}
 			catch (...) { }
 
-			PINF("Using file=%s as device with block size %zx.", file, blk_sz);
+			log("Using file=", file, " as device with block size ", blk_sz, ".");
 
 			try {
-				return new (Genode::env()->heap()) Rom_blk(file, blk_sz);
+				return new (&heap) Rom_blk(env, file, blk_sz);
 			} catch(Rom_connection::Rom_connection_failed) {
-				PERR("Cannot open file %s.", file);
+				error("cannot open file ", file);
 			}
 			throw Root::Unavailable();
 		}
 
 		void destroy(Block::Driver *driver) {
-			Genode::destroy(env()->heap(), driver); }
-	} factory;
+			Genode::destroy(&heap, driver); }
+	} factory { env, heap };
 
-	Block::Root root;
+	Block::Root root { env.ep(), heap, factory };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory) {
-		Genode::env()->parent()->announce(ep.manage(root)); }
+	Main(Env &env) : env(env) {
+		env.parent().announce(env.ep().manage(root)); }
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "rom_blk_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main server(env);    }

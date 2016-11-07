@@ -18,7 +18,6 @@
 #include <base/ipc.h>
 #include <base/sleep.h>
 #include <base/thread.h>
-#include <base/cap_map.h>
 #include <foc_native_cpu/client.h>
 #include <cpu_session/client.h>
 #include <cpu_thread/client.h>

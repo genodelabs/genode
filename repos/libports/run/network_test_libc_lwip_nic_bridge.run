@@ -1,4 +1,0 @@
-set use_nic_bridge 1
-set test_server_name "test-ping_server_libc_lwip"
-
-source ${genode_dir}/repos/libports/run/network_test.inc

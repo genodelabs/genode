@@ -213,11 +213,11 @@ struct Genode::Range_allocator : Allocator
 };
 
 
-void *operator new    (Genode::size_t, Genode::Allocator *);
-void *operator new [] (Genode::size_t, Genode::Allocator *);
+void *operator new    (__SIZE_TYPE__, Genode::Allocator *);
+void *operator new [] (__SIZE_TYPE__, Genode::Allocator *);
 
-void *operator new    (Genode::size_t, Genode::Allocator &);
-void *operator new [] (Genode::size_t, Genode::Allocator &);
+void *operator new    (__SIZE_TYPE__, Genode::Allocator &);
+void *operator new [] (__SIZE_TYPE__, Genode::Allocator &);
 
 
 /**

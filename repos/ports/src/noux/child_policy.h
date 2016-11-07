@@ -127,7 +127,7 @@ namespace Noux {
 				_exit_value = exit_value;
 
 				if (_verbose || (exit_value != 0))
-					PERR("child %s exited with exit value %d", _name, exit_value);
+					log("child ", _name, " exited with exit value ", exit_value);
 
 				/*
 				 * Close all open file descriptors. This is necessary to unblock

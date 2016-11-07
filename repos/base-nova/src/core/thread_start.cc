@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -61,7 +61,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 	addr_t rs_sel =native_thread().exc_pt_sel + SM_SEL_EC;
 	uint8_t res = create_sm(rs_sel, pd_sel, 0);
 	if (res != NOVA_OK) {
-		PERR("create_sm returned %u", res);
+		error("create_sm returned ", res);
 		throw Cpu_session::Thread_creation_failed();
 	}
 }
@@ -105,7 +105,7 @@ void Thread::start()
 	uint8_t res = create_ec(native_thread().ec_sel, pd_sel, location.xpos(),
 	                        utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
-		PERR("create_ec returned %d cpu=%u", res, location.xpos());
+		error("create_ec returned ", res, " cpu=", location.xpos());
 		throw Cpu_session::Thread_creation_failed();
 	}
 
@@ -116,7 +116,7 @@ void Thread::start()
 	if (map_local(reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
 	              Obj_crd(PT_SEL_PAGE_FAULT, 0),
 	              Obj_crd(native_thread().exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
-		PERR("could not create page fault portal");
+		error("could not create page fault portal");
 		throw Cpu_session::Thread_creation_failed();
 	}
 }

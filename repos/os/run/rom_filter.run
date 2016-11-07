@@ -120,7 +120,7 @@ append qemu_args " -nographic "
 run_genode_until {.*finished.*\n} 20
 
 # pay only attention to the output of the rom_logger
-grep_output {^\[init -> rom_logger}
+grep_output {^\[init -> rom_logger\] .+}
 unify_output {\[init \-\> rom_logger\] upgrading quota donation for .* \([0-9]+ bytes\)} ""
 trim_lines
 

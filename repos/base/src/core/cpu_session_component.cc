@@ -7,14 +7,14 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
@@ -24,8 +24,6 @@
 #include <platform_generic.h>
 
 using namespace Genode;
-
-static constexpr bool verbose = false;
 
 
 Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
@@ -39,13 +37,11 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 	Cpu_thread_component *thread = 0;
 
 	if (weight.value == 0) {
-		PWRN("Thread %s: Bad weight 0, using %i instead.",
-		     name.string(), Weight::DEFAULT_WEIGHT);
+		warning("Thread ", name, ": Bad weight 0, using default weight instead.");
 		weight = Weight();
 	}
 	if (weight.value > QUOTA_LIMIT) {
-		PWRN("Thread %s: Oversized weight %zu, using %i instead.",
-		     name.string(), weight.value, QUOTA_LIMIT);
+		warning("Thread ", name, ": Oversized weight ", weight.value, ", using limit instead.");
 		weight = Weight(QUOTA_LIMIT);
 	}
 
@@ -57,7 +53,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 	 */
 	auto create_thread_lambda = [&] (Pd_session_component *pd) {
 		if (!pd) {
-			PERR("create_thread: invalid PD argument");
+			error("create_thread: invalid PD argument");
 			throw Thread_creation_failed();
 		}
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
@@ -179,21 +175,20 @@ int Cpu_session_component::transfer_quota(Cpu_session_capability dst_cap,
 	/* lookup targeted CPU session */
 	auto lambda = [&] (Cpu_session_component *dst) {
 		if (!dst) {
-			PWRN("Transfer CPU quota, %s, targeted session not found",
-			     _label.string());
+			warning("Transfer CPU quota, ", _label, ", targeted session not found");
 			return -1;
 		}
 		/* check reference relationship */
 		if (dst->_ref != this && dst != _ref) {
-			PWRN("Transfer CPU quota, %s -> %s, no reference relation",
-			     _label.string(), dst->_label.string());
+			warning("Transfer CPU quota, ", _label, " -> ", dst->_label, ", "
+			        "no reference relation");
 			return -2;
 		}
 		/* check quota availability */
 		size_t const quota = quota_lim_downscale(_quota, amount);
 		if (quota > _quota) {
-			PWRN("Transfer CPU quota, %s -> %s, insufficient quota %zu, need %zu",
-			     _label.string(), dst->_label.string(), _quota, quota);
+			warning("Transfer CPU quota, ", _label, " -> ", dst->_label, ", "
+			        "insufficient quota ", _quota, ", need ", quota);
 			return -3;
 		}
 		/* transfer quota */
@@ -212,20 +207,17 @@ int Cpu_session_component::ref_account(Cpu_session_capability ref_cap)
 	 * FIXME Add check for cycles along the tree of reference accounts
 	 */
 	if (_ref) {
-		PWRN("Set ref account, %s, set already",
-		     _label.string());
+		warning("set ref account, ", _label, ", set already");
 		return -2; }
 
 	/* lookup and check targeted CPU-session */
 	auto lambda = [&] (Cpu_session_component *ref) {
 		if (!ref) {
-			PWRN("Set ref account, %s, targeted session not found",
-			     _label.string());
+			warning("set ref account, ", _label, ", targeted session not found");
 			return -1;
 		}
 		if (ref == this) {
-			PWRN("Set ref account, %s, self reference not allowed",
-			     _label.string());
+			warning("set ref account, ", _label, ", self reference not allowed");
 			return -3;
 		}
 		/* establish ref-account relation from targeted CPU-session to us */
@@ -246,6 +238,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
                                              Affinity         const &affinity,
                                              size_t           const  quota)
 :
+	_label(label_from_args(args)),
 	_session_ep(session_ep),
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
 	_md_alloc(md_alloc, remaining_session_ram_quota(args)),
@@ -257,11 +250,6 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
 	_trace_sources(trace_sources), _quota(quota), _ref(0),
 	_native_cpu(*this, args)
 {
-	/* remember session label */
-	char buf[Session_label::size()];
-	Arg_string::find_arg(args, "label").string(buf, sizeof(buf), "");
-	_label = Session_label(buf);
-
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {
 		_priority = a.ulong_value(0);

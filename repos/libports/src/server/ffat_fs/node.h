@@ -9,6 +9,7 @@
 
 /* Genode includes */
 #include <file_system/node.h>
+#include <base/log.h>
 #include <os/path.h>
 
 /* ffat includes */
@@ -40,13 +41,13 @@ namespace File_system {
 
 			virtual size_t read(char *dst, size_t len, seek_off_t)
 			{
-				PERR("read() called on generic Node object");
+				Genode::error("read() called on generic Node object");
 				return 0;
 			}
 
 			virtual size_t write(char const *src, size_t len, seek_off_t)
 			{
-				PERR("write() called on generic Node object");
+				Genode::error("write() called on generic Node object");
 				return 0;
 			}
 	};

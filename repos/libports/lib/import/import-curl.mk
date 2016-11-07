@@ -7,7 +7,7 @@ TARGET_CPUARCH=64bit
 endif
 
 # include architecture specific curlbuild.h
-REP_INC_DIR += src/lib/curl/$(TARGET_CPUARCH)
-REP_INC_DIR += src/lib/curl/$(TARGET_CPUARCH)/curl
+REP_INC_DIR += src/lib/curl/spec/$(TARGET_CPUARCH)
+REP_INC_DIR += src/lib/curl/spec/$(TARGET_CPUARCH)/curl
 
 REP_INC_DIR += src/lib/curl

@@ -86,4 +86,26 @@ struct Genode::Irq_session : Session
 	GENODE_RPC_INTERFACE(Rpc_ack_irq, Rpc_sigh, Rpc_info);
 };
 
+
+namespace Genode {
+
+	static inline void print(Output &out, Irq_session::Trigger value)
+	{
+		switch (value) {
+		case Irq_session::TRIGGER_UNCHANGED: print(out, "UNCHANGED"); break;
+		case Irq_session::TRIGGER_LEVEL:     print(out, "LEVEL");     break;
+		case Irq_session::TRIGGER_EDGE:      print(out, "EDGE");      break;
+		}
+	}
+
+	static inline void print(Output &out, Irq_session::Polarity value)
+	{
+		switch (value) {
+		case Irq_session::POLARITY_UNCHANGED: print(out, "UNCHANGED"); break;
+		case Irq_session::POLARITY_HIGH:      print(out, "HIGH");      break;
+		case Irq_session::POLARITY_LOW:       print(out, "LOW");       break;
+		}
+	}
+}
+
 #endif /* _INCLUDE__IRQ_SESSION__IRQ_SESSION_H_ */

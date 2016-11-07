@@ -18,7 +18,7 @@
 
 using namespace Genode;
 
-class Alarm_thread : Thread_deprecated<4096>, public Alarm_scheduler
+class Alarm_thread : Thread_deprecated<2048*sizeof(long)>, public Alarm_scheduler
 {
 	private:
 

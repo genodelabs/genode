@@ -12,7 +12,7 @@
  */
 
 #include <os/static_root.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 
 #include <os/server.h>
@@ -117,7 +117,8 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 		if (page != ~0UL)
 			address_space().detach(page);
 
-		PERR("attachment of DMA memory @ %lx+%zx failed", phys, size);
+		Genode::error("attachment of DMA memory @ ",
+		              Genode::Hex(phys), "+", Genode::Hex(size), " failed");
 		return;
 	}
 
@@ -126,8 +127,9 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 		if (map_eager(flex.addr, flex.log2_order))
 			continue;
 
-		PERR("attachment of DMA memory @ %lx+%zx failed at %lx", phys, size,
-		     flex.addr);
+		Genode::error("attachment of DMA memory @ ",
+		              Genode::Hex(phys), "+", Genode::Hex(size), " failed at ",
+		              flex.addr);
 		return;
 	}
 }
@@ -145,16 +147,30 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 
 	/* trigger mapping of whole memory area */
 	if (!map_eager(page, 12))
-		PERR("assignment of PCI device failed - %lx", page);
+		Genode::error("assignment of PCI device failed - ", Genode::Hex(page));
+
+	/* utility to print rid value */
+	struct Rid
+	{
+		Genode::uint16_t const v;
+		explicit Rid(Genode::uint16_t rid) : v(rid) { }
+		void print(Genode::Output &out) const
+		{
+			using Genode::print;
+			using Genode::Hex;
+			print(out, Hex(v >> 8, Hex::Prefix::OMIT_PREFIX), ":",
+			      Hex((v >> 3) & 3, Hex::Prefix::OMIT_PREFIX), ".",
+			      Hex(v & 0x7, Hex::Prefix::OMIT_PREFIX));
+		}
+	};
 
 	/* try to assign pci device to this protection domain */
 	if (!env()->pd_session()->assign_pci(page, rid))
-		PERR("assignment of PCI device %x:%x.%x failed phys=%lx virt=%lx",
-		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7,
-		     ds_client.phys_addr(), page);
+		Genode::error("assignment of PCI device ", Rid(rid), " failed ",
+		              "phys=", Genode::Hex(ds_client.phys_addr()), " "
+		              "virt=", Genode::Hex(page));
 	else
-		PINF("assignment of %x:%x.%x succeeded",
-		     rid >> 8, (rid >> 3) & 0x1f, rid & 0x7);
+		Genode::log("assignment of ", rid, " succeeded");
 
 	/* we don't need the mapping anymore */
 	address_space().detach(page);

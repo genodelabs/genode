@@ -1,0 +1,24 @@
+VirtualBox configuration options
+################################
+
+XHCI controller
+===============
+
+The virtual XHCI controller can be enabled with the following
+configuration option:
+
+<config xhci="yes">
+
+IOAPIC
+======
+
+The virtual PCI model delivers IRQs to the PIC by default and to the IOAPIC
+only if the guest operating system selected the IOAPIC with the '_PIC' ACPI
+method and if it called the '_PRT' ACPI method afterwards. When running a
+guest operating system which uses the IOAPIC, but does not call these ACPI
+methods (for example Genode/NOVA), the configuration option
+
+<config force_ioapic="yes">
+
+enforces the delivery of PCI IRQs to the IOAPIC.
+

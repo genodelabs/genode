@@ -80,6 +80,9 @@ class Net::Udp_packet
 		Genode::uint16_t length()    { return host_to_big_endian(_length);   }
 		Genode::uint16_t checksum()  { return host_to_big_endian(_checksum); }
 
+		void src_port(Genode::uint16_t p) { _src_port = host_to_big_endian(p); }
+		void dst_port(Genode::uint16_t p) { _dst_port = host_to_big_endian(p); }
+
 		template <typename T> T *       data()       { return (T *)(_data); }
 		template <typename T> T const * data() const { return (T const *)(_data); }
 
@@ -91,8 +94,7 @@ class Net::Udp_packet
 		/**
 		 * Placement new.
 		 */
-		void * operator new(Genode::size_t size, void* addr) {
-			return addr; }
+		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
 
 
 		/***************************
@@ -110,8 +112,8 @@ class Net::Udp_packet
 		 * |  4 bytes   |  4 bytes   |   1 byte   |  1 byte  |  2 bytes   |
 		 *  --------------------------------------------------------------
 		 */
-		void calc_checksum(Ipv4_packet::Ipv4_address src,
-		                   Ipv4_packet::Ipv4_address dst)
+		void update_checksum(Ipv4_address src,
+		                     Ipv4_address dst)
 		{
 			/* have to reset the checksum field for calculation */
 			_checksum = 0;

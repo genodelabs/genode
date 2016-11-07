@@ -30,32 +30,6 @@ namespace Genode { class Mmio; }
  */
 class Genode::Mmio
 {
-	/*
-	 * If set 0 verbosity isn't needed at all and the enum enables the
-	 * compiler to remove all verbosity code. If set 1 verbosity code
-	 * gets compiled and is then switched via '*_verbose' member variables.
-	 */
-	enum { VERBOSITY_AVAILABLE = 0 };
-
-	/**
-	 * Proclaim a MMIO access
-	 *
-	 * \param _ACCESS_T  integer type of access
-	 * \param dst        access destination
-	 * \param v          access value
-	 * \param w          1: write access 0: read access
-	 */
-	template <typename _ACCESS_T>
-	inline void _access_verbosity(addr_t const dst, _ACCESS_T const v,
-	                              bool const w) const
-	{
-		if (!VERBOSITY_AVAILABLE) return;
-		if ((w && !_write_verbose) || (!w && !_read_verbose)) return;
-		printf("mmio %s 0x%p: 0x", w ? "write" : "read ", (void *)dst);
-		Trait::Uint_type<_ACCESS_T>::print_hex(v);
-		printf("\n");
-	}
-
 	/**
 	 * Write '_ACCESS_T' typed 'value' to MMIO base + 'o'
 	 */
@@ -63,7 +37,6 @@ class Genode::Mmio
 	inline void _write(off_t const o, _ACCESS_T const value)
 	{
 		addr_t const dst = (addr_t)base + o;
-		_access_verbosity<_ACCESS_T>(dst, value, 1);
 		*(_ACCESS_T volatile *)dst = value;
 	}
 
@@ -75,22 +48,8 @@ class Genode::Mmio
 	{
 		addr_t const dst = (addr_t)base + o;
 		_ACCESS_T const value = *(_ACCESS_T volatile *)dst;
-		_access_verbosity<_ACCESS_T>(dst, value, 0);
 		return value;
 	}
-
-	protected:
-
-		/*
-		 * If VERBOSITY_AVAILABLE is set MMIO isn't verbose by default.
-		 * Instead it causes this switches to be asked everytime MMIO
-		 * could be verbose. This way the user can either enable verbosity
-		 * locally by overwriting them in a deriving class or change their
-		 * initialization temporarily to enable verbosity globally and
-		 * then supress it locally by overwriting it.
-		 */
-		bool _write_verbose;
-		bool _read_verbose;
 
 	public:
 
@@ -287,8 +246,7 @@ class Genode::Mmio
 		 *
 		 * \param mmio_base  base address of targeted MMIO region
 		 */
-		inline Mmio(addr_t mmio_base)
-		: _write_verbose(0), _read_verbose(0), base(mmio_base) { }
+		inline Mmio(addr_t mmio_base) : base(mmio_base) { }
 
 
 		/*************************

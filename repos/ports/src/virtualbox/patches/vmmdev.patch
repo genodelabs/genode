@@ -4,6 +4,20 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp b/src/app/vir
 index 8ce46a8..a6b84b0 100644
 --- a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
+@@ -774,11 +774,11 @@
+     fu32Caps |= pReq->u32OrMask;
+     fu32Caps &= ~pReq->u32NotMask;
+ 
+-    LogRel(("Guest Additions capability report: (%#x -> %#x) seamless: %s, hostWindowMapping: %s, graphics: %s\n",
++    RTLogPrintf("Guest Additions capability report: (%#x -> %#x) seamless: %s, hostWindowMapping: %s, graphics: %s\n",
+             pThis->guestCaps, fu32Caps,
+             fu32Caps & VMMDEV_GUEST_SUPPORTS_SEAMLESS ? "yes" : "no",
+             fu32Caps & VMMDEV_GUEST_SUPPORTS_GUEST_HOST_WINDOW_MAPPING ? "yes" : "no",
+-            fu32Caps & VMMDEV_GUEST_SUPPORTS_GRAPHICS ? "yes" : "no"));
++            fu32Caps & VMMDEV_GUEST_SUPPORTS_GRAPHICS ? "yes" : "no");
+ 
+     pThis->guestCaps = fu32Caps;
+ 
 @@ -2179,6 +2179,10 @@ static int vmmdevReqHandler_GetPageSharingStatus(PVMMDEV pThis, VMMDevRequestHea
                      ("%u\n", pReq->header.size), VERR_INVALID_PARAMETER);
  
@@ -15,43 +29,14 @@ index 8ce46a8..a6b84b0 100644
      int rc = pThis->pDrv->pfnIsPageFusionEnabled(pThis->pDrv, &pReq->fEnabled);
      if (RT_FAILURE(rc))
          pReq->fEnabled = false;
-@@ -2404,7 +2408,6 @@ static int vmmdevReqDispatcher(PVMMDEV pThis, VMMDevRequestHeader *pReqHdr, RTGC
-             pReqHdr->rc = vmmdevReqHandler_HGCMCall(pThis, pReqHdr, GCPhysReqHdr);
-             *pfDelayedUnlock = true;
-             break;
--#endif /* VBOX_WITH_HGCM */
++++ a/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
+@@ -2805,7 +2805,7 @@
+          * Debug logging.
+          */
+         RTLogPrintf("\n\nThe VM was reset:\n");
+-        DBGFR3Info(pVM->pUVM, "cpum", "verbose", NULL);
++//        DBGFR3Info(pVM->pUVM, "cpum", "verbose", NULL);
+ #endif
  
-         case VMMDevReq_HGCMCancel:
-             pReqHdr->rc = vmmdevReqHandler_HGCMCancel(pThis, pReqHdr, GCPhysReqHdr);
-@@ -2414,6 +2417,7 @@ static int vmmdevReqDispatcher(PVMMDEV pThis, VMMDevRequestHeader *pReqHdr, RTGC
-         case VMMDevReq_HGCMCancel2:
-             pReqHdr->rc = vmmdevReqHandler_HGCMCancel2(pThis, pReqHdr);
-             break;
-+#endif /* VBOX_WITH_HGCM */
- 
-         case VMMDevReq_VideoAccelEnable:
-             pReqHdr->rc = vmmdevReqHandler_VideoAccelEnable(pThis, pReqHdr);
-@@ -3595,8 +3599,10 @@ static DECLCALLBACK(void) vmmdevReset(PPDMDEVINS pDevIns)
-     /* disabled statistics updating */
-     pThis->u32LastStatIntervalSize = 0;
- 
-+#ifdef VBOX_WITH_HGCM
-     /* Clear the "HGCM event enabled" flag so the event can be automatically reenabled.  */
-     pThis->u32HGCMEnabled = 0;
-+#endif
- 
-     /*
-      * Clear the event variables.
-diff --git a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
-index d495599..21dfada 100644
---- a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
-+++ b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDevHGCM.cpp
-@@ -19,7 +19,7 @@
- /*******************************************************************************
- *   Header Files                                                               *
- *******************************************************************************/
--#define LOG_GROUP LOG_GROUP_DEV_VMM
-+#define LOG_GROUP LOG_GROUP_HGCM
- #include <iprt/alloc.h>
- #include <iprt/asm.h>
- #include <iprt/assert.h>
+         /*

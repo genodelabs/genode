@@ -11,9 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 #include <cap_session/connection.h>
 #include <nic_session/rpc_object.h>
@@ -33,11 +32,6 @@ extern "C" {
 }
 
 
-static bool verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
-#define TRACE do { PDBGV("%s: called", __func__); } while (0)
-
-
 extern Tuntap_device *tuntap_dev();
 
 
@@ -52,12 +46,12 @@ extern "C" void open_tun(char const *dev, char const *dev_type,
 	tt->fd = -1;
 
 	if (tt->ipv6) {
-		PERR("IPv6 is currently not supported!");
+		Genode::error("IPv6 is currently not supported!");
 		return;
 	}
 
 	if (tt->type == DEV_TYPE_NULL) {
-		PERR("null device not supported");
+		Genode::error("null device not supported");
 		return;
 	}
 
@@ -66,7 +60,6 @@ extern "C" void open_tun(char const *dev, char const *dev_type,
 
 	tt->actual_name = string_alloc(name, NULL);
 	tt->fd = tuntap_dev()->fd();
-	PDBGV("tt->fd:%d", tuntap_dev()->fd());
 }
 
 
@@ -79,8 +72,6 @@ extern "C" void close_tun(struct tuntap *tt)
 
 extern "C" int write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-	PDBGV("tt->fd:%d buf:0x%p len: %d", tt->fd, buf, len);
-
 	if (len <= 0)
 		return -1;
 
@@ -98,8 +89,6 @@ extern "C" int write_tun(struct tuntap *tt, uint8_t *buf, int len)
 
 extern "C" int read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-	PDBGV("tt->fd:%d buf:0x%p len: %d", tt->fd, buf, len);
-
 	if (len <= 0)
 		return -1;
 
@@ -124,12 +113,7 @@ extern "C" int read_tun(struct tuntap *tt, uint8_t *buf, int len)
 extern "C" void tuncfg(char const *dev, char const *dev_type,
                        char const *dev_node, int persist_mode,
                        char const *username, char const *groupname,
-                       struct tuntap_options const *options)
-{
-	PDBGV("dev:'%s' dev_type:'%s' dev_node:'%s' persist_mode:%d"
-         "username:'%s' groupname:'%s' options:0x%p",
-         dev, dev_type, dev_node, persist_mode, username, groupname, options);
-}
+                       struct tuntap_options const *options) { }
 
 
 extern "C" char const *guess_tuntap_dev(char const *dev, char const *dev_type,
@@ -148,10 +132,6 @@ extern "C" struct tuntap *init_tun(char const *dev, char const *dev_type,
                                    in_addr_t local_public, in_addr_t remote_public,
                                    bool const strict_warn, struct env_set *es)
 {
-	PDBGV("dev:'%s' dev_type:'%s' topology:%d ifconfig_local_parm:'%s'"
-	      "ifconfig_remote_netmask_parm:'%s' es:0x%p", dev, dev_type,
-	      topology, ifconfig_local_parm, ifconfig_remote_netmask_parm, es);
-
 	struct tuntap *tt;
 
 	ALLOC_OBJ(tt, struct tuntap);
@@ -186,17 +166,12 @@ extern "C" struct tuntap *init_tun(char const *dev, char const *dev_type,
 
 
 extern "C" void init_tun_post(struct tuntap *tt, struct frame const *frame,
-                              struct tuntap_options const *options)
-{
-	TRACE;
-}
+                              struct tuntap_options const *options) { }
 
 
 extern "C" void do_ifconfig(struct tuntap *tt, char const *actual_name,
                             int tun_mtu, struct env_set const *es)
 {
-	TRACE;
-
 	/**
 	 * After OpenVPN has received a PUSH_REPLY it will configure
 	 * the TUN/TAP device by calling this function. At this point
@@ -255,8 +230,6 @@ extern "C" char const *ifconfig_options_string(struct tuntap const* tt,
                                                bool remote, bool disable,
                                                struct gc_arena *gc)
 {
-	TRACE;
-
 	return 0;
 }
 
@@ -271,17 +244,17 @@ extern "C" bool is_tun_p2p(struct tuntap const *tt)
 	else if (tt->type == DEV_TYPE_TUN)
 		tun = true;
 	else
-		PERR("problem with tun vs. tap setting");
+		Genode::error("problem with tun vs. tap setting");
 
 	return tun;
 }
 
 
 extern "C" void check_subnet_conflict(const in_addr_t, const in_addr_t,
-                                      char const *) { TRACE; }
+                                      char const *) { }
 
 
-extern "C" void warn_on_use_of_common_subnets(void) { TRACE; }
+extern "C" void warn_on_use_of_common_subnets(void) { }
 
 
 extern "C" char const *tun_stat(struct tuntap const *tt, unsigned rwflags,

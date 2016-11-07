@@ -17,7 +17,11 @@
 #include <base/output.h>
 #include <base/lock.h>
 
-namespace Genode { class Log; }
+namespace Genode {
+
+	class Log;
+	class Raw;
+}
 
 
 /**
@@ -45,19 +49,6 @@ class Genode::Log
 		void    _release();
 		Output &_output;
 
-		/**
-		 * Helper for the sequential output of a variable list of arguments
-		 */
-		template <typename HEAD, typename... TAIL>
-		void _output_args(Output &output, HEAD && head, TAIL &&... tail)
-		{
-			print(output, head);
-			_output_args(output, tail...);
-		}
-
-		template <typename LAST>
-		void _output_args(Output &output, LAST && last) { print(output, last); }
-
 	public:
 
 		Log(Output &output) : _output(output) { }
@@ -72,7 +63,7 @@ class Genode::Log
 			 * using a lock guard.
 			 */
 			_acquire(type);
-			_output_args(_output, args...);
+			Output::out_args(_output, args...);
 			_release();
 		}
 
@@ -80,6 +71,31 @@ class Genode::Log
 		 * Return component-global singleton instance of the 'Log'
 		 */
 		static Log &log();
+};
+
+
+/**
+ * Raw-output back end
+ *
+ * \noapi
+ */
+class Genode::Raw
+{
+	private:
+
+		static void    _acquire();
+		static void    _release();
+		static Output &_output();
+
+	public:
+
+		template <typename... ARGS>
+		static void output(ARGS &&... args)
+		{
+			_acquire();
+			Output::out_args(_output(), args...);
+			_release();
+		}
 };
 
 
@@ -94,6 +110,10 @@ namespace Genode {
 
 	/**
 	 * Write 'args' as a warning message to the log
+	 *
+	 * The message is automatically prefixed with "Warning: ". Please refer to
+	 * the description of the 'error' function regarding the convention of
+	 * formatting error/warning messages.
 	 */
 	template <typename... ARGS>
 	void warning(ARGS &&... args) { Log::log().output(Log::WARNING, args...); }
@@ -101,9 +121,23 @@ namespace Genode {
 
 	/**
 	 * Write 'args' as an error message to the log
+	 *
+	 * The message is automatically prefixed with "Error: ". Hence, the
+	 * message argument does not need to additionally state that it is an error
+	 * message. By convention, the actual message should be brief, starting
+	 * with a lower-case character.
 	 */
 	template <typename... ARGS>
 	void error(ARGS &&... args) { Log::log().output(Log::ERROR, args...); }
+
+
+	/**
+	 * Write 'args' directly via the kernel (i.e., kernel debugger)
+	 *
+	 * This function is intended for temporarily debugging purposes only.
+	 */
+	template <typename... ARGS>
+	void raw(ARGS &&... args) { Raw::output(args...); }
 }
 
 #endif /* _INCLUDE__BASE__LOG_H_ */

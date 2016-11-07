@@ -16,11 +16,13 @@
 #ifndef _DRIVERS__PLATFORM__SPEC__ODROID_X2__PMU_H_
 #define _DRIVERS__PLATFORM__SPEC__ODROID_X2__PMU_H_
 
+#include <base/log.h>
 #include <regulator/consts.h>
 #include <regulator/driver.h>
 #include <drivers/board_base.h>
 #include <os/attached_mmio.h>
 
+using Genode::warning;
 using namespace Regulator;
 
 
@@ -85,7 +87,7 @@ class Pmu : public Regulator::Driver,
 				break; }
 
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -101,7 +103,7 @@ class Pmu : public Regulator::Driver,
 				write<Hdmi_phy_control::Enable>(0);
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -128,7 +130,7 @@ class Pmu : public Regulator::Driver,
 		{
 			switch (id) {
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -136,7 +138,7 @@ class Pmu : public Regulator::Driver,
 		{
 			switch (id) {
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 			return 0;
 		}
@@ -155,7 +157,7 @@ class Pmu : public Regulator::Driver,
 			case PWR_USB20:
 				return read<Usbdrd_phy_control::Enable>();
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 			return true;
 		}

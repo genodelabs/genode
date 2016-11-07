@@ -19,6 +19,7 @@
 /* Genode include */
 #include <os/path.h>
 #include <file_system/util.h>
+#include <base/log.h>
 
 /* local includes */
 #include "node.h"
@@ -143,12 +144,12 @@ class File_system::Directory : public Node
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
 			if (len < sizeof(Directory_entry)) {
-				PERR("read buffer too small for directory entry");
+				Genode::error("read buffer too small for directory entry");
 				return 0;
 			}
 
 			if (seek_offset % sizeof(Directory_entry)) {
-				PERR("seek offset not aligned to sizeof(Directory_entry)");
+				Genode::error("seek offset not aligned to sizeof(Directory_entry)");
 				return 0;
 			}
 
@@ -165,11 +166,17 @@ class File_system::Directory : public Node
 				void *current, *end;
 				for (current = buf, end = &buf[bytes];
 				     current < end;
-				     current = _DIRENT_NEXT((dirent *)current), i++)
-					if (i == index) {
-						dent = (dirent *)current;
-						break;
+				     current = _DIRENT_NEXT((dirent *)current))
+				{
+					struct ::dirent *d = (dirent*)current;
+					if (strcmp(".", d->d_name) && strcmp("..", d->d_name)) {
+						if (i == index) {
+							dent = d;
+							break;
+						}
+						++i;
 					}
+				}
 			} while(bytes && !dent);
 
 			if (!dent)
@@ -203,6 +210,7 @@ class File_system::Directory : public Node
 			else
 				return 0;
 
+			e->inode = s.st_ino;
 			strncpy(e->name, dent->d_name, dent->d_namlen + 1);
 			return sizeof(Directory_entry);
 		}
@@ -249,7 +257,7 @@ class File_system::Directory : public Node
 				throw Lookup_failed();
 
 			if (ret == -1)
-				PERR("Error during unlink of %s", node_path.base());
+				Genode::error("error during unlink of ", node_path);
 		}
 };
 

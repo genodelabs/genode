@@ -206,6 +206,12 @@ class Launchpad_child : public Genode::List<Launchpad_child>::Element
 					_entrypoint.activate();
 				}
 
+			/**
+			 * Required to forcefully kill client which blocks on a session
+			 * opening quest where the service is not up yet.
+			 */
+			void cancel_blocking() { _entrypoint.cancel_blocking(); }
+
 			Genode::Rom_session_capability rom_session_cap() { return _rom; }
 			Genode::Ram_session_capability ram_session_cap() { return _ram; }
 			Genode::Cpu_session_capability cpu_session_cap() { return _cpu; }

@@ -1,0 +1,158 @@
+LICENSE         := GPLv2
+VERSION         := 5.0.26
+DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
+
+VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-108824.zip
+
+URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
+DIR(virtualbox) := src/app/virtualbox
+SHA(virtualbox) := 5e58c952f010b679a80ba3ce7ccb2641895f515f
+
+URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
+DIR(virtualbox_sdk) := src/app/virtualbox_sdk
+SHA(virtualbox_sdk) := 8c03425d13095a951725d763a8a3a6f51a64ed67
+
+PATCHES_DIR       := src/virtualbox5/patches
+PATCHES_DIR_VBOX4 := src/virtualbox/patches
+PATCHES := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/series))
+PATCHES += $(addprefix $(PATCHES_DIR_VBOX4)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR_VBOX4)/series_common))
+PATCH_OPT := -p1
+
+$(call check_tool,xsltproc)
+$(call check_tool,yasm)
+$(call check_tool,iasl)
+
+VBOX_MAIN_GLUE := AutoLock EventQueue string xpcom/helpers
+
+VBOX_MAIN_ALL := AuthLibrary AutoCaller DisplayResampleImage DisplayUtils EventImpl Global HashedPw
+VBOX_MAIN_ALL += PCIDeviceAttachmentImpl ProgressImpl SharedFolderImpl SecretKeyStore
+VBOX_MAIN_ALL += VirtualBoxBase
+
+VBOX_MAIN_CLI := AdditionsFacilityImpl BusAssignmentManager
+VBOX_MAIN_CLI += ConsoleImpl ConsoleImpl2 ConsoleVRDPServer
+VBOX_MAIN_CLI += DisplayImpl DisplayImplLegacy DisplaySourceBitmapImpl
+VBOX_MAIN_CLI += DrvAudioVRDE EmulatedUSBImpl GuestCtrlImpl GuestImpl
+VBOX_MAIN_CLI += HGCM HGCMThread HGCMObjects
+VBOX_MAIN_CLI += KeyboardImpl SessionImpl VMMDevInterface
+VBOX_MAIN_CLI += MouseImpl MachineDebuggerImpl
+VBOX_MAIN_CLI += USBDeviceImpl UsbWebcamInterface VBoxDriversRegister
+VBOX_MAIN_CLI += RemoteUSBDeviceImpl RemoteUSBBackend 
+
+VBOX_MAIN_SRV := AudioAdapterImpl ClientToken DHCPServerImpl Matching
+VBOX_MAIN_SRV += MediumAttachmentImpl NATEngineImpl NATNetworkImpl SerialPortImpl
+VBOX_MAIN_SRV += BandwidthControlImpl GuestOSTypeImpl HostUSBDeviceImpl
+VBOX_MAIN_SRV += MediumFormatImpl NetworkAdapterImpl SnapshotImpl
+VBOX_MAIN_SRV += BandwidthGroupImpl MachineImplCloneVM MediumImpl
+VBOX_MAIN_SRV += NetworkServiceRunner StorageControllerImpl VirtualBoxImpl
+VBOX_MAIN_SRV += BIOSSettingsImpl MachineImpl MediumLock ParallelPortImpl
+VBOX_MAIN_SRV += SystemPropertiesImpl VRDEServerImpl TokenImpl
+VBOX_MAIN_SRV += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
+
+VBOX_MAIN_INC := AdditionsFacilityImpl AudioAdapterImpl AuthLibrary
+VBOX_MAIN_INC += AutoCaller AutostartDb AutoStateDep BandwidthControlImpl
+VBOX_MAIN_INC += BandwidthGroupImpl BIOSSettingsImpl BusAssignmentManager Nvram
+VBOX_MAIN_INC += ClientToken ConsoleImpl DHCPServerImpl DisplayImpl HostImpl
+VBOX_MAIN_INC += DisplayUtils DrvAudioVRDE EventImpl ExtPackManagerImpl Global
+VBOX_MAIN_INC += GuestCtrlImplPrivate GuestDirectoryImpl Logging
+VBOX_MAIN_INC += GuestFileImpl GuestFsObjInfoImpl GuestImpl GuestOSTypeImpl
+VBOX_MAIN_INC += GuestSessionImpl HashedPw KeyboardImpl MachineImplCloneVM
+VBOX_MAIN_INC += HGCM HGCMThread HGCMObjects
+VBOX_MAIN_INC += MachineImpl MediumAttachmentImpl MediumFormatImpl MediumImpl
+VBOX_MAIN_INC += MediumLock MouseImpl NATEngineImpl NATNetworkImpl
+VBOX_MAIN_INC += NetworkAdapterImpl NetworkServiceRunner
+VBOX_MAIN_INC += objectslist ObjectState
+VBOX_MAIN_INC += ParallelPortImpl PCIDeviceAttachmentImpl Performance
+VBOX_MAIN_INC += ProgressImpl ProgressProxyImpl SnapshotImpl
+VBOX_MAIN_INC += SecretKeyStore SerialPortImpl SessionImpl SharedFolderImpl
+VBOX_MAIN_INC += StorageControllerImpl SystemPropertiesImpl TokenImpl VMMDev
+VBOX_MAIN_INC += UsbWebcamInterface
+VBOX_MAIN_INC += USBControllerImpl USBDeviceFilterImpl USBDeviceFiltersImpl
+VBOX_MAIN_INC += USBIdDatabase USBProxyService VirtualBoxImpl VRDEServerImpl GuestProcessImpl
+VBOX_MAIN_INC += USBDeviceImpl HostUSBDeviceImpl Matching Wrapper
+VBOX_MAIN_INC += RemoteUSBDeviceImpl RemoteUSBBackend ConsoleVRDPServer
+VBOX_MAIN_INC += MachineDebuggerImpl EmulatedUSBImpl
+
+VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
+VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
+VBOX_SRC_VBOX += HostServices/SharedClipboard
+VBOX_SRC_VBOX += Main/xml/VirtualBox-settings.xsd Main/xml/SchemaDefs.xsl
+VBOX_SRC_VBOX += Main/idl/docstrip.xsl Main/idl/VirtualBox.xidl
+VBOX_SRC_VBOX += Main/idl/apiwrap-server.xsl
+VBOX_SRC_VBOX += Main/idl/typemap-shared.inc.xsl
+VBOX_SRC_VBOX += $(addsuffix .h,   $(addprefix Main/include/, $(VBOX_MAIN_INC)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-client/, $(VBOX_MAIN_CLI)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-server/, $(VBOX_MAIN_SRV)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-all/, $(VBOX_MAIN_ALL)))
+VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/glue/, $(VBOX_MAIN_GLUE)))
+
+VBOX_INC += types.h cdefs.h hgcmsvc.h err.h dis.h disopcode.h log.h sup.h pci.h
+VBOX_INC += param.h ostypes.h VMMDev.h VMMDev2.h vusb.h dbg.h version.h HGSMI
+VBOX_INC += VBoxVideo.h Hardware bioslogo.h scsi.h shflsvc.h VBoxGuest2.h vd.h
+VBOX_INC += vd-plugin.h vd-ifs.h vd-ifs-internal.h vd-image-backend.h
+VBOX_INC += vd-cache-backend.h vd-filter-backend.h msi.h asmdefs.mac err.mac
+VBOX_INC += VBoxVideoHost3D.h VBoxVideo3D.h settings.h VBoxAuth.h
+VBOX_INC += usb.h usbfilter.h vrdpusb.h
+VBOX_INC += RemoteDesktop ExtPack/ExtPack.h
+
+VBOX_INC_COM := array.h assert.h AutoLock.h ErrorInfo.h EventQueue.h Guid.h
+VBOX_INC_COM += list.h MultiResult.h string.h
+
+VBOX_CONTENT += $(addprefix src/VBox/,$(VBOX_SRC_VBOX))
+VBOX_CONTENT += $(addprefix include/VBox/, $(VBOX_INC))
+VBOX_CONTENT += $(addprefix include/VBox/com/, $(VBOX_INC_COM))
+VBOX_CONTENT += include/VBox/HostServices/
+
+VBOX_CONTENT += src/libs/zlib-1.2.8 src/libs/liblzf-3.4 src/libs/libxml2-2.9.2
+VBOX_CONTENT += src/recompiler include/VBox/vmm include/iprt Config.kmk
+
+
+TAR_OPT(virtualbox) := \
+	--strip-components 1 \
+	$(addprefix $(VIRTUALBOX_TBZ2:.tar.bz2=)/,$(VBOX_CONTENT))
+
+UNZIP_OPT(virtualbox_sdk) := $(VIRTUALBOX_SDK_ZIP) sdk/bindings/xpcom/include/VirtualBox_XPCOM.h \#
+
+
+default : additional_steps
+additional_steps : $(DOWNLOADS)
+	@xsltproc --stringparam mode declare \
+	   -o src/app/virtualbox/src/VBox/Main/xml/SchemaDefs.h \
+	   src/app/virtualbox/src/VBox/Main/xml/SchemaDefs.xsl \
+	   src/app/virtualbox/src/VBox/Main/xml/VirtualBox-settings.xsd
+	xsltproc -o VirtualBox_stripped.xidl \
+	   src/app/virtualbox/src/VBox/Main/idl/docstrip.xsl \
+	   src/app/virtualbox/src/VBox/Main/idl/VirtualBox.xidl
+	xsltproc --stringparam KBUILD_HOST genode \
+	   --stringparam generating "headers" -o VBoxAPIWrap/apiwrappers-headers \
+	   src/app/virtualbox/src/VBox/Main/idl/apiwrap-server.xsl \
+	   VirtualBox_stripped.xidl
+	xsltproc --stringparam KBUILD_HOST genode \
+	   --stringparam generating "sources" --param reminder 0 \
+	   -o VBoxAPIWrap/apiwrappers-sources-even \
+	   src/app/virtualbox/src/VBox/Main/idl/apiwrap-server.xsl \
+	   VirtualBox_stripped.xidl
+	xsltproc --stringparam KBUILD_HOST genode \
+	   --stringparam generating "sources" --param reminder 1 \
+	   -o VBoxAPIWrap/apiwrappers-sources-odd \
+	   src/app/virtualbox/src/VBox/Main/idl/apiwrap-server.xsl \
+	   VirtualBox_stripped.xidl
+	mkdir -p src/app/virtualbox/VBoxAPIWrap
+	csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-headers '/##### ENDFILE.*$$/' '{*}' && \
+	i=0 && \
+	for f in $$(grep "BEGINFILE \"" VBoxAPIWrap/apiwrappers-headers | sed "s,//.*BEGINFILE \",,g" | sed "s,\",,g"); do \
+		mv "VBoxAPIWrap/xx$$((i++))" "src/app/virtualbox/VBoxAPIWrap/$$f"; \
+	done && \
+	rm "VBoxAPIWrap/xx$$((i))"
+	csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-sources-even '/##### ENDFILE.*$$/' '{*}' && \
+	i=0 && \
+	for f in $$(grep "BEGINFILE \"" VBoxAPIWrap/apiwrappers-sources-even | sed "s,//.*BEGINFILE \",,g" | sed "s,\",,g"); do \
+		mv "VBoxAPIWrap/xx$$((i++))" "src/app/virtualbox/VBoxAPIWrap/$$f"; \
+	done && \
+	rm "VBoxAPIWrap/xx$$((i))"
+	csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-sources-odd '/##### ENDFILE.*$$/' '{*}' && \
+	i=0 && \
+	for f in $$(grep "BEGINFILE \"" VBoxAPIWrap/apiwrappers-sources-odd | sed "s,//.*BEGINFILE \",,g" | sed "s,\",,g"); do \
+		mv "VBoxAPIWrap/xx$$((i++))" "src/app/virtualbox/VBoxAPIWrap/$$f"; \
+	done && \
+	rm "VBoxAPIWrap/xx$$((i))"

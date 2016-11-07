@@ -5,9 +5,12 @@
  */
 
 #include <base/allocator_avl.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/heap.h>
+#include <base/log.h>
 #include <block_session/connection.h>
 #include <timer_session/connection.h>
-#include <os/config.h>
 #include <os/ring_buffer.h>
 
 static Genode::size_t             blk_sz;   /* block size of the device   */
@@ -42,30 +45,34 @@ class Test
 				                bool write)
 				: _nr(nr), _cnt(cnt), _write(write) {}
 
-				virtual void print_error() {
-					PINF("couldn't %s block %lld - %lld",
-					     _write ? "write" : "read", _nr, _nr+_cnt); }
+				virtual void print_error()
+				{
+					Genode::error("couldn't ", _write ? "write" : "read", " "
+					              "block ", _nr, " - ", _nr+_cnt);
+				}
 		};
 
 		struct Submit_queue_full : Exception {
-			void print_error() { PINF("The submit queue is full!"); } };
+			void print_error() {
+				Genode::error("submit queue is full!"); } };
 
 		struct Timeout : Exception {
-			void print_error() { PINF("Test timed out!"); } };
+			void print_error() {
+				Genode::error("test timed out!"); } };
 
 		virtual void perform()         = 0;
 		virtual void ack_avail()       = 0;
 
 	protected:
 
-		Genode::Allocator_avl           _alloc;
-		Block::Connection               _session;
-		Genode::Signal_receiver         _receiver;
-		Genode::Signal_dispatcher<Test> _disp_ack;
-		Genode::Signal_dispatcher<Test> _disp_submit;
-		Genode::Signal_dispatcher<Test> _disp_timeout;
-		Timer::Connection               _timer;
-		bool                            _handle;
+		Genode::Entrypoint          &_ep;
+		Genode::Allocator_avl        _alloc;
+		Block::Connection            _session;
+		Genode::Signal_handler<Test> _disp_ack;
+		Genode::Signal_handler<Test> _disp_submit;
+		Genode::Signal_handler<Test> _disp_timeout;
+		Timer::Connection            _timer;
+		bool                         _handle;
 
 		Genode::size_t _shared_buffer_size(Genode::size_t bulk)
 		{
@@ -75,17 +82,20 @@ class Test
 			       (1 << Block::Packet_descriptor::PACKET_ALIGNMENT) - 1;
 		}
 
-		void _ack_avail(unsigned)       { ack_avail();     }
-		void _ready_to_submit(unsigned) { _handle = false; }
-		void _timeout(unsigned)         { throw Timeout(); }
+		void _ack_avail()       { ack_avail();     }
+		void _ready_to_submit() { _handle = false; }
+		void _timeout()         { throw Timeout(); }
 
-		Test(Genode::size_t bulk_buffer_size,
+		Test(Genode::Entrypoint &ep,
+		     Genode::Heap &heap,
+		     Genode::size_t bulk_buffer_size,
 		     unsigned       timeout_ms)
-		: _alloc(Genode::env()->heap()),
+		: _ep(ep),
+		  _alloc(&heap),
 		  _session(&_alloc, _shared_buffer_size(bulk_buffer_size)),
-		  _disp_ack(_receiver, *this, &Test::_ack_avail),
-		  _disp_submit(_receiver, *this, &Test::_ready_to_submit),
-		  _disp_timeout(_receiver, *this, &Test::_timeout)
+		  _disp_ack(ep, *this, &Test::_ack_avail),
+		  _disp_submit(ep, *this, &Test::_ready_to_submit),
+		  _disp_timeout(ep, *this, &Test::_timeout)
 		{
 			_session.tx_channel()->sigh_ack_avail(_disp_ack);
 			_session.tx_channel()->sigh_ready_to_submit(_disp_submit);
@@ -99,12 +109,7 @@ class Test
 		void _handle_signal()
 		{
 			_handle = true;
-
-			while (_handle) {
-				Genode::Signal s = _receiver.wait_for_signal();
-				static_cast<Genode::Signal_dispatcher_base *>
-					(s.context())->dispatch(s.num());
-			}
+			while (_handle) _ep.wait_and_dispatch_one_signal();
 		}
 };
 
@@ -114,13 +119,13 @@ struct Read_test : Test
 {
 	bool done;
 
-	Read_test(unsigned timeo_ms)
-	: Test(BULK_BLK_NR*blk_sz, timeo_ms), done(false) { }
+	Read_test(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms)
+	: Test(ep, heap, BULK_BLK_NR*blk_sz, timeo_ms), done(false) { }
 
 	void perform()
 	{
-		PINF("reading block 0 - %llu, %u per request",
-		     test_cnt - 1, NR_PER_REQ);
+		Genode::log("reading block 0 - ", test_cnt - 1, ", ", NR_PER_REQ,
+		            " per request");
 
 		for (Block::sector_t nr = 0, cnt = NR_PER_REQ; nr < test_cnt;
 		     nr += cnt) {
@@ -169,15 +174,19 @@ template <unsigned BULK_BLK_NR, unsigned NR_PER_REQ, unsigned BATCH>
 struct Write_test : Test
 {
 	struct Invalid_dimensions : Exception {
-		void print_error() { PINF("Invalid bulk buffer, or batch size!"); } };
+		void print_error() {
+			Genode::error("invalid bulk buffer, or batch size!"); } };
 
 	struct Integrity_exception : Block_exception
 	{
 		Integrity_exception(Block::sector_t nr, Genode::size_t cnt)
 		: Block_exception(nr, cnt, false) {}
 
-		void print_error() {
-			PINF("Integrity check failed: block %lld - %lld", _nr, _nr+_cnt); }
+		void print_error()
+		{
+			Genode::error("integrity check failed: block ", _nr, " - ",
+			              _nr+_cnt);
+		}
 	};
 
 	typedef Genode::Ring_buffer<Block::Packet_descriptor, BATCH+1,
@@ -186,8 +195,8 @@ struct Write_test : Test
 	Req_buffer read_packets;
 	Req_buffer write_packets;
 
-	Write_test(unsigned timeo_ms)
-	: Test(BULK_BLK_NR*blk_sz, timeo_ms)
+	Write_test(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms)
+	: Test(ep, heap, BULK_BLK_NR*blk_sz, timeo_ms)
 	{
 		if (BULK_BLK_NR < BATCH*NR_PER_REQ ||
 		    BATCH > Block::Session::TX_QUEUE_SIZE ||
@@ -272,8 +281,8 @@ struct Write_test : Test
 		if (!blk_ops.supported(Block::Packet_descriptor::WRITE))
 			return;
 
-		PINF("read/write/compare block 0 - %llu, %u per request",
-		     test_cnt - 1, NR_PER_REQ);
+		Genode::log("read/write/compare block 0 - ", test_cnt - 1,
+		            ", ", NR_PER_REQ, " per request");
 
 		for (Block::sector_t nr = 0, cnt = BATCH*NR_PER_REQ; nr < test_cnt;
 		     nr += cnt,
@@ -304,21 +313,25 @@ struct Write_test : Test
 struct Violation_test : Test
 {
 	struct Write_on_read_only : Exception {
-		void print_error() { PINF("write on read-only device succeeded!"); } };
+		void print_error() {
+			Genode::error("write on read-only device succeeded!"); } };
 
 	struct Range_check_failed : Block_exception
 	{
 		Range_check_failed(Block::sector_t nr, Genode::size_t cnt)
 		: Block_exception(nr, cnt, false) {}
 
-		void print_error() {
-			PINF("Range check failed: access to block %lld - %lld succeeded",
-				 _nr, _nr+_cnt); }
+		void print_error()
+		{
+			Genode::error("range check failed: access to block ", _nr,
+			              " - ", _nr+_cnt, " succeeded");
+		}
 	};
 
 	int p_in_fly;
 
-	Violation_test(unsigned timeo) : Test(20*blk_sz, timeo), p_in_fly(0) {}
+	Violation_test(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo)
+	: Test(ep, heap, 20*blk_sz, timeo), p_in_fly(0) {}
 
 	void req(Block::sector_t nr, Genode::size_t cnt, bool write)
 	{
@@ -361,55 +374,63 @@ struct Violation_test : Test
 
 
 template <typename TEST>
-void perform(unsigned timeo_ms = 0)
+void perform(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms = 0)
 {
-	TEST t(timeo_ms);
-	t.perform();
+	TEST * test = new (&heap) TEST(ep, heap, timeo_ms);
+	test->perform();
+	destroy(&heap, test);
 }
 
 
-int main()
+Genode::size_t Component::stack_size() {
+	return 4096*sizeof(Genode::addr_t); }
+
+
+void Component::construct(Genode::Env &env)
 {
+	using namespace Genode;
+
 	try {
+
+		static Heap heap(env.ram(), env.rm());
+
 		/**
 		 * First we ask for the block size of the driver to dimension
 		 * the queue size for our tests. Moreover, we implicitely test,
 		 * whether closing and opening again works for the driver
 		 */
 		{
-			Genode::Allocator_avl alloc(Genode::env()->heap());
+			Allocator_avl     alloc(&heap);
 			Block::Connection blk(&alloc);
 			blk.info(&blk_cnt, &blk_sz, &blk_ops);
-
 		}
 
 		try {
 			Genode::Number_of_bytes test_size;;
-			Genode::config()->xml_node().attribute("test_size").value(&test_size);
+			Genode::Attached_rom_dataspace config { env, "config" };
+			config.xml().attribute("test_size").value(&test_size);
 			test_cnt = Genode::min(test_size / blk_sz, blk_cnt);
 		} catch (...) { test_cnt = blk_cnt; }
 
 		/* must be multiple of 16 */
 		test_cnt &= ~0xfLLU;
 
-		PINF("block device with block size %zd sector count %lld (testing %lld sectors)",
-		     blk_sz,  blk_cnt, test_cnt);
+		log("block device with block size ", blk_sz, " sector count ",
+			blk_cnt, " (testing ", test_cnt, " sectors)");
 
 		perform<Read_test<Block::Session::TX_QUEUE_SIZE-10,
-		                  Block::Session::TX_QUEUE_SIZE-10> >();
-		perform<Read_test<Block::Session::TX_QUEUE_SIZE*5, 1> >();
-		perform<Read_test<Block::Session::TX_QUEUE_SIZE, 1> >();
-		perform<Write_test<Block::Session::TX_QUEUE_SIZE, 8, 16> >();
-		perform<Violation_test>(1000);
+			Block::Session::TX_QUEUE_SIZE-10> >(env.ep(), heap);
+		perform<Read_test<Block::Session::TX_QUEUE_SIZE*5, 1> >(env.ep(), heap);
+		perform<Read_test<Block::Session::TX_QUEUE_SIZE, 1> >(env.ep(), heap);
+		perform<Write_test<Block::Session::TX_QUEUE_SIZE, 8, 16> >(env.ep(), heap);
+		perform<Violation_test>(env.ep(), heap, 1000);
 
-		PINF("Tests finished successfully!");
+		log("Tests finished successfully!");
 	} catch(Genode::Parent::Service_denied) {
-		PERR("Opening block session was denied!");
-		return -1;
+		error("opening block session was denied!");
 	} catch(Test::Exception &e) {
-		PERR("Test failed!");
+		error("test failed!");
 		e.print_error();
-		return -2;
 	}
-	return 0;
 }
+

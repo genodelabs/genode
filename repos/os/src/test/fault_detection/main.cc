@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/child.h>
@@ -34,9 +34,9 @@ static void wait_for_signal_for_context(Genode::Signal_receiver &sig_rec,
 	Genode::Signal s = sig_rec.wait_for_signal();
 
 	if (s.num() && s.context() == &sig_ctx) {
-		PLOG("got exception for child");
+		Genode::log("got exception for child");
 	} else {
-		PERR("got unexpected signal while waiting for child");
+		Genode::error("got unexpected signal while waiting for child");
 		class Unexpected_signal { };
 		throw Unexpected_signal();
 	}
@@ -139,7 +139,7 @@ void faulting_child_test()
 {
 	using namespace Genode;
 
-	printf("-- exercise failure detection of immediate child --\n");
+	log("-- exercise failure detection of immediate child --");
 
 	/*
 	 * Entry point used for serving the parent interface
@@ -160,12 +160,12 @@ void faulting_child_test()
 	 */
 	for (int i = 0; i < 5; i++) {
 
-		PLOG("create child %d", i);
+		log("create child ", i);
 
 		/* create and start child process */
 		Test_child child(ep, "test-segfault", sig_rec.manage(&sig_ctx));
 
-		PLOG("wait_for_signal");
+		log("wait_for_signal");
 
 
 		wait_for_signal_for_context(sig_rec, sig_ctx);
@@ -179,7 +179,7 @@ void faulting_child_test()
 		 */
 	}
 
-	printf("\n");
+	log("");
 }
 
 
@@ -191,7 +191,7 @@ void faulting_loader_child_test()
 {
 	using namespace Genode;
 
-	printf("-- exercise failure detection of loaded child --\n");
+	log("-- exercise failure detection of loaded child --");
 
 	/*
 	 * Signal receiver and signal context for receiving faults originating from
@@ -202,7 +202,7 @@ void faulting_loader_child_test()
 
 	for (int i = 0; i < 5; i++) {
 
-		PLOG("create loader session %d", i);
+		log("create loader session ", i);
 
 		Loader::Connection loader(1024*1024);
 
@@ -217,7 +217,7 @@ void faulting_loader_child_test()
 		sig_rec.dissolve(&sig_ctx);
 	}
 
-	printf("\n");
+	log("");
 }
 
 
@@ -229,7 +229,7 @@ void faulting_loader_grand_child_test()
 {
 	using namespace Genode;
 
-	printf("-- exercise failure detection of loaded grand child --\n");
+	log("-- exercise failure detection of loaded grand child --");
 
 	/*
 	 * Signal receiver and signal context for receiving faults originating from
@@ -240,7 +240,7 @@ void faulting_loader_grand_child_test()
 
 	for (int i = 0; i < 5; i++) {
 
-		PLOG("create loader session %d", i);
+		log("create loader session ", i);
 
 		Loader::Connection loader(2024*1024);
 
@@ -284,7 +284,7 @@ void faulting_loader_grand_child_test()
 		sig_rec.dissolve(&sig_ctx);
 	}
 
-	printf("\n");
+	log("");
 }
 
 
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- fault_detection test started ---\n");
+	log("--- fault_detection test started ---");
 
 	faulting_child_test();
 
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 
 	faulting_loader_grand_child_test();
 
-	printf("--- finished fault_detection test ---\n");
+	log("--- finished fault_detection test ---");
 	return 0;
 }
 

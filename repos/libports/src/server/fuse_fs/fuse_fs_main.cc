@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/heap.h>
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <os/attached_rom_dataspace.h>
@@ -27,9 +28,6 @@
 /* local includes */
 #include <directory.h>
 #include <util.h>
-
-static bool const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 
 namespace File_system {
@@ -107,7 +105,7 @@ class File_system::Session_component : public Session_rpc_object
 
 				_process_packet_op(packet, *node);
 			}
-			catch (Invalid_handle)     { PERR("Invalid_handle");     }
+			catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
 
 			/*
 			 * The 'acknowledge_packet' function cannot block because we
@@ -149,7 +147,7 @@ class File_system::Session_component : public Session_rpc_object
 		static void _assert_valid_path(char const *path)
 		{
 			if (!path || path[0] != '/') {
-				PWRN("malformed path '%s'", path);
+				Genode::warning("malformed path '", path, "'");
 				throw Lookup_failed();
 			}
 		}
@@ -201,9 +199,6 @@ class File_system::Session_component : public Session_rpc_object
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
 			Node_lock_guard dir_guard(dir);
 
-			PDBGV("dir: '%s' name: '%s' %s", dir->name(), name.string(),
-			      create ? "create" : "");
-
 			if (create && !_writeable)
 				throw Permission_denied();
 
@@ -216,7 +211,7 @@ class File_system::Session_component : public Session_rpc_object
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 		{
 			if (! Fuse::support_symlinks()) {
-				PERR("FUSE file system does not support symlinks");
+				Genode::error("FUSE file system does not support symlinks");
 				return Symlink_handle();
 			}
 
@@ -225,8 +220,6 @@ class File_system::Session_component : public Session_rpc_object
 
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
 			Node_lock_guard dir_guard(dir);
-
-			PDBGV("dir: '%s' name: '%s'", dir->name(), name.string());
 
 			if (create && !_writeable)
 					throw Permission_denied();
@@ -242,8 +235,6 @@ class File_system::Session_component : public Session_rpc_object
 			char const *path_str = path.string();
 
 			_assert_valid_path(path_str);
-
-			PDBGV("path: '%s'", path_str);
 
 			if (create && !_writeable)
 				throw Permission_denied();
@@ -267,7 +258,6 @@ class File_system::Session_component : public Session_rpc_object
 			 * FIXME this leads to '/' as parent and 'the rest' as name,
 			 * which fortunatly is in this case not a problem.
 			 */
-			PDBGV("path_str: '%s'", path_str);
 			Node *node = _root.node(path_str + 1);
 
 			Node_lock_guard guard(node);
@@ -286,11 +276,9 @@ class File_system::Session_component : public Session_rpc_object
 				 */
 				node->unlock();
 			} catch (Invalid_handle) {
-				PERR("close() called with invalid handle");
+				Genode::error("close() called with invalid handle");
 				return;
 			}
-
-			PDBGV("node: %p name: '%s'", node, node->name());
 
 			_handle_registry.free(handle);
 			destroy(&_md_alloc, node);
@@ -318,7 +306,7 @@ class File_system::Session_component : public Session_rpc_object
 
 		void control(Node_handle, Control)
 		{
-			PERR("%s not implemented", __func__);
+			Genode::error(__func__, " not implemented");
 		}
 
 		void unlink(Dir_handle dir_handle, Name const &name)
@@ -328,8 +316,6 @@ class File_system::Session_component : public Session_rpc_object
 
 			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
 			Node_lock_guard dir_guard(dir);
-
-			PDBGV("dir: '%s' name: '%s'", dir->name(), name.string());
 
 			Absolute_path absolute_path(_root.name());
 
@@ -345,7 +331,7 @@ class File_system::Session_component : public Session_rpc_object
 			int res = Fuse::fuse()->op.unlink(absolute_path.base());
 
 			if (res != 0) {
-				PERR("fuse()->op.unlink() returned unexpected error code: %d", res);
+				Genode::error("fuse()->op.unlink() returned unexpected error code: ", res);
 				return;
 			}
 		}
@@ -382,9 +368,6 @@ class File_system::Session_component : public Session_rpc_object
 			Node_lock_guard from_dir_guard(from_dir);
 			Node_lock_guard to_dir_guard(to_dir);
 
-			PDBGV("from_dir: '%s' from_name: '%s', to_dir: '%s' to_name: '%s'",
-			      from_dir->name(), from_name.string(), to_dir->name(), to_name.string());
-
 			Absolute_path absolute_from_path(_root.name());
 			Absolute_path absolute_to_path(_root.name());
 
@@ -399,15 +382,12 @@ class File_system::Session_component : public Session_rpc_object
 				throw Invalid_name();
 			}
 
-			PDBGV("from_path = %s", absolute_from_path.base());
-			PDBGV("to_path = %s", absolute_to_path.base());
-
 			/* XXX remove direct use of FUSE operations */
 			int res = Fuse::fuse()->op.rename(absolute_to_path.base(),
 			                                  absolute_from_path.base());
 
 			if (res != 0) {
-				PERR("fuse()->op.rename() returned unexpected error code: %d", res);
+				Genode::error("fuse()->op.rename() returned unexpected error code: ", res);
 				return;
 			}
 		}
@@ -446,7 +426,7 @@ class File_system::Root : public Root_component<Session_component>
 			char root[ROOT_MAX_LEN];
 			root[0] = 0;
 
-			Session_label  label(args);
+			Session_label const label = label_from_args(args);
 			try {
 				Session_policy policy(label);
 
@@ -467,23 +447,23 @@ class File_system::Root : public Root_component<Session_component>
 
 					root_dir = root;
 				} catch (Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"root\" attribute in policy definition");
+					Genode::error("missing \"root\" attribute in policy definition");
 					throw Root::Unavailable();
 				} catch (Lookup_failed) {
-					PERR("Session root directory \"%s\" does not exist", root);
+					Genode::error("session root directory \"",
+					              Genode::Cstring(root), "\" does not exist");
 					throw Root::Unavailable();
 				}
 
 				/*
 				 * Determine if write access is permitted for the session.
 				 */
-				try {
-					writeable = policy.attribute("writeable").has_value("yes");
-					PWRN("WARNING: write support in fuse_fs is considered experimental, data-loss may occur.");
-				} catch (Xml_node::Nonexistent_attribute) { }
+				writeable = policy.attribute_value("writeable", false);
+				if (writeable)
+					Genode::warning("write support in fuse_fs is considered experimental, data-loss may occur.");
 
 			} catch (Session_policy::No_policy_defined) {
-				PERR("Invalid session request, no matching policy");
+				Genode::error("Invalid session request, no matching policy");
 				throw Root::Unavailable();
 			}
 
@@ -493,7 +473,7 @@ class File_system::Root : public Root_component<Session_component>
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size) {
-				PERR("%s requested a session with a zero length transmission buffer", label.string());
+				Genode::error(label, " requested a session with a zero length transmission buffer");
 				throw Root::Invalid_args();
 			}
 
@@ -503,8 +483,8 @@ class File_system::Root : public Root_component<Session_component>
 			 */
 			size_t session_size = sizeof(Session_component) + tx_buf_size;
 			if (max((size_t)4096, session_size) > ram_quota) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, " , "
+				              "need ", session_size);
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())
@@ -543,7 +523,7 @@ struct File_system::Main
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
 		if (!Fuse::init_fs()) {
-			PERR("FUSE fs initialization failed");
+			Genode::error("FUSE fs initialization failed");
 			return;
 		}
 

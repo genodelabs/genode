@@ -15,10 +15,9 @@
 #define _NOUX__SHARED_POINTER_PTR_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/lock.h>
 #include <base/allocator.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* Noux includes */
 #include <noux_session/sysio.h>
@@ -87,9 +86,6 @@ namespace Noux {
 			void _dec_ref_count()
 			{
 				if (Shared_pointer_base::_dec_ref_count()) {
-
-					if (0)
-						PINF("ref count for %p reached zero -> delete object", _ptr);
 
 					destroy(_alloc, _ptr);
 					_ptr         = 0;

@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  AHCI-port driver for ATAPI devices
  * \author Sebastian Sumpf
  * \date   2015-04-29
@@ -24,8 +24,8 @@ struct Atapi_driver : Port_driver
 	unsigned                 sense_tries = 0;
 	Block::Packet_descriptor pending;
 
-	Atapi_driver(Port &port, Signal_context_capability state_change)
-	: Port_driver(port, state_change)
+	Atapi_driver(Port &port, Ahci_root &root, unsigned &sem)
+	: Port_driver(port, root, sem)
 	{
 		Port::init();
 		Port::write<Cmd::Atapi>(1);
@@ -56,7 +56,7 @@ struct Atapi_driver : Port_driver
 		state = STATUS;
 
 		if (sense_tries++ >= 3) {
-			PERR("Could not power up device");
+			Genode::error("could not power up device");
 			state_change();
 			return;
 		}
@@ -86,7 +86,7 @@ struct Atapi_driver : Port_driver
 	{
 		unsigned slots = Port::read<Ci>();
 
-		if (slots & 1 || !pending.valid())
+		if (slots & 1 || !pending.size())
 			return;
 
 		Block::Packet_descriptor p = pending;
@@ -104,9 +104,14 @@ struct Atapi_driver : Port_driver
 		Is::access_t status = Port::read<Is>();
 
 		if (verbose) {
-			PDBG("irq: is: %x ci: %x state: %u", status, Port::read<Ci>(), state);
+			Genode::log("irq: "
+			            "is: ",    Genode::Hex(status), " "
+			            "ci: ",    Genode::Hex(Port::read<Ci>()), " "
+			            "state: ", (int)state);
 			Device_fis f(fis_base);
-			PDBG("d2h: status: %x error: %x", f.read<Device_fis::Status>(), f.read<Device_fis::Error>());
+			Genode::log("d2h: "
+			            "status: ", f.read<Device_fis::Status>(), " "
+			            "error: ", Genode::Hex(f.read<Device_fis::Error>()));
 		}
 
 		ack_irq();
@@ -176,7 +181,7 @@ struct Atapi_driver : Port_driver
 	              addr_t                    phys,
 	              Block::Packet_descriptor &packet) override
 	{
-		if (pending.valid())
+		if (pending.size())
 			throw Block::Driver::Request_congestion();
 
 		sanity_check(block_number, count);
@@ -184,7 +189,7 @@ struct Atapi_driver : Port_driver
 		pending = packet;
 
 		if (verbose)
-			PDBG("Add packet read %llu count %zu -> %u", block_number, count, 0);
+			Genode::log("add packet read ", block_number, " count ", count, " -> 0");
 
 		/* setup fis */
 		Command_table table(command_table_addr(0), phys, count * block_size());

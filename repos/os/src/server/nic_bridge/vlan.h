@@ -16,9 +16,9 @@
 #ifndef _VLAN_H_
 #define _VLAN_H_
 
+#include <util/avl_tree.h>
+#include <util/list.h>
 #include <address_node.h>
-#include <avl_safe.h>
-#include <list_safe.h>
 
 namespace Net {
 
@@ -26,27 +26,15 @@ namespace Net {
 	 * The Vlan is a database containing all clients
 	 * sorted by IP and MAC addresses.
 	 */
-	class Vlan
+	struct Vlan
 	{
-		public:
+		using Mac_address_tree  = Genode::Avl_tree<Mac_address_node>;
+		using Ipv4_address_tree = Genode::Avl_tree<Ipv4_address_node>;
+		using Mac_address_list  = Genode::List<Mac_address_node>;
 
-			typedef Avl_tree_safe<Mac_address_node>  Mac_address_tree;
-			typedef Avl_tree_safe<Ipv4_address_node> Ipv4_address_tree;
-			typedef List_safe<Mac_address_node>      Mac_address_list;
-
-		private:
-
-			Mac_address_tree  _mac_tree;
-			Mac_address_list  _mac_list;
-			Ipv4_address_tree _ip_tree;
-
-		public:
-
-			Vlan() {}
-
-			Mac_address_tree  *mac_tree() { return &_mac_tree; }
-			Mac_address_list  *mac_list() { return &_mac_list; }
-			Ipv4_address_tree *ip_tree()  { return &_ip_tree;  }
+		Mac_address_tree  mac_tree;
+		Mac_address_list  mac_list;
+		Ipv4_address_tree ip_tree;
 	};
 }
 

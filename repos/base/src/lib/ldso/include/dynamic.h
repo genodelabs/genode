@@ -185,7 +185,7 @@ struct Linker::Dynamic
 					Reloc_plt(obj, pltrel_type, pltrel, pltrel_size);
 					break;
 				default:
-					PERR("LD: Invalid PLT relocation %u", pltrel_type);
+					Genode::error("LD: Invalid PLT relocation ", (int)pltrel_type);
 					throw Incompatible();
 			}
 		}

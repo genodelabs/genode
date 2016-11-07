@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/ring_buffer.h>
 #include <util/misc_math.h>
 
@@ -176,7 +176,7 @@ namespace Libc_pipe {
 
 	Plugin::Plugin()
 	{
-		Genode::printf("using the pipe libc plugin\n");
+		Genode::log("using the pipe libc plugin");
 	}
 
 
@@ -246,24 +246,31 @@ namespace Libc_pipe {
 
 			case F_SETFL:
 				{
-					constexpr long supported_flags = O_NONBLOCK;
+					/*
+					 * O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_TRUNC, O_EXCL
+					 * are ignored
+					 */
+					constexpr long supported_flags = O_NONBLOCK
+						| O_RDONLY | O_WRONLY | O_RDWR
+						| O_CREAT | O_TRUNC | O_EXCL;
 
 					context(pipefdo)->set_nonblock(arg & O_NONBLOCK);
 
 					if ((arg & ~supported_flags) == 0)
-						break;
+						return 0;
 
 					/* unsupported flags present */
 
-					PERR("%s: command F_SETFL arg %ld not fully supported",
-					     __PRETTY_FUNCTION__, arg);
+					Genode::error(__PRETTY_FUNCTION__, ": "
+					              "command F_SETFL arg ", arg, " not fully supported");
 
 					return -1;
 				}
 
 			default:
 
-				PERR("%s: command %d arg %ld not supported", __PRETTY_FUNCTION__, cmd, arg);
+				Genode::error(__PRETTY_FUNCTION__, "s: command ", cmd, " "
+				              "arg ", arg, " not supported");
 				return -1;
 		}
 
@@ -286,7 +293,7 @@ namespace Libc_pipe {
 	ssize_t Plugin::read(Libc::File_descriptor *fdo, void *buf, ::size_t count)
 	{
 		if (!read_end(fdo)) {
-			PERR("Cannot read from write end of pipe.");
+			Genode::error("cannot read from write end of pipe");
 			errno = EBADF;
 			return -1;
 		}
@@ -367,7 +374,7 @@ namespace Libc_pipe {
 	                      ::size_t count)
 	{
 		if (!write_end(fdo)) {
-			PERR("Cannot write into read end of pipe.");
+			Genode::error("cannot write into read end of pipe");
 			errno = EBADF;
 			return -1;
 		}

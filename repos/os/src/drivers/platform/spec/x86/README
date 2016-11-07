@@ -98,8 +98,8 @@ in the following:
 !<start name="platform_drv">
 !  ...
 !  <route>
-!    <service name="ROM">
-!      <if-arg key="label" value="acpi"/> <child name="acpi_report_rom"/>
+!    <service name="ROM" label="acpi">
+!      <child name="acpi_report_rom"/>
 !    </service>
 !    ...
 !  </route>
@@ -111,10 +111,38 @@ configured to not wait for the acpi report:
 
 !<start name="platform_drv">
 !  ...
-!  <config acpi="no">
+!  <config acpi="no" system="no">
 !    ...
 !  </config>
 !  ...
+
+Synchronize ACPI startup and platform driver
+--------------------------------------------
+
+If the config attribute 'system' is set to 'yes', the platform driver monitors
+a ROM in XML format named 'system'.
+
+!<start name="platform_drv">
+!  <config acpi="yes" system="yes">
+
+Additionally, the platform driver will announce the service as 'Acpi' first.
+An ACPI application like acpica can connect to the platform driver and may
+reconfigure hardware devices according to the ACPI table findings. If the
+system state changes to "acpi_ready in the XML ROM 'acpi_ready':
+
+!<system state="acpi_ready"/>
+
+the platform driver will announce the platform session, so that drivers may
+start to operate with the platform driver.
+
+Hardware reset
+--------------
+If the attribute 'state' in the system XML ROM turns to 'reset'
+
+!<system state="reset"/>
+
+the platform driver will try to reset the machine, if the required I/O ports
+are owned by it.
 
 Supported PCI class aliases
 ---------------------------
@@ -122,15 +150,17 @@ Supported PCI class aliases
 The following class names are supported which corresponds to the
 specified PCI class(C), subclass(S) and programming interface(P):
 
-alias      C    S   P
-*********************
-ALL      0x0 0x00 0x0
-AHCI     0x1 0x06 0x0
-AUDIO    0x4 0x00 0x0
-ETHERNET 0x2 0x00 0x0
-USB      0xc 0x03 0x0
-VGA      0x3 0x00 0x0
-WIFI     0x2 0x80 0x0
+alias       C    S   P
+**********************
+ALL       0x0 0x00 0x0
+AHCI      0x1 0x06 0x0
+AUDIO     0x4 0x01 0x0
+ETHERNET  0x2 0x00 0x0
+HDAUDIO   0x4 0x03 0x0
+USB       0xc 0x03 0x0
+VGA       0x3 0x00 0x0
+WIFI      0x2 0x80 0x0
+ISABRIDGE 0x6 0x01 0x0
 
 
 Supported non PCI devices

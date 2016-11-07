@@ -36,7 +36,7 @@ inline long read_prio_levels()
 	catch (...) { }
 
 	if (prio_levels && (prio_levels != (1 << log2(prio_levels)))) {
-		printf("Warning: Priolevels is not power of two, priorities are disabled\n");
+		warning("prio levels is not power of two, priorities are disabled");
 		return 0;
 	}
 	return prio_levels;
@@ -70,7 +70,7 @@ inline void determine_parent_services(Genode::Service_registry *services)
 	using namespace Genode;
 
 	if (Init::config_verbose)
-		printf("parent provides\n");
+		log("parent provides");
 
 	Xml_node node = config()->xml_node().sub_node("parent-provides").sub_node("service");
 	for (; ; node = node.next("service")) {
@@ -81,7 +81,7 @@ inline void determine_parent_services(Genode::Service_registry *services)
 		Parent_service *s = new (env()->heap()) Parent_service(service_name);
 		services->insert(s);
 		if (Init::config_verbose)
-			printf("  service \"%s\"\n", service_name);
+			log("  service \"", Cstring(service_name), "\"");
 
 		if (node.last("service")) break;
 	}
@@ -191,7 +191,7 @@ class Init::Child_registry : public Name_registry, Child_list
 		void insert_alias(Alias *alias)
 		{
 			if (!unique(alias->name.string())) {
-				PERR("Alias name %s is not unique", alias->name.string());
+				error("alias name ", alias->name, " is not unique");
 				throw Alias_name_is_not_unique();
 			}
 			_aliases.insert(alias);
@@ -310,10 +310,8 @@ int main(int, char **)
 
 	for (;;) {
 
-		try {
-			config_verbose =
-				config()->xml_node().attribute("verbose").has_value("yes"); }
-		catch (...) { }
+		config_verbose =
+			config()->xml_node().attribute_value("verbose", false);
 
 		try { determine_parent_services(&parent_services); }
 		catch (...) { }
@@ -332,9 +330,9 @@ int main(int, char **)
 				children.insert_alias(new (env()->heap()) Alias(alias_node));
 			}
 			catch (Alias::Name_is_missing) {
-				PWRN("Missing 'name' attribute in '<alias>' entry\n"); }
+				warning("missing 'name' attribute in '<alias>' entry"); }
 			catch (Alias::Child_is_missing) {
-				PWRN("Missing 'child' attribute in '<alias>' entry\n"); }
+				warning("missing 'child' attribute in '<alias>' entry"); }
 
 		});
 
@@ -362,9 +360,9 @@ int main(int, char **)
 			children.start();
 		}
 		catch (Xml_node::Nonexistent_sub_node) {
-			PERR("No children to start"); }
+			error("no children to start"); }
 		catch (Xml_node::Invalid_syntax) {
-			PERR("No children to start"); }
+			error("no children to start"); }
 		catch (Init::Child::Child_name_is_not_unique) { }
 		catch (Init::Child_registry::Alias_name_is_not_unique) { }
 
@@ -381,7 +379,7 @@ int main(int, char **)
 			if (signal.context() == &sig_ctx_config)
 				break;
 
-			PWRN("unexpected signal received - drop it");
+			warning("unexpected signal received - drop it");
 		}
 
 		/* kill all currently running children */

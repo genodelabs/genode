@@ -80,10 +80,19 @@ Main_window::Main_window()
 	static Local_service framebuffer_service(Framebuffer::Session::service_name(), &framebuffer_root);
 	_nitpicker_framebuffer_registry.insert(&framebuffer_service);
 
+	/* obtain dynamic linker */
+
+	Dataspace_capability ldso_ds;
+	try {
+		static Rom_connection rom("ld.lib.so");
+		ldso_ds = rom.dataspace();
+	} catch (...) { }
+
 	/* start avplay */
 
 	static Avplay_policy avplay_policy(_ep, _input_registry, *framebuffer_in_registry, _mediafile_name.buf);
-	static Genode::Slave avplay_slave(_ep, avplay_policy, 32*1024*1024);
+	static Genode::Slave avplay_slave(_ep, avplay_policy, 32*1024*1024,
+	                                  env()->ram_session_cap(), ldso_ds);
 
 	/* add widgets to layout */
 

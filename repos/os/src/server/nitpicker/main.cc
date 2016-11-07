@@ -5,18 +5,20 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/env.h>
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
+#include <base/component.h>
 #include <base/allocator_guard.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/heap.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <root/component.h>
@@ -29,7 +31,6 @@
 #include <util/color.h>
 #include <os/pixel_rgb565.h>
 #include <os/session_policy.h>
-#include <os/server.h>
 #include <os/reporter.h>
 
 /* local includes */
@@ -50,20 +51,20 @@ namespace Nitpicker {
 
 using Genode::size_t;
 using Genode::Allocator;
-using Genode::Rpc_entrypoint;
+using Genode::Entrypoint;
 using Genode::List;
 using Genode::Pixel_rgb565;
 using Genode::strcmp;
-using Genode::config;
-using Genode::env;
+using Genode::Env;
 using Genode::Arg_string;
 using Genode::Object_pool;
 using Genode::Dataspace_capability;
 using Genode::Session_label;
 using Genode::Signal_transmitter;
 using Genode::Signal_context_capability;
-using Genode::Signal_rpc_member;
+using Genode::Signal_handler;
 using Genode::Attached_ram_dataspace;
+using Genode::Attached_rom_dataspace;
 using Genode::Attached_dataspace;
 using Genode::Weak_ptr;
 using Genode::Locked_ptr;
@@ -131,10 +132,10 @@ class Buffer
 		 * \throw Ram_session::Alloc_failed
 		 * \throw Rm_session::Attach_failed
 		 */
-		Buffer(Area size, Framebuffer::Mode::Format format, Genode::size_t bytes)
+		Buffer(Genode::Ram_session &ram, Genode::Region_map &rm,
+		       Area size, Framebuffer::Mode::Format format, Genode::size_t bytes)
 		:
-			_size(size), _format(format),
-			_ram_ds(env()->ram_session(), bytes)
+			_size(size), _format(format), _ram_ds(ram, rm, bytes)
 		{ }
 
 		/**
@@ -184,9 +185,10 @@ class Chunky_dataspace_texture : public Buffer,
 		/**
 		 * Constructor
 		 */
-		Chunky_dataspace_texture(Area size, bool use_alpha)
+		Chunky_dataspace_texture(Genode::Ram_session &ram, Genode::Region_map &rm,
+		                         Area size, bool use_alpha)
 		:
-			Buffer(size, _format(), calc_num_bytes(size, use_alpha)),
+			Buffer(ram, rm, size, _format(), calc_num_bytes(size, use_alpha)),
 			Texture<PT>((PT *)local_addr(),
 			            _alpha_base(size, use_alpha), size) { }
 
@@ -233,7 +235,7 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 		/*
 		 * Exported event buffer dataspace
 		 */
-		Attached_ram_dataspace _ev_ram_ds = { env()->ram_session(), ev_ds_size() };
+		Attached_ram_dataspace _ev_ram_ds;
 
 		/*
 		 * Local event buffer that is copied
@@ -246,6 +248,11 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 		Signal_context_capability _sigh;
 
 	public:
+
+		Session_component(Genode::Env &env)
+		:
+			_ev_ram_ds(env.ram(), env.rm(), ev_ds_size())
+		{ }
 
 		/**
 		 * Wake up client
@@ -402,6 +409,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		typedef ::View View;
 
+		Env &_env;
+
 		Genode::Allocator_guard _session_alloc;
 
 		Framebuffer::Session &_framebuffer;
@@ -410,13 +419,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		Framebuffer::Session_component _framebuffer_session_component;
 
 		/* Input_session_component */
-		Input::Session_component _input_session_component;
-
-		/*
-		 * Entrypoint that is used for the views, input session,
-		 * and framebuffer session.
-		 */
-		Rpc_entrypoint &_ep;
+		Input::Session_component _input_session_component { _env };
 
 		View_stack &_view_stack;
 
@@ -439,7 +442,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		/* size of currently allocated virtual framebuffer, in bytes */
 		size_t _buffer_size = 0;
 
-		Attached_ram_dataspace _command_ds { env()->ram_session(),
+		Attached_ram_dataspace _command_ds { _env.ram(), _env.rm(),
 		                                     sizeof(Command_buffer) };
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
@@ -646,7 +649,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		void _destroy_view(View &view)
 		{
 			_view_stack.remove_view(view);
-			_ep.dissolve(&view);
+			_env.ep().dissolve(view);
 			_view_list.remove(&view);
 			destroy(_view_alloc, &view);
 		}
@@ -656,11 +659,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		/**
 		 * Constructor
 		 */
-		Session_component(Session_label  const &label,
+		Session_component(Env                  &env,
+		                  Session_label  const &label,
 		                  View_stack           &view_stack,
 		                  Mode                 &mode,
 		                  View                 &pointer_origin,
-		                  Rpc_entrypoint       &ep,
 		                  Framebuffer::Session &framebuffer,
 		                  bool                  provides_default_bg,
 		                  Allocator            &session_alloc,
@@ -668,13 +671,14 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  Genode::Reporter     &focus_reporter)
 		:
 			::Session(label),
+			_env(env),
 			_session_alloc(&session_alloc, ram_quota),
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
-			_ep(ep), _view_stack(view_stack), _mode(mode),
+			_view_stack(view_stack), _mode(mode),
 			_pointer_origin(pointer_origin),
-			_framebuffer_session_cap(_ep.manage(&_framebuffer_session_component)),
-			_input_session_cap(_ep.manage(&_input_session_component)),
+			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),
+			_input_session_cap(_env.ep().manage(_input_session_component)),
 			_provides_default_bg(provides_default_bg),
 			_view_handle_registry(_session_alloc),
 			_focus_reporter(focus_reporter)
@@ -687,8 +691,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		 */
 		~Session_component()
 		{
-			_ep.dissolve(&_framebuffer_session_component);
-			_ep.dissolve(&_input_session_component);
+			_env.ep().dissolve(_framebuffer_session_component);
+			_env.ep().dissolve(_input_session_component);
 
 			destroy_all_views();
 
@@ -799,7 +803,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			view->apply_origin_policy(_pointer_origin);
 
 			_view_list.insert(view);
-			_ep.manage(view);
+			_env.ep().manage(*view);
 
 			try { return _view_handle_registry.alloc(*view); }
 			catch (View_handle_registry::Out_of_memory) {
@@ -840,7 +844,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				              : View_handle();
 			};
 
-			try { return _ep.apply(view_cap, lambda); }
+			try { return _env.ep().rpc_ep().apply(view_cap, lambda); }
 			catch (View_handle_registry::Out_of_memory) {
 				throw Nitpicker::Session::Out_of_metadata(); }
 		}
@@ -862,7 +866,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				_view_handle_registry.free(handle); }
 
 			catch (View_handle_registry::Lookup_failed) {
-				PWRN("view lookup failed while releasing view handle");
+				Genode::warning("view lookup failed while releasing view handle");
 				return;
 			}
 		}
@@ -878,7 +882,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				try {
 					_execute_command(_command_buffer.get(i)); }
 				catch (View_handle_registry::Lookup_failed) {
-					PWRN("view lookup failed during command execution"); }
+					Genode::warning("view lookup failed during command execution"); }
 			}
 		}
 
@@ -911,7 +915,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		{
 			/* check permission by comparing session labels */
 			if (!_focus_change_permitted()) {
-				PWRN("unauthorized focus change requesed by %s", label().string());
+				Genode::warning("unauthorized focus change requesed by ", label().string());
 				return;
 			}
 
@@ -920,7 +924,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			{
 				_mode.next_focused_session(session);
 			};
-			_ep.apply(session_cap, lambda);
+			_env.ep().rpc_ep().apply(session_cap, lambda);
 
 			/*
 			 * To avoid changing the focus in the middle of a drag operation,
@@ -968,16 +972,16 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			if (::Session::texture()) {
 
 				enum { PRESERVED_RAM = 128*1024 };
-				if (env()->ram_session()->avail() > _buffer_size + PRESERVED_RAM) {
+				if (_env.ram().avail() > _buffer_size + PRESERVED_RAM) {
 					src_texture = static_cast<Texture<PT> const *>(::Session::texture());
 				} else {
-					PWRN("not enough RAM to preserve buffer content during resize");
+					Genode::warning("not enough RAM to preserve buffer content during resize");
 					_release_buffer();
 				}
 			}
 
-			Chunky_dataspace_texture<PT> * const texture =
-				new (&_session_alloc) Chunky_dataspace_texture<PT>(size, use_alpha);
+			Chunky_dataspace_texture<PT> * const texture = new (&_session_alloc)
+				Chunky_dataspace_texture<PT>(_env.ram(), _env.rm(), size, use_alpha);
 
 			/* copy old buffer content into new buffer and release old buffer */
 			if (src_texture) {
@@ -1009,46 +1013,47 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		Session_list          &_session_list;
-		Domain_registry const &_domain_registry;
-		Global_keys           &_global_keys;
-		Framebuffer::Mode      _scr_mode;
-		View_stack            &_view_stack;
-		Mode                  &_mode;
-		::View                &_pointer_origin;
-		Framebuffer::Session  &_framebuffer;
-		Genode::Reporter      &_focus_reporter;
+		Env                          &_env;
+		Attached_rom_dataspace const &_config;
+		Session_list                 &_session_list;
+		Domain_registry const        &_domain_registry;
+		Global_keys                  &_global_keys;
+		Framebuffer::Mode             _scr_mode;
+		View_stack                   &_view_stack;
+		Mode                         &_mode;
+		::View                       &_pointer_origin;
+		Framebuffer::Session         &_framebuffer;
+		Genode::Reporter             &_focus_reporter;
 
 	protected:
 
 		Session_component *_create_session(const char *args)
 		{
-			PINF("create session with args: %s\n", args);
 			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 			size_t const required_quota = Input::Session_component::ev_ds_size()
 			                            + Genode::align_addr(sizeof(Session::Command_buffer), 12);
 
 			if (ram_quota < required_quota) {
-				PWRN("Insufficient dontated ram_quota (%zd bytes), require %zd bytes",
-				     ram_quota, required_quota);
+				Genode::warning("Insufficient dontated ram_quota (", ram_quota,
+				                " bytes), require ", required_quota, " bytes");
 				throw Root::Quota_exceeded();
 			}
 
 			size_t const unused_quota = ram_quota - required_quota;
 
-			Session_label const label(args);
-			bool const provides_default_bg = (strcmp(label.string(), "backdrop") == 0);
+			Genode::Session_label const label = Genode::label_from_args(args);
+			bool const provides_default_bg = (label == "backdrop");
 
 			Session_component *session = new (md_alloc())
-				Session_component(Session_label(args), _view_stack, _mode,
-				                  _pointer_origin, *ep(), _framebuffer,
+				Session_component(_env, label, _view_stack, _mode,
+				                  _pointer_origin, _framebuffer,
 				                  provides_default_bg, *md_alloc(), unused_quota,
 				                  _focus_reporter);
 
-			session->apply_session_policy(_domain_registry);
+			session->apply_session_policy(_config.xml(), _domain_registry);
 			_session_list.insert(session);
-			_global_keys.apply_config(_session_list);
+			_global_keys.apply_config(_config.xml(), _session_list);
 
 			return session;
 		}
@@ -1062,7 +1067,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		void _destroy_session(Session_component *session)
 		{
 			_session_list.remove(session);
-			_global_keys.apply_config(_session_list);
+			_global_keys.apply_config(_config.xml(), _session_list);
 
 			session->destroy_all_views();
 			_mode.forget(*session);
@@ -1075,13 +1080,14 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		/**
 		 * Constructor
 		 */
-		Root(Session_list &session_list,
-		     Domain_registry const &domain_registry, Global_keys &global_keys,
-		     Rpc_entrypoint &session_ep, View_stack &view_stack, Mode &mode,
+		Root(Env &env, Attached_rom_dataspace const &config,
+		     Session_list &session_list, Domain_registry const &domain_registry,
+		     Global_keys &global_keys, View_stack &view_stack, Mode &mode,
 		     ::View &pointer_origin, Allocator &md_alloc,
 		     Framebuffer::Session &framebuffer, Genode::Reporter &focus_reporter)
 		:
-			Root_component<Session_component>(&session_ep, &md_alloc),
+			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _config(config),
 			_session_list(session_list), _domain_registry(domain_registry),
 			_global_keys(global_keys), _view_stack(view_stack), _mode(mode),
 			_pointer_origin(pointer_origin), _framebuffer(framebuffer),
@@ -1092,7 +1098,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 struct Nitpicker::Main
 {
-	Server::Entrypoint &ep;
+	Env &env;
 
 	/*
 	 * Sessions to the required external services
@@ -1100,8 +1106,7 @@ struct Nitpicker::Main
 	Framebuffer::Connection framebuffer;
 	Input::Connection       input;
 
-	Input::Event * const ev_buf =
-		env()->rm_session()->attach(input.dataspace());
+	Input::Event * const ev_buf = env.rm().attach(input.dataspace());
 
 	typedef Pixel_rgb565 PT;  /* physical pixel type */
 
@@ -1129,9 +1134,9 @@ struct Nitpicker::Main
 
 	Genode::Volatile_object<Framebuffer_screen> fb_screen = { framebuffer };
 
-	void handle_fb_mode(unsigned);
+	void handle_fb_mode();
 
-	Signal_rpc_member<Main> fb_mode_dispatcher = { ep, *this, &Main::handle_fb_mode };
+	Signal_handler<Main> fb_mode_handler = { env.ep(), *this, &Main::handle_fb_mode };
 
 	/*
 	 * User-input policy
@@ -1144,8 +1149,9 @@ struct Nitpicker::Main
 	 * Construct empty domain registry. The initial version will be replaced
 	 * on the first call of 'handle_config'.
 	 */
+	Genode::Heap domain_registry_heap { env.ram(), env.rm() };
 	Genode::Volatile_object<Domain_registry> domain_registry {
-		*env()->heap(), Genode::Xml_node("<config/>") };
+		domain_registry_heap, Genode::Xml_node("<config/>") };
 
 	User_state user_state = { global_keys, fb_screen->screen.size() };
 
@@ -1159,33 +1165,35 @@ struct Nitpicker::Main
 	/*
 	 * Initialize Nitpicker root interface
 	 */
-	Genode::Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
 
 	Genode::Reporter pointer_reporter = { "pointer" };
 	Genode::Reporter hover_reporter   = { "hover" };
 	Genode::Reporter focus_reporter   = { "focus" };
 
-	Root<PT> np_root = { session_list, *domain_registry, global_keys,
-	                     ep.rpc_ep(), user_state, user_state, pointer_origin,
+	Genode::Attached_rom_dataspace config { env, "config" };
+
+	Root<PT> np_root = { env, config, session_list, *domain_registry,
+	                     global_keys, user_state, user_state, pointer_origin,
 	                     sliced_heap, framebuffer, focus_reporter };
 
 	/*
-	 * Configuration-update dispatcher, executed in the context of the RPC
+	 * Configuration-update handler, executed in the context of the RPC
 	 * entrypoint.
 	 *
-	 * In addition to installing the signal dispatcher, we trigger first signal
+	 * In addition to installing the signal handler, we trigger first signal
 	 * manually to turn the initial configuration into effect.
 	 */
-	void handle_config(unsigned);
+	void handle_config();
 
-	Signal_rpc_member<Main> config_dispatcher = { ep, *this, &Main::handle_config};
+	Signal_handler<Main> config_handler = { env.ep(), *this, &Main::handle_config};
 
 	/**
 	 * Signal handler invoked on the reception of user input
 	 */
-	void handle_input(unsigned);
+	void handle_input();
 
-	Signal_rpc_member<Main> input_dispatcher = { ep, *this, &Main::handle_input };
+	Signal_handler<Main> input_handler = { env.ep(), *this, &Main::handle_input };
 
 	/*
 	 * Dispatch input and redraw periodically
@@ -1226,24 +1234,24 @@ struct Nitpicker::Main
 			                    rect.w(),  rect.h()); });
 	}
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Env &env) : env(env)
 	{
 		user_state.default_background(background);
 		user_state.stack(pointer_origin);
 		user_state.stack(background);
 
-		config()->sigh(config_dispatcher);
-		handle_config(0);
+		config.sigh(config_handler);
+		handle_config();
 
-		framebuffer.sync_sigh(input_dispatcher);
-		framebuffer.mode_sigh(fb_mode_dispatcher);
+		framebuffer.sync_sigh(input_handler);
+		framebuffer.mode_sigh(fb_mode_handler);
 
-		env()->parent()->announce(ep.manage(np_root));
+		env.parent().announce(env.ep().manage(np_root));
 	}
 };
 
 
-void Nitpicker::Main::handle_input(unsigned)
+void Nitpicker::Main::handle_input()
 {
 	period_cnt++;
 
@@ -1312,53 +1320,49 @@ void Nitpicker::Main::handle_input(unsigned)
 /**
  * Helper function for 'handle_config'
  */
-static void configure_reporter(Genode::Reporter &reporter)
+static void configure_reporter(Genode::Xml_node config, Genode::Reporter &reporter)
 {
 	try {
-		Genode::Xml_node config_xml = Genode::config()->xml_node();
-		reporter.enabled(config_xml.sub_node("report")
-		                           .attribute(reporter.name().string())
-		                           .has_value("yes"));
+		reporter.enabled(config.sub_node("report")
+		                       .attribute_value(reporter.name().string(), false));
 	} catch (...) {
 		reporter.enabled(false);
 	}
 }
 
 
-void Nitpicker::Main::handle_config(unsigned)
+void Nitpicker::Main::handle_config()
 {
-	config()->reload();
+	config.update();
 
 	/* update global keys policy */
-	global_keys.apply_config(session_list);
+	global_keys.apply_config(config.xml(), session_list);
 
 	/* update background color */
 	try {
-		config()->xml_node().sub_node("background")
+		config.xml().sub_node("background")
 		.attribute("color").value(&background.color);
 	} catch (...) { }
 
 	/* enable or disable redraw debug mode */
-	try {
-		tmp_fb = nullptr;
-		if (config()->xml_node().attribute("flash").has_value("yes"))
-			tmp_fb = &framebuffer;
-	} catch (...) { }
+	tmp_fb = config.xml().attribute_value("flash", false)
+		? &framebuffer
+		: nullptr;
 
-	configure_reporter(pointer_reporter);
-	configure_reporter(hover_reporter);
-	configure_reporter(focus_reporter);
+	configure_reporter(config.xml(), pointer_reporter);
+	configure_reporter(config.xml(), hover_reporter);
+	configure_reporter(config.xml(), focus_reporter);
 
 	/* update domain registry and session policies */
 	for (::Session *s = session_list.first(); s; s = s->next())
 		s->reset_domain();
 
 	try {
-		domain_registry.construct(*env()->heap(), config()->xml_node()); }
+		domain_registry.construct(domain_registry_heap, config.xml()); }
 	catch (...) { }
 
 	for (::Session *s = session_list.first(); s; s = s->next())
-		s->apply_session_policy(*domain_registry);
+		s->apply_session_policy(config.xml(), *domain_registry);
 
 	user_state.apply_origin_policy(pointer_origin);
 
@@ -1373,7 +1377,7 @@ void Nitpicker::Main::handle_config(unsigned)
 }
 
 
-void Nitpicker::Main::handle_fb_mode(unsigned)
+void Nitpicker::Main::handle_fb_mode()
 {
 	/* reconstruct framebuffer screen and menu bar */
 	fb_screen.construct(framebuffer);
@@ -1393,18 +1397,13 @@ void Nitpicker::Main::handle_fb_mode(unsigned)
 }
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
+namespace Component {
 
-	char const *name() { return "nitpicker_ep"; }
+	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
 
-	size_t stack_size() { return 4*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Nitpicker::Main nitpicker(ep);
-	}
+	void construct(Genode::Env &env) { static Nitpicker::Main nitpicker(env); }
 }

@@ -47,7 +47,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
 	<start name="nic_bridge">
@@ -62,7 +62,7 @@ append config {
 		</route>
 	</start>
 	<start name="lighttpd">
-		<resource name="RAM" quantum="256M" />
+		<resource name="RAM" quantum="128M" />
 		<config>
 			<arg value="lighttpd" />
 			<arg value="-f" />
@@ -121,7 +121,10 @@ mimetype.assign      = (
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
+			<libc
+				stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
+				http_port="80"
+			>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -151,7 +154,6 @@ set boot_modules {
 
 # platform-specific modules
 lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec ps2]   boot_modules ps2_drv
 
 append_platform_drv_boot_modules
 
@@ -159,7 +161,7 @@ build_boot_image $boot_modules
 
 append qemu_args " -m 512 "
 
-append_if [have_spec x86]     qemu_args " -net nic,model=pcnet "
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "

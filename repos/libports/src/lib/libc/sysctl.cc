@@ -44,7 +44,7 @@ extern "C" long sysconf(int name)
 	case _SC_PHYS_PAGES:
 		return Genode::env()->ram_session()->quota() / PAGESIZE;
 	default:
-		PWRN("%s(%d) not implemented", __func__, name);
+		Genode::warning(__func__, "(", name, ") not implemented");
 		return Libc::Errno(EINVAL);
 	}
 }
@@ -54,7 +54,7 @@ extern "C" long sysconf(int name)
 extern "C" int sysctlbyname(char const *name, void *oldp, size_t *oldlenp,
                             void *newp, size_t newlen)
 {
-	PWRN("%s(%s,...) not implemented", __func__, name);
+	Genode::warning(__func__, "(", name, ",...) not implemented");
 	return Libc::Errno(ENOENT);
 }
 
@@ -203,7 +203,7 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 			}
 
 			default:
-				PWRN("unhandled sysctl data type for %s", sysctl_path.base());
+				Genode::warning("unhandled sysctl data type for ", sysctl_path);
 				return Libc::Errno(EINVAL);
 			}
 		}
@@ -222,18 +222,9 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 				return 0;
 
 			case KERN_OSRELEASE:
-				Genode::strncpy(buf, GENODE_OSRELEASE, *oldlenp);
-				*oldlenp = Genode::strlen(buf);
-				return 0;
-
 			case KERN_OSREV:
-				*(int*)oldp = int(GENODE_OSREV);
-				*oldlenp = sizeof(int);
-				return 0;
-
 			case KERN_VERSION:
-				Genode::strncpy(buf, GENODE_VERSION, *oldlenp);
-				*oldlenp = Genode::strlen(buf);
+				*oldlenp = 0;
 				return 0;
 
 			case KERN_HOSTNAME:
@@ -246,8 +237,7 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 		case CTL_HW: switch(index_b) {
 
 			case HW_MACHINE:
-				Genode::strncpy(buf, GENODE_MACHINE, *oldlenp);
-				*oldlenp = Genode::strlen(buf);
+				*oldlenp = 0;
 				return 0;
 
 			case HW_NCPU:
@@ -260,7 +250,8 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 		}
 	}
 
-	PWRN("sysctl: no builtin or override value found for %s.%s",
-	     ctl_names[index_a].ctl_name, ctl->ctl_name);
+	Genode::warning("sysctl: no builtin or override value found for ",
+	                Genode::Cstring(ctl_names[index_a].ctl_name), ".",
+	                Genode::Cstring(ctl->ctl_name));
 	return Libc::Errno(ENOENT);
 }

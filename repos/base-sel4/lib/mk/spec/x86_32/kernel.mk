@@ -21,7 +21,5 @@ build_kernel:
 	          $(addprefix LDFLAGS+=$(LINKER_OPT_PREFIX),$(LD_MARCH)) \
 	          CFLAGS+="-fno-builtin-printf -O3" \
 	          $(addprefix CFLAGS+=,$(CC_MARCH)) \
-	          CONFIG_KERNEL_EXTRA_CPPFLAGS+=-DCONFIG_MAX_NUM_IOAPIC=1 \
-	          CONFIG_KERNEL_EXTRA_CPPFLAGS+=-DCONFIG_IRQ_IOAPIC=1 \
 	          SOURCE_ROOT=$(SEL4_DIR) -f$(SEL4_DIR)/Makefile
 

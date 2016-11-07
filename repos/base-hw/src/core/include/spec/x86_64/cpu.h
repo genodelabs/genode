@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__SPEC__X86_64__CPU_H_
 
 /* core includes */
-#include <spec/x86/cpu_support.h>
+#include <spec/x86_64/cpu_support.h>
 
 namespace Genode { typedef __uint128_t sizet_arithm_t; }
 

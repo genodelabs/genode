@@ -12,7 +12,7 @@
  */
 
 #include <base/child.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <lwip/genode.h>
 #include <nic/packet_allocator.h>
@@ -26,11 +26,6 @@
 #include "http.h"
 
 using namespace Genode;
-
-/*
- * Debugging output
- */
-static const int verbose = 0;
 
 enum {
 	/* HTTP status codes */
@@ -62,7 +57,7 @@ void Http::cmd_head()
 	int length = snprintf(_http_buf, HTTP_BUF, http_templ, "HEAD", _path, _host);
 
 	if (write(_fd, _http_buf, length) != length) {
-		PERR("Write error");
+		error("cmd_head: write error");
 		throw Http::Socket_error();
 	}
 }
@@ -72,12 +67,12 @@ void Http::connect()
 {
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) {
-		PERR("No socket avaiable");
+		error("connect: no socket avaiable");
 		throw Http::Socket_error();
 	}
 
 	if (::connect(_fd, _info->ai_addr, sizeof(*(_info->ai_addr))) < 0) {
-		PERR("Connect failed");
+		error("connect: connect failed");
 		throw Http::Socket_error();
 	}
 }
@@ -90,11 +85,11 @@ void Http::resolve_uri()
 {
 	struct addrinfo *info;
 	if (getaddrinfo(_host, _port, 0, &info)) {
-		PERR("Error: Host %s not found", _host);
+		error("host ", Cstring(_host), " not found");
 		throw Http::Uri_error();
 	}
 
-	env()->heap()->alloc(sizeof(struct addrinfo), &_info);
+	_heap.alloc(sizeof(struct addrinfo), (void**)&_info);
 	Genode::memcpy(_info, info, sizeof(struct addrinfo));
 }
 
@@ -107,14 +102,12 @@ Genode::size_t Http::read_header()
 		if (!read(_fd, &_http_buf[i], 1))
 			throw Http::Socket_closed();
 
-		/* DEBUG: Genode::printf("%c", _http_buf[i]); */
-
 		if (i >= 3 && _http_buf[i - 3] == '\r' && _http_buf[i - 2] == '\n'
 		 && _http_buf[i - 1] == '\r' && _http_buf[i - 0] == '\n')
 			header = false;
 
 		if (++i >= HTTP_BUF) {
-			PERR("Buffer overflow");
+			error("read_header: buffer overflow");
 			throw Http::Socket_error();
 		}
 	}
@@ -155,10 +148,6 @@ void Http::get_capacity()
 
 		if (key) {
 			ascii_to(t.start(), _size);
-
-			if (verbose)
-				PDBG("File size: %zu bytes", _size);
-
 			break;
 		}
 
@@ -181,21 +170,19 @@ void Http::do_read(void * buf, size_t size)
 		int part;
 		if ((part = read(_fd, (void *)((addr_t)buf + buf_fill),
 		                      size - buf_fill)) <= 0) {
-			PERR("Error: Reading data (%d)", errno);
+			error("could not read data (", errno, ")");
 			throw Http::Socket_error();
 		}
 
 		buf_fill += part;
 	}
-
-	if (verbose)
-		PDBG("Read %zu/%zu", buf_fill, size);
 }
 
 
-Http::Http(char *uri) : _port((char *)"80")
+Http::Http(Genode::Heap &heap, ::String &uri)
+: _heap(heap), _port((char *)"80")
 {
-	env()->heap()->alloc(HTTP_BUF, &_http_buf);
+	_heap.alloc(HTTP_BUF, (void**)&_http_buf);
 
 	/* parse URI */
 	parse_uri(uri);
@@ -213,17 +200,18 @@ Http::Http(char *uri) : _port((char *)"80")
 
 Http::~Http()
 {
-	env()->heap()->free(_host, Genode::strlen(_host) + 1);
-	env()->heap()->free(_path, Genode::strlen(_path) + 2);
-	env()->heap()->free(_http_buf, HTTP_BUF);
-	env()->heap()->free(_info, sizeof(struct addrinfo));
+	_heap.free(_host, Genode::strlen(_host) + 1);
+	_heap.free(_path, Genode::strlen(_path) + 2);
+	_heap.free(_http_buf, HTTP_BUF);
+	_heap.free(_info, sizeof(struct addrinfo));
 }
 
 
-void Http::parse_uri(char *uri)
+void Http::parse_uri(::String & u)
 {
 	/* strip possible http prefix */
 	const char *http = "http://";
+	char * uri = const_cast<char*>(u.string());
 	size_t length   = Genode::strlen(uri);
 	size_t http_len = Genode::strlen(http);
 	if (!strcmp(http, uri, http_len)) {
@@ -235,10 +223,10 @@ void Http::parse_uri(char *uri)
 	size_t i;
 	for (i = 0; i < length && uri[i] != '/'; i++) ;
 
-	env()->heap()->alloc(i + 1, &_host);
+	_heap.alloc(i + 1, (void**)&_host);
 	Genode::strncpy(_host, uri, i + 1);
 
-	env()->heap()->alloc(length - i + 1, &_path);
+	_heap.alloc(length - i + 1, (void**)&_path);
 	Genode::strncpy(_path, uri + i, length - i + 1);
 
 	/* look for port */
@@ -248,18 +236,11 @@ void Http::parse_uri(char *uri)
 		_port =  &_host[i + 1];
 		_host[i] = '\0';
 	}
-
-	if (verbose)
-		PDBG("Port: %s", _port);
-
 }
 
 
 void Http::cmd_get(size_t file_offset, size_t size, addr_t buffer)
 {
-	if (verbose)
-		PDBG("Read: offs %zu  size: %zu I/O buffer: %lx", file_offset, size, buffer);
-
 	while (true) {
 
 		const char *http_templ = "GET %s HTTP/1.1\r\n"
@@ -287,7 +268,7 @@ void Http::cmd_get(size_t file_offset, size_t size, addr_t buffer)
 		}
 
 		if (_http_ret != HTTP_SUCC_PARTIAL) {
-			PERR("Error: Server returned %u", _http_ret);
+			error("cmd_get: server returned ", _http_ret);
 			throw Http::Server_error();
 		}
 

@@ -10,7 +10,7 @@
 /* Genode includes */
 #include <base/lock.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* libc-internal includes */
 #include <libc-plugin/plugin.h>
@@ -78,7 +78,8 @@ class Libc::Mmap_registry
 			Genode::Lock::Guard guard(_lock);
 
 			if (_lookup_by_addr_unsynchronized(start)) {
-				PINF("mmap region at %p is already registered", start);
+				Genode::warning(__func__, ": mmap region at ", start, " "
+				                "is already registered");
 				return;
 			}
 
@@ -107,7 +108,8 @@ class Libc::Mmap_registry
 			Entry *e = _lookup_by_addr_unsynchronized(start);
 
 			if (!e) {
-				PWRN("lookup for address %p in in mmap registry failed", start);
+				Genode::warning("lookup for address ", start, " "
+				                "in in mmap registry failed");
 				return;
 			}
 

@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Driver for PCI-bus platforms
  * \author Sebastian Sumpf
  * \date   2015-04-29
@@ -32,38 +32,38 @@ struct X86_hba : Platform::Hba
 		PCI_CMD            = 0x4,
 	};
 
-	Platform::Connection                          pci;
+	Genode::Env &env;
+
+	Platform::Connection                          pci { env };
 	Platform::Device_capability                   pci_device_cap;
 	Lazy_volatile_object<Platform::Device_client> pci_device;
 	Lazy_volatile_object<Irq_session_client>      irq;
 	addr_t                                        res_base;
 	size_t                                        res_size;
 
-	X86_hba()
+	X86_hba(Genode::Env &env) : env(env)
 	{
 		pci_device_cap = retry<Platform::Session::Out_of_metadata>(
 			[&] () { return pci.next_device(pci_device_cap, AHCI_DEVICE,
 				                            CLASS_MASK); },
-			[&] () { env()->parent()->upgrade(pci.cap(), "ram_quota=4096"); });
+			[&] () { env.parent().upgrade(pci.cap(), "ram_quota=4096"); });
 
 		if (!pci_device_cap.valid()) {
-			PERR("No AHCI controller found");
+			Genode::error("no AHCI controller found");
 				throw -1;
 		}
 
 		/* construct pci client */
 		pci_device.construct(pci_device_cap);
-		PINF("AHCI found (vendor: %04x device: %04x class:"
-		     " %08x)\n", pci_device->vendor_id(),
-		     pci_device->device_id(), pci_device->class_code());
+		Genode::log("AHCI found ("
+		            "vendor: ", pci_device->vendor_id(), " "
+		            "device: ", pci_device->device_id(), " "
+		            "class: ", pci_device->class_code(), ")");
 
 		/* read base address of controller */
 		Platform::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
 		res_base = resource.base();
 		res_size = resource.size();
-
-		if (verbose)
-			PDBG("base: %lx size: %zx", res_base, res_size);
 
 		/* enable bus master */
 		uint16_t cmd = pci_device->config_read(PCI_CMD, Platform::Device::ACCESS_16BIT);
@@ -90,7 +90,7 @@ struct X86_hba : Platform::Hba
 			if (msi & MSI_ENABLED) {
 				_config_write(cap + 2, msi ^ MSI_CAP,
 				              Platform::Device::ACCESS_8BIT);
-				PINF("Disabled MSIs %x", msi);
+				Genode::log("disabled MSI ", msi);
 			}
 		}
 	}
@@ -103,9 +103,9 @@ struct X86_hba : Platform::Hba
 			[&] () { pci_device->config_write(op, cmd, width); },
 			[&] () {
 				char quota[32];
-				Genode::snprintf(quota, sizeof(quota), "ram_quota=%zd",
+				Genode::snprintf(quota, sizeof(quota), "ram_quota=%ld",
 				                 donate);
-				Genode::env()->parent()->upgrade(pci.cap(), quota);
+				env.parent().upgrade(pci.cap(), quota);
 				donate *= 2;
 			});
 	}
@@ -135,8 +135,8 @@ struct X86_hba : Platform::Hba
 			[&] () { return pci.alloc_dma_buffer(size); },
 			[&] () {
 				char quota[32];
-				snprintf(quota, sizeof(quota), "ram_quota=%zd", donate);
-				env()->parent()->upgrade(pci.cap(), quota);
+				snprintf(quota, sizeof(quota), "ram_quota=%ld", donate);
+				env.parent().upgrade(pci.cap(), quota);
 				donate = donate * 2 > size ? 4096 : donate * 2;
 			});
 	}
@@ -148,8 +148,8 @@ struct X86_hba : Platform::Hba
 };
 
 
-Platform::Hba &Platform::init(Mmio::Delayer &)
+Platform::Hba &Platform::init(Genode::Env &env, Mmio::Delayer &)
 {
-	static X86_hba h;
+	static X86_hba h(env);
 	return h;
 }

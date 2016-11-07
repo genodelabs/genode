@@ -18,7 +18,7 @@
 #include <base/internal/platform_env.h>
 
 
-void Genode::Platform_env_base::reinit(Native_capability::Dst, long) { }
+void Genode::Platform_env_base::reinit(Native_capability::Raw) { }
 
 
 void Genode::Platform_env_base::reinit_main_thread(Capability<Region_map> &) { }

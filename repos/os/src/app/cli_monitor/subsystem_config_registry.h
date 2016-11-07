@@ -73,6 +73,8 @@ class Subsystem_config_registry
 		template <typename FN>
 		void for_config(char const *name, FN const &fn)
 		{
+			using Genode::error;
+
 			/*
 			 * Load subsystem configuration
 			 */
@@ -92,7 +94,7 @@ class Subsystem_config_registry
 			Vfs::Vfs_handle::Guard handle_guard(handle);
 
 			if (open_result != Vfs::Directory_service::OPEN_OK) {
-				PERR("could not open '%s', err=%d", path.base(), open_result);
+				error("could not open '", path, "', err=", (int)open_result);
 				throw Nonexistent_subsystem_config();
 			}
 
@@ -101,7 +103,7 @@ class Subsystem_config_registry
 				handle->fs().read(handle, _config_buf, sizeof(_config_buf), out_count);
 
 			if (read_result != Vfs::File_io_service::READ_OK) {
-				PERR("could not read '%s', err=%d", path.base(), read_result);
+				error("could not read '", path, "', err=", (int)read_result);
 				throw Nonexistent_subsystem_config();
 			}
 
@@ -110,11 +112,11 @@ class Subsystem_config_registry
 				fn(subsystem_node);
 
 			} catch (Genode::Xml_node::Invalid_syntax) {
-				PERR("subsystem configuration has invalid syntax");
+				error("subsystem configuration has invalid syntax");
 				throw Nonexistent_subsystem_config();
 
 			} catch (Genode::Xml_node::Nonexistent_sub_node) {
-				PERR("invalid subsystem configuration");
+				error("invalid subsystem configuration");
 				throw Nonexistent_subsystem_config();
 			}
 		}
@@ -125,6 +127,8 @@ class Subsystem_config_registry
 		template <typename FN>
 		void for_each_config(FN const &fn)
 		{
+			using Genode::error;
+
 			/* iterate over the directory entries */
 			for (unsigned i = 0;; i++) {
 
@@ -134,7 +138,7 @@ class Subsystem_config_registry
 					_fs.dirent(_subsystems_path(), i, dirent);
 
 				if (dirent_result != Vfs::Directory_service::DIRENT_OK) {
-					PERR("could not access directory '%s'", _subsystems_path());
+					error("could not access directory '", _subsystems_path(), "'");
 					return;
 				}
 

@@ -30,7 +30,7 @@ int Esdhcv2_controller::_wait_for_card_ready_mbw()
 	unsigned constexpr attempts_delay_us = 100000;
 	while (1) {
 		if (!attempts) {
-			PERR("Reading card status after multiblock write failed");
+			error("Reading card status after multiblock write failed");
 			return -1;
 		}
 		/* assemble argument register value */
@@ -58,7 +58,7 @@ int Esdhcv2_controller::_wait_for_card_ready_mbw()
 		/* check for errors */
 		R1_response_0::access_t const resp = read<Cmdrsp0>();
 		if (R1_response_0::Error::get(resp)) {
-			PERR("Reading card status after multiblock write failed");
+			error("Reading card status after multiblock write failed");
 			return -1;
 		}
 		/* if card is in a ready state, return success, retry otherwise */
@@ -114,7 +114,7 @@ int Esdhcv2_controller::_wait_for_cmd_complete_mb(bool const r)
 	 */
 	if (irq != irq_goal) {
 		if (!wait_for<Irqstat>(irq_goal, _delayer)) {
-			PERR("Completion host signal timed out");
+			error("Completion host signal timed out");
 			return -1;
 		}
 	}
@@ -147,7 +147,7 @@ int Esdhcv2_controller::_wait_for_cmd_complete()
 	/* wait for "Command Completion" signal and acknowledge it */
 	_wait_for_irq();
 	if (read<Irqstat>() != Irqstat::Cc::reg_mask()) {
-		PERR("Received unexpected host signal");
+		error("received unexpected host signal");
 		return -1;
 	}
 	write<Irqstat>(Irqstat::Cc::reg_mask());
@@ -233,14 +233,14 @@ unsigned Esdhcv2_controller::_read_rca()
 
 bool Esdhcv2_controller::read_blocks(size_t, size_t, char *)
 {
-	PERR("Block transfer without DMA not supported by now");
+	error("block transfer without DMA not supported by now");
 	return false;
 }
 
 
 bool Esdhcv2_controller::write_blocks(size_t, size_t, char const *)
 {
-	PERR("Block transfer without DMA not supported by now");
+	error("block transfer without DMA not supported by now");
 	return false;
 }
 
@@ -291,7 +291,7 @@ int Esdhcv2_controller::_wait_for_cmd_allowed()
 	 * "Data Line Active" and "Data Inhibit" may also be active.
 	 */
 	if (!wait_for<Prsstat_lhw>(Prsstat_lhw::cmd_allowed(), _delayer)) {
-		PERR("Wait till issuing a new command is allowed timed out");
+		error("wait till issuing a new command is allowed timed out");
 		return -1;
 	}
 	return 0;
@@ -446,7 +446,7 @@ Card_info Esdhcv2_controller::_init()
 
 void Esdhcv2_controller::_detect_err(char const * const err)
 {
-	PERR("%s", err);
+	error(err);
 	throw Detection_failed();
 }
 
@@ -471,7 +471,7 @@ int Esdhcv2_controller::_reset(Delayer & delayer)
 
 	/* wait for reset completion */
 	if (!wait_for<Sysctl::Rsta>(0, delayer)) {
-		PERR("Reset timed out");
+		error("Reset timed out");
 		return -1;
 	}
 	return 0;

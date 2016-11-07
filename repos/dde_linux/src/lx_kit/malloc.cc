@@ -57,7 +57,7 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 		bool _alloc_block()
 		{
 			if (_index == ELEMENTS) {
-				PERR("Slab-backend exhausted!");
+				Genode::error("slab backend exhausted!");
 				return false;
 			}
 
@@ -114,7 +114,7 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 
 			done = _alloc_block();
 			if (!done) {
-				PERR("Backend allocator exhausted\n");
+				Genode::error("backend allocator exhausted");
 				return false;
 			}
 
@@ -154,7 +154,7 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 					return _base +  i * V_BLOCK_SIZE + phys - _ds_phys[i];
 			}
 
-			PWRN("virt_addr(0x%lx) - no translation", phys);
+			Genode::warning("virt_addr(", Genode::Hex(phys), ") - no translation");
 			return 0;
 		}
 
@@ -273,13 +273,14 @@ class Lx_kit::Malloc : public Lx::Malloc
 				msb = SLAB_STOP_LOG2;
 
 			if (msb > SLAB_STOP_LOG2) {
-				PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
+				Genode::error("slab too large ",
+				              1UL << msb, "reqested ", size, " cached ", (int)_cached);
 				return 0;
 			}
 
 			addr_t addr =  _allocator[msb - SLAB_START_LOG2]->alloc();
 			if (!addr) {
-				PERR("Failed to get slab for %u", 1 << msb);
+				Genode::error("failed to get slab for ", 1 << msb);
 				return 0;
 			}
 
@@ -320,7 +321,7 @@ class Lx_kit::Malloc : public Lx::Malloc
 		{
 			void *addr;
 			if (!_back_allocator.alloc(size, &addr)) {
-				PERR("Large back end allocation failed (%zu bytes)", size);
+				Genode::error("large back end allocation failed (", size, " bytes)");
 				return nullptr;
 			}
 
@@ -381,3 +382,4 @@ Lx::Malloc &Lx::Malloc::mem() {
  */
 Lx::Malloc &Lx::Malloc::dma() {
 	return Lx_kit::Malloc::dma(); }
+

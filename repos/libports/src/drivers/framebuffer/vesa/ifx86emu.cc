@@ -12,6 +12,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/log.h>
 #include <base/printf.h>
 #include <base/env.h>
 #include <base/sleep.h>
@@ -120,7 +121,7 @@ class Region : public Avl_node<Region>
 			if (child(LEFT))
 				child(LEFT)->print_regions();
 
-			printf("    [%08lx,%08lx)\n", _base, _base + _size);
+			log("    ", Hex_range<addr_t>(_base, _size));
 
 			if (child(RIGHT))
 				child(RIGHT)->print_regions();
@@ -181,7 +182,8 @@ class Region_database : public Avl_tree<Region>
 				insert(region);
 				return region;
 			} catch (...) {
-				PERR("Access to I/O region [%08lx,%08lx) denied", beg, end);
+				Genode::error("access to I/O region ",
+				              Hex_range<addr_t>(beg, end - beg), " denied");
 				return 0;
 			}
 		}
@@ -202,17 +204,23 @@ class Port_region : public Region, public Io_port_connection
 {
 	public:
 
+		void print(Genode::Output &out) const
+		{
+			unsigned const beg = base(), end = beg + size();
+			Genode::print(out, Hex_range<uint16_t>(beg, end - beg));
+		}
+
 		Port_region(unsigned short port_base, size_t port_size)
 		: Region(port_base, port_size), Io_port_connection(port_base, port_size)
 		{
 			if (verbose)
-				PLOG("add port [%04lx,%04lx)", base(), base() + size());
+				Genode::log("add port ", *this);
 		}
 
 		~Port_region()
 		{
 			if (verbose)
-				PLOG("del port [%04lx,%04lx)", base(), base() + size());
+				Genode::log("del port ", *this);
 		}
 };
 
@@ -253,17 +261,23 @@ class Mem_region : public Region
 
 	public:
 
+		void print(Genode::Output &out) const
+		{
+			addr_t const beg = base(), end = beg + size();
+			Genode::print(out, Hex_range<addr_t>(beg, end - beg));
+		}
+
 		Mem_region(addr_t mem_base, size_t mem_size)
 		: Region(mem_base, mem_size), _ds(mem_base, mem_size)
 		{
 			if (verbose)
-				PLOG("add mem  [%08lx,%08lx) @ %p", base(), base() + size(), _ds.local_addr<void>());
+				Genode::log("add mem  ", *this, " @ ", _ds.local_addr<void>());
 		}
 
 		~Mem_region()
 		{
 			if (verbose)
-				PLOG("del mem  [%08lx,%08lx)", base(), base() + size());
+				Genode::log("del mem  ", *this);
 		}
 
 		template <typename T>
@@ -289,7 +303,7 @@ static int map_code_area(void)
 
 	/* map page0 */
 	if ((err = Framebuffer_drv::map_io_mem(0x0, PAGESIZE, false, &dummy))) {
-		PERR("Could not map page zero");
+		Genode::error("could not map page zero");
 		return err;
 	}
 	x86_mem.bios_addr(dummy);
@@ -300,7 +314,7 @@ static int map_code_area(void)
 		dummy = ram_ds.local_addr<void>();
 		x86_mem.data_addr(dummy);
 	} catch (...) {
-		PERR("Could not allocate dataspace for code");
+		Genode::error("could not allocate dataspace for code");
 		return -1;
 	}
 
@@ -322,22 +336,21 @@ static int map_code_area(void)
 template <typename T>
 static T X86API read(X86emu::u32 addr)
 {
-    /*
-     * Access the last byte of the T value, before actually reading the value.
-     *
-     * If the value of the address is crossing the current region boundary,
-     * the region behind the boundary will be allocated. Both regions will be
-     * merged and can be attached to a different virtual address then when
-     * only accessing the first bytes of the value.
-     */
+	/*
+	 * Access the last byte of the T value, before actually reading the value.
+	 *
+	 * If the value of the address is crossing the current region boundary,
+	 * the region behind the boundary will be allocated. Both regions will be
+	 * merged and can be attached to a different virtual address then when
+	 * only accessing the first bytes of the value.
+	 */
 	T * ret = X86emu::virt_addr<T>(addr + sizeof(T) - 1);
 	ret = X86emu::virt_addr<T>(addr);
 
 	if (verbose_mem) {
 		unsigned v = *ret;
-		PLOG(" io_mem: read  [%p,%p) val 0x%ux",
-		     reinterpret_cast<void*>(addr),
-		     reinterpret_cast<void*>(addr + sizeof(T)), v);
+		Genode::log(" io_mem: read  ",
+		            Hex_range<addr_t>(addr, sizeof(T)), ", val=", Hex(v));
 	}
 
 	return *ret;
@@ -353,9 +366,8 @@ static void X86API write(X86emu::u32 addr, T val)
 
 	if (verbose_mem) {
 		unsigned v = val;
-		PLOG(" io_mem: write [%p,%p) val 0x%ux",
-		     reinterpret_cast<void*>(addr),
-		     reinterpret_cast<void*>(addr + sizeof(T)), v);
+		Genode::log(" io_mem: write ",
+		            Hex_range<addr_t>(addr, sizeof(T)), ", val=", Hex(v));
 	}
 }
 
@@ -396,8 +408,7 @@ static T X86API inx(X86emu::X86EMU_pioAddr addr)
 
 	if (verbose_port) {
 		unsigned v = ret;
-		PLOG("io_port: read  [%04ux,%04zx) val 0x%ux", (unsigned short)addr,
-		     addr + sizeof(T), v);
+		Genode::log("io_port: read  ", *region, " value=", Hex(v));
 	}
 
 	return ret;
@@ -418,8 +429,7 @@ static void X86API outx(X86emu::X86EMU_pioAddr addr, T val)
 
 	if (verbose_port) {
 		unsigned v = val;
-		PLOG("io_port: write [%04ux,%04zx) val 0x%ux", (unsigned short)addr,
-		     addr + sizeof(T), v);
+		Genode::log("io_port: write ", *region, " value=", Hex(v));
 	}
 
 	switch (sizeof(T)) {
@@ -473,7 +483,7 @@ TYPE * X86emu::virt_addr(ADDR_TYPE addr)
 		return region->virt_addr<TYPE>(local_addr);
 
 	else {
-		PWRN("Invalid address 0x%08lx", local_addr);
+		Genode::warning("invalid address ", Hex(local_addr));
 		local_addr = 0;
 	}
 
@@ -518,10 +528,10 @@ int X86emu::init(void)
 		return -1;
 
 	if (verbose) {
-		PDBG("--- x86 bios area is [0x%lx - 0x%lx) ---",
-		      x86_mem.bios_addr(), x86_mem.bios_addr() + PAGESIZE);
-		PDBG("--- x86 data area is [0x%lx - 0x%lx) ---",
-		     x86_mem.data_addr(), x86_mem.data_addr() + CODESIZE);
+		log("--- x86 bios area is ",
+		    Hex_range<addr_t>(x86_mem.bios_addr(), PAGESIZE), " ---");
+		log("--- x86 data area is ",
+		    Hex_range<addr_t>(x86_mem.data_addr(), CODESIZE), " ---");
 	}
 
 	X86emu::M.x86.debug = 0;
@@ -533,10 +543,10 @@ int X86emu::init(void)
 
 void X86emu::print_regions()
 {
-	printf("I/O port regions:\n");
+	log("I/O port regions:");
 	port_region_db.print_regions();
 
-	printf("I/O memory regions:\n");
+	log("I/O memory regions:");
 	mem_region_db.print_regions();
 }
 

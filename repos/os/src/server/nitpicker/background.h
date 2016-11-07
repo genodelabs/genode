@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -30,7 +30,7 @@ struct Background : private Texture_base, Session, View
 	 */
 	Background(Area size)
 	:
-		Texture_base(Area(0, 0)), Session(Genode::Session_label("label=\"\"")),
+		Texture_base(Area(0, 0)), Session(Genode::Session_label()),
 		View(*this, View::NOT_TRANSPARENT, View::BACKGROUND, 0),
 		color(25, 37, 50)
 	{

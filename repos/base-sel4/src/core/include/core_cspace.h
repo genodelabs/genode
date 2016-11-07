@@ -14,6 +14,8 @@
 #ifndef _CORE__INCLUDE__CORE_CSPACE_H_
 #define _CORE__INCLUDE__CORE_CSPACE_H_
 
+#include <sel4_boot_info.h>
+
 namespace Genode { class Core_cspace; }
 
 
@@ -24,21 +26,20 @@ class Genode::Core_cspace
 		/* CNode dimensions */
 		enum {
 			NUM_TOP_SEL_LOG2  = 12UL,
-			NUM_CORE_SEL_LOG2 = 14UL,
+			/* CONFIG_ROOT_CNODE_SIZE_BITS from seL4 autoconf.h */
+			NUM_CORE_SEL_LOG2 = CONFIG_ROOT_CNODE_SIZE_BITS,
 			NUM_PHYS_SEL_LOG2 = 20UL,
 
 			NUM_CORE_PAD_SEL_LOG2 = 32UL - NUM_TOP_SEL_LOG2 - NUM_CORE_SEL_LOG2,
 		};
 
-		/* selectors for statically created CNodes */
-		enum Static_cnode_sel {
-			TOP_CNODE_SEL         = 0xa00,
-			CORE_PAD_CNODE_SEL    = 0xa01,
-			CORE_CNODE_SEL        = 0xa02,
-			PHYS_CNODE_SEL        = 0xa03,
-			UNTYPED_CNODE_SEL     = 0xa04,
-			CORE_STATIC_SEL_END,
-		};
+		/* selectors for initially created CNodes during core bootup */
+		static inline unsigned long top_cnode_sel()      { return sel4_boot_info().empty.start; }
+		static inline unsigned long core_pad_cnode_sel() { return top_cnode_sel() + 1; }
+		static inline unsigned long core_cnode_sel()     { return core_pad_cnode_sel() + 1; }
+		static inline unsigned long phys_cnode_sel()     { return core_cnode_sel() + 1; }
+		static inline unsigned long untyped_cnode_sel()  { return phys_cnode_sel() + 1; }
+		static unsigned long core_static_sel_end()       { return untyped_cnode_sel() + 1; }
 
 		/* indices within top-level CNode */
 		enum Top_cnode_idx {
@@ -52,6 +53,5 @@ class Genode::Core_cspace
 
 		enum { CORE_VM_ID = 1 };
 };
-
 
 #endif /* _CORE__INCLUDE__CORE_CSPACE_H_ */

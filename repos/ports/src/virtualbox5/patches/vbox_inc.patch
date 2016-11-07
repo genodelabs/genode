@@ -1,0 +1,47 @@
+vbox_inc.patch
+
+diff --git a/src/app/virtualbox/include/VBox/com/ErrorInfo.h b/src/app/virtualbox/include/VBox/com/ErrorInfo.h
+index 869b998..c6adf70 100644
+--- a/src/app/virtualbox/include/VBox/com/ErrorInfo.h
++++ b/src/app/virtualbox/include/VBox/com/ErrorInfo.h
+@@ -31,8 +31,8 @@
+  * @{
+  */
+ 
+-COM_STRUCT_OR_CLASS(IProgress);
+-COM_STRUCT_OR_CLASS(IVirtualBoxErrorInfo);
++//COM_STRUCT_OR_CLASS(IProgress);
++//COM_STRUCT_OR_CLASS(IVirtualBoxErrorInfo);
+ 
+ namespace com
+ {
+diff --git a/src/app/virtualbox/include/VBox/com/array.h b/src/app/virtualbox/include/VBox/com/array.h
+index 77f9d60..dcbad41 100644
+--- a/src/app/virtualbox/include/VBox/com/array.h
++++ b/src/app/virtualbox/include/VBox/com/array.h
+@@ -219,10 +219,10 @@ struct SafeArrayTraits
+ protected:
+ 
+     /** Initializes memory for aElem. */
+-    static void Init(T &aElem) { aElem = 0; }
++    static void Init(T &aElem) { /*aElem = 0; */ }
+ 
+     /** Initializes memory occupied by aElem. */
+-    static void Uninit(T &aElem) { aElem = 0; }
++    static void Uninit(T &aElem) { /* aElem = 0; */ }
+ 
+     /** Creates a deep copy of aFrom and stores it in aTo. */
+     static void Copy(const T &aFrom, T &aTo) { aTo = aFrom; }
+diff --git a/src/app/virtualbox/include/VBox/com/string.h b/src/app/virtualbox/include/VBox/com/string.h
+index 263dc40..768c336 100644
+--- a/src/app/virtualbox/include/VBox/com/string.h
++++ b/src/app/virtualbox/include/VBox/com/string.h
+@@ -247,7 +247,7 @@ public:
+      *  returns a pointer to a global variable containing an empty BSTR with a proper zero
+      *  length prefix so that Windows is happy.
+      */
+-    CBSTR raw() const
++    BSTR raw() const
+     {
+         if (m_bstr)
+             return m_bstr;

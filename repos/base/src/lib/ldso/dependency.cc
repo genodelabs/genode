@@ -34,7 +34,7 @@ Linker::Dependency::~Dependency()
 	if (obj->unload()) {
 
 		if (verbose_loading)
-			PDBG("Destroy: %s\n", obj->name());
+			Genode::log("Destroy: ", obj->name());
 
 		destroy(Genode::env()->heap(), obj);
 	}

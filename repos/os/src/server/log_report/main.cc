@@ -15,6 +15,8 @@
 #include <util/arg_string.h>
 #include <base/heap.h>
 #include <base/env.h>
+#include <base/session_label.h>
+#include <base/printf.h>
 #include <root/component.h>
 #include <os/server.h>
 #include <os/attached_ram_dataspace.h>
@@ -32,19 +34,15 @@ namespace Report {
 
 class Report::Session_component : public Genode::Rpc_object<Session>
 {
-	public:
-
-		typedef Genode::String<200> Label;
-
 	private:
 
-		Label _label;
+		Genode::Session_label _label;
 
 		Genode::Attached_ram_dataspace _ds;
 
 	public:
 
-		Session_component(Label const &label, size_t buffer_size)
+		Session_component(Genode::Session_label const &label, size_t buffer_size)
 		:
 			_label(label), _ds(env()->ram_session(), buffer_size)
 		{ }
@@ -80,15 +78,14 @@ class Report::Root : public Genode::Root_component<Session_component>
 			using namespace Genode;
 
 			/* read label from session arguments */
-			char label[200];
-			Arg_string::find_arg(args, "label").string(label, sizeof(label), "");
+			Session_label label = label_from_args(args);
 
 			/* read report buffer size from session arguments */
 			size_t const buffer_size =
 				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
 
 			return new (md_alloc())
-				Session_component(Session_component::Label(label), buffer_size);
+				Session_component(label, buffer_size);
 		}
 
 	public:

@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	 * corresponding run script).
 	 */
 	size_t used = fill_buffer_with_xml(dst, sizeof(dst));
-	printf("result:\n\n%s\nused %zd bytes\n", dst, used);
+	printf("result:\n\n%s\nused %ld bytes\n", dst, used);
 
 	/*
 	 * Test buffer overflow
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 
 		/* compare result with original pattern */
 		if (decoded_len != sizeof(pattern)) {
-			printf("decoded content has unexpected length %zd\n", decoded_len);
+			printf("decoded content has unexpected length %ld\n", decoded_len);
 			return 1;
 		}
 		if (Genode::memcmp(decoded, pattern, sizeof(pattern))) {

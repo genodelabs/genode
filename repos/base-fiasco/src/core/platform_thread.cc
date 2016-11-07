@@ -15,12 +15,15 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <cpu_session/cpu_session.h>
 
 /* core includes */
 #include <platform_thread.h>
+
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -38,7 +41,9 @@ int Platform_thread::start(void *ip, void *sp)
 {
 	l4_umword_t dummy, old_eflags;
 	l4_threadid_t thread      = _l4_thread_id;
-	l4_threadid_t pager       = _pager ? _pager->cap().dst() : L4_INVALID_ID;
+	l4_threadid_t pager       = _pager
+	                          ? Capability_space::ipc_cap_data(_pager->cap()).dst
+	                          : L4_INVALID_ID;
 	l4_threadid_t preempter   = L4_INVALID_ID;
 	l4_threadid_t cap_handler = L4_INVALID_ID;
 
@@ -47,7 +52,8 @@ int Platform_thread::start(void *ip, void *sp)
 	                      &old_eflags, &dummy, &dummy,
 	                      0, l4_utcb_get());
 	if (old_eflags == ~0UL)
-		PWRN("old eflags == ~0 on ex_regs %x.%x", (int)thread.id.task, (int)thread.id.lthread);
+		warning("old eflags == ~0 on ex_regs ",
+		        Hex(thread.id.task), ".", Hex(thread.id.lthread));
 
 	fiasco_register_thread_name(thread, _name);
 	return 0;
@@ -56,13 +62,13 @@ int Platform_thread::start(void *ip, void *sp)
 
 void Platform_thread::pause()
 {
-	PDBG("not implemented");
+	warning(__func__, " not implemented");
 }
 
 
 void Platform_thread::resume()
 {
-	PDBG("not implemented");
+	warning(__func__, " not implemented");
 }
 
 
@@ -94,7 +100,8 @@ void Platform_thread::unbind()
 	                      &old_eflags, &dummy, &dummy,
 	                      0, l4_utcb_get());
 	if (old_eflags == ~0UL)
-		PWRN("old eflags == ~0 on ex_regs %x.%x", (int)thread.id.task, (int)thread.id.lthread);
+		warning("old eflags == ~0 on ex_regs ",
+		        Hex(thread.id.task), ".", Hex(thread.id.lthread));
 
 	_thread_id    = THREAD_INVALID;
 	_l4_thread_id = L4_INVALID_ID;
@@ -104,7 +111,7 @@ void Platform_thread::unbind()
 
 void Platform_thread::state(Thread_state s)
 {
-	PDBG("Not implemented");
+	warning(__func__, " not implemented");
 	throw Cpu_thread::State_access_failed();
 }
 
@@ -124,7 +131,8 @@ Thread_state Platform_thread::state()
 	                      &old_eflags, &ip, &sp,
 	                      L4_THREAD_EX_REGS_NO_CANCEL, l4_utcb_get());
 	if (old_eflags == ~0UL)
-		PWRN("old eflags == ~0 on ex_regs %x.%x", (int)thread.id.task, (int)thread.id.lthread);
+		warning("old eflags == ~0 on ex_regs ",
+		        Hex(thread.id.task), ".", Hex(thread.id.lthread));
 
 	/* fill thread state structure */
 	s.ip = ip;

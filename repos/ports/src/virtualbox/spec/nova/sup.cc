@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/semaphore.h>
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
@@ -75,13 +75,14 @@ void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 		pVM->hm.s.vmx.fSupported = hip->has_feature_vmx();
 
 		if (hip->has_feature_svm() || hip->has_feature_vmx()) {
-			PINF("Using %s virtualization extension.",
-			     hip->has_feature_svm() ? "SVM" : "VMX");
+			Genode::log("Using ",
+			            hip->has_feature_svm() ? "SVM" : "VMX", " "
+			            "virtualization extension.");
 			return;
 		}
 	} catch (...) { /* if we get an exception let hardware support off */ }
 
-	PWRN("No virtualization hardware acceleration available");
+	Genode::warning("No virtualization hardware acceleration available");
 }
 
 
@@ -116,9 +117,24 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 
 	case VMMR0_DO_GVMM_SCHED_HALT:
 	{
+		const uint64_t u64NowGip = RTTimeNanoTS();
+		const uint64_t ns_diff = u64Arg > u64NowGip ? u64Arg - u64NowGip : 0;
+
+		if (!ns_diff)
+			return VINF_SUCCESS;
+
+		uint64_t const tsc_offset = genode_cpu_hz() * ns_diff / (1000*1000*1000);
+		uint64_t const tsc_abs    = Genode::Trace::timestamp() + tsc_offset;
+
+		using namespace Genode;
+
+		if (ns_diff > RT_NS_1SEC)
+			warning(" more than 1 sec vcpu halt ", ns_diff, " ns");
+
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-		vcpu_handler->halt();
+		vcpu_handler->halt(tsc_abs);
+
 		return VINF_SUCCESS;
 	}
 
@@ -126,6 +142,11 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	{
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
+
+		/* don't wake the currently running thread again */
+		if (vcpu_handler->utcb() == Genode::Thread::myself()->utcb())
+			return VINF_SUCCESS;
+
 		vcpu_handler->wake_up();
 		return VINF_SUCCESS;
 	}
@@ -156,7 +177,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	}
 
 	default:
-		PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
+		Genode::error("SUPR3CallVMMR0Ex: unhandled uOperation ", uOperation);
 		return VERR_GENERAL_FAILURE;
 	}
 }
@@ -180,7 +201,7 @@ uint64_t genode_cpu_hz()
 			cpu_freq = hip->tsc_freq * 1000;
 
 		} catch (...) {
-			PERR("could not read out CPU frequency.");
+			Genode::error("could not read out CPU frequency");
 			Genode::Lock lock;
 			lock.lock();
 		}
@@ -216,7 +237,13 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 }
 
 
-bool Vmm_memory::revoke_from_vm(Region *r)
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
+{
+	return genode_check_memory_config(machine);
+};
+
+
+bool Vmm_memory::revoke_from_vm(Mem_region *r)
 {
 	Assert(r);
 
@@ -249,17 +276,11 @@ bool Vmm_memory::revoke_from_vm(Region *r)
 
 extern "C" void pthread_yield(void)
 {
-/*
-	char _name[64];
-	Genode::Thread::myself()->name(_name, sizeof(_name));
-	PERR("pthread_yield %p - '%s'", __builtin_return_address(0), _name);
-	Assert(!"pthread_yield called");
-*/
 	Nova::ec_ctrl(Nova::EC_YIELD);
 }
 
 
-void *operator new (Genode::size_t size, int log2_align)
+void *operator new (__SIZE_TYPE__ size, int log2_align)
 {
 	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
 	return heap.alloc(size, log2_align);
@@ -271,7 +292,7 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
-                     unsigned int cpu_id)
+                     unsigned int cpu_id, const char * name)
 {
 	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
 
@@ -283,12 +304,12 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 	if (hip->has_feature_vmx())
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(stack, attr, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id);
+		                                           cpu_id, name);
 
 	if (hip->has_feature_svm())
 		vcpu_handler = new (0x10) Vcpu_handler_svm(stack, attr, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id);
+		                                           cpu_id, name);
 
 	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
 

@@ -59,19 +59,42 @@ class Genode::Cnode_base
 			int const ret = seL4_CNode_Copy(service, dest_index, dest_depth,
 			                                src_root, src_index, src_depth, rights);
 			if (ret != 0) {
-				PWRN("%s: seL4_CNode_Copy (0x%lx) returned %d", __FUNCTION__,
-				     from_idx.value(), ret);
+				warning(__FUNCTION__, ": seL4_CNode_Copy (",
+				        (void*)from_idx.value(), ") returned ", ret);
 			}
 		}
 
 		void copy(Cnode_base const &from, Index idx) { copy(from, idx, idx); }
 
 		/**
+		 * Mint selector from another CNode
+		 */
+		void mint(Cnode_base const &from, Index from_idx, Index to_idx)
+		{
+			seL4_CNode     const service    = sel().value();
+			seL4_Word      const dest_index = to_idx.value();
+			uint8_t        const dest_depth = size_log2();
+			seL4_CNode     const src_root   = from.sel().value();
+			seL4_Word      const src_index  = from_idx.value();
+			uint8_t        const src_depth  = from.size_log2();
+			seL4_CapRights const rights     = seL4_AllRights;
+			seL4_CapData_t const badge      = seL4_CapData_Badge_new(to_idx.value());
+
+			int const ret = seL4_CNode_Mint(service, dest_index, dest_depth,
+			                                src_root, src_index, src_depth,
+			                                rights, badge);
+			ASSERT(ret == seL4_NoError);
+		}
+
+		/**
 		 * Delete selector from CNode
 		 */
 		void remove(Index idx)
 		{
-			seL4_CNode_Delete(sel().value(), idx.value(), size_log2());
+			int ret = seL4_CNode_Delete(sel().value(), idx.value(), size_log2());
+			if (ret != seL4_NoError)
+				error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
+				      Hex(idx.value()), ") returned ", ret);
 		}
 
 		/**
@@ -89,8 +112,8 @@ class Genode::Cnode_base
 			int const ret = seL4_CNode_Move(service, dest_index, dest_depth,
 			                                src_root, src_index, src_depth);
 			if (ret != 0) {
-				PWRN("%s: seL4_CNode_Move (0x%lx) returned %d", __FUNCTION__,
-				     from_idx.value(), ret);
+				warning(__FUNCTION__, ": seL4_CNode_Move (",
+				        (void*)from_idx.value(), ") returned ", ret);
 			}
 		}
 
@@ -106,6 +129,10 @@ class Genode::Cnode_base
 
 class Genode::Cnode : public Cnode_base, Noncopyable
 {
+	private:
+
+		addr_t _phys = 0UL;
+
 	public:
 
 		class Untyped_lookup_failed : Exception { };
@@ -132,7 +159,7 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 		:
 			Cnode_base(dst_idx, size_log2)
 		{
-			create<Cnode_kobj>(phys_alloc, parent_sel, dst_idx, size_log2);
+			_phys = create<Cnode_kobj>(phys_alloc, parent_sel, dst_idx, size_log2);
 		}
 
 		/**
@@ -157,13 +184,43 @@ class Genode::Cnode : public Cnode_base, Noncopyable
 			create<Cnode_kobj>(untyped_pool, parent_sel, dst_idx, size_log2);
 		}
 
-		~Cnode()
+		void destruct(Range_allocator &phys_alloc, bool revoke = false)
 		{
-			/* convert CNode back to untyped memory */
-
 			/* revert phys allocation */
 
-			PDBG("not implemented");
+			if (!_phys) {
+				error("invalid call to destruct Cnode");
+				return;
+			}
+
+			if (revoke) {
+				int ret = seL4_CNode_Revoke(seL4_CapInitThreadCNode,
+				                            sel().value(), 32);
+				if (ret)
+					error(__PRETTY_FUNCTION__, ": seL4_CNode_Revoke (",
+					      Hex(sel().value()), ") returned ", ret);
+			}
+
+			int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
+			                            sel().value(), 32);
+			if (ret != seL4_NoError)
+				error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
+				      Hex(sel().value()), ") returned ", ret);
+
+			Untyped_memory::free_page(phys_alloc, _phys);
+
+			_phys = ~0UL;
+		}
+
+		~Cnode()
+		{
+			if (_phys == ~0UL)
+				return;
+
+			/* convert CNode back to untyped memory */
+
+			error(__FUNCTION__, " - not implemented phys=", Hex(_phys),
+			      " sel=", Hex(sel().value()));
 		}
 };
 

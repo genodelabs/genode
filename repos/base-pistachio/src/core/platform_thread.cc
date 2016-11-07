@@ -12,13 +12,17 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
+
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
 
 /* core includes */
 #include <platform_pd.h>
 #include <platform_thread.h>
 #include <kip.h>
+#include <print_l4_thread_id.h>
 
 /* Pistachio includes */
 namespace Pistachio
@@ -35,8 +39,6 @@ using namespace Pistachio;
 static const bool verbose = false;
 static const bool verbose2 = true;
 
-#define PT_DBG(args...) if (verbose) { PDBG(args); } else { }
-
 
 void Platform_thread::affinity(Affinity::Location location)
 {
@@ -45,13 +47,13 @@ void Platform_thread::affinity(Affinity::Location location)
 	unsigned const cpu_no = location.xpos();
 
 	if (cpu_no >= L4_NumProcessors(get_kip())) {
-		PERR("Invalid processor number.");
+		error("invalid processor number");
 		return;
 	}
 
 	if (_l4_thread_id != L4_nilthread)
 		if (L4_Set_ProcessorNo(_l4_thread_id, cpu_no) == 0)
-			PERR("Error setting processor number.");
+			error("could not set processor number");
 }
 
 
@@ -64,36 +66,25 @@ Affinity::Location Platform_thread::affinity() const
 int Platform_thread::start(void *ip, void *sp)
 {
 	L4_ThreadId_t thread = _l4_thread_id;
-	L4_ThreadId_t pager  = _pager ? _pager->cap().dst() : L4_nilthread;
+	L4_ThreadId_t pager  = _pager
+	                     ? Capability_space::ipc_cap_data(_pager->cap()).dst
+	                     : L4_nilthread;
 
 	/* XXX should always be the root task */
 	L4_ThreadId_t preempter = L4_Myself();
 
-	PT_DBG("Trying to Platform_thread::start the thread '%s'.", _name);
-
-	if (verbose2)
-		printf("thread '%s' has id 0x%08lx (task = 0x%x, thread = 0x%x)\n",
-		       _name, thread.raw, _platform_pd->pd_id(), _thread_id);
-
 	if (_thread_id == THREAD_INVALID) {
-		PERR("Trying to start a thread with invalid ID.");
+		error("attempt to start a thread with invalid ID");
 		return -1;
 	}
 
 	L4_Word_t utcb_location = _platform_pd->_utcb_location(_thread_id);
 
-	PT_DBG("New thread's utcb at %08lx.", utcb_location);
-	PT_DBG("Attaching thread to address space 0x%08lx.",
-	       _platform_pd->_l4_task_id.raw);
-
-	PT_DBG("sp = %p, ip =  %p", sp, ip);
 	int ret = L4_ThreadControl(thread, _platform_pd->_l4_task_id,
 	                           preempter, L4_Myself(), (void *)utcb_location);
 
-	PT_DBG("L4_ThreadControl() = %d", ret);
 	if (ret != 1) {
-		PERR("Error code = 0x%08lx", L4_ErrorCode());
-		PERR("L4_ThreadControl failed.");
+		error(__func__, ": L4_ThreadControl returned ", Hex(L4_ErrorCode()));
 		return -2;
 	}
 
@@ -102,8 +93,8 @@ int Platform_thread::start(void *ip, void *sp)
 	                       L4_nilthread, pager, (void *)-1);
 
 	if (ret != 1) {
-		PERR("Error code = 0x%08lx", L4_ErrorCode());
-		PERR("Setting pager failed.");
+		error(__func__, ": L4_ThreadControl returned ", Hex(L4_ErrorCode()));
+		error("setting pager failed");
 		return -3;
 	}
 
@@ -113,7 +104,7 @@ int Platform_thread::start(void *ip, void *sp)
 	/* assign priority */
 	if (!L4_Set_Priority(thread,
 	                     Cpu_session::scale_priority(DEFAULT_PRIORITY, _priority)))
-		PWRN("Could not set thread prioritry to default");
+		warning("could not set thread prioritry to default");
 
 	/* send start message */
 	L4_Msg_t msg;
@@ -125,11 +116,9 @@ int Platform_thread::start(void *ip, void *sp)
 	L4_MsgTag_t tag = L4_Send(thread);
 
 	if (L4_IpcFailed(tag)) {
-		PERR("Starting thread failed. (IPC error)");
+		error("starting thread failed. (IPC error)");
 		return -4;
 	}
-
-	PT_DBG("Done starting thread.");
 
 	return 0;
 }
@@ -137,13 +126,13 @@ int Platform_thread::start(void *ip, void *sp)
 
 void Platform_thread::pause()
 {
-	PDBG("not implemented");
+	warning(__func__, " not implemented");
 }
 
 
 void Platform_thread::resume()
 {
-	PDBG("not implemented");
+	warning(__func__, " not implemented");
 }
 
 
@@ -158,13 +147,11 @@ void Platform_thread::bind(int thread_id, L4_ThreadId_t l4_thread_id,
 
 void Platform_thread::unbind()
 {
-	PT_DBG("Killing thread 0x%08lx.", _l4_thread_id.raw);
-
 	L4_Word_t res = L4_ThreadControl(_l4_thread_id, L4_nilthread,
 	                                 L4_nilthread, L4_nilthread, (void *)-1);
 
 	if (res != 1)
-		PERR("Deleting thread 0x%08lx failed. Continuing...", _l4_thread_id.raw);
+		error("deleting thread ", Formatted_tid(_l4_thread_id), " failed");
 
 	_thread_id    = THREAD_INVALID;
 	_l4_thread_id = L4_nilthread;
@@ -174,7 +161,7 @@ void Platform_thread::unbind()
 
 void Platform_thread::state(Thread_state)
 {
-	PDBG("Not implemented");
+	warning(__func__, " not implemented");
 	throw Cpu_thread::State_access_failed();
 }
 

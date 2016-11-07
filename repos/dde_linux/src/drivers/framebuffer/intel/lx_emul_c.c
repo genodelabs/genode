@@ -1,10 +1,24 @@
-#include "lx_emul_private.h"
+/*
+ * \brief  Linux emulation C helper functions
+ * \author Stefan Kalkowski
+ * \date   2016-03-22
+ */
+
+/*
+ * Copyright (C) 2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* Genode includes */
+#include <lx_emul_c.h>
 #include <../drivers/gpu/drm/i915/i915_drv.h>
 #include <../drivers/gpu/drm/i915/intel_drv.h>
 #include <drm/drm_atomic_helper.h>
 
 extern struct drm_framebuffer *
-dde_c_intel_framebuffer_create(struct drm_device *dev,
+lx_c_intel_framebuffer_create(struct drm_device *dev,
                          struct drm_mode_fb_cmd2 *mode_cmd,
                          struct drm_i915_gem_object *obj);
 
@@ -18,56 +32,55 @@ int intel_sanitize_enable_execlists(struct drm_device *dev,
 }
 
 
-struct drm_framebuffer*
-dde_c_allocate_framebuffer(int width, int height, void ** base,
-                           uint64_t * size, struct drm_device * dev)
+void lx_c_allocate_framebuffer(struct drm_device * dev,
+                                struct lx_c_fb_config *c)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct drm_framebuffer * fb = NULL;
 	struct drm_mode_fb_cmd2 * r;
 	struct drm_i915_gem_object * obj = NULL;
 
 	mutex_lock(&dev->struct_mutex);
 
-	*size = roundup(width * height * 2, PAGE_SIZE);
-	if (*size * 2 < dev_priv->gtt.stolen_usable_size)
-		obj = i915_gem_object_create_stolen(dev, *size);
+	/* for linear buffers the pitch needs to be 64 byte aligned */
+	c->pitch = roundup(c->width * c->bpp, 64);
+	c->size  = roundup(c->pitch * c->height, PAGE_SIZE);
+	if (c->size * 2 < dev_priv->gtt.stolen_usable_size)
+		obj = i915_gem_object_create_stolen(dev, c->size);
 	if (obj == NULL)
-		obj = i915_gem_alloc_object(dev, *size);
+		obj = i915_gem_alloc_object(dev, c->size);
 	if (obj == NULL) goto out2;
 
 	r = (struct drm_mode_fb_cmd2*) kzalloc(sizeof(struct drm_mode_fb_cmd2), 0);
 	if (!r) goto err2;
-	r->width        = width;
-	r->height       = height;
+	r->width        = c->width;
+	r->height       = c->height;
 	r->pixel_format = DRM_FORMAT_RGB565;
-	r->pitches[0]   = width * 2;
-	fb = dde_c_intel_framebuffer_create(dev, r, obj);
-	if (!fb) goto err2;
+	r->pitches[0]   = c->pitch;
+	c->lx_fb = lx_c_intel_framebuffer_create(dev, r, obj);
+	if (IS_ERR(c->lx_fb)) goto err2;
 
-	if (intel_pin_and_fence_fb_obj(NULL, fb, NULL, NULL, NULL))
+	if (intel_pin_and_fence_fb_obj(NULL, c->lx_fb, NULL, NULL, NULL))
 		goto err1;
 
-	*base = ioremap_wc(dev_priv->gtt.mappable_base
-	                   + i915_gem_obj_ggtt_offset(obj), *size);
+	c->addr = ioremap_wc(dev_priv->gtt.mappable_base
+	                     + i915_gem_obj_ggtt_offset(obj), c->size);
 
-	memset_io(*base, 0, *size);
+	memset_io(c->addr, 0, c->size);
 	goto out1;
 
 err1:
-	drm_framebuffer_remove(fb);
-	fb = NULL;
+	drm_framebuffer_remove(c->lx_fb);
 err2:
+	c->lx_fb = NULL;
 	drm_gem_object_unreference(&obj->base);
 out1:
 	kfree(r);
 out2:
 	mutex_unlock(&dev->struct_mutex);
-	return fb;
 }
 
 
-void dde_c_set_mode(struct drm_device * dev, struct drm_connector * connector,
+void lx_c_set_mode(struct drm_device * dev, struct drm_connector * connector,
                     struct drm_framebuffer *fb, struct drm_display_mode *mode)
 {
 	struct drm_crtc *crtc = NULL;
@@ -131,7 +144,7 @@ void dde_c_set_mode(struct drm_device * dev, struct drm_connector * connector,
 }
 
 
-void dde_c_set_driver(struct drm_device * dev, void * driver)
+void lx_c_set_driver(struct drm_device * dev, void * driver)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	ASSERT(!dev_priv->audio_component);
@@ -139,7 +152,7 @@ void dde_c_set_driver(struct drm_device * dev, void * driver)
 }
 
 
-void* dde_c_get_driver(struct drm_device * dev)
+void* lx_c_get_driver(struct drm_device * dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	return (void*) dev_priv->audio_component;

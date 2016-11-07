@@ -14,7 +14,7 @@
 #include <base/env.h>
 #include <util/list.h>
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <nitpicker_session/connection.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
@@ -155,17 +155,15 @@ int main(int argc, char **argv)
 
 	int const scr_w = mode.width(), scr_h = mode.height();
 
-	printf("screen is %dx%d\n", scr_w, scr_h);
+	log("screen is ", mode);
 	if (!scr_w || !scr_h) {
-		PERR("Got invalid screen - spinning");
+		error("got invalid screen - sleeping forever");
 		sleep_forever();
 	}
 
 	short *pixels = env()->rm_session()->attach(nitpicker.framebuffer()->dataspace());
 	unsigned char *alpha = (unsigned char *)&pixels[scr_w*scr_h];
 	unsigned char *input_mask = CONFIG_ALPHA ? alpha + scr_w*scr_h : 0;
-
-	Input::Event *ev_buf = (env()->rm_session()->attach(nitpicker.input()->dataspace()));
 
 	/*
 	 * Paint some crap into pixel buffer, fill alpha channel and input-mask buffer
@@ -208,28 +206,25 @@ int main(int argc, char **argv)
 
 		while (!nitpicker.input()->pending()) timer.msleep(20);
 
-		for (int i = 0, num_ev = nitpicker.input()->flush(); i < num_ev; i++) {
-
-			Input::Event *ev = &ev_buf[i];
-
-			if (ev->type() == Input::Event::PRESS)   key_cnt++;
-			if (ev->type() == Input::Event::RELEASE) key_cnt--;
+		nitpicker.input()->for_each_event([&] (Input::Event const &ev) {
+			if (ev.type() == Input::Event::PRESS)   key_cnt++;
+			if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
 			/* move selected view */
-			if (ev->type() == Input::Event::MOTION && key_cnt > 0 && tv)
-				tv->move(tv->x() + ev->ax() - omx, tv->y() + ev->ay() - omy);
+			if (ev.type() == Input::Event::MOTION && key_cnt > 0 && tv)
+				tv->move(tv->x() + ev.ax() - omx, tv->y() + ev.ay() - omy);
 
 			/* find selected view and bring it to front */
-			if (ev->type() == Input::Event::PRESS && key_cnt == 1) {
+			if (ev.type() == Input::Event::PRESS && key_cnt == 1) {
 
-				tv = tvs.find(ev->ax(), ev->ay());
+				tv = tvs.find(ev.ax(), ev.ay());
 
 				if (tv)
 					tvs.top(tv);
 			}
 
-			omx = ev->ax(); omy = ev->ay();
-		}
+			omx = ev.ax(); omy = ev.ay();
+		});
 	}
 
 	return 0;

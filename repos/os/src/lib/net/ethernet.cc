@@ -13,4 +13,4 @@
 
 #include <net/ethernet.h>
 
-const Net::Ethernet_frame::Mac_address Net::Ethernet_frame::BROADCAST(0xFF);
+const Net::Mac_address Net::Ethernet_frame::BROADCAST(0xFF);

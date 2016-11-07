@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/allocator.h>
-#include <base/printf.h>
 #include <base/rpc_server.h>
 #include <io_mem_session/io_mem_session.h>
 

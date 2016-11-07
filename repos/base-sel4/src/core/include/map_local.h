@@ -14,9 +14,6 @@
 #ifndef _CORE__INCLUDE__MAP_LOCAL_H_
 #define _CORE__INCLUDE__MAP_LOCAL_H_
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* core includes */
 #include <util.h>
 #include <platform.h>
@@ -35,7 +32,13 @@ namespace Genode {
 	 */
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages)
 	{
-		platform_specific()->core_vm_space().map(from_phys, to_virt, num_pages);
+		enum { DONT_FLUSH = false };
+		try {
+			platform_specific()->core_vm_space().map(from_phys, to_virt,
+			                                         num_pages, DONT_FLUSH);
+		} catch (Page_table_registry::Mapping_cache_full) {
+			return false;
+		}
 		return true;
 	}
 

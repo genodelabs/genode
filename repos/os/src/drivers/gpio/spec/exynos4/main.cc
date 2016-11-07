@@ -14,7 +14,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/heap.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <gpio/component.h>
@@ -40,7 +41,7 @@ struct Main
 	{
 		using namespace Genode;
 
-		printf("--- Odroid_x2 gpio driver ---\n");
+		log("--- Odroid_x2 gpio driver ---");
 
 		Gpio::process_config(driver);
 

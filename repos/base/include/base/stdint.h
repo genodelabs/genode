@@ -22,17 +22,17 @@ namespace Genode {
 	/**
 	 * Integer type for non-negative size values
 	 */
-	typedef __SIZE_TYPE__   size_t;
+	typedef unsigned long size_t;
 
 	/**
 	 * Integer type for memory addresses
 	 */
-	typedef unsigned long   addr_t;
+	typedef unsigned long addr_t;
 
 	/**
 	 * Integer type for memory offset values
 	 */
-	typedef long             off_t;
+	typedef long          off_t;
 
 	/**
 	 * Integer type corresponding to a machine register

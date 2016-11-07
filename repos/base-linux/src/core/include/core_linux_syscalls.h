@@ -16,8 +16,11 @@
 
 /* basic Linux syscall bindings */
 #include <linux_syscalls.h>
+
+#define size_t __SIZE_TYPE__ /* see comment in 'linux_syscalls.h' */
 #include <sys/stat.h>
 #include <fcntl.h>
+#undef size_t
 
 
 /*******************************************************

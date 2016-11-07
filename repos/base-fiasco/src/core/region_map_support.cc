@@ -35,8 +35,9 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 	 */
 	if (verbose_unmap) {
 		Fiasco::l4_threadid_t tid; tid.raw = badge();
-		printf("RM client %p (%x.%x) unmap core-local [%lx,%lx)\n",
-		       this, tid.id.task, tid.id.lthread, core_local_base, core_local_base + size);
+		log("RM client ", this, " (", (unsigned)tid.id.task, ".",
+			(unsigned)tid.id.lthread, ") unmap core-local [",
+			Hex(core_local_base), ",", Hex(core_local_base + size), ")");
 	}
 
 	using namespace Fiasco;

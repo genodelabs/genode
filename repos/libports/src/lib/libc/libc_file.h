@@ -15,7 +15,7 @@
 #define _LIBC_FILE_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* Genode-specific libc interfaces */
 #include <libc-plugin/fd_alloc.h>
@@ -34,7 +34,7 @@ static inline Libc::File_descriptor *libc_fd_to_fd(int libc_fd, const char *func
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd)
-		PERR("no plugin found for %s(%d)", func_name, libc_fd);
+		Genode::error("no plugin found for ", func_name, "(", libc_fd, ")");
 	return fd;
 }
 
@@ -62,7 +62,7 @@ static inline Libc::File_descriptor *libc_fd_to_fd(int libc_fd, const char *func
 {																							\
 	Plugin *plugin  = plugin_registry()->get_plugin_for_##func_name(path, ##__VA_ARGS__);	\
 	if (!plugin) {																			\
-		PERR("no plugin found for %s(\"%s\")", #func_name, path);							\
+		Genode::error("no plugin found for ", #func_name, "(\"", Genode::Cstring(path), "\")");\
 		errno = ENOSYS;																		\
 		result_stm -1;																		\
 	} else																					\

@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <base/thread.h>
 #include <terminal_session/connection.h>
+#include <foc/capability_space.h>
 
 #include <linux.h>
 #include <vcpu.h>
@@ -100,9 +101,10 @@ extern "C" {
 			native_cpu(L4lx::cpu_connection()->native_cpu());
 
 		static Genode::Native_capability cap = native_cpu.alloc_irq();
+		l4_cap_idx_t const kcap = Genode::Capability_space::kcap(cap);
 		if (!signal_thread)
-			signal_thread = new (Genode::env()->heap()) Signal_thread(cap.dst());
-		return cap.dst();
+			signal_thread = new (Genode::env()->heap()) Signal_thread(kcap);
+		return kcap;
 	}
 
 

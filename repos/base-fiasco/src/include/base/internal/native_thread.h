@@ -22,7 +22,11 @@ namespace Fiasco {
 #include <l4/sys/types.h>
 }
 
-namespace Genode { struct Native_thread; }
+namespace Genode {
+
+	struct Platform_thread;
+	struct Native_thread;
+}
 
 struct Genode::Native_thread
 {

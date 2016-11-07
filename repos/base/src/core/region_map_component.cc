@@ -7,14 +7,14 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/lock.h>
 #include <util/arg_string.h>
 #include <util/misc_math.h>
@@ -36,7 +36,7 @@ struct Genode::Region_map_component::Fault_area
 	size_t _size_log2;
 
 	addr_t _upper_bound() const {
-		return (_size_log2 == ~0UL) ? ~0 : (_base + (1 << _size_log2) - 1); }
+		return (_size_log2 == ~0UL) ? ~0UL : (_base + (1UL << _size_log2) - 1); }
 
 	/**
 	 * Default constructor, constructs invalid fault area
@@ -47,7 +47,7 @@ struct Genode::Region_map_component::Fault_area
 	 * Constructor, fault area spans the maximum address-space size
 	 */
 	Fault_area(addr_t fault_addr) :
-		_fault_addr(fault_addr), _base(0), _size_log2(~0) { }
+		_fault_addr(fault_addr), _base(0), _size_log2(~0UL) { }
 
 	/**
 	 * Constrain fault area to specified region
@@ -84,7 +84,7 @@ struct Genode::Region_map_component::Fault_area
 				break;
 
 			/* check against upper bound of region */
-			if (try_base + (1 << try_size_log2) - 1 > region_base + region_size - 1)
+			if (try_base + (1UL << try_size_log2) - 1 > region_base + region_size - 1)
 				break;
 
 			/* flexpage is compatible with fault area, use it */
@@ -110,7 +110,7 @@ struct Genode::Region_map_component::Fault_area
 		if (size_log2 >= _size_log2)
 			return;
 
-		_base = _fault_addr & ~((1 << size_log2) - 1);
+		_base = _fault_addr & ~((1UL << size_log2) - 1);
 		_size_log2 = size_log2;
 	}
 
@@ -136,7 +136,7 @@ struct Genode::Region_map_component::Fault_area
 		 */
 		size_t n = get_page_size_log2();
 		size_t const min_size_log2 = min(a1._size_log2, a2._size_log2);
-		for (; n < min_size_log2 && !(diff & (1 << n)); n++);
+		for (; n < min_size_log2 && !(diff & (1UL << n)); n++);
 
 		return n;
 	}
@@ -148,6 +148,17 @@ struct Genode::Region_map_component::Fault_area
 
 
 using namespace Genode;
+
+static void print_page_fault(char const *msg,
+                             addr_t pf_addr,
+                             addr_t pf_ip,
+                             Region_map::State::Fault_type pf_type,
+                             Pager_object const &obj)
+{
+	log(msg, " (",
+	    pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
+	    " pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " from ", obj, ")");
+}
 
 
 /***********************
@@ -168,7 +179,7 @@ int Rm_client::pager(Ipc_pager &pager)
 	addr_t pf_ip   = pager.fault_ip();
 
 	if (verbose_page_faults)
-		print_page_fault("page fault", pf_addr, pf_ip, pf_type, badge());
+		print_page_fault("page fault", pf_addr, pf_ip, pf_type, *this);
 
 	auto lambda = [&] (Region_map_component *region_map,
 	                   Rm_region            *region,
@@ -187,7 +198,7 @@ int Rm_client::pager(Ipc_pager &pager)
 			/* print a warning if it's no managed-dataspace */
 			if (region_map == member_rm())
 				print_page_fault("no RM attachment", pf_addr, pf_ip,
-				                 pf_type, badge());
+				                 pf_type, *this);
 
 			/* register fault at responsible region map */
 			if (region_map)
@@ -214,7 +225,7 @@ int Rm_client::pager(Ipc_pager &pager)
 		src_fault_area.constrain(map_size_log2);
 		dst_fault_area.constrain(map_size_log2);
 		if (!src_fault_area.valid() || !dst_fault_area.valid())
-			PERR("Invalid mapping");
+			error("invalid mapping");
 
 		/*
 		 * Check if dataspace is compatible with page-fault type
@@ -223,7 +234,7 @@ int Rm_client::pager(Ipc_pager &pager)
 
 			/* attempted there is no attachment return an error condition */
 			print_page_fault("attempted write at read-only memory",
-			                 pf_addr, pf_ip, pf_type, badge());
+			                 pf_addr, pf_ip, pf_type, *this);
 
 			/* register fault at responsible region map */
 			region_map->fault(this, src_fault_area.fault_addr(), pf_type);
@@ -262,7 +273,7 @@ void Rm_faulter::fault(Region_map_component *faulting_region_map,
 {
 	Lock::Guard lock_guard(_lock);
 
-	_faulting_region_map = faulting_region_map;
+	_faulting_region_map = faulting_region_map->weak_ptr();
 	_fault_state         = fault_state;
 
 	_pager_object->unresolved_page_fault_occurred();
@@ -274,10 +285,14 @@ void Rm_faulter::dissolve_from_faulting_region_map(Region_map_component * caller
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	if (_faulting_region_map)
-		_faulting_region_map->discard_faulter(this, _faulting_region_map != caller);
+	{
+		Locked_ptr<Region_map_component> locked_ptr(_faulting_region_map);
 
-	_faulting_region_map = 0;
+		if (locked_ptr.valid())
+			locked_ptr->discard_faulter(this, &*locked_ptr != caller);
+	}
+
+	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
 }
 
 
@@ -286,7 +301,7 @@ void Rm_faulter::continue_after_resolved_fault()
 	Lock::Guard lock_guard(_lock);
 
 	_pager_object->wake_up();
-	_faulting_region_map = 0;
+	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
 	_fault_state = Region_map::State();
 }
 
@@ -390,11 +405,6 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		/* inform dataspace about attachment */
 		dsc->attached_to(region);
 
-		if (verbose)
-			PDBG("attach ds %p (a=%lx,s=%zx,o=%lx) @ [%lx,%lx)",
-			     (Dataspace_component *)dsc, dsc->phys_addr(), dsc->size(),
-			     offset, (addr_t)r, (addr_t)r + size);
-
 		/* check if attach operation resolves any faulting region-manager clients */
 		for (Rm_faulter *faulter = _faulters.head(); faulter; ) {
 
@@ -422,11 +432,6 @@ static void unmap_managed(Region_map_component *rm, Rm_region *region, int level
 	     managed;
 	     managed = managed->List<Rm_region>::Element::next()) {
 
-		if (verbose)
-			PDBG("(%d: %p) a=%lx,s=%lx,off=%lx ra=%lx,s=%lx,off=%lx sub-session %p",
-			     level, rm, managed->base(), (long)managed->size(), managed->offset(),
-			     region->base(), (long)region->size(), region->offset(), managed->rm());
-
 		if (managed->base() - managed->offset() >= region->base() - region->offset()
 		    && managed->base() - managed->offset() + managed->size()
 		       <= region->base() - region->offset() + region->size())
@@ -451,18 +456,13 @@ void Region_map_component::detach(Local_addr local_addr)
 	Rm_region *region_ptr = _map.metadata(local_addr);
 
 	if (!region_ptr) {
-		PWRN("detach: no attachment at %p", (void *)local_addr);
+		warning("detach: no attachment at ", (void *)local_addr);
 		return;
 	}
 
 	Dataspace_component *dsc = region_ptr->dataspace();
 	if (!dsc)
-		PWRN("Rm_region of %p may be inconsistent!", this);
-
-	if (verbose)
-		PDBG("detach ds %p (a=%lx,s=%zx,o=%lx) at [%lx,%lx)",
-		     dsc, dsc->phys_addr(), dsc->size(), region_ptr->offset(),
-		     region_ptr->base(), region_ptr->base() + region_ptr->size());
+		warning("detach: region of ", this, " may be inconsistent!");
 
 	/* inform dataspace about detachment */
 	dsc->detached_from(region_ptr);
@@ -522,7 +522,7 @@ void Region_map_component::detach(Local_addr local_addr)
 		 */
 		if (!platform()->supports_direct_unmap()
 		 && dsc->managed() && dsc->core_local_addr() == 0) {
-			PWRN("unmapping of managed dataspaces not yet supported");
+			warning("unmapping of managed dataspaces not yet supported");
 			break;
 		}
 
@@ -628,8 +628,9 @@ Region_map::State Region_map_component::state()
 	return faulter->fault_state();
 }
 
-static Dataspace_capability _type_deduction_helper(Dataspace_capability cap) {
-	return cap; }
+
+static Dataspace_capability
+_type_deduction_helper(Dataspace_capability cap) { return cap; }
 
 
 Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
@@ -656,6 +657,8 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
 Region_map_component::~Region_map_component()
 {
 	_ds_ep->dissolve(this);
+
+	lock_for_destruction();
 
 	/* dissolve all clients from pager entrypoint */
 	Rm_client *cl;

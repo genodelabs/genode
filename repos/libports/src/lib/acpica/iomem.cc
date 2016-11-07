@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <util/misc_math.h>
 
@@ -25,7 +25,7 @@ extern "C" {
 
 #define FAIL(retval) \
 	{ \
-		PERR("%s:%u called - dead", __func__, __LINE__); \
+		Genode::error(__func__, ":", __LINE__, " called - dead"); \
 		Genode::Lock lock; \
 		while (1) lock.lock(); \
 		return retval; \

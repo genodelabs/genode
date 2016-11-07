@@ -1,3 +1,3 @@
 TARGET = blk_cache
-LIBS   = base server
+LIBS   = base
 SRC_CC = main.cc lru.cc

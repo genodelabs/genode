@@ -90,7 +90,7 @@ class Genode::Platform_env_base : public Env_deprecated
 		Pd_session             *pd_session()      override { return &_local_pd_session; }
 		Pd_session_capability   pd_session_cap()  override { return  _pd_session_cap; }
 
-		void reinit(Native_capability::Dst, long) override;
+		void reinit(Native_capability::Raw) override;
 		void reinit_main_thread(Capability<Region_map> &) override;
 };
 
@@ -117,6 +117,11 @@ class Genode::Platform_env : public Platform_env_base,
 		 */
 		constexpr static size_t  _emergency_ram_size() { return 8*1024; }
 		Ram_dataspace_capability _emergency_ram_ds;
+
+		/**
+		 * Attach stack area to local address space (for non-hybrid components)
+		 */
+		void _attach_stack_area();
 
 	public:
 

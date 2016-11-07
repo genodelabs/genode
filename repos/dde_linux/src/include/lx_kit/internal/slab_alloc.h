@@ -28,6 +28,10 @@ namespace Lx { class Slab_alloc; }
 
 class Lx::Slab_alloc : public Genode::Slab
 {
+	public:
+
+		typedef Genode::size_t size_t;
+
 	private:
 
 		size_t const _object_size;

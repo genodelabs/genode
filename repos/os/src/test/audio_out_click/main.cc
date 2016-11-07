@@ -16,7 +16,7 @@
  */
 
 #include <audio_out_session/connection.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
 #include <input_session/connection.h>
@@ -68,7 +68,7 @@ class Click
 				ds_cap = rom.dataspace();
 				_base = env()->rm_session()->attach(ds_cap);
 			} catch (...) {
-				PDBG("Error: Could not open: %s", file);
+				error("could not open: ", file);
 				return;
 			}
 
@@ -78,7 +78,7 @@ class Click
 
 		void play()
 		{
-			PLOG("play click");
+			log("play click");
 
 			for (int i = 0; i < CHANNELS; i++)
 				_audio_out[i]->stream()->reset();
@@ -129,7 +129,7 @@ class Click
 
 int main(int argc, char **argv)
 {
-	PDBG("--- Audio_out click test ---\n");
+	log("--- Audio_out click test ---");
 
 	Genode::Signal_context  sig_ctx;
 	Genode::Signal_receiver sig_rec;

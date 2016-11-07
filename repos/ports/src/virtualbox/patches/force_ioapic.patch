@@ -1,0 +1,24 @@
+Deliver PCI IRQs to the IOAPIC if the 'force_ioapic' configuration option is set.
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Issue #2029
+---
+ src/app/virtualbox/src/VBox/Devices/Bus/DevPCI.cpp |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/app/virtualbox/src/VBox/Devices/Bus/DevPCI.cpp b/src/app/virtualbox/src/VBox/Devices/Bus/DevPCI.cpp
+index c454d8b..35061d5 100644
+--- a/src/app/virtualbox/src/VBox/Devices/Bus/DevPCI.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Bus/DevPCI.cpp
+@@ -663,7 +663,9 @@ static void pciSetIrqInternal(PPCIGLOBALS pGlobals, uint8_t uDevFn, PPCIDEVICE p
+      * is opened to route PCI interrupts directly to the I/O APIC and bypass the PIC.
+      * See the \_SB_.PCI0._PRT method in vbox.dsl.
+      */
+-    const bool  fIsApicEnabled = pGlobals->fUseIoApic && pbCfg[0xde] == 0xbe && pbCfg[0xad] == 0xef;
++    extern bool force_ioapic();
++    const bool  fIsApicEnabled = pGlobals->fUseIoApic &&
++                                 (force_ioapic() || (pbCfg[0xde] == 0xbe && pbCfg[0xad] == 0xef));
+     int pic_irq, pic_level;
+ 
+     /* Check if the state changed. */

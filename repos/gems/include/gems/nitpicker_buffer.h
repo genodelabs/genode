@@ -37,8 +37,9 @@ struct Nitpicker_buffer
 	typedef Genode::Surface<Pixel_rgb888> Pixel_surface;
 	typedef Genode::Surface<Pixel_alpha8> Alpha_surface;
 
-	typedef Genode::Surface_base::Area Area;
-	typedef Genode::Surface_base::Rect Rect;
+	typedef Genode::Surface_base::Area  Area;
+	typedef Genode::Surface_base::Rect  Rect;
+	typedef Genode::Surface_base::Point Point;
 
 	typedef Genode::Attached_ram_dataspace Ram_ds;
 
@@ -57,7 +58,7 @@ struct Nitpicker_buffer
 		nitpicker.buffer(mode, true);
 
 		if (mode.format() != Framebuffer::Mode::RGB565) {
-			PWRN("Color mode %d not supported\n", (int)mode.format());
+			Genode::warning("color mode ", mode, " not supported");
 			return Genode::Dataspace_capability();
 		}
 
@@ -127,7 +128,7 @@ struct Nitpicker_buffer
 
 		surface.clip(clip_rect);
 
-		Dither_painter::paint(surface, texture);
+		Dither_painter::paint(surface, texture, Point());
 	}
 
 	void _update_input_mask()

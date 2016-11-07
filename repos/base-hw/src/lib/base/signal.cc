@@ -20,9 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
-
-/* base-hw includes */
-#include <kernel/interface.h>
+#include <base/internal/capability_space.h>
 
 using namespace Genode;
 
@@ -42,7 +40,7 @@ namespace Genode {
  ** Signal context **
  ********************/
 
-void Signal_context::submit(unsigned) { PERR("not implemented"); }
+void Signal_context::submit(unsigned) { Genode::error("not implemented"); }
 
 
 /************************
@@ -54,7 +52,7 @@ void Signal_transmitter::submit(unsigned cnt)
 	{
 		Trace::Signal_submit trace_event(cnt);
 	}
-	Kernel::submit_signal(_context.dst(), cnt);
+	Kernel::submit_signal(Capability_space::capid(_context), cnt);
 }
 
 
@@ -69,7 +67,7 @@ Signal_receiver::Signal_receiver()
 			_cap = env()->pd_session()->alloc_signal_source();
 		},
 		[&] () {
-			PINF("upgrading quota donation for PD session");
+			log("upgrading quota donation for PD session");
 			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
 		}
 	);
@@ -85,7 +83,7 @@ void Signal_receiver::_platform_destructor()
 
 void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 {
-	Kernel::kill_signal_context(c->_cap.dst());
+	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
 }
 
 void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
@@ -107,7 +105,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 			return c->_cap;
 		},
 		[&] () {
-			PINF("upgrading quota donation for PD session");
+			log("upgrading quota donation for PD session");
 			env()->parent()->upgrade(env()->pd_session_cap(), "ram_quota=8K");
 		}
 	);
@@ -119,8 +117,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 void Signal_receiver::block_for_signal()
 {
 	/* wait for a signal */
-	if (Kernel::await_signal(_cap.dst())) {
-		PERR("failed to receive signal");
+	if (Kernel::await_signal(Capability_space::capid(_cap))) {
+		Genode::error("failed to receive signal");
 		return;
 	}
 	/* read signal data */
@@ -135,8 +133,8 @@ void Signal_receiver::block_for_signal()
 		context->_curr_signal = Signal::Data(context, num);
 	}
 	/* end kernel-aided life-time management */
-	Kernel::ack_signal(data->context->_cap.dst());
+	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
 }
 
 
-void Signal_receiver::local_submit(Signal::Data) { PERR("not implemented"); }
+void Signal_receiver::local_submit(Signal::Data) { Genode::error("not implemented"); }

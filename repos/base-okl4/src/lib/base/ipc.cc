@@ -12,40 +12,25 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/ipc.h>
-#include <base/native_types.h>
 #include <base/blocking.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
+#include <base/internal/native_utcb.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
 #include <l4/config.h>
 #include <l4/types.h>
 #include <l4/ipc.h>
-#include <l4/kdebug.h>
 } }
 
 using namespace Genode;
 using namespace Okl4;
 
-
-/***************
- ** Utilities **
- ***************/
-
-/**
- * Print string, bypassing Genode's LOG mechanism
- *
- * This function is used in conditions where Genode's base mechanisms may fail.
- */
-static void kdb_emergency_print(const char *s)
-{
-	for (; s && *s; s++)
-		Okl4::L4_KDB_PrintChar(*s);
-}
 
 /*
  * Message layout within the UTCB
@@ -85,7 +70,18 @@ static L4_Word_t extract_msg_from_utcb(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg
 		L4_ThreadId_t tid;
 		L4_StoreMR(3 + 2*i,     &tid.raw);
 		L4_StoreMR(3 + 2*i + 1, &local_name);
-		rcv_msg.insert(Native_capability(tid, local_name));
+
+		Rpc_obj_key const rpc_obj_key(local_name);
+		bool        const cap_valid = tid.raw != 0UL;
+
+		Native_capability cap;
+		if (cap_valid) {
+			cap = Capability_space::lookup(rpc_obj_key);
+			if (!cap.valid())
+				cap = Capability_space::import(tid, rpc_obj_key);
+		}
+
+		rcv_msg.insert(cap);
 	}
 
 	unsigned const data_start_idx = 3 + 2*num_caps;
@@ -96,8 +92,9 @@ static L4_Word_t extract_msg_from_utcb(L4_MsgTag_t rcv_tag, Msgbuf_base &rcv_msg
 	unsigned const num_data_words = num_msg_words - data_start_idx;
 
 	if (num_data_words*sizeof(L4_Word_t) > rcv_msg.capacity()) {
-		PERR("receive message buffer too small msg size=%zd, buf size=%zd",
-		     num_data_words*sizeof(L4_Word_t), rcv_msg.capacity());
+		error("receive message buffer too small,"
+		      "msg size=", num_data_words*sizeof(L4_Word_t), ", "
+		      "buf size=", rcv_msg.capacity());
 		return Rpc_exception_code::INVALID_OBJECT;
 	}
 
@@ -120,7 +117,7 @@ static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, L4_Word_t local_name)
 	unsigned const num_msg_words    = num_data_words + num_header_words;
 
 	if (num_msg_words >= L4_GetMessageRegisters()) {
-		kdb_emergency_print("Message does not fit into UTCB message registers\n");
+		raw("Message does not fit into UTCB message registers");
 		L4_LoadMR(0, 0);
 		return;
 	}
@@ -134,8 +131,19 @@ static void copy_msg_to_utcb(Msgbuf_base const &snd_msg, L4_Word_t local_name)
 	L4_LoadMR(2, snd_msg.used_caps());
 
 	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {
-		L4_LoadMR(3 + i*2,     snd_msg.cap(i).dst().raw);
-		L4_LoadMR(3 + i*2 + 1, snd_msg.cap(i).local_name());
+
+		Native_capability cap = snd_msg.cap(i);
+		if (cap.valid()) {
+			Capability_space::Ipc_cap_data const cap_data =
+				Capability_space::ipc_cap_data(snd_msg.cap(i));
+
+			L4_LoadMR(3 + i*2,     (L4_Word_t)cap_data.dst.raw);
+			L4_LoadMR(3 + i*2 + 1, (L4_Word_t)cap_data.rpc_obj_key.value());
+		} else {
+			L4_LoadMR(3 + i*2,     (L4_Word_t)0UL);
+			L4_LoadMR(3 + i*2 + 1, (L4_Word_t)0UL);
+		}
+
 	}
 
 	L4_LoadMRs(num_header_words, num_data_words, (L4_Word_t *)snd_msg.data());
@@ -150,12 +158,15 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
                                     size_t)
 {
+	Capability_space::Ipc_cap_data const dst_data =
+		Capability_space::ipc_cap_data(dst);
+
 	/* copy call message to the UTCBs message registers */
-	copy_msg_to_utcb(snd_msg, dst.local_name());
+	copy_msg_to_utcb(snd_msg, dst_data.rpc_obj_key.value());
 
 	L4_Accept(L4_UntypedWordsAcceptor);
 
-	L4_MsgTag_t rcv_tag = L4_Call(dst.dst());
+	L4_MsgTag_t rcv_tag = L4_Call(dst_data.dst);
 
 	enum { ERROR_MASK = 0xe, ERROR_CANCELED = 3 << 1 };
 	if (L4_IpcFailed(rcv_tag) &&
@@ -163,7 +174,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		throw Genode::Blocking_canceled();
 
 	if (L4_IpcFailed(rcv_tag)) {
-		kdb_emergency_print("Ipc failed\n");
+		raw("Ipc failed");
 
 		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 	}
@@ -183,10 +194,10 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	copy_msg_to_utcb(snd_msg, exc.value);
 
 	/* perform non-blocking IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Reply(caller.dst());
+	L4_MsgTag_t rcv_tag = L4_Reply(Capability_space::ipc_cap_data(caller).dst);
 
 	if (L4_IpcFailed(rcv_tag))
-		PERR("ipc error in _reply - gets ignored");
+		error("ipc error in ipc_reply - gets ignored");
 }
 
 
@@ -204,7 +215,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		/* copy reply to the UTCBs message registers */
 		copy_msg_to_utcb(reply_msg, exc.value);
 
-		rcv_tag = L4_ReplyWait(last_caller.dst(), &caller);
+		rcv_tag = L4_ReplyWait(Capability_space::ipc_cap_data(last_caller).dst,
+		                       &caller);
 	} else {
 		rcv_tag = L4_Wait(&caller);
 	}
@@ -212,7 +224,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 	/* copy request message from the UTCBs message registers */
 	unsigned long const badge = extract_msg_from_utcb(rcv_tag, request_msg);
 
-	return Rpc_request(Native_capability(caller, 0), badge);
+	return Rpc_request(Capability_space::import(caller, Rpc_obj_key()), badge);
 }
 
 
@@ -231,7 +243,10 @@ static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
 }
 
 
-Ipc_server::Ipc_server() : Native_capability(thread_get_my_global_id(), 0) { }
+Ipc_server::Ipc_server()
+:
+	Native_capability(Capability_space::import(thread_get_my_global_id(), Rpc_obj_key()))
+{ }
 
 
 Ipc_server::~Ipc_server() { }

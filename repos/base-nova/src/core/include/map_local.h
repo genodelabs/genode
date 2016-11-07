@@ -15,7 +15,6 @@
 #define _CORE__INCLUDE__MAP_LOCAL_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/thread.h>
 
 /* core includes */

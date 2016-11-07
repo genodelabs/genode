@@ -12,7 +12,10 @@
  */
 
 /* Genode includes */
-#include <base/native_env.h>
 #include <assert.h>
+
+/* base-internal includes */
+#include <base/internal/native_env.h>
+
 
 void Genode::upgrade_pd_session_quota(Genode::size_t quota) { assert(false); }

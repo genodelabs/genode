@@ -94,9 +94,10 @@ Fiasco::l4_cap_idx_t genode_balloon_irq_cap()
 	static Genode::Foc_native_cpu_client native_cpu(L4lx::cpu_connection()->native_cpu());
 	static Genode::Native_capability cap = native_cpu.alloc_irq();
 	static Genode::Lock lock(Genode::Lock::LOCKED);
-	static Signal_thread th(cap.dst(), &lock);
+	static Fiasco::l4_cap_idx_t kcap = Genode::Capability_space::kcap(cap);
+	static Signal_thread th(kcap, &lock);
 	lock.lock();
-	return cap.dst();
+	return kcap;
 }
 
 

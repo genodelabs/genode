@@ -26,12 +26,11 @@ void Thread::exception(unsigned const cpu)
 		return;
 	case NO_MATH_COPROC:
 		if (_cpu->fpu().fault(*this)) { return; }
-		PWRN("%s -> %s: FPU error", pd_label(), label());
+		Genode::warning(*this, ": FPU error");
 		_stop();
 		return;
 	case UNDEFINED_INSTRUCTION:
-		PWRN("%s -> %s: undefined instruction at ip=%p",
-			 pd_label(), label(), (void*)ip);
+		Genode::warning(*this, ": undefined instruction at ip=", (void*)ip);
 		_stop();
 		return;
 	case SUPERVISOR_CALL:
@@ -43,7 +42,7 @@ void Thread::exception(unsigned const cpu)
 		_interrupt(cpu);
 		return;
 	}
-	PWRN("%s -> %s: triggered unknown exception %lu with error code %lu"
-		 " at ip=%p", pd_label(), label(), trapno, errcode, (void*)ip);
+	Genode::warning(*this, ": triggered unknown exception ", trapno,
+	                " with error code ", errcode, " at ip=%p", (void*)ip);
 	_stop();
 }

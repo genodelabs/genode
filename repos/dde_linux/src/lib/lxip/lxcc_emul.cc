@@ -253,6 +253,12 @@ void *memcpy(void *d, const void *s, size_t n)
 }
 
 
+void *memmove(void *d, const void *s, size_t n)
+{
+	return Genode::memmove(d, s, n);
+}
+
+
 /*******************
  ** linux/sched.h **
  *******************/
@@ -281,7 +287,7 @@ struct Timeout : Genode::Signal_dispatcher<Timeout>
 };
 
 
-static void __wait_event(signed long timeout)
+static void wait_for_timeout(signed long timeout)
 {
 	static Timer::Connection timer;
 	Timeout to(timer, timeout);
@@ -301,7 +307,7 @@ long schedule_timeout_uninterruptible(signed long timeout)
 signed long schedule_timeout(signed long timeout)
 {
 	long start = jiffies;
-	__wait_event(timeout);
+	wait_for_timeout(timeout);
 	timeout -= jiffies - start;
 	return timeout < 0 ? 0 : timeout;
 }
@@ -309,7 +315,7 @@ signed long schedule_timeout(signed long timeout)
 
 void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
 {
-	__wait_event(0);
+	wait_for_timeout(0);
 }
 
 
@@ -565,7 +571,7 @@ size_t csum_and_copy_from_iter(void *addr, size_t bytes, __wsum *csum, struct io
 			__wsum next = csum_and_copy_from_user(iov->iov_base, kdata, copy_len, 0, &err);
 
 			if (err) {
-				PERR("%s: err: %d - sleeping", __func__, err);
+				Genode::error(__func__, ": err: ", err, " - sleeping");
 				Genode::sleep_forever();
 			}
 
@@ -605,7 +611,7 @@ size_t csum_and_copy_to_iter(void *addr, size_t bytes, __wsum *csum, struct iov_
 			__wsum next = csum_and_copy_to_user(kdata, iov->iov_base, copy_len, 0, &err);
 
 			if (err) {
-				PERR("%s: err: %d - sleeping", __func__, err);
+				Genode::error(__func__, ": err: ", err, " - sleeping");
 				Genode::sleep_forever();
 			}
 

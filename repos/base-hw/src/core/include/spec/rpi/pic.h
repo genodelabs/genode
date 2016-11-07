@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__SPEC__RPI__PIC_H_
 
 /* Genode includes */
+#include <base/log.h>
 #include <util/mmio.h>
 
 /* core includes */
@@ -97,32 +98,19 @@ class Genode::Usb_dwc_otg : Mmio
 			if (!_is_sof())
 				return false;
 
-			static int cnt, stat_cnt, filter_cnt, trigger_cnt, kick_cnt;
+			static int cnt = 0;
 
-			stat_cnt++;
-			if (stat_cnt == 8000) {
-				PLOG("kicked: %d filtered: %d  triggered: %d", kick_cnt, filter_cnt, trigger_cnt);
-				stat_cnt = 0;
-			}
-
-			cnt++;
-			if (cnt == 8*20) {
+			if (++cnt == 8*20) {
 				cnt = 0;
 				return false;
 			}
 
-			if (read<Guid::Kick>())
-				kick_cnt++;
-
 			if (!read<Guid::Num_valid>() || read<Guid::Kick>())
 				return false;
 
-			if (_need_trigger_sof(read<Host_frame_number::Num>(), read<Guid::Num>())) {
-				trigger_cnt++;
+			if (_need_trigger_sof(read<Host_frame_number::Num>(),
+			                      read<Guid::Num>()))
 				return false;
-			}
-
-			filter_cnt++;
 
 			write<Core_irq_status::Sof>(1);
 

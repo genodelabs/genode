@@ -18,8 +18,12 @@
 #include <base/thread.h>
 #include <base/object_pool.h>
 #include <base/capability.h>
+#include <base/session_label.h>
 #include <cap_session/cap_session.h>
 #include <pager/capability.h>
+
+/* NOVA includes */
+#include <nova/cap_map.h>
 
 /* core-local includes */
 #include <ipc_pager.h>
@@ -112,9 +116,10 @@ namespace Genode {
 
 			} _state;
 
-			Cpu_session_capability _cpu_session_cap;
-			Thread_capability      _thread_cap;
-			Exception_handlers     _exceptions;
+			Cpu_session_capability   _cpu_session_cap;
+			Thread_capability        _thread_cap;
+			Affinity::Location const _location;
+			Exception_handlers       _exceptions;
 
 			addr_t _pd;
 
@@ -145,11 +150,11 @@ namespace Genode {
 
 		public:
 
-			const Affinity::Location location;
-
 			Pager_object(Cpu_session_capability cpu_session_cap,
 			             Thread_capability thread_cap,
-			             unsigned long badge, Affinity::Location location);
+			             unsigned long badge, Affinity::Location location,
+			             Genode::Session_label const &,
+			             Cpu_session::Name const &);
 
 			virtual ~Pager_object();
 
@@ -168,6 +173,8 @@ namespace Genode {
 			{
 				_exception_sigh = sigh;
 			}
+
+			Affinity::Location location() const { return _location; }
 
 			/**
 			 * Assign PD selector to PD
@@ -359,6 +366,8 @@ namespace Genode {
 			                   const char * pd     = "core",
 			                   const char * thread = "unknown",
 			                   Policy = Policy::UPGRADE_CORE_TO_DST);
+
+			void print(Output &out) const;
 	};
 
 	/**

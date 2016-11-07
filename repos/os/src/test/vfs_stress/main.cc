@@ -36,11 +36,11 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <timer_session/connection.h>
-#include <os/config.h>
-#include <base/printf.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/snprintf.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <base/exception.h>
-#include <cpu_thread/client.h>
 
 using namespace Genode;
 
@@ -51,15 +51,15 @@ inline void assert_mkdir(Vfs::Directory_service::Mkdir_result r)
 	switch (r) {
 	case Result::MKDIR_OK: return;
 	case Result::MKDIR_ERR_EXISTS:
-		PERR("MKDIR_ERR_EXISTS"); break;
+		error("MKDIR_ERR_EXISTS"); break;
 	case Result::MKDIR_ERR_NO_ENTRY:
-		PERR("MKDIR_ERR_NO_ENTRY"); break;
+		error("MKDIR_ERR_NO_ENTRY"); break;
 	case Result::MKDIR_ERR_NO_SPACE:
-		PERR("MKDIR_ERR_NO_SPACE"); break;
+		error("MKDIR_ERR_NO_SPACE"); break;
 	case Result::MKDIR_ERR_NO_PERM:
-		PERR("MKDIR_ERR_NO_PERM"); break;
+		error("MKDIR_ERR_NO_PERM"); break;
 	case Result::MKDIR_ERR_NAME_TOO_LONG:
-		PERR("MKDIR_ERR_NAME_TOO_LONG"); break;
+		error("MKDIR_ERR_NAME_TOO_LONG"); break;
 	}
 	throw Exception();
 }
@@ -70,15 +70,15 @@ inline void assert_open(Vfs::Directory_service::Open_result r)
 	switch (r) {
 	case Result::OPEN_OK: return;
 	case Result::OPEN_ERR_NAME_TOO_LONG:
-		PERR("OPEN_ERR_NAME_TOO_LONG"); break;
+		error("OPEN_ERR_NAME_TOO_LONG"); break;
 	case Result::OPEN_ERR_UNACCESSIBLE:
-		PERR("OPEN_ERR_UNACCESSIBLE"); break;
+		error("OPEN_ERR_UNACCESSIBLE"); break;
 	case Result::OPEN_ERR_NO_SPACE:
-		PERR("OPEN_ERR_NO_SPACE"); break;
+		error("OPEN_ERR_NO_SPACE"); break;
 	case Result::OPEN_ERR_NO_PERM:
-		PERR("OPEN_ERR_NO_PERM"); break;
+		error("OPEN_ERR_NO_PERM"); break;
 	case Result::OPEN_ERR_EXISTS:
-		PERR("OPEN_ERR_EXISTS"); break;
+		error("OPEN_ERR_EXISTS"); break;
 	}
 	throw Exception();
 }
@@ -89,15 +89,15 @@ inline void assert_write(Vfs::File_io_service::Write_result r)
 	switch (r) {
 	case Result::WRITE_OK: return;
 	case Result::WRITE_ERR_AGAIN:
-		PERR("WRITE_ERR_AGAIN"); break;
+		error("WRITE_ERR_AGAIN"); break;
 	case Result::WRITE_ERR_WOULD_BLOCK:
-		PERR("WRITE_ERR_WOULD_BLOCK"); break;
+		error("WRITE_ERR_WOULD_BLOCK"); break;
 	case Result::WRITE_ERR_INVALID:
-		PERR("WRITE_ERR_INVALID"); break;
+		error("WRITE_ERR_INVALID"); break;
 	case Result::WRITE_ERR_IO:
-		PERR("WRITE_ERR_IO"); break;
+		error("WRITE_ERR_IO"); break;
 	case Result::WRITE_ERR_INTERRUPT:
-		PERR("WRITE_ERR_INTERRUPT"); break;
+		error("WRITE_ERR_INTERRUPT"); break;
 	}
 	throw Exception();
 }
@@ -108,15 +108,15 @@ inline void assert_read(Vfs::File_io_service::Read_result r)
 	switch (r) {
 	case Result::READ_OK: return;
 	case Result::READ_ERR_AGAIN:
-		PERR("READ_ERR_AGAIN"); break;
+		error("READ_ERR_AGAIN"); break;
 	case Result::READ_ERR_WOULD_BLOCK:
-		PERR("READ_ERR_WOULD_BLOCK"); break;
+		error("READ_ERR_WOULD_BLOCK"); break;
 	case Result::READ_ERR_INVALID:
-		PERR("READ_ERR_INVALID"); break;
+		error("READ_ERR_INVALID"); break;
 	case Result::READ_ERR_IO:
-		PERR("READ_ERR_IO"); break;
+		error("READ_ERR_IO"); break;
 	case Result::READ_ERR_INTERRUPT:
-		PERR("READ_ERR_INTERRUPT"); break;
+		error("READ_ERR_INTERRUPT"); break;
 	}
 	throw Exception();
 }
@@ -127,11 +127,11 @@ inline void assert_unlink(Vfs::Directory_service::Unlink_result r)
 	switch (r) {
 	case Result::UNLINK_OK: return;
 	case Result::UNLINK_ERR_NO_ENTRY:
-		PERR("UNLINK_ERR_NO_ENTRY"); break;
+		error("UNLINK_ERR_NO_ENTRY"); break;
 	case Result::UNLINK_ERR_NO_PERM:
-		PERR("UNLINK_ERR_NO_PERM"); break;
+		error("UNLINK_ERR_NO_PERM"); break;
 	case Result::UNLINK_ERR_NOT_EMPTY:
-		PERR("UNLINK_ERR_NOT_EMPTY"); break;
+		error("UNLINK_ERR_NOT_EMPTY"); break;
 	}
 	throw Exception();
 }
@@ -141,25 +141,19 @@ static int MAX_DEPTH;
 typedef Genode::Path<Vfs::MAX_PATH_LEN> Path;
 
 
-struct Stress_thread : public Genode::Thread_deprecated<4*1024*sizeof(Genode::addr_t)>
+struct Stress_test
 {
 	::Path            path;
 	Vfs::file_size    count;
 	Vfs::File_system &vfs;
 
-	Stress_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Thread_deprecated(parent), path(parent), count(0), vfs(vfs)
-	{
-		Cpu_thread_client(cap()).affinity(affinity);
-	}
+	Stress_test(Vfs::File_system &vfs, char const *parent)
+	: path(parent), count(0), vfs(vfs) { }
 };
 
 
-struct Mkdir_thread : public Stress_thread
+struct Mkdir_test : public Stress_test
 {
-	Mkdir_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Stress_thread(vfs, parent, affinity) { start(); }
-
 	void mkdir_b(int depth)
 	{
 		if (++depth > MAX_DEPTH) return;
@@ -189,27 +183,23 @@ struct Mkdir_thread : public Stress_thread
 		mkdir_a(depth);
 	}
 
-	void entry()
+	Mkdir_test(Vfs::File_system &vfs, char const *parent)
+	: Stress_test(vfs, parent)
 	{
 		try { mkdir_a(1); } catch (...) {
-			PERR("failed at %s after %llu directories", path.base(), count);
+			error("failed at '", path, "' after ", count, " directories");
 		}
 	}
 
 	int wait()
 	{
-		join();
 		return count;
 	}
 };
 
 
-struct Populate_thread : public Stress_thread
+struct Populate_test : public Stress_test
 {
-	Populate_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Stress_thread(vfs, parent, affinity) { start(); }
-
-
 	void populate(int depth)
 	{
 		if (++depth > MAX_DEPTH) return;
@@ -241,12 +231,14 @@ struct Populate_thread : public Stress_thread
 			return;
 
 		default:
-			PERR("bad directory %c at the end of %s", dir_type, path.base());
+			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
+			error("bad directory '", dir_name, "' at the end of '", path, "'");
 			throw Exception();
 		}
 	}
 
-	void entry()
+	Populate_test(Vfs::File_system &vfs, char const *parent)
+	: Stress_test(vfs, parent)
 	{
 		::Path start_path(path.base());
 		try {
@@ -257,23 +249,19 @@ struct Populate_thread : public Stress_thread
 			path.append("/b");
 			populate(1);
 		} catch (...) {
-			PERR("failed at %s after %llu files", path.base(), count);
+			error("failed at '", path, "' after ", count, " files");
 		}
 	}
 
 	int wait()
 	{
-		join();
 		return count;
 	}
 };
 
 
-struct Write_thread : public Stress_thread
+struct Write_test : public Stress_test
 {
-	Write_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Stress_thread(vfs, parent, affinity) { start(); }
-
 	void write(int depth)
 	{
 		if (++depth > MAX_DEPTH) return;
@@ -309,12 +297,14 @@ struct Write_thread : public Stress_thread
 			return;
 
 		default:
-			PERR("bad directory %c at the end of %s", dir_type, path.base());
+			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
+			error("bad directory ",dir_name," at the end of '", path, "'");
 			throw Exception();
 		}
 	}
 
-	void entry()
+	Write_test(Vfs::File_system &vfs, char const *parent)
+	: Stress_test(vfs, parent)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -325,23 +315,19 @@ struct Write_thread : public Stress_thread
 			path.append("/b");
 			write(1);
 		} catch (...) {
-			PERR("failed at %s after writing %llu bytes", path.base(), count);
+			error("failed at ",path," after writing ",count," bytes");
 		}
 	}
 
 	Vfs::file_size wait()
 	{
-		join();
 		return count;
 	}
 };
 
 
-struct Read_thread : public Stress_thread
+struct Read_test : public Stress_test
 {
-	Read_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Stress_thread(vfs, parent, affinity) { start(); }
-
 	void read(int depth)
 	{
 		if (++depth > MAX_DEPTH) return;
@@ -362,7 +348,7 @@ struct Read_thread : public Stress_thread
 			file_size n;
 			assert_read(handle->fs().read(handle, tmp, sizeof(tmp), n));
 			if (strcmp(path.base(), tmp, n))
-				PERR("read returned bad data");
+				error("read returned bad data");
 			count += n;
 		}
 
@@ -379,12 +365,14 @@ struct Read_thread : public Stress_thread
 			return;
 
 		default:
-			PERR("bad directory %c at the end of %s", dir_type, path.base());
+			Genode::String<2> dir_name(Genode::Cstring(&dir_type, 1));
+			error("bad directory ",dir_name," at the end of '", path, "'");
 			throw Exception();
 		}
 	}
 
-	void entry()
+	Read_test(Vfs::File_system &vfs, char const *parent)
+	: Stress_test(vfs, parent)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -395,23 +383,19 @@ struct Read_thread : public Stress_thread
 			path.append("/b");
 			read(1);
 		} catch (...) {
-			PERR("failed at %s after reading %llu bytes", path.base(), count);
+			error("failed at ",path," after reading ",count," bytes");
 		}
 	}
 
 	Vfs::file_size wait()
 	{
-		join();
 		return count;
 	}
 };
 
 
-struct Unlink_thread : public Stress_thread
+struct Unlink_test : public Stress_test
 {
-	Unlink_thread(Vfs::File_system &vfs, char const *parent, Affinity::Location affinity)
-	: Stress_thread(vfs, parent, affinity) { start(); }
-
 	void empty_dir(char const *path)
 	{
 		::Path subpath(path);
@@ -423,7 +407,7 @@ struct Unlink_thread : public Stress_thread
 			subpath.append(dirent.name);
 			switch (dirent.type) {
 			case Vfs::Directory_service::DIRENT_TYPE_END:
-				PERR("reached the end prematurely");
+				error("reached the end prematurely");
 				throw Exception();
 
 			case Vfs::Directory_service::DIRENT_TYPE_DIRECTORY:
@@ -434,7 +418,7 @@ struct Unlink_thread : public Stress_thread
 					assert_unlink(vfs.unlink(subpath.base()));
 					++count;
 				} catch (...) {
-					PERR("unlink %s failed", subpath.base());
+					error("unlink ", subpath," failed");
 					throw;
 				}
 				subpath.strip_last_element();
@@ -442,19 +426,20 @@ struct Unlink_thread : public Stress_thread
 		}
 	}
 
-	void entry()
+	Unlink_test(Vfs::File_system &vfs, char const *parent)
+	: Stress_test(vfs, parent)
 	{
 		typedef Vfs::Directory_service::Unlink_result Result;
 		try {
 			Result r = vfs.unlink(path.base());
 			switch (r) {
 			case Result::UNLINK_ERR_NOT_EMPTY:
-				PLOG("recursive unlink not supported");
+				log("recursive unlink not supported");
 				empty_dir(path.base());
 				r = vfs.unlink(path.base());
 
 			case Result::UNLINK_OK:
-				PLOG("recursive unlink supported");
+				log("recursive unlink supported");
 				++count;
 				return;
 
@@ -462,27 +447,30 @@ struct Unlink_thread : public Stress_thread
 			}
 			assert_unlink(r);
 		} catch (...) {
-			PERR("unlink %s failed", path.base());
+			error("unlink ",path," failed");
 		}
 	}
 
 	int wait()
 	{
-		join();
 		return count;
 	}
 };
 
+void die(Genode::Env &env, int code) { env.parent().exit(code); }
 
-int main()
+void Component::construct(Genode::Env &env)
 {
-	static Vfs::Dir_file_system vfs_root(config()->xml_node().sub_node("vfs"),
-	                                     Vfs::global_file_system_factory());
-	static char path[Vfs::MAX_PATH_LEN];
+	enum { ROOT_TREE_COUNT = 6 };
 
-	MAX_DEPTH = config()->xml_node().attribute_value("depth", 16U);
-	unsigned thread_count =
-		config()->xml_node().attribute_value("threads", 6U);
+	Attached_rom_dataspace config_rom(env, "config");
+	Xml_node const config_xml = config_rom.xml();
+
+	Vfs::Dir_file_system vfs_root(config_xml.sub_node("vfs"),
+	                                     Vfs::global_file_system_factory());
+	char path[Vfs::MAX_PATH_LEN];
+
+	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
 
 	unsigned long elapsed_ms;
 	Timer::Connection timer;
@@ -490,36 +478,29 @@ int main()
 	/* populate the directory file system at / */
 	vfs_root.num_dirent("/");
 
-	Affinity::Space space = env()->cpu_session()->affinity_space();
-
-	size_t initial_consumption = env()->ram_session()->used();
+	size_t initial_consumption = env.ram().used();
 
 	/**************************
 	 ** Generate directories **
 	 **************************/
 	{
 		int count = 0;
-		Mkdir_thread *threads[thread_count];
-		PLOG("generating directory surface...");
+		log("generating directory surface...");
 		elapsed_ms = timer.elapsed_ms();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%zu", i);
+		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
+			snprintf(path, 3, "/%d", i);
 			vfs_root.mkdir(path, 0);
-			threads[i] = new (Genode::env()->heap())
-				Mkdir_thread(vfs_root, path, space.location_of_index(i));
-		}
-
-		for (size_t i = 0; i < thread_count; ++i) {
-			count += threads[i]->wait();
-			destroy(Genode::env()->heap(), threads[i]);
+			Mkdir_test test(vfs_root, path);
+			count += test.wait();
 		}
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
 		vfs_root.sync("/");
 
-		PINF("created %d empty directories, %luμs/op , %zuKB consumed",
-		     count, (elapsed_ms*1000)/count, env()->ram_session()->used()/1024);
+		log("created ",count," empty directories, ",
+		    (elapsed_ms*1000)/count,"μs/op , ",
+		    env.ram().used()/1024,"KB consumed");
 	}
 
 
@@ -528,27 +509,22 @@ int main()
 	 ********************/
 	{
 		int count = 0;
-		Populate_thread *threads[thread_count];
-		PLOG("generating files...");
+		log("generating files...");
 		elapsed_ms = timer.elapsed_ms();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%zu", i);
-			threads[i] = new (Genode::env()->heap())
-				Populate_thread(vfs_root, path, space.location_of_index(i));
-		}
-
-		for (size_t i = 0; i < thread_count; ++i) {
-			count += threads[i]->wait();
-			destroy(Genode::env()->heap(), threads[i]);
+		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
+			snprintf(path, 3, "/%d", i);
+			Populate_test test(vfs_root, path);
+			count += test.wait();
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
 		vfs_root.sync("/");
 
-		PINF("created %d empty files, %luμs/op, %zuKB consumed",
-		     count, (elapsed_ms*1000)/count, env()->ram_session()->used()/1024);
+		log("created ",count," empty files, ",
+		    (elapsed_ms*1000)/count,"μs/op, ",
+		    env.ram().used()/1024,"KB consumed");
 	}
 
 
@@ -556,37 +532,30 @@ int main()
 	 ** Write files **
 	 *****************/
 
-	if (!config()->xml_node().attribute_value("write", true)) {
+	if (!config_xml.attribute_value("write", true)) {
 		elapsed_ms = timer.elapsed_ms();
-
-		PINF("total: %lums, %zuK consumed",
-		     elapsed_ms, env()->ram_session()->used()/1024);
-
-		return 0;
+		log("total: ",elapsed_ms,"ms, ",env.ram().used()/1024,"K consumed");
+		return die(env, 0);
 	}
 	{
 		Vfs::file_size count = 0;
-		Write_thread *threads[thread_count];
-		PLOG("writing files...");
+		log("writing files...");
 		elapsed_ms = timer.elapsed_ms();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%zu", i);
-			threads[i] = new (Genode::env()->heap())
-				Write_thread(vfs_root, path, space.location_of_index(i));
-		}
+		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
+			snprintf(path, 3, "/%d", i);
+			Write_test test(vfs_root, path);
+			count += test.wait();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			count += threads[i]->wait();
-			destroy(Genode::env()->heap(), threads[i]);
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
 		vfs_root.sync("/");
 
-		PINF("wrote %llu bytes %llukB/s, %zuKB consumed",
-		     count, count/elapsed_ms, env()->ram_session()->used()/1024);
+		log("wrote ",count," bytes ",
+		    count/elapsed_ms,"kB/s, ",
+		    env.ram().used()/1024,"KB consumed");
 	}
 
 
@@ -594,37 +563,30 @@ int main()
 	 ** Read files **
 	 *****************/
 
-	if (!config()->xml_node().attribute_value("read", true)) {
+	if (!config_xml.attribute_value("read", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		PINF("total: %lums, %zuKB consumed",
-		     elapsed_ms, env()->ram_session()->used()/1024);
-
-		return 0;
+		log("total: ",elapsed_ms,"ms, ",env.ram().used()/1024,"KB consumed");
+		return die(env, 0);
 	}
 	{
 		Vfs::file_size count = 0;
-		Read_thread *threads[thread_count];
-		PLOG("reading files...");
+		log("reading files...");
 		elapsed_ms = timer.elapsed_ms();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%zu", i);
-			threads[i] = new (Genode::env()->heap())
-				Read_thread(vfs_root, path, space.location_of_index(i));
-		}
-
-		for (size_t i = 0; i < thread_count; ++i) {
-			count += threads[i]->wait();
-			destroy(Genode::env()->heap(), threads[i]);
+		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
+			snprintf(path, 3, "/%d", i);
+			Read_test test(vfs_root, path);
+			count += test.wait();
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
 		vfs_root.sync("/");
 
-		PINF("read  %llu bytes, %llukB/s, %zuKB consumed",
-		     count, count/elapsed_ms, env()->ram_session()->used()/1024);
+		log("read ",count," bytes, ",
+		    count/elapsed_ms,"kB/s, ",
+		    env.ram().used()/1024,"KB consumed");
 	}
 
 
@@ -632,50 +594,43 @@ int main()
 	 ** Unlink files **
 	 ******************/
 
-	if (!config()->xml_node().attribute_value("unlink", true)) {
+	if (!config_xml.attribute_value("unlink", true)) {
 		elapsed_ms = timer.elapsed_ms();
+		log("total: ",elapsed_ms,"ms, ",env.ram().used()/1024,"KB consumed");
+		return die(env, 0);
 
-		PINF("total: %lums, %zuKB consumed",
-		     elapsed_ms, env()->ram_session()->used()/1024);
-
-		return 0;
 	}
 	{
 		Vfs::file_size count = 0;
 
-		Unlink_thread *threads[thread_count];
-		PLOG("unlink files...");
+		log("unlink files...");
 		elapsed_ms = timer.elapsed_ms();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			snprintf(path, 3, "/%zu", i);
-			threads[i] = new (Genode::env()->heap())
-				Unlink_thread(vfs_root, path, space.location_of_index(i));
-		}
+		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
+			snprintf(path, 3, "/%d", i);
+			Unlink_test test(vfs_root, path);
+			count += test.wait();
 
-		for (size_t i = 0; i < thread_count; ++i) {
-			count += threads[i]->wait();
-			destroy(Genode::env()->heap(), threads[i]);
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
 		vfs_root.sync("/");
 
-		PINF("unlinked %llu files in %lums, %zuKB consumed",
-		     count, elapsed_ms, env()->ram_session()->used()/1024);
+		log("unlinked ",count," files in ",elapsed_ms,"ms, ",
+		    env.ram().used()/1024,"KB consumed");
 	}
 
-	PINF("total: %lums, %zuKB consumed",
-	     timer.elapsed_ms(), env()->ram_session()->used()/1024);
+	log("total: ",timer.elapsed_ms(),"ms, ",
+	    env.ram().used()/1024,"KB consumed");
 
-	size_t outstanding = env()->ram_session()->used() - initial_consumption;
+	size_t outstanding = env.ram().used() - initial_consumption;
 	if (outstanding) {
 		if (outstanding < 1024)
-			PERR("%zuB not freed after unlink and sync!", outstanding);
+			error(outstanding, "B not freed after unlink and sync!");
 		else
-			PERR("%zuKB not freed after unlink and sync!", outstanding/1024);
+			error(outstanding/1024,"KB not freed after unlink and sync!");
 	}
 
-	return 0;
+	die(env, 0);
 }

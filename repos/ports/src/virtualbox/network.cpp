@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -26,6 +26,7 @@
 *   Header Files                                                               *
 *******************************************************************************/
 #define LOG_GROUP LOG_GROUP_DRV_TUN
+#include <base/log.h>
 #include <VBox/log.h>
 #include <VBox/vmm/pdmdrv.h>
 #include <VBox/vmm/pdmnetifs.h>
@@ -38,6 +39,7 @@
 
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
+#include <base/snprintf.h>
 
 /*******************************************************************************
 *   Structures and Typedefs                                                    *
@@ -155,10 +157,10 @@ class Nic_client
 
 	public:
 
-		Nic_client(PDRVNIC drvtap)
+		Nic_client(PDRVNIC drvtap, char const *label)
 		:
 			_tx_block_alloc(_packet_allocator()),
-			_nic(_tx_block_alloc, BUF_SIZE, BUF_SIZE),
+			_nic(_tx_block_alloc, BUF_SIZE, BUF_SIZE, label),
 			_link_state_dispatcher(_sig_rec, *this, &Nic_client::_handle_link_state),
 			_rx_packet_avail_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_packet_avail),
 			_rx_ready_to_ack_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_ready_to_ack),
@@ -455,7 +457,7 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 	Nic_client *nic_client = pThis->nic_client;
 
 	if (!nic_client)
-		PERR("nic_client not valid at destruction time");
+		Genode::error("nic_client not valid at destruction time");
 
 	if (nic_client)
 		Genode::Signal_transmitter(nic_client->dispatcher()).submit();
@@ -477,6 +479,7 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 {
 	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
 	PDMDRV_CHECK_VERSIONS_RETURN(pDrvIns);
+	int rc;
 
 	/*
 	 * Init the static parts.
@@ -516,11 +519,19 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 		                        N_("Configuration error: the above device/driver"
 		                            " didn't export the network config interface!\n"));
 
+	char label[8];
+	uint64_t slot;
+	rc = CFGMR3QueryInteger(pCfg, "Slot", &slot);
+	if (RT_FAILURE(rc))
+		return PDMDRV_SET_ERROR(pDrvIns, rc,
+		                        N_("Configuration error: Failed to retrieve the network interface slot"));
+	Genode::snprintf(label, sizeof(label), "%d", slot);
+
 	/*
 	 * Setup Genode nic_session connection
 	 */
 	try {
-		pThis->nic_client = new (Genode::env()->heap()) Nic_client(pThis);
+		pThis->nic_client = new (Genode::env()->heap()) Nic_client(pThis, label);
 	} catch (...) {
 		return VERR_HOSTIF_INIT_FAILED;
 	}
@@ -528,9 +539,9 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 	/*
 	 * Create the asynchronous I/O thread.
 	 */
-	int rc = PDMDrvHlpThreadCreate(pDrvIns, &pThis->pThread, pThis,
-	                               drvNicAsyncIoThread, drvNicAsyncIoWakeup,
-	                               128 * _1K, RTTHREADTYPE_IO, "nic_thread");
+	rc = PDMDrvHlpThreadCreate(pDrvIns, &pThis->pThread, pThis,
+	                           drvNicAsyncIoThread, drvNicAsyncIoWakeup,
+	                           128 * _1K, RTTHREADTYPE_IO, "nic_thread");
 	AssertRCReturn(rc, rc);
 
 	return rc;

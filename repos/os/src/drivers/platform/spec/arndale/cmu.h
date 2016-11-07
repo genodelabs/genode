@@ -14,13 +14,14 @@
 #ifndef _DRIVERS__PLATFORM__SPEC__ARNDALE__CMU_H_
 #define _DRIVERS__PLATFORM__SPEC__ARNDALE__CMU_H_
 
+#include <base/log.h>
 #include <regulator/consts.h>
 #include <regulator/driver.h>
 #include <drivers/board_base.h>
 #include <os/attached_mmio.h>
 
 using namespace Regulator;
-
+using Genode::warning;
 
 class Cmu : public Regulator::Driver,
             public Genode::Attached_mmio
@@ -284,9 +285,9 @@ class Cmu : public Regulator::Driver,
 				freq = 8;
 				break;
 			default:
-				PWRN("Unsupported CPU frequency level %ld", level);
-				PWRN("Supported values are 200, 400, 600, 800 MHz");
-				PWRN("and 1, 1.2, 1.4, 1.6, 1.7 GHz");
+				warning("Unsupported CPU frequency level ", level);
+				warning("Supported values are 200, 400, 600, 800 MHz");
+				warning("and 1, 1.2, 1.4, 1.6, 1.7 GHz");
 				return;
 			};
 
@@ -399,7 +400,7 @@ class Cmu : public Regulator::Driver,
 				write<Clk_src_mask_fsys::Mmc0_mask>(1);
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -423,7 +424,7 @@ class Cmu : public Regulator::Driver,
 				write<Clk_src_mask_fsys::Mmc0_mask>(0);
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -482,7 +483,7 @@ class Cmu : public Regulator::Driver,
 				_cpu_clk_freq(level);
 				break;
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 		}
 
@@ -495,7 +496,7 @@ class Cmu : public Regulator::Driver,
 			case CLK_SATA:
 				return 66666666; /* 66 MHz */
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 			return 0;
 		}
@@ -524,7 +525,7 @@ class Cmu : public Regulator::Driver,
 				return read<Clk_gate_ip_fsys::Sdmmc0>() &&
 				       read<Clk_src_mask_fsys::Mmc0_mask>();
 			default:
-				PWRN("Unsupported for %s", names[id].name);
+				warning("Unsupported for ", names[id].name);
 			}
 			return true;
 		}

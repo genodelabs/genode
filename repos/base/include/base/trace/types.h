@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/string.h>
 #include <base/affinity.h>
+#include <base/session_label.h>
 
 namespace Genode { namespace Trace {
 
@@ -33,7 +34,6 @@ namespace Genode { namespace Trace {
 	struct Traced_by_other_session : Exception { };
 	struct Subject_not_traced      : Exception { };
 
-	typedef String<160> Session_label;
 	typedef String<32>  Thread_name;
 
 	struct Policy_id;

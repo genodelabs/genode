@@ -224,14 +224,14 @@ struct Ehci : Genode::Mmio
  * Initialize the USB controller from scratch, since the boot loader might not
  * do it or even disable USB.
  */
-static void omap_ehci_init()
+static void omap_ehci_init(Genode::Env &env)
 {
 	/* taken from the Panda board manual */
 	enum { HUB_POWER = 1, HUB_NRESET = 62, ULPI_PHY_TYPE = 182 };
 
 	/* SCRM */
-	Io_mem_connection io_scrm(SCRM_BASE, 0x1000);
-	addr_t scrm_base = (addr_t)env()->rm_session()->attach(io_scrm.dataspace());
+	Io_mem_connection io_scrm(env, SCRM_BASE, 0x1000);
+	addr_t scrm_base = (addr_t)env.rm().attach(io_scrm.dataspace());
 
 	/* enable reference clock */
 	Aux3 aux3(scrm_base);
@@ -247,18 +247,18 @@ static void omap_ehci_init()
 	gpio_reset.write(true);
 
 	/* enable clocks */
-	Io_mem_connection io_clock(CAM_BASE, 0x1000);
-	addr_t clock_base = (addr_t)env()->rm_session()->attach(io_clock.dataspace());
+	Io_mem_connection io_clock(env, CAM_BASE, 0x1000);
+	addr_t clock_base = (addr_t)env.rm().attach(io_clock.dataspace());
 	Clocks c(clock_base);
 
 	/* reset TLL */
-	Io_mem_connection io_tll(TLL_BASE, 0x1000);
-	addr_t tll_base = (addr_t)env()->rm_session()->attach(io_tll.dataspace());
+	Io_mem_connection io_tll(env, TLL_BASE, 0x1000);
+	addr_t tll_base = (addr_t)env.rm().attach(io_tll.dataspace());
 	Tll t(tll_base);
 
 	/* reset host */
-	Io_mem_connection io_uhh(UHH_BASE, 0x1000);
-	addr_t uhh_base = (addr_t)env()->rm_session()->attach(io_uhh.dataspace());
+	Io_mem_connection io_uhh(env, UHH_BASE, 0x1000);
+	addr_t uhh_base = (addr_t)env.rm().attach(io_uhh.dataspace());
 	Uhh uhh(uhh_base);
 
 	/* enable hub power */
@@ -270,7 +270,7 @@ static void omap_ehci_init()
 
 	addr_t base[] = { scrm_base, clock_base, tll_base, uhh_base, 0 };
 	for (int i = 0; base[i]; i++)
-		env()->rm_session()->detach(base[i]);
+		env.rm().detach(base[i]);
 }
 
 
@@ -293,7 +293,7 @@ void platform_hcd_init(Services *services)
 	module_ehci_omap_init();
 
 	/* initialize EHCI */
-	omap_ehci_init();
+	omap_ehci_init(services->env);
 
 	/* setup EHCI-controller platform device */
 	platform_device *pdev = (platform_device *)kzalloc(sizeof(platform_device), 0);
@@ -314,7 +314,7 @@ void platform_hcd_init(Services *services)
 	static u64 dma_mask = ~(u64)0;
 	pdev->dev.dma_mask = &dma_mask;
 	pdev->dev.coherent_dma_mask = ~0;
-	PDBG("register platform device");
+
 	platform_device_register(pdev);
 }
 

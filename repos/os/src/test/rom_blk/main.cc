@@ -15,7 +15,7 @@
  */
 
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/exception.h>
 #include <base/thread.h>
@@ -58,10 +58,11 @@ class Comparer : public Genode::Thread_deprecated<8192>
 			_blk_con.info(&blk_cnt, &blk_size, &ops);
 
 			if (!ops.supported(Block::Packet_descriptor::READ)) {
-				PERR("Block device not readable!");
+				error("Block device not readable!");
 			}
 
-			PINF("We have %llu blocks with a size of 0x%zx bytes", blk_cnt, blk_size);
+			log("We have ", blk_cnt, " blocks with a "
+			    "size of ", Hex(blk_size), " bytes");
 
 			for (size_t i = 0; i < blk_cnt; i += BLOCK_REQ_PARALLEL) {
 				try {
@@ -74,7 +75,7 @@ class Comparer : public Genode::Thread_deprecated<8192>
 					p = source->get_acked_packet();
 
 					if (!p.succeeded()) {
-						PERR("Could not read block %zx-%zx", i, i+cnt);
+						error("could not read block ", Hex(i), "-", Hex(i + cnt));
 						return;
 					}
 
@@ -84,23 +85,23 @@ class Comparer : public Genode::Thread_deprecated<8192>
 					for (size_t j = 0; j < cnt; j++)
 						for (size_t k = 0; k < blk_size; k++) {
 							if (&rom_src[j*blk_size+k] >= (char*)end) {
-								PERR("End of image file reached!");
+								error("end of image file reached!");
 								return;
 							}
 							if (blk_src[j*blk_size+k] != rom_src[j*blk_size+k])
 								differ = true;
 						}
 					if (differ) {
-						PWRN("block %zx differs!", i);
+						warning("block ", i, " differs!");
 						throw Block_file_differ();
 					}
 					source->release_packet(p);
 				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-					PERR("Mmh, strange we run out of packets");
+					error("Mmh, strange we run out of packets");
 					return;
 				}
 			}
-			PINF("all done, finished!");
+			log("all done, finished!");
 		}
 };
 
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	PINF("--- Block session test ---\n");
+	log("--- Block session test ---");
 
 	try {
 		static char filename[64];
@@ -119,8 +120,8 @@ int main(int argc, char **argv)
 		th.start();
 		sleep_forever();
 	} catch (Rom_connection::Rom_connection_failed) {
-		PERR("Config file or file given by <filename> tag is missing.");
+		error("config file or file given by <filename> tag is missing.");
 	}
-	PINF("An error occured, exit now ...");
+	log("An error occured, exit now ...");
 	return -1;
 }

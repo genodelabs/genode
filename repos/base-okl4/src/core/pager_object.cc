@@ -14,6 +14,9 @@
 /* core includes */
 #include <pager.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
 #include <l4/message.h>
@@ -40,7 +43,7 @@ void Pager_object::wake_up()
 	L4_LoadMR(1, 0);                    /* fault address */
 	L4_LoadMR(2, (unsigned long)this);  /* instruction pointer */
 
-	L4_Call(cap().dst());
+	L4_Call(Capability_space::ipc_cap_data(cap()).dst);
 }
 
 

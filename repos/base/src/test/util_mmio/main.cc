@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -153,22 +153,6 @@ struct Test_mmio : public Mmio
 
 
 /**
- * Print out memory content hexadecimal
- */
-void dump_mem(uint8_t * base, size_t size)
-{
-	addr_t top = (addr_t)base + size;
-	bool print_separator = 0;
-	for(; (addr_t)base < top;) {
-		if (print_separator) { printf("-"); }
-		else { print_separator = 1; }
-		printf("%1x%1x", (*(uint8_t *)base) & 0xf, *(uint8_t *)base >> 4);
-		base = (uint8_t *)((addr_t)base + sizeof(uint8_t));
-	}
-}
-
-
-/**
  * Zero-fill memory region
  */
 void zero_mem(uint8_t * base, size_t size)
@@ -199,13 +183,7 @@ int compare_mem(uint8_t * base1, uint8_t * base2, size_t size)
 /**
  * End a failed test
  */
-void error(unsigned line)
-{
-	printf("Test in line %i failed\n", line);
-	printf("  mmio_mem:  hex ");
-	dump_mem(mmio_mem, sizeof(mmio_mem));
-	printf("\n  cpu_state: 0x%4X\n", cpu_state);
-}
+void error(unsigned line) { error("Test in line ", line, " failed"); }
 
 
 int main()
@@ -486,7 +464,7 @@ int main()
 		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { error(__LINE__); }
 	}
 
-	printf("Test done\n");
+	log("Test done");
 	return 0;
 }
 

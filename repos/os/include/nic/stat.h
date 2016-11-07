@@ -29,7 +29,7 @@ class Nic::Measurement
 
 		Timer::Connection &_timer;
 
-		Net::Ethernet_frame::Mac_address _mac;
+		Net::Mac_address _mac;
 
 		struct stat
 		{

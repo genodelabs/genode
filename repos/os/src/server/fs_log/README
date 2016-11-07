@@ -9,6 +9,9 @@ through session policy, as well the option to merge the logs of any
 session matching a given policy. When a merged policy label contains a
 trailing "->", the log filename takes the name of the next label element.
 
+When a default-policy node specifies a merge, all sessions are merged into
+the file "/log".
+
 :Example configuration:
 ! <start name="log_file">
 !   <resource name="RAM" quantum="1M"/>
@@ -16,7 +19,7 @@ trailing "->", the log filename takes the name of the next label element.
 !   <config>
 !     <policy label="nic_drv" truncate="no"/>
 !     <policy label_prefix="cli_monitor -> " merge="yes"/>
-!     <policy truncate="yes"/>
+!     <default-policy truncate="yes"/>
 !   </config>
 ! </start>
 

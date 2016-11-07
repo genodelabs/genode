@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,11 +17,13 @@
 #include <root/component.h>
 #include <dataspace/client.h>
 #include <base/rpc_server.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/sleep.h>
+#include <base/heap.h>
 #include <os/config.h>
 #include <timer_session/connection.h>
+#include <base/session_label.h>
 
 volatile int dummy;
 
@@ -78,12 +80,12 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 
 		Rom_session_component *_create_session(const char *args)
 		{
-			enum { FILENAME_MAX_LEN = 128 };
-			char filename[FILENAME_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "filename").string(filename, sizeof(filename), "");
+			Genode::Session_label const label = Genode::label_from_args(args);
+			Genode::Session_label const name  = label.last_element();
 
 			/* create new session for the requested file */
-			return new (md_alloc()) Rom_session_component(filename);
+			return new (md_alloc())
+				Rom_session_component(name.string());
 		}
 
 	public:
@@ -124,10 +126,10 @@ int main(int argc, char **argv)
 
 			try {
 				Rom_connection rom(name);
-				PINF("prefetching ROM file  %s", name);
+				log("prefetching ROM module ", Cstring(name));
 				prefetch_dataspace(rom.dataspace());
 			} catch (...) {
-				PERR("could not open ROM file %s", name);
+				error("could not open ROM module ", Cstring(name));
 			}
 
 			/* proceed with next XML node */

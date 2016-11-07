@@ -20,7 +20,15 @@
 /* VirtualBox includes */
 #include <VBox/vmm/vm.h>
 #include <VBox/vmm/gvmm.h>
+#include <VBox/com/ptr.h>
 #include <iprt/param.h>
+
+#if VBOX_VERSION_MAJOR == 4
+#include "MachineImpl.h"
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine);
+
+HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
+#endif
 
 /**
  * Returns true if a vCPU could be started. If false we run without
@@ -31,7 +39,8 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
-                     unsigned int cpu_id);
+                     unsigned int cpu_id,
+                     const char * name);
 
 
 uint64_t genode_cpu_hz();

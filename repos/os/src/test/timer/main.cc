@@ -12,12 +12,12 @@
  */
 
 #include <util/list.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <timer_session/connection.h>
 
-enum { STACK_SIZE = 4096 };
+enum { STACK_SIZE = 1024*sizeof(long) };
 
 class Timer_client : public Genode::List<Timer_client>::Element,
                      Timer::Connection, Genode::Thread_deprecated<STACK_SIZE>
@@ -113,7 +113,7 @@ extern "C" int usleep(unsigned long usec);
 
 int main(int argc, char **argv)
 {
-	printf("--- timer test ---\n");
+	log("--- timer test ---");
 
 	static Genode::List<Timer_client> timer_clients;
 	static Timer::Connection main_timer;
@@ -126,9 +126,9 @@ int main(int argc, char **argv)
 		/* will get destructed at the end of the current scope */
 		Timer_stressful_client stressful_client(250*1000);
 
-		printf("register two-seconds timeout...\n");
+		log("register two-seconds timeout...");
 		main_timer.msleep(2000);
-		printf("timeout fired\n");
+		log("timeout fired");
 	}
 
 	/* check periodic timeouts */
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 	main_timer.sigh(sig);
 	enum { PTEST_TIME_US = 2000000 };
 	unsigned period_us = 500000, periods = PTEST_TIME_US / period_us, i = 0;
-	printf("start periodic timeouts\n");
+	log("start periodic timeouts");
 	for (unsigned j = 0; j < 5; j++) {
 		unsigned elapsed_ms = main_timer.elapsed_ms();
 		main_timer.trigger_periodic(period_us);
@@ -152,12 +152,13 @@ int main(int argc, char **argv)
 		unsigned const max_err_us = max_us / 100;
 		unsigned const max_ms     = (max_us + max_err_us) / 1000;
 		if (min_ms > elapsed_ms || max_ms < elapsed_ms) {
-			PERR("Timing %u ms period %u times failed: %u ms (min %u, max %u)",
-			     period_us / 1000, i, elapsed_ms, min_ms, max_ms);
+			error("timing ", period_us / 1000, " ms "
+			      "period ", i, " times failed: ",
+			      elapsed_ms, " ms (min ", min_ms, ", max ", max_ms, ")");
 			return -1;
 		}
-		printf("Done %u ms period %u times: %u ms (min %u, max %u)\n",
-		       period_us / 1000, i, elapsed_ms, min_ms, max_ms);
+		log("Done ", period_us / 1000, " ms period ", i, " times: ",
+		    elapsed_ms, " ms (min ", min_ms, ", max ", max_ms, ")");
 		i = 0, period_us /= 2, periods = PTEST_TIME_US / period_us;
 	}
 
@@ -171,7 +172,7 @@ int main(int argc, char **argv)
 	enum { SECONDS_TO_WAIT = 10 };
 	for (unsigned i = 0; i < SECONDS_TO_WAIT; i++) {
 		main_timer.msleep(1000);
-		printf("wait %d/%d\n", i + 1, SECONDS_TO_WAIT);
+		log("wait ", i + 1, "/", (int)SECONDS_TO_WAIT);
 	}
 
 	/* stop all timers */
@@ -180,10 +181,11 @@ int main(int argc, char **argv)
 
 	/* print statistics about each timer client */
 	for (Timer_client *curr = timer_clients.first(); curr; curr = curr->next())
-		printf("timer (period %ld ms) triggered %ld times -> slept %ld ms\n",
-		       curr->period_msec(), curr->cnt(), curr->period_msec()*curr->cnt());
+		log("timer (period ", curr->period_msec(), " ms) "
+		    "triggered ", curr->cnt(), " times -> "
+		    "slept ", curr->period_msec()*curr->cnt(), " ms");
 
-	printf("--- timer test finished ---\n");
+	log("--- timer test finished ---");
 	Genode::sleep_forever();
 
 	return 0;

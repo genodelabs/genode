@@ -62,7 +62,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
-			<policy report="usb_drv -> devices"/>
+			<default-policy report="usb_drv -> devices"/>
 		</config>
 	</start>
 	<start name="usb_drv">
@@ -73,21 +73,23 @@ append config {
 				<report devices="no"/>}
 append_if [expr !$use_qemu] config  {
 				<!--
-					The order is important because the first policy always matches.
+					The order is important because only the first policy is
+					picked up - an entry may be moved to the front to test the
+					corresponding device.
 				 -->
 				<!-- zte open c needs interface="3" -->
-				<policy vendor="0x19d2" product="0x1350"/>
+				<default-policy vendor="0x19d2" product="0x1350"/>
 				<!-- kingston -->
-				<policy vendor="0x0951" product="0x1666"/>
+				<default-policy vendor="0x0951" product="0x1666"/>
 				<!-- voyager gt stick -->
-				<policy vendor="0x1b1c" product="0x1a09"/>
+				<default-policy vendor="0x1b1c" product="0x1a09"/>
 				<!-- usb3 hdd adapter -->
-				<policy vendor="0x174c" product="0x5106"/>
+				<default-policy vendor="0x174c" product="0x5106"/>
 				<!-- lenovo disc -->
-				<policy vendor="0x0984" product="0x0066"/>
+				<default-policy vendor="0x0984" product="0x0066"/>
 }
 append_if $use_qemu config {
-				<policy bus="0x001" dev="0x002"/> }
+				<default-policy bus="0x001" dev="0x002"/> }
 append config {
 			</raw>
 		</config>

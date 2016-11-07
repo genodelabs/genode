@@ -98,7 +98,7 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-iso" exited with exit value 0.*\n} 60
+run_genode_until {child .* exited with exit value 0.*\n} 60
 
 # pay only attention to the output of init and its children
 grep_output {^\[init -> test-iso}

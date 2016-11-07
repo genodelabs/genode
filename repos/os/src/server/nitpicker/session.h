@@ -196,17 +196,17 @@ class Session : public Session_list::Element
 		 * Select the policy that matches the label. If multiple policies
 		 * match, select the one with the largest number of characters.
 		 */
-		void apply_session_policy(Domain_registry const &domain_registry)
+		void apply_session_policy(Genode::Xml_node config,
+		                          Domain_registry const &domain_registry)
 		{
 			reset_domain();
 
 			try {
-				Genode::Session_policy policy(_label);
+				Genode::Session_policy policy(_label, config);
 
 				/* read domain attribute */
 				if (!policy.has_attribute("domain")) {
-					PERR("policy for label \"%s\" lacks domain declaration",
-					     _label.string());
+					Genode::error("policy for label \"", _label, "\" lacks domain declaration");
 					return;
 				}
 
@@ -221,10 +221,11 @@ class Session : public Session_list::Element
 				_domain = domain_registry.lookup(name);
 
 				if (!_domain)
-					PERR("policy for label \"%s\" specifies nonexistent domain \"%s\"",
-					     _label.string(), name.string());
+					Genode::error("policy for label \"", _label,
+					              "\" specifies nonexistent domain \"", name, "\"");
 
-			} catch (...) { PERR("no policy matching label \"%s\"", _label.string()); }
+			} catch (...) {
+				Genode::error("no policy matching label \"", _label, "\""); }
 		}
 };
 

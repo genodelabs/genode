@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 
@@ -126,7 +126,7 @@ void net_mac(void* mac, unsigned long size)
 {
 	enum { MAC_LEN = 17, ETH_ALEN = 6, };
 
-	unsigned char str[MAC_LEN + 1];
+	char str[MAC_LEN + 1];
 	using namespace Genode;
 
 	Nic::Mac_address m = _nic_client->nic()->mac_address();
@@ -140,7 +140,7 @@ void net_mac(void* mac, unsigned long size)
 	}
 	str[MAC_LEN] = 0;
 
-	PINF("Received mac: %s", str);
+	Genode::log("Received mac: ", Cstring(str));
 }
 
 

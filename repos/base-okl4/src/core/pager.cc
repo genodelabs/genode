@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <ipc_pager.h>
@@ -21,6 +21,8 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/native_utcb.h>
+#include <base/internal/capability_space_tpl.h>
 
 namespace Okl4 { extern "C" {
 #include <l4/message.h>
@@ -42,11 +44,11 @@ using namespace Okl4;
 static inline void print_page_fault(L4_Word_t type, L4_Word_t addr, L4_Word_t ip,
                                     unsigned long badge)
 {
-	printf("page (%s%s%s) fault at fault_addr=%lx, fault_ip=%lx, from=%lx\n",
-	       type & L4_Readable   ? "r" : "-",
-	       type & L4_Writable   ? "w" : "-",
-	       type & L4_eXecutable ? "x" : "-",
-	       addr, ip, badge);
+	log("page (",
+	    type & L4_Readable   ? "r" : "-",
+	    type & L4_Writable   ? "w" : "-",
+	    type & L4_eXecutable ? "x" : "-",
+	    ") fault at fault_addr=, ", Hex(addr), ", ip=", Hex(ip), ", from=", badge);
 }
 
 
@@ -104,9 +106,9 @@ void Ipc_pager::wait_for_fault()
 		L4_StoreMR(1, &_fault_ip);
 
 		if (verbose_exception)
-			PERR("Exception (label 0x%x) occured in space %d at IP 0x%p",
-			     (int)L4_Label(_faulter_tag), (int)L4_SenderSpace().raw,
-			     (void *)_fault_ip);
+			error("exception (label ", Hex(L4_Label(_faulter_tag)), ") occured, "
+			      "space=", Hex(L4_SenderSpace().raw), ", "
+			      "ip=",    Hex(_fault_ip));
 	}
 
 	/* page fault */
@@ -131,8 +133,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	                                _reply_mapping.phys_desc());
 
 	if (ret != 1)
-		PERR("L4_MapFpage returned %d, error_code=%d",
-		     ret, (int)L4_ErrorCode());
+		error("L4_MapFpage returned ", ret, ", error=", L4_ErrorCode());
 
 	/* reply to page-fault message to resume the faulting thread */
 	acknowledge_wakeup();
@@ -155,5 +156,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Untyped_capability(native_thread().l4id, badge);
+	return Capability_space::import(native_thread().l4id, Rpc_obj_key(badge));
 }

@@ -1,6 +1,3 @@
-SRC_CC += pager.cc
-
-INC_DIR = $(REP_DIR)/src/core/include \
-          $(BASE_DIR)/src/include
+include $(REP_DIR)/lib/mk/core.inc
 
 vpath %.cc $(REP_DIR)/src/core/spec/x86_64

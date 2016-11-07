@@ -35,7 +35,7 @@ Vbox_pointer::String Vbox_pointer::read_string_attribute(Genode::Xml_node const 
 	try {
 		char buf[String::capacity()];
 		node.attribute(attr).value(buf, sizeof(buf));
-		return String(buf);
+		return String(Genode::Cstring(buf));
 	} catch (...) { return default_value; }
 }
 

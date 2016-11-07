@@ -96,15 +96,15 @@ class Terminal::Decoder
 
 				void _dump() const
 				{
-					Genode::printf("--- escape stack follows ---\n");
+					Genode::log("--- escape stack follows ---");
 					for (int i = 0; i < _index; i++) {
 						int type = _entries[i].type;
 						int value = _entries[i].value;
-						Genode::printf("%s %d (0x%x '%c')\n",
-						               type == Entry::INVALID ? " INVALID" :
-						               type == Entry::NUMBER  ? " NUMBER "
-						                                      : " CODE   ",
-						               value, value, value);
+						Genode::log(type == Entry::INVALID ? " INVALID" :
+						            type == Entry::NUMBER  ? " NUMBER "
+						                                   : " CODE   ",
+						            " ", value, " ",
+						            "(", Genode::Hex(value), ")");
 					}
 				}
 
@@ -117,7 +117,7 @@ class Terminal::Decoder
 				void push(Entry const &entry)
 				{
 					if (_index == MAX_ENTRIES - 1) {
-						Genode::printf("Error: escape stack overflow\n");
+						Genode::error("escape stack overflow");
 						_dump();
 						reset();
 						return;
@@ -392,7 +392,7 @@ class Terminal::Decoder
 				 * Currently returning true w/o actually handling the
 				 * sequence
 				 */
-				PDBG("Sequence '[%d;%d;%d%c' is not implemented", p1, p2, p3, command);
+				Genode::warning("Sequence '[", p1, ";", p2, ";", p3, "m' is not implemented");
 				return true;
 			default: return false;
 			}

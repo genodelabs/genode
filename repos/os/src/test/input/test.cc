@@ -5,14 +5,15 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <timer_session/connection.h>
 #include <input_session/connection.h>
 #include <input/event.h>
@@ -37,50 +38,75 @@ static char const * ev_type(Input::Event::Type type)
 }
 
 
-static char const * key_name(Input::Event *ev)
+static char const * key_name(Input::Event const &ev)
 {
-	if (ev->type() == Input::Event::MOTION)
+	if (ev.type() == Input::Event::MOTION)
 		return "";
 
-	return Input::key_name(static_cast<Input::Keycode>(ev->code()));
+	return Input::key_name(static_cast<Input::Keycode>(ev.code()));
 }
 
 
-int main(int argc, char **argv)
+class Test_environment
 {
-	/*
-	 * Init sessions to the required external services
-	 */
-	static Input::Connection input;
-	static Timer::Connection timer;
+	private:
 
-	PLOG("--- Input test is up ---");
+		Genode::Env &_env;
 
-	Input::Event *ev_buf = (env()->rm_session()->attach(input.dataspace()));
+		Input::Connection _input;
 
-	PLOG("input buffer at %p", ev_buf);
+		Genode::Signal_handler<Test_environment> _input_sigh;
 
+		unsigned int event_count = 0;
+
+		void _handle_input();
+
+	public:
+
+		Test_environment(Genode::Env &env)
+		: _env(env),
+		  _input_sigh(env.ep(), *this, &Test_environment::_handle_input)
+		{
+			log("--- Input test is up ---");
+
+			_input.sigh(_input_sigh);
+		}
+};
+
+
+void Test_environment::_handle_input()
+{
 	/*
 	 * Handle input events
 	 */
 	int key_cnt = 0;
-	while (1) {
-		/* poll input service every 20 ms */
-		while (!input.pending()) timer.msleep(20);
 
-		for (int i = 0, num_ev = input.flush(); i < num_ev; ++i) {
+	_input.for_each_event([&] (Input::Event const &ev) {
+		event_count++;
 
-			Input::Event *ev = &ev_buf[i];
+		if (ev.type() == Input::Event::PRESS)   key_cnt++;
+		if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
-			if (ev->type() == Input::Event::PRESS)   key_cnt++;
-			if (ev->type() == Input::Event::RELEASE) key_cnt--;
-
-			/* log event */
-			PLOG("Input event type=%s\tcode=%d\trx=%d\try=%d\tax=%d\tay=%d\tkey_cnt=%d\t%s",
-			     ev_type(ev->type()), ev->code(), ev->rx(), ev->ry(),
-			     ev->ax(), ev->ay(), key_cnt, key_name(ev));
-		}
-	}
-
-	return 0;
+		/* log event */
+		log("Input event #", event_count, "\t"
+		    "type=",         ev_type(ev.type()), "\t"
+		    "code=",         ev.code(),          "\t"
+		    "rx=",           ev.rx(),            "\t"
+		    "ry=",           ev.ry(),            "\t"
+		    "ax=",           ev.ax(),            "\t"
+		    "ay=",           ev.ay(),            "\t"
+		    "key_cnt=",      key_cnt, "\t", key_name(ev));
+	});
 }
+
+void Component::construct(Genode::Env &env)
+{
+	using namespace Genode;
+
+	log("--- Test input ---\n");
+	static Test_environment te(env);
+}
+
+
+Genode::size_t Component::stack_size() {
+	return 4*1024*sizeof(long); }

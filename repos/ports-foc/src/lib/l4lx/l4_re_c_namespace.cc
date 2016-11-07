@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 namespace Fiasco {
 #include <l4/re/c/namespace.h>
@@ -25,8 +25,10 @@ extern "C" {
 	long l4re_ns_query_srv(l4re_namespace_t srv, char const *name,
 	                       l4_cap_idx_t const cap)
 	{
-		PDBG("srv=%lx name=%s cap=%lx", srv, name, cap);
-		PWRN("%s: Not implemented yet!", __func__);
+		Genode::log(__func__, ": srv=", Genode::Hex(srv), " name=", name, " "
+		            "cap=", Genode::Hex(cap));
+
+		Genode::warning(__func__, " not implemented");
 		return 0;
 	}
 

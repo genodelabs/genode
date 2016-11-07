@@ -95,10 +95,10 @@ namespace Loader {
 			{
 				try {
 					char args[Session::Name::MAX_SIZE];
-					snprintf(args, sizeof(args), "ram_quota=4K, filename=\"%s\"", name);
+					snprintf(args, sizeof(args), "ram_quota=4K, label=\"%s\"", name);
 					return static_cap_cast<Rom_session>(_local_rom_service.session(args, Affinity()));
 				} catch (Genode::Parent::Service_denied) {
-					PERR("Lookup for ROM module \"%s\" failed", name);
+					Genode::error("Lookup for ROM module \"", name, "\" failed");
 					throw;
 				}
 			}

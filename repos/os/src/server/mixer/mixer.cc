@@ -39,7 +39,13 @@
 
 
 static bool verbose = false;
-#define PLOGV(...) do { if (verbose) PLOG(__VA_ARGS__); } while (0)
+
+template <typename... ARGS>
+static inline void logv(ARGS&&... args)
+{
+	if (verbose)
+		Genode::log(args...);
+}
 
 
 typedef Mixer::Channel Channel;
@@ -235,7 +241,7 @@ class Audio_out::Mixer
 						});
 					});
 				});
-			} catch (...) { PWRN("could report current channels"); }
+			} catch (...) { Genode::warning("could report current channels"); }
 		}
 
 		/*
@@ -426,12 +432,12 @@ class Audio_out::Mixer
 				v = default_node.attribute_value<long>("muted", 1);
 				_default_muted = v ;
 
-				PLOGV("default settings: out_volume: %d volume: %d muted: %d",
-				      (int)(MAX_VOLUME*_default_out_volume),
-				      (int)(MAX_VOLUME*_default_volume),
-				      _default_muted);
+				logv("default settings: "
+				     "out_volume: ", (int)(MAX_VOLUME*_default_out_volume), " "
+				     "volume: ",     (int)(MAX_VOLUME*_default_volume), " "
+				     "muted: ",      _default_muted);
 
-			} catch (...) { PWRN("could not read mixer default values"); }
+			} catch (...) { Genode::warning("could not read mixer default values"); }
 		}
 
 		/**
@@ -444,8 +450,7 @@ class Audio_out::Mixer
 			config()->reload();
 
 			Xml_node config_node = config()->xml_node();
-			try { verbose = config_node.attribute("verbose").has_value("yes"); }
-			catch (...) { verbose = false; }
+			verbose = config_node.attribute_value("verbose", verbose);
 
 			_set_default_config(config_node);
 
@@ -471,9 +476,10 @@ class Audio_out::Mixer
 								session.volume = (float)ch.volume / MAX_VOLUME;
 								session.muted  = ch.muted;
 
-								PLOGV("label: '%s' nr: %d vol: %d muted: %d",
-								      ch.label.string(), (int)ch.number,
-								      (int)(MAX_VOLUME*session.volume), ch.muted);
+								logv("label: '", ch.label, "' "
+								     "nr: ",     (int)ch.number, " "
+								     "vol: ",    (int)(MAX_VOLUME*session.volume), " "
+								     "muted: ",  ch.muted);
 							});
 						});
 					}
@@ -483,13 +489,14 @@ class Audio_out::Mixer
 
 							_out_volume[i] = (float)ch.volume / MAX_VOLUME;
 
-							PLOGV("label: '%s' nr: %d vol: %d muted: %d",
-							      "master", (int)ch.number,
-							      (int)(MAX_VOLUME*_out_volume[i]), ch.muted);
+							logv("label: 'master' "
+							     "nr: ",    (int)ch.number, " "
+							     "vol: ",   (int)(MAX_VOLUME*_out_volume[i]), " "
+							     "muted: ", ch.muted);
 						});
 					}
 				});
-			} catch (...) { PWRN("mixer channel_list was invalid"); }
+			} catch (...) { Genode::warning("mixer channel_list was invalid"); }
 
 			/*
 			 * Report back any changes so a front-end can update its state
@@ -558,10 +565,11 @@ class Audio_out::Mixer
 			session.volume = _default_volume;
 			session.muted  = _default_muted;
 
-			PLOG("add label: \"%s\" channel: \"%s\" nr: %u volume: %d muted: %d",
-			     session.label.string(), string_from_number(ch), ch,
-			     (int)(MAX_VOLUME*session.volume), session.muted);
-
+			log("add label: \"", session.label, "\" "
+			    "channel: \"",   string_from_number(ch), "\" "
+			    "nr: ",          (int)ch, " "
+			    "volume: ",      (int)(MAX_VOLUME*session.volume), " "
+			    "muted: %d",     session.muted);
 
 			_channels[ch].insert(&session);
 			_report_channels();
@@ -572,8 +580,9 @@ class Audio_out::Mixer
 		 */
 		void remove_session(Channel::Number ch, Session_elem &session)
 		{
-			PLOG("remove label: \"%s\" channel: \"%s\" nr: %u",
-			     session.label.string(), string_from_number(ch), ch);
+			log("remove label: \"", session.label, "\" "
+			    "channel: \"", string_from_number(ch), "\" "
+			    "nr: ", (int)ch);
 
 			_channels[ch].remove(&session);
 			_report_channels();
@@ -666,8 +675,8 @@ class Audio_out::Root : public Audio_out::Root_component
 
 			if ((ram_quota < session_size) ||
 			    (sizeof(Stream) > ram_quota - session_size)) {
-				PERR("insufficient 'ram_quota', got %zu, need %zu",
-				     ram_quota, sizeof(Stream) + session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
+				              "need ", sizeof(Stream) + session_size);
 				throw Root::Quota_exceeded();
 			}
 
@@ -715,7 +724,6 @@ struct Server::Main
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
 		Genode::env()->parent()->announce(ep.manage(root));
-		PINF("--- Mixer started ---");
 	}
 };
 

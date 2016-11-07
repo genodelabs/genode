@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__KERNEL__IRQ_H_
 
 /* Genode includes */
-#include <base/native_types.h>
 #include <irq_session/irq_session.h>
 #include <util/avl_tree.h>
 

@@ -40,6 +40,10 @@ void Pager_entrypoint::entry()
 				else
 					/* send reply if page-fault handling succeeded */
 					reply_pending = !obj->pager(_pager);
+					if (!reply_pending)
+						warning("page-fault, ", *obj,
+						        " ip=", Hex(_pager.fault_ip()),
+						        " pf-addr=", Hex(_pager.fault_addr()));
 			} else {
 
 				/*

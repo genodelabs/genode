@@ -97,7 +97,7 @@ class Framebuffer::Driver
 				_pwm.enable_display();
 				break;
 			default:
-				PERR("Unknown board revision!");
+				error("unknown board revision!");
 				return false;
 			}
 			return true;

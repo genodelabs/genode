@@ -23,4 +23,94 @@ append qemu_args "-nographic -m 64"
 
 run_genode_until {.*child "test-xml_node" exited with exit value 0.*\n} 10
 
-puts "Test succeeded"
+# pay only attention to the output of init and its children
+grep_output {^\[init \-\> test\-xml_node\]}
+trim_lines
+
+compare_output_to {
+[init -> test-xml_node] --- XML-token test ---
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="<"
+[init -> test-xml_node] token type="IDENT", len=6, content="config"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content=">"
+[init -> test-xml_node] token type="WHITESPACE", len=2, content="  "
+[init -> test-xml_node] token type="IDENT", len=9, content="sometext1"
+[init -> test-xml_node] token type="WHITESPACE", len=2, content="  "
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="<"
+[init -> test-xml_node] token type="IDENT", len=7, content="program"
+[init -> test-xml_node] token type="WHITESPACE", len=1, content=" "
+[init -> test-xml_node] token type="IDENT", len=4, content="attr"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="="
+[init -> test-xml_node] token type="STRING", len=6, content=""abcd""
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="/"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content=">"
+[init -> test-xml_node] token type="WHITESPACE", len=2, content="  "
+[init -> test-xml_node] token type="IDENT", len=9, content="sometext2"
+[init -> test-xml_node] token type="WHITESPACE", len=2, content="  "
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="<"
+[init -> test-xml_node] token type="IDENT", len=7, content="program"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content=">"
+[init -> test-xml_node] token type="IDENT", len=9, content="inProgram"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="<"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="/"
+[init -> test-xml_node] token type="IDENT", len=7, content="program"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content=">"
+[init -> test-xml_node] token type="WHITESPACE", len=2, content="  "
+[init -> test-xml_node] token type="IDENT", len=9, content="sometext3"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="<"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content="/"
+[init -> test-xml_node] token type="IDENT", len=6, content="config"
+[init -> test-xml_node] token type="SINGLECHAR", len=1, content=">"
+[init -> test-xml_node] --- XML-parser test ---
+[init -> test-xml_node] -- Test valid XML structure --
+[init -> test-xml_node] XML node: name = "config", number of subnodes = 3
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "init"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "16M"
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "timer"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "64K"
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "8M"
+[init -> test-xml_node] -- Test invalid XML structure (broken tag) --
+[init -> test-xml_node] XML node: name = "config", number of subnodes = 3
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "init"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "16M"
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "timer"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "64K"
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "8M"
+[init -> test-xml_node] -- Test invalid XML structure (truncated) --
+[init -> test-xml_node] string has invalid XML syntax
+[init -> test-xml_node] -- Test invalid XML structure (truncated comment) --
+[init -> test-xml_node] string has invalid XML syntax
+[init -> test-xml_node] -- Test invalid XML structure (unfinished string) --
+[init -> test-xml_node] string has invalid XML syntax
+[init -> test-xml_node] -- Test node access by key --
+[init -> test-xml_node] content of sub node "filename" = "init"
+[init -> test-xml_node] content of sub node "quota" = "16M"
+[init -> test-xml_node] sub node "info" is not defined
+[init -> test-xml_node] -- Test access to XML attributes --
+[init -> test-xml_node] XML node: name = "config", number of subnodes = 3
+[init -> test-xml_node]   attribute name="priolevels", value="4"
+[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[init -> test-xml_node]     XML node: name = "filename", leaf content = "init"
+[init -> test-xml_node]     XML node: name = "quota", leaf content = "16M"
+[init -> test-xml_node]   XML node: name = "single-tag", leaf content = ""
+[init -> test-xml_node]   XML node: name = "single-tag-with-attr", leaf content = ""
+[init -> test-xml_node]     attribute name="name", value="ein_name"
+[init -> test-xml_node]     attribute name="quantum", value="2K"
+[init -> test-xml_node] -- Test parsing XML with nodes mixed with text --
+[init -> test-xml_node] XML node: name = "config", number of subnodes = 2
+[init -> test-xml_node]   XML node: name = "program", leaf content = ""
+[init -> test-xml_node]     attribute name="attr", value="abcd"
+[init -> test-xml_node]   XML node: name = "program", leaf content = "inProgram"
+[init -> test-xml_node] -- Test parsing XML with comments --
+[init -> test-xml_node] XML node: name = "config", number of subnodes = 2
+[init -> test-xml_node]   XML node: name = "visible-tag", leaf content = ""
+[init -> test-xml_node]   XML node: name = "visible-tag", leaf content = ""
+[init -> test-xml_node] --- End of XML-parser test ---
+}

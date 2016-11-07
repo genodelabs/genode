@@ -42,7 +42,7 @@ clone_rom(Genode::Capability<Genode::Rom_dataspace> rom_cap)
 	Capability<Ram_dataspace> clone_cap = env()->ram_session()->alloc(rom_size);
 
 	if (!clone_cap.valid()) {
-		PERR("%s: memory allocation for cloned dataspace failed", __func__);
+		error(__func__, ": memory allocation for cloned dataspace failed");
 		return Capability<Ram_dataspace>();
 	}
 
@@ -93,11 +93,10 @@ class Gdb_monitor::Rom_root : public Root_component<Rom_session_component>
 
 		Rom_session_component *_create_session(char const *args)
 		{
-			enum { FILENAME_MAX_LEN = 128 };
-			char filename[FILENAME_MAX_LEN];
-			Arg_string::find_arg(args, "filename").string(filename, sizeof(filename), "");
+			Session_label const label = label_from_args(args);
 
-			return new (md_alloc()) Rom_session_component(filename);
+			return new (md_alloc())
+				Rom_session_component(label.last_element().string());
 		}
 
 	public:

@@ -89,7 +89,7 @@ void Rom_to_file::Main::_handle_update(unsigned)
 		rom_name = config()->xml_node().attribute_value("rom", rom_name);
 
 	} catch (...) {
-		PWRN("could not determine ROM name from config");
+		warning("could not determine ROM name from config");
 		return;
 	}
 
@@ -127,31 +127,31 @@ void Rom_to_file::Main::_handle_update(unsigned)
 				size_t written = write(_fs, handle, _rom_ds->local_addr<void>(), len, 0);
 
 				if (written < len) {
-					PWRN("%zu of %zu bytes have been written", written, len);
+					warning(written, " of ", len, " bytes have been written");
 				}
 
 				_fs.close(handle);
 			} catch (Permission_denied) {
-				PERR("%s%s: permission denied", dir_path, file_name);
+				error(Cstring(dir_path), file_name, ": permission denied");
 
 			} catch (No_space) {
-				PERR("file system out of space");
+				error("file system out of space");
 
 			} catch (Out_of_metadata) {
-				PERR("server ran out of memory");
+				error("server ran out of memory");
 
 			} catch (Invalid_name) {
-				PERR("%s%s: invalid path", dir_path, file_name);
+				error(Cstring(dir_path), file_name, ": invalid path");
 
 			} catch (Name_too_long) {
-				PERR("%s%s: name too long", dir_path, file_name);
+				error(Cstring(dir_path), file_name, ": name too long");
 
 			} catch (...) {
-				PERR("cannot open file %s%s", dir_path, file_name);
+				error("cannot open file ", Cstring(dir_path), file_name);
 				throw;
 			}
 		} else {
-			PLOG("ROM '%s' is invalid", _rom_name.string());
+			log("ROM '", _rom_name, "' is invalid");
 		}
 	}
 }

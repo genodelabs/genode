@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/native_types.h>
+#include <base/native_capability.h>
 #include <util/misc_math.h>
 
 /* core includes */
@@ -70,14 +70,14 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 
 		/* if it's no core-thread we have to map parent and pager gate cap */
 		if (!thread->core_thread())
-			_task.map(_task.local.dst());
+			_task.map(_task.local.data()->kcap());
 
 		/* inform thread about binding */
 		thread->bind(this);
 		return true;
 	}
 
-	PERR("thread alloc failed");
+	error("thread alloc failed");
 	return false;
 }
 
@@ -100,13 +100,13 @@ void Platform_pd::assign_parent(Native_capability parent)
 	if (_parent.remote == Fiasco::L4_INVALID_CAP && parent.valid()) {
 		_parent.local  = parent;
 		_parent.remote = PARENT_CAP;
-		_parent.map(_task.local.dst());
+		_parent.map(_task.local.data()->kcap());
 	}
 }
 
 
 Platform_pd::Platform_pd(Core_cap_index* i)
-: _task(Native_capability(i), TASK_CAP)
+: _task(Native_capability(*i), TASK_CAP)
 {
 	for (unsigned i = 0; i < THREAD_MAX; i++)
 		_threads[i] = (Platform_thread*) 0;
@@ -122,9 +122,9 @@ Platform_pd::Platform_pd(Allocator *, char const *)
 	l4_fpage_t utcb_area = l4_fpage(utcb_area_start(),
 	                                log2<unsigned>(UTCB_AREA_SIZE), 0);
 	l4_msgtag_t tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
-	                                         _task.local.dst(), utcb_area);
+	                                         _task.local.data()->kcap(), utcb_area);
 	if (l4_msgtag_has_error(tag))
-		PERR("pd creation failed");
+		error("pd creation failed");
 }
 
 

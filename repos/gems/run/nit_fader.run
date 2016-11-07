@@ -53,7 +53,7 @@ append config {
 			<domain name="default" layer="3" content="client" label="no" focus="click" hover="always" />
 
 			<policy label="pointer" domain="pointer"/>
-			<policy domain="default"/>
+			<default-policy domain="default"/>
 		</config>
 	</start>
 	<start name="pointer">

@@ -46,9 +46,7 @@ set config  {
 			</provides>
 			<config>
 				<policy label="test-uart1" uart="1"/>
-				<policy label="test-uart2" uart="2"/>
-				<policy label="test-uart3" uart="3"/>
-				<policy label="test-uart4" uart="1"/>
+				<policy label="test-uart2" uart="1"/>
 			</config>
 		</start>
 		<start name="test-uart1">
@@ -56,14 +54,6 @@ set config  {
 			<resource name="RAM" quantum="1M"/>
 		</start>
 		<start name="test-uart2">
-			<binary name="test-uart"/>
-			<resource name="RAM" quantum="1M"/>
-		</start>
-		<start name="test-uart3">
-			<binary name="test-uart"/>
-			<resource name="RAM" quantum="1M"/>
-		</start>
-		<start name="test-uart4">
 			<binary name="test-uart"/>
 			<resource name="RAM" quantum="1M"/>
 		</start>

@@ -126,6 +126,17 @@ static const char *xml_test_text_between_nodes =
 	"  sometext3"
 	"</config>";
 
+/* strange but valid XML comments */
+static const char *xml_test_comments =
+	"<config>"
+	"<visible-tag/>"
+	"<!---->"
+	"<!-- <invisible-tag/> -->"
+	"<!--<invisible-tag/>-->"
+	"<!--invisible-tag></invisible-tag-->"
+	"<visible-tag/>"
+	"</config>";
+
 
 /******************
  ** Test program **
@@ -157,7 +168,7 @@ static void print_xml_token_info(Token<SCANNER_POLICY> xml_token)
 {
 	static char content_buf[128];
 	xml_token.string(content_buf, sizeof(content_buf));
-	printf("token type=\"%s\", len=%zd, content=\"%s\"\n",
+	printf("token type=\"%s\", len=%ld, content=\"%s\"\n",
 	       token_type_string<SCANNER_POLICY>(xml_token.type()),
 	       xml_token.len(), content_buf);
 }
@@ -219,7 +230,7 @@ static void print_xml_node_info(Xml_node xml_node, int indent = 0)
 		xml_node.value(buf, sizeof(buf));
 		printf("leaf content = \"%s\"\n", buf);
 	} else
-		printf("number of subnodes = %zd\n",
+		printf("number of subnodes = %ld\n",
 		        xml_node.num_sub_nodes());
 
 	print_xml_attr_info(xml_node, indent + 2);
@@ -267,7 +278,7 @@ static void print_xml_info(const char *xml_string)
 int main()
 {
 	printf("--- XML-token test ---\n");
-        print_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
+	print_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
 
 	printf("--- XML-parser test ---\n");
 
@@ -297,6 +308,9 @@ int main()
 
 	printf("-- Test parsing XML with nodes mixed with text --\n");
 	print_xml_info(xml_test_text_between_nodes);
+
+	printf("-- Test parsing XML with comments --\n");
+	print_xml_info(xml_test_comments);
 
 	printf("--- End of XML-parser test ---\n");
 	return 0;

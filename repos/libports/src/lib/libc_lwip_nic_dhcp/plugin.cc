@@ -220,7 +220,7 @@ namespace {
 			{
 				switch (cmd) {
 					case F_GETFL: return context(fd)->status_flags();
-					default: PERR("fcntl(): command %d not supported", cmd); return -1;
+					default: Genode::error("fcntl(): command ", cmd, " not supported", cmd); return -1;
 				}
 			}
 	};

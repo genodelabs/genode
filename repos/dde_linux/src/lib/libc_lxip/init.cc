@@ -13,7 +13,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 #include <os/config.h>
 #include <util/string.h>
@@ -48,31 +48,33 @@ void __attribute__((constructor)) init_libc_lxip(void)
 		    (Genode::strlen(netmask_str) != 0) ||
 		    (Genode::strlen(gateway_str) != 0)) {
 			if (Genode::strlen(ip_addr_str) == 0) {
-				PERR("Missing \"ip_addr\" attribute. Ignoring network interface config.");
+				Genode::error("missing \"ip_addr\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			} else if (Genode::strlen(netmask_str) == 0) {
-				PERR("Missing \"netmask\" attribute. Ignoring network interface config.");
+				Genode::error("missing \"netmask\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			} else if (Genode::strlen(gateway_str) == 0) {
-				PERR("Missing \"gateway\" attribute. Ignoring network interface config.");
+				Genode::error("missing \"gateway\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			}
 		} else
 			throw -1;
 
-		PDBG("static network interface: ip_addr=%s netmask=%s gateway=%s ",
-		     ip_addr_str, netmask_str, gateway_str);
+		Genode::log("static network interface: ",
+		            "ip_addr=", Genode::Cstring(ip_addr_str), " "
+		            "netmask=", Genode::Cstring(netmask_str), " "
+		            "gateway=", Genode::Cstring(gateway_str));
 
 		Genode::snprintf(address_buf, sizeof(address_buf), "%s::%s:%s:::off",
 		                 ip_addr_str, gateway_str, netmask_str);
 		address_config = address_buf;
 	}
 	catch (...) {
-		PINF("Using DHCP for interface configuration.");
+		Genode::log("Using DHCP for interface configuration.");
 		address_config = "dhcp";
 	}
 
-	PDBG("init_libc_lxip() address config=%s\n", address_config);
+	Genode::log("init_libc_lxip() address config=", address_config);
 
 	create_lxip_plugin(address_config);
 }

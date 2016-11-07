@@ -91,7 +91,7 @@ append config {
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="File_system"/></provides>
 		<config fs="ext2fs">
-			<policy root="/" writeable="yes"/>
+			<default-policy root="/" writeable="yes"/>
 		</config>
 		<route>
 			<service name="Block"> <child name="rump_cgd"/> </service>

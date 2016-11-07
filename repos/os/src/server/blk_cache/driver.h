@@ -11,10 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <block_session/connection.h>
 #include <block/component.h>
 #include <os/packet_allocator.h>
+#include <os/server.h>
 
 #include "chunk.h"
 
@@ -114,8 +115,7 @@ class Driver : public Block::Driver
 
 	private:
 
-		static Driver                    *_instance;  /* singleton instance */
-
+		Genode::Env                      &_env;
 		Genode::Tslab<Request, SLAB_SZ>   _r_slab;    /* slab for requests  */
 		Genode::List<Request>             _r_list;    /* list of requests   */
 		Genode::Packet_allocator          _alloc;     /* packet allocator   */
@@ -124,9 +124,9 @@ class Driver : public Block::Driver
 		Genode::size_t                    _blk_sz;    /* block size         */
 		Block::sector_t                   _blk_cnt;   /* block count        */
 		Chunk_level_0                     _cache;     /* chunk hierarchy    */
-		Genode::Signal_rpc_member<Driver> _source_ack;
-		Genode::Signal_rpc_member<Driver> _source_submit;
-		Genode::Signal_rpc_member<Driver> _yield;
+		Genode::Signal_handler<Driver>    _source_ack;
+		Genode::Signal_handler<Driver>    _source_submit;
+		Genode::Signal_handler<Driver>    _yield;
 
 		Driver(Driver const&);            /* singleton pattern */
 		Driver& operator=(Driver const&); /* singleton pattern */
@@ -166,16 +166,17 @@ class Driver : public Block::Driver
 				write(r->cli.block_number(), r->cli.block_count(),
 				      r->buffer, r->cli);
 			} catch(Block::Driver::Request_congestion) {
-				PWRN("cli (%lld %zu) srv (%lld %zu)",
-					 r->cli.block_number(), r->cli.block_count(),
-					 r->srv.block_number(), r->srv.block_count());
+				Genode::warning("cli (", r->cli.block_number(), " ",
+				                         r->cli.block_count(), ") "
+				                "srv (", r->srv.block_number(), " ",
+				                         r->srv.block_count(), ")");
 			}
 		}
 
 		/*
 		 * Handle acknowledgements from the backend device
 		 */
-		void _ack_avail(unsigned)
+		void _ack_avail()
 		{
 			while (_blk.tx()->ack_avail()) {
 				Block::Packet_descriptor p = _blk.tx()->get_acked_packet();
@@ -204,7 +205,7 @@ class Driver : public Block::Driver
 		/*
 		 * Handle that the backend device is ready to receive again
 		 */
-		void _ready_to_submit(unsigned) { }
+		void _ready_to_submit() { }
 
 		/*
 		 * Setup a request to the backend device
@@ -215,7 +216,7 @@ class Driver : public Block::Driver
 		 */
 		void _request(Block::sector_t           block_number,
 		              Genode::size_t            block_count,
-					  char * const              buffer,
+		              char * const              buffer,
 		              Block::Packet_descriptor &packet)
 		{
 			Block::Packet_descriptor p_to_dev;
@@ -232,7 +233,7 @@ class Driver : public Block::Driver
 
 				/* it doesn't pay, we've to send a request to the device */
 				if (!_blk.tx()->ready_to_submit()) {
-					PWRN("not ready_to_submit");
+					Genode::warning("not ready_to_submit");
 					throw Request_congestion();
 				}
 
@@ -254,8 +255,8 @@ class Driver : public Block::Driver
 			} catch(Block::Session::Tx::Source::Packet_alloc_failed) {
 				throw Request_congestion();
 			} catch(Genode::Allocator::Out_of_memory) {
-				if (p_to_dev.valid()) /* clean up */
-					_blk.tx()->release_packet(p_to_dev);
+				/* clean up */
+				_blk.tx()->release_packet(p_to_dev);
 				throw Request_congestion();
 			}
 		}
@@ -279,7 +280,7 @@ class Driver : public Block::Driver
 					 */
 					off = e.off;
 					len = _blk_sz * _blk_cnt - off;
-					Server::wait_and_dispatch_one_signal();
+					_env.ep().wait_and_dispatch_one_signal();
 				}
 			}
 		}
@@ -312,7 +313,7 @@ class Driver : public Block::Driver
 		/*
 		 * Signal handler for yield requests of the parent
 		 */
-		void _parent_yield(unsigned)
+		void _parent_yield()
 		{
 			using namespace Genode;
 
@@ -322,33 +323,38 @@ class Driver : public Block::Driver
 
 			/* flush the requested amount of RAM from cache */
 			POLICY::flush(requested_ram_quota);
-			env()->parent()->yield_response();
+			_env.parent().yield_response();
 		}
+
+	public:
 
 		/*
 		 * Constructor
 		 *
 		 * \param ep  server entrypoint
 		 */
-		Driver(Server::Entrypoint &ep)
-		: _r_slab(Genode::env()->heap()),
-		  _alloc(Genode::env()->heap(), CACHE_BLK_SIZE),
+		Driver(Genode::Env &env, Genode::Heap &heap)
+		: _env(env),
+		  _r_slab(&heap),
+		  _alloc(&heap, CACHE_BLK_SIZE),
 		  _blk(&_alloc, Block::Session::TX_QUEUE_SIZE*CACHE_BLK_SIZE),
 		  _blk_sz(0),
 		  _blk_cnt(0),
-		  _cache(*Genode::env()->heap(), 0),
-		  _source_ack(ep, *this, &Driver::_ack_avail),
-		  _source_submit(ep, *this, &Driver::_ready_to_submit),
-		  _yield(ep, *this, &Driver::_parent_yield)
+		  _cache(heap, 0),
+		  _source_ack(env.ep(), *this, &Driver::_ack_avail),
+		  _source_submit(env.ep(), *this, &Driver::_ready_to_submit),
+		  _yield(env.ep(), *this, &Driver::_parent_yield)
 		{
+			using namespace Genode;
+
 			_blk.info(&_blk_cnt, &_blk_sz, &_ops);
 			_blk.tx_channel()->sigh_ack_avail(_source_ack);
 			_blk.tx_channel()->sigh_ready_to_submit(_source_submit);
-			Genode::env()->parent()->yield_sigh(_yield);
+			env.parent().yield_sigh(_yield);
 
 			if (CACHE_BLK_SIZE % _blk_sz) {
-				PERR("only devices that block size is divider of %x supported",
-				     CACHE_BLK_SIZE);
+				error("only devices that block size is divider of ",
+				      Hex(CACHE_BLK_SIZE, Hex::OMIT_PREFIX) ," supported");
 				throw Io_error();
 			}
 
@@ -356,26 +362,11 @@ class Driver : public Block::Driver
 			_cache.truncate(_blk_sz*_blk_cnt);
 		}
 
-	public:
-
 		~Driver()
 		{
 			/* when session gets closed, synchronize and flush the cache */
 			_sync();
 			POLICY::flush();
-		}
-
-		static Driver* instance(Server::Entrypoint &ep) {
-			_instance = new (Genode::env()->heap()) Driver(ep);
-			return _instance;
-		}
-
-		static Driver* instance() { return _instance; }
-
-		static void destroy()
-		{
-			Genode::destroy(Genode::env()->heap(), _instance);
-			_instance = 0;
 		}
 
 		Block::Session_client* blk()    { return &_blk;   }

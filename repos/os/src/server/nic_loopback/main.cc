@@ -58,7 +58,8 @@ class Nic::Loopback_component : public Nic::Session_component
 
 		Mac_address mac_address() override
 		{
-			Mac_address result = {{1,2,3,4,5,6}};
+			char buf[] = {1,2,3,4,5,6};
+			Mac_address result((void*)buf);
 			return result;
 		}
 
@@ -124,8 +125,8 @@ void Nic::Loopback_component::_handle_packet_stream()
 
 		/* obtain packet */
 		Packet_descriptor const packet_from_client = _tx.sink()->get_packet();
-		if (!packet_from_client.valid()) {
-			PWRN("received invalid packet");
+		if (!packet_from_client.size()) {
+			Genode::warning("received zero-size packet");
 			_rx.source()->release_packet(packet_to_client);
 			continue;
 		}
@@ -170,8 +171,8 @@ class Nic::Root : public Genode::Root_component<Loopback_component>
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
+				              "need ", tx_buf_size + rx_buf_size + session_size);
 				throw Root::Quota_exceeded();
 			}
 

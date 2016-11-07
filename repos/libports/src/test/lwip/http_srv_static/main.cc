@@ -18,10 +18,12 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <util/string.h>
 #include <nic/packet_allocator.h>
+#include <os/config.h>
+#include <base/snprintf.h>
 
 /* LwIP includes */
 extern "C" {
@@ -35,8 +37,11 @@ extern "C" {
 const static char http_html_hdr[] =
 	"HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n"; /* HTTP response header */
 
-const static char http_index_html[] =
-	"<html><head><title>Congrats!</title></head><body><h1>Welcome to our lwIP HTTP server!</h1><p>This is a small test page.</body></html>"; /* HTML page */
+enum { HTTP_INDEX_HTML_SZ = 1024 };
+
+static char http_index_html[HTTP_INDEX_HTML_SZ]; /* HTML page */
+
+using namespace Genode;
 
 
 /**
@@ -44,14 +49,15 @@ const static char http_index_html[] =
  *
  * \param conn  socket connected to the client
  */
-void http_server_serve(int conn) {
+void http_server_serve(int conn)
+{
 	char    buf[1024];
 	ssize_t buflen;
 
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = lwip_recv(conn, buf, 1024, 0);
-	PLOG("Packet received!");
+	log("Packet received!");
 
 	/* Ignore all receive errors */
 	if (buflen > 0) {
@@ -65,7 +71,7 @@ void http_server_serve(int conn) {
 			buf[3] == ' ' &&
 			buf[4] == '/' ) {
 
-			PLOG("Will send response");
+			log("Will send response");
 
 			/* Send http header */
 			lwip_send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
@@ -77,50 +83,104 @@ void http_server_serve(int conn) {
 }
 
 
+template <Genode::size_t N>
+static Genode::String<N> read_string_attribute(Genode::Xml_node node, char const *attr,
+                                               Genode::String<N> default_value)
+{
+	try {
+		char buf[N];
+		node.attribute(attr).value(buf, sizeof(buf));
+		return Genode::String<N>(Genode::Cstring(buf));
+	}
+	catch (...) {
+		return default_value; }
+}
+
+
 int main()
 {
+	using namespace Genode;
+
 	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
 	int s;
 
 	lwip_tcpip_init();
 
+	enum { ADDR_STR_SZ = 16 };
+
+	uint32_t ip = 0;
+	uint32_t nm = 0;
+	uint32_t gw = 0;
+	unsigned port = 0;
+
+	Xml_node libc_node = config()->xml_node().sub_node("libc");
+	String<ADDR_STR_SZ> ip_addr_str =
+		read_string_attribute<ADDR_STR_SZ>(libc_node, "ip_addr", String<ADDR_STR_SZ>());
+	String<ADDR_STR_SZ> netmask_str =
+		read_string_attribute<ADDR_STR_SZ>(libc_node, "netmask", String<ADDR_STR_SZ>());
+	String<ADDR_STR_SZ> gateway_str =
+		read_string_attribute<ADDR_STR_SZ>(libc_node, "gateway", String<ADDR_STR_SZ>());
+
+	try { libc_node.attribute("http_port").value(&port); }
+	catch(...) {
+		error("Missing \"http_port\" attribute.");
+		throw Xml_node::Nonexistent_attribute();
+	}
+
+	log("static network interface: ip=", ip_addr_str, " nm=", netmask_str, " gw=", gateway_str);
+
+	ip = inet_addr(ip_addr_str.string());
+	nm = inet_addr(netmask_str.string());
+	gw = inet_addr(gateway_str.string());
+
+	if (ip == INADDR_NONE || nm == INADDR_NONE || gw == INADDR_NONE) {
+		error("Invalid network interface config.");
+		throw -1;
+	}
+
 	/* Initialize network stack  */
-	if (lwip_nic_init(inet_addr("10.0.2.55"), inet_addr("255.255.255.0"),
-	                  inet_addr("10.0.2.1"), BUF_SIZE, BUF_SIZE)) {
-		PERR("We got no IP address!");
+	if (lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE)) {
+		error("got no IP address!");
 		return -1;
 	}
 
-	PLOG("Create new socket ...");
+	log("Create new socket ...");
 	if((s = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		PERR("No socket available!");
+		error("no socket available!");
 		return -1;
 	}
 
-	PLOG("Now, I will bind ...");
+	Genode::snprintf(
+		http_index_html, HTTP_INDEX_HTML_SZ,
+		"<html><head></head><body>"
+		"<h1>HTTP server at %s:%u</h1>"
+		"<p>This is a small test page.</body></html>",
+		ip_addr_str.string(), port);
+
+	log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
-	in_addr.sin_port = htons(80);
+	in_addr.sin_port = htons(port);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(lwip_bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		PERR("bind failed!");
+		error("bind failed!");
 		return -1;
 	}
 
-	PLOG("Now, I will listen ...");
+	log("Now, I will listen ...");
 	if(lwip_listen(s, 5)) {
-		PERR("listen failed!");
+		error("listen failed!");
 		return -1;
 	}
 
-	PLOG("Start the server loop ...");
+	log("Start the server loop ...");
 	while(true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
 		int client = lwip_accept(s, &addr, &len);
 		if(client < 0) {
-			PWRN("Invalid socket from accept!");
+			warning("invalid socket from accept!");
 			continue;
 		}
 		http_server_serve(client);

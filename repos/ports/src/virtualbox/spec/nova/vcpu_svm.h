@@ -37,7 +37,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 			if (utcb->qual[0] & 0x4) {
 				unsigned ctrl0 = utcb->ctrl[0];
 
-				Vmm::printf("invalid gueststate\n");
+				Vmm::warning("invalid gueststate");
 
 				utcb->ctrl[0] = ctrl0;
 				utcb->ctrl[1] = 0;
@@ -88,10 +88,10 @@ class Vcpu_handler_svm : public Vcpu_handler
 		                 void *(*start_routine) (void *), void *arg,
 		                 Genode::Cpu_session * cpu_session,
 		                 Genode::Affinity::Location location,
-		                 unsigned int cpu_id)
+		                 unsigned int cpu_id, const char * name)
 		:
 			Vcpu_handler(stack_size, attr, start_routine, arg, cpu_session,
-			             location, cpu_id)
+			             location, cpu_id, name)
 		{
 			using namespace Nova;
 

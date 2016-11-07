@@ -58,7 +58,7 @@ class Floating_window_layouter::Focus_history
 		{
 			Entry * const entry = _lookup(window_id);
 			if (!entry) {
-				PWRN("unexpected lookup failure for focus history entry");
+				Genode::warning("unexpected lookup failure for focus history entry");
 				return;
 			}
 

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2016 Genode Labs GmbH
  * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
@@ -127,7 +127,7 @@ void Launchpad::process_config()
 				enum { MAX_NAME_LEN = 128 };
 				char *filename = (char *)env()->heap()->alloc(MAX_NAME_LEN);
 				if (!filename) {
-					printf("Error: Out of memory while processing configuration\n");
+					Genode::error("out of memory while processing configuration");
 					return;
 				}
 				filename_attr.value(filename, MAX_NAME_LEN);
@@ -171,13 +171,12 @@ void Launchpad::process_config()
 				launcher_cnt++;
 
 			} catch (...) {
-				printf("Warning: Launcher entry %d is malformed.\n",
-				         launcher_cnt + 1);
+				Genode::warning("launcher entry ", launcher_cnt + 1, " is malformed");
 			}
 		else {
 			char buf[32];
 			node.type_name(buf, sizeof(buf));
-			printf("Warning: Ignoring unsupported tag <%s>.\n", buf);
+			Genode::warning("ignoring unsupported tag <", Genode::Cstring(buf), ">");
 		}
 	}
 }
@@ -187,22 +186,22 @@ Launchpad_child *Launchpad::start_child(const char *filename,
                                         unsigned long ram_quota,
                                         Genode::Dataspace_capability config_ds)
 {
-	printf("starting %s with quota %lu\n", filename, ram_quota);
+	Genode::log("starting ", filename, " with quota ", ram_quota);
 
 	/* find unique name for new child */
 	char unique_name[64];
 	_get_unique_child_name(filename, unique_name, sizeof(unique_name));
-	printf("using unique child name \"%s\"\n", unique_name);
+	Genode::log("using unique child name \"", Cstring(unique_name), "\"");
 
 	if (ram_quota > env()->ram_session()->avail()) {
-		PERR("Child's ram quota is higher than our available quota, using available quota");
+		Genode::error("child's ram quota is higher than our available quota, using available quota");
 		ram_quota = env()->ram_session()->avail() - 256*1000;
 	}
 
 	size_t metadata_size = 4096*16 + sizeof(Launchpad_child);
 
 	if (metadata_size > ram_quota) {
-		PERR("Too low ram_quota to hold child metadata");
+		Genode::error("too low ram_quota to hold child metadata");
 		return 0;
 	}
 
@@ -217,12 +216,13 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 		 * constructor of 'Rom_connection' throws a 'Parent::Service_denied'
 		 * exception.
 		 */
-		Rom_connection rom(filename, unique_name);
+		Rom_connection rom(prefixed_label(Session_label(Cstring(unique_name)),
+		                                  Session_label(filename)).string());
 		rom.on_destruction(Rom_connection::KEEP_OPEN);
 		rom_cap  = rom.cap();
 		file_cap = rom.dataspace();
 	} catch (...) {
-		printf("Error: Could not access file \"%s\" from ROM service.\n", filename);
+		Genode::error("could not access ROM module \"", filename, "\"");
 		return 0;
 	}
 
@@ -238,22 +238,22 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 
 	if (!ram.cap().valid() || !cpu.cap().valid()) {
 		if (ram.cap().valid()) {
-			PWRN("Failed to create CPU session");
+			Genode::warning("failed to create CPU session");
 			env()->parent()->close(ram.cap());
 		}
 		if (cpu.cap().valid()) {
-			PWRN("Failed to create RAM session");
+			Genode::warning("failed to create RAM session");
 			env()->parent()->close(cpu.cap());
 		}
 		env()->parent()->close(rom_cap);
-		PERR("Our quota is %zd", env()->ram_session()->quota());
+		Genode::log("our quota is ", env()->ram_session()->quota());
 		return 0;
 	}
 
 	Pd_connection pd;
 	pd.on_destruction(Pd_connection::KEEP_OPEN);
 	if (!pd.cap().valid()) {
-		PWRN("Failed to create PD session");
+		Genode::warning("failed to create PD session");
 		env()->parent()->close(ram.cap());
 		env()->parent()->close(cpu.cap());
 		env()->parent()->close(rom_cap);
@@ -274,9 +274,9 @@ Launchpad_child *Launchpad::start_child(const char *filename,
 
 		return c;
 	} catch (Cpu_session::Thread_creation_failed) {
-		PWRN("Failed to create child - Cpu_session::Thread_creation_failed");
+		Genode::warning("failed to create child - Cpu_session::Thread_creation_failed");
 	} catch (...) {
-		PWRN("Failed to create child - unknown reason");
+		Genode::warning("failed to create child - unknown reason");
 	}
 
 	env()->parent()->close(ram.cap());
@@ -324,7 +324,7 @@ class Child_destructor_thread : Thread_deprecated<2*4096>
 				try {
 					destroy(_curr_alloc, _curr_child);
 				} catch (Blocking_canceled) {
-					PERR("Suspicious cancellation");
+					Genode::error("suspicious cancellation");
 				}
 
 				_ready = true;
@@ -393,7 +393,7 @@ class Child_destructor_thread : Thread_deprecated<2*4096>
 					 * bit to proceed and reset the watchdog counter to give
 					 * the next blocking operation a chance to execute.
 					 */
-					cancel_blocking();
+					child->cancel_blocking();
 					_watchdog_cnt = 0;
 				}
 			}

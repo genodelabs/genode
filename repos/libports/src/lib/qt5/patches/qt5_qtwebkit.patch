@@ -6,14 +6,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 ---
  .../Source/JavaScriptCore/dfg/DFGOperations.cpp    |    1 +
  .../JavaScriptCore/jit/ExecutableAllocator.h       |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Assertions.h               |   11 ++++++++++
+ qtwebkit/Source/WTF/wtf/Assertions.h               |   11 +++++++++++
  qtwebkit/Source/WTF/wtf/FastMalloc.cpp             |    2 +-
  qtwebkit/Source/WTF/wtf/InlineASM.h                |    4 ++--
- qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 ++++++++++++
+ qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 +++++++++++++
  qtwebkit/Source/WTF/wtf/OSRandomSource.cpp         |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Platform.h                 |   19 +++++++++++++++---
- qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   12 +++++++++++
- qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   21 ++++++++++++++++++++
+ qtwebkit/Source/WTF/wtf/Platform.h                 |   19 ++++++++++++++++---
+ qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 +++++++++++++
+ qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   20 ++++++++++++++++++++
  .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
  11 files changed, 96 insertions(+), 6 deletions(-)
 
@@ -50,7 +50,7 @@ index 85779e6..231ba3b 100644
  static const size_t fixedExecutableMemoryPoolSize = 32 * 1024 * 1024;
  #endif
 diff --git a/qtwebkit/Source/WTF/wtf/Assertions.h b/qtwebkit/Source/WTF/wtf/Assertions.h
-index 7e079ab..cac10fc 100644
+index 7e079ab..2a54393 100644
 --- a/qtwebkit/Source/WTF/wtf/Assertions.h
 +++ b/qtwebkit/Source/WTF/wtf/Assertions.h
 @@ -50,6 +50,10 @@
@@ -58,7 +58,7 @@ index 7e079ab..cac10fc 100644
  #endif
  
 +#if OS(GENODE)
-+#include <base/printf.h>
++#include <base/log.h>
 +#endif
 +
  #ifdef NDEBUG
@@ -70,8 +70,8 @@ index 7e079ab..cac10fc 100644
       __builtin_trap())
 +#elif OS(GENODE)
 +#define CRASH() ( \
-+	PERR("WebKit CRASH in '%s'", WTF_PRETTY_FUNCTION), \
-+	PERR("  in %s:%d", __FILE__, __LINE__), \
++	Genode::error("WebKit CRASH in '", WTF_PRETTY_FUNCTION, "'"), \
++	Genode::error("  in ", __FILE__, ":", __LINE__), \
 +    *(int *)(uintptr_t)0xbbadbeef = 0, \
 +    ((void(*)())0)() /* More reliable, but doesn't say BBADBEEF */ \
 +)
@@ -152,7 +152,7 @@ index a2f6a79..be8fff9 100644
  
  } // namespace WTF
 diff --git a/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp b/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp
-index 0c1416a..5a10b3d 100644
+index 0c1416a..921ea54 100644
 --- a/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp
 +++ b/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp
 @@ -29,6 +29,10 @@
@@ -160,7 +160,7 @@ index 0c1416a..5a10b3d 100644
  #include <stdlib.h>
  
 +#if OS(GENODE)
-+#include <base/printf.h>
++#include <base/log.h>
 +#endif /* OS(GENODE) */
 +
  #if OS(UNIX)
@@ -171,7 +171,7 @@ index 0c1416a..5a10b3d 100644
  void cryptographicallyRandomValuesFromOS(unsigned char* buffer, size_t length)
  {
 +#if OS(GENODE)
-+	PWRN("cryptographicallyRandomValuesFromOS(): no strong source of randomness available");
++	Genode::warning("cryptographicallyRandomValuesFromOS(): no strong source of randomness available");
 +	return;
 +#endif /* OS(GENODE) */
  #if OS(UNIX)
@@ -236,7 +236,7 @@ index 35fa7e3..89e6205 100644
  
  /* Setting this flag compares JIT results with interpreter results. */
 diff --git a/qtwebkit/Source/WTF/wtf/StackBounds.cpp b/qtwebkit/Source/WTF/wtf/StackBounds.cpp
-index a272ce3..a2e7484 100644
+index a272ce3..65a5a1f 100644
 --- a/qtwebkit/Source/WTF/wtf/StackBounds.cpp
 +++ b/qtwebkit/Source/WTF/wtf/StackBounds.cpp
 @@ -44,6 +44,10 @@
@@ -250,7 +250,7 @@ index a272ce3..a2e7484 100644
  #elif OS(UNIX)
  
  #include <pthread.h>
-@@ -128,6 +132,14 @@ void StackBounds::initialize()
+@@ -128,6 +132,15 @@ void StackBounds::initialize()
      m_bound = estimateStackBound(m_origin);
  }
  
@@ -258,23 +258,23 @@ index a272ce3..a2e7484 100644
 +
 +void StackBounds::initialize()
 +{
-+    m_bound = Genode::Thread::myself()->stack_base();
-+    m_origin = Genode::Thread::myself()->stack_top();
++    Genode::Thread::Stack_info stack_info = Genode::Thread::mystack();
++    m_bound = (void*)stack_info.base;
++    m_origin = (void*)stack_info.top;
 +}
 +
  #elif OS(UNIX)
  
  void StackBounds::initialize()
 diff --git a/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp b/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp
-index f547085..07fc9b0 100644
+index f547085..3263f04 100644
 --- a/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp
 +++ b/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp
-@@ -49,6 +49,12 @@
+@@ -49,6 +49,11 @@
  #include <sys/mman.h>
  #endif
  
 +#if OS(GENODE)
-+#include <base/printf.h>
 +#include <base/stdint.h>
 +#include <util/misc_math.h>
 +#endif
@@ -282,7 +282,7 @@ index f547085..07fc9b0 100644
  #ifndef MAP_ANONYMOUS
  #define MAP_ANONYMOUS MAP_ANON
  #endif
-@@ -367,6 +373,21 @@ void* TCMalloc_SystemAlloc(size_t size, size_t *actual_size, size_t alignment) {
+@@ -367,6 +372,21 @@ void* TCMalloc_SystemAlloc(size_t size, size_t *actual_size, size_t alignment) {
      }
  #endif
  

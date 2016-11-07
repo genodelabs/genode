@@ -4,14 +4,10 @@
 # \date   2011-12-16
 #
 
-# set target name that this configuration applies to
-TARGET = test-cpu_scheduler
+TARGET   = test-cpu_scheduler
+SRC_CC   = test.cc cpu_scheduler.cc double_list.cc
+INC_DIR  = $(REP_DIR)/src/core/include $(BASE_DIR)/src/include
+LIBS     = base
 
-# library that provides the whole configuration
-LIBS += core
-
-# add C++ sources
-SRC_CC += kernel/test.cc
-
-# allow the test to use base-internal headers, i.e., page_size.h
-INC_DIR += $(BASE_DIR)/src/include
+vpath test.cc $(PRG_DIR)
+vpath %.cc    $(REP_DIR)/src/core/kernel

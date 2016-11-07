@@ -23,8 +23,6 @@ namespace Vfs { class Fs_file_system; }
 
 class Vfs::Fs_file_system : public File_system
 {
-	enum { verbose = false };
-
 	private:
 
 		/*
@@ -173,7 +171,6 @@ class Vfs::Fs_file_system : public File_system
 
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
-			dir_path.remove_trailing('/');
 
 			Absolute_path file_name(path);
 			file_name.keep_only_last_element();
@@ -256,7 +253,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Lookup_failed)   { return STAT_ERR_NO_ENTRY; }
 			catch (::File_system::Out_of_metadata) { return STAT_ERR_NO_PERM;  }
 
-			memset(&out, 0, sizeof(out));
+			out = Stat();
 
 			out.size = status.size;
 			out.mode = STAT_MODE_FILE | 0777;
@@ -340,7 +337,6 @@ class Vfs::Fs_file_system : public File_system
 		{
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
-			dir_path.remove_trailing('/');
 
 			Absolute_path file_name(path);
 			file_name.keep_only_last_element();
@@ -368,7 +364,6 @@ class Vfs::Fs_file_system : public File_system
 			 */
 			Absolute_path abs_path(path);
 			abs_path.strip_last_element();
-			abs_path.remove_trailing('/');
 
 			Absolute_path symlink_name(path);
 			symlink_name.keep_only_last_element();
@@ -397,14 +392,12 @@ class Vfs::Fs_file_system : public File_system
 
 			Absolute_path from_dir_path(from_path);
 			from_dir_path.strip_last_element();
-			from_dir_path.remove_trailing('/');
 
 			Absolute_path from_file_name(from_path);
 			from_file_name.keep_only_last_element();
 
 			Absolute_path to_dir_path(to_path);
 			to_dir_path.strip_last_element();
-			to_dir_path.remove_trailing('/');
 
 			Absolute_path to_file_name(to_path);
 			to_file_name.keep_only_last_element();
@@ -457,7 +450,6 @@ class Vfs::Fs_file_system : public File_system
 			 */
 			Absolute_path abs_path(to);
 			abs_path.strip_last_element();
-			abs_path.remove_trailing('/');
 
 			Absolute_path symlink_name(to);
 			symlink_name.keep_only_last_element();
@@ -528,7 +520,6 @@ class Vfs::Fs_file_system : public File_system
 
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
-			dir_path.remove_trailing('/');
 
 			Absolute_path file_name(path);
 			file_name.keep_only_last_element();
@@ -543,10 +534,6 @@ class Vfs::Fs_file_system : public File_system
 			}
 
 			bool const create = vfs_mode & OPEN_MODE_CREATE;
-
-			if (create)
-				if (verbose)
-					PDBG("creation of file %s requested", file_name.base() + 1);
 
 			try {
 				::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);

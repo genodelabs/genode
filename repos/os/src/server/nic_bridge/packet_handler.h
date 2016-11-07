@@ -46,7 +46,7 @@ class Net::Packet_handler
 		/**
 		 * submit queue not empty anymore
 		 */
-		void _ready_to_submit(unsigned);
+		void _ready_to_submit();
 
 		/**
 		 * acknoledgement queue not full anymore
@@ -54,12 +54,12 @@ class Net::Packet_handler
 		 * TODO: by now, we assume ACK and SUBMIT queue to be equally
 		 *       dimensioned. That's why we ignore this signal by now.
 		 */
-		void _ack_avail(unsigned) { }
+		void _ack_avail() { }
 
 		/**
 		 * acknoledgement queue not empty anymore
 		 */
-		void _ready_to_ack(unsigned);
+		void _ready_to_ack();
 
 		/**
 		 * submit queue not full anymore
@@ -67,24 +67,24 @@ class Net::Packet_handler
 		 * TODO: by now, we just drop packets that cannot be transferred
 		 *       to the other side, that's why we ignore this signal.
 		 */
-		void _packet_avail(unsigned) { }
+		void _packet_avail() { }
 
 		/**
 		 * the link-state of changed
 		 */
-		void _link_state(unsigned);
+		void _link_state();
 
 	protected:
 
-		Genode::Signal_rpc_member<Packet_handler> _sink_ack;
-		Genode::Signal_rpc_member<Packet_handler> _sink_submit;
-		Genode::Signal_rpc_member<Packet_handler> _source_ack;
-		Genode::Signal_rpc_member<Packet_handler> _source_submit;
-		Genode::Signal_rpc_member<Packet_handler> _client_link_state;
+		Genode::Signal_handler<Packet_handler> _sink_ack;
+		Genode::Signal_handler<Packet_handler> _sink_submit;
+		Genode::Signal_handler<Packet_handler> _source_ack;
+		Genode::Signal_handler<Packet_handler> _source_submit;
+		Genode::Signal_handler<Packet_handler> _client_link_state;
 
 	public:
 
-		Packet_handler(Server::Entrypoint&, Vlan&);
+		Packet_handler(Genode::Entrypoint&, Vlan&);
 
 		virtual Packet_stream_sink< ::Nic::Session::Policy>   * sink()   = 0;
 		virtual Packet_stream_source< ::Nic::Session::Policy> * source() = 0;

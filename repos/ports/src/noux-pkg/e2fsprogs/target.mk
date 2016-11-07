@@ -1,4 +1,4 @@
-NOUX_CONFIGURE_FLAGS = --disable-tls --enable-fsck
+CONFIGURE_FLAGS = --disable-tls --enable-fsck
 
 # NOTE: --sbindir=/bin is broken and the easist fix is patching configure
 #       directly and therefore is not used.
@@ -6,6 +6,6 @@ NOUX_CONFIGURE_FLAGS = --disable-tls --enable-fsck
 #
 # Needed for <sys/types.h>
 #
-NOUX_CFLAGS += -D__BSD_VISIBLE
+CFLAGS += -D__BSD_VISIBLE
 
 include $(REP_DIR)/mk/noux.mk

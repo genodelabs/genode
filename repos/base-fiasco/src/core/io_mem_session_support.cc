@@ -83,7 +83,8 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 		                      L4_IPC_NEVER, &result, &tag);
 
 		if (err || !l4_ipc_fpage_received(result)) {
-			PERR("%d %d", err, l4_ipc_fpage_received(result));
+			error("map_local failed err=", err, " "
+			      "(", l4_ipc_fpage_received(result), ")");
 			return 0;
 		}
 

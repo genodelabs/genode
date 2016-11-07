@@ -19,7 +19,6 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <base/printf.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
 
@@ -96,15 +95,6 @@ namespace Genode {
 
 	constexpr size_t get_super_page_size() { return L4_SUPERPAGESIZE; }
 	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
-
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long badge)
-	{
-		printf("%s (%s pf_addr=%p pf_ip=%p from %lx)\n", msg,
-		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
-		       (void *)pf_addr, (void *)pf_ip, badge);
-	}
 
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t phys_addr) {
 		return core_local_addr; }

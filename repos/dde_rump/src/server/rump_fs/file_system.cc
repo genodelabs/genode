@@ -13,12 +13,11 @@
 
 #include "file_system.h"
 
-#include <base/thread.h>
 #include <os/config.h>
 #include <rump_fs/fs.h>
-#include <timer_session/connection.h>
 #include <util/string.h>
 #include <util/hard_context.h>
+#include <base/log.h>
 
 /**
  * We define our own fs arg structure to fit all sizes, we assume that 'fspec'
@@ -61,9 +60,9 @@ static bool _check_type(char const *type)
 
 static void _print_types()
 {
-	PERR("fs types:");
-	for (int i = 0; fs_types[i]; i++)
-		PERR("\t%s", fs_types[i]);
+	Genode::error("fs types:");
+	for (int i = 0; fs_types[i]; ++i)
+		Genode::error("\t", fs_types[i]);
 }
 
 
@@ -88,52 +87,14 @@ static bool check_read_only()
 }
 
 
-class File_system::Sync : public Genode::Thread_deprecated<1024 * sizeof(Genode::addr_t)>
-{
-	private:
-
-		Timer::Connection               _timer;
-		Genode::Signal_rpc_member<Sync> _sync_dispatcher;
-
-		void _process_sync(unsigned)
-		{
-			/* sync through front-end */
-			rump_sys_sync();
-			/* sync Genode back-end */
-			rump_io_backend_sync();
-		}
-
-	protected:
-
-		void entry()
-		{
-			while (1) {
-				_timer.msleep(1000);
-				/* send sync request, this goes to server entry point thread  */
-				Genode::Signal_transmitter(_sync_dispatcher).submit();
-			}
-		}
-
-	public:
-
-		Sync(Server::Entrypoint &ep)
-		:
-			Thread_deprecated("rump_fs_sync"),
-			_sync_dispatcher(ep, *this, &Sync::_process_sync)
-		{
-				start(); 
-		}
-};
-
-
-void File_system::init(Server::Entrypoint &ep)
+void File_system::init()
 {
 	if (!_check_type(fs_type().string())) {
-		PERR("Invalid or no file system given (use \'<config fs=\"<fs type>\"/>)");
+		Genode::error("Invalid or no file system given (use \'<config fs=\"<fs type>\"/>)");
 		_print_types();
 		throw Genode::Exception();
 	}
-	PINF("Using %s as file system", fs_type().string());
+	Genode::log("Using ", fs_type().string(), " as file system");
 
 	/* start rump kernel */
 	rump_init();
@@ -147,14 +108,12 @@ void File_system::init(Server::Entrypoint &ep)
 
 	args.fspec =  (char *)GENODE_DEVICE;
 	if (rump_sys_mount(fs_type().string(), "/", opts, &args, sizeof(args)) == -1) {
-		PERR("Mounting '%s' file system failed (errno %u)", fs_type().string(), errno);
+		Genode::error("Mounting '", fs_type().string(), "' file system failed (errno ", errno, " )");
 		throw Genode::Exception();
 	}
 
 	/* check support for symlinks */
 	_supports_symlinks = check_symlinks();
-
-	new (Genode::env()->heap()) Sync(ep);
 }
 
 

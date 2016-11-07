@@ -32,7 +32,7 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 		return true;
 
 	/* look whether the IP address is one of our client's */
-	Ipv4_address_node *node = vlan().ip_tree()->first();
+	Ipv4_address_node *node = vlan().ip_tree.first();
 	if (node)
 		node = node->find_by_address(arp->dst_ip());
 	if (node) {
@@ -42,7 +42,7 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 			 * and destination MAC and IP addresses, and set the opcode
 			 * to reply, and then push the packet back to the NIC driver.
 			 */
-			Ipv4_packet::Ipv4_address old_src_ip = arp->src_ip();
+			Ipv4_address old_src_ip = arp->src_ip();
 			arp->opcode(Arp_packet::REPLY);
 			arp->dst_mac(arp->src_mac());
 			arp->src_mac(mac());
@@ -55,9 +55,9 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 			send(eth, size);
 		} else {
 			/* overwrite destination MAC */
-			arp->dst_mac(node->component()->mac_address().addr);
-			eth->dst(node->component()->mac_address().addr);
-			node->component()->send(eth, size);
+			arp->dst_mac(node->component().mac_address().addr);
+			eth->dst(node->component().mac_address().addr);
+			node->component().send(eth, size);
 		}
 		return false;
 	}
@@ -91,11 +91,11 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 					Genode::uint8_t *msg_type =	(Genode::uint8_t*) ext->value();
 					if (*msg_type == Dhcp_packet::DHCP_ACK) {
 						Mac_address_node *node =
-							vlan().mac_tree()->first();
+							vlan().mac_tree.first();
 						if (node)
 							node = node->find_by_address(dhcp->client_mac());
 						if (node)
-							node->component()->set_ipv4_address(dhcp->yiaddr());
+							node->component().set_ipv4_address(dhcp->yiaddr());
 					}
 				}
 			}
@@ -104,15 +104,15 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 
 	/* is it an unicast message to one of our clients ? */
 	if (eth->dst() == mac()) {
-		Ipv4_address_node *node = vlan().ip_tree()->first();
+		Ipv4_address_node *node = vlan().ip_tree.first();
 		if (node) {
 			node = node->find_by_address(ip->dst());
 			if (node) {
 				/* overwrite destination MAC */
-				eth->dst(node->component()->mac_address().addr);
+				eth->dst(node->component().mac_address().addr);
 
 				/* deliver the packet to the client */
-				node->component()->send(eth, size);
+				node->component().send(eth, size);
 				return false;
 			}
 		}
@@ -121,9 +121,9 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 }
 
 
-Net::Nic::Nic(Server::Entrypoint &ep, Net::Vlan &vlan)
+Net::Nic::Nic(Genode::Entrypoint &ep, Genode::Heap &heap, Net::Vlan &vlan)
 : Packet_handler(ep, vlan),
-  _tx_block_alloc(Genode::env()->heap()),
+  _tx_block_alloc(&heap),
   _nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE),
   _mac(_nic.mac_address().addr)
 {

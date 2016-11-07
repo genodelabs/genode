@@ -16,13 +16,14 @@
 #include <base/entrypoint.h>
 #include <base/lock.h>
 #include <base/signal.h>
-#include <os/config.h>
 #include <util/misc_math.h>
 
 #include <lx_emul.h>
 
+#include <lx_kit/env.h>
 #include <lx_kit/irq.h>
 #include <lx_kit/pci_dev_registry.h>
+#include <lx_kit/malloc.h>
 #include <lx_kit/mapped_io_mem_range.h>
 
 #include <lx_emul/impl/io.h>
@@ -60,8 +61,8 @@ class Pci_dev_list
 			 * 'Out_of_metadata' exception.
 			 */
 			auto handler = [&] () {
-				Genode::env()->parent()->upgrade(Lx::pci()->cap(),
-				                                 "ram_quota=4096"); };
+				Lx_kit::env().env().parent().upgrade(Lx::pci()->cap(),
+				                                               "ram_quota=4096"); };
 
 			/*
 			 * Obtain first device, the operation may exceed the session quota.
@@ -76,7 +77,7 @@ class Pci_dev_list
 			 */
 			while (cap.valid()) {
 
-				_pci_caps.insert(new (Genode::env()->heap()) Element(cap));
+				_pci_caps.insert(new (Lx::Malloc::mem()) Element(cap));
 
 				 /* try next one. Upgrade session * quota on demand.*/
 				auto attempt = [&] () {
@@ -144,7 +145,7 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 			return false;
 
 		/* create 'pci_dev' struct for matching device */
-		Lx::Pci_dev *pci_dev = new (env()->heap()) Lx::Pci_dev(cap);
+		Lx::Pci_dev *pci_dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
 
 		/* enable ioremap to work */
 		Lx::pci_dev_registry()->insert(pci_dev);
@@ -152,18 +153,12 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 		/* register driver at the 'pci_dev' struct */
 		pci_dev->dev.driver = &driver->driver;
 
-		bool bios_handoff = true;
-		try {
-			if (config()->xml_node().attribute("bios_handoff").has_value("no"))
-				bios_handoff = false;
-		} catch (...) { }
-
 		/*
 		 * This quirk handles device handoff from BIOS, since the BIOS may still
 		 * access the USB controller after bootup. For this the ext cap register of
 		 * the PCI config space is checked
 		 */
-		if (bios_handoff)
+		if (Lx_kit::env().config_rom().xml().attribute_value("bios_handoff", true))
 			__pci_fixup_quirk_usb_early_handoff(pci_dev);
 
 		/* call probe function of the Linux driver */

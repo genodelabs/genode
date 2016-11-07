@@ -2,7 +2,7 @@ LICENSE   := GPLv3
 VERSION   := 0.9
 DOWNLOADS := mupdf.archive
 
-URL(mupdf) := http://mupdf.googlecode.com/files/mupdf-$(VERSION)-source.tar.gz
+URL(mupdf) := http://mupdf.com/downloads/archive/mupdf-$(VERSION)-source.tar.gz
 SHA(mupdf) := 3a3ba42d19e3211199110e7c782263241cdea8a0
 DIR(mupdf) := src/lib/mupdf
 

@@ -5,11 +5,17 @@
  * \date   2015-08-19
  */
 
+/*
+ * Copyright (C) 2015-2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 /* Genode includes */
 #include <util/bit_allocator.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/attached_io_mem_dataspace.h>
-#include <os/config.h>
 #include <os/reporter.h>
 
 /* local includes */
@@ -17,8 +23,8 @@
 
 /* DRM-specific includes */
 #include <lx_emul.h>
+#include <lx_emul_c.h>
 #include <lx_emul/extern_c_begin.h>
-#include "lx_emul_private.h"
 #include <drm/drmP.h>
 #include <drm/drm_gem.h>
 #include <lx_emul/extern_c_end.h>
@@ -37,16 +43,7 @@
 #include <lx_emul/impl/completion.h>
 #include <lx_emul/impl/wait.h>
 
-static struct drm_device * dde_drm_device = nullptr;
-
-extern "C" struct drm_framebuffer*
-dde_c_allocate_framebuffer(int width, int height, void ** base,
-                           uint64_t * size, struct drm_device * dev);
-extern "C" void
-dde_c_set_mode(struct drm_device * dev, struct drm_connector * connector,
-               struct drm_framebuffer *fb, struct drm_display_mode *mode);
-extern "C" void  dde_c_set_driver(struct drm_device * dev, void * driver);
-extern "C" void* dde_c_get_driver(struct drm_device * dev);
+static struct drm_device * lx_drm_device = nullptr;
 
 
 struct Drm_guard
@@ -74,7 +71,7 @@ struct Drm_guard
 
 
 template <typename FUNCTOR>
-static inline void dde_for_each_connector(drm_device * dev, FUNCTOR f)
+static inline void lx_for_each_connector(drm_device * dev, FUNCTOR f)
 {
 	struct drm_connector *connector;
 	list_for_each_entry(connector, &dev->mode_config.connector_list, head)
@@ -86,13 +83,13 @@ drm_display_mode *
 Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 {
 	using namespace Genode;
+	using Genode::size_t;
 
 	/* try to read configuration for connector */
 	try {
-		config()->reload();
-		Xml_node node = config()->xml_node();
-		Xml_node xn = node.sub_node();
-		for (unsigned i = 0; i < node.num_sub_nodes(); xn = xn.next()) {
+		Xml_node config = _session.config();
+		Xml_node xn = config.sub_node();
+		for (unsigned i = 0; i < config.num_sub_nodes(); xn = xn.next()) {
 			if (!xn.has_type("connector"))
 				continue;
 
@@ -137,157 +134,120 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 
 void Framebuffer::Driver::finish_initialization()
 {
-	dde_c_set_driver(dde_drm_device, (void*)this);
+	lx_c_set_driver(lx_drm_device, (void*)this);
 	generate_report();
-	mode_changed();
+	_session.config_changed();
 }
 
-bool Framebuffer::Driver::mode_changed()
+
+#include <lx_kit/irq.h>
+
+void Framebuffer::Driver::_poll()
+{
+	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) lx_drm_device->pdev->bus;
+	Lx::Irq::irq().inject_irq(pci_dev->client());
+}
+
+
+void Framebuffer::Driver::set_polling(unsigned long poll)
+{
+	if (poll == _poll_ms) return;
+
+	_poll_ms = poll;
+
+	if (_poll_ms) {
+		_timer.sigh(_poll_handler);
+		_timer.trigger_periodic(_poll_ms * 1000);
+	} else {
+		_timer.sigh(Genode::Signal_context_capability());
+	}
+}
+
+
+void Framebuffer::Driver::update_mode()
 {
 	using namespace Genode;
 
-	int width = 0, height = 0;
+	Configuration old = _config;
+	_config = Configuration();
 
-	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
+	lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
 		drm_display_mode * mode = _preferred_mode(c);
 		if (!mode) return;
-		if (mode->hdisplay > width)  width  = mode->hdisplay;
-		if (mode->vdisplay > height) height = mode->vdisplay;
+		if (mode->hdisplay > _config._lx.width)  _config._lx.width  = mode->hdisplay;
+		if (mode->vdisplay > _config._lx.height) _config._lx.height = mode->vdisplay;
 	});
 
-	if (width == _width && height == _height) return false;
+	lx_c_allocate_framebuffer(lx_drm_device, &_config._lx);
 
-	drm_framebuffer *fb =
-		dde_c_allocate_framebuffer(width, height, &_new_fb_ds_base,
-		                           &_cur_fb_ds_size, dde_drm_device);
-	if (!fb) {
-		PERR("failed to allocate framebuffer %dx%d", width, height);
-		return false;
+	{
+		Drm_guard guard(lx_drm_device);
+		lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
+		                       lx_c_set_mode(lx_drm_device, c, _config._lx.lx_fb,
+		                                      _preferred_mode(c)); });
 	}
 
-	Drm_guard guard(dde_drm_device);
-	dde_for_each_connector(dde_drm_device, [&] (drm_connector *c) {
-		dde_c_set_mode(dde_drm_device, c, fb,
-		               _preferred_mode(c)); });
-
-	_new_fb = fb;
-	_width  = width;
-	_height = height;
-	return true;
-}
-
-
-void Framebuffer::Driver::free_framebuffer()
-{
-	Lx::iounmap(_cur_fb_ds_base);
-	_cur_fb->funcs->destroy(_cur_fb);
-	_cur_fb_ds_base = nullptr;
-}
-
-
-void dde_run_fb_destroy(void * data)
-{
-	Framebuffer::Driver * drv = (Framebuffer::Driver*) data;
-	drv->free_framebuffer();
-	while (true) Lx::scheduler().current()->block_and_schedule();
-}
-
-
-Genode::Dataspace_capability Framebuffer::Driver::dataspace()
-{
-	using namespace Genode;
-
-	if (_cur_fb_ds_base) {
-		Lx::Task task(dde_run_fb_destroy, this, "fb_destroy",
-		              Lx::Task::PRIORITY_3, Lx::scheduler());
-		while (_cur_fb_ds_base) Lx::scheduler().schedule();
-		Lx::scheduler().remove(&task);
-	}
-
-	_cur_fb = _new_fb;
-	_cur_fb_ds_base = _new_fb_ds_base;
-	return Lx::ioremap_lookup((addr_t)_cur_fb_ds_base,
-	                          (size_t)_cur_fb_ds_size);
+	if (old._lx.addr)  Lx::iounmap(old._lx.addr);
+	if (old._lx.lx_fb) old._lx.lx_fb->funcs->destroy(old._lx.lx_fb);
 }
 
 
 void Framebuffer::Driver::generate_report()
 {
-	static Genode::Reporter reporter("connectors");
+	Drm_guard guard(lx_drm_device);
 
+	/* detect mode information per connector */
+	{
+		struct drm_connector *c;
+		list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
+		                    head)
+			if (list_empty(&c->modes)) c->funcs->fill_modes(c, 0, 0);
+	}
+
+	/* check for report configuration option */
+	static Genode::Reporter reporter("connectors");
 	try {
-		Genode::config()->reload();
-		reporter.enabled(Genode::config()->xml_node().sub_node("report")
+		reporter.enabled(_session.config().sub_node("report")
 		                 .attribute_value(reporter.name().string(), false));
 	} catch (...) {
 		reporter.enabled(false);
 	}
-
 	if (!reporter.is_enabled()) return;
 
+	/* write new report */
 	try {
 		Genode::Reporter::Xml_generator xml(reporter, [&] ()
 		{
-			struct drm_device *dev = dde_drm_device;
-			struct drm_connector *connector;
-			struct list_head panel_list;
-
-			Drm_guard guard(dev);
-
-			INIT_LIST_HEAD(&panel_list);
-
-			list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
+			struct drm_connector *c;
+			list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
+			                    head) {
 				xml.node("connector", [&] ()
 				{
-					if (list_empty(&connector->modes))
-						connector->funcs->fill_modes(connector, 0, 0);
-
-					bool connected = connector->status == connector_status_connected;
-					xml.attribute("name", connector->name);
+					bool connected = c->status == connector_status_connected;
+					xml.attribute("name", c->name);
 					xml.attribute("connected", connected);
 
 					if (!connected) return;
 
 					struct drm_display_mode *mode;
-					struct list_head mode_list;
-					INIT_LIST_HEAD(&mode_list);
-					list_for_each_entry(mode, &connector->modes, head) {
+					list_for_each_entry(mode, &c->modes, head) {
 						xml.node("mode", [&] ()
 						{
-							xml.attribute("width", mode->hdisplay);
+							xml.attribute("width",  mode->hdisplay);
 							xml.attribute("height", mode->vdisplay);
-							xml.attribute("hz", mode->vrefresh);
+							xml.attribute("hz",     mode->vrefresh);
 						});
 					}
 				});
 			}
 		});
 	} catch (...) {
-		PWRN("Failed to generate report");
+		Genode::warning("Failed to generate report");
 	}
 }
 
+
 extern "C" {
-
-void lx_printf(char const *fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	Genode::vprintf(fmt, va);
-	va_end(va);
-}
-
-
-void lx_vprintf(char const *fmt, va_list va)
-{
-	Genode::vprintf(fmt, va);
-}
-
-
-/****************************************
- ** Common Linux kernel infrastructure **
- ****************************************/
-
 
 /**********************
  ** Global variables **
@@ -508,7 +468,7 @@ struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn)
 		client.bus_address(&dev_bus, &dev_slot, &dev_fn);
 
 		if (dev_bus == bus && PCI_SLOT(devfn) == dev_slot && PCI_FUNC(devfn) == dev_fn) {
-			Lx::Pci_dev *dev = new (Genode::env()->heap()) Lx::Pci_dev(cap);
+			Lx::Pci_dev *dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
 			Lx::pci_dev_registry()->insert(dev);
 			pci_dev = dev;
 			return true;
@@ -543,7 +503,7 @@ struct pci_dev *pci_get_class(unsigned int class_code, struct pci_dev *from)
 		Platform::Device_client client(cap);
 
 		if (client.class_code() == class_code) {
-			pci_dev = new (Genode::env()->heap()) Lx::Pci_dev(cap);
+			pci_dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
 			return true;
 		}
 
@@ -657,11 +617,11 @@ struct io_mapping *io_mapping_create_wc(resource_size_t base, unsigned long size
 	TRACE;
 
 	if (called++ != 0) {
-		PERR("io_mapping_create_wc unexpectedly called twice");
+		Genode::error("io_mapping_create_wc unexpectedly called twice");
 		return 0;
 	}
 
-	io_mapping *mapping = new (Genode::env()->heap()) io_mapping(base, size);
+	io_mapping *mapping = new (Lx::Malloc::mem()) io_mapping(base, size);
 	return mapping;
 }
 
@@ -847,8 +807,8 @@ void drm_ut_debug_printk(const char *function_name, const char *format, ...)
 
 	va_list list;
 	va_start(list, format);
-	printf("[drm:%s] ", function_name);
-	vprintf(format, list);
+	lx_printf("[drm:%s] ", function_name);
+	lx_vprintf(format, list);
 	va_end(list);
 }
 
@@ -859,8 +819,8 @@ void drm_err(const char *format, ...)
 
 	va_list list;
 	va_start(list, format);
-	printf("[drm:ERROR] ");
-	vprintf(format, list);
+	lx_printf("[drm:ERROR] ");
+	lx_vprintf(format, list);
 	va_end(list);
 }
 
@@ -906,8 +866,8 @@ int drm_dev_register(struct drm_device *dev, unsigned long flags)
 {
 	drm_get_minor(dev, &dev->primary, DRM_MINOR_LEGACY);
 
-	ASSERT(!dde_drm_device);
-	dde_drm_device = dev;
+	ASSERT(!lx_drm_device);
+	lx_drm_device = dev;
 	return dev->driver->load(dev, flags);
 }
 
@@ -942,8 +902,6 @@ int drm_get_pci_dev(struct pci_dev *pdev, const struct pci_device_id *ent,
 	return 0;
 }
 
-
-#include <lx_kit/irq.h>
 
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                 const char *name, void *dev)
@@ -1583,7 +1541,7 @@ void local_irq_enable()
 void drm_sysfs_hotplug_event(struct drm_device *dev)
 {
 	Framebuffer::Driver * driver = (Framebuffer::Driver*)
-		dde_c_get_driver(dde_drm_device);
+		lx_c_get_driver(lx_drm_device);
 
 	if (driver) {
 		DRM_DEBUG("generating hotplug event\n");

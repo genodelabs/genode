@@ -157,7 +157,7 @@ class Launcher::Subsystem_manager
 				return string_attribute(subsystem.sub_node("binary"),
 				                        "name", Child::Binary_name(""));
 			} catch (Xml_node::Nonexistent_sub_node) {
-				PERR("missing <binary> definition");
+				Genode::error("missing <binary> definition");
 				throw Invalid_config();
 			}
 		}
@@ -178,7 +178,7 @@ class Launcher::Subsystem_manager
 					}
 				});
 			} catch (...) {
-				PERR("invalid RAM resource declaration");
+				Genode::error("invalid RAM resource declaration");
 				throw Invalid_config();
 			}
 
@@ -204,12 +204,12 @@ class Launcher::Subsystem_manager
 		{
 			Child::Binary_name const binary_name = _binary_name(subsystem);
 
-			Child::Label const label = string_attribute(subsystem, "name",
-			                                            Child::Label(""));
+			Label const label = string_attribute(subsystem, "name",
+			                                            Label(""));
 
 			Ram_config const ram_config = _ram_config(subsystem);
 
-			PINF("starting child '%s'", label.string());
+			Genode::log("starting child '", label.string(), "'");
 
 			try {
 				Child *child = new (env()->heap())
@@ -229,7 +229,7 @@ class Launcher::Subsystem_manager
 				child->start();
 
 			} catch (Rom_connection::Rom_connection_failed) {
-				PERR("binary \"%s\" is missing", binary_name.string());
+				Genode::error("binary \"", binary_name, "\" is missing");
 				throw Invalid_config();
 			}
 		}
@@ -237,7 +237,7 @@ class Launcher::Subsystem_manager
 		void kill(char const *label)
 		{
 			for (Child *c = _children.first(); c; c = c->next()) {
-				if (c->label() == Child::Label(label)) {
+				if (c->label() == Label(label)) {
 					_children.remove(c);
 					destroy(env()->heap(), c);
 					return;
@@ -248,7 +248,7 @@ class Launcher::Subsystem_manager
 		/**
 		 * Call functor for each exited child
 		 *
-		 * The functor takes a 'Child_base::Label' as argument.
+		 * The functor takes a 'Label' as argument.
 		 */
 		template <typename FUNC>
 		void for_each_exited_child(FUNC const &func)
@@ -257,7 +257,7 @@ class Launcher::Subsystem_manager
 			for (Child *child = _children.first(); child; child = next) {
 				next = child->next();
 				if (child->exited())
-					func(child->label());
+					func(Label(child->label().string()));
 			}
 		}
 };

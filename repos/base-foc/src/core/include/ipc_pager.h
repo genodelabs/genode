@@ -19,9 +19,10 @@
 #include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
-#include <base/native_types.h>
+#include <base/native_capability.h>
 #include <base/thread_state.h>
 #include <util/touch.h>
+#include <foc/native_capability.h>
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>

@@ -13,14 +13,12 @@
 
 /* Genode includes */
 #include <base/heap.h>
-#include <base/env.h>
-#include <os/server.h>
-#include <os/config.h>
+#include <base/component.h>
 #include <os/attached_rom_dataspace.h>
 #include <report_rom/rom_service.h>
 #include <report_rom/report_service.h>
 
-namespace Server { struct Main; }
+namespace Clipboard { struct Main; }
 
 
 /**
@@ -69,17 +67,19 @@ struct Rom::Registry : Rom::Registry_for_reader, Rom::Registry_for_writer
 };
 
 
-struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
+struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 {
-	Entrypoint &_ep;
+	Genode::Env &_env;
 
 	Genode::Sliced_heap _sliced_heap = { Genode::env()->ram_session(),
 	                                     Genode::env()->rm_session() };
+
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
 	bool _verbose_config()
 	{
 		char const *attr = "verbose";
-		return Genode::config()->xml_node().has_attribute(attr)
-		    && Genode::config()->xml_node().attribute(attr).has_value("yes");
+		return _config.xml().attribute_value(attr, false);
 	}
 
 	bool verbose = _verbose_config();
@@ -88,8 +88,8 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 
 	Genode::Attached_rom_dataspace _focus_ds { "focus" };
 
-	Genode::Signal_rpc_member<Main> _focus_dispatcher =
-		{ _ep, *this, &Main::_handle_focus };
+	Genode::Signal_handler<Main> _focus_handler =
+		{ _env.ep(), *this, &Main::_handle_focus };
 
 	Domain _focused_domain;
 
@@ -98,7 +98,7 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	 *
 	 * We only accept reports from the currently focused domain.
 	 */
-	void _handle_focus(unsigned)
+	void _handle_focus()
 	{
 		_focus_ds.update();
 
@@ -107,7 +107,7 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		try {
 			Genode::Xml_node focus(_focus_ds.local_addr<char>(), _focus_ds.size());
 
-			if (focus.attribute("active").has_value("yes"))
+			if (focus.attribute_value("active", false))
 				_focused_domain = focus.attribute_value("domain", Domain());
 
 		} catch (...) { }
@@ -118,7 +118,7 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		using namespace Genode;
 
 		try {
-			return Session_policy(label).attribute_value("domain", Domain());
+			return Session_policy(label, _config.xml()).attribute_value("domain", Domain());
 		} catch (Session_policy::No_policy_defined) { }
 
 		return Domain();
@@ -155,9 +155,9 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 			auto match_flow = [&] (Genode::Xml_node flow) {
 				if (flow.attribute_value("from", Domain()) == from
 				 && flow.attribute_value("to",   Domain()) == to)
-				 	result = true; };
+					result = true; };
 
-			Genode::config()->xml_node().for_each_sub_node("flow", match_flow);
+			_config.xml().for_each_sub_node("flow", match_flow);
 
 		} catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
@@ -193,35 +193,34 @@ struct Server::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		if (_focused_domain.valid() && _domain(writer) == _focused_domain)
 			return true;
 
-		PWRN("unexpected attempt by '%s' to write to '%s'",
-		     writer.label().string(), module.name().string());
+		warning("unexpected attempt by '", writer.label(), "' "
+		        "to write to '", module.name(), "'");
 
 		return false;
 	}
-	
+
 	Rom::Registry _rom_registry { *this, *this };
 
-	Report::Root report_root = { _ep, _sliced_heap, _rom_registry, verbose };
-	Rom   ::Root    rom_root = { _ep, _sliced_heap, _rom_registry };
+	Report::Root report_root = { _env, _sliced_heap, _rom_registry, verbose };
+	Rom   ::Root    rom_root = { _env, _sliced_heap, _rom_registry };
 
-	Main(Entrypoint &ep) : _ep(ep)
+	Main(Genode::Env &env) : _env(env)
 	{
-		_focus_ds.sigh(_focus_dispatcher);
+		_focus_ds.sigh(_focus_handler);
 
-		Genode::env()->parent()->announce(_ep.manage(report_root));
-		Genode::env()->parent()->announce(_ep.manage(rom_root));
+		env.parent().announce(env.ep().manage(report_root));
+		env.parent().announce(env.ep().manage(rom_root));
 	}
 };
 
 
-namespace Server {
+/***************
+ ** Component **
+ ***************/
 
-	char const *name() { return "report_rom_ep"; }
+namespace Component {
 
-	size_t stack_size() { return 4*1024*sizeof(long); }
+	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
 
-	void construct(Entrypoint &ep)
-	{
-		static Main main(ep);
-	}
+	void construct(Genode::Env &env) { static Clipboard::Main main(env); }
 }

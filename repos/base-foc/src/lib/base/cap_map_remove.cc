@@ -13,7 +13,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/cap_map.h>
+#include <base/internal/cap_map.h>
 
 void Genode::Capability_map::remove(Genode::Cap_index* i)
 {

@@ -53,7 +53,10 @@ class File_system::Symlink : public Node
 			if (!_create || seek_offset)
 				return 0;
 
-			int ret = rump_sys_symlink(src, _path.base());
+			/* src may not be null-terminated */
+			Genode::String<MAX_PATH_LEN> target(Genode::Cstring(src, len));
+
+			int ret = rump_sys_symlink(target.string(), _path.base());
 			return ret == -1 ? 0 : ret;
 		}
 

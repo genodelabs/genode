@@ -18,6 +18,7 @@
 
 struct addrinfo;
 
+using String = Genode::String<64>;
 class Http
 {
 	typedef Genode::size_t size_t;
@@ -26,6 +27,7 @@ class Http
 
 	private:
 
+		Genode::Heap   &_heap;
 		size_t          _size;      /* number of bytes in file */
 		char            *_host;      /* host name */
 		char            *_port;      /* host port */
@@ -54,7 +56,7 @@ class Http
 		/*
 		 * Set URI of remote file
 		 */
-		void parse_uri(char *uri);
+		void parse_uri(::String &uri);
 
 		/*
 		 * Resolve host
@@ -81,7 +83,7 @@ class Http
 		/*
 		 * Constructor (default host port is 80
 		 */
-		Http(char *uri);
+		Http(Genode::Heap &heap, ::String &uri);
 
 		/*
 		 * Destructor

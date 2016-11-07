@@ -1,7 +1,6 @@
 TARGET   = kdb_uart_drv
 SRC_CC   = main.cc
 LIBS     = base config
+INC_DIR += $(REP_DIR)/src/drivers/uart $(REP_DIR)/src/drivers/uart/kdb
 
-INC_DIR += $(PRG_DIR)/../.. $(PRG_DIR)/../../..
-
-vpath main.cc $(PRG_DIR)/../..
+vpath main.cc $(REP_DIR)/src/drivers/uart

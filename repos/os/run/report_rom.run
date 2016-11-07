@@ -33,8 +33,7 @@ install_config {
 		<start name="test-report_rom">
 			<resource name="RAM" quantum="2M"/>
 			<route>
-				<service name="ROM">
-					<if-arg key="label" value="brightness"/>
+				<service name="ROM" label="brightness">
 					<child name="report_rom"/>
 				</service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -49,7 +48,7 @@ append qemu_args "-nographic -m 128"
 
 run_genode_until {child "test-report_rom" exited with exit value 0.*\n} 30
 
-grep_output {^\[init -> test-report_rom}
+grep_output {^\[init -> test-report_rom\] .+}
 unify_output {\[init \-\> test\-report_rom\] upgrading quota donation for .* \([0-9]+ bytes\)} ""
 trim_lines
 
@@ -59,13 +58,11 @@ compare_output_to {
 	[init -> test-report_rom] Reporter: brightness 10
 	[init -> test-report_rom] ROM client: request brightness report
 	[init -> test-report_rom]          -> <brightness brightness="10"/>
-	[init -> test-report_rom]
 	[init -> test-report_rom] Reporter: updated brightness to 77
 	[init -> test-report_rom] ROM client: wait for update notification
 	[init -> test-report_rom] ROM client: got signal
 	[init -> test-report_rom] ROM client: request updated brightness report
 	[init -> test-report_rom]          -> <brightness brightness="77"/>
-	[init -> test-report_rom]
 	[init -> test-report_rom] Reporter: close report session
 	[init -> test-report_rom] ROM client: ROM is available despite report was closed - OK
 	[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)

@@ -56,7 +56,8 @@ namespace Genode {
 			                                    L4_BASE_TASK_CAP,
 			                                    snd_fpage,
 			                                    to_addr + offset))) {
-				PWRN("could not locally remap 0x%lx to 0x%lx", from_addr, to_addr);
+				warning("could not locally remap ", (void*)from_addr, " to ",
+				        (void*)to_addr);
 				return false;
 			}
 		}
@@ -107,12 +108,12 @@ namespace Genode {
 			l4_msgtag_t tag = l4_msgtag(L4_PROTO_SIGMA0, 2, 0, 0);
 			tag = l4_ipc_call(L4_BASE_PAGER_CAP, l4_utcb(), tag, L4_IPC_NEVER);
 			if (l4_ipc_error(tag, l4_utcb())) {
-				PERR("Ipc error %ld", l4_ipc_error(tag, l4_utcb()));
+				error("Ipc error ", l4_ipc_error(tag, l4_utcb()));
 				return false;
 			}
 
 			if (l4_msgtag_items(tag) < 1) {
-				PERR("Got no mapping!");
+				error("got no mapping!");
 				return false;
 			}
 

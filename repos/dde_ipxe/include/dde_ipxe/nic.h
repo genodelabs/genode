@@ -70,7 +70,7 @@ extern int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packe
  *
  * \return  0 on success, -1 otherwise
  */
-extern int dde_ipxe_nic_get_mac_addr(unsigned if_index, char *out_mac_addr);
+extern int dde_ipxe_nic_get_mac_addr(unsigned if_index, unsigned char *out_mac_addr);
 
 /**
  * Get current link-state of device

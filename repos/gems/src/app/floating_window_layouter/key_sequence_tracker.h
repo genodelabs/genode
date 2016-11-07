@@ -75,7 +75,7 @@ class Floating_window_layouter::Key_sequence_tracker
 				entries[pos++] = entry;
 
 				if (pos == MAX_ENTRIES) {
-					PWRN("Too long key sequence, dropping information");
+					Genode::warning("too long key sequence, dropping information");
 					pos = MAX_ENTRIES - 1;
 				}
 			}

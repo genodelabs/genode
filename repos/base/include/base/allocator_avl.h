@@ -16,7 +16,6 @@
 
 #include <base/allocator.h>
 #include <base/tslab.h>
-#include <base/printf.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
 

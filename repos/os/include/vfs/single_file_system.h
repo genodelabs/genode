@@ -70,7 +70,7 @@ class Vfs::Single_file_system : public File_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			out = { 0, 0, 0, 0, 0, 0 };
+			out = Stat();
 			out.device = (Genode::addr_t)this;
 
 			if (_root(path)) {

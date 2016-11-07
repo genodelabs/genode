@@ -17,7 +17,6 @@
 #include <base/cache.h>
 #include <base/ipc.h>
 #include <base/stdint.h>
-#include <base/native_types.h>
 
 namespace Genode {
 
@@ -76,6 +75,7 @@ namespace Genode {
 		private:
 
 			addr_t           _last;      /* faulted thread ID              */
+			addr_t           _reply_sel; /* selector to save reply cap     */
 			addr_t           _pf_addr;   /* page-fault address             */
 			addr_t           _pf_ip;     /* instruction pointer of faulter */
 			bool             _pf_write;  /* true on write fault            */
@@ -117,21 +117,7 @@ namespace Genode {
 			/**
 			 * Set destination for next reply
 			 */
-			void set_reply_dst(Native_capability pager_object) {
-				_last = pager_object.local_name(); }
-
-			/**
-			 * Answer call without sending a mapping
-			 *
-			 * This function is used to acknowledge local calls from one of
-			 * core's region-manager sessions.
-			 */
-			void acknowledge_wakeup();
-
-			/**
-			 * Returns true if the last request was send from a core thread
-			 */
-			bool request_from_core() { return false; }
+			void reply_save_caller(addr_t sel) { _reply_sel = sel; }
 
 			/**
 			 * Return badge for faulting thread
@@ -142,17 +128,6 @@ namespace Genode {
 			 * Return true if page fault was a write fault
 			 */
 			bool write_fault() const { return _pf_write; }
-
-			/**
-			 * Return true if last fault was an exception
-			 */
-			bool exception() const
-			{
-				/*
-				 * Reflection of exceptions is not supported on this platform.
-				 */
-				return false;
-			}
 	};
 }
 

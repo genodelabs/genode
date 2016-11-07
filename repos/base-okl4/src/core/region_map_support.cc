@@ -11,9 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* core includes */
 #include <region_map_component.h>
 

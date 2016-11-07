@@ -139,7 +139,7 @@ class Menu_view::Widget : public List<Widget>::Element
 			char type[NAME_MAX_LEN];
 			node.type_name(type, sizeof(type));
 
-			return Type_name(type);
+			return Type_name(Cstring(type));
 		}
 
 		static bool _named_sub_node_exists(Xml_node node, Name const &name)
@@ -242,7 +242,7 @@ class Menu_view::Widget : public List<Widget>::Element
 			node.for_each_sub_node([&] (Xml_node node) {
 
 				if (!w) {
-					PERR("unexpected end of widget list during re-ordering");
+				Genode::error("unexpected end of widget list during re-ordering");
 					return;
 				}
 
@@ -251,7 +251,7 @@ class Menu_view::Widget : public List<Widget>::Element
 				if (w->_name != name) {
 					w = _lookup_child(name);
 					if (!w) {
-						PERR("widget lookup unexpectedly failed during re-ordering");
+					Genode::error("widget lookup unexpectedly failed during re-ordering");
 						return;
 					}
 
@@ -382,12 +382,12 @@ struct Menu_view::Root_widget : Widget
 		char const *dialog_tag = "dialog";
 
 		if (!node.has_type(dialog_tag)) {
-			PERR("no valid <dialog> tag found");
+			Genode::error("no valid <dialog> tag found");
 			return;
 		}
 
 		if (!node.num_sub_nodes()) {
-			PWRN("empty <dialog> node");
+			Genode::warning("empty <dialog> node");
 			return;
 		}
 
@@ -656,7 +656,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 	static bool _enabled(Xml_node node, char const *attr)
 	{
-		return node.has_attribute(attr) && node.attribute(attr).has_value("yes");
+		return node.attribute_value(attr, false);
 	}
 
 	Button_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
@@ -836,7 +836,7 @@ Menu_view::Widget_factory::create(Xml_node node)
 		char type[64];
 		type[0] = 0;
 		node.type_name(type, sizeof(type));
-		PERR("unknown widget type '%s'", type);
+		Genode::error("unknown widget type '", Cstring(type), "'");
 		return 0;
 	}
 

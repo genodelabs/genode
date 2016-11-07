@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,8 +18,10 @@
 #include <base/service.h>
 #include <base/child.h>
 #include <base/rpc_server.h>
+#include <base/session_label.h>
 #include <util/arg_string.h>
 #include <rom_session/connection.h>
+#include <base/session_label.h>
 
 namespace Init {
 
@@ -93,17 +95,14 @@ class Init::Child_policy_enforce_labeling
 		{
 			using namespace Genode;
 
-			char label_buf[Parent::Session_args::MAX_SIZE];
-			Arg_string::find_arg(args, "label").string(label_buf, sizeof(label_buf), "");
-
-			char value_buf[Parent::Session_args::MAX_SIZE];
-			Genode::snprintf(value_buf, sizeof(value_buf),
-			                 "\"%s%s%s\"",
-			                 _name,
-			                 Genode::strcmp(label_buf, "") == 0 ? "" : " -> ",
-			                 label_buf);
-
-			Arg_string::set_arg(args, args_len, "label", value_buf);
+			Session_label const old_label = label_from_args(args);
+			if (old_label == "") {
+				Arg_string::set_arg_string(args, args_len, "label", _name);
+			} else {
+				Session_label const name(_name);
+				Session_label const new_label = prefixed_label(name, old_label);
+				Arg_string::set_arg_string(args, args_len, "label", new_label.string());
+			}
 		}
 };
 
@@ -134,7 +133,7 @@ class Init::Child_policy_handle_cpu_priorities
 
 			long discarded_prio_lsb_bits_mask = (1 << _prio_levels_log2) - 1;
 			if (priority & discarded_prio_lsb_bits_mask) {
-				PWRN("priority band too small, losing least-significant priority bits");
+				warning("priority band too small, losing least-significant priority bits");
 			}
 			priority >>= _prio_levels_log2;
 
@@ -178,8 +177,7 @@ class Init::Child_policy_provide_rom_file
 		Genode::Rpc_entrypoint *_ep;
 		Genode::Rom_session_capability _rom_session_cap;
 
-		enum { FILENAME_MAX_LEN = 32 };
-		char _filename[FILENAME_MAX_LEN];
+		Genode::Session_label _module_name;
 
 		struct Local_rom_service : public Genode::Service
 		{
@@ -215,16 +213,15 @@ class Init::Child_policy_provide_rom_file
 		/**
 		 * Constructor
 		 */
-		Child_policy_provide_rom_file(const char                  *filename,
+		Child_policy_provide_rom_file(const char                  *module_name,
 		                              Genode::Dataspace_capability ds_cap,
 		                              Genode::Rpc_entrypoint      *ep)
 		:
 			_local_rom_session(ds_cap), _ep(ep),
 			_rom_session_cap(_ep->manage(&_local_rom_session)),
+			_module_name(module_name),
 			_local_rom_service(_rom_session_cap, ds_cap.valid())
-		{
-			Genode::strncpy(_filename, filename, sizeof(_filename));
-		}
+		{ }
 
 		/**
 		 * Destructor
@@ -238,9 +235,11 @@ class Init::Child_policy_provide_rom_file
 			if (Genode::strcmp(service_name, "ROM")) return 0;
 
 			/* drop out if request refers to another file name */
-			char buf[FILENAME_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
-			return !Genode::strcmp(buf, _filename) ? &_local_rom_service : 0;
+			{
+				Genode::Session_label const label = Genode::label_from_args(args);
+				return label.last_element() == _module_name
+				       ? &_local_rom_service : nullptr;
+			}
 		}
 };
 
@@ -260,36 +259,31 @@ class Init::Child_policy_redirect_rom_file
 		void filter_session_args(const char *service,
 		                         char *args, Genode::size_t args_len)
 		{
+			using namespace Genode;
+
 			if (!_from || !_to) return;
 
 			/* ignore session requests for non-ROM services */
 			if (Genode::strcmp(service, "ROM")) return;
 
-			/* drop out if request refers to another file name */
-			{
-				enum { FILENAME_MAX_LEN = 32 };
-				char buf[FILENAME_MAX_LEN];
-				Genode::Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
-				if (Genode::strcmp(_from, buf) != 0) return;
+			/* drop out if request refers to another module name */
+			Session_label const label = label_from_args(args);
+			Session_label const from(_from);
+			if (from != label.last_element()) return;
 
-				/* replace filename argument */
-				Genode::snprintf(buf, sizeof(buf), "\"%s\"", _to);
-				Genode::Arg_string::set_arg(args, args_len, "filename", buf);
-			}
+			/*
+			 * The module name corresponds to the last part of the label.
+			 * We have to replace this part with the 'to' module name.
+			 * If the label consists of only the module name but no prefix,
+			 * we replace the entire label with the 'to' module name.
+			 */
+			Session_label const prefix = label.prefix();
+			Session_label const to(_to);
 
-			/* replace characters after last label delimiter by filename */
-			enum { LABEL_MAX_LEN = 200 };
-			char label[LABEL_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "label").string(label, sizeof(label), "");
-			unsigned last_elem = 0;
-			for (unsigned i = 0; i < sizeof(label) - 3 && label[i]; i++)
-				if (Genode::strcmp("-> ", label + i, 3) == 0)
-					last_elem = i + 3;
-			label[last_elem] = 0;
+			Session_label const prefixed_to =
+				prefixed_label(prefix.valid() ? prefix : Session_label(), to);
 
-			char buf[LABEL_MAX_LEN];
-			Genode::snprintf(buf, sizeof(buf), "\"%s%s\"", label, _to);
-			Genode::Arg_string::set_arg(args, args_len, "label", buf);
+			Arg_string::set_arg_string(args, args_len, "label", prefixed_to.string());
 		}
 };
 

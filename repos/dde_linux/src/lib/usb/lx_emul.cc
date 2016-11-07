@@ -82,24 +82,20 @@ void dma_free(void *ptr)
 
 void *vzalloc(unsigned long size)
 {
-	size_t real_size = size + sizeof(size_t);
 	size_t *addr;
-	try { addr = (size_t *)Genode::env()->heap()->alloc(real_size); }
+	try { addr = (size_t *)Lx::Malloc::mem().alloc_large(size); }
 	catch (...) { return 0; }
 
-	*addr = real_size;
-	memset(addr + 1, 0, size);
+	memset(addr, 0, size);
 
-	return addr + 1;
+	return addr;
 }
 
 
 void vfree(void *addr)
 {
 	if (!addr) return;
-
-	size_t size = *(((size_t *)addr) - 1);
-	Genode::env()->heap()->free(const_cast<void *>(addr), size);
+	Lx::Malloc::mem().free_large(addr);
 }
 
 
@@ -266,17 +262,13 @@ int ilog2(u32 n) { return Genode::log2(n); }
  ** linux/slab.h   **
  ********************/
 
-void kmem_cache_destroy(struct kmem_cache *cache)
-{
-	destroy(Genode::env()->heap(), cache);
-}
-
 
 void *kmem_cache_zalloc(struct kmem_cache *cache, gfp_t flags)
 {
 	void *ret;
 	ret = kmem_cache_alloc(cache, flags);
 	memset(ret, 0, cache->size());
+
 	return ret;
 }
 
@@ -361,7 +353,7 @@ class Driver : public Genode::List<Driver>::Element
 int driver_register(struct device_driver *drv)
 {
 	lx_log(DEBUG_DRIVER, "%s at %p", drv->name, drv);
-	new (Genode::env()->heap()) Driver(drv);
+	new (Lx::Malloc::mem()) Driver(drv);
 	return 0;
 }
 
@@ -426,17 +418,19 @@ unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
 
 	for (; offset < size; offset++)
 		if (addr[i] & (1UL << offset))
-			return offset;
+			return offset + (i * BITS_PER_LONG);
 
 	return size;
 }
 
+
 long find_next_zero_bit_le(const void *addr,
                            unsigned long size, unsigned long offset)
 {
+	static unsigned cnt = 0;
 	unsigned long max_size = sizeof(long) * 8;
 	if (offset >= max_size) {
-		PWRN("Offset greater max size");
+		Genode::warning("Offset greater max size");
 		return offset + size;
 	}
 
@@ -444,7 +438,8 @@ long find_next_zero_bit_le(const void *addr,
 		if (!(*(unsigned long*)addr & (1L << offset)))
 			return offset;
 
-	PERR("No zero bit findable");
+	Genode::warning("No zero bit findable");
+
 	return offset + size;
 }
 
@@ -548,7 +543,7 @@ struct dma_pool *dma_pool_create(const char *name, struct device *d, size_t size
 	if (align & (align - 1))
 		return 0;
 
-	dma_pool *pool = new(Genode::env()->heap()) dma_pool;
+	dma_pool *pool = new(Lx::Malloc::mem()) dma_pool;
 	pool->align    = Genode::log2((int)align);
 	pool->size     = size;
 	return pool;
@@ -558,7 +553,7 @@ struct dma_pool *dma_pool_create(const char *name, struct device *d, size_t size
 void  dma_pool_destroy(struct dma_pool *d)
 {
 	lx_log(DEBUG_DMA, "close");
-	destroy(Genode::env()->heap(), d);
+	destroy(Lx::Malloc::mem(), d);
 }
 
 
@@ -612,7 +607,7 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
 	dma_addr_t phys = (dma_addr_t)Lx::Malloc::dma().phys_addr(ptr);
 
 	if (phys == ~0UL)
-		PERR("translation virt->phys %p->%lx failed, return ip %p", ptr, phys,
+		Genode::error("translation virt->phys ", ptr, "->", Genode::Hex(phys), "failed, return ip ",
 		     __builtin_return_address(0));
 
 	lx_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
@@ -646,9 +641,9 @@ struct task_struct *kthread_run(int (*fn)(void *), void *arg, const char *n, ...
 	 */
 	lx_log(DEBUG_THREAD, "Run %s", n);
 
-	new (Genode::env()->heap()) Lx::Task((void (*)(void *))fn, arg, n,
-	                                     Lx::Task::PRIORITY_2,
-	                                     Lx::scheduler());
+	new (Lx::Malloc::mem()) Lx::Task((void (*)(void *))fn, arg, n,
+	                                 Lx::Task::PRIORITY_2,
+	                                 Lx::scheduler());
 	return 0;
 }
 
@@ -725,7 +720,7 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
 
 struct net_device *alloc_etherdev(int sizeof_priv)
 {
-	net_device *dev = new (Genode::env()->heap()) net_device();
+	net_device *dev = new (Lx::Malloc::mem()) net_device();
 
 	dev->mtu      = 1500;
 	dev->hard_header_len = 0;
@@ -1006,7 +1001,7 @@ void tasklet_hi_schedule(struct tasklet_struct *tasklet)
 struct workqueue_struct *create_singlethread_workqueue(char const *name)
 {
 	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
-	Lx::Work *work = Lx::Work::alloc_work_queue(Genode::env()->heap(), name);
+	Lx::Work *work = Lx::Work::alloc_work_queue(&Lx::Malloc::mem(), name);
 	wq->task       = (void *)work;
 
 	return wq;

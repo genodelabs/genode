@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/sleep.h>
 #include <timer_session/connection.h>
@@ -77,7 +77,7 @@ class Counter : private Thread_deprecated<2 * 1024 * sizeof(Genode::addr_t)>
 {
 	private:
 
-		char const                  _name;
+		String<64>                  _name;
 		unsigned long long volatile _value;
 		Sync::Signal                _sync_sig;
 		unsigned volatile           _stage;
@@ -103,7 +103,7 @@ class Counter : private Thread_deprecated<2 * 1024 * sizeof(Genode::addr_t)>
 
 	public:
 
-		Counter(char const name, size_t const weight,
+		Counter(char const *name, size_t const weight,
 		        Sync::Session * const sync)
 		:
 			Thread_deprecated(weight, "counter"), _name(name), _value(0) ,
@@ -123,7 +123,7 @@ class Counter : private Thread_deprecated<2 * 1024 * sizeof(Genode::addr_t)>
 
 		void go() { _stage_1_end.submit(); }
 
-		void result() { printf("counter %c %llu\n", _name, _value); }
+		void result() { log("counter ", _name, " ", _value); }
 };
 
 
@@ -145,8 +145,8 @@ int main()
 	Timer::Connection timer;
 	Sync::Connection  sync;
 	Sync::Signal      sync_sig(&sync, SYNC_SIG);
-	Counter           counter_a('A', Cpu_session::quota_lim_upscale(10, 100), &sync);
-	Counter           counter_b('B', Cpu_session::quota_lim_upscale(90, 100), &sync);
+	Counter           counter_a("A", Cpu_session::quota_lim_upscale(10, 100), &sync);
+	Counter           counter_b("B", Cpu_session::quota_lim_upscale(90, 100), &sync);
 
 	timer.sigh(timer_sig);
 
@@ -168,10 +168,10 @@ int main()
 	sync_sig.threshold(3);
 	sync_sig.sync();
 	Cpu_session::Quota quota = Genode::env()->cpu_session()->quota();
-	Genode::printf("quota super period %zu\n", quota.super_period_us);
-	Genode::printf("quota %zu\n", quota.us);
+	log("quota super period ", quota.super_period_us);
+	log("quota ", quota.us);
 	counter_a.result();
 	counter_b.result();
-	printf("done\n");
+	log("done");
 	sleep_forever();
 }

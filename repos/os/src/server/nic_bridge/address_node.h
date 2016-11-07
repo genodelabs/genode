@@ -33,71 +33,72 @@ namespace Net {
 	 * a list and/or avl-tree, whereby the network-address (MAC or IP)
 	 * acts as a key.
 	 */
-	template <unsigned LEN>
-	class Address_node : public Genode::Avl_node<Address_node<LEN> >,
-	                     public Genode::List<Address_node<LEN> >::Element
-	{
-		public:
+	template <typename ADDRESS> class Address_node;
 
-			typedef Network_address<LEN> Address;
-
-		private:
-
-			Address            _addr;       /* MAC or IP address  */
-			Session_component *_component;  /* client's component */
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param addr  Network address acting as sorting criteria.
-			 * \param component  pointer to client's session component.
-			 */
-			Address_node(Address addr, Session_component *component)
-			: _addr(addr), _component(component) { }
-
-
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			Address            addr()      { return _addr;      }
-			Session_component *component() { return _component; }
-
-
-			/************************
-			 ** Avl node interface **
-			 ************************/
-
-			bool higher(Address_node *c)
-			{
-				using namespace Genode;
-
-				return (memcmp(&c->_addr.addr, &_addr.addr,
-				               sizeof(_addr.addr)) > 0);
-			}
-
-			/**
-			 * Find by address
-			 */
-			Address_node *find_by_address(Address addr)
-			{
-				using namespace Genode;
-
-				if (addr == _addr)
-					return this;
-
-				bool side = memcmp(&addr.addr, _addr.addr,
-				                   sizeof(_addr.addr)) > 0;
-				Address_node *c = Avl_node<Address_node>::child(side);
-				return c ? c->find_by_address(addr) : 0;
-			}
-	};
-
-
-	typedef Address_node<Ipv4_packet::ADDR_LEN>    Ipv4_address_node;
-	typedef Address_node<Ethernet_frame::ADDR_LEN> Mac_address_node;
+	using Ipv4_address_node = Address_node<Ipv4_address>;
+	using Mac_address_node  = Address_node<Mac_address>;
 }
+
+
+template <typename ADDRESS>
+class Net::Address_node : public Genode::Avl_node<Address_node<ADDRESS> >,
+                          public Genode::List<Address_node<ADDRESS> >::Element
+{
+	private:
+
+		ADDRESS            _addr;       /* MAC or IP address  */
+		Session_component &_component;  /* client's component */
+
+	public:
+
+		using Address = ADDRESS;
+
+		/**
+		 * Constructor
+		 *
+		 * \param component  reference to client's session component.
+		 */
+		Address_node(Session_component &component,
+		             Address addr = Address())
+		: _addr(addr), _component(component) { }
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		void               addr(Address addr) { _addr = addr;      }
+		Address            addr()             { return _addr;      }
+		Session_component &component()        { return _component; }
+
+
+		/************************
+		 ** Avl node interface **
+		 ************************/
+
+		bool higher(Address_node *c)
+		{
+			using namespace Genode;
+
+			return (memcmp(&c->_addr.addr, &_addr.addr,
+			               sizeof(_addr.addr)) > 0);
+		}
+
+		/**
+		 * Find by address
+		 */
+		Address_node *find_by_address(Address addr)
+		{
+			using namespace Genode;
+
+			if (addr == _addr)
+				return this;
+
+			bool side = memcmp(&addr.addr, _addr.addr,
+			                   sizeof(_addr.addr)) > 0;
+			Address_node *c = Avl_node<Address_node>::child(side);
+			return c ? c->find_by_address(addr) : 0;
+		}
+};
 
 #endif /* _ADDRESS_NODE_H_ */

@@ -34,13 +34,13 @@ namespace Scout {
 }
 
 
-inline void *operator new(Genode::size_t size)
+inline void *operator new(__SIZE_TYPE__ size)
 {
 	using Genode::env;
 	void *addr = env()->heap()->alloc(size);
 	if (!addr) {
-		PERR("env()->heap() has consumed %zd", env()->heap()->consumed());
-		PERR("env()->ram_session()->quota = %zd", env()->ram_session()->quota());
+		Genode::error("env()->heap() has consumed ", env()->heap()->consumed());
+		Genode::error("env()->ram_session()->quota = ", env()->ram_session()->quota());
 		throw Genode::Allocator::Out_of_memory();
 	}
 	return addr;

@@ -15,7 +15,7 @@ proc run_boot_dir_hook { } {
 
 
 proc run_boot_string { } {
-	return "Starting node #0"
+	return "\n\rStarting node #0"
 }
 
 
@@ -23,16 +23,6 @@ proc run_boot_string { } {
 # Populate boot directory with binaries on hw
 #
 proc run_boot_dir {binaries} {
-
-	# adapt to wether this is a core-internal test or a common scenario
-	global core_test
-	if {[info exists core_test]} {
-		set core_bin "test-$core_test"
-		set core_target "test/$core_test"
-	} else {
-		set core_bin "core"
-		set core_target "core"
-	}
 
 	# strip binaries
 	copy_and_strip_genode_binaries_to_run_dir $binaries
@@ -83,7 +73,7 @@ proc run_boot_dir {binaries} {
 	# generate header for each boot module except core
 	set i 1
 	foreach binary $binaries {
-		if {$binary == $core_bin} { continue }
+		if {$binary == "core"} { continue }
 		exec echo -e \
 			"\n${address_type} _boot_module_${i}_name" \
 			"\n${address_type} _boot_module_${i}_begin" \
@@ -100,7 +90,7 @@ proc run_boot_dir {binaries} {
 	# generate name string for each module except core
 	set i 1
 	foreach binary $binaries {
-		if {$binary == $core_bin} { continue }
+		if {$binary == "core"} { continue }
 		exec echo -e \
 			"\n.p2align DATA_ACCESS_ALIGNM_LOG2" \
 			"\n_boot_module_${i}_name:" \
@@ -118,7 +108,7 @@ proc run_boot_dir {binaries} {
 	# include raw data of modules consecutively but page aligned
 	set i 1
 	foreach binary $binaries {
-		if {$binary == $core_bin} { continue }
+		if {$binary == "core"} { continue }
 		exec echo -e \
 			"\n.p2align MIN_PAGE_SIZE_LOG2" \
 			"\n_boot_module_${i}_begin:" \
@@ -136,10 +126,10 @@ proc run_boot_dir {binaries} {
 	exec ln -s $boot_modules boot_modules.s
 
 	# recompile core with boot modules
-	exec cp -L bin/$core_bin $core_target/$core_bin.standalone
-	exec find . -type f -name $core_bin -delete
+	exec cp -L bin/core core/core.standalone
+	exec find . -type f -name core -delete
 	set timeout 10000
-	set pid [eval "spawn make $core_target"]
+	set pid [eval "spawn make core"]
 	expect { eof { } }
 	if {[lindex [wait $pid] end] != 0} {
 		clean_boot_modules
@@ -153,10 +143,10 @@ proc run_boot_dir {binaries} {
 	set elf_img "[run_dir]/image.elf"
 	if {[have_spec "x86_64"]} {
 		# as startup is done in 32 bit mode, GRUB expects a 32 bit image
-		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/$core_bin $elf_img
+		exec [cross_dev_prefix]objcopy -O elf32-i386 bin/core $elf_img
 	}
 	if {[expr [have_spec "arm"] || [have_spec "x86_32"]]} {
-		exec cp -L bin/$core_bin $elf_img
+		exec cp -L bin/core $elf_img
 	}
 	exec [cross_dev_prefix]strip $elf_img
 
@@ -173,7 +163,8 @@ proc run_boot_dir {binaries} {
 		puts $fh "timeout 0"
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on seL4"
-		puts $fh " kernel /sel4"
+		puts $fh " kernel /boot/bender norelocate"
+		puts $fh " module /sel4 disable_iommu"
 		puts $fh " module /image.elf"
 
 		close $fh
@@ -181,16 +172,31 @@ proc run_boot_dir {binaries} {
 
 	run_image $elf_img
 
-	# set symbolic link to image.elf file in TFTP directory for PXE boot
 	if {[have_include "load/tftp"]} {
-		exec ln -sf [pwd]/$elf_img [load_tftp_base_dir][load_tftp_offset_dir]
+		#
+		# Install PXE bootloader pulsar
+		#
+		install_pxe_bootloader_to_run_dir
 
-		if {[have_include "image/uboot"]} {
-			exec ln -sf [pwd]/[run_dir]/uImage [load_tftp_base_dir][load_tftp_offset_dir]
-		}
+		#
+		# Generate pulsar config file
+		#
+		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+		puts $fh " exec /boot/bender norelocate"
+		puts $fh " load /sel4 disable_iommu"
+		puts $fh " load /image.elf"
+		close $fh
+
+		generate_tftp_config
+	}
+
+	if {[have_include "load/ipxe"]} {
+		create_ipxe_iso_config
+		update_ipxe_boot_dir
+		create_symlink_for_iso
 	}
 
 	# retrieve stand-alone core
-	exec cp $core_target/$core_bin.standalone bin/$core_bin
-	exec rm $core_target/$core_bin.standalone
+	exec cp core/core.standalone bin/core
+	exec rm core/core.standalone
 }

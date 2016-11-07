@@ -35,19 +35,32 @@ class Platform_timer
 		Kernel::capid_t const   _sigid;
 		unsigned long mutable   _curr_time_us;
 		Genode::Lock  mutable   _curr_time_us_lock;
-		unsigned long mutable   _last_timeout_us;
+		unsigned long mutable   _last_timeout_age_us;
 		time_t const            _max_timeout_us;
+
+		/**
+		 * Return kernel capability selector of Genode capability
+		 *
+		 * This function is normally framework-internal and defined in
+		 * 'base/internal/capability_space.h'.
+		 */
+		static inline Kernel::capid_t _capid(Genode::Native_capability const &cap)
+		{
+			Genode::addr_t const index = (Genode::addr_t)cap.data();
+			return index;
+		}
 
 	public:
 
 		Platform_timer()
 		:
-			_sigid(_sigrec.manage(&_sigctx).dst()), _curr_time_us(0),
-			_last_timeout_us(0), _max_timeout_us(Kernel::timeout_max_us())
+			_sigid(_capid(_sigrec.manage(&_sigctx))),
+			_curr_time_us(0), _last_timeout_age_us(0),
+			_max_timeout_us(Kernel::timeout_max_us())
 		{
-			PINF("Maximum timeout %lu us", _max_timeout_us);
+			Genode::log("maximum timeout ", _max_timeout_us, " us");
 			if (max_timeout() < min_timeout()) {
-				PERR("Minimum timeout greater then maximum timeout");
+				Genode::error("minimum timeout greater then maximum timeout");
 				throw Genode::Exception();
 			}
 		}
@@ -55,7 +68,7 @@ class Platform_timer
 		~Platform_timer() { _sigrec.dissolve(&_sigctx); }
 
 		/**
-		 * Refresh and return our instance-own "now"-time in microseconds
+		 * Refresh and return time in microseconds
 		 *
 		 * This function has to be executed regulary, at least all
 		 * max_timeout() us.
@@ -63,9 +76,13 @@ class Platform_timer
 		unsigned long curr_time() const
 		{
 			Genode::Lock::Guard lock(_curr_time_us_lock);
-			time_t const passed_us = Kernel::timeout_age_us();
-			_last_timeout_us -= passed_us;
-			_curr_time_us += passed_us;
+			time_t const timeout_age_us = Kernel::timeout_age_us();
+			if (timeout_age_us > _last_timeout_age_us) {
+
+				/* increment time by the difference since the last update */
+				_curr_time_us += timeout_age_us - _last_timeout_age_us;
+				_last_timeout_age_us = timeout_age_us;
+			}
 			return _curr_time_us;
 		}
 
@@ -95,7 +112,7 @@ class Platform_timer
 			 * timeout counter through 'curr_time()' (We rely on the fact that
 			 * this is done at least one time in every max-timeout period)
 			 */
-			_last_timeout_us = timeout_us;
+			_last_timeout_age_us = 0;
 			Kernel::timeout(timeout_us, _sigid);
 		}
 

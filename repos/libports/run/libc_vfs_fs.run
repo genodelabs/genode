@@ -34,7 +34,7 @@ set config {
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs> <ram/> </vfs>
-			<policy root="/" writeable="yes" />
+			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
 	<start name="test-libc_vfs">

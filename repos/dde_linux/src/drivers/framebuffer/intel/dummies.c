@@ -1,5 +1,5 @@
-#include "lx_emul_private.h"
 #include <lx_emul.h>
+#include <lx_emul_c.h>
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_dp_mst_helper.h>
@@ -657,11 +657,6 @@ unsigned int jiffies_to_usecs(const unsigned long j)
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-void kmem_cache_destroy(struct kmem_cache *cache)
-{
-	TRACE_AND_STOP;
 }
 
 int kobject_uevent_env(struct kobject *kobj, enum kobject_action action, char *envp[])

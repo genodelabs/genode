@@ -79,7 +79,7 @@ class Genode::Trace::Control_area
 				return true;
 			}
 
-			PERR("trace-control allocaton failed");
+			error("trace-control allocaton failed");
 			return false;
 		}
 

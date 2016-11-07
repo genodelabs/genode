@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/exception.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/stdint.h>
 #include <block_session/connection.h>
 #include <util/misc_math.h>
@@ -63,12 +63,12 @@ namespace Iso {
 					_p = _source->get_acked_packet();
 
 					if (!_p.succeeded()) {
-						PERR("Could not read block %lu", blk_nr);
+						Genode::error("Could not read block ", blk_nr);
 						throw Io_error();
 					}
 
 				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-					PERR("Packet overrun!");
+					Genode::error("packet overrun!");
 					_p = _source->get_acked_packet();
 					throw Io_error();
 				}
@@ -331,9 +331,6 @@ namespace Iso {
 			Sector sec(blk_nr, 1);
 			Volume_descriptor *vol = sec.addr<Volume_descriptor *>();
 
-			if (verbose)
-				PDBG("Volume: type %u", vol->type());
-
 			if (vol->primary())
 				return vol->copy_root_record();
 
@@ -353,8 +350,6 @@ namespace Iso {
 		if (!root)
 			throw Non_data_disc();
 
-		if (verbose)
-			PDBG("Good root");
 		return root;
 	}
 
@@ -370,9 +365,6 @@ namespace Iso {
 		unsigned long ret = total_blk_count;
 		unsigned long blk_count;
 		unsigned long blk_nr = info->blk_nr() + (file_offset / Sector::blk_size());
-
-		if (verbose)
-			PDBG("Read blk %lu count %lu, file_offset: %08lx length %u", blk_nr, total_blk_count, file_offset, length);
 
 		while ((blk_count = min<unsigned long>(Sector::MAX_SECTORS, total_blk_count))) {
 			Sector sec(blk_nr, blk_count);
@@ -427,25 +419,30 @@ namespace Iso {
 
 			t.string(level, PATH_LENGTH);
 
+			/*
+			 * Save current block number in a variable because successive
+			 * iterations might override the memory location where dir points
+			 * to when a directory entry spans several sectors.
+			 */
+			uint32_t current_blk_nr = dir->blk_nr();
+
 			/* load extent of directory record and search for level */
 			for (unsigned long i = 0; i < Sector::to_blk(dir->data_length()); i++) {
-				Sector sec(dir->blk_nr() + i, 1);
+				Sector sec(current_blk_nr + i, 1);
 				Directory_record *tmp = sec.addr<Directory_record *>()->locate(level);
 
 				if (!tmp && i == Sector::to_blk(dir->data_length()) - 1) {
-					PERR("File not found: %s", path);
+					Genode::error("file not found: ", Genode::Cstring(path));
 					throw File_not_found();
 				}
 
 				if (!tmp) continue;
 
 				dir = tmp;
-
-				if (verbose)
-					PDBG("Found %s", level);
+				current_blk_nr = dir->blk_nr();
 
 				if (!dir->directory()) {
-					blk_nr      = dir->blk_nr();
+					blk_nr      = current_blk_nr;
 					data_length = dir->data_length();
 				}
 
@@ -458,12 +455,9 @@ namespace Iso {
 		/* Warning: Don't access 'dir' after this point, since the sector is gone */
 
 		if (!blk_nr && !data_length) {
-			PERR("File not found: %s", path);
+			Genode::error("file not found: ", Genode::Cstring(path));
 			throw File_not_found();
 		}
-
-		if (verbose)
-			PDBG("Path: %s Block nr: %u Length: %u", path, blk_nr, data_length);
 
 		return new(env()->heap()) File_info(blk_nr, data_length);
 	}

@@ -28,9 +28,11 @@
 
 namespace Lx
 {
-	void socket_init(Server::Entrypoint &);
+	void emul_init(Genode::Env&, Genode::Allocator&);
 
-	void nic_init(Server::Entrypoint &);
+	void socket_init(Genode::Entrypoint&, Genode::Allocator&);
+
+	void nic_init(Genode::Env&, Genode::Allocator&);
 
 	Genode::Ram_dataspace_capability backend_alloc(Genode::addr_t, Genode::Cache_attribute);
 	void backend_free(Genode::Ram_dataspace_capability);

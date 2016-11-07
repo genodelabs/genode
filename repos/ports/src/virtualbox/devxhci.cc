@@ -14,7 +14,8 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
+#include <os/attached_rom_dataspace.h>
 #include <util/list.h>
 
 /* qemu-usb includes */
@@ -160,7 +161,7 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Context *c = _find_context(qtimer);
 		if (c == nullptr) {
-			PERR("qtimer: %p not found", qtimer);
+			Genode::error("qtimer: ", qtimer, " not found");
 			throw -1;
 		}
 
@@ -195,7 +196,7 @@ struct Timer_queue : public Qemu::Timer_queue
 	 ** TMTimer callback **
 	 **********************/
 
-	static void tm_timer_cb(PPDMDEVINS pDevIns, PTMTIMER pTimer, void *pvUser)
+	static DECLCALLBACK(void) tm_timer_cb(PPDMDEVINS pDevIns, PTMTIMER pTimer, void *pvUser)
 	{
 		PXHCI pThis    = PDMINS_2_DATA(pDevIns, PXHCI);
 		Timer_queue *q = pThis->timer_queue;
@@ -209,7 +210,7 @@ struct Timer_queue : public Qemu::Timer_queue
 		unsigned res = 0;
 
 		for (Context *c = _context_list.first(); c; c = c->next()) {
-			if (c->pending) PINF("timer: %p is pending", c);
+			if (c->pending) Genode::log("timer: ", c, " is pending");
 			res++;
 		}
 
@@ -228,11 +229,11 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p cb: %p data: %p", qtimer, cb, data);
+			Genode::log("qtimer: ", qtimer, " cb: ", cb, " data: ", data);
 
 		Context *c = _find_context(qtimer);
 		if (c != nullptr) {
-			PERR("qtimer: %p already registred", qtimer);
+			Genode::error("qtimer: ", qtimer, " already registred");
 			throw -1;
 		}
 
@@ -243,11 +244,11 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p", qtimer);
+			Genode::log("qtimer: ", qtimer);
 
 		Context *c = _find_context(qtimer);
 		if (c == nullptr) {
-			PERR("qtimer: %p not found", qtimer);
+			Genode::error("qtimer: ", qtimer, " not found");
 			throw -1;
 		}
 
@@ -261,11 +262,11 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p expire: %lld", qtimer, expire_abs);
+			Genode::log("qtimer: ", qtimer, " expire: ", expire_abs);
 
 		Context *c = _find_context(qtimer);
 		if (c == nullptr) {
-			PERR("qtimer: %p not found", qtimer);
+			Genode::error("qtimer: ", qtimer, " not found");
 			throw -1;
 		}
 
@@ -279,7 +280,7 @@ struct Timer_queue : public Qemu::Timer_queue
 	{
 		Genode::Lock::Guard lock_guard(_timer_lock);
 		if (verbose_timer)
-			PDBG("qtimer: %p", qtimer);
+			Genode::log("qtimer: ", qtimer);
 
 		_deactivate_timer(qtimer);
 	}
@@ -295,20 +296,20 @@ struct Pci_device : public Qemu::Pci_device
 	void raise_interrupt(int level) override {
 		PDMDevHlpPCISetIrqNoWait(pci_dev, 0, level); }
 
-	int read_dma(Qemu::addr_t addr, void *buf, size_t size) override {
+	int read_dma(Qemu::addr_t addr, void *buf, Qemu::size_t size) override {
 		return PDMDevHlpPhysRead(pci_dev, addr, buf, size); }
 
-	int write_dma(Qemu::addr_t addr, void const *buf, size_t size) override {
+	int write_dma(Qemu::addr_t addr, void const *buf, Qemu::size_t size) override {
 		return PDMDevHlpPhysWrite(pci_dev, addr, buf, size); }
 
-	void *map_dma(Qemu::addr_t base, size_t size)
+	void *map_dma(Qemu::addr_t base, Qemu::size_t size)
 	{
 		void *addr;
 		PGMR3PhysTlbGCPhys2Ptr(nullptr, base, true, &addr);
 		return addr;
 	}
 
-	void unmap_dma(void *addr, size_t size) { }
+	void unmap_dma(void *addr, Qemu::size_t size) { }
 };
 
 
@@ -569,3 +570,14 @@ const PDMDEVREG g_DeviceXHCI =
 	/* u32VersionEnd */
 	PDM_DEVREG_VERSION
 };
+
+
+bool use_xhci_controller()
+{
+	try {
+		Genode::Attached_rom_dataspace config("config");
+		return config.xml().attribute_value("xhci", false);
+	} catch (Genode::Rom_connection::Rom_connection_failed) {
+		return false;
+	}
+}

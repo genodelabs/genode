@@ -154,12 +154,12 @@ CXX_LINK_OPT       += $(LD_OPT_NOSTDLIB)
 #
 # Linker script for dynamically linked programs
 #
-LD_SCRIPT_DYN = $(call select_from_repositories,src/ld/genode_dyn.ld)
+LD_SCRIPT_DYN = $(BASE_DIR)/src/ld/genode_dyn.ld
 
 #
 # Linker script for shared libraries
 #
-LD_SCRIPT_SO ?= $(call select_from_repositories,src/ld/genode_rel.ld)
+LD_SCRIPT_SO ?= $(BASE_DIR)/src/ld/genode_rel.ld
 
 #
 # Assembler options

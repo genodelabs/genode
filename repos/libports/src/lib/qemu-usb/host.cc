@@ -7,7 +7,7 @@
 
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/server.h>
 #include <os/signal_rpc_dispatcher.h>
@@ -63,7 +63,8 @@ struct Completion : Usb::Completion
 		if (actual_size < 0) actual_size = 0;
 
 		if (verbose_host)
-			PDBG("packet.type: %u actual_size: 0x%x", packet.type, actual_size);
+			log(__func__, ": packet.type: ", (int)packet.type, " "
+			    "actual_size: ", Hex(actual_size));
 
 		p->actual_length = 0;
 
@@ -151,7 +152,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			}
 		}
 
-		if (!result) PERR("Device already claimed");
+		if (!result) error("device already claimed");
 
 		return result;
 	}
@@ -228,18 +229,9 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	Usb::Packet_descriptor alloc_packet(int length)
 	{
+
 		if (!usb_raw.source()->ready_to_submit())
 			throw -1;
-
-		if (length <= 0) {
-			/*
-			 * XXX Packets without payload are not supported by the packet stream
-			 *     currently. Therefore, we use a (small) bogus length
-			 *     here and depend on the USB driver to handle this case
-			 *     correctly.
-			 */
-			length = 4;
-		}
 
 		Usb::Packet_descriptor packet = usb_raw.source()->alloc_packet(length);
 		packet.completion = alloc_completion();
@@ -347,7 +339,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
  ** Qemu interface **
  ********************/
 
-#define TRACE_AND_STOP do { PDBG("not implemented"); } while(false)
+#define TRACE_AND_STOP do { warning(__func__, " not implemented"); } while(false)
 
 #define USB_HOST_DEVICE(obj) \
         OBJECT_CHECK(USBHostDevice, (obj), TYPE_USB_HOST_DEVICE)
@@ -383,7 +375,7 @@ static void usb_host_realize(USBDevice *udev, Error **errp)
 	dev->usb_raw.config_descriptor(&ddescr, &cdescr);
 
 	if (verbose_host)
-		PDBG("set udev->speed to %d", Usb_host_device::to_qemu_speed(ddescr.speed));
+		log("set udev->speed to %d", Usb_host_device::to_qemu_speed(ddescr.speed));
 
 	udev->speed     = Usb_host_device::to_qemu_speed(ddescr.speed);
 	udev->speedmask = (1 << udev->speed);
@@ -408,8 +400,7 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	USBHostDevice     *d = USB_HOST_DEVICE(udev);
 	Usb_host_device *dev = (Usb_host_device *)d->data;
 
-	size_t size = 0;
-	unsigned timeout = 0;
+	Genode::size_t size = 0;
 	Usb::Packet_descriptor::Type type = Usb::Packet_descriptor::BULK;
 
 	switch (usb_ep_get_type(udev, p->pid, p->ep->nr)) {
@@ -420,33 +411,18 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	case USB_ENDPOINT_XFER_INT:
 		type = Usb::Packet_descriptor::IRQ;
 		size = p->iov.size;
-
-		/* values match usb_drv */
-		switch (udev->speed) {
-		case USB_SPEED_SUPER:
-			timeout = 1<<15;
-			break;
-		case USB_SPEED_HIGH:
-			timeout = 1<<13;
-			break;
-		case USB_SPEED_FULL:
-		case USB_SPEED_LOW:
-			timeout = 1<<7;
-			break;
-		default: break;
-		}
 		break;
 	default:
-		PERR("not supported data request");
+		error("not supported data request");
 		break;
 	}
 
 	bool const in = p->pid == USB_TOKEN_IN;
 
 	Usb::Packet_descriptor packet = dev->alloc_packet(size);
-	packet.type             = type;
-	packet.transfer.ep      = p->ep->nr | (in ? USB_DIR_IN : 0);
-	packet.transfer.timeout = timeout;
+	packet.type                      = type;
+	packet.transfer.ep               = p->ep->nr | (in ? USB_DIR_IN : 0);
+	packet.transfer.polling_interval = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
 
 	if (!in) {
 		char * const content = dev->usb_raw.source()->packet_content(packet);
@@ -471,7 +447,8 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 	Usb_host_device *dev = (Usb_host_device *)d->data;
 
 	if (verbose_host)
-		PDBG("r: %x v: %x i: %x length: %d", request, value, index, length);
+		log("r: ", Hex(request), " v: ", Hex(value), " "
+		    "i: ", Hex(index), " length: ", length);
 
 	switch (request) {
 	case DeviceOutRequest | USB_REQ_SET_ADDRESS:
@@ -488,13 +465,13 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 	if (udev->speed == USB_SPEED_SUPER &&
 		!(udev->port->speedmask & USB_SPEED_MASK_SUPER) &&
 		request == 0x8006 && value == 0x100 && index == 0) {
-		PERR("r->usb3ep0quirk = true");
+		error("r->usb3ep0quirk = true");
 	}
 
 	Usb::Packet_descriptor packet;
 	try {
 		packet = dev->alloc_packet(length);
-	} catch (...) { PERR("Packet allocation failed"); return; }
+	} catch (...) { error("Packet allocation failed"); return; }
 
 	packet.type = Usb::Packet_descriptor::CTRL;
 	packet.control.request_type = request >> 8;
@@ -576,6 +553,28 @@ struct Usb_devices : List<Usb_host_device>
 		return nullptr;
 	}
 
+	/**
+	 * Helper for the formatted output of device info
+	 */
+	struct Formatted_dev_info
+	{
+		uint32_t const vendor, product;
+		uint16_t const bus, dev;
+
+		Formatted_dev_info(uint16_t bus, uint16_t dev, uint32_t vendor, uint32_t product)
+		:
+			vendor(vendor), product(product), bus(bus), dev(dev)
+		{ }
+
+		void print(Genode::Output &out) const
+		{
+			Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+				               Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), " (",
+				               "vendor=",  Hex(vendor, Hex::OMIT_PREFIX), ", ",
+				               "product=", Hex(product, Hex::OMIT_PREFIX), ")");
+		}
+	};
+
 	void _devices_update(unsigned)
 	{
 		Lock::Guard g(_lock);
@@ -587,7 +586,7 @@ struct Usb_devices : List<Usb_host_device>
 			return;
 
 		if (verbose_devices)
-			PINF("%s", _devices_rom.local_addr<char>());
+			log(_devices_rom.local_addr<char const>());
 
 		Xml_node devices_node(_devices_rom.local_addr<char>(), _devices_rom.size());
 		devices_node.for_each_sub_node("device", [&] (Xml_node const &node) {
@@ -597,11 +596,13 @@ struct Usb_devices : List<Usb_host_device>
 			unsigned bus     = node.attribute_value<unsigned>("bus", 0);
 			unsigned dev     = node.attribute_value<unsigned>("dev", 0);
 
+			Formatted_dev_info const formatted_dev_info(bus, dev, vendor, product);
+
 			Genode::String<128> label;
 			try {
 				node.attribute("label").value(&label);
 			} catch (Genode::Xml_attribute::Nonexistent_attribute) {
-				PERR("No label found for device %03x:%03x", bus, dev);
+				error("no label found for device ", formatted_dev_info);
 				return;
 			}
 
@@ -614,12 +615,10 @@ struct Usb_devices : List<Usb_host_device>
 
 				insert(new_device);
 
-				PINF("Attach USB device %03x:%03x (%x:%x)",
-				     bus, dev, vendor, product);
+				log("Attach USB device ", formatted_dev_info);
 
 			} catch (...) {
-				PERR("Could not attach USB device %03x:%03x (%x:%x)",
-				     bus, dev, vendor, product);
+				error("could not attach USB device ", formatted_dev_info);
 			}
 		});
 	}

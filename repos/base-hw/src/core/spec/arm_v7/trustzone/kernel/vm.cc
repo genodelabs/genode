@@ -63,7 +63,7 @@ void Vm::proceed(unsigned const cpu)
 	unsigned const irq = _state->irq_injection;
 	if (irq) {
 		if (secure_irq(irq)) {
-			PWRN("Refuse to inject secure IRQ into VM");
+			Genode::warning("Refuse to inject secure IRQ into VM");
 		} else {
 			pic()->trigger(irq);
 			_state->irq_injection = 0;

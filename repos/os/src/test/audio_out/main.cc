@@ -16,7 +16,7 @@
  */
 
 #include <audio_out_session/connection.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <rom_session/connection.h>
 #include <dataspace/client.h>
@@ -73,15 +73,15 @@ class Track : Thread_deprecated<8192>
 				base = env()->rm_session()->attach(ds_cap);
 			}
 			catch (...) {
-				PDBG("Error: Could not open: %s", _file);
+				error("could not open: ", _file);
 				return;
 			}
 
 			Dataspace_client ds_client(ds_cap);
 
 			if (verbose)
-				PDBG("%s size is %zu Bytes (attached to %p)",
-				     _file, ds_client.size(), base);
+				log(_file, " size is ", ds_client.size(), " bytes "
+				    "(attached to ", (void *)base, ")");
 
 			size_t file_size = ds_client.size();
 			for (int i = 0; i < CHN_CNT; ++i)
@@ -131,14 +131,14 @@ class Track : Thread_deprecated<8192>
 					}
 
 					if (verbose)
-						PDBG("%s submit packet %u", _file,
-						     _audio_out[0]->stream()->packet_position((p[0])));
+						log(_file, " submit packet ",
+						    _audio_out[0]->stream()->packet_position((p[0])));
 
 					for (int i = 0; i < CHN_CNT; i++)
 						_audio_out[i]->submit(p[i]);
 				}
 
-				PLOG("played '%s' %u time(s)", _file, ++cnt);
+				log("played '", _file, "' ", ++cnt, " time(s)");
 			}
 		}
 
@@ -162,14 +162,14 @@ static int process_config(const char ***files)
 	for (unsigned i = 0; i < config_node.num_sub_nodes(); ++i) {
 
 		if (!(i < MAX_FILES)) {
-			PWRN("Test supports max %d files. Skipping...", MAX_FILES);
+			warning("test supports max ", (int)MAX_FILES, " files. Skipping...");
 			break;
 		}
 
 		Xml_node file_node = config_node.sub_node(i);
 
 		if (!config_node.has_type("config")) {
-			printf("Error: Root node of config file is not a <config> tag.\n");
+			error("root node of config file is not a <config> tag");
 			return -1;
 		}
 
@@ -188,7 +188,7 @@ static int process_config(const char ***files)
 
 int main(int argc, char **argv)
 {
-	PDBG("--- Audio_out test ---\n");
+	log("--- Audio_out test ---");
 
 	const char *defaults[] = { "1.raw", "2.raw" };
 	const char **files     = defaults;
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 		cnt = process_config(&files);
 	}
 	catch (...) {
-		PWRN("Couldn't get input files, failing back to defaults");
+		warning("couldn't get input files, failing back to defaults");
 	}
 
 	Track *track[cnt];

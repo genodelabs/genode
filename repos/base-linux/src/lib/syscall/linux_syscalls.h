@@ -32,17 +32,28 @@
 #define _GNU_SOURCE 1 /* needed to enable the definition of 'stat64' */
 #endif
 
+/* Genode includes */
+#include <util/string.h>
+#include <base/printf.h>
+#include <base/snprintf.h>
+#include <base/log.h>
+
+/*
+ * Resolve ambiguity between 'Genode::size_t' and the host's header's 'size_t'.
+ */
+#define size_t __SIZE_TYPE__
+
 /* Linux includes */
 #include <linux/futex.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sched.h>
 #include <sys/syscall.h>
+#include <sys/un.h>
+#include <sys/socket.h>
+#include <sys/mman.h>
 
-/* Genode includes */
-#include <util/string.h>
-#include <base/printf.h>
-#include <base/snprintf.h>
+#undef size_t
 
 
 /***********************************
@@ -50,14 +61,13 @@
  ***********************************/
 
 extern "C" void wait_for_continue(void);
-extern "C" int raw_write_str(const char *str);
 
 #define PRAW(fmt, ...)                                             \
 	do {                                                           \
 		char str[128];                                             \
 		Genode::snprintf(str, sizeof(str),                         \
 		                 ESC_ERR fmt ESC_END "\n", ##__VA_ARGS__); \
-		raw_write_str(str);                                        \
+		Genode::raw(Genode::Cstring(str));                         \
 	} while (0)
 
 
@@ -197,7 +207,7 @@ inline void *lx_mmap(void *start, Genode::size_t length, int prot, int flags,
 }
 
 
-inline int lx_munmap(void *addr, size_t length)
+inline int lx_munmap(void *addr, Genode::size_t length)
 {
 	return lx_syscall(SYS_munmap, addr, length);
 }
@@ -245,7 +255,7 @@ extern "C" void lx_restore_rt (void);
 /**
  * Simplified binding for sigaction system call
  */
-inline int lx_sigaction(int signum, void (*handler)(int))
+inline int lx_sigaction(int signum, void (*handler)(int), bool altstack)
 {
 	struct kernel_sigaction act;
 	act.handler = handler;
@@ -258,12 +268,16 @@ inline int lx_sigaction(int signum, void (*handler)(int))
 	 * when leaving the signal handler and it should call the rt_sigreturn syscall.
 	 */
 	enum { SA_RESTORER = 0x04000000 };
-	act.flags    = SA_RESTORER | SA_ONSTACK;
+	act.flags    = SA_RESTORER;
 	act.restorer = lx_restore_rt;
 #else
-	act.flags    = SA_ONSTACK;
+	act.flags    = 0;
 	act.restorer = 0;
 #endif
+
+	/* use alternate signal stack if requested */
+	act.flags |= altstack ? SA_ONSTACK : 0;
+
 	lx_sigemptyset(&act.mask);
 
 	return lx_syscall(SYS_rt_sigaction, signum, &act, 0UL, _NSIG/8);

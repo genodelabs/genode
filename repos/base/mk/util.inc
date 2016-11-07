@@ -54,4 +54,15 @@ _checked_port     = $(if $2,$2,$(call _port_missing,$1))
 _checked_port_dir = $(call _checked_port,$1,$(call _port_dir,$1))
 endif
 
+#
+# Search port within the 'CONTRIB_DIR' if defined, which is the case when
+# using the build system in the regular way. If the build system is invoked
+# by the package-build tool, however, all source codes are - by definition -
+# part of the package. In this case, 'CONTRIB_DIR' is undefined and we can
+# simply return the package's 'REP_DIR'.
+#
+ifneq ($(CONTRIB_DIR),)
 select_from_ports = $(call _checked_port_dir,$1)
+else
+select_from_ports = $(REP_DIR)
+endif

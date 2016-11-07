@@ -73,6 +73,10 @@ struct Usb::String
 	void copy(unsigned len, void *from, Genode::Allocator *md_alloc)
 	{
 		length = len;
+
+		if (len == 0)
+			return;
+
 		string = (utf16_t *)md_alloc->alloc(length * sizeof(utf16_t));
 		Genode::memcpy(string, from, sizeof(utf16_t) * length);
 	}

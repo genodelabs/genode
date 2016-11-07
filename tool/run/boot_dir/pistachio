@@ -64,7 +64,7 @@ proc kernel_external { } {
 
 
 proc run_boot_string { } {
-	return "L4Ka::Pistachio -"
+	return "\n\r\033\\\[1m\033\\\[33mL4Ka::Pistachio -"
 }
 
 

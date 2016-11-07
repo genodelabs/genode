@@ -20,6 +20,11 @@
 
 namespace Fiasco {
 #include <l4/sys/utcb.h>
+
+	enum Utcb_regs {
+		UTCB_TCR_BADGE      = 1,
+		UTCB_TCR_THREAD_OBJ = 2
+	};
 }
 
 namespace Genode { struct Native_utcb; }

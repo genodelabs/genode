@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/cap_map.h>
+/* Genode includes */
+#include <base/log.h>
 
-#include <base/printf.h>
-
-/* base-nova specific include */
+/* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/cap_map.h>
 
 using namespace Genode;
 
@@ -55,8 +55,7 @@ void Cap_range::inc(unsigned id)
 	}
 
 	if (failure)
-		PERR("cap reference counting error - reference overflow of cap=%lx",
-		     _base + id);
+		error("cap reference counting error - reference overflow of cap=", _base + id);
 }
 
 
@@ -82,8 +81,9 @@ void Cap_range::dec(unsigned const id_start, bool revoke, unsigned num_log_2)
 	}
 
 	if (failure)
-		PERR("cap reference counting error - one counter of cap range %lx+%x "
-		     "has been already zero", _base + id_start, 1 << num_log_2);
+		error("cap reference counting error - one counter of cap ",
+		      "range ", _base + id_start, "+", 1 << num_log_2, " "
+		      "has been already zero");
 }
 
 

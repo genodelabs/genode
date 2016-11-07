@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,98 +21,94 @@
 #include <log_session/log_session.h>
 #include <file_system_session/file_system_session.h>
 #include <base/rpc_server.h>
-
-/* Local includes */
-#include "log_file.h"
+#include <base/snprintf.h>
+#include <base/log.h>
 
 namespace Fs_log {
-	class           Session_component;
-	class Unlabeled_session_component;
-	class   Labeled_session_component;
+
+	enum { MAX_LABEL_LEN = 128 };
+
+	class Session_component;
 }
 
-class Fs_log::Session_component : public Rpc_object<Log_session, Unlabeled_session_component>
-{
-	protected:
-
-		Log_file &_log_file;
-
-	public:
-
-		Session_component(Log_file &log_file)
-		: _log_file(log_file) { _log_file.incr(); }
-
-		~Session_component() { _log_file.decr(); }
-
-		Log_file *file() const { return &_log_file; }
-
-		virtual size_t write(String const &string) = 0;
-};
-
-class Fs_log::Unlabeled_session_component : public Session_component
-{
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Unlabeled_session_component(Log_file &log_file)
-		: Session_component(log_file) { }
-
-		/*****************
-		 ** Log session **
-		 *****************/
-
-		size_t write(Log_session::String const &msg)
-		{
-			if (!msg.valid_string()) {
-				PERR("corrupted string");
-				return 0;
-			}
-
-			char const *msg_str = msg.string();
-			size_t msg_len = Genode::strlen(msg_str);
-
-			return _log_file.write(msg_str, msg_len);
-		}
-};
-
-class Fs_log::Labeled_session_component : public Session_component
+class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 {
 	private:
 
-		char      _label[Log_session::String::MAX_SIZE];
-		size_t    _label_len;
+		char _label_buf[MAX_LABEL_LEN];
+		Genode::size_t const _label_len;
+
+		File_system::Session          &_fs;
+		File_system::File_handle const _handle;
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Labeled_session_component(char const *label, Log_file &log_file)
-		: Session_component(log_file)
+		Session_component(File_system::Session     &fs,
+		                  File_system::File_handle  handle,
+		                  char               const *label)
+		:
+			_label_len(Genode::strlen(label) ? Genode::strlen(label)+3 : 0),
+			_fs(fs), _handle(handle)
 		{
-			snprintf(_label, sizeof(_label), "[%s] ", label);
-			_label_len = strlen(_label);
+			if (_label_len)
+				Genode::snprintf(_label_buf, MAX_LABEL_LEN, "[%s] ", label);
 		}
+
+		~Session_component()
+		{
+			_fs.sync(_handle);
+			_fs.close(_handle);
+		}
+
 
 		/*****************
 		 ** Log session **
 		 *****************/
 
-		size_t write(Log_session::String const &msg)
+		Genode::size_t write(Log_session::String const &msg)
 		{
-			if (!msg.valid_string()) {
-				PERR("corrupted string");
+			using namespace Genode;
+
+			if (!msg.is_valid_string()) {
+				Genode::error("received corrupted string");
 				return 0;
 			}
 
-			char const *msg_str = msg.string();
-			size_t msg_len = Genode::strlen(msg_str);
+			size_t msg_len = strlen(msg.string());
 
-			_log_file.write(_label, _label_len);
-			return _log_file.write(msg_str, msg_len);
+			File_system::Session::Tx::Source &source = *_fs.tx();
+
+			File_system::Packet_descriptor packet(
+				source.get_acked_packet(),
+				_handle, File_system::Packet_descriptor::WRITE,
+				msg_len, File_system::SEEK_TAIL);
+
+			char *buf = source.packet_content(packet);
+
+			if (_label_len) {
+				memcpy(buf, _label_buf, _label_len);
+
+				if (_label_len+msg_len > Log_session::String::MAX_SIZE) {
+					packet.length(msg_len);
+					source.submit_packet(packet);
+
+					packet =  File_system::Packet_descriptor(
+						source.get_acked_packet(),
+				       _handle, File_system::Packet_descriptor::WRITE,
+				       msg_len, File_system::SEEK_TAIL);
+
+					buf = source.packet_content(packet);
+
+				} else {
+					buf += _label_len;
+					packet.length(_label_len+msg_len);
+				}
+			}
+
+			memcpy(buf, msg.string(), msg_len);
+
+			source.submit_packet(packet);
+			return msg_len;
 		}
 };
 

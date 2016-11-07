@@ -13,9 +13,9 @@
  */
 
 /* Genode includes */
-#include <cap_session/connection.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/log.h>
 #include <block/component.h>
-#include <os/config.h>
 
 /* local includes */
 #include "http.h"
@@ -31,8 +31,8 @@ class Driver : public Block::Driver
 
 	public:
 
-		Driver(size_t block_size, char *uri)
-		: _block_size(block_size), _http(uri) {}
+		Driver(Heap &heap, size_t block_size, ::String &uri)
+		: _block_size(block_size), _http(heap, uri) {}
 
 
 		/*******************************
@@ -65,48 +65,46 @@ class Factory : public Block::Driver_factory
 {
 	private:
 
-		char   _uri[64];
-		size_t _blk_sz;
+		Env                   &_env;
+		Heap                  &_heap;
+		Attached_rom_dataspace _config { _env, "config" };
+		::String               _uri;
+		size_t                 _blk_sz;
 
 	public:
 
-		Factory() : _blk_sz(512)
+		Factory(Env &env, Heap &heap)
+		: _env(env), _heap(heap), _blk_sz(512)
 		{
 			try {
-				config()->xml_node().attribute("uri").value(_uri, sizeof(_uri));
-				config()->xml_node().attribute("block_size").value(&_blk_sz);
+				_config.xml().attribute("uri").value(&_uri);
+				_config.xml().attribute("block_size").value(&_blk_sz);
 			}
 			catch (...) { }
 
-			PINF("Using file=%s as device with block size %zx.", _uri, _blk_sz);
+			log("Using file=", _uri, " as device with block size ",
+			    Hex(_blk_sz, Hex::OMIT_PREFIX), ".");
 		}
 
 		Block::Driver *create() {
-			return new (env()->heap()) Driver(_blk_sz, _uri); }
+			return new (&_heap) Driver(_heap, _blk_sz, _uri); }
 
 	void destroy(Block::Driver *driver) {
-		Genode::destroy(env()->heap(), driver); }
+		Genode::destroy(&_heap, driver); }
 };
 
 
 struct Main
 {
-	Server::Entrypoint &ep;
-	struct Factory      factory;
-	Block::Root         root;
+	Env        &env;
+	Heap        heap { env.ram(), env.rm() };
+	Factory     factory { env, heap };
+	Block::Root root { env.ep(), heap, factory };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory) {
-		Genode::env()->parent()->announce(ep.manage(root)); }
+	Main(Env &env) : env(env) {
+		env.parent().announce(env.ep().manage(root)); }
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "http_blk_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main m(env);         }

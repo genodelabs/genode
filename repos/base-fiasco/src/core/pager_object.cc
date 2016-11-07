@@ -14,6 +14,9 @@
 /* core includes */
 #include <pager.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
@@ -37,7 +40,7 @@ void Pager_object::wake_up()
 
 	l4_msgdope_t ipc_result;
 	l4_umword_t dummy = 0;
-	l4_ipc_call(cap().dst(), L4_IPC_SHORT_MSG,
+	l4_ipc_call(Capability_space::ipc_cap_data(cap()).dst, L4_IPC_SHORT_MSG,
 	            0,                 /* fault address */
 	            (l4_umword_t)this, /* instruction pointer */
 	            &rcv_header, &dummy, &dummy, L4_IPC_NEVER, &ipc_result);

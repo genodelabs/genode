@@ -53,7 +53,7 @@ using namespace Genode;
 
 static bool is_sub_rm_session(Dataspace_capability ds)
 {
-	if (ds.valid())
+	if (ds.valid() && !local(ds))
 		return false;
 
 	return Local_capability<Dataspace>::deref(ds) != 0;
@@ -98,8 +98,8 @@ addr_t Region_map_mmap::_reserve_local(bool           use_local_addr,
 
 	if ((use_local_addr && addr_in != addr_out)
 	 || (((long)addr_out < 0) && ((long)addr_out > -4095))) {
-		PERR("_reserve_local: lx_mmap failed (addr_in=%p,addr_out=%p/%ld)",
-		     addr_in, addr_out, (long)addr_out);
+		error("_reserve_local: lx_mmap failed "
+		      "(addr_in=", addr_in, ",addr_out=", addr_out, "/", (long)addr_out, ")");
 		throw Region_map::Region_conflict();
 	}
 
@@ -139,8 +139,9 @@ void *Region_map_mmap::_map_local(Dataspace_capability ds,
 
 	if ((use_local_addr && addr_in != addr_out)
 	 || (((long)addr_out < 0) && ((long)addr_out > -4095))) {
-		PERR("_map_local: lx_mmap failed (addr_in=%p,addr_out=%p/%ld) overmap=%d",
-		     addr_in, addr_out, (long)addr_out, overmap);
+		error("_map_local: lx_mmap failed"
+		      "(addr_in=", addr_in, ", addr_out=", addr_out, "/", (long)addr_out, ") "
+		      "overmap=", overmap);
 		throw Region_map::Region_conflict();
 	}
 
@@ -151,7 +152,7 @@ void *Region_map_mmap::_map_local(Dataspace_capability ds,
 void Region_map_mmap::_add_to_rmap(Region const &region)
 {
 	if (_rmap.add_region(region) < 0) {
-		PERR("_add_to_rmap: could not add region to sub RM session");
+		error("_add_to_rmap: could not add region to sub RM session");
 		throw Region_conflict();
 	}
 }
@@ -167,12 +168,12 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 
 	/* only support attach_at for sub RM sessions */
 	if (_sub_rm && !use_local_addr) {
-		PERR("Region_map_mmap::attach: attaching w/o local addr not supported\n");
+		error("Region_map_mmap::attach: attaching w/o local addr not supported");
 		throw Out_of_metadata();
 	}
 
 	if (offset < 0) {
-		PERR("Region_map_mmap::attach: negative offset not supported\n");
+		error("Region_map_mmap::attach: negative offset not supported");
 		throw Region_conflict();
 	}
 
@@ -204,7 +205,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 		 * Case 4
 		 */
 		if (is_sub_rm_session(ds)) {
-			PERR("Region_map_mmap::attach: nesting sub RM sessions is not supported");
+			error("Region_map_mmap::attach: nesting sub RM sessions is not supported");
 			throw Invalid_dataspace();
 		}
 
@@ -213,7 +214,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 		 * sub RM session
 		 */
 		if (region_size + (addr_t)local_addr > _size) {
-			PERR("Region_map_mmap::attach: dataspace does not fit in sub RM session");
+			error("Region_map_mmap::attach: dataspace does not fit in sub RM session");
 			throw Region_conflict();
 		}
 
@@ -249,7 +250,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 			 * Detect if sub RM session is already attached
 			 */
 			if (rm->_base) {
-				PERR("Region_map_mmap::attach: mapping a sub RM session twice is not supported");
+				error("Region_map_mmap::attach: mapping a sub RM session twice is not supported");
 				throw Out_of_metadata();
 			}
 

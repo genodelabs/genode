@@ -39,7 +39,7 @@ namespace Genode {
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
 				if ((_amount - _consumed) < size) {
-					PWRN("Quota exceeded! amount=%zu, size=%zu, consumed=%zu",
+					PWRN("Quota exceeded! amount=%lu, size=%lu, consumed=%lu",
 					     _amount, size, _consumed);
 					return Ram_dataspace_capability();
 				}
@@ -66,7 +66,7 @@ namespace Genode {
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
 				if ((_amount - _consumed) < amount) {
-					PWRN("Quota exceeded! amount=%zu, size=%zu, consumed=%zu",
+					PWRN("Quota exceeded! amount=%lu, size=%lu, consumed=%lu",
 					     _amount, amount, _consumed);
 					return -1;
 				}

@@ -93,10 +93,11 @@ void Platform::Device_component::config_write(unsigned char address,
 			if (!_device_config.reg_in_use(&_config_access, address, size))
 				break;
 
-			PERR("%x:%x:%x write access to address=%x value=0x%x"
-			     " size=0x%x denied - it is used by the platform driver.",
-			     _device_config.bus_number(), _device_config.device_number(),
-			     _device_config.function_number(), address, value, size);
+			Genode::error(_device_config, " write access to "
+			              "address=", Genode::Hex(address), " "
+			              "value=",   Genode::Hex(value),   " "
+			              "size=",    Genode::Hex(size),    " "
+			              "denied - it is used by the platform driver.");
 			return;
 		case PCI_CMD_REG: /* COMMAND register - first byte */
 			if (size == Access_size::ACCESS_16BIT)
@@ -106,11 +107,11 @@ void Platform::Device_component::config_write(unsigned char address,
 			if (size == Access_size::ACCESS_8BIT)
 				break;
 		default:
-			PWRN("%x:%x:%x write access to address=%x value=0x%x "
-			     " size=0x%x got dropped", _device_config.bus_number(),
-				_device_config.device_number(),
-				_device_config.function_number(),
-				address, value, size);
+			Genode::warning(_device_config, " write access to "
+			                "address=", Genode::Hex(address), " "
+			                "value=",   Genode::Hex(value),   " "
+			                "size=",    Genode::Hex(size),    " "
+			                "got dropped");
 			return;
 	}
 
@@ -121,7 +122,7 @@ void Platform::Device_component::config_write(unsigned char address,
 		} catch (Platform::Session::Out_of_metadata) {
 			throw Quota_exceeded();
 		} catch (...) {
-			PERR("assignment to device failed");
+			Genode::error("assignment to device failed");
 		}
 	}
 
@@ -200,21 +201,18 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 	}
 
 	if (_irq_session->msi())
-		PINF("%x:%x.%x uses MSI %s, vector 0x%lx, address 0x%lx%s",
-		     _device_config.bus_number(),
-		     _device_config.device_number(),
-		     _device_config.function_number(),
-		     msi_64 ? "64bit" : "32bit",
-		     _irq_session->msi_data(), _irq_session->msi_address(),
-		     msi_mask ? ", maskable" : ", non-maskable");
+		Genode::log(_device_config, " uses ",
+		            "MSI ", (msi_64 ? "64bit" : "32bit"), ", "
+		            "vector ", Genode::Hex(_irq_session->msi_data()), ", "
+		            "address ", Genode::Hex(_irq_session->msi_address()), ", ",
+		            (msi_mask ? "maskable" : "non-maskable"));
 	else
-		PINF("%x:%x.%x uses IRQ, vector 0x%x%s%s",
-		     _device_config.bus_number(),
-		     _device_config.device_number(),
-		     _device_config.function_number(), _irq_line,
-		     msi_cap ? (msi_64 ? ", MSI 64bit capable" :
-					 ", MSI 32bit capable") : "",
-		     msi_mask ? ", maskable" : ", non-maskable");
+		Genode::log(_device_config, " uses IRQ, vector ",
+		            Genode::Hex(_irq_line),
+		            (msi_cap ? (msi_64 ? ", MSI 64bit capable"
+		                               : ", MSI 32bit capable")
+		                     : ""),
+		            (msi_mask ? ", maskable" : ", non-maskable"));
 
 	return _irq_session->cap();
 }

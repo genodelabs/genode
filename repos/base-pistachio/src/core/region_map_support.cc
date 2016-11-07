@@ -22,9 +22,6 @@ namespace Pistachio {
 
 using namespace Genode;
 
-static const bool verbose_unmap = false;
-
-
 void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 {
 	/*
@@ -37,10 +34,6 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 	using namespace Pistachio;
 
 	L4_Word_t page_size = get_page_size();
-
-	if (verbose_unmap)
-		printf("RM client %p (%lx) unmap core-local [%lx,%lx)\n",
-		       this, badge(), core_local_base, core_local_base + size);
 
 	addr_t addr = core_local_base;
 	for (; addr < core_local_base + size; addr += page_size) {

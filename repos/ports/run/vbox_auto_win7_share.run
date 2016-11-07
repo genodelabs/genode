@@ -62,14 +62,23 @@ if {[have_include "power_on/qemu"]} {
 	exit 0
 }
 
-# Tested for nova. 
-assert_spec nova
+# Tested for nova and hw_x86_64_muen.
+if {(![have_spec nova] && ![have_spec hw_x86_64_muen])} {
+	puts "Platform is unsupported."
+	exit 0
+}
 
 set flavor   "win7"
+
+set use_vbox4 1
+set use_vbox5 0
+
 set vdi_image "${flavor}.vdi"
 # Write overlay back to harddisk if set to 0
 set use_ram_fs 0
+set use_overlay_from_disk 0
 set overlay_image "overlay_${flavor}.vdi"
+set use_rumpfs 1
 
 set use_usb 0
 set use_ps2 [have_spec ps2]
@@ -127,8 +136,8 @@ set config_of_app {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 		<route>
-			<service name="IRQ"><child name="acpi" /></service>
-			<any-service> <parent /> <any-child /></any-service>
+			<service name="IRQ"><child name="acpi"/></service>
+			<any-service> <parent/> <any-child/></any-service>
 		</route>
 	</start>
 
@@ -141,68 +150,68 @@ set config_of_app {
 	</start>
 
 	<start name="noux" priority="-1">
-		<resource name="RAM" quantum="32M" />
+		<resource name="RAM" quantum="32M"/>
 		<config>
 			<fstab>
-				<tar name="coreutils.tar" />
-				<tar name="bash.tar" />
+				<tar name="coreutils.tar"/>
+				<tar name="bash.tar"/>
 
-				<dir name="from"> <fs label="share_from" /> </dir>
-				<dir name="to">   <fs label="share_to" /> </dir>
+				<dir name="from"> <fs label="share_from"/> </dir>
+				<dir name="to">   <fs label="share_to"/> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="linux"/>
 			</start>
 		</config>
 		<route>
 			<service name="File_system">
-				<if-arg key="label" value="share_from" />
+				<if-arg key="label" value="share_from"/>
 				<child name="ram_fs_from"/>
 			</service>
 			<service name="File_system">
-				<if-arg key="label" value="share_to" />
+				<if-arg key="label" value="share_to"/>
 				<child name="ram_fs_to"/>
 			</service>
-			<any-service> <parent/> <any-child /> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
 	<start name="ram_fs_from" priority="-1">
-		<binary name="ram_fs" />
+		<binary name="ram_fs"/>
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<content>
-				<rom name="test.bin" />
-				<rom name="template.bat" />
+				<rom name="test.bin"/>
+				<rom name="template.bat"/>
 			</content>
-			<policy root="/" writeable="no" />
+			<default-policy root="/" writeable="no"/>
 		</config>
 	</start>
 
 	<start name="ram_fs_to" priority="-1">
-		<binary name="ram_fs" />
+		<binary name="ram_fs"/>
 		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<policy root="/" writeable="yes" />
+			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
 
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config> <rom /> </config>
+		<config> <rom/> </config>
 	</start>
 
 	<start name="vbox" priority="-2">
-		<binary name="virtualbox" />
+		<binary name="virtualbox"/>
 		<resource name="RAM" quantum="1280M"/>
 		<config vbox_file="vm_auto_share.vbox" vm_name="AutoDisk">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
 				<vfs>
 					<dir name="dev"> <log/> <rtc/> </dir>
-					<rom name="vm_auto_share.vbox" />}
+					<rom name="vm_auto_share.vbox"/>}
 
 append_if [expr $use_ram_fs] config_of_app {
 					<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
@@ -210,30 +219,30 @@ append_if [expr $use_ram_fs] config_of_app {
 append config_of_app {
 					<dir name="from"> <fs label="share_ram_fs_from"/> </dir>
 					<dir name="to">   <fs label="share_ram_fs_to"/> </dir>
-					<fs />
+					<fs/>
 				</vfs>
 			</libc>
 		</config>
 		<route>
-			<service name="Report"> <child name="report_rom" /> </service>}
+			<service name="Report"> <child name="report_rom"/> </service>}
 
 append_if [expr $use_ram_fs] config_of_app {
 			<service name="File_system">
-				<if-arg key="label" value="from_ram_fs" />
+				<if-arg key="label" value="from_ram_fs"/>
 				<child name="ram_fs"/>
 			</service>}
 
 append config_of_app {
 			<service name="File_system">
-				<if-arg key="label" value="share_ram_fs_from" />
+				<if-arg key="label" value="share_ram_fs_from"/>
 				<child name="ram_fs_from"/>
 			</service>
 			<service name="File_system">
-				<if-arg key="label" value="share_ram_fs_to" />
+				<if-arg key="label" value="share_ram_fs_to"/>
 				<child name="ram_fs_to"/>
 			</service>
 			<service name="File_system"> <child name="rump_fs"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 }
@@ -249,10 +258,10 @@ build_boot_image $boot_modules
 #
 # Step 2: Read out TCP/IP address of tcp_terminal running on Genode target
 #
-run_genode_until {\[init -> tcp_terminal\] .{1,5}got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} 20
+run_genode_until {\[init -> tcp_terminal\] got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} 20
 set serial_id [output_spawn_id]
 
-regexp {\[init -> tcp_terminal\] .{1,5}got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output serial_ip_addr
+regexp {\[init -> tcp_terminal\] got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output serial_ip_addr
 regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $serial_ip_addr serial_ip_addr
 
 #
@@ -296,7 +305,7 @@ puts $noux_id "sleep 5"
 puts $noux_id "done"
 
 # Wait until VM signaled shutdown state
-run_genode_until {\[init -\> vbox\] EMT      PDMR3PowerOff: .* ns run time} 120 $serial_id
+run_genode_until {\[init\] child "vbox" exited with exit value 0} 120 $serial_id
 
 # SHA1 of copied file
 puts $noux_id "sha1sum to/test.bin"

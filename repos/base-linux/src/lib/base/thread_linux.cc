@@ -17,6 +17,7 @@
 #include <base/thread.h>
 #include <base/snprintf.h>
 #include <base/sleep.h>
+#include <base/log.h>
 #include <linux_native_cpu/client.h>
 #include <cpu_thread/client.h>
 
@@ -46,19 +47,24 @@ static Lock &startup_lock()
 static void thread_exit_signal_handler(int) { lx_exit(0); }
 
 
-static char signal_stack[0x2000] __attribute__((aligned(0x1000)));
-
 void Thread::_thread_start()
 {
-	lx_sigaltstack(signal_stack, sizeof(signal_stack));
+	Thread * const thread = Thread::myself();
+
+	/* use primary stack as alternate stack for fatal signals (exceptions) */
+	void   *stack_base = (void *)thread->_stack->base();
+	size_t  stack_size = thread->_stack->top() - thread->_stack->base();
+
+	lx_sigaltstack(stack_base, stack_size);
+	if (stack_size < 0x1000)
+		raw("small stack of ", stack_size, " bytes for \"", thread->name(),
+		    "\" may break Linux signal handling");
 
 	/*
 	 * Set signal handler such that canceled system calls get not
 	 * transparently retried after a signal gets received.
 	 */
-	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
-
-	Thread * const thread = Thread::myself();
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/* inform core about the new thread and process ID of the new thread */
 	Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
@@ -141,7 +147,7 @@ void Thread::start()
 	 */
 	static bool threadlib_initialized = false;
 	if (!threadlib_initialized) {
-		lx_sigaction(LX_SIGCANCEL, thread_exit_signal_handler);
+		lx_sigaction(LX_SIGCANCEL, thread_exit_signal_handler, false);
 		threadlib_initialized = true;
 	}
 

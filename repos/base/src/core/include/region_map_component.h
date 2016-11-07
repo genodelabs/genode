@@ -21,6 +21,7 @@
 #include <base/capability.h>
 #include <pager.h>
 #include <base/allocator_avl.h>
+#include <base/session_label.h>
 #include <base/synced_allocator.h>
 #include <base/signal.h>
 #include <base/rpc_server.h>
@@ -113,10 +114,10 @@ class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
 {
 	private:
 
-		Pager_object         *_pager_object;
-		Lock                  _lock;
-		Region_map_component *_faulting_region_map;
-		Region_map::State     _fault_state;
+		Pager_object                   *_pager_object;
+		Lock                            _lock;
+		Weak_ptr<Region_map_component>  _faulting_region_map;
+		Region_map::State               _fault_state;
 
 	public:
 
@@ -128,7 +129,7 @@ class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
 		 * Currently, there is only one pager in core.
 		 */
 		Rm_faulter(Pager_object *pager_object) :
-			_pager_object(pager_object), _faulting_region_map(0) { }
+			_pager_object(pager_object) { }
 
 		/**
 		 * Assign fault state
@@ -190,10 +191,12 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 		          Thread_capability thread,
 		          Region_map_component *rm, unsigned long badge,
 		          Weak_ptr<Address_space> &address_space,
-		          Affinity::Location location)
+		          Affinity::Location location,
+		          Session_label     const &pd_label,
+		          Cpu_session::Name const &name)
 		:
-			Pager_object(cpu_session, thread, badge, location), Rm_faulter(this),
-			_region_map(rm), _address_space(address_space)
+			Pager_object(cpu_session, thread, badge, location, pd_label, name),
+			Rm_faulter(this), _region_map(rm), _address_space(address_space)
 		{ }
 
 		int pager(Ipc_pager &pager);
@@ -215,7 +218,8 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 };
 
 
-class Genode::Region_map_component : public Rpc_object<Region_map>,
+class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_map_component>,
+                                     public Rpc_object<Region_map>,
                                      public List<Region_map_component>::Element
 {
 	private:

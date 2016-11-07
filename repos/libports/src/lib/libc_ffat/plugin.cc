@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/path.h>
 
 /* libc includes */
@@ -59,8 +59,6 @@ class Plugin_context : public Libc::Plugin_context
 		Plugin_context(const char *filename)
 		: _fd_flags(0), _status_flags(0)
 		{
-			if (verbose)
-				PDBG("new context at %p", this);
 			_filename = (char*)malloc(::strlen(filename) + 1);
 			::strcpy(_filename, filename);
 		}
@@ -176,10 +174,10 @@ class Plugin : public Libc::Plugin
 		{
 			/* mount the file system */
 			if (verbose)
-				PDBG("Mounting device %u ...\n\n", 0);
+				Genode::log(__func__, ": mounting device ...");
 
 			if (f_mount(0, &_fatfs) != Ffat::FR_OK) {
-				PERR("Mount failed\n");
+				Genode::error("mount failed");
 			}
 		}
 
@@ -196,42 +194,42 @@ class Plugin : public Libc::Plugin
 		bool supports_mkdir(const char *path, mode_t) override
 		{
 			if (verbose)
-				PDBG("path = %s", path);
+				Genode::log(__func__, ": path=", path);
 			return true;
 		}
 
 		bool supports_open(const char *pathname, int flags) override
 		{
 			if (verbose)
-				PDBG("pathname = %s", pathname);
+				Genode::log(__func__, ": pathname=", pathname);
 			return true;
 		}
 
 		bool supports_rename(const char *oldpath, const char *newpath) override
 		{
 			if (verbose)
-				PDBG("oldpath = %s, newpath = %s", oldpath, newpath);
+				Genode::log(__func__, ": oldpath=", oldpath, ", newpath=", newpath);
 			return true;
 		}
 
 		bool supports_rmdir(const char *path) override
 		{
 			if (verbose)
-				PDBG("path = %s", path);
+				Genode::log(__func__, ": path=", path);
 			return true;
 		}
 
 		bool supports_stat(const char *path) override
 		{
 			if (verbose)
-				PDBG("path = %s", path);
+				Genode::log(__func__, ": path=", path);
 			return true;
 		}
 
 		bool supports_unlink(const char *path) override
 		{
 			if (verbose)
-				PDBG("path = %s", path);
+				Genode::log(__func__, ": path=", path);
 			return true;
 		}
 
@@ -274,7 +272,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_close() returned an unexpected error code");
+					Genode::error("f_close() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -285,7 +283,7 @@ class Plugin : public Libc::Plugin
 				case F_GETFD: return context(fd)->fd_flags();
 				case F_SETFD: context(fd)->fd_flags(arg); return 0;
 				case F_GETFL: return context(fd)->status_flags();
-				default: PERR("fcntl(): command %d not supported", cmd); return -1;
+				default: Genode::error("fcntl(): command ", cmd, " not supported", cmd); return -1;
 			}
 		}
 
@@ -298,7 +296,7 @@ class Plugin : public Libc::Plugin
 		{
 			/* libc's opendir() fails if _fstatfs() returns -1, so we return 0 here */
 			if (verbose)
-				PDBG("_fstatfs() called - not yet implemented");
+				Genode::warning("_fstatfs() called - not yet implemented");
 			return 0;
 		}
 
@@ -319,7 +317,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_sync() returned an unexpected error code");
+					Genode::error("f_sync() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -346,7 +344,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_truncate() returned an unexpected error code");
+					Genode::error("f_truncate() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -357,7 +355,7 @@ class Plugin : public Libc::Plugin
 			using namespace Ffat;
 
 			if (nbytes < sizeof(struct dirent)) {
-				PERR("buf too small");
+				Genode::error(__func__, ": buf too small");
 				errno = ENOMEM;
 				return -1;
 			}
@@ -381,13 +379,13 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_readdir() returned an unexpected error code");
+					Genode::error("f_readdir() returned an unexpected error code");
 					return -1;
 			}
 
 			if (ffat_file_info.fname[0] == 0) { /* no (more) entries */
 				if (verbose)
-					PDBG("no more dir entries");
+					Genode::log(__func__, ": no more dir entries");
 				/* TODO: reset the f_readdir() index? */
 				return 0;
 			}
@@ -408,7 +406,7 @@ class Plugin : public Libc::Plugin
 			dirent->d_namlen = ::strlen(dirent->d_name);
 
 			if (verbose)
-				PDBG("found dir entry %s", dirent->d_name);
+				Genode::log("found dir entry ", Genode::Cstring(dirent->d_name));
 
 			*basep += sizeof(struct dirent);
 			return sizeof(struct dirent);
@@ -447,7 +445,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_lseek() returned an unexpected error code");
+					Genode::error("f_lseek() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -482,7 +480,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_mkdir() returned an unexpected error code");
+					Genode::error("f_mkdir() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -492,7 +490,7 @@ class Plugin : public Libc::Plugin
 			using namespace Ffat;
 
 			if (verbose)
-				PDBG("pathname = %s", pathname);
+				Genode::log(__func__, ": pathname=", pathname);
 
 			FIL ffat_file;
 			BYTE ffat_flags = 0;
@@ -532,7 +530,7 @@ class Plugin : public Libc::Plugin
 					Ffat::DIR ffat_dir;
 					FRESULT f_opendir_res = f_opendir(&ffat_dir, pathname);
 					if (verbose)
-						PDBG("opendir res=%d", f_opendir_res);
+						Genode::log(__func__, ": opendir res=", (int)f_opendir_res);
 					switch(f_opendir_res) {
 						case FR_OK: {
 							Plugin_context *context = new (Genode::env()->heap())
@@ -541,7 +539,7 @@ class Plugin : public Libc::Plugin
 							Libc::File_descriptor *f =
 								Libc::file_descriptor_allocator()->alloc(this, context);
 							if (verbose)
-								PDBG("new fd=%d", f->libc_fd);
+								Genode::log(__func__, ": new fd=", f->libc_fd);
 							return f;
 
 						}
@@ -559,7 +557,7 @@ class Plugin : public Libc::Plugin
 							return 0;
 						default:
 							/* not supposed to occur according to the libffat documentation */
-							PERR("f_opendir() returned an unexpected error code");
+							Genode::error("f_opendir() returned an unexpected error code");
 							return 0;
 					}
 				}
@@ -584,7 +582,7 @@ class Plugin : public Libc::Plugin
 					return 0;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_open() returned an unexpected error code");
+					Genode::error("f_open() returned an unexpected error code");
 					return 0;
 			}
 		}
@@ -620,7 +618,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_rename() returned an unexpected error code");
+					Genode::error("f_rename() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -646,7 +644,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_read() returned an unexpected error code");
+					Genode::error("f_read() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -688,7 +686,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_stat() returned an unexpected error code");
+					Genode::error("f_stat() returned an unexpected error code");
 					return -1;
 			}
 
@@ -698,12 +696,12 @@ class Plugin : public Libc::Plugin
 			if ((file_info.fattrib & AM_DIR) == AM_DIR) {
 				buf->st_mode |= S_IFDIR;
 				if (verbose)
-					PDBG("type: directory");
+					Genode::log(__func__, ": type: directory");
 			} else {
 				buf->st_mode |= S_IFREG;
 				if (verbose)
-					PDBG("type: regular file with a size of %u bytes",
-					     (unsigned int)buf->st_size);
+					Genode::log(__func__, ": type: regular file with a "
+					            "size of ", buf->st_size, " bytes");
 			}
 			/* TODO: handle more attributes */
 
@@ -716,13 +714,13 @@ class Plugin : public Libc::Plugin
 			tm.tm_sec  =  (file_info.ftime & 0b0000000000011111) * 2;
 
 			if (verbose)
-				PDBG("last modified: %04u-%02u-%02u %02u:%02u:%02u",
-				     1900 + tm.tm_year, tm.tm_mon, tm.tm_mday,
-				     tm.tm_hour, tm.tm_min, tm.tm_sec);
+				Genode::log("last modified: ",
+				            1900 + tm.tm_year, "-", tm.tm_mon, "-", tm.tm_mday, " ",
+				            tm.tm_hour, ":", tm.tm_min, ":", tm.tm_sec);
 
 			buf->st_mtime = mktime(&tm);
 			if (buf->st_mtime == -1)
-				PERR("mktime() returned -1, the file modification time reported by stat() will be incorrect");
+				Genode::error("mktime() returned -1, the file modification time reported by stat() will be incorrect");
 
 			return 0;
 		}
@@ -755,7 +753,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_unlink() returned an unexpected error code");
+					Genode::error("f_unlink() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -786,7 +784,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				default:
 					/* not supposed to occur according to the libffat documentation */
-					PERR("f_write() returned an unexpected error code");
+					Genode::error("f_write() returned an unexpected error code");
 					return -1;
 			}
 		}
@@ -804,6 +802,5 @@ class Plugin : public Libc::Plugin
 
 void __attribute__((constructor)) init_libc_ffat(void)
 {
-	PDBG("using the libc_ffat plugin");
 	static Plugin plugin;
 }

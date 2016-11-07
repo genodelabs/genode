@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/ipc.h>
-#include <base/printf.h>
 
 /* core includes */
 #include <signal_source_component.h>

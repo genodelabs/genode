@@ -12,7 +12,9 @@ set build_components {
 	core init
 	drivers/input
 	drivers/timer
+	server/acpi_input
 	server/dynamic_rom
+	server/input_merger
 	server/report_rom
 	app/acpica
 	test/input
@@ -30,13 +32,14 @@ proc platform_drv_policy {} {
 # add routing information to dynamically generate change of 'system' ROM
 proc platform_drv_add_routing {} {
 	return {
-			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>}
+			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="acpi_ready"> <child name="acpi_state"/> </service>}
 }
 
 # override default config to react on 'system' ROM changes for reset
 proc platform_drv_config_config {} {
 	return {
-		<config acpi="yes" system="no">}
+		<config acpi="yes" system="yes">}
 }
 
 append_platform_drv_build_components
@@ -66,7 +69,7 @@ set config {
 		<start name="acpica">
 <!--			<binary name="debug-acpica"/> -->
 			<resource name="RAM" quantum="4M"/>
-			<config ld_verbose="yes" reset="no" poweroff="no" report="yes">
+			<config ld_verbose="yes" reset="no" poweroff="no" report="yes" acpi_ready="yes">
 <!-- required for "debug-acpica":
 				<libc stdout="/dev/log">
 					<vfs> <dir name="dev"> <log/> </dir> </vfs>
@@ -89,6 +92,12 @@ append config {
 				<service name="Report" />
 			</provides>
 			<config verbose="yes">
+				<policy label="platform_drv -> acpi_ready" report="acpica -> acpi_ready"/>
+				<policy label="acpi_input -> acpi_ac" report="acpica -> acpi_ac"/>
+				<policy label="acpi_input -> acpi_battery" report="acpica -> acpi_battery"/>
+				<policy label="acpi_input -> acpi_ec" report="acpica -> acpi_ec"/>
+				<policy label="acpi_input -> acpi_fixed" report="acpica -> acpi_fixed"/>
+				<policy label="acpi_input -> acpi_lid" report="acpica -> acpi_lid"/>
 			</config>
 			<route>
 				<service name="LOG"> <parent/> </service>
@@ -122,6 +131,21 @@ append config {
 		</start>}
 
 append config {
+		<start name="input_merger">
+			<resource name="RAM" quantum="1M" />
+			<provides> <service name="Input" /> </provides>
+			<config>
+				<input label="ps2" />
+				<input label="acpi" />
+			</config>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
+				<service name="Input" label="acpi"> <child name="acpi_input" /> </service>
+			</route>
+		</start>}
+
+append config {
 		<start name="ps2_drv">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Input"/></provides>
@@ -139,8 +163,35 @@ append config {
 				<service name="LOG">     <parent/> </service>
 				<service name="RM">      <parent/> </service>
 
-				<service name="Input">   <child name="ps2_drv"/> </service>
+				<service name="Input">   <child name="input_merger"/> </service>
 				<service name="Timer">   <child name="timer"/> </service>
+			</route>
+		</start>}
+
+append config {
+		<start name="acpi_input">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Input"/></provides>
+			<config>
+				<!-- example mapping - adapt to your target notebook !!! -->
+				<!-- as="PRESS_RELEASE" is default if nothing specified -->
+				<map acpi="ec"      value="25"      to_key="KEY_VENDOR"/>
+				<map acpi="ec"      value="20"      to_key="KEY_BRIGHTNESSUP"/>
+				<map acpi="ec"      value="21"      to_key="KEY_BRIGHTNESSDOWN"/>
+				<map acpi="fixed"   value="0"       to_key="KEY_POWER"  as="PRESS_RELEASE"/>
+				<map acpi="lid"     value="CLOSED"  to_key="KEY_SLEEP"  as="PRESS"/>
+				<map acpi="lid"     value="OPEN"    to_key="KEY_SLEEP"  as="RELEASE"/>
+				<map acpi="ac"      value="ONLINE"  to_key="KEY_WAKEUP"/>
+				<map acpi="ac"      value="OFFLINE" to_key="KEY_SLEEP"/>
+				<map acpi="battery" value="0"       to_key="KEY_BATTERY"/>
+			</config>
+			<route>
+				<service name="ROM" label="acpi_ac"> <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_battery"> <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_ec"> <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_fixed"> <child name="acpi_state"/> </service>
+				<service name="ROM" label="acpi_lid"> <child name="acpi_state"/> </service>
+				<service name="LOG"> <parent/> </service>
 			</route>
 		</start>}
 
@@ -157,9 +208,11 @@ set boot_modules {
 	ld.lib.so libc.lib.so
 	timer
 	ps2_drv
+	input_merger
 	report_rom
 	dynamic_rom
 	acpica
+	acpi_input
 	debug-acpica
 	test-input
 }

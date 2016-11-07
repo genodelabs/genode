@@ -14,12 +14,13 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/arg_string.h>
 #include <util/bit_array.h>
 
 /* core includes */
 #include <irq_root.h>
+#include <irq_args.h>
 #include <irq_session_component.h>
 #include <platform.h>
 #include <util.h>
@@ -56,7 +57,7 @@ class Genode::Interrupt_handler : public Thread_deprecated<2048*sizeof(long)>
 		static Fiasco::l4_cap_idx_t handler_cap()
 		{
 			static Interrupt_handler handler;
-			return handler._thread_cap.dst();
+			return handler._thread_cap.data()->kcap();
 		}
 
 };
@@ -99,9 +100,8 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 	_polarity = polarity;
 
 	using namespace Fiasco;
-	if (l4_error(l4_factory_create_irq(L4_BASE_FACTORY_CAP,
-	                                   _capability()))) {
-		PERR("l4_factory_create_irq failed!");
+	if (l4_error(l4_factory_create_irq(L4_BASE_FACTORY_CAP, _capability()))) {
+		error("l4_factory_create_irq failed!");
 		return false;
 	}
 
@@ -110,7 +110,7 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 		gsi |= L4_ICU_FLAG_MSI;
 
 	if (l4_error(l4_icu_bind(L4_BASE_ICU_CAP, gsi, _capability()))) {
-		PERR("Binding IRQ %u to the ICU failed", _irq);
+		error("Binding IRQ ", _irq, " to the ICU failed");
 		return false;
 	}
 
@@ -120,13 +120,13 @@ bool Genode::Irq_object::associate(unsigned irq, bool msi,
 
 	if (l4_error(l4_irq_attach(_capability(), reinterpret_cast<l4_umword_t>(this),
 	                           Interrupt_handler::handler_cap()))) {
-		PERR("Error attaching to IRQ %u", _irq);
+		error("cannot attach to IRQ ", _irq);
 		return false;
 	}
 
 	if (_msi_addr && l4_error(l4_icu_msi_info(L4_BASE_ICU_CAP, gsi,
 	                                          &_msi_data))) {
-		PERR("Error getting MSI info");
+		error("cannot get MSI info");
 		return false;
 	}
 
@@ -141,7 +141,7 @@ void Genode::Irq_object::ack_irq()
 	int err;
 	l4_msgtag_t tag = l4_irq_unmask(_capability());
 	if ((err = l4_ipc_error(tag, l4_utcb())))
-		PERR("IRQ unmask: %d\n", err);
+		error("IRQ unmask: ", err);
 }
 
 
@@ -166,10 +166,10 @@ Genode::Irq_object::~Irq_object()
 		gsi |= L4_ICU_FLAG_MSI;
 
 	if (l4_error(l4_irq_detach(_capability())))
-		PERR("Error detaching IRQ");
+		error("cannot detach IRQ");
 
 	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, gsi, _capability())))
-		PERR("Error unbinding IRQ");
+		error("cannot unbind IRQ");
 
 	cap_map()->remove(_cap);
 }
@@ -185,60 +185,26 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 :
 	_irq_number(~0U), _irq_alloc(irq_alloc)
 {
-	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
+	Irq_args const irq_args(args);
+
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi) {
-		if (msi_alloc.get(irq_number, 1)) {
-			PERR("Unavailable MSI %ld requested.",  irq_number);
+		if (msi_alloc.get(irq_args.irq_number(), 1)) {
+			error("unavailable MSI ", irq_args.irq_number(), " requested");
 			throw Root::Unavailable();
 		}
-		msi_alloc.set(irq_number, 1);
+		msi_alloc.set(irq_args.irq_number(), 1);
 	} else {
-		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
-			PERR("Unavailable IRQ %ld requested.", irq_number);
+		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_args.irq_number()).error()) {
+			error("unavailable IRQ ", irq_args.irq_number(), " requested");
 			throw Root::Unavailable();
 		}
 	}
 
-	_irq_number = irq_number;
+	_irq_number = irq_args.irq_number();
 
-	long irq_t = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
-	long irq_p = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
-
-	Irq_session::Trigger irq_trigger;
-	Irq_session::Polarity irq_polarity;
-
-	switch(irq_t) {
-		case -1:
-		case Irq_session::TRIGGER_UNCHANGED:
-			irq_trigger = Irq_session::TRIGGER_UNCHANGED;
-			break;
-		case Irq_session::TRIGGER_EDGE:
-			irq_trigger = Irq_session::TRIGGER_EDGE;
-			break;
-		case Irq_session::TRIGGER_LEVEL:
-			irq_trigger = Irq_session::TRIGGER_LEVEL;
-			break;
-		default:
-			throw Root::Unavailable();
-	}
-
-	switch(irq_p) {
-		case -1:
-		case POLARITY_UNCHANGED:
-			irq_polarity = POLARITY_UNCHANGED;
-			break;
-		case POLARITY_HIGH:
-			irq_polarity = POLARITY_HIGH;
-			break;
-		case POLARITY_LOW:
-			irq_polarity = POLARITY_LOW;
-			break;
-		default:
-			throw Root::Unavailable();
-	}
-
-	_irq_object.associate(_irq_number, msi, irq_trigger, irq_polarity);
+	_irq_object.associate(_irq_number, msi, irq_args.trigger(),
+	                      irq_args.polarity());
 }
 
 
@@ -296,7 +262,7 @@ void Interrupt_handler::entry()
 	while (true) {
 		tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
 		if ((err = l4_ipc_error(tag, l4_utcb())))
-			PERR("IRQ receive: %d\n", err);
+			error("IRQ receive: ", err);
 		else {
 			Irq_object * irq_object = reinterpret_cast<Irq_object *>(label);
 			irq_object->notify();

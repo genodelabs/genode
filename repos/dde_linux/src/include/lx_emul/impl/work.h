@@ -101,8 +101,8 @@ bool cancel_delayed_work_sync(struct delayed_work *dwork)
 	bool pending = cancel_delayed_work(dwork);
 
 	if (pending) {
-		PERR("WARN: delayed_work %p is executed directly in current '%s' routine",
-		      dwork, Lx::scheduler().current()->name());
+		Genode::error("WARN: delayed_work ", dwork, " is executed directly in "
+		              "current '", Lx::scheduler().current()->name(), "' routine");
 
 		dwork->work.func(&dwork->work);
 	}

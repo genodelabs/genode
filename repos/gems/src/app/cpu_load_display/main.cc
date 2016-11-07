@@ -138,7 +138,8 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 			}
 
 			/* add new timeline */
-			Timeline *t = new (Genode::env()->heap()) Timeline(subject_id, label);
+			Timeline *t = new (Genode::env()->heap())
+				Timeline(subject_id, Genode::Cstring(label));
 			_timelines.insert(t);
 			return t;
 		}
@@ -181,7 +182,6 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 
 				if (t->idle()) {
 
-					PDBG("discard timeline");
 					_timelines.remove(t);
 					Genode::destroy(Genode::env()->heap(), t);
 				}
@@ -301,7 +301,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 			try {
 				Xml_node subjects(_trace_subjects.local_addr<char>());
 				_cpu_registry.import_trace_subjects(subjects, _now);
-			} catch (...) { PWRN("failed to import trace subjects"); }
+			} catch (...) { Genode::error("failed to import trace subjects"); }
 		}
 
 		Genode::Signal_dispatcher<Scene> _trace_subjects_dispatcher;

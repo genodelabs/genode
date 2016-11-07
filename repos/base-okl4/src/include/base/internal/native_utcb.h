@@ -17,7 +17,16 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_
 
-namespace Genode { struct Native_utcb { }; }
+namespace Genode {
+
+	/**
+	 * Index of the UTCB's thread word used for storing the own global
+	 * thread ID
+	 */
+	enum { UTCB_TCR_THREAD_WORD_MYSELF = 0 };
+
+	struct Native_utcb { };
+}
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */
 

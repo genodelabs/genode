@@ -266,7 +266,7 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 						condition_satisfied = true;
 				}
 				catch (Input_rom_registry::Nonexistent_input_value) {
-					PWRN("could not obtain input value for input %s", input_name.string());
+					Genode::warning("could not obtain input value for input ", input_name);
 				}
 			}
 
@@ -313,7 +313,7 @@ void Rom_filter::Main::_evaluate()
 		Xml_node output = Genode::config()->xml_node().sub_node("output");
 
 		if (!output.has_attribute("node")) {
-			PERR("missing 'node' attribute in '<output>' node");
+			Genode::error("missing 'node' attribute in '<output>' node");
 			return;
 		}
 

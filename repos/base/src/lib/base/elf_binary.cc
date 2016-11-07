@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 /* base-internal includes */
@@ -27,18 +27,18 @@ int Elf_binary::_ehdr_check_compat()
 	Elf_Ehdr *ehdr = (Elf_Ehdr *)_start;
 
 	if (memcmp(ehdr, ELFMAG, SELFMAG) != 0) {
-		PERR("binary is not an ELF");
+		error("binary is not an ELF");
 		return -1;
 	}
 
 	if (ehdr->e_ident[EI_CLASS] != ELFCLASS) {
-		PERR("support for 32/64-bit objects only");
+		error("support for 32/64-bit objects only");
 		return -1;
 	}
 
 	/* start executeables and shared objects with entry points only */
 	if (!(ehdr->e_type == ET_EXEC || (ehdr->e_type == ET_DYN && ehdr->e_entry))) {
-		PERR("program is no executable");
+		error("program is no executable");
 		return -1;
 	}
 
@@ -55,7 +55,7 @@ int Elf_binary::_ph_table_check_compat()
 	for (i = 0; i < num; i++) {
 		if (ph_table[i].p_type == PT_LOAD)
 			if (ph_table[i].p_align & (0x1000 - 1)) {
-				PWRN("unsupported alignment 0x%lx", (unsigned long) ph_table[i].p_align);
+				warning("unsupported alignment ", (unsigned long) ph_table[i].p_align);
 				return -1;
 			}
 		if (ph_table[i].p_type == PT_DYNAMIC)

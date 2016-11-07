@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/log.h>
 #include <base/rpc_server.h>
 #include <block/component.h>
 #include <cap_session/connection.h>
@@ -19,6 +20,7 @@
 
 #include <lx_emul.h>
 
+#include <lx_kit/malloc.h>
 #include <lx_kit/backend_alloc.h>
 #include <lx_kit/scheduler.h>
 
@@ -75,7 +77,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 				_block_count++;
 
 			if (verbose)
-				PDBG("block size: %zu block count: %llu", _block_size, _block_count);
+				Genode::log("block size: ", _block_size, " block count", _block_count);
 
 			scsi_free_buffer(cmnd);
 			_scsi_free_command(cmnd);
@@ -89,8 +91,8 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 				throw Io_error();
 
 			if (verbose)
-				PDBG("PACKET: phys: %lx block: %llu count: %zu %s",
-				     phys, block_nr, block_count, read ? "read" : "write");
+				log("PACKET: phys: ", Genode::Hex(phys), " block: ", block_nr, "count: ", block_count,
+				    read ? " read" : " write");
 
 			/* check if we can call queuecommand */
 			struct us_data *us = (struct us_data *) _sdev->host->hostdata;
@@ -105,7 +107,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			cmnd->sc_data_direction = read ? DMA_FROM_DEVICE : DMA_TO_DEVICE;
 			cmnd->scsi_done         = _async_done;
 
-			Block::Packet_descriptor *p = new (Genode::env()->heap()) Block::Packet_descriptor();
+			Block::Packet_descriptor *p = new (Lx::Malloc::mem()) Block::Packet_descriptor();
 			*p = packet;
 			cmnd->packet  = (void *)p;
 
@@ -176,8 +178,8 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 };
 
 
-void Storage::init(Server::Entrypoint &ep) {
-	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
+void Storage::init(Genode::Env &env) {
+	_signal = new (Lx::Malloc::mem()) Signal_helper(env); }
 
 
 struct Factory : Block::Driver_factory
@@ -201,10 +203,10 @@ extern "C" void ack_packet(work_struct *work)
 		(Block::Packet_descriptor *)(work->data);
 
 	if (verbose)
-		PDBG("ACK packet for block: %llu", packet->block_number());
+		Genode::log("ACK packet for block: ", packet->block_number());
 
 	device->ack_packet(*packet);
-	Genode::destroy(Genode::env()->heap(), packet);
+	Genode::destroy(Lx::Malloc::mem(), packet);
 }
 
 
@@ -221,8 +223,8 @@ void scsi_add_device(struct scsi_device *sdev)
 	 */
 	if (!announce) {
 		PREPARE_WORK(&delayed, ack_packet);
-		static Block::Root root(_signal->ep(), env()->heap(), factory);
-		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
+		static Block::Root root(_signal->ep(), Lx::Malloc::mem(), factory);
+		_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
 		announce = true;
 	}
 }

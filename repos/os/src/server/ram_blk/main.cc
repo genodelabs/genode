@@ -1,58 +1,64 @@
 /*
- * \brief  Provide a rom-file as writable block device (aka loop devices)
+ * \brief  Provide a RAM dataspace as writable block device
  * \author Stefan Kalkowski
  * \author Sebastian Sumpf
+ * \author Josef Soentgen
  * \date   2010-07-07
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 #include <base/exception.h>
-#include <base/printf.h>
-#include <os/attached_ram_dataspace.h>
-#include <os/attached_rom_dataspace.h>
-#include <os/config.h>
-#include <os/server.h>
-#include <rom_session/connection.h>
+#include <base/heap.h>
+#include <base/log.h>
 #include <block/component.h>
 #include <block/driver.h>
 
+
 using namespace Genode;
+
 
 class Ram_blk : public Block::Driver
 {
 	private:
 
-		Attached_rom_dataspace _rom_ds;
-		size_t                 _file_sz;   /* file size */
-		size_t                 _blk_sz;    /* block size */
-		size_t                 _blk_cnt;   /* block count */
-		Attached_ram_dataspace _file_ds;   /* copy of rom file */
-		addr_t                 _file_addr; /* start address of attached file */
+		Env       &_env;
+		Allocator *_alloc { nullptr };
 
-		void _io(Block::sector_t    block_number,
-		         size_t             block_count,
-		         char*              buffer,
+		Attached_rom_dataspace *_rom_ds { nullptr };
+		size_t                  _size;
+		size_t                  _block_size;
+		size_t                  _block_count;
+		Attached_ram_dataspace  _ram_ds;
+		addr_t                  _ram_addr;
+
+		void _io(Block::sector_t           block_number,
+		         size_t                    block_count,
+		         char*                     buffer,
 		         Block::Packet_descriptor &packet,
-		         bool               read)
+		         bool                      read)
 		{
 			/* sanity check block number */
-			if (block_number + block_count > _file_sz / _blk_sz) {
-				PWRN("requested blocks %lld-%lld out of range!",
-					 block_number, block_number + block_count);
+			if (block_number + block_count > _block_count) {
+				Genode::warning("requested blocks ", block_number, "-",
+				                block_number + block_count," out of range!");
 				return;
 			}
 
-			size_t offset = (size_t) block_number * _blk_sz;
-			size_t size   = block_count  * _blk_sz;
+			size_t offset = (size_t) block_number * _block_size;
+			size_t size   = block_count  * _block_size;
 
-			void *src = read ? (void *)(_file_addr + offset) : (void *)buffer;
-			void *dst = read ? (void *)buffer : (void *)(_file_addr + offset);
+			void *src = read ? (void *)(_ram_addr + offset) : (void *)buffer;
+			void *dst = read ? (void *)buffer : (void *)(_ram_addr + offset);
 			/* copy file content to packet payload */
 			memcpy(dst, src, size);
 
@@ -61,24 +67,46 @@ class Ram_blk : public Block::Driver
 
 	public:
 
-		Ram_blk(const char *name, size_t blk_sz)
-		: _rom_ds(name),
-		  _file_sz(_rom_ds.size()),
-		  _blk_sz(blk_sz),
-		  _blk_cnt(_file_sz/_blk_sz),
-		  _file_ds(env()->ram_session(), _file_sz),
-		  _file_addr((addr_t)_file_ds.local_addr<addr_t>())
+		/**
+		 * Construct populated RAM dataspace
+		 */
+		Ram_blk(Env &env, Allocator &alloc,
+		        const char *name, size_t block_size)
+		:
+			_env(env), _alloc(&alloc),
+			_rom_ds(new (_alloc) Attached_rom_dataspace(_env, name)),
+			_size(_rom_ds->size()),
+			_block_size(block_size),
+			_block_count(_size/_block_size),
+			_ram_ds(_env.ram(), _env.rm(), _size),
+			_ram_addr((addr_t)_ram_ds.local_addr<addr_t>())
 		{
-			memcpy(_file_ds.local_addr<void>(), _rom_ds.local_addr<void>(), _file_sz);
+			/* populate backing store from file */
+			memcpy(_ram_ds.local_addr<void>(), _rom_ds->local_addr<void>(), _size);
 		}
+
+		/**
+		 * Construct empty RAM dataspace
+		 */
+		Ram_blk(Env &env, size_t size, size_t block_size)
+		:
+			_env(env),
+			_size(size),
+			_block_size(block_size),
+			_block_count(_size/_block_size),
+			_ram_ds(_env.ram(), _env.rm(), _size),
+			_ram_addr((addr_t)_ram_ds.local_addr<addr_t>())
+		{ }
+
+		~Ram_blk() { destroy(_alloc, _rom_ds); }
 
 
 		/****************************
 		 ** Block-driver interface **
 		 ****************************/
 
-		Genode::size_t  block_size()  { return _blk_sz;  }
-		Block::sector_t block_count() { return _blk_cnt; }
+		size_t  block_size()  { return _block_size;  }
+		Block::sector_t block_count() { return _block_count; }
 
 		Block::Session::Operations ops()
 		{
@@ -97,7 +125,7 @@ class Ram_blk : public Block::Driver
 		}
 
 		void write(Block::sector_t  block_number,
-		           Genode::size_t   block_count,
+		           size_t   block_count,
 		           const char *     buffer,
 		           Block::Packet_descriptor &packet)
 		{
@@ -108,50 +136,78 @@ class Ram_blk : public Block::Driver
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Env  &env;
+	Heap  heap { env.ram(), env.rm() };
+
+	Attached_rom_dataspace config_rom { env, "config" };
 
 	struct Factory : Block::Driver_factory
 	{
+		Env       &env;
+		Allocator &alloc;
+
+		bool   use_file { false };
+		char   file[64];
+
+		size_t       size { 0 };
+		size_t block_size { 512 };
+
+		Factory(Env &env, Allocator &alloc,
+		        Xml_node config)
+		: env(env), alloc(alloc)
+		{
+			use_file = config.has_attribute("file");
+			if (use_file) {
+				config.attribute("file").value(file, sizeof(file));
+			} else {
+				try {
+					Genode::Number_of_bytes bytes;
+					config.attribute("size").value(&bytes);
+					size = bytes;
+				} catch (...) {
+					error("neither file nor size attribute specified");
+					throw Exception();
+				}
+			}
+
+			block_size = config.attribute_value("block_size", block_size);
+		}
+
 		Block::Driver *create()
 		{
-			char   file[64];
-			size_t blk_sz = 512;
-
 			try {
-				config()->xml_node().attribute("file").value(file, sizeof(file));
-				config()->xml_node().attribute("block_size").value(&blk_sz);
+				if (use_file) {
+					Genode::log("Creating RAM-basd block device populated by file='",
+					            Genode::Cstring(file), "' with block size ", block_size);
+					return new (&alloc) Ram_blk(env, alloc, file, block_size);
+				} else {
+					Genode::log("Creating RAM-based block device with size ",
+					            size, " and block size ", block_size);
+					return new (&alloc) Ram_blk(env, size, block_size);
+				}
+			} catch (...) {
+				throw Root::Unavailable();
 			}
-			catch (...) { }
-
-			PINF("Using file=%s as device with block size %zd.", file, blk_sz);
-
-			try {
-				return new (Genode::env()->heap()) Ram_blk(file, blk_sz);
-			} catch(Rom_connection::Rom_connection_failed) {
-				PERR("Cannot open file %s.", file);
-			}
-			throw Root::Unavailable();
 		}
 
 		void destroy(Block::Driver *driver) {
-			Genode::destroy(env()->heap(), driver); }
-	} factory;
+			Genode::destroy(&alloc, driver); }
+	} factory { env, heap, config_rom.xml() };
 
-	Block::Root root;
+	Block::Root root { env.ep(), heap, factory };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory) {
-		Genode::env()->parent()->announce(ep.manage(root)); }
+	Main(Env &env) : env(env)
+	{
+		env.parent().announce(env.ep().manage(root));
+	}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()             { return "rom_blk_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
+namespace Component {
+	Genode::size_t      stack_size() { return 2*1024*sizeof(long); }
+	void construct(Genode::Env &env) { static Main server(env);    }
 }
-

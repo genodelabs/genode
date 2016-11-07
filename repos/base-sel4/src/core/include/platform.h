@@ -14,9 +14,6 @@
 #ifndef _CORE__INCLUDE__PLATFORM_H_
 #define _CORE__INCLUDE__PLATFORM_H_
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* local includes */
 #include <platform_generic.h>
 #include <core_mem_alloc.h>
@@ -67,29 +64,29 @@ class Genode::Platform : public Platform_generic
 
 		/* allocate 1st-level CNode */
 		Cnode _top_cnode { Cap_sel(seL4_CapInitThreadCNode),
-		                   Cnode_index(Core_cspace::TOP_CNODE_SEL),
+		                   Cnode_index(Core_cspace::top_cnode_sel()),
 		                   Core_cspace::NUM_TOP_SEL_LOG2,
 		                   _initial_untyped_pool };
 
 		/* allocate 2nd-level CNode to align core's CNode with the LSB of the CSpace*/
 		Cnode _core_pad_cnode { Cap_sel(seL4_CapInitThreadCNode),
-		                        Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL),
+		                        Cnode_index(Core_cspace::core_pad_cnode_sel()),
 		                        Core_cspace::NUM_CORE_PAD_SEL_LOG2,
 		                        _initial_untyped_pool };
 
 		/* allocate 3rd-level CNode for core's objects */
 		Cnode _core_cnode { Cap_sel(seL4_CapInitThreadCNode),
-		                    Cnode_index(Core_cspace::CORE_CNODE_SEL),
+		                    Cnode_index(Core_cspace::core_cnode_sel()),
 		                    Core_cspace::NUM_CORE_SEL_LOG2, _initial_untyped_pool };
 
 		/* allocate 2nd-level CNode for storing page-frame cap selectors */
 		Cnode _phys_cnode { Cap_sel(seL4_CapInitThreadCNode),
-		                    Cnode_index(Core_cspace::PHYS_CNODE_SEL),
+		                    Cnode_index(Core_cspace::phys_cnode_sel()),
 		                    Core_cspace::NUM_PHYS_SEL_LOG2, _initial_untyped_pool };
 
 		/* allocate 2nd-level CNode for storing cap selectors for untyped pages */
 		Cnode _untyped_cnode { Cap_sel(seL4_CapInitThreadCNode),
-		                       Cnode_index(Core_cspace::UNTYPED_CNODE_SEL),
+		                       Cnode_index(Core_cspace::untyped_cnode_sel()),
 		                       Core_cspace::NUM_PHYS_SEL_LOG2, _initial_untyped_pool };
 
 		/*
@@ -102,7 +99,7 @@ class Genode::Platform : public Platform_generic
 		{
 			Lock _lock;
 
-			Core_sel_alloc() { _reserve(0, Core_cspace::CORE_STATIC_SEL_END); }
+			Core_sel_alloc() { _reserve(0, Core_cspace::core_static_sel_end()); }
 
 			Cap_sel alloc() override
 			{
@@ -193,6 +190,14 @@ class Genode::Platform : public Platform_generic
 		Cap_sel asid_pool() const { return _asid_pool_sel; }
 
 		void wait_for_exit();
+
+		/**
+		 * Determine size of a core local mapping required for a
+		 * core_rm_session detach().
+		 */
+		size_t region_alloc_size_at(void * addr) {
+			return (*_core_mem_alloc.virt_alloc())()->size_at(addr); }
+
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_H_ */

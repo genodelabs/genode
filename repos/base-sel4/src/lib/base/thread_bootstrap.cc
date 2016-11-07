@@ -25,8 +25,6 @@
 
 void prepare_init_main_thread() { }
 
-void prepare_reinit_main_thread() { prepare_init_main_thread(); }
-
 
 /************
  ** Thread **
@@ -36,5 +34,6 @@ void Genode::Thread::_thread_bootstrap()
 {
 	if (native_thread().ep_sel == 0) {
 		native_thread().ep_sel = _stack->utcb().ep_sel;
+		native_thread().lock_sel = _stack->utcb().lock_sel;
 	}
 }

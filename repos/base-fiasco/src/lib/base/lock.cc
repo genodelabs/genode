@@ -15,7 +15,6 @@
 #include <base/cancelable_lock.h>
 #include <cpu/atomic.h>
 #include <cpu/memory_barrier.h>
-#include <base/printf.h>
 
 /* L4/Fiasco includes */
 namespace Fiasco {

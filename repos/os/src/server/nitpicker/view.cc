@@ -11,7 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
 #include <os/pixel_rgb565.h>
 
 #include <nitpicker_gfx/texture_painter.h>

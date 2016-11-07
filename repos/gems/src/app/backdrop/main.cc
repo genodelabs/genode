@@ -65,7 +65,7 @@ struct Backdrop::Main
 
 		Attached_dataspace fb_ds { _ds_cap(nitpicker) };
 
-		size_t surface_num_bytes() const
+		Genode::size_t surface_num_bytes() const
 		{
 			return size().count()*mode.bytes_per_pixel();
 		}
@@ -259,8 +259,7 @@ void Backdrop::Main::apply_image(Xml_node operation)
 
 	Point const pos = Point(anchored_xpos, anchored_ypos) + offset;
 
-	bool const tiled = operation.has_attribute("tiled")
-	                && operation.attribute("tiled").has_value("yes");
+	bool const tiled = operation.attribute_value("tiled", false);
 
 	unsigned alpha = Decorator::attribute(operation, "alpha", 256U);
 

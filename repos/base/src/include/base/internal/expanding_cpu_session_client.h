@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <util/retry.h>
-#include <base/printf.h>
 #include <cpu_session/client.h>
 
 /* base-internal includes */

@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 
 #include <env.h>
@@ -29,8 +29,6 @@ namespace Fiasco {
 }
 
 using namespace Fiasco;
-
-static const bool DEBUG = false;
 
 enum { TIMER_IRQ = 0 };
 
@@ -59,15 +57,12 @@ unsigned int l4lx_irq_dev_startup(struct irq_data *data)
     struct l4x_irq_desc_private *p =
 		(struct l4x_irq_desc_private*) irq_get_chip_data(irq);
 
-	if (DEBUG)
-		PDBG("irq=%d", irq);
-
 	/* First test whether a capability has been registered with
 	 * this IRQ number */
 	p->irq_cap = l4x_have_irqcap(irq);
 	p->cpu     = l4x_smp_processor_id();
 	if (l4_is_invalid_cap(p->irq_cap)) {
-		PERR("Invalid irq cap!");
+		Genode::error("invalid irq cap!");
 		return 0;
 	}
 
@@ -80,12 +75,9 @@ void l4lx_irq_dev_shutdown(struct irq_data *data)
 {
 
 	if (data->irq == TIMER_IRQ) {
-		PWRN("timer shutdown not implemented yet");
+		Genode::warning("timer shutdown not implemented yet");
 		return;
 	}
-
-	if (DEBUG)
-		PDBG("irq=%d", data->irq);
 
 	l4lx_irq_dev_disable(data);
 }
@@ -105,14 +97,12 @@ void l4lx_irq_dev_enable(struct irq_data *data)
 	unsigned long flags = 0;
 	p->enabled = 1;
 
-	if (DEBUG)
-		PDBG("irq=%d cap=%lx", data->irq, p->irq_cap);
-
 	l4x_irq_save(&flags);
 	l4_msgtag_t ret = l4_irq_attach(p->irq_cap, data->irq << 2,
 	                                l4x_cpu_thread_get_cap(p->cpu));
 	if (l4_error(ret))
-		PWRN("Attach to irq %lx failed with error %ld!", p->irq_cap, l4_error(ret));
+		Genode::warning("attach to irq ", Genode::Hex(p->irq_cap), " "
+		                "failed, error=", l4_error(ret));
 	l4x_irq_restore(flags);
 
 	l4lx_irq_dev_eoi(data);
@@ -125,12 +115,9 @@ void l4lx_irq_dev_disable(struct irq_data *data)
 		(struct l4x_irq_desc_private*) irq_get_chip_data(data->irq);;
 	p->enabled = 0;
 
-	if (DEBUG)
-		PDBG("irq=%d cap=%lx", data->irq, p->irq_cap);
-
 	Linux::Irq_guard guard;
 	if (l4_error(l4_irq_detach(p->irq_cap)))
-		PWRN("%02d: Unable to detach from IRQ\n", data->irq);
+		Genode::warning("unable to detach from IRQ ", data->irq);
 }
 
 
@@ -174,17 +161,17 @@ int l4lx_irq_dev_set_affinity(struct irq_data *data,
 	unsigned long flags = 0;
 	l4x_migrate_lock(&flags);
 	if (l4_error(l4_irq_detach(p->irq_cap)))
-		PWRN("%02d: Unable to detach from IRQ\n", data->irq);
+		Genode::warning("unable to detach from IRQ ", data->irq);
 
 	l4x_cpumask_copy(data, dest);
 	p->cpu = target_cpu;
 
-	PDBG("switched irq %d to cpu %d", data->irq, target_cpu);
+	Genode::log("switched irq ", data->irq, " to cpu ", target_cpu);
 
 	l4_msgtag_t ret = l4_irq_attach(p->irq_cap, data->irq << 2,
 									l4x_cpu_thread_get_cap(p->cpu));
 	if (l4_error(ret))
-		PWRN("Attach to irq %lx failed with error %ld!", p->irq_cap, l4_error(ret));
+		Genode::warning("attach to irq ", p->irq_cap, " failed, error=", l4_error(ret));
 
 	if (p->enabled)
 		l4_irq_unmask(p->irq_cap);
@@ -259,7 +246,7 @@ int l4x_alloc_irq_desc_data(int irq)
 	struct l4x_irq_desc_private *p;
 	Genode::env()->heap()->alloc(sizeof(struct l4x_irq_desc_private), (void**)&p);
 	if (!p) {
-		PWRN("Could not allocate irq descriptor memory!");
+		Genode::warning("could not allocate irq descriptor memory!");
 		return -12; //ENOMEM;
 	}
 

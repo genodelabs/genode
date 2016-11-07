@@ -27,7 +27,7 @@
 
 /* Genode includes */
 #include <util/arg_string.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/signal.h>
 #include <cap_session/connection.h>
 #include <timer_session/connection.h>
@@ -97,7 +97,7 @@ void Child::_dispatch_periodic_timeout(unsigned)
 	if (Genode::env()->ram_session()->avail() < chunk_size) {
 
 		if (_expand) {
-			PLOG("quota consumed, request additional resources");
+			Genode::log("quota consumed, request additional resources");
 
 			/*
 			 * The attempt to allocate RAM will result in a resource request to
@@ -106,7 +106,7 @@ void Child::_dispatch_periodic_timeout(unsigned)
 			 */
 
 		} else {
-			PLOG("consumed all of our quota, stop allocating");
+			Genode::log("consumed all of our quota, stop allocating");
 			return;
 		}
 	}
@@ -114,7 +114,7 @@ void Child::_dispatch_periodic_timeout(unsigned)
 	/* perform allocation and remember chunk in list */
 	_ram_chunks.insert(new (Genode::env()->heap()) Ram_chunk(chunk_size));
 
-	PLOG("allocated chunk of %zd KiB", chunk_size / 1024);
+	Genode::log("allocated chunk of ", chunk_size / 1024, " KiB");
 
 	_schedule_next_timeout();
 }
@@ -127,7 +127,7 @@ void Child::_dispatch_yield(unsigned)
 	/* request yield request arguments */
 	Parent::Resource_args const args = env()->parent()->yield_request();
 
-	PLOG("yield request: %s", args.string());
+	log("yield request: ", args.string());
 
 	size_t const requested_ram_quota =
 		Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
@@ -138,7 +138,7 @@ void Child::_dispatch_yield(unsigned)
 
 		Ram_chunk *chunk = _ram_chunks.first();
 		if (!chunk) {
-			PWRN("no chunk left to release");
+			warning("no chunk left to release");
 			break;
 		}
 
@@ -147,7 +147,7 @@ void Child::_dispatch_yield(unsigned)
 		destroy(env()->heap(), chunk);
 		released_quota += chunk_size;
 
-		PLOG("released chunk of %zd bytes", chunk_size);
+		log("released chunk of ", chunk_size, " bytes");
 	}
 
 	/* acknowledge yield request */
@@ -168,8 +168,7 @@ static inline unsigned long read_period_ms_from_config()
 
 Child::Child()
 :
-	_expand(Genode::config()->xml_node().has_attribute("expand")
-	     && Genode::config()->xml_node().attribute("expand").has_value("yes")),
+	_expand(Genode::config()->xml_node().attribute_value("expand", false)),
 	_periodic_timeout_dispatcher(_sig_rec, *this,
 	                             &Child::_dispatch_periodic_timeout),
 	_yield_dispatcher(_sig_rec, *this,
@@ -234,9 +233,8 @@ class Parent : Genode::Slave_policy
 
 		void _print_status()
 		{
-			PLOG("quota: %zd KiB  used: %zd KiB",
-			     _slave.ram().quota() / 1024,
-			     _slave.ram().used()  / 1024);
+			Genode::log("quota: ", _slave.ram().quota() / 1024, " KiB  "
+			            "used: ",  _slave.ram().used()  / 1024, " KiB");
 		}
 
 	public:
@@ -320,17 +318,17 @@ int Parent::main()
 		 * Synchronously wait for a yield response. Note that a careful parent
 		 * would never trust its child to comply to the yield request.
 		 */
-		PLOG("wait for yield response");
+		log("wait for yield response");
 		_yield_blockade.lock();
 		_yield_blockade.lock();
-		PLOG("got yield response");
+		log("got yield response");
 
 		_print_status();
 
 		/* validate that the amount of yielded resources matches the request */
 		size_t const used_after_yield = _slave.ram().used();
 		if (used_after_yield + 5*1024*1024 > used_prior_yield) {
-			PERR("child has not yielded enough resources");
+			error("child has not yielded enough resources");
 			return -1;
 		}
 
@@ -338,7 +336,7 @@ int Parent::main()
 		_yield_blockade.unlock();
 	}
 
-	printf("--- test-resource_yield finished ---\n");
+	log("--- test-resource_yield finished ---");
 
 	return 0;
 }
@@ -357,15 +355,15 @@ int main(int argc, char **argv)
 	 * the child or the parent role.
 	 */
 	bool const is_child = config()->xml_node().has_attribute("child")
-	                   && config()->xml_node().attribute("child").has_value("yes");
+	                   && config()->xml_node().attribute_value("child", false);
 
 	if (is_child) {
-		printf("--- test-resource_yield child role started ---\n");
+		log("--- test-resource_yield child role started ---");
 		static ::Child child;
 		child.main();
 		return -1; /* the child should never reach this point */
 	} else {
-		printf("--- test-resource_yield parent role started ---\n");
+		log("--- test-resource_yield parent role started ---");
 		static ::Parent parent;
 		return parent.main();
 	}

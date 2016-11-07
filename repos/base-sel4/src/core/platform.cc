@@ -12,9 +12,9 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/log.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -24,6 +24,7 @@
 #include <untyped_memory.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/stack_area.h>
 
 using namespace Genode;
@@ -71,9 +72,15 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
+                                        unsigned size)
 {
-	return unmap_local(virt_addr, size / get_page_size());
+	if (!unmap_local(virt_addr, size / get_page_size()))
+		return false;
+
+	Untyped_memory::convert_to_untyped_frames(phys_addr, size);
+
+	return true;
 }
 
 
@@ -83,7 +90,11 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
 
 void Platform::_init_unused_phys_alloc()
 {
-	_unused_phys_alloc.add_range(0, ~0UL);
+	/* enable log support early */
+	init_log();
+
+	/* the lower physical ram is kept by the kernel and not usable to us */
+	_unused_phys_alloc.add_range(0x100000, 0UL - 0x100000);
 }
 
 
@@ -96,7 +107,7 @@ static inline void init_sel4_ipc_buffer()
 void Platform::_init_allocators()
 {
 	/* interrupt allocator */
-	_irq_alloc.add_range(0, 255);
+	_irq_alloc.add_range(0, 256);
 
 	/*
 	 * XXX allocate intermediate CNodes for organizing the untyped pages here
@@ -114,8 +125,6 @@ void Platform::_init_allocators()
 		addr_t const base = range.phys + page_aligned_offset;
 		size_t const size = range.size - page_aligned_offset;
 
-		PDBG("register phys mem range 0x%lx size=0x%zx", base, size);
-
 		_core_mem_alloc.phys_alloc()->add_range(base, size);
 		_unused_phys_alloc.remove_range(base, size);
 	};
@@ -129,10 +138,31 @@ void Platform::_init_allocators()
 	 * '_initial_untyped_pool' because the pool is empty.
 	 */
 
-	/* I/O memory ranges */
-//	init_allocator(_io_mem_alloc, _unused_phys_alloc,
-//	               bi, bi.deviceUntyped.start,
-//	               bi.deviceUntyped.end - bi.deviceUntyped.start);
+	/* move device memory regions to phys cnode */
+	seL4_BootInfo const &bi = sel4_boot_info();
+	Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
+
+	for (unsigned region = 0; region < bi.numDeviceRegions; region++) {
+		size_t const frame_size = 1UL << bi.deviceRegions[region].frameSizeBits;
+		if (frame_size != 4096) {
+			error("unsupported device memory frame size of ", Hex(frame_size));
+			class Unsupported_dev_memory_framesize{};
+			throw Unsupported_dev_memory_framesize();
+		}
+
+		for (uint64_t sel = bi.deviceRegions[region].frames.start,
+		     phys_addr = bi.deviceRegions[region].basePaddr;
+		     sel < bi.deviceRegions[region].frames.end;
+		     sel++, phys_addr += frame_size) {
+
+			_io_mem_alloc.add_range(phys_addr, frame_size);
+			_unused_phys_alloc.remove_range(phys_addr, frame_size);
+
+			addr_t const dst_frame = phys_addr >> get_page_size_log2();
+			_phys_cnode.move(initial_cspace, Cnode_index(sel),
+			                 Cnode_index(dst_frame));
+		}
+	}
 
 	/* core's virtual memory */
 	_core_mem_alloc.virt_alloc()->add_range(_vm_base, _vm_size);
@@ -140,23 +170,30 @@ void Platform::_init_allocators()
 	/* remove core image from core's virtual address allocator */
 
 	/*
-	 * XXX Why do we need to skip a few KiB after the end of core?
+	 * XXX Why do we need to skip a page after the end of core?
 	 *     When allocating a PTE immediately after _prog_img_end, the
 	 *     kernel would complain "Mapping already present" on the
 	 *     attempt to map a page frame.
 	 */
 	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
 	             core_virt_end = round_page((addr_t)&_boot_modules_binaries_end)
-	                           + 64*1024;
+	                           + 4096;
 	size_t const core_size     = core_virt_end - core_virt_beg;
 
 	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
 
 	if (verbose_boot_info) {
-		printf("core image:\n");
-		printf("  virtual address range [%08lx,%08lx) size=0x%zx\n",
-		       core_virt_beg, core_virt_end, core_size);
+		log("core image:");
+		log("  virtual address range ",
+		    Hex_range<addr_t>(core_virt_beg, core_virt_end - core_virt_beg), " "
+		    "size=", Hex(core_size));
 	}
+
+	/* preserve sel4 boot info page in core's virtual address space */
+	addr_t const sel4_boot_info_page = reinterpret_cast<addr_t>(&bi);
+	_core_mem_alloc.virt_alloc()->remove_range(sel4_boot_info_page, 0x1000);
+	if (sel4_boot_info_page != core_virt_end)
+		warning("unexpected core binary layout");
 
 	/* preserve stack area in core's virtual address space */
 	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
@@ -180,7 +217,7 @@ void Platform::_switch_to_core_cspace()
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapDomain));
 
 	/* replace seL4_CapInitThreadCNode with new top-level CNode */
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::TOP_CNODE_SEL),
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::top_cnode_sel()),
 	                                 Cnode_index(seL4_CapInitThreadCNode));
 
 	/* copy untyped memory selectors to core's CNode */
@@ -197,36 +234,40 @@ void Platform::_switch_to_core_cspace()
 	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
 		_core_cnode.move(initial_cspace, Cnode_index(sel));
 
-//	for (unsigned sel = bi.deviceUntyped.start; sel < bi.deviceUntyped.end; sel++)
-//		_core_cnode.copy(initial_cspace, sel);
+	/* move the device memory selectors to core's CNode */
+	for (unsigned region = 0; region < bi.numDeviceRegions; region++) {
+		for (unsigned sel = bi.deviceRegions[region].frames.start;
+		     sel < bi.deviceRegions[region].frames.end; sel++)
+			_core_cnode.move(initial_cspace, Cnode_index(sel));
+	}
 
 	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++)
 		_core_cnode.copy(initial_cspace, Cnode_index(sel));
 
 	/* copy statically created CNode selectors to core's CNode */
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::TOP_CNODE_SEL));
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL));
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_CNODE_SEL));
-	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::PHYS_CNODE_SEL));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::top_cnode_sel()));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_pad_cnode_sel()));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_cnode_sel()));
+	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::phys_cnode_sel()));
 
 	/*
 	 * Construct CNode hierarchy of core's CSpace
 	 */
 
 	/* insert 3rd-level core CNode into 2nd-level core-pad CNode */
-	_core_pad_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_CNODE_SEL),
+	_core_pad_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_cnode_sel()),
 	                                     Cnode_index(0));
 
 	/* insert 2nd-level core-pad CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::CORE_PAD_CNODE_SEL),
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::core_pad_cnode_sel()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_CORE_IDX));
 
 	/* insert 2nd-level phys-mem CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::PHYS_CNODE_SEL),
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::phys_cnode_sel()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_PHYS_IDX));
 
 	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::UNTYPED_CNODE_SEL),
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_sel()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_IDX));
 
 	/* activate core's CSpace */
@@ -235,12 +276,11 @@ void Platform::_switch_to_core_cspace()
 
 		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
 		                                  seL4_CapNull, /* fault_ep */
-		                                  Core_cspace::TOP_CNODE_SEL, null_data,
+		                                  Core_cspace::top_cnode_sel(), null_data,
 		                                  seL4_CapInitThreadPD, null_data);
 
-		if (ret != 0) {
-			PERR("%s: seL4_TCB_SetSpace returned %d", __FUNCTION__, ret);
-		}
+		if (ret != seL4_NoError)
+			error(__FUNCTION__, ": seL4_TCB_SetSpace returned ", ret);
 	}
 }
 
@@ -255,11 +295,14 @@ void Platform::_init_core_page_table_registry()
 {
 	seL4_BootInfo const &bi = sel4_boot_info();
 
+	addr_t const modules_start = reinterpret_cast<addr_t>(&_boot_modules_binaries_begin);
+	addr_t const modules_end   = reinterpret_cast<addr_t>(&_boot_modules_binaries_end);
+
 	/*
 	 * Register initial page tables
 	 */
 	addr_t virt_addr = (addr_t)(&_prog_img_beg);
-	for (unsigned sel = bi.userImagePTs.start; sel < bi.userImagePTs.end; sel++) {
+	for (unsigned sel = bi.userImagePaging.start; sel < bi.userImagePaging.end; sel++) {
 
 		_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel));
 
@@ -272,6 +315,10 @@ void Platform::_init_core_page_table_registry()
 	 */
 	virt_addr = (addr_t)(&_prog_img_beg);
 	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++) {
+
+		/* skip boot modules */
+		if (modules_start <= virt_addr && virt_addr <= modules_end)
+			continue;
 
 		_core_page_table_registry.insert_page_table_entry(virt_addr, sel);
 
@@ -303,7 +350,7 @@ void Platform::_init_rom_modules()
 		_unused_phys_alloc.alloc_aligned(modules_size, &out_ptr, get_page_size_log2());
 
 	if (alloc_ret.error()) {
-		PERR("could not reserve phys CNode space for boot modules");
+		error("could not reserve phys CNode space for boot modules");
 		struct Init_rom_modules_failed { };
 		throw Init_rom_modules_failed();
 	}
@@ -343,7 +390,7 @@ void Platform::_init_rom_modules()
 			_phys_cnode.copy(initial_cspace, Cnode_index(module_frame_sel + i),
 			                                 Cnode_index(dst_frame + i));
 
-		PLOG("boot module '%s' (%zd bytes)", header->name, header->size);
+		log("boot module '", header->name, "' (", header->size, " bytes)");
 
 		/*
 		 * Register ROM module, the base address refers to location of the
@@ -366,7 +413,7 @@ Platform::Platform()
 	_unused_phys_alloc(core_mem_alloc()),
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
-	_vm_size(2*1024*1024*1024UL - _vm_base), /* use the lower 2GiB */
+	_vm_size(3*1024*1024*1024UL - _vm_base), /* use the lower 3GiB */
 	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
 	_switch_to_core_cspace_done((_switch_to_core_cspace(), true)),
 	_core_page_table_registry(*core_mem_alloc()),
@@ -379,18 +426,38 @@ Platform::Platform()
 	               _core_cnode,
 	               _phys_cnode,
 	               Core_cspace::CORE_VM_ID,
-	               _core_page_table_registry)
+	               _core_page_table_registry,
+	               "core")
 {
+	/* create notification object for Genode::Lock used by this first thread */
+	Cap_sel lock_sel (INITIAL_SEL_LOCK);
+	Cap_sel core_sel = _core_sel_alloc.alloc();
+
+	create<Notification_kobj>(*ram_alloc(), core_cnode().sel(), core_sel);
+
+	/* mint a copy of the notification object with badge of lock_sel */
+	_core_cnode.mint(_core_cnode, core_sel, lock_sel);
+
+	/* test signal/wakeup once */
+	seL4_Word sender;
+	seL4_Signal(lock_sel.value());
+	seL4_Wait(lock_sel.value(), &sender);
+
+	ASSERT(sender == INITIAL_SEL_LOCK);
+
+	/* I/O port allocator (only meaningful for x86) */
+	_io_port_alloc.add_range(0, 0x10000);
+
 	/*
-	 * Print statistics about allocator initialization
+	 * Log statistics about allocator initialization
 	 */
-	printf("VM area at [%08lx,%08lx)\n", _vm_base, _vm_base + _vm_size);
+	log("VM area at ", Hex_range<addr_t>(_vm_base, _vm_size));
 
 	if (verbose_boot_info) {
-		printf(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		printf(":unused_phys_alloc:"); _unused_phys_alloc()->dump_addr_tree();
-		printf(":virt_alloc:       "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		printf(":io_mem_alloc:     "); _io_mem_alloc()->dump_addr_tree();
+		log(":phys_alloc:       "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+		log(":unused_phys_alloc:"); _unused_phys_alloc()->dump_addr_tree();
+		log(":virt_alloc:       "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+		log(":io_mem_alloc:     "); _io_mem_alloc()->dump_addr_tree();
 	}
 
 	_init_rom_modules();

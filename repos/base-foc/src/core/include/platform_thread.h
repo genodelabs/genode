@@ -16,7 +16,7 @@
 #define _CORE__INCLUDE__PLATFORM_THREAD_H_
 
 /* Genode includes */
-#include <base/native_types.h>
+#include <base/native_capability.h>
 #include <base/thread_state.h>
 
 /* core includes */
@@ -170,7 +170,7 @@ namespace Genode {
 			 * Return identification of thread when faulting
 			 */
 			unsigned long pager_object_badge() {
-				return (unsigned long) _thread.local.dst(); }
+				return (unsigned long) _thread.local.data()->kcap(); }
 
 			/**
 			 * Set CPU quota of the thread to 'quota'
@@ -187,11 +187,11 @@ namespace Genode {
 			 ** Fiasco-specific Accessors **
 			 *******************************/
 
-			Cap_mapping& thread()            { return _thread;      }
-			Cap_mapping& gate()              { return _gate;        }
-			const char  *name()        const { return _name;        }
-			bool         core_thread() const { return _core_thread; }
-			addr_t       utcb()        const { return _utcb;        }
+			Cap_mapping const & thread()      const { return _thread;      }
+			Cap_mapping       & gate()              { return _gate;        }
+			const char         *name()        const { return _name;        }
+			bool                core_thread() const { return _core_thread; }
+			addr_t              utcb()        const { return _utcb;        }
 	};
 }
 

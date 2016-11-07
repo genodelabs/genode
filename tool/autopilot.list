@@ -48,8 +48,10 @@ rump_ext2
 thread
 pthread
 vbox_auto_win7
+vbox_auto_win7_64
+vbox_auto_win7_64_raw
+vbox_auto_win7_vbox5
 vbox_auto_win7_share
-vbox_auto_win8
 vbox_auto_win81_64
 tz_vmm
 vmm
@@ -59,9 +61,14 @@ stdcxx
 nic_loopback
 platform
 report_rom
-printf
+log
 rom_filter
 clipboard
 rust
 xml_node
 fpu
+ds_ownership
+fs_log
+cpu_sampler
+cpu_sampler_noux
+usb_hid

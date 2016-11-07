@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/heap.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
@@ -28,11 +28,6 @@
 #include <sys/select.h>
 #include <stdio.h>
 #include <fcntl.h>
-
-
-static bool const verbose = false;
-
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 
 class Open_file
@@ -73,7 +68,6 @@ class Open_file
 
 		Open_file(const char *filename) : _fd(-1)
 		{
-			PDBGV("open '%s'", filename);
 			_fd = ::open(filename, O_CREAT|O_RDWR);
 			if (_fd == -1)
 				::perror("open");
@@ -122,7 +116,7 @@ class Open_file
 		void fill_read_buffer_and_notify_client()
 		{
 			if (_read_buf_bytes_used) {
-				PWRN("read buffer already in use");
+				Genode::warning("read buffer already in use");
 				return;
 			}
 
@@ -196,7 +190,7 @@ namespace Terminal {
 
 				/* write data to descriptor */
 				if (::write(fd(), _io_buffer.local_addr<char>(), num_bytes) < 0)
-					PERR("write error, dropping data");
+					Genode::error("write error, dropping data");
 			}
 
 			Genode::Dataspace_capability _dataspace()
@@ -228,7 +222,7 @@ namespace Terminal {
 				Genode::size_t io_buffer_size = 4096;
 
 				try {
-					Genode::Session_label  label(args);
+					Genode::Session_label  label = Genode::label_from_args(args);
 					Genode::Session_policy policy(label);
 
 					char filename[256];
@@ -241,10 +235,10 @@ namespace Terminal {
 					       Session_component(io_buffer_size, filename);
 
 				} catch (Genode::Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"filename\" attribute in policy definition");
+					Genode::error("missing \"filename\" attribute in policy definition");
 					throw Genode::Root::Unavailable();
 				} catch (Genode::Session_policy::No_policy_defined) {
-					PERR("Invalid session request, no matching policy");
+					Genode::error("invalid session request, no matching policy");
 					throw Genode::Root::Unavailable();
 				}
 			}
@@ -267,7 +261,7 @@ int main()
 {
 	using namespace Genode;
 
-	Genode::printf("--- file terminal started ---\n");
+	Genode::log("--- file terminal started ---");
 
 	/**
 	 * The stack needs to be that large because certain functions

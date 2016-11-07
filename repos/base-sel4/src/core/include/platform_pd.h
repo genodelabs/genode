@@ -42,22 +42,27 @@ class Genode::Platform_pd : public Address_space
 
 		Vm_space _vm_space;
 
-		Cap_sel const _cspace_cnode_sel;
+		Cnode _cspace_cnode_1st;
 
-		Cnode _cspace_cnode;
+		Lazy_volatile_object<Cnode> _cspace_cnode_2nd[1UL << CSPACE_SIZE_LOG2_1ST];
 
 		Native_capability _parent;
 
 		/*
 		 * Allocator for core-managed selectors within the PD's CSpace
 		 */
-		struct Sel_alloc : Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2>
+		typedef Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2> Sel_bit_alloc;
+
+		struct Sel_alloc : Sel_bit_alloc
 		{
 			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
 		};
 
 		Sel_alloc _sel_alloc;
 		Lock _sel_alloc_lock;
+
+		Cap_sel alloc_sel();
+		void free_sel(Cap_sel sel);
 
 	public:
 
@@ -101,11 +106,16 @@ class Genode::Platform_pd : public Address_space
 		 ** seL4-specific interface **
 		 *****************************/
 
-		Cap_sel alloc_sel();
+		Cnode &cspace_cnode(Cap_sel sel)
+		{
+			const unsigned index = sel.value() / (1 << CSPACE_SIZE_LOG2_2ND);
+			ASSERT(index < sizeof(_cspace_cnode_2nd) /
+	                       sizeof(_cspace_cnode_2nd[0]));
 
-		void free_sel(Cap_sel sel);
+			return *_cspace_cnode_2nd[index];
+		}
 
-		Cnode &cspace_cnode() { return _cspace_cnode; }
+		Cnode &cspace_cnode_1st() { return _cspace_cnode_1st; }
 
 		Cap_sel page_directory_sel() const { return _page_directory_sel; }
 

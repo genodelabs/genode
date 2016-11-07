@@ -19,7 +19,7 @@
 #include <base/env.h>
 #include <os/attached_mmio.h>
 #include <os/attached_ram_dataspace.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <dataspace/client.h>
 #include <timer_session/connection.h>
 
@@ -95,7 +95,7 @@ class Mbox : Genode::Attached_mmio
 				read<Read>();
 
 			if (!wait_for<Status::Wr_full>(0, _delayer, 500, 1)) {
-				PERR("Mbox: timeout waiting for ready-to-write");
+				Genode::error("Mbox: timeout waiting for ready-to-write");
 				return;
 			}
 
@@ -106,7 +106,7 @@ class Mbox : Genode::Attached_mmio
 			write<Write>(value);
 
 			if (!wait_for<Status::Rd_empty>(0, _delayer, 500, 1)) {
-				PERR("Mbox: timeout waiting for response");
+				Genode::error("Mbox: timeout waiting for response");
 				return;
 			}
 

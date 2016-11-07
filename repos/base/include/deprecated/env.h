@@ -106,7 +106,7 @@ struct Genode::Env_deprecated
 	 *
 	 * \noapi
 	 */
-	virtual void reinit(Native_capability::Dst, long) = 0;
+	virtual void reinit(Native_capability::Raw) = 0;
 
 	/**
 	 * Reinitialize main-thread object

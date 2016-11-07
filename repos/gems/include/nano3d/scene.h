@@ -74,7 +74,7 @@ class Nano3d::Scene
 			{
 				Framebuffer::Mode::Format const format = nitpicker.mode().format();
 				if (format != Framebuffer::Mode::RGB565) {
-					PERR("framebuffer mode %d is not supported\n", format);
+					Genode::error("framebuffer mode ", (int)format, " is not supported");
 					throw Unsupported_color_depth();
 				}
 

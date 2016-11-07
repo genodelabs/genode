@@ -12,8 +12,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
-#include <os/server.h>
+#include <base/component.h>
+#include <base/log.h>
 
 /* local includes */
 #include <driver.h>
@@ -21,40 +21,35 @@
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
+	Genode::Heap heap { env.ram(), env.rm() };
 
 	struct Factory : Block::Driver_factory
 	{
-		Server::Entrypoint &ep;
+		Genode::Entrypoint &ep;
+		Genode::Heap       &heap;
 
-		Factory(Server::Entrypoint &ep) : ep(ep) { }
+		Factory(Genode::Entrypoint &ep, Genode::Heap &heap)
+		: ep(ep), heap(heap) { }
 
 		Block::Driver *create() {
-			return new (Genode::env()->heap()) Block::Omap4_driver(true); }
+			return new (&heap) Block::Omap4_driver(true); }
 
 		void destroy(Block::Driver *driver) {
-			Genode::destroy(Genode::env()->heap(),
-			                static_cast<Block::Omap4_driver *>(driver)); }
-	} factory;
+			Genode::destroy(&heap,
+			                static_cast<Block::Omap4_driver*>(driver)); }
+	} factory { env.ep(), heap };
 
-	Block::Root root;
+	Block::Root root { env.ep(), heap, factory  };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), factory(ep), root(ep, Genode::env()->heap(), factory)
+	Main(Genode::Env &env) : env(env)
 	{
-		Genode::printf("--- OMAP4 SD card driver ---\n");
+		Genode::log("--- OMAP4 SD card driver ---");
 
-		Genode::env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "sd_card_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main m(env);         }

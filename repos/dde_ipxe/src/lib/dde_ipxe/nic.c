@@ -40,7 +40,6 @@ extern struct pci_driver
 	realtek_driver,
 	ifec_driver,
 	intel_driver,
-	pcnet32_driver,
 	tg3_pci_driver;
 
 
@@ -51,7 +50,6 @@ static struct pci_driver *pci_drivers[] = {
 	&realtek_driver,
 	&ifec_driver,
 	&intel_driver,
-	&pcnet32_driver,
 	&tg3_pci_driver
 };
 
@@ -273,7 +271,7 @@ int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len)
 }
 
 
-int dde_ipxe_nic_get_mac_addr(unsigned if_index, char *out_mac_addr)
+int dde_ipxe_nic_get_mac_addr(unsigned if_index, unsigned char *out_mac_addr)
 {
 	if (if_index != 1)
 		return -1;

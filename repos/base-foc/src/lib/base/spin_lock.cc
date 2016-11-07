@@ -13,10 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/cap_map.h>
-
 /* base-internal includes */
+#include <base/internal/cap_map.h>
 #include <base/internal/spin_lock.h>
 
 

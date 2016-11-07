@@ -3,8 +3,8 @@ LIB_INC_DIR = $(LIB_DIR)/include
 
 LIBS     += usb_include libc-setjmp config
 SRC_CC   += main.cc lx_emul.cc storage.cc \
-            input_component.cc nic.cc raw.cc
-SRC_C    += dummies.c scsi.c evdev.c raw_driver.c
+            input_component.cc evdev.cc nic.cc raw.cc
+SRC_C    += dummies.c scsi.c raw_driver.c
 
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/usb
 DRIVERS_DIR    := $(LX_CONTRIB_DIR)/drivers
@@ -38,7 +38,7 @@ MOD_SUFFIX =
 CC_OPT += -DMOD_SUFFIX=$(MOD_SUFFIX)
 
 # lx_kit
-SRC_CC += printf.cc work.cc timer.cc scheduler.cc irq.cc malloc.cc
+SRC_CC += printf.cc work.cc timer.cc scheduler.cc irq.cc malloc.cc env.cc
 
 # common lib
 SRC_C += lib/int_sqrt.c

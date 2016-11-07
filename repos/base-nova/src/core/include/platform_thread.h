@@ -18,7 +18,6 @@
 /* Genode includes */
 #include <thread/capability.h>
 #include <base/thread_state.h>
-#include <base/native_types.h>
 #include <base/thread.h>
 
 /* base-internal includes */
@@ -45,6 +44,7 @@ namespace Genode {
 				MAIN_THREAD = 0x1U,
 				VCPU        = 0x2U,
 				WORKER      = 0x4U,
+				SC_CREATED  = 0x8U,
 			};
 			uint8_t _features;
 			uint8_t _priority;
@@ -59,6 +59,7 @@ namespace Genode {
 			inline bool main_thread() const { return _features & MAIN_THREAD; }
 			inline bool vcpu()        const { return _features & VCPU; }
 			inline bool worker()      const { return _features & WORKER; }
+			inline bool sc_created()  const { return _features & SC_CREATED; }
 
 		public:
 

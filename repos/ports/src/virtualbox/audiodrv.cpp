@@ -31,10 +31,6 @@ extern "C" {
 }
 
 
-static bool const verbose = false;
-#define PLOGV(...) if (verbose) PLOG(__VA_ARGS__);
-
-
 template <size_t CAPACITY>
 struct A_ring_buffer_to_bind_them
 {
@@ -196,7 +192,7 @@ static int write_samples(GenodeVoiceOut *out, int16_t *src, int samples)
 		int16_t buf[Audio_out::PERIOD*2];
 		size_t const n = packet_buf.read(buf, sizeof(buf));
 		if (n != sizeof(buf))
-			PERR("%s: n: %zu buf: %zu", __func__, n, buf);
+			Genode::error(__func__, ": n: ", n, " buf: ", buf);
 
 		for (int i = 0; i < Audio_out::PERIOD; i++) {
 			left_content[i]  = (float)(buf[i * VBOX_CHANNELS + 0]) / 32768.0f;
@@ -230,7 +226,7 @@ static int genode_run_out(HWVoiceOut *hw)
 	size_t const avail = pcm_buf.read_avail();
 
 	if ((avail / (VBOX_SAMPLE_SIZE*VBOX_CHANNELS)) < decr)
-		PERR("%s: avail: %zu < decr %d", __func__, avail, decr);
+		Genode::error(__func__, ": avail: ", avail, " < decr ", decr);
 
 	char buf[decr*VBOX_SAMPLE_SIZE*VBOX_CHANNELS];
 	pcm_buf.read(buf, sizeof(buf), true);
@@ -252,11 +248,11 @@ static int genode_write(SWVoiceOut *sw, void *buf, int size)
 
 	size_t const avail = pcm_buf.write_avail();
 	if (size > avail)
-		PWRN("%s: size: %d available: %zu", __func__, size, avail);
+		Genode::warning(__func__, ": size: ", size, " available: ", avail);
 
 	size_t const n = pcm_buf.write(buf, size);
 	if (n < size)
-		PWRN("%s: written: %zu expected: %d", __func__, n, size);
+		Genode::warning(__func__, ": written: ", n, " expected: ", size);
 
 	/* needed by audio_pcm_hw_get_live_out() to calculate ``live'' samples */
 	sw->total_hw_samples_mixed += (size / 4);
@@ -269,14 +265,14 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 	GenodeVoiceOut * const out = (GenodeVoiceOut *)hw;
 
 	if (as->nchannels != VBOX_CHANNELS) {
-		PERR("only %d channels supported (%d were requested)",
-		     VBOX_CHANNELS, as->nchannels);
+		Genode::error("only ", (int)VBOX_CHANNELS, " channels supported ",
+		              "( ", as->nchannels, " were requested)");
 		return -1;
 	}
 
 	if (as->freq != Audio_out::SAMPLE_RATE) {
-		PERR("only %d frequency supported (%d was requested)",
-		     Audio_out::SAMPLE_RATE, as->freq);
+		Genode::error("only ", (int)Audio_out::SAMPLE_RATE, " frequency supported "
+		              "(", as->freq, " was requested)");
 		return -1;
 	}
 
@@ -285,7 +281,7 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 			out->audio[i] = new (Genode::env()->heap())
 				Audio_out::Connection(channel_names[i]);
 		} catch (...) {
-			PERR("could not establish Audio_out connection");
+			Genode::error("could not establish Audio_out connection");
 			while (--i > 0)
 				Genode::destroy(Genode::env()->heap(), out->audio[i]);
 			return -1;
@@ -296,11 +292,11 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 	out->hw.samples = Audio_out::PERIOD;
 	out->packets = 0;
 
-	PLOG("--- using Audio_out session ---");
-	PLOGV("freq: %d", as->freq);
-	PLOGV("channels: %d", as->nchannels);
-	PLOGV("format: %d", as->fmt);
-	PLOGV("endianness: %d", as->endianness);
+	Genode::log("--- using Audio_out session ---");
+	Genode::log("freq: ",       as->freq);
+	Genode::log("channels: ",   as->nchannels);
+	Genode::log("format: ",     (int)as->fmt);
+	Genode::log("endianness: ", as->endianness);
 
 	return 0;
 }
@@ -319,13 +315,11 @@ static int genode_ctl_out(HWVoiceOut *hw, int cmd, ...)
 	GenodeVoiceOut *out = (GenodeVoiceOut*)hw;
 	switch (cmd) {
 	case VOICE_ENABLE:
-		PLOGV("enable playback");
 		out->packets = 0;
 		for (int i = 0; i < VBOX_CHANNELS; i++)
 				out->audio[i]->start();
 		break;
 	case VOICE_DISABLE:
-		PLOGV("disable playback (packets: %u)", out->packets);
 		for (int i = 0; i < VBOX_CHANNELS; i++) {
 			out->audio[i]->stop();
 			out->audio[i]->stream()->invalidate_all();
@@ -347,7 +341,7 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 	try {
 		in->audio = new (Genode::env()->heap()) Audio_in::Connection("left");
 	} catch (...) {
-		PERR("could not establish Audio_in connection");
+		Genode::error("could not establish Audio_in connection");
 		return -1;
 	}
 
@@ -355,11 +349,11 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 	in->hw.samples = Audio_in::PERIOD;
 	in->packets    = 0;
 
-	PLOG("--- using Audio_in session ---");
-	PLOGV("freq: %d", as->freq);
-	PLOGV("channels: %d", as->nchannels);
-	PLOGV("format: %d", as->fmt);
-	PLOGV("endianness: %d", as->endianness);
+	Genode::log("--- using Audio_in session ---");
+	Genode::log("freq: ",       as->freq);
+	Genode::log("channels: ",   as->nchannels);
+	Genode::log("format: ",     (int)as->fmt);
+	Genode::log("endianness: ", as->endianness);
 
 	return 0;
 }
@@ -403,7 +397,7 @@ static int read_samples(GenodeVoiceIn *in, int samples)
 
 		size_t const w = packet_buf.write(buf, sizeof(buf));
 		if (w != sizeof(buf))
-			PERR("%s: write n: %zu buf: %zu", __func__, w, sizeof(buf));
+			Genode::error(__func__, ": write n: ", w, " buf: ", sizeof(buf));
 
 		p->invalidate();
 		p->mark_as_recorded();
@@ -417,7 +411,7 @@ static int read_samples(GenodeVoiceIn *in, int samples)
 	size_t const r = packet_buf.read(buf, sizeof(buf), true);
 	size_t const w = pcm_buf.write(buf, r);
 	if (w != r)
-		PERR("%s: w: %zu != r: %zu", __func__, w, r);
+		Genode::error(__func__, ": w: ", w, " != r: ", r);
 
 	packet_buf.read_advance(w);
 
@@ -448,11 +442,11 @@ static int genode_read(SWVoiceIn *sw, void *buf, int size)
 
 	size_t const avail = pcm_buf.read_avail();
 	if (avail < size)
-		PERR("%s: avail: %zu size: %zu", __func__, avail, size);
+		Genode::error(__func__, ": avail: ", avail, " size: ", size);
 
 	size_t const r = pcm_buf.read(buf, size);
 	if (r != size)
-		PERR("%s: r: %zu size: %d", __func__, r, size);
+		Genode::error(__func__, ": r: ", r, " size: ", size);
 
 	/* needed by audio_pcm_hw_get_live_in() to calculate ``live'' samples */
 	sw->total_hw_samples_acquired += (r / (VBOX_SAMPLE_SIZE*VBOX_CHANNELS));
@@ -465,12 +459,10 @@ static int genode_ctl_in(HWVoiceIn *hw, int cmd, ...)
 	GenodeVoiceIn * const in = (GenodeVoiceIn*)hw;
 	switch (cmd) {
 	case VOICE_ENABLE:
-		PLOGV("enable recording");
 		in->packets = 0;
 		in->audio->start();
 		break;
 	case VOICE_DISABLE:
-		PLOGV("disable recording (packets: %u)", in->packets);
 		in->audio->stop();
 		break;
 	}

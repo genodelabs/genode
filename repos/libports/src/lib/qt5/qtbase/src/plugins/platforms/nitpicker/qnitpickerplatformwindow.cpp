@@ -13,10 +13,10 @@
 
 
 /* Genode includes */
+#include <base/log.h>
 #include <nitpicker_session/client.h>
 
 /* Qt includes */
-#include <qpa/qwindowsysteminterface.h>
 #include <qpa/qplatformscreen.h>
 #include <QGuiApplication>
 #include <QDebug>
@@ -27,21 +27,73 @@ QT_BEGIN_NAMESPACE
 
 static const bool qnpw_verbose = false/*true*/;
 
+QTouchDevice * QNitpickerPlatformWindow::_init_touch_device()
+{
+	QVector<QWindowSystemInterface::TouchPoint>::iterator i = _touch_points.begin();
+	for (unsigned n = 0; i != _touch_points.end(); ++i, ++n) {
+		i->id    = n;
+		i->state = Qt::TouchPointReleased;
+	}
+
+	QTouchDevice *dev = new QTouchDevice;
+
+	dev->setName("Genode multi-touch device");
+	dev->setType(QTouchDevice::TouchScreen);
+	dev->setCapabilities(QTouchDevice::Position);
+
+	QWindowSystemInterface::registerTouchDevice(dev);
+
+	return dev;
+}
+
+void QNitpickerPlatformWindow::_process_touch_events(QList<Input::Event> const &events)
+{
+	if (events.empty()) return;
+
+	QList<QWindowSystemInterface::TouchPoint> touch_points;
+	for (QList<Input::Event>::const_iterator i = events.begin(); i != events.end(); ++i) {
+
+		/*
+		 * Coordinates must be normalized to positions of the platform window.
+		 * We lack information about the value ranges (min and max) of touch
+		 * coordinates to normalize ourselves.
+		 */
+		QPointF const pos((qreal)i->ax(), (qreal)i->ay() );
+
+		QWindowSystemInterface::TouchPoint &otp = _touch_points[i->code()];
+		QWindowSystemInterface::TouchPoint tp;
+
+		tp.id   = i->code();
+		tp.area = QRectF(QPointF(0, 0), QSize(1, 1));
+
+		/* report 1x1 rectangular area centered at screen coordinates */
+		tp.area.moveCenter(QPointF(i->ax(), i->ay()));
+
+		if (i->rx() == -1 && i->ry() == -1) {
+			tp.state    = Qt::TouchPointReleased;
+			tp.pressure = 0;
+		} else {
+			tp.state    = otp.state == Qt::TouchPointReleased
+			            ? Qt::TouchPointPressed : Qt::TouchPointMoved;
+			tp.pressure = 1;
+		}
+
+		otp = tp;
+		touch_points.push_back(tp);
+	}
+
+	QWindowSystemInterface::handleTouchEvent(0, _touch_device, touch_points);
+}
+
 void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 {
 	QPoint global_position(ev->ax(), ev->ay());
 	QPoint local_position(global_position.x() - geometry().x(),
 			              global_position.y() - geometry().y());
 
-	//qDebug() << "local_position =" << local_position;
-	//qDebug() << "global_position =" << global_position;
-
 	switch (ev->type()) {
 
 		case Input::Event::PRESS:
-
-			if (qnpw_verbose)
-				PDBG("PRESS");
 
 			/* make this window the focused window */
 			requestActivateWindow();
@@ -67,9 +119,6 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 
 		case Input::Event::RELEASE:
 
-			if (qnpw_verbose)
-				PDBG("RELEASE");
-
 			switch (ev->code()) {
 				case Input::BTN_LEFT:
 					_mouse_button_state &= ~Qt::LeftButton;
@@ -90,9 +139,6 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 			break;
 
 		case Input::Event::WHEEL:
-
-			if (qnpw_verbose)
-				PDBG("WHEEL");
 
 			QWindowSystemInterface::handleWheelEvent(window(),
 					                                 local_position,
@@ -136,6 +182,7 @@ void QNitpickerPlatformWindow::_key_repeat()
 
 void QNitpickerPlatformWindow::_handle_input(unsigned int)
 {
+	QList<Input::Event> touch_events;
 	for (int i = 0, num_ev = _input_session.flush(); i < num_ev; i++) {
 
 		Input::Event *ev = &_ev_buf[i];
@@ -145,8 +192,8 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 
 		bool const is_mouse_button_event =
 			is_key_event && (ev->code() == Input::BTN_LEFT ||
-					         ev->code() == Input::BTN_MIDDLE ||
-					         ev->code() == Input::BTN_RIGHT);
+			                 ev->code() == Input::BTN_MIDDLE ||
+			                 ev->code() == Input::BTN_RIGHT);
 
 		if (ev->type() == Input::Event::MOTION ||
 			ev->type() == Input::Event::WHEEL ||
@@ -154,12 +201,19 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 
 			_process_mouse_event(ev);
 
+		} else if (ev->type() == Input::Event::TOUCH) {
+
+			touch_events.push_back(*ev);
+
 		} else if (is_key_event && (ev->code() < 128)) {
 
 			_process_key_event(ev);
 
 		}
 	}
+
+	/* process all gathered touch events */
+	_process_touch_events(touch_events);
 }
 
 
@@ -265,7 +319,8 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window,
   _input_signal_dispatcher(_signal_receiver, *this,
                            &QNitpickerPlatformWindow::_input),
   _mode_changed_signal_dispatcher(_signal_receiver, *this,
-                                  &QNitpickerPlatformWindow::_mode_changed)
+                                  &QNitpickerPlatformWindow::_mode_changed),
+  _touch_device(_init_touch_device())
 {
 	if (qnpw_verbose)
 		if (window->transientParent())

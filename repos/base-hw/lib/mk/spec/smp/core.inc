@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_HW_DIR)/src/core/include/spec/smp
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/smp
 
 # add C++ sources
 SRC_CC += spec/smp/kernel/kernel.cc

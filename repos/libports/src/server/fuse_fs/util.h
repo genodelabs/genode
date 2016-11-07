@@ -35,6 +35,7 @@ static inline char const *basename(char const *path)
 static bool string_contains(char const *str, char const *substr)
 {
 	using namespace Genode;
+	using Genode::size_t;
 
 	size_t str_len = strlen(str);
 	size_t substr_len = strlen(substr);

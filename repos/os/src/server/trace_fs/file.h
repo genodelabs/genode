@@ -173,7 +173,7 @@ namespace File_system {
 
 				if (seek_offset + len >= Chunk_level_0::SIZE) {
 					len = (Chunk_level_0::SIZE-1) - seek_offset;
-					PERR("%s: size limit %d reached", name(), Chunk_level_0::SIZE);
+					Genode::error(name(), ": size limit ", (long)Chunk_level_0::SIZE, " reached");
 				}
 
 				_chunk.write(src, len, (size_t)seek_offset);

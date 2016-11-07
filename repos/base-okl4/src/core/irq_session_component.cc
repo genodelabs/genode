@@ -13,12 +13,15 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
 #include <irq_root.h>
 #include <irq_session_component.h>
+
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
@@ -52,8 +55,8 @@ bool Irq_object::_associate()
 	L4_LoadMR(0, _irq);
 	int ret = L4_AllowInterruptControl(L4_rootspace);
 	if (ret != 1) {
-		PERR("L4_AllowInterruptControl returned %d, error code=%ld\n",
-		     ret, L4_ErrorCode());
+		error("L4_AllowInterruptControl returned ", ret, ", error=",
+		      L4_ErrorCode());
 		return false;
 	}
 
@@ -64,8 +67,8 @@ bool Irq_object::_associate()
 	L4_LoadMR(0, _irq);
 	ret = L4_RegisterInterrupt(thread_get_my_global_id(), IRQ_NOTIFY_BIT, 0, 0);
 	if (ret != 1) {
-		PERR("L4_RegisterInterrupt returned %d, error code=%ld\n",
-		     ret, L4_ErrorCode());
+		error("L4_RegisterInterrupt returned ", ret, ", error=",
+		      L4_ErrorCode());
 		return false;
 	}
 
@@ -95,7 +98,7 @@ void Irq_object::start()
 void Irq_object::entry()
 {
 	if (!_associate())
-		PERR("Could not associate with IRQ 0x%x", _irq);
+		error("could not associate with IRQ ", Hex(_irq));
 
 	/* thread is up and ready */
 	_sync_bootup.unlock();
@@ -145,7 +148,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		throw Root::Unavailable();
 
 	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
-		PERR("Unavailable IRQ 0x%x requested", _irq_number);
+		error("unavailable IRQ ", Hex(_irq_number), " requested");
 		throw Root::Unavailable();
 	}
 
@@ -155,7 +158,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 
 Irq_session_component::~Irq_session_component()
 {
-	PDBG("Not yet implemented!");
+	warning(__func__, " not yet implemented!");
 }
 
 

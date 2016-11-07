@@ -18,7 +18,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
 #include <base/env.h>
 #include <base/thread.h>
 #include <base/signal.h>
@@ -58,25 +57,25 @@ class Local_fault_handler : public Thread_deprecated<4096>
 		{
 			Region_map::State state = _region_map.state();
 
-			printf("region-map state is %s, pf_addr=0x%lx\n",
+			log("region-map state is ",
 			       state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
 			       state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
 			       state.type == Region_map::State::EXEC_FAULT  ? "EXEC_FAULT"  : "READY",
-			       state.addr);
+			       ", pf_addr=", Hex(state.addr, Hex::PREFIX));
 
-			printf("allocate dataspace and attach it to sub region map\n");
+			log("allocate dataspace and attach it to sub region map");
 			Dataspace_capability ds = env()->ram_session()->alloc(PAGE_SIZE);
 			_region_map.attach_at(ds, state.addr & ~(PAGE_SIZE - 1));
 
-			printf("returning from handle_fault\n");
+			log("returning from handle_fault");
 		}
 
 		void entry()
 		{
 			while (true) {
-				printf("fault handler: waiting for fault signal\n");
+				log("fault handler: waiting for fault signal");
 				Signal signal = _receiver.wait_for_signal();
-				printf("received %u fault signals\n", signal.num());
+				log("received ", signal.num(), " fault signals");
 				for (unsigned i = 0; i < signal.num(); i++)
 					handle_fault();
 			}
@@ -86,7 +85,7 @@ class Local_fault_handler : public Thread_deprecated<4096>
 
 int main(int argc, char **argv)
 {
-	printf("--- nested region map test ---\n");
+	log("--- nested region map test ---");
 
 	/*
 	 * Initialize sub region map and set up a local fault handler for it.
@@ -105,21 +104,26 @@ int main(int argc, char **argv)
 	 */
 	void *addr = env()->rm_session()->attach(region_map.dataspace());
 
-	printf("attached sub dataspace at local address 0x%p\n", addr);
+	log("attached sub dataspace at local address ", addr);
 	Dataspace_client client(region_map.dataspace());
-	printf("sub dataspace size is %zu should be %u\n", client.size(), MANAGED_SIZE);
+	log("sub dataspace size is ", client.size(), " should be ",
+	    (size_t)MANAGED_SIZE);
 
 	/*
 	 * Walk through the address range belonging to the region map
 	 */
 	char *managed = (char *)addr;
 	for (int i = 0; i < MANAGED_SIZE; i += PAGE_SIZE/16) {
-		printf("write to %p\n", &managed[i]);
+		log("write to ", (void*)&managed[i]);
 		managed[i] = 13;
 	}
 
 	receiver.dissolve(&context);
 
-	printf("--- finished nested region map test ---\n");
+	log("test destruction of region_map");
+	Capability<Region_map> rcap = rm.create(4096);
+	rm.destroy(rcap);
+
+	log("--- finished nested region map test ---");
 	return 0;
 }

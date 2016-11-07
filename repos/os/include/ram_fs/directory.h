@@ -188,14 +188,14 @@ class File_system::Directory : public Node
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
 			if (len < sizeof(Directory_entry)) {
-				PERR("read buffer too small for directory entry");
+				Genode::error("read buffer too small for directory entry");
 				return 0;
 			}
 
 			seek_off_t index = seek_offset / sizeof(Directory_entry);
 
 			if (seek_offset % sizeof(Directory_entry)) {
-				PERR("seek offset not alighed to sizeof(Directory_entry)");
+				Genode::error("seek offset not alighed to sizeof(Directory_entry)");
 				return 0;
 			}
 

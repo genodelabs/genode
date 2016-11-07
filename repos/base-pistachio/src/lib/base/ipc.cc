@@ -13,38 +13,23 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/ipc.h>
 #include <base/blocking.h>
 #include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* Pistachio includes */
 namespace Pistachio {
 #include <l4/types.h>
 #include <l4/ipc.h>
-#include <l4/kdebug.h>
 }
 
 using namespace Genode;
 using namespace Pistachio;
-
-#define VERBOSE_IPC 0
-#if VERBOSE_IPC
-
-/* Just a printf wrapper for now. */
-#define IPCDEBUG(msg, ...) { \
-	if (L4_Myself().raw == 0xf4001) { \
-		(void)printf("IPC (thread = 0x%x) " msg, \
-		L4_ThreadNo(Pistachio::L4_Myself()) \
-		, ##__VA_ARGS__); \
-	} else {}
-}
-#else
-#define IPCDEBUG(...)
-#endif
 
 
 /**
@@ -64,13 +49,13 @@ static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 	 * Provide diagnostic information on unexpected conditions
 	 */
 	if (L4_IpcFailed(result)) {
-		PERR("Error in thread %08lx. IPC failed.", L4_Myself().raw);
+		raw("Error in thread ", Hex(L4_Myself().raw), ". IPC failed.");
 		throw Genode::Ipc_error();
 	}
 
 	if (L4_UntypedWords(result) < 2) {
-		PERR("Error in thread %08lx. Expected at leat two untyped words, but got %lu.\n",
-		     L4_Myself().raw, L4_UntypedWords(result));
+		raw("Error in thread ", Hex(L4_Myself().raw), ". "
+		    "Expected at leat two untyped words, but got ", L4_UntypedWords(result), ".\n");
 		throw Genode::Ipc_error();
 	}
 }
@@ -90,9 +75,21 @@ static void extract_caps(L4_Msg_t &msg, Msgbuf_base &rcv_msg)
 		L4_ThreadId_t tid;
 		tid.raw = L4_Get(&msg, 2 + i*2);
 
-		L4_Word_t const local_name = L4_Get(&msg, 2 + i*2 + 1);
+		Rpc_obj_key const rpc_obj_key(L4_Get(&msg, 2 + i*2 + 1));
 
-		rcv_msg.insert(Native_capability(tid, local_name));
+		bool const cap_valid = tid.raw != 0UL;
+
+		Native_capability cap;
+
+		if (cap_valid) {
+
+			cap = Capability_space::lookup(rpc_obj_key);
+
+			if (!cap.valid())
+				cap = Capability_space::import(tid, rpc_obj_key);
+		}
+
+		rcv_msg.insert(cap);
 	}
 }
 
@@ -109,8 +106,19 @@ static void prepare_send(L4_Word_t protocol_value, L4_Msg_t &msg,
 	L4_Append(&msg, (L4_Word_t)snd_msg.used_caps());
 
 	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {
-		L4_Append(&msg, (L4_Word_t)snd_msg.cap(i).dst().raw);
-		L4_Append(&msg, (L4_Word_t)snd_msg.cap(i).local_name());
+
+		Native_capability cap = snd_msg.cap(i);
+
+		if (cap.valid()) {
+			Capability_space::Ipc_cap_data const cap_data =
+				Capability_space::ipc_cap_data(snd_msg.cap(i));
+
+			L4_Append(&msg, (L4_Word_t)cap_data.dst.raw);
+			L4_Append(&msg, (L4_Word_t)cap_data.rpc_obj_key.value());
+		} else {
+			L4_Append(&msg, (L4_Word_t)0UL);
+			L4_Append(&msg, (L4_Word_t)0UL);
+		}
 	}
 
 	L4_Append(&msg, L4_StringItem(snd_msg.data_size(), snd_msg.data()));
@@ -139,11 +147,14 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	L4_MsgBuffer_t msgbuf;
 	prepare_receive(msgbuf, rcv_msg);
 
+	Capability_space::Ipc_cap_data const dst_data =
+		Capability_space::ipc_cap_data(dst);
+
 	/* prepare sending parameters */
 	L4_Msg_t msg;
-	prepare_send(dst.local_name(), msg, snd_msg);
+	prepare_send(dst_data.rpc_obj_key.value(), msg, snd_msg);
 
-	L4_MsgTag_t result = L4_Call(dst.dst());
+	L4_MsgTag_t result = L4_Call(dst_data.dst);
 
 	L4_Clear(&msg);
 	L4_Store(result, &msg);
@@ -166,9 +177,9 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	L4_Msg_t msg;
 	prepare_send(exc.value, msg, snd_msg);
 
-	L4_MsgTag_t result = L4_Reply(caller.dst());
+	L4_MsgTag_t result = L4_Reply(Capability_space::ipc_cap_data(caller).dst);
 	if (L4_IpcFailed(result))
-		PERR("ipc error in _reply, ignored");
+		raw("ipc error in _reply, ignored");
 
 	snd_msg.reset();
 }
@@ -198,7 +209,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		prepare_send(exc.value, reply_l4_msg, reply_msg);
 
 		/* send reply and wait for new request message */
-		request_tag = L4_Ipc(last_caller.dst(), L4_anythread,
+		request_tag = L4_Ipc(Capability_space::ipc_cap_data(last_caller).dst,
+		                     L4_anythread,
 		                     L4_Timeouts(L4_ZeroTime, L4_Never), &caller);
 
 		if (!L4_IpcFailed(request_tag))
@@ -221,11 +233,14 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 	extract_caps(msg, request_msg);
 
 	unsigned long const badge = L4_Get(&msg, 0);
-	return Rpc_request(Native_capability(caller, 0), badge);
+	return Rpc_request(Capability_space::import(caller, Rpc_obj_key()), badge);
 }
 
 
-Ipc_server::Ipc_server() : Native_capability(Pistachio::L4_Myself(), 0) { }
+Ipc_server::Ipc_server()
+:
+	Native_capability(Capability_space::import(Pistachio::L4_Myself(), Rpc_obj_key()))
+{ }
 
 
 Ipc_server::~Ipc_server() { }

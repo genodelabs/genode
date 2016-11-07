@@ -71,7 +71,7 @@ Decorator::string_attribute(Xml_node const &node, char const *attr,
 
 	char buf[CAPACITY];
 	node.attribute(attr).value(buf, sizeof(buf));
-	return Genode::String<CAPACITY>(buf);
+	return Genode::String<CAPACITY>(Genode::Cstring(buf));
 }
 
 

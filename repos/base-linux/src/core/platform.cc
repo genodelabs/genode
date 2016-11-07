@@ -17,6 +17,8 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/parent_socket_handle.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* local includes */
 #include "platform.h"
@@ -90,10 +92,10 @@ Platform::Platform()
 : _core_mem_alloc(nullptr)
 {
 	/* catch control-c */
-	lx_sigaction(LX_SIGINT, sigint_handler);
+	lx_sigaction(LX_SIGINT, sigint_handler, false);
 
 	/* catch SIGCHLD */
-	lx_sigaction(LX_SIGCHLD, sigchld_handler);
+	lx_sigaction(LX_SIGCHLD, sigchld_handler, false);
 
 	/* create resource directory under /tmp */
 	lx_mkdir(resource_path(), S_IRWXU);
@@ -171,7 +173,7 @@ namespace Genode {
 		 * as well as in Genode processes.
 		 */
 		if (socket_pair.server_sd != -1 || socket_pair.client_sd != -1)
-			PERR("%s called for IPC server which should never happen", __func__);
+			error(__func__, " called for IPC server which should never happen");
 	}
 }
 
@@ -205,7 +207,8 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	if (!core_env()->entrypoint()->is_myself()) {
 		/* release Region_map_mmap::_lock during RPC */
 		_lock.unlock();
-		int socket = Linux_dataspace_client(ds_cap).fd().dst().socket;
+		Untyped_capability fd_cap = Linux_dataspace_client(ds_cap).fd();
+		int socket = Capability_space::ipc_cap_data(fd_cap).dst.socket;
 		_lock.lock();
 		return socket;
 	}
@@ -222,7 +225,7 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	 * dataspace, the descriptor would unexpectedly be closed again.
 	 */
 	return core_env()->entrypoint()->apply(lx_ds_cap, [] (Linux_dataspace *ds) {
-		return ds ? lx_dup(ds->fd().dst().socket) : -1; });
+		return ds ? lx_dup(Capability_space::ipc_cap_data(ds->fd()).dst.socket) : -1; });
 }
 
 

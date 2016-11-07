@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <file_system_session/rpc_object.h>
+#include <base/heap.h>
 #include <ram_session/connection.h>
 #include <root/component.h>
 #include <vfs/dir_file_system.h>
@@ -39,7 +40,7 @@ namespace Vfs_server {
 	{
 		try { return Genode::config()->xml_node().sub_node("vfs"); }
 		catch (...) {
-			PERR("vfs not configured");
+			Genode::error("VFS not configured");
 			Genode::env()->parent()->exit(~0);
 			Genode::sleep_forever();
 		}
@@ -141,7 +142,6 @@ class Vfs_server::Session_component :
 			seek_off_t const seek    = packet.position();
 
 			if ((!(content && length)) || (packet.length() > packet.size())) {
-				PDBGV("bad packet %d: %llu:%zu", packet.handle().value, packet.position(), packet.length());
 				packet.succeeded(false);
 				return;
 			}
@@ -276,7 +276,6 @@ class Vfs_server::Session_component :
 
 			_ram.ref_account(Genode::env()->ram_session_cap());
 			Genode::env()->ram_session()->transfer_quota(_ram.cap(), ram_quota);
-			PWRN("ram quota starts at %zd for %s", _ram.quota(), _label.string());
 		}
 
 		/**
@@ -293,7 +292,6 @@ class Vfs_server::Session_component :
 			size_t new_quota =
 				Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			Genode::env()->ram_session()->transfer_quota(_ram.cap(), new_quota);
-			PWRN("ram quota upgraded to %zd for %s", _ram.quota(), _label.string());
 		}
 
 
@@ -303,8 +301,6 @@ class Vfs_server::Session_component :
 
 		Dir_handle dir(File_system::Path const &path, bool create) override
 		{
-			PDBGV("%s create=%d", path.string(), create);
-
 			if (create && (!_writable))
 				throw Permission_denied();
 
@@ -337,8 +333,6 @@ class Vfs_server::Session_component :
 		File_handle file(Dir_handle dir_handle, Name const &name,
 		                 Mode fs_mode, bool create) override
 		{
-			PDBGV("%d:%s create=%d", dir_handle.value, name.string(), create);
-
 			if ((create || (fs_mode & WRITE_ONLY)) && (!_writable))
 				throw Permission_denied();
 
@@ -358,8 +352,6 @@ class Vfs_server::Session_component :
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create) override
 		{
-			PDBGV("%d:%s create=%d", dir_handle.value, name.string(), create);
-
 			if (create && !_writable) throw Permission_denied();
 
 			Directory &dir = _lookup(dir_handle);
@@ -379,8 +371,6 @@ class Vfs_server::Session_component :
 
 		Node_handle node(File_system::Path const &path) override
 		{
-			PDBGV("%s", path.string());
-
 			char const *path_str = path.string();
 			/* '/' is bound to '0' */
 			if (!strcmp(path_str, "/"))
@@ -406,8 +396,6 @@ class Vfs_server::Session_component :
 
 		void close(Node_handle handle) override
 		{
-			PDBGV("%d", handle.value);
-
 			/* handle '0' cannot be freed */
 			if (!handle.value) {
 				_root.notify_listeners();
@@ -443,19 +431,15 @@ class Vfs_server::Session_component :
 			listener = Listener();
 		}
 
-		Status status(Node_handle node_handle)
+		Status status(Node_handle node_handle) override
 		{
-			PDBGV("%d", node_handle.value);
-
 			Directory_service::Stat vfs_stat;
 			File_system::Status      fs_stat;
 
 			Node &node = _lookup(node_handle);
 
-			if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK) {
-				memset(&fs_stat, 0x00, sizeof(fs_stat));
+			if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK)
 				return fs_stat;
-			}
 
 			fs_stat.inode = vfs_stat.inode;
 
@@ -482,10 +466,8 @@ class Vfs_server::Session_component :
 			return fs_stat;
 		}
 
-		void unlink(Dir_handle dir_handle, Name const &name)
+		void unlink(Dir_handle dir_handle, Name const &name) override
 		{
-			PDBGV("%d:%s", dir_handle.value, name.string());
-
 			if (!_writable) throw Permission_denied();
 
 			Directory &dir = _lookup(dir_handle);
@@ -499,19 +481,12 @@ class Vfs_server::Session_component :
 			dir.mark_as_updated();
 		}
 
-		void truncate(File_handle file_handle, file_size_t size)
-		{
-			PDBGV("%d", file_handle.value);
-			_lookup(file_handle).truncate(size);
-		}
+		void truncate(File_handle file_handle, file_size_t size) override {
+			_lookup(file_handle).truncate(size); }
 
 		void move(Dir_handle from_dir_handle, Name const &from_name,
-		          Dir_handle to_dir_handle,   Name const &to_name)
+		          Dir_handle to_dir_handle,   Name const &to_name) override
 		{
-			PDBGV("%d:%s - %d:%s",
-			      from_dir_handle.value, from_name.string(),
-			        to_dir_handle.value,   to_name.string());
-
 			if (!_writable)
 				throw Permission_denied();
 
@@ -535,7 +510,6 @@ class Vfs_server::Session_component :
 
 		void sigh(Node_handle handle, Signal_context_capability sigh) override
 		{
-			PDBGV("%d", handle.value);
 			if (!_in_range(handle.value))
 				throw Invalid_handle();
 
@@ -562,9 +536,8 @@ class Vfs_server::Session_component :
 		/**
 		 * Sync the VFS and send any pending signals on the node.
 		 */
-		void sync(Node_handle handle)
+		void sync(Node_handle handle) override
 		{
-			PDBGV("%d", handle.value);
 			try {
 				Node &node = _lookup(handle);
 				_vfs.sync(node.path());
@@ -572,7 +545,7 @@ class Vfs_server::Session_component :
 			} catch (Invalid_handle) { }
 		}
 
-		void control(Node_handle, Control) { }
+		void control(Node_handle, Control) override { }
 };
 
 
@@ -595,7 +568,7 @@ class Vfs_server::Root :
 			Path session_root;
 			bool writeable = false;
 
-			Session_label const label(args);
+			Session_label const label = label_from_args(args);
 
 			char tmp[MAX_PATH_LEN];
 			try {
@@ -646,15 +619,15 @@ class Vfs_server::Root :
 				tx_buf_size;
 
 			if (session_size > ram_quota) {
-				PERR("insufficient 'ram_quota' from %s, got %zd, need %zd",
-				     label.string(), ram_quota, session_size);
+				error("insufficient 'ram_quota' from '", label, "' "
+				      "got ", ram_quota, ", need ", session_size);
 				throw Root::Quota_exceeded();
 			}
 			ram_quota -= session_size;
 
 			/* check if the session root exists */
 			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {
-				PERR("session root '%s' not found for '%s'", session_root.base(), label.string());
+				error("session root '", session_root, "' not found for '", label, "'");
 				throw Root::Unavailable();
 			}
 
@@ -667,7 +640,7 @@ class Vfs_server::Root :
 				                  session_root.base(),
 				                  writeable);
 
-			PLOG("session opened for '%s' at '%s'", label.string(), session_root.base());
+			Genode::log("session opened for '", label, "' at '", session_root, "'");
 			return session;
 		}
 
@@ -708,7 +681,6 @@ struct Vfs_server::Main
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
 		env()->parent()->announce(ep.manage(fs_root));
-		PLOG("virtual file system server started");
 	}
 };
 

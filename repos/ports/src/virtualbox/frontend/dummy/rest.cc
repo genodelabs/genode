@@ -1,5 +1,3 @@
-#include <base/printf.h>
-
 #include "dummy/macros.h"
 
 static bool debug = false;
@@ -250,3 +248,5 @@ void fireNATNetworkPortForwardEvent(IEventSource* aSource,
                                     LONG a_guestPort)                           TRACE()
 
 void fireHostNameResolutionConfigurationChangeEvent(IEventSource* aSource)      TRACE()
+
+void fireMediumChangedEvent(IEventSource *, IMediumAttachment *)                DUMMY()

@@ -35,17 +35,16 @@ class Ac : Acpica::Callback<Ac> {
 			                                          nullptr, &onoff,
 			                                          ACPI_TYPE_INTEGER);
 			if (ACPI_FAILURE(res)) {
-				PDBG("failed   - res=0x%x _PSR", res);
+				Genode::log("failed   - res=", Genode::Hex(res), " _PSR");
 				return;
 			}
 
 			_ac_state = onoff.object.Integer.Value;
 			_ac_count++;
 
-			PINF("%s - ac (%u)",
-			     _ac_state == 0 ? "offline " :
-			     _ac_state == 1 ? "online  " : "unknown ",
-			     value);
+			Genode::log(_ac_state == 0 ? "offline " :
+			            _ac_state == 1 ? "online  " : "unknown ",
+			            " - ac (", value, ")");
 
 			if (_report)
 				_report->ac_event();
@@ -58,12 +57,12 @@ class Ac : Acpica::Callback<Ac> {
 			ACPI_STATUS res = AcpiInstallNotifyHandler (ac, ACPI_DEVICE_NOTIFY,
 			                                            handler, obj);
 			if (ACPI_FAILURE(res)) {
-				PERR("failed   - '%s' res=0x%x", __func__, res);
+				Genode::error("failed   - '", __func__, "' res=", Genode::Hex(res));
 				delete obj;
 				return AE_OK;
 			}
 
-			PINF("detected - ac");
+			Genode::log("detected - ac");
 
 			handler(ac, 0, obj);
 

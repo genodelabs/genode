@@ -30,7 +30,7 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	Capability<Io_mem_session> _session(Parent &parent, addr_t base, size_t size,
 	                                    bool write_combined)
 	{
-		return session("ram_quota=4K, base=0x%p, size=0x%zx, wc=%s",
+		return session("ram_quota=4K, base=0x%p, size=0x%lx, wc=%s",
 		               base, size, write_combined ? "yes" : "no");
 	}
 

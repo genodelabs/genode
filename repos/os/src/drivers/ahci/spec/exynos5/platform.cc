@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Driver for Exynos-5250 soc
  * \author Martin Stein
  * \author Sebastian Sumpf
@@ -92,7 +92,7 @@ struct I2c_interface : Attached_mmio
 			if (read<Con::Irq_pending>() && !read<Stat::Last_bit>()) return 1;
 			delayer.usleep(TX_DELAY_US);
 		}
-		PERR("I2C ack not received");
+		Genode::error("I2C ack not received");
 		return 0;
 	}
 
@@ -102,7 +102,7 @@ struct I2c_interface : Attached_mmio
 	bool arbitration_error()
 	{
 		if (read<Stat::Arbitr>()) {
-			PERR("I2C arbitration failed");
+			Genode::error("I2C arbitration failed");
 			return 1;
 		}
 		return 0;
@@ -121,7 +121,7 @@ struct I2c_interface : Attached_mmio
 	{
 		/* initiate message transfer */
 		if (!wait_for<Stat::Busy>(0, delayer)) {
-			PERR("I2C busy");
+			Genode::error("I2C busy");
 			return -1;
 		}
 		Stat::access_t stat = read<Stat>();
@@ -148,7 +148,7 @@ struct I2c_interface : Attached_mmio
 		write<Con::Irq_pending>(0); /* FIXME fixup */
 		if (arbitration_error()) return -1;
 		if (!wait_for<Stat::Busy>(0, delayer)) {
-			PERR("I2C end transfer failed");
+			Genode::error("I2C end transfer failed");
 			return -1;
 		}
 		return 0;
@@ -189,7 +189,7 @@ struct I2c_sataphy : I2c_interface
 
 		/* send messaage */
 		if (send(msg, MSG_SIZE)) return -1;
-		if (verbose) printf("SATA PHY 40-pin interface enabled\n");
+		if (verbose) Genode::log("SATA PHY 40-pin interface enabled");
 		return 0;
 	}
 
@@ -302,11 +302,11 @@ struct Sata_phy_ctrl : Attached_mmio
 		 *       in more depth.
 		 */
 		if (!wait_for<Phstatm::Pll_locked>(1, delayer)) {
-			PERR("PLL lock failed");
+			Genode::error("PLL lock failed");
 			return -1;
 		}
 		if (verbose)
-			printf("SATA PHY initialized\n");
+			Genode::log("SATA PHY initialized");
 
 		return 0;
 	}
@@ -315,11 +315,14 @@ struct Sata_phy_ctrl : Attached_mmio
 
 struct Exynos5_hba : Platform::Hba
 {
-	Irq_connection        irq { Board_base::SATA_IRQ };
-	Regulator::Connection clock_src { Regulator::CLK_SATA };
-	Regulator::Connection power_src { Regulator::PWR_SATA };
+	Genode::Env &env;
 
-	Exynos5_hba(Mmio::Delayer &delayer)
+	Irq_connection        irq { Board_base::SATA_IRQ };
+	Regulator::Connection clock_src { env, Regulator::CLK_SATA };
+	Regulator::Connection power_src { env, Regulator::PWR_SATA };
+
+	Exynos5_hba(Genode::Env &env, Mmio::Delayer &delayer)
+	: env(env)
 	{
 		clock_src.state(true);
 		power_src.state(true);
@@ -338,7 +341,7 @@ struct Exynos5_hba : Platform::Hba
 		/* reset */
 		hba.write< ::Hba::Ghc::Hr>(1);
 		if (!hba.wait_for< ::Hba::Ghc::Hr>(0, ::Hba::delayer(), 1000, 1000)) {
-			PERR("HBA reset failed");
+			Genode::error("HBA reset failed");
 			throw Root::Unavailable();
 		}
 
@@ -368,18 +371,18 @@ struct Exynos5_hba : Platform::Hba
 	Ram_dataspace_capability
 	alloc_dma_buffer(size_t size) override
 	{
-		return env()->ram_session()->alloc(size, UNCACHED);
+		return env.ram().alloc(size, UNCACHED);
 	}
 
 	void free_dma_buffer(Ram_dataspace_capability ds)
 	{
-		env()->ram_session()->free(ds);
+		env.ram().free(ds);
 	}
 };
 
 
-Platform::Hba &Platform::init(Mmio::Delayer &delayer)
+Platform::Hba &Platform::init(Genode::Env &env, Mmio::Delayer &delayer)
 {
-	static Exynos5_hba h(delayer);
+	static Exynos5_hba h(env, delayer);
 	return h;
 }

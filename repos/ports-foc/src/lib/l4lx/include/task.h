@@ -22,6 +22,7 @@
 namespace Fiasco {
 #include <l4/sys/types.h>
 #include <l4/sys/consts.h>
+#include <l4/sys/task.h>
 }
 
 namespace L4lx {
@@ -50,7 +51,8 @@ namespace L4lx {
 
 				/* remap task cap to given cap slot */
 				l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
-							l4_obj_fpage(_cap.dst(), 0, L4_FPAGE_RWX),
+							l4_obj_fpage(Genode::Capability_space::kcap(_cap),
+							             0, L4_FPAGE_RWX),
 							_ref | L4_ITEM_MAP);
 			}
 

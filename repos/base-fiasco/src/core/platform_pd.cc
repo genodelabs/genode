@@ -19,7 +19,7 @@
  */
 
 /* Genode includes */
-#include <base/native_types.h>
+#include <base/native_capability.h>
 
 /* core includes */
 #include <util.h>
@@ -32,9 +32,6 @@ namespace Fiasco {
 
 using namespace Fiasco;
 using namespace Genode;
-
-
-static const bool verbose = false;
 
 
 /**************************
@@ -189,7 +186,7 @@ int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
 void Platform_pd::_free_thread(int thread_id)
 {
 	if (!_threads[thread_id])
-		PWRN("double-free of thread %x.%x detected", _pd_id, thread_id);
+		warning("double-free of thread ", Hex(_pd_id), ".", Hex(thread_id), " detected");
 
 	_threads[thread_id] = 0;
 }
@@ -207,7 +204,7 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 
 	int t = _alloc_thread(thread_id, thread);
 	if (t < 0) {
-		PERR("thread alloc failed");
+		error("thread alloc failed");
 		return false;
 	}
 	thread_id = t;
@@ -218,7 +215,6 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	/* finally inform thread about binding */
 	thread->bind(thread_id, l4_thread_id, this);
 
-	if (verbose) _debug_log_threads();
 	return true;
 }
 
@@ -231,8 +227,6 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 	thread->unbind();
 
 	_free_thread(thread_id);
-
-	if (verbose) _debug_log_threads();
 }
 
 
@@ -248,7 +242,6 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 
 	int ret = _alloc_pd(pd_id);
 	if (ret < 0) {
-		_debug_log_pds();
 		panic("pd alloc failed");
 	}
 
@@ -268,27 +261,3 @@ Platform_pd::~Platform_pd()
 	_free_pd();
 }
 
-
-/***********************
- ** Debugging support **
- ***********************/
-
-void Platform_pd::_debug_log_threads()
-{
-	int i;
-	printf("[%02x] ", _pd_id);
-	for (i = 0; i < THREAD_MAX; ++i) {
-		printf("%c", !_threads[i] ? '.' : 'X');
-		if (i == 63) printf("\n     ");
-	}
-	printf("\n");
-}
-
-
-void Platform_pd::_debug_log_pds()
-{
-	int i;
-	for (i = 0; i < PD_MAX; ++i)
-		printf("[%02x] %d %d %d\n", i, _pds()[i].reserved, _pds()[i].free,
-		       _pds()[i].version);
-}

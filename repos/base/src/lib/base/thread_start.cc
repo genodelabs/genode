@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>
@@ -30,8 +30,24 @@ using namespace Genode;
 void Thread::_thread_start()
 {
 	Thread::myself()->_thread_bootstrap();
-	Thread::myself()->entry();
+
+	/* catch any exception at this point and try to print an error message */
+	try {
+		Thread::myself()->entry();
+	} catch (...) {
+		try {
+			raw("Thread '", Thread::myself()->name().string(),
+			    "' died because of an uncaught exception");
+		} catch (...) {
+			/* die in a noisy way */
+			*(unsigned long *)0 = 0xdead;
+		}
+		throw;
+	}
+
 	Thread::myself()->_join_lock.unlock();
+
+	/* sleep silently */
 	Genode::sleep_forever();
 }
 

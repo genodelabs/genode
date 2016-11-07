@@ -4,8 +4,14 @@
 
 set flavor   "win7"
 
-# Write overlay back to harddisk if set to 0
-set use_ram_fs 0
+set use_vbox4 1
+set use_vbox5 0
+
+set use_rumpfs 1
+# Write overlay only into ram
+set use_ram_fs 1
+# However read initial overlay from disk
+set use_overlay_from_disk 1
 
 set use_usb 1
 set use_ps2 [have_spec ps2]

@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 #include <rtc_session/connection.h>
 
@@ -21,10 +21,12 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/mount.h>    /* statfs */
+#include <sys/statvfs.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>        /* open */
 
+#include "libc_errno.h"
 
 
 /* libc memory allocator */
@@ -36,23 +38,22 @@
 
 static const bool verbose = false;
 
-using Genode::size_t;
-
 /*
  * We cannot use the libc's version of malloc because it does not satisfies
  * the alignment constraints asserted by 'Runtime/r3/alloc.cpp'.
  */
 
-extern "C" void *malloc(size_t size)
+extern "C" void *malloc(::size_t size)
 {
 	return Libc::mem_alloc()->alloc(size, Genode::log2(RTMEM_ALIGNMENT));
 }
 
 
-extern "C" void *calloc(size_t nmemb, size_t size)
+extern "C" void *calloc(::size_t nmemb, ::size_t size)
 {
 	void *ret = malloc(nmemb*size);
-	Genode::memset(ret, 0, nmemb*size);
+	if (ret)
+		Genode::memset(ret, 0, nmemb*size);
 	return ret;
 }
 
@@ -63,7 +64,7 @@ extern "C" void free(void *ptr)
 }
 
 
-extern "C" void *realloc(void *ptr, Genode::size_t size)
+extern "C" void *realloc(void *ptr, ::size_t size)
 {
 	if (!ptr)
 		return malloc(size);
@@ -106,16 +107,16 @@ extern "C" char *getenv(const char *name)
 
 	if (Genode::strcmp(name, "VBOX_LOG") == 0 ||
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG") == 0) 
-		return (char *)"+rem_dias.e.l.f"
+		return (char *)"+rem_disas.e.l.f"
 		               "+rem_printf.e.l.f"
 //		               "+rem_run.e.l.f"
 //		               "+pgm.e.l.f"
-		               "+pdm"
+//		               "+pdm"
 //		               "+cpum.e.l.f"
 //		               "+dev_pcnet.e.l.f"
 //		               "+dev_pic.e.l.f"
 //		               "+dev_apic.e.l.f"
-		               "+dev_vmm.e"
+//		               "+dev_vmm.e"
 //		               "+usb_mouse.e.l.f"
 //		               "+main.e.l.f"
 //		               "+hgcm.e.l.f"
@@ -128,7 +129,6 @@ extern "C" char *getenv(const char *name)
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG_FLAGS") == 0)
 		return (char *)"thread";
 
-	PWRN("getenv called for non-existent variable \"%s\"", name);
 	return 0;
 }
 
@@ -151,14 +151,7 @@ extern "C" int _nanosleep(const struct timespec *req, struct timespec *rem);
 extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	Assert(req);
-/*
-	if (req) { // && req->tv_sec == 0 && req->tv_nsec <= 10 *1000000) {
-		char _name[64];
-		Genode::Thread::myself()->name(_name, sizeof(_name));
-		PERR("%zd:%ld s:ns rip %p '%s'", req->tv_sec, req->tv_nsec,
-		     __builtin_return_address(0), _name);
-	}
-*/
+
 	return _nanosleep(req, rem);
 }
 
@@ -169,7 +162,7 @@ extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
 extern "C" pid_t getpid(void)
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log(__func__, " called - rip ", __builtin_return_address(0));
 
 	return 1345;
 }
@@ -177,7 +170,7 @@ extern "C" pid_t getpid(void)
 extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log(__func__, " called - rip ", __builtin_return_address(0));
 
 	return -1;
 }
@@ -185,28 +178,28 @@ extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 extern "C" int _sigaction(int, const struct sigaction *, struct sigaction *)
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log(__func__, " called - rip ", __builtin_return_address(0));
 
 	return -1;
 }
 
 extern "C" int futimes(int fd, const struct timeval tv[2])
 {
-	PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+	Genode::log("%s called - rip %p", __func__, __builtin_return_address(0));
 	return 0;
 }
 
 extern "C" int lutimes(const char *filename, const struct timeval tv[2])
 {
-	PINF("%s called - file '%s' - rip %p", __func__, filename,
-	     __builtin_return_address(0));
+	Genode::log(__func__, ": called - file '", filename, "' - rip ",
+	            __builtin_return_address(0));
 	return 0;
 }
 
 extern "C" int _sigprocmask()
 {
 	if (verbose)
-		PINF("%s called - rip %p", __func__, __builtin_return_address(0));
+		Genode::log("%s called - rip %p", __func__, __builtin_return_address(0));
 
 	return 0;
 }
@@ -216,17 +209,44 @@ extern "C" int _sigprocmask()
 /**
  * Used by Shared Folders Guest additions
  */
-extern "C" int _fstatfs(int libc_fd, struct statfs *buf);
 extern "C" int statfs(const char *path, struct statfs *buf)
 {
+	if (!buf)
+		return Libc::Errno(EFAULT);
+
 	int fd = open(path, 0);
 
 	if (fd < 0)
 		return fd;
 
-	int res = _fstatfs(fd, buf);
+	struct statvfs result;
+	int res = fstatvfs(fd, &result);
 
 	close(fd);
+
+	if (res)
+		return res;
+
+	Genode::memset(buf, 0, sizeof(*buf));
+
+	buf->f_bavail = result.f_bavail;
+	buf->f_bfree  = result.f_bfree;
+	buf->f_blocks = result.f_blocks;
+	buf->f_ffree  = result.f_ffree;
+	buf->f_files  = result.f_files;
+	buf->f_bsize  = result.f_bsize;
+
+	bool show_warning = !buf->f_bsize || !buf->f_blocks || !buf->f_bavail;
+
+	if (!buf->f_bsize)
+		buf->f_bsize = 4096;
+	if (!buf->f_blocks)
+		buf->f_blocks = 128 * 1024;
+	if (!buf->f_bavail)
+		buf->f_bavail = buf->f_blocks;
+
+	if (show_warning)
+		Genode::warning("statfs provides bogus values for '", path, "' (probably a shared folder)");
 
 	return res;
 }
@@ -235,7 +255,7 @@ extern "C" long pathconf(char const *path, int name)
 {
 	if (name == _PC_NAME_MAX) return 255;
 
-	PERR("pathconf does not support config option %d", name);
+	Genode::error("pathconf does not support config option ", name);
 	errno = EINVAL;
 	return -1;
 }

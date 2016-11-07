@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__DATASPACE_COMPONENT_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/lock_guard.h>
 #include <base/rpc_server.h>
 #include <util/list.h>

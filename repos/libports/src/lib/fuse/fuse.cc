@@ -12,7 +12,7 @@
  */
 
 /* Genodes includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 /* libc includes */
@@ -28,7 +28,7 @@ static struct fuse         *_fuse;
 static struct fuse_context  _ctx;
 
 #if 1
-#define TRACE PDBG("")
+#define TRACE Genode::log("")
 #else
 #define TRACE
 #endif
@@ -36,7 +36,7 @@ static struct fuse_context  _ctx;
 struct fuse* Fuse::fuse()
 {
 	if (_fuse == 0) {
-		PERR("libfuse: struct fuse is zero");
+		Genode::error("libfuse: struct fuse is zero");
 		abort();
 	}
 
@@ -52,7 +52,7 @@ extern "C" {
 
 void fuse_genode(const char *s)
 {
-	PLOG("%s: %s", __func__, s);
+	Genode::log(__func__, ": ", s);
 }
 
 #define FIX_UP_OPERATION1(f, name) \
@@ -82,7 +82,7 @@ static int fill_dir(void *dh, const char *name, const struct stat *sbuf, off_t o
 	struct fuse_dirhandle *dir = (struct fuse_dirhandle*)dh;
 
 	if ((dir->offset + sizeof (struct dirent)) > dir->size) {
-		PWRN("fill_dir buffer full");
+		Genode::warning("fill_dir buffer full");
 		return 1;
 	}
 
@@ -139,7 +139,7 @@ struct fuse* fuse_new(struct fuse_chan *chan, struct fuse_args *args,
 
 	_fuse = reinterpret_cast<struct fuse*>(malloc(sizeof (struct fuse)));
 	if (_fuse == 0) {
-		PERR("could not create struct fuse");
+		Genode::error("could not create struct fuse");
 		return 0;
 	}
 

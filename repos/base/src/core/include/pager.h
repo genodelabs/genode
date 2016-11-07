@@ -17,6 +17,7 @@
 #define _CORE__INCLUDE__PAGER_H_
 
 /* Genode includes */
+#include <base/session_label.h>
 #include <base/thread.h>
 #include <base/object_pool.h>
 #include <cap_session/cap_session.h>
@@ -64,6 +65,9 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 */
 		Signal_context_capability _exception_sigh;
 
+		Session_label             _pd_label;
+		Cpu_session::Name         _name;
+
 	public:
 
 		/**
@@ -76,10 +80,14 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 *
 		 * \param location  affinity of paged thread to physical CPU
 		 */
-		Pager_object(Cpu_session_capability cpu_sesion, Thread_capability thread,
-		             unsigned long badge, Affinity::Location location)
+		Pager_object(Cpu_session_capability cpu_sesion,
+		             Thread_capability thread,
+		             unsigned long badge, Affinity::Location location,
+		             Session_label const &pd_label,
+		             Cpu_session::Name const &name)
 		:
-			_badge(badge), _cpu_session_cap(cpu_sesion), _thread_cap(thread)
+			_badge(badge), _cpu_session_cap(cpu_sesion), _thread_cap(thread),
+			_pd_label(pd_label), _name(name)
 		{ }
 
 		virtual ~Pager_object() { }
@@ -137,6 +145,15 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 * fault occurred.
 		 */
 		void unresolved_page_fault_occurred();
+
+		/*
+		 * Print pager object belonging
+		 */
+		void print(Output &out) const
+		{
+			Genode::print(out, "pager_object: pd='", _pd_label,
+					"' thread='", _name, "'");
+		}
 };
 
 

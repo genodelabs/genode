@@ -1,0 +1,11 @@
+LICENSE   := GPLv3
+VERSION   := 481
+DOWNLOADS := less.archive
+
+URL(less) := http://ftp.gnu.org/gnu/less/less-$(VERSION).tar.gz
+SHA(less) := 58e7e62a760a9ca3636349de8e3357f7102aea1d
+SIG(less) := ${URL(less)}.sig
+KEY(less) := GNU
+DIR(less) := src/noux-pkg/less
+
+PATCHES   := src/noux-pkg/less/tty_fd.patch

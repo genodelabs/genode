@@ -3,6 +3,8 @@ VERSION   := git
 DOWNLOADS := sel4.git
 
 URL(sel4) := https://github.com/seL4/seL4.git
-# master branch, version 2.1
-REV(sel4) := 0115ad1d0d7a871d637f8ceb79e37b46f9981249
+# master branch, version 3.2
+REV(sel4) := e70cd7613bb3aed71d3df58c72146cc44a60190e
 DIR(sel4) := src/kernel/sel4
+
+PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)

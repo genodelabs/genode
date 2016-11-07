@@ -13,20 +13,26 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/env.h>
+#include <base/log.h>
 #include <log_session/connection.h>
+#include <foc/capability_space.h>
+
+/* base-internal includes */
+#include <base/internal/cap_map.h> /* cap_idx_alloc */
 
 using namespace Genode;
 using namespace Fiasco;
 
 int main(int argc, char **argv)
 {
-	printf("--- capability integrity test ---\n");
+	log("--- capability integrity test ---");
 
 	enum { COUNT = 1000 };
 
 	Cap_index*           idx = cap_idx_alloc()->alloc_range(COUNT);
-	Fiasco::l4_cap_idx_t tid = env()->ram_session_cap().dst();
+	Fiasco::l4_cap_idx_t tid = Capability_space::kcap(env()->ram_session_cap());
 
 	/* try the first 1000 local name IDs */
 	for (int local_name = 0; local_name < COUNT; local_name++, idx++) {
@@ -36,13 +42,13 @@ int main(int argc, char **argv)
                     idx->kcap() | L4_ITEM_MAP);
 
 		Log_session_capability log_session_cap =
-			reinterpret_cap_cast<Log_session>(Native_capability(idx));
+			reinterpret_cap_cast<Log_session>(Native_capability(*idx));
 		Log_session_client log_session_client(log_session_cap);
 		try {
 			log_session_client.write("test message");
 		} catch(...) { }
 	}
 
-	printf("--- finished capability integrity test ---\n");
+	log("--- finished capability integrity test ---");
 	return 0;
 }

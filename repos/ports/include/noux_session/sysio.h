@@ -48,13 +48,13 @@ namespace Noux {
 		enum { MAX_PATH_LEN = 512 };
 		typedef char Path[MAX_PATH_LEN];
 
-		enum { CHUNK_SIZE = 7*1024 };
+		enum { CHUNK_SIZE = 11*1024 };
 		typedef char Chunk[CHUNK_SIZE];
 
-		enum { ARGS_MAX_LEN = 4*1024 };
+		enum { ARGS_MAX_LEN = 5*1024 };
 		typedef char Args[ARGS_MAX_LEN];
 
-		enum { ENV_MAX_LEN  = 4*1024 };
+		enum { ENV_MAX_LEN  = 6*1024 };
 		typedef char Env[ENV_MAX_LEN];
 
 		typedef __SIZE_TYPE__ size_t;
@@ -82,7 +82,30 @@ namespace Noux {
 			STAT_MODE_BLOCKDEV  = 0060000,
 		};
 
-		typedef Vfs::Directory_service::Stat Stat;
+		/*
+		 * Must be POD (in contrast to the VFS type) because it's used in a union
+		 */
+		struct Stat
+		{
+			Vfs::file_size size;
+			unsigned       mode;
+			unsigned       uid;
+			unsigned       gid;
+			unsigned long  inode;
+			unsigned long  device;
+
+			Stat & operator= (Vfs::Directory_service::Stat const &stat)
+			{
+				size   = stat.size;
+				mode   = stat.mode;
+				uid    = stat.uid;
+				gid    = stat.gid;
+				inode  = stat.inode;
+				device = stat.device;
+
+				return *this;
+			}
+		};
 
 		/**
 		 * Argument structure used for ioctl syscall
@@ -107,7 +130,25 @@ namespace Noux {
 		enum { DIRENT_MAX_NAME_LEN = Vfs::Directory_service::DIRENT_MAX_NAME_LEN };
 
 		typedef Vfs::Directory_service::Dirent_type Dirent_type;
-		typedef Vfs::Directory_service::Dirent      Dirent;
+
+		/*
+		 * Must be POD (in contrast to the VFS type) because it's used in a union
+		 */
+		struct Dirent
+		{
+			unsigned long fileno;
+			Dirent_type   type;
+			char          name[DIRENT_MAX_NAME_LEN];
+
+			Dirent & operator= (Vfs::Directory_service::Dirent const &dirent)
+			{
+				fileno = dirent.fileno;
+				type   = dirent.type;
+				memcpy(name, dirent.name, DIRENT_MAX_NAME_LEN);
+
+				return *this;
+			}
+		};
 
 		enum Fcntl_cmd {
 			FCNTL_CMD_GET_FILE_STATUS_FLAGS,

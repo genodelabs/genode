@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
+#include <signal_source/signal_source.h>
 
 using namespace Genode;
 
@@ -98,7 +99,7 @@ Rpc_entrypoint::~Rpc_entrypoint()
 	dissolve(&_exit_handler);
 
 	if (!empty())
-		PWRN("Object pool not empty in %s", __func__);
+		warning("object pool not empty in ", __func__);
 
 	/*
 	 * Now that we finished the 'dissolve' steps above (which need a working

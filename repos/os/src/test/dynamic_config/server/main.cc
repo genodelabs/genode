@@ -79,7 +79,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			Genode::Lock::Guard guard(_lock);
 
 			if (!_fg.size() && !_bg_has_pending_data) {
-				PERR("Error: no data loaded");
+				Genode::error("no data loaded");
 				return Genode::Rom_dataspace_capability();
 			}
 

@@ -60,7 +60,7 @@ class Floating_window_layouter::Action
 			if (string == "raise_window")      return RAISE_WINDOW;
 			if (string == "toggle_fullscreen") return TOGGLE_FULLSCREEN;
 
-			PWRN("cannot convert \"%s\" to action type", string.string());
+			Genode::warning("cannot convert \"", string, "\" to action type");
 			return NONE;
 		}
 

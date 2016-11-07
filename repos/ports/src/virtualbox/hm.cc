@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* VirtualBox includes */
 #include "HMInternal.h" /* enable access to hm.s.* */
@@ -105,7 +105,6 @@ VMMDECL(bool) HMIsEnabledNotMacro(PVM pVM)
 
 VMMR3DECL(bool) HMR3IsVmxPreemptionTimerUsed(PVM pVM)
 {
-//	PLOG("HMR3IsVmxPreemptionTimerUsed");
 	return false;
 }
 
@@ -131,7 +130,6 @@ VMMR3DECL(bool) HMR3IsRescheduleRequired(PVM pVM, PCPUMCTX pCtx)
 
 VMMR3DECL(bool) HMR3IsEventPending(PVMCPU pVCpu)
 {
-//	PLOG("HMR3IsEventPending false");
 	return false;
 }
 
@@ -154,3 +152,6 @@ VMMR3DECL(bool) HMR3CanExecuteGuest(PVM pVM, PCPUMCTX pCtx)
 
 
 VMM_INT_DECL(int) HMFlushTLB(PVMCPU pVCpu) { return VINF_SUCCESS; }
+
+
+void HMR3ResetCpu(PVMCPU pVCpu) { }

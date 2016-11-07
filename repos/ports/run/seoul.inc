@@ -222,6 +222,7 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 	<start name="nic_bridge" priority="-3">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
+		<config/>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
 			<any-service><parent/></any-service>
@@ -257,14 +258,10 @@ append_if [expr $use_nic_session && !$use_nic_bridge] config {
 append_if $use_framebuffer config {
 			<service name="Framebuffer"><child name="fb_drv"/></service>}
 append_if $use_genode_iso config {
-			<service name="ROM">
-				<if-arg key="filename" value="vm_seoul.cfg"/>
-				<parent/>
-			</service>
-			<service name="ROM">
-				<if-arg key="filename" value="hypervisor_info_page"/>
-				<parent/>
-			</service>
+			<service name="ROM" label="vm_seoul.cfg">
+				<parent/> </service>
+			<service name="ROM" label="hypervisor_info_page">
+				<parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
 append config {
 			<service name="Rtc"><child name="rtc_drv"/></service>
@@ -294,7 +291,7 @@ append_if $use_fancy_stuff config {
 			                       hover="always" ypos="18" height="-18" />
 			<policy label="pointer"    domain="pointer"/>
 			<policy label="status_bar" domain="panel"/>
-			<policy domain=""/>
+			<default-policy domain=""/>
 		</config>
 		<route>
 			<service name="Timer">      <child name="timer"/></service>

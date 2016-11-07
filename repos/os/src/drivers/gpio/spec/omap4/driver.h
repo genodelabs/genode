@@ -25,8 +25,6 @@
 /* local includes */
 #include "gpio.h"
 
-static int verbose = 0;
-
 
 class Omap4_driver : public Gpio::Driver
 {
@@ -102,7 +100,7 @@ class Omap4_driver : public Gpio::Driver
 					_irq_enabled[pin] = enable;
 				}
 
-				void ack_irq(int pin) { PDBG("not implemented"); }
+				void ack_irq(int pin) { Genode::warning(__func__, " not implemented"); }
 
 				void sigh(int pin, Genode::Signal_context_capability cap) {
 					_sig_cap[pin] = cap; }
@@ -134,7 +132,7 @@ class Omap4_driver : public Gpio::Driver
 				return &_gpio_bank_5;
 			}
 
-			PERR("no Gpio_bank for pin %d available", gpio);
+			Genode::error("no Gpio_bank for pin ", gpio, " available");
 			return 0;
 		}
 
@@ -155,14 +153,7 @@ class Omap4_driver : public Gpio::Driver
 			             Genode::Board_base::GPIO5_IRQ),
 			_gpio_bank_5(_ep, Genode::Board_base::GPIO6_MMIO_BASE, Genode::Board_base::GPIO6_MMIO_SIZE,
 			             Genode::Board_base::GPIO6_IRQ)
-		{
-			for (int i = 0; i < MAX_BANKS; ++i) {
-				if (verbose)
-					PDBG("GPIO%d ctrl=%08x",
-						 i+1, _gpio_bank(i << PIN_SHIFT)->regs()->read<Gpio_reg::Ctrl>());
-			}
-		}
-
+		{ }
 
 	public:
 
@@ -175,16 +166,12 @@ class Omap4_driver : public Gpio::Driver
 
 		void direction(unsigned gpio, bool input)
 		{
-			if (verbose) PDBG("gpio=%d input=%d", gpio, input);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Oe>(input ? 1 : 0, _gpio_index(gpio));
 		}
 
 		void write(unsigned gpio, bool level)
 		{
-			if (verbose) PDBG("gpio=%d level=%d", gpio, level);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 
 			if (level)
@@ -195,16 +182,12 @@ class Omap4_driver : public Gpio::Driver
 
 		bool read(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			return gpio_reg->read<Gpio_reg::Datain>(_gpio_index(gpio));
 		}
 
 		void debounce_enable(unsigned gpio, bool enable)
 		{
-			if (verbose) PDBG("gpio=%d enable=%d", gpio, enable);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Debounceenable>(enable ? 1 : 0,
 			                                          _gpio_index(gpio));
@@ -212,8 +195,6 @@ class Omap4_driver : public Gpio::Driver
 
 		void debounce_time(unsigned gpio, unsigned long us)
 		{
-			if (verbose) PDBG("gpio=%d us=%ld", gpio, us);
-
 			unsigned char debounce;
 
 			if (us < 32)
@@ -229,8 +210,6 @@ class Omap4_driver : public Gpio::Driver
 
 		void falling_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Leveldetect0> (0, _gpio_index(gpio));
 			gpio_reg->write<Gpio_reg::Leveldetect1> (0, _gpio_index(gpio));
@@ -240,8 +219,6 @@ class Omap4_driver : public Gpio::Driver
 
 		void rising_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Leveldetect0> (0, _gpio_index(gpio));
 			gpio_reg->write<Gpio_reg::Leveldetect1> (0, _gpio_index(gpio));
@@ -251,8 +228,6 @@ class Omap4_driver : public Gpio::Driver
 
 		void high_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Leveldetect0> (0, _gpio_index(gpio));
 			gpio_reg->write<Gpio_reg::Leveldetect1> (1, _gpio_index(gpio));
@@ -262,8 +237,6 @@ class Omap4_driver : public Gpio::Driver
 
 		void low_detect(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Leveldetect0> (1, _gpio_index(gpio));
 			gpio_reg->write<Gpio_reg::Leveldetect1> (0, _gpio_index(gpio));
@@ -273,29 +246,21 @@ class Omap4_driver : public Gpio::Driver
 
 		void irq_enable(unsigned gpio, bool enable)
 		{
-			if (verbose) PDBG("gpio=%d enable=%d", gpio, enable);
-
 			_gpio_bank(gpio)->irq(_gpio_index(gpio), enable);
 		}
 
 		void ack_irq(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			_gpio_bank(gpio)->ack_irq(_gpio_index(gpio));
 		}
 
 		void register_signal(unsigned gpio,
 		                     Genode::Signal_context_capability cap)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			_gpio_bank(gpio)->sigh(_gpio_index(gpio), cap); }
 
 		void unregister_signal(unsigned gpio)
 		{
-			if (verbose) PDBG("gpio=%d", gpio);
-
 			Genode::Signal_context_capability cap;
 			_gpio_bank(gpio)->sigh(_gpio_index(gpio), cap);
 		}

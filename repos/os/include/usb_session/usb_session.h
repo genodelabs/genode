@@ -35,6 +35,9 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 {
 	enum Type { STRING, CTRL, BULK, IRQ, ALT_SETTING, CONFIG, RELEASE_IF };
 
+	/* use the polling interval stated in the endpoint descriptor */
+	enum { DEFAULT_POLLING_INTERVAL = -1 };
+
 	Type        type;
 	bool        succeded   = false;
 	Completion *completion = nullptr;
@@ -61,7 +64,7 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 		{
 			uint8_t ep;
 			int     actual_size; /* returned */
-			int     timeout;
+			int     polling_interval; /* for interrupt transfers */
 		} transfer;
 
 		struct
@@ -76,7 +79,7 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 		};
 	};
 
-	enum Error { NO_ERROR, STALL_ERROR };
+	enum Error { NO_ERROR, STALL_ERROR, SUBMIT_ERROR };
 
 	Error error = NO_ERROR;
 

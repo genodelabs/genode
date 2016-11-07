@@ -1,6 +1,7 @@
 /*
  * \brief  LAN9118 NIC driver
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2011-05-19
  *
  * Note, this driver is only tested on Qemu. At the current stage, it is not
@@ -8,17 +9,17 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/sleep.h>
-#include <cap_session/connection.h>
+#include <base/component.h>
+#include <base/env.h>
+#include <base/heap.h>
 #include <nic/component.h>
-#include <os/server.h>
 #include <root/component.h>
 
 /* device definitions */
@@ -27,13 +28,11 @@
 /* driver code */
 #include <lan9118.h>
 
-namespace Server { struct Main; }
-
 class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Env &_env;
 
 	protected:
 
@@ -56,49 +55,33 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				error("insufficient 'ram_quota', got ", ram_quota, ", "
+				      "need ", tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
 
 			return new (Root::md_alloc())
 			            Lan9118(LAN9118_PHYS, LAN9118_SIZE, LAN9118_IRQ,
-			            tx_buf_size, rx_buf_size,
-			            *env()->heap(),
-			            *env()->ram_session(),
-			            _ep);
+			            tx_buf_size, rx_buf_size, *md_alloc(), _env);
 		}
 
 	public:
 
-		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
-		: Genode::Root_component<Lan9118, Genode::Single_client>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep)
-		{ }
+		Root(Genode::Env &env, Genode::Allocator &md_alloc)
+		: Genode::Root_component<Lan9118,
+		                         Genode::Single_client>(env.ep(), md_alloc),
+		  _env(env) { }
 };
 
-struct Server::Main
+
+Genode::size_t Component::stack_size() { return 2*1024*sizeof(long); }
+
+
+void Component::construct(Genode::Env &env)
 {
-	Entrypoint &ep;
-	::Root      nic_root{ ep, *Genode::env()->heap() };
-
-	Main(Entrypoint &ep) : ep(ep)
-	{
-		printf("--- LAN9118 NIC driver started ---\n");
-		Genode::env()->parent()->announce(ep.manage(nic_root));
-	}
-};
-
-
-namespace Server {
-
-	char const *name() { return "nic_ep"; }
-
-	size_t stack_size() { return 2*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Main main(ep);
-	}
+	static Genode::Heap heap(env.ram(), env.rm());
+	static Root         nic_root(env, heap);
+	Genode::log("--- LAN9118 NIC driver started ---");
+	env.parent().announce(env.ep().manage(nic_root));
 }
 

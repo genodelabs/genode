@@ -32,6 +32,7 @@ trap_exit() {
 	fi
 
 	[ -d "$RUMP_TMP" ] && rm -rf $RUMP_TMP
+	pkill -P $$
 }
 
 

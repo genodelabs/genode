@@ -16,14 +16,18 @@
 #ifndef _PLATFORM_H_
 #define _PLATFORM_H_
 
-#include <base/printf.h>
-#include <os/config.h>
+#include <base/log.h>
 #include <util/xml_node.h>
 #include <os/signal_rpc_dispatcher.h>
 #include <irq_session/capability.h>
 
+#include <lx_kit/env.h>
+
 struct Services
 {
+
+	Genode::Env &env;
+
 	/* USB profiles */
 	bool hid  = false;
 	bool stor = false;
@@ -46,77 +50,75 @@ struct Services
 	/* report generation */
 	bool raw_report_device_list = false;
 
-	Services()
+	Services(Genode::Env &env) : env(env)
 	{
 		using namespace Genode;
 
+		Genode::Xml_node config_node = Lx_kit::env().config_rom().xml();
 		try {
-			Genode::Xml_node node_hid = config()->xml_node().sub_node("hid");
+			Genode::Xml_node node_hid = config_node.sub_node("hid");
 			hid = true;
 
 			try {
 				Genode::Xml_node node_screen = node_hid.sub_node("touchscreen");
 				node_screen.attribute("width").value(&screen_width);
 				node_screen.attribute("height").value(&screen_height);
-				multitouch = node_screen.attribute("multitouch").has_value("yes");
+				multitouch = node_screen.attribute_value("multitouch", false);
 			} catch (...) {
 				screen_width = screen_height = 0;
-				PDBG("Could not read screen resolution in config node");
+				log("Could not read screen resolution in config node");
 			}
+
+			log("Configured HID screen with ", screen_width, "x", screen_height,
+			    " (multitouch=", multitouch ? "true" : "false", ")");
 		} catch (Xml_node::Nonexistent_sub_node) {
-			PDBG("No <hid> config node found - not starting the USB HID (Input) service");
+			log("No <hid> config node found - not starting the USB HID (Input) service");
 		}
 	
 		try {
-			config()->xml_node().sub_node("storage");
+			config_node.sub_node("storage");
 			stor = true;
 		} catch (Xml_node::Nonexistent_sub_node) {
-			PDBG("No <storage> config node found - not starting the USB Storage (Block) service");
+			log("No <storage> config node found - not starting the USB Storage (Block) service");
 		}
 	
 		try {
-			config()->xml_node().sub_node("nic");
+			config_node.sub_node("nic");
 			nic = true;
 		} catch (Xml_node::Nonexistent_sub_node) {
-			PDBG("No <nic> config node found - not starting the USB Nic (Network) service");
+			log("No <nic> config node found - not starting the USB Nic (Network) service");
 		}
 
 		try {
-			Genode::Xml_node node_raw = config()->xml_node().sub_node("raw");
+			Genode::Xml_node node_raw = config_node.sub_node("raw");
 			raw = true;
 
 			try {
 				Genode::Xml_node node_report = node_raw.sub_node("report");
-				raw_report_device_list = node_report.attribute("devices").has_value("yes");
+				raw_report_device_list = node_report.attribute_value("devices", false);
 			} catch (...) { }
 		} catch (Xml_node::Nonexistent_sub_node) {
-			PDBG("No <raw> config node found - not starting external USB service");
+			log("No <raw> config node found - not starting external USB service");
 		}
 
-		try {
-			if (!config()->xml_node().attribute("uhci").has_value("yes"))
-				throw -1;
+		if (config_node.attribute_value("uhci", false)) {
 			uhci = true;
-			PINF("Enabled UHCI (USB 1.0/1.1) support");
-		} catch (...) { }
+			log("Enabled UHCI (USB 1.0/1.1) support");
+		}
 
-		try {
-			if (!config()->xml_node().attribute("ehci").has_value("yes"))
-				throw -1;
+		if (config_node.attribute_value("ehci", false)) {
 			ehci = true;
-			PINF("Enabled EHCI (USB 2.0) support");
-		} catch (...) { }
+			log("Enabled EHCI (USB 2.0) support");
+		}
 
-		try {
-			if (!config()->xml_node().attribute("xhci").has_value("yes"))
-				throw -1;
+		if (config_node.attribute_value("xhci", false)) {
 			xhci = true;
-			PINF("Enabled XHCI (USB 3.0) support");
-		} catch (...) { }
+			log("Enabled XHCI (USB 3.0) support");
+		}
 
 		if (!(uhci | ehci | xhci))
-			PWRN("Warning: No USB controllers enabled.\n"
-			     "Use <config (u/e/x)hci=\"yes\"> in your 'usb_drv' configuration");
+			warning("Warning: No USB controllers enabled.\n"
+			        "Use <config (u/e/x)hci=\"yes\"> in your 'usb_drv' configuration");
 	}
 };
 

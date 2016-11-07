@@ -311,6 +311,8 @@ foreach platform $platforms {
 
 		exec echo "RUN_OPT=--include boot_dir/$kernel $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
 	}
+
+	exec echo "RUN_OPT += --autopilot" >> $build_conf
 }
 
 

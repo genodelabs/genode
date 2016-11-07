@@ -16,22 +16,21 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <base/sleep.h>
+#include <base/heap.h>
 #include <root/component.h>
-#include <cap_session/connection.h>
 #include <audio_out_session/rpc_object.h>
 #include <util/misc_math.h>
-#include <os/config.h>
-#include <os/server.h>
 #include <timer_session/connection.h>
 
 /* local includes */
-#include "alsa.h"
+#include <alsa.h>
+
 
 using namespace Genode;
-
-static const bool verbose = false;
 
 enum Channel_number { LEFT, RIGHT, MAX_CHANNELS, INVALID = MAX_CHANNELS };
 
@@ -42,6 +41,8 @@ namespace Audio_out
 	class  Out;
 	class  Root;
 	struct Root_policy;
+	struct Main;
+
 	static Session_component *channel_acquired[MAX_CHANNELS];
 };
 
@@ -50,7 +51,7 @@ class Audio_out::Session_component : public Audio_out::Session_rpc_object
 {
 	private:
 
-		Channel_number           _channel;
+		Channel_number _channel;
 
 	public:
 
@@ -98,11 +99,11 @@ class Audio_out::Out
 {
 	private:
 
-		Server::Entrypoint                        &_ep;
-		Genode::Signal_rpc_member<Audio_out::Out>  _data_avail_dispatcher;
-		Genode::Signal_rpc_member<Audio_out::Out>  _timer_dispatcher;
+		Genode::Env                            &_env;
+		Genode::Signal_handler<Audio_out::Out>  _data_avail_dispatcher;
+		Genode::Signal_handler<Audio_out::Out>  _timer_dispatcher;
 
-		Timer::Connection _timer;
+		Timer::Connection _timer { _env };
 
 		bool _active() {
 			return  channel_acquired[LEFT] && channel_acquired[RIGHT] &&
@@ -154,15 +155,12 @@ class Audio_out::Out
 				p_left->invalidate();
 				p_right->invalidate();
 
-				if (verbose)
-					PDBG("play packet");
-
 				/* blocking-write packet to ALSA */
-				while (int err = audio_drv_play(data, PERIOD)) {
-					if (verbose) PERR("Error %d during playback", err);
-						audio_drv_stop();
-						audio_drv_start();
-					}
+				while (audio_drv_play(data, PERIOD)) {
+					/* try to restart the driver silently */
+					audio_drv_stop();
+					audio_drv_start();
+				}
 
 				p_left->mark_as_played();
 				p_right->mark_as_played();
@@ -173,20 +171,20 @@ class Audio_out::Out
 			return true;
 		}
 
-		void _handle_data_avail(unsigned num) { }
+		void _handle_data_avail() { }
 
-		void _handle_timer(unsigned)
+		void _handle_timer()
 		{
 			if (_active()) _play_packet();
 		}
 
 	public:
 
-		Out(Server::Entrypoint &ep)
+		Out(Genode::Env &env)
 		:
-			_ep(ep),
-			_data_avail_dispatcher(ep, *this, &Audio_out::Out::_handle_data_avail),
-			_timer_dispatcher(ep, *this, &Audio_out::Out::_handle_timer)
+			_env(env),
+			_data_avail_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_data_avail),
+			_timer_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_timer)
 		{
 			_timer.sigh(_timer_dispatcher);
 
@@ -212,8 +210,8 @@ struct Audio_out::Root_policy
 
 		if ((ram_quota < session_size) ||
 		    (sizeof(Stream) > ram_quota - session_size)) {
-			PERR("insufficient 'ram_quota', got %zd, need %zd",
-			     ram_quota, sizeof(Stream) + session_size);
+			Genode::error("insufficient 'ram_quota', got ", ram_quota,
+			              " need ", sizeof(Stream) + session_size);
 			throw ::Root::Quota_exceeded();
 		}
 
@@ -260,50 +258,54 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	public:
 
-		Root(Server::Entrypoint &ep, Allocator *md_alloc,
+		Root(Genode::Entrypoint &ep, Allocator *md_alloc,
 		     Signal_context_capability data_cap)
 		: Root_component(&ep.rpc_ep(), md_alloc), _data_cap(data_cap)
 		{ }
 };
 
 
-struct Main
+struct Audio_out::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env  &env;
+	Genode::Heap  heap { env.ram(), env.rm() };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Genode::Attached_rom_dataspace config { env, "config" };
+
+	Main(Genode::Env &env) : env(env)
 	{
 		char dev[32] = { 'h', 'w', 0 };
 		try {
-			Genode::Xml_node config = Genode::config()->xml_node();
-			config.attribute("alsa_device").value(dev, sizeof(dev));
+			config.xml().attribute("alsa_device").value(dev, sizeof(dev));
 		} catch (...) { }
 
 		/* init ALSA */
 		int err = audio_drv_init(dev);
 		if (err) {
-			if (err == -1) PERR("Could not open ALSA device '%s'.", dev);
-			else           PERR("Could not initialize driver, error: %d", err);
+			if (err == -1) {
+				Genode::error("could not open ALSA device ", Genode::Cstring(dev));
+			} else {
+				Genode::error("could not initialize driver error ", err);
+			}
 
 			throw -1;
 		}
 		audio_drv_start();
 
-		static Audio_out::Out  out(ep);
-		static Audio_out::Root root(ep, Genode::env()->heap(),
+		static Audio_out::Out  out(env);
+		static Audio_out::Root root(env.ep(), &heap,
 		                            out.data_avail_sigh());
-		env()->parent()->announce(ep.manage(root));
-		PINF("--- start Audio_out ALSA driver ---");
+		env.parent().announce(env.ep().manage(root));
+		Genode::log("--- start Audio_out ALSA driver ---");
 	}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()                    { return "audio_drv_ep";        }
-	size_t      stack_size()              { return 2*1024*sizeof(addr_t); }
-	void        construct(Entrypoint &ep) { static Main main(ep);         }
+namespace Component {
+	Genode::size_t stack_size()      { return 2*1024*sizeof(addr_t);     }
+	void construct(Genode::Env &env) { static Audio_out::Main main(env); }
 }

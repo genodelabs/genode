@@ -15,9 +15,9 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
+#include <base/heap.h>
 #include <base/sleep.h>
-#include <cap_session/connection.h>
 #include <gpio/component.h>
 #include <gpio/config.h>
 #include <os/server.h>
@@ -42,7 +42,7 @@ struct Main
 	{
 		using namespace Genode;
 
-		printf("--- i.MX53 gpio driver ---\n");
+		log("--- i.MX53 gpio driver ---");
 
 		Gpio::process_config(driver);
 

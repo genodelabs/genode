@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 #include <fuse.h>
@@ -44,17 +44,17 @@ char volname[]   = "ext2_volume";
 
 bool Fuse::init_fs(void)
 {
-	PLOG("libc_fuse_ext2: try to mount /dev/blkdev...");
+	Genode::log("libc_fuse_ext2: try to mount /dev/blkdev...");
 
 	int err = ext2fs_open("/dev/blkdev",  EXT2_FLAG_RW, 0, 0, unix_io_manager, &e2fs);
 	if (err) {
-		PERR("libc_fuse_ext2: could not mount /dev/blkdev, error: %d", err);
+		Genode::error("libc_fuse_ext2: could not mount /dev/blkdev, error: ", err);
 		return false;
 	}
 
 	errcode_t rc = ext2fs_read_bitmaps(e2fs);
 	if (rc) {
-		PERR("libc_fuse_ext2: error while reading bitmaps");
+		Genode::error("libc_fuse_ext2: error while reading bitmaps");
 		ext2fs_close(e2fs);
 		return false;
 	}
@@ -74,7 +74,7 @@ bool Fuse::init_fs(void)
 
 	fh = fuse_new(fc, NULL, &ext2fs_ops, sizeof (ext2fs_ops), &extfs_data);
 	if (fh == 0) {
-		PERR("libc_fuse_ext2: fuse_new() failed");
+		Genode::error("libc_fuse_ext2: fuse_new() failed");
 		return false;
 	}
 
@@ -84,7 +84,7 @@ bool Fuse::init_fs(void)
 
 void Fuse::deinit_fs(void)
 {
-	PLOG("libc_fuse_ext2: unmount /dev/blkdev...");
+	Genode::log("libc_fuse_ext2: unmount /dev/blkdev...");
 	ext2fs_close(e2fs);
 
 	free(fh);
@@ -93,7 +93,7 @@ void Fuse::deinit_fs(void)
 
 void Fuse::sync_fs(void)
 {
-	PLOG("libc_fuse_ext2: sync file system...");
+	Genode::log("libc_fuse_ext2: sync file system...");
 	ext2fs_flush(e2fs);
 }
 

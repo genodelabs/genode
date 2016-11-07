@@ -1,5 +1,5 @@
 /*
- * \brief  Linux kit memory allocator
+ * \brief  Linux kit printf backend
  * \author Sebastian Sumpf
  * \date   2016-04-20
  */
@@ -11,24 +11,22 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/console.h>
-#include <base/printf.h>
-
 /* local includes */
 #include <lx_emul.h>
 
 
-namespace Lx { class Console; }
+namespace Lx {
+	class Console;
+	class Format_command;
+}
 
 extern "C" int stdout_write(const char *s);
 
-static const bool verbose_console = false;
 
 /**
  * Format string command representation
  */
-class Format_command
+class Lx::Format_command
 {
 	public:
 
@@ -300,7 +298,6 @@ class Lx::Console
 
 		void vprintf(const char *format, va_list list)
 		{
-		
 			while (*format) {
 
 				/* eat and output plain characters */
@@ -345,7 +342,7 @@ class Lx::Console
 				switch (cmd.type) {
 
 					case Format_command::INT:
-		
+
 						if (cmd.length == Format_command::LONG_LONG)
 							_out_signed<long long>(numeric_arg, cmd.base);
 						else
@@ -432,8 +429,6 @@ class Lx::Console
 
 void lx_printf(char const *fmt, ...)
 {
-	if (verbose_console)
-		PDBG("[%p] %s", __builtin_return_address(0), fmt);
 	va_list va;
 	va_start(va, fmt);
 	Lx::Console::c().vprintf(fmt, va);

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
+#include <base/heap.h>
 #include <root/component.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
@@ -94,7 +95,7 @@ namespace File_system {
 
 					_process_packet_op(packet, *node);
 				}
-				catch (Invalid_handle)     { PERR("Invalid_handle");     }
+				catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
 
 				/*
 				 * The 'acknowledge_packet' function cannot block because we
@@ -136,7 +137,7 @@ namespace File_system {
 			static void _assert_valid_path(char const *path)
 			{
 				if (!path || path[0] != '/') {
-					PWRN("malformed path '%s'", path);
+					Genode::warning("malformed path ''", path, "'");
 					throw Lookup_failed();
 				}
 			}
@@ -433,7 +434,7 @@ namespace File_system {
 				char root[ROOT_MAX_LEN];
 				root[0] = 0;
 
-				Session_label  label(args);
+				Session_label const label = label_from_args(args);
 				try {
 					Session_policy policy(label);
 
@@ -459,22 +460,21 @@ namespace File_system {
 							session_root_dir->unlock();
 						}
 					} catch (Xml_node::Nonexistent_attribute) {
-						PERR("Missing \"root\" attribute in policy definition");
+						Genode::error("missing \"root\" attribute in policy definition");
 						throw Root::Unavailable();
 					} catch (Lookup_failed) {
-						PERR("Session root directory \"%s\" does not exist", root);
+						Genode::error("session root directory \"",
+						              Genode::Cstring(root), "\" does not exist");
 						throw Root::Unavailable();
 					}
 
 					/*
 					 * Determine if write access is permitted for the session.
 					 */
-					try {
-						writeable = policy.attribute("writeable").has_value("yes");
-					} catch (Xml_node::Nonexistent_attribute) { }
+					writeable = policy.attribute_value("writeable", false);
 
 				} catch (Session_policy::No_policy_defined) {
-					PERR("Invalid session request, no matching policy");
+					Genode::error("invalid session request, no matching policy");
 					throw Root::Unavailable();
 				}
 
@@ -484,7 +484,7 @@ namespace File_system {
 					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 				if (!tx_buf_size) {
-					PERR("%s requested a session with a zero length transmission buffer", label.string());
+					Genode::error(label, " requested a session with a zero length transmission buffer");
 					throw Root::Invalid_args();
 				}
 
@@ -494,8 +494,8 @@ namespace File_system {
 				 */
 				size_t session_size = sizeof(Session_component) + tx_buf_size;
 				if (max((size_t)4096, session_size) > ram_quota) {
-					PERR("insufficient 'ram_quota', got %zd, need %zd",
-					     ram_quota, session_size);
+					Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
+					              "need ", session_size);
 					throw Root::Quota_exceeded();
 				}
 				return new (md_alloc())
@@ -550,13 +550,16 @@ struct Attribute_string
 			} else {
 				char type_name[16];
 				node.type_name(type_name, sizeof(type_name));
-				PWRN("missing \"%s\" attribute in <%s> node", attr, type_name);
+				Genode::warning("missing \"", attr, "\" attribute in "
+				                "<", Genode::Cstring(type_name), "> node");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			}
 		}
 	}
 
 	operator char * () { return buf; }
+
+	void print(Genode::Output &out) const { Genode::print(out, Genode::Cstring(buf)); }
 };
 
 
@@ -604,9 +607,9 @@ static void preload_content(Genode::Allocator      &alloc,
 				dir.adopt_unsynchronized(file);
 			}
 			catch (Rom_connection::Rom_connection_failed) {
-				PWRN("failed to open ROM file \"%s\"", (char *)name); }
+				Genode::warning("failed to open ROM file \"", name, "\""); }
 			catch (Rm_session::Attach_failed) {
-				PWRN("Could not locally attach ROM file \"%s\"", (char *)name); }
+				Genode::warning("Could not locally attach ROM file \"", name, "\""); }
 		}
 
 		/*

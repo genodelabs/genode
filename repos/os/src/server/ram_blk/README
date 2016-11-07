@@ -1,6 +1,14 @@
-RAM loop device is an implementation of the block-session interface
-running as a client of a RAM session. It exports the requested ROM file as a
-block device, similiar to loop devices known in Linux. The example shows how
-to choose the right ROM file in its configuration and how to configure the exported block size.
+RAM block device is an implementation of the block-session interface
+running as a client of a RAM session. It either populates the RAM dataspace
+by using a ROM dataspace, similiar to loop devices. For example to use
+an ISO file the component has to be configured as follows:
 
 ! <config file="image.iso" block_size="2048"/>
+
+To use a empty RAM dataspace that is 256MiB large and has a block size
+of 4KiB the configuration looks like this:
+
+! <config size="256M" block_size="4096"/>
+
+Either 'size' or 'file' has to specified. If both are declared the 'file'
+attribute is soley evaluated.

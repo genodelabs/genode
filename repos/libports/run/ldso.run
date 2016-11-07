@@ -74,13 +74,13 @@ compare_output_to {
 [init -> test-ldso] lib_1_local_3 12345676
 [init -> test-ldso] lib_1_pod_1 8070604d
 [init -> test-ldso] Libc::read:
-[init -> test-ldso] no plugin found for read(0)
+[init -> test-ldso] Error: no plugin found for read(0)
 [init -> test-ldso] Libc::abs(-10): 10
 [init -> test-ldso] 
 [init -> test-ldso] Catch exceptions in program
 [init -> test-ldso] ---------------------------
 [init -> test-ldso] exception in remote procedure call:
-[init -> test-ldso] Could not open ROM session for module "unknown_file"
+[init -> test-ldso] Error: Could not open ROM session for "unknown_file"
 [init -> test-ldso] caught
 [init -> test-ldso] exception in program: caught
 [init -> test-ldso] exception in shared lib: caught

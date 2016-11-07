@@ -11,47 +11,56 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+/* Genode includes */
+#include <base/log.h>
 #include <base/sleep.h>
 
 extern "C" {
 	typedef long DUMMY;
 
 enum {
-	SHOW_DUMMY = 1,
+	SHOW_DUMMY = 0,
 	SHOW_SKIP  = 0,
 	SHOW_RET   = 0,
 };
 
 #define DUMMY(retval, name) \
 	DUMMY name(void) { \
-	if (SHOW_DUMMY) \
-		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
-	return retval; \
-}
+		if (SHOW_DUMMY) \
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "not implemented"); \
+		return retval; \
+	}
 
 #define DUMMY_SKIP(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_SKIP) \
-			PLOG( #name " called (from %p) skipped", __builtin_return_address(0)); \
-	return retval; \
-}
-
-#define DUMMY_STOP(retval, name) \
-	DUMMY name(void) { \
-		do { \
-			PWRN( #name " called (from %p) stopped", __builtin_return_address(0)); \
-			Genode::sleep_forever(); \
-		} while (0); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "skipped"); \
+		return retval; \
+	}
 
 #define DUMMY_RET(retval, name) \
 	DUMMY name(void) { \
 		if (SHOW_RET) \
-			PWRN( #name " called (from %p) return %d", __builtin_return_address(0), retval); \
-	return retval; \
-}
+			Genode::log(__func__, ": " #name " called " \
+			            "(from ", __builtin_return_address(0), ") " \
+			            "return ", retval); \
+		return retval; \
+	}
+
+#define DUMMY_STOP(retval, name) \
+	DUMMY name(void) { \
+		do { \
+			Genode::warning(__func__, ": " #name " called " \
+			               "(from ", __builtin_return_address(0), ") " \
+			               "stopped"); \
+			Genode::sleep_forever(); \
+		} while (0); \
+		return retval; \
+	}
 
 /* return sucessful */
 DUMMY_RET(0, netdev_kobject_init)
@@ -209,7 +218,6 @@ DUMMY(0, ipv6_hdr)
 DUMMY(0, irqs_disabled)
 DUMMY(0, isalpha)
 DUMMY(0, jhash_2words)
-DUMMY(0, kmem_cache_destroy)
 DUMMY(0, kobject_uevent)
 DUMMY(0, kobject_uevent_env)
 DUMMY(0, kstrtoul)

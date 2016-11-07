@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/exception.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core-local includes */
 #include <sel4_boot_info.h>
@@ -65,19 +65,25 @@ class Genode::Initial_untyped_pool
 			{ }
 		};
 
-		Initial_untyped_pool()
+	private:
+
+		/**
+		 * Calculate free index after allocation
+		 */
+		addr_t _align_offset(Range &range, size_t size_log2)
 		{
-			size_t total_bytes = 0;
+			/*
+			 * The seL4 kernel naturally aligns allocations within untuped
+			 * memory ranges. So we have to apply the same policy to our
+			 * shadow version of the kernel's 'FreeIndex'.
+			 */
+			addr_t const aligned_free_offset = align_addr(range.free_offset,
+			                                              size_log2);
 
-			PINF("initial untyped pool:");
-			for_each_range([&] (Range const &range) {
-				total_bytes += range.size;
-				PINF("  [%u] phys=0x%lx size=0x%zx",
-				     range.sel, range.phys, range.size);
-			});
-
-			PINF("  total: %zd bytes", total_bytes);
+			return aligned_free_offset + (1 << size_log2);
 		}
+
+	public:
 
 		/**
 		 * Apply functor to each untyped memory range
@@ -119,41 +125,47 @@ class Genode::Initial_untyped_pool
 			 */
 			for_each_range([&] (Range &range) {
 
-				if (sel != UNKNOWN)
-					return;
-
-				/*
-				 * The seL4 kernel naturally aligns allocations within untuped
-				 * memory ranges. So we have to apply the same policy to our
-				 * shadow version of the kernel's 'FreeIndex'.
-				 */
-				addr_t const aligned_free_offset = align_addr(range.free_offset, size_log2);
-
 				/* calculate free index after allocation */
-				addr_t const new_free_offset = aligned_free_offset + (1 << size_log2);
+				addr_t const new_free_offset = _align_offset(range, size_log2);
 
 				/* check if allocation fits within current untyped memory range */
-				if (new_free_offset <= range.size) {
+				if (new_free_offset > range.size)
+					return;
 
-					/*
-					 * We found a matching range, consume 'size' and report the
-					 * selector. The returned selector is used by the caller
-					 * of 'alloc' to perform the actual kernel-object creation.
-					 */
-					range.free_offset = new_free_offset;
-
-					PDBG("alloc 0x%lx bytes from %u -> free index 0x%lx",
-					     1UL << size_log2, range.sel, range.free_offset);
-
-					/* return selector is matching range */
+				if (sel == UNKNOWN) {
 					sel = range.sel;
+					return;
 				}
+
+				/* check which range is smaller - take that */
+				addr_t const rest = range.size - new_free_offset;
+
+				Range best_fit(*this, sel);
+				addr_t const new_free_offset_best = _align_offset(best_fit, size_log2);
+				addr_t const rest_best = best_fit.size - new_free_offset_best;
+
+				if (rest_best >= rest)
+					/* current range fits better then best range */
+					sel = range.sel;
 			});
 
-			if (sel == UNKNOWN)
+			if (sel == UNKNOWN) {
+				warning("Initial_untyped_pool exhausted");
 				throw Initial_untyped_pool_exhausted();
+			}
 
-			return sel;
+			Range best_fit(*this, sel);
+			addr_t const new_free_offset = _align_offset(best_fit, size_log2);
+			ASSERT(new_free_offset <= best_fit.size);
+
+			/*
+			 * We found a matching range, consume 'size' and report the
+			 * selector. The returned selector is used by the caller
+			 * of 'alloc' to perform the actual kernel-object creation.
+			 */
+			best_fit.free_offset = new_free_offset;
+
+			return best_fit.sel;
 		}
 
 		/**
@@ -191,7 +203,7 @@ class Genode::Initial_untyped_pool
 					seL4_Untyped const service     = range.sel;
 					int          const type        = seL4_UntypedObject;
 					int          const size_bits   = get_page_size_log2();
-					seL4_CNode   const root        = Core_cspace::TOP_CNODE_SEL;
+					seL4_CNode   const root        = Core_cspace::top_cnode_sel();
 					int          const node_index  = Core_cspace::TOP_CNODE_UNTYPED_IDX;
 					int          const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
 					int          const node_offset = phys_addr >> get_page_size_log2();
@@ -207,8 +219,8 @@ class Genode::Initial_untyped_pool
 					                                    num_objects);
 
 					if (ret != 0) {
-						PERR("%s: seL4_Untyped_Retype (untyped) returned %d",
-						     __FUNCTION__, ret);
+						error(__func__, ": seL4_Untyped_Retype (untyped) "
+						      "returned ", ret);
 						return;
 					}
 				}

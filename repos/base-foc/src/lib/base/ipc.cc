@@ -26,11 +26,13 @@
 #include <base/ipc.h>
 #include <base/ipc_msgbuf.h>
 #include <base/thread.h>
-#include <util/assert.h>
 
 /* base-internal includes */
 #include <base/internal/lock_helper.h> /* for 'thread_get_my_native_id()' */
 #include <base/internal/ipc_server.h>
+#include <base/internal/native_utcb.h>
+#include <base/internal/cap_map.h>
+#include <base/internal/foc_assert.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
@@ -167,8 +169,8 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	 */
 	for (unsigned i = 0; i < num_caps; i++) {
 		if (caps[i].valid) {
-			rcv_msg.insert(Native_capability(cap_map()->insert_map(caps[i].badge,
-			                                                       caps[i].sel)));
+			rcv_msg.insert(Native_capability(*cap_map()->insert_map(caps[i].badge,
+			                                                        caps[i].sel)));
 		} else {
 			rcv_msg.insert(Native_capability());
 		}
@@ -199,7 +201,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 		if (!cap.valid())
 			continue;
 
-		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst())))
+		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.data()->kcap())))
 			cap = Native_capability();
 	}
 
@@ -216,7 +218,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 		if (cap.valid()) {
 			caps[i].valid = true;
 			caps[i].badge = cap.local_name();
-			caps[i].sel   = cap.dst();
+			caps[i].sel   = cap.data()->kcap();
 		}
 	}
 
@@ -284,8 +286,11 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		rcv_cap_sel += L4_CAP_SIZE;
 	}
 
+	if (!dst.valid())
+		throw Genode::Ipc_error();
+
 	l4_msgtag_t const reply_tag =
-		l4_ipc_call(dst.dst(), l4_utcb(), call_tag, L4_IPC_NEVER);
+		l4_ipc_call(dst.data()->kcap(), l4_utcb(), call_tag, L4_IPC_NEVER);
 
 	if (l4_ipc_error(reply_tag, l4_utcb()) == L4_IPC_RECANCELED)
 		throw Genode::Blocking_canceled();
@@ -369,10 +374,40 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 Ipc_server::Ipc_server()
 :
-	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
+	Native_capability(*(Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
 {
 	Thread::myself()->native_thread().rcv_window.init();
 }
 
 
 Ipc_server::~Ipc_server() { }
+
+
+/********************
+ ** Receive_window **
+ ********************/
+
+Receive_window::~Receive_window()
+{
+	if (_rcv_idx_base)
+		cap_idx_alloc()->free(_rcv_idx_base, MAX_CAPS_PER_MSG);
+}
+
+
+void Receive_window::init()
+{
+	_rcv_idx_base = cap_idx_alloc()->alloc_range(MAX_CAPS_PER_MSG);
+}
+
+
+addr_t Receive_window::rcv_cap_sel_base()
+{
+	return _rcv_idx_base->kcap();
+}
+
+
+addr_t Receive_window::rcv_cap_sel(unsigned i)
+{
+	return rcv_cap_sel_base() + i*Fiasco::L4_CAP_SIZE;
+}
+

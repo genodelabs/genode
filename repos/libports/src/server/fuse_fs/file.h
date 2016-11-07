@@ -51,7 +51,7 @@ class File_system::File : public Node
 						case 0:
 							break;
 						default:
-							PERR("could not create '%s'", path);
+							Genode::error("could not create '", path, "'");
 							throw Lookup_failed();
 					}
 

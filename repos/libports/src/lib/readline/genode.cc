@@ -13,7 +13,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 using namespace Genode;
@@ -31,7 +31,7 @@ char *UP = 0;
 extern "C" int tgetnum(char *s);
 int tgetnum(char *s)
 {
-	PDBG("tgetnum called with s=\"%s\"", s);
+	Genode::log(__func__, ": tgetnum called with s=\"", Genode::Cstring(s), "\"");
 
 	enum { SCREEN_WIDTH = 80, SCREEN_HEIGHT = 25 };
 	if (!strcmp(s, "co")) return SCREEN_WIDTH;
@@ -43,7 +43,7 @@ int tgetnum(char *s)
 extern "C" char *tgetstr(char *id, char **area);
 char *tgetstr(char *id, char **area)
 {
-	PDBG("not yet implemented");
+	Genode::log(__func__, " not yet implemented");
 	return 0;
 }
 
@@ -51,7 +51,7 @@ char *tgetstr(char *id, char **area)
 extern "C" int tputs(const char *str, int affcnt, int (*putc)(int));
 int tputs(const char *str, int affcnt, int (*putc)(int))
 {
-	PDBG("not yet implemented");
+	Genode::log(__func__, " not yet implemented");
 	return -1;
 }
 
@@ -59,7 +59,7 @@ int tputs(const char *str, int affcnt, int (*putc)(int))
 extern "C" int tgetent(char *bp, const char *name);
 int tgetent(char *bp, const char *name)
 {
-	PDBG("not yet implemented");
+	Genode::log(__func__, " not yet implemented");
 	return -1;
 }
 
@@ -67,7 +67,7 @@ int tgetent(char *bp, const char *name)
 extern "C" char *tgoto(const char *cap, int col, int row);
 char *tgoto(const char *cap, int col, int row)
 {
-	PDBG("not yet implemented");
+	Genode::log(__func__, " not yet implemented");
 	return 0;
 }
 
@@ -75,7 +75,7 @@ char *tgoto(const char *cap, int col, int row)
 extern "C" int tgetflag(char *id);
 int tgetflag(char *id)
 {
-	PDBG("not yet implemented");
+	Genode::log(__func__, " not yet implemented");
 	return -1;
 }
 

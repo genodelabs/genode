@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,7 +19,7 @@
 #include <ram_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/child.h>
 #include <os/session_policy.h>
 
@@ -47,8 +47,8 @@ namespace Init {
 	static void warn_insuff_quota(Genode::size_t const avail)
 	{
 		if (!config_verbose) { return; }
-		Genode::printf("Warning: Specified quota exceeds available quota.\n");
-		Genode::printf("         Proceeding with a quota of %zu.\n", avail);
+		Genode::log("Warning: Specified quota exceeds available quota.");
+		Genode::log("         Proceeding with a quota of ", avail, ".");
 	}
 
 	inline long read_priority(Genode::Xml_node start_node, long prio_levels)
@@ -70,8 +70,8 @@ namespace Init {
 			long new_prio = prio_levels ? prio_levels-1 : 0;
 			char name[Genode::Service::MAX_NAME_LEN];
 			start_node.attribute("name").value(name, sizeof(name));
-			PWRN("%s: invalid priority, upgrading from %ld to %ld",
-			     name, -priority, -new_prio);
+			Genode::warning(Genode::Cstring(name), ": invalid priority, upgrading "
+			                "from ", -priority, " to ", -new_prio);
 			return new_prio;
 		}
 
@@ -115,7 +115,7 @@ namespace Init {
 	 */
 	static inline Genode::size_t avail_slack_ram_quota()
 	{
-		Genode::size_t const preserve = 128*1024;
+		Genode::size_t const preserve = 148*1024;
 		Genode::size_t const avail    = Genode::env()->ram_session()->avail();
 
 		return avail > preserve ? avail - preserve : 0;
@@ -152,7 +152,7 @@ namespace Init {
 		if (Genode::strcmp(" -> ", label, 4) == 0)
 			return label + 4;
 
-		PWRN("cannot skip label prefix while processing <if-arg>");
+		Genode::warning("cannot skip label prefix while processing <if-arg>");
 		return label;
 	}
 
@@ -177,10 +177,8 @@ namespace Init {
 		if (!service_matches)
 			return false;
 
-		typedef Genode::String<128> Label;
-
-		Label const session_label =
-			Label(skip_label_prefix(child_name, Genode::Session_label(args).string()));
+		Genode::Session_label const session_label(skip_label_prefix(
+			child_name, Genode::label_from_args(args).string()));
 
 		return !Genode::Xml_node_label_score(service_node, session_label).conflict();
 	}
@@ -393,12 +391,13 @@ class Init::Child : Genode::Child_policy
 				try {
 					start_node.attribute("name").value(unique, sizeof(unique)); }
 				catch (Genode::Xml_node::Nonexistent_attribute) {
-					PWRN("Missing 'name' attribute in '<start>' entry.\n");
+					Genode::warning("missing 'name' attribute in '<start>' entry");
 					throw; }
 
 				/* check for a name confict with the other children */
 				if (!registry.unique(unique)) {
-					PERR("Child name \"%s\" is not unique", unique);
+					Genode::error("child name \"", Genode::Cstring(unique), "\" "
+					              "is not unique");
 					throw Child_name_is_not_unique();
 				}
 
@@ -431,7 +430,7 @@ class Init::Child : Genode::Child_policy
 						try {
 							if (rsc.attribute("name").has_value("RAM")) {
 								rsc.attribute("quantum").value(&ram_bytes);
-								constrain_phys = rsc.attribute("constrain_phys").has_value("yes");
+								constrain_phys = rsc.attribute_value("constrain_phys", false);
 							} else if (rsc.attribute("name").has_value("CPU")) {
 								rsc.attribute("quantum").value(&cpu_quota_pc); }
 						} catch (...) { }
@@ -563,7 +562,7 @@ class Init::Child : Genode::Child_policy
 			           affinity_space),
 			_entrypoint(&cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false,
 			            _resources.affinity.location()),
-			_binary_rom(_name.file, _name.file),
+			_binary_rom(_name.file),
 			_binary_rom_ds(_binary_rom.dataspace()),
 			_config(_resources.ram.cap(), start_node),
 			_server(_resources.ram.cap()),
@@ -584,13 +583,14 @@ class Init::Child : Genode::Child_policy
 			using namespace Genode;
 
 			if (_resources.ram_quota == 0)
-				PWRN("no valid RAM resource for child \"%s\"", _name.unique);
+				Genode::warning("no valid RAM resource for child "
+				                "\"", Genode::Cstring(_name.unique), "\"");
 
 			if (config_verbose) {
-				Genode::printf("child \"%s\"\n", _name.unique);
-				Genode::printf("  RAM quota:  %zu\n", _resources.ram_quota);
-				Genode::printf("  ELF binary: %s\n", _name.file);
-				Genode::printf("  priority:   %ld\n", _resources.priority);
+				Genode::log("child \"", Genode::Cstring(_name.unique), "\"");
+				Genode::log("  RAM quota:  ", _resources.ram_quota);
+				Genode::log("  ELF binary: ", Cstring(_name.file));
+				Genode::log("  priority:   ", _resources.priority);
 			}
 
 			/*
@@ -605,7 +605,7 @@ class Init::Child : Genode::Child_policy
 					service_node.attribute("name").value(name, sizeof(name));
 
 					if (config_verbose)
-						Genode::printf("  provides service %s\n", name);
+						Genode::log("  provides service ", Genode::Cstring(name));
 
 					child_services.insert(new (_child.heap())
 						Routed_service(name, &_server));
@@ -644,6 +644,8 @@ class Init::Child : Genode::Child_policy
 		                                         const char *args)
 		{
 			Genode::Service *service = 0;
+			using Genode::error;
+			using Genode::warning;
 
 			/* check for config file request */
 			if ((service = _config_policy.resolve_session_request(service_name, args)))
@@ -679,7 +681,8 @@ class Init::Child : Genode::Child_policy
 								return service;
 
 							if (!service_wildcard) {
-								PWRN("%s: service lookup for \"%s\" at parent failed", name(), service_name);
+								warning(name(), ": service lookup for "
+								        "\"", service_name, "\" at parent failed");
 								return 0;
 							}
 						}
@@ -691,7 +694,8 @@ class Init::Child : Genode::Child_policy
 
 							Genode::Server *server = _name_registry.lookup_server(server_name);
 							if (!server) {
-								PWRN("%s: invalid route to non-existing server \"%s\"", name(), server_name);
+								warning(name(), ": invalid route to non-existing "
+								        "server \"", Genode::Cstring(server_name), "\"");
 								return 0;
 							}
 
@@ -700,14 +704,16 @@ class Init::Child : Genode::Child_policy
 								return service;
 
 							if (!service_wildcard) {
-								PWRN("%s: lookup to child service \"%s\" failed", name(), service_name);
+								Genode::warning(name(), ": lookup to child "
+								                "service \"", service_name, "\" failed");
 								return 0;
 							}
 						}
 
 						if (target.has_type("any-child")) {
 							if (_child_services.is_ambiguous(service_name)) {
-								PERR("%s: ambiguous routes to service \"%s\"", name(), service_name);
+								error(name(), ": ambiguous routes to "
+								      "service \"", service_name, "\"");
 								return 0;
 							}
 							service = _child_services.find(service_name);
@@ -715,7 +721,8 @@ class Init::Child : Genode::Child_policy
 								return service;
 
 							if (!service_wildcard) {
-								PWRN("%s: lookup for service \"%s\" failed", name(), service_name);
+								warning(name(), ": lookup for service "
+								        "\"", service_name, "\" failed");
 								return 0;
 							}
 						}
@@ -725,7 +732,7 @@ class Init::Child : Genode::Child_policy
 					}
 				}
 			} catch (...) {
-				PWRN("%s: no route to service \"%s\"", name(), service_name);
+				warning(name(), ": no route to service \"", service_name, "\"");
 			}
 			return service;
 		}
@@ -771,13 +778,12 @@ class Init::Child : Genode::Child_policy
 		                      Genode::Server         *server)
 		{
 			if (config_verbose)
-				Genode::printf("child \"%s\" announces service \"%s\"\n",
-				               name(), service_name);
+				Genode::log("child \"", name(), "\" announces service \"", service_name, "\"");
 
 			Genode::Service *s = _child_services.find(service_name, &_server);
 			Routed_service *rs = dynamic_cast<Routed_service *>(s);
 			if (!s || !rs) {
-				PERR("%s: illegal announcement of service \"%s\"", name(), service_name);
+				Genode::error(name(), ": illegal announcement of service \"", service_name, "\"");
 				return false;
 			}
 
@@ -787,15 +793,14 @@ class Init::Child : Genode::Child_policy
 
 		void resource_request(Genode::Parent::Resource_args const &args)
 		{
-			Genode::printf("child \"%s\" requests resources: %s\n",
-			               name(), args.string());
+			Genode::log("child \"", name(), "\" requests resources: ", args.string());
 
 			Genode::size_t const requested_ram_quota =
 				Genode::Arg_string::find_arg(args.string(), "ram_quota")
 					.ulong_value(0);
 
 			if (avail_slack_ram_quota() < requested_ram_quota) {
-				PWRN("Cannot respond to resource request - out of memory");
+				Genode::warning("cannot respond to resource request - out of memory");
 				return;
 			}
 
@@ -817,7 +822,7 @@ class Init::Child : Genode::Child_policy
 		void exit(int exit_value) override
 		{
 			try {
-				if (_start_node.sub_node("exit").attribute("propagate").has_value("yes")) {
+				if (_start_node.sub_node("exit").attribute_value("propagate", false)) {
 					Genode::env()->parent()->exit(exit_value);
 					return;
 				}

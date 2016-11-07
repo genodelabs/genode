@@ -16,16 +16,16 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
-#include <base/native_types.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
 /* core-local includes */
 #include <kip.h>
+#include <print_l4_thread_id.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -42,7 +42,7 @@ namespace Genode {
 	inline void panic(const char *s)
 	{
 		using namespace Pistachio;
-		PDBG("Panic: %s", s);
+		raw("Panic: ", s);
 		L4_KDB_Enter("> panic <");
 	}
 
@@ -50,7 +50,7 @@ namespace Genode {
 	{
 		using namespace Pistachio;
 		if (!val) {
-			PERR("Assertion failed: %s", s);
+			error("Assertion failed: ", s);
 			L4_KDB_Enter("Assertion failed.");
 		}
 	}
@@ -105,18 +105,6 @@ namespace Genode {
 	inline addr_t round_page(addr_t addr)
 	{
 		return trunc_page(addr + get_page_size() - 1);
-	}
-
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long badge)
-	{
-		Pistachio::L4_ThreadId_t tid;
-		tid.raw = badge;
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx (raw %08lx))\n", msg,
-		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
-		       (void *)pf_addr, (void *)pf_ip,
-		       Pistachio::L4_GlobalId(tid).global.X.thread_no, tid.raw);
 	}
 
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t phys_addr) {

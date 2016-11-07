@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/lock.h>
+#include <base/heap.h>
 #include <base/snprintf.h>
 #include <base/rpc_server.h>
 #include <root/component.h>
@@ -295,7 +296,7 @@ class Log_session_component : public Genode::Rpc_object<Genode::Log_session>
 		Genode::size_t write(String const &log_text)
 		{
 			if (!log_text.valid_string()) {
-				PERR("corrupted string");
+				Genode::error("corrupted string");
 				return 0;
 			}
 
@@ -315,7 +316,7 @@ class Log_root_component : public Genode::Root_component<Log_session_component>
 
 		Log_session_component *_create_session(const char *args)
 		{
-			PINF("create log session (%s)", args);
+			Genode::log("create log session args: ", args);
 			char label_buf[Log_session_component::LABEL_LEN];
 
 			Genode::Arg label_arg = Genode::Arg_string::find_arg(args, "label");
@@ -386,7 +387,7 @@ int main(int argc, char **argv)
 	using namespace Genode;
 
 	/* make sure that we connect to LOG before providing this service by ourself */
-	printf("--- nitlog ---\n");
+	log("--- nitlog ---");
 
 	/* calculate size of log view in pixels */
 	int log_win_w = default_font.str_w(" ") * LOG_W + 2;

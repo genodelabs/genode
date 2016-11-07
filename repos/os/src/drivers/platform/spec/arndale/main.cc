@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <regulator/component.h>
@@ -54,7 +54,7 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	PINF("--- Arndale platform driver ---\n");
+	log("--- Arndale platform driver ---");
 
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, 4096, "arndale_plat_ep");

@@ -10,7 +10,7 @@ create_boot_directory
 
 install_config {
 <config>
-	<affinity-space width="3" height="2" />
+	<affinity-space width="3" height="2"/>
 	<parent-provides>
 		<service name="CPU"/>
 		<service name="IO_PORT"/>
@@ -36,7 +36,7 @@ install_config {
 		<resource name="RAM" quantum="1G"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<policy root="/" writeable="yes"/>
+			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
 </config>

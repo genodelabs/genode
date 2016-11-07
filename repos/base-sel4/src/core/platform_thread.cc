@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 /* core includes */
@@ -80,7 +80,8 @@ void Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_
  ** Utilities to support the Platform_thread interface **
  ********************************************************/
 
-static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel)
+static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
+                                   Cap_sel lock_sel)
 {
 	/* IPC buffer is one page */
 	size_t const page_rounded_size = get_page_size();
@@ -88,8 +89,8 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel)
 	/* allocate range in core's virtual address space */
 	void *virt_addr;
 	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
-		PERR("could not allocate virtual address range in core of size %zd\n",
-		     page_rounded_size);
+		error("could not allocate virtual address range in core of size ",
+		      page_rounded_size);
 		return;
 	}
 
@@ -99,6 +100,7 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel)
 	/* populate IPC buffer with thread information */
 	Native_utcb &utcb = *(Native_utcb *)virt_addr;
 	utcb.ep_sel = ep_sel.value();
+	utcb.lock_sel = lock_sel.value();
 
 	/* unmap IPC buffer from core */
 	unmap_local((addr_t)virt_addr, 1);
@@ -117,29 +119,27 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	ASSERT(_pd);
 	ASSERT(_pager);
 
-	/* allocate fault handler selector in the PD's CSpace */
-	_fault_handler_sel = _pd->alloc_sel();
-
 	/* pager endpoint in core */
 	Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
 
 	/* install page-fault handler endpoint selector to the PD's CSpace */
-	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), pager_sel,
-	                         _fault_handler_sel);
-
-	/* allocate endpoint selector in the PD's CSpace */
-	_ep_sel = _pd->alloc_sel();
+	_pd->cspace_cnode(_fault_handler_sel).copy(platform_specific()->core_cnode(),
+	                                           pager_sel, _fault_handler_sel);
 
 	/* install the thread's endpoint selector to the PD's CSpace */
-	_pd->cspace_cnode().copy(platform_specific()->core_cnode(), _info.ep_sel,
-	                         _ep_sel);
+	_pd->cspace_cnode(_ep_sel).copy(platform_specific()->core_cnode(),
+	                                _info.ep_sel, _ep_sel);
+
+	/* install the thread's notification object to the PD's CSpace */
+	_pd->cspace_cnode(_lock_sel).mint(platform_specific()->core_cnode(),
+	                                  _info.lock_sel, _lock_sel);
 
 	/*
 	 * Populate the thread's IPC buffer with initial information about the
 	 * thread. Once started, the thread picks up this information in the
 	 * 'Thread::_thread_bootstrap' method.
 	 */
-	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel);
+	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel, _lock_sel);
 
 	/* bind thread to PD and CSpace */
 	seL4_CapData_t const guard_cap_data =
@@ -148,7 +148,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	seL4_CapData_t const no_cap_data = { { 0 } };
 
 	int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(), _fault_handler_sel.value(),
-	                                  _pd->cspace_cnode().sel().value(), guard_cap_data,
+	                                  _pd->cspace_cnode_1st().sel().value(), guard_cap_data,
 	                                  _pd->page_directory_sel().value(), no_cap_data);
 	ASSERT(ret == 0);
 
@@ -159,33 +159,65 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 
 void Platform_thread::pause()
 {
-	PDBG("not implemented");
+	int const ret = seL4_TCB_Suspend(_info.tcb_sel.value());
+	if (ret != seL4_NoError)
+		error("pausing thread failed with ", ret);
 }
 
 
 void Platform_thread::resume()
 {
-	PDBG("not implemented");
+	int const ret = seL4_TCB_Resume(_info.tcb_sel.value());
+	if (ret != seL4_NoError)
+		error("pausing thread failed with ", ret);
 }
 
 
 void Platform_thread::state(Thread_state s)
 {
-	PDBG("not implemented");
+	warning(__PRETTY_FUNCTION__, " not implemented");
 	throw Cpu_thread::State_access_failed();
 }
 
 
 Thread_state Platform_thread::state()
 {
-	PDBG("not implemented");
-	throw Cpu_thread::State_access_failed();
+	seL4_TCB   const thread         = _info.tcb_sel.value();
+	seL4_Bool  const suspend_source = false;
+	seL4_Uint8 const arch_flags     = 0;
+	seL4_UserContext registers;
+	seL4_Word  const register_count = sizeof(registers) / sizeof(registers.eip);
+
+	int const ret = seL4_TCB_ReadRegisters(thread, suspend_source, arch_flags,
+	                                       register_count, &registers);
+	if (ret != seL4_NoError) {
+		error("reading thread state ", ret);
+		throw Cpu_thread::State_access_failed();
+	}
+
+	Thread_state state;
+	state.ip     = registers.eip;
+	state.sp     = registers.esp;
+	state.edi    = registers.edi;
+	state.esi    = registers.esi;
+	state.ebp    = registers.ebp;
+	state.ebx    = registers.ebx;
+	state.edx    = registers.edx;
+	state.ecx    = registers.ecx;
+	state.eax    = registers.eax;
+	state.gs     = registers.gs;
+	state.fs     = registers.fs;
+	state.eflags = registers.eflags;
+	state.trapno = 0; /* XXX detect/track if in exception and report here */
+	/* registers.tls_base unused */
+
+	return state;
 }
 
 
 void Platform_thread::cancel_blocking()
 {
-	PDBG("not implemented");
+	seL4_Signal(_info.lock_sel.value());
 }
 
 
@@ -217,7 +249,20 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 
 Platform_thread::~Platform_thread()
 {
-	PDBG("not completely implemented");
+	if (_pd) {
+		seL4_TCB_Suspend(_info.tcb_sel.value());
+		_pd->unbind_thread(this);
+	}
+
+	if (_pager) {
+		Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
+		seL4_CNode_Revoke(seL4_CapInitThreadCNode, pager_sel.value(), 32);
+	}
+
+	seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.lock_sel.value(), 32);
+	seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.ep_sel.value(), 32);
+
+	_info.destruct();
 
 	platform_thread_registry().remove(*this);
 	platform_specific()->core_sel_alloc().free(_pager_obj_sel);

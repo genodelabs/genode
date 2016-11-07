@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
@@ -20,6 +20,8 @@
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/native_utcb.h>
+#include <base/internal/globals.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -36,8 +38,6 @@ namespace Okl4 {
 
 using namespace Genode;
 
-
-static const bool verbose_boot_info = false;
 
 enum { MAX_BOOT_MODULES = 64 };
 enum { MAX_BOOT_MODULE_NAME_LEN = 32 };
@@ -61,7 +61,8 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 	return map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size) {
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
+                                        unsigned size) {
 	return unmap_local(virt_addr, size / get_page_size()); }
 
 
@@ -73,10 +74,6 @@ int Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
                           Okl4::uintptr_t phys_base, Okl4::uintptr_t phys_end,
                           const Okl4::bi_user_data_t *data)
 {
-	if (verbose_boot_info)
-		printf("init_mem: virt=[%08lx,%08lx), phys=[%08lx,%08lx)\n",
-		       virt_base, virt_end, phys_base, phys_end);
-
 	Platform *p = (Platform *)data->user_data;
 	p->_core_mem_alloc.phys_alloc()->add_range(phys_base, phys_end - phys_base + 1);
 	p->_core_mem_alloc.virt_alloc()->add_range(virt_base, virt_end - virt_base + 1);
@@ -87,10 +84,6 @@ int Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
 int Platform::bi_add_virt_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
                               Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
-	if (verbose_boot_info)
-		printf("add_virt_mem: pool=%d region=[0x%08lx,0x%08lx], %ld pages\n",
-		       pool, base, end, (end - base + 1)/4096);
-
 	/* prevent first page from being added to core memory */
 	if (base < get_page_size() || end < get_page_size())
 		return 0;
@@ -104,10 +97,6 @@ int Platform::bi_add_virt_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
                               Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
-	if (verbose_boot_info)
-		printf("add_phys_mem: pool=%d region=[0x%08lx,0x%08lx], %ld pages\n",
-		       pool, base, end, (end - base + 1)/4096);
-
 	if (pool == 2) {
 		Platform *p = (Platform *)data->user_data;
 		p->_core_mem_alloc.phys_alloc()->add_range(base, end - base + 1);
@@ -120,10 +109,6 @@ int Platform::bi_export_object(Okl4::bi_name_t pd, Okl4::bi_name_t obj,
                                Okl4::bi_export_type_t export_type, char *key,
                                Okl4::size_t key_len, const Okl4::bi_user_data_t * data)
 {
-	if (verbose_boot_info)
-		printf("export_object: pd=%d obj=%d type=%d key=\"%s\"\n",
-		       pd, obj, export_type, key);
-
 	/*
 	 * We walk the boot info only once and collect all memory section
 	 * objects. Each time we detect a memory section outside of roottask
@@ -137,7 +122,7 @@ int Platform::bi_export_object(Okl4::bi_name_t pd, Okl4::bi_name_t obj,
 		return 0;
 
 	if (num_boot_module_objects >= MAX_BOOT_MODULES) {
-		PERR("Maximum number of boot modules exceeded");
+		error("maximum number of boot modules exceeded");
 		return -1;
 	}
 
@@ -166,10 +151,6 @@ Okl4::bi_name_t Platform::bi_new_ms(Okl4::bi_name_t owner,
                                     Okl4::bi_name_t physpool, Okl4::bi_name_t virtpool,
                                     Okl4::bi_name_t zone, const Okl4::bi_user_data_t *data)
 {
-	if (verbose_boot_info)
-		printf("new_ms: owner=%d region=[%lx,%lx), flags=%lx, attr=%lx, physpool=%d, virtpool=%d, zone=%d\n",
-		       owner, base, base + size - 1, flags, attr, physpool, virtpool, zone);
-
 	/* reset module index (see comment in 'bi_export_object') */
 	if (owner == 0) num_boot_module_memsects = 0;
 
@@ -177,7 +158,7 @@ Okl4::bi_name_t Platform::bi_new_ms(Okl4::bi_name_t owner,
 	if (virtpool != 3) return 0;
 
 	if (num_boot_module_memsects >= MAX_BOOT_MODULES) {
-		PERR("Maximum number of boot modules exceeded");
+		error("maximum number of boot modules exceeded");
 		return -1;
 	}
 
@@ -235,8 +216,6 @@ Platform::Platform() :
 	 * the location of the boot modules.
 	 */
 
-	printf("parsing boot info at 0x%p...\n", (void *)boot_info_addr);
-
 	/*
 	 * Initialize callback function for parsing the boot-info
 	 *
@@ -279,19 +258,14 @@ Platform::Platform() :
 	_vm_start = 0x1000;
 	_vm_size  = 0xb0000000 - 0x1000;
 
-	/*
-	 * When dumping 'ram_alloc', there are several small blocks in addition
-	 * to the available free memory visible. These small blocks are used to
-	 * hold the meta data for the ROM modules as initialized by '_setup_rom'.
-	 */
-	if (verbose_boot_info) {
-		printf(":phys_alloc: ");   (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		printf(":virt_alloc: ");   (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		printf(":io_mem: ");       _io_mem_alloc()->dump_addr_tree();
-		printf(":io_port: ");      _io_port_alloc()->dump_addr_tree();
-		printf(":irq: ");          _irq_alloc()->dump_addr_tree();
-		printf(":rom_fs: ");       _rom_fs.print_fs();
-	}
+	init_log();
+
+	log(":phys_alloc: "); (*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+	log(":virt_alloc: "); (*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+	log(":io_mem: ");     _io_mem_alloc()->dump_addr_tree();
+	log(":io_port: ");    _io_port_alloc()->dump_addr_tree();
+	log(":irq: ");        _irq_alloc()->dump_addr_tree();
+	log(":rom_fs: ");     _rom_fs.print_fs();
 
 	/* setup task object for core task */
 	_core_pd = new(core_mem_alloc()) Platform_pd(true);

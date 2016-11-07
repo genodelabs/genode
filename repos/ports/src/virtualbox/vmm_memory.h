@@ -26,8 +26,9 @@
 #include <base/env.h>
 #include <base/lock.h>
 #include <util/list.h>
-#include <rm_session/connection.h>
-#include <region_map/client.h>
+
+/* Genode/Virtualbox includes */
+#include "mem_region.h"
 
 #define PAGE_SIZE BACKUP_PAGESIZE
 
@@ -37,77 +38,33 @@
 
 class Vmm_memory
 {
-	struct Region;
-
-	typedef Genode::Ram_session            Ram_session;
-	typedef Genode::Region_map             Region_map;
-	typedef Genode::size_t                 size_t;
-	typedef Genode::Lock                   Lock;
-	typedef Genode::List<Region>           Region_list;
+	typedef Genode::Ram_session      Ram_session;
+	typedef Genode::Region_map       Region_map;
+	typedef Genode::size_t           size_t;
+	typedef Genode::Lock             Lock;
+	typedef Genode::List<Mem_region> Mem_region_list;
 
 	private:
 
-		struct Region : public  Region_list::Element,
-		                private Genode::Rm_connection,
-		                public  Genode::Region_map_client
-		{
-			PPDMDEVINS           pDevIns;
-			unsigned const       iRegion;
-			RTGCPHYS             vm_phys; 
-			PFNPGMR3PHYSHANDLER  pfnHandlerR3;
-			void                *pvUserR3;
-			PGMPHYSHANDLERTYPE   enmType;
-
-			Genode::addr_t       _base;
-			Genode::size_t       _size;
-
-			Region(Ram_session &ram, size_t size, PPDMDEVINS pDevIns,
-			           unsigned iRegion, unsigned sub_rm_max_ds = 32 * 1024 * 1024)
-			:
-				Region_map_client(Rm_connection::create(size)),
-				pDevIns(pDevIns),
-				iRegion(iRegion),
-				vm_phys(0), pfnHandlerR3(0), pvUserR3(0),
-				_base(Genode::env()->rm_session()->attach(Region_map_client::dataspace())),
-				_size(size)
-			{
-				Genode::addr_t rest_size = _size;
-				Genode::addr_t map_size  = rest_size < sub_rm_max_ds ? rest_size : sub_rm_max_ds;
-
-				do {
-					Genode::Ram_dataspace_capability ds = Genode::env()->ram_session()->alloc(map_size);
-					attach_at(ds, _size - rest_size, map_size);
-
-					rest_size -= map_size;
-					map_size   = rest_size < sub_rm_max_ds ? rest_size : sub_rm_max_ds;
-				} while (rest_size);
- 			}
-
-			size_t size() { return _size; }
-
-			template <typename T>
-			T * local_addr() { return reinterpret_cast<T *>(_base); }
-		};
-
-		Lock        _lock;
-		Region_list _regions;
+		Lock            _lock;
+		Mem_region_list _regions;
 
 		/**
 		 * Backing store
 		 */
 		Genode::Ram_session &_ram;
 
-		Region *_lookup_unsynchronized(PPDMDEVINS pDevIns, unsigned iRegion)
+		Mem_region *_lookup_unsynchronized(PPDMDEVINS pDevIns, unsigned iRegion)
 		{
-			for (Region *r = _regions.first(); r; r = r->next())
+			for (Mem_region *r = _regions.first(); r; r = r->next())
 				if (r->pDevIns == pDevIns && r->iRegion == iRegion)
 					return r;
 			return 0;
 		}
 
-		Region *_lookup_unsynchronized(RTGCPHYS vm_phys, size_t size)
+		Mem_region *_lookup_unsynchronized(RTGCPHYS vm_phys, size_t size)
 		{
-			for (Region *r = _regions.first(); r; r = r->next())
+			for (Mem_region *r = _regions.first(); r; r = r->next())
 				if (r->vm_phys && r->vm_phys <= vm_phys
 				    && vm_phys - r->vm_phys < r->size()
 				    && r->size() - (vm_phys - r->vm_phys) >= size)
@@ -129,17 +86,19 @@ class Vmm_memory
 			Lock::Guard guard(_lock);
 
 			try {
-				Region *r = new (Genode::env()->heap())
-				                Region(_ram, cb, pDevIns, iRegion);
+				Mem_region *r = new (Genode::env()->heap())
+				                Mem_region(_ram, cb, pDevIns, iRegion);
 				_regions.insert(r);
 
 				return r->local_addr<void>();
 
 			} catch (Ram_session::Alloc_failed) {
-				PERR("Vmm_memory::alloc(0x%zx): RAM allocation failed", cb);
+				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
+				              "RAM allocation failed");
 				throw;
 			} catch (Region_map::Attach_failed) {
-				PERR("Vmm_memory::alloc(0x%zx): RM attach failed", cb);
+				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
+				              "RM attach failed");
 				throw;
 			}
 
@@ -162,7 +121,7 @@ class Vmm_memory
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(vm_phys, size);
+			Mem_region *r = _lookup_unsynchronized(vm_phys, size);
 
 			if (!r) return false;
 
@@ -180,7 +139,7 @@ class Vmm_memory
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(vm_phys, size);
+			Mem_region *r = _lookup_unsynchronized(vm_phys, size);
 
 			if (!r) return 0;
 
@@ -196,7 +155,7 @@ class Vmm_memory
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(vm_phys, size);
+			Mem_region *r = _lookup_unsynchronized(vm_phys, size);
 
 			if (!r)
 				return false;
@@ -212,7 +171,7 @@ class Vmm_memory
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(pDevIns, iRegion);
+			Mem_region *r = _lookup_unsynchronized(pDevIns, iRegion);
 
 			if (r) r->vm_phys = GCPhys;
 
@@ -223,7 +182,7 @@ class Vmm_memory
 		{
 			Lock::Guard guard(_lock);
 
-			Region *r = _lookup_unsynchronized(GCPhys, size);
+			Mem_region *r = _lookup_unsynchronized(GCPhys, size);
 			if (!r) return false;
 
 			bool result = revoke_from_vm(r);
@@ -237,7 +196,7 @@ class Vmm_memory
 		/**
 		 * Platform specific implemented.
 		 */
-		bool revoke_from_vm(Region *r);
+		bool revoke_from_vm(Mem_region *r);
 
 		/**
 		 * Revoke all memory (RAM or ROM) from VM
@@ -246,7 +205,7 @@ class Vmm_memory
 		{
 			Lock::Guard guard(_lock);
 
-			for (Region *r = _regions.first(); r; r = r->next())
+			for (Mem_region *r = _regions.first(); r; r = r->next())
 			{
 				bool ok = revoke_from_vm(r);
 				Assert(ok);

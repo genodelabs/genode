@@ -12,8 +12,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
-#include <os/server.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <platform_session/connection.h>
 
 /* local includes */
@@ -22,42 +22,39 @@
 
 struct Main
 {
-	Server::Entrypoint &ep;
-
-	Platform::Connection platform;
+	Genode::Env         &env;
+	Genode::Heap         heap { env.ram(), env.rm() };
+	Platform::Connection platform { env };
 
 	struct Factory : Block::Driver_factory
 	{
+		Genode::Entrypoint &ep;
+		Genode::Heap       &heap;
+
+		Factory(Genode::Entrypoint &ep, Genode::Heap &heap)
+		: ep(ep), heap(heap) { }
+
 		Block::Driver *create() {
-			return new (Genode::env()->heap()) Block::Sdhci_driver(false); }
+			return new (&heap) Block::Sdhci_driver(false); }
 
 		void destroy(Block::Driver *driver) {
-			Genode::destroy(Genode::env()->heap(),
-			                static_cast<Block::Sdhci_driver *>(driver)); }
-	} factory;
+			Genode::destroy(&heap,
+			                static_cast<Block::Sdhci_driver*>(driver)); }
+	} factory { env.ep(), heap };
 
-	Block::Root root;
+	Block::Root root { env.ep(), heap, factory  };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory)
+	Main(Genode::Env &env) : env(env)
 	{
-		Genode::printf("--- SD card driver ---\n");
+		Genode::log("--- SD card driver ---");
 
 		while (platform.power_state(Platform::Session::POWER_SDHCI) == 0)
 			platform.power_state(Platform::Session::POWER_SDHCI, true);
 
-		Genode::env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "sd_card_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
-
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main m(env);         }

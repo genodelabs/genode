@@ -13,20 +13,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/cap_map.h>
-#include <base/native_types.h>
-
-#include <util/assert.h>
-
 /* base-internal includes */
 #include <base/internal/spin_lock.h>
+#include <base/internal/cap_map.h>
+#include <base/internal/foc_assert.h>
 
 /* kernel includes */
-namespace Fiasco {
-#include <l4/sys/consts.h>
-#include <l4/sys/task.h>
-}
+#include <foc/capability_space.h>
 
 
 /***********************
@@ -50,7 +43,7 @@ Genode::Cap_index* Genode::Cap_index::find_by_id(Genode::uint16_t id)
 }
 
 
-Genode::addr_t Genode::Cap_index::kcap() {
+Genode::addr_t Genode::Cap_index::kcap() const {
 	return cap_idx_alloc()->idx_to_kcap(this); }
 
 
@@ -180,4 +173,29 @@ Genode::Capability_map* Genode::cap_map()
 {
 	static Genode::Capability_map map;
 	return &map;
+}
+
+
+/**********************
+ ** Capability_space **
+ **********************/
+
+Fiasco::l4_cap_idx_t Genode::Capability_space::alloc_kcap()
+{
+	return cap_idx_alloc()->alloc_range(1)->kcap();
+}
+
+
+void Genode::Capability_space::free_kcap(Fiasco::l4_cap_idx_t kcap)
+{
+	Genode::Cap_index* idx = Genode::cap_idx_alloc()->kcap_to_idx(kcap);
+	Genode::cap_idx_alloc()->free(idx, 1);
+}
+
+
+Fiasco::l4_cap_idx_t Genode::Capability_space::kcap(Native_capability cap)
+{
+	if (cap.data() == nullptr)
+		Genode::raw("Native_capability data is NULL!");
+	return cap.data()->kcap();
 }

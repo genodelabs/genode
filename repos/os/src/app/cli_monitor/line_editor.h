@@ -375,7 +375,7 @@ class Line_editor
 		void _move_cursor_to(unsigned pos)
 		{
 			char seq[10];
-			snprintf(seq, sizeof(seq), "\e[%zdG", pos + _prompt_len);
+			snprintf(seq, sizeof(seq), "\e[%ldG", pos + _prompt_len);
 			_write(seq);
 		}
 

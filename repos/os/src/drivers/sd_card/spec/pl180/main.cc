@@ -12,9 +12,9 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <block/component.h>
-#include <os/server.h>
 
 /* local includes */
 #include <pl180_defs.h>
@@ -24,12 +24,18 @@
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
+	Genode::Heap heap { env.ram(), env.rm() };
 
 	struct Factory : Block::Driver_factory
 	{
-		Block::Driver *create()
-		{
+		Genode::Entrypoint &ep;
+		Genode::Heap       &heap;
+
+		Factory(Genode::Entrypoint &ep, Genode::Heap &heap)
+		: ep(ep), heap(heap) { }
+
+		Block::Driver *create() {
 			Pl180   *pl180   = new (Genode::env()->heap())
 			                   Pl180(PL180_PHYS, PL180_SIZE);
 			Sd_card *sd_card = new (Genode::env()->heap())
@@ -46,26 +52,17 @@ struct Main
 			Genode::destroy(Genode::env()->heap(), sd_card);
 			Genode::destroy(Genode::env()->heap(), pl180);
 		}
-	} factory;
+	} factory { env.ep(), heap };
 
-	Block::Root root;
+	Block::Root root { env.ep(), heap, factory  };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep, Genode::env()->heap(), factory)
+	Main(Genode::Env &env) : env(env)
 	{
-		Genode::printf("--- PL180 MMC/SD card driver started ---\n");
+		Genode::log("--- PL180 MMC/SD card driver started ---");
 
-		Genode::env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
-
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "sd_card_ep";        }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}
+Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main m(env);         }

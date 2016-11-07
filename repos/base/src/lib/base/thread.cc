@@ -190,6 +190,14 @@ void *Thread::stack_base() const { return (void*)_stack->base(); }
 void Thread::stack_size(size_t const size) { _stack->size(size); }
 
 
+Thread::Stack_info Thread::mystack()
+{
+	addr_t base = Stack_allocator::addr_to_base(&base);
+	Stack *stack = Stack_allocator::base_to_stack(base);
+	return { stack->base(), stack->top() };
+}
+
+
 size_t Thread::stack_virtual_size()
 {
 	return Genode::stack_virtual_size();
@@ -247,8 +255,8 @@ Thread::Thread(Env &env, Name const &name, size_t stack_size)
 Thread::~Thread()
 {
 	if (Thread::myself() == this) {
-		PERR("thread '%s' tried to self de-struct - sleeping forever.",
-		     _stack->name().string());
+		error("thread '", _stack->name().string(), "' "
+		      "tried to self de-struct - sleeping forever.");
 		sleep_forever();
 	}
 

@@ -7,7 +7,7 @@
 #
 # Build
 #
-build { core init drivers/timer test/blk lib/trace/policy/rpc_name }
+build { core init drivers/timer test/blk }
 create_boot_directory
 
 #
@@ -46,7 +46,7 @@ install_config {
 #
 # Boot modules
 #
-build_boot_image { core init timer test-blk-srv test-blk-cli rpc_name }
+build_boot_image { core init timer test-blk-srv test-blk-cli }
 
 append qemu_args " -nographic -m 64 "
 run_genode_until "Tests finished successfully.*\n" 100

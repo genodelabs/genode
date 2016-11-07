@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/env.h>
 #include <base/sleep.h>
@@ -63,19 +63,17 @@ namespace Test {
 	 * Session implementation
 	 */
 	void Component::test_untyped(unsigned value) {
-		Genode::printf("function %s: got value %u\n", __FUNCTION__, value);
+		Genode::log("function ", __FUNCTION__, ": got value ", value);
 	}
 
 	void Component::test_cap(Genode::Native_capability cap) {
-		Genode::printf("function %s: capability is valid ? %s - idx %lx\n",
-		               __FUNCTION__, cap.valid() ? "yes" : "no",
-		               cap.local_name());
+		Genode::log("function ", __FUNCTION__, ": capability is valid ? ",
+		            cap.valid() ? "yes" : "no", " - idx ", cap.local_name());
 	}
 
 	Genode::Native_capability Component::test_cap_reply(Genode::Native_capability cap) {
-		Genode::printf("function %s: capability is valid ? %s - idx %lx\n",
-		               __FUNCTION__, cap.valid() ? "yes" : "no",
-		               cap.local_name());
+		Genode::log("function ", __FUNCTION__, ": capability is valid ? ",
+		            cap.valid() ? "yes" : "no", " - idx ", cap.local_name());
 		return cap;
 	}
 }
@@ -87,13 +85,13 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- test-mp_server started ---\n");
+	log("--- test-mp_server started ---");
 
 	Affinity::Space cpus = env()->cpu_session()->affinity_space();
-	printf("Detected %ux%u CPU%s\n",
-	       cpus.width(), cpus.height(), cpus.total() > 1 ? "s." : ".");
+	log("Detected ", cpus.width(), "x", cpus.height(), " CPU",
+	       cpus.total() > 1 ? "s." : ".");
 
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = 2*1024*sizeof(long) };
 
 	static Cap_connection cap;
 	Rpc_entrypoint ** eps = new (env()->heap()) Rpc_entrypoint*[cpus.total()];
@@ -114,26 +112,26 @@ int main(int argc, char **argv)
 
 	/* Test: Invoke RPC entrypoint on different CPUs */
 	for (unsigned i = 0; i < cpus.total(); i++) {
-		printf("call server on CPU %u\n", i);
+		log("call server on CPU ", i);
 		clients[i]->test_untyped(i);
 	}
 
 	/* Test: Transfer a capability to RPC Entrypoints on different CPUs */
 	for (unsigned i = 0; i < cpus.total(); i++) {
 		Native_capability cap = caps[0];
-		printf("call server on CPU %u - transfer cap %lx\n", i, cap.local_name());
+		log("call server on CPU ", i, " - transfer cap ", cap.local_name());
 		clients[i]->test_cap(cap);
 	}
 
 	/* Test: Transfer a capability to RPC Entrypoints and back */
 	for (unsigned i = 0; i < cpus.total(); i++) {
 		Native_capability cap  = caps[0];
-		printf("call server on CPU %u - transfer cap %lx\n", i, cap.local_name());
+		log("call server on CPU ", i, " - transfer cap ", cap.local_name());
 		Native_capability rcap = clients[i]->test_cap_reply(cap);
-		printf("got from server on CPU %u - received cap %lx\n", i, rcap.local_name());
+		log("got from server on CPU ", i, " - received cap ", rcap.local_name());
 	}
 
-	printf("done\n");
+	log("done");
 
 	sleep_forever();
 }

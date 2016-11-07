@@ -218,10 +218,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_cursor_visibility = CURSOR_VERY_VISIBLE;
 		}
 
-		void cpr()
-		{
-			PDBG("not implemented");
-		}
+		void cpr() { Genode::warning(__func__, " not implemented"); }
 
 		void csr(int start, int end)
 		{
@@ -267,8 +264,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_cursor_pos = Terminal::Position(x, y);
 		}
 
-		void cuu1()   { PWRN("not implemented"); }
-		void dch(int) { PDBG("not implemented"); }
+		void cuu1()   { Genode::warning(__func__, " not implemented"); }
+		void dch(int) { Genode::warning(__func__, " not implemented"); }
 
 		void dl(int num_lines)
 		{
@@ -301,7 +298,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				_char_cell_array.set_cell(x, _cursor_pos.y, Char_cell());
 		}
 
-		void el1() { PDBG("not implemented"); }
+		void el1() { Genode::warning(__func__, " not implemented"); }
 
 		void home()
 		{
@@ -318,8 +315,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_cursor_pos.x = Genode::min(_boundary.width - 1, _cursor_pos.x);
 		}
 
-		void hts()    { PDBG("not implemented"); }
-		void ich(int) { PDBG("not implemented"); }
+		void hts()    { Genode::warning(__func__, " not implemented"); }
+		void ich(int) { Genode::warning(__func__, " not implemented"); }
 
 		void il(int value)
 		{
@@ -336,18 +333,18 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_char_cell_array.cursor(_cursor_pos, true);
 		}
 
-		void oc() { PDBG("not implemented"); }
+		void oc() { Genode::warning(__func__, " not implemented"); }
 
 		void op()
 		{
 			_color_index = DEFAULT_COLOR_INDEX | (DEFAULT_COLOR_INDEX_BG << 3);
 		}
 
-		void rc()   { PDBG("not implemented"); }
-		void ri()   { PDBG("not implemented"); }
-		void ris()  { PDBG("not implemented"); }
-		void rmam() { PDBG("not implemented"); }
-		void rmir() { PDBG("not implemented"); }
+		void rc()   { Genode::warning(__func__, " not implemented"); }
+		void ri()   { Genode::warning(__func__, " not implemented"); }
+		void ris()  { Genode::warning(__func__, " not implemented"); }
+		void rmam() { Genode::warning(__func__, " not implemented"); }
+		void rmir() { Genode::warning(__func__, " not implemented"); }
 
 		void setab(int value)
 		{
@@ -377,14 +374,14 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			sgr(0);
 		}
 
-		void sc()         { PDBG("not implemented"); }
-		void smam()       { PDBG("not implemented"); }
-		void smir()       { PDBG("not implemented"); }
-		void tbc()        { PDBG("not implemented"); }
-		void u6(int, int) { PDBG("not implemented"); }
-		void u7()         { PDBG("not implemented"); }
-		void u8()         { PDBG("not implemented"); }
-		void u9()         { PDBG("not implemented"); }
+		void sc()         { Genode::warning(__func__, " not implemented"); }
+		void smam()       { Genode::warning(__func__, " not implemented"); }
+		void smir()       { Genode::warning(__func__, " not implemented"); }
+		void tbc()        { Genode::warning(__func__, " not implemented"); }
+		void u6(int, int) { Genode::warning(__func__, " not implemented"); }
+		void u7()         { Genode::warning(__func__, " not implemented"); }
+		void u8()         { Genode::warning(__func__, " not implemented"); }
+		void u9()         { Genode::warning(__func__, " not implemented"); }
 
 		void vpa(int y)
 		{

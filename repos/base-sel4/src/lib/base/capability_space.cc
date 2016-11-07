@@ -12,8 +12,8 @@
  */
 
 /* base includes */
-#include <base/native_types.h>
-#include <base/printf.h>
+#include <base/capability.h>
+#include <base/log.h>
 #include <util/bit_allocator.h>
 
 /* base-internal includes */
@@ -40,7 +40,7 @@ namespace {
 
 	struct Local_capability_space
 	:
-		Capability_space_sel4<4*1024, 1UL << NUM_CORE_MANAGED_SEL_LOG2,
+		Capability_space_sel4<15*1024, 1UL << NUM_CORE_MANAGED_SEL_LOG2,
 		                      Native_capability::Data>
 	{ };
 
@@ -122,6 +122,12 @@ Rpc_obj_key Capability_space::rpc_obj_key(Native_capability::Data const &data)
 }
 
 
+void Capability_space::print(Output &out, Native_capability::Data const &data)
+{
+	return local_capability_space().print(out, data);
+}
+
+
 Capability_space::Ipc_cap_data Capability_space::ipc_cap_data(Native_capability const &cap)
 {
 	return local_capability_space().ipc_cap_data(*cap.data());
@@ -150,7 +156,7 @@ void Capability_space::reset_sel(unsigned sel)
 {
 	int ret = seL4_CNode_Delete(INITIAL_SEL_CNODE, sel, CSPACE_SIZE_LOG2);
 	if (ret != 0)
-		PWRN("seL4_CNode_Delete returned %d", ret);
+		warning("seL4_CNode_Delete returned ", ret);
 }
 
 

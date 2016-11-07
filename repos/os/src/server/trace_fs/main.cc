@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,6 +20,7 @@
 #include <os/server.h>
 #include <os/session_policy.h>
 #include <root/component.h>
+#include <base/heap.h>
 #include <timer_session/connection.h>
 #include <trace_session/connection.h>
 #include <util/list.h>
@@ -33,9 +34,6 @@
 #include <followed_subject.h>
 #include <trace_files.h>
 
-
-static bool const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 /**
  * Return true if 'str' is a valid file name
@@ -261,8 +259,6 @@ class Trace_file_system
 			if (!manager)
 				return;
 
-			PDBGV("update events for subject:'%s'", subject->name());
-
 			Process_entry<512> process_entry;
 
 			while (!manager->last_entry()) {
@@ -272,7 +268,7 @@ class Trace_file_system
 					continue;
 
 				try { subject->events_file.append(process_entry.data(), len); }
-				catch (...) { PERR("could not write entry"); }
+				catch (...) { Genode::error("could not write entry"); }
 			}
 
 			if (manager->last_entry()) {
@@ -287,14 +283,12 @@ class Trace_file_system
 		 */
 		void _disable_tracing(Followed_subject *subject)
 		{
-			PDBGV("disable tracing of subject:'%s'", subject->name());
-
 			subject->active_file.set_inactive();
 
 			_trace.pause(subject->id());
 			_gather_events(subject);
 			try { subject->unmanage_trace_buffer(); }
-			catch (...) { PERR("trace buffer was not managed"); }
+			catch (...) { Genode::error("trace buffer was not managed"); }
 			_trace.free(subject->id());
 		}
 
@@ -305,18 +299,15 @@ class Trace_file_system
 		 */
 		void _enable_tracing(Followed_subject *subject)
 		{
-			PDBGV("activate tracing of subject:'%s' with policy:'%u' and buffer_size:'%lu'",
-			     subject->name(), subject->policy_id().id, subject->buffer_size_file.size());
-
 			try {
 				_trace.trace(subject->id().id, subject->policy_id().id,
 				             subject->buffer_size_file.size());
 
 				try { subject->manage_trace_buffer(_trace.buffer(subject->id())); }
-				catch (...) { PERR("trace buffer is already managed"); }
+				catch (...) { Genode::error("trace buffer is already managed"); }
 
 				subject->active_file.set_active();
-			} catch (...) { PERR("could not enable tracing"); }
+			} catch (...) { Genode::error("could not enable tracing"); }
 		}
 
 		/**
@@ -335,16 +326,13 @@ class Trace_file_system
 
 			Directory *child;
 
-			PDBGV("parent '%s' num_entries '%zu' lookup '%s'", parent.name(),
-				  parent.num_entries(), walker.element());
-
 			try { child = _node_to_directory(parent.lookup(walker.element())); }
 			catch (File_system::Lookup_failed) {
 				try {
 					child = new (&_alloc) Directory(walker.element());
 					parent.adopt_unsynchronized(child);
 				} catch (...) {
-					PERR("could not create '%s'", walker.element());
+					Genode::error("could not create '", walker.element(), "'");
 					return 0;
 				}
 			}
@@ -456,12 +444,12 @@ class Trace_file_system
 								size_t n = policy_file->read((char *)ram, policy_length, 0UL);
 
 								if (n != policy_length) {
-									PERR("error while copying policy content");
+									Genode::error("error while copying policy content");
 								} else { subject->policy_id(id); }
 
 								Genode::env()->rm_session()->detach(ram);
 							}
-						} catch (...) { PERR("could not allocate policy"); }
+						} catch (...) { Genode::error("could not allocate policy"); }
 					}
 
 					policy_changed = true;
@@ -522,9 +510,6 @@ class Trace_file_system
 				Subject_info info = _trace.subject_info(subjects[i]);
 				Subject_info::State state = info.state();
 
-				PDBGV("subject:'%s.%u' state:'%u'", info.thread_name().string(),
-				      subjects[i].id, state);
-
 				/* opt-out early */
 				switch (state) {
 				case Subject_info::State::INVALID:
@@ -563,7 +548,7 @@ class Trace_file_system
 
 						Directory *parent = _find_parent_node(list, walker, _root_dir);
 						if (!parent) {
-							PERR("could not find parent node for label:'%s'", label);
+							Genode::error("could not find parent node for label:'", label, "'");
 							continue;
 						}
 
@@ -598,7 +583,7 @@ class Trace_file_system
 					Util::Label_walker walker(label);
 					Directory *parent = _find_parent_node(list, walker, _root_dir);
 					if (!parent) {
-						PERR("could not find parent node on creation");
+						Genode::error("could not find parent node on creation");
 						continue;
 					}
 
@@ -647,7 +632,6 @@ class File_system::Session_component : public Session_rpc_object
 		 */
 		void _fs_update(unsigned)
 		{
-			PDBGV("trace_fs update, limit:%d", _subject_limit);
 			_trace_fs->update(_subject_limit);
 		}
 
@@ -699,7 +683,7 @@ class File_system::Session_component : public Session_rpc_object
 
 				_process_packet_op(packet, *node);
 			}
-			catch (Invalid_handle)     { PERR("Invalid_handle");     }
+			catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
 
 			/*
 			 * The 'acknowledge_packet' function cannot block because we
@@ -741,7 +725,7 @@ class File_system::Session_component : public Session_rpc_object
 		static void _assert_valid_path(char const *path)
 		{
 			if (!path || path[0] != '/') {
-				PWRN("malformed path '%s'", path);
+				Genode::warning("malformed path '", path, "'");
 				throw Lookup_failed();
 			}
 		}
@@ -827,7 +811,7 @@ class File_system::Session_component : public Session_rpc_object
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 		{
-			PWRN("symlinks not supported");
+			Genode::warning("symlinks not supported");
 			return Symlink_handle();
 		}
 
@@ -867,7 +851,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			try { node = _handle_registry.lookup(handle); }
 			catch (Invalid_handle) {
-				PERR("close() called with invalid handle");
+				Genode::error("close() called with invalid handle");
 				return;
 			}
 
@@ -947,7 +931,7 @@ class File_system::Root : public Root_component<Session_component>
 			Genode::Number_of_bytes buffer_size_max  =   1 * (1 << 20); /*   1 MiB */
 			unsigned trace_parent_levels             = 0;
 
-			Session_label  label(args);
+			Session_label const label = label_from_args(args);
 			try {
 				Session_policy policy(label);
 
@@ -985,15 +969,16 @@ class File_system::Root : public Root_component<Session_component>
 					if (root[0] != '/')
 						throw Lookup_failed();
 				} catch (Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"root\" attribute in policy definition");
+					Genode::error("Missing \"root\" attribute in policy definition");
 					throw Root::Unavailable();
 				} catch (Lookup_failed) {
-					PERR("Session root directory \"%s\" does not exist", root);
+					Genode::error("session root directory "
+					              "\"", Genode::Cstring(root), "\" does not exist");
 					throw Root::Unavailable();
 				}
 
 			} catch (Session_policy::No_policy_defined) {
-				PERR("Invalid session request, no matching policy");
+				Genode::error("Invalid session request, no matching policy");
 				throw Root::Unavailable();
 			}
 
@@ -1003,7 +988,7 @@ class File_system::Root : public Root_component<Session_component>
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size) {
-				PERR("%s requested a session with a zero length transmission buffer", label.string());
+				Genode::error(label, " requested a session with a zero length transmission buffer");
 				throw Root::Invalid_args();
 			}
 
@@ -1013,8 +998,8 @@ class File_system::Root : public Root_component<Session_component>
 			 */
 			size_t session_size = sizeof(Session_component) + tx_buf_size;
 			if (max((size_t)4096, session_size) > ram_quota) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, session_size);
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
+				              "need ", session_size);
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())

@@ -21,6 +21,9 @@
 #include <ram_session_component.h>
 #include <resource_path.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space_tpl.h>
+
 /* Linux syscall bindings */
 #include <core_linux_syscalls.h>
 
@@ -55,7 +58,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
 
 void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 {
-	int const fd = ds->fd().dst().socket;
+	int const fd = Capability_space::ipc_cap_data(ds->fd()).dst.socket;
 	if (fd != -1)
 		lx_close(fd);
 }

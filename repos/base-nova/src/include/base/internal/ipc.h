@@ -17,6 +17,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/native_thread.h>
+#include <nova/capability_space.h>
 
 /**
  * Copy message registers from UTCB to destination message buffer
@@ -47,8 +48,9 @@ static inline Nova::mword_t copy_utcb_to_msgbuf(Nova::Utcb             &utcb,
 	size_t        num_data_words = num_msg_words - 1;
 
 	if (num_data_words*sizeof(mword_t) > rcv_msg.capacity()) {
-		PERR("receive message buffer too small msg size=%zx, buf size=%zd",
-		     num_data_words*sizeof(mword_t), rcv_msg.capacity());
+		error("receive message buffer too small msg "
+		      "size=", num_data_words*sizeof(mword_t), " "
+		      "buf size=", rcv_msg.capacity());
 		num_data_words = rcv_msg.capacity()/sizeof(mword_t);
 	}
 
@@ -90,7 +92,7 @@ static inline bool copy_msgbuf_to_utcb(Nova::Utcb                &utcb,
 
 	enum { NUM_MSG_REGS = 256 };
 	if (num_msg_words > NUM_MSG_REGS) {
-		PERR("Message does not fit into UTCB message registers\n");
+		error("message does not fit into UTCB message registers");
 		num_msg_words = NUM_MSG_REGS;
 	}
 
@@ -108,7 +110,7 @@ static inline bool copy_msgbuf_to_utcb(Nova::Utcb                &utcb,
 	for (unsigned i = 0; i < snd_msg.used_caps(); i++) {
 
 		Native_capability const &cap = snd_msg.cap(i);
-		Nova::Obj_crd crd(cap.local_name(), 0, cap.dst().rights());
+		Nova::Crd const crd = Capability_space::crd(cap);
 
 		if (crd.base() == ~0UL) continue;
 

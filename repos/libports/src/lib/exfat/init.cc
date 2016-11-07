@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 #include <fuse_private.h>
 
@@ -32,17 +32,17 @@ struct exfat ef;
 
 bool Fuse::init_fs(void)
 {
-	PLOG("libc_fuse_exfat: try to mount /dev/blkdev...");
+	Genode::log("libc_fuse_exfat: try to mount /dev/blkdev...");
 
 	int err = exfat_mount(&ef, "/dev/blkdev", "");
 	if (err) {
-		PERR("libc_fuse_exfat: could not mount /dev/blkdev");
+		Genode::error("libc_fuse_exfat: could not mount /dev/blkdev");
 		return false;
 	}
 
 	fh = fuse_new(fc, NULL, &fuse_exfat_ops, sizeof (struct fuse_operations), NULL);
 	if (fh == 0) {
-		PERR("libc_fuse_exfat: fuse_new() failed");
+		Genode::error("libc_fuse_exfat: fuse_new() failed");
 		return false;
 	}
 
@@ -52,7 +52,7 @@ bool Fuse::init_fs(void)
 
 void Fuse::deinit_fs(void)
 {
-	PLOG("libc_fuse_exfat: umount /dev/blkdev...");
+	Genode::log("libc_fuse_exfat: umount /dev/blkdev...");
 	exfat_unmount(&ef);
 }
 

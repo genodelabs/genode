@@ -11,16 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <util/construct_at.h>
 #include <base/allocator_avl.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Genode;
-
-
-/**
- * Placement operator - tool for directly calling a constructor
- */
-inline void *operator new(size_t, void *at) { return at; }
 
 
 /**************************
@@ -102,13 +97,11 @@ void Allocator_avl_base::Block::recompute()
 
 Allocator_avl_base::Block *Allocator_avl_base::_alloc_block_metadata()
 {
-	void *b = 0;
+	void *b = nullptr;
 	if (_md_alloc->alloc(sizeof(Block), &b))
+		return construct_at<Block>(b, 0, 0, 0);
 
-		/* call constructor by using the placement new operator */
-		return new((Block *)b) Block(0, 0, 0);
-
-	return 0;
+	return nullptr;
 }
 
 
@@ -131,7 +124,7 @@ int Allocator_avl_base::_add_block(Block *block_metadata,
 		return -1;
 
 	/* call constructor for new block */
-	new (block_metadata) Block(base, size, used);
+	construct_at<Block>(block_metadata, base, size, used);
 
 	/* insert block into avl tree */
 	_addr_tree.insert(block_metadata);
@@ -186,8 +179,9 @@ void Allocator_avl_base::_revert_allocations_and_ranges()
 	}
 
 	if (dangling_allocations)
-		PWRN("%zd dangling allocation%s at allocator destruction time",
-		     dangling_allocations, (dangling_allocations > 1) ? "s" : "");
+		warning(dangling_allocations, " dangling allocation",
+		        (dangling_allocations > 1) ? "s" : "",
+		        " at allocator destruction time");
 
 	/* remove ranges */
 	while (Block *block = _addr_tree.first())
@@ -353,8 +347,8 @@ void Allocator_avl_base::free(void *addr)
 	size_t new_size = b->size();
 
 	if (new_addr != (addr_t)addr)
-		PERR("%s: given address (0x%p) is not the block start address (0x%lx)",
-		     __PRETTY_FUNCTION__, addr, new_addr);
+		error(__PRETTY_FUNCTION__, ": given address (", addr, ") "
+		      "is not the block start address (", (void *)new_addr, ")");
 
 	_destroy_block(b);
 

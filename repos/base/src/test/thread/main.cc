@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/log.h>
 #include <base/thread.h>
 #include <base/component.h>
@@ -94,9 +93,8 @@ static void test_stack_alignment_varargs(char const *format, ...)
 {
 	va_list list;
 	va_start(list, format);
-
-	vprintf(format, list);
-
+	log(va_arg(list, double));
+	log(va_arg(list, double));
 	va_end(list);
 }
 
@@ -237,10 +235,9 @@ struct Pause_helper : Thread
 			 * other threads of this task trying to print log messages will
 			 * block - looks like a deadlock.
 			 */
-//			printf("stop me if you can\n");
 			loop ++;
 			if (beep) {
-				PINF("beep");
+				log("beep");
 				beep = false;
 				loop ++;
 				return;
@@ -318,7 +315,7 @@ static void test_create_as_many_threads(Env &env)
 			}
 		}
 	} catch (const char * ex) {
-		PINF("created %u threads before I got '%s'", i, ex);
+		log("created ", i, " threads before I got '", ex, "'");
 		for (unsigned j = i; j > 0; j--) {
 			destroy(heap, threads[j - 1]);
 			threads[j - 1] = nullptr;

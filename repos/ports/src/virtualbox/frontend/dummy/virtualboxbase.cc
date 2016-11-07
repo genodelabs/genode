@@ -1,4 +1,4 @@
-#include <base/printf.h>
+#include <base/log.h>
 
 #include "VirtualBoxImpl.h"
 #include "VBox/com/MultiResult.h"
@@ -9,17 +9,12 @@ static bool debug = false;
 
 HRESULT VirtualBoxBase::setError(HRESULT aResultCode, const char *pcsz, ...)
 {
-	Genode::printf(ESC_ERR);
-
 	va_list list;
 	va_start(list, pcsz);
 
-	Genode::printf("%s : %s", this->getComponentName(),
-	               Utf8Str(pcsz, list).c_str());
+	Genode::error(this->getComponentName(), " : ", Utf8Str(pcsz, list).c_str());
 
 	va_end(list);
-
-	Genode::printf(ESC_END "\n");
 
 	TRACE(aResultCode);
 }

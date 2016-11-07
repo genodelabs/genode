@@ -7,88 +7,92 @@
  */
 
 /*
- * Copyright (C) 2011-2014 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <os/attached_rom_dataspace.h>
 #include <block_session/rpc_object.h>
-#include <cap_session/connection.h>
-#include <os/config.h>
 
 #include "component.h"
 #include "driver.h"
 #include "gpt.h"
 #include "mbr.h"
 
-static Genode::Signal_receiver receiver;
 
-Block::Driver& Block::Driver::driver()
-{
-	static Block::Driver driver(receiver);
-	return driver;
-}
-
-
-void Block::Driver::_ready_to_submit(unsigned) {
+void Block::Driver::_ready_to_submit() {
 	Block::Session_component::wake_up(); }
 
 
-static bool _use_gpt()
+class Main
 {
-	try {
-		return Genode::config()->xml_node().attribute("use_gpt").has_value("yes");
-	} catch(...) { }
+	private:
 
-	return false;
-}
+		Block::Partition_table & _table();
+
+		Genode::Env &       _env;
+		Genode::Heap        _heap   { _env.ram(), _env.rm() };
+		Block::Driver       _driver { _env.ep(), _heap      };
+		Mbr_partition_table _mbr    { _heap, _driver        };
+		Gpt                 _gpt    { _heap, _driver        };
+		Block::Root         _root   { _env, _heap, _driver, _table() };
+
+	public:
+
+		class No_partion_table : Genode::Exception {};
+
+		Main(Genode::Env &env) : _env(env)
+		{
+			/*
+			 * we read all partition information,
+			 * now it's safe to turn in asynchronous mode
+			 */
+			_driver.work_asynchronously();
+
+			/* announce at parent */
+			env.parent().announce(env.ep().manage(_root));
+		}
+};
 
 
-int main()
+Block::Partition_table & Main::_table()
 {
-	using namespace Genode;
-
 	bool valid_mbr = false;
 	bool valid_gpt = false;
-	bool use_gpt   = _use_gpt();
+	bool use_gpt   = false;
+
+	try {
+		Genode::Attached_rom_dataspace config(_env, "config");
+		use_gpt = config.xml().attribute_value("use_gpt", false);
+	} catch(...) {}
 
 	if (use_gpt)
-		try { valid_gpt = Gpt::table().avail(); } catch (...) { }
+		try { valid_gpt = _gpt.parse(); } catch (...) { }
 
 	/* fall back to MBR */
 	if (!valid_gpt) {
-		try { valid_mbr = Mbr_partition_table::table().avail(); }
+		try { valid_mbr = _mbr.parse(); }
 		catch (Mbr_partition_table::Protective_mbr_found) {
 			if (!use_gpt)
-				PERR("Aborting: found protective MBR but GPT usage was not requested.");
-			return 1;
+				Genode::error("Aborting: found protective MBR but ",
+				              "GPT usage was not requested.");
+			throw;
 		}
 	}
 
-	Block::Partition_table *partition_table = 0;
-	if (valid_gpt)
-		partition_table = &Gpt::table();
-	if (valid_mbr)
-		partition_table = &Mbr_partition_table::table();
+	if (valid_gpt) return _gpt;
+	if (valid_mbr) return _mbr;
 
-	if (!partition_table) {
-		PERR("Aborting: no partition table found.");
-		return 1;
-	}
-
-	enum { STACK_SIZE = 2048 * sizeof(Genode::size_t) };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "part_ep");
-	static Block::Root block_root(&ep, env()->heap(), receiver,
-	                              *partition_table);
-
-	env()->parent()->announce(ep.manage(&block_root));
-
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-	}
-
-	return 0;
+	Genode::error("Aborting: no partition table found.");
+	throw No_partion_table();
 }
+
+
+Genode::size_t Component::stack_size() {
+	return 2048*sizeof(Genode::addr_t); }
+
+
+void Component::construct(Genode::Env &env) {
+	static Main main(env); }

@@ -21,6 +21,8 @@
 #include <base/internal/platform_env.h>
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
+#include <base/internal/parent_socket_handle.h>
+#include <base/internal/capability_space_tpl.h>
 
 using namespace Genode;
 
@@ -31,16 +33,18 @@ using namespace Genode;
 
 size_t Region_map_mmap::_dataspace_size(Dataspace_capability ds)
 {
-	if (ds.valid())
-		return Dataspace_client(ds).size();
+	if (local(ds))
+		return Local_capability<Dataspace>::deref(ds)->size();
 
-	return Local_capability<Dataspace>::deref(ds)->size();
+	return Dataspace_client(ds).size();
+
 }
 
 
 int Region_map_mmap::_dataspace_fd(Dataspace_capability ds)
 {
-	return Linux_dataspace_client(ds).fd().dst().socket;
+	Untyped_capability fd_cap = Linux_dataspace_client(ds).fd();
+	return Capability_space::ipc_cap_data(fd_cap).dst.socket;
 }
 
 
@@ -125,12 +129,13 @@ static unsigned long get_env_ulong(const char *key)
 
 static Parent_capability obtain_parent_cap()
 {
-	long local_name = get_env_ulong("parent_local_name");
+	long const local_name = get_env_ulong("parent_local_name");
 
-	/* produce typed capability manually */
-	typedef Native_capability::Dst Dst;
-	Dst const dst(PARENT_SOCKET_HANDLE);
-	return reinterpret_cap_cast<Parent>(Native_capability(dst, local_name));
+	Untyped_capability parent_cap =
+		Capability_space::import(Rpc_destination(PARENT_SOCKET_HANDLE),
+		                         Rpc_obj_key(local_name));
+
+	return reinterpret_cap_cast<Parent>(parent_cap);
 }
 
 
@@ -149,10 +154,7 @@ Platform_env::Platform_env()
 	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session()),
 	_emergency_ram_ds(ram_session()->alloc(_emergency_ram_size()))
 {
-	/* attach stack area to local address space */
-	_local_pd_session._address_space.attach_at(_local_pd_session._stack_area.dataspace(),
-	                                           stack_area_virtual_base(),
-	                                           stack_area_virtual_size());
+	_attach_stack_area();
 
 	env_stack_area_region_map  = &_local_pd_session._stack_area;
 	env_stack_area_ram_session = ram_session();
@@ -177,8 +179,10 @@ namespace Genode {
 
 		Thread *thread = Thread::myself();
 		if (thread) {
-			socket_pair.server_sd = native_cpu.server_sd(thread->cap()).dst().socket;
-			socket_pair.client_sd = native_cpu.client_sd(thread->cap()).dst().socket;
+			Untyped_capability server_cap = native_cpu.server_sd(thread->cap());
+			Untyped_capability client_cap = native_cpu.client_sd(thread->cap());
+			socket_pair.server_sd = Capability_space::ipc_cap_data(server_cap).dst.socket;
+			socket_pair.client_sd = Capability_space::ipc_cap_data(client_cap).dst.socket;
 			thread->native_thread().socket_pair = socket_pair;
 		}
 		return socket_pair;

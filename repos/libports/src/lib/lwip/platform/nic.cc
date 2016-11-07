@@ -28,7 +28,7 @@ extern "C" {
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 
@@ -254,7 +254,7 @@ extern "C" {
 
 		if (netif->input(p, netif) != ERR_OK) {
 			if (verbose)
-				PERR("genode_netif_input: input error");
+				Genode::error("genode_netif_input: input error");
 			pbuf_free(p);
 			p = 0;
 		}

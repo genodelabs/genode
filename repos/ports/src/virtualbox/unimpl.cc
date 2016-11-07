@@ -11,7 +11,7 @@
  * version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 #include <iprt/assert.h>
 
@@ -19,12 +19,10 @@ extern "C" {
 
 #define DUMMY(name) \
 void name(void) { \
-	PDBG( #name " called, not implemented, eip=%p", \
-	     __builtin_return_address(0)); \
+	Genode::warning(__func__, ": " #name " called, not implemented, eip=", \
+	                __builtin_return_address(0)); \
 	while (1) { Assert(!"not implemented"); } \
 }
-
-DUMMY(RTErrCOMGet)
 
 DUMMY(DBGFR3CoreWrite)
 DUMMY(DBGCRegisterCommands)
@@ -47,7 +45,6 @@ DUMMY(HMR3RestartPendingIOInstr)
 DUMMY(HMR3EnablePatching)
 DUMMY(HMR3DisablePatching)
 DUMMY(HMGetPaePdpes)
-DUMMY(HMR3ResetCpu)
 DUMMY(HMSetSingleInstruction)
 
 DUMMY(IEMExecOne)
@@ -180,7 +177,7 @@ DUMMY(RTStrCatP)
 DUMMY(RTStrStr)
 
 DUMMY(RTTcpClientCloseEx)
-DUMMY(RTTcpClientConnect)
+DUMMY(RTTcpClientConnectEx)
 DUMMY(RTTcpFlush)
 DUMMY(RTTcpGetLocalAddress)
 DUMMY(RTTcpGetPeerAddress)

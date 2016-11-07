@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 
 extern "C" const char *gai_strerror(int errcode)
 {
 	static const char *result = "gai_strerror called, not yet implemented!";
-	PDBG("%s", result);
+	Genode::log(__func__, ": ", result);
 	return result;
 }

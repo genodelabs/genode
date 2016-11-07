@@ -12,7 +12,7 @@
  */
 
 /* Genode */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 
@@ -37,7 +37,7 @@ extern "C" char *getenv(const char *name)
 
 #if 0
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/snprintf.h>
 #include <dataspace/client.h>
 #include <timer_session/connection.h>
@@ -143,7 +143,7 @@ long int strtol(const char *nptr, char **endptr, int base)
 {
 	long res = 0;
 	if (base != 0 && base != 10) {
-		PERR("strtol: base of %d is not supported", base);
+		Genode::error("strtol: base of ", base, " is not supported");
 		return 0;
 	}
 	Genode::ascii_to(nptr, res);

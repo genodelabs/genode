@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,7 +21,7 @@
 extern "C" int wpa_main(int);
 extern "C" void wpa_conf_reload(void);
 
-class Wpa_thread : public Genode::Thread_deprecated<8 * 1024 * sizeof(long)>
+class Wpa_thread : public Genode::Thread
 {
 	private:
 
@@ -31,9 +31,9 @@ class Wpa_thread : public Genode::Thread_deprecated<8 * 1024 * sizeof(long)>
 
 	public:
 
-		Wpa_thread(Genode::Lock &lock, bool debug_msg)
+		Wpa_thread(Genode::Env &env, Genode::Lock &lock, bool debug_msg)
 		:
-			Thread_deprecated("wpa_supplicant"),
+			Thread(env, "wpa_supplicant", 8*1024*sizeof(long)),
 			_lock(lock), _exit(-1), _debug_msg(debug_msg) { }
 
 		void entry()

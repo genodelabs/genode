@@ -75,30 +75,29 @@ class Genode::Signal_broker
 
 		void free_context(Signal_context_capability context_cap)
 		{
-			Signal_context_component *context;
+			Signal_context_component *context = nullptr;
 
 			_context_ep.apply(context_cap, [&] (Signal_context_component *c) {
-				context = c;
-				if (!context) {
-					PWRN("specified signal-context capability has wrong type");
+
+				if (!c) {
+					warning("specified signal-context capability has wrong type");
 					return;
 				}
 
+				context = c;
+
 				_context_ep.dissolve(context);
 			});
-			destroy(&_contexts_slab, context);
+
+			if (context)
+				destroy(&_contexts_slab, context);
 		}
 
 		void submit(Signal_context_capability cap, unsigned cnt)
 		{
 			_source_ep.apply(cap, [&] (Signal_context_component *context) {
 				if (!context) {
-					/*
-					 * We do not use PWRN() to enable the build system to
-					 * suppress this warning in release mode (SPECS +=
-					 * release).
-					 */
-					PDBG("invalid signal-context capability");
+					warning("invalid signal-context capability");
 					return;
 				}
 

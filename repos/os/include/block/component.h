@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,9 +15,11 @@
 #ifndef _INCLUDE__BLOCK__COMPONENT_H_
 #define _INCLUDE__BLOCK__COMPONENT_H_
 
+#include <base/log.h>
+#include <base/component.h>
+#include <base/allocator_avl.h>
+#include <base/heap.h>
 #include <root/component.h>
-#include <os/signal_rpc_dispatcher.h>
-#include <os/server.h>
 #include <block/driver.h>
 
 namespace Block {
@@ -67,13 +69,13 @@ class Block::Session_component : public Block::Session_component_base,
 {
 	private:
 
-		addr_t                               _rq_phys;
-		Signal_rpc_member<Session_component> _sink_ack;
-		Signal_rpc_member<Session_component> _sink_submit;
-		bool                                 _req_queue_full;
-		bool                                 _ack_queue_full;
-		Packet_descriptor                    _p_to_handle;
-		unsigned                             _p_in_fly;
+		addr_t                            _rq_phys;
+		Signal_handler<Session_component> _sink_ack;
+		Signal_handler<Session_component> _sink_submit;
+		bool                              _req_queue_full;
+		bool                              _ack_queue_full;
+		Packet_descriptor                 _p_to_handle;
+		unsigned                          _p_in_fly;
 
 		/**
 		 * Acknowledge a packet already handled
@@ -81,7 +83,7 @@ class Block::Session_component : public Block::Session_component_base,
 		inline void _ack_packet(Packet_descriptor &packet)
 		{
 			if (!tx_sink()->ready_to_ack())
-				PERR("Not ready to ack!");
+				error("not ready to ack!");
 
 			tx_sink()->acknowledge_packet(packet);
 			_p_in_fly--;
@@ -103,7 +105,7 @@ class Block::Session_component : public Block::Session_component_base,
 			_p_to_handle.succeeded(false);
 
 			/* ignore invalid packets */
-			if (!packet.valid() || !_range_check(_p_to_handle)) {
+			if (!packet.size() || !_range_check(_p_to_handle)) {
 				_ack_packet(_p_to_handle);
 				return;
 			}
@@ -148,9 +150,9 @@ class Block::Session_component : public Block::Session_component_base,
 		}
 
 		/**
-		 * Triggered when a packet was placed into the empty submit queue
+		 * Called whenever a signal from the packet-stream interface triggered
 		 */
-		void _packet_avail(unsigned)
+		void _signal()
 		{
 			/*
 			 * as long as more packets are available, and we're able to ack
@@ -164,28 +166,23 @@ class Block::Session_component : public Block::Session_component_base,
 				_handle_packet(tx_sink()->get_packet());
 		}
 
-		/**
-		 * Triggered when an ack got removed from the full ack queue
-		 */
-		void _ready_to_ack(unsigned) { _packet_avail(0); }
-
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param rq_ds           shared dataspace for packet stream
-		 * \param driver          block driver backend
 		 * \param driver_factory  factory to create and destroy driver objects
 		 * \param ep              entrypoint handling this session component
+		 * \param buf_size        size of packet-stream payload buffer
 		 */
-		Session_component(Driver_factory           &driver_factory,
-		                  Server::Entrypoint       &ep, size_t buf_size)
+		Session_component(Driver_factory     &driver_factory,
+		                  Genode::Entrypoint &ep,
+		                  size_t              buf_size)
 		: Session_component_base(driver_factory, buf_size),
 		  Driver_session(_rq_ds, ep.rpc_ep()),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
-		  _sink_ack(ep, *this, &Session_component::_ready_to_ack),
-		  _sink_submit(ep, *this, &Session_component::_packet_avail),
+		  _sink_ack(ep, *this, &Session_component::_signal),
+		  _sink_submit(ep, *this, &Session_component::_signal),
 		  _req_queue_full(false),
 		  _p_in_fly(0)
 		{
@@ -223,7 +220,7 @@ class Block::Session_component : public Block::Session_component_base,
 			}
 
 			/* resume packet processing */
-			_packet_avail(0);
+			_signal();
 		}
 
 
@@ -252,7 +249,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 	private:
 
 		Driver_factory     &_driver_factory;
-		Server::Entrypoint &_ep;
+		Genode::Entrypoint &_ep;
 
 	protected:
 
@@ -279,8 +276,8 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 			 * to handle a possible overflow of the sum of both sizes.
 			 */
 			if (tx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + session_size);
+				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
+				     tx_buf_size + session_size);
 				throw Root::Quota_exceeded();
 			}
 
@@ -296,12 +293,14 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		 * \param ep              entrypoint handling this root component
 		 * \param md_alloc        allocator to allocate session components
 		 * \param driver_factory  factory to create and destroy driver backend
-		 * \param receiver        signal receiver managing signals of the client
 		 */
-		Root(Server::Entrypoint &ep, Allocator *md_alloc,
-		     Driver_factory &driver_factory)
-		: Root_component(&ep.rpc_ep(), md_alloc),
-		  _driver_factory(driver_factory), _ep(ep) { }
+		Root(Genode::Entrypoint &ep,
+		     Allocator          &md_alloc,
+		     Driver_factory     &driver_factory)
+		:
+			Root_component(ep, md_alloc),
+			_driver_factory(driver_factory), _ep(ep)
+		{ }
 };
 
 #endif /* _INCLUDE__BLOCK__COMPONENT_H_ */

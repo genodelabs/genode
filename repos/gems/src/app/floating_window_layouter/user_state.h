@@ -314,7 +314,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 				return;
 
 			default:
-				PWRN("action %d unhanded", action.type());
+				Genode::warning("action ", (int)action.type(), " unhanded");
 			}
 		});
 	}

@@ -93,7 +93,7 @@ void __register_frame(void *) { }
  */
 extern "C" __attribute__((weak)) void raise()
 {
-	PDBG("raise called - not implemented\n");
+	warning("cxx: raise called - not implemented");
 }
 
 
@@ -145,7 +145,6 @@ extern "C" int memcmp(const void *p0, const void *p1, size_t size)
 extern "C" __attribute__((weak))
 void *memcpy(void *dst, void *src, size_t n)
 {
-//	PDBG("dst=%p, src=%p, n=%d", dst, src, n);
 	return Genode::memcpy(dst, src, n);
 }
 
@@ -153,7 +152,6 @@ void *memcpy(void *dst, void *src, size_t n)
 extern "C" __attribute__((weak))
 void *memmove(void *dst, void *src, size_t n)
 {
-//	PDBG("dst=%p, src=%p, n=%d", dst, src, n);
 	return Genode::memmove(dst, src, n);
 }
 
@@ -161,7 +159,6 @@ void *memmove(void *dst, void *src, size_t n)
 extern "C" __attribute__((weak))
 void *memset(void *s, int c, size_t n)
 {
-//	PDBG("s=%p, c=%d, n=%d", s, c, n);
 	return Genode::memset(s, c, n);
 }
 

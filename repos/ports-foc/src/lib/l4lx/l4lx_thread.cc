@@ -12,8 +12,9 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <cpu_session/connection.h>
+#include <foc/native_capability.h>
 
 #include <env.h>
 #include <vcpu.h>
@@ -37,7 +38,6 @@ struct l4lx_thread_name_struct {
 
 typedef l4_utcb_t *l4lx_thread_t;
 
-static const bool DEBUG = false;
 static L4lx::Vcpu* vcpus[L4LX_THREAD_NO_THREADS];
 struct l4lx_thread_name_struct l4lx_thread_names[L4LX_THREAD_NO_THREADS];
 
@@ -68,7 +68,7 @@ static void* alloc_vcpu_state()
 	L4lx::Region_manager *rm = L4lx::Env::env()->rm();
 	L4lx::Region* r = rm->reserve_range(L4_PAGESIZE, 12);
 	if (!r) {
-		PWRN("Couldn't allocate vcpu area");
+		Genode::warning("couldn't allocate vcpu area");
 		return 0;
 	}
 	l4_addr_t addr = r->addr();
@@ -77,8 +77,8 @@ static void* alloc_vcpu_state()
 	l4_fpage_t fpage = l4_fpage(addr, L4_LOG2_PAGESIZE, L4_CAP_FPAGE_RW);
 	l4_msgtag_t tag  = l4_task_add_ku_mem(Fiasco::TASK_CAP, fpage);
 	if (l4_error(tag))
-		PERR("l4_task_add_ku_mem for %p failed with %ld!",
-		     (void*)addr, l4_error(tag));
+		Genode::error("l4_task_add_ku_mem for ", Genode::Hex(addr), " "
+		              "failed, error=", l4_error(tag));
 	return (void*)addr;
 }
 
@@ -105,7 +105,8 @@ void l4lx_thread_alloc_irq(l4_cap_idx_t c)
 	Genode::Native_capability cap = native_cpu.alloc_irq();
 
 	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
-	            l4_obj_fpage(cap.dst(), 0, L4_FPAGE_RWX), c | L4_ITEM_MAP);
+	            l4_obj_fpage(Genode::Capability_space::kcap(cap), 0, L4_FPAGE_RWX),
+	            c | L4_ITEM_MAP);
 }
 
 l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
@@ -121,16 +122,11 @@ l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
 
 	Linux::Irq_guard guard;
 
-	if (DEBUG)
-		PDBG("func=%p cpu=%x stack=%p data=%p data_size=%x prio=%d name=%s",
-		     thread_func, cpu_nr, stack_pointer, stack_data,
-		     stack_data_size, prio, name);
-
 	void *addr = 0;
 	if (vcpu_state) {
 		addr = alloc_vcpu_state();
 		if (!addr) {
-			PWRN("No kernel-user memory left!");
+			Genode::warning(__func__, ": no kernel-user memory left!");
 			return 0;
 		}
 		*vcpu_state = (l4_vcpu_state_t *) addr;
@@ -159,8 +155,6 @@ int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo)
 {
 	Linux::Irq_guard guard;
 
-	if (DEBUG)
-		PDBG("ip=%lx sp=%lx", startinfo->ip, startinfo->sp);
 	L4lx::Vcpu *vc = (L4lx::Vcpu*) startinfo->l4cap;
 	vc->unblock();
 	return 0;
@@ -170,9 +164,6 @@ int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo)
 void l4lx_thread_pager_change(l4_cap_idx_t thread, l4_cap_idx_t pager)
 {
 	Linux::Irq_guard guard;
-
-	if (DEBUG)
-		PDBG("Change pager of %lx to %lx", thread, pager);
 
 	l4_cap_idx_t p_id = thread - Fiasco::THREAD_GATE_CAP
 	                    + Fiasco::THREAD_PAGER_CAP;
@@ -186,7 +177,7 @@ void l4lx_thread_set_kernel_pager(l4_cap_idx_t thread)
 {
 	Linux::Irq_guard guard;
 
-	PWRN("%s: Not implemented yet!", __func__);
+	Genode::warning(__func__, " not implemented");
 }
 
 
@@ -194,7 +185,7 @@ void l4lx_thread_shutdown(l4lx_thread_t u, void *v)
 {
 	Linux::Irq_guard guard;
 
-	PWRN("%s: Not implemented yet!", __func__);
+	Genode::warning(__func__, " not implemented");
 }
 
 
@@ -202,7 +193,7 @@ int l4lx_thread_equal(l4_cap_idx_t t1, l4_cap_idx_t t2)
 {
 	Linux::Irq_guard guard;
 
-	PWRN("%s: Not implemented yet!", __func__);
+	Genode::warning(__func__, " not implemented");
 	return 0;
 }
 
@@ -210,7 +201,7 @@ int l4lx_thread_equal(l4_cap_idx_t t1, l4_cap_idx_t t2)
 l4_cap_idx_t l4lx_thread_get_cap(l4lx_thread_t t)
 {
 	if (!vcpus[thread_id(t)]) {
-		PWRN("Invalid utcb %lx", (unsigned long) t);
+		Genode::warning("invalid utcb ", t);
 		return L4_INVALID_CAP;
 	}
 	return vcpus[thread_id(t)]->native_thread().kcap;

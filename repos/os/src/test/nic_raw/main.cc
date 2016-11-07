@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/stdint.h>
 #include <base/sleep.h>
 #include <nic/packet_allocator.h>
@@ -34,18 +34,12 @@ class Nic_worker : public Genode::Thread_deprecated<STACK_SIZE>
 	private:
 
 		Nic::Connection  *_nic;       /* nic-session */
-		Net::Ethernet_frame::Mac_address _mac;
+		Net::Mac_address _mac;
 
 		struct stat {
 			Genode::uint64_t size;
 			Genode::uint64_t count; 
 		} _stat, _drop;
-
-		void _dump_mac(Genode::uint8_t * mac) const {
-			Genode::printf("%2x", mac[0] & 0xff);
-			for(unsigned i=1; i < 6; ++i)
-				Genode::printf(":%2x", mac[i] & 0xff);
-		}
 
 		Genode::uint16_t _ntoh(Genode::uint16_t value) {
 			return ((value & 0xFFU) << 8) | ((value >> 8) & 0xFFU); }
@@ -62,17 +56,16 @@ class Nic_worker : public Genode::Thread_deprecated<STACK_SIZE>
 			memset(&_drop, 0, sizeof(_drop));
 
 			memcpy(_mac.addr, nic->mac_address().addr, 6);
-			printf("mac: ");
-			_dump_mac(_mac.addr);
-			printf("\n");
+			log("MAC: ", _mac);
 		}
 
-		void entry() {
+		void entry()
+		{
 			using namespace Genode;
 
 			Timer::Connection timer;
 
-			PINF("ready to receive packets");
+			log("ready to receive packets");
 
 			Nic::Measurement stat(timer);
 			stat.set_mac(_mac.addr);
@@ -107,7 +100,7 @@ static void net_init()
 		nic = new (env()->heap()) Nic::Connection(tx_block_alloc, BUF_SIZE, BUF_SIZE);
 	} catch (Parent::Service_denied) {
 		destroy(env()->heap(), tx_block_alloc);
-		PERR("could not start Nic service");
+		Genode::error("could not start Nic service");
 		return;
 	}
 
@@ -119,7 +112,7 @@ static void net_init()
 
 int main(int, char **)
 {
-	Genode::printf("--- NIC performance measurements ---\n");
+	Genode::log("--- NIC performance measurements ---");
 
 	net_init();
 

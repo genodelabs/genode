@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -57,8 +57,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		Rpc_entrypoint        &_ep;
 		Rom_session_capability _rom_session_cap;
 
-		enum { FILENAME_MAX_LEN = 32 };
-		char _filename[FILENAME_MAX_LEN];
+		Session_label _module_name;
 
 	public:
 
@@ -70,7 +69,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 *
 		 * If 'ram' is 0, the child policy is ineffective.
 		 */
-		Child_policy_dynamic_rom_file(const char     *filename,
+		Child_policy_dynamic_rom_file(const char     *module_name,
 		                              Rpc_entrypoint &ep,
 		                              Ram_session    *ram)
 		:
@@ -79,10 +78,9 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			_fg(0, 0), _bg(0, 0),
 			_bg_has_pending_data(false),
 			_ep(ep),
-			_rom_session_cap(_ep.manage(this))
-		{
-			strncpy(_filename, filename, sizeof(_filename));
-		}
+			_rom_session_cap(_ep.manage(this)),
+			_module_name(module_name)
+		{ }
 
 		/**
 		 * Destructor
@@ -100,7 +98,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			Lock::Guard guard(_lock);
 
 			if (!_ram) {
-				PERR("Error: No backing store for loading ROM data");
+				Genode::error("no backing store for loading ROM data");
 				return;
 			}
 
@@ -125,7 +123,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			Lock::Guard guard(_lock);
 
 			if (!_fg.size() && !_bg_has_pending_data) {
-				PERR("Error: no data loaded");
+				Genode::error("no data loaded");
 				return Rom_dataspace_capability();
 			}
 
@@ -168,10 +166,9 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			/* ignore session requests for non-ROM services */
 			if (strcmp(service_name, "ROM")) return 0;
 
-			/* drop out if request refers to another file name */
-			char buf[FILENAME_MAX_LEN];
-			Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
-			return !strcmp(buf, _filename) ? this : 0;
+			/* drop out if request refers to another module name */
+			Session_label const label = label_from_args(args);
+			return _module_name == label.last_element() ? this : 0;
 		}
 };
 

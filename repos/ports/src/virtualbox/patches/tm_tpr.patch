@@ -1,0 +1,75 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/TM.cpp
+@@ -1900,6 +1900,8 @@
+     PVMCPU  pVCpuDst = &pVM->aCpus[pVM->tm.s.idTimerCpu];
+     NOREF(pTimer);
+ 
++    bool ff_scheduled = false;
++
+     AssertCompile(TMCLOCK_MAX == 4);
+ #ifdef DEBUG_Sander /* very annoying, keep it private. */
+     if (VMCPU_FF_IS_SET(pVCpuDst, VMCPU_FF_TIMER))
+@@ -1916,6 +1918,7 @@
+         && !pVM->tm.s.fRunningQueues
+        )
+     {
++        ff_scheduled = true;
+         Log5(("TM(%u): FF: 0 -> 1\n", __LINE__));
+         VMCPU_FF_SET(pVCpuDst, VMCPU_FF_TIMER);
+ #ifdef VBOX_WITH_REM
+@@ -1924,6 +1927,14 @@
+         VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_DONE_REM /** @todo | VMNOTIFYFF_FLAGS_POKE ?*/);
+         STAM_COUNTER_INC(&pVM->tm.s.StatTimerCallbackSetFF);
+     }
++
++    if (!ff_scheduled
++        && VMCPU_FF_IS_PENDING(pVCpuDst, VMCPU_FF_TIMER)
++        && VMCPU_GET_STATE(pVCpuDst) == VMCPUSTATE_STARTED_EXEC
++       )
++    {
++       VMR3NotifyCpuFFU(pVCpuDst->pUVCpu, VMNOTIFYFF_FLAGS_POKE);
++    }
+ }
+ 
+ 
+@@ -1934,6 +1947,7 @@
+  *
+  * @thread  EMT (actually EMT0, but we fend off the others)
+  */
++#include <VBox/vmm/trpm.h>
+ VMMR3DECL(void) TMR3TimerQueuesDo(PVM pVM)
+ {
+     /*
+@@ -1947,6 +1961,32 @@
+         Assert(pVM->cCpus > 1);
+         return;
+     }
++
++    /*
++     * It may happen that a EMT thread has an inconsistent IRQ state
++     * (Why the hell XXX ? - SMP 64bit Win7 - especially during early bootup).
++     * Poke the EMT threads so that they may get back to VMM and update
++     * and synchronize IRQ state in recall handler. This code may issue to
++     * often a POKE, since we check state of concurrently running EMT threads!
++     */
++    for (unsigned i = 0; i < pVM->cCpus; i++) {
++        if (i == pVCpuDst->idCpu)
++            continue;
++
++        bool interrupt_pending = false;
++        uint8_t tpr = 0;
++        uint8_t pending_interrupt;
++        PDMApicGetTPR(&pVM->aCpus[i], &tpr, &interrupt_pending, &pending_interrupt);
++
++        asm volatile ("":::"memory");
++        if ((VMCPU_GET_STATE(&pVM->aCpus[i]) == VMCPUSTATE_STARTED_EXEC)
++            && !TRPMHasTrap(&pVM->aCpus[i])
++            && !VMCPU_FF_IS_PENDING(&pVM->aCpus[i], (VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC))
++            && interrupt_pending) {
++            SUPR3CallVMMR0Ex(pVM->pVMR0, i, VMMR0_DO_GVMM_SCHED_POKE, 0, NULL);
++        }
++    }
++
+     STAM_PROFILE_START(&pVM->tm.s.StatDoQueues, a);
+     Log2(("TMR3TimerQueuesDo:\n"));
+     Assert(!pVM->tm.s.fRunningQueues);

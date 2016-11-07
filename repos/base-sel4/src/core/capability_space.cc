@@ -12,8 +12,7 @@
  */
 
 /* base includes */
-#include <base/native_types.h>
-#include <base/printf.h>
+#include <base/capability.h>
 
 /* base-internal includes */
 #include <base/internal/capability_data.h>
@@ -111,7 +110,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 		                                src_depth,
 		                                rights,
 		                                badge);
-		ASSERT(ret == 0);
+		ASSERT(ret == seL4_NoError);
 	}
 
 	return Native_capability(data);
@@ -189,6 +188,19 @@ Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 	Native_capability::Data &data =
 		local_capability_space().create_capability(ipc_cap_data.sel, pd_session,
 		                                           ipc_cap_data.rpc_obj_key);
+
+	return Native_capability(data);
+}
+
+
+Native_capability
+Capability_space::create_notification_cap(Cap_sel &notify_cap)
+{
+	Pd_session const *pd_session = nullptr;
+
+	Native_capability::Data &data =
+		local_capability_space().create_capability(notify_cap, pd_session,
+		                                           Rpc_obj_key());
 
 	return Native_capability(data);
 }

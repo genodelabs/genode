@@ -36,6 +36,9 @@ namespace Lx {
 	             unsigned long      *jiffies_ptr = nullptr);
 
 	void timer_update_jiffies();
+
+	typedef unsigned long (*jiffies_update_func)(void);
+	void register_jiffies_func(jiffies_update_func func);
 }
 
 

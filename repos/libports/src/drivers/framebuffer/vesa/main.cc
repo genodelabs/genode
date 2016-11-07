@@ -63,14 +63,7 @@ unsigned long session_arg(const char *attr_name, const char *args,
 
 bool config_attribute(const char *attr_name)
 {
-
-	bool result  = false;
-
-	try {
-		result = Genode::config()->xml_node().attribute(attr_name).has_value("yes"); }
-	catch (...) {}
-
-	return result;
+	return Genode::config()->xml_node().attribute_value(attr_name, false);
 }
 
 
@@ -133,17 +126,16 @@ namespace Framebuffer {
 				if (!_buffered) return;
 
 				if (scr_mode != 16) {
-					PWRN("buffered mode not supported for mode %d", (int)scr_mode);
+					Genode::warning("buffered mode not supported for mode ", (int)scr_mode);
 					_buffered = false;
 				}
 
 				size_t buf_size = scr_width*scr_height*scr_mode/8;
 				try { _bb_ds = Genode::env()->ram_session()->alloc(buf_size); }
 				catch (...) {
-					PWRN("could not allocate back buffer, disabled buffered output");
+					Genode::warning("could not allocate back buffer, disabled buffered output");
 					_buffered = false;
 				}
-				PDBG("use buf size %zd", buf_size);
 
 				if (_buffered && _bb_ds.valid()) {
 					_bb_addr = Genode::env()->rm_session()->attach(_bb_ds);
@@ -151,7 +143,7 @@ namespace Framebuffer {
 				}
 
 				if (_buffered)
-					PINF("using buffered output");
+					Genode::log("using buffered output");
 			}
 
 			/**
@@ -214,12 +206,12 @@ namespace Framebuffer {
 				bool          buffered   = config_attribute("buffered");
 
 				if (Framebuffer_drv::set_mode(scr_width, scr_height, scr_mode) != 0) {
-					PWRN("Could not set vesa mode %lux%lu@%lu", scr_width, scr_height,
-					     scr_mode);
+					Genode::warning("Could not set vesa mode ",
+					                scr_width, "x", scr_height, "@", scr_mode);
 					throw Root::Invalid_args();
 				}
 
-				printf("Using video mode: %lu x %lu x %lu\n", scr_width, scr_height, scr_mode);
+				Genode::log("using video mode: ", scr_width, "x", scr_height, "@", scr_mode);
 
 				return new (md_alloc()) Session_component(scr_width, scr_height, scr_mode,
 				                                          Framebuffer_drv::hw_framebuffer(),
@@ -246,7 +238,7 @@ int main(int argc, char **argv)
 
 	/* init driver back end */
 	if (Framebuffer_drv::init()) {
-		PERR("H/W driver init failed");
+		Genode::error("H/W driver init failed");
 		return 3;
 	}
 

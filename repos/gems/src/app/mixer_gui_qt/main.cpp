@@ -5,7 +5,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <os/attached_rom_dataspace.h>
 
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	Report_thread *report_thread;
 	try { report_thread = new Report_thread(); }
 	catch (...) {
-		PERR("Could not create Report_thread");
+		Genode::error("Could not create Report_thread");
 		return -1;
 	}
 

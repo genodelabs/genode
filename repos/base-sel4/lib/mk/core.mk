@@ -16,6 +16,8 @@ SRC_CC      += \
                pd_upgrade_ram_quota.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
+               io_port_session_component.cc \
+               io_port_session_support.cc \
                thread_start.cc \
                platform_thread.cc \
                platform_pd.cc \
@@ -33,10 +35,9 @@ SRC_CC      += \
                dump_alloc.cc \
                stack_area.cc \
                capability_space.cc \
-               pager.cc \
-               pager_ep.cc
+               pager.cc
 
-LIBS        += core_printf base-common syscall
+LIBS        += core_log base-common syscall
 
 INC_DIR     += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
                $(REP_DIR)/src/include      $(BASE_DIR)/src/include
@@ -55,13 +56,11 @@ vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
-vpath platform_services.cc        $(GEN_CORE_DIR)
-vpath signal_source_component.cc  $(GEN_CORE_DIR)
+vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
+vpath platform_services.cc        $(GEN_CORE_DIR)/spec/x86
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
-vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
-

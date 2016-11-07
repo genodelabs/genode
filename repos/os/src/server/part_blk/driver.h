@@ -18,6 +18,7 @@
 #include <base/allocator_avl.h>
 #include <base/signal.h>
 #include <base/tslab.h>
+#include <base/heap.h>
 #include <util/list.h>
 #include <block_session/connection.h>
 
@@ -75,19 +76,19 @@ class Block::Driver
 
 		enum { BLK_SZ = Session::TX_QUEUE_SIZE*sizeof(Request) };
 
-		Genode::Tslab<Request, BLK_SZ>    _r_slab;
-		Genode::List<Request>             _r_list;
-		Genode::Allocator_avl             _block_alloc;
-		Block::Connection                 _session;
-		Block::sector_t                   _blk_cnt;
-		Genode::size_t                    _blk_size;
-		Genode::Signal_dispatcher<Driver> _source_ack;
-		Genode::Signal_dispatcher<Driver> _source_submit;
-		Block::Session::Operations        _ops;
+		Genode::Tslab<Request, BLK_SZ> _r_slab;
+		Genode::List<Request>          _r_list;
+		Genode::Allocator_avl          _block_alloc;
+		Block::Connection              _session;
+		Block::sector_t                _blk_cnt;
+		Genode::size_t                 _blk_size;
+		Genode::Signal_handler<Driver> _source_ack;
+		Genode::Signal_handler<Driver> _source_submit;
+		Block::Session::Operations     _ops;
 
-		void _ready_to_submit(unsigned);
+		void _ready_to_submit();
 
-		void _ack_avail(unsigned)
+		void _ack_avail()
 		{
 			/* check for acknowledgements */
 			while (_session.tx()->ack_avail()) {
@@ -102,17 +103,17 @@ class Block::Driver
 				_session.tx()->release_packet(p);
 			}
 
-			_ready_to_submit(0);
+			_ready_to_submit();
 		}
 
 	public:
 
-		Driver(Genode::Signal_receiver &receiver)
-		: _r_slab(Genode::env()->heap()),
-		  _block_alloc(Genode::env()->heap()),
+		Driver(Genode::Entrypoint &ep, Genode::Heap &heap)
+		: _r_slab(&heap),
+		  _block_alloc(&heap),
 		  _session(&_block_alloc, 4 * 1024 * 1024),
-		  _source_ack(receiver, *this, &Driver::_ack_avail),
-		  _source_submit(receiver, *this, &Driver::_ready_to_submit)
+		  _source_ack(ep, *this, &Driver::_ack_avail),
+		  _source_submit(ep, *this, &Driver::_ready_to_submit)
 		{
 			_session.info(&_blk_cnt, &_blk_size, &_ops);
 		}

@@ -111,7 +111,7 @@ struct Vfs_server::Symlink : Node
 	size_t write(Vfs::File_system &vfs, char const *src, size_t len, seek_off_t seek_offset)
 	{
 		/* ensure symlink gets something null-terminated */
-		Genode::String<MAX_PATH_LEN> target(src, len);
+		Genode::String<MAX_PATH_LEN> target(Genode::Cstring(src, len));
 
 		if (vfs.symlink(target.string(), path()) == Directory_service::SYMLINK_OK)
 			return 0;
@@ -262,7 +262,6 @@ struct Vfs_server::Directory : Node
 		size_t remains = len;
 
 		while (remains >= blocksize) {
-			memset(&vfs_dirent, 0x00, sizeof(vfs_dirent));
 			if (vfs.dirent(path(), index++, vfs_dirent)
 				!= Vfs::Directory_service::DIRENT_OK)
 				return len - remains;

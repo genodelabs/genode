@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__ROM_FS_H_
 
 #include <base/stdint.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/avl_tree.h>
 #include <util/avl_string.h>
 
@@ -62,6 +62,11 @@ namespace Genode {
 			/** Accessor functions */
 			addr_t addr() const { return _addr; }
 			size_t size() const { return _size; }
+
+			void print(Output &out) const
+			{
+				Genode::print(out, Hex_range<addr_t>(_addr, _size), " ", name());
+			}
 	};
 
 	class Rom_fs : public Avl_tree<Avl_string_base>
@@ -79,17 +84,17 @@ namespace Genode {
 				if (!r) {
 					Rom_module *first_module = (Rom_module *)first();
 					if (first_module) {
-						printf("Rom_fs %p dump:\n", this);
+						log("ROM modules:");
 						print_fs(first_module);
 					} else {
-						printf("No modules in Rom_fs %p\n", this);
+						log("No modules in Rom_fs ", this);
 					}
 				} else {
+
+					log(" ROM: ", Hex_range<addr_t>(r->addr(), r->size()), " ",
+					    r->name());
+
 					Rom_module *child;
-
-					printf(" Rom: [%08lx,%08lx) %s\n",
-					       r->addr(), r->addr() + r->size(), r->name());
-
 					if ((child = (Rom_module *)r->child(Rom_module::LEFT)))  print_fs(child);
 					if ((child = (Rom_module *)r->child(Rom_module::RIGHT))) print_fs(child);
 				}

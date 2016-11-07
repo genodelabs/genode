@@ -12,6 +12,7 @@
  */
 
 #include <base/snprintf.h>
+#include <base/log.h>
 #include <timer_session/connection.h>
 #include <uart_session/connection.h>
 
@@ -20,7 +21,7 @@ using namespace Genode;
 
 int main()
 {
-	printf("--- UART test started ---\n");
+	log("--- UART test started ---");
 
 	static Timer::Connection timer;
 	static Uart::Connection  uart;

@@ -18,7 +18,6 @@
 #include <kernel/types.h>
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/stdint.h>
 
 /* Core includes */

@@ -61,6 +61,12 @@ int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
 {
 	unsigned long expires = tim.tv64 / (NSEC_PER_MSEC * HZ);
 
+	/*
+	 * Prevent truncation through rounding the values by adding 1 jiffy
+	 * in this case.
+	 */
+	expires += (expires == jiffies);
+
 	if (!Lx::timer().find(timer))
 		Lx::timer().add(timer, Lx::Timer::HR);
 

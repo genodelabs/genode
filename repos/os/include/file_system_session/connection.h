@@ -47,8 +47,8 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 	                                          size_t          tx_buf_size)
 	{
 		return session(parent,
-		               "ram_quota=%zd, "
-		               "tx_buf_size=%zd, "
+		               "ram_quota=%ld, "
+		               "tx_buf_size=%ld, "
 		               "label=\"%s\", "
 		               "root=\"%s\", "
 		               "writeable=%d",
@@ -112,7 +112,6 @@ struct File_system::Connection : File_system::Connection_base
 	 */
 	void upgrade_ram()
 	{
-		PWRN("upgrading File_system session");
 		Genode::env()->parent()->upgrade(cap(), "ram=8K");
 	}
 

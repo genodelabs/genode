@@ -15,14 +15,16 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>
+#include <foc/native_capability.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/cap_map.h>
 
+/* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/utcb.h>
 }

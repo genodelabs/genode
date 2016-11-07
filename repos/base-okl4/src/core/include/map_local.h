@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__MAP_LOCAL_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <util.h>
@@ -36,8 +36,8 @@ namespace Genode {
 		L4_FpageAddRightsTo(&fpage, L4_FullyAccessible);
 		int ret = L4_UnmapFpage(L4_rootspace, fpage);
 		if (ret != 1)
-			PERR("could not unmap page at %p from core (Error Code %ld)",
-			     (void *)base, L4_ErrorCode());
+			error("could not unmap page at ", Hex(base), " from core, "
+			      "error=", L4_ErrorCode());
 	}
 
 	/**
@@ -61,7 +61,7 @@ namespace Genode {
 			fpage.X.rwx = 7;
 
 			if (L4_MapFpage(L4_rootspace, fpage, phys_desc) != 1) {
-				PERR("Core-local memory mapping failed, Error Code=%d\n", (int)L4_ErrorCode());
+				error("core-local memory mapping failed, error=", L4_ErrorCode());
 				return false;
 			}
 			offset += get_page_size();

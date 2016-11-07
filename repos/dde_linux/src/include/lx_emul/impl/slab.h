@@ -18,9 +18,11 @@
 void *kmalloc(size_t size, gfp_t flags)
 {
 	if (flags & __GFP_DMA)
-		PWRN("GFP_DMA memory (below 16 MiB) requested (%p)", __builtin_return_address(0));
+		Genode::warning("GFP_DMA memory (below 16 MiB) requested "
+		                "(", __builtin_return_address(0), ")");
 	if (flags & __GFP_DMA32)
-		PWRN("GFP_DMA32 memory (below 4 GiB) requested (%p)", __builtin_return_address(0));
+		Genode::warning("GFP_DMA32 memory (below 4 GiB) requested"
+		                "(", __builtin_return_address(0), ")");
 
 	void *addr = nullptr;
 
@@ -29,7 +31,7 @@ void *kmalloc(size_t size, gfp_t flags)
 		: Lx::Malloc::mem().alloc(size);
 
 	if ((Genode::addr_t)addr & 0x3)
-		PERR("unaligned kmalloc %lx", (Genode::addr_t)addr);
+		Genode::error("unaligned kmalloc ", (Genode::addr_t)addr);
 
 	if (flags & __GFP_ZERO)
 		Genode::memset(addr, 0, size);
@@ -68,8 +70,8 @@ void kfree(void const *p)
 	else if (Lx::Malloc::dma().inside((Genode::addr_t)p))
 		Lx::Malloc::dma().free(p);
 	else
-		PERR("%s: unknown block at %p, called from %p", __func__,
-		     p, __builtin_return_address(0));
+		Genode::error(__func__, ": unknown block at ", p, ", "
+		              "called from ", __builtin_return_address(0));
 }
 
 
@@ -82,7 +84,7 @@ static size_t _ksize(void *p)
 	else if (Lx::Malloc::dma().inside((Genode::addr_t)p))
 		size = Lx::Malloc::dma().size(p);
 	else
-		PERR("%s: unknown block at %p", __func__, p);
+		Genode::error(__func__, ": unknown block at ", p);
 
 	return size;
 }
@@ -165,7 +167,13 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 	 * XXX SLAB_LX_DMA is never used anywhere else, remove it?
 	 */
 	enum { SLAB_LX_DMA = 0x80000000ul, };
-	return new (Genode::env()->heap()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
+	return new (Lx::Malloc::mem()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
+}
+
+
+void kmem_cache_destroy(struct kmem_cache *cache)
+{
+	destroy(Lx::Malloc::mem(), cache);
 }
 
 

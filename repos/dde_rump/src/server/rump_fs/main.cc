@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,14 +14,17 @@
 
 /* Genode includes */
 #include <file_system/node_handle_registry.h>
+#include <file_system_session/rpc_object.h>
+#include <timer_session/connection.h>
+#include <os/session_policy.h>
+#include <root/component.h>
+#include <base/component.h>
+#include <base/heap.h>
 
 #include "undef.h"
 
-#include <file_system_session/rpc_object.h>
-#include <os/server.h>
-#include <os/session_policy.h>
-#include <root/component.h>
-#include  <rump_fs/fs.h>
+#include <rump_fs/fs.h>
+#include <sys/resource.h>
 #include "file_system.h"
 #include "directory.h"
 
@@ -40,7 +43,7 @@ class File_system::Session_component : public Session_rpc_object
 		Node_handle_registry  _handle_registry;
 		bool                  _writable;
 
-		Signal_rpc_member<Session_component> _process_packet_dispatcher;
+		Signal_handler<Session_component> _process_packet_handler;
 
 
 		/******************************
@@ -93,7 +96,7 @@ class File_system::Session_component : public Session_rpc_object
 
 				_process_packet_op(packet, *node);
 			}
-			catch (Invalid_handle)     { PERR("Invalid_handle");     }
+			catch (Invalid_handle) { Genode::error("Invalid_handle"); }
 
 			/*
 			 * The 'acknowledge_packet' function cannot block because we
@@ -106,7 +109,7 @@ class File_system::Session_component : public Session_rpc_object
 		 * Called by signal dispatcher, executed in the context of the main
 		 * thread (not serialized with the RPC functions)
 		 */
-		void _process_packets(unsigned)
+		void _process_packets()
 		{
 			while (tx_sink()->packet_avail()) {
 
@@ -134,10 +137,8 @@ class File_system::Session_component : public Session_rpc_object
 		 */
 		static void _assert_valid_path(char const *path)
 		{
-			if (!path || path[0] != '/') {
-				PWRN("malformed path '%s'", path);
+			if (!path || path[0] != '/')
 				throw Lookup_failed();
-			}
 		}
 
 	public:
@@ -145,24 +146,24 @@ class File_system::Session_component : public Session_rpc_object
 		/**
 		 * Constructor
 		 */
-		Session_component(size_t              tx_buf_size,
-		                  Server::Entrypoint &ep,
+		Session_component(Genode::Env        &env,
+		                  size_t              tx_buf_size,
 		                  char const         *root_dir,
 		                  bool                writeable,
 		                  Allocator          &md_alloc)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+			Session_rpc_object(env.ram().alloc(tx_buf_size), env.ep().rpc_ep()),
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
 			_writable(writeable),
-			_process_packet_dispatcher(ep, *this, &Session_component::_process_packets)
+			_process_packet_handler(env.ep(), *this, &Session_component::_process_packets)
 		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
 			 * handler for packet-avail and ready-to-ack signals.
 			 */
-			_tx.sigh_packet_avail(_process_packet_dispatcher);
-			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+			_tx.sigh_packet_avail(_process_packet_handler);
+			_tx.sigh_ready_to_ack(_process_packet_handler);
 		}
 
 		/**
@@ -286,10 +287,7 @@ class File_system::Session_component : public Session_rpc_object
 			return Status();
 		}
 
-		void control(Node_handle, Control)
-		{
-			PERR("%s not implemented", __func__);
-		}
+		void control(Node_handle, Control) override { }
 
 		void unlink(Dir_handle dir_handle, Name const &name)
 		{
@@ -345,11 +343,11 @@ class File_system::Session_component : public Session_rpc_object
 			case ENOENT: throw Lookup_failed();
 			}
 
-			PWRN("renameat produced unhandled error %x %s %s", errno, from_str, to_str);
+			Genode::warning("renameat produced unhandled error ", errno, ", ", from_str, " -> ", to_str);
 			throw Permission_denied();
 		}
 
-		void sigh(Node_handle node_handle, Signal_context_capability sigh)
+		void sigh(Node_handle node_handle, Signal_context_capability sigh) override
 		{
 			_handle_registry.sigh(node_handle, sigh);
 		}
@@ -361,90 +359,87 @@ class File_system::Root : public Root_component<Session_component>
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Env &_env;
 
 	protected:
 
 		Session_component *_create_session(const char *args)
 		{
+			using namespace Genode;
+
 			/*
 			 * Determine client-specific policy defined implicitly by
 			 * the client's label.
 			 */
 
-			char const *root_dir  = ".";
-			bool        writeable = false;
+			Genode::Path<MAX_PATH_LEN> session_root;
+			bool writeable = false;
 
-			enum { ROOT_MAX_LEN = 256 };
-			char root[ROOT_MAX_LEN];
-			root[0] = 0;
-
-			Session_label  label(args);
-			try {
-				Session_policy policy(label);
-
-				/*
-				 * Determine directory that is used as root directory of
-				 * the session.
-				 */
-				try {
-					policy.attribute("root").value(root, sizeof(root));
-
-					/*
-					 * Make sure the root path is specified with a
-					 * leading path delimiter. For performing the
-					 * lookup, we skip the first character.
-					 */
-					if (root[0] != '/')
-						throw Lookup_failed();
-
-					root_dir = root;
-				} catch (Xml_node::Nonexistent_attribute) {
-					PERR("Missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
-				} catch (Lookup_failed) {
-					PERR("Session root directory \"%s\" does not exist", root);
-					throw Root::Unavailable();
-				}
-
-				/*
-				 * Determine if write access is permitted for the session.
-				 */
-				try {
-					writeable = policy.attribute("writeable").has_value("yes");
-				} catch (Xml_node::Nonexistent_attribute) { }
-
-			} catch (Session_policy::No_policy_defined) {
-				PERR("Invalid session request, no matching policy");
-				throw Root::Unavailable();
-			}
+			Session_label const label = label_from_args(args);
 
 			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+				Arg_string::find_arg(args, "ram_quota").aligned_size();
 			size_t tx_buf_size =
-				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
 
-			if (!tx_buf_size) {
-				PERR("%s requested a session with a zero length transmission buffer", label.string());
+			if (!tx_buf_size)
 				throw Root::Invalid_args();
-			}
 
 			/*
 			 * Check if donated ram quota suffices for session data,
 			 * and communication buffer.
 			 */
-			size_t session_size = sizeof(Session_component) + tx_buf_size;
-			if (max((size_t)4096, session_size) > ram_quota) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, session_size);
+			size_t session_size =
+				max((size_t)4096, sizeof(Session_component)) +
+				tx_buf_size;
+
+			if (session_size > ram_quota) {
+				Genode::error("insufficient 'ram_quota' from ", label.string(),
+				              " got ", ram_quota, "need ", session_size);
 				throw Root::Quota_exceeded();
 			}
+			ram_quota -= session_size;
+
+			char tmp[MAX_PATH_LEN];
+			try {
+				Session_policy policy(label);
+
+				/* Determine the session root directory.
+				 * Defaults to '/' if not specified by session
+				 * policy or session arguments.
+				 */
+				try {
+					policy.attribute("root").value(tmp, sizeof(tmp));
+					session_root.import(tmp, "/");
+				} catch (Xml_node::Nonexistent_attribute) { }
+
+				/* Determine if the session is writeable.
+				 * Policy overrides arguments, both default to false.
+				 */
+				if (policy.attribute_value("writeable", false))
+					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
+
+			} catch (...) { }
+
+			/*
+			 * If no policy matches the client gets
+			 * read-only access to the root.
+			 */
+
+			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+				session_root.append("/");
+				session_root.append(tmp);
+			}
+			session_root.remove_trailing('/');
+
+			char const *root_dir = session_root.base();
 
 			try {
 				return new (md_alloc())
-					Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
+					Session_component(_env, tx_buf_size, root_dir, writeable, *md_alloc());
 			} catch (Lookup_failed) {
-				PERR("File system root directory \"%s\" does not exist", root_dir);
+				Genode::error("File system root directory \"", root_dir, "\" does not exist");
 				throw Root::Unavailable();
 			}
 		}
@@ -453,53 +448,73 @@ class File_system::Root : public Root_component<Session_component>
 
 		/**
 		 * Constructor
-		 *
-		 * \param ep          entrypoint
-		 * \param sig_rec     signal receiver used for handling the
-		 *                    data-flow signals of packet streams
-		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Server::Entrypoint &ep, Allocator &md_alloc)
+		Root(Genode::Env &env, Allocator &md_alloc)
 		:
-			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep)
+			Root_component<Session_component>(env.ep(), md_alloc),
+			_env(env)
 		{ }
 };
 
 
 struct File_system::Main
 {
-	Server::Entrypoint             &ep;
-	Server::Signal_rpc_member<Main> resource_dispatcher;
+	Genode::Env &env;
+
+	Timer::Connection _timer { env };
+
+	/* return immediately from resource requests */
+	void ignore_resource() { }
+
+	Genode::Signal_handler<Main> resource_handler
+		{ env.ep(), *this, &Main::ignore_resource };
+
+	/* periodic sync */
+	void sync()
+	{
+		/* sync through front-end */
+		rump_sys_sync();
+		/* sync Genode back-end */
+		rump_io_backend_sync();
+	}
+
+	Genode::Signal_handler<Main> sync_handler
+		{ env.ep(), *this, &Main::sync };
 
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Sliced_heap sliced_heap = { env.ram(), env.rm() };
 
-	Root fs_root = { ep, sliced_heap };
+	Root fs_root = { env, sliced_heap };
 
-
-	/* return immediately from resource requests */
-	void resource_handler(unsigned) { }
-
-	Main(Server::Entrypoint &ep)
-		:
-			ep(ep),
-			resource_dispatcher(ep, *this, &Main::resource_handler)
+	Main(Genode::Env &env) : env(env)
 	{
-		File_system::init(ep);
-		env()->parent()->announce(ep.manage(fs_root));
-		env()->parent()->resource_avail_sigh(resource_dispatcher);
+		File_system::init();
+
+			/* set all bits but the stickies */
+		rump_sys_umask(S_ISUID|S_ISGID|S_ISVTX);
+
+		/* set open file limit to maximum (256) */
+		struct rlimit rl { RLIM_INFINITY, RLIM_INFINITY };
+		if (rump_sys_setrlimit(RLIMIT_NOFILE, &rl) != 0)
+			Genode::error("rump_sys_setrlimit(RLIMIT_NOFILE, ...) failed, errno ", errno);
+
+		env.parent().announce(env.ep().manage(fs_root));
+		env.parent().resource_avail_sigh(resource_handler);
+
+		_timer.sigh(sync_handler);
+		_timer.trigger_periodic(10*1000*1000);
 	}
 };
 
 
 /**********************
- ** Server framework **
+ ** Component framework **
  **********************/
 
-char const *   Server::name()                            { return "rump_fs_ep"; }
-Genode::size_t Server::stack_size()                      { return 4 * 1024 * sizeof(long); }
-void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }
+namespace Component {
+	     Genode::size_t stack_size() { return 4 * 1024 * sizeof(long);     }
+	void construct(Genode::Env &env) { static File_system::Main inst(env); }
+}
 

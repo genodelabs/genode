@@ -25,6 +25,8 @@ class Test::Throughput
 {
 	private:
 
+		typedef Genode::size_t size_t;
+
 		Allocator_avl     _alloc{env()->heap() };
 		Block::Connection _session { &_alloc, TX_BUFFER };
 		Timer::Connection _timer;
@@ -77,7 +79,8 @@ class Test::Throughput
 
 				Block::Packet_descriptor p = _session.tx()->get_acked_packet();
 				if (!p.succeeded())
-					PERR("Packet error: block: %llu count: %zu", p.block_number(), p.block_count());
+					error("packet error: block: ", p.block_number(), " "
+					      "count: ", p.block_count());
 
 				if (!_read_done || (_read_done &&  p.operation() == Block::Packet_descriptor::WRITE))
 					_bytes += p.size();
@@ -99,7 +102,7 @@ class Test::Throughput
 				return;
 
 			_stop = _timer.elapsed_ms();
-			::printf("%s %zu KB in %lu ms (%.02f MB/s)\n",
+			::printf("%s %lu KB in %lu ms (%.02f MB/s)\n",
 			         !_read_done ? "Read" : "Wrote",
 			         _bytes / 1024, _stop - _start,
 			         ((double)_bytes / (1024 * 1024)) / ((double)(_stop - _start) / 1000));
@@ -133,8 +136,8 @@ class Test::Throughput
 			Block::Session::Operations blk_ops;
 			_session.info(&_blk_count, &_blk_size, &blk_ops);
 
-			PWRN("block count %llu size %zu", _blk_count, _blk_size);
-			PINF("read/write %u KB ...", TEST_SIZE / 1024);
+			warning("block count ", _blk_count, " size ", _blk_size);
+			log("read/write ", TEST_SIZE / 1024, " KB ...");
 			_start = _timer.elapsed_ms();
 			_submit();
 		}
@@ -151,8 +154,9 @@ struct Test::Main
 
 
 namespace Server {
-	char const *name()       { return "block_bench_ep"; };
-	size_t      stack_size() { return 2*1024*sizeof(long); }
+
+	char const *name()          { return "block_bench_ep"; };
+	Genode::size_t stack_size() { return 2*1024*sizeof(long); }
 
 	void construct(Entrypoint &ep)
 	{

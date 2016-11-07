@@ -11,10 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include "libc_debug.h"
+/* Genode includes */
+#include <base/log.h>
 
 extern "C" int issetugid(void)
 {
-	raw_write_str("issetugid called, not yet implemented, returning 1\n");
+	Genode::raw("issetugid called, not yet implemented, returning 1");
 	return 1;
 }

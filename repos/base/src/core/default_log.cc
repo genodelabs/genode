@@ -1,6 +1,7 @@
 /*
  * \brief  Access to the core's log facility
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2016-05-03
  */
 
@@ -13,15 +14,17 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/printf.h>
+#include <base/lock.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
 #include <base/internal/output.h>
 #include <base/internal/unmanaged_singleton.h>
 
-using namespace Genode;
+/* core includes */
+#include <core_log.h>
 
+using namespace Genode;
 
 static Log *log_ptr;
 
@@ -32,14 +35,19 @@ Log &Log::log() { return *log_ptr; }
 void Genode::init_log()
 {
 	/* ignore subsequent calls */
-	if (log_ptr)
-		return;
+	if (log_ptr) return;
 
-	/*
-	 * Currently, we still rely on the old format-string support and
-	 * produce output via 'core_printf.cc'.
-	 */
-	struct Write_fn { void operator () (char const *s) { printf("%s", s); } };
+	struct Write_fn
+	{
+		Lock     lock;
+		Core_log log;
+
+		void operator () (char const *s)
+		{
+			Lock::Guard guard(lock);
+			log.output(s);
+		}
+	};
 
 	typedef Buffered_output<512, Write_fn> Buffered_log_output;
 
@@ -48,4 +56,3 @@ void Genode::init_log()
 
 	log_ptr = unmanaged_singleton<Log>(*buffered_log_output);
 }
-

@@ -58,6 +58,12 @@ void Genode::print(Output &output, unsigned long value)
 }
 
 
+void Genode::print(Output &output, unsigned long long value)
+{
+	out_unsigned<unsigned long long>(value, 10, 0, [&] (char c) { output.out_char(c); });
+}
+
+
 void Genode::print(Output &output, long value)
 {
 	out_signed<long>(value, 10, [&] (char c) { output.out_char(c); });
@@ -69,15 +75,28 @@ void Genode::print(Output &output, long long value)
 	out_signed<long long>(value, 10, [&] (char c) { output.out_char(c); });
 }
 
-
-void Genode::print(Output &output, Hex const &value)
+void Genode::print(Output &output, float value)
 {
-	if (value.prefix == Hex::PREFIX)
+	out_float<float>(value, 10, 3, [&] (char c) { output.out_char(c); });
+}
+
+void Genode::print(Output &output, double value)
+{
+	out_float<double>(value, 10, 6, [&] (char c) { output.out_char(c); });
+}
+
+void Genode::Hex::print(Output &output) const
+{
+	if (_prefix == Hex::PREFIX)
 		output.out_string("0x");
 
-	size_t const pad_len = value.pad ? value.digits : 0;
+	size_t const pad_len = (_pad == Hex::PAD) ? _digits : 0;
 
-	out_unsigned<unsigned long>(value.value, 16, pad_len,
-	                            [&] (char c) { output.out_char(c); });
+	/* mask possible sign-extension bits */
+	unsigned long long mask = 0;
+	for (size_t i = 0; i < _digits; ++i) mask = (mask << 4) | 0xf;
+
+	out_unsigned<unsigned long long>(_value & mask, 16, pad_len,
+	                                [&] (char c) { output.out_char(c); });
 }
 

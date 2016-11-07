@@ -1,0 +1,11 @@
+--- src/kernel/sel4/include/plat/pc99/autoconf.h
++++ src/kernel/sel4/include/plat/pc99/autoconf.h
+@@ -77,7 +77,7 @@
+ #define CONFIG_USER_OPTIMISATION_O2 1
+ #define CONFIG_LIB_CPIO 1
+ #define CONFIG_RETYPE_FAN_OUT_LIMIT 256
+-#define CONFIG_ROOT_CNODE_SIZE_BITS 12
++#define CONFIG_ROOT_CNODE_SIZE_BITS 18
+ #define CONFIG_NUM_PRIORITIES 256
+ #define CONFIG_TESTPRINTER_REGEX ".*"
+ #define CONFIG_APP_SEL4TEST 1

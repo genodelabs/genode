@@ -14,7 +14,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
+#include <base/heap.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <gpio/component.h>
@@ -39,7 +40,7 @@ struct Main
 		root(&ep.rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;
-		printf("--- RaspberryPI gpio driver ---\n");
+		log("--- Raspberry Pi GPIO driver ---");
 
 		/*
 		 * Check configuration for async events detect
@@ -76,14 +77,14 @@ struct Main
 					case 3: driver.set_func(num, Gpio::Reg::FSEL_ALT3); break;
 					case 4: driver.set_func(num, Gpio::Reg::FSEL_ALT4); break;
 					case 5: driver.set_func(num, Gpio::Reg::FSEL_ALT5); break;
-					default: PWRN("Wrong pin function. Ignore node.");
+					default: warning("wrong pin function, ignore node");
 					}
 				} catch(Xml_node::Nonexistent_attribute) {
-					PWRN("Missing attribute. Ignore node.");
+					warning("missing attribute, ignore node");
 				}
 				if (gpio_node.last("gpio")) break;
 			}
-		} catch (Xml_node::Nonexistent_sub_node) { PWRN("No GPIO config"); }
+		} catch (Xml_node::Nonexistent_sub_node) { warning("no GPIO config"); }
 
 		/*
 		 * Announce service

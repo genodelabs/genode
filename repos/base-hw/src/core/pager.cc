@@ -12,12 +12,15 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes*/
 #include <pager.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
+
+/* base-internal includes */
+#include <base/internal/capability_space.h>
 
 using namespace Genode;
 
@@ -65,7 +68,7 @@ void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 void Pager_object::wake_up()
 {
 	using Object = Kernel_object<Kernel::Signal_context>;
-	Kernel::ack_signal(Object::_cap.dst());
+	Kernel::ack_signal(Capability_space::capid(Object::_cap));
 }
 
 void Pager_object::start_paging(Kernel::Signal_receiver * receiver)
@@ -83,14 +86,24 @@ void Pager_object::unresolved_page_fault_occurred()
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
-		PERR("%s -> %s: unresolved pagefault at ip=%lx sp=%lx fault address=%lx",
-		     pt->pd()->label(), pt->label(), pt->kernel_object()->ip,
-		     pt->kernel_object()->sp, pt->kernel_object()->fault_addr());
+		warning("page fault, pager_object: pd='", pt->pd()->label(),
+		        "' thread='", pt->label(),
+		        "' ip=", Hex(pt->kernel_object()->ip),
+		        " pf-addr=", Hex(pt->kernel_object()->fault_addr()));
+}
+
+void Pager_object::print(Output &out) const
+{
+	Platform_thread * const pt = (Platform_thread *)badge();
+	if (pt && pt->pd())
+		Genode::print(out, "pager_object: pd='", pt->pd()->label(),
+		                   "' thread='", pt->label(), "'");
 }
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Thread_capability thread_cap, unsigned const badge,
-                           Affinity::Location)
+                           Affinity::Location, Session_label const &,
+                           Cpu_session::Name const &)
 :
 	Object_pool<Pager_object>::Entry(Kernel_object<Kernel::Signal_context>::_cap),
 	_badge(badge), _cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap)

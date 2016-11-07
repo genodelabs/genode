@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/thread.h>
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -67,7 +67,7 @@ class Fpu_user : public Thread_deprecated<0x2000>
 
 		void entry()
 		{
-			Genode::printf("FPU user started\n");
+			Genode::log("FPU user started");
 			bool submitted = false;
 			while (1) {
 				enum { TRIALS = 1000 };
@@ -78,7 +78,7 @@ class Fpu_user : public Thread_deprecated<0x2000>
 					_calc(a, c);
 					_calc(b, c);
 					if (a != b) {
-						PERR("calculation error");
+						Genode::error("calculation error");
 						_st->submit(1);
 						sleep_forever();
 					}
@@ -108,7 +108,7 @@ int main()
 	}
 	/* wait for an ack of every FPU user */
 	for (unsigned i = 0; i < FPU_USERS;) { i += sr.wait_for_signal().num(); }
-	printf("test done\n");
+	log("test done");
 	sleep_forever();
 	return 0;
 }

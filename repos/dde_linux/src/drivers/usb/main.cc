@@ -11,12 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <os/server.h>
+#include <base/component.h>
 
-extern void start_usb_driver(Server::Entrypoint &e);
+extern void start_usb_driver(Genode::Env &env);
 
-namespace Server {
-	char const *name()            { return "usb_drv_ep";        }
-	size_t      stack_size()      { return 4*1024*sizeof(long); }
-	void construct(Entrypoint &e) { start_usb_driver(e);        }
-}
+
+Genode::size_t Component::stack_size() {
+	return 4*1024*sizeof(long); }
+
+
+void Component::construct(Genode::Env &env) { start_usb_driver(env); }

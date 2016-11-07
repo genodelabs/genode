@@ -48,7 +48,7 @@ namespace Libc {
 					Dataspace(Genode::Ram_dataspace_capability c, void *a)
 					: cap(c), local_addr(a) {}
 
-					inline void * operator new(Genode::size_t, void* addr) {
+					inline void * operator new(__SIZE_TYPE__, void* addr) {
 						return addr; }
 
 					inline void operator delete(void*) { }

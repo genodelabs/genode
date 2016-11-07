@@ -12,16 +12,13 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
 #include <ram_session_component.h>
 
 using namespace Genode;
-
-
-static const bool verbose = false;
 
 
 addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
@@ -37,13 +34,13 @@ addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
 
 void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 {
-	Dataspace_component *ds;
+	Dataspace_component *ds = nullptr;
 	_ds_ep->apply(ds_cap, [&] (Dataspace_component *c)
 	{
-		ds = c;
+		if (!c) return;
+		if (!c->owner(this)) return;
 
-		if (!ds) return;
-		if (!ds->owner(this)) return;
+		ds = c;
 
 		size_t ds_size = ds->size();
 
@@ -65,7 +62,8 @@ void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 	});
 
 	/* call dataspace destructors and free memory */
-	destroy(&_ds_slab, ds);
+	if (ds)
+		destroy(&_ds_slab, ds);
 }
 
 
@@ -80,8 +78,8 @@ int Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t am
 
 	/* decrease quota limit of this session - check against used quota */
 	if (_quota_limit < amount + _payload) {
-		PWRN("Insufficient quota for transfer: %s", _label);
-		PWRN("  have %zu, need %zu", _quota_limit - _payload, amount);
+		warning("Insufficient quota for transfer: ", Cstring(_label));
+		warning("  have ", _quota_limit - _payload, ", need ", amount);
 		return -3;
 	}
 
@@ -131,19 +129,8 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	 * meta data of the dataspace to be created - therefore, we add
 	 * the slab block size here.
 	 */
-	if (used_quota() + SBS + ds_size > _quota_limit) {
-
-		if (verbose) {
-			PWRN("Quota exceeded: %s", _label);
-			PWRN("  memory for slab:               %zu", _ds_slab.consumed());
-			PWRN("  used quota:                    %zu", used_quota());
-			PWRN("  ds_size:                       %zu", ds_size);
-			PWRN("  sizeof(Ram_session_component): %zu", sizeof(Ram_session_component));
-			PWRN("  quota_limit:                   %zu", _quota_limit);
-		}
-
+	if (used_quota() + SBS + ds_size > _quota_limit)
 		throw Quota_exceeded();
-	}
 
 	/*
 	 * Allocate physical backing store
@@ -170,7 +157,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	 * fragmentation could cause a failing allocation.
 	 */
 	if (!alloc_succeeded) {
-		PERR("We ran out of physical memory while allocating %zu bytes", ds_size);
+		error("out of physical memory while allocating ", ds_size, " bytes");
 		throw Quota_exceeded();
 	}
 
@@ -184,7 +171,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 		ds = new (&_ds_slab)
 			Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
 	} catch (Allocator::Out_of_memory) {
-		PWRN("Could not allocate metadata");
+		warning("Could not allocate metadata");
 		/* cleanup unneeded resources */
 		_ram_alloc->free(ds_addr);
 
@@ -195,7 +182,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	try {
 		_export_ram_ds(ds);
 	} catch (Out_of_metadata) {
-		PWRN("could not export RAM dataspace of size 0x%zx", ds->size());
+		warning("could not export RAM dataspace of size ", ds->size());
 		/* cleanup unneeded resources */
 		destroy(&_ds_slab, ds);
 		_ram_alloc->free(ds_addr);
@@ -209,10 +196,6 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	 * address range used by the dataspace.
 	 */
 	_clear_ds(ds);
-
-	if (verbose)
-		PDBG("ds_size=%zu, used_quota=%zu quota_limit=%zu",
-		     ds_size, used_quota(), _quota_limit);
 
 	Dataspace_capability result = _ds_ep->manage(ds);
 
@@ -254,9 +237,6 @@ int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
                                           size_t amount)
 {
-	if (verbose)
-		PDBG("amount=%zu", amount);
-
 	auto lambda = [&] (Ram_session_component *dst) {
 		return _transfer_quota(dst, amount); };
 	return _ram_session_ep->apply(ram_session_cap, lambda);
@@ -294,7 +274,7 @@ Ram_session_component::~Ram_session_component()
 	     _free_ds(ds->cap()));
 
 	if (_payload != 0)
-		PWRN("Remaining payload of %zu in ram session to destroy", _payload);
+		warning("Remaining payload of ", _payload, " in ram session to destroy");
 
 	if (!_ref_account) return;
 

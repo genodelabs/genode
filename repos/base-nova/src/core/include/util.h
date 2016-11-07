@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
@@ -33,44 +33,23 @@ namespace Genode {
 	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
 
 
-	inline size_t constrain_map_size_log2(size_t size_log2) { return size_log2; }
-
-
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long faulter_badge)
+	inline size_t constrain_map_size_log2(size_t size_log2)
 	{
-		Platform_thread * faulter = reinterpret_cast<Platform_thread *>(faulter_badge);
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx '%s':'%s')\n", msg,
-		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
-		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge, faulter ? faulter->pd_name() : "unknown",
-		       faulter ? faulter->name() : "unknown");
+		/* Nova::Mem_crd order has 5 bits available and is in 4K page units */
+		enum { MAX_MAP_LOG2 = (1U << 5) - 1 + 12 };
+		return size_log2 > MAX_MAP_LOG2 ? MAX_MAP_LOG2 : size_log2;
 	}
 
 
 	inline void backtrace()
 	{
 		using namespace Genode;
-		printf("\nbacktrace\n");
-		printf(" %p\n", __builtin_return_address(0));
-		printf(" %p\n", __builtin_return_address(1));
-		printf(" %p\n", __builtin_return_address(2));
-		printf(" %p\n", __builtin_return_address(3));
-		printf(" %p\n", __builtin_return_address(4));
-	}
-
-
-	inline void hexdump(void *addr)
-	{
-		unsigned char *s = (unsigned char *)addr;
-		printf("\nhexdump at 0x%p:\n", addr);
-		for (unsigned j = 0; j < 4; j++) {
-			printf("  ");
-			for (unsigned i = 0; i < 16; i++)
-				printf("0x%02x ", s[j*16 + i]);
-			printf("\n");
-		}
+		log("\nbacktrace");
+		log(" ", __builtin_return_address(0));
+		log(" ", __builtin_return_address(1));
+		log(" ", __builtin_return_address(2));
+		log(" ", __builtin_return_address(3));
+		log(" ", __builtin_return_address(4));
 	}
 }
 

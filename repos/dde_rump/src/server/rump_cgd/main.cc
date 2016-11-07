@@ -22,43 +22,31 @@
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
+	Genode::Heap heap { env.ram(), env.rm() };
 
 	struct Factory : Block::Driver_factory
 	{
-		Server::Entrypoint &ep;
+		Genode::Entrypoint &ep;
+		Genode::Heap       &heap;
 
-		Factory(Server::Entrypoint &ep) : ep(ep) { }
+		Factory(Genode::Entrypoint &ep, Genode::Heap &heap)
+		: ep(ep), heap(heap) { }
 
-		Block::Driver *create()
-		{
-			return new (Genode::env()->heap()) Driver(ep);
-		}
+		Block::Driver *create() {
+			return new (&heap) Driver(ep); }
 
-		void destroy(Block::Driver *driver)
-		{
-			Genode::destroy(Genode::env()->heap(), driver);
-		}
+		void destroy(Block::Driver *driver) {
+			Genode::destroy(&heap, driver); }
 
-	} factory;
+	} factory { env.ep(), heap };
 
-	Block::Root root;
+	Block::Root root { env.ep(), heap, factory };
 
-	Main(Server::Entrypoint &ep)
-	:
-		ep(ep), factory(ep), root(ep, Genode::env()->heap(), factory)
-	{
-		Genode::env()->parent()->announce(ep.manage(root));
-	}
+	Main(Genode::Env &env) : env(env) {
+		env.parent().announce(env.ep().manage(root)); }
 };
 
 
-/**********************
- ** Server framework **
- **********************/
-
-namespace Server {
-	char const *name()                    { return "rump_cgd_ep"; }
-	size_t      stack_size()              { return 4 * 1024 * sizeof(long); }
-	void        construct(Entrypoint &ep) { static Main inst(ep); }
-}
+Genode::size_t Component::stack_size()      { return 4 * 1024 * sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main inst(env);          }

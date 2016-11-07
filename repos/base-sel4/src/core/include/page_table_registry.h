@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <base/exception.h>
+#include <base/log.h>
 
 /* core includes */
 #include <util.h>
@@ -30,6 +31,7 @@ class Genode::Page_table_registry
 	public:
 
 		class Lookup_failed : Exception { };
+		class Mapping_cache_full : Exception { };
 
 	private:
 
@@ -50,8 +52,6 @@ class Genode::Page_table_registry
 				};
 
 				addr_t const addr;
-
-				static constexpr bool verbose = false;
 
 			private:
 
@@ -77,6 +77,8 @@ class Genode::Page_table_registry
 
 				Page_table(addr_t addr) : addr(addr) { }
 
+				Entry *first() { return _entries.first(); }
+
 				Entry &lookup(addr_t addr)
 				{
 					for (Entry *e = _entries.first(); e; e = e->next()) {
@@ -89,11 +91,15 @@ class Genode::Page_table_registry
 				void insert_entry(Allocator &entry_alloc, addr_t addr, unsigned sel)
 				{
 					if (_entry_exists(addr)) {
-						PWRN("trying to insert page frame for 0x%lx twice", addr);
+						warning("trying to insert page frame for ", Hex(addr), " twice");
 						return;
 					}
 
-					_entries.insert(new (entry_alloc) Entry(addr, sel));
+					try {
+						_entries.insert(new (entry_alloc) Entry(addr, sel));
+					} catch (Genode::Allocator::Out_of_memory) {
+						throw Mapping_cache_full();
+					}
 				}
 
 				void remove_entry(Allocator &entry_alloc, addr_t addr)
@@ -102,9 +108,14 @@ class Genode::Page_table_registry
 						Entry &entry = lookup(addr);
 						_entries.remove(&entry);
 						destroy(entry_alloc, &entry);
-					} catch (Lookup_failed) {
-						if (verbose)
-							PWRN("trying to remove non-existing page frame for 0x%lx", addr);
+					} catch (Lookup_failed) { }
+				}
+
+				void flush_all(Allocator &entry_alloc)
+				{
+					for (; Entry *entry = _entries.first();) {
+						_entries.remove(entry);
+						destroy(entry_alloc, entry);
 					}
 				}
 		};
@@ -140,7 +151,7 @@ class Genode::Page_table_registry
 					*out_addr = nullptr;
 
 					if (size > sizeof(Elem_space)) {
-						PERR("unexpected allocation size of %zd", size);
+						error("unexpected allocation size of ", size);
 						return false;
 					}
 
@@ -165,7 +176,7 @@ class Genode::Page_table_registry
 		};
 
 		Static_allocator<Page_table, 128>         _page_table_alloc;
-		Static_allocator<Page_table::Entry, 4096> _page_table_entry_alloc;
+		Static_allocator<Page_table::Entry, 3 * 1024> _page_table_entry_alloc;
 
 		List<Page_table> _page_tables;
 
@@ -189,11 +200,9 @@ class Genode::Page_table_registry
 				if (_page_table_base(pt->addr) == _page_table_base(addr))
 					return *pt;
 			}
-			PDBG("page-table lookup failed");
+			warning(__func__, ": page-table lookup failed");
 			throw Lookup_failed();
 		}
-
-		static constexpr bool verbose = false;
 
 	public:
 
@@ -207,6 +216,12 @@ class Genode::Page_table_registry
 		 */
 		Page_table_registry(Allocator &md_alloc) { }
 
+		~Page_table_registry()
+		{
+			if (_page_tables.first())
+				error("still entries in page table registry in destruction");
+		}
+
 		/**
 		 * Register page table
 		 *
@@ -218,7 +233,7 @@ class Genode::Page_table_registry
 			/* XXX sel is unused */
 
 			if (_page_table_exists(addr)) {
-				PWRN("trying to insert page table for 0x%lx twice", addr);
+				warning("attempt to insert page table for ", Hex(addr), " twice");
 				return;
 			}
 
@@ -251,10 +266,14 @@ class Genode::Page_table_registry
 			try {
 				Page_table &page_table = _lookup(addr);
 				page_table.remove_entry(_page_table_entry_alloc, addr);
-			} catch (...) {
-				if (verbose)
-					PDBG("no PT entry found for virtual address 0x%lx", addr);
-			}
+			} catch (...) { }
+		}
+
+
+		void flush_cache()
+		{
+			for (Page_table *pt = _page_tables.first(); pt; pt = pt->next())
+				pt->flush_all(_page_table_entry_alloc);
 		}
 
 		/**
@@ -273,9 +292,22 @@ class Genode::Page_table_registry
 				Page_table::Entry &entry      = page_table.lookup(addr);
 
 				fn(entry.sel);
-			} catch (...) {
-				if (verbose)
-					PDBG("no PT entry found for virtual address 0x%lx", addr);
+			} catch (...) { }
+		}
+
+		template <typename FN>
+		void apply_to_and_destruct_all(FN const &fn)
+		{
+			for (Page_table *pt; (pt = _page_tables.first());) {
+
+				Page_table::Entry *entry = pt->first();
+				for (; entry; entry = entry->next())
+					fn(entry->sel);
+
+				pt->flush_all(_page_table_entry_alloc);
+
+				_page_tables.remove(pt);
+				destroy(_page_table_alloc, pt);
 			}
 		}
 };

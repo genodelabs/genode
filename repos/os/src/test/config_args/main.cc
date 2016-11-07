@@ -12,31 +12,31 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 using namespace Genode;
 
 int main(int argc, char **argv)
 {
-	printf("--- config args test started ---\n");
+	log("--- config args test started ---");
 
 	if (argc != 2) {
-		PERR("Error: argc is not as expected");
+		error("argc is not as expected");
 		return -1;
 	}
 
 	if (strcmp(argv[0], "test-config_args") != 0) {
-		PERR("Error: argv[0] is not as expected");
+		error("argv[0] is not as expected");
 		return -1;
 	}
 
 	if (strcmp(argv[1], "-testarg") != 0) {
-		PERR("Error: argv[1] is not as expected");
+		error("argv[1] is not as expected");
 		return -1;
 	}
 
-	printf("--- end of config args test ---\n");
+	log("--- end of config args test ---");
 
 	return 0;
 }

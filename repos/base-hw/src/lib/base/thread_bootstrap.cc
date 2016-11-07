@@ -20,9 +20,7 @@
 /* base-internal includes */
 #include <base/internal/stack.h>
 #include <base/internal/native_utcb.h>
-
-/* base-hw includes */
-#include <kernel/interface.h>
+#include <base/internal/capability_space.h>
 
 using namespace Genode;
 
@@ -47,10 +45,13 @@ void prepare_init_main_thread()
 	 * before the UTCB gets polluted by the following function calls.
 	 */
 	Native_utcb * utcb = Thread::myself()->utcb();
-	_parent_cap = utcb->cap_get(Native_utcb::PARENT);
-	Untyped_capability ds_cap(utcb->cap_get(Native_utcb::UTCB_DATASPACE));
+	_parent_cap = Capability_space::import(utcb->cap_get(Native_utcb::PARENT));
+
+	Untyped_capability ds_cap =
+		Capability_space::import(utcb->cap_get(Native_utcb::UTCB_DATASPACE));
 	_main_thread_utcb_ds = reinterpret_cap_cast<Ram_dataspace>(ds_cap);
-	_main_thread_cap = utcb->cap_get(Native_utcb::THREAD_MYSELF);
+
+	_main_thread_cap = Capability_space::import(utcb->cap_get(Native_utcb::THREAD_MYSELF));
 }
 
 
@@ -76,5 +77,8 @@ void Thread::_thread_start()
 	Genode::sleep_forever();
 }
 
-void Thread::_thread_bootstrap() {
-	native_thread().cap = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF); }
+void Thread::_thread_bootstrap()
+{
+	Kernel::capid_t capid = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF);
+	native_thread().cap = Capability_space::import(capid);
+}

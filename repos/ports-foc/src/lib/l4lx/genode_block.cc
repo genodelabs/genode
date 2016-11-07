@@ -12,11 +12,11 @@
  */
 
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <block_session/connection.h>
 #include <os/config.h>
-#include <util/assert.h>
+#include <foc/capability_space.h>
 
 #include <vcpu.h>
 #include <linux.h>
@@ -24,6 +24,7 @@
 namespace Fiasco {
 #include <genode/block.h>
 #include <l4/sys/irq.h>
+#include <l4/sys/kdebug.h>
 }
 
 namespace {
@@ -62,7 +63,10 @@ namespace {
 			void insert(void *packet, void *request)
 			{
 				int idx = _find(0);
-				ASSERT(idx >= 0, "Req cache full!");
+				if (idx == 0) {
+					Genode::error("Req cache full!");
+					enter_kdebug("Req_cache");
+				}
 
 				_cache[idx] = Req_entry(packet, request);
 			}
@@ -70,7 +74,10 @@ namespace {
 			void remove(void *packet, void **request)
 			{
 				int idx = _find(packet);
-				ASSERT(idx >= 0, "Req cache entry not found!");
+				if (idx == 0) {
+					Genode::error("Req cache entry not found!");
+					enter_kdebug("Req_cache");
+				}
 
 				*request = _cache[idx].req;
 				_cache[idx].pkt = 0;
@@ -116,9 +123,13 @@ namespace {
 				Genode::strncpy(_name, label, sizeof(_name));
 			}
 
+			Fiasco::l4_cap_idx_t irq_cap()
+			{
+				return Genode::Capability_space::kcap(_irq_cap);
+			}
+
 			Req_cache              *cache()       { return &_cache;         }
 			Block::Connection      *session()     { return &_session;       }
-			Fiasco::l4_cap_idx_t    irq_cap()     { return  _irq_cap.dst(); }
 			Genode::Signal_context *context()     { return &_tx;            }
 			Genode::size_t          block_size()  { return  _blk_size;      }
 			Genode::size_t          block_count() { return  _blk_cnt;       }
@@ -157,7 +168,7 @@ namespace {
 					for (unsigned i = 0; i < _count; i++) {
 						if (_devs[i]->context() == s.context()) {
 							if (l4_error(l4_irq_trigger(_devs[i]->irq_cap())) != -1)
-								PWRN("IRQ block trigger failed\n");
+								Genode::warning("IRQ block trigger failed");
 							break;
 						}
 					}
@@ -223,7 +234,7 @@ extern "C" {
 						j++;
 					}
 				}
-			} catch(...) { PWRN("config parsing error!"); }
+			} catch(...) { Genode::warning("config parsing error!"); }
 		}
 		return count;
 	}
@@ -232,7 +243,7 @@ extern "C" {
 	const char* genode_block_name(unsigned idx)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return 0;
 		}
 		return devices[idx]->name();
@@ -242,7 +253,7 @@ extern "C" {
 	l4_cap_idx_t genode_block_irq_cap(unsigned idx)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return 0;
 		}
 		return devices[idx]->irq_cap();
@@ -267,7 +278,7 @@ extern "C" {
 	                      int *write, unsigned long *queue_sz)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return;
 		}
 
@@ -284,7 +295,7 @@ extern "C" {
 	                           void *req, unsigned long *offset)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return 0;
 		}
 
@@ -306,7 +317,7 @@ extern "C" {
 	                         unsigned long size, unsigned long long disc_offset, int write)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return;
 		}
 
@@ -325,7 +336,7 @@ extern "C" {
 	void genode_block_collect_responses(unsigned idx)
 	{
 		if (idx >= genode_block_count()) {
-			PWRN("Invalid index!");
+			Genode::warning(__func__, ": invalid index!");
 			return;
 		}
 

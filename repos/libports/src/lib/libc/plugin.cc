@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* libc plugin interface */
 #include <libc-plugin/fd_alloc.h>
@@ -87,7 +87,7 @@ bool Plugin::supports_pipe()
 }
 
 
-bool Plugin::supports_readlink(const char *path, char *buf, size_t bufsiz)
+bool Plugin::supports_readlink(const char *path, char *buf, ::size_t bufsiz)
 {
 	return false;
 }
@@ -148,7 +148,7 @@ bool Plugin::supports_mmap()
 #define DUMMY(ret_type, ret_val, name, args) \
 ret_type Plugin::name args \
 { \
-	PERR( #name " not implemented"); \
+	Genode::error(__func__, ": " #name " not implemented"); \
 	return ret_val; \
 }
 
@@ -204,7 +204,7 @@ DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int fl
                                    File_descriptor *, ::off_t offset));
 DUMMY(int, -1, munmap,       (void *, ::size_t));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
-DUMMY(ssize_t, -1, readlink, (const char *, char *, size_t));
+DUMMY(ssize_t, -1, readlink, (const char *, char *, ::size_t));
 DUMMY(int, -1, rename,       (const char *, const char *));
 DUMMY(int, -1, rmdir,        (const char*));
 DUMMY(int, -1, select,       (int, fd_set *, fd_set *, fd_set *, struct timeval *));

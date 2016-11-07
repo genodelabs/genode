@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <util/retry.h>
 #include <base/rpc_server.h>
-#include <base/printf.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>

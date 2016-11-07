@@ -15,11 +15,11 @@
 #define _INCLUDE__SEL4__ASSERT_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 #define seL4_Assert(v) do { \
 	if (!(v)) { \
-		PDBG("assertion failed: %s", #v); \
+		Genode::error("assertion failed: ", #v); \
 		for (;;); \
 	} } while (0);
 

@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <dataspace/client.h>
 
 /* L4lx includes */
@@ -27,8 +27,6 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static bool DEBUG = false;
-
 extern "C" {
 
 	int l4re_ds_map_region(const l4re_ds_t ds, l4_addr_t offset, unsigned long flags,
@@ -36,13 +34,9 @@ extern "C" {
 	{
 		using namespace L4lx;
 
-		if(DEBUG)
-			PDBG("ds=%lx offset=%lx flags=%lx min_addr=%lx max_addr=%lx",
-			     ds, offset, flags, min_addr, max_addr);
-
 		Dataspace *ref = Env::env()->dataspaces()->find_by_ref(ds);
 		if (!ref) {
-			PWRN("ds=%lx doesn't exist", ds);
+			Genode::warning(__func__, ": ds=", Genode::Hex(ds), " doesn't exist");
 			enter_kdebug("ENOTF");
 			return L4_ERANGE;
 		}
@@ -50,7 +44,8 @@ extern "C" {
 		try {
 			Genode::env()->rm_session()->attach_at(ref->cap(), min_addr);
 		} catch(...) {
-			PWRN("Could not attach dataspace %s at %p!", ref->name(), (void*)min_addr);
+			Genode::warning(__func__, ": could not attach "
+			                "dataspace ", ref->name(), " at ", (void*)min_addr);
 			enter_kdebug("EXC");
 			return -1;
 		}
@@ -62,12 +57,9 @@ extern "C" {
 	{
 		using namespace L4lx;
 
-		if (DEBUG)
-			PDBG("ds=%lx", ds);
-
 		Dataspace *ref = Env::env()->dataspaces()->find_by_ref(ds);
 		if (!ref) {
-			PWRN("ds=%lx doesn't exist", ds);
+			Genode::warning(__func__, ": ds=", Genode::Hex(ds), " doesn't exist");
 			return -1;
 		}
 
@@ -80,21 +72,16 @@ extern "C" {
 	{
 		using namespace L4lx;
 
-		if (DEBUG)
-			PDBG("ds=%lx offset=%lx", ds, offset);
-
 		Dataspace *ref = Env::env()->dataspaces()->find_by_ref(ds);
 		if (!ref) {
-			PWRN("ds=%lx doesn't exist", ds);
+			Genode::warning(__func__, ": ds=", Genode::Hex(ds), " doesn't exist");
 			enter_kdebug("ERR");
 			return -1;
 		}
 
-		if (DEBUG)
-			PDBG("Found dataspace %s", ref->name());
-
 		if (!ref->cap().valid()) {
-			PWRN("Cannot determine physical address for dataspace %s!", ref->name());
+			Genode::warning(__func__, ": cannot determine physical address for "
+			                "dataspace ", ref->name());
 			return -1;
 		}
 
@@ -108,7 +95,7 @@ extern "C" {
 	int l4re_ds_copy_in(const l4re_ds_t ds, l4_addr_t dst_offs, const l4re_ds_t src,
 	                    l4_addr_t src_offs, unsigned long size)
 	{
-		PWRN("%s: Not implemented yet!",__func__);
+		Genode::warning(__func__, ": not implemented");
 		return 0;
 	}
 
@@ -117,17 +104,11 @@ extern "C" {
 	{
 		using namespace L4lx;
 
-		if (DEBUG)
-			PDBG("ds=%lx", ds);
-
 		Dataspace *ref = Env::env()->dataspaces()->find_by_ref(ds);
 		if (!ref) {
-			PWRN("ds=%lx doesn't exist", ds);
+			Genode::warning(__func__, ": ds=", Genode::Hex(ds), " doesn't exist");
 			return -1;
 		}
-
-		if (DEBUG)
-			PDBG("Found dataspace %s", ref->name());
 
 		stats->size = ref->size();
 		return 0;

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013-2015 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,8 +14,9 @@
 #ifndef _PART_BLK__COMPONENT_H_
 #define _PART_BLK__COMPONENT_H_
 
-#include <os/session_policy.h>
 #include <base/exception.h>
+#include <base/component.h>
+#include <os/session_policy.h>
 #include <root/component.h>
 #include <block_session/rpc_object.h>
 
@@ -36,15 +37,16 @@ class Block::Session_component : public Block::Session_rpc_object,
 {
 	private:
 
-		Ram_dataspace_capability             _rq_ds;
-		addr_t                               _rq_phys;
-		Partition                           *_partition;
-		Signal_dispatcher<Session_component> _sink_ack;
-		Signal_dispatcher<Session_component> _sink_submit;
-		bool                                 _req_queue_full;
-		bool                                 _ack_queue_full;
-		Packet_descriptor                    _p_to_handle;
-		unsigned                             _p_in_fly;
+		Ram_dataspace_capability          _rq_ds;
+		addr_t                            _rq_phys;
+		Partition                        *_partition;
+		Signal_handler<Session_component> _sink_ack;
+		Signal_handler<Session_component> _sink_submit;
+		bool                              _req_queue_full;
+		bool                              _ack_queue_full;
+		Packet_descriptor                 _p_to_handle;
+		unsigned                          _p_in_fly;
+		Block::Driver                    &_driver;
 
 		/**
 		 * Acknowledge a packet already handled
@@ -52,7 +54,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 		inline void _ack_packet(Packet_descriptor &packet)
 		{
 			if (!tx_sink()->ready_to_ack())
-				PERR("Not ready to ack!");
+				error("Not ready to ack!");
 
 			tx_sink()->acknowledge_packet(packet);
 			_p_in_fly--;
@@ -73,7 +75,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 			_p_to_handle.succeeded(false);
 
 			/* ignore invalid packets */
-			if (!packet.valid() || !_range_check(_p_to_handle)) {
+			if (!packet.size() || !_range_check(_p_to_handle)) {
 				_ack_packet(_p_to_handle);
 				return;
 			}
@@ -83,7 +85,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 			size_t cnt   = _p_to_handle.block_count();
 			void* addr   = tx_sink()->packet_content(_p_to_handle);
 			try {
-				Driver::driver().io(write, off, cnt, addr, *this, _p_to_handle);
+				_driver.io(write, off, cnt, addr, *this, _p_to_handle);
 			} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
 				_req_queue_full = true;
 				Session_component::wait_queue().insert(this);
@@ -93,7 +95,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 		/**
 		 * Triggered when a packet was placed into the empty submit queue
 		 */
-		void _packet_avail(unsigned)
+		void _packet_avail()
 		{
 			_ack_queue_full = _p_in_fly >= tx_sink()->ack_slots_free();
 
@@ -111,7 +113,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 		/**
 		 * Triggered when an ack got removed from the full ack queue
 		 */
-		void _ready_to_ack(unsigned) { _packet_avail(0); }
+		void _ready_to_ack() { _packet_avail(); }
 
 	public:
 
@@ -120,17 +122,18 @@ class Block::Session_component : public Block::Session_rpc_object,
 		 */
 		Session_component(Ram_dataspace_capability  rq_ds,
 		                  Partition                *partition,
-		                  Rpc_entrypoint           &ep,
-		                  Signal_receiver          &receiver)
-		: Session_rpc_object(rq_ds, ep),
+		                  Genode::Entrypoint       &ep,
+		                  Block::Driver            &driver)
+		: Session_rpc_object(rq_ds, ep.rpc_ep()),
 		  _rq_ds(rq_ds),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
 		  _partition(partition),
-		  _sink_ack(receiver, *this, &Session_component::_ready_to_ack),
-		  _sink_submit(receiver, *this, &Session_component::_packet_avail),
+		  _sink_ack(ep, *this, &Session_component::_ready_to_ack),
+		  _sink_submit(ep, *this, &Session_component::_packet_avail),
 		  _req_queue_full(false),
 		  _ack_queue_full(false),
-		  _p_in_fly(0)
+		  _p_in_fly(0),
+		  _driver(driver)
 		{
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
@@ -142,16 +145,16 @@ class Block::Session_component : public Block::Session_rpc_object,
 		{
 			if (request.operation() == Block::Packet_descriptor::READ) {
 				void *src =
-					Driver::driver().session().tx()->packet_content(reply);
+					_driver.session().tx()->packet_content(reply);
 				Genode::size_t sz =
-					request.block_count() * Driver::driver().blk_size();
+					request.block_count() * _driver.blk_size();
 				Genode::memcpy(tx_sink()->packet_content(request), src, sz);
 			}
 			request.succeeded(reply.succeeded());
 			_ack_packet(request);
 
 			if (_ack_queue_full)
-				_packet_avail(0);
+				_packet_avail();
 		}
 
 		static List<Session_component>& wait_queue()
@@ -167,7 +170,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 				wait_queue().remove(c);
 				c->_req_queue_full = false;
 				c->_handle_packet(c->_p_to_handle);
-				c->_packet_avail(0);
+				c->_packet_avail();
 			}
 		}
 
@@ -179,11 +182,11 @@ class Block::Session_component : public Block::Session_rpc_object,
 		          Operations *ops)
 		{
 			*blk_count = _partition->sectors;
-			*blk_size  = Driver::driver().blk_size();
-			*ops = Driver::driver().ops();
+			*blk_size  = _driver.blk_size();
+			*ops = _driver.ops();
 		}
 
-		void sync() { Driver::driver().session().sync(); }
+		void sync() { _driver.session().sync(); }
 };
 
 
@@ -195,8 +198,8 @@ class Block::Root :
 {
 	private:
 
-		Rpc_entrypoint         &_ep;
-		Signal_receiver        &_receiver;
+		Genode::Env            &_env;
+		Block::Driver          &_driver;
 		Block::Partition_table &_table;
 
 	protected:
@@ -208,7 +211,7 @@ class Block::Root :
 		{
 			long num = -1;
 
-			Session_label label(args);
+			Session_label const label = label_from_args(args);
 			char const *label_str = label.string();
 			try {
 				Session_policy policy(label);
@@ -217,15 +220,17 @@ class Block::Root :
 				policy.attribute("partition").value(&num);
 
 			} catch (Xml_node::Nonexistent_attribute) {
-				PERR("policy does not define partition number for for '%s'", label_str);
+				error("policy does not define partition number for for '",
+				      label_str, "'");
 				throw Root::Unavailable();
 			} catch (Session_policy::No_policy_defined) {
-				PERR("rejecting session request, no matching policy for '%s'", label_str);
+				error("rejecting session request, no matching policy for '",
+				      label_str, "'");
 				throw Root::Unavailable();
 			}
 
 			if (!_table.partition(num)) {
-				PERR("Partition %ld unavailable for '%s'", num, label_str);
+				error("Partition ", num, " unavailable for '", label_str, "'");
 				throw Root::Unavailable();
 			}
 
@@ -250,32 +255,27 @@ class Block::Root :
 			 * to handle a possible overflow of the sum of both sizes.
 			 */
 			if (tx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + session_size);
+				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
+				     tx_buf_size + session_size);
 				throw Root::Quota_exceeded();
 			}
 
 			Ram_dataspace_capability ds_cap;
-			ds_cap = Genode::env()->ram_session()->alloc(tx_buf_size);
+			ds_cap = _env.ram().alloc(tx_buf_size);
 			Session_component *session = new (md_alloc())
-				Session_component(ds_cap,
-				                  _table.partition(num),
-				                  _ep, _receiver);
+				Session_component(ds_cap, _table.partition(num),
+				                  _env.ep(), _driver);
 
-			PLOG("session opened at partition %ld for '%s'", num, label_str);
+			log("session opened at partition ", num, " for '", label_str, "'");
 			return session;
 		}
 
 	public:
 
-		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
-		     Signal_receiver &receiver, Block::Partition_table& table)
-		:
-			Root_component(session_ep, md_alloc),
-			_ep(*session_ep),
-			_receiver(receiver),
-			_table(table)
-		{ }
+		Root(Genode::Env &env, Genode::Heap &heap,
+		     Block::Driver &driver, Block::Partition_table &table)
+		: Root_component(env.ep(), heap), _env(env),
+		  _driver(driver), _table(table) { }
 };
 
 #endif /* _PART_BLK__COMPONENT_H_ */

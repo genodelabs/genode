@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -13,15 +13,15 @@
 
 /* Genode includes */
 #include <rom_session/rom_session.h>
-#include <root/component.h>
-#include <cap_session/connection.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
-#include <util/arg_string.h>
-#include <base/rpc_server.h>
-#include <base/env.h>
-#include <base/printf.h>
 #include <os/path.h>
+#include <root/component.h>
+#include <base/component.h>
+#include <base/session_label.h>
+#include <util/arg_string.h>
+#include <base/heap.h>
+#include <base/log.h>
 
 
 using namespace Genode;
@@ -36,6 +36,8 @@ using namespace Genode;
 class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 {
 	private:
+
+		Genode::Env          &_env;
 
 		File_system::Session &_fs;
 
@@ -71,13 +73,23 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		Genode::Ram_dataspace_capability _file_ds;
 
 		/**
-		 * Handler for ROM file changes
+		 * Signal destination for ROM file changes
 		 */
-		Genode::Lock                      _sigh_lock;
 		Genode::Signal_context_capability _sigh;
 
 		/**
-		 * Dispatcher that is called each time when the requested file is not
+		 * Signal-handling function called by the main thread the compound
+		 * directory changed.
+		 */
+		void _dir_changed()
+		{
+			Genode::log("detected directory change");
+			if (_sigh.valid())
+				Genode::Signal_transmitter(_sigh).submit();
+		}
+
+		/**
+		 * Handler that is called each time when the requested file is not
 		 * yet available and the compound directory changes
 		 *
 		 * The change of the compound directory bears the chance that the
@@ -85,24 +97,8 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 * module change and thereby give it a chance to call 'dataspace()' in
 		 * response.
 		 */
-		Genode::Signal_dispatcher<Rom_session_component> _dir_change_dispatcher;
-
-		/**
-		 * Signal-handling function called by the main thread the compound
-		 * directory changed.
-		 *
-		 * Note that this function is not executed in the context of the RPC
-		 * entrypoint. Therefore, the access to '_sigh' is synchronized with
-		 * the 'sigh()' function using '_sigh_lock'.
-		 */
-		void _dir_changed(unsigned)
-		{
-			Genode::Lock::Guard guard(_sigh_lock);
-
-			PINF("detected directory change");
-			if (_sigh.valid())
-				Genode::Signal_transmitter(_sigh).submit();
-		}
+		Genode::Signal_handler<Rom_session_component> _dir_change_handler
+			{ _env.ep(), *this, &Rom_session_component::_dir_changed };
 
 		/**
 		 * Open compound directory of specified file
@@ -112,9 +108,9 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 *                 existing directory on the way. If set to false, the
 		 *                 function returns the immediate compound directory.
 		 */
-		static File_system::Dir_handle _open_compound_dir(File_system::Session &fs,
-		                                                  Path const &path,
-		                                                  bool walk_up)
+		File_system::Dir_handle _open_compound_dir(File_system::Session &fs,
+		                                           Path const &path,
+		                                           bool walk_up)
 		{
 			using namespace File_system;
 
@@ -126,12 +122,12 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 
 				try { return fs.dir(dir_path.base(), false); }
 
-				catch (Invalid_handle)    { PERR("Invalid_handle"); }
-				catch (Invalid_name)      { PERR("Invalid_name"); }
-				catch (Lookup_failed)     { PERR("Lookup_failed"); }
-				catch (Permission_denied) { PERR("Permission_denied"); }
-				catch (Name_too_long)     { PERR("Name_too_long"); }
-				catch (No_space)          { PERR("No_space"); }
+				catch (Invalid_handle)    { Genode::error(_file_path, ": invalid_handle"); }
+				catch (Invalid_name)      { Genode::error(_file_path, ": invalid_name"); }
+				catch (Lookup_failed)     { Genode::error(_file_path, ": lookup_failed"); }
+				catch (Permission_denied) { Genode::error(_file_path, ": permission_denied"); }
+				catch (Name_too_long)     { Genode::error(_file_path, ": name_too_long"); }
+				catch (No_space)          { Genode::error(_file_path, ": no_space"); }
 
 				/*
 				 * If the directory could not be opened, walk up the hierarchy
@@ -145,8 +141,8 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		/**
 		 * Open file with specified name at the file system
 		 */
-		static File_system::File_handle _open_file(File_system::Session &fs,
-		                                           Path const &path)
+		File_system::File_handle _open_file(File_system::Session &fs,
+		                                    Path const &path)
 		{
 			using namespace File_system;
 
@@ -163,9 +159,9 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 				file_handle = fs.file(dir, file_name.base() + 1,
 				                      File_system::READ_ONLY, false);
 			}
-			catch (Invalid_handle)    { PERR("Invalid_handle"); }
-			catch (Invalid_name)      { PERR("Invalid_name"); }
-			catch (Lookup_failed)     { PERR("Lookup_failed"); }
+			catch (Invalid_handle)    { Genode::error(_file_path, ": Invalid_handle"); }
+			catch (Invalid_name)      { Genode::error(_file_path, ": invalid_name"); }
+			catch (Lookup_failed)     { Genode::error(_file_path, ": lookup_failed"); }
 
 			return file_handle;
 		}
@@ -180,9 +176,9 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 
 			/* register for changes in compound directory */
 			if (_compound_dir_handle.valid())
-				_fs.sigh(_compound_dir_handle, _dir_change_dispatcher);
+				_fs.sigh(_compound_dir_handle, _dir_change_handler);
 			else
-				PWRN("could not track compound dir, giving up");
+				Genode::warning("could not track compound dir, giving up");
 		}
 
 		/**
@@ -205,7 +201,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 						_fs.status(file_handle).size;
 
 					if (_file_ds.valid() && (new_file_size > _file_size)) {
-						env()->ram_session()->free(_file_ds);
+						_env.ram().free(_file_ds);
 
 						/* mark as invalid */
 						_file_ds = Ram_dataspace_capability();
@@ -239,11 +235,11 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			if (file_size > 0) {
 				try {
 					if (!_file_ds.valid()) {
-						_file_ds = env()->ram_session()->alloc(file_size);
+						_file_ds = _env.ram().alloc(file_size);
 						_file_size = file_size;
 					}
 				} catch (...) {
-					PERR("couldn't allocate memory for file, empty result\n");
+					Genode::error("couldn't allocate memory for file, empty result");
 					_file_ds = Ram_dataspace_capability();
 					return;
 				}
@@ -255,13 +251,13 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			}
 
 			/* map dataspace locally */
-			void * const dst_addr = env()->rm_session()->attach(_file_ds);
+			void * const dst_addr = _env.rm().attach(_file_ds);
 
 			/* read content from file */
 			read(_fs, _file_handle, dst_addr, file_size);
 
 			/* unmap dataspace */
-			env()->rm_session()->detach(dst_addr);
+			_env.rm().detach(dst_addr);
 		}
 
 	public:
@@ -276,11 +272,11 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 *                  the requested file could not be found at session-
 		 *                  creation time)
 		 */
-		Rom_session_component(File_system::Session &fs, const char *file_path,
-		                      Genode::Signal_receiver &sig_reg)
+		Rom_session_component(Genode::Env &env,
+		                      File_system::Session &fs, const char *file_path)
 		:
-			_fs(fs), _file_path(file_path), _file_handle(_open_file(_fs, _file_path)),
-			_dir_change_dispatcher(sig_reg, *this, &Rom_session_component::_dir_changed)
+			_env(env), _fs(fs), _file_path(file_path),
+			_file_handle(_open_file(_fs, _file_path))
 		{
 			if (!_file_handle.valid())
 				_register_for_compound_dir_changes();
@@ -299,7 +295,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 				_fs.close(_compound_dir_handle);
 
 			/* close file */
-			Genode::env()->ram_session()->free(_file_ds);
+			_env.ram().free(_file_ds);
 		}
 
 		/**
@@ -314,7 +310,6 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 
 		void sigh(Genode::Signal_context_capability sigh)
 		{
-			Genode::Lock::Guard guard(_sigh_lock);
 			_sigh = sigh;
 			if (_file_handle.valid())
 				_fs.sigh(_file_handle, _sigh);
@@ -326,21 +321,23 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 {
 	private:
 
-		File_system::Session    &_fs;
-		Genode::Signal_receiver &_sig_rec;
+		Genode::Env          &_env;
+		Genode::Heap          _heap { _env.ram(), _env.rm() };
+		Genode::Allocator_avl _fs_tx_block_alloc { &_heap };
+
+		/* open file-system session */
+		File_system::Connection _fs { _env, _fs_tx_block_alloc };
 
 		Rom_session_component *_create_session(const char *args)
 		{
-			enum { FILENAME_MAX_LEN = 128 };
-			char filename[FILENAME_MAX_LEN];
-			Genode::Arg_string::find_arg(args, "filename")
-				.string(filename, sizeof(filename), "");
+			Genode::Session_label const label = label_from_args(args);
+			Genode::Session_label const module_name = label.last_element();
 
-			PINF("connection for file '%s' requested\n", filename);
+			Genode::log("request for ", label);
 
 			/* create new session for the requested file */
 			return new (md_alloc())
-				Rom_session_component(_fs, filename, _sig_rec);
+				Rom_session_component(_env, _fs, module_name.string());
 		}
 
 	public:
@@ -348,50 +345,23 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 		/**
 		 * Constructor
 		 *
-		 * \param  entrypoint  entrypoint to be used for ROM sessions
+		 * \param  env         Component environment
 		 * \param  md_alloc    meta-data allocator used for ROM sessions
-		 * \param  fs          file-system session
 		 */
-		Rom_root(Genode::Rpc_entrypoint  &entrypoint,
-		         Genode::Allocator       &md_alloc,
-		         File_system::Session    &fs,
-		         Genode::Signal_receiver &sig_rec)
+		Rom_root(Genode::Env       &env,
+		         Genode::Allocator &md_alloc)
 		:
-			Genode::Root_component<Rom_session_component>(&entrypoint, &md_alloc),
-			_fs(fs), _sig_rec(sig_rec)
-		{ }
+			Genode::Root_component<Rom_session_component>(env.ep(), md_alloc),
+			_env(env)
+		{
+			env.parent().announce(env.ep().manage(*this));
+		}
 };
 
+Genode::size_t Component::stack_size() { return 2*1024*sizeof(long); }
 
-int main(void)
+void Component::construct(Genode::Env &env)
 {
-	using namespace Genode;
-
-	/* open file-system session */
-	static Genode::Allocator_avl fs_tx_block_alloc(env()->heap());
-	static File_system::Connection fs(fs_tx_block_alloc);
-
-	/* connection to capability service needed to create capabilities */
-	static Cap_connection cap;
-
-	/* creation of the entrypoint and the root interface */
-	static Sliced_heap sliced_heap(env()->ram_session(),
-	                               env()->rm_session());
-
-	/* receiver of directory-change signals */
-	static Signal_receiver sig_rec;
-
-	enum { STACK_SIZE = 8*1024 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fs_rom_ep");
-	static Rom_root rom_root(ep, sliced_heap, fs, sig_rec);
-
-	/* announce server*/
-	env()->parent()->announce(ep.manage(&rom_root));
-
-	/* process incoming signals */
-	for (;;) {
-		Signal s = sig_rec.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-	}
-	return 0;
+	static Sliced_heap sliced_heap(env.ram(), env.rm());
+	static Rom_root inst(env, sliced_heap);
 }

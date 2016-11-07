@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/flex_iterator.h>
 
 /* core includes */
@@ -35,7 +35,7 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 
 void Platform_pd::unbind_thread(Platform_thread *thread)
 {
-	PDBG("not implemented");
+	warning(__func__, "not implemented");
 }
 
 

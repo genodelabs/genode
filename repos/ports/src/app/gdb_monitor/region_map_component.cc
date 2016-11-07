@@ -20,8 +20,6 @@
 /* local includes */
 #include "region_map_component.h"
 
-static bool const verbose = false;
-
 
 /**************************************
  ** Region map component **
@@ -33,8 +31,6 @@ Region_map_component::Region *Region_map_component::find_region(void *local_addr
 {
 	Lock::Guard lock_guard(_region_map_lock);
 
-//	PDBG("local_addr = %p", local_addr);
-
 	Region *first = _region_map.first();
 	Region *region = first ? first->find_by_addr(local_addr) : 0;
 
@@ -42,7 +38,6 @@ Region_map_component::Region *Region_map_component::find_region(void *local_addr
 		return 0;
 
 	*offset_in_region = ((addr_t)local_addr - (addr_t)region->start());
-//	PDBG("offset_in_region = %lx", *offset_in_region);
 
 	_managed_ds_map.apply(region->ds_cap(), [&] (Dataspace_object *managed_ds_obj) {
 		if (managed_ds_obj)
@@ -61,9 +56,6 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
                              Region_map::Local_addr local_addr,
                              bool executable)
 {
-	if (verbose)
-		PDBG("size = %zd, offset = %x", size, (unsigned int)offset);
-
 	size_t ds_size = Dataspace_client(ds_cap).size();
 
 	if (offset < 0 || (size_t)offset >= ds_size) {
@@ -85,18 +77,12 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 	Lock::Guard lock_guard(_region_map_lock);
 	_region_map.insert(new (env()->heap()) Region(addr, (void*)((addr_t)addr + size - 1), ds_cap, offset));
 
-	if (verbose)
-		PDBG("region: %p - %p", addr, (void*)((addr_t)addr + size - 1));
-
 	return addr;
 }
 
 
 void Region_map_component::detach(Region_map::Local_addr local_addr)
 {
-	if (verbose)
-		PDBG("local_addr = %p", (void *)local_addr);
-
 	_parent_region_map.detach(local_addr);
 
 	Lock::Guard lock_guard(_region_map_lock);
@@ -112,27 +98,18 @@ void Region_map_component::detach(Region_map::Local_addr local_addr)
 
 void Region_map_component::fault_handler(Signal_context_capability handler)
 {
-	if (verbose)
-		PDBG("fault_handler()");
-
 	_parent_region_map.fault_handler(handler);
 }
 
 
 Region_map::State Region_map_component::state()
 {
-	if (verbose)
-		PDBG("state()");
-
 	return _parent_region_map.state();
 }
 
 
 Dataspace_capability Region_map_component::dataspace()
 {
-	if (verbose)
-		PDBG("dataspace()");
-
 	Dataspace_capability ds_cap = _parent_region_map.dataspace();
 	_managed_ds_map.insert(new (env()->heap()) Dataspace_object(ds_cap, this));
 	return ds_cap;
@@ -149,9 +126,6 @@ Region_map_component::Region_map_component(Rpc_entrypoint &ep,
 	_managed_ds_map(managed_ds_map)
 {
 	_ep.manage(this);
-
-	if (verbose)
-		PDBG("Region_map_component()");
 }
 
 

@@ -33,11 +33,6 @@ SRC_C += strcoll.c strxfrm.c wcscoll.c wcsxfrm.c
 
 include $(REP_DIR)/lib/mk/libc-common.inc
 
-#
-# Version information for sysctl
-#
-include $(REP_DIR)/src/lib/libc/version.inc
-
 vpath % $(REP_DIR)/src/lib/libc
 vpath % $(LIBC_DIR)/lib/libc/string
 

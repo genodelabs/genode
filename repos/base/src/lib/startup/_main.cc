@@ -22,11 +22,11 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/component.h>
 
 /* platform-specific local helper functions */
-#include <startup/internal/_main_parent_cap.h>
+#include <base/internal/parent_cap.h>
 #include <base/internal/crt0.h>
 
 
@@ -48,9 +48,9 @@ struct atexit_fn
 	{
 		void (*std_func)(void);
 		void (*cxa_func)(void *);
-	} fn_ptr;		/* function pointer */
-	void *fn_arg;	/* argument for CXA callback */
-	void *fn_dso;	/* shared module handle */
+	} fn_ptr;       /* function pointer */
+	void *fn_arg;   /* argument for CXA callback */
+	void *fn_dso;   /* shared module handle */
 };
 
 /* all members are initialized with 0 */
@@ -83,7 +83,7 @@ static int atexit_register(struct atexit_fn *fn)
 		return 0;
 
 	if (_atexit.index >= ATEXIT_SIZE) {
-		PERR("Cannot register exit handler - ATEXIT_SIZE reached");
+		Genode::error("Cannot register exit handler - ATEXIT_SIZE reached");
 		return -1;
 	}
 
@@ -129,7 +129,7 @@ int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 	fn.fn_arg = arg;
 	fn.fn_dso = dso;
 
- 	error = atexit_register(&fn);
+	error = atexit_register(&fn);
 	return (error);
 }
 

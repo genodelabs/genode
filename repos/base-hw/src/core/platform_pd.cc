@@ -58,7 +58,7 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 			}
 		}
 	} catch(...) {
-		PERR("Invalid mapping %p -> %p (%zx)", (void*)phys, (void*)virt, size);
+		error("invalid mapping ", Hex(phys), " -> ", Hex(virt), " (", size, ")");
 	}
 	return false;
 }
@@ -74,7 +74,7 @@ void Hw::Address_space::flush(addr_t virt, size_t size)
 		/* update translation caches */
 		Kernel::update_pd(_kernel_pd);
 	} catch(...) {
-		PERR("tried to remove invalid region!");
+		error("tried to remove invalid region!");
 	}
 }
 
@@ -103,15 +103,14 @@ Hw::Address_space::~Address_space()
 }
 
 
-/*************************************
- ** Capability_space implementation **
- *************************************/
+/******************************
+ ** Cap_space implementation **
+ ******************************/
 
-Capability_space::Capability_space()
-: _slab(nullptr, &_initial_sb) { }
+Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 
-void Capability_space::upgrade_slab(Allocator &alloc)
+void Cap_space::upgrade_slab(Allocator &alloc)
 {
 	for (;;) {
 		void *block = nullptr;
@@ -165,7 +164,7 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
   _label(label)
 {
 	if (!_cap.valid()) {
-		PERR("failed to create kernel object");
+		error("failed to create kernel object");
 		throw Root::Unavailable();
 	}
 }
@@ -217,10 +216,9 @@ void Core_platform_pd::_map(addr_t start, addr_t end, bool io_mem)
 	try {
 		_table()->insert_translation(start, start, size, flags, _table_alloc());
 	} catch(Allocator::Out_of_memory) {
-		PERR("Translation table needs to much RAM");
+		error("translation table needs to much RAM");
 	} catch(...) {
-		PERR("Invalid mapping %p -> %p (%zx)", (void*)start,
-			 (void*)start, size);
+		error("invalid mapping ", Hex(start), " size=", size);
 	}
 }
 

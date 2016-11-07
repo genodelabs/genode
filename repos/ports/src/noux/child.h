@@ -148,7 +148,7 @@ namespace Noux {
 
 			Cap_session * const _cap_session;
 
-			enum { STACK_SIZE = 4*1024*sizeof(long) };
+			enum { STACK_SIZE = 5*1024*sizeof(long) };
 			Rpc_entrypoint _entrypoint;
 
 			/**
@@ -435,7 +435,7 @@ namespace Noux {
 					_args.dump();
 
 				if (!forked && !_elf._binary_ds.valid()) {
-					PERR("Lookup of executable \"%s\" failed", binary_name);
+					error("lookup of executable \"", binary_name, "\" failed");
 
 					_destruct();
 					throw Binary_does_not_exist();
@@ -453,8 +453,7 @@ namespace Noux {
 			void start_forked_main_thread(addr_t ip, addr_t sp, addr_t parent_cap_addr)
 			{
 				/* poke parent_cap_addr into child's address space */
-				Capability<Parent> const &cap = _child.parent_cap();
-				Capability<Parent>::Raw   raw = { cap.dst(), cap.local_name() };
+				Capability<Parent>::Raw const raw = _child.parent_cap().raw();
 
 				_pd.poke(parent_cap_addr, &raw, sizeof(raw));
 
@@ -465,7 +464,7 @@ namespace Noux {
 			void submit_exit_signal()
 			{
 				if (init_process(this)) {
-					PINF("init process exited");
+					log("init process exited");
 
 					/* trigger exit of main event loop */
 					init_process_exited(_child_policy.exit_value());
@@ -574,7 +573,7 @@ namespace Noux {
 				try {
 					_pending_signals.add(sig);
 				} catch (Signal_queue::Overflow) {
-					PERR("signal queue is full - signal dropped");
+					error("signal queue is full - signal dropped");
 				}
 
 				_blocker.unlock();

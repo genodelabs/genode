@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <rm_session/rm_session.h>
 #include <ram_session/ram_session.h>
-#include <base/printf.h>
 #include <base/thread.h>
 
 /* base-internal includes */
@@ -64,8 +63,11 @@ class Stack_area_region_map : public Genode::Region_map
 			return local_addr;
 		}
 
-		void detach(Local_addr local_addr) {
-			PWRN("stack area detach from 0x%p - not implemented", (void *)local_addr); }
+		void detach(Local_addr local_addr)
+		{
+			Genode::warning("stack area detach from ", (void*)local_addr,
+			                " - not implemented");
+		}
 
 		void fault_handler(Genode::Signal_context_capability) { }
 
@@ -90,9 +92,9 @@ class Stack_area_ram_session : public Genode::Ram_session
 
 		int transfer_quota(Genode::Ram_session_capability, Genode::size_t) { return 0; }
 
-		size_t quota() { return 0; }
+		Genode::size_t quota() { return 0; }
 
-		size_t used() { return 0; }
+		Genode::size_t used() { return 0; }
 };
 
 

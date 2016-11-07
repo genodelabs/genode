@@ -208,8 +208,6 @@ class Ipu : Genode::Mmio
 				Genode::uint32_t res3[3];
 
 				Cp_mem() { Genode::memset(this, 0, sizeof(Cp_mem)); }
-
-				void * operator new(Genode::size_t size, void* addr) { return addr; }
 		} __attribute__((packed));
 
 

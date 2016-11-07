@@ -15,7 +15,7 @@
 #include <framebuffer_session/framebuffer_session.h>
 #include <cap_session/connection.h>
 #include <dataspace/client.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/sleep.h>
 #include <blit/blit.h>
 #include <os/config.h>
@@ -101,7 +101,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		{
 			if (!driver.init(width, height, _format, output,
 				Dataspace_client(_fb_ds).phys_addr())) {
-				PERR("Could not initialize display");
+				error("Could not initialize display");
 				struct Could_not_initialize_display : Exception { };
 				throw Could_not_initialize_display();
 			}
@@ -143,12 +143,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 static bool config_attribute(const char *attr_name)
 {
-	bool result = false;
-	try {
-		result =
-			Genode::config()->xml_node().attribute(attr_name).has_value("yes"); }
-	catch (...) {}
-	return result;
+	return Genode::config()->xml_node().attribute_value(attr_name, false);
 }
 
 
@@ -170,7 +165,7 @@ int main(int, char **)
 		}
 	}
 	catch (...) {
-		PDBG("using default configuration: HDMI@%dx%d", width, height);
+		log("using default configuration: HDMI@", width, "x", height);
 	}
 
 	static Driver driver;

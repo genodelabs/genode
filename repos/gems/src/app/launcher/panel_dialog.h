@@ -183,9 +183,9 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 				dialog_changed();
 
 			} catch (Xml_node::Nonexistent_sub_node) {
-				PERR("no subsystem config found for \"%s\"", label.string());
+				Genode::error("no subsystem config found for \"", label, "\"");
 			} catch (Subsystem_manager::Invalid_config) {
-				PERR("invalid subsystem configuration for \"%s\"", label.string());
+				Genode::error("invalid subsystem configuration for \"", label, "\"");
 			}
 		}
 
@@ -509,7 +509,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 				_context_dialog.visible(false);
 		}
 
-		void kill(Child_base::Label const &label)
+		void kill(Label const &label)
 		{
 			_kill(label);
 		}

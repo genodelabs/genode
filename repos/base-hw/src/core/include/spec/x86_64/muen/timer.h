@@ -14,12 +14,13 @@
 #ifndef _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 #define _CORE__INCLUDE__SPEC__X86_64__MUEN__TIMER_H_
 
-#include <base/printf.h>
+/* base includes */
+#include <base/log.h>
 #include <kernel/types.h>
 
 /* core includes */
 #include <board.h>
-#include <sinfo.h>
+#include <sinfo_instance.h>
 
 namespace Genode
 {
@@ -39,13 +40,15 @@ class Genode::Timer
 
 		uint64_t _tics_per_ms;
 
-		struct Subject_timer
+		struct Subject_timed_event
 		{
-			uint64_t value;
-			uint8_t  vector;
+			uint64_t tsc_trigger;
+			uint8_t  event_nr :5;
 		} __attribute__((packed));
 
-		struct Subject_timer * _timer_page;
+		struct Subject_timed_event * _event_page = 0;
+		struct Subject_timed_event * _guest_event_page = 0;
+
 
 		inline uint64_t rdtsc()
 		{
@@ -58,25 +61,44 @@ class Genode::Timer
 
 	public:
 
-		Timer() : _tics_per_ms(Sinfo::get_tsc_khz())
+		Timer() :
+			_tics_per_ms(sinfo()->get_tsc_khz())
 		{
+
+			/* first sinfo instance, output status */
+			sinfo()->log_status();
+
 			struct Sinfo::Memregion_info region;
-			if (!Sinfo::get_memregion_info("timer", &region)) {
-				PERR("muen-timer: Unable to retrieve time memory region");
+			if (!sinfo()->get_memregion_info("timed_event", &region)) {
+				error("muen-timer: Unable to retrieve timed event region");
 				throw Invalid_region();
 			}
 
-			_timer_page = (Subject_timer *)region.address;
-			_timer_page->vector = Board::TIMER_VECTOR_KERNEL;
-			PINF("muen-timer: page @0x%llx, frequency %llu kHz, vector %u",
-			     region.address, _tics_per_ms, _timer_page->vector);
+			_event_page = (Subject_timed_event *)region.address;
+			_event_page->event_nr = Board::TIMER_EVENT_KERNEL;
+			log("muen-timer: Page @", Hex(region.address), ", "
+			    "frequency ", _tics_per_ms, " kHz, "
+			    "event ", (unsigned)_event_page->event_nr);
+
+			if (sinfo()->get_memregion_info("monitor_timed_event", &region)) {
+				log("muen-timer: Found guest timed event page @", Hex(region.address),
+				    " -> enabling preemption");
+				_guest_event_page = (Subject_timed_event *)region.address;
+				_guest_event_page->event_nr = Board::TIMER_EVENT_PREEMPT;
+			}
 		}
 
 		static unsigned interrupt_id(int) {
 			return Board::TIMER_VECTOR_KERNEL; }
 
-		inline void start_one_shot(time_t const tics, unsigned) {
-			_timer_page->value = rdtsc() + tics; }
+		inline void start_one_shot(time_t const tics, unsigned)
+		{
+			const uint64_t t = rdtsc() + tics;
+			_event_page->tsc_trigger = t;
+
+			if (_guest_event_page)
+				_guest_event_page->tsc_trigger = t;
+		}
 
 		time_t tics_to_us(time_t const tics) const {
 			return (tics / _tics_per_ms) * 1000; }
@@ -89,9 +111,9 @@ class Genode::Timer
 		time_t value(unsigned)
 		{
 			const uint64_t now = rdtsc();
-			if (_timer_page->value != TIMER_DISABLED
-			    && _timer_page->value > now) {
-				return _timer_page->value - now;
+			if (_event_page->tsc_trigger != TIMER_DISABLED
+			    && _event_page->tsc_trigger > now) {
+				return _event_page->tsc_trigger - now;
 			}
 			return 0;
 		}

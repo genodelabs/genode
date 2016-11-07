@@ -13,9 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
-#include <base/sleep.h>
-#include <kernel/log.h>
+#include <base/log.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -133,7 +131,6 @@ Platform::Platform()
 	 * Core mem alloc must come first because it is
 	 * used by the other allocators.
 	 */
-	enum { VERBOSE = 0 };
 	init_alloc(_core_mem_alloc.phys_alloc(), _ram_regions,
 	           _core_only_ram_regions, get_page_size_log2());
 	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
@@ -162,33 +159,33 @@ Platform::Platform()
 		_rom_fs.insert(rom_module);
 	}
 
+	_init_additional();
+
 	/* print ressource summary */
-	if (VERBOSE) {
-		printf("Core virtual memory allocator\n");
-		printf("---------------------\n");
-		(*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
-		printf("\n");
-		printf("RAM memory allocator\n");
-		printf("---------------------\n");
-		(*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
-		printf("\n");
-		printf("IO memory allocator\n");
-		printf("-------------------\n");
-		_io_mem_alloc()->dump_addr_tree();
-		printf("\n");
-		printf("IO port allocator\n");
-		printf("-------------------\n");
-		_io_port_alloc()->dump_addr_tree();
-		printf("\n");
-		printf("IRQ allocator\n");
-		printf("-------------------\n");
-		_irq_alloc()->dump_addr_tree();
-		printf("\n");
-		printf("ROM filesystem\n");
-		printf("--------------\n");
-		_rom_fs.print_fs();
-		printf("\n");
-	}
+	log("Core virtual memory allocator");
+	log("---------------------");
+	(*_core_mem_alloc.virt_alloc())()->dump_addr_tree();
+	log("\n");
+	log("RAM memory allocator");
+	log("---------------------");
+	(*_core_mem_alloc.phys_alloc())()->dump_addr_tree();
+	log("");
+	log("IO memory allocator");
+	log("-------------------");
+	_io_mem_alloc()->dump_addr_tree();
+	log("");
+	log("IO port allocator");
+	log("-------------------");
+	_io_port_alloc()->dump_addr_tree();
+	log("");
+	log("IRQ allocator");
+	log("-------------------");
+	_irq_alloc()->dump_addr_tree();
+	log("");
+	log("ROM filesystem");
+	log("--------------");
+	_rom_fs.print_fs();
+	log("");
 }
 
 
@@ -198,8 +195,8 @@ Platform::Platform()
 
 void Core_parent::exit(int exit_value)
 {
-	Kernel::log() << __PRETTY_FUNCTION__ << "not implemented\n";
-	while (1) ;
+	warning(__PRETTY_FUNCTION__, "not implemented");
+	while (1);
 }
 
 
@@ -229,5 +226,6 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 	return ::map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size) {
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
+                                        unsigned size) {
 	return ::unmap_local(virt_addr, size / get_page_size()); }

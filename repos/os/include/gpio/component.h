@@ -130,8 +130,9 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 				throw Invalid_args();
 
 			if (ram_quota < sizeof(Session_component)) {
-				PWRN("Insufficient dontated ram_quota (%zd bytes), require %zd bytes",
-					 ram_quota, sizeof(Session_component));
+				Genode::warning("insufficient dontated ram_quota "
+				                "(", ram_quota, " bytes), "
+				                "require ", sizeof(Session_component), " bytes");
 				throw Genode::Root::Quota_exceeded();
 			}
 

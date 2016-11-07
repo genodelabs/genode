@@ -8,9 +8,9 @@ index 32cf973..ec1d558 100644
  }
 +
 +struct drm_framebuffer *
-+dde_c_intel_framebuffer_create(struct drm_device *dev,
++lx_c_intel_framebuffer_create(struct drm_device *dev,
 +							   struct drm_mode_fb_cmd2 *mode_cmd,
 +							   struct drm_i915_gem_object *obj) {
 +	return intel_framebuffer_create(dev, mode_cmd, obj);
 +}
-+EXPORT_SYMBOL(dde_c_intel_framebuffer_create);
++EXPORT_SYMBOL(lx_c_intel_framebuffer_create);

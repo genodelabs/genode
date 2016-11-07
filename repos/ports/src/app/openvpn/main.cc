@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <base/log.h>
 #include <os/server.h>
 #include <os/config.h>
 #include <os/static_root.h>
@@ -24,10 +25,6 @@
 
 /* local includes */
 #include "tuntap.h"
-
-
-static int const verbose = false;
-#define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 
 /* external symbols provided by Genode's startup code */
@@ -57,10 +54,7 @@ class Openvpn_thread : public Genode::Thread_deprecated<16UL * 1024 * sizeof (lo
 			Thread_deprecated("openvpn_main"),
 			_argc(argc), _argv(argv),
 			_exitcode(-1)
-		{
-			//for (int i = 0; i < _argc; i++)
-			//	PINF("_argv[%i]: '%s'", i, _argv[i]);
-		}
+		{ }
 
 		void entry()
 		{
@@ -87,7 +81,7 @@ class Openvpn_component : public Tuntap_device,
 {
 	private:
 
-		Nic::Mac_address          _mac_addr {{ 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 }};
+		Nic::Mac_address _mac_addr;
 
 		char const *_packet;
 
@@ -110,8 +104,8 @@ class Openvpn_component : public Tuntap_device,
 				return false;
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.valid()) {
-				PWRN("Invalid tx packet");
+			if (!packet.size()) {
+				Genode::warning("invalid tx packet");
 				return true;
 			}
 
@@ -144,8 +138,10 @@ class Openvpn_component : public Tuntap_device,
 		                  Server::Entrypoint  &ep)
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
 		{
+			char buf[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
+			_mac_addr = Nic::Mac_address((void*)buf);
 			if (pipe(_pipefd)) {
-				PERR("could not create pipe");
+				Genode::error("could not create pipe");
 				throw Genode::Exception();
 			}
 		}
@@ -171,8 +167,6 @@ class Openvpn_component : public Tuntap_device,
 		/* tx */
 		int read(char *buf, Genode::size_t len)
 		{
-			PDBGV("buf:0x%p len:%zu", len);
-
 			Genode::memcpy(buf, _packet, len);
 			_packet = 0;
 
@@ -185,7 +179,6 @@ class Openvpn_component : public Tuntap_device,
 		/* rx */
 		int write(char const *buf, Genode::size_t len)
 		{
-			PDBGV("buf:0x%p len:%zu", len);
 			_handle_packet_stream();
 
 			if (!_rx.source()->ready_to_submit())
@@ -218,6 +211,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 		Openvpn_component *_create_session(const char *args)
 		{
 			using namespace Genode;
+			using Genode::size_t;
 
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -234,8 +228,8 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			 */
 			if (tx_buf_size + rx_buf_size < tx_buf_size ||
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, tx_buf_size + rx_buf_size + session_size);
+				Genode::error("insufficient 'ram_quota', got %ld, need %ld",
+				              ram_quota, tx_buf_size + rx_buf_size + session_size);
 				throw Genode::Root::Quota_exceeded();
 			}
 
@@ -251,7 +245,6 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			 */
 			_tuntap_dev = component;
 
-			PDBGV("start OpenVPN main thread");
 			_thread = new (Genode::env()->heap()) Openvpn_thread(genode_argc, genode_argv);
 			_thread->start();
 
@@ -295,6 +288,6 @@ struct Main
 
 namespace Server {
 	char const *name()             { return "openvpn_ep"; }
-	size_t stack_size()            { return 8 * 1024 * sizeof (addr_t); }
+	Genode::size_t stack_size()    { return 8 * 1024 * sizeof (addr_t); }
 	void construct(Entrypoint &ep) { static Main server(ep); }
 }

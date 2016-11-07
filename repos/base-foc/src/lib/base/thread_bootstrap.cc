@@ -16,6 +16,11 @@
 #include <util/construct_at.h>
 #include <base/thread.h>
 #include <base/sleep.h>
+#include <foc/native_capability.h>
+
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+#include <base/internal/cap_map.h>
 
 
 /*****************************

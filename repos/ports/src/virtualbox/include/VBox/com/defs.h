@@ -14,6 +14,7 @@
 #define BEGIN_COM_MAP(X)
 #define COM_INTERFACE_ENTRY(X)
 #define COM_INTERFACE_ENTRY2(X,Y)
+#define COM_INTERFACE_ENTRY_AGGREGATE(X, Y)
 #define END_COM_MAP()
 
 #define HRESULT nsresult

@@ -23,6 +23,7 @@ struct Genode::Native_thread
 	unsigned tcb_sel = 0;
 	unsigned ep_sel  = 0;
 	unsigned rcv_sel = 0;
+	unsigned lock_sel = 0;
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

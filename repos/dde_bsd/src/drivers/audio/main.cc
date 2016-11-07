@@ -17,6 +17,7 @@
 #include <audio_out_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <root/component.h>
 
@@ -466,15 +467,6 @@ class Audio_in::Root : public Audio_in::Root_component
  ** Main **
  **********/
 
-static bool check(Genode::Xml_node   config,
-                  char const * const attr,
-                  char const * const value)
-{
-	try         { return config.attribute(attr).has_value(value); }
-	catch (...) { return false; }
-}
-
-
 struct Main
 {
 	Genode::Env        &env;
@@ -502,7 +494,7 @@ struct Main
 		}
 
 		/* playback */
-		if (!check(config.xml(), "playback", "no")) {
+		if (config.xml().attribute_value("playback", true)) {
 			static Audio_out::Out out(ep);
 			Audio::play_sigh(out.sigh());
 			static Audio_out::Root out_root(ep, heap, out.data_avail());
@@ -512,7 +504,7 @@ struct Main
 		}
 
 		/* recording */
-		if (check(config.xml(), "recording", "yes")) {
+		if (config.xml().attribute_value("recording", true)) {
 			static Audio_in::In in(ep);
 			Audio::record_sigh(in.sigh());
 			static Audio_in::Root in_root(ep, heap,

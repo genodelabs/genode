@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__INTERNAL__PAGE_SIZE_H_
 #define _INCLUDE__BASE__INTERNAL__PAGE_SIZE_H_
 
+#include <base/stdint.h>
+
 namespace Genode
 {
 	constexpr size_t get_page_size_log2() { return 12; }

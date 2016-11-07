@@ -40,7 +40,7 @@ namespace Genode {
 /**
  * Alarm thread, which counts jiffies and triggers timeout events.
  */
-class Genode::Timeout_thread : public Thread_deprecated<4096>,
+class Genode::Timeout_thread : public Thread_deprecated<2048*sizeof(long)>,
                                public Alarm_scheduler
 {
 	private:
@@ -55,7 +55,7 @@ class Genode::Timeout_thread : public Thread_deprecated<4096>,
 
 	public:
 
-		Timeout_thread() : Thread_deprecated<4096>("alarm-timer")
+		Timeout_thread() : Thread_deprecated("alarm-timer")
 		{
 			_timer.sigh(_receiver.manage(&_context));
 			_timer.trigger_periodic(JIFFIES_STEP_MS*1000);

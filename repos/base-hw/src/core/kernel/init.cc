@@ -15,7 +15,6 @@
 /* core includes */
 #include <kernel/pd.h>
 #include <kernel/kernel.h>
-#include <kernel/test.h>
 #include <platform_pd.h>
 #include <pic.h>
 #include <board.h>
@@ -23,7 +22,7 @@
 
 /* base includes */
 #include <base/internal/unmanaged_singleton.h>
-#include <base/native_types.h>
+#include <base/internal/globals.h>
 
 using namespace Kernel;
 
@@ -61,9 +60,9 @@ extern "C" void init_kernel()
 
 	Core_thread::singleton();
 
-	Genode::printf("kernel initialized\n");
-
-	test();
+	Genode::init_log();
+	Genode::log("");
+	Genode::log("kernel initialized");
 
 	kernel();
 }

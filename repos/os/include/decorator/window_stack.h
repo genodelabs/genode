@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <nitpicker_session/nitpicker_session.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* local includes */
 #include <decorator/types.h>
@@ -239,7 +239,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 			}
 		}
 		catch (Xml_node::Nonexistent_sub_node) {
-			PERR("could not look up window %ld in XML model", window->id()); }
+			Genode::error("could not look up window ", window->id(), " in XML model"); }
 	}
 
 	/*
@@ -281,7 +281,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 	for_each_sub_node(root_node, "window", [&] (Xml_node window_node) {
 
 		if (!window) {
-			PERR("unexpected end of window list during re-ordering");
+			Genode::error("unexpected end of window list during re-ordering");
 			return;
 		}
 
@@ -290,7 +290,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 		if (window->id() != id) {
 			window = _lookup_by_id(id);
 			if (!window) {
-				PERR("window lookup unexpectedly failed during re-ordering");
+				Genode::error("window lookup unexpectedly failed during re-ordering");
 				return;
 			}
 

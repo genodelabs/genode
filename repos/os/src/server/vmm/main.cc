@@ -13,18 +13,20 @@
 
 /* Genode includes */
 #include <base/exception.h>
-#include <os/attached_rom_dataspace.h>
-#include <os/attached_ram_dataspace.h>
-#include <os/ring_buffer.h>
-#include <vm_session/connection.h>
-#include <timer_session/connection.h>
-#include <io_mem_session/connection.h>
-#include <irq_session/connection.h>
-#include <terminal_session/connection.h>
+#include <base/log.h>
 #include <cpu/cpu_state.h>
 #include <drivers/board_base.h>
+#include <io_mem_session/connection.h>
+#include <irq_session/connection.h>
+#include <os/attached_ram_dataspace.h>
+#include <os/attached_rom_dataspace.h>
+#include <os/ring_buffer.h>
+#include <terminal_session/connection.h>
+#include <timer_session/connection.h>
 #include <util/avl_tree.h>
 #include <util/mmio.h>
+#include <vm_session/connection.h>
+
 #include <vm_state.h>
 #include <board.h>
 
@@ -165,7 +167,7 @@ class Vm {
 
 				Exception() : Exception("undefined") {}
 
-				void print() { PERR("%s", _buf); }
+				void print() { Genode::error(Genode::Cstring(_buf)); }
 		};
 
 
@@ -177,7 +179,9 @@ class Vm {
 		  _ram(RAM_ADDRESS, ram_size, (Genode::addr_t)_vm_ram.local_addr<void>()),
 		  _state((State*)Genode::env()->rm_session()->attach(_vm_con.cpu_state()))
 		{
-			PINF("ram is at %lx", Genode::Dataspace_client(_vm_ram.cap()).phys_addr());
+			Genode::log("ram is at ",
+			            Genode::Hex(Genode::Dataspace_client(_vm_ram.cap()).phys_addr()));
+
 			_vm_con.exception_handler(sig_cap);
 			_vm_con.attach(_vm_ram.cap(), RAM_ADDRESS);
 			_vm_con.attach_pic(0x2C002000);
@@ -203,7 +207,7 @@ class Vm {
 			_state->gic_lr[2]  = 0;
 			_state->gic_lr[3]  = 0;
 
-			PINF("ready to run");
+			Genode::log("ready to run");
 		}
 
 		void run()                { if (_active) _vm_con.run();   }
@@ -222,31 +226,34 @@ class Vm {
 				{ "nope", "reset", "undefined", "svc", "pf_abort",
 			      "data_abort", "irq", "fiq", "trap" };
 
-			printf("Cpu state:\n");
-			printf("  r0         = %08lx\n", _state->r0);
-			printf("  r1         = %08lx\n", _state->r1);
-			printf("  r2         = %08lx\n", _state->r2);
-			printf("  r3         = %08lx\n", _state->r3);
-			printf("  r4         = %08lx\n", _state->r4);
-			printf("  r5         = %08lx\n", _state->r5);
-			printf("  r6         = %08lx\n", _state->r6);
-			printf("  r7         = %08lx\n", _state->r7);
-			printf("  r8         = %08lx\n", _state->r8);
-			printf("  r9         = %08lx\n", _state->r9);
-			printf("  r10        = %08lx\n", _state->r10);
-			printf("  r11        = %08lx\n", _state->r11);
-			printf("  r12        = %08lx\n", _state->r12);
-			printf("  sp         = %08lx\n", _state->sp);
-			printf("  lr         = %08lx\n", _state->lr);
-			printf("  ip         = %08lx\n", _state->ip);
-			printf("  cpsr       = %08lx\n", _state->cpsr);
+			log("Cpu state:");
+			log("  r0         = ", Hex(_state->r0,   Hex::PREFIX, Hex::PAD));
+			log("  r1         = ", Hex(_state->r1,   Hex::PREFIX, Hex::PAD));
+			log("  r2         = ", Hex(_state->r2,   Hex::PREFIX, Hex::PAD));
+			log("  r3         = ", Hex(_state->r3,   Hex::PREFIX, Hex::PAD));
+			log("  r4         = ", Hex(_state->r4,   Hex::PREFIX, Hex::PAD));
+			log("  r5         = ", Hex(_state->r5,   Hex::PREFIX, Hex::PAD));
+			log("  r6         = ", Hex(_state->r6,   Hex::PREFIX, Hex::PAD));
+			log("  r7         = ", Hex(_state->r7,   Hex::PREFIX, Hex::PAD));
+			log("  r8         = ", Hex(_state->r8,   Hex::PREFIX, Hex::PAD));
+			log("  r9         = ", Hex(_state->r9,   Hex::PREFIX, Hex::PAD));
+			log("  r10        = ", Hex(_state->r10,  Hex::PREFIX, Hex::PAD));
+			log("  r11        = ", Hex(_state->r11,  Hex::PREFIX, Hex::PAD));
+			log("  r12        = ", Hex(_state->r12,  Hex::PREFIX, Hex::PAD));
+			log("  sp         = ", Hex(_state->sp,   Hex::PREFIX, Hex::PAD));
+			log("  lr         = ", Hex(_state->lr,   Hex::PREFIX, Hex::PAD));
+			log("  ip         = ", Hex(_state->ip,   Hex::PREFIX, Hex::PAD));
+			log("  cpsr       = ", Hex(_state->cpsr, Hex::PREFIX, Hex::PAD));
 			for (unsigned i = 0;
 			     i < State::Mode_state::MAX; i++) {
-				printf("  sp_%s     = %08lx\n", modes[i], _state->mode[i].sp);
-				printf("  lr_%s     = %08lx\n", modes[i], _state->mode[i].lr);
-				printf("  spsr_%s   = %08lx\n", modes[i], _state->mode[i].spsr);
+				log("  sp_", modes[i], "     = ",
+				    Hex(_state->mode[i].sp, Hex::PREFIX, Hex::PAD));
+				log("  lr_", modes[i], "     = ",
+				    Hex(_state->mode[i].lr, Hex::PREFIX, Hex::PAD));
+				log("  spsr_", modes[i], "   = ",
+				    Hex(_state->mode[i].spsr, Hex::PREFIX, Hex::PAD));
 			}
-			printf("  exception  = %s\n", exc[_state->cpu_exception]);
+			log("  exception  = ", exc[_state->cpu_exception]);
 		}
 
 		State *state() const { return  _state; }
@@ -366,12 +373,14 @@ class Vmm
 					if (reg) reg = reg->find_by_encoding(Iss::mask_encoding(v));
 
 					if (!reg) {
-						PERR("Unknown cp15 access @ ip=%08lx:", state->ip);
-						PERR("%s: c15 %d r%d c%d c%d %d",
-							 Iss::Direction::get(v) ? "read" : "write",
-							 Iss::Opcode1::get(v), Iss::Register::get(v),
-							 Iss::Crn::get(v), Iss::Crm::get(v),
-							 Iss::Opcode2::get(v));
+						Genode::error("unknown cp15 access @ ip=", state->ip, ":");
+						Genode::error(Iss::Direction::get(v) ? "read" : "write",
+						              ": "
+						              "c15 ", Iss::Opcode1::get(v), " "
+						              "r",    Iss::Register::get(v),   " "
+						              "c",    Iss::Crn::get(v),        " "
+						              "c",    Iss::Crm::get(v), " ",
+						                      Iss::Opcode2::get(v));
 						return false;
 					}
 
@@ -379,8 +388,8 @@ class Vmm
 						*(state->r(Iss::Register::get(v))) = reg->read(state);
 					} else {                      /* write access */
 						if (!reg->writeable()) {
-							PERR("Writing to cp15 register %s not allowed!",
-							     reg->name());
+							Genode::error("writing to cp15 register ",
+							              reg->name(), " not allowed!");
 							return false;
 						}
 						reg->write(state, *(state->r(Iss::Register::get(v))));
@@ -814,7 +823,7 @@ class Vmm
 						_irqs[irq].cpu_state = Irq::PENDING;
 
 					if (_irqs[irq].distr_state == Irq::DISABLED) {
-						PWRN("Disabled irq %u injected", irq);
+						Genode::warning("disabled irq ", irq, " injected");
 						return;
 					}
 
@@ -1316,7 +1325,7 @@ int main()
 	static Vmm vmm;
 
 	try {
-		PINF("Start virtual machine ...");
+		Genode::log("Start virtual machine ...");
 		vmm.run();
 	} catch(Vm::Exception &e) {
 		e.print();

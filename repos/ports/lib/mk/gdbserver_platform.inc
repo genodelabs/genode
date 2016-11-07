@@ -34,10 +34,3 @@ amd64-avx.c:
 
 vpath %.cc $(REP_DIR)/src/lib/gdbserver_platform
 vpath %.c  $(GDB_CONTRIB_DIR)/gdb/gdbserver
-
-#
-# Detect missing preparation of GDB package
-#
-ifeq ($(wildcard $(GDB_CONTRIB_DIR)),)
-REQUIRES = prepare_ports_gdb
-endif

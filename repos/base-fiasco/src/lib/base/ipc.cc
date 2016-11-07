@@ -12,18 +12,18 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/ipc.h>
 #include <base/blocking.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
+#include <base/internal/capability_space_tpl.h>
 
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
 #include <l4/sys/syscalls.h>
-#include <l4/sys/kdebug.h>
 }
 
 using namespace Genode;
@@ -93,8 +93,14 @@ class Msg_header
 
 			for (unsigned i = 0; i < num_caps; i++) {
 				Native_capability const &cap = snd_msg.cap(i);
-				_cap_tid[i]        = cap.dst();
-				_cap_local_name[i] = cap.local_name();
+
+				if (cap.valid()) {
+					Capability_space::Ipc_cap_data const cap_data =
+						Capability_space::ipc_cap_data(snd_msg.cap(i));
+
+					_cap_tid[i]        = cap_data.dst;
+					_cap_local_name[i] = cap_data.rpc_obj_key.value();
+				}
 			}
 		}
 
@@ -115,9 +121,20 @@ class Msg_header
 		 */
 		void extract_caps(Msgbuf_base &rcv_msg) const
 		{
-			for (unsigned i = 0; i < min((unsigned)MAX_CAPS_PER_MSG, num_caps); i++)
-				rcv_msg.insert(Native_capability(_cap_tid[i],
-				                                 _cap_local_name[i]));
+			for (unsigned i = 0; i < min((unsigned)MAX_CAPS_PER_MSG, num_caps); i++) {
+
+				Rpc_obj_key const rpc_obj_key(_cap_local_name[i]);
+				bool        const cap_valid = !Fiasco::l4_is_invalid_id(_cap_tid[i]);
+
+				Native_capability cap;
+				if (cap_valid) {
+					cap = Capability_space::lookup(rpc_obj_key);
+					if (!cap.valid())
+						cap = Capability_space::import(_cap_tid[i], rpc_obj_key);
+				}
+
+				rcv_msg.insert(cap);
+			}
 		}
 };
 
@@ -132,14 +149,17 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 {
 	using namespace Fiasco;
 
+	Capability_space::Ipc_cap_data const dst_data =
+		Capability_space::ipc_cap_data(dst);
+
 	Msg_header &snd_header = snd_msg.header<Msg_header>();
-	snd_header.prepare_snd_msg(dst.local_name(), snd_msg);
+	snd_header.prepare_snd_msg(dst_data.rpc_obj_key.value(), snd_msg);
 
 	Msg_header &rcv_header = rcv_msg.header<Msg_header>();
 	rcv_header.prepare_rcv_msg(rcv_msg);
 
 	l4_msgdope_t ipc_result;
-	l4_ipc_call(dst.dst(),
+	l4_ipc_call(dst_data.dst,
 	            snd_header.msg_start(),
 	            snd_header.protocol_word,
 	            snd_header.num_caps,
@@ -155,7 +175,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		if (L4_IPC_ERROR(ipc_result) == L4_IPC_RECANCELED)
 			throw Genode::Blocking_canceled();
 
-		PERR("ipc_call error %lx", L4_IPC_ERROR(ipc_result));
+		error("ipc_call error ", Hex(L4_IPC_ERROR(ipc_result)));
 		throw Genode::Ipc_error();
 	}
 
@@ -176,13 +196,14 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	snd_header.prepare_snd_msg(exc.value, snd_msg);
 
 	l4_msgdope_t result;
-	l4_ipc_send(caller.dst(), snd_header.msg_start(),
+	l4_ipc_send(Capability_space::ipc_cap_data(caller).dst,
+	            snd_header.msg_start(),
 	            snd_header.protocol_word,
 	            snd_header.num_caps,
 	            L4_IPC_SEND_TIMEOUT_0, &result);
 
 	if (L4_IPC_IS_ERROR(result))
-		PERR("ipc_send error %lx, ignored", L4_IPC_ERROR(result));
+		error("ipc_send error ", Hex(L4_IPC_ERROR(result)), ", ignored");
 }
 
 
@@ -212,7 +233,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		 * Use short IPC for reply if possible. This is the common case of
 		 * returning an integer as RPC result.
 		 */
-		l4_ipc_reply_and_wait(last_caller.dst(), snd_header.msg_start(),
+		l4_ipc_reply_and_wait(Capability_space::ipc_cap_data(last_caller).dst,
+		                      snd_header.msg_start(),
 		                      snd_header.protocol_word,
 		                      snd_header.num_caps,
 		                      &caller, rcv_header.msg_start(),
@@ -228,7 +250,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		 * incoming message.
 		 */
 		if (L4_IPC_IS_ERROR(ipc_result)) {
-			PERR("ipc_reply_and_wait error %lx", L4_IPC_ERROR(ipc_result));
+			error("ipc_reply_and_wait error ", Hex(L4_IPC_ERROR(ipc_result)));
 		} else {
 			need_to_wait = false;
 		}
@@ -242,7 +264,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		            L4_IPC_NEVER, &ipc_result);
 
 		if (L4_IPC_IS_ERROR(ipc_result)) {
-			PERR("ipc_wait error %lx", L4_IPC_ERROR(ipc_result));
+			error("ipc_wait error ", Hex(L4_IPC_ERROR(ipc_result)));
 		} else {
 			need_to_wait = false;
 		}
@@ -250,11 +272,15 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 	rcv_header.extract_caps(request_msg);
 
-	return Rpc_request(Native_capability(caller, 0), rcv_header.protocol_word);
+	return Rpc_request(Capability_space::import(caller, Rpc_obj_key()),
+	                   rcv_header.protocol_word);
 }
 
 
-Ipc_server::Ipc_server() : Native_capability(Fiasco::l4_myself(), 0) { }
+Ipc_server::Ipc_server()
+:
+	Native_capability(Capability_space::import(Fiasco::l4_myself(), Rpc_obj_key()))
+{ }
 
 
 Ipc_server::~Ipc_server() { }

@@ -15,7 +15,6 @@
 #define _INCLUDE__VMM__VCPU_THREAD_H_
 
 /* Genode includes */
-#include <base/cap_map.h>
 #include <base/thread.h>
 #include <cap_session/connection.h>
 #include <cpu_session/connection.h>
@@ -26,6 +25,7 @@
 
 /* NOVA includes */
 #include <nova/native_thread.h>
+#include <nova/cap_map.h>
 
 namespace Vmm {
 
@@ -112,7 +112,7 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 
 	public:
 
-		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session,
+		Vcpu_same_pd(Genode::size_t stack_size, Cpu_session * cpu_session,
 		             Genode::Affinity::Location location)
 		:
 			Thread(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)

@@ -146,12 +146,16 @@ void Cancelable_lock::unlock()
 
 		/* transfer lock ownership to next applicant and wake him up */
 		_owner = *next_owner;
+
+		/* make copy since _owner may change outside spinlock ! */
+		Applicant owner = *next_owner;
+
 		if (_last_applicant == next_owner)
 			_last_applicant = &_owner;
 
 		spinlock_unlock(&_spinlock_state);
 
-		_owner.wake_up();
+		owner.wake_up();
 
 	} else {
 

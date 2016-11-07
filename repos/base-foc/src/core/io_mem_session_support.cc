@@ -39,7 +39,7 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 		return 0;
 
 	if (!map_local_io(base, (addr_t)local_base, size >> get_page_size_log2())) {
-		PERR("map_local_io failed\n");
+		error("map_local_io failed");
 		return 0;
 	}
 

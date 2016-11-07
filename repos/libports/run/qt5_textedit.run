@@ -16,7 +16,7 @@ append build_components {
 }
 
 set use_sd_card_driver [expr [have_spec omap4] || [have_spec arndale]]
-set use_ahci_driver    [have_spec x86]
+set use_ahci_driver    [expr [have_spec x86] && ![have_spec linux]]
 
 lappend_if $use_sd_card_driver       build_components drivers/sd_card
 lappend_if $use_ahci_driver          build_components drivers/ahci
@@ -162,7 +162,7 @@ catch { exec sh -c $cmd }
 
 append_if $use_ahci_driver qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 
-append qemu_args " -m 256"
+append qemu_args " -m 256 -usbdevice tablet "
 
 run_genode_until forever
 

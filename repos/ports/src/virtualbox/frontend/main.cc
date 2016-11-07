@@ -14,7 +14,7 @@
 
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/config.h>
 
 /* Virtualbox includes */
@@ -34,6 +34,7 @@
 /* Genode port specific includes */
 #include "console.h"
 #include "fb.h"
+#include "../sup.h"
 
 static char c_vbox_file[128];
 static char c_vbox_vmname[128];
@@ -106,6 +107,10 @@ HRESULT setupmachine()
 	if (FAILED(rc))
 		return rc;
 
+	rc = genode_setup_machine(machine);
+	if (FAILED(rc))
+		return rc;
+
 	rc = virtualbox->RegisterMachine(machine);
 	if (FAILED(rc))
 		return rc;
@@ -119,27 +124,6 @@ HRESULT setupmachine()
 	rc = machine->LockMachine(session, LockType_VM);
 	if (FAILED(rc))
 		return rc;
-
-	/* Validate configured memory of vbox file and Genode config */
-	ULONG memory_vbox;
-	rc = machine->COMGETTER(MemorySize)(&memory_vbox);
-	if (FAILED(rc))
-		return rc;
-
-	/* request max available memory */
-	size_t memory_genode = Genode::env()->ram_session()->avail() >> 20;
-	size_t memory_vmm    = 28;
-
-	if (memory_vbox + memory_vmm > memory_genode) {
-		PERR("Configured memory %u MB (vbox file) is insufficient.",
-		     memory_vbox);
-		PERR("%zu MB (1) - %zu MB (2) = %zu MB (3)",
-			 memory_genode, memory_vmm, memory_genode - memory_vmm);
-		PERR("(1) available memory based defined by Genode config");
-		PERR("(2) minimum memory required for VBox VMM");
-		PERR("(3) maximal available memory to VM");
-		return E_FAIL;
-	}
 
 	/* Console object */
 	ComPtr<IConsole> gConsole;
@@ -218,8 +202,8 @@ int main(int argc, char **argv)
 		Xml_node::Attribute vm_name = node.attribute("vm_name");
 		vm_name.value(c_vbox_vmname, sizeof(c_vbox_vmname));
 	} catch (...) {
-		PERR("Missing attributes in configuration, minimum requirements: ");
-		PERR("  <config vbox_file=\"...\" vm_name=\"...\">" );
+		Genode::error("missing attributes in configuration, minimum requirements: ");
+		Genode::error("  <config vbox_file=\"...\" vm_name=\"...\">" );
 		throw;
 	}
 
@@ -229,11 +213,11 @@ int main(int argc, char **argv)
 
 	HRESULT hrc = setupmachine();
 	if (FAILED(hrc)) {
-		PERR("Start-up of VMM failed - reason 0x%x - exiting ...", hrc);
+		Genode::error("startup of VMM failed - reason ", hrc, " - exiting ...");
 		return -2;
 	}
 
-	PERR("VMM exiting ...");
+	Genode::error("VMM exiting ...");
 
 	return 0;
 }

@@ -31,6 +31,9 @@ Mmio::Delayer &Hba::delayer()
 
 struct Ahci
 {
+	Genode::Env       &env;
+	Genode::Allocator &alloc;
+
 	/* read device signature */
 	enum Signature {
 		ATA_SIG        = 0x101,
@@ -39,22 +42,23 @@ struct Ahci
 	};
 
 	Ahci_root     &root;
-	Platform::Hba &platform_hba = Platform::init(Hba::delayer());
+	Platform::Hba &platform_hba = Platform::init(env, Hba::delayer());
 	Hba            hba          = { platform_hba };
 
 	enum { MAX_PORTS = 32 };
 	Port_driver   *ports[MAX_PORTS];
 	bool           port_claimed[MAX_PORTS];
 
-	Signal_rpc_member<Ahci> irq;
-	Signal_rpc_member<Ahci> device_ready;
-	unsigned                ready_count = 0;
-	bool                    enable_atapi;
+	Signal_handler<Ahci> irq;
+	unsigned             ready_count = 0;
+	bool                 enable_atapi;
 
-	Ahci(Ahci_root &root, bool support_atapi)
-	: root(root), irq(root.entrypoint(), *this, &Ahci::handle_irq),
-	  device_ready(root.entrypoint(), *this, &Ahci::ready),
-	  enable_atapi(support_atapi)
+	Ahci(Genode::Env &env, Genode::Allocator &alloc,
+	     Ahci_root &root, bool support_atapi)
+	:
+		env(env), alloc(alloc),
+		root(root), irq(root.entrypoint(), *this, &Ahci::handle_irq),
+		enable_atapi(support_atapi)
 	{
 		info();
 
@@ -65,7 +69,7 @@ struct Ahci
 		hba.init();
 
 		/* search for devices */
-		scan_ports();
+		scan_ports(env.rm());
 	}
 
 	bool atapi(unsigned sig)
@@ -81,7 +85,7 @@ struct Ahci
 	/**
 	 * Forward IRQs to ports
 	 */
-	void handle_irq(unsigned)
+	void handle_irq()
 	{
 		unsigned port_list = hba.read<Hba::Is>();
 		while (port_list) {
@@ -98,29 +102,23 @@ struct Ahci
 		platform_hba.ack_irq();
 	}
 
-	void ready(unsigned cnt)
-	{
-		ready_count -= cnt;
-		if (ready_count)
-			return;
-
-		/* announce service */
-		root.announce();
-	}
-
-
 	void info()
 	{
-		PINF("\tversion: %x.%04x", hba.read<Hba::Version::Major>(),
-		                           hba.read<Hba::Version::Minor>());
-		PINF("\tcommand slots: %u", hba.command_slots());
-		PINF("\tnative command queuing: %s", hba.ncq() ? "yes" : "no");
-		PINF("\t64 bit support: %s", hba.supports_64bit() ? "yes" : "no");
+		using Genode::log;
+
+		log("version: "
+		    "major=", Genode::Hex(hba.read<Hba::Version::Major>()), " "
+		    "minor=", Genode::Hex(hba.read<Hba::Version::Minor>()));
+		log("command slots: ", hba.command_slots());
+		log("native command queuing: ", hba.ncq() ? "yes" : "no");
+		log("64-bit support: ", hba.supports_64bit() ? "yes" : "no");
 	}
 
-	void scan_ports()
+	void scan_ports(Genode::Region_map &rm)
 	{
-		PINF("\tnumber of ports: %u pi: %x", hba.port_count(), hba.read<Hba::Pi>());
+		Genode::log("number of ports: ", hba.port_count(), " "
+		            "pi: ", Genode::Hex(hba.read<Hba::Pi>()));
+
 		unsigned available = hba.read<Hba::Pi>();
 		for (unsigned i = 0; i < hba.port_count(); i++) {
 
@@ -128,12 +126,12 @@ struct Ahci
 			if (!(available & (1U << i)))
 				continue;
 
-			Port port(hba, platform_hba, i);
+			Port port(rm, hba, platform_hba, i);
 
 			/* check for ATA/ATAPI devices */
 			unsigned sig = port.read<Port::Sig>();
 			if (!atapi(sig) && !ata(sig)) {
-				PINF("\t\t#%u: off", i);
+				Genode::log("\t\t#", i, ": off");
 				continue;
 			}
 
@@ -141,9 +139,9 @@ struct Ahci
 
 			bool enabled = false;
 			try { enabled = port.enable(); }
-			catch (Port::Not_ready) { PERR("Could not enable port %u", i); }
+			catch (Port::Not_ready) { Genode::error("could not enable port ", i); }
 
-			PINF("\t\t#%u: %s", i, atapi(sig) ? "ATAPI" : "ATA");
+			Genode::log("\t\t#", i, ": ", atapi(sig) ? "ATAPI" : "ATA");
 
 			if (!enabled)
 				continue;
@@ -152,18 +150,18 @@ struct Ahci
 			switch (sig) {
 
 				case ATA_SIG:
-					ports[i] = new (Genode::env()->heap()) Ata_driver(port, device_ready);
-					ready_count++;
+					ports[i] = new (&alloc) Ata_driver(alloc, port, root,
+					                                   ready_count);
 					break;
 
 				case ATAPI_SIG:
 				case ATAPI_SIG_QEMU:
-					ports[i] = new (Genode::env()->heap()) Atapi_driver(port, device_ready);
-					ready_count++;
+					ports[i] = new (&alloc) Atapi_driver(port, root,
+					                                     ready_count);
 					break;
 
 				default:
-					PWRN("Device signature %x unsupported", sig);
+					Genode::warning("device signature ", Genode::Hex(sig), " unsupported");
 			}
 		}
 	};
@@ -210,9 +208,10 @@ static Ahci *sata_ahci(Ahci *ahci = 0)
 }
 
 
-void Ahci_driver::init(Ahci_root &root, bool support_atapi)
+void Ahci_driver::init(Genode::Env &env, Genode::Allocator &alloc,
+                       Ahci_root &root, bool support_atapi)
 {
-	static Ahci ahci(root, support_atapi);
+	static Ahci ahci(env, alloc, root, support_atapi);
 	sata_ahci(&ahci);
 }
 

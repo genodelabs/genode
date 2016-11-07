@@ -14,7 +14,7 @@
 #ifndef _DRIVERS__INPUT__SPEC__PS2__PS2_KEYBOARD_H_
 #define _DRIVERS__INPUT__SPEC__PS2__PS2_KEYBOARD_H_
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <input/event_queue.h>
 #include <input/keycodes.h>
 
@@ -124,7 +124,7 @@ class Ps2_keyboard : public Input_driver
 				void process(unsigned char v, bool verbose_scan_codes)
 				{
 					if (verbose_scan_codes)
-						PLOG("process %02x scan code set 1", v);
+						Genode::log("process ", Genode::Hex(v), " scan code set 1");
 
 					switch (_state) {
 
@@ -257,7 +257,7 @@ class Ps2_keyboard : public Input_driver
 				void process(unsigned char v, bool verbose_scan_codes)
 				{
 					if (verbose_scan_codes)
-						PLOG("process %02x scan code set 2", v);
+						Genode::log("process ", Genode::Hex(v), " scan code set 2");
 
 					enum {
 						EXTENDED_KEY_PREFIX = 0xe0,
@@ -378,10 +378,10 @@ class Ps2_keyboard : public Input_driver
 			/* prepare state machine for processing the first packet */
 			_state_machine->reset();
 
-			Genode::printf("Using keyboard with scan code set %s.\n",
-			               _state_machine == &_scan_code_set_1_state_machine
-			               ? _xlate_mode ? "1 (xlate)" : "1"
-			               : "2");
+			Genode::log("Using keyboard with scan code set ",
+			            _state_machine == &_scan_code_set_1_state_machine
+			            ? _xlate_mode ? "1 (xlate)" : "1"
+			            : "2");
 		}
 
 		void reset()
@@ -399,12 +399,12 @@ class Ps2_keyboard : public Input_driver
 			/* try to enable scan-code set 2 */
 			_kbd.write(0xf0);
 			if (_kbd.read() != ACK) {
-				PWRN("Scan code setting not supported");
+				Genode::warning("scan code setting not supported");
 				return;
 			}
 			_kbd.write(SCAN_CODE_SET_2);
 			if (_kbd.read() != ACK) {
-				PWRN("Scan code 2 not supported");
+				Genode::warning("scan code 2 not supported");
 				return;
 			}
 
@@ -443,11 +443,11 @@ class Ps2_keyboard : public Input_driver
 			_key_state[key_code] = _state_machine->press();
 
 			if (_verbose)
-				PLOG("post %s, key_code = %d\n",
-				     press ? "PRESS" : "RELEASE", key_code);
+				Genode::log("post ", press ? "PRESS" : "RELEASE", ", "
+				            "key_code = ", key_code);
 
 			if (_ev_queue.avail_capacity() == 0) {
-				PWRN("event queue overflow - dropping events");
+				Genode::warning("event queue overflow - dropping events");
 				_ev_queue.reset();
 			}
 

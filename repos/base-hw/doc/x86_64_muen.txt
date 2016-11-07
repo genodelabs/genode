@@ -124,7 +124,7 @@ As a first step acquire the Muen sources by execute the following commands:
 
 ! git clone http://git.codelabs.ch/git/muen.git
 ! cd muen
-! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="dbgserver sm tau0" emulate
+! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm tau0 time" emulate
 
 This will build a Muen SK system and start it using the Bochs emulator. You
 should get the following error:
@@ -151,7 +151,7 @@ Change back to the Muen working directory to package the system image and
 restart emulation:
 
 ! cd <muen_workdir>
-! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="dbgserver sm tau0" emulate
+! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm tau0 time" emulate
 
 The serial output of the system is written to the
 '<muen_workdir>/emulate/serial.out' file. You should see the following line:

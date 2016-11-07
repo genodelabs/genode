@@ -86,8 +86,6 @@ class Kernel::Thread
 
 	private:
 
-		enum { START_VERBOSE = 0 };
-
 		enum State
 		{
 			ACTIVE                      = 1,
@@ -194,23 +192,6 @@ class Kernel::Thread
 		 * Return amount of timer tics that 'quota' is worth
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
-
-		/**
-		 * Print the activity of the thread
-		 *
-		 * \param printing_thread  wether this thread caused the debugging
-		 */
-		void _print_activity(bool const printing_thread);
-
-		/**
-		 * Print the activity of the thread when it awaits a message
-		 */
-		void _print_activity_when_awaits_ipc();
-
-		/**
-		 * Print activity info that is printed regardless of the thread state
-		 */
-		void _print_common_activity();
 
 
 		/*********************************************************
@@ -339,6 +320,8 @@ class Kernel::Thread
 		 */
 		static void syscall_destroy(Thread * thread) {
 			call(call_id_delete_thread(), (Call_arg)thread); }
+
+		void print(Genode::Output &out) const;
 
 
 		/*************

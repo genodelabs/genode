@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__FRAMEBUFFER_SESSION__FRAMEBUFFER_SESSION_H_
 #define _INCLUDE__FRAMEBUFFER_SESSION__FRAMEBUFFER_SESSION_H_
 
+#include <base/output.h>
 #include <base/signal.h>
 #include <dataspace/capability.h>
 #include <session/session.h>
@@ -64,6 +65,15 @@ struct Framebuffer::Mode
 		 */
 		Genode::size_t bytes_per_pixel() const {
 			return bytes_per_pixel(_format); }
+
+		void print(Genode::Output &out) const
+		{
+			Genode::print(out, _width, "x", _height, "@");
+			switch (_format) {
+			case RGB565: Genode::print(out, "RGB565");  break;
+			default:     Genode::print(out, "INVALID"); break;
+			}
+		}
 };
 
 

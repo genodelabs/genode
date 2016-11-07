@@ -1,0 +1,20 @@
+#
+# Windows 7 64bit in VirtualBox
+#
+
+assert_spec 64bit
+
+set flavor   "win7_64_raw"
+
+set use_vbox4 1
+set use_vbox5 0
+
+# use vm image from a raw disk partition
+set use_rumpfs 0
+set use_ram_fs 0
+set use_overlay_from_disk 0
+
+set use_usb 1
+set use_ps2 [have_spec ps2]
+
+source ${genode_dir}/repos/ports/run/vbox_win.inc

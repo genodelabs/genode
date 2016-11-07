@@ -5,23 +5,25 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <os/path.h>
+#include <base/heap.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
-#include <root/component.h>
-#include <os/server.h>
+#include <os/path.h>
 #include <os/session_policy.h>
-#include <base/printf.h>
+#include <base/heap.h>
+#include <base/attached_rom_dataspace.h>
+#include <root/component.h>
+#include <base/component.h>
+#include <base/log.h>
 
 /* Local includes */
-#include "log_file.h"
 #include "session.h"
 
 namespace Fs_log {
@@ -30,35 +32,34 @@ namespace Fs_log {
 	using namespace File_system;
 
 	class  Root_component;
-	struct Main;
 
 	enum {
-		 BLOCK_SIZE = Log_session::String::MAX_SIZE,
+		PACKET_SIZE = Log_session::String::MAX_SIZE,
 		 QUEUE_SIZE = File_system::Session::TX_QUEUE_SIZE,
-		TX_BUF_SIZE = BLOCK_SIZE * (QUEUE_SIZE*2 + 1)
+		TX_BUF_SIZE = PACKET_SIZE * (QUEUE_SIZE+2)
 	};
 
 	typedef Genode::Path<File_system::MAX_PATH_LEN> Path;
 
 }
 
+
 class Fs_log::Root_component :
 	public Genode::Root_component<Fs_log::Session_component>
 {
 	private:
 
-		Allocator_avl            _write_alloc;
-		File_system::Connection  _fs;
-		List<Log_file>           _log_files;
+		Genode::Env                    &_env;
+		Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
+		Genode::Heap                    _heap { _env.ram(), _env.rm() };
+		Allocator_avl                   _tx_alloc { &_heap };
+		File_system::Connection         _fs
+			{ _env, _tx_alloc, "", "/", true, TX_BUF_SIZE };
 
-		Log_file *lookup(char const *dir, char const *filename)
-		{
-			for (Log_file *file = _log_files.first(); file; file = file->next())
-				if (file->match(dir, filename))
-					return file;
+		void _update_config() { _config_rom.update(); }
 
-			return 0;
-		}
+		Genode::Signal_handler<Root_component> _config_handler
+			{ _env.ep(), *this, &Root_component::_update_config };
 
 	protected:
 
@@ -66,30 +67,29 @@ class Fs_log::Root_component :
 		{
 			using namespace File_system;
 
-			char  dir_path[MAX_PATH_LEN];
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota").aligned_size();
+			if (ram_quota < sizeof(Session_component))
+				throw Root::Quota_exceeded();
+
+			Path dir_path;
 			char file_name[MAX_NAME_LEN];
 
-			dir_path[0] = '/';
-
-			bool truncate = false;
-			Session_label session_label(args);
+			Session_label const session_label = label_from_args(args);
 			char const *label_str = session_label.string();
 			char const *label_prefix = "";
-
-			strncpy(dir_path+1, label_str, MAX_PATH_LEN-1);
+			bool truncate = false;
 
 			try {
-				Session_policy policy(session_label);
+				Session_policy policy(session_label, _config_rom.xml());
 				truncate = policy.attribute_value("truncate", truncate);
+				bool merge = policy.attribute_value("merge", false);
 
-				if (policy.attribute_value("merge", false)
-				 && policy.has_attribute("label_prefix")) {
-
-					if (!dir_path[1]) {
-						PERR("cannot merge an empty policy label");
-						throw Root::Unavailable();
-					}
-
+				/* only a match on 'label_prefix' can be merged */
+				if (merge && policy.has_type("policy")
+				 && (!(policy.has_attribute("label")
+				    || policy.has_attribute("label_suffix"))))
+				{
 					/*
 					 * split the label between what will be the log file
 					 * and what will be prepended to messages in the file
@@ -99,104 +99,75 @@ class Fs_log::Root_component :
 						if (strcmp(label_str+i, " -> ", 4))
 							continue;
 
-						dir_path[i+1] = '\0';
 						label_prefix = label_str+i+4;
+						{
+							char tmp[128];
+							strncpy(tmp, label_str, min(sizeof(tmp), i+1));
+							dir_path = path_from_label<Path>(tmp);
+						}
 						break;
 					}
-				}
-			} catch (Session_policy::No_policy_defined) { }
+					if (dir_path == "/")
+						dir_path = path_from_label<Path>(label_str);
 
-
-			{
-				/* Parse out a directory and file name. */
-				size_t len = strlen(dir_path);
-				size_t start = 1;
-				for (size_t i = 1; i < len;) {
-					/* Replace any slashes in label elements. */
-					if (dir_path[i] == '/') dir_path[i] = '_';
-					if (strcmp(" -> ", dir_path+i, 4) == 0) {
-						dir_path[i++] = '/';
-						strncpy(dir_path+i, dir_path+i+3, MAX_PATH_LEN-i);
-						start = i;
-						i += 3;
-					} else ++i;
+				} else if (!policy.has_type("default-policy")) {
+					dir_path = path_from_label<Path>(label_str);
 				}
 
-				/* Copy the remainder to the file name. */
-				snprintf(file_name, MAX_NAME_LEN, "%s.log", dir_path+start);
-
-				/* Terminate the directory path. */
-				dir_path[(start == 1) ? start : start-1] = '\0';
-
-				/* Rewrite any slashes in the name. */
-				for (char *p = file_name; *p; ++p)
-					if (*p == '/') *p = '_';
+			} catch (Session_policy::No_policy_defined) {
+				dir_path = path_from_label<Path>(label_str);
 			}
 
-			Log_file *file = lookup(dir_path, file_name);
-			if (!file) try {
+			if (dir_path == "/") {
+				strncpy(file_name, "log", sizeof(file_name));
+				label_prefix = label_str;
+			} else {
+				dir_path.append(".log");
+				strncpy(file_name, dir_path.last_element(), sizeof(file_name));
+				dir_path.strip_last_element();
+				dir_path.remove_trailing('/');
+			}
 
-				Dir_handle   dir_handle = ensure_dir(_fs, dir_path);
+			char const *errstr;
+			try {
+
+				Dir_handle   dir_handle = ensure_dir(_fs, dir_path.base());
 				Handle_guard dir_guard(_fs, dir_handle);
 				File_handle  handle;
-				seek_off_t   offset = 0;
 
 				try {
 					handle = _fs.file(dir_handle, file_name,
 					                  File_system::WRITE_ONLY, false);
 
-					if (truncate)
+					/* don't truncate at every new child session */
+					if (truncate && (strcmp(label_prefix, "") == 0))
 						_fs.truncate(handle, 0);
-					else
-						offset = _fs.status(handle).size;
 
 				} catch (File_system::Lookup_failed) {
-					PDBG("create");
 					handle = _fs.file(dir_handle, file_name,
 					                  File_system::WRITE_ONLY, true);
 				}
 
-				file = new (env()->heap())
-					Log_file(_fs, handle, dir_path, file_name, offset);
-
-				_log_files.insert(file);
-
-			} catch (Permission_denied) {
-				PERR("%s: permission denied", Path(file_name, dir_path).base());
-
-			} catch (No_space) {
-				PERR("file system out of space");
-
-			} catch (Out_of_metadata) {
-				PERR("file system server out of metadata");
-
-			} catch (Invalid_name) {
-				PERR("%s: invalid path", Path(file_name, dir_path).base());
-
-			} catch (Name_too_long) {
-				PERR("%s: name too long", Path(file_name, dir_path).base());
-
-			} catch (...) {
-				PERR("cannot open log file %s", Path(file_name, dir_path).base());
-				throw;
+				return new (md_alloc()) Session_component(_fs, handle, label_prefix);
 			}
 
-			if (!file)
-				throw Root::Unavailable();
+			catch (Permission_denied) {
+				errstr = "permission denied"; }
+			catch (No_space) {
+				errstr = "file system out of space"; }
+			catch (Out_of_metadata) {
+				errstr = "file system server out of metadata"; }
+			catch (Invalid_name) {
+				errstr = "invalid path"; }
+			catch (Name_too_long) {
+				errstr = "name too long"; }
+			catch (...) {
+				errstr = "unhandled error"; }
 
-			if (*label_prefix)
-				return new (md_alloc()) Labeled_session_component(label_prefix, *file);
-			return new (md_alloc()) Unlabeled_session_component(*file);
-		}
-
-		void _destroy_session(Session_component *session)
-		{
-			Log_file *file = session->file();
-			destroy(md_alloc(), session);
-			if (file->client_count() < 1) {
-				_log_files.remove(file);
-				destroy(env()->heap(), file);
-			}
+			Genode::error("cannot open log file ",
+			              (char const *)dir_path.base(),
+			              ", ", errstr);
+			throw Root::Unavailable();
 		}
 
 	public:
@@ -204,39 +175,32 @@ class Fs_log::Root_component :
 		/**
 		 * Constructor
 		 */
-		Root_component(Server::Entrypoint &ep, Allocator &alloc)
+		Root_component(Genode::Env &env, Genode::Allocator &md_alloc)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &alloc),
-			_write_alloc(env()->heap()),
-			_fs(_write_alloc, TX_BUF_SIZE)
-		{ }
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env)
+		{
+			_config_rom.sigh(_config_handler);
+
+			/* fill the ack queue with packets so sessions never need to alloc */
+			File_system::Session::Tx::Source &source = *_fs.tx();
+			for (int i = 0; i < QUEUE_SIZE-1; ++i)
+				source.submit_packet(source.alloc_packet(PACKET_SIZE));
+
+			env.parent().announce(env.ep().manage(*this));
+		}
 
 };
 
-struct Fs_log::Main
+
+/***************
+ ** Component **
+ ***************/
+
+Genode::size_t Component::stack_size() { return 4*1024*sizeof(long); }
+
+void Component::construct(Genode::Env &env)
 {
-	Server::Entrypoint &ep;
-
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
-
-	Root_component root { ep, sliced_heap };
-
-	Main(Server::Entrypoint &ep)
-	: ep(ep)
-	{ Genode::env()->parent()->announce(ep.manage(root)); }
-};
-
-
-/************
- ** Server **
- ************/
-
-namespace Server {
-
-	char const* name() { return "fs_log_ep"; }
-
-	size_t stack_size() { return 3*512*sizeof(long); }
-
-	void construct(Entrypoint &ep) { static Fs_log::Main inst(ep); }
-
+	static Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
+	static Fs_log::Root_component root { env, sliced_heap };
 }

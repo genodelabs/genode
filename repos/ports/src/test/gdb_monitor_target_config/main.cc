@@ -21,11 +21,11 @@ int main(void)
 	try {
 		config()->xml_node().sub_node("test_config_subnode");
 	} catch (Xml_node::Nonexistent_sub_node) {
-		PERR("Error: Missing '<test_config_subnode>' sub node.");
+		error("missing '<test_config_subnode>' sub node");
 		return -1;
 	}
 
-	printf("Test succeeded\n");
+	log("Test succeeded");
 
 	return 0;
 }

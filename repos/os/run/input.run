@@ -6,13 +6,15 @@ assert_spec x86
 
 set build_components {
 	core init
-	drivers/input
 	drivers/timer
 	test/input
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
+
+lappend_if [have_spec ps2] build_components drivers/input/spec/ps2
+lappend_if [have_spec sdl] build_components drivers/framebuffer/spec/sdl
 
 build $build_components
 
@@ -48,8 +50,11 @@ append config {
 			<service name="IRQ">    <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
 		</route>
-	</start>
+	</start>}
 
+append_platform_drv_config
+
+append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Input"/></provides>
@@ -63,19 +68,30 @@ append config {
 			<service name="Platform"> <any-child/> </service>
 		</route>
 	</start>
+	<alias name="input_drv" child="ps2_drv"/>}
 
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Input"/> <service name="Framebuffer"/> </provides>
+		<route>
+			<service name="LOG">   <parent/> </service>
+			<service name="RM">    <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+	</start>
+	<alias name="input_drv" child="fb_sdl"/>}
+
+append config {
 	<start name="test-input">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="LOG">     <parent/> </service>
-			<service name="RM">      <parent/> </service>
-
-			<service name="Input">   <child name="ps2_drv"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
+			<service name="LOG">   <parent/> </service>
+			<service name="RM">    <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Input"> <child name="input_drv"/> </service>
 		</route>
 	</start>}
-
-append_platform_drv_config
 
 append config {
 </config>}
@@ -90,12 +106,14 @@ install_config $config
 set boot_modules {
 	core init
 	timer
-	ps2_drv
 	test-input
 }
 
 # platform-specific modules
 append_platform_drv_boot_modules
+
+lappend_if [have_spec ps2] boot_modules ps2_drv
+lappend_if [have_spec sdl] boot_modules fb_sdl
 
 build_boot_image $boot_modules
 

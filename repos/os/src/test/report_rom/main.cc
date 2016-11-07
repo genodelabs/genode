@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/reporter.h>
 #include <os/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
@@ -19,7 +19,7 @@
 
 #define ASSERT(cond) \
 	if (!(cond)) { \
-		PERR("assertion %s failed", #cond); \
+		Genode::error("assertion ", #cond, " failed"); \
 		return -2; }
 
 
@@ -38,35 +38,35 @@ int main(int argc, char **argv)
 	Signal_context  sig_ctx;
 	Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
 
-	printf("--- test-report_rom started ---\n");
+	log("--- test-report_rom started ---");
 
-	printf("Reporter: open session\n");
+	log("Reporter: open session");
 	Reporter brightness_reporter("brightness");
 	brightness_reporter.enabled(true);
 
-	printf("Reporter: brightness 10\n");
+	log("Reporter: brightness 10");
 	report_brightness(brightness_reporter, 10);
 
-	printf("ROM client: request brightness report\n");
+	log("ROM client: request brightness report");
 	Attached_rom_dataspace brightness_rom("brightness");
 
 	ASSERT(brightness_rom.valid());
 
 	brightness_rom.sigh(sig_cap);
-	printf("         -> %s\n", brightness_rom.local_addr<char>());
+	log("         -> ", brightness_rom.local_addr<char const>());
 
-	printf("Reporter: updated brightness to 77\n");
+	log("Reporter: updated brightness to 77");
 	report_brightness(brightness_reporter, 77);
 
-	printf("ROM client: wait for update notification\n");
+	log("ROM client: wait for update notification");
 	sig_rec.wait_for_signal();
-	printf("ROM client: got signal\n");
+	log("ROM client: got signal");
 
-	printf("ROM client: request updated brightness report\n");
+	log("ROM client: request updated brightness report");
 	brightness_rom.update();
-	printf("         -> %s\n", brightness_rom.local_addr<char>());
+	log("         -> ", brightness_rom.local_addr<char const>());
 
-	printf("Reporter: close report session\n");
+	log("Reporter: close report session");
 	brightness_reporter.enabled(false);
 
 	/* give report_rom some time to close the report session */
@@ -75,26 +75,26 @@ int main(int argc, char **argv)
 
 	brightness_rom.update();
 	ASSERT(brightness_rom.valid());
-	printf("ROM client: ROM is available despite report was closed - OK\n");
+	log("ROM client: ROM is available despite report was closed - OK");
 
-	printf("Reporter: start reporting (while the ROM client still listens)\n");
+	log("Reporter: start reporting (while the ROM client still listens)");
 	brightness_reporter.enabled(true);
 	report_brightness(brightness_reporter, 99);
 
-	printf("ROM client: wait for update notification\n");
+	log("ROM client: wait for update notification");
 	sig_rec.wait_for_signal();
 
 	try {
-		printf("ROM client: try to open the same report again\n");
+		log("ROM client: try to open the same report again");
 		Reporter again("brightness");
 		again.enabled(true);
-		PERR("expected Service_denied");
+		error("expected Service_denied");
 		return -3;
 	} catch (Genode::Parent::Service_denied) {
-		printf("ROM client: catched Parent::Service_denied - OK\n");
+		log("ROM client: catched Parent::Service_denied - OK");
 	}
 
-	printf("--- test-report_rom finished ---\n");
+	log("--- test-report_rom finished ---");
 
 	sig_rec.dissolve(&sig_ctx);
 

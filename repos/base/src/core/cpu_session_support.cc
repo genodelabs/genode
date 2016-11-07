@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* core includes */
 #include <cpu_session_component.h>
@@ -22,7 +22,7 @@ using namespace Genode;
 
 Dataspace_capability Cpu_thread_component::utcb()
 {
-	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
+	error(__PRETTY_FUNCTION__, ": not implemented");
 	return Dataspace_capability();
 }
 

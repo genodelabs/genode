@@ -38,7 +38,7 @@ void Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
 	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top()))
-		PERR("failed to start thread");
+		error("failed to start thread");
 }
 
 
@@ -69,5 +69,5 @@ void Thread::_init_platform_thread(size_t, Type type)
 	                  max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
-	native_thread().cap = Hw::_main_thread_cap.dst();
+	native_thread().cap = Hw::_main_thread_cap;
 }

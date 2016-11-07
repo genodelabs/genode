@@ -93,7 +93,7 @@ set config {
 
 			<policy label="pointer"            domain="pointer"/>
 			<policy label="test-domain-smiley" domain="smiley"/>
-			<policy                            domain="default"/>
+			<default-policy                    domain="default"/>
 
 			<background color="#00426f"/> <!-- indigo -->
 		</config>
@@ -189,7 +189,7 @@ set config {
 		<binary name="vbox_pointer"/>
 		<resource name="RAM" quantum="1M"/>
 		<config>
-			<policy domain="smiley"           rom="smiley"/>
+			<default-policy domain="smiley"   rom="smiley"/>
 			<policy label="test-label-arrow"  rom="arrow"/>
 			<policy label="test-label-blade"  rom="blade"/>
 			<policy label="test-label-bladex" rom="bladex"/>

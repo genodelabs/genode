@@ -75,7 +75,16 @@ select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard 
 
 -include $(call select_from_repositories,etc/specs.conf)
 -include $(BUILD_BASE_DIR)/etc/specs.conf
-export SPEC_FILES := $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec/$(SPEC).mk))
+
+#
+# Determine the spec files to incorporate into the build configuration from the
+# repositories. Always consider the spec files present in BASE_DIR. This is
+# needed when the build system is invoked from the package-build tool where the
+# repos/base is not present in the list of REPOSITORIES.
+#
+export SPEC_FILES := \
+       $(sort $(foreach SPEC,$(SPECS),$(call select_from_repositories,mk/spec/$(SPEC).mk)) \
+              $(wildcard $(foreach SPEC,$(SPECS),$(BASE_DIR)/mk/spec/$(SPEC).mk)))
 include $(SPEC_FILES)
 export SPECS
 
@@ -165,7 +174,7 @@ $(dir $(LIB_DEP_FILE)):
 # Find all 'target.mk' files located within any of the specified subdirectories
 # ('DST_DIRS') and any repository. The 'sort' is used to remove duplicates.
 #
-TARGETS_TO_VISIT := $(shell find $(REPOSITORIES:=/src) -false \
+TARGETS_TO_VISIT := $(shell find $(wildcard $(REPOSITORIES:=/src)) -false \
                             $(foreach DST,$(DST_DIRS), \
                                       -or -path "*/src/$(DST)/**target.mk" \
                                           -printf " %P "))
@@ -195,7 +204,7 @@ endif
 # we would need to spawn one additional shell per target, which would take
 # 10-20 percent more time.
 #
-traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
+traverse_target_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
 	$(VERBOSE_MK) \
 	for target in $(TARGETS_TO_VISIT); do \
 	  for rep in $(REPOSITORIES); do \
@@ -209,8 +218,31 @@ traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
 	  done; \
 	done; $$result;
 
+#
+# Generate content of libdep file if manually building a single library
+# specified via the 'LIB' argument.
+#
+traverse_lib_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
+	$(VERBOSE_MK) \
+	$(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk \
+	        REP_DIR=$$rep LIB=$(LIB) \
+	        BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
+	        SHELL=$(SHELL) \
+	        DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
+	echo "all: $(LIB).lib" >> $(LIB_DEP_FILE); \
+
 .PHONY: $(LIB_DEP_FILE)
-$(LIB_DEP_FILE): traverse_dependencies
+
+#
+# Depending on whether the top-level target is a list of targets or a
+# single library, we populate the LIB_DEP_FILE differently.
+#
+ifeq ($(LIB),)
+$(LIB_DEP_FILE): traverse_target_dependencies
+else
+$(LIB_DEP_FILE): traverse_lib_dependencies
+endif
+
 
 ##
 ## Second stage: build targets based on the result of the first stage

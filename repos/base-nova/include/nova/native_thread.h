@@ -34,7 +34,23 @@ struct Genode::Native_thread
 	addr_t initial_ip; /* initial IP of local thread */
 
 	/* receive window for capability selectors received at the server side */
-	Receive_window rcv_window;
+	Receive_window server_rcv_window;
+
+	/*
+	 * Designated selector to populate with the result of an IPC call
+	 *
+	 * By default, the client-side receive window for delegated selectors
+	 * is automatically allocated within the component's selector space.
+	 * However, in special cases such as during the initialization of a
+	 * user-level VMM (ports/include/vmm/vcpu_dispatcher.h), the targeted
+	 * selector is defined manually. The 'client_rcv_sel' provides the
+	 * hook for such a manual allocation. If it contains a valid selector
+	 * value, the value is used as the basis of the receive window of an
+	 * 'ipc_call'.
+	 */
+	addr_t client_rcv_sel = INVALID_INDEX;
+
+	void reset_client_rcv_sel() { client_rcv_sel = INVALID_INDEX; }
 
 	Native_capability pager_cap;
 

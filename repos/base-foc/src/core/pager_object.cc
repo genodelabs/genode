@@ -14,6 +14,9 @@
 /* core includes */
 #include <pager.h>
 
+/* base-internal includes */
+#include <base/internal/cap_map.h>
+
 /* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
@@ -32,7 +35,7 @@ void Pager_object::wake_up()
 	l4_utcb_mr()->mr[0] = 0;                 /* fault address */
 	l4_utcb_mr()->mr[1] = (l4_umword_t)this; /* instruction pointer */
 
-	l4_ipc_call(cap().dst(), l4_utcb(), l4_msgtag(0, 2, 0, 0), L4_IPC_NEVER);
+	l4_ipc_call(cap().data()->kcap(), l4_utcb(), l4_msgtag(0, 2, 0, 0), L4_IPC_NEVER);
 }
 
 

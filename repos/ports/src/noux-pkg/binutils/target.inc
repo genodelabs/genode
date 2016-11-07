@@ -1,15 +1,15 @@
-NOUX_CFLAGS += -std=c99
-NOUX_CONFIGURE_ARGS = --disable-werror \
-                      --program-prefix=$(PROGRAM_PREFIX) \
-                      --target=$(BINUTILS_TARGET)
+CFLAGS += -std=c99
+CONFIGURE_ARGS = --disable-werror \
+                 --program-prefix=$(PROGRAM_PREFIX) \
+                 --target=$(BINUTILS_TARGET)
 
 #
 # Pass CFLAGS and friends to the invokation of 'make' because
 # binutils execute 2nd-level configure scripts, which need
-# the 'NOUX_ENV' as well.
+# the 'ENV' as well.
 #
-NOUX_MAKE_ENV = $(NOUX_ENV)
+MAKE_ENV = $(ENV)
 
-NOUX_PKG_DIR = $(call select_from_ports,binutils)/src/noux-pkg/binutils
+PKG_DIR = $(call select_from_ports,binutils)/src/noux-pkg/binutils
 
 include $(REP_DIR)/mk/noux.mk

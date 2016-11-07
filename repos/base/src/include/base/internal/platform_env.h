@@ -21,7 +21,7 @@
 #define _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/env.h>
 #include <base/heap.h>
 
@@ -108,7 +108,7 @@ class Genode::Platform_env : public Env_deprecated,
 		/*
 		 * Support functions for implementing fork on Noux.
 		 */
-		void reinit(Native_capability::Dst, long) override;
+		void reinit(Native_capability::Raw) override;
 		void reinit_main_thread(Capability<Region_map> &) override;
 
 
@@ -118,9 +118,9 @@ class Genode::Platform_env : public Env_deprecated,
 
 		void release() {
 
-			PDBG("used before freeing emergency=%zu", _resources.ram.used());
+			log("used before freeing emergency=", _resources.ram.used());
 			_resources.ram.free(_emergency_ram_ds);
-			PDBG("used after freeing emergency=%zu", _resources.ram.used());
+			log("used after freeing emergency=", _resources.ram.used());
 		}
 
 

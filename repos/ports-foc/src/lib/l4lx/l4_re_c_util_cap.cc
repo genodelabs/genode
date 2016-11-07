@@ -12,8 +12,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
-#include <base/cap_map.h>
+#include <base/log.h>
+#include <foc/capability_space.h>
 
 namespace Fiasco {
 #include <l4/re/c/util/cap.h>
@@ -22,16 +22,11 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static const bool DEBUG = false;
-
 extern "C" {
 
 	l4_cap_idx_t l4re_util_cap_alloc(void)
 	{
-		l4_cap_idx_t ret = Genode::cap_idx_alloc()->alloc_range(1)->kcap();
-
-		if (DEBUG)
-			PDBG("ret=%lx", ret);
+		l4_cap_idx_t ret = Genode::Capability_space::alloc_kcap();
 
 		return ret;
 	}
@@ -39,14 +34,14 @@ extern "C" {
 
 	void l4re_util_cap_free(l4_cap_idx_t cap)
 	{
-		PWRN("%s: Not implemented yet!",__func__);
+		Genode::warning(__func__, " not implemented");
 	}
 
 
 	l4_msgtag_t l4re_util_cap_release(l4_cap_idx_t cap)
 	{
 		l4_msgtag_t ret = l4_msgtag(0, 0, 0, 0);
-		PWRN("%s: Not implemented yet!",__func__);
+		Genode::warning(__func__, " not implemented");
 		return ret;
 	}
 

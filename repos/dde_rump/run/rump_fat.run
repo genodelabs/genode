@@ -60,7 +60,7 @@ append config {
 	<start name="rump_fs">
 		<resource name="RAM" quantum="8M" />
 		<provides><service name="File_system"/></provides>
-		<config fs="msdos"><policy root="/" writeable="yes"/></config>
+		<config fs="msdos"><default-policy root="/" writeable="yes"/></config>
 	</start>
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="4M"/>

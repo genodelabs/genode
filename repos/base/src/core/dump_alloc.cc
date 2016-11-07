@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/allocator_avl.h>
 
 using namespace Genode;
@@ -19,8 +19,9 @@ using namespace Genode;
 
 void Allocator_avl_base::Block::dump()
 {
-	printf(" Block: [%08lx,%08lx) size=%08zx avail=%08zx max_avail=%08zx\n",
-	       addr(), addr() + size(), size(), avail(), max_avail());
+	log(" Block: [", Hex(addr()), ",", Hex(addr() + size()), "] ",
+	    "size=", Hex(size()), " avail=", Hex(avail()), " ",
+		"max_avail=", Hex(max_avail()));
 }
 
 
@@ -33,7 +34,7 @@ void Allocator_avl_base::dump_addr_tree(Block *addr_node)
 	if (addr_node == 0) {
 		addr_node = _addr_tree.first();
 
-		printf("Allocator %p dump:\n", this);
+		log("Allocator ", this, " dump:");
 		mem_size = mem_avail = 0;
 		top = true;
 	}
@@ -52,7 +53,6 @@ void Allocator_avl_base::dump_addr_tree(Block *addr_node)
 		dump_addr_tree(addr_node->child(1));
 
 	if (top)
-		printf(" => mem_size=%lu (%lu MB) / mem_avail=%lu (%lu MB)\n",
-		       mem_size, mem_size / 1024 / 1024,
-		       mem_avail, mem_avail / 1024 / 1024);
+		log(" => mem_size=", mem_size, " (", mem_size / 1024 / 1024, " MB) ",
+		    "/ mem_avail=", mem_avail, " (", mem_avail / 1024 / 1024, " MB)");
 }

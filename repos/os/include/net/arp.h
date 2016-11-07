@@ -77,6 +77,8 @@ class Net::Arp_packet
 		 ** ARP parameters **
 		 ********************/
 
+		enum Protocol_address_type { IPV4 = 0x0800 };
+
 		enum Hardware_type {
 			ETHERNET                = 0x0001,
 			EXP_ETHERNET            = 0x0002,
@@ -198,31 +200,53 @@ class Net::Arp_packet
 		/**
 		 * \return source MAC address.
 		 */
-		Ethernet_frame::Mac_address src_mac() {
-			return Ethernet_frame::Mac_address(&_src_mac_addr); }
+		Mac_address src_mac() {
+			return Mac_address(&_src_mac_addr); }
 
 		/**
 		 * \return source IP address.
 		 */
-		Ipv4_packet::Ipv4_address src_ip() {
-			return Ipv4_packet::Ipv4_address(&_src_ip_addr); }
+		Ipv4_address src_ip() {
+			return Ipv4_address(&_src_ip_addr); }
 
 		/**
 		 * \return destination MAC address.
 		 */
-		Ethernet_frame::Mac_address dst_mac() {
-			return Ethernet_frame::Mac_address(&_dst_mac_addr); }
+		Mac_address dst_mac() {
+			return Mac_address(&_dst_mac_addr); }
 
 		/**
 		 * \return destination IP address.
 		 */
-		Ipv4_packet::Ipv4_address dst_ip() {
-			return Ipv4_packet::Ipv4_address(&_dst_ip_addr); }
+		Ipv4_address dst_ip() {
+			return Ipv4_address(&_dst_ip_addr); }
 
 
 		/******************************
 		 ** ARP field write-accessors **
 		 ******************************/
+
+		/**
+		 * \return link layer type (Arp_packet::Hardware_type).
+		 */
+		void hardware_address_type(Genode::uint16_t v) {
+			_hw_addr_type = host_to_big_endian(v); }
+
+		/**
+		 * \return network/internet layer type (Ether_frame::EtherType).
+		 */
+		void protocol_address_type(Genode::uint16_t v) {
+			_prot_addr_type = host_to_big_endian(v); }
+
+		/**
+		 * \return size in bytes of hardware address.
+		 */
+		void hardware_address_size(Genode::uint8_t v) { _hw_addr_sz = v; }
+
+		/**
+		 * \return size in bytes of protocol address.
+		 */
+		void protocol_address_size(Genode::uint8_t v) { _prot_addr_sz = v; }
 
 		/**
 		 * Set Operation code.
@@ -237,7 +261,7 @@ class Net::Arp_packet
 		 *
 		 * \param src_mac_addr  MAC address to set.
 		 */
-		void src_mac(Ethernet_frame::Mac_address src_mac_addr) {
+		void src_mac(Mac_address src_mac_addr) {
 			src_mac_addr.copy(&_src_mac_addr); }
 
 		/**
@@ -245,7 +269,7 @@ class Net::Arp_packet
 		 *
 		 * \param src_ip_addr  IP address to set.
 		 */
-		void src_ip(Ipv4_packet::Ipv4_address src_ip_addr) {
+		void src_ip(Ipv4_address src_ip_addr) {
 			src_ip_addr.copy(&_src_ip_addr); }
 
 		/**
@@ -253,7 +277,7 @@ class Net::Arp_packet
 		 *
 		 * \param src_mac_addr  MAC address to set.
 		 */
-		void dst_mac(Ethernet_frame::Mac_address dst_mac_addr) {
+		void dst_mac(Mac_address dst_mac_addr) {
 			dst_mac_addr.copy(&_dst_mac_addr); }
 
 		/**
@@ -261,7 +285,7 @@ class Net::Arp_packet
 		 *
 		 * \param src_ip_addr  IP address to set.
 		 */
-		void dst_ip(Ipv4_packet::Ipv4_address dst_ip_addr) {
+		void dst_ip(Ipv4_address dst_ip_addr) {
 			dst_ip_addr.copy(&_dst_ip_addr); }
 
 
@@ -288,8 +312,8 @@ class Net::Arp_packet
 		/**
 		 * Placement new
 		 */
-		void * operator new(Genode::size_t size, void* addr) {
-			return addr; }
+		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+
 } __attribute__((packed));
 
 #endif /* _NET__ARP_H_ */

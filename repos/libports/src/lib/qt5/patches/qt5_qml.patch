@@ -8,9 +8,9 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtdeclarative/src/qml/qml/qqmlimport.cpp           |    9 
  qtdeclarative/src/qml/qml/v8/qv8qobjectwrapper.cpp |    4 
  qtdeclarative/src/qml/types/qqmldelegatemodel_p.h  |    2 
- qtjsbackend/src/3rdparty/v8/src/platform-genode.cc |  706 ++++++++++++++++++++
+ qtjsbackend/src/3rdparty/v8/src/platform-genode.cc |  686 ++++++++++++++++++++
  qtjsbackend/src/v8/v8.pri                          |    2 
- 6 files changed, 722 insertions(+), 3 deletions(-)
+ 6 files changed, 702 insertions(+), 3 deletions(-)
  create mode 100644 qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 
 diff --git a/qtdeclarative/src/qml/qml/qqmlaccessors_p.h b/qtdeclarative/src/qml/qml/qqmlaccessors_p.h
@@ -90,10 +90,10 @@ index 5702c59..3d616b5 100644
  QT_BEGIN_NAMESPACE
 diff --git a/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 new file mode 100644
-index 0000000..de6f632
+index 0000000..25bdfc7
 --- /dev/null
 +++ b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
-@@ -0,0 +1,706 @@
+@@ -0,0 +1,686 @@
 +// Copyright 2012 the V8 project authors. All rights reserved.
 +// Redistribution and use in source and binary forms, with or without
 +// modification, are permitted provided that the following conditions are
@@ -126,7 +126,7 @@ index 0000000..de6f632
 +// Minimal include to get access to abort, fprintf and friends for bootstrapping
 +// messages.
 +
-+#include <base/printf.h>
++#include <base/log.h>
 +#include <region_map/client.h>
 +#include <rm_session/connection.h>
 +#include <util/avl_tree.h>
@@ -148,12 +148,10 @@ index 0000000..de6f632
 +namespace v8 {
 +namespace internal {
 +
-+static const bool verbose = false;
-+
 +static const pthread_t kNoThread = (pthread_t) 0;
 +
 +#undef UNIMPLEMENTED
-+#define UNIMPLEMENTED(...) PDBG("UNIMPLEMENTED")
++#define UNIMPLEMENTED(...) Genode::warning(__PRETTY_FUNCTION__, ": UNIMPLEMENTED")
 +
 +
 +double ceiling(double x) {
@@ -350,11 +348,9 @@ index 0000000..de6f632
 +					try {
 +						Genode::env()->rm_session()->attach_at(_ds_cap, _base_addr);
 +						return;
-+					} catch (Genode::Region_map::Region_conflict) {
-+						if (verbose)
-+							PDBG("could not attach at address 0x%lx", _base_addr);
-+					}
++					} catch (Genode::Region_map::Region_conflict) {	}
 +				}
++				Genode::error(__PRETTY_FUNCTION__, ": could not attach region");
 +				throw Region_map::Region_conflict();
 +			}
 +		}
@@ -378,9 +374,6 @@ index 0000000..de6f632
 +
 +		Attached_region_map *find_by_addr(Genode::addr_t addr)
 +		{
-+			if (verbose)
-+				PDBG("addr = 0x%lx, _base_addr = 0x%lx, _end_addr = 0x%lx",
-+				     addr, _base_addr, _base_addr + _size);
 +			if ((addr >= _base_addr) && (addr < _base_addr + _size))
 +				return this;
 +
@@ -411,12 +404,10 @@ index 0000000..de6f632
 +  try {
 +    rm = new Attached_region_map(size, alignment);
 +  } catch (Attached_region_map::Region_conflict) {
-+	PDBG("could not reserve region");
++	Genode::error(__PRETTY_FUNCTION__, ": could not reserve region");
 +	return 0;
 +  }
 +  vm_registry().insert(rm);
-+  if (verbose)
-+    PDBG("base_addr = 0x%p", rm->base_addr());
 +  return rm->base_addr();
 +}
 +
@@ -426,16 +417,12 @@ index 0000000..de6f632
 +
 +
 +VirtualMemory::VirtualMemory(size_t size) {
-+  if (verbose)
-+    PDBG("size = 0x%zx", size);
 +  address_ = ReserveRegion(size);
 +  size_ = size;
 +}
 +
 +
 +VirtualMemory::VirtualMemory(size_t size, size_t alignment) {
-+  if (verbose)
-+    PDBG("size = 0x%zx, alignment = 0x%zx", size, alignment);
 +  address_ = reserve_region(size, alignment);
 +  size_ = size;
 +}
@@ -484,13 +471,10 @@ index 0000000..de6f632
 +
 +
 +bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
-+  if (verbose)
-+    PDBG("base = 0x%p, size = 0x%zx", base, size);
 +  Attached_region_map *rm = vm_registry().first();
 +  rm = rm->find_by_addr((Genode::addr_t)base);
 +  if (!rm) {
-+    if (verbose)
-+      PDBG("could not find RM connection");
++    Genode::error(__PRETTY_FUNCTION__, ": could not find RM connection");
 +    return false;
 +  }
 +
@@ -509,8 +493,6 @@ index 0000000..de6f632
 +
 +bool VirtualMemory::UncommitRegion(void* base, size_t size) {
 +  UNIMPLEMENTED();
-+  if (verbose)
-+    PDBG("base = 0x%p, size = 0x%zx", base, size);
 +  return false;
 +}
 +
@@ -528,8 +510,6 @@ index 0000000..de6f632
 +   * be detached before detaching the sub RM session.
 +   */
 +
-+  if (verbose)
-+    PDBG("base = 0x%p, size = 0x%zx", base, size);
 +  Attached_rm_connection *rm = vm_registry().first();
 +  /* XXX: also pass the size for checking? */
 +  rm = rm->find_by_addr((Genode::addr_t)base);

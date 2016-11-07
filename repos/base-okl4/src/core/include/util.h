@@ -15,10 +15,9 @@
 #define _CORE__INCLUDE__UTIL_H_
 
 /* Genode includes */
-#include <base/native_types.h>
 #include <rm_session/rm_session.h>
 #include <base/stdint.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/touch.h>
 
 /* base-internal includes */
@@ -51,7 +50,7 @@ namespace Genode {
 	inline void panic(const char *s)
 	{
 		using namespace Okl4;
-		PDBG("Panic: %s", s);
+		error("Panic: ", s);
 		ENTER_KDB("> panic <");
 	}
 
@@ -59,7 +58,7 @@ namespace Genode {
 	{
 		using namespace Okl4;
 		if (!val) {
-			PERR("Assertion failed: %s", s);
+			error("assertion failed: ", s);
 			ENTER_KDB("Assertion failed");
 		}
 	}
@@ -112,16 +111,6 @@ namespace Genode {
 	inline addr_t round_page(addr_t page)
 	{
 		return trunc_page(page + get_page_size() - 1);
-	}
-
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Region_map::State::Fault_type pf_type,
-	                             unsigned long faulter_badge)
-	{
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx)\n", msg,
-		       pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
-		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge);
 	}
 
 	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }

@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <ram_session/ram_session.h>
-#include <base/native_types.h>
 #include <base/thread.h>
 
 /* base-internal includes */
@@ -27,9 +26,9 @@
 #include <address_space.h>
 #include <object.h>
 
+/* kernel includes */
 #include <kernel/core_interface.h>
 #include <kernel/thread.h>
-#include <kernel/log.h>
 
 namespace Genode {
 

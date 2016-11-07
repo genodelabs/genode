@@ -55,7 +55,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/native_types.h>        /* for 'Native_utcb' */
 #include <cpu/consts.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Cpu_session::Name' type */

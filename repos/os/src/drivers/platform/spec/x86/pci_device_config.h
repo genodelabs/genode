@@ -11,8 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#pragma once
+#ifndef _X86__PCI_DEVICE_CONFIG_H_
+#define _X86__PCI_DEVICE_CONFIG_H_
 
+#include <base/output.h>
 #include <platform_device/platform_device.h>
 #include "pci_config_access.h"
 
@@ -143,6 +145,15 @@ namespace Platform {
 			int device_number()   { return _device; }
 			int function_number() { return _function; }
 
+			void print(Genode::Output &out) const
+			{
+				using Genode::print;
+				using Genode::Hex;
+				print(out, Hex(_bus, Hex::Prefix::OMIT_PREFIX),
+				      ":", Hex(_device, Hex::Prefix::OMIT_PREFIX),
+				      ".", Hex(_function, Hex::Prefix::OMIT_PREFIX));
+			}
+
 			Genode::uint16_t bdf () {
 				return (_bus << 8) | (_device << 3) | (_function & 0x7); }
 
@@ -232,3 +243,5 @@ namespace Platform {
 			}
 	};
 }
+
+#endif /* _X86__PCI_DEVICE_CONFIG_H_ */

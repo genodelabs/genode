@@ -26,8 +26,8 @@
 #include <base/internal/stack_area.h>
 #include <base/internal/native_utcb.h>
 
-/* base-nova includes */
-#include <base/cap_map.h>
+/* NOVA includes */
+#include <nova/cap_map.h>
 
 using namespace Genode;
 

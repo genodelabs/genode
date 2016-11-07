@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <util/string.h>
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* libc includes */
 #include <sys/ioccom.h>
@@ -96,12 +96,12 @@ const char *command_name(long request)
 
 static void dump_ioctl(long request)
 {
-	PDBG("ioctl(request=%lx, %s, len=%ld, cmd=%s)", request,
-	     (request & 0xe0000000) == IOC_OUT   ? "out"   :
-	     (request & 0xe0000000) == IOC_IN    ? "in"    :
-	     (request & 0xe0000000) == IOC_INOUT ? "inout" : "void",
-	     IOCPARM_LEN(request),
-	     command_name(request));
+	Genode::log("ioctl(request=", Genode::Hex(request), ", ",
+	            (request & 0xe0000000) == IOC_OUT   ? "out"   :
+	            (request & 0xe0000000) == IOC_IN    ? "in"    :
+	            (request & 0xe0000000) == IOC_INOUT ? "inout" : "void", ", "
+	            "len=", IOCPARM_LEN(request), ", "
+	            "cmd=", command_name(request), ")");
 }
 
 
@@ -129,7 +129,7 @@ namespace {
 				Libc::Plugin(PLUGIN_PRIORITY), _driver(driver), _client(0)
 			{
 				if (!_driver) {
-					PERR("could not initialize GPU driver");
+					Genode::error("could not initialize GPU driver");
 					return;
 				}
 				_client = _driver->create_client();
@@ -199,8 +199,13 @@ namespace {
 			void *mmap(void *addr, ::size_t length, int prot, int flags,
 			           Libc::File_descriptor *fd, ::off_t offset)
 			{
-				PDBG("\naddr=%p, length=%zd, prot=%x, flags=%x, offset=0x%lx",
-				      addr, length, prot, flags, (long)offset);
+				using namespace Genode;
+				log(__func__, ": "
+				    "addr=",   addr,       ", "
+				    "length=", length,     ", "
+				    "prot=",   Hex(prot),  ", "
+				    "flags=",  Hex(flags), ", "
+				    "offset=", Hex(offset));
 
 				return (void *)offset;
 			}

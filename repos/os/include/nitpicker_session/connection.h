@@ -67,7 +67,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 
 			/* request frame-buffer and input sub sessions */
 			_framebuffer(framebuffer_session()),
-			_input(input_session())
+			_input(env, input_session())
 		{ }
 
 		/**
@@ -113,7 +113,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Return sub session for Nitpicker's input service
 		 */
-		Input::Session *input() { return &_input; }
+		Input::Session_client *input() { return &_input; }
 
 		/**
 		 * Return sub session for session's frame buffer

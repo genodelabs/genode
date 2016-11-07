@@ -13,12 +13,13 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/child.h>
 #include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/elf.h>
+#include <base/internal/parent_cap.h>
 
 using namespace Genode;
 
@@ -38,7 +39,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 	addr_t elf_addr;
 	try { elf_addr = local_rm.attach(elf_ds); }
 	catch (Region_map::Attach_failed) {
-		PERR("local attach of ELF executable failed"); throw; }
+		error("local attach of ELF executable failed"); throw; }
 
 	/* setup ELF object and read program entry pointer */
 	Elf_binary elf(elf_addr);
@@ -54,13 +55,13 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 		local_rm.detach(elf_addr);
 
 		if (!ldso_ds.valid()) {
-			PERR("attempt to start dynamic executable without dynamic linker");
+			error("attempt to start dynamic executable without dynamic linker");
 			throw Missing_dynamic_linker();
 		}
 
 		try { elf_addr = local_rm.attach(ldso_ds); }
 		catch (Region_map::Attach_failed) {
-			PERR("local attach of dynamic linker failed"); throw; }
+			error("local attach of dynamic linker failed"); throw; }
 
 		elf_ds = ldso_ds;
 		elf    = Elf_binary(elf_addr);
@@ -101,13 +102,13 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 			Dataspace_capability ds_cap;
 			try { ds_cap = ram.alloc(size); }
 			catch (Ram_session::Alloc_failed) {
-				PERR("allocation of read-write segment failed"); throw; };
+				error("allocation of read-write segment failed"); throw; };
 
 			/* attach dataspace */
 			void *base;
 			try { base = local_rm.attach(ds_cap); }
 			catch (Region_map::Attach_failed) {
-				PERR("local attach of segment dataspace failed"); throw; }
+				error("local attach of segment dataspace failed"); throw; }
 
 			void * const ptr = base;
 			addr_t const laddr = elf_addr + seg.file_offset();
@@ -123,11 +124,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 			 * data segment
 			 */
 			if (!parent_info) {
-				Native_capability::Raw *raw = (Native_capability::Raw *)ptr;
-
-				raw->dst        = parent_cap.dst();
-				raw->local_name = parent_cap.local_name();
-
+				*(Untyped_capability::Raw *)ptr = parent_cap.raw();
 				parent_info = true;
 			}
 
@@ -137,14 +134,14 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 			off_t const offset = 0;
 			try { remote_rm.attach_at(ds_cap, addr, size, offset); }
 			catch (Region_map::Attach_failed) {
-				PERR("remote attach of read-write segment failed"); throw; }
+				error("remote attach of read-write segment failed"); throw; }
 
 		} else {
 
 			/* read-only segment */
 
 			if (seg.file_size() != seg.mem_size())
-				PWRN("filesz and memsz for read-only segment differ");
+				warning("filesz and memsz for read-only segment differ");
 
 			off_t const offset = seg.file_offset();
 			try {
@@ -154,7 +151,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 					remote_rm.attach_at(elf_ds, addr, size, offset);
 			}
 			catch (Region_map::Attach_failed) {
-				PERR("remote attach of read-only segment failed"); throw; }
+				error("remote attach of read-only segment failed"); throw; }
 		}
 	}
 

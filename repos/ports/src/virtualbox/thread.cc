@@ -12,7 +12,7 @@
  */
 
 /* Genode */
-#include <base/printf.h>
+#include <base/log.h>
 #include <base/thread.h>
 #include <base/env.h>
 #include <cpu_session/connection.h>
@@ -75,10 +75,6 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 
 	if (rtthread->cbStack < stack_size)
 		stack_size = rtthread->cbStack;
-	else
-		PWRN("requested stack for thread '%s' of %zu Bytes is too large, "
-		     "limit to %zu Bytes", rtthread->szName, rtthread->cbStack,
-		     stack_size);
 
 	/* sanity check - emt and vcpu thread have to have same prio class */
 	if (strstr(rtthread->szName, "EMT") == rtthread->szName)
@@ -94,7 +90,7 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		Genode::Affinity::Location location(space.location_of_index(cpu_id));
 
 		if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg,
-		                    cpu_session, location, cpu_id))
+		                    cpu_session, location, cpu_id, rtthread->szName))
 			return 0;
 		/*
 		 * The virtualization layer had no need to setup the EMT
@@ -133,14 +129,14 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 		try {
 			return create_thread(thread, attr, start_routine, arg);
 		} catch (Cpu_session::Out_of_metadata) {
-			PWRN("Upgrading memory for creation of thread '%s'",
-			     rtthread->szName);
+			log("Upgrading memory for creation of "
+			    "thread '", Cstring(rtthread->szName), "'");
 			env()->parent()->upgrade(cpu_connection(rtthread->enmType)->cap(),
 			                         "ram_quota=4096");
 		} catch (...) { break; }
 	}
 
-	PERR("Could not create vbox pthread - halt");
+	Genode::error("could not create vbox pthread - halt");
 	Genode::Lock lock(Genode::Lock::LOCKED);
 	lock.lock();
 	return EAGAIN;

@@ -58,7 +58,7 @@ struct Platform::Framebuffer_message : Framebuffer_info
 		printf(" size:        0x%08x\n", size);
 	}
 
-	inline void *operator new (Genode::size_t, void *ptr) { return ptr; }
+	inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }
 };
 
 #endif /* _FRAMEBUFFER_MESSAGE_H_ */

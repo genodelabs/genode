@@ -29,6 +29,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova_util.h> /* map_local */
+#include <nova/capability_space.h>
 
 static bool verbose_oom = false;
 
@@ -70,6 +71,31 @@ static unsigned which_cpu(Pager_activation_base * pager)
 }
 
 
+/**
+ * Utility for the formatted output of page-fault information
+ */
+struct Page_fault_info
+{
+	char const * const pd;
+	char const * const thread;
+	unsigned const cpu;
+	addr_t const ip, addr;
+
+	Page_fault_info(char const *pd, char const *thread, unsigned cpu,
+	                addr_t ip, addr_t addr)
+	: pd(pd), thread(thread), cpu(cpu), ip(ip), addr(addr) { }
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, "pd='",     pd,      "' "
+		                   "thread='", thread,  "' "
+		                   "cpu=",     cpu,     " "
+		                   "ip=",      Hex(ip), " "
+		                   "address=", Hex(addr));
+	}
+};
+
+
 void Pager_object::_page_fault_handler(addr_t pager_obj)
 {
 	Ipc_pager ipc_pager;
@@ -104,11 +130,13 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	const char * client_thread = obj->client_thread();
 	const char * client_pd = obj->client_pd();
 
+	Page_fault_info const fault_info(client_pd, client_thread,
+	                                 which_cpu(pager_thread),
+	                                 ipc_pager.fault_ip(), ipc_pager.fault_addr());
+
 	/* region manager fault - to be handled */
 	if (ret == 1) {
-		PDBG("page fault, pd '%s', thread '%s', cpu %u, ip=%lx, fault "
-		     "address=0x%lx", client_pd, client_thread, which_cpu(pager_thread),
-		     ipc_pager.fault_ip(), ipc_pager.fault_addr());
+		log("page fault, ", fault_info);
 
 		utcb->set_msg_word(0);
 		utcb->mtd = 0;
@@ -120,13 +148,11 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	/* unhandled case */
 	obj->_state.mark_dead();
 
-	PWRN("unresolvable page fault, pd '%s', thread '%s', cpu %u, ip=%lx, "
-	     "fault address=0x%lx ret=%u", client_pd, client_thread,
-	     which_cpu(pager_thread), ipc_pager.fault_ip(), ipc_pager.fault_addr(),
-	     ret);
+	warning("unresolvable page fault, ", fault_info, " ret=", ret);
 
 	Native_capability pager_cap = obj->Object_pool<Pager_object>::Entry::cap();
-	revoke(pager_cap.dst());
+
+	revoke(Capability_space::crd(pager_cap).base());
 
 	revoke(Obj_crd(obj->exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
@@ -163,11 +189,13 @@ void Pager_object::exception(uint8_t exit_id)
 		/* nobody handles this exception - so thread will be stopped finally */
 		_state.mark_dead();
 
-		PWRN("unresolvable exception %u, pd '%s', thread '%s', cpu %u, "
-		     "ip=0x%lx, %s", exit_id, client_pd(), client_thread(),
-		     which_cpu(pager_thread), fault_ip,
-		     res == 0xFF ? "no signal handler" :
-		     (res == NOVA_OK ? "" : "recall failed"));
+		warning("unresolvable exception ", exit_id,  ", "
+		        "pd '",     client_pd(),            "', "
+		        "thread '", client_thread(),        "', "
+		        "cpu ",     which_cpu(pager_thread), ", "
+		        "ip=",      Hex(fault_ip),            " ",
+		        res == 0xFF ? "no signal handler"
+		                    : (res == NOVA_OK ? "" : "recall failed"));
 
 		Nova::revoke(Obj_crd(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
@@ -289,7 +317,7 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 			Obj_crd snd(cap.base(), 0);
 			Obj_crd rcv(obj->_client_exc_vcpu + event * items_count + i, 0);
 			if (map_local(utcb, snd, rcv))
-				PWRN("could not remap vCPU portal 0x%x", i);
+				warning("could not remap vCPU portal ", Hex(i));
 		}
 	}
 
@@ -377,7 +405,7 @@ void Pager_object::wake_up()
 
 	uint8_t res = sm_ctrl(sel_sm_block_pause(), SEMAPHORE_UP);
 	if (res != NOVA_OK)
-		PWRN("canceling blocked client failed (thread sm)");
+		warning("canceling blocked client failed (thread sm)");
 }
 
 
@@ -385,14 +413,14 @@ void Pager_object::client_cancel_blocking()
 {
 	uint8_t res = sm_ctrl(exc_pt_sel_client() + SM_SEL_EC, SEMAPHORE_UP);
 	if (res != NOVA_OK)
-		PWRN("canceling blocked client failed (thread sm)");
+		warning("canceling blocked client failed (thread sm)");
 
 	if (!_state.has_signal_sm())
 		return;
 
 	res = sm_ctrl(exc_pt_sel_client() + PT_SEL_STARTUP, SEMAPHORE_UP);
 	if (res != NOVA_OK)
-		PWRN("canceling blocked client failed (signal sm)");
+		warning("canceling blocked client failed (signal sm)");
 }
 
 
@@ -438,7 +466,16 @@ void Pager_object::cleanup_call()
 	utcb->set_msg_word(0);
 	utcb->mtd = 0;
 	if (uint8_t res = call(sel_pt_cleanup()))
-		PERR("%8p - cleanup call to pager failed res=%d", utcb, res);
+		error(utcb, " - cleanup call to pager failed res=", res);
+}
+
+
+void Pager_object::print(Output &out) const
+{
+	Platform_thread * faulter = reinterpret_cast<Platform_thread *>(_badge);
+	Genode::print(out, "pager_object: pd='",
+			faulter ? faulter->pd_name() : "unknown", "' thread='",
+			faulter ? faulter->name() : "unknown", "'");
 }
 
 
@@ -473,9 +510,10 @@ template <uint8_t EV>
 void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
                                           void (* __attribute__((regparm(1))) func)(addr_t))
 {
-	unsigned use_cpu = obj->location.xpos();
+	unsigned use_cpu = obj->location().xpos();
+
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
-		PWRN("invalid CPU parameter used in pager object");
+		warning("invalid CPU parameter used in pager object");
 		throw Region_map::Invalid_thread();
 	}
 
@@ -536,15 +574,16 @@ Exception_handlers::Exception_handlers(Pager_object *obj)
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Thread_capability thread_cap, unsigned long badge,
-                           Affinity::Location location)
+                           Affinity::Location location, Session_label const &,
+                           Cpu_session::Name const &)
 :
 	_badge(badge),
 	_selectors(cap_map()->insert(2)),
 	_client_exc_pt_sel(cap_map()->insert(NUM_INITIAL_PT_LOG2)),
 	_client_exc_vcpu(Native_thread::INVALID_INDEX),
 	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
-	_exceptions(this),
-	location(location)
+	_location(location),
+	_exceptions(this)
 {
 	uint8_t res;
 
@@ -560,14 +599,14 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 
 	/* ypos information not supported by now */
 	if (location.ypos()) {
-		PWRN("Unsupported location %ux%u", location.xpos(), location.ypos());
+		warning("unsupported location ", location.xpos(), "x", location.ypos());
 		throw Region_map::Invalid_thread();
 	}
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
 	unsigned use_cpu = location.xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
-		PWRN("invalid CPU parameter used in pager object");
+		warning("invalid CPU parameter used in pager object");
 		throw Region_map::Invalid_thread();
 	}
 
@@ -601,7 +640,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	res = create_portal(sel_pt_cleanup(), pd_sel, ec_sel, Mtd(0),
 	                    reinterpret_cast<addr_t>(_invoke_handler), this);
 	if (res != Nova::NOVA_OK) {
-		PERR("could not create pager cleanup portal, error = %u\n", res);
+		error("could not create pager cleanup portal, error=", res);
 		throw Region_map::Invalid_thread();
 	}
 
@@ -659,10 +698,11 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 		/* request current kernel quota usage of source pd */
 		Nova::pd_ctrl_debug(transfer_from, limit_source, usage_source);
 
-		PINF("oom - '%s':'%s' (%lu/%lu) - transfer %u pages from '%s':'%s' "
-		     "(%lu/%lu)", dst_pd, dst_thread,
-		     usage_before, limit_before, QUOTA_TRANSFER_PAGES,
-		     src_pd, src_thread, usage_source, limit_source);
+		log("oom - '", dst_pd, "':'", dst_thread, "' "
+		    "(", usage_before, "/", limit_before, ") - "
+		    "transfer ", (long)QUOTA_TRANSFER_PAGES, " pages "
+		    "from '", src_pd, "':'", src_thread, "' "
+		    "(", usage_source, "/", limit_source, ")");
 	}
 
 	uint8_t res = Nova::NOVA_PD_OOM;
@@ -685,9 +725,10 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 		}
 	}
 
-	PWRN("kernel memory quota upgrade failed - trigger memory free up for "
-	     "causing '%s':'%s' - donator is '%s':'%s', policy=%u",
-	     dst_pd, dst_thread, src_pd, src_thread, policy);
+	warning("kernel memory quota upgrade failed - trigger memory free up for "
+	        "causing '", dst_pd, "':'", dst_thread, "' - "
+	        "donator is '", src_pd, "':'", src_thread, "', "
+	        "policy=", (int)policy);
 
 	/* if nothing helps try to revoke memory */
 	enum { REMOTE_REVOKE = true, PD_SELF = true };
@@ -758,14 +799,14 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	assert |= utcb->msg_words();
 
 	if (assert) {
-		PERR("unknown OOM case - stop core pager thread");
+		error("unknown OOM case - stop core pager thread");
 		utcb->set_msg_word(0);
 		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 	}
 
 	/* be strict in case of the -strict- STOP policy - stop causing thread */
 	if (policy == STOP) {
-		PERR("PD has insufficient kernel memory left - stop thread");
+		error("PD has insufficient kernel memory left - stop thread");
 		utcb->set_msg_word(0);
 		reply(myself->stack_top(), obj_dst->sel_sm_block_pause());
 	}
@@ -778,7 +819,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	switch (pager_src) {
 	case SRC_PD_UNKNOWN:
 		/* should not happen on Genode - we create and know every PD in core */
-		PERR("Unknown PD has insufficient kernel memory left - stop thread");
+		error("Unknown PD has insufficient kernel memory left - stop thread");
 		utcb->set_msg_word(0);
 		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 
@@ -817,8 +858,9 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	utcb->set_msg_word(0);
 
 	if (res != Nova::NOVA_PD_OOM)
-		PERR("Upgrading kernel memory failed, policy %u, error %u "
-		     "- stop thread finally", policy, res);
+		error("upgrading kernel memory failed, policy ", (int)policy, ", "
+		      "error ", (int)res, " - stop thread finally");
+
 	/* else: caller will get blocked until RCU period is over */
 
 	/* block caller in semaphore */
@@ -829,7 +871,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 addr_t Pager_object::get_oom_portal()
 {
 	addr_t const pt_oom     = sel_oom_portal();
-	unsigned const use_cpu  = location.xpos();
+	unsigned const use_cpu  = _location.xpos();
 
 	if (kernel_hip()->is_cpu_enabled(use_cpu) && pager_threads[use_cpu]) {
 		addr_t const ec_sel     = pager_threads[use_cpu]->native_thread().ec_sel;
@@ -841,7 +883,7 @@ addr_t Pager_object::get_oom_portal()
 			return pt_oom;
 	}
 
-	PERR("creating portal for out of memory notification failed");
+	error("creating portal for out of memory notification failed");
 	return 0;
 }
 
@@ -887,10 +929,10 @@ void Pager_activation_base::entry() { }
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
 : _cap_factory(cap_factory)
 {
-	/* sanity check space for pager threads */
+	/* sanity check for pager threads */
 	if (kernel_hip()->cpu_max() > PAGER_CPUS) {
-		PERR("kernel supports more CPUs (%u) than Genode (%u)",
-		     kernel_hip()->cpu_max(), PAGER_CPUS);
+		error("kernel supports more CPUs (", kernel_hip()->cpu_max(), ") "
+		      "than Genode (", (unsigned)PAGER_CPUS, ")");
 		nova_die();
 	}
 
@@ -912,12 +954,13 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	/* let handle pager_object of pager thread on same CPU */
-	unsigned use_cpu = obj->location.xpos();
+	unsigned use_cpu = obj->location().xpos();
 	if (!kernel_hip()->is_cpu_enabled(use_cpu) || !pager_threads[use_cpu]) {
-		PWRN("invalid CPU parameter used in pager object");
+		warning("invalid CPU parameter used in pager object");
 		return Pager_capability();
 	}
-	Native_capability pager_thread_cap(pager_threads[use_cpu]->native_thread().ec_sel);
+	Native_capability pager_thread_cap =
+		Capability_space::import(pager_threads[use_cpu]->native_thread().ec_sel);
 
 	/* request creation of portal bind to pager thread */
 	Native_capability cap_session =
@@ -946,7 +989,7 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 	_cap_factory.free(pager_obj);
 
 	/* revoke cap selector locally */
-	revoke(pager_obj.dst(), true);
+	revoke(Capability_space::crd(pager_obj), true);
 
 	/* remove object from pool */
 	remove(obj);

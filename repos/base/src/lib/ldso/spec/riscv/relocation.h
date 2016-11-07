@@ -68,8 +68,9 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 			*addr = reloc_base + sym->st_value + (addend ? rel->addend : 0);
 			if (verbose_reloc(_dep))
-				PDBG("GLOB DAT %p -> %llx r %llx v %llx", addr, *addr, reloc_base,
-				     sym->st_value);
+				Genode::log("LD: GLOB DAT ", addr, " -> ", Genode::Hex(*addr),
+				            " r ", Genode::Hex(reloc_base),
+				            " v ", Genode::Hex(sym->st_value));
 		}
 
 	public:
@@ -83,7 +84,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 				Elf::Addr *addr = (Elf::Addr *)(_dep->obj->reloc_base() + rel->offset);
 
 				if (verbose_reloc(_dep))
-					PDBG("reloc: %p type: %u", rel, rel->type());
+					Genode::log("LD: reloc: ", rel, " type: ", (int)rel->type());
 
 				switch(rel->type()) {
 					case R_JMPSLOT:  _glob_dat_64(rel, addr, false); break;
@@ -92,7 +93,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 					default:
 						if (!_dep->obj->is_linker()) {
-							PWRN("LD: Unkown relocation %u", rel->type());
+							Genode::warning("LD: unkown relocation ", (int)rel->type());
 							throw Incompatible();
 						}
 						break;
@@ -103,7 +104,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 		Reloc_non_plt(Dependency const *dep, Elf::Rel const *, unsigned long, bool)
 		: Reloc_non_plt_generic(dep)
 		{
-			PERR("LD: DT_REL not supported");
+			Genode::error("LD: DT_REL not supported");
 			throw Incompatible();
 		}
 };

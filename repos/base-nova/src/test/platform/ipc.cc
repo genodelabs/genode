@@ -12,11 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/thread.h>
-
 /* Genode includes */
 #include <base/thread.h>
-#include <base/printf.h>
 
 /* test specific includes */
 #include "server.h"
@@ -44,7 +41,7 @@ long Test::cap_void_manual(Genode::Native_capability dst,
 	if (!arg1.valid())
 		return Genode::Rpc_exception_code::INVALID_OBJECT;
 
-	Nova::Obj_crd crd(arg1.local_name(), 0, arg1.dst().rights());
+	Nova::Crd crd = Genode::Capability_space::crd(arg1);
 	if (!utcb->append_item(crd, 0, false, false, false))
 		return Genode::Rpc_exception_code::INVALID_OBJECT;
 

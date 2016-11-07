@@ -70,8 +70,8 @@ namespace Genode {
 
 			L4_MsgTag_t result = L4_Call(core_pager);
 			if (L4_IpcFailed(result)) {
-				PWRN("could not locally remap 0x%lx to 0x%lx, error code is %ld",
-				     from_addr, to_addr, L4_ErrorCode());
+				warning("could not locally remap ", (void*)from_addr, " to ",
+				        (void*)to_addr, ", error code is ", L4_ErrorCode());
 				return false;
 			}
 		}

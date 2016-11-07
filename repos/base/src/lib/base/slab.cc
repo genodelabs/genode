@@ -221,8 +221,8 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 		_curr_sb = _new_slab_block();
 
 	if (!_curr_sb) {
-		PERR("failed to obtain initial slab block");
-		return;
+		error("failed to obtain initial slab block");
+		throw Out_of_memory();
 	}
 
 	/* init first slab block */
@@ -259,7 +259,7 @@ Slab::Block *Slab::_new_slab_block()
 void Slab::_release_backing_store(Block *block)
 {
 	if (block->avail() != _entries_per_block)
-		PWRN("freeing non-empty slab block");
+		error("freeing non-empty slab block");
 
 	_total_avail -= block->avail();
 	_num_blocks--;

@@ -15,7 +15,7 @@
 /* Genode */
 #include <base/env.h>
 #include <base/sleep.h>
-#include <base/printf.h>
+#include <base/log.h>
 #include <cap_session/connection.h>
 #include <nic/component.h>
 #include <nic/root.h>
@@ -59,13 +59,13 @@ class Ipxe_session_component  : public Nic::Session_component
 				return false;
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.valid()) {
-				PWRN("Invalid tx packet");
+			if (!packet.size()) {
+				Genode::warning("Invalid tx packet");
 				return true;
 			}
 
 			if (dde_ipxe_nic_tx(1, _tx.sink()->packet_content(packet), packet.size()))
-				PWRN("Sending packet failed!");
+				Genode::warning("Sending packet failed!");
 
 			_tx.sink()->acknowledge_packet(packet);
 			return true;
@@ -83,7 +83,7 @@ class Ipxe_session_component  : public Nic::Session_component
 				Genode::memcpy(_rx.source()->packet_content(p), packet, packet_len);
 				_rx.source()->submit_packet(p);
 			} catch (...) {
-				PDBG("failed to process received packet");
+				Genode::warning(__func__, ": failed to process received packet");
 			}
 		}
 
@@ -106,14 +106,11 @@ class Ipxe_session_component  : public Nic::Session_component
 		{
 			instance = this;
 
-			PINF("--- init callbacks");
 			dde_ipxe_nic_register_callbacks(_rx_callback, _link_callback);
 
 			dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
-			PINF("--- get MAC address %02x:%02x:%02x:%02x:%02x:%02x",
-			     _mac_addr.addr[0] & 0xff, _mac_addr.addr[1] & 0xff,
-			     _mac_addr.addr[2] & 0xff, _mac_addr.addr[3] & 0xff,
-			     _mac_addr.addr[4] & 0xff, _mac_addr.addr[5] & 0xff);
+
+			Genode::log("MAC address ", _mac_addr);
 		}
 
 		~Ipxe_session_component()
@@ -146,11 +143,11 @@ struct Main
 
 	Main(Server::Entrypoint &ep) : ep(ep)
 	{
-		PINF("--- iPXE NIC driver started ---\n");
+		Genode::log("--- iPXE NIC driver started ---");
 
-		PINF("--- init iPXE NIC");
+		Genode::log("-- init iPXE NIC");
 		int cnt = dde_ipxe_nic_init(&ep);
-		PINF("    number of devices: %d", cnt);
+		Genode::log("    number of devices: ", cnt);
 
 		Genode::env()->parent()->announce(ep.manage(root));
 	}

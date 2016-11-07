@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/tslab.h>
 
+/* NOVA includes */
+#include <nova/capability_space.h>
+
 /* core-local includes */
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
@@ -80,18 +83,18 @@ class Genode::Signal_broker
 			Native_capability sm = _source.blocking_semaphore();
 
 			if (!sm.valid()) {
-				PWRN("signal receiver sm is not valid");
+				warning("signal receiver sm is not valid");
 				for (;;);
 				return Signal_context_capability();
 			}
 
-			Native_capability si(cap_map()->insert());
+			Native_capability si = Capability_space::import(cap_map()->insert());
 			Signal_context_capability cap = reinterpret_cap_cast<Signal_context>(si);
 
 			uint8_t res = Nova::create_si(cap.local_name(), __core_pd_sel, imprint,
 			                              sm.local_name());
 			if (res != Nova::NOVA_OK) {
-				PWRN("creating signal failed - error %u", res);
+				warning("creating signal failed - error ", res);
 				return Signal_context_capability();
 			}
 
@@ -112,8 +115,8 @@ class Genode::Signal_broker
 			_obj_pool.apply(context_cap, lambda);
 
 			if (!context) {
-				PWRN("%p - specified signal-context capability has wrong type %lx",
-					 this, context_cap.local_name());
+				warning(this, " - specified signal-context capability has wrong type ",
+				        Hex(context_cap.local_name()));
 				return;
 			}
 			destroy(&_contexts_slab, context);

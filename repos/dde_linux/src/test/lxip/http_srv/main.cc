@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* libc includes */
 #include <sys/types.h>
@@ -35,7 +35,6 @@ static void serve(int fd) {
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = recv(fd, buf, 1024, 0);
-	// PLOG("Packet received!");
 
 	/* Ignore all receive errors */
 	if (buflen > 0) {
@@ -48,8 +47,6 @@ static void serve(int fd) {
 			buf[2] == 'T' &&
 			buf[3] == ' ' &&
 			buf[4] == '/' ) {
-
-			// PLOG("Will send response");
 
 			/* Send http header */
 			send(fd, http_html_hdr, sizeof(http_html_hdr), 0);
@@ -65,35 +62,35 @@ int main()
 {
 	int s;
 
-	PLOG("Create new socket ...");
+	Genode::log("create new socket ...");
 	if((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		PERR("No socket available!");
+		Genode::error("no socket available!");
 		return -1;
 	}
 
-	PLOG("Now, I will bind ...");
+	Genode::log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_port = htons(80);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		PERR("bind failed!");
+		Genode::error("bind failed!");
 		return -1;
 	}
 
-	PLOG("Now, I will listen ...");
+	Genode::log("Now, I will listen ...");
 	if(listen(s, 5)) {
-		PERR("listen failed!");
+		Genode::error("listen failed!");
 		return -1;
 	}
 
-	PLOG("Start the server loop ...");
+	Genode::log("Start the server loop ...");
 	while(true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
 		int client = accept(s, &addr, &len);
 		if(client < 0) {
-			PWRN("Invalid socket from accept!");
+			Genode::warning("invalid socket from accept!");
 			continue;
 		}
 		serve(client);

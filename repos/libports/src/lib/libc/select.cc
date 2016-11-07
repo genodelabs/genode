@@ -14,7 +14,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <os/timed_semaphore.h>
 
 #include <libc-plugin/plugin_registry.h>
@@ -103,7 +103,7 @@ static int selscan(int nfds, fd_set *in_readfds, fd_set *in_writefds,
 				}
 				nready += plugin_nready;
 			} else if (plugin_nready < 0) {
-				PERR("plugin->select() returned error value %d", plugin_nready);
+				Genode::error("plugin->select() returned error value ", plugin_nready);
 			}
 		}
 	}
@@ -154,8 +154,8 @@ static void select_notify()
 
 extern "C" int
 __attribute__((weak))
-select(int nfds, fd_set *readfds, fd_set *writefds,
-       fd_set *exceptfds, struct timeval *timeout)
+_select(int nfds, fd_set *readfds, fd_set *writefds,
+        fd_set *exceptfds, struct timeval *timeout)
 {
 	int nready;
 	fd_set in_readfds, in_writefds, in_exceptfds;
@@ -274,11 +274,21 @@ select(int nfds, fd_set *readfds, fd_set *writefds,
 	return nready;
 }
 
+
 extern "C" int
 __attribute__((weak))
-pselect(int nfds, fd_set *readfds, fd_set *writefds,
-       fd_set *exceptfds, const struct timespec *timeout,
-       const sigset_t *sigmask)
+select(int nfds, fd_set *readfds, fd_set *writefds,
+       fd_set *exceptfds, struct timeval *timeout)
+{
+	return _select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
+
+extern "C" int
+__attribute__((weak))
+_pselect(int nfds, fd_set *readfds, fd_set *writefds,
+         fd_set *exceptfds, const struct timespec *timeout,
+         const sigset_t *sigmask)
 {
 	struct timeval tv;
 	sigset_t origmask;
@@ -296,4 +306,14 @@ pselect(int nfds, fd_set *readfds, fd_set *writefds,
 		sigprocmask(SIG_SETMASK, &origmask, NULL);
 
 	return nready;
+}
+
+
+extern "C" int
+__attribute__((weak))
+pselect(int nfds, fd_set *readfds, fd_set *writefds,
+        fd_set *exceptfds, const struct timespec *timeout,
+        const sigset_t *sigmask)
+{
+	return _pselect(nfds, readfds, writefds, exceptfds, timeout, sigmask);
 }
