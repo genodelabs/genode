@@ -142,7 +142,8 @@ class Genode::Volatile_object : Noncopyable
 		MT       *operator -> ()       { _check_constructed(); return       _ptr(); }
 		MT const *operator -> () const { _check_constructed(); return _const_ptr(); }
 
-		MT &operator * () { _check_constructed(); return *_ptr(); }
+		MT       &operator * ()       { _check_constructed(); return       *_ptr(); }
+		MT const &operator * () const { _check_constructed(); return *_const_ptr(); }
 
 		void print(Output &out) const
 		{
