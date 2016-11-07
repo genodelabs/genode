@@ -1,0 +1,53 @@
+arora_disable_qprocess.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/bookmarks/bookmarksmanager.cpp |    3 +++
+ src/downloadmanager.cpp            |    4 ++++
+ 2 files changed, 7 insertions(+)
+
+diff --git a/src/bookmarks/bookmarksmanager.cpp b/src/bookmarks/bookmarksmanager.cpp
+index d3a21e2..3ddaa4a 100644
+--- a/src/bookmarks/bookmarksmanager.cpp
++++ b/src/bookmarks/bookmarksmanager.cpp
+@@ -286,6 +286,8 @@ BookmarksModel *BookmarksManager::bookmarksModel()
+ 
+ void BookmarksManager::importBookmarks()
+ {
++    /* QProcess is not available on Genode */
++#if 0
+     QStringList supportedFormats;
+     supportedFormats << tr("XBEL bookmarks").append(QLatin1String("(*.xbel *.xml)"));
+     supportedFormats << tr("HTML Netscape bookmarks").append(QLatin1String("(*.html)"));
+@@ -330,6 +332,7 @@ void BookmarksManager::importBookmarks()
+     importRootNode->setType(BookmarkNode::Folder);
+     importRootNode->title = (tr("Imported %1").arg(QDate::currentDate().toString(Qt::SystemLocaleShortDate)));
+     addBookmark(menu(), importRootNode);
++#endif
+ }
+ 
+ void BookmarksManager::exportBookmarks()
+diff --git a/src/downloadmanager.cpp b/src/downloadmanager.cpp
+index b0da144..e7b6000 100644
+--- a/src/downloadmanager.cpp
++++ b/src/downloadmanager.cpp
+@@ -525,6 +525,9 @@ bool DownloadManager::allowQuit()
+ 
+ bool DownloadManager::externalDownload(const QUrl &url)
+ {
++    /* QProcess is not available on Genode */
++    return false;
++#if 0
+     QSettings settings;
+     settings.beginGroup(QLatin1String("downloadmanager"));
+     if (!settings.value(QLatin1String("external"), false).toBool())
+@@ -543,6 +546,7 @@ bool DownloadManager::externalDownload(const QUrl &url)
+         return false;
+ 
+     return QProcess::startDetached(args.takeFirst(), args << QString::fromUtf8(url.toEncoded()));
++#endif
+ }
+ 
+ void DownloadManager::download(const QNetworkRequest &request, bool requestFileName)

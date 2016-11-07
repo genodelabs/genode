@@ -262,7 +262,7 @@ index 0000000..4d2c580
 +#endif // QPLATFORMDEFS_H
 diff --git a/qtbase/src/corelib/global/qconfig-genode.h b/qtbase/src/corelib/global/qconfig-genode.h
 new file mode 100644
-index 0000000..6227a0c
+index 0000000..681af14
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig-genode.h
 @@ -0,0 +1,546 @@
@@ -322,9 +322,9 @@ index 0000000..6227a0c
 +//#ifndef QT_NO_FILESYSTEMMODEL
 +//#  define QT_NO_FILESYSTEMMODEL
 +//#endif
-+//#ifndef QT_NO_PROCESS
-+//#  define QT_NO_PROCESS
-+//#endif
++#ifndef QT_NO_PROCESS
++#  define QT_NO_PROCESS
++#endif
 +//#ifndef QT_NO_TEMPORARYFILE
 +//#  define QT_NO_TEMPORARYFILE
 +//#endif

@@ -7,22 +7,20 @@ Genode-specific adaptations
  qtbase/src/corelib/codecs/qtextcodec.cpp           |    4 +
  qtbase/src/corelib/global/qlogging.cpp             |    6 ++
  qtbase/src/corelib/global/qsystemdetection.h       |    5 +-
- qtbase/src/corelib/io/qprocess.cpp                 |   64 ++++++++++++++++++++
- qtbase/src/corelib/io/qprocess_p.h                 |   45 ++++++++++++++
  qtbase/src/corelib/io/qresource.cpp                |    2 -
  qtbase/src/corelib/kernel/qcoreapplication.cpp     |    2 -
- .../src/corelib/kernel/qeventdispatcher_unix.cpp   |   14 ++++
+ .../src/corelib/kernel/qeventdispatcher_unix.cpp   |   14 +++++
  qtbase/src/corelib/kernel/qtranslator.cpp          |    2 -
  qtbase/src/corelib/thread/qthread.cpp              |    5 +-
- qtbase/src/corelib/thread/qthread_p.h              |   55 +++++++++++++++++
+ qtbase/src/corelib/thread/qthread_p.h              |   55 ++++++++++++++++++++
  qtbase/src/corelib/tools/qdatetime.cpp             |   15 +++++
  qtbase/src/gui/image/qxpmhandler.cpp               |    8 +++
  .../network/access/qnetworkaccessfilebackend.cpp   |    5 ++
  qtbase/src/network/kernel/qhostinfo.cpp            |    5 ++
- qtbase/src/network/kernel/qhostinfo_unix.cpp       |    7 ++
+ qtbase/src/network/kernel/qhostinfo_unix.cpp       |    7 ++-
  qtbase/src/widgets/dialogs/qfiledialog.cpp         |    2 -
- qtbase/src/widgets/styles/qstylefactory.cpp        |    7 ++
- 18 files changed, 245 insertions(+), 8 deletions(-)
+ qtbase/src/widgets/styles/qstylefactory.cpp        |    7 +++
+ 16 files changed, 137 insertions(+), 7 deletions(-)
 
 diff --git a/qtbase/src/corelib/codecs/qtextcodec.cpp b/qtbase/src/corelib/codecs/qtextcodec.cpp
 index 1cedd3a..646be07 100644
@@ -87,165 +85,6 @@ index cb55fa8..7d5c507 100644
  #  define Q_OS_DARWIN
  #  define Q_OS_BSD4
  #  ifdef __LP64__
-diff --git a/qtbase/src/corelib/io/qprocess.cpp b/qtbase/src/corelib/io/qprocess.cpp
-index b1861d8..b1cbf57 100644
---- a/qtbase/src/corelib/io/qprocess.cpp
-+++ b/qtbase/src/corelib/io/qprocess.cpp
-@@ -98,6 +98,11 @@ QT_END_NAMESPACE
- #include <qwineventnotifier.h>
- #endif
- 
-+#ifdef Q_OS_GENODE
-+#include <rom_session/connection.h>
-+#include <util/xml_node.h>
-+#endif
-+
- #ifndef QT_NO_PROCESS
- 
- QT_BEGIN_NAMESPACE
-@@ -789,6 +794,65 @@ QProcessPrivate::QProcessPrivate()
- #ifdef Q_OS_UNIX
-     serial = 0;
- #endif
-+#ifdef Q_OS_GENODE
-+    launchpad_child = 0;
-+
-+    /* request config file from ROM service */
-+    Genode::Rom_connection rom("config");
-+    rom.on_destruction(Genode::Rom_connection::KEEP_OPEN);
-+    void *addr;
-+    try {
-+        addr = Genode::env()->rm_session()->attach(rom.dataspace());
-+    } catch(Genode::Parent::Service_denied) {
-+        qWarning("Error: Couldn't open config file.");
-+        return;
-+    }
-+
-+    /*
-+     * The XML data of a valid config file starts with
-+     * a <config> tag.
-+     */
-+    Genode::Xml_node config_node((const char *)addr);
-+
-+    if (!config_node.has_type("config")) {
-+        qWarning("Error: Root node of config file is not a <config> tag.");
-+        return;
-+    }
-+
-+    /*
-+     * Iterate through all entries of the config file and start
-+     * children as specified.
-+     */
-+    for (int i = 0; i < config_node.num_sub_nodes(); i++) {
-+        Genode::Xml_node program_node = config_node.sub_node(i);
-+        if (program_node.has_type("program")) {
-+
-+            /* add filename and ram_quota to ram_quota_hash */
-+            char filename[32];
-+            try {
-+                program_node.sub_node("filename").value(filename, sizeof(filename));
-+            } catch (Genode::Xml_node::Nonexistent_sub_node) {
-+                qWarning("Warning: Missing valid <filename> in config-file entry.");
-+                return;
-+            }
-+
-+            size_t ram_quota = 0;
-+            try {
-+                program_node.sub_node("ram_quota").value(&ram_quota);
-+            } catch (Genode::Xml_node::Nonexistent_sub_node) {
-+                qWarning("Warning: Missing valid <ram_quota> in config-file entry.");
-+                return;
-+            }
-+
-+            ram_quota_hash()->insert(QString(filename), ram_quota);
-+        } else {
-+            char buf[32];
-+            program_node.type_name(buf, sizeof(buf));
-+            qWarning("Warning: Ignoring unsupported tag <%s>.", buf);
-+        }
-+    }
-+
-+#endif
- }
- 
- /*!
-diff --git a/qtbase/src/corelib/io/qprocess_p.h b/qtbase/src/corelib/io/qprocess_p.h
-index 2a2cc9f..2173aa0 100644
---- a/qtbase/src/corelib/io/qprocess_p.h
-+++ b/qtbase/src/corelib/io/qprocess_p.h
-@@ -74,6 +74,11 @@ typedef int Q_PIPE;
- 
- #ifndef QT_NO_PROCESS
- 
-+#ifdef Q_OS_GENODE
-+#include <base/env.h>
-+#include <launchpad/launchpad.h>
-+#endif
-+
- QT_BEGIN_NAMESPACE
- 
- class QSocketNotifier;
-@@ -235,6 +240,28 @@ template<> Q_INLINE_TEMPLATE void QSharedDataPointer<QProcessEnvironmentPrivate>
-     d = x;
- }
- 
-+#ifdef Q_OS_GENODE
-+
-+class QProcess_launchpad : public Launchpad
-+{
-+public:
-+    QProcess_launchpad(unsigned long initial_quota) : Launchpad(initial_quota) {}
-+
-+    virtual void quota(unsigned long quota) {}
-+
-+    virtual void add_launcher(const char *filename,
-+                              unsigned long default_quota) {}
-+
-+    virtual void add_child(const char *unique_name,
-+                           unsigned long quota,
-+                           Launchpad_child *launchpad_child,
-+                           Genode::Allocator *alloc) {}
-+
-+    virtual void remove_child(const char *name, Genode::Allocator *alloc) {}
-+};
-+
-+#endif
-+
- class QProcessPrivate : public QIODevicePrivate
- {
- public:
-@@ -347,7 +374,7 @@ public:
- #endif
- 
-     void startProcess();
--#if defined(Q_OS_UNIX) && !defined(Q_OS_QNX)
-+#if defined(Q_OS_UNIX) && !defined(Q_OS_QNX) && !defined(Q_OS_GENODE)
-     void execChild(const char *workingDirectory, char **path, char **argv, char **envp);
- #elif defined(Q_OS_QNX)
-     pid_t spawnChild(const char *workingDirectory, char **argv, char **envp);
-@@ -375,6 +402,22 @@ public:
-     int serial;
- #endif
- 
-+#ifdef Q_OS_GENODE
-+    static QProcess_launchpad *launchpad()
-+    {
-+      static QProcess_launchpad _launchpad(Genode::env()->ram_session()->quota());
-+      return &_launchpad;
-+    }
-+
-+    static QHash<QString, size_t> *ram_quota_hash()
-+    {
-+        static QHash<QString, size_t> _ram_quota_hash;
-+        return &_ram_quota_hash;
-+    }
-+
-+    Launchpad_child *launchpad_child;
-+#endif
-+
-     bool waitForStarted(int msecs = 30000);
-     bool waitForReadyRead(int msecs = 30000);
-     bool waitForBytesWritten(int msecs = 30000);
 diff --git a/qtbase/src/corelib/io/qresource.cpp b/qtbase/src/corelib/io/qresource.cpp
 index 04ec81e..2211125 100644
 --- a/qtbase/src/corelib/io/qresource.cpp

@@ -8,8 +8,7 @@ CC_WARN = -Wno-unused-but-set-variable -Wno-deprecated-declarations
 include $(REP_DIR)/lib/mk/qt5_core_generated.inc
 
 # add Genode-specific sources
-QT_SOURCES += qprocess_genode.cpp \
-              qthread_genode.cpp
+QT_SOURCES += qthread_genode.cpp
 
 # remove unsupported UNIX-specific files
 QT_SOURCES_FILTER_OUT = \
@@ -35,4 +34,4 @@ INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtCore/private \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore/private
 
-LIBS += qt5_host_tools launchpad zlib icu libc libm alarm libc_pipe pthread
+LIBS += qt5_host_tools zlib icu libc libm alarm libc_pipe pthread
