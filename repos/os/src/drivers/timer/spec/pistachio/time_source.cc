@@ -1,6 +1,7 @@
 /*
- * \brief  Pistachio-specific sleep implementation
+ * \brief  Time source that uses sleeping by the means of the kernel
  * \author Julian Stecklina
+ * \author Martin Stein
  * \date   2008-03-19
  */
 
@@ -20,34 +21,37 @@ namespace Pistachio {
 }
 
 /* local includes */
-#include "timer_session_component.h"
+#include <time_source.h>
+
+using namespace Genode;
+using Microseconds = Genode::Time_source::Microseconds;
 
 
-unsigned long Platform_timer::max_timeout()
+Microseconds Timer::Time_source::max_timeout() const
 {
-	Genode::Lock::Guard lock_guard(_lock);
-	return 1000*1000;
+	Lock::Guard lock_guard(_lock);
+	return Microseconds(1000 * 1000);
 }
 
 
-unsigned long Platform_timer::curr_time() const
+Microseconds Timer::Time_source::curr_time() const
 {
-	Genode::Lock::Guard lock_guard(_lock);
-	return _curr_time_usec;
+	Lock::Guard lock_guard(_lock);
+	return Microseconds(_curr_time_us);
 }
 
 
-void Platform_timer::_usleep(unsigned long usecs)
+void Timer::Time_source::_usleep(unsigned long us)
 {
 	using namespace Pistachio;
 
 	enum { MAGIC_USER_DEFINED_HANDLE = 13 };
 	L4_Set_UserDefinedHandle(MAGIC_USER_DEFINED_HANDLE);
 
-	L4_Sleep(L4_TimePeriod(usecs));
-	_curr_time_usec += usecs;
+	L4_Sleep(L4_TimePeriod(us));
+	_curr_time_us += us;
 
 	/* check if sleep was canceled */
 	if (L4_UserDefinedHandle() != MAGIC_USER_DEFINED_HANDLE)
-		throw Genode::Blocking_canceled();
+		throw Blocking_canceled();
 }

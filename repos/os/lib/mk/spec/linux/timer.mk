@@ -1,8 +1,7 @@
-include $(REP_DIR)/lib/mk/timer.inc
+INC_DIR += $(REP_DIR)/src/drivers/timer/spec/periodic
 
-INC_DIR += $(REP_DIR)/src/drivers/timer/include_periodic
+SRC_CC += spec/periodic/time_source.cc spec/linux/time_source.cc
 
 LIBS += syscall
 
-SRC_CC += platform_timer.cc
-vpath platform_timer.cc $(REP_DIR)/src/drivers/timer/spec/linux
+include $(REP_DIR)/lib/mk/timer.inc

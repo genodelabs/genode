@@ -1,3 +1,5 @@
-include $(REP_DIR)/lib/mk/timer.inc
+INC_DIR += $(REP_DIR)/src/drivers/timer/spec/pit
 
-INC_DIR += $(REP_DIR)/src/drivers/timer/include_pit
+SRC_CC += spec/pit/time_source.cc
+
+include $(REP_DIR)/lib/mk/timer.inc

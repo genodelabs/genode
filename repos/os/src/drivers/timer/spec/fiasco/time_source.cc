@@ -1,7 +1,8 @@
 /*
- * \brief  Fiasco-specific sleep implementation
+ * \brief  Time source that uses sleeping by the means of the kernel
  * \author Christian Helmuth
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2006-08-30
  */
 
@@ -14,7 +15,6 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
-#include <base/printf.h>
 #include <os/attached_rom_dataspace.h>
 
 /* Fiasco includes */
@@ -36,9 +36,10 @@ namespace Fiasco {
 #endif /* L4_SYS_KIP_H__ */
 
 /* local includes */
-#include "timer_session_component.h"
+#include <time_source.h>
 
 using namespace Fiasco;
+using Microseconds = Genode::Time_source::Microseconds;
 
 
 static l4_timeout_s mus_to_timeout(unsigned long mus)
@@ -50,42 +51,36 @@ static l4_timeout_s mus_to_timeout(unsigned long mus)
 
 	long e = Genode::log2(mus) - 7;
 	unsigned long m;
-
 	if (e < 0) e = 0;
 	m = mus / (1UL << e);
 
 	/* check corner case */
 	if ((e > 31 ) || (m > 1023)) {
-		PWRN("invalid timeout %ld, using max. values\n", mus);
+		Genode::warning("invalid timeout ", mus, ", using max. values");
 		e = 0;
 		m = 1023;
 	}
-
 	return l4_timeout_rel(m, e);
 }
 
 
-unsigned long Platform_timer::max_timeout()
+Microseconds Timer::Time_source::max_timeout() const
 {
 	Genode::Lock::Guard lock_guard(_lock);
-
-	return 1000*1000*100;
+	return Microseconds(1000 * 1000 * 100);
 }
 
 
-unsigned long Platform_timer::curr_time() const
+Microseconds Timer::Time_source::curr_time() const
 {
 	Genode::Lock::Guard lock_guard(_lock);
-
-	static Genode::Attached_rom_dataspace   kip_ds("l4v2_kip");
+	static Genode::Attached_rom_dataspace kip_ds("l4v2_kip");
 	static Fiasco::l4_kernel_info_t * const kip =
 		kip_ds.local_addr<Fiasco::l4_kernel_info_t>();
 
-	return kip->clock;
+	return Microseconds(kip->clock);
 }
 
 
-void Platform_timer::_usleep(unsigned long usecs)
-{
-	l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(usecs)));
-}
+void Timer::Time_source::_usleep(unsigned long usecs) {
+	l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(usecs))); }

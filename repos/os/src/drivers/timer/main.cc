@@ -1,6 +1,7 @@
 /*
- * \brief  Timer service
+ * \brief  Provides the Timer service to multiple clients
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2006-08-15
  */
 
@@ -12,45 +13,35 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
-#include <base/sleep.h>
 #include <base/heap.h>
-#include <cap_session/connection.h>
-#include <os/server.h>
+#include <base/component.h>
 
 /* local includes */
-#include "timer_root.h"
+#include <root_component.h>
 
 using namespace Genode;
-using namespace Timer;
 
 
-struct Main
+class Main
 {
-	Server::Entrypoint    &ep;
-	Sliced_heap            sliced_heap;
-	Timer::Root_component  root;
+	private:
 
-	Main(Server::Entrypoint &ep)
-	:
-		ep(ep),
-		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
-		root(ep, &sliced_heap, 0)
-	{
-		/*
-		 * Announce timer service at our parent.
-		 */
-		env()->parent()->announce(ep.manage(root));
-	}
+		Sliced_heap           _sliced_heap;
+		Timer::Root_component _root;
+
+	public:
+
+		Main(Env &env) : _sliced_heap(env.ram(), env.rm()),
+		                 _root(env.ep(), _sliced_heap)
+		{
+			env.parent().announce(env.ep().manage(_root));
+		}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()             { return "timer_drv_ep";    }
-	size_t stack_size()            { return 2048*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);   }
-}
+size_t Component::stack_size()        { return 2 * 1024 * sizeof(addr_t); }
+void   Component::construct(Env &env) { static Main main(env);            }
