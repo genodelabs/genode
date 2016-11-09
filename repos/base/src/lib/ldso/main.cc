@@ -91,6 +91,13 @@ class Linker::Elf_object : public Object, public Fifo<Elf_object>::Element
 		 */
 		Lazy_volatile_object<Elf_file> _elf_file;
 
+
+		bool _object_init(Object::Name const &name, Elf::Addr reloc_base)
+		{
+			Object::init(name, reloc_base);
+			return true;
+		}
+
 		bool _init_elf_file(Env &env, Allocator &md_alloc, char const *path)
 		{
 			_elf_file.construct(env, md_alloc, Linker::file(path), true);
@@ -98,7 +105,7 @@ class Linker::Elf_object : public Object, public Fifo<Elf_object>::Element
 			return true;
 		}
 
-		bool const _elf_file_initialized;
+		bool const _elf_object_initialized;
 
 		Dynamic _dyn;
 
@@ -107,16 +114,15 @@ class Linker::Elf_object : public Object, public Fifo<Elf_object>::Element
 		Elf_object(Dependency const &dep, Object::Name const &name,
 		           Elf::Addr reloc_base)
 		:
-			_elf_file_initialized(false), _dyn(dep)
-		{
-			Object::init(name, reloc_base);
-		}
+			_elf_object_initialized(_object_init(name, reloc_base)),
+			_dyn(dep)
+		{ }
 
 		Elf_object(Env &env, Allocator &md_alloc, char const *path,
 		           Dependency const &dep, Keep keep)
 		:
 			_keep(keep),
-			_elf_file_initialized(_init_elf_file(env, md_alloc, path)),
+			_elf_object_initialized(_init_elf_file(env, md_alloc, path)),
 			_dyn(md_alloc, dep, *this, &_elf_file->phdr)
 		{
 			/* register for static construction and relocation */
