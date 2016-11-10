@@ -340,6 +340,13 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
+	inline uint8_t delegate(mword_t pd_snd, mword_t pd_dst, Crd crd_dst)
+	{
+		return syscall_2(NOVA_LOOKUP, 1, pd_snd, crd_dst.value(), pd_dst);
+	}
+
+
+	ALWAYS_INLINE
 	inline uint8_t sm_ctrl(unsigned sm, Sem_op op, unsigned long long timeout = 0)
 	{
 		return syscall_2(NOVA_SM_CTRL, op, sm, timeout >> 32, timeout);

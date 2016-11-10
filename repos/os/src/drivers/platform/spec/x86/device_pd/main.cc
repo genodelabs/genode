@@ -83,15 +83,21 @@ static bool map_eager(Genode::addr_t const page, unsigned log2_order)
 
 	addr_t const page_fault_portal = myself->native_thread().exc_pt_sel + 14;
 
-	/* setup faked page fault information */
-	utcb->set_msg_word(((addr_t)&utcb->qual[2] - (addr_t)utcb->msg) / sizeof(addr_t));
-	utcb->ip      = reinterpret_cast<addr_t>(map_eager);
-	utcb->qual[1] = page;
-	utcb->crd_rcv = Nova::Mem_crd(page >> 12, log2_order - 12, mapping_rw);
+	while (true) {
+		/* setup faked page fault information */
+		utcb->set_msg_word(((addr_t)&utcb->qual[2] - (addr_t)utcb->msg) /
+		                   sizeof(addr_t));
+		utcb->ip      = reinterpret_cast<addr_t>(map_eager);
+		utcb->qual[1] = page;
+		utcb->crd_rcv = Nova::Mem_crd(page >> 12, log2_order - 12, mapping_rw);
 
-	/* trigger faked page fault */
-	Genode::uint8_t res = Nova::call(page_fault_portal);
-	return res == Nova::NOVA_OK;
+		/* trigger faked page fault */
+		Genode::uint8_t res = Nova::call(page_fault_portal);
+
+		bool const retry = utcb->msg_words();
+		if (res != Nova::NOVA_OK || !retry)
+			return res == Nova::NOVA_OK;
+	};
 }
 
 
@@ -174,7 +180,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 		              "phys=", Genode::Hex(ds_client.phys_addr()), " "
 		              "virt=", Genode::Hex(page));
 	else
-		Genode::log("assignment of ", rid, " succeeded");
+		Genode::log("assignment of PCI device ", Rid(rid), " succeeded");
 
 	/* we don't need the mapping anymore */
 	_address_space.detach(page);

@@ -34,7 +34,8 @@ namespace Genode {
 			Phys_allocator     _io_port_alloc;  /* I/O port allocator      */
 			Phys_allocator     _irq_alloc;      /* IRQ allocator           */
 			Rom_fs             _rom_fs;         /* ROM file system         */
-			int                _gsi_base_sel;   /* cap selector of 1st IRQ */
+			unsigned           _gsi_base_sel;   /* cap selector of 1st IRQ */
+			unsigned           _core_pd_sel;    /* cap selector of root PD */
 
 			/**
 			 * Virtual address range usable by non-core processes
@@ -100,6 +101,11 @@ namespace Genode {
 			 * Return kernel CPU ID for given Genode CPU
 			 */
 			unsigned kernel_cpu_id(unsigned genode_cpu_id);
+
+			/**
+			 * PD kernel capability selector of core
+			 */
+			unsigned core_pd_sel() const { return _core_pd_sel; }
 	};
 }
 

@@ -63,11 +63,6 @@ Utcb *__main_thread_utcb;
  */
 extern unsigned _prog_img_beg, _prog_img_end;
 
-/**
- *  Capability selector of root PD
- */
-addr_t __core_pd_sel;
-
 
 /**
  * Map preserved physical pages core-exclusive
@@ -218,7 +213,7 @@ static void startup_handler()
 }
 
 
-static void init_core_page_fault_handler()
+static void init_core_page_fault_handler(addr_t const core_pd_sel)
 {
 	/* create echo EC */
 	enum {
@@ -228,20 +223,20 @@ static void init_core_page_fault_handler()
 
 	addr_t ec_sel = cap_map()->insert(1);
 
-	uint8_t ret = create_ec(ec_sel, __core_pd_sel, boot_cpu(),
+	uint8_t ret = create_ec(ec_sel, core_pd_sel, boot_cpu(),
 	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
 	                        EXC_BASE, GLOBAL);
 	if (ret)
 		log(__func__, ": create_ec returned ", ret);
 
 	/* set up page-fault portal */
-	create_pt(PT_SEL_PAGE_FAULT, __core_pd_sel, ec_sel,
+	create_pt(PT_SEL_PAGE_FAULT, core_pd_sel, ec_sel,
 	          Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
 	          (addr_t)page_fault_handler);
 	revoke(Obj_crd(PT_SEL_PAGE_FAULT, 0, Obj_crd::RIGHT_PT_CTRL));
 
 	/* startup portal for global core threads */
-	create_pt(PT_SEL_STARTUP, __core_pd_sel, ec_sel,
+	create_pt(PT_SEL_STARTUP, core_pd_sel, ec_sel,
 	          Mtd(Mtd::EIP | Mtd::ESP),
 	          (addr_t)startup_handler);
 	revoke(Obj_crd(PT_SEL_STARTUP, 0, Obj_crd::RIGHT_PT_CTRL));
@@ -291,10 +286,10 @@ Platform::Platform() :
 	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());
 
 	/* set core pd selector */
-	__core_pd_sel = hip->sel_exc;
+	_core_pd_sel = hip->sel_exc;
 
 	/* create lock used by capability allocator */
-	Nova::create_sm(Nova::SM_SEL_EC, __core_pd_sel, 0);
+	Nova::create_sm(Nova::SM_SEL_EC, core_pd_sel(), 0);
 
 	/* locally map the whole I/O port range */
 	enum { ORDER_64K = 16 };
@@ -380,7 +375,7 @@ Platform::Platform() :
 #endif
 
 	/* set up page fault handler for core - for debugging */
-	init_core_page_fault_handler();
+	init_core_page_fault_handler(core_pd_sel());
 
 	if (verbose_boot_info) {
 		if (hip->has_feature_vmx())

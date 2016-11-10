@@ -109,9 +109,8 @@ int Platform_thread::start(void *ip, void *sp)
 		return -5;
 	}
 
-	addr_t pd_core_sel  = Platform_pd::pd_core_sel();
-	addr_t pd_utcb      = 0;
-	_sel_exc_base       = vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
+	addr_t pd_utcb = 0;
+	_sel_exc_base  = vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
 
 	if (!vcpu()) {
 		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
@@ -138,7 +137,8 @@ int Platform_thread::start(void *ip, void *sp)
 
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
 	Obj_crd initial_pts(_sel_exc_base, pts, rights);
-	uint8_t res = create_pd(pd_sel, pd_core_sel, initial_pts,
+	uint8_t res = create_pd(pd_sel, platform_specific()->core_pd_sel(),
+	                        initial_pts,
 	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE, UPPER_LIMIT_PAGES);
 	if (res != NOVA_OK) {
 		error("create_pd returned ", res);

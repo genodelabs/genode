@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Core includes */
-#include <platform_pd.h>
+/* core-local includes */
+#include <platform.h>
 
 /* local includes */
 #include <echo.h>
@@ -69,9 +69,12 @@ Echo::Echo(Genode::addr_t utcb_addr)
 {
 	using namespace Nova;
 
+	extern Genode::addr_t __initial_sp;
+	Hip const * const hip = reinterpret_cast<Hip *>(__initial_sp);
+
 	/* create echo EC */
-	Genode::addr_t pd_sel = Genode::Platform_pd::pd_core_sel();
-	uint8_t res = create_ec(_ec_sel, pd_sel, boot_cpu(), utcb_addr,
+	Genode::addr_t const core_pd_sel = hip->sel_exc;
+	uint8_t res = create_ec(_ec_sel, core_pd_sel, boot_cpu(), utcb_addr,
 	                        reinterpret_cast<mword_t>(echo_stack_top()),
 	                        ECHO_EXC_BASE, ECHO_GLOBAL);
 
@@ -79,7 +82,7 @@ Echo::Echo(Genode::addr_t utcb_addr)
 	if (res != Nova::NOVA_OK) { *reinterpret_cast<unsigned *>(0) = 0xdead; }
 
 	/* set up echo portal to ourself */
-	res = create_pt(_pt_sel, pd_sel, _ec_sel, Mtd(0), (mword_t)echo_reply);
+	res = create_pt(_pt_sel, core_pd_sel, _ec_sel, Mtd(0), (mword_t)echo_reply);
 	if (res != Nova::NOVA_OK) { *reinterpret_cast<unsigned *>(0) = 0xdead; }
 	revoke(Obj_crd(_pt_sel, 0, Obj_crd::RIGHT_PT_CTRL));
 

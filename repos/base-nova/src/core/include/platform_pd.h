@@ -18,11 +18,6 @@
 #include <platform_thread.h>
 #include <address_space.h>
 
-/*
- * Must be initialized by the startup code,
- * only valid in core
- */
-extern Genode::addr_t __core_pd_sel;
 
 namespace Genode {
 
@@ -82,14 +77,6 @@ namespace Genode {
 			 * \return PD selector
 			 */
 			addr_t pd_sel() const { return _pd_sel; }
-
-			/**
-			 * Capability selector of core protection domain
-			 *
-			 * \return PD selector
-			 */
-			static addr_t pd_core_sel() { return __core_pd_sel; }
-
 
 			/**
 			 * Label of this protection domain

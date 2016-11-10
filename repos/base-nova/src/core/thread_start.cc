@@ -26,7 +26,6 @@
 /* core includes */
 #include <nova_util.h>
 #include <platform.h>
-#include <platform_pd.h>
 
 using namespace Genode;
 
@@ -43,7 +42,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 	if (type == MAIN)
 	{
 		/* set EC selector according to NOVA spec */
-		native_thread().ec_sel = Platform_pd::pd_core_sel() + 1;
+		native_thread().ec_sel = platform_specific()->core_pd_sel() + 1;
 
 		/*
 		 * Exception base of first thread in core is 0. We have to set
@@ -56,11 +55,10 @@ void Thread::_init_platform_thread(size_t, Type type)
 	}
 	native_thread().ec_sel     = cap_map()->insert(1);
 	native_thread().exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
-	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
 	/* create running semaphore required for locking */
 	addr_t rs_sel =native_thread().exc_pt_sel + SM_SEL_EC;
-	uint8_t res = create_sm(rs_sel, pd_sel, 0);
+	uint8_t res = create_sm(rs_sel, platform_specific()->core_pd_sel(), 0);
 	if (res != NOVA_OK) {
 		error("create_sm returned ", res);
 		throw Cpu_session::Thread_creation_failed();
@@ -94,7 +92,6 @@ void Thread::start()
 	addr_t sp       = _stack->top();
 	addr_t utcb     = reinterpret_cast<addr_t>(&_stack->utcb());
 	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_stack->utcb());
-	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
 	Affinity::Location location = _affinity;
 
@@ -104,7 +101,8 @@ void Thread::start()
 	/* create local EC */
 	enum { LOCAL_THREAD = false };
 	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(location.xpos());
-	uint8_t res = create_ec(native_thread().ec_sel, pd_sel, kernel_cpu_id,
+	uint8_t res = create_ec(native_thread().ec_sel,
+	                        platform_specific()->core_pd_sel(), kernel_cpu_id,
 	                        utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
 		error("create_ec returned ", res, " cpu=", location.xpos());

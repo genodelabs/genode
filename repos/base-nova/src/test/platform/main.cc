@@ -18,6 +18,7 @@
 #include <base/snprintf.h>
 
 #include <util/touch.h>
+#include <util/retry.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 
@@ -580,42 +581,27 @@ class Greedy : public Genode::Thread {
 		{
 			log("starting");
 
-			enum { SUB_RM_SIZE = 2UL * 1024 * 1024 * 1024 };
+			enum { SUB_RM_SIZE = 1280 * 1024 * 1024 };
 
-			Genode::Rm_connection rm(_env);
-			Genode::Region_map_client sub_rm(rm.create(SUB_RM_SIZE));
-			addr_t const mem = _env.rm().attach(sub_rm.dataspace());
+			Genode::Ram_dataspace_capability ds = _env.ram().alloc(4096);
 
-			Nova::Utcb * nova_utcb = reinterpret_cast<Nova::Utcb *>(utcb());
 			Nova::Rights const mapping_rwx(true, true, true);
 
-			addr_t const page_fault_portal = native_thread().exc_pt_sel + 14;
+			log("cause mappings");
 
-			log("cause mappings in range ",
-			    Hex_range<addr_t>(mem, SUB_RM_SIZE), " ", &mem);
+			for (unsigned i = 0; i < SUB_RM_SIZE / 4096; i++) {
 
-			for (addr_t map_to = mem; map_to < mem + SUB_RM_SIZE; map_to += 4096) {
-
-				/* setup faked page fault information */
-				nova_utcb->items   = ((addr_t)&nova_utcb->qual[2] - (addr_t)nova_utcb->msg) / sizeof(addr_t);
-				nova_utcb->ip      = 0xbadaffe;
-				nova_utcb->qual[1] = (addr_t)&mem;
-				nova_utcb->crd_rcv = Nova::Mem_crd(map_to >> 12, 0, mapping_rwx);
-
-				/* trigger faked page fault */
-				Genode::uint8_t res = Nova::call(page_fault_portal);
-				if (res != Nova::NOVA_OK) {
-					log("call result=", res);
-					failed++;
-					return;
-				}
+				addr_t map_to = _env.rm().attach(ds);
 
 				/* check that we really got the mapping */
 				touch_read(reinterpret_cast<unsigned char *>(map_to));
 
 				/* print status information in interval of 32M */
-				if (!(map_to & (32UL * 1024 * 1024 - 1))) {
-					log(Hex(map_to));
+				if (i % 8192 == 0) {
+					/* transfer some quota to avoid tons of upgrade messages */
+					char const * const buf = "ram_quota=1280K";
+					_env.parent().upgrade(_env.pd_session_cap(), buf);
+					log(Hex(i * 4096));
 					/* trigger some work to see quota in kernel decreasing */
 //					Nova::Rights rwx(true, true, true);
 //					Nova::revoke(Nova::Mem_crd((map_to - 32 * 1024 * 1024) >> 12, 12, rwx));

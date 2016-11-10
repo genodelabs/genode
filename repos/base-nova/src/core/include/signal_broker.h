@@ -21,6 +21,7 @@
 #include <nova/capability_space.h>
 
 /* core-local includes */
+#include <platform.h>
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
 
@@ -91,8 +92,9 @@ class Genode::Signal_broker
 			Native_capability si = Capability_space::import(cap_map()->insert());
 			Signal_context_capability cap = reinterpret_cap_cast<Signal_context>(si);
 
-			uint8_t res = Nova::create_si(cap.local_name(), __core_pd_sel, imprint,
-			                              sm.local_name());
+			uint8_t res = Nova::create_si(cap.local_name(),
+			                              platform_specific()->core_pd_sel(),
+			                              imprint, sm.local_name());
 			if (res != Nova::NOVA_OK) {
 				warning("creating signal failed - error ", res);
 				return Signal_context_capability();

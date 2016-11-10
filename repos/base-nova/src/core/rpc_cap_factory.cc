@@ -13,7 +13,7 @@
 
 /* core-local includes */
 #include <rpc_cap_factory.h>
-#include <platform_pd.h>
+#include <platform.h>
 
 /* NOVA includes */
 #include <nova/capability_space.h>
@@ -23,9 +23,9 @@ using namespace Genode;
 
 Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, addr_t mtd)
 {
-	addr_t pt_sel = cap_map()->insert();
-	addr_t pd_sel = Platform_pd::pd_core_sel();
-	addr_t ec_sel = ep.local_name();
+	addr_t const pt_sel = cap_map()->insert();
+	addr_t const pd_sel = platform_specific()->core_pd_sel();
+	addr_t const ec_sel = ep.local_name();
 
 	using namespace Nova;
 

@@ -37,6 +37,6 @@ build_boot_image "core init test-platform"
 
 append qemu_args "-nographic -m 128 -smp 2"
 
-run_genode_until {Test finished} 150
+run_genode_until {Test finished} 200
 
 puts "\nTest succeeded"
