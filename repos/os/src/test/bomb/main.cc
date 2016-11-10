@@ -258,6 +258,10 @@ int main(int argc, char **argv)
 	unsigned long const demand = node.attribute_value("demand", 1024UL * 1024);
 
 	log("--- bomb started ---");
+	if (timer())
+		log("rounds=", rounds, " generations=", generation, " children=",
+		    children, " sleep=", sleeptime, " demand=", demand/1024, "K");
+
 
 	/* connect to core's cap service used for creating parent capabilities */
 	Cap_connection cap;

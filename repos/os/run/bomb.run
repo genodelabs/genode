@@ -1,8 +1,11 @@
 build "core init test/bomb drivers/timer"
 
-set timeout 240
-set rounds 20
-
+set timeout     240
+set rounds      20
+set generations 6
+set children    2
+set sleep       1500
+set demand      [expr 1*1024*1024]
 
 if {[have_include "power_on/qemu"]} {
 	append qemu_args "-nographic -m 128"
@@ -11,6 +14,9 @@ if {[have_include "power_on/qemu"]} {
 	if {[have_spec foc_x86_32]} { set rounds 6 }
 	if {[have_spec foc_x86_64]} { set rounds 6 }
 }
+
+# prevent hitting the socket-descriptor limit on Linux
+if {[have_spec linux]} { set generations 4 }
 
 set config {
 <config prio_levels="2">
@@ -39,7 +45,8 @@ set config {
 		<resource name="RAM" quantum="2G"/>}
 
 append config "
-		<config rounds=\"$rounds\" generations=\"6\" sleep=\"1500\"/>"
+		<config rounds=\"$rounds\" generations=\"$generations\"
+		        children=\"$children\" sleep=\"$sleep\" demand=\"$demand\"/>"
 
 append config {
 	</start>
@@ -51,6 +58,4 @@ install_config $config
 
 build_boot_image "core init bomb timer"
 
-run_genode_until "Done\. Going to sleep\." $timeout
-
-puts "Test succeeded."
+run_genode_until {.*Done\. Going to sleep.*} $timeout
