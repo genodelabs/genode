@@ -14,4 +14,6 @@ dummy_libs: libncursesw.a
 libncursesw.a:
 	$(VERBOSE)$(AR) -rc $@
 
+INSTALL_TARGET = install
+
 include $(REP_DIR)/mk/noux.mk
