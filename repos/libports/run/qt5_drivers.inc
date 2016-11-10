@@ -33,10 +33,18 @@ proc use_gpio_drv { feature_arg } {
 	              [have_spec gpio]}]
 }
 
+proc use_input_merger { feature_arg } {
+	upvar $feature_arg feature
+	return [info exists feature(Input)]
+}
+
 proc use_nic_drv { feature_arg } {
 	upvar $feature_arg feature
 	return [expr {[info exists feature(Nic)] &&
-	              ![use_usb_drv feature]}]
+	              ([have_spec cadence_gem] ||
+	               [have_spec lan9118] ||
+	               [have_spec linux] ||
+	               [have_spec x86])}]
 }
 
 proc use_ps2_drv { feature_arg } {
@@ -49,12 +57,24 @@ proc use_timer { feature_arg } {
 	return [info exists feature(Timer)]
 }
 
+proc use_usb_input { feature_arg } {
+	upvar $feature_arg feature
+	return [expr {[info exists feature(Input)] &&
+	              ([have_spec usb] || 
+	               ([have_spec x86] && ![have_spec linux]))}]
+}
+
+proc use_usb_nic { feature_arg } {
+	upvar $feature_arg feature
+	return [expr {[info exists feature(Nic)] &&
+	              ([have_spec omap4] ||
+	               [have_spec arndale] ||
+	               [have_spec rpi])}]
+}
+
 proc use_usb_drv { feature_arg } {
 	upvar $feature_arg feature
-	return [expr {(([info exists feature(Input)] ||
-	                [info exists feature(Nic)]) &&
-	                [have_spec usb])
-	           || ([have_spec x86] && ![have_spec linux])}]
+	return [expr {[use_usb_input feature] || [use_usb_nic feature]}]
 }
 
 #
@@ -65,20 +85,21 @@ proc drivers_build_components { feature_arg } {
 
 	upvar $feature_arg feature
 
-	set build_components { server/input_merger }
+	set build_components { }
 
 	# This function appends to the global 'build_components' variable, not to
 	# the local version defined above.
 	append_platform_drv_build_components
 
-	lappend_if [use_audio_drv feature] build_components drivers/audio
-	lappend_if [use_fb_drv feature]    build_components drivers/framebuffer
-	lappend_if [use_fb_sdl feature]    build_components drivers/framebuffer/spec/sdl
-	lappend_if [use_gpio_drv feature]  build_components drivers/gpio
-	lappend_if [use_nic_drv feature]   build_components drivers/nic
-	lappend_if [use_ps2_drv feature]   build_components drivers/input/spec/ps2
-	lappend_if [use_timer feature]     build_components drivers/timer
-	lappend_if [use_usb_drv feature]   build_components drivers/usb
+	lappend_if [use_audio_drv feature]    build_components drivers/audio
+	lappend_if [use_fb_drv feature]       build_components drivers/framebuffer
+	lappend_if [use_fb_sdl feature]       build_components drivers/framebuffer/spec/sdl
+	lappend_if [use_gpio_drv feature]     build_components drivers/gpio
+	lappend_if [use_input_merger feature] build_components server/input_merger
+	lappend_if [use_nic_drv feature]      build_components drivers/nic
+	lappend_if [use_ps2_drv feature]      build_components drivers/input/spec/ps2
+	lappend_if [use_timer feature]        build_components drivers/timer
+	lappend_if [use_usb_drv feature]      build_components drivers/usb
 
 	return $build_components
 }
@@ -114,30 +135,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	upvar $feature_arg feature
 
-	set start_nodes {
-		<start name="input_merger">
-			<resource name="RAM" quantum="1M" />
-			<provides> <service name="Input" /> </provides>
-			<config>}
-	append_if [use_ps2_drv feature] start_nodes {
-				<input label="ps2"/>}
-	append_if [use_usb_drv feature] start_nodes {
-				<input label="usb"/>}
-	append_if [use_fb_sdl feature] start_nodes {
-				<input label="sdl"/>}
-	append start_nodes {
-			</config>
-			<route>
-				<service name="LOG"> <parent/> </service>}
-	append_if [use_ps2_drv feature] start_nodes {
-				<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>}
-	append_if [use_usb_drv feature] start_nodes {
-				<service name="Input" label="usb"> <child name="usb_drv" /> </service>}
-	append_if [use_fb_sdl feature] start_nodes {
-				<service name="Input" label="sdl"> <child name="fb_sdl" /> </service>}
-	append start_nodes {
-			</route>
-		</start>}
+	set start_nodes { }
 
 	# This function appends to the global 'config' variable, not to the
 	# 'start_nodes' variable defined above.
@@ -176,6 +174,34 @@ proc drivers_start_nodes { feature_arg } {
 		</start>
 	}
 
+	if { [use_input_merger feature] } {
+		append start_nodes {
+			<start name="input_merger">
+				<resource name="RAM" quantum="1M" />
+				<provides> <service name="Input" /> </provides>
+				<config>}
+		append_if [use_ps2_drv feature] start_nodes {
+					<input label="ps2"/>}
+		append_if [use_usb_drv feature] start_nodes {
+					<input label="usb"/>}
+		append_if [use_fb_sdl feature] start_nodes {
+					<input label="sdl"/>}
+		append start_nodes {
+				</config>
+				<route>
+					<service name="LOG"> <parent/> </service>}
+		append_if [use_ps2_drv feature] start_nodes {
+					<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>}
+		append_if [use_usb_drv feature] start_nodes {
+					<service name="Input" label="usb"> <child name="usb_drv" /> </service>}
+		append_if [use_fb_sdl feature] start_nodes {
+					<service name="Input" label="sdl"> <child name="fb_sdl" /> </service>}
+		append start_nodes {
+				</route>
+			</start>
+		}
+	}
+
 	append_if [use_nic_drv feature] start_nodes {
 		<start name="nic_drv">
 			<resource name="RAM" quantum="8M"/>
@@ -202,16 +228,16 @@ proc drivers_start_nodes { feature_arg } {
 			<start name="usb_drv">
 				<resource name="RAM" quantum="12M"/>
 				<provides>}
-		append_if [info exists feature(Input)] start_nodes {
+		append_if [use_usb_input feature] start_nodes {
 					<service name="Input"/>}
-		append_if [info exists feature(Nic)] start_nodes {
+		append_if [use_usb_nic feature] start_nodes {
 					<service name="Nic"/>}
 		append start_nodes {
 				</provides>
 				<config uhci="yes" ehci="yes" xhci="no">}
-		append_if [info exists feature(Input)] start_nodes {
+		append_if [use_usb_input feature] start_nodes {
 					<hid/>}
-		append_if [info exists feature(Nic)] start_nodes {
+		append_if [use_usb_nic feature] start_nodes {
 					<nic mac="2e:60:90:0c:4e:01" />}
 		append start_nodes {
 				</config>
@@ -230,20 +256,21 @@ proc drivers_boot_modules { feature_arg } {
 
 	upvar $feature_arg feature
 
-	set boot_modules { input_merger }
+	set boot_modules { }
 
 	# This function appends to the global 'boot_modules' variable, not to the
 	# local version defined above.
 	append_platform_drv_boot_modules
 
-	lappend_if [use_audio_drv feature] boot_modules audio_drv
-	lappend_if [use_fb_drv feature]    boot_modules fb_drv
-	lappend_if [use_fb_sdl feature]    boot_modules fb_sdl
-	lappend_if [use_gpio_drv feature]  boot_modules gpio_drv
-	lappend_if [use_nic_drv feature]   boot_modules nic_drv
-	lappend_if [use_ps2_drv feature]   boot_modules ps2_drv
-	lappend_if [use_timer feature]     boot_modules timer
-	lappend_if [use_usb_drv feature]   boot_modules usb_drv
+	lappend_if [use_audio_drv feature]    boot_modules audio_drv
+	lappend_if [use_fb_drv feature]       boot_modules fb_drv
+	lappend_if [use_fb_sdl feature]       boot_modules fb_sdl
+	lappend_if [use_gpio_drv feature]     boot_modules gpio_drv
+	lappend_if [use_input_merger feature] boot_modules input_merger
+	lappend_if [use_nic_drv feature]      boot_modules nic_drv
+	lappend_if [use_ps2_drv feature]      boot_modules ps2_drv
+	lappend_if [use_timer feature]        boot_modules timer
+	lappend_if [use_usb_drv feature]      boot_modules usb_drv
 
 	return $boot_modules
 }
