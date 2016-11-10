@@ -129,21 +129,22 @@ namespace Platform {
 	{
 		private:
 
-			Genode::Rpc_entrypoint                     *_ep;
-			Genode::Allocator_guard                     _md_alloc;
-			Genode::List<Device_component>              _device_list;
-			Genode::Rpc_entrypoint                     &_device_pd_ep;
+			Genode::Rpc_entrypoint         *_ep;
+			Genode::Allocator_guard         _md_alloc;
+			Genode::List<Device_component>  _device_list;
+			Genode::Rpc_entrypoint         &_device_pd_ep;
+			Genode::Session_label           _label;
 
 			struct Resources {
 				Genode::Ram_connection _ram;
 				Genode::List<Platform::Ram_dataspace> _ram_caps;
 				Genode::Tslab<Platform::Ram_dataspace, 4096 - 64>  _ram_caps_slab;
 
-				Resources(Genode::Allocator_guard &md_alloc)
+				Resources(Genode::Allocator_guard &md_alloc, Genode::Session_label &label)
 				:
-					/* restrict physical address to 3G on 32bit */
-					_ram("dma", 0, (sizeof(void *) == 4)
-					               ? 0xc0000000UL : 0x100000000ULL),
+					/* restrict physical address to 3G on 32bit, 4G on 64bit */
+					_ram(label.string(), 0, (sizeof(void *) == 4)
+					                        ? 0xc0000000UL : 0x100000000ULL),
 					_ram_caps_slab(&md_alloc)
 				{
 					/* associate _ram session with platform_drv _ram session */
@@ -236,7 +237,6 @@ namespace Platform {
 				bool valid() { return policy && policy->root().valid() && child.valid(); }
 			};
 
-			Genode::Session_label                       _label;
 			Genode::Session_policy                      _policy;
 
 			Genode::Lazy_volatile_object<struct Devicepd> _device_pd;
@@ -501,8 +501,8 @@ namespace Platform {
 				_ep(ep),
 				_md_alloc(md_alloc, Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
 				_device_pd_ep(device_pd_ep),
-				_resources(_md_alloc),
 				_label(Genode::label_from_args(args)),
+				_resources(_md_alloc, _label),
 				_policy(_label)
 			{
 				/* non-pci devices */
