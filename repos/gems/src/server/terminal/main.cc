@@ -499,12 +499,15 @@ namespace Terminal {
 }
 
 
+extern "C" void wait_for_continue();
+
 
 int main(int, char **)
 {
 	using namespace Genode;
 
 	log("--- terminal service started ---");
+	wait_for_continue();
 
 	static Framebuffer::Connection framebuffer;
 	static Input::Connection       input;
@@ -512,7 +515,7 @@ int main(int, char **)
 	static Cap_connection          cap;
 
 	/* initialize entry point that serves the root interface */
-	enum { STACK_SIZE = sizeof(addr_t)*1024 };
+	enum { STACK_SIZE = 2*sizeof(addr_t)*1024 };
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "terminal_ep");
 
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
