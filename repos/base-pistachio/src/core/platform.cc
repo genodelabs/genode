@@ -421,37 +421,45 @@ void Platform::_setup_mem_alloc()
 		 * Suck out sigma0. The spec says that we get only "conventional
 		 * memory". Let's hope this is true.
 		 */
-		bool succ;
+		bool succ = true;
 		unsigned int bytes_got = 0;
-		do {
+		while (succ) {
 			addr_t addr;
 			Region region;
 
 			succ = sigma0_req_region(&addr, size_log2);
-			if (succ) {
-				/* XXX do not allocate page0 */
-				if (addr == 0) {
-//					L4_Fpage_t f = L4_FpageLog2(0, pslog2);
-//					f += L4_FullyAccessible;
-//					L4_Flush(f);
 
-				} else {
-					region.start = addr; region.end = addr + size;
-					if (region.intersects(stack_area_virtual_base(),
-					                      stack_area_virtual_size()) ||
-						intersects_kip_archdep(kip, addr, size)) {
-						unmap_local(region.start, size >> get_page_size_log2());
-					} else {
-						add_region(region, _ram_alloc);
-						add_region(region, _core_address_ranges());
-					}
-					remove_region(region, _io_mem_alloc);
-					remove_region(region, _region_alloc);
-				}
+			if (!succ)
+				continue;
 
-				bytes_got += size;
+			/* XXX do not allocate page0 */
+			if (addr == 0) {
+//				L4_Fpage_t f = L4_FpageLog2(0, pslog2);
+//				f += L4_FullyAccessible;
+//				L4_Flush(f);
+				continue;
 			}
-		} while (succ);
+
+			/* exclude phys ram which is unaccessible - 1:1 mappings! */
+			if (addr >= _vm_start + _vm_size)
+				continue;
+			if ((addr + size > _vm_start + _vm_size) || ( addr + size <= addr))
+				size = _vm_start + _vm_size - addr;
+
+			region.start = addr; region.end = addr + size;
+			if (region.intersects(stack_area_virtual_base(),
+			                      stack_area_virtual_size()) ||
+				intersects_kip_archdep(kip, addr, size)) {
+				unmap_local(region.start, size >> get_page_size_log2());
+			} else {
+				add_region(region, _ram_alloc);
+				add_region(region, _core_address_ranges());
+			}
+			remove_region(region, _io_mem_alloc);
+			remove_region(region, _region_alloc);
+
+			bytes_got += size;
+		}
 
 		log("Got ", bytes_got >> 10, "K in ", size >> 10, "K pieces.");
 	}
