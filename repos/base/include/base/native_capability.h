@@ -16,6 +16,7 @@
 
 #include <base/stdint.h>
 #include <base/output.h>
+#include <base/exception.h>
 
 namespace Genode { class Native_capability; }
 
@@ -23,6 +24,8 @@ namespace Genode { class Native_capability; }
 class Genode::Native_capability
 {
 	public:
+
+		struct Reference_count_overflow : Exception { };
 
 		/*
 		 * Platform-specific raw information of the capability that is

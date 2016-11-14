@@ -176,7 +176,7 @@ class Genode::Capability_space_tpl
 			Lock::Guard guard(_lock);
 
 			if (data.inc_ref() == 255)
-				error("cap ref count overflow");
+				throw Native_capability::Reference_count_overflow();
 		}
 
 		Rpc_obj_key rpc_obj_key(Data const &data) const
