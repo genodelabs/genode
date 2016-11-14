@@ -312,6 +312,8 @@ static void test_create_as_many_threads(Env &env)
 				throw "Thread_creation_failed";
 			} catch (Thread::Out_of_stack_space) {
 				throw "Out_of_stack_space";
+			} catch (Genode::Native_capability::Reference_count_overflow) {
+				throw "Native_capability::Reference_count_overflow";
 			}
 		}
 	} catch (const char * ex) {
