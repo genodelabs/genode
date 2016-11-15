@@ -1,6 +1,6 @@
 TARGET   = themed_decorator
 SRC_CC   = main.cc theme.cc window.cc
-LIBS     = base config server libc libpng zlib blit file
+LIBS     = base libc libpng zlib blit file
 INC_DIR += $(PRG_DIR)
 
 .PHONY: plain_decorator_theme.tar
