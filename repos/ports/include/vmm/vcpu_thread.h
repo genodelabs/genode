@@ -57,7 +57,8 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 	public:
 
 		Vcpu_other_pd(Cpu_session * cpu_session,
-		              Genode::Affinity::Location location)
+		              Genode::Affinity::Location location,
+		              Genode::size_t = 0 /* stack_size */)
 		:
 			_pd_session("VM"), _location(location), _cpu_session(cpu_session),
 			_exc_pt_sel(Genode::cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
@@ -112,8 +113,9 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 
 	public:
 
-		Vcpu_same_pd(Genode::size_t stack_size, Cpu_session * cpu_session,
-		             Genode::Affinity::Location location)
+		Vcpu_same_pd(Cpu_session * cpu_session,
+		             Genode::Affinity::Location location,
+		             Genode::size_t stack_size)
 		:
 			Thread(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)
 		{

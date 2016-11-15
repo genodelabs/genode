@@ -60,7 +60,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread>
 			Vmm::Vcpu_dispatcher<Genode::Thread>(env, STACK_SIZE, &env.cpu(),
 			                                     Genode::Affinity::Location(),
 			                                     name),
-			_vcpu_thread(STACK_SIZE, &env.cpu(), Genode::Affinity::Location())
+			_vcpu_thread(&env.cpu(), Genode::Affinity::Location(), STACK_SIZE)
 		{
 			using namespace Nova;
 
@@ -85,8 +85,13 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread>
 
 void Component::construct(Genode::Env &env)
 {
-	typedef Vcpu_dispatcher<Vmm::Vcpu_same_pd> Vcpu;
+	typedef Vcpu_dispatcher<Vmm::Vcpu_same_pd> Vcpu_s;
 
-	static Vcpu vcpu(env, Vcpu::SVM, "vcpu1");
-	static Vcpu vcpu2(env, Vcpu::SVM, "vcpu2");
+	static Vcpu_s vcpu_s_1(env, Vcpu_s::SVM, "vcpu_s_1");
+	static Vcpu_s vcpu_s_2(env, Vcpu_s::SVM, "vcpu_s_2");
+
+	typedef Vcpu_dispatcher<Vmm::Vcpu_other_pd> Vcpu_o;
+
+	static Vcpu_o vcpu_o_1(env, Vcpu_o::SVM, "vcpu_o_1");
+	static Vcpu_o vcpu_o_2(env, Vcpu_o::SVM, "vcpu_o_2");
 }

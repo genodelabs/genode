@@ -949,7 +949,7 @@ class Machine : public StaticReceiver<Machine>
 
 					Vmm::Vcpu_thread * vcpu_thread;
 					if (_colocate_vm_vmm)
-						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE, cpu_session, location);
+						vcpu_thread = new Vmm::Vcpu_same_pd(cpu_session, location, Vcpu_dispatcher::STACK_SIZE);
 					else
 						vcpu_thread = new Vmm::Vcpu_other_pd(cpu_session, location);
 
