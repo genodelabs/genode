@@ -392,16 +392,6 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		_map.metadata(r, Rm_region((addr_t)r, size, true, dsc, offset, this));
 		Rm_region *region = _map.metadata(r);
 
-		/* also update region list */
-		Rm_region_ref *p;
-		try { p = new(&_ref_slab) Rm_region_ref(region); }
-		catch (Allocator::Out_of_memory) {
-			_map.free(r);
-			throw Out_of_metadata();
-		}
-
-		_regions.insert(p);
-
 		/* inform dataspace about attachment */
 		dsc->attached_to(region);
 
@@ -552,16 +542,6 @@ void Region_map_component::detach(Local_addr local_addr)
 	 * region maps.
 	 */
 	unmap_managed(this, &region, 1);
-
-	/* update region list */
-	Rm_region_ref *p = _regions.first();
-	for (; p; p = p->next())
-		if (p->region() == region_ptr) break;
-
-	if (p) {
-		_regions.remove(p);
-		destroy(&_ref_slab, p);
-	}
 }
 
 
@@ -641,7 +621,6 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
 :
 	_ds_ep(&ep), _thread_ep(&ep), _session_ep(&ep),
 	_md_alloc(md_alloc),
-	_ref_slab(&_md_alloc),
 	_map(&_md_alloc), _pager_ep(&pager_ep),
 	_ds(align_addr(vm_size, get_page_size_log2())),
 	_ds_cap(_type_deduction_helper(_ds_ep->manage(&_ds)))
@@ -687,17 +666,17 @@ Region_map_component::~Region_map_component()
 	} while (cl);
 
 	/* detach all regions */
-	Rm_region_ref *ref;
-	do {
-		void * local_addr;
+	while (true) {
+		addr_t out_addr = 0;
+
 		{
 			Lock::Guard lock_guard(_lock);
-			ref = _ref_slab.first_object();
-			if (!ref) break;
-			local_addr = reinterpret_cast<void *>(ref->region()->base());
+			if (!_map.any_block_addr(&out_addr))
+				break;
 		}
-		detach(local_addr);
-	} while (ref);
+
+		detach(out_addr);
+	}
 
 	/* revoke dataspace representation */
 	_ds_ep->dissolve(&_ds);

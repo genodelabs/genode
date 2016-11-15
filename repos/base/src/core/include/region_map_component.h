@@ -285,12 +285,8 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 		typedef Tslab<Rm_region_ref, get_page_size() - Sliced_heap::meta_data_size()>
 		        Ref_slab;
 
-		Ref_slab                      _ref_slab;     /* backing store for
-		                                                region list */
 		Allocator_avl_tpl<Rm_region>  _map;          /* region map for attach,
 		                                                detach, pagefaults */
-		List<Rm_region_ref>           _regions;      /* region list for destruction */
-
 		Fifo<Rm_faulter>              _faulters;     /* list of threads that faulted at
 		                                                the region map and wait
 		                                                for fault resolution */
