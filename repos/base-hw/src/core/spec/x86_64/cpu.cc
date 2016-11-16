@@ -15,18 +15,16 @@
 #include <cpu.h>
 #include <kernel/pd.h>
 
-Genode::Cpu::Cpu()
-{
-	if (primary_id() == executing_id()) {
-		_idt = new (&_mt_idt) Idt();
-		_idt->setup(Cpu::exception_entry);
+extern int _mt_begin;
+extern int _mt_tss;
+extern int _mt_idt;
+extern int _mt_gdt_start;
+extern int _mt_gdt_end;
 
-		_tss = new (&_mt_tss) Tss();
-		_tss->load();
-	}
-	_idt->load(Cpu::exception_entry);
-	_tss->setup(Cpu::exception_entry);
-}
+
+Genode::addr_t Genode::Cpu::virt_mtc_addr(Genode::addr_t virt_base,
+                                          Genode::addr_t label) {
+	return virt_base + (label - (addr_t)&_mt_begin); }
 
 
 void Genode::Cpu::Context::init(addr_t const table, bool core)
@@ -45,5 +43,30 @@ void Genode::Cpu::Context::init(addr_t const table, bool core)
 	 */
 	eflags = EFLAGS_IF_SET;
 	if (core) eflags |= EFLAGS_IOPL_3;
-	else Gdt::load(Cpu::exception_entry);
+	else Gdt::init();
+}
+
+
+void Genode::Cpu::Tss::init()
+{
+	enum { TSS_SELECTOR = 0x28, };
+	asm volatile ("ltr %w0" : : "r" (TSS_SELECTOR));
+}
+
+
+void Genode::Cpu::Idt::init()
+{
+	Pseudo_descriptor descriptor {
+		(uint16_t)((addr_t)&_mt_tss - (addr_t)&_mt_idt),
+		(uint64_t)(virt_mtc_addr(exception_entry, (addr_t)&_mt_idt)) };
+	asm volatile ("lidt %0" : : "m" (descriptor));
+}
+
+
+void Genode::Cpu::Gdt::init()
+{
+	addr_t const   start = (addr_t)&_mt_gdt_start;
+	uint16_t const limit = _mt_gdt_end - _mt_gdt_start - 1;
+	uint64_t const base  = virt_mtc_addr(exception_entry, start);
+	asm volatile ("lgdt %0" :: "m" (Pseudo_descriptor(limit, base)));
 }

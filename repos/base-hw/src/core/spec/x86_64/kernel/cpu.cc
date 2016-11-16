@@ -34,6 +34,9 @@ Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 
 void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd, Genode::Board&)
 {
+	Idt::init();
+	Tss::init();
+
 	Timer::disable_pit();
 
 	fpu().init();
