@@ -1700,10 +1700,7 @@ static inline void synchronize_rcu(void) { }
 #define rcu_assign_pointer(p, v) p = v
 #define rcu_access_pointer(p) p
 
-#define __kfree_rcu(x, y)
-
-#define kfree_rcu(ptr, rcu_head)                                        \
-      __kfree_rcu(&((ptr)->rcu_head), offsetof(typeof(*(ptr)), rcu_head))
+#define kfree_rcu(ptr, rcu_head) kfree((ptr))
 
 static inline int rcu_read_lock_held(void) { return 1; }
 static inline int rcu_read_lock_bh_held(void) { return 1; }
