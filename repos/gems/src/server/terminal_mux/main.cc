@@ -13,11 +13,10 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
+#include <base/component.h>
 #include <base/heap.h>
-#include <base/sleep.h>
+#include <base/session_label.h>
 #include <util/arg_string.h>
-#include <cap_session/connection.h>
 #include <root/component.h>
 #include <os/attached_ram_dataspace.h>
 #include <timer_session/connection.h>
@@ -82,7 +81,7 @@ struct Registry
 		/**
 		 * Return session label
 		 */
-		virtual char const *label() const = 0;
+		virtual Genode::Session_label const & label() const = 0;
 
 		/**
 		 * Submit character into entry
@@ -178,216 +177,208 @@ class Session_manager
 
 
 namespace Terminal {
-
-	class Session_component : public Genode::Rpc_object<Session, Session_component>,
-	                          public Registry::Entry
-	{
-		public:
-
-			enum { LABEL_MAX_LEN = 128 };
-
-		private:
-
-			Read_buffer _read_buffer;
-
-			Ncurses         &_ncurses;
-			Ncurses::Window &_window;
-
-			struct Label
-			{
-				char buf[LABEL_MAX_LEN];
-
-				Label(char const *label)
-				{
-					Genode::strncpy(buf, label, sizeof(buf));
-				}
-			} _label;
-
-			Session_manager &_session_manager;
-
-			Genode::Attached_ram_dataspace _io_buffer;
-
-			Cell_array<Char_cell>            _char_cell_array;
-			Char_cell_array_character_screen _char_cell_array_character_screen;
-			Terminal::Decoder                _decoder;
-
-			Terminal::Position               _last_cursor_pos;
-
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Session_component(Genode::size_t   io_buffer_size,
-			                  Ncurses         &ncurses,
-			                  Session_manager &session_manager,
-			                  char const      *label)
-			:
-				_ncurses(ncurses),
-				_window(*ncurses.create_window(0, 1, ncurses.columns(), ncurses.lines() - 1)),
-				_label(label),
-				_session_manager(session_manager),
-				_io_buffer(Genode::env()->ram_session(), io_buffer_size),
-				_char_cell_array(ncurses.columns(), ncurses.lines() - 1,
-				                 Genode::env()->heap()),
-				_char_cell_array_character_screen(_char_cell_array),
-				_decoder(_char_cell_array_character_screen)
-			{
-				_session_manager.add(this);
-			}
-
-			~Session_component()
-			{
-				_session_manager.remove(this);
-				_ncurses.destroy_window(&_window);
-			}
-
-
-			/*******************************
-			 ** Registry::Entry interface **
-			 *******************************/
-
-			void flush()
-			{
-				convert_char_array_to_window(&_char_cell_array, _window);
-
-				int first_dirty_line =  10000,
-				    last_dirty_line  = -10000;
-
-				for (int line = 0; line < (int)_char_cell_array.num_lines(); line++) {
-					if (!_char_cell_array.line_dirty(line)) continue;
-
-					first_dirty_line = Genode::min(line, first_dirty_line);
-					last_dirty_line  = Genode::max(line, last_dirty_line);
-
-					_char_cell_array.mark_line_as_clean(line);
-				}
-
-				Terminal::Position cursor_pos =
-					_char_cell_array_character_screen.cursor_pos();
-				_window.move_cursor(cursor_pos.x, cursor_pos.y);
-
-				_window.refresh();
-			}
-
-			void flush_all()
-			{
-				for (unsigned line = 0; line < _char_cell_array.num_lines(); line++)
-					_char_cell_array.mark_line_as_dirty(line);
-
-				_window.erase();
-				flush();
-			}
-
-			char const *label() const
-			{
-				return _label.buf;
-			}
-
-			void submit_input(char c)
-			{
-				_read_buffer.add(c);
-			}
-
-
-			/********************************
-			 ** Terminal session interface **
-			 ********************************/
-
-			Size size() { return Size(_char_cell_array.num_cols(),
-			                          _char_cell_array.num_lines()); }
-
-			bool avail() { return !_read_buffer.empty(); }
-
-			Genode::size_t _read(Genode::size_t dst_len)
-			{
-				/* read data, block on first byte if needed */
-				unsigned       num_bytes = 0;
-				unsigned char *dst       = _io_buffer.local_addr<unsigned char>();
-				Genode::size_t dst_size  = Genode::min(_io_buffer.size(), dst_len);
-				do {
-					dst[num_bytes++] = _read_buffer.get();
-				} while (!_read_buffer.empty() && num_bytes < dst_size);
-
-				return num_bytes;
-			}
-
-			void _write(Genode::size_t num_bytes)
-			{
-				unsigned char *src = _io_buffer.local_addr<unsigned char>();
-
-				for (unsigned i = 0; i < num_bytes; i++) {
-
-					/* submit character to sequence decoder */
-					_decoder.insert(src[i]);
-				}
-			}
-
-			Genode::Dataspace_capability _dataspace()
-			{
-				return _io_buffer.cap();
-			}
-
-			void connected_sigh(Genode::Signal_context_capability sigh)
-			{
-				/*
-				 * Immediately reflect connection-established signal to the
-				 * client because the session is ready to use immediately after
-				 * creation.
-				 */
-				Genode::Signal_transmitter(sigh).submit();
-			}
-
-			void read_avail_sigh(Genode::Signal_context_capability cap)
-			{
-				_read_buffer.sigh(cap);
-			}
-
-			Genode::size_t read(void *buf, Genode::size_t)  { return 0; }
-			Genode::size_t write(void const *buf, Genode::size_t) { return 0; }
-	};
-
-
-	class Root_component : public Genode::Root_component<Session_component>
-	{
-		private:
-
-			Ncurses         &_ncurses;
-			Session_manager &_session_manager;
-
-		protected:
-
-			Session_component *_create_session(const char *args)
-			{
-				/*
-				 * XXX read I/O buffer size from args
-				 */
-				Genode::size_t io_buffer_size = 4096;
-
-				char label[Session_component::LABEL_MAX_LEN];
-				Genode::Arg_string::find_arg(args, "label").string(label, sizeof(label), "<unlabeled>");
-
-				return new (md_alloc())
-					Session_component(io_buffer_size, _ncurses, _session_manager, label);
-			}
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Root_component(Genode::Rpc_entrypoint &ep,
-			               Genode::Allocator      &md_alloc,
-			               Ncurses                &ncurses,
-			               Session_manager        &session_manager)
-			:
-				Genode::Root_component<Session_component>(&ep, &md_alloc),
-				_ncurses(ncurses),
-				_session_manager(session_manager)
-			{ }
-	};
+	class Session_component;
+	class Root_component;
 }
+
+class Terminal::Session_component : public Genode::Rpc_object<Session, Session_component>,
+                                    public Registry::Entry
+{
+	private:
+
+		Genode::Env  &_env;
+
+		Read_buffer _read_buffer;
+
+		Ncurses         &_ncurses;
+		Ncurses::Window &_window;
+
+		Genode::Session_label const _label;
+
+		Session_manager &_session_manager;
+
+		Genode::Attached_ram_dataspace _io_buffer;
+
+		Cell_array<Char_cell>            _char_cell_array;
+		Char_cell_array_character_screen _char_cell_array_character_screen;
+		Terminal::Decoder                _decoder;
+
+		Terminal::Position               _last_cursor_pos;
+
+	public:
+
+		Session_component(Genode::size_t               io_buffer_size,
+		                  Ncurses                     &ncurses,
+		                  Session_manager             &session_manager,
+		                  Genode::Session_label const &label,
+		                  Genode::Env                 &env,
+		                  Genode::Allocator           &heap)
+		:
+			_env(env),
+			_ncurses(ncurses),
+			_window(*ncurses.create_window(0, 1, ncurses.columns(), ncurses.lines() - 1)),
+			_label(label),
+			_session_manager(session_manager),
+			_io_buffer(_env.ram(), _env.rm(), io_buffer_size),
+			_char_cell_array(ncurses.columns(), ncurses.lines() - 1, &heap),
+			_char_cell_array_character_screen(_char_cell_array),
+			_decoder(_char_cell_array_character_screen)
+		{
+			_session_manager.add(this);
+		}
+
+		~Session_component()
+		{
+			_session_manager.remove(this);
+			_ncurses.destroy_window(&_window);
+		}
+
+
+		/*******************************
+		 ** Registry::Entry interface **
+		 *******************************/
+
+		void flush() override
+		{
+			convert_char_array_to_window(&_char_cell_array, _window);
+
+			int first_dirty_line =  10000,
+			    last_dirty_line  = -10000;
+
+			for (int line = 0; line < (int)_char_cell_array.num_lines(); line++) {
+				if (!_char_cell_array.line_dirty(line)) continue;
+
+				first_dirty_line = Genode::min(line, first_dirty_line);
+				last_dirty_line  = Genode::max(line, last_dirty_line);
+
+				_char_cell_array.mark_line_as_clean(line);
+			}
+
+			Terminal::Position cursor_pos =
+				_char_cell_array_character_screen.cursor_pos();
+			_window.move_cursor(cursor_pos.x, cursor_pos.y);
+
+			_window.refresh();
+		}
+
+		void flush_all() override
+		{
+			for (unsigned line = 0; line < _char_cell_array.num_lines(); line++)
+				_char_cell_array.mark_line_as_dirty(line);
+
+			_window.erase();
+			flush();
+		}
+
+		Genode::Session_label const & label() const override { return _label; }
+
+		void submit_input(char c) override { _read_buffer.add(c); }
+
+
+		/********************************
+		 ** Terminal session interface **
+		 ********************************/
+
+		Size size() override { return Size(_char_cell_array.num_cols(),
+		                          _char_cell_array.num_lines()); }
+
+		bool avail() override { return !_read_buffer.empty(); }
+
+		Genode::size_t _read(Genode::size_t dst_len)
+		{
+			/* read data, block on first byte if needed */
+			unsigned       num_bytes = 0;
+			unsigned char *dst       = _io_buffer.local_addr<unsigned char>();
+			Genode::size_t dst_size  = Genode::min(_io_buffer.size(), dst_len);
+			do {
+				dst[num_bytes++] = _read_buffer.get();
+			} while (!_read_buffer.empty() && num_bytes < dst_size);
+
+			return num_bytes;
+		}
+
+		void _write(Genode::size_t num_bytes)
+		{
+			unsigned char *src = _io_buffer.local_addr<unsigned char>();
+
+			for (unsigned i = 0; i < num_bytes; i++) {
+
+				/* submit character to sequence decoder */
+				_decoder.insert(src[i]);
+			}
+		}
+
+		Genode::Dataspace_capability _dataspace()
+		{
+			return _io_buffer.cap();
+		}
+
+		void connected_sigh(Genode::Signal_context_capability sigh) override
+		{
+			/*
+			 * Immediately reflect connection-established signal to the
+			 * client because the session is ready to use immediately after
+			 * creation.
+			 */
+			Genode::Signal_transmitter(sigh).submit();
+		}
+
+		void read_avail_sigh(Genode::Signal_context_capability cap) override
+		{
+			_read_buffer.sigh(cap);
+		}
+
+		Genode::size_t read(void *buf, Genode::size_t) override  { return 0; }
+		Genode::size_t write(void const *buf, Genode::size_t) override { return 0; }
+};
+
+
+class Terminal::Root_component : public Genode::Root_component<Session_component>
+{
+	private:
+
+		Genode::Env     &_env;
+		Ncurses         &_ncurses;
+		Session_manager &_session_manager;
+
+		/*
+		 * FIXME The heap is shared between all clients. The allocator should
+		 * be moved into the session component but this increases per-session
+		 * RAM costs significantly, which would break all connections to this
+		 * server.
+		 */
+		Genode::Heap _heap { _env.ram(), _env.rm() };
+
+	protected:
+
+		Session_component *_create_session(const char *args)
+		{
+			/*
+			 * XXX read I/O buffer size from args
+			 */
+			Genode::size_t io_buffer_size = 4096;
+
+			return new (md_alloc())
+				Session_component(io_buffer_size, _ncurses, _session_manager,
+				                  Genode::label_from_args(args), _env, _heap);
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Root_component(Genode::Env       &env,
+		               Genode::Allocator &md_alloc,
+		               Ncurses           &ncurses,
+		               Session_manager   &session_manager)
+		:
+			Genode::Root_component<Session_component>(env.ep(), md_alloc),
+			_env(env),
+			_ncurses(ncurses),
+			_session_manager(session_manager)
+		{ }
+};
 
 
 class Status_window
@@ -397,32 +388,27 @@ class Status_window
 		Ncurses         &_ncurses;
 		Ncurses::Window &_window;
 
-		char _label[Terminal::Session_component::LABEL_MAX_LEN];
-
 	public:
 
 		Status_window(Ncurses &ncurses)
 		:
 			_ncurses(ncurses),
 			_window(*_ncurses.create_window(0, 0, ncurses.columns(), 1))
-		{
-			_label[0] = 0;
-		}
+		{ }
 
 		~Status_window()
 		{
 			_ncurses.destroy_window(&_window);
 		}
 
-		void label(char const *label)
+		void label(Genode::Session_label const &label)
 		{
-			Genode::strncpy(_label, label, sizeof(_label));
-
 			_window.erase();
 			_window.move_cursor(0, 0);
 			_window.print_char('[', false, false);
 
 			unsigned const max_columns = _ncurses.columns() - 2;
+			char const *_label = label.string();
 			for (unsigned i = 0; i < max_columns && _label[i]; i++)
 				_window.print_char(_label[i], false, false);
 
@@ -442,6 +428,8 @@ class Menu : public Registry::Entry
 		Registry        &_registry;
 		unsigned         _selected_idx;
 		unsigned         _max_idx;
+
+		Genode::Session_label const _label { "-" };
 
 		/**
 		 * State tracker for escape sequences within user input
@@ -523,9 +511,9 @@ class Menu : public Registry::Entry
 
 		void reset_selection() { _selected_idx = 0; }
 
-		void flush() { }
+		void flush() override { }
 
-		void flush_all()
+		void flush_all() override
 		{
 			_window.erase();
 
@@ -546,7 +534,7 @@ class Menu : public Registry::Entry
 				unsigned const padding = 2;
 				_window.move_cursor(padding, 1 + i);
 
-				char const *label = entry->label();
+				char const *label = entry->label().string();
 				for (unsigned j = 0; j < (max_columns - padding) && label[j]; j++)
 					_window.print_char(label[j], highlight, highlight);
 			}
@@ -555,7 +543,7 @@ class Menu : public Registry::Entry
 			_window.refresh();
 		}
 
-		char const *label() const { return "-"; }
+		Genode::Session_label const & label() const { return _label; }
 
 		void submit_input(char c)
 		{
@@ -666,37 +654,47 @@ void Session_manager::remove(Registry::Entry *entry)
 }
 
 
-/*******************
- ** Input handler **
- *******************/
+/***************
+ ** Component **
+ ***************/
 
-struct Input_handler
+struct Main
 {
-	GENODE_RPC(Rpc_handle_input, void, handle);
-	GENODE_RPC_INTERFACE(Rpc_handle_input);
-};
+	Genode::Env &env;
 
+	Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
 
-struct Input_handler_component : Genode::Rpc_object<Input_handler,
-                                                    Input_handler_component>
-{
-	User_input      &_user_input;
-	Session_manager &_session_manager;
+	Registry      registry;
+	Ncurses       ncurses;
+	Status_window status_window { ncurses };
+	Menu          menu          { ncurses, registry, status_window };
 
+	User_input      user_input      { ncurses };
+	Session_manager session_manager { ncurses, registry, status_window, menu };
 
-	Input_handler_component(User_input      &user_input,
-	                        Session_manager &session_manager)
-	:
-		_user_input(user_input),
-		_session_manager(session_manager)
+	Terminal::Root_component root { env, sliced_heap, ncurses, session_manager };
+
+	Timer::Connection timer { env };
+
+	Genode::Signal_handler<Main> timer_handler { env.ep(), *this, &Main::handle_timer };
+
+	Main(Genode::Env &env) : env(env)
 	{
-		_session_manager.activate_menu();
+		Genode::log("--- terminal_mux service started ---");
+
+		registry.add(&menu);
+		session_manager.activate_menu();
+
+		env.parent().announce(env.ep().manage(root));
+
+		timer.sigh(timer_handler);
+		timer.trigger_periodic(10*1000);
 	}
 
-	void handle()
+	void handle_timer()
 	{
 		for (;;) {
-			int c = _user_input.read_character();
+			int c = user_input.read_character();
 			if (c == -1)
 				break;
 
@@ -712,55 +710,16 @@ struct Input_handler_component : Genode::Rpc_object<Input_handler,
 			 */
 			enum { KEYCODE_C_X = 24 };
 			if (c == KEYCODE_C_X) {
-				_session_manager.activate_menu();
+				session_manager.activate_menu();
 			} else {
-				_session_manager.submit_input(c);
+				session_manager.submit_input(c);
 			}
 		}
 
-		_session_manager.update_ncurses_screen();
+		session_manager.update_ncurses_screen();
 	}
 };
 
 
-int main(int, char **)
-{
-	using namespace Genode;
-
-	printf("--- terminal_mux service started ---\n");
-
-	static Cap_connection cap;
-
-	/* initialize entry point that serves the root interface */
-	enum { STACK_SIZE = sizeof(addr_t)*4096 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "terminal_mux_ep");
-
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
-
-	static ::Registry      registry;
-	static Ncurses       ncurses;
-	static Status_window status_window(ncurses);
-	static Menu          menu(ncurses, registry, status_window);
-
-	registry.add(&menu);
-
-	static User_input      user_input(ncurses);
-	static Session_manager session_manager(ncurses, registry, status_window, menu);
-
-	/* create root interface for service */
-	static Terminal::Root_component root(ep, sliced_heap, ncurses, session_manager);
-
-	static Input_handler_component input_handler(user_input, session_manager);
-	Capability<Input_handler> input_handler_cap = ep.manage(&input_handler);
-
-	/* announce service at our parent */
-	env()->parent()->announce(ep.manage(&root));
-
-	while (1) {
-		static Timer::Connection timer;
-		timer.msleep(10);
-
-		input_handler_cap.call<Input_handler::Rpc_handle_input>();
-	}
-	return 0;
-}
+Genode::size_t Component::stack_size()      { return 4096*sizeof(long); }
+void Component::construct(Genode::Env &env) { static Main inst(env); }
