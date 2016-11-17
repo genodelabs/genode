@@ -17,6 +17,7 @@
 
 /* base-internal includes */
 #include <base/internal/output.h>
+#include <base/internal/raw_write_string.h>
 #include <base/internal/unmanaged_singleton.h>
 
 #include <core_log.h>
@@ -44,3 +45,7 @@ void Genode::Core_log::out(char const c) { out_char(c); }
 
 
 void Kernel::log(char const c) { out_char(c); }
+
+
+void Genode::raw_write_string(char const *str) {
+	while (char c = *str++) out_char(c); }

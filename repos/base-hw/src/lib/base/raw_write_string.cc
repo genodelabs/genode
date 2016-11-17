@@ -11,9 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
-#define _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
+#include <kernel/interface.h>
+#include <base/internal/raw_write_string.h>
 
-namespace Genode { void raw_write_string(char const *str); }
-
-#endif /* _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_ */
+void Genode::raw_write_string(char const *str) {
+	while (char c = *str++) Kernel::print_char(c); }
