@@ -22,14 +22,21 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
+#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
 
-static Lazy_volatile_object<Heap> &cxx_heap()
+static Heap *cxx_heap_ptr;
+
+
+static Heap &cxx_heap()
 {
-	static Lazy_volatile_object<Heap> heap;
-	return heap;
+	class Cxx_heap_uninitialized : Exception { };
+	if (!cxx_heap_ptr)
+		throw Cxx_heap_uninitialized();
+
+	return *cxx_heap_ptr;
 }
 
 
@@ -42,16 +49,15 @@ static Lazy_volatile_object<Heap> &cxx_heap()
  */
 void Genode::init_cxx_heap(Env &env)
 {
-	if (cxx_heap().constructed()) return;
-
 	/*
 	 * Exception frames are small. Hence, a small static backing store suffices
 	 * for the cxx heap partition in the normal case. The 'env.ram()' session
 	 * is used only if the demand exceeds the capacity of the 'initial_block'.
 	 */
 	static char initial_block[1024*sizeof(long)];
-	cxx_heap().construct(&env.ram(), &env.rm(),
-	                     Heap::UNLIMITED, initial_block, sizeof(initial_block));
+
+	cxx_heap_ptr = unmanaged_singleton<Heap>(&env.ram(), &env.rm(), Heap::UNLIMITED,
+	                                         initial_block, sizeof(initial_block));
 }
 
 
@@ -71,7 +77,7 @@ extern "C" void *malloc(unsigned size)
 	 */
 	unsigned long real_size = size + sizeof(Block_header);
 	void *addr = 0;
-	if (!cxx_heap()->alloc(real_size, &addr))
+	if (!cxx_heap().alloc(real_size, &addr))
 		return 0;
 
 	*(Block_header *)addr = real_size;
@@ -92,7 +98,7 @@ extern "C" void free(void *ptr)
 	if (!ptr) return;
 
 	unsigned long *addr = ((unsigned long *)ptr) - 1;
-	cxx_heap()->free(addr, *addr);
+	cxx_heap().free(addr, *addr);
 }
 
 
