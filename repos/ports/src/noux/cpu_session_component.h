@@ -47,7 +47,9 @@ namespace Noux {
 
 			enum { MAX_THREADS = 8, MAIN_THREAD_IDX = 0 };
 
-			Thread_capability _threads[MAX_THREADS];
+			Thread_capability     _threads[MAX_THREADS];
+			Dataspace_capability  _trace_control;
+			Dataspace_registry   &_registry;
 
 		public:
 
@@ -63,11 +65,22 @@ namespace Noux {
 			 * startup of the main thread.
 			 */
 			Cpu_session_component(Rpc_entrypoint &ep, Child_policy::Name const &label,
-			                      bool forked)
-			: _ep(ep), _forked(forked), _cpu(label.string())
+			                      bool forked, Dataspace_registry &registry)
+			: _ep(ep), _forked(forked), _cpu(label.string()), _registry(registry)
 			{ _ep.manage(this); }
 
-			~Cpu_session_component() { _ep.dissolve(this); }
+			~Cpu_session_component()
+			{
+				 _ep.dissolve(this);
+
+				if (!_trace_control.valid())
+					return;
+
+				auto lambda = [&] (Static_dataspace_info *rdi) { return rdi; };
+				Static_dataspace_info *ds_info = _registry.apply(_trace_control, lambda);
+				if (ds_info)
+					destroy(env()->heap(), ds_info);
+			}
 
 			/**
 			 * Explicitly start main thread, only meaningful when
@@ -131,8 +144,15 @@ namespace Noux {
 			Affinity::Space affinity_space() const override {
 				return _cpu.affinity_space(); }
 
-			Dataspace_capability trace_control() override {
-				return _cpu.trace_control(); }
+			Dataspace_capability trace_control() override
+			{
+				if (!_trace_control.valid()) {
+					_trace_control = _cpu.trace_control();
+					new (env()->heap()) Static_dataspace_info(_registry,
+					                                          _trace_control);
+				}
+				return _trace_control;
+			}
 
 			Quota quota() override { return _cpu.quota(); }
 

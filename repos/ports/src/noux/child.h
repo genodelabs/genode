@@ -180,7 +180,7 @@ namespace Noux {
 			 * Locally-provided CPU service
 			 */
 			typedef Local_service<Cpu_session_component> Cpu_service;
-			Cpu_session_component _cpu { _ep, _name, false };
+			Cpu_session_component _cpu { _ep, _name, false, _ds_registry };
 			Cpu_service::Single_session_factory _cpu_factory { _cpu };
 			Cpu_service                         _cpu_service { _cpu_factory };
 
