@@ -295,7 +295,8 @@ int MMR3AdjustFixedReservation(PVM, int32_t, const char *pszDesc)
 }
 
 
-int MMR3HyperMapMMIO2(PVM pVM, PPDMDEVINS pDevIns, uint32_t iRegion,
+int MMR3HyperMapMMIO2(PVM pVM, PPDMDEVINS pDevIns, uint32_t iSubDev,
+                      uint32_t iRegion,
                       RTGCPHYS off, RTGCPHYS cb, const char *pszDesc,
                       PRTRCPTR pRCPtr)
 {

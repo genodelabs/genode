@@ -37,10 +37,10 @@ SRC_CC += Devices/PC/DevIoApic.cpp
 
 SRC_CC += Devices/Audio/AudioMixBuffer.cpp
 SRC_CC += Devices/Audio/AudioMixer.cpp
+SRC_CC += Devices/Audio/DevHDA.cpp
 SRC_CC += Devices/Audio/DevIchAc97.cpp
-SRC_CC += Devices/Audio/DevIchHda.cpp
-SRC_CC += Devices/Audio/DevIchHdaCodec.cpp
 SRC_CC += Devices/Audio/DrvAudioCommon.cpp
+SRC_CC += Devices/Audio/HDACodec.cpp
 SRC_CC += Devices/USB/DevOHCI.cpp
 SRC_CC += Devices/USB/USBProxyDevice.cpp
 SRC_CC += Devices/USB/VUSBBufferedPipe.cpp
