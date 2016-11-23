@@ -196,7 +196,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 		ds = new (&_ds_slab)
 			Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
 	} catch (Allocator::Out_of_memory) {
-		warning("Could not allocate metadata");
+		warning("could not allocate metadata");
 		/* cleanup unneeded resources */
 		_ram_alloc->free(ds_addr);
 
@@ -303,7 +303,7 @@ Ram_session_component::~Ram_session_component()
 	     _free_ds(ds->cap()));
 
 	if (_payload != 0)
-		warning("Remaining payload of ", _payload, " in ram session to destroy");
+		warning("remaining payload of ", _payload, " in ram session to destroy");
 
 	if (!_ref_account) return;
 

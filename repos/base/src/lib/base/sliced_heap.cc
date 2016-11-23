@@ -50,11 +50,11 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 		ds_cap = _ram_session.alloc(size);
 		block  = _region_map.attach(ds_cap);
 	} catch (Region_map::Attach_failed) {
-		error("Could not attach dataspace to local address space");
+		error("could not attach dataspace to local address space");
 		_ram_session.free(ds_cap);
 		return false;
 	} catch (Ram_session::Alloc_failed) {
-		error("Could not allocate dataspace with size %lu", size);
+		error("could not allocate dataspace with size ", size);
 		return false;
 	}
 
