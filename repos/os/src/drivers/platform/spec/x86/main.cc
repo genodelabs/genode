@@ -32,9 +32,8 @@ struct Platform::Main
 	 * Use sliced heap to allocate each session component at a separate
 	 * dataspace.
 	 */
-	Genode::Sliced_heap sliced_heap;
-
 	Genode::Env &_env;
+	Genode::Sliced_heap sliced_heap { _env.ram(), _env.rm() };
 
 	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> acpi_rom;
 	Genode::Lazy_volatile_object<Platform::Root> root;
@@ -58,7 +57,7 @@ struct Platform::Main
 
 		const char * report_addr = acpi_rom->local_addr<const char>();
 
-		root.construct(_env, &sliced_heap, report_addr);
+		root.construct(_env, sliced_heap, report_addr);
 
 		root_cap = _env.ep().manage(*root);
 
@@ -107,7 +106,6 @@ struct Platform::Main
 
 	Main(Genode::Env &env)
 	:
-		sliced_heap(env.ram(), env.rm()),
 		_env(env),
 		_acpi_report(_env.ep(), *this, &Main::acpi_update),
 		_system_report(_env.ep(), *this, &Main::system_update)
@@ -138,7 +136,7 @@ struct Platform::Main
 		}
 
 		/* non ACPI platform case */
-		root.construct(_env, &sliced_heap, nullptr);
+		root.construct(_env, sliced_heap, nullptr);
 		_env.parent().announce(_env.ep().manage(*root));
 	}
 };

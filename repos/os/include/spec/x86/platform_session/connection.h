@@ -26,7 +26,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 */
 	Connection(Genode::Env &env)
 	:
-		Genode::Connection<Session>(env, session("ram_quota=20K")),
+		Genode::Connection<Session>(env, session("ram_quota=16K")),
 		Client(cap())
 	{ }
 
@@ -39,7 +39,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 */
 	Connection()
 	:
-		Genode::Connection<Session>(session("ram_quota=20K")),
+		Genode::Connection<Session>(session("ram_quota=16K")),
 		Client(cap())
 	{ }
 };
