@@ -56,7 +56,7 @@ class Net::Stream_allocator
 		Stream_allocator(Genode::Ram_session &ram,
 		                 Genode::Region_map  &rm,
 		                 Genode::size_t     amount)
-		: _ram(ram, amount),
+		: _ram(ram, Genode::Ram_session_capability(), amount),
 		  _heap(ram, rm),
 		  _range_alloc(&_heap) {}
 
