@@ -49,6 +49,7 @@ compare_output_to {
 	[init -> test-new_delete]   ~B
 	[init -> test-new_delete]   ~C
 	[init -> test-new_delete]   ~A
+	[init -> test-new_delete] Allocator::free()
 	[init -> test-new_delete] exception caught
 	[init -> test-new_delete] Allocator::alloc()
 	[init -> test-new_delete]   A
@@ -73,6 +74,7 @@ compare_output_to {
 	[init -> test-new_delete]   ~B
 	[init -> test-new_delete]   ~C
 	[init -> test-new_delete]   ~A
+	[init -> test-new_delete] Allocator::free()
 	[init -> test-new_delete] exception caught
 }
 
