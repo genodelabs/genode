@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _RAM_SESSION_GUARD_H_
-#define _RAM_SESSION_GUARD_H_
+#ifndef _INCLUDE__OS__RAM_SESSION_GUARD_H_
+#define _INCLUDE__OS__RAM_SESSION_GUARD_H_
 
 #include <dataspace/client.h>
 #include <ram_session/ram_session.h>
@@ -60,4 +60,4 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 		size_t used() override { return _used; }
 };
 
-#endif /* _RAM_SESSION_GUARD_H_ */
+#endif /* _INCLUDE__OS__RAM_SESSION_GUARD_H_ */
