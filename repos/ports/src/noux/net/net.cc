@@ -121,121 +121,121 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(socket_io_channel->backend(), backend);
 
-				if (!backend->socket(_sysio)) {
+				if (!backend->socket(&_sysio)) {
 					delete socket_io_channel;
 					return false;
 				}
 
 				Shared_pointer<Io_channel> io_channel(socket_io_channel, Genode::env()->heap());
 
-				_sysio->socket_out.fd = add_io_channel(io_channel);
+				_sysio.socket_out.fd = add_io_channel(io_channel);
 
 				return true;
 			}
 		case SYSCALL_GETSOCKOPT:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->getsockopt_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.getsockopt_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return backend->getsockopt(_sysio);
+				return backend->getsockopt(&_sysio);
 			}
 		case SYSCALL_SETSOCKOPT:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->setsockopt_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.setsockopt_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return backend->setsockopt(_sysio);
+				return backend->setsockopt(&_sysio);
 			}
 		case SYSCALL_ACCEPT:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->accept_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.accept_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				int socket = backend->accept(_sysio);
+				int socket = backend->accept(&_sysio);
 				if (socket == -1)
 					return false;
 
 				Socket_io_channel *socket_io_channel = new Socket_io_channel(socket);
 				Shared_pointer<Io_channel> io_channel(socket_io_channel, Genode::env()->heap());
 
-				_sysio->accept_out.fd = add_io_channel(io_channel);
+				_sysio.accept_out.fd = add_io_channel(io_channel);
 
 				return true;
 			}
 		case SYSCALL_BIND:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->bind_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.bind_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->bind(_sysio) == -1) ? false : true;
+				return (backend->bind(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_LISTEN:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->listen_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.listen_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->listen(_sysio) == -1) ? false : true;
+				return (backend->listen(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_SEND:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->send_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.send_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->send(_sysio) == -1) ? false : true;
+				return (backend->send(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_SENDTO:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->sendto_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.sendto_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->sendto(_sysio) == -1) ? false : true;
+				return (backend->sendto(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_RECV:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->recv_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.recv_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->recv(_sysio) == -1) ? false : true;
+				return (backend->recv(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_RECVFROM:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->recvfrom_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.recvfrom_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->recvfrom(_sysio) == -1) ? false : true;
+				return (backend->recvfrom(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_GETPEERNAME:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->getpeername_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.getpeername_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->getpeername(_sysio) == -1) ? false : true;
+				return (backend->getpeername(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_SHUTDOWN:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->shutdown_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.shutdown_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->shutdown(_sysio) == -1) ? false : true;
+				return (backend->shutdown(&_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_CONNECT:
 			{
-				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->connect_in.fd);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.connect_in.fd);
 
 				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return (backend->connect(_sysio) == -1) ? false : true;
+				return (backend->connect(&_sysio) == -1) ? false : true;
 			}
 	}
 

@@ -54,10 +54,7 @@ class Sub_rm_connection : private Genode::Rm_connection,
 					                                 use_local_addr,
 					                                 local_addr,
 					                                 executable); },
-				[&] () {
-					char quota[] = "ram_quota=8192";
-					Genode::env()->parent()->upgrade(this->cap(), quota);
-				});
+				[&] () { upgrade_ram(8192); });
 
 			Genode::addr_t new_addr = addr;
 			new_addr += _offset;

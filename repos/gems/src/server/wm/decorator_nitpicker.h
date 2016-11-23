@@ -352,7 +352,8 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	void upgrade(const char *args)
 	{
-		Genode::env()->parent()->upgrade(_nitpicker_session, args);
+		size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+		_nitpicker_session.upgrade_ram(ram_quota);
 	}
 
 

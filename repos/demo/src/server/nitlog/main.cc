@@ -401,7 +401,7 @@ int main(int argc, char **argv)
 	                 Framebuffer::Mode::RGB565), false);
 
 	/* initialize entry point that serves the root interface */
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = 4096*sizeof(long) };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nitlog_ep");
 

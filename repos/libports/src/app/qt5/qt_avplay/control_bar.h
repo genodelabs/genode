@@ -23,7 +23,7 @@
 #include <qoost/qmember.h>
 
 /* Genode includes */
-#include <input/event_queue.h>
+#include <input/component.h>
 
 struct Play_pause_button : QPushButton { Q_OBJECT };
 struct Stop_button : QPushButton { Q_OBJECT };
@@ -36,7 +36,7 @@ class Control_bar : public Compound_widget<QWidget, QHBoxLayout>
 
 	private:
 
-		Input::Event_queue &_event_queue;
+		Input::Session_component  &_input;
 
 		QMember<Play_pause_button> _play_pause_button;
 		QMember<Stop_button>       _stop_button;
@@ -54,7 +54,7 @@ class Control_bar : public Compound_widget<QWidget, QHBoxLayout>
 
 	public:
 
-		Control_bar(Input::Event_queue &event_queue);
+		Control_bar(Input::Session_component &input);
 
 	Q_SIGNALS:
 

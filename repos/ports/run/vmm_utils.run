@@ -34,6 +34,7 @@ append qemu_args " -m 512 "
 append qemu_args " -cpu phenom "
 append qemu_args " -nographic "
 
-run_genode_until {.*VMM: _svm_startup called} 30
+run_genode_until {.*VMM: vcpu1 _svm_startup called.*\n} 30
+run_genode_until {.*VMM: vcpu2 _svm_startup called.*\n} 10 [output_spawn_id]
 
 puts "Test succeeded"

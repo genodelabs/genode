@@ -737,7 +737,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 		void upgrade(char const *args)
 		{
-			Genode::env()->parent()->upgrade(_session, args);
+			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+			_session.upgrade_ram(ram_quota);
 		}
 
 		void try_to_init_real_child_views()

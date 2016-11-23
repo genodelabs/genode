@@ -22,6 +22,7 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 {
 	private:
 
+		Scout::Launcher::Name  _prg_name;
 		Scout::Block           _block;
 		Kbyte_loadbar<PT>      _loadbar;
 		Scout::Launcher_config _config;
@@ -37,15 +38,16 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		/**
 		 * Constructor
 		 */
-		Launch_entry(const char *prg_name, unsigned long initial_quota,
+		Launch_entry(Scout::Launcher::Name const &prg_name, unsigned long initial_quota,
 		             unsigned long max_quota, Launchpad  *launchpad,
 		             Genode::Dataspace_capability config_ds)
 		:
+			_prg_name(prg_name),
 			_block(Scout::Block::RIGHT), _loadbar(this, &Scout::label_font),
 			_config(config_ds),
 			_launcher(prg_name, launchpad, initial_quota * 1024UL, &_config)
 		{
-			_block.append_launchertext(prg_name, &Scout::link_style, &_launcher);
+			_block.append_launchertext(_prg_name.string(), &Scout::link_style, &_launcher);
 
 			_loadbar.max_value(max_quota);
 			_loadbar.value(initial_quota);

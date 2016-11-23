@@ -38,8 +38,8 @@ class Vmm::Vcpu_dispatcher : public T
 
 		enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
-		Pd_session           &_pd;
-		Nova_native_pd_client _native_pd { _pd.native_pd() };
+		Env                  &_env;
+		Nova_native_pd_client _native_pd { _env.pd().native_pd() };
 
 		/**
 		 * Portal entry point entered on virtualization events
@@ -69,12 +69,12 @@ class Vmm::Vcpu_dispatcher : public T
 
 		unsigned int exit_reason = 0;
 
-		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
+		Vcpu_dispatcher(Genode::Env &env, Genode::size_t stack_size,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
 		                const char * name = "vCPU dispatcher")
 		:
-			T(WEIGHT, name, stack_size, location), _pd(pd)
+			T(WEIGHT, name, stack_size, location), _env(env)
 		{
 			using namespace Genode;
 
@@ -85,13 +85,13 @@ class Vmm::Vcpu_dispatcher : public T
 		}
 
 		template <typename X>
-		Vcpu_dispatcher(Genode::size_t stack_size, Pd_session &pd,
+		Vcpu_dispatcher(Genode::Env &env, Genode::size_t stack_size,
 		                Cpu_session * cpu_session,
 		                Genode::Affinity::Location location,
 		                X attr, void *(*start_routine) (void *), void *arg,
 		                const char * name = "vCPU dispatcher")
 		: T(attr, start_routine, arg, stack_size, name, nullptr, location),
-		  _pd(pd)
+		  _env(env)
 		{
 			using namespace Genode;
 
@@ -125,11 +125,7 @@ class Vmm::Vcpu_dispatcher : public T
 					},
 					[&] () {
 						Thread::myself()->native_thread().reset_client_rcv_sel();
-						Pd_session_client *client =
-							dynamic_cast<Pd_session_client*>(&_pd);
-
-						if (client)
-							env()->parent()->upgrade(*client, "ram_quota=16K");
+						_env.parent().upgrade(Parent::Env::pd(), "ram_quota=16K");
 					});
 
 			/* revert selector allocation to automatic mode of operation */

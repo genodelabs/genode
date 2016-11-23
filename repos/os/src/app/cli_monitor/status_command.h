@@ -139,7 +139,7 @@ struct Status_command : Command
 		Child_info child_info[num_children];
 		unsigned i = 0;
 		for (Child *c = _children.first(); c && i < num_children; c = c->next(), i++)
-			child_info[i] = Child_info(c->name(), c->ram_status());
+			child_info[i] = Child_info(c->name().string(), c->ram_status());
 
 		/*
 		 * Print table

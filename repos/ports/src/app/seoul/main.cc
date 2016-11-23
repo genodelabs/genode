@@ -32,8 +32,8 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <util/touch.h>
-#include <base/sleep.h>
 #include <base/rpc_server.h>
 #include <util/misc_math.h>
 #include <rom_session/connection.h>
@@ -699,7 +699,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 
 
 		Vcpu_dispatcher(Genode::Lock           &vcpu_lock,
-		                Genode::Cap_connection &cap_connection,
+		                Genode::Env            &env,
 		                VCpu                   *unsynchronized_vcpu,
 		                Guest_memory           &guest_memory,
 		                Synced_motherboard     &motherboard,
@@ -709,7 +709,7 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		                Genode::Cpu_session    *cpu_session,
 		                Genode::Affinity::Location &location)
 		:
-			Vcpu_handler(STACK_SIZE, cap_connection, cpu_session, location),
+			Vcpu_handler(env, STACK_SIZE, cpu_session, location),
 			_vcpu(vcpu_lock, unsynchronized_vcpu),
 			_vcpu_thread(vcpu_thread),
 			_guest_memory(guest_memory),
@@ -849,9 +849,9 @@ class Machine : public StaticReceiver<Machine>
 {
 	private:
 
+		Genode::Env           &_env;;
 		Genode::Rom_connection _hip_rom;
 		Hip * const            _hip;
-		Genode::Cap_connection _cap;
 		Clock                  _clock;
 		Genode::Lock           _motherboard_lock;
 		Motherboard            _unsynchronized_motherboard;
@@ -955,7 +955,7 @@ class Machine : public StaticReceiver<Machine>
 
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(_motherboard_lock,
-						                    _cap,
+						                    _env,
 						                    msg.vcpu,
 						                    _guest_memory,
 						                    _motherboard,
@@ -1246,10 +1246,11 @@ class Machine : public StaticReceiver<Machine>
 		/**
 		 * Constructor
 		 */
-		Machine(Boot_module_provider &boot_modules, Guest_memory &guest_memory,
-		        bool colocate)
+		Machine(Genode::Env &env, Boot_module_provider &boot_modules,
+		        Guest_memory &guest_memory, bool colocate)
 		:
-			_hip_rom("hypervisor_info_page"),
+			_env(env),
+			_hip_rom(_env, "hypervisor_info_page"),
 			_hip(Genode::env()->rm_session()->attach(_hip_rom.dataspace())),
 			_clock(_hip->tsc_freq*1000),
 			_motherboard_lock(Genode::Lock::LOCKED),
@@ -1403,7 +1404,7 @@ extern unsigned long _prog_img_beg;  /* begin of program image (link address) */
 extern unsigned long _prog_img_end;  /* end of program image */
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	Genode::addr_t fb_size = 4*1024*1024;
 	Genode::addr_t vm_size;
@@ -1434,7 +1435,7 @@ int main(int argc, char **argv)
 			Genode::Xml_node node = Genode::config()->xml_node().sub_node("machine").sub_node("vga");
 			Genode::Xml_node::Attribute arg = node.attribute("fb_size");
 
-			unsigned long val;
+			unsigned long val = 0;
 			arg.value(&val);
 			fb_size = val*1024;
 		} catch (...) { }
@@ -1484,7 +1485,8 @@ int main(int argc, char **argv)
 		!guest_memory.backing_store_fb_local_base()) {
 		PERR("Not enough space left for %s - exit",
 		     guest_memory.backing_store_local_base() ? "framebuffer" : "VMM");
-		return 1;
+		env.parent().exit(-1);
+		return;
 	}
 
 	Genode::printf("\n--- Setup VM ---\n");
@@ -1493,17 +1495,17 @@ int main(int argc, char **argv)
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
 
 	/* create the PC machine based on the configuration given */
-	static Machine machine(boot_modules, guest_memory, colocate);
+	static Machine machine(env, boot_modules, guest_memory, colocate);
 
 	/* create console thread */
-	Vancouver_console vcon(machine.motherboard(), fb_size, guest_memory.fb_ds());
+	static Vancouver_console vcon(machine.motherboard(), fb_size, guest_memory.fb_ds());
 
 	vcon.register_host_operations(machine.unsynchronized_motherboard());
 
 	/* create disk thread */
-	Vancouver_disk vdisk(machine.motherboard(),
-	                     guest_memory.backing_store_local_base(),
-	                     guest_memory.backing_store_size());
+	static Vancouver_disk vdisk(machine.motherboard(),
+	                            guest_memory.backing_store_local_base(),
+	                            guest_memory.backing_store_size());
 
 	vdisk.register_host_operations(machine.unsynchronized_motherboard());
 
@@ -1512,7 +1514,4 @@ int main(int argc, char **argv)
 	Genode::printf("\n--- Booting VM ---\n");
 
 	machine.boot();
-
-	Genode::sleep_forever();
-	return 0;
 }

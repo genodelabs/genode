@@ -64,6 +64,22 @@ append config {
 	<start name="loader">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Loader"/></provides>
+		<config>
+			<policy label="arora">
+				<parent-rom name="ld.lib.so"/>
+				<parent-rom name="init"/>
+				<parent-rom name="tar_rom"/>
+				<parent-rom name="nit_fb"/>
+				<parent-rom name="nitpicker"/>
+				<parent-rom name="pointer"/>
+				<parent-rom name="launchpad"/>
+				<parent-rom name="testnit"/>
+			</policy>
+		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="arora">

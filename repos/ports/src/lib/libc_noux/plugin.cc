@@ -16,8 +16,7 @@
 #include <util/misc_math.h>
 #include <util/arg_string.h>
 #include <base/log.h>
-#include <os/config.h>
-#include <rom_session/connection.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
 #include <region_map/client.h>
@@ -89,16 +88,10 @@ class Noux_connection
 	private:
 
 		Noux::Connection _connection;
-		Noux::Sysio     *_sysio;
 
-		Noux::Sysio *_obtain_sysio()
-		{
-			return Genode::env()->rm_session()->attach(_connection.sysio_dataspace());
-		}
+		Genode::Attached_dataspace _sysio_ds { _connection.sysio_dataspace() };
 
 	public:
-
-		Noux_connection() : _sysio(_obtain_sysio()) { }
 
 		/**
 		 * Return the capability of the local stack-area region map
@@ -111,7 +104,26 @@ class Noux_connection
 		}
 
 		Noux::Session *session() { return &_connection; }
-		Noux::Sysio   *sysio()   { return  _sysio; }
+		Noux::Sysio   *sysio()   { return _sysio_ds.local_addr<Noux::Sysio>(); }
+
+		void reconnect()
+		{
+			using namespace Genode;
+
+			/*
+			 * Release Id_space<Parent::Client>::Element of the local ID space.
+			 */
+			_connection.discard_session_id();
+
+			/*
+			 * Obtain new noux connection. Note that we cannot reconstruct
+			 * the connection via a 'Volatile_object' because this would
+			 * result in an inconsistent referernce count when attempting
+			 * to destruct the session capability in the just-cleared
+			 * capability space.
+			 */
+			construct_at<Noux_connection>(this);
+		}
 };
 
 
@@ -532,12 +544,8 @@ extern "C" void fork_trampoline()
 	/* reinitialize standard-output connection */
 	stdout_reconnect();
 
-	/* reinitialize config */
-	Genode::Config *config = Genode::config();
-	construct_at<Genode::Config>(config);
-
 	/* reinitialize noux connection */
-	construct_at<Noux_connection>(noux_connection());
+	noux_connection()->reconnect();
 
 	/* reinitialize main-thread object which implies reinit of stack area */
 	auto stack_area_rm = noux_connection()->stack_area_region_map(in_stack_area);
@@ -2229,14 +2237,14 @@ void init_libc_noux(void)
 	sigemptyset(&signal_mask);
 
 	/* copy command-line arguments from 'args' ROM dataspace */
-	Genode::Rom_connection args_rom("args");
-	char *args = (char *)Genode::env()->rm_session()->
-		attach(args_rom.dataspace());
-
-	enum { MAX_ARGS = 256, ARG_BUF_SIZE = 4096 };
+	enum { MAX_ARGS = 256, ARG_BUF_SIZE = 4096UL };
 	static char *argv[MAX_ARGS];
 	static char  arg_buf[ARG_BUF_SIZE];
-	Genode::memcpy(arg_buf, args, ARG_BUF_SIZE);
+	{
+		Genode::Attached_rom_dataspace ds("args");
+		Genode::memcpy(arg_buf, ds.local_addr<char>(),
+		               Genode::min((size_t)ARG_BUF_SIZE, ds.size()));
+	}
 
 	int argc = 0;
 	for (unsigned i = 0; arg_buf[i] && (i < ARG_BUF_SIZE - 2); ) {
@@ -2252,7 +2260,7 @@ void init_libc_noux(void)
 		}
 
 		argv[argc] = &arg_buf[i];
-		i += Genode::strlen(&args[i]) + 1; /* skip null-termination */
+		i += Genode::strlen(&arg_buf[i]) + 1; /* skip null-termination */
 		argc++;
 	}
 
@@ -2264,12 +2272,15 @@ void init_libc_noux(void)
 	 * Make environment variables from 'env' ROM dataspace available to libc's
 	 * 'environ'.
 	 */
-	Genode::Rom_connection env_rom("env");
-	Genode::Dataspace_capability env_ds = env_rom.dataspace();
-	char *env_string = (char *)Genode::env()->rm_session()->attach(env_ds);
-
-	enum { ENV_MAX_ENTRIES =  128 };
+	enum { ENV_MAX_ENTRIES = 128, ENV_BUF_SIZE = 8*1024 };
 	static char *env_array[ENV_MAX_ENTRIES];
+	static char  env_buf[ENV_BUF_SIZE];
+	{
+		Genode::Attached_rom_dataspace ds("env");
+		Genode::memcpy(env_buf, ds.local_addr<char>(),
+		               Genode::min((size_t)ENV_BUF_SIZE, ds.size()));
+	}
+	char *env_string = &env_buf[0];
 
 	unsigned num_entries = 0;  /* index within 'env_array' */
 

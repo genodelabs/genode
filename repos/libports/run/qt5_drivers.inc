@@ -145,8 +145,9 @@ proc drivers_start_nodes { feature_arg } {
 
 	append_if [use_audio_drv feature] start_nodes {
 		<start name="audio_drv">
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="8M"/>
 			<provides><service name="Audio_out"/></provides>
+			<config/>
 		</start>
 	}
 
@@ -177,7 +178,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	append_if [use_nic_drv feature] start_nodes {
 		<start name="nic_drv">
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="8M"/>
 			<provides><service name="Nic"/></provides>
 		</start>
 	}

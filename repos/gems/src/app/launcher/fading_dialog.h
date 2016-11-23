@@ -54,17 +54,17 @@ class Launcher::Fading_dialog : private Input_event_handler
 {
 	private:
 
-		Rom_session_capability _dialog_rom;
+		Slave::Connection<Rom_connection> _dialog_rom;
 
 		/* dialog reported locally */
-		Capability<Report::Session> _dialog_report;
+		Slave::Connection<Report::Connection> _dialog_report;
 
-		Rom_session_client _hover_rom;
+		Slave::Connection<Rom_connection> _hover_rom;
 
 		Lazy_volatile_object<Attached_dataspace> _hover_ds;
 
 		/* hovered element reported by menu view */
-		Capability<Report::Session> _hover_report;
+		Slave::Connection<Report::Connection> _hover_report;
 
 		Local_reporter _dialog_reporter { "dialog", _dialog_report };
 
@@ -100,7 +100,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 			return forward_event;
 		}
 
-		void _handle_hover_update(unsigned)
+		void _handle_hover_update()
 		{
 			try {
 				if (!_hover_ds.constructed() || _hover_rom.update() == false) {
@@ -129,51 +129,9 @@ class Launcher::Fading_dialog : private Input_event_handler
 			}
 		}
 
-		Signal_rpc_member<Fading_dialog> _hover_update_dispatcher;
+		Signal_handler<Fading_dialog> _hover_update_handler;
 
 	private:
-
-		/**
-		 * Local nitpicker service to be handed out to the menu view slave
-		 */
-		struct Nitpicker_service : Genode::Service
-		{
-			Server::Entrypoint &ep;
-			Rpc_entrypoint &child_ep;
-
-			/* connection to real nitpicker */
-			Nitpicker::Connection connection { "menu" };
-
-			Dialog_nitpicker_session wrapper_session;
-
-			Capability<Nitpicker::Session> session_cap { child_ep.manage(&wrapper_session) };
-
-			Nitpicker_service(Server::Entrypoint &ep,
-			                  Rpc_entrypoint &child_ep,
-			                  Dialog_nitpicker_session::Input_event_handler &ev_handler)
-			:
-				Genode::Service(Nitpicker::Session::service_name()),
-				ep(ep), child_ep(child_ep),
-				wrapper_session(connection, ep, ev_handler)
-			{ }
-
-			/*******************************
-			 ** Genode::Service interface **
-			 *******************************/
-
-			Genode::Session_capability
-			session(const char *, Genode::Affinity const &) override
-			{
-				return session_cap;
-			}
-
-			void upgrade(Genode::Session_capability, const char *args) override
-			{
-				Genode::log("upgrade called args: '", args, "'");
-			}
-
-			void close(Genode::Session_capability) override { }
-		};
 
 		/*
 		 * Entrypoint for the fader slave
@@ -188,9 +146,21 @@ class Launcher::Fading_dialog : private Input_event_handler
 		size_t   const _fader_slave_ep_stack_size = 4*1024*sizeof(addr_t);
 		Rpc_entrypoint _fader_slave_ep;
 
-		Nitpicker_service _nitpicker_service;
-		Nit_fader_slave   _nit_fader_slave;
-		Menu_view_slave   _menu_view_slave;
+		/*
+		 * Provide wrapped nitpicker connection as a service handed out to
+		 * the menu-view slave
+		 */
+		typedef Genode::Local_service<Dialog_nitpicker_session> Nitpicker_service;
+		typedef Nitpicker_service::Single_session_factory       Nitpicker_factory;
+
+		Nitpicker::Connection    _nitpicker_connection;
+		Dialog_nitpicker_session _nitpicker_session;
+		Nitpicker_factory        _nitpicker_factory { _nitpicker_session };
+		Nitpicker_service        _nitpicker_service { _nitpicker_factory };
+
+		Nit_fader_slave                          _nit_fader_slave;
+		Slave::Connection<Nitpicker::Connection> _nit_fader_connection;
+		Menu_view_slave                          _menu_view_slave;
 
 		bool _visible = false;
 
@@ -198,47 +168,38 @@ class Launcher::Fading_dialog : private Input_event_handler
 
 		typedef Menu_view_slave::Position Position;
 
-		/**
-		 * Constructor
-		 *
-		 * \param ep   main entrypoint, used for managing the local input
-		 *             session provided (indirectly through the wrapped
-		 *             nitpicker session) to the menu view
-		 * \param cap  capability session to be used for creating the
-		 *             slave entrypoints
-		 * \param ram  RAM session where to draw the memory for providing
-		 *             configuration data to the slave processes
-		 */
-		Fading_dialog(Server::Entrypoint  &ep,
-		              Cap_session         &cap,
-		              Ram_session         &ram,
-		              Dataspace_capability ldso_ds,
-		              Report_rom_slave    &report_rom_slave,
-		              char          const *dialog_name,
-		              char          const *hover_name,
-		              Input_event_handler &input_event_handler,
-		              Hover_handler       &hover_handler,
-		              Dialog_generator    &dialog_generator,
-		              Dialog_model        &dialog_model,
-		              Position             initial_position)
+		Fading_dialog(Env                   &env,
+		              Report_rom_slave      &report_rom_slave,
+		              char          const   *dialog_name,
+		              char          const   *hover_name,
+		              Input_event_handler   &input_event_handler,
+		              Hover_handler         &hover_handler,
+		              Dialog_generator      &dialog_generator,
+		              Dialog_model          &dialog_model,
+		              Position               initial_position)
 		:
-			_dialog_rom(report_rom_slave.rom_session(dialog_name)),
-			_dialog_report(report_rom_slave.report_session(dialog_name)),
-			_hover_rom(report_rom_slave.rom_session(hover_name)),
-			_hover_report(report_rom_slave.report_session(hover_name)),
+			_dialog_rom(report_rom_slave.policy(), Slave::Args("label=", dialog_name)),
+			_dialog_report(report_rom_slave.policy(),
+			               Slave::Args("label=", dialog_name, ", buffer_size=4096")),
+			_hover_rom(report_rom_slave.policy(), Slave::Args("label=", hover_name)),
+			_hover_report(report_rom_slave.policy(),
+			              Slave::Args("label=", hover_name, ", buffer_size=4096")),
 			_dialog_input_event_handler(input_event_handler),
 			_hover_handler(hover_handler),
 			_dialog_generator(dialog_generator),
 			_dialog_model(dialog_model),
-			_hover_update_dispatcher(ep, *this, &Fading_dialog::_handle_hover_update),
-			_fader_slave_ep(&cap, _fader_slave_ep_stack_size, "nit_fader"),
-			_nitpicker_service(ep, _fader_slave_ep, *this),
-			_nit_fader_slave(_fader_slave_ep, ram, _nitpicker_service, ldso_ds),
-			_menu_view_slave(cap, ram, ldso_ds,
-			                 _nit_fader_slave.nitpicker_session("menu"),
+			_hover_update_handler(env.ep(), *this, &Fading_dialog::_handle_hover_update),
+			_fader_slave_ep(&env.pd(), _fader_slave_ep_stack_size, "nit_fader"),
+			_nitpicker_connection(env, "menu"),
+			_nitpicker_session(_nitpicker_connection, env.ep(), _fader_slave_ep, *this),
+			_nit_fader_slave(_fader_slave_ep, env.rm(), env.ram_session_cap(),
+			                 _nitpicker_service),
+			_nit_fader_connection(_nit_fader_slave.policy(), Slave::Args("label=menu")),
+			_menu_view_slave(env.pd(), env.rm(), env.ram_session_cap(),
+			                 _nit_fader_connection,
 			                 _dialog_rom, _hover_report, initial_position)
 		{
-			Rom_session_client(_hover_rom).sigh(_hover_update_dispatcher);
+			Rom_session_client(_hover_rom).sigh(_hover_update_handler);
 		}
 
 		void update()

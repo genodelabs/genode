@@ -11,6 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
+
 #include <scout/platform.h>
 #include <scout/tick.h>
 #include <scout/user_state.h>
@@ -85,15 +87,52 @@ static long read_int_attr_from_config(const char *attr, long default_value)
 }
 
 
-/**
- * Main program
- */
-int main(int argc, char **argv)
+struct Main : Scout::Event_handler
+{
+	Scout::Platform   &_pf;
+	Scout::Window     &_launchpad;
+	Scout::User_state &_user_state;
+
+	unsigned long _old_time = _pf.timer_ticks();
+
+	Main(Scout::Platform &pf, Scout::Window &launchpad, Scout::User_state &user_state)
+	: _pf(pf), _launchpad(launchpad), _user_state(user_state) { }
+
+	void handle_event(Scout::Event const &event) override
+	{
+		using namespace Scout;
+
+		Event ev = event;
+
+		if (ev.type != Event::WHEEL)
+			ev.mouse_position = ev.mouse_position - _user_state.view_position();
+
+		_user_state.handle_event(ev);
+
+		if (ev.type == Event::TIMER)
+			Tick::handle(_pf.timer_ticks());
+
+		/* perform periodic redraw */
+		unsigned long const curr_time = _pf.timer_ticks();
+		if (!_pf.event_pending() && ((curr_time - _old_time > 20)
+		                          || (curr_time < _old_time))) {
+			_old_time = curr_time;
+			_launchpad.process_redraw();
+		}
+	}
+};
+
+
+/***************
+ ** Component **
+ ***************/
+
+void Component::construct(Genode::Env &env)
 {
 	using namespace Scout;
 
-	static Nitpicker::Connection nitpicker;
-	static Platform pf(*nitpicker.input());
+	static Nitpicker::Connection nitpicker(env);
+	static Platform pf(env, *nitpicker.input());
 
 	long initial_x = read_int_attr_from_config("xpos",   550);
 	long initial_y = read_int_attr_from_config("ypos",   150);
@@ -109,17 +148,13 @@ int main(int argc, char **argv)
 
 	/* create instance of launchpad window */
 	static Launchpad_window<Pixel_rgb565>
-		launchpad(
-			graphics_backend, initial_position, initial_size, max_size,
-			Genode::env()->ram_session()->avail()
-		);
+		launchpad(env, graphics_backend, initial_position, initial_size,
+		          max_size, env.ram().avail());
 
 	/* request config file from ROM service */
-	try {
-		launchpad.process_config();
-	} catch (...) { }
+	try { launchpad.process_config(); } catch (...) { }
 
-	Avail_quota_update avail_quota_update(&launchpad);
+	static Avail_quota_update avail_quota_update(&launchpad);
 
 	/* create user state manager */
 	static User_state user_state(&launchpad, &launchpad,
@@ -129,36 +164,6 @@ int main(int argc, char **argv)
 	launchpad.format(initial_size);
 	launchpad.ypos(0);
 
-	Genode::printf("--- entering main loop ---\n");
-
-	/* enter main loop */
-	unsigned long curr_time, old_time;
-	curr_time = old_time = pf.timer_ticks();
-	for (;;) {
-		Event ev = pf.get_event();
-
-		launchpad.gui_lock.lock();
-
-		if (ev.type != Event::WHEEL)
-			ev.mouse_position = ev.mouse_position - user_state.view_position();
-
-		user_state.handle_event(ev);
-
-		if (ev.type == Event::TIMER)
-			Tick::handle(pf.timer_ticks());
-
-		/* perform periodic redraw */
-		curr_time = pf.timer_ticks();
-		if (!pf.event_pending() && ((curr_time - old_time > 20) || (curr_time < old_time))) {
-			old_time = curr_time;
-			launchpad.process_redraw();
-		}
-
-		launchpad.gui_lock.unlock();
-
-		if (ev.type == Event::QUIT)
-			break;
-	}
-
-	return 0;
+	static Main main(pf, launchpad, user_state);
+	pf.event_handler(main);
 }

@@ -14,6 +14,9 @@
 #ifndef _LAUNCHPAD_WINDOW_H_
 #define _LAUNCHPAD_WINDOW_H_
 
+#include <base/env.h>
+#include <dataspace/capability.h>
+
 #include <scout/platform.h>
 #include <scout/window.h>
 
@@ -73,7 +76,8 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		 *
 		 * \param initial_quota  maximum value of quota displays
 		 */
-		Launchpad_window(Scout::Graphics_backend &gfx_backend,
+		Launchpad_window(Genode::Env &env,
+		                 Scout::Graphics_backend &gfx_backend,
 		                 Scout::Point position, Scout::Area size,
 		                 Scout::Area max_size, unsigned long inital_quota);
 
@@ -123,39 +127,40 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 			_status_entry.refresh();
 		}
 
-		void add_launcher(const char *filename,
+		void add_launcher(Launchpad_child::Name const &name,
 		                  unsigned long default_quota,
-		                  Genode::Dataspace_capability config_ds = Genode::Dataspace_capability())
+		                  Genode::Dataspace_capability config_ds = Genode::Dataspace_capability()) override
 		{
 			Launch_entry<PT> *le;
-			le = new Launch_entry<PT>(filename, default_quota / 1024,
+			le = new Launch_entry<PT>(name, default_quota / 1024,
 			                          initial_quota() / 1024,
 			                          this, config_ds);
 			_launch_section.append(le);
 			refresh();
 		}
 
-		void add_child(const char *unique_name,
+		void add_child(Launchpad_child::Name const &name,
 		               unsigned long quota,
-		               Launchpad_child *launchpad_child,
-		               Genode::Allocator *alloc)
+		               Launchpad_child &launchpad_child,
+		               Genode::Allocator &alloc) override
 		{
 			Child_entry<PT> *ce;
-			ce = new (alloc) Child_entry<PT>(unique_name, quota / 1024,
+			ce = new (alloc) Child_entry<PT>(name, quota / 1024,
 			                                 initial_quota() / 1024,
-			                                 this, launchpad_child);
+			                                 *this, launchpad_child);
 			_child_entry_list.insert(ce);
 			_kiddy_section.append(ce);
 			format(_size);
 			refresh();
 		}
 
-		void remove_child(const char *name, Genode::Allocator *alloc)
+		void remove_child(Launchpad_child::Name const &name,
+		                  Genode::Allocator &alloc) override
 		{
 			/* lookup child entry by its name */
 			Child_entry<PT> *ce = _child_entry_list.first();
 			for ( ; ce; ce = ce->Genode::List<Child_entry<PT> >::Element::next())
-				if (Genode::strcmp(ce->name(), name) == 0)
+				if (name == ce->name())
 					break;
 
 			if (!ce) {

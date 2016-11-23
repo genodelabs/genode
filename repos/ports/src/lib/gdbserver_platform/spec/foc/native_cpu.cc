@@ -82,7 +82,7 @@ Gdb_monitor::Cpu_session_component::_setup_native_cpu()
 void Gdb_monitor::Cpu_session_component::_cleanup_native_cpu()
 {
     Native_cpu_component *native_cpu_component = nullptr;
-    _thread_ep->apply(_native_cpu_cap, [&] (Native_cpu_component *c) { native_cpu_component = c; });
+    _ep.apply(_native_cpu_cap, [&] (Native_cpu_component *c) { native_cpu_component = c; });
 
     if (!native_cpu_component) return;
 

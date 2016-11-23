@@ -39,19 +39,16 @@ namespace Noux {
 		Ram_dataspace_info(Ram_dataspace_capability ds_cap)
 		: Dataspace_info(ds_cap) { }
 
-		Dataspace_capability fork(Ram_session_capability ram,
-		                          Dataspace_registry    &,
-		                          Rpc_entrypoint        &)
+		Dataspace_capability fork(Ram_session        &ram,
+		                          Dataspace_registry &ds_registry,
+		                          Rpc_entrypoint     &) override
 		{
 			size_t const size = Dataspace_client(ds_cap()).size();
 
 			Ram_dataspace_capability dst_ds;
 
-			try {
-				dst_ds = Ram_session_client(ram).alloc(size);
-			} catch (...) {
-				return Dataspace_capability();
-			}
+			try { dst_ds = ram.alloc(size); }
+			catch (...) { return Dataspace_capability(); }
 
 			void *src = 0;
 			try {
@@ -70,9 +67,11 @@ namespace Noux {
 			if (dst) env()->rm_session()->detach(dst);
 
 			if (!src || !dst) {
-				Ram_session_client(ram).free(dst_ds);
+				ram.free(dst_ds);
 				return Dataspace_capability();
 			}
+
+			ds_registry.insert(new (env()->heap()) Ram_dataspace_info(dst_ds));
 
 			return dst_ds;
 		}
@@ -101,6 +100,8 @@ namespace Noux {
 	{
 		private:
 
+			Rpc_entrypoint &_ep;
+
 			List<Ram_dataspace_info> _list;
 
 			/*
@@ -117,14 +118,15 @@ namespace Noux {
 			/**
 			 * Constructor
 			 */
-			Ram_session_component(Dataspace_registry &registry)
-			: _used_quota(0), _registry(registry) { }
+			Ram_session_component(Rpc_entrypoint &ep, Dataspace_registry &registry)
+			: _ep(ep), _used_quota(0), _registry(registry) { _ep.manage(this); }
 
 			/**
 			 * Destructor
 			 */
 			~Ram_session_component()
 			{
+				_ep.dissolve(this);
 				Ram_dataspace_info *info = 0;
 				while ((info = _list.first()))
 					free(static_cap_cast<Ram_dataspace>(info->ds_cap()));

@@ -69,7 +69,7 @@ class Arrow_event_handler : public Event_handler, public Tick
 		/**
 		 * Event handler interface
 		 */
-		void handle(Event &ev)
+		void handle_event(Event const &ev) override
 		{
 			static int key_cnt;
 
@@ -166,7 +166,7 @@ class Slider_event_handler : public Event_handler
 		/**
 		 * Event handler interface
 		 */
-		void handle(Event &ev)
+		void handle_event(Event const &ev) override
 		{
 			static int key_cnt;
 			static int curr_my, orig_my;

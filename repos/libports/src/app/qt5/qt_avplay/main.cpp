@@ -18,7 +18,7 @@
 #include "main_window.h"
 
 /* Genode includes */
-#include <rom_session/connection.h>
+#include <base/component.h>
 #include <base/printf.h>
 
 
@@ -35,15 +35,18 @@ static inline void load_stylesheet()
 }
 
 
-int main(int argc, char *argv[])
+extern int genode_argc;
+extern char **genode_argv;
+
+void Component::construct(Genode::Env &env)
 {
-	QApplication app(argc, argv);
+	QApplication app(genode_argc, genode_argv);
 
 	load_stylesheet();
 
-	QMember<Main_window> main_window;
+	QMember<Main_window> main_window(env);
 
 	main_window->show();
 
-	return app.exec();
+	app.exec();
 }

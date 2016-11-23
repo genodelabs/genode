@@ -24,15 +24,15 @@
 void Control_bar::_rewind()
 {
 	/* mouse click at horizontal position 0 */
-	_event_queue.add(Input::Event(Input::Event::PRESS, Input::BTN_LEFT, 0, 0, 0, 0));
-	_event_queue.add(Input::Event(Input::Event::RELEASE, Input::BTN_LEFT, 0, 0, 0, 0));
+	_input.submit(Input::Event(Input::Event::PRESS, Input::BTN_LEFT, 0, 0, 0, 0));
+	_input.submit(Input::Event(Input::Event::RELEASE, Input::BTN_LEFT, 0, 0, 0, 0));
 }
 
 
 void Control_bar::_pause_resume()
 {
-	_event_queue.add(Input::Event(Input::Event::PRESS, Input::KEY_SPACE, 0, 0, 0, 0));
-	_event_queue.add(Input::Event(Input::Event::RELEASE, Input::KEY_SPACE, 0, 0, 0, 0));
+	_input.submit(Input::Event(Input::Event::PRESS, Input::KEY_SPACE, 0, 0, 0, 0));
+	_input.submit(Input::Event(Input::Event::RELEASE, Input::KEY_SPACE, 0, 0, 0, 0));
 
 	_playing = !_playing;
 	if (_playing)
@@ -51,9 +51,9 @@ void Control_bar::_stop()
 }
 
 
-Control_bar::Control_bar(Input::Event_queue &event_queue)
+Control_bar::Control_bar(Input::Session_component &input)
 :
-	_event_queue(event_queue), _playing(true)
+	_input(input), _playing(true)
 {
 	update_style_id(_play_pause_button, "play");
 

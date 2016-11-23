@@ -6,19 +6,20 @@
 
 #include "launch_entry.h"
 
-Launch_entry::Launch_entry(const char *filename, unsigned long default_quota,
+Launch_entry::Launch_entry(Launchpad_child::Name const &prg_name,
+                           unsigned long default_quota,
                            unsigned long max_quota,
-                           Genode::Dataspace_capability config_ds,
                            Launchpad *launchpad,
+                           Genode::Dataspace_capability config_ds,
                            QWidget *parent)
 : QWidget(parent),
-  _filename(filename),
-  _config_ds(config_ds),
-  _launchpad(launchpad)
+  _prg_name(prg_name),
+  _launchpad(launchpad),
+  _config_ds(config_ds)
 {
 	ui.setupUi(this);
 
-	ui.launchButton->setText(filename);
+	ui.launchButton->setText(prg_name.string());
 
 	ui.quotaDial->setMaximum(max_quota);
 	ui.quotaDial->setSingleStep(max_quota / 100);
@@ -28,7 +29,7 @@ Launch_entry::Launch_entry(const char *filename, unsigned long default_quota,
 
 void Launch_entry::on_launchButton_clicked()
 {
-	_launchpad->start_child(_filename,
+	_launchpad->start_child(_prg_name,
 	                        1024 * ui.quotaDial->value(),
 	                        _config_ds);
 }

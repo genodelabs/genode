@@ -28,6 +28,13 @@ class Gdb_monitor::Ram_session_component : public Rpc_object<Ram_session>
 {
 	private:
 
+		Genode::Env    &_env;
+
+		Genode::Parent::Client _parent_client;
+		
+		Id_space<Parent::Client>::Element const _id_space_element
+		{ _parent_client, _env.id_space() };
+
 		Genode::Ram_session_client _parent_ram_session;
 
 	public:
@@ -35,7 +42,8 @@ class Gdb_monitor::Ram_session_component : public Rpc_object<Ram_session>
 		/**
 		 * Constructor
 		 */
-		Ram_session_component(const char *args);
+		Ram_session_component(Genode::Env &env, const char *args,
+		                      Affinity const &affinity);
 
 		/**
 		 * Destructor

@@ -53,7 +53,7 @@ class Loadbar_event_handler : public Scout::Event_handler
 		/**
 		 * Event handler interface
 		 */
-		void handle(Scout::Event &ev)
+		void handle_event(Scout::Event const &ev) override
 		{
 			static int key_cnt;
 			using Scout::Event;

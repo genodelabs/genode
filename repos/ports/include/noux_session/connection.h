@@ -40,6 +40,18 @@ struct Noux::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection()
 	: Genode::Connection<Session>(session("")), Session_client(cap()) { }
+
+	/**
+	 * Remove session ID of the noux session from the ID space.
+	 *
+	 * This must by done before reinitializing the noux connection in a
+	 * freshly forked process. Otherwise, an overwritten 'Noux::Connection'
+	 * object would still be referenced by the AVL tree of the the ID space.
+	 */
+	void discard_session_id()
+	{
+		_id_space_element.~Element();
+	}
 };
 
 #endif /* _INCLUDE__NOUX_SESSION__CONNECTION_H_ */

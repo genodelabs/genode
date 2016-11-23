@@ -35,11 +35,12 @@ extern unsigned char TITLEBAR_RGBA[];
  ********************************/
 
 template <typename PT>
-Launchpad_window<PT>::Launchpad_window(Graphics_backend &gfx_backend,
+Launchpad_window<PT>::Launchpad_window(Genode::Env &env,
+                                       Graphics_backend &gfx_backend,
                                        Point position, Area size, Area max_size,
                                        unsigned long initial_quota)
 :
-	Launchpad(initial_quota),
+	Launchpad(env, initial_quota),
 	Window(gfx_backend, position, size, max_size, false),
 	_docview(0),
 	_spacer(1, _TH),

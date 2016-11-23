@@ -12,9 +12,7 @@
  */
 
 /* Genode includes */
-#include <os/server.h>
-#include <os/config.h>
-#include <cap_session/connection.h>
+#include <base/component.h>
 #include <decorator/xml_utils.h>
 #include <util/volatile_object.h>
 #include <os/attached_rom_dataspace.h>
@@ -23,25 +21,16 @@
 /* local includes */
 #include <panel_dialog.h>
 
+namespace Launcher {
 
-namespace Launcher { struct Main; }
+	using namespace Genode;
+	struct Main;
+}
+
 
 struct Launcher::Main
 {
-	Server::Entrypoint &_ep;
-
-	Genode::Dataspace_capability _request_ldso_ds()
-	{
-		try {
-			static Genode::Rom_connection rom("ld.lib.so");
-			return rom.dataspace();
-		} catch (...) { }
-		return Genode::Dataspace_capability();
-	}
-
-	Genode::Dataspace_capability _ldso_ds = _request_ldso_ds();
-
-	Genode::Cap_connection _cap;
+	Env &_env;
 
 	char const *_report_rom_config =
 		"<config>"
@@ -53,35 +42,54 @@ struct Launcher::Main
 		"  <policy label=\"context_hover\"  report=\"context_hover\"/>"
 		"</config>";
 
-	Report_rom_slave _report_rom_slave = { _cap, *env()->ram_session(), _report_rom_config };
+	Report_rom_slave _report_rom_slave {
+		_env.pd(), _env.rm(), _env.ram_session_cap(), _report_rom_config };
 
 	/**
 	 * Nitpicker session used to perform session-control operations on the
 	 * subsystem's nitpicker sessions and to receive global keyboard
 	 * shortcuts.
 	 */
-	Nitpicker::Connection _nitpicker;
+	Nitpicker::Connection _nitpicker { _env };
 
-	Genode::Signal_rpc_member<Main> _input_dispatcher =
-		{ _ep, *this, &Main::_handle_input };
+	Signal_handler<Main> _input_handler =
+		{ _env.ep(), *this, &Main::_handle_input };
 
-	void _handle_input(unsigned);
+	void _handle_input();
 
 	unsigned _key_cnt = 0;
 
-	Genode::Signal_rpc_member<Main> _exited_child_dispatcher =
-		{ _ep, *this, &Main::_handle_exited_child };
+	Signal_handler<Main> _exited_child_handler =
+		{ _env.ep(), *this, &Main::_handle_exited_child };
 
-	Subsystem_manager _subsystem_manager { _ep, _cap, _exited_child_dispatcher,
-	                                       _ldso_ds };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Panel_dialog _panel_dialog { _ep, _cap, *env()->ram_session(), _ldso_ds,
-	                             *env()->heap(),
-	                             _report_rom_slave, _subsystem_manager, _nitpicker };
+	static size_t _ram_preservation(Xml_node config)
+	{
+		char const * const node_name = "preservation";
 
-	void _handle_config(unsigned);
+		if (config.has_sub_node(node_name)) {
 
-	void _handle_exited_child(unsigned)
+			Xml_node const node = config.sub_node(node_name);
+			if (node.attribute_value("name", Genode::String<16>()) == "RAM")
+				return node.attribute_value("quantum", Genode::Number_of_bytes());
+		}
+
+		return 0;
+	}
+
+	Subsystem_manager _subsystem_manager { _env.ep(), _env.pd(),
+	                                       _ram_preservation(_config.xml()),
+	                                       _exited_child_handler };
+
+	Heap _heap { _env.ram(), _env.rm() };
+
+	Panel_dialog _panel_dialog { _env, _heap, _report_rom_slave,
+	                             _subsystem_manager, _nitpicker };
+
+	void _handle_config();
+
+	void _handle_exited_child()
 	{
 		auto kill_child_fn = [&] (Label const &label) { _panel_dialog.kill(label); };
 
@@ -92,37 +100,40 @@ struct Launcher::Main
 
 	Genode::Attached_rom_dataspace _focus_rom { "focus" };
 
-	void _handle_focus_update(unsigned);
+	void _handle_focus_update();
 
-	Genode::Signal_rpc_member<Main> _focus_update_dispatcher =
-		{ _ep, *this, &Main::_handle_focus_update };
+	Signal_handler<Main> _focus_update_handler =
+		{ _env.ep(), *this, &Main::_handle_focus_update };
 
 	/**
 	 * Constructor
 	 */
-	Main(Server::Entrypoint &ep) : _ep(ep)
+	Main(Env &env) : _env(env)
 	{
-		_nitpicker.input()->sigh(_input_dispatcher);
-		_focus_rom.sigh(_focus_update_dispatcher);
+		_nitpicker.input()->sigh(_input_handler);
+		_focus_rom.sigh(_focus_update_handler);
 
-		_handle_config(0);
+		_handle_config();
 
 		_panel_dialog.visible(true);
 	}
 };
 
 
-void Launcher::Main::_handle_config(unsigned)
+void Launcher::Main::_handle_config()
 {
-	config()->reload();
+	_config.update();
 
-	_focus_prefix = config()->xml_node().attribute_value("focus_prefix", Label());
+	_focus_prefix = _config.xml().attribute_value("focus_prefix", Label());
 
-	_panel_dialog.update(config()->xml_node());
+	try {
+		_panel_dialog.update(_config.xml()); }
+	catch (Allocator::Out_of_memory) {
+		error("out of memory while applying configuration"); }
 }
 
 
-void Launcher::Main::_handle_input(unsigned)
+void Launcher::Main::_handle_input()
 {
 	_nitpicker.input()->for_each_event([&] (Input::Event const &e) {
 		if (e.type() == Input::Event::PRESS)   _key_cnt++;
@@ -143,7 +154,7 @@ void Launcher::Main::_handle_input(unsigned)
 }
 
 
-void Launcher::Main::_handle_focus_update(unsigned)
+void Launcher::Main::_handle_focus_update()
 {
 	try {
 		_focus_rom.update();
@@ -176,18 +187,4 @@ void Launcher::Main::_handle_focus_update(unsigned)
 }
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-
-	char const *name() { return "desktop_ep"; }
-
-	size_t stack_size() { return 4*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Launcher::Main desktop(ep);
-	}
-}
+void Component::construct(Genode::Env &env) { static Launcher::Main main(env); }

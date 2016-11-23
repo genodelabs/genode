@@ -426,7 +426,7 @@ void Verbatim::format_fixed_width(int w)
  ** Link_token **
  ****************/
 
-void Link_token::handle(Event &e)
+void Link_token::handle_event(Event const &e)
 {
 	if (e.type != Event::PRESS) return;
 
@@ -444,7 +444,7 @@ void Link_token::handle(Event &e)
  ** Launcher_link_token **
  *************************/
 
-void Launcher_link_token::handle(Event &e)
+void Launcher_link_token::handle_event(Event const &e)
 {
 	if (e.type != Event::PRESS) return;
 

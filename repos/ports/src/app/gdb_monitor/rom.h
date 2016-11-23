@@ -25,8 +25,9 @@
 namespace Gdb_monitor
 {
 	class Rom_session_component;
-	class Rom_root;
-	class Rom_service;
+	class Local_rom_factory;
+	typedef Genode::Local_service<Rom_session_component> Rom_service;
+
 	using namespace Genode;
 }
 
@@ -65,68 +66,68 @@ class Gdb_monitor::Rom_session_component : public Rpc_object<Rom_session>
 {
 	private:
 
+		Genode::Rpc_entrypoint &_ep;
+
 		Capability<Ram_dataspace> _clone_cap;
 
 	public:
 
-		Rom_session_component(char const *filename)
-		: _clone_cap(clone_rom(Rom_connection(filename).dataspace()))
-		{ }
+		Rom_session_component(Genode::Rpc_entrypoint &ep, char const *filename)
+		: _ep(ep),
+		  _clone_cap(clone_rom(Rom_connection(filename).dataspace()))
+		{ _ep.manage(this); }
 
-		~Rom_session_component() { env()->ram_session()->free(_clone_cap); }
+		~Rom_session_component()
+		{
+			env()->ram_session()->free(_clone_cap);
+			_ep.dissolve(this);
+		}
 
-		Capability<Rom_dataspace> dataspace()
+		/***************************
+		 ** ROM session interface **
+		 ***************************/
+
+		Rom_dataspace_capability dataspace() override
 		{
 			return static_cap_cast<Rom_dataspace>(
 				   static_cap_cast<Dataspace>(_clone_cap));
 		}
 
-		void release() { }
-
-		void sigh(Genode::Signal_context_capability) { }
+		void sigh(Genode::Signal_context_capability) override { }
 };
 
 
-class Gdb_monitor::Rom_root : public Root_component<Rom_session_component>
-{
-	protected:
-
-		Rom_session_component *_create_session(char const *args)
-		{
-			Session_label const label = label_from_args(args);
-
-			return new (md_alloc())
-				Rom_session_component(label.last_element().string());
-		}
-
-	public:
-
-		Rom_root(Rpc_entrypoint *session_ep,
-				 Allocator      *md_alloc)
-		: Root_component<Rom_session_component>(session_ep, md_alloc)
-		{ }
-};
-
-
-class Gdb_monitor::Rom_service : public Service
+class Gdb_monitor::Local_rom_factory : public Rom_service::Factory
 {
 	private:
 
-		Rom_root _root;
+		Genode::Env            &_env;
+		Genode::Rpc_entrypoint &_ep;
 
 	public:
 
-		Rom_service(Rpc_entrypoint *entrypoint,
-					Allocator      *md_alloc)
-		: Service("ROM"), _root(entrypoint, md_alloc)
-		{ }
+		Local_rom_factory(Genode::Env &env, Genode::Rpc_entrypoint &ep)
+		: _env(env), _ep(ep) { }
 
-		Capability<Session> session(char const *args, Affinity const &affinity) {
-			return _root.session(args, affinity); }
+		/***********************
+		 ** Factory interface **
+		 ***********************/
 
-		void upgrade(Capability<Session>, char const *) { }
+		Rom_session_component &create(Args const &args, Affinity) override
+		{
+			Session_label const label = label_from_args(args.string());
 
-		void close(Capability<Session> cap) { _root.close(cap); }
+			return *new (env()->heap())
+				Rom_session_component(_ep, label.last_element().string());
+		}
+
+		void upgrade(Rom_session_component &, Args const &) override { }
+
+		void destroy(Rom_session_component &session) override
+		{
+			Genode::destroy(env()->heap(), &session);
+		}
 };
+
 
 #endif /* _ROM_H_ */

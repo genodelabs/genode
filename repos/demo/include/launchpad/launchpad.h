@@ -26,65 +26,138 @@
 #include <cap_session/connection.h>
 #include <timer_session/timer_session.h>
 #include <pd_session/client.h>
-
 #include <init/child.h>
 
-class Launchpad_child_policy : public Genode::Child_policy,
-                               public Genode::Client
+class Launchpad;
+
+
+class Launchpad_child : public Genode::Child_policy,
+                        public Genode::List<Launchpad_child>::Element,
+                        public Genode::Child_service::Wakeup
 {
+	public:
+
+		typedef Genode::Child_policy::Name Name;
+
+		typedef Genode::Registered<Genode::Child_service>  Child_service;
+		typedef Genode::Registered<Genode::Parent_service> Parent_service;
+
+		typedef Genode::Registry<Child_service>  Child_services;
+		typedef Genode::Registry<Parent_service> Parent_services;
+
 	private:
 
-		typedef Genode::String<64> Name;
 		Name const _name;
 
-		Genode::Server                      *_server;
-		Genode::Service_registry            *_parent_services;
-		Genode::Service_registry            *_child_services;
-		Genode::Dataspace_capability         _config_ds;
-		Genode::Rpc_entrypoint              *_parent_entrypoint;
-		Init::Child_policy_enforce_labeling  _labeling_policy;
-		Init::Child_policy_provide_rom_file  _config_policy;
-		Init::Child_policy_provide_rom_file  _binary_policy;
+		Genode::Env &_env;
+
+		Genode::Ram_session_capability _ref_ram_cap;
+		Genode::Ram_session_client     _ref_ram { _ref_ram_cap };
+		Genode::size_t           const _ram_quota;
+
+		Parent_services &_parent_services;
+		Child_services  &_child_services;
+
+		Genode::Dataspace_capability _config_ds;
+
+		Genode::Session_requester _session_requester;
+
+		Init::Child_policy_enforce_labeling _labeling_policy { _name.string() };
+		Init::Child_policy_provide_rom_file _config_policy;
+
+		Genode::Child _child;
+
+		/**
+		 * Child_service::Wakeup callback
+		 */
+		void wakeup_child_service() override
+		{
+			_session_requester.trigger_update();
+		}
+
+		template <typename T>
+		static Genode::Service *_find_service(Genode::Registry<T> &services,
+		                                      Genode::Service::Name const &name)
+		{
+			Genode::Service *service = nullptr;
+			services.for_each([&] (T &s) {
+				if (!service && (s.name() == name))
+					service = &s; });
+			return service;
+		}
 
 	public:
 
-		Launchpad_child_policy(const char                  *name,
-		                       Genode::Server              *server,
-		                       Genode::Service_registry    *parent_services,
-		                       Genode::Service_registry    *child_services,
-		                       Genode::Dataspace_capability config_ds,
-		                       Genode::Dataspace_capability binary_ds,
-		                       Genode::Rpc_entrypoint      *parent_entrypoint)
+		Launchpad_child(Genode::Env                 &env,
+		                Genode::Session_label const &label,
+		                Name                  const &elf_name,
+		                Genode::size_t               ram_quota,
+		                Parent_services             &parent_services,
+		                Child_services              &child_services,
+		                Genode::Dataspace_capability config_ds)
 		:
-			_name(name),
-			_server(server),
+			_name(label),
+			_env(env), _ref_ram_cap(env.ram_session_cap()), _ram_quota(ram_quota),
 			_parent_services(parent_services),
 			_child_services(child_services),
-			_config_ds(config_ds),
-			_parent_entrypoint(parent_entrypoint),
-			_labeling_policy(_name.string()),
-			_config_policy("config", config_ds, _parent_entrypoint),
-			_binary_policy("binary", binary_ds, _parent_entrypoint)
+			_session_requester(env.ep().rpc_ep(), _env.ram(), _env.rm()),
+			_config_policy("config", config_ds, &_env.ep().rpc_ep()),
+			_child(_env.rm(), _env.ep().rpc_ep(), *this)
 		{ }
 
-		const char *name() const { return _name.string(); }
-
-		Genode::Service *resolve_session_request(const char *service_name,
-		                                         const char *args)
+		~Launchpad_child()
 		{
-			Genode::Service *service;
+			using namespace Genode;
+
+			/* unregister services */
+			_child_services.for_each(
+				[&] (Child_service &service) {
+					if (service.has_id_space(_session_requester.id_space()))
+						Genode::destroy(_child.heap(), &service); });
+		}
+
+		Genode::Allocator &heap() { return _child.heap(); }
+
+
+		/****************************
+		 ** Child_policy interface **
+		 ****************************/
+
+		Name name() const override { return _name; }
+
+		Genode::Ram_session &ref_ram() override { return _ref_ram; }
+
+		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
+
+		void init(Genode::Ram_session &session,
+		          Genode::Ram_session_capability cap) override
+		{
+			session.ref_account(_ref_ram_cap);
+			_ref_ram.transfer_quota(cap, _ram_quota);
+		}
+
+		Genode::Id_space<Genode::Parent::Server> &server_id_space() override {
+			return _session_requester.id_space(); }
+
+		Genode::Service &resolve_session_request(Genode::Service::Name const &service_name,
+		                                         Genode::Session_state::Args const &args) override
+		{
+			Genode::Service *service = nullptr;
 
 			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name, args)))
-				return service;
+			if ((service = _config_policy
+			               .resolve_session_request(service_name.string(), args.string())))
+				return *service;
 
-			/* check for binary file request */
-			if ((service = _binary_policy.resolve_session_request(service_name, args)))
-				return service;
+			/* check for "session_requests" ROM request */
+			Genode::Session_label const label(Genode::label_from_args(args.string()));
+			if (service_name == Genode::Rom_session::service_name()
+			 && label.last_element() == Genode::Session_requester::rom_name())
+				return _session_requester.service();
 
 			/* if service is provided by one of our children, use it */
-			if ((service = _child_services->find(service_name)))
-				return service;
+			if ((service = _find_service(_child_services, service_name)))
+				return *service;
 
 			/*
 			 * Handle special case of the demo scenario when the user uses
@@ -100,130 +173,33 @@ class Launchpad_child_policy : public Genode::Child_policy,
 			 * interacted, however, would block at the parent interface
 			 * until this condition gets satisfied.
 			 */
-			if (Genode::strcmp(service_name, "Input") != 0
-			 && Genode::strcmp(service_name, "Framebuffer") != 0
-			 && (service = _parent_services->find(service_name)))
-				return service;
+			if (service_name != "Input"
+			 && service_name != "Framebuffer"
+			 && ((service = _find_service(_parent_services, service_name))))
+				return *service;
 
-			/* wait for the service to become available */
-			Genode::Client client;
-			return _child_services->wait_for_service(service_name,
-			                                         &client, name());
+			Genode::warning(name(), ": service ", service_name, " not available");
+			throw Genode::Parent::Service_denied();
 		}
 
-		void filter_session_args(const char *service, char *args,
-		                         Genode::size_t args_len)
+		void filter_session_args(Genode::Service::Name const &service,
+		                         char *args, Genode::size_t args_len) override
 		{
-			_labeling_policy.filter_session_args(service, args, args_len);
+			_labeling_policy.filter_session_args(service.string(), args, args_len);
 		}
 
-		bool announce_service(const char              *service_name,
-		                      Genode::Root_capability  root,
-		                      Genode::Allocator       *alloc,
-		                      Genode::Server          * /*server*/)
+		void announce_service(Genode::Service::Name const &service_name) override
 		{
-			if (_child_services->find(service_name)) {
-				PWRN("%s: service %s is already registered",
-				     name(), service_name);
-				return false;
+			if (_find_service(_child_services, service_name)) {
+				Genode::warning(name(), ": service ", service_name, " is already registered");
+				return;
 			}
 
-			/* XXX remove potential race between checking for and inserting service */
-
-			_child_services->insert(new (alloc)
-				Genode::Child_service(service_name, root, _server));
-			Genode::printf("%s registered service %s\n", name(), service_name);
-			return true;
+			new (_child.heap())
+				Child_service(_child_services, _session_requester.id_space(),
+				              _child.session_factory(), service_name,
+				              _child.ram_session_cap(), *this);
 		}
-
-		void unregister_services()
-		{
-			Genode::Service *rs;
-			while ((rs = _child_services->find_by_server(_server)))
-				_child_services->remove(rs);
-		}
-};
-
-
-class Launchpad;
-
-
-class Launchpad_child : public Genode::List<Launchpad_child>::Element
-{
-	private:
-
-		static Genode::Dataspace_capability _ldso_ds();
-
-		Launchpad *_launchpad;
-
-		/*
-		 * Entry point used for serving the parent interface and the
-		 * locally provided ROM sessions for the 'config' and 'binary'
-		 * files.
-		 */
-		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
-		Genode::Rpc_entrypoint _entrypoint;
-
-		Genode::Region_map_client  _address_space;
-
-		Genode::Rom_session_client _rom;
-		Genode::Pd_session_client  _pd;
-		Genode::Ram_session_client _ram;
-		Genode::Cpu_session_client _cpu;
-
-		Genode::Child::Initial_thread _initial_thread;
-
-		Genode::Server _server;
-
-		Launchpad_child_policy _policy;
-		Genode::Child          _child;
-
-	public:
-
-			Launchpad_child(const char                    *name,
-			                Genode::Dataspace_capability   elf_ds,
-			                Genode::Pd_session_capability  pd,
-			                Genode::Ram_session_capability ram,
-			                Genode::Cpu_session_capability cpu,
-			                Genode::Rom_session_capability rom,
-			                Genode::Cap_session           *cap_session,
-			                Genode::Service_registry      *parent_services,
-			                Genode::Service_registry      *child_services,
-			                Genode::Dataspace_capability   config_ds,
-			                Launchpad                     *launchpad)
-			:
-				_launchpad(launchpad),
-				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, name, false),
-				_address_space(Genode::Pd_session_client(pd).address_space()),
-				_rom(rom), _pd(pd), _ram(ram), _cpu(cpu),
-				_initial_thread(_cpu, _pd, name), _server(_ram),
-				_policy(name, &_server, parent_services, child_services,
-				        config_ds, elf_ds, &_entrypoint),
-				_child(elf_ds, _ldso_ds(), _pd, _pd, _ram, _ram, _cpu,
-				       _initial_thread, *Genode::env()->rm_session(),
-				       _address_space, _entrypoint, _policy)
-				{
-					_entrypoint.activate();
-				}
-
-			/**
-			 * Required to forcefully kill client which blocks on a session
-			 * opening quest where the service is not up yet.
-			 */
-			void cancel_blocking() { _entrypoint.cancel_blocking(); }
-
-			Genode::Rom_session_capability rom_session_cap() { return _rom; }
-			Genode::Ram_session_capability ram_session_cap() { return _ram; }
-			Genode::Cpu_session_capability cpu_session_cap() { return _cpu; }
-
-			const char *name() const { return _policy.name(); }
-
-			const Genode::Server *server() const { return &_server; }
-
-			Genode::Allocator *heap() { return _child.heap(); }
-
-			void revoke_server(const Genode::Server *server) {
-				_child.revoke_server(server); }
 };
 
 
@@ -231,21 +207,23 @@ class Launchpad
 {
 	private:
 
+		Genode::Env &_env;
+
+		Genode::Heap _heap { _env.ram(), _env.rm() };
+
 		unsigned long _initial_quota;
 
-		Genode::Service_registry _parent_services;
-		Genode::Service_registry _child_services;
+		Launchpad_child::Parent_services _parent_services;
+		Launchpad_child::Child_services  _child_services;
 
 		Genode::Lock                  _children_lock;
 		Genode::List<Launchpad_child> _children;
 
-		bool _child_name_exists(const char *name);
-		void _get_unique_child_name(const char *filename, char *dst, int dst_len);
+		bool _child_name_exists(Launchpad_child::Name const &);
+
+		Launchpad_child::Name _get_unique_child_name(Launchpad_child::Name const &);
 
 		Genode::Sliced_heap _sliced_heap;
-
-		/* cap session for allocating capabilities for parent interfaces */
-		Genode::Cap_connection _cap_session;
 
 	protected:
 
@@ -253,9 +231,7 @@ class Launchpad
 
 	public:
 
-		Genode::Lock gui_lock;
-
-		Launchpad(unsigned long initial_quota);
+		Launchpad(Genode::Env &env, unsigned long initial_quota);
 
 		unsigned long initial_quota() { return _initial_quota; }
 
@@ -273,36 +249,26 @@ class Launchpad
 
 		virtual void quota(unsigned long quota) { }
 
-		virtual void add_launcher(const char *filename,
+		virtual void add_launcher(Launchpad_child::Name const &binary_name,
 		                          unsigned long default_quota,
 		                          Genode::Dataspace_capability config_ds) { }
 
-		virtual void add_child(const char *unique_name,
+		virtual void add_child(Launchpad_child::Name const &,
 		                       unsigned long quota,
-		                       Launchpad_child *launchpad_child,
-		                       Genode::Allocator *alloc) { }
+		                       Launchpad_child &,
+		                       Genode::Allocator &) { }
 
-		virtual void remove_child(const char *name,
-		                          Genode::Allocator *alloc) { }
+		virtual void remove_child(Launchpad_child::Name const &,
+		                          Genode::Allocator &) { }
 
-		Launchpad_child *start_child(const char *prg_name, unsigned long quota,
+		Launchpad_child *start_child(Launchpad_child::Name const &binary_name,
+		                             unsigned long quota,
 		                             Genode::Dataspace_capability config_ds);
 
 		/**
 		 * Exit child and close all its sessions
-		 *
-		 * \param timer                     Timer session to use for watchdog
-		 *                                  mechanism. When using the default
-		 *                                  value, a new timer session gets
-		 *                                  created during the 'exit_child'
-		 *                                  call.
-		 * \param session_close_timeout_ms  Timeout in milliseconds until a an
-		 *                                  unresponsive service->close call
-		 *                                  gets canceled.
 		 */
-		void exit_child(Launchpad_child *child,
-		                Timer::Session  *timer = 0,
-		                int              session_close_timeout_ms = 2000);
+		void exit_child(Launchpad_child &child);
 };
 
 #endif /* _INCLUDE__LAUNCHPAD__LAUNCHPAD_H_ */

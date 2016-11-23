@@ -302,12 +302,14 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 	Vcpu_handler *vcpu_handler = 0;
 
 	if (hip->has_feature_vmx())
-		vcpu_handler = new (0x10) Vcpu_handler_vmx(stack, attr, start_routine,
+		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
+		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name);
 
 	if (hip->has_feature_svm())
-		vcpu_handler = new (0x10) Vcpu_handler_svm(stack, attr, start_routine,
+		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
+		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name);
 

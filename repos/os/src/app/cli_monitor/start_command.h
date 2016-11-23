@@ -28,14 +28,16 @@ class Start_command : public Command
 		typedef Genode::Signal_context_capability Signal_context_capability;
 		typedef Genode::Dataspace_capability      Dataspace_capability;
 
-		Ram                       &_ram;
-		Child_registry            &_children;
-		Genode::Cap_session       &_cap;
-		Subsystem_config_registry &_subsystem_configs;
-		List<Argument>             _arguments;
-		Signal_context_capability  _yield_response_sigh_cap;
-		Signal_context_capability  _exit_sig_cap;
-		Dataspace_capability       _ldso_ds;
+		Ram                           &_ram;
+		Child_registry                &_children;
+		Genode::Pd_session            &_pd;
+		Genode::Ram_session           &_ref_ram;
+		Genode::Ram_session_capability _ref_ram_cap;
+		Genode::Region_map            &_local_rm;
+		Subsystem_config_registry     &_subsystem_configs;
+		List<Argument>                 _arguments;
+		Signal_context_capability      _yield_response_sigh_cap;
+		Signal_context_capability      _exit_sig_cap;
 
 		void _execute_subsystem(char const *name, Command_line &cmd,
 		                        Terminal::Session &terminal,
@@ -107,11 +109,12 @@ class Start_command : public Command
 				Child *child = 0;
 				try {
 					child = new (Genode::env()->heap())
-						Child(_ram, label, binary_name, _cap, ram, ram_limit,
-						      _yield_response_sigh_cap, _exit_sig_cap, _ldso_ds);
+						Child(_ram, label, binary_name, _pd, _ref_ram, _ref_ram_cap,
+						      _local_rm, ram, ram_limit,
+						      _yield_response_sigh_cap, _exit_sig_cap);
 				}
-				catch (Genode::Rom_connection::Rom_connection_failed) {
-					tprintf(terminal, "Error: could not obtain ROM module \"%s\"\n",
+				catch (Genode::Parent::Service_denied) {
+					tprintf(terminal, "Error: could not start child  \"%s\"\n",
 					        binary_name);
 					return;
 				}
@@ -146,18 +149,22 @@ class Start_command : public Command
 
 	public:
 
-		Start_command(Ram &ram, Genode::Cap_session &cap, Child_registry &children,
-		              Subsystem_config_registry &subsustem_configs,
-		              Signal_context_capability yield_response_sigh_cap,
-		              Signal_context_capability exit_sig_cap,
-		              Dataspace_capability ldso_ds)
+		Start_command(Ram                           &ram,
+		              Genode::Pd_session            &pd,
+		              Genode::Ram_session           &ref_ram,
+		              Genode::Ram_session_capability ref_ram_cap,
+		              Genode::Region_map            &local_rm,
+		              Child_registry                &children,
+		              Subsystem_config_registry     &subsustem_configs,
+		              Signal_context_capability      yield_response_sigh_cap,
+		              Signal_context_capability      exit_sig_cap)
 		:
 			Command("start", "create new subsystem"),
-			_ram(ram), _children(children), _cap(cap),
+			_ram(ram), _children(children), _pd(pd),
+			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap), _local_rm(local_rm),
 			_subsystem_configs(subsustem_configs),
 			_yield_response_sigh_cap(yield_response_sigh_cap),
-			_exit_sig_cap(exit_sig_cap),
-			_ldso_ds(ldso_ds)
+			_exit_sig_cap(exit_sig_cap)
 		{
 			add_parameter(new Parameter("--count",     Parameter::NUMBER, "number of instances"));
 			add_parameter(new Parameter("--ram",       Parameter::NUMBER, "initial RAM quota"));

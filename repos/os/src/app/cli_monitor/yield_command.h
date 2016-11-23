@@ -32,8 +32,8 @@ struct Yield_command : Command
 
 	void _for_each_argument(Argument_fn const &fn) const override
 	{
-		auto child_name_fn = [&] (char const *child_name) {
-			Argument arg(child_name, "");
+		auto child_name_fn = [&] (Child_base::Name const &child_name) {
+			Argument arg(child_name.string(), "");
 			fn(arg);
 		};
 
@@ -57,7 +57,7 @@ struct Yield_command : Command
 		/* lookup child by its unique name */
 		Child *child = _children.first();
 		for (; child; child = child->next())
-			if (strcmp(child->name(), label) == 0)
+			if (child->name() == label)
 				break;
 
 		if (!child) {
@@ -67,7 +67,7 @@ struct Yield_command : Command
 
 		child->yield(ram, greedy);
 
-		tprintf(terminal, "requesting '%s' to yield ", child->name());
+		tprintf(terminal, "requesting '%s' to yield ", child->name().string());
 		tprint_bytes(terminal, ram);
 		tprintf(terminal, "\n");
 	}

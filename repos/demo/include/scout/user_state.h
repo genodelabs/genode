@@ -78,7 +78,7 @@ class Scout::User_state : public Parent_element
 		/**
 		 * Apply input event to mouse focus state
 		 */
-		void handle_event(Event &ev)
+		void handle_event(Event const &ev)
 		{
 			_key_cnt += ev.type == Event::PRESS   ? 1 : 0;
 			_key_cnt -= ev.type == Event::RELEASE ? 1 : 0;

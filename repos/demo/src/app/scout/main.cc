@@ -11,6 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
+
 #include <scout/platform.h>
 #include <scout/tick.h>
 #include <scout/user_state.h>
@@ -45,20 +47,86 @@ extern unsigned char NAV_PREV_RGBA[];
 
 static unsigned char *navicons_rgba[] = { NAV_NEXT_RGBA, NAV_PREV_RGBA };
 static Scout::Generic_icon **navicons[] = { &Scout::Navbar::next_icon,
-	                                        &Scout::Navbar::prev_icon };
+                                            &Scout::Navbar::prev_icon };
 
 extern int native_startup(int, char **);
 
 
-/**
- * Main program
- */
-int main(int argc, char **argv)
+namespace Scout { struct Main; }
+
+
+struct Scout::Main : Scout::Event_handler
+{
+	Scout::Platform   &_pf;
+	Scout::Window     &_browser;
+	Scout::User_state &_user_state;
+	Scout::Element    &_mcursor;
+
+	Scout::Point _mouse_position;
+
+	unsigned long _old_time = _pf.timer_ticks();
+
+	Main(Scout::Platform &pf, Scout::Window &browser,
+	     Scout::User_state &user_state, Scout::Element &mcursor)
+	:
+		_pf(pf), _browser(browser), _user_state(user_state), _mcursor(mcursor)
+	{  }
+
+	void handle_event(Scout::Event const &event) override
+	{
+		using namespace Scout;
+
+		Event ev = event;
+
+		if (event.type != Event::WHEEL) {
+
+			ev.mouse_position = ev.mouse_position - _user_state.view_position();
+
+			/* update mouse cursor */
+			if (Config::mouse_cursor && (ev.mouse_position.x() != _mouse_position.x()
+			                          || ev.mouse_position.y() != _mouse_position.y())) {
+				int x1 = min(ev.mouse_position.x(), _mouse_position.x());
+				int y1 = min(ev.mouse_position.y(), _mouse_position.y());
+				int x2 = max(ev.mouse_position.x() + _mcursor.size().w() - 1,
+				             _mouse_position.x() + _mcursor.size().w() - 1);
+				int y2 = max(ev.mouse_position.y() + _mcursor.size().h() - 1,
+				             _mouse_position.y() + _mcursor.size().h() - 1);
+
+				_mcursor.geometry(Rect(ev.mouse_position, _mcursor.size()));
+				_browser.redraw_area(x1, y1, x2 - x1 + 1, y2 - y1 + 1);
+
+				_mouse_position = ev.mouse_position;
+			}
+		}
+
+		_user_state.handle_event(ev);
+
+		if (event.type == Event::TIMER)
+			Tick::handle(_pf.timer_ticks());
+
+		/* perform periodic redraw */
+		unsigned long curr_time = _pf.timer_ticks();
+		if (!_pf.event_pending() && ((curr_time - _old_time > 20)
+		                          || (curr_time < _old_time))) {
+			_old_time = curr_time;
+			_browser.process_redraw();
+		}
+	}
+};
+
+
+/***************
+ ** Component **
+ ***************/
+
+void Component::construct(Genode::Env &env)
 {
 	using namespace Scout;
 
+	Launcher::init(env);
+
 	static Nitpicker::Connection nitpicker;
-	static Platform pf(*nitpicker.input());
+	static Platform pf(env, *nitpicker.input());
 
 	Area  const max_size(530, 620);
 	Point const initial_position(256, 80);
@@ -92,10 +160,9 @@ int main(int argc, char **argv)
 	);
 
 	/* initialize mouse cursor */
-	Point mouse_position;
 	static Icon<Pixel_rgb565, 32, 32> mcursor;
 	if (Config::mouse_cursor) {
-		mcursor.geometry(Rect(mouse_position, Area(32, 32)));
+		mcursor.geometry(Rect(Point(0, 0), Area(32, 32)));
 		mcursor.rgba(POINTER_RGBA);
 		mcursor.alpha(255);
 		mcursor.findable(0);
@@ -107,47 +174,7 @@ int main(int argc, char **argv)
 	                             initial_position.x(), initial_position.y());
 	browser.ypos(0);
 
-	/* enter main loop */
-	unsigned long curr_time, old_time;
-	curr_time = old_time = pf.timer_ticks();
-	for (;;) {
-		Event ev = pf.get_event();
+	static Main main(pf, browser, user_state, mcursor);
+	pf.event_handler(main);
 
-		if (ev.type != Event::WHEEL) {
-			ev.mouse_position = ev.mouse_position - user_state.view_position();
-
-			/* update mouse cursor */
-			if (Config::mouse_cursor && (ev.mouse_position.x() != mouse_position.x()
-			                          || ev.mouse_position.y() != mouse_position.y())) {
-				int x1 = min(ev.mouse_position.x(), mouse_position.x());
-				int y1 = min(ev.mouse_position.y(), mouse_position.y());
-				int x2 = max(ev.mouse_position.x() + mcursor.size().w() - 1,
-				             mouse_position.x() + mcursor.size().w() - 1);
-				int y2 = max(ev.mouse_position.y() + mcursor.size().h() - 1,
-				             mouse_position.y() + mcursor.size().h() - 1);
-
-				mcursor.geometry(Rect(ev.mouse_position, mcursor.size()));
-				browser.redraw_area(x1, y1, x2 - x1 + 1, y2 - y1 + 1);
-
-				mouse_position = ev.mouse_position;
-			}
-		}
-
-		user_state.handle_event(ev);
-
-		if (ev.type == Event::TIMER)
-			Tick::handle(pf.timer_ticks());
-
-		/* perform periodic redraw */
-		curr_time = pf.timer_ticks();
-		if (!pf.event_pending() && ((curr_time - old_time > 20) || (curr_time < old_time))) {
-			old_time = curr_time;
-			browser.process_redraw();
-		}
-
-		if (ev.type == Event::QUIT)
-			break;
-	}
-
-	return 0;
 }

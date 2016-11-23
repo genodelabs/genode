@@ -21,64 +21,90 @@
 #include <family_member.h>
 #include <parent_exit.h>
 #include <file_descriptor_registry.h>
-#include <local_noux_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
+
+	typedef Registered<Genode::Parent_service> Parent_service;
+	typedef Registry<Parent_service>           Parent_services;
+
+	typedef Local_service<Pd_session_component>  Pd_service;
+	typedef Local_service<Ram_session_component> Ram_service;
+	typedef Local_service<Cpu_session_component> Cpu_service;
+	typedef Local_service<Rpc_object<Session> >  Noux_service;
 
 	class Child_policy : public Genode::Child_policy
 	{
 		private:
 
-			char                         const *_name;
+			Name                          const _name;
+			Binary_name                   const _binary_name;
 			Init::Child_policy_enforce_labeling _labeling_policy;
-			Init::Child_policy_provide_rom_file _binary_policy;
 			Init::Child_policy_provide_rom_file _args_policy;
 			Init::Child_policy_provide_rom_file _env_policy;
 			Init::Child_policy_provide_rom_file _config_policy;
-			Local_noux_service                 &_local_noux_service;
-			Local_rom_service                  &_local_rom_service;
-			Service_registry                   &_parent_services;
+			Pd_service                         &_pd_service;
+			Ram_service                        &_ram_service;
+			Cpu_service                        &_cpu_service;
+			Noux_service                       &_noux_service;
+			Local_rom_service                  &_rom_service;
+			Parent_services                    &_parent_services;
 			Family_member                      &_family_member;
 			Parent_exit                        *_parent_exit;
 			File_descriptor_registry           &_file_descriptor_registry;
 			Signal_context_capability           _destruct_context_cap;
-			Ram_session                        &_ref_ram_session;
+			Ram_session                        &_ref_ram;
+			Ram_session_capability              _ref_ram_cap;
 			int                                 _exit_value;
 			bool                                _verbose;
 
+			template <typename T>
+			static Genode::Service *_find_service(Genode::Registry<T> &services,
+			                                      Genode::Service::Name const &name)
+			{
+				Genode::Service *service = nullptr;
+				services.for_each([&] (T &s) {
+					if (!service && (s.name() == name))
+						service = &s; });
+				return service;
+			}
+
 		public:
 
-			Child_policy(char               const *name,
-			             Dataspace_capability      binary_ds,
+			Child_policy(Name               const &name,
+			             Binary_name        const &binary_name,
 			             Dataspace_capability      args_ds,
 			             Dataspace_capability      env_ds,
 			             Dataspace_capability      config_ds,
 			             Rpc_entrypoint           &entrypoint,
-			             Local_noux_service       &local_noux_service,
-			             Local_rom_service        &local_rom_service,
-			             Service_registry         &parent_services,
+			             Pd_service               &pd_service,
+			             Ram_service              &ram_service,
+			             Cpu_service              &cpu_service,
+			             Noux_service             &noux_service,
+			             Local_rom_service        &rom_service,
+			             Parent_services          &parent_services,
 			             Family_member            &family_member,
 			             Parent_exit              *parent_exit,
 			             File_descriptor_registry &file_descriptor_registry,
 			             Signal_context_capability destruct_context_cap,
-			             Ram_session              &ref_ram_session,
+			             Ram_session              &ref_ram,
+			             Ram_session_capability    ref_ram_cap,
 			             bool                      verbose)
 			:
 				_name(name),
-				_labeling_policy(_name),
-				_binary_policy("binary", binary_ds, &entrypoint),
+				_binary_name(binary_name),
+				_labeling_policy(_name.string()),
 				_args_policy(  "args",   args_ds,   &entrypoint),
 				_env_policy(   "env",    env_ds,    &entrypoint),
 				_config_policy("config", config_ds, &entrypoint),
-				_local_noux_service(local_noux_service),
-				_local_rom_service(local_rom_service),
-				_parent_services(parent_services),
+				_pd_service(pd_service),   _ram_service(ram_service),
+				_cpu_service(cpu_service), _noux_service(noux_service),
+				_rom_service(rom_service), _parent_services(parent_services),
 				_family_member(family_member),
 				_parent_exit(parent_exit),
 				_file_descriptor_registry(file_descriptor_registry),
 				_destruct_context_cap(destruct_context_cap),
-				_ref_ram_session(ref_ram_session),
+				_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
 				_exit_value(~0),
 				_verbose(verbose)
 			{ }
@@ -89,40 +115,58 @@ namespace Noux {
 			 ** Child policy interface **
 			 ****************************/
 
-			const char *name() const { return _name; }
+			Name        name()        const override { return _name; }
+			Binary_name binary_name() const override { return _binary_name; }
 
-			Service *resolve_session_request(const char *service_name,
-			                                 const char *args)
+			Ram_session &ref_ram() override { return _ref_ram; }
+
+			Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
+
+			void init(Ram_session &session, Ram_session_capability cap) override
 			{
-				Service *service = 0;
-
-				/* check for local ROM file requests */
-				if ((service = _args_policy.resolve_session_request(service_name, args))
-				 || (service = _env_policy.resolve_session_request(service_name, args))
-				 || (service = _config_policy.resolve_session_request(service_name, args))
-				 || (service = _binary_policy.resolve_session_request(service_name, args)))
-					return service;
-
-				/* check for locally implemented noux service */
-				if (strcmp(service_name, Session::service_name()) == 0)
-					return &_local_noux_service;
-
-				/*
-				 * Check for local ROM service
-				 */
-				if (strcmp(service_name, Rom_session::service_name()) == 0)
-					return &_local_rom_service;
-
-				return _parent_services.find(service_name);
+				session.ref_account(_ref_ram_cap);
 			}
 
-			void filter_session_args(const char *service,
-			                         char *args, size_t args_len)
+			Service &resolve_session_request(Service::Name const &service_name,
+			                                 Session_state::Args const &args) override
 			{
-				_labeling_policy.filter_session_args(service, args, args_len);
+				Session_label const label(Genode::label_from_args(args.string()));
+
+				/* route initial ROM requests (binary and linker) to the parent */
+				if (service_name == Genode::Rom_session::service_name()) {
+					if (label.last_element() == binary_name()) return _rom_service;
+					if (label.last_element() == linker_name()) return _rom_service;
+				}
+
+				Genode::Service *service = nullptr;
+
+				/* check for local ROM requests */
+				if ((service = _args_policy  .resolve_session_request(service_name.string(), args.string()))
+				 || (service = _env_policy   .resolve_session_request(service_name.string(), args.string()))
+				 || (service = _config_policy.resolve_session_request(service_name.string(), args.string())))
+					return *service;
+
+				/* check for local services */
+				if (service_name == Genode::Ram_session::service_name()) return _ram_service;
+				if (service_name == Genode::Cpu_session::service_name()) return _cpu_service;
+				if (service_name == Genode::Rom_session::service_name()) return _rom_service;
+				if (service_name == Genode::Pd_session::service_name())  return _pd_service;
+				if (service_name == Noux::Session::service_name())       return _noux_service;
+
+				/* check for parent services */
+				if ((service = _find_service(_parent_services, service_name)))
+					return *service;
+
+				throw Parent::Service_denied();
 			}
 
-			void exit(int exit_value)
+			void filter_session_args(Genode::Service::Name const &service,
+			                         char *args, Genode::size_t args_len) override
+			{
+				_labeling_policy.filter_session_args(service.string(), args, args_len);
+			}
+
+			void exit(int exit_value) override
 			{
 				_exit_value = exit_value;
 
@@ -147,12 +191,11 @@ namespace Noux {
 				}
 			}
 
-			Ram_session *ref_ram_session()
+			Region_map *address_space(Pd_session &pd) override
 			{
-				return &_ref_ram_session;
+				return &static_cast<Pd_session_component &>(pd).address_space_region_map();
 			}
 	};
 }
 
 #endif /* _NOUX__CHILD_POLICY_H_ */
-

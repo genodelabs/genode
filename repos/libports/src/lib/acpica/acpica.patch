@@ -74,3 +74,14 @@
  
      /*
       * Make sure that a handler exists. If not, report an error
++++ src/lib/acpica/source/include/platform/acgcc.h
+@@ -44,7 +44,9 @@
+ #ifndef __ACGCC_H__
+ #define __ACGCC_H__
+ 
++#ifndef ACPI_INLINE
+ #define ACPI_INLINE             __inline__
++#endif
+ 
+ /* Function name is used for debug output. Non-ANSI, compiler-dependent */
+ 

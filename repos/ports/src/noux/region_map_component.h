@@ -91,7 +91,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 */
 		Region_map_client _rm;
 
-		Pd_session_capability _pd;
+		Pd_connection &_pd;
 
 		Dataspace_registry &_ds_registry;
 
@@ -106,7 +106,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 */
 		Region_map_component(Rpc_entrypoint &ep,
 		                     Dataspace_registry &ds_registry,
-		                     Pd_session_capability pd,
+		                     Pd_connection &pd,
 		                     Capability<Region_map> rm)
 		:
 			Dataspace_info(Region_map_client(rm).dataspace()),
@@ -157,10 +157,10 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 * \param ep           entrypoint used to serve the RPC interface
 		 *                     of forked managed dataspaces
 		 */
-		void replay(Ram_session_capability dst_ram,
-		            Capability<Region_map> dst_rm,
-		            Dataspace_registry    &ds_registry,
-		            Rpc_entrypoint        &ep)
+		void replay(Ram_session        &dst_ram,
+		            Region_map         &dst_rm,
+		            Dataspace_registry &ds_registry,
+		            Rpc_entrypoint     &ep)
 		{
 			Lock::Guard guard(_region_lock);
 			for (Region *curr = _regions.first(); curr; curr = curr->next_region()) {
@@ -210,10 +210,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 						return;
 					}
 
-					Region_map_client(dst_rm).attach(ds, curr->size,
-					                                 curr->offset,
-					                                 true,
-					                                 curr->local_addr);
+					dst_rm.attach(ds, curr->size, curr->offset, true, curr->local_addr);
 				};
 				_ds_registry.apply(curr->ds, lambda);
 			};
@@ -241,7 +238,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 					                        local_addr, executable);
 					break;
 				} catch (Region_map::Out_of_metadata) {
-					Genode::env()->parent()->upgrade(_pd, "ram_quota=8096");
+					_pd.upgrade_ram(8*1024);
 				}
 			}
 
@@ -325,9 +322,9 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 ** Dataspace_info interface **
 		 ******************************/
 
-		Dataspace_capability fork(Ram_session_capability ram,
-		                          Dataspace_registry  &ds_registry,
-		                          Rpc_entrypoint      &ep) override
+		Dataspace_capability fork(Ram_session        &,
+		                          Dataspace_registry &,
+		                          Rpc_entrypoint     &) override
 		{
 			return Dataspace_capability();
 		}

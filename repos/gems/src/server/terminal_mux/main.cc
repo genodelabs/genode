@@ -737,7 +737,7 @@ int main(int, char **)
 
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
-	static Registry      registry;
+	static ::Registry      registry;
 	static Ncurses       ncurses;
 	static Status_window status_window(ncurses);
 	static Menu          menu(ncurses, registry, status_window);

@@ -58,7 +58,7 @@ class Linkicon_event_handler : public Event_handler
 		/**
 		 * Event handler interface
 		 */
-		void handle(Event &ev)
+		void handle_event(Event const &ev) override
 		{
 			if (ev.type != Event::PRESS || !_navbar) return;
 

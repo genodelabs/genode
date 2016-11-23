@@ -28,13 +28,14 @@ class QNitpickerScreen : public QPlatformScreen
 {
 	private:
 
-		Nitpicker::Connection _nitpicker;
 		QRect _geometry;
 
 	public:
 
 		QNitpickerScreen()
 		{
+			Nitpicker::Connection _nitpicker;
+
 			Framebuffer::Mode const scr_mode = _nitpicker.mode();
 
 			if (scr_mode.format() != Framebuffer::Mode::RGB565)
@@ -42,8 +43,6 @@ class QNitpickerScreen : public QPlatformScreen
 
 			_geometry.setRect(0, 0, scr_mode.width(),
 			                        scr_mode.height());
-
-			Genode::env()->parent()->close(_nitpicker.cap());
 		}
 
 		QRect geometry() const { return _geometry; }

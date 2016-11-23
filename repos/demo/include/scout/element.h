@@ -181,7 +181,7 @@ class Scout::Element
 		/**
 		 * Handle user input or timer event
 		 */
-		void handle_event(Event &ev) { if (_evh) _evh->handle(ev); }
+		void handle_event(Event const &ev) { if (_evh) _evh->handle_event(ev); }
 
 		/**
 		 * Request the chapter in which the element lives

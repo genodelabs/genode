@@ -24,12 +24,10 @@
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="" layer="2" />
-			<policy label="pointer"    domain="pointer"/>
-			<policy label="" domain=""/>
-			<global-key name="KEY_F1" operation="kill" />
-			<global-key name="KEY_F2" operation="xray" />
+			<domain name="pointer" layer="1" label="no" content="client" xray="no" origin="pointer" />
+			<domain name="default" layer="2" label="no" content="client" hover="always" focus="click" />
+			<policy label="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
 		</config>
 	</start>
 	<start name="pointer">

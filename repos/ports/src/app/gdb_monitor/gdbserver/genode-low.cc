@@ -46,6 +46,8 @@ int linux_detach_one_lwp (struct inferior_list_entry *entry, void *args);
 
 static bool verbose = false;
 
+Genode::Env *genode_env;
+
 static int _new_thread_pipe[2];
 
 /*
@@ -273,16 +275,6 @@ extern "C" int fork()
 		return -1;
 	}
 
-	/* look for dynamic linker */
-
-	Dataspace_capability ldso_cap;
-	try {
-		Rom_connection ldso_rom("ld.lib.so");
-		ldso_cap = clone_rom(ldso_rom.dataspace());
-	} catch (...) {
-		warning("ld.lib.so not found");
-	}
-
 	/* extract target filename from config file */
 
 	static char filename[32] = "";
@@ -319,34 +311,6 @@ extern "C" int fork()
 	Number_of_bytes ram_quota = env()->ram_session()->avail() - preserved_ram_quota;
 
 	/* start the application */
-	char *unique_name = filename;
-	Capability<Rom_dataspace> file_cap;
-	try {
-		static Rom_connection rom(prefixed_label(Session_label(Cstring(unique_name)),
-		                                         Session_label(Cstring(filename))).string());
-		file_cap = rom.dataspace();
-	} catch (Rom_connection::Rom_connection_failed) {
-		error("could not access ROM module \"", Cstring(filename), "\"");
-		return -1;
-	}
-
-	/* copy ELF image to writable dataspace */
-	Genode::size_t elf_size = Dataspace_client(file_cap).size();
-	Dataspace_capability elf_cap = clone_rom(file_cap);
-
-	/* create ram session for child with some of our own quota */
-	static Ram_connection ram;
-	ram.ref_account(env()->ram_session_cap());
-	env()->ram_session()->transfer_quota(ram.cap(), (Genode::size_t)ram_quota - elf_size);
-
-	/* cap session for allocating capabilities for parent interfaces */
-	static Cap_connection cap_session;
-
-	static Service_registry parent_services;
-
-	enum { CHILD_ROOT_EP_STACK = 1024*sizeof(addr_t) };
-	static Rpc_entrypoint child_root_ep(&cap_session, CHILD_ROOT_EP_STACK,
-	                                    "child_root_ep");
 
 	static Signal_receiver signal_receiver;
 
@@ -354,19 +318,22 @@ extern "C" int fork()
 		signal_handler_thread(&signal_receiver);
 	signal_handler_thread.start();
 
-	App_child *child = new (env()->heap()) App_child(unique_name,
-	                                                 elf_cap,
-	                                                 ldso_cap,
-	                                                 ram.cap(),
-	                                                 &cap_session,
-	                                                 &parent_services,
-	                                                 &child_root_ep,
+	App_child *child = new (env()->heap()) App_child(*genode_env,
+	                                                 filename,
+	                                                 genode_env->pd(),
+	                                                 genode_env->rm(),
+	                                                 ram_quota,
 	                                                 &signal_receiver,
 	                                                 target_node);
 
 	_genode_child_resources = child->genode_child_resources();
 
-	child->start();
+	try {
+		child->start();
+	} catch (...) {
+		Genode::error("Could not start child process");
+		return -1;
+	}
 
 	return GENODE_MAIN_LWPID;
 }

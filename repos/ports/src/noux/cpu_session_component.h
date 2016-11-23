@@ -25,9 +25,13 @@
 #define _NOUX__CPU_SESSION_COMPONENT_H_
 
 /* Genode includes */
+#include <base/child.h>
 #include <base/rpc_server.h>
 #include <cpu_session/connection.h>
 #include <cpu_thread/client.h>
+
+/* Noux includes */
+#include <pd_session_component.h>
 
 namespace Noux {
 
@@ -37,9 +41,9 @@ namespace Noux {
 	{
 		private:
 
-			Pd_session_capability _core_pd;
-			bool const            _forked;
-			Cpu_connection        _cpu;
+			Rpc_entrypoint &_ep;
+			bool const      _forked;
+			Cpu_connection  _cpu;
 
 			enum { MAX_THREADS = 8, MAIN_THREAD_IDX = 0 };
 
@@ -50,8 +54,6 @@ namespace Noux {
 			/**
 			 * Constructor
 			 *
-			 * \param core_pd  capability of PD session at core to be used
-			 *                 as argument of 'create_thread'
 			 * \param forked   false if the CPU session belongs to a child
 			 *                 created via execve or to the init process, or
 			 *                 true if the CPU session belongs to a newly
@@ -60,9 +62,12 @@ namespace Noux {
 			 * The 'forked' parameter controls the policy applied to the
 			 * startup of the main thread.
 			 */
-			Cpu_session_component(char const *label,
-			                      Pd_session_capability core_pd, bool forked)
-			: _core_pd(core_pd), _forked(forked), _cpu(label) { }
+			Cpu_session_component(Rpc_entrypoint &ep, Child_policy::Name const &label,
+			                      bool forked)
+			: _ep(ep), _forked(forked), _cpu(label.string())
+			{ _ep.manage(this); }
+
+			~Cpu_session_component() { _ep.dissolve(this); }
 
 			/**
 			 * Explicitly start main thread, only meaningful when
@@ -81,7 +86,7 @@ namespace Noux {
 			 ** Cpu_session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Capability<Pd_session>,
+			Thread_capability create_thread(Capability<Pd_session> pd_cap,
 			                                Name const &name,
 			                                Affinity::Location affinity,
 			                                Weight weight,
@@ -92,14 +97,16 @@ namespace Noux {
 					if (_threads[i].valid())
 						continue;
 
-					/*
-					 * Note that we don't use the PD-capability argument (which
-					 * refers to our virtualized PD session) but the physical
-					 * core PD.
-					 */
-					Thread_capability cap =
-						_cpu.create_thread(_core_pd, name, affinity, weight, utcb);
+					auto lambda = [&] (Pd_session_component *pd)
+					{
+						if (!pd)
+							throw Thread_creation_failed();
 
+						return _cpu.create_thread(pd->core_pd_cap(), name,
+						                          affinity, weight, utcb);
+					};
+
+					Thread_capability cap = _ep.apply(pd_cap, lambda);
 					_threads[i] = cap;
 					return cap;
 				}

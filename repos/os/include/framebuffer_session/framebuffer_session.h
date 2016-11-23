@@ -23,6 +23,7 @@ namespace Framebuffer {
 
 	struct Mode;
 	struct Session;
+	struct Session_client;
 }
 
 
@@ -80,6 +81,8 @@ struct Framebuffer::Mode
 struct Framebuffer::Session : Genode::Session
 {
 	static const char *service_name() { return "Framebuffer"; }
+
+	typedef Session_client Client;
 
 	virtual ~Session() { }
 

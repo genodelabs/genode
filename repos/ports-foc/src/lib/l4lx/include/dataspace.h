@@ -115,9 +115,7 @@ namespace L4lx {
 					                                         use_local_addr,
 					                                         local_addr,
 					                                         executable); },
-				[&] () {
-					Genode::env()->parent()->upgrade(Rm_connection::cap(), "ram_quota=8K");
-				});
+				[&] () { Rm_connection::upgrade_ram(8*1024); });
 		}
 	};
 

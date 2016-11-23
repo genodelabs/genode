@@ -34,9 +34,23 @@ class Scout::Window : public Parent_element
 		Graphics_backend &_gfx_backend;
 		Rect              _dirty;
 		Area              _max_size;
-		Point             _view_position;
 		int               _request_cnt;  /* nb of requests since last process */
 		bool const        _scout_quirk;  /* enable redraw quirk for scout     */
+
+		/*
+		 * We limit the rate of (expensive) view-position updates to the rate
+		 * of 'process_redraw' calls instead of eagerly responding to
+		 * individual input events (which trigger calls of 'vpos').
+		 */
+		Point _view_position, _next_view_position = _view_position;
+
+		void _update_view_position()
+		{
+			if (_view_position == _next_view_position) return;
+
+			_view_position = _next_view_position;
+			_gfx_backend.position(_view_position);
+		}
 
 	public:
 
@@ -44,11 +58,10 @@ class Scout::Window : public Parent_element
 		       Area max_size, bool scout_quirk)
 		:
 			_gfx_backend(gfx_backend), _max_size(max_size), _request_cnt(0),
-			_scout_quirk(scout_quirk)
+			_scout_quirk(scout_quirk), _view_position(position)
 		{
 			/* init element attributes */
-			_view_position = position;
-			_size          = size;
+			_size = size;
 		}
 
 		virtual ~Window() { }
@@ -56,8 +69,8 @@ class Scout::Window : public Parent_element
 		/**
 		 * Return current window position
 		 */
-		int view_x() const { return _view_position.x(); }
-		int view_y() const { return _view_position.y(); }
+		int view_x() const { return _next_view_position.x(); }
+		int view_y() const { return _next_view_position.y(); }
 		int view_w() const { return _size.w(); }
 		int view_h() const { return _size.h(); }
 
@@ -71,11 +84,7 @@ class Scout::Window : public Parent_element
 		/**
 		 * Move window to new position
 		 */
-		virtual void vpos(int x, int y)
-		{
-			_view_position = Point(x, y);
-			_gfx_backend.position(_view_position);
-		}
+		virtual void vpos(int x, int y) { _next_view_position = Point(x, y); }
 
 		/**
 		 * Define vertical scroll offset
@@ -133,6 +142,8 @@ class Scout::Window : public Parent_element
 		 */
 		void process_redraw()
 		{
+			_update_view_position();
+
 			if (_request_cnt == 0) return;
 
 			/* get actual drawing area (clipped against canvas dimensions) */
@@ -198,7 +209,7 @@ class Scout::Drag_event_handler : public Event_handler
 		/**
 		 * Event handler interface
 		 */
-		void handle(Event &ev)
+		void handle_event(Event const &ev) override
 		{
 			if (ev.type == Event::PRESS)   _key_cnt++;
 			if (ev.type == Event::RELEASE) _key_cnt--;

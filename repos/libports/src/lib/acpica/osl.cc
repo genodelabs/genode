@@ -1,7 +1,7 @@
 /*
  * \brief  OS specific backend for ACPICA library
  * \author Alexander Boettcher
- *
+ * \date   2016-11-14
  */
 
 /*
@@ -12,16 +12,20 @@
  */
 
 #include <base/log.h>
-#include <base/env.h>
 #include <util/misc_math.h>
 
 #include <io_port_session/connection.h>
 #include <timer_session/connection.h>
 
+#include <acpica/acpica.h>
+
+#include "env.h"
+
 extern "C" {
 #include "acpi.h"
 #include "acpiosxf.h"
 }
+
 
 #define FAIL(retval) \
 	{ \
@@ -39,21 +43,20 @@ ACPI_STATUS AcpiOsPredefinedOverride (const ACPI_PREDEFINED_NAMES *pre,
 }
 
 
-void * AcpiOsAllocate (ACPI_SIZE size) {
-	return Genode::env()->heap()->alloc(size); }
+void * AcpiOsAllocate (ACPI_SIZE size) { return Acpica::heap().alloc(size); }
 
 
 void AcpiOsFree (void *ptr)
 {
-	if (Genode::env()->heap()->need_size_for_free())
+	if (Acpica::heap().need_size_for_free())
 		Genode::warning(__func__, " called - warning - ptr=", ptr);
 
-	Genode::env()->heap()->free(ptr, 0);
+	Acpica::heap().free(ptr, 0);
 }
 
 ACPI_STATUS AcpiOsCreateLock (ACPI_SPINLOCK *spin_lock)
 {
-	*spin_lock = new (Genode::env()->heap()) Genode::Lock();
+	*spin_lock = new (Acpica::heap()) Genode::Lock();
 	return AE_OK;
 }
 
@@ -80,7 +83,7 @@ void AcpiOsReleaseLock (ACPI_SPINLOCK h, ACPI_CPU_FLAGS flags)
 ACPI_STATUS AcpiOsCreateSemaphore (UINT32 max, UINT32 initial,
                                    ACPI_SEMAPHORE *sem)
 {
-	*sem = new (Genode::env()->heap()) Genode::Semaphore(initial);
+	*sem = new (Acpica::heap()) Genode::Semaphore(initial);
 	return AE_OK;
 }
 
@@ -200,7 +203,8 @@ ACPI_STATUS AcpiOsWritePort (ACPI_IO_ADDRESS port, UINT32 value, UINT32 width)
 	return AE_OK;
 }
 
-static struct {
+static struct
+{
 	ACPI_EXECUTE_TYPE type;
 	ACPI_OSD_EXEC_CALLBACK func;
 	void *context;

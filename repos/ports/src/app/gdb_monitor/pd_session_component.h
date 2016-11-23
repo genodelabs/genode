@@ -23,6 +23,7 @@
 
 namespace Gdb_monitor {
 	class Pd_session_component;
+	typedef Genode::Local_service<Pd_session_component> Pd_service;
 	using namespace Genode;
 }
 

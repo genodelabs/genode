@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 
 /*
  * Suppress messages of libc dummy functions
@@ -30,10 +31,14 @@ extern "C" const char host_name[] = "";
 
 extern "C" int gdbserver_main(int argc, const char *argv[]);
 
-int main()
+extern Genode::Env *genode_env;
+
+void Component::construct(Genode::Env &env)
 {
+	genode_env = &env;
+
 	int argc = 3;
 	const char *argv[] = { "gdbserver", "/dev/terminal", "target", 0 };
 
-	return gdbserver_main(argc, argv);
+	gdbserver_main(argc, argv);
 }

@@ -11,10 +11,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <base/rpc_server.h>
-#include <base/signal.h>
-#include <cap_session/connection.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 #include <scout/user_state.h>
 #include <scout/nitpicker_graphics_backend.h>
 
@@ -101,11 +100,9 @@ static bool config_decoration = true;
 /**
  * Parse configuration
  */
-static void read_config()
+static void read_config(Genode::Xml_node config_node)
 {
 	using namespace Genode;
-
-	Xml_node config_node = config()->xml_node();
 
 	try {
 		char buf[16];
@@ -169,41 +166,70 @@ static void read_config()
 
 struct Input_handler
 {
-	GENODE_RPC(Rpc_handle_input, void, handle, Scout::Event&);
+	GENODE_RPC(Rpc_handle_input, void, handle_input, Scout::Event const &);
 	GENODE_RPC_INTERFACE(Rpc_handle_input);
 };
 
 
-class Input_handler_component : public Genode::Rpc_object<Input_handler,
-                                                          Input_handler_component>
+class Main : public Scout::Event_handler
 {
-
 	private:
 
 		Scout::Platform                          &_pf;
 		Scout::User_state                        &_user_state;
 		Framebuffer_window<Genode::Pixel_rgb565> &_fb_win;
-		Genode::Signal_receiver                  &_sig_rec;
+		Genode::Attached_rom_dataspace           &_config;
 		unsigned long                             _curr_time, _old_time;
+
+		void _handle_config()
+		{
+			_config.update();
+
+			/* keep the current values by default */
+			config_fb_x      = _fb_win.view_x();
+			config_fb_y      = _fb_win.view_y();
+			config_fb_width  = _fb_win.view_w();
+			config_fb_height = _fb_win.view_h();
+
+			try { read_config(_config.xml()); } catch (...) { }
+			
+			_fb_win.name(config_title);
+			_fb_win.config_alpha(config_alpha);
+			_fb_win.config_resize_handle(config_resize_handle);
+			_fb_win.config_decoration(config_decoration);
+
+			/* must get called after 'config_decoration()' */
+			_fb_win.content_geometry(config_fb_x, config_fb_y,
+			 config_fb_width, config_fb_height);
+			_user_state.update_view_offset();
+		}
+
+		Genode::Signal_handler<Main> _config_handler;
 
 	public:
 
-		Input_handler_component(Scout::Platform &pf,
-		                        Scout::User_state &user_state,
-		                        Framebuffer_window<Genode::Pixel_rgb565> &fb_win,
-		                        Genode::Signal_receiver &sig_rec)
+		Main(Scout::Platform                          &pf,
+		     Scout::User_state                        &user_state,
+		     Framebuffer_window<Genode::Pixel_rgb565> &fb_win,
+		     Genode::Entrypoint                       &ep,
+		     Genode::Attached_rom_dataspace           &config)
 		:
 			_pf(pf),
 			_user_state(user_state),
 			_fb_win(fb_win),
-			_sig_rec(sig_rec)
+			_config(config),
+			_config_handler(ep, *this, &Main::_handle_config)
 		{
 			_curr_time = _old_time = _pf.timer_ticks();
+
+			config.sigh(_config_handler);
 		}
 
-		void handle(Scout::Event &ev)
+		void handle_event(Scout::Event const &event) override
 		{
 			using Scout::Event;
+
+			Event ev = event;
 
 			if (ev.type != Event::WHEEL)
 				ev.mouse_position = ev.mouse_position - _user_state.view_position();
@@ -217,30 +243,11 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 
 			if (ev.type == Event::TIMER) {
 				Scout::Tick::handle(_pf.timer_ticks());
-				/* check for configuration changes */
-				if (_sig_rec.pending()) {
-					_sig_rec.wait_for_signal();
-					Genode::config()->reload();
-					/* keep the current values by default */
-					config_fb_x = _fb_win.view_x();
-					config_fb_y = _fb_win.view_y();
-					config_fb_width = _fb_win.view_w();
-					config_fb_height = _fb_win.view_h();
-					try { read_config(); } catch (...) { }
-					_fb_win.name(config_title);
-					_fb_win.config_alpha(config_alpha);
-					_fb_win.config_resize_handle(config_resize_handle);
-					_fb_win.config_decoration(config_decoration);
-					/* must get called after 'config_decoration()' */
-					_fb_win.content_geometry(config_fb_x, config_fb_y,
-					                         config_fb_width, config_fb_height);
-					_user_state.update_view_offset();
-				}
 			}
 
 			/* perform periodic redraw */
 			_curr_time = _pf.timer_ticks();
-			if (!_pf.event_pending() && ((_curr_time - _old_time > 20) || (_curr_time < _old_time))) {
+			if ((_curr_time - _old_time > 20) || (_curr_time < _old_time)) {
 				_old_time = _curr_time;
 				_fb_win.process_redraw();
 			}
@@ -248,29 +255,24 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 };
 
 
-/**
- * Main program
- */
-int main(int argc, char **argv)
+/***************
+ ** Component **
+ ***************/
+
+void Component::construct(Genode::Env &env)
 {
 	using namespace Scout;
 
-	try { read_config(); } catch (...) { }
+	static Genode::Attached_rom_dataspace config(env, "config");
 
-	/*
-	 * Register signal handler for config changes
-	 */
-	static Genode::Signal_receiver sig_rec;
-	static Genode::Signal_context sig_ctx;
-
-	try { Genode::config()->sigh(sig_rec.manage(&sig_ctx)); } catch (...) { }
+	try { read_config(config.xml()); } catch (...) { }
 
 	/* heuristic for allocating the double-buffer backing store */
 	enum { WINBORDER_WIDTH = 10, WINBORDER_HEIGHT = 40 };
 
 	/* init platform */
-	static Nitpicker::Connection nitpicker;
-	static Platform pf(*nitpicker.input());
+	static Nitpicker::Connection nitpicker(env);
+	static Platform pf(env, *nitpicker.input());
 
 	Area  const max_size(config_fb_width  + WINBORDER_WIDTH,
 	                     config_fb_height + WINBORDER_HEIGHT);
@@ -301,27 +303,9 @@ int main(int argc, char **argv)
 	fb_win.content_geometry(config_fb_x, config_fb_y,
 	                        config_fb_width, config_fb_height);
 
-	/* initialize server entry point */
-	enum { STACK_SIZE = 2*1024*sizeof(Genode::addr_t) };
-	static Genode::Cap_connection cap;
-	static Genode::Rpc_entrypoint ep(&cap, STACK_SIZE, "liquid_fb_ep");
-
 	/* initialize public services */
-	init_services(ep);
+	init_services(env.ep().rpc_ep());
 
-	/* create local input handler service */
-	static Input_handler_component input_handler(pf, user_state, fb_win,
-	                                             sig_rec);
-	Genode::Capability<Input_handler> input_handler_cap = ep.manage(&input_handler);
-
-	/* enter main loop */
-	for (;;) {
-		Event ev = pf.get_event();
-		input_handler_cap.call<Input_handler::Rpc_handle_input>(ev);
-
-		if (ev.type == Event::QUIT)
-			break;
-	}
-
-	return 0;
+	static Main main(pf, user_state, fb_win, env.ep(), config);
+	pf.event_handler(main);
 }

@@ -76,7 +76,7 @@ class Scout::Event_handler
 		/**
 		 * Handle event
 		 */
-		virtual void handle(Event &e) = 0;
+		virtual void handle_event(Event const &e) = 0;
 };
 
 #endif /* _INCLUDE__SCOUT__EVENT_H_ */

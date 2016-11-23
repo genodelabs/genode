@@ -25,25 +25,29 @@ struct Child : Child_base, List<Child>::Element
 	Argument argument;
 
 	Child(Ram                              &ram,
-	      char                       const *label,
-	      char                       const *binary,
-	      Genode::Cap_session              &cap_session,
+	      Name                       const &label,
+	      Binary_name                const &binary,
+	      Genode::Pd_session               &pd_session,
+	      Genode::Ram_session              &ref_ram,
+	      Genode::Ram_session_capability    ref_ram_cap,
+	      Genode::Region_map               &local_rm,
 	      Genode::size_t                    ram_quota,
 	      Genode::size_t                    ram_limit,
 	      Genode::Signal_context_capability yield_response_sig_cap,
-	      Genode::Signal_context_capability exit_sig_cap,
-	      Genode::Dataspace_capability      ldso_ds)
+	      Genode::Signal_context_capability exit_sig_cap)
 	:
 		Child_base(ram,
 		           label,
 		           binary,
-		           cap_session,
+		           pd_session,
+		           ref_ram,
+		           ref_ram_cap,
+		           local_rm,
 		           ram_quota,
 		           ram_limit,
 		           yield_response_sig_cap,
-		           exit_sig_cap,
-		           ldso_ds),
-		argument(label, "subsystem")
+		           exit_sig_cap),
+		argument(label.string(), "subsystem")
 	{ }
 };
 

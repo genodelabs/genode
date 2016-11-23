@@ -14,10 +14,12 @@
 #ifndef _GENODE_CHILD_RESOURCES_H_
 #define _GENODE_CHILD_RESOURCES_H_
 
-#include "cpu_session_component.h"
 #include "region_map_component.h"
 
-namespace Gdb_monitor { class Genode_child_resources; }
+namespace Gdb_monitor {
+	class Cpu_session_component;
+	class Genode_child_resources;
+}
 
 class Gdb_monitor::Genode_child_resources
 {

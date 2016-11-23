@@ -32,18 +32,18 @@ class Kill_event_handler : public Scout::Event_handler
 {
 	private:
 
-		Launchpad       *_launchpad;
-		Launchpad_child *_launchpad_child;
+		Launchpad       &_launchpad;
+		Launchpad_child &_launchpad_child;
 
 	public:
 
-		Kill_event_handler(Launchpad *launchpad, Launchpad_child *launchpad_child):
+		Kill_event_handler(Launchpad &launchpad, Launchpad_child &launchpad_child):
 			_launchpad(launchpad), _launchpad_child(launchpad_child) { }
 
 		/**
 		 * Event handler interface
 		 */
-		void handle(Scout::Event &ev)
+		void handle_event(Scout::Event const &ev) override
 		{
 			static int key_cnt;
 
@@ -53,7 +53,7 @@ class Kill_event_handler : public Scout::Event_handler
 			if (ev.type == Event::RELEASE) key_cnt--;
 
 			if (ev.type == Event::RELEASE && key_cnt == 0)
-				_launchpad->exit_child(_launchpad_child);
+				_launchpad.exit_child(_launchpad_child);
 		}
 };
 
@@ -73,7 +73,7 @@ class Child_entry : public Scout::Parent_element,
 		Scout::Block      _block;
 		Kbyte_loadbar<PT> _loadbar;
 
-		char              _name[_NAME_LEN];
+		Launchpad_child::Name const _name;
 
 		Scout::Fade_icon<PT, _IW, _IH> _kill_icon;
 		Scout::Fade_icon<PT, _IW, _IH> _fold_icon;
@@ -85,14 +85,14 @@ class Child_entry : public Scout::Parent_element,
 		/**
 		 * Constructor
 		 */
-		Child_entry(const char *name, int quota_kb, int max_quota_kb,
-		            Launchpad *launchpad, Launchpad_child *launchpad_child)
+		Child_entry(Launchpad_child::Name const &name, int quota_kb, int max_quota_kb,
+		            Launchpad &launchpad, Launchpad_child &launchpad_child)
 		:
 			_block(Scout::Block::RIGHT), _loadbar(0, &Scout::label_font),
+			_name(name),
 			_kill_event_handler(launchpad, launchpad_child)
 		{
-			Genode::strncpy(_name, name, sizeof(_name));
-			_block.append_plaintext(_name, &Scout::plain_style);
+			_block.append_plaintext(_name.string(), &Scout::plain_style);
 
 			_loadbar.max_value(max_quota_kb);
 			_loadbar.value(quota_kb);
@@ -118,7 +118,7 @@ class Child_entry : public Scout::Parent_element,
 		/**
 		 * Accessors
 		 */
-		const char *name() { return _name; }
+		Launchpad_child::Name name() { return _name; }
 
 
 		/******************************

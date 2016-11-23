@@ -50,6 +50,39 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 
 		Genode::Allocator &_alloc;
 
+		struct Buffered_xml
+		{
+			Allocator         &_alloc;
+			char const * const _ptr;   /* pointer to dynamically allocated buffer */
+			Xml_node     const _xml;   /* referring to buffer of '_ptr' */
+
+			/**
+			 * \throw Allocator::Out_of_memory
+			 */
+			static char const *_init_ptr(Allocator &alloc, Xml_node node)
+			{
+				char *ptr = (char *)alloc.alloc(node.size());
+				Genode::memcpy(ptr, node.addr(), node.size());
+				return ptr;
+			}
+
+			/**
+			 * Constructor
+			 *
+			 * \throw Allocator::Out_of_memory
+			 */
+			Buffered_xml(Allocator &alloc, Xml_node node)
+			:
+				_alloc(alloc), _ptr(_init_ptr(alloc, node)), _xml(_ptr, node.size())
+			{ }
+
+			~Buffered_xml() { _alloc.free(const_cast<char *>(_ptr), _xml.size()); }
+
+			Xml_node xml() const { return _xml; }
+		};
+
+		Lazy_volatile_object<Buffered_xml> _config;
+
 		List<Element> _elements;
 
 		Label _focus;
@@ -135,7 +168,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 		Element *_clicked = nullptr;
 		bool     _click_in_progress = false;
 
-		Signal_rpc_member<Panel_dialog> _timer_dispatcher;
+		Signal_handler<Panel_dialog> _timer_handler;
 
 		Label          _context_subsystem;
 		Context_dialog _context_dialog;
@@ -165,9 +198,13 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 
 		void _start(Label const &label)
 		{
+			if (!_config.constructed()) {
+				warning("attempt to start subsystem without prior configuration");
+				return;
+			}
+
 			try {
-				Xml_node subsystem = _subsystem(config()->xml_node(),
-				                                label.string());
+				Xml_node subsystem = _subsystem(_config->xml(), label.string());
 				_subsystem_manager.start(subsystem);
 
 				Title const title = subsystem.attribute_value("title", Title());
@@ -232,7 +269,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 			_context_dialog.visible(true);
 		}
 
-		void _handle_timer(unsigned)
+		void _handle_timer()
 		{
 			if (_click_in_progress && _clicked && _hovered() == _clicked) {
 				_open_context_dialog(_clicked->label);
@@ -250,26 +287,23 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 
 	public:
 
-		Panel_dialog(Server::Entrypoint &ep, Cap_session &cap, Ram_session &ram,
-		             Dataspace_capability ldso_ds,
-		             Genode::Allocator &alloc,
-		             Report_rom_slave &report_rom_slave,
-		             Subsystem_manager &subsystem_manager,
+		Panel_dialog(Env                &env,
+		             Genode::Allocator  &alloc,
+		             Report_rom_slave   &report_rom_slave,
+		             Subsystem_manager  &subsystem_manager,
 		             Nitpicker::Session &nitpicker)
 		:
 			_alloc(alloc),
 			_subsystem_manager(subsystem_manager),
 			_nitpicker(nitpicker),
-			_dialog(ep, cap, ram, ldso_ds, report_rom_slave,
-			        "panel_dialog", "panel_hover",
-			        *this, *this, *this, *this,
-			        _position),
-			_timer_dispatcher(ep, *this, &Panel_dialog::_handle_timer),
-			_context_dialog(ep, cap, ram, ldso_ds, report_rom_slave, *this),
-			_menu_dialog(ep, cap, ram, ldso_ds, report_rom_slave, *this)
+			_dialog(env, report_rom_slave, "panel_dialog", "panel_hover",
+			        *this, *this, *this, *this, _position),
+			_timer_handler(env.ep(), *this, &Panel_dialog::_handle_timer),
+			_context_dialog(env, report_rom_slave, *this),
+			_menu_dialog(env, report_rom_slave, *this)
 		{
 			_elements.insert(&_menu_button);
-			_timer.sigh(_timer_dispatcher);
+			_timer.sigh(_timer_handler);
 		}
 
 		/**
@@ -514,13 +548,17 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 			_kill(label);
 		}
 
+		/**
+		 * \throw Allocator::Out_of_memory
+		 */
 		void update(Xml_node config)
 		{
+			_config.construct(_alloc, config);
+
 			/* populate menu dialog with one item per subsystem */
-			_menu_dialog.update(config);
+			_menu_dialog.update(_config->xml());
 
 			/* evaluate configuration */
-
 			_dialog.update();
 		}
 

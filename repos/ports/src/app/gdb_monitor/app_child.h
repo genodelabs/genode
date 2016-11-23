@@ -25,73 +25,68 @@
 
 #include <util/arg_string.h>
 
-#include "cpu_root.h"
 #include "genode_child_resources.h"
+#include "cpu_session_component.h"
 #include "pd_session_component.h"
-#include "ram_root.h"
 #include "rom.h"
 
 
 namespace Gdb_monitor { class App_child; }
 
-class Gdb_monitor::App_child : public Child_policy,
-                               public Init::Child_policy_enforce_labeling
+class Gdb_monitor::App_child : public Child_policy
 {
+	public:
+
+		typedef Genode::Registered<Genode::Parent_service> Parent_service;
+		typedef Genode::Registry<Parent_service> Parent_services;
+
 	private:
 
 		enum { STACK_SIZE = 4*1024*sizeof(long) };
 
-		const char                   *_unique_name;
+		Init::Child_policy_enforce_labeling _labeling_policy;
 
-		Genode::Dataspace_capability  _elf_ds;
-		Genode::Dataspace_capability  _ldso_ds;
+		Genode::Env                        &_env;
 
-		Rpc_entrypoint                _entrypoint;
+		Genode::Ram_session_capability      _ref_ram_cap { _env.ram_session_cap() };
+		Genode::Ram_session_client          _ref_ram { _ref_ram_cap };
 
-		Service_registry             *_parent_services;
-		Service_registry              _local_services;
+		const char                         *_unique_name;
 
-		Genode::Rpc_entrypoint       *_root_ep;
+		Genode::Dataspace_capability        _elf_ds;
 
-		Init::Child_config            _child_config;
+		Genode::Region_map                 &_rm;
 
-		Init::Child_policy_provide_rom_file _binary_policy;
+		Genode::size_t                      _ram_quota;
+
+		Rpc_entrypoint                      _entrypoint;
+
+		Parent_services                     _parent_services;
+
+		Init::Child_config                  _child_config;
+
 		Init::Child_policy_provide_rom_file _config_policy;
 
-		Genode_child_resources        _genode_child_resources;
+		Genode_child_resources              _genode_child_resources;
 
-		Signal_dispatcher<App_child>  _unresolved_page_fault_dispatcher;
+		Signal_dispatcher<App_child>        _unresolved_page_fault_dispatcher;
 
-		Dataspace_pool                _managed_ds_map;
+		Dataspace_pool                      _managed_ds_map;
 
-		Pd_session_component          _pd {_unique_name, _entrypoint, _managed_ds_map};
+		Pd_session_component                _pd {_unique_name, _entrypoint, _managed_ds_map};
+		Pd_service::Single_session_factory  _pd_factory { _pd };
+		Pd_service                          _pd_service { _pd_factory };
 
-		Cpu_root                      _cpu_root;
-		Cpu_session_client            _cpu_session;
+		Local_cpu_factory                   _cpu_factory;
+		Cpu_service                         _cpu_service { _cpu_factory };
 
-		Ram_session_client            _ram_session;
+		Local_rom_factory                   _rom_factory;
+		Rom_service                         _rom_service { _rom_factory };
 
-		Region_map_client             _address_space { _pd.address_space() };
+		Child                              *_child;
 
-		Child::Initial_thread         _initial_thread;
-
-		Parent_service                _parent_pd_service { "" };
-		Parent_service                _parent_ram_service { "" };
-		Parent_service                _parent_cpu_service { "" };
-
-		Child                        *_child;
-
-		Rom_service                   _rom_service;
-
-
-		Cpu_session_capability _get_cpu_session_cap()
-		{
-			_entrypoint.manage(&_cpu_root);
-			char args[64];
-			Genode::snprintf(args, sizeof(args), "ram_quota=64K, label=\"%s\"", _unique_name);
-			return static_cap_cast<Cpu_session>(_cpu_root.session(args, Affinity()));
-		}
-
+		/* FIXME */
+#if 0
 		/**
 		 * Proxy for a service provided by the child
 		 */
@@ -229,10 +224,21 @@ class Gdb_monitor::App_child : public Child_policy,
 					child_ram.transfer_quota(env()->ram_session_cap(), ram_quota);
 				}
 		};
-
+#endif
 		void _dispatch_unresolved_page_fault(unsigned)
 		{
 			_genode_child_resources.cpu_session_component()->handle_unresolved_page_fault();
+		}
+
+		template <typename T>
+		static Genode::Service *_find_service(Genode::Registry<T> &services,
+		                                      Genode::Service::Name const &name)
+		{
+			Genode::Service *service = nullptr;
+			services.for_each([&] (T &s) {
+				if (!service && (s.name() == name))
+					service = &s; });
+			return service;
 		}
 
 	public:
@@ -244,38 +250,30 @@ class Gdb_monitor::App_child : public Child_policy,
 		 *                 services provided by the child and announced
 		 *                 towards the parent of GDB monitor
 		 */
-		App_child(const char                     *unique_name,
-				  Genode::Dataspace_capability    elf_ds,
-				  Genode::Dataspace_capability    ldso_ds,
-				  Genode::Ram_session_capability  ram_session,
-				  Genode::Cap_session            *cap_session,
-				  Service_registry               *parent_services,
-				  Genode::Rpc_entrypoint         *root_ep,
+		App_child(Genode::Env                    &env,
+		          const char                     *unique_name,
+				  Genode::Pd_session             &pd,
+				  Genode::Region_map             &rm,
+				  Genode::size_t                  ram_quota,
 				  Signal_receiver                *signal_receiver,
 				  Xml_node                        target_node)
-		: Init::Child_policy_enforce_labeling(unique_name),
+		: _labeling_policy(unique_name),
+		  _env(env),
 		  _unique_name(unique_name),
-		  _elf_ds(elf_ds),
-		  _ldso_ds(ldso_ds),
-		  _entrypoint(cap_session, STACK_SIZE, "GDB monitor entrypoint name"),
-		  _parent_services(parent_services),
-		  _root_ep(root_ep),
-		  _child_config(ram_session, target_node),
-		  _binary_policy("binary", elf_ds, &_entrypoint),
+		  _rm(rm),
+		  _ram_quota(ram_quota),
+		  _entrypoint(&pd, STACK_SIZE, "GDB monitor entrypoint"),
+		  _child_config(env.ram(), rm, target_node),
 		  _config_policy("config", _child_config.dataspace(), &_entrypoint),
 		  _unresolved_page_fault_dispatcher(*signal_receiver,
 		                                    *this,
 		                                    &App_child::_dispatch_unresolved_page_fault),
-		  _cpu_root(&_entrypoint, &_entrypoint, env()->heap(), _pd.core_pd_cap(),
-					signal_receiver, &_genode_child_resources),
-		  _cpu_session(_get_cpu_session_cap()),
-		  _ram_session(ram_session),
-		  _initial_thread(_cpu_session, _pd.cap(), unique_name),
-		  _rom_service(&_entrypoint, env()->heap())
+		  _cpu_factory(_env, _entrypoint, Genode::env()->heap(), _pd.core_pd_cap(),
+		               signal_receiver, &_genode_child_resources),
+		  _rom_factory(env, _entrypoint)
 		{
 			_genode_child_resources.region_map_component(&_pd.region_map());
 			_pd.region_map().fault_handler(_unresolved_page_fault_dispatcher);
-			_local_services.insert(&_rom_service);
 		}
 
 		~App_child()
@@ -290,68 +288,72 @@ class Gdb_monitor::App_child : public Child_policy,
 
 		void start()
 		{
-			_child = new (env()->heap()) Child(_elf_ds,
-			                                   _ldso_ds,
-			                                   _pd.cap(),
-			                                   _pd,
-			                                   _ram_session,
-			                                   _ram_session,
-			                                   _cpu_session,
-			                                   _initial_thread,
-			                                   *Genode::env()->rm_session(),
-			                                   _address_space,
-		                                       _entrypoint,
-		                                       *this);
+			_child = new (env()->heap()) Child(_rm, _entrypoint, *this);
 		}
 
 		/****************************
 		 ** Child-policy interface **
 		 ****************************/
 
-		const char *name() const { return _unique_name; }
+		Name name() const override { return _unique_name; }
 
-		void filter_session_args(const char *, char *args, Genode::size_t args_len)
+		Genode::Ram_session &ref_ram() override { return _ref_ram; }
+
+		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
+
+		void init(Genode::Ram_session &session,
+		          Genode::Ram_session_capability cap) override
 		{
-			Init::Child_policy_enforce_labeling::filter_session_args(0, args, args_len);
+			session.ref_account(_ref_ram_cap);
+			_ref_ram.transfer_quota(cap, _ram_quota);
 		}
 
-		Service *resolve_session_request(const char *service_name,
-										 const char *args)
+		void filter_session_args(Service::Name const&, char *args, Genode::size_t args_len) override
 		{
-			Service *service = 0;
+			_labeling_policy.filter_session_args(0, args, args_len);
+		}
 
-			/* check for binary file request */
-			if ((service = _binary_policy.resolve_session_request(service_name, args)))
-				return service;
+		Service &resolve_session_request(Genode::Service::Name const &service_name,
+										 Genode::Session_state::Args const &args) override
+		{
+			Service *service = nullptr;
 
 			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name, args)))
-					return service;
+			if ((service = _config_policy.resolve_session_request(service_name.string(), args.string())))
+					return *service;
 
-			service = _local_services.find(service_name);
-			if (service)
-				return service;
+			if (service_name == "CPU")
+				return _cpu_service;
 
-			service = _parent_services->find(service_name);
-			if (!service) {
-				service = new (env()->heap()) Parent_service(service_name);
-				_parent_services->insert(service);
-			}
+			if (service_name == "PD")
+				return _pd_service;
 
-			return service;
+			if (service_name == "ROM")
+				return _rom_service;
+
+			service = _find_service(_parent_services, service_name);
+			if (!service)
+				service = new (env()->heap()) Parent_service(_parent_services, _env, service_name);
+
+			if (!service)
+				throw Parent::Service_denied();
+
+			return *service;
 		}
 
-		bool announce_service(const char     *name,
-							  Root_capability root,
-							  Allocator      *alloc,
-							  Server         *server)
+		// XXX adjust to API change, need to serve a "session_requests" rom
+		// to the child
+		void announce_service(Service::Name const &name) override
 		{
+			/* FIXME */
+#if 0
 			/* create and announce proxy for the child's root interface */
 			Child_service_root *r = new (alloc)
 				Child_service_root(_ram_session, root);
-
 			Genode::env()->parent()->announce(name, _root_ep->manage(r));
-			return true;
+#else
+			Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+#endif
 		}
 };
 

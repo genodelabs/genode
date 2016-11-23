@@ -16,43 +16,59 @@
 
 /* Genode includes */
 #include <base/allocator.h>
+#include <base/env.h>
 #include <base/rpc_server.h>
+#include <base/service.h>
 #include <base/thread.h>
 #include <base/printf.h>
 #include <cpu_session/client.h>
+#include <parent/parent.h>
 #include <pd_session/capability.h>
 
 /* GDB monitor includes */
 #include "append_list.h"
+#include "genode_child_resources.h"
 
 namespace Gdb_monitor
 {
 	class Cpu_session_component;
 	class Cpu_thread_component;
+	class Local_cpu_factory;
+
+	typedef Genode::Local_service<Cpu_session_component> Cpu_service;
+
 	using namespace Genode;
 }
+
 
 class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 {
 
 	private:
 
-		Rpc_entrypoint *_thread_ep;
-		Allocator      *_md_alloc;
+		Genode::Env                            &_env;
 
-		Pd_session_capability _core_pd;
+		Genode::Parent::Client                  _parent_client;
+		
+		Id_space<Parent::Client>::Element const _id_space_element
+		{ _parent_client, _env.id_space() };
 
-		Cpu_session_client _parent_cpu_session;
-		Signal_receiver *_exception_signal_receiver;
+		Rpc_entrypoint                         &_ep;
+		Allocator                              *_md_alloc;
 
-		Append_list<Cpu_thread_component> _thread_list;
+		Pd_session_capability                   _core_pd;
 
-		bool _stop_new_threads = true;
-		Lock _stop_new_threads_lock;
+		Cpu_session_client                      _parent_cpu_session;
+		Signal_receiver                        *_exception_signal_receiver;
 
-		Capability<Cpu_session::Native_cpu> _native_cpu_cap;
+		Append_list<Cpu_thread_component>       _thread_list;
 
-		Capability<Cpu_session::Native_cpu> _setup_native_cpu();
+		bool                                    _stop_new_threads = true;
+		Lock                                    _stop_new_threads_lock;
+
+		Capability<Cpu_session::Native_cpu>     _native_cpu_cap;
+
+		Capability<Cpu_session::Native_cpu>     _setup_native_cpu();
 		void _cleanup_native_cpu();
 
 	public:
@@ -60,11 +76,13 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		/**
 		 * Constructor
 		 */
-		Cpu_session_component(Rpc_entrypoint *thread_ep,
-		                      Allocator *md_alloc,
-		                      Pd_session_capability core_pd,
-		                      Signal_receiver *exception_signal_receiver,
-		                      const char *args);
+		Cpu_session_component(Genode::Env           &env,
+		                      Rpc_entrypoint        &ep,
+		                      Allocator             *md_alloc,
+		                      Pd_session_capability  core_pd,
+		                      Signal_receiver       *exception_signal_receiver,
+		                      const char            *args,
+		                      Affinity const        &affinity);
 
 		/**
 		 * Destructor
@@ -107,6 +125,61 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		int transfer_quota(Cpu_session_capability c, Genode::size_t q) override;
 		Quota quota() override;
 		Capability<Native_cpu> native_cpu() override;
+};
+
+
+class Gdb_monitor::Local_cpu_factory : public Cpu_service::Factory
+{
+	private:
+
+		Genode::Env             &_env;
+		Genode::Rpc_entrypoint  &_ep;
+
+		Allocator               *_md_alloc;
+		Pd_session_capability    _core_pd;
+		Genode::Signal_receiver *_signal_receiver;
+		Genode_child_resources  *_genode_child_resources;
+
+
+	public:
+
+		Local_cpu_factory(Genode::Env &env, Genode::Rpc_entrypoint &ep,
+		                  Allocator *md_alloc,
+		                  Pd_session_capability core_pd,
+		                  Genode::Signal_receiver *signal_receiver,
+		                  Genode_child_resources *genode_child_resources)
+		: _env(env), _ep(ep),
+		  _md_alloc(md_alloc),
+		  _core_pd(core_pd),
+		  _signal_receiver(signal_receiver),
+		  _genode_child_resources(genode_child_resources)
+		  { }
+
+		/***********************
+		 ** Factory interface **
+		 ***********************/
+
+		Cpu_session_component &create(Args const &args, Affinity affinity) override
+		{
+			Cpu_session_component *cpu_session_component =
+				new (_md_alloc)
+					Cpu_session_component(_env,
+					                      _ep,
+					                      _md_alloc,
+					                      _core_pd,
+					                      _signal_receiver,
+					                      args.string(),
+					                      affinity);
+			_genode_child_resources->cpu_session_component(cpu_session_component);
+			return *cpu_session_component;
+		}
+
+		void upgrade(Cpu_session_component &, Args const &) override { }
+
+		void destroy(Cpu_session_component &session) override
+		{
+			Genode::destroy(env()->heap(), &session);
+		}
 };
 
 #endif /* _CPU_SESSION_COMPONENT_H_ */

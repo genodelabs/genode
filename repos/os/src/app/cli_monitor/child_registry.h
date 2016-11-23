@@ -30,7 +30,7 @@ class Child_registry : public List<Child>
 		bool _child_name_exists(const char *label)
 		{
 			for (Child *child = first() ; child; child = child->next())
-				if (strcmp(child->name(), label) == 0)
+				if (child->name() == label)
 					return true;
 			return false;
 		}

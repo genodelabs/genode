@@ -40,13 +40,13 @@ struct Ram_command : Command
 			size_t const avail  = Genode::env()->ram_session()->avail();
 			if (amount > avail) {
 				tprintf(terminal, "upgrade of '%s' exceeds available quota of ",
-				        child.name());
+				        child.name().string());
 				tprint_bytes(terminal, avail);
 				tprintf(terminal, "\n");
 				amount = avail;
 			}
 
-			tprintf(terminal, "upgrading quota of '%s' to ", child.name());
+			tprintf(terminal, "upgrading quota of '%s' to ", child.name().string());
 			tprint_bytes(terminal, old_quota + amount);
 			tprintf(terminal, "\n");
 
@@ -69,7 +69,7 @@ struct Ram_command : Command
 				amount = avail;
 			}
 
-			tprintf(terminal, "depleting quota of '%s' to ", child.name());
+			tprintf(terminal, "depleting quota of '%s' to ", child.name().string());
 			tprint_bytes(terminal, old_quota - amount);
 			tprintf(terminal, "\n");
 
@@ -82,8 +82,8 @@ struct Ram_command : Command
 
 	void _for_each_argument(Argument_fn const &fn) const override
 	{
-		auto child_name_fn = [&] (char const *child_name) {
-			Argument arg(child_name, "");
+		auto child_name_fn = [&] (Child_base::Name const &child_name) {
+			Argument arg(child_name.string(), "");
 			fn(arg);
 		};
 
@@ -102,7 +102,7 @@ struct Ram_command : Command
 		/* lookup child by its unique name */
 		Child *child = _children.first();
 		for (; child; child = child->next())
-			if (strcmp(child->name(), label) == 0)
+			if (child->name() == label)
 				break;
 
 		if (!child) {

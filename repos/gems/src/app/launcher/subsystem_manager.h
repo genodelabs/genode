@@ -25,28 +25,7 @@ namespace Launcher {
 
 	class Subsystem_manager;
 	using Decorator::string_attribute;
-}
-
-
-/***************
- ** Utilities **
- ***************/
-
-/*
- * XXX copied from 'cli_monitor/main.cc'
- */
-static Genode::size_t ram_preservation_from_config()
-{
-	Genode::Number_of_bytes ram_preservation = 0;
-	try {
-		Genode::Xml_node node =
-			Genode::config()->xml_node().sub_node("preservation");
-
-		if (node.attribute("name").has_value("RAM"))
-			node.attribute("quantum").value(&ram_preservation);
-	} catch (...) { }
-
-	return ram_preservation;
+	using namespace Genode;
 }
 
 
@@ -61,34 +40,15 @@ class Launcher::Subsystem_manager
 
 	private:
 
-		Server::Entrypoint  &_ep;
-		Cap_session         &_cap;
-		Dataspace_capability _ldso_ds;
+		Entrypoint &_ep;
+		Pd_session &_pd;
+
+		size_t const _ram_preservation;
 
 		struct Child : Child_base, List<Child>::Element
 		{
-			typedef String<128> Binary_name;
-
-			Child(Ram                      &ram,
-			      Label              const &label,
-			      Binary_name        const &binary,
-			      Cap_session              &cap_session,
-			      size_t                    ram_quota,
-			      size_t                    ram_limit,
-			      Signal_context_capability yield_response_sig_cap,
-			      Signal_context_capability exit_sig_cap,
-			      Dataspace_capability      ldso_ds)
-			:
-				Child_base(ram,
-				           label.string(),
-				           binary.string(),
-				           cap_session,
-				           ram_quota,
-				           ram_limit,
-				           yield_response_sig_cap,
-				           exit_sig_cap,
-				           ldso_ds)
-			{ }
+			template <typename... ARGS>
+			Child(ARGS &&... args) : Child_base(args...) { }
 		};
 
 		List<Child> _children;
@@ -99,10 +59,10 @@ class Launcher::Subsystem_manager
 				child->try_response_to_resource_request();
 		}
 
-		Genode::Signal_rpc_member<Subsystem_manager> _yield_broadcast_dispatcher =
+		Signal_handler<Subsystem_manager> _yield_broadcast_handler =
 			{ _ep, *this, &Subsystem_manager::_handle_yield_broadcast };
 
-		void _handle_yield_broadcast(unsigned)
+		void _handle_yield_broadcast()
 		{
 			_try_response_to_resource_request();
 
@@ -129,27 +89,27 @@ class Launcher::Subsystem_manager
 				child->yield(amount, true);
 		}
 
-		Genode::Signal_rpc_member<Subsystem_manager> _resource_avail_dispatcher =
+		Signal_handler<Subsystem_manager> _resource_avail_handler =
 			{ _ep, *this, &Subsystem_manager::_handle_resource_avail };
 
-		void _handle_resource_avail(unsigned)
+		void _handle_resource_avail()
 		{
 			_try_response_to_resource_request();
 		}
 
-		Genode::Signal_rpc_member<Subsystem_manager> _yield_response_dispatcher =
+		Signal_handler<Subsystem_manager> _yield_response_handler =
 			{ _ep, *this, &Subsystem_manager::_handle_yield_response };
 
-		void _handle_yield_response(unsigned)
+		void _handle_yield_response()
 		{
 			_try_response_to_resource_request();
 		}
 
 		Genode::Signal_context_capability _exited_child_sig_cap;
 
-		Ram _ram { ram_preservation_from_config(),
-		           _yield_broadcast_dispatcher,
-		           _resource_avail_dispatcher };
+		Ram _ram { _ram_preservation,
+		           _yield_broadcast_handler,
+		           _resource_avail_handler };
 
 		static Child::Binary_name _binary_name(Xml_node subsystem)
 		{
@@ -187,11 +147,11 @@ class Launcher::Subsystem_manager
 
 	public:
 
-		Subsystem_manager(Server::Entrypoint &ep, Cap_session &cap,
-		                  Genode::Signal_context_capability exited_child_sig_cap,
-		                  Dataspace_capability ldso_ds)
+		Subsystem_manager(Genode::Entrypoint &ep, Pd_session &pd,
+		                  size_t ram_preservation,
+		                  Genode::Signal_context_capability exited_child_sig_cap)
 		:
-			_ep(ep), _cap(cap), _ldso_ds(ldso_ds),
+			_ep(ep), _pd(pd), _ram_preservation(ram_preservation),
 			_exited_child_sig_cap(exited_child_sig_cap)
 		{ }
 
@@ -213,10 +173,14 @@ class Launcher::Subsystem_manager
 
 			try {
 				Child *child = new (env()->heap())
-					Child(_ram, label, binary_name.string(), _cap,
+					Child(_ram, label, binary_name.string(),
+					      *Genode::env()->pd_session(),
+					      *Genode::env()->ram_session(),
+					      Genode::env()->ram_session_cap(),
+					      *Genode::env()->rm_session(),
 					      ram_config.quantum, ram_config.limit,
-					      _yield_broadcast_dispatcher,
-					      _exited_child_sig_cap, _ldso_ds);
+					      _yield_broadcast_handler,
+					      _exited_child_sig_cap);
 
 				/* configure child */
 				try {
@@ -228,8 +192,8 @@ class Launcher::Subsystem_manager
 
 				child->start();
 
-			} catch (Rom_connection::Rom_connection_failed) {
-				Genode::error("binary \"", binary_name, "\" is missing");
+			} catch (Parent::Service_denied) {
+				Genode::error("failed to start ", binary_name);
 				throw Invalid_config();
 			}
 		}

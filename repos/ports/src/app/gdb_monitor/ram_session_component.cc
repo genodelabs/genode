@@ -20,8 +20,10 @@
 using namespace Genode;
 using namespace Gdb_monitor;
 
-Ram_session_component::Ram_session_component(const char *args)
-: _parent_ram_session(env()->parent()->session<Ram_session>(args))
+Ram_session_component::Ram_session_component(Genode::Env &env, const char *args,
+                                             Affinity const &affinity)
+: _env(env),
+  _parent_ram_session(_env.session<Ram_session>(_id_space_element.id(), args, affinity))
 { }
 
 

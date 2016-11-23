@@ -17,6 +17,7 @@
 #define _INCLUDE__SCOUT__PLATFORM_H_
 
 #include <base/env.h>
+#include <base/attached_dataspace.h>
 #include <base/semaphore.h>
 #include <timer_session/connection.h>
 #include <input_session/input_session.h>
@@ -51,150 +52,108 @@ class Scout::Platform
 {
 	private:
 
-		/*****************
-		 ** Event queue **
-		 *****************/
-		
-		class Event_queue
+		Genode::Env   &_env;
+		Event_handler *_event_handler = nullptr;
+
+		int _mx = 0, _my = 0;
+
+		void _handle_event(Event const &ev)
 		{
-			private:
+			if (_event_handler)
+				_event_handler->handle_event(ev);
+		}
 
-				static const int queue_size = 1024;
 
-				int               _head;
-				int               _tail;
-				Genode::Semaphore _sem;
-				Genode::Lock      _head_lock;  /* synchronize add */
+		/****************************
+		 ** Timer event processing **
+		 ****************************/
 
-				Event _queue[queue_size];
+		Timer::Connection _timer { _env };
 
-			public:
+		unsigned long _ticks = 0;
 
-				/**
-				 * Constructor
-				 */
-				Event_queue(): _head(0), _tail(0)
-				{
-					Genode::memset(_queue, 0, sizeof(_queue));
-				}
-
-				void add(Event ev)
-				{
-					Genode::Lock::Guard lock_guard(_head_lock);
-
-					if ((_head + 1)%queue_size != _tail) {
-
-						_queue[_head] = ev;
-						_head = (_head + 1)%queue_size;
-						_sem.up();
-					}
-				}
-
-				Event get()
-				{
-					_sem.down();
-					Event ev = _queue[_tail];
-					_tail = (_tail + 1)%queue_size;
-					return ev;
-				}
-
-				int pending() const { return _head != _tail; }
-
-		} _event_queue;
-
-		/******************
-		 ** Timer thread **
-		 ******************/
-
-		class Timer_thread : public Genode::Thread_deprecated<4096>
+		void _handle_timer()
 		{
-			private:
+			_ticks = _timer.elapsed_ms();
 
-				Timer::Connection _timer;
-				Input::Session   &_input;
-				Input::Event     *_ev_buf = { Genode::env()->rm_session()->attach(_input.dataspace()) };
-				Event_queue      &_event_queue;
-				int               _mx, _my;
-				unsigned long     _ticks = { 0 };
+			Event ev;
+			ev.assign(Event::TIMER, _mx, _my, 0);
 
-				void _import_events()
-				{
-					if (_input.pending() == false) return;
+			_handle_event(ev);
+		}
 
-					for (int i = 0, num = _input.flush(); i < num; i++)
-					{
-						Event ev;
-						Input::Event e = _ev_buf[i];
+		Genode::Signal_handler<Platform> _timer_handler {
+			_env.ep(), *this, &Platform::_handle_timer };
 
-						if (e.type() == Input::Event::RELEASE
-						 || e.type() == Input::Event::PRESS) {
-							_mx = e.ax();
-							_my = e.ay();
-							ev.assign(e.type() == Input::Event::PRESS ? Event::PRESS : Event::RELEASE,
-							          e.ax(), e.ay(), e.code());
-							_event_queue.add(ev);
-						}
 
-						if (e.type() == Input::Event::MOTION) {
-							_mx = e.ax();
-							_my = e.ay();
-							ev.assign(Event::MOTION, e.ax(), e.ay(), e.code());
-							_event_queue.add(ev);
-						}
-					}
+		/****************************
+		 ** Input event processing **
+		 ****************************/
+
+		Input::Session &_input;
+
+		Genode::Attached_dataspace _input_ds { _env.rm(), _input.dataspace() };
+
+		Input::Event * const _ev_buf = _input_ds.local_addr<Input::Event>();
+
+		bool _event_pending = 0;
+
+		void _handle_input()
+		{
+			if (_input.pending() == false) return;
+
+			for (int i = 0, num = _input.flush(); i < num; i++)
+			{
+				Event ev;
+				Input::Event e = _ev_buf[i];
+
+				_event_pending = i + 1 < num;
+
+				if (e.type() == Input::Event::RELEASE
+				 || e.type() == Input::Event::PRESS) {
+					_mx = e.ax();
+					_my = e.ay();
+					ev.assign(e.type() == Input::Event::PRESS ? Event::PRESS : Event::RELEASE,
+					          e.ax(), e.ay(), e.code());
+					_handle_event(ev);
 				}
 
-			public:
-
-				/**
-				 * Constructor
-				 *
-				 * Start thread immediately on construction.
-				 */
-				Timer_thread(Input::Session &input, Event_queue &event_queue)
-				: Thread_deprecated("timer"), _input(input), _event_queue(event_queue)
-				{ start(); }
-
-				void entry()
-				{
-					while (1) {
-						Event ev;
-						ev.assign(Event::TIMER, _mx, _my, 0);
-						_event_queue.add(ev);
-
-						_import_events();
-
-						_timer.msleep(10);
-						_ticks += 10;
-					}
+				if (e.type() == Input::Event::MOTION) {
+					_mx = e.ax();
+					_my = e.ay();
+					ev.assign(Event::MOTION, e.ax(), e.ay(), e.code());
+					_handle_event(ev);
 				}
+			}
+		}
 
-				unsigned long ticks() const { return _ticks; }
-		} _timer_thread;
+		Genode::Signal_handler<Platform> _input_handler {
+			_env.ep(), *this, &Platform::_handle_input};
 
 	public:
 
-		Platform(Input::Session &input) : _timer_thread(input, _event_queue) { }
+		Platform(Genode::Env &env, Input::Session &input)
+		: _env(env), _input(input) { }
 
 		/**
 		 * Get timer ticks in miilliseconds
 		 */
-		unsigned long timer_ticks() const { return _timer_thread.ticks(); }
+		unsigned long timer_ticks() const { return _ticks; }
 
 		/**
-		 * Return true if an event is pending
+		 * Register event handler
 		 */
-		bool event_pending() const { return _event_queue.pending(); }
+		void event_handler(Event_handler &handler)
+		{
+			_event_handler = &handler;
 
-		/**
-		 * Request event
-		 *
-		 * \param e  destination where to store event information.
-		 *
-		 * If there is no event pending, this function blocks
-		 * until there is an event to deliver.
-		 */
-		Event get_event() { return _event_queue.get(); }
+			_timer.sigh(_timer_handler);
+			_timer.trigger_periodic(40*1000);
+
+			_input.sigh(_input_handler);
+		}
+
+		bool event_pending() const { return _event_pending; }
 };
 
 #endif /* _INCLUDE__SCOUT__PLATFORM_H_ */

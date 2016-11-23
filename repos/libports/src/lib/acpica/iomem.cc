@@ -1,7 +1,7 @@
 /*
  * \brief  I/O memory backend for ACPICA library
  * \author Alexander Boettcher
- *
+ * \date   2016-11-14
  */
 
 /*
@@ -12,11 +12,12 @@
  */
 
 #include <base/log.h>
-#include <base/env.h>
 #include <util/misc_math.h>
 
 #include <io_mem_session/connection.h>
 #include <rm_session/connection.h>
+
+#include "env.h"
 
 extern "C" {
 #include "acpi.h"
@@ -31,9 +32,7 @@ extern "C" {
 		return retval; \
 	}
 
-namespace Acpica {
-class Io_mem;
-};
+namespace Acpica { class Io_mem; };
 
 class Acpica::Io_mem
 {
@@ -77,7 +76,7 @@ class Acpica::Io_mem
 		void invalidate(ACPI_SIZE s)
 		{
 			if (_io_mem && refs())
-				Genode::destroy(Genode::env()->heap(), _io_mem);
+				Genode::destroy(Acpica::heap(), _io_mem);
 
 			ACPI_PHYSICAL_ADDRESS const p = _phys;
 
@@ -139,7 +138,7 @@ class Acpica::Io_mem
 				io_mem._ref  = r;
 				io_mem._virt = 0;
 
-				io_mem._io_mem = new (Genode::env()->heap())
+				io_mem._io_mem = new (Acpica::heap())
 					Genode::Io_mem_connection(io_mem._phys, io_mem._size);
 
 				return &io_mem;
@@ -152,7 +151,8 @@ class Acpica::Io_mem
 			if (!io_mem)
 				return 0UL;
 
-			io_mem->_virt = Genode::env()->rm_session()->attach(io_mem->_io_mem->dataspace(), io_mem->_size);
+			io_mem->_virt = Acpica::env().rm().attach(io_mem->_io_mem->dataspace(),
+			                                          io_mem->_size);
 
 			return reinterpret_cast<Genode::addr_t>(io_mem->_virt);
 		}
@@ -160,7 +160,7 @@ class Acpica::Io_mem
 		Genode::addr_t pre_expand(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
 			if (_io_mem)
-				Genode::destroy(Genode::env()->heap(), _io_mem);
+				Genode::destroy(Acpica::heap(), _io_mem);
 
 			_io_mem = nullptr;
 
@@ -174,7 +174,7 @@ class Acpica::Io_mem
 		Genode::addr_t post_expand(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
 			if (_io_mem)
-				Genode::destroy(Genode::env()->heap(), _io_mem);
+				Genode::destroy(Acpica::heap(), _io_mem);
 
 			ACPI_SIZE xsize = p + s - _phys;
 			if (!allocate(_phys, xsize, _ref))
@@ -211,8 +211,7 @@ class Acpica::Io_mem
 					io2._io_mem = io_mem._io_mem;
 					Genode::addr_t virt = reinterpret_cast<Genode::addr_t>(io2._virt);
 
-					Genode::env()->rm_session()->attach_at(io_ds, virt,
-					                                       io2._size, off_phys);
+					Acpica::env().rm().attach_at(io_ds, virt, io2._size, off_phys);
 				});
 
 				/**
@@ -227,7 +226,7 @@ class Acpica::Io_mem
 					FAIL(0UL);
 
 				/* attach whole memory */
-				io_mem._virt = Genode::env()->rm_session()->attach(io_ds);
+				io_mem._virt = Acpica::env().rm().attach(io_ds);
 
 				return io_mem.to_virt(p);
 			});

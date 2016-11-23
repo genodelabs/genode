@@ -15,6 +15,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/component.h>
 #include <os/config.h>
 
 /* Virtualbox includes */
@@ -193,8 +194,24 @@ HRESULT setupmachine()
 }
 
 
-int main(int argc, char **argv)
+static Genode::Env *genode_env_ptr;
+
+
+Genode::Env &genode_env()
 {
+	struct Genode_env_ptr_uninitialized : Genode::Exception { };
+	if (!genode_env_ptr)
+		throw Genode_env_ptr_uninitialized();
+
+	return *genode_env_ptr;
+}
+
+
+void Component::construct(Genode::Env &env)
+{
+	/* make Genode environment accessible via the global 'genode_env()' */
+	genode_env_ptr = &env;
+
 	try {
 		using namespace Genode;
 
@@ -212,17 +229,19 @@ int main(int argc, char **argv)
 	/* enable stdout/stderr for VBox Log infrastructure */
 	init_libc_vbox_logger();
 
-	int rc = RTR3InitExe(argc, &argv, 0);
+	static char  argv0[] = { '_', 'm', 'a', 'i', 'n', 0};
+	static char *argv[1] = { argv0 };
+	char **dummy_argv = argv;
+
+	int rc = RTR3InitExe(1, &dummy_argv, 0);
 	if (RT_FAILURE(rc))
-		return -1;
+		throw -1;
 
 	HRESULT hrc = setupmachine();
 	if (FAILED(hrc)) {
 		Genode::error("startup of VMM failed - reason ", hrc, " - exiting ...");
-		return -2;
+		throw -2;
 	}
 
 	Genode::error("VMM exiting ...");
-
-	return 0;
 }

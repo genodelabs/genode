@@ -83,7 +83,7 @@ static void map_kip()
 	using namespace Genode;
 
 	/* Open the KIP special file and keep it open */
-	static Genode::Rom_connection kip_rom("kip");
+	static Genode::Rom_connection kip_rom("l4v2_kip");
 
 	/* Attach and register dataspace */
 	l4lx_kinfo = L4lx::Env::env()->rm()->attach(kip_rom.dataspace(), "KIP");

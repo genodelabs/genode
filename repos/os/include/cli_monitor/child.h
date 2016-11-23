@@ -260,7 +260,8 @@ class Child_base : public Genode::Child_policy
 		 ** Child_policy interface **
 		 ****************************/
 
-		Name name() const override { return _label.string(); }
+		Name        name()        const override { return _label; }
+		Binary_name binary_name() const override { return _binary_name; }
 
 		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
 		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }

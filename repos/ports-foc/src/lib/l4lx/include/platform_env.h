@@ -56,30 +56,4 @@ auto retry(FUNC func, HANDLER handler, unsigned attempts = ~0U) -> decltype(func
 	throw EXC();
 }
 
-
-/**
- * Client object for a session that may get its session quota upgraded
- */
-template <typename CLIENT>
-struct Upgradeable_client : CLIENT
-{
-	typedef Genode::Capability<typename CLIENT::Rpc_interface> Capability;
-
-	Capability _cap;
-
-	Upgradeable_client(Capability cap) : CLIENT(cap), _cap(cap) { }
-
-	void upgrade_ram(Genode::size_t quota)
-	{
-		Genode::log("upgrading quota donation for "
-		            "Env::", CLIENT::Rpc_interface::service_name(), " "
-		            "(", quota, " bytes)");
-
-		char buf[128];
-		Genode::snprintf(buf, sizeof(buf), "ram_quota=%ld", quota);
-
-		Genode::env()->parent()->upgrade(_cap, buf);
-	}
-};
-
 #endif /* _PLATFORM_ENV_H_ */

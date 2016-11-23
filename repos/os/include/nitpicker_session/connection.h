@@ -28,7 +28,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 {
 	public:
 
-			enum { RAM_QUOTA = 36*1024UL };
+		enum { RAM_QUOTA = 36*1024UL };
 
 	private:
 

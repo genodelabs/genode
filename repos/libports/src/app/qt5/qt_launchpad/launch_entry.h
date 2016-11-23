@@ -28,9 +28,9 @@ class Launch_entry : public QWidget
 
 		Ui::Launch_entryClass ui;
 
-		const char *_filename;
-		Genode::Dataspace_capability _config_ds;
-		Launchpad *_launchpad;
+		Launchpad_child::Name const  &_prg_name;
+		Launchpad                    *_launchpad;
+		Genode::Dataspace_capability  _config_ds;
 
 	private slots:
 
@@ -38,11 +38,11 @@ class Launch_entry : public QWidget
 
 	public:
 
-		Launch_entry(const char *filename,
+		Launch_entry(Launchpad_child::Name const &prg_name,
 		             unsigned long default_quota,
 		             unsigned long max_quota,
-		             Genode::Dataspace_capability config_ds,
 		             Launchpad *launchpad,
+		             Genode::Dataspace_capability config_ds,
 		             QWidget *parent = 0);
 };
 

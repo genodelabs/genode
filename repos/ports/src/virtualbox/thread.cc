@@ -131,8 +131,7 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 		} catch (Cpu_session::Out_of_metadata) {
 			log("Upgrading memory for creation of "
 			    "thread '", Cstring(rtthread->szName), "'");
-			env()->parent()->upgrade(cpu_connection(rtthread->enmType)->cap(),
-			                         "ram_quota=4096");
+			cpu_connection(rtthread->enmType)->upgrade_ram(4096);
 		} catch (...) { break; }
 	}
 

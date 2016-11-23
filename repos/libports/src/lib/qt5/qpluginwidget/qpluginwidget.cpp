@@ -50,8 +50,7 @@ const char *config = " \
         <resource name=\"RAM\" quantum=\"2G\"/> \
         <configfile name=\"config.plugin\"/> \
         <route> \
-            <service name=\"ROM\"> \
-                <if-arg key=\"filename\" value=\"config.plugin\" /> \
+            <service name=\"ROM\" label=\"config.plugin\"> \
                 <child name=\"tar_rom\"/> \
             </service> \
             <any-service> <parent /> </any-service> \

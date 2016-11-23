@@ -19,7 +19,7 @@
 #include <nitpicker_session/nitpicker_session.h>
 
 /* gems includes */
-#include <gems/single_session_service.h>
+#include <os/single_session_service.h>
 
 /* local includes */
 #include <types.h>
@@ -35,16 +35,13 @@ class Launcher::Menu_view_slave
 
 	private:
 
-		class Policy : public Genode::Slave_policy
+		class Policy : public Genode::Slave::Policy
 		{
 			private:
 
-				Lock     mutable _nitpicker_root_lock { Lock::LOCKED };
-				Capability<Root> _nitpicker_root_cap;
-
-				Single_session_service _nitpicker_service;
-				Single_session_service _dialog_rom_service;
-				Single_session_service _hover_report_service;
+				Genode::Single_session_service<Nitpicker::Session>  _nitpicker;
+				Genode::Single_session_service<Genode::Rom_session> _dialog_rom;
+				Genode::Single_session_service<Report::Session>     _hover_report;
 
 				Position _position;
 
@@ -53,7 +50,7 @@ class Launcher::Menu_view_slave
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"ROM", "LOG", "RM", "Timer", 0 };
+						"CPU", "PD", "RAM", "ROM", "LOG", "Timer", 0 };
 
 					return permitted_services;
 				};
@@ -78,82 +75,70 @@ class Launcher::Menu_view_slave
 					configure(config);
 				}
 
+				static Name           _name()  { return "menu_view"; }
+				static Genode::size_t _quota() { return 6*1024*1024; }
+
 			public:
 
-				Policy(Genode::Rpc_entrypoint        &entrypoint,
-				       Genode::Ram_session           &ram,
+				Policy(Genode::Rpc_entrypoint        &ep,
+				       Genode::Region_map            &rm,
+				       Genode::Ram_session_capability ram,
 				       Capability<Nitpicker::Session> nitpicker_session,
 				       Capability<Rom_session>        dialog_rom_session,
 				       Capability<Report::Session>    hover_report_session,
 				       Position                       position)
 				:
-					Slave_policy("menu_view", entrypoint, &ram),
-					_nitpicker_service(Nitpicker::Session::service_name(), nitpicker_session),
-					_dialog_rom_service(Rom_session::service_name(), dialog_rom_session),
-					_hover_report_service(Report::Session::service_name(), hover_report_session),
+					Genode::Slave::Policy(_name(), _name(), ep, rm, ram, _quota()),
+					_nitpicker(nitpicker_session),
+					_dialog_rom(dialog_rom_session),
+					_hover_report(hover_report_session),
 					_position(position)
 				{
 					_configure(position);
 				}
 
-				void position(Position pos)
+				void position(Position pos) { _configure(pos); }
+
+				Genode::Service &resolve_session_request(Genode::Service::Name const &service,
+				                                         Genode::Session_state::Args const &args) override
 				{
-					_configure(pos);
-				}
+					if (service == "Nitpicker")
+						return _nitpicker.service();
 
-				Genode::Service *resolve_session_request(const char *service_name,
-				                                         const char *args) override
-				{
-					using Genode::strcmp;
+					Genode::Session_label const label(label_from_args(args.string()));
 
-					if (strcmp(service_name, "Nitpicker") == 0)
-						return &_nitpicker_service;
+					if ((service == "ROM") && (label == "menu_view -> dialog"))
+						return _dialog_rom.service();
 
-					char label[128];
-					Arg_string::find_arg(args, "label").string(label, sizeof(label), "");
+					if ((service == "Report") && (label == "menu_view -> hover"))
+						return _hover_report.service();
 
-					if (strcmp(service_name, "ROM") == 0) {
-
-						if (strcmp(label, "menu_view -> dialog") == 0)
-							return &_dialog_rom_service;
-					}
-
-					if (strcmp(service_name, "Report") == 0) {
-
-						if (strcmp(label, "menu_view -> hover") == 0)
-							return &_hover_report_service;
-					}
-
-					return Genode::Slave_policy::resolve_session_request(service_name, args);
+					return Genode::Slave::Policy::resolve_session_request(service, args);
 				}
 		};
 
 		Genode::size_t   const _ep_stack_size = 4*1024*sizeof(Genode::addr_t);
 		Genode::Rpc_entrypoint _ep;
 		Policy                 _policy;
-		Genode::size_t   const _quota = 6*1024*1024;
-		Genode::Slave          _slave;
+		Genode::Child          _child;
 
 	public:
 
 		/**
 		 * Constructor
-		 *
-		 * \param ep   entrypoint used for child thread
-		 * \param ram  RAM session used to allocate the configuration
-		 *             dataspace
 		 */
-		Menu_view_slave(Genode::Cap_session &cap, Genode::Ram_session &ram,
-		                Genode::Dataspace_capability   ldso_ds,
+		Menu_view_slave(Genode::Pd_session            &pd,
+		                Genode::Region_map            &rm,
+		                Genode::Ram_session_capability ram,
 		                Capability<Nitpicker::Session> nitpicker_session,
 		                Capability<Rom_session>        dialog_rom_session,
 		                Capability<Report::Session>    hover_report_session,
 		                Position                       initial_position)
 		:
-			_ep(&cap, _ep_stack_size, "nit_fader"),
-			_policy(_ep, ram, nitpicker_session, dialog_rom_session,
+			_ep(&pd, _ep_stack_size, "nit_fader"),
+			_policy(_ep, rm, ram, nitpicker_session, dialog_rom_session,
 			        hover_report_session, initial_position),
-			_slave(_ep, _policy, _quota, env()->ram_session_cap(), ldso_ds)
+			_child(rm, _ep, _policy)
 		{ }
 
 		void position(Position position) { _policy.position(position); }

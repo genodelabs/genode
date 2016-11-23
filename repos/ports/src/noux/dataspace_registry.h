@@ -92,9 +92,9 @@ namespace Noux {
 			 *                     RM session)
 			 * \return             capability for the new dataspace
 			 */
-			virtual Dataspace_capability fork(Ram_session_capability ram,
-			                                  Dataspace_registry    &ds_registry,
-			                                  Rpc_entrypoint        &ep) = 0;
+			virtual Dataspace_capability fork(Ram_session        &ram,
+			                                  Dataspace_registry &ds_registry,
+			                                  Rpc_entrypoint     &ep) = 0;
 
 			/**
 			 * Write raw byte sequence into dataspace
@@ -164,9 +164,9 @@ namespace Noux {
 			_ds_registry.apply(ds_cap(), lambda);
 		}
 
-		Dataspace_capability fork(Ram_session_capability,
+		Dataspace_capability fork(Ram_session        &,
 		                          Dataspace_registry &,
-		                          Rpc_entrypoint &)
+		                          Rpc_entrypoint     &)
 		{
 			return ds_cap();
 		}

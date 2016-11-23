@@ -1,6 +1,7 @@
 /*
  * \brief  Lookup code for initial ACPI RSDP pointer
  * \author Alexander Boettcher
+ * \date   2016-11-14
  */
 
 /*
@@ -12,6 +13,8 @@
 
 #include <io_mem_session/connection.h>
 #include <os/attached_io_mem_dataspace.h>
+
+#include "env.h"
 
 extern "C" {
 #include "acpi.h"
@@ -48,9 +51,11 @@ class Genode::Acpi_table
 		{
 			uint8_t * local = 0;
 
+			Genode::Env &env = Acpica::env();
+
 			/* try BIOS area */
 			{
-				Genode::Attached_io_mem_dataspace io_mem(BIOS_BASE, BIOS_SIZE);
+				Genode::Attached_io_mem_dataspace io_mem(env, BIOS_BASE, BIOS_SIZE);
 				local = _search_rsdp(io_mem.local_addr<uint8_t>());
 				if (local)
 					return BIOS_BASE + (local - io_mem.local_addr<uint8_t>());
@@ -60,7 +65,7 @@ class Genode::Acpi_table
 			try {
 				unsigned short base = 0;
 				{
-					Genode::Attached_io_mem_dataspace io_mem(0, 0x1000);
+					Genode::Attached_io_mem_dataspace io_mem(env, 0, 0x1000);
 					local = io_mem.local_addr<uint8_t>();
 					if (local)
 						base = (*reinterpret_cast<unsigned short *>(local + 0x40e)) << 4;
@@ -69,7 +74,7 @@ class Genode::Acpi_table
 				if (!base)
 					return 0;
 
-				Genode::Attached_io_mem_dataspace io_mem(base, 1024);
+				Genode::Attached_io_mem_dataspace io_mem(env, base, 1024);
 				local = _search_rsdp(io_mem.local_addr<uint8_t>());
 
 				if (local)

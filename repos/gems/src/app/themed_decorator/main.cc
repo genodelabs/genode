@@ -118,7 +118,7 @@ struct Decorator::Main : Window_factory_base
 		 * and view_handle operations. Currently, these exceptions will
 		 * abort the decorator.
 		 */
-		Genode::env()->parent()->upgrade(nitpicker, "ram_quota=256K");
+		nitpicker.upgrade_ram(256*1024);
 
 		Genode::config()->sigh(config_dispatcher);
 		handle_config(0);

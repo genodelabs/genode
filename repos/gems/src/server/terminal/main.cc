@@ -499,15 +499,11 @@ namespace Terminal {
 }
 
 
-extern "C" void wait_for_continue();
-
-
 int main(int, char **)
 {
 	using namespace Genode;
 
 	log("--- terminal service started ---");
-	wait_for_continue();
 
 	static Framebuffer::Connection framebuffer;
 	static Input::Connection       input;

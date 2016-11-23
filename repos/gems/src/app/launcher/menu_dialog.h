@@ -103,18 +103,14 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 
 	public:
 
-		Menu_dialog(Server::Entrypoint &ep, Cap_session &cap, Ram_session &ram,
-		            Dataspace_capability ldso_ds,
+		Menu_dialog(Env              &env,
 		            Report_rom_slave &report_rom_slave,
 		            Response_handler &response_handler)
 		:
 			_response_handler(response_handler),
-			_dialog(ep, cap, ram, ldso_ds, report_rom_slave,
-			        "menu_dialog", "menu_hover",
-			        *this, *this, *this, *this,
-			        _position)
-		{
-		}
+			_dialog(env, report_rom_slave, "menu_dialog", "menu_hover",
+			        *this, *this, *this, *this, _position)
+		{ }
 
 		/**
 		 * Dialog_generator interface

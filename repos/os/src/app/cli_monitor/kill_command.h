@@ -23,7 +23,7 @@ struct Kill_command : Command
 
 	void _destroy_child(Child *child, Terminal::Session &terminal)
 	{
-		tprintf(terminal, "destroying subsystem '%s'\n", child->name());
+		tprintf(terminal, "destroying subsystem '%s'\n", child->name().string());
 		_children.remove(child);
 		Genode::destroy(Genode::env()->heap(), child);
 	}
@@ -38,8 +38,8 @@ struct Kill_command : Command
 
 	void _for_each_argument(Argument_fn const &fn) const override
 	{
-		auto child_name_fn = [&] (char const *child_name) {
-			Argument arg(child_name, "");
+		auto child_name_fn = [&] (Child_base::Name const &child_name) {
+			Argument arg(child_name.string(), "");
 			fn(arg);
 		};
 
@@ -65,7 +65,7 @@ struct Kill_command : Command
 
 		/* lookup child by its unique name */
 		for (Child *child = _children.first(); child; child = child->next()) {
-			if (strcmp(child->name(), label) == 0) {
+			if (child->name() == label) {
 				_destroy_child(child, terminal);
 				return;
 			}

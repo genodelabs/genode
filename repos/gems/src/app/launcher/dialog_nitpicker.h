@@ -20,6 +20,7 @@
 
 /* Genode includes */
 #include <util/string.h>
+#include <base/entrypoint.h>
 #include <os/attached_dataspace.h>
 #include <nitpicker_session/nitpicker_session.h>
 #include <input_session/client.h>
@@ -54,7 +55,7 @@ struct Launcher::Dialog_nitpicker_session : Wrapped_nitpicker_session
 
 	Input_event_handler &_input_event_handler;
 
-	Server::Entrypoint &_ep;
+	Rpc_entrypoint &_session_ep;
 
 	Nitpicker::Session &_nitpicker_session;
 
@@ -62,36 +63,43 @@ struct Launcher::Dialog_nitpicker_session : Wrapped_nitpicker_session
 
 	Attached_dataspace _nitpicker_input_ds { _nitpicker_input.dataspace() };
 
-	Signal_rpc_member<Dialog_nitpicker_session>
-		_input_dispatcher { _ep, *this, &Dialog_nitpicker_session::_input_handler };
+	Signal_handler<Dialog_nitpicker_session> _input_handler;
 
 	Input::Session_component _input_session;
 
-	Capability<Input::Session> _input_session_cap { _ep.manage(_input_session) };
-
 	/**
 	 * Constructor
+	 *
+	 * \param input_sigh_ep  entrypoint where the input signal handler is
+	 *                       installed ('env.ep')
+	 * \param service_ep     entrypoint providing the nitpicker session
+	 *                       (slave-specific ep)
 	 */
-	Dialog_nitpicker_session(Nitpicker::Session  &nitpicker_session,
-	                         Server::Entrypoint  &ep,
+	Dialog_nitpicker_session(Nitpicker::Session &nitpicker_session,
+	                         Entrypoint &input_sigh_ep,
+	                         Rpc_entrypoint &session_ep,
 	                         Input_event_handler &input_event_handler)
 	:
 		Wrapped_nitpicker_session(nitpicker_session),
 		_input_event_handler(input_event_handler),
-		_ep(ep),
-		_nitpicker_session(nitpicker_session)
+		_session_ep(session_ep),
+		_nitpicker_session(nitpicker_session),
+		_input_handler(input_sigh_ep, *this, &Dialog_nitpicker_session::_handle_input)
 	{
-		_nitpicker_input.sigh(_input_dispatcher);
+		_session_ep.manage(this);
+		_session_ep.manage(&_input_session);
+		_nitpicker_input.sigh(_input_handler);
 
 		_input_session.event_queue().enabled(true);
 	}
 
 	~Dialog_nitpicker_session()
 	{
-		_ep.dissolve(_input_session);
+		_session_ep.dissolve(&_input_session);
+		_session_ep.dissolve(this);
 	}
 
-	void _input_handler(unsigned)
+	void _handle_input()
 	{
 		Input::Event const * const events =
 			_nitpicker_input_ds.local_addr<Input::Event>();
@@ -116,7 +124,7 @@ struct Launcher::Dialog_nitpicker_session : Wrapped_nitpicker_session
 
 	Input::Session_capability input_session() override
 	{
-		return _input_session_cap;
+		return _input_session.cap();
 	}
 };
 

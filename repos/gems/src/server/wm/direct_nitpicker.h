@@ -40,7 +40,8 @@ class Wm::Direct_nitpicker_session : public Genode::Rpc_object<Nitpicker::Sessio
 
 		void upgrade(char const *args)
 		{
-			Genode::env()->parent()->upgrade(_session, args);
+			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+			_session.upgrade_ram(ram_quota);
 		}
 
 

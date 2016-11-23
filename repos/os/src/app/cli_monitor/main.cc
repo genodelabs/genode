@@ -132,11 +132,12 @@ void Component::construct(Genode::Env &env)
 	commands.insert(new Help_command);
 	Kill_command kill_command(children);
 	commands.insert(&kill_command);
-	commands.insert(new Start_command(ram, cap, children,
+	commands.insert(new Start_command(ram, env.pd(),
+	                                  env.ram(), env.ram_session_cap(),
+	                                  env.rm(), children,
 	                                  subsystem_config_registry,
 	                                  yield_response_sig_cap,
-	                                  exited_child_sig_cap,
-	                                  ldso_ds));
+	                                  exited_child_sig_cap));
 	commands.insert(new Status_command(ram, children));
 	commands.insert(new Yield_command(children));
 	commands.insert(new Ram_command(children));

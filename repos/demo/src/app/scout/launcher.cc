@@ -18,9 +18,6 @@
 #include <base/snprintf.h>
 #include "elements.h"
 
-static Launchpad launchpad(Genode::env()->ram_session()->quota());
-
-
 using namespace Genode;
 using namespace Scout;
 
@@ -94,10 +91,32 @@ Dataspace_capability Config_registry::config(char const *name)
  ** Launcher interface **
  ************************/
 
+
+static Launchpad *launchpad_ptr;
+
+
+static Launchpad &launchpad()
+{
+	if (!launchpad_ptr) {
+		class Missing_launchpad_init_call { };
+		throw Missing_launchpad_init_call();
+	}
+
+	return *launchpad_ptr;
+}
+
+
+void Launcher::init(Genode::Env &env)
+{
+	static Launchpad launchpad(env, env.ram().avail());
+	launchpad_ptr = &launchpad;
+}
+
+
 void Launcher::launch()
 {
 	static Config_registry config_registry;
 
-	launchpad.start_child(prg_name(), quota(),
-	                      config_registry.config(prg_name()));
+	launchpad().start_child(prg_name(), quota(),
+	                        config_registry.config(prg_name().string()));
 }

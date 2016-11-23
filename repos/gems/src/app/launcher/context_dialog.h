@@ -105,12 +105,11 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 
 	public:
 
-		Context_dialog(Server::Entrypoint &ep, Cap_session &cap, Ram_session &ram,
-		               Dataspace_capability ldso_ds,
+		Context_dialog(Env              &env,
 		               Report_rom_slave &report_rom_slave,
 		               Response_handler &response_handler)
 		:
-			_dialog(ep, cap, ram, ldso_ds, report_rom_slave,
+			_dialog(env, report_rom_slave,
 			        "context_dialog", "context_hover",
 			        *this, *this, *this, *this,
 			        Fading_dialog::Position(364, 64)),

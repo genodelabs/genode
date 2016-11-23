@@ -1,7 +1,7 @@
 /*
  * \brief  PCI specific backend for ACPICA library
  * \author Alexander Boettcher
- *
+ * \date   2016-11-14
  */
 
 /*
@@ -12,9 +12,8 @@
  */
 
 #include <base/log.h>
-#include <base/env.h>
-#include <parent/parent.h>
-#include <platform_session/client.h>
+
+#include "env.h"
 
 extern "C" {
 #include "acpi.h"
@@ -42,44 +41,12 @@ struct Bdf
 };
 
 
-static Platform::Client & platform()
-{
-	static bool connected = false;
-
-	typedef Genode::Capability<Platform::Session> Platform_session_capability;
-	Platform_session_capability platform_cap;
-
-	if (!connected) {
-		Genode::Parent::Service_name announce_for_acpica("Acpi");
-		Genode::Native_capability cap = Genode::env()->parent()->session(announce_for_acpica, "ram_quota=20K");
-
-		platform_cap = Genode::reinterpret_cap_cast<Platform::Session>(cap);
-		connected = true;
-	}
-
-	static Platform::Client conn(platform_cap);
-	return conn;
-}
-
-ACPI_STATUS AcpiOsInitialize (void)
-{
-	/* acpi_drv uses IOMEM concurrently to us - wait until it is done */
-	Genode::log("wait for platform drv");
-	try {
-		platform();
-	} catch (...) {
-		Genode::error("did not get Platform connection");
-		Genode::Lock lock(Genode::Lock::LOCKED);
-		lock.lock();
-	}
-	Genode::log("wait for platform drv - done");
-	return AE_OK;
-}
+ACPI_STATUS AcpiOsInitialize (void) { return AE_OK; }
 
 ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
                                         UINT64 *value, UINT32 width)
 {
-	Platform::Device_capability cap = platform().first_device();
+	Platform::Device_capability cap = Acpica::platform().first_device();
 
 	while (cap.valid()) {
 		Platform::Device_client client(cap);
@@ -103,7 +70,7 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 				break;
 			default:
 				Genode::error(__func__, " : unsupported access size ", width);
-				platform().release_device(client);
+				Acpica::platform().release_device(client);
 				return AE_ERROR;
 			};
 
@@ -114,13 +81,13 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 			            "width=", width, " -> "
 			            "value=", Genode::Hex(*value));
 
-			platform().release_device(client);
+			Acpica::platform().release_device(client);
 			return AE_OK;
 		}
 
-		cap = platform().next_device(cap);
+		cap = Acpica::platform().next_device(cap);
 
-		platform().release_device(client);
+		Acpica::platform().release_device(client);
 	}
 
 	Genode::error(__func__, " unknown device - segment=", pcidev->Segment, " "
@@ -134,7 +101,7 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
                                          UINT64 value, UINT32 width)
 {
-	Platform::Device_capability cap = platform().first_device();
+	Platform::Device_capability cap = Acpica::platform().first_device();
 
 	while (cap.valid()) {
 		Platform::Device_client client(cap);
@@ -158,7 +125,7 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 				break;
 			default:
 				Genode::error(__func__, " : unsupported access size ", width);
-				platform().release_device(client);
+				Acpica::platform().release_device(client);
 				return AE_ERROR;
 			};
 
@@ -169,13 +136,13 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 			                "width=", width, " "
 			                "value=", Genode::Hex(value));
 
-			platform().release_device(client);
+			Acpica::platform().release_device(client);
 			return AE_OK;
 		}
 
-		cap = platform().next_device(cap);
+		cap = Acpica::platform().next_device(cap);
 
-		platform().release_device(client);
+		Acpica::platform().release_device(client);
 	}
 
 	Genode::error(__func__, " unknown device - segment=", pcidev->Segment, " ",

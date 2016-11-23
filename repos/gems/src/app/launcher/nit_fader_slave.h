@@ -28,31 +28,33 @@ class Launcher::Nit_fader_slave
 {
 	private:
 
-		class Policy : public Slave_policy
+		class Policy : public Slave::Policy
 		{
 			private:
 
 				Genode::Service &_nitpicker_service;
-				Lock     mutable _nitpicker_root_lock { Lock::LOCKED };
-				Capability<Root> _nitpicker_root_cap;
 
 			protected:
 
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"LOG", "RM", "Timer", 0 };
+						"RAM", "CPU", "PD", "LOG", "Timer", 0 };
 
 					return permitted_services;
 				};
 
+				static Name   _name()  { return "nit_fader"; }
+				static size_t _quota() { return 2*1024*1024; }
+
 			public:
 
-				Policy(Rpc_entrypoint  &entrypoint,
-				       Ram_session     &ram,
-				       Genode::Service &nitpicker_service)
+				Policy(Rpc_entrypoint         &ep,
+				       Region_map             &rm,
+				       Ram_session_capability  ram,
+				       Genode::Service        &nitpicker_service)
 				:
-					Slave_policy("nit_fader", entrypoint, &ram),
+					Genode::Slave::Policy(_name(), _name(), ep, rm, ram, _quota()),
 					_nitpicker_service(nitpicker_service)
 				{
 					visible(false);
@@ -66,42 +68,18 @@ class Launcher::Nit_fader_slave
 					configure(config, strlen(config) + 1);
 				}
 
-				bool announce_service(const char     *service_name,
-				                      Root_capability root,
-				                      Allocator      *,
-				                      Genode::Server *)
+				Genode::Service &resolve_session_request(Genode::Service::Name const &service,
+				                                         Genode::Session_state::Args const &args) override
 				{
-					if (strcmp(service_name, "Nitpicker") == 0)
-						_nitpicker_root_cap = root;
-					else
-						return false;
+					if (service == Nitpicker::Session::service_name())
+						return _nitpicker_service;
 
-					if (_nitpicker_root_cap.valid())
-						_nitpicker_root_lock.unlock();
-
-					return true;
-				}
-
-				Genode::Service *resolve_session_request(const char *service_name,
-				                                         const char *args) override
-				{
-					if (Genode::strcmp(service_name, "Nitpicker") == 0)
-						return &_nitpicker_service;
-
-					return Genode::Slave_policy::resolve_session_request(service_name, args);
-				}
-
-				Root_capability nitpicker_root() const
-				{
-					Lock::Guard guard(_nitpicker_root_lock);
-					return _nitpicker_root_cap;
+					return Genode::Slave::Policy::resolve_session_request(service, args);
 				}
 		};
 
-		Policy         _policy;
-		size_t   const _quota = 2*1024*1024;
-		Slave          _slave;
-		Root_client    _nitpicker_root;
+		Policy _policy;
+		Child  _child;
 
 	public:
 
@@ -112,38 +90,18 @@ class Launcher::Nit_fader_slave
 		 * \param ram  RAM session used to allocate the configuration
 		 *             dataspace
 		 */
-		Nit_fader_slave(Rpc_entrypoint &ep, Ram_session &ram,
-		                Genode::Service &nitpicker_service,
-		                Genode::Dataspace_capability ldso_ds)
+		Nit_fader_slave(Rpc_entrypoint        &ep,
+		                Genode::Region_map    &rm,
+		                Ram_session_capability ram,
+		                Genode::Service       &nitpicker_service)
 		:
-			_policy(ep, ram, nitpicker_service),
-			_slave(ep, _policy, _quota, env()->ram_session_cap(), ldso_ds),
-			_nitpicker_root(_policy.nitpicker_root())
+			_policy(ep, rm, ram, nitpicker_service),
+			_child(rm, ep, _policy)
 		{
 			visible(false);
 		}
 
-		Capability<Nitpicker::Session> nitpicker_session(char const *label)
-		{
-			enum { ARGBUF_SIZE = 128 };
-			char argbuf[ARGBUF_SIZE];
-			argbuf[0] = 0;
-
-			/*
-			 * Declare ram-quota donation
-			 */
-			enum { SESSION_METADATA = 8*1024 };
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", SESSION_METADATA);
-
-			/*
-			 * Set session label
-			 */
-			Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label);
-
-			Session_capability session_cap = _nitpicker_root.session(argbuf, Affinity());
-
-			return static_cap_cast<Nitpicker::Session>(session_cap);
-		}
+		Genode::Slave::Policy &policy() { return _policy; }
 
 		void visible(bool visible)
 		{

@@ -24,6 +24,10 @@ namespace Framebuffer { class Connection; }
 class Framebuffer::Connection : public Genode::Connection<Session>,
                                 public Session_client
 {
+	public:
+
+		enum { RAM_QUOTA = 8*1024UL };
+
 	private:
 
 		/**
@@ -39,7 +43,7 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 			char argbuf[ARGBUF_SIZE];
 
 			/* donate ram quota for storing server-side meta data */
-			Genode::strncpy(argbuf, "ram_quota=8K", sizeof(argbuf));
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", RAM_QUOTA);
 
 			/* set optional session-constructor arguments */
 			if (width)
