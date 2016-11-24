@@ -90,7 +90,6 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 		new_ds_cap = _ds_pool.ram_session->alloc(size);
 		ds_addr = _ds_pool.region_map->attach(new_ds_cap);
 	} catch (Ram_session::Alloc_failed) {
-		warning("could not allocate new dataspace of size ", size);
 		return 0;
 	} catch (Region_map::Attach_failed) {
 		warning("could not attach dataspace");
