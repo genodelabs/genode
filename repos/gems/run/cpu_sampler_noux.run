@@ -265,7 +265,7 @@ run_genode_until "$match_string" 120
 
 regexp $match_string $output all func
 
-run_genode_until "\\\[init -> terminal] \[0\]*$func" 60 [output_spawn_id]
+run_genode_until "\\\[init -> terminal] \[0\]*$func" 90 [output_spawn_id]
 
 exec rm bin/bash.tar
 exec rm bin/coreutils.tar
