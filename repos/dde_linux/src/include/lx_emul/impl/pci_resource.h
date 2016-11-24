@@ -16,12 +16,6 @@
 #include <lx_kit/mapped_io_mem_range.h>
 
 
-extern void pci_dev_put(struct pci_dev *pci_dev)
-{
-	Genode::destroy(Genode::env()->heap(), pci_dev);
-}
-
-
 extern "C" size_t pci_resource_start(struct pci_dev *dev, unsigned bar)
 {
 	if (bar >= DEVICE_COUNT_RESOURCE)

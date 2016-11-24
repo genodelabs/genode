@@ -494,6 +494,12 @@ struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn)
 }
 
 
+void pci_dev_put(struct pci_dev *pci_dev)
+{
+	Genode::destroy(Lx::Malloc::mem(), pci_dev);
+}
+
+
 struct pci_dev *pci_get_class(unsigned int class_code, struct pci_dev *from)
 {
 	/*

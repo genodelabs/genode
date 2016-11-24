@@ -1399,6 +1399,11 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 }
 
 
+void pci_dev_put(struct pci_dev *pci_dev)
+{
+	Genode::destroy(Lx_kit::env().heap(), pci_dev);
+}
+
 /***********************
  ** linux/workquque.h **
  ***********************/

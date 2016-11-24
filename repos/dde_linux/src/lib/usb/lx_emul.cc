@@ -41,6 +41,11 @@ unsigned long jiffies;
 void backtrace() { }
 
 
+void pci_dev_put(struct pci_dev *pci_dev)
+{
+	Genode::destroy(Genode::env()->heap(), pci_dev);
+}
+
 /***********************
  ** Atomic operations **
  ***********************/
