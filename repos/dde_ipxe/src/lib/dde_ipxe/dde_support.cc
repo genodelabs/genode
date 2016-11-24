@@ -175,7 +175,7 @@ struct Pci_driver
 
 		Genode::size_t donate = 4096;
 		Genode::retry<Platform::Device::Quota_exceeded>(
-			[&] () { client.config_write(devfn, val, _access_size(val)); } ,
+			[&] () { client.config_write(devfn, val, _access_size(val)); },
 			[&] () {
 				_pci.upgrade_ram(donate);
 				donate *= 2;
@@ -184,7 +184,10 @@ struct Pci_driver
 
 	int first_device(int *bus, int *dev, int *fun)
 	{
-		_cap = _pci.first_device(CLASS_NETWORK, CLASS_MASK);
+		_cap = Genode::retry<Platform::Session::Out_of_metadata>(
+			[&] () { return _pci.first_device(CLASS_NETWORK, CLASS_MASK); },
+			[&] () { _pci.upgrade_ram(4096); });
+
 		if (!_cap.valid())
 			return -1;
 
@@ -197,8 +200,10 @@ struct Pci_driver
 		int result = -1;
 
 		_last_cap = _cap;
+		_cap = Genode::retry<Platform::Session::Out_of_metadata>(
+			[&] () { return _pci.next_device(_cap, CLASS_NETWORK, CLASS_MASK); },
+			[&] () { _pci.upgrade_ram(4096); });
 
-		_cap = _pci.next_device(_cap, CLASS_NETWORK, CLASS_MASK);
 		if (_cap.valid()) {
 			_bus_address(bus, dev, fun);
 			result = 0;
