@@ -314,6 +314,14 @@ void Slab::insert_sb(void *ptr)
 
 bool Slab::alloc(size_t size, void **out_addr)
 {
+
+	/* too large for us ? */
+	if (size > _slab_size) {
+		Genode::error("requested size ", size, " is larger then slab size ",
+		              _slab_size);
+		return false;
+	}
+
 	/*
 	 * If we run out of slab, we need to allocate a new slab block. For the
 	 * special case that this block is allocated using the allocator that by
