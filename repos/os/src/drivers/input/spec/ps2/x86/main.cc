@@ -13,8 +13,7 @@
 
 /* base includes */
 #include <base/env.h>
-#include <base/printf.h>
-#include <base/sleep.h>
+#include <util/retry.h>
 
 /* os includes */
 #include <input/component.h>
@@ -40,6 +39,14 @@ struct Main
 	Input::Root_component    root;
 
 	Platform::Connection    platform;
+
+	Platform::Device_capability cap_ps2()
+	{
+		return Genode::retry<Platform::Session::Out_of_metadata>(
+			[&] () { return platform.device("PS2"); },
+			[&] () { platform.upgrade_ram(4096); });
+	}
+
 	Platform::Device_client device_ps2;
 
 	I8042              i8042;
@@ -59,7 +66,7 @@ struct Main
 
 	Main(Server::Entrypoint &ep)
 	: ep(ep), root(ep.rpc_ep(), session),
-		device_ps2(platform.device("PS2")),
+		device_ps2(cap_ps2()),
 		i8042(device_ps2.io_port(REG_IOPORT_DATA),
 		      device_ps2.io_port(REG_IOPORT_STATUS)),
 		ps2_keybd(*i8042.kbd_interface(), session.event_queue(),
