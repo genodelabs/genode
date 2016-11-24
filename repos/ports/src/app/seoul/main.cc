@@ -862,6 +862,7 @@ class Machine : public StaticReceiver<Machine>
 		Guest_memory          &_guest_memory;
 		Boot_module_provider  &_boot_modules;
 		Alarm_thread          *_alarm_thread;
+		Genode::Pd_connection *_pd_vcpus = nullptr;
 
 		bool                   _alloc_fb_mem; /* For detecting FB alloc message */
 		bool                   _colocate_vm_vmm;
@@ -949,9 +950,13 @@ class Machine : public StaticReceiver<Machine>
 
 					Vmm::Vcpu_thread * vcpu_thread;
 					if (_colocate_vm_vmm)
-						vcpu_thread = new Vmm::Vcpu_same_pd(cpu_session, location, Vcpu_dispatcher::STACK_SIZE);
-					else
-						vcpu_thread = new Vmm::Vcpu_other_pd(cpu_session, location);
+						vcpu_thread = new Vmm::Vcpu_same_pd(cpu_session, location, _env.pd_session_cap(), Vcpu_dispatcher::STACK_SIZE);
+					else {
+						if (!_pd_vcpus)
+							_pd_vcpus = new Genode::Pd_connection("VM");
+
+						vcpu_thread = new Vmm::Vcpu_other_pd(cpu_session, location, *_pd_vcpus);
+					}
 
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(_motherboard_lock,

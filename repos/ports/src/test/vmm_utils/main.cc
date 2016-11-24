@@ -46,21 +46,23 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread>
 		 ** Virtualization event handlers **
 		 ***********************************/
 
-		void _svm_startup()
+		void _vcpu_startup()
 		{
-			Vmm::log(name(), " _svm_startup called");
+			Vmm::log(name(), " ", __func__, " called");
 		}
 
 	public:
 
 		enum Type { SVM, VTX };
 
-		Vcpu_dispatcher(Genode::Env &env, Type type, char const * name)
+		Vcpu_dispatcher(Genode::Env &env, Type type, char const * name,
+		                Genode::Capability<Genode::Pd_session> pd_cap)
 		:
 			Vmm::Vcpu_dispatcher<Genode::Thread>(env, STACK_SIZE, &env.cpu(),
 			                                     Genode::Affinity::Location(),
 			                                     name),
-			_vcpu_thread(&env.cpu(), Genode::Affinity::Location(), STACK_SIZE)
+			_vcpu_thread(&env.cpu(), Genode::Affinity::Location(), pd_cap,
+			             STACK_SIZE)
 		{
 			using namespace Nova;
 
@@ -73,7 +75,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread>
 
 			/* register virtualization event handlers */
 			if (type == SVM) {
-				_register_handler<0xfe, &This::_svm_startup>
+				_register_handler<0xfe, &This::_vcpu_startup>
 					(exc_base, mtd_all);
 			}
 
@@ -87,11 +89,12 @@ void Component::construct(Genode::Env &env)
 {
 	typedef Vcpu_dispatcher<Vmm::Vcpu_same_pd> Vcpu_s;
 
-	static Vcpu_s vcpu_s_1(env, Vcpu_s::SVM, "vcpu_s_1");
-	static Vcpu_s vcpu_s_2(env, Vcpu_s::SVM, "vcpu_s_2");
+	static Vcpu_s vcpu_s_1(env, Vcpu_s::SVM, "vcpu_s_1", env.pd_session_cap());
+	static Vcpu_s vcpu_s_2(env, Vcpu_s::SVM, "vcpu_s_2", env.pd_session_cap());
 
 	typedef Vcpu_dispatcher<Vmm::Vcpu_other_pd> Vcpu_o;
 
-	static Vcpu_o vcpu_o_1(env, Vcpu_o::SVM, "vcpu_o_1");
-	static Vcpu_o vcpu_o_2(env, Vcpu_o::SVM, "vcpu_o_2");
+	static Genode::Pd_connection remote_pd("VM");
+	static Vcpu_o vcpu_o_1(env, Vcpu_o::SVM, "vcpu_o_1", remote_pd);
+	static Vcpu_o vcpu_o_2(env, Vcpu_o::SVM, "vcpu_o_2", remote_pd);
 }

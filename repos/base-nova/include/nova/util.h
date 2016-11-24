@@ -71,8 +71,8 @@ inline void request_signal_sm_cap(Genode::Native_capability const &cap,
 }
 
 
-inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
-                                  Genode::addr_t const sel)
+inline void translate_remote_pager(Genode::Native_capability const &cap,
+                                   Genode::addr_t const sel)
 {
 	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
@@ -84,34 +84,22 @@ inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
 
 	Genode::uint8_t res = Nova::NOVA_OK;
 	enum {
-		TRANSLATE = true, THIS_PD = false, NON_GUEST = false, HOTSPOT = 0,
-		TRANSFER_ITEMS = 1U << (Nova::NUM_INITIAL_VCPU_PT_LOG2 - 1)
+		TRANSLATE = true, THIS_PD = false, NON_GUEST = false, HOTSPOT = 0
 	};
 
-	/* prepare translation items for every portal separately */
-	for (unsigned half = 0; !res && half < 2; half++) {
-		/* translate half of portals - due to size constraints on 64bit */
-		utcb->msg[0] = half;
-		utcb->set_msg_word(1);
-		/* add one translate item per portal */
-		for (unsigned i = 0; !res && i < TRANSFER_ITEMS; i++) {
-			Nova::Obj_crd obj_crd(sel + half * TRANSFER_ITEMS + i, 0);
+	/* translate one item */
+	utcb->msg[0] = 0xaffe;
+	utcb->set_msg_word(1);
 
-			if (!utcb->append_item(obj_crd, HOTSPOT, THIS_PD, NON_GUEST,
-			                       TRANSLATE))
-				res = 0xff;
-		}
-		if (res != Nova::NOVA_OK)
-			break;
-
+	Nova::Obj_crd obj_crd(sel, 0);
+	if (utcb->append_item(obj_crd, HOTSPOT, THIS_PD, NON_GUEST, TRANSLATE))
 		/* trigger the translation */
 		res = Nova::call(cap.local_name());
-	}
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
 
-	if (res)
+	if (res != Nova::NOVA_OK)
 		Genode::error("setting exception portals for vCPU failed res=", res);
 }
 #endif /* _INCLUDE__NOVA__UTIL_H_ */

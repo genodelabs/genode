@@ -48,7 +48,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 {
 	private:
 
-		Genode::Pd_connection       _pd_session;
+		Genode::Capability<Genode::Pd_session> _pd_cap;
 		Genode::Affinity::Location  _location;
 		Genode::Cpu_session        *_cpu_session;
 
@@ -58,9 +58,10 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 
 		Vcpu_other_pd(Cpu_session * cpu_session,
 		              Genode::Affinity::Location location,
+		              Genode::Capability<Genode::Pd_session> pd_cap,
 		              Genode::size_t = 0 /* stack_size */)
 		:
-			_pd_session("VM"), _location(location), _cpu_session(cpu_session),
+			_pd_cap(pd_cap), _location(location), _cpu_session(cpu_session),
 			_exc_pt_sel(Genode::cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
 		{ }
 
@@ -69,12 +70,12 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			using namespace Genode;
 
 			Thread_capability vcpu_vm =
-				_cpu_session->create_thread(_pd_session, "vCPU",
+				_cpu_session->create_thread(_pd_cap, "vCPU",
 				                            _location, Cpu_session::Weight());
 
 			/* tell parent that this will be a vCPU */
 			Thread_state state;
-			state.sel_exc_base = Native_thread::INVALID_INDEX;
+			state.sel_exc_base = _exc_pt_sel;
 			state.vcpu         = true;
 
 			Cpu_thread_client cpu_thread(vcpu_vm);
@@ -88,10 +89,11 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			Native_capability pager_cap = native_cpu.pager_cap(vcpu_vm);
 
 			/*
-			 * Delegate parent the vCPU exception portals required during PD
-			 * creation.
+			 * Translate pager cap of current executing thread, which is used
+			 * to lookup current PD - required during PD creation.
 			 */
-			delegate_vcpu_portals(pager_cap, exc_base());
+			translate_remote_pager(pager_cap,
+			                      Thread::myself()->native_thread().ec_sel + 1);
 
 			/* start vCPU in separate PD */
 			cpu_thread.start(0, 0);
@@ -101,6 +103,9 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
 			 */
 			request_native_ec_cap(pager_cap, sel_ec);
+
+			/* request creation of SC to let vCPU run */
+			cpu_thread.resume();
 		}
 
 		Genode::addr_t exc_base() { return _exc_pt_sel; }
@@ -115,6 +120,7 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 
 		Vcpu_same_pd(Cpu_session * cpu_session,
 		             Genode::Affinity::Location location,
+		             Genode::Capability<Genode::Pd_session>,
 		             Genode::size_t stack_size)
 		:
 			Thread(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)

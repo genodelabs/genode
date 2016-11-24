@@ -301,32 +301,20 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 	addr_t const event    = utcb->msg[0];
 	addr_t const logcount = utcb->msg[1];
 
-	/* check for translated vCPU portals */
-	unsigned const items_count = 1U << (Nova::NUM_INITIAL_VCPU_PT_LOG2 - 1);
+	/* check for translated pager portals - required for vCPU in remote PDs */
+	if (utcb->msg_items() == 1 && utcb->msg_words() == 1 && event == 0xaffe) {
 
-	if ((obj->_client_exc_vcpu != Native_thread::INVALID_INDEX) &&
-	    (utcb->msg_items() == items_count) &&
-	    (utcb->msg_words() == 1 && (event == 0UL || event == 1UL))) {
-		/* check all translated item and remap if valid */
-		for (unsigned i = 0; i < items_count; i++) {
-			Nova::Utcb::Item * item = utcb->get_item(i);
+		Nova::Utcb::Item const * const item = utcb->get_item(0);
+		Nova::Crd const cap(item->crd);
 
-			if (!item)
-				break;
-
-			Nova::Crd cap(item->crd);
-
-			if (cap.is_null() || item->is_del())
-				continue;
-
-			/**
-			 * Remap portal to dense packed region - required for vCPU running
-			 * in separate PD (non-colocated case)
-			 */
-			Obj_crd snd(cap.base(), 0);
-			Obj_crd rcv(obj->_client_exc_vcpu + event * items_count + i, 0);
-			if (map_local(utcb, snd, rcv))
-				warning("could not remap vCPU portal ", Hex(i));
+		/* valid item which got translated ? */
+		if (!cap.is_null() && !item->is_del()) {
+			using Pool = Object_pool<Pager_object>;
+			pager_threads[0]->ep()->Pool::apply(cap.base(),
+			                                    [&] (Pager_object *source) {
+				/* set source PD (VMM) where vCPU exception portals are */
+				obj->_pd_source = source->pd_sel();
+			});
 		}
 	}
 
@@ -591,10 +579,11 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	_badge(badge),
 	_selectors(cap_map()->insert(2)),
 	_client_exc_pt_sel(cap_map()->insert(NUM_INITIAL_PT_LOG2)),
-	_client_exc_vcpu(Native_thread::INVALID_INDEX),
 	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
 	_location(location),
-	_exceptions(this)
+	_exceptions(this),
+	_pd_target(Native_thread::INVALID_INDEX),
+	_pd_source(Native_thread::INVALID_INDEX)
 {
 	uint8_t res;
 
@@ -681,14 +670,8 @@ Pager_object::~Pager_object()
 	revoke(Obj_crd(_selectors, 2));
 	cap_map()->remove(_selectors, 2, false);
 	cap_map()->remove(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2, false);
-
-	if (_client_exc_vcpu == Native_thread::INVALID_INDEX)
-		return;
-
-	/* revoke vCPU exception portals */
-	revoke(Obj_crd(_client_exc_vcpu, NUM_INITIAL_VCPU_PT_LOG2));
-	cap_map()->remove(_client_exc_vcpu, NUM_INITIAL_VCPU_PT_LOG2, false);
 }
+
 
 uint8_t Pager_object::handle_oom(addr_t transfer_from,
                                  char const * src_pd, char const * src_thread,

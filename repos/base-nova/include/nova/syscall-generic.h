@@ -569,7 +569,7 @@ namespace Nova {
 		struct Item {
 			mword_t crd;
 			mword_t hotspot;
-			bool is_del() { return hotspot & 0x1; }
+			bool is_del() const { return hotspot & 0x1; }
 		};
 
 #ifdef __x86_64__

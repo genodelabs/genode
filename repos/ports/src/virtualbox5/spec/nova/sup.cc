@@ -560,19 +560,21 @@ bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
 	if (!hip->has_feature_vmx() && !hip->has_feature_svm())
 		return false;
 
+	static Genode::Pd_connection pd_vcpus("VM");
+
 	Vcpu_handler *vcpu_handler = 0;
 
 	if (hip->has_feature_vmx())
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id, name);
+		                                           cpu_id, name, pd_vcpus);
 
 	if (hip->has_feature_svm())
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id, name);
+		                                           cpu_id, name, pd_vcpus);
 
 	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
 

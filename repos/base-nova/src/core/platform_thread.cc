@@ -62,8 +62,17 @@ int Platform_thread::start(void *ip, void *sp)
 		return -2;
 	}
 
+	if (_pager->pd_sel() != Native_thread::INVALID_INDEX) {
+		error("thread already started");
+		return -2;
+	}
+
+	Utcb * const utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+	addr_t const pts  = vcpu() ? NUM_INITIAL_VCPU_PT_LOG2
+	                           : NUM_INITIAL_PT_LOG2;
+
 	addr_t const pt_oom = _pager->get_oom_portal();
-	if (!pt_oom || map_local((Utcb *)Thread::myself()->utcb(),
+	if (!pt_oom || map_local(utcb,
 	                         Obj_crd(pt_oom, 0), Obj_crd(_sel_pt_oom(), 0))) {
 		error("setup of out-of-memory notification portal - failed");
 		return -8;
@@ -71,7 +80,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	if (!main_thread()) {
 		addr_t const initial_sp = reinterpret_cast<addr_t>(sp);
-		addr_t const utcb       = vcpu() ? 0 : round_page(initial_sp);
+		addr_t const utcb_addr  = vcpu() ? 0 : round_page(initial_sp);
 
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			error("exception base not specified");
@@ -80,11 +89,27 @@ int Platform_thread::start(void *ip, void *sp)
 
 		_pager->assign_pd(_pd->pd_sel());
 
+		/* second++ vcpu case which runs in other pd than VMM */
+		if (vcpu() && _pager->pd_sel() != _pager->pd_source()) {
+			Obj_crd const source_initial_caps(_sel_exc_base, pts);
+			Obj_crd const target_initial_caps(_sel_exc_base, pts);
+
+			/* asynchronously map capabilities */
+			utcb->set_msg_word(0);
+			if (!utcb->append_item(source_initial_caps, 0))
+				return -3;
+
+			uint8_t res = Nova::delegate(_pager->pd_source(), _pager->pd_sel(),
+			                             target_initial_caps);
+			if (res != NOVA_OK)
+				return -3;
+		}
+
 		uint8_t res;
 		do {
 			unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(_location.xpos());
 			res = create_ec(_sel_ec(), _pd->pd_sel(), kernel_cpu_id,
-			                utcb, initial_sp, _sel_exc_base, !worker());
+			                utcb_addr, initial_sp, _sel_exc_base, !worker());
 			if (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK != _pager->handle_oom()) {
 				_pager->assign_pd(Native_thread::INVALID_INDEX);
 				error("creation of new thread failed ", res);
@@ -104,16 +129,23 @@ int Platform_thread::start(void *ip, void *sp)
 		return 0;
 	}
 
-	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
+	if (!vcpu() && _sel_exc_base != Native_thread::INVALID_INDEX) {
 		error("thread already started");
 		return -5;
 	}
 
 	addr_t pd_utcb = 0;
-	_sel_exc_base  = vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
+	Obj_crd initial_pts;
 
 	if (!vcpu()) {
+		_sel_exc_base  = _pager->exc_pt_sel_client();
+
 		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
+
+		addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
+		                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
+		                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
+		initial_pts = Obj_crd(_sel_exc_base, pts, rights);
 
 		addr_t remap_src[] = { _pd->parent_pt_sel(),
 		                       (unsigned long)_pager->Object_pool<Pager_object>::Entry::cap().local_name() };
@@ -121,7 +153,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-			if (map_local((Utcb *)Thread::myself()->utcb(),
+			if (map_local(utcb,
 			              Obj_crd(remap_src[i], 0),
 			              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
 				return -6;
@@ -130,16 +162,12 @@ int Platform_thread::start(void *ip, void *sp)
 
 	/* create task */
 	addr_t const pd_sel = cap_map()->insert();
-	addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
-	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
-	                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
-	unsigned pts = vcpu() ?  NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2;
 
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
-	Obj_crd initial_pts(_sel_exc_base, pts, rights);
 	uint8_t res = create_pd(pd_sel, platform_specific()->core_pd_sel(),
 	                        initial_pts,
-	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE, UPPER_LIMIT_PAGES);
+	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE,
+	                        UPPER_LIMIT_PAGES);
 	if (res != NOVA_OK) {
 		error("create_pd returned ", res);
 		goto cleanup_pd;
@@ -148,7 +176,8 @@ int Platform_thread::start(void *ip, void *sp)
 	/* create first thread in task */
 	enum { THREAD_GLOBAL = true };
 	res = create_ec(_sel_ec(), pd_sel,
-	                platform_specific()->kernel_cpu_id(_location.xpos()), pd_utcb, 0, 0,
+	                platform_specific()->kernel_cpu_id(_location.xpos()),
+	                pd_utcb, 0, 0,
 	                THREAD_GLOBAL);
 	if (res != NOVA_OK) {
 		error("create_ec returned ", res);
@@ -165,11 +194,25 @@ int Platform_thread::start(void *ip, void *sp)
 	_pager->initial_esp((addr_t)sp);
 	_pager->assign_pd(pd_sel);
 
-	do {
-		/* let the thread run */
-		res = create_sc(_sel_sc(), pd_sel, _sel_ec(),
-		                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
-	} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
+	if (vcpu() && _pager->pd_sel() != _pager->pd_source()) {
+		Obj_crd const source_initial_caps(_sel_exc_base, pts);
+		Obj_crd const target_initial_caps(0, pts);
+
+		/* asynchronously map capabilities */
+		utcb->set_msg_word(0);
+		res = utcb->append_item(source_initial_caps, 0);
+		if (res)
+			res = Nova::delegate(_pager->pd_source(), _pager->pd_sel(),
+		                         target_initial_caps);
+	}
+
+	if (res == NOVA_OK) {
+		do {
+			/* let the thread run */
+			res = create_sc(_sel_sc(), pd_sel, _sel_ec(),
+			                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
+		} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
+	}
 
 	if (res != NOVA_OK) {
 		/*
@@ -184,8 +227,9 @@ int Platform_thread::start(void *ip, void *sp)
 
 		error("create_sc returned ", res);
 		goto cleanup_ec;
-	} else
-		_features |= SC_CREATED;
+	}
+
+	_features |= SC_CREATED;
 
 	return 0;
 
@@ -262,7 +306,7 @@ void Platform_thread::state(Thread_state s)
 		 * s.is_vcpu      If true it will run as vCPU,
 		 *                otherwise it will be a thread.
 		 */
-		if (!main_thread())
+		if (!main_thread() || s.vcpu)
 			_sel_exc_base = s.sel_exc_base;
 
 		if (!s.global_thread)
@@ -272,9 +316,6 @@ void Platform_thread::state(Thread_state s)
 			return;
 
 		_features |= VCPU;
-
-		if (main_thread() && _pager)
-			_pager->prepare_vCPU_portals();
 
 	} else {
 

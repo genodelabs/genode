@@ -88,10 +88,11 @@ class Vcpu_handler_svm : public Vcpu_handler
 		                 void *(*start_routine) (void *), void *arg,
 		                 Genode::Cpu_session * cpu_session,
 		                 Genode::Affinity::Location location,
-		                 unsigned int cpu_id, const char * name)
+		                 unsigned int cpu_id, const char * name,
+		                 Genode::Pd_session_capability pd_vcpu)
 		:
 			Vcpu_handler(env, stack_size, attr, start_routine, arg, cpu_session,
-			             location, cpu_id, name)
+			             location, cpu_id, name, pd_vcpu)
 		{
 			using namespace Nova;
 
