@@ -70,7 +70,7 @@ append_if [have_include "power_on/qemu"] config {
 			<service name="Uart"/>
 		</provides>
 		<config>
-			<policy label="noux_net" uart="1"/>
+			<policy label_prefix="noux_net" uart="1"/>
 		</config>
 	</start>}
 
@@ -84,7 +84,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<policy label="noux_net" port="8888"/>
+			<policy label_prefix="noux_net" port="8888"/>
 		</config>
 	</start>
 	<start name="nic_bridge">

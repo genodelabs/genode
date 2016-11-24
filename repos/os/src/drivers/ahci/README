@@ -19,9 +19,9 @@ which client can access a certain device:
 !  </route>
 !  <config atapi="no">
 !    <!-- use model and serial number -->
-!    <policy label="test-ahci" model="QEMU HARDDISK" serial="QM00005" />
+!    <policy label_prefix="test-ahci" model="QEMU HARDDISK" serial="QM00005" />
 !    <!-- use controller port number -->
-!    <policy label="bench" device="1" />
+!    <policy label_prefix="bench" device="1" />
 !  </config>
 !</start>
 

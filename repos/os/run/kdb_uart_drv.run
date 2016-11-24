@@ -51,7 +51,7 @@ set config {
 			<service name="Uart"/>
 		</provides>
 		<config>
-			<policy label="test-terminal_echo" uart="0" detect_size="yes"/>
+			<policy label_prefix="test-terminal_echo" uart="0" detect_size="yes"/>
 		</config>
 	</start>
 	<start name="test-terminal_echo">

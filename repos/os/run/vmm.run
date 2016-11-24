@@ -48,7 +48,7 @@ install_config {
 			<service name="Uart"/>
 		</provides>
 		<config>
-			<policy label="vmm" uart="1"/>
+			<policy label_prefix="vmm" uart="1"/>
 		</config>
 	</start>
 	<start name="vmm">

@@ -45,8 +45,8 @@ set config  {
 				<service name="Terminal"/>
 			</provides>
 			<config>
-				<policy label="test-uart1" uart="1"/>
-				<policy label="test-uart2" uart="1"/>
+				<policy label_prefix="test-uart1" uart="1"/>
+				<policy label_prefix="test-uart2" uart="1"/>
 			</config>
 		</start>
 		<start name="test-uart1">

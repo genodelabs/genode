@@ -158,23 +158,6 @@ class Core_child : public Child_policy
 		 ** Child-policy interface **
 		 ****************************/
 
-		void filter_session_args(Service::Name const &, char *args, size_t args_len) override
-		{
-			using namespace Genode;
-
-			char label_buf[Parent::Session_args::MAX_SIZE];
-			Arg_string::find_arg(args, "label").string(label_buf, sizeof(label_buf), "");
-
-			char value_buf[Parent::Session_args::MAX_SIZE];
-			Genode::snprintf(value_buf, sizeof(value_buf),
-			                 "\"%s%s%s\"",
-			                 "init",
-			                 Genode::strcmp(label_buf, "") == 0 ? "" : " -> ",
-			                 label_buf);
-
-			Arg_string::set_arg(args, args_len, "label", value_buf);
-		}
-
 		Name name() const { return "init"; }
 
 		Service &resolve_session_request(Service::Name const &name,

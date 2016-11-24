@@ -26,7 +26,7 @@
 		<config>
 			<domain name="pointer" layer="1" label="no" content="client" xray="no" origin="pointer" />
 			<domain name="default" layer="2" label="no" content="client" hover="always" focus="click" />
-			<policy label="pointer" domain="pointer"/>
+			<policy label_prefix="pointer" domain="pointer"/>
 			<default-policy domain="default"/>
 		</config>
 	</start>

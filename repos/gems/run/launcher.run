@@ -80,10 +80,10 @@ append config {
 			<domain name="default"   layer="3" color="#ff0000" hover="always" focus="click" />
 			<domain name="decorator" layer="3" content="client" label="no" hover="always" focus="transient" />
 
-			<policy label="pointer"                       domain="pointer"/>
+			<policy label_prefix="pointer"                domain="pointer"/>
 			<policy label_prefix="wm -> launcher -> menu" domain="panel"/>
-			<policy label="wm -> decorator"               domain="decorator"/>
-			<policy label="status_bar"                    domain="panel"/>
+			<policy label_prefix="wm -> decorator"        domain="decorator"/>
+			<policy label_prefix="status_bar"             domain="panel"/>
 			<default-policy                               domain="default"/>
 
 			<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
@@ -157,8 +157,8 @@ append config {
 			<service name="Nitpicker"/>
 		</provides>
 		<config>
-			<policy label="decorator"                  role="decorator"/>
-			<policy label="layouter"                   role="layouter"/>
+			<policy label_prefix="decorator"           role="decorator"/>
+			<policy label_prefix="layouter"            role="layouter"/>
 			<policy label_prefix="launcher -> menu"    role="direct"/>
 			<policy label_prefix="launcher -> testnit" role="direct"/>
 		</config>

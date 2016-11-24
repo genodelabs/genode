@@ -40,7 +40,7 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Terminal"/></provides>
 			<config>
-				<policy label="noux" uart="1"/>
+				<policy label_prefix="noux" uart="1"/>
 			</config>
 		</start>
 		<start name="ram_fs">

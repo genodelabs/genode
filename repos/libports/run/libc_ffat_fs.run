@@ -79,7 +79,7 @@ append_if $use_ahci_drv config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
-			<policy label="ffat_fs" device="0" />
+			<policy label_prefix="ffat_fs" device="0" />
 		</config>
 	</start>
 }

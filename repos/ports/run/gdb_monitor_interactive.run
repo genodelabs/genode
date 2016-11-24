@@ -46,7 +46,7 @@ set config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
-			<policy label="gdb_monitor" uart="1"/>
+			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
 	<start name="gdb_monitor">

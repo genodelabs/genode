@@ -42,9 +42,11 @@ struct Genode::Session_label : String<160>
 			if (full_len < _separator_len())
 				return full;
 
-			for (unsigned i = full_len - _separator_len(); i > 0; --i)
+			unsigned i = full_len - _separator_len();
+			do {
 				if (!strcmp(_separator(), full + i, _separator_len()))
 					return full + i + _separator_len();
+			} while (i-- > 0);
 
 			return Session_label(Cstring(full));
 		}
@@ -91,16 +93,8 @@ namespace Genode {
 	inline Session_label prefixed_label(String<N1> const &prefix,
 	                                    String<N2> const &label)
 	{
-		if (!prefix.valid() || prefix == "")
-			return Session_label(label.string());
-
-		if (!label.valid() || label == "")
-			return Session_label(prefix.string());
-
-		char buf[Session_label::capacity()];
-		snprintf(buf, sizeof(buf), "%s -> %s", prefix.string(), label.string());
-
-		return Session_label(Cstring(buf));
+		String<N1 + N2 + 4> const prefixed_label(prefix, " -> ", label);
+		return Session_label(prefixed_label);
 	}
 }
 

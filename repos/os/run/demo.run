@@ -148,8 +148,8 @@ append config {
 					</else>
 				</if>
 				<inline>
-					<policy label="pointer"                   domain="pointer"/>
-					<policy label="status_bar"                domain="panel"/>
+					<policy label_prefix="pointer"            domain="pointer"/>
+					<policy label_prefix="status_bar"         domain="panel"/>
 					<policy label_prefix="scout -> launchpad" domain="launchpad"/>
 					<default-policy                           domain=""/>
 

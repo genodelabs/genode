@@ -58,11 +58,11 @@ append config {
 
 # on Fiasco.OC the kdb_uart_drv is always UART 0
 append_if [have_spec foc] config {
-				<policy label="terminal_mux" uart="0" detect_size="yes"/> }
+				<policy label_prefix="terminal_mux" uart="0" detect_size="yes"/> }
 
 # on all other kernels, direct terminal_mux to UART 1 (Qemu stdio, see below)
 append_if [expr ![have_spec foc]] config {
-				<policy label="terminal_mux" uart="1" detect_size="yes"/> }
+				<policy label_prefix="terminal_mux" uart="1" detect_size="yes"/> }
 
 append config {
 			</config>

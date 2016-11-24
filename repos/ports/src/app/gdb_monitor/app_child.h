@@ -44,8 +44,6 @@ class Gdb_monitor::App_child : public Child_policy
 
 		enum { STACK_SIZE = 4*1024*sizeof(long) };
 
-		Init::Child_policy_enforce_labeling _labeling_policy;
-
 		Genode::Env                        &_env;
 
 		Genode::Ram_session_capability      _ref_ram_cap { _env.ram_session_cap() };
@@ -245,32 +243,28 @@ class Gdb_monitor::App_child : public Child_policy
 
 		/**
 		 * Constructor
-		 *
-		 * \param root_ep  entrypoint serving the root interfaces of the
-		 *                 services provided by the child and announced
-		 *                 towards the parent of GDB monitor
 		 */
-		App_child(Genode::Env                    &env,
-		          const char                     *unique_name,
-				  Genode::Pd_session             &pd,
-				  Genode::Region_map             &rm,
-				  Genode::size_t                  ram_quota,
-				  Signal_receiver                *signal_receiver,
-				  Xml_node                        target_node)
-		: _labeling_policy(unique_name),
-		  _env(env),
-		  _unique_name(unique_name),
-		  _rm(rm),
-		  _ram_quota(ram_quota),
-		  _entrypoint(&pd, STACK_SIZE, "GDB monitor entrypoint"),
-		  _child_config(env.ram(), rm, target_node),
-		  _config_policy("config", _child_config.dataspace(), &_entrypoint),
-		  _unresolved_page_fault_dispatcher(*signal_receiver,
-		                                    *this,
-		                                    &App_child::_dispatch_unresolved_page_fault),
-		  _cpu_factory(_env, _entrypoint, Genode::env()->heap(), _pd.core_pd_cap(),
-		               signal_receiver, &_genode_child_resources),
-		  _rom_factory(env, _entrypoint)
+		App_child(Genode::Env        &env,
+		          const char         *unique_name,
+		          Genode::Pd_session &pd,
+		          Genode::Region_map &rm,
+		          Genode::size_t      ram_quota,
+		          Signal_receiver    *signal_receiver,
+		          Xml_node            target_node)
+		:
+			_env(env),
+			_unique_name(unique_name),
+			_rm(rm),
+			_ram_quota(ram_quota),
+			_entrypoint(&pd, STACK_SIZE, "GDB monitor entrypoint"),
+			_child_config(env.ram(), rm, target_node),
+			_config_policy("config", _child_config.dataspace(), &_entrypoint),
+			_unresolved_page_fault_dispatcher(*signal_receiver,
+			                                  *this,
+			                                  &App_child::_dispatch_unresolved_page_fault),
+			_cpu_factory(_env, _entrypoint, Genode::env()->heap(), _pd.core_pd_cap(),
+			             signal_receiver, &_genode_child_resources),
+			_rom_factory(env, _entrypoint)
 		{
 			_genode_child_resources.region_map_component(&_pd.region_map());
 			_pd.region_map().fault_handler(_unresolved_page_fault_dispatcher);
@@ -306,11 +300,6 @@ class Gdb_monitor::App_child : public Child_policy
 		{
 			session.ref_account(_ref_ram_cap);
 			_ref_ram.transfer_quota(cap, _ram_quota);
-		}
-
-		void filter_session_args(Service::Name const&, char *args, Genode::size_t args_len) override
-		{
-			_labeling_policy.filter_session_args(0, args, args_len);
 		}
 
 		Service &resolve_session_request(Genode::Service::Name const &service_name,

@@ -89,9 +89,9 @@ set config {
 			<domain name="smiley"     layer="3" content="client" label="no"/>
 			<domain name="default"    layer="3" content="client" label="no"/>
 
-			<policy label="pointer"            domain="pointer"/>
-			<policy label="test-domain-smiley" domain="smiley"/>
-			<default-policy                    domain="default"/>
+			<policy label_prefix="pointer"            domain="pointer"/>
+			<policy label_prefix="test-domain-smiley" domain="smiley"/>
+			<default-policy                           domain="default"/>
 
 			<background color="#00426f"/> <!-- indigo -->
 		</config>
@@ -186,9 +186,9 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<config>
 			<default-policy domain="smiley"   rom="smiley"/>
-			<policy label="test-label-arrow"  rom="arrow"/>
-			<policy label="test-label-blade"  rom="blade"/>
-			<policy label="test-label-bladex" rom="bladex"/>
+			<policy label_prefix="test-label-arrow"  rom="arrow"/>
+			<policy label_prefix="test-label-blade"  rom="blade"/>
+			<policy label_prefix="test-label-bladex" rom="bladex"/>
 		</config>
 		<route>
 			<service name="RM">        <parent/>                            </service>

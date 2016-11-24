@@ -188,8 +188,14 @@ Session_capability Child::session(Parent::Client::Id id,
 
 	char argbuf[Parent::Session_args::MAX_SIZE];
 
-	/* filter session arguments according to the child policy */
 	strncpy(argbuf, args.string(), sizeof(argbuf));
+
+	/* prefix session label */
+	Session_label const orig_label(label_from_args(argbuf));
+	Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label",
+	                           prefixed_label(_policy.name(), orig_label).string());
+
+	/* filter session arguments according to the child policy */
 	_policy.filter_session_args(name.string(), argbuf, sizeof(argbuf));
 
 	/* filter session affinity */

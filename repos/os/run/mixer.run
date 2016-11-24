@@ -63,7 +63,7 @@ append config {
 				<service name="Report"/>
 			</provides>
 			<config verbose="yes">
-				<policy label="to_whom_it_may_concern" report="mixer -> channel_list"/>
+				<policy label_prefix="to_whom_it_may_concern" report="mixer -> channel_list"/>
 			</config>
 		</start>
 

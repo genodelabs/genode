@@ -28,7 +28,6 @@
 namespace Init {
 
 	class Child_policy_ram_phys;
-	class Child_policy_enforce_labeling;
 	class Child_policy_handle_cpu_priorities;
 	class Child_policy_provide_rom_file;
 	class Child_policy_provide_dynamic_rom;
@@ -77,43 +76,6 @@ class Init::Child_policy_ram_phys
 
 			Arg_string::remove_arg(args, "phys_start");
 			Arg_string::remove_arg(args, "phys_size");
-		}
-};
-
-
-/**
- * Policy for prepending the child name to the 'label' argument
- *
- * By applying this policy, the identity of the child becomes imprinted
- * with each session request.
- */
-class Init::Child_policy_enforce_labeling
-{
-	const char *_name;
-
-	public:
-
-		Child_policy_enforce_labeling(const char *name) : _name(name) { }
-
-		/**
-		 * Filter arguments of session request
-		 *
-		 * This method modifies the 'label' argument and leaves all other
-		 * session arguments intact.
-		 */
-		void filter_session_args(const char *, char *args,
-		                         Genode::size_t args_len)
-		{
-			using namespace Genode;
-
-			Session_label const old_label = label_from_args(args);
-			if (old_label == "") {
-				Arg_string::set_arg_string(args, args_len, "label", _name);
-			} else {
-				Session_label const name(_name);
-				Session_label const new_label = prefixed_label(name, old_label);
-				Arg_string::set_arg_string(args, args_len, "label", new_label.string());
-			}
 		}
 };
 

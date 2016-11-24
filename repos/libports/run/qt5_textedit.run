@@ -54,7 +54,7 @@ append_if $use_ahci_driver config {
 		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
-			<policy label="ffat_fs" device="0" />
+			<policy label_prefix="ffat_fs" device="0" />
 		</config>
 	</start>}
 
@@ -70,8 +70,8 @@ append_if [have_spec linux] config {
 		<provides><service name="File_system"/></provides>
 		<config>
 			<!-- constrain sessions according to their labels -->
-			<policy label="textedit" root="/" writeable="yes" />
-			<policy label="textedit2" root="/" writeable="yes" />
+			<policy label_prefix="textedit" root="/" writeable="yes" />
+			<policy label_prefix="textedit2" root="/" writeable="yes" />
 		</config>
 	</start>}
 
@@ -81,7 +81,7 @@ append_if [expr ![have_spec linux]] config {
 		<provides><service name="File_system"/></provides>
 		<config>
 			<!-- constrain sessions according to their labels -->
-			<policy label="textedit" root="/" writeable="yes" />
+			<policy label_prefix="textedit" root="/" writeable="yes" />
 		</config>
 	</start>}
 

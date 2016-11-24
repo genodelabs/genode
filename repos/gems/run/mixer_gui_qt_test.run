@@ -94,8 +94,8 @@ append config {
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="2" content="client" label="no" hover="always" focus="click"/>
 
-			<policy label="pointer" domain="pointer"/>
-			<default-policy         domain="default"/>
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy                domain="default"/>
 
 			<background color="#000000" />
 		</config>
@@ -115,8 +115,8 @@ append config {
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<policy label="decorator" role="decorator"/>
-			<policy label="layouter"  role="layouter"/>
+			<policy label_prefix="decorator" role="decorator"/>
+			<policy label_prefix="layouter"  role="layouter"/>
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>

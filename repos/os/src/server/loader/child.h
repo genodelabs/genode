@@ -50,8 +50,6 @@ namespace Loader {
 			Service &_local_cpu_service;
 			Service &_local_pd_service;
 
-			Init::Child_policy_enforce_labeling _labeling_policy;
-
 			Genode::Child _child;
 
 		public:
@@ -76,7 +74,6 @@ namespace Loader {
 				_local_rom_service(local_rom_service),
 				_local_cpu_service(local_cpu_service),
 				_local_pd_service(local_pd_service),
-				_labeling_policy(_label.string()),
 				_child(_env.rm(), _env.ep().rpc_ep(), *this)
 			{ }
 
@@ -98,11 +95,6 @@ namespace Loader {
 			{
 				ram.ref_account(ref_ram_cap());
 				ref_ram().transfer_quota(ram_cap, _ram_quota);
-			}
-
-			void filter_session_args(Service::Name const &service, char *args, size_t args_len) override
-			{
-				_labeling_policy.filter_session_args(service.string(), args, args_len);
 			}
 
 			Service &resolve_session_request(Service::Name const &name,

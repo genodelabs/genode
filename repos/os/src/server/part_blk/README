@@ -46,8 +46,8 @@ Configuration snippet with two clients and an (hypothetical) IDE driver:
 !  <!-- allow program 'test-part1' to access logical partition '6', while program
 !      'test-part2' receives access to primary partition 1 -->
 !  <config>
-!    <policy label="test-part1" partition="6"/>
-!    <policy label="test-part2" partition="1"/>
+!    <policy label_prefix="test-part1" partition="6"/>
+!    <policy label_prefix="test-part2" partition="1"/>
 !  </config>
 !</start>
 !

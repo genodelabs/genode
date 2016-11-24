@@ -297,16 +297,16 @@ class Genode::Child : protected Rpc_object<Parent>,
 		};
 
 		Env_connection<Ram_connection> _ram { _policy,
-			_id_space, Parent::Env::ram() };
+			_id_space, Parent::Env::ram(), _policy.name() };
 
 		Env_connection<Pd_connection> _pd { _policy,
-			_id_space, Parent::Env::pd() };
+			_id_space, Parent::Env::pd(), _policy.name() };
 
 		Env_connection<Cpu_connection> _cpu { _policy,
-			_id_space, Parent::Env::cpu() };
+			_id_space, Parent::Env::cpu(), _policy.name() };
 
 		Env_connection<Log_connection> _log { _policy,
-			_id_space, Parent::Env::log() };
+			_id_space, Parent::Env::log(), _policy.name() };
 
 		Env_connection<Rom_connection> _binary { _policy,
 			_id_space, Parent::Env::binary(), _policy.binary_name() };

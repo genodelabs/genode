@@ -21,6 +21,6 @@ used:
 !  	<resource name="RAM" quantum="8M"/>
 !  	<provides> <service name="File_system"/> </provides>
 !  	<config>
-!  		<policy label="noux -> fuse" root="/" writeable="no" />
+!  		<policy label_prefix="noux -> fuse" root="/" writeable="no" />
 !  	</config>
 !  </start>

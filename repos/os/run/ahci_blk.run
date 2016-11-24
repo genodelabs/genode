@@ -56,7 +56,7 @@ append config {
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<config>
-			<policy label="test-ahci" device="0" />
+			<policy label_prefix="test-ahci" device="0" />
 		</config>
 	</start>
 	<start name="test-ahci">

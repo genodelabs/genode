@@ -68,8 +68,8 @@ install_config {
 			<any-service><child name="rom_blk"/> <parent/><any-child/></any-service>
 		</route>
 		<config>
-			<policy label="test-part1" partition="6"/>
-			<policy label="test-part2" partition="1"/>
+			<policy label_prefix="test-part1" partition="6"/>
+			<policy label_prefix="test-part2" partition="1"/>
 		</config>
 	</start>
 	<start name="test-part1">

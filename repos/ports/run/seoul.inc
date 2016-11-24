@@ -289,8 +289,8 @@ append_if $use_fancy_stuff config {
 			<domain name="panel"   layer="2" content="client" label="no" focus="none" />
 			<domain name=""        layer="3" content="client" focus="click"
 			                       hover="always" ypos="18" height="-18" />
-			<policy label="pointer"    domain="pointer"/>
-			<policy label="status_bar" domain="panel"/>
+			<policy label_prefix="pointer"    domain="pointer"/>
+			<policy label_prefix="status_bar" domain="panel"/>
 			<default-policy domain=""/>
 		</config>
 		<route>

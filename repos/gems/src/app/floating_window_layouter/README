@@ -17,8 +17,8 @@ a given window label, the window's initial position and its maximized state
 can be defined as follows:
 
 ! <config>
-!   <policy label="mupdf" maximized="yes"/>
-!   <policy label="nit_fb" xpos="50" ypos="50"/>
+!   <policy label_prefix="mupdf" maximized="yes"/>
+!   <policy label_prefix="nit_fb" xpos="50" ypos="50"/>
 ! </config>
 
 

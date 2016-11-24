@@ -493,7 +493,6 @@ class Init::Child : Genode::Child_policy,
 		/**
 		 * Policy helpers
 		 */
-		Init::Child_policy_enforce_labeling      _labeling_policy;
 		Init::Child_policy_handle_cpu_priorities _priority_policy;
 		Init::Child_policy_provide_rom_file      _config_policy;
 		Init::Child_policy_redirect_rom_file     _configfile_policy;
@@ -542,7 +541,6 @@ class Init::Child : Genode::Child_policy,
 			_child_services(child_services),
 			_config(_env.ram(), _env.rm(), start_node),
 			_session_requester(_entrypoint, _env.ram(), _env.rm()),
-			_labeling_policy(_name.unique),
 			_priority_policy(_resources.prio_levels_log2, _resources.priority),
 			_config_policy("config", _config.dataspace(), &_entrypoint),
 			_configfile_policy("config", _config.filename()),
@@ -758,7 +756,6 @@ class Init::Child : Genode::Child_policy,
 		void filter_session_args(Service::Name const &service,
 		                         char *args, Genode::size_t args_len) override
 		{
-			_labeling_policy.   filter_session_args(service.string(), args, args_len);
 			_priority_policy.   filter_session_args(service.string(), args, args_len);
 			_configfile_policy. filter_session_args(service.string(), args, args_len);
 			_ram_session_policy.filter_session_args(service.string(), args, args_len);

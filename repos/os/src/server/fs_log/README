@@ -17,7 +17,7 @@ the file "/log".
 !   <resource name="RAM" quantum="1M"/>
 !   <provides><service name="LOG"/></provides>
 !   <config>
-!     <policy label="nic_drv" truncate="no"/>
+!     <policy label_prefix="nic_drv" truncate="no"/>
 !     <policy label_prefix="cli_monitor -> " merge="yes"/>
 !     <default-policy truncate="yes"/>
 !   </config>

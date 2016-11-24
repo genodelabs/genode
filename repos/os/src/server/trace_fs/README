@@ -37,7 +37,7 @@ To use the trace_fs, a configuration similar to the following may be used:
 !   <resource name="RAM" quantum="128M"/>
 !   <provides><service name="File_system"/></provides>
 !   <config>
-!           <policy label="noux -> trace"
+!           <policy label_prefix="noux -> trace"
 !                   interval="1000"
 !                   subject_limit="512"
 !                   trace_quota="64M" />

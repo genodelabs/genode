@@ -141,7 +141,7 @@ append config {
 				<dir name="tmp"/>
 			</content>
 			<!-- constrain sessions according to their labels -->
-			<policy label="fs_log"          root="/samples"    writeable="yes" />
+			<policy label_prefix="fs_log"   root="/samples"    writeable="yes" />
 			<policy label="noux -> home"    root="/home"       writeable="yes" />
 			<policy label="noux -> samples" root="/samples" />
 			<policy label="noux -> tmp"     root="/tmp"        writeable="yes" />

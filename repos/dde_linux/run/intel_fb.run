@@ -68,8 +68,8 @@ append config {
 </config>
 				</inline>
 			</content>
-			<policy label="config_rom" root="/"/>
-			<policy label="intel_fb_controller" root="/" writeable="yes"/>
+			<policy label_prefix="config_rom" root="/"/>
+			<policy label_prefix="intel_fb_controller" root="/" writeable="yes"/>
 		</config>
 	</start>
 

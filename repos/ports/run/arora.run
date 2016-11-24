@@ -65,7 +65,7 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Loader"/></provides>
 		<config>
-			<policy label="arora">
+			<policy label_prefix="arora">
 				<parent-rom name="ld.lib.so"/>
 				<parent-rom name="init"/>
 				<parent-rom name="tar_rom"/>

@@ -39,7 +39,6 @@ namespace Noux {
 
 			Name                          const _name;
 			Binary_name                   const _binary_name;
-			Init::Child_policy_enforce_labeling _labeling_policy;
 			Init::Child_policy_provide_rom_file _args_policy;
 			Init::Child_policy_provide_rom_file _env_policy;
 			Init::Child_policy_provide_rom_file _config_policy;
@@ -93,7 +92,6 @@ namespace Noux {
 			:
 				_name(name),
 				_binary_name(binary_name),
-				_labeling_policy(_name.string()),
 				_args_policy(  "args",   args_ds,   &entrypoint),
 				_env_policy(   "env",    env_ds,    &entrypoint),
 				_config_policy("config", config_ds, &entrypoint),
@@ -158,12 +156,6 @@ namespace Noux {
 					return *service;
 
 				throw Parent::Service_denied();
-			}
-
-			void filter_session_args(Genode::Service::Name const &service,
-			                         char *args, Genode::size_t args_len) override
-			{
-				_labeling_policy.filter_session_args(service.string(), args, args_len);
 			}
 
 			void exit(int exit_value) override

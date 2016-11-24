@@ -182,17 +182,13 @@ Child::Child(Genode::Env &env, Genode::Xml_node config)
  * The parent grants resource requests as long as it has free resources.
  * Once in a while, it politely requests the child to yield resources.
  */
-class Parent : Genode::Slave::Policy
+class Parent
 {
 	private:
 
 		Genode::Env &_env;
 
 		typedef Genode::size_t size_t;
-
-		enum { SLAVE_QUOTA = 10*1024*1024 };
-
-		Genode::Child _child = { _env.rm(), _env.ep().rpc_ep(), *this };
 
 		Timer::Connection _timer { _env };
 
@@ -254,40 +250,7 @@ class Parent : Genode::Slave::Policy
 			}
 		}
 
-		Genode::Signal_handler<Parent> _timeout_handler {
-			_env.ep(), *this, &Parent::_handle_timeout };
-
-	public:
-
-		class Insufficient_yield { };
-
-		/**
-		 * Constructor
-		 */
-		Parent(Genode::Env &env)
-		:
-			Genode::Slave::Policy(Label(), "test-resource_yield", env.ep().rpc_ep(),
-			                      env.rm(), env.ram_session_cap(), SLAVE_QUOTA),
-			_env(env)
-		{
-			configure("<config child=\"yes\" />");
-
-			_timer.sigh(_timeout_handler);
-			_init();
-		}
-
-
-		/****************************
-		 ** Slave_policy interface **
-		 ****************************/
-
-		char const **_permitted_services() const
-		{
-			static char const *services[] = { "RAM", "PD", "CPU", "ROM", "LOG", "Timer" };
-			return services;
-		}
-
-		void yield_response()
+		void _yield_response()
 		{
 			Genode::log("got yield response");
 			_state = YIELD_GOT_RESPONSE;
@@ -307,6 +270,54 @@ class Parent : Genode::Slave::Policy
 				Genode::log("--- test-resource_yield finished ---");
 				_env.parent().exit(0);
 			}
+		}
+
+		Genode::Signal_handler<Parent> _timeout_handler {
+			_env.ep(), *this, &Parent::_handle_timeout };
+
+		struct Policy : Genode::Slave::Policy
+		{
+			Parent &_parent;
+
+			enum { SLAVE_QUOTA = 10*1024*1024 };
+
+			char const **_permitted_services() const override
+			{
+				static char const *services[] = { "RAM", "PD", "CPU", "ROM", "LOG", "Timer" };
+				return services;
+			}
+
+			void yield_response() override
+			{
+				_parent._yield_response();
+			}
+
+			Policy(Parent &parent, Genode::Env &env)
+			:
+				Genode::Slave::Policy(Label("child"), "test-resource_yield",
+				                      env.ep().rpc_ep(), env.rm(),
+				                      env.ram_session_cap(), SLAVE_QUOTA),
+				_parent(parent)
+			{
+				configure("<config child=\"yes\" />");
+			}
+		};
+
+		Policy _policy { *this, _env };
+
+		Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), _policy };
+
+	public:
+
+		class Insufficient_yield { };
+
+		/**
+		 * Constructor
+		 */
+		Parent(Genode::Env &env) : _env(env)
+		{
+			_timer.sigh(_timeout_handler);
+			_init();
 		}
 };
 

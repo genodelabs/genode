@@ -62,7 +62,6 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Genode::Session_requester _session_requester;
 
-		Init::Child_policy_enforce_labeling _labeling_policy { _name.string() };
 		Init::Child_policy_provide_rom_file _config_policy;
 
 		Genode::Child _child;
@@ -180,12 +179,6 @@ class Launchpad_child : public Genode::Child_policy,
 
 			Genode::warning(name(), ": service ", service_name, " not available");
 			throw Genode::Parent::Service_denied();
-		}
-
-		void filter_session_args(Genode::Service::Name const &service,
-		                         char *args, Genode::size_t args_len) override
-		{
-			_labeling_policy.filter_session_args(service.string(), args, args_len);
 		}
 
 		void announce_service(Genode::Service::Name const &service_name) override

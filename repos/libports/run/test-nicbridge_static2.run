@@ -54,7 +54,7 @@ append config {
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
 		<config>
-			<policy label="lighttpd" ip_addr="10.0.2.55"/>
+			<policy label_prefix="lighttpd" ip_addr="10.0.2.55"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_drv"/> </service>

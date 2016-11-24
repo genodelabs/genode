@@ -137,8 +137,8 @@ append config_of_app {
 			<domain name="cpu_load" layer="2" content="client" label="no" />
 			<domain name=""         layer="3" content="client" focus="click" hover="always" />
 
-			<policy label="vbox_pointer"     domain="pointer"/>
-			<policy label="cpu_load_display" domain="cpu_load"/>
+			<policy label_prefix="vbox_pointer"     domain="pointer"/>
+			<policy label_prefix="cpu_load_display" domain="cpu_load"/>
 			<default-policy domain=""/>
 		</config>
 	</start>
@@ -149,7 +149,7 @@ append config_of_app {
 
 for { set i 1} { $i <= $use_vms } { incr i} {
 append config_of_app "
-			<policy label=\"nit_fb$i\" rom=\"shape$i\"/>"
+			<policy label_prefix=\"nit_fb$i\" rom=\"shape$i\"/>"
 }
 
 append config_of_app {

@@ -70,9 +70,9 @@ set config  {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Block"/></provides>
 		<config>
-			<policy label="vmlinux.1 -> sda" partition="1" />
-			<policy label="vmlinux.2 -> sda" partition="2" />
-			<policy label="test-libc_ffat"   partition="3" />
+			<policy label="vmlinux.1 -> sda"      partition="1" />
+			<policy label="vmlinux.2 -> sda"      partition="2" />
+			<policy label_prefix="test-libc_ffat" partition="3" />
 		</config>
 		<route>
 			<service name="Block"> <child name="sd_card_drv"/> </service>

@@ -131,7 +131,7 @@ append_if $use_nic_bridge config {
 		<provides><service name="Nic"/></provides>
 		<config>}
 append_if [expr $use_nic_bridge && [have_spec linux]] config "
-			<policy label=\"netserver_genode\" ip_addr=\"$lx_ip_addr\"/>"
+			<policy label_prefix=\"netserver_genode\" ip_addr=\"$lx_ip_addr\"/>"
 append_if $use_nic_bridge config {
 		</config>
 		<route>
@@ -174,7 +174,7 @@ append_if $use_wifi_driver config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<policy label="config_rom" root="/"/>
+			<policy label_prefix="config_rom" root="/"/>
 			<policy label="wifi_drv -> config" root="/" writeable="yes"/>
 			<content>
 				<inline name="wlan_configuration">}

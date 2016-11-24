@@ -44,8 +44,7 @@ class Bomb_child : public Child_policy
 
 		Registry<Registered<Parent_service> > &_parent_services;
 
-		Init::Child_policy_enforce_labeling _labeling_policy { _label.string() };
-		Child_policy_dynamic_rom_file       _config_policy   { "config", _ep, &_env.ram() };
+		Child_policy_dynamic_rom_file _config_policy { "config", _ep, &_env.ram() };
 
 		Child _child { _env.rm(), _ep, *this };
 
@@ -86,12 +85,6 @@ class Bomb_child : public Child_policy
 
 		Ram_session               &ref_ram()       override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
-
-		void filter_session_args(Service::Name const &,
-		                         char *args, size_t args_len) override
-		{
-			_labeling_policy.filter_session_args(nullptr, args, args_len);
-		}
 
 		Service &resolve_session_request(Service::Name const &service_name,
 		                                 Session_state::Args const &args) override

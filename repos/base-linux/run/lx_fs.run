@@ -35,7 +35,7 @@ install_config {
 	<start name="lx_fs">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
-		<config> <policy label="test-libc_vfs" root="/libc_vfs" writeable="yes" /> </config>
+		<config> <policy label_prefix="test-libc_vfs" root="/libc_vfs" writeable="yes" /> </config>
 	</start>
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="2M"/>

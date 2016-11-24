@@ -60,7 +60,7 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
-			<policy label="gdb_monitor" uart="1"/>
+			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
 	<start name="gdb_monitor">
@@ -71,7 +71,7 @@ set config {
 				<config>
 					<domain name="pointer" layer="1" xray="no" origin="pointer" />
 					<domain name="default" layer="3" />
-					<policy label="pointer" domain="pointer"/>
+					<policy label_prefix="pointer" domain="pointer"/>
 					<default-policy domain="default"/>
 				</config>
 			</target>

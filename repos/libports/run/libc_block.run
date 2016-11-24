@@ -75,7 +75,7 @@ append_if $use_ahci_drv config {
 		<resource name="RAM" quantum="10M"/>
 		<provides> <service name="Block"/> </provides>
 		<config ata="yes">
-			<policy label="test-libc_block" device="0"/>
+			<policy label_prefix="test-libc_block" device="0"/>
 		</config>
 	</start>
 }

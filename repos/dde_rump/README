@@ -43,7 +43,7 @@ Here is an example snippet that configures the server:
 !<start name="rump_fs">
 !  <resource name="RAM" quantum="8M" />
 !  <provides><service name="File_system"/></provides>
-!  <config fs="ext2fs"><policy label="" root="/" writeable="yes"/></config>
+!  <config fs="ext2fs"><default-policy root="/" writeable="yes"/></config>
 !</start>
 
 The server is looking for a service that provides a Genode block session. If

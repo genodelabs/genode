@@ -63,7 +63,6 @@ class Child_base : public Genode::Child_policy
 		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
 		Genode::Rpc_entrypoint _entrypoint;
 
-		Init::Child_policy_enforce_labeling   _labeling_policy;
 		Genode::Child_policy_dynamic_rom_file _config_policy;
 
 		/**
@@ -111,7 +110,6 @@ class Child_base : public Genode::Child_policy
 			_ref_ram_cap(ref_ram_cap), _ref_ram(ref_ram),
 			_ram_quota(ram_quota), _ram_limit(ram_limit),
 			_entrypoint(&pd_session, ENTRYPOINT_STACK_SIZE, _label.string(), false),
-			_labeling_policy(_label.string()),
 			_config_policy("config", _entrypoint, &ref_ram),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap),
@@ -290,12 +288,6 @@ class Child_base : public Genode::Child_policy
 				return *service;
 
 			return *new (Genode::env()->heap()) Parent_service(_parent_services, name);
-		}
-
-		void filter_session_args(Genode::Service::Name const &service,
-		                         char *args, Genode::size_t args_len) override
-		{
-			_labeling_policy.filter_session_args(service.string(), args, args_len);
 		}
 
 		void yield_response()

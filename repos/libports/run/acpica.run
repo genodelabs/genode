@@ -25,8 +25,8 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 # override default platform driver policy
 proc platform_drv_policy {} {
 	return {
-			<policy label="ps2_drv"> <device name="PS2"/> </policy>
-			<policy label="acpica"> <pci class="ALL"/> </policy>}
+			<policy label_prefix="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label_prefix="acpica"> <pci class="ALL"/> </policy>}
 }
 
 # add routing information to dynamically generate change of 'system' ROM

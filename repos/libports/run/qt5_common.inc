@@ -73,7 +73,7 @@ proc qt5_start_nodes { feature_arg } {
 				<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
 				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
 
-				<policy label="pointer" domain="pointer"/>
+				<policy label_prefix="pointer" domain="pointer"/>
 				<default-policy domain="default"/>
 			</config>
 		</start>
@@ -111,8 +111,8 @@ proc qt5_start_nodes { feature_arg } {
 				<service name="Nitpicker"/>
 			</provides>
 			<config>
-				<policy label="decorator" role="decorator"/>
-				<policy label="layouter"  role="layouter"/>
+				<policy label_prefix="decorator" role="decorator"/>
+				<policy label_prefix="layouter"  role="layouter"/>
 			</config>
 			<route>
 				<any-service>

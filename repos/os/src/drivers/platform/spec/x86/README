@@ -26,7 +26,7 @@ explicitly configured by the triple 'bus', 'device', 'function':
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! ...
 ! <config>
-!  <policy label="usb_drv">
+!  <policy label_prefix="usb_drv">
 !   <pci bus="0" device="19" function="0"/>
 !   <pci bus="0" device="18" function="3"/>
 !  </policy>
@@ -39,7 +39,7 @@ or more fuzzy by a device class alias:
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! ...
 ! <config>
-!  <policy label="usb_drv">
+!  <policy label_prefix="usb_drv">
 !   <pci class="USB"/>
 !  </policy>
 ! </config>
@@ -51,7 +51,7 @@ Non PCI devices, as the PS2 controller are named by a "device" node in the polic
 !<start name="platform_drv">
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! <config>
-!  <policy label="ps_drv">
+!  <policy label_prefix="ps_drv">
 !   <device name="PS2/>
 !  </policy>
 ! </config>
@@ -72,7 +72,7 @@ supports it. This behaviour can be overwritten:
 !<start name="platform_drv">
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! <config>
-!  <policy label="nic_drv" irq_mode="nomsi">
+!  <policy label_prefix="nic_drv" irq_mode="nomsi">
 !  ...
 !  </policy>
 ! </config>
@@ -171,7 +171,7 @@ The driver provides for the PS2 controller the IO_PORT and IRQ resources.
 !<start name="platform_drv">
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! <config>
-!  <policy label="ps_drv">
+!  <policy label_prefix="ps_drv">
 !   <dev name="PS2/>
 !  </policy>
 ! </config>

@@ -71,7 +71,7 @@ Excerpt of important parts of the acpica configuration
 !<start name="platform_drv" >
 !  ...
 !  <config acpi="yes" system="yes">
-!    <policy label="acpica"> <pci class="ALL"/> </policy>
+!    <policy label_prefix="acpica"> <pci class="ALL"/> </policy>
 !    ...
 !  </config>
 !</start>

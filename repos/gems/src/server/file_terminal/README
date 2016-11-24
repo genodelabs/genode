@@ -2,8 +2,8 @@ File terminal is a service that provides a terminal-session interface and
 redirects the terminal input and output to a file.
 
 ! <config>
-!   <policy label="client1" filename="test.txt" />
-!   <policy label="client2" filename="file.dat" io_buffer_size="4K"/>h
+!   <policy label_prefix="client1" filename="test.txt" />
+!   <policy label_prefix="client2" filename="file.dat" io_buffer_size="4K"/>h
 !   <libc stdout="/dev/log">
 !     <vfs>
 !       <dir name="dev"> <log/> </dir>

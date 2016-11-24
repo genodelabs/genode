@@ -33,14 +33,14 @@ proc platform_drv_policy {} {
 
 	if ([have_spec x86]) {
 		return {
-			<policy label="ps2_drv">  <device name="PS2"/> </policy>
-			<policy label="nic_drv">  <pci class="ETHERNET"/> </policy>
-			<policy label="fb_drv">   <pci class="VGA"/> </policy>
-			<policy label="wifi_drv"> <pci class="WIFI"/> </policy>
-			<policy label="usb_drv">  <pci class="USB"/> </policy>
-			<policy label="ahci_drv"> <pci class="AHCI"/> </policy>
-			<policy label="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
-			<policy label="intel_fb_drv" irq_mode="nomsi">
+			<policy label_prefix="ps2_drv">  <device name="PS2"/> </policy>
+			<policy label_prefix="nic_drv">  <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="fb_drv">   <pci class="VGA"/> </policy>
+			<policy label_prefix="wifi_drv"> <pci class="WIFI"/> </policy>
+			<policy label_prefix="usb_drv">  <pci class="USB"/> </policy>
+			<policy label_prefix="ahci_drv"> <pci class="AHCI"/> </policy>
+			<policy label_prefix="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+			<policy label_prefix="intel_fb_drv" irq_mode="nomsi">
 				<pci class="VGA"/>
 				<pci bus="0" device="0" function="0"/>
 				<pci class="ISABRIDGE"/>

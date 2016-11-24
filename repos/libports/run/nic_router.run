@@ -89,39 +89,39 @@ append config {
 				</ip>
 			</policy>
 
-			<policy label="http_srv_1" src="192.168.1.1" nat="yes" nat-tcp-ports="4">
+			<policy label_prefix="http_srv_1" src="192.168.1.1" nat="yes" nat-tcp-ports="4">
 				<ip dst="10.0.0.0/19"   label="uplink" via="10.0.6.1" />
 				<ip dst="10.0.2.128/25" label="uplink" via="10.0.3.1" />
 				<ip dst="10.0.2.0/24"   label="uplink" />
 			</policy>
 
-			<policy label="http_srv_2" src="192.168.1.1" nat="yes" nat-tcp-ports="2">
+			<policy label_prefix="http_srv_2" src="192.168.1.1" nat="yes" nat-tcp-ports="2">
 				<ip dst="10.0.2.0/24" label="uplink" />
 			</policy>
 
-			<policy label="http_clnt_3" src="100.200.0.1" nat="yes" nat-tcp-ports="4">
+			<policy label_prefix="http_clnt_3" src="100.200.0.1" nat="yes" nat-tcp-ports="4">
 				<ip dst="10.0.6.0/23" label="uplink" via="10.0.4.1" />
 				<ip dst="10.0.0.0/16" />
 				<ip dst="10.0.2.0/24" label="uplink" />
 			</policy>
 
-			<policy label="udp_srv_1" src="10.0.99.33" nat="yes" nat-udp-ports="1">
+			<policy label_prefix="udp_srv_1" src="10.0.99.33" nat="yes" nat-udp-ports="1">
 				<ip dst="10.0.2.0/24"  label="uplink" />
 				<ip dst="10.0.98.0/24" label="udp_clnt_1" />
 			</policy>
 
-			<policy label="udp_srv_2" src="18.17.15.14">
+			<policy label_prefix="udp_srv_2" src="18.17.15.14">
 				<ip dst="10.0.2.0/24" label="uplink" />
 			</policy>
 
-			<policy label="udp_clnt_1" src="10.0.98.33">
+			<policy label_prefix="udp_clnt_1" src="10.0.98.33">
 				<ip dst="10.0.98.33/32">
 					<udp dst="1337" label="udp_srv_1" to="10.0.99.55"
 					     via="10.0.99.55"/>
 				</ip>
 			</policy>
 
-			<policy label="udp_clnt_3" src="217.13.192.1" nat="yes" nat-udp-ports="2">
+			<policy label_prefix="udp_clnt_3" src="217.13.192.1" nat="yes" nat-udp-ports="2">
 				<ip dst="10.0.0.0/18" label="uplink" />
 			</policy>
 
@@ -136,10 +136,10 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config>
-			<policy label="nic_router" ip_addr="10.0.2.55"/>
-			<policy label="http_srv_3" ip_addr="10.0.2.11"/>
-			<policy label="udp_clnt_2" ip_addr="10.0.2.123"/>
-			<policy label="udp_srv_3"  ip_addr="10.0.2.70"/>
+			<policy label_prefix="nic_router" ip_addr="10.0.2.55"/>
+			<policy label_prefix="http_srv_3" ip_addr="10.0.2.11"/>
+			<policy label_prefix="udp_clnt_2" ip_addr="10.0.2.123"/>
+			<policy label_prefix="udp_srv_3"  ip_addr="10.0.2.70"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_drv"/> </service>

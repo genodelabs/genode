@@ -91,8 +91,8 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 		<config>
-			<policy label="lighttpd" ip_addr="10.0.1.1"/>
-			<policy label="http_blk" ip_addr="10.0.1.2"/>
+			<policy label_prefix="lighttpd" ip_addr="10.0.1.1"/>
+			<policy label_prefix="http_blk" ip_addr="10.0.1.2"/>
 		</config>
 		<route>
 			<service name="Nic">}

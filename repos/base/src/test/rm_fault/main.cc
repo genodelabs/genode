@@ -128,15 +128,6 @@ class Test_child_policy : public Child_policy
 
 			return *service;
 		}
-
-		void filter_session_args(Service::Name const &,
-		                         char *args, size_t args_len)
-		{
-			/* prefix session label */
-			Session_label const orig(label_from_args(args));
-			Arg_string::set_arg_string(args, args_len, "label",
-			                           prefixed_label(name(), orig).string());
-		}
 };
 
 

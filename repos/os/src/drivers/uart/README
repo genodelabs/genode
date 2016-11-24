@@ -15,9 +15,9 @@ via Genode's config mechanism.
   assumed to be used by the kernel and, therefore, left untouched.
 
   ! <config>
-  !   <policy label="test-uart1" uart="1" detect_size="yes" />
-  !   <policy label="test-uart2" uart="2" />
-  !   <policy label="test-uartx" uart="1" />
+  !   <policy label_prefix="test-uart1" uart="1" detect_size="yes" />
+  !   <policy label_prefix="test-uart2" uart="2" />
+  !   <policy label_prefix="test-uartx" uart="1" />
   ! </config>
 
   If the 'detect_size' attribute is set to "yes", the UART driver will

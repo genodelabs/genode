@@ -77,7 +77,7 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
 		<config>
-			<policy label="part_blk" device="0"/>
+			<policy label_prefix="part_blk" device="0"/>
 		</config>
 	</start>
 	<start name="part_blk" priority="-1">
@@ -88,9 +88,9 @@ append config {
 		</route>
 		<config>}
 append_if [expr $use_rumpfs] config {
-			<policy label="rump_fs" partition="4"/>}
+			<policy label_prefix="rump_fs" partition="4"/>}
 append_if [expr !$use_rumpfs] config {
-			<policy label="vbox1 -> raw" partition="3"/>}
+			<policy label_prefix="vbox1 -> raw" partition="3"/>}
 append config {
 		</config>
 	</start>}
@@ -102,7 +102,7 @@ append_if [expr $use_rumpfs] config {
 		<config ld_verbose="yes" fs="ext2fs">}
 
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
-			<policy label="overlay_from_disk" root="/ram" writeable="yes"/>}
+			<policy label_prefix="overlay_from_disk" root="/ram" writeable="yes"/>}
 append_if [expr $use_rumpfs] config {
 			<default-policy root="/" writeable="yes"/>
 		</config>
@@ -130,7 +130,7 @@ append_if [expr $use_ram_fs] config {
 			<!-- constrain sessions according to their labels -->}
 for { set i 1} { $i <= ${use_vms} } { incr i} {
 append_if [expr $use_ram_fs] config "
-			<policy label=\"vbox${i} -> from_ram_fs\" root=\"/ram${i}\" writeable=\"yes\"/>"
+			<policy label_prefix=\"vbox${i} -> from_ram_fs\" root=\"/ram${i}\" writeable=\"yes\"/>"
 }
 append_if [expr $use_ram_fs] config {
 		</config>

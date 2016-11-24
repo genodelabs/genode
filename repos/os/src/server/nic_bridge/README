@@ -26,7 +26,7 @@ address to a client with the session label "lighttpd".
 !<start name="nic_bridge">
 !  ...
 !  <config>
-!    <policy label="lighttpd" ip_addr="10.0.2.55"/>
+!    <policy label_prefix="lighttpd" ip_addr="10.0.2.55"/>
 !  </config>
 !</start>
 

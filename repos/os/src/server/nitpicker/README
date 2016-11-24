@@ -19,9 +19,9 @@ expressed via '<policy>' nodes as illustrated by the following example:
 
 ! <config>
 !   ...
-!   <policy label="pointer"    domain="pointer"/>
-!   <policy label="status_bar" domain="panel"/>
-!   <policy label=""           domain=""/>
+!   <policy label_prefix="pointer"    domain="pointer"/>
+!   <policy label_prefix="status_bar" domain="panel"/>
+!   <default-policy                   domain=""/>
 !   ...
 ! </config>
 

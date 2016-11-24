@@ -49,7 +49,7 @@ install_config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system" /> </provides>
 		<config>
-			<policy label="rom_to_file" root="/fs_test" writeable="yes" />
+			<policy label_prefix="rom_to_file" root="/fs_test" writeable="yes" />
 		</config>
 	</start>
 	<start name="rom_to_file">

@@ -77,7 +77,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Loader"/></provides>
 		<config>
-			<policy label="test-loader">
+			<policy label_prefix="test-loader">
 				<parent-rom name="testnit"/>
 			</policy>
 		</config>

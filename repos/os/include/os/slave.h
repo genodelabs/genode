@@ -61,15 +61,14 @@ class Genode::Slave::Policy : public Child_policy
 
 	private:
 
-		Label                           const _label;
-		Binary_name                     const _binary_name;
-		Ram_session_client                    _ram;
-		Genode::Parent_service                _binary_service;
-		size_t                                _ram_quota;
-		Parent_services                       _parent_services;
-		Rpc_entrypoint                       &_ep;
-		Init::Child_policy_enforce_labeling   _labeling_policy;
-		Child_policy_dynamic_rom_file         _config_policy;
+		Label                    const _label;
+		Binary_name              const _binary_name;
+		Ram_session_client             _ram;
+		Genode::Parent_service         _binary_service;
+		size_t                         _ram_quota;
+		Parent_services                _parent_services;
+		Rpc_entrypoint                &_ep;
+		Child_policy_dynamic_rom_file  _config_policy;
 
 		bool _service_permitted(Service::Name const &service_name) const
 		{
@@ -106,7 +105,7 @@ class Genode::Slave::Policy : public Child_policy
 		:
 			_label(label), _binary_name(binary_name), _ram(ram_cap),
 			_binary_service(Rom_session::service_name()),
-			_ram_quota(ram_quota), _ep(ep), _labeling_policy(_label.string()),
+			_ram_quota(ram_quota), _ep(ep),
 			_config_policy("config", _ep, &_ram),
 			_session_requester(ep, _ram, rm)
 		{
@@ -185,12 +184,6 @@ class Genode::Slave::Policy : public Child_policy
 
 		Id_space<Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }
-
-		void filter_session_args(Service::Name const &service,
-		                         char *args, size_t args_len)
-		{
-			_labeling_policy.filter_session_args(service.string(), args, args_len);
-		}
 };
 
 

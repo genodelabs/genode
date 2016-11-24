@@ -101,7 +101,7 @@ append config {
 			<service name="Terminal"/>
 			<service name="Uart"/>
 		</provides>
-		<config><policy label="l4linux" uart="0"/></config>
+		<config><policy label_prefix="l4linux" uart="0"/></config>
 	</start>
 	<start name="usb_drv">
 		<binary name="usb_drv"/>

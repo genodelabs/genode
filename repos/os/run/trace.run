@@ -41,7 +41,7 @@ append config {
 	<start name="test-trace">
 		<resource name="RAM" quantum="10M"/>
 		<config>
-			<trace_policy label="init -> test-trace" module="rpc_name" />
+			<trace_policy label_prefix="init -> test-trace" module="rpc_name" />
 		</config>
 	</start>
 </config>}

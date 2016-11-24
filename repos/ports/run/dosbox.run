@@ -14,10 +14,10 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 # override default platform driver policy
 proc platform_drv_policy {} {
 	return {
-			<policy label="ps2_drv"> <device name="PS2"/> </policy>
-			<policy label="usb_drv"> <pci class="USB"/> </policy>
-			<policy label="fb_drv">  <pci class="VGA"/> </policy>
-			<policy label="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>}
+			<policy label_prefix="ps2_drv"> <device name="PS2"/> </policy>
+			<policy label_prefix="usb_drv"> <pci class="USB"/> </policy>
+			<policy label_prefix="fb_drv">  <pci class="VGA"/> </policy>
+			<policy label_prefix="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>}
 }
 
 append_platform_drv_build_components

@@ -105,7 +105,7 @@ append_if $use_ahci config {
 		</route>
 		<config>}
 append_if $use_ahci config "
-			<policy label=\"test-libc_$filesystem\" device=\"0\" />"
+			<policy label_prefix=\"test-libc_$filesystem\" device=\"0\" />"
 append_if $use_ahci config {
 		</config>
 	</start>}
