@@ -118,8 +118,12 @@ class Pci_driver : public Bsd::Bus_driver
 		{
 			Platform::Device_capability cap;
 			/* shift values for Pci interface used by Genode */
-			cap = _pci.next_device(prev, PCI_CLASS_MULTIMEDIA << 16,
-			                             PCI_CLASS_MASK << 16);
+			cap = Genode::retry<Platform::Session::Out_of_metadata>(
+				[&] () { return _pci.next_device(prev,
+				                                 PCI_CLASS_MULTIMEDIA << 16,
+				                                 PCI_CLASS_MASK << 16); },
+				[&] () { _pci.upgrade_ram(4096); });
+			
 			if (prev.valid())
 				_pci.release_device(prev);
 			return cap;
