@@ -45,7 +45,7 @@ class Genode::Slab::Block
 		 * the Slab allocator).
 		 */
 
-		char _data[];  /* dynamic data (state table and slab entries) */
+		char _data[0];  /* dynamic data (state table and slab entries) */
 
 		/*
 		 * Caution! no member variables allowed below this line!
@@ -108,7 +108,7 @@ class Genode::Slab::Block
 struct Genode::Slab::Entry
 {
 		Block &block;
-		char   data[];
+		char   data[0];
 
 		/*
 		 * Caution! no member variables allowed below this line!

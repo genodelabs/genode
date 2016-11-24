@@ -34,7 +34,7 @@ class Reply
 		unsigned long _req;
 		unsigned long _write;
 		unsigned long _data_size;
-		unsigned long _data[];
+		unsigned long _data[0];
 
 	public:
 

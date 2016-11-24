@@ -46,7 +46,7 @@ struct Platform::Property_message
 	/*
 	 * Start of the buffer that contains a sequence of tags
 	 */
-	char buffer[];
+	char buffer[0];
 
 	/*
 	 * There must be no member variables after this point
@@ -75,7 +75,7 @@ struct Platform::Property_message
 		 */
 		uint32_t volatile const len;
 
-		char payload[];
+		char payload[0];
 
 		/**
 		 * Utility for returning a response size of a tag type

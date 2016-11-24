@@ -50,7 +50,7 @@ class Net::Tcp_packet
 		uint16_t _window_size;
 		uint16_t _checksum;
 		uint16_t _urgent_ptr;
-		uint32_t _data[];
+		uint32_t _data[0];
 
 		struct Flags : Genode::Register<8>
 		{
