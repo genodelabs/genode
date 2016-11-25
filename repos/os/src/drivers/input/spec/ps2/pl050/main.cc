@@ -12,14 +12,10 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
-#include <base/printf.h>
-#include <base/sleep.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <input/component.h>
 #include <input/root.h>
-#include <cap_session/connection.h>
-#include <os/config.h>
-#include <os/server.h>
 
 /* local includes */
 #include "ps2_keyboard.h"
@@ -27,49 +23,33 @@
 #include "irq_handler.h"
 #include "pl050.h"
 
-using namespace Genode;
+namespace Ps2 { struct Main; }
 
 
-struct Main
+struct Ps2::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &_env;
 
-	Pl050                    pl050;
-	Input::Session_component session;
-	Input::Root_component    root;
+	Pl050                    _pl050;
+	Input::Session_component _session;
+	Input::Root_component    _root { _env.ep().rpc_ep(), _session };
 
-	Ps2_mouse    ps2_mouse;
-	Ps2_keyboard ps2_keybd;
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	Irq_handler  ps2_mouse_irq;
-	Irq_handler  ps2_keybd_irq;
+	Verbose _verbose { _config.xml() };
 
-	bool _check_verbose(const char * verbose)
+	Mouse    _mouse    { _pl050.aux_interface(), _session.event_queue(),       _verbose };
+	Keyboard _keyboard { _pl050.kbd_interface(), _session.event_queue(), true, _verbose };
+
+	Irq_handler _mouse_irq    { _env.ep(), PL050_MOUSE_IRQ, _pl050.aux_interface(), _mouse };
+	Irq_handler _keyboard_irq { _env.ep(), PL050_KEYBD_IRQ, _pl050.kbd_interface(), _keyboard };
+
+	Main(Genode::Env &env) : _env(env)
 	{
-		return Genode::config()->xml_node().attribute_value(verbose, false);
-	}
-
-	Main(Server::Entrypoint &ep)
-		: ep(ep), root(ep.rpc_ep(), session),
-		ps2_mouse(*pl050.aux_interface(), session.event_queue(),
-		          _check_verbose("verbose_mouse")),
-		ps2_keybd(*pl050.kbd_interface(), session.event_queue(), true,
-		          _check_verbose("verbose_keyboard"),
-		          _check_verbose("verbose_scancodes")),
-		ps2_mouse_irq(ep, PL050_MOUSE_IRQ, pl050.aux_interface(), ps2_mouse),
-		ps2_keybd_irq(ep, PL050_KEYBD_IRQ, pl050.kbd_interface(), ps2_keybd)
-	{
-		env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(_root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
+void Component::construct(Genode::Env &env) { static Ps2::Main main(env); }
 
-namespace Server {
-	char const *name()             { return "ps2_drv_ep";        }
-	size_t stack_size()            { return 8*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}

@@ -12,8 +12,6 @@
  */
 
 /* Genode includes */
-#include <cap_session/connection.h>
-#include <os/config.h>
 #include <os/alarm.h>
 #include <timer_session/connection.h>
 
@@ -915,34 +913,30 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 /**
  * Return name of init process as specified in the config
  */
-static char const *name_of_init_process()
+static Genode::Child_policy::Name name_of_init_process(Genode::Xml_node config)
 {
-	enum { INIT_NAME_LEN = 128 };
-	static char buf[INIT_NAME_LEN];
-	Genode::config()->xml_node().sub_node("start").attribute("name").value(buf, sizeof(buf));
-	return buf;
+	return config.sub_node("start").attribute_value("name", Genode::Child_policy::Name());
 }
 
 
 /**
  * Read command-line arguments of init process from config
  */
-static Noux::Args const &args_of_init_process()
+static Noux::Args const &args_of_init_process(Genode::Xml_node config)
 {
 	static char args_buf[4096];
 	static Noux::Args args(args_buf, sizeof(args_buf));
 
-	Genode::Xml_node start_node = Genode::config()->xml_node().sub_node("start");
+	Genode::Xml_node start_node = config.sub_node("start");
 
 	try {
 		/* the first argument is the program name */
-		args.append(name_of_init_process());
+		args.append(name_of_init_process(config).string());
 
 		Genode::Xml_node arg_node = start_node.sub_node("arg");
 		for (; ; arg_node = arg_node.next("arg")) {
-			static char buf[512];
-			arg_node.attribute("value").value(buf, sizeof(buf));
-			args.append(buf);
+			typedef Genode::String<512> Value;
+			args.append(arg_node.attribute_value("value", Value()).string());
 		}
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
@@ -958,13 +952,13 @@ static Noux::Args const &args_of_init_process()
  * The variable definitions are separated by zeros. The end of the string is
  * marked with another zero.
  */
-static Noux::Sysio::Env &env_string_of_init_process()
+static Noux::Sysio::Env &env_string_of_init_process(Genode::Xml_node config)
 {
 	static Noux::Sysio::Env env;
 	int index = 0;
 
 	/* read environment variables for init process from config */
-	Genode::Xml_node start_node = Genode::config()->xml_node().sub_node("start");
+	Genode::Xml_node start_node = config.sub_node("start");
 	try {
 		Genode::Xml_node arg_node = start_node.sub_node("env");
 		for (; ; arg_node = arg_node.next("env")) {
@@ -1026,15 +1020,23 @@ Terminal::Connection *Noux::terminal()
 }
 
 
-static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
+class Stdio_unavailable : Genode::Exception { };
+
+
+/*
+ * \throw Stdio_unavailable
+ */
+static Noux::Io_channel &connect_stdio(Genode::Xml_node                 config,
+                                       Vfs::Dir_file_system            &root,
                                        Noux::Terminal_io_channel::Type  type,
-                                       Genode::Signal_receiver         &sig_rec)
+                                       Genode::Signal_receiver         &sig_rec,
+                                       Genode::Allocator               &alloc)
 {
 	using namespace Vfs;
 	using namespace Noux;
 	typedef Terminal_io_channel Tio; /* just a local abbreviation */
 
-	char path[MAX_PATH_LEN];
+	typedef Genode::String<MAX_PATH_LEN> Path;
 	Vfs_handle *vfs_handle = nullptr;
 	char const *stdio_name = "";
 	unsigned mode = 0;
@@ -1054,26 +1056,22 @@ static Noux::Io_channel *connect_stdio(Vfs::Dir_file_system            &root,
 		break;
 	};
 
-	try {
-		config()->xml_node().attribute(stdio_name).value(
-			path, sizeof(path));
-
-		if (root.open(path, mode, &vfs_handle, *Genode::env()->heap())
-		    != Directory_service::OPEN_OK)
-		{
-			error("failed to connect ", stdio_name, " to '", Cstring(path), "'");
-			Genode::env()->parent()->exit(1);
-		}
-
-		return new (Genode::env()->heap())
-			Vfs_io_channel(path, root.leaf_path(path), &root, vfs_handle, sig_rec);
-
-	} catch (Genode::Xml_node::Nonexistent_attribute) {
+	if (!config.has_attribute(stdio_name)) {
 		warning(stdio_name, " VFS path not defined, connecting to terminal session");
+		return *new (alloc) Tio(*Noux::terminal(), type, sig_rec);
 	}
 
-	return new (Genode::env()->heap())
-		Tio(*Noux::terminal(), type, sig_rec);
+	Path const path = config.attribute_value(stdio_name, Path());
+
+	if (root.open(path.string(), mode, &vfs_handle, alloc)
+	    != Directory_service::OPEN_OK)
+	{
+		error("failed to connect ", stdio_name, " to '", path, "'");
+		throw Stdio_unavailable();
+	}
+
+	return *new (alloc)
+		Vfs_io_channel(path.string(), root.leaf_path(path.string()), &root, vfs_handle, sig_rec);
 }
 
 
@@ -1138,9 +1136,13 @@ void Component::construct(Genode::Env &env)
 	for (unsigned i = 0; service_names[i]; i++)
 		new Noux::Parent_service(parent_services, service_names[i]);
 
+	static Genode::Attached_rom_dataspace config(env, "config");
+
+	static Genode::Heap heap(env.ram(), env.rm());
+
 	/* obtain global configuration */
-	trace_syscalls = config()->xml_node().attribute_value("trace_syscalls", trace_syscalls);
-	verbose        = config()->xml_node().attribute_value("verbose", verbose);
+	trace_syscalls = config.xml().attribute_value("trace_syscalls", trace_syscalls);
+	verbose        = config.xml().attribute_value("verbose",        verbose);
 
 	/* register additional file systems to the VFS */
 	Vfs::Global_file_system_factory &fs_factory = Vfs::global_file_system_factory();
@@ -1152,13 +1154,13 @@ void Component::construct(Genode::Env &env)
 	fs_factory.extend("random", random_file_system_factory);
 
 	/* initialize virtual file system */
-	static Vfs::Dir_file_system root_dir(env, *Genode::env()->heap(),
-	                                     config()->xml_node().sub_node("fstab"),
+	static Vfs::Dir_file_system root_dir(env, heap,
+	                                     config.xml().sub_node("fstab"),
 	                                     fs_factory);
 
 	/* set user information */
 	try {
-		user_info()->set_info(config()->xml_node().sub_node("user"));
+		user_info()->set_info(config.xml().sub_node("user"));
 	}
 	catch (...) { }
 
@@ -1170,7 +1172,7 @@ void Component::construct(Genode::Env &env)
 	 */
 	enum { STACK_SIZE = 2*1024*sizeof(long) };
 	static Genode::Rpc_entrypoint
-		resources_ep(Genode::env()->pd_session(), STACK_SIZE, "noux_rsc_ep");
+		resources_ep(&env.pd(), STACK_SIZE, "noux_rsc_ep");
 
 	/* create init process */
 	static Genode::Signal_receiver sig_rec;
@@ -1191,22 +1193,22 @@ void Component::construct(Genode::Env &env)
 
 	static Kill_broadcaster_implementation kill_broadcaster;
 
-	init_child = new Noux::Child(name_of_init_process(),
+	init_child = new Noux::Child(name_of_init_process(config.xml()),
 	                             0,
 	                             kill_broadcaster,
 	                             *init_child,
 	                             pid_allocator()->alloc(),
 	                             sig_rec,
 	                             root_dir,
-	                             args_of_init_process(),
-	                             env_string_of_init_process(),
-	                             *Genode::env()->pd_session(),
+	                             args_of_init_process(config.xml()),
+	                             env_string_of_init_process(config.xml()),
+	                             env.pd(),
 	                             ref_ram,
 	                             Ram_session_capability(),
 	                             parent_services,
 	                             resources_ep,
 	                             false,
-	                             *Genode::env()->heap(),
+	                             heap,
 	                             destruct_queue,
 	                             verbose);
 
@@ -1218,9 +1220,9 @@ void Component::construct(Genode::Env &env)
 	 */
 	typedef Terminal_io_channel Tio; /* just a local abbreviation */
 	Shared_pointer<Io_channel>
-		channel_0(connect_stdio(root_dir, Tio::STDIN,  sig_rec), Genode::env()->heap()),
-		channel_1(connect_stdio(root_dir, Tio::STDOUT, sig_rec), Genode::env()->heap()),
-		channel_2(connect_stdio(root_dir, Tio::STDERR, sig_rec), Genode::env()->heap());
+		channel_0(&connect_stdio(config.xml(), root_dir, Tio::STDIN,  sig_rec, heap), &heap),
+		channel_1(&connect_stdio(config.xml(), root_dir, Tio::STDOUT, sig_rec, heap), &heap),
+		channel_2(&connect_stdio(config.xml(), root_dir, Tio::STDERR, sig_rec, heap), &heap);
 
 	init_child->add_io_channel(channel_0, 0);
 	init_child->add_io_channel(channel_1, 1);

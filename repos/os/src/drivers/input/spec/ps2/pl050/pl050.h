@@ -148,12 +148,12 @@ class Pl050
 		/**
 		 * Request serial keyboard interface
 		 */
-		Serial_interface *kbd_interface() { return &_kbd; }
+		Serial_interface &kbd_interface() { return _kbd; }
 
 		/**
 		 * Request serial mouse interface
 		 */
-		Serial_interface *aux_interface() { return &_aux; }
+		Serial_interface &aux_interface() { return _aux; }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__PL050__PL050_H_ */

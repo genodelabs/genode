@@ -12,6 +12,7 @@
  */
 
 #include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 
 #include <scout/platform.h>
 #include <scout/tick.h>
@@ -25,7 +26,6 @@
 
 #include <base/env.h>
 #include <init/child_config.h>
-#include <os/config.h>
 
 
 /**
@@ -77,16 +77,6 @@ class Avail_quota_update : public Scout::Tick
 };
 
 
-static long read_int_attr_from_config(const char *attr, long default_value)
-{
-	long result = default_value;
-	try {
-		Genode::config()->xml_node().attribute(attr).value(&result);
-	} catch (...) { }
-	return result;
-}
-
-
 struct Main : Scout::Event_handler
 {
 	Scout::Platform   &_pf;
@@ -134,10 +124,12 @@ void Component::construct(Genode::Env &env)
 	static Nitpicker::Connection nitpicker(env);
 	static Platform pf(env, *nitpicker.input());
 
-	long initial_x = read_int_attr_from_config("xpos",   550);
-	long initial_y = read_int_attr_from_config("ypos",   150);
-	long initial_w = read_int_attr_from_config("width",  400);
-	long initial_h = read_int_attr_from_config("height", 400);
+	static Genode::Attached_rom_dataspace config(env, "config");
+
+	long const initial_x = config.xml().attribute_value("xpos",   550U);
+	long const initial_y = config.xml().attribute_value("ypos",   150U);
+	long const initial_w = config.xml().attribute_value("width",  400U);
+	long const initial_h = config.xml().attribute_value("height", 400U);
 
 	Area  const max_size        (530, 620);
 	Point const initial_position(initial_x, initial_y);
@@ -152,7 +144,7 @@ void Component::construct(Genode::Env &env)
 		          max_size, env.ram().avail());
 
 	/* request config file from ROM service */
-	try { launchpad.process_config(); } catch (...) { }
+	try { launchpad.process_config(config.xml()); } catch (...) { }
 
 	static Avail_quota_update avail_quota_update(&launchpad);
 

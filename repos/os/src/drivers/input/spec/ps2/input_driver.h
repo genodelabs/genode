@@ -20,7 +20,7 @@ class Input_driver
 
 		virtual void handle_event() = 0;
 
-		virtual bool event_pending() = 0;
+		virtual bool event_pending() const = 0;
 
 		virtual ~Input_driver() { }
 };

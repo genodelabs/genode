@@ -12,30 +12,33 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
+
 
 struct Cpu_burner
 {
-	Timer::Connection _timer;
+	Genode::Env &_env;
+
+	Timer::Connection _timer { _env };
 
 	unsigned long _percent = 100;
 
-	void _handle_config(unsigned)
-	{
-		Genode::config()->reload();
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-		_percent = 100;
-		try {
-			Genode::config()->xml_node().attribute("percent").value(&_percent);
-		} catch (...) { }
+	void _handle_config()
+	{
+		_config.update();
+		_percent = _config.xml().attribute_value("percent", 100L);
 	}
 
-	Genode::Signal_dispatcher<Cpu_burner> _config_dispatcher;
+	Genode::Signal_handler<Cpu_burner> _config_handler {
+		_env.ep(), *this, &Cpu_burner::_handle_config };
 
 	unsigned _burn_per_iteration = 10;
 
-	void _handle_period(unsigned)
+	void _handle_period()
 	{
 		unsigned long const start_ms = _timer.elapsed_ms();
 
@@ -62,36 +65,21 @@ struct Cpu_burner
 			_burn_per_iteration /= 2;
 	}
 
-	Genode::Signal_dispatcher<Cpu_burner> _period_dispatcher;
+	Genode::Signal_handler<Cpu_burner> _period_handler {
+		_env.ep(), *this, &Cpu_burner::_handle_period };
 
-	Cpu_burner(Genode::Signal_receiver &sig_rec)
-	:
-		_config_dispatcher(sig_rec, *this, &Cpu_burner::_handle_config),
-		_period_dispatcher(sig_rec, *this, &Cpu_burner::_handle_period)
+	Cpu_burner(Genode::Env &env) : _env(env)
 	{
-		Genode::config()->sigh(_config_dispatcher);
-		_handle_config(0);
+		_config.sigh(_config_handler);
+		_handle_config();
 
-		_timer.sigh(_period_dispatcher);
+		_timer.sigh(_period_handler);
 		_timer.trigger_periodic(1000*1000);
 	}
 };
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
-
-	static Genode::Signal_receiver sig_rec;
-
-	static Cpu_burner cpu_burner(sig_rec);
-
-	while (1) {
-
-		Genode::Signal signal = sig_rec.wait_for_signal();
-
-		Genode::Signal_dispatcher_base *dispatcher =
-			static_cast<Genode::Signal_dispatcher_base *>(signal.context());
-
-		dispatcher->dispatch(signal.num());
-	}
+	static Cpu_burner cpu_burner(env);
 }

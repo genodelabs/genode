@@ -1,5 +1,5 @@
 TARGET    = launchpad
-LIBS      = launchpad scout_widgets config
+LIBS      = launchpad scout_widgets
 SRC_CC    = launchpad_window.cc \
             launcher.cc \
             main.cc

@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <libc/component.h>
-#include <base/env.h>
+#include <base/attached_rom_dataspace.h>
 
 extern int genode_argc;
 extern char **genode_argv;
@@ -65,9 +65,9 @@ void Libc::Component::construct(Genode::Env &env)
 
 	static Qt_launchpad launchpad(local_env, env.ram().avail());
 
-	try {
-		launchpad.process_config();
-	} catch (...) { }
+	static Genode::Attached_rom_dataspace config(env, "config");
+
+	try { launchpad.process_config(config.xml()); } catch (...) { }
 
 	launchpad.move(300,100);
 	launchpad.show();

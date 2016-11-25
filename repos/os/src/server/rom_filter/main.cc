@@ -16,17 +16,17 @@
 #include <util/arg_string.h>
 #include <util/xml_generator.h>
 #include <base/heap.h>
-#include <base/env.h>
+#include <base/component.h>
+#include <base/attached_ram_dataspace.h>
 #include <root/component.h>
 
 /* local includes */
 #include "input_rom_registry.h"
 
 namespace Rom_filter {
-	using Server::Entrypoint;
+	using Genode::Entrypoint;
 	using Genode::Rpc_object;
 	using Genode::Sliced_heap;
-	using Genode::env;
 	using Genode::Constructible;
 	using Genode::Xml_generator;
 	using Genode::size_t;
@@ -55,6 +55,8 @@ class Rom_filter::Session_component : public Rpc_object<Genode::Rom_session>,
 {
 	private:
 
+		Genode::Env &_env;
+
 		Signal_context_capability _sigh;
 
 		Output_buffer const &_output_buffer;
@@ -65,9 +67,10 @@ class Rom_filter::Session_component : public Rpc_object<Genode::Rom_session>,
 
 	public:
 
-		Session_component(Session_list &sessions, Output_buffer const &output_buffer)
+		Session_component(Genode::Env &env, Session_list &sessions,
+		                  Output_buffer const &output_buffer)
 		:
-			_output_buffer(output_buffer), _sessions(sessions)
+			_env(env), _output_buffer(output_buffer), _sessions(sessions)
 		{
 			_sessions.insert(this);
 		}
@@ -90,7 +93,7 @@ class Rom_filter::Session_component : public Rpc_object<Genode::Rom_session>,
 			if (!_ram_ds.constructed()
 			 || _output_buffer.content_size() > _ram_ds->size()) {
 
-				_ram_ds.construct(env()->ram_session(), _output_buffer.content_size());
+				_ram_ds.construct(_env.ram(), _env.rm(), _output_buffer.content_size());
 			}
 
 			char             *dst = _ram_ds->local_addr<char>();
@@ -118,6 +121,7 @@ class Rom_filter::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
+		Genode::Env   &_env;
 		Output_buffer &_output_buffer;
 		Session_list   _sessions;
 
@@ -128,16 +132,17 @@ class Rom_filter::Root : public Genode::Root_component<Session_component>
 			/*
 			 * We ignore the name of the ROM module requested
 			 */
-			return new (md_alloc()) Session_component(_sessions, _output_buffer);
+			return new (md_alloc()) Session_component(_env, _sessions, _output_buffer);
 		}
 
 	public:
 
-		Root(Entrypoint &ep, Output_buffer &output_buffer,
+		Root(Genode::Env       &env,
+		     Output_buffer     &output_buffer,
 		     Genode::Allocator &md_alloc)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_output_buffer(output_buffer)
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _output_buffer(output_buffer)
 		{ }
 
 		void notify_clients()
@@ -151,11 +156,13 @@ class Rom_filter::Root : public Genode::Root_component<Session_component>
 struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
                           Output_buffer
 {
-	Entrypoint &_ep;
+	Genode::Env &_env;
 
-	Sliced_heap _sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
-	Input_rom_registry _input_rom_registry { *env()->heap(), _ep, *this };
+	Genode::Heap _heap { _env.ram(), _env.rm() };
+
+	Input_rom_registry _input_rom_registry { _env, _heap, *this };
 
 	Genode::Constructible<Genode::Attached_ram_dataspace> _xml_ds;
 
@@ -164,30 +171,32 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 	void _evaluate_node(Xml_node node, Xml_generator &xml);
 	void _evaluate();
 
-	Root _root = { _ep, *this, _sliced_heap };
+	Root _root = { _env, *this, _sliced_heap };
 
-	Genode::Signal_rpc_member<Main> _config_dispatcher =
-		{ _ep, *this, &Main::_handle_config };
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	void _handle_config(unsigned)
+	Genode::Signal_handler<Main> _config_handler =
+		{ _env.ep(), *this, &Main::_handle_config };
+
+	void _handle_config()
 	{
-		Genode::config()->reload();
+		_config.update();
 
 		/*
 		 * Create buffer for generated XML data
 		 */
 		Genode::Number_of_bytes xml_ds_size = 4096;
 
-		xml_ds_size = Genode::config()->xml_node().attribute_value("buffer", xml_ds_size);
+		xml_ds_size = _config.xml().attribute_value("buffer", xml_ds_size);
 
 		if (!_xml_ds.constructed() || xml_ds_size != _xml_ds->size())
-			_xml_ds.construct(env()->ram_session(), xml_ds_size);
+			_xml_ds.construct(_env.ram(), _env.rm(), xml_ds_size);
 
 		/*
 		 * Obtain inputs
 		 */
 		try {
-			_input_rom_registry.update_config(Genode::config()->xml_node());
+			_input_rom_registry.update_config(_config.xml());
 		} catch (Xml_node::Nonexistent_sub_node) { }
 
 		/*
@@ -209,10 +218,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 	/**
 	 * Output_buffer interface
 	 */
-	size_t content_size() const override
-	{
-		return _xml_output_len;
-	}
+	size_t content_size() const override { return _xml_output_len; }
 
 	/**
 	 * Output_buffer interface
@@ -224,13 +230,11 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 		return len;
 	}
 
-	Main(Entrypoint &ep) : _ep(ep)
+	Main(Genode::Env &env) : _env(env)
 	{
-		env()->parent()->announce(_ep.manage(_root));
-
-		Genode::config()->sigh(_config_dispatcher);
-
-		_handle_config(0);
+		_env.parent().announce(_env.ep().manage(_root));
+		_config.sigh(_config_handler);
+		_handle_config();
 	}
 };
 
@@ -257,10 +261,8 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 					has_value_node.attribute_value("value", Input_value());
 
 				try {
-					Xml_node config = Genode::config()->xml_node();
-
 					Input_value const input_value =
-						_input_rom_registry.query_value(config, input_name);
+						_input_rom_registry.query_value(_config.xml(), input_name);
 
 					if (input_value == expected_input_value)
 						condition_satisfied = true;
@@ -310,7 +312,7 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 void Rom_filter::Main::_evaluate()
 {
 	try {
-		Xml_node output = Genode::config()->xml_node().sub_node("output");
+		Xml_node output = _config.xml().sub_node("output");
 
 		if (!output.has_attribute("node")) {
 			Genode::error("missing 'node' attribute in '<output>' node");
@@ -333,14 +335,5 @@ void Rom_filter::Main::_evaluate()
 }
 
 
-namespace Server {
+void Component::construct(Genode::Env &env) { static Rom_filter::Main main(env); }
 
-	char const *name() { return "conditional_rom_ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Rom_filter::Main main(ep);
-	}
-}

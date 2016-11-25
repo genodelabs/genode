@@ -12,26 +12,27 @@
  */
 
 /* Genode includes */
-#include <rom_session/connection.h>
-#include <cap_session/connection.h>
 #include <root/component.h>
-#include <dataspace/client.h>
-#include <base/rpc_server.h>
+#include <base/component.h>
 #include <base/log.h>
-#include <base/env.h>
-#include <base/sleep.h>
 #include <base/heap.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
 #include <base/session_label.h>
+
+namespace Rom_prefetcher {
+	class Rom_session_component;
+	class Rom_root;
+	struct Main;
+}
+
 
 volatile int dummy;
 
 
-static void prefetch_dataspace(Genode::Dataspace_capability ds)
+static void prefetch_dataspace(Genode::Region_map &rm, Genode::Dataspace_capability cap)
 {
-	char *mapped = Genode::env()->rm_session()->attach(ds);
-	Genode::size_t size = Genode::Dataspace_client(ds).size();
+	Genode::Attached_dataspace ds(rm, cap);
 
 	/*
 	 * Modify global volatile 'dummy' variable to prevent the compiler
@@ -39,14 +40,12 @@ static void prefetch_dataspace(Genode::Dataspace_capability ds)
 	 */
 
 	enum { PREFETCH_STEP = 4096 };
-	for (Genode::size_t i = 0; i < size; i += PREFETCH_STEP)
-		dummy += mapped[i];
-
-	Genode::env()->rm_session()->detach(mapped);
+	for (Genode::size_t i = 0; i < ds.size(); i += PREFETCH_STEP)
+		dummy += ds.local_addr<char>()[i];
 }
 
 
-class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
+class Rom_prefetcher::Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 {
 	private:
 
@@ -59,99 +58,85 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 *
 		 * \param  filename  name of the requested file
 		 */
-		Rom_session_component(const char *filename) : _rom(filename)
+		Rom_session_component(Genode::Env &env, Genode::Session_label const &label)
+		:
+			_rom(label.string())
 		{
-			prefetch_dataspace(_rom.dataspace());
+			prefetch_dataspace(env.rm(), _rom.dataspace());
 		}
+
 
 		/***************************
 		 ** ROM session interface **
 		 ***************************/
 
-		Genode::Rom_dataspace_capability dataspace() {
-			return _rom.dataspace(); }
+		Genode::Rom_dataspace_capability dataspace() { return _rom.dataspace(); }
 
 		void sigh(Genode::Signal_context_capability) { }
 };
 
-class Rom_root : public Genode::Root_component<Rom_session_component>
+
+class Rom_prefetcher::Rom_root : public Genode::Root_component<Rom_session_component>
 {
 	private:
+
+		Genode::Env &_env;
 
 		Rom_session_component *_create_session(const char *args)
 		{
 			Genode::Session_label const label = Genode::label_from_args(args);
-			Genode::Session_label const name  = label.last_element();
 
 			/* create new session for the requested file */
 			return new (md_alloc())
-				Rom_session_component(name.string());
+				Rom_session_component(_env, label.last_element());
 		}
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param  entrypoint  entrypoint to be used for ROM sessions
-		 * \param  md_alloc    meta-data allocator used for ROM sessions
-		 */
-		Rom_root(Genode::Rpc_entrypoint *entrypoint,
-		         Genode::Allocator      *md_alloc)
+		Rom_root(Genode::Env &env, Genode::Allocator &md_alloc)
 		:
-			Genode::Root_component<Rom_session_component>(entrypoint, md_alloc)
+			Genode::Root_component<Rom_session_component>(env.ep(), md_alloc),
+			_env(env)
 		{ }
 };
 
 
-int main(int argc, char **argv)
+struct Rom_prefetcher::Main
 {
-	using namespace Genode;
+	Genode::Env &_env;
 
-	/* connection to capability service needed to create capabilities */
-	static Cap_connection cap;
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	/*
-	 * Prefetch ROM files specified in the config
-	 */
-	try {
-		Timer::Connection timer;
-		Genode::Xml_node entry = config()->xml_node().sub_node("rom");
-		for (;;) {
+	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
-			enum { NAME_MAX_LEN = 64 };
-			char name[NAME_MAX_LEN];
-			name[0] = 0;
-			entry.attribute("name").value(name, sizeof(name));
+	Rom_root _root { _env, _sliced_heap };
+
+	Main(Genode::Env &env) : _env(env)
+	{
+		Timer::Connection timer(_env);
+
+		_config.xml().for_each_sub_node("rom", [&] (Genode::Xml_node entry) {
+
+			typedef Genode::String<64> Name;
+			Name const name = entry.attribute_value("name", Name());
 
 			try {
-				Rom_connection rom(name);
-				log("prefetching ROM module ", Cstring(name));
-				prefetch_dataspace(rom.dataspace());
+				Genode::Rom_connection rom(_env, name.string());
+				log("prefetching ROM module ", name);
+				prefetch_dataspace(_env.rm(), rom.dataspace());
 			} catch (...) {
-				error("could not open ROM module ", Cstring(name));
+				error("could not open ROM module ", name);
 			}
-
-			/* proceed with next XML node */
-			entry = entry.next("rom");
 
 			/* yield */
 			timer.msleep(1);
-		}
-	} catch (...) { }
+		});
 
-	static Sliced_heap sliced_heap(env()->ram_session(),
-	                               env()->rm_session());
-
-	/* creation of the entrypoint and the root interface */
-	enum { STACK_SIZE = 8*1024 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "rom_pf_ep");
-	static Rom_root rom_root(&ep, &sliced_heap);
-
-	/* announce server */
-	env()->parent()->announce(ep.manage(&rom_root));
-
-	/* wait for activation through client */
-	sleep_forever();
-	return 0;
+		/* announce server */
+		_env.parent().announce(_env.ep().manage(_root));
+	}
 };
+
+
+void Component::construct(Genode::Env &env) { static Rom_prefetcher::Main main(env); }
+

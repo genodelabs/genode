@@ -17,7 +17,6 @@
 #include <base/service.h>
 #include <base/snprintf.h>
 #include <base/attached_dataspace.h>
-#include <os/config.h>
 #include <launchpad/launchpad.h>
 
 using namespace Genode;
@@ -91,11 +90,9 @@ Launchpad::_get_unique_child_name(Launchpad_child::Name const &binary_name)
 /**
  * Process launchpad XML configuration
  */
-void Launchpad::process_config()
+void Launchpad::process_config(Genode::Xml_node config_node)
 {
 	using namespace Genode;
-
-	Xml_node config_node = config()->xml_node();
 
 	/*
 	 * Iterate through all entries of the config file and create

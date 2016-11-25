@@ -16,10 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_node.h>
-#include <os/attached_rom_dataspace.h>
-#include <os/config.h>
-#include <os/attached_ram_dataspace.h>
-#include <os/server.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/allocator.h>
 
 namespace Rom_filter {
@@ -36,7 +33,7 @@ namespace Rom_filter {
 
 	using Genode::env;
 	using Genode::Signal_context_capability;
-	using Genode::Signal_rpc_member;
+	using Genode::Signal_handler;
 	using Genode::Xml_node;
 }
 
@@ -64,34 +61,30 @@ class Rom_filter::Input_rom_registry
 		{
 			private:
 
-				Server::Entrypoint &_ep;
+				Genode::Env &_env;
 
 				Input_rom_name _name;
 
 				Input_rom_changed_fn &_input_rom_changed_fn;
 
-				Genode::Attached_rom_dataspace _rom_ds { _name.string() };
+				Genode::Attached_rom_dataspace _rom_ds { _env, _name.string() };
 
 				Xml_node _top_level { "<empty/>" };
 
-				void _handle_rom_changed(unsigned)
+				void _handle_rom_changed()
 				{
 					_rom_ds.update();
 					if (!_rom_ds.valid())
 						return;
 
-					try {
-						_top_level = Xml_node(_rom_ds.local_addr<char>());
-					} catch (...) {
-						_top_level = Xml_node("<empty/>");
-					}
+					_top_level = _rom_ds.xml();
 
 					/* trigger re-evaluation of the inputs */
 					_input_rom_changed_fn.input_rom_changed();
 				}
 
-				Genode::Signal_rpc_member<Entry> _rom_changed_dispatcher =
-					{ _ep, *this, &Entry::_handle_rom_changed };
+				Genode::Signal_handler<Entry> _rom_changed_handler =
+					{ _env.ep(), *this, &Entry::_handle_rom_changed };
 
 				/**
 				 * Query value from XML-structured ROM content
@@ -155,13 +148,13 @@ class Rom_filter::Input_rom_registry
 				/**
 				 * Constructor
 				 */
-				Entry(Input_rom_name const &name, Server::Entrypoint &ep,
+				Entry(Genode::Env &env, Input_rom_name const &name,
 				      Input_rom_changed_fn &input_rom_changed_fn)
 				:
-					_ep(ep), _name(name),
+					_env(env), _name(name),
 					_input_rom_changed_fn(input_rom_changed_fn)
 				{
-					_rom_ds.sigh(_rom_changed_dispatcher);
+					_rom_ds.sigh(_rom_changed_handler);
 				}
 
 				Input_rom_name name() const { return _name; }
@@ -202,7 +195,7 @@ class Rom_filter::Input_rom_registry
 
 		Genode::Allocator &_alloc;
 
-		Server::Entrypoint &_ep;
+		Genode::Env &_env;
 
 		Genode::List<Entry> _input_roms;
 
@@ -310,10 +303,10 @@ class Rom_filter::Input_rom_registry
 		 * \param sigh  signal context capability to install in ROM sessions
 		 *              for the inputs
 		 */
-		Input_rom_registry(Genode::Allocator &alloc, Server::Entrypoint &ep,
+		Input_rom_registry(Genode::Env &env, Genode::Allocator &alloc,
 		                   Input_rom_changed_fn &input_rom_changed_fn)
 		:
-			_alloc(alloc), _ep(ep), _input_rom_changed_fn(input_rom_changed_fn)
+			_alloc(alloc), _env(env), _input_rom_changed_fn(input_rom_changed_fn)
 		{ }
 
 		void update_config(Xml_node config)
@@ -342,7 +335,7 @@ class Rom_filter::Input_rom_registry
 					return;
 
 				Entry *entry =
-					new (_alloc) Entry(name, _ep, _input_rom_changed_fn);
+					new (_alloc) Entry(_env, name, _input_rom_changed_fn);
 
 				_input_roms.insert(entry);
 			};

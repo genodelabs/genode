@@ -14,13 +14,15 @@
 #ifndef _DRIVERS__INPUT__SPEC__PS2__PS2_MOUSE_H_
 #define _DRIVERS__INPUT__SPEC__PS2__PS2_MOUSE_H_
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <input/event_queue.h>
 #include <input/keycodes.h>
 
 #include "input_driver.h"
 
-class Ps2_mouse : public Input_driver
+namespace Ps2 { class Mouse; }
+
+class Ps2::Mouse : public Input_driver
 {
 	enum Command
 	{
@@ -72,21 +74,21 @@ class Ps2_mouse : public Input_driver
 		Serial_interface   &_aux;
 		Input::Event_queue &_ev_queue;
 
-		Type                _type;
+		Type                _type { PS2 };
 
-		bool                _verbose;
+		Verbose      const &_verbose;
 		bool                _button_state[NUM_BUTTONS];
 
 		unsigned char _packet[MAX_PACKET_LEN];
-		int           _packet_len;
-		int           _packet_idx;
+		int           _packet_len { PS2_PACKET_LEN };
+		int           _packet_idx = 0;
 
 		void _check_for_event_queue_overflow()
 		{
 			if (_ev_queue.avail_capacity())
 				return;
 
-			PWRN("event queue overflow - dropping events");
+			Genode::warning("event queue overflow - dropping events");
 			_ev_queue.reset();
 		}
 
@@ -102,8 +104,9 @@ class Ps2_mouse : public Input_driver
 		{
 			if (*old_state == new_state) return;
 
-			if (_verbose)
-				Genode::printf("post %s, key_code = %d\n", new_state ? "PRESS" : "RELEASE", key_code);
+			if (_verbose.mouse)
+				Genode::log("post ", new_state ? "PRESS" : "RELEASE", ", "
+				            "key_code=", key_code);
 
 			_check_for_event_queue_overflow();
 
@@ -159,12 +162,10 @@ class Ps2_mouse : public Input_driver
 
 	public:
 
-		Ps2_mouse(Serial_interface &aux, Input::Event_queue &ev_queue,
-		          bool verbose)
+		Mouse(Serial_interface &aux, Input::Event_queue &ev_queue,
+		      Verbose const &verbose)
 		:
-			_aux(aux),
-			_ev_queue(ev_queue), _type(PS2), _verbose(verbose),
-			_packet_len(PS2_PACKET_LEN), _packet_idx(0)
+			_aux(aux), _ev_queue(ev_queue), _verbose(verbose)
 		{
 			for (unsigned i = 0; i < NUM_BUTTONS; ++i)
 				_button_state[i] = false;
@@ -175,21 +176,21 @@ class Ps2_mouse : public Input_driver
 		{
 			_aux.write(CMD_SET_DEFAULTS);
 			if (_aux.read() != RET_ACK)
-				PWRN("Could not set defaults");
+				Genode::warning("could not set defaults");
 
 			_aux.write(CMD_ENABLE_STREAM);
 			if (_aux.read() != RET_ACK)
-				PWRN("Could not enable stream");
+				Genode::warning("could not enable stream");
 
 			/* probe for protocol extensions */
 			if (_probe_exps2()) {
 				_type       = EXPS2;
 				_packet_len = EXPS2_PACKET_LEN;
-				Genode::printf("Detected ExPS/2 mouse - activating scroll-wheel and 5-button support.\n");
+				Genode::log("detected ExPS/2 mouse - activating scroll-wheel and 5-button support");
 			} else if (_probe_imps2()) {
 				_type       = IMPS2;
 				_packet_len = IMPS2_PACKET_LEN;
-				Genode::printf("Detected ImPS/2 mouse - activating scroll-wheel support.\n");
+				Genode::log("detected ImPS/2 mouse - activating scroll-wheel support");
 			}
 
 			/* set sane sample rate */
@@ -231,8 +232,8 @@ class Ps2_mouse : public Input_driver
 				/* mirror y axis to make the movement correspond to screen coordinates */
 				rel_y = -rel_y;
 
-				if (_verbose)
-					Genode::printf("post MOTION, rel_x = %d, rel_y = %d\n", rel_x, rel_y);
+				if (_verbose.mouse)
+					Genode::log("post MOTION, rel_x=", rel_x, ", rel_y=", rel_y);
 
 				_check_for_event_queue_overflow();
 
@@ -253,8 +254,8 @@ class Ps2_mouse : public Input_driver
 				/* mirror y axis to make "scroll up" generate positive values */
 				rel_z = -rel_z;
 
-				if (_verbose)
-					Genode::printf("post WHEEL, rel_z = %d\n", rel_z);
+				if (_verbose.mouse)
+					Genode::log("post WHEEL, rel_z=", rel_z);
 
 				_check_for_event_queue_overflow();
 
@@ -277,7 +278,7 @@ class Ps2_mouse : public Input_driver
 			_packet_idx = 0;
 		}
 
-		bool event_pending() { return _aux.data_read_ready(); }
+		bool event_pending() const { return _aux.data_read_ready(); }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__PS2_MOUSE_H_ */

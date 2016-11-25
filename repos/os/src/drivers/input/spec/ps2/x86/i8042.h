@@ -14,8 +14,7 @@
 #ifndef _DRIVERS__INPUT__SPEC__PS2__X86__I8042_H_
 #define _DRIVERS__INPUT__SPEC__PS2__X86__I8042_H_
 
-#include <io_port_session/connection.h>
-#include <base/env.h>
+#include <io_port_session/client.h>
 #include <os/ring_buffer.h>
 
 #include "serial_interface.h"
@@ -161,7 +160,8 @@ class I8042
 
 		Genode::Io_port_session_client _data_port;  /* data port */
 		Genode::Io_port_session_client _stat_port;  /* status/command port */
-		bool                       _kbd_xlate;  /* translation mode to scan-code set 1 */
+
+		bool _kbd_xlate = false;  /* translation mode to scan-code set 1 */
 
 		/**
 		 * Read controller status
@@ -246,7 +246,8 @@ class I8042
 		 * Constructor
 		 */
 		I8042(Genode::Io_port_session_capability cap_data,
-		      Genode::Io_port_session_capability cap_status) :
+		      Genode::Io_port_session_capability cap_status)
+		:
 			_data_port(cap_data),
 			_stat_port(cap_status),
 			_kbd_interface(*this, false),
@@ -317,12 +318,12 @@ class I8042
 		/**
 		 * Request serial keyboard interface
 		 */
-		Serial_interface *kbd_interface() { return &_kbd_interface; }
+		Serial_interface &kbd_interface() { return _kbd_interface; }
 
 		/**
 		 * Request serial mouse interface
 		 */
-		Serial_interface *aux_interface() { return &_aux_interface; }
+		Serial_interface &aux_interface() { return _aux_interface; }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__X86__I8042_H_ */

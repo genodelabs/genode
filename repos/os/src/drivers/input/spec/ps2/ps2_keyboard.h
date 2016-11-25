@@ -22,22 +22,23 @@
 #include "serial_interface.h"
 #include "scan_code_set_1.h"
 #include "scan_code_set_2.h"
+#include "verbose.h"
 
-class Ps2_keyboard : public Input_driver
+namespace Ps2 { class Keyboard; }
+
+class Ps2::Keyboard : public Input_driver
 {
 	private:
 
 		Serial_interface   &_kbd;
 		Input::Event_queue &_ev_queue;
-		bool                _xlate_mode;
-		bool                _verbose;
-		bool                _verbose_scan_codes;
+		bool         const  _xlate_mode;
+		Verbose      const &_verbose;
 
 		/**
 		 * Array for tracking the current keyboard state
 		 */
 		bool _key_state[Input::KEY_MAX + 1];
-
 
 		/**
 		 * Interface for keyboard-packet state machine
@@ -66,17 +67,17 @@ class Ps2_keyboard : public Input_driver
 				/**
 				 * Return true if packet is complete
 				 */
-				virtual bool ready() = 0;
+				virtual bool ready() const = 0;
 
 				/**
 				 * Return true if event is a press event
 				 */
-				virtual bool press() = 0;
+				virtual bool press() const = 0;
 
 				/**
 				 * Return key code of current packet
 				 */
-				virtual unsigned int key_code() = 0;
+				virtual unsigned int key_code() const = 0;
 		};
 
 
@@ -121,9 +122,9 @@ class Ps2_keyboard : public Input_driver
 					_key_code = 0;
 				}
 
-				void process(unsigned char v, bool verbose_scan_codes)
+				void process(unsigned char v, bool verbose)
 				{
-					if (verbose_scan_codes)
+					if (verbose)
 						Genode::log("process ", Genode::Hex(v), " scan code set 1");
 
 					switch (_state) {
@@ -202,11 +203,13 @@ class Ps2_keyboard : public Input_driver
 					_ready = true;
 				}
 
-				bool ready() { return _ready; }
+				bool ready() const { return _ready; }
+				bool press() const { return _press; }
 
-				bool press() { return _press; }
-
-				unsigned int key_code() { return ready() ? _key_code : Input::KEY_UNKNOWN; }
+				unsigned int key_code() const
+				{
+					return ready() ? _key_code : Input::KEY_UNKNOWN;
+				}
 
 		} _scan_code_set_1_state_machine;
 
@@ -254,9 +257,9 @@ class Ps2_keyboard : public Input_driver
 					_key_code = 0;
 				}
 
-				void process(unsigned char v, bool verbose_scan_codes)
+				void process(unsigned char v, bool verbose)
 				{
-					if (verbose_scan_codes)
+					if (verbose)
 						Genode::log("process ", Genode::Hex(v), " scan code set 2");
 
 					enum {
@@ -338,12 +341,13 @@ class Ps2_keyboard : public Input_driver
 					_key_code = (_extended ? scan_code_set_2_ext : scan_code_set_2)[v];
 				}
 
-				bool ready() { return _ready; }
+				bool ready() const { return _ready; }
+				bool press() const { return _press; }
 
-				bool press() { return _press; }
-
-				unsigned int key_code() {
-					return ready() ? _key_code : Input::KEY_UNKNOWN; }
+				unsigned int key_code() const
+				{
+					return ready() ? _key_code : Input::KEY_UNKNOWN;
+				}
 
 		} _scan_code_set_2_state_machine;
 
@@ -362,12 +366,11 @@ class Ps2_keyboard : public Input_driver
 		 * If 'xlate_mode' is true, we do not attempt to manually switch the
 		 * keyboard to scan code set 2 but just decode the scan-code set 1.
 		 */
-		Ps2_keyboard(Serial_interface &kbd, Input::Event_queue &ev_queue,
-		             bool xlate_mode, bool verbose, bool verbose_scancodes)
+		Keyboard(Serial_interface &kbd, Input::Event_queue &ev_queue,
+		         bool xlate_mode, Verbose const &verbose)
 		:
 			_kbd(kbd), _ev_queue(ev_queue), _xlate_mode(xlate_mode),
-			_verbose(verbose),
-			_verbose_scan_codes(verbose_scancodes)
+			_verbose(verbose)
 		{
 			for (int i = 0; i <= Input::KEY_MAX; i++)
 				_key_state[i] = false;
@@ -422,7 +425,7 @@ class Ps2_keyboard : public Input_driver
 
 		void handle_event()
 		{
-			_state_machine->process(_kbd.read(), _verbose_scan_codes);
+			_state_machine->process(_kbd.read(), _verbose.scancodes);
 
 			if (!_state_machine->ready())
 				return;
@@ -442,7 +445,7 @@ class Ps2_keyboard : public Input_driver
 			/* remember new key state */
 			_key_state[key_code] = _state_machine->press();
 
-			if (_verbose)
+			if (_verbose.keyboard)
 				Genode::log("post ", press ? "PRESS" : "RELEASE", ", "
 				            "key_code = ", key_code);
 
@@ -460,7 +463,7 @@ class Ps2_keyboard : public Input_driver
 			_state_machine->reset();
 		}
 
-		bool event_pending() { return _kbd.data_read_ready(); }
+		bool event_pending() const { return _kbd.data_read_ready(); }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__PS2_KEYBOARD_H_ */

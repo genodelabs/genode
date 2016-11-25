@@ -14,13 +14,12 @@
 /* Genode includes */
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <root/component.h>
 #include <os/attached_rom_dataspace.h>
-#include <os/config.h>
-#include <os/server.h>
 #include <os/session_policy.h>
-#include <util/xml_node.h>
 
 /* local includes */
 #include <ram_fs/directory.h>
@@ -32,495 +31,495 @@
 
 namespace File_system {
 
-	class Session_component : public Session_rpc_object
-	{
-		private:
-
-			Server::Entrypoint   &_ep;
-			Directory            &_root;
-			Node_handle_registry  _handle_registry;
-			bool                  _writable;
-
-			Signal_rpc_member<Session_component> _process_packet_dispatcher;
+	class Session_component;
+	class Root;
+	class Main;
+};
 
 
-			/******************************
-			 ** Packet-stream processing **
-			 ******************************/
+class File_system::Session_component : public Session_rpc_object
+{
+	private:
 
-			/**
-			 * Perform packet operation
-			 *
-			 * \return true on success, false on failure
-			 */
-			void _process_packet_op(Packet_descriptor &packet, Node &node)
-			{
-				void     * const content = tx_sink()->packet_content(packet);
-				size_t     const length  = packet.length();
-				seek_off_t const offset  = packet.position();
+		Genode::Entrypoint   &_ep;
+		Directory            &_root;
+		Node_handle_registry  _handle_registry;
+		bool                  _writable;
 
-				if (!content || (packet.length() > packet.size())) {
-					packet.succeeded(false);
-					return;
-				}
+		Signal_handler<Session_component> _process_packet_handler;
 
-				/* resulting length */
-				size_t res_length = 0;
 
-				switch (packet.operation()) {
+		/******************************
+		 ** Packet-stream processing **
+		 ******************************/
 
-				case Packet_descriptor::READ:
-					res_length = node.read((char *)content, length, offset);
-					break;
+		/**
+		 * Perform packet operation
+		 *
+		 * \return true on success, false on failure
+		 */
+		void _process_packet_op(Packet_descriptor &packet, Node &node)
+		{
+			void     * const content = tx_sink()->packet_content(packet);
+			size_t     const length  = packet.length();
+			seek_off_t const offset  = packet.position();
 
-				case Packet_descriptor::WRITE:
-					res_length = node.write((char const *)content, length, offset);
-					break;
-				}
-
-				packet.length(res_length);
-				packet.succeeded(res_length > 0);
-			}
-
-			void _process_packet()
-			{
-				Packet_descriptor packet = tx_sink()->get_packet();
-
-				/* assume failure by default */
+			if (!content || (packet.length() > packet.size())) {
 				packet.succeeded(false);
-
-				try {
-					Node *node = _handle_registry.lookup_and_lock(packet.handle());
-					Node_lock_guard guard(node);
-
-					_process_packet_op(packet, *node);
-				}
-				catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
-
-				/*
-				 * The 'acknowledge_packet' function cannot block because we
-				 * checked for 'ready_to_ack' in '_process_packets'.
-				 */
-				tx_sink()->acknowledge_packet(packet);
+				return;
 			}
 
-			/**
-			 * Called by signal dispatcher, executed in the context of the main
-			 * thread (not serialized with the RPC functions)
-			 */
-			void _process_packets(unsigned)
-			{
-				while (tx_sink()->packet_avail()) {
+			/* resulting length */
+			size_t res_length = 0;
 
-					/*
-					 * Make sure that the '_process_packet' function does not
-					 * block.
-					 *
-					 * If the acknowledgement queue is full, we defer packet
-					 * processing until the client processed pending
-					 * acknowledgements and thereby emitted a ready-to-ack
-					 * signal. Otherwise, the call of 'acknowledge_packet()'
-					 * in '_process_packet' would infinitely block the context
-					 * of the main thread. The main thread is however needed
-					 * for receiving any subsequent 'ready-to-ack' signals.
-					 */
-					if (!tx_sink()->ready_to_ack())
-						return;
+			switch (packet.operation()) {
 
-					_process_packet();
-				}
+			case Packet_descriptor::READ:
+				res_length = node.read((char *)content, length, offset);
+				break;
+
+			case Packet_descriptor::WRITE:
+				res_length = node.write((char const *)content, length, offset);
+				break;
 			}
 
-			/**
-			 * Check if string represents a valid path (most start with '/')
-			 */
-			static void _assert_valid_path(char const *path)
-			{
-				if (!path || path[0] != '/') {
-					Genode::warning("malformed path ''", path, "'");
-					throw Lookup_failed();
-				}
-			}
+			packet.length(res_length);
+			packet.succeeded(res_length > 0);
+		}
 
-		public:
+		void _process_packet()
+		{
+			Packet_descriptor packet = tx_sink()->get_packet();
 
-			/**
-			 * Constructor
-			 */
-			Session_component(size_t tx_buf_size, Server::Entrypoint &ep,
-			                  Directory &root, bool writable)
-			:
-				Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
-				_ep(ep),
-				_root(root),
-				_writable(writable),
-				_process_packet_dispatcher(ep, *this, &Session_component::_process_packets)
-			{
-				/*
-				 * Register '_process_packets' dispatch function as signal
-				 * handler for packet-avail and ready-to-ack signals.
-				 */
-				_tx.sigh_packet_avail(_process_packet_dispatcher);
-				_tx.sigh_ready_to_ack(_process_packet_dispatcher);
-			}
+			/* assume failure by default */
+			packet.succeeded(false);
 
-			/**
-			 * Destructor
-			 */
-			~Session_component()
-			{
-				Dataspace_capability ds = tx_sink()->dataspace();
-				env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
-			}
-
-
-			/***************************
-			 ** File_system interface **
-			 ***************************/
-
-			File_handle file(Dir_handle dir_handle, Name const &name,
-			                 Mode mode, bool create)
-			{
-				if (!valid_name(name.string()))
-					throw Invalid_name();
-
-				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-				Node_lock_guard dir_guard(dir);
-
-				if (!_writable)
-					if (mode != STAT_ONLY && mode != READ_ONLY)
-						throw Permission_denied();
-
-				if (create) {
-
-					if (!_writable)
-						throw Permission_denied();
-
-					if (dir->has_sub_node_unsynchronized(name.string()))
-						throw Node_already_exists();
-
-					try {
-						File * const file = new (env()->heap())
-						                    File(*env()->heap(), name.string());
-
-						dir->adopt_unsynchronized(file);
-					}
-					catch (Allocator::Out_of_memory) { throw No_space(); }
-				}
-
-				File *file = dir->lookup_and_lock_file(name.string());
-				Node_lock_guard file_guard(file);
-				return _handle_registry.alloc(file);
-			}
-
-			Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
-			{
-				if (!valid_name(name.string()))
-					throw Invalid_name();
-
-				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-				Node_lock_guard dir_guard(dir);
-
-				if (create) {
-
-					if (!_writable)
-						throw Permission_denied();
-
-					if (dir->has_sub_node_unsynchronized(name.string()))
-						throw Node_already_exists();
-
-					try {
-						Symlink * const symlink = new (env()->heap())
-						                    Symlink(name.string());
-
-						dir->adopt_unsynchronized(symlink);
-					}
-					catch (Allocator::Out_of_memory) { throw No_space(); }
-				}
-
-				Symlink *symlink = dir->lookup_and_lock_symlink(name.string());
-				Node_lock_guard file_guard(symlink);
-				return _handle_registry.alloc(symlink);
-			}
-
-			Dir_handle dir(Path const &path, bool create)
-			{
-				char const *path_str = path.string();
-
-				_assert_valid_path(path_str);
-
-				/* skip leading '/' */
-				path_str++;
-
-				if (create) {
-
-					if (!_writable)
-						throw Permission_denied();
-
-					if (!path.valid_string())
-						throw Name_too_long();
-
-					Directory *parent = _root.lookup_and_lock_parent(path_str);
-
-					Node_lock_guard guard(parent);
-
-					char const *name = basename(path_str);
-
-					if (parent->has_sub_node_unsynchronized(name))
-						throw Node_already_exists();
-
-					try {
-						parent->adopt_unsynchronized(new (env()->heap()) Directory(name));
-					} catch (Allocator::Out_of_memory) {
-						throw No_space();
-					}
-				}
-
-				Directory *dir = _root.lookup_and_lock_dir(path_str);
-				Node_lock_guard guard(dir);
-				return _handle_registry.alloc(dir);
-			}
-
-			Node_handle node(Path const &path)
-			{
-				_assert_valid_path(path.string());
-
-				Node *node = _root.lookup_and_lock(path.string() + 1);
-
-				Node_lock_guard guard(node);
-				return _handle_registry.alloc(node);
-			}
-
-			void close(Node_handle handle)
-			{
-				_handle_registry.free(handle);
-			}
-
-			Status status(Node_handle node_handle)
-			{
-				Node *node = _handle_registry.lookup_and_lock(node_handle);
+			try {
+				Node *node = _handle_registry.lookup_and_lock(packet.handle());
 				Node_lock_guard guard(node);
 
-				Status s;
-				s.inode = node->inode();
-				s.size  = 0;
-				s.mode  = 0;
-
-				File *file = dynamic_cast<File *>(node);
-				if (file) {
-					s.size = file->length();
-					s.mode = File_system::Status::MODE_FILE;
-					return s;
-				}
-				Directory *dir = dynamic_cast<Directory *>(node);
-				if (dir) {
-					s.size = dir->num_entries()*sizeof(Directory_entry);
-					s.mode = File_system::Status::MODE_DIRECTORY;
-					return s;
-				}
-				Symlink *symlink = dynamic_cast<Symlink *>(node);
-				if (symlink) {
-					s.size = symlink->length();
-					s.mode = File_system::Status::MODE_SYMLINK;
-					return s;
-				}
-				return Status();
+				_process_packet_op(packet, *node);
 			}
+			catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
 
-			void control(Node_handle, Control) { }
+			/*
+			 * The 'acknowledge_packet' function cannot block because we
+			 * checked for 'ready_to_ack' in '_process_packets'.
+			 */
+			tx_sink()->acknowledge_packet(packet);
+		}
 
-			void unlink(Dir_handle dir_handle, Name const &name)
-			{
-				if (!valid_name(name.string()))
-					throw Invalid_name();
+		void _process_packets()
+		{
+			while (tx_sink()->packet_avail()) {
 
-				if (!_writable)
-					throw Permission_denied();
-
-				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
-				Node_lock_guard dir_guard(dir);
-
-				Node *node = dir->lookup_and_lock(name.string());
-
-				dir->discard_unsynchronized(node);
-
-				// XXX implement ref counting, do not destroy node that is
-				//     is still referenced by a node handle
-
-				node->unlock();
-				destroy(env()->heap(), node);
-			}
-
-			void truncate(File_handle file_handle, file_size_t size)
-			{
-				if (!_writable)
-					throw Permission_denied();
-
-				File *file = _handle_registry.lookup_and_lock(file_handle);
-				Node_lock_guard file_guard(file);
-				file->truncate(size);
-			}
-
-			void move(Dir_handle from_dir_handle, Name const &from_name,
-			          Dir_handle to_dir_handle,   Name const &to_name)
-			{
-				if (!_writable)
-					throw Permission_denied();
-
-				if (!valid_name(from_name.string()))
-					throw Lookup_failed();
-
-				if (!valid_name(to_name.string()))
-					throw Invalid_name();
-
-				Directory *from_dir = _handle_registry.lookup_and_lock(from_dir_handle);
-				Node_lock_guard from_dir_guard(from_dir);
-
-				Node *node = from_dir->lookup_and_lock(from_name.string());
-				Node_lock_guard node_guard(node);
-				node->name(to_name.string());
-
-				if (!_handle_registry.refer_to_same_node(from_dir_handle, to_dir_handle)) {
-					Directory *to_dir = _handle_registry.lookup_and_lock(to_dir_handle);
-					Node_lock_guard to_dir_guard(to_dir);
-
-					from_dir->discard_unsynchronized(node);
-					to_dir->adopt_unsynchronized(node);
-
-					/*
-					 * If the file was moved from one directory to another we
-					 * need to inform the new directory 'to_dir'. The original
-					 * directory 'from_dir' will always get notified (i.e.,
-					 * when just the file name was changed) below.
-					 */
-					to_dir->mark_as_updated();
-					to_dir->notify_listeners();
-				}
-
-				from_dir->mark_as_updated();
-				from_dir->notify_listeners();
-
-				node->mark_as_updated();
-				node->notify_listeners();
-			}
-
-			void sigh(Node_handle node_handle, Signal_context_capability sigh)
-			{
-				_handle_registry.sigh(node_handle, sigh);
-			}
-	};
-
-
-	class Root : public Root_component<Session_component>
-	{
-		private:
-
-			Server::Entrypoint &_ep;
-			Directory          &_root_dir;
-
-		protected:
-
-			Session_component *_create_session(const char *args)
-			{
 				/*
-				 * Determine client-specific policy defined implicitly by
-				 * the client's label.
+				 * Make sure that the '_process_packet' function does not
+				 * block.
+				 *
+				 * If the acknowledgement queue is full, we defer packet
+				 * processing until the client processed pending
+				 * acknowledgements and thereby emitted a ready-to-ack
+				 * signal. Otherwise, the call of 'acknowledge_packet()'
+				 * in '_process_packet' would infinitely block the context
+				 * of the main thread. The main thread is however needed
+				 * for receiving any subsequent 'ready-to-ack' signals.
 				 */
+				if (!tx_sink()->ready_to_ack())
+					return;
 
-				Directory *session_root_dir = 0;
-				bool writeable = false;
+				_process_packet();
+			}
+		}
 
-				enum { ROOT_MAX_LEN = 256 };
-				char root[ROOT_MAX_LEN];
-				root[0] = 0;
+		/**
+		 * Check if string represents a valid path (most start with '/')
+		 */
+		static void _assert_valid_path(char const *path)
+		{
+			if (!path || path[0] != '/') {
+				Genode::warning("malformed path ''", path, "'");
+				throw Lookup_failed();
+			}
+		}
 
-				Session_label const label = label_from_args(args);
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Session_component(size_t tx_buf_size, Genode::Entrypoint &ep,
+		                  Directory &root, bool writable)
+		:
+			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+			_ep(ep),
+			_root(root),
+			_writable(writable),
+			_process_packet_handler(_ep, *this, &Session_component::_process_packets)
+		{
+			/*
+			 * Register '_process_packets' method as signal handler for
+			 * packet-avail and ready-to-ack signals.
+			 */
+			_tx.sigh_packet_avail(_process_packet_handler);
+			_tx.sigh_ready_to_ack(_process_packet_handler);
+		}
+
+		/**
+		 * Destructor
+		 */
+		~Session_component()
+		{
+			Dataspace_capability ds = tx_sink()->dataspace();
+			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
+		}
+
+
+		/***************************
+		 ** File_system interface **
+		 ***************************/
+
+		File_handle file(Dir_handle dir_handle, Name const &name,
+		                 Mode mode, bool create)
+		{
+			if (!valid_name(name.string()))
+				throw Invalid_name();
+
+			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
+			Node_lock_guard dir_guard(dir);
+
+			if (!_writable)
+				if (mode != STAT_ONLY && mode != READ_ONLY)
+					throw Permission_denied();
+
+			if (create) {
+
+				if (!_writable)
+					throw Permission_denied();
+
+				if (dir->has_sub_node_unsynchronized(name.string()))
+					throw Node_already_exists();
+
 				try {
-					Session_policy policy(label);
+					File * const file = new (env()->heap())
+					                    File(*env()->heap(), name.string());
 
-					/*
-					 * Determine directory that is used as root directory of
-					 * the session.
-					 */
-					try {
-						policy.attribute("root").value(root, sizeof(root));
-						if (strcmp("/", root) == 0) {
-							session_root_dir = &_root_dir;
-						} else {
+					dir->adopt_unsynchronized(file);
+				}
+				catch (Allocator::Out_of_memory) { throw No_space(); }
+			}
 
-							/*
-							 * Make sure the root path is specified with a
-							 * leading path delimiter. For performing the
-							 * lookup, we skip the first character.
-							 */
-							if (root[0] != '/')
-								throw Lookup_failed();
+			File *file = dir->lookup_and_lock_file(name.string());
+			Node_lock_guard file_guard(file);
+			return _handle_registry.alloc(file);
+		}
 
-							session_root_dir = _root_dir.lookup_and_lock_dir(root + 1);
-							session_root_dir->unlock();
-						}
-					} catch (Xml_node::Nonexistent_attribute) {
-						Genode::error("missing \"root\" attribute in policy definition");
-						throw Root::Unavailable();
-					} catch (Lookup_failed) {
-						Genode::error("session root directory \"",
-						              Genode::Cstring(root), "\" does not exist");
-						throw Root::Unavailable();
+		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
+		{
+			if (!valid_name(name.string()))
+				throw Invalid_name();
+
+			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
+			Node_lock_guard dir_guard(dir);
+
+			if (create) {
+
+				if (!_writable)
+					throw Permission_denied();
+
+				if (dir->has_sub_node_unsynchronized(name.string()))
+					throw Node_already_exists();
+
+				try {
+					Symlink * const symlink = new (env()->heap())
+					                    Symlink(name.string());
+
+					dir->adopt_unsynchronized(symlink);
+				}
+				catch (Allocator::Out_of_memory) { throw No_space(); }
+			}
+
+			Symlink *symlink = dir->lookup_and_lock_symlink(name.string());
+			Node_lock_guard file_guard(symlink);
+			return _handle_registry.alloc(symlink);
+		}
+
+		Dir_handle dir(Path const &path, bool create)
+		{
+			char const *path_str = path.string();
+
+			_assert_valid_path(path_str);
+
+			/* skip leading '/' */
+			path_str++;
+
+			if (create) {
+
+				if (!_writable)
+					throw Permission_denied();
+
+				if (!path.valid_string())
+					throw Name_too_long();
+
+				Directory *parent = _root.lookup_and_lock_parent(path_str);
+
+				Node_lock_guard guard(parent);
+
+				char const *name = basename(path_str);
+
+				if (parent->has_sub_node_unsynchronized(name))
+					throw Node_already_exists();
+
+				try {
+					parent->adopt_unsynchronized(new (env()->heap()) Directory(name));
+				} catch (Allocator::Out_of_memory) {
+					throw No_space();
+				}
+			}
+
+			Directory *dir = _root.lookup_and_lock_dir(path_str);
+			Node_lock_guard guard(dir);
+			return _handle_registry.alloc(dir);
+		}
+
+		Node_handle node(Path const &path)
+		{
+			_assert_valid_path(path.string());
+
+			Node *node = _root.lookup_and_lock(path.string() + 1);
+
+			Node_lock_guard guard(node);
+			return _handle_registry.alloc(node);
+		}
+
+		void close(Node_handle handle)
+		{
+			_handle_registry.free(handle);
+		}
+
+		Status status(Node_handle node_handle)
+		{
+			Node *node = _handle_registry.lookup_and_lock(node_handle);
+			Node_lock_guard guard(node);
+
+			Status s;
+			s.inode = node->inode();
+			s.size  = 0;
+			s.mode  = 0;
+
+			File *file = dynamic_cast<File *>(node);
+			if (file) {
+				s.size = file->length();
+				s.mode = File_system::Status::MODE_FILE;
+				return s;
+			}
+			Directory *dir = dynamic_cast<Directory *>(node);
+			if (dir) {
+				s.size = dir->num_entries()*sizeof(Directory_entry);
+				s.mode = File_system::Status::MODE_DIRECTORY;
+				return s;
+			}
+			Symlink *symlink = dynamic_cast<Symlink *>(node);
+			if (symlink) {
+				s.size = symlink->length();
+				s.mode = File_system::Status::MODE_SYMLINK;
+				return s;
+			}
+			return Status();
+		}
+
+		void control(Node_handle, Control) { }
+
+		void unlink(Dir_handle dir_handle, Name const &name)
+		{
+			if (!valid_name(name.string()))
+				throw Invalid_name();
+
+			if (!_writable)
+				throw Permission_denied();
+
+			Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
+			Node_lock_guard dir_guard(dir);
+
+			Node *node = dir->lookup_and_lock(name.string());
+
+			dir->discard_unsynchronized(node);
+
+			// XXX implement ref counting, do not destroy node that is
+			//     is still referenced by a node handle
+
+			node->unlock();
+			destroy(env()->heap(), node);
+		}
+
+		void truncate(File_handle file_handle, file_size_t size)
+		{
+			if (!_writable)
+				throw Permission_denied();
+
+			File *file = _handle_registry.lookup_and_lock(file_handle);
+			Node_lock_guard file_guard(file);
+			file->truncate(size);
+		}
+
+		void move(Dir_handle from_dir_handle, Name const &from_name,
+		          Dir_handle to_dir_handle,   Name const &to_name)
+		{
+			if (!_writable)
+				throw Permission_denied();
+
+			if (!valid_name(from_name.string()))
+				throw Lookup_failed();
+
+			if (!valid_name(to_name.string()))
+				throw Invalid_name();
+
+			Directory *from_dir = _handle_registry.lookup_and_lock(from_dir_handle);
+			Node_lock_guard from_dir_guard(from_dir);
+
+			Node *node = from_dir->lookup_and_lock(from_name.string());
+			Node_lock_guard node_guard(node);
+			node->name(to_name.string());
+
+			if (!_handle_registry.refer_to_same_node(from_dir_handle, to_dir_handle)) {
+				Directory *to_dir = _handle_registry.lookup_and_lock(to_dir_handle);
+				Node_lock_guard to_dir_guard(to_dir);
+
+				from_dir->discard_unsynchronized(node);
+				to_dir->adopt_unsynchronized(node);
+
+				/*
+				 * If the file was moved from one directory to another we
+				 * need to inform the new directory 'to_dir'. The original
+				 * directory 'from_dir' will always get notified (i.e.,
+				 * when just the file name was changed) below.
+				 */
+				to_dir->mark_as_updated();
+				to_dir->notify_listeners();
+			}
+
+			from_dir->mark_as_updated();
+			from_dir->notify_listeners();
+
+			node->mark_as_updated();
+			node->notify_listeners();
+		}
+
+		void sigh(Node_handle node_handle, Signal_context_capability sigh)
+		{
+			_handle_registry.sigh(node_handle, sigh);
+		}
+};
+
+
+class File_system::Root : public Root_component<Session_component>
+{
+	private:
+
+		Genode::Entrypoint    &_ep;
+		Genode::Xml_node const _config;
+		Directory             &_root_dir;
+
+	protected:
+
+		Session_component *_create_session(const char *args)
+		{
+			/*
+			 * Determine client-specific policy defined implicitly by
+			 * the client's label.
+			 */
+
+			Directory *session_root_dir = 0;
+			bool writeable = false;
+
+			enum { ROOT_MAX_LEN = 256 };
+			char root[ROOT_MAX_LEN];
+			root[0] = 0;
+
+			Session_label const label = label_from_args(args);
+			try {
+				Session_policy policy(label, _config);
+
+				/*
+				 * Determine directory that is used as root directory of
+				 * the session.
+				 */
+				try {
+					policy.attribute("root").value(root, sizeof(root));
+					if (strcmp("/", root) == 0) {
+						session_root_dir = &_root_dir;
+					} else {
+
+						/*
+						 * Make sure the root path is specified with a
+						 * leading path delimiter. For performing the
+						 * lookup, we skip the first character.
+						 */
+						if (root[0] != '/')
+							throw Lookup_failed();
+
+						session_root_dir = _root_dir.lookup_and_lock_dir(root + 1);
+						session_root_dir->unlock();
 					}
-
-					/*
-					 * Determine if write access is permitted for the session.
-					 */
-					writeable = policy.attribute_value("writeable", false);
-
-				} catch (Session_policy::No_policy_defined) {
-					Genode::error("invalid session request, no matching policy");
+				} catch (Xml_node::Nonexistent_attribute) {
+					Genode::error("missing \"root\" attribute in policy definition");
+					throw Root::Unavailable();
+				} catch (Lookup_failed) {
+					Genode::error("session root directory \"",
+					              Genode::Cstring(root), "\" does not exist");
 					throw Root::Unavailable();
 				}
 
-				size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-				size_t tx_buf_size =
-					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-
-				if (!tx_buf_size) {
-					Genode::error(label, " requested a session with a zero length transmission buffer");
-					throw Root::Invalid_args();
-				}
-
 				/*
-				 * Check if donated ram quota suffices for session data,
-				 * and communication buffer.
+				 * Determine if write access is permitted for the session.
 				 */
-				size_t session_size = sizeof(Session_component) + tx_buf_size;
-				if (max((size_t)4096, session_size) > ram_quota) {
-					Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
-					              "need ", session_size);
-					throw Root::Quota_exceeded();
-				}
-				return new (md_alloc())
-					Session_component(tx_buf_size, _ep, *session_root_dir, writeable);
+				writeable = policy.attribute_value("writeable", false);
+
+			} catch (Session_policy::No_policy_defined) {
+				Genode::error("invalid session request, no matching policy");
+				throw Root::Unavailable();
 			}
 
-		public:
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+			size_t tx_buf_size =
+				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
-			/**
-			 * Constructor
-			 *
-			 * \param ep        entrypoint
-			 * \param md_alloc  meta-data allocator
-			 * \param root_dir  root-directory handle (anchor for fs)
+			if (!tx_buf_size) {
+				Genode::error(label, " requested a session with a zero length transmission buffer");
+				throw Root::Invalid_args();
+			}
+
+			/*
+			 * Check if donated ram quota suffices for session data,
+			 * and communication buffer.
 			 */
-			Root(Server::Entrypoint &ep, Allocator &md_alloc, Directory &root_dir)
-			:
-				Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-				_ep(ep),
-				_root_dir(root_dir)
-			{ }
-	};
+			size_t session_size = sizeof(Session_component) + tx_buf_size;
+			if (max((size_t)4096, session_size) > ram_quota) {
+				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
+				              "need ", session_size);
+				throw Root::Quota_exceeded();
+			}
+			return new (md_alloc())
+				Session_component(tx_buf_size, _ep, *session_root_dir, writeable);
+		}
 
-	struct Main;
-}
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param ep        entrypoint
+		 * \param md_alloc  meta-data allocator
+		 * \param root_dir  root-directory handle (anchor for fs)
+		 */
+		Root(Genode::Entrypoint &ep, Genode::Xml_node config,
+		     Allocator &md_alloc, Directory &root_dir)
+		:
+			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
+			_ep(ep), _config(config), _root_dir(root_dir)
+		{ }
+};
 
 
 /**
@@ -627,34 +626,31 @@ static void preload_content(Genode::Allocator      &alloc,
 
 struct File_system::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &_env;
 
-	Directory root_dir = { "" };
+	Directory _root_dir { "" };
+
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
-	Root fs_root = { ep, sliced_heap, root_dir };
+	Root _fs_root { _env.ep(), _config.xml(), _sliced_heap, _root_dir };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Genode::Heap _heap { _env.ram(), _env.rm() };
+
+	Main(Genode::Env &env) : _env(env)
 	{
 		/* preload RAM file system with content as declared in the config */
 		try {
-			Xml_node content = config()->xml_node().sub_node("content");
-			preload_content(*env()->heap(), content, root_dir); }
+			preload_content(_heap, _config.xml().sub_node("content"), _root_dir); }
 		catch (Xml_node::Nonexistent_sub_node) { }
 
-		env()->parent()->announce(ep.manage(fs_root));
+		_env.parent().announce(_env.ep().manage(_fs_root));
 	}
 };
 
 
-/**********************
- ** Server framework **
- **********************/
-
-char const *   Server::name()                            { return "ram_fs_ep"; }
-Genode::size_t Server::stack_size()                      { return 16*1024*sizeof(long); }
-void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }
+void Component::construct(Genode::Env &env) { static File_system::Main inst(env); }

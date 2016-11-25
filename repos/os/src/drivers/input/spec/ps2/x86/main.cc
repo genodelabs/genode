@@ -12,14 +12,13 @@
  */
 
 /* base includes */
-#include <base/env.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/retry.h>
 
 /* os includes */
 #include <input/component.h>
 #include <input/root.h>
-#include <os/config.h>
-#include <os/server.h>
 #include <platform_session/connection.h>
 
 /* local includes */
@@ -27,67 +26,52 @@
 #include "ps2_keyboard.h"
 #include "ps2_mouse.h"
 #include "irq_handler.h"
+#include "verbose.h"
 
-using namespace Genode;
+namespace Ps2 { struct Main; }
 
 
-struct Main
+struct Ps2::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &_env;
 
-	Input::Session_component session;
-	Input::Root_component    root;
+	Input::Session_component _session;
+	Input::Root_component    _root { _env.ep().rpc_ep(), _session };
 
-	Platform::Connection    platform;
+	Platform::Connection _platform { _env };
 
-	Platform::Device_capability cap_ps2()
+	Platform::Device_capability _ps2_device_cap()
 	{
 		return Genode::retry<Platform::Session::Out_of_metadata>(
-			[&] () { return platform.device("PS2"); },
-			[&] () { platform.upgrade_ram(4096); });
+			[&] () { return _platform.device("PS2"); },
+			[&] () { _platform.upgrade_ram(4096); });
 	}
 
-	Platform::Device_client device_ps2;
+	Platform::Device_client _device_ps2 { _ps2_device_cap() };
 
-	I8042              i8042;
+	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS };
 
-	Ps2_keyboard ps2_keybd;
-	Ps2_mouse    ps2_mouse;
+	I8042 _i8042 { _device_ps2.io_port(REG_IOPORT_DATA),
+	               _device_ps2.io_port(REG_IOPORT_STATUS) };
 
-	Irq_handler  ps2_keybd_irq;
-	Irq_handler  ps2_mouse_irq;
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS};
+	Verbose _verbose { _config.xml() };
 
-	bool _check_verbose(const char * verbose)
+	Keyboard _keyboard { _i8042.kbd_interface(), _session.event_queue(),
+	                     _i8042.kbd_xlate(), _verbose };
+
+	Mouse _mouse { _i8042.aux_interface(), _session.event_queue(), _verbose };
+
+	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _device_ps2.irq(0) };
+	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _device_ps2.irq(1) };
+
+	Main(Genode::Env &env) : _env(env)
 	{
-		return Genode::config()->xml_node().attribute_value(verbose, false);
-	}
-
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep.rpc_ep(), session),
-		device_ps2(cap_ps2()),
-		i8042(device_ps2.io_port(REG_IOPORT_DATA),
-		      device_ps2.io_port(REG_IOPORT_STATUS)),
-		ps2_keybd(*i8042.kbd_interface(), session.event_queue(),
-		          i8042.kbd_xlate(), _check_verbose("verbose_keyboard"),
-		          _check_verbose("verbose_scancodes")),
-		ps2_mouse(*i8042.aux_interface(), session.event_queue(),
-		          _check_verbose("verbose_mouse")),
-		ps2_keybd_irq(ep, ps2_keybd, device_ps2.irq(0)),
-		ps2_mouse_irq(ep, ps2_mouse, device_ps2.irq(1))
-	{
-		env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(_root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
+void Component::construct( Genode::Env &env) { static Ps2::Main ps2(env); }
 
-namespace Server {
-	char const *name()             { return "ps2_drv_ep";        }
-	size_t stack_size()            { return 8*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);     }
-}

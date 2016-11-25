@@ -92,31 +92,13 @@ class Menu_view::Style_database
 		/*
 		 * Assemble path name 'styles/<widget>/<style>/<name>.<extension>'
 		 */
-		static Path _construct_path(Xml_node node,
-		                            char const *name, char const *extension)
+		static Path _construct_path(Xml_node node, char const *name,
+		                            char const *extension)
 		{
-			char widget[64];
-			node.type_name(widget, sizeof(widget));
+			typedef String<64> Style;
+			Style const style = node.attribute_value("style", Style("default"));
 
-			char style[PATH_MAX_LEN];
-			style[0] = 0;
-
-			try {
-				node.attribute("style").value(style, sizeof(style));
-			}
-			catch (Xml_node::Nonexistent_attribute) {
-
-				/* no style defined */
-				Genode::strncpy(style, "default", sizeof(style));
-			}
-
-			char path[PATH_MAX_LEN];
-			path[0] = 0;
-
-			Genode::snprintf(path, sizeof(path), "/styles/%s/%s/%s.%s",
-			                 widget, style, name, extension);
-
-			return Path(path);
+			return Path("/styles/", node.type(), "/", style, "/", name, ".", extension);
 		}
 
 	public:
@@ -140,11 +122,11 @@ class Menu_view::Style_database
 
 			} catch (File::Reading_failed) {
 
-				PWRN("could not read texture data from file \"%s\"", path.string());
-				return 0;
+				warning("could not read texture data from file \"", path.string(), "\"");
+				return nullptr;
 			}
 
-			return 0;
+			return nullptr;
 		}
 
 		Text_painter::Font const *font(Xml_node node, char const *tff_name) const
@@ -166,11 +148,11 @@ class Menu_view::Style_database
 
 			} catch (File::Reading_failed) {
 
-				PWRN("could not read font from file \"%s\"", path.string());
-				return 0;
+				warning("could not read font from file \"", path.string(), "\"");
+				return nullptr;
 			}
 
-			return 0;
+			return nullptr;
 		}
 };
 

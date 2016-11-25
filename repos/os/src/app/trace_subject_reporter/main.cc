@@ -14,13 +14,10 @@
 /* Genode includes */
 #include <trace_session/connection.h>
 #include <timer_session/connection.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
 #include <os/reporter.h>
-#include <os/server.h>
-#include <os/config.h>
-#include <base/env.h>
-
-
-namespace Server { struct Main; }
 
 
 struct Trace_subject_registry
@@ -143,98 +140,95 @@ struct Trace_subject_registry
 };
 
 
-struct Server::Main
+namespace App {
+
+	struct Main;
+	using namespace Genode;
+}
+
+
+struct App::Main
 {
-	Entrypoint &ep;
+	Env &_env;
 
-	Genode::Trace::Connection trace { 512*1024, 32*1024, 0 };
+	Trace::Connection _trace { _env, 512*1024, 32*1024, 0 };
 
-	Genode::Reporter reporter { "trace_subjects", "trace_subjects", 64*1024 };
+	Reporter _reporter { "trace_subjects", "trace_subjects", 64*1024 };
 
-	static unsigned long default_period_ms() { return 5000; }
+	static unsigned long _default_period_ms() { return 5000; }
 
-	unsigned long period_ms = default_period_ms();
+	unsigned long _period_ms = _default_period_ms();
 
-	bool report_affinity = false;
-	bool report_activity = false;
+	bool _report_affinity = false;
+	bool _report_activity = false;
 
-	bool config_report_attribute_enabled(char const *attr) const
+	Attached_rom_dataspace _config { _env, "config" };
+
+	bool _config_report_attribute_enabled(char const *attr) const
 	{
 		try {
-			return Genode::config()->xml_node().sub_node("report")
-			                                   .attribute_value(attr, false);
+			return _config.xml().sub_node("report").attribute_value(attr, false);
 		} catch (...) { return false; }
 	}
 
-	Timer::Connection timer;
+	Timer::Connection _timer { _env };
 
-	Trace_subject_registry trace_subject_registry;
+	Heap _heap { _env.ram(), _env.rm() };
 
-	void handle_config(unsigned);
+	Trace_subject_registry _trace_subject_registry;
 
-	Signal_rpc_member<Main> config_dispatcher = {
-		ep, *this, &Main::handle_config};
+	void _handle_config();
 
-	void handle_period(unsigned);
+	Signal_handler<Main> _config_handler = {
+		_env.ep(), *this, &Main::_handle_config};
 
-	Signal_rpc_member<Main> periodic_dispatcher = {
-		ep, *this, &Main::handle_period};
+	void _handle_period();
 
-	Main(Entrypoint &ep) : ep(ep)
+	Signal_handler<Main> _periodic_handler = {
+		_env.ep(), *this, &Main::_handle_period};
+
+	Main(Env &env) : _env(env)
 	{
-		Genode::config()->sigh(config_dispatcher);
-		handle_config(0);
+		_config.sigh(_config_handler);
+		_handle_config();
 
-		timer.sigh(periodic_dispatcher);
+		_timer.sigh(_periodic_handler);
 
-		reporter.enabled(true);
+		_reporter.enabled(true);
 	}
 };
 
 
-void Server::Main::handle_config(unsigned)
+void App::Main::_handle_config()
 {
-	Genode::config()->reload();
+	_config.update();
 
-	try {
-		period_ms = default_period_ms();
-		Genode::config()->xml_node().attribute("period_ms").value(&period_ms);
-	} catch (...) { }
+	_period_ms = _config.xml().attribute_value("period_ms", _default_period_ms());
 
-	report_affinity = config_report_attribute_enabled("affinity");
-	report_activity = config_report_attribute_enabled("activity");
+	_report_affinity = _config_report_attribute_enabled("affinity");
+	_report_activity = _config_report_attribute_enabled("activity");
 
-	log("period_ms=",       period_ms,       ", "
-	    "report_activity=", report_activity, ", "
-	    "report_affinity=", report_affinity);
+	log("period_ms=",       _period_ms,       ", "
+	    "report_activity=", _report_activity, ", "
+	    "report_affinity=", _report_affinity);
 
-	timer.trigger_periodic(1000*period_ms);
+	_timer.trigger_periodic(1000*_period_ms);
 }
 
 
-void Server::Main::handle_period(unsigned)
+void App::Main::_handle_period()
 {
 	/* update subject information */
-	trace_subject_registry.update(trace, *Genode::env()->heap());
+	_trace_subject_registry.update(_trace, _heap);
 
 	/* generate report */
-	reporter.clear();
-	Genode::Reporter::Xml_generator xml(reporter, [&] ()
+	_reporter.clear();
+	Genode::Reporter::Xml_generator xml(_reporter, [&] ()
 	{
-		trace_subject_registry.report(xml, report_affinity, report_activity);
+		_trace_subject_registry.report(xml, _report_affinity, _report_activity);
 	});
 }
 
 
-namespace Server {
-
-	char const *name() { return "trace_subject_reporter"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Main main(ep);
-	}
-}
+void Component::construct(Genode::Env &env) { static App::Main main(env); }
 

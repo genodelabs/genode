@@ -20,6 +20,7 @@
 #define _INCLUDE__NANO3D__SCENE_H_
 
 /* Genode includes */
+#include <base/entrypoint.h>
 #include <timer_session/connection.h>
 #include <nitpicker_session/connection.h>
 #include <os/surface.h>
@@ -54,7 +55,7 @@ class Nano3d::Scene
 
 	private:
 
-		Genode::Signal_receiver &_sig_rec;
+		Genode::Env &_env;
 
 		/**
 		 * Position and size of nitpicker view
@@ -62,7 +63,7 @@ class Nano3d::Scene
 		Nitpicker::Point const _pos;
 		Nitpicker::Area  const _size;
 
-		Nitpicker::Connection _nitpicker;
+		Nitpicker::Connection _nitpicker { _env };
 
 		struct Mapped_framebuffer
 		{
@@ -186,28 +187,28 @@ class Nano3d::Scene
 
 		bool _do_sync = false;
 
-		Timer::Connection _timer;
+		Timer::Connection _timer { _env };
 
 		Genode::Attached_dataspace _input_ds { _nitpicker.input()->dataspace() };
 
-		Input_handler *_input_handler = nullptr;
+		Input_handler *_input_handler_callback = nullptr;
 
-		void _handle_input(unsigned)
+		void _handle_input()
 		{
-			if (!_input_handler)
+			if (!_input_handler_callback)
 				return;
 
 			while (int num = _nitpicker.input()->flush()) {
 
 				auto const *ev_buf = _input_ds.local_addr<Input::Event>();
 
-				if (_input_handler)
-					_input_handler->handle_input(ev_buf, num);
+				if (_input_handler_callback)
+					_input_handler_callback->handle_input(ev_buf, num);
 			}
 		}
 
-		Genode::Signal_dispatcher<Scene> _input_dispatcher {
-			_sig_rec, *this, &Scene::_handle_input };
+		Genode::Signal_handler<Scene> _input_handler {
+			_env.ep(), *this, &Scene::_handle_input };
 
 		void _swap_back_and_front_surfaces()
 		{
@@ -223,7 +224,7 @@ class Nano3d::Scene
 			_surface_front    = tmp;
 		}
 
-		void _handle_period(unsigned)
+		void _handle_period()
 		{
 			if (_do_sync)
 				return;
@@ -238,10 +239,10 @@ class Nano3d::Scene
 			_do_sync = true;
 		}
 
-		Genode::Signal_dispatcher<Scene> _periodic_dispatcher {
-			_sig_rec, *this, &Scene::_handle_period };
+		Genode::Signal_handler<Scene> _periodic_handler {
+			_env.ep(), *this, &Scene::_handle_period };
 
-		void _handle_sync(unsigned)
+		void _handle_sync()
 		{
 			/* rendering of scene is not complete, yet */
 			if (!_do_sync)
@@ -263,42 +264,29 @@ class Nano3d::Scene
 			_do_sync = false;
 		}
 
-		Genode::Signal_dispatcher<Scene> _sync_dispatcher {
-			_sig_rec, *this, &Scene::_handle_sync };
+		Genode::Signal_handler<Scene> _sync_handler {
+			_env.ep(), *this, &Scene::_handle_sync };
 
 		typedef Nitpicker::Session::Command Command;
 
 	public:
 
-		Scene(Genode::Signal_receiver &sig_rec, unsigned update_rate_ms,
+		Scene(Genode::Env &env, unsigned update_rate_ms,
 		      Nitpicker::Point pos, Nitpicker::Area size)
 		:
-			_sig_rec(sig_rec), _pos(pos), _size(size)
+			_env(env), _pos(pos), _size(size)
 		{
 			Nitpicker::Rect rect(_pos, _size);
 			_nitpicker.enqueue<Command::Geometry>(_view_handle, rect);
 			_nitpicker.enqueue<Command::To_front>(_view_handle);
 			_nitpicker.execute();
 
-			_nitpicker.input()->sigh(_input_dispatcher);
+			_nitpicker.input()->sigh(_input_handler);
 
-			_timer.sigh(_periodic_dispatcher);
+			_timer.sigh(_periodic_handler);
 			_timer.trigger_periodic(1000*update_rate_ms);
 
-			_framebuffer.framebuffer.sync_sigh(_sync_dispatcher);
-		}
-
-		static void dispatch_signals_loop(Genode::Signal_receiver &sig_rec)
-		{
-			while (1) {
-
-				Genode::Signal signal = sig_rec.wait_for_signal();
-
-				Genode::Signal_dispatcher_base *dispatcher =
-					static_cast<Genode::Signal_dispatcher_base *>(signal.context());
-
-				dispatcher->dispatch(signal.num());
-			}
+			_framebuffer.framebuffer.sync_sigh(_sync_handler);
 		}
 
 		unsigned long elapsed_ms() const { return _timer.elapsed_ms(); }
@@ -306,7 +294,7 @@ class Nano3d::Scene
 		void input_handler(Input_handler *input_handler)
 		{
 			_framebuffer.input_mask(input_handler ? true : false);
-			_input_handler = input_handler;
+			_input_handler_callback = input_handler;
 		}
 };
 

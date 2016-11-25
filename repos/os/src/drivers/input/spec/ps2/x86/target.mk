@@ -1,6 +1,6 @@
 TARGET   = ps2_drv
-REQUIRES = x86 ps2
+REQUIRES = x86
 SRC_CC   = main.cc
-LIBS     = base server config
+LIBS     = base
 
 INC_DIR  = $(PRG_DIR)/..

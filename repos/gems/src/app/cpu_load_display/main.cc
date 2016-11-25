@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
+#include <base/component.h>
 #include <os/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
 #include <polygon_gfx/interpolate_rgb565.h>
@@ -274,14 +274,15 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 {
 	private:
 
+		Genode::Env &_env;
+
 		Nitpicker::Area const _size;
 
-		void _handle_config(unsigned)
-		{
-			Genode::config()->reload();
-		}
+		Genode::Attached_rom_dataspace _config { _env, "config" };
 
-		Genode::Signal_dispatcher<Scene> _config_dispatcher;
+		void _handle_config() { _config.update(); }
+
+		Genode::Signal_handler<Scene> _config_handler;
 
 		Genode::Attached_rom_dataspace _trace_subjects { "trace_subjects" };
 
@@ -289,7 +290,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 		Cpu_registry _cpu_registry;
 
-		void _handle_trace_subjects(unsigned)
+		void _handle_trace_subjects()
 		{
 			_trace_subjects.update();
 
@@ -304,21 +305,22 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 			} catch (...) { Genode::error("failed to import trace subjects"); }
 		}
 
-		Genode::Signal_dispatcher<Scene> _trace_subjects_dispatcher;
+		Genode::Signal_handler<Scene> _trace_subjects_handler;
 
 	public:
 
-		Scene(Genode::Signal_receiver &sig_rec, unsigned update_rate_ms,
+		Scene(Genode::Env &env, unsigned update_rate_ms,
 		      Nitpicker::Point pos, Nitpicker::Area size)
 		:
-			Nano3d::Scene<PT>(sig_rec, update_rate_ms, pos, size), _size(size),
-			_config_dispatcher(sig_rec, *this, &Scene::_handle_config),
-			_trace_subjects_dispatcher(sig_rec, *this, &Scene::_handle_trace_subjects)
+			Nano3d::Scene<PT>(env, update_rate_ms, pos, size),
+			_env(env), _size(size),
+			_config_handler(env.ep(), *this, &Scene::_handle_config),
+			_trace_subjects_handler(env.ep(), *this, &Scene::_handle_trace_subjects)
 		{
-			Genode::config()->sigh(_config_dispatcher);
-			_handle_config(0);
+			_config.sigh(_config_handler);
+			_handle_config();
 
-			_trace_subjects.sigh(_trace_subjects_dispatcher);
+			_trace_subjects.sigh(_trace_subjects_handler);
 		}
 
 	private:
@@ -456,17 +458,11 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 };
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
-	static Genode::Signal_receiver sig_rec;
-
 	enum { UPDATE_RATE_MS = 250 };
 
 	static Cpu_load_display::Scene<Genode::Pixel_rgb565>
-		scene(sig_rec, UPDATE_RATE_MS,
+		scene(env, UPDATE_RATE_MS,
 		      Nitpicker::Point(0, 0), Nitpicker::Area(400, 400));
-
-	scene.dispatch_signals_loop(sig_rec);
-
-	return 0;
 }

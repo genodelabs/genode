@@ -12,7 +12,8 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
 #include <polygon_gfx/interpolate_rgb565.h>
 #include <polygon_gfx/textured_polygon_painter.h>
@@ -31,6 +32,8 @@ class Scene : public Nano3d::Scene<PT>
 		enum Painter { PAINTER_SHADED, PAINTER_TEXTURED };
 
 	private:
+
+		Genode::Env &_env;
 
 		Nitpicker::Area const _size;
 
@@ -75,35 +78,38 @@ class Scene : public Nano3d::Scene<PT>
 		Shape   _shape   = SHAPE_DODECAHEDRON;
 		Painter _painter = PAINTER_TEXTURED;
 
-		void _handle_config(unsigned)
+		Genode::Attached_rom_dataspace _config { _env, "config" };
+
+		void _handle_config()
 		{
-			Genode::config()->reload();
+			_config.update();
 
 			try {
 				_shape = SHAPE_DODECAHEDRON;
-				if (Genode::config()->xml_node().attribute("shape").has_value("cube"))
+				if (_config.xml().attribute("shape").has_value("cube"))
 					_shape = SHAPE_CUBE;
 			} catch (...) { }
 
 			try {
 				_painter = PAINTER_TEXTURED;
-				if (Genode::config()->xml_node().attribute("painter").has_value("shaded"))
+				if (_config.xml().attribute("painter").has_value("shaded"))
 					_painter = PAINTER_SHADED;
 			} catch (...) { }
 		}
 
-		Genode::Signal_dispatcher<Scene> _config_dispatcher;
+		Genode::Signal_handler<Scene> _config_handler;
 
 	public:
 
-		Scene(Genode::Signal_receiver &sig_rec, unsigned update_rate_ms,
+		Scene(Genode::Env &env, unsigned update_rate_ms,
 		      Nitpicker::Point pos, Nitpicker::Area size)
 		:
-			Nano3d::Scene<PT>(sig_rec, update_rate_ms, pos, size), _size(size),
-			_config_dispatcher(sig_rec, *this, &Scene::_handle_config)
+			Nano3d::Scene<PT>(env, update_rate_ms, pos, size),
+			_env(env), _size(size),
+			_config_handler(env.ep(), *this, &Scene::_handle_config)
 		{
-			Genode::config()->sigh(_config_dispatcher);
-			_handle_config(0);
+			_config.sigh(_config_handler);
+			_handle_config();
 		}
 
 	private:
@@ -219,17 +225,11 @@ class Scene : public Nano3d::Scene<PT>
 };
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
-	static Genode::Signal_receiver sig_rec;
-
 	enum { UPDATE_RATE_MS = 20 };
 
 	static Scene<Genode::Pixel_rgb565>
-		scene(sig_rec, UPDATE_RATE_MS,
+		scene(env, UPDATE_RATE_MS,
 		      Nitpicker::Point(-200, -200), Nitpicker::Area(400, 400));
-
-	scene.dispatch_signals_loop(sig_rec);
-
-	return 0;
 }

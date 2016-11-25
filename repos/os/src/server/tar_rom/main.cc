@@ -13,29 +13,35 @@
  */
 
 /* Genode includes */
-#include <rom_session/rom_session.h>
-#include <root/component.h>
-#include <cap_session/connection.h>
-#include <util/arg_string.h>
-#include <base/rpc_server.h>
-#include <base/sleep.h>
-#include <base/env.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <base/log.h>
-#include <os/config.h>
 #include <base/session_label.h>
+#include <root/component.h>
+
+namespace Tar_rom {
+
+	using namespace Genode;
+	class Rom_session_component;
+	class Rom_root;
+	struct Main;
+}
 
 
 /**
  * A 'Rom_session_component' exports a single file of the tar archive
  */
-class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
+class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 {
 	private:
 
-		const char *_tar_addr, *_filename, *_file_addr;
-		Genode::size_t _file_size, _tar_size;
-		Genode::Ram_dataspace_capability _file_ds;
+		Ram_session &_ram;
+
+		char const * const _tar_addr;
+		size_t       const _tar_size;
+
+		Ram_dataspace_capability _file_ds;
 
 		enum {
 			/* length of on data block in tar */
@@ -50,39 +56,34 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 *
 		 * \param dst  destination dataspace
 		 */
-		void _copy_content_to_dataspace(Genode::Dataspace_capability dst)
+		void _copy_content_to_dataspace(Region_map &rm, Dataspace_capability dst,
+		                                char const *src, size_t len)
 		{
-			using namespace Genode;
-
-			/* map dataspace locally */
-			char *dst_addr = env()->rm_session()->attach(dst);
-			Dataspace_client dst_client(dst);
+			/* temporarily map dataspace */
+			Attached_dataspace ds(rm, dst);
 
 			/* copy content */
-			size_t dst_ds_size   = Dataspace_client(dst).size();
-			size_t bytes_to_copy = min(_file_size, dst_ds_size);
-			memcpy(dst_addr, _file_addr, bytes_to_copy);
-
-			/* unmap dataspace */
-			env()->rm_session()->detach(dst_addr);
+			size_t bytes_to_copy = min(len, ds.size());
+			memcpy(ds.local_addr<char>(), src, bytes_to_copy);
 		}
 
 		/**
 		 * Initialize dataspace containing the content of the archived file
 		 */
-		Genode::Ram_dataspace_capability _init_file_ds()
+		Ram_dataspace_capability _init_file_ds(Ram_session &ram, Region_map &rm,
+		                                       Session_label const &name)
 		{
-			bool file_found = false;
-
 			/* measure size of archive in blocks */
 			unsigned block_id = 0, block_cnt = _tar_size/_BLOCK_LEN;
+
+			char   const *file_content = nullptr;
+			unsigned long file_size    = 0;
 
 			/* scan metablocks of archive */
 			while (block_id < block_cnt) {
 
-				unsigned long file_size = 0;
-				Genode::ascii_to_unsigned(_tar_addr + block_id*_BLOCK_LEN +
-				                          _FIELD_SIZE_LEN, file_size, 8);
+				ascii_to_unsigned(_tar_addr + block_id*_BLOCK_LEN +
+				                  _FIELD_SIZE_LEN, file_size, 8);
 
 				/* get name of tar record */
 				char const *record_filename = _tar_addr + block_id*_BLOCK_LEN;
@@ -92,10 +93,8 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 					record_filename++;
 
 				/* get infos about current file */
-				if (Genode::strcmp(_filename, record_filename) == 0) {
-					_file_size = file_size;
-					_file_addr = _tar_addr + (block_id+1) * _BLOCK_LEN;
-					file_found = true;
+				if (name == record_filename) {
+					file_content = _tar_addr + (block_id+1) * _BLOCK_LEN;
 					break;
 				}
 
@@ -115,20 +114,20 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 						break;
 			}
 
-			if (!file_found) {
-				Genode::error("couldn't find file '", _filename, "', empty result");
-				return Genode::Ram_dataspace_capability();
+			if (!file_content) {
+				error("couldn't find file '", name, "', empty result");
+				return Ram_dataspace_capability();
 			}
 
 			/* try to allocate memory for file */
-			Genode::Ram_dataspace_capability file_ds;
+			Ram_dataspace_capability file_ds;
 			try {
-				file_ds = Genode::env()->ram_session()->alloc(_file_size);
+				file_ds = ram.alloc(file_size);
 
 				/* get content of file copied into dataspace and return */
-				_copy_content_to_dataspace(file_ds);
+				_copy_content_to_dataspace(rm, file_ds, file_content, file_size);
 			} catch (...) {
-				Genode::error("couldn't allocate memory for file, empty result");
+				error("couldn't allocate memory for file, empty result");
 				return file_ds;
 			}
 
@@ -142,55 +141,55 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 *
 		 * \param  tar_addr  local address to tar archive
 		 * \param  tar_size  size of tar archive in bytes
-		 * \param  filename  name of the requested file
+		 * \param  label     name of the requested ROM module
 		 */
-		Rom_session_component(const char *tar_addr, unsigned tar_size,
-		                      const char *filename)
+		Rom_session_component(Ram_session &ram, Region_map &rm,
+		                      char const *tar_addr, unsigned tar_size,
+		                      Session_label const &label)
 		:
-			_tar_addr(tar_addr), _filename(filename), _file_addr(0), _file_size(0),
-			_tar_size(tar_size),
-			_file_ds(_init_file_ds())
+			_ram(ram), _tar_addr(tar_addr), _tar_size(tar_size),
+			_file_ds(_init_file_ds(ram, rm, label))
 		{
 			if (!_file_ds.valid())
-				throw Genode::Root::Invalid_args();
+				throw Root::Invalid_args();
 		}
 
 		/**
 		 * Destructor
 		 */
-		~Rom_session_component() { Genode::env()->ram_session()->free(_file_ds); }
+		~Rom_session_component() { _ram.free(_file_ds); }
 
 		/**
 		 * Return dataspace with content of file
 		 */
-		Genode::Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace()
 		{
-			Genode::Dataspace_capability ds = _file_ds;
-			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds);
+			Dataspace_capability ds = _file_ds;
+			return static_cap_cast<Rom_dataspace>(ds);
 		}
 
-		void sigh(Genode::Signal_context_capability) { }
+		void sigh(Signal_context_capability) { }
 };
 
 
-class Rom_root : public Genode::Root_component<Rom_session_component>
+class Tar_rom::Rom_root : public Root_component<Rom_session_component>
 {
 	private:
 
-		char    *_tar_addr;
-		unsigned _tar_size;
+		Env &_env;
+
+		char const * const _tar_addr;
+		unsigned     const _tar_size;
 
 		Rom_session_component *_create_session(const char *args)
 		{
-			using namespace Genode;
-
 			Session_label const label = label_from_args(args);
 			Session_label const module_name = label.last_element();
-
-			Genode::log("connection for module '", module_name, "' requested");
+			log("connection for module '", module_name, "' requested");
 
 			/* create new session for the requested file */
-			return new (md_alloc()) Rom_session_component(_tar_addr, _tar_size,
+			return new (md_alloc()) Rom_session_component(_env.ram(), _env.rm(),
+			                                              _tar_addr, _tar_size,
 			                                              module_name.string());
 		}
 
@@ -199,67 +198,53 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 		/**
 		 * Constructor
 		 *
-		 * \param  entrypoint  entrypoint to be used for ROM sessions
-		 * \param  md_alloc    meta-data allocator used for ROM sessions
-		 * \param  tar_base    local address of tar archive
-		 * \param  tar_size    size of tar archive in bytes
+		 * \param tar_base  local address of tar archive
+		 * \param tar_size  size of tar archive in bytes
 		 */
-		Rom_root(Genode::Rpc_entrypoint *entrypoint,
-		         Genode::Allocator      *md_alloc,
-		         char *tar_addr, Genode::size_t tar_size)
+		Rom_root(Env &env, Allocator &md_alloc,
+		         char const *tar_addr, size_t tar_size)
 		:
-			Genode::Root_component<Rom_session_component>(entrypoint, md_alloc),
-			_tar_addr(tar_addr), _tar_size(tar_size)
+			Root_component<Rom_session_component>(env.ep(), md_alloc),
+			_env(env), _tar_addr(tar_addr), _tar_size(tar_size)
 		{ }
 };
 
 
-using namespace Genode;
-
-int main(void)
+struct Tar_rom::Main
 {
-	/* read name of tar archive from config */
-	enum { TAR_FILENAME_MAX_LEN = 64 };
-	static char tar_filename[TAR_FILENAME_MAX_LEN];
-	try {
-		Xml_node archive_node =
-			config()->xml_node().sub_node("archive");
-		archive_node.attribute("name").value(tar_filename, sizeof(tar_filename));
-	} catch (...) {
-		Genode::error("could not read 'filename' argument from config");
-		return -1;
+	Env &_env;
+
+	Attached_rom_dataspace _config { _env, "config" };
+
+	typedef String<64> Name;
+
+	/**
+	 * Read name of tar archive from config
+	 */
+	Name _tar_name()
+	{
+		try {
+			return _config.xml().sub_node("archive").attribute_value("name", Name());
+		} catch (...) {
+			error("could not read archive name argument from config");
+			throw;
+		}
 	}
 
-	/* obtain dataspace of tar archive from ROM service */
-	static char  *tar_base = 0;
-	static size_t tar_size = 0;
-	try {
-		static Rom_connection tar_rom(tar_filename);
-		tar_base = env()->rm_session()->attach(tar_rom.dataspace());
-		tar_size = Dataspace_client(tar_rom.dataspace()).size();
-	} catch (...) {
-		Genode::error("could not obtain tar archive from ROM service");
-		return -2;
+	Attached_rom_dataspace _tar_ds { _env, _tar_name().string() };
+
+	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
+
+	Rom_root _root { _env, _sliced_heap, _tar_ds.local_addr<char>(), _tar_ds.size() };
+
+	Main(Env &env) : _env(env)
+	{
+		log("using tar archive '", _tar_name(), "' with size ", _tar_ds.size());
+
+		env.parent().announce(env.ep().manage(_root));
 	}
+};
 
-	Genode::log("using tar archive '", Cstring(tar_filename), "' with size ", tar_size);
 
-	/* connection to capability service needed to create capabilities */
-	static Cap_connection cap;
+void Component::construct(Genode::Env &env) { static Tar_rom::Main main(env); }
 
-	/* creation of the entrypoint and the root interface */
-	static Sliced_heap sliced_heap(env()->ram_session(),
-	                               env()->rm_session());
-
-	enum { STACK_SIZE = 8*1024 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "tar_rom_ep");
-	static Rom_root rom_root(&ep, &sliced_heap, tar_base, tar_size);
-
-	/* announce server*/
-	env()->parent()->announce(ep.manage(&rom_root));
-
-	/* wait for activation through client */
-	sleep_forever();
-	return 0;
-
-}
