@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 	static Cap_connection cap;
 
 	/* initialize server entry point */
-	enum { STACK_SIZE = 8*1024 };
+	enum { STACK_SIZE = 4*1024*sizeof(long) };
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "vesa_ep");
 
 	/* init driver back end */

@@ -19,6 +19,7 @@
 
 #include <base/sleep.h>
 #include <base/log.h>
+#include <util/retry.h>
 
 #include "hw_emul.h"
 
@@ -69,16 +70,29 @@ class Pci_card
 		Platform::Device_client _device;
 		unsigned short     _devfn;
 
+		Platform::Device_capability _first_device()
+		{
+			return Genode::retry<Platform::Session::Out_of_metadata>(
+				[&] () { return _pci_drv.first_device(); },
+				[&] () { _pci_drv.upgrade_ram(4096); });
+		}
+
+		Platform::Device_capability _next_device(Platform::Device_capability prev)
+		{
+			return Genode::retry<Platform::Session::Out_of_metadata>(
+				[&] () { return _pci_drv.next_device(prev); },
+				[&] () { _pci_drv.upgrade_ram(4096); });
+		}
+
 		Platform::Device_capability _find_vga_card()
 		{
 			/*
 			 * Iterate through all accessible devices.
 			 */
 			Platform::Device_capability prev_device_cap, device_cap;
-			_pci_drv.upgrade_ram(4096);
-			for (device_cap = _pci_drv.first_device();
+			for (device_cap = _first_device();
 			     device_cap.valid();
-			     device_cap = _pci_drv.next_device(prev_device_cap)) {
+			     device_cap = _next_device(prev_device_cap)) {
 
 				Platform::Device_client device(device_cap);
 
@@ -105,7 +119,7 @@ class Pci_card
 
 	public:
 
-		Pci_card() : _pci_drv(), _device(_find_vga_card())
+		Pci_card() : _device(_find_vga_card())
 		{
 			unsigned char bus = 0, dev = 0, fn = 0;
 
