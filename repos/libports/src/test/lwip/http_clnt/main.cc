@@ -165,5 +165,6 @@ int main()
 		lwip_close(s);
 	}
 
+	log("Test done");
 	return 0;
 }

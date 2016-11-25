@@ -73,5 +73,7 @@ int main(void)
 		log("Received \"", String<64>(buf), " ...\"");
 	}
 	_timer.msleep(2000);
+
+	log("Test done");
 	return 0;
 }
