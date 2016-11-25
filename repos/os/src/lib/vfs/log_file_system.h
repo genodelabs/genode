@@ -16,6 +16,7 @@
 
 #include <log_session/connection.h>
 #include <vfs/single_file_system.h>
+#include <util/volatile_object.h>
 
 namespace Vfs { class Log_file_system; }
 
@@ -24,15 +25,36 @@ class Vfs::Log_file_system : public Single_file_system
 {
 	private:
 
-		Genode::Log_connection _log;
+		typedef Genode::String<64> Label;
+		Label _label;
+
+		Genode::Lazy_volatile_object<Genode::Log_connection>     _log_connection;
+		Genode::Lazy_volatile_object<Genode::Log_session_client> _log_client;
+
+		Genode::Log_session & _log_session(Genode::Env &env)
+		{
+			if (_label.valid()) {
+				_log_connection.construct(env, _label);
+				return *_log_connection;
+			} else {
+				_log_client.construct(
+					Genode::reinterpret_cap_cast<Genode::Log_session>
+					(env.parent().session_cap(Genode::Parent::Env::log())));
+				return *_log_client;
+			}
+		}
+
+		Genode::Log_session &_log;
 
 	public:
 
-		Log_file_system(Genode::Env&,
+		Log_file_system(Genode::Env &env,
 		                Genode::Allocator&,
 		                Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
+			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+			_label(config.attribute_value("label", Label())),
+			_log(_log_session(env))
 		{ }
 
 		static const char *name() { return "log"; }
