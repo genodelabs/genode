@@ -127,7 +127,7 @@ append_if [have_spec gpio] config {
 
 append_if $use_nic_bridge config {
 	<start name="nic_bridge">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="5M"/>
 		<provides><service name="Nic"/></provides>
 		<config>}
 append_if [expr $use_nic_bridge && [have_spec linux]] config "

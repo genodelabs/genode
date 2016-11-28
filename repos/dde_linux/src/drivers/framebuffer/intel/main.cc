@@ -108,9 +108,4 @@ static void run_linux(void * m)
 }
 
 
-Genode::size_t Component::stack_size() {
-	return 8*1024*sizeof(long); }
-
-
-void Component::construct(Genode::Env &env) {
-	static Main m(env); }
+void Component::construct(Genode::Env &env) { static Main m(env); }

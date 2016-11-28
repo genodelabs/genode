@@ -186,7 +186,5 @@ struct Block::Main
 };
 
 
-namespace Component {
-	Genode::size_t stack_size()      { return 2 * 1024 * sizeof(long); }
-	void construct(Genode::Env &env) { static Block::Main server(env); }
-}
+
+void Component::construct(Genode::Env &env) { static Block::Main server(env); }

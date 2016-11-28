@@ -139,10 +139,4 @@ struct Input_merger::Main
 };
 
 
-/***************
- ** Component **
- ***************/
-
-Genode::size_t Component::stack_size() { return 4*1024*sizeof(Genode::addr_t); }
-
 void Component::construct(Genode::Env &env) { static Input_merger::Main inst(env); }

@@ -537,8 +537,4 @@ struct Main
  ** Component **
  ***************/
 
-namespace Component {
-	char const *name()               { return "audio_drv_ep";      }
-	size_t      stack_size()         { return 8*1024*sizeof(long); }
-	void construct(Genode::Env &env) { static Main server(env);    }
-}
+void Component::construct(Genode::Env &env) { static Main server(env); }

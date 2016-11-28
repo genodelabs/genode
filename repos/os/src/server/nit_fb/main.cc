@@ -346,11 +346,5 @@ struct Nit_fb::Main : View_updater
 };
 
 
-/***************
- ** Component **
- ***************/
-
-Genode::size_t Component::stack_size() { return 4*1024*sizeof(long); }
-
 void Component::construct(Genode::Env &env) { static Nit_fb::Main inst(env); }
 

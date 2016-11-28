@@ -141,5 +141,5 @@ struct Platform::Main
 	}
 };
 
-Genode::size_t Component::stack_size()      { return STACK_SIZE; }
+
 void Component::construct(Genode::Env &env) { static Platform::Main main(env); }

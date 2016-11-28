@@ -402,5 +402,5 @@ struct Transform::Main {
 	}
 };
 
-Genode::size_t Component::stack_size()      { return 2 * 1024*sizeof(Genode::addr_t); }
+
 void Component::construct(Genode::Env &env) { static Transform::Main main(env); }

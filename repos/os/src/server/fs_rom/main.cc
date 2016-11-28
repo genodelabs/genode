@@ -358,7 +358,6 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 		}
 };
 
-Genode::size_t Component::stack_size() { return 2*1024*sizeof(long); }
 
 void Component::construct(Genode::Env &env)
 {

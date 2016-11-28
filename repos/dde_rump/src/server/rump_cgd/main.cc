@@ -48,5 +48,4 @@ struct Main
 };
 
 
-Genode::size_t Component::stack_size()      { return 4 * 1024 * sizeof(long); }
-void Component::construct(Genode::Env &env) { static Main inst(env);          }
+void Component::construct(Genode::Env &env) { static Main inst(env); }

@@ -83,9 +83,6 @@ struct Hello::Main
 };
 
 
-Genode::size_t Component::stack_size() { return 64*1024; }
-
-
 void Component::construct(Genode::Env &env)
 {
 	static Hello::Main main(env);

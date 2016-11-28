@@ -544,10 +544,5 @@ struct File_system::Main
  **********************/
 
 char const *   Server::name()                            { return "fuse_fs_ep"; }
-/**
- * The large stack is needed because FUSE file system may call
- * libc functions that require a large stack, e.g. timezone
- * related functions.
- */
-Genode::size_t Server::stack_size()                      { return 8192 * sizeof(long); }
+Genode::size_t Server::stack_size()                      { return 16*1024*sizeof(long); }
 void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }

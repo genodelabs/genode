@@ -1397,13 +1397,4 @@ void Nitpicker::Main::handle_fb_mode()
 }
 
 
-/***************
- ** Component **
- ***************/
-
-namespace Component {
-
-	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
-
-	void construct(Genode::Env &env) { static Nitpicker::Main nitpicker(env); }
-}
+void Component::construct(Genode::Env &env) { static Nitpicker::Main nitpicker(env); }

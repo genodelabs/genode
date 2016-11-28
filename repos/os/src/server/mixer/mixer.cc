@@ -725,8 +725,4 @@ struct Mixer::Main
 };
 
 
-Genode::size_t Component::stack_size() {
-	return 4*1024*sizeof(Genode::addr_t); }
-
-void Component::construct(Genode::Env &env) {
-	static Mixer::Main inst(env); }
+void Component::construct(Genode::Env &env) { static Mixer::Main inst(env); }

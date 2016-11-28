@@ -106,7 +106,3 @@ void Component::construct(Genode::Env &env)
 	log("--- Test input ---\n");
 	static Test_environment te(env);
 }
-
-
-Genode::size_t Component::stack_size() {
-	return 4*1024*sizeof(long); }

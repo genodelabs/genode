@@ -90,9 +90,4 @@ Block::Partition_table & Main::_table()
 }
 
 
-Genode::size_t Component::stack_size() {
-	return 2048*sizeof(Genode::addr_t); }
-
-
-void Component::construct(Genode::Env &env) {
-	static Main main(env); }
+void Component::construct(Genode::Env &env) { static Main main(env); }

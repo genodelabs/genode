@@ -433,6 +433,6 @@ struct Usb_filter::Main
 
 namespace Server {
 	char const *name()             { return "usb_report_filter_ep";    }
-	size_t      stack_size()       { return 4*1024*sizeof(addr_t);     }
+	size_t      stack_size()       { return 16*1024*sizeof(addr_t);    }
 	void construct(Entrypoint &ep) { static Usb_filter::Main main(ep); }
 }

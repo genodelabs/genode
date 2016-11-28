@@ -157,7 +157,3 @@ void Component::construct(Genode::Env &env)
 	Genode::log("--- Test framebuffer ---\n");
 	static Test_environment te(env.ep());
 }
-
-
-Genode::size_t Component::stack_size() {
-	return 4*1024*sizeof(long); }

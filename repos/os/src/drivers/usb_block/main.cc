@@ -823,11 +823,4 @@ struct Usb::Main
 };
 
 
-/***************
- ** Component **
- ***************/
-
-namespace Component {
-	size_t stack_size()              { return 2*1024*sizeof(long); }
-	void construct(Genode::Env &env) { static Usb::Main main(env); }
-}
+void Component::construct(Genode::Env &env) { static Usb::Main main(env); }

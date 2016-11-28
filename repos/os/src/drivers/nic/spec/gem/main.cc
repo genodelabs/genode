@@ -76,5 +76,5 @@ struct Server::Main
 
 
 char const * Server::name()            { return "nic_ep"; }
-size_t Server::stack_size()            { return 2*1024*sizeof(long); }
+size_t Server::stack_size()            { return 16*1024*sizeof(long); }
 void Server::construct(Entrypoint &ep) { static Main main(ep); }

@@ -155,7 +155,7 @@ struct Main
  ************/
 
 namespace Server {
-	char const *name()             { return "fb_drv_ep";       }
-	size_t stack_size()            { return 1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);   }
+	char const *name()             { return "fb_drv_ep";          }
+	size_t stack_size()            { return 16*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);      }
 }

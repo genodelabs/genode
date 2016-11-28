@@ -215,13 +215,4 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 };
 
 
-/***************
- ** Component **
- ***************/
-
-namespace Component {
-
-	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
-
-	void construct(Genode::Env &env) { static Clipboard::Main main(env); }
-}
+void Component::construct(Genode::Env &env) { static Clipboard::Main main(env); }

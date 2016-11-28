@@ -95,10 +95,4 @@ struct Main
 };
 
 
-/***************
- ** Component **
- ***************/
-
-Genode::size_t Component::stack_size() { return 2048*sizeof(long); }
-
 void Component::construct(Genode::Env &env) { static Main server(env); }

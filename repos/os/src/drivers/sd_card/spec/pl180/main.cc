@@ -64,5 +64,5 @@ struct Main
 	}
 };
 
-Genode::size_t Component::stack_size()      { return 2*1024*sizeof(long); }
-void Component::construct(Genode::Env &env) { static Main m(env);         }
+
+void Component::construct(Genode::Env &env) { static Main m(env); }

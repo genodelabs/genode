@@ -199,7 +199,4 @@ struct Cpu_sampler::Main : Thread_list_change_handler
  ** Component **
  ***************/
 
-namespace Component {
-	Genode::size_t stack_size() { return 4*1024*sizeof(Genode::addr_t); }
-	void construct(Genode::Env &env) { static Cpu_sampler::Main inst(env); }
-}
+void Component::construct(Genode::Env &env) { static Cpu_sampler::Main inst(env); }

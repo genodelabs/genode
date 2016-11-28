@@ -17,9 +17,6 @@
 #include <hello_session/connection.h>
 
 
-Genode::size_t Component::stack_size() { return 64*1024; }
-
-
 void Component::construct(Genode::Env &env)
 {
 	Hello::Connection hello(env);

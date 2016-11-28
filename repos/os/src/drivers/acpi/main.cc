@@ -47,11 +47,4 @@ struct Acpi::Main
 };
 
 
-/***************
- ** Component **
- ***************/
-
-namespace Component {
-	Genode::size_t stack_size()      { return 2*1024*sizeof(long);  }
-	void construct(Genode::Env &env) { static Acpi::Main main(env); }
-}
+void Component::construct(Genode::Env &env) { static Acpi::Main main(env); }

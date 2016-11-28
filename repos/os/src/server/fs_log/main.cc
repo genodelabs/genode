@@ -193,12 +193,6 @@ class Fs_log::Root_component :
 };
 
 
-/***************
- ** Component **
- ***************/
-
-Genode::size_t Component::stack_size() { return 4*1024*sizeof(long); }
-
 void Component::construct(Genode::Env &env)
 {
 	static Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };

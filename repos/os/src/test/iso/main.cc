@@ -48,13 +48,6 @@ struct Hexdump
 };
 
 
-namespace Component {
-
-	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
-	void construct(Genode::Env &env);
-}
-
-
 void Component::construct(Genode::Env &env)
 {
 	Attached_rom_dataspace ds(env, "/test.txt");

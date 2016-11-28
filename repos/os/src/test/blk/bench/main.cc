@@ -156,7 +156,7 @@ struct Test::Main
 namespace Server {
 
 	char const *name()          { return "block_bench_ep"; };
-	Genode::size_t stack_size() { return 2*1024*sizeof(long); }
+	Genode::size_t stack_size() { return 16*1024*sizeof(long); }
 
 	void construct(Entrypoint &ep)
 	{

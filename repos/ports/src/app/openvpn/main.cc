@@ -288,6 +288,6 @@ struct Main
 
 namespace Server {
 	char const *name()             { return "openvpn_ep"; }
-	Genode::size_t stack_size()    { return 8 * 1024 * sizeof (addr_t); }
+	Genode::size_t stack_size()    { return 16*1024*sizeof(addr_t); }
 	void construct(Entrypoint &ep) { static Main server(ep); }
 }

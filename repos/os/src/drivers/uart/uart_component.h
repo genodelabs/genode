@@ -21,6 +21,7 @@
 #include <base/rpc_server.h>
 #include <util/arg_string.h>
 #include <os/session_policy.h>
+#include <base/component.h>
 #include <root/component.h>
 #include <uart_session/uart_session.h>
 

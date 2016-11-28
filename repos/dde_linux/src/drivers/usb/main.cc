@@ -16,8 +16,4 @@
 extern void start_usb_driver(Genode::Env &env);
 
 
-Genode::size_t Component::stack_size() {
-	return 4*1024*sizeof(long); }
-
-
 void Component::construct(Genode::Env &env) { start_usb_driver(env); }

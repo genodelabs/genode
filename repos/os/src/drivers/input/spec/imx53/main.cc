@@ -62,7 +62,7 @@ struct Main
  ************/
 
 namespace Server {
-	char const *name()             { return "input_drv_ep";    }
-	size_t stack_size()            { return 2*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);   }
+	char const *name()             { return "input_drv_ep";       }
+	size_t stack_size()            { return 16*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);      }
 }

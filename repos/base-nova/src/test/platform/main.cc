@@ -16,6 +16,7 @@
 #include <base/thread.h>
 #include <base/log.h>
 #include <base/snprintf.h>
+#include <base/component.h>
 
 #include <util/touch.h>
 #include <util/retry.h>
@@ -728,11 +729,4 @@ Main::Main(Env &env) : env(env)
 }
 
 
-/***************
- ** Component **
- ***************/
-
-namespace Component {
-	Genode::size_t stack_size()      { return 2*1024*sizeof(long);  }
-	void construct(Genode::Env &env) { static Main main(env); }
-}
+void Component::construct(Genode::Env &env) { static Main main(env); }

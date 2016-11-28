@@ -116,7 +116,7 @@ namespace Server {
 
 	char const *name() { return "log_report_ep"; }
 
-	size_t stack_size() { return 4*1024*sizeof(long); }
+	size_t stack_size() { return 16*1024*sizeof(long); }
 
 	void construct(Entrypoint &ep)
 	{

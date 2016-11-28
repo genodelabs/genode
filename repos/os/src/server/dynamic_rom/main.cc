@@ -264,13 +264,4 @@ struct Dynamic_rom::Main
 };
 
 
-/***************
- ** Component **
- ***************/
-
-namespace Component {
-
-	Genode::size_t stack_size() { return 4*1024*sizeof(long); }
-
-	void construct(Genode::Env &env) { static Dynamic_rom::Main main(env); }
-}
+void Component::construct(Genode::Env &env) { static Dynamic_rom::Main main(env); }

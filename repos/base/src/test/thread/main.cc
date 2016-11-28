@@ -333,9 +333,6 @@ static void test_create_as_many_threads(Env &env)
 }
 
 
-size_t Component::stack_size() { return 16*1024*sizeof(long); }
-
-
 void Component::construct(Env &env)
 {
 	log("--- thread test started ---");

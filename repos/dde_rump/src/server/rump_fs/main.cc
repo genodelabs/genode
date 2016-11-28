@@ -514,12 +514,4 @@ struct File_system::Main
 };
 
 
-/**********************
- ** Component framework **
- **********************/
-
-namespace Component {
-	     Genode::size_t stack_size() { return 4 * 1024 * sizeof(long);     }
-	void construct(Genode::Env &env) { static File_system::Main inst(env); }
-}
-
+void Component::construct(Genode::Env &env) { static File_system::Main inst(env); }

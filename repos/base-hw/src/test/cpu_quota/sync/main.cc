@@ -146,7 +146,7 @@ namespace Server
 
 	char const *name() { return "sync_ep"; }
 
-	size_t stack_size() { return 2 * 1024 * sizeof(long); }
+	size_t stack_size() { return 16*1024*sizeof(long); }
 
 	void construct(Entrypoint & ep) { static Main main(ep); }
 }

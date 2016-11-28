@@ -120,7 +120,3 @@ void Component::construct(Genode::Env &env)
 	log("--- Framebuffer controller ---\n");
 	static Framebuffer_controller controller(env);
 }
-
-
-size_t Component::stack_size() {
-	return 4*1024*sizeof(long); }

@@ -303,5 +303,4 @@ ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 irq, ACPI_OSD_HANDLER handler,
 }
 
 
-Genode::size_t Component::stack_size()      { return 4*1024*sizeof(Genode::addr_t); }
 void Component::construct(Genode::Env &env) { static Acpica::Main main(env); }

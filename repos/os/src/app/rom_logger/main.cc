@@ -121,5 +121,4 @@ void Rom_logger::Main::_handle_update()
 }
 
 
-Genode::size_t Component::stack_size()      { return 4*1024*sizeof(long); }
 void Component::construct(Genode::Env &env) { static Rom_logger::Main main(env); }

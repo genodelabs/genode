@@ -74,9 +74,6 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 };
 
 
-Genode::size_t Component::stack_size() { return 2*1024*sizeof(long); }
-
-
 void Component::construct(Genode::Env &env)
 {
 	static Genode::Heap heap(env.ram(), env.rm());
