@@ -181,7 +181,7 @@ class Genode::Capability : public Untyped_capability
 		Capability() { }
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call() const
 		{
 			Meta::Empty e;
@@ -191,7 +191,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1) const
 		{
 			Meta::Empty e;
@@ -202,7 +202,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2) const
 		{
 			Meta::Empty e;
@@ -213,7 +213,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 		     typename Arg<IF, 2>::Type v3) const
 		{
@@ -225,7 +225,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 		     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4) const
 		{
@@ -237,7 +237,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 		     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4,
 		     typename Arg<IF, 4>::Type v5) const
@@ -250,7 +250,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 		     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4,
 		     typename Arg<IF, 4>::Type v5, typename Arg<IF, 5>::Type v6) const
@@ -263,7 +263,7 @@ class Genode::Capability : public Untyped_capability
 		}
 
 		template <typename IF>
-		typename Trait::Call_return<typename IF::Ret_type>::Type
+		typename IF::Ret_type
 		call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 		     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4,
 		     typename Arg<IF, 4>::Type v5, typename Arg<IF, 5>::Type v6,
