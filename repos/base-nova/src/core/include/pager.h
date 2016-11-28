@@ -346,6 +346,7 @@ namespace Genode {
 			enum Oom {
 				SEND = 1, REPLY = 2, SELF = 4,
 				SRC_CORE_PD = ~0UL, SRC_PD_UNKNOWN = 0,
+				NO_NOTIFICATION = 0
 			};
 
 			/**
@@ -362,10 +363,17 @@ namespace Genode {
 			 * /param pd      debug feature - string of PD (transfer_from)
 			 * /param thread  debug feature - string of EC (transfer_from)
 			 */
-			uint8_t handle_oom(addr_t pd_sel       = SRC_CORE_PD,
-			                   const char * pd     = "core",
+			uint8_t handle_oom(addr_t pd_sel = SRC_CORE_PD,
+			                   const char * pd = "core",
 			                   const char * thread = "unknown",
 			                   Policy = Policy::UPGRADE_CORE_TO_DST);
+			static uint8_t handle_oom(addr_t pd_from, addr_t pd_to,
+			                           char const * src_pd,
+			                           char const * src_thread,
+			                           Policy policy,
+			                           addr_t sm_notify = NO_NOTIFICATION,
+			                           char const * dst_pd = "unknown",
+			                           char const * dst_thread = "unknown");
 
 			void print(Output &out) const;
 	};

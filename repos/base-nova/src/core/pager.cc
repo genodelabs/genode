@@ -694,23 +694,30 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
                                  char const * src_pd, char const * src_thread,
                                  enum Pager_object::Policy policy)
 {
-	char const * dst_pd      = client_pd();
-	char const * dst_thread  = client_thread();
+	return handle_oom(transfer_from, pd_sel(), src_pd, src_thread, policy,
+	                  sel_sm_block_oom(), client_pd(), client_thread());
+}
+
+uint8_t Pager_object::handle_oom(addr_t pd_from, addr_t pd_to,
+                                 char const * src_pd, char const * src_thread,
+                                 Policy policy, addr_t sm_notify,
+                                 char const * dst_pd, char const * dst_thread)
+{
 	addr_t const core_pd_sel = platform_specific()->core_pd_sel();
 
 	enum { QUOTA_TRANSFER_PAGES = 2 };
 
-	if (transfer_from == SRC_CORE_PD)
-		transfer_from = core_pd_sel;
+	if (pd_from == SRC_CORE_PD)
+		pd_from = core_pd_sel;
 
 	/* request current kernel quota usage of target pd */
 	addr_t limit_before = 0, usage_before = 0;
-	Nova::pd_ctrl_debug(pd_sel(), limit_before, usage_before);
+	Nova::pd_ctrl_debug(pd_to, limit_before, usage_before);
 
 	if (verbose_oom) {
 		addr_t limit_source = 0, usage_source = 0;
 		/* request current kernel quota usage of source pd */
-		Nova::pd_ctrl_debug(transfer_from, limit_source, usage_source);
+		Nova::pd_ctrl_debug(pd_from, limit_source, usage_source);
 
 		log("oom - '", dst_pd, "':'", dst_thread, "' "
 		    "(", usage_before, "/", limit_before, ") - "
@@ -721,19 +728,19 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 
 	uint8_t res = Nova::NOVA_PD_OOM;
 
-	if (transfer_from != pd_sel()) {
+	if (pd_from != pd_to) {
 		/* upgrade quota */
-		uint8_t res = Nova::pd_ctrl(transfer_from, Pd_op::TRANSFER_QUOTA,
-		                            pd_sel(), QUOTA_TRANSFER_PAGES);
+		uint8_t res = Nova::pd_ctrl(pd_from, Pd_op::TRANSFER_QUOTA,
+		                            pd_to, QUOTA_TRANSFER_PAGES);
 		if (res == Nova::NOVA_OK)
 			return res;
 	}
 
 	/* retry upgrade using core quota if policy permits */
 	if (policy == UPGRADE_PREFER_SRC_TO_DST) {
-		if (transfer_from != core_pd_sel) {
+		if (pd_from != core_pd_sel) {
 			res = Nova::pd_ctrl(core_pd_sel, Pd_op::TRANSFER_QUOTA,
-			                    pd_sel(), QUOTA_TRANSFER_PAGES);
+			                    pd_to, QUOTA_TRANSFER_PAGES);
 			if (res == Nova::NOVA_OK)
 				return res;
 		}
@@ -747,11 +754,11 @@ uint8_t Pager_object::handle_oom(addr_t transfer_from,
 	/* if nothing helps try to revoke memory */
 	enum { REMOTE_REVOKE = true, PD_SELF = true };
 	Mem_crd crd_all(0, ~0U, Rights(true, true, true));
-	Nova::revoke(crd_all, PD_SELF, REMOTE_REVOKE, pd_sel(), sel_sm_block_oom());
+	Nova::revoke(crd_all, PD_SELF, REMOTE_REVOKE, pd_to, sm_notify);
 
 	/* re-request current kernel quota usage of target pd */
 	addr_t limit_after = 0, usage_after = 0;
-	Nova::pd_ctrl_debug(pd_sel(), limit_after, usage_after);
+	Nova::pd_ctrl_debug(pd_to, limit_after, usage_after);
 	/* if we could free up memory we continue */
 	if (usage_after < usage_before)
 		return Nova::NOVA_OK;
