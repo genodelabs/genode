@@ -1,0 +1,731 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 16.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+In contrast to most parts of the framework, the fundamental low-level
+protocols, which define the interaction between parent and child components
+have remained unchanged since the very first Genode version. From this
+interplay, the entire architecture follows. That said, certain initial design
+choices were not perfect. They partially resulted from limitations of the
+kernels we used during Genode's early years and from our pre-occupation with a
+certain style of programming. Over the years, the drawbacks inherent in our
+original design became more and more clear and we drafted rough plans to
+overcome them. However, reworking the fundamental protocols of a system that
+already accommodates hundreds of component implementations cannot be taken
+light-handily. Because of this discomfort, we repeatedly deferred the topic -
+until now. With the rapidly growing workloads carried by Genode, we
+deliberately decided to address long-standing deficiencies rather than adding
+the features we originally planned according to the
+[https://genode.org/about/road-map - road map].
+
+Section [Asynchronous parent-child interactions] presents the reworking of
+Genode's component interplay at the lowest level. With this change in place,
+we feel much more comfortable to scale up our workloads in the upcoming
+releases.
+
+Functionality-wise, the most prominent topic of the current release is the
+vastly improved NIC-routing component. Since we introduced the first version
+of the NIC router in the previous release, we took an iterative approach to
+shape the component according to its most prominent use cases. Section
+[Further improved virtual networking] summarizes the changes and the
+motivation behind them.
+
+Even though we added support for seL4 in the previous release, the NOVA
+hypervisor is still our go-to kernel for x86-based hardware because of its
+feature set. For this reason, we continuously improve this kernel and the
+NOVA-specific components like VirtualBox. Section [NOVA hypervisor] covers
+the introduction of an asynchronous map operation to NOVA.
+
+Further topics of the current release range from added smart-card support,
+over a new timeout API, to a VFS-based time-based password generator. With
+respect to the road map, we postponed most topics originally planned. In
+particular, we intended to enable the use of Genode on top of Xen by following
+With respect to the road map, we postponed most topics originally planned for
+this release. Originally, we intended to enable the use of Genode on top of
+Xen by following the footsteps of the existing Muen support - using our custom
+base-hw kernel within a Xen DomU domain. However, before proceeding this
+route, we decided to modernize the kernel design, in particular with respect
+to bootstrapping and address-space management. Some parts of this line of work
+are already present in the current release, for example the unification of the
+boot-module handling as explained in Section
+[Unified handling of boot modules].
+
+
+Asynchronous parent-child interactions
+######################################
+
+When Genode was born in 2006, the L4 microkernels of the time universally
+lacked an asynchronous inter-process-communication (IPC) mechanism.
+Consequently, we designed the first version of Genode with the presumption
+that components had to interact solely synchronously. To us, this seemed to be
+the "right" way because the synchronous low-footprint IPC was presumably the
+key for L4's good performance. It felt natural to leverage this benefit to the
+maximum extent possible.
+
+To illustrate the implications of this line of thinking for Genode, let's take
+a look at a simple scenario where a parent component hosts two children and one
+child provides a service to the other child.
+
+[image simple_scenario]
+
+During the creation of a session, the kernel's IPC mechanism serves three
+purposes. First, it is used to communicate information between different
+protection domains, in this case the parent, the client, and the server.
+Second, it implicitly dictates the flow of control between the involved
+parties because the caller blocks until the callee replies to the IPC call.
+Third, the IPC is the mechanism to delegate authority (like the authority to
+access the server's session object) between protection domains. The latter is
+realized with the kernel's ability to carry capabilities as IPC message
+payload. If this sounds a bit too abstract, please consider reviewing Section
+3.1. "Capability-based security" of the
+[https://genode.org/documentation/genode-foundations-16-05.pdf - Genode Foundations].
+Using solely a synchronous IPC mechanism, the sequence of establishing a
+session in the given scenario is as follows. In the context of Genode,
+we usually refer to synchronous IPC as RPC (remote procedure call).
+
+[image sync_session_seq]
+
+The sequence looks straightforward:
+
+# The client issues an RPC call to its parent, requesting a session for a
+  service of the given type while also  passing a number of session-construction
+  arguments along with the request.
+# Given the service name as provided with the session request, the parent
+  determines the server to ask for a new session. It requests a session
+  on behalf of the client by performing an RPC call to the server's prior
+  registered "root" capability. This capability refers to an interface for
+  creating and closing sessions.
+# The server responds to the invocation of its root interface by creating
+  a new session object along with a session capability.
+  Whereas the session object is local to the server, the corresponding
+  session capability can be passed (delegated) to other components.
+  Each component in possession of the session capability is able to interact
+  with the server's corresponding session object via RPC calls.
+  The server returns the session capability to the parent as the result of the
+  parent's RPC call.
+# The parent forwards the session capability to the client as the result of
+  the client's original RPC call.
+
+Even though the simplicity of this protocol seems nice, it has inherent
+limitations:
+
+First, as the parent performs a synchronous RPC call to the server on behalf
+of the client, it must trust the server to eventually respond to the RPC call.
+If the server doesn't, the parent may block forever. In contrast to the client
+that actually uses the service and thereby relies on the liveliness of the
+server, the parent should not need to trust the server to be responsive. To
+deal with the risk of an unresponsive server, Genode's existing runtime
+environments (like the init component), maintain a dedicated thread for each
+child. The session requests originating from a child are handled by the
+corresponding parent-local child thread. In the worst case - if the server
+fails to respond - only a single child thread stays blocked but the other
+parts of the runtime environment remain unaffected. Consequently, runtime
+environments have to be multi-threaded components. This, in turn, comes at the
+cost of added complexity, in particular the need for error-prone inter-thread
+synchronization.
+
+Second, the approach keeps the parent's state implicitly stored in the stacks
+of the parent's threads. This becomes a problem in dynamic runtime
+environments that need to kill subsystems at arbitrary times. E.g., imagine
+the situation where the client component is to be destroyed while the parent's
+call to the server's root interface is still pending. The safe destruction of
+the child - including its associated parent-local child thread - requires the
+parent to abort the RPC call, which is a complex and - again - error-prone
+operation.
+
+Third, even though not inherent to synchronous RPC, Genode's original design
+facilitated the use of a session capability as argument for requesting the
+parent to close a specific session. However, the use of capabilities as
+re-identifiable tokens is not well supported by most kernels, including seL4
+([http://sel4.systems/pipermail/devel/2014-November/000114.html - discussion]
+on the seL4 mailing list).
+
+
+Asynchronous communication throughout Genode
+--------------------------------------------
+
+In 2008, we acknowledged the sole reliance on synchronous RPC as too limiting
+and introduced an
+[https://genode.org/documentation/release-notes/8.11#Asynchronous_notifications - API for asynchronous notifications].
+On the traditional L4 kernels, we implemented the API by using Genode's
+core component as a proxy for signal delivery. The use of asynchronous
+notifications soon became natural and wide-spread throughout Genode. Today,
+most session interfaces combine three forms of inter-component communication,
+namely synchronous RPC calls, asynchronous notifications, and shared memory.
+The new Genode API introduced in
+[https://genode.org/documentation/release-notes/16.05#The_great_API_renovation - version 16.05]
+further cultivated the modeling of Genode components as single-threaded state
+machines instead of multi-threaded programs.
+
+Still, until now, the most fundamental mechanism of Genode - the protocol
+between parent and child components - has remained synchronous. The reasons
+are twofold. First, our workaround for realizing runtime environments in a
+multi-threaded way worked too well. So we were not constantly bothered by this
+design problem. Second and more importantly, redesigning the fundamental
+mechanism of the framework while not breaking the more than 300 existing
+components is quite scary. But in anticipation to the rapidly scaling
+workloads imposed on Genode, we had to take on the problem sooner or later.
+We figured that now - with the modernized framework API in place - it's the
+right time. From redesigning the interplay of parent and child components, we
+will become able to create single-threaded runtime environments that behave
+completely deterministically while consuming less resources than
+multi-threaded programs. By the explicit enumeration of possible states, we
+greatly ease the validation/evaluation of such crucial components.
+
+
+New session-creation procedure
+------------------------------
+
+Following the asynchronous approach, the sequence of creating a session now
+looks as follows:
+
+[image async_session_seq]
+
+The dotted lines are asynchronous notifications, which have fire-and-forget
+semantics. A component that triggers a signal does not block.
+
+The following points are worth noting:
+
+* Sessions are identified via IDs, which are plain numbers as opposed to
+  capabilities. The IDs as seen by the client and server belong to different
+  ID name spaces.
+  IDs of sessions requested by the client are allocated by the client. IDs
+  of sessions requested at the server are allocated by the parent.
+* The parent does no longer need to perform RPC calls to any of its children.
+  Hence, the need for multiple threads in runtime environments disappears.
+* Each activation of the parent merely applies a state change of the session's
+  meta data structures maintained at the parent, which capture the entire
+  state of session requests. There is no hidden state stored on the parent's
+  stack.
+* The information about pending session requests is communicated from the
+  parent to the server via a ROM session. At startup, the server requests
+  a ROM session for the ROM module "session_requests" from its parent. The
+  parent implements this ROM session locally. Since ROM sessions support
+  versions, the parent can post version updates of the "session_requests"
+  ROM with the regular mechanisms already present in Genode.
+* The involved parties can potentially run in parallel.
+
+
+Outcome and current state
+-------------------------
+
+Intuitively, the sequence of steps required to establish a session has
+become more complicated. However, for the users of the framework, the entire
+procedure is completely transparent. With a few tricks, we were actually able
+to implement this fundamental change while keeping almost all existing
+components untouched. One trick is the introduction of a server-local proxy
+mechanism, which translates the requests obtained from the "session_requests"
+ROM to component-local RPC calls on the server's root interface. So from the
+perspective of an existing server component, a session request still looks
+like a synchronous RPC request from the outside. Of course, the proxy is meant
+as an intermediate solution until we have crafted a convenient front-end API
+for the asynchronous mode of operation.
+
+Even though the biggest share of components remains unaffected by the change,
+this is not true for all components. In particular, runtime environments had
+to be reworked, in some cases quite fundamentally. These include core, init,
+noux, the loader, GDB monitor, launcher, CLI monitor, and the platform driver.
+The change does not only affect the interplay between components but also
+required a reconsideration of the child-creation procedure.
+
+Besides the architectural improvement, this line of work had two welcome
+effects.
+
+First, in contrast to the original design, which relied on capabilities as
+re-identifiable tokens, the new version greatly alleviates the need for
+re-identifying capabilities on seL4. So we are able to eliminate a
+long-standing problem with Genode on this kernel.
+
+Second, the work called for new data structures for the safe interaction with
+ID spaces (_base/id_space.h_) and object registries (_base/registry.h_). Those
+data structures will possibly be useful in a lot of places that currently use
+plain (and fairly unsafe) AVL trees or lists.
+
+At the API level, the change is almost transparent to regular components,
+except for two details. The upgrading of session quota is no longer
+possible by a mere RPC call to the parent. Instead, 'Connection' objects
+received a new 'upgrade_ram' method that must be used instead. Speaking
+of 'Connection' objects, we had to remove the (fairly obscure) 'KEEP_OPEN'
+feature, which is conceptually incompatible with the new design.
+
+
+Further improved virtual networking
+###################################
+
+The
+[https://genode.org/documentation/release-notes/16.08#Virtual_networking_and_support_for_TOR - previous release]
+introduced the NIC router - a component that individually routes IP
+packets between multiple NIC sessions, translates between different IP
+subnets, and also supports port forwarding and NAT. For the first version of
+the NIC router, we focused on the technical realization. Now, besides
+some optimization and restructuring, we took the chance to polish the
+configuration interface of the component. The goal was to make the interface
+more intuitive and reduce pitfalls to a minimum. Roughly speaking, the
+handling of the NIC router became more tailored to its/our typical use cases.
+
+Let's create a practical setup to explain the changes in detail. Assume that
+there are two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 within our
+Genode system. They connect as Virtnet A and B to the router. The standard
+gateway of the virtual networks is the NIC router with IP 192.168.*.1 . The
+router's uplink, on the other hand, is connected to the NIC driver. It
+interfaces the machine with our real-world home network 10.0.2.0/24. The home
+network is connected to the internet through its standard gateway 10.0.2.1.
+
+[image nic_router_basic]
+
+The basic router configuration for this setup without any routing rules would
+be as follows:
+
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+! <domain name="uplink"    interface="10.0.2.55/24"   gateway="10.0.2.1" />
+! <domain name="virtnet_a" interface="192.168.1.1/24" />
+! <domain name="virtnet_b" interface="192.168.2.1/24" />
+
+The first thing to notice is the changed usage of the policy tag. Previously,
+the policy label - normally solely designated to correlate sessions with
+configuration domains - was misused also as unique peer identifier in the
+routing rules. This approach disregarded advanced label-matching techniques
+such as the 'label_prefix' used above. Now, the whole NIC-router-specific
+enhancement of the policy tag moved to the new '<domain>' tag, leaving the
+policy tag only with its original purpose to select policies. Note that even
+if this modification gives the impression, the router is not yet capable of
+handling multiple NIC sessions at one domain at a time.
+
+In the domain tag, the 'interface' attribute replaces the old policy attribute
+named 'src'. That means, it tells the router which IP identity to use when
+talking as itself to the domain. But in addition to that, the 'interface'
+attribute also defines which subnet this identity and the domain belong to.
+This reflects a basic decision we made during the reworking process: The new
+NIC router is aware of subnets. Sessions of the same subnet have the same
+configuration domain. We came to this conclusion as it solves some fundamental
+problems with the old version. First, the equivalence of domain and subnet
+enables us to link a default gateway to a subnet by adding the 'gateway'
+attribute to the domain tag. In our example, this is done in the uplink
+domain. The 'gateway' attribute is optional for a domain and replaces the
+former 'via' attributes of the different routing rules. It is more efficient
+and natural to have this value set only once at the corresponding subnet than
+having it scattered all over the routing rules of the remote domains as done
+before. If a domain has no default gateway, it drops all packets with a
+foreign recipient.
+
+The second advantage of a domain being equivalent to a subnet is that handling
+ARP broadcasts becomes easy. It can be excluded that such ARP broadcasts
+concern sessions outside the source domain anymore. And as sessions in the
+same domain are not distinguishable to the routing, the broadcast can be sent
+to all of them without breaking any rules.
+
+Now, let's enhance our example by some routing rules. One pretty complicated
+thing to do with the old NIC router was port forwarding. You had to combine
+different routing rules, explicitly enable the back routing at the remote
+side, and take care that NAT was applied - a lot of opportunities for
+mistakes. With the new version, it became easier. Let's assume we have an HTTP
+server in Virtnet A and an NTP server in Virtnet B. We want the NIC router to
+act as proxy for their services in our home network.
+
+[image nic_router_servers]
+
+In order to achieve this, the uplink domain must be enhanced by two rules:
+
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1" />
+!    <tcp-forward port="443" domain="virtnet_a" to="192.168.1.2" />
+!    <udp-forward port="123" domain="virtnet_b" to="192.168.2.2" />
+! </domain>
+!
+! <domain name="virtnet_a" interface="192.168.1.1/24" />
+! <domain name="virtnet_b" interface="192.168.2.1/24" />
+
+The TCP forwarding rule for port 443 (HTTP+TLS/SSL) redirects to IP address
+192.168.1.2 in Virtnet A and the UDP forwarding rule for port 123 (NTP)
+redirects to IP address 192.168.2.2 in Virtnet B. The Virtnet domains remain
+empty as the router keeps track of the redirected transfers and routes back
+reply packets automatically. Also automatically, the router applies NAT for the
+server as it is in the nature of port forwarding.
+
+Next, we add some clients to Virtnet B that like to talk to our home network
+and the internet. We want them to be hidden via NAT when they do so. For
+internet communication, they shall furthermore be limited to HTTP+TLS/SSL and
+IMAP+TLS/SSL.
+
+[image nic_router_client]
+
+This is what the router configuration looks now:
+
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1" />
+!    <tcp-forward port="443" domain="virtnet_a" to="192.168.1.2" />
+!    <udp-forward port="123" domain="virtnet_b" to="192.168.2.2" />
+!    <nat domain="virtnet_b" tcp-ports="1000" udp-ports="1000">
+! </domain>
+!
+! <domain name="virtnet_a" interface="192.168.1.1/24" />
+! <domain name="virtnet_b" interface="192.168.2.1/24"  >
+!    <tcp dst="10.0.2.0/24"> <permit-any domain="uplink" /> </tcp>
+!    <udp dst="10.0.2.0/24"> <permit-any domain="uplink" /> </udp>
+!    <tcp dst="0.0.0.0/0">
+!       <permit port="443" domain="uplink" />
+!       <permit port="993" domain="uplink" />
+!    </tcp>
+! </domain>
+
+There are several new tag types. One of them is the NAT configuration for
+Virtnet B in the uplink domain. In contrast to the former NIC-router version
+where NAT settings were part of the source domain, NAT is now configured in
+the target domain with a sub-tag for each source. This has the advantage
+of supporting heterogeneous NAT configurations for a packet source depending
+on which domain it talks to. Besides, it is more intuitive to read. Apart from
+that, the NAT settings haven't changed.
+
+Furthermore, there are the new TCP and UDP tags in the Virtnet-B domain. The
+first two of them have a 'permit-any' sub-tag. With this combination, we open
+all ports to IP addresses of the 10.0.2.0/24 subnet, our home network, and
+route them to the uplink domain. TCP packets that don't match these first two
+rules may fall back to the third. This TCP rule doesn't have all ports opened
+but only 443 (HTTP+TLS/SSL) and 993 (IMAP+TLS/SSL). Both ports are again bound
+to the uplink domain. As the IP filter 0.0.0.0/0 of the surrounding rule isn't
+restrictive, we now also route packets to a foreign destination. The NIC
+router redirects such packets to the default gateway of our home network.
+
+Compared to the old router version where IP and UDP/TCP routing had to be
+combined for this purpose, the new TCP and UDP rules with their
+port-permission sub-rules have some notable advantages. Like port-forwarding
+rules, TCP and UDP rules always imply link-state tracking in order to route
+back reply packets automatically. This can be seen also in our example as no
+further routing rules had to be added to the uplink domain. This aspect is
+clear from the outermost rule and not dependent on sub-rules anymore.
+Furthermore, the strict separation of UDP and TCP routing prevents
+configuration faults and increases readability. Last but not least, the
+'permit-any' rule allows something new. Opening all ports for an address range
+was previously only possible without link-state tracking as it could be
+expressed only on the IP level.
+
+At this point, we have thoroughly discussed the layer-3 routing abilities of
+the new NIC router and our focus has indeed moved more into this direction.
+Even though IP routing is still available, we found that it should be more
+clearly separated from the rest. To illustrate this feature, we enhance our
+example again. We want the Virtnets to be allowed to communicate to each other
+without any restrictions. For that purpose, we add two more rules to the
+router configuration:
+
+! <policy label_prefix="virtnet_a" domain="virtnet_a" />
+! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1" />
+!    <tcp-forward port="443" domain="virtnet_a" to="192.168.1.2" />
+!    <udp-forward port="123" domain="virtnet_b" to="192.168.2.2" />
+!    <nat domain="virtnet_b" tcp-ports="1000" udp-ports="1000">
+! </domain>
+!
+! <domain name="virtnet_a" interface="192.168.1.1/24" />
+!    <ip dst="192.168.2.0/24" domain="virtnet_b"/>
+! </domain>
+!
+! <domain name="virtnet_b" interface="192.168.2.1/24"  >
+!    <tcp dst="10.0.2.0/24"> <permit-any domain="uplink" /> </tcp>
+!    <udp dst="10.0.2.0/24"> <permit-any domain="uplink" /> </udp>
+!    <tcp dst="0.0.0.0/0">
+!       <permit port="443" domain="uplink" />
+!       <permit port="993" domain="uplink" />
+!    </tcp>
+!    <ip dst="192.168.1.0/24" domain="virtnet_a"/>
+! </domain>
+
+As you can see, each of the new IP rules in the Virtnet domains match the
+addresses of the opposite subnet and route to the corresponding domain. As
+mentioned, the new IP rules and UDP/TCP rules are not combined anymore to
+clearly distinguish IP routing from layer-3 routing. This decision has
+far-reaching effects. First, in contrast to UDP and TCP routing, IP routing is
+stateless. Thus, for each IP routing rule one has to be sure to have a
+back-routing rule at the remote domain or else bidirectional communication
+won't happen. And second, NAT does not apply to IP-routed packets. So, if
+you're not aware of such packets, you may unintentionally reveal information
+about a private network.
+
+For more details on the new NIC router, you may refer to the comprehensive
+documentation in the _repos/os/src/server/nic_router/README_ file and the
+basic NIC-router test at _libports/run/nic_router.run_ .
+
+
+Base framework
+##############
+
+Improved RPC mechanism
+======================
+
+Since we introduced Genode's current API for synchronous RPCs in
+[https://genode.org/documentation/release-notes/11.05#New_API_for_type-safe_inter-process_communication - version 11.05],
+inter-component communication within Genode has become almost a child's play.
+The RPC framework leverages the C++ type system and templates to a great
+effect. In contrast to the traditional use of IDL compilers, the interaction
+with RPC objects provided by other components is robust and natural because
+no language boundaries need to be crossed.
+
+Still, a few differences between RPC calls and regular function calls remain.
+In particular, there exist a few restrictions with regard to the types of
+RPC function arguments. Those types did not just need to be POD (plain old
+data) types but they had to be default-constructible, too. Whereas the former
+restriction still applies (non-POD objects that include references or
+vtables cannot be used as arguments), the latter limitation has been lifted
+now. Generally, non-default-constructible types are a way to attain
+simpler code because the special case of an "invalid" object does not need
+to be considered. I.e., values of such types can be kept as constants as
+opposed to variables. If an object exists (as equivalent to successful
+instantiation), it is valid. With the improved RPC mechanism, the RPC
+framework does no longer stay in the way in this respect.
+
+Thanks to Edgard Schmidt for this welcome contribution!
+
+
+Unification and tightening of session labels
+============================================
+
+In Genode, each session requested by a client component is labeled according
+to the components that intermediate the session request. The client can
+optionally specify a label of choice along with the session request. Its
+parent prefixes the client-provided label by a label of its own. If the
+session request is further passed to the parent's parent, the grandparent
+prepends its own label. This works recursively. Consequently, the final label
+as seen by the server is the product of the labeling policies of all
+components on the route of the session request.
+
+The label is used for two purposes. First, the server uses the label as
+a key for a server-side policy selection. E.g., depending on the session label
+received by the disk-partition server, the server decides which partition to
+hand out to the client. Second, the label is used by intermediate components
+to take session-routing decisions. E.g., based on the label of a file-system
+session request, a parent component may route the request to one of several
+file-system servers.
+
+Originally, Genode did not impose a specific way of how labels are formed.
+It was up to each intermediate component to filter the label of a session
+request in any way desired. However, in practice, this freedom remained unused
+and the very simple successive prefixing of labels prevails in all our use
+cases. Each intermediate node concatenates its own label in front of the label
+supplied by the originator of the session request. The different parts of the
+label are separated with the character sequence '" -> "'. Some corner cases
+were handles specially for aesthetic reasons. For example, if a client
+provided no label, the parent would skip the pending separator. That said,
+since each intermediate component had to provide the labeling policy, not all
+components were consistent in these respects. Since we found no use for
+arbitrary labeling policies, we decided to make the only prominent way of
+session labeling mandatory for all intermediate components. We thereby removed
+the aesthetically motivated corner cases and possible ambiguities. I.e., with
+the original policy, it was not possible to distinguish a unlabeled session
+requested by a client from a labeled session requested by the client's parent.
+
+As a consequence, the stricter labeling must now be considered wherever
+a precise label was specified as a key for a session route or a server-side
+policy selection. The simplest way to adapt those cases is to use a
+'label_prefix' instead of the 'label' attribute. Alternatively, the
+'label' attribute may used by appending '" -> "' (note the whitespace).
+
+
+Transition to new framework API
+===============================
+
+Since we fundamentally revised Genode's API in
+[http://genode.org/documentation/release-notes/16.05#The_great_API_renovation - version 16.05],
+we gradually adapt our existing components. Given that Genode comes with
+over 300 components, this is no small feat. But with 30 percent of the
+components converted, we already made substantial progress.
+
+In some respects, the conversion is actually nearly complete. In particular,
+the move away from format-string-based text output to our new type-safe output
+facility has been applied to almost all components now. The former 'PDBG'
+macro that is quite useful for temporary debug messages has been replaced with
+a new version that must be manually included via the _base/debug.h_ header
+file. Like the regular log functions, the new PDBG facility uses the type-safe
+text-output facility.
+
+
+Minor API adjustments
+---------------------
+
+While applying Genode's new API, we refined the API in the following respects:
+
+We added a dedicated 'String' constructor overload to better accommodate
+string literals. This overload covers the common case for initializing a
+string from a literal without employing the 'Output' mechanism. This way, such
+strings can by constructed without calling virtual functions, which in turn
+makes the 'String' usable during the self-relocation phase of the dynamic
+linker.
+
+Up till now, several Genode components still rely on the use of 'snprintf'
+whenever strings must be assembled out of smaller pieces. As we like to shun
+format strings from Genode altogether, we needed an alternative mechanism.
+Since we introduced the new type-safe text-output facilities in Genode 16.05,
+there is an obvious solution: Let the 'String' constructor accept an arbitrary
+list of arguments, which are turned into their respective textual
+representation and appear concatenated in the resulting string. Consequently,
+strings can be assembled with the same flexibility as log output. For the
+construction of 'String' objects from character buffers of a known size, the
+'Cstring' utility can be used, which takes a 'char const *' and an optional
+length as arguments.
+
+Several low-level types received support for the new output facilities, e.g.,
+'Xml_node' or the network-related headers in _os/net/_.
+
+In anticipation of the forthcoming package-management infrastructure, we try
+to unify Genode's executable binaries across kernels and architectures
+wherever reasonable. Of course, the latter is not possible with respect to the
+used instructions. But unifying symbol information is deemed worthwhile. For
+this reason, we changed the 'Genode::size_t' type to be always defined as an
+'unsigned' 'long'. This is in contrast to GCC's built-in '__SIZE_TYPE__',
+which is defined as 'unsigned int' on 32-bit architectures but 'unsigned long'
+on 64-bit architectures.
+
+
+OS-level infrastructure and device drivers
+##########################################
+
+New timeout-handing API
+=======================
+
+The new timeout API offers tools for easily multiplexing a single time
+source among different timeouts. In general, the time source can be
+implemented individually but we expect that the most prominent use case will
+be the multiplexing of timer sessions. Thus, the timeout library also provides
+a convenience tool for this use case. A library-usage example can be found
+under _os/src/test/timeout_. If you're interested in implementing
+your own time source, you can find an example at _os/include/os/timer.h_ .
+
+
+Support for smart cards
+=======================
+
+We ported the [http://pcsclite.alioth.debian.org/pcsclite.html - PC/SC Lite]
+library to Genode, which provides a commonly used API for communicating with
+smart cards. It supports USB smart card readers, using the
+[http://pcsclite.alioth.debian.org/ccid.html - CCID] library as driver.
+The CCID driver itself requires [http://libusb.info - libusb] to access the
+USB device.
+
+Vanilla PC/SC Lite is structured as a client-server architecture, consisting
+of the 'pcscd' daemon, which runs on a privileged user account and manages all
+card reader devices, and one or more non-privileged client applications, which
+communicate with pcscd to access the card readers. On Genode, pcscd's role as
+privileged device manager is not really needed, since the devices can also be
+managed using Genode's configuration mechanisms. For this reason, we merged
+the part of pcscd which implements the API with the pcsc-lite client library.
+
+In the current state, a Genode application using PC/SC Lite can access a single
+card reader device, which is selected using its USB product ID and vendor ID in
+the application's configuration and in the policy of the USB driver.
+
+More configuration details can be found in the README files of the PC/SC Lite,
+CCID, and libusb libraries in the libports repository and in the accompanying
+_smartcard.run_ script.
+
+
+Libraries and applications
+##########################
+
+Time-based password generation
+==============================
+
+A time-based one-time password authentication client that adheres to the
+Google Authenticator standard has been introduced into the
+[https://github.com/genodelabs/genode-world - world repository].
+
+Single use, time-based passwords are commonly used as an additional
+authentication step for web-based services. In this scheme, a user generates
+and presents a six digit passcode to a service generated using a shared secret
+and a timestamp. This short passcode length makes manual entry convenient so
+that the shared secret may be stored on a separate device than the service
+client, such as a smartphone, layering the security properties of both
+devices.
+
+The 'gtotp' VFS plugin provides these passcodes by embedding the generator as
+a special file in the file-system layer of a component. This approach provides
+readily available passcodes for programmatic and manual use without enlarging
+the code base to encompass a GUI, command-line, or networked interface.
+
+At the time of this release, the common use case is to manually retrieve codes
+for clients running in VirtualBox by reading special files with an isolated
+instance of the Noux runtime. Storing the shared secret on the same device
+contradicts the recommendations of the standard but the trade-off is that the
+software stack required to host the shared secret is significantly smaller
+than that found on a mobile device.
+
+
+Random number generator testing
+===============================
+
+No random number generator can be proved to be good, but empirical statistical
+tests can prove that some are bad. A port of the TestU01 RNG test suite is
+provided in the world repository. The TestU01 batteries give independent
+assurance of the fitness of Genode's CPU jitter based RNG and are available
+for testing future physical and non-phyical RNGs.
+
+
+VirtualBox on top on the NOVA hypervisor
+########################################
+
+Both VirtualBox-based virtual machine monitors on Genode got updated to the
+latest revision as provided by Oracle, namely 4.3.40 and 5.1.10 - mainly to
+stay close to the upstream versions.
+
+
+Platforms
+#########
+
+Unified handling of boot modules
+================================
+
+Until now, the way of passing boot modules from the boot procedure to the core
+component, which core provides as ROM modules, varied from platform to
+platform. Either we used a multiboot-compliant bootloader that accepts
+multiple modules, or the platform provided some specific way of linking binary
+modules together with the kernel, e.g., the Elfweaver tool of OKL4.
+By unifying the boot-module handover, we further reduce platform specific core
+code. Thereby, maintenance costs are decreased, and code analysis becomes
+easier. With this new solution, when issuing to build the core component:
+
+! make core
+
+within the build system, only a core library gets built. Not until all
+binaries needed by a run-script are available, a final image is linked
+together using the core library and all additional binaries. The core
+component now can access its ROM modules directly via addresses contained in
+its binary. As a side effect of this change, there is no core binary in the
+'bin' or 'core' directory of the corresponding build directory available
+anymore. Instead, you will find the core binary with no ROM modules, but
+including debug information under 'var/run/*.core' within your build
+directory. The concrete name depends on the name of the run-script.
+
+The new approach is used on all platforms except Linux where the ROM modules
+still need to be accessed via the file-system.
+
+
+NOVA hypervisor
+===============
+
+We extended the kernel to support the asynchronous delegation of kernel
+resources. Up to now, resources could only be delegated during RPC or during
+the initial protection-domain construction. With this extension, the
+construction and setup of new protection domains, threads, and especially
+virtual CPUs for the VirtualBox VMM became more straightforward and several
+quirks inside the 'core' component could be dropped. The added kernel syscall
+expects the NOVA-kernel capabilities of the source and target protection
+domains, which effectively renders the operation solely available to 'core' -
+as only holder of the NOVA protection domain capabilities.
+
+Additionally, we changed the CPU ID enumeration in Genode/NOVA to a
+predictable order. The lower CPU IDs used via the Genode 'Cpu_session'
+interface now correspond to the first hyper-thread of all physical CPU cores.
+For example, on a quad-core machine with hyper-threading enabled Genode's CPU
+IDs 0-3 refer to the first hyper-threads of all physical cores and IDs 4-7 to
+the second hyper-threads.
+
