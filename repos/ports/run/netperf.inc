@@ -4,7 +4,10 @@
 # \date   2013-04-18
 #
 
-if {[have_include "power_on/qemu"]} {
+# setting environment variable FORCE_QEMU permits running netperf in qemu
+set force_qemu [info exists ::env(FORCE_QEMU)]
+
+if {[expr [have_include "power_on/qemu"] && !$force_qemu]} {
 	puts "\nNetperf running on Qemu is not recommended.\n"
 	exit
 }
