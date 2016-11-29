@@ -606,11 +606,6 @@ void intel_logical_ring_stop(struct intel_engine_cs *ring)
 	TRACE_AND_STOP;
 }
 
-void intel_lrc_irq_handler(struct intel_engine_cs *ring)
-{
-	TRACE_AND_STOP;
-}
-
 void intel_lr_context_unpin(struct drm_i915_gem_request *req)
 {
 	TRACE_AND_STOP;

@@ -1709,4 +1709,9 @@ int intel_guc_ucode_load(struct drm_device *dev)
 	return 0;
 }
 
+void intel_lrc_irq_handler(struct intel_engine_cs *ring)
+{
+	TRACE;
+}
+
 } /* extern "C" */
