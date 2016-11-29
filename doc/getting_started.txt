@@ -31,8 +31,12 @@ For using the entire collection of ported 3rd-party software, the following
 packages should be installed additionally: 'autoconf2.64', 'autogen', 'bison',
 'flex', 'g++', 'git', 'gperf', 'libxml2-utils', 'subversion', and 'xsltproc'.
 
-Furthermore, you will need to install the official Genode toolchain, which
-you can download at [http://genode.org/download/tool-chain].
+Your exploration of Genode starts with obtaining the source code of the
+[https://sourceforge.net/projects/genode/files/latest/download - latest version]
+of the framework. For detailed instructions and alternatives to the
+download from Sourceforge please refer to [https://genode.org/download].
+Furthermore, you will need to install the official Genode tool chain, which
+you can download at [https://genode.org/download/tool-chain].
 
 The Genode build system never touches the source tree but generates object
 files, libraries, and programs in a dedicated build directory. We do not have a
@@ -123,5 +127,5 @@ Please feel welcome to ask your questions and to join the discussions:
 
 :Genode Mailing Lists:
 
-  [http://genode.org/community/mailing-lists]
+  [https://genode.org/community/mailing-lists]
 

@@ -14,7 +14,7 @@ Genode.
 Recommended development platform
 ################################
 
-We use recent [http://www.ubuntu.com/ - Ubuntu] LTS releases on our
+We use recent [https://www.ubuntu.com/ - Ubuntu] LTS releases on our
 development hosts. Hence, Genode should always build without trouble on these
 platforms.
 
@@ -35,8 +35,9 @@ compiled:
   ! sudo tar xPfj genode-toolchain-<version>-<arch>.tar.bz2
   The use of the 'P' option ensures that the tool chain will be installed at
   the correct absolute path '/usr/local/genode-gcc' where the build system
-  expects it to reside by default.
-  [http://sourceforge.net/projects/genode/files/genode-toolchain/ - Download the pre-compiled tool chain...]
+  expects it to reside by default. Please note, Genode OS Framework releases
+  require a Genode tool chain with an equal or next smaller version number.
+  [https://sourceforge.net/projects/genode/files/genode-toolchain/ - Download the pre-compiled tool chain...]
 
 :Compile from source:
   For those of you who prefer compiling the tool chain from source, we provide
@@ -44,8 +45,8 @@ compiled:
   find the tool in Genode's source tree at 'tool/tool_chain'. For usage
   instructions, just start the tool without arguments.
 
-In both cases, the tool chain will be installed to '/usr/local/genode-gcc'. All
-tools are prefixed with 'genode-x86-', 'genode-arm-', or 'genode-riscv-'
+In both cases, the Genode tool chain will be installed to '/usr/local/genode-gcc'.
+All tools are prefixed with 'genode-x86-', 'genode-arm-', or 'genode-riscv-'
 respectively such that it is safe to add the installation directory to our
 'PATH' variable (optional). The Genode tool chain will be used by the Genode
 build system by default. If you desire to use a different tool chain, create a
