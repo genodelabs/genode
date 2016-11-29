@@ -384,7 +384,7 @@ class Guest_memory
 			Region *r = _lookup(vm_phys, size);
 
 			if (!r) {
-				Genode::error("Guest_memory::mmio_read: lookup faile - "
+				Genode::error("Guest_memory::mmio_read: lookup failed - "
 				              "GCPhys=", Genode::Hex(vm_phys), " u32Value=",
 				              u32Value, " size=", size);
 				return VERR_IOM_MMIO_RANGE_NOT_FOUND;

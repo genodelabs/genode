@@ -165,6 +165,11 @@ VMMDECL(VBOXSTRICTRC) IOMMMIORead(PVM pVM, PVMCPU, RTGCPHYS GCPhys,
 			}
 		}
 	}
+	else if (rc == VERR_IOM_MMIO_RANGE_NOT_FOUND) {
+		*pvalue = ~0U;
+		rc = VINF_SUCCESS;
+	}
+
 
 	IOM_UNLOCK_SHARED(pVM);
 
