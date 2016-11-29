@@ -36,6 +36,21 @@ Main_window::Main_window(Genode::Env &env)
 	_input_session_component.event_queue().enabled(true);
 	_ep.manage(&_input_session_component);
 
+	/* add widgets to layout */
+
+	_layout->addWidget(_avplay_widget);
+	_layout->addWidget(_control_bar);
+
+	/*
+	 * The main window must be visible before avplay or a framebuffer filter
+	 * requests the framebuffer session which goes to Nitpicker, because the
+	 * parent view of the new Nitpicker view is part of the
+	 * QNitpickerPlatformWindow object, which is created when the main window
+	 * becomes visible.
+	 */
+
+	show();
+
 	/* find out which filtering framebuffer services to start and sort them in reverse order */
 
 	static QList<Framebuffer_filter*> framebuffer_filters;
@@ -64,11 +79,6 @@ Main_window::Main_window(Genode::Env &env)
 		framebuffer_service_factory =
 			new Filter_framebuffer_service_factory(framebuffer_filter->slave->policy());
 	}
-
-	/* add widgets to layout */
-
-	_layout->addWidget(_avplay_widget);
-	_layout->addWidget(_control_bar);
 
 	/* start avplay */
 
