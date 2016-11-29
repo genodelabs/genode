@@ -40,6 +40,6 @@ build_boot_image {
 	ld.lib.so libc.lib.so libm.lib.so
 }
 
-append qemu_args " -nographic -m 64 "
+append qemu_args " -nographic -m 65 "
 
 run_genode_until {.*test-moon.*Finished\..*} 30
