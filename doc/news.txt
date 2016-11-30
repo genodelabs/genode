@@ -4,6 +4,38 @@
                                ===========
 
 
+Genode OS Framework release 16.11 | 2016-11-30
+##############################################
+
+| Version 16.11 revisits the most fundamental low-level protocols of the
+| framework to further improve its scalability, refines the
+| virtual networking facilities, adds support for smart cards, and
+| improves the NOVA kernel.
+
+The fundamental mechanism of Genode is the interplay between parent and
+child components. This interplay remained unchanged since the very first
+version more than ten years ago. With the current release, we ultimately
+took the chance to revisit those low-level aspects of the framework in the
+light of the design of modern components. Specifically, we replaced the
+former fully synchronous model of interaction with asynchronous communication.
+Even though this change is barely visible at the API level of the framework,
+it greatly eases the validation of the framework's most crucial components and
+facilitates the scaling-up of Genode-based systems.
+
+As the second prominent improvement, we refined the design and configuration
+interface of the recently introduced network routing facilities. Whereas
+the initial version was primarily concerned with the details of network
+packet processing, the new version is tailored to the most prominent use cases
+and towards the ease of use.
+
+Further highlights of the current release are the added support for using
+smart cards, kernel improvements of the NOVA hypervisor, updated VirtualBox
+versions, and a virtual file system for generating time-based passwords.
+
+The topics are covered in more detail by the
+[http:/documentation/release-notes/16.11 - release documentation of version 16.11...]
+
+
 Genode OS Framework release 16.08 | 2016-08-31
 ##############################################
 
