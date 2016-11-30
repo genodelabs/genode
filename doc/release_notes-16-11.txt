@@ -445,7 +445,7 @@ router configuration:
 As you can see, each of the new IP rules in the Virtnet domains match the
 addresses of the opposite subnet and route to the corresponding domain. As
 mentioned, the new IP rules and UDP/TCP rules are not combined anymore to
-clearly distinguish IP routing from layer-3 routing. This decision has
+clearly distinguish IP routing from layer-3 routing because this decision has
 far-reaching effects. First, in contrast to UDP and TCP routing, IP routing is
 stateless. Thus, for each IP routing rule one has to be sure to have a
 back-routing rule at the remote domain or else bidirectional communication
