@@ -222,4 +222,69 @@ inline void unmap_local(Nova::Utcb *utcb, Genode::addr_t start,
 }
 
 
+template <typename FUNC>
+inline Nova::uint8_t syscall_retry(Genode::Pager_object &pager, FUNC func)
+{
+	Nova::uint8_t res;
+	do {
+		res = func();
+	} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == pager.handle_oom());
+
+	return res;
+}
+
+inline Nova::uint8_t async_map(Genode::Pager_object &pager,
+                               Genode::addr_t const source_pd,
+                               Genode::addr_t const target_pd,
+                               Nova::Obj_crd const &source_initial_caps,
+                               Nova::Obj_crd const &target_initial_caps,
+                               Nova::Utcb *utcb)
+{
+	/* asynchronously map capabilities */
+	utcb->set_msg_word(0);
+
+	/* ignore return value as one item always fits into the utcb */
+	bool const ok = utcb->append_item(source_initial_caps, 0);
+	(void)ok;
+
+	return syscall_retry(pager,
+		[&]() {
+			return Nova::delegate(source_pd, target_pd, target_initial_caps);
+		});
+}
+
+inline Nova::uint8_t map_vcpu_portals(Genode::Pager_object &pager,
+                                      Genode::addr_t const source_exc_base,
+                                      Genode::addr_t const target_exc_base,
+                                      Nova::Utcb *utcb,
+                                      Genode::addr_t const source_pd)
+{
+	using Nova::Obj_crd;
+	using Nova::NUM_INITIAL_VCPU_PT_LOG2;
+
+	Obj_crd const source_initial_caps(source_exc_base, NUM_INITIAL_VCPU_PT_LOG2);
+	Obj_crd const target_initial_caps(target_exc_base, NUM_INITIAL_VCPU_PT_LOG2);
+
+	return async_map(pager, source_pd, pager.pd_sel(),
+	                 source_initial_caps, target_initial_caps, utcb);
+}
+
+inline Nova::uint8_t map_pagefault_portal(Genode::Pager_object &pager,
+                                          Genode::addr_t const source_exc_base,
+                                          Genode::addr_t const target_exc_base,
+                                          Genode::addr_t const target_pd,
+                                          Nova::Utcb *utcb)
+{
+	using Nova::Obj_crd;
+	using Nova::PT_SEL_PAGE_FAULT;
+
+	Genode::addr_t const source_pd = Genode::platform_specific()->core_pd_sel();
+
+	Obj_crd const source_initial_caps(source_exc_base + PT_SEL_PAGE_FAULT, 0);
+	Obj_crd const target_initial_caps(target_exc_base + PT_SEL_PAGE_FAULT, 0);
+
+	return async_map(pager, source_pd, target_pd,
+	                 source_initial_caps, target_initial_caps, utcb);
+}
+
 #endif /* _CORE__INCLUDE__NOVA_UTIL_H_ */

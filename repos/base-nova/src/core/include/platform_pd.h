@@ -28,7 +28,7 @@ namespace Genode {
 
 			Native_capability _parent;
 			int               _thread_cnt;
-			addr_t            _pd_sel;
+			addr_t const      _pd_sel;
 			const char *      _label;
 
 		public:
@@ -65,11 +65,6 @@ namespace Genode {
 			 * Return portal capability selector for parent interface
 			 */
 			addr_t parent_pt_sel() { return _parent.local_name(); }
-
-			/**
-			 * Assign PD selector to PD
-			 */
-			void assign_pd(addr_t pd_sel) { _pd_sel = pd_sel; }
 
 			/**
 			 * Capability selector of this task.

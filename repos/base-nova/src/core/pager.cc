@@ -25,6 +25,8 @@
 #include <platform.h>
 #include <platform_thread.h>
 #include <imprint_badge.h>
+#include <cpu_thread_component.h>
+#include <core_env.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -114,6 +116,10 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	                    platform_specific()->core_pd_sel());
 
 	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
+
+	/* potential request to ask for EC cap or signal SM cap */
+	if (utcb->msg_words() == 1)
+		_invoke_handler(pager_obj);
 
 	/* lookup fault address and decide what to do */
 	int error = obj->pager(ipc_pager);
@@ -298,8 +304,14 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 	if (utcb->crd_rcv.value())
 		nova_die();
 
-	addr_t const event    = utcb->msg[0];
-	addr_t const logcount = utcb->msg[1];
+	/* if protocol is violated ignore request */
+	if (utcb->msg_words() != 1) {
+		utcb->mtd = 0;
+		utcb->set_msg_word(0);
+		reply(myself->stack_top());
+	}
+
+	addr_t const event = utcb->msg[0];
 
 	/* check for translated pager portals - required for vCPU in remote PDs */
 	if (utcb->msg_items() == 1 && utcb->msg_words() == 1 && event == 0xaffe) {
@@ -309,17 +321,27 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 
 		/* valid item which got translated ? */
 		if (!cap.is_null() && !item->is_del()) {
-			using Pool = Object_pool<Pager_object>;
-			pager_threads[0]->ep()->Pool::apply(cap.base(),
-			                                    [&] (Pager_object *source) {
-				/* set source PD (VMM) where vCPU exception portals are */
-				obj->_pd_source = source->pd_sel();
-			});
-		}
-	}
+			Rpc_entrypoint *e = core_env()->entrypoint();
+			e->apply(cap.base(),
+				[&] (Cpu_thread_component *source) {
+					if (!source)
+						return;
 
-	/* if protocol is violated ignore request */
-	if (utcb->msg_words() != 2) {
+					Platform_thread &p = source->platform_thread();
+					addr_t const sel_exc_base = p.remote_vcpu();
+					if (sel_exc_base == Native_thread::INVALID_INDEX)
+						return;
+
+					/* delegate VM-exit portals */
+					map_vcpu_portals(*p.pager(), sel_exc_base, sel_exc_base,
+					                 utcb, obj->pd_sel());
+
+					/* delegate portal to contact pager */
+					map_pagefault_portal(*obj, p.pager()->exc_pt_sel_client(),
+					                     sel_exc_base, obj->pd_sel(), utcb);
+				});
+		}
+
 		utcb->mtd = 0;
 		utcb->set_msg_word(0);
 		reply(myself->stack_top());
@@ -345,12 +367,7 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 		 */
 		bool res = utcb->append_item(Obj_crd(obj->_state.sel_client_ec, 0,
 		                                     Obj_crd::RIGHT_EC_RECALL), 0);
-		/* if logcount > 0 then the pager cap should also be mapped */
-		if (logcount)
-			res = utcb->append_item(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().local_name(), 0), 1);
 		(void)res;
-
-		reply(myself->stack_top());
 	}
 
 	/* semaphore for signaling thread is requested, reuse PT_SEL_STARTUP. */
@@ -371,19 +388,7 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() +
 		                                     PT_SEL_STARTUP, 0), 0);
 		(void)res;
-
-		reply(myself->stack_top());
 	}
-
-	/* sanity check, if event is not valid return nothing */
-	if (logcount > NUM_INITIAL_PT_LOG2 || event > 1UL << NUM_INITIAL_PT_LOG2 ||
-	    event + (1UL << logcount) > (1UL << NUM_INITIAL_PT_LOG2))
-		reply(myself->stack_top());
-
-	/* valid event portal is requested, delegate it to caller */
-	bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() + event,
-	                                     logcount), 0);
-	(void)res;
 
 	reply(myself->stack_top());
 }
@@ -479,15 +484,13 @@ void Pager_object::print(Output &out) const
 static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
                              addr_t eip, Pager_object * oom_handler)
 {
-	addr_t const badge_localname = reinterpret_cast<addr_t>(oom_handler);
-
-	uint8_t res;
-	do {
-		res = create_pt(pt, pd, ec, mtd, eip);
-	} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == oom_handler->handle_oom());
+	uint8_t res = syscall_retry(*oom_handler,
+		[&]() { return create_pt(pt, pd, ec, mtd, eip); });
 
 	if (res != NOVA_OK)
 		return res;
+
+	addr_t const badge_localname = reinterpret_cast<addr_t>(oom_handler);
 
 	res = pt_ctrl(pt, badge_localname);
 	if (res == NOVA_OK)
@@ -582,8 +585,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
 	_location(location),
 	_exceptions(this),
-	_pd_target(Native_thread::INVALID_INDEX),
-	_pd_source(Native_thread::INVALID_INDEX)
+	_pd_target(Native_thread::INVALID_INDEX)
 {
 	uint8_t res;
 
@@ -934,7 +936,6 @@ void Pager_activation_base::entry() { }
 
 
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
-: _cap_factory(cap_factory)
 {
 	/* sanity check for pager threads */
 	if (kernel_hip()->cpu_max() > PAGER_CPUS) {
@@ -954,56 +955,12 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
 
 		pager_threads[i] = pager_of_cpu;
 		construct_at<Pager>(pager_threads[i]);
-		pager_threads[i]->ep(this);
 	}
-}
-
-
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
-{
-	/* let handle pager_object of pager thread on same CPU */
-	unsigned const genode_cpu_id = obj->location().xpos();
-	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
-	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
-	    !pager_threads[genode_cpu_id]) {
-		warning("invalid CPU parameter used in pager object");
-		return Pager_capability();
-	}
-	Native_capability pager_thread_cap =
-		Capability_space::import(pager_threads[genode_cpu_id]->native_thread().ec_sel);
-
-	/* request creation of portal bind to pager thread */
-	Native_capability cap_session =
-		_cap_factory.alloc(pager_thread_cap, obj->handler_address(), 0);
-
-	imprint_badge(cap_session.local_name(), reinterpret_cast<mword_t>(obj));
-
-	/* disable the feature for security reasons now */
-	revoke(Obj_crd(cap_session.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
-
-	/* add server object to object pool */
-	obj->Object_pool<Pager_object>::Entry::cap(cap_session);
-	insert(obj);
-
-	/* return capability that uses the object id as badge */
-	return reinterpret_cap_cast<Pager_object>(
-		obj->Object_pool<Pager_object>::Entry::cap());
 }
 
 
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
-	Native_capability pager_obj = obj->Object_pool<Pager_object>::Entry::cap();
-
-	/* cleanup at cap factory */
-	_cap_factory.free(pager_obj);
-
-	/* revoke cap selector locally */
-	revoke(Capability_space::crd(pager_obj), true);
-
-	/* remove object from pool */
-	remove(obj);
-
 	/* take care that no faults are in-flight */
 	obj->cleanup_call();
 }

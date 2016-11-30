@@ -24,8 +24,8 @@
 #include <nova/syscalls.h>
 
 /* core includes */
-#include <nova_util.h>
 #include <platform.h>
+#include <nova_util.h>
 
 using namespace Genode;
 

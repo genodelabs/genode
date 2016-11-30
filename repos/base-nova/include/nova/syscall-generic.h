@@ -730,7 +730,6 @@ namespace Nova {
 	enum {
 		PT_SEL_PAGE_FAULT = 0xe,
 		PT_SEL_PARENT     = 0x1a,  /* convention on Genode */
-		PT_SEL_MAIN_PAGER = 0x1b,  /* convention on Genode */
 		PT_SEL_MAIN_EC    = 0x1c,  /* convention on Genode */
 		PT_SEL_STARTUP    = 0x1e,
 		PT_SEL_RECALL     = 0x1f,

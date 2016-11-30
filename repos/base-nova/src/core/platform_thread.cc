@@ -34,6 +34,33 @@
 using namespace Genode;
 
 
+
+static uint8_t map_thread_portals(Pager_object &pager,
+                                  addr_t const target_exc_base,
+                                  Nova::Utcb *utcb)
+{
+	using Nova::Obj_crd;
+	using Nova::NUM_INITIAL_PT_LOG2;
+
+	addr_t const source_pd = platform_specific()->core_pd_sel();
+	addr_t const source_exc_base = pager.exc_pt_sel_client();
+	addr_t const target_pd = pager.pd_sel();
+
+	/* xxx better map portals with solely pt_call and sm separately ? xxx */
+	addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
+	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
+	                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
+
+	Obj_crd const source_initial_caps(source_exc_base, NUM_INITIAL_PT_LOG2,
+		                              rights);
+	Obj_crd const target_initial_caps(target_exc_base, NUM_INITIAL_PT_LOG2,
+	                                  rights);
+
+	return async_map(pager, source_pd, target_pd,
+	                 source_initial_caps, target_initial_caps, utcb);
+}
+
+
 /*********************
  ** Platform thread **
  *********************/
@@ -62,14 +89,8 @@ int Platform_thread::start(void *ip, void *sp)
 		return -2;
 	}
 
-	if (_pager->pd_sel() != Native_thread::INVALID_INDEX) {
-		error("thread already started");
-		return -2;
-	}
-
 	Utcb * const utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
-	addr_t const pts  = vcpu() ? NUM_INITIAL_VCPU_PT_LOG2
-	                           : NUM_INITIAL_PT_LOG2;
+	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(_location.xpos());
 
 	addr_t const pt_oom = _pager->get_oom_portal();
 	if (!pt_oom || map_local(utcb,
@@ -87,35 +108,30 @@ int Platform_thread::start(void *ip, void *sp)
 			return -3;
 		}
 
-		_pager->assign_pd(_pd->pd_sel());
+		uint8_t res = syscall_retry(*_pager,
+			[&]() {
+				return create_ec(_sel_ec(), _pd->pd_sel(), kernel_cpu_id,
+				                 utcb_addr, initial_sp, _sel_exc_base,
+				                 !worker());
+			});
 
-		/* second++ vcpu case which runs in other pd than VMM */
-		if (vcpu() && _pager->pd_sel() != _pager->pd_source()) {
-			Obj_crd const source_initial_caps(_sel_exc_base, pts);
-			Obj_crd const target_initial_caps(_sel_exc_base, pts);
-
-			/* asynchronously map capabilities */
-			utcb->set_msg_word(0);
-			if (!utcb->append_item(source_initial_caps, 0))
-				return -3;
-
-			uint8_t res = Nova::delegate(_pager->pd_source(), _pager->pd_sel(),
-			                             target_initial_caps);
-			if (res != NOVA_OK)
-				return -3;
+		if (res != Nova::NOVA_OK) {
+			error("creation of new thread failed ", res);
+			return -4;
 		}
 
-		uint8_t res;
-		do {
-			unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(_location.xpos());
-			res = create_ec(_sel_ec(), _pd->pd_sel(), kernel_cpu_id,
-			                utcb_addr, initial_sp, _sel_exc_base, !worker());
-			if (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK != _pager->handle_oom()) {
-				_pager->assign_pd(Native_thread::INVALID_INDEX);
-				error("creation of new thread failed ", res);
-				return -4;
-			}
-		} while (res != Nova::NOVA_OK);
+		if (vcpu()) {
+			if (!remote_pd())
+				res = map_pagefault_portal(*_pager, _pager->exc_pt_sel_client(),
+				                           _sel_exc_base, _pd->pd_sel(), utcb);
+		} else
+			res = map_thread_portals(*_pager, _sel_exc_base, utcb);
+
+		if (res != NOVA_OK) {
+			revoke(Obj_crd(_sel_ec(), 0));
+			error("creation of new thread/vcpu failed ", res);
+			return -3;
+		}
 
 		if (worker()) {
 			/* local/worker threads do not require a startup portal */
@@ -135,21 +151,14 @@ int Platform_thread::start(void *ip, void *sp)
 	}
 
 	addr_t pd_utcb = 0;
-	Obj_crd initial_pts;
 
 	if (!vcpu()) {
 		_sel_exc_base  = _pager->exc_pt_sel_client();
 
 		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
-		addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
-		                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
-		                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
-		initial_pts = Obj_crd(_sel_exc_base, pts, rights);
-
-		addr_t remap_src[] = { _pd->parent_pt_sel(),
-		                       (unsigned long)_pager->Object_pool<Pager_object>::Entry::cap().local_name() };
-		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };
+		addr_t remap_src[] = { _pd->parent_pt_sel() };
+		addr_t remap_dst[] = { PT_SEL_PARENT };
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
@@ -160,88 +169,49 @@ int Platform_thread::start(void *ip, void *sp)
 		}
 	}
 
-	/* create task */
-	addr_t const pd_sel = cap_map()->insert();
-
-	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
-	uint8_t res = create_pd(pd_sel, platform_specific()->core_pd_sel(),
-	                        initial_pts,
-	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE,
-	                        UPPER_LIMIT_PAGES);
-	if (res != NOVA_OK) {
-		error("create_pd returned ", res);
-		goto cleanup_pd;
-	}
-
 	/* create first thread in task */
 	enum { THREAD_GLOBAL = true };
-	res = create_ec(_sel_ec(), pd_sel,
-	                platform_specific()->kernel_cpu_id(_location.xpos()),
-	                pd_utcb, 0, 0,
-	                THREAD_GLOBAL);
+	uint8_t res = create_ec(_sel_ec(), _pd->pd_sel(), kernel_cpu_id,
+	                        pd_utcb, 0, vcpu() ? _sel_exc_base : 0,
+	                        THREAD_GLOBAL);
 	if (res != NOVA_OK) {
 		error("create_ec returned ", res);
-		goto cleanup_pd;
+		return -7;
 	}
 
-	/*
-	 * We have to assign the pd here, because after create_sc the thread
-	 * becomes running immediately.
-	 */
-	_pd->assign_pd(pd_sel);
 	_pager->client_set_ec(_sel_ec());
 	_pager->initial_eip((addr_t)ip);
 	_pager->initial_esp((addr_t)sp);
-	_pager->assign_pd(pd_sel);
 
-	if (vcpu() && _pager->pd_sel() != _pager->pd_source()) {
-		Obj_crd const source_initial_caps(_sel_exc_base, pts);
-		Obj_crd const target_initial_caps(0, pts);
-
-		/* asynchronously map capabilities */
-		utcb->set_msg_word(0);
-		res = utcb->append_item(source_initial_caps, 0);
-		if (res)
-			res = Nova::delegate(_pager->pd_source(), _pager->pd_sel(),
-		                         target_initial_caps);
-	}
+	if (vcpu())
+		_features |= REMOTE_PD;
+	else
+		res = map_thread_portals(*_pager, 0, utcb);
 
 	if (res == NOVA_OK) {
-		do {
-			/* let the thread run */
-			res = create_sc(_sel_sc(), pd_sel, _sel_ec(),
-			                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
-		} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
+		res = syscall_retry(*_pager,
+			[&]() {
+				/* let the thread run */
+				return create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+				                 Qpd(Qpd::DEFAULT_QUANTUM, _priority));
+			});
 	}
 
 	if (res != NOVA_OK) {
-		/*
-		 * Reset pd cap since thread got not running and pd cap will
-		 * be revoked during cleanup.
-		 */
-		_pd->assign_pd(Native_thread::INVALID_INDEX);
 		_pager->client_set_ec(Native_thread::INVALID_INDEX);
 		_pager->initial_eip(0);
 		_pager->initial_esp(0);
-		_pager->assign_pd(Native_thread::INVALID_INDEX);
 
 		error("create_sc returned ", res);
-		goto cleanup_ec;
+
+		/* cap_selector free for _sel_ec is done in de-constructor */
+		revoke(Obj_crd(_sel_ec(), 0));
+		return -8;
 	}
 
 	_features |= SC_CREATED;
 
 	return 0;
-
-	cleanup_ec:
-	/* cap_selector free for _sel_ec is done in de-constructor */
-	revoke(Obj_crd(_sel_ec(), 0));
-
-	cleanup_pd:
-	revoke(Obj_crd(pd_sel, 0));
-	cap_map()->remove(pd_sel, 0, false);
-
-	return -7;
 }
 
 
@@ -264,15 +234,16 @@ void Platform_thread::resume()
 		return;
 	}
 
-	uint8_t res;
-	do {
-		if (!_pd) {
-			error("protection domain undefined - resuming thread failed");
-			return;
-		}
-		res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
-		                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
-	} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == _pager->handle_oom());
+	if (!_pd || !_pager) {
+		error("protection domain undefined - resuming thread failed");
+		return;
+	}
+
+	uint8_t res = syscall_retry(*_pager,
+		[&]() {
+			return create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+			                 Qpd(Qpd::DEFAULT_QUANTUM, _priority));
+		});
 
 	if (res == NOVA_OK)
 		_features |= SC_CREATED;
@@ -371,6 +342,13 @@ unsigned long long Platform_thread::execution_time() const
 		warning("sc_ctrl failed res=", res);
 
 	return time;
+}
+
+
+void Platform_thread::pager(Pager_object *pager)
+{
+	_pager = pager;
+	_pager->assign_pd(_pd->pd_sel());
 }
 
 

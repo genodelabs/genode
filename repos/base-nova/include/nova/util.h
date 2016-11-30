@@ -29,9 +29,8 @@ inline void nova_die(const char * text = 0)
 }
 
 
-inline void request_event_portal(Genode::Native_capability const &cap,
-                                 Genode::addr_t sel, Genode::addr_t event,
-                                 unsigned short log2_count = 0)
+inline void request_event_portal(Genode::addr_t const cap,
+                                 Genode::addr_t const sel, Genode::addr_t event)
 {
 	Genode::Thread * myself = Genode::Thread::myself();
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
@@ -40,38 +39,36 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 	Nova::Crd orig_crd = utcb->crd_rcv;
 
 	/* request event-handler portal */
-	utcb->crd_rcv = Nova::Obj_crd(sel, log2_count);
+	utcb->crd_rcv = Nova::Obj_crd(sel, 0);
 	utcb->msg[0]  = event;
-	utcb->msg[1]  = log2_count;
-	utcb->set_msg_word(2);
+	utcb->set_msg_word(1);
 
-	Genode::uint8_t res = Nova::call(cap.local_name());
+	Genode::uint8_t res = Nova::call(cap);
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
 
 	if (res)
-		Genode::error("request of event (", event, ") ",
+		Genode::error("request of event (", Genode::Hex(event), ") ",
 		              "capability selector failed (res=", res, ")");
 }
 
 
-inline void request_native_ec_cap(Genode::Native_capability const &cap,
-                                  Genode::addr_t const sel,
-                                  unsigned const no_pager_cap = 0)
-{
-	request_event_portal(cap, sel , ~0UL, no_pager_cap);
-}
-
-
-inline void request_signal_sm_cap(Genode::Native_capability const &cap,
+inline void request_native_ec_cap(Genode::addr_t const cap,
                                   Genode::addr_t const sel)
 {
-	request_event_portal(cap, sel, ~0UL - 1, 0);
+	request_event_portal(cap, sel , ~0UL);
 }
 
 
-inline void translate_remote_pager(Genode::Native_capability const &cap,
+inline void request_signal_sm_cap(Genode::addr_t const cap,
+                                  Genode::addr_t const sel)
+{
+	request_event_portal(cap, sel, ~0UL - 1);
+}
+
+
+inline void translate_remote_pager(Genode::addr_t const cap,
                                    Genode::addr_t const sel)
 {
 	Genode::Thread * myself = Genode::Thread::myself();
@@ -94,7 +91,7 @@ inline void translate_remote_pager(Genode::Native_capability const &cap,
 	Nova::Obj_crd obj_crd(sel, 0);
 	if (utcb->append_item(obj_crd, HOTSPOT, THIS_PD, NON_GUEST, TRANSLATE))
 		/* trigger the translation */
-		res = Nova::call(cap.local_name());
+		res = Nova::call(cap);
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;

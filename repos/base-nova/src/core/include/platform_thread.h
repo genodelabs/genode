@@ -45,6 +45,7 @@ namespace Genode {
 				VCPU        = 0x2U,
 				WORKER      = 0x4U,
 				SC_CREATED  = 0x8U,
+				REMOTE_PD   = 0x10U,
 			};
 			uint8_t _features;
 			uint8_t _priority;
@@ -60,8 +61,18 @@ namespace Genode {
 			inline bool vcpu()        const { return _features & VCPU; }
 			inline bool worker()      const { return _features & WORKER; }
 			inline bool sc_created()  const { return _features & SC_CREATED; }
+			inline bool remote_pd()   const { return _features & REMOTE_PD; }
 
 		public:
+
+			/* mark as vcpu in remote pd if it is a vcpu */
+			addr_t remote_vcpu() {
+				if (!vcpu())
+					return Native_thread::INVALID_INDEX;
+
+				_features |= Platform_thread::REMOTE_PD;
+				return _sel_exc_base;
+			}
 
 			/* invalid thread number */
 			enum { THREAD_INVALID = -1 };
@@ -137,7 +148,7 @@ namespace Genode {
 			/**
 			 * Set pager
 			 */
-			void pager(Pager_object *pager) { _pager = pager; }
+			void pager(Pager_object *pager);
 
 			/**
 			 * Return pager object

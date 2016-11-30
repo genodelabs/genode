@@ -16,6 +16,7 @@
 #include <util/flex_iterator.h>
 
 /* core includes */
+#include <platform.h>
 #include <platform_pd.h>
 
 using namespace Genode;
@@ -48,7 +49,23 @@ void Platform_pd::assign_parent(Native_capability parent)
 
 Platform_pd::Platform_pd(Allocator * md_alloc, char const *label,
                          signed pd_id, bool create)
-: _thread_cnt(0), _pd_sel(Native_thread::INVALID_INDEX), _label(label) { }
+: _thread_cnt(0), _pd_sel(cap_map()->insert()), _label(label)
+{
+	if (_pd_sel == Native_thread::INVALID_INDEX) {
+		error("platform pd creation failed ");
+		return;
+	}
+
+	/* create task */
+	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
+	uint8_t res = Nova::create_pd(_pd_sel, platform_specific()->core_pd_sel(),
+	                        Nova::Obj_crd(),
+	                        KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE,
+	                        UPPER_LIMIT_PAGES);
+
+	if (res != Nova::NOVA_OK)
+		error("create_pd returned ", res);
+}
 
 
 Platform_pd::~Platform_pd()

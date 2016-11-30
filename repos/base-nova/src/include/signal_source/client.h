@@ -54,7 +54,7 @@ namespace Genode {
 			{
 				/* request mapping of semaphore capability selector */
 				Thread * myself = Thread::myself();
-				request_signal_sm_cap(Capability_space::import(myself->native_thread().ec_sel + 1),
+				request_signal_sm_cap(myself->native_thread().exc_pt_sel + Nova::PT_SEL_PAGE_FAULT,
 				                      myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
 				_sem = Capability_space::import(myself->native_thread().exc_pt_sel + Nova::PT_SEL_STARTUP);
 				call<Rpc_register_semaphore>(_sem);

@@ -20,7 +20,6 @@
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
 #include <region_map/client.h>
-#include <nova_native_cpu/client.h>
 #include <cpu_thread/client.h>
 
 /* NOVA includes */
@@ -79,21 +78,15 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			state.vcpu         = true;
 
 			Cpu_thread_client cpu_thread(vcpu_vm);
-
 			cpu_thread.state(state);
 
-			/* obtain interface to NOVA-specific CPU session operations */
-			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
-
-			/* create new pager object and assign it to the new thread */
-			Native_capability pager_cap = native_cpu.pager_cap(vcpu_vm);
-
 			/*
-			 * Translate pager cap of current executing thread, which is used
-			 * to lookup current PD - required during PD creation.
+			 * Translate vcpu_vm thread cap via current executing thread,
+			 * which is used to lookup current PD to delegate VM-exit portals.
 			 */
-			translate_remote_pager(pager_cap,
-			                      Thread::myself()->native_thread().ec_sel + 1);
+			addr_t const current = Thread::myself()->native_thread().exc_pt_sel
+			                       + Nova::PT_SEL_PAGE_FAULT;
+			translate_remote_pager(current, vcpu_vm.local_name());
 
 			/* start vCPU in separate PD */
 			cpu_thread.start(0, 0);
@@ -102,7 +95,11 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			 * Request native EC thread cap and put it next to the
 			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
 			 */
-			request_native_ec_cap(pager_cap, sel_ec);
+			addr_t const pager_pt = _exc_pt_sel + Nova::PT_SEL_PAGE_FAULT;
+			request_native_ec_cap(pager_pt, sel_ec);
+
+			/* solely needed for vcpu to request native ec cap - drop it */
+			Nova::revoke(Nova::Obj_crd(pager_pt, 0));
 
 			/* request creation of SC to let vCPU run */
 			cpu_thread.resume();
@@ -152,15 +149,15 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 		{
 			this->Thread::start();
 
-			/* obtain interface to NOVA-specific CPU session operations */
-			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
-
 			/*
 			 * Request native EC thread cap and put it next to the
 			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
 			 */
-			Native_capability pager_cap = native_cpu.pager_cap(_thread_cap);
-			request_native_ec_cap(pager_cap, sel_ec);
+			addr_t const pager_pt = exc_base() + Nova::PT_SEL_PAGE_FAULT;
+			request_native_ec_cap(pager_pt, sel_ec);
+
+			/* solely needed for vcpu to request native ec cap - drop it */
+			Nova::revoke(Nova::Obj_crd(pager_pt, 0));
 		}
 
 		void entry() { }
