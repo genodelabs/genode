@@ -63,7 +63,7 @@ set config {
 		</config>
 	</start>
 	<start name="gdb_monitor">
-		<resource name="RAM" quantum="5M"/>
+		<resource name="RAM" quantum="7M"/>
 		<config>
 			<target name="test-gdb_monitor">
 				<config>
