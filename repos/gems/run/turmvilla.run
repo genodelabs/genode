@@ -826,17 +826,20 @@ set config {
 install_config $config
 
 set firmware_modules {
-	iwlwifi-6000-6.ucode
+	iwlwifi-6000-4.ucode
 	iwlwifi-6000g2a-6.ucode
 	iwlwifi-6000g2b-6.ucode
-	iwlwifi-7260-8.ucode
+	iwlwifi-7260-16.ucode
+	iwlwifi-7265-16.ucode
+	iwlwifi-7265D-16.ucode
+	iwlwifi-8000C-16.ucode
 }
 
 append boot_modules {
 	core init timer
 	part_blk ahci_drv
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
-	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
 	virtualbox
