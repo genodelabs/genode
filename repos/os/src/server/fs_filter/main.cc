@@ -9,23 +9,27 @@
 #include <root/component.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
-#include <os/server.h>
 #include <os/session_policy.h>
 #include <util/xml_node.h>
+#include <base/component.h>
 //#include <base/env.h>
 
 /* local includes */
 #include "node.h"
+#include "session.h"
 
 using namespace Genode;
 
 namespace File_system {
 
+	struct Main;
+
 	class Root : public Root_component<Session_component>
 	{
 		private:
 
-			Server::Entrypoint       &_ep;
+			Env                     &_env;
+			Allocator_avl           &_avl;
 			List<Session_component>  _sessions;
 			List<FS_reference>       _filesystems;
 
@@ -58,7 +62,7 @@ namespace File_system {
 						throw Root::Quota_exceeded();
 					}
 
-					Session_component *comp = new (md_alloc()) Session_component(tx_buf_size, _ep, policy);
+					Session_component *comp = new (md_alloc()) Session_component(tx_buf_size, _env, _avl, policy);
 					_sessions.insert(comp);
 					return comp;
 				} catch (Session_policy::No_policy_defined) {
@@ -70,64 +74,60 @@ namespace File_system {
 			/* TODO: add destroy session code */
 			
 	public:
-			Root(Server::Entrypoint &ep, Allocator &md_alloc)
+			Root(Env &env, Allocator &md_alloc, Allocator_avl &avl)
 			:
-				Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-				_ep(ep),
+				Root_component<Session_component>(env.ep(), md_alloc),
+				_env(env), _avl(avl)
 			{ }
 			
 			void handle_config_update() {
 				
 			}
 	};
-}
+};
 
 struct File_system::Main
 {
-	Server::Entrypoint &ep;
+	Env        &env;
+	Entrypoint &ep;
 
 	//Directory root_dir = { "" };
 
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Sliced_heap sliced_heap { env.ram(), env.rm() };
+	Allocator_avl avl { &sliced_heap };
 
-	Root fs_root = { ep, sliced_heap };
+	Root fs_root { env, sliced_heap, avl };
 
-	void handle_config_update(unsigned)
+	void handle_config_update()
 	{
-		Genode::config()->reload();
+		config()->reload();
 		try {
 			for (Xml_node service_node = config()->xml_node().sub_node("fs");;
 			     service_node = service_node.next("fs")) {
 
 				char label_buf[64];
 				service_node.attribute("label").value(label_buf, sizeof(label_buf));
-				FS_reference::add_fs(label_buf);
+				FS_reference::add_fs(env, avl, label_buf);
 			}
 		} catch (Xml_node::Nonexistent_sub_node) { }
 
 		fs_root.handle_config_update();
 	}
 
-	Signal_rpc_member<Main> config_update_dispatcher =
-		{ ep, *this, &Main::handle_config_update};
+	Signal_handler<Main> config_update_dispatcher =
+		{ ep, *this, &Main::handle_config_update };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Env &env) : env(env), ep(env.ep())
 	{
-		handle_config_update(0);
+		handle_config_update();
 		Genode::config()->sigh(config_update_dispatcher);
 		
-		env()->parent()->announce(ep.manage(fs_root));
+		env.parent().announce(ep.manage(fs_root));
 	}
 };
 
-
-/**********************
- ** Server framework **
- **********************/
-
-char const *   Server::name()                            { return "ram_fs_ep"; }
-Genode::size_t Server::stack_size()                      { return 2048 * sizeof(long); }
-void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }
+Genode::size_t Component::stack_size()                         { return 2048 * sizeof(long); }
+void           Component::construct(Env &env) { static File_system::Main inst(env); }
