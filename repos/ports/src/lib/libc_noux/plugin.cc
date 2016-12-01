@@ -1068,7 +1068,7 @@ namespace {
 		}
 
 		if (!noux_syscall(Noux::Session::SYSCALL_EXECVE)) {
-			warning("exec syscall failed for path \", filename, \"");
+			warning("exec syscall failed for path \"", filename, "\"");
 			switch (sysio()->error.execve) {
 			case Noux::Sysio::EXECVE_NONEXISTENT: errno = ENOENT; break;
 			case Noux::Sysio::EXECVE_NOMEM:       errno = ENOMEM; break;
