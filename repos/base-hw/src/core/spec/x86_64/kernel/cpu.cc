@@ -15,9 +15,6 @@
 /* Genode includes */
 #include <base/log.h>
 
-/* base-internal includes */
-#include <base/internal/globals.h>  /* init_log() */
-
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
@@ -40,8 +37,6 @@ void Kernel::Cpu::init(Pic &pic, Kernel::Pd &core_pd, Genode::Board&)
 	Timer::disable_pit();
 
 	fpu().init();
-
-	Genode::init_log();
 
 	/*
 	 * Please do not remove the log(), because the serial constructor requires

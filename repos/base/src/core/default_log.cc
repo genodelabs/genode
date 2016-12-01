@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/lock.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -24,35 +23,22 @@
 /* core includes */
 #include <core_log.h>
 
-using namespace Genode;
 
-static Log *log_ptr;
-
-
-Log &Log::log() { return *log_ptr; }
-
-
-void Genode::init_log()
+Genode::Log &Genode::Log::log()
 {
-	/* ignore subsequent calls */
-	if (log_ptr) return;
-
-	struct Write_fn
+	struct Buffer
 	{
-		Lock     lock;
-		Core_log log;
-
-		void operator () (char const *s)
+		struct Write_fn : Core_log
 		{
-			Lock::Guard guard(lock);
-			log.output(s);
-		}
+			void operator () (char const *s) { output(s); }
+		} function;
+
+		Buffered_output<512, Write_fn> buffer { function };
+		Log                            log    { buffer   };
 	};
 
-	typedef Buffered_output<512, Write_fn> Buffered_log_output;
-
-	static Buffered_log_output *buffered_log_output =
-		unmanaged_singleton<Buffered_log_output>(Write_fn());
-
-	log_ptr = unmanaged_singleton<Log>(*buffered_log_output);
+	return unmanaged_singleton<Buffer>()->log;
 }
+
+
+void Genode::init_log() { };

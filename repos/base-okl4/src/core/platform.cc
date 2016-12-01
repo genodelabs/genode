@@ -183,8 +183,6 @@ Platform::Platform() :
 	_vm_start = 0x1000;
 	_vm_size  = 0xb0000000 - 0x1000;
 
-	init_log();
-
 	log(":phys_alloc: ", *_core_mem_alloc.phys_alloc());
 	log(":virt_alloc: ", *_core_mem_alloc.virt_alloc());
 	log(":io_mem: ",      _io_mem_alloc);

@@ -304,7 +304,6 @@ Platform::Platform() :
 	/*
 	 * Now that we can access the I/O ports for comport 0, printf works...
 	 */
-	init_log();
 
 	/*
 	 * remap main utcb to default utcb address

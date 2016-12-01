@@ -74,9 +74,6 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
 
 void Platform::_init_unused_phys_alloc()
 {
-	/* enable log support early */
-	init_log();
-
 	/* the lower physical ram is kept by the kernel and not usable to us */
 	_unused_phys_alloc.add_range(0x100000, 0UL - 0x100000);
 }

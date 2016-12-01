@@ -436,8 +436,6 @@ Platform::Platform() :
 	if (initialized) panic("Platform constructed twice!");
 	initialized = true;
 
-	init_log();
-
 	_setup_basics();
 	_setup_mem_alloc();
 	_setup_io_port_alloc();
