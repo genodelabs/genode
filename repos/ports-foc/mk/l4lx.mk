@@ -3,7 +3,7 @@ VERBOSE_LX_MK      ?= 0
 REQUIRES           += foc
 INC_DIR            += $(REP_DIR)/include
 LIBS                = l4lx l4sys
-GENODE_LIBS        := base base-common startup syscall cxx l4lx l4sys config
+GENODE_LIBS        := base-foc base-foc-common startup syscall cxx l4lx l4sys config
 
 GENODE_LIBS        := $(foreach l,$(GENODE_LIBS),$(BUILD_BASE_DIR)/var/libcache/$l/$l.lib.a)
 GENODE_LIBS_SORTED  = $(sort $(wildcard $(GENODE_LIBS)))

@@ -6,7 +6,7 @@ create_boot_directory
 
 install_config "[exec cat [genode_dir]/repos/os/src/init/config.priority]"
 
-build_boot_image "core init"
+build_boot_image "core ld.lib.so init"
 
 append qemu_args "-nographic -m 256"
 

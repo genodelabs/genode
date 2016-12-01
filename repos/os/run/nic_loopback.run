@@ -49,7 +49,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	nic_loopback
 	test-nic_loopback
 }

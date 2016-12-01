@@ -289,7 +289,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	init timer
+	init ld.lib.so timer
 	fb_sdl
 	report_rom dynamic_rom
 	nitpicker

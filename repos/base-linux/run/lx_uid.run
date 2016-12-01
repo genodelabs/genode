@@ -62,7 +62,7 @@ install_config {
 # this would create mere symlinks. However, we need to enable the setuid
 # and setgid capabilities for core, which won't work if core were a symlink.
 #
-foreach binary { core init } {
+foreach binary { core ld.lib.so init } {
 	exec cp -H  bin/$binary [run_dir] }
 
 #

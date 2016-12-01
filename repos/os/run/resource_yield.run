@@ -30,7 +30,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init timer test-resource_yield"
+build_boot_image "core ld.lib.so init timer test-resource_yield"
 
 append qemu_args "-nographic -m 96"
 

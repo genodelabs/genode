@@ -158,6 +158,7 @@ install_config $config
 #
 set boot_modules {
 	core
+	ld.lib.so
 	init
 	timer
 	l4linux

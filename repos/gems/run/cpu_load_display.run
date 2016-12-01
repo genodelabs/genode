@@ -209,7 +209,7 @@ foreach file { genode_logo.png grid.png } {
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	nitpicker report_rom dynamic_rom pointer
 	cpu_load_display cpu_burner trace_subject_reporter

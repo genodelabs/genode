@@ -128,7 +128,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv test-input
+	core ld.lib.so init timer usb_drv test-input
 }
 
 lappend_if [have_spec gpio]             boot_modules gpio_drv

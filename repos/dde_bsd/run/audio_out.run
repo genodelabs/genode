@@ -114,7 +114,7 @@ if {![file exists bin/sample.raw]} {
 #
 
 set boot_modules {
-	core init timer audio_drv test-audio_out sample.raw }
+	core ld.lib.so init timer audio_drv test-audio_out sample.raw }
 
 lappend_if $use_mixer boot_modules mixer
 

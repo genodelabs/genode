@@ -1,6 +1,6 @@
 CC_OPT_PIC =
 
-LIBS += boot_info base-common
+LIBS += boot_info base-okl4-common
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 

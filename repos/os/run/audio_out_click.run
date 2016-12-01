@@ -103,7 +103,7 @@ if {[expr ![file exists bin/sample.raw] || ![file exists bin/click.raw]]} {
 #
 
 set boot_modules {
-	core init timer mixer ps2_drv audio_drv
+	core ld.lib.so init timer mixer ps2_drv audio_drv
 	test-audio_out test-audio_out_click
 	sample.raw click.raw }
 

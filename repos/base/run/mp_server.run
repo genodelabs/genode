@@ -26,7 +26,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init test-server-mp"
+build_boot_image "core ld.lib.so init test-server-mp"
 
 if {[have_include "power_on/qemu"]} {
 	# in general we want to have at least 2 CPUs

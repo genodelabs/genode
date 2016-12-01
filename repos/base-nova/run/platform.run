@@ -33,7 +33,7 @@ append config {
 
 install_config $config
 
-build_boot_image "core init test-platform"
+build_boot_image "core ld.lib.so init test-platform"
 
 append qemu_args "-nographic -m 128 -smp 2"
 

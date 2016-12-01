@@ -153,12 +153,12 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	decorator
 	nitpicker report_rom
 	test-decorator_stress
-	ld.lib.so libc.lib.so libm.lib.so
+	libc.lib.so libm.lib.so
 }
 
 # platform-specific modules

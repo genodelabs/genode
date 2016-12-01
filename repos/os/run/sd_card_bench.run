@@ -48,7 +48,7 @@ install_config {
 #
 
 build_boot_image {
-	core init
+	core ld.lib.so init
 	timer
 	sd_card_bench
 }

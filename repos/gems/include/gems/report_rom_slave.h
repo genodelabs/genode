@@ -38,7 +38,7 @@ class Report_rom_slave : public Genode::Noncopyable
 				char const **_permitted_services() const
 				{
 					static char const *permitted_services[] = {
-						"CPU", "PD", "RAM", "LOG", 0 };
+						"ROM", "CPU", "PD", "RAM", "LOG", 0 };
 
 					return permitted_services;
 				};

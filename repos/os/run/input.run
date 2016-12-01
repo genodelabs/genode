@@ -104,7 +104,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	test-input
 }

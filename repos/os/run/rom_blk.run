@@ -33,7 +33,7 @@ install_config {
 </config>
 }
 
-build_boot_image "core init rom_blk test-rom_blk"
+build_boot_image "core ld.lib.so init rom_blk test-rom_blk"
 
 append qemu_args "-m 64 -nographic "
 

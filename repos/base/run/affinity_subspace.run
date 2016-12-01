@@ -8,8 +8,7 @@ if {[have_spec pbxa9] || (![have_spec nova] && ![have_spec foc])} {
 	exit 0
 }
 
-
-build "core init test/affinity"
+build "core ld.lib.so init test/affinity"
 
 create_boot_directory
 

@@ -31,7 +31,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init timer loader test-dynamic_config test-dynamic_config_loader"
+build_boot_image "core ld.lib.so init timer loader test-dynamic_config test-dynamic_config_loader"
 
 append qemu_args "-nographic -m 64"
 

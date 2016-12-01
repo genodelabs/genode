@@ -57,7 +57,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv test-input
+	core ld.lib.so init timer usb_drv test-input
 }
 
 build_boot_image $boot_modules

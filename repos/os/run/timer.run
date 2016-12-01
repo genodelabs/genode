@@ -39,7 +39,7 @@ install_config {
 }
 
 # Build boot files from source binaries
-build_boot_image { core init timer test-timer }
+build_boot_image { core ld.lib.so init timer test-timer }
 
 # Configure Qemu
 append qemu_args " -m 64 -nographic"

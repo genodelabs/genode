@@ -84,13 +84,6 @@ static Genode::Xml_node vfs_config()
 
 void Component::construct(Genode::Env &env)
 {
-	/* look for dynamic linker */
-	Genode::Dataspace_capability ldso_ds;
-	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		ldso_ds = rom.dataspace();
-	} catch (...) { }
-
 	using Genode::Signal_context;
 	using Genode::Signal_context_capability;
 	using Genode::Signal_receiver;

@@ -65,8 +65,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core
-	init
+	core ld.lib.so init
 	platform_drv
 	timer
 	test-affinity

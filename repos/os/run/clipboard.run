@@ -90,7 +90,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules { core init timer report_rom clipboard test-clipboard }
+set boot_modules { core ld.lib.so init timer report_rom clipboard test-clipboard }
 
 build_boot_image $boot_modules
 

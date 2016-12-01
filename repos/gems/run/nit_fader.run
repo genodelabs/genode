@@ -125,7 +125,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer dynamic_rom fb_sdl nitpicker nit_fader scout pointer
+	core ld.lib.so init timer dynamic_rom fb_sdl nitpicker nit_fader scout pointer
 }
 
 build_boot_image $boot_modules

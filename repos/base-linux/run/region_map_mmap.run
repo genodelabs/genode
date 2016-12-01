@@ -32,7 +32,7 @@ install_config {
 		</start>
 	</config>}
 
-build_boot_image "core init test-region_map_mmap timer test-signal"
+build_boot_image "core ld.lib.so init test-region_map_mmap timer test-signal"
 
 run_genode_until forever
 

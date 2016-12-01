@@ -56,7 +56,7 @@ install_config $config
 #
 
 build_boot_image {
-	core init timer terminal_crosslink
+	core ld.lib.so init timer terminal_crosslink
 	test-terminal_crosslink
 }
 

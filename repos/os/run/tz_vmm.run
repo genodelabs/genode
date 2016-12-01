@@ -209,7 +209,7 @@ if {![file exists linux]} {
 exec >& /dev/null wget -O linux.md5 $linux_uri.md5
 exec md5sum -c linux.md5
 
-set boot_modules { core init tz_vmm linux }
+set boot_modules { core ld.lib.so init tz_vmm linux }
 
 if { $dtb } {
 

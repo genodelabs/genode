@@ -28,7 +28,7 @@ install_config {
 </config>
 }
 
-build_boot_image { core init timer test-vmm_utils }
+build_boot_image { core ld.lib.so init timer test-vmm_utils }
 
 append qemu_args " -m 512 "
 append qemu_args " -cpu phenom "

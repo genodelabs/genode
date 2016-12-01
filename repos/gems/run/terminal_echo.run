@@ -79,7 +79,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer terminal test-terminal_echo
+	core ld.lib.so init timer terminal test-terminal_echo
 }
 
 # platform-specific modules

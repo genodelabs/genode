@@ -79,6 +79,7 @@ append config {
 		<config>
 			<policy label_prefix="test-loader">
 				<parent-rom name="testnit"/>
+				<parent-rom name="ld.lib.so"/>
 			</policy>
 		</config>
 	</start>
@@ -94,7 +95,7 @@ install_config $config
 #
 
 # generic modules
-set boot_modules { core init timer nitpicker testnit loader test-loader }
+set boot_modules { core ld.lib.so init timer nitpicker testnit loader test-loader }
 
 # platform-specific modules
 lappend_if [have_spec linux]       boot_modules fb_sdl

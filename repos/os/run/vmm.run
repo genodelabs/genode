@@ -90,7 +90,7 @@ if {![file exists bin/dtb]} {
 }
 
 set boot_modules {
-	core init
+	core ld.lib.so init
 	platform_drv
 	uart_drv
 	timer

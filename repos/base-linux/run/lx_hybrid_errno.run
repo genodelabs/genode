@@ -36,7 +36,7 @@ install_config {
 #
 
 # generic modules
-set boot_modules { core init test-lx_hybrid_errno }
+set boot_modules { core ld.lib.so init test-lx_hybrid_errno }
 
 build_boot_image $boot_modules
 

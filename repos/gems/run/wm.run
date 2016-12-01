@@ -240,14 +240,14 @@ foreach file { genode_logo.png grid.png } {
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	wm decorator
 	floating_window_layouter
 	nitpicker pointer report_rom
 	backdrop
 	testnit launchpad nit_fb
-	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
 	genode_logo.png grid.png
 }
 

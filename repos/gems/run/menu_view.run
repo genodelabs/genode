@@ -143,8 +143,8 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer dynamic_rom fb_sdl nitpicker pointer menu_view
-	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	core ld.lib.so init timer dynamic_rom fb_sdl nitpicker pointer menu_view
+	libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
 	menu_view_styles.tar
 	scout
 }

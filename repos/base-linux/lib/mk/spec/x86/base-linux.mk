@@ -6,4 +6,4 @@
 
 SRC_CC += cache.cc
 
-include $(REP_DIR)/lib/mk/base.mk
+include $(REP_DIR)/lib/mk/base-linux.mk

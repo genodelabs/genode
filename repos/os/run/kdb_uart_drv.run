@@ -68,7 +68,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer
+	core ld.lib.so init timer
 	kdb_uart_drv
 	test-terminal_echo
 }

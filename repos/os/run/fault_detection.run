@@ -51,6 +51,7 @@ install_config {
 			<config>
 				<policy label_prefix="test-fault_detection">
 					<parent-rom name="test-segfault"/>
+					<parent-rom name="ld.lib.so"/>
 					<parent-rom name="init"/>
 				</policy>
 			</config>
@@ -66,7 +67,7 @@ install_config {
 #
 
 # generic modules
-set boot_modules { core init loader test-fault_detection test-segfault }
+set boot_modules { core ld.lib.so init loader test-fault_detection test-segfault }
 
 build_boot_image $boot_modules
 

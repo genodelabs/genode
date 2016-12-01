@@ -37,7 +37,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init timer test-timeout"
+build_boot_image "core ld.lib.so init timer test-timeout"
 
 #
 # Execution

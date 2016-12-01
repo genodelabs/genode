@@ -8,7 +8,7 @@
 LIBS += core-perf_counter
 
 # add library dependencies
-LIBS += base-common
+LIBS += base-hw-common
 
 # add include paths
 INC_DIR += $(BASE_DIR)/../base-hw/src/core/include

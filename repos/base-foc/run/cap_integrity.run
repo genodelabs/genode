@@ -21,7 +21,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init test-cap_integrity"
+build_boot_image "core ld.lib.so init test-cap_integrity"
 
 append qemu_args "-nographic -m 64"
 

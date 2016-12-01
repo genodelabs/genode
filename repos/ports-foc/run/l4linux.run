@@ -121,7 +121,7 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core init timer kdb_uart_drv l4linux initrd.gz }
+set boot_modules { core ld.lib.so init timer kdb_uart_drv l4linux initrd.gz }
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if $use_nic_driver         boot_modules nic_drv

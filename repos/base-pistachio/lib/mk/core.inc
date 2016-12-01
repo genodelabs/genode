@@ -1,5 +1,5 @@
 REQUIRES     = pistachio
-LIBS         = base-common
+LIBS         = base-pistachio-common
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 

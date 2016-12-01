@@ -88,9 +88,9 @@ install_config $config
 # Boot modules
 #
 set boot_modules {
-	core init timer test-iso rom_blk
+	core ld.lib.so init timer test-iso rom_blk
 	rump.lib.so rump_fs.lib.so rump_fs
-	ld.lib.so fs.iso fs_rom
+	fs.iso fs_rom
 }
 
 

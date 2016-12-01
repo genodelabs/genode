@@ -1,5 +1,5 @@
 SHARED_LIB = yes
-DIR        = $(REP_DIR)/src/lib/ldso
+DIR        = $(BASE_DIR)/src/lib/ldso
 
 include $(BASE_DIR)/mk/base-libs.mk
 
@@ -25,7 +25,7 @@ ENTRY_POINT = _start
 LD_OPT     += -T$(DIR)/linker.ld
 endif
 
-include $(REP_DIR)/lib/import/import-ld.mk
+include $(BASE_DIR)/lib/import/import-ld.mk
 
 vpath %.cc $(DIR)
 

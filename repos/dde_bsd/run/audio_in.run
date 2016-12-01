@@ -82,7 +82,7 @@ install_config $config
 #
 
 set boot_modules {
-	core init timer audio_drv test-audio_in
+	core ld.lib.so init timer audio_drv test-audio_in
 }
 
 append_platform_drv_boot_modules

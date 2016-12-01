@@ -397,7 +397,7 @@ script, which can be executed directly from within your build directory.
 A run script for the hello client-server scenario should be placed
 at the _run/hello.run_ and look as follows:
 
-!build { core init hello }
+!build { core ld.lib.so init hello }
 !
 !create_boot_directory
 !

@@ -5,7 +5,7 @@ SEOUL_GENODE_DIR  = $(SEOUL_CONTRIB_DIR)/genode
 
 REQUIRES += nova
 
-LIBS   += base blit alarm seoul_libc_support config
+LIBS   += base-nova blit alarm seoul_libc_support config
 SRC_CC  = main.cc nova_user_env.cc device_model_registry.cc
 SRC_CC += console.cc keyboard.cc network.cc disk.cc
 SRC_BIN = mono.tff

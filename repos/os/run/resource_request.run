@@ -29,7 +29,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init timer test-resource_request"
+build_boot_image "core ld.lib.so init timer test-resource_request"
 
 append qemu_args "-nographic -m 128"
 

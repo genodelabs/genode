@@ -31,7 +31,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init test-util_mmio"
+build_boot_image "core ld.lib.so init test-util_mmio"
 
 #
 # Execution

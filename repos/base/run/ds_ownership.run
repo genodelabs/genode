@@ -31,7 +31,7 @@ install_config {
 </config>
 }
 
-build_boot_image "core init test-ds_ownership"
+build_boot_image "core ld.lib.so init test-ds_ownership"
 
 append qemu_args "-nographic -m 64"
 

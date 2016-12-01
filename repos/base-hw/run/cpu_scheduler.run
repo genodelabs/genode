@@ -26,7 +26,7 @@ install_config {
 	</config>}
 
 # create single boot image from the compiled program images
-build_boot_image "core init test-cpu_scheduler"
+build_boot_image "core ld.lib.so init test-cpu_scheduler"
 
 # configure qemu to use 64 MB RAM and avoid GUI mode
 append qemu_args " -m 64 -nographic"

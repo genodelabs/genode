@@ -242,7 +242,7 @@ close $launchpad_config_fd
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	nitpicker pointer status_bar report_rom rom_filter xray_trigger
 	liquid_fb launchpad scout testnit nitlog

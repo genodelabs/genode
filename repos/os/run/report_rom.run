@@ -42,7 +42,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init timer report_rom test-report_rom"
+build_boot_image "core ld.lib.so init timer report_rom test-report_rom"
 
 append qemu_args "-nographic -m 128"
 

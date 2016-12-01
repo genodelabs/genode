@@ -89,9 +89,8 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer
-	usb_drv
-	ld.lib.so libc.lib.so lwip.lib.so test-lwip_httpsrv
+	core ld.lib.so init timer usb_drv
+	libc.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 append_platform_drv_boot_modules

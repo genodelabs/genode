@@ -56,7 +56,7 @@ append config {
 
 install_config $config
 
-set boot_modules { core init test-affinity }
+set boot_modules { core ld.lib.so init test-affinity }
 
 lappend_if [have_spec arndale] boot_modules platform_drv
 

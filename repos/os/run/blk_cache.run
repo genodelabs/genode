@@ -60,7 +60,7 @@ install_config {
 #
 # Boot modules
 #
-build_boot_image { core init timer test-blk-srv blk_cache test-blk-cli }
+build_boot_image { core ld.lib.so init timer test-blk-srv blk_cache test-blk-cli }
 
 #
 # Qemu

@@ -230,7 +230,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so noux terminal ram_fs log_terminal
+	core ld.lib.so init timer noux terminal ram_fs log_terminal
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
 	bash.tar coreutils.tar diffutils.tar vim.tar
 	fs_log cpu_sampler test-cpu_sampler

@@ -33,7 +33,7 @@ install_config {
 	</start>
 </config>}
 
-build_boot_image { core init timer rtc_drv test-rtc }
+build_boot_image { core ld.lib.so init timer rtc_drv test-rtc }
 
 append qemu_args " -nographic -m 128 "
 

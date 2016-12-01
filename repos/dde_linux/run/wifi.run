@@ -131,9 +131,8 @@ set firmware_modules {
 
 # generic modules
 set boot_modules {
-	core init timer rtc_drv report_rom dynamic_rom
+	core ld.lib.so init timer rtc_drv report_rom dynamic_rom
 	vfs_jitterentropy.lib.so
-	ld.lib.so
 	libc.lib.so libcrypto.lib.so libssl.lib.so
 	wpa_driver_nl80211.lib.so wpa_supplicant.lib.so
 	wifi.lib.so

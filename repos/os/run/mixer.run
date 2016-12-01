@@ -172,7 +172,7 @@ if {[expr ![file exists bin/client1.f32] || ![file exists bin/client2.f32]]} {
 
 # generic modules
 set boot_modules {
-	core init timer
+	core ld.lib.so init timer
 	report_rom dynamic_rom
 	audio_drv test-audio_out
 	mixer client1.f32 client2.f32

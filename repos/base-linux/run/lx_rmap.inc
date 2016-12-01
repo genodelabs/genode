@@ -53,7 +53,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules { core init}
+set boot_modules { core ld.lib.so init }
 
 lappend_if [expr {$test_type eq "static"}]  boot_modules test-lx_rmap_static
 lappend_if [expr {$test_type eq "dynamic"}] boot_modules test-lx_rmap_dynamic

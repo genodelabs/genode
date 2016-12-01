@@ -45,7 +45,7 @@ install_config {
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	test-timed_semaphore
 }

@@ -79,7 +79,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv test-blk-cli
+	core ld.lib.so init timer usb_drv test-blk-cli
 }
 
 append_platform_drv_boot_modules

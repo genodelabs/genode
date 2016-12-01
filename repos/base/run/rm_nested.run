@@ -24,7 +24,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init test-rm_nested"
+build_boot_image "core ld.lib.so init test-rm_nested"
 
 append qemu_args "-nographic -m 64"
 

@@ -62,7 +62,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer uart_drv test-terminal_echo
 }
 

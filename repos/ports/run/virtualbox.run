@@ -140,7 +140,7 @@ install_config $config
 
 exec cp ${genode_dir}/repos/ports/run/test.vbox bin/.
 
-set boot_modules { core init timer virtualbox test.iso test.vbox }
+set boot_modules { core ld.lib.so init timer virtualbox test.iso test.vbox }
 
 # platform-specific modules
 lappend_if [expr         $use_usb] boot_modules usb_drv

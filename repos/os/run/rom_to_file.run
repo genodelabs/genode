@@ -64,7 +64,7 @@ install_config {
 
 exec mkdir -p bin/fs_test
 
-build_boot_image { core init timer
+build_boot_image { core ld.lib.so init timer
 	dynamic_rom
 	rom_to_file
 	lx_fs

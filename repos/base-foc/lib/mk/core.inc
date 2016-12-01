@@ -2,7 +2,7 @@ REQUIRES    += foc
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-LIBS        += base-common
+LIBS        += base-foc-common
 
 SRC_CC      += stack_area.cc \
                core_log.cc \

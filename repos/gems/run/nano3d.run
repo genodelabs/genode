@@ -131,11 +131,11 @@ foreach file { genode_logo.png grid.png } {
 
 # generic modules
 set boot_modules {
-	core init
+	core ld.lib.so init
 	timer
 	nitpicker dynamic_rom nano3d
 	backdrop
-	ld.lib.so libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
+	libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
 	genode_logo.png grid.png
 }
 

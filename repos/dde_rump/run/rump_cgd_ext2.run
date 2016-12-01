@@ -119,9 +119,8 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ram_blk rump_cgd rump_fs test-libc_vfs
-	ld.lib.so libc.lib.so
-	rump.lib.so rump_cgd.lib.so rump_fs.lib.so
+	core ld.lib.so init timer ram_blk rump_cgd rump_fs test-libc_vfs
+	libc.lib.so rump.lib.so rump_cgd.lib.so rump_fs.lib.so
 }
 
 append boot_modules "$disk_image"

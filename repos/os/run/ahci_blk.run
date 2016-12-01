@@ -75,7 +75,7 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core init timer ahci_drv test-blk-cli }
+set boot_modules { core ld.lib.so init timer ahci_drv test-blk-cli }
 
 append_platform_drv_boot_modules
 

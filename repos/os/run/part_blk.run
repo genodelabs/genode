@@ -92,7 +92,7 @@ install_config {
 # Boot modules
 #
 
-build_boot_image { core init timer rom_blk part_blk test-blk-cli ata.raw }
+build_boot_image { core ld.lib.so init timer rom_blk part_blk test-blk-cli ata.raw }
 
 #
 # Qemu

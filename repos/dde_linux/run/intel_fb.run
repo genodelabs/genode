@@ -116,7 +116,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer intel_fb_drv intel_fb_controller
+	core ld.lib.so init timer intel_fb_drv intel_fb_controller
 	test-framebuffer report_rom ram_fs fs_rom
 }
 

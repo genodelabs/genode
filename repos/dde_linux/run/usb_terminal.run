@@ -92,7 +92,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv test-terminal_echo
+	core ld.lib.so init timer usb_drv test-terminal_echo
 	usb_terminal
 }
 

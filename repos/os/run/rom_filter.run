@@ -111,7 +111,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules { core init timer dynamic_rom rom_filter rom_logger }
+set boot_modules { core ld.lib.so init timer dynamic_rom rom_filter rom_logger }
 
 build_boot_image $boot_modules
 

@@ -46,7 +46,7 @@ install_config {
 #
 # Boot modules
 #
-build_boot_image { core init timer test-blk-srv test-blk-cli }
+build_boot_image { core ld.lib.so init timer test-blk-srv test-blk-cli }
 
 append qemu_args " -nographic -m 64 "
 run_genode_until "Tests finished successfully.*\n" 100

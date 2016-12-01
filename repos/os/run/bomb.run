@@ -56,6 +56,6 @@ create_boot_directory
 
 install_config $config
 
-build_boot_image "core init bomb timer"
+build_boot_image "core ld.lib.so init bomb timer"
 
 run_genode_until {.*Done\. Going to sleep.*} $timeout
