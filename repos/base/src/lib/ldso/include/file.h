@@ -75,11 +75,11 @@ struct Linker::File
  */
 struct Linker::Elf_file : File
 {
-	Env                                 &env;
-	Lazy_volatile_object<Rom_connection> rom_connection;
-	Rom_session_client                   rom;
-	Ram_dataspace_capability             ram_cap[Phdr::MAX_PHDR];
-	bool                           const loaded;
+	Env                          &env;
+	Constructible<Rom_connection> rom_connection;
+	Rom_session_client            rom;
+	Ram_dataspace_capability      ram_cap[Phdr::MAX_PHDR];
+	bool                    const loaded;
 
 	typedef String<64> Name;
 

@@ -47,7 +47,7 @@ class Track : Thread_deprecated<8192>
 {
 	private:
 
-		Lazy_volatile_object<Audio_out::Connection> _audio_out[CHN_CNT];
+		Constructible<Audio_out::Connection> _audio_out[CHN_CNT];
 
 		String<64> const _name;
 

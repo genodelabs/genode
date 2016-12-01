@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__OS__REPORTER_H_
 #define _INCLUDE__OS__REPORTER_H_
 
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/attached_dataspace.h>
 #include <report_session/connection.h>
 #include <util/xml_generator.h>
@@ -47,7 +47,7 @@ class Genode::Reporter : Noncopyable
 			: report(name, buffer_size) { }
 		};
 
-		Lazy_volatile_object<Connection> _conn;
+		Constructible<Connection> _conn;
 
 		/**
 		 * Return size of report buffer

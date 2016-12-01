@@ -14,7 +14,7 @@
 #include <base/component.h>
 #include <base/env.h>
 
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 #include <os/attached_rom_dataspace.h>
 
@@ -35,11 +35,11 @@ struct Platform::Main
 	Genode::Env &_env;
 	Genode::Sliced_heap sliced_heap { _env.ram(), _env.rm() };
 
-	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> acpi_rom;
-	Genode::Lazy_volatile_object<Platform::Root> root;
+	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_rom;
+	Genode::Constructible<Platform::Root> root;
 
-	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> system_state;
-	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> acpi_ready;
+	Genode::Constructible<Genode::Attached_rom_dataspace> system_state;
+	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_ready;
 
 	Genode::Signal_handler<Platform::Main> _acpi_report;
 	Genode::Signal_handler<Platform::Main> _system_report;

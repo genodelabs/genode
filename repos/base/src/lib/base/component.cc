@@ -58,7 +58,7 @@ namespace {
 			void block() { _sig_rec.wait_for_signal(); }
 		};
 
-		Lazy_volatile_object<Blockade> _session_blockade;
+		Constructible<Blockade> _session_blockade;
 
 		Env(Genode::Entrypoint &ep) : _ep(ep) { env_ptr = this; }
 

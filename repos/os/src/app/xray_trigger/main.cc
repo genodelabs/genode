@@ -48,7 +48,7 @@ struct Xray_trigger::Main
 	/**
 	 * Hover model as reported by nitpicker
 	 */
-	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> _hover_ds;
+	Genode::Constructible<Genode::Attached_rom_dataspace> _hover_ds;
 
 	/**
 	 * Reporter for posting the result of our policy decision

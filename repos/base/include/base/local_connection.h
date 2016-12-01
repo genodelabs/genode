@@ -83,7 +83,7 @@ class Genode::Local_connection : Local_connection_base
 
 		typedef typename CONNECTION::Session_type SESSION;
 
-		Lazy_volatile_object <typename SESSION::Client> _client;
+		Constructible <typename SESSION::Client> _client;
 
 	public:
 

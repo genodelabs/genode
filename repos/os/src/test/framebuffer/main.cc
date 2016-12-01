@@ -19,14 +19,14 @@
 #include <dataspace/client.h>
 #include <framebuffer_session/connection.h>
 #include <os/attached_dataspace.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 
 class Test_environment
 {
 	private:
 
-		using Ds = Genode::Lazy_volatile_object<Genode::Attached_dataspace>;
+		using Ds = Genode::Constructible<Genode::Attached_dataspace>;
 
 		enum Color {
 			BLACK = 0x0,

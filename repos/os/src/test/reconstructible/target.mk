@@ -1,3 +1,3 @@
-TARGET = test-volatile_object
+TARGET = test-reconstructible
 SRC_CC = main.cc
 LIBS   = base

@@ -96,7 +96,7 @@ class Log_console : public Console
 		void reconnect()
 		{
 			/*
-			 * We cannot use a 'Volatile_object' because we have to skip
+			 * We cannot use a 'Reconstructible' because we have to skip
 			 * the object destruction inside a freshly forked process.
 			 * Otherwise, the attempt to destruct the capability contained
 			 * in the 'Log' object would result in an inconsistent ref counter

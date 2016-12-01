@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Helper class to make the Genode Env globally available
  * \author Sebastian Sumpf
  * \date   2016-06-21
@@ -17,7 +17,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <base/heap.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 namespace Lx_kit {
 	class Env;

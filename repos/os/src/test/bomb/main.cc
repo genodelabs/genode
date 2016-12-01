@@ -165,7 +165,7 @@ void Component::construct(Genode::Env &env)
 	log("--- bomb started ---");
 
 	/* try to create timer session, if it fails, bomb is our parent */
-	static Lazy_volatile_object<Timer::Connection> timer;
+	static Constructible<Timer::Connection> timer;
 	try { timer.construct(env); } catch (Parent::Service_denied) { }
 
 	if (timer.constructed())

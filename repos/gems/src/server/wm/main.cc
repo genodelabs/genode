@@ -17,7 +17,7 @@
 #include <framebuffer_session/client.h>
 #include <cap_session/connection.h>
 #include <os/attached_rom_dataspace.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/xml_node.h>
 
 /* local includes */

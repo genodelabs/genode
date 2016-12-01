@@ -18,13 +18,13 @@
 #include <net/ipv4.h>
 #include <net/ethernet.h>
 #include <util/avl_tree.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 namespace Net {
 
 	class Arp_cache;
 	class Arp_cache_entry;
-	using Arp_cache_entry_slot = Genode::Lazy_volatile_object<Arp_cache_entry>;
+	using Arp_cache_entry_slot = Genode::Constructible<Arp_cache_entry>;
 }
 
 

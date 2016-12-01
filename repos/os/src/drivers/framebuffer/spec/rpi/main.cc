@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <os/attached_ram_dataspace.h>
 #include <os/static_root.h>
@@ -35,11 +35,11 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 {
 	private:
 
-		size_t                                 const _width;
-		size_t                                 const _height;
-		Lazy_volatile_object<Attached_ram_dataspace> _bb_mem;
-		Attached_io_mem_dataspace                    _fb_mem;
-		Timer::Connection                            _timer;
+		size_t                          const _width;
+		size_t                          const _height;
+		Constructible<Attached_ram_dataspace> _bb_mem;
+		Attached_io_mem_dataspace             _fb_mem;
+		Timer::Connection                     _timer;
 
 		void _refresh_buffered(int x, int y, int w, int h)
 		{

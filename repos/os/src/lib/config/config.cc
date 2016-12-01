@@ -80,12 +80,12 @@ Config::Config()
 { }
 
 
-Volatile_object<Config> &Genode::config()
+Reconstructible<Config> &Genode::config()
 {
 	static bool config_failed = false;
 	if (!config_failed) {
 		try {
-			static Volatile_object<Config> config_inst;
+			static Reconstructible<Config> config_inst;
 			return config_inst;
 		} catch (Genode::Rom_connection::Rom_connection_failed) {
 			Genode::error("Could not obtain config file");

@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/arg_string.h>
 #include <util/xml_generator.h>
 #include <base/heap.h>
@@ -27,7 +27,7 @@ namespace Rom_filter {
 	using Genode::Rpc_object;
 	using Genode::Sliced_heap;
 	using Genode::env;
-	using Genode::Lazy_volatile_object;
+	using Genode::Constructible;
 	using Genode::Xml_generator;
 	using Genode::size_t;
 
@@ -61,7 +61,7 @@ class Rom_filter::Session_component : public Rpc_object<Genode::Rom_session>,
 
 		Session_list &_sessions;
 
-		Lazy_volatile_object<Genode::Attached_ram_dataspace> _ram_ds;
+		Constructible<Genode::Attached_ram_dataspace> _ram_ds;
 
 	public:
 
@@ -157,7 +157,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 
 	Input_rom_registry _input_rom_registry { *env()->heap(), _ep, *this };
 
-	Genode::Lazy_volatile_object<Genode::Attached_ram_dataspace> _xml_ds;
+	Genode::Constructible<Genode::Attached_ram_dataspace> _xml_ds;
 
 	size_t _xml_output_len = 0;
 

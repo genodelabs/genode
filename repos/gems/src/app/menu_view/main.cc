@@ -26,7 +26,7 @@ struct Menu_view::Main
 {
 	Nitpicker::Connection nitpicker;
 
-	Lazy_volatile_object<Nitpicker_buffer> buffer;
+	Constructible<Nitpicker_buffer> buffer;
 
 	Nitpicker::Session::View_handle view_handle = nitpicker.create_view();
 

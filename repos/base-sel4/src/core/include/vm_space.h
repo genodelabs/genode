@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/bit_allocator.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <base/log.h>
 #include <base/thread.h>
 #include <base/session_label.h>
@@ -101,7 +101,7 @@ class Genode::Vm_space
 				 * objects (where we cannot pass any arguments to the
 				 * constructors of the individual objects).
 				 */
-				Lazy_volatile_object<Cnode> _cnode;
+				Constructible<Cnode> _cnode;
 
 			public:
 

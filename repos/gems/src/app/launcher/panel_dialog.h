@@ -81,7 +81,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 			Xml_node xml() const { return _xml; }
 		};
 
-		Lazy_volatile_object<Buffered_xml> _config;
+		Constructible<Buffered_xml> _config;
 
 		List<Element> _elements;
 

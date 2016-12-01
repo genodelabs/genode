@@ -16,7 +16,7 @@
 
 #include <log_session/connection.h>
 #include <vfs/single_file_system.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 namespace Vfs { class Log_file_system; }
 
@@ -28,8 +28,8 @@ class Vfs::Log_file_system : public Single_file_system
 		typedef Genode::String<64> Label;
 		Label _label;
 
-		Genode::Lazy_volatile_object<Genode::Log_connection>     _log_connection;
-		Genode::Lazy_volatile_object<Genode::Log_session_client> _log_client;
+		Genode::Constructible<Genode::Log_connection>     _log_connection;
+		Genode::Constructible<Genode::Log_session_client> _log_client;
 
 		Genode::Log_session & _log_session(Genode::Env &env)
 		{

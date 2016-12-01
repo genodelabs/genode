@@ -49,7 +49,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 				throw Genode::Root::Invalid_args(); }
 		}
 
-		Lazy_volatile_object<Genode::Attached_ram_dataspace> _ds;
+		Constructible<Genode::Attached_ram_dataspace> _ds;
 
 		size_t _content_size = 0;
 

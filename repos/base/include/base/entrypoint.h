@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__ENTRYPOINT_H_
 #define _INCLUDE__BASE__ENTRYPOINT_H_
 
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/noncopyable.h>
 #include <base/rpc_server.h>
 #include <base/signal.h>
@@ -68,12 +68,12 @@ class Genode::Entrypoint : Genode::Noncopyable
 
 		Env &_env;
 
-		Volatile_object<Rpc_entrypoint> _rpc_ep;
+		Reconstructible<Rpc_entrypoint> _rpc_ep;
 
 		Signal_proxy_component   _signal_proxy {*this};
 		Capability<Signal_proxy> _signal_proxy_cap = _rpc_ep->manage(&_signal_proxy);
 
-		Volatile_object<Signal_receiver> _sig_rec;
+		Reconstructible<Signal_receiver> _sig_rec;
 
 		void (*_suspended_callback) () = nullptr;
 		void (*_resumed_callback)   () = nullptr;
@@ -85,13 +85,13 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 * resume mechanism.
 		 */
 		void _handle_suspend() { }
-		Lazy_volatile_object<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher;
+		Constructible<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher;
 
 		void _dispatch_signal(Signal &sig);
 
 		void _process_incoming_signals();
 
-		Lazy_volatile_object<Signal_proxy_thread> _signal_proxy_thread;
+		Constructible<Signal_proxy_thread> _signal_proxy_thread;
 
 		friend class Startup;
 

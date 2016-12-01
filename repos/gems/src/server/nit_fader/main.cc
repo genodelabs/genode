@@ -22,7 +22,7 @@
 #include <os/pixel_rgb565.h>
 #include <os/pixel_alpha8.h>
 #include <os/static_root.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <nitpicker_gfx/texture_painter.h>
 #include <util/lazy_value.h>
 #include <timer_session/connection.h>
@@ -49,8 +49,8 @@ namespace Nit_fader {
 	using Genode::Attached_ram_dataspace;
 	using Genode::Texture;
 	using Genode::Surface;
-	using Genode::Volatile_object;
-	using Genode::Lazy_volatile_object;
+	using Genode::Reconstructible;
+	using Genode::Constructible;
 
 	typedef Genode::Pixel_rgb565 Pixel_rgb565;
 	typedef Genode::Pixel_alpha8 Pixel_alpha8;
@@ -140,7 +140,7 @@ class Nit_fader::Framebuffer_session_component
 		Nitpicker::Connection &_nitpicker;
 		Src_buffer            &_src_buffer;
 
-		Lazy_volatile_object<Dst_buffer> _dst_buffer;
+		Constructible<Dst_buffer> _dst_buffer;
 
 
 		Lazy_value<int> _fade;
@@ -263,7 +263,7 @@ class Nit_fader::Nitpicker_session_component
 
 		Server::Entrypoint &_ep;
 
-		Volatile_object<Src_buffer> _src_buffer { Area(1, 1), false };
+		Reconstructible<Src_buffer> _src_buffer { Area(1, 1), false };
 
 		Nitpicker::Connection _nitpicker;
 

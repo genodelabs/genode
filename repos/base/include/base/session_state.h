@@ -16,7 +16,7 @@
 
 #include <util/xml_generator.h>
 #include <util/list.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <session/capability.h>
 #include <base/id_space.h>
 #include <base/env.h>
@@ -60,17 +60,17 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 		Factory *_factory = nullptr;
 
-		Volatile_object<Id_space<Parent::Client>::Element> _id_at_client;
+		Reconstructible<Id_space<Parent::Client>::Element> _id_at_client;
 
 		Args     _args;
 		Affinity _affinity;
 
 	public:
 
-		Lazy_volatile_object<Id_space<Parent::Server>::Element> id_at_server;
+		Constructible<Id_space<Parent::Server>::Element> id_at_server;
 
 		/* ID for session requests towards the parent */
-		Lazy_volatile_object<Id_space<Parent::Client>::Element> id_at_parent;
+		Constructible<Id_space<Parent::Client>::Element> id_at_parent;
 
 		Parent::Client parent_client;
 

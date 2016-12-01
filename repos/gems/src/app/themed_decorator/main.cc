@@ -56,7 +56,7 @@ struct Decorator::Main : Window_factory_base
 	Signal_handler<Main> _pointer_handler = {
 		_env.ep(), *this, &Main::_handle_pointer_update };
 
-	Lazy_volatile_object<Attached_rom_dataspace> _pointer;
+	Constructible<Attached_rom_dataspace> _pointer;
 
 	Window_base::Hover _hover;
 

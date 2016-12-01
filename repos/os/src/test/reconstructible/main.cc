@@ -1,5 +1,5 @@
 /*
- * \brief  Test for 'Volatile_object'
+ * \brief  Test for 'Reconstructible'
  * \author Norman Feske
  * \date   2013-01-10
  */
@@ -12,11 +12,11 @@
  */
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <base/log.h>
 
-using Genode::Volatile_object;
-using Genode::Lazy_volatile_object;
+using Genode::Reconstructible;
+using Genode::Constructible;
 using Genode::log;
 
 
@@ -59,8 +59,8 @@ struct Member_with_reference
 
 struct Compound
 {
-	Volatile_object<Member_with_reference>      member;
-	Lazy_volatile_object<Member_with_reference> lazy_member;
+	Reconstructible<Member_with_reference>      member;
+	Constructible<Member_with_reference> lazy_member;
 
 	Compound(Object &object)
 	:
@@ -115,7 +115,7 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	log("--- test-volatile_object started ---");
+	log("--- test-reconstructible started ---");
 
 	{
 		Object object_1(1);
@@ -149,7 +149,7 @@ int main(int, char **)
 		log("-- try to call method on member, catch exception --");
 		try {
 			call_const_method(compound); }
-		catch (typename Volatile_object<Member_with_reference>::Deref_unconstructed_object) {
+		catch (typename Reconstructible<Member_with_reference>::Deref_unconstructed_object) {
 			log("got exception, as expected"); }
 
 		log("-- destruct Compound and Objects 1 and 2 --");
@@ -159,14 +159,14 @@ int main(int, char **)
 		log("-- construct Throwing object");
 		Bool const b_false(false), b_true(true);
 
-		Volatile_object<Throwing> inst(b_false);
+		Reconstructible<Throwing> inst(b_false);
 		inst.construct(b_true);
 		Genode::error("expected contructor to throw");
 	} catch (int i) {
 		log("-- catched exception as expected");
 	}
 
-	log("--- test-volatile_object finished ---");
+	log("--- test-reconstructible finished ---");
 
 	return 0;
 }

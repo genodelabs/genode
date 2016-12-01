@@ -94,12 +94,12 @@ class Noux::Rom_session_component : public Rpc_object<Rom_session>
 			~Vfs_dataspace() { root_dir.release(name.string(), ds); }
 		};
 
-		Lazy_volatile_object<Vfs_dataspace> _rom_from_vfs;
+		Constructible<Vfs_dataspace> _rom_from_vfs;
 
 		/**
 		 * Wrapped ROM session at core
 		 */
-		Lazy_volatile_object<Rom_connection> _rom_from_parent;
+		Constructible<Rom_connection> _rom_from_parent;
 
 		Dataspace_capability _init_ds_cap(Name const &name)
 		{

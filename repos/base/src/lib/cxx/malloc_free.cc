@@ -18,7 +18,7 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <util/string.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>

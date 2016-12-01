@@ -89,7 +89,7 @@ class Linker::Elf_object : public Object, public Fifo<Elf_object>::Element
 		/*
 		 * Optional ELF file, skipped for initial 'Ld' initialization
 		 */
-		Lazy_volatile_object<Elf_file> _elf_file;
+		Constructible<Elf_file> _elf_file;
 
 
 		bool _object_init(Object::Name const &name, Elf::Addr reloc_base)
@@ -557,9 +557,9 @@ class Linker::Config
 };
 
 
-static Genode::Lazy_volatile_object<Heap> &heap()
+static Genode::Constructible<Heap> &heap()
 {
-	return *unmanaged_singleton<Lazy_volatile_object<Heap>>();
+	return *unmanaged_singleton<Constructible<Heap>>();
 }
 
 

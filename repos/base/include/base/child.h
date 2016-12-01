@@ -311,7 +311,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Env_connection<Rom_connection> _binary { _policy,
 			_id_space, Parent::Env::binary(), _policy.binary_name() };
 
-		Lazy_volatile_object<Env_connection<Rom_connection> > _linker { _policy,
+		Constructible<Env_connection<Rom_connection> > _linker { _policy,
 			_id_space, Parent::Env::linker(), _policy.linker_name() };
 
 		/* call 'Child_policy::init' methods for the environment sessions */

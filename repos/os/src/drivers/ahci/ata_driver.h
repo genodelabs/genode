@@ -181,9 +181,9 @@ struct Ata_driver : Port_driver
 	typedef ::String<Identity::Serial_number> Serial_string;
 	typedef ::String<Identity::Model_number>  Model_string;
 
-	Genode::Lazy_volatile_object<Identity>      info;
-	Genode::Lazy_volatile_object<Serial_string> serial;
-	Genode::Lazy_volatile_object<Model_string>  model;
+	Genode::Constructible<Identity>      info;
+	Genode::Constructible<Serial_string> serial;
+	Genode::Constructible<Model_string>  model;
 
 	Io_command                               *io_cmd = nullptr;
 	Block::Packet_descriptor                  pending[32];

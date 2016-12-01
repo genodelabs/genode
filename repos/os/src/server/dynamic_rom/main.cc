@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/arg_string.h>
 #include <base/heap.h>
 #include <base/component.h>
@@ -30,7 +30,7 @@ namespace Dynamic_rom {
 	using Genode::Rpc_object;
 	using Genode::Sliced_heap;
 	using Genode::Env;
-	using Genode::Lazy_volatile_object;
+	using Genode::Constructible;
 	using Genode::Signal_context_capability;
 	using Genode::Signal_handler;
 	using Genode::Xml_node;
@@ -54,7 +54,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 		unsigned                  _last_content_idx = ~0;
 		Signal_context_capability _sigh;
 
-		Lazy_volatile_object<Genode::Attached_ram_dataspace> _ram_ds;
+		Constructible<Genode::Attached_ram_dataspace> _ram_ds;
 
 		void _notify_client()
 		{

@@ -21,7 +21,7 @@
 #include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
 
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/xml_node.h>
 
 #include <acpica/acpica.h>
@@ -111,7 +111,7 @@ struct Acpica::Main
 	Genode::Attached_rom_dataspace config { env, "config" };
 
 	Genode::Signal_handler<Acpica::Main>                 sci_irq;
-	Genode::Lazy_volatile_object<Genode::Irq_connection> sci_conn;
+	Genode::Constructible<Genode::Irq_connection> sci_conn;
 
 	Acpica::Reportstate * report = nullptr;
 

@@ -18,7 +18,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <cpu_session/connection.h>
 #include <cpu_thread/client.h>
 
@@ -44,7 +44,7 @@ struct Helper : Thread
 
 	void entry()
 	{
-		Lazy_volatile_object<Helper> helper[CHILDREN];
+		Constructible<Helper> helper[CHILDREN];
 
 		for (unsigned i = 0; i < CHILDREN; ++i)
 			helper[i].construct(_env);
@@ -65,7 +65,7 @@ static void test_stack_alloc(Env &env)
 	 */
 	enum { HELPER = 10, CHILDREN = 9 };
 
-	Lazy_volatile_object<Helper<CHILDREN> > helper[HELPER];
+	Constructible<Helper<CHILDREN> > helper[HELPER];
 
 	for (unsigned i = 0; i < HELPER; ++i) helper[i].construct(env);
 	for (unsigned i = 0; i < HELPER; ++i) helper[i]->start();

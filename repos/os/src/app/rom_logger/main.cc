@@ -16,7 +16,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <util/print_lines.h>
 #include <base/component.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 namespace Rom_logger { struct Main; }
 
@@ -27,7 +27,7 @@ struct Rom_logger::Main
 
 	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Genode::Lazy_volatile_object<Genode::Attached_rom_dataspace> _rom_ds;
+	Genode::Constructible<Genode::Attached_rom_dataspace> _rom_ds;
 
 	typedef Genode::String<100> Rom_name;
 

@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__HEAP_H_
 
 #include <util/list.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <ram_session/ram_session.h>
 #include <region_map/region_map.h>
 #include <base/allocator_avl.h>
@@ -71,7 +71,7 @@ class Genode::Heap : public Allocator
 		};
 
 		Lock                           _lock;
-		Volatile_object<Allocator_avl> _alloc;        /* local allocator    */
+		Reconstructible<Allocator_avl> _alloc;        /* local allocator    */
 		Dataspace_pool                 _ds_pool;      /* list of dataspaces */
 		size_t                         _quota_limit;
 		size_t                         _quota_used;

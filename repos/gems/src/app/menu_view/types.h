@@ -27,7 +27,7 @@
 #include <os/pixel_rgb565.h>
 #include <os/pixel_alpha8.h>
 #include <os/texture_rgb888.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <nitpicker_gfx/text_painter.h>
 
 namespace Menu_view {

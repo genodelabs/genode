@@ -302,7 +302,7 @@ int main()
 	Genode::size_t const ram_quota = platform()->ram_alloc()->avail() - 224*1024;
 	log("", ram_quota / (1024*1024), " MiB RAM assigned to init");
 
-	static Volatile_object<Core_child>
+	static Reconstructible<Core_child>
 		init(services, *env()->ram_session(), env()->ram_session_cap(),
 		     ram_quota, core_cpu, core_cpu_cap);
 

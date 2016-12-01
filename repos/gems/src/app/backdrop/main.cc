@@ -20,7 +20,7 @@
 #include <nitpicker_gfx/box_painter.h>
 #include <nitpicker_gfx/texture_painter.h>
 #include <os/attached_dataspace.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/texture_rgb565.h>
 #include <os/texture_rgb888.h>
 
@@ -102,7 +102,7 @@ struct Backdrop::Main
 		}
 	};
 
-	Lazy_volatile_object<Buffer> buffer;
+	Constructible<Buffer> buffer;
 
 	Nitpicker::Session::View_handle view_handle = nitpicker.create_view();
 

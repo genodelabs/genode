@@ -19,7 +19,7 @@
 #include <decorator/window.h>
 #include <nitpicker_session/connection.h>
 #include <os/attached_dataspace.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 /* demo includes */
 #include <util/lazy_value.h>
@@ -232,14 +232,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 * decorations.
 		 */
 		Nitpicker::Connection _nitpicker_top_bottom;
-		Genode::Lazy_volatile_object<Nitpicker_buffer> _buffer_top_bottom;
+		Genode::Constructible<Nitpicker_buffer> _buffer_top_bottom;
 
 		/**
 		 * Nitpicker session that contains the left and right window
 		 * decorations.
 		 */
 		Nitpicker::Connection _nitpicker_left_right;
-		Genode::Lazy_volatile_object<Nitpicker_buffer> _buffer_left_right;
+		Genode::Constructible<Nitpicker_buffer> _buffer_left_right;
 
 		Nitpicker_view _bottom_view { _nitpicker, _nitpicker_top_bottom },
 		               _right_view  { _nitpicker, _nitpicker_left_right },

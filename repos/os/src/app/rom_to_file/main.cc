@@ -18,7 +18,7 @@
 #include <os/attached_rom_dataspace.h>
 #include <util/print_lines.h>
 #include <os/server.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 #include <base/heap.h>
 #include <base/allocator_avl.h>
@@ -49,7 +49,7 @@ struct Rom_to_file::Main
 
 	File_system::Connection _fs;
 
-	Lazy_volatile_object<Attached_rom_dataspace> _rom_ds;
+	Constructible<Attached_rom_dataspace> _rom_ds;
 
 	typedef Genode::String<100> Rom_name;
 

@@ -45,7 +45,7 @@ class Click
 {
 	private:
 
-		Lazy_volatile_object<Audio_out::Connection> _audio_out[CHANNELS];
+		Constructible<Audio_out::Connection> _audio_out[CHANNELS];
 
 		Attached_rom_dataspace _sample_ds;
 		char     const * const _base = _sample_ds.local_addr<char const>();

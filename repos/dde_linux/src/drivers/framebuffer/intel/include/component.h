@@ -21,7 +21,7 @@
 #include <dataspace/capability.h>
 #include <framebuffer_session/framebuffer_session.h>
 #include <timer_session/connection.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/attached_dataspace.h>
 #include <os/attached_ram_dataspace.h>
 #include <os/attached_rom_dataspace.h>
@@ -78,7 +78,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 {
 	private:
 
-		template <typename T> using Lazy = Genode::Lazy_volatile_object<T>;
+		template <typename T> using Lazy = Genode::Constructible<T>;
 
 		Driver                               _driver;
 		Genode::Attached_rom_dataspace      &_config;

@@ -17,7 +17,7 @@
 #include <base/tslab.h>
 #include <os/server.h>
 #include <timer_session/connection.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 /* Linux kit includes */
 #include <lx_kit/internal/list.h>

@@ -42,7 +42,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		unsigned short               _irq_line;
 		Irq_session_component       *_irq_session = nullptr;
 
-		Genode::Lazy_volatile_object<Genode::Io_mem_connection> _io_mem_config_extended;
+		Genode::Constructible<Genode::Io_mem_connection> _io_mem_config_extended;
 
 		class Io_mem : public Genode::Io_mem_connection,
 		               public Genode::List<Io_mem>::Element

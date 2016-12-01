@@ -61,7 +61,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 
 		Slave::Connection<Rom_connection> _hover_rom;
 
-		Lazy_volatile_object<Attached_dataspace> _hover_ds;
+		Constructible<Attached_dataspace> _hover_ds;
 
 		/* hovered element reported by menu view */
 		Slave::Connection<Report::Connection> _hover_report;

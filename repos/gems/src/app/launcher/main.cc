@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <decorator/xml_utils.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/attached_rom_dataspace.h>
 #include <nitpicker_session/connection.h>
 

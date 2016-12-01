@@ -15,7 +15,7 @@
 #define _CONFIG_H_
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/session_policy.h>
 #include <util/color.h>
 
@@ -28,7 +28,7 @@ namespace Decorator {
 	typedef Genode::String<200> Window_title;
 
 	using Genode::Allocator;
-	using Genode::Volatile_object;
+	using Genode::Reconstructible;
 }
 
 
@@ -114,7 +114,7 @@ class Decorator::Config
 
 		Genode::Allocator &_alloc;
 
-		Volatile_object<Buffered_xml> _buffered_config;
+		Reconstructible<Buffered_xml> _buffered_config;
 
 		/**
 		 * Maximum number of configured window controls

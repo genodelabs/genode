@@ -20,7 +20,7 @@
 #include <region_map/client.h>
 #include <base/allocator_avl.h>
 #include <util/retry.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
@@ -60,7 +60,7 @@ class Linker::Region_map
 
 	public:
 
-		typedef Lazy_volatile_object<Region_map> Constructible_region_map;
+		typedef Constructible<Region_map> Constructible_region_map;
 
 		static Constructible_region_map &r();
 

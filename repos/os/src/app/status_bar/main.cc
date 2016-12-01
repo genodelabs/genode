@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/xml_node.h>
 #include <util/color.h>
 #include <os/attached_rom_dataspace.h>
@@ -199,7 +199,7 @@ struct Main
 	Label       label;
 	Color       color;
 
-	Genode::Volatile_object<Status_bar_buffer> status_bar_buffer { nitpicker };
+	Genode::Reconstructible<Status_bar_buffer> status_bar_buffer { nitpicker };
 
 	Nitpicker::Session::View_handle const view { nitpicker.create_view() };
 

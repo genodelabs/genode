@@ -1132,7 +1132,7 @@ struct Nitpicker::Main
 		Framebuffer_screen(Framebuffer::Session &fb) : framebuffer(fb) { }
 	};
 
-	Genode::Volatile_object<Framebuffer_screen> fb_screen = { framebuffer };
+	Genode::Reconstructible<Framebuffer_screen> fb_screen = { framebuffer };
 
 	void handle_fb_mode();
 
@@ -1150,7 +1150,7 @@ struct Nitpicker::Main
 	 * on the first call of 'handle_config'.
 	 */
 	Genode::Heap domain_registry_heap { env.ram(), env.rm() };
-	Genode::Volatile_object<Domain_registry> domain_registry {
+	Genode::Reconstructible<Domain_registry> domain_registry {
 		domain_registry_heap, Genode::Xml_node("<config/>") };
 
 	User_state user_state = { global_keys, fb_screen->screen.size() };

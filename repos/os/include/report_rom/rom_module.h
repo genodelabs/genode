@@ -15,13 +15,13 @@
 #define _INCLUDE__REPORT_ROM__ROM_MODULE_H_
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <os/session_policy.h>
 #include <base/attached_ram_dataspace.h>
 
 namespace Rom {
 	using Genode::size_t;
-	using Genode::Lazy_volatile_object;
+	using Genode::Constructible;
 	using Genode::Attached_ram_dataspace;
 
 	class Module;
@@ -138,7 +138,7 @@ struct Rom::Module : Module_list::Element, Readable_module
 		 * allow for the immediate release of the underlying backing store when
 		 * the module gets destructed.
 		 */
-		Lazy_volatile_object<Attached_ram_dataspace> _ds;
+		Constructible<Attached_ram_dataspace> _ds;
 
 		/**
 		 * Content size, which may less than the capacilty of '_ds'.

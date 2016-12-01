@@ -16,7 +16,7 @@
 /*
  * Lx_kit enviroment instance
  */
-static Genode::Lazy_volatile_object<Lx_kit::Env> _env;
+static Genode::Constructible<Lx_kit::Env> _env;
 
 
 Lx_kit::Env &Lx_kit::env()

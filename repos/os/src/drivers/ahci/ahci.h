@@ -18,7 +18,7 @@
 #include <os/attached_mmio.h>
 #include <os/server.h>
 #include <util/retry.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 static bool constexpr verbose = false;
 

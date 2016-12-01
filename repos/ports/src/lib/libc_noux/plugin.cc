@@ -117,7 +117,7 @@ class Noux_connection
 
 			/*
 			 * Obtain new noux connection. Note that we cannot reconstruct
-			 * the connection via a 'Volatile_object' because this would
+			 * the connection via a 'Reconstructible' because this would
 			 * result in an inconsistent referernce count when attempting
 			 * to destruct the session capability in the just-cleared
 			 * capability space.

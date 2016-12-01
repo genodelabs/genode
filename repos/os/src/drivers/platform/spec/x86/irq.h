@@ -37,7 +37,7 @@ class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_se
 		Genode::Irq_sigh          _irq_sigh;
 		Genode::Irq_session::Info _msi_info;
 
-		Genode::Lazy_volatile_object<Genode::Irq_connection> _irq_conn;
+		Genode::Constructible<Genode::Irq_connection> _irq_conn;
 
 	public:
 

@@ -18,7 +18,7 @@
 #include <base/thread.h>
 #include <base/sleep.h>
 #include <base/trace/events.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -37,7 +37,7 @@ class Signal_handler_thread : Thread, Lock
 		 * thread because on some platforms (e.g., Fiasco.OC), the calling
 		 * thread context is used for implementing the signal-source protocol.
 		 */
-		Lazy_volatile_object<Signal_source_client> _signal_source;
+		Constructible<Signal_source_client> _signal_source;
 
 		void entry()
 		{
@@ -76,11 +76,11 @@ class Signal_handler_thread : Thread, Lock
 /*
  * The signal-handler thread will be constructed before global constructors are
  * called and, consequently, must not be a global static object. Otherwise, the
- * Lazy_volatile_object constructor will be executed twice.
+ * 'Constructible' constructor will be executed twice.
  */
-static Lazy_volatile_object<Signal_handler_thread> & signal_handler_thread()
+static Constructible<Signal_handler_thread> & signal_handler_thread()
 {
-	static Lazy_volatile_object<Signal_handler_thread> inst;
+	static Constructible<Signal_handler_thread> inst;
 	return inst;
 }
 

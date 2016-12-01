@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__ATTACHED_ROM_DATASPACE_H_
 #define _INCLUDE__BASE__ATTACHED_ROM_DATASPACE_H_
 
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/xml_node.h>
 #include <base/attached_dataspace.h>
 #include <rom_session/connection.h>
@@ -35,7 +35,7 @@ class Genode::Attached_rom_dataspace
 		 * always be valid once constructed, a 'Attached_rom_dataspace' has
 		 * to handle the validity of the dataspace.
 		 */
-		Lazy_volatile_object<Attached_dataspace> _ds;
+		Constructible<Attached_dataspace> _ds;
 
 		/**
 		 * Try to attach the ROM module, ignore invalid dataspaces

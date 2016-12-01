@@ -44,7 +44,7 @@ class Genode::Platform_pd : public Address_space
 
 		Cnode _cspace_cnode_1st;
 
-		Lazy_volatile_object<Cnode> _cspace_cnode_2nd[1UL << CSPACE_SIZE_LOG2_1ST];
+		Constructible<Cnode> _cspace_cnode_2nd[1UL << CSPACE_SIZE_LOG2_1ST];
 
 		Native_capability _parent;
 

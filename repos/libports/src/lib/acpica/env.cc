@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <acpica/acpica.h>
 #include <platform_session/client.h>
 
@@ -46,7 +46,7 @@ struct Acpica::Env
 	: env(env), heap(heap) { }
 };
 
-static Genode::Lazy_volatile_object<Acpica::Env> instance;
+static Genode::Constructible<Acpica::Env> instance;
 
 
 Genode::Allocator & Acpica::heap()     { return instance->heap; }

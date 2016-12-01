@@ -1122,7 +1122,7 @@ class Acpi_table
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
 
-		Genode::Lazy_volatile_object<Genode::Attached_io_mem_dataspace> _mmio;
+		Genode::Constructible<Genode::Attached_io_mem_dataspace> _mmio;
 
 		/**
 		 * Search for RSDP pointer signature in area

@@ -17,7 +17,7 @@
 #include <base/exception.h>
 #include <base/env.h>
 #include <base/shared_object.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 #include <util/fifo.h>
 #include <util/misc_math.h>
 #include <util/string.h>

@@ -29,7 +29,7 @@ namespace Genode {
 			Attached_ram_dataspace _fg;
 			Attached_ram_dataspace _bg;
 
-			Lazy_volatile_object<Attached_rom_dataspace> _parent_rom;
+			Constructible<Attached_rom_dataspace> _parent_rom;
 
 			bool _bg_has_pending_data;
 

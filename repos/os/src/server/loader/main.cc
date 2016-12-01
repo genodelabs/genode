@@ -167,7 +167,7 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			Signal_context_capability view_ready_sigh;
 
-			Lazy_volatile_object<Nitpicker::Session_component> session;
+			Constructible<Nitpicker::Session_component> session;
 
 			Local_nitpicker_factory(Entrypoint &ep, Ram_session &ram)
 			: _ep(ep), _ram(ram) { }
@@ -215,7 +215,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _local_ram };
 		Local_nitpicker_service     _nitpicker_service { _nitpicker_factory };
 		Signal_context_capability   _fault_sigh;
-		Lazy_volatile_object<Child> _child;
+		Constructible<Child>        _child;
 
 		/**
 		 * Return virtual nitpicker session component

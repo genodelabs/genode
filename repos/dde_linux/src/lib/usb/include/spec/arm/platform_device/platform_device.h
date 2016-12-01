@@ -27,15 +27,15 @@
 
 #include <irq_session/connection.h>
 #include <util/list.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 
 namespace Platform { struct Device; }
 
 struct Platform::Device : Platform::Abstract_device, Genode::List<Device>::Element
 {
-	unsigned                                             irq_num;
-	Genode::Lazy_volatile_object<Genode::Irq_connection> irq_connection;
+	unsigned                                      irq_num;
+	Genode::Constructible<Genode::Irq_connection> irq_connection;
 
 	Device(unsigned irq) : irq_num(irq) { }
 

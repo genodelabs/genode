@@ -22,7 +22,7 @@
 
 #include <util/mmio.h>
 #include <util/retry.h>
-#include <util/volatile_object.h>
+#include <util/reconstructible.h>
 
 /* os */
 #include <io_mem_session/connection.h>
@@ -84,7 +84,7 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 		Genode::Io_mem_dataspace_capability  _cap;
 		Genode::List<Bdf>                    _bdf_list;
 
-		Genode::Lazy_volatile_object<Genode::Io_mem_connection> _io_mem;
+		Genode::Constructible<Genode::Io_mem_connection> _io_mem;
 
 	public:
 
