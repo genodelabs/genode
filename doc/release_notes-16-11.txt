@@ -18,7 +18,7 @@ certain style of programming. Over the years, the drawbacks inherent in our
 original design became more and more clear and we drafted rough plans to
 overcome them. However, reworking the fundamental protocols of a system that
 already accommodates hundreds of component implementations cannot be taken
-light-handily. Because of this discomfort, we repeatedly deferred the topic -
+lightly. Because of this discomfort, we repeatedly deferred the topic -
 until now. With the rapidly growing workloads carried by Genode, we
 deliberately decided to address long-standing deficiencies rather than adding
 the features we originally planned according to the
@@ -46,9 +46,7 @@ Further topics of the current release range from added smart-card support,
 over a new timeout API, to a VFS-based time-based password generator. With
 respect to the road map, we postponed most topics originally planned. In
 particular, we intended to enable the use of Genode on top of Xen by following
-With respect to the road map, we postponed most topics originally planned for
-this release. Originally, we intended to enable the use of Genode on top of
-Xen by following the footsteps of the existing Muen support - using our custom
+the footsteps of the existing Muen support - using our custom
 base-hw kernel within a Xen DomU domain. However, before proceeding this
 route, we decided to modernize the kernel design, in particular with respect
 to bootstrapping and address-space management. Some parts of this line of work
@@ -169,7 +167,7 @@ are twofold. First, our workaround for realizing runtime environments in a
 multi-threaded way worked too well. So we were not constantly bothered by this
 design problem. Second and more importantly, redesigning the fundamental
 mechanism of the framework while not breaking the more than 300 existing
-components is quite scary. But in anticipation to the rapidly scaling
+components is quite scary. But in anticipation of the rapidly scaling
 workloads imposed on Genode, we had to take on the problem sooner or later.
 We figured that now - with the modernized framework API in place - it's the
 right time. From redesigning the interplay of parent and child components, we
