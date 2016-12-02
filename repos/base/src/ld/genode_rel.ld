@@ -85,6 +85,7 @@ SECTIONS
   .rodata1        : { *(.rodata1) }
 
   .eh_frame_hdr : { *(.eh_frame_hdr) } : eh_frame : ro
+  .gcc_except_table   : { *(.gcc_except_table .gcc_except_table.*) }
 
   /*
    * Adjust the address for the data segment.  We want to adjust up to
@@ -198,7 +199,6 @@ SECTIONS
     KEEP (*(.eh_frame))
     LONG(0)
   }
-  .gcc_except_table   : { *(.gcc_except_table .gcc_except_table.*) }
   _edata = .; PROVIDE (edata = .);
   __bss_start = .;
   .bss            :
