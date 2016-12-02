@@ -528,9 +528,6 @@ extern "C" void init_rtld()
 }
 
 
-Genode::size_t Component::stack_size() { return 16*1024*sizeof(long); }
-
-
 class Linker::Config
 {
 	private:
