@@ -28,8 +28,8 @@ extern void (*_dtors_start)();  /* begin of destructor table */
 extern void (*_dtors_end)();    /* end of destructor table */
 
 extern unsigned _start;         /* program entry point */
-extern unsigned _stack_low;     /* lower bound of intial stack */
-extern unsigned _stack_high;    /* upper bound of intial stack */
+
+extern unsigned char _initial_stack_base[];
 
 
 /***************************************************

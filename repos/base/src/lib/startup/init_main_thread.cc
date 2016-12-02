@@ -41,6 +41,12 @@ extern "C" void init_rtld() __attribute__((weak));
 void init_rtld() { }
 
 /**
+ * Lower bound of the stack, solely used for sanity checking
+ */
+extern unsigned char __initial_stack_base[];
+
+
+/**
  * The first thread in a program
  */
 class Main_thread : public Thread_deprecated<MAIN_THREAD_STACK_SIZE>
@@ -101,8 +107,24 @@ extern "C" void init_main_thread()
 	 * The new stack pointer enables the caller to switch from its current
 	 * environment to the those that the thread object provides.
 	 */
-	addr_t sp = reinterpret_cast<addr_t>(main_thread()->stack_top());
+	addr_t const sp = reinterpret_cast<addr_t>(main_thread()->stack_top());
 	init_main_thread_result = sp;
+
+	/*
+	 * Sanity check for the usage of the initial stack
+	 *
+	 * Because the initial stack is located in the BSS, it is zero-initialized.
+	 * We check that the stack still contains zeros at its lower boundary after
+	 * executing all the initialization code.
+	 */
+	enum { STACK_PAD = 256U };
+	for (unsigned i = 0; i < STACK_PAD; i++) {
+		if (__initial_stack_base[i] == 0)
+			continue;
+
+		error("initial stack overflow detected");
+		for (;;);
+	}
 }
 
 

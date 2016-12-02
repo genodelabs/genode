@@ -90,7 +90,9 @@
 
 	/* stack of the temporary initial environment */
 	.p2align 4
-	.space 32 * 1024
+	.global __initial_stack_base
+	__initial_stack_base:
+	.space 4*1024
 	_stack_high:
 
 	/* initial value of the ESP, EAX and EDI register */

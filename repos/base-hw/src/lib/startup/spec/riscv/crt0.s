@@ -36,5 +36,7 @@ _start:
 
 .bss
 	.p2align 8
-	.space 32*1024
+	.global __initial_stack_base
+	__initial_stack_base:
+	.space 4*1024
 	_stack_high:

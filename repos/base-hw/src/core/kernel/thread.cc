@@ -615,6 +615,9 @@ void Thread::print(Genode::Output &out) const
 }
 
 
+Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
+
+
 /*****************
  ** Core_thread **
  *****************/
@@ -624,7 +627,6 @@ Core_thread::Core_thread()
 {
 	using Genode::Native_utcb;
 
-	static Genode::uint8_t stack[DEFAULT_STACK_SIZE];
 	static Native_utcb * const utcb =
 		unmanaged_singleton<Native_utcb, Genode::get_page_size()>();
 
@@ -637,7 +639,7 @@ Core_thread::Core_thread()
 	utcb->cap_add(cap_id_invalid());
 
 	/* start thread with stack pointer at the top of stack */
-	sp = (addr_t)&stack + DEFAULT_STACK_SIZE;
+	sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
 	ip = (addr_t)&_core_start;
 
 	affinity(cpu_pool()->primary_cpu());
