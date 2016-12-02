@@ -85,7 +85,4 @@ void Component::construct(Genode::Env &env)
 
 
 Genode::size_t Component::stack_size() __attribute__((weak));
-Genode::size_t Component::stack_size()
-{
-	return 16UL * 1024 * sizeof(Genode::addr_t);
-}
+Genode::size_t Component::stack_size() { return 64*1024; }
