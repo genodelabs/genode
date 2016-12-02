@@ -80,8 +80,6 @@ class Genode::Platform_env : public Env_deprecated,
 		 */
 		Attached_stack_area _stack_area { _parent_client, _resources.pd };
 
-		char _initial_heap_chunk[sizeof(addr_t) * 4096];
-
 		/*
 		 * Emergency RAM reserve
 		 *
@@ -99,8 +97,7 @@ class Genode::Platform_env : public Env_deprecated,
 		:
 			_parent_client(Genode::parent_cap(), *this),
 			_resources(_parent_client),
-			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED,
-			      _initial_heap_chunk, sizeof(_initial_heap_chunk)),
+			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED),
 			_emergency_ram_ds(_resources.ram.alloc(_emergency_ram_size()))
 		{
 			env_stack_area_ram_session = &_resources.ram;
