@@ -128,7 +128,7 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 		/**
 		 * Apply cached view state to the physical nitpicker view
 		 */
-		void _apply_view_config()
+		void _unsynchronized_apply_view_config(Locked_ptr<View> &neighbor)
 		{
 			if (!_real_handle.valid())
 				return;
@@ -139,7 +139,6 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 
 			View_handle real_neighbor_handle;
 
-			Locked_ptr<View> neighbor(_neighbor_ptr);
 			if (neighbor.valid())
 				real_neighbor_handle = _real_nitpicker.view_handle(neighbor->real_view_cap());
 
@@ -152,6 +151,12 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 
 			if (real_neighbor_handle.valid())
 				_real_nitpicker.release_view_handle(real_neighbor_handle);
+		}
+
+		void _apply_view_config()
+		{
+			Locked_ptr<View> neighbor(_neighbor_ptr);
+			_unsynchronized_apply_view_config(neighbor);
 		}
 
 	public:
@@ -402,7 +407,10 @@ class Wm::Nitpicker::Child_view : public View,
 
 			_real_nitpicker.release_view_handle(parent_handle);
 
-			_apply_view_config();
+			if (_neighbor_ptr == _parent)
+				_unsynchronized_apply_view_config(parent);
+			else
+				_apply_view_config();
 		}
 
 		void update_child_stacking()
