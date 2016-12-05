@@ -64,7 +64,10 @@ void Alarm_timeout_scheduler::handle_timeout(Microseconds curr_time)
 	} else {
 		sleep_time_us = _time_source.max_timeout().value; }
 
-	if (sleep_time_us == 0) {
+	/* limit max timeout to a more reasonable value, e.g. 60s */
+	if (sleep_time_us > 60000000) {
+		sleep_time_us = 60000000;
+	} else if (sleep_time_us == 0) {
 		sleep_time_us = 1; }
 
 	_time_source.schedule_timeout(Microseconds(sleep_time_us), *this);
