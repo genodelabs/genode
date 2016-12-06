@@ -68,7 +68,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_timer.sigh(sigh);
-			_timer.trigger_periodic(10*1000);
+			if (sigh.valid())
+				_timer.trigger_periodic(100000000 / 5994); /* 59.94Hz */
 		}
 
 		void refresh(int x, int y, int w, int h) override
