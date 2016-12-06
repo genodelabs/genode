@@ -2,9 +2,6 @@
 # Build
 #
 
-# the lwip/http_clnt requires FOC
-assert_spec foc
-
 set tcp_up_to_down_1   1
 set tcp_up_to_down_2   1
 set tcp_down_to_up_1   1
