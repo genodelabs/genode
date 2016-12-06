@@ -156,14 +156,22 @@ static bool noux_syscall(Noux::Session::Syscall opcode)
 {
 	/*
 	 * Signal handlers might do syscalls themselves, so the 'sysio' object
-	 * needs to get saved before and restored after calling the signal handler.
+	 * needs to be saved before and restored after calling the signal handler.
+	 * There is only one global 'saved_sysio' buffer as signals are not checked
+	 * in nested calls of 'noux_syscall' from signal handlers.
 	 */
-	Noux::Sysio saved_sysio;
+	static Noux::Sysio saved_sysio;
 
 	bool ret = noux()->syscall(opcode);
 
+	static bool in_sigh = false; /* true if called from signal handler */
+
+	if (in_sigh)
+		return ret;
+
 	/* handle signals */
 	while (!sysio()->pending_signals.empty()) {
+		in_sigh = true;
 		Noux::Sysio::Signal signal = sysio()->pending_signals.get();
 		if (verbose_signals)
 			log(__func__, ": received signal ", (int)signal);
@@ -191,6 +199,7 @@ static bool noux_syscall(Noux::Session::Syscall opcode)
 			}
 		}
 	}
+	in_sigh = false;
 
 	return ret;
 }
