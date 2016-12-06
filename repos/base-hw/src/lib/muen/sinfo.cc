@@ -18,6 +18,13 @@
 #include <muen/sinfo.h>
 
 #include "musinfo.h"
+#include "muschedinfo.h"
+
+#define roundup(x, y) (                           \
+{                                                 \
+	const typeof(y) __y = y;                        \
+	(((x) + (__y - 1)) / __y) * __y;                \
+})
 
 static_assert(sizeof(subject_info_type) <= Sinfo::SIZE,
 	 "Size of subject info type larger than Sinfo::SIZE.");
@@ -106,7 +113,9 @@ static bool is_channel(const struct resource_type * const resource)
 
 Sinfo::Sinfo(const addr_t base_addr)
 {
-	sinfo = ((subject_info_type *)base_addr);
+	const uint64_t sinfo_page_size = roundup(sizeof(subject_info_type), 0x1000);
+	sinfo      = ((subject_info_type *)base_addr);
+	sched_info = ((scheduling_info_type *)(base_addr + sinfo_page_size));
 
 	if (!check_magic()) {
 		Genode::error("muen-sinfo: Subject information MAGIC mismatch");
@@ -244,7 +253,7 @@ uint64_t Sinfo::get_sched_start(void)
 	if (!check_magic())
 		return 0;
 
-	return sinfo->tsc_schedule_start;
+	return sched_info->tsc_schedule_start;
 }
 
 
@@ -253,7 +262,7 @@ uint64_t Sinfo::get_sched_end(void)
 	if (!check_magic())
 		return 0;
 
-	return sinfo->tsc_schedule_end;
+	return sched_info->tsc_schedule_end;
 }
 
 
