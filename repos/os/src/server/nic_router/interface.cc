@@ -350,7 +350,6 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			return;
 		}
 		catch (Forward_rule_tree::No_match) { }
-		catch (Pointer<Interface>::Invalid) { }
 	}
 	/* try to route via transport and permit rules */
 	try {
@@ -372,7 +371,6 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	}
 	catch (Transport_rule_list::No_match) { }
 	catch (Permit_single_rule_tree::No_match) { }
-	catch (Pointer<Interface>::Invalid) { }
 
 	/* try to route via IP rules */
 	try {
@@ -388,7 +386,6 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		return;
 	}
 	catch (Ip_rule_list::No_match) { }
-	catch (Pointer<Interface>::Invalid) { }
 
 	/* give up and drop packet */
 	if (_config().verbose()) {
@@ -550,6 +547,9 @@ void Interface::_handle_eth(void              *const  eth_base,
 
 	catch (Domain::No_next_hop) {
 		error("can not find next hop"); }
+
+	catch (Pointer<Interface>::Invalid) {
+		error("no interface connected to domain"); }
 }
 
 
