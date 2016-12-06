@@ -20,6 +20,7 @@
 #include <base/stdint.h>
 
 struct subject_info_type;
+struct scheduling_info_type;
 
 namespace Genode
 {
@@ -180,6 +181,7 @@ class Genode::Sinfo
 	private:
 
 		subject_info_type * sinfo;
+		scheduling_info_type * sched_info;
 		char subject_name[MAX_NAME_LENGTH + 1];
 		bool subject_name_set = false;
 
