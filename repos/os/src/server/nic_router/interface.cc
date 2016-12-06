@@ -92,8 +92,7 @@ static void _update_checksum(uint8_t       const prot,
 }
 
 
-static uint16_t _dst_port(uint8_t  const prot,
-                          void    *const prot_base)
+static Port _dst_port(uint8_t const prot, void *const prot_base)
 {
 	switch (prot) {
 	case Tcp_packet::IP_ID: return (*(Tcp_packet *)prot_base).dst_port();
@@ -102,9 +101,9 @@ static uint16_t _dst_port(uint8_t  const prot,
 }
 
 
-static void _dst_port(uint8_t   const prot,
-                      void     *const prot_base,
-                      uint16_t  const port)
+static void _dst_port(uint8_t  const prot,
+                      void    *const prot_base,
+                      Port     const port)
 {
 	switch (prot) {
 	case Tcp_packet::IP_ID: (*(Tcp_packet *)prot_base).dst_port(port); return;
@@ -113,8 +112,7 @@ static void _dst_port(uint8_t   const prot,
 }
 
 
-static uint16_t _src_port(uint8_t  const prot,
-                          void    *const prot_base)
+static Port _src_port(uint8_t const prot, void *const prot_base)
 {
 	switch (prot) {
 	case Tcp_packet::IP_ID: return (*(Tcp_packet *)prot_base).src_port();
@@ -123,9 +121,9 @@ static uint16_t _src_port(uint8_t  const prot,
 }
 
 
-static void _src_port(uint8_t   const prot,
-                      void     *const prot_base,
-                      uint16_t  const port)
+static void _src_port(uint8_t  const prot,
+                      void    *const prot_base,
+                      Port     const port)
 {
 	switch (prot) {
 	case Tcp_packet::IP_ID: ((Tcp_packet *)prot_base)->src_port(port); return;

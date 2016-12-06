@@ -36,20 +36,22 @@ void Forward_rule::print(Output &output) const
 Forward_rule::Forward_rule(Domain_tree &domains, Xml_node const &node)
 :
 	Leaf_rule(domains, node),
-	_port(node.attribute_value("port", 0UL)),
+	_port(node.attribute_value("port", Port(0))),
 	_to(node.attribute_value("to", Ipv4_address()))
 {
-	if (!_port || !_to.valid() || dynamic_port(_port)) {
+	if (_port == Port(0) || !_to.valid() || dynamic_port(_port)) {
 		throw Invalid(); }
 }
 
 
-Forward_rule const &Forward_rule::find_by_port(uint8_t const port) const
+Forward_rule const &Forward_rule::find_by_port(Port const port) const
 {
 	if (port == _port) {
 		return *this; }
 
-	Forward_rule *const rule = Avl_node<Forward_rule>::child(port > _port);
+	Forward_rule *const rule =
+		Avl_node<Forward_rule>::child(port.value > _port.value);
+
 	if (!rule) {
 		throw Forward_rule_tree::No_match(); }
 
@@ -61,7 +63,7 @@ Forward_rule const &Forward_rule::find_by_port(uint8_t const port) const
  ** Forward_rule_tree **
  ***********************/
 
-Forward_rule const &Forward_rule_tree::find_by_port(uint8_t const port) const
+Forward_rule const &Forward_rule_tree::find_by_port(Port const port) const
 {
 	if (!first()) {
 		throw No_match(); }

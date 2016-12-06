@@ -17,7 +17,7 @@
 /* Genode */
 #include <base/exception.h>
 #include <base/stdint.h>
-
+#include <net/port.h>
 #include <util/endian.h>
 #include <net/ethernet.h>
 #include <net/ipv4.h>
@@ -75,13 +75,13 @@ class Net::Udp_packet
 		 ** UDP field read-accessors **
 		 ******************************/
 
-		Genode::uint16_t src_port() const { return host_to_big_endian(_src_port); }
-		Genode::uint16_t dst_port() const { return host_to_big_endian(_dst_port); }
+		Port             src_port() const { return Port(host_to_big_endian(_src_port)); }
+		Port             dst_port() const { return Port(host_to_big_endian(_dst_port)); }
 		Genode::uint16_t length()   const { return host_to_big_endian(_length);   }
 		Genode::uint16_t checksum() const { return host_to_big_endian(_checksum); }
 
-		void src_port(Genode::uint16_t p) { _src_port = host_to_big_endian(p); }
-		void dst_port(Genode::uint16_t p) { _dst_port = host_to_big_endian(p); }
+		void src_port(Port p) { _src_port = host_to_big_endian(p.value); }
+		void dst_port(Port p) { _dst_port = host_to_big_endian(p.value); }
 
 		template <typename T> T *       data()       { return (T *)(_data); }
 		template <typename T> T const * data() const { return (T const *)(_data); }

@@ -54,7 +54,7 @@ Permit_any_rule::Permit_any_rule(Domain_tree &domains, Xml_node const &node)
 
 bool Permit_single_rule::higher(Permit_single_rule *rule)
 {
-	return rule->_port > _port;
+	return rule->_port.value > _port.value;
 }
 
 
@@ -68,20 +68,20 @@ Permit_single_rule::Permit_single_rule(Domain_tree    &domains,
                                        Xml_node const &node)
 :
 	Permit_rule(domains, node),
-	_port(node.attribute_value("port", 0UL))
+	_port(node.attribute_value("port", Port(0)))
 {
-	if (!_port || dynamic_port(_port)) {
+	if (_port == Port(0) || dynamic_port(_port)) {
 		throw Invalid(); }
 }
 
 
 Permit_single_rule const &
-Permit_single_rule::find_by_port(uint16_t const port) const
+Permit_single_rule::find_by_port(Port const port) const
 {
 	if (port == _port) {
 		return *this; }
 
-	bool const side = port > _port;
+	bool const side = port.value > _port.value;
 	Permit_single_rule *const rule = Avl_node<Permit_single_rule>::child(side);
 	if (!rule) {
 		throw Permit_single_rule_tree::No_match(); }
@@ -96,7 +96,7 @@ Permit_single_rule::find_by_port(uint16_t const port) const
  *****************************/
 
 Permit_single_rule const &
-Permit_single_rule_tree::find_by_port(uint16_t const port) const
+Permit_single_rule_tree::find_by_port(Port const port) const
 {
 	Permit_single_rule *const rule = first();
 	if (!rule) {

@@ -19,6 +19,7 @@
 
 /* Genode includes */
 #include <util/avl_tree.h>
+#include <net/port.h>
 
 namespace Genode { class Output; }
 
@@ -62,15 +63,14 @@ class Net::Permit_single_rule : public Permit_rule,
 {
 	private:
 
-		Genode::uint16_t const _port;
+		Port const _port;
 
 	public:
 
 		Permit_single_rule(Domain_tree            &domains,
 		                   Genode::Xml_node const &node);
 
-		Permit_single_rule const &
-		find_by_port(Genode::uint16_t const port) const;
+		Permit_single_rule const &find_by_port(Port const port) const;
 
 
 		/*********
@@ -91,7 +91,7 @@ class Net::Permit_single_rule : public Permit_rule,
 		 ** Accessors **
 		 ***************/
 
-		Genode::uint16_t port() const { return _port; }
+		Port port() const { return _port; }
 };
 
 
@@ -99,7 +99,7 @@ struct Net::Permit_single_rule_tree : Genode::Avl_tree<Permit_single_rule>
 {
 	struct No_match : Genode::Exception { };
 
-	Permit_single_rule const &find_by_port(Genode::uint16_t const port) const;
+	Permit_single_rule const &find_by_port(Port const port) const;
 };
 
 #endif /* _PERMIT_RULE_H_ */

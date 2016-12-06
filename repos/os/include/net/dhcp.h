@@ -257,10 +257,10 @@ class Net::Dhcp_packet
 
 		static bool is_dhcp(Udp_packet const *udp)
 		{
-			return ((udp->src_port() == Dhcp_packet::BOOTPC ||
-			         udp->src_port() == Dhcp_packet::BOOTPS) &&
-			        (udp->dst_port() == Dhcp_packet::BOOTPC ||
-			         udp->dst_port() == Dhcp_packet::BOOTPS));
+			return ((udp->src_port() == Port(Dhcp_packet::BOOTPC) ||
+			         udp->src_port() == Port(Dhcp_packet::BOOTPS)) &&
+			        (udp->dst_port() == Port(Dhcp_packet::BOOTPC) ||
+			         udp->dst_port() == Port(Dhcp_packet::BOOTPS)));
 		}
 
 

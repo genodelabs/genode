@@ -72,7 +72,7 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
 }
 
 
-Permit_rule const &Transport_rule::permit_rule(uint16_t const port) const
+Permit_rule const &Transport_rule::permit_rule(Port const port) const
 {
 	if (_permit_any) { return *_permit_any; }
 	return _permit_single_rules.find_by_port(port);

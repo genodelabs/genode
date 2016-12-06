@@ -17,13 +17,14 @@
 
 /* Genode includes */
 #include <util/bit_allocator.h>
+#include <net/port.h>
 
 namespace Net {
 
 	class Port_allocator;
 	class Port_allocator_guard;
 
-	bool dynamic_port(Genode::uint16_t const port);
+	bool dynamic_port(Port const port);
 }
 
 
@@ -39,9 +40,9 @@ class Net::Port_allocator
 
 	public:
 
-		Genode::uint16_t alloc() { return _alloc.alloc() + FIRST; }
+		Port alloc() { return Port(_alloc.alloc() + FIRST); }
 
-		void free(Genode::uint16_t port) { _alloc.free(port - FIRST); }
+		void free(Port const port) { _alloc.free(port.value - FIRST); }
 };
 
 
@@ -57,9 +58,9 @@ class Net::Port_allocator_guard
 
 		class Out_of_indices : Genode::Exception {};
 
-		Genode::uint16_t alloc();
+		Port alloc();
 
-		void free(Genode::uint16_t port);
+		void free(Port const port);
 
 		Port_allocator_guard(Port_allocator & port_alloc, unsigned const max);
 

@@ -21,6 +21,7 @@
 #include <net/ethernet.h>
 #include <net/ipv4.h>
 #include <util/register.h>
+#include <net/port.h>
 
 namespace Net
 {
@@ -75,12 +76,12 @@ class Net::Tcp_packet
 
 		class No_tcp_packet : Exception {};
 
-		void src_port(Genode::uint16_t p) { _src_port = host_to_big_endian(p); }
-		void dst_port(Genode::uint16_t p) { _dst_port = host_to_big_endian(p); }
+		void src_port(Port p) { _src_port = host_to_big_endian(p.value); }
+		void dst_port(Port p) { _dst_port = host_to_big_endian(p.value); }
 
-		uint16_t src_port() const { return host_to_big_endian(_src_port); }
-		uint16_t dst_port() const { return host_to_big_endian(_dst_port); }
-		uint16_t flags()    const { return host_to_big_endian(_flags); }
+		Port src_port()  const { return Port(host_to_big_endian(_src_port)); }
+		Port dst_port()  const { return Port(host_to_big_endian(_dst_port)); }
+		uint16_t flags() const { return host_to_big_endian(_flags); }
 
 		Tcp_packet(size_t size) {
 			if (size < sizeof(Tcp_packet)) { throw No_tcp_packet(); } }

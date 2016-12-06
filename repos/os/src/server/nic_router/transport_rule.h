@@ -48,7 +48,7 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 		               Genode::Cstring  const &protocol,
 		               Configuration          &config);
 
-		Permit_rule const &permit_rule(Genode::uint16_t const port) const;
+		Permit_rule const &permit_rule(Port const port) const;
 };
 
 #endif /* _TRANSPORT_RULE_H_ */

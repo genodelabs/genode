@@ -20,6 +20,7 @@
 /* Genode includes */
 #include <util/avl_tree.h>
 #include <net/ipv4.h>
+#include <net/port.h>
 
 namespace Net {
 
@@ -35,14 +36,14 @@ class Net::Forward_rule : public Leaf_rule,
 {
 	private:
 
-		Genode::uint8_t const _port;
-		Ipv4_address    const _to;
+		Port         const _port;
+		Ipv4_address const _to;
 
 	public:
 
 		Forward_rule(Domain_tree &domains, Genode::Xml_node const &node);
 
-		Forward_rule const &find_by_port(Genode::uint8_t const port) const;
+		Forward_rule const &find_by_port(Port const port) const;
 
 
 		/*********
@@ -56,7 +57,8 @@ class Net::Forward_rule : public Leaf_rule,
 		 ** Avl_node **
 		 **************/
 
-		bool higher(Forward_rule *rule) { return rule->_port > _port; }
+		bool higher(Forward_rule *rule) {
+			return rule->_port.value > _port.value; }
 
 
 		/***************
@@ -71,7 +73,7 @@ struct Net::Forward_rule_tree : Genode::Avl_tree<Forward_rule>
 {
 	struct No_match : Genode::Exception { };
 
-	Forward_rule const &find_by_port(Genode::uint8_t const port) const;
+	Forward_rule const &find_by_port(Port const port) const;
 };
 
 #endif /* _FORWARD_RULE_H_ */

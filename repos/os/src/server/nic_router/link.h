@@ -19,6 +19,7 @@
 #include <util/avl_tree.h>
 #include <util/list.h>
 #include <net/ipv4.h>
+#include <net/port.h>
 
 /* local includes */
 #include <pointer.h>
@@ -41,11 +42,11 @@ namespace Net {
 
 struct Net::Link_side_id
 {
-	int              const data[];
-	Ipv4_address     const src_ip;
-	Genode::uint16_t const src_port;
-	Ipv4_address     const dst_ip;
-	Genode::uint16_t const dst_port;
+	int          const data[];
+	Ipv4_address const src_ip;
+	Port         const src_port;
+	Ipv4_address const dst_ip;
+	Port         const dst_port;
 
 	static constexpr Genode::size_t data_size();
 
@@ -104,8 +105,8 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 		Link               &link()      const { return _link; }
 		Ipv4_address const &src_ip()    const { return _id.src_ip; }
 		Ipv4_address const &dst_ip()    const { return _id.dst_ip; }
-		Genode::uint16_t    src_port()  const { return _id.src_port; }
-		Genode::uint16_t    dst_port()  const { return _id.dst_port; }
+		Port                src_port()  const { return _id.src_port; }
+		Port                dst_port()  const { return _id.dst_port; }
 };
 
 
