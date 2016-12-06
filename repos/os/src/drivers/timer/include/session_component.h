@@ -57,7 +57,12 @@ class Timer::Session_component : public Genode::Rpc_object<Session>,
 		void trigger_periodic(unsigned us) override {
 			_timeout.schedule_periodic(Microseconds(us), *this); }
 
-		void sigh(Signal_context_capability sigh) override { _sigh = sigh; }
+		void sigh(Signal_context_capability sigh) override
+		{
+			_sigh = sigh;
+			if (!sigh.valid())
+				_timeout_scheduler.discard(_timeout);
+		}
 
 		unsigned long elapsed_ms() const override {
 			return (_timeout_scheduler.curr_time().value - _init_time_us) / 1000; }
