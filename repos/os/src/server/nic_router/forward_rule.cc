@@ -33,7 +33,7 @@ void Forward_rule::print(Output &output) const
 }
 
 
-Forward_rule::Forward_rule(Domain_tree &domains, Xml_node const &node)
+Forward_rule::Forward_rule(Domain_tree &domains, Xml_node const node)
 :
 	Leaf_rule(domains, node),
 	_port(node.attribute_value("port", Port(0))),

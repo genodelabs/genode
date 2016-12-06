@@ -34,7 +34,7 @@ namespace Net {
 
 struct Net::Permit_rule : Leaf_rule
 {
-	Permit_rule(Domain_tree &domains, Genode::Xml_node const &node);
+	Permit_rule(Domain_tree &domains, Genode::Xml_node const node);
 
 
 	/*********
@@ -47,7 +47,7 @@ struct Net::Permit_rule : Leaf_rule
 
 struct Net::Permit_any_rule : Permit_rule
 {
-	Permit_any_rule(Domain_tree &domains, Genode::Xml_node const &node);
+	Permit_any_rule(Domain_tree &domains, Genode::Xml_node const node);
 
 
 	/*********
@@ -68,7 +68,7 @@ class Net::Permit_single_rule : public Permit_rule,
 	public:
 
 		Permit_single_rule(Domain_tree            &domains,
-		                   Genode::Xml_node const &node);
+		                   Genode::Xml_node const  node);
 
 		Permit_single_rule const &find_by_port(Port const port) const;
 

@@ -14,14 +14,11 @@
 /* local includes */
 #include <direct_rule.h>
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 using namespace Net;
 using namespace Genode;
 
 
-Direct_rule_base::Direct_rule_base(Xml_node const &node)
+Direct_rule_base::Direct_rule_base(Xml_node const node)
 :
 	_dst(node.attribute_value("dst", Ipv4_address_prefix()))
 {

@@ -29,7 +29,7 @@ struct Net::Ip_rule : Leaf_rule, Direct_rule<Ip_rule>
 {
 	public:
 
-		Ip_rule(Domain_tree &domains, Genode::Xml_node const &node);
+		Ip_rule(Domain_tree &domains, Genode::Xml_node const node);
 };
 
 #endif /* _IP_RULE_H_ */

@@ -25,7 +25,7 @@ using namespace Genode;
 
 
 Permit_any_rule *Transport_rule::_read_permit_any(Domain_tree    &domains,
-                                                  Xml_node const &node,
+                                                  Xml_node const  node,
                                                   Allocator      &alloc)
 {
 	try {
@@ -39,7 +39,7 @@ Permit_any_rule *Transport_rule::_read_permit_any(Domain_tree    &domains,
 
 
 Transport_rule::Transport_rule(Domain_tree    &domains,
-                               Xml_node const &node,
+                               Xml_node const  node,
                                Allocator      &alloc,
                                Cstring  const &protocol,
                                Configuration  &config)
@@ -55,7 +55,7 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
 	}
 
 	/* read specific permit rules */
-	node.for_each_sub_node("permit", [&] (Xml_node const &node) {
+	node.for_each_sub_node("permit", [&] (Xml_node const node) {
 		try {
 			Permit_single_rule &rule = *new (alloc)
 				Permit_single_rule(domains, node);

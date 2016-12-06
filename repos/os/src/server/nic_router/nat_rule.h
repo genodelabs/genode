@@ -43,7 +43,7 @@ class Net::Nat_rule : public Leaf_rule,
 		Nat_rule(Domain_tree            &domains,
 		         Port_allocator         &tcp_port_alloc,
 		         Port_allocator         &udp_port_alloc,
-		         Genode::Xml_node const &node);
+		         Genode::Xml_node const  node);
 
 		Nat_rule &find_by_domain(Domain &domain);
 

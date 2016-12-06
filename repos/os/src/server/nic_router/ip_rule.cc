@@ -18,7 +18,7 @@ using namespace Net;
 using namespace Genode;
 
 
-Ip_rule::Ip_rule(Domain_tree &domains, Xml_node const &node)
+Ip_rule::Ip_rule(Domain_tree &domains, Xml_node const node)
 :
 	Leaf_rule(domains, node),
 	Direct_rule(node)

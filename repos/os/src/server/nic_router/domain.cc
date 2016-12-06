@@ -39,7 +39,7 @@ Domain_avl_member::Domain_avl_member(Domain_name const &name,
  ** Domain_base **
  *****************/
 
-Domain_base::Domain_base(Xml_node const &node)
+Domain_base::Domain_base(Xml_node const node)
 :
 	_name(Cstring(node.attribute("name").value_base(),
 	              node.attribute("name").value_size()))
@@ -52,11 +52,11 @@ Domain_base::Domain_base(Xml_node const &node)
 
 void Domain::_read_forward_rules(Cstring  const    &protocol,
                                  Domain_tree       &domains,
-                                 Xml_node const    &node,
+                                 Xml_node const     node,
                                  char     const    *type,
                                  Forward_rule_tree &rules)
 {
-	node.for_each_sub_node(type, [&] (Xml_node const &node) {
+	node.for_each_sub_node(type, [&] (Xml_node const node) {
 		try {
 			Forward_rule &rule = *new (_alloc) Forward_rule(domains, node);
 			rules.insert(&rule);
@@ -70,11 +70,11 @@ void Domain::_read_forward_rules(Cstring  const    &protocol,
 
 void Domain::_read_transport_rules(Cstring  const      &protocol,
                                    Domain_tree         &domains,
-                                   Xml_node const      &node,
+                                   Xml_node const       node,
                                    char     const      *type,
                                    Transport_rule_list &rules)
 {
-	node.for_each_sub_node(type, [&] (Xml_node const &node) {
+	node.for_each_sub_node(type, [&] (Xml_node const node) {
 		try {
 			rules.insert(*new (_alloc) Transport_rule(domains, node, _alloc,
 			                                          protocol, _config));
@@ -90,7 +90,7 @@ void Domain::print(Output &output) const
 }
 
 
-Domain::Domain(Configuration &config, Xml_node const &node, Allocator &alloc)
+Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 :
 	Domain_base(node), _avl_member(_name, *this), _config(config),
 	_node(node), _alloc(alloc),
@@ -119,7 +119,7 @@ void Domain::create_rules(Domain_tree &domains)
 	_read_transport_rules(udp_name(), domains, _node, "udp", _udp_rules);
 
 	/* read NAT rules */
-	_node.for_each_sub_node("nat", [&] (Xml_node const &node) {
+	_node.for_each_sub_node("nat", [&] (Xml_node const node) {
 		try {
 			_nat_rules.insert(
 				new (_alloc) Nat_rule(domains, _tcp_port_alloc,
@@ -128,7 +128,7 @@ void Domain::create_rules(Domain_tree &domains)
 		catch (Rule::Invalid) { warning("invalid NAT rule"); }
 	});
 	/* read IP rules */
-	_node.for_each_sub_node("ip", [&] (Xml_node const &node) {
+	_node.for_each_sub_node("ip", [&] (Xml_node const node) {
 		try { _ip_rules.insert(*new (_alloc) Ip_rule(domains, node)); }
 		catch (Rule::Invalid) { warning("invalid IP rule"); }
 	});

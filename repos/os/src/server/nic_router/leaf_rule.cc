@@ -20,7 +20,7 @@ using namespace Genode;
 
 
 Domain &Leaf_rule::_find_domain(Domain_tree    &domains,
-                                Xml_node const &node)
+                                Xml_node const  node)
 {
 	try {
 		return domains.find_by_name(
@@ -31,7 +31,7 @@ Domain &Leaf_rule::_find_domain(Domain_tree    &domains,
 }
 
 
-Leaf_rule::Leaf_rule(Domain_tree &domains, Xml_node const &node)
+Leaf_rule::Leaf_rule(Domain_tree &domains, Xml_node const node)
 :
 	_domain(_find_domain(domains, node))
 { }

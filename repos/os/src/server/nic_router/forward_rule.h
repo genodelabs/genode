@@ -41,7 +41,7 @@ class Net::Forward_rule : public Leaf_rule,
 
 	public:
 
-		Forward_rule(Domain_tree &domains, Genode::Xml_node const &node);
+		Forward_rule(Domain_tree &domains, Genode::Xml_node const node);
 
 		Forward_rule const &find_by_port(Port const port) const;
 

@@ -33,11 +33,11 @@ class Net::Leaf_rule : public Rule
 		Domain &_domain;
 
 		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const &node);
+		                            Genode::Xml_node const  node);
 
 	public:
 
-		Leaf_rule(Domain_tree &domains, Genode::Xml_node const &node);
+		Leaf_rule(Domain_tree &domains, Genode::Xml_node const node);
 
 
 		/***************

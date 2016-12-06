@@ -37,13 +37,13 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 
 		static Permit_any_rule *
 		_read_permit_any(Domain_tree            &domains,
-		                 Genode::Xml_node const &node,
+		                 Genode::Xml_node const  node,
 		                 Genode::Allocator      &alloc);
 
 	public:
 
 		Transport_rule(Domain_tree            &domains,
-		               Genode::Xml_node const &node,
+		               Genode::Xml_node const  node,
 		               Genode::Allocator      &alloc,
 		               Genode::Cstring  const &protocol,
 		               Configuration          &config);

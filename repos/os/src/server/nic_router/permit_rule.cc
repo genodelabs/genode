@@ -26,7 +26,7 @@ using namespace Genode;
  ** Permit_rule **
  *****************/
 
-Permit_rule::Permit_rule(Domain_tree &domains, Xml_node const &node)
+Permit_rule::Permit_rule(Domain_tree &domains, Xml_node const node)
 :
 	Leaf_rule(domains, node)
 { }
@@ -42,7 +42,7 @@ void Permit_any_rule::print(Output &output) const
 }
 
 
-Permit_any_rule::Permit_any_rule(Domain_tree &domains, Xml_node const &node)
+Permit_any_rule::Permit_any_rule(Domain_tree &domains, Xml_node const node)
 :
 	Permit_rule(domains, node)
 { }
@@ -65,7 +65,7 @@ void Permit_single_rule::print(Output &output) const
 
 
 Permit_single_rule::Permit_single_rule(Domain_tree    &domains,
-                                       Xml_node const &node)
+                                       Xml_node const  node)
 :
 	Permit_rule(domains, node),
 	_port(node.attribute_value("port", Port(0)))
