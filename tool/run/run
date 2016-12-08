@@ -767,6 +767,7 @@ proc build_core {lib modules target} {
 # Generate bootable core image containing all boot-modules
 #
 proc build_core_image {binaries} {
+
 	# boot module list without core
 	set idx [lsearch $binaries "core"]
 	set modules [lreplace $binaries $idx $idx]
@@ -783,6 +784,9 @@ proc build_core_image {binaries} {
 	# create core binary containing the boot modules
 	build_core $core_obj $modules [run_dir]/image.elf
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
+
+	# remove individual binaries, which are now contained in 'image.elf'
+	exec rm -rf [run_dir]/genode
 }
 
 

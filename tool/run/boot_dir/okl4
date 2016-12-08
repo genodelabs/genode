@@ -158,7 +158,7 @@ proc run_boot_dir {binaries} {
 	#
 	# Keep only the ELF boot image, but remove stripped binaries
 	#
-	exec rm -r [run_dir]/genode
+	exec rm -rf [run_dir]/genode
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 		#
