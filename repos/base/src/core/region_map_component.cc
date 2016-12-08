@@ -285,11 +285,14 @@ void Rm_faulter::dissolve_from_faulting_region_map(Region_map_component * caller
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	{
+	enum { DO_LOCK = true };
+	if (caller == static_cast<Region_map_component *>(_faulting_region_map.obj())) {
+		caller->discard_faulter(this, !DO_LOCK);
+	} else {
 		Locked_ptr<Region_map_component> locked_ptr(_faulting_region_map);
 
 		if (locked_ptr.valid())
-			locked_ptr->discard_faulter(this, &*locked_ptr != caller);
+			locked_ptr->discard_faulter(this, DO_LOCK);
 	}
 
 	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
