@@ -6,6 +6,8 @@
 # This file is meant to be used as '--include' argument for 'tool/run'.
 #
 
+proc binary_name_ld_lib_so { } { return "ld-pistachio.lib.so" }
+
 
 ##
 # Install files needed to boot via PXE
@@ -74,11 +76,15 @@ proc core_link_address { } { return "0x02000000" }
 #
 proc run_boot_dir {binaries} {
 
+	if {![kernel_external] && ![file exists [pistachio_kernel]]} {
+		build { lib/ld/pistachio kernel }
+	} else {
+		build { lib/ld/pistachio }
+	}
+
 	build_core_image $binaries
 
 	exec mkdir -p [run_dir]/pistachio
-
-	if {![kernel_external] && ![file exists [pistachio_kernel]]} { build { kernel } }
 
 	exec cp [pistachio_kernel] [run_dir]/pistachio/kernel
 	exec cp [pistachio_user_dir]/serv/sigma0/sigma0 [run_dir]/pistachio

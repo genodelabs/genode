@@ -1,3 +1,6 @@
+proc binary_name_ld_lib_so { } { return "ld-okl4.lib.so" }
+
+
 ##
 # Get the base-okl4 repository
 #
@@ -113,10 +116,8 @@ proc core_link_address { } { return "0x03000000" }
 # Populate directory with binaries on OKL4
 #
 proc run_boot_dir {binaries} {
-	global weaver_xml_template
 
-	build_core_image $binaries
-	exec mv [run_dir]/image.elf [run_dir].image
+	global weaver_xml_template
 
 	#
 	# Build kernel if needed
@@ -127,7 +128,14 @@ proc run_boot_dir {binaries} {
 	# the kernel does not stand in the way of the everyday's work flow of
 	# executing run scripts as quick as possible.
 	#
-	if {![okl4_external] && ![file exists [okl4]]} { build { kernel } }
+	if {![okl4_external] && ![file exists [okl4]]} {
+		build { lib/ld/okl4 kernel }
+	} else {
+		build { lib/ld/okl4 }
+	}
+
+	build_core_image $binaries
+	exec mv [run_dir]/image.elf [run_dir].image
 
 	exec cp [okl4] [run_dir]/kernel
 

@@ -439,13 +439,40 @@ proc kernel_location_from_config_file { config_file default_location } {
 
 
 ##
+# Return name of kernel-specific binary for a given generic name
+#
+# The boot_dir plugin may provide functions named 'binary_name_<binary>'
+# where '<binary>' stands for a generic name like "timer" or "nic". The
+# function returns the name of the binary to integrate into the boot
+# directory under the name '<binary>'.
+#
+# If no such function exists, it returns the argument as is. This is the
+# case for regular binaries that appear in the boot directory under their
+# original name.
+#
+proc kernel_specific_binary { binary } {
+
+	regsub -all {\.} $binary "_" function_suffix
+	set function_name "binary_name_$function_suffix"
+
+	if {[info procs $function_name] == $function_name} {
+		set binary_name [$function_name]
+		puts "using '$binary_name' as '$binary'"
+		return [$function_name]
+	}
+
+	return $binary
+}
+
+
+##
 # Copy the specified binaries from the 'bin/' directory to the run
 # directory and try to strip executables.
 #
 proc copy_and_strip_genode_binaries_to_run_dir { binaries } {
 
 	foreach binary $binaries {
-		exec cp bin/$binary [run_dir]/genode
+		exec cp bin/[kernel_specific_binary $binary] [run_dir]/genode/$binary
 		catch {
 			exec [cross_dev_prefix]strip [run_dir]/genode/$binary || true }
 	}

@@ -1,6 +1,6 @@
 TARGET = test-vmm_utils
 SRC_CC = main.cc
-LIBS  += base
+LIBS  += base-nova
 
 REQUIRES = nova
 

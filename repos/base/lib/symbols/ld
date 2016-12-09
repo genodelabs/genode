@@ -1,0 +1,629 @@
+#
+# \brief  Genode application binary interface (ABI)
+# \author Norman Feske
+# \date   2016-12-20
+#
+# This file contains the binary application interface (ABI) provided by
+# Genode's dynamic linker. Each line contains the name of a symbol followed
+# by its type (according to the encoding used by binutil's 'nm' tool). Data
+# symbols are furher annotated by the size of their corresponding data object.
+# The latter is only needed on ARM.
+#
+# On the ARM architecture, copy relocations are created for read-only data
+# objects that are present in shared libraries. For each data object, the
+# linker preserves a slot in the program's BSS according to the object size.
+# At runtime, the dynamic linker copies the data from the shared library's
+# read-only segment to these slots. The copy relocations for a given binary
+# can be inspected via 'objdump -R'. The size of data symbols as present in a
+# shared library (like 'ld-hw.lib.a') can be inspected via 'nm --format posix'.
+# The data-object sizes as annotated here must always be at least as big as the
+# corresponding data objects present in the dynamic linker.
+#
+# The original version of this file is based on the output of the
+# 'tool/abi_symbols' tool with 'ld-<platform>.lib.so' used as argument.
+# However, this tool was solely used as a starting point for the - now
+# manually maintained - file.
+#
+# Note that not all symbols present in this list are provided by each variant
+# of the dynamic linker. I.e., there are a few symbols that are specific for a
+# particular kernel or the C++ ABI of a specific architecture.
+#
+# Please keep the file sorted via 'LC_COLLATE=C sort'.
+#
+
+#
+# Copyright (C) 2016 Genode Labs GmbH
+#
+# This file is part of the Genode OS framework, which is distributed
+# under the terms of the GNU General Public License version 2.
+#
+
+_Unwind_Complete T
+_Unwind_DeleteException T
+_Unwind_Resume T
+_Z11genode_exiti T
+_Z13genode_atexitPFvvE T
+_Z16main_thread_utcbv T
+_Z21genode___cxa_finalizePv T
+_Z22__ldso_raise_exceptionv T
+_ZN6Genode10Entrypoint16_dispatch_signalERNS_6SignalE T
+_ZN6Genode10Entrypoint16schedule_suspendEPFvvES2_ T
+_ZN6Genode10Entrypoint25_process_incoming_signalsEv T
+_ZN6Genode10Entrypoint6manageERNS_22Signal_dispatcher_baseE T
+_ZN6Genode10Entrypoint8dissolveERNS_22Signal_dispatcher_baseE T
+_ZN6Genode10EntrypointC1ERNS_3EnvE T
+_ZN6Genode10EntrypointC1ERNS_3EnvEmPKc T
+_ZN6Genode10EntrypointC2ERNS_3EnvE T
+_ZN6Genode10EntrypointC2ERNS_3EnvEmPKc T
+_ZN6Genode10Ipc_serverC1Ev T
+_ZN6Genode10Ipc_serverC2Ev T
+_ZN6Genode10Ipc_serverD1Ev T
+_ZN6Genode10Ipc_serverD2Ev T
+_ZN6Genode11Sliced_heap4freeEPvm T
+_ZN6Genode11Sliced_heap5allocEmPPv T
+_ZN6Genode11Sliced_heapC1ERNS_11Ram_sessionERNS_10Region_mapE T
+_ZN6Genode11Sliced_heapC2ERNS_11Ram_sessionERNS_10Region_mapE T
+_ZN6Genode11Sliced_heapD0Ev T
+_ZN6Genode11Sliced_heapD1Ev T
+_ZN6Genode11Sliced_heapD2Ev T
+_ZN6Genode12Address_infoC1Em T
+_ZN6Genode12Address_infoC2Em T
+_ZN6Genode13Avl_node_base15_rotate_subtreeEPS0_bRNS0_6PolicyE T
+_ZN6Genode13Avl_node_base18_rebalance_subtreeEPS0_RNS0_6PolicyE T
+_ZN6Genode13Avl_node_base6_adoptEPS0_bRNS0_6PolicyE T
+_ZN6Genode13Avl_node_base6insertEPS0_RNS0_6PolicyE T
+_ZN6Genode13Avl_node_base6removeERNS0_6PolicyE T
+_ZN6Genode13Avl_node_baseC1Ev T
+_ZN6Genode13Avl_node_baseC2Ev T
+_ZN6Genode13Registry_base10_processedENS0_4KeepERNS_4ListINS0_7ElementEEERS3_PS3_ T
+_ZN6Genode13Registry_base7ElementC1ERS0_Pv T
+_ZN6Genode13Registry_base7ElementC2ERS0_Pv T
+_ZN6Genode13Registry_base7ElementD1Ev T
+_ZN6Genode13Registry_base7ElementD2Ev T
+_ZN6Genode13Registry_base7_insertERNS0_7ElementE T
+_ZN6Genode13Registry_base7_removeERNS0_7ElementE T
+_ZN6Genode13Registry_base9_for_eachERNS0_15Untyped_functorE T
+_ZN6Genode13Session_state7destroyEv T
+_ZN6Genode13Session_stateC1ERNS_7ServiceERNS_8Id_spaceINS_6Parent6ClientEEENS6_2IdERKNS_6StringILm256EEERKNS_8AffinityE T
+_ZN6Genode13Session_stateC2ERNS_7ServiceERNS_8Id_spaceINS_6Parent6ClientEEENS6_2IdERKNS_6StringILm256EEERKNS_8AffinityE T
+_ZN6Genode13Shared_objectC1ERNS_3EnvERNS_9AllocatorEPKcNS0_4BindENS0_4KeepE T
+_ZN6Genode13Shared_objectC2ERNS_3EnvERNS_9AllocatorEPKcNS0_4BindENS0_4KeepE T
+_ZN6Genode13Shared_objectD1Ev T
+_ZN6Genode13Shared_objectD2Ev T
+_ZN6Genode13sleep_foreverEv T
+_ZN6Genode14Capability_map6insertEmm T
+_ZN6Genode14Parent_service15_env_deprecatedEv T
+_ZN6Genode14Rpc_entrypoint13_free_rpc_capERNS_10Pd_sessionENS_17Native_capabilityE T
+_ZN6Genode14Rpc_entrypoint14_alloc_rpc_capERNS_10Pd_sessionENS_17Native_capabilityEm T
+_ZN6Genode14Rpc_entrypoint17_activation_entryEv T
+_ZN6Genode14Rpc_entrypoint17reply_signal_infoENS_17Native_capabilityEmm T
+_ZN6Genode14Rpc_entrypoint22_block_until_cap_validEv T
+_ZN6Genode14Rpc_entrypoint5entryEv T
+_ZN6Genode14Rpc_entrypoint7_manageEPNS_15Rpc_object_baseE T
+_ZN6Genode14Rpc_entrypoint8activateEv T
+_ZN6Genode14Rpc_entrypoint9_dissolveEPNS_15Rpc_object_baseE T
+_ZN6Genode14Rpc_entrypointC1EPNS_10Pd_sessionEmPKcbNS_8Affinity8LocationE T
+_ZN6Genode14Rpc_entrypointC2EPNS_10Pd_sessionEmPKcbNS_8Affinity8LocationE T
+_ZN6Genode14Rpc_entrypointD0Ev T
+_ZN6Genode14Rpc_entrypointD1Ev T
+_ZN6Genode14Rpc_entrypointD2Ev T
+_ZN6Genode14Signal_context6submitEj T
+_ZN6Genode14Signal_contextD0Ev T
+_ZN6Genode14Signal_contextD1Ev T
+_ZN6Genode14Signal_contextD2Ev T
+_ZN6Genode14Timeout_thread11alarm_timerEv T
+_ZN6Genode14Timeout_thread5entryEv T
+_ZN6Genode14cache_coherentEmm T
+_ZN6Genode14ipc_reply_waitERKNS_17Native_capabilityENS_18Rpc_exception_codeERNS_11Msgbuf_baseES5_ T
+_ZN6Genode15Alarm_scheduler12_setup_alarmERNS_5AlarmEmm T
+_ZN6Genode15Alarm_scheduler13next_deadlineEPm T
+_ZN6Genode15Alarm_scheduler17schedule_absoluteEPNS_5AlarmEm T
+_ZN6Genode15Alarm_scheduler18_get_pending_alarmEv T
+_ZN6Genode15Alarm_scheduler23_unsynchronized_dequeueEPNS_5AlarmE T
+_ZN6Genode15Alarm_scheduler23_unsynchronized_enqueueEPNS_5AlarmE T
+_ZN6Genode15Alarm_scheduler6handleEm T
+_ZN6Genode15Alarm_scheduler7discardEPNS_5AlarmE T
+_ZN6Genode15Alarm_scheduler8scheduleEPNS_5AlarmEm T
+_ZN6Genode15Alarm_schedulerD1Ev T
+_ZN6Genode15Alarm_schedulerD2Ev T
+_ZN6Genode15Cancelable_lock4lockEv T
+_ZN6Genode15Cancelable_lock6unlockEv T
+_ZN6Genode15Cancelable_lock9Applicant7wake_upEv T
+_ZN6Genode15Cancelable_lockC1ENS0_5StateE T
+_ZN6Genode15Cancelable_lockC2ENS0_5StateE T
+_ZN6Genode15Connection_baseC1Ev T
+_ZN6Genode15Connection_baseC2Ev T
+_ZN6Genode15Signal_receiver12local_submitENS_6Signal4DataE T
+_ZN6Genode15Signal_receiver14pending_signalEv T
+_ZN6Genode15Signal_receiver15wait_for_signalEv T
+_ZN6Genode15Signal_receiver16block_for_signalEv T
+_ZN6Genode15Signal_receiver6manageEPNS_14Signal_contextE T
+_ZN6Genode15Signal_receiver7pendingEv T
+_ZN6Genode15Signal_receiver8dissolveEPNS_14Signal_contextE T
+_ZN6Genode15Signal_receiverC1Ev T
+_ZN6Genode15Signal_receiverC2Ev T
+_ZN6Genode15Signal_receiverD1Ev T
+_ZN6Genode15Signal_receiverD2Ev T
+_ZN6Genode16raw_write_stringEPKc T
+_ZN6Genode17Native_capability4_decEv T
+_ZN6Genode17Native_capability4_incEv T
+_ZN6Genode17Native_capabilityC1Ev T
+_ZN6Genode17Native_capabilityC2Ev T
+_ZN6Genode17Region_map_client13fault_handlerENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode17Region_map_client5stateEv T
+_ZN6Genode17Region_map_client6attachENS_10CapabilityINS_9DataspaceEEEmlbNS_10Region_map10Local_addrEb T
+_ZN6Genode17Region_map_client6detachENS_10Region_map10Local_addrE T
+_ZN6Genode17Region_map_client9dataspaceEv T
+_ZN6Genode17Region_map_clientC1ENS_10CapabilityINS_10Region_mapEEE T
+_ZN6Genode17Region_map_clientC2ENS_10CapabilityINS_10Region_mapEEE T
+_ZN6Genode17Rm_session_client6createEm T
+_ZN6Genode17Rm_session_client7destroyENS_10CapabilityINS_10Region_mapEEE T
+_ZN6Genode17Rm_session_clientC1ENS_10CapabilityINS_10Rm_sessionEEE T
+_ZN6Genode17Rm_session_clientC2ENS_10CapabilityINS_10Rm_sessionEEE T
+_ZN6Genode18Allocator_avl_base10_add_blockEPNS0_5BlockEmmb T
+_ZN6Genode18Allocator_avl_base10alloc_addrEmm T
+_ZN6Genode18Allocator_avl_base12remove_rangeEmm T
+_ZN6Genode18Allocator_avl_base13alloc_alignedEmPPvimm T
+_ZN6Genode18Allocator_avl_base14_destroy_blockEPNS0_5BlockE T
+_ZN6Genode18Allocator_avl_base14any_block_addrEPm T
+_ZN6Genode18Allocator_avl_base15_cut_from_blockEPNS0_5BlockEmmS2_S2_ T
+_ZN6Genode18Allocator_avl_base20_find_any_used_blockEPNS0_5BlockE T
+_ZN6Genode18Allocator_avl_base21_alloc_block_metadataEv T
+_ZN6Genode18Allocator_avl_base26_alloc_two_blocks_metadataEPPNS0_5BlockES3_ T
+_ZN6Genode18Allocator_avl_base30_revert_allocations_and_rangesEv T
+_ZN6Genode18Allocator_avl_base4freeEPv T
+_ZN6Genode18Allocator_avl_base5Block13find_best_fitEmjmm T
+_ZN6Genode18Allocator_avl_base5Block15find_by_addressEmmb T
+_ZN6Genode18Allocator_avl_base5Block16avail_in_subtreeEv T
+_ZN6Genode18Allocator_avl_base5Block9recomputeEv T
+_ZN6Genode18Allocator_avl_base9add_rangeEmm T
+_ZN6Genode18Signal_transmitter6submitEj T
+_ZN6Genode18Signal_transmitter7contextENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode18Signal_transmitter7contextEv T
+_ZN6Genode18Signal_transmitterC1ENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode18Signal_transmitterC2ENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode18server_socket_pairEv T
+_ZN6Genode20env_session_id_spaceEv T
+_ZN6Genode21component_entry_pointERNS_3EnvE T
+_ZN6Genode25env_stack_area_region_mapE B
+_ZN6Genode26env_stack_area_ram_sessionE B
+_ZN6Genode29upgrade_pd_quota_non_blockingEm T
+_ZN6Genode3Log3logEv T
+_ZN6Genode3Log8_acquireENS0_4TypeE T
+_ZN6Genode3Log8_releaseEv T
+_ZN6Genode3Raw7_outputEv T
+_ZN6Genode3Raw8_acquireEv T
+_ZN6Genode3Raw8_releaseEv T
+_ZN6Genode3envEv T
+_ZN6Genode4Heap11quota_limitEm T
+_ZN6Genode4Heap4freeEPvm T
+_ZN6Genode4Heap5allocEmPPv T
+_ZN6Genode4HeapC1EPNS_11Ram_sessionEPNS_10Region_mapEmPvm T
+_ZN6Genode4HeapC2EPNS_11Ram_sessionEPNS_10Region_mapEmPvm T
+_ZN6Genode4HeapD0Ev T
+_ZN6Genode4HeapD1Ev T
+_ZN6Genode4HeapD2Ev T
+_ZN6Genode4Slab13any_used_elemEv T
+_ZN6Genode4Slab5Block11_slab_entryEi T
+_ZN6Genode4Slab5Block14any_used_entryEv T
+_ZN6Genode4Slab5Block5allocEv T
+_ZN6Genode4Slab5Block9inc_availERNS0_5EntryE T
+_ZN6Genode4Slab5_freeEPv T
+_ZN6Genode4Slab5allocEmPPv T
+_ZN6Genode4Slab9insert_sbEPv T
+_ZN6Genode4SlabC1EmmPvPNS_9AllocatorE T
+_ZN6Genode4SlabC2EmmPvPNS_9AllocatorE T
+_ZN6Genode4SlabD0Ev T
+_ZN6Genode4SlabD1Ev T
+_ZN6Genode4SlabD2Ev T
+_ZN6Genode5AlarmD0Ev T
+_ZN6Genode5AlarmD1Ev T
+_ZN6Genode5AlarmD2Ev T
+_ZN6Genode5Child10yield_sighENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode5Child11session_capENS_8Id_spaceINS_6Parent6ClientEE2IdE T
+_ZN6Genode5Child12session_sighENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode5Child13session_readyERNS_13Session_stateE T
+_ZN6Genode5Child13yield_requestEv T
+_ZN6Genode5Child14session_closedERNS_13Session_stateE T
+_ZN6Genode5Child14yield_responseEv T
+_ZN6Genode5Child16resource_requestERKNS_6StringILm160EEE T
+_ZN6Genode5Child16session_responseENS_8Id_spaceINS_6Parent6ServerEE2IdENS2_16Session_responseE T
+_ZN6Genode5Child19deliver_session_capENS_8Id_spaceINS_6Parent6ServerEE2IdENS_10CapabilityINS_7SessionEEE T
+_ZN6Genode5Child19resource_avail_sighENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode5Child4exitEi T
+_ZN6Genode5Child5closeENS_8Id_spaceINS_6Parent6ClientEE2IdE T
+_ZN6Genode5Child5yieldERKNS_6StringILm160EEE T
+_ZN6Genode5Child7sessionENS_8Id_spaceINS_6Parent6ClientEE2IdERKNS_13Rpc_in_bufferILm64EEERKNS6_ILm160EEERKNS_8AffinityE T
+_ZN6Genode5Child7upgradeENS_8Id_spaceINS_6Parent6ClientEE2IdERKNS_13Rpc_in_bufferILm160EEE T
+_ZN6Genode5Child8announceERKNS_13Rpc_in_bufferILm64EEE T
+_ZN6Genode5ChildC1ERNS_10Region_mapERNS_14Rpc_entrypointERNS_12Child_policyE T
+_ZN6Genode5ChildC2ERNS_10Region_mapERNS_14Rpc_entrypointERNS_12Child_policyE T
+_ZN6Genode5ChildD0Ev T
+_ZN6Genode5ChildD1Ev T
+_ZN6Genode5ChildD2Ev T
+_ZN6Genode5Stack4sizeEm T
+_ZN6Genode5Trace6Logger17_evaluate_controlEv T
+_ZN6Genode5Trace6Logger3logEPKcm T
+_ZN6Genode5Trace6LoggerC1Ev T
+_ZN6Genode5Trace6LoggerC2Ev T
+_ZN6Genode5printERNS_6OutputEPKc T
+_ZN6Genode5printERNS_6OutputEPKv T
+_ZN6Genode5printERNS_6OutputEd T
+_ZN6Genode5printERNS_6OutputEf T
+_ZN6Genode5printERNS_6OutputEl T
+_ZN6Genode5printERNS_6OutputEm T
+_ZN6Genode5printERNS_6OutputEx T
+_ZN6Genode5printERNS_6OutputEy T
+_ZN6Genode6Config4sighENS_10CapabilityINS_14Signal_contextEEE T
+_ZN6Genode6Config6reloadEv T
+_ZN6Genode6Config8xml_nodeEv T
+_ZN6Genode6ConfigC1Ev T
+_ZN6Genode6ConfigC2Ev T
+_ZN6Genode6Output10out_stringEPKcm T
+_ZN6Genode6Parent8announceERKNS_13Rpc_in_bufferILm64EEENS_10CapabilityINS_4RootEEE T
+_ZN6Genode6Signal19_dec_ref_and_unlockEv T
+_ZN6Genode6Signal8_inc_refEv T
+_ZN6Genode6SignalC1ENS0_4DataE T
+_ZN6Genode6SignalC1ERKS0_ T
+_ZN6Genode6SignalC2ENS0_4DataE T
+_ZN6Genode6SignalC2ERKS0_ T
+_ZN6Genode6SignalD1Ev T
+_ZN6Genode6SignalD2Ev T
+_ZN6Genode6SignalaSERKS0_ T
+_ZN6Genode6Thread10stack_sizeEm T
+_ZN6Genode6Thread13native_threadEv T
+_ZN6Genode6Thread15cancel_blockingEv T
+_ZN6Genode6Thread18stack_virtual_sizeEv T
+_ZN6Genode6Thread20free_secondary_stackEPv T
+_ZN6Genode6Thread21alloc_secondary_stackEPKcm T
+_ZN6Genode6Thread23stack_area_virtual_baseEv T
+_ZN6Genode6Thread23stack_area_virtual_sizeEv T
+_ZN6Genode6Thread4joinEv T
+_ZN6Genode6Thread4nameEPcm T
+_ZN6Genode6Thread4utcbEv T
+_ZN6Genode6Thread5startEv T
+_ZN6Genode6Thread6myselfEv T
+_ZN6Genode6Thread7_loggerEv T
+_ZN6Genode6Thread7mystackEv T
+_ZN6Genode6ThreadC1ERNS_3EnvERKNS_6StringILm32EEEm T
+_ZN6Genode6ThreadC1ERNS_3EnvERKNS_6StringILm32EEEmNS_8Affinity8LocationENS_11Cpu_session6WeightERS9_ T
+_ZN6Genode6ThreadC1EmPKcmNS0_4TypeENS_8Affinity8LocationE T
+_ZN6Genode6ThreadC1EmPKcmNS0_4TypeEPNS_11Cpu_sessionENS_8Affinity8LocationE T
+_ZN6Genode6ThreadC2ERNS_3EnvERKNS_6StringILm32EEEm T
+_ZN6Genode6ThreadC2ERNS_3EnvERKNS_6StringILm32EEEmNS_8Affinity8LocationENS_11Cpu_session6WeightERS9_ T
+_ZN6Genode6ThreadC2EmPKcmNS0_4TypeENS_8Affinity8LocationE T
+_ZN6Genode6ThreadC2EmPKcmNS0_4TypeEPNS_11Cpu_sessionENS_8Affinity8LocationE T
+_ZN6Genode6ThreadD0Ev T
+_ZN6Genode6ThreadD1Ev T
+_ZN6Genode6ThreadD2Ev T
+_ZN6Genode6configEv T
+_ZN6Genode6printfEPKcz T
+_ZN6Genode7Console11_out_stringEPKc T
+_ZN6Genode7Console6printfEPKcz T
+_ZN6Genode7Console7vprintfEPKcP13__va_list_tag T
+_ZN6Genode7Console7vprintfEPKcPc T
+_ZN6Genode7Console7vprintfEPKcPv T
+_ZN6Genode7Console7vprintfEPKcSt9__va_list T
+_ZN6Genode7cap_mapEv T
+_ZN6Genode7vprintfEPKcP13__va_list_tag T
+_ZN6Genode7vprintfEPKcPc T
+_ZN6Genode7vprintfEPKcSt9__va_list T
+_ZN6Genode8ipc_callENS_17Native_capabilityERNS_11Msgbuf_baseES2_m T
+_ZN6Genode9ipc_replyENS_17Native_capabilityENS_18Rpc_exception_codeERNS_11Msgbuf_baseE T
+_ZNK6Genode11Sliced_heap8overheadEm T
+_ZNK6Genode13Session_state24generate_session_requestERNS_13Xml_generatorE T
+_ZNK6Genode13Session_state5printERNS_6OutputE T
+_ZNK6Genode13Shared_object7_lookupEPKc T
+_ZNK6Genode13Shared_object8link_mapEv T
+_ZNK6Genode14Rpc_entrypoint9is_myselfEv T
+_ZNK6Genode17Native_capability10local_nameEv T
+_ZNK6Genode17Native_capability3rawEv T
+_ZNK6Genode17Native_capability5printERNS_6OutputE T
+_ZNK6Genode17Native_capability5validEv T
+_ZNK6Genode18Allocator_avl_base10valid_addrEm T
+_ZNK6Genode18Allocator_avl_base5availEv T
+_ZNK6Genode18Allocator_avl_base7size_atEPKv T
+_ZNK6Genode3Hex5printERNS_6OutputE T
+_ZNK6Genode4Slab8consumedEv T
+_ZNK6Genode5Child15main_thread_capEv T
+_ZNK6Genode5Child21notify_resource_availEv T
+_ZNK6Genode6Thread10stack_baseEv T
+_ZNK6Genode6Thread4nameEv T
+_ZNK6Genode6Thread9stack_topEv T
+_ZNKSt13bad_exception4whatEv T
+_ZNKSt9exception4whatEv T
+_ZNSt13bad_exceptionD0Ev T
+_ZNSt13bad_exceptionD1Ev T
+_ZNSt13bad_exceptionD2Ev T
+_ZNSt9exceptionD0Ev T
+_ZNSt9exceptionD1Ev T
+_ZNSt9exceptionD2Ev T
+_ZSt18uncaught_exceptionv T
+_ZSt9terminatev T
+_ZTIDd D 8
+_ZTIDe D 8
+_ZTIDf D 8
+_ZTIDi D 8
+_ZTIDn D 8
+_ZTIDs D 8
+_ZTIN10__cxxabiv115__forced_unwindE D 8
+_ZTIN10__cxxabiv116__enum_type_infoE D 12
+_ZTIN10__cxxabiv117__class_type_infoE D 12
+_ZTIN10__cxxabiv117__pbase_type_infoE D 12
+_ZTIN10__cxxabiv119__foreign_exceptionE D 8
+_ZTIN10__cxxabiv119__pointer_type_infoE D 12
+_ZTIN10__cxxabiv120__function_type_infoE D 12
+_ZTIN10__cxxabiv120__si_class_type_infoE D 12
+_ZTIN10__cxxabiv121__vmi_class_type_infoE D 12
+_ZTIN10__cxxabiv123__fundamental_type_infoE D 12
+_ZTIN6Genode11Sliced_heapE D 12
+_ZTIN6Genode14Rpc_entrypointE D 2
+_ZTIN6Genode14Rpc_entrypointE D 32
+_ZTIN6Genode14Signal_contextE D 8
+_ZTIN6Genode14Timeout_threadE D 2
+_ZTIN6Genode14Timeout_threadE D 32
+_ZTIN6Genode17Region_map_clientE D 12
+_ZTIN6Genode17Rm_session_clientE D 12
+_ZTIN6Genode18Allocator_avl_baseE D 12
+_ZTIN6Genode4HeapE D 12
+_ZTIN6Genode4SlabE D 12
+_ZTIN6Genode5AlarmE D 8
+_ZTIN6Genode5Child14Initial_threadE D 12
+_ZTIN6Genode5ChildE D 2
+_ZTIN6Genode5ChildE D 40
+_ZTIN6Genode6OutputE D 8
+_ZTIN6Genode6ThreadE D 8
+_ZTIN6Genode7ConsoleE D 8
+_ZTIPDd D 16
+_ZTIPDe D 16
+_ZTIPDf D 16
+_ZTIPDi D 16
+_ZTIPDn D 16
+_ZTIPDs D 16
+_ZTIPKDd D 16
+_ZTIPKDe D 16
+_ZTIPKDf D 16
+_ZTIPKDi D 16
+_ZTIPKDn D 16
+_ZTIPKDs D 16
+_ZTIPKa D 16
+_ZTIPKb D 16
+_ZTIPKc D 16
+_ZTIPKd D 16
+_ZTIPKe D 16
+_ZTIPKf D 16
+_ZTIPKh D 16
+_ZTIPKi D 16
+_ZTIPKj D 16
+_ZTIPKl D 16
+_ZTIPKm D 16
+_ZTIPKs D 16
+_ZTIPKt D 16
+_ZTIPKx D 16
+_ZTIPKy D 16
+_ZTIPVKa D 16
+_ZTIPVKb D 16
+_ZTIPVKc D 16
+_ZTIPVKd D 16
+_ZTIPVKe D 16
+_ZTIPVKf D 16
+_ZTIPVKh D 16
+_ZTIPVKi D 16
+_ZTIPVKj D 16
+_ZTIPVKl D 16
+_ZTIPVKm D 16
+_ZTIPVKs D 16
+_ZTIPVKt D 16
+_ZTIPVKx D 16
+_ZTIPVKy D 16
+_ZTIPVa D 16
+_ZTIPVb D 16
+_ZTIPVc D 16
+_ZTIPVd D 16
+_ZTIPVe D 16
+_ZTIPVf D 16
+_ZTIPVh D 16
+_ZTIPVi D 16
+_ZTIPVj D 16
+_ZTIPVl D 16
+_ZTIPVm D 16
+_ZTIPVs D 16
+_ZTIPVt D 16
+_ZTIPVx D 16
+_ZTIPVy D 16
+_ZTIPa D 16
+_ZTIPb D 16
+_ZTIPc D 16
+_ZTIPd D 16
+_ZTIPe D 16
+_ZTIPf D 16
+_ZTIPh D 16
+_ZTIPi D 16
+_ZTIPj D 16
+_ZTIPl D 16
+_ZTIPm D 16
+_ZTIPs D 16
+_ZTIPt D 16
+_ZTIPx D 16
+_ZTIPy D 16
+_ZTISt10bad_typeid D 12
+_ZTISt13bad_exception D 12
+_ZTISt16bad_array_length D 12
+_ZTISt20bad_array_new_length D 12
+_ZTISt8bad_cast D 12
+_ZTISt9bad_alloc D 12
+_ZTISt9exception D 8
+_ZTISt9type_info D 8
+_ZTIa D 8
+_ZTIb D 8
+_ZTIc D 8
+_ZTId D 8
+_ZTIe D 8
+_ZTIf D 8
+_ZTIh D 8
+_ZTIi D 8
+_ZTIj D 8
+_ZTIl D 8
+_ZTIm D 8
+_ZTIs D 8
+_ZTIt D 8
+_ZTIx D 8
+_ZTIy D 8
+_ZTSN10__cxxabiv115__forced_unwindE R
+_ZTSN10__cxxabiv116__enum_type_infoE R
+_ZTSN10__cxxabiv117__class_type_infoE R
+_ZTSN10__cxxabiv117__pbase_type_infoE R
+_ZTSN10__cxxabiv119__foreign_exceptionE R
+_ZTSN10__cxxabiv119__pointer_type_infoE R
+_ZTSN10__cxxabiv120__function_type_infoE R
+_ZTSN10__cxxabiv120__si_class_type_infoE R
+_ZTSN10__cxxabiv121__vmi_class_type_infoE R
+_ZTSN10__cxxabiv123__fundamental_type_infoE R
+_ZTSN6Genode11Sliced_heapE R
+_ZTSN6Genode14Rpc_entrypointE R
+_ZTSN6Genode14Signal_contextE R
+_ZTSN6Genode14Timeout_threadE R
+_ZTSN6Genode17Region_map_clientE R
+_ZTSN6Genode17Rm_session_clientE R
+_ZTSN6Genode18Allocator_avl_baseE R
+_ZTSN6Genode4HeapE R
+_ZTSN6Genode4SlabE R
+_ZTSN6Genode5AlarmE R
+_ZTSN6Genode5Child14Initial_threadE R
+_ZTSN6Genode5ChildE R
+_ZTSN6Genode6OutputE R
+_ZTSN6Genode6ThreadE R
+_ZTSN6Genode7ConsoleE R
+_ZTSSt10bad_typeid R
+_ZTSSt13bad_exception R
+_ZTSSt16bad_array_length R
+_ZTSSt20bad_array_new_length R
+_ZTSSt8bad_cast R
+_ZTSSt9bad_alloc R
+_ZTSSt9exception R
+_ZTSSt9type_info R
+_ZTVN10__cxxabiv115__forced_unwindE D 1
+_ZTVN10__cxxabiv115__forced_unwindE D 20
+_ZTVN10__cxxabiv116__enum_type_infoE D 2
+_ZTVN10__cxxabiv116__enum_type_infoE D 32
+_ZTVN10__cxxabiv117__class_type_infoE D 2
+_ZTVN10__cxxabiv117__class_type_infoE D 44
+_ZTVN10__cxxabiv117__pbase_type_infoE D 2
+_ZTVN10__cxxabiv117__pbase_type_infoE D 36
+_ZTVN10__cxxabiv119__foreign_exceptionE D 1
+_ZTVN10__cxxabiv119__foreign_exceptionE D 20
+_ZTVN10__cxxabiv119__pointer_type_infoE D 2
+_ZTVN10__cxxabiv119__pointer_type_infoE D 36
+_ZTVN10__cxxabiv120__function_type_infoE D 2
+_ZTVN10__cxxabiv120__function_type_infoE D 32
+_ZTVN10__cxxabiv120__si_class_type_infoE D 2
+_ZTVN10__cxxabiv120__si_class_type_infoE D 44
+_ZTVN10__cxxabiv121__vmi_class_type_infoE D 2
+_ZTVN10__cxxabiv121__vmi_class_type_infoE D 44
+_ZTVN10__cxxabiv123__fundamental_type_infoE D 2
+_ZTVN10__cxxabiv123__fundamental_type_infoE D 32
+_ZTVN6Genode11Sliced_heapE D 2
+_ZTVN6Genode11Sliced_heapE D 36
+_ZTVN6Genode14Rpc_entrypointE D 1
+_ZTVN6Genode14Rpc_entrypointE D 24
+_ZTVN6Genode14Signal_contextE D 1
+_ZTVN6Genode14Signal_contextE D 16
+_ZTVN6Genode14Timeout_threadE D 1
+_ZTVN6Genode14Timeout_threadE D 24
+_ZTVN6Genode17Region_map_clientE D 1
+_ZTVN6Genode17Region_map_clientE D 28
+_ZTVN6Genode17Rm_session_clientE D 1
+_ZTVN6Genode17Rm_session_clientE D 24
+_ZTVN6Genode18Allocator_avl_baseE D 4
+_ZTVN6Genode18Allocator_avl_baseE D 64
+_ZTVN6Genode4HeapE D 2
+_ZTVN6Genode4HeapE D 36
+_ZTVN6Genode4SlabE D 2
+_ZTVN6Genode4SlabE D 36
+_ZTVN6Genode5AlarmE D 1
+_ZTVN6Genode5AlarmE D 20
+_ZTVN6Genode5Child14Initial_threadE D 1
+_ZTVN6Genode5Child14Initial_threadE D 16
+_ZTVN6Genode5ChildE D 11
+_ZTVN6Genode5ChildE D 188
+_ZTVN6Genode6OutputE D 1
+_ZTVN6Genode6OutputE D 16
+_ZTVN6Genode6ThreadE D 1
+_ZTVN6Genode6ThreadE D 24
+_ZTVN6Genode7ConsoleE D 1
+_ZTVN6Genode7ConsoleE D 24
+_ZTVSt10bad_typeid D 1
+_ZTVSt10bad_typeid D 20
+_ZTVSt13bad_exception D 1
+_ZTVSt13bad_exception D 20
+_ZTVSt16bad_array_length D 1
+_ZTVSt16bad_array_length D 20
+_ZTVSt20bad_array_new_length D 1
+_ZTVSt20bad_array_new_length D 20
+_ZTVSt8bad_cast D 1
+_ZTVSt8bad_cast D 20
+_ZTVSt9bad_alloc D 1
+_ZTVSt9bad_alloc D 20
+_ZTVSt9exception D 1
+_ZTVSt9exception D 20
+_ZTVSt9type_info D 2
+_ZTVSt9type_info D 32
+_ZZN6Genode18Allocator_avl_base5BlockC4EmmbE10num_blocks V
+_ZdlPv W
+_ZdlPvPN6Genode11DeallocatorE T
+_ZdlPvPN6Genode9AllocatorE W
+_ZdlPvRN6Genode11DeallocatorE T
+_ZdlPvRN6Genode9AllocatorE W
+_ZnajPN6Genode9AllocatorE T
+_ZnajRN6Genode9AllocatorE T
+_ZnamPN6Genode9AllocatorE T
+_ZnamRN6Genode9AllocatorE T
+_ZnwjPN6Genode9AllocatorE T
+_ZnwjRN6Genode9AllocatorE T
+_ZnwmPN6Genode9AllocatorE T
+_ZnwmRN6Genode9AllocatorE T
+__aeabi_atexit T
+__aeabi_unwind_cpp_pr0 T
+__aeabi_unwind_cpp_pr1 T
+__cxa_allocate_dependent_exception T
+__cxa_allocate_exception T
+__cxa_atexit T
+__cxa_bad_cast T
+__cxa_bad_typeid T
+__cxa_begin_catch T
+__cxa_begin_cleanup T
+__cxa_call_terminate T
+__cxa_call_unexpected T
+__cxa_current_exception_type T
+__cxa_demangle T
+__cxa_end_catch T
+__cxa_end_cleanup T
+__cxa_finalize T
+__cxa_free_dependent_exception T
+__cxa_free_exception T
+__cxa_get_exception_ptr T
+__cxa_get_globals T
+__cxa_get_globals_fast T
+__cxa_guard_abort T
+__cxa_guard_acquire T
+__cxa_guard_release T
+__cxa_pure_virtual T
+__cxa_rethrow T
+__cxa_throw T
+__cxa_throw_bad_array_length T
+__cxa_throw_bad_array_new_length T
+__cxa_type_match T
+__dynamic_cast T
+__gxx_personality_v0 T
+dl_iterate_phdr T
+dl_unwind_find_exidx T
+genode_argc D 4
+genode_argv D 8
+genode_envp B
+lx_environ B
+memcpy W
+memmove W
+memset W
+stdout_reconnect T
+stdout_write T
+wait_for_continue T

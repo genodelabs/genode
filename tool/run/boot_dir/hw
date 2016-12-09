@@ -1,6 +1,7 @@
-proc run_boot_string { } {
-	return "\nkernel initialized"
-}
+proc binary_name_ld_lib_so { } { return "ld-hw.lib.so" }
+
+
+proc run_boot_string { } { return "\nkernel initialized" }
 
 
 proc core_link_address { } {
@@ -32,6 +33,8 @@ proc run_boot_dir {binaries} {
 		puts $fh "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/></acpi>"
 		close $fh
 	}
+
+	build { lib/ld/hw }
 
 	build_core_image $binaries
 

@@ -111,7 +111,13 @@ LD_CMD += $(CXX_LINK_OPT)
 
 ifeq ($(SHARED_LIBS),)
 LD_SCRIPTS  := $(LD_SCRIPT_STATIC)
-FILTER_DEPS := $(DEPS:.lib=)
+
+#
+# Filter out the component-entry-point library since its not used for static
+# binaries
+#
+FILTER_DEPS := $(filter-out component_entry_point,$(DEPS:.lib=))
+
 else
 
 #

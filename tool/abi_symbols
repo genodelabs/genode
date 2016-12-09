@@ -1,0 +1,98 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Generate ABI symbol list for a shared library
+# \author Norman Feske
+# \date   2016-12-07
+#
+# The tool takes the shared library as argument and writes the output to
+# standard output. Each line of the resulting output contains the symbol name,
+# type, and size
+#
+
+# obtain symbol information via 'nm'
+set symbols [exec nm --format posix --dynamic $argv]
+
+# obtain demangled input via c++filt
+set demangled [exec c++filt << $symbols]
+
+set demangled_lines [split $demangled "\n"]
+
+set i 0
+set output_lines {}
+foreach line [split $symbols "\n"] {
+
+	set size_hex 0
+	set type "U"
+
+	# match undefined symbol
+	regexp {^(\w+) U\s*$} $line dummy name
+
+	# match defined symbol, which does not always feature a size value
+	regexp {^(\w+) (\w) \w+ ?(\w*)$} $line dummy name type size_hex
+
+	# decimal symbol size
+	set size_dec [expr 0x0$size_hex]
+
+	set demangled_name $name
+	regexp {^(.+) \w \w+( \w+)?$} [lindex $demangled_lines $i] dummy demangled_name
+
+	set keep 1
+
+	#
+	# Ignore undefined symbols
+	#
+	if {$type == "U"} { set keep 0 }
+
+	#
+	# Check if the unmangled line contains a template-argument delimiter ('<')
+	# prior the first opening parenthesis. This way, template methods match but
+	# signatures of non-template functions/methods that take templated
+	# arguments won't. We can discard symbols for the former but not the
+	# latter.
+	#
+	if {[regexp {^[^(]+<} $demangled_name dummy]} { set keep 0 }
+
+	#
+	# Drop weak vtable and typeinfo symbols
+	#
+	# Those symbols are solely used to merge vtables between the executable and
+	# shared library. When linking object files that use the same types, the
+	# merging saves a lot space. However, the benefit at the coarse granularity
+	# of shared libraries is rather small compared to the huge inflation of the
+	# ABI size caused by such symbols.
+	#
+	if {($type == "V") && ([regexp {^(typeinfo |vtable )} $demangled_name dummy])} {
+		set keep 0 }
+
+	#
+	# Drop weak C++ symbols
+	#
+	# In contrast to weak C symbols, which are rarely and always deliberately
+	# created, weak C++ symbols are implicitly created by the compiler for
+	# inline functions.
+	#
+	if {[regexp {W|V} $type] && ($name != $demangled_name)} {
+		set keep 0 }
+
+	# write result
+	if {$keep} {
+
+		#
+		# Annotate the size for global data symbols where the size is needed to
+		# create copy relations (ARM EABI) in the binary that is linked against
+		# the shared library. For each global read-only data symbol found in
+		# the shared object, the linker reserves space (according to the
+		# symbol's size) in the binary's BSS segment. At runtime, the dynamic
+		# linker copies the data from the shared library's symbol into the
+		# binary's BSS.
+		#
+		if {$type == "D"} {
+			puts "$name $type $size_dec"
+		} else {
+			puts "$name $type"
+		}
+	}
+	incr i
+}
+

@@ -1,3 +1,6 @@
+proc binary_name_ld_lib_so { } { return "ld-fiasco.lib.so" }
+
+
 ##
 # Read the location of the Fiasco user directory from 'etc/fiasco.conf'
 #
@@ -24,28 +27,10 @@ proc l4_dir { } {
 
 
 ##
-# Return whether the l4-buid-directory is provided from the outside
-#
-proc l4_dir_external { } {
-	if {[l4_dir] == "[pwd]/l4"} { return 0 }
-	return 1
-}
-
-
-##
 # Return the location of the Fiasco kernel
 #
 proc fiasco { } {
 	return [kernel_location_from_config_file etc/fiasco.conf [pwd]/kernel/fiasco/fiasco]
-}
-
-
-##
-# Return whether fiasco kernel is provided from the outside
-#
-proc fiasco_external { } {
-	if {[fiasco] == "[pwd]/kernel/fiasco/fiasco"} { return 0 }
-	return 1
 }
 
 
@@ -71,14 +56,13 @@ proc core_link_address { } { return "0x01000000" }
 #
 proc run_boot_dir {binaries} {
 
+	build { lib/ld/fiasco kernel bootstrap sigma0 }
+
 	build_core_image $binaries
 
 	global fiasco_serial_esc_arg
 
 	exec mkdir -p [run_dir]/fiasco
-
-	if {![fiasco_external]} { build { kernel } }
-	if {![l4_dir_external]} { build { bootstrap sigma0 } }
 
 	# assert existence of the L4 build directory
 	l4_dir

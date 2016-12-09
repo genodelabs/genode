@@ -6,6 +6,9 @@
 # This file is meant to be used as '--include' argument for 'tool/run'.
 #
 
+proc binary_name_ld_lib_so { } { return "ld-foc.lib.so" }
+
+
 ##
 # Return the location of the Fiasco.OC user directory
 #
@@ -102,17 +105,20 @@ proc core_link_address { } {
 }
 
 proc run_boot_dir_x86 {binaries} {
+
 	global fiasco_serial_esc_arg
 
 	exec mkdir -p [run_dir]/fiasco
 
-	set foc_targets { }
+	set foc_targets { lib/ld/foc }
 	if {![fiasco_external] && ![file exists kernel]} { lappend foc_targets kernel }
 	if {![l4_dir_external]} {
 		if {![file exists bootstrap]} { lappend foc_targets bootstrap }
 		if {![file exists sigma0]}    { lappend foc_targets sigma0    }
 	}
 	if {[llength $foc_targets] > 0} { build $foc_targets }
+
+	build_core_image $binaries
 
 	# assert existence of the L4 build directory
 	l4_dir
@@ -185,7 +191,9 @@ proc run_boot_dir_arm {binaries} {
 	global run_target
 	global fiasco_serial_esc_arg
 
-	build "kernel sigma0 bootstrap"
+	build { lib/ld/foc kernel sigma0 bootstrap }
+
+	build_core_image $binaries
 
 	#
 	# Generate bootstrap config
@@ -239,7 +247,6 @@ proc run_boot_string { } {
 # Populate boot directory with binaries on fiasco.OC
 #
 proc run_boot_dir {binaries} {
-	build_core_image $binaries
 
 	if {[have_spec x86]} { return [run_boot_dir_x86 $binaries] }
 	if {[have_spec arm]} { return [run_boot_dir_arm $binaries] }
