@@ -99,7 +99,7 @@ append config_of_app {
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
@@ -149,7 +149,7 @@ append config_of_app {
 
 for { set i 1} { $i <= $use_vms } { incr i} {
 append config_of_app "
-			<policy label_prefix=\"nit_fb$i\" rom=\"shape$i\"/>"
+			<policy label=\"nit_fb$i\" rom=\"shape$i\"/>"
 }
 
 append config_of_app {

@@ -185,10 +185,10 @@ set config {
 		<binary name="vbox_pointer"/>
 		<resource name="RAM" quantum="1M"/>
 		<config>
-			<default-policy domain="smiley"   rom="smiley"/>
-			<policy label_prefix="test-label-arrow"  rom="arrow"/>
-			<policy label_prefix="test-label-blade"  rom="blade"/>
-			<policy label_prefix="test-label-bladex" rom="bladex"/>
+			<policy domain="smiley"   rom="smiley"/>
+			<policy label="test-label-arrow"  rom="arrow"/>
+			<policy label="test-label-blade"  rom="blade"/>
+			<policy label="test-label-bladex" rom="bladex"/>
 		</config>
 		<route>
 			<service name="RM">        <parent/>                            </service>
