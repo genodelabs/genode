@@ -1,55 +1,11 @@
 proc binary_name_ld_lib_so { } { return "ld-fiasco.lib.so" }
+proc binary_name_core_o    { } { return "fiasco/core.o" }
 proc binary_name_timer     { } { return "fiasco_timer_drv" }
 
 
-##
-# Read the location of the Fiasco user directory from 'etc/fiasco.conf'
-#
-proc l4_dir { } {
-	global _l4_dir
-
-	if {![info exists _l4_dir]} {
-		if {[file exists etc/fiasco.conf]} {
-			set _l4_dir [exec sed -n "/^L4_BUILD_DIR/s/^.*=\\s*//p" etc/fiasco.conf]
-			if {[file exists $_l4_dir]} { return $_l4_dir }
-		}
-
-		set _l4_dir "[pwd]/l4"
-		if {![file exists $_l4_dir]} {
-			puts -nonewline stderr "Error: Could neither find the L4 build directory "
-			puts -nonewline stderr "within '<genode-build-dir>/l4' nor at a location "
-			puts -nonewline stderr "specified via 'L4_BUILD_DIR = <l4v2-build-dir>' "
-			puts            stderr "in <genode-build-dir>/etc/fiasco.conf'."
-			exit 1
-		}
-	}
-	return $_l4_dir
-}
-
-
-##
-# Return the location of the Fiasco kernel
-#
-proc fiasco { } {
-	return [kernel_location_from_config_file etc/fiasco.conf [pwd]/kernel/fiasco/fiasco]
-}
-
-
-proc bin_dir { } {
-	if {[have_spec x86_32]}  { return "[l4_dir]/bin/x86_586" }
-
-	puts stderr "Error: Cannot determine bin directory"
-	exit 1
-}
-
-set fiasco_serial_esc_arg "-serial_esc "
-
-
-proc run_boot_string { } {
-	return "\nL4 Bootstrapper"
-}
-
-proc core_link_address { } { return "0x01000000" }
+proc fiasco_serial_esc_arg { } { return "-serial_esc " }
+proc run_boot_string       { } { return "\nL4 Bootstrapper" }
+proc core_link_address     { } { return "0x01000000" }
 
 
 ##
@@ -57,24 +13,17 @@ proc core_link_address { } { return "0x01000000" }
 #
 proc run_boot_dir {binaries} {
 
-	build { lib/ld/fiasco kernel bootstrap sigma0 }
+	build { lib/ld/fiasco kernel/fiasco }
 
 	build_core_image $binaries
 
-	global fiasco_serial_esc_arg
-
 	exec mkdir -p [run_dir]/fiasco
-
-	# assert existence of the L4 build directory
-	l4_dir
-
-	puts "using fiasco kernel [fiasco]"
-	exec cp [fiasco] [run_dir]/fiasco/fiasco
-	puts "using sigma0/bootstrap at [l4_dir]"
-	exec cp [bin_dir]/l4v2/sigma0 [run_dir]/fiasco
-	exec cp [bin_dir]/bootstrap [run_dir]/fiasco
+	exec cp kernel/fiasco/kernel    [run_dir]/fiasco
+	exec cp kernel/fiasco/sigma0    [run_dir]/fiasco
+	exec cp kernel/fiasco/bootstrap [run_dir]/fiasco
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+
 		#
 		# Install isolinux/GRUB files and bender
 		#
@@ -92,7 +41,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "\ntitle Genode on L4/Fiasco"
 		puts $fh " kernel /boot/bender"
 		puts $fh " module /fiasco/bootstrap -serial"
-		puts $fh " module /fiasco/fiasco -serial -jdb_cmd=JH $fiasco_serial_esc_arg"
+		puts $fh " module /fiasco/kernel -serial -jdb_cmd=JH [fiasco_serial_esc_arg]"
 		puts $fh " module /fiasco/sigma0"
 		puts $fh " module /image.elf"
 		puts $fh " vbeset 0x117 506070"
@@ -113,7 +62,7 @@ proc run_boot_dir {binaries} {
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
 		puts $fh " load /fiasco/bootstrap -serial"
-		puts $fh " load /fiasco/fiasco -serial -serial_esc -jdb_cmd=JH"
+		puts $fh " load /fiasco/kernel -serial -serial_esc -jdb_cmd=JH"
 		puts $fh " load /fiasco/sigma0"
 		puts $fh " load /image.elf"
 		close $fh

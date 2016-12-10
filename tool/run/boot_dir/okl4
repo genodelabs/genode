@@ -1,4 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-okl4.lib.so" }
+proc binary_name_core_o    { } { return "okl4/core.o" }
 proc binary_name_timer     { } { return "pit_timer_drv" }
 
 
@@ -24,15 +25,6 @@ proc okl4_dir { } {
 	}
 
 	return $_okl4_dir
-}
-
-
-##
-# Return the location of the OKL4 kernel
-#
-proc okl4 { } {
-	if {[okl4_external]} { return [okl4_dir]/build/pistachio/bin/kernel }
-	return bin/kernel
 }
 
 
@@ -129,8 +121,8 @@ proc run_boot_dir {binaries} {
 	# the kernel does not stand in the way of the everyday's work flow of
 	# executing run scripts as quick as possible.
 	#
-	if {![okl4_external] && ![file exists [okl4]]} {
-		build { lib/ld/okl4 kernel }
+	if {![okl4_external] && ![file exists bin/okl4]} {
+		build { lib/ld/okl4 kernel/okl4 }
 	} else {
 		build { lib/ld/okl4 }
 	}
@@ -138,7 +130,7 @@ proc run_boot_dir {binaries} {
 	build_core_image $binaries
 	exec mv [run_dir]/image.elf [run_dir].image
 
-	exec cp [okl4] [run_dir]/kernel
+	exec cp bin/okl4 [run_dir]/kernel
 
 	#
 	# Generate ELF weaver config

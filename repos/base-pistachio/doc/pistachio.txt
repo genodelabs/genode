@@ -64,22 +64,5 @@ This command will execute the steps described in the run script located at
 scenario, create a configuration, and start the scenario using Qemu. To inspect
 the individual steps more closely or learn the steps needed to manually
 integrate Genode with L4ka::Pistachio, please revisit the Pistachio-specific
-run environment at 'base-pistachio/run/env'.
-
-
-Using an externally supplied kernel
-###################################
-
-It is possible to use a L4ka::Pistachio kernel that is manually downloaded
-and built. To let Genode use an external kernel, create a file called
-'<build-dir>/etc/pistachio.conf' with the following declarations:
-
-! PISTACHIO_USER_BUILD_DIR = <location-of-pistachio/user/build>
-
-The location of the Pistachio user-level build directory is the place where
-Genode looks for the kernel-interface header files and the system bindings.
-
-! PISTACHIO_KERNEL = <location-of-the-pistachio-kernel>
-
-The specified kernel binary will be used when executing run scripts.
+run environment at 'tool/run/boot_dir/pistachio'.
 

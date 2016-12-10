@@ -5,4 +5,4 @@ SRC_CC += env.cc
 SRC_CC += capability.cc
 SRC_CC += cache.cc
 
-LIBS += startup base-hw-common
+LIBS += startup-hw base-hw-common

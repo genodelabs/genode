@@ -1,4 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-nova.lib.so" }
+proc binary_name_core_o    { } { return "nova/core.o" }
 proc binary_name_timer     { } { return "nova_timer_drv" }
 
 
@@ -12,7 +13,7 @@ proc nova_kernel { } {
 		if {[file exists etc/nova.conf]} {
 			set _nova_kernel [exec sed -n "/^NOVA_KERNEL/s/^.*=\\s*//p" etc/nova.conf]
 		} else {
-		        set _nova_kernel "[pwd]/kernel/hypervisor"
+		        set _nova_kernel "[pwd]/kernel/nova/hypervisor"
 		}
 	}
 	return $_nova_kernel
@@ -23,7 +24,7 @@ proc nova_kernel { } {
 # Return whether nova is provided from the outside
 #
 proc nova_external { } {
-	if {[nova_kernel] == "[pwd]/kernel/hypervisor"} { return 0 }
+	if {[nova_kernel] == "[pwd]/kernel/nova/hypervisor"} { return 0 }
 	return 1
 }
 

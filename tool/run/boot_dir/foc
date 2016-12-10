@@ -1,64 +1,28 @@
 proc binary_name_ld_lib_so { } { return "ld-foc.lib.so" }
+proc binary_name_core_o    { } { return "foc/core.o"    }
 proc binary_name_timer     { } { return "foc_timer_drv" }
 
 
-##
-# Return the location of the Fiasco.OC user directory
-#
-proc l4_dir { } {
-	global _l4_dir
+proc run_boot_string { } { return "\nL4 Bootstrapper" }
 
-	if {![info exists _l4_dir]} {
-		if {[file exists etc/foc.conf]} {
-			set _l4_dir [exec sed -n "/^L4_BUILD_DIR/s/^.*=\\s*//p" etc/foc.conf]
-			if {[file exists $_l4_dir]} { return $_l4_dir }
-		}
 
-		set _l4_dir "[pwd]/l4"
-		if {![file exists $_l4_dir]} {
-			puts -nonewline stderr "Error: Could neither find the L4 build directory "
-			puts -nonewline stderr "within '<genode-build-dir>/l4' nor at a location "
-			puts -nonewline stderr "specified via 'L4_BUILD_DIR = <l4re-build-dir>' "
-			puts            stderr "in <genode-build-dir>/etc/foc.conf'."
-			exit 1
-		}
-	}
-	return $_l4_dir
+proc core_link_address { } {
+
+	if {[have_spec x86      ]} { return "0x01100000" }
+	if {[have_spec arndale  ]} { return "0x80100000" }
+	if {[have_spec rpi      ]} { return "0x00800000" }
+	if {[have_spec panda    ]} { return "0xa0000000" }
+	if {[have_spec pbxa9    ]} { return "0x76000000" }
+	if {[have_spec odroid_x2]} { return "0x80100000" }
+	if {[have_spec imx53    ]} { return "0x70140000" }
+
+	puts stderr "Error: platform not supported, core link address unknown"
+	exit 1
 }
 
-##
-# Return whether the l4-buid-directory is provided from the outside
-#
-proc l4_dir_external { } {
-	if {[l4_dir] == "[pwd]/l4"} { return 0 }
-	return 1
-}
 
-##
-# Return the location of the Fiasco.OC kernel directory
-#
-proc fiasco { } {
-	global _fiasco
+proc fiasco_serial_esc_arg { } { return "-serial_esc " }
 
-	if {![info exists _fiasco]} {
-		if {[file exists etc/foc.conf]} {
-			set _fiasco [exec sed -n "/^KERNEL/s/^.*=\\s*//p" etc/foc.conf]
-			if {[file exists $_fiasco]} { return $_fiasco }
-		}
-
-		# try to fall back to version hosted with the Genode build directory
-		set _fiasco "[pwd]/kernel/fiasco.oc/fiasco"
-	}
-	return $_fiasco
-}
-
-##
-# Return whether fiasco kernel is provided from the outside
-#
-proc fiasco_external { } {
-	if {[fiasco] == "[pwd]/kernel/fiasco.oc/fiasco"} { return 0 }
-	return 1
-}
 
 ##
 # Reset the target system via the Fiasco.OC kernel debugger
@@ -72,57 +36,37 @@ proc reset_target { {spawn_id_arg -1} } {
 }
 
 
-proc bin_dir { } {
-	if {[have_spec x86_32]}  { return "[l4_dir]/bin/x86_586" }
-	if {[have_spec x86_64]}  { return "[l4_dir]/bin/amd64_K8" }
-	if {[have_spec arm_v7a]} { return "[l4_dir]/bin/arm_armv7a" }
-	if {[have_spec arm_v6]}  { return "[l4_dir]/bin/arm_armv6" }
+proc l4_build_dir { } { return "[pwd]/var/libcache/syscall-foc/build" }
+
+
+proc kernel_binary { } { return "[pwd]/var/libcache/kernel-foc/build/fiasco" }
+
+
+proc l4_bin_dir { } {
+
+	if {[have_spec x86_32]}  { return "[l4_build_dir]/bin/x86_586" }
+	if {[have_spec x86_64]}  { return "[l4_build_dir]/bin/amd64_K8" }
+	if {[have_spec arm_v7a]} { return "[l4_build_dir]/bin/arm_armv7a" }
+	if {[have_spec arm_v6]}  { return "[l4_build_dir]/bin/arm_armv6" }
 
 	puts stderr "Error: Cannot determine bin directory"
 	exit 1
 }
 
-set fiasco_serial_esc_arg "-serial_esc "
-
-proc core_link_address { } {
-	if {[have_spec x86      ]} { return "0x01100000" }
-	if {[have_spec arndale  ]} { return "0x80100000" }
-	if {[have_spec rpi      ]} { return "0x00800000" }
-	if {[have_spec panda    ]} { return "0xa0000000" }
-	if {[have_spec pbxa9    ]} { return "0x76000000" }
-	if {[have_spec odroid_x2]} { return "0x80100000" }
-	if {[have_spec imx53    ]} { return "0x70140000" }
-
-	puts stderr "Error: platform not supported, core link address unknown"
-	exit 1
-}
 
 proc run_boot_dir_x86 {binaries} {
 
-	global fiasco_serial_esc_arg
-
-	exec mkdir -p [run_dir]/fiasco
-
-	set foc_targets { lib/ld/foc }
-	if {![fiasco_external] && ![file exists kernel]} { lappend foc_targets kernel }
-	if {![l4_dir_external]} {
-		if {![file exists bootstrap]} { lappend foc_targets bootstrap }
-		if {![file exists sigma0]}    { lappend foc_targets sigma0    }
-	}
-	if {[llength $foc_targets] > 0} { build $foc_targets }
+	build { lib/ld/foc kernel/foc }
 
 	build_core_image $binaries
 
-	# assert existence of the L4 build directory
-	l4_dir
-
-	puts "using fiasco kernel [fiasco]"
-	exec cp [fiasco] [run_dir]/fiasco
-	puts "using sigma0/bootstrap at [l4_dir]"
-	exec cp [bin_dir]/l4f/sigma0 [run_dir]/fiasco
-	exec cp [bin_dir]/bootstrap [run_dir]/fiasco
+	exec mkdir [run_dir]/foc
+	exec cp [kernel_binary]         [run_dir]/foc/kernel
+	exec cp [l4_bin_dir]/l4f/sigma0 [run_dir]/foc
+	exec cp [l4_bin_dir]/bootstrap  [run_dir]/foc
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+
 		#
 		# Install isolinux/GRUB files and bender
 		#
@@ -139,9 +83,9 @@ proc run_boot_dir_x86 {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on Fiasco.OC"
 		puts $fh " kernel /boot/bender"
-		puts $fh " module /fiasco/bootstrap"
-		puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
-		puts $fh " module /fiasco/sigma0"
+		puts $fh " module /foc/bootstrap"
+		puts $fh " module /foc/kernel [fiasco_serial_esc_arg]"
+		puts $fh " module /foc/sigma0"
 		puts $fh " module /image.elf"
 		close $fh
 	}
@@ -162,9 +106,9 @@ proc run_boot_dir_x86 {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /fiasco/bootstrap"
-		puts $fh " load /fiasco/fiasco -serial_esc"
-		puts $fh " load /fiasco/sigma0"
+		puts $fh " load /foc/bootstrap"
+		puts $fh " load /foc/kernel -serial_esc"
+		puts $fh " load /foc/sigma0"
 		puts $fh " load /image.elf"
 		close $fh
 
@@ -179,12 +123,11 @@ proc run_boot_dir_x86 {binaries} {
 }
 
 
-proc run_boot_dir_arm {binaries} {
+proc run_boot_dir_arm { binaries } {
 
 	global run_target
-	global fiasco_serial_esc_arg
 
-	build { lib/ld/foc kernel sigma0 bootstrap }
+	build { lib/ld/foc kernel/foc }
 
 	build_core_image $binaries
 
@@ -195,25 +138,24 @@ proc run_boot_dir_arm {binaries} {
 
 	puts $fh "modaddr 0x01100000\n"
 	puts $fh "entry    genode"
-	puts $fh "kernel   [fiasco] $fiasco_serial_esc_arg"
+	puts $fh "kernel   [kernel_binary] [fiasco_serial_esc_arg]"
 	puts $fh "roottask image.elf"
 	close $fh
 
-
-	set gen_img_cmd "make -C [l4_dir]/source O=[l4_dir] E=genode "
+	set gen_img_cmd "make -C [l4_build_dir]/source O=[l4_build_dir] E=genode "
 	append gen_img_cmd "MODULES_LIST=[pwd]/[run_dir]/modules.list "
-	append gen_img_cmd "MODULE_SEARCH_PATH=[pwd]/[run_dir]:[file dirname [fiasco]]:[l4_dir] "
+	append gen_img_cmd "MODULE_SEARCH_PATH=[pwd]/[run_dir]:[pwd]:[l4_build_dir] "
 	append gen_img_cmd "SYSTEM_TARGET=[cross_dev_prefix] elfimage"
 
 	set pid [eval "spawn sh -c \"$gen_img_cmd\""]
 	expect { eof { } }
 	if {[lindex [wait $pid] end] != 0} {
-		puts stderr "Error: Single-image creation failed"
+		puts stderr "Error: single-image creation failed"
 		exit -4
 	}
 
 	exec cp [run_dir]/image.elf [run_dir]/core.elf
-	exec cp [bin_dir]/bootstrap.elf [run_dir]/image.elf
+	exec cp [l4_bin_dir]/bootstrap.elf [run_dir]/image.elf
 	run_image [run_dir]/image.elf
 
 	puts "\nboot image: [run_dir]/image.elf\n"
@@ -228,11 +170,6 @@ proc run_boot_dir_arm {binaries} {
 			exec ln -sf [pwd]/[run_dir]/uImage $tftp_base_dir$tftp_offset_dir/uImage
 		}
 	}
-}
-
-
-proc run_boot_string { } {
-	return "\nL4 Bootstrapper"
 }
 
 

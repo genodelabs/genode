@@ -6,7 +6,7 @@
 
 include $(BASE_DIR)/lib/mk/base-common.inc
 
-LIBS += startup syscall
+LIBS += startup-pistachio syscall-pistachio
 
 SRC_CC += capability.cc capability_raw.cc
 SRC_CC += signal_submit.cc

@@ -1,0 +1,1 @@
+LIBS += core-hw-trustzone

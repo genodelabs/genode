@@ -1,4 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-sel4.lib.so" }
+proc binary_name_core_o    { } { return "sel4/core.o" }
 proc binary_name_timer     { } { return "pit_timer_drv" }
 
 
@@ -12,7 +13,7 @@ proc core_link_address { } { return "0x02000000" }
 proc run_boot_dir {binaries} {
 
 	# build sel4 kernel
-	build { lib/ld/sel4 kernel }
+	build { lib/ld/sel4 kernel/sel4 }
 	exec cp bin/sel4 [run_dir]/sel4
 
 	build_core_image $binaries

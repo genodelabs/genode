@@ -6,7 +6,7 @@
 
 include $(BASE_DIR)/lib/mk/base-common.inc
 
-LIBS += startup
+LIBS += startup-nova
 
 SRC_CC += signal_submit.cc
 SRC_CC += thread.cc thread_myself.cc

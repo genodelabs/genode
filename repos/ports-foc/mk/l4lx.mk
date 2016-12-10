@@ -2,8 +2,8 @@ TARGET              = vmlinux
 VERBOSE_LX_MK      ?= 0
 REQUIRES           += foc
 INC_DIR            += $(REP_DIR)/include
-LIBS                = l4lx l4sys
-GENODE_LIBS        := base-foc base-foc-common startup syscall cxx l4lx l4sys config
+LIBS                = l4lx l4sys syscall-foc
+GENODE_LIBS        := base-foc base-foc-common startup-foc syscall-foc cxx l4lx l4sys config
 
 GENODE_LIBS        := $(foreach l,$(GENODE_LIBS),$(BUILD_BASE_DIR)/var/libcache/$l/$l.lib.a)
 GENODE_LIBS_SORTED  = $(sort $(wildcard $(GENODE_LIBS)))
@@ -14,6 +14,10 @@ L4LX_BUILD        = $(BUILD_BASE_DIR)/$(LX_TARGET)
 L4LX_BINARY       = $(L4LX_BUILD)/$(TARGET)
 L4LX_SYMLINK      = $(BUILD_BASE_DIR)/bin/$(LX_TARGET)
 L4LX_CONFIG       = $(L4LX_BUILD)/.config
+
+L4_BUILD_DIR     := $(LIB_CACHE_DIR)/syscall-foc/build
+
+BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [l4linux]  /"
 
 $(TARGET): $(L4LX_BINARY)
 
@@ -27,7 +31,7 @@ $(L4LX_BINARY): $(L4LX_CONFIG)
 	               V=$(VERBOSE_LX_MK) \
 	               GENODE_INCLUDES="$(addprefix -I,$(INC_DIR))" \
 	               GENODE_LIBS="$(GENODE_LIBS_SORTED)" \
-	               L4ARCH="$(L4LX_L4ARCH)" || false
+	               L4ARCH="$(L4LX_L4ARCH)" $(BUILD_OUTPUT_FILTER) || false
 	$(VERBOSE)ln -sf $@ $(L4LX_SYMLINK)
 
 $(L4LX_CONFIG): $(SRC_L4LX_CONFIG)

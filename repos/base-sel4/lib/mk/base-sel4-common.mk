@@ -6,7 +6,7 @@
 
 include $(BASE_DIR)/lib/mk/base-common.inc
 
-LIBS += startup syscall
+LIBS += startup-sel4 syscall-sel4
 
 SRC_CC += signal_submit.cc
 SRC_CC += rpc_dispatch_loop.cc

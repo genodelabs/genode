@@ -6,7 +6,7 @@
 
 include $(BASE_DIR)/lib/mk/base-common.inc
 
-LIBS += syscall startup
+LIBS += syscall-foc startup-foc
 
 SRC_CC += spin_lock.cc cap_map.cc
 SRC_CC += signal_submit.cc

@@ -111,26 +111,6 @@ to download the Genode project webpage via the 'wget' tool within the L4Linux
 environment. If all wents fine the run-script completes successfully.
 
 
-Integration of Fiasco.OC with Genode
-####################################
-
-If you don't want the Genode build system to build the Fiasco.OC kernel for
-you, but you want to provide your own version, you have to state in the
-'etc/foc.conf' file within your build directory, where to find it:
-
-! L4_BUILD_DIR = <l4re-build-dir>
-! KERNEL       = <fiasco.oc-kernel-binary>
-
-The first variable states where to find the kernel bindings (the L4RE build
-directory), the second one states where your kernel binary can be found.
-After adding these variable to the file, you have to do a full cleanup
-in your build directory to ensure, that the right bindings are used:
-
-! make cleanall
-
-From now on, run-scripts will use your provided kernel.
-
-
 Further Information
 ###################
 

@@ -1,4 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-linux.lib.so" }
+proc binary_name_core      { } { return "core-linux" }
 proc binary_name_timer     { } { return "linux_timer_drv" }
 
 

@@ -59,12 +59,12 @@ with 'fiasco_x86' as argument:
 
 From within the new <build-dir>, the kernel can be compiled via
 
-! make kernel
+! make kernel/fiasco
 
-When using Genode's run mechanism, there is no need to explicitly
-build the kernel. The run environment (see 'base-fiasco/run/env')
-takes care of it. So you can simple execute run scripts from within
-the build directory, for example:
+When using Genode's run mechanism, there is no need to explicitly build the
+kernel. The run environment (see 'tool/run/boot_dir/fiasco') takes care of it.
+So you can simple execute run scripts from within the build directory, for
+example:
 
 ! make run/demo
 
@@ -115,22 +115,5 @@ interest for using Genode:
   is used to create a single binary image containing all boot-time
   OS components.
 
-To build all components under '3rd/fiasco' after extracting the
-archive, issue the following commands:
-
-! mkdir <build-dir>
-! make -C 3rd/fiasco BUILD_DIR=<build-dir>/3rd build
-
-The specified '<build-dir>' must be the absolute path to the
-directory, which will contain the build directories for the third party
-software and the Genode build directory. After the build, your compound
-build directory contains the following subdirectories:
-
-:'fiasco_x86':
-
-  All generated files and the final binary of Fiasco reside here.
-
-:'l4env':
-
-  L4 environment binaries and header files.
-
+Those components are implicitly built by the Genode build system when
+issuing 'make kernel/fiasco'.

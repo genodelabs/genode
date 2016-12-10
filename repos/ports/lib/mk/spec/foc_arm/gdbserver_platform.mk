@@ -6,4 +6,6 @@ SRC_C  = reg-arm.c \
 
 CC_OPT_linux-arm-low += -Wno-unused-function
 
+LIBS += syscall-foc
+
 include $(REP_DIR)/lib/mk/gdbserver_platform.inc

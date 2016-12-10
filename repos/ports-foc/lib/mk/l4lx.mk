@@ -36,6 +36,6 @@ INC_DIR += $(REP_DIR)/include \
 # for reusing the 'Expanding_rm_session' from the platform env in dataspace.h
 INC_DIR += $(BASE_DIR)/src/include
 
-LIBS     = base config
+LIBS     = base-foc config syscall-foc
 
 vpath %.cc $(REP_DIR)/src/lib/l4lx
