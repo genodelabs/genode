@@ -1,0 +1,68 @@
+set build_components {
+	core init drivers/timer
+	test/libc_select
+}
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="test-libc_select">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<arg value="test-libc_select"/>
+			<arg value="/dev/log"/>
+			<!--
+			<arg value=":"/>
+			<arg value="/dev/log"/>
+			-->
+			<vfs>
+				<dir name="dev">
+					<log/> <null/> <zero/>
+				</dir>
+			</vfs>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer
+	test-libc_select
+	ld.lib.so libc.lib.so libm.lib.so stdcxx.lib.so pthread.lib.so
+	libc_pipe.lib.so
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 128 -nographic "
+
+run_genode_until ".*child.*test-libc_select.*exited with exit value 0.*\n" 120
+
+# vi: set ft=tcl :
