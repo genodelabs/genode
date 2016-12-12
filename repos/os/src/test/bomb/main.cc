@@ -218,8 +218,10 @@ struct Bomb
 		++round;
 
 		/* master if we have a timer connection */
-		if (round == rounds && timer.constructed())
+		if (round == rounds && timer.constructed()) {
 			log("Done. Going to sleep");
+			return;
+		}
 
 		construct_children();
 	}

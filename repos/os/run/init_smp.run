@@ -1,0 +1,110 @@
+build "core init test/bomb drivers/timer"
+
+set timeout     60
+set rounds      10
+set generations 3
+set children    7
+set sleep       600
+set demand      [expr 1*1024*1024]
+
+set cpus        4
+set init_ram    256
+
+if { [get_cmd_switch --autopilot] } {
+
+	if {[have_include "power_on/qemu"]} {
+		puts "\nRun script does not support Qemu.\n"
+		exit 0
+	}
+
+	assert_spec nova
+
+	# set specifically for our nightly test hardware */
+	set cpus     8
+	set children 3
+}
+
+create_boot_directory
+
+set config {
+<config verbose="yes">}
+
+append config "
+	<affinity-space width=\"$cpus\" height=\"1\"/>"
+
+append config {
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route><any-service><parent/><any-child/></any-service></default-route>
+
+	<start name="timer">
+		<resource name="CPU" quantum="10"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+
+for { set i 0} { $i < ${cpus} } { incr i} {
+
+	append config "
+			<start name=\"init_$i\">
+				<affinity xpos=\"$i\" width=\"1\"/>
+				<resource name=\"RAM\" quantum=\"${init_ram}M\"/>"
+	append config {
+				<binary name="init"/>
+				<config verbose="yes">
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+						<service name="Timer"/>
+					</parent-provides>
+					<default-route>
+						<any-service> <parent/> <any-child/> </any-service>
+					</default-route>
+
+					<start name="bomb-master">
+						<binary name="bomb"/>
+						<resource name="CPU" quantum="90"/>
+						<resource name="RAM" quantum="2G"/>}
+
+append config "
+		<config rounds=\"$rounds\" generations=\"$generations\"
+		        children=\"$children\" sleep=\"$sleep\" demand=\"$demand\"/>"
+
+append config {
+					</start>
+				</config>
+			</start>}
+}
+
+append config {
+</config>}
+
+install_config $config
+
+build_boot_image "core ld.lib.so init bomb timer"
+
+append qemu_args " -m [expr 128 + $init_ram*$cpus] -nographic -smp $cpus"
+
+
+if { [get_cmd_switch --autopilot] } {
+
+	run_genode_until {bomb started} 20
+
+	for { set i 0} { $i < ${cpus} } { incr i} {
+		run_genode_until {\[init -\> init_[0-9] -\> bomb-master] Done\. Going to sleep} $timeout [output_spawn_id]
+	}
+
+} else {
+	run_genode_until forever
+}

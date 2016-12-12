@@ -77,3 +77,4 @@ smartcard
 new_delete
 timeout
 nic_router
+init_smp
