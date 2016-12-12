@@ -115,8 +115,6 @@ class Launchpad_child : public Genode::Child_policy,
 						Genode::destroy(_child.heap(), &service); });
 		}
 
-		Genode::Allocator &heap() { return _child.heap(); }
-
 
 		/****************************
 		 ** Child_policy interface **

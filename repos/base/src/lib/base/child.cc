@@ -205,7 +205,7 @@ Session_capability Child::session(Parent::Client::Id id,
 	Service &service = _policy.resolve_session_request(name.string(), argbuf);
 
 	Session_state &session =
-		create_session(_policy.name(), service, _session_factory,
+		create_session(_policy.name(), service, *_session_factory,
 		               _id_space, id, argbuf, filtered_affinity);
 
 	session.ready_callback = this;
@@ -482,7 +482,7 @@ void Child::deliver_session_cap(Server::Id id, Session_capability cap)
 		_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
 
 			if (session.cap.valid()) {
-				error("attempt to assign session cap twice");
+				_error("attempt to assign session cap twice");
 				return;
 			}
 
@@ -512,7 +512,12 @@ void Child::exit(int exit_value)
 
 Thread_capability Child::main_thread_cap() const
 {
-	return _process.initial_thread.cap();
+	/*
+	 * The '_initial_thread' is always constructed when this function is
+	 * called because the RPC call originates from the active child.
+	 */
+	return _initial_thread.constructed() ? _initial_thread->cap()
+	                                     : Thread_capability();
 }
 
 
@@ -566,24 +571,72 @@ namespace {
 }
 
 
+void Child::_try_construct_env_dependent_members()
+{
+	/* check if the environment sessions are complete */
+	if (!_ram.cap().valid() || !_pd .cap().valid() ||
+	    !_cpu.cap().valid() || !_log.cap().valid() || !_binary.cap().valid())
+		return;
+
+	/*
+	 * If the ROM-session request for the dynamic linker was granted but the
+	 * response to the session request is still outstanding, we have to wait.
+	 * Note that we proceed if the session request was denied by the policy,
+	 * which may be the case when using a statically linked executable.
+	 */
+	if (_linker.constructed() && !_linker->cap().valid())
+		return;
+
+	/*
+	 * Mark all environment sessions as handed out to prevent the triggering
+	 * of signals by 'Child::session_sigh' for these sessions.
+	 */
+	_id_space.for_each<Session_state>([&] (Session_state &session) {
+		if (session.phase == Session_state::AVAILABLE)
+			session.phase =  Session_state::CAP_HANDED_OUT; });
+
+	/* call 'Child_policy::init' methods for the environment sessions */
+	_policy.init(_ram.session(), _ram.cap());
+	_policy.init(_cpu.session(), _cpu.cap());
+	_policy.init(_pd.session(),  _pd.cap());
+
+	_heap.construct(&_ram.session(), &_local_rm);
+	_session_factory.construct(*_heap);
+
+	try {
+		_initial_thread.construct(_cpu.session(), _pd.cap(), "initial");
+		_process.construct(_binary.session().dataspace(), _linker_dataspace(),
+		                   _pd.cap(), _pd.session(), _ram.session(),
+		                   *_initial_thread, _local_rm,
+		                   Child_address_space(_pd.session(), _policy).region_map(),
+		                   _parent_cap);
+	}
+	catch (Ram_session::Alloc_failed)           { _error("RAM allocation failed during ELF loading"); }
+	catch (Cpu_session::Thread_creation_failed) { _error("unable to create initial thread"); }
+	catch (Cpu_session::Out_of_metadata)        { _error("CPU session quota exhausted"); }
+	catch (Process::Missing_dynamic_linker)     { _error("dynamic linker unavailable"); }
+	catch (Process::Invalid_executable)         { _error("invalid ELF executable"); }
+	catch (Region_map::Attach_failed)           { _error("ELF loading failed"); }
+}
+
+
 Child::Child(Region_map             &local_rm,
              Rpc_entrypoint         &entrypoint,
              Child_policy           &policy)
-try :
-	_policy(policy),
-	_heap(&_ram.session(), &local_rm),
-	_entrypoint(entrypoint),
-	_parent_cap(_entrypoint.manage(this)),
-	_process(_binary.session().dataspace(), _linker_dataspace(),
-	         _pd.cap(), _pd.session(), _ram.session(), _initial_thread, local_rm,
-	         Child_address_space(_pd.session(), _policy).region_map(),
-	         _parent_cap)
-{ }
-catch (Cpu_session::Thread_creation_failed) { throw Process_startup_failed(); }
-catch (Cpu_session::Out_of_metadata)        { throw Process_startup_failed(); }
-catch (Process::Missing_dynamic_linker)     { throw Process_startup_failed(); }
-catch (Process::Invalid_executable)         { throw Process_startup_failed(); }
-catch (Region_map::Attach_failed)           { throw Process_startup_failed(); }
+:
+	_policy(policy), _local_rm(local_rm), _entrypoint(entrypoint),
+	_parent_cap(_entrypoint.manage(this))
+{
+	/*
+	 * Issue environment-session request for obtaining the linker binary. We
+	 * accept this request to fail. In this case, the child creation may still
+	 * succeed if the binary is statically linked.
+	 */
+	try { _linker.construct(*this, Parent::Env::linker(), _policy.linker_name()); }
+	catch (Parent::Service_denied) { }
+
+	_try_construct_env_dependent_members();
+}
 
 
 Child::~Child()
@@ -632,5 +685,16 @@ Child::~Child()
 	};
 
 	while (_id_space.apply_any<Session_state>(close_fn));
+
+	/*
+	 * Make sure to destroy the users of the child's environment sessions
+	 * before destructing those sessions. E.g., as the environment RAM session
+	 * provides the backing store for the '_heap', we must not destroy the heap
+	 * after the RAM session.
+	 */
+	_process.destruct();
+	_initial_thread.destruct();
+	_session_factory.destruct();
+	_heap.destruct();
 }
 

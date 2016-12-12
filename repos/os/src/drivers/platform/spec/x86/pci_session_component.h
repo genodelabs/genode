@@ -213,13 +213,24 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 		class Device_pd
 		{
+			public:
+
+				class Startup_failed : Genode::Exception { };
+
 			private:
 
 				enum { RAM_QUOTA = 190 * 4096 };
 
-				Quota_reservation                         const _reservation;
-				Device_pd_policy                                _policy;
-				Genode::Child                                   _child;
+				Quota_reservation const _reservation;
+				Device_pd_policy        _policy;
+				Genode::Child           _child;
+
+				void _check_child_started_up() const {
+					if (!_child.active())
+						throw Startup_failed(); }
+
+				bool const _active = (_check_child_started_up(), true);
+
 				Genode::Slave::Connection<Device_pd_connection> _connection;
 
 			public:
@@ -229,7 +240,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				 *
 				 * \throw Out_of_metadata         session RAM does not suffice
 				 *                                for creating device PD
-				 * \throw Process_startup_failed  by 'Child'
+				 * \throw Startup_failed          child could not be started
 				 * \throw Parent::Service_denied  by 'Slave::Connection'
 				 */
 				Device_pd(Genode::Region_map            &local_rm,

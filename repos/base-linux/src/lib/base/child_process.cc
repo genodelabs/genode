@@ -63,12 +63,11 @@ Child::Process::Process(Dataspace_capability  elf_ds,
                         Pd_session_capability pd_cap,
                         Pd_session           &pd,
                         Ram_session          &ram,
-                        Initial_thread_base  &initial_thread,
+                        Initial_thread_base  &,
                         Region_map           &local_rm,
                         Region_map           &remote_rm,
                         Parent_capability     parent_cap)
 :
-	initial_thread(initial_thread),
 	loaded_executable(elf_ds, ldso_ds, ram, local_rm, remote_rm, parent_cap)
 {
 	/* skip loading when called during fork */

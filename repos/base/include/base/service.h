@@ -347,7 +347,7 @@ class Genode::Child_service : public Service
 		/*
 		 * In contrast to local services and parent services, session-state
 		 * objects for child services are owned by the server. This enables
-		 * the server to asynchronouly respond to close requests when the
+		 * the server to asynchronously respond to close requests when the
 		 * client is already gone.
 		 */
 		Factory &_factory(Factory &) override { return _server_factory; }

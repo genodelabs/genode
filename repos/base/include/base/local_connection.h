@@ -98,16 +98,18 @@ class Genode::Local_connection : Local_connection_base
 			 * If session comes from a local service (e.g,. a virtualized
 			 * RAM session, we return the reference to the corresponding
 			 * component object, which can be called directly.
-			 *
-			 * Otherwise, if the session is provided
 			 */
 			if (_session_state.local_ptr)
 				return *static_cast<SESSION *>(_session_state.local_ptr);
 
 			/*
-			 * The session is provided remotely. So return a client-stub
-			 * for interacting with the session.
+			 * The session is provided remotely. So return a client stub for
+			 * interacting with the session. We construct the client object if
+			 * we have a valid session capability.
 			 */
+			if (!_client.constructed() && _session_state.cap.valid())
+				_client.construct(cap());
+
 			if (_client.constructed())
 				return *_client;
 
@@ -127,8 +129,7 @@ class Genode::Local_connection : Local_connection_base
 			Local_connection_base(service, id_space, id, args,
 			                      affinity, CONNECTION::RAM_QUOTA)
 		{
-			if (_session_state.cap.valid())
-				_client.construct(cap());
+			service.wakeup();
 		}
 };
 

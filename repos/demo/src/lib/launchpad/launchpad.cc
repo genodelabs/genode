@@ -177,7 +177,7 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 		Lock::Guard lock_guard(_children_lock);
 		_children.insert(c);
 
-		add_child(unique_name, ram_quota, *c, c->heap());
+		add_child(unique_name, ram_quota, *c, _heap);
 		return c;
 
 	} catch (...) {
@@ -189,7 +189,7 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 
 void Launchpad::exit_child(Launchpad_child &child)
 {
-	remove_child(child.name(), child.heap());
+	remove_child(child.name(), _heap);
 
 	Lock::Guard lock_guard(_children_lock);
 	_children.remove(&child);

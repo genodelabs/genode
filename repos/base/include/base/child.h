@@ -217,7 +217,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 			/**
 			 * Return capability of the initial thread
 			 */
-			virtual Capability<Cpu_thread> cap() = 0;
+			virtual Capability<Cpu_thread> cap() const = 0;
 		};
 
 		struct Initial_thread : Initial_thread_base
@@ -242,102 +242,17 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				void start(addr_t) override;
 
-				Capability<Cpu_thread> cap() { return _cap; }
+				Capability<Cpu_thread> cap() const { return _cap; }
 		};
 
 		/* child policy */
 		Child_policy &_policy;
 
-		/* sessions opened by the child */
-		Id_space<Client> _id_space;
+		/* print error message with the child's name prepended */
+		template <typename... ARGS>
+		void _error(ARGS &&... args) { error(_policy.name(), ": ", args...); }
 
-		typedef Session_state::Args Args;
-
-		template <typename CONNECTION>
-		struct Env_connection
-		{
-			typedef String<64> Label;
-
-			Args const                   _args;
-			Service                     &_service;
-			Local_connection<CONNECTION> _connection;
-
-			/**
-			 * Construct session arguments with the child policy applied
-			 */
-			Args _construct_args(Child_policy &policy, Label const &label)
-			{
-				/* copy original arguments into modifiable buffer */
-				char buf[Session_state::Args::capacity()];
-				buf[0] = 0;
-
-				/* supply label as session argument */
-				if (label.valid())
-					Arg_string::set_arg_string(buf, sizeof(buf), "label", label.string());
-
-				/* apply policy to argument buffer */
-				policy.filter_session_args(CONNECTION::service_name(), buf, sizeof(buf));
-
-				return Session_state::Args(Cstring(buf));
-			}
-
-			Env_connection(Child_policy &policy, Id_space<Parent::Client> &id_space,
-			               Id_space<Parent::Client>::Id id, Label const &label = Label())
-			:
-				_args(_construct_args(policy, label)),
-				_service(policy.resolve_session_request(CONNECTION::service_name(), _args)),
-				_connection(_service, id_space, id, _args,
-				            policy.filter_session_affinity(Affinity()))
-			{ }
-
-			typedef typename CONNECTION::Session_type SESSION;
-
-			SESSION             &session()  { return _connection.session(); }
-			Capability<SESSION> cap() const { return _connection.cap(); }
-		};
-
-		Env_connection<Ram_connection> _ram { _policy,
-			_id_space, Parent::Env::ram(), _policy.name() };
-
-		Env_connection<Pd_connection> _pd { _policy,
-			_id_space, Parent::Env::pd(), _policy.name() };
-
-		Env_connection<Cpu_connection> _cpu { _policy,
-			_id_space, Parent::Env::cpu(), _policy.name() };
-
-		Env_connection<Log_connection> _log { _policy,
-			_id_space, Parent::Env::log(), _policy.name() };
-
-		Env_connection<Rom_connection> _binary { _policy,
-			_id_space, Parent::Env::binary(), _policy.binary_name() };
-
-		Constructible<Env_connection<Rom_connection> > _linker { _policy,
-			_id_space, Parent::Env::linker(), _policy.linker_name() };
-
-		/* call 'Child_policy::init' methods for the environment sessions */
-		void _init_env_sessions()
-		{
-			_policy.init(_ram.session(), _ram.cap());
-			_policy.init(_cpu.session(), _cpu.cap());
-			_policy.init(_pd.session(),  _pd.cap());
-		}
-		bool const _env_sessions_initialized = ( _init_env_sessions(), true );
-
-		Dataspace_capability _linker_dataspace()
-		{
-			try {
-				_linker.construct(_policy, _id_space,
-				                  Parent::Env::linker(), _policy.linker_name());
-				return _linker->session().dataspace();
-			}
-			catch (Parent::Service_denied) { return Rom_dataspace_capability(); }
-		}
-
-		/* heap for child-specific allocations using the child's quota */
-		Heap _heap;
-
-		/* factory for dynamically created  session-state objects */
-		Session_state::Factory _session_factory { _heap };
+		Region_map &_local_rm;
 
 		Rpc_entrypoint    &_entrypoint;
 		Parent_capability  _parent_cap;
@@ -351,14 +266,30 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Lock          _yield_request_lock;
 		Resource_args _yield_request_args;
 
-		Initial_thread _initial_thread { _cpu.session(), _pd.cap(), "initial" };
+		/* sessions opened by the child */
+		Id_space<Client> _id_space;
+
+		typedef Session_state::Args Args;
+
+		/*
+		 * Members that are initialized not before the child's environment is
+		 * complete.
+		 */
+
+		void _try_construct_env_dependent_members();
+
+		/* heap for child-specific allocations using the child's quota */
+		Constructible<Heap> _heap;
+
+		/* factory for dynamically created  session-state objects */
+		Constructible<Session_state::Factory> _session_factory;
+
+		Constructible<Initial_thread> _initial_thread;
 
 		struct Process
 		{
 			class Missing_dynamic_linker : Exception { };
 			class Invalid_executable     : Exception { };
-
-			Initial_thread_base &initial_thread;
 
 			struct Loaded_executable
 			{
@@ -426,7 +357,108 @@ class Genode::Child : protected Rpc_object<Parent>,
 			~Process();
 		};
 
-		Process _process;
+		Constructible<Process> _process;
+
+		/*
+		 * The child's environment sessions
+		 */
+
+		template <typename CONNECTION>
+		struct Env_connection
+		{
+			typedef String<64> Label;
+
+			Args const _args;
+
+			Service &_service;
+
+			/*
+			 * The 'Env_service' monitors session responses in order to attempt
+			 * to 'Child::_try_construct_env_dependent_members()' on the
+			 * arrival of environment sessions.
+			 */
+			struct Env_service : Service, Session_state::Ready_callback
+			{
+				Child   &_child;
+				Service &_service;
+
+				Env_service(Child &child, Service &service)
+				:
+					Genode::Service(CONNECTION::service_name(), service.ram()),
+					_child(child), _service(service)
+				{ }
+
+				void initiate_request(Session_state &session) override
+				{
+					session.ready_callback = this;
+					session.async_client_notify = true;
+					_service.initiate_request(session);
+				}
+
+				/**
+				 * Session_state::Ready_callback
+				 */
+				void session_ready(Session_state &session) override
+				{
+					_child._try_construct_env_dependent_members();
+				}
+
+				void wakeup() override { _service.wakeup(); }
+
+			} _env_service;
+
+			Local_connection<CONNECTION> _connection;
+
+			/**
+			 * Construct session arguments with the child policy applied
+			 */
+			Args _construct_args(Child_policy &policy, Label const &label)
+			{
+				/* copy original arguments into modifiable buffer */
+				char buf[Session_state::Args::capacity()];
+				buf[0] = 0;
+
+				/* supply label as session argument */
+				if (label.valid())
+					Arg_string::set_arg_string(buf, sizeof(buf), "label", label.string());
+
+				/* apply policy to argument buffer */
+				policy.filter_session_args(CONNECTION::service_name(), buf, sizeof(buf));
+
+				return Session_state::Args(Cstring(buf));
+			}
+
+			static char const *_service_name() { return CONNECTION::service_name(); }
+
+			Env_connection(Child &child, Id_space<Parent::Client>::Id id,
+			               Label const &label = Label())
+			:
+				_args(_construct_args(child._policy, label)),
+				_service(child._policy.resolve_session_request(_service_name(), _args)),
+				_env_service(child, _service),
+				_connection(_env_service, child._id_space, id, _args,
+				            child._policy.filter_session_affinity(Affinity()))
+			{ }
+
+			typedef typename CONNECTION::Session_type SESSION;
+
+			SESSION             &session()  { return _connection.session(); }
+			Capability<SESSION> cap() const { return _connection.cap(); }
+		};
+
+		Env_connection<Ram_connection> _ram    { *this, Env::ram(),    _policy.name() };
+		Env_connection<Pd_connection>  _pd     { *this, Env::pd(),     _policy.name() };
+		Env_connection<Cpu_connection> _cpu    { *this, Env::cpu(),    _policy.name() };
+		Env_connection<Log_connection> _log    { *this, Env::log(),    _policy.name() };
+		Env_connection<Rom_connection> _binary { *this, Env::binary(), _policy.binary_name() };
+
+		Constructible<Env_connection<Rom_connection> > _linker;
+
+		Dataspace_capability _linker_dataspace()
+		{
+			return _linker.constructed() ? _linker->session().dataspace()
+			                             : Rom_dataspace_capability();
+		}
 
 		void _revert_quota_and_destroy(Session_state &);
 
@@ -445,20 +477,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 	public:
 
 		/**
-		 * Exception type
-		 *
-		 * The startup of the physical process of the child may fail if the
-		 * ELF binary is invalid, if the ELF binary is dynamically linked
-		 * but no dynamic linker is provided, if the creation of the initial
-		 * thread failed, or if the RAM session of the child is exhausted.
-		 * Each of those conditions will result in a diagnostic log message.
-		 * But for the error handling, we only distinguish the RAM exhaustion
-		 * from the other conditions and subsume the latter as
-		 * 'Process_startup_failed'.
-		 */
-		class Process_startup_failed : public Exception { };
-
-		/**
 		 * Constructor
 		 *
 		 * \param rm          local address space, usually 'env.rm()'
@@ -469,8 +487,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * \throw Parent::Service_denied  if the initial sessions for the
 		 *                                child's environment could not be
 		 *                                opened
-		 * \throw Ram_session::Alloc_failed
-		 * \throw Process_startup_failed
 		 */
 		Child(Region_map &rm, Rpc_entrypoint &entrypoint, Child_policy &policy);
 
@@ -481,6 +497,22 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * other services.
 		 */
 		virtual ~Child();
+
+		/**
+		 * Return true if the child has been started
+		 *
+		 * After the child's construction, the child is not always able to run
+		 * immediately. In particular, a session of the child's environment
+		 * may still be pending. This method returns true only if the child's
+		 * environment is completely initialized at the time of calling.
+		 *
+		 * If all environment sessions are immediately available (as is the
+		 * case for local services or parent services), the return value is
+		 * expected to be true. If this is not the case, one of child's
+		 * environment sessions could not be established, e.g., the ROM session
+		 * of the binary could not be obtained.
+		 */
+		bool active() const { return _process.constructed(); }
 
 		/**
 		 * RAM quota unconditionally consumed by the child's environment
@@ -506,7 +538,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		/**
 		 * Return heap that uses the child's quota
 		 */
-		Allocator &heap() { return _heap; }
+		Allocator &heap() { return *_heap; }
 
 		Ram_session_capability ram_session_cap() const { return _ram.cap(); }
 
@@ -516,7 +548,24 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Cpu_session &cpu() { return _cpu.session(); }
 		Pd_session  &pd()  { return _pd .session(); }
 
-		Session_state::Factory &session_factory() { return _session_factory; }
+		/**
+		 * Exception type
+		 */
+		class Inactive : Exception { };
+
+		/**
+		 * Request factory for creating session-state objects
+		 *
+		 * \throw Inactive  factory cannot by provided because the child it
+		 *                  not yet completely initialized.
+		 */
+		Session_state::Factory &session_factory()
+		{
+			if (_session_factory.constructed())
+				return *_session_factory;
+
+			throw Inactive();
+		}
 
 		/**
 		 * Instruct the child to yield resources
