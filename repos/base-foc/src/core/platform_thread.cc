@@ -15,6 +15,7 @@
 #include <base/ipc.h>
 #include <base/log.h>
 #include <util/string.h>
+#include <foc/thread_state.h>
 
 /* core includes */
 #include <platform_thread.h>
@@ -185,13 +186,13 @@ void Platform_thread::pager(Pager_object *pager_obj)
 void Platform_thread::state(Thread_state s)
 {
 	if (_pager_obj)
-		_pager_obj->state = s;
+		*static_cast<Thread_state *>(&_pager_obj->state) = s;
 }
 
 
-Thread_state Platform_thread::state()
+Foc_thread_state Platform_thread::state()
 {
-	Thread_state s;
+	Foc_thread_state s;
 	if (_pager_obj) s = _pager_obj->state;
 
 	s.kcap = _gate.remote;

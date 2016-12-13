@@ -138,7 +138,7 @@ namespace Genode {
 			 *
 			 * \throw Cpu_session::State_access_failed
 			 */
-			Thread_state state();
+			Foc_thread_state state();
 
 			/**
 			 * Set the executing CPU for this thread

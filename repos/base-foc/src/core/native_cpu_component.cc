@@ -91,6 +91,19 @@ Genode::Native_capability Genode::Native_cpu_component::alloc_irq()
 }
 
 
+Genode::Foc_thread_state
+Genode::Native_cpu_component::thread_state(Genode::Thread_capability cap)
+{
+	using namespace Genode;
+
+	auto lambda = [&] (Cpu_thread_component *thread) {
+		return (!thread) ? Foc_thread_state()
+		                 : thread->platform_thread().state(); };
+
+	return _thread_ep.apply(cap, lambda);
+}
+
+
 Genode::Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, char const *)
 :
 	_cpu_session(cpu_session), _thread_ep(*_cpu_session._thread_ep)

@@ -32,7 +32,7 @@ void Genode::Ipc_pager::_parse_exception()
 }
 
 
-void Genode::Ipc_pager::get_regs(Thread_state *state)
+void Genode::Ipc_pager::get_regs(Foc_thread_state *state)
 {
 	state->ip   = _regs.pc;
 	state->sp   = _regs.sp;
@@ -54,7 +54,7 @@ void Genode::Ipc_pager::get_regs(Thread_state *state)
 }
 
 
-void Genode::Ipc_pager::set_regs(Thread_state state)
+void Genode::Ipc_pager::set_regs(Foc_thread_state state)
 {
 	_regs.pc    = state.ip;
 	_regs.sp    = state.sp;

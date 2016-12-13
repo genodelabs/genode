@@ -19,10 +19,10 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <foc_native_cpu/client.h>
+#include <foc/native_thread.h>
 #include <cpu_session/client.h>
 #include <cpu_thread/client.h>
 #include <timer_session/connection.h>
-#include <foc/native_thread.h>
 
 namespace Fiasco {
 #include <l4/sys/utcb.h>
@@ -47,6 +47,13 @@ namespace L4lx {
 			unsigned                    _cpu_nr;
 			Fiasco::l4_utcb_t   * const _utcb;
 
+			Fiasco::l4_utcb_t *_init_utcb()
+			{
+				using namespace Genode;
+				Foc_native_cpu_client native_cpu(env()->cpu_session()->native_cpu());
+				return (Fiasco::l4_utcb_t *)native_cpu.thread_state(cap()).utcb;
+			}
+
 		public:
 
 			Vcpu(const char                 *str,
@@ -62,7 +69,7 @@ namespace L4lx {
 			  _data(data ? *data : 0),
 			  _vcpu_state(vcpu_state),
 			  _cpu_nr(cpu_nr),
-			  _utcb((Fiasco::l4_utcb_t *)Genode::Cpu_thread_client(cap()).state().utcb)
+			  _utcb(_init_utcb())
 			{
 				start();
 

@@ -26,6 +26,7 @@
 
 /* core-local includes */
 #include <rpc_cap_factory.h>
+#include <pager_object_exception_state.h>
 
 namespace Genode {
 
@@ -73,7 +74,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		/**
 		 * Contains information about exception state of corresponding thread.
 		 */
-		Thread_state state;
+		Pager_object_exception_state state;
 
 		/**
 		 * Constructor

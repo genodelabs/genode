@@ -1,6 +1,6 @@
 REQUIRES += foc
-
-SRC_CC += native_cpu.cc
+LIBS     += syscall-foc
+SRC_CC   += native_cpu.cc
 
 vpath native_cpu.cc $(PRG_DIR)
 

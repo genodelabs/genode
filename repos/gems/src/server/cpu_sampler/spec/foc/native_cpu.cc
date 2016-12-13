@@ -72,6 +72,11 @@ class Cpu_sampler::Native_cpu_component : public Rpc_object<Foc_native_cpu,
 		{
 			return _foc_native_cpu.alloc_irq();
 		}
+
+		Foc_thread_state thread_state(Thread_capability cap) override
+		{
+			return _foc_native_cpu.thread_state(cap);
+		}
 };
 
 

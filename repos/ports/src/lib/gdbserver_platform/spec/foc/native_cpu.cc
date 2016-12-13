@@ -66,6 +66,12 @@ class Gdb_monitor::Native_cpu_component : public Rpc_object<Foc_native_cpu,
 		{
 			return _foc_native_cpu.alloc_irq();
 		}
+
+		Foc_thread_state thread_state(Thread_capability thread_cap) override
+		{
+			Cpu_thread_component *cpu_thread = _cpu_session_component.lookup_cpu_thread(thread_cap);
+			return _foc_native_cpu.thread_state(cpu_thread->parent_thread_cap());
+		}
 };
 
 

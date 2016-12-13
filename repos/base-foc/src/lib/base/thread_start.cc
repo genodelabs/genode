@@ -19,6 +19,7 @@
 #include <base/env.h>
 #include <cpu_thread/client.h>
 #include <foc/native_capability.h>
+#include <foc_native_cpu/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -79,11 +80,11 @@ void Thread::start()
 {
 	using namespace Fiasco;
 
-	Cpu_thread_client cpu_thread(_thread_cap);
+	Foc_native_cpu_client native_cpu(_cpu_session->native_cpu());
 
 	/* get gate-capability and badge of new thread */
-	Thread_state state;
-	try { state = cpu_thread.state(); }
+	Foc_thread_state state;
+	try { state = native_cpu.thread_state(_thread_cap); }
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 
 	/* remember UTCB of the new thread */
@@ -97,6 +98,7 @@ void Thread::start()
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 	/* register initial IP and SP at core */
+	Cpu_thread_client cpu_thread(_thread_cap);
 	cpu_thread.start((addr_t)_thread_start, _stack->top());
 }
 
