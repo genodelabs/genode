@@ -30,7 +30,7 @@ install_config {
 			<provides><service name="Terminal"/></provides>
 		</start>
 		<start name="noux">
-			<resource name="RAM" quantum="64M"/>
+			<resource name="RAM" quantum="1G"/>
 			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
 				<fstab>
 					<null/> <log/>
