@@ -97,20 +97,6 @@ DEP_VAR_NAME := DEP_$(LIB).lib
 endif
 
 #
-# Add platform preparation dependency
-#
-# We make each leaf library depend on a library called 'platform'. This way,
-# the 'platform' library becomes a prerequisite of all other libraries. The
-# 'platform' library is supposed to take precautions for setting up
-# platform-specific build environments, e.g., preparing kernel API headers.
-#
-ifeq ($(LIBS),)
-ifneq ($(LIB),platform)
-LIBS += platform
-endif
-endif
-
-#
 # Check if the requirements of the target are satisfied
 #
 UNSATISFIED_REQUIREMENTS = $(filter-out $(SPECS),$(REQUIRES))

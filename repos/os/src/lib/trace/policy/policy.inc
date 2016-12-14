@@ -14,8 +14,6 @@ LD_SCRIPT= $(PRG_DIR)/../policy.ld
 -include *.d
 -include ../*.d
 
-LIBS = platform
-
 table.o: table.cc
 	$(MSG_COMP)$@
 	$(VERBOSE)$(CXX) -c $(CC_MARCH) $(CXX_OPT) $(INCLUDES) $< -o $@
