@@ -25,7 +25,6 @@ include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-
 # Add globally defined library supplements
 #
 include $(SPEC_FILES)
-LIBS += $(PRG_LIBS)
 
 #
 # Determine location of $(TARGET_MK) within 'src/', remove trailing slash
