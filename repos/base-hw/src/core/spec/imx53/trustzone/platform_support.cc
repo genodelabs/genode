@@ -33,7 +33,7 @@ bool secure_irq(unsigned const i)
 	if (i == Board::EPIT_2_IRQ)                           return true;
 	if (i == Board::I2C_2_IRQ)                            return SECURE_I2C;
 	if (i == Board::I2C_3_IRQ)                            return SECURE_I2C;
-	if (i == Board::ESDHCV2_1_IRQ)                        return SECURE_ESDHC;
+	if (i == Board::SDHC_IRQ)                             return SECURE_ESDHC;
 	if (i >= Board::GPIO1_IRQL && i <= Board::GPIO4_IRQH) return SECURE_GPIO;
 	if (i >= Board::GPIO5_IRQL && i <= Board::GPIO7_IRQH) return SECURE_GPIO;
 	return false;

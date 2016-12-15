@@ -1,19 +1,20 @@
 /*
- * \brief  Imx53-specific implementation of the Block::Driver interface
+ * \brief  Implementation of the Block::Driver interface
  * \author Martin Stein
  * \date   2015-02-04
  */
 
 /*
- * Copyright (C) 2012-2015 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _DRIVERS__SD_CARD__SPEC__IMX53__DRIVER_H_
-#define _DRIVERS__SD_CARD__SPEC__IMX53__DRIVER_H_
+#ifndef _DRIVER_H_
+#define _DRIVER_H_
 
+/* Genode includes */
 #include <util/mmio.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <base/log.h>
@@ -23,7 +24,7 @@
 #include <os/server.h>
 
 /* local includes */
-#include <esdhcv2.h>
+#include <sdhc.h>
 
 namespace Block {
 	using namespace Genode;
@@ -43,8 +44,8 @@ class Block::Sdhci_driver : public Block::Driver
 			void usleep(unsigned us) { Timer::Connection::usleep(us); }
 		} _delayer;
 
-		Attached_io_mem_dataspace _esdhcv2_1_mmio;
-		Esdhcv2_controller        _controller;
+		Attached_io_mem_dataspace _sdhc_mmio;
+		Sdhc                      _controller;
 
 		bool const _use_dma;
 
@@ -52,10 +53,9 @@ class Block::Sdhci_driver : public Block::Driver
 
 		Sdhci_driver(Entrypoint &, bool use_dma)
 		:
-			_esdhcv2_1_mmio(Genode::Board_base::ESDHCV2_1_MMIO_BASE,
-			                Genode::Board_base::ESDHCV2_1_MMIO_SIZE),
-			_controller((addr_t)_esdhcv2_1_mmio.local_addr<void>(),
-			            Genode::Board_base::ESDHCV2_1_IRQ, _delayer, use_dma),
+			_sdhc_mmio(Board_base::SDHC_MMIO_BASE, Board_base::SDHC_MMIO_SIZE),
+			_controller((addr_t)_sdhc_mmio.local_addr<void>(),
+			            Board_base::SDHC_IRQ, _delayer, use_dma),
 			_use_dma(use_dma)
 		{
 			Sd_card::Card_info const card_info = _controller.card_info();
@@ -133,4 +133,4 @@ class Block::Sdhci_driver : public Block::Driver
 			return Genode::env()->ram_session()->free(c); }
 };
 
-#endif /* _DRIVERS__SD_CARD__SPEC__IMX53__DRIVER_H_ */
+#endif /* _DRIVER_H_ */

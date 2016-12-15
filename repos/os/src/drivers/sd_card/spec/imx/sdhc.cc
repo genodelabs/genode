@@ -1,24 +1,24 @@
 /*
- * \brief  Freescale Enhanced Secured Digital Host Controller Version 2
+ * \brief  Secured Digital Host Controller
  * \author Martin Stein
  * \date   2015-02-05
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* local includes */
-#include <esdhcv2.h>
+#include <sdhc.h>
 
 using namespace Sd_card;
 using namespace Genode;
 
 
-int Esdhcv2_controller::_wait_for_card_ready_mbw()
+int Sdhc::_wait_for_card_ready_mbw()
 {
 	/*
 	 * Poll card status
@@ -69,7 +69,7 @@ int Esdhcv2_controller::_wait_for_card_ready_mbw()
 }
 
 
-int Esdhcv2_controller::_stop_transmission_mbw()
+int Sdhc::_stop_transmission()
 {
 	/* write argument register */
 	write<Cmdarg>(0);
@@ -81,9 +81,7 @@ int Esdhcv2_controller::_stop_transmission_mbw()
 	Xfertyp::Cccen::set(xfertyp, 1);
 	Xfertyp::Cicen::set(xfertyp, 1);
 	Xfertyp::Rsptyp::set(xfertyp, Xfertyp::Rsptyp::_48BIT_BUSY);
-	Xfertyp::Msbsel::set(xfertyp, 1);
-	Xfertyp::Bcen::set(xfertyp, 1);
-	Xfertyp::Dmaen::set(xfertyp, 1);
+	_stop_transmission_finish_xfertyp(xfertyp);
 	write<Xfertyp>(xfertyp);
 
 	/* wait for command completion */
@@ -92,10 +90,10 @@ int Esdhcv2_controller::_stop_transmission_mbw()
 }
 
 
-int Esdhcv2_controller::_wait_for_cmd_complete_mb(bool const r)
+int Sdhc::_wait_for_cmd_complete_mb(bool const r)
 {
 	/*
-	 * The ESDHC signals on multi-block transfers seem to be broken.
+	 * The host signals on multi-block transfers seem to be broken.
 	 * Synchronizing to "Transfer Complete" before returning from transfers
 	 * and to "Command Inhibit" before sending further commands - as it is
 	 * done with other controllers - isn't sufficient. Instead, both "Transfer
@@ -120,29 +118,11 @@ int Esdhcv2_controller::_wait_for_cmd_complete_mb(bool const r)
 	}
 	/* acknowledge completion signals */
 	write<Irqstat>(irq_goal);
-	if (!r) {
-
-		/*
-		 * The "Auto Command 12" feature of the ESDHC seems to be
-		 * broken for multi-block writes as it causes command-
-		 * timeout errors sometimes. Thus, we stop such transfers
-		 * manually.
-		 */
-		if (_stop_transmission_mbw())  { return -1; }
-
-		/*
-		 * The manual termination of multi-block writes seems to leave
-		 * the card in a busy state sometimes. This causes
-		 * errors on subsequent commands. Thus, we have to synchronize
-		 * manually with the card-internal state.
-		 */
-		if (_wait_for_card_ready_mbw()) { return -1; }
-	}
-	return 0;
+	return _wait_for_cmd_complete_mb_finish(r);
 }
 
 
-int Esdhcv2_controller::_wait_for_cmd_complete()
+int Sdhc::_wait_for_cmd_complete()
 {
 	/* wait for "Command Completion" signal and acknowledge it */
 	_wait_for_irq();
@@ -155,54 +135,50 @@ int Esdhcv2_controller::_wait_for_cmd_complete()
 }
 
 
-bool Esdhcv2_controller::_issue_command(Command_base const & command)
+bool Sdhc::_issue_command(Command_base const & command)
 {
-	/* detect if command is a multi-block transfer and whether it reads */
-	bool const r = command.transfer == TRANSFER_READ;
-	bool const mb =
+	/* get command characteristics */
+	bool const transfer   = command.transfer != TRANSFER_NONE;
+	bool const reading    = command.transfer == TRANSFER_READ;
+	bool const multiblock =
 		command.index == Read_multiple_block::INDEX ||
 		command.index == Write_multiple_block::INDEX;
 
-	/* assemble command register value */
-	Xfertyp::access_t cmd = 0;
-	Xfertyp::Cmdinx::set(cmd, command.index);
-	if (command.transfer != TRANSFER_NONE) {
-		Xfertyp::Dpsel::set(cmd);
-		Xfertyp::Bcen::set(cmd);
-		Xfertyp::Msbsel::set(cmd);
-		if (mb) {
-			/*
-			 * The "Auto Command 12" feature of the ESDHC seems to be
-			 * broken for multi-block writes as it causes command-
-			 * timeout errors sometimes.
-			 */
-			if (r) { Xfertyp::Ac12en::set(cmd); }
-			if (_use_dma) { Xfertyp::Dmaen::set(cmd); }
-		}
-		Xfertyp::Dtdsel::set(cmd,
-			r ? Xfertyp::Dtdsel::READ : Xfertyp::Dtdsel::WRITE);
-	}
-	typedef Xfertyp::Rsptyp Rsptyp;
-	Xfertyp::access_t rt = 0;
-	switch (command.rsp_type) {
-	case RESPONSE_NONE:             rt = Rsptyp::_0BIT;       break;
-	case RESPONSE_136_BIT:          rt = Rsptyp::_136BIT;     break;
-	case RESPONSE_48_BIT:           rt = Rsptyp::_48BIT;      break;
-	case RESPONSE_48_BIT_WITH_BUSY: rt = Rsptyp::_48BIT_BUSY; break;
-	}
-	Xfertyp::Rsptyp::set(cmd, rt);
+	/* set command index */
+	Xfertyp::access_t xfertyp = 0;
+	Xfertyp::Cmdinx::set(xfertyp, command.index);
 
-	/* send command as soon as the host allows it */
-	if (_wait_for_cmd_allowed()) { return false; }
+	/* select response type */
+	typedef Xfertyp::Rsptyp Rsptyp;
+	Xfertyp::access_t rsptyp = 0;
+	switch (command.rsp_type) {
+	case RESPONSE_NONE:             rsptyp = Rsptyp::_0BIT;       break;
+	case RESPONSE_136_BIT:          rsptyp = Rsptyp::_136BIT;     break;
+	case RESPONSE_48_BIT:           rsptyp = Rsptyp::_48BIT;      break;
+	case RESPONSE_48_BIT_WITH_BUSY: rsptyp = Rsptyp::_48BIT_BUSY; break;
+	}
+	Xfertyp::Rsptyp::set(xfertyp, rsptyp);
+
+	/* generic transfer settings */
+	if (command.transfer != TRANSFER_NONE) {
+		Xfertyp::Dpsel::set(xfertyp);
+		if (multiblock) {
+			Xfertyp::Cicen::set(xfertyp, 1);
+			Xfertyp::Cccen::set(xfertyp, 1);
+		}
+	}
+	/* version-dependent transfer settings and issue command */
+	_issue_cmd_finish_xfertyp(xfertyp, transfer, multiblock, reading);
 	write<Cmdarg>(command.arg);
-	write<Xfertyp>(cmd);
+	write<Xfertyp>(xfertyp);
 
 	/* wait for completion */
-	return mb ? !_wait_for_cmd_complete_mb(r) : !_wait_for_cmd_complete();
+	return multiblock ? !_wait_for_cmd_complete_mb(reading) :
+	                    !_wait_for_cmd_complete();
 }
 
 
-Cid Esdhcv2_controller::_read_cid()
+Cid Sdhc::_read_cid()
 {
 	Cid cid;
 	cid.raw_0 = read<Rsp136_0>();
@@ -213,7 +189,7 @@ Cid Esdhcv2_controller::_read_cid()
 }
 
 
-Csd Esdhcv2_controller::_read_csd()
+Csd Sdhc::_read_csd()
 {
 	Csd csd;
 	csd.csd0 = read<Rsp136_0>();
@@ -224,36 +200,35 @@ Csd Esdhcv2_controller::_read_csd()
 }
 
 
-unsigned Esdhcv2_controller::_read_rca()
+unsigned Sdhc::_read_rca()
 {
 	Cmdrsp0::access_t const rsp0 = read<Cmdrsp0>();
 	return Send_relative_addr::Response::Rca::get(rsp0);
 }
 
 
-bool Esdhcv2_controller::read_blocks(size_t, size_t, char *)
+bool Sdhc::read_blocks(size_t, size_t, char *)
 {
 	error("block transfer without DMA not supported by now");
 	return false;
 }
 
 
-bool Esdhcv2_controller::write_blocks(size_t, size_t, char const *)
+bool Sdhc::write_blocks(size_t, size_t, char const *)
 {
 	error("block transfer without DMA not supported by now");
 	return false;
 }
 
 
-bool Esdhcv2_controller::read_blocks_dma(size_t blk_nr, size_t blk_cnt,
-                                         addr_t buf_phys)
+bool Sdhc::read_blocks_dma(size_t blk_nr, size_t blk_cnt, addr_t buf_phys)
 {
 	if (_prepare_dma_mb(blk_cnt, buf_phys)) { return false; }
 	return issue_command(Read_multiple_block(blk_nr));
 }
 
 
-bool Esdhcv2_controller::write_blocks_dma(size_t blk_nr, size_t blk_cnt,
+bool Sdhc::write_blocks_dma(size_t blk_nr, size_t blk_cnt,
                                           addr_t buf_phys)
 {
 	if (_prepare_dma_mb(blk_cnt, buf_phys)) { return false; }
@@ -261,15 +236,17 @@ bool Esdhcv2_controller::write_blocks_dma(size_t blk_nr, size_t blk_cnt,
 }
 
 
-Esdhcv2_controller::Esdhcv2_controller(addr_t const base, unsigned const irq,
-                                       Delayer & delayer, bool const use_dma)
+Sdhc::Sdhc(addr_t   const  base,
+           unsigned const  irq,
+           Delayer        &delayer,
+           bool     const  use_dma)
 :
-	Esdhcv2(base), _irq(irq), _delayer(delayer), _card_info(_init()),
+	Mmio(base), _irq(irq), _delayer(delayer), _card_info(_init()),
 	_use_dma(use_dma)
 { }
 
 
-int Esdhcv2_controller::_prepare_dma_mb(size_t blk_cnt, addr_t buf_phys)
+int Sdhc::_prepare_dma_mb(size_t blk_cnt, addr_t buf_phys)
 {
 	/* write ADMA2 table to DMA */
 	size_t const req_size = blk_cnt * BLOCK_SIZE;
@@ -283,14 +260,18 @@ int Esdhcv2_controller::_prepare_dma_mb(size_t blk_cnt, addr_t buf_phys)
 }
 
 
-int Esdhcv2_controller::_wait_for_cmd_allowed()
+int Sdhc::_wait_for_cmd_allowed()
 {
 	/*
-	 * At least after multi-block writes with the fix for the broken "Auto
-	 * Command 12", waiting only for "Command Inhibit" isn't sufficient as
-	 * "Data Line Active" and "Data Inhibit" may also be active.
+	 * At least after multi-block writes on i.MX53 with the fix for the broken
+	 * "Auto Command 12", waiting only for "Command Inhibit" isn't sufficient
+	 * as "Data Line Active" and "Data Inhibit" may also be active.
 	 */
-	if (!wait_for<Prsstat_lhw>(Prsstat_lhw::cmd_allowed(), _delayer)) {
+	if (!wait_for<Prsstat::Dla>(0, _delayer) ||
+	    !wait_for<Prsstat::Sdstb>(1, _delayer) ||
+	    !wait_for<Prsstat::Cihb>(0, _delayer) ||
+	    !wait_for<Prsstat::Cdihb>(0, _delayer))
+	{
 		error("wait till issuing a new command is allowed timed out");
 		return -1;
 	}
@@ -298,7 +279,7 @@ int Esdhcv2_controller::_wait_for_cmd_allowed()
 }
 
 
-void Esdhcv2_controller::_wait_for_irq()
+void Sdhc::_wait_for_irq()
 {
 	/* acknowledge IRQ first, to activate IRQ propagation initially */
 	_irq.ack_irq();
@@ -306,7 +287,7 @@ void Esdhcv2_controller::_wait_for_irq()
 }
 
 
-Card_info Esdhcv2_controller::_init()
+Card_info Sdhc::_init()
 {
 	/* install IRQ signal */
 	_irq.sigh(_irq_rec.manage(&_irq_ctx));
@@ -315,24 +296,22 @@ Card_info Esdhcv2_controller::_init()
 	if (_reset(_delayer)) { _detect_err("Host reset failed"); }
 	_disable_irqs();
 
-	/* check host version */
-	Hostver::access_t const hostver = read<Hostver>();
-	if (Hostver::Vvn::get(hostver) != 18) {
-		_detect_err("Unexpected Vendor Version Number"); }
-	if (Hostver::Svn::get(hostver) != 1) {
-		_detect_err("Unexpected Specification Version Number"); }
+	if (!_supported_host_version(read<Hostver>())) {
+		error("host version not supported");
+		throw Detection_failed();
+	}
 
 	/*
 	 * We should check host capabilities at this point if we want to
-	 * support other versions of the ESDHC. For the i.MX53 ESDHCv2 we
-	 * know that the capabilities fit our requirements.
+	 * support other versions of the SDHC. For the already supported
+	 * versions we know that the capabilities fit our requirements.
 	 */
 
 	/* configure IRQs, bus width, and clock for initialization */
 	_enable_irqs();
 	_bus_width(BUS_WIDTH_1);
 	_delayer.usleep(10000);
-	_clock(CLOCK_DIV_512, _delayer);
+	_clock(CLOCK_INITIAL);
 
 	/*
 	 * Initialize card
@@ -405,7 +384,7 @@ Card_info Esdhcv2_controller::_init()
 	 * checks (maybe read SSR/SCR, read switch, try frequencies) are
 	 * necessary for that.
 	 */
-	_clock(CLOCK_DIV_8, _delayer);
+	_clock(CLOCK_OPERATIONAL);
 
 	/*
 	 * Configure card and host to use 4 data signals
@@ -427,10 +406,7 @@ Card_info Esdhcv2_controller::_init()
 
 	/* configure host buffer */
 	Wml::access_t wml = read<Wml>();
-	Wml::Rd_wml::set(wml, WATERMARK_WORDS);
-	Wml::Rd_brst_len::set(wml, BURST_WORDS);
-	Wml::Wr_wml::set(wml, WATERMARK_WORDS);
-	Wml::Wr_brst_len::set(wml, BURST_WORDS);
+	_watermark_level(wml);
 	write<Wml>(wml);
 
 	/* configure ADMA */
@@ -444,30 +420,18 @@ Card_info Esdhcv2_controller::_init()
 }
 
 
-void Esdhcv2_controller::_detect_err(char const * const err)
+void Sdhc::_detect_err(char const * const err)
 {
 	error(err);
 	throw Detection_failed();
 }
 
 
-int Esdhcv2_controller::_reset(Delayer & delayer)
+int Sdhc::_reset(Delayer &delayer)
 {
 	/* start reset */
 	write<Sysctl::Rsta>(1);
-
-	/*
-	 * The SDHC specification says that a software reset shouldn't
-	 * have an effect on the the card detection circuit. The ESDHC
-	 * clears Sysctl::Ipgen, Sysctl::Hcken, and Sysctl::Peren
-	 * nonetheless which disables clocks that card detection relies
-	 * on.
-	 */
-	Sysctl::access_t sysctl = read<Sysctl>();
-	Sysctl::Ipgen::set(sysctl, 1);
-	Sysctl::Hcken::set(sysctl, 1);
-	Sysctl::Peren::set(sysctl, 1);
-	write<Sysctl>(sysctl);
+	_reset_amendments();
 
 	/* wait for reset completion */
 	if (!wait_for<Sysctl::Rsta>(0, delayer)) {
@@ -478,14 +442,14 @@ int Esdhcv2_controller::_reset(Delayer & delayer)
 }
 
 
-void Esdhcv2_controller::_disable_irqs()
+void Sdhc::_disable_irqs()
 {
 	write<Irqstaten>(0);
 	write<Irqsigen>(0);
 }
 
 
-void Esdhcv2_controller::_enable_irqs()
+void Sdhc::_enable_irqs()
 {
 	Irq::access_t irq = 0;
 	Irq::Cc::set(irq, 1);
@@ -505,7 +469,7 @@ void Esdhcv2_controller::_enable_irqs()
 }
 
 
-void Esdhcv2_controller::_bus_width(Bus_width bus_width)
+void Sdhc::_bus_width(Bus_width bus_width)
 {
 	switch (bus_width) {
 	case BUS_WIDTH_1: write<Proctl::Dtw>(Proctl::Dtw::_1BIT); break;
@@ -514,8 +478,9 @@ void Esdhcv2_controller::_bus_width(Bus_width bus_width)
 }
 
 
-void Esdhcv2_controller::_disable_clock()
+void Sdhc::_disable_clock()
 {
+	_disable_clock_preparation();
 	Sysctl::access_t sysctl = read<Sysctl>();
 	Sysctl::Ipgen::set(sysctl, 0);
 	Sysctl::Hcken::set(sysctl, 0);
@@ -526,13 +491,17 @@ void Esdhcv2_controller::_disable_clock()
 }
 
 
-void Esdhcv2_controller::_enable_clock(Clock_divider divider, Delayer &delayer)
+void Sdhc::_enable_clock(Clock_divider divider)
 {
 	Sysctl::access_t sysctl = read<Sysctl>();
 	Sysctl::Ipgen::set(sysctl, 1);
 	Sysctl::Hcken::set(sysctl, 1);
 	Sysctl::Peren::set(sysctl, 1);
 	switch (divider) {
+	case CLOCK_DIV_4:
+		Sysctl::Dvs::set(sysctl, Sysctl::Dvs::DIV4);
+		Sysctl::Sdclkfs::set(sysctl, Sysctl::Sdclkfs::DIV1);
+		break;
 	case CLOCK_DIV_8:
 		Sysctl::Dvs::set(sysctl, Sysctl::Dvs::DIV4);
 		Sysctl::Sdclkfs::set(sysctl, Sysctl::Sdclkfs::DIV2);
@@ -543,13 +512,14 @@ void Esdhcv2_controller::_enable_clock(Clock_divider divider, Delayer &delayer)
 		break;
 	}
 	write<Sysctl>(sysctl);
-	delayer.usleep(1000);
+	_enable_clock_finish();
+	_delayer.usleep(1000);
 }
 
 
-void Esdhcv2_controller::_clock(enum Clock_divider divider, Delayer &delayer)
+void Sdhc::_clock(Clock clock)
 {
+	wait_for<Prsstat::Sdstb>(1, _delayer);
 	_disable_clock();
-	write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_27);
-	_enable_clock(divider, delayer);
+	_clock_finish(clock);
 }
