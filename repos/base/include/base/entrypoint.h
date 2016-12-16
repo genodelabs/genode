@@ -75,6 +75,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 
 		Reconstructible<Signal_receiver> _sig_rec;
 
+		bool _suspended                = false;
 		void (*_suspended_callback) () = nullptr;
 		void (*_resumed_callback)   () = nullptr;
 
@@ -84,7 +85,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 * let the signal-dispatching thread execute the actual suspend-
 		 * resume mechanism.
 		 */
-		void _handle_suspend() { }
+		void _handle_suspend() { _suspended = true; }
 		Constructible<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher;
 
 		void _dispatch_signal(Signal &sig);

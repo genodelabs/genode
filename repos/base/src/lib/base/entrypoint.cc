@@ -74,7 +74,7 @@ void Entrypoint::_process_incoming_signals()
 				[]  () { warning("blocking canceled during signal processing"); }
 			);
 
-		} while (!_suspended_callback);
+		} while (!_suspended);
 
 		_suspend_dispatcher.destruct();
 		_sig_rec.destruct();
@@ -100,6 +100,7 @@ void Entrypoint::_process_incoming_signals()
 		void (*resumed_callback)() = _resumed_callback;
 		_suspended_callback        = nullptr;
 		_resumed_callback          = nullptr;
+		_suspended                 = false;
 
 		resumed_callback();
 	}
@@ -124,13 +125,17 @@ void Entrypoint::schedule_suspend(void (*suspended)(), void (*resumed)())
 
 Signal_context_capability Entrypoint::manage(Signal_dispatcher_base &dispatcher)
 {
-	return _sig_rec->manage(&dispatcher);
+	/* _sig_rec is invalid for a small window in _process_incoming_signals */
+	return _sig_rec.constructed() ? _sig_rec->manage(&dispatcher)
+	                              : Signal_context_capability();
 }
 
 
 void Genode::Entrypoint::dissolve(Signal_dispatcher_base &dispatcher)
 {
-	_sig_rec->dissolve(&dispatcher);
+	/* _sig_rec is invalid for a small window in _process_incoming_signals */
+	if (_sig_rec.constructed())
+		_sig_rec->dissolve(&dispatcher);
 }
 
 
