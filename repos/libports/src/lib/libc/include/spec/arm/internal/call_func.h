@@ -25,6 +25,7 @@
 {
 	asm volatile ("mov r0, %2;"  /* set arg */
 	              "mov sp, %0;"  /* set stack */
+	              "mov fp, #0;"  /* clear frame pointer */
 	              "mov pc, %1;"  /* call func */
 	              ""
 	              : : "r"(sp), "r"(func), "r"(arg) : "r0");
