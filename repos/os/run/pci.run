@@ -1,0 +1,67 @@
+assert_spec pci
+#
+# Build
+#
+set build_components { core init test/pci }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+# override default platform driver policy
+proc platform_drv_policy {} {
+	return {
+			<policy label_prefix="test-pci"> <pci class="ALL"/> </policy>}
+}
+
+append_platform_drv_build_components
+
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append config {
+	<start name="test-pci">
+		<resource name="RAM" quantum="2M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init test-pci
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "--- Platform test finished ---.*\n" 10
+

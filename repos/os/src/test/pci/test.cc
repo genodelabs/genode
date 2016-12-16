@@ -5,16 +5,17 @@
  */
 
 /*
- * Copyright (C) 2008-2013 Genode Labs GmbH
+ * Copyright (C) 2008-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
+#include <base/component.h>
 #include <base/log.h>
 #include <platform_session/connection.h>
 #include <platform_device/client.h>
+#include <util/retry.h>
 
 using namespace Genode;
 
@@ -45,7 +46,7 @@ static void print_device_info(Platform::Device_capability device_cap)
 	    "class=", Hex(class_code), " "
 	    "vendor=", Hex(vendor_id), " ",
 	               (vendor_id == INTEL_VENDOR_ID ? "(Intel)" : "(unknown)"),
-	    "device=", Hex(device_id));
+	    " device=", Hex(device_id));
 
 	for (int resource_id = 0; resource_id < 6; resource_id++) {
 
@@ -63,31 +64,40 @@ static void print_device_info(Platform::Device_capability device_cap)
 }
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	log("--- Platform test started ---");
 
 	/* open session to pci service */
-	static Platform::Connection pci;
+	static Platform::Connection pci(env);
+
+	/*
+	 * Functor that is called if the platform driver throws a
+	 * 'Out_of_metadata' exception.
+	 */
+	auto handler = [&] () { pci.upgrade_ram(4096); };
+
+	Platform::Device_capability prev_device_cap, device_cap;
+
+	auto attempt = [&] () { device_cap = pci.first_device(); };
+	retry<Platform::Session::Out_of_metadata>(attempt, handler);
 
 	/*
 	 * Iterate through all installed devices
 	 * and print the available device information.
 	 */
-	Platform::Device_capability prev_device_cap,
-	                            device_cap = pci.first_device();
 	while (device_cap.valid()) {
 		print_device_info(device_cap);
 
 		pci.release_device(prev_device_cap);
 		prev_device_cap = device_cap;
-		device_cap = pci.next_device(prev_device_cap);
+
+		auto attempt = [&] () { device_cap = pci.next_device(device_cap); };
+		retry<Platform::Session::Out_of_metadata>(attempt, handler);
 	}
 
 	/* release last device */
 	pci.release_device(prev_device_cap);
 
 	log("--- Platform test finished ---");
-
-	return 0;
 }
