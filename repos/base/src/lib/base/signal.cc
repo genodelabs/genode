@@ -284,12 +284,12 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 		Signal_context *context = (Signal_context *)(source_signal.imprint());
 
 		if (!context) {
-			error("received null signal imprint, stop signal handling");
+			error("received null signal imprint, stop signal dispatcher");
 			sleep_forever();
 		}
 
 		if (!signal_context_registry()->test_and_lock(context)) {
-			warning("encountered dead signal context");
+			warning("encountered dead signal context ", context, " in signal dispatcher");
 			continue;
 		}
 
@@ -298,7 +298,7 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 			Signal::Data signal(context, source_signal.num());
 			context->_receiver->local_submit(signal);
 		} else {
-			warning("signal context with no receiver");
+			warning("signal context ", context, " with no receiver in signal dispatcher");
 		}
 
 		/* free context lock that was taken by 'test_and_lock' */

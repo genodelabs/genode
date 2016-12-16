@@ -403,7 +403,7 @@ struct Genode::Signal_dispatcher_base : Signal_context
  */
 template <typename T>
 class Genode::Signal_dispatcher : public Signal_dispatcher_base,
-                                  public  Signal_context_capability
+                                  public Signal_context_capability
 {
 	private:
 
@@ -431,7 +431,7 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 
 		~Signal_dispatcher() { sig_rec.dissolve(this); }
 
-		void dispatch(unsigned num) { (obj.*member)(num); }
+		void dispatch(unsigned num) override { (obj.*member)(num); }
 };
 
 
@@ -470,7 +470,7 @@ struct Genode::Signal_handler : Genode::Signal_dispatcher_base,
 	/**
 	 * Interface of Signal_dispatcher_base
 	 */
-	void dispatch(unsigned num) { (obj.*member)(); }
+	void dispatch(unsigned num) override { (obj.*member)(); }
 };
 
 #endif /* _INCLUDE__BASE__SIGNAL_H_ */
