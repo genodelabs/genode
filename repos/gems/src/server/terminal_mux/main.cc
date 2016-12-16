@@ -708,7 +708,7 @@ struct Main
 				c = 8;
 
 			/*
-			 * Handle C-y by switching to the menu
+			 * Handle C-x by switching to the menu
 			 */
 			enum { KEYCODE_C_X = 24 };
 			if (c == KEYCODE_C_X) {
