@@ -54,11 +54,11 @@ class Block::Sdhci_driver : public Block::Driver
 
 	public:
 
-		Sdhci_driver(Entrypoint &, bool use_dma, const bool set_voltage = false)
+		Sdhci_driver(Env &)
 		:
 			_controller((addr_t)_sdhci_mmio.local_addr<void>(),
-						_delayer, Board_base::SDHCI_IRQ, use_dma, set_voltage),
-			_use_dma(use_dma)
+						_delayer, Board_base::SDHCI_IRQ, false, true),
+			_use_dma(false)
 		{
 			Sd_card::Card_info const card_info = _controller.card_info();
 

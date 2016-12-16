@@ -14,12 +14,14 @@
 #ifndef _DRIVERS__SD_CARD__SPEC__EXYNOS5__DRIVER_H_
 #define _DRIVERS__SD_CARD__SPEC__EXYNOS5__DRIVER_H_
 
+/* Genode includes */
 #include <util/mmio.h>
 #include <os/attached_io_mem_dataspace.h>
 #include <base/log.h>
 #include <timer_session/connection.h>
 #include <block/component.h>
 #include <os/server.h>
+#include <regulator_session/connection.h>
 
 /* local includes */
 #include <dwmmc.h>
@@ -54,8 +56,15 @@ class Block::Sdhci_driver : public Block::Driver
 			MSH_SIZE = 0x10000,
 		};
 
+		struct Clock_regulator
+		{
+			Regulator::Connection regulator;
 
-		Server::Entrypoint &_ep;
+			Clock_regulator(Env &env) : regulator(env, Regulator::CLK_MMC0) {
+				regulator.state(true); }
+
+		} _clock_regulator;
+
 
 		/* display sub system registers */
 		Attached_io_mem_dataspace _mmio;
@@ -67,13 +76,13 @@ class Block::Sdhci_driver : public Block::Driver
 
 	public:
 
-		Sdhci_driver(Server::Entrypoint &ep, bool use_dma)
+		Sdhci_driver(Env &env)
 		:
-			_ep(ep),
+			_clock_regulator(env),
 			_mmio(MSH_BASE, MSH_SIZE),
-			_controller(ep, (addr_t)_mmio.local_addr<void>(),
-			            _delayer, use_dma),
-			_use_dma(use_dma)
+			_controller(env.ep(), (addr_t)_mmio.local_addr<void>(),
+			            _delayer, true),
+			_use_dma(true)
 		{
 			Sd_card::Card_info const card_info = _controller.card_info();
 

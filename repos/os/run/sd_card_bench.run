@@ -1,58 +1,98 @@
 #
-# Build
+# Check for platform support
 #
 
-build  {
+if {[expr ![have_spec exynos5] && \
+          ![have_spec omap4] && \
+          ![have_spec imx6] && \
+          ![have_spec imx53] && \
+          ![have_spec pl180] && \
+          ![have_spec rpi]]} \
+{
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0;
+}
+
+
+#
+# Build the boot modules
+#
+
+set build_components {
 	core init
 	drivers/timer
 	test/sd_card_bench
 }
 
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
 create_boot_directory
 
-
 #
-# Config
-#
-
-install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="RAM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="sd_card_bench">
-			<resource name="RAM" quantum="16M"/>
-			<provides><service name="Block"/></provides>
-		</start>
-	</config>
-}
-
-
-#
-# Boot modules
+# Install the config
 #
 
-build_boot_image {
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="sd_card_bench">
+		<resource name="RAM" quantum="16M"/>
+		<provides><service name="Block"/></provides>
+	</start>
+</config>}
+
+install_config $config
+
+
+#
+# Create the boot image
+#
+
+set boot_modules {
 	core ld.lib.so init
 	timer
 	sd_card_bench
 }
 
-run_genode_until forever
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
 
-# vi: set ft=tcl :
+
+#
+# Run and evaluate the test
+#
+# If we run on qemu, provide a virtual disk
+#
+
+if {[have_include power_on/qemu]} {
+
+	set disk_image "bin/sd_card.img"
+	if { [file exists $disk_image] == 0 } then {
+		catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 } }
+
+	append qemu_args "-drive file=$disk_image,format=raw,if=sd,cache=writeback "
+	append qemu_args "-nographic "
+}
+
+run_genode_until "--- SD card benchmark finished ---" 120

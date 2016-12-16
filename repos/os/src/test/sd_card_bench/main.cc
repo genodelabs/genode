@@ -13,15 +13,16 @@
  */
 
 /* Genode includes */
-#include <base/sleep.h>
+#include <base/component.h>
 #include <base/log.h>
 #include <timer_session/connection.h>
 #include <os/attached_ram_dataspace.h>
-#include <os/server.h>
+#include <os/config.h>
 
 /* local includes */
 #include <driver.h>
 
+using namespace Genode;
 
 struct Operation
 {
@@ -90,15 +91,13 @@ static void run_benchmark(Block::Driver  &driver,
 
 struct Main
 {
-	Main(Server::Entrypoint &ep)
+	Main(Env &env)
 	{
-		using namespace Genode;
-
 		log("--- SD card benchmark ---");
 
-		bool const use_dma = true;
 
-		static Block::Sdhci_driver driver(ep, use_dma);
+		static Block::Sdhci_driver driver(env);
+		bool const use_dma = driver.dma_enabled();
 
 		static Timer::Connection timer;
 
@@ -109,7 +108,7 @@ struct Main
 		size_t const buffer_size = 10 * 1024 * 1024;
 
 		/* allocate read/write buffer */
-		static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, Genode::UNCACHED);
+		static Attached_ram_dataspace buffer(&env.ram(), buffer_size, Genode::UNCACHED);
 		char * const buffer_virt = buffer.local_addr<char>();
 		addr_t const buffer_phys = Dataspace_client(buffer.cap()).phys_addr();
 
@@ -117,7 +116,7 @@ struct Main
 		 * Benchmark reading from SD card
 		 */
 
-		log("\n-- reading from SD card --");
+		log("\n-- reading from SD card (", use_dma ? "" : "not ", "using DMA) --");
 
 		struct Read : Operation
 		{
@@ -145,7 +144,7 @@ struct Main
 		 * its original content.
 		 */
 
-		log("\n-- writing to SD card --");
+		log("\n-- writing to SD card (", use_dma ? "" : "not ", "using DMA) --");
 
 		struct Write : Operation
 		{
@@ -169,12 +168,4 @@ struct Main
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "sd_card_bench_ep";   }
-	size_t stack_size()            { return 16*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);      }
-}
+void Component::construct(Genode::Env &env) { static Main main(env); }

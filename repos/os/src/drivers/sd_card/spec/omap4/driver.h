@@ -58,13 +58,16 @@ class Block::Sdhci_driver : public Block::Driver
 
 	public:
 
-		Sdhci_driver(Entrypoint &, bool use_dma)
+		struct Dma_not_supported : Exception { };
+
+		Sdhci_driver(Env &)
 		:
 			_mmchs1_mmio(MMCHS1_MMIO_BASE, MMCHS1_MMIO_SIZE),
 			_controller((addr_t)_mmchs1_mmio.local_addr<void>(),
-			            _delayer, use_dma),
-			_use_dma(use_dma)
+			            _delayer, false),
+			_use_dma(false)
 		{
+			if (_use_dma) { throw Dma_not_supported(); }
 			Sd_card::Card_info const card_info = _controller.card_info();
 
 			Genode::log("SD card detected");

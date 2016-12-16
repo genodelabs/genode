@@ -11,26 +11,33 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _DRIVERS__SD_CARD__SPEC__PL180__SD_CARD_H_
-#define _DRIVERS__SD_CARD__SPEC__PL180__SD_CARD_H_
+#ifndef _DRIVER_H_
+#define _DRIVER_H_
 
+/* Genode includes */
 #include <block/driver.h>
 
-#include "host_driver.h"
+/* local includes */
+#include <pl180.h>
+#include <pl180_defs.h>
 
+namespace Block {
 
-class Sd_card : public Block::Driver
+	using namespace Genode;
+	class Sdhci_driver;
+}
+
+class Block::Sdhci_driver : public Block::Driver
 {
 	private:
 
-		Host_driver &_hd;
+		Pl180 _hd;
 
 		enum { BLOCK_SIZE = 512 };
 
 	public:
 
-		Sd_card(Host_driver &host_driver)
-		: _hd(host_driver)
+		Sdhci_driver(Env &) : _hd(PL180_PHYS, PL180_SIZE)
 		{
 			unsigned resp;
 
@@ -133,4 +140,4 @@ class Sd_card : public Block::Driver
 		}
 };
 
-#endif /* _DRIVERS__SD_CARD__SPEC__PL180__SD_CARD_H_ */
+#endif /* _DRIVER_H_ */
