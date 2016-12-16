@@ -51,7 +51,7 @@ Non PCI devices, as the PS2 controller are named by a "device" node in the polic
 !<start name="platform_drv">
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! <config>
-!  <policy label_prefix="ps_drv">
+!  <policy label_prefix="ps2_drv">
 !   <device name="PS2/>
 !  </policy>
 ! </config>
@@ -166,13 +166,16 @@ ISABRIDGE 0x6 0x01 0x0
 Supported non PCI devices
 -------------------------
 
-The driver provides for the PS2 controller the IO_PORT and IRQ resources.
+The driver provides for the PS2 and PIT device the IO_PORT and IRQ resources.
 
 !<start name="platform_drv">
 ! <resource name="RAM" quantum="8M" constrain_phys="yes"/>
 ! <config>
-!  <policy label_prefix="ps_drv">
+!  <policy label_prefix="ps2_drv">
 !   <dev name="PS2/>
+!  </policy>
+!  <policy label_prefix="pit_timer_drv">
+!   <dev name="PIT/>
 !  </policy>
 ! </config>
 !</start>
