@@ -30,9 +30,12 @@ install_config {
 			<provides><service name="Terminal"/></provides>
 		</start>
 		<start name="noux">
-			<resource name="RAM" quantum="1G"/>
-			<config verbose="yes">
-				<fstab> <rom name="test-noux_fork" /> </fstab>
+			<resource name="RAM" quantum="64M"/>
+			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
+				<fstab>
+					<null/> <log/>
+					<rom name="test-noux_fork" />
+				</fstab>
 				<start name="test-noux_fork"> </start>
 			</config>
 		</start>
@@ -46,4 +49,5 @@ build_boot_image {
 
 append qemu_args " -nographic "
 
-run_genode_until "child.*exited with exit value 0.*\n" 20
+run_genode_until "--- parent done ---.*\n" 20
+run_genode_until "child.*exited.*\n" 5 [output_spawn_id]
