@@ -9,14 +9,26 @@ set udp_down_to_down_1 1
 set udp_up_to_down_1   1
 set udp_down_to_up_1   1
 
+set use_usb_driver [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
+set use_nic_driver [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec hw_riscv] && ![have_spec hw_odroid_xu] && ![have_spec linux] && ![have_spec hw_wand_quad]]
+
+set nic_driver "nic_drv"
+if ($use_usb_driver) {
+	set nic_driver "usb_drv" }
+
+if {[expr !$use_usb_driver && !$use_nic_driver]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
+
 set build_components {
 	core init drivers/timer drivers/nic server/nic_router server/nic_bridge
 	test/lwip/http_srv_static test/lwip/http_clnt test/lxip/udp_echo
 	test/lxip/udp_client
 }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
+lappend_if $use_usb_driver  build_components drivers/usb
+lappend_if [have_spec gpio] build_components drivers/gpio
 
+source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
 build $build_components
@@ -44,18 +56,36 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_if $use_usb_driver config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config ehci="yes">
+			<nic mac="02:00:00:00:01:01" />
+		</config>
+	</start>}
+
 append_platform_drv_config
 
-append config {
+append_if $use_nic_driver config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
 
+append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>
-
-	<start name="nic_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
 	</start>
 
 	<start name="nic_router">
@@ -114,8 +144,10 @@ append config {
 			<policy label_prefix="udp_client_2"  ip_addr="10.0.2.123" />
 			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.70"  />
 		</config>
-		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+		<route>}
+append config "
+		<service name=\"Nic\"> <child name=\"${nic_driver}\"/> </service>"
+append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -337,14 +369,15 @@ install_config $config
 # generic modules
 set boot_modules {
 
-	core init timer nic_drv nic_router nic_bridge ld.lib.so libc.lib.so
+	core init timer nic_router nic_bridge ld.lib.so libc.lib.so
 	libc_resolv.lib.so lwip.lib.so lxip.lib.so test-http_clnt
 	test-lwip_httpsrv_static test-lxip_udp_echo test-lxip_udp_client
 }
 
-
 # platform-specific modules
-lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if $use_usb_driver  boot_modules usb_drv
+lappend_if $use_nic_driver  boot_modules nic_drv
+lappend_if [have_spec gpio] boot_modules gpio_drv
 
 append_platform_drv_boot_modules
 
