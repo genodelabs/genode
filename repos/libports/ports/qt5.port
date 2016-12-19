@@ -6,8 +6,8 @@ QTSCRIPTCLASSIC := qtscriptclassic-1.0_1-opensource
 
 DOWNLOADS := ${QT5}.archive ${QTSCRIPTCLASSIC}.archive
 
-URL(${QT5}) := http://download.qt-project.org/official_releases/qt/5.1/${VERSION}/single/${QT5}.tar.gz
-SHA(${QT5}) := 12d706124dbfac3d542dd3165176a978d478c085
+URL(${QT5}) := http://download.qt.io/archive/qt/5.1/$(VERSION)/single/$(QT5).tar.xz
+SHA(${QT5}) := 589bf240228f3a1249bd250c968104aa68ba0e36
 DIR(${QT5}) := src/lib/qt5/${QT5}
 
 URL(${QTSCRIPTCLASSIC}) := ftp://ftp.informatik.hu-berlin.de/pub/Mirrors/ftp.troll.no/QT/qt/solutions/lgpl/${QTSCRIPTCLASSIC}.tar.gz
