@@ -223,7 +223,7 @@ struct Net::Ipv4_address_prefix
 	Ipv4_address    address;
 	Genode::uint8_t prefix = 32;
 
-	bool valid() const { return address.valid(); }
+	bool valid() const { return address.valid() || !prefix; }
 
 	void print(Genode::Output &output) const;
 
