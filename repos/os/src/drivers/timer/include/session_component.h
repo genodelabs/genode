@@ -61,7 +61,7 @@ class Timer::Session_component : public Genode::Rpc_object<Session>,
 		{
 			_sigh = sigh;
 			if (!sigh.valid())
-				_timeout_scheduler.discard(_timeout);
+				_timeout.discard();
 		}
 
 		unsigned long elapsed_ms() const override {

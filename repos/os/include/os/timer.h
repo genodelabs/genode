@@ -19,89 +19,82 @@
 #include <os/time_source.h>
 #include <os/timeout.h>
 
-namespace Genode { class Timer; }
+namespace Genode {
+	class Timer;
+	class Timer_time_source;
+}
 
 
 /**
- * Multiplexes a timer session amongst different timeouts
+ * Implementation helper for 'Timer'
+ *
+ * \noapi
  */
-class Genode::Timer : public Timeout_scheduler
+class Genode::Timer_time_source : public Genode::Time_source
 {
 	private:
 
-		class Time_source : public Genode::Time_source
+		enum { MIN_TIMEOUT_US = 100000 };
+
+		using Signal_handler = Genode::Signal_handler<Timer_time_source>;
+
+		::Timer::Session &_session;
+		Signal_handler    _signal_handler;
+		Timeout_handler  *_handler = nullptr;
+
+		void _handle_timeout()
 		{
-			private:
-
-				enum { MIN_TIMEOUT_US = 100000 };
-
-				using Signal_handler =
-					Genode::Signal_handler<Time_source>;
-
-				::Timer::Session &_session;
-				Signal_handler    _signal_handler;
-				Timeout_handler  *_handler = nullptr;
-
-				void _handle_timeout()
-				{
-					if (_handler) {
-						_handler->handle_timeout(curr_time()); }
-				}
-
-			public:
-
-				Time_source(::Timer::Session &session, Entrypoint &ep)
-				:
-					_session(session),
-					_signal_handler(ep, *this, &Time_source::_handle_timeout)
-				{
-					_session.sigh(_signal_handler);
-				}
-
-				Microseconds curr_time() const {
-					return Microseconds(1000ULL * _session.elapsed_ms()); }
-
-				void schedule_timeout(Microseconds     duration,
-				                      Timeout_handler &handler)
-				{
-					if (duration.value < MIN_TIMEOUT_US) {
-						duration.value = MIN_TIMEOUT_US; }
-
-					if (duration.value > max_timeout().value) {
-						duration.value = max_timeout().value; }
-
-					_handler = &handler;
-					_session.trigger_once(duration.value);
-				}
-
-				Microseconds max_timeout() const {
-					return Microseconds(~0UL); }
-
-		} _time_source;
-
-		Alarm_timeout_scheduler _timeout_scheduler { _time_source };
+			if (_handler)
+				_handler->handle_timeout(curr_time());
+		}
 
 	public:
 
-		Timer(::Timer::Session &session, Entrypoint &ep)
-		: _time_source(session, ep) { }
+		Timer_time_source(::Timer::Session &session, Entrypoint &ep)
+		:
+			_session(session),
+			_signal_handler(ep, *this, &Timer_time_source::_handle_timeout)
+		{
+			_session.sigh(_signal_handler);
+		}
+
+		Microseconds curr_time() const {
+			return Microseconds(1000ULL * _session.elapsed_ms()); }
+
+		void schedule_timeout(Microseconds     duration,
+		                      Timeout_handler &handler)
+		{
+			if (duration.value < MIN_TIMEOUT_US)
+				duration.value = MIN_TIMEOUT_US;
+
+			if (duration.value > max_timeout().value)
+				duration.value = max_timeout().value;
+
+			_handler = &handler;
+			_session.trigger_once(duration.value);
+		}
+
+		Microseconds max_timeout() const {
+			return Microseconds(~0UL); }
+
+};
 
 
-		/***********************
-		 ** Timeout_scheduler **
-		 ***********************/
+/**
+ * Timer-session based timeout scheduler
+ *
+ * Multiplexes a timer session amongst different timeouts.
+ */
+struct Genode::Timer : private Genode::Timer_time_source,
+                       public  Genode::Alarm_timeout_scheduler
+{
+	using Time_source::Microseconds;
 
-		void schedule_periodic(Timeout &timeout, Microseconds duration) override {
-			_timeout_scheduler.schedule_periodic(timeout, duration); }
-
-		void schedule_one_shot(Timeout &timeout, Microseconds duration) override {
-			_timeout_scheduler.schedule_one_shot(timeout, duration); }
-
-		Microseconds curr_time() const override {
-			return _timeout_scheduler.curr_time(); }
-
-		void discard(Timeout &timeout) override {
-			_timeout_scheduler.discard(timeout); }
+	Timer(::Timer::Session &session, Entrypoint &ep)
+	:
+		Timer_time_source(session, ep),
+		Alarm_timeout_scheduler(*(Time_source*)this)
+	{ }
 };
 
 #endif /* _TIMER_H_ */

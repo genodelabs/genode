@@ -31,38 +31,50 @@ namespace Genode {
 
 /**
  * Interface of a time-source multiplexer
+ *
+ * Beside 'curr_time()', this abstract interface is used by the Timeout
+ * implementation only. Users of the timeout framework must schedule and
+ * discard timeouts via methods of the timeout.
  */
-struct Genode::Timeout_scheduler
+class Genode::Timeout_scheduler
 {
-	using Microseconds = Time_source::Microseconds;
+	public:
 
-	/**
-	 *  Read out the now time of the scheduler
-	 */
-	virtual Microseconds curr_time() const = 0;
+		using Microseconds = Time_source::Microseconds;
 
-	/**
-	 * Add a one-shot timeout to the schedule
-	 *
-	 * \param timeout   timeout callback object
-	 * \param duration  timeout trigger delay
-	 */
-	virtual void schedule_one_shot(Timeout &timeout, Microseconds duration) = 0;
+	private:
 
-	/**
-	 * Add a periodic timeout to the schedule
-	 *
-	 * \param timeout   timeout callback object
-	 * \param duration  timeout trigger period
-	 */
-	virtual void schedule_periodic(Timeout &timeout, Microseconds duration) = 0;
+		friend Timeout;
 
-	/**
-	 * Remove timeout from the scheduler
-	 *
-	 * \param timeout  corresponding timeout callback object
-	 */
-	virtual void discard(Timeout &timeout) = 0;
+		/**
+		 * Add a one-shot timeout to the schedule
+		 *
+		 * \param timeout   timeout callback object
+		 * \param duration  timeout trigger delay
+		 */
+		virtual void _schedule_one_shot(Timeout &timeout, Microseconds duration) = 0;
+
+		/**
+		 * Add a periodic timeout to the schedule
+		 *
+		 * \param timeout   timeout callback object
+		 * \param duration  timeout trigger period
+		 */
+		virtual void _schedule_periodic(Timeout &timeout, Microseconds duration) = 0;
+
+		/**
+		 * Remove timeout from the scheduler
+		 *
+		 * \param timeout  corresponding timeout callback object
+		 */
+		virtual void _discard(Timeout &timeout) = 0;
+
+	public:
+
+		/**
+		 *  Read out the now time of the scheduler
+		 */
+		virtual Microseconds curr_time() const = 0;
 };
 
 
@@ -118,11 +130,13 @@ class Genode::Timeout : private Noncopyable
 		Timeout(Timeout_scheduler &timeout_scheduler)
 		: _alarm(timeout_scheduler) { }
 
-		~Timeout() { _alarm.timeout_scheduler.discard(*this); }
+		~Timeout() { discard(); }
 
 		void schedule_periodic(Microseconds duration, Handler &handler);
 
 		void schedule_one_shot(Microseconds duration, Handler &handler);
+
+		void discard();
 };
 
 
@@ -237,6 +251,17 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 
 		void handle_timeout(Microseconds curr_time) override;
 
+
+		/***********************
+		 ** Timeout_scheduler **
+		 ***********************/
+
+		void _schedule_one_shot(Timeout &timeout, Microseconds duration) override;
+		void _schedule_periodic(Timeout &timeout, Microseconds duration) override;
+
+		void _discard(Timeout &timeout) override {
+			_alarm_scheduler.discard(&timeout._alarm); }
+
 	public:
 
 		Alarm_timeout_scheduler(Time_source &time_source);
@@ -246,14 +271,8 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 		 ** Timeout_scheduler **
 		 ***********************/
 
-		void schedule_one_shot(Timeout &timeout, Microseconds duration) override;
-		void schedule_periodic(Timeout &timeout, Microseconds duration) override;
-
 		Microseconds curr_time() const override {
 			return _time_source.curr_time(); }
-
-		void discard(Timeout &timeout) override {
-			_alarm_scheduler.discard(&timeout._alarm); }
 };
 
 #endif /* _OS__TIMEOUT_H_ */

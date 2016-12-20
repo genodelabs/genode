@@ -25,14 +25,20 @@ void Timeout::schedule_periodic(Microseconds duration, Handler &handler)
 {
 	_alarm.handler = &handler;
 	_alarm.periodic = true;
-	_alarm.timeout_scheduler.schedule_periodic(*this, duration);
+	_alarm.timeout_scheduler._schedule_periodic(*this, duration);
 }
 
 void Timeout::schedule_one_shot(Microseconds duration, Handler &handler)
 {
 	_alarm.handler = &handler;
 	_alarm.periodic = false;
-	_alarm.timeout_scheduler.schedule_one_shot(*this, duration);
+	_alarm.timeout_scheduler._schedule_one_shot(*this, duration);
+}
+
+void Timeout::discard()
+{
+	_alarm.timeout_scheduler._discard(*this);
+	_alarm.handler = nullptr;
 }
 
 
@@ -82,8 +88,8 @@ Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source &time_source)
 }
 
 
-void Alarm_timeout_scheduler::schedule_one_shot(Timeout      &timeout,
-                                                Microseconds  duration)
+void Alarm_timeout_scheduler::_schedule_one_shot(Timeout      &timeout,
+                                                 Microseconds  duration)
 {
 	_alarm_scheduler.schedule_absolute(&timeout._alarm,
 	                                   _time_source.curr_time().value +
@@ -94,8 +100,8 @@ void Alarm_timeout_scheduler::schedule_one_shot(Timeout      &timeout,
 }
 
 
-void Alarm_timeout_scheduler::schedule_periodic(Timeout      &timeout,
-                                                Microseconds  duration)
+void Alarm_timeout_scheduler::_schedule_periodic(Timeout      &timeout,
+                                                 Microseconds  duration)
 {
 	_alarm_scheduler.handle(_time_source.curr_time().value);
 	_alarm_scheduler.schedule(&timeout._alarm, duration.value);
