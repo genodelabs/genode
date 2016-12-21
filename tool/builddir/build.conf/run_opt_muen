@@ -1,4 +1,3 @@
-REPOSITORIES += $(GENODE_DIR)/repos/base-hw
 
 ##
 ## Kernel-specific run tool configuration
@@ -11,6 +10,7 @@ RUN_OPT = --include boot_dir/hw --include image/muen
 #
 # The specified file must be relative to the Muen policy directory or an
 # absolute path.
+#
 RUN_OPT += --image-muen-hardware platform/lenovo-t430s.xml
 
 #
@@ -28,13 +28,15 @@ RUN_OPT += --image-muen-spark-path /opt/spark
 #
 # The specified file must be relative to the Muen policy directory or an
 # absolute path.
+#
 RUN_OPT += --image-muen-system xml/genode-base_hw.xml
 
 #
 # Muen system components
 #
 # Available components are located in the Muen project directory 'components/'.
-RUN_OPT += --image-muen-components 'libdebuglog libmutime dbgserver sm tau0 time'
+#
+RUN_OPT += --image-muen-components 'dbgserver sm tau0 time'
 
 #
 # External Muen build
@@ -42,4 +44,6 @@ RUN_OPT += --image-muen-components 'libdebuglog libmutime dbgserver sm tau0 time
 # Specifies if the Muen kernel should be built automatically.
 # If the Muen system is built and integrated externally, i.e. outside
 # of the Genode build system, set this parameter to 1.
+#
 RUN_OPT += --image-muen-external-build 0
+

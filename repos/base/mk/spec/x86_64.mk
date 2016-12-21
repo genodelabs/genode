@@ -20,5 +20,5 @@ CC_MARCH ?= -m64
 #
 LD_MARCH ?= -melf_x86_64
 
-
 include $(call select_from_repositories,mk/spec/64bit.mk)
+include $(call select_from_repositories,mk/spec/x86.mk)

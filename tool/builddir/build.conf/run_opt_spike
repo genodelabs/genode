@@ -1,0 +1,7 @@
+
+##
+## Run tool configuration
+##
+
+RUN_OPT = --include power_on/spike --include log/spike
+

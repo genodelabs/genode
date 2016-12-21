@@ -1,7 +1,0 @@
-REPOSITORIES  = $(GENODE_DIR)/repos/base-fiasco
-
-##
-## Kernel-specific run tool configuration
-##
-RUN_OPT = --include boot_dir/fiasco \
-          --include power_on/qemu --include log/qemu --include image/iso

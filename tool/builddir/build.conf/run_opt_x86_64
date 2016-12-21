@@ -1,0 +1,6 @@
+# local varible for run-tool arguments that depend on the used kernel
+KERNEL_RUN_OPT(nova)  := $(QEMU_RUN_OPT)
+KERNEL_RUN_OPT(hw)    := $(QEMU_RUN_OPT)
+KERNEL_RUN_OPT(foc)   := $(QEMU_RUN_OPT)
+KERNEL_RUN_OPT(linux) := --include power_on/linux --include log/linux
+

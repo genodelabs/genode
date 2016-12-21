@@ -19,35 +19,53 @@ usage:
 	@echo "  create_builddir <platform> [BUILD_DIR=<build-dir>]"
 	@echo
 	@echo "  <platform>   can be:"
-	@echo "                  'linux_x86'"
-	@echo "                  'linux_arm'"
-	@echo "                  'fiasco_x86'"
-	@echo "                  'pistachio_x86'"
-	@echo "                  'okl4_x86'"
-	@echo "                  'nova_x86_32'"
-	@echo "                  'nova_x86_64'"
-	@echo "                  'hw_panda'"
-	@echo "                  'hw_pbxa9'"
-	@echo "                  'hw_imx53_qsb'"
-	@echo "                  'hw_imx53_qsb_tz'"
-	@echo "                  'hw_usb_armory'"
-	@echo "                  'hw_wand_quad'"
-	@echo "                  'hw_arndale'"
-	@echo "                  'hw_odroid_xu'"
-	@echo "                  'hw_rpi'"
-	@echo "                  'hw_zynq'"
-	@echo "                  'hw_x86_64'"
-	@echo "                  'hw_x86_64_muen'"
-	@echo "                  'hw_riscv'"
-	@echo "                  'foc_x86_32'"
-	@echo "                  'foc_x86_64'"
-	@echo "                  'foc_pbxa9'"
-	@echo "                  'foc_imx53'"
-	@echo "                  'foc_panda'"
-	@echo "                  'foc_arndale'"
-	@echo "                  'foc_rpi'"
-	@echo "                  'foc_odroid_x2'"
-	@echo "                  'sel4_x86_32'"
+	@echo "                  'x86_32'"
+	@echo "                  'x86_64'"
+	@echo "                  'panda'"
+	@echo "                  'pbxa9'"
+	@echo "                  'rpi'"
+	@echo "                  'arndale'"
+	@echo "                  'imx53_qsb'"
+	@echo "                  'imx53_qsb_tz'"
+	@echo "                  'usb_armory'"
+	@echo "                  'wand_quad'"
+	@echo "                  'odroid_xu'"
+	@echo "                  'odroid_x2'"
+	@echo "                  'zynq'"
+	@echo "                  'muen'"
+	@echo "                  'riscv_spike'"
+	@echo "                  'linux'"
+	@echo
+	@echo "  the following <platform> arguments are deprecated:"
+	@echo "                  'linux_x86'       (use 'linux')"
+	@echo "                  'linux_arm'       (use 'linux')"
+	@echo "                  'fiasco_x86'      (use 'x86_32')"
+	@echo "                  'okl4_x86'        (use 'x86_32')"
+	@echo "                  'pistachio_x86'   (use 'x86_32')"
+	@echo "                  'nova_x86_32'     (use 'x86_32')"
+	@echo "                  'nova_x86_64'     (use 'x86_64')"
+	@echo "                  'hw_x86_64'       (use 'x86_64')"
+	@echo "                  'foc_x86_32'      (use 'x86_32')"
+	@echo "                  'foc_x86_64'      (use 'x86_64')"
+	@echo "                  'sel4_x86_32'     (use 'x86_32')"
+	@echo "                  'hw_panda'        (use 'panda')"
+	@echo "                  'foc_panda'       (use 'panda')"
+	@echo "                  'hw_pbxa9'        (use 'pbxa9')"
+	@echo "                  'foc_pbxa9'       (use 'pbxa9')"
+	@echo "                  'hw_rpi'          (use 'rpi')"
+	@echo "                  'foc_rpi'         (use 'rpi')"
+	@echo "                  'hw_arndale'      (use 'arndale')"
+	@echo "                  'foc_arndale'     (use 'arndale')"
+	@echo "                  'hw_imx53_qsb'    (use 'imx53_qsb')"
+	@echo "                  'foc_imx53'       (use 'imx53_qsb')"
+	@echo "                  'hw_imx53_qsb_tz' (use 'imx53_qsb_tz')"
+	@echo "                  'hw_usb_armory'   (use 'usb_armory')"
+	@echo "                  'hw_wand_quad'    (use 'wand_quad')"
+	@echo "                  'hw_odroid_xu'    (use 'odroid_xu')"
+	@echo "                  'hw_zynq'         (use 'zynq')"
+	@echo "                  'hw_x86_64_muen'  (use 'muen')"
+	@echo "                  'hw_riscv'        (use 'riscv_spike')"
+	@echo "                  'foc_odroid_x2'   (use 'odroid_x2')"
 	@echo
 	@echo "  The definition of BUILD_DIR is optional. If specified,"
 	@echo "  <build-dir> is the location of the build directory to create."
@@ -94,183 +112,152 @@ else
 CONTRIB_ABS_DIR := $(abspath $(shell echo $(CONTRIB_DIR)))
 endif
 
-#
-# Generic build-directory preparation rules
-#
-BUILD_CONF          = $(GENODE_ABS_DIR)/tool/builddir/etc/build.conf
-BUILD_CONF_PLATFORM = $(BUILD_CONF).$(PLATFORM)
-
 $(BUILD_DIR)/etc:
 	@mkdir -p $@
 
-$(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
-	@echo "GENODE_DIR    = $(GENODE_ABS_DIR)" > $@
-	@echo 'BASE_DIR      = $$(GENODE_DIR)/repos/base' >> $@
-	@echo 'CONTRIB_DIR   = $(CONTRIB_ABS_DIR)' >> $@
+BUILD_CONF_X86_32 := run_qemu_iso run_opt_x86_32 run_boot_dir qemu_opt_x86 repos repos_x86
+BUILD_CONF_X86_64 := run_qemu_iso run_opt_x86_64 run_boot_dir qemu_opt_x86 repos repos_x86
+BUILD_CONF_PBXA9  := run_qemu run_opt_arm_hw_foc run_boot_dir qemu_opt_arm repos
 
-#
-# Supply -no-kvm argument to Qemu for kernels that are incompatible with KVM
-#
-ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86,$(PLATFORM)),)
-$(BUILD_DIR)/etc/build.conf::
-	@cat $(BUILD_CONF).qemu_no_kvm >> $@
-endif
+BUILD_CONF(x86_32) := run_kernel_x86_32 $(BUILD_CONF_X86_32)
+BUILD_CONF(x86_64) := run_kernel_x86_64 $(BUILD_CONF_X86_64)
+BUILD_CONF(pbxa9)  := run_kernel_hw_foc $(BUILD_CONF_PBXA9)
+BUILD_CONF(panda)        := run_kernel_hw_foc run_boot_dir repos
+BUILD_CONF(rpi)          := run_kernel_hw_foc run_boot_dir repos
+BUILD_CONF(arndale)      := run_kernel_hw_foc run_boot_dir repos
+BUILD_CONF(imx53_qsb)    := run_kernel_hw_foc run_boot_dir repos
+BUILD_CONF(imx53_qsb_tz) := run_kernel_hw     run_boot_dir repos
+BUILD_CONF(usb_armory)   := run_kernel_hw     run_boot_dir repos
+BUILD_CONF(wand_quad)    := run_kernel_hw     run_boot_dir repos
+BUILD_CONF(odroid_xu)    := run_kernel_hw     run_boot_dir repos
+BUILD_CONF(odroid_x2)    := run_kernel_foc    run_boot_dir repos
+BUILD_CONF(zynq)         := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_opt_arm repos
+BUILD_CONF(muen)         := run_kernel_hw run_opt_muen        run_boot_dir repos
+BUILD_CONF(riscv_spike)  := run_kernel_hw run_opt_spike       run_boot_dir repos
+BUILD_CONF(linux)        := run_kernel_linux repos
 
-#
-# Add 'base-<platform>' and generic repositories
-#
-$(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
+# deprecated platforms, to be removed
+BUILD_CONF(linux_x86)       := run_kernel_linux repos
+BUILD_CONF(linux_arm)       := run_kernel_linux repos
+BUILD_CONF(fiasco_x86)      := run_kernel_fiasco    $(BUILD_CONF_X86_32)
+BUILD_CONF(okl4_x86)        := run_kernel_okl4      $(BUILD_CONF_X86_32)
+BUILD_CONF(pistachio_x86)   := run_kernel_pistachio $(BUILD_CONF_X86_32)
+BUILD_CONF(nova_x86_32)     := run_kernel_nova      $(BUILD_CONF_X86_32)
+BUILD_CONF(nova_x86_64)     := run_kernel_nova      $(BUILD_CONF_X86_64)
+BUILD_CONF(hw_x86_64)       := run_kernel_hw        $(BUILD_CONF_X86_64)
+BUILD_CONF(foc_x86_32)      := run_kernel_foc       $(BUILD_CONF_X86_32)
+BUILD_CONF(foc_x86_64)      := run_kernel_foc       $(BUILD_CONF_X86_64)
+BUILD_CONF(sel4_x86_32)     := run_kernel_sel4      $(BUILD_CONF_X86_32)
+BUILD_CONF(hw_panda)        := ${BUILD_CONF(panda)}
+BUILD_CONF(foc_panda)       := run_kernel_foc run_boot_dir repos
+BUILD_CONF(hw_pbxa9)        := ${BUILD_CONF(pbxa9)}
+BUILD_CONF(foc_pbxa9)       := run_kernel_foc $(BUILD_CONF_PBXA9)
+BUILD_CONF(hw_rpi)          := ${BUILD_CONF(rpi)}
+BUILD_CONF(foc_rpi)         := run_kernel_foc run_boot_dir repos
+BUILD_CONF(hw_arndale)      := ${BUILD_CONF(arndale)}
+BUILD_CONF(foc_arndale)     := run_kernel_foc run_boot_dir repos
+BUILD_CONF(hw_imx53_qsb)    := ${BUILD_CONF(imx53_qsb)}
+BUILD_CONF(foc_imx53)       := run_kernel_foc run_boot_dir repos
+BUILD_CONF(hw_imx53_qsb_tz) := ${BUILD_CONF(imx53_qsb_tz)}
+BUILD_CONF(hw_usb_armory)   := ${BUILD_CONF(usb_armory)}
+BUILD_CONF(hw_wand_quad)    := ${BUILD_CONF(wand_quad)}
+BUILD_CONF(hw_odroid_xu)    := ${BUILD_CONF(odroid_xu)}
+BUILD_CONF(hw_zynq)         := ${BUILD_CONF(zynq)}
+BUILD_CONF(hw_x86_64_muen)  := ${BUILD_CONF(muen)}
+BUILD_CONF(hw_riscv)        := ${BUILD_CONF(riscv_spike)}
+BUILD_CONF(foc_odroid_x2)   := ${BUILD_CONF(odroid_x2)}
+
+message: $(BUILD_DIR)/etc/build.conf
+$(BUILD_DIR)/etc/build.conf:
+	@echo "GENODE_DIR  := $(GENODE_ABS_DIR)" > $@
+	@echo 'BASE_DIR    := $$(GENODE_DIR)/repos/base' >> $@
+	@echo 'CONTRIB_DIR := $(CONTRIB_ABS_DIR)' >> $@
 	@echo >> $@
-	@echo "##" >> $@
-	@echo "## Kernel-specific base repository" >> $@
-	@echo "##" >> $@
-	@echo >> $@
-	@cat $< >> $@
-	@cat $(BUILD_CONF).generic >> $@
+	@for i in make_j run; do \
+		cat $(GENODE_DIR)/tool/builddir/build.conf/$$i; done >> $@
+	@for i in ${BUILD_CONF(${PLATFORM})}; do \
+		cat $(GENODE_DIR)/tool/builddir/build.conf/$$i; done >> $@
 
-#
-# Add optional repositories for all platforms
-#
-# Those repositories rely on Genode's libc or contain device drivers.
-# Both prerequisites are not available for hybrid Linux/Genode programs.
-#
-$(BUILD_DIR)/etc/build.conf::
-	@cat $(BUILD_CONF).optional >> $@
-
+message: $(BUILD_DIR)/Makefile
 $(BUILD_DIR)/Makefile:
 	@ln -sf $(GENODE_ABS_DIR)/tool/builddir/build.mk $@
 
+$(BUILD_DIR)/etc/build.conf: $(BUILD_DIR)/etc
+$(BUILD_DIR)/etc/specs.conf: $(BUILD_DIR)/etc
+
 #
-# Add 'ports-foc' repository to Fiasco.OC build directory
+# Detect host CPU architecture (needed for creating Linux build directory that
+# matches the host system)
 #
-ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_panda foc_arndale foc_rpi foc_odroid_x2,$(PLATFORM)),)
-$(BUILD_DIR)/etc/build.conf::
-	@cat $(BUILD_CONF).ports-foc >> $@
+UNAME_MACHINE := $(shell uname -m)
+
+SPEC_ARCH(i686)   := x86_32
+SPEC_ARCH(x86_64) := x86_64
+SPEC_ARCH(armv6l) := armv_v6
+SPEC_ARCH(armv7l) := armv_v7
+
+HOST_SPEC_ARCH := ${SPEC_ARCH(${UNAME_MACHINE})}
+
+#
+# SPECS definitions
+#
+
+SPECS(x86_32)       := x86_32
+SPECS(x86_64)       := x86_64
+SPECS(pbxa9)        := pbxa9
+SPECS(panda)        := panda
+SPECS(rpi)          := rpi
+SPECS(arndale)      := arndale
+SPECS(imx53_qsb)    := imx53_qsb
+SPECS(imx53_qsb_tz) := imx53_qsb_tz
+SPECS(usb_armory)   := hw_usb_armory usb_armory
+SPECS(wand_quad)    := hw_wand_quad wand_quad
+SPECS(odroid_xu)    := hw_odroid_xu odroid_xu
+SPECS(odroid_x2)    := foc_odroid_x2 odroid_x2
+SPECS(zynq_qemu)    := hw_zynq zynq_qemu
+SPECS(muen)         := hw_x86_64_muen muen x86_64
+SPECS(riscv_spike)  := hw_riscv riscv
+SPECS(linux)        := $(HOST_SPEC_ARCH)
+
+# deprecated platforms
+SPECS(linux_x86)       := $(HOST_SPEC_ARCH)
+SPECS(linux_arm)       := $(HOST_SPEC_ARCH)
+SPECS(fiasco_x86)      :=
+SPECS(okl4_x86)        :=
+SPECS(pistachio_x86)   :=
+SPECS(nova_x86_32)     := nova_x86_32 x86_32 acpi
+SPECS(nova_x86_64)     := nova_x86_64 x86_64 acpi
+SPECS(hw_x86_64)       := hw_x86_64 x86_64 acpi
+SPECS(foc_x86_32)      := foc_x86_32 x86_32 acpi
+SPECS(foc_x86_64)      := foc_x86_64 x86_64 acpi
+SPECS(sel4_x86_32)     := sel4_x86_32 x86_32 acpi
+SPECS(hw_panda)        := hw_panda panda perf_counter
+SPECS(foc_panda)       := foc_panda panda
+SPECS(hw_pbxa9)        := hw_pbxa9 pbxa9 perf_counter
+SPECS(foc_pbxa9)       := foc_pbxa9 pbxa9
+SPECS(hw_rpi)          := hw_rpi rpi perf_counter
+SPECS(foc_rpi)         := foc_rpi rpi
+SPECS(hw_arndale)      := hw_arndale arndale perf_counter
+SPECS(foc_arndale)     := foc_arndale arndale
+SPECS(hw_imx53_qsb)    := hw_imx53_qsb imx53_qsb perf_counter
+SPECS(foc_imx53)       := foc_imx53 imx53_qsb
+SPECS(hw_imx53_qsb_tz) := hw_imx53_qsb_tz imx53_qsb_tz perf_counter
+SPECS(hw_usb_armory)   := hw_usb_armory usb_armory perf_counter
+SPECS(hw_wand_quad)    := hw_wand_quad wand_quad perf_counter
+SPECS(hw_odroid_xu)    := hw_odroid_xu odroid_xu perf_counter
+SPECS(hw_zynq)         := hw_zynq zynq perf_counter zynq_qemu
+SPECS(hw_x86_64_muen)  := hw_x86_64_muen x86_64 muen
+SPECS(hw_riscv)        := hw_riscv riscv
+SPECS(foc_odroid_x2)   := foc_odroid_x2 odroid_x2
+
+ifneq (${SPECS(${PLATFORM})},)
+message: $(BUILD_DIR)/etc/specs.conf
+$(BUILD_DIR)/etc/specs.conf:
+	@echo "SPECS += ${SPECS(${PLATFORM})}" > $@
 endif
 
-#
-# Add x86 drivers repositories to x86 build directories
-#
-ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86 hw_x86_64 hw_x86_64_muen sel4_x86_32,$(PLATFORM)),)
-$(BUILD_DIR)/etc/build.conf::
-	@cat $(BUILD_CONF).drivers_x86 >> $@
-endif
-
-#
-# Add ARM drivers repositories to ARM build directories
-#
-ifeq ($(filter-out foc_panda foc_arndale hw_panda hw_arndale hw_odroid_xu foc_imx53 foc_rpi foc_odroid_x2,$(PLATFORM)),)
-$(BUILD_DIR)/etc/build.conf::
-	@cat $(BUILD_CONF).drivers_arm >> $@
-endif
-
-#
-# Generic platform dependencies
-#
-$(PLATFORM):: $(BUILD_DIR)/etc
-$(PLATFORM):: $(BUILD_DIR)/etc/build.conf
-$(PLATFORM):: $(BUILD_DIR)/Makefile
-
-#
-# Platform-specific dependencies
-#
-foc_x86_32::
-	@echo "SPECS  = genode foc_x86_32" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += acpi"             >> $(BUILD_DIR)/etc/specs.conf
-
-foc_x86_64::
-	@echo "SPECS = genode foc_x86_64" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += acpi"             >> $(BUILD_DIR)/etc/specs.conf
-
-nova_x86_32::
-	@echo "SPECS  = genode nova_x86_32" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += acpi"              >> $(BUILD_DIR)/etc/specs.conf
-
-nova_x86_64::
-	@echo "SPECS = genode nova_x86_64" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += acpi"             >> $(BUILD_DIR)/etc/specs.conf
-
-sel4_x86_32::
-	@echo "SPECS  = genode sel4_x86_32" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += acpi"              >> $(BUILD_DIR)/etc/specs.conf
-
-foc_pbxa9::
-	@echo "SPECS = genode foc_pbxa9" > $(BUILD_DIR)/etc/specs.conf
-
-foc_panda::
-	@echo "SPECS = genode foc_panda" > $(BUILD_DIR)/etc/specs.conf
-
-foc_imx53::
-	@echo "SPECS = genode foc_imx53" > $(BUILD_DIR)/etc/specs.conf
-
-foc_arndale::
-	@echo "SPECS = genode foc_arndale" > $(BUILD_DIR)/etc/specs.conf
-
-foc_rpi::
-	@echo "SPECS = genode foc_rpi" > $(BUILD_DIR)/etc/specs.conf
-
-foc_odroid_x2::
-	@echo "SPECS = genode foc_odroid_x2" > $(BUILD_DIR)/etc/specs.conf
-
-#
-# On all other platforms, the performance counter is assumed to be active by
-# default. On HW, its activation is done by an optional core lib. To be
-# conform to the other platforms, opt it in by default and, e.g. for security
-# reasons, allow users to opt it out.
-#
-hw_pbxa9::
-	@echo "SPECS = genode hw_pbxa9" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_panda::
-	@echo "SPECS = genode hw_panda" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_imx53_qsb::
-	@echo "SPECS = genode hw_imx53_qsb" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_imx53_qsb_tz::
-	@echo "SPECS = genode hw_imx53_qsb_tz" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_usb_armory::
-	@echo "SPECS = genode hw_usb_armory" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_wand_quad::
-	@echo "SPECS = genode hw_wand_quad" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_arndale::
-	@echo "SPECS = genode hw_arndale" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_rpi::
-	@echo "SPECS = genode hw_rpi" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_zynq::
-	@echo "SPECS = genode hw_zynq" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-	@echo "## By default, hw_zynq is executed on Qemu" >> $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += zynq_qemu" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_odroid_xu::
-	@echo "SPECS = genode hw_odroid_xu" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += perf_counter" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_x86_64::
-	@echo "SPECS = genode hw_x86_64" > $(BUILD_DIR)/etc/specs.conf
-	@echo "SPECS += acpi" >> $(BUILD_DIR)/etc/specs.conf
-
-hw_x86_64_muen::
-	@echo "SPECS = genode hw_x86_64_muen" > $(BUILD_DIR)/etc/specs.conf
-
-hw_riscv::
-	@echo "SPECS = genode hw_riscv" > $(BUILD_DIR)/etc/specs.conf
-
-$(PLATFORM)::
+$(PLATFORM): message
+message:
 	@echo "Successfully created build directory at $(BUILD_DIR)."
 	@echo "Please adjust $(BUILD_DIR)/etc/build.conf according to your needs."
 

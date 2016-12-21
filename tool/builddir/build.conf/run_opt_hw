@@ -1,0 +1,3 @@
+# local varible for run-tool arguments that depend on the used kernel
+KERNEL_RUN_OPT(hw) := $(QEMU_RUN_OPT)
+

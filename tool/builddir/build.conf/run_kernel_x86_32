@@ -1,0 +1,3 @@
+# kernel to use (nova, linux, sel4, foc, okl4, fiasco, or pistachio)
+#KERNEL ?= nova
+

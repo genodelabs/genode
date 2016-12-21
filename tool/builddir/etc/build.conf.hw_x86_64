@@ -1,9 +1,0 @@
-REPOSITORIES += $(GENODE_DIR)/repos/base-hw
-
-##
-## Kernel-specific run tool configuration
-##
-
-RUN_OPT = --include boot_dir/hw \
-          --include power_on/qemu --include log/qemu --include image/iso
-

@@ -1,8 +1,0 @@
-REPOSITORIES  = $(GENODE_DIR)/repos/base-okl4
-
-##
-## Kernel-specific run tool configuration
-##
-
-RUN_OPT = --include boot_dir/okl4 \
-          --include power_on/qemu --include log/qemu --include image/iso

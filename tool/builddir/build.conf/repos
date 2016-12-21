@@ -1,5 +1,23 @@
 
 ##
+## Kernel-specific repository
+##
+
+ifdef KERNEL
+REPOSITORIES += $(GENODE_DIR)/repos/base-$(KERNEL)
+endif
+
+
+##
+## Repositories needed for the default demo scenario
+##
+
+REPOSITORIES += $(GENODE_DIR)/repos/base
+REPOSITORIES += $(GENODE_DIR)/repos/os
+REPOSITORIES += $(GENODE_DIR)/repos/demo
+
+
+##
 ## Optional repositories
 ##
 
@@ -36,9 +54,11 @@
 #REPOSITORIES += $(GENODE_DIR)/repos/gems
 
 #
-# Genode world repository
+# Collection of community-maintained components
 #
-# Collection of community-maintained components available at
-# https://github.com/genodelabs/genode-world.git
+# Please follow the instructions provided at:
+#
+#   https://github.com/genodelabs/genode-world
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/world
+

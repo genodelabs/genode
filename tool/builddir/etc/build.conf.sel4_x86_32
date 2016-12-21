@@ -1,7 +1,0 @@
-REPOSITORIES  = $(GENODE_DIR)/repos/base-sel4
-
-##
-## Kernel-specific run tool configuration
-##
-RUN_OPT = --include boot_dir/sel4 \
-          --include power_on/qemu --include log/qemu --include image/iso

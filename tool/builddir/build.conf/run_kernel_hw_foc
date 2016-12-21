@@ -1,0 +1,3 @@
+# kernel to use (hw or foc)
+KERNEL ?= hw
+

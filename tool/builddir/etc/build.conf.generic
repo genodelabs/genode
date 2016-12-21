@@ -1,8 +1,0 @@
-
-##
-## Repositories needed for the default demo scenario
-##
-
-REPOSITORIES += $(GENODE_DIR)/repos/base
-REPOSITORIES += $(GENODE_DIR)/repos/os
-REPOSITORIES += $(GENODE_DIR)/repos/demo

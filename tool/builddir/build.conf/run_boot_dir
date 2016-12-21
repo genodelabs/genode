@@ -1,0 +1,4 @@
+ifdef KERNEL
+RUN_OPT += ${KERNEL_RUN_OPT(${KERNEL})} --include boot_dir/$(KERNEL)
+endif
+
