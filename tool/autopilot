@@ -46,11 +46,13 @@ proc help { } {
 	set help_text {
 		Automatically execute test cases on different platforms
 
-		  usage: autopilot -p <platform> ... [-r <run-script> ...]
-		                  [-d <test-dir>] [-j <make-jobs>]
-		                  [--help] [--cleanup] [--force] [--keep]
-		                  [--stdout] [--skip-clean-rules]
-		                  [--enable-ccache]
+		  usage: autopilot [-p <platform> ...]
+		                   [-k <kernel> ...]
+		                   [-r <run-script> ...]
+		                   [-d <test-dir>] [-j <make-jobs>]
+		                   [--help] [--cleanup] [--force] [--keep]
+		                   [--stdout] [--skip-clean-rules]
+		                   [--enable-ccache]
 
 		  --force             replace test directory if it already exists
 		  --keep              keep test directroy if it already exists
@@ -120,38 +122,38 @@ proc build_dir { platform } {
 ##
 # Return name of log file for test of 'run_script' on 'platform'
 #
-proc log_file { platform run_script } {
+proc log_file { platform kernel run_script } {
 	global test_dir
-	return [file join $test_dir $platform.$run_script.log]
+	return [file join $test_dir $platform.$kernel.$run_script.log]
 }
 
 
 ##
 # Return file descriptor for writing the log output of test case
 #
-proc log_fd { platform run_script } {
+proc log_fd { platform kernel run_script } {
 
 	# if '--stdout' was specified, don't write log output to files
 	if {[get_cmd_switch --stdout]} { return stdout }
 
 	# create file descriptor of log file on demand
 	global _log_fds
-	if {![info exists _log_fds($platform,$run_script)]} {
-		set new_fd [open [log_file $platform $run_script] "WRONLY CREAT TRUNC"]
-		set _log_fds($platform,$run_script) $new_fd
+	if {![info exists _log_fds($platform,$kernel,$run_script)]} {
+		set new_fd [open [log_file $platform $kernel $run_script] "WRONLY CREAT TRUNC"]
+		set _log_fds($platform,$kernel,$run_script) $new_fd
 	}
-	return $_log_fds($platform,$run_script)
+	return $_log_fds($platform,$kernel,$run_script)
 }
 
 
 ##
 # Close file descriptor used for log output of test case
 #
-proc close_log_fd { platform run_script } {
+proc close_log_fd { platform kernel run_script } {
 	global _log_fds
-	if {[info exists _log_fds($platform,$run_script)]} {
-		close $_log_fds($platform,$run_script)
-		unset _log_fds($platform,$run_script)
+	if {[info exists _log_fds($platform,$kernel,$run_script)]} {
+		close $_log_fds($platform,$kernel,$run_script)
+		unset _log_fds($platform,$kernel,$run_script)
 	}
 }
 
@@ -161,23 +163,24 @@ proc close_log_fd { platform run_script } {
 #
 # \return true if run script succeeded
 #
-proc execute_run_script { platform run_script } {
+proc execute_run_script { platform kernel run_script } {
 
 	set return_value true
-	set fd [log_fd $platform $run_script]
+	set fd [log_fd $platform $kernel $run_script]
 
 	if {[catch {
 		if {[get_cmd_switch --time-stamp]} {
-			exec make -C [build_dir $platform] [file join run $run_script] \
+			exec make -C [build_dir $platform] [file join run $run_script] KERNEL=$kernel \
 			  |& ts "\[%F %H:%M:%S\]" >&@ $fd
 		} else {
-			exec make -C [build_dir $platform] [file join run $run_script] >&@ $fd
+			exec make -C [build_dir $platform] [file join run $run_script] KERNEL=$kernel \
+			  >&@ $fd
 		}
 	}]} {
 		set return_value false
 	}
 
-	close_log_fd $platform $run_script
+	close_log_fd $platform $kernel $run_script
 	return $return_value
 }
 
@@ -187,17 +190,25 @@ proc execute_run_script { platform run_script } {
 #
 # \return list of unexpected files remaining after 'make cleanall'
 #
-proc clean_build_dir { platform } {
-	set fd [log_fd $platform cleanall]
+proc clean_build_dir { platform kernel } {
+
+	set fd [log_fd $platform $kernel cleanall]
 
 	# make returns the exit code 2 on error
 	if {[catch {
-		exec make -C [build_dir $platform] cleanall >@ $fd
+		exec make -C [build_dir $platform] cleanall KERNEL=$kernel >@ $fd
 	}] == 2} {
-		close_log_fd $platform cleanall
+		close_log_fd $platform $kernel cleanall
 		return [list "clean rule terminated abnormally"]
 	}
-	close_log_fd $platform cleanall
+	close_log_fd $platform $kernel cleanall
+}
+
+
+##
+# Obtain information about residual files in the build directory
+#
+proc build_dir_remainings { platform } {
 
 	set remainings [split [exec sh -c "cd [build_dir $platform]; find . -mindepth 1"] "\n"]
 
@@ -212,14 +223,14 @@ proc clean_build_dir { platform } {
 }
 
 
-proc build_failed_because_of_missing_run_script { platform run_script } {
+proc build_failed_because_of_missing_run_script { platform kernel run_script } {
 
 	# we cannot inspect any logfile when --stdout was used
 	if {[get_cmd_switch --stdout]} { return 0 }
 
 	# grep log output for the respective error message of the build system
 	if {[catch {
-		exec grep {^\(\[....-..-.. ..:..:..] \)*Error: No run script for} [log_file $platform $run_script]
+		exec grep {^\(\[....-..-.. ..:..:..] \)*Error: No run script for} [log_file $platform $kernel $run_script]
 	}]} { return 0 }
 	return 1
 }
@@ -231,6 +242,9 @@ proc build_failed_because_of_missing_run_script { platform run_script } {
 
 set platforms { }
 foreach_cmdline_arg p { global platforms; lappend platforms $p }
+
+set kernels { }
+foreach_cmdline_arg k { global kernels; lappend kernels $k }
 
 set run_scripts { }
 foreach_cmdline_arg r { global run_scripts; lappend run_scripts $r }
@@ -255,6 +269,7 @@ if {![llength $platforms]} {
 puts "genode dir  : [genode_dir]"
 puts "platforms   : $platforms"
 puts "run scripts : $run_scripts"
+puts "kernels     : $kernels"
 puts "test dir    : $test_dir"
 puts "make -j     : $make_jobs"
 
@@ -307,9 +322,8 @@ foreach platform $platforms {
 	}
 
 	if {[info exists ::env(RUN_OPT_AUTOPILOT)]} {
-		set kernel [exec echo $platform |& sed {s/_.*//}]
-
-		exec echo "RUN_OPT=--include boot_dir/$kernel $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
+		exec echo "RUN_OPT  =  --include boot_dir/\$(KERNEL)" >> $build_conf
+		exec echo "RUN_OPT += $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
 	}
 
 	exec echo "RUN_OPT += --autopilot" >> $build_conf
@@ -324,8 +338,8 @@ foreach platform $platforms {
 ##
 # Print label identifying the specified test case to stderr
 #
-proc print_step_label { platform step } {
-	puts -nonewline stderr "[format {%-20s} $platform:] [format {%-22s} $step] "
+proc print_step_label { platform kernel step } {
+	puts -nonewline stderr "[format {%-20s} "$platform $kernel:"] [format {%-22s} $step] "
 }
 
 
@@ -351,21 +365,24 @@ foreach platform $platforms {
 	puts stderr "\n--- platform $platform ---"
 
 	foreach run_script $run_scripts {
-		print_step_label $platform $run_script
 
-		set time_start [clock seconds]
-		set result [execute_run_script $platform $run_script]
-		set elapsed [elapsed_time $time_start [clock seconds]]
+		foreach kernel $kernels {
+			print_step_label $platform $kernel $run_script
 
-		if {$result} {
-			puts stderr "-> OK ($elapsed)"
-		} else {
+			set time_start [clock seconds]
+			set result [execute_run_script $platform $kernel $run_script]
+			set elapsed [elapsed_time $time_start [clock seconds]]
 
-			if {[build_failed_because_of_missing_run_script $platform $run_script]} {
-				puts stderr "-> UNAVAILABLE"
+			if {$result} {
+				puts stderr "-> OK ($elapsed)"
 			} else {
-				puts stderr "-> ERROR ($elapsed)"
-				set exit_value -1
+
+				if {[build_failed_because_of_missing_run_script $platform $kernel $run_script]} {
+					puts stderr "-> UNAVAILABLE"
+				} else {
+					puts stderr "-> ERROR ($elapsed)"
+					set exit_value -1
+				}
 			}
 		}
 	}
@@ -373,8 +390,13 @@ foreach platform $platforms {
 	if {[get_cmd_switch --skip-clean-rules]} continue
 
 	# execute and validate cleanall rule
-	print_step_label $platform cleanall
-	set pollution [clean_build_dir $platform]
+	foreach kernel $kernels {
+		print_step_label $platform $kernel cleanall
+		clean_build_dir $platform $kernel
+		puts stderr "-> DONE"
+	}
+
+	set pollution [build_dir_remainings $platform]
 	if {[llength $pollution] == 0} {
 		puts stderr "-> OK"
 	} else {
@@ -386,6 +408,7 @@ foreach platform $platforms {
 
 proc concluding_message { } {
 	global exit_value
+
 	if {$exit_value == 0} { return "everything ok" }
 	return "errors occurred"
 }
