@@ -40,10 +40,7 @@ Domain_avl_member::Domain_avl_member(Domain_name const &name,
  *****************/
 
 Domain_base::Domain_base(Xml_node const node)
-:
-	_name(Cstring(node.attribute("name").value_base(),
-	              node.attribute("name").value_size()))
-{ }
+: _name(node.attribute_value("name", Domain_name())) { }
 
 
 /************

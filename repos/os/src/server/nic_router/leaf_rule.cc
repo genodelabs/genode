@@ -24,8 +24,7 @@ Domain &Leaf_rule::_find_domain(Domain_tree    &domains,
 {
 	try {
 		return domains.find_by_name(
-			Cstring(node.attribute("domain").value_base(),
-			        node.attribute("domain").value_size()));
+			node.attribute_value("domain", Domain_name()));
 	}
 	catch (Domain_tree::No_match) { throw Invalid(); }
 }

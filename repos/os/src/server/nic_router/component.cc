@@ -110,8 +110,7 @@ Session_component *Net::Root::_create_session(char const *args)
 	try {
 		Session_label const label = label_from_args(args);
 		Session_policy policy(label, _config.node());
-		Domain_name domain_name(Cstring(policy.attribute("domain").value_base(),
-		                                policy.attribute("domain").value_size()));
+		Domain_name domain_name(policy.attribute_value("domain", Domain_name()));
 
 		Domain &domain = _config.domains().find_by_name(domain_name);
 
