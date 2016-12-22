@@ -241,62 +241,58 @@ namespace Genode {
 
 Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address &result)
 {
-	using namespace Net;
+	Net::Ipv4_address buf;
+	size_t            number_idx = 0;
+	size_t            read_len   = 0;
+	while (1) {
 
-	struct Scanner_policy_number
-	{
-		static bool identifier_char(char c, unsigned  i ) {
-			return Genode::is_digit(c) && c !='.'; }
-	};
+		/* read the current number, fail if there's no number */
+		size_t number_len = ascii_to_unsigned(s, buf.addr[number_idx], 10);
+		if (!number_len) {
+			return 0; }
 
-	typedef ::Genode::Token<Scanner_policy_number> Token;
+		/* update read length and number index */
+		read_len += number_len;
+		number_idx++;
 
-	Ipv4_address  ip_addr;
-	Token         t(s);
-	char          tmpstr[4];
-	int           cnt = 0;
-	unsigned char ipb[4] = {0};
-	size_t        size = 0;
-
-	while(t) {
-		if (t.type() == Token::WHITESPACE || t[0] == '.') {
-			t = t.next();
-			size++;
-			continue;
+		/* if we have all numbers, fill result and return read length */
+		if (number_idx == sizeof(buf.addr) / sizeof(buf.addr[0])) {
+			result = buf;
+			return read_len;
 		}
-		t.string(tmpstr, sizeof(tmpstr));
-
-		unsigned long tmpc = 0;
-		size += Genode::ascii_to(tmpstr, tmpc);
-		ipb[cnt] = tmpc & 0xFF;
-		t = t.next();
-
-		if (cnt == 4)
-			break;
-		cnt++;
+		/* as it was not the last number, check for the following dot */
+		s += number_len;
+		if (*s != '.') {
+			return 0; }
+		read_len++;
+		s++;
 	}
-
-	if (cnt == 4) {
-		result.addr[0] = ipb[0];
-		result.addr[1] = ipb[1];
-		result.addr[2] = ipb[2];
-		result.addr[3] = ipb[3];
-		return size;
-	}
-
-	return 0;
 }
 
 
 Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address_prefix &result)
 {
-	size_t size = ascii_to(s, result.address);
-	if (!size || s[size] != '/') { return 0; }
-	char const * prefix = &s[size + 1];
-	size_t const prefix_size = ascii_to_unsigned(prefix, result.prefix, 10);
-	if (!prefix_size) { return 0; }
-	size += prefix_size + 1;
-	return size;
+	/* read the leading IPv4 address, fail if there's no address */
+	Net::Ipv4_address_prefix buf;
+	size_t read_len = ascii_to(s, buf.address);
+	if (!read_len) {
+		return 0; }
+
+	/* check for the following slash */
+	s += read_len;
+	if (*s != '/') {
+		return 0; }
+	read_len++;
+	s++;
+
+	/* read the prefix, fail if there's no prefix */
+	size_t prefix_len = ascii_to_unsigned(s, buf.prefix, 10);
+	if (!prefix_len) {
+		return 0; }
+
+	/* fill result and return read length */
+	result = buf;
+	return read_len + prefix_len;
 }
 
 #endif /* _IPV4_H_ */
