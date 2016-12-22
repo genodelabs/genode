@@ -105,3 +105,4 @@ nic_dump
 slab
 ada
 fs_report
+log_core
