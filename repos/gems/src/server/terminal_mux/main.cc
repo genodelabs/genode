@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/component.h>
+#include <libc/component.h>
 #include <base/heap.h>
 #include <base/session_label.h>
 #include <util/arg_string.h>
@@ -721,4 +721,4 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Main inst(env); }
+void Libc::Component::construct(Genode::Env &env) { static Main inst(env); }

@@ -79,29 +79,12 @@ namespace Genode {
 	extern void call_global_static_constructors();
 
 	/*
-	 * Hook for intercepting the call of the 'Component::construct' method. By
-	 * hooking this function pointer in a library constructor, the libc is able
-	 * to create a task context for the component code. This context is
-	 * scheduled by the libc in a cooperative fashion, i.e. when the
-	 * component's entrypoint is activated.
-	 */
-
-	extern void (*call_component_construct)(Genode::Env &) __attribute__((weak));
-
-	/*
 	 * This function is normally provided by the cxx library, which is not
 	 * used for lx_hybrid programs. For lx_hybrid programs, the exception
 	 * handling is initialized by the host system's regular startup code.
 	 */
 	void init_exception_handling(Env &) { }
 }
-
-static void lx_hybrid_component_construct(Genode::Env &env)
-{
-	Component::construct(env);
-}
-
-void (*Genode::call_component_construct)(Genode::Env &) = &lx_hybrid_component_construct;
 
 /*
  * Static constructors are handled by the Linux startup code - so implement

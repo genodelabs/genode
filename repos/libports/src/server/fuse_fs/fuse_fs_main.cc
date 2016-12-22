@@ -17,10 +17,10 @@
 #include <file_system_session/rpc_object.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
-#include <os/server.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <util/xml_node.h>
+#include <libc/component.h>
 
 /* libc includes */
 #include <errno.h>
@@ -41,13 +41,13 @@ class File_system::Session_component : public Session_rpc_object
 {
 	private:
 
-		Server::Entrypoint   &_ep;
+		Genode::Entrypoint   &_ep;
 		Allocator            &_md_alloc;
 		Directory            &_root;
 		Node_handle_registry  _handle_registry;
 		bool                  _writeable;
 
-		Signal_rpc_member<Session_component> _process_packet_dispatcher;
+		Signal_handler<Session_component> _process_packet_handler;
 
 
 		/******************************
@@ -115,10 +115,10 @@ class File_system::Session_component : public Session_rpc_object
 		}
 
 		/**
-		 * Called by signal dispatcher, executed in the context of the main
+		 * Called by signal handler, executed in the context of the main
 		 * thread (not serialized with the RPC functions)
 		 */
-		void _process_packets(unsigned)
+		void _process_packets()
 		{
 			while (tx_sink()->packet_avail()) {
 
@@ -158,7 +158,7 @@ class File_system::Session_component : public Session_rpc_object
 		 * Constructor
 		 */
 		Session_component(size_t              tx_buf_size,
-		                  Server::Entrypoint &ep,
+		                  Genode::Entrypoint &ep,
 		                  char const         *root_dir,
 		                  bool                writeable,
 		                  Allocator          &md_alloc)
@@ -168,10 +168,10 @@ class File_system::Session_component : public Session_rpc_object
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
 			_writeable(writeable),
-			_process_packet_dispatcher(_ep, *this, &Session_component::_process_packets)
+			_process_packet_handler(_ep, *this, &Session_component::_process_packets)
 		{
-			_tx.sigh_packet_avail(_process_packet_dispatcher);
-			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+			_tx.sigh_packet_avail(_process_packet_handler);
+			_tx.sigh_ready_to_ack(_process_packet_handler);
 		}
 
 		/**
@@ -408,7 +408,7 @@ class File_system::Root : public Root_component<Session_component>
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Entrypoint &_ep;
 
 	protected:
 
@@ -501,7 +501,7 @@ class File_system::Root : public Root_component<Session_component>
 		 *                    data-flow signals of packet streams
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Server::Entrypoint &ep, Allocator &md_alloc)
+		Root(Genode::Entrypoint &ep, Allocator &md_alloc)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
 			_ep(ep)
@@ -511,7 +511,7 @@ class File_system::Root : public Root_component<Session_component>
 
 struct File_system::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Entrypoint &ep;
 
 	/*
 	 * Initialize root interface
@@ -520,7 +520,7 @@ struct File_system::Main
 
 	Root fs_root = { ep, sliced_heap };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Entrypoint &ep) : ep(ep)
 	{
 		if (!Fuse::init_fs()) {
 			Genode::error("FUSE fs initialization failed");
@@ -539,10 +539,12 @@ struct File_system::Main
 };
 
 
-/**********************
- ** Server framework **
- **********************/
+/***************
+ ** Component **
+ ***************/
 
-char const *   Server::name()                            { return "fuse_fs_ep"; }
-Genode::size_t Server::stack_size()                      { return 16*1024*sizeof(long); }
-void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }
+void Libc::Component::construct(Genode::Env &env)
+{
+	static File_system::Main inst(env.ep());
+}
+

@@ -38,8 +38,6 @@ ENTRY_POINT = _start
 LD_OPT     += -T$(DIR)/linker.ld
 endif
 
-include $(BASE_DIR)/lib/import/import-ld.mk
-
 vpath %.cc $(DIR)
 
 # vi:ft=make

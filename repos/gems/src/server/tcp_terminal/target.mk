@@ -1,3 +1,3 @@
 TARGET = tcp_terminal
 SRC_CC = main.cc
-LIBS   = libc libc_lwip_nic_dhcp libc_pipe
+LIBS   = posix libc_lwip_nic_dhcp libc_pipe

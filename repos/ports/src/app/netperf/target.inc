@@ -1,7 +1,7 @@
 
 NETPERF_DIR := $(call select_from_ports,netperf)/src/app/netperf
 
-LIBS   += base libc libm libc-resolv libc-net libc-nameser libc-isc
+LIBS   += posix libc-resolv libc-net libc-nameser libc-isc
 # plug-in to libc
 LIBS   += config_args
 

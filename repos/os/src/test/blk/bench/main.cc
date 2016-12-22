@@ -2,6 +2,7 @@
 #include <block_session/connection.h>
 #include <os/server.h>
 #include <timer_session/connection.h>
+#include <libc/component.h>
 
 #include <stdio.h>
 
@@ -153,13 +154,7 @@ struct Test::Main
 };
 
 
-namespace Server {
-
-	char const *name()          { return "block_bench_ep"; };
-	Genode::size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Test::Main server(ep);
-	}
+void Libc::Component::construct(Genode::Env &env)
+{
+	static Test::Main server(env.ep());
 }

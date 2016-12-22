@@ -1,4 +1,4 @@
 TARGET   = test-python
-LIBS     = python libc libm
+LIBS     = python posix
 REQUIRES = x86
 SRC_CC   = main.cc

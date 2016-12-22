@@ -13,19 +13,8 @@
 
 #ifdef QT_MAIN_STACK_SIZE
 
-#include <base/thread.h>
+#include <libc/component.h>
 
-using namespace Genode;
-
-extern int qt_main(int argc, char *argv[]);
-
-#define qt_main main
-
-int main(int argc, char *argv[])
-{
-	Genode::Thread::myself()->stack_size(QT_MAIN_STACK_SIZE);
-	
-	return qt_main(argc, argv);
-}
+Genode::size_t Libc::Component::stack_size() { return QT_MAIN_STACK_SIZE; }
 
 #endif /* QT_MAIN_STACK_SIZE */

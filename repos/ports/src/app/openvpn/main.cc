@@ -13,12 +13,12 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <os/server.h>
 #include <os/config.h>
 #include <os/static_root.h>
 #include <cap_session/connection.h>
 #include <nic/component.h>
 #include <root/component.h>
+#include <libc/component.h>
 
 /* libc includes */
 #include <unistd.h>
@@ -135,7 +135,7 @@ class Openvpn_component : public Tuntap_device,
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Ram_session &ram_session,
-		                  Server::Entrypoint  &ep)
+		                  Genode::Entrypoint  &ep)
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
 		{
 			char buf[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
@@ -203,7 +203,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Genode::Entrypoint &_ep;
 		Openvpn_thread     *_thread = nullptr;
 
 	protected:
@@ -263,7 +263,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 
 	public:
 
-		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
+		Root(Genode::Entrypoint &ep, Genode::Allocator &md_alloc)
 		: Genode::Root_component<Openvpn_component, Genode::Single_client>(&ep.rpc_ep(), &md_alloc),
 			_ep(ep)
 		{ }
@@ -272,22 +272,21 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Genode::Entrypoint &ep;
 	::Root              nic_root { ep, *Genode::env()->heap() };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Entrypoint &ep) : ep(ep)
 	{
 		Genode::env()->parent()->announce(ep.manage(nic_root));
 	}
 };
 
 
-/**********************
- ** Server framework **
- **********************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-	char const *name()             { return "openvpn_ep"; }
-	Genode::size_t stack_size()    { return 16*1024*sizeof(addr_t); }
-	void construct(Entrypoint &ep) { static Main server(ep); }
+void Libc::Component::construct(Genode::Env &env)
+{
+	static Main server(env.ep());
 }

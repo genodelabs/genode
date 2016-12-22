@@ -130,7 +130,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so
+	ld.lib.so libc.lib.so libm.lib.so
 }
 
 append boot_modules test-libc_$filesystem

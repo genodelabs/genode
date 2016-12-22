@@ -100,7 +100,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so
+	ld.lib.so libc.lib.so libm.lib.so
 	test-libc_block
 }
 

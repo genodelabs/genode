@@ -3,7 +3,7 @@ include $(REP_DIR)/lib/import/import-av.inc
 TARGET = avplay
 SRC_C  = avplay.c cmdutils.c libc_dummies.c
 LIBS  += avfilter avformat avcodec avutil avresample swscale
-LIBS  += sdl libc libm config_args
+LIBS  += sdl posix config_args
 
 CC_WARN += -Wno-parentheses -Wno-switch -Wno-uninitialized \
            -Wno-format-zero-length -Wno-pointer-sign

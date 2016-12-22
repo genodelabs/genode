@@ -32,7 +32,7 @@ install_config {
 
 build_boot_image {
 	core init test-pthread
-	ld.lib.so libc.lib.so pthread.lib.so
+	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
 }
 
 append qemu_args " -nographic -m 128 "

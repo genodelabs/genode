@@ -120,7 +120,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so lwip.lib.so test-lwip_httpsrv
+	ld.lib.so libc.lib.so libm.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 # platform-specific modules

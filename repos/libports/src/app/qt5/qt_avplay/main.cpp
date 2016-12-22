@@ -18,8 +18,7 @@
 #include "main_window.h"
 
 /* Genode includes */
-#include <base/component.h>
-#include <base/printf.h>
+#include <libc/component.h>
 
 
 static inline void load_stylesheet()
@@ -38,7 +37,7 @@ static inline void load_stylesheet()
 extern int genode_argc;
 extern char **genode_argv;
 
-void Component::construct(Genode::Env &env)
+void Libc::Component::construct(Genode::Env &env)
 {
 	QApplication app(genode_argc, genode_argv);
 

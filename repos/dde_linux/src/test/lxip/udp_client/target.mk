@@ -1,3 +1,3 @@
 TARGET   = test-lxip_udp_client
-LIBS     = libc libc_lxip config
+LIBS     = posix libc_lxip config
 SRC_CC   = main.cc

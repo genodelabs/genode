@@ -36,3 +36,5 @@ $(addprefix $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)/, $(SAMEGAME3_RESOURCES)): $(
 
 $(addprefix $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)/shared/pics/, $(SAMEGAME_RESOURCES)): $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)/shared/pics
 	$(VERBOSE)ln -sf $(QT5_CONTRIB_DIR)/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/$(notdir $@) $@
+
+LIBS += posix

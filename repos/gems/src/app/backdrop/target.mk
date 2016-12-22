@@ -1,3 +1,3 @@
 TARGET = backdrop
 SRC_CC = main.cc
-LIBS   = base config libc libpng zlib blit file
+LIBS   = base config posix libpng zlib blit file

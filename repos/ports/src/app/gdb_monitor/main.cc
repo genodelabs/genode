@@ -11,7 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/component.h>
+#include <libc/component.h>
 
 /*
  * Suppress messages of libc dummy functions
@@ -33,7 +33,7 @@ extern "C" int gdbserver_main(int argc, const char *argv[]);
 
 extern Genode::Env *genode_env;
 
-void Component::construct(Genode::Env &env)
+void Libc::Component::construct(Genode::Env &env)
 {
 	genode_env = &env;
 

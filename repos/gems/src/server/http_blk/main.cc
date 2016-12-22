@@ -16,6 +16,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 #include <block/component.h>
+#include <libc/component.h>
 
 /* local includes */
 #include "http.h"
@@ -106,4 +107,4 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Main m(env); }
+void Libc::Component::construct(Genode::Env &env) { static Main m(env); }

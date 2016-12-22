@@ -8,4 +8,4 @@ include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_final.inc
 
 main_window.o: main_window.moc
 
-LIBS += config qoost
+LIBS += config qoost posix

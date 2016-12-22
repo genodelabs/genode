@@ -30,7 +30,7 @@
 TARGET ?= $(lastword $(subst /, ,$(PRG_DIR)))
 PKG    ?= $(TARGET)
 
-LIBS += libc libm
+LIBS += posix
 
 PWD = $(shell pwd)
 
@@ -107,18 +107,9 @@ CXXFLAGS += $(COMMON_CFLAGS_CXXFLAGS)
 # Unfortunately, the use of '--start-group' and '--end-group' does not suffice
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
-# Furthermore, 'libtool' reorders library names on the command line in a way that
-# shared libraries appear before static libraries. This has the unfortunate effect
-# that the program's entry symbol 'Genode::component_entry_point' in the static
-# library 'component_entry_point.lib.a' is not found anymore. Passing the static
-# library names as linker arguments (-Wl,...) works around this problem, because
-# 'libtool' keeps command line arguments before the shared library names.
-#
-
 LDLIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 LDLIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
-comma := ,
-LDLIBS += $(addprefix -Wl$(comma),$(LDLIBS_A)) $(LDLIBS_SO) $(LDLIBS_A)
+LDLIBS   += $(LDLIBS_A) $(LDLIBS_SO) $(LDLIBS_A)
 
 #
 # Re-configure the Makefile if the Genode build environment changes

@@ -6,7 +6,7 @@ SRC_C    = $(notdir $(EXFAT_DIR)/fuse/main.c)
 SRC_CC   = fuse_fs_main.cc \
            init.cc
 
-LIBS     = base config server libc libfuse libexfat
+LIBS     = config libc libfuse libexfat
 INC_DIR += $(PRG_DIR)/..
 
 CC_OPT += -Wno-unused-function

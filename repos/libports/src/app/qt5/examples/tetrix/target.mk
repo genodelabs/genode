@@ -17,3 +17,5 @@ include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_defaults.inc
 CC_CXX_OPT += -DQT_NO_SCRIPTTOOLS
 
 include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_final.inc
+
+LIBS += posix

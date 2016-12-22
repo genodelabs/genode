@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/component.h>
+#include <libc/component.h>
 #include <os/config.h>
 
 /* Virtualbox includes */
@@ -238,7 +238,7 @@ Genode::Env &genode_env()
 }
 
 
-void Component::construct(Genode::Env &env)
+void Libc::Component::construct(Genode::Env &env)
 {
 	/* make Genode environment accessible via the global 'genode_env()' */
 	genode_env_ptr = &env;

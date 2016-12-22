@@ -31,6 +31,7 @@
 #include <kill_broadcaster.h>
 #include <vfs/dir_file_system.h>
 #include <base/component.h>
+#include <libc/component.h>
 
 /* supported file systems */
 #include <random_file_system.h>
@@ -1254,3 +1255,9 @@ void Component::construct(Genode::Env &env)
 	log("--- exiting noux ---");
 	env.parent().exit(exit_value);
 }
+
+
+/**
+ * Support for the noux/net version
+ */
+void Libc::Component::construct(Genode::Env &env) { Component::construct(env); }

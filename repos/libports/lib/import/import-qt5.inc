@@ -105,7 +105,6 @@ include $(call select_from_repositories,lib/import/import-gallium.mk)
 
 # custom main() thread stack size support via main() wrapper
 ifeq ($(findstring -DQT_MAIN_STACK_SIZE, $(CC_CXX_OPT)), -DQT_MAIN_STACK_SIZE)
-CC_CXX_OPT += -Dmain=qt_main
 SRC_CC += qt_main.cc
 vpath qt_main.cc $(QT5_REP_DIR)/src/lib/qt5
 endif

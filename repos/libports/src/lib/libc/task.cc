@@ -19,6 +19,9 @@
 #include <base/rpc_client.h>
 #include <base/heap.h>
 
+/* libc includes */
+#include <libc/component.h>
+
 /* libc-internal includes */
 #include <internal/call_func.h>
 #include <base/internal/unmanaged_singleton.h>
@@ -41,12 +44,7 @@
 	} while (0)
 
 
-namespace Libc {
-	class Task;
-
-	void (*original_call_component_construct)(Genode::Env &);
-	void call_component_construct(Genode::Env &env);
-}
+namespace Libc { class Task; }
 
 
 struct Task_resume
@@ -55,9 +53,6 @@ struct Task_resume
 	GENODE_RPC_INTERFACE(Rpc_resume);
 };
 
-
-Genode::size_t Component::stack_size() {
-	return 32UL * 1024 * sizeof(Genode::addr_t); }
 
 /**
  * Libc task
@@ -165,7 +160,7 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 
 void Libc::Task::_app_entry(Task *task)
 {
-	original_call_component_construct(task->_env);
+	Libc::Component::construct(task->_env);
 
 	/* returned from task - switch stack to libc and return to dispatch loop */
 	_longjmp(task->_libc_task, 1);
@@ -190,31 +185,37 @@ namespace Libc {
 
 	void schedule_suspend(void (*suspended) ())
 	{
+		if (!task) {
+			error("libc task handling not initialized, needed for suspend");
+			return;
+		}
 		task->schedule_suspend(suspended);
 	}
 }
 
 
-/****************************
- ** Component-startup hook **
- ****************************/
+/***************************
+ ** Component entry point **
+ ***************************/
 
-/* XXX needs base-internal header? */
-namespace Genode { extern void (*call_component_construct)(Genode::Env &); }
+Genode::size_t Component::stack_size() { return Libc::Component::stack_size(); }
 
-void Libc::call_component_construct(Genode::Env &env)
+
+void Component::construct(Genode::Env &env)
 {
 	/* pass Genode::Env to libc subsystems that depend on it */
-	init_dl(env);
+	Libc::init_dl(env);
 
 	task = unmanaged_singleton<Libc::Task>(env);
 	task->run();
 }
 
 
-static void __attribute__((constructor)) libc_task_constructor(void)
-{
-	/* hook into component startup */
-	Libc::original_call_component_construct = Genode::call_component_construct;
-	Genode::call_component_construct        = &Libc::call_component_construct;
-}
+/**
+ * Default stack size for libc-using components
+ */
+Genode::size_t Libc::Component::stack_size() __attribute__((weak));
+Genode::size_t Libc::Component::stack_size() {
+	return 32UL * 1024 * sizeof(Genode::addr_t); }
+
+

@@ -11,4 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-int main() { }
+#include <libc/component.h>
+
+void Libc::Component::construct(Genode::Env &) { }

@@ -106,9 +106,7 @@ endif
 #
 ifeq ($(LIBS),)
 ifneq ($(LIB),platform)
-ifneq ($(LIB),component_entry_point)
 LIBS += platform
-endif
 endif
 endif
 

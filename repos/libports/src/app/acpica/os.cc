@@ -11,7 +11,7 @@
  */
 
 #include <base/allocator_avl.h>
-#include <base/component.h>
+#include <libc/component.h>
 #include <base/log.h>
 #include <base/signal.h>
 #include <base/heap.h>
@@ -303,4 +303,4 @@ ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 irq, ACPI_OSD_HANDLER handler,
 }
 
 
-void Component::construct(Genode::Env &env) { static Acpica::Main main(env); }
+void Libc::Component::construct(Genode::Env &env) { static Acpica::Main main(env); }

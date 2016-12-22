@@ -9,7 +9,7 @@ SRC_C  = $(filter-out $(FILTER_OUT), $(notdir $(wildcard $(FUSE_EXT2_DIR)/*.c)))
 SRC_CC   = fuse_fs_main.cc \
            init.cc
 
-LIBS     = base config server libc libfuse libext2fs
+LIBS     = config libc libfuse libext2fs
 
 CC_OPT += -DHAVE_CONFIG_H -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 

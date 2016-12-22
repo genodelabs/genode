@@ -15,7 +15,7 @@
 #include <rom_session/connection.h>
 #include <base/env.h>
 #include <base/heap.h>
-#include <base/component.h>
+#include <libc/component.h>
 #include <base/shared_object.h>
 
 using namespace Genode;
@@ -185,7 +185,7 @@ static void test_shared_object_api(Env &env, Allocator &alloc)
 /**
  * Main function of LDSO test
  */
-void Component::construct(Genode::Env &env)
+void Libc::Component::construct(Genode::Env &env)
 {
 	static Heap heap(env.ram(), env.rm());
 

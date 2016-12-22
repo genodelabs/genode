@@ -12,7 +12,7 @@
 #include <QApplication>
 
 /* Genode includes */
-#include <base/component.h>
+#include <libc/component.h>
 #include <base/env.h>
 
 extern int genode_argc;
@@ -56,7 +56,8 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	void close(Parent::Client::Id id) { return genode_env.close(id); }
 };
 
-void Component::construct(Genode::Env &env)
+
+void Libc::Component::construct(Genode::Env &env)
 {
 	static Qt_launchpad_namespace::Local_env local_env(env);
 

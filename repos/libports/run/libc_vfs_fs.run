@@ -65,7 +65,7 @@ install_config $config
 
 build_boot_image {
 	core init vfs
-	ld.lib.so libc.lib.so
+	ld.lib.so libc.lib.so libm.lib.so
 	test-libc_vfs
 }
 

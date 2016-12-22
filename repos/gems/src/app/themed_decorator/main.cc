@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/component.h>
+#include <libc/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
@@ -317,4 +317,4 @@ void Decorator::Main::_handle_pointer_update()
 }
 
 
-void Component::construct(Genode::Env &env) { static Decorator::Main main(env); }
+void Libc::Component::construct(Genode::Env &env) { static Decorator::Main main(env); }

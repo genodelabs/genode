@@ -159,7 +159,7 @@ $(LIB_RLIB):  $(OBJECTS)
 #
 ifdef SHARED_LIB
 ifneq ($(LIB_IS_DYNAMIC_LINKER),yes)
-override DEPS := $(filter-out $(BASE_LIBS:=.lib) component_entry_point.lib,$(DEPS))
+override DEPS := $(filter-out $(BASE_LIBS:=.lib),$(DEPS))
 endif
 endif
 

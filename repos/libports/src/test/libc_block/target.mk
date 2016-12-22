@@ -1,3 +1,3 @@
 TARGET = test-libc_block
-LIBS   = libc
+LIBS   = posix
 SRC_CC = main.cc

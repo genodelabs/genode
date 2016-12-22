@@ -15,3 +15,5 @@ test-plugin.tar: config.plugin
 
 clean:
 	$(VERBOSE)rm test-plugin.tar
+
+LIBS += posix

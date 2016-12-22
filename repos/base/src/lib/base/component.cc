@@ -152,6 +152,10 @@ namespace Genode {
 }
 
 
+Genode::size_t Component::stack_size() __attribute__((weak));
+Genode::size_t Component::stack_size() { return 64*1024; }
+
+
 /*
  * We need to execute the constructor of the main entrypoint from a
  * class called 'Startup' as 'Startup' is a friend of 'Entrypoint'.

@@ -31,8 +31,6 @@ namespace Genode {
 	extern bool inhibit_tracing;
 	void call_global_static_constructors();
 	void destroy_signal_thread();
-
-	extern void (*call_component_construct)(Genode::Env &);
 }
 
 
@@ -152,7 +150,7 @@ namespace {
 
 			Genode::call_global_static_constructors();
 
-			Genode::call_component_construct(env);
+			Component::construct(env);
 		}
 	};
 }

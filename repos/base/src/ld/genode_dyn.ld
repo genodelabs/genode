@@ -11,14 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-
 /*
- * Components don't need to startup with CRT0 as LDSO has done this
- * initialization during its own CRT0 already. The component always starts at
- * Genode::component_entry_point() as a trampoline to
- * call_component_construct().
+ * The entry point of dynamically linked components is unused. The dynamic
+ * linker determines the 'Component::construct' function via a symbol lookup.
  */
-ENTRY(_ZN6Genode21component_entry_pointERNS_3EnvE)
 
 PHDRS
 {
@@ -37,10 +33,21 @@ SECTIONS
   {
     _prog_img_beg = .;
 
-    /* put entry code at the start of the text segment / raw binary */
-    *(.text._ZN6Genode21component_entry_pointERNS_3EnvE)
+    /*
+     * The ELF entry point is unused for dynamically linked components. The
+     * dynamic linker determined the entry point by looking up the symbol of
+     * the 'Component::construct' function or - if it does not exist - the
+     * 'main' function (for legacy components).
+     *
+     * \deprecated  The support for legacy main functions will be removed.
+     *
+     * The 'KEEP' directive prevents text that is reachable from one of the
+     * possible entry points from being garbage collected.
+     */
+    KEEP(*(.text._ZN9Component9constructERN6Genode3EnvE .text.main))
 
-    *(.text .stub .text.* .gnu.linkonce.t.*)
+    *(.text
+      .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
   } : ro =0x0
