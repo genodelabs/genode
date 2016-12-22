@@ -197,7 +197,7 @@ class Linker::Elf_object : public Object, public Fifo<Elf_object>::Element
 
 		void update_dependency(Dependency const &dep) { _dyn.dep(dep); }
 
-		void relocate(Bind bind) override
+		void relocate(Bind bind) override SELF_RELOC
 		{
 			if (!_relocated)
 				_dyn.relocate(bind);

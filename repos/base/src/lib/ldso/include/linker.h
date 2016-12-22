@@ -20,6 +20,13 @@
 #include <file.h>
 #include <util.h>
 
+/*
+ * Mark functions that are used during the linkers self-relocation phase as
+ * always inline. Some platforms (riscv)  perform function calls through the
+ * GOT that is not initialized (zero) at this state.
+ */
+#define SELF_RELOC __attribute__((always_inline))
+
 /**
  * Forward declartions and helpers
  */

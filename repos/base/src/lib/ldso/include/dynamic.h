@@ -144,7 +144,7 @@ class Linker::Dynamic
 			_d->un.ptr   = (Elf::Addr)Debug::d();
 		}
 
-		void _init()
+		void _init() SELF_RELOC
 		{
 			for (Elf::Dyn const *d = &_dynamic; d->tag != DT_NULL; d++) {
 				switch (d->tag) {
@@ -308,7 +308,7 @@ class Linker::Dynamic
 				fn(n->path(_strtab));
 		}
 
-		void relocate(Bind bind)
+		void relocate(Bind bind) SELF_RELOC
 		{
 			plt_setup();
 
