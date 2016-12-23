@@ -19,7 +19,6 @@ SYMBOLS := $(BASE_DIR)/lib/symbols/ld
 
 SHARED_LIB := yes
 
-LD_OPT += -Bsymbolic-functions --version-script=$(BASE_DIR)/src/lib/ldso/symbol.map
 LD_OPT += -T$(BASE_DIR)/src/lib/ldso/linker.ld
 
 symbols.s: $(MAKEFILE_LIST)
