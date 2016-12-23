@@ -27,6 +27,7 @@ namespace Block {
 	class Sdhci_driver;
 }
 
+
 class Block::Sdhci_driver : public Block::Driver
 {
 	private:

@@ -19,7 +19,6 @@
 #include <os/attached_io_mem_dataspace.h>
 #include <base/log.h>
 #include <timer_session/connection.h>
-#include <block/component.h>
 #include <os/server.h>
 #include <regulator_session/connection.h>
 
@@ -32,7 +31,8 @@ namespace Block {
 }
 
 
-class Block::Sdhci_driver : public Block::Driver
+class Block::Sdhci_driver : public Block::Driver,
+                            public Sd_ack_handler
 {
 	private:
 
@@ -81,7 +81,7 @@ class Block::Sdhci_driver : public Block::Driver
 			_clock_regulator(env),
 			_mmio(MSH_BASE, MSH_SIZE),
 			_controller(env.ep(), (addr_t)_mmio.local_addr<void>(),
-			            _delayer, true),
+			            _delayer, *this, true),
 			_use_dma(true)
 		{
 			Sd_card::Card_info const card_info = _controller.card_info();
@@ -89,6 +89,9 @@ class Block::Sdhci_driver : public Block::Driver
 			Genode::log("SD/MMC card detected");
 			Genode::log("capacity: ", card_info.capacity_mb(), " MiB");
 		}
+
+		void handle_ack(Block::Packet_descriptor pkt, bool success) {
+			ack_packet(pkt, success); }
 
 
 		/*****************************
@@ -110,14 +113,12 @@ class Block::Sdhci_driver : public Block::Driver
 			return o;
 		}
 
-		void read_dma(Block::sector_t   block_number,
-		              Genode::size_t    block_count,
-		              Genode::addr_t    phys,
+		void read_dma(Block::sector_t    block_number,
+		              Genode::size_t     block_count,
+		              Genode::addr_t     phys,
 		              Packet_descriptor &packet)
 		{
-			if (!_controller.read_blocks_dma(block_number, block_count, phys))
-				throw Io_error();
-			ack_packet(packet);
+			_controller.read_blocks_dma(block_number, block_count, phys, packet);
 		}
 
 		void write_dma(Block::sector_t    block_number,
@@ -125,9 +126,7 @@ class Block::Sdhci_driver : public Block::Driver
 		               Genode::addr_t     phys,
 		               Packet_descriptor &packet)
 		{
-			if (!_controller.write_blocks_dma(block_number, block_count, phys))
-				throw Io_error();
-			ack_packet(packet);
+			_controller.write_blocks_dma(block_number, block_count, phys, packet);
 		}
 
 		bool dma_enabled() { return _use_dma; }

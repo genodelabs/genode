@@ -20,7 +20,7 @@ using namespace Genode;
 
 void Sdhc::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 {
-	Mixctrl::access_t mixctrl = read<Mixctrl>();
+	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
 	Mixctrl::Dmaen::set(mixctrl, 1);
 	Mixctrl::Bcen::set(mixctrl, 1);
 	Mixctrl::Ac12en::set(mixctrl, 0);
@@ -29,7 +29,7 @@ void Sdhc::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 	Mixctrl::Msbsel::set(mixctrl, 1);
 	Mixctrl::Nibblepos::set(mixctrl, 0);
 	Mixctrl::Ac23en::set(mixctrl, 0);
-	write<Mixctrl>(mixctrl);
+	Mmio::write<Mixctrl>(mixctrl);
 }
 
 
@@ -45,7 +45,7 @@ bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &,
                                      bool const         multiblock,
                                      bool const         reading)
 {
-	Mixctrl::access_t mixctrl = read<Mixctrl>();
+	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
 	Mixctrl::Dmaen    ::set(mixctrl, transfer && multiblock && _use_dma);
 	Mixctrl::Bcen     ::set(mixctrl, transfer);
 	Mixctrl::Ac12en   ::set(mixctrl, 0);
@@ -59,7 +59,7 @@ bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &,
 	if (_wait_for_cmd_allowed()) {
 		return false; }
 
-	write<Mixctrl>(mixctrl);
+	Mmio::write<Mixctrl>(mixctrl);
 	return true;
 }
 
@@ -81,7 +81,7 @@ void Sdhc::_watermark_level(Wml::access_t &wml)
 void Sdhc::_reset_amendments()
 {
 	/* the USDHC doesn't reset the Mixer Control register automatically */
-	Mixctrl::access_t mixctrl = read<Mixctrl>();
+	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
 	Mixctrl::Dmaen::set(mixctrl, 0);
 	Mixctrl::Bcen::set(mixctrl, 0);
 	Mixctrl::Ac12en::set(mixctrl, 0);
@@ -91,7 +91,7 @@ void Sdhc::_reset_amendments()
 	Mixctrl::Nibblepos::set(mixctrl, 0);
 	Mixctrl::Ac23en::set(mixctrl, 0);
 	Mixctrl::Always_ones::set(mixctrl, 1);
-	write<Mixctrl>(mixctrl);
+	Mmio::write<Mixctrl>(mixctrl);
 }
 
 
@@ -99,18 +99,18 @@ void Sdhc::_clock_finish(Clock clock)
 {
 	switch (clock) {
 	case CLOCK_INITIAL:
-		write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_13);
+		Mmio::write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_13);
 		_enable_clock(CLOCK_DIV_512);
 		break;
 	case CLOCK_OPERATIONAL:
-		write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_28);
-		write<Sysctl::Ipp_rst_n>(0);
+		Mmio::write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_28);
+		Mmio::write<Sysctl::Ipp_rst_n>(0);
 		_enable_clock(CLOCK_DIV_4);
 		break;
 	}
 }
 
 
-void Sdhc::_disable_clock_preparation() { write<Vendspec::Frc_sdclk_on>(0); }
+void Sdhc::_disable_clock_preparation() { Mmio::write<Vendspec::Frc_sdclk_on>(0); }
 
-void Sdhc::_enable_clock_finish() { write<Vendspec::Frc_sdclk_on>(0); }
+void Sdhc::_enable_clock_finish() { Mmio::write<Vendspec::Frc_sdclk_on>(0); }

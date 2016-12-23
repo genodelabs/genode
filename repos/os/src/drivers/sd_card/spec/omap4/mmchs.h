@@ -19,6 +19,7 @@
 #include <os/attached_ram_dataspace.h>
 #include <irq_session/connection.h>
 #include <drivers/board_base.h>
+#include <block/component.h>
 
 /* local includes */
 #include <sd_card.h>
@@ -355,7 +356,6 @@ struct Mmchs : Genode::Mmio
 			Genode::error("reset of cmd line timed out (src != 0)");
 			return false;
 		}
-
 		return true;
 	}
 
@@ -484,9 +484,21 @@ struct Mmchs : Genode::Mmio
 };
 
 
+struct Sd_ack_handler {
+	virtual void handle_ack(Block::Packet_descriptor pkt, bool success) = 0;
+};
+
+
 struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 {
 	private:
+
+		struct Block_transfer
+		{
+			Block::Packet_descriptor packet;
+			bool                     pending = false;
+
+		} _block_transfer;
 
 		Delayer           &_delayer;
 		Sd_card::Card_info _card_info;
@@ -500,9 +512,9 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		Adma_desc::access_t *    const _adma_desc;
 		Genode::addr_t           const _adma_desc_phys;
 
-		Genode::Irq_connection  _irq;
-		Genode::Signal_receiver _irq_rec;
-		Genode::Signal_context  _irq_ctx;
+		Sd_ack_handler                                 &_ack_handler;
+		Genode::Signal_handler<Omap4_hsmmc_controller>  _irq_handler;
+		Genode::Irq_connection                          _irq;
 
 		Sd_card::Card_info _init()
 		{
@@ -690,19 +702,6 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			return true;
 		}
 
-		bool _wait_for_transfer_complete()
-		{
-			if (!wait_for<Stat::Tc>(1, _delayer, 1000*1000, 0)
-			 && !wait_for<Stat::Tc>(1, _delayer)) {
-				Genode::error("Stat::Tc timed out");
-				return false;
-			}
-
-			/* clear transfer-completed bit */
-			write<Stat::Tc>(1);
-			return true;
-		}
-
 		bool _wait_for_bre()
 		{
 			if (!wait_for<Pstate::Bre>(1, _delayer, 1000*1000, 0)
@@ -723,38 +722,29 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			return true;
 		}
 
-		bool _wait_for_transfer_complete_irq()
+		void _handle_irq()
 		{
-			/*
-			 * XXX For now, the driver works fully synchronous. We merely use
-			 *     the interrupt mechanism to yield CPU time to concurrently
-			 *     running processes.
-			 */
-			for (;;) {
-				/*
-				 * We ack the IRQ first to implicitly active receiving
-				 * IRQ signals when entering this loop for the first time.
-				 */
-				_irq.ack_irq();
-				_irq_rec.wait_for_signal();
+			_irq.ack_irq();
 
-				/* check for transfer completion */
-				if (read<Stat::Tc>() == 1) {
+			if (!_block_transfer.pending) {
+				return; }
 
-					/* clear transfer-completed bit */
-					write<Stat::Tc>(1);
-
-					if (read<Stat>() != 0)
-						Genode::warning("unexpected state ("
-						                "Stat: ", Genode::Hex(read<Stat>()), " "
-						                "Blen: ", Genode::Hex(read<Blk::Blen>()), " "
-						                "Nblk: ", read<Blk::Nblk>());
-
-					return true;
-				}
-
+			if (read<Stat::Tc>() != 1) {
 				Genode::warning("unexpected interrupt, Stat: ", Genode::Hex(read<Stat>()));
+				return;
 			}
+
+			write<Stat::Tc>(1);
+
+			if (read<Stat>() != 0) {
+				Genode::warning("unexpected state ("
+				                "Stat: ", Genode::Hex(read<Stat>()), " "
+				                "Blen: ", Genode::Hex(read<Blk::Blen>()), " "
+				                "Nblk: ", read<Blk::Nblk>());
+				return;
+			}
+			_block_transfer.pending = false;
+			_ack_handler.handle_ack(_block_transfer.packet, true);
 		}
 
 	public:
@@ -766,8 +756,9 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 		 *
 		 * \param mmio_base  local base address of MMIO registers
 		 */
-		Omap4_hsmmc_controller(Genode::addr_t const mmio_base, Delayer &delayer,
-		                       bool use_dma)
+		Omap4_hsmmc_controller(Genode::Entrypoint &ep,
+		                       Genode::addr_t const mmio_base, Delayer &delayer,
+		                       Sd_ack_handler &ack_handler, bool use_dma)
 		:
 			Mmchs(mmio_base), _delayer(delayer), _card_info(_init()),
 			_use_dma(use_dma),
@@ -776,12 +767,13 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			              Genode::UNCACHED),
 			_adma_desc(_adma_desc_ds.local_addr<Adma_desc::access_t>()),
 			_adma_desc_phys(Genode::Dataspace_client(_adma_desc_ds.cap()).phys_addr()),
+			_ack_handler(ack_handler),
+			_irq_handler(ep, *this, &Omap4_hsmmc_controller::_handle_irq),
 			_irq(IRQ_NUMBER)
 		{
-			_irq.sigh(_irq_rec.manage(&_irq_ctx));
+			_irq.sigh(_irq_handler);
+			_irq.ack_irq();
 		}
-
-		~Omap4_hsmmc_controller() { _irq_rec.dissolve(&_irq_ctx); }
 
 
 		/****************************************
@@ -897,22 +889,23 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			return Sd_card::Send_relative_addr::Response::Rca::get(read<Rsp10>());
 		}
 
-		/**
-		 * Read data blocks from SD card
-		 *
-		 * \return true on success
-		 */
-		bool read_blocks(size_t block_number, size_t block_count, char *out_buffer)
+		void read_blocks(size_t block_number, size_t block_count, char *out_buffer,
+		                 Block::Packet_descriptor pkt)
 		{
 			using namespace Sd_card;
+
+			if (_block_transfer.pending) {
+				throw Block::Driver::Request_congestion(); }
 
 			write<Blk::Blen>(0x200);
 			write<Blk::Nblk>(block_count);
 
+			_block_transfer.packet  = pkt;
+			_block_transfer.pending = true;
+
 			if (!issue_command(Read_multiple_block(block_number))) {
-				Genode::error("Read_multiple_block failed, Stat: ",
-				              Genode::Hex(read<Stat>()));
-				return false;
+				Genode::error("Read_multiple_block failed");
+				throw Block::Driver::Io_error();
 			}
 
 			size_t const num_accesses = block_count*512/sizeof(Data::access_t);
@@ -920,29 +913,29 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 
 			for (size_t i = 0; i < num_accesses; i++) {
 				if (!_wait_for_bre())
-					return false;
+					throw Block::Driver::Io_error();
 
 				*dst++ = read<Data>();
 			}
-
-			return _wait_for_transfer_complete();
 		}
 
-		/**
-		 * Write data blocks to SD card
-		 *
-		 * \return true on success
-		 */
-		bool write_blocks(size_t block_number, size_t block_count, char const *buffer)
+		void write_blocks(size_t block_number, size_t block_count, char const *buffer,
+		                  Block::Packet_descriptor pkt)
 		{
 			using namespace Sd_card;
+
+			if (_block_transfer.pending) {
+				throw Block::Driver::Request_congestion(); }
 
 			write<Blk::Blen>(0x200);
 			write<Blk::Nblk>(block_count);
 
+			_block_transfer.packet  = pkt;
+			_block_transfer.pending = true;
+
 			if (!issue_command(Write_multiple_block(block_number))) {
 				Genode::error("Write_multiple_block failed");
-				return false;
+				throw Block::Driver::Io_error();
 			}
 
 			size_t const num_accesses = block_count*512/sizeof(Data::access_t);
@@ -950,59 +943,56 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 
 			for (size_t i = 0; i < num_accesses; i++) {
 				if (!_wait_for_bwe())
-					return false;
+					throw Block::Driver::Io_error();
 
 				write<Data>(*src++);
 			}
-
-			return _wait_for_transfer_complete();
 		}
 
-		/**
-		 * Read data blocks from SD card via master DMA
-		 *
-		 * \return true on success
-		 */
-		bool read_blocks_dma(size_t block_number, size_t block_count,
-		                     Genode::addr_t out_buffer_phys)
+		void read_blocks_dma(size_t block_number, size_t block_count,
+		                     Genode::addr_t out_buffer_phys,
+		                     Block::Packet_descriptor pkt)
 		{
 			using namespace Sd_card;
+
+			if (_block_transfer.pending) {
+				throw Block::Driver::Request_congestion(); }
 
 			write<Blk::Blen>(0x200);
 			write<Blk::Nblk>(block_count);
 
 			_setup_adma_descriptor_table(block_count, out_buffer_phys);
 
-			if (!issue_command(Read_multiple_block(block_number))) {
-				Genode::error("Read_multiple_block failed, Stat: ",
-				              Genode::Hex(read<Stat>()));
-				return false;
-			}
+			_block_transfer.packet  = pkt;
+			_block_transfer.pending = true;
 
-			return _wait_for_transfer_complete_irq();
+			if (!issue_command(Read_multiple_block(block_number))) {
+				Genode::error("Read_multiple_block failed");
+				throw Block::Driver::Io_error();
+			}
 		}
 
-		/**
-		 * Write data blocks to SD card via master DMA
-		 *
-		 * \return true on success
-		 */
-		bool write_blocks_dma(size_t block_number, size_t block_count,
-		                      Genode::addr_t buffer_phys)
+		void write_blocks_dma(size_t block_number, size_t block_count,
+		                      Genode::addr_t buffer_phys,
+		                      Block::Packet_descriptor pkt)
 		{
 			using namespace Sd_card;
+
+			if (_block_transfer.pending) {
+				throw Block::Driver::Request_congestion(); }
 
 			write<Blk::Blen>(0x200);
 			write<Blk::Nblk>(block_count);
 
 			_setup_adma_descriptor_table(block_count, buffer_phys);
 
+			_block_transfer.packet  = pkt;
+			_block_transfer.pending = true;
+
 			if (!issue_command(Write_multiple_block(block_number))) {
 				Genode::error("Write_multiple_block failed");
-				return false;
+				throw Block::Driver::Io_error();
 			}
-
-			return _wait_for_transfer_complete_irq();
 		}
 };
 

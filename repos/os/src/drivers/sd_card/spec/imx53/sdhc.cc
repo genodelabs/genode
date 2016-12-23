@@ -98,21 +98,21 @@ void Sdhc::_reset_amendments()
 	 * nonetheless which disables clocks that card detection relies
 	 * on.
 	 */
-	Sysctl::access_t sysctl = read<Sysctl>();
+	Sysctl::access_t sysctl = Mmio::read<Sysctl>();
 	Sysctl::Ipgen::set(sysctl, 1);
 	Sysctl::Hcken::set(sysctl, 1);
 	Sysctl::Peren::set(sysctl, 1);
-	write<Sysctl>(sysctl);
+	Mmio::write<Sysctl>(sysctl);
 }
 
 
 void Sdhc::_clock_finish(Clock clock)
 {
-	write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_27);
+	Mmio::write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_27);
 	switch (clock) {
 	case CLOCK_INITIAL:     _enable_clock(CLOCK_DIV_512); break;
 	case CLOCK_OPERATIONAL: _enable_clock(CLOCK_DIV_8);   break; }
-	write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_27);
+	Mmio::write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_27);
 }
 
 

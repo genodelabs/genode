@@ -18,7 +18,6 @@
 #include <os/attached_io_mem_dataspace.h>
 #include <base/log.h>
 #include <timer_session/connection.h>
-#include <block/component.h>
 #include <os/server.h>
 
 /* local includes */
@@ -30,7 +29,8 @@ namespace Block {
 }
 
 
-class Block::Sdhci_driver : public Block::Driver
+class Block::Sdhci_driver : public Block::Driver,
+                            public Sd_ack_handler
 {
 	private:
 
@@ -60,11 +60,11 @@ class Block::Sdhci_driver : public Block::Driver
 
 		struct Dma_not_supported : Exception { };
 
-		Sdhci_driver(Env &)
+		Sdhci_driver(Env &env)
 		:
 			_mmchs1_mmio(MMCHS1_MMIO_BASE, MMCHS1_MMIO_SIZE),
-			_controller((addr_t)_mmchs1_mmio.local_addr<void>(),
-			            _delayer, false),
+			_controller(env.ep(), (addr_t)_mmchs1_mmio.local_addr<void>(),
+			            _delayer, *this, false),
 			_use_dma(false)
 		{
 			if (_use_dma) { throw Dma_not_supported(); }
@@ -73,6 +73,9 @@ class Block::Sdhci_driver : public Block::Driver
 			Genode::log("SD card detected");
 			Genode::log("capacity: ", card_info.capacity_mb(), " MiB");
 		}
+
+		void handle_ack(Block::Packet_descriptor pkt, bool success) {
+			ack_packet(pkt, success); }
 
 
 		/*****************************
@@ -99,9 +102,7 @@ class Block::Sdhci_driver : public Block::Driver
 		          char              *out_buffer,
 		          Packet_descriptor &packet)
 		{
-			if (!_controller.read_blocks(block_number, block_count, out_buffer))
-				throw Io_error();
-			ack_packet(packet);
+			_controller.read_blocks(block_number, block_count, out_buffer, packet);
 		}
 
 		void write(Block::sector_t    block_number,
@@ -109,9 +110,7 @@ class Block::Sdhci_driver : public Block::Driver
 		           char const        *buffer,
 		           Packet_descriptor &packet)
 		{
-			if (!_controller.write_blocks(block_number, block_count, buffer))
-				throw Io_error();
-			ack_packet(packet);
+			_controller.write_blocks(block_number, block_count, buffer, packet);
 		}
 
 		void read_dma(Block::sector_t    block_number,
@@ -119,9 +118,7 @@ class Block::Sdhci_driver : public Block::Driver
 		              Genode::addr_t     phys,
 		              Packet_descriptor &packet)
 		{
-			if (!_controller.read_blocks_dma(block_number, block_count, phys))
-				throw Io_error();
-			ack_packet(packet);
+			_controller.read_blocks_dma(block_number, block_count, phys, packet);
 		}
 
 		void write_dma(Block::sector_t    block_number,
@@ -129,9 +126,7 @@ class Block::Sdhci_driver : public Block::Driver
 		               Genode::addr_t     phys,
 		               Packet_descriptor &packet)
 		{
-			if (!_controller.write_blocks_dma(block_number, block_count, phys))
-				throw Io_error();
-			ack_packet(packet);
+			_controller.write_blocks_dma(block_number, block_count, phys, packet);
 		}
 
 		bool dma_enabled() { return _use_dma; }

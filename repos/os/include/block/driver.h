@@ -24,13 +24,30 @@
 #include <block_session/rpc_object.h>
 
 namespace Block {
+	class Driver_session_base;
 	class Driver_session;
 	class Driver;
 	struct Driver_factory;
 };
 
 
-class Block::Driver_session : public Block::Session_rpc_object
+struct Block::Driver_session_base
+{
+	/**
+	 * Acknowledges a packet processed by the driver to the client
+	 *
+	 * \param packet   the packet to acknowledge
+	 * \param success  indicated whether the processing was successful
+	 *
+	 * \throw Ack_congestion
+	 */
+	virtual void ack_packet(Packet_descriptor &packet,
+	                        bool success) = 0;
+};
+
+
+class Block::Driver_session : public Driver_session_base,
+                              public Block::Session_rpc_object
 {
 	public:
 
@@ -44,17 +61,6 @@ class Block::Driver_session : public Block::Session_rpc_object
 		Driver_session(Genode::Dataspace_capability tx_ds,
 		               Genode::Rpc_entrypoint &ep)
 		: Session_rpc_object(tx_ds, ep) { }
-
-		/**
-		 * Acknowledges a packet processed by the driver to the client
-		 *
-		 * \param packet   the packet to acknowledge
-		 * \param success  indicated whether the processing was successful
-		 *
-		 * \throw Ack_congestion
-		 */
-		virtual void ack_packet(Packet_descriptor &packet,
-		                        bool success) = 0;
 };
 
 
@@ -65,7 +71,7 @@ class Block::Driver
 {
 	private:
 
-		Driver_session *_session = nullptr;
+		Driver_session_base *_session = nullptr;
 
 	public:
 
@@ -214,7 +220,7 @@ class Block::Driver
 		 *
 		 * Session might get used to acknowledge requests.
 		 */
-		void session(Driver_session *session) {
+		void session(Driver_session_base *session) {
 			if (!(_session = session)) session_invalidated(); }
 
 		/**

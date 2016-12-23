@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <base/log.h>
 #include <timer_session/connection.h>
 #include <os/attached_ram_dataspace.h>
 #include <os/config.h>
@@ -24,146 +23,137 @@
 
 using namespace Genode;
 
-struct Operation
-{
-	virtual void operator () (Block::Driver &driver,
-	                          Genode::addr_t block_number,
-	                          Genode::size_t block_count,
-	                          Genode::addr_t buffer_phys,
-	                          char          *buffer_virt) = 0;
-};
-
-
-/*
- * \param total_size    total number of bytes to read
- * \param request_size  number of bytes per request
- */
-static void run_benchmark(Block::Driver  &driver,
-                          Timer::Session &timer,
-                          char           *buffer_virt,
-                          Genode::addr_t  buffer_phys,
-                          Genode::size_t  buffer_size,
-                          Genode::size_t  request_size,
-                          Operation      &operation)
-{
-	using namespace Genode;
-
-	log("request_size=", request_size, " bytes");
-
-	size_t const time_before_ms = timer.elapsed_ms();
-
-	size_t num_requests = buffer_size / request_size;
-
-	/*
-	 * Trim number of requests if it would take to much time
-	 */
-	if (num_requests > 320) {
-		buffer_size = 320 * request_size;
-		num_requests = buffer_size / request_size;
-	}
-
-	for (size_t i = 0; i < num_requests; i++)
-	{
-		size_t const block_count  = request_size / driver.block_size();
-		addr_t const block_number = i*block_count;
-
-		operation(driver, block_number, block_count,
-		          buffer_phys + i*request_size,
-		          buffer_virt + i*request_size);
-	}
-
-	size_t const time_after_ms = timer.elapsed_ms();
-	size_t const duration_ms   = time_after_ms - time_before_ms;
-
-	/*
-	 * Convert bytes per milliseconds to kilobytes per seconds
-	 *
-	 * (total_size / 1024) / (duration_ms / 1000)
-	 */
-	size_t const buffer_size_kb = buffer_size / 1024;
-	size_t const throughput_kb_per_sec = (1000*buffer_size_kb) / duration_ms;
-
-	log("         duration:   ", duration_ms,           " ms");
-	log("         amount:     ", buffer_size_kb,        " KiB");
-	log("         throughput: ", throughput_kb_per_sec, " KiB/sec");
-}
-
 
 struct Main
 {
-	Main(Env &env)
+	using Packet_descriptor = Block::Packet_descriptor;
+
+	struct Block_operation_failed : Exception { };
+
+	enum Operation { READ, WRITE };
+
+	struct Driver_session : Block::Driver_session_base
 	{
-		log("--- SD card benchmark ---");
+		Signal_transmitter sig;
+		unsigned long      nr_of_acks { 0 };
 
+		Driver_session(Signal_context_capability sig) : sig(sig) { }
 
-		static Block::Sdhci_driver driver(env);
-		bool const use_dma = driver.dma_enabled();
-
-		static Timer::Connection timer;
-
-		long const request_sizes[] = {
-			512, 1024, 2048, 4096, 8192, 16384, 32768, 64*1024, 128*1024, 0 };
-
-		/* total size of communication buffer */
-		size_t const buffer_size = 10 * 1024 * 1024;
-
-		/* allocate read/write buffer */
-		static Attached_ram_dataspace buffer(&env.ram(), buffer_size, Genode::UNCACHED);
-		char * const buffer_virt = buffer.local_addr<char>();
-		addr_t const buffer_phys = Dataspace_client(buffer.cap()).phys_addr();
-
-		/*
-		 * Benchmark reading from SD card
-		 */
-
-		log("\n-- reading from SD card (", use_dma ? "" : "not ", "using DMA) --");
-
-		struct Read : Operation
+		void ack_packet(Packet_descriptor &, bool success)
 		{
-			void operator () (Block::Driver &driver,
-							  addr_t number, size_t count, addr_t phys, char *virt)
-			{
-				Block::Packet_descriptor p;
-				if (driver.dma_enabled())
-					driver.read_dma(number, count, phys, p);
-				else
-					driver.read(number, count, virt, p);
-			}
-		} read_operation;
-
-		for (unsigned i = 0; request_sizes[i]; i++) {
-			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-						  request_sizes[i], read_operation);
+			if (!success) {
+				throw Block_operation_failed(); }
+			nr_of_acks++;
+			sig.submit();
 		}
+	};
 
-		/*
-		 * Benchmark writing to SD card
-		 *
-		 * We write back the content of the buffer, which we just filled during the
-		 * read benchmark. If both read and write succeed, the SD card will retain
-		 * its original content.
-		 */
+	Env                    &env;
+	Packet_descriptor       pkt;
+	unsigned long           time_before_ms;
+	Timer::Connection       timer;
+	Operation               operation    { READ };
+	Signal_handler<Main>    ack_handler  { env.ep(), *this, &Main::update_state };
+	Driver_session          drv_session  { ack_handler };
+	Block::Sdhci_driver     drv          { env };
+	size_t const            buf_size_kib { config()->xml_node()
+	                                       .attribute_value("buffer_size_kib",
+	                                                        (size_t)0) };
+	size_t const            buf_size     { buf_size_kib * 1024 };
+	Attached_ram_dataspace  buf          { &env.ram(), buf_size, UNCACHED };
+	char                   *buf_virt     { buf.local_addr<char>() };
+	addr_t                  buf_phys     { Dataspace_client(buf.cap())
+	                                       .phys_addr() };
+	size_t                  buf_off_done { 0 };
+	size_t                  buf_off_pend { 0 };
+	unsigned                req_size_id  { 0 };
+	size_t                  req_sizes[9] { 512, 1024, 1024 * 2,  1024 * 4,
+	                                       1024 * 8,  1024 * 16, 1024 * 32,
+	                                       1024 * 64, 1024 * 128 };
 
-		log("\n-- writing to SD card (", use_dma ? "" : "not ", "using DMA) --");
+	size_t req_size() const { return req_sizes[req_size_id]; }
 
-		struct Write : Operation
-		{
-			void operator () (Block::Driver &driver,
-			                  addr_t number, size_t count, addr_t phys, char *virt)
-			{
-				Block::Packet_descriptor p;
-				if (driver.dma_enabled())
-					driver.write_dma(number, count, phys, p);
-				else
-					driver.write(number, count, virt, p);
+	void update_state()
+	{
+		/* raise done counter and check if the buffer is full */
+		buf_off_done += drv_session.nr_of_acks * req_size();
+		drv_session.nr_of_acks = 0;
+		if (buf_off_done == buf_size) {
+
+			/* print stats for the current request size */
+			unsigned long const time_after_ms = timer.elapsed_ms();
+			unsigned long const duration_ms   = time_after_ms - time_before_ms;
+			size_t        const kib_per_sec   = (1000 * buf_size_kib) /
+			                                    duration_ms;
+			log("      duration:   ", duration_ms,  " ms");
+			log("      amount:     ", buf_size_kib, " KiB");
+			log("      throughput: ", kib_per_sec,  " KiB/sec");
+
+			/* go to next request size */
+			buf_off_pend = 0;
+			buf_off_done = 0;
+			req_size_id++;
+
+			/* check if we have done all request sizes for an operation */
+			if (req_size_id == sizeof(req_sizes)/sizeof(req_sizes[0])) {
+
+				/* go to next operation or end the test */
+				log("");
+				req_size_id = 0;
+				switch (operation) {
+				case READ:
+					operation = WRITE;
+					log("-- writing to SD card --");
+					break;
+				case WRITE:
+					log("--- SD card benchmark finished ---");
+					return;
+				}
 			}
-		} write_operation;
+			log("   request size ", req_size(), " bytes");
+			time_before_ms = timer.elapsed_ms();
+		}
+		/* issue as many requests for the current request size as possible */
+		try {
+			size_t const cnt = req_size() / drv.block_size();
+			for (; buf_off_pend < buf_size; buf_off_pend += req_size()) {
 
-		for (unsigned i = 0; request_sizes[i]; i++)
-			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-			              request_sizes[i], write_operation);
+				/* calculate block offset */
+				addr_t const nr  = buf_off_pend / drv.block_size();
 
-		log("\n--- SD card benchmark finished ---");
+				if (drv.dma_enabled()) {
+
+					/* request with DMA */
+					addr_t const phys = buf_phys + buf_off_pend;
+					switch (operation) {
+					case READ:   drv.read_dma(nr, cnt, phys, pkt); break;
+					case WRITE: drv.write_dma(nr, cnt, phys, pkt); break; }
+
+				} else {
+
+					/* request without DMA */
+					char *const virt = buf_virt + buf_off_pend;
+					switch (operation) {
+					case READ:   drv.read(nr, cnt, virt, pkt); break;
+					case WRITE: drv.write(nr, cnt, virt, pkt); break; }
+				}
+			}
+		} catch (Block::Driver::Request_congestion) { }
+	}
+
+	Main(Env &env) : env(env)
+	{
+		log("");
+		log("--- SD card benchmark (", drv.dma_enabled() ? "with" : "no", " DMA) ---");
+
+		drv.session(&drv_session);
+
+		/* start issuing requests */
+		log("");
+		log("-- reading from SD card --");
+		log("   request size ", req_size(), " bytes");
+		time_before_ms = timer.elapsed_ms();
+		update_state();
 	}
 };
 

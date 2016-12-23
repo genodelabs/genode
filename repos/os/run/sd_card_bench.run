@@ -2,13 +2,13 @@
 # Check for platform support
 #
 
-if {[expr ![have_spec exynos5] && \
-          ![have_spec omap4] && \
-          ![have_spec imx6] && \
-          ![have_spec imx53] && \
-          ![have_spec pl180] && \
-          ![have_spec rpi]]} \
-{
+      if {[have_spec pl180]}   { set buffer_size_kib [expr 12 * 1024]
+} elseif {[have_spec imx6]}    { set buffer_size_kib [expr      1024]
+} elseif {[have_spec imx53]}   { set buffer_size_kib [expr      1024]
+} elseif {[have_spec rpi]}     { set buffer_size_kib [expr  4 * 1024]
+} elseif {[have_spec omap4]}   { set buffer_size_kib [expr  4 * 1024]
+} elseif {[have_spec exynos5]} { set buffer_size_kib [expr      1024]
+} else   {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
@@ -28,6 +28,7 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 build $build_components
 create_boot_directory
+
 
 #
 # Install the config
@@ -51,6 +52,7 @@ append config {
 
 append_platform_drv_config
 
+
 append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -58,7 +60,11 @@ append config {
 	</start>
 	<start name="sd_card_bench">
 		<resource name="RAM" quantum="16M"/>
-		<provides><service name="Block"/></provides>
+		<provides><service name="Block"/></provides>}
+
+append config "<config buffer_size_kib=\"$buffer_size_kib\"/>"
+
+append config {
 	</start>
 </config>}
 

@@ -18,6 +18,7 @@
 #include <irq_session/connection.h>
 #include <os/attached_ram_dataspace.h>
 #include <util/mmio.h>
+#include <block/component.h>
 
 #include <sd_card.h>
 
@@ -268,6 +269,11 @@ struct Dwmmc : Genode::Mmio
 };
 
 
+struct Sd_ack_handler {
+	virtual void handle_ack(Block::Packet_descriptor pkt, bool success) = 0;
+};
+
+
 struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 {
 	private:
@@ -325,9 +331,16 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 		Delayer           &_delayer;
 		Sd_card::Card_info _card_info;
 
-		Genode::Irq_connection  _irq;
-		Genode::Signal_receiver _irq_rec;
-		Genode::Signal_context  _irq_ctx;
+		struct Block_transfer
+		{
+			Block::Packet_descriptor packet;
+			bool                     pending = false;
+
+		} _block_transfer;
+
+		Sd_ack_handler                                 &_ack_handler;
+		Genode::Signal_handler<Exynos5_msh_controller>  _irq_handler;
+		Genode::Irq_connection                          _irq;
 
 		Sd_card::Card_info _init()
 		{
@@ -473,44 +486,34 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			return true;
 		}
 
-		void _wait_for_irq()
+		void _handle_irq()
 		{
-			/*
-			 * Acknowledge the IRQ first to implicitly activate
-			 * receiving of further IRQ signals on the first usage
-			 * of this method.
-			 */
 			_irq.ack_irq();
-			_irq_rec.wait_for_signal();
-		}
 
-		bool _wait_for_transfer_complete()
-		{
-			while (1) {
-				_wait_for_irq();
+			if (!_block_transfer.pending) {
+				return; }
 
-				if (read<Rintsts::Data_transfer_over>()) {
-					write<Rintsts>(~0U);
-					return true;
-				}
-
-				if (read<Rintsts::Response_error>()) {
-					Genode::error("Response error");
-					return false;
-				}
-
-				if (read<Rintsts::Data_read_timeout>()) {
-					Genode::error("Data read timeout");
-					return false;
-				}
-
-				if (read<Rintsts::Data_crc_error>()) {
-					Genode::error("CRC error");
-					return false;
+			bool success = false;
+			if (read<Rintsts::Response_error>()) {
+				Genode::error("Response error");
+			}
+			if (read<Rintsts::Data_read_timeout>()) {
+				Genode::error("Data read timeout");
+			}
+			if (read<Rintsts::Data_crc_error>()) {
+				Genode::error("CRC error");
+			}
+			if (read<Rintsts::Data_transfer_over>()) {
+				write<Rintsts>(~0U);
+				if (!_issue_command(Sd_card::Stop_transmission())) {
+					Genode::error("unable to stop transmission");
+				} else {
+					success = true;
 				}
 			}
+			_block_transfer.pending = false;
+			_ack_handler.handle_ack(_block_transfer.packet, success);
 		}
-
 
 	public:
 
@@ -518,6 +521,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 		Exynos5_msh_controller(Server::Entrypoint &ep,
 		                       Genode::addr_t const mmio_base, Delayer &delayer,
+		                       Sd_ack_handler &ack_handler,
 		                       bool use_dma)
 		: Dwmmc(mmio_base),
 			_idmac_desc_ds(Genode::env()->ram_session(),
@@ -525,12 +529,14 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			               Genode::UNCACHED),
 			_idmac_desc(_idmac_desc_ds.local_addr<Idmac_desc>()),
 			_idmac_desc_phys(Genode::Dataspace_client(_idmac_desc_ds.cap()).phys_addr()),
-			_delayer(delayer), _card_info(_init()), _irq(IRQ_NUMBER)
+			_delayer(delayer), _card_info(_init()),
+			_ack_handler(ack_handler),
+			_irq_handler(ep, *this, &Exynos5_msh_controller::_handle_irq),
+			_irq(IRQ_NUMBER)
 		{
-			_irq.sigh(_irq_rec.manage(&_irq_ctx));
+			_irq.sigh(_irq_handler);
+			_irq.ack_irq();
 		}
-
-		~Exynos5_msh_controller() { _irq_rec.dissolve(&_irq_ctx); }
 
 		bool _issue_command(Sd_card::Command_base const &command)
 		{
@@ -661,49 +667,44 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			return _card_info;
 		}
 
-		bool read_blocks_dma(Block::sector_t block_number, size_t block_count,
-		                     Genode::addr_t buffer_phys)
+		void read_blocks_dma(Block::sector_t block_number, size_t block_count,
+		                     Genode::addr_t buffer_phys, Block::Packet_descriptor pkt)
 		{
+			if (_block_transfer.pending) {
+				throw Block::Driver::Request_congestion(); }
+
 			if (!_setup_idmac_descriptor_table(block_count, buffer_phys))
-				return false;
+				throw Block::Driver::Io_error();
+
+			_block_transfer.packet  = pkt;
+			_block_transfer.pending = true;
 
 			if (!_issue_command(Sd_card::Read_multiple_block(block_number))) {
 				Genode::error("Read_multiple_block failed, Status: ",
 				              Genode::Hex(read<Status>()));
-				return false;
+				throw Block::Driver::Io_error();
 			}
-
-			bool complete = _wait_for_transfer_complete();
-
-			if (!_issue_command(Sd_card::Stop_transmission())) {
-				Genode::error("unable to stop transmission");
-				return false;
-			}
-
-			return complete;
 		}
 
-		bool write_blocks_dma(Block::sector_t block_number, size_t block_count,
-		                      Genode::addr_t buffer_phys)
+		void write_blocks_dma(Block::sector_t block_number, size_t block_count,
+		                      Genode::addr_t buffer_phys, Block::Packet_descriptor pkt)
 		{
+			if (_block_transfer.pending) {
+				throw Block::Driver::Request_congestion(); }
+
 			if (!_setup_idmac_descriptor_table(block_count, buffer_phys))
-				return false;
+				throw Block::Driver::Io_error();
+
+			_block_transfer.packet  = pkt;
+			_block_transfer.pending = true;
 
 			if (!_issue_command(Sd_card::Write_multiple_block(block_number))) {
 				Genode::error("Read_multiple_block failed, Status: ",
 				              Genode::Hex(read<Status>()));
-				return false;
+				throw Block::Driver::Io_error();
 			}
-
-			bool complete = _wait_for_transfer_complete();
-
-			if (!_issue_command(Sd_card::Stop_transmission())) {
-				Genode::error("unable to stop transmission");
-				return false;
-			}
-
-			return complete;
 		}
 };
+
 
 #endif /* _DRIVERS__SD_CARD__SPEC__EXYNOS5__DWMMC_H_ */
