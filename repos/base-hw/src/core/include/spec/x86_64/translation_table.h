@@ -122,9 +122,9 @@ class Genode::Level_4_translation_table
 
 		static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
 		static constexpr size_t SIZE_LOG2      = SIZE_LOG2_2MB;
-		static constexpr size_t MAX_ENTRIES    = 1 << (SIZE_LOG2-PAGE_SIZE_LOG2);
-		static constexpr size_t PAGE_SIZE      = 1 << PAGE_SIZE_LOG2;
-		static constexpr size_t PAGE_MASK      = ~((1 << PAGE_SIZE_LOG2) - 1);
+		static constexpr size_t MAX_ENTRIES    = 1UL << (SIZE_LOG2-PAGE_SIZE_LOG2);
+		static constexpr size_t PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2;
+		static constexpr size_t PAGE_MASK      = ~((1UL << PAGE_SIZE_LOG2) - 1);
 
 		class Misaligned {};
 		class Invalid_range {};
@@ -197,6 +197,7 @@ class Genode::Level_4_translation_table
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2) {
+				assert (i < MAX_ENTRIES);
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = min(size, end-vo);
 
@@ -277,9 +278,9 @@ class Genode::Page_directory
 {
 	private:
 
-		static constexpr size_t MAX_ENTRIES = 1 << (SIZE_LOG2-PAGE_SIZE_LOG2);
-		static constexpr size_t PAGE_SIZE   = 1 << PAGE_SIZE_LOG2;
-		static constexpr size_t PAGE_MASK   = ~((1 << PAGE_SIZE_LOG2) - 1);
+		static constexpr size_t MAX_ENTRIES = 1UL << (SIZE_LOG2-PAGE_SIZE_LOG2);
+		static constexpr size_t PAGE_SIZE   = 1UL << PAGE_SIZE_LOG2;
+		static constexpr size_t PAGE_MASK   = ~((1UL << PAGE_SIZE_LOG2) - 1);
 
 		class Misaligned {};
 		class Invalid_range {};
@@ -451,6 +452,7 @@ class Genode::Page_directory
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2)
 			{
+				assert (i < MAX_ENTRIES);
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = min(size, end-vo);
 
@@ -526,8 +528,8 @@ class Genode::Pml4_table
 {
 	private:
 
-		static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_256TB;
-		static constexpr size_t SIZE_LOG2      = SIZE_LOG2_512GB;
+		static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_512GB;
+		static constexpr size_t SIZE_LOG2      = SIZE_LOG2_256TB;
 		static constexpr size_t MAX_ENTRIES    = 512;
 		static constexpr size_t PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2;
 		static constexpr size_t PAGE_MASK      = ~((1UL << PAGE_SIZE_LOG2) - 1);
@@ -620,6 +622,7 @@ class Genode::Pml4_table
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2) {
+				assert (i < MAX_ENTRIES);
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = min(size, end-vo);
 
