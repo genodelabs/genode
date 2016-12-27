@@ -109,3 +109,13 @@ LD_CMD = c++
 
 # disable format-string security checks, which prevent non-literal format strings
 CC_OPT += -Wno-format-security
+
+#
+# Disable position-independent executables (which are enabled by default on
+# Ubuntu 16.10 or newer)
+#
+CXX_LINK_OPT_NO_PIE := $(shell \
+	(echo "int main(){}" | $(LD_CMD) -no-pie -x c++ - -o /dev/null >& /dev/null \
+	&& echo "-no-pie") || true)
+CXX_LINK_OPT += $(CXX_LINK_OPT_NO_PIE)
+
