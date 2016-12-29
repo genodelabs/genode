@@ -88,7 +88,7 @@ CC_OPT += $(VBOX_CC_OPT)
 # flag, therefore it gets added to CC_OPT instead of VBOX_CC_OPT.
 CC_OPT += -fshort-wchar
 
-LIBS += libc libm 
+LIBS += libc libm libc-mem
 
 INC_DIR += $(REP_DIR)/src/virtualbox/include
 INC_DIR += $(REP_DIR)/src/virtualbox/include/xpcom

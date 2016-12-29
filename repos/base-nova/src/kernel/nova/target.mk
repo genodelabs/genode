@@ -21,6 +21,7 @@ CC_OPT          += -pipe \
                    -freorder-blocks -funit-at-a-time -fno-exceptions -fno-rtti \
                    -fno-stack-protector -fvisibility-inlines-hidden \
                    -fno-asynchronous-unwind-tables -std=gnu++0x 
+CC_OPT_PIC      :=
 ifeq ($(filter-out $(SPECS),32bit),)
 CC_WARN         += -Wframe-larger-than=92
 CC_OPT          += -mpreferred-stack-boundary=2 -mregparm=3

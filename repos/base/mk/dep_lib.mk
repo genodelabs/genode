@@ -38,12 +38,14 @@ endif
 append_lib_to_progress_log:
 	@echo "LIBS_READY  += $(LIB)" >> $(LIB_PROGRESS_LOG)
 
-LIB_MK_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/spec/,$(SPECS)) $(REP)/lib/mk)
+LIB_MK_DIRS  = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/spec/,     $(SPECS)) $(REP)/lib/mk)
+SYMBOLS_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/symbols/spec/,$(SPECS)) $(REP)/lib/symbols)
 
 #
 # Of all possible file locations, use the (first) one that actually exist.
 #
-LIB_MK = $(firstword $(wildcard $(addsuffix /$(LIB).mk,$(LIB_MK_DIRS))))
+LIB_MK  = $(firstword $(wildcard $(addsuffix /$(LIB).mk,$(LIB_MK_DIRS))))
+SYMBOLS = $(firstword $(wildcard $(addsuffix /$(LIB),   $(SYMBOLS_DIRS))))
 
 #
 # Sanity check to detect missing library description file
@@ -74,26 +76,19 @@ include $(BASE_DIR)/mk/base-libs.mk
 include $(LIB_MK)
 
 ifdef SHARED_LIB
-#
-# For shared libraries, we have to make sure to build ldso support before
-# building a shared library.
-#
 LIBS += ldso-startup
-
-ifneq ($(LIB),$(DYNAMIC_LINKER))
-LIBS += $(DYNAMIC_LINKER)
 endif
 
 #
-# Ensure that startup_dyn is build for the dynamic programs that depend on a
-# shared library. They add it to their dependencies as replacement for the
-# static-case startup as soon as they recognize that they are dynamic.
-# The current library in contrast filters-out startup_dyn from its
-# dependencies before they get merged.
+# Hide archive dependencies of shared libraries from users of the shared
+# library. Library users examine the 'DEP_A_<lib>' variable to determine
+# transitive dependencies. For shared libraries, this variable remains
+# undefined.
 #
-DEP_VAR_NAME := DEP_$(LIB).lib.so
+ifdef SHARED_LIB
+DEP_A_VAR_NAME := PRIVATE_DEP_A_$(LIB)
 else
-DEP_VAR_NAME := DEP_$(LIB).lib
+DEP_A_VAR_NAME := DEP_A_$(LIB)
 endif
 
 #
@@ -116,12 +111,15 @@ generate_lib_rule_for_defect_library:
 LIBS_TO_VISIT = $(filter-out $(LIBS_READY),$(LIBS))
 
 generate_lib_rule:
-ifneq ($(LIBS),)
-	@(echo "$(DEP_VAR_NAME) = $(foreach l,$(LIBS),$l.lib \$$(DEP_$l.lib))"; \
-	  echo "") >> $(LIB_DEP_FILE)
-endif
 ifneq ($(DEP_MISSING_PORTS),)
 	@(echo "MISSING_PORTS += $(DEP_MISSING_PORTS)"; \
+	  echo "") >> $(LIB_DEP_FILE)
+endif
+	@for i in $(LIBS_TO_VISIT); do \
+	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
+ifneq ($(LIBS),)
+	@(echo "$(DEP_A_VAR_NAME) = $(foreach l,$(LIBS),\$${ARCHIVE_NAME($l)} \$$(DEP_A_$l))"; \
+	  echo "DEP_SO_$(LIB) = $(foreach l,$(LIBS),\$${SO_NAME($l)} \$$(DEP_SO_$l))"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
 	@(echo "$(LIB).lib: check_ports $(addsuffix .lib,$(LIBS))"; \
@@ -129,17 +127,19 @@ endif
 	  echo "	\$$(VERBOSE_MK)\$$(MAKE) $(VERBOSE_DIR) -C \$$(LIB_CACHE_DIR)/$(LIB) -f \$$(BASE_DIR)/mk/lib.mk \\"; \
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \
 	  echo "	     LIB_MK=$(LIB_MK) \\"; \
+	  echo "	     SYMBOLS=$(SYMBOLS) \\"; \
 	  echo "	     LIB=$(LIB) \\"; \
-	  echo "	     DEPS=\"\$$(sort \$$($(DEP_VAR_NAME)))\" \\"; \
+	  echo "	     ARCHIVES=\"\$$(sort \$$($(DEP_A_VAR_NAME)))\" \\"; \
+	  echo "	     SHARED_LIBS=\"\$$(sort \$$(DEP_SO_$(LIB)))\" \\"; \
 	  echo "	     BUILD_BASE_DIR=$(BUILD_BASE_DIR) \\"; \
 	  echo "	     SHELL=$(SHELL) \\"; \
-	  echo "	     SHARED_LIBS=\"\$$(SHARED_LIBS)\"\\"; \
 	  echo "	     INSTALL_DIR=\$$(INSTALL_DIR)"; \
 	  echo "") >> $(LIB_DEP_FILE)
-	@for i in $(LIBS_TO_VISIT); do \
-	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
 ifdef SHARED_LIB
-	@(echo "SHARED_LIBS += $(LIB)"; \
+	@(echo "SO_NAME($(LIB)) := $(LIB).lib.so"; \
+	  echo "") >> $(LIB_DEP_FILE)
+else
+	@(echo "ARCHIVE_NAME($(LIB)) := $(LIB).lib.a"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
 

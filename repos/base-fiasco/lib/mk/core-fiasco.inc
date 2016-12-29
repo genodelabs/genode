@@ -42,7 +42,7 @@ INC_DIR     += $(REP_DIR)/src/core/include \
                $(REP_DIR)/src/include \
                $(BASE_DIR)/src/include
 
-LIBS        += base-fiasco-common syscall-fiasco
+LIBS        += base-fiasco-common syscall-fiasco cxx
 
 include $(GEN_CORE_DIR)/version.inc
 

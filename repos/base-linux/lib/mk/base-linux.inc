@@ -7,4 +7,4 @@ include $(BASE_DIR)/lib/mk/base.inc
 
 SRC_CC += platform_env.cc
 
-LIBS += syscall-linux cxx
+LIBS += syscall-linux

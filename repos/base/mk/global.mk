@@ -111,6 +111,12 @@ CC_OPT += $(CC_OPT_NOSTDINC) -g $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN
 CC_OPT += $(CC_OPT_$(subst .,_,$*))
 
 #
+# Build program position independent as well
+#
+CC_OPT_PIC ?= -fPIC
+CC_OPT     += $(CC_OPT_PIC)
+
+#
 # Predefine C and C++ specific compiler options with their common values
 #
 CC_CXX_OPT += $(CC_OPT)
@@ -118,13 +124,11 @@ CC_C_OPT   += $(CC_OPT)
 CC_ADA_OPT += $(CC_OLEVEL) $(CC_WARN)
 
 #
-# Use the correct linker
+# Rust-specific arguments
+#
+# Use the correct linker, include dependencies.
 #
 CC_RUSTC_OPT += -C linker=$(LD)
-
-#
-# Include dependencies
-#
 CC_RUSTC_OPT += $(foreach lib,$(LIBS),-L$(LIB_CACHE_DIR)/$(lib))
 
 #

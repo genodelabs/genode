@@ -27,6 +27,7 @@ INC_DIR += $(REP_DIR)/src/app/seoul/include
 CC_WARN += -Wno-parentheses -Wall
 CC_CXX_OPT += -march=core2
 CC_CXX_OPT += -mssse3
+CC_OPT_PIC :=
 
 vpath %.cc  $(SEOUL_CONTRIB_DIR)
 vpath %.cc  $(REP_DIR)/src/app/seoul

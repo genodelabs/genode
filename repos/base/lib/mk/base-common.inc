@@ -4,8 +4,6 @@
 # \date   2013-02-14
 #
 
-LIBS += cxx
-
 SRC_CC += avl_tree.cc
 SRC_CC += slab.cc
 SRC_CC += allocator_avl.cc

@@ -11,7 +11,8 @@
 ##   BUILD_BASE_DIR   - base of build directory tree
 ##   LIB_CACHE_DIR    - library build cache location
 ##   INSTALL_DIR      - program target build directory
-##   DEPS             - library dependencies
+##   SHARED_LIBS      - shared-library dependencies of the library
+##   ARCHIVES         - archive dependencies of the library
 ##   REP_DIR          - repository where the library resides
 ##   CONTRIB_DIR      - location of ported 3rd-party source codes
 ##
@@ -22,15 +23,6 @@ include $(BASE_DIR)/mk/base-libs.mk
 # Prevent <libname>.mk rules to be executed as default rule
 #
 all:
-
-#
-# Make a rlib or dylib instead of object file
-#
-ifndef SHARED_LIB
-  CC_RUSTC_OPT += --crate-type rlib
-else
-  CC_RUSTC_OPT += --crate-type dylib
-endif
 
 #
 # Include common utility functions
@@ -79,14 +71,44 @@ ifdef SHARED_LIB
 LIB_SO       := $(addsuffix .lib.so,$(LIB))
 INSTALL_SO   := $(INSTALL_DIR)/$(LIB_SO)
 LIB_FILENAME := $(LIB_SO)
-else ifdef SRC_RS
-LIB_RLIB        := $(addsuffix .rlib,$(LIB))
-LIB_FILENAME := $(LIB_RLIB)
 else
 LIB_A        := $(addsuffix .lib.a,$(LIB))
 LIB_FILENAME := $(LIB_A)
 endif
 LIB_TAG := $(addsuffix .lib.tag,$(LIB))
+
+#
+# If a symbol list is provided, we create an ABI stub named '<lib>.abi.so'
+#
+# The ABI-stub library does not contain any code or data but only the symbol
+# information of the binary interface (ABI) of the shared library.
+#
+# The ABI stub is linked by the users of the library (executables or shared
+# objects) instead of the real library. This effectively decouples the library
+# users from the concrete library instance but binds them merely to the
+# library's binary interface. Note that the ABI stub is not used at runtime at
+# all. At runtime, the real library that implements the ABI is loaded by the
+# dynamic linker.
+#
+# The symbol information are incorporated into the ABI stub via an assembly
+# file named '<lib>.symbols.s' that is generated from the library's symbol
+# list. We create a symbolic link from the symbol file to the local directory.
+# By using '.symbols' as file extension, the pattern rule '%.symbols.s:
+# %.symbols' defined in 'generic.mk' is automatically applied for creating the
+# assembly file from the symbols file.
+#
+# The '.PRECIOUS' special target prevents make to remove the intermediate
+# assembler file. Otherwise make would spill the build log with messages
+# like "rm libc.symbols.s".
+#
+ifneq ($(SYMBOLS),)
+ABI_SO := $(addsuffix .abi.so,$(LIB))
+
+$(LIB).symbols:
+	$(VERBOSE)ln -sf $(SYMBOLS) $@
+
+.PRECIOUS: $(LIB).symbols.s
+endif
 
 #
 # Link libgcc to shared libraries
@@ -97,16 +119,6 @@ LIB_TAG := $(addsuffix .lib.tag,$(LIB))
 ifdef SHARED_LIB
 LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 endif
-
-#
-# Build libraries position-independent
-#
-# This option is required for building shared objects but also for static
-# libraries that are (potentially) linked against shared objects. Hence,
-# we build all libraries with '-fPIC'.
-#
-CC_OPT_PIC ?= -fPIC
-CC_OPT += $(CC_OPT_PIC)
 
 #
 # Print message for the currently built library
@@ -130,10 +142,32 @@ all: $(LIB_TAG)
 #
 $(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
 
-$(LIB_TAG): $(LIB_A) $(LIB_SO) $(INSTALL_SO) $(LIB_RLIB)
+$(LIB_TAG): $(LIB_A) $(LIB_SO) $(ABI_SO) $(INSTALL_SO)
 	@touch $@
 
 include $(BASE_DIR)/mk/generic.mk
+
+#
+# Rust support
+#
+# For a rust library, we create both an actual library (lib.a or lib.so) that
+# is used for linking the final binary, and an rlib file that is required for
+# compiling rust source codes that use the library. As the rlib is created from
+# the file specified at 'SRC_RS' via the pattern rule '%.rlib: %.rs', its name
+# corresponds to the source file, not the library name. To enable rustc to find
+# the library when compiling dependent compilation units, we create an
+# appropriately named symlink that points to the rlib file.
+#
+ifneq ($(SRC_RS),)
+ifneq ($(words $(SRC_RS)),1)
+$(error 'SRC_RC' of library $(LIB) has more than one element: $(SRC_RC))
+endif
+$(LIB_A): $(LIB).rlib
+endif
+
+.PRECIOUS: $(SRC_RC:.rs=.rlib)
+$(LIB).rlib: $(SRC_RS:.rs=.rlib)
+	$(VERBOSE)ln -s $< $@
 
 #
 # Rule to build the <libname>.lib.a file
@@ -147,70 +181,63 @@ $(LIB_A): $(OBJECTS)
 	$(MSG_MERGE)$(LIB_A)
 	$(VERBOSE)$(RM) -f $@
 	$(VERBOSE)$(AR) -rcs $@ $(OBJECTS)
+
 #
-# Rename from object to rlib
+# Link ldso-startup library to each shared library
 #
-$(LIB_RLIB):  $(OBJECTS)
-	$(MSG_RENAME)$(LIB_RLIB)
-	$(VERBOSE)cp $(OBJECTS) $(LIB_RLIB)
+ifdef SHARED_LIB
+override ARCHIVES += ldso-startup.lib.a
+endif
 
 #
 # Don't link base libraries against shared libraries except for ld.lib.so
 #
-ifdef SHARED_LIB
 ifneq ($(LIB_IS_DYNAMIC_LINKER),yes)
-override DEPS := $(filter-out $(BASE_LIBS:=.lib),$(DEPS))
-endif
+override ARCHIVES := $(filter-out $(BASE_LIBS:=.lib.a),$(ARCHIVES))
 endif
 
 #
 # The 'sort' is needed to ensure the same link order regardless
 # of the find order, which uses to vary among different systems.
 #
-STATIC_LIBS := $(foreach l,$(DEPS:.lib=),$(LIB_CACHE_DIR)/$l/$l.lib.a)
-STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
+STATIC_LIBS       := $(sort $(foreach l,$(ARCHIVES:.lib.a=),$(LIB_CACHE_DIR)/$l/$l.lib.a))
 STATIC_LIBS_BRIEF := $(subst $(LIB_CACHE_DIR),$$libs,$(STATIC_LIBS))
 
 #
 # Rule to build the <libname>.lib.so file
 #
-# The 'LIBS' variable may contain static and shared sub libraries. When linking
-# the shared library, we have to link all shared sub libraries to the library
-# to store the library-dependency information in the library. Because we do not
-# know which sub libraries are static or shared prior calling 'build_libs.mk',
-# we use an explicit call to the 'lib_so_wildcard' macro to determine the subset
-# of libraries that are shared.
+# When linking the shared library, we have to link all shared sub libraries
+# (LIB_SO_DEPS) to the library to store the library-dependency information in
+# the generated shared object.
 #
 # The 'ldso-startup/startup.o' object file, which contains the support code for
 # constructing static objects must be specified as object file to prevent the
 # linker from garbage-collecting it.
 #
 
-USED_SHARED_LIBS := $(filter $(DEPS:.lib=),$(SHARED_LIBS))
-USED_SO_FILES    := $(foreach s,$(USED_SHARED_LIBS),$(LIB_CACHE_DIR)/$s/$s.lib.so)
-
-#
-# Don't link ld libary against shared objects
-#
-USED_SO_FILES    := $(filter-out %$(DYNAMIC_LINKER).lib.so,$(USED_SO_FILES))
-
 #
 # Default entry point of shared libraries
 #
-ENTRY_POINT      ?= 0x0
+ENTRY_POINT ?= 0x0
 
-$(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO))
+$(LIB_SO) $(ABI_SO): $(SHARED_LIBS)
+
+$(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO)) $(LIB_SO_DEPS)
 	$(MSG_MERGE)$(LIB_SO)
 	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD) -o $(LIB_SO) -shared --eh-frame-hdr \
-	                $(LD_OPT) \
-	                -T $(LD_SCRIPT_SO) \
-	                --entry=$(ENTRY_POINT) \
-	                --whole-archive \
-	                --start-group \
-	                $(USED_SO_FILES) $(STATIC_LIBS_BRIEF) $(OBJECTS) \
-	                --end-group \
-	                --no-whole-archive \
+	                $(LD_OPT) -T $(LD_SCRIPT_SO) --entry=$(ENTRY_POINT) \
+	                --whole-archive --start-group \
+	                $(SHARED_LIBS) $(STATIC_LIBS_BRIEF) $(OBJECTS) \
+	                --end-group --no-whole-archive \
 	                $(LIBGCC)
+
+$(ABI_SO): $(LIB).symbols.o
+	$(MSG_MERGE)$(ABI_SO)
+	$(VERBOSE)$(LD) -o $(ABI_SO) -shared --eh-frame-hdr $(LD_OPT) \
+	                -T $(LD_SCRIPT_SO) \
+	                --whole-archive --start-group \
+	                $(LIB_SO_DEPS) $< \
+	                --end-group --no-whole-archive
 
 $(INSTALL_SO):
 	$(VERBOSE)ln -sf $(CURDIR)/$(LIB_SO) $@

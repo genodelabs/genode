@@ -11,6 +11,8 @@
 ##   VERBOSE          - build verboseness modifier
 ##   VERBOSE_DIR      - verboseness modifier for changing directories
 ##   VERBOSE_MK       - verboseness of make calls
+##   SHARED_LIBS      - shared-library dependencies of the target
+##   ARCHIVES         - archive dependencies of the target
 ##   LIB_CACHE_DIR    - library build cache location
 ##
 
@@ -18,11 +20,6 @@
 # Prevent target.mk rules to be executed as default rule
 #
 all:
-
-#
-# Tell rust to make an object file instead of anything else
-#
-CC_RUSTC_OPT += --emit obj
 
 #
 # Include common utility functions
@@ -62,7 +59,6 @@ endif
 #
 CXX_LINK_OPT += $(CC_MARCH)
 
-
 #
 # Generic linker script for statically linked binaries
 #
@@ -96,22 +92,13 @@ FORCE:
 $(SRC_ADA:.adb=.o): FORCE
 
 #
-# The 'sort' is needed to ensure the same link order regardless
-# of the find order, which uses to vary among different systems.
-#
-SHARED_LIBS := $(foreach l,$(DEPS:.lib=),$(LIB_CACHE_DIR)/$l/$l.lib.so)
-SHARED_LIBS := $(sort $(wildcard $(SHARED_LIBS)))
-
-#
 # Use CXX for linking
 #
 LD_CMD ?= $(CXX)
-
 LD_CMD += $(CXX_LINK_OPT)
 
 ifeq ($(SHARED_LIBS),)
-FILTER_DEPS := $(DEPS:.lib=)
-LD_SCRIPTS  := $(LD_SCRIPT_STATIC)
+LD_SCRIPTS := $(LD_SCRIPT_STATIC)
 else
 
 #
@@ -119,22 +106,14 @@ else
 #
 LD_OPT += --dynamic-list=$(call select_from_repositories,src/ld/genode_dyn.dl)
 
-LD_SCRIPTS  := $(LD_SCRIPT_DYN)
-LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
-               -Wl,--eh-frame-hdr
+LD_SCRIPTS := $(LD_SCRIPT_DYN)
+LD_CMD     += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
+              -Wl,--eh-frame-hdr -Wl,-rpath-link=.
 
 #
 # Filter out the base libraries since they will be provided by the LDSO library
 #
-FILTER_DEPS := $(filter-out $(BASE_LIBS),$(DEPS:.lib=))
-SHARED_LIBS += $(LIB_CACHE_DIR)/$(DYNAMIC_LINKER)/$(DYNAMIC_LINKER).lib.so
-
-#
-# Build program position independent as well
-#
-CC_OPT_PIC ?= -fPIC
-CC_OPT     += $(CC_OPT_PIC)
-
+override ARCHIVES := $(filter-out $(BASE_LIBS:=.lib.a),$(ARCHIVES))
 endif
 
 #
@@ -142,7 +121,7 @@ endif
 # commas othwerwise. For compatibilty with older tool chains, we use two -Wl
 # parameters for both components of the linker command line.
 #
-LD_SCRIPT_PREFIX  = -Wl,-T -Wl,
+LD_SCRIPT_PREFIX := -Wl,-T -Wl,
 
 #
 # LD_SCRIPTS may be a list of linker scripts (e.g., in base-linux). Further,
@@ -151,26 +130,7 @@ LD_SCRIPT_PREFIX  = -Wl,-T -Wl,
 #
 LD_CMD += $(addprefix $(LD_SCRIPT_PREFIX), $(LD_SCRIPTS))
 
-STATIC_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.lib.a)
-STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
-
-#
-# --whole-archive does not work with rlibs
-#
-RUST_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.rlib)
-RUST_LIBS :=  $(sort $(wildcard $(RUST_LIBS))) 
-SHORT_RUST_LIBS := $(subst $(LIB_CACHE_DIR),$$libs,$(RUST_LIBS))
-
-#
-# For hybrid Linux/Genode programs, prevent the linkage Genode's cxx and base
-# library because these functionalities are covered by the glibc or by
-# 'src/platform/lx_hybrid.cc'.
-#
-ifeq ($(USE_HOST_LD_SCRIPT),yes)
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/startup/startup.lib.a, $(STATIC_LIBS))
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/base/base.lib.a,       $(STATIC_LIBS))
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,         $(STATIC_LIBS))
-endif
+STATIC_LIBS := $(foreach l,$(ARCHIVES:.lib.a=),$(LIB_CACHE_DIR)/$l/$l.lib.a)
 
 #
 # We need the linker option '--whole-archive' to make sure that all library
@@ -184,7 +144,7 @@ endif
 # would go undetected if the search stops after the first match.
 #
 LINK_ITEMS       := $(OBJECTS) $(STATIC_LIBS) $(SHARED_LIBS)
-SHORT_LINK_ITEMS := $(subst $(LIB_CACHE_DIR),$$libs,$(LINK_ITEMS))
+LINK_ITEMS_BRIEF := $(subst $(LIB_CACHE_DIR),$$libs,$(LINK_ITEMS))
 
 #
 # Trigger the build of host tools
@@ -192,10 +152,9 @@ SHORT_LINK_ITEMS := $(subst $(LIB_CACHE_DIR),$$libs,$(LINK_ITEMS))
 $(LINK_ITEMS) $(TARGET): $(HOST_TOOLS)
 
 LD_CMD += -Wl,--whole-archive -Wl,--start-group
-LD_CMD += $(SHORT_LINK_ITEMS)
+LD_CMD += $(LINK_ITEMS_BRIEF)
 LD_CMD += $(EXT_OBJECTS)
 LD_CMD += -Wl,--no-whole-archive
-LD_CMD += $(SHORT_RUST_LIBS)
 LD_CMD += -Wl,--end-group
 
 #
@@ -211,7 +170,7 @@ LD_CMD += $(LD_LIBGCC)
 # $(TARGET).
 #
 ifneq ($(OBJECTS),)
-$(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS))
+$(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS)) $(LIB_SO_DEPS)
 	$(MSG_LINK)$(TARGET)
 	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD_CMD) -o $@
 
@@ -225,6 +184,6 @@ endif
 clean_prg_objects:
 	$(MSG_CLEAN)$(PRG_REL_DIR)
 	$(VERBOSE)$(RM) -f $(OBJECTS) $(OBJECTS:.o=.d) $(TARGET)
-	$(VERBOSE)$(RM) -f *.d *.i *.ii *.s *.ali
+	$(VERBOSE)$(RM) -f *.d *.i *.ii *.s *.ali *.lib.so
 
 clean: clean_prg_objects

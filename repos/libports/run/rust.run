@@ -18,7 +18,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core init test-rust ld.lib.so libc.lib.so"
+build_boot_image "core init test-rust ld.lib.so libc.lib.so libm.lib.so"
 
 append qemu_args "-nographic -m 64"
 

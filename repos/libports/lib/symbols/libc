@@ -3,12 +3,15 @@ ___tolower T
 ___toupper T
 __assert T
 __error T
+__flt_rounds T
+__fpclassifyd T
+__inet_addr T
 __inet_aton T
+__inet_nsap_ntoa T
 __inet_ntoa T
 __inet_ntop T
-__inet_nsap_ntoa T
 __inet_pton T
-__isthreaded B
+__isthreaded B 4
 __mb_cur_max D 8
 __srget T
 __stderrp D 8
@@ -110,7 +113,7 @@ endnetgrent T
 endpwent W
 endttyent T
 endusershell T
-environ B
+environ B 8
 erand48 T
 err W
 err_set_exit T
@@ -436,11 +439,11 @@ offtime T
 open T
 opendir T
 openlog T
-optarg B
+optarg B 8
 opterr D 4
 optind D 4
-optopt B
-optreset B
+optopt B 4
+optreset B 4
 pathconf W
 pause W
 pclose T
@@ -726,18 +729,18 @@ strunvisx T
 strvis T
 strvisx T
 strxfrm T
-suboptarg B
+suboptarg B 8
 swab T
 swapcontext W
 swprintf T
 swscanf T
 symlink T
 sync W
-sys_errlist D 376
+sys_errlist D 752
 sys_nerr R
 sys_nsig R
-sys_siglist D 128
-sys_signame D 128
+sys_siglist D 256
+sys_signame D 256
 sysconf T
 sysctl T
 sysctlbyname T
@@ -779,7 +782,7 @@ ttyname T
 ttyname_r T
 ttyslot T
 twalk T
-tzname D 8
+tzname D 16
 tzset T
 tzsetwall T
 ualarm T
@@ -888,8 +891,8 @@ xsi_sigpause T
 # Symbols needed by libm
 #
 __mb_sb_limit D 4
-_DefaultRuneLocale D 3156
-_CurrentRuneLocale D 4
+_DefaultRuneLocale D 4224
+_CurrentRuneLocale D 8
 __isinff T
 __isinfl T
 
@@ -897,10 +900,18 @@ __isinfl T
 #
 # Symbols needed by libc-resolv
 #
+__inet_nsap_addr T
+_accept T
+_bind T
 _close T
 _connect T
+_fcntl T
+_fstat T
 _getpeername T
 _getsockname T
+_getsockopt T
+_listen T
+_nanosleep W
 _pthread_getspecific W
 _pthread_key_create W
 _pthread_main_np W
@@ -913,9 +924,12 @@ _pthread_rwlock_wrlock W
 _pthread_setspecific W
 _read T
 _recvfrom T
+_select W
 _sendto T
 _setsockopt T
+_sigprocmask W
 _socket T
+_write T
 _writev T
 
 

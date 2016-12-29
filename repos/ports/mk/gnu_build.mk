@@ -86,8 +86,10 @@ endif
 CONFIGURE_ARGS += $(CONFIGURE_VERBOSE)
 
 LDFLAGS += -nostdlib $(CXX_LINK_OPT) $(CC_MARCH) -Wl,-T$(LD_SCRIPT_DYN) \
-                -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
-                -Wl,--eh-frame-hdr
+           -Wl,-rpath-link=$(PWD) \
+           -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
+           -Wl,--eh-frame-hdr
+
 LIBTOOLFLAGS = --preserve-dup-deps
 
 LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
@@ -99,7 +101,7 @@ CPPFLAGS += -D_GNU_SOURCE=1
 COMMON_CFLAGS_CXXFLAGS += -ffunction-sections $(CC_OLEVEL) $(CC_MARCH)
 COMMON_CFLAGS_CXXFLAGS += -g
 
-CFLAGS += $(COMMON_CFLAGS_CXXFLAGS)
+CFLAGS   += $(COMMON_CFLAGS_CXXFLAGS)
 CXXFLAGS += $(COMMON_CFLAGS_CXXFLAGS)
 
 #
@@ -107,8 +109,8 @@ CXXFLAGS += $(COMMON_CFLAGS_CXXFLAGS)
 # Unfortunately, the use of '--start-group' and '--end-group' does not suffice
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
-LDLIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
-LDLIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
+LDLIBS_A  = $(filter %.a, $(sort $(STATIC_LIBS)) $(EXT_OBJECTS) $(LIBGCC))
+LDLIBS_SO = $(addprefix $(PWD)/,$(sort $(SHARED_LIBS)))
 LDLIBS   += $(LDLIBS_A) $(LDLIBS_SO) $(LDLIBS_A)
 
 #
@@ -119,7 +121,7 @@ Makefile reconfigure: $(MAKEFILE_LIST)
 #
 # Invoke configure script with the Genode environment
 #
-Makefile reconfigure: env.sh
+Makefile reconfigure: env.sh $(SHARED_LIBS)
 	@$(MSG_CONFIG)$(TARGET)
 	$(VERBOSE)source env.sh && $(PKG_DIR)/configure $(ENV) $(CONFIGURE_ARGS) $(CONFIGURE_OUTPUT_FILTER)
 

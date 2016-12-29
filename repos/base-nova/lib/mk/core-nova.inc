@@ -1,4 +1,4 @@
-LIBS         = base-nova-common
+LIBS         = base-nova-common cxx
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 

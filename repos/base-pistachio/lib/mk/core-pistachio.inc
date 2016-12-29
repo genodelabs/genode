@@ -1,4 +1,4 @@
-LIBS         = base-pistachio-common syscall-pistachio
+LIBS         = base-pistachio-common syscall-pistachio cxx
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 

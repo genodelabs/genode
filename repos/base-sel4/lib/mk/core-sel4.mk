@@ -36,7 +36,7 @@ SRC_CC      += \
                capability_space.cc \
                pager.cc
 
-LIBS        += base-sel4-common syscall-sel4
+LIBS        += base-sel4-common syscall-sel4 cxx
 
 INC_DIR     += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
                $(REP_DIR)/src/include      $(BASE_DIR)/src/include

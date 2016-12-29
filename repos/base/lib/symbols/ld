@@ -184,8 +184,8 @@ _ZN6Genode18Signal_transmitterC1ENS_10CapabilityINS_14Signal_contextEEE T
 _ZN6Genode18Signal_transmitterC2ENS_10CapabilityINS_14Signal_contextEEE T
 _ZN6Genode18server_socket_pairEv T
 _ZN6Genode20env_session_id_spaceEv T
-_ZN6Genode25env_stack_area_region_mapE B
-_ZN6Genode26env_stack_area_ram_sessionE B
+_ZN6Genode25env_stack_area_region_mapE B 4
+_ZN6Genode26env_stack_area_ram_sessionE B 4
 _ZN6Genode29upgrade_pd_quota_non_blockingEm T
 _ZN6Genode3Log3logEv T
 _ZN6Genode3Log8_acquireENS0_4TypeE T
@@ -618,8 +618,8 @@ dl_iterate_phdr T
 dl_unwind_find_exidx T
 genode_argc D 4
 genode_argv D 8
-genode_envp B
-lx_environ B
+genode_envp B 4
+lx_environ B 4
 memcpy W
 memmove W
 memset W

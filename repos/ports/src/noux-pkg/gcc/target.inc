@@ -60,4 +60,4 @@ include $(REP_DIR)/mk/noux.mk
 # Unfortunately, the use of '--start-group' and '--end-group' does not suffice
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
-LDLIBS += -Wl,--start-group $(sort $(LINK_ITEMS)) $(sort $(LINK_ITEMS)) $(LIBGCC) -Wl,--end-group
+LDLIBS += -Wl,--start-group $(sort $(STATIC_LIBS)) $(sort $(STATIC_LIBS)) $(LIBGCC) -Wl,--end-group

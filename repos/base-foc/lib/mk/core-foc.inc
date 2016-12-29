@@ -1,6 +1,6 @@
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-LIBS        += base-foc-common syscall-foc
+LIBS        += base-foc-common syscall-foc cxx
 
 SRC_CC      += stack_area.cc \
                core_log.cc \
