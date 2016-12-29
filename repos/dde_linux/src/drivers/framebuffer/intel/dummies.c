@@ -406,6 +406,11 @@ void gpio_set_value(unsigned int gpio, int value)
 	TRACE_AND_STOP;
 }
 
+void ips_link_to_i915_driver(void)
+{
+	TRACE_AND_STOP;
+}
+
 void i915_audio_component_cleanup(struct drm_i915_private *dev_priv)
 {
 	TRACE_AND_STOP;
