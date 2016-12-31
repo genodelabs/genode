@@ -10,8 +10,11 @@
 # type, and size
 #
 
+# normalize sort order across platforms
+set env(LC_COLLATE) C
+
 # obtain symbol information via 'nm'
-set symbols [exec nm --format posix --dynamic $argv]
+set symbols [exec nm --format posix --dynamic $argv | sort]
 
 # obtain demangled input via c++filt
 set demangled [exec c++filt << $symbols]
@@ -29,7 +32,7 @@ foreach line [split $symbols "\n"] {
 	regexp {^(\w+) U\s*$} $line dummy name
 
 	# match defined symbol, which does not always feature a size value
-	regexp {^(\w+) (\w) \w+ ?(\w*)$} $line dummy name type size_hex
+	regexp {^([\w.]+) (\w) \w+ ?(\w*)$} $line dummy name type size_hex
 
 	# decimal symbol size
 	set size_dec [expr 0x0$size_hex]
