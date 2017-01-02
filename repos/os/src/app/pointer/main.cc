@@ -15,8 +15,8 @@
 #include <nitpicker_session/connection.h>
 #include <os/surface.h>
 #include <os/pixel_rgb565.h>
-#include <os/attached_dataspace.h>
-#include <base/sleep.h>
+#include <base/attached_dataspace.h>
+#include <base/component.h>
 
 /* local includes */
 #include "big_mouse.h"
@@ -42,9 +42,9 @@ void convert_cursor_data_to_pixels(PT *pixel, Nitpicker::Area size)
 }
 
 
-int main(int, char **)
+void Component::construct(Genode::Env &env)
 {
-	static Nitpicker::Connection nitpicker;
+	static Nitpicker::Connection nitpicker { env, "cursor" };
 
 	Nitpicker::Area const cursor_size(big_mouse.w, big_mouse.h);
 
@@ -52,15 +52,15 @@ int main(int, char **)
 	                             Framebuffer::Mode::RGB565);
 	nitpicker.buffer(mode, true);
 
-	static Genode::Attached_dataspace ds(nitpicker.framebuffer()->dataspace());
+	Genode::Attached_dataspace ds(
+		env.rm(), nitpicker.framebuffer()->dataspace());
 
-	convert_cursor_data_to_pixels(ds.local_addr<Genode::Pixel_rgb565>(), cursor_size);
+	convert_cursor_data_to_pixels(
+		ds.local_addr<Genode::Pixel_rgb565>(), cursor_size);
 
 	Nitpicker::Session::View_handle view = nitpicker.create_view();
 	Nitpicker::Rect geometry(Nitpicker::Point(0, 0), cursor_size);
 	nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(view, geometry);
 	nitpicker.enqueue<Nitpicker::Session::Command::To_front>(view);
 	nitpicker.execute();
-
-	Genode::sleep_forever();
 }
