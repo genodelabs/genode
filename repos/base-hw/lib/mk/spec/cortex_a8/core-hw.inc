@@ -14,5 +14,7 @@ SRC_CC += spec/arm/kernel/cpu.cc
 SRC_CC += spec/arm/kernel/thread_update_pd.cc
 SRC_CC += kernel/kernel.cc
 
+NR_OF_CPUS = 1
+
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/spec/arm_v7/core-hw.inc

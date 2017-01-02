@@ -11,5 +11,7 @@ SRC_CC += spec/arm_gic/pic.cc
 SRC_CC += kernel/vm_thread_off.cc
 SRC_CC += platform_services.cc
 
+NR_OF_CPUS = 1
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/exynos5/core-hw.inc

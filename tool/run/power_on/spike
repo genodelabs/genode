@@ -5,7 +5,7 @@ source [genode_dir]/tool/run/spike.inc
 
 proc is_spike_available { } {
 
-	if {[have_spec platform_riscv]} { return true }
+	if {[have_spec riscv]} { return true }
 
 	puts stderr "skipping execution because platform is not supported by spike"
 	return false

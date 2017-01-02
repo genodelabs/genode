@@ -13,5 +13,7 @@ INC_DIR += $(REP_DIR)/src/core/include/spec/tl16c750
 SRC_CC += platform_services.cc
 SRC_CC += spec/panda/platform_support.cc
 
+NR_OF_CPUS += 2
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/cortex_a9/core-hw.inc

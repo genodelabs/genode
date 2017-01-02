@@ -31,7 +31,7 @@ usage:
 	@echo "                  'wand_quad'"
 	@echo "                  'odroid_xu'"
 	@echo "                  'odroid_x2'"
-	@echo "                  'zynq'"
+	@echo "                  'zynq_qemu'"
 	@echo "                  'muen'"
 	@echo "                  'riscv_spike'"
 	@echo "                  'linux'"
@@ -62,7 +62,7 @@ usage:
 	@echo "                  'hw_usb_armory'   (use 'usb_armory')"
 	@echo "                  'hw_wand_quad'    (use 'wand_quad')"
 	@echo "                  'hw_odroid_xu'    (use 'odroid_xu')"
-	@echo "                  'hw_zynq'         (use 'zynq')"
+	@echo "                  'hw_zynq'         (use 'zynq_qemu')"
 	@echo "                  'hw_x86_64_muen'  (use 'muen')"
 	@echo "                  'hw_riscv'        (use 'riscv_spike')"
 	@echo "                  'foc_odroid_x2'   (use 'odroid_x2')"
@@ -131,7 +131,7 @@ BUILD_CONF(usb_armory)   := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(wand_quad)    := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(odroid_xu)    := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(odroid_x2)    := run_kernel_foc    run_boot_dir repos
-BUILD_CONF(zynq)         := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_opt_arm repos
+BUILD_CONF(zynq_qemu)    := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_opt_arm repos
 BUILD_CONF(muen)         := run_kernel_hw run_opt_muen        run_boot_dir repos
 BUILD_CONF(riscv_spike)  := run_kernel_hw run_opt_spike       run_boot_dir repos
 BUILD_CONF(linux)        := run_kernel_linux repos
@@ -162,7 +162,7 @@ BUILD_CONF(hw_imx53_qsb_tz) := ${BUILD_CONF(imx53_qsb_tz)}
 BUILD_CONF(hw_usb_armory)   := ${BUILD_CONF(usb_armory)}
 BUILD_CONF(hw_wand_quad)    := ${BUILD_CONF(wand_quad)}
 BUILD_CONF(hw_odroid_xu)    := ${BUILD_CONF(odroid_xu)}
-BUILD_CONF(hw_zynq)         := ${BUILD_CONF(zynq)}
+BUILD_CONF(hw_zynq)         := ${BUILD_CONF(zynq_qemu)}
 BUILD_CONF(hw_x86_64_muen)  := ${BUILD_CONF(muen)}
 BUILD_CONF(hw_riscv)        := ${BUILD_CONF(riscv_spike)}
 BUILD_CONF(foc_odroid_x2)   := ${BUILD_CONF(odroid_x2)}
@@ -209,14 +209,14 @@ SPECS(panda)        := panda
 SPECS(rpi)          := rpi
 SPECS(arndale)      := arndale
 SPECS(imx53_qsb)    := imx53_qsb
-SPECS(imx53_qsb_tz) := imx53_qsb_tz
-SPECS(usb_armory)   := hw_usb_armory usb_armory
-SPECS(wand_quad)    := hw_wand_quad wand_quad
-SPECS(odroid_xu)    := hw_odroid_xu odroid_xu
+SPECS(imx53_qsb_tz) := imx53_qsb trustzone
+SPECS(usb_armory)   := usb_armory
+SPECS(wand_quad)    := wand_quad
+SPECS(odroid_xu)    := odroid_xu
 SPECS(odroid_x2)    := foc_odroid_x2 odroid_x2
-SPECS(zynq_qemu)    := hw_zynq zynq_qemu
-SPECS(muen)         := hw_x86_64_muen muen x86_64
-SPECS(riscv_spike)  := hw_riscv riscv
+SPECS(zynq_qemu)    := zynq_qemu
+SPECS(muen)         := muen x86_64
+SPECS(riscv_spike)  := riscv
 SPECS(linux)        := $(HOST_SPEC_ARCH)
 
 # deprecated platforms
@@ -227,27 +227,27 @@ SPECS(okl4_x86)        :=
 SPECS(pistachio_x86)   :=
 SPECS(nova_x86_32)     := nova_x86_32 x86_32 acpi
 SPECS(nova_x86_64)     := nova_x86_64 x86_64 acpi
-SPECS(hw_x86_64)       := hw_x86_64 x86_64 acpi
+SPECS(hw_x86_64)       := ${SPECS(x86_64)}
 SPECS(foc_x86_32)      := foc_x86_32 x86_32 acpi
 SPECS(foc_x86_64)      := foc_x86_64 x86_64 acpi
 SPECS(sel4_x86_32)     := sel4_x86_32 x86_32 acpi
-SPECS(hw_panda)        := hw_panda panda perf_counter
+SPECS(hw_panda)        := ${SPECS(panda)}
 SPECS(foc_panda)       := foc_panda panda
-SPECS(hw_pbxa9)        := hw_pbxa9 pbxa9 perf_counter
+SPECS(hw_pbxa9)        := ${SPECS(pbxa9)}
 SPECS(foc_pbxa9)       := foc_pbxa9 pbxa9
-SPECS(hw_rpi)          := hw_rpi rpi perf_counter
+SPECS(hw_rpi)          := ${SPECS(rpi)}
 SPECS(foc_rpi)         := foc_rpi rpi
-SPECS(hw_arndale)      := hw_arndale arndale perf_counter
+SPECS(hw_arndale)      := ${SPECS(arndale)}
 SPECS(foc_arndale)     := foc_arndale arndale
-SPECS(hw_imx53_qsb)    := hw_imx53_qsb imx53_qsb perf_counter
+SPECS(hw_imx53_qsb)    := ${SPECS(imx53_qsb)}
 SPECS(foc_imx53)       := foc_imx53 imx53_qsb
-SPECS(hw_imx53_qsb_tz) := hw_imx53_qsb_tz imx53_qsb_tz perf_counter
-SPECS(hw_usb_armory)   := hw_usb_armory usb_armory perf_counter
-SPECS(hw_wand_quad)    := hw_wand_quad wand_quad perf_counter
-SPECS(hw_odroid_xu)    := hw_odroid_xu odroid_xu perf_counter
-SPECS(hw_zynq)         := hw_zynq zynq perf_counter zynq_qemu
-SPECS(hw_x86_64_muen)  := hw_x86_64_muen x86_64 muen
-SPECS(hw_riscv)        := hw_riscv riscv
+SPECS(hw_imx53_qsb_tz) := ${SPECS(imx53_qsb_tz)}
+SPECS(hw_usb_armory)   := ${SPECS(usb_armory)}
+SPECS(hw_wand_quad)    := ${SPECS(wand_quad)}
+SPECS(hw_odroid_xu)    := ${SPECS(odroid_xu)}
+SPECS(hw_zynq)         := ${SPECS(zynq_qemu)}
+SPECS(hw_x86_64_muen)  := ${SPECS(muen)}
+SPECS(hw_riscv)        := ${SPECS(riscv_spike)}
 SPECS(foc_odroid_x2)   := foc_odroid_x2 odroid_x2
 
 ifneq (${SPECS(${PLATFORM})},)

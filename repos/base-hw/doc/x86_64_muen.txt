@@ -34,7 +34,7 @@ the following commands:
 The next step is to create a build directory prepared for compiling Genode for
 Muen. Use the create_builddir tool for this task:
 
-! ./tool/create_builddir hw_x86_64_muen
+! ./tool/create_builddir muen
 
 You can customize Muen system by changing the --image-muen RUN_OPT parameters
 in the 'build.conf' file in the build directory under build/etc.
@@ -66,7 +66,7 @@ generate a new configuration.
 
 You can now change to the created build directory and compile a Genode system:
 
-! cd build/hw_x86_64_muen/
+! cd build/muen/
 ! make run/printf
 
 Once the build is done, the Muen system which contains the Genode scenario is

@@ -12,5 +12,7 @@ INC_DIR += $(REP_DIR)/src/core/include/spec/pl011
 SRC_CC += platform_services.cc
 SRC_CC += spec/rpi/platform_support.cc
 
+NR_OF_CPUS = 1
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/arm_v6/core-hw.inc

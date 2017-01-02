@@ -20,5 +20,7 @@ SRC_CC += spec/arm_v7/virtualization/vm_session_component.cc
 # add assembly sources
 SRC_S += spec/arm_v7/virtualization/mode_transition.s
 
+NR_OF_CPUS = 2
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/exynos5/core-hw.inc

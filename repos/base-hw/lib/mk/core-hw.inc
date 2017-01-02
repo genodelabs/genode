@@ -60,6 +60,9 @@ SRC_CC += capability.cc
 # provide Genode version information
 include $(BASE_DIR)/src/core/version.inc
 
+# configure multiprocessor mode
+CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
+
 # declare source locations
 vpath % $(BASE_DIR)/../base-hw/src/core
 vpath % $(BASE_DIR)/src/core

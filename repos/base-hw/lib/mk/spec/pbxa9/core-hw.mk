@@ -14,5 +14,7 @@ SRC_CC += platform_services.cc
 SRC_CC += spec/pbxa9/platform_support.cc
 SRC_CC += spec/pbxa9/board.cc
 
+NR_OF_CPUS = 1
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/cortex_a9/core-hw.inc
