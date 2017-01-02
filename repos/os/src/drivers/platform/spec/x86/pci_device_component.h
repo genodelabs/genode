@@ -34,22 +34,25 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 {
 	private:
 
+		Genode::Env                 &_env;
 		Device_config                _device_config;
 		Genode::addr_t               _config_space;
-		Config_access                _config_access;
-		Genode::Rpc_entrypoint      &_ep;
+		Config_access                _config_access = { _env };
 		Platform::Session_component &_session;
 		unsigned short               _irq_line;
 		Irq_session_component       *_irq_session = nullptr;
 
 		Genode::Constructible<Genode::Io_mem_connection> _io_mem_config_extended;
 
+		Genode::Allocator           &_global_heap;
+
 		class Io_mem : public Genode::Io_mem_connection,
 		               public Genode::List<Io_mem>::Element
 		{
 			public:
-				Io_mem (Genode::addr_t base, Genode::size_t size, bool wc)
-				: Genode::Io_mem_connection(base, size, wc) { }
+				Io_mem (Genode::Env &env, Genode::addr_t base,
+			            Genode::size_t size, bool wc)
+				: Genode::Io_mem_connection(env, base, size, wc) { }
 		};
 
 		enum {
@@ -182,15 +185,18 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		/**
 		 * Constructor
 		 */
-		Device_component(Device_config device_config, Genode::addr_t addr,
-		                 Genode::Rpc_entrypoint &ep,
+		Device_component(Genode::Env &env,
+		                 Device_config device_config, Genode::addr_t addr,
 		                 Platform::Session_component &session,
-		                 Genode::Allocator &md_alloc)
+		                 Genode::Allocator &md_alloc,
+		                 Genode::Allocator &global_heap)
 		:
+			_env(env),
 			_device_config(device_config), _config_space(addr),
-			_ep(ep), _session(session),
+			_session(session),
 			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
 			                              Platform::Device::ACCESS_8BIT)),
+			_global_heap(global_heap),
 			_slab_ioport(&md_alloc, &_slab_ioport_block_data),
 			_slab_iomem(&md_alloc, &_slab_iomem_block_data)
 		{
@@ -204,12 +210,15 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		/**
 		 * Constructor for non PCI devices
 		 */
-		Device_component(Genode::Rpc_entrypoint &ep,
-		                 Platform::Session_component &session, unsigned irq)
+		Device_component(Genode::Env &env,
+		                 Platform::Session_component &session, unsigned irq,
+		                 Genode::Allocator &global_heap)
 		:
+			_env(env),
 			_config_space(~0UL),
-			_ep(ep), _session(session),
+			_session(session),
 			_irq_line(irq),
+			_global_heap(global_heap),
 			_slab_ioport(nullptr, &_slab_ioport_block_data),
 			_slab_iomem(nullptr, &_slab_iomem_block_data)
 		{
@@ -223,7 +232,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 		~Device_component()
 		{
 			if (_irq_session) {
-				_ep.dissolve(_irq_session);
+				_env.ep().rpc_ep().dissolve(_irq_session);
 				_irq_session->~Irq_session();
 			}
 
@@ -254,7 +263,7 @@ class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
 
 			if (!_io_mem_config_extended.constructed()) {
 				try {
-					_io_mem_config_extended.construct(_config_space, 0x1000);
+					_io_mem_config_extended.construct(_env, _config_space, 0x1000);
 				} catch (...) {
 					_config_space = ~0UL;
 				}

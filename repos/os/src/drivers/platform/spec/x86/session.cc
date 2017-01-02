@@ -33,57 +33,40 @@ unsigned short Platform::bridge_bdf(unsigned char bus)
 	return 0;
 }
 
-
-/**
- * Check if given PCI bus was found on initial scan
- *
- * This tremendously speeds up further scans by other drivers.
- */
-bool Platform::bus_valid(int bus) 
+void Platform::Pci_buses::scan_bus(Config_access &config_access,
+                                   Genode::Allocator &heap, unsigned char bus)
 {
-	struct Valid_buses
-	{
-		bool valid[Device_config::MAX_BUSES];
+	for (int dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
+		for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
 
-		void scan_bus(Config_access &config_access, unsigned char bus = 0)
-		{
-			for (int dev = 0; dev < Device_config::MAX_DEVICES; ++dev) {
-				for (int fun = 0; fun < Device_config::MAX_FUNCTIONS; ++fun) {
+			/* read config space */
+			Device_config config(bus, dev, fun, &config_access);
 
-					/* read config space */
-					Device_config config(bus, dev, fun, &config_access);
+			if (!config.valid())
+				continue;
 
-					if (!config.valid())
-						continue;
+			/*
+			 * There is at least one device on the current bus, so
+			 * we mark it as valid.
+			 */
+			if (!_valid.get(bus, 1))
+				_valid.set(bus, 1);
 
-					/*
-					 * There is at least one device on the current bus, so
-					 * we mark it as valid.
-					 */
-					valid[bus] = true;
+			/* scan behind bridge */
+			if (config.pci_bridge()) {
+				/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
+				unsigned char sec_bus = config.read(&config_access, 0x19,
+				                                    Device::ACCESS_8BIT);
+				unsigned char sub_bus = config.read(&config_access, 0x20,
+				                                    Device::ACCESS_8BIT);
 
-					/* scan behind bridge */
-					if (config.pci_bridge()) {
-						/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
-						unsigned char sec_bus = config.read(&config_access,
-						                          0x19, Device::ACCESS_8BIT);
-						unsigned char sub_bus = config.read(&config_access,
-						                          0x20, Device::ACCESS_8BIT);
+				bridges()->insert(new (heap) Bridge(bus, dev, fun, sec_bus,
+				                                    sub_bus));
 
-						bridges()->insert(new (Genode::env()->heap()) Bridge(bus, dev, fun, sec_bus, sub_bus));
-
-						scan_bus(config_access, sec_bus);
-					}
-				}
+				scan_bus(config_access, heap, sec_bus);
 			}
 		}
-
-		Valid_buses() { Config_access c; scan_bus(c); }
-	};
-
-	static Valid_buses buses;
-
-	return buses.valid[bus];
+	}
 }
 
 

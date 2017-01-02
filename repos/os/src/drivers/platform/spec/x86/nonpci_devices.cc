@@ -36,12 +36,14 @@ class Nonpci::Ps2 : public Platform::Device_component
 
 	public:
 
-		Ps2(Genode::Rpc_entrypoint &ep, Platform::Session_component &session)
+		Ps2(Genode::Env &env, Platform::Session_component &session,
+		    Genode::Allocator &heap_for_irq)
 		:
-			Platform::Device_component(ep, session, IRQ_KEYBOARD),
-			_ep(ep),
-			_irq_mouse(IRQ_MOUSE, ~0UL),
-			_data(REG_DATA, ACCESS_WIDTH), _status(REG_STATUS, ACCESS_WIDTH)
+			Platform::Device_component(env, session, IRQ_KEYBOARD, heap_for_irq),
+			_ep(env.ep().rpc_ep()),
+			_irq_mouse(IRQ_MOUSE, ~0UL, env, heap_for_irq),
+			_data(env, REG_DATA, ACCESS_WIDTH),
+			_status(env, REG_STATUS, ACCESS_WIDTH)
 		{
 			_ep.manage(&_irq_mouse);
 		}
@@ -97,10 +99,11 @@ class Nonpci::Pit : public Platform::Device_component
 
 	public:
 
-		Pit(Genode::Rpc_entrypoint &ep, Platform::Session_component &session)
+		Pit(Genode::Env &env, Platform::Session_component &session,
+		    Genode::Allocator &heap_for_irq)
 		:
-			Platform::Device_component(ep, session, IRQ_PIT),
-			_ports(PIT_PORT, PORTS_WIDTH)
+			Platform::Device_component(env, session, IRQ_PIT, heap_for_irq),
+			_ports(env, PIT_PORT, PORTS_WIDTH)
 		{ }
 
 		Genode::Io_port_session_capability io_port(Genode::uint8_t io_port) override
@@ -147,17 +150,17 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 
 		switch(devices_i) {
 			case 0:
-				dev = new (_md_alloc) Nonpci::Ps2(_ep, *this);
+				dev = new (_md_alloc) Nonpci::Ps2(_env, *this, _global_heap);
 				break;
 			case 1:
-				dev = new (_md_alloc) Nonpci::Pit(_ep, *this);
+				dev = new (_md_alloc) Nonpci::Pit(_env, *this, _global_heap);
 				break;
 			default:
 				return Device_capability();
 		}
 
 		_device_list.insert(dev);
-		return _ep.manage(dev);
+		return _env.ep().rpc_ep().manage(dev);
 	} catch (Genode::Allocator::Out_of_memory) {
 		throw Out_of_metadata();
 	} catch (Genode::Parent::Service_denied) {

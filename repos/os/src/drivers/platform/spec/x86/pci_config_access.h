@@ -24,6 +24,8 @@ namespace Platform {
 	{
 		private:
 
+			Genode::Env &_env;
+
 			enum { REG_ADDR = 0xcf8, REG_DATA = 0xcfc, REG_SIZE = 4 };
 
 			/**
@@ -47,7 +49,7 @@ namespace Platform {
 				 * Once created, each I/O-port session persists until
 				 * the PCI driver gets killed by its parent.
 				 */
-				static Genode::Io_port_connection io_port(port, REG_SIZE);
+				static Genode::Io_port_connection io_port(_env, port, REG_SIZE);
 				return &io_port;
 			}
 
@@ -78,6 +80,8 @@ namespace Platform {
 			}
 
 		public:
+
+			Config_access(Genode::Env &env) : _env(env) { }
 
 			/**
 			 * Read value from config space of specified device/function

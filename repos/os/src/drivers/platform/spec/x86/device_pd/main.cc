@@ -30,7 +30,7 @@
 /**
  * Custom handling of PD-session depletion during attach operations
  *
- * The default implementation of 'env().rm()' automatically issues a resource
+ * The default implementation of 'env.rm()' automatically issues a resource
  * request if the PD session quota gets exhausted. For the device PD, we don't
  * want to issue resource requests but let the platform driver reflect this
  * condition to its client.
@@ -59,7 +59,7 @@ struct Expanding_region_map_client : Genode::Region_map_client
 			[&] () {
 				enum { UPGRADE_QUOTA = 4096 };
 
-				if (Genode::env()->ram_session()->avail() < UPGRADE_QUOTA)
+				if (_env.ram().avail() < UPGRADE_QUOTA)
 					throw;
 
 				Genode::String<32> arg("ram_quota=", (unsigned)UPGRADE_QUOTA);
@@ -172,7 +172,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 	};
 
 	/* try to assign pci device to this protection domain */
-	if (!env()->pd_session()->assign_pci(page, rid))
+	if (!_env.pd().assign_pci(page, rid))
 		Genode::error("assignment of PCI device ", Rid(rid), " failed ",
 		              "phys=", Genode::Hex(ds_client.phys_addr()), " "
 		              "virt=", Genode::Hex(page));
@@ -190,7 +190,7 @@ struct Main
 
 	Expanding_region_map_client rm { env };
 
-	Platform::Device_pd_component pd_component { rm };
+	Platform::Device_pd_component pd_component { rm, env };
 
 	Genode::Static_root<Platform::Device_pd> root { env.ep().manage(pd_component) };
 

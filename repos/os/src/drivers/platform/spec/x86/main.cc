@@ -11,12 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/env.h>
 
 #include <util/reconstructible.h>
-
-#include <os/attached_rom_dataspace.h>
 
 #include "pci_session_component.h"
 #include "pci_device_config.h"
@@ -119,15 +118,15 @@ struct Platform::Main
 
 		if (_system_rom) {
 			/* wait for system state changes, e.g. reset and acpi_ready */
-			system_state.construct("system");
+			system_state.construct(env, "system");
 			system_state->sigh(_system_report);
-			acpi_ready.construct("acpi_ready");
+			acpi_ready.construct(env, "acpi_ready");
 			acpi_ready->sigh(_system_report);
 		}
 
 		if (wait_for_acpi == "yes") {
 			/* for ACPI support, wait for the first valid acpi report */
-			acpi_rom.construct("acpi");
+			acpi_rom.construct(env, "acpi");
 			acpi_rom->sigh(_acpi_report);
 			/* check if already valid */
 			acpi_update();

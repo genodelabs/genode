@@ -34,7 +34,7 @@ class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_se
 	private:
 
 		unsigned                  _gsi;
-		Genode::Irq_sigh          _irq_sigh;
+		Platform::Irq_sigh        _irq_sigh;
 		Genode::Irq_session::Info _msi_info;
 
 		Genode::Constructible<Genode::Irq_connection> _irq_conn;
@@ -43,7 +43,8 @@ class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_se
 
 		enum { INVALID_IRQ = 0xffU };
 
-		Irq_session_component(unsigned, Genode::addr_t);
+		Irq_session_component(unsigned, Genode::addr_t, Genode::Env &,
+		                      Genode::Allocator &heap);
 		~Irq_session_component();
 
 		bool msi()

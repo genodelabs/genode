@@ -32,7 +32,7 @@ Genode::Io_port_session_capability Platform::Device_component::io_port(Genode::u
 			return _io_port_conn[v_id]->cap();
 
 		try {
-			_io_port_conn[v_id] = new (_slab_ioport) Genode::Io_port_connection(res.base(), res.size());
+			_io_port_conn[v_id] = new (_slab_ioport) Genode::Io_port_connection(_env, res.base(), res.size());
 			return _io_port_conn[v_id]->cap();
 		} catch (...) {
 			return Genode::Io_port_session_capability();
@@ -68,7 +68,8 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(Genode::uin
 
 		try {
 			bool const wc = caching == Genode::Cache_attribute::WRITE_COMBINED;
-			Io_mem * io_mem = new (_slab_iomem) Io_mem(res.base() + offset,
+			Io_mem * io_mem = new (_slab_iomem) Io_mem(_env,
+			                                           res.base() + offset,
 			                                           res_size, wc);
 			_io_mem[i].insert(io_mem);
 			return io_mem->cap();
@@ -144,16 +145,19 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 	if (!_device_config.valid()) {
 		/* Non PCI devices */
 		_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
-		                                                   _irq_line, ~0UL);
+		                                                   _irq_line, ~0UL,
+		                                                   _env,
+		                                                   _global_heap);
 
-		_ep.manage(_irq_session);
+		_env.ep().rpc_ep().manage(_irq_session);
 		return _irq_session->cap();
 	}
 
 	_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
 	                                                   _configure_irq(_irq_line),
-	                                                   (!_session.msi_usage() || !_msi_cap()) ? ~0UL : _config_space);
-	_ep.manage(_irq_session);
+	                                                   (!_session.msi_usage() || !_msi_cap()) ? ~0UL : _config_space,
+	                                                   _env, _global_heap);
+	_env.ep().rpc_ep().manage(_irq_session);
 
 	Genode::uint16_t msi_cap = _msi_cap();
 
