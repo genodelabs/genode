@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2007-2013 Genode Labs GmbH
+ * Copyright (C) 2007-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,6 +16,12 @@
 #define _IFX86EMU_H_
 
 #include <base/stdint.h>
+
+
+namespace Genode {
+	struct Env;
+	struct Allocator;
+}
 
 namespace X86emu {
 
@@ -35,9 +41,6 @@ namespace X86emu {
 			addr_t _bios_addr;
 			addr_t _data_addr;
 
-			/**
-			 * Constructur
-			 */
 			X86emu_mem() : _bios_addr(0), _data_addr(0) { }
 
 			inline addr_t _addr(addr_t* obj_addr, void* addr = 0)
@@ -47,13 +50,8 @@ namespace X86emu {
 				return *obj_addr;
 			}
 
-			/**
-			 * set/get functions
-			 */
-			inline addr_t bios_addr(void *addr = 0) {
-				return _addr(&_bios_addr, addr); }
-			inline addr_t data_addr(void *addr = 0) {
-				return _addr(&_data_addr, addr); }
+			inline addr_t bios_addr(void *addr = 0) { return _addr(&_bios_addr, addr); }
+			inline addr_t data_addr(void *addr = 0) { return _addr(&_data_addr, addr); }
 	};
 
 	/**
@@ -64,7 +62,7 @@ namespace X86emu {
 	/**
 	 * Initialization
 	 */
-	int init(void);
+	void init(Genode::Env &, Genode::Allocator &);
 
 	/**
 	 * Execute real mode command

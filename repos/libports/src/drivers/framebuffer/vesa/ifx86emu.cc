@@ -6,28 +6,29 @@
  */
 
 /*
- * Copyright (C) 2007-2013 Genode Labs GmbH
+ * Copyright (C) 2007-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/log.h>
-#include <base/printf.h>
-#include <base/env.h>
-#include <base/sleep.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
-#include <os/attached_ram_dataspace.h>
-
+#include <util/reconstructible.h>
 #include <io_port_session/connection.h>
-#include <io_mem_session/connection.h>
-#include <platform_session/connection.h>
 
+#include <base/printf.h> /* XXX for emulating X86emu::printk() */
+
+/* local includes */
 #include "ifx86emu.h"
 #include "framebuffer.h"
 #include "vesa.h"
 #include "hw_emul.h"
+#include "genode_env.h"
 
 
 namespace X86emu {
@@ -133,163 +134,134 @@ class Region : public Avl_node<Region>
 
 
 template <typename TYPE>
-class Region_database : public Avl_tree<Region>
+struct Region_database : Avl_tree<Region>
 {
-	public:
+	Genode::Env       &env;
+	Genode::Allocator &heap;
 
-		TYPE * match(addr_t base, size_t size)
-		{
-			if (!first()) return 0;
+	Region_database(Genode::Env &env, Genode::Allocator &heap)
+	: env(env), heap(heap) { }
 
-			return static_cast<TYPE *>(first()->match(base, size));
+	TYPE * match(addr_t base, size_t size)
+	{
+		if (!first()) return 0;
+
+		return static_cast<TYPE *>(first()->match(base, size));
+	}
+
+	TYPE * meet(addr_t base, size_t size)
+	{
+		if (!first()) return 0;
+
+		return static_cast<TYPE *>(first()->meet(base, size));
+	}
+
+	TYPE * get_region(addr_t base, size_t size)
+	{
+		TYPE *region;
+
+		/* look for match and return if found */
+		if ((region = match(base, size)))
+			return region;
+
+		/*
+		 * We try to create a new port region, but first we look if any overlapping
+		 * resp. meeting regions already exist. These are freed and merged into a
+		 * new super region including the new port region.
+		 */
+
+		addr_t beg = base, end = base + size;
+
+		while ((region = meet(beg, end - beg))) {
+			/* merge region into super region */
+			beg = min(beg, static_cast<addr_t>(region->base()));
+			end = max(end, static_cast<addr_t>(region->base() + region->size()));
+
+			/* destroy old region */
+			remove(region);
+			destroy(heap, region);
 		}
 
-		TYPE * meet(addr_t base, size_t size)
-		{
-			if (!first()) return 0;
-
-			return static_cast<TYPE *>(first()->meet(base, size));
+		try {
+			region = new (heap) TYPE(env, beg, end - beg);
+			insert(region);
+			return region;
+		} catch (...) {
+			Genode::error("access to I/O region ",
+			              Hex_range<addr_t>(beg, end - beg), " denied");
+			return 0;
 		}
+	}
 
-		TYPE * get_region(addr_t base, size_t size)
-		{
-			TYPE *region;
+	void print_regions()
+	{
+		if (!first()) return;
 
-			/* look for match and return if found */
-			if ((region = match(base, size)))
-				return region;
-
-			/*
-			 * We try to create a new port region, but first we look if any overlapping
-			 * resp. meeting regions already exist. These are freed and merged into a
-			 * new super region including the new port region.
-			 */
-
-			addr_t beg = base, end = base + size;
-
-			while ((region = meet(beg, end - beg))) {
-				/* merge region into super region */
-				beg = min(beg, static_cast<addr_t>(region->base()));
-				end = max(end, static_cast<addr_t>(region->base() + region->size()));
-
-				/* destroy old region */
-				remove(region);
-				destroy(env()->heap(), region);
-			}
-
-			try {
-				region = new (env()->heap()) TYPE(beg, end - beg);
-				insert(region);
-				return region;
-			} catch (...) {
-				Genode::error("access to I/O region ",
-				              Hex_range<addr_t>(beg, end - beg), " denied");
-				return 0;
-			}
-		}
-
-		void print_regions()
-		{
-			if (!first()) return;
-
-			first()->print_regions();
-		}
+		first()->print_regions();
+	}
 };
 
 
 /**
  * I/O port region including corresponding IO_PORT connection
  */
-class Port_region : public Region, public Io_port_connection
+struct Port_region : Region, Io_port_connection
 {
-	public:
+	Port_region(Genode::Env &env, unsigned short port_base, size_t port_size)
+	:
+		Region(port_base, port_size),
+		Io_port_connection(env, port_base, port_size)
+	{
+		if (verbose) Genode::log("add port ", *this);
+	}
 
-		void print(Genode::Output &out) const
-		{
-			unsigned const beg = base(), end = beg + size();
-			Genode::print(out, Hex_range<uint16_t>(beg, end - beg));
-		}
+	~Port_region()
+	{
+		if (verbose) Genode::log("del port ", *this);
+	}
 
-		Port_region(unsigned short port_base, size_t port_size)
-		: Region(port_base, port_size), Io_port_connection(port_base, port_size)
-		{
-			if (verbose)
-				Genode::log("add port ", *this);
-		}
-
-		~Port_region()
-		{
-			if (verbose)
-				Genode::log("del port ", *this);
-		}
+	void print(Genode::Output &out) const
+	{
+		unsigned const beg = base(), end = beg + size();
+		Genode::print(out, Hex_range<uint16_t>(beg, end - beg));
+	}
 };
 
 
 /**
  * I/O memory region including corresponding IO_MEM connection
  */
-class Mem_region : public Region
+struct Mem_region : Region, Attached_io_mem_dataspace
 {
-	private:
+	Mem_region(Genode::Env &env, addr_t mem_base, size_t mem_size)
+	:
+		Region(mem_base, mem_size),
+		Attached_io_mem_dataspace(env, mem_base, mem_size)
+	{
+		if (verbose) Genode::log("add mem  ", *this, " @ ", local_addr<void>());
+	}
 
-		class Io_mem_dataspace : public Io_mem_connection
-		{
-			private:
+	~Mem_region()
+	{
+		if (verbose) Genode::log("del mem  ", *this);
+	}
 
-				void *_local_addr;
+	template <typename T>
+	T * virt_addr(addr_t addr)
+	{
+		return reinterpret_cast<T *>(local_addr<char>() + (addr - base()));
+	}
 
-			public:
-
-				Io_mem_dataspace(addr_t base, size_t size)
-				: Io_mem_connection(base, size)
-				{
-					_local_addr = env()->rm_session()->attach(dataspace());
-				}
-
-				~Io_mem_dataspace()
-				{
-					env()->rm_session()->detach(_local_addr);
-				}
-
-				Io_mem_dataspace_capability cap() { return dataspace(); }
-
-				template <typename T>
-				T * local_addr() { return static_cast<T *>(_local_addr); }
-		};
-
-		Io_mem_dataspace _ds;
-
-	public:
-
-		void print(Genode::Output &out) const
-		{
-			addr_t const beg = base(), end = beg + size();
-			Genode::print(out, Hex_range<addr_t>(beg, end - beg));
-		}
-
-		Mem_region(addr_t mem_base, size_t mem_size)
-		: Region(mem_base, mem_size), _ds(mem_base, mem_size)
-		{
-			if (verbose)
-				Genode::log("add mem  ", *this, " @ ", _ds.local_addr<void>());
-		}
-
-		~Mem_region()
-		{
-			if (verbose)
-				Genode::log("del mem  ", *this);
-		}
-
-		template <typename T>
-		T * virt_addr(addr_t addr)
-		{
-			return reinterpret_cast<T *>(_ds.local_addr<char>() + (addr - base()));
-		}
+	void print(Genode::Output &out) const
+	{
+		addr_t const beg = base(), end = beg + size();
+		Genode::print(out, Hex_range<addr_t>(beg, end - beg));
+	}
 };
 
 
-static Region_database<Port_region> port_region_db;
-static Region_database<Mem_region>  mem_region_db;
+static Genode::Constructible<Region_database<Port_region>> port_region_db;
+static Genode::Constructible<Region_database<Mem_region>>  mem_region_db;
 
 
 /**
@@ -302,7 +274,7 @@ static int map_code_area(void)
 	void *dummy;
 
 	/* map page0 */
-	if ((err = Framebuffer_drv::map_io_mem(0x0, PAGESIZE, false, &dummy))) {
+	if ((err = Framebuffer::map_io_mem(0x0, PAGESIZE, false, &dummy))) {
 		Genode::error("could not map page zero");
 		return err;
 	}
@@ -310,7 +282,7 @@ static int map_code_area(void)
 
 	/* alloc code pages in RAM */
 	try {
-		static Attached_ram_dataspace ram_ds(env()->ram_session(), CODESIZE);
+		static Attached_ram_dataspace ram_ds(genode_env().ram(), genode_env().rm(), CODESIZE);
 		dummy = ram_ds.local_addr<void>();
 		x86_mem.data_addr(dummy);
 	} catch (...) {
@@ -391,7 +363,7 @@ static T X86API inx(X86emu::X86EMU_pioAddr addr)
 	if (hw_emul_handle_port_read(port, &ret))
 		return ret;
 
-	Port_region *region = port_region_db.get_region(port, sizeof(T));
+	Port_region *region = port_region_db->get_region(port, sizeof(T));
 
 	if (!region) return 0;
 
@@ -423,7 +395,7 @@ static void X86API outx(X86emu::X86EMU_pioAddr addr, T val)
 	if (hw_emul_handle_port_write(port, val))
 		return;
 
-	Port_region *region = port_region_db.get_region(port, sizeof(T));
+	Port_region *region = port_region_db->get_region(port, sizeof(T));
 
 	if (!region) return;
 
@@ -479,7 +451,7 @@ TYPE * X86emu::virt_addr(ADDR_TYPE addr)
 		local_addr += (x86_mem.data_addr() - PAGESIZE);
 
 	/* any other I/O memory allocated on demand */
-	else if ((region = mem_region_db.get_region(addr & ~(PAGESIZE-1), PAGESIZE)))
+	else if ((region = mem_region_db->get_region(addr & ~(PAGESIZE-1), PAGESIZE)))
 		return region->virt_addr<TYPE>(local_addr);
 
 	else {
@@ -515,17 +487,35 @@ uint16_t X86emu::x86emu_cmd(uint16_t eax, uint16_t ebx, uint16_t ecx,
 }
 
 
-int X86emu::init(void)
+void X86emu::print_regions()
 {
-	/*
-	 * Wait until Acpi/Pci driver initialization is done to avoid potentially 
-	 * concurrently accesses by this driver and the Acpi/Pci driver to the
-	 * graphic device (PCI config space).
-	 */
-	Platform::Connection conn;
+	log("I/O port regions:");
+	port_region_db->print_regions();
 
-	if (map_code_area())
-		return -1;
+	log("I/O memory regions:");
+	mem_region_db->print_regions();
+}
+
+
+void X86emu::printk(const char *format, ...)
+{
+	va_list list;
+	va_start(list, format);
+
+	Genode::vprintf(format, list);
+
+	va_end(list);
+}
+
+
+void X86emu::init(Genode::Env &env, Allocator &heap)
+{
+	local_init_genode_env(env, heap);
+
+	port_region_db.construct(env, heap);
+	mem_region_db.construct(env, heap);
+
+	if (map_code_area()) throw Framebuffer::Fatal();
 
 	if (verbose) {
 		log("--- x86 bios area is ",
@@ -537,25 +527,4 @@ int X86emu::init(void)
 	X86emu::M.x86.debug = 0;
 	X86emu::X86EMU_setupPioFuncs(&port_funcs);
 	X86emu::X86EMU_setupMemFuncs(&mem_funcs);
-	return 0;
-}
-
-
-void X86emu::print_regions()
-{
-	log("I/O port regions:");
-	port_region_db.print_regions();
-
-	log("I/O memory regions:");
-	mem_region_db.print_regions();
-}
-
-void X86emu::printk(const char *format, ...)
-{
-	va_list list;
-	va_start(list, format);
-
-	vprintf(format, list);
-
-	va_end(list);
 }

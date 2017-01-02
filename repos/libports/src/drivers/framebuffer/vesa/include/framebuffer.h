@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,12 +15,19 @@
 #ifndef _FRAMEBUFFER_H_
 #define _FRAMEBUFFER_H_
 
-#include <base/capability.h>
+#include <dataspace/capability.h>
 #include <base/stdint.h>
 
 #include "vbe.h"
 
-namespace Framebuffer_drv {
+namespace Genode {
+	struct Env;
+	struct Allocator;
+}
+
+namespace Framebuffer {
+
+	struct Fatal { }; /* exception */
 
 	/**
 	 * Return capability for h/w framebuffer dataspace
@@ -30,7 +37,7 @@ namespace Framebuffer_drv {
 	/**
 	 * Initialize driver, x86emu lib, set up memory
 	 */
-	int init();
+	void init(Genode::Env &, Genode::Allocator &);
 
 	/**
 	 * Set video, initialize framebuffer dataspace
@@ -42,7 +49,7 @@ namespace Framebuffer_drv {
 	 * \return  0 on success,
 	 *          non-zero otherwise
 	 */
-	int set_mode(unsigned long &width, unsigned long &height, unsigned long mode);
+	int set_mode(unsigned &width, unsigned &height, unsigned mode);
 
 	/**
 	 * Map given device memory, return out_addr (map address)

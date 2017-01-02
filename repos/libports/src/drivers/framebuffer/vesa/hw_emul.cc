@@ -11,16 +11,18 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/sleep.h>
+/* Genode includes */
 #include <base/log.h>
 #include <util/retry.h>
 
+/* local includes */
+#include "framebuffer.h"
 #include "hw_emul.h"
 
 using namespace Genode;
@@ -40,24 +42,22 @@ enum {
 };
 
 
-/**
- * Helper for the formatted output of a (bus, device, function) triple
- */
 struct Devfn
 {
-	unsigned short devfn;
+	unsigned char b, d, f;
 
-	explicit Devfn(unsigned short devfn) : devfn(devfn) { }
+	Devfn(Platform::Device &device) { device.bus_address(&b, &d, &f); }
+
+	Devfn(unsigned short devfn)
+	: b((devfn >> 8) & 0xff), d((devfn >> 3) & 0x1f), f(devfn & 7) { }
+
+	unsigned short devfn() const { return b << 8 | d << 3 | f; }
 
 	void print(Genode::Output &out) const
 	{
-		unsigned char const bus =  devfn >> 8,
-		                    dev = (devfn >> 3) & 0x1f,
-		                    fn  =  devfn & 0x7;
-
-		Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
-		                   Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), ".",
-		                   Hex(fn,  Hex::OMIT_PREFIX));
+		Genode::print(out, Hex(b, Hex::OMIT_PREFIX, Hex::PAD), ":",
+		                   Hex(d, Hex::OMIT_PREFIX, Hex::PAD), ".",
+		                   Hex(f, Hex::OMIT_PREFIX));
 	}
 };
 
@@ -68,7 +68,7 @@ class Pci_card
 
 		Platform::Connection    _pci_drv;
 		Platform::Device_client _device;
-		unsigned short     _devfn;
+		Devfn                   _devfn;
 
 		Platform::Device_capability _first_device()
 		{
@@ -110,8 +110,8 @@ class Pci_card
 			}
 
 			if (!device_cap.valid()) {
-				Genode::error("PCI VGA card not found. Sleeping...");
-				sleep_forever();
+				Genode::error("PCI VGA card not found.");
+				throw Framebuffer::Fatal();
 			}
 
 			return device_cap;
@@ -119,27 +119,18 @@ class Pci_card
 
 	public:
 
-		Pci_card() : _device(_find_vga_card())
+		Pci_card(Genode::Env &env)
+		: _pci_drv(env), _device(_find_vga_card()), _devfn(_device)
 		{
-			unsigned char bus = 0, dev = 0, fn = 0;
-
-			_device.bus_address(&bus, &dev, &fn);
-			_devfn = bus << 8 | dev << 3 | fn;
-
-			if (verbose)
-				Genode::log("Found PCI VGA at ", Devfn(_devfn));
+			Genode::log("Found PCI VGA at ", _devfn);
 		}
 
-		Platform::Device_client &device() { return _device; }
-		unsigned short devfn()  const { return _devfn; }
+		Platform::Device &device()   { return _device; }
+		unsigned short devfn() const { return _devfn.devfn(); }
 };
 
 
-static Pci_card *pci_card()
-{
-	static Pci_card _pci_card;
-	return &_pci_card;
-}
+static Constructible<Pci_card> pci_card;
 
 
 /**
@@ -166,7 +157,7 @@ static bool handle_pci_port_write(unsigned short port, T val)
 			}
 
 			unsigned const devfn = (val >> 8) & 0xffff;
-			if (devfn != pci_card()->devfn()) {
+			if (devfn != pci_card->devfn()) {
 				if (verbose)
 					warning("accessing unknown PCI device ", Devfn(devfn));
 				pci_cfg_addr_valid = false;
@@ -219,13 +210,13 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 			switch (pci_cfg_addr) {
 
 			case 0: /* vendor / device ID */
-				raw_val = pci_card()->device().vendor_id() |
-				         (pci_card()->device().device_id() << 16);
+				raw_val = pci_card->device().vendor_id() |
+				         (pci_card->device().device_id() << 16);
 				break;
 
 			case 4: /* status and command */
 			case 8: /* class code / revision ID */
-				raw_val = pci_card()->device().config_read(pci_cfg_addr,
+				raw_val = pci_card->device().config_read(pci_cfg_addr,
 				                                           Platform::Device::ACCESS_32BIT);
 				break;
 
@@ -237,7 +228,7 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 			case 0x24: /* base address register 5 */
 				{
 					unsigned bar = (pci_cfg_addr - 0x10) / 4;
-					Platform::Device::Resource res = pci_card()->device().resource(bar);
+					Platform::Device::Resource res = pci_card->device().resource(bar);
 					if (res.type() == Platform::Device::Resource::INVALID) {
 						warning("requested PCI resource ", bar, " invalid");
 						*val = 0;
@@ -349,3 +340,6 @@ bool hw_emul_handle_port_write(unsigned short port, T val)
 
 	return false;
 }
+
+
+void hw_emul_init(Genode::Env &env) { pci_card.construct(env); }
