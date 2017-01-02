@@ -12,11 +12,10 @@
  */
 
 /* Genode includes */
-#include <os/server.h>
-#include <os/config.h>
-#include <base/printf.h>
+#include <base/component.h>
 #include <nitpicker_session/connection.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/texture.h>
 #include <os/surface.h>
 #include <os/pixel_rgb565.h>
@@ -81,10 +80,10 @@ class Nit_fader::Src_buffer
 		/**
 		 * Constructor
 		 */
-		Src_buffer(Area size, bool use_alpha)
+		Src_buffer(Genode::Env &env, Area size, bool use_alpha)
 		:
 			_use_alpha(use_alpha),
-			_ds(env()->ram_session(), _needed_bytes(size)),
+			_ds(env.ram(), env.rm(), _needed_bytes(size)),
 			_texture(_ds.local_addr<Pixel>(),
 			         _ds.local_addr<unsigned char>() + size.count()*sizeof(Pixel),
 			         size)
@@ -115,9 +114,9 @@ class Nit_fader::Dst_buffer
 
 	public:
 
-		Dst_buffer(Dataspace_capability ds_cap, Area size)
+		Dst_buffer(Genode::Env &env, Dataspace_capability ds_cap, Area size)
 		:
-			_ds(ds_cap), _size(size)
+			_ds(env.rm(), ds_cap), _size(size)
 		{
 			/* initialize input-mask buffer */
 			unsigned char *input_mask_buffer = _ds.local_addr<unsigned char>()
@@ -137,6 +136,8 @@ class Nit_fader::Framebuffer_session_component
 {
 	private:
 
+		Genode::Env &_env;
+
 		Nitpicker::Connection &_nitpicker;
 		Src_buffer            &_src_buffer;
 
@@ -150,15 +151,16 @@ class Nit_fader::Framebuffer_session_component
 		/**
 		 * Constructor
 		 */
-		Framebuffer_session_component(Nitpicker::Connection &nitpicker,
+		Framebuffer_session_component(Genode::Env &env,
+		                              Nitpicker::Connection &nitpicker,
 		                              Src_buffer            &src_buffer)
 		:
-			_nitpicker(nitpicker), _src_buffer(src_buffer)
+			_env(env), _nitpicker(nitpicker), _src_buffer(src_buffer)
 		{ }
 
 		void dst_buffer(Dataspace_capability ds_cap, Area size)
 		{
-			_dst_buffer.construct(ds_cap, size);
+			_dst_buffer.construct(_env, ds_cap, size);
 		}
 
 		void transfer_src_to_dst_pixel(Rect const rect)
@@ -261,21 +263,21 @@ class Nit_fader::Nitpicker_session_component
 		typedef Nitpicker::View_capability      View_capability;
 		typedef Nitpicker::Session::View_handle View_handle;
 
-		Server::Entrypoint &_ep;
+		Genode::Env &_env;
 
-		Reconstructible<Src_buffer> _src_buffer { Area(1, 1), false };
+		Reconstructible<Src_buffer> _src_buffer { _env, Area(1, 1), false };
 
 		Nitpicker::Connection _nitpicker;
 
 		Genode::Attached_ram_dataspace _command_ds {
-			env()->ram_session(), sizeof(Nitpicker::Session::Command_buffer) };
+			_env.ram(), _env.rm(), sizeof(Nitpicker::Session::Command_buffer) };
 
 		Nitpicker::Session::Command_buffer &_commands =
 			*_command_ds.local_addr<Nitpicker::Session::Command_buffer>();
 
-		Framebuffer_session_component _fb_session { _nitpicker, *_src_buffer };
+		Framebuffer_session_component _fb_session { _env, _nitpicker, *_src_buffer };
 
-		Framebuffer::Session_capability _fb_cap { _ep.manage(_fb_session) };
+		Framebuffer::Session_capability _fb_cap { _env.ep().manage(_fb_session) };
 
 		Nitpicker::Session::View_handle _view_handle;
 		bool _view_visible = false;
@@ -303,7 +305,7 @@ class Nit_fader::Nitpicker_session_component
 		/**
 		 * Constructor
 		 */
-		Nitpicker_session_component(Server::Entrypoint &ep) : _ep(ep)
+		Nitpicker_session_component(Genode::Env &env) : _env(env)
 		{ }
 
 		/**
@@ -311,7 +313,7 @@ class Nit_fader::Nitpicker_session_component
 		 */
 		~Nitpicker_session_component()
 		{
-			_ep.dissolve(_fb_session);
+			_env.ep().dissolve(_fb_session);
 		}
 
 		bool animate(unsigned num_frames)
@@ -414,7 +416,7 @@ class Nit_fader::Nitpicker_session_component
 		{
 			Area const size(mode.width(), mode.height());
 
-			_src_buffer.construct(size, use_alpha);
+			_src_buffer.construct(_env, size, use_alpha);
 
 			_nitpicker.buffer(mode, true);
 
@@ -430,9 +432,11 @@ class Nit_fader::Nitpicker_session_component
 
 struct Nit_fader::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
 
-	Timer::Connection timer;
+	Genode::Attached_rom_dataspace config { env, "config" };
+
+	Timer::Connection timer { env };
 
 	enum { PERIOD = 20 };
 
@@ -442,21 +446,21 @@ struct Nit_fader::Main
 
 	unsigned long last_frame = 0;
 
-	void handle_config_update(unsigned);
+	void handle_config_update();
 
-	Genode::Signal_rpc_member<Main> config_dispatcher
+	Genode::Signal_handler<Main> config_handler
 	{
-		ep, *this, &Main::handle_config_update
+		env.ep(), *this, &Main::handle_config_update
 	};
 
-	Nitpicker_session_component nitpicker_session { ep };
+	Nitpicker_session_component nitpicker_session { env };
 
 	Genode::Static_root<Nitpicker::Session> nitpicker_root
 	{
-		ep.manage(nitpicker_session)
+		env.ep().manage(nitpicker_session)
 	};
 
-	void handle_timer(unsigned)
+	void handle_timer()
 	{
 		unsigned long frame = curr_frame();
 		if (nitpicker_session.animate(frame - last_frame))
@@ -465,30 +469,30 @@ struct Nit_fader::Main
 		last_frame = frame;
 	}
 
-	Genode::Signal_rpc_member<Main> timer_dispatcher
+	Genode::Signal_handler<Main> timer_handler
 	{
-		ep, *this, &Main::handle_timer
+		env.ep(), *this, &Main::handle_timer
 	};
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Env &env) : env(env)
 	{
-		Genode::config()->sigh(config_dispatcher);
+		config.sigh(config_handler);
 
-		timer.sigh(timer_dispatcher);
+		timer.sigh(timer_handler);
 
 		/* apply initial config */
-		handle_config_update(0);
+		handle_config_update();
 
-		env()->parent()->announce(ep.manage(nitpicker_root));
+		env.parent().announce(env.ep().manage(nitpicker_root));
 	}
 };
 
 
-void Nit_fader::Main::handle_config_update(unsigned)
+void Nit_fader::Main::handle_config_update()
 {
-	Genode::config()->reload();
+	config.update();
 
-	Genode::Xml_node config_xml = Genode::config()->xml_node();
+	Genode::Xml_node config_xml = config.xml();
 
 	unsigned long new_alpha = alpha;
 	if (config_xml.has_attribute("alpha"))
@@ -509,18 +513,9 @@ void Nit_fader::Main::handle_config_update(unsigned)
 }
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
-
-	char const *name() { return "nit_fader_ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Nit_fader::Main desktop(ep);
-	}
-}
+void Component::construct(Genode::Env &env) {
+		static Nit_fader::Main desktop(env); }
