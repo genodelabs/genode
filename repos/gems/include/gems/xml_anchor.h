@@ -64,7 +64,7 @@ class Anchor
 				}
 			}
 
-			PWRN("unsupported anchor attribute value");
+			Genode::warning("unsupported anchor attribute value");
 		}
 };
 
