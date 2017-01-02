@@ -14,16 +14,17 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/signal.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
+#include <base/tslab.h>
 #include <os/reporter.h>
 #include <os/session_policy.h>
 #include <nitpicker_session/connection.h>
 #include <input_session/client.h>
 #include <input/event.h>
 #include <input/keycodes.h>
-#include <rom_session/connection.h>
 #include <decorator/xml_utils.h>
-#include <os/config.h>
 
 /* local includes */
 #include "window.h"
@@ -61,7 +62,13 @@ namespace Floating_window_layouter {
 
 struct Floating_window_layouter::Main : Operations
 {
-	Signal_receiver &sig_rec;
+	Genode::Env &env;
+
+	Genode::Attached_rom_dataspace config { env, "config" };
+
+	Genode::Heap heap { env.ram(), env.rm() };
+
+	Genode::Tslab<Window,4096> window_slab { &heap };
 
 	List<Window> windows;
 
@@ -194,10 +201,10 @@ struct Floating_window_layouter::Main : Operations
 	/**
 	 * Install handler for responding to window-list changes
 	 */
-	void handle_window_list_update(unsigned);
+	void handle_window_list_update();
 
-	Signal_dispatcher<Main> window_list_dispatcher = {
-		sig_rec, *this, &Main::handle_window_list_update };
+	Signal_handler<Main> window_list_dispatcher = {
+		env.ep(), *this, &Main::handle_window_list_update };
 
 	Attached_rom_dataspace window_list { "window_list" };
 
@@ -205,14 +212,14 @@ struct Floating_window_layouter::Main : Operations
 	/**
 	 * Install handler for responding to focus requests
 	 */
-	void handle_focus_request_update(unsigned);
+	void handle_focus_request_update();
 
 	void _apply_focus_request();
 
 	int handled_focus_request_id = 0;
 
-	Signal_dispatcher<Main> focus_request_dispatcher = {
-		sig_rec, *this, &Main::handle_focus_request_update };
+	Signal_handler<Main> focus_request_dispatcher = {
+		env.ep(), *this, &Main::handle_focus_request_update };
 
 	Attached_rom_dataspace focus_request { "focus_request" };
 
@@ -220,10 +227,10 @@ struct Floating_window_layouter::Main : Operations
 	/**
 	 * Install handler for responding to hover changes
 	 */
-	void handle_hover_update(unsigned);
+	void handle_hover_update();
 
-	Signal_dispatcher<Main> hover_dispatcher = {
-		sig_rec, *this, &Main::handle_hover_update };
+	Signal_handler<Main> hover_dispatcher = {
+		env.ep(), *this, &Main::handle_hover_update };
 
 	Attached_rom_dataspace hover { "hover" };
 
@@ -233,36 +240,36 @@ struct Floating_window_layouter::Main : Operations
 	 */
 	Attached_rom_dataspace decorator_margins { "decorator_margins" };
 
-	void handle_decorator_margins_update(unsigned)
+	void handle_decorator_margins_update()
 	{
 		decorator_margins.update();
 
 		/* respond to change by adapting the maximized window geometry */
-		handle_mode_change(0);
+		handle_mode_change();
 	}
 
-	Signal_dispatcher<Main> decorator_margins_dispatcher = {
-		sig_rec, *this, &Main::handle_decorator_margins_update };
+	Signal_handler<Main> decorator_margins_dispatcher = {
+		env.ep(), *this, &Main::handle_decorator_margins_update };
 
 
 	/**
 	 * Install handler for responding to user input
 	 */
-	void handle_input(unsigned)
+	void handle_input()
 	{
 		while (input.pending())
 			_user_state.handle_input(input_ds.local_addr<Input::Event>(),
-			                         input.flush(), Genode::config()->xml_node());
+			                         input.flush(), config.xml());
 	}
 
-	Signal_dispatcher<Main> input_dispatcher = {
-		sig_rec, *this, &Main::handle_input };
+	Signal_handler<Main> input_dispatcher {
+		env.ep(), *this, &Main::handle_input };
 
 	Nitpicker::Connection nitpicker;
 
 	Rect maximized_window_geometry;
 
-	void handle_mode_change(unsigned)
+	void handle_mode_change()
 	{
 		/* determine maximized window geometry */
 		Framebuffer::Mode const mode = nitpicker.mode();
@@ -284,8 +291,8 @@ struct Floating_window_layouter::Main : Operations
 		                                      mode.height() - top - bottom));
 	}
 	
-	Signal_dispatcher<Main> mode_change_dispatcher = {
-		sig_rec, *this, &Main::handle_mode_change };
+	Signal_handler<Main> mode_change_dispatcher = {
+		env.ep(), *this, &Main::handle_mode_change };
 
 
 	Input::Session_client input { nitpicker.input_session() };
@@ -311,10 +318,10 @@ struct Floating_window_layouter::Main : Operations
 	/**
 	 * Constructor
 	 */
-	Main(Signal_receiver &sig_rec) : sig_rec(sig_rec)
+	Main(Genode::Env &env) : env(env)
 	{
 		nitpicker.mode_sigh(mode_change_dispatcher);
-		handle_mode_change(0);
+		handle_mode_change();
 
 		window_list.sigh(window_list_dispatcher);
 		focus_request.sigh(focus_request_dispatcher);
@@ -326,6 +333,9 @@ struct Floating_window_layouter::Main : Operations
 		window_layout_reporter.enabled(true);
 		resize_request_reporter.enabled(true);
 		focus_reporter.enabled(true);
+
+		/* import initial state */
+		handle_window_list_update();
 	}
 };
 
@@ -341,7 +351,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 		next = win->next();
 		if (!xml_contains_window_node_with_id(window_list_xml, win->id())) {
 			windows.remove(win);
-			destroy(env()->heap(), win);
+			destroy(window_slab, win);
 		}
 	}
 
@@ -358,7 +368,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 
 			Window *win = lookup_window_by_id(id);
 			if (!win) {
-				win = new (env()->heap())
+				win = new (window_slab)
 					Window(id, maximized_window_geometry, initial_size, focus_history);
 				windows.insert(win);
 
@@ -371,7 +381,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 				 * Evaluate policy configuration for the window label
 				 */
 				try {
-					Session_policy const policy(label);
+					Session_policy const policy(label, config.xml());
 
 					if (policy.has_attribute("xpos") && policy.has_attribute("ypos"))
 						initial_position = point_attribute(node);
@@ -474,7 +484,7 @@ element_from_hover_model(Genode::Xml_node hover_window_xml)
 }
 
 
-void Floating_window_layouter::Main::handle_window_list_update(unsigned)
+void Floating_window_layouter::Main::handle_window_list_update()
 {
 	window_list.update();
 
@@ -539,7 +549,7 @@ void Floating_window_layouter::Main::_apply_focus_request()
 }
 
 
-void Floating_window_layouter::Main::handle_focus_request_update(unsigned)
+void Floating_window_layouter::Main::handle_focus_request_update()
 {
 	focus_request.update();
 
@@ -549,7 +559,7 @@ void Floating_window_layouter::Main::handle_focus_request_update(unsigned)
 }
 
 
-void Floating_window_layouter::Main::handle_hover_update(unsigned)
+void Floating_window_layouter::Main::handle_hover_update()
 {
 	hover.update();
 
@@ -582,24 +592,9 @@ void Floating_window_layouter::Main::handle_hover_update(unsigned)
 }
 
 
-int main(int argc, char **argv)
-{
-	static Genode::Signal_receiver sig_rec;
+/***************
+ ** Component **
+ ***************/
 
-	static Floating_window_layouter::Main application(sig_rec);
-
-	/* import initial state */
-	application.handle_window_list_update(0);
-
-	/* process incoming signals */
-	for (;;) {
-		using namespace Genode;
-
-		Signal sig = sig_rec.wait_for_signal();
-		Signal_dispatcher_base *dispatcher =
-			dynamic_cast<Signal_dispatcher_base *>(sig.context());
-
-		if (dispatcher)
-			dispatcher->dispatch(sig.num());
-	}
-}
+void Component::construct(Genode::Env &env) {
+	static Floating_window_layouter::Main application(env); }
