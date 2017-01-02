@@ -14,6 +14,8 @@
 #ifndef _DOMAIN_REGISTRY_
 #define _DOMAIN_REGISTRY_
 
+#include <base/allocator.h>
+#include <base/log.h>
 #include <util/xml_node.h>
 #include <util/color.h>
 
