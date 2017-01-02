@@ -47,6 +47,18 @@ class Genode::Attached_mmio : public Attached_io_mem_dataspace,
 		 * \throw Parent::Unavailable
 		 * \throw Rm_session::Attach_failed
 		 */
+		Attached_mmio(Env &env, addr_t base, size_t size,
+		              bool write_combined = false)
+		: Attached_io_mem_dataspace(env, base, size, write_combined),
+		  Mmio((addr_t)local_addr<void>()) { }
+
+		/**
+		 * Constructor
+		 *
+		 * \noapi
+		 * \deprecated  Use the constructor with 'Env &' as first
+		 *              argument instead
+		 */
 		Attached_mmio(addr_t base, size_t size,
 		              bool write_combined = false)
 		: Attached_io_mem_dataspace(base, size, write_combined),
