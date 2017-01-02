@@ -1,4 +1,4 @@
 TARGET   = wm
 SRC_CC   = main.cc
-LIBS     = base server config
+LIBS     = base
 INC_DIR += $(PRG_DIR)

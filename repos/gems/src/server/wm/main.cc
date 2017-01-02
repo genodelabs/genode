@@ -12,11 +12,11 @@
  */
 
 /* Genode includes */
-#include <os/server.h>
 #include <nitpicker_session/client.h>
 #include <framebuffer_session/client.h>
-#include <cap_session/connection.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
 #include <util/reconstructible.h>
 #include <util/xml_node.h>
 
@@ -38,15 +38,15 @@ namespace Wm {
 
 struct Wm::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
 
-	Genode::Cap_connection cap;
+	Genode::Heap heap { env.ram(), env.rm() };
 
 	/* currently focused window, reported by the layouter */
-	Attached_rom_dataspace focus_rom { "focus" };
+	Attached_rom_dataspace focus_rom { env, "focus" };
 
 	/* resize requests, issued by the layouter */
-	Attached_rom_dataspace resize_request_rom { "resize_request" };
+	Attached_rom_dataspace resize_request_rom { env, "resize_request" };
 
 	/* pointer position to be consumed by the layouter */
 	Reporter pointer_reporter = { "pointer" };
@@ -57,16 +57,16 @@ struct Wm::Main
 	/* request to the layouter to set the focus */
 	Reporter focus_request_reporter = { "focus_request" };
 
-	Window_registry window_registry { *env()->heap(), window_list_reporter };
+	Window_registry window_registry { heap, window_list_reporter };
 
 	Nitpicker::Connection focus_nitpicker_session;
 
-	Nitpicker::Root nitpicker_root { ep, window_registry,
-	                                 *env()->heap(), env()->ram_session_cap(),
+	Nitpicker::Root nitpicker_root { env, window_registry,
+	                                 heap, env.ram_session_cap(),
 	                                 pointer_reporter, focus_request_reporter,
 	                                 focus_nitpicker_session };
 
-	void handle_focus_update(unsigned)
+	void handle_focus_update()
 	{
 		try {
 			focus_rom.update();
@@ -90,9 +90,10 @@ struct Wm::Main
 		}
 	}
 
-	Genode::Signal_rpc_member<Main> focus_dispatcher = { ep, *this, &Main::handle_focus_update };
+	Genode::Signal_handler<Main> focus_handler = {
+		env.ep(), *this, &Main::handle_focus_update };
 
-	void handle_resize_request_update(unsigned)
+	void handle_resize_request_update()
 	{
 		try {
 			resize_request_rom.update();
@@ -122,10 +123,10 @@ struct Wm::Main
 		} catch (...) { /* no resize-request model available */ }
 	}
 
-	Genode::Signal_rpc_member<Main> resize_request_dispatcher =
-		{ ep, *this, &Main::handle_resize_request_update };
+	Genode::Signal_handler<Main> resize_request_handler =
+		{ env.ep(), *this, &Main::handle_resize_request_update };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Env &env) : env(env)
 	{
 		pointer_reporter.enabled(true);
 
@@ -135,24 +136,18 @@ struct Wm::Main
 
 		focus_request_reporter.enabled(true);
 
-		focus_rom.sigh(focus_dispatcher);
-		resize_request_rom.sigh(resize_request_dispatcher);
+		focus_rom.sigh(focus_handler);
+		resize_request_rom.sigh(resize_request_handler);
 	}
 };
 
 
-/************
- ** Server **
- ************/
+/***************
+ ** Component **
+ ***************/
 
-namespace Server {
+Genode::size_t Component::stack_size() {
+	return 16*1024*sizeof(long); }
 
-	char const *name() { return "desktop_ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Wm::Main desktop(ep);
-	}
-}
+void Component::construct(Genode::Env &env) {
+		static Wm::Main desktop(env); }

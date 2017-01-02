@@ -17,8 +17,7 @@
 /* Genode includes */
 #include <util/string.h>
 #include <ram_session/client.h>
-#include <os/server.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <os/reporter.h>
 #include <nitpicker_session/connection.h>
 #include <input_session/client.h>
@@ -32,14 +31,13 @@
 namespace Wm { class Main;
 	using Genode::size_t;
 	using Genode::Allocator;
-	using Server::Entrypoint;
 	using Genode::Ram_session_client;
 	using Genode::Ram_session_capability;
 	using Genode::Arg_string;
 	using Genode::Object_pool;
 	using Genode::Attached_dataspace;
 	using Genode::Attached_ram_dataspace;
-	using Genode::Signal_rpc_member;
+	using Genode::Signal_handler;
 	using Genode::Reporter;
 }
 
@@ -159,15 +157,17 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 	typedef Nitpicker::View_capability      View_capability;
 	typedef Nitpicker::Session::View_handle View_handle;
 
+	Genode::Env &_env;
+
 	Ram_session_client _ram;
 
-	Nitpicker::Connection _nitpicker_session { "decorator" };
+	Nitpicker::Connection _nitpicker_session { _env, "decorator" };
 
 	Genode::Signal_context_capability _mode_sigh;
 
 	typedef Nitpicker::Session::Command_buffer Command_buffer;
 
-	Attached_ram_dataspace _command_ds { &_ram, sizeof(Command_buffer) };
+	Attached_ram_dataspace _command_ds { _ram, _env.rm(), sizeof(Command_buffer) };
 
 	Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
@@ -182,41 +182,41 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 	/* XXX don't allocate content-registry entries from heap */
 	Decorator_content_registry _content_registry { *Genode::env()->heap() };
 
-	Entrypoint &_ep;
-
 	Allocator &_md_alloc;
 
 	/* Nitpicker::Connection requires a valid input session */
 	Input::Session_component  _dummy_input_component;
 	Input::Session_capability _dummy_input_component_cap =
-		_ep.manage(_dummy_input_component);
+		_env.ep().manage(_dummy_input_component);
 
-	Signal_rpc_member<Decorator_nitpicker_session>
-		_input_dispatcher { _ep, *this, &Decorator_nitpicker_session::_input_handler };
+	Signal_handler<Decorator_nitpicker_session>
+		_input_handler { _env.ep(), *this, &Decorator_nitpicker_session::_handle_input };
 
 	/**
 	 * Constructor
 	 *
 	 * \param ep  entrypoint used for dispatching signals
 	 */
-	Decorator_nitpicker_session(Ram_session_capability ram,
-	                            Entrypoint &ep, Allocator &md_alloc,
+	Decorator_nitpicker_session(Genode::Env &env,
+	                            Ram_session_capability ram,
+	                            Allocator &md_alloc,
 	                            Reporter &pointer_reporter,
 	                            Last_motion &last_motion,
 	                            Input::Session_component &window_layouter_input,
 	                            Decorator_content_callback &content_callback)
 	:
+		_env(env),
 		_ram(ram),
 		_pointer_reporter(pointer_reporter),
 		_last_motion(last_motion),
 		_window_layouter_input(window_layouter_input),
 		_content_callback(content_callback),
-		_ep(ep), _md_alloc(md_alloc)
+		_md_alloc(md_alloc)
 	{
-		_nitpicker_session.input()->sigh(_input_dispatcher);
+		_nitpicker_session.input()->sigh(_input_handler);
 	}
 
-	void _input_handler(unsigned)
+	void _handle_input()
 	{
 		while (_nitpicker_session.input()->pending())
 			_nitpicker_session.input()->for_each_event([&] (Input::Event const &ev) {

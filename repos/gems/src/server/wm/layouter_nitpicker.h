@@ -15,12 +15,8 @@
 #define _LAYOUTER_NITPICKER_H_
 
 /* Genode includes */
-#include <os/server.h>
 #include <input/component.h>
 #include <nitpicker_session/connection.h>
-
-namespace Wm { using Server::Entrypoint; }
-
 
 namespace Wm {
 	struct Layouter_nitpicker_session;
