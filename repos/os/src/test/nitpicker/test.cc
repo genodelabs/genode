@@ -13,7 +13,7 @@
 
 #include <base/env.h>
 #include <util/list.h>
-#include <base/sleep.h>
+#include <base/component.h>
 #include <base/log.h>
 #include <nitpicker_session/connection.h>
 #include <timer_session/connection.h>
@@ -141,14 +141,14 @@ class Test_view_stack : public List<Test_view>
 };
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	/*
 	 * Init sessions to the required external services
 	 */
 	enum { CONFIG_ALPHA = false };
-	static Nitpicker::Connection nitpicker;
-	static Timer::Connection     timer;
+	static Nitpicker::Connection nitpicker { env, "testnit" };
+	static Timer::Connection     timer     { env };
 
 	Framebuffer::Mode const mode(256, 256, Framebuffer::Mode::RGB565);
 	nitpicker.buffer(mode, false);
@@ -158,10 +158,13 @@ int main(int argc, char **argv)
 	log("screen is ", mode);
 	if (!scr_w || !scr_h) {
 		error("got invalid screen - sleeping forever");
-		sleep_forever();
+		return;
 	}
 
-	short *pixels = env()->rm_session()->attach(nitpicker.framebuffer()->dataspace());
+	Genode::Attached_dataspace fb_ds(
+		env.rm(), nitpicker.framebuffer()->dataspace());
+
+	short *pixels = fb_ds.local_addr<short>();
 	unsigned char *alpha = (unsigned char *)&pixels[scr_w*scr_h];
 	unsigned char *input_mask = CONFIG_ALPHA ? alpha + scr_w*scr_h : 0;
 
@@ -227,5 +230,5 @@ int main(int argc, char **argv)
 		});
 	}
 
-	return 0;
+	env.parent().exit(0);
 }
