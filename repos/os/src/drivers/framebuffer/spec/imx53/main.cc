@@ -6,14 +6,13 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <imx_framebuffer_session/imx_framebuffer_session.h>
-#include <cap_session/connection.h>
 #include <timer_session/connection.h>
 #include <dataspace/client.h>
-#include <base/log.h>
-#include <base/sleep.h>
 #include <os/static_root.h>
-#include <os/config.h>
 #include <blit/blit.h>
 
 /* local includes */
@@ -30,6 +29,8 @@ class Framebuffer::Session_component :
 {
 	private:
 
+		Genode::Env &_env;
+
 		bool     _buffered;
 		Mode     _mode;
 		size_t   _size;
@@ -42,7 +43,7 @@ class Framebuffer::Session_component :
 		Genode::Dataspace_capability _fb_ds;
 		void                        *_fb_addr;
 
-		Timer::Connection _timer;
+		Timer::Connection _timer { _env };
 
 
 		Ipu &_ipu;
@@ -63,20 +64,21 @@ class Framebuffer::Session_component :
 			     *dst = (char *)_fb_addr + bypp*(_mode.width()*y1 + x1);
 
 			blit(src, bypp*_mode.width(), dst, bypp*_mode.width(),
-				 bypp*(x2 - x1 + 1), y2 - y1 + 1);
+			     bypp*(x2 - x1 + 1), y2 - y1 + 1);
 		}
 
 	public:
 
-		Session_component(Driver &driver, bool buffered)
-		: _buffered(buffered),
+		Session_component(Genode::Env &env, Driver &driver, bool buffered)
+		: _env(env),
+		  _buffered(buffered),
 		  _mode(driver.mode()),
 		  _size(_mode.bytes_per_pixel() * _mode.width() * _mode.height()),
-		  _bb_ds(buffered ? Genode::env()->ram_session()->alloc(_size)
+		  _bb_ds(buffered ? _env.ram().alloc(_size)
 		                  : Genode::Ram_dataspace_capability()),
-		  _bb_addr(buffered ? (void*)Genode::env()->rm_session()->attach(_bb_ds) : 0),
-		  _fb_ds(Genode::env()->ram_session()->alloc(_size, WRITE_COMBINED)),
-		  _fb_addr((void*)Genode::env()->rm_session()->attach(_fb_ds)),
+		  _bb_addr(buffered ? (void*)_env.rm().attach(_bb_ds) : 0),
+		  _fb_ds(_env.ram().alloc(_size, WRITE_COMBINED)),
+		  _fb_addr((void*)_env.rm().attach(_fb_ds)),
 		  _ipu(driver.ipu())
 		{
 			if (!driver.init(Dataspace_client(_fb_ds).phys_addr())) {
@@ -112,29 +114,34 @@ class Framebuffer::Session_component :
 };
 
 
-static bool config_attribute(const char *attr_name)
+static bool config_attribute(Genode::Xml_node node, const char *attr_name)
 {
-	return Genode::config()->xml_node().attribute_value(attr_name, false);
+	return node.attribute_value(attr_name, false);
 }
 
 
-int main(int, char **)
+struct Main
 {
-	Genode::log("--- i.MX53 framebuffer driver ---");
+	Genode::Env        &_env;
+	Genode::Entrypoint &_ep;
 
-	using namespace Framebuffer;
+	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	static Driver driver;
+	Framebuffer::Driver _driver { _env };
 
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_ep");
+	Framebuffer::Session_component _fb_session { _env, _driver,
+		config_attribute(_config.xml(), "buffered") };
 
-	static Session_component fb_session(driver, config_attribute("buffered"));
-	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
+	Genode::Static_root<Framebuffer::Session> _fb_root {
+		_ep.manage(_fb_session) };
 
-	env()->parent()->announce(ep.manage(&fb_root));
+	Main(Genode::Env &env) : _env(env), _ep(_env.ep())
+	{
+		Genode::log("--- i.MX53 framebuffer driver ---");
 
-	sleep_forever();
-	return 0;
-}
+		_env.parent().announce(_ep.manage(_fb_root));
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Main main(env); }
