@@ -14,87 +14,72 @@
 #include <util/reconstructible.h>
 #include <util/xml_node.h>
 #include <util/color.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/pixel_rgb565.h>
 #include <nitpicker_session/connection.h>
 #include <nitpicker_gfx/box_painter.h>
 #include <nitpicker_gfx/text_painter.h>
 
-typedef Genode::Color               Color;
-typedef Genode::String<128>         Domain_name;
-typedef Genode::String<128>         Label;
-typedef Genode::Surface_base::Area  Area;
-typedef Genode::Surface_base::Point Point;
-typedef Genode::Surface_base::Rect  Rect;
-typedef Genode::size_t              size_t;
+namespace Status_bar {
 
+	using namespace Genode;
 
-/***************
- ** Utilities **
- ***************/
+	typedef String<128>         Domain_name;
+	typedef String<128>         Label;
+	typedef Surface_base::Area  Area;
+	typedef Surface_base::Point Point;
+	typedef Surface_base::Rect  Rect;
 
-template <size_t N>
-static Genode::String<N> read_string_attribute(Genode::Xml_node node, char const *attr,
-                                               Genode::String<N> default_value)
-{
-	try {
-		char buf[N];
-		node.attribute(attr).value(buf, sizeof(buf));
-		return Genode::String<N>(Genode::Cstring(buf));
-	}
-	catch (...) {
-		return default_value; }
+	struct Buffer;
+	struct Main;
 }
 
 extern char _binary_default_tff_start;
 
 
-/******************
- ** Main program **
- ******************/
-
-struct Status_bar_buffer
+struct Status_bar::Buffer
 {
 	enum { HEIGHT = 18, LABEL_GAP = 15 };
 
-	Nitpicker::Connection &nitpicker;
+	Nitpicker::Connection &_nitpicker;
 
-	Framebuffer::Mode const nit_mode { nitpicker.mode() };
+	Framebuffer::Mode const _nit_mode { _nitpicker.mode() };
 
 	/*
 	 * Dimension nitpicker buffer depending on nitpicker's screen size.
 	 * The status bar is as wide as nitpicker's screen and has a fixed
 	 * height.
 	 */
-	Framebuffer::Mode const mode { nit_mode.width(), HEIGHT, nit_mode.format() };
+	Framebuffer::Mode const _mode { _nit_mode.width(), HEIGHT, _nit_mode.format() };
 
-	Genode::Dataspace_capability init_buffer()
+	Dataspace_capability _init_buffer()
 	{
-		nitpicker.buffer(mode, false);
-		return nitpicker.framebuffer()->dataspace();
+		_nitpicker.buffer(_mode, false);
+		return _nitpicker.framebuffer()->dataspace();
 	}
 
-	Genode::Attached_dataspace fb_ds { init_buffer() };
+	Attached_dataspace _fb_ds;
 
-	Text_painter::Font const font { &_binary_default_tff_start };
+	Text_painter::Font const _font { &_binary_default_tff_start };
 
-	Status_bar_buffer(Nitpicker::Connection &nitpicker)
+	Buffer(Region_map &rm, Nitpicker::Connection &nitpicker)
 	:
-		nitpicker(nitpicker)
+		_nitpicker(nitpicker), _fb_ds(rm, _init_buffer())
 	{ }
 
 	template <typename PT>
-	void _draw_outline(Genode::Surface<PT> &surface, Point pos, char const *s)
+	void _draw_outline(Surface<PT> &surface, Point pos, char const *s)
 	{
 		for (int j = -1; j <= 1; j++)
 			for (int i = -1; i <= 1; i++)
 				if (i || j)
-					Text_painter::paint(surface, pos + Point(i, j), font,
+					Text_painter::paint(surface, pos + Point(i, j), _font,
 					                    Color(0, 0, 0), s);
 	}
 
 	template <typename PT>
-	void _draw_label(Genode::Surface<PT> &surface, Point pos,
+	void _draw_label(Surface<PT> &surface, Point pos,
 	                 Domain_name const &domain_name, Label const &label,
 	                 Color color)
 	{
@@ -106,40 +91,42 @@ struct Status_bar_buffer
 		pos = pos + Point(1, 1);
 
 		_draw_outline(surface, pos, domain_name.string());
-		Text_painter::paint(surface, pos, font, domain_text_color,
+		Text_painter::paint(surface, pos, _font, domain_text_color,
 		                    domain_name.string());
 
-		pos = pos + Point(font.str_w(domain_name.string()) + LABEL_GAP, 0);
+		pos = pos + Point(_font.str_w(domain_name.string()) + LABEL_GAP, 0);
 
 		_draw_outline(surface, pos, label.string());
-		Text_painter::paint(surface, pos, font, label_text_color, label.string());
+		Text_painter::paint(surface, pos, _font, label_text_color, label.string());
 	}
 
 	Area _label_size(Domain_name const &domain_name, Label const &label) const
 	{
-		return Area(font.str_w(domain_name.string()) + LABEL_GAP
-		          + font.str_w(label.string()) + 2,
-		            font.str_h(domain_name.string()) + 2);
+		return Area(_font.str_w(domain_name.string()) + LABEL_GAP
+		          + _font.str_w(label.string()) + 2,
+		            _font.str_h(domain_name.string()) + 2);
 	}
 
 	void draw(Domain_name const &, Label const &, Color);
+
+	Framebuffer::Mode mode() const { return _mode; }
 };
 
 
-void Status_bar_buffer::draw(Domain_name const &domain_name,
-                             Label       const &label,
-                             Color              color)
+void Status_bar::Buffer::draw(Domain_name const &domain_name,
+                              Label       const &label,
+                              Color              color)
 {
-	if (mode.format() != Framebuffer::Mode::RGB565) {
-		Genode::error("pixel format not supported");
+	if (_mode.format() != Framebuffer::Mode::RGB565) {
+		error("pixel format not supported");
 		return;
 	}
 
-	typedef Genode::Pixel_rgb565 PT;
+	typedef Pixel_rgb565 PT;
 
-	Area const area(mode.width(), mode.height());
+	Area const area(_mode.width(), _mode.height());
 
-	Genode::Surface<PT> surface(fb_ds.local_addr<PT>(), area);
+	Surface<PT> surface(_fb_ds.local_addr<PT>(), area);
 
 	Rect const view_rect(Point(0, 0), area);
 
@@ -172,113 +159,97 @@ void Status_bar_buffer::draw(Domain_name const &domain_name,
 	_draw_label(surface, view_rect.center(_label_size(domain_name, label)),
 	            domain_name, label, color);
 
-	nitpicker.framebuffer()->refresh(0, 0, area.w(), area.h());
+	_nitpicker.framebuffer()->refresh(0, 0, area.w(), area.h());
 }
 
 
-struct Main
+struct Status_bar::Main
 {
-	Genode::Attached_rom_dataspace focus_ds { "focus" };
+	Env &_env;
 
-	Genode::Signal_receiver sig_rec;
+	Attached_rom_dataspace _focus_ds { _env, "focus" };
 
-	void handle_focus(unsigned);
+	void _handle_focus();
 
-	Genode::Signal_dispatcher<Main> focus_signal_dispatcher {
-		sig_rec, *this, &Main::handle_focus };
+	Signal_handler<Main> _focus_handler {
+		_env.ep(), *this, &Main::_handle_focus };
 
-	void handle_mode(unsigned);
+	void _handle_mode();
 
-	Genode::Signal_dispatcher<Main> mode_signal_dispatcher {
-		sig_rec, *this, &Main::handle_mode };
+	Signal_handler<Main> _mode_handler {
+		_env.ep(), *this, &Main::_handle_mode };
 
-	Nitpicker::Connection nitpicker;
+	Nitpicker::Connection _nitpicker { _env, "status_bar" };
 
 	/* status-bar attributes */
-	Domain_name domain_name;
-	Label       label;
-	Color       color;
+	Domain_name _domain_name;
+	Label       _label;
+	Color       _color;
 
-	Genode::Reconstructible<Status_bar_buffer> status_bar_buffer { nitpicker };
+	Reconstructible<Buffer> _buffer { _env.rm(), _nitpicker };
 
-	Nitpicker::Session::View_handle const view { nitpicker.create_view() };
+	Nitpicker::Session::View_handle const _view { _nitpicker.create_view() };
 
-	void draw_status_bar()
+	void _draw_status_bar()
 	{
-		status_bar_buffer->draw(domain_name, label, color);
+		_buffer->draw(_domain_name, _label, _color);
 	}
 
-	Main()
+	Main(Env &env) : _env(env)
 	{
 		/* register signal handlers */
-		focus_ds.sigh(focus_signal_dispatcher);
-		nitpicker.mode_sigh(mode_signal_dispatcher);
+		_focus_ds.sigh(_focus_handler);
+		_nitpicker.mode_sigh(_mode_handler);
 
 		/* schedule initial view-stacking command, needed only once */
-		nitpicker.enqueue<Nitpicker::Session::Command::To_front>(view);
+		_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view);
 
 		/* import initial state */
-		handle_mode(0);
-		handle_focus(0);
+		_handle_mode();
+		_handle_focus();
 	}
 };
 
 
-void Main::handle_focus(unsigned)
+void Status_bar::Main::_handle_focus()
 {
 	/* fetch new content of the focus ROM module */
-	focus_ds.update();
-	if (!focus_ds.valid())
+	_focus_ds.update();
+	if (!_focus_ds.valid())
 		return;
 
 	/* reset status-bar properties */
-	label       = Label();
-	domain_name = Domain_name();
-	color       = Color(0, 0, 0);
+	_label       = Label();
+	_domain_name = Domain_name();
+	_color       = Color(0, 0, 0);
 
 	/* read new focus information from nitpicker's focus report */
 	try {
-		Genode::Xml_node node(focus_ds.local_addr<char>());
+		Xml_node node(_focus_ds.local_addr<char>());
 
-		label       = read_string_attribute(node, "label", Label());
-		domain_name = read_string_attribute(node, "domain", Domain_name());
-		color       = node.attribute_value("color", Color(0, 0, 0));
+		_label       = node.attribute_value("label",  Label());
+		_domain_name = node.attribute_value("domain", Domain_name());
+		_color       = node.attribute_value("color",  Color(0, 0, 0));
 	}
 	catch (...) {
-		Genode::warning("could not parse focus report"); }
+		warning("could not parse focus report"); }
 
-	draw_status_bar();
+	_draw_status_bar();
 }
 
 
-void Main::handle_mode(unsigned)
+void Status_bar::Main::_handle_mode()
 {
-	status_bar_buffer.construct(nitpicker);
+	_buffer.construct(_env.rm(), _nitpicker);
 
-	draw_status_bar();
+	_draw_status_bar();
 
-	Rect const geometry(Point(0, 0), Area(status_bar_buffer->mode.width(),
-	                                      status_bar_buffer->mode.height()));
+	Rect const geometry(Point(0, 0), Area(_buffer->mode().width(),
+	                                      _buffer->mode().height()));
 
-	nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(view, geometry);
-	nitpicker.execute();
+	_nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(_view, geometry);
+	_nitpicker.execute();
 }
 
 
-int main(int, char **)
-{
-	static Main main;
-
-	/* dispatch signals */
-	for (;;) {
-
-		Genode::Signal sig = main.sig_rec.wait_for_signal();
-		Genode::Signal_dispatcher_base *dispatcher =
-			dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
-
-		if (dispatcher)
-			dispatcher->dispatch(sig.num());
-	}
-
-	return 0;
-}
+void Component::construct(Genode::Env &env) { static Status_bar::Main main { env }; }
