@@ -9,6 +9,7 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/arm_v7
 
 # add C++ sources
 SRC_CC += spec/arm_v7/cpu.cc
+SRC_CC += spec/arm_v7/perf_counter.cc
 
 # add assembly sources
 SRC_S += spec/arm_v7/mode_transition.s

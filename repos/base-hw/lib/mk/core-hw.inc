@@ -4,7 +4,7 @@
 # \date   2011-12-16
 #
 
-LIBS += core-hw-perf_counter base-hw-common cxx
+LIBS += base-hw-common cxx
 
 # add include paths
 INC_DIR += $(BASE_DIR)/../base-hw/src/core/include
