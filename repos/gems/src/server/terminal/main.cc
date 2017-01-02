@@ -12,19 +12,19 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
+#include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
 #include <framebuffer_session/connection.h>
 #include <input_session/connection.h>
 #include <timer_session/connection.h>
-#include <cap_session/connection.h>
 #include <root/component.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <input/event.h>
-#include <os/config.h>
 #include <util/color.h>
 #include <os/pixel_rgb565.h>
+#include <os/timer.h>
 
 /* terminal includes */
 #include <terminal/decoder.h>
@@ -36,6 +36,11 @@
 
 /* nitpicker graphic back end */
 #include <nitpicker_gfx/text_painter.h>
+
+namespace Terminal {
+	using namespace Genode;
+	struct Main;
+}
 
 
 using Genode::Pixel_rgb565;
@@ -264,15 +269,22 @@ namespace Terminal {
 	};
 
 
+	struct Trigger_flush_callback
+	{
+		virtual void trigger_flush() = 0;
+	};
+
+
 	class Session_component : public Genode::Rpc_object<Session, Session_component>,
 	                          public Flush_callback
 	{
 		private:
 
-			Read_buffer                   *_read_buffer;
-			Framebuffer::Session          *_framebuffer;
+			Read_buffer                   &_read_buffer;
+			Framebuffer::Session          &_framebuffer;
 
 			Flush_callback_registry       &_flush_callback_registry;
+			Trigger_flush_callback        &_trigger_flush_callback;
 
 			Genode::Attached_ram_dataspace _io_buffer;
 
@@ -295,7 +307,7 @@ namespace Terminal {
 
 			Terminal::Position               _last_cursor_pos;
 
-			Font_family const               *_font_family;
+			Font_family const               &_font_family;
 
 			/**
 			 * Initialize framebuffer-related attributes
@@ -307,7 +319,7 @@ namespace Terminal {
 					return Genode::Dataspace_capability();
 				}
 
-				return _framebuffer->dataspace();
+				return _framebuffer.dataspace();
 			}
 
 		public:
@@ -315,16 +327,20 @@ namespace Terminal {
 			/**
 			 * Constructor
 			 */
-			Session_component(Read_buffer             *read_buffer,
-			                  Framebuffer::Session    *framebuffer,
+			Session_component(Genode::Env             &env,
+			                  Genode::Allocator       &alloc,
+			                  Read_buffer             &read_buffer,
+			                  Framebuffer::Session    &framebuffer,
 			                  Genode::size_t           io_buffer_size,
 			                  Flush_callback_registry &flush_callback_registry,
+			                  Trigger_flush_callback  &trigger_flush_callback,
 			                  Font_family const       &font_family)
 			:
 				_read_buffer(read_buffer), _framebuffer(framebuffer),
 				_flush_callback_registry(flush_callback_registry),
-				_io_buffer(Genode::env()->ram_session(), io_buffer_size),
-				_fb_mode(_framebuffer->mode()),
+				_trigger_flush_callback(trigger_flush_callback),
+				_io_buffer(env.ram(), env.rm(), io_buffer_size),
+				_fb_mode(_framebuffer.mode()),
 				_fb_ds_cap(_init_fb()),
 
 				/* take size of space character as character cell size */
@@ -335,12 +351,12 @@ namespace Terminal {
 				_columns(_fb_mode.width()/_char_width),
 				_lines(_fb_mode.height()/_char_height),
 
-				_fb_addr(Genode::env()->rm_session()->attach(_fb_ds_cap)),
-				_char_cell_array(_columns, _lines, Genode::env()->heap()),
+				_fb_addr(env.rm().attach(_fb_ds_cap)),
+				_char_cell_array(_columns, _lines, &alloc),
 				_char_cell_array_character_screen(_char_cell_array),
 				_decoder(_char_cell_array_character_screen),
 
-				_font_family(&font_family)
+				_font_family(font_family)
 			{
 				using namespace Genode;
 
@@ -349,7 +365,7 @@ namespace Terminal {
 				log("  character size is ", _char_width, "x", _char_height, " pixels");
 				log("  terminal size is ", _columns, "x", _lines, " characters");
 
-				framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+				framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 
 				_flush_callback_registry.add(this);
 			}
@@ -367,7 +383,7 @@ namespace Terminal {
 				                                           (Pixel_rgb565 *)_fb_addr,
 				                                           _fb_mode.width(),
 				                                           _fb_mode.height(),
-				                                          *_font_family);
+				                                           _font_family);
 
 				
 				int first_dirty_line =  10000,
@@ -384,9 +400,9 @@ namespace Terminal {
 
 				int num_dirty_lines = last_dirty_line - first_dirty_line + 1;
 				if (num_dirty_lines > 0)
-					_framebuffer->refresh(0, first_dirty_line*_char_height,
-					                      _fb_mode.width(),
-					                      num_dirty_lines*_char_height);
+					_framebuffer.refresh(0, first_dirty_line*_char_height,
+					                     _fb_mode.width(),
+					                     num_dirty_lines*_char_height);
 			}
 
 
@@ -396,7 +412,7 @@ namespace Terminal {
 
 			Size size() { return Size(_columns, _lines); }
 
-			bool avail() { return !_read_buffer->empty(); }
+			bool avail() { return !_read_buffer.empty(); }
 
 			Genode::size_t _read(Genode::size_t dst_len)
 			{
@@ -404,9 +420,9 @@ namespace Terminal {
 				unsigned       num_bytes = 0;
 				unsigned char *dst       = _io_buffer.local_addr<unsigned char>();
 				Genode::size_t dst_size  = Genode::min(_io_buffer.size(), dst_len);
-				do {
-					dst[num_bytes++] = _read_buffer->get();
-				} while (!_read_buffer->empty() && num_bytes < dst_size);
+
+				while (!_read_buffer.empty() && num_bytes < dst_size)
+					dst[num_bytes++] = _read_buffer.get();
 
 				return num_bytes;
 			}
@@ -422,6 +438,7 @@ namespace Terminal {
 					/* submit character to sequence decoder */
 					_decoder.insert(src[i]);
 				}
+				_trigger_flush_callback.trigger_flush();
 			}
 
 			Genode::Dataspace_capability _dataspace()
@@ -441,7 +458,7 @@ namespace Terminal {
 
 			void read_avail_sigh(Genode::Signal_context_capability cap)
 			{
-				_read_buffer->sigh(cap);
+				_read_buffer.sigh(cap);
 			}
 
 			Genode::size_t read(void *buf, Genode::size_t)  { return 0; }
@@ -453,9 +470,11 @@ namespace Terminal {
 	{
 		private:
 
-			Read_buffer             *_read_buffer;
-			Framebuffer::Session    *_framebuffer;
+			Genode::Env             &_env;
+			Read_buffer             &_read_buffer;
+			Framebuffer::Session    &_framebuffer;
 			Flush_callback_registry &_flush_callback_registry;
+			Trigger_flush_callback  &_trigger_flush_callback;
 			Font_family const       &_font_family;
 
 		protected:
@@ -470,10 +489,12 @@ namespace Terminal {
 				Genode::size_t io_buffer_size = 4096;
 
 				Session_component *session =
-					new (md_alloc()) Session_component(_read_buffer,
+					new (md_alloc()) Session_component(_env, *md_alloc(),
+					                                   _read_buffer,
 					                                   _framebuffer,
 					                                   io_buffer_size,
 					                                   _flush_callback_registry,
+					                                   _trigger_flush_callback,
 					                                   _font_family);
 				return session;
 			}
@@ -483,41 +504,175 @@ namespace Terminal {
 			/**
 			 * Constructor
 			 */
-			Root_component(Genode::Rpc_entrypoint  *ep,
-			               Genode::Allocator       *md_alloc,
-			               Read_buffer             *read_buffer,
-			               Framebuffer::Session    *framebuffer,
+			Root_component(Genode::Env             &env,
+			               Genode::Allocator       &md_alloc,
+			               Read_buffer             &read_buffer,
+			               Framebuffer::Session    &framebuffer,
 			               Flush_callback_registry &flush_callback_registry,
+			               Trigger_flush_callback  &trigger_flush_callback,
 			               Font_family const       &font_family)
 			:
-				Genode::Root_component<Session_component>(ep, md_alloc),
+				Genode::Root_component<Session_component>(env.ep(), md_alloc),
+				_env(env),
 				_read_buffer(read_buffer), _framebuffer(framebuffer),
 				_flush_callback_registry(flush_callback_registry),
+				_trigger_flush_callback(trigger_flush_callback),
 				_font_family(font_family)
 			{ }
 	};
 }
 
 
-int main(int, char **)
+struct Terminal::Main
+{
+	Genode::Env &_env;
+
+	Framebuffer::Connection _framebuffer { _env, Framebuffer::Mode() };
+	Input::Connection       _input { _env };
+	Timer::Connection       _timer_conection { _env };
+	Genode::Timer           _timer { _timer_conection, _env.ep() };
+
+	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
+
+	/* input read buffer */
+	Read_buffer _read_buffer;
+
+	Terminal::Flush_callback_registry _flush_callback_registry;
+
+	/* create root interface for service */
+	Terminal::Root_component _root;
+
+	Terminal::Scancode_tracker _scancode_tracker;
+
+	/* state needed for key-repeat handling */
+	unsigned const _repeat_delay = 250;
+	unsigned const _repeat_rate  =  25;
+	unsigned       _repeat_next  =   0;
+
+	void _handle_input();
+
+	Signal_handler<Main> _input_handler {
+		_env.ep(), *this, &Main::_handle_input };
+
+	void _handle_key_repeat(Time_source::Microseconds);
+
+	One_shot_timeout<Main> _key_repeat_timeout {
+		_timer, *this, &Main::_handle_key_repeat };
+
+	void _handle_flush(Time_source::Microseconds);
+
+	/*
+	 * Time in milliseconds between a change of the terminal content and the
+	 * update of the pixels. By delaying the update, multiple intermediate
+	 * changes result in only one rendering step.
+	 */
+	unsigned const _flush_delay = 5;
+
+	bool _flush_scheduled = false;
+
+	void _trigger_flush()
+	{
+		if (!_flush_scheduled) {
+			_flush_timeout.start(Time_source::Microseconds{1000*_flush_delay});
+			_flush_scheduled = true;
+		}
+	}
+
+	/*
+	 * Callback invoked if new terminal content appears
+	 */
+	struct Trigger_flush : Trigger_flush_callback
+	{
+		Main &_main;
+		void trigger_flush() override { _main._trigger_flush(); }
+		Trigger_flush(Main &main) : _main(main) { }
+	} _trigger_flush_callback { *this };
+
+	One_shot_timeout<Main> _flush_timeout {
+		_timer, *this, &Main::_handle_flush };
+
+	Main(Genode::Env &env,
+	     Font_family &font_family,
+	     unsigned char const *keymap,
+	     unsigned char const *shift,
+	     unsigned char const *altgr,
+	     unsigned char const *control)
+	:
+		_env(env),
+		_root(_env, _sliced_heap,
+		      _read_buffer, _framebuffer,
+		      _flush_callback_registry,
+		      _trigger_flush_callback,
+		      font_family),
+		_scancode_tracker(keymap, shift, altgr, Terminal::control)
+	{
+		_input.sigh(_input_handler);
+
+		/* announce service at our parent */
+		_env.parent().announce(_env.ep().manage(_root));
+	}
+
+};
+
+
+void Terminal::Main::_handle_input()
+{
+	_input.for_each_event([&] (Input::Event const &event) {
+		bool press   = (event.type() == Input::Event::PRESS   ? true : false);
+		bool release = (event.type() == Input::Event::RELEASE ? true : false);
+		int  keycode =  event.code();
+
+		if (press || release)
+			_scancode_tracker.submit(keycode, press);
+
+		if (press) {
+			_scancode_tracker.emit_current_character(_read_buffer);
+
+			/* setup first key repeat */
+			_repeat_next = _repeat_delay;
+		}
+
+		if (release)
+			_repeat_next = 0;
+	});
+
+	if (_repeat_next)
+		_key_repeat_timeout.start(Time_source::Microseconds{1000*_repeat_next});
+}
+
+
+void Terminal::Main::_handle_key_repeat(Time_source::Microseconds)
+{
+	if (_repeat_next) {
+
+		/* repeat current character or sequence */
+		_scancode_tracker.emit_current_character(_read_buffer);
+
+		_repeat_next = _repeat_rate;
+	}
+
+	_handle_input();
+}
+
+
+void Terminal::Main::_handle_flush(Time_source::Microseconds)
+{
+	_flush_scheduled = false;
+	_flush_callback_registry.flush();
+}
+
+
+/* built-in fonts */
+extern char _binary_notix_8_tff_start;
+extern char _binary_terminus_12_tff_start;
+extern char _binary_terminus_16_tff_start;
+
+
+void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
 
-	log("--- terminal service started ---");
-
-	static Framebuffer::Connection framebuffer;
-	static Input::Connection       input;
-	static Timer::Connection       timer;
-	static Cap_connection          cap;
-
-	/* initialize entry point that serves the root interface */
-	enum { STACK_SIZE = 2*sizeof(addr_t)*1024 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "terminal_ep");
-
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
-
-	/* input read buffer */
-	static Terminal::Read_buffer read_buffer;
+	Attached_rom_dataspace config(env, "config");
 
 	/* initialize color palette */
 	color_palette[0] = Color(  0,   0,   0);  /* black */
@@ -536,17 +691,11 @@ int main(int, char **)
 		color_palette[i + 8] = col;
 	}
 
-	/* built-in fonts */
-	extern char _binary_notix_8_tff_start;
-	extern char _binary_terminus_12_tff_start;
-	extern char _binary_terminus_16_tff_start;
-
 	/* pick font according to config file */
 	char const *font_data = &_binary_terminus_16_tff_start;
 	try {
 		size_t font_size = 16;
-		config()->xml_node().sub_node("font")
-		                    .attribute("size").value(&font_size);
+		config.xml().sub_node("font").attribute("size").value(&font_size);
 
 		switch (font_size) {
 		case  8: font_data = &_binary_notix_8_tff_start;     break;
@@ -562,22 +711,6 @@ int main(int, char **)
 	log("cell size is ", (int)font_family.cell_width(),
 	    "x", (int)font_family.cell_height());
 
-	static Terminal::Flush_callback_registry flush_callback_registry;
-
-	/* create root interface for service */
-	static Terminal::Root_component root(&ep, &sliced_heap,
-	                                     &read_buffer, &framebuffer,
-	                                     flush_callback_registry,
-	                                     font_family);
-
-	/* announce service at our parent */
-	env()->parent()->announce(ep.manage(&root));
-
-	/* state needed for key-repeat handling */
-	static int const repeat_delay = 170;
-	static int const repeat_rate  =  25;
-	static int       repeat_cnt   =   0;
-
 	unsigned char *keymap = Terminal::usenglish_keymap;
 	unsigned char *shift  = Terminal::usenglish_shift;
 	unsigned char *altgr  = 0;
@@ -586,7 +719,7 @@ int main(int, char **)
 	 * Read keyboard layout from config file
 	 */
 	try {
-		if (config()->xml_node().sub_node("keyboard")
+		if (config.xml().sub_node("keyboard")
 		                        .attribute("layout").has_value("de")) {
 
 			keymap = Terminal::german_keymap;
@@ -595,47 +728,5 @@ int main(int, char **)
 		}
 	} catch (...) { }
 
-	static Terminal::Scancode_tracker
-		scancode_tracker(keymap, shift, altgr, Terminal::control);
-
-	while (1) {
-
-		flush_callback_registry.flush();
-
-		while (!input.pending()) {
-			enum { PASSED_MSECS = 10 };
-			timer.msleep(PASSED_MSECS);
-
-			flush_callback_registry.flush();
-
-			if (scancode_tracker.valid()) {
-				repeat_cnt -= PASSED_MSECS;
-
-				if (repeat_cnt < 0) {
-
-					/* repeat current character or sequence */
-					scancode_tracker.emit_current_character(read_buffer);
-
-					/* reset repeat counter according to repeat rate */
-					repeat_cnt = repeat_rate;
-				}
-			}
-		}
-
-		input.for_each_event([&] (Input::Event const &event) {
-			bool press   = (event.type() == Input::Event::PRESS   ? true : false);
-			bool release = (event.type() == Input::Event::RELEASE ? true : false);
-			int  keycode =  event.code();
-
-			if (press || release)
-				scancode_tracker.submit(keycode, press);
-
-			if (press)
-				scancode_tracker.emit_current_character(read_buffer);
-
-			/* setup first key repeat */
-			repeat_cnt = repeat_delay;
-		});
-	}
-	return 0;
+	static Terminal::Main main(env, font_family, keymap, shift, altgr, Terminal::control);
 }
