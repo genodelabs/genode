@@ -36,10 +36,10 @@ struct Main
 		Factory(Env &env, Heap &heap) : env(env), heap(heap) { }
 
 		Block::Driver *create() {
-			return new (&heap) Block::Sdhci_driver(env); }
+			return new (&heap) Sd_card::Driver(env); }
 
 		void destroy(Block::Driver *driver) {
-			Genode::destroy(&heap, static_cast<Block::Sdhci_driver*>(driver)); }
+			Genode::destroy(&heap, static_cast<Sd_card::Driver*>(driver)); }
 
 	} factory { env, heap };
 

@@ -12,13 +12,13 @@
  */
 
 /* local includes */
-#include <sdhc.h>
+#include <driver.h>
 
 using namespace Sd_card;
 using namespace Genode;
 
 
-void Sdhc::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
+void Driver::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 {
 	Xfertyp::Msbsel::set(xfertyp, 1);
 	Xfertyp::Bcen::set(xfertyp, 1);
@@ -26,7 +26,7 @@ void Sdhc::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 }
 
 
-int Sdhc::_wait_for_cmd_complete_mb_finish(bool const reading)
+int Driver::_wait_for_cmd_complete_mb_finish(bool const reading)
 {
 	if (reading) { return 0; }
 
@@ -48,7 +48,7 @@ int Sdhc::_wait_for_cmd_complete_mb_finish(bool const reading)
 }
 
 
-bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &xfertyp,
+bool Driver::_issue_cmd_finish_xfertyp(Xfertyp::access_t &xfertyp,
                                      bool const         transfer,
                                      bool const         multiblock,
                                      bool const         reading)
@@ -65,8 +65,7 @@ bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &xfertyp,
 			if (reading) {
 				Xfertyp::Ac12en::set(xfertyp, 1); }
 
-			if (_use_dma) {
-				Xfertyp::Dmaen::set(xfertyp, 1); }
+			Xfertyp::Dmaen::set(xfertyp, 1);
 		}
 		Xfertyp::Dtdsel::set(xfertyp,
 			reading ? Xfertyp::Dtdsel::READ : Xfertyp::Dtdsel::WRITE);
@@ -75,21 +74,21 @@ bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &xfertyp,
 }
 
 
-bool Sdhc::_supported_host_version(Hostver::access_t hostver)
+bool Driver::_supported_host_version(Hostver::access_t hostver)
 {
 	return Hostver::Vvn::get(hostver) == 18 &&
 	       Hostver::Svn::get(hostver) == 1;
 }
 
 
-void Sdhc::_watermark_level(Wml::access_t &wml)
+void Driver::_watermark_level(Wml::access_t &wml)
 {
 	Wml::Wr_wml::set(wml, 16);
 	Wml::Wr_brst_len::set(wml, 8);
 }
 
 
-void Sdhc::_reset_amendments()
+void Driver::_reset_amendments()
 {
 	/*
 	 * The SDHC specification says that a software reset shouldn't
@@ -106,7 +105,7 @@ void Sdhc::_reset_amendments()
 }
 
 
-void Sdhc::_clock_finish(Clock clock)
+void Driver::_clock_finish(Clock clock)
 {
 	Mmio::write<Sysctl::Dtocv>(Sysctl::Dtocv::SDCLK_TIMES_2_POW_27);
 	switch (clock) {
@@ -116,5 +115,5 @@ void Sdhc::_clock_finish(Clock clock)
 }
 
 
-void Sdhc::_disable_clock_preparation() { }
-void Sdhc::_enable_clock_finish() { }
+void Driver::_disable_clock_preparation() { }
+void Driver::_enable_clock_finish() { }

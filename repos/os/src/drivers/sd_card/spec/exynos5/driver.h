@@ -1,59 +1,153 @@
 /*
  * \brief  Exynos5-specific implementation of the Block::Driver interface
  * \author Sebastian Sumpf
+ * \author Martin Stein
  * \date   2013-03-22
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _DRIVERS__SD_CARD__SPEC__EXYNOS5__DRIVER_H_
-#define _DRIVERS__SD_CARD__SPEC__EXYNOS5__DRIVER_H_
+#ifndef _DRIVER_H_
+#define _DRIVER_H_
 
 /* Genode includes */
-#include <util/mmio.h>
-#include <os/attached_io_mem_dataspace.h>
-#include <base/log.h>
+#include <os/attached_mmio.h>
 #include <timer_session/connection.h>
-#include <os/server.h>
+#include <drivers/board_base.h>
 #include <regulator_session/connection.h>
+#include <irq_session/connection.h>
+#include <os/attached_ram_dataspace.h>
 
 /* local includes */
-#include <dwmmc.h>
+#include <driver_base.h>
 
-namespace Block {
-	using namespace Genode;
-	class Sdhci_driver;
-}
+namespace Sd_card { class Driver; }
 
 
-class Block::Sdhci_driver : public Block::Driver,
-                            public Sd_ack_handler
+class Sd_card::Driver : public  Driver_base,
+                        private Attached_mmio
 {
 	private:
 
-		struct Timer_delayer : Timer::Connection, Mmio::Delayer
-		{
-			/**
-			 * Implementation of 'Delayer' interface
-			 */
-			void usleep(unsigned us)
-			{
-				/* polling */
-				if (us == 0)
-					return;
-
-				Timer::Connection::usleep(us);
-			}
-		} _delayer;
-
 		enum {
-			MSH_BASE = 0x12200000, /* host controller base for eMMC */
-			MSH_SIZE = 0x10000,
+			HOST_FREQ              = 52000000,
+			CLK_FREQ               = 400000000,
+			CLK_DIV_52Mhz          = 4,
+			CLK_DIV_400Khz         = 0xff,
+			MSH_BASE               = 0x12200000,
+			MSH_SIZE               = 0x10000,
+			IDMAC_DESC_MAX_ENTRIES = 1024
+		};
+
+		enum Bus_width {
+			BUS_WIDTH_1 = 0,
+			BUS_WIDTH_4 = 1,
+			BUS_WIDTH_8 = 1 << 16,
+		};
+
+		template <off_t OFFSET, bool STRICT_WRITE = false>
+		struct Register : Mmio::Register<OFFSET, 32, STRICT_WRITE> { };
+
+		struct Ctrl : Register<0x0>
+		{
+			struct Reset             : Bitfield<0, 3> { };
+			struct Global_interrupt  : Bitfield<4, 1> { };
+			struct Dma_enable        : Bitfield<5, 1> { };
+			struct Use_internal_dmac : Bitfield<25, 1> { };
+		};
+
+		struct Pwren   : Register<0x4> { };
+		struct Clkdiv  : Register<0x8> { };
+		struct Clkena  : Register<0x10> { };
+		struct Tmout   : Register<0x14> { };
+		struct Ctype   : Register<0x18, true> { };
+		struct Blksize : Register<0x1c> { };
+		struct Bytcnt  : Register<0x20> { };
+		struct Intmask : Register<0x24> { };
+		struct Cmdarg  : Register<0x28> { };
+
+		struct Cmd : Register<0x2c>
+		{
+			struct Index                       : Bitfield<0,  6> { };
+			struct Rsp_type                    : Bitfield<6,  3>
+			{
+				enum Response { RESPONSE_NONE             = 0,
+				                RESPONSE_48_BIT           = 1,
+				                RESPONSE_48_BIT_WITH_BUSY = 5,
+				                RESPONSE_136_BIT          = 7,
+				};
+			};
+			struct Data_expected               : Bitfield<9,  1> { };
+			struct Write                       : Bitfield<10, 1> { };
+			struct Wait_prvdata_complete       : Bitfield<13, 1> { };
+			struct Init_sequence               : Bitfield<15, 1> { };
+			struct Update_clock_registers_only : Bitfield<21, 1> { };
+			struct Use_hold_reg                : Bitfield<29, 1> { };
+			struct Start_cmd                   : Bitfield<31, 1> { };
+		};
+
+		struct Rsp0 : Register<0x30> { };
+		struct Rsp1 : Register<0x34> { };
+		struct Rsp2 : Register<0x38> { };
+		struct Rsp3 : Register<0x3c> { };
+
+		struct Mintsts : Register<0x40> { };
+		struct Rintsts : Register<0x44, true>
+		{
+			struct Response_error     : Bitfield<1, 1> { };
+			struct Data_transfer_over : Bitfield<3, 1> { };
+			struct Command_done       : Bitfield<2, 1> { };
+			struct Data_crc_error     : Bitfield<7, 1> { };
+			struct Response_timeout   : Bitfield<8, 1> { };
+			struct Data_read_timeout  : Bitfield<9, 1> { };
+		};
+
+		struct Status : Register<0x48>
+		{
+			struct Data_busy : Bitfield<9, 1> { };
+		};
+
+		struct Fifoth : Register<0x4c> { };
+
+		struct Bmod : Register<0x80, true>
+		{
+			struct Fixed_burst : Bitfield<1, 1> { };
+			struct Idmac_enable : Bitfield<7, 1> { };
+		};
+
+		struct Pldmnd       : Register<0x84> { };
+		struct Idsts        : Register<0x8c> { };
+		struct Idinten      : Register<0x90, true> { };
+		struct Dbaddr       : Register<0x88> { };
+		struct Clksel       : Register<0x9c> { };
+		struct Emmc_ddr_req : Register<0x10c, true> { };
+
+		struct Idmac_desc
+		{
+			enum Flags {
+				NONE = 0,
+				DIC  = 1 << 1,
+				LD   = 1 << 2,
+				FS   = 1 << 3,
+				CH   = 1 << 4,
+				ER   = 1 << 5,
+				OWN  = 1 << 31,
+			};
+
+			unsigned  flags;
+			unsigned  bytes;
+			unsigned  addr;
+			unsigned  next;
+
+			size_t set(size_t block_count,
+			           size_t block_size,
+			           addr_t phys_addr,
+			           Flags  flag);
 		};
 
 		struct Clock_regulator
@@ -62,74 +156,84 @@ class Block::Sdhci_driver : public Block::Driver,
 
 			Clock_regulator(Env &env) : regulator(env, Regulator::CLK_MMC0) {
 				regulator.state(true); }
+		};
 
-		} _clock_regulator;
+		struct Timer_delayer : Timer::Connection, Mmio::Delayer
+		{
+			void usleep(unsigned us) {
+				Timer::Connection::usleep(us); }
+		};
+
+		struct Block_transfer
+		{
+			Block::Packet_descriptor packet;
+			bool                     pending = false;
+		};
+
+		Env                    &_env;
+		Timer_delayer           _delayer;
+		Block_transfer          _block_transfer;
+		Clock_regulator         _clock_regulator  { _env };
+		Signal_handler<Driver>  _irq_handler      { _env.ep(), *this, &Driver::_handle_irq };
+		Irq_connection          _irq              { Board_base::SDMMC0_IRQ };
+		Attached_ram_dataspace  _idmac_desc_ds    { &_env.ram(),
+		                                            IDMAC_DESC_MAX_ENTRIES * sizeof(Idmac_desc),
+		                                            UNCACHED };
+		Idmac_desc *const       _idmac_desc       { _idmac_desc_ds.local_addr<Idmac_desc>() };
+		addr_t      const       _idmac_desc_phys  { Dataspace_client(_idmac_desc_ds.cap())
+		                                            .phys_addr() };
+		Card_info               _card_info        { _init() };
+
+		bool      _reset();
+		void      _reset_fifo();
+		void      _disable_irq();
+		bool      _update_clock_registers();
+		bool      _setup_bus(unsigned clock_div);
+		void      _handle_irq();
+		Card_info _init();
+
+		bool _setup_idmac_descriptor_table(size_t block_count,
+		                                   addr_t phys_addr);
 
 
-		/* display sub system registers */
-		Attached_io_mem_dataspace _mmio;
+		/*********************
+		 ** Host_controller **
+		 *********************/
 
-		/* mobile storage host controller instance */
-		Exynos5_msh_controller _controller;
+		bool     _issue_command(Command_base const &command) override;
+		Cid      _read_cid() override ;
+		Csd      _read_csd() override ;
+		size_t   _read_ext_csd() override;
+		unsigned _read_rca() override { return 0; }
 
-		bool const _use_dma;
+		Card_info card_info() const override { return _card_info; }
 
 	public:
 
-		Sdhci_driver(Env &env)
-		:
-			_clock_regulator(env),
-			_mmio(MSH_BASE, MSH_SIZE),
-			_controller(env.ep(), (addr_t)_mmio.local_addr<void>(),
-			            _delayer, *this, true),
-			_use_dma(true)
-		{
-			Sd_card::Card_info const card_info = _controller.card_info();
+		using Block::Driver::read;
+		using Block::Driver::write;
 
-			Genode::log("SD/MMC card detected");
-			Genode::log("capacity: ", card_info.capacity_mb(), " MiB");
-		}
-
-		void handle_ack(Block::Packet_descriptor pkt, bool success) {
-			ack_packet(pkt, success); }
+		Driver(Env &env);
 
 
-		/*****************************
-		 ** Block::Driver interface **
-		 *****************************/
+		/*******************
+		 ** Block::Driver **
+		 *******************/
 
-		Genode::size_t block_size() { return 512; }
+		void read_dma(Block::sector_t           block_number,
+		              size_t                    block_count,
+		              addr_t                    buf_phys,
+		              Block::Packet_descriptor &pkt) override;
 
-		virtual Block::sector_t block_count()
-		{
-			return _controller.card_info().capacity_mb() * 1024 * 2;
-		}
+		void write_dma(Block::sector_t           block_number,
+		               size_t                    block_count,
+		               addr_t                    buf_phys,
+		               Block::Packet_descriptor &pkt) override;
 
-		Block::Session::Operations ops()
-		{
-			Block::Session::Operations o;
-			o.set_operation(Block::Packet_descriptor::READ);
-			o.set_operation(Block::Packet_descriptor::WRITE);
-			return o;
-		}
+		bool dma_enabled() override { return true; }
 
-		void read_dma(Block::sector_t    block_number,
-		              Genode::size_t     block_count,
-		              Genode::addr_t     phys,
-		              Packet_descriptor &packet)
-		{
-			_controller.read_blocks_dma(block_number, block_count, phys, packet);
-		}
-
-		void write_dma(Block::sector_t    block_number,
-		               Genode::size_t     block_count,
-		               Genode::addr_t     phys,
-		               Packet_descriptor &packet)
-		{
-			_controller.write_blocks_dma(block_number, block_count, phys, packet);
-		}
-
-		bool dma_enabled() { return _use_dma; }
+		Ram_dataspace_capability alloc_dma_buffer(size_t size) override {
+			return _env.ram().alloc(size, UNCACHED); }
 };
 
-#endif /* _DRIVERS__SD_CARD__SPEC__EXYNOS5__DRIVER_H_ */
+#endif /* _DRIVER_H_ */

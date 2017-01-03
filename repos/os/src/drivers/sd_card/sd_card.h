@@ -16,7 +16,7 @@
 #define _SD_CARD_H_
 
 /* Genode includes */
-#include <util/register.h>
+#include <util/mmio.h>
 
 namespace Sd_card {
 

@@ -12,13 +12,13 @@
  */
 
 /* local includes */
-#include <sdhc.h>
+#include <driver.h>
 
 using namespace Sd_card;
 using namespace Genode;
 
 
-int Sdhc::_wait_for_card_ready_mbw()
+int Driver::_wait_for_card_ready_mbw()
 {
 	/*
 	 * Poll card status
@@ -69,7 +69,7 @@ int Sdhc::_wait_for_card_ready_mbw()
 }
 
 
-int Sdhc::_stop_transmission()
+int Driver::_stop_transmission()
 {
 	/* write argument register */
 	Mmio::write<Cmdarg>(0);
@@ -90,7 +90,7 @@ int Sdhc::_stop_transmission()
 }
 
 
-void Sdhc::_handle_irq()
+void Driver::_handle_irq()
 {
 	_irq.ack_irq();
 
@@ -125,7 +125,7 @@ void Sdhc::_handle_irq()
 }
 
 
-int Sdhc::_wait_for_cmd_complete()
+int Driver::_wait_for_cmd_complete()
 {
 	if (!wait_for<Irqstat::Cc>(1, _delayer, 200, 5000)) {
 		error("command timed out");
@@ -136,7 +136,7 @@ int Sdhc::_wait_for_cmd_complete()
 }
 
 
-bool Sdhc::_issue_command(Command_base const & command)
+bool Driver::_issue_command(Command_base const & command)
 {
 	/* get command characteristics */
 	bool const transfer   = command.transfer != TRANSFER_NONE;
@@ -178,7 +178,7 @@ bool Sdhc::_issue_command(Command_base const & command)
 }
 
 
-Cid Sdhc::_read_cid()
+Cid Driver::_read_cid()
 {
 	Cid cid;
 	cid.raw_0 = Mmio::read<Rsp136_0>();
@@ -189,7 +189,7 @@ Cid Sdhc::_read_cid()
 }
 
 
-Csd Sdhc::_read_csd()
+Csd Driver::_read_csd()
 {
 	Csd csd;
 	csd.csd0 = Mmio::read<Rsp136_0>();
@@ -200,76 +200,65 @@ Csd Sdhc::_read_csd()
 }
 
 
-unsigned Sdhc::_read_rca()
+unsigned Driver::_read_rca()
 {
 	Cmdrsp0::access_t const rsp0 = Mmio::read<Cmdrsp0>();
 	return Send_relative_addr::Response::Rca::get(rsp0);
 }
 
 
-bool Sdhc::read_blocks(size_t, size_t, char *)
+void Driver::read_dma(Block::sector_t           blk_nr,
+                      size_t                    blk_cnt,
+                      addr_t                    buf_phys,
+                      Block::Packet_descriptor &packet)
 {
-	error("block transfer without DMA not supported");
-	return false;
+	if (_prepare_dma_mb(packet, true, blk_cnt, buf_phys)) {
+		throw Io_error(); }
+
+	if (!issue_command(Read_multiple_block(blk_nr))) {
+		throw Io_error(); }
 }
 
 
-bool Sdhc::write_blocks(size_t, size_t, char const *)
+void Driver::write_dma(Block::sector_t           blk_nr,
+                       size_t                    blk_cnt,
+                       addr_t                    buf_phys,
+                       Block::Packet_descriptor &packet)
 {
-	error("block transfer without DMA not supported");
-	return false;
+	if (_prepare_dma_mb(packet, false, blk_cnt, buf_phys)) {
+		throw Io_error(); }
+
+	if (!issue_command(Write_multiple_block(blk_nr))) {
+		throw Io_error(); }
 }
 
 
-bool Sdhc::read_blocks_dma(Block::Packet_descriptor packet,
-                           size_t                   blk_nr,
-                           size_t                   blk_cnt,
-                           addr_t                   buf_phys)
-{
-	if (_prepare_dma_mb(packet, true, blk_cnt, buf_phys)) { return false; }
-
-	return issue_command(Read_multiple_block(blk_nr));
-}
-
-
-bool Sdhc::write_blocks_dma(Block::Packet_descriptor packet,
-                            size_t                   blk_nr,
-                            size_t                   blk_cnt,
-                            addr_t                   buf_phys)
-{
-	if (_prepare_dma_mb(packet, false, blk_cnt, buf_phys)) { return false; }
-
-	return issue_command(Write_multiple_block(blk_nr));
-}
-
-
-Sdhc::Sdhc(Env &env)
+Driver::Driver(Env &env)
 :
 	Attached_mmio(Board_base::SDHC_MMIO_BASE, Board_base::SDHC_MMIO_SIZE),
-	_irq_handler(env.ep(), *this, &Sdhc::_handle_irq), _irq(Board_base::SDHC_IRQ),
-	_card_info(_init()), _use_dma(true)
+	_env(env)
 {
 	log("SD card detected");
 	log("capacity: ", card_info().capacity_mb(), " MiB");
 }
 
 
-int Sdhc::_prepare_dma_mb(Block::Packet_descriptor packet,
+int Driver::_prepare_dma_mb(Block::Packet_descriptor packet,
                           bool                     reading,
                           size_t                   blk_cnt,
                           addr_t                   buf_phys)
 {
 	if (_block_transfer.pending) {
-		throw Block::Driver::Request_congestion(); }
+		throw Request_congestion(); }
 
 
 	/* write ADMA2 table to DMA */
-	size_t const req_size = blk_cnt * BLOCK_SIZE;
+	size_t const req_size = blk_cnt * block_size();
 	if (_adma2_table.setup_request(req_size, buf_phys)) { return -1; }
 
 	/* configure DMA at host */
 	Mmio::write<Adsaddr>(_adma2_table.base_phys());
-	Mmio::write<Blkattr::Blksize>(BLOCK_SIZE);
+	Mmio::write<Blkattr::Blksize>(block_size());
 	Mmio::write<Blkattr::Blkcnt>(blk_cnt);
 
 	_block_transfer.read    = reading;
@@ -279,7 +268,7 @@ int Sdhc::_prepare_dma_mb(Block::Packet_descriptor packet,
 }
 
 
-int Sdhc::_wait_for_cmd_allowed()
+int Driver::_wait_for_cmd_allowed()
 {
 	/*
 	 * At least after multi-block writes on i.MX53 with the fix for the broken
@@ -298,7 +287,7 @@ int Sdhc::_wait_for_cmd_allowed()
 }
 
 
-Card_info Sdhc::_init()
+Card_info Driver::_init()
 {
 	/* install IRQ signal */
 	_irq.sigh(_irq_handler);
@@ -413,7 +402,7 @@ Card_info Sdhc::_init()
 	_delayer.usleep(10000);
 
 	/* configure card to use given block size */
-	if (!issue_command(Set_blocklen(BLOCK_SIZE))) {
+	if (!issue_command(Set_blocklen(block_size()))) {
 		_detect_err("Set_blocklen command failed"); }
 
 	/* configure host buffer */
@@ -432,14 +421,14 @@ Card_info Sdhc::_init()
 }
 
 
-void Sdhc::_detect_err(char const * const err)
+void Driver::_detect_err(char const * const err)
 {
 	error(err);
 	throw Detection_failed();
 }
 
 
-int Sdhc::_reset(Delayer &delayer)
+int Driver::_reset(Delayer &delayer)
 {
 	/* start reset */
 	Mmio::write<Sysctl::Rsta>(1);
@@ -454,14 +443,14 @@ int Sdhc::_reset(Delayer &delayer)
 }
 
 
-void Sdhc::_disable_irqs()
+void Driver::_disable_irqs()
 {
 	Mmio::write<Irqstaten>(0);
 	Mmio::write<Irqsigen>(0);
 }
 
 
-void Sdhc::_enable_irqs()
+void Driver::_enable_irqs()
 {
 	Irq::access_t irq = 0;
 	Irq::Cc::set(irq, 1);
@@ -481,7 +470,7 @@ void Sdhc::_enable_irqs()
 }
 
 
-void Sdhc::_bus_width(Bus_width bus_width)
+void Driver::_bus_width(Bus_width bus_width)
 {
 	switch (bus_width) {
 	case BUS_WIDTH_1: Mmio::write<Proctl::Dtw>(Proctl::Dtw::_1BIT); break;
@@ -490,7 +479,7 @@ void Sdhc::_bus_width(Bus_width bus_width)
 }
 
 
-void Sdhc::_disable_clock()
+void Driver::_disable_clock()
 {
 	_disable_clock_preparation();
 	Sysctl::access_t sysctl = Mmio::read<Sysctl>();
@@ -503,7 +492,7 @@ void Sdhc::_disable_clock()
 }
 
 
-void Sdhc::_enable_clock(Clock_divider divider)
+void Driver::_enable_clock(Clock_divider divider)
 {
 	Sysctl::access_t sysctl = Mmio::read<Sysctl>();
 	Sysctl::Ipgen::set(sysctl, 1);
@@ -529,7 +518,7 @@ void Sdhc::_enable_clock(Clock_divider divider)
 }
 
 
-void Sdhc::_clock(Clock clock)
+void Driver::_clock(Clock clock)
 {
 	wait_for<Prsstat::Sdstb>(1, _delayer);
 	_disable_clock();

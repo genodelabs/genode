@@ -12,13 +12,13 @@
  */
 
 /* local includes */
-#include <sdhc.h>
+#include <driver.h>
 
 using namespace Sd_card;
 using namespace Genode;
 
 
-void Sdhc::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
+void Driver::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 {
 	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
 	Mixctrl::Dmaen::set(mixctrl, 1);
@@ -33,20 +33,20 @@ void Sdhc::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 }
 
 
-int Sdhc::_wait_for_cmd_complete_mb_finish(bool const reading)
+int Driver::_wait_for_cmd_complete_mb_finish(bool const reading)
 {
 	/* we can't use the "Auto Command 12" feature as it does not work */
 	return _stop_transmission() ? -1 : 0;
 }
 
 
-bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &,
+bool Driver::_issue_cmd_finish_xfertyp(Xfertyp::access_t &,
                                      bool const         transfer,
                                      bool const         multiblock,
                                      bool const         reading)
 {
 	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
-	Mixctrl::Dmaen    ::set(mixctrl, transfer && multiblock && _use_dma);
+	Mixctrl::Dmaen    ::set(mixctrl, transfer && multiblock);
 	Mixctrl::Bcen     ::set(mixctrl, transfer);
 	Mixctrl::Ac12en   ::set(mixctrl, 0);
 	Mixctrl::Msbsel   ::set(mixctrl, transfer);
@@ -64,21 +64,21 @@ bool Sdhc::_issue_cmd_finish_xfertyp(Xfertyp::access_t &,
 }
 
 
-bool Sdhc::_supported_host_version(Hostver::access_t hostver)
+bool Driver::_supported_host_version(Hostver::access_t hostver)
 {
 	return Hostver::Vvn::get(hostver) == 0 &&
 	       Hostver::Svn::get(hostver) == 3;
 }
 
 
-void Sdhc::_watermark_level(Wml::access_t &wml)
+void Driver::_watermark_level(Wml::access_t &wml)
 {
 	Wml::Wr_wml::set(wml, 64);
 	Wml::Wr_brst_len::set(wml, 16);
 }
 
 
-void Sdhc::_reset_amendments()
+void Driver::_reset_amendments()
 {
 	/* the USDHC doesn't reset the Mixer Control register automatically */
 	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
@@ -95,7 +95,7 @@ void Sdhc::_reset_amendments()
 }
 
 
-void Sdhc::_clock_finish(Clock clock)
+void Driver::_clock_finish(Clock clock)
 {
 	switch (clock) {
 	case CLOCK_INITIAL:
@@ -111,6 +111,7 @@ void Sdhc::_clock_finish(Clock clock)
 }
 
 
-void Sdhc::_disable_clock_preparation() { Mmio::write<Vendspec::Frc_sdclk_on>(0); }
+void Driver::_disable_clock_preparation() {
+	Mmio::write<Vendspec::Frc_sdclk_on>(0); }
 
-void Sdhc::_enable_clock_finish() { Mmio::write<Vendspec::Frc_sdclk_on>(0); }
+void Driver::_enable_clock_finish() { Mmio::write<Vendspec::Frc_sdclk_on>(0); }

@@ -1,11 +1,12 @@
 /*
- * \brief  SD-card protocol
+ * \brief  PL180-specific implementation of the Block::Driver interface
  * \author Christian Helmuth
+ * \author Martin Stein
  * \date   2011-05-19
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -14,131 +15,122 @@
 #ifndef _DRIVER_H_
 #define _DRIVER_H_
 
-/* Genode includes */
-#include <block/driver.h>
-
 /* local includes */
-#include <pl180.h>
+#include <os/attached_mmio.h>
+#include <block/driver.h>
 #include <pl180_defs.h>
+#include <timer_session/connection.h>
 
-namespace Block {
+namespace Sd_card {
 
 	using namespace Genode;
-	class Sdhci_driver;
+
+	class Driver;
 }
 
 
-class Block::Sdhci_driver : public Block::Driver
+class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 {
 	private:
 
-		Pl180 _hd;
+		enum Register {
+			Power      = 0x000,  /* power control */
+			Argument   = 0x008,  /* argument for command */
+			Command    = 0x00c,  /* command index and type */
+			Response0  = 0x014,  /* command response (card status, read only) */
+			DataLength = 0x028,  /* number of bytes in data transfer (block size) */
+			DataCtrl   = 0x02c,  /* data transfer control */
+			Status     = 0x034,  /* controller status flags (read only) */
+			Clear      = 0x038,  /* status clear (write only) */
+			Mask0      = 0x03c,  /* interrupt 0 mask */
+			Mask1      = 0x040,  /* interrupt 1 mask */
+			FifoCnt    = 0x048,  /* data FIFO counter (in words, read only) */
+			FIFO       = 0x080,  /* data FIFO */
+		};
 
-		enum { BLOCK_SIZE = 512 };
+		enum Flag {
+			CmdCrcFail      = 0x000001,  /* command response received (CRC failed) */
+			DataCrcFail     = 0x000002,  /* data block sent/received (CRC failed) */
+			CmdTimeOut      = 0x000004,  /* command response timeout */
+			DataTimeOut     = 0x000008,  /* data timeout */
+			TxUnderrun      = 0x000010,  /* tx fifo underrun */
+			RxUnderrun      = 0x000020,  /* rx fifo underrun */
+			CmdRespEnd      = 0x000040,  /* command response received (CRC ok) */
+			CmdSent         = 0x000080,  /* command sent (no response required) */
+			DataEnd         = 0x000100,  /* data counter zero */
+			StartBitErr     = 0x000200,  /* start bit not detected */
+			DataBlockEnd    = 0x000400,  /* data block sent/received (CRC ok) */
+			CmdActive       = 0x000800,  /* command transfer in progress */
+			TxActive        = 0x001000,  /* data tx in progress */
+			RxActive        = 0x002000,  /* data rx in progress */
+			TxFifoHalfEmpty = 0x004000,
+			RxFifoHalfFull  = 0x008000,
+			TxFifoFull      = 0x010000,
+			RxFifoFull      = 0x020000,
+			TxFifoEmpty     = 0x040000,
+			RxFifoEmpty     = 0x080000,
+			TxDataAvlbl     = 0x100000,
+			RxDataAvlbl     = 0x200000,
+		};
+
+		Timer::Connection  _timer;
+		uint32_t volatile *_base { local_addr<unsigned volatile>() };
+
+		uint32_t _read_reg(Register reg) const { return _base[reg >> 2]; }
+
+		void _write_reg(Register reg, uint32_t v) { _base[reg >> 2] = v; }
+
+		void _clear_status() { _write_reg(Clear, ~0); }
+
+		void _request(unsigned char  cmd,
+		              unsigned      *out_resp);
+
+		void _request(unsigned char  cmd,
+		              unsigned       arg,
+		              unsigned      *out_resp);
+
+		void _read_request(unsigned char  cmd,
+		                   unsigned       arg,
+		                   unsigned       length,
+		                   unsigned      *out_resp);
+
+		void _write_request(unsigned char  cmd,
+		                    unsigned       arg,
+		                    unsigned       length,
+		                    unsigned      *out_resp);
+
+		void _read_data(unsigned length, char *out_buffer);
+		void _write_data(unsigned length, char const *buffer);
+		void _write_command(unsigned cmd_index, bool resp);
 
 	public:
 
-		Sdhci_driver(Env &) : _hd(PL180_PHYS, PL180_SIZE)
-		{
-			unsigned resp;
 
-			/* CMD0: go idle state */
-			_hd.request(0, 0);
+		Driver(Env &env);
 
-			/*
-			 * CMD8: send interface condition
-			 *
-			 * XXX only one hard-coded value currently.
-			 */
-			_hd.request(8, 0x1aa, &resp);
 
-			/*
-			 * ACMD41: card send operating condition
-			 *
-			 * This is an application-specific command and, therefore, consists
-			 * of prefix command CMD55 + CMD41.
-			 */
-			_hd.request(55, 0, &resp);
-			_hd.request(41, 0x4000, &resp);
+		/******************
+		 ** Block-driver **
+		 ******************/
 
-			/* CMD2: all send card identification (CID) */
-			_hd.request(2, &resp);
+		Genode::size_t             block_size() override { return 512; }
+		Block::Session::Operations ops() override;
 
-			/* CMD3: send relative card address (RCA) */
-			_hd.request(3, &resp);
-			unsigned short rca = resp >> 16;
+		void read(Block::sector_t           block_number,
+		          size_t                    block_count,
+		          char                     *buffer,
+		          Block::Packet_descriptor &packet);
 
-			/*
-			 * Now, the card is in transfer mode...
-			 */
+		void write(Block::sector_t           block_number,
+		           size_t                    block_count,
+		           char const               *buffer,
+		           Block::Packet_descriptor &packet);
 
-			/* CMD7: select card */
-			_hd.request(7, rca << 16, &resp);
-		}
-
-		Host_driver &host_driver() { return _hd; }
-
-		/****************************
-		 ** Block-driver interface **
-		 ****************************/
-
-		Genode::size_t block_size()  { return BLOCK_SIZE; }
 		/*
 		 * TODO report (and support) real capacity not just 512M
 		 */
-		Block::sector_t block_count() { return 0x20000000 /  BLOCK_SIZE; }
-
-		Block::Session::Operations ops()
-		{
-			Block::Session::Operations o;
-			o.set_operation(Block::Packet_descriptor::READ);
-			o.set_operation(Block::Packet_descriptor::WRITE);
-			return o;
-		}
-
-		void read(Block::sector_t block_number,
-		          Genode::size_t  block_count,
-		          char           *out_buffer,
-		          Block::Packet_descriptor &packet)
-		{
-			unsigned resp;
-			unsigned length = BLOCK_SIZE;
-
-			for (Genode::size_t i = 0; i < block_count; ++i) {
-				/*
-				 * CMD17: read single block
-				 *
-				 * SDSC cards use a byte address as argument while SDHC/SDSC uses a
-				 * block address here.
-				 */
-				_hd.read_request(17, (block_number + i) * BLOCK_SIZE,
-				                 length, &resp);
-				_hd.read_data(length, out_buffer + (i * BLOCK_SIZE));
-			}
-			ack_packet(packet);
-		}
-
-		void write(Block::sector_t block_number,
-		           Genode::size_t  block_count,
-		           char const     *buffer,
-		           Block::Packet_descriptor &packet)
-		{
-			unsigned resp;
-			unsigned length = BLOCK_SIZE;
-
-			for (Genode::size_t i = 0; i < block_count; ++i) {
-				/*
-				 * CMD24: write single block
-				 *
-				 * SDSC cards use a byte address as argument while SDHC/SDSC uses a
-				 * block address here.
-				 */
-				_hd.write_request(24, (block_number + i) * BLOCK_SIZE,
-				                  length, &resp);
-				_hd.write_data(length, buffer + (i * BLOCK_SIZE));
-			}
-			ack_packet(packet);
-		}
+		Block::sector_t block_count() override {
+			return 0x20000000 /  block_size(); }
 };
 
 #endif /* _DRIVER_H_ */

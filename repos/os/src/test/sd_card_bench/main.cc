@@ -55,7 +55,7 @@ struct Main
 	Operation               operation    { READ };
 	Signal_handler<Main>    ack_handler  { env.ep(), *this, &Main::update_state };
 	Driver_session          drv_session  { ack_handler };
-	Block::Sdhci_driver     drv          { env };
+	Sd_card::Driver         drv          { env };
 	size_t const            buf_size_kib { config()->xml_node()
 	                                       .attribute_value("buffer_size_kib",
 	                                                        (size_t)0) };

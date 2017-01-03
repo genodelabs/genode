@@ -20,9 +20,9 @@
 using namespace Adma2;
 
 
-Table::Table()
+Table::Table(Ram_session &ram)
 :
-	_ds(env()->ram_session(), _ds_size, UNCACHED),
+	_ds(&ram, _ds_size, UNCACHED),
 	_base_virt(_ds.local_addr<Desc::access_t>()),
 	_base_phys(Dataspace_client(_ds.cap()).phys_addr())
 { }
