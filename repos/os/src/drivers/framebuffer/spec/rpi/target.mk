@@ -1,8 +1,5 @@
 TARGET   = fb_drv
 REQUIRES = rpi
 SRC_CC   = main.cc
-LIBS     = base blit config
+LIBS     = base blit
 INC_DIR += $(PRG_DIR)
-
-# enable C++11 support
-CC_CXX_OPT += -std=gnu++11

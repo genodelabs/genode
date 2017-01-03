@@ -5,22 +5,20 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/attached_io_mem_dataspace.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 #include <util/reconstructible.h>
-#include <os/attached_io_mem_dataspace.h>
-#include <os/attached_ram_dataspace.h>
 #include <os/static_root.h>
-#include <os/config.h>
-#include <cap_session/connection.h>
-#include <base/sleep.h>
 #include <framebuffer_session/framebuffer_session.h>
-#include <base/rpc_server.h>
 #include <platform_session/connection.h>
 #include <blit/blit.h>
 #include <timer_session/connection.h>
@@ -28,6 +26,7 @@
 namespace Framebuffer {
 	using namespace Genode;
 	class Session_component;
+	struct Main;
 };
 
 
@@ -59,19 +58,20 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			     *dst = _fb_mem.local_addr<char>() + bypp*(_width*y1 + x1);
 
 			blit(src, bypp*_width, dst, bypp*_width,
-				 bypp*(x2 - x1 + 1), y2 - y1 + 1);
+			     bypp*(x2 - x1 + 1), y2 - y1 + 1);
 		}
 
 	public:
 
-		Session_component(addr_t phys_addr, size_t size,
-		                  size_t width, size_t height,
+		Session_component(Genode::Env &env, addr_t phys_addr,
+		                  size_t size, size_t width, size_t height,
 		                  bool buffered)
 		:
-			_width(width), _height(height), _fb_mem(phys_addr, size)
+			_width(width), _height(height), _fb_mem(env, phys_addr, size),
+			_timer(env)
 		{
 			if (buffered) {
-				_bb_mem.construct(env()->ram_session(), size);
+				_bb_mem.construct(env.ram(), env.rm(), size);
 			}
 		}
 
@@ -108,46 +108,45 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 };
 
 
-static bool config_is_buffered()
+static bool config_buffered(Genode::Xml_node node)
 {
-	return Genode::config()->xml_node().attribute_value("buffered", false);
+	return node.attribute_value("buffered", false);
 }
 
 
-int main(int, char **)
+struct Framebuffer::Main
 {
-	using namespace Framebuffer;
-	using namespace Genode;
+	Env        &_env;
+	Entrypoint &_ep;
 
-	log("--- fb_drv started ---");
+	Attached_rom_dataspace _config { _env, "config" };
 
-	static Platform::Connection platform;
+	Platform::Connection _platform { _env };
 
-	Platform::Framebuffer_info fb_info(1024, 768, 16);
-	platform.setup_framebuffer(fb_info);
+	Platform::Framebuffer_info _fb_info {1024, 768, 16 };
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_ep");
+	Constructible<Framebuffer::Session_component>    _fb_session;
+	Constructible<Static_root<Framebuffer::Session>> _fb_root;
 
-	/*
-	 * Let the entry point serve the framebuffer session and root interfaces
-	 */
-	static Session_component fb_session(fb_info.addr,
-	                                    fb_info.size,
-	                                    fb_info.phys_width,
-	                                    fb_info.phys_height,
-	                                    config_is_buffered());
-	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
+	Main(Genode::Env &env) : _env(env), _ep(_env.ep())
+	{
+		log("--- fb_drv started ---");
 
-	/*
-	 * Announce service
-	 */
-	env()->parent()->announce(ep.manage(&fb_root));
+		_platform.setup_framebuffer(_fb_info);
 
-	sleep_forever();
-	return 0;
+		_fb_session.construct(_env, _fb_info.addr, _fb_info.size,
+		                      _fb_info.phys_width, _fb_info.phys_height,
+		                      config_buffered(_config.xml()));
+
+		_fb_root.construct(_ep.manage(*_fb_session));
+
+		/* announce service */
+		env.parent().announce(_ep.manage(*_fb_root));
+	}
+};
+
+
+void Component::construct(Genode::Env &env)
+{
+	static Framebuffer::Main main(env);
 }
