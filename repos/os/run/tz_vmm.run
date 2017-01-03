@@ -17,7 +17,7 @@
 #   ! export TARGET_DEV=/dev/sdX                 # empty boot medium
 #   ! export TARGET_MNT=/mnt                     # where to mount the boot medium
 #   ! export GENODE_DIR=/path/genode             # root of the Genode sources
-#   ! export BUILD_DIR=/path/build/hw_usb_armory # Genode build directory
+#   ! export BUILD_DIR=/path/build/usb_armory # Genode build directory
 #
 # :Format microSD card:
 #
@@ -30,8 +30,8 @@
 # :Install bootloader:
 #
 #   ! cd $GENODE_DIR
-#   ! ./tool/create_uboot hw_usb_armory
-#   ! sudo dd if=contrib/uboot/build/hw_usb_armory/mmc_img of=$TARGET_DEV bs=1K seek=1 conv=fsync
+#   ! ./tool/create_uboot usb_armory
+#   ! sudo dd if=contrib/uboot/build/usb_armory/mmc_img of=$TARGET_DEV bs=1K seek=1 conv=fsync
 #
 # :Install Genode:
 #
@@ -90,9 +90,9 @@ assert_spec imx53
 assert_spec trustzone
 
 # determine platform specific configuration
-set trusted_led       [have_spec hw_usb_armory]
-set inversepath_linux [have_spec hw_usb_armory]
-set freescale_linux   [have_spec hw_imx53_qsb_tz]
+set trusted_led       [have_spec usb_armory]
+set inversepath_linux [have_spec usb_armory]
+set freescale_linux   [have_spec imx53_qsb]
 set initrd_rootfs     $freescale_linux
 set mmc_rootfs        $inversepath_linux
 set dtb               $inversepath_linux

@@ -27,7 +27,7 @@ append qemu_args "-nographic -m 64"
 
 run_genode_until {.*--- end of sub-rm test ---.*} 10
 
-if [have_spec linux_x86_32] {
+if {([have_spec linux] && [have_spec x86_32])} {
 	set maps [exec cat /proc/[exec pidof test-sub_rm]/maps]
 
 	puts "\nmemory map after test completion follows:\n"

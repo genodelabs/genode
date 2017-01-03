@@ -10,7 +10,7 @@ set udp_up_to_down_1   1
 set udp_down_to_up_1   1
 
 set use_usb_driver [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
-set use_nic_driver [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec hw_riscv] && ![have_spec hw_odroid_xu] && ![have_spec linux] && ![have_spec hw_wand_quad]]
+set use_nic_driver [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec riscv] && ![have_spec odroid_xu] && ![have_spec linux] && ![have_spec wand_quad]]
 
 set nic_driver "nic_drv"
 if ($use_usb_driver) {

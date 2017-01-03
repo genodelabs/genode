@@ -4,7 +4,8 @@
 # \date   2015-06-25
 #
 
-assert_spec hw_arndale
+assert_spec hw
+assert_spec arndale
 
 set build_components {
 	core init

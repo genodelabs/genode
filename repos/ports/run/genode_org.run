@@ -9,7 +9,7 @@
 # browser to http://localhost:5555
 #
 
-if {[have_spec hw_odroid_xu]} {
+if {[have_spec odroid_xu]} {
 	puts "Run script does not support this platform."
 	exit 0
 }

@@ -8,6 +8,7 @@ if {[have_include "power_on/qemu"]} {
 	puts "\nAuto test running on Qemu is not recommended.\n"
 	exit 0
 }
+
 if {[have_spec pistachio] || [have_spec sel4]} {
 	puts "Platform is unsupported."
 	exit 0
@@ -18,24 +19,24 @@ set verbose_mode      "no"
 
 set platform_pkgs     ""
 set platform_cmds     {
-                         make core &&
+                         make core KERNEL=hw &&
                          exit 234
 }
+set platform_base_dir   "base-hw"
 
 if {[have_spec arm]} {
-	set platform_base_dir   "base-hw"
 	set noux_boot_timeout   350
 	set tool_chain_timeout  600
 
 	if {[have_spec panda]}   {
-		set platform "hw_panda"
+		set platform "panda"
 		set tool_chain_timeout  1500
 	}
 	if {[have_spec arndale]} {
-		set platform "hw_arndale"
+		set platform "arndale"
 		set tool_chain_timeout  1500
 	}
-	if {[have_spec pbxa9]}   { set platform "hw_pbxa9" }
+	if {[have_spec pbxa9]}   { set platform "pbxa9" }
 
 	if {![info exists platform]} {
 		puts "\n Run script is not supported on this platform. \n"
@@ -44,10 +45,9 @@ if {[have_spec arm]} {
 }
 
 if {[have_spec x86]} {
-	set platform_base_dir   "base-hw"
 	set noux_boot_timeout   100
 	set tool_chain_timeout  450
-	set platform            "hw_x86_64"
+	set platform            "x86_64"
 
 	if {[have_spec foc]} {
 		set tool_chain_timeout  850

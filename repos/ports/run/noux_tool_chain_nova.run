@@ -4,7 +4,7 @@
 # \date   2012-11-26
 #
 
-set platform          "nova_x86_32"
+set platform          "x86_32"
 set platform_base_dir "base-nova"
 set platform_pkgs     ""
 set platform_cmds     ""

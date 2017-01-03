@@ -36,12 +36,12 @@ if {[have_include "power_on/qemu"]} {
 	# pbxa9 - hw does not support multiple CPUs
 	if {[have_spec pbxa9]} { set want_cpus 1 }
 	# kernels only using one CPU even if more are configured
-	if {[have_spec okl4]}           { set want_cpus 1 }
-	if {[have_spec pistachio]}      { set want_cpus 1 }
-	if {[have_spec fiasco]}         { set want_cpus 1 }
-	if {[have_spec hw_x86_64]}      { set want_cpus 1 }
-	if {[have_spec hw_zynq]}        { set want_cpus 1 }
-	if {[have_spec sel4]}           { set want_cpus 1 }
+	if {[have_spec okl4]}                       { set want_cpus 1 }
+	if {[have_spec pistachio]}                  { set want_cpus 1 }
+	if {[have_spec fiasco]}                     { set want_cpus 1 }
+	if {([have_spec x86_64] && [have_spec hw])} { set want_cpus 1 }
+	if {[have_spec zynq]}                       { set want_cpus 1 }
+	if {[have_spec sel4]}                       { set want_cpus 1 }
 
 	append qemu_args " -nographic -m 64 -smp $want_cpus,cores=$want_cpus "
 }

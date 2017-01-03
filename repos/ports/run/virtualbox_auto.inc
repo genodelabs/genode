@@ -1,4 +1,4 @@
-if {(![have_spec nova] && ![have_spec hw_x86_64_muen])} {
+if {(![have_spec nova] && ![have_spec muen])} {
 	puts "Platform is unsupported."
 	exit 0
 }

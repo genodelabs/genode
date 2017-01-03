@@ -12,7 +12,7 @@ if {[expr [have_include "power_on/qemu"] && !$force_qemu]} {
 	exit
 }
 
-if {[have_spec hw_odroid_xu] || [have_spec hw_wand_quad]} {
+if {[have_spec odroid_xu] || [have_spec wand_quad]} {
 	puts "Run script does not support this platform."
 	exit 0
 }

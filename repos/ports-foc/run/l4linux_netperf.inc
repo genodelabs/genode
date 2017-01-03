@@ -6,8 +6,7 @@
 
 assert_spec foc
 assert_spec 32bit
-
-assert_spec foc_arndale
+assert_spec arndale
 
 set ip [check_installed ip]
 set wget [check_installed wget]

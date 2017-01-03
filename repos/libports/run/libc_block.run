@@ -1,7 +1,7 @@
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
 set use_ahci_drv    [have_spec x86]
 
-if {[expr [have_spec linux] || [have_spec hw_odroid_xu]]} {
+if {[expr [have_spec linux] || [have_spec odroid_xu]]} {
 	puts "Run script does not support this platform"; exit }
 
 if {![have_include power_on/qemu]} {

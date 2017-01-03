@@ -65,10 +65,10 @@ append_if [expr $use_usb] config {
 		<resource name="RAM" quantum="7M"/>
 		<provides><service name="Input"/></provides>}
 
-append_if [expr $use_usb && ![have_spec hw_x86_64_muen]] config {
+append_if [expr $use_usb && ![have_spec muen]] config {
 		<config uhci="yes" ehci="yes" xhci="yes">}
 
-append_if [expr $use_usb && [have_spec hw_x86_64_muen]] config {
+append_if [expr $use_usb && [have_spec muen]] config {
 		<config uhci="no" ehci="no" xhci="yes">}
 
 append_if [expr $use_usb] config {

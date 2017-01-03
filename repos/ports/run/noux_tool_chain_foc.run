@@ -4,21 +4,19 @@
 # \date   2012-11-26
 #
 
-if {![have_spec foc_x86_32]} {
-        puts "\nThis run script is currently only supported on the 'foc_x86_32' target platform\n"
-        exit 0
-}
+assert_spec foc
+assert_spec x86_32
 
 # create a tar archive containing the l4 header files
 build core
 exec tar cfv bin/l4.tar -h --exclude=std_tmpl include l4
 
 if {[have_spec x86_32]} {
-set platform          "foc_x86_32"
+set platform          "x86_32"
 }
 
 if {[have_spec x86_64]} {
-set platform          "foc_x86_64"
+set platform          "x86_64"
 }
 
 set platform_base_dir "base-foc"
