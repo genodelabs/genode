@@ -84,6 +84,18 @@ struct Report::Session : Genode::Session
 	 */
 	virtual size_t obtain_response() = 0;
 
+	/**
+	 * Install signal handler for status changes.
+	 */
+	virtual void enabled_sigh(Signal_context_capability) = 0;
+
+	/**
+	 * Query whether reporting shall be enabled.
+	 *
+	 * \return status 
+	 */
+	virtual bool enabled() = 0;
+
 
 	/*******************
 	 ** RPC interface **
@@ -93,8 +105,10 @@ struct Report::Session : Genode::Session
 	GENODE_RPC(Rpc_submit, void, submit, size_t);
 	GENODE_RPC(Rpc_response_sigh, void, response_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_obtain_response, size_t, obtain_response);
+	GENODE_RPC(Rpc_enabled_sigh, void, enabled_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_enabled, bool, enabled);
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_submit, Rpc_response_sigh,
-	                     Rpc_obtain_response);
+	                     Rpc_obtain_response, Rpc_enabled_sigh, Rpc_enabled);
 };
 
 #endif /* _INCLUDE__REPORT_SESSION__REPORT_SESSION_H_ */

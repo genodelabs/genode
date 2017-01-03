@@ -66,6 +66,10 @@ class Report::Session_component : public Genode::Rpc_object<Session>
 		void response_sigh(Genode::Signal_context_capability) override { }
 
 		size_t obtain_response() override { return 0; }
+
+		void enabled_sigh(Genode::Signal_context_capability) override { }
+
+		bool enabled() override { return true; }
 };
 
 
