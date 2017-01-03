@@ -30,19 +30,25 @@
 /* local includes */
 #include "synced_motherboard.h"
 
-class Vancouver_keyboard
+namespace Seoul {
+	class Keyboard;
+}
+
+class Seoul::Keyboard
 {
 	private:
 
 		Synced_motherboard &_motherboard;
 		unsigned            _flags;
 
+		bool _map_keycode(unsigned &, bool);
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Vancouver_keyboard(Synced_motherboard &);
+		Keyboard(Synced_motherboard &);
 
 		void handle_keycode_press(unsigned keycode);
 		void handle_keycode_release(unsigned keycode);

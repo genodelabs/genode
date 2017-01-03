@@ -26,7 +26,6 @@
 #include <util/string.h>
 #include <util/misc_math.h>
 #include <util/xml_node.h>
-#include <base/env.h>
 #include <base/log.h>
 #include <rom_session/connection.h>
 
@@ -69,7 +68,7 @@ class Boot_module_provider
 		 * \return module size in bytes, or 0 if module does not exist
 		 * \throw  Destination_buffer_too_small
 		 */
-		Genode::size_t data(int module_index,
+		Genode::size_t data(Genode::Env &env, int module_index,
 		                    void *dst, Genode::size_t dst_len) const
 		{
 			using namespace Genode;
@@ -94,7 +93,7 @@ class Boot_module_provider
 					/*
 					 * Open ROM session
 					 */
-					Rom_connection rom(name);
+					Rom_connection rom(env, name);
 					Dataspace_capability ds = rom.dataspace();
 					Genode::size_t const src_len = Dataspace_client(ds).size();
 
@@ -103,7 +102,7 @@ class Boot_module_provider
 						throw Destination_buffer_too_small();
 					}
 
-					void * const src = env()->rm_session()->attach(ds);
+					void * const src = env.rm().attach(ds);
 
 					/*
 					 * Copy content to destination buffer
@@ -115,7 +114,7 @@ class Boot_module_provider
 					 * session will be closed automatically when we leave the
 					 * current scope and the 'rom' object gets destructed.
 					 */
-					env()->rm_session()->detach(src);
+					env.rm().detach(src);
 
 					return src_len;
 				} else if (mod_node.has_type("inline")) {

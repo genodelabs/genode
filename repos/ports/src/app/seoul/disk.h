@@ -7,7 +7,7 @@
 
 /*
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -19,13 +19,11 @@
  * conditions of the GNU General Public License version 2.
  */
 
-#ifndef _VANCOUVER_DISK_H_
-#define _VANCOUVER_DISK_H_
+#ifndef _DISK_H_
+#define _DISK_H_
 
 /* Genode includes */
 #include <base/allocator_avl.h>
-#include <base/printf.h>
-#include <base/thread.h>
 #include <block_session/connection.h>
 #include <util/string.h>
 #include <base/synced_allocator.h>
@@ -33,30 +31,36 @@
 /* local includes */
 #include "synced_motherboard.h"
 
-class Vancouver_disk;
+namespace Seoul {
+	class Disk;
+	class Disk_signal;
+}
 
-class Vancouver_disk_signal : public Genode::Signal_dispatcher<Vancouver_disk>
+class Seoul::Disk_signal
 {
 	private:
 
-		unsigned _disk_nr;
+		Disk     &_obj;
+		unsigned  _id;
+
+		void _signal();
 
 	public:
 
-		Vancouver_disk_signal(Genode::Signal_receiver &sig_rec,
-			                  Vancouver_disk &obj,
-		                      void (Vancouver_disk::*member)(unsigned),
-		                      unsigned disk_nr)
-		: Genode::Signal_dispatcher<Vancouver_disk>(sig_rec, obj, member),
-		  _disk_nr(disk_nr) {}
+		Genode::Signal_handler<Disk_signal> const sigh;
 
-		unsigned disk_nr() { return _disk_nr; }
+		Disk_signal(Genode::Entrypoint &ep, Disk &obj, unsigned disk_nr)
+		:
+		  _obj(obj), _id(disk_nr), sigh(ep, *this, &Disk_signal::_signal)
+		{ }
 };
 
 
-class Vancouver_disk : public Genode::Thread_deprecated<8192>, public StaticReceiver<Vancouver_disk>
+class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 {
 	private:
+
+		Genode::Env &_env;
 
 		/* helper class to lookup a MessageDisk object */
 		class Avl_entry : public Genode::Avl_node<Avl_entry>
@@ -91,7 +95,7 @@ class Vancouver_disk : public Genode::Thread_deprecated<8192>, public StaticRece
 			Block::Session::Operations  ops;
 			Genode::size_t              blk_size;
 			Block::sector_t             blk_cnt;
-			Vancouver_disk_signal      *dispatcher;
+			Disk_signal                *signal;
 		} _diskcon[MAX_DISKS];
 
 		Synced_motherboard &_motherboard;
@@ -113,25 +117,21 @@ class Vancouver_disk : public Genode::Thread_deprecated<8192>, public StaticRece
 		Genode::Avl_tree<Avl_entry> _lookup_msg;
 		Genode::Lock           _lookup_msg_lock;
 
-		/* entry function if signal must be dispatched */
-		void _signal_dispatch_entry(unsigned);
-
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Vancouver_disk(Synced_motherboard &,
-		               char         * backing_store_base,
-		               Genode::size_t backing_store_size);
+		Disk(Genode::Env &, Synced_motherboard &, char * backing_store_base,
+		     Genode::size_t backing_store_size);
 
-		~Vancouver_disk();
+		~Disk();
 
-		void entry();
+		void handle_disk(unsigned);
 
 		bool receive(MessageDisk &msg);
 
 		void register_host_operations(Motherboard &);
 };
 
-#endif /* _VANCOUVER_DISK_H_ */
+#endif /* _DISK_H_ */

@@ -20,14 +20,9 @@
  */
 
 /* Genode includes */
-#include <base/allocator_avl.h>
 #include <base/log.h>
-#include <base/sleep.h>
-#include <base/thread.h>
 #include <block_session/connection.h>
-#include <util/string.h>
 #include <base/heap.h>
-#include <base/lock.h>
 
 /* VMM utility includes */
 #include <vmm/utcb_guard.h>
@@ -38,71 +33,52 @@
 /* Seoul includes */
 #include <host/dma.h>
 
-static Genode::Signal_receiver* disk_receiver()
+static Genode::Heap * disk_heap(Genode::Ram_session *ram = nullptr,
+                                Genode::Region_map *rm = nullptr)
 {
-	static Genode::Signal_receiver receiver;
-	return &receiver;
-}
-
-
-static Genode::Heap * disk_heap() {
-	using namespace Genode;
-	static Heap heap(env()->ram_session(), env()->rm_session());
+	static Genode::Heap heap(ram, rm);
 	return &heap;
 }
-static Genode::Heap * disk_heap_msg() {
-	using namespace Genode;
-	static Heap heap(env()->ram_session(), env()->rm_session(), 4096);
+static Genode::Heap * disk_heap_msg(Genode::Env &env)
+{
+	static Genode::Heap heap(&env.ram(), &env.rm(), 4096);
 	return &heap;
 }
-static Genode::Heap * disk_heap_avl() {
-	using namespace Genode;
-	static Heap heap(env()->ram_session(), env()->rm_session(), 4096);
+static Genode::Heap * disk_heap_avl(Genode::Env &env)
+{
+	static Genode::Heap heap(&env.ram(), &env.rm(), 4096);
 	return &heap;
 }
 
 
-Vancouver_disk::Vancouver_disk(Synced_motherboard &mb,
-                               char         * backing_store_base,
-                               Genode::size_t backing_store_size)
+Seoul::Disk::Disk(Genode::Env &env, Synced_motherboard &mb,
+                  char * backing_store_base, Genode::size_t backing_store_size)
 :
-	Thread_deprecated("vmm_disk"),
+	_env(env),
 	_motherboard(mb),
 	_backing_store_base(backing_store_base),
 	_backing_store_size(backing_store_size),
-	_tslab_msg(disk_heap_msg()),
-	_tslab_avl(disk_heap_avl())
+	_tslab_msg(disk_heap_msg(env)),
+	_tslab_avl(disk_heap_avl(env))
 {
+	/* initialize disk heap */
+	disk_heap(&env.ram(), &env.rm());
+
 	/* initialize struct with 0 size */
 	for (int i=0; i < MAX_DISKS; i++) {
 		_diskcon[i].blk_size = 0;
 	}
-
-	start();
 }
 
 
-void Vancouver_disk::register_host_operations(Motherboard &motherboard)
+void Seoul::Disk::register_host_operations(Motherboard &motherboard)
 {
 	motherboard.bus_disk.add(this, receive_static<MessageDisk>);
 }
 
+void Seoul::Disk_signal::_signal() { _obj.handle_disk(_id); }
 
-void Vancouver_disk::entry()
-{
-	Logging::printf("Hello, this is Vancouver_disk.\n");
-
-	while (true) {
-		Genode::Signal signal = disk_receiver()->wait_for_signal();
-		Vancouver_disk_signal * disk_source =
-			reinterpret_cast<Vancouver_disk_signal *>(signal.context());
-
-		this->_signal_dispatch_entry(disk_source->disk_nr());
-	}
-}
-
-
-void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
+void Seoul::Disk::handle_disk(unsigned disknr)
 {
 	Block::Session::Tx::Source *source = _diskcon[disknr].blk_con->tx();
 
@@ -179,7 +155,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 }
 
 
-bool Vancouver_disk::receive(MessageDisk &msg)
+bool Seoul::Disk::receive(MessageDisk &msg)
 {
 	static Vmm::Utcb_guard::Utcb_backup utcb_backup;
 	Vmm::Utcb_guard guard(utcb_backup);
@@ -191,23 +167,23 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 	 * If we receive a message for this disk the first time, create the
 	 * structure for it.
 	 */
-	char label[16];
-	Genode::snprintf(label, 16, "VirtualDisk %u", msg.disknr);
+	Genode::String<16> label("VirtualDisk ", msg.disknr);
 
 	if (!_diskcon[msg.disknr].blk_size) {
 		try {
 			Genode::Allocator_avl * block_alloc =
-				new Genode::Allocator_avl(disk_heap());
+				new (disk_heap()) Genode::Allocator_avl(disk_heap());
 
 			_diskcon[msg.disknr].blk_con =
-				new Block::Connection(block_alloc, 4*512*1024, label);
-			_diskcon[msg.disknr].dispatcher =
-				new Vancouver_disk_signal(*disk_receiver(), *this,
-				                          &Vancouver_disk::_signal_dispatch_entry,
-				                          msg.disknr);
+				new (disk_heap()) Block::Connection(_env, block_alloc,
+				                                    4*512*1024,
+				                                    label.string());
+			_diskcon[msg.disknr].signal =
+				new (disk_heap()) Seoul::Disk_signal(_env.ep(), *this,
+				                                     msg.disknr);
 
 			_diskcon[msg.disknr].blk_con->tx_channel()->sigh_ack_avail(
-				*_diskcon[msg.disknr].dispatcher);
+				_diskcon[msg.disknr].signal->sigh);
 		} catch (...) {
 			/* there is none. */
 			return false;
@@ -234,8 +210,7 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 			msg.params->sectors = _diskcon[msg.disknr].blk_cnt;
 			msg.params->sectorsize = _diskcon[msg.disknr].blk_size;
 			msg.params->maxrequestcount = _diskcon[msg.disknr].blk_cnt;
-			memcpy(msg.params->name, label, strlen(label));
-			msg.params->name[strlen(label)] = 0;
+			memcpy(msg.params->name, label.string(), label.length());
 		}
 		return true;
 	case MessageDisk::DISK_READ:
@@ -328,7 +303,7 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 }
 
 
-Vancouver_disk::~Vancouver_disk()
+Seoul::Disk::~Disk()
 {
 	/* XXX: Close all connections */
 }

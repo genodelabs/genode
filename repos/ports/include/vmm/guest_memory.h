@@ -26,7 +26,8 @@
 #define _INCLUDE__VMM__GUEST_MEMORY_H_
 
 /* Genode includes */
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/env.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 
@@ -48,9 +49,13 @@ namespace Vmm {
  */
 struct Vmm::Virtual_reservation : private Rm_connection, Region_map_client
 {
-	Virtual_reservation(addr_t vm_size)
+	Genode::Env &_env;
+
+	Virtual_reservation(Genode::Env &env, addr_t vm_size)
 	:
-		Region_map_client(Rm_connection::create(vm_size))
+		Rm_connection(env),
+		Region_map_client(Rm_connection::create(vm_size)),
+		_env(env)
 	{
 		try {
 			/*
@@ -58,8 +63,8 @@ struct Vmm::Virtual_reservation : private Rm_connection, Region_map_client
 			 * space. We leave out the very first page because core denies
 			 * the attachment of anything at the zero page.
 			 */
-			env()->rm_session()->attach_at(Region_map_client::dataspace(),
-			                               PAGE_SIZE, 0, PAGE_SIZE);
+			env.rm().attach_at(Region_map_client::dataspace(), PAGE_SIZE, 0,
+			                   PAGE_SIZE);
 
 		} catch (Rm_session::Region_conflict) {
 			error("region conflict while attaching guest-physical memory");
@@ -68,28 +73,8 @@ struct Vmm::Virtual_reservation : private Rm_connection, Region_map_client
 
 	~Virtual_reservation()
 	{
-		env()->rm_session()->detach((void *)PAGE_SIZE);
+		_env.rm().detach((void *)PAGE_SIZE);
 	}
-};
-
-
-/**
- * Representation of guest memory
- *
- */
-struct Vmm::Guest_memory : Attached_ram_dataspace
-{
-	/**
-	 * Constructor
-	 *
-	 * \param backing_store_size  number of bytes of physical RAM to be
-	 *                            used as guest-physical and device memory,
-	 *                            allocated from core's RAM service
-	 */
-	Guest_memory(size_t backing_store_size)
-	:
-		Attached_ram_dataspace(env()->ram_session(), backing_store_size)
-	{ }
 };
 
 

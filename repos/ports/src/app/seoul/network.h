@@ -1,12 +1,13 @@
 /*
  * \brief  Network receive handler per MAC address
  * \author Markus Partheymueller
+ * \author Alexander Boettcher
  * \date   2012-07-31
  */
 
 /*
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -21,31 +22,45 @@
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
-/* Genode includes */
+/* base includes */
+#include <base/heap.h>
+
+/* os includes */
 #include <nic_session/connection.h>
+#include <nic/packet_allocator.h>
 
 /* local includes */
 #include "synced_motherboard.h"
 
-using Genode::List;
-using Genode::Thread_deprecated;
+namespace Seoul {
+	class Network;
+}
 
-class Vancouver_network : public Thread_deprecated<4096>
+class Seoul::Network
 {
 	private:
 
-		Synced_motherboard &_motherboard;
-		Nic::Session       *_nic;
+		enum {
+			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+			BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
+		};
+
+		Synced_motherboard   &_motherboard;
+		Nic::Packet_allocator _tx_block_alloc;
+		Nic::Connection       _nic;
+
+		Genode::Signal_handler<Network> const _packet_avail;
+		void const *                          _forward_pkt = nullptr;
+
+		void _handle_packets();
 
 	public:
 
-		/* initialisation */
-		void entry();
+		Network(Genode::Env &, Genode::Heap &, Synced_motherboard &);
 
-		/**
-		 * Constructor
-		 */
-		Vancouver_network(Synced_motherboard &, Nic::Session *);
+		Nic::Mac_address mac_address() { return _nic.mac_address(); }
+
+		bool transmit(void const * const packet, Genode::size_t len);
 };
 
 #endif /* _NETWORK_H_ */

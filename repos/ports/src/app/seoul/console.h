@@ -21,59 +21,73 @@
 #ifndef _CONSOLE_H_
 #define _CONSOLE_H_
 
-/* Genode includes */
+/* base includes */
+#include <base/env.h>
+#include <dataspace/client.h>
+#include <util/reconstructible.h>
 #include <util/string.h>
+
+/* os includes */
 #include <framebuffer_session/connection.h>
+#include <input/event.h>
 #include <input_session/connection.h>
 #include <timer_session/connection.h>
-#include <dataspace/client.h>
+
+#include <os/pixel_rgb565.h>
 
 /* local includes */
+#include "keyboard.h"
 #include "synced_motherboard.h"
 
-/* includes for I/O */
-#include <base/env.h>
-#include <util/list.h>
-#include <input/event.h>
+namespace Seoul {
+	class Console;
+}
 
-using Genode::List;
-using Genode::Thread_deprecated;
-
-class Vancouver_console : public Thread_deprecated<8192>, public StaticReceiver<Vancouver_console>
+class Seoul::Console : public StaticReceiver<Seoul::Console>
 {
 	private:
 
-		Genode::Lock                 _startup_lock;
+		Genode::Env                 &_env;
+		Motherboard                 &_unsynchronized_motherboard;
 		Synced_motherboard          &_motherboard;
-		Genode::Lock                 _console_lock;
-		short                       *_pixels;
-		char                        *_guest_fb;
-		unsigned long                _fb_size;
+		Genode::Constructible<Framebuffer::Connection> _framebuffer;
+		Genode::Constructible<Genode::Surface<Genode::Pixel_rgb565> > _surface;
+		Input::Connection            _input = { _env };
+		Keyboard                     _vkeyb = { _motherboard };
+		short                       *_pixels   = nullptr;
+		char                        *_guest_fb = nullptr;
+		unsigned long                _fb_size  = 0;
 		Genode::Dataspace_capability _fb_ds;
 		Genode::size_t               _vm_fb_size;
-		VgaRegs                     *_regs;
+		VgaRegs                     *_regs     = nullptr;
 		Framebuffer::Mode            _fb_mode;
-		bool                         _left, _middle, _right;
+		bool                         _left     = false;
+		bool                         _middle   = false;
+		bool                         _right    = false;
+		unsigned                     _timer;
 
 		unsigned _input_to_ps2mouse(Input::Event const &);
+
+		Genode::Signal_handler<Console> _signal_input
+			= { _env.ep(), *this, &Console::_handle_input };
+
+		void _handle_input();
+		unsigned _handle_fb();
 
 	public:
 
 		/* bus callbacks */
-		bool receive(MessageConsole &msg);
-		bool receive(MessageMemRegion &msg);
+		bool receive(MessageConsole &);
+		bool receive(MessageMemRegion &);
+		bool receive(MessageTimeout &);
 
 		void register_host_operations(Motherboard &);
-
-		/* initialisation */
-		void entry();
 
 		/**
 		 * Constructor
 		 */
-		Vancouver_console(Synced_motherboard &,
-		                  Genode::size_t vm_fb_size,
-		                  Genode::Dataspace_capability fb_ds);
+		Console(Genode::Env &env, Synced_motherboard &, Motherboard &,
+		        Genode::size_t vm_fb_size, Genode::Dataspace_capability fb_ds);
 };
 
 #endif /* _CONSOLE_H_ */

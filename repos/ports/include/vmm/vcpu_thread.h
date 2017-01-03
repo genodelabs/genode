@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <cap_session/connection.h>
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
 #include <region_map/client.h>

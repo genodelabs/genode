@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/env.h>
+#include <base/heap.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 
@@ -65,7 +66,7 @@ void Logging::vprintf(const char *format, va_list &ap)
 
 	Genode::printf("VMM: ");
 	Genode::printf(format);
-	PWRN("Logging::vprintf not implemented");
+	Genode::error("Logging::vprintf not implemented");
 
 	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
 }
@@ -86,25 +87,31 @@ void Logging::panic(const char *format, ...)
 		Genode::sleep_forever();
 }
 
+static Genode::Allocator * heap = nullptr;
+
+void heap_init_env(Genode::Heap *h)
+{
+	heap = h;
+}
 
 static void *heap_alloc(size_t size)
 {
-	void *res = Genode::env()->heap()->alloc(size);
+	void *res = heap->alloc(size);
 	if (res)
 		return res;
 
-	PERR("out of memory");
+	Genode::error("out of memory");
 	Genode::sleep_forever();
 }
 
 static void heap_free(void * ptr)
 {
-	if (Genode::env()->heap()->need_size_for_free()) {
-		PWRN("leaking memory");
+	if (heap->need_size_for_free()) {
+		Genode::warning("leaking memory");
 		return;
 	}
 
-	Genode::env()->heap()->free(ptr, 0);
+	heap->free(ptr, 0);
 }
 
 
@@ -141,7 +148,7 @@ void *operator new (size_t size)
 void operator delete[](void *ptr)
 {
 	if (verbose_memory_leak)
-		PWRN("delete[] not implemented");
+		Genode::warning("delete[] not implemented ", ptr);
 }
 
 void operator delete (void * ptr)

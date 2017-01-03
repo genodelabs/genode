@@ -33,7 +33,7 @@ set use_multiboot_modaddr 0x2800000
 
 # Use a Genode run script of a 32bit platform and turn it into a bootable
 # setup for Seoul - adjust build_dir and run_script variable accordingly
-set run_script      "printf"
+set run_script      "log"
 set build_dir       "."
 set run_script_path "$build_dir/var/run/$run_script"
 set genode_iso      "$build_dir/var/run/$run_script.iso"
@@ -44,7 +44,7 @@ if {[catch {exec cp $genode_iso bin/genode.iso}]} {
 	exit 1
 }
 
-set files_vm [exec cat $run_script_path/boot/grub/menu.lst]
+set files_vm [exec isoinfo -i $genode_iso -x "/BOOT/GRUB/MENU.LST;1"]
 
 set vm [split $files_vm "\n"]
 set guest_os_binaries {}

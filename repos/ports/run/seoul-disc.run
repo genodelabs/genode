@@ -27,8 +27,6 @@ set memory_vmm_vm     "512M"
 
 set vcpus_to_be_used  1
 
-source ${genode_dir}/repos/ports/run/seoul.inc
-
 if {[have_include power_on/qemu]} {
 
 	if {![file exists bin/seoul-disc.raw]} {
@@ -40,5 +38,7 @@ if {[have_include power_on/qemu]} {
 	append qemu_args " -cpu phenom"
 	append_if $use_block_sata qemu_args " -drive id=disk,file=bin/seoul-disc.raw,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 }
+
+source ${genode_dir}/repos/ports/run/seoul.inc
 
 run_genode_until forever
