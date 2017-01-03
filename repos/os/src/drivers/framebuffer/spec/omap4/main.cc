@@ -12,14 +12,14 @@
  */
 
 /* Genode includes */
-#include <framebuffer_session/framebuffer_session.h>
-#include <cap_session/connection.h>
-#include <dataspace/client.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 #include <base/log.h>
-#include <base/sleep.h>
+#include <framebuffer_session/framebuffer_session.h>
+#include <dataspace/client.h>
 #include <blit/blit.h>
-#include <os/config.h>
 #include <os/static_root.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include <driver.h>
@@ -51,6 +51,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		void                        *_fb_addr;
 
 		Signal_context_capability _sync_sigh;
+
+		Timer::Connection _timer;
 
 		/**
 		 * Convert Driver::Format to Framebuffer::Mode::Format
@@ -86,18 +88,19 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 	public:
 
-		Session_component(Driver &driver, size_t width, size_t height,
+		Session_component(Genode::Env &env, Driver &driver, size_t width, size_t height,
 		                  Driver::Output output, bool buffered)
 		: _width(width),
 		  _height(height),
 		  _buffered(buffered),
 		  _format(Driver::FORMAT_RGB565),
 		  _size(driver.buffer_size(width, height, _format)),
-		  _bb_ds(buffered ? Genode::env()->ram_session()->alloc(_size)
+		  _bb_ds(buffered ? env.ram().alloc(_size)
 		                  : Genode::Ram_dataspace_capability()),
-		  _bb_addr(buffered ? (void*)Genode::env()->rm_session()->attach(_bb_ds) : 0),
-		  _fb_ds(Genode::env()->ram_session()->alloc(_size, WRITE_COMBINED)),
-		  _fb_addr((void*)Genode::env()->rm_session()->attach(_fb_ds))
+		  _bb_addr(buffered ? (void*)env.rm().attach(_bb_ds) : 0),
+		  _fb_ds(env.ram().alloc(_size, WRITE_COMBINED)),
+		  _fb_addr((void*)env.rm().attach(_fb_ds)),
+		  _timer(env)
 		{
 			if (!driver.init(width, height, _format, output,
 				Dataspace_client(_fb_ds).phys_addr())) {
@@ -105,6 +108,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 				struct Could_not_initialize_display : Exception { };
 				throw Could_not_initialize_display();
 			}
+
+			Genode::log("using ", width, "x", height,
+			            output == Driver::OUTPUT_HDMI ? " HDMI" : " LCD");
 		}
 
 		/************************************
@@ -128,6 +134,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_sync_sigh = sigh;
+
+			_timer.sigh(_sync_sigh);
+			_timer.trigger_periodic(10*1000);
 		}
 
 		void refresh(int x, int y, int w, int h) override
@@ -141,55 +150,52 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 };
 
 
-static bool config_attribute(const char *attr_name)
+template <typename T>
+static T config_attribute(Genode::Xml_node node, char const *attr_name, T const &default_value)
 {
-	return Genode::config()->xml_node().attribute_value(attr_name, false);
+	return node.attribute_value(attr_name, default_value);
 }
 
-
-int main(int, char **)
+static Framebuffer::Driver::Output config_output(Genode::Xml_node node,
+                                                 Framebuffer::Driver::Output default_value)
 {
-	using namespace Framebuffer;
+	Framebuffer::Driver::Output value = default_value;
 
-	size_t width = 1024;
-	size_t height = 768;
-	Driver::Output output = Driver::OUTPUT_HDMI;
 	try {
-		char out[5] = {}; 
-		Genode::Xml_node config_node = Genode::config()->xml_node();
-		config_node.attribute("width").value(&width);
-		config_node.attribute("height").value(&height);
-		config_node.attribute("output").value(out, sizeof(out));
-		if (!Genode::strcmp(out, "LCD")) {
-			output = Driver::OUTPUT_LCD;
-		}
-	}
-	catch (...) {
-		log("using default configuration: HDMI@", width, "x", height);
-	}
+		Genode::String<8> output;
+		node.attribute("output").value(&output);
 
-	static Driver driver;
+		if (output == "LCD") { value = Framebuffer::Driver::OUTPUT_LCD; }
+	} catch (...) { }
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_ep");
-
-	/*
-	 * Let the entry point serve the framebuffer session and root interfaces
-	 */
-	static Session_component fb_session(driver, width, height, output,
-	                                    config_attribute("buffered"));
-	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
-
-	/*
-	 * Announce service
-	 */
-	env()->parent()->announce(ep.manage(&fb_root));
-
-	sleep_forever();
-	return 0;
+	return value;
 }
 
+
+struct Main
+{
+	Genode::Env        &_env;
+	Genode::Entrypoint &_ep;
+
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
+	Framebuffer::Driver _driver { _env };
+
+	Framebuffer::Session_component _fb_session { _env, _driver,
+		config_attribute(_config.xml(), "width", 1024u),
+		config_attribute(_config.xml(), "height", 768u),
+		config_output(_config.xml(), Framebuffer::Driver::OUTPUT_HDMI),
+		config_attribute(_config.xml(), "buffered", false),
+	};
+
+	Genode::Static_root<Framebuffer::Session> _fb_root { _ep.manage(_fb_session) };
+
+	Main(Genode::Env &env) : _env(env), _ep(_env.ep())
+	{
+		/* announce service */
+		_env.parent().announce(_ep.manage(_fb_root));
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Main main(env); }
