@@ -63,11 +63,11 @@ append_platform_drv_config
 
 append config {
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="7M"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Usb"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
 			<raw>
@@ -76,11 +76,11 @@ append config {
 		</config>
 	</start>
 	<start name="usb_terminal">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Terminal"/></provides>
 	</start>
 	<start name="test-terminal_echo">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 	</start>
 </config>}
 
