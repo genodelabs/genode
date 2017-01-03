@@ -41,6 +41,8 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 
 		Rom::Module &_module;
 
+		Genode::Signal_context_capability _enabled_sigh;
+
 		bool &_verbose;
 
 		Rom::Module &_create_module(Rom::Module::Name const &name)
@@ -81,6 +83,16 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 		 */
 		Genode::Session_label label() const override { return _label; }
 
+		void notify_enabled() { 
+			if (_enabled_sigh.valid())
+				Genode::Signal_transmitter(_enabled_sigh).submit();
+		}
+
+		void notify_disabled() { 
+			if (_enabled_sigh.valid())
+				Genode::Signal_transmitter(_enabled_sigh).submit();
+		}
+
 		Dataspace_capability dataspace() override { return _ds.cap(); }
 
 		void submit(size_t length) override
@@ -98,6 +110,13 @@ struct Report::Session_component : Genode::Rpc_object<Session>, Rom::Writer
 		void response_sigh(Genode::Signal_context_capability) override { }
 
 		size_t obtain_response() override { return 0; }
+
+		void enabled_sigh(Genode::Signal_context_capability cap) override
+		{
+			_enabled_sigh = cap;
+		}
+
+		bool enabled() override { return _module.has_readers(); }
 };
 
 

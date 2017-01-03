@@ -39,17 +39,27 @@ void Component::construct(Genode::Env &env)
 	Signal_context  sig_ctx;
 	Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
 
+	Signal_receiver en_sig_rec;
+	Signal_context  en_sig_ctx;
+	Signal_context_capability en_sig_cap = en_sig_rec.manage(&en_sig_ctx);
+
 	log("--- test-report_rom started ---");
 
 	log("Reporter: open session");
 	Reporter brightness_reporter("brightness");
 	brightness_reporter.enabled(true);
+	brightness_reporter.enabled_sigh(en_sig_cap);
+	ASSERT(!brightness_reporter.reporting_enabled());
 
 	log("Reporter: brightness 10");
 	report_brightness(brightness_reporter, 10);
 
 	log("ROM client: request brightness report");
 	Attached_rom_dataspace brightness_rom("brightness");
+
+	log("Reporter: wait for enabled signal");
+	en_sig_rec.wait_for_signal();
+	ASSERT(brightness_reporter.reporting_enabled());
 
 	ASSERT(brightness_rom.valid());
 
@@ -98,6 +108,7 @@ void Component::construct(Genode::Env &env)
 	log("--- test-report_rom finished ---");
 
 	sig_rec.dissolve(&sig_ctx);
+	en_sig_rec.dissolve(&en_sig_ctx);
 
 	env.parent().exit(0);
 }

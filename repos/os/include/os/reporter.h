@@ -120,6 +120,18 @@ class Genode::Reporter : Noncopyable
 			_conn->report.submit(length);
 		}
 
+		void enabled_sigh(Signal_context_capability cap) {
+			if (_enabled)
+				_conn->report.enabled_sigh(cap);
+		}
+
+		bool reporting_enabled() {
+			if (_enabled)
+				return _conn->report.enabled();
+			else
+				return false;
+		}
+
 		/**
 		 * XML generator targeting a reporter
 		 */

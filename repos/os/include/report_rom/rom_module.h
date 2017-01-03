@@ -40,6 +40,8 @@ namespace Rom {
 struct Rom::Writer : Writer_list::Element
 {
 	virtual Genode::Session_label label() const = 0;
+	virtual void notify_enabled()   = 0;
+	virtual void notify_disabled() = 0;
 };
 
 
@@ -189,9 +191,25 @@ struct Rom::Module : Module_list::Element, Readable_module
 			return false;
 		}
 
-		void _register(Reader &reader) { _readers.insert(&reader); }
+		void _register(Reader &reader) { 
+			bool enabled = has_readers();
+			_readers.insert(&reader); 
+			if (!enabled) {
+				for (Writer *w = _writers.first(); w; w = w->next()) {
+					w->notify_enabled();
+				}
+			}
+		}
 
-		void _unregister(Reader &reader) { _readers.remove(&reader); }
+		void _unregister(Reader &reader) { 
+			bool enabled = has_readers();
+			_readers.remove(&reader); 
+			if (enabled) {
+				for (Writer *w = _writers.first(); w; w = w->next()) {
+					w->notify_disabled();
+				}
+			}
+		}
 
 		void _register(Writer &writer)
 		{
@@ -227,6 +245,10 @@ struct Rom::Module : Module_list::Element, Readable_module
 		}
 
 	public:
+		bool has_readers() const
+		{
+			return _readers.first();
+		}
 
 		/**
 		 * Assign new content to the ROM module

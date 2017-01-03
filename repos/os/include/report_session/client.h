@@ -37,6 +37,13 @@ struct Report::Session_client : Genode::Rpc_client<Session>
 
 	size_t obtain_response() override {
 		return call<Rpc_obtain_response>(); }
+
+	void enabled_sigh(Signal_context_capability cap) override {
+		call<Rpc_enabled_sigh>(cap); }
+
+	bool enabled() override {
+		return call<Rpc_enabled>();
+	}
 };
 
 #endif /* _INCLUDE__REPORT_SESSION__CLIENT_H_ */

@@ -57,6 +57,7 @@ compare_output_to {
 	[init -> test-report_rom] Reporter: open session
 	[init -> test-report_rom] Reporter: brightness 10
 	[init -> test-report_rom] ROM client: request brightness report
+	[init -> test-report_rom] Reporter: wait for enabled signal
 	[init -> test-report_rom]          -> <brightness brightness="10"/>
 	[init -> test-report_rom] Reporter: updated brightness to 77
 	[init -> test-report_rom] ROM client: wait for update notification
