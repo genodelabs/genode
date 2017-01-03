@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2016 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,7 +16,6 @@
 #include <SDL/SDL.h>
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/thread.h>
 #include <input/keycodes.h>
 
@@ -214,17 +213,16 @@ static Input::Event wait_for_sdl_event()
 
 
 namespace Input {
-	enum { STACK_SIZE = 4096*sizeof(long) };
 	struct Backend;
 }
 
-struct Input::Backend : Genode::Thread_deprecated<STACK_SIZE>
+struct Input::Backend : Genode::Thread
 {
 	Handler &handler;
 
-	Backend(Input::Handler &handler)
+	Backend(Genode::Env &env, Input::Handler &handler)
 	:
-		Genode::Thread_deprecated<STACK_SIZE>("input_backend"),
+		Genode::Thread(env, "input_backend", 4 * 1024 * sizeof(long)),
 		handler(handler)
 	{
 		start();
@@ -246,4 +244,7 @@ struct Input::Backend : Genode::Thread_deprecated<STACK_SIZE>
 };
 
 
-void init_input_backend(Input::Handler &h) { static Input::Backend inst(h); }
+void init_input_backend(Genode::Env &env, Input::Handler &h)
+{
+	static Input::Backend inst(env, h);
+}

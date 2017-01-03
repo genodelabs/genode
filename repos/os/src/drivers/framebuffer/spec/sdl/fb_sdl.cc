@@ -6,43 +6,46 @@
  */
 
 /*
- * Copyright (C) 2006-2016 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <framebuffer_session/framebuffer_session.h>
+#include <input/root.h>
+#include <timer_session/connection.h>
+
 /* Linux includes */
 #include <SDL/SDL.h>
-
-/* Genode includes */
-#include <util/misc_math.h>
-#include <base/component.h>
-#include <base/rpc_server.h>
-#include <framebuffer_session/framebuffer_session.h>
-#include <cap_session/connection.h>
-#include <input/root.h>
-#include <os/config.h>
-#include <timer_session/connection.h>
 
 /* local includes */
 #include "input.h"
 
+namespace Framebuffer {
+	class Session_component;
+	using namespace Genode;
+}
 
-using Genode::Attached_ram_dataspace;
+
+namespace Fb_sdl {
+	class Main;
+	using namespace Genode;
+}
 
 
-namespace Framebuffer { class Session_component; }
-
-class Framebuffer::Session_component : public Genode::Rpc_object<Session>
+class Framebuffer::Session_component : public Rpc_object<Session>
 {
 	private:
 
 		SDL_Surface *_screen { nullptr };
 
-		Mode                          _mode;
-		Genode::Dataspace_capability  _fb_ds_cap;
-		void                         *_fb_ds_addr;
+		Mode                  _mode;
+		Dataspace_capability  _fb_ds_cap;
+		void                 *_fb_ds_addr;
 
 		Timer::Connection _timer;
 
@@ -51,21 +54,21 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * Constructor
 		 */
-		Session_component(Framebuffer::Mode mode,
-		                  Genode::Dataspace_capability fb_ds_cap, void *fb_ds_addr)
+		Session_component(Env &env, Framebuffer::Mode mode,
+		                  Dataspace_capability fb_ds_cap, void *fb_ds_addr)
 		:
-			_mode(mode), _fb_ds_cap(fb_ds_cap), _fb_ds_addr(fb_ds_addr)
+			_mode(mode), _fb_ds_cap(fb_ds_cap), _fb_ds_addr(fb_ds_addr), _timer(env)
 		{ }
 
 		void screen(SDL_Surface *screen) { _screen = screen; }
 
-		Genode::Dataspace_capability dataspace() override { return _fb_ds_cap; }
+		Dataspace_capability dataspace() override { return _fb_ds_cap; }
 
 		Mode mode() const override { return _mode; }
 
-		void mode_sigh(Genode::Signal_context_capability) override { }
+		void mode_sigh(Signal_context_capability) override { }
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override
+		void sync_sigh(Signal_context_capability sigh) override
 		{
 			_timer.sigh(sigh);
 			if (sigh.valid())
@@ -75,10 +78,10 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		void refresh(int x, int y, int w, int h) override
 		{
 			/* clip refresh area to screen boundaries */
-			int x1 = Genode::max(x, 0);
-			int y1 = Genode::max(y, 0);
-			int x2 = Genode::min(x + w - 1, _mode.width()  - 1);
-			int y2 = Genode::min(y + h - 1, _mode.height() - 1);
+			int x1 = max(x, 0);
+			int y1 = max(y, 0);
+			int x2 = min(x + w - 1, _mode.width()  - 1);
+			int y2 = min(y + h - 1, _mode.height() - 1);
 
 			if (x1 <= x2 && y1 <= y2) {
 
@@ -131,56 +134,42 @@ namespace Input {
 }
 
 
-/**
- * Read integer value from config attribute
- */
-template<typename T>
-static T config_arg(char const *attr, T const &default_value)
-{
-	long value = default_value;
-
-	try { Genode::config()->xml_node().attribute(attr).value(&value); }
-	catch (...) { }
-
-	return value;
-}
-
-
-struct Main
+struct Fb_sdl::Main
 {
 	/* fatal exceptions */
-	struct Sdl_init_failed { };
-	struct Sdl_videodriver_not_supported { };
-	struct Sdl_setvideomode_failed { };
+	struct Sdl_init_failed               : Exception { };
+	struct Sdl_videodriver_not_supported : Exception { };
+	struct Sdl_setvideomode_failed       : Exception { };
 
-	Genode::Env &env;
+	Env &_env;
 
-	int fb_width  { config_arg("width",  1024) };
-	int fb_height { config_arg("height", 768) };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Framebuffer::Mode fb_mode { fb_width, fb_height, Framebuffer::Mode::RGB565 };
+	int const _fb_width  = _config.xml().attribute_value("width", 1024UL);
+	int const _fb_height = _config.xml().attribute_value("height", 768UL);
 
-	Attached_ram_dataspace fb_ds { &env.ram(),
-	                               fb_mode.width()*fb_mode.height()*fb_mode.bytes_per_pixel() };
+	Framebuffer::Mode _fb_mode { _fb_width, _fb_height, Framebuffer::Mode::RGB565 };
 
-	Framebuffer::Session_component fb_session { fb_mode, fb_ds.cap(), fb_ds.local_addr<void>() };
+	Attached_ram_dataspace _fb_ds { _env.ram(), _env.rm(),
+	                                _fb_mode.width()*_fb_mode.height()*_fb_mode.bytes_per_pixel() };
 
-	Genode::Static_root<Framebuffer::Session> fb_root { env.ep().manage(fb_session) };
+	Framebuffer::Session_component _fb_session { _env, _fb_mode, _fb_ds.cap(), _fb_ds.local_addr<void>() };
 
-	Input::Session_component input_session { env, env.ram() };
-	Input::Root_component    input_root    { env.ep().rpc_ep(), input_session };
+	Static_root<Framebuffer::Session> _fb_root { _env.ep().manage(_fb_session) };
 
-	Input::Handler_component input_handler_component { input_session };
-	Input::Handler_client    input_handler_client    { env.ep().manage(input_handler_component) };
+	Input::Session_component _input_session { _env, _env.ram() };
+	Input::Root_component    _input_root    { _env.ep().rpc_ep(), _input_session };
 
-	Main(Genode::Env &env) : env(env)
+	Input::Handler_component _input_handler_component { _input_session };
+	Input::Handler_client    _input_handler_client    { _env.ep().manage(_input_handler_component) };
+
+	Main(Env &env) : _env(env)
 	{
 		/*
 		 * Initialize libSDL window
 		 */
-		if (SDL_Init(SDL_INIT_VIDEO) < 0)
-		{
-			Genode::error("SDL_Init failed (", Genode::Cstring(SDL_GetError()), ")");
+		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+			error("SDL_Init failed (", Genode::Cstring(SDL_GetError()), ")");
 			throw Sdl_init_failed();
 		}
 
@@ -190,29 +179,29 @@ struct Main
 		char driver[16] = { 0 };
 		SDL_VideoDriverName(driver, sizeof(driver));
 		if (::strcmp(driver, "x11") != 0) {
-			Genode::error("fb_sdl works on X11 only. "
-			              "Your SDL backend is ", Genode::Cstring(driver), ".");
+			error("fb_sdl works on X11 only. "
+			      "Your SDL backend is ", Genode::Cstring(driver), ".");
 			throw Sdl_videodriver_not_supported();
 		}
 
-		SDL_Surface *screen = SDL_SetVideoMode(fb_mode.width(), fb_mode.height(),
-		                                       fb_mode.bytes_per_pixel()*8, SDL_SWSURFACE);
+		SDL_Surface *screen = SDL_SetVideoMode(_fb_mode.width(), _fb_mode.height(),
+		                                       _fb_mode.bytes_per_pixel()*8, SDL_SWSURFACE);
 		if (!screen) {
-			Genode::error("SDL_SetVideoMode failed (", Genode::Cstring(SDL_GetError()), ")");
+			error("SDL_SetVideoMode failed (", Genode::Cstring(SDL_GetError()), ")");
 			throw Sdl_setvideomode_failed();
 		}
-		fb_session.screen(screen);
+		_fb_session.screen(screen);
 
 		SDL_ShowCursor(0);
 
-		Genode::log("creating virtual framebuffer for mode ", fb_mode);
+		log("creating virtual framebuffer for mode ", _fb_mode);
 
-		env.parent().announce(env.ep().manage(fb_root));
-		env.parent().announce(env.ep().manage(input_root));
+		_env.parent().announce(env.ep().manage(_fb_root));
+		_env.parent().announce(env.ep().manage(_input_root));
 
-		init_input_backend(input_handler_client);
+		init_input_backend(_env, _input_handler_client);
 	}
 };
 
 
-void Component::construct(Genode::Env &env) { static Main inst(env); }
+void Component::construct(Genode::Env &env) { static Fb_sdl::Main inst(env); }
