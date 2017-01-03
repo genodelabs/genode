@@ -34,28 +34,30 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 {
 	private:
 
+		Genode::Env &_env;
+
 		String _label;
 		String _domain;
 
 		Pointer_updater &_updater;
 
-		Genode::Attached_ram_dataspace _texture_pixel_ds { Genode::env()->ram_session(),
+		Genode::Attached_ram_dataspace _texture_pixel_ds { _env.ram(), _env.rm(),
 		                                                   Vbox_pointer::MAX_WIDTH  *
 		                                                   Vbox_pointer::MAX_HEIGHT *
 		                                                   sizeof(Genode::Pixel_rgb888) };
 
-		Genode::Attached_ram_dataspace _texture_alpha_ds { Genode::env()->ram_session(),
+		Genode::Attached_ram_dataspace _texture_alpha_ds { _env.ram(), _env.rm(),
 		                                                   Vbox_pointer::MAX_WIDTH  *
 		                                                   Vbox_pointer::MAX_HEIGHT };
 		Genode::Attached_rom_dataspace _shape_ds;
 
-		Genode::Signal_dispatcher<Policy_entry> shape_signal_dispatcher {
-			_updater.signal_receiver(), *this, &Policy_entry::_import_shape };
+		Genode::Signal_handler<Policy_entry> _shape_signal_handler {
+			_env.ep(), *this, &Policy_entry::_import_shape };
 
 		Nitpicker::Area  _shape_size;
 		Nitpicker::Point _shape_hot;
 
-		void _import_shape(unsigned = 0)
+		void _import_shape()
 		{
 			using namespace Genode;
 
@@ -76,7 +78,7 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 			 || shape_report->height > Vbox_pointer::MAX_HEIGHT) {
 				_shape_size = Nitpicker::Area();
 				_shape_hot  = Nitpicker::Point();
-				_updater.update_pointer(this);
+				_updater.update_pointer(*this);
 			}
 
 			_shape_size = Nitpicker::Area(shape_report->width, shape_report->height);
@@ -104,20 +106,21 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 				texture.rgba(rgba_line, _shape_size.w(), y);
 			}
 
-			_updater.update_pointer(this);
+			_updater.update_pointer(*this);
 		}
 
 	public:
 
-		Policy_entry(String const &label, String const &domain, String const &rom,
+		Policy_entry(Genode::Env &env, String const &label,
+		             String const &domain, String const &rom,
 		             Pointer_updater &updater)
 		:
-			_label(label), _domain(domain), _updater(updater),
-			_shape_ds(rom.string())
+			_env(env), _label(label), _domain(domain), _updater(updater),
+			_shape_ds(_env, rom.string())
 		{
 			_import_shape();
 
-			_shape_ds.sigh(shape_signal_dispatcher);
+			_shape_ds.sigh(_shape_signal_handler);
 		}
 
 		/**
@@ -185,23 +188,19 @@ void Vbox_pointer::Policy_registry::update(Genode::Xml_node config)
 {
 	/* TODO real update should flush at least */
 
-	try {
-		for (Genode::Xml_node policy = config.sub_node("policy");
-		     true; policy = policy.next("policy")) {
+	config.for_each_sub_node("policy", [&] (Genode::Xml_node policy) {
 
-			String label  = read_string_attribute(policy, "label",  String());
-			String domain = read_string_attribute(policy, "domain", String());
-			String rom    = read_string_attribute(policy, "rom",    String());
+		String const label  = read_string_attribute(policy, "label",  String());
+		String const domain = read_string_attribute(policy, "domain", String());
+		String const rom    = read_string_attribute(policy, "rom",    String());
 
-			if (!label.valid() && !domain.valid())
-				Genode::warning("policy does not declare label/domain attribute");
-			else if (!rom.valid())
-				Genode::warning("policy does not declare shape rom");
-			else
-				insert(new (Genode::env()->heap())
-				       Policy_entry(label, domain, rom, _updater));
-		}
-	} catch (...) { }
+		if (!label.valid() && !domain.valid())
+			Genode::warning("policy does not declare label/domain attribute");
+		else if (!rom.valid())
+			Genode::warning("policy does not declare shape rom");
+		else
+			insert(new (_alloc) Policy_entry(_env, label, domain, rom, _updater));
+	});
 }
 
 

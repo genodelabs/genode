@@ -85,9 +85,9 @@ set config {
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<report focus="yes" hover="yes" xray="yes"/>
-			<domain name="pointer"    layer="1" content="client" label="no" origin="pointer"/>
-			<domain name="smiley"     layer="3" content="client" label="no"/>
-			<domain name="default"    layer="3" content="client" label="no"/>
+			<domain name="pointer" layer="1" content="client" label="no"  origin="pointer"/>
+			<domain name="smiley"  layer="3" content="client" label="no"  hover="always" focus="click"/>
+			<domain name="default" layer="3" content="client" label="yes" hover="always" focus="click"/>
 
 			<policy label_prefix="pointer"            domain="pointer"/>
 			<policy label_prefix="test-domain-smiley" domain="smiley"/>

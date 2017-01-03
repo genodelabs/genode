@@ -11,83 +11,29 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/string.h>
 #include <os/reporter.h>
-#include <os/config.h>
 #include <vbox_pointer/shape_report.h>
-
-
-static bool const verbose = false;
-
-
-typedef Genode::String<16> String;
-
-static String read_string_attribute(Genode::Xml_node const &node,
-                                    char             const *attr,
-                                    String           const &default_value)
-{
-	try {
-		char buf[String::capacity()];
-		node.attribute(attr).value(buf, sizeof(buf));
-		return String(Genode::Cstring(buf));
-	}
-	catch (...) {
-		return default_value; }
-}
-
 
 struct Shape
 {
 	enum { WIDTH = 16, HEIGHT = 16 };
 
-	String        const id;
+	typedef Genode::String<16> Id;
+
+	Id            const id;
 	unsigned      const x_hot;
 	unsigned      const y_hot;
 	unsigned char const map[WIDTH*HEIGHT];
-};
 
-
-struct Shape_report : Vbox_pointer::Shape_report
-{
-	Genode::Reporter reporter { "shape", "shape", sizeof(Vbox_pointer::Shape_report) };
-
-	Shape_report()
-	:
-		Vbox_pointer::Shape_report{true, 0, 0, Shape::WIDTH, Shape::HEIGHT, { 0 }}
+	void print(Genode::Output &output) const
 	{
-		reporter.enabled(true);
-	}
-
-	void report(Shape const &s)
-	{
-		x_hot = s.x_hot;
-		y_hot = s.y_hot;
-
-		unsigned const w = Shape::WIDTH;
-		unsigned const h = Shape::HEIGHT;
-
-		for (unsigned y = 0; y < h; ++y) {
-			for (unsigned x = 0; x < w; ++x) {
-				shape[(y*w + x)*4 + 0] = 0xff;
-				shape[(y*w + x)*4 + 1] = 0xff;
-				shape[(y*w + x)*4 + 2] = 0xff;
-				shape[(y*w + x)*4 + 3] = s.map[y*w +x] ? 0xe0 : 0;
-
-				if (verbose)
-					Genode::printf("%c", s.map[y*w +x] ? 'X' : ' ');
-			}
-			if (verbose)
-				Genode::printf("\n");
-		}
-
-		if (verbose)
-			Genode::printf(".%s.%u.%u.\n", s.id.string(), s.x_hot, s.y_hot);
-
-		reporter.report(static_cast<Vbox_pointer::Shape_report *>(this),
-		                sizeof(Vbox_pointer::Shape_report));
+		Genode::print(output, ".", id, ".", x_hot, ".", y_hot, ".");
 	}
 };
+
 
 static Shape const shape[] = {
 	{ "arrow", 0, 0, {
@@ -178,10 +124,9 @@ static Shape const shape[] = {
 };
 
 
-static Shape const & select_shape()
+static Shape const &select_shape(Genode::Xml_node config)
 {
-	String const id = read_string_attribute(Genode::config()->xml_node(),
-	                                        "shape", String("arrow"));
+	Shape::Id const id = config.attribute_value("shape", Shape::Id("arrow"));
 
 	for (Shape const &s : shape)
 		if (s.id == id)
@@ -192,19 +137,52 @@ static Shape const & select_shape()
 }
 
 
-int main()
+struct Main
 {
-	static Shape_report r;
+	Genode::Env &_env;
 
-	/* register signal handler for config changes */
-	Genode::Signal_receiver sig_rec;
-	Genode::Signal_context  sig_ctx;
+	Vbox_pointer::Shape_report _shape_report {
+		true, 0, 0, Shape::WIDTH, Shape::HEIGHT, { 0 } };
 
-	Genode::config()->sigh(sig_rec.manage(&sig_ctx));
+	Genode::Reporter _reporter {
+		"shape", "shape", sizeof(Vbox_pointer::Shape_report) };
 
-	while (true) {
-		r.report(select_shape());
-		sig_rec.wait_for_signal();
-		Genode::config()->reload();
+	Genode::Signal_handler<Main> _config_handler {
+		_env.ep(), *this, &Main::_handle_config };
+
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
+	void _handle_config()
+	{
+		_config.update();
+
+		Shape const &shape = select_shape(_config.xml());
+
+		_shape_report.x_hot = shape.x_hot;
+		_shape_report.y_hot = shape.y_hot;
+
+		unsigned const w = Shape::WIDTH;
+		unsigned const h = Shape::HEIGHT;
+
+		for (unsigned y = 0; y < h; ++y) {
+			for (unsigned x = 0; x < w; ++x) {
+				_shape_report.shape[(y*w + x)*4 + 0] = 0xff;
+				_shape_report.shape[(y*w + x)*4 + 1] = 0xff;
+				_shape_report.shape[(y*w + x)*4 + 2] = 0xff;
+				_shape_report.shape[(y*w + x)*4 + 3] = shape.map[y*w +x] ? 0xe0 : 0;
+			}
+		}
+
+		_reporter.report(&_shape_report, sizeof(Vbox_pointer::Shape_report));
 	}
-}
+
+	Main(Genode::Env &env) : _env(env)
+	{
+		_reporter.enabled(true);
+		_config.sigh(_config_handler);
+		_handle_config();
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Main main(env); }
