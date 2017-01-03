@@ -26,7 +26,7 @@ extern char **genode_envp;
 extern "C" int main(int argc, char ** argv, char **envp);
 
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	exit(main(genode_argc, genode_argv, genode_envp));
 }

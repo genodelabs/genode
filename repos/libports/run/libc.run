@@ -22,9 +22,8 @@ install_config {
 	<start name="test-libc">
 		<resource name="RAM" quantum="4M"/>
 		<config>
-			<libc stdout="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log"/>
 		</config>
 	</start>
 </config>

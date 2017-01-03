@@ -33,7 +33,7 @@ extern "C" int gdbserver_main(int argc, const char *argv[]);
 
 extern Genode::Env *genode_env;
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	genode_env = &env;
 

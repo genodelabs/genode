@@ -15,9 +15,8 @@ set config {
 		<start name="test-ldso">
 			<resource name="RAM" quantum="2M"/>
 			<config ld_bind_now="no" ld_verbose="no">
-				<libc stdout="/dev/log">
-					<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				</libc>
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log"/>
 			</config>
 		</start>
 	</config>

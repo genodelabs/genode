@@ -15,10 +15,7 @@
 #define _LIBC_VFS__PLUGIN_H_
 
 /* Genode includes */
-#include <base/env.h>
-#include <base/printf.h>
-#include <vfs/dir_file_system.h>
-#include <os/config.h>
+#include <libc/component.h>
 
 /* libc includes */
 #include <fcntl.h>
@@ -27,19 +24,6 @@
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
-
-namespace Libc {
-
-	Genode::Xml_node config();
-	Genode::Xml_node vfs_config();
-
-	char const *initial_cwd();
-	char const *config_stdin();
-	char const *config_stdout();
-	char const *config_stderr();
-
-}
-
 
 namespace Libc { class Vfs_plugin; }
 
@@ -50,41 +34,39 @@ class Libc::Vfs_plugin : public Libc::Plugin
 
 		Genode::Allocator &_alloc;
 
-		Vfs::Dir_file_system _root_dir;
+		Vfs::File_system &_root_dir;
 
-		Genode::Xml_node _vfs_config()
+		void _open_stdio(Genode::Xml_node const &node, char const *attr,
+		                 int libc_fd, unsigned flags)
 		{
 			try {
-				return vfs_config();
-			} catch (...) {
-				PINF("no VFS configured");
-				return Genode::Xml_node("<vfs/>");
-			}
-		}
+				Genode::String<Vfs::MAX_PATH_LEN> path;
+				struct stat out_stat;
 
-		void _open_stdio(int libc_fd, char const *path, unsigned flags)
-		{
-			struct stat out_stat;
-			if (::strlen(path) == 0 || stat(path, &out_stat) != 0)
-				return;
+				node.attribute(attr).value(&path);
 
-			Libc::File_descriptor *fd = open(path, flags, libc_fd);
-			if (fd->libc_fd != libc_fd) {
-				PERR("could not allocate fd %d for %s, got fd %d",
-				     libc_fd, path, fd->libc_fd);
-				close(fd);
-				return;
-			}
+				if (stat(path.string(), &out_stat) != 0)
+					return;
 
-			/*
-			 * We need to manually register the path. Normally this is done
-			 * by '_open'. But we call the local 'open' function directly
-			 * because we want to explicitly specify the libc fd ID.
-			 *
-			 * We have to allocate the path from the libc (done via 'strdup')
-			 * such that the path can be freed when an stdio fd is closed.
-			 */
-			fd->fd_path = strdup(path);
+				Libc::File_descriptor *fd = open(path.string(), flags, libc_fd);
+				if (fd->libc_fd != libc_fd) {
+					Genode::error("could not allocate fd ",libc_fd," for ",path,", "
+					              "got fd ",fd->libc_fd);
+					close(fd);
+					return;
+				}
+
+				/*
+				 * We need to manually register the path. Normally this is done
+				 * by '_open'. But we call the local 'open' function directly
+				 * because we want to explicitly specify the libc fd ID.
+				 *
+				 * We have to allocate the path from the libc (done via 'strdup')
+				 * such that the path can be freed when an stdio fd is closed.
+				 */
+				fd->fd_path = strdup(path.string());
+
+			} catch (Xml_node::Nonexistent_attribute) { }
 		}
 
 	public:
@@ -92,19 +74,26 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		/**
 		 * Constructor
 		 */
-		Vfs_plugin(Genode::Env &env, Genode::Allocator &alloc)
+		Vfs_plugin(Libc::Env &env, Genode::Allocator &alloc)
 		:
-			_alloc(alloc),
-			_root_dir(env, _alloc, _vfs_config(),
-			          Vfs::global_file_system_factory())
+			_alloc(alloc), _root_dir(env.vfs())
 		{
-			if (_root_dir.num_dirent("/")) {
-				chdir(initial_cwd());
+			using Genode::Xml_node;
 
-				_open_stdio(0, config_stdin(),  O_RDONLY);
-				_open_stdio(1, config_stdout(), O_WRONLY);
-				_open_stdio(2, config_stderr(), O_WRONLY);
-			}
+			if (_root_dir.num_dirent("/"))
+				env.config([&] (Xml_node const &top) {
+					Xml_node const node = top.sub_node("libc");
+
+					try {
+						Genode::String<Vfs::MAX_PATH_LEN> path;
+						node.attribute("cwd").value(&path);
+						chdir(path.string());
+					} catch (Xml_node::Nonexistent_attribute) { }
+
+					_open_stdio(node, "stdin",  0, O_RDONLY);
+					_open_stdio(node, "stdout", 1, O_WRONLY);
+					_open_stdio(node, "stderr", 2, O_WRONLY);
+				});
 		}
 
 		~Vfs_plugin() { }

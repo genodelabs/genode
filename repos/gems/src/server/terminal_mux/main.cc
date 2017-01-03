@@ -721,4 +721,4 @@ struct Main
 };
 
 
-void Libc::Component::construct(Genode::Env &env) { static Main inst(env); }
+void Libc::Component::construct(Libc::Env &env) { static Main inst(env); }

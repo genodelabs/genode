@@ -154,7 +154,7 @@ struct Test::Main
 };
 
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	static Test::Main server(env.ep());
 }

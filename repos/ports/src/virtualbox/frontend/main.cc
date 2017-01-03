@@ -207,7 +207,7 @@ Genode::Env &genode_env()
 }
 
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	/* make Genode environment accessible via the global 'genode_env()' */
 	genode_env_ptr = &env;

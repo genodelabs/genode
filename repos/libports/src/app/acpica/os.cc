@@ -307,4 +307,4 @@ ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 irq, ACPI_OSD_HANDLER handler,
 /* used by normal (no-printf-debug) target */
 void Component::construct(Genode::Env &env) { static Acpica::Main main(env); }
 /* used by debug target (using printf of libc) */
-void Libc::Component::construct(Genode::Env &env) { static Acpica::Main main(env); }
+void Libc::Component::construct(Libc::Env &env) { static Acpica::Main main(env); }

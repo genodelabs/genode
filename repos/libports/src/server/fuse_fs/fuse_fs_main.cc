@@ -543,7 +543,7 @@ struct File_system::Main
  ** Component **
  ***************/
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	static File_system::Main inst(env.ep());
 }

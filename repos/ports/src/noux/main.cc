@@ -1262,4 +1262,4 @@ void Component::construct(Genode::Env &env)
 /**
  * Support for the noux/net version
  */
-void Libc::Component::construct(Genode::Env &env) { Component::construct(env); }
+void Libc::Component::construct(Libc::Env &env) { Component::construct(env); }

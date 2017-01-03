@@ -21,28 +21,51 @@
 #ifndef _INCLUDE__LIBC__COMPONENT_H_
 #define _INCLUDE__LIBC__COMPONENT_H_
 
+#include <vfs/file_system.h>
 #include <base/env.h>
 #include <base/stdint.h>
-
-namespace Genode { struct Env; }
 
 
 /**
  * Interface to be provided by the component implementation
  */
-namespace Libc { namespace Component {
+namespace Libc {
 
-	/**
-	 * Return stack size of the component's initial entrypoint
-	 */
-	Genode::size_t stack_size();
+	class Env : public Genode::Env
+	{
+		private:
 
-	/**
-	 * Construct component
-	 *
-	 * \param env  interface to the component's execution environment
-	 */
-	void construct(Genode::Env &env);
-} }
+			virtual Genode::Xml_node _config_xml() const = 0;
+
+		public:
+
+			/**
+			 * Component configuration
+			 */
+			template <typename FUNC>
+			void config(FUNC const &func) const {
+				func(_config_xml()); }
+
+			/**
+			 * Virtual File System configured for this component
+			 */
+			virtual Vfs::File_system &vfs() = 0;
+	};
+
+	namespace Component {
+
+		/**
+		 * Return stack size of the component's initial entrypoint
+		 */
+		Genode::size_t stack_size();
+
+		/**
+		 * Construct component
+		 *
+		 * \param env  extended interface to the component's execution environment
+		 */
+		void construct(Libc::Env &env);
+	}
+}
 
 #endif /* _INCLUDE__LIBC__COMPONENT_H_ */

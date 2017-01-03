@@ -185,7 +185,7 @@ static void test_shared_object_api(Env &env, Allocator &alloc)
 /**
  * Main function of LDSO test
  */
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	static Heap heap(env.ram(), env.rm());
 

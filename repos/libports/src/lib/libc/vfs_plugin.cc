@@ -83,14 +83,6 @@ namespace Libc {
 		return Genode::config()->xml_node().sub_node("libc");
 	}
 
-
-	Genode::Xml_node vfs_config() __attribute__((weak));
-	Genode::Xml_node vfs_config()
-	{
-		return Libc::config().sub_node("vfs");
-	}
-
-
 	class Config_attr
 	{
 		private:
@@ -109,38 +101,6 @@ namespace Libc {
 
 			char const *string() const { return _buf; }
 	};
-
-
-	char const *initial_cwd() __attribute__((weak));
-	char const *initial_cwd()
-	{
-		static Config_attr initial_cwd("cwd", "/");
-		return initial_cwd.string();
-	}
-
-
-	char const *config_stdin() __attribute__((weak));
-	char const *config_stdin()
-	{
-		static Config_attr stdin("stdin", "");
-		return stdin.string();
-	}
-
-
-	char const *config_stdout() __attribute__((weak));
-	char const *config_stdout()
-	{
-		static Config_attr stdout("stdout", "");
-		return stdout.string();
-	}
-
-
-	char const *config_stderr() __attribute__((weak));
-	char const *config_stderr()
-	{
-		static Config_attr stderr("stderr", "");
-		return stderr.string();
-	}
 
 	char const *config_rtc() __attribute__((weak));
 	char const *config_rtc()

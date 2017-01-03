@@ -57,7 +57,7 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 };
 
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	static Qt_launchpad_namespace::Local_env local_env(env);
 

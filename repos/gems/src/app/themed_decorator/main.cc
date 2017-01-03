@@ -317,4 +317,4 @@ void Decorator::Main::_handle_pointer_update()
 }
 
 
-void Libc::Component::construct(Genode::Env &env) { static Decorator::Main main(env); }
+void Libc::Component::construct(Libc::Env &env) { static Decorator::Main main(env); }

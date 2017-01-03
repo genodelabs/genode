@@ -366,6 +366,6 @@ void Backdrop::Main::handle_sync()
 extern "C" void _sigprocmask() { }
 
 
-void Libc::Component::construct(Genode::Env &env) {
+void Libc::Component::construct(Libc::Env &env) {
 	static Backdrop::Main application(env); }
 

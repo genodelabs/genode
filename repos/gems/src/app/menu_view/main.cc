@@ -292,5 +292,5 @@ void Menu_view::Main::_handle_frame_timer()
 extern "C" void _sigprocmask() { }
 
 
-void Libc::Component::construct(Genode::Env &env) { static Menu_view::Main main(env); }
+void Libc::Component::construct(Libc::Env &env) { static Menu_view::Main main(env); }
 

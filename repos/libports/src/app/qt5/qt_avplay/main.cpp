@@ -37,7 +37,7 @@ static inline void load_stylesheet()
 extern int genode_argc;
 extern char **genode_argv;
 
-void Libc::Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
 	QApplication app(genode_argc, genode_argv);
 

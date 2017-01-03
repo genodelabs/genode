@@ -13,11 +13,12 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <base/printf.h>
 #include <base/thread.h>
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
 #include <base/heap.h>
+#include <base/attached_rom_dataspace.h>
+#include <vfs/dir_file_system.h>
 
 /* libc includes */
 #include <libc/component.h>
@@ -44,13 +45,112 @@
 	} while (0)
 
 
-namespace Libc { class Task; }
+namespace Libc {
+	class Env_implementation;
+	class Task;
+}
 
 
 struct Task_resume
 {
 	GENODE_RPC(Rpc_resume, void, resume);
 	GENODE_RPC_INTERFACE(Rpc_resume);
+};
+
+
+class Libc::Env_implementation : public Libc::Env
+{
+	private:
+
+		Genode::Env &_env;
+
+		Genode::Attached_rom_dataspace _config { _env, "config" };
+
+		Genode::Xml_node _vfs_config()
+		{
+			try { return _config.xml().sub_node("vfs"); }
+			catch (Genode::Xml_node::Nonexistent_sub_node) { }
+			try {
+				Genode::Xml_node node =
+					_config.xml().sub_node("libc").sub_node("vfs");
+				Genode::warning("'<config> <libc> <vfs/>' is deprecated, "
+				                "please move to '<config> <vfs/>'");
+				return node;
+			}
+			catch (Genode::Xml_node::Nonexistent_sub_node) { }
+
+			return Genode::Xml_node("<vfs/>");
+		}
+
+		Vfs::Dir_file_system _vfs;
+
+		Genode::Xml_node _config_xml() const override {
+			return _config.xml(); };
+
+	public:
+
+		Env_implementation(Genode::Env &env, Genode::Allocator &alloc)
+		:
+			_env(env),
+			_vfs(_env, alloc, _vfs_config(),
+			     Vfs::global_file_system_factory())
+		{ }
+
+
+		/*************************
+		 ** Libc::Env interface **
+		 *************************/
+
+		Vfs::File_system &vfs() override {
+			return _vfs; }
+
+
+		/***************************
+		 ** Genode::Env interface **
+		 ***************************/
+
+		Parent &parent() override {
+			return _env.parent(); }
+
+		Ram_session &ram() override {
+			return _env.ram(); }
+
+		Cpu_session &cpu() override {
+			return _env.cpu(); }
+
+		Region_map &rm() override {
+			return _env.rm(); }
+
+		Pd_session &pd() override {
+			return _env.pd(); }
+
+		Entrypoint &ep() override {
+			return _env.ep(); }
+
+		Ram_session_capability ram_session_cap() override {
+			return _env.ram_session_cap(); }
+		Cpu_session_capability cpu_session_cap() override {
+			return _env.cpu_session_cap(); }
+
+		Pd_session_capability pd_session_cap() override {
+			return _env.pd_session_cap(); }
+
+		Id_space<Parent::Client> &id_space() override {
+			return _env.id_space(); }
+
+		Session_capability session(Parent::Service_name const &name,
+	                                   Parent::Client::Id id,
+	                                   Parent::Session_args const &args,
+	                                   Affinity             const &aff) override {
+			return _env.session(name, id, args, aff); }
+
+
+		void upgrade(Parent::Client::Id id,
+		             Parent::Upgrade_args const &args) override {
+			return _env.upgrade(id, args); }
+
+		void close(Parent::Client::Id id) override {
+			return _env.close(id); }
 };
 
 
@@ -68,12 +168,10 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
 {
 	private:
 
-		Genode::Env &_env;
-
-		/* XXX: this heap is only used by the Vfs_plugin */
-		Genode::Heap _heap { &_env.ram(), &_env.rm() };
-
-		Vfs_plugin   _vfs  { _env, _heap };
+		Genode::Env       &_env;
+		Genode::Heap       _heap { _env.ram(), _env.rm() };
+		Env_implementation _libc_env { _env, _heap };
+		Vfs_plugin         _vfs { _libc_env, _heap };
 
 		/**
 		 * Application context and execution state
@@ -158,9 +256,11 @@ class Libc::Task : public Genode::Rpc_object<Task_resume, Libc::Task>
  ** Libc task implementation **
  ******************************/
 
+extern "C" void wait_for_continue(void);
+
 void Libc::Task::_app_entry(Task *task)
 {
-	Libc::Component::construct(task->_env);
+	Libc::Component::construct(task->_libc_env);
 
 	/* returned from task - switch stack to libc and return to dispatch loop */
 	_longjmp(task->_libc_task, 1);
