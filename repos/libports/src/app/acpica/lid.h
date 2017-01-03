@@ -50,9 +50,10 @@ class Lid : Acpica::Callback<Lid> {
 				_report->lid_event();
 		}
 
-		static ACPI_STATUS detect(ACPI_HANDLE lid, UINT32, void * report, void **)
+		static ACPI_STATUS detect(ACPI_HANDLE lid, UINT32, void * m, void **)
 		{
-			Lid * obj = new (Genode::env()->heap()) Lid(report);
+			Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
+			Lid * obj = new (main->heap) Lid(main->report);
 
 			ACPI_STATUS res = AcpiInstallNotifyHandler (lid, ACPI_DEVICE_NOTIFY,
 			                                            handler, obj);

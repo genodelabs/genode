@@ -44,7 +44,7 @@ class Acpica::Io_mem
 		Genode::Io_mem_connection *_io_mem = nullptr;
 		unsigned                   _ref;
 
-		static Acpica::Io_mem _ios[16];
+		static Acpica::Io_mem _ios[32];
 
 	public:
 
@@ -239,7 +239,7 @@ class Acpica::Io_mem
 		}
 };
 
-Acpica::Io_mem Acpica::Io_mem::_ios[16];
+Acpica::Io_mem Acpica::Io_mem::_ios[32];
 
 
 void * AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys, ACPI_SIZE size)

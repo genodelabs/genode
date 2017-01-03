@@ -33,9 +33,10 @@ class Battery : Acpica::Callback<Battery> {
 				_report->battery_event();
 		}
 
-		static ACPI_STATUS detect(ACPI_HANDLE sb, UINT32, void *report, void **)
+		static ACPI_STATUS detect(ACPI_HANDLE sb, UINT32, void *m, void **)
 		{
-			Battery * dev_obj = new (Genode::env()->heap()) Battery(report, sb);
+			Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
+			Battery * dev_obj = new (main->heap) Battery(main->report, sb);
 
 			ACPI_STATUS res = AcpiInstallNotifyHandler (sb, ACPI_DEVICE_NOTIFY,
 			                                            handler, dev_obj);

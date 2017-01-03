@@ -50,9 +50,10 @@ class Ac : Acpica::Callback<Ac> {
 				_report->ac_event();
 		}
 
-		static ACPI_STATUS detect(ACPI_HANDLE ac, UINT32, void * report, void **)
+		static ACPI_STATUS detect(ACPI_HANDLE ac, UINT32, void * m, void **)
 		{
-			Ac * obj = new (Genode::env()->heap()) Ac(report);
+			Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
+			Ac * obj = new (main->heap) Ac(main->report);
 
 			ACPI_STATUS res = AcpiInstallNotifyHandler (ac, ACPI_DEVICE_NOTIFY,
 			                                            handler, obj);

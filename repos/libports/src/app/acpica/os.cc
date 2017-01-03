@@ -11,6 +11,7 @@
  */
 
 #include <base/allocator_avl.h>
+#include <base/component.h>
 #include <libc/component.h>
 #include <base/log.h>
 #include <base/signal.h>
@@ -43,10 +44,6 @@ namespace Acpica {
 #include "util.h"
 #include "reporter.h"
 #include "fixed.h"
-#include "ac.h"
-#include "lid.h"
-#include "sb.h"
-#include "ec.h"
 
 
 struct Acpica::Statechange
@@ -110,7 +107,7 @@ struct Acpica::Main
 
 	Genode::Attached_rom_dataspace config { env, "config" };
 
-	Genode::Signal_handler<Acpica::Main>                 sci_irq;
+	Genode::Signal_handler<Acpica::Main>          sci_irq;
 	Genode::Constructible<Genode::Irq_connection> sci_conn;
 
 	Acpica::Reportstate * report = nullptr;
@@ -143,7 +140,7 @@ struct Acpica::Main
 
 		if (enable_reset || enable_poweroff)
 			new (heap) Acpica::Statechange(env.ep(), enable_reset,
-			                                                enable_poweroff);
+			                               enable_poweroff);
 
 		/* setup IRQ */
 		if (!irq_handler.handler) {
@@ -188,6 +185,10 @@ struct Acpica::Main
 	}
 };
 
+#include "ac.h"
+#include "lid.h"
+#include "sb.h"
+#include "ec.h"
 
 void Acpica::Main::init_acpica()
 {
@@ -227,7 +228,7 @@ void Acpica::Main::init_acpica()
 	}
 
 	/* Embedded controller */
-	status = AcpiGetDevices(ACPI_STRING("PNP0C09"), Ec::detect, report, nullptr);
+	status = AcpiGetDevices(ACPI_STRING("PNP0C09"), Ec::detect, this, nullptr);
 	if (status != AE_OK) {
 		Genode::error("AcpiGetDevices failed, status=", status);
 		return;
@@ -268,21 +269,21 @@ void Acpica::Main::init_acpica()
 
 
 	/* AC Adapters and Power Source Objects */
-	status = AcpiGetDevices(ACPI_STRING("ACPI0003"), Ac::detect, report, nullptr);
+	status = AcpiGetDevices(ACPI_STRING("ACPI0003"), Ac::detect, this, nullptr);
 	if (status != AE_OK) {
 		Genode::error("AcpiGetDevices (ACPI0003) failed, status=", status);
 		return;
 	}
 
 	/* Smart battery control devices */
-	status = AcpiGetDevices(ACPI_STRING("PNP0C0A"), Battery::detect, report, nullptr);
+	status = AcpiGetDevices(ACPI_STRING("PNP0C0A"), Battery::detect, this, nullptr);
 	if (status != AE_OK) {
 		Genode::error("AcpiGetDevices (PNP0C0A) failed, status=", status);
 		return;
 	}
 
 	/* LID device */
-	status = AcpiGetDevices(ACPI_STRING("PNP0C0D"), Lid::detect, report, nullptr);
+	status = AcpiGetDevices(ACPI_STRING("PNP0C0D"), Lid::detect, this, nullptr);
 	if (status != AE_OK) {
 		Genode::error("AcpiGetDevices (PNP0C0D) failed, status=", status);
 		return;
@@ -303,4 +304,7 @@ ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 irq, ACPI_OSD_HANDLER handler,
 }
 
 
+/* used by normal (no-printf-debug) target */
+void Component::construct(Genode::Env &env) { static Acpica::Main main(env); }
+/* used by debug target (using printf of libc) */
 void Libc::Component::construct(Genode::Env &env) { static Acpica::Main main(env); }
