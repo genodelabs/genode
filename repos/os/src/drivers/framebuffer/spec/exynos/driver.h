@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,9 +15,9 @@
 #define _DRIVER_H_
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/stdint.h>
 #include <base/log.h>
-#include <os/server.h>
 
 namespace Framebuffer
 {
@@ -38,27 +38,20 @@ class Framebuffer::Driver
 
 	private:
 
+		Genode::Env &_env;
+
 		size_t _fb_width;
 		size_t _fb_height;
 		Format _fb_format;
-
-		/**
-		 * Driver-initialization backend for output HDMI
-		 *
-		 * \param fb_phys  physical base of framebuffer
-		 *
-		 * \retval -1  failed
-		 * \retval  0  succeeded
-		 */
-		int _init_hdmi(addr_t fb_phys);
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Driver()
+		Driver(Genode::Env &env)
 		:
+			_env(env),
 			_fb_width(0),
 			_fb_height(0),
 			_fb_format(FORMAT_RGB565)
@@ -99,19 +92,17 @@ class Framebuffer::Driver
 		}
 
 		/**
-		 * Initialize driver
+		 * Initialize driver for HDMI output
 		 *
 		 * \param width    width of screen and framebuffer in pixel
 		 * \param height   height of screen and framebuffer in pixel
 		 * \param format   pixel format of framebuffer
-		 * \param output   selected output device
 		 * \param fb_phys  physical base of framebuffer
 		 *
 		 * \retval -1  failed
 		 * \retval  0  succeeded
 		 */
-		int init_drv(size_t width, size_t height, Format format,
-		             Output output, addr_t fb_phys);
+		int init(size_t width, size_t height, Format format, addr_t fb_phys);
 };
 
 #endif /* _DRIVER_H_ */

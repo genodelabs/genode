@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -34,35 +34,11 @@ class Timer_delayer : public Mmio::Delayer, public Timer::Connection
 		 ** Delayer **
 		 *************/
 
+		Timer_delayer(Genode::Env &env) : Timer::Connection(env) { }
+
 		void usleep(unsigned us) { Timer::Connection::usleep(us); }
 };
 
-/**
- * Singleton delayer for MMIO polling
- */
-static Mmio::Delayer * delayer()
-{
-	static Timer_delayer s;
-	return &s;
-}
-
-/**
- * Singleton regulator for HDMI clocks
- */
-static Regulator::Connection * hdmi_clock()
-{
-	static Regulator::Connection s(Regulator::CLK_HDMI);
-	return &s;
-}
-
-/**
- * Singleton regulator for HDMI clocks
- */
-static Regulator::Connection * hdmi_power()
-{
-	static Regulator::Connection s(Regulator::PWR_HDMI);
-	return &s;
-}
 
 /**
  * Sends and receives data via I2C protocol as master or slave
@@ -113,18 +89,22 @@ class I2c_interface : public Attached_mmio
 			TX_DELAY_US = 1,
 		};
 
-		Irq_connection          _irq;
-		Genode::Signal_receiver _irq_rec;
-		Genode::Signal_context  _irq_ctx;
+		Irq_connection _irq;
+
+		Mmio::Delayer &_delayer;
 
 		/**
 		 * Wait until the IRQ signal was received
 		 */
 		void _wait_for_irq()
 		{
-			_irq_rec.wait_for_signal();
-
-			_irq.ack_irq();
+			/*
+			 * Instead of using the signal from the IRQ session we
+			 * busy wait and poll at max 2048 times.
+			 */
+			if (wait_for<Con::Irq_pending>(1, _delayer, 2048, 500)) {
+				_irq.ack_irq();
+			}
 		}
 
 		/**
@@ -156,7 +136,7 @@ class I2c_interface : public Attached_mmio
 			Start_msg::access_t start = 0;
 			Start_msg::Addr::set(start, slave);
 			Start_msg::Rx::set(start, !tx);
-			if (!wait_for<Stat::Busy>(0, *delayer())) {
+			if (!wait_for<Stat::Busy>(0, _delayer)) {
 				error("I2C to busy to do transfer");
 				return -1;
 			}
@@ -172,7 +152,7 @@ class I2c_interface : public Attached_mmio
 			Stat::Mode::set(stat, tx ? MASTER_TX : MASTER_RX);
 			write<Stat>(stat);
 			write<Ds>(start);
-			delayer()->usleep(TX_DELAY_US);
+			_delayer.usleep(TX_DELAY_US);
 
 			/* end start-op transfer */
 			write<Con>(con);
@@ -190,7 +170,7 @@ class I2c_interface : public Attached_mmio
 		{
 			for (unsigned i = 0; i < 3; i++) {
 				if (read<Con::Irq_pending>() && !read<Stat::Last_bit>()) return 1;
-				delayer()->usleep(TX_DELAY_US);
+				_delayer.usleep(TX_DELAY_US);
 			}
 			error("I2C ack not received");
 			return 0;
@@ -217,9 +197,11 @@ class I2c_interface : public Attached_mmio
 		 * \param base  physical MMIO base
 		 * \param irq   interrupt name
 		 */
-		I2c_interface(addr_t base, unsigned irq)
+		I2c_interface(Genode::Env &env, addr_t base, unsigned irq,
+		              Mmio::Delayer &delayer)
 		:
-			Attached_mmio(base, 0x10000), _irq(irq)
+			Attached_mmio(env, base, 0x10000), _irq(env, irq),
+			_delayer(delayer)
 		{
 			/* FIXME: is this a correct slave address? */
 			write<Add::Slave_addr>(0);
@@ -238,11 +220,10 @@ class I2c_interface : public Attached_mmio
 			Lc::Filter_en::set(lc, 1);
 			write<Lc>(lc);
 
-			_irq.sigh(_irq_rec.manage(&_irq_ctx));
 			_irq.ack_irq();
 		}
 
-		~I2c_interface() { _irq_rec.dissolve(&_irq_ctx); }
+		~I2c_interface() { }
 
 		/**
 		 * Transmit an I2C message as master
@@ -265,7 +246,7 @@ class I2c_interface : public Attached_mmio
 				if (!_ack_received()) return -1;
 				if (off == msg_size) break;
 				write<Ds>(msg[off]);
-				delayer()->usleep(TX_DELAY_US);
+				_delayer.usleep(TX_DELAY_US);
 
 				/* finish last byte and prepare for next one */
 				off++;
@@ -275,48 +256,6 @@ class I2c_interface : public Attached_mmio
 			}
 			/* end message transfer */
 			if (!_ack_received()) return -1;
-			_stop_m_transfer();
-			return 0;
-		}
-
-		/**
-		 * Receive an I2C message as master
-		 *
-		 * \param slave     I2C address of targeted slave
-		 * \param buf       base of receive buffer
-		 * \param buf_size  size of receive buffer (= transfer size)
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int m_receive(uint8_t slave, uint8_t * buf, size_t buf_size)
-		{
-			/* check receive buffer and initialize message transfer */
-			if (!buf_size) {
-				error("zero-sized receive buffer");
-				return -1;
-			}
-			if (_start_m_transfer(slave, 0)) return -1;
-			write<Con::Irq_pending>(0);
-			size_t off     = 0;
-			bool last_byte = 0;
-			while (1)
-			{
-				/* receive next message byte */
-				_wait_for_irq();
-				if (_arbitration_error()) return -1;
-				buf[off] = read<Ds>();
-				off++;
-
-				/* acknowledge receipt or leave if buffer is full */
-				if (last_byte) break;
-				if (off == buf_size - 1) {
-					write<Con::Ack_en>(0);
-					last_byte = 1;
-				}
-				write<Con::Irq_pending>(0);
-			}
-			/* end message transfer */
 			_stop_m_transfer();
 			return 0;
 		}
@@ -417,7 +356,8 @@ class Video_mixer : public Attached_mmio
 		/**
 		 * Constructor
 		 */
-		Video_mixer() : Attached_mmio(Genode::Board_base::MIXER_BASE, 0x10000) { }
+		Video_mixer(Genode::Env &env)
+		: Attached_mmio(env, Genode::Board_base::MIXER_BASE, 0x10000) { }
 
 		/**
 		 * Initialize mixer for displaying one graphical input fullscreen
@@ -430,8 +370,8 @@ class Video_mixer : public Attached_mmio
 		 * \retval  0  succeeded
 		 * \retval -1  failed
 		 */
-		int init_mxr(addr_t const fb_phys, size_t const fb_width,
-		             size_t const fb_height, Format const fb_format)
+		int init(addr_t const fb_phys, size_t const fb_width,
+		         size_t const fb_height, Format const fb_format)
 		{
 			using namespace Framebuffer;
 
@@ -552,14 +492,6 @@ class Video_mixer : public Attached_mmio
 		}
 };
 
-/**
- * Return singleton of device instance
- */
-static Video_mixer * video_mixer()
-{
-	static Video_mixer s;
-	return &s;
-}
 
 /**
  * Dedicated I2C interface for communicating with HDMI PHY controller
@@ -573,13 +505,18 @@ class I2c_hdmi : public I2c_interface
 			HDMI_PHY_SLAVE = 0x38,
 		};
 
+		Mmio::Delayer &_delayer;
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		I2c_hdmi()
-		: I2c_interface(Genode::Board_base::I2C_BASE, Genode::Board_base::I2C_HDMI_IRQ) { }
+		I2c_hdmi(Genode::Env &env, Mmio::Delayer &delayer)
+		: I2c_interface(env, Genode::Board_base::I2C_BASE,
+		                Genode::Board_base::I2C_HDMI_IRQ, delayer),
+			_delayer(delayer)
+		{ }
 
 		/**
 		 * Stop HDMI PHY from operating
@@ -629,7 +566,7 @@ class I2c_hdmi : public I2c_interface
 			if (m_transmit(HDMI_PHY_SLAVE, cfg, cfg_size)) { return -1; }
 
 			/* ensure that configuration is applied */
-			delayer()->usleep(10000);
+			_delayer.usleep(10000);
 
 			/* start hdmi phy */
 			static uint8_t start[] = { 0x1f, 0x80 };
@@ -956,13 +893,17 @@ class Hdmi : public Attached_mmio
 
 		I2c_hdmi _i2c_hdmi;
 
+		Mmio::Delayer &_delayer;
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Hdmi()
-		: Attached_mmio(Genode::Board_base::HDMI_BASE, 0xa0000), _i2c_hdmi() { }
+		Hdmi(Genode::Env &env, Mmio::Delayer &delayer)
+		: Attached_mmio(env, Genode::Board_base::HDMI_BASE, 0xa0000),
+			_i2c_hdmi(env, delayer), _delayer(delayer)
+		{ }
 
 		/**
 		 * Initialize HDMI controller for video output only
@@ -973,7 +914,7 @@ class Hdmi : public Attached_mmio
 		 * \retval  0  succeeded
 		 * \retval -1  failed
 		 */
-		int init_hdmi(unsigned scr_width, unsigned scr_height)
+		int init(unsigned scr_width, unsigned scr_height)
 		{
 			/* choose appropriate output mode and parameters */
 			enum Aspect_ratio { _16_9 };
@@ -995,16 +936,16 @@ class Hdmi : public Attached_mmio
 			write<Phy_con_0::Pwr_off>(0);
 			if (_i2c_hdmi.stop_hdmi_phy()) return -1;
 			write<Phy_rstout::Reset>(1);
-			delayer()->usleep(10000);
+			_delayer.usleep(10000);
 			write<Phy_rstout::Reset>(0);
-			delayer()->usleep(10000);
+			_delayer.usleep(10000);
 			if (_i2c_hdmi.setup_and_start_hdmi_phy(pixel_clk)) return -1;
 
 			/* reset HDMI CORE */
 			write<Core_rstout::Reset>(0);
-			delayer()->usleep(10000);
+			_delayer.usleep(10000);
 			write<Core_rstout::Reset>(1);
-			delayer()->usleep(10000);
+			_delayer.usleep(10000);
 
 			/* common config */
 			write<Intc_con_0::En_global>(0);
@@ -1093,7 +1034,7 @@ class Hdmi : public Attached_mmio
 				return -1;
 			}
 			/* wait for PHY PLLs to get steady */
-			if (!wait_for<Phy_status_0::Phy_ready>(1, *delayer(), 10)) {
+			if (!wait_for<Phy_status_0::Phy_ready>(1, _delayer, 10)) {
 				error("HDMI PHY not ready");
 				return -1;
 			}
@@ -1115,39 +1056,32 @@ class Hdmi : public Attached_mmio
  ** Framebuffer::Driver **
  *************************/
 
-int Framebuffer::Driver::init_drv(size_t width, size_t height, Format format,
-                                  Output output, addr_t fb_phys)
+int Framebuffer::Driver::init(size_t width, size_t height, Format format,
+                              addr_t fb_phys)
 {
 	_fb_width  = width;
 	_fb_height = height;
 	_fb_format = format;
 
-	/* set-up targeted output */
-	switch (output) {
-	case OUTPUT_HDMI:
-		if (_init_hdmi(fb_phys)) { return -1; }
-		return 0;
-	default:
-		error("output not supported");
-		return -1;
-	}
-}
+	static Timer_delayer delayer(_env);
 
-
-int Framebuffer::Driver::_init_hdmi(addr_t fb_phys)
-{
 	/* feed in power and clocks */
-	hdmi_clock()->state(1);
-	hdmi_power()->state(1);
+	static Regulator::Connection hdmi_clock(_env, Regulator::CLK_HDMI);
+	hdmi_clock.state(1);
+	static Regulator::Connection hdmi_power(_env, Regulator::PWR_HDMI);
+	hdmi_power.state(1);
+
+	int err;
 
 	/* set-up video mixer to feed HDMI */
-	int err;
-	err = video_mixer()->init_mxr(fb_phys, _fb_width, _fb_height, _fb_format);
+	static Video_mixer video_mixer(_env);
+	err = video_mixer.init(fb_phys, _fb_width, _fb_height, _fb_format);
 	if (err) { return -1; }
 
 	/* set-up HDMI to feed connected device */
-	static Hdmi hdmi;
-	err = hdmi.init_hdmi(_fb_width, _fb_height);
+	static Hdmi hdmi(_env, delayer);
+	err = hdmi.init(_fb_width, _fb_height);
 	if (err) { return -1; }
+
 	return 0;
 }

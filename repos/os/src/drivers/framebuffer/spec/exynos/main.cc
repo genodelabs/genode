@@ -5,22 +5,21 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 #include <framebuffer_session/framebuffer_session.h>
-#include <cap_session/connection.h>
 #include <timer_session/connection.h>
 #include <dataspace/client.h>
 #include <base/log.h>
-#include <base/sleep.h>
-#include <os/config.h>
 #include <os/static_root.h>
-#include <os/server.h>
+#include <util/string.h>
 
 /* local includes */
 #include <driver.h>
@@ -33,6 +32,7 @@ namespace Framebuffer
 	 * Framebuffer session backend
 	 */
 	class Session_component;
+	struct Main;
 };
 
 class Framebuffer::Session_component
@@ -41,13 +41,15 @@ class Framebuffer::Session_component
 {
 	private:
 
-		size_t                    _width;
-		size_t                    _height;
+		Genode::Env &_env;
+
+		unsigned                  _width;
+		unsigned                  _height;
 		Driver::Format            _format;
 		size_t                    _size;
 		Dataspace_capability      _ds;
 		addr_t                    _phys_base;
-		Timer::Connection         _timer;
+		Timer::Connection         _timer { _env };
 
 		/**
 		 * Convert Driver::Format to Framebuffer::Mode::Format
@@ -70,17 +72,18 @@ class Framebuffer::Session_component
 		 * \param height  height of framebuffer in pixel
 		 * \param output  targeted output device
 		 */
-		Session_component(Driver &driver, size_t width, size_t height,
-		                  Driver::Output output)
+		Session_component(Genode::Env &env, Driver &driver,
+		                  unsigned width, unsigned height)
 		:
+			_env(env),
 			_width(width),
 			_height(height),
 			_format(Driver::FORMAT_RGB565),
 			_size(driver.buffer_size(width, height, _format)),
-			_ds(env()->ram_session()->alloc(_size, WRITE_COMBINED)),
+			_ds(_env.ram().alloc(_size, WRITE_COMBINED)),
 			_phys_base(Dataspace_client(_ds).phys_addr())
 		{
-			if (driver.init_drv(width, height, _format, output, _phys_base)) {
+			if (driver.init(width, height, _format, _phys_base)) {
 				error("could not initialize display");
 				struct Could_not_initialize_display : Exception { };
 				throw Could_not_initialize_display();
@@ -110,52 +113,35 @@ class Framebuffer::Session_component
 };
 
 
+static unsigned config_dimension(Genode::Xml_node node, char const *attr,
+                                 unsigned default_value)
+{
+	return node.attribute_value(attr, default_value);
+}
+
+
 struct Main
 {
-	Server::Entrypoint  &ep;
-	Framebuffer::Driver  driver;
+	Genode::Env        &_env;
+	Genode::Entrypoint &_ep;
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), driver()
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
+	Framebuffer::Driver _driver { _env };
+
+	Framebuffer::Session_component _fb_session { _env, _driver,
+		config_dimension(_config.xml(), "width", 1920),
+		config_dimension(_config.xml(), "height", 1080)
+	};
+
+	Genode::Static_root<Framebuffer::Session> _fb_root { _ep.manage(_fb_session) };
+
+	Main(Genode::Env &env) : _env(env), _ep(_env.ep())
 	{
-		using namespace Framebuffer;
-
-		/* default config */
-		size_t width  = 1920;
-		size_t height = 1080;
-		Driver::Output output = Driver::OUTPUT_HDMI;
-
-		/* try to read custom user config */
-		try {
-			char out[5] = { 0 };
-			Genode::Xml_node config_node = Genode::config()->xml_node();
-			config_node.attribute("width").value(&width);
-			config_node.attribute("height").value(&height);
-			config_node.attribute("output").value(out, sizeof(out));
-			if (!Genode::strcmp(out, "LCD")) {
-				output = Driver::OUTPUT_LCD;
-			}
-		}
-		catch (...) {
-			log("using default configuration: HDMI@", width, "x", height);
-		}
-
-		/* let entrypoint serve the framebuffer session and root interfaces */
-		static Session_component fb_session(driver, width, height, output);
-		static Static_root<Framebuffer::Session> fb_root(ep.manage(fb_session));
-
 		/* announce service and relax */
-		env()->parent()->announce(ep.manage(fb_root));
+		_env.parent().announce(_ep.manage(_fb_root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "fb_drv_ep";          }
-	size_t stack_size()            { return 16*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);      }
-}
+void Component::construct(Genode::Env &env) { static Main main(env); }
