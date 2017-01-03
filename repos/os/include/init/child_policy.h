@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/service.h>
 #include <base/child.h>
-#include <base/rpc_server.h>
 #include <base/session_label.h>
 #include <base/attached_ram_dataspace.h>
 #include <util/arg_string.h>
@@ -34,13 +33,10 @@ namespace Init {
 	class Child_policy_redirect_rom_file;
 	class Traditional_child_policy;
 
-	using Genode::Attached_ram_dataspace;
+	using namespace Genode;
 	using Genode::size_t;
-	using Genode::Session_label;
-	using Genode::error;
-	using Genode::log;
-	using Genode::Service;
-	using Genode::Session_state;
+	using Genode::strcmp;
+	using Genode::snprintf;
 }
 
 
@@ -63,12 +59,10 @@ class Init::Child_policy_ram_phys
 		 * permits this.
 		 */
 		void filter_session_args(const char *service, char *args,
-		                         Genode::size_t args_len)
+		                         size_t args_len)
 		{
-			using namespace Genode;
-
 			/* intercept only RAM session requests */
-			if (Genode::strcmp(service, "RAM"))
+			if (strcmp(service, "RAM"))
 				return;
 
 			if (_constrain_phys)
@@ -91,12 +85,10 @@ class Init::Child_policy_handle_cpu_priorities
 		Child_policy_handle_cpu_priorities(long prio_levels_log2, long priority)
 		: _prio_levels_log2(prio_levels_log2), _priority(priority) { }
 
-		void filter_session_args(const char *service, char *args, Genode::size_t args_len)
+		void filter_session_args(const char *service, char *args, size_t args_len)
 		{
-			using namespace Genode;
-
 			/* intercept only CPU session requests to scale priorities */
-			if (Genode::strcmp(service, "CPU") || _prio_levels_log2 == 0)
+			if (strcmp(service, "CPU") || _prio_levels_log2 == 0)
 				return;
 
 			unsigned long priority = Arg_string::find_arg(args, "priority").ulong_value(0);
@@ -115,7 +107,7 @@ class Init::Child_policy_handle_cpu_priorities
 
 			/* override priority when delegating the session request to the parent */
 			char value_buf[64];
-			Genode::snprintf(value_buf, sizeof(value_buf), "0x%lx", priority);
+			snprintf(value_buf, sizeof(value_buf), "0x%lx", priority);
 			Arg_string::set_arg(args, args_len, "priority", value_buf);
 		}
 };
@@ -125,16 +117,16 @@ class Init::Child_policy_provide_rom_file
 {
 	private:
 
-		struct Local_rom_session_component : Genode::Rpc_object<Genode::Rom_session>
+		struct Local_rom_session_component : Rpc_object<Rom_session>
 		{
-			Genode::Rpc_entrypoint      &ep;
-			Genode::Dataspace_capability ds_cap;
+			Rpc_entrypoint      &ep;
+			Dataspace_capability ds_cap;
 
 			/**
 			 * Constructor
 			 */
-			Local_rom_session_component(Genode::Rpc_entrypoint &ep,
-			                            Genode::Dataspace_capability ds)
+			Local_rom_session_component(Rpc_entrypoint &ep,
+			                            Dataspace_capability ds)
 			: ep(ep), ds_cap(ds) { ep.manage(this); }
 
 			~Local_rom_session_component() { ep.dissolve(this); }
@@ -144,16 +136,16 @@ class Init::Child_policy_provide_rom_file
 			 ** ROM session interface **
 			 ***************************/
 
-			Genode::Rom_dataspace_capability dataspace() override {
-				return Genode::static_cap_cast<Genode::Rom_dataspace>(ds_cap); }
+			Rom_dataspace_capability dataspace() override {
+				return static_cap_cast<Rom_dataspace>(ds_cap); }
 
-			void sigh(Genode::Signal_context_capability) override { }
+			void sigh(Signal_context_capability) override { }
 
 		} _session;
 
-		Genode::Session_label const _module_name;
+		Session_label const _module_name;
 
-		typedef Genode::Local_service<Local_rom_session_component> Service;
+		typedef Local_service<Local_rom_session_component> Service;
 
 		Service::Single_session_factory _session_factory { _session };
 		Service                         _service { _session_factory };
@@ -163,22 +155,22 @@ class Init::Child_policy_provide_rom_file
 		/**
 		 * Constructor
 		 */
-		Child_policy_provide_rom_file(Genode::Session_label const &module_name,
-		                              Genode::Dataspace_capability ds_cap,
-		                              Genode::Rpc_entrypoint      *ep)
+		Child_policy_provide_rom_file(Session_label const &module_name,
+		                              Dataspace_capability ds_cap,
+		                              Rpc_entrypoint      *ep)
 		:
 			_session(*ep, ds_cap), _module_name(module_name)
 		{ }
 
-		Genode::Service *resolve_session_request(const char *service_name,
+		Service *resolve_session_request(const char *service_name,
 		                                         const char *args)
 		{
 			/* ignore session requests for non-ROM services */
-			if (Genode::strcmp(service_name, "ROM")) return 0;
+			if (strcmp(service_name, "ROM")) return 0;
 
 			/* drop out if request refers to another file name */
 			{
-				Genode::Session_label const label = Genode::label_from_args(args);
+				Session_label const label = label_from_args(args);
 				return label.last_element() == _module_name
 				       ? &_service : nullptr;
 			}
@@ -199,14 +191,12 @@ class Init::Child_policy_redirect_rom_file
 		: _from(from), _to(to) { }
 
 		void filter_session_args(const char *service,
-		                         char *args, Genode::size_t args_len)
+		                         char *args, size_t args_len)
 		{
-			using namespace Genode;
-
 			if (!_from || !_to) return;
 
 			/* ignore session requests for non-ROM services */
-			if (Genode::strcmp(service, "ROM")) return;
+			if (strcmp(service, "ROM")) return;
 
 			/* drop out if request refers to another module name */
 			Session_label const label = label_from_args(args);

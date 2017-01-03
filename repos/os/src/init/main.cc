@@ -12,78 +12,65 @@
  */
 
 #include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <init/child.h>
-#include <base/sleep.h>
-#include <os/config.h>
 
+namespace Init {
 
-namespace Init { bool config_verbose = false; }
-
-
-/***************
- ** Utilities **
- ***************/
-
-/**
- * Read priority-levels declaration from config
- */
-inline long read_prio_levels()
-{
 	using namespace Genode;
 
-	long prio_levels = 0;
-	try {
-		config()->xml_node().attribute("prio_levels").value(&prio_levels); }
-	catch (...) { }
+	/**
+	 * Read priority-levels declaration from config
+	 */
+	inline long read_prio_levels(Xml_node config)
+	{
+		long const prio_levels = config.attribute_value("prio_levels", 0UL);
 
-	if (prio_levels && (prio_levels != (1 << log2(prio_levels)))) {
-		warning("prio levels is not power of two, priorities are disabled");
-		return 0;
+		if (prio_levels && (prio_levels != (1 << log2(prio_levels)))) {
+			warning("prio levels is not power of two, priorities are disabled");
+			return 0;
+		}
+		return prio_levels;
 	}
-	return prio_levels;
-}
 
 
-/**
- * Read affinity-space parameters from config
- *
- * If no affinity space is declared, construct a space with a single element,
- * width and height being 1. If only one of both dimensions is specified, the
- * other dimension is set to 1.
- */
-inline Genode::Affinity::Space read_affinity_space()
-{
-	using namespace Genode;
-	try {
-		Xml_node node = config()->xml_node().sub_node("affinity-space");
-		return Affinity::Space(node.attribute_value<unsigned long>("width",  1),
-		                       node.attribute_value<unsigned long>("height", 1));
-	} catch (...) {
-		return Affinity::Space(1, 1); }
-}
+	/**
+	 * Read affinity-space parameters from config
+	 *
+	 * If no affinity space is declared, construct a space with a single element,
+	 * width and height being 1. If only one of both dimensions is specified, the
+	 * other dimension is set to 1.
+	 */
+	inline Genode::Affinity::Space read_affinity_space(Xml_node config)
+	{
+		try {
+			Xml_node node = config.sub_node("affinity-space");
+			return Affinity::Space(node.attribute_value<unsigned long>("width",  1),
+			                       node.attribute_value<unsigned long>("height", 1));
+		} catch (...) {
+			return Affinity::Space(1, 1); }
+	}
 
 
-/**
- * Read parent-provided services from config
- */
-inline void determine_parent_services(Genode::Registry<Init::Parent_service> *services)
-{
-	using namespace Genode;
+	/**
+	 * Read parent-provided services from config
+	 */
+	inline void determine_parent_services(Registry<Init::Parent_service> &services,
+	                                      Xml_node config, Allocator &alloc,
+	                                      bool verbose)
+	{
+		if (verbose)
+			log("parent provides");
 
-	if (Init::config_verbose)
-		log("parent provides");
+		config.sub_node("parent-provides")
+		      .for_each_sub_node("service", [&] (Xml_node node) {
 
-	Xml_node node = config()->xml_node().sub_node("parent-provides").sub_node("service");
-	for (; ; node = node.next("service")) {
+			Service::Name name = node.attribute_value("name", Service::Name());
 
-		char service_name[Genode::Service::Name::capacity()];
-		node.attribute("name").value(service_name, sizeof(service_name));
-
-		new (env()->heap()) Init::Parent_service(*services, service_name);
-		if (Init::config_verbose)
-			log("  service \"", Cstring(service_name), "\"");
-
-		if (node.last("service")) break;
+			new (alloc) Init::Parent_service(services, name);
+			if (verbose)
+				log("  service \"", name, "\"");
+		});
 	}
 }
 
@@ -206,16 +193,6 @@ class Init::Child_registry : public Name_registry, Child_list
 		}
 
 		/**
-		 * Start execution of all children
-		 */
-		void start()
-		{
-			Genode::List_element<Child> *curr = first();
-			for (; curr; curr = curr->next())
-				curr->object()->start();
-		}
-
-		/**
 		 * Return any of the registered children, or 0 if no child exists
 		 */
 		Child *any()
@@ -264,124 +241,124 @@ class Init::Child_registry : public Name_registry, Child_list
 };
 
 
-void Component::construct(Genode::Env &env)
+namespace Init { struct Main; }
+
+
+struct Init::Main
 {
-	using namespace Init;
-	using namespace Genode;
+	Env &_env;
 
-	static Registry<Init::Parent_service> parent_services;
-	static Registry<Routed_service>       child_services;
-	static Child_registry   children;
-	static Cap_connection   cap;
+	Registry<Init::Parent_service> _parent_services;
+	Registry<Routed_service>       _child_services;
+	Child_registry                 _children;
 
-	/*
-	 * Signal receiver for config changes
-	 */
-	Signal_receiver sig_rec;
-	Signal_context  sig_ctx_config;
-	Signal_context  sig_ctx_res_avail;
-	config()->sigh(sig_rec.manage(&sig_ctx_config));
-	/* prevent init to block for resource upgrades (never satisfied by core) */
-	Genode::env()->parent()->resource_avail_sigh(sig_rec.manage(&sig_ctx_res_avail));
+	Heap _heap { _env.ram(), _env.rm() };
 
-	for (;;) {
+	Attached_rom_dataspace _config { _env, "config" };
 
-		config_verbose =
-			config()->xml_node().attribute_value("verbose", false);
+	Reconstructible<Verbose> _verbose { _config.xml() };
 
-		try { determine_parent_services(&parent_services); }
-		catch (...) { }
+	void _handle_resource_avail() { }
 
-		/* determine default route for resolving service requests */
-		Xml_node default_route_node("<empty/>");
+	Signal_handler<Main> _resource_avail_handler {
+		_env.ep(), *this, &Main::_handle_resource_avail };
+
+	void _handle_config();
+
+	Signal_handler<Main> _config_handler {
+		_env.ep(), *this, &Main::_handle_config };
+
+	Main(Env &env) : _env(env)
+	{
+		_config.sigh(_config_handler);
+
+		/* prevent init to block for resource upgrades (never satisfied by core) */
+		_env.parent().resource_avail_sigh(_resource_avail_handler);
+
+		_handle_config();
+	}
+};
+
+
+void Init::Main::_handle_config()
+{
+	/* kill all currently running children */
+	while (_children.any()) {
+		Init::Child *child = _children.any();
+		_children.remove(child);
+		destroy(_heap, child);
+	}
+
+	/* remove all known aliases */
+	while (_children.any_alias()) {
+		Init::Alias *alias = _children.any_alias();
+		_children.remove_alias(alias);
+		destroy(_heap, alias);
+	}
+
+	/* reset knowledge about parent services */
+	_parent_services.for_each([&] (Init::Parent_service &service) {
+		destroy(_heap, &service); });
+
+	/* reload config */
+	try { config()->reload(); } catch (...) { }
+
+	_config.update();
+
+	_verbose.construct(_config.xml());
+
+	try { determine_parent_services(_parent_services, _config.xml(),
+	                                _heap, _verbose->enabled()); }
+	catch (...) { }
+
+	/* determine default route for resolving service requests */
+	Xml_node default_route_node("<empty/>");
+	try {
+		default_route_node =
+		_config.xml().sub_node("default-route"); }
+	catch (...) { }
+
+	/* create aliases */
+	_config.xml().for_each_sub_node("alias", [&] (Xml_node alias_node) {
+
 		try {
-			default_route_node =
-			config()->xml_node().sub_node("default-route"); }
-		catch (...) { }
+			_children.insert_alias(new (_heap) Alias(alias_node)); }
+		catch (Alias::Name_is_missing) {
+			warning("missing 'name' attribute in '<alias>' entry"); }
+		catch (Alias::Child_is_missing) {
+			warning("missing 'child' attribute in '<alias>' entry"); }
+	});
 
-		/* create aliases */
-		config()->xml_node().for_each_sub_node("alias", [&] (Xml_node alias_node) {
+	/* create children */
+	try {
+		_config.xml().for_each_sub_node("start", [&] (Xml_node start_node) {
 
 			try {
-				children.insert_alias(new (Genode::env()->heap()) Alias(alias_node));
+				_children.insert(new (_heap)
+				                 Init::Child(_env, *_verbose, start_node, default_route_node,
+				                             _children, read_prio_levels(_config.xml()),
+				                             read_affinity_space(_config.xml()),
+				                             _parent_services, _child_services));
 			}
-			catch (Alias::Name_is_missing) {
-				warning("missing 'name' attribute in '<alias>' entry"); }
-			catch (Alias::Child_is_missing) {
-				warning("missing 'child' attribute in '<alias>' entry"); }
-
+			catch (Rom_connection::Rom_connection_failed) {
+				/*
+				 * The binary does not exist. An error message is printed
+				 * by the Rom_connection constructor.
+				 */
+			}
+			catch (Ram_session::Alloc_failed) {
+				warning("failed to allocate memory during child construction"); }
+			catch (Region_map::Attach_failed) {
+				warning("failed to attach dataspace to local address space "
+				        "during child construction"); }
 		});
-
-		/* create children */
-		try {
-			config()->xml_node().for_each_sub_node("start", [&] (Xml_node start_node) {
-
-				try {
-					children.insert(new (Genode::env()->heap())
-					                Init::Child(env, start_node, default_route_node,
-					                            children, read_prio_levels(),
-					                            read_affinity_space(),
-					                            parent_services, child_services));
-				}
-				catch (Rom_connection::Rom_connection_failed) {
-					/*
-					 * The binary does not exist. An error message is printed
-					 * by the Rom_connection constructor.
-					 */
-				}
-				catch (Ram_session::Alloc_failed) {
-					warning("failed to allocate memory during child construction"); }
-				catch (Region_map::Attach_failed) {
-					warning("failed to attach dataspace to local address space "
-					        "during child construction"); }
-			});
-
-			/* start children */
-			children.start();
-		}
-		catch (Xml_node::Nonexistent_sub_node) {
-			error("no children to start"); }
-		catch (Xml_node::Invalid_syntax) {
-			error("no children to start"); }
-		catch (Init::Child::Child_name_is_not_unique) { }
-		catch (Init::Child_registry::Alias_name_is_not_unique) { }
-
-		/*
-		 * Respond to config changes at runtime
-		 *
-		 * If the config gets updated to a new version, we kill the current
-		 * scenario and start again with the new config.
-		 */
-
-		/* wait for config change */
-		while (true) {
-			Signal signal = sig_rec.wait_for_signal();
-			if (signal.context() == &sig_ctx_config)
-				break;
-
-			warning("unexpected signal received - drop it");
-		}
-
-		/* kill all currently running children */
-		while (children.any()) {
-			Init::Child *child = children.any();
-			children.remove(child);
-			destroy(Genode::env()->heap(), child);
-		}
-
-		/* remove all known aliases */
-		while (children.any_alias()) {
-			Init::Alias *alias = children.any_alias();
-			children.remove_alias(alias);
-			destroy(Genode::env()->heap(), alias);
-		}
-
-		/* reset knowledge about parent services */
-		parent_services.for_each([&] (Init::Parent_service &service) {
-			destroy(Genode::env()->heap(), &service); });
-
-		/* reload config */
-		try { config()->reload(); } catch (...) { }
 	}
+	catch (Xml_node::Nonexistent_sub_node) { error("no children to start"); }
+	catch (Xml_node::Invalid_syntax) { error("config has invalid syntax"); }
+	catch (Init::Child::Child_name_is_not_unique) { }
+	catch (Init::Child_registry::Alias_name_is_not_unique) { }
 }
+
+
+void Component::construct(Genode::Env &env) { static Init::Main main(env); }
 
