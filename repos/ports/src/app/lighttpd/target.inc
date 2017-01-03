@@ -30,4 +30,4 @@ INC_DIR += $(PRG_DIR)
 INC_DIR += $(LIGHTTPD_DIR)/src
 
 LIBS += posix
-LIBS += zlib config_args
+LIBS += zlib
