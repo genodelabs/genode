@@ -25,6 +25,7 @@
 #include <base/attached_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
+#include <os/reporter.h>
 #include <blit/blit.h>
 
 #include <lx_emul_c.h>
@@ -48,6 +49,7 @@ class Framebuffer::Driver
 
 		Session_component             &_session;
 		Timer::Connection              _timer;
+		Genode::Reporter               _reporter;
 		Genode::Signal_handler<Driver> _poll_handler;
 		unsigned long                  _poll_ms = 0;
 
@@ -59,6 +61,7 @@ class Framebuffer::Driver
 
 		Driver(Genode::Env & env, Session_component &session)
 		: _session(session), _timer(env),
+		  _reporter(env, "connectors"),
 		  _poll_handler(env.ep(), *this, &Driver::_poll) {}
 
 		int      width()   const { return _config._lx.width;  }

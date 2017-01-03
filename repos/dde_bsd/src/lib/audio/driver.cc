@@ -307,15 +307,44 @@ static void dump_mixer(Mixer const &mixer)
 }
 
 
-static Genode::Reporter mixer_reporter = { "mixer_state" };
+/******************
+ ** Audio device **
+ ******************/
 
-
-static void report_mixer(Mixer const &mixer)
+static bool open_audio_device(dev_t dev)
 {
-	if (!mixer_reporter.is_enabled()) { return; }
+	if (!drv_loaded())
+		return false;
 
-	try {
+	int err = audioopen(dev, FWRITE|FREAD, 0 /* ifmt */, 0 /* proc */);
+	if (err)
+		return false;
 
+	return true;
+}
+
+
+static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node config)
+{
+	using namespace Genode;
+
+	static Reporter mixer_reporter(env, "mixer_state");
+
+	bool const v = config.attribute_value<bool>("report_mixer", false);
+	mixer_reporter.enabled(v);
+
+	config.for_each_sub_node("mixer", [&] (Xml_node node) {
+		char field[32];
+		char value[16];
+		try {
+			node.attribute("field").value(field, sizeof(field));
+			node.attribute("value").value(value, sizeof(value));
+
+			set_mixer_value(mixer, field, value);
+		} catch (Xml_attribute::Nonexistent_attribute) { }
+	});
+
+	if (mixer_reporter.is_enabled()) try {
 		Genode::Reporter::Xml_generator xml(mixer_reporter, [&]() {
 
 			for (unsigned i = 0; i < mixer.num; i++) {
@@ -343,44 +372,7 @@ static void report_mixer(Mixer const &mixer)
 }
 
 
-/******************
- ** Audio device **
- ******************/
-
-static bool open_audio_device(dev_t dev)
-{
-	if (!drv_loaded())
-		return false;
-
-	int err = audioopen(dev, FWRITE|FREAD, 0 /* ifmt */, 0 /* proc */);
-	if (err)
-		return false;
-
-	return true;
-}
-
-
-static void parse_config(Mixer &mixer, Genode::Xml_node config)
-{
-	using namespace Genode;
-
-	bool const v = config.attribute_value<bool>("report_mixer", false);
-	mixer_reporter.enabled(v);
-
-	config.for_each_sub_node("mixer", [&] (Xml_node node) {
-		char field[32];
-		char value[16];
-		try {
-			node.attribute("field").value(field, sizeof(field));
-			node.attribute("value").value(value, sizeof(value));
-
-			set_mixer_value(mixer, field, value);
-		} catch (Xml_attribute::Nonexistent_attribute) { }
-	});
-}
-
-
-static bool configure_audio_device(dev_t dev, Genode::Xml_node config)
+static bool configure_audio_device(Genode::Env &env, dev_t dev, Genode::Xml_node config)
 {
 	struct audio_info ai;
 
@@ -427,8 +419,7 @@ static bool configure_audio_device(dev_t dev, Genode::Xml_node config)
 	if (verbose) dump_rinfo();
 	if (verbose) dump_mixer(mixer);
 
-	parse_config(mixer, config);
-	report_mixer(mixer);
+	configure_mixer(env, mixer, config);
 
 	return true;
 }
@@ -463,7 +454,7 @@ static void run_bsd(void *p)
 		Genode::sleep_forever();
 	}
 
-	adev_usuable = configure_audio_device(adev, args->config);
+	adev_usuable = configure_audio_device(args->env, adev, args->config);
 
 	while (true) {
 		Bsd::scheduler().current()->block_and_schedule();
@@ -503,12 +494,11 @@ extern "C" void notify_record()
  ** private Audio namespace **
  *****************************/
 
-void Audio::update_config(Genode::Xml_node config)
+void Audio::update_config(Genode::Env &env, Genode::Xml_node config)
 {
 	if (mixer.info == nullptr) { return; }
 
-	parse_config(mixer, config);
-	report_mixer(mixer);
+	configure_mixer(env, mixer, config);
 }
 
 

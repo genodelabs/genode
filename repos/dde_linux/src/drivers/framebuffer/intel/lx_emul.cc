@@ -216,18 +216,17 @@ void Framebuffer::Driver::generate_report()
 	}
 
 	/* check for report configuration option */
-	static Genode::Reporter reporter("connectors");
 	try {
-		reporter.enabled(_session.config().sub_node("report")
-		                 .attribute_value(reporter.name().string(), false));
+		_reporter.enabled(_session.config().sub_node("report")
+		                 .attribute_value(_reporter.name().string(), false));
 	} catch (...) {
-		reporter.enabled(false);
+		_reporter.enabled(false);
 	}
-	if (!reporter.is_enabled()) return;
+	if (!_reporter.is_enabled()) return;
 
 	/* write new report */
 	try {
-		Genode::Reporter::Xml_generator xml(reporter, [&] ()
+		Genode::Reporter::Xml_generator xml(_reporter, [&] ()
 		{
 			struct drm_connector *c;
 			list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,

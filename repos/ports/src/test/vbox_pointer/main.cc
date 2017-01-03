@@ -145,7 +145,7 @@ struct Main
 		true, 0, 0, Shape::WIDTH, Shape::HEIGHT, { 0 } };
 
 	Genode::Reporter _reporter {
-		"shape", "shape", sizeof(Vbox_pointer::Shape_report) };
+		_env, "shape", "shape", sizeof(Vbox_pointer::Shape_report) };
 
 	Genode::Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };

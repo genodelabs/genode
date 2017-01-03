@@ -125,7 +125,7 @@ struct Usb::Block_driver : Usb::Completion,
 	/*
 	 * Reporter
 	 */
-	Reporter reporter { "devices" };
+	Reporter reporter { env, "devices" };
 	bool _report_device = false;
 
 	/*

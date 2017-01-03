@@ -495,7 +495,7 @@ struct Main
 	{
 		config.update();
 		if (!config.is_valid()) { return; }
-		Audio::update_config(config.xml());
+		Audio::update_config(env, config.xml());
 	}
 
 	Main(Genode::Env &env) : env(env)

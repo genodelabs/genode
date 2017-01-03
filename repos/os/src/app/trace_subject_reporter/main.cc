@@ -153,7 +153,7 @@ struct App::Main
 
 	Trace::Connection _trace { _env, 512*1024, 32*1024, 0 };
 
-	Reporter _reporter { "trace_subjects", "trace_subjects", 64*1024 };
+	Reporter _reporter { _env, "trace_subjects", "trace_subjects", 64*1024 };
 
 	static unsigned long _default_period_ms() { return 5000; }
 

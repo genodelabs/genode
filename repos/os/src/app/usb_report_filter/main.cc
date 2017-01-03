@@ -12,11 +12,11 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/allocator_avl.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/config.h>
+#include <base/heap.h>
 #include <os/reporter.h>
-#include <os/server.h>
 #include <util/list.h>
 #include <util/string.h>
 #include <util/xml_generator.h>
@@ -48,16 +48,16 @@ class Usb_filter::Device_registry
 {
 	private:
 
-		Genode::Allocator         &_alloc;
-		Server::Entrypoint &_ep;
+		Genode::Env       &_env;
+		Genode::Allocator &_alloc;
 
-		Genode::Reporter   _reporter { "usb_devices" };
+		Genode::Reporter   _reporter { _env, "usb_devices" };
 
-		Attached_rom_dataspace _devices_rom        { "devices" };
-		Attached_rom_dataspace _usb_drv_config_rom { "usb_drv_config" };
+		Attached_rom_dataspace _devices_rom        { _env, "devices" };
+		Attached_rom_dataspace _usb_drv_config_rom { _env, "usb_drv_config" };
 
 		Genode::Allocator_avl    _fs_packet_alloc { &_alloc };
-		File_system::Connection  _fs              { _fs_packet_alloc, 128*1024, "usb_drv.config" };
+		File_system::Connection  _fs              { _env, _fs_packet_alloc, "usb_drv.config" };
 		File_system::File_handle _file;
 
 		struct Entry : public Genode::List<Entry>::Element
@@ -223,10 +223,10 @@ class Usb_filter::Device_registry
 			_fs.close(_file);
 		}
 
-		Genode::Signal_rpc_member<Device_registry> _devices_dispatcher =
-		{ _ep, *this, &Device_registry::_handle_devices };
+		Genode::Signal_handler<Device_registry> _devices_handler =
+		{ _env.ep(), *this, &Device_registry::_handle_devices };
 
-		void _handle_devices(unsigned)
+		void _handle_devices()
 		{
 			_devices_rom.update();
 
@@ -317,10 +317,10 @@ class Usb_filter::Device_registry
 			});
 		}
 
-		Genode::Signal_rpc_member<Device_registry> _usb_drv_config_dispatcher =
-		{ _ep, *this, &Device_registry::_handle_usb_drv_config };
+		Genode::Signal_handler<Device_registry> _usb_drv_config_handler =
+		{ _env.ep(), *this, &Device_registry::_handle_usb_drv_config };
 
-		void _handle_usb_drv_config(unsigned)
+		void _handle_usb_drv_config()
 		{
 			_usb_drv_config_rom.update();
 
@@ -357,15 +357,14 @@ class Usb_filter::Device_registry
 		/**
 		 * Constructor
 		 */
-		Device_registry(Genode::Allocator         &alloc,
-		                Server::Entrypoint &ep)
-		: _alloc(alloc), _ep(ep)
+		Device_registry(Genode::Env &env, Genode::Allocator &alloc)
+		:  _env(env), _alloc(alloc)
 		{
 			_reporter.enabled(true);
 
-			_devices_rom.sigh(_devices_dispatcher);
+			_devices_rom.sigh(_devices_handler);
 
-			_usb_drv_config_rom.sigh(_usb_drv_config_dispatcher);
+			_usb_drv_config_rom.sigh(_usb_drv_config_handler);
 		}
 
 		/**
@@ -409,30 +408,31 @@ class Usb_filter::Device_registry
 
 struct Usb_filter::Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &_env;
 
-	Genode::Signal_rpc_member<Main> _config_dispatcher =
-	{ ep, *this, &Main::_handle_config };
+	Genode::Heap _heap { _env.ram(), _env.rm() };
 
-	void _handle_config(unsigned)
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
+	Genode::Signal_handler<Main> _config_handler =
+	{ _env.ep(), *this, &Main::_handle_config };
+
+	void _handle_config()
 	{
-		Genode::config()->reload();
-		device_registry.update_entries(Genode::config()->xml_node());
+		_config.update();
+		device_registry.update_entries(_config.xml());
 	}
 
-	Device_registry device_registry { *Genode::env()->heap(), ep };
+	Device_registry device_registry { _env, _heap };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Genode::Env &env) : _env(env)
 	{
-		Genode::config()->sigh(_config_dispatcher);
+		_config.sigh(_config_handler);
 
-		_handle_config(0);
+		_handle_config();
 	}
 };
 
 
-namespace Server {
-	char const *name()             { return "usb_report_filter_ep";    }
-	size_t      stack_size()       { return 16*1024*sizeof(addr_t);    }
-	void construct(Entrypoint &ep) { static Usb_filter::Main main(ep); }
-}
+void Component::construct(Genode::Env &env) {
+	static Usb_filter::Main main(env); }

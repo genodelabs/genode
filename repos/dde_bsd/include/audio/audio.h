@@ -41,7 +41,7 @@ namespace Audio_in {
 
 namespace Audio {
 
-	void update_config(Genode::Xml_node);
+	void update_config(Genode::Env &, Genode::Xml_node);
 
 	void init_driver(Genode::Env &, Genode::Allocator &, Genode::Xml_node);
 

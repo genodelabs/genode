@@ -17,6 +17,7 @@
 #include <base/allocator_guard.h>
 #include <base/rpc_server.h>
 #include <base/tslab.h>
+#include <base/attached_rom_dataspace.h>
 #include <ram_session/connection.h>
 #include <root/component.h>
 
@@ -196,18 +197,19 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 {
 	private:
 
-		Genode::Env                   &_env;
-		Genode::Rpc_entrypoint        &_device_pd_ep;
-		Genode::Ram_session_guard      _env_ram;
-		Genode::Ram_session_capability _env_ram_cap;
-		Genode::Region_map            &_local_rm;
-		Genode::Heap                   _md_alloc;
-		Genode::Session_label    const _label;
-		Genode::Session_policy   const _policy { _label };
-		Genode::List<Device_component> _device_list;
-		Platform::Pci_buses           &_pci_bus;
-		Genode::Heap                  &_global_heap;
-		bool                           _no_device_pd = false;
+		Genode::Env                    &_env;
+		Genode::Rpc_entrypoint         &_device_pd_ep;
+		Genode::Attached_rom_dataspace &_config;
+		Genode::Ram_session_guard       _env_ram;
+		Genode::Ram_session_capability  _env_ram_cap;
+		Genode::Region_map             &_local_rm;
+		Genode::Heap                    _md_alloc;
+		Genode::Session_label    const  _label;
+		Genode::Session_policy   const  _policy { _label };
+		Genode::List<Device_component>  _device_list;
+		Platform::Pci_buses            &_pci_bus;
+		Genode::Heap                   &_global_heap;
+		bool                            _no_device_pd = false;
 
 		/**
 		 * Registry of RAM dataspaces allocated by the session
@@ -537,7 +539,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			using namespace Genode;
 
 			try {
-				config()->xml_node().for_each_sub_node("policy", [&] (Xml_node policy) {
+				_config.xml().for_each_sub_node("policy", [&] (Xml_node policy) {
 					policy.for_each_sub_node("device", [&] (Xml_node device) {
 						try {
 							/* device attribute from policy node */
@@ -566,7 +568,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			using namespace Genode;
 
 			try {
-				Xml_node xml(config()->xml_node());
+				Xml_node xml = _config.xml();
 				xml.for_each_sub_node("policy", [&] (Xml_node policy) {
 					policy.for_each_sub_node("pci", [&] (Xml_node node) {
 						try {
@@ -594,13 +596,15 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * Constructor
 		 */
-		Session_component(Genode::Env            &env,
-		                  Genode::Rpc_entrypoint &device_pd_ep,
-		                  Platform::Pci_buses    &buses,
-		                  Genode::Heap           &global_heap,
-		                  char             const *args)
+		Session_component(Genode::Env                    &env,
+		                  Genode::Attached_rom_dataspace &config,
+		                  Genode::Rpc_entrypoint         &device_pd_ep,
+		                  Platform::Pci_buses            &buses,
+		                  Genode::Heap                   &global_heap,
+		                  char                     const *args)
 		:
 			_env(env), _device_pd_ep(device_pd_ep),
+			_config(config),
 			_env_ram(env.ram(), env.ram_session_cap(),
 			         Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
 			_env_ram_cap(env.ram_session_cap()),
@@ -1021,9 +1025,11 @@ class Platform::Root : public Genode::Root_component<Session_component>
 			};
 		} fadt;
 
-		Genode::Env            &_env;
+		Genode::Env                    &_env;
+		Genode::Attached_rom_dataspace &_config;
+
 		Genode::Rpc_entrypoint  _device_pd_ep;
-		Genode::Heap            _heap { _env.ram(), _env.rm() };
+		Genode::Heap            _heap  { _env.ram(), _env.rm() };
 		Platform::Pci_buses     _buses { _env, _heap };
 
 		void _parse_report_rom(Genode::Env &env, const char * acpi_rom)
@@ -1160,7 +1166,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		{
 			try {
 				return new (md_alloc())
-					Session_component(_env, _device_pd_ep, _buses, _heap, args);
+					Session_component(_env, _config, _device_pd_ep, _buses, _heap, args);
 			}
 			catch (Genode::Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy for ",
@@ -1187,11 +1193,12 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		 *                  components and PCI-device components
 		 */
 		Root(Genode::Env &env, Genode::Allocator &md_alloc,
+		     Genode::Attached_rom_dataspace &config,
 		     const char *acpi_rom)
 		:
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(),
 			                                          &md_alloc),
-			_env(env),
+			_env(env), _config(config),
 			_device_pd_ep(&env.pd(), STACK_SIZE, "device_pd_slave")
 		{
 			if (acpi_rom) {

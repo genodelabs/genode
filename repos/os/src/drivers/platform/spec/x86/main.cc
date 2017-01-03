@@ -34,6 +34,8 @@ struct Platform::Main
 	Genode::Env &_env;
 	Genode::Sliced_heap sliced_heap { _env.ram(), _env.rm() };
 
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
 	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_rom;
 	Genode::Constructible<Platform::Root> root;
 
@@ -56,7 +58,7 @@ struct Platform::Main
 
 		const char * report_addr = acpi_rom->local_addr<const char>();
 
-		root.construct(_env, sliced_heap, report_addr);
+		root.construct(_env, sliced_heap, _config, report_addr);
 
 		root_cap = _env.ep().manage(*root);
 
@@ -109,7 +111,7 @@ struct Platform::Main
 		_acpi_report(_env.ep(), *this, &Main::acpi_update),
 		_system_report(_env.ep(), *this, &Main::system_update)
 	{
-		const Genode::Xml_node &config = Genode::config()->xml_node();
+		const Genode::Xml_node config = _config.xml();
 
 		_system_rom = config.attribute_value("system", false);
 
@@ -135,7 +137,7 @@ struct Platform::Main
 		}
 
 		/* non ACPI platform case */
-		root.construct(_env, sliced_heap, nullptr);
+		root.construct(_env, sliced_heap, _config, nullptr);
 		_env.parent().announce(_env.ep().manage(*root));
 	}
 };

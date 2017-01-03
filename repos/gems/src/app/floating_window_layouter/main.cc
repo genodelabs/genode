@@ -299,9 +299,9 @@ struct Floating_window_layouter::Main : Operations
 
 	Attached_dataspace input_ds { input.dataspace() };
 
-	Reporter window_layout_reporter  = { "window_layout" };
-	Reporter resize_request_reporter = { "resize_request" };
-	Reporter focus_reporter          = { "focus" };
+	Reporter window_layout_reporter  = { env, "window_layout" };
+	Reporter resize_request_reporter = { env, "resize_request" };
+	Reporter focus_reporter          = { env, "focus" };
 
 
 	bool focused_window_maximized() const

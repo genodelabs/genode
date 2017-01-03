@@ -49,13 +49,13 @@ struct Wm::Main
 	Attached_rom_dataspace resize_request_rom { env, "resize_request" };
 
 	/* pointer position to be consumed by the layouter */
-	Reporter pointer_reporter = { "pointer" };
+	Reporter pointer_reporter = { env, "pointer" };
 
 	/* list of present windows, to be consumed by the layouter */
-	Reporter window_list_reporter = { "window_list" };
+	Reporter window_list_reporter = { env, "window_list" };
 
 	/* request to the layouter to set the focus */
-	Reporter focus_request_reporter = { "focus_request" };
+	Reporter focus_request_reporter = { env, "focus_request" };
 
 	Window_registry window_registry { heap, window_list_reporter };
 
