@@ -16,7 +16,10 @@
 
 #include <line_editor.h>
 
-class Command_line
+namespace Cli_monitor { class Command_line; }
+
+
+class Cli_monitor::Command_line
 {
 	private:
 

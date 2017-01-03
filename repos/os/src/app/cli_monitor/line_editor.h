@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <base/registry.h>
 #include <terminal_session/connection.h>
 #include <util/string.h>
 #include <util/list.h>
@@ -23,17 +24,33 @@
 #include <util/misc_math.h>
 #include <base/snprintf.h>
 
-using Genode::List;
-using Genode::max;
-using Genode::strlen;
-using Genode::strncpy;
-using Genode::snprintf;
-using Genode::strcmp;
-using Genode::size_t;
-using Genode::off_t;
+namespace Cli_monitor {
+
+	using Genode::Registry;
+	using Genode::List;
+	using Genode::max;
+	using Genode::strlen;
+	using Genode::strncpy;
+	using Genode::snprintf;
+	using Genode::strcmp;
+	using Genode::size_t;
+	using Genode::off_t;
+
+	struct Completable;
+	struct Argument;
+	struct Parameter;
+	struct Command_line;
+	struct Command;
+	struct Command_registry;
+	struct Scanner_policy;
+	struct Argument_tracker;
+	struct Line_editor;
+
+	typedef Genode::Token<Scanner_policy> Token;
+}
 
 
-struct Completable
+struct Cli_monitor::Completable
 {
 	typedef Genode::String<64>  Name;
 	typedef Genode::String<160> Short_help;
@@ -52,7 +69,7 @@ struct Completable
 /**
  * Representation of normal command-line argument
  */
-struct Argument : Completable
+struct Cli_monitor::Argument : Completable
 {
 	Argument(char const *name, char const *short_help)
 	: Completable(name, short_help) { }
@@ -64,7 +81,7 @@ struct Argument : Completable
 /**
  * Representation of a parameter of the form '--tag value'
  */
-struct Parameter : List<Parameter>::Element, Completable
+struct Cli_monitor::Parameter : List<Parameter>::Element, Completable
 {
 	enum Type { IDENT, NUMBER, VOID };
 
@@ -89,13 +106,10 @@ struct Parameter : List<Parameter>::Element, Completable
 };
 
 
-struct Command_line;
-
-
 /**
  * Representation of a command that can have arguments and parameters
  */
-struct Command : List<Command>::Element, Completable
+struct Cli_monitor::Command : List<Command>::Element, Completable
 {
 	List<Parameter> _parameters;
 
@@ -110,7 +124,7 @@ struct Command : List<Command>::Element, Completable
 	Command(char const *name, char const *short_help)
 	: Completable(name, short_help) { }
 
-	void add_parameter(Parameter *par) { _parameters.insert(par); }
+	void add_parameter(Parameter &par) { _parameters.insert(&par); }
 
 	char const *name_suffix() const { return ""; }
 
@@ -141,13 +155,13 @@ struct Command : List<Command>::Element, Completable
 };
 
 
-struct Command_registry : List<Command> { };
+struct Cli_monitor::Command_registry : List<Command> { };
 
 
 /**
  * Scanner policy that accepts '-', '.' and '_' as valid identifier characters
  */
-struct Scanner_policy
+struct Cli_monitor::Scanner_policy
 {
 	static bool identifier_char(char c, unsigned i)
 	{
@@ -157,13 +171,10 @@ struct Scanner_policy
 };
 
 
-typedef Genode::Token<Scanner_policy> Token;
-
-
 /**
  * State machine used for sequentially parsing command-line arguments
  */
-struct Argument_tracker
+struct Cli_monitor::Argument_tracker
 {
 	private:
 
@@ -288,7 +299,7 @@ struct Argument_tracker
 /**
  * Editing and completion logic
  */
-class Line_editor
+class Cli_monitor::Line_editor
 {
 	private:
 
@@ -482,7 +493,7 @@ class Line_editor
 				 && strlen(curr->name()) == tag.len())
 					return curr;
 			}
-			return 0;
+			return nullptr;
 		}
 
 		Command *_lookup_matching_command()
@@ -492,7 +503,7 @@ class Line_editor
 				if (strcmp(cmd.start(), curr->name().string(), cmd.len()) == 0
 				 && _cursor_pos > cmd.len())
 					return curr;
-			return 0;
+			return nullptr;
 		}
 
 		template <typename T>

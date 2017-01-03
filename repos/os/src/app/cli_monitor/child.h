@@ -20,7 +20,10 @@
 /* local includes */
 #include <line_editor.h>
 
-struct Child : Child_base, List<Child>::Element
+namespace Cli_monitor { struct Child; }
+
+
+struct Cli_monitor::Child : Child_base, List<Child>::Element
 {
 	Argument argument;
 

@@ -14,8 +14,13 @@
 #ifndef _TABLE_H_
 #define _TABLE_H_
 
+#include <terminal_session/terminal_session.h>
+
+namespace Cli_monitor { template <typename TI> class Table; }
+
+
 template <typename TI>
-class Table
+class Cli_monitor::Table
 {
 	private:
 

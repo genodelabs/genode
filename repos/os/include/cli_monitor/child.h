@@ -27,8 +27,10 @@
 /* CLI-monitor includes */
 #include <cli_monitor/ram.h>
 
+namespace Cli_monitor { class Child_base; }
 
-class Child_base : public Genode::Child_policy
+
+class Cli_monitor::Child_base : public Genode::Child_policy
 {
 	public:
 

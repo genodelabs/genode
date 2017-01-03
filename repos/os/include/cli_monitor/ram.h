@@ -17,15 +17,19 @@
 /* Genode includes */
 #include <ram_session/connection.h>
 
-class Ram
+namespace Cli_monitor { class Ram; }
+
+
+class Cli_monitor::Ram
 {
 	private:
 
 		typedef Genode::size_t size_t;
 
+		Genode::Ram_session           &_ram;
+		Genode::Ram_session_capability _ram_cap;
+
 		Genode::Lock mutable _lock;
-		Genode::Ram_session &_ram = *Genode::env()->ram_session();
-		Genode::Ram_session_capability _ram_cap = Genode::env()->ram_session_cap();
 		Genode::Signal_context_capability _yield_sigh;
 		Genode::Signal_context_capability _resource_avail_sigh;
 
@@ -50,10 +54,13 @@ class Ram
 			: quota(quota), used(used), avail(avail), preserve(preserve) { }
 		};
 
-		Ram(size_t                            preserve,
+		Ram(Genode::Ram_session              &ram,
+		    Genode::Ram_session_capability    ram_cap,
+		    size_t                            preserve,
 		    Genode::Signal_context_capability yield_sigh,
 		    Genode::Signal_context_capability resource_avail_sigh)
 		:
+			_ram(ram), _ram_cap(ram_cap),
 			_yield_sigh(yield_sigh),
 			_resource_avail_sigh(resource_avail_sigh),
 			_preserve(preserve)
@@ -128,10 +135,7 @@ class Ram
 				throw Transfer_quota_failed();
 		}
 
-		/**
-		 * Return singleton object
-		 */
-		static Ram &ram();
+		size_t avail() const { return _ram.avail(); }
 };
 
 #endif /* _INCLUDE__CLI_MONITOR__RAM_H_ */

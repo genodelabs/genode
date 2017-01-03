@@ -14,7 +14,10 @@
 #ifndef _HELP_COMMAND_H_
 #define _HELP_COMMAND_H_
 
-struct Help_command : Command
+namespace Cli_monitor { struct Help_command; }
+
+
+struct Cli_monitor::Help_command : Command
 {
 	Help_command() : Command("help", "brief help information") { }
 

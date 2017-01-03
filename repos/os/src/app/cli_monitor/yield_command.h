@@ -17,17 +17,23 @@
 /* local includes */
 #include <child_registry.h>
 
-struct Yield_command : Command
+namespace Cli_monitor { struct Yield_command; }
+
+
+struct Cli_monitor::Yield_command : Command
 {
 	Child_registry &_children;
+
+	Parameter _ram_param    { "--ram", Parameter::NUMBER,  "RAM quota to free" };
+	Parameter _greedy_param { "--greedy", Parameter::VOID, "withdraw yielded RAM quota" };
 
 	Yield_command(Child_registry &children)
 	:
 		Command("yield", "instruct subsystem to yield resources"),
 		_children(children)
 	{
-		add_parameter(new Parameter("--ram", Parameter::NUMBER,  "RAM quota to free"));
-		add_parameter(new Parameter("--greedy", Parameter::VOID, "withdraw yielded RAM quota"));
+		add_parameter(_ram_param);
+		add_parameter(_greedy_param);
 	}
 
 	void _for_each_argument(Argument_fn const &fn) const override

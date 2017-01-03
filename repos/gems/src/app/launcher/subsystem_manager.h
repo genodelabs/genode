@@ -25,6 +25,7 @@ namespace Launcher {
 
 	class Subsystem_manager;
 	using Decorator::string_attribute;
+	using Cli_monitor::Ram;
 	using namespace Genode;
 }
 
@@ -40,12 +41,11 @@ class Launcher::Subsystem_manager
 
 	private:
 
-		Entrypoint &_ep;
-		Pd_session &_pd;
-
+		Env &        _env;
+		Heap         _heap { _env.ram(), _env.rm() };
 		size_t const _ram_preservation;
 
-		struct Child : Child_base, List<Child>::Element
+		struct Child : Cli_monitor::Child_base, List<Child>::Element
 		{
 			template <typename... ARGS>
 			Child(ARGS &&... args) : Child_base(args...) { }
@@ -60,7 +60,7 @@ class Launcher::Subsystem_manager
 		}
 
 		Signal_handler<Subsystem_manager> _yield_broadcast_handler =
-			{ _ep, *this, &Subsystem_manager::_handle_yield_broadcast };
+			{ _env.ep(), *this, &Subsystem_manager::_handle_yield_broadcast };
 
 		void _handle_yield_broadcast()
 		{
@@ -90,7 +90,7 @@ class Launcher::Subsystem_manager
 		}
 
 		Signal_handler<Subsystem_manager> _resource_avail_handler =
-			{ _ep, *this, &Subsystem_manager::_handle_resource_avail };
+			{ _env.ep(), *this, &Subsystem_manager::_handle_resource_avail };
 
 		void _handle_resource_avail()
 		{
@@ -98,7 +98,7 @@ class Launcher::Subsystem_manager
 		}
 
 		Signal_handler<Subsystem_manager> _yield_response_handler =
-			{ _ep, *this, &Subsystem_manager::_handle_yield_response };
+			{ _env.ep(), *this, &Subsystem_manager::_handle_yield_response };
 
 		void _handle_yield_response()
 		{
@@ -107,7 +107,9 @@ class Launcher::Subsystem_manager
 
 		Genode::Signal_context_capability _exited_child_sig_cap;
 
-		Ram _ram { _ram_preservation,
+		Ram _ram { _env.ram(),
+		           _env.ram_session_cap(),
+		           _ram_preservation,
 		           _yield_broadcast_handler,
 		           _resource_avail_handler };
 
@@ -147,11 +149,11 @@ class Launcher::Subsystem_manager
 
 	public:
 
-		Subsystem_manager(Genode::Entrypoint &ep, Pd_session &pd,
+		Subsystem_manager(Genode::Env & env,
 		                  size_t ram_preservation,
 		                  Genode::Signal_context_capability exited_child_sig_cap)
 		:
-			_ep(ep), _pd(pd), _ram_preservation(ram_preservation),
+			_env(env), _ram_preservation(ram_preservation),
 			_exited_child_sig_cap(exited_child_sig_cap)
 		{ }
 
@@ -172,12 +174,12 @@ class Launcher::Subsystem_manager
 			Genode::log("starting child '", label.string(), "'");
 
 			try {
-				Child *child = new (env()->heap())
+				Child *child = new (_heap)
 					Child(_ram, label, binary_name.string(),
-					      *Genode::env()->pd_session(),
-					      *Genode::env()->ram_session(),
-					      Genode::env()->ram_session_cap(),
-					      *Genode::env()->rm_session(),
+					      _env.pd(),
+					      _env.ram(),
+					      _env.ram_session_cap(),
+					      _env.rm(),
 					      ram_config.quantum, ram_config.limit,
 					      _yield_broadcast_handler,
 					      _exited_child_sig_cap);
@@ -203,7 +205,7 @@ class Launcher::Subsystem_manager
 			for (Child *c = _children.first(); c; c = c->next()) {
 				if (c->label() == Label(label)) {
 					_children.remove(c);
-					destroy(env()->heap(), c);
+					destroy(_heap, c);
 					return;
 				}
 			}

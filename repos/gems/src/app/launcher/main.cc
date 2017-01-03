@@ -78,7 +78,7 @@ struct Launcher::Main
 		return 0;
 	}
 
-	Subsystem_manager _subsystem_manager { _env.ep(), _env.pd(),
+	Subsystem_manager _subsystem_manager { _env,
 	                                       _ram_preservation(_config.xml()),
 	                                       _exited_child_handler };
 

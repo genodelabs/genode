@@ -18,7 +18,10 @@
 #include <table.h>
 #include <child_registry.h>
 
-struct Status_command : Command
+namespace Cli_monitor { struct Status_command; }
+
+
+struct Cli_monitor::Status_command : Command
 {
 	Child_registry &_children;
 	Ram            &_ram;

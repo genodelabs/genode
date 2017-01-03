@@ -20,7 +20,10 @@
 /* local includes */
 #include <child.h>
 
-class Child_registry : public List<Child>
+namespace Cli_monitor { class Child_registry; }
+
+
+class Cli_monitor::Child_registry : public List<Child>
 {
 	private:
 

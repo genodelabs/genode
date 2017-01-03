@@ -18,7 +18,10 @@
 #include <vfs/file_system.h>
 #include <vfs/vfs_handle.h>
 
-class Subsystem_config_registry
+namespace Cli_monitor { class Subsystem_config_registry; }
+
+
+class Cli_monitor::Subsystem_config_registry
 {
 	public:
 
@@ -29,7 +32,8 @@ class Subsystem_config_registry
 
 	private:
 
-		Vfs::File_system &_fs;
+		Vfs::File_system  &_fs;
+		Genode::Allocator &_alloc;
 
 		enum { CONFIG_BUF_SIZE = 32*1024 };
 		char _config_buf[CONFIG_BUF_SIZE];
@@ -58,9 +62,9 @@ class Subsystem_config_registry
 		/**
 		 * Constructor
 		 */
-		Subsystem_config_registry(Vfs::File_system &fs)
+		Subsystem_config_registry(Vfs::File_system &fs, Genode::Allocator &alloc)
 		:
-			_fs(fs)
+			_fs(fs), _alloc(alloc)
 		{ }
 
 		/**
@@ -89,7 +93,7 @@ class Subsystem_config_registry
 			Vfs::Directory_service::Open_result const open_result =
 				_fs.open(path.base(),
 				         Vfs::Directory_service::OPEN_MODE_RDONLY,
-				         &handle, *Genode::env()->heap());
+				         &handle, _alloc);
 
 			Vfs::Vfs_handle::Guard handle_guard(handle);
 

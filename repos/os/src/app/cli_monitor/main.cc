@@ -12,8 +12,8 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
-#include <cap_session/connection.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/registry.h>
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <base/component.h>
@@ -25,7 +25,6 @@
 #include <line_editor.h>
 #include <command_line.h>
 #include <format_util.h>
-#include <extension.h>
 #include <status_command.h>
 #include <kill_command.h>
 #include <start_command.h>
@@ -33,12 +32,10 @@
 #include <yield_command.h>
 #include <ram_command.h>
 
-using Genode::Xml_node;
+namespace Cli_monitor {
 
-
-inline void *operator new (__SIZE_TYPE__ size)
-{
-	return Genode::env()->heap()->alloc(size);
+	struct Main;
+	using namespace Genode;
 }
 
 
@@ -46,186 +43,187 @@ inline void *operator new (__SIZE_TYPE__ size)
  ** Main program **
  ******************/
 
-static inline Command *lookup_command(char const *buf, Command_registry &registry)
+struct Cli_monitor::Main
 {
-	Token token(buf);
-	for (Command *curr = registry.first(); curr; curr = curr->next())
-		if (strcmp(token.start(), curr->name().string(), token.len()) == 0
-		 && strlen(curr->name().string()) == token.len())
-			return curr;
-	return 0;
-}
+	Genode::Env &_env;
 
+	Terminal::Connection _terminal { _env };
 
-static size_t ram_preservation_from_config()
-{
-	Genode::Number_of_bytes ram_preservation = 0;
-	try {
-		Genode::Xml_node node =
-			Genode::config()->xml_node().sub_node("preservation");
+	Command_registry _commands;
 
-		if (node.attribute("name").has_value("RAM"))
-			node.attribute("quantum").value(&ram_preservation);
-	} catch (...) { }
+	Child_registry _children;
 
-	return ram_preservation;
-}
-
-
-static Genode::Xml_node vfs_config()
-{
-	try { return Genode::config()->xml_node().sub_node("vfs"); }
-	catch (Genode::Xml_node::Nonexistent_sub_node) {
-		Genode::error("missing '<vfs>' configuration");
-		throw;
+	Command *_lookup_command(char const *buf)
+	{
+		Token token(buf);
+		for (Command *curr = _commands.first(); curr; curr = curr->next())
+			if (strcmp(token.start(), curr->name().string(), token.len()) == 0
+			 && strlen(curr->name().string()) == token.len())
+				return curr;
+		return 0;
 	}
-}
-
-
-void Component::construct(Genode::Env &env)
-{
-	using Genode::Signal_context;
-	using Genode::Signal_context_capability;
-	using Genode::Signal_receiver;
-
-	static Genode::Cap_connection cap;
-	static Terminal::Connection   terminal(env);
-	static Command_registry       commands;
-	static Child_registry         children;
-
-	/* initialize platform-specific commands */
-	init_extension(commands);
-
-	static Signal_receiver sig_rec;
-	static Signal_context  read_avail_sig_ctx;
-	terminal.read_avail_sigh(sig_rec.manage(&read_avail_sig_ctx));
-
-	static Signal_context yield_response_sig_ctx;
-	static Signal_context_capability yield_response_sig_cap =
-		sig_rec.manage(&yield_response_sig_ctx);
-
-	static Signal_context yield_broadcast_sig_ctx;
-	static Signal_context resource_avail_sig_ctx;
-
-	static Signal_context exited_child_sig_ctx;
-	static Signal_context_capability exited_child_sig_cap =
-		sig_rec.manage(&exited_child_sig_ctx);
-
-	static Ram ram(ram_preservation_from_config(),
-	               sig_rec.manage(&yield_broadcast_sig_ctx),
-	               sig_rec.manage(&resource_avail_sig_ctx));
-
-	/* initialize virtual file system */
-	static Vfs::Dir_file_system root_dir(env, *Genode::env()->heap(), vfs_config(),
-	                                     Vfs::global_file_system_factory());
-
-	static Subsystem_config_registry subsystem_config_registry(root_dir);
-
-	/* initialize generic commands */
-	commands.insert(new Help_command);
-	Kill_command kill_command(children);
-	commands.insert(&kill_command);
-	commands.insert(new Start_command(ram, env.pd(),
-	                                  env.ram(), env.ram_session_cap(),
-	                                  env.rm(), children,
-	                                  subsystem_config_registry,
-	                                  yield_response_sig_cap,
-	                                  exited_child_sig_cap));
-	commands.insert(new Status_command(ram, children));
-	commands.insert(new Yield_command(children));
-	commands.insert(new Ram_command(children));
 
 	enum { COMMAND_MAX_LEN = 1000 };
-	static char buf[COMMAND_MAX_LEN];
-	static Line_editor line_editor("genode> ", buf, sizeof(buf), terminal, commands);
+	char _command_buf[COMMAND_MAX_LEN];
+	Line_editor _line_editor {
+		"genode> ", _command_buf, sizeof(_command_buf), _terminal, _commands };
 
-	for (;;) {
+	void _handle_terminal_read_avail();
 
-		/* block for event, e.g., the arrival of new user input */
-		Genode::Signal signal = sig_rec.wait_for_signal();
+	Signal_handler<Main> _terminal_read_avail_handler {
+		_env.ep(), *this, &Main::_handle_terminal_read_avail };
 
-		if (signal.context() == &read_avail_sig_ctx) {
-
-			/* supply pending terminal input to line editor */
-			while (terminal.avail() && !line_editor.completed()) {
-				char c;
-				terminal.read(&c, 1);
-				line_editor.submit_input(c);
-			}
-		}
-
-		if (signal.context() == &yield_response_sig_ctx
-		 || signal.context() == &resource_avail_sig_ctx) {
-
-			for (Child *child = children.first(); child; child = child->next())
-				child->try_response_to_resource_request();
-		}
-
-		if (signal.context() == &yield_broadcast_sig_ctx) {
-
-			/*
-			 * Compute argument of yield request to be broadcasted to all
-			 * processes.
-			 */
-			size_t amount = 0;
-
-			/* amount needed to reach preservation limit */
-			Ram::Status ram_status = ram.status();
-			if (ram_status.avail < ram_status.preserve)
-				amount += ram_status.preserve - ram_status.avail;
-
-			/* sum of pending resource requests */
-			for (Child *child = children.first(); child; child = child->next())
-				amount += child->requested_ram_quota();
-
-			for (Child *child = children.first(); child; child = child->next())
-				child->yield(amount, true);
-		}
-
-		if (signal.context() == &exited_child_sig_ctx) {
-			Child *next = nullptr;
-			for (Child *child = children.first(); child; child = next) {
-				next = child->next();
-				if (child->exited()) {
-					children.remove(child);
-					Genode::destroy(Genode::env()->heap(), child);
-				}
-			}
-			continue;
-		}
-
-		if (!line_editor.completed())
-			continue;
-
-		Command *command = lookup_command(buf, commands);
-		if (!command) {
-			Token cmd_name(buf);
-			tprintf(terminal, "Error: unknown command \"");
-			terminal.write(cmd_name.start(), cmd_name.len());
-			tprintf(terminal, "\"\n");
-			line_editor.reset();
-			continue;
-		}
-
-		/* validate parameters against command meta data */
-		Command_line cmd_line(buf, *command);
-		Token unexpected = cmd_line.unexpected_parameter();
-		if (unexpected) {
-			tprintf(terminal, "Error: unexpected parameter \"");
-			terminal.write(unexpected.start(), unexpected.len());
-			tprintf(terminal, "\"\n");
-			line_editor.reset();
-			continue;
-		}
-		command->execute(cmd_line, terminal);
-
-		/*
-		 * The command might result in a change of the RAM usage. Validate
-		 * that the preservation is satisfied.
-		 */
-		ram.validate_preservation();
-		line_editor.reset();
+	/**
+	 * Handler for child yield responses, or RAM resource-avail signals
+	 */
+	void _handle_yield_response()
+	{
+		for (Child *child = _children.first(); child; child = child->next())
+			child->try_response_to_resource_request();
 	}
 
-	env.parent().exit(0);
+	Signal_handler<Main> _yield_response_handler {
+		_env.ep(), *this, &Main::_handle_yield_response };
+
+	void _handle_child_exit()
+	{
+		Child *next = nullptr;
+		for (Child *child = _children.first(); child; child = next) {
+			next = child->next();
+			if (child->exited()) {
+				_children.remove(child);
+				Genode::destroy(_heap, child);
+			}
+		}
+	}
+
+	Signal_handler<Main> _child_exit_handler {
+		_env.ep(), *this, &Main::_handle_child_exit };
+
+	void _handle_yield_broadcast()
+	{
+		/*
+		 * Compute argument of yield request to be broadcasted to all
+		 * processes.
+		 */
+		size_t amount = 0;
+
+		/* amount needed to reach preservation limit */
+		Ram::Status ram_status = _ram.status();
+		if (ram_status.avail < ram_status.preserve)
+			amount += ram_status.preserve - ram_status.avail;
+
+		/* sum of pending resource requests */
+		for (Child *child = _children.first(); child; child = child->next())
+			amount += child->requested_ram_quota();
+
+		for (Child *child = _children.first(); child; child = child->next())
+			child->yield(amount, true);
+	}
+
+	Signal_handler<Main> _yield_broadcast_handler {
+		_env.ep(), *this, &Main::_handle_yield_broadcast };
+
+	Genode::Attached_rom_dataspace _config { _env, "config" };
+
+	Xml_node _vfs_config() const
+	{
+		try { return _config.xml().sub_node("vfs"); }
+		catch (Genode::Xml_node::Nonexistent_sub_node) {
+			Genode::error("missing '<vfs>' configuration");
+			throw;
+		}
+	}
+
+	size_t _ram_preservation_from_config() const
+	{
+		if (!_config.xml().has_sub_node("preservation"))
+			return 0;
+
+		return _config.xml().sub_node("preservation")
+		                    .attribute_value("name", Genode::Number_of_bytes(0));
+	}
+
+	Ram _ram { _env.ram(), _env.ram_session_cap(), _ram_preservation_from_config(),
+	           _yield_broadcast_handler, _yield_response_handler };
+
+	Heap _heap { _env.ram(), _env.rm() };
+
+	/* initialize virtual file system */
+	Vfs::Dir_file_system _root_dir { _env, _heap, _vfs_config(),
+	                                 Vfs::global_file_system_factory() };
+
+	Subsystem_config_registry _subsystem_config_registry { _root_dir, _heap };
+
+	template <typename T>
+	struct Registered : T
+	{
+		template <typename... ARGS>
+		Registered(Command_registry &commands, ARGS &&... args)
+		: T(args...) { commands.insert(this); }
+	};
+
+	/* initialize generic commands */
+	Registered<Help_command>  _help_command    { _commands };
+	Registered<Kill_command>  _kill_command    { _commands, _children, _heap };
+	Registered<Start_command> _start_command   { _commands, _ram, _heap, _env.pd(),
+	                                             _env.ram(), _env.ram_session_cap(),
+	                                             _env.rm(), _children,
+	                                             _subsystem_config_registry,
+	                                             _yield_response_handler,
+	                                             _child_exit_handler };
+	Registered<Status_command> _status_command { _commands, _ram, _children };
+	Registered<Yield_command>  _yield_command  { _commands, _children };
+	Registered<Ram_command>    _ram_command    { _commands, _children, _ram };
+
+	Main(Env &env) : _env(env)
+	{
+		_terminal.read_avail_sigh(_terminal_read_avail_handler);
+	}
+};
+
+
+void Cli_monitor::Main::_handle_terminal_read_avail()
+{
+	/* supply pending terminal input to line editor */
+	while (_terminal.avail() && !_line_editor.completed()) {
+		char c = 0;
+		_terminal.read(&c, 1);
+		_line_editor.submit_input(c);
+	}
+
+	if (!_line_editor.completed())
+		return;
+
+	Command *command = _lookup_command(_command_buf);
+	if (!command) {
+		Token cmd_name(_command_buf);
+		tprintf(_terminal, "Error: unknown command \"");
+		_terminal.write(cmd_name.start(), cmd_name.len());
+		tprintf(_terminal, "\"\n");
+		_line_editor.reset();
+		return;
+	}
+
+	/* validate parameters against command meta data */
+	Command_line cmd_line(_command_buf, *command);
+	Token unexpected = cmd_line.unexpected_parameter();
+	if (unexpected) {
+		tprintf(_terminal, "Error: unexpected parameter \"");
+		_terminal.write(unexpected.start(), unexpected.len());
+		tprintf(_terminal, "\"\n");
+		_line_editor.reset();
+		return;
+	}
+	command->execute(cmd_line, _terminal);
+
+	/*
+	 * The command might result in a change of the RAM usage. Validate
+	 * that the preservation is satisfied.
+	 */
+	_ram.validate_preservation();
+	_line_editor.reset();
 }
+
+
+void Component::construct(Genode::Env &env) { static Cli_monitor::Main main(env); }

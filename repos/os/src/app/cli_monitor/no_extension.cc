@@ -13,5 +13,5 @@
 
 #include <extension.h>
 
-void init_extension(Command_registry &) { }
+void Cli_monitor::init_extension(Command_registry &) { }
 
