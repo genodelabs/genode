@@ -49,9 +49,6 @@ int main()
 {
 	using namespace Genode;
 
-	FILE fp;
-	::memset(&fp, 0x0, sizeof(fp));
-
 	char *name;
 	if (!process_config(&name)) {
 		Genode::error("no script found");
@@ -59,10 +56,8 @@ int main()
 	}
 
 	Genode::log("Found script: ", Genode::Cstring(name));
-	fp._file = open(name, 0, 0);
-	fp._read = __sread;
-	fp._cookie = &fp;
-	fp._flags = __SRD;
+	FILE* fp = fopen(name, "r");
+	//fp._flags = __SRD;
 	Py_SetProgramName(name);
 	//don't need the 'site' module
 	Py_NoSiteFlag = 1;
@@ -71,7 +66,7 @@ int main()
 	Py_Initialize();
 
 	Genode::log("Starting python ...");
-	PyRun_SimpleFile(&fp, name);
+	PyRun_SimpleFile(fp, name);
 
 	return 0;
 }
