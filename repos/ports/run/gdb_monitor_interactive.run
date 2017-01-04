@@ -77,7 +77,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_pipe.lib.so libc_terminal.lib.so
+	ld.lib.so libc.lib.so libm.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor test-gdb_monitor
 }
@@ -106,18 +106,26 @@ puts "GDB monitor is up, starting GDB in a new terminal"
 
 source ${genode_dir}/repos/ports/run/gdb_monitor.inc
 
+# GDB loads symbols from 'bin/ld.lib.so'
+if { [have_spec nova] } {
+	exec ln -sf ld-nova.lib.so bin/ld.lib.so
+}
+if { [have_spec foc] } {
+	exec ln -sf ld-foc.lib.so bin/ld.lib.so
+}
+
 set gdb_target_binary "test-gdb_monitor"
 
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
 append gdb_cmds "-ex \"target remote localhost:$local_port\" "
 
-append gdb_cmds [gdb_main_breakpoint_cmds $gdb_target_binary]
+append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 
 # ask the user for confirmations again
 append gdb_cmds {-ex "set interactive-mode auto" }
 
-puts "command: [gdb] bin/$gdb_target_binary $gdb_cmds"
+puts "command: [gdb] bin/ld.lib.so $gdb_cmds"
 
 exec [terminal] -e "[gdb] bin/ld.lib.so $gdb_cmds" &
 

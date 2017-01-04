@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,22 +17,21 @@
 #include <base/signal.h>
 #include <base/thread.h>
 
-using namespace Genode;
-
 namespace Gdb_monitor {
+
+	using namespace Genode;
 
 	enum { SIGNAL_HANDLER_THREAD_STACK_SIZE = 2*1024*sizeof(addr_t) };
 
-	class Signal_handler_thread
-	: public Thread_deprecated<SIGNAL_HANDLER_THREAD_STACK_SIZE>
+	class Signal_handler_thread	: public Thread
 	{
 		private:
 
-			Signal_receiver *_signal_receiver;
+			Signal_receiver &_signal_receiver;
 
 		public:
 
-			Signal_handler_thread(Signal_receiver *receiver);
+			Signal_handler_thread(Env &env, Signal_receiver &receiver);
 			void entry();
 	};
 

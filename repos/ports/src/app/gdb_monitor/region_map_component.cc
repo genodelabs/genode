@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -75,7 +75,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 	                                       executable);
 
 	Lock::Guard lock_guard(_region_map_lock);
-	_region_map.insert(new (env()->heap()) Region(addr, (void*)((addr_t)addr + size - 1), ds_cap, offset));
+	_region_map.insert(new (_alloc) Region(addr, (void*)((addr_t)addr + size - 1), ds_cap, offset));
 
 	return addr;
 }
@@ -92,7 +92,7 @@ void Region_map_component::detach(Region_map::Local_addr local_addr)
 		return;
 	}
 	_region_map.remove(region);
-	destroy(env()->heap(), region);
+	destroy(_alloc, region);
 }
 
 
@@ -111,16 +111,18 @@ Region_map::State Region_map_component::state()
 Dataspace_capability Region_map_component::dataspace()
 {
 	Dataspace_capability ds_cap = _parent_region_map.dataspace();
-	_managed_ds_map.insert(new (env()->heap()) Dataspace_object(ds_cap, this));
+	_managed_ds_map.insert(new (_alloc) Dataspace_object(ds_cap, this));
 	return ds_cap;
 }
 
 Region_map_component::Region_map_component(Rpc_entrypoint &ep,
+                                           Allocator &alloc,
                                            Dataspace_pool &managed_ds_map,
                                            Pd_session_capability pd,
                                            Capability<Region_map> parent_region_map)
 :
 	_ep(ep),
+	_alloc(alloc),
 	_pd(pd),
 	_parent_region_map(parent_region_map),
 	_managed_ds_map(managed_ds_map)

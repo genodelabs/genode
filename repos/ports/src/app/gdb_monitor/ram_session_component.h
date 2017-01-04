@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2016 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,29 +20,30 @@
 
 namespace Gdb_monitor
 {
-	class Ram_session_component;
 	using namespace Genode;
+
+	class Ram_session_component;
 }
 
 class Gdb_monitor::Ram_session_component : public Rpc_object<Ram_session>
 {
 	private:
 
-		Genode::Env    &_env;
+		Env                &_env;
 
-		Genode::Parent::Client _parent_client;
+		Parent::Client      _parent_client;
 		
 		Id_space<Parent::Client>::Element const _id_space_element
 		{ _parent_client, _env.id_space() };
 
-		Genode::Ram_session_client _parent_ram_session;
+		Ram_session_client  _parent_ram_session;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Ram_session_component(Genode::Env &env, const char *args,
+		Ram_session_component(Env &env, const char *args,
 		                      Affinity const &affinity);
 
 		/**
@@ -55,12 +56,12 @@ class Gdb_monitor::Ram_session_component : public Rpc_object<Ram_session>
 		 ** RAM Session interface **
 		 ***************************/
 
-		Ram_dataspace_capability alloc(Genode::size_t, Cache_attribute);
+		Ram_dataspace_capability alloc(size_t, Cache_attribute);
 		void free(Ram_dataspace_capability);
 		int ref_account(Ram_session_capability);
-		int transfer_quota(Ram_session_capability, Genode::size_t);
-		Genode::size_t quota();
-		Genode::size_t used();
+		int transfer_quota(Ram_session_capability, size_t);
+		size_t quota();
+		size_t used();
 };
 
 #endif /* _RAM_SESSION_COMPONENT_H_ */

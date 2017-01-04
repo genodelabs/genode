@@ -90,7 +90,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_pipe.lib.so libc_terminal.lib.so
+	ld.lib.so libc.lib.so libm.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor test-gdb_monitor
 }
@@ -120,12 +120,20 @@ puts "GDB monitor is up, starting GDB"
 
 source ${genode_dir}/repos/ports/run/gdb_monitor.inc
 
+# GDB loads symbols from 'bin/ld.lib.so'
+if { [have_spec nova] } {
+	exec ln -sf ld-nova.lib.so bin/ld.lib.so
+}
+if { [have_spec foc] } {
+	exec ln -sf ld-foc.lib.so bin/ld.lib.so
+}
+
 set gdb_target_binary "test-gdb_monitor"
 
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
 append gdb_cmds {-ex "target remote localhost:$local_port" }
-append gdb_cmds [gdb_main_breakpoint_cmds $gdb_target_binary]
+append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 
 # run GDB and redirect stderr to stdio to get the relevant output into the expect buffer
 eval spawn [gdb] bin/ld.lib.so -n $gdb_cmds 2&>1
@@ -137,10 +145,18 @@ puts ""
 
 run_genode_until {\(gdb\)} 60 $gdb_id
 
+send "b main\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
 if {![regexp {Breakpoint 2, main ()} $output]} {
 	puts stderr "*** Error: Breakpoint in main() did not trigger"
 	exit -1
 }
+
+send "delete 2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
 
 puts "\n"
 puts "----- test: breakpoint in shared library -----"

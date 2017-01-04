@@ -1,5 +1,5 @@
-if {![have_spec foc] && ![have_spec nova]} {
-	puts "\nThe Noux GDB scenario is supported on NOVA and Fiasco.OC only\n"
+if {!([have_spec nova] || ([have_spec foc] && [have_spec 32bit]))} {
+	puts "\nThe Noux GDB scenario is only supported for NOVA or 32-bit Fiasco.OC\n"
 	exit 0
 }
 
@@ -26,7 +26,10 @@ set build_components {
 	app/gdb_monitor
 }
 
-lappend_if [have_spec gpio]    build_components drivers/gpio
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+lappend_if [have_spec nova] build_components lib/ld/nova
+lappend_if [have_spec foc]  build_components lib/ld/foc
 
 lappend build_components noux-pkg/[noux_gdb_pkg_name]
 
@@ -39,11 +42,20 @@ append_platform_drv_build_components
 
 build $build_components
 
+# GDB loads symbols from 'bin/ld.lib.so'
+if { [have_spec nova] } {
+	exec ln -sf ld-nova.lib.so bin/ld.lib.so
+}
+if { [have_spec foc] } {
+	exec ln -sf ld-foc.lib.so bin/ld.lib.so
+}
+
 # names of the binaries needed for the GDB monitor test
 set gdb_target_binaries {
 	test-gdb_monitor
 	ld.lib.so
 	libc.lib.so
+	libm.lib.so
 }
 lappend gdb_target_binaries ${gdb_target_binary_name}
 

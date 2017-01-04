@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,10 +18,6 @@
 #include <base/thread.h>
 #include <cpu_session/cpu_session.h>
 #include <cpu_thread/client.h>
-
-/* libc includes */
-#include <signal.h>
-#include <unistd.h>
 
 #include "config.h"
 #include "append_list.h"
@@ -65,62 +61,20 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 		bool _set_breakpoint_at_first_instruction(addr_t ip);
 		void _remove_breakpoint_at_first_instruction();
 
-		void _dispatch_exception(unsigned)
-		{
-			deliver_signal(SIGTRAP);
-		}
-
-		void _dispatch_sigstop(unsigned)
-		{
-			deliver_signal(SIGSTOP);
-		}
-
-		void _dispatch_sigint(unsigned)
-		{
-			deliver_signal(SIGINT);
-		}
+		void _dispatch_exception(unsigned);
+		void _dispatch_sigstop(unsigned);
+		void _dispatch_sigint(unsigned);
 
 	public:
 
-		Cpu_thread_component(Cpu_session_component &cpu_session_component,
-		                     Capability<Pd_session> pd,
+		Cpu_thread_component(Cpu_session_component   &cpu_session_component,
+		                     Capability<Pd_session>   pd,
 		                     Cpu_session::Name const &name,
-		                     Affinity::Location affinity,
-		                     Cpu_session::Weight weight,
-		                     addr_t utcb)
-		: _cpu_session_component(cpu_session_component),
-		  _parent_cpu_thread(
-		      _cpu_session_component.parent_cpu_session().create_thread(pd,
-		                                                                name,
-		                                                                affinity,
-		                                                                weight,
-		                                                                utcb)),
-		  _exception_dispatcher(
-		      *_cpu_session_component.exception_signal_receiver(),
-		      *this,
-		      &Cpu_thread_component::_dispatch_exception),
-		  _sigstop_dispatcher(
-		      *_cpu_session_component.exception_signal_receiver(),
-		      *this,
-		      &Cpu_thread_component::_dispatch_sigstop),
-		  _sigint_dispatcher(
-		      *_cpu_session_component.exception_signal_receiver(),
-		      *this,
-		      &Cpu_thread_component::_dispatch_sigint)
-		{
-			_cpu_session_component.thread_ep().manage(this);
+		                     Affinity::Location       affinity,
+		                     Cpu_session::Weight      weight,
+		                     addr_t                   utcb);
 
-			if (pipe(_pipefd) != 0)
-				error("could not create pipe");
-		}
-
-		~Cpu_thread_component()
-		{
-			close(_pipefd[0]);
-			close(_pipefd[1]);
-
-			_cpu_session_component.thread_ep().dissolve(this);
-		}
+		~Cpu_thread_component();
 
 		Signal_context_capability exception_signal_context_cap()
 		{
@@ -154,89 +108,9 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 			return 0;
 		}
 
-		int send_signal(int signo)
-		{
-			pause();
+		int send_signal(int signo);
 
-			switch (signo) {
-				case SIGSTOP:
-					Signal_transmitter(sigstop_signal_context_cap()).submit();
-					return 1;
-				case SIGINT:
-					Signal_transmitter(sigint_signal_context_cap()).submit();
-					return 1;
-				default:
-					error("unexpected signal ", signo);
-					return 0;
-			}
-		}
-
-		int deliver_signal(int signo)
-		{
-			if ((signo == SIGTRAP) && _initial_sigtrap_pending) {
-
-				_initial_sigtrap_pending = false;
-
-				if (_verbose)
-					log("received initial SIGTRAP for lwpid ", _lwpid);
-
-				if (_lwpid == GENODE_MAIN_LWPID) {
-					_remove_breakpoint_at_first_instruction();
-					_initial_breakpoint_handled = true;
-				}
-
-				/*
-				 * The lock guard prevents an interruption by
-				 * 'genode_stop_all_threads()', which could cause
-				 * the new thread to be resumed when it should be
-				 * stopped.
-				 */
-
-				Lock::Guard stop_new_threads_lock_guard(
-					_cpu_session_component.stop_new_threads_lock());
-
-				if (!_cpu_session_component.stop_new_threads())
-					resume();
-
-				/*
-				 * gdbserver expects SIGSTOP as first signal of a new thread,
-				 * but we cannot write SIGSTOP here, because waitpid() would
-				 * detect that the thread is in an exception state and wait
-				 * for the SIGTRAP. So SIGINFO ist used for this purpose.
-				 */
-				signo = SIGINFO;
-			}
-
-			switch (signo) {
-				case SIGSTOP:
-					if (_verbose)
-						log("delivering SIGSTOP to thread ", _lwpid);
-					break;
-				case SIGTRAP:
-					if (_verbose)
-						log("delivering SIGTRAP to thread ", _lwpid);
-					break;
-				case SIGSEGV:
-					if (_verbose)
-						log("delivering SIGSEGV to thread ", _lwpid);
-					break;
-				case SIGINT:
-					if (_verbose)
-						log("delivering SIGINT to thread ", _lwpid);
-					break;
-				case SIGINFO:
-					if (_verbose)
-						log("delivering initial SIGSTOP to thread ", _lwpid);
-					break;
-				default:
-					error("unexpected signal ", signo);
-			}
-
-			write(_pipefd[1], &signo, sizeof(signo));
-
-			return 0;
-		}
-
+		int deliver_signal(int signo);
 
 		/**************************
 		 ** CPU thread interface **

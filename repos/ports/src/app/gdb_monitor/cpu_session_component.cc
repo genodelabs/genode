@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -20,6 +20,9 @@
 
 /* GDB monitor includes */
 #include "cpu_thread_component.h"
+
+/* libc includes */
+#include <sys/signal.h>
 
 /* genode-low.cc */
 extern void genode_remove_thread(unsigned long lwpid);
@@ -40,7 +43,7 @@ Rpc_entrypoint &Cpu_session_component::thread_ep()
 }
 
 
-Signal_receiver *Cpu_session_component::exception_signal_receiver()
+Signal_receiver &Cpu_session_component::exception_signal_receiver()
 {
 	return _exception_signal_receiver;
 }
@@ -299,11 +302,11 @@ Capability<Cpu_session::Native_cpu> Cpu_session_component::native_cpu()
 }
 
 
-Cpu_session_component::Cpu_session_component(Genode::Env &env,
+Cpu_session_component::Cpu_session_component(Env &env,
                                              Rpc_entrypoint &ep,
-                                             Allocator *md_alloc,
+                                             Allocator &md_alloc,
                                              Pd_session_capability core_pd,
-                                             Signal_receiver *exception_signal_receiver,
+                                             Signal_receiver &exception_signal_receiver,
                                              const char *args,
                                              Affinity const &affinity)
 : _env(env),
@@ -335,7 +338,7 @@ Cpu_session_component::~Cpu_session_component()
 int Cpu_session_component::ref_account(Cpu_session_capability) { return -1; }
 
 
-int Cpu_session_component::transfer_quota(Cpu_session_capability, Genode::size_t) { return -1; }
+int Cpu_session_component::transfer_quota(Cpu_session_capability, size_t) { return -1; }
 
 
 Cpu_session::Quota Cpu_session_component::quota() { return Quota(); }

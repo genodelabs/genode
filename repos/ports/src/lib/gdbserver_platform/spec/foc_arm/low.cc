@@ -5,24 +5,27 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
+
+/* Genode includes */
+#include <base/log.h>
+
+/* GDB monitor includes */
+#include "cpu_session_component.h"
+#include "reg-arm.h"
+#include "gdbserver_platform_helper.h"
+
+#include "genode_child_resources.h"
 
 extern "C" {
 #define private _private
 #include "genode-low.h"
 #define _private private
 }
-
-#include <base/log.h>
-#include "cpu_session_component.h"
-#include "reg-arm.h"
-#include "gdbserver_platform_helper.h"
-
-#include "genode_child_resources.h"
 
 using namespace Genode;
 

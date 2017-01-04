@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -22,9 +22,10 @@
 #include "region_map_component.h"
 
 namespace Gdb_monitor {
-	class Pd_session_component;
-	typedef Genode::Local_service<Pd_session_component> Pd_service;
 	using namespace Genode;
+
+	class Pd_session_component;
+	typedef Local_service<Pd_session_component> Pd_service;
 }
 
 class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
@@ -32,6 +33,7 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 	private:
 
 		Rpc_entrypoint &_ep;
+		Allocator      &_alloc;
 
 		Pd_connection _pd;
 
@@ -44,13 +46,18 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 		/**
 		 * Constructor
 		 */
-		Pd_session_component(char const *binary_name, Rpc_entrypoint &ep,
+		Pd_session_component(Rpc_entrypoint &ep,
+		                     Env            &env,
+		                     Allocator      &alloc,
+		                     char const     *binary_name,
 		                     Dataspace_pool &managed_ds_map)
 		:
-			_ep(ep), _pd(binary_name),
-			_address_space(_ep, managed_ds_map, _pd, _pd.address_space()),
-			_stack_area   (_ep, managed_ds_map, _pd, _pd.stack_area()),
-			_linker_area  (_ep, managed_ds_map, _pd, _pd.linker_area())
+			_ep(ep),
+			_alloc(alloc),
+			_pd(env, binary_name),
+			_address_space(_ep, _alloc, managed_ds_map, _pd, _pd.address_space()),
+			_stack_area   (_ep, _alloc, managed_ds_map, _pd, _pd.stack_area()),
+			_linker_area  (_ep, _alloc, managed_ds_map, _pd, _pd.linker_area())
 		{
 			_ep.manage(this);
 		}
