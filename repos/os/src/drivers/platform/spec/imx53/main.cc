@@ -12,9 +12,8 @@
  */
 
 #include <base/log.h>
-#include <base/sleep.h>
-#include <base/rpc_server.h>
-#include <cap_session/connection.h>
+#include <base/heap.h>
+#include <base/component.h>
 #include <root/component.h>
 #include <platform_session/platform_session.h>
 
@@ -125,23 +124,26 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	public:
 
-		Root(Genode::Rpc_entrypoint *session_ep,
-		     Genode::Allocator *md_alloc)
+		Root(Genode::Entrypoint & session_ep,
+		     Genode::Allocator &  md_alloc)
 		: Genode::Root_component<Session_component>(session_ep, md_alloc) { }
 };
 
 
-int main(int, char **)
+struct Main
 {
-	using namespace Genode;
+	Genode::Env &  env;
+	Genode::Heap   heap { env.ram(), env.rm() };
+	Platform::Root root { env.ep(), heap };
 
+	Main(Genode::Env & env) : env(env) {
+		env.parent().announce(env.ep().manage(root)); }
+};
+
+
+void Component::construct(Genode::Env &env)
+{
 	Genode::log("--- i.MX53 platform driver ---");
 
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, 4096, "imx53_plat_ep");
-	static Platform::Root plat_root(&ep, env()->heap());
-	env()->parent()->announce(ep.manage(&plat_root));
-
-	sleep_forever();
-	return 0;
+	static Main main(env);
 }

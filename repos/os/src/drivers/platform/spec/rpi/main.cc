@@ -13,9 +13,8 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/sleep.h>
-#include <base/rpc_server.h>
-#include <cap_session/connection.h>
+#include <base/component.h>
+#include <base/heap.h>
 #include <root/component.h>
 
 /* platform includes */
@@ -42,9 +41,6 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 
 	public:
 
-		/**
-		 * Constructor
-		 */
 		Session_component(Mbox &mbox) : _mbox(mbox) { }
 
 
@@ -97,22 +93,25 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	public:
 
-		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc)
+		Root(Entrypoint & session_ep, Allocator & md_alloc)
 		: Root_component<Session_component>(session_ep, md_alloc) { }
 };
 
 
-int main(int, char **)
+struct Main
 {
-	using namespace Platform;
+	Genode::Env &  env;
+	Genode::Heap   heap { env.ram(), env.rm() };
+	Platform::Root root { env.ep(), heap };
 
+	Main(Genode::Env & env) : env(env) {
+		env.parent().announce(env.ep().manage(root)); }
+};
+
+
+void Component::construct(Genode::Env &env)
+{
 	Genode::log("--- Raspberry Pi platform driver ---");
 
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, 4096, "rpi_plat_ep");
-	static Platform::Root plat_root(&ep, env()->heap());
-	env()->parent()->announce(ep.manage(&plat_root));
-
-	sleep_forever();
-	return 0;
+	static Main main(env);
 }

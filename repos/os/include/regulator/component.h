@@ -29,23 +29,17 @@ class Regulator::Session_component : public Regulator::Session_rpc_object
 {
 	private:
 
-		Driver_factory &_driver_factory;
-		Driver         &_driver;
+		Driver_factory & _driver_factory;
+		Driver         & _driver;
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Session_component(Regulator_id    regulator_id,
-		                  Driver_factory &driver_factory)
+		Session_component(Regulator_id     regulator_id,
+		                  Driver_factory & driver_factory)
 		: Session_rpc_object(regulator_id),
 		  _driver_factory(driver_factory),
 		  _driver(_driver_factory.create(regulator_id)) { }
 
-		/**
-		 * Destructor
-		 */
 		~Session_component()
 		{
 			_driver.state(_id, false);
@@ -69,8 +63,7 @@ class Regulator::Root :
 {
 	private:
 
-		Driver_factory         &_driver_factory;
-		Genode::Rpc_entrypoint &_ep;
+		Regulator::Driver_factory & _driver_factory;
 
 	protected:
 
@@ -100,12 +93,12 @@ class Regulator::Root :
 
 	public:
 
-		Root(Genode::Rpc_entrypoint *session_ep,
-		     Genode::Allocator *md_alloc,
-		     Driver_factory &driver_factory)
-		: Genode::Root_component<Regulator::Session_component>(session_ep,
+		Root(Genode::Env &               env,
+		     Genode::Allocator &         md_alloc,
+		     Regulator::Driver_factory & driver_factory)
+		: Genode::Root_component<Regulator::Session_component>(env.ep(),
 		                                                       md_alloc),
-		  _driver_factory(driver_factory), _ep(*session_ep) { }
+		  _driver_factory(driver_factory) { }
 };
 
 #endif /* _INCLUDE__REGULATOR__COMPONENT_H_ */
