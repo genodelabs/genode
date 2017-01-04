@@ -5,192 +5,368 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <base/log.h>
+#include <base/heap.h>
 #include <base/allocator_avl.h>
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
-#include <timer_session/connection.h>
+
+namespace Test {
+	struct Base;
+	struct Roundtrip;
+	struct Batch;
+	struct Main;
+
+	using namespace Genode;
+}
+
 
 namespace Genode {
 
-	static inline void print(Output &out, Packet_descriptor packet)
+	static void print(Output &out, Packet_descriptor const &packet)
 	{
-		Genode::print(out, "offset=", packet.offset(), ", size=", packet.size());
+		::Genode::print(out, "offset=", packet.offset(), ", size=", packet.size());
 	}
 }
 
 
-using namespace Genode;
-
-
-static bool single_packet_roundtrip(Nic::Session  *nic,
-                                    unsigned char  content_pattern,
-                                    size_t         packet_size)
+struct Test::Base
 {
-	Packet_descriptor tx_packet;
+	public:
 
-	log("single_packet_roundtrip(content='", Char(content_pattern), "', "
-	    "packet_size=", packet_size, ")");
+		typedef String<64> Name;
 
-	/* allocate transmit packet */
-	try {
-		tx_packet = nic->tx()->alloc_packet(packet_size);
-	} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
-		error(__func__, ": tx packet alloc failed");
-		return false;
-	}
+		virtual void handle_nic() = 0;
 
-	log("allocated tx packet ", tx_packet);
+	private:
 
-	/* fill packet with pattern */
-	char *tx_content = nic->tx()->packet_content(tx_packet);
-	for (unsigned i = 0; i < packet_size; i++)
-		tx_content[i] = content_pattern;
+		Env &_env;
 
-	nic->tx()->submit_packet(tx_packet);
+		Name const _name;
 
-	/* wait for acknowledgement */
-	Packet_descriptor ack_tx_packet = nic->tx()->get_acked_packet();
+		Signal_context_capability _succeeded_sigh;
 
-	if (ack_tx_packet.size()   != tx_packet.size()
-	 || ack_tx_packet.offset() != tx_packet.offset()) {
-		error("unexpected acked packet");
-		return false;
-	}
+		bool _done = false;
 
-	/*
-	 * Because we sent the packet to a loop-back device, we expect
-	 * the same packet to be available at the rx channel of the NIC
-	 * session.
-	 */
-	Packet_descriptor rx_packet = nic->rx()->get_packet();
-	log("received rx packet ", rx_packet);
+		Heap _heap { _env.ram(), _env.rm() };
 
-	if (rx_packet.size() != tx_packet.size()) {
-		error("sent and echoed packets differ in size");
-		return false;
-	}
+		Allocator_avl _tx_block_alloc { &_heap };
 
-	/* compare original and echoed packets */
-	char *rx_content = nic->rx()->packet_content(rx_packet);
-	for (unsigned i = 0; i < packet_size; i++)
-		if (rx_content[i] != tx_content[i]) {
-			error("sent and echoed packets have differnt content");
-			return false;
+		enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
+		Nic::Connection _nic { &_tx_block_alloc, BUF_SIZE, BUF_SIZE };
+
+		void _handle_nic() { if (!_done) handle_nic(); }
+
+		Signal_handler<Base> _nic_handler { _env.ep(), *this, &Base::_handle_nic };
+
+	public:
+
+		Nic::Connection &nic() { return _nic; }
+
+		void success()
+		{
+			/*
+			 * There may still be packet-stream signals in flight, which we can
+			 * ignore once the test succeeded.
+			 */
+			_done = true;
+
+			log("-- ", _name, " test succeeded --");
+
+			Signal_transmitter(_succeeded_sigh).submit();
 		}
 
-	/* acknowledge received packet */
-	nic->rx()->acknowledge_packet(rx_packet);
+		template <typename... ARGS>
+		static void abort(ARGS &&... args)
+		{
+			error(args...);
+			class Error : Exception { };
+			throw Error();
+		}
 
-	/* release sent packet to free the space in the tx communication buffer */
-	nic->tx()->release_packet(tx_packet);
+		Base(Env &env, Name const &name, Signal_context_capability succeeded_sigh)
+		:
+			_env(env), _name(name), _succeeded_sigh(succeeded_sigh)
+		{
+			log("-- starting ", _name, " test --");
 
-	return true;
-}
+			_nic.tx_channel()->sigh_ready_to_submit(_nic_handler);
+			_nic.tx_channel()->sigh_ack_avail      (_nic_handler);
+			_nic.rx_channel()->sigh_ready_to_ack   (_nic_handler);
+			_nic.rx_channel()->sigh_packet_avail   (_nic_handler);
+		}
+};
 
 
-static bool batch_packets(Nic::Session *nic, unsigned num_packets)
+struct Test::Roundtrip : Base
 {
-	unsigned tx_cnt = 0, acked_cnt = 0, rx_cnt = 0, batch_cnt = 0;
+	/*
+	 * Each character of the string is used as pattern for one iteration.
+	 */
+	typedef String<16> Patterns;
 
-	Genode::Signal_context tx_ready_to_submit, tx_ack_avail,
-	                       rx_ready_to_ack, rx_packet_avail;
-	Genode::Signal_receiver signal_receiver;
+	Patterns const _patterns;
 
-	nic->tx_channel()->sigh_ready_to_submit (signal_receiver.manage(&tx_ready_to_submit));
-	nic->tx_channel()->sigh_ack_avail       (signal_receiver.manage(&tx_ack_avail));
-	nic->rx_channel()->sigh_ready_to_ack    (signal_receiver.manage(&rx_ready_to_ack));
-	nic->rx_channel()->sigh_packet_avail    (signal_receiver.manage(&rx_packet_avail));
+	unsigned _cnt = 0;
+
+	off_t _expected_packet_offset = ~0L;
+
+	char _pattern() const { return _patterns.string()[_cnt]; }
+
+	bool _received_acknowledgement  = false;
+	bool _received_reflected_packet = false;
 
 	enum { PACKET_SIZE = 100 };
 
-	while (acked_cnt != num_packets
-	    || tx_cnt    != num_packets
-	    || rx_cnt    != num_packets) {
+	void _produce_packet(Nic::Connection &nic)
+	{
+		log("start iteration ", _cnt, " with pattern '", Char(_pattern()), "'");
 
-		if (tx_cnt > rx_cnt || tx_cnt > acked_cnt)
-			signal_receiver.wait_for_signal();
+		Packet_descriptor tx_packet;
 
-		/* produce as many packets as possible as one batch */
-		unsigned max_outstanding_requests = Nic::Session::QUEUE_SIZE - 1;
-		while (nic->tx()->ready_to_submit()
-		    && tx_cnt < num_packets
-		    && tx_cnt - rx_cnt < max_outstanding_requests) {
+		/* allocate tx packet */
+		try {
+			tx_packet = nic.tx()->alloc_packet(PACKET_SIZE); }
+		catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
+			abort(__func__, ": tx packet alloc failed"); }
 
-			try {
-				Packet_descriptor tx_packet = nic->tx()->alloc_packet(PACKET_SIZE);
-				nic->tx()->submit_packet(tx_packet);
-				tx_cnt++;
-			} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
-				break;
-			}
-		}
+		/*
+		 * Remember the packet offset of the first packet. The offsets
+		 * of all subsequent packets are expected to be the same.
+		 */
+		if (_expected_packet_offset == ~0L)
+			_expected_packet_offset = tx_packet.offset();
 
-		unsigned batch_rx_cnt = 0, batch_acked_cnt = 0;
+		log("allocated tx packet ", tx_packet);
 
-		/* check for acknowledgements */
-		while (nic->tx()->ack_avail()) {
-			Packet_descriptor acked_packet = nic->tx()->get_acked_packet();
-			nic->tx()->release_packet(acked_packet);
-			acked_cnt++;
-			batch_acked_cnt++;
-		}
+		/* fill packet with pattern */
+		char *tx_content = nic.tx()->packet_content(tx_packet);
+		for (unsigned i = 0; i < PACKET_SIZE; i++)
+			tx_content[i] = _pattern();
 
-		/* check for available rx packets */
-		while (nic->rx()->packet_avail() && nic->rx()->ready_to_ack()) {
-			Packet_descriptor rx_packet = nic->rx()->get_packet();
+		if (!nic.tx()->ready_to_submit())
+			abort(__func__, ": submit queue is unexpectedly full");
 
-			if (!nic->rx()->ready_to_ack())
-				warning("not ready for ack, going to blocK");
-
-			nic->rx()->acknowledge_packet(rx_packet);
-			rx_cnt++;
-			batch_rx_cnt++;
-		}
-
-		log("acked ", batch_acked_cnt, " packets, "
-		    "received ", batch_rx_cnt, " packets "
-		    "-> tx: ", tx_cnt, ", acked: ", acked_cnt, ", rx: ", rx_cnt);
-
-		batch_cnt++;
+		nic.tx()->submit_packet(tx_packet);
 	}
 
-	log("test used ", batch_cnt, " batches");
-	return true;
-}
+	void _consume_and_compare_packet(Nic::Connection &nic)
+	{
+		/*
+		 * The acknowledgement for the sent packet and the reflected packet
+		 * may arrive in any order.
+		 */
+
+		if (nic.tx()->ack_avail()) {
+
+			/* wait for acknowledgement */
+			Packet_descriptor const ack_tx_packet = nic.tx()->get_acked_packet();
+
+			if (ack_tx_packet.size() != PACKET_SIZE)
+				abort(__func__, ": unexpected acked packet");
+
+			if (ack_tx_packet.offset() != _expected_packet_offset)
+				abort(__func__, ": unexpected offset of acknowledged packet");
+
+			/* release sent packet to free the space in the tx communication buffer */
+			nic.tx()->release_packet(ack_tx_packet);
+
+			_received_acknowledgement = true;
+		}
+
+		if (nic.rx()->packet_avail()) {
+
+			/*
+			 * Because we sent the packet to a loop-back device, we expect
+			 * the same packet to be available at the rx channel of the NIC
+			 * session.
+			 */
+			Packet_descriptor const rx_packet = nic.rx()->get_packet();
+			log("received rx packet ", rx_packet);
+
+			if (rx_packet.size() != PACKET_SIZE)
+				abort("sent and echoed packets differ in size");
+
+			if (rx_packet.offset() != _expected_packet_offset)
+				abort(__func__, ": unexpected offset of received packet");
+
+			/* compare original and echoed packets */
+			char const * const rx_content = nic.rx()->packet_content(rx_packet);
+			for (unsigned i = 0; i < PACKET_SIZE; i++)
+				if (rx_content[i] != _pattern()) {
+					log("rx_content[", i, "]: ", Char(rx_content[i]));
+					log("pattern: ", Char(_pattern()));
+					abort(__func__, ":sent and echoed packets have different content");
+				}
+
+			if (!nic.rx()->ack_slots_free())
+				abort(__func__, ": acknowledgement queue is unexpectedly full");
+
+			nic.rx()->acknowledge_packet(rx_packet);
+
+			_received_reflected_packet = true;
+		}
+	}
+
+	void handle_nic() override
+	{
+		_consume_and_compare_packet(nic());
+
+		if (!_received_acknowledgement || !_received_reflected_packet)
+			return;
+
+		/* start next iteration */
+		_cnt++;
+
+		/* check if we reached the end of the pattern string */
+		if (_pattern() == 0) {
+			success();
+			return;
+		}
+
+		_received_reflected_packet = false;
+		_received_acknowledgement  = false;
+		_produce_packet(nic());
+	}
+
+	Roundtrip(Env &env, Signal_context_capability success_sigh, Patterns patterns)
+	:
+		Base(env, "roundtrip", success_sigh), _patterns(patterns)
+	{
+		_produce_packet(nic());
+	}
+};
 
 
-int main(int, char **)
+struct Test::Batch : Base
 {
-	log("--- NIC loop-back test ---");
+	unsigned const _num_packets;
 
-	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+	unsigned _tx_cnt = 0, _acked_cnt = 0, _rx_cnt = 0, _batch_cnt = 0;
 
-	bool config_test_roundtrip = true;
-	bool config_test_batch     = true;
+	enum { PACKET_SIZE = 100 };
 
-	if (config_test_roundtrip) {
-		log("-- test roundtrip two times (packet offsets should be the same) --");
-		Allocator_avl tx_block_alloc(env()->heap());
-		Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
-		single_packet_roundtrip(&nic, 'a', 100);
-		single_packet_roundtrip(&nic, 'b', 100);
+	static unsigned _send_packets(Nic::Connection &nic, unsigned limit)
+	{
+		unsigned cnt = 0;
+		while (nic.tx()->ready_to_submit() && cnt < limit) {
+			try {
+				Packet_descriptor tx_packet = nic.tx()->alloc_packet(PACKET_SIZE);
+				nic.tx()->submit_packet(tx_packet);
+				cnt++;
+			}
+			catch (Nic::Session::Tx::Source::Packet_alloc_failed) { break; }
+		}
+		return cnt;
 	}
 
-	if (config_test_batch) {
-		log("-- test submitting and receiving batches of packets --");
-		Allocator_avl tx_block_alloc(env()->heap());
-		Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
-		enum { NUM_PACKETS = 1000 };
-		batch_packets(&nic, NUM_PACKETS);
+	/*
+	 * \return number of received acknowledgements
+	 */
+	static unsigned _collect_acknowledgements(Nic::Connection &nic)
+	{
+		unsigned cnt = 0;
+		while (nic.tx()->ack_avail()) {
+			Packet_descriptor acked_packet = nic.tx()->get_acked_packet();
+			nic.tx()->release_packet(acked_packet);
+			cnt++;
+		}
+		return cnt;
 	}
 
-	log("--- finished NIC loop-back test ---");
-	return 0;
-}
+	static unsigned _receive_all_incoming_packets(Nic::Connection &nic)
+	{
+		unsigned cnt = 0;
+		while (nic.rx()->packet_avail() && nic.rx()->ready_to_ack()) {
+			Packet_descriptor rx_packet = nic.rx()->get_packet();
+			nic.rx()->acknowledge_packet(rx_packet);
+			cnt++;
+		}
+		return cnt;
+	}
+
+	void _check_for_success()
+	{
+		unsigned const n = _num_packets;
+		if (_acked_cnt == n && _tx_cnt == n && _rx_cnt == n)
+			success();
+	}
+
+	void handle_nic() override
+	{
+		unsigned const max_outstanding_requests = Nic::Session::QUEUE_SIZE - 1;
+		unsigned const outstanding_requests     = _tx_cnt - _rx_cnt;
+
+		unsigned const tx_limit = min(_num_packets - _tx_cnt,
+		                              max_outstanding_requests - outstanding_requests);
+
+		unsigned const num_tx   = _send_packets(nic(), tx_limit);
+		unsigned const num_acks = _collect_acknowledgements(nic());
+		unsigned const num_rx   = _receive_all_incoming_packets(nic());
+
+		_tx_cnt    += num_tx;
+		_rx_cnt    += num_rx;
+		_acked_cnt += num_acks;
+
+		log("acked ", num_acks, " packets, "
+		    "received ", num_rx, " packets "
+		    "-> tx: ", _tx_cnt, ", acked: ", _acked_cnt, ", rx: ", _rx_cnt);
+
+		_check_for_success();
+	}
+
+	Batch(Env &env, Signal_context_capability success_sigh, unsigned num_packets)
+	:
+		Base(env, "batch", success_sigh), _num_packets(num_packets)
+	{
+		handle_nic();
+	}
+};
+
+
+struct Test::Main
+{
+	Env &_env;
+
+	Constructible<Roundtrip> _roundtrip;
+	Constructible<Batch>     _batch;
+
+	Signal_handler<Main> _test_completed_handler {
+		_env.ep(), *this, &Main::_handle_test_completed };
+
+	void _handle_test_completed()
+	{
+		if (_roundtrip.constructed()) {
+			_roundtrip.destruct();
+
+			enum { NUM_PACKETS = 1000 };
+			_batch.construct(_env, _test_completed_handler, NUM_PACKETS);
+			return;
+		}
+
+		if (_batch.constructed()) {
+			_batch.destruct();
+			log("--- finished NIC loop-back test ---");
+			_env.parent().exit(0);
+		}
+	}
+
+	Main(Env &env) : _env(env)
+	{
+		log("--- NIC loop-back test ---");
+
+		_roundtrip.construct(_env, _test_completed_handler, "abcdefghijklmn");
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Test::Main main(env); }
+
