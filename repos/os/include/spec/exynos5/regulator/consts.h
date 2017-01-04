@@ -38,7 +38,7 @@ namespace Regulator {
 		const char * name;
 	};
 
-	Regulator_name names[] = {
+	static constexpr Regulator_name names[] = {
 		{ CLK_CPU,   "clock-cpu"     },
 		{ CLK_SATA,  "clock-sata"    },
 		{ CLK_USB30, "clock-usb3.0"  },
@@ -51,7 +51,7 @@ namespace Regulator {
 		{ PWR_HDMI,  "power-hdmi"},
 	};
 
-	Regulator_id regulator_id_by_name(const char * name)
+	inline Regulator_id regulator_id_by_name(const char * name)
 	{
 		for (unsigned i = 0; i < sizeof(names)/sizeof(names[0]); i++)
 			if (Genode::strcmp(names[i].name, name) == 0)
@@ -59,7 +59,7 @@ namespace Regulator {
 		return INVALID;
 	}
 
-	const char * regulator_name_by_id(Regulator_id id)   {
+	inline const char * regulator_name_by_id(Regulator_id id)   {
 		return (id < sizeof(names)/sizeof(names[0])) ? names[id].name : 0; }
 
 
