@@ -11,42 +11,52 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
-#include <base/sleep.h>
+#include <base/component.h>
 #include <loader_session/connection.h>
 #include <timer_session/connection.h>
 
+namespace Test {
+	using namespace Genode;
+	struct Main;
+}
 
-int main(int argc, char **argv)
+
+struct Test::Main
 {
-	Loader::Connection loader(8*1024*1024);
+	Env &_env;
 
-	static Genode::Signal_receiver sig_rec;
+	Loader::Connection _loader { _env, 8*1024*1024 };
+	Timer::Connection  _timer  { _env };
 
-	Genode::Signal_context sig_ctx;
+	Loader::Area  _size;
+	Loader::Point _pos;
 
-	loader.view_ready_sigh(sig_rec.manage(&sig_ctx));
-
-	loader.start("testnit", "test-label");
-
-	sig_rec.wait_for_signal();
-
-	Loader::Area size = loader.view_size();
-
-	Timer::Connection timer;
-
-	while (1) {
-
-		for (unsigned i = 0; i < 10; i++) {
-
-			loader.view_geometry(Loader::Rect(Loader::Point(50*i, 50*i), size),
-			                     Loader::Point(0, 0));
-
-			timer.msleep(1000);
-		}
+	void _handle_view_ready()
+	{
+		_size = _loader.view_size();
+		_timer.trigger_periodic(250*1000);
 	}
 
-	Genode::sleep_forever();
+	Signal_handler<Main> _view_ready_handler {
+		_env.ep(), *this, &Main::_handle_view_ready };
 
-	return 0;
-}
+	void _handle_timer()
+	{
+		_loader.view_geometry(Loader::Rect(_pos, _size), Loader::Point(0, 0));
+		_pos = Loader::Point((_pos.x() + 50) % 500, (_pos.y() + 30) % 300);
+	}
+
+	Signal_handler<Main> _timer_handler {
+		_env.ep(), *this, &Main::_handle_timer };
+
+	Main(Env &env) : _env(env)
+	{
+		_loader.view_ready_sigh(_view_ready_handler);
+		_timer.sigh(_timer_handler);
+
+		_loader.start("testnit", "test-label");
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Test::Main main(env); }

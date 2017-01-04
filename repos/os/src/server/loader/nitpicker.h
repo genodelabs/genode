@@ -18,18 +18,20 @@
 /* Genode includes */
 #include <util/arg_string.h>
 #include <util/misc_math.h>
-#include <base/signal.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/component.h>
+#include <base/attached_ram_dataspace.h>
 #include <nitpicker_session/connection.h>
-#include <nitpicker_session/nitpicker_session.h>
 
 /* local includes */
 #include <input.h>
 
-namespace Nitpicker { class Session_component; }
+namespace Nitpicker {
+	using namespace Genode;
+	class Session_component;
+}
 
 
-class Nitpicker::Session_component : public Genode::Rpc_object<Session>
+class Nitpicker::Session_component : public Rpc_object<Session>
 {
 	private:
 
@@ -37,9 +39,9 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 		 * Signal handler to be notified once the geometry of the view is
 		 * known.
 		 */
-		Genode::Signal_context_capability _view_ready_sigh;
+		Signal_context_capability _view_ready_sigh;
 
-		Genode::Entrypoint &_ep;
+		Entrypoint &_ep;
 
 		Area _max_size;
 
@@ -63,17 +65,16 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 
 		Input::Motion_delta _motion_delta;
 
-		Input::Session_component  _proxy_input;
-		Input::Session_capability _proxy_input_cap;
+		Input::Session_component _proxy_input;
 
 		static long _session_arg(const char *arg, const char *key) {
-			return Genode::Arg_string::find_arg(arg, key).long_value(0); }
+			return Arg_string::find_arg(arg, key).long_value(0); }
 
 		/*
 		 * Command buffer
 		 */
 		typedef Nitpicker::Session::Command_buffer Command_buffer;
-		Genode::Attached_ram_dataspace _command_ds;
+		Attached_ram_dataspace _command_ds;
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
 		void _propagate_view_offset()
@@ -96,7 +97,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 					_virt_view_geometry = command.geometry.rect;
 
 					if (!_virt_view_geometry_defined)
-						Genode::Signal_transmitter(_view_ready_sigh).submit();
+						Signal_transmitter(_view_ready_sigh).submit();
 
 					_virt_view_geometry_defined = true;
 
@@ -121,13 +122,13 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 
 			case Command::OP_TO_BACK:
 				{
-					Genode::warning("OP_TO_BACK not implemented");
+					warning("OP_TO_BACK not implemented");
 					return;
 				}
 
 			case Command::OP_BACKGROUND:
 				{
-					Genode::warning("OP_BACKGROUND not implemented");
+					warning("OP_BACKGROUND not implemented");
 					return;
 				}
 
@@ -148,12 +149,13 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * Constructor
 		 */
-		Session_component(Genode::Entrypoint                &ep,
-		                  Genode::Ram_session               &ram,
-		                  Area                               max_size,
-		                  Nitpicker::View_capability         parent_view,
-		                  Genode::Signal_context_capability  view_ready_sigh,
-		                  const char                        *args)
+		Session_component(Entrypoint                &ep,
+		                  Region_map                &rm,
+		                  Ram_session               &ram,
+		                  Area                       max_size,
+		                  Nitpicker::View_capability parent_view,
+		                  Signal_context_capability  view_ready_sigh,
+		                  char const                *args)
 		:
 			_view_ready_sigh(view_ready_sigh),
 			_ep(ep),
@@ -165,11 +167,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 			/* create nitpicker view */
 			_view_handle(_nitpicker.create_view(_parent_view_handle)),
 
-			_proxy_input(_nitpicker.input_session(), _motion_delta),
-			_proxy_input_cap(_ep.manage(_proxy_input)),
+			_proxy_input(rm, _nitpicker.input_session(), _motion_delta),
 
 			_command_ds(&ram, sizeof(Command_buffer))
 		{
+			_ep.manage(_proxy_input);
 			_ep.manage(*this);
 		}
 
@@ -191,7 +193,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 
 		Input::Session_capability input_session() override
 		{
-			return _proxy_input_cap;
+			return _proxy_input.cap();
 		}
 
 		View_handle create_view(View_handle) override
@@ -213,7 +215,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 
 		void release_view_handle(View_handle) override { }
 
-		Genode::Dataspace_capability command_dataspace() override
+		Dataspace_capability command_dataspace() override
 		{
 			return _command_ds.cap();
 		}
@@ -238,14 +240,14 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 			                         _nitpicker.mode().format());
 		}
 
-		void mode_sigh(Genode::Signal_context_capability) override { }
+		void mode_sigh(Signal_context_capability) override { }
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override
 		{
 			_nitpicker.buffer(mode, use_alpha);
 		}
 
-		void focus(Genode::Capability<Session>) override { }
+		void focus(Capability<Session>) override { }
 
 		/**
 		 * Return geometry of loader view
@@ -253,11 +255,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>
 		Area loader_view_size() const
 		{
 			int const  width = _max_size.valid()
-			                 ? Genode::min(_virt_view_geometry.w(), _max_size.w())
+			                 ? min(_virt_view_geometry.w(), _max_size.w())
 			                 : _virt_view_geometry.w();
 
 			int const height = _max_size.valid()
-			                 ? Genode::min(_virt_view_geometry.h(), _max_size.h())
+			                 ? min(_virt_view_geometry.h(), _max_size.h())
 			                 : _virt_view_geometry.h();
 
 			return Area(width, height);

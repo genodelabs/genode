@@ -160,6 +160,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		struct Local_nitpicker_factory : Local_service<Nitpicker::Session_component>::Factory
 		{
 			Entrypoint  &_ep;
+			Region_map  &_rm;
 			Ram_session &_ram;
 
 			Area                       _max_size;
@@ -169,8 +170,8 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			Constructible<Nitpicker::Session_component> session;
 
-			Local_nitpicker_factory(Entrypoint &ep, Ram_session &ram)
-			: _ep(ep), _ram(ram) { }
+			Local_nitpicker_factory(Entrypoint &ep, Region_map &rm, Ram_session &ram)
+			: _ep(ep), _rm(rm), _ram(ram) { }
 
 			void constrain_geometry(Area size) { _max_size = size; }
 
@@ -186,7 +187,7 @@ class Loader::Session_component : public Rpc_object<Session>
 					throw Parent::Service_denied();
 				}
 
-				session.construct(_ep, _ram, _max_size,
+				session.construct(_ep, _rm, _ram, _max_size,
 				                  _parent_view, view_ready_sigh, args.string());
 				return *session;
 			}
@@ -212,7 +213,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		Local_rom_service           _rom_service { _rom_factory };
 		Local_cpu_service           _cpu_service { _env };
 		Local_pd_service            _pd_service  { _env };
-		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _local_ram };
+		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _env.rm(), _local_ram };
 		Local_nitpicker_service     _nitpicker_service { _nitpicker_factory };
 		Signal_context_capability   _fault_sigh;
 		Constructible<Child>        _child;
@@ -264,7 +265,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			 * on demand. Revert those allocations.
 			 */
 			_parent_services.for_each([&] (Parent_service &service) {
-				destroy(env()->heap(), &service); });
+				destroy(_md_alloc, &service); });
 		}
 
 
@@ -337,7 +338,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			                       : _ram_quota;
 
 			try {
-				_child.construct(_env, binary_name.string(),
+				_child.construct(_env, _md_alloc, binary_name.string(),
 				                 prefixed_label(_label, Session_label(label.string())),
 				                 ram_quota, _parent_services, _rom_service,
 				                 _cpu_service, _pd_service, _nitpicker_service,
@@ -397,17 +398,17 @@ namespace Loader { struct Main; }
 
 struct Loader::Main
 {
-	Env &env;
+	Env &_env;
 
-	Heap heap { env.ram(), env.rm() };
+	Heap _heap { _env.ram(), _env.rm() };
 
-	Attached_rom_dataspace config { env, "config" };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Root root { env, config.xml(), heap };
+	Root _root { _env, _config.xml(), _heap };
 
-	Main(Env &env) : env(env)
+	Main(Env &env) : _env(env)
 	{
-		env.parent().announce(env.ep().manage(root));
+		_env.parent().announce(_env.ep().manage(_root));
 	}
 };
 
