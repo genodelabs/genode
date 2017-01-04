@@ -79,12 +79,12 @@ namespace File_system {
 
 struct File_system::Node_handle
 {
-	int value;
+	unsigned long value;
 
-	Node_handle() : value(-1) { }
+	Node_handle() : value(~0UL) { }
 	Node_handle(int v) : value(v) { }
 
-	bool valid() const { return value != -1; }
+	bool valid() const { return value != ~0UL; }
 
 	bool operator == (Node_handle const &other) const { return other.value == value; }
 	bool operator != (Node_handle const &other) const { return other.value != value; }
@@ -95,21 +95,21 @@ struct File_system::Node_handle
 struct File_system::File_handle : Node_handle
 {
 	File_handle() { }
-	File_handle(int v) : Node_handle(v) { }
+	File_handle(unsigned long v) : Node_handle(v) { }
 };
 
 
 struct File_system::Dir_handle : Node_handle
 {
 	Dir_handle() { }
-	Dir_handle(int v) : Node_handle(v) { }
+	Dir_handle(unsigned long v) : Node_handle(v) { }
 };
 
 
 struct File_system::Symlink_handle : Node_handle
 {
 	Symlink_handle() { }
-	Symlink_handle(int v) : Node_handle(v) { }
+	Symlink_handle(unsigned long v) : Node_handle(v) { }
 };
 
 

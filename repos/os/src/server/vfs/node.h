@@ -18,6 +18,7 @@
 #include <file_system/node.h>
 #include <vfs/file_system.h>
 #include <os/path.h>
+#include <base/id_space.h>
 
 /* Local includes */
 #include "assert.h"
@@ -31,6 +32,8 @@ namespace Vfs_server {
 	struct Directory;
 	struct File;
 	struct Symlink;
+
+	typedef Genode::Id_space<Node> Node_space;
 
 	/* Vfs::MAX_PATH is shorter than File_system::MAX_PATH */
 	enum { MAX_PATH_LEN = Vfs::MAX_PATH_LEN };
@@ -67,13 +70,16 @@ namespace Vfs_server {
 }
 
 
-struct Vfs_server::Node : File_system::Node_base
+struct Vfs_server::Node : File_system::Node_base, Node_space::Element
 {
 	Path const _path;
 	Mode const  mode;
 
-	Node(char const *node_path, Mode node_mode)
-	: _path(node_path), mode(node_mode) { }
+	Node(Node_space &space, char const *node_path, Mode node_mode)
+	:
+		Node_space::Element(*this, space),
+		_path(node_path), mode(node_mode)
+	{ }
 
 	virtual ~Node() { }
 
@@ -86,11 +92,12 @@ struct Vfs_server::Node : File_system::Node_base
 
 struct Vfs_server::Symlink : Node
 {
-	Symlink(Vfs::File_system &vfs,
+	Symlink(Node_space &space,
+	        Vfs::File_system &vfs,
 	        char       const *link_path,
 	        Mode              mode,
 	        bool              create)
-	: Node(link_path, mode)
+	: Node(space, link_path, mode)
 	{
 		if (create)
 			assert_symlink(vfs.symlink("", link_path));
@@ -132,12 +139,13 @@ class Vfs_server::File : public Node
 
 	public:
 
-		File(Vfs::File_system  &vfs,
+		File(Node_space &space,
+		     Vfs::File_system  &vfs,
 		     Genode::Allocator &alloc,
 		     char       const  *file_path,
 		     Mode               fs_mode,
 		     bool               create)
-		: Node(file_path, fs_mode)
+		: Node(space, file_path, fs_mode)
 		{
 			unsigned vfs_mode =
 				(fs_mode-1) | (create ? Vfs::Directory_service::OPEN_MODE_CREATE : 0);
@@ -201,35 +209,37 @@ class Vfs_server::File : public Node
 
 struct Vfs_server::Directory : Node
 {
-	Directory(Vfs::File_system &vfs, char const *dir_path, bool create)
-	: Node(dir_path, READ_ONLY)
+	Directory(Node_space &space, Vfs::File_system &vfs, char const *dir_path, bool create)
+	: Node(space, dir_path, READ_ONLY)
 	{
 		if (create)
 			assert_mkdir(vfs.mkdir(dir_path, 0));
 	}
 
-	File *file(Vfs::File_system  &vfs,
-	           Genode::Allocator &alloc,
-	           char        const *file_path,
-	           Mode               mode,
-	           bool               create)
+	Node_space::Id file(Node_space        &space,
+	                    Vfs::File_system  &vfs,
+	                    Genode::Allocator &alloc,
+	                    char        const *file_path,
+	                    Mode               mode,
+	                    bool               create)
 	{
 		Path subpath(file_path, path());
 		char const *path_str = subpath.base();
 
 		File *file;
-		try { file = new (alloc) File(vfs, alloc, path_str, mode, create); }
+		try { file = new (alloc) File(space, vfs, alloc, path_str, mode, create); }
 		catch (Out_of_memory) { throw Out_of_metadata(); }
 		if (create)
 			mark_as_updated();
-		return file;
+		return file->id();
 	}
 
-	Symlink *symlink(Vfs::File_system  &vfs,
-	                 Genode::Allocator &alloc,
-	                 char        const *link_path,
-	                 Mode               mode,
-	                 bool               create)
+	Node_space::Id symlink(Node_space        &space,
+	                       Vfs::File_system  &vfs,
+	                       Genode::Allocator &alloc,
+	                       char        const *link_path,
+	                       Mode               mode,
+	                       bool               create)
 	{
 		Path subpath(link_path, path());
 		char const *path_str = subpath.base();
@@ -240,11 +250,11 @@ struct Vfs_server::Directory : Node
 		}
 
 		Symlink *link;
-		try { link = new (alloc) Symlink(vfs, path_str, mode, create); }
+		try { link = new (alloc) Symlink(space, vfs, path_str, mode, create); }
 		catch (Out_of_memory) { throw Out_of_metadata(); }
 		if (create)
 			mark_as_updated();
-		return link;
+		return link->id();
 	}
 
 

@@ -19,7 +19,6 @@
 #include <vfs/dir_file_system.h>
 #include <os/session_policy.h>
 #include <vfs/file_system_factory.h>
-#include <os/config.h>
 #include <base/sleep.h>
 #include <base/component.h>
 
@@ -52,27 +51,23 @@ class Vfs_server::Session_component :
 {
 	private:
 
-		/* maximum number of open nodes per session */
-		enum { MAX_NODE_HANDLES = 128U };
-
-		Node *_nodes[MAX_NODE_HANDLES];
-
-		/**
-		 * Each open node handle can act as a listener to be informed about
-		 * node changes.
-		 */
-		Listener _listeners[MAX_NODE_HANDLES];
+		Node_space _node_space;
 
 		Genode::String<160>     _label;
 
-		Genode::Ram_connection  _ram = { _label.string() };
-		Genode::Heap            _alloc =
-			{ &_ram, Genode::env()->rm_session() };
+		Genode::Ram_connection  _ram;
+		Genode::Heap            _alloc;
 
-		Genode::Signal_handler<Session_component>
-		                        _process_packet_dispatcher;
+		Genode::Signal_handler<Session_component> _process_packet_handler;
+
 		Vfs::Dir_file_system   &_vfs;
-		Directory               _root;
+
+		/*
+		 * The root node needs be allocated with the session struct
+		 * but removeable from the id space at session destruction.
+		 */
+		Genode::Constructible<Directory> _root;
+
 		bool                    _writable;
 
 
@@ -80,50 +75,37 @@ class Vfs_server::Session_component :
 		 ** Handle to node mapping **
 		 ****************************/
 
-		bool _in_range(int handle) const {
-			return ((handle >= 0) && (handle < MAX_NODE_HANDLES));
-		}
-
-		int _next_slot()
-		{
-			for (int i = 1; i < MAX_NODE_HANDLES; ++i)
-				if (_nodes[i] == nullptr)
-					return i;
-
-			throw Out_of_metadata();
-		}
-
 		/**
-		 * Lookup node using its handle as key
-		 */
-		Node *_lookup_node(Node_handle handle) {
-			return _in_range(handle.value) ? _nodes[handle.value] : 0; }
-
-		/**
-		 * Lookup typed node using its handle as key
+		 * Apply functor to node
 		 *
 		 * \throw Invalid_handle
 		 */
-		template <typename HANDLE_TYPE>
-		typename Node_type<HANDLE_TYPE>::Type &_lookup(HANDLE_TYPE handle)
+		template <typename FUNC>
+		void _apply(Node_handle handle, FUNC const &fn)
 		{
-			if (!_in_range(handle.value))
-				throw Invalid_handle();
+			Node_space::Id id { handle.value };
 
-			typedef typename Node_type<HANDLE_TYPE>::Type Node;
-			Node *node = dynamic_cast<Node *>(_nodes[handle.value]);
-			if (!node)
-				throw Invalid_handle();
-
-			return *node;
+			try { _node_space.apply<Node>(id, fn); }
+			catch (Node_space::Unknown_id) { throw Invalid_handle(); }
 		}
 
-		bool _refer_to_same_node(Node_handle h1, Node_handle h2) const
+		/**
+		 * Apply functor to typed node
+		 *
+		 * \throw Invalid_handle
+		 */
+		template <typename HANDLE_TYPE, typename FUNC>
+		void _apply(HANDLE_TYPE handle, FUNC const &fn)
 		{
-			if (!(_in_range(h1.value) && _in_range(h2.value)))
-				throw Invalid_handle();
+			Node_space::Id id { handle.value };
 
-			return _nodes[h1.value] == _nodes[h2.value];
+			try { _node_space.apply<Node>(id, [&] (Node &node) {
+				typedef typename Node_type<HANDLE_TYPE>::Type Typed_node;
+				Typed_node *n = dynamic_cast<Typed_node *>(&node);
+				if (!n)
+					throw Invalid_handle();
+				fn(*n);
+			}); } catch (Node_space::Unknown_id) { throw Invalid_handle(); }
 		}
 
 
@@ -152,23 +134,19 @@ class Vfs_server::Session_component :
 
 			switch (packet.operation()) {
 
-			case Packet_descriptor::READ: {
-				Node *node = _lookup_node(packet.handle());
-				if (!(node && (node->mode&READ_ONLY)))
-					return;
-
-				res_length = node->read(_vfs, (char *)content, length, seek);
+			case Packet_descriptor::READ: try {
+				_apply(packet.handle(), [&] (Node &node) {
+					if (node.mode&READ_ONLY)
+						res_length = node.read(_vfs, (char *)content, length, seek);
+				}); } catch (...) { }
 				break;
-			}
 
-			case Packet_descriptor::WRITE: {
-				Node *node = _lookup_node(packet.handle());
-				if (!(node && (node->mode&WRITE_ONLY)))
-					return;
-
-				res_length = node->write(_vfs, (char const *)content, length, seek);
+			case Packet_descriptor::WRITE: try {
+				_apply(packet.handle(), [&] (Node &node) {
+					if (node.mode&WRITE_ONLY)
+						res_length = node.write(_vfs, (char const *)content, length, seek);
+				}); } catch (...) { }
 				break;
-			}
 			}
 
 			packet.length(res_length);
@@ -179,12 +157,12 @@ class Vfs_server::Session_component :
 		{
 			Packet_descriptor packet = tx_sink()->get_packet();
 
-			_process_packet_op(packet);
 
 			/*
 			 * The 'acknowledge_packet' function cannot block because we
 			 * checked for 'ready_to_ack' in '_process_packets'.
 			 */
+			_process_packet_op(packet);
 			tx_sink()->acknowledge_packet(packet);
 		}
 
@@ -232,6 +210,18 @@ class Vfs_server::Session_component :
 					throw Invalid_name();
 		}
 
+		void _close(Node &node)
+		{
+			if (File *file = dynamic_cast<File*>(&node))
+				destroy(_alloc, file);
+			else if (Directory *dir = dynamic_cast<Directory*>(&node))
+				destroy(_alloc, dir);
+			else if (Symlink *link = dynamic_cast<Symlink*>(&node))
+				destroy(_alloc, link);
+			else
+				destroy(_alloc, &node);
+		}
+
 	public:
 
 		/**
@@ -252,29 +242,23 @@ class Vfs_server::Session_component :
 		                  bool                  writable)
 		:
 			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
-			_label(label),
-			_process_packet_dispatcher(env.ep(), *this, &Session_component::_process_packets),
+			_label(label), _ram(env), _alloc(_ram, env.rm()),
+			_process_packet_handler(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),
-			_root(vfs, root_path, false),
+			_root(),
 			_writable(writable)
 		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
 			 * handler for packet-avail and ready-to-ack signals.
 			 */
-			_tx.sigh_packet_avail(_process_packet_dispatcher);
-			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+			_tx.sigh_packet_avail(_process_packet_handler);
+			_tx.sigh_ready_to_ack(_process_packet_handler);
 
-			/*
-			 * the '/' node is not dynamically allocated, so it is
-			 * permanently bound to Dir_handle(0);
-			 */
-			_nodes[0] = &_root;
-			for (unsigned i = 1; i < MAX_NODE_HANDLES; ++i)
-				_nodes[i] = nullptr;
+			_ram.ref_account(env.ram_session_cap());
+			env.ram().transfer_quota(_ram.cap(), ram_quota);
 
-			_ram.ref_account(Genode::env()->ram_session_cap());
-			Genode::env()->ram_session()->transfer_quota(_ram.cap(), ram_quota);
+			_root.construct(_node_space, vfs, root_path, false);
 		}
 
 		/**
@@ -282,8 +266,11 @@ class Vfs_server::Session_component :
 		 */
 		~Session_component()
 		{
-			Dataspace_capability ds = tx_sink()->dataspace();
-			env()->ram_session()->free(static_cap_cast<Genode::Ram_dataspace>(ds));
+			/* remove the root from _node_space via destructor */
+			_root.destruct();
+
+			while (_node_space.apply_any<Node>([&] (Node &node) {
+				_close(node); })) { }
 		}
 
 		void upgrade(char const *args)
@@ -311,22 +298,18 @@ class Vfs_server::Session_component :
 			}
 
 			_assert_valid_path(path_str);
-			Vfs_server::Path fullpath(_root.path());
+			Vfs_server::Path fullpath(_root->path());
 			fullpath.append(path_str);
 			path_str = fullpath.base();
-
-			/* make sure a handle is free before allocating */
-			auto slot = _next_slot();
 
 			if (!create && !_vfs.directory(path_str))
 				throw Lookup_failed();
 
 			Directory *dir;
-			try { dir = new (_alloc) Directory(_vfs, path_str, create); }
+			try { dir = new (_alloc) Directory(_node_space, _vfs, path_str, create); }
 			catch (Out_of_memory) { throw Out_of_metadata(); }
 
-			_nodes[slot] = dir;
-			return Dir_handle(slot);
+			return Dir_handle(dir->id().value);
 		}
 
 		File_handle file(Dir_handle dir_handle, Name const &name,
@@ -335,37 +318,33 @@ class Vfs_server::Session_component :
 			if ((create || (fs_mode & WRITE_ONLY)) && (!_writable))
 				throw Permission_denied();
 
-			Directory &dir = _lookup(dir_handle);
+			File_handle new_handle;
 
-			char const *name_str = name.string();
-			_assert_valid_name(name_str);
+			_apply(dir_handle, [&] (Directory &dir) {
+				char const *name_str = name.string();
+				_assert_valid_name(name_str);
 
-			/* make sure a handle is free before allocating */
-			auto slot = _next_slot();
-
-			File *file = dir.file(_vfs, _alloc, name_str, fs_mode, create);
-
-			_nodes[slot] = file;
-			return File_handle(slot);
+				new_handle = dir.file(
+					_node_space, _vfs, _alloc, name_str, fs_mode, create).value;
+			});
+			return new_handle;
 		}
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create) override
 		{
 			if (create && !_writable) throw Permission_denied();
 
-			Directory &dir = _lookup(dir_handle);
+			Symlink_handle new_handle;
 
-			char const *name_str = name.string();
-			_assert_valid_name(name_str);
+			_apply(dir_handle, [&] (Directory &dir) {
+				char const *name_str = name.string();
+				_assert_valid_name(name_str);
 
-			/* make sure a handle is free before allocating */
-			auto slot = _next_slot();
-
-			Symlink *link = dir.symlink(_vfs, _alloc, name_str,
-				_writable ? READ_WRITE : READ_ONLY, create);
-
-			_nodes[slot] = link;
-			return Symlink_handle(slot);
+				new_handle = dir.symlink(
+					_node_space, _vfs, _alloc, name_str,
+					_writable ? READ_WRITE : READ_ONLY, create).value;
+			});
+			return new_handle;
 		}
 
 		Node_handle node(File_system::Path const &path) override
@@ -378,90 +357,61 @@ class Vfs_server::Session_component :
 			_assert_valid_path(path_str);
 
 			/* re-root the path */
-			Path sub_path(path_str+1, _root.path());
+			Path sub_path(path_str+1, _root->path());
 			path_str = sub_path.base();
 			if (!_vfs.leaf_path(path_str))
 				throw Lookup_failed();
 
-			auto slot = _next_slot();
 			Node *node;
 
-			try { node  = new (_alloc) Node(path_str, STAT_ONLY); }
+			try { node  = new (_alloc) Node(_node_space, path_str, STAT_ONLY); }
 			catch (Out_of_memory) { throw Out_of_metadata(); }
 
-			_nodes[slot] = node;
-			return Node_handle(slot);
+			return Node_handle(node->id().value);
 		}
 
 		void close(Node_handle handle) override
 		{
-			/* handle '0' cannot be freed */
-			if (!handle.value) {
-				_root.notify_listeners();
-				return;
-			}
-
-			if (!_in_range(handle.value))
-				return;
-
-			Node *node = _nodes[handle.value];
-			if (!node) { return; }
-
-			node->notify_listeners();
-
-			/*
-			 * De-allocate handle
-			 */
-			Listener &listener = _listeners[handle.value];
-
-			if (listener.valid())
-				node->remove_listener(&listener);
-
-			if (File *file = dynamic_cast<File*>(node))
-				destroy(_alloc, file);
-			else if (Directory *dir = dynamic_cast<Directory*>(node))
-				destroy(_alloc, dir);
-			else if (Symlink *link = dynamic_cast<Symlink*>(node))
-				destroy(_alloc, link);
-			else
-				destroy(_alloc, node);
-
-			_nodes[handle.value] = 0;
-			listener = Listener();
+			_apply(handle, [&] (Node &node) {
+				/* root directory should not be freed */
+				if (!(node.id() == _root->id()))
+					_close(node);
+			});
 		}
 
 		Status status(Node_handle node_handle) override
 		{
-			Directory_service::Stat vfs_stat;
 			File_system::Status      fs_stat;
 
-			Node &node = _lookup(node_handle);
+			_apply(node_handle, [&] (Node &node) {
+				Directory_service::Stat vfs_stat;
 
-			if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK)
-				return fs_stat;
+				if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK)
+					return;
 
-			fs_stat.inode = vfs_stat.inode;
+				fs_stat.inode = vfs_stat.inode;
 
-			switch (vfs_stat.mode & (
-				Directory_service::STAT_MODE_DIRECTORY |
-				Directory_service::STAT_MODE_SYMLINK |
-				File_system::Status::MODE_FILE)) {
+				switch (vfs_stat.mode & (
+					Directory_service::STAT_MODE_DIRECTORY |
+					Directory_service::STAT_MODE_SYMLINK |
+					File_system::Status::MODE_FILE)) {
 
-			case Directory_service::STAT_MODE_DIRECTORY:
-				fs_stat.mode = File_system::Status::MODE_DIRECTORY;
-				fs_stat.size = _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
-				return fs_stat;
+				case Directory_service::STAT_MODE_DIRECTORY:
+					fs_stat.mode = File_system::Status::MODE_DIRECTORY;
+					fs_stat.size = _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
+					return;
 
-			case Directory_service::STAT_MODE_SYMLINK:
-				fs_stat.mode = File_system::Status::MODE_SYMLINK;
-				break;
+				case Directory_service::STAT_MODE_SYMLINK:
+					fs_stat.mode = File_system::Status::MODE_SYMLINK;
+					break;
 
-			default: /* Directory_service::STAT_MODE_FILE */
-				fs_stat.mode = File_system::Status::MODE_FILE;
-				break;
-			}
+				default: /* Directory_service::STAT_MODE_FILE */
+					fs_stat.mode = File_system::Status::MODE_FILE;
+					break;
+				}
 
-			fs_stat.size = vfs_stat.size;
+				fs_stat.size = vfs_stat.size;
+			});
 			return fs_stat;
 		}
 
@@ -469,19 +419,20 @@ class Vfs_server::Session_component :
 		{
 			if (!_writable) throw Permission_denied();
 
-			Directory &dir = _lookup(dir_handle);
+			_apply(dir_handle, [&] (Directory &dir) {
+				char const *name_str = name.string();
+				_assert_valid_name(name_str);
 
-			char const *name_str = name.string();
-			_assert_valid_name(name_str);
+				Path path(name_str, dir.path());
 
-			Path path(name_str, dir.path());
-
-			assert_unlink(_vfs.unlink(path.base()));
-			dir.mark_as_updated();
+				assert_unlink(_vfs.unlink(path.base()));
+				dir.mark_as_updated();
+			});
 		}
 
 		void truncate(File_handle file_handle, file_size_t size) override {
-			_lookup(file_handle).truncate(size); }
+			_apply(file_handle, [&] (File &file) {
+				file.truncate(size); }); }
 
 		void move(Dir_handle from_dir_handle, Name const &from_name,
 		          Dir_handle to_dir_handle,   Name const &to_name) override
@@ -495,53 +446,29 @@ class Vfs_server::Session_component :
 			_assert_valid_name(from_str);
 			_assert_valid_name(  to_str);
 
-			Directory &from_dir = _lookup(from_dir_handle);
-			Directory   &to_dir = _lookup(  to_dir_handle);
+			_apply(from_dir_handle, [&] (Directory &from_dir) {
+				_apply(to_dir_handle, [&] (Directory &to_dir) {
+					Path from_path(from_str, from_dir.path());
+					Path   to_path(  to_str,   to_dir.path());
 
-			Path from_path(from_str, from_dir.path());
-			Path   to_path(  to_str,   to_dir.path());
+					assert_rename(_vfs.rename(from_path.base(), to_path.base()));
 
-			assert_rename(_vfs.rename(from_path.base(), to_path.base()));
-
-			from_dir.mark_as_updated();
-			to_dir.mark_as_updated();
+					from_dir.mark_as_updated();
+					to_dir.mark_as_updated();
+				});
+			});
 		}
 
-		void sigh(Node_handle handle, Signal_context_capability sigh) override
-		{
-			if (!_in_range(handle.value))
-				throw Invalid_handle();
-
-			Node *node = dynamic_cast<Node *>(_nodes[handle.value]);
-			if (!node)
-				throw Invalid_handle();
-
-			Listener &listener = _listeners[handle.value];
-
-			/*
-			 * If there was already a handler registered for the node,
-			 * remove the old handler.
-			 */
-			if (listener.valid())
-				node->remove_listener(&listener);
-
-			/*
-			 * Register new handler
-			 */
-			listener = Listener(sigh);
-			node->add_listener(&listener);
-		}
+		void sigh(Node_handle handle, Signal_context_capability sigh) override { }
 
 		/**
 		 * Sync the VFS and send any pending signals on the node.
 		 */
 		void sync(Node_handle handle) override
 		{
-			try {
-				Node &node = _lookup(handle);
+			_apply(handle, [&] (Node &node) {
 				_vfs.sync(node.path());
-				node.notify_listeners();
-			} catch (Invalid_handle) { }
+			});
 		}
 
 		void control(Node_handle, Control) override { }
