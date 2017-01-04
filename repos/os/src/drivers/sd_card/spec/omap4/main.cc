@@ -33,11 +33,11 @@ struct Main
 		: ep(ep), heap(heap) { }
 
 		Block::Driver *create() {
-			return new (&heap) Block::Omap4_driver(true); }
+			return new (&heap) Block::Sdhci_driver(ep, true); }
 
 		void destroy(Block::Driver *driver) {
 			Genode::destroy(&heap,
-			                static_cast<Block::Omap4_driver*>(driver)); }
+			                static_cast<Block::Sdhci_driver*>(driver)); }
 	} factory { env.ep(), heap };
 
 	Block::Root root { env.ep(), heap, factory  };

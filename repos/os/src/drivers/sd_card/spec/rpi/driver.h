@@ -54,7 +54,7 @@ class Block::Sdhci_driver : public Block::Driver
 
 	public:
 
-		Sdhci_driver(bool use_dma, const bool set_voltage = false)
+		Sdhci_driver(Entrypoint &, bool use_dma, const bool set_voltage = false)
 		:
 			_controller((addr_t)_sdhci_mmio.local_addr<void>(),
 						_delayer, Board_base::SDHCI_IRQ, use_dma, set_voltage),

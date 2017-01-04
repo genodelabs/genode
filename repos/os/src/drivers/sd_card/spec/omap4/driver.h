@@ -26,11 +26,11 @@
 
 namespace Block {
 	using namespace Genode;
-	class Omap4_driver;
+	class Sdhci_driver;
 }
 
 
-class Block::Omap4_driver : public Block::Driver
+class Block::Sdhci_driver : public Block::Driver
 {
 	private:
 
@@ -58,7 +58,7 @@ class Block::Omap4_driver : public Block::Driver
 
 	public:
 
-		Omap4_driver(bool use_dma)
+		Sdhci_driver(Entrypoint &, bool use_dma)
 		:
 			_mmchs1_mmio(MMCHS1_MMIO_BASE, MMCHS1_MMIO_SIZE),
 			_controller((addr_t)_mmchs1_mmio.local_addr<void>(),

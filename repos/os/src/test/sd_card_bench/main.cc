@@ -1,11 +1,12 @@
 /*
- * \brief  SD-card benchmark OMAP4 platform
+ * \brief  SD-card benchmark
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2012-07-19
  */
 
 /*
- * Copyright (C) 2012-2015 Genode Labs GmbH
+ * Copyright (C) 2012-2016 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,6 +17,7 @@
 #include <base/log.h>
 #include <timer_session/connection.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
@@ -51,6 +53,14 @@ static void run_benchmark(Block::Driver  &driver,
 
 	size_t num_requests = buffer_size / request_size;
 
+	/*
+	 * Trim number of requests if it would take to much time
+	 */
+	if (num_requests > 320) {
+		buffer_size = 320 * request_size;
+		num_requests = buffer_size / request_size;
+	}
+
 	for (size_t i = 0; i < num_requests; i++)
 	{
 		size_t const block_count  = request_size / driver.block_size();
@@ -72,7 +82,8 @@ static void run_benchmark(Block::Driver  &driver,
 	size_t const buffer_size_kb = buffer_size / 1024;
 	size_t const throughput_kb_per_sec = (1000*buffer_size_kb) / duration_ms;
 
-	log("      -> duration:   ", duration_ms,           " ms");
+	log("         duration:   ", duration_ms,           " ms");
+	log("         amount:     ", buffer_size_kb,        " KiB");
 	log("         throughput: ", throughput_kb_per_sec, " KiB/sec");
 }
 
@@ -83,11 +94,11 @@ struct Main
 	{
 		using namespace Genode;
 
-		log("--- OMAP4 SD card benchmark ---");
+		log("--- SD card benchmark ---");
 
-		bool const use_dma = false;
+		bool const use_dma = true;
 
-		static Block::Omap4_driver driver(use_dma);
+		static Block::Sdhci_driver driver(ep, use_dma);
 
 		static Timer::Connection timer;
 
@@ -95,7 +106,7 @@ struct Main
 			512, 1024, 2048, 4096, 8192, 16384, 32768, 64*1024, 128*1024, 0 };
 
 		/* total size of communication buffer */
-		size_t const buffer_size = 10*1024*1024;
+		size_t const buffer_size = 10 * 1024 * 1024;
 
 		/* allocate read/write buffer */
 		static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, Genode::UNCACHED);
@@ -111,7 +122,7 @@ struct Main
 		struct Read : Operation
 		{
 			void operator () (Block::Driver &driver,
-			                  addr_t number, size_t count, addr_t phys, char *virt)
+							  addr_t number, size_t count, addr_t phys, char *virt)
 			{
 				Block::Packet_descriptor p;
 				if (driver.dma_enabled())
@@ -121,9 +132,10 @@ struct Main
 			}
 		} read_operation;
 
-		for (unsigned i = 0; request_sizes[i]; i++)
+		for (unsigned i = 0; request_sizes[i]; i++) {
 			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
-			              request_sizes[i], read_operation);
+						  request_sizes[i], read_operation);
+		}
 
 		/*
 		 * Benchmark writing to SD card
@@ -152,7 +164,7 @@ struct Main
 			run_benchmark(driver, timer, buffer_virt, buffer_phys, buffer_size,
 			              request_sizes[i], write_operation);
 
-		log("\n--- OMAP4 SD card benchmark finished ---");
+		log("\n--- SD card benchmark finished ---");
 	}
 };
 

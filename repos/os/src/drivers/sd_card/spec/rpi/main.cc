@@ -35,7 +35,7 @@ struct Main
 		: ep(ep), heap(heap) { }
 
 		Block::Driver *create() {
-			return new (&heap) Block::Sdhci_driver(false); }
+			return new (&heap) Block::Sdhci_driver(ep, false); }
 
 		void destroy(Block::Driver *driver) {
 			Genode::destroy(&heap,

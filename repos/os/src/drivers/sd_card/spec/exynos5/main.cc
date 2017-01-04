@@ -34,11 +34,11 @@ struct Main
 		: ep(ep), heap(heap) { }
 
 		Block::Driver *create() {
-			return new (&heap) Block::Exynos5_driver(ep, true); }
+			return new (&heap) Block::Sdhci_driver(ep, true); }
 
 		void destroy(Block::Driver *driver) {
 			Genode::destroy(&heap,
-			                static_cast<Block::Exynos5_driver *>(driver)); }
+			                static_cast<Block::Sdhci_driver *>(driver)); }
 	} factory { env.ep(), heap };
 
 	Regulator::Connection regulator { env, Regulator::CLK_MMC0 };

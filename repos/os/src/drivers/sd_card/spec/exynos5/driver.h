@@ -26,11 +26,11 @@
 
 namespace Block {
 	using namespace Genode;
-	class Exynos5_driver;
+	class Sdhci_driver;
 }
 
 
-class Block::Exynos5_driver : public Block::Driver
+class Block::Sdhci_driver : public Block::Driver
 {
 	private:
 
@@ -67,7 +67,7 @@ class Block::Exynos5_driver : public Block::Driver
 
 	public:
 
-		Exynos5_driver(Server::Entrypoint &ep, bool use_dma)
+		Sdhci_driver(Server::Entrypoint &ep, bool use_dma)
 		:
 			_ep(ep),
 			_mmio(MSH_BASE, MSH_SIZE),

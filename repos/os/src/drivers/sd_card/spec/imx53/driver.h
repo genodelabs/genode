@@ -27,11 +27,11 @@
 
 namespace Block {
 	using namespace Genode;
-	class Imx53_driver;
+	class Sdhci_driver;
 }
 
 
-class Block::Imx53_driver : public Block::Driver
+class Block::Sdhci_driver : public Block::Driver
 {
 	private:
 
@@ -50,7 +50,7 @@ class Block::Imx53_driver : public Block::Driver
 
 	public:
 
-		Imx53_driver(bool use_dma)
+		Sdhci_driver(Entrypoint &, bool use_dma)
 		:
 			_esdhcv2_1_mmio(Genode::Board_base::ESDHCV2_1_MMIO_BASE,
 			                Genode::Board_base::ESDHCV2_1_MMIO_SIZE),

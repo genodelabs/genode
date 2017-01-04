@@ -5,7 +5,7 @@
 build  {
 	core init
 	drivers/timer
-	drivers/sd_card
+	test/sd_card_bench
 }
 
 create_boot_directory
