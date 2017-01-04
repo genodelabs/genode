@@ -11,7 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
+#include <base/component.h>
+#include <base/log.h>
 #include <util/xml_generator.h>
 #include <util/xml_node.h>
 
@@ -62,11 +63,11 @@ static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 }
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
-	using Genode::printf;
+	using namespace Genode;
 
-	printf("--- XML generator test started ---\n");
+	log("--- XML generator test started ---");
 
 	static char dst[1000];
 
@@ -75,7 +76,7 @@ int main(int argc, char **argv)
 	 * corresponding run script).
 	 */
 	size_t used = fill_buffer_with_xml(dst, sizeof(dst));
-	printf("result:\n\n%s\nused %ld bytes\n", dst, used);
+	log("result:\n\n", Cstring(dst), "\nused ", used, " bytes");
 
 	/*
 	 * Test buffer overflow
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
 	try {
 		fill_buffer_with_xml(dst, 20); }
 	catch (Genode::Xml_generator::Buffer_exceeded) {
-		printf("buffer exceeded (expected error)\n"); }
+		log("buffer exceeded (expected error)"); }
 
 	/*
 	 * Test the sanitizing of XML node content
@@ -95,11 +96,11 @@ int main(int argc, char **argv)
 			pattern[i] = i;
 
 		/* generate XML with the pattern as content */
-		Genode::Xml_generator xml(dst, sizeof(dst), "data", [&] () {
+		Xml_generator xml(dst, sizeof(dst), "data", [&] () {
 			xml.append_sanitized(pattern, sizeof(pattern)); });
 
 		/* parse the generated XML data */
-		Genode::Xml_node node(dst);
+		Xml_node node(dst);
 
 		/* obtain decoded node content */
 		char decoded[sizeof(dst)];
@@ -107,17 +108,16 @@ int main(int argc, char **argv)
 
 		/* compare result with original pattern */
 		if (decoded_len != sizeof(pattern)) {
-			printf("decoded content has unexpected length %ld\n", decoded_len);
-			return 1;
+			log("decoded content has unexpected length ", decoded_len);
+			return;
 		}
-		if (Genode::memcmp(decoded, pattern, sizeof(pattern))) {
-			printf("decoded content does not match original pattern\n");
-			return 1;
+		if (memcmp(decoded, pattern, sizeof(pattern))) {
+			log("decoded content does not match original pattern");
+			return;
 		}
 	}
 
-	printf("--- XML generator test finished ---\n");
-
-	return 0;
+	log("--- XML generator test finished ---");
+	env.parent().exit(0);
 }
 
