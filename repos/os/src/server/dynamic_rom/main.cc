@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -151,9 +151,9 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 
 	public:
 
-		Session_component(Entrypoint &ep, Xml_node rom_node, bool &verbose)
+		Session_component(Env &env, Xml_node rom_node, bool &verbose)
 		:
-			_verbose(verbose), _rom_node(rom_node), _ep(ep)
+			_verbose(verbose), _rom_node(rom_node), _timer(env), _ep(env.ep())
 		{
 			/* init timer signal handler */
 			_timer.sigh(_timer_handler);
@@ -194,7 +194,7 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		Entrypoint &_ep;
+		Env        &_env;
 		Xml_node    _config_node;
 		bool       &_verbose;
 
@@ -224,7 +224,7 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 
 			try {
 				return new (md_alloc())
-					Session_component(_ep,
+					Session_component(_env,
 					                  _lookup_rom_node_in_config(module_name),
 					                  _verbose);
 
@@ -236,11 +236,11 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 
 	public:
 
-		Root(Entrypoint &ep, Genode::Allocator &md_alloc,
+		Root(Env &env, Genode::Allocator &md_alloc,
 		     Xml_node config_node, bool &verbose)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _config_node(config_node), _verbose(verbose)
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _config_node(config_node), _verbose(verbose)
 		{ }
 };
 
@@ -255,7 +255,7 @@ struct Dynamic_rom::Main
 
 	Sliced_heap sliced_heap { env.ram(), env.rm() };
 
-	Root root { env.ep(), sliced_heap, config.xml(), verbose };
+	Root root { env, sliced_heap, config.xml(), verbose };
 
 	Main(Env &env) : env(env)
 	{
