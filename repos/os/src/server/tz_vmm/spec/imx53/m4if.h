@@ -5,19 +5,19 @@
  */
 
 /*
- * Copyright (C) 2012 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SERVER__TZ_VMM__SPEC__IMX53__M4IF_H_
-#define _SERVER__TZ_VMM__SPEC__IMX53__M4IF_H_
+#ifndef _M4IF_H_
+#define _M4IF_H_
 
 /* Genode includes */
-#include <util/mmio.h>
+#include <os/attached_mmio.h>
 
-class M4if : Genode::Mmio
+class M4if : Genode::Attached_mmio
 {
 	private:
 
@@ -58,7 +58,8 @@ class M4if : Genode::Mmio
 
 	public:
 
-		M4if(Genode::addr_t const base) : Genode::Mmio(base) {}
+		M4if(Genode::Env &env, Genode::addr_t base, Genode::size_t size)
+		: Genode::Attached_mmio(env, base, size) { }
 
 		void set_region0(Genode::addr_t addr, Genode::size_t size)
 		{
@@ -87,4 +88,4 @@ class M4if : Genode::Mmio
 		Genode::addr_t violation_addr() { return read<Wm_reg0_addr>(); }
 };
 
-#endif /* _SERVER__TZ_VMM__SPEC__IMX53__M4IF_H_ */
+#endif /* _M4IF_H_ */

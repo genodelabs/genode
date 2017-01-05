@@ -1,78 +1,56 @@
 /*
- * \brief  Virtual Machine implementation using device trees
+ * \brief  Virtual Machine implementation
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2015-02-27
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SERVER__TZ_VMM__SPEC__IMX53_QSB__VM_H_
-#define _SERVER__TZ_VMM__SPEC__IMX53_QSB__VM_H_
+#ifndef _VM_H_
+#define _VM_H_
 
+/* local includes */
 #include <vm_base.h>
 #include <atag.h>
 
-class Vm : public Vm_base
+namespace Genode { class Vm; }
+
+
+class Genode::Vm : public Vm_base
 {
 	private:
 
-		enum {
-			ATAG_OFFSET   = 0x100,
-			INITRD_OFFSET = 0x1000000,
-		};
+		enum { ATAG_OFFSET = 0x100 };
 
-		Genode::Rom_connection   _initrd_rom;
-		Genode::Dataspace_client _initrd_cap;
 
-		void _load_initrd()
-		{
-			using namespace Genode;
-			addr_t addr = env()->rm_session()->attach(_initrd_cap);
-			memcpy((void*)(_ram.local() + INITRD_OFFSET),
-			       (void*)addr, _initrd_cap.size());
-			env()->rm_session()->detach((void*)addr);
-		}
+		/*************
+		 ** Vm_base **
+		 *************/
 
-		void _load_atag()
-		{
-			Atag tag((void*)(_ram.local() + ATAG_OFFSET));
-			tag.setup_mem_tag(_ram.base(), _ram.size());
-			tag.setup_cmdline_tag(_cmdline);
-			tag.setup_initrd2_tag(_ram.base() + INITRD_OFFSET, _initrd_cap.size());
-			if (_board_rev)
-				tag.setup_rev_tag(_board_rev);
-			tag.setup_end_tag();
-		}
+		void _load_kernel_surroundings();
 
-		/*
-		 * Vm_base interface
-		 */
-
-		void _load_kernel_surroundings()
-		{
-			_load_initrd();
-			_load_atag();
-		}
-
-		Genode::addr_t _board_info_offset() const { return ATAG_OFFSET; }
+		addr_t _board_info_offset() const { return ATAG_OFFSET; }
 
 	public:
 
-		Vm(const char *kernel, const char *cmdline,
-		   Genode::addr_t ram_base, Genode::size_t ram_size,
-		   Genode::addr_t kernel_offset, unsigned long mach_type,
-		   unsigned long board_rev = 0)
-		:
-			Vm_base(kernel, cmdline, ram_base, ram_size,
-			        kernel_offset, mach_type, board_rev),
-			_initrd_rom("initrd.gz"),
-			_initrd_cap(_initrd_rom.dataspace())
-		{ }
+		Vm(Env                &env,
+		   Kernel_name  const &kernel,
+		   Command_line const &cmdl,
+		   addr_t              ram,
+		   size_t              ram_sz,
+		   off_t               kernel_off,
+		   Machine_type        mach,
+		   Board_revision      board)
+		: Vm_base(env, kernel, cmdl, ram, ram_sz, kernel_off, mach, board) { }
+
+		void on_vmm_exit() { }
+		void on_vmm_entry() { };
 };
 
-#endif /* _SERVER__TZ_VMM__SPEC__IMX53_QSB__VM_H_ */
+#endif /* _VM_H_ */

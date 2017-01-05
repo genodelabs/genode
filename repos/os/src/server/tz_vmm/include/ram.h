@@ -15,6 +15,7 @@
 #define _SRC__SERVER__VMM__INCLUDE__RAM_H_
 
 /* Genode includes */
+#include <base/attached_io_mem_dataspace.h>
 #include <base/stdint.h>
 #include <base/exception.h>
 
@@ -22,22 +23,25 @@ class Ram {
 
 	private:
 
-		Genode::addr_t _base;
-		Genode::size_t _size;
-		Genode::addr_t _local;
+		Genode::Attached_io_mem_dataspace _ds;
+		Genode::addr_t const              _base;
+		Genode::size_t const              _size;
+		Genode::addr_t const              _local;
 
 	public:
 
 		class Invalid_addr : Genode::Exception {};
 
-		Ram(Genode::addr_t addr, Genode::size_t sz, Genode::addr_t local)
-		: _base(addr), _size(sz), _local(local) { }
+		Ram(Genode::Env &env, Genode::addr_t base, Genode::size_t size)
+		:
+			_ds(env, base, size), _base(base), _size(size),
+			_local((Genode::addr_t)_ds.local_addr<void>()) { }
 
-		Genode::addr_t base()  { return _base;  }
-		Genode::size_t size()  { return _size;  }
-		Genode::addr_t local() { return _local; }
+		Genode::addr_t base()  const { return _base;  }
+		Genode::size_t size()  const { return _size;  }
+		Genode::addr_t local() const { return _local; }
 
-		Genode::addr_t va(Genode::addr_t phys)
+		Genode::addr_t va(Genode::addr_t phys) const
 		{
 			if ((phys < _base) || (phys > (_base + _size)))
 				throw Invalid_addr();

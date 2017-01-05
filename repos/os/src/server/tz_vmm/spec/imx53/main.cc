@@ -1,63 +1,63 @@
 /*
  * \brief  Virtual Machine Monitor
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2012-06-25
  */
 
 /*
- * Copyright (C) 2008-2012 Genode Labs GmbH
+ * Copyright (C) 2008-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/env.h>
-#include <base/sleep.h>
-#include <base/thread.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
+#include <base/component.h>
 #include <drivers/board_base.h>
 #include <drivers/trustzone.h>
-#include <vm_state.h>
 
 /* local includes */
 #include <vm.h>
 #include <m4if.h>
-#include <serial.h>
-#include <block.h>
+#include <serial_driver.h>
+#include <block_driver.h>
 
 using namespace Genode;
 
-enum {
-	KERNEL_OFFSET    = 0x8000,
-	MACH_TYPE_TABLET = 3011,
-	MACH_TYPE_QSB    = 3273,
-	BOARD_REV_TABLET = 0x53321,
-};
 
-
-static const char* cmdline_tablet = "console=ttymxc0,115200";
-
-void on_vmm_entry();
-void on_vmm_exit();
-
-namespace Vmm {
-	class Vmm;
-}
-
-
-class Vmm::Vmm : public Thread_deprecated<8192>
+class Main
 {
 	private:
 
-		Signal_receiver           _sig_rcv;
-		Signal_context            _vm_context;
-		Vm                       *_vm;
-		Io_mem_connection         _m4if_io_mem;
-		M4if                      _m4if;
-		Serial                    _serial;
-		Block                     _block;
+		enum {
+			KERNEL_OFFSET  = 0x8000,
+			MACHINE_TABLET = 3011,
+			MACHINE_QSB    = 3273,
+			BOARD_TABLET   = 0x53321,
+			BOARD_QSB      = 0,
+		};
 
-		void _handle_hypervisor_call()
+		Env                    &_env;
+		Vm::Kernel_name  const  _kernel_name       { "linux" };
+		Vm::Command_line const  _cmd_line          { "console=ttymxc0,115200" };
+		Attached_rom_dataspace  _config            { _env, "config" };
+		Signal_handler<Main>    _exception_handler { _env.ep(), *this,
+		                                             &Main::_handle_exception };
+
+		Heap          _heap    { &_env.ram(), &_env.rm() };
+		Vm            _vm      { _env, _kernel_name, _cmd_line,
+		                         Trustzone::NONSECURE_RAM_BASE,
+		                         Trustzone::NONSECURE_RAM_SIZE,
+		                         KERNEL_OFFSET, Machine_type(MACHINE_QSB),
+		                         Board_revision(BOARD_QSB) };
+		M4if          _m4if    { _env, Board_base::M4IF_BASE, Board_base::M4IF_SIZE };
+		Serial_driver _serial  { _env.ram() };
+		Block_driver  _block   { _env.ep(), _config.xml(), _heap, _vm };
+
+		void _handle_smc()
 		{
 			enum {
 				FRAMEBUFFER = 0,
@@ -65,90 +65,52 @@ class Vmm::Vmm : public Thread_deprecated<8192>
 				SERIAL      = 2,
 				BLOCK       = 3,
 			};
-			switch (_vm->smc_arg_0()) {
-			case FRAMEBUFFER:                      break;
-			case INPUT:                            break;
-			case SERIAL:      _serial.handle(_vm); break;
-			case BLOCK:       _block.handle(_vm);  break;
+			switch (_vm.smc_arg_0()) {
+			case FRAMEBUFFER:                          break;
+			case INPUT:                                break;
+			case SERIAL:      _serial.handle_smc(_vm); break;
+			case BLOCK:       _block.handle_smc(_vm);  break;
 			default:
-				Genode::error("unknown hypervisor call!");
-				_vm->dump();
+				error("unknown hypervisor call ", _vm.smc_arg_0());
+				throw Vm::Exception_handling_failed();
 			};
 		}
 
-		bool _handle_data_abort()
+		void _handle_data_abort()
 		{
-			_vm->dump();
-			return false;
+			error("failed to handle data abort");
+			throw Vm::Exception_handling_failed();
 		}
 
-		bool _handle_vm()
+		void _handle_exception()
 		{
-			/* check exception reason */
-			switch (_vm->state()->cpu_exception) {
-			case Cpu_state::DATA_ABORT:
-				if (!_handle_data_abort()) {
-					Genode::error("could not handle data-abort will exit!");
-					return false;
+			_vm.on_vmm_entry();
+			try {
+				switch (_vm.state().cpu_exception) {
+				case Cpu_state::DATA_ABORT:      _handle_data_abort(); break;
+				case Cpu_state::SUPERVISOR_CALL: _handle_smc();        break;
+				default:
+					error("unknown exception ", _vm.state().cpu_exception);
+					throw Vm::Exception_handling_failed();
 				}
-				break;
-			case Cpu_state::SUPERVISOR_CALL:
-				_handle_hypervisor_call();
-				break;
-			default:
-				Genode::error("curious exception occured");
-				_vm->dump();
-				return false;
+				_vm.run();
 			}
-			return true;
-		}
-
-	protected:
-
-		void entry()
-		{
-			_vm->sig_handler(_sig_rcv.manage(&_vm_context));
-			_vm->start();
-			_vm->run();
-
-			while (true) {
-				Signal s = _sig_rcv.wait_for_signal();
-				on_vmm_entry();
-				if (s.context() == &_vm_context) {
-					if (_handle_vm())
-						_vm->run();
-				} else {
-					Genode::warning("invalid context");
-					continue;
-				}
-				on_vmm_exit();
-			}
+			catch (Vm::Exception_handling_failed) { _vm.dump(); }
+			_vm.on_vmm_exit();
 		};
 
 	public:
 
-		Vmm(Vm *vm)
-		: Thread_deprecated<8192>("vmm"),
-		  _vm(vm),
-		  _m4if_io_mem(Board_base::M4IF_BASE, Board_base::M4IF_SIZE),
-		  _m4if((addr_t)env()->rm_session()->attach(_m4if_io_mem.dataspace()))
+		Main(Env &env) : _env(env)
 		{
+			log("Start virtual machine ...");
 			_m4if.set_region0(Trustzone::SECURE_RAM_BASE,
 			                  Trustzone::SECURE_RAM_SIZE);
+			_vm.exception_handler(_exception_handler);
+			_vm.start();
+			_vm.run();
 		}
 };
 
 
-int main()
-{
-	static Vm vm("linux", cmdline_tablet,
-	             Trustzone::NONSECURE_RAM_BASE, Trustzone::NONSECURE_RAM_SIZE,
-	             KERNEL_OFFSET, MACH_TYPE_QSB);
-	static Vmm::Vmm vmm(&vm);
-
-	Genode::log("Start virtual machine ...");
-	vmm.start();
-
-	sleep_forever();
-	return 0;
-}
+void Component::construct(Env &env) { static Main main(env); }

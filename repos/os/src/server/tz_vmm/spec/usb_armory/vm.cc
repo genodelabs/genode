@@ -1,34 +1,36 @@
 /*
- * \brief  Virtual machine implementation
+ * \brief  Virtual Machine implementation
+ * \author Stefan Kalkowski
  * \author Martin Stein
- * \date   2015-06-10
+ * \date   2015-02-27
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <base/attached_rom_dataspace.h>
+
 /* local includes */
 #include <vm.h>
-#include <gpio_session/connection.h>
 
-Gpio::Connection * led()
-{
-	static Gpio::Connection led(123);
-	return &led;
-}
+using namespace Genode;
 
-void on_vmm_entry()
+
+void Vm::on_vmm_entry()
 {
-	led()->direction(Gpio::Session::OUT);
-	led()->write(false);
+	_led.direction(Gpio::Session::OUT);
+	_led.write(false);
 }
 
 
-void on_vmm_exit()
+void Vm::_load_kernel_surroundings()
 {
-	led()->write(true);
+	Attached_rom_dataspace dtb(_env, "dtb");
+	memcpy((void*)(_ram.local() + DTB_OFFSET), dtb.local_addr<void>(),
+	       dtb.size());
 }

@@ -1,57 +1,60 @@
 /*
- * \brief  Virtual Machine implementation using device trees
+ * \brief  Virtual Machine implementation
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2015-02-27
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SERVER__TZ_VMM__SPEC__USB_ARMORY__VM_H_
-#define _SERVER__TZ_VMM__SPEC__USB_ARMORY__VM_H_
+#ifndef _VM_H_
+#define _VM_H_
+
+/* Genode includes */
+#include <gpio_session/connection.h>
 
 /* local includes */
 #include <vm_base.h>
 
-class Vm : public Genode::Rom_connection,
-           public Genode::Dataspace_client,
-           public Vm_base
+namespace Genode { class Vm; }
+
+
+class Genode::Vm : public Vm_base
 {
 	private:
 
 		enum { DTB_OFFSET = 0x1000000 };
 
-		void _load_dtb()
-		{
-			using namespace Genode;
-			addr_t addr = env()->rm_session()->attach(*this);
-			memcpy((void*)(_ram.local() + DTB_OFFSET), (void*)addr, size());
-			env()->rm_session()->detach((void*)addr);
-		}
+		Gpio::Connection  _led { _env, 123 };
 
-		/*
-		 * Vm_base interface
-		 */
 
-		void _load_kernel_surroundings() { _load_dtb(); }
+		/*************
+		 ** Vm_base **
+		 *************/
 
-		Genode::addr_t _board_info_offset() const { return DTB_OFFSET; }
+		void _load_kernel_surroundings();
+
+		addr_t _board_info_offset() const { return DTB_OFFSET; }
 
 	public:
 
-		Vm(const char *kernel, const char *cmdline,
-		   Genode::addr_t ram_base, Genode::size_t ram_size,
-		   Genode::addr_t kernel_offset, unsigned long mach_type,
-		   unsigned long board_rev = 0)
-		: Genode::Rom_connection("dtb"),
-		  Genode::Dataspace_client(dataspace()),
-		  Vm_base(kernel, cmdline, ram_base, ram_size,
-		          kernel_offset, mach_type, board_rev)
-		{ }
+		Vm(Env                &env,
+		   Kernel_name  const &kernel,
+		   Command_line const &cmdl,
+		   addr_t              ram,
+		   size_t              ram_sz,
+		   off_t               kernel_off,
+		   Machine_type        mach,
+		   Board_revision      board)
+		: Vm_base(env, kernel, cmdl, ram, ram_sz, kernel_off, mach, board) { }
+
+		void on_vmm_exit() { _led.write(true); }
+		void on_vmm_entry();
 };
 
-#endif /* _SERVER__TZ_VMM__SPEC__USB_ARMORY__VM_H_ */
+#endif /* _VM_H_ */

@@ -178,7 +178,7 @@ append config {
 if { $mmc_rootfs } {
 	append config "
 		<config>
-			<block label=\"sda1\" irq=\"$tz_vmm_block_irq\"/>
+			<block name=\"sda1\" irq=\"$tz_vmm_block_irq\"/>
 		</config>
 		<route>
 			<service name=\"Block\"><child name=\"part_blk\" /></service>
