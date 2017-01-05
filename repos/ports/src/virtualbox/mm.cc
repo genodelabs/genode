@@ -33,7 +33,7 @@
 
 #include "util.h"
 #include "mm.h"
-
+#include "vmm.h"
 
 static struct {
 	Sub_rm_connection * conn;
@@ -56,7 +56,7 @@ static Libc::Mem_alloc * heap_by_mmtag(MMTAG enmTag)
 	if (memory_regions[enmTag].conn)
 		return memory_regions[enmTag].heap;
 
-	memory_regions[enmTag].conn = new Sub_rm_connection(REGION_SIZE);
+	memory_regions[enmTag].conn = new Sub_rm_connection(genode_env(), REGION_SIZE);
 	memory_regions[enmTag].heap = new Libc::Mem_alloc_impl(memory_regions[enmTag].conn);
 
 	return memory_regions[enmTag].heap;

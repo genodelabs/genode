@@ -252,30 +252,29 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"no\">"
 	}
 	append config_of_app {
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
-				<vfs>
-					<dir name="dev">
-						<log/> <rtc/>}
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/> <rtc/>}
 
 	append_if [expr !$use_rumpfs] config_of_app {
-						<block name="sda3" label="raw" block_buffer_count="128" />}
+					<block name="sda3" label="raw" block_buffer_count="128" />}
 	append config_of_app {
-						</dir>}
+				</dir>}
 
 	append_if [expr $use_ram_fs] config_of_app {
-					<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
+				<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
 
 	append config_of_app "
-					<rom name=\"${vbox_file}\"/>"
+				<rom name=\"${vbox_file}\"/>"
 	append_if [expr !$use_rumpfs] config_of_app "
-					<rom name=\"${raw_image}\"/>"
+				<rom name=\"${raw_image}\"/>"
 
 	append_if [expr $use_rumpfs || $use_ram_fs] config_of_app {
-					<fs />}
+				<fs />}
 
 	append config_of_app {
-				</vfs>
-			</libc>
+			</vfs>
 		</config>
 		<route>}
 

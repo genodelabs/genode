@@ -14,13 +14,13 @@
 /* Genode */
 #include <base/log.h>
 #include <base/thread.h>
-#include <base/env.h>
 #include <cpu_session/connection.h>
 
 /* Genode libc pthread binding */
 #include "thread.h"
 
 #include "sup.h"
+#include "vmm.h"
 
 /* libc */
 #include <pthread.h>
@@ -51,11 +51,11 @@ static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type) {
 	long const prio = (VIRTUAL_GENODE_VBOX_LEVELS - type) *
 	                  Cpu_session::PRIORITY_LIMIT / VIRTUAL_GENODE_VBOX_LEVELS;
 
-	char * data = new (env()->heap()) char[16];
+	char * data = new (vmm_heap()) char[16];
 
 	Genode::snprintf(data, 16, "vbox %u", type);
 
-	con[type - 1] = new (env()->heap()) Cpu_connection(data, prio);
+	con[type - 1] = new (vmm_heap()) Cpu_connection(genode_env(), data, prio);
 
 	return con[type - 1];
 }
@@ -98,7 +98,7 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		 */
 	}
 
-	pthread_t thread_obj = new (Genode::env()->heap())
+	pthread_t thread_obj = new (vmm_heap())
 	                           pthread(attr ? *attr : 0, start_routine,
 	                           arg, stack_size, rtthread->szName,
 	                           cpu_connection(rtthread->enmType),

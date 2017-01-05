@@ -48,8 +48,6 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us);
 
 Genode::Cpu_session * get_vcpu_cpu_session();
 
-Genode::Env &genode_env();
-
 void genode_VMMR0_DO_GVMM_CREATE_VM(PSUPVMMR0REQHDR pReqHdr);
 void genode_VMMR0_DO_GVMM_REGISTER_VMCPU(PVMR0 pVMR0, VMCPUID idCpu);
 

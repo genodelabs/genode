@@ -28,6 +28,7 @@
 
 #include "console.h"
 #include "fb.h"
+#include "../vmm.h"
 
 static const bool debug = false;
 
@@ -134,7 +135,7 @@ void fireStateChangedEvent(IEventSource* aSource,
 	if (a_state != MachineState_PoweredOff)
 		return;
 
-	Genode::env()->parent()->exit(0);
+	genode_env().parent().exit(0);
 }
 
 void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal,
@@ -348,7 +349,7 @@ void GenodeConsole::init_clipboard()
 	if (mode == ClipboardMode_Bidirectional ||
 	    mode == ClipboardMode_HostToGuest) {
 
-		_clipboard_rom = new Genode::Attached_rom_dataspace("clipboard");
+		_clipboard_rom = new Genode::Attached_rom_dataspace(genode_env(), "clipboard");
 		_clipboard_rom->sigh(_clipboard_signal_dispatcher);
 
 		clipboard_rom = _clipboard_rom;
@@ -357,7 +358,7 @@ void GenodeConsole::init_clipboard()
 	if (mode == ClipboardMode_Bidirectional ||
 	    mode == ClipboardMode_GuestToHost) {
 
-		_clipboard_reporter = new Genode::Reporter("clipboard");
+		_clipboard_reporter = new Genode::Reporter(genode_env(), "clipboard");
 		_clipboard_reporter->enabled(true);
 
 		clipboard_reporter = _clipboard_reporter;

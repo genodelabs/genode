@@ -18,7 +18,7 @@
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <trace/timestamp.h>
 
 #include <vmm/vcpu_thread.h>
@@ -35,6 +35,7 @@
 #include <VBox/err.h>
 
 /* Genode's VirtualBox includes */
+#include "vmm.h"
 #include "vcpu.h"
 #include "vcpu_svm.h"
 #include "vcpu_vmx.h"
@@ -64,20 +65,22 @@ static Vcpu_handler *lookup_vcpu_handler(unsigned int cpu_id)
 
 /* Genode specific function */
 
-static Genode::Attached_rom_dataspace hip_rom("hypervisor_info_page");
+Nova::Hip &hip_rom()
+{
+	static Genode::Attached_rom_dataspace hip_rom(genode_env(),
+	                                              "hypervisor_info_page");
+	return *hip_rom.local_addr<Nova::Hip>();
+}
 
 void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 {
 	try {
-		Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
+		pVM->hm.s.svm.fSupported = hip_rom().has_feature_svm();
+		pVM->hm.s.vmx.fSupported = hip_rom().has_feature_vmx();
 
-		pVM->hm.s.svm.fSupported = hip->has_feature_svm();
-		pVM->hm.s.vmx.fSupported = hip->has_feature_vmx();
-
-		if (hip->has_feature_svm() || hip->has_feature_vmx()) {
-			Genode::log("Using ",
-			            hip->has_feature_svm() ? "SVM" : "VMX", " "
-			            "virtualization extension.");
+		if (hip_rom().has_feature_svm() || hip_rom().has_feature_vmx()) {
+			Genode::log("Using ", hip_rom().has_feature_svm() ? "SVM" : "VMX",
+			            " virtualization extension.");
 			return;
 		}
 	} catch (...) { /* if we get an exception let hardware support off */ }
@@ -192,14 +195,7 @@ uint64_t genode_cpu_hz()
 
 	if (!cpu_freq) {
 		try {
-			using namespace Genode;
-
-			Rom_connection hip_rom("hypervisor_info_page");
-
-			Nova::Hip * const hip = env()->rm_session()->attach(hip_rom.dataspace());
-
-			cpu_freq = hip->tsc_freq * 1000;
-
+			cpu_freq = hip_rom().tsc_freq * 1000;
 		} catch (...) {
 			Genode::error("could not read out CPU frequency");
 			Genode::Lock lock;
@@ -282,7 +278,7 @@ extern "C" void pthread_yield(void)
 
 void *operator new (__SIZE_TYPE__ size, int log2_align)
 {
-	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
+	static Libc::Mem_alloc_impl heap(&genode_env().rm());
 	return heap.alloc(size, log2_align);
 }
 
@@ -294,22 +290,20 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id, const char * name)
 {
-	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
-
-	if (!hip->has_feature_vmx() && !hip->has_feature_svm())
+	if (!hip_rom().has_feature_vmx() && !hip_rom().has_feature_svm())
 		return false;
 
-	static Genode::Pd_connection pd_vcpus("VM");
+	static Genode::Pd_connection pd_vcpus(genode_env(), "VM");
 
 	Vcpu_handler *vcpu_handler = 0;
 
-	if (hip->has_feature_vmx())
+	if (hip_rom().has_feature_vmx())
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name, pd_vcpus);
 
-	if (hip->has_feature_svm())
+	if (hip_rom().has_feature_svm())
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,

@@ -30,6 +30,8 @@ extern "C" {
 #include "audio_int.h"
 }
 
+/* VBox Genode specific */
+#include "vmm.h"
 
 template <size_t CAPACITY>
 struct A_ring_buffer_to_bind_them
@@ -278,12 +280,12 @@ static int genode_init_out(HWVoiceOut *hw, audsettings_t *as)
 
 	for (int i = 0; i < VBOX_CHANNELS; i++) {
 		try {
-			out->audio[i] = new (Genode::env()->heap())
-				Audio_out::Connection(channel_names[i]);
+			out->audio[i] = new (vmm_heap())
+				Audio_out::Connection(genode_env(), channel_names[i]);
 		} catch (...) {
 			Genode::error("could not establish Audio_out connection");
 			while (--i > 0)
-				Genode::destroy(Genode::env()->heap(), out->audio[i]);
+				Genode::destroy(vmm_heap(), out->audio[i]);
 			return -1;
 		}
 	}
@@ -306,7 +308,7 @@ static void genode_fini_out(HWVoiceOut *hw)
 {
 	GenodeVoiceOut * const out = (GenodeVoiceOut *)hw;
 	for (int i = 0; i < VBOX_CHANNELS; i++)
-		Genode::destroy(Genode::env()->heap(), out->audio[i]);
+		Genode::destroy(vmm_heap(), out->audio[i]);
 }
 
 
@@ -339,7 +341,7 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 	GenodeVoiceIn *in = (GenodeVoiceIn*)hw;
 
 	try {
-		in->audio = new (Genode::env()->heap()) Audio_in::Connection("left");
+		in->audio = new (vmm_heap()) Audio_in::Connection("left");
 	} catch (...) {
 		Genode::error("could not establish Audio_in connection");
 		return -1;
@@ -362,7 +364,7 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 static void genode_fini_in(HWVoiceIn *hw)
 {
 	GenodeVoiceIn * const in = (GenodeVoiceIn*)hw;
-	Genode::destroy(Genode::env()->heap(), in->audio);
+	Genode::destroy(vmm_heap(), in->audio);
 }
 
 

@@ -18,8 +18,8 @@
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
-#include <os/attached_rom_dataspace.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <trace/timestamp.h>
 
 #include <vmm/vcpu_thread.h>
@@ -29,6 +29,7 @@
 #include <nova/syscalls.h>
 
 /* Genode's VirtualBox includes */
+#include "vmm.h"
 #include "vcpu.h"
 #include "vcpu_svm.h"
 #include "vcpu_vmx.h"
@@ -40,11 +41,6 @@
 
 extern "C" bool PGMUnmapMemoryGenode(void *, ::size_t);
 
-/* XXX does not work on 32bit host - since vm memory is from 0 - 4G and
- * such large areas can't be attached to a process
- * We need several sub_rm areas .... XXX
- */
-static Sub_rm_connection vm_memory((sizeof(void *) == 4 ? 2UL : 4UL) * 1024 * 1024 * 1024);
 
 static Genode::List<Vcpu_handler> &vcpu_handler_list()
 {
@@ -67,19 +63,23 @@ static Vcpu_handler *lookup_vcpu_handler(unsigned int cpu_id)
 
 /* Genode specific function */
 
-static Genode::Attached_rom_dataspace hip_rom("hypervisor_info_page");
+Nova::Hip &hip_rom()
+{
+	static Genode::Attached_rom_dataspace hip_rom(genode_env(),
+	                                              "hypervisor_info_page");
+	return *hip_rom.local_addr<Nova::Hip>();
+}
+
 
 void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 {
 	try {
-		Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
+		pVM->hm.s.svm.fSupported = hip_rom().has_feature_svm();
+		pVM->hm.s.vmx.fSupported = hip_rom().has_feature_vmx();
 
-		pVM->hm.s.svm.fSupported = hip->has_feature_svm();
-		pVM->hm.s.vmx.fSupported = hip->has_feature_vmx();
-
-		if (hip->has_feature_svm() || hip->has_feature_vmx()) {
-			Genode::log("Using ", hip->has_feature_svm() ? "SVM " : "VMX ",
-			            "virtualization extension.");
+		if (hip_rom().has_feature_svm() || hip_rom().has_feature_vmx()) {
+			Genode::log("Using ", hip_rom().has_feature_svm() ? "SVM" : "VMX",
+			            " virtualization extension.");
 			return;
 		}
 	} catch (...) { /* if we get an exception let hardware support off */ }
@@ -113,7 +113,9 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	            " r3=", ppvPages, " r0=", pR0Ptr);
 
 	using Genode::Attached_ram_dataspace;
-	Attached_ram_dataspace * ds = new Attached_ram_dataspace(Genode::env()->ram_session(), cPages * 4096); /* XXX PAGE_SIZE ? */
+	Attached_ram_dataspace * ds = new Attached_ram_dataspace(genode_env().ram(),
+	                                                         genode_env().rm(),
+	                                                         cPages * 4096); /* XXX PAGE_SIZE ? */
 	*ppvPages = ds->local_addr<void>();
 	if (pR0Ptr)
 		*pR0Ptr = reinterpret_cast<RTR0PTR>(*ppvPages);
@@ -136,6 +138,12 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
                      uOperation, uint64_t u64Arg, PSUPVMMR0REQHDR pReqHdr)
 {
+	/* XXX does not work on 32bit host - since vm memory is from 0 - 4G and
+	 * such large areas can't be attached to a process
+	 * We need several sub_rm areas .... XXX
+	 */
+	static Sub_rm_connection vm_memory(genode_env(), (sizeof(void *) == 4 ? 2UL : 4UL) * 1024 * 1024 * 1024);
+
 	static unsigned long chunkid = 1500;
 
 	switch (uOperation) {
@@ -251,7 +259,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		Assert(req->idChunkUnmap == NIL_GMM_CHUNKID);
 		Assert(req->idChunkMap   != NIL_GMM_CHUNKID);
 
-		Genode::Ram_dataspace_capability ds = Genode::env()->ram_session()->alloc(GMM_CHUNK_SIZE);
+		Genode::Ram_dataspace_capability ds = genode_env().ram().alloc(GMM_CHUNK_SIZE);
 		Genode::addr_t local_addr_offset = (req->idChunkMap - 1) << GMM_CHUNK_SHIFT;
 
 		enum { OFFSET_DS = 0, USE_LOCAL_ADDR = true };
@@ -462,16 +470,9 @@ uint64_t genode_cpu_hz()
 
 	if (!cpu_freq) {
 		try {
-			using namespace Genode;
-
-			Rom_connection hip_rom("hypervisor_info_page");
-
-			Nova::Hip * const hip = env()->rm_session()->attach(hip_rom.dataspace());
-
-			cpu_freq = hip->tsc_freq * 1000;
-
+			cpu_freq = hip_rom().tsc_freq * 1000;
 		} catch (...) {
-			Genode::error("could not read out CPU frequency.");
+			Genode::error("could not read out CPU frequency");
 			Genode::Lock lock;
 			lock.lock();
 		}
@@ -543,7 +544,7 @@ extern "C" void pthread_yield(void)
 
 void *operator new (__SIZE_TYPE__ size, int log2_align)
 {
-	static Libc::Mem_alloc_impl heap(Genode::env()->rm_session());
+	static Libc::Mem_alloc_impl heap(&genode_env().rm());
 	return heap.alloc(size, log2_align);
 }
 
@@ -555,22 +556,20 @@ bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id, const char * name)
 {
-	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
-
-	if (!hip->has_feature_vmx() && !hip->has_feature_svm())
+	if (!hip_rom().has_feature_vmx() && !hip_rom().has_feature_svm())
 		return false;
 
-	static Genode::Pd_connection pd_vcpus("VM");
+	static Genode::Pd_connection pd_vcpus(genode_env(), "VM");
 
 	Vcpu_handler *vcpu_handler = 0;
 
-	if (hip->has_feature_vmx())
+	if (hip_rom().has_feature_vmx())
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name, pd_vcpus);
 
-	if (hip->has_feature_svm())
+	if (hip_rom().has_feature_svm())
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,

@@ -12,11 +12,12 @@
  */
 
 /* Genode includes */
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <trace/timestamp.h>
 
 /* Genode/Virtualbox includes */
 #include "sup.h"
+#include "vmm.h"
 
 /* VirtualBox includes */
 #include <iprt/semaphore.h>
@@ -31,7 +32,7 @@
 struct Attached_gip : Genode::Attached_ram_dataspace
 {
 	Attached_gip()
-	: Attached_ram_dataspace(Genode::env()->ram_session(), PAGE_SIZE)
+	: Attached_ram_dataspace(genode_env().ram(), genode_env().rm(), PAGE_SIZE)
 	{ }
 };
 
@@ -46,9 +47,9 @@ enum {
 PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
 
 
-struct Periodic_gip : public Genode::Thread_deprecated<2*4096>
+struct Periodic_gip : public Genode::Thread
 {
-	Periodic_gip() : Thread_deprecated("periodic_gip") { start(); }
+	Periodic_gip(Genode::Env &env) : Thread(env, "periodic_gip", 8192) { start(); }
 
 	static void update()
 	{
@@ -147,7 +148,7 @@ int SUPR3Init(PSUPDRVSESSION *ppSession)
 	cpu->idApic                  = 0;
 
 	/* schedule periodic call of GIP update function */
-	static Periodic_gip periodic_gip;
+	static Periodic_gip periodic_gip (genode_env());
 
 	initialized = true;
 
@@ -331,7 +332,7 @@ HRESULT genode_check_memory_config(ComObjPtr<Machine> machine)
 		return rc;
 
 	/* Request max available memory */
-	size_t memory_genode = Genode::env()->ram_session()->avail() >> 20;
+	size_t memory_genode = genode_env().ram().avail() >> 20;
 	size_t memory_vmm    = 28;
 
 	if (memory_vbox + memory_vmm > memory_genode) {

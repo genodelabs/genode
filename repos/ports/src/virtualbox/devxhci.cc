@@ -13,9 +13,8 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
 #include <base/log.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/list.h>
 
 /* qemu-usb includes */
@@ -44,6 +43,8 @@
 #include <VBox/vusb.h>
 #include <VBoxDD.h>
 
+/* VBox Genode specific */
+#include "vmm.h"
 
 static bool const verbose_timer = false;
 
@@ -115,7 +116,7 @@ struct Timer_queue : public Qemu::Timer_queue
 
 	void _append_new_context(void *qtimer, void (*cb)(void*), void *data)
 	{
-		Context *new_ctx = new (Genode::env()->heap()) Context(qtimer, cb, data);
+		Context *new_ctx = new (vmm_heap()) Context(qtimer, cb, data);
 
 		_context_list.insert(new_ctx);
 	}
@@ -255,7 +256,7 @@ struct Timer_queue : public Qemu::Timer_queue
 		_deactivate_timer(qtimer);
 
 		_context_list.remove(c);
-		Genode::destroy(Genode::env()->heap(), c);
+		Genode::destroy(vmm_heap(), c);
 	}
 
 	void activate_timer(void *qtimer, long long int expire_abs) override
@@ -453,8 +454,8 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	PXHCI pThis = PDMINS_2_DATA(pDevIns, PXHCI);
 	PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);
 
-	pThis->usb_sig_rec        = new (Genode::env()->heap()) Genode::Signal_receiver();
-	pThis->destruction_helper = new (Genode::env()->heap())
+	pThis->usb_sig_rec        = new (vmm_heap()) Genode::Signal_receiver();
+	pThis->destruction_helper = new (vmm_heap())
 	                                Destruction_helper(*(pThis->usb_sig_rec));
 
 	int rc = PDMDevHlpTMTimerCreate(pDevIns, TMCLOCK_VIRTUAL, Timer_queue::tm_timer_cb,
@@ -575,7 +576,7 @@ const PDMDEVREG g_DeviceXHCI =
 bool use_xhci_controller()
 {
 	try {
-		Genode::Attached_rom_dataspace config("config");
+		Genode::Attached_rom_dataspace config(genode_env(), "config");
 		return config.xml().attribute_value("xhci", false);
 	} catch (Genode::Rom_connection::Rom_connection_failed) {
 		return false;

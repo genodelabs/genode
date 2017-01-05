@@ -14,14 +14,6 @@
 #ifndef _VMM_MEMORY_H_
 #define _VMM_MEMORY_H_
 
-/*
- * Work-around for a naming conflict between the enum definition of PAGE_SIZE
- * in 'os/attached_ram_dataspace.h' and the VirtualBox #define with the same
- * name.
- */
-#define BACKUP_PAGESIZE PAGE_SIZE
-#undef  PAGE_SIZE
-
 /* Genode includes */
 #include <base/env.h>
 #include <base/lock.h>
@@ -29,8 +21,7 @@
 
 /* Genode/Virtualbox includes */
 #include "mem_region.h"
-
-#define PAGE_SIZE BACKUP_PAGESIZE
+#include "vmm.h"
 
 /* VirtualBox includes */
 #include <VBox/vmm/pgm.h>
@@ -38,21 +29,19 @@
 
 class Vmm_memory
 {
-	typedef Genode::Ram_session      Ram_session;
-	typedef Genode::Region_map       Region_map;
 	typedef Genode::size_t           size_t;
 	typedef Genode::Lock             Lock;
 	typedef Genode::List<Mem_region> Mem_region_list;
 
 	private:
 
-		Lock            _lock;
-		Mem_region_list _regions;
+		Lock             _lock;
+		Mem_region_list  _regions;
+		Genode::Env     &_env;
 
 		/**
 		 * Backing store
 		 */
-		Genode::Ram_session &_ram;
 
 		Mem_region *_lookup_unsynchronized(PPDMDEVINS pDevIns, unsigned iRegion)
 		{
@@ -75,7 +64,7 @@ class Vmm_memory
 
 	public:
 
-		Vmm_memory(Ram_session &ram) : _ram(ram) { }
+		Vmm_memory(Genode::Env &env) : _env(env) { }
 
 		/**
 		 * \throw  Ram_session::Alloc_failed
@@ -86,17 +75,17 @@ class Vmm_memory
 			Lock::Guard guard(_lock);
 
 			try {
-				Mem_region *r = new (Genode::env()->heap())
-				                Mem_region(_ram, cb, pDevIns, iRegion);
+				Mem_region *r = new (vmm_heap()) Mem_region(_env, cb,
+				                                            pDevIns, iRegion);
 				_regions.insert(r);
 
 				return r->local_addr<void>();
 
-			} catch (Ram_session::Alloc_failed) {
+			} catch (Genode::Ram_session::Alloc_failed) {
 				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
 				              "RAM allocation failed");
 				throw;
-			} catch (Region_map::Attach_failed) {
+			} catch (Genode::Region_map::Attach_failed) {
 				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
 				              "RM attach failed");
 				throw;

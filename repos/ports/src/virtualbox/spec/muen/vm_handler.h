@@ -13,7 +13,6 @@
 #ifndef _VIRTUALBOX__SPEC__MUEN__VM_HANDLER_H_
 #define _VIRTUALBOX__SPEC__MUEN__VM_HANDLER_H_
 
-#include <base/env.h>
 #include <base/signal.h>
 
 #include <vm_session/vm_session.h>
@@ -34,21 +33,22 @@ class Genode::Vm_handler
 
 		Vm_connection _vm_session;
 		Signal_context_capability _sig_cap;
-		Signal_receiver *_sig_rcv;
+		Signal_receiver _sig_rcv;
 		Signal_transmitter _sig_xmit;
 		Signal_context _sig_ctx;
 
 	public:
 
-		Vm_handler()
+		Vm_handler(Genode::Env &env)
+		:
+			_vm_session(env)
 		{
-			_sig_rcv = new (env()->heap())Signal_receiver();
-			_sig_cap = _sig_rcv->manage(&_sig_ctx);
+			_sig_cap = _sig_rcv.manage(&_sig_ctx);
 			_sig_xmit.context(_sig_cap);
 			_vm_session.exception_handler(_sig_cap);
 		}
 
-		~Vm_handler() { _sig_rcv->dissolve(&_sig_ctx); }
+		~Vm_handler() { _sig_rcv.dissolve(&_sig_ctx); }
 
 		/**
 		 * Starts execution of the Vm and blocks until the Vm returns or the
@@ -57,7 +57,7 @@ class Genode::Vm_handler
 		void run_vm()
 		{
 			_vm_session.run();
-			_sig_rcv->wait_for_signal();
+			_sig_rcv.wait_for_signal();
 		}
 };
 

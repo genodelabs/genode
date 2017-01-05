@@ -41,6 +41,9 @@
 #include <nic/packet_allocator.h>
 #include <base/snprintf.h>
 
+/* VBox Genode specific */
+#include "vmm.h"
+
 /*******************************************************************************
 *   Structures and Typedefs                                                    *
 *******************************************************************************/
@@ -155,16 +158,15 @@ class Nic_client
 
 		static Nic::Packet_allocator* _packet_allocator()
 		{
-			using namespace Genode;
-			return new (env()->heap())Nic::Packet_allocator(env()->heap());
+			return new (vmm_heap()) Nic::Packet_allocator(&vmm_heap());
 		}
 
 	public:
 
-		Nic_client(PDRVNIC drvtap, char const *label)
+		Nic_client(Genode::Env &env, PDRVNIC drvtap, char const *label)
 		:
 			_tx_block_alloc(_packet_allocator()),
-			_nic(_tx_block_alloc, BUF_SIZE, BUF_SIZE, label),
+			_nic(env, _tx_block_alloc, BUF_SIZE, BUF_SIZE, label),
 			_link_state_dispatcher(_sig_rec, *this, &Nic_client::_handle_link_state),
 			_rx_packet_avail_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_packet_avail),
 			_rx_ready_to_ack_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_ready_to_ack),
@@ -175,8 +177,7 @@ class Nic_client
 
 		~Nic_client()
 		{
-			using namespace Genode;
-			destroy(env()->heap(), _tx_block_alloc);
+			destroy(vmm_heap(), _tx_block_alloc);
 		}
 
 		void enable_signals()
@@ -478,7 +479,7 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 	destruct_lock()->lock();
 
 	if (nic_client)
-		destroy(Genode::env()->heap(), nic_client);
+		destroy(vmm_heap(), nic_client);
 }
 
 
@@ -543,7 +544,7 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 	 * Setup Genode nic_session connection
 	 */
 	try {
-		pThis->nic_client = new (Genode::env()->heap()) Nic_client(pThis, label);
+		pThis->nic_client = new (vmm_heap()) Nic_client(genode_env(), pThis, label);
 	} catch (...) {
 		return VERR_HOSTIF_INIT_FAILED;
 	}

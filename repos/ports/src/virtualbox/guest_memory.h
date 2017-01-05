@@ -16,28 +16,18 @@
 #ifndef _GUEST_MEMORY_H_
 #define _GUEST_MEMORY_H_
 
-/*
- * Work-around for a naming conflict between the enum definition of PAGE_SIZE
- * in 'os/attached_ram_dataspace.h' and the VirtualBox #define with the same
- * name.
- */
-#define BACKUP_PAGESIZE PAGE_SIZE
-#undef  PAGE_SIZE
-
 /* Genode includes */
-#include <base/env.h>
 #include <base/lock.h>
 #include <base/log.h>
 #include <util/flex_iterator.h>
 #include <util/list.h>
-#include <os/attached_ram_dataspace.h>
+
+#include "vmm.h"
 
 /* VirtualBox includes */
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/iom.h>
 #include <VBox/vmm/pdmdev.h>
-
-#define PAGE_SIZE BACKUP_PAGESIZE
 
 
 class Guest_memory
@@ -246,7 +236,7 @@ class Guest_memory
 			/*
 			 * XXX check for overlapping regions
 			 */
-			_ram_regions.insert(new (Genode::env()->heap())
+			_ram_regions.insert(new (vmm_heap())
 			                        Region(GCPhys, cb, pv, 0, 0, 0, 0, 0, 0));
 		}
 
@@ -259,7 +249,7 @@ class Guest_memory
 			/*
 			 * XXX check for overlapping regions
 			 */
-			_rom_regions.insert(new (Genode::env()->heap())
+			_rom_regions.insert(new (vmm_heap())
 			                   Region(GCPhys, cb,
 			                   (void *)pv, pDevIns, 0, 0, 0, 0, 0));
 		}
@@ -278,7 +268,7 @@ class Guest_memory
 			/*
 			 * XXX check for overlapping regions
 			 */
-			_mmio_regions.insert(new (Genode::env()->heap())
+			_mmio_regions.insert(new (vmm_heap())
 			                     Region(GCPhys, cb, 0,
 			                            pDevIns, pvUser, pfnWriteCallback,
 			                            pfnReadCallback, pfnFillCallback, fFlags));

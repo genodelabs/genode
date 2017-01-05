@@ -107,7 +107,7 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 {
 	using namespace Genode;
 
-	Timer::Connection timer;
+	Timer::Connection timer(genode_env());
 	Signal_context    sig_ctx;
 	Signal_receiver   sig_rec;
 	Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);

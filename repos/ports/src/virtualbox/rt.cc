@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/env.h>
 #include <base/allocator_avl.h>
 
 
@@ -27,14 +26,12 @@
 #include <internal/iprt.h>
 
 #include "mm.h"
+#include "vmm.h"
 
 enum {
 	MEMORY_MAX = 64 * 1024 * 1024,
 	MEMORY_CACHED = 16 * 1024 * 1024,
 };
-
-/* using managed dataspace to have all addresses within a 1 << 31 bit range */
-static Sub_rm_connection rt_memory(2 * MEMORY_MAX);
 
 class Avl_ds : public Genode::Avl_node<Avl_ds>
 {
@@ -75,10 +72,10 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 			_mem_unused -= _size;
 			_mem_allocated -= _size;
 
-			Genode::env()->ram_session()->free(_ds);
+			genode_env().ram().free(_ds);
 			Genode::log("free up ", _size, " ", _mem_allocated, "/",
 			            _mem_unused, " hit=", hit, "/", hit_coarse, " avail=",
-			            Genode::env()->ram_session()->avail());
+			            genode_env().ram().avail());
 		}
 
 		void unused()
@@ -143,7 +140,7 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 			while (_unused_ds.first() && cbx &&
 			       (_mem_allocated + cb > MEMORY_MAX ||
 			        _mem_unused + cb > MEMORY_CACHED ||
-			        Genode::env()->ram_session()->avail() < cb * 2
+			        genode_env().ram().avail() < cb * 2
 			       )
 			      )
 			{
@@ -153,7 +150,7 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 					continue;
 				}
 
-				destroy(Genode::env()->heap(), ds_free);
+				destroy(vmm_heap(), ds_free);
 			}
 		}
 
@@ -188,6 +185,9 @@ Genode::addr_t Avl_ds::_mem_unused = 0;
 
 static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 {
+	/* using managed dataspace to have all addresses within a 1 << 31 bit range */
+	static Sub_rm_connection rt_memory(genode_env(), 2 * MEMORY_MAX);
+
 	using namespace Genode;
 
 	if (!cb)
@@ -215,7 +215,7 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 	Avl_ds::memory_freeup(cb);
 
 	try {
-		Ram_dataspace_capability ds = env()->ram_session()->alloc(cb);
+		Ram_dataspace_capability ds = genode_env().ram().alloc(cb);
 		Assert(ds.valid());
 
 		Genode::size_t const whole_size = 0;
@@ -229,7 +229,7 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 
 		Assert(local_addr);
 
-		new (env()->heap()) Avl_ds(ds, local_addr, cb);
+		new (vmm_heap()) Avl_ds(ds, local_addr, cb);
 
 		return local_addr;
 	} catch (...) {

@@ -31,6 +31,7 @@ class Genodefb :
 {
 	private:
 
+		Genode::Env           &_env;
 		Fb_Genode::Connection  _fb;
 
 		/* The mode matching the currently attached dataspace */
@@ -57,12 +58,14 @@ class Genodefb :
 
 	public:
 
-		Genodefb ()
+		Genodefb (Genode::Env &env)
 		:
+			_env(env),
+			_fb(env, Fb_Genode::Mode(0, 0, Fb_Genode::Mode::INVALID)),
 			_fb_mode(_fb.mode()),
 			_next_fb_mode(_fb_mode),
 			_virtual_fb_mode(_fb_mode),
-			_fb_base(Genode::env()->rm_session()->attach(_fb.dataspace()))
+			_fb_base(env.rm().attach(_fb.dataspace()))
 		{
 			int rc = RTCritSectInit(&_fb_lock);
 			Assert(rc == VINF_SUCCESS);
@@ -120,9 +123,9 @@ class Genodefb :
 
 				_virtual_fb_mode = Fb_Genode::Mode(w, h, Fb_Genode::Mode::RGB565);
 
-				Genode::env()->rm_session()->detach(_fb_base);
+				_env.rm().detach(_fb_base);
 
-				_fb_base = Genode::env()->rm_session()->attach(_fb.dataspace());
+				_fb_base = _env.rm().attach(_fb.dataspace());
 
 				result = S_OK;
 

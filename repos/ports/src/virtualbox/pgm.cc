@@ -36,7 +36,7 @@ using Genode::Rm_session;
 
 Vmm_memory *vmm_memory()
 {
-	static Vmm_memory inst(*Genode::env()->ram_session());
+	static Vmm_memory inst(genode_env());
 	return &inst;
 }
 

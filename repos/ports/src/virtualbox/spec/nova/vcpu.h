@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <util/flex_iterator.h>
+#include <util/touch.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
 

@@ -17,8 +17,8 @@
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <input_session/connection.h>
-#include <os/attached_dataspace.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <report_session/connection.h>
 #include <timer_session/connection.h>
@@ -29,9 +29,10 @@
 /* repos/ports includes */
 #include <vbox_pointer/shape_report.h>
 
+#include "../vmm.h"
+
 /* VirtualBox includes */
 #include "ConsoleImpl.h"
-
 
 class Scan_code
 {
@@ -139,10 +140,12 @@ class GenodeConsole : public Console {
 		GenodeConsole()
 		:
 			Console(),
+			_input(genode_env()),
 			_ax(0), _ay(0),
 			_last_received_motion_event_was_absolute(false),
-			_shape_report_connection("shape", sizeof(Vbox_pointer::Shape_report)),
-			_shape_report_ds(_shape_report_connection.dataspace()),
+			_shape_report_connection(genode_env(), "shape",
+			                         sizeof(Vbox_pointer::Shape_report)),
+			_shape_report_ds(genode_env().rm(), _shape_report_connection.dataspace()),
 			_shape_report(_shape_report_ds.local_addr<Vbox_pointer::Shape_report>()),
 			_clipboard_reporter(nullptr),
 			_clipboard_rom(nullptr),

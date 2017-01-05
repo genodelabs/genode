@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <base/stdint.h>
-#include <os/attached_io_mem_dataspace.h>
 
 namespace Genode
 {

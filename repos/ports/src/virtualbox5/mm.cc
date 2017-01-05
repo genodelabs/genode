@@ -16,7 +16,7 @@
 #include <util/string.h>
 #include <rm_session/connection.h>
 
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 /* VirtualBox includes */
 #include <VBox/vmm/mm.h>
@@ -35,6 +35,7 @@
 
 #include "util.h"
 #include "mm.h"
+#include "vmm.h"
 
 enum { VERBOSE_MM = false };
 
@@ -59,7 +60,7 @@ static Libc::Mem_alloc * heap_by_mmtag(MMTAG enmTag)
 	if (memory_regions[enmTag].conn)
 		return memory_regions[enmTag].heap;
 
-	memory_regions[enmTag].conn = new Sub_rm_connection(REGION_SIZE);
+	memory_regions[enmTag].conn = new Sub_rm_connection(genode_env(), REGION_SIZE);
 	memory_regions[enmTag].heap = new Libc::Mem_alloc_impl(memory_regions[enmTag].conn);
 
 	return memory_regions[enmTag].heap;
@@ -433,7 +434,9 @@ VMMDECL(RTHCPHYS) MMPage2Phys(PVM pVM, void *pvPage) {
 VMMR3DECL(void *) MMR3PageAlloc(PVM pVM)
 {
 	using Genode::Attached_ram_dataspace;
-	Attached_ram_dataspace * ds = new Attached_ram_dataspace(Genode::env()->ram_session(), 4096);
+	Attached_ram_dataspace * ds = new Attached_ram_dataspace(genode_env().ram(),
+	                                                         genode_env().rm(),
+	                                                         4096);
 	return ds->local_addr<void>();
 }
 

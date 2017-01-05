@@ -14,9 +14,10 @@
 
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <libc/component.h>
-#include <os/config.h>
 
 /* Virtualbox includes */
 #include <iprt/initterm.h>
@@ -87,7 +88,7 @@ RTDECL(int) RTPathUserHome(char *pszPath, size_t cchPath)
 }
 
 
-HRESULT setupmachine()
+HRESULT setupmachine(Genode::Env &env)
 {
 	HRESULT rc;
 
@@ -152,7 +153,7 @@ HRESULT setupmachine()
 	unsigned uScreenId;
 	for (uScreenId = 0; uScreenId < cMonitors; uScreenId++)
 	{
-		Genodefb *fb = new Genodefb();
+		Genodefb *fb = new Genodefb(env);
 		display->SetFramebuffer(uScreenId, fb);
 	}
 
@@ -194,7 +195,7 @@ HRESULT setupmachine()
 }
 
 
-static Genode::Env *genode_env_ptr;
+static Genode::Env *genode_env_ptr = nullptr;
 
 
 Genode::Env &genode_env()
@@ -207,6 +208,13 @@ Genode::Env &genode_env()
 }
 
 
+Genode::Allocator &vmm_heap()
+{
+	static Genode::Heap heap (genode_env().ram(), genode_env().rm());
+	return heap;
+}
+
+
 void Libc::Component::construct(Libc::Env &env)
 {
 	/* make Genode environment accessible via the global 'genode_env()' */
@@ -215,10 +223,10 @@ void Libc::Component::construct(Libc::Env &env)
 	try {
 		using namespace Genode;
 
-		Xml_node node = config()->xml_node();
-		Xml_node::Attribute vbox_file = node.attribute("vbox_file");
+		Attached_rom_dataspace config(env, "config");
+		Xml_node::Attribute vbox_file = config.xml().attribute("vbox_file");
 		vbox_file.value(c_vbox_file, sizeof(c_vbox_file));
-		Xml_node::Attribute vm_name = node.attribute("vm_name");
+		Xml_node::Attribute vm_name = config.xml().attribute("vm_name");
 		vm_name.value(c_vbox_vmname, sizeof(c_vbox_vmname));
 	} catch (...) {
 		Genode::error("missing attributes in configuration, minimum requirements: ");
@@ -237,7 +245,7 @@ void Libc::Component::construct(Libc::Env &env)
 	if (RT_FAILURE(rc))
 		throw -1;
 
-	HRESULT hrc = setupmachine();
+	HRESULT hrc = setupmachine(env);
 	if (FAILED(hrc)) {
 		Genode::error("startup of VMM failed - reason ", hrc, " - exiting ...");
 		throw -2;

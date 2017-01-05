@@ -16,7 +16,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <timer_session/connection.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <rom_session/connection.h>
 #include <muen/sinfo.h>
 
@@ -75,8 +75,6 @@ enum {
 	cur_state->REG.base  = pCtx->REG.u64Base; \
 	cur_state->REG.access = pCtx->REG.Attr.u ? : VMCS_SEG_UNUSABLE
 
-static Genode::Vm_handler vm_handler;
-
 struct Subject_state *cur_state;
 
 Genode::Guest_interrupts *guest_interrupts;
@@ -92,9 +90,9 @@ static Genode::Sinfo * sinfo()
 
 	if (!ptr) {
 		try {
-			static Rom_connection sinfo_rom("subject_info_page");
+			static Rom_connection sinfo_rom(genode_env(), "subject_info_page");
 			static Sinfo sinfo(
-					(addr_t)env()->rm_session()->attach(sinfo_rom.dataspace()));
+					(addr_t)genode_env().rm().attach(sinfo_rom.dataspace()));
 			ptr = &sinfo;
 		} catch (...) {
 			error("unable to attach Sinfo ROM");
@@ -123,8 +121,9 @@ bool setup_subject_state()
 	}
 
 	try {
-		static Attached_io_mem_dataspace subject_ds(region.address,
-				region.size);
+		static Attached_io_mem_dataspace subject_ds(genode_env(),
+		                                            region.address,
+		                                            region.size);
 		cur_state = subject_ds.local_addr<struct Subject_state>();
 		return true;
 	} catch (...) {
@@ -152,8 +151,9 @@ bool setup_subject_interrupts()
 	}
 
 	try {
-		static Attached_io_mem_dataspace subject_intrs(region.address,
-				region.size);
+		static Attached_io_mem_dataspace subject_intrs(genode_env(),
+		                                               region.address,
+		                                               region.size);
 		static Guest_interrupts g((addr_t)subject_intrs.local_addr<addr_t>());
 		guest_interrupts = &g;
 		return true;
@@ -392,6 +392,8 @@ int SUPR3QueryVTxSupported(void) { return VINF_SUCCESS; }
 
 int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 {
+	static Genode::Vm_handler vm_handler(genode_env());
+
 	switch (uOperation) {
 
 	case SUP_VMMR0_DO_HM_RUN:
@@ -718,7 +720,7 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 {
 	using namespace Genode;
 
-	Timer::Connection timer;
+	Timer::Connection timer(genode_env());
 	Signal_context    sig_ctx;
 	Signal_receiver   sig_rec;
 	Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);

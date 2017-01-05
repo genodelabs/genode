@@ -119,18 +119,17 @@ append config {
 	<start name="virtualbox" priority="-2">
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
-				<vfs>
-					<dir name="dev"> <log/> <rtc/> </dir>}
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev"> <log/> <rtc/> </dir>}
 
 append_if [expr $use_serial] config {
-					<dir name="dev"> <terminal/> </dir>}
+				<dir name="dev"> <terminal/> </dir>}
 
 append config {
-					<rom name="test.vbox" />
-					<rom name="test.iso" />
-				</vfs>
-			</libc>
+				<rom name="test.vbox" />
+				<rom name="test.iso" />
+			</vfs>
 		</config>
 	</start>
 </config>
