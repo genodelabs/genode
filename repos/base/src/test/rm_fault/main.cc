@@ -228,7 +228,7 @@ void Component::construct(Env &env)
 		 * Distinguish parent from child by requesting an service that is only
 		 * available to the parent.
 		 */
-		Rm_connection rm;
+		Rm_connection rm(env);
 		static Main_parent parent(env);
 		log("-- parent role started --");
 	}

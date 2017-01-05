@@ -12,8 +12,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
-#include <base/env.h>
 
 using Genode::log;
 using Genode::destroy;
@@ -40,29 +41,24 @@ struct E : C, D
 
 struct Allocator : Genode::Allocator
 {
-	Genode::Allocator &heap = *Genode::env()->heap();
+	Genode::Heap        heap;
+	Genode::Allocator & a { heap };
 
-	Allocator() { }
+	Allocator(Genode::Env & env) : heap(env.ram(), env.rm()) { }
 	virtual ~Allocator() { }
 
-	Genode::size_t consumed() const override
-	{
-		return heap.consumed();
-	}
+	Genode::size_t consumed() const override {
+		return a.consumed(); }
 
-	Genode::size_t overhead(Genode::size_t size) const override
-	{
-		return heap.overhead(size);
-	}
+	Genode::size_t overhead(Genode::size_t size) const override {
+		return a.overhead(size); }
 
-	bool need_size_for_free() const override
-	{
-		return heap.need_size_for_free();
-	}
+	bool need_size_for_free() const override {
+		return a.need_size_for_free(); }
 
 	bool alloc(Genode::size_t size, void **p) override
 	{
-		*p = heap.alloc(size);
+		*p = a.alloc(size);
 
 		log("Allocator::alloc()");
 
@@ -72,14 +68,14 @@ struct Allocator : Genode::Allocator
 	void free(void *p, Genode::size_t size) override
 	{
 		log("Allocator::free()");
-		heap.free(p, size);
+		a.free(p, size);
 	}
 };
 
 
-int main()
+void Component::construct(Genode::Env &env)
 {
-	Allocator a;
+	Allocator a(env);
 
 	/***********************
 	 ** Allocator pointer **
@@ -87,14 +83,14 @@ int main()
 
 	/* test successful allocation / successful construction */
 	{
-		E *e = new (&a)  E(false);
-		destroy(&a, e);
+		E *e = new (a)  E(false);
+		destroy(a, e);
 	}
 
 	/* test successful allocation / exception in construction */
 	try {
-		E *e = new (&a)  E(true);
-		destroy(&a, e);
+		E *e = new (a)  E(true);
+		destroy(a, e);
 	} catch (...) { log("exception caught"); }
 
 	/*************************
@@ -104,12 +100,14 @@ int main()
 	/* test successful allocation / successful construction */
 	{
 		E *e = new (a)  E(false);
-		destroy(&a, e);
+		destroy(a, e);
 	}
 
 	/* test successful allocation / exception in construction */
 	try {
 		E *e = new (a)  E(true);
-		destroy(&a, e);
+		destroy(a, e);
 	} catch (...) { log("exception caught"); }
+
+	log("Test done");
 }

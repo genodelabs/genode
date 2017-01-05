@@ -13,13 +13,11 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
-#include <base/thread.h>
-#include <base/env.h>
-#include <base/sleep.h>
-
-#include <cap_session/connection.h>
 #include <base/rpc_server.h>
+#include <base/rpc_client.h>
 
 namespace Test {
 
@@ -81,34 +79,35 @@ namespace Test {
 /**
  * Set up a server running on every CPU one Rpc_entrypoint
  */
-int main(int argc, char **argv)
+void Component::construct(Genode::Env & env)
 {
 	using namespace Genode;
 
+	Heap heap(env.ram(), env.rm());
+
 	log("--- test-mp_server started ---");
 
-	Affinity::Space cpus = env()->cpu_session()->affinity_space();
+	Affinity::Space cpus = env.cpu().affinity_space();
 	log("Detected ", cpus.width(), "x", cpus.height(), " CPU",
 	       cpus.total() > 1 ? "s." : ".");
 
 	enum { STACK_SIZE = 2*1024*sizeof(long) };
 
-	static Cap_connection cap;
-	Rpc_entrypoint ** eps = new (env()->heap()) Rpc_entrypoint*[cpus.total()];
+	Rpc_entrypoint ** eps = new (heap) Rpc_entrypoint*[cpus.total()];
 	for (unsigned i = 0; i < cpus.total(); i++)
-		eps[i] = new (env()->heap()) Rpc_entrypoint(&cap, STACK_SIZE, "rpc en",
-		                                            true, cpus.location_of_index(i));
+		eps[i] = new (heap) Rpc_entrypoint(&env.pd(), STACK_SIZE, "rpc en",
+		                                    true, cpus.location_of_index(i));
 
 	/* XXX using the same object and putting it to different queues fails XXX */
-	Test::Component * components = new (env()->heap()) Test::Component[cpus.total()];
+	Test::Component * components = new (heap) Test::Component[cpus.total()];
 
-	Test::Capability * caps = new (env()->heap()) Test::Capability[cpus.total()];
+	Test::Capability * caps = new (heap) Test::Capability[cpus.total()];
 	for (unsigned i = 0; i < cpus.total(); i++)
 		caps[i] = eps[i]->manage(&components[i]);
 
-	Test::Client ** clients = new (env()->heap()) Test::Client*[cpus.total()];
+	Test::Client ** clients = new (heap) Test::Client*[cpus.total()];
 	for (unsigned i = 0; i < cpus.total(); i++)
-		clients[i] = new (env()->heap()) Test::Client(caps[i]);
+		clients[i] = new (heap) Test::Client(caps[i]);
 
 	/* Test: Invoke RPC entrypoint on different CPUs */
 	for (unsigned i = 0; i < cpus.total(); i++) {
@@ -132,6 +131,4 @@ int main(int argc, char **argv)
 	}
 
 	log("done");
-
-	sleep_forever();
 }

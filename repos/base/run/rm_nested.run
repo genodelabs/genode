@@ -28,4 +28,4 @@ build_boot_image "core ld.lib.so init test-rm_nested"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-rm_nested" exited with exit value 0.*} 300
+run_genode_until ".*--- finished nested region map test ---.*\n" 300

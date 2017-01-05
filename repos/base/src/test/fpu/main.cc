@@ -12,39 +12,20 @@
  */
 
 /* Genode includes */
-#include <base/thread.h>
-#include <base/sleep.h>
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
+#include <base/thread.h>
 
 using namespace Genode;
 
-class Sync_signal_transmitter : public Signal_transmitter
+class Fpu_user : public Thread
 {
 	private:
 
-		Lock _lock;
-
-	public:
-
-		Sync_signal_transmitter(Signal_context_capability context = Signal_context_capability())
-		:
-			Signal_transmitter(context),
-			_lock(Lock::UNLOCKED)
-		{ }
-
-		void submit(unsigned cnt)
-		{
-			Lock::Guard guard(_lock);
-			Signal_transmitter::submit(cnt);
-		}
-};
-
-class Fpu_user : public Thread_deprecated<0x2000>
-{
-	private:
-
-		float _x;
-		Sync_signal_transmitter * _st;
+		float              _x;
+		Signal_transmitter _st;
+		Semaphore &        _sem;
 
 		void _calc(float volatile & x, float volatile & y)
 		{
@@ -56,59 +37,50 @@ class Fpu_user : public Thread_deprecated<0x2000>
 
 	public:
 
-		Fpu_user() : Thread_deprecated("fpu_user"), _x(0), _st(0) { }
-
-		void start(float const x, Sync_signal_transmitter * const st)
-		{
-			_x = x;
-			_st = st;
-			Thread::start();
-		}
+		Fpu_user(Env & env, float x, Signal_context_capability c, Semaphore &s)
+		: Thread(env, "fpu_user", sizeof(size_t)*2048), _x(x), _st(c), _sem(s) {
+			start(); }
 
 		void entry()
 		{
-			Genode::log("FPU user started");
-			bool submitted = false;
-			while (1) {
-				enum { TRIALS = 1000 };
-				for (unsigned i = 0; i < TRIALS; i++) {
-					float volatile a = _x + (float)i * ((float)1 / TRIALS);
-					float volatile b = _x + (float)i * ((float)1 / TRIALS);
-					float volatile c = _x;
-					_calc(a, c);
-					_calc(b, c);
-					if (a != b) {
-						Genode::error("calculation error");
-						_st->submit(1);
-						sleep_forever();
-					}
-				}
-				if (!submitted) {
-					_st->submit(1);
-					submitted = true;
+			log("FPU user started");
+
+			enum { TRIALS = 1000 };
+			for (unsigned i = 0; i < TRIALS; i++) {
+				float volatile a = _x + (float)i * ((float)1 / TRIALS);
+				float volatile b = _x + (float)i * ((float)1 / TRIALS);
+				float volatile c = _x;
+				_calc(a, c);
+				_calc(b, c);
+				if (a != b) {
+					error("calculation error");
+					break;
 				}
 			}
+
+			_sem.up();
+			_st.submit();
 		}
 };
 
-int main()
-{
-	/* create ack signal */
-	Signal_context sc;
-	Signal_receiver sr;
-	Signal_context_capability const scc = sr.manage(&sc);
-	Sync_signal_transmitter st(scc);
 
-	/* start pseudo-parallel FPU users */
+struct Main
+{
 	enum { FPU_USERS = 10 };
-	Fpu_user fpu_users[FPU_USERS];
-	for (unsigned i = 0; i < FPU_USERS; i++) {
-		float const x = (i + 1) * 1.234;
-		fpu_users[i].start(x, &st);
-	}
-	/* wait for an ack of every FPU user */
-	for (unsigned i = 0; i < FPU_USERS;) { i += sr.wait_for_signal().num(); }
-	log("test done");
-	sleep_forever();
-	return 0;
-}
+
+	Semaphore            sem;
+	Env &                env;
+	Heap                 heap    { env.ram(), env.rm() };
+	Signal_handler<Main> handler { env.ep(), *this, &Main::handle };
+
+	Main(Env & env) : env(env) {
+		for (unsigned i = 0; i < FPU_USERS; i++)
+			new (heap) Fpu_user(env, (i + 1) * 1.234, handler, sem); }
+
+	void handle() {
+		if (sem.cnt() >= FPU_USERS) log("test done"); }
+};
+
+
+void Component::construct(Genode::Env & env) {
+	static Main main(env); }

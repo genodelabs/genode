@@ -12,8 +12,9 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/log.h>
-#include <base/env.h>
+#include <base/heap.h>
 #include <base/thread.h>
 #include <base/weak_ptr.h>
 #include <timer_session/connection.h>
@@ -35,7 +36,7 @@ void Genode::Weak_object_base::debug_info() const
 }
 
 
-static int weak_ptr_valid;
+static bool weak_ptr_valid;
 
 
 void Genode::Weak_ptr_base::debug_info() const
@@ -91,7 +92,7 @@ struct Object : Genode::Weak_object<Object>
 };
 
 
-static void test_weak_pointer_tracking()
+static void test_weak_pointer_tracking(Genode::Heap & heap)
 {
 	using namespace Genode;
 
@@ -101,7 +102,7 @@ static void test_weak_pointer_tracking()
 		assert_weak_ptr_valid(ptr, false);
 	}
 
-	Object *obj = new (env()->heap()) Object;
+	Object *obj = new (heap) Object;
 
 	Weak_ptr<Object> ptr_1 = obj->weak_ptr();
 	assert_weak_ptr_valid(ptr_1, true);
@@ -127,7 +128,7 @@ static void test_weak_pointer_tracking()
 	assert_weak_ptr_cnt(obj, 2);
 
 	log("destruct object");
-	destroy(env()->heap(), obj);
+	destroy(heap, obj);
 
 	/*
 	 * The destruction of the object should have invalidated all weak pointers
@@ -143,19 +144,21 @@ static void test_weak_pointer_tracking()
  *******************************************/
 
 template <typename O>
-struct Destruct_thread : Genode::Thread_deprecated<4096>
+struct Destruct_thread : Genode::Thread
 {
 	O *obj;
+	Genode::Heap & heap;
 
 	void entry()
 	{
 		using namespace Genode;
 		log("thread: going to destroy object");
-		destroy(env()->heap(), obj);
+		destroy(heap, obj);
 		log("thread: destruction completed, job done");
 	}
 
-	Destruct_thread(O *obj) : Thread_deprecated("object_destructor"), obj(obj) { }
+	Destruct_thread(O *obj, Genode::Env & env, Genode::Heap & heap)
+	: Thread(env, "object_destructor", 4096), obj(obj), heap(heap) { }
 };
 
 
@@ -170,13 +173,13 @@ static void assert_constructed(bool expect_constructed)
 }
 
 
-static void test_deferred_destruction()
+static void test_deferred_destruction(Genode::Env & env, Genode::Heap &heap)
 {
 	using namespace Genode;
 
-	static Timer::Connection timer;
+	static Timer::Connection timer(env);
 
-	Object *obj = new (env()->heap()) Object;
+	Object *obj = new (&heap) Object;
 
 	Weak_ptr<Object> ptr = obj->weak_ptr();
 	assert_weak_ptr_cnt(obj, 1);
@@ -184,7 +187,7 @@ static void test_deferred_destruction()
 	assert_constructed(true);
 
 	/* create thread that will be used to destruct the object */
-	Destruct_thread<Object> destruct_thread(obj);
+	Destruct_thread<Object> destruct_thread(obj, env, heap);
 
 	{
 		/* acquire possession over the object */
@@ -218,12 +221,12 @@ static void test_deferred_destruction()
  ** Test the failed aquisition of a destructed object **
  *******************************************************/
 
-static void test_acquisition_failure()
+static void test_acquisition_failure(Genode::Heap & heap)
 {
 	using namespace Genode;
 
 	log("create object and weak pointer");
-	Object *obj = new (env()->heap()) Object;
+	Object *obj = new (&heap) Object;
 	Weak_ptr<Object> ptr = obj->weak_ptr();
 
 	log("try to acquire possession over the object");
@@ -239,7 +242,7 @@ static void test_acquisition_failure()
 	}
 
 	log("destroy object");
-	destroy(env()->heap(), obj);
+	destroy(&heap, obj);
 
 	log("try again, this time we should get an invalid pointer");
 	{
@@ -262,7 +265,8 @@ struct Object_with_delayed_destruction
 {
 	Timer::Connection timer;
 
-	Object_with_delayed_destruction() { object_constructed = true; }
+	Object_with_delayed_destruction(Genode::Env & env) : timer(env)	{
+		object_constructed = true; }
 
 	~Object_with_delayed_destruction()
 	{
@@ -273,14 +277,16 @@ struct Object_with_delayed_destruction
 };
 
 
-static void test_acquisition_during_destruction()
+static void test_acquisition_during_destruction(Genode::Env & env,
+                                                Genode::Heap & heap)
 {
 	using namespace Genode;
+	using Destruct_thread = Destruct_thread<Object_with_delayed_destruction>;
 
-	static Timer::Connection timer;
+	static Timer::Connection timer(env);
 
 	Object_with_delayed_destruction *obj =
-		new (env()->heap()) Object_with_delayed_destruction();
+		new (&heap) Object_with_delayed_destruction(env);
 
 	Weak_ptr<Object_with_delayed_destruction> ptr = obj->weak_ptr();
 	assert_weak_ptr_cnt(obj, 1);
@@ -288,7 +294,7 @@ static void test_acquisition_during_destruction()
 	assert_constructed(true);
 
 	/* create and start thread that will be used to destruct the object */
-	Destruct_thread<Object_with_delayed_destruction> destruct_thread(obj);
+	Destruct_thread destruct_thread(obj, env, heap);
 	destruct_thread.start();
 
 	/* wait so that the thread enters the destructor */
@@ -310,24 +316,25 @@ static void test_acquisition_during_destruction()
  ** Main program **
  ******************/
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env & env)
 {
 	using namespace Genode;
+
+	Heap heap(env.ram(), env.rm());
 
 	log("--- test-weak_ptr started ---");
 
 	log("\n-- test tracking of weak pointers --");
-	test_weak_pointer_tracking();
+	test_weak_pointer_tracking(heap);
 
 	log("\n-- test deferred destruction --");
-	test_deferred_destruction();
+	test_deferred_destruction(env, heap);
 
 	log("\n-- test acquisition failure --");
-	test_acquisition_failure();
+	test_acquisition_failure(heap);
 
 	log("\n-- test acquisition during destruction --");
-	test_acquisition_during_destruction();
+	test_acquisition_during_destruction(env, heap);
 
 	log("\n--- finished test-weak_ptr ---");
-	return 0;
 }
