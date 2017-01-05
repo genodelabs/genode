@@ -68,13 +68,17 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 	public:
 
-		Reloc_non_plt(Dependency const &dep, Elf::Rela const *rel, unsigned long size)
+		Reloc_non_plt(Dependency const &dep, Elf::Rela const *rel, unsigned long size,
+		              bool second_pass)
 		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rela const *end = rel + (size / sizeof(Elf::Rela));
 
 			for (; rel < end; rel++) {
 				Elf::Addr *addr = (Elf::Addr *)(_dep.obj().reloc_base() + rel->offset);
+
+				if (second_pass && rel->type() != R_GLOB_DAT)
+					continue;
 
 				switch(rel->type()) {
 					case R_64:       _glob_dat_64(rel, addr, true);  break;

@@ -336,7 +336,7 @@ class Linker::Dynamic
 		void relocate_non_plt(Bind bind, Pass pass)
 		{
 			if (_reloca)
-				Reloc_non_plt r(*_dep, _reloca, _reloca_size);
+				Reloc_non_plt r(*_dep, _reloca, _reloca_size, pass == SECOND_PASS);
 
 			if (_rel)
 				Reloc_non_plt r(*_dep, _rel, _rel_size, pass == SECOND_PASS);

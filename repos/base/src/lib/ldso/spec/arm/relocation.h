@@ -78,7 +78,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 	public:
 
-		Reloc_non_plt(Dependency const &dep, Elf::Rela const *, unsigned long)
+		Reloc_non_plt(Dependency const &dep, Elf::Rela const *, unsigned long, bool)
 		: Reloc_non_plt_generic(dep)
 		{
 			error("LD: DT_RELA not supported");

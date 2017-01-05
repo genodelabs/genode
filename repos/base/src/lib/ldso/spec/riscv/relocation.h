@@ -75,7 +75,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 
 	public:
 
-		Reloc_non_plt(Dependency const &dep, Elf::Rela const *rel, unsigned long size)
+		Reloc_non_plt(Dependency const &dep, Elf::Rela const *rel, unsigned long size, bool)
 		: Reloc_non_plt_generic(dep)
 		{
 			Elf::Rela const *end = rel + (size / sizeof(Elf::Rela));
