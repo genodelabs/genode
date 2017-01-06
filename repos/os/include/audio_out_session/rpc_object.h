@@ -16,6 +16,7 @@
 
 #include <base/env.h>
 #include <base/rpc_server.h>
+#include <base/attached_ram_dataspace.h>
 #include <audio_out_session/audio_out_session.h>
 
 
@@ -27,33 +28,25 @@ class Audio_out::Session_rpc_object : public Genode::Rpc_object<Audio_out::Sessi
 {
 	protected:
 
-		bool                             _stopped;   /* state */
-		Genode::Ram_dataspace_capability _ds;        /* contains Audio_out_stream */
-		Genode::Signal_transmitter       _progress;
-		Genode::Signal_transmitter       _alloc;
+		Genode::Attached_ram_dataspace _ds; /* contains Audio_out stream */
+		Genode::Signal_transmitter     _progress;
+		Genode::Signal_transmitter     _alloc;
 
 		Genode::Signal_context_capability _data_cap;
 
+		bool _stopped;       /* state */
 		bool _progress_sigh; /* progress signal on/off */
 		bool _alloc_sigh;    /* alloc signal on/off */
 
 	public:
 
-		Session_rpc_object(Genode::Signal_context_capability data_cap)
+		Session_rpc_object(Genode::Env &env, Genode::Signal_context_capability data_cap)
 		:
-			_stopped(true), _data_cap(data_cap),
-			_progress_sigh(false), _alloc_sigh(false)
+			_ds(env.ram(), env.rm(), sizeof(Stream)),
+			_data_cap(data_cap),
+			_stopped(true), _progress_sigh(false), _alloc_sigh(false)
 		{
-			_ds = Genode::env()->ram_session()->alloc(sizeof(Stream));
-			_stream = static_cast<Stream *>(Genode::env()->rm_session()->attach(_ds));
-		}
-
-		virtual ~Session_rpc_object()
-		{
-			if (_ds.valid()) {
-				Genode::env()->rm_session()->detach(_stream);
-				Genode::env()->ram_session()->free(_ds);
-			}
+			_stream = _ds.local_addr<Stream>();
 		}
 
 
@@ -84,7 +77,7 @@ class Audio_out::Session_rpc_object : public Genode::Rpc_object<Audio_out::Sessi
 		void start() { _stopped = false; }
 		void stop()  { _stopped = true; }
 
-		Genode::Dataspace_capability dataspace() { return _ds; }
+		Genode::Dataspace_capability dataspace() { return _ds.cap(); }
 
 
 		/**********************************

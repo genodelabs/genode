@@ -44,20 +44,7 @@ struct Audio_in::Connection : Genode::Connection<Session>, Audio_in::Session_cli
 	Connection(Genode::Env &env, char const *channel, bool progress_signal = false)
 	:
 		Genode::Connection<Session>(env, _session(env.parent(), channel)),
-		Session_client(cap(), progress_signal)
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection(char const *channel, bool progress_signal = false)
-	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), channel)),
-		Session_client(cap(), progress_signal)
+		Session_client(env.rm(), cap(), progress_signal)
 	{ }
 };
 

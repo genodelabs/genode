@@ -124,8 +124,9 @@ struct Audio_out::Session_elem : Audio_out::Session_rpc_object,
 	float           volume { 0.f };
 	bool            muted  { true };
 
-	Session_elem(char const *label, Genode::Signal_context_capability data_cap)
-	: Session_rpc_object(data_cap), label(label) { }
+	Session_elem(Genode::Env & env,
+	             char const *label, Genode::Signal_context_capability data_cap)
+	: Session_rpc_object(env, data_cap), label(label) { }
 
 	Packet *get_packet(unsigned offset) {
 		return stream()->get(stream()->pos() + offset); }
@@ -608,10 +609,11 @@ class Audio_out::Session_component : public Audio_out::Session_elem
 
 	public:
 
-		Session_component(char const      *label,
+		Session_component(Genode::Env     &env,
+		                  char const      *label,
 		                  Channel::Number  number,
 		                  Mixer           &mixer)
-		: Session_elem(label, mixer.sig_cap()), _mixer(mixer)
+		: Session_elem(env, label, mixer.sig_cap()), _mixer(mixer)
 		{
 			Session_elem::number = number;
 			_mixer.add_session(Session_elem::number, *this);
@@ -647,8 +649,9 @@ class Audio_out::Root : public Audio_out::Root_component
 {
 	private:
 
-		Mixer &_mixer;
-		int    _sessions = { 0 };
+		Genode::Env &_env;
+		Mixer       &_mixer;
+		int          _sessions = { 0 };
 
 		Session_component *_create_session(const char *args)
 		{
@@ -681,7 +684,7 @@ class Audio_out::Root : public Audio_out::Root_component
 				throw Root::Invalid_args();
 
 			Session_component *session = new (md_alloc())
-				Session_component(label, (Channel::Number)ch, _mixer);
+				Session_component(_env, label, (Channel::Number)ch, _mixer);
 
 			if (++_sessions == 1) _mixer.start();
 			return session;
@@ -696,10 +699,10 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	public:
 
-		Root(Genode::Entrypoint &ep,
+		Root(Genode::Env        &env,
 		     Mixer              &mixer,
 		     Genode::Allocator  &md_alloc)
-		: Root_component(&ep.rpc_ep(), &md_alloc), _mixer(mixer) { }
+		: Root_component(env.ep(), md_alloc), _env(env), _mixer(mixer) { }
 };
 
 
@@ -716,7 +719,7 @@ struct Mixer::Main
 	Genode::Sliced_heap heap { env.ram(), env.rm() };
 
 	Audio_out::Mixer mixer = { env };
-	Audio_out::Root  root  = { env.ep(), mixer, heap };
+	Audio_out::Root  root  = { env, mixer, heap };
 
 	Main(Genode::Env &env) : env(env)
 	{

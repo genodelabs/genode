@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/rpc_client.h>
+#include <base/attached_dataspace.h>
 #include <audio_in_session/audio_in_session.h>
 
 
@@ -43,6 +44,8 @@ class Audio_in::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
+		Genode::Attached_dataspace _shared_ds;
+
 		Signal _progress;
 
 		Genode::Signal_transmitter _data_avail;
@@ -55,14 +58,15 @@ class Audio_in::Session_client : public Genode::Rpc_client<Session>
 		 * \param session          session capability
 		 * \param progress_signal  true, install 'progress_signal' receiver
 		 */
-		Session_client(Genode::Capability<Session> session,
+		Session_client(Genode::Region_map &rm,
+		               Genode::Capability<Session> session,
 		               bool progress_signal)
 		:
 		  Genode::Rpc_client<Session>(session),
+		  _shared_ds(rm, call<Rpc_dataspace>()),
 		  _data_avail(call<Rpc_data_avail_sigh>())
 		{
-			/* ask server for stream data space and attach it */
-			_stream = static_cast<Stream *>(Genode::env()->rm_session()->attach(call<Rpc_dataspace>()));
+			_stream = _shared_ds.local_addr<Stream>();
 
 			if (progress_signal)
 				progress_sigh(_progress.cap);

@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,10 +16,10 @@
 /* Genode includes */
 #include <audio_out_session/connection.h>
 #include <audio_in_session/connection.h>
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
-#include <base/sleep.h>
 #include <dataspace/client.h>
-#include <os/config.h>
 #include <rom_session/connection.h>
 
 
@@ -36,12 +36,11 @@ class Recording
 {
 	private:
 
-		Genode::Signal_receiver              &_sig_rec;
-		Genode::Signal_dispatcher<Recording>  _record_progress;
-		Genode::Signal_dispatcher<Recording>  _record_overrun;
+		Genode::Signal_handler<Recording>  _record_progress;
+		Genode::Signal_handler<Recording>  _record_overrun;
 
 		Audio_out::Connection *_audio_out[CHANNELS];
-		Audio_in::Connection   _audio_in { "left" };
+		Audio_in::Connection   _audio_in;
 		Audio_in::Stream      &_stream;
 
 		void _play(Audio_in::Packet *ip)
@@ -68,7 +67,7 @@ class Recording
 				_audio_out[c]->submit(op[c]);
 		}
 
-		void _handle_record_progress(unsigned)
+		void _handle_record_progress()
 		{
 			Audio_in::Packet *p      = _stream.get(_stream.pos());
 
@@ -83,7 +82,7 @@ class Recording
 			_stream.increment_position();
 		}
 
-		void _handle_record_overrun(unsigned)
+		void _handle_record_overrun()
 		{
 			unsigned pos  = _stream.pos();
 			unsigned tail = _stream.tail();
@@ -101,11 +100,11 @@ class Recording
 
 	public:
 
-		Recording(Genode::Allocator &md_alloc, Genode::Signal_receiver &sig_rec)
+		Recording(Genode::Env &env, Genode::Allocator &md_alloc)
 		:
-			_sig_rec(sig_rec),
-			_record_progress(_sig_rec, *this, &Recording::_handle_record_progress),
-			_record_overrun(_sig_rec, *this, &Recording::_handle_record_overrun),
+			_record_progress(env.ep(), *this, &Recording::_handle_record_progress),
+			_record_overrun(env.ep(), *this, &Recording::_handle_record_overrun),
+			_audio_in(env, "left" ),
 			_stream(*_audio_in.stream())
 		{
 			_audio_in.progress_sigh(_record_progress);
@@ -121,24 +120,10 @@ class Recording
 		}
 };
 
-int main(int argc, char *argv[])
+void Component::construct(Genode::Env &env)
 {
 	Genode::log("--- Audio_in test ---");
 
-	using namespace Genode;
-
-	Signal_receiver sig_rec;
-
-	Recording record(*env()->heap(), sig_rec);
-
-	for (;;) {
-		Signal sig = sig_rec.wait_for_signal();
-		Signal_dispatcher_base *dispatcher =
-			dynamic_cast<Signal_dispatcher_base *>(sig.context());
-
-		if (dispatcher)
-			dispatcher->dispatch(sig.num());
-	}
-
-	return 0;
+	static Genode::Heap heap { env.ram(), env.rm() };
+	static Recording record(env, heap);
 }

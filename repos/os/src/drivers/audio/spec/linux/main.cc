@@ -55,9 +55,9 @@ class Audio_out::Session_component : public Audio_out::Session_rpc_object
 
 	public:
 
-		Session_component(Channel_number channel, Signal_context_capability data_cap)
+		Session_component(Genode::Env &env, Channel_number channel, Signal_context_capability data_cap)
 		:
-			Session_rpc_object(data_cap),
+			Session_rpc_object(env, data_cap),
 			_channel(channel)
 		{
 			Audio_out::channel_acquired[_channel] = this;
@@ -239,6 +239,8 @@ class Audio_out::Root : public Audio_out::Root_component
 {
 	private:
 
+		Genode::Env &_env;
+
 		Signal_context_capability _data_cap;
 
 	protected:
@@ -253,14 +255,14 @@ class Audio_out::Root : public Audio_out::Root_component
 			channel_number_from_string(channel_name, &channel_number);
 
 			return new (md_alloc())
-				Session_component(channel_number, _data_cap);
+				Session_component(_env, channel_number, _data_cap);
 		}
 
 	public:
 
-		Root(Genode::Entrypoint &ep, Allocator *md_alloc,
+		Root(Genode::Env &env, Allocator &md_alloc,
 		     Signal_context_capability data_cap)
-		: Root_component(&ep.rpc_ep(), md_alloc), _data_cap(data_cap)
+		: Root_component(env.ep(), md_alloc), _env(env), _data_cap(data_cap)
 		{ }
 };
 
@@ -293,8 +295,7 @@ struct Audio_out::Main
 		audio_drv_start();
 
 		static Audio_out::Out  out(env);
-		static Audio_out::Root root(env.ep(), &heap,
-		                            out.data_avail_sigh());
+		static Audio_out::Root root(env, heap, out.data_avail_sigh());
 		env.parent().announce(env.ep().manage(root));
 		Genode::log("--- start Audio_out ALSA driver ---");
 	}

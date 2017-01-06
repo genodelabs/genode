@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -341,7 +341,7 @@ static int genode_init_in(HWVoiceIn *hw, audsettings_t *as)
 	GenodeVoiceIn *in = (GenodeVoiceIn*)hw;
 
 	try {
-		in->audio = new (vmm_heap()) Audio_in::Connection("left");
+		in->audio = new (vmm_heap()) Audio_in::Connection(genode_env(), "left");
 	} catch (...) {
 		Genode::error("could not establish Audio_in connection");
 		return -1;

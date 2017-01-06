@@ -51,9 +51,9 @@ class Audio_out::Session_component : public Audio_out::Session_rpc_object
 
 	public:
 
-		Session_component(Channel_number channel, Signal_context_capability cap)
+		Session_component(Genode::Env &env, Channel_number channel, Signal_context_capability cap)
 		:
-			Session_rpc_object(cap), _channel(channel)
+			Session_rpc_object(env, cap), _channel(channel)
 		{
 			Audio_out::channel_acquired[_channel] = this;
 		}
@@ -69,7 +69,7 @@ class Audio_out::Out
 {
 	private:
 
-		Genode::Entrypoint                     &_ep;
+		Genode::Env                            &_env;
 		Genode::Signal_handler<Audio_out::Out>  _data_avail_dispatcher;
 		Genode::Signal_handler<Audio_out::Out>  _notify_dispatcher;
 
@@ -173,11 +173,11 @@ class Audio_out::Out
 
 	public:
 
-		Out(Genode::Entrypoint &ep)
+		Out(Genode::Env &env)
 		:
-			_ep(ep),
-			_data_avail_dispatcher(ep, *this, &Audio_out::Out::_handle_data_avail),
-			_notify_dispatcher(ep, *this, &Audio_out::Out::_handle_notify)
+			_env(env),
+			_data_avail_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_data_avail),
+			_notify_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_notify)
 		{
 			/* play a silence packet to get the driver running */
 			_play_silence();
@@ -262,7 +262,7 @@ class Audio_out::Root : public Audio_out::Root_component
 {
 	private:
 
-		Genode::Entrypoint &_ep;
+		Genode::Env &_env;
 
 		Signal_context_capability _cap;
 
@@ -278,16 +278,16 @@ class Audio_out::Root : public Audio_out::Root_component
 			Out::channel_number(channel_name, &channel_number);
 
 			return new (md_alloc())
-				Session_component(channel_number, _cap);
+				Session_component(_env, channel_number, _cap);
 		}
 
 	public:
 
-		Root(Genode::Entrypoint &ep, Allocator &md_alloc,
+		Root(Genode::Env &env, Allocator &md_alloc,
 		     Signal_context_capability cap)
 		:
-			Root_component(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _cap(cap)
+			Root_component(env.ep(), md_alloc),
+			_env(env), _cap(cap)
 		{ }
 };
 
@@ -315,9 +315,9 @@ class Audio_in::Session_component : public Audio_in::Session_rpc_object
 
 	public:
 
-		Session_component(Channel_number channel,
+		Session_component(Genode::Env &env, Channel_number channel,
 		                  Genode::Signal_context_capability cap)
-		: Session_rpc_object(cap), _channel(channel) {
+		: Session_rpc_object(env, cap), _channel(channel) {
 			channel_acquired = this; }
 
 		~Session_component() { channel_acquired = nullptr; }
@@ -328,7 +328,7 @@ class Audio_in::In
 {
 	private:
 
-		Genode::Entrypoint                   &_ep;
+		Genode::Env                          &_env;
 		Genode::Signal_handler<Audio_in::In>  _notify_dispatcher;
 
 		bool _active() { return channel_acquired && channel_acquired->active(); }
@@ -375,10 +375,10 @@ class Audio_in::In
 
 	public:
 
-		In(Genode::Entrypoint &ep)
+		In(Genode::Env &env)
 		:
-			_ep(ep),
-			_notify_dispatcher(ep, *this, &Audio_in::In::_handle_notify)
+			_env(env),
+			_notify_dispatcher(env.ep(), *this, &Audio_in::In::_handle_notify)
 		{ _record_packet(); }
 
 		Signal_context_capability sigh() { return _notify_dispatcher; }
@@ -453,7 +453,7 @@ class Audio_in::Root : public Audio_in::Root_component
 {
 	private:
 
-		Genode::Entrypoint        &_ep;
+		Genode::Env               &_env;
 		Signal_context_capability  _cap;
 
 	protected:
@@ -466,14 +466,14 @@ class Audio_in::Root : public Audio_in::Root_component
 			                                             sizeof(channel_name),
 			                                             "left");
 			In::channel_number(channel_name, &channel_number);
-			return new (md_alloc()) Session_component(channel_number, _cap);
+			return new (md_alloc()) Session_component(_env, channel_number, _cap);
 		}
 
 	public:
 
-		Root(Genode::Entrypoint &ep, Allocator &md_alloc,
+		Root(Genode::Env &env, Allocator &md_alloc,
 		     Signal_context_capability cap)
-		: Root_component(&ep.rpc_ep(), &md_alloc), _ep(ep), _cap(cap) { }
+		: Root_component(env.ep(), md_alloc), _env(env), _cap(cap) { }
 };
 
 
@@ -484,13 +484,12 @@ class Audio_in::Root : public Audio_in::Root_component
 struct Main
 {
 	Genode::Env        &env;
-	Genode::Entrypoint &ep;
 	Genode::Heap       heap { &env.ram(), &env.rm() };
 
 	Genode::Attached_rom_dataspace config { env, "config" };
 
 	Genode::Signal_handler<Main> config_update_dispatcher {
-		ep, *this, &Main::handle_config_update };
+		env.ep(), *this, &Main::handle_config_update };
 
 	void handle_config_update()
 	{
@@ -499,7 +498,7 @@ struct Main
 		Audio::update_config(config.xml());
 	}
 
-	Main(Genode::Env &env) : env(env), ep(env.ep())
+	Main(Genode::Env &env) : env(env)
 	{
 		Audio::init_driver(env, heap, config.xml());
 
@@ -509,21 +508,21 @@ struct Main
 
 		/* playback */
 		if (config.xml().attribute_value("playback", true)) {
-			static Audio_out::Out out(ep);
+			static Audio_out::Out out(env);
 			Audio::play_sigh(out.sigh());
-			static Audio_out::Root out_root(ep, heap, out.data_avail());
-			env.parent().announce(ep.manage(out_root));
+			static Audio_out::Root out_root(env, heap, out.data_avail());
+			env.parent().announce(env.ep().manage(out_root));
 
 			Genode::log("--- BSD Audio driver enable playback ---");
 		}
 
 		/* recording */
 		if (config.xml().attribute_value("recording", true)) {
-			static Audio_in::In in(ep);
+			static Audio_in::In in(env);
 			Audio::record_sigh(in.sigh());
-			static Audio_in::Root in_root(ep, heap,
+			static Audio_in::Root in_root(env, heap,
 			                              Genode::Signal_context_capability());
-			env.parent().announce(ep.manage(in_root));
+			env.parent().announce(env.ep().manage(in_root));
 
 			Genode::log("--- BSD Audio driver enable recording ---");
 		}

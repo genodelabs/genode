@@ -16,6 +16,7 @@
 
 #include <base/env.h>
 #include <base/rpc_client.h>
+#include <base/attached_dataspace.h>
 #include <audio_out_session/audio_out_session.h>
 
 namespace Audio_out {
@@ -41,6 +42,8 @@ class Audio_out::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
+		Genode::Attached_dataspace _shared_ds;
+
 		Signal _progress;
 		Signal _alloc;
 
@@ -51,18 +54,20 @@ class Audio_out::Session_client : public Genode::Rpc_client<Session>
 		/**
 		 * Constructor
 		 *
+		 * \param rm               region map for attaching shared buffer
 		 * \param session          session capability
 		 * \param alloc_signal     true, install 'alloc_signal' receiver
 		 * \param progress_signal  true, install 'progress_signal' receiver
 		 */
-		Session_client(Genode::Capability<Session> session, bool alloc_signal,
-		               bool progress_signal)
+		Session_client(Genode::Region_map &rm,
+		               Genode::Capability<Session> session,
+		               bool alloc_signal, bool progress_signal)
 		:
 		  Genode::Rpc_client<Session>(session),
+		  _shared_ds(rm, call<Rpc_dataspace>()),
 		  _data_avail(call<Rpc_data_avail_sigh>())
 		{
-			/* ask server for stream data space and attach it */
-			_stream = static_cast<Stream *>(Genode::env()->rm_session()->attach(call<Rpc_dataspace>()));
+			_stream = _shared_ds.local_addr<Stream>();
 
 			if (progress_signal)
 				progress_sigh(_progress.cap);
