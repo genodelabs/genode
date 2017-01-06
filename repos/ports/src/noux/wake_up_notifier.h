@@ -18,21 +18,16 @@
 #include <util/list.h>
 #include <base/lock.h>
 
-namespace Noux {
+namespace Noux { struct Wake_up_notifier; }
 
-	struct Wake_up_notifier : List<Wake_up_notifier>::Element
-	{
-		Lock *lock;
 
-		Wake_up_notifier(Lock *lock = 0)
-		: lock(lock) { }
+struct Noux::Wake_up_notifier : List<Wake_up_notifier>::Element
+{
+	Lock *lock;
 
-		void wake_up()
-		{
-			if (lock)
-				lock->unlock();
-		}
-	};
+	Wake_up_notifier(Lock *lock = nullptr) : lock(lock) { }
+
+	void wake_up() { if (lock) lock->unlock(); }
 };
 
 #endif /* _NOUX__WAKE_UP_NOTIFIER__H_ */

@@ -18,77 +18,81 @@
 #include <base/allocator.h>
 #include <util/list.h>
 
-namespace Noux {
+namespace Noux { class Destruct_queue; }
 
-	class Destruct_queue
-	{
-		public:
 
-			struct Element_base : Genode::List<Element_base>::Element
-			{
-				virtual void destroy() = 0;
-			};
+class Noux::Destruct_queue
+{
+	public:
 
-			/*
-			 * When a pointer to an object which inherits 'Element' among other
-			 * base classes gets static-casted to a pointer to the 'Element'
-			 * base object, the resulting address can differ from the start
-			 * address of the inherited object. To be able to pass the start
-			 * address of the inherited object to the allocator, a static-cast
-			 * back to the inherited class needs to be performed. Therefore the
-			 * type of the class inheriting from 'Element' needs to be given as
-			 * template parameter.
-			 */
-			template <typename T>
-			class Element : public Element_base
-			{
-				private:
+		struct Element_base : Genode::List<Element_base>::Element
+		{
+			virtual void destroy() = 0;
+		};
 
-					Genode::Allocator *_alloc;
+		/*
+		 * When a pointer to an object which inherits 'Element' among other
+		 * base classes gets static-casted to a pointer to the 'Element'
+		 * base object, the resulting address can differ from the start
+		 * address of the inherited object. To be able to pass the start
+		 * address of the inherited object to the allocator, a static-cast
+		 * back to the inherited class needs to be performed. Therefore the
+		 * type of the class inheriting from 'Element' needs to be given as
+		 * template parameter.
+		 */
+		template <typename T>
+		class Element : public Element_base
+		{
+			private:
 
-				public:
+				Genode::Allocator &_alloc;
 
-					/**
-					 * Constructor
-					 *
-					 * \param alloc  the allocator which was used to allocate
-					 *               the element
-					 */
-					Element(Genode::Allocator *alloc) : _alloc(alloc) { }
+			public:
 
-					virtual ~Element() { };
+				/**
+				 * Constructor
+				 *
+				 * \param alloc  the allocator which was used to allocate
+				 *               the element
+				 */
+				Element(Genode::Allocator &alloc) : _alloc(alloc) { }
 
-					void destroy()
-					{
-						Genode::destroy(_alloc, static_cast<T*>(this));
-					}
-			};
+				virtual ~Element() { };
 
-		private:
-
-			Genode::List<Element_base> _destruct_list;
-			Genode::Lock               _destruct_list_lock;
-
-		public:
-
-			void insert(Element_base *element)
-			{
-				Genode::Lock::Guard guard(_destruct_list_lock);
-				_destruct_list.insert(element);
-			}
-
-			void flush()
-			{
-				Genode::Lock::Guard guard(_destruct_list_lock);
-
-				Element_base *element;
-				while ((element = _destruct_list.first())) {
-					_destruct_list.remove(element);
-					element->destroy();
+				void destroy()
+				{
+					Genode::destroy(_alloc, static_cast<T*>(this));
 				}
-			}
-	};
+		};
 
-}
+	private:
+
+		Genode::List<Element_base> _destruct_list;
+		Genode::Lock               _destruct_list_lock;
+		Signal_context_capability  _sigh;
+
+	public:
+
+		Destruct_queue(Signal_context_capability sigh) : _sigh(sigh) { }
+
+		void insert(Element_base *element)
+		{
+			Genode::Lock::Guard guard(_destruct_list_lock);
+			_destruct_list.insert(element);
+
+			Signal_transmitter(_sigh).submit();
+		}
+
+		void flush()
+		{
+			Genode::Lock::Guard guard(_destruct_list_lock);
+
+			Element_base *element;
+			while ((element = _destruct_list.first())) {
+				_destruct_list.remove(element);
+				element->destroy();
+			}
+		}
+};
 
 #endif /* _NOUX__DESTRUCT_QUEUE_H_ */

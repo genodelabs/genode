@@ -17,105 +17,105 @@
 /* Noux includes */
 #include <io_channel.h>
 
-namespace Noux {
+namespace Noux { class File_descriptor_registry; }
 
-	class File_descriptor_registry
-	{
-		public:
 
-			enum { MAX_FILE_DESCRIPTORS = 64 };
+class Noux::File_descriptor_registry
+{
+	public:
 
-		private:
+		enum { MAX_FILE_DESCRIPTORS = 64 };
 
-			struct {
-				bool                       allocated;
-				Shared_pointer<Io_channel> io_channel;
-			} _fds[MAX_FILE_DESCRIPTORS];
+	private:
 
-			bool _valid_fd(int fd) const
-			{
-				return (fd >= 0) && (fd < MAX_FILE_DESCRIPTORS);
-			}
+		struct {
+			bool                       allocated;
+			Shared_pointer<Io_channel> io_channel;
+		} _fds[MAX_FILE_DESCRIPTORS];
 
-			bool _find_available_fd(int *fd) const
-			{
-				/* allocate the first free file descriptor */
-				for (unsigned i = 0; i < MAX_FILE_DESCRIPTORS; i++)
-					if (_fds[i].allocated == false) {
-						*fd = i;
-						return true;
-					}
-				return false;
-			}
+		bool _valid_fd(int fd) const
+		{
+			return (fd >= 0) && (fd < MAX_FILE_DESCRIPTORS);
+		}
 
-			void _assign_fd(int fd, Shared_pointer<Io_channel> &io_channel)
-			{
-				_fds[fd].io_channel = io_channel;
-				_fds[fd].allocated  = true;
-			}
-
-			void _reset_fd(int fd)
-			{
-				_fds[fd].io_channel = Shared_pointer<Io_channel>();
-				_fds[fd].allocated  = false;
-			}
-
-		public:
-
-			File_descriptor_registry()
-			{
-				flush();
-			}
-
-			/**
-			 * Associate I/O channel with file descriptor
-			 *
-			 * \return noux file descriptor used for the I/O channel
-			 */
-			virtual int add_io_channel(Shared_pointer<Io_channel> io_channel, int fd = -1)
-			{
-				if ((fd == -1) && !_find_available_fd(&fd)) {
-					error("could not allocate file descriptor");
-					return -1;
+		bool _find_available_fd(int *fd) const
+		{
+			/* allocate the first free file descriptor */
+			for (unsigned i = 0; i < MAX_FILE_DESCRIPTORS; i++)
+				if (_fds[i].allocated == false) {
+					*fd = i;
+					return true;
 				}
+			return false;
+		}
 
-				if (!_valid_fd(fd)) {
-					error("file descriptor ", fd, " is out of range");
-					return -2;
-				}
+		void _assign_fd(int fd, Shared_pointer<Io_channel> &io_channel)
+		{
+			_fds[fd].io_channel = io_channel;
+			_fds[fd].allocated  = true;
+		}
 
-				_assign_fd(fd, io_channel);
-				return fd;
+		void _reset_fd(int fd)
+		{
+			_fds[fd].io_channel = Shared_pointer<Io_channel>();
+			_fds[fd].allocated  = false;
+		}
+
+	public:
+
+		File_descriptor_registry()
+		{
+			flush();
+		}
+
+		/**
+		 * Associate I/O channel with file descriptor
+		 *
+		 * \return noux file descriptor used for the I/O channel
+		 */
+		virtual int add_io_channel(Shared_pointer<Io_channel> io_channel, int fd = -1)
+		{
+			if ((fd == -1) && !_find_available_fd(&fd)) {
+				error("could not allocate file descriptor");
+				return -1;
 			}
 
-			virtual void remove_io_channel(int fd)
-			{
-				if (!_valid_fd(fd))
-					error("file descriptor ", fd, " is out of range");
-				else
-					_reset_fd(fd);
+			if (!_valid_fd(fd)) {
+				error("file descriptor ", fd, " is out of range");
+				return -2;
 			}
 
-			bool fd_in_use(int fd) const
-			{
-				return (_valid_fd(fd) && _fds[fd].io_channel);
-			}
+			_assign_fd(fd, io_channel);
+			return fd;
+		}
 
-			Shared_pointer<Io_channel> io_channel_by_fd(int fd) const
-			{
-				if (!fd_in_use(fd))
-					return Shared_pointer<Io_channel>();
+		virtual void remove_io_channel(int fd)
+		{
+			if (!_valid_fd(fd))
+				error("file descriptor ", fd, " is out of range");
+			else
+				_reset_fd(fd);
+		}
 
-				return _fds[fd].io_channel;
-			}
+		bool fd_in_use(int fd) const
+		{
+			return (_valid_fd(fd) && _fds[fd].io_channel);
+		}
 
-			virtual void flush()
-			{
-				/* close all file descriptors */
-				for (unsigned i = 0; i < MAX_FILE_DESCRIPTORS; i++)
-					_reset_fd(i);
-			}
-	};
-}
+		Shared_pointer<Io_channel> io_channel_by_fd(int fd) const
+		{
+			if (!fd_in_use(fd))
+				return Shared_pointer<Io_channel>();
+
+			return _fds[fd].io_channel;
+		}
+
+		virtual void flush()
+		{
+			/* close all file descriptors */
+			for (unsigned i = 0; i < MAX_FILE_DESCRIPTORS; i++)
+				_reset_fd(i);
+		}
+};
 
 #endif /* _NOUX__FILE_DESCRIPTOR_REGISTRY_H_ */

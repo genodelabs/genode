@@ -17,28 +17,29 @@
 namespace Noux {
 
 	class Index_out_of_range { };
-
-	template <typename T>
-	struct Range_checked_index
-	{
-		T value;
-		T const max;
-
-		Range_checked_index(T value, T max)
-		: value(value), max(max) { }
-
-		T operator++ (int)
-		{
-			T old_value = value;
-
-			if (++value >= max)
-				throw Index_out_of_range();
-
-			return old_value;
-		}
-
-		operator T () { return value; }
-	};
+	template <typename> struct Range_checked_index;
 }
+
+
+template <typename T>
+struct Noux::Range_checked_index
+{
+	T value;
+	T const max;
+
+	Range_checked_index(T value, T max) : value(value), max(max) { }
+
+	T operator++ (int)
+	{
+		T old_value = value;
+
+		if (++value >= max)
+			throw Index_out_of_range();
+
+		return old_value;
+	}
+
+	operator T () { return value; }
+};
 
 #endif /* _NOUX__RANGE_CHECKED_INDEX_H_ */

@@ -36,6 +36,8 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		static constexpr bool verbose_attach = false;
 		static constexpr bool verbose_replay = false;
 
+		Allocator &_alloc;
+
 		Rpc_entrypoint &_ep;
 
 		/**
@@ -104,13 +106,13 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 *            quota upgrades
 		 * \param rm  region map at core
 		 */
-		Region_map_component(Rpc_entrypoint &ep,
+		Region_map_component(Allocator &alloc, Rpc_entrypoint &ep,
 		                     Dataspace_registry &ds_registry,
 		                     Pd_connection &pd,
 		                     Capability<Region_map> rm)
 		:
 			Dataspace_info(Region_map_client(rm).dataspace()),
-			_ep(ep), _rm(rm), _pd(pd), _ds_registry(ds_registry)
+			_alloc(alloc), _ep(ep), _rm(rm), _pd(pd), _ds_registry(ds_registry)
 		{
 			_ep.manage(this);
 			_ds_registry.insert(this);
@@ -159,6 +161,8 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 */
 		void replay(Ram_session        &dst_ram,
 		            Region_map         &dst_rm,
+		            Region_map         &local_rm,
+		            Allocator          &alloc,
 		            Dataspace_registry &ds_registry,
 		            Rpc_entrypoint     &ep)
 		{
@@ -170,7 +174,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 					Dataspace_capability ds;
 					if (info) {
 
-						ds = info->fork(dst_ram, ds_registry, ep);
+						ds = info->fork(dst_ram, local_rm, alloc, ds_registry, ep);
 
 						/*
 						 * XXX We could detect dataspaces that are attached
@@ -242,7 +246,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 				}
 			}
 
-			Region * region = new (env()->heap())
+			Region * region = new (_alloc)
 			                  Region(*this, ds, size, offset, local_addr);
 
 			/* register region as user of RAM dataspaces */
@@ -289,10 +293,9 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 			_ds_registry.apply(region->ds, [&] (Dataspace_info *info) {
 				if (info) info->unregister_user(*region); });
 
-			destroy(env()->heap(), region);
+			destroy(_alloc, region);
 
 			_rm.detach(local_addr);
-
 		}
 
 		void fault_handler(Signal_context_capability handler) override
@@ -323,6 +326,8 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 ******************************/
 
 		Dataspace_capability fork(Ram_session        &,
+		                          Region_map         &,
+		                          Allocator          &,
 		                          Dataspace_registry &,
 		                          Rpc_entrypoint     &) override
 		{
@@ -358,7 +363,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 			return _ds_registry.apply(region->ds, lambda);
 		}
 
-		void poke(addr_t dst_addr, void const *src, size_t len) override
+		void poke(Region_map &rm, addr_t dst_addr, char const *src, size_t len) override
 		{
 			Dataspace_capability ds_cap;
 			addr_t               local_addr;
@@ -395,7 +400,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 					error("attempt to write to unknown dataspace type");
 					for (;;);
 				}
-				info->poke(dst_addr - local_addr, src, len);
+				info->poke(rm, dst_addr - local_addr, src, len);
 			});
 		}
 };

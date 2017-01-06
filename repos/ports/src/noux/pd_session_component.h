@@ -42,13 +42,14 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 		/**
 		 * Constructor
 		 */
-		Pd_session_component(Rpc_entrypoint &ep, Child_policy::Name const &name,
+		Pd_session_component(Allocator &alloc, Env &env, Rpc_entrypoint &ep,
+		                     Child_policy::Name const &name,
 		                     Dataspace_registry &ds_registry)
 		:
-			_ep(ep), _pd(name.string()),
-			_address_space(_ep, ds_registry, _pd, _pd.address_space()),
-			_stack_area   (_ep, ds_registry, _pd, _pd.stack_area()),
-			_linker_area  (_ep, ds_registry, _pd, _pd.linker_area())
+			_ep(ep), _pd(env, name.string()),
+			_address_space(alloc, _ep, ds_registry, _pd, _pd.address_space()),
+			_stack_area   (alloc, _ep, ds_registry, _pd, _pd.stack_area()),
+			_linker_area  (alloc, _ep, ds_registry, _pd, _pd.linker_area())
 		{
 			_ep.manage(this);
 		}
@@ -60,9 +61,9 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 
 		Pd_session_capability core_pd_cap() { return _pd.cap(); }
 
-		void poke(addr_t dst_addr, void const *src, size_t len)
+		void poke(Region_map &rm, addr_t dst_addr, char const *src, size_t len)
 		{
-			_address_space.poke(dst_addr, src, len);
+			_address_space.poke(rm, dst_addr, src, len);
 		}
 
 		Capability<Region_map> lookup_region_map(addr_t const addr)
@@ -76,13 +77,15 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 
 		void replay(Ram_session          &dst_ram,
 		            Pd_session_component &dst_pd,
+		            Region_map           &local_rm,
+		            Allocator            &alloc,
 		            Dataspace_registry   &ds_registry,
 		            Rpc_entrypoint       &ep)
 		{
 			/* replay region map into new protection domain */
-			_stack_area   .replay(dst_ram, dst_pd.stack_area_region_map(),    ds_registry, ep);
-			_linker_area  .replay(dst_ram, dst_pd.linker_area_region_map(),   ds_registry, ep);
-			_address_space.replay(dst_ram, dst_pd.address_space_region_map(), ds_registry, ep);
+			_stack_area   .replay(dst_ram, dst_pd.stack_area_region_map(),    local_rm, alloc, ds_registry, ep);
+			_linker_area  .replay(dst_ram, dst_pd.linker_area_region_map(),   local_rm, alloc, ds_registry, ep);
+			_address_space.replay(dst_ram, dst_pd.address_space_region_map(), local_rm, alloc, ds_registry, ep);
 
 			Region_map &dst_address_space = dst_pd.address_space_region_map();
 			Region_map &dst_stack_area    = dst_pd.stack_area_region_map();

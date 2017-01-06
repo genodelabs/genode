@@ -18,18 +18,17 @@
 #include <noux_session/sysio.h>
 
 namespace Noux {
-
 	struct Family_member;
+	struct Parent_execve;
+}
 
-	struct Parent_execve
-	{
-		virtual void execve_child(Family_member &child,
-		                          const char *filename,
-		                          Args const &args,
-		                          Sysio::Env const &env,
-		                          bool verbose) = 0;
-	};
 
+struct Noux::Parent_execve
+{
+	virtual void execve_child(Family_member &child,
+	                          const char *filename,
+	                          Args const &args,
+	                          Sysio::Env const &env) = 0;
 };
 
 #endif /* _NOUX__PARENT_EXECVE__H_ */

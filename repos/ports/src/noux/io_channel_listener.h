@@ -20,9 +20,7 @@
 /* Noux includes */
 #include <interrupt_handler.h>
 
-namespace Noux {
-	typedef List_element<Interrupt_handler> Io_channel_listener;
-}
+namespace Noux { typedef List_element<Interrupt_handler> Io_channel_listener; }
 
 #endif /* _NOUX__IO_CHANNEL_LISTENER__H_ */
 

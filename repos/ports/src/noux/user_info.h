@@ -1,6 +1,7 @@
 /*
  * \brief  User information
  * \author Josef Soentgen
+ * \author Norman Feske
  * \date   2012-07-23
  */
 
@@ -22,49 +23,54 @@
 #include <noux_session/sysio.h>
 
 namespace Noux {
-
+	class User_info;
 	using namespace Genode;
-
-	struct User_info {
-
-		public:
-
-			char  name[Sysio::MAX_USERNAME_LEN];
-			char shell[Sysio::MAX_SHELL_LEN];
-			char  home[Sysio::MAX_HOME_LEN];
-
-			unsigned int uid;
-			unsigned int gid;
-
-			User_info() : uid(0), gid(0)
-			{
-				strncpy(name,  "root",      sizeof(name));
-				strncpy(home,  "/",         sizeof(home));
-				strncpy(shell, "/bin/bash", sizeof(shell));
-			}
-
-			void set_info(Genode::Xml_node user_info_node)
-			{
-				try {
-					user_info_node.attribute("name").value(name, sizeof(name));
-					user_info_node.attribute("uid").value(&uid);
-					user_info_node.attribute("gid").value(&gid);
-
-					for (unsigned i = 0; i < user_info_node.num_sub_nodes(); i++) {
-						Xml_node sub_node = user_info_node.sub_node(i);
-
-						if (sub_node.has_type("shell")) {
-							sub_node.attribute("name").value(shell, sizeof(shell));
-						}
-
-						if (sub_node.has_type("home")) {
-							sub_node.attribute("name").value(home, sizeof(home));
-						}
-					}
-				}
-				catch (...) { }
-			}
-	};
 }
+
+
+class Noux::User_info : Noncopyable
+{
+	public:
+
+		typedef String<Sysio::MAX_USERNAME_LEN> Name;
+		typedef String<Sysio::MAX_SHELL_LEN>    Shell;
+		typedef String<Sysio::MAX_HOME_LEN>     Home;
+
+	private:
+
+		unsigned const _uid;
+		unsigned const _gid;
+
+		Name  const _name;
+		Shell const _shell;
+		Home  const _home;
+
+		template <typename S>
+		S _sub_node_name(Xml_node node, char const *sub_node, S const &default_name)
+		{
+			if (!node.has_sub_node(sub_node))
+				return default_name;
+
+			return node.sub_node(sub_node).attribute_value("name", default_name);
+		}
+
+	public:
+
+		User_info(Xml_node node)
+		:
+			_uid (node.attribute_value("uid", 0UL)),
+			_gid (node.attribute_value("gid", 0UL)),
+			_name(node.attribute_value("name", Name("root"))),
+			_shell(_sub_node_name(node, "shell", Shell("/bin/bash"))),
+			_home (_sub_node_name(node, "home",  Home("name")))
+		{ }
+
+		unsigned uid() const { return _uid; }
+		unsigned gid() const { return _gid; }
+
+		Name  name()  const { return _name;  }
+		Shell shell() const { return _shell; }
+		Home  home()  const { return _home;  }
+};
 
 #endif /* _NOUX__USER_INFO_H_ */
