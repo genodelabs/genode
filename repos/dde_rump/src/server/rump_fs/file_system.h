@@ -31,7 +31,7 @@ extern "C" {
 }
 
 namespace File_system {
-	void init(Genode::Env &, Genode::Allocator &heap, Genode::Xml_node config);
+	void init();
 	bool supports_symlinks();
 }
 

@@ -24,6 +24,8 @@
 #define GENODE_DEVICE        "/genode"
 
 
+void rump_io_backend_init();
+
 /**
  * Sync I/O back-end with underlying Genode subsystems
  */

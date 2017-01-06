@@ -18,7 +18,7 @@
 #include <dataspace/client.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
-
+#include <rump/env.h>
 
 namespace Allocator {
 	template <unsigned VM_SIZE, typename POLICY> class Backend_alloc;
@@ -85,7 +85,7 @@ namespace Allocator {
 				Policy_guard<POLICY> guard;
 
 				try {
-					_ds_cap[_index] =  Genode::env()->ram_session()->alloc(BLOCK_SIZE, _cached);
+					_ds_cap[_index] =  Rump::env().env().ram().alloc(BLOCK_SIZE, _cached);
 					/* attach at index * BLOCK_SIZE */
 					Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 					/* lookup phys. address */
@@ -114,10 +114,10 @@ namespace Allocator {
 			:
 				Region_map_client(Rm_connection::create(VM_SIZE)),
 				_cached(cached),
-				_range(Genode::env()->heap())
+				_range(&Rump::env().heap())
 			{
 				/* reserver attach us, anywere */
-				_base = Genode::env()->rm_session()->attach(dataspace());
+				_base = Rump::env().env().rm().attach(dataspace());
 			}
 
 			/**

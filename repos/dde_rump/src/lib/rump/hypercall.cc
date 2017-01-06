@@ -14,10 +14,10 @@
 
 #include "sched.h"
 
-#include <base/env.h>
 #include <base/log.h>
 #include <base/sleep.h>
 #include <os/timed_semaphore.h>
+#include <rump/env.h>
 #include <util/allocator_fap.h>
 #include <util/random.h>
 #include <util/string.h>
@@ -31,53 +31,32 @@ static bool verbose = false;
 struct rumpuser_hyperup _rump_upcalls;
 
 
-/********************
- ** Initialization **
- ********************/
-
-int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
-{
-	Genode::log("RUMP ver: ", version);
-	if (version != SUPPORTED_RUMP_VERSION) {
-		Genode::error("unsupported rump-kernel version (", version, ") - "
-		              "supported is ", (int)SUPPORTED_RUMP_VERSION);
-		return -1;
-	}
-
-	_rump_upcalls = *hyp;
-
-	/*
-	 * Start 'Timeout_thread' so it does not get constructed concurrently (which
-	 * causes one thread to spin in cxa_guard_aqcuire), making emulation *really*
-	 * slow
-	 */
-	Genode::Timeout_thread::alarm_timer();
-
-	return 0;
-}
-
-
 /*************
  ** Threads **
  *************/
 
-static Hard_context * main_thread()
+static Hard_context *main_context()
 {
 	static Hard_context inst(0);
 	return &inst;
 }
 
+
 static Hard_context *myself()
 {
-	Hard_context *h = dynamic_cast<Hard_context *>(Genode::Thread::myself());
-	return h ? h : main_thread();
+	Hard_context *h = Hard_context_registry::r().find(Genode::Thread::myself());
+
+	if (!h)
+		Genode::error("Hard context is nullptr (", Genode::Thread::myself(), ")");
+
+	return h;
 }
 
 
-Timer::Connection *Hard_context::timer()
+Timer::Connection &Hard_context::timer()
 {
-	static Timer::Connection _timer;
-	return &_timer;
+	static Timer::Connection _timer { Rump::env().env() };
+	return _timer;
 }
 
 
@@ -112,7 +91,7 @@ int rumpuser_thread_create(func f, void *arg, const char *name,
 	if (mustjoin)
 		*cookie = (void *)++count;
 
-	new (Genode::env()->heap()) Hard_context_thread(name, f, arg, mustjoin ? count : 0);
+	new (Rump::env().heap()) Hard_context_thread(name, f, arg, mustjoin ? count : 0);
 
 	return 0;
 }
@@ -126,6 +105,37 @@ void rumpuser_thread_exit()
 
 int errno;
 void rumpuser_seterrno(int e) { errno = e; }
+
+
+/********************
+ ** Initialization **
+ ********************/
+
+int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
+{
+	Genode::log("RUMP ver: ", version);
+	if (version != SUPPORTED_RUMP_VERSION) {
+		Genode::error("unsupported rump-kernel version (", version, ") - "
+		              "supported is ", (int)SUPPORTED_RUMP_VERSION);
+		return -1;
+	}
+
+	_rump_upcalls = *hyp;
+
+	/* register context for main EP */
+	main_context()->thread(Genode::Thread::myself());
+	Hard_context_registry::r().insert(main_context());
+
+	/*
+	 * Start 'Timeout_thread' so it does not get constructed concurrently (which
+	 * causes one thread to spin in cxa_guard_aqcuire), making emulation *really*
+	 * slow
+	 */
+	Genode::Timeout_thread::alarm_timer();
+
+	return 0;
+}
+
 
 
 /*************************
@@ -152,7 +162,7 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 	if (!Genode::strcmp(name, "RUMP_MEMLIMIT")) {
 
 		/* leave 2 MB for the Genode */
-		size_t rump_ram =  Genode::env()->ram_session()->avail();
+		size_t rump_ram =  Rump::env().env().ram().avail();
 
 		if (rump_ram <= RESERVE_MEM) {
 			Genode::error("insufficient quota left: ",
@@ -178,20 +188,22 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 
 void rumpuser_putchar(int ch)
 {
-	static unsigned char buf[256];
+	enum { BUF_SIZE = 256 };
+	static unsigned char buf[BUF_SIZE];
 	static int count = 0;
 
-	buf[count++] = (unsigned char)ch;
+	if (count < BUF_SIZE - 1 && ch != '\n')
+		buf[count++] = (unsigned char)ch;
 
-	if (ch == '\n') {
+	if (ch == '\n' || count == BUF_SIZE - 1) {
 		buf[count] = 0;
 		int nlocks;
-		if (myself() != main_thread())
+		if (myself() != main_context())
 			rumpkern_unsched(&nlocks, 0);
 
 		Genode::log("rump: ", Genode::Cstring((char const *)buf));
 
-		if (myself() != main_thread())
+		if (myself() != main_context())
 			rumpkern_sched(nlocks, 0);
 
 		count = 0;
@@ -209,14 +221,14 @@ struct Allocator_policy
 	{
 		int nlocks;
 
-		if (myself() != main_thread())
+		if (myself() != main_context())
 			rumpkern_unsched(&nlocks, 0);
 		return nlocks;
 	}
 
 	static void unblock(int nlocks)
 	{
-		if (myself() != main_thread())
+		if (myself() != main_context())
 			rumpkern_sched(nlocks, 0);
 	}
 };
@@ -230,11 +242,13 @@ static Genode::Lock & alloc_lock()
 	return inst;
 }
 
+
 static Rump_alloc* allocator()
 {
 	static Rump_alloc _fap(true);
 	return &_fap;
 }
+
 
 int rumpuser_malloc(size_t len, int alignment, void **memp)
 {
@@ -269,7 +283,7 @@ void rumpuser_free(void *mem, size_t len)
 int rumpuser_clock_gettime(int enum_rumpclock, int64_t *sec, long *nsec)
 {
 	Hard_context *h = myself();
-	unsigned long t = h->timer()->elapsed_ms();
+	unsigned long t = h->timer().elapsed_ms();
 	*sec = (int64_t)t / 1000;
 	*nsec = (t % 1000) * 1000;
 	return 0;
@@ -281,7 +295,7 @@ int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
 	int nlocks;
 	unsigned int msec = 0;
 
-	Timer::Connection *timer  = myself()->timer();
+	Timer::Connection &timer  = myself()->timer();
 
 	rumpkern_unsched(&nlocks, 0);
 	switch (enum_rumpclock) {
@@ -289,12 +303,12 @@ int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
 			msec = sec * 1000 + nsec / (1000*1000UL);
 			break;
 		case RUMPUSER_CLOCK_ABSMONO:
-			msec = timer->elapsed_ms();
+			msec = timer.elapsed_ms();
 			msec = ((sec * 1000) + (nsec / (1000 * 1000))) - msec;
 			break;
 	}
 
-	timer->msleep(msec);
+	timer.msleep(msec);
 	rumpkern_sched(nlocks, 0);
 	return 0;
 }

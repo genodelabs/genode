@@ -18,6 +18,8 @@ extern "C" {
 #include <base/lock.h>
 #include <util/fifo.h>
 #include <os/timed_semaphore.h>
+#include <rump/env.h>
+
 #include "sched.h"
 
 
@@ -106,7 +108,7 @@ struct rumpuser_mtx
 
 void rumpuser_mutex_init(struct rumpuser_mtx **mtxp, int flags)
 {
-	*mtxp = new(Genode::env()->heap()) rumpuser_mtx(flags);
+	*mtxp = new(Rump::env().heap()) rumpuser_mtx(flags);
 }
 
 
@@ -153,7 +155,7 @@ void rumpuser_mutex_exit(struct rumpuser_mtx *mtx)
 
 void rumpuser_mutex_destroy(struct rumpuser_mtx *mtx)
 {
-	destroy(Genode::env()->heap(), mtx);
+	destroy(Rump::env().heap(), mtx);
 }
 
 
@@ -274,13 +276,13 @@ struct rumpuser_cv {
 
 void rumpuser_cv_init(struct rumpuser_cv **cv)
 {
-	*cv = new(Genode::env()->heap())  rumpuser_cv();
+	*cv = new(Rump::env().heap())  rumpuser_cv();
 }
 
 
 void rumpuser_cv_destroy(struct rumpuser_cv *cv)
 {
-	destroy(Genode::env()->heap(), cv);
+	destroy(Rump::env().heap(), cv);
 }
 
 
@@ -464,7 +466,7 @@ struct rumpuser_rw
 
 void rumpuser_rw_init(struct rumpuser_rw **rw)
 {
-	*rw = new(Genode::env()->heap()) rumpuser_rw();
+	*rw = new(Rump::env().heap()) rumpuser_rw();
 }
 
 
@@ -531,6 +533,6 @@ void rumpuser_rw_held(int enum_rumprwlock, struct rumpuser_rw *rw, int *rv)
 
 void rumpuser_rw_destroy(struct rumpuser_rw *rw)
 {
-	destroy(Genode::env()->heap(), rw);
+	destroy(Rump::env().heap(), rw);
 }
 

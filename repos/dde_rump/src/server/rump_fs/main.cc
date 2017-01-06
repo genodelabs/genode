@@ -24,6 +24,7 @@
 
 #include "undef.h"
 
+#include <rump/env.h>
 #include <rump_fs/fs.h>
 #include <sys/resource.h>
 #include "file_system.h"
@@ -173,7 +174,7 @@ class File_system::Session_component : public Session_rpc_object
 		~Session_component()
 		{
 			Dataspace_capability ds = tx_sink()->dataspace();
-			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
+			Rump::env().env().ram().free(static_cap_cast<Ram_dataspace>(ds));
 			destroy(&_md_alloc, &_root);
 		}
 
@@ -491,11 +492,13 @@ struct File_system::Main
 
 	Root fs_root { env, sliced_heap };
 
-	Attached_rom_dataspace config { env, "config" };
-
 	Main(Genode::Env &env) : env(env)
 	{
-		File_system::init(env, heap, config.xml());
+		Rump::construct_env(env);
+
+		rump_io_backend_init();
+
+		File_system::init();
 
 			/* set all bits but the stickies */
 		rump_sys_umask(S_ISUID|S_ISGID|S_ISVTX);

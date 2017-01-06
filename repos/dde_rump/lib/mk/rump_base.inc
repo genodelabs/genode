@@ -15,7 +15,7 @@ VERBOSE_LEVEL ?= 0
 #
 # Sources
 #
-SRC_CC = dummies.cc hypercall.cc bootstrap.cc io.cc sync.cc misc.cc
+SRC_CC = dummies.cc hypercall.cc bootstrap.cc io.cc sync.cc misc.cc env.cc
 
 #
 # TARGET to trigger rump build

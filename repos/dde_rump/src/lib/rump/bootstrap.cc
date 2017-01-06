@@ -17,10 +17,12 @@ extern "C" {
 #include <elf.h>
 }
 
-#include <rump/bootstrap.h>
+#include <rump/env.h>
+
 #include <base/log.h>
 #include <base/shared_object.h>
 #include <util/string.h>
+
 
 extern "C" void wait_for_continue();
 
@@ -36,44 +38,18 @@ static bool const verbose = false;
 
 
 static Genode::Shared_object *obj_main;
-static Genode::Env           *env_ptr;
-static Genode::Allocator     *heap_ptr;
-
-
-void rump_bootstrap_init(Genode::Env &env, Genode::Allocator &alloc)
-{
-	/* ignore subsequent calls */
-	if (env_ptr)
-		return;
-
-	env_ptr  = &env;
-	heap_ptr = &alloc;
-}
-
-
-/**
- * Exception type
- */
-class Missing_call_of_rump_bootstrap_init { };
 
 
 static Genode::Env &env()
 {
-	if (!env_ptr)
-		throw Missing_call_of_rump_bootstrap_init();
-
-	return *env_ptr;
+	return Rump::env().env();
 }
 
 
 static Genode::Allocator &heap()
 {
-	if (!heap_ptr)
-		throw Missing_call_of_rump_bootstrap_init();
-
-	return *heap_ptr;
+	return Rump::env().heap();
 }
-
 
 
 struct Sym_tab
@@ -119,7 +95,7 @@ struct Sym_tab
 	~Sym_tab()
 	{
 		if (sym_tab)
-			destroy(Genode::env()->heap(), sym_tab);
+			destroy(heap(), sym_tab);
 	}
 
 
@@ -186,7 +162,7 @@ struct Sym_tab
 
 	void alloc_memory()
 	{
-		sym_tab = (Elf_Sym *)Genode::env()->heap()->alloc(sizeof(Elf_Sym) * sym_cnt);
+		sym_tab = (Elf_Sym *)heap().alloc(sizeof(Elf_Sym) * sym_cnt);
 	}
 
 	void read_symbols()

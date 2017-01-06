@@ -13,7 +13,7 @@
 
 #include "file_system.h"
 
-#include <rump/bootstrap.h>
+#include <rump/env.h>
 #include <rump_fs/fs.h>
 #include <util/string.h>
 #include <util/hard_context.h>
@@ -76,9 +76,9 @@ static bool check_read_only(Fs_type const &fs_type)
 }
 
 
-void File_system::init(Genode::Env &env, Genode::Allocator &alloc, Genode::Xml_node config)
+void File_system::init()
 {
-	Fs_type const fs_type = config.attribute_value("fs", Fs_type());
+	Fs_type const fs_type = Rump::env().config_rom().xml().attribute_value("fs", Fs_type());
 
 	if (!_check_type(fs_type)) {
 		Genode::error("Invalid or no file system given (use \'<config fs=\"<fs type>\"/>)");
@@ -87,12 +87,8 @@ void File_system::init(Genode::Env &env, Genode::Allocator &alloc, Genode::Xml_n
 	}
 	Genode::log("Using ", fs_type, " as file system");
 
-	/* make Genode env and heap known to the rump kernel */
-	rump_bootstrap_init(env, alloc);
-
 	/* start rump kernel */
 	rump_init();
-
 	/* register block device */ 
 	rump_pub_etfs_register(GENODE_DEVICE, GENODE_BLOCK_SESSION, RUMP_ETFS_BLK);
 
