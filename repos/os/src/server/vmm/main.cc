@@ -12,14 +12,13 @@
  */
 
 /* Genode includes */
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 #include <base/exception.h>
 #include <base/log.h>
 #include <cpu/cpu_state.h>
 #include <drivers/board_base.h>
-#include <io_mem_session/connection.h>
-#include <irq_session/connection.h>
-#include <os/attached_ram_dataspace.h>
-#include <os/attached_rom_dataspace.h>
 #include <os/ring_buffer.h>
 #include <terminal_session/connection.h>
 #include <timer_session/connection.h>
@@ -29,6 +28,7 @@
 
 #include <vm_state.h>
 #include <board.h>
+
 
 struct State : Genode::Vm_state
 {
@@ -124,7 +124,7 @@ class Vm {
 		Genode::Attached_rom_dataspace _dtb_rom;
 		Genode::Attached_ram_dataspace _vm_ram;
 		Ram                            _ram;
-		State                         *_state;
+		State &                        _state;
 		bool                           _active = true;
 
 		void _load_kernel()
@@ -132,7 +132,7 @@ class Vm {
 			Genode::memcpy((void*)(_ram.local() + KERNEL_OFFSET),
 			               _kernel_rom.local_addr<void>(),
 			               _kernel_rom.size());
-			_state->ip = _ram.base() + KERNEL_OFFSET;
+			_state.ip = _ram.base() + KERNEL_OFFSET;
 		}
 
 		void _load_dtb()
@@ -140,7 +140,7 @@ class Vm {
 			Genode::memcpy((void*)(_ram.local() + DTB_OFFSET),
 			               _dtb_rom.local_addr<void>(),
 			               _dtb_rom.size());
-			_state->r2 = _ram.base() + DTB_OFFSET;
+			_state.r2 = _ram.base() + DTB_OFFSET;
 		}
 
 	public:
@@ -172,12 +172,13 @@ class Vm {
 
 
 		Vm(const char *kernel, const char *dtb, Genode::size_t const ram_size,
-		   Genode::Signal_context_capability sig_cap)
-		: _kernel_rom(kernel),
-		  _dtb_rom(dtb),
-		  _vm_ram(Genode::env()->ram_session(), ram_size, Genode::UNCACHED),
+		   Genode::Signal_context_capability sig_cap, Genode::Env & env)
+		: _vm_con(env),
+		  _kernel_rom(env, kernel),
+		  _dtb_rom(env, dtb),
+		  _vm_ram(env.ram(), env.rm(), ram_size, Genode::UNCACHED),
 		  _ram(RAM_ADDRESS, ram_size, (Genode::addr_t)_vm_ram.local_addr<void>()),
-		  _state((State*)Genode::env()->rm_session()->attach(_vm_con.cpu_state()))
+		  _state(*((State*)env.rm().attach(_vm_con.cpu_state())))
 		{
 			Genode::log("ram is at ",
 			            Genode::Hex(Genode::Dataspace_client(_vm_ram.cap()).phys_addr()));
@@ -189,23 +190,23 @@ class Vm {
 
 		void start()
 		{
-			Genode::memset((void*)_state, 0, sizeof(Genode::Cpu_state_modes));
+			Genode::memset((void*)&_state, 0, sizeof(Genode::Cpu_state_modes));
 			_load_kernel();
 			_load_dtb();
-			_state->r1    = MACH_TYPE;
-			_state->cpsr  = 0x93; /* SVC mode and IRQs disabled */
+			_state.r1    = MACH_TYPE;
+			_state.cpsr  = 0x93; /* SVC mode and IRQs disabled */
 
-			_state->timer_ctrl = 0;
-			_state->timer_val  = 0;
-			_state->timer_irq  = false;
+			_state.timer_ctrl = 0;
+			_state.timer_val  = 0;
+			_state.timer_irq  = false;
 
-			_state->gic_hcr    = 0b101;
-			_state->gic_vmcr   = 0x4c0000;
-			_state->gic_apr    = 0;
-			_state->gic_lr[0]  = 0;
-			_state->gic_lr[1]  = 0;
-			_state->gic_lr[2]  = 0;
-			_state->gic_lr[3]  = 0;
+			_state.gic_hcr    = 0b101;
+			_state.gic_vmcr   = 0x4c0000;
+			_state.gic_apr    = 0;
+			_state.gic_lr[0]  = 0;
+			_state.gic_lr[1]  = 0;
+			_state.gic_lr[2]  = 0;
+			_state.gic_lr[3]  = 0;
 
 			Genode::log("ready to run");
 		}
@@ -227,42 +228,68 @@ class Vm {
 			      "data_abort", "irq", "fiq", "trap" };
 
 			log("Cpu state:");
-			log("  r0         = ", Hex(_state->r0,   Hex::PREFIX, Hex::PAD));
-			log("  r1         = ", Hex(_state->r1,   Hex::PREFIX, Hex::PAD));
-			log("  r2         = ", Hex(_state->r2,   Hex::PREFIX, Hex::PAD));
-			log("  r3         = ", Hex(_state->r3,   Hex::PREFIX, Hex::PAD));
-			log("  r4         = ", Hex(_state->r4,   Hex::PREFIX, Hex::PAD));
-			log("  r5         = ", Hex(_state->r5,   Hex::PREFIX, Hex::PAD));
-			log("  r6         = ", Hex(_state->r6,   Hex::PREFIX, Hex::PAD));
-			log("  r7         = ", Hex(_state->r7,   Hex::PREFIX, Hex::PAD));
-			log("  r8         = ", Hex(_state->r8,   Hex::PREFIX, Hex::PAD));
-			log("  r9         = ", Hex(_state->r9,   Hex::PREFIX, Hex::PAD));
-			log("  r10        = ", Hex(_state->r10,  Hex::PREFIX, Hex::PAD));
-			log("  r11        = ", Hex(_state->r11,  Hex::PREFIX, Hex::PAD));
-			log("  r12        = ", Hex(_state->r12,  Hex::PREFIX, Hex::PAD));
-			log("  sp         = ", Hex(_state->sp,   Hex::PREFIX, Hex::PAD));
-			log("  lr         = ", Hex(_state->lr,   Hex::PREFIX, Hex::PAD));
-			log("  ip         = ", Hex(_state->ip,   Hex::PREFIX, Hex::PAD));
-			log("  cpsr       = ", Hex(_state->cpsr, Hex::PREFIX, Hex::PAD));
+			log("  r0         = ", Hex(_state.r0,   Hex::PREFIX, Hex::PAD));
+			log("  r1         = ", Hex(_state.r1,   Hex::PREFIX, Hex::PAD));
+			log("  r2         = ", Hex(_state.r2,   Hex::PREFIX, Hex::PAD));
+			log("  r3         = ", Hex(_state.r3,   Hex::PREFIX, Hex::PAD));
+			log("  r4         = ", Hex(_state.r4,   Hex::PREFIX, Hex::PAD));
+			log("  r5         = ", Hex(_state.r5,   Hex::PREFIX, Hex::PAD));
+			log("  r6         = ", Hex(_state.r6,   Hex::PREFIX, Hex::PAD));
+			log("  r7         = ", Hex(_state.r7,   Hex::PREFIX, Hex::PAD));
+			log("  r8         = ", Hex(_state.r8,   Hex::PREFIX, Hex::PAD));
+			log("  r9         = ", Hex(_state.r9,   Hex::PREFIX, Hex::PAD));
+			log("  r10        = ", Hex(_state.r10,  Hex::PREFIX, Hex::PAD));
+			log("  r11        = ", Hex(_state.r11,  Hex::PREFIX, Hex::PAD));
+			log("  r12        = ", Hex(_state.r12,  Hex::PREFIX, Hex::PAD));
+			log("  sp         = ", Hex(_state.sp,   Hex::PREFIX, Hex::PAD));
+			log("  lr         = ", Hex(_state.lr,   Hex::PREFIX, Hex::PAD));
+			log("  ip         = ", Hex(_state.ip,   Hex::PREFIX, Hex::PAD));
+			log("  cpsr       = ", Hex(_state.cpsr, Hex::PREFIX, Hex::PAD));
 			for (unsigned i = 0;
 			     i < State::Mode_state::MAX; i++) {
 				log("  sp_", modes[i], "     = ",
-				    Hex(_state->mode[i].sp, Hex::PREFIX, Hex::PAD));
+				    Hex(_state.mode[i].sp, Hex::PREFIX, Hex::PAD));
 				log("  lr_", modes[i], "     = ",
-				    Hex(_state->mode[i].lr, Hex::PREFIX, Hex::PAD));
+				    Hex(_state.mode[i].lr, Hex::PREFIX, Hex::PAD));
 				log("  spsr_", modes[i], "   = ",
-				    Hex(_state->mode[i].spsr, Hex::PREFIX, Hex::PAD));
+				    Hex(_state.mode[i].spsr, Hex::PREFIX, Hex::PAD));
 			}
-			log("  exception  = ", exc[_state->cpu_exception]);
+			log("  exception  = ", exc[_state.cpu_exception]);
 		}
 
-		State *state() const { return  _state; }
+		State & state() const { return _state; }
 };
+
 
 
 class Vmm
 {
 	private:
+
+		template <typename T>
+		struct Signal_handler : Genode::Signal_handler<Signal_handler<T>>
+		{
+			using Base = Genode::Signal_handler<Signal_handler<T>>;
+
+			Vmm & vmm;
+			T  & obj;
+			void (T::*member)();
+
+			void handle()
+			{
+				try {
+					vmm.handle_vm([this] () { (obj.*member)(); });
+				} catch(Vm::Exception &e) {
+					e.print();
+					vmm.vm().dump();
+				}
+			}
+
+			Signal_handler(Vmm & vmm, Genode::Entrypoint &ep, T & o,
+			               void (T::*f)())
+			: Base(ep, *this, &Signal_handler::handle),
+			  vmm(vmm), obj(o), member(f) {}
+		};
 
 		struct Hsr : Genode::Register<32>
 		{
@@ -344,14 +371,14 @@ class Vmm
 
 							Register * r =
 								Avl_node<Register>::child(e > _encoding);
-							return r ? r->find_by_encoding(e) : 0;
+							return r ? r->find_by_encoding(e) : nullptr;
 						}
 
-						void write(State * state, Genode::addr_t v) {
-							state->*_r = (Genode::uint32_t)v; }
+						void write(State & state, Genode::addr_t v) {
+							state.*_r = (Genode::uint32_t)v; }
 
-						Genode::addr_t read(State * state) const {
-							return (Genode::addr_t)(state->*_r); }
+						Genode::addr_t read(State & state) const {
+							return (Genode::addr_t)(state.*_r); }
 
 
 						/************************
@@ -366,14 +393,14 @@ class Vmm
 
 			public:
 
-				bool handle_trap(State *state)
+				bool handle_trap(State & state)
 				{
-					Iss::access_t v = state->hsr;
+					Iss::access_t v = state.hsr;
 					Register * reg = _reg_tree.first();
 					if (reg) reg = reg->find_by_encoding(Iss::mask_encoding(v));
 
 					if (!reg) {
-						Genode::error("unknown cp15 access @ ip=", state->ip, ":");
+						Genode::error("unknown cp15 access @ ip=", state.ip, ":");
 						Genode::error(Iss::Direction::get(v) ? "read" : "write",
 						              ": "
 						              "c15 ", Iss::Opcode1::get(v), " "
@@ -385,16 +412,16 @@ class Vmm
 					}
 
 					if (Iss::Direction::get(v)) { /* read access  */
-						*(state->r(Iss::Register::get(v))) = reg->read(state);
+						*(state.r(Iss::Register::get(v))) = reg->read(state);
 					} else {                      /* write access */
 						if (!reg->writeable()) {
 							Genode::error("writing to cp15 register ",
 							              reg->name(), " not allowed!");
 							return false;
 						}
-						reg->write(state, *(state->r(Iss::Register::get(v))));
+						reg->write(state, *(state.r(Iss::Register::get(v))));
 					}
-					state->ip += sizeof(Genode::addr_t);
+					state.ip += sizeof(Genode::addr_t);
 					return true;
 				}
 		};
@@ -436,7 +463,7 @@ class Vmm
 
 			public:
 
-				Cp15(State *state)
+				Cp15(State & state)
 				{
 					for (unsigned i = 0; i < (sizeof(_regs) / sizeof(Register));
 						 i++) {
@@ -470,7 +497,7 @@ class Vmm
 				const char * const     _name;
 				const Genode::uint64_t _addr;
 				const Genode::uint64_t _size;
-				Vm                    *_vm;
+				Vm &                   _vm;
 
 				using Error = Vm::Exception;
 
@@ -479,10 +506,8 @@ class Vmm
 				Device(const char * const       name,
 				       const Genode::uint64_t   addr,
 				       const Genode::uint64_t   size,
-				       Vm                      *vm)
+				       Vm &                     vm)
 				: _name(name), _addr(addr), _size(size), _vm(vm) { }
-
-				Device() : Device("undefined", 0, 0, nullptr) {}
 
 				Genode::uint64_t addr() { return _addr; }
 				Genode::uint64_t size() { return _size; }
@@ -522,35 +547,35 @@ class Vmm
 				virtual void irq_disabled(unsigned irq) { }
 				virtual void irq_handled (unsigned irq) { }
 
-				void handle_memory_access(State *state)
+				void handle_memory_access(State & state)
 				{
 					using namespace Genode;
 
-					if (!Iss::valid(state->hsr))
+					if (!Iss::valid(state.hsr))
 						throw Error("Device %s: unknown HSR=%lx",
-						            name(), state->hsr);
+						            name(), state.hsr);
 
-					bool     wr  = Iss::Write::get(state->hsr);
-					unsigned idx = Iss::Register::get(state->hsr);
-					uint64_t ipa = (uint64_t)state->hpfar << 8;
-					uint64_t off = ipa - addr() + (state->hdfar & ((1 << 13) - 1));
+					bool     wr  = Iss::Write::get(state.hsr);
+					unsigned idx = Iss::Register::get(state.hsr);
+					uint64_t ipa = (uint64_t)state.hpfar << 8;
+					uint64_t off = ipa - addr() + (state.hdfar & ((1 << 13) - 1));
 
-					switch (Iss::Access_size::get(state->hsr)) {
+					switch (Iss::Access_size::get(state.hsr)) {
 					case Iss::Access_size::BYTE:
 						{
-							uint8_t * p = (uint8_t*)state->r(idx) + (off & 0b11);
+							uint8_t * p = (uint8_t*)state.r(idx) + (off & 0b11);
 							wr ? write(p, off) : read(p, off);
 							break;
 						}
 					case Iss::Access_size::HALFWORD:
 						{
-							uint16_t * p = (uint16_t*) state->r(idx) + (off & 0b1);
+							uint16_t * p = (uint16_t*) state.r(idx) + (off & 0b1);
 							wr ? write(p, off) : read(p, off);
 							break;
 						}
 					case Iss::Access_size::WORD:
 						{
-							uint32_t * p = (uint32_t*) state->r(idx);
+							uint32_t * p = (uint32_t*) state.r(idx);
 							wr ? write(p, off) : read(p, off);
 							break;
 						}
@@ -571,7 +596,7 @@ class Vmm
 						return this;
 
 					Device *d = Avl_node<Device>::child(a > addr());
-					return d ? d->find_by_addr(a) : 0;
+					return d ? d->find_by_addr(a) : nullptr;
 				}
 		};
 
@@ -631,49 +656,49 @@ class Vmm
 
 				void _handle_eoi()
 				{
-					if (!(_vm->state()->gic_misr & 1)) return;
+					if (!(_vm.state().gic_misr & 1)) return;
 
 					for (unsigned i = 0; i < State::NR_IRQ; i++) {
-						if (_vm->state()->gic_eisr & (1 << i)) {
-							unsigned irq = Gich_lr::Virt_id::get(_vm->state()->gic_lr[i]);
+						if (_vm.state().gic_eisr & (1 << i)) {
+							unsigned irq = Gich_lr::Virt_id::get(_vm.state().gic_lr[i]);
 							if (irq > MAX_IRQ)
 								throw Error("IRQ out of bounds");
-							_vm->state()->gic_lr[i] = 0;
-							_vm->state()->gic_elrsr0 |= 1 << i;
+							_vm.state().gic_lr[i] = 0;
+							_vm.state().gic_elrsr0 |= 1 << i;
 							if (irq == TIMER &&
 								_irqs[irq].distr_state == Irq::ENABLED)
-								_vm->state()->timer_irq = true;
+								_vm.state().timer_irq = true;
 							_irqs[irq].cpu_state = Irq::INACTIVE;
 						}
 					}
 
-					_vm->state()->gic_misr = 0;
+					_vm.state().gic_misr = 0;
 				}
 
 				void _inject_irq(unsigned irq, bool eoi)
 				{
 					if (irq == TIMER)
-						_vm->state()->timer_irq = false;
+						_vm.state().timer_irq = false;
 
 					for (unsigned i = 0; i < State::NR_IRQ; i++) {
-						if (!(_vm->state()->gic_elrsr0 & (1 << i))) {
-							Gich_lr::access_t v = _vm->state()->gic_lr[i];
+						if (!(_vm.state().gic_elrsr0 & (1 << i))) {
+							Gich_lr::access_t v = _vm.state().gic_lr[i];
 							if (Gich_lr::Virt_id::get(v) == irq)
 								return;
 						}
 					}
 
 					for (unsigned i = 0; i < State::NR_IRQ; i++) {
-						if (!(_vm->state()->gic_elrsr0 & (1 << i)))
+						if (!(_vm.state().gic_elrsr0 & (1 << i)))
 							continue;
 
-						_vm->state()->gic_elrsr0 &= ~(1 << i);
+						_vm.state().gic_elrsr0 &= ~(1 << i);
 						Gich_lr::access_t v = 0;
 						Gich_lr::Virt_id::set(v, irq);
 						Gich_lr::Phys_id::set(v, eoi ? 1 << 9 : 0);
 						Gich_lr::Prio::set(v, 0);
 						Gich_lr::State::set(v, 0b1);
-						_vm->state()->gic_lr[i] = v;
+						_vm.state().gic_lr[i] = v;
 						return;
 					}
 
@@ -692,7 +717,7 @@ class Vmm
 					_irqs[irq].device->irq_enabled(irq);
 
 					if (irq == TIMER)
-						_vm->state()->timer_irq = true;
+						_vm.state().timer_irq = true;
 				}
 
 				void _disable_irq(unsigned irq)
@@ -707,7 +732,7 @@ class Vmm
 					_irqs[irq].device->irq_disabled(irq);
 
 					if (irq == TIMER)
-						_vm->state()->timer_irq = false;
+						_vm.state().timer_irq = false;
 				}
 
 			public:
@@ -715,7 +740,7 @@ class Vmm
 				Gic(const char * const       name,
 				    const Genode::uint64_t   addr,
 				    const Genode::uint64_t   size,
-				    Vm                      *vm)
+				    Vm &                     vm)
 				: Device(name, addr, size, vm)
 				{
 					for (unsigned i = 0; i <= MAX_IRQ; i++) {
@@ -828,12 +853,12 @@ class Vmm
 					}
 
 					_inject_irq(irq, _irqs[irq].eoi);
-					_vm->interrupt();
+					_vm.interrupt();
 				}
 
 				void irq_occured()
 				{
-					switch(_vm->state()->gic_irq) {
+					switch(_vm.state().gic_irq) {
 					case Genode::Board_base::VT_MAINTAINANCE_IRQ:
 						_handle_eoi();
 						return;
@@ -842,7 +867,7 @@ class Vmm
 						return;
 					default:
 						throw Error("Unknown IRQ %u occured",
-						            _vm->state()->gic_irq);
+						            _vm.state().gic_irq);
 					};
 				}
 		};
@@ -854,14 +879,14 @@ class Vmm
 
 				using Board = Genode::Board_base;
 
-				Timer::Connection                        _timer;
-				Genode::Signal_dispatcher<Generic_timer> _handler;
-				Gic                                     &_gic;
+				Timer::Connection             _timer;
+				Signal_handler<Generic_timer> _handler;
+				Gic                           &_gic;
 
-				void _timeout(unsigned)
+				void _timeout()
 				{
-					_vm->state()->timer_ctrl = 5;
-					_vm->state()->timer_val  = 0xffffffff;
+					_vm.state().timer_ctrl = 5;
+					_vm.state().timer_val  = 0xffffffff;
 					_gic.inject_irq(Board::VT_TIMER_IRQ);
 				}
 
@@ -870,20 +895,22 @@ class Vmm
 				Generic_timer(const char * const       name,
 				              const Genode::uint64_t   addr,
 				              const Genode::uint64_t   size,
-				              Vm                      *vm,
-				              Genode::Signal_receiver &receiver,
+				              Vmm                     &vmm,
+				              Genode::Env             &env,
 				              Gic                     &gic)
-				: Device(name, addr, size, vm),
-				  _handler(receiver, *this, &Generic_timer::_timeout),
-				  _gic(gic) {
+				: Device(name, addr, size, vmm.vm()),
+				  _timer(env),
+				  _handler(vmm, env.ep(), *this, &Generic_timer::_timeout),
+				  _gic(gic)
+				{
 					_timer.sigh(_handler);
 					_gic.register_irq(Board::VT_TIMER_IRQ, this, true);
 				}
 
 				void schedule_timeout()
 				{
-					if ((_vm->state()->timer_ctrl & 0b101) != 0b101)
-						_timer.trigger_once(_vm->state()->timer_val / 24);
+					if ((_vm.state().timer_ctrl & 0b101) != 0b101)
+						_timer.trigger_once(_vm.state().timer_val / 24);
 				}
 		};
 
@@ -968,8 +995,9 @@ class Vmm
 				System_register(const char * const       name,
 				                const Genode::uint64_t   addr,
 				                const Genode::uint64_t   size,
-				                Vm                      *vm)
-				: Device(name, addr, size, vm) {}
+				                Vm &                     vm,
+				                Genode::Env &            env)
+				: Device(name, addr, size, vm), _timer(env) {}
 
 				void read(Genode::uint32_t * reg, Genode::uint64_t off)
 				{
@@ -1064,16 +1092,16 @@ class Vmm
 					UARTPCELLID3  = 0xffc,
 				};
 
-				Terminal::Connection             _terminal;
-				Genode::Signal_dispatcher<Pl011> _handler;
-				Gic                             &_gic;
-				Ring_buffer                      _rx_buf;
-				Genode::uint16_t                 _ibrd  = 0;
-				Genode::uint16_t                 _fbrd  = 0;
-				Genode::uint16_t                 _lcr_h = 0;
-				Genode::uint16_t                 _imsc  = 0b1111;
-				Genode::uint16_t                 _ris   = 0;
-				Genode::uint16_t                 _cr    = 0x300;
+				Terminal::Connection     _terminal;
+				Signal_handler<Pl011>    _handler;
+				Gic                     &_gic;
+				Ring_buffer              _rx_buf;
+				Genode::uint16_t         _ibrd  = 0;
+				Genode::uint16_t         _fbrd  = 0;
+				Genode::uint16_t         _lcr_h = 0;
+				Genode::uint16_t         _imsc  = 0b1111;
+				Genode::uint16_t         _ris   = 0;
+				Genode::uint16_t         _cr    = 0x300;
 
 				void _out_char(unsigned char c) {
 					_terminal.write(&c, 1);
@@ -1127,7 +1155,7 @@ class Vmm
 					_imsc = mask;
 				}
 
-				void _read(unsigned)
+				void _read()
 				{
 					if (!_terminal.avail()) return;
 
@@ -1146,11 +1174,12 @@ class Vmm
 				Pl011(const char * const       name,
 				      const Genode::uint64_t   addr,
 				      const Genode::uint64_t   size,
-				      Vm                      *vm,
-				      Genode::Signal_receiver &receiver,
+				      Vmm                     &vmm,
+				      Genode::Env             &env,
 				      Gic                     &gic)
-				: Device(name, addr, size, vm),
-				  _handler(receiver, *this, &Pl011::_read),
+				: Device(name, addr, size, vmm.vm()),
+				  _terminal(env),
+				  _handler(vmm, env.ep(), *this, &Pl011::_read),
 				  _gic(gic) {
 					_terminal.read_avail_sigh(_handler);
 					_gic.register_irq(Board::PL011_0_IRQ, this, false);
@@ -1210,8 +1239,7 @@ class Vmm
 		};
 
 
-		Genode::Signal_receiver        _sig_rcv;
-		Genode::Signal_dispatcher<Vmm> _vm_handler;
+		Signal_handler<Vmm>            _vm_handler;
 		Vm                             _vm;
 		Cp15                           _cp15;
 		Genode::Avl_tree<Device>       _device_tree;
@@ -1225,29 +1253,29 @@ class Vmm
 
 		void _handle_data_abort()
 		{
-			Genode::uint64_t ipa = (Genode::uint64_t)_vm.state()->hpfar << 8;
+			Genode::uint64_t ipa = (Genode::uint64_t)_vm.state().hpfar << 8;
 			Device * device = _device_tree.first()
 				? _device_tree.first()->find_by_addr(ipa) : nullptr;
 			if (!device)
 				throw Vm::Exception("No device at IPA=%llx", ipa);
 			device->handle_memory_access(_vm.state());
-			_vm.state()->ip += sizeof(Genode::addr_t);
+			_vm.state().ip += sizeof(Genode::addr_t);
 		}
 
 		void _handle_wfi()
 		{
-			if (_vm.state()->hsr & 1)
+			if (_vm.state().hsr & 1)
 				throw Vm::Exception("WFE not implemented yet");
 
 			_vm.wait_for_interrupt();
 			_timer.schedule_timeout();
-			_vm.state()->ip += sizeof(Genode::addr_t);
+			_vm.state().ip += sizeof(Genode::addr_t);
 		}
 
 		void _handle_trap()
 		{
 			/* check device number*/
-			switch (Hsr::Ec::get(_vm.state()->hsr)) {
+			switch (Hsr::Ec::get(_vm.state().hsr)) {
 			case Hsr::Ec::HVC:
 				_handle_hyper_call();
 				break;
@@ -1262,18 +1290,46 @@ class Vmm
 				return;
 			default:
 				throw Vm::Exception("Unknown trap: %x",
-				                    Hsr::Ec::get(_vm.state()->hsr));
+				                    Hsr::Ec::get(_vm.state().hsr));
 			};
 		}
 
-		void _handle_vm(unsigned num)
+		void _handle() {} /* dummy handler */
+
+	public:
+
+		Vmm(Genode::Env & env)
+		: _vm_handler(*this, env.ep(), *this, &Vmm::_handle),
+		  _vm("linux", "dtb", 1024 * 1024 * 128, _vm_handler, env),
+		  _cp15(_vm.state()),
+		  _gic      ("Gic",             0x2c001000, 0x2000, _vm),
+		  _timer    ("Timer",           0x2a430000, 0x1000, *this, env, _gic),
+		  _sys_regs ("System Register", 0x1c010000, 0x1000, _vm, env),
+		  _uart     ("Pl011",           0x1c090000, 0x1000, *this, env, _gic)
+		{
+			_device_tree.insert(&_gic);
+			_device_tree.insert(&_sys_regs);
+			_device_tree.insert(&_uart);
+
+			Genode::log("Start virtual machine ...");
+
+			_vm.start();
+			_vm.run();
+		};
+
+		Vm & vm() { return _vm; }
+
+		template <typename FUNC>
+		void handle_vm(FUNC handler)
 		{
 			if (_vm.active()) {
+
+				_vm.pause();
 
 				enum { IRQ = 6, TRAP = 8 };
 
 				/* check exception reason */
-				switch (_vm.state()->cpu_exception) {
+				switch (_vm.state().cpu_exception) {
 				case IRQ:
 					_gic.irq_occured();
 					break;
@@ -1284,53 +1340,12 @@ class Vmm
 					throw Vm::Exception("Curious exception occured");
 				}
 			}
+
+			handler();
+
+			if (_vm.active()) _vm.run();
 		}
-
-	public:
-
-		Vmm()
-		: _vm_handler(_sig_rcv, *this, &Vmm::_handle_vm),
-		  _vm("linux", "dtb", 1024 * 1024 * 128, _vm_handler),
-		  _cp15(_vm.state()),
-		  _gic      ("Gic",             0x2c001000, 0x2000, &_vm),
-		  _timer    ("Timer",           0x2a430000, 0x1000, &_vm, _sig_rcv, _gic),
-		  _sys_regs ("System Register", 0x1c010000, 0x1000, &_vm),
-		  _uart     ("Pl011",           0x1c090000, 0x1000, &_vm, _sig_rcv, _gic) { }
-
-		void run()
-		{
-			using Signal_dispatcher = Genode::Signal_dispatcher_base;
-
-			_device_tree.insert(&_gic);
-			_device_tree.insert(&_sys_regs);
-			_device_tree.insert(&_uart);
-			_vm.start();
-
-			while (true) {
-				if (_vm.active()) _vm.run();
-				Genode::Signal s = _sig_rcv.wait_for_signal();
-				if (_vm.active() && &_vm_handler != static_cast<Signal_dispatcher*>(s.context())) {
-					_vm.pause();
-					_handle_vm(1);
-				}
-				static_cast<Signal_dispatcher*>(s.context())->dispatch(s.num());
-			}
-		};
-
-		void dump() { _vm.dump(); }
 };
 
-int main()
-{
-	static Vmm vmm;
 
-	try {
-		Genode::log("Start virtual machine ...");
-		vmm.run();
-	} catch(Vm::Exception &e) {
-		e.print();
-		vmm.dump();
-		return -1;
-	}
-	return 0;
-}
+void Component::construct(Genode::Env & env) { static Vmm vmm(env); }
