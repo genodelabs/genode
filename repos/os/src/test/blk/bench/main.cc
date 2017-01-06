@@ -1,10 +1,23 @@
-#include <base/allocator_avl.h>
-#include <block_session/connection.h>
-#include <os/server.h>
-#include <timer_session/connection.h>
-#include <libc/component.h>
+/*
+ * \brief  Benchmark for block connection
+ * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
+ * \date   2015-03-24
+ */
 
-#include <stdio.h>
+/*
+ * Copyright (C) 2015-2016 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <base/allocator_avl.h>
+#include <base/component.h>
+#include <base/heap.h>
+#include <base/log.h>
+#include <block_session/connection.h>
+#include <timer_session/connection.h>
 
 using namespace Genode;
 
@@ -16,24 +29,22 @@ enum {
 };
 
 
-namespace Test {
-	class Throughput;
-	struct Main;
-}
-
-
-class Test::Throughput
+class Throughput
 {
 	private:
 
 		typedef Genode::size_t size_t;
 
-		Allocator_avl     _alloc{env()->heap() };
-		Block::Connection _session { &_alloc, TX_BUFFER };
-		Timer::Connection _timer;
+		Env &             _env;
+		Heap              _heap    { _env.ram(), _env.rm() };
+		Allocator_avl     _alloc   { &_heap };
+		Block::Connection _session { _env, &_alloc, TX_BUFFER };
+		Timer::Connection _timer   { _env };
 
-		Signal_rpc_member<Throughput> _disp_ack;
-		Signal_rpc_member<Throughput> _disp_submit;
+		Signal_handler<Throughput> _disp_ack    { _env.ep(), *this,
+		                                          &Throughput::_ack };
+		Signal_handler<Throughput> _disp_submit { _env.ep(), *this,
+		                                          &Throughput::_submit };
 		bool                          _read_done  = false;
 		bool                          _write_done = false;
 
@@ -47,7 +58,7 @@ class Test::Throughput
 
 		void _submit()
 		{
-			static size_t count            = REQUEST_SIZE / _blk_size;
+			static size_t count = REQUEST_SIZE / _blk_size;
 
 			if (_read_done && (_write_done || !TEST_WRITE))
 				return;
@@ -69,12 +80,7 @@ class Test::Throughput
 			} catch (...) { }
 		}
 
-		void _ready_to_submit(unsigned)
-		{
-			_submit();
-		}
-
-		void _ack_avail(unsigned)
+		void _ack()
 		{
 			while (_session.tx()->ack_avail()) {
 
@@ -103,11 +109,10 @@ class Test::Throughput
 				return;
 
 			_stop = _timer.elapsed_ms();
-			::printf("%s %lu KB in %lu ms (%.02f MB/s)\n",
-			         !_read_done ? "Read" : "Wrote",
-			         _bytes / 1024, _stop - _start,
-			         ((double)_bytes / (1024 * 1024)) / ((double)(_stop - _start) / 1000));
-
+			log(!_read_done ? "Read" : "Wrote", " ", _bytes / 1024, " KB in ",
+			    _stop - _start, " ms (",
+				((double)_bytes / (1024 * 1024)) / ((double)(_stop - _start) / 1000),
+				" MB/s)");
 
 			/* start write */
 			if (!_read_done ) {
@@ -118,18 +123,17 @@ class Test::Throughput
 				if (TEST_WRITE)
 					_submit();
 				else
-					::printf("Done\n");
+					log("Done");
 			} else if (!_write_done && TEST_WRITE) {
 				_write_done = true;
-				::printf("Done\n");
+				log("Done");
 			}
 		}
 
 	public:
 
-		Throughput(Server::Entrypoint &ep)
-		: _disp_ack(ep, *this, &Throughput::_ack_avail),
-		  _disp_submit(ep, *this, &Throughput::_ready_to_submit)
+		Throughput(Env & env)
+		: _env(env)
 		{
 			_session.tx_channel()->sigh_ack_avail(_disp_ack);
 			_session.tx_channel()->sigh_ready_to_submit(_disp_submit);
@@ -145,16 +149,4 @@ class Test::Throughput
 };
 
 
-struct Test::Main
-{
-	Main(Server::Entrypoint &ep)
-	{
-		new (env()->heap()) Throughput(ep);
-	}
-};
-
-
-void Libc::Component::construct(Libc::Env &env)
-{
-	static Test::Main server(env.ep());
-}
+void Component::construct(Env &env) { static Throughput test(env); }

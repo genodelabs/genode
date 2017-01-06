@@ -86,16 +86,17 @@ class Test
 		void _ready_to_submit() { _handle = false; }
 		void _timeout()         { throw Timeout(); }
 
-		Test(Genode::Entrypoint &ep,
+		Test(Genode::Env  &env,
 		     Genode::Heap &heap,
 		     Genode::size_t bulk_buffer_size,
 		     unsigned       timeout_ms)
-		: _ep(ep),
+		: _ep(env.ep()),
 		  _alloc(&heap),
-		  _session(&_alloc, _shared_buffer_size(bulk_buffer_size)),
-		  _disp_ack(ep, *this, &Test::_ack_avail),
-		  _disp_submit(ep, *this, &Test::_ready_to_submit),
-		  _disp_timeout(ep, *this, &Test::_timeout)
+		  _session(env, &_alloc, _shared_buffer_size(bulk_buffer_size)),
+		  _disp_ack(env.ep(), *this, &Test::_ack_avail),
+		  _disp_submit(env.ep(), *this, &Test::_ready_to_submit),
+		  _disp_timeout(env.ep(), *this, &Test::_timeout),
+		  _timer(env)
 		{
 			_session.tx_channel()->sigh_ack_avail(_disp_ack);
 			_session.tx_channel()->sigh_ready_to_submit(_disp_submit);
@@ -119,8 +120,8 @@ struct Read_test : Test
 {
 	bool done;
 
-	Read_test(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms)
-	: Test(ep, heap, BULK_BLK_NR*blk_sz, timeo_ms), done(false) { }
+	Read_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms)
+	: Test(env, heap, BULK_BLK_NR*blk_sz, timeo_ms), done(false) { }
 
 	void perform()
 	{
@@ -195,8 +196,8 @@ struct Write_test : Test
 	Req_buffer read_packets;
 	Req_buffer write_packets;
 
-	Write_test(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms)
-	: Test(ep, heap, BULK_BLK_NR*blk_sz, timeo_ms)
+	Write_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms)
+	: Test(env, heap, BULK_BLK_NR*blk_sz, timeo_ms)
 	{
 		if (BULK_BLK_NR < BATCH*NR_PER_REQ ||
 		    BATCH > Block::Session::TX_QUEUE_SIZE ||
@@ -330,8 +331,8 @@ struct Violation_test : Test
 
 	int p_in_fly;
 
-	Violation_test(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo)
-	: Test(ep, heap, 20*blk_sz, timeo), p_in_fly(0) {}
+	Violation_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo)
+	: Test(env, heap, 20*blk_sz, timeo), p_in_fly(0) {}
 
 	void req(Block::sector_t nr, Genode::size_t cnt, bool write)
 	{
@@ -374,9 +375,9 @@ struct Violation_test : Test
 
 
 template <typename TEST>
-void perform(Genode::Entrypoint &ep, Genode::Heap &heap, unsigned timeo_ms = 0)
+void perform(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms = 0)
 {
-	TEST * test = new (&heap) TEST(ep, heap, timeo_ms);
+	TEST * test = new (&heap) TEST(env, heap, timeo_ms);
 	test->perform();
 	destroy(&heap, test);
 }
@@ -397,7 +398,7 @@ void Component::construct(Genode::Env &env)
 		 */
 		{
 			Allocator_avl     alloc(&heap);
-			Block::Connection blk(&alloc);
+			Block::Connection blk(env, &alloc);
 			blk.info(&blk_cnt, &blk_sz, &blk_ops);
 		}
 
@@ -415,11 +416,11 @@ void Component::construct(Genode::Env &env)
 			blk_cnt, " (testing ", test_cnt, " sectors)");
 
 		perform<Read_test<Block::Session::TX_QUEUE_SIZE-10,
-			Block::Session::TX_QUEUE_SIZE-10> >(env.ep(), heap);
-		perform<Read_test<Block::Session::TX_QUEUE_SIZE*5, 1> >(env.ep(), heap);
-		perform<Read_test<Block::Session::TX_QUEUE_SIZE, 1> >(env.ep(), heap);
-		perform<Write_test<Block::Session::TX_QUEUE_SIZE, 8, 16> >(env.ep(), heap);
-		perform<Violation_test>(env.ep(), heap, 1000);
+			Block::Session::TX_QUEUE_SIZE-10> >(env, heap);
+		perform<Read_test<Block::Session::TX_QUEUE_SIZE*5, 1> >(env, heap);
+		perform<Read_test<Block::Session::TX_QUEUE_SIZE, 1> >(env, heap);
+		perform<Write_test<Block::Session::TX_QUEUE_SIZE, 8, 16> >(env, heap);
+		perform<Violation_test>(env, heap, 1000);
 
 		log("Tests finished successfully!");
 	} catch(Genode::Parent::Service_denied) {

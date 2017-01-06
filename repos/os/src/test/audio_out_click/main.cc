@@ -16,48 +16,50 @@
  */
 
 #include <audio_out_session/connection.h>
-#include <base/log.h>
-#include <base/sleep.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/component.h>
+#include <base/heap.h>
+#include <base/log.h>
 #include <dataspace/client.h>
 #include <input_session/connection.h>
 #include <input/event.h>
-#include <os/config.h>
 
-
+using Filename = Genode::String<64>;
 using namespace Genode;
 using namespace Audio_out;
 
-static const bool verbose = false;
-
-enum {
-	CHANNELS     = 2,                      /* number of channels */
-	FRAME_SIZE   = sizeof(float),
-	PERIOD_CSIZE = FRAME_SIZE * PERIOD,     /* size of channel packet (bytes) */
-	PERIOD_FSIZE = CHANNELS * PERIOD_CSIZE, /* size of period in file (bytes) */
-};
-
-
-static const char *channel_names[] = { "front left", "front right" };
+static constexpr bool const verbose = false;
+static constexpr char const * channel_names[2] = { "front left", "front right" };
 
 
 class Click
 {
 	private:
 
+		enum {
+			CHANNELS     = 2,                      /* number of channels */
+			FRAME_SIZE   = sizeof(float),
+			PERIOD_CSIZE = FRAME_SIZE * PERIOD,    /* size of channel packet (bytes) */
+			PERIOD_FSIZE = CHANNELS * PERIOD_CSIZE, /* size of period in file (bytes) */
+		};
+
+		Env & _env;
 		Constructible<Audio_out::Connection> _audio_out[CHANNELS];
 
-		Attached_rom_dataspace _sample_ds;
+		Filename const & _name;
+
+		Attached_rom_dataspace _sample_ds { _env, _name.string() };
 		char     const * const _base = _sample_ds.local_addr<char const>();
 		size_t           const _size = _sample_ds.size();
 
 	public:
 
-		Click(char const *file) : _sample_ds(file)
+		Click(Env & env, Filename const & name)
+		: _env(env), _name(name)
 		{
 			for (int i = 0; i < CHANNELS; ++i) {
 				/* allocation signal for first channel only */
-				_audio_out[i].construct(channel_names[i], i == 0);
+				_audio_out[i].construct(env, channel_names[i], i == 0);
 				_audio_out[i]->start();
 			}
 		}
@@ -113,26 +115,19 @@ class Click
 		}
 };
 
-int main(int argc, char **argv)
+
+struct Main
 {
-	log("--- Audio_out click test ---");
+	Env &                env;
+	Signal_handler<Main> handler { env.ep(), *this, &Main::handle };
+	Input::Connection    input   { env };
+	Input::Event *       ev_buf =
+		static_cast<Input::Event*>(env.rm().attach(input.dataspace()));
+	Filename const       name { "click.raw" };
+	Click                click { env, name };
 
-	Genode::Signal_context  sig_ctx;
-	Genode::Signal_receiver sig_rec;
-
-	Genode::Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
-
-	Input::Connection input;
-	Input::Event      *ev_buf;
-
-	input.sigh(sig_cap);
-	ev_buf = static_cast<Input::Event *>(Genode::env()->rm_session()->attach(input.dataspace()));
-
-	Click click("click.raw");
-
-	for (;;) {
-		Genode::Signal sig = sig_rec.wait_for_signal();
-
+	void handle()
+	{
 		for (int i = 0, num_ev = input.flush(); i < num_ev; ++i) {
 			Input::Event &ev = ev_buf[i];
 			if (ev.type() == Input::Event::PRESS) {
@@ -142,5 +137,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return 0;
-}
+	Main(Env & env) : env(env)
+	{
+		log("--- Audio_out click test ---");
+
+		input.sigh(handler);
+	}
+};
+
+
+void Component::construct(Env & env) { static Main main(env); }

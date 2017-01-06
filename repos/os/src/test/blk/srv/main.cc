@@ -124,7 +124,7 @@ struct Main
 	} factory { env, heap };
 
 	Block::Root                    root { env.ep(), heap, factory };
-	Timer::Connection              timer;
+	Timer::Connection              timer { env };
 	Genode::Signal_handler<Driver> dispatcher { env.ep(), *factory.driver,
 	                                            &Driver::handler };
 
