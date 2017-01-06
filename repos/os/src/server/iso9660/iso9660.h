@@ -5,14 +5,15 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <rom_session/rom_session.h>
+/* Genode includes */
 #include <base/stdint.h>
+#include <block_session/connection.h>
 
 namespace Iso {
 
@@ -51,10 +52,16 @@ namespace Iso {
 	};
 
 
+	/*******************
+	 ** Iso interface **
+	 *******************/
+
 	/**
 	 * Retrieve file information
 	 *
-	 * \param path absolute path of the file (slash separated)
+	 * \param alloc allocator used for File_info object
+	 * \param block Block session used to read sectors from ISO
+	 * \param path  absolute path of the file (slash separated)
 	 *
 	 * \throw File_not_found
 	 * \throw Io_error
@@ -62,11 +69,12 @@ namespace Iso {
 	 *
 	 * \return Pointer to File_info class
 	 */
-	File_info *file_info(char *path);
+	File_info *file_info(Genode::Allocator &alloc, Block::Connection &block, char const *path);
 
 	/**
 	 * Read data from ISO
 	 *
+	 * \param block Block session used to read sectors from ISO
 	 * \param info File    Info of file to read the data from
 	 * \param file_offset  Offset in file
 	 * \param length       Number of bytes to read
@@ -76,6 +84,6 @@ namespace Iso {
 	 *
 	 * \return Number of bytes read
 	 */
-	unsigned long read_file(File_info *info, Genode::off_t file_offset,
+	unsigned long read_file(Block::Connection &block, File_info *info, Genode::off_t file_offset,
 	                        Genode::uint32_t length, void *buf);
-}
+} /* namespace Iso */
