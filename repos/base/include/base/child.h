@@ -393,6 +393,11 @@ class Genode::Child : protected Rpc_object<Parent>,
 					session.ready_callback = this;
 					session.async_client_notify = true;
 					_service.initiate_request(session);
+
+					if (session.phase == Session_state::INVALID_ARGS)
+						error(_child._policy.name(), ": environment ",
+						      CONNECTION::service_name(), " session denied "
+						      "(", session.args(), ")");
 				}
 
 				/**
