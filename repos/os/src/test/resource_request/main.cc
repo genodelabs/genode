@@ -3,8 +3,8 @@
  * \author Norman Feske
  * \date   2013-09-27
  *
- * This test exercises various situations where a process might need to request
- * additional resources from its parent.
+ * This test exercises various situations where a component might need to
+ * request additional resources from its parent.
  */
 
 /*
@@ -14,33 +14,28 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
+#include <base/component.h>
 #include <base/log.h>
 #include <ram_session/connection.h>
 
 
-static Genode::size_t used_quota()
+static void print_quota_stats(Genode::Ram_session &ram)
 {
-	return Genode::env()->ram_session()->used();
-}
-
-
-static void print_quota_stats()
-{
-	Genode::log("quota: avail=", Genode::env()->ram_session()->avail(), " "
-	            "used=", used_quota());
+	Genode::log("quota: avail=", ram.avail(), " used=", ram.used());
 }
 
 
 #define ASSERT(cond) \
 	if (!(cond)) { \
-		Genode::error("assertion ", #cond, " failed"); \
-		return -2; }
+		error("assertion ", #cond, " failed"); \
+		throw Error(); }
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
+
+	class Error : Exception { };
 
 	log("--- test-resource_request started ---");
 
@@ -48,16 +43,16 @@ int main(int argc, char **argv)
 	 * Consume initial quota to let the test trigger the corner cases of
 	 * exceeded quota.
 	 */
-	size_t const avail_quota = env()->ram_session()->avail();
+	size_t const avail_quota = env.ram().avail();
 	enum { KEEP_QUOTA = 64*1024 };
 	size_t const wasted_quota = (avail_quota >= KEEP_QUOTA)
 	                          ?  avail_quota -  KEEP_QUOTA : 0;
 	if (wasted_quota)
-		env()->ram_session()->alloc(wasted_quota);
+		env.ram().alloc(wasted_quota);
 
 	log("wasted available quota of ", wasted_quota, " bytes");
 
-	print_quota_stats();
+	print_quota_stats(env.ram());
 
 	/*
 	 * Out of memory while upgrading session quotas.
@@ -73,20 +68,24 @@ int main(int argc, char **argv)
 	 */
 	log("\n-- draining signal session --");
 	{
-		enum { NUM_SIG_CTX = 2000U };
-		static Signal_context  sig_ctx[NUM_SIG_CTX];
-		static Signal_receiver sig_rec;
+		struct Dummy_signal_handler : Signal_handler<Dummy_signal_handler>
+		{
+			Dummy_signal_handler(Entrypoint &ep)
+			: Signal_handler<Dummy_signal_handler>(ep, *this, nullptr) { }
+		};
+		enum { NUM_SIGH = 2000U };
+		static Constructible<Dummy_signal_handler> dummy_handlers[NUM_SIGH];
 
-		for (unsigned i = 0; i < NUM_SIG_CTX; i++)
-			sig_rec.manage(&sig_ctx[i]);
+		for (unsigned i = 0; i < NUM_SIGH; i++)
+			dummy_handlers[i].construct(env.ep());
 
-		print_quota_stats();
+		print_quota_stats(env.ram());
 
-		for (unsigned i = 0; i < NUM_SIG_CTX; i++)
-			sig_rec.dissolve(&sig_ctx[i]);
+		for (unsigned i = 0; i < NUM_SIGH; i++)
+			dummy_handlers[i].destruct();
 	}
-	print_quota_stats();
-	size_t const used_quota_after_draining_session = used_quota();
+	print_quota_stats(env.ram());
+	size_t const used_quota_after_draining_session = env.ram().used();
 
 	/*
 	 * When creating a new session, we try to donate RAM quota to the server.
@@ -94,32 +93,32 @@ int main(int argc, char **argv)
 	 * resource request to the parent.
 	 */
 	log("\n-- out-of-memory during session request --");
-	static Ram_connection ram;
-	ram.ref_account(env()->ram_session_cap());
-	print_quota_stats();
-	size_t const used_quota_after_session_request = used_quota();
+	static Ram_connection ram(env);
+	ram.ref_account(env.ram_session_cap());
+	print_quota_stats(env.ram());
+	size_t const used_quota_after_session_request = env.ram().used();
 
 	/*
-	 * Quota transfers from the process' RAM session may result in resource
+	 * Quota transfers from the component's RAM session may result in resource
 	 * requests, too.
 	 */
 	log("\n-- out-of-memory during transfer-quota --");
-	int ret = env()->ram_session()->transfer_quota(ram.cap(), 512*1024);
+	int ret = env.ram().transfer_quota(ram.cap(), 512*1024);
 	if (ret != 0) {
 		error("transfer quota failed (ret = ", ret, ")");
-		return -1;
+		throw Error();
 	}
-	print_quota_stats();
-	size_t const used_quota_after_transfer = used_quota();
+	print_quota_stats(env.ram());
+	size_t const used_quota_after_transfer = env.ram().used();
 
 	/*
 	 * Finally, resource requests could be caused by a regular allocation,
 	 * which is the most likely case in normal scenarios.
 	 */
 	log("\n-- out-of-memory during RAM allocation --");
-	env()->ram_session()->alloc(512*1024);
-	print_quota_stats();
-	size_t used_quota_after_alloc = used_quota();
+	env.ram().alloc(512*1024);
+	print_quota_stats(env.ram());
+	size_t const used_quota_after_alloc = env.ram().used();
 
 	/*
 	 * Validate asserted effect of the individual steps on the used quota.
@@ -129,6 +128,5 @@ int main(int argc, char **argv)
 	ASSERT(used_quota_after_alloc           >  used_quota_after_transfer);
 
 	log("--- finished test-resource_request ---");
-
-	return 0;
+	env.parent().exit(0);
 }
