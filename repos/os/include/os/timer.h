@@ -34,7 +34,7 @@ class Genode::Timer_time_source : public Genode::Time_source
 {
 	private:
 
-		enum { MIN_TIMEOUT_US = 100000 };
+		enum { MIN_TIMEOUT_US = 5000 };
 
 		using Signal_handler = Genode::Signal_handler<Timer_time_source>;
 
