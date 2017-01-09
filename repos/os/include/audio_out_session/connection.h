@@ -62,10 +62,10 @@ struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_c
 	 */
 	Connection(const char *channel,
 	           bool        alloc_signal = true,
-	           bool        progress_signal = false)
+	           bool        progress_signal = false) __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), channel)),
-		Session_client(*Genode::env()->rm_session(), cap(), alloc_signal, progress_signal)
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), channel)),
+		Session_client(*Genode::env_deprecated()->rm_session(), cap(), alloc_signal, progress_signal)
 	{ }
 };
 

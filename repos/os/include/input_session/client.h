@@ -33,17 +33,22 @@ class Input::Session_client : public Genode::Rpc_client<Session>
 
 	public:
 
-		explicit Session_client(Genode::Env &env,
-		                        Session_capability session)
+		Session_client(Genode::Region_map &local_rm, Session_capability session)
 		:
 			Genode::Rpc_client<Session>(session),
-			_event_ds(env.rm(), call<Rpc_dataspace>())
+			_event_ds(local_rm, call<Rpc_dataspace>())
 		{ }
 
-		explicit Session_client(Session_capability session)
+		/**
+		 * Constructor
+		 *
+		 * \deprecated
+		 * \noapi
+		 */
+		explicit Session_client(Session_capability session) __attribute__((deprecated))
 		:
 			Genode::Rpc_client<Session>(session),
-			_event_ds(*Genode::env()->rm_session(), call<Rpc_dataspace>())
+			_event_ds(*Genode::env_deprecated()->rm_session(), call<Rpc_dataspace>())
 		{ }
 
 		Genode::Dataspace_capability dataspace() override {

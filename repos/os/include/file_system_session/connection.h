@@ -90,11 +90,11 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 	                size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE,
 	                char const              *label       = "",
 	                char const              *root        = "/",
-	                bool                     writeable   = true)
+	                bool                     writeable   = true) __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), label,
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label,
 		                                     root, writeable, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc, *Genode::env()->rm_session())
+		Session_client(cap(), tx_block_alloc, *Genode::env_deprecated()->rm_session())
 	{ }
 };
 

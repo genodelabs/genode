@@ -28,7 +28,7 @@ struct Uart::Connection : Genode::Connection<Session>, Session_client
 	Connection(Genode::Env &env)
 	:
 		Genode::Connection<Session>(env, session(env.parent(), "ram_quota=%ld", 2*4096)),
-		Session_client(cap())
+		Session_client(env.rm(), cap())
 	{
 		Terminal::Connection::wait_for_connection(cap());
 	}
@@ -40,10 +40,10 @@ struct Uart::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection()
+	Connection() __attribute__((deprecated))
 	:
 		Genode::Connection<Session>(session("ram_quota=%ld", 2*4096)),
-		Session_client(cap())
+		Session_client(*Genode::env_deprecated()->rm_session(), cap())
 	{
 		Terminal::Connection::wait_for_connection(cap());
 	}

@@ -193,7 +193,7 @@ _ZN6Genode3Log8_releaseEv T
 _ZN6Genode3Raw7_outputEv T
 _ZN6Genode3Raw8_acquireEv T
 _ZN6Genode3Raw8_releaseEv T
-_ZN6Genode3envEv T
+_ZN6Genode14env_deprecatedEv T
 _ZN6Genode4Heap11quota_limitEm T
 _ZN6Genode4Heap4freeEPvm T
 _ZN6Genode4Heap5allocEmPPv T

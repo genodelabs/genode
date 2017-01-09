@@ -40,7 +40,7 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Rm_connection()
+	Rm_connection() __attribute__((deprecated))
 	:
 		Connection<Rm_session>(session("ram_quota=%u", RAM_QUOTA)),
 		Rm_session_client(cap())

@@ -38,7 +38,7 @@ struct Genode::Upgradeable_client : CLIENT
 		char buf[128];
 		snprintf(buf, sizeof(buf), "ram_quota=%lu", quota);
 
-		env()->parent()->upgrade(_id, buf);
+		env_deprecated()->parent()->upgrade(_id, buf);
 	}
 };
 

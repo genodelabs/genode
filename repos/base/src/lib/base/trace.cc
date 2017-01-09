@@ -47,13 +47,13 @@ bool Trace::Logger::_evaluate_control()
 
 			/* unload policy */
 			if (policy_module) {
-				env()->rm_session()->detach(policy_module);
+				env_deprecated()->rm_session()->detach(policy_module);
 				policy_module = 0;
 			}
 
 			/* unmap trace buffer */
 			if (buffer) {
-				env()->rm_session()->detach(buffer);
+				env_deprecated()->rm_session()->detach(buffer);
 				buffer = 0;
 			}
 
@@ -88,7 +88,7 @@ bool Trace::Logger::_evaluate_control()
 			max_event_size = 0;
 			policy_module  = 0;
 
-			policy_module = env()->rm_session()->attach(policy_ds);
+			policy_module = env_deprecated()->rm_session()->attach(policy_ds);
 
 			/* relocate function pointers of policy callback table */
 			for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
@@ -111,7 +111,7 @@ bool Trace::Logger::_evaluate_control()
 		}
 
 		try {
-			buffer = env()->rm_session()->attach(buffer_ds);
+			buffer = env_deprecated()->rm_session()->attach(buffer_ds);
 			buffer->init(Dataspace_client(buffer_ds).size());
 		} catch (...) { }
 
@@ -200,17 +200,17 @@ Trace::Logger *Thread::_logger()
 		logger->init_pending(true);
 
 		Thread_capability thread_cap = myself ? myself->_thread_cap
-		                                      : env()->parent()->main_thread_cap();
+		                                      : env_deprecated()->parent()->main_thread_cap();
 
 		Genode::Cpu_session *cpu = myself ? myself->_cpu_session
-		                                  : env()->cpu_session();
-		if (!cpu) cpu = env()->cpu_session();
+		                                  : env_deprecated()->cpu_session();
+		if (!cpu) cpu = env_deprecated()->cpu_session();
 
 		if (!myself)
 			if (!main_trace_control) {
-				Dataspace_capability ds = env()->cpu_session()->trace_control();
+				Dataspace_capability ds = env_deprecated()->cpu_session()->trace_control();
 				if (ds.valid())
-					main_trace_control = env()->rm_session()->attach(ds);
+					main_trace_control = env_deprecated()->rm_session()->attach(ds);
 			}
 
 		logger->init(thread_cap, cpu,

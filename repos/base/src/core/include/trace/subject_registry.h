@@ -102,13 +102,13 @@ class Genode::Trace::Subject
 					_ds   = ram.alloc(_size);
 
 					/* copy content */
-					void *src = env()->rm_session()->attach(from_ds),
-					     *dst = env()->rm_session()->attach(_ds);
+					void *src = env_deprecated()->rm_session()->attach(from_ds),
+					     *dst = env_deprecated()->rm_session()->attach(_ds);
 
 					memcpy(dst, src, _size);
 
-					env()->rm_session()->detach(src);
-					env()->rm_session()->detach(dst);
+					env_deprecated()->rm_session()->detach(src);
+					env_deprecated()->rm_session()->detach(dst);
 
 					return true;
 				}

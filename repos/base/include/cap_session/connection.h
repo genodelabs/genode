@@ -24,6 +24,10 @@
 
 namespace Genode { struct Cap_connection; }
 
+#ifndef INCLUDED_BY_ENTRYPOINT_CC
+#warning cap_session.h is deprecated
+#endif
+
 
 /*
  * There are no CAP connections anymore. The only situation where CAP
@@ -37,7 +41,7 @@ namespace Genode { struct Cap_connection; }
  */
 struct Genode::Cap_connection : Pd_session_client
 {
-	Cap_connection() : Pd_session_client(env()->pd_session_cap()) { }
-};
+	Cap_connection() : Pd_session_client(env_deprecated()->pd_session_cap()) { }
+} __attribute__((deprecated));
 
 #endif /* _INCLUDE__CAP_SESSION__CONNECTION_H_ */

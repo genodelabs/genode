@@ -52,7 +52,7 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 		Genode::Connection<Session>(env, session(env.parent(),
 		                                         "ram_quota=%ld, label=\"%s\"",
 		                                         2*4096, label)),
-		Session_client(cap())
+		Session_client(env.rm(), cap())
 	{
 		wait_for_connection(cap());
 	}
@@ -64,11 +64,11 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection(char const *label = "")
+	Connection(char const *label = "") __attribute__((deprecated))
 	:
 		Genode::Connection<Session>(session("ram_quota=%zd, label=\"%s\"",
 		                                    2*4096, label)),
-		Session_client(cap())
+		Session_client(*Genode::env_deprecated()->rm_session(), cap())
 	{
 		wait_for_connection(cap());
 	}

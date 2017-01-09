@@ -30,7 +30,7 @@ class Log_console : public Console
 		struct Log : Log_session_client
 		{
 			Session_capability _cap() {
-				return env()->parent()->session_cap(Parent::Env::log()); }
+				return env_deprecated()->parent()->session_cap(Parent::Env::log()); }
 
 			Log() : Log_session_client(reinterpret_cap_cast<Log_session>(_cap()))
 			{ }

@@ -175,7 +175,7 @@ class Genode::Connection : public Connection_base
 			va_list list;
 			va_start(list, format_args);
 
-			_session(*env()->parent(), Affinity(), format_args, list);
+			_session(*env_deprecated()->parent(), Affinity(), format_args, list);
 			return Capability<SESSION_TYPE>();
 		}
 

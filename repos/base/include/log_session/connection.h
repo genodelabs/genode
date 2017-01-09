@@ -43,7 +43,7 @@ struct Genode::Log_connection : Connection<Log_session>, Log_session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Log_connection(Session_label label = Session_label())
+	Log_connection(Session_label label = Session_label()) __attribute__((deprecated))
 	:
 		Connection<Log_session>(session("ram_quota=%ld, label=\"%s\"",
 		                                RAM_QUOTA, label.string())),

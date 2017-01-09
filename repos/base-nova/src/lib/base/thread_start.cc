@@ -79,7 +79,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 	/* for main threads the member initialization differs */
 	if (type == MAIN || type == REINITIALIZED_MAIN) {
-		_thread_cap = env()->parent()->main_thread_cap();
+		_thread_cap = env_deprecated()->parent()->main_thread_cap();
 
 		native_thread().exc_pt_sel = 0;
 		native_thread().ec_sel     = Nova::PT_SEL_MAIN_EC;
@@ -107,10 +107,10 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
-		_cpu_session = env()->cpu_session();
+		_cpu_session = env_deprecated()->cpu_session();
 
 	/* create thread at core */
-	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name(),
+	_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(), name(),
 	                                          _affinity, Weight(weight));
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();

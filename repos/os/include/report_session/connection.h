@@ -52,9 +52,24 @@ struct Report::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection(char const *label, size_t buffer_size = 4096)
+	Connection(char const *label, size_t buffer_size = 4096) __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), label, buffer_size)),
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label, buffer_size)),
+		Session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \deprecated
+	 * \noapi
+	 *
+	 * This variant solely exists to be called by deprecated functions. It
+	 * will be removed as soon as those functions are gone.
+	 */
+	Connection(bool, char const *label, size_t buffer_size = 4096)
+	:
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label, buffer_size)),
 		Session_client(cap())
 	{ }
 };

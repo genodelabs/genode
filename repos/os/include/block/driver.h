@@ -54,13 +54,25 @@ class Block::Driver_session : public Driver_session_base,
 		/**
 		 * Constructor
 		 *
+		 * \param rm     region map of local address space, used to attach
+		 *               the packet-stream buffer to the local address space
 		 * \param tx_ds  dataspace used as communication buffer
 		 *               for the tx packet stream
 		 * \param ep     entry point used for packet-stream channel
 		 */
+		Driver_session(Genode::Region_map           &rm,
+		               Genode::Dataspace_capability  tx_ds,
+		               Genode::Rpc_entrypoint       &ep)
+		: Session_rpc_object(rm, tx_ds, ep) { }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated
+		 */
 		Driver_session(Genode::Dataspace_capability tx_ds,
-		               Genode::Rpc_entrypoint &ep)
-		: Session_rpc_object(tx_ds, ep) { }
+		               Genode::Rpc_entrypoint &ep) __attribute__((deprecated))
+		: Session_rpc_object(*Genode::env_deprecated()->rm_session(), tx_ds, ep) { }
 };
 
 

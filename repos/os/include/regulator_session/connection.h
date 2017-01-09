@@ -54,9 +54,9 @@ struct Regulator::Connection : Genode::Connection<Session>, Session_client
 	 * \param regulator  identifier for the specific regulator
 	 * \param label      string identifier of the client
 	 */
-	Connection(Regulator_id regulator, const char * label = "")
+	Connection(Regulator_id regulator, const char * label = "") __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), label, regulator)),
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label, regulator)),
 		Session_client(cap())
 	{ }
 };

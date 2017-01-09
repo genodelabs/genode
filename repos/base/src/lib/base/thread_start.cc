@@ -59,7 +59,7 @@ void Thread::_thread_start()
 void Thread::_deinit_platform_thread()
 {
 	if (!_cpu_session)
-		_cpu_session = env()->cpu_session();
+		_cpu_session = env_deprecated()->cpu_session();
 
 	_cpu_session->kill_thread(_thread_cap);
 }
@@ -69,11 +69,11 @@ void Thread::start()
 {
 	/* if no CPU session is given, use it from the environment */
 	if (!_cpu_session)
-		_cpu_session = env()->cpu_session();
+		_cpu_session = env_deprecated()->cpu_session();
 
 	/* create thread at core */
 	addr_t const utcb = (addr_t)&_stack->utcb();
-	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name(),
+	_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(), name(),
 	                                          _affinity, Weight(), utcb);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();

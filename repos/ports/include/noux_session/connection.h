@@ -38,7 +38,7 @@ struct Noux::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection()
+	Connection() __attribute__((deprecated))
 	: Genode::Connection<Session>(session("")), Session_client(cap()) { }
 
 	/**

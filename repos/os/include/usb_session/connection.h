@@ -60,10 +60,10 @@ struct Usb::Connection : Genode::Connection<Session>, Session_client
 	           char const *label = "",
 	           Genode::size_t tx_buf_size = 512 * 1024,
 	           Genode::Signal_context_capability sigh_state_changed =
-	               Genode::Signal_context_capability())
+	               Genode::Signal_context_capability()) __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), label, tx_buf_size)),
-		Session_client(cap(), *tx_block_alloc, *Genode::env()->rm_session(), sigh_state_changed)
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label, tx_buf_size)),
+		Session_client(cap(), *tx_block_alloc, *Genode::env_deprecated()->rm_session(), sigh_state_changed)
 	{ }
 };
 

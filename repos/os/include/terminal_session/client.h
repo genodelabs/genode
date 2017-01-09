@@ -40,10 +40,16 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 
 	public:
 
-		Session_client(Genode::Capability<Session> cap)
+		Session_client(Genode::Region_map &local_rm, Genode::Capability<Session> cap)
 		:
 			Genode::Rpc_client<Session>(cap),
-			_io_buffer(call<Rpc_dataspace>())
+			_io_buffer(local_rm, call<Rpc_dataspace>())
+		{ }
+
+		Session_client(Genode::Capability<Session> cap) __attribute__((deprecated))
+		:
+			Genode::Rpc_client<Session>(cap),
+			_io_buffer(*Genode::env_deprecated()->rm_session(), call<Rpc_dataspace>())
 		{ }
 
 		Size size() { return call<Rpc_size>(); }

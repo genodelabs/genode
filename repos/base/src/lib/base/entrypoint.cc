@@ -15,7 +15,11 @@
 /* Genode includes */
 #include <base/entrypoint.h>
 #include <base/component.h>
+
+#define INCLUDED_BY_ENTRYPOINT_CC  /* prevent "deprecated" warning */
 #include <cap_session/connection.h>
+#undef INCLUDED_BY_ENTRYPOINT_CC
+
 #include <util/retry.h>
 
 /* base-internal includes */

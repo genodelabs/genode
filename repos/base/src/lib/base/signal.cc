@@ -41,7 +41,7 @@ class Signal_handler_thread : Thread, Lock
 
 		void entry()
 		{
-			_signal_source.construct(env()->pd_session()->alloc_signal_source());
+			_signal_source.construct(env_deprecated()->pd_session()->alloc_signal_source());
 			unlock();
 			Signal_receiver::dispatch_signals(&(*_signal_source));
 		}
@@ -68,7 +68,7 @@ class Signal_handler_thread : Thread, Lock
 
 		~Signal_handler_thread()
 		{
-			env()->pd_session()->free_signal_source(*_signal_source);
+			env_deprecated()->pd_session()->free_signal_source(*_signal_source);
 		}
 };
 
@@ -232,7 +232,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 	retry<Pd_session::Out_of_metadata>(
 		[&] () {
 			/* use signal context as imprint */
-			context->_cap = env()->pd_session()->alloc_context(_cap, (long)context);
+			context->_cap = env_deprecated()->pd_session()->alloc_context(_cap, (long)context);
 		},
 		[&] () {
 			size_t const quota = 1024*sizeof(long);
@@ -241,7 +241,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 
 			log("upgrading quota donation for PD session (", quota, " bytes)");
 
-			env()->parent()->upgrade(Parent::Env::pd(), buf);
+			env_deprecated()->parent()->upgrade(Parent::Env::pd(), buf);
 		}
 	);
 

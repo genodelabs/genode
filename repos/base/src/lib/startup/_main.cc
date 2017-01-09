@@ -186,7 +186,7 @@ void genode_exit(int status)
 	for (func = &_dtors_start; func != &_dtors_end; (*func++)());
 
 	/* inform parent about the exit status */
-	Genode::env()->parent()->exit(status);
+	Genode::env_deprecated()->parent()->exit(status);
 
 	/* wait for destruction by the parent */
 	Genode::sleep_forever();

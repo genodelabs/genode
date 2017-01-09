@@ -26,8 +26,8 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd,
 	Untyped_capability new_obj_cap =
 		retry<Genode::Pd_session::Out_of_metadata>(
 			[&] () { return pd.alloc_rpc_cap(_cap); },
-			[&] () { env()->parent()->upgrade(Parent::Env::pd(),
-			                                  "ram_quota=16K"); });
+			[&] () { env_deprecated()->parent()->upgrade(Parent::Env::pd(),
+			                                             "ram_quota=16K"); });
 
 	return new_obj_cap;
 }

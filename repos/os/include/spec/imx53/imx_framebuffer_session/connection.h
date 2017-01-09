@@ -80,8 +80,8 @@ class Framebuffer::Imx_connection : public Genode::Connection<Imx_session>,
 		 */
 		Imx_connection(unsigned     width  = 0,
 		               unsigned     height = 0,
-		               Mode::Format format = Mode::INVALID)
-		: Genode::Connection<Imx_session>(_connect(*Genode::env()->parent(),
+		               Mode::Format format = Mode::INVALID) __attribute__((deprecated))
+		: Genode::Connection<Imx_session>(_connect(*Genode::env_deprecated()->parent(),
 		                                           width, height, format)),
 		  Imx_client(cap()) { }
 };

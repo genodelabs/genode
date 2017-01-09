@@ -39,7 +39,7 @@ struct Rtc::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection()
+	Connection() __attribute__((deprecated))
 	:
 		Genode::Connection<Rtc::Session>(session("ram_quota=4K")),
 		Session_client(cap())

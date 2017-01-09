@@ -57,9 +57,9 @@ struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
 	 *              argument instead
 	 */
 	Ram_connection(const char *label = "", unsigned long phys_start = 0UL,
-	               unsigned long phys_size = 0UL)
+	               unsigned long phys_size = 0UL) __attribute__((deprecated))
 	:
-		Connection<Ram_session>(_session(*env()->parent(), label, phys_start, phys_size)),
+		Connection<Ram_session>(_session(*env_deprecated()->parent(), label, phys_start, phys_size)),
 		Ram_session_client(cap())
 	{ }
 };

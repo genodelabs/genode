@@ -50,7 +50,8 @@ class Sync::Connection : public Genode::Connection<Session>,
 		 *
 		 * \throw Connection_failed
 		 */
-		Connection() :
+		Connection() __attribute__((deprecated))
+		:
 			Genode::Connection<Session>(_create_session()),
 			Session_client(cap())
 		{ }

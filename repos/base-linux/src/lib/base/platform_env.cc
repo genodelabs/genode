@@ -180,7 +180,7 @@ namespace Genode {
 
 	Socket_pair server_socket_pair()
 	{
-		Linux_native_cpu_client native_cpu(env()->cpu_session()->native_cpu());
+		Linux_native_cpu_client native_cpu(env_deprecated()->cpu_session()->native_cpu());
 
 		Socket_pair socket_pair;
 

@@ -31,10 +31,26 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 
 	public:
 
-		explicit Session_client(Session_capability session)
+		/**
+		 * Constructor
+		 */
+		Session_client(Genode::Region_map &rm, Session_capability session)
 		:
 			Rpc_client<Session>(session),
-			_command_ds(command_dataspace()),
+			_command_ds(rm, command_dataspace()),
+			_command_buffer(*_command_ds.local_addr<Command_buffer>())
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated
+		 * \noapi
+		 */
+		explicit Session_client(Session_capability session) __attribute__((deprecated))
+		:
+			Rpc_client<Session>(session),
+			_command_ds(*Genode::env_deprecated()->rm_session(), command_dataspace()),
 			_command_buffer(*_command_ds.local_addr<Command_buffer>())
 		{ }
 

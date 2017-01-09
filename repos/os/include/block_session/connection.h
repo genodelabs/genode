@@ -59,10 +59,10 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection(Genode::Range_allocator *tx_block_alloc,
 	           Genode::size_t           tx_buf_size = 128*1024,
-	           const char              *label = "")
+	           const char              *label = "") __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*Genode::env()->parent(), label, tx_buf_size)),
-		Session_client(cap(), *tx_block_alloc, *Genode::env()->rm_session())
+		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label, tx_buf_size)),
+		Session_client(cap(), *tx_block_alloc, *Genode::env_deprecated()->rm_session())
 	{ }
 };
 

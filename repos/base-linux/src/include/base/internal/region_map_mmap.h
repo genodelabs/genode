@@ -107,7 +107,7 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 		{
 			/* detach sub RM session when destructed */
 			if (_sub_rm && _is_attached())
-				env()->rm_session()->detach((void *)_base);
+				env_deprecated()->rm_session()->detach((void *)_base);
 		}
 
 

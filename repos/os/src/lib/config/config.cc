@@ -2,6 +2,8 @@
  * \brief  Access to process configuration
  * \author Norman Feske
  * \date   2010-05-04
+ *
+ * \deprecated
  */
 
 /*
@@ -20,7 +22,7 @@ Xml_node _config_xml_node(Dataspace_capability config_ds)
 	if (!config_ds.valid())
 		throw Exception();
 
-	return Xml_node(env()->rm_session()->attach(config_ds),
+	return Xml_node(env_deprecated()->rm_session()->attach(config_ds),
 	                Genode::Dataspace_client(config_ds).size());
 }
 
@@ -42,7 +44,7 @@ void Config::reload()
 	try {
 		/* re-acquire dataspace from ROM session */
 		if (_config_ds.valid())
-			env()->rm_session()->detach(_config_xml.addr());
+			env_deprecated()->rm_session()->detach(_config_xml.addr());
 
 		_config_ds = _config_rom.dataspace();
 
@@ -74,7 +76,7 @@ void Config::sigh(Signal_context_capability cap)
 
 Config::Config()
 :
-	_config_rom("config"),
+	_config_rom(false, "config"),
 	_config_ds(_config_rom.dataspace()),
 	_config_xml(_config_xml_node(_config_ds))
 { }

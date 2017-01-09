@@ -53,9 +53,9 @@ struct Genode::Io_port_connection : Connection<Io_port_session>,
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Io_port_connection(unsigned base, unsigned size)
+	Io_port_connection(unsigned base, unsigned size) __attribute__((deprecated))
 	:
-		Connection<Io_port_session>(_session(*env()->parent(), base, size)),
+		Connection<Io_port_session>(_session(*env_deprecated()->parent(), base, size)),
 		Io_port_session_client(cap())
 	{ }
 };

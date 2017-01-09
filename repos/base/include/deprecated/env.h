@@ -35,8 +35,22 @@ namespace Genode {
 
 	/**
 	 * Return the interface to the component's environment
+	 *
+	 * \noapi
+	 * \deprecated
 	 */
-	extern Env_deprecated *env();
+	extern Env_deprecated *env_deprecated();
+
+	/**
+	 * Return the interface to the component's environment
+	 *
+	 * \deprecated
+	 */
+	static inline Env_deprecated *env() __attribute__((deprecated));
+	static inline Env_deprecated *env()
+	{
+		return env_deprecated();
+	}
 }
 
 

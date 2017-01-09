@@ -37,5 +37,5 @@ void Thread::_thread_bootstrap() { }
 void Thread::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) { return; }
-	_thread_cap = Genode::env()->parent()->main_thread_cap();
+	_thread_cap = Genode::env_deprecated()->parent()->main_thread_cap();
 }

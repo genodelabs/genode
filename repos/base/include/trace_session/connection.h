@@ -59,7 +59,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection(size_t ram_quota, size_t arg_buffer_size, unsigned parent_levels)
+	Connection(size_t ram_quota, size_t arg_buffer_size, unsigned parent_levels) __attribute__((deprecated))
 	:
 		Genode::Connection<Session>(_session(*env()->parent(), ram_quota,
 		                                     arg_buffer_size, parent_levels)),

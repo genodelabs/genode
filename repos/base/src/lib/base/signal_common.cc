@@ -190,7 +190,7 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 	_platform_begin_dissolve(context);
 
 	/* tell core to stop sending signals referring to the context */
-	env()->pd_session()->free_context(context->_cap);
+	env_deprecated()->pd_session()->free_context(context->_cap);
 
 	/* restore default initialization of signal context */
 	context->_receiver = 0;

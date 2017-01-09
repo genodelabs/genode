@@ -113,7 +113,7 @@ extern "C" void *abort(void)
 
 	/* Notify the parent of failure */
 	if (name != "main")
-		env()->parent()->exit(1);
+		env_deprecated()->parent()->exit(1);
 
 	sleep_forever();
 	return 0;

@@ -70,10 +70,10 @@ class Genode::Attached_io_mem_dataspace
 		 *              argument instead
 		 */
 		Attached_io_mem_dataspace(Genode::addr_t base, Genode::size_t size,
-		                          bool write_combined = false)
+		                          bool write_combined = false) __attribute__((deprecated))
 		:
-			_env_rm(*env()->rm_session()),
-			_mmio(base, size, write_combined),
+			_env_rm(*env_deprecated()->rm_session()),
+			_mmio(false, base, size, write_combined),
 			_ds(_mmio.dataspace()),
 			_local_addr(_env_rm.attach(_ds))
 		{

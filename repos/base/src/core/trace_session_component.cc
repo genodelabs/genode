@@ -151,7 +151,7 @@ Session_component::Session_component(Allocator &md_alloc, size_t ram_quota,
                                      char const *label, Source_registry &sources,
                                      Policy_registry &policies)
 :
-	_ram(*env()->ram_session()),
+	_ram(*env_deprecated()->ram_session()),
 	_md_alloc(&md_alloc, ram_quota),
 	_subjects_slab(&_md_alloc),
 	_policies_slab(&_md_alloc),

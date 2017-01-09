@@ -65,9 +65,9 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 	Irq_connection(unsigned irq,
 	               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
 	               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
-	               Genode::addr_t device_config_phys = 0)
+	               Genode::addr_t device_config_phys = 0) __attribute__((deprecated))
 	:
-		Connection<Irq_session>(_session(*Genode::env()->parent(), irq,
+		Connection<Irq_session>(_session(*Genode::env_deprecated()->parent(), irq,
 		                                 trigger, polarity, device_config_phys)),
 		Irq_session_client(cap())
 	{ }

@@ -63,7 +63,7 @@ Core_env * Genode::core_env()
 }
 
 
-Env_deprecated * Genode::env() {
+Env_deprecated * Genode::env_deprecated() {
 	return core_env(); }
 
 
@@ -148,7 +148,7 @@ class Core_child : public Child_policy
 			_core_ram_cap(core_ram_cap), _core_ram(core_ram),
 			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
 			_ram_quota(Child::effective_ram_quota(ram_quota)),
-			_child(*env()->rm_session(), _entrypoint, *this)
+			_child(*env_deprecated()->rm_session(), _entrypoint, *this)
 		{
 			_entrypoint.activate();
 		}
@@ -250,7 +250,7 @@ int main()
 	 * Allocate session meta data on distinct dataspaces to enable independent
 	 * destruction (to enable quota trading) of session component objects.
 	 */
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+	static Sliced_heap sliced_heap(env_deprecated()->ram_session(), env_deprecated()->rm_session());
 
 	/*
 	 * Factory for creating RPC capabilities within core
@@ -303,7 +303,7 @@ int main()
 	log("", ram_quota / (1024*1024), " MiB RAM assigned to init");
 
 	static Reconstructible<Core_child>
-		init(services, *env()->ram_session(), env()->ram_session_cap(),
+		init(services, *env_deprecated()->ram_session(), env_deprecated()->ram_session_cap(),
 		     ram_quota, core_cpu, core_cpu_cap);
 
 	platform()->wait_for_exit();

@@ -34,7 +34,7 @@ namespace {
 	{
 		Genode::Entrypoint &_ep;
 
-		Genode::Parent &_parent = *env()->parent();
+		Genode::Parent &_parent = *env_deprecated()->parent();
 
 		/**
 		 * Lock for serializing 'session' and 'close'
@@ -63,25 +63,25 @@ namespace {
 		Env(Genode::Entrypoint &ep) : _ep(ep) { env_ptr = this; }
 
 		Genode::Parent      &parent() override { return _parent; }
-		Genode::Ram_session &ram()    override { return *Genode::env()->ram_session(); }
-		Genode::Cpu_session &cpu()    override { return *Genode::env()->cpu_session(); }
-		Genode::Region_map  &rm()     override { return *Genode::env()->rm_session(); }
-		Genode::Pd_session  &pd()     override { return *Genode::env()->pd_session(); }
+		Genode::Ram_session &ram()    override { return *Genode::env_deprecated()->ram_session(); }
+		Genode::Cpu_session &cpu()    override { return *Genode::env_deprecated()->cpu_session(); }
+		Genode::Region_map  &rm()     override { return *Genode::env_deprecated()->rm_session(); }
+		Genode::Pd_session  &pd()     override { return *Genode::env_deprecated()->pd_session(); }
 		Genode::Entrypoint  &ep()     override { return _ep; }
 
 		Genode::Ram_session_capability ram_session_cap() override
 		{
-			return Genode::env()->ram_session_cap();
+			return Genode::env_deprecated()->ram_session_cap();
 		}
 
 		Genode::Cpu_session_capability cpu_session_cap() override
 		{
-			return Genode::env()->cpu_session_cap();
+			return Genode::env_deprecated()->cpu_session_cap();
 		}
 
 		Genode::Pd_session_capability pd_session_cap() override
 		{
-			return Genode::env()->pd_session_cap();
+			return Genode::env_deprecated()->pd_session_cap();
 		}
 
 		Genode::Id_space<Parent::Client> &id_space() override

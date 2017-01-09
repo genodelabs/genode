@@ -37,7 +37,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection()
+	Connection() __attribute__((deprecated))
 	: Genode::Connection<Session>(session("ram_quota=4K")),
 	  Client(cap()) { }
 };

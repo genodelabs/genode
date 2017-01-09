@@ -40,7 +40,7 @@ struct Loader::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection(size_t ram_quota)
+	Connection(size_t ram_quota) __attribute__((deprecated))
 	:
 		Genode::Connection<Session>(session("ram_quota=%ld", ram_quota)),
 		Session_client(cap())

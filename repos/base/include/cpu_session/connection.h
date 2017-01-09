@@ -59,9 +59,9 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	 *              argument instead
 	 */
 	Cpu_connection(const char *label = "", long priority = DEFAULT_PRIORITY,
-	               Affinity const &affinity = Affinity())
+	               Affinity const &affinity = Affinity()) __attribute__((deprecated))
 	:
-		Connection<Cpu_session>(_session(*env()->parent(), label, priority, affinity)),
+		Connection<Cpu_session>(_session(*env_deprecated()->parent(), label, priority, affinity)),
 		Cpu_session_client(cap())
 	{ }
 };

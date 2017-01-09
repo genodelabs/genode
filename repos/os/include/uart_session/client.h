@@ -29,9 +29,14 @@ class Uart::Session_client : public Genode::Rpc_client<Session>
 
 	public:
 
-		Session_client(Genode::Capability<Session> cap)
+		Session_client(Genode::Region_map &local_rm, Genode::Capability<Session> cap)
 		:
-			Genode::Rpc_client<Session>(cap), _terminal(cap)
+			Genode::Rpc_client<Session>(cap), _terminal(local_rm, cap)
+		{ }
+
+		Session_client(Genode::Capability<Session> cap) __attribute__((deprecated))
+		:
+			Genode::Rpc_client<Session>(cap), _terminal(*Genode::env_deprecated()->rm_session(), cap)
 		{ }
 
 

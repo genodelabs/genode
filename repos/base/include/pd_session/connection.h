@@ -44,7 +44,7 @@ struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Pd_connection(char const *label = "")
+	Pd_connection(char const *label = "") __attribute__((deprecated))
 	:
 		Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"", RAM_QUOTA, label)),
 		Pd_session_client(cap())

@@ -78,8 +78,9 @@ class Genode::Attached_rom_dataspace
 		 * \deprecated  Use the constructor with 'Env &' as first
 		 *              argument instead
 		 */
-		Attached_rom_dataspace(char const *name)
-		: _rm(*env()->rm_session()), _rom(name) { _try_attach(); }
+		Attached_rom_dataspace(char const *name) __attribute__((deprecated))
+		: _rm(*env_deprecated()->rm_session()), _rom(false /* deprecated */, name)
+		{ _try_attach(); }
 
 		/**
 		 * Return capability of the used dataspace

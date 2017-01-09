@@ -27,5 +27,5 @@ void Signal_transmitter::submit(unsigned cnt)
 	{
 		Trace::Signal_submit trace_event(cnt);
 	}
-	env()->pd_session()->submit(_context, cnt);
+	env_deprecated()->pd_session()->submit(_context, cnt);
 }

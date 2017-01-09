@@ -66,11 +66,11 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		:
 			/* establish nitpicker session */
 			Genode::Connection<Session>(env, _connect(env.parent(), label)),
-			Session_client(cap()),
+			Session_client(env.rm(), cap()),
 
 			/* request frame-buffer and input sub sessions */
 			_framebuffer(framebuffer_session()),
-			_input(env, input_session())
+			_input(env.rm(), input_session())
 		{ }
 
 		/**
@@ -80,15 +80,15 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		 * \deprecated  Use the constructor with 'Env &' as first
 		 *              argument instead
 		 */
-		Connection(char const *label = "")
+		Connection(char const *label = "") __attribute__((deprecated))
 		:
 			/* establish nitpicker session */
-			Genode::Connection<Session>(_connect(*Genode::env()->parent(), label)),
-			Session_client(cap()),
+			Genode::Connection<Session>(_connect(*Genode::env_deprecated()->parent(), label)),
+			Session_client(*Genode::env_deprecated()->rm_session(), cap()),
 
 			/* request frame-buffer and input sub sessions */
 			_framebuffer(framebuffer_session()),
-			_input(input_session())
+			_input(*Genode::env_deprecated()->rm_session(), input_session())
 		{ }
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha)

@@ -85,9 +85,9 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 		 */
 		Connection(unsigned     width  = 0,
 		           unsigned     height = 0,
-		           Mode::Format format = Mode::INVALID)
+		           Mode::Format format = Mode::INVALID) __attribute__((deprecated))
 		:
-			Genode::Connection<Session>(_connect(*Genode::env()->parent(),
+			Genode::Connection<Session>(_connect(*Genode::env_deprecated()->parent(),
 			                                     width, height, format)),
 			Session_client(cap())
 		{ }

@@ -35,7 +35,7 @@ struct Input::Connection : Genode::Connection<Session>, Session_client
 	Connection(Genode::Env &env, char const *label = "")
 	:
 		Genode::Connection<Input::Session>(env, _session(env.parent(), label)),
-		Session_client(env, cap())
+		Session_client(env.rm(), cap())
 	{ }
 
 	/**
@@ -45,11 +45,11 @@ struct Input::Connection : Genode::Connection<Session>, Session_client
 	 * \deprecated  Use the constructor with 'Env &' as first
 	 *              argument instead
 	 */
-	Connection()
+	Connection() __attribute__((deprecated))
 	:
 		Genode::Connection<Input::Session>(
-			session(*Genode::env()->parent(), "ram_quota=16K")),
-		Session_client(cap())
+			session(*Genode::env_deprecated()->parent(), "ram_quota=16K")),
+		Session_client(*Genode::env_deprecated()->rm_session(), cap())
 	{ }
 };
 

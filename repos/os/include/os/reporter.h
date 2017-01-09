@@ -41,10 +41,10 @@ class Genode::Reporter : Noncopyable
 		struct Connection
 		{
 			Report::Connection report;
-			Attached_dataspace ds = { report.dataspace() };
+			Attached_dataspace ds = { *env_deprecated()->rm_session(), report.dataspace() };
 
 			Connection(char const *name, size_t buffer_size)
-			: report(name, buffer_size) { }
+			: report(false, name, buffer_size) { }
 		};
 
 		Constructible<Connection> _conn;
@@ -61,8 +61,21 @@ class Genode::Reporter : Noncopyable
 
 	public:
 
-		Reporter(char const *xml_name, char const *label = nullptr,
+		Reporter(Env &env, char const *xml_name, char const *label = nullptr,
 		         size_t buffer_size = 4096)
+		:
+			_xml_name(xml_name), _label(label ? label : xml_name),
+			_buffer_size(buffer_size)
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated
+		 * \noapi
+		 */
+		Reporter(char const *xml_name, char const *label = nullptr,
+		         size_t buffer_size = 4096) __attribute__((deprecated))
 		:
 			_xml_name(xml_name), _label(label ? label : xml_name),
 			_buffer_size(buffer_size)

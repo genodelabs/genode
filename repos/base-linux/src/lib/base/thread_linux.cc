@@ -86,11 +86,11 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
-		_cpu_session = env()->cpu_session();
+		_cpu_session = env_deprecated()->cpu_session();
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(),
+		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
 		                                          _stack->name().string(),
 		                                          Affinity::Location(),
 		                                          Weight());
@@ -98,7 +98,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	}
 	/* adjust initial object state for main threads */
 	native_thread().futex_counter = main_thread_futex_counter;
-	_thread_cap = env()->parent()->main_thread_cap();
+	_thread_cap = env_deprecated()->parent()->main_thread_cap();
 }
 
 
