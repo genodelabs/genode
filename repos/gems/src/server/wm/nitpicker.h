@@ -971,18 +971,9 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 		void session_control(Label suffix, Session_control operation) override
 		{
-			/*
-			 * Append label argument to session label
-			 *
-			 * The code originates from nitpicker's 'main.cc'.
-			 */
-			char selector[Label::size()];
+			Session_label const selector(_session_label, suffix);
 
-			Genode::snprintf(selector, sizeof(selector), "%s%s%s",
-			                 _session_label.string(),
-			                 suffix.length() ? " -> " : "", suffix.string());
-
-			_session_control_fn.session_control(selector, operation);
+			_session_control_fn.session_control(selector.string(), operation);
 		}
 };
 

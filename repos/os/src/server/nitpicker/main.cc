@@ -937,16 +937,12 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		void session_control(Label suffix, Session_control control) override
 		{
-			char selector[Label::size()];
-
-			Genode::snprintf(selector, sizeof(selector), "%s%s%s",
-			                 label().string(),
-			                 suffix.length() ? " -> " : "", suffix.string());
+			Session_label const selector(label(), suffix);
 
 			switch (control) {
-			case SESSION_CONTROL_HIDE:     _view_stack.visible(selector, false); break;
-			case SESSION_CONTROL_SHOW:     _view_stack.visible(selector, true);  break;
-			case SESSION_CONTROL_TO_FRONT: _view_stack.to_front(selector);       break;
+			case SESSION_CONTROL_HIDE:     _view_stack.visible(selector.string(), false); break;
+			case SESSION_CONTROL_SHOW:     _view_stack.visible(selector.string(), true);  break;
+			case SESSION_CONTROL_TO_FRONT: _view_stack.to_front(selector.string());       break;
 			}
 		}
 
