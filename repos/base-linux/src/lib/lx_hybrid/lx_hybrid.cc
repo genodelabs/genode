@@ -74,6 +74,10 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 }
 
+
+static Genode::Env *_env_ptr;
+
+
 namespace Genode {
 	extern void bootstrap_component();
 	extern void call_global_static_constructors();
@@ -83,7 +87,7 @@ namespace Genode {
 	 * used for lx_hybrid programs. For lx_hybrid programs, the exception
 	 * handling is initialized by the host system's regular startup code.
 	 */
-	void init_exception_handling(Env &) { }
+	void init_exception_handling(Env &env) { _env_ptr = &env; }
 }
 
 /*
@@ -138,7 +142,7 @@ int main()
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/env.h>
+#include <base/component.h>
 
 /* host libc includes */
 #define size_t __SIZE_TYPE__ /* see comment in 'linux_syscalls.h' */
@@ -384,6 +388,34 @@ static void *thread_start(void *arg)
 
 
 extern "C" void *malloc(::size_t size);
+extern "C" void free(void *);
+
+namespace {
+
+	struct Global_allocator : Allocator
+	{
+		typedef Genode::size_t size_t;
+
+		bool alloc(size_t size, void **out_addr) override
+		{
+			*out_addr = malloc(size);
+			return true;
+		}
+
+		void free(void *addr, size_t size) override { ::free(addr); }
+
+		bool need_size_for_free() const override { return false; }
+
+		size_t overhead(size_t size) const override { return 0; }
+	};
+}
+
+
+static Allocator &global_alloc()
+{
+	static Global_allocator inst;
+	return inst;
+}
 
 
 Thread *Thread::myself()
@@ -418,7 +450,8 @@ Thread *Thread::myself()
 	 */
 	Thread *thread = (Thread *)malloc(sizeof(Thread));
 	memset(thread, 0, sizeof(*thread));
-	Native_thread::Meta_data *meta_data = new Thread_meta_data_adopted(thread);
+	Native_thread::Meta_data *meta_data =
+		new (global_alloc()) Thread_meta_data_adopted(thread);
 
 	/*
 	 * Initialize 'Thread::_native_thread' to point to the default-
@@ -454,20 +487,20 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 : _cpu_session(cpu_sess)
 {
 	Native_thread::Meta_data *meta_data =
-		new (env()->heap()) Thread_meta_data_created(this);
+		new (global_alloc()) Thread_meta_data_created(this);
 
 	_native_thread = &meta_data->native_thread;
 
 	int const ret = pthread_create(&meta_data->pt, 0, thread_start, meta_data);
 	if (ret) {
 		error("pthread_create failed (returned ", ret, ", errno=", errno, ")");
-		destroy(env()->heap(), meta_data);
+		destroy(global_alloc(), meta_data);
 		throw Out_of_stack_space();
 	}
 
 	native_thread().meta_data->wait_for_construction();
 
-	_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name,
+	_thread_cap = _cpu_session->create_thread(_env_ptr->pd_session_cap(), name,
 	                                          Location(), Weight(weight));
 
 	Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
@@ -477,7 +510,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 
 Thread::Thread(size_t weight, const char *name, size_t stack_size,
                Type type, Affinity::Location)
-: Thread(weight, name, stack_size, type, env()->cpu_session()) { }
+: Thread(weight, name, stack_size, type, &_env_ptr->cpu()) { }
 
 
 Thread::Thread(Env &env, Name const &name, size_t stack_size, Location location,
@@ -514,7 +547,7 @@ Thread::~Thread()
 		dynamic_cast<Thread_meta_data_created *>(native_thread().meta_data);
 
 	if (meta_data)
-		destroy(env()->heap(), meta_data);
+		destroy(global_alloc(), meta_data);
 
 	_native_thread = nullptr;
 
