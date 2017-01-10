@@ -1,3 +1,5 @@
+REQUIRES += foc
+
 SRC_CC = spec/foc_x86_32/low.cc \
          spec/foc/native_cpu.cc
 
