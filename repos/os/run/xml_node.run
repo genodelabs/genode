@@ -72,6 +72,7 @@ compare_output_to {
 [init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
 [init -> test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
 [init -> test-xml_node]     XML node: name = "quota", leaf content = "8M"
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test invalid XML structure (broken tag) --
 [init -> test-xml_node] XML node: name = "config", number of subnodes = 3
 [init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
@@ -83,16 +84,21 @@ compare_output_to {
 [init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
 [init -> test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
 [init -> test-xml_node]     XML node: name = "quota", leaf content = "8M"
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test invalid XML structure (truncated) --
 [init -> test-xml_node] string has invalid XML syntax
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test invalid XML structure (truncated comment) --
 [init -> test-xml_node] string has invalid XML syntax
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test invalid XML structure (unfinished string) --
 [init -> test-xml_node] string has invalid XML syntax
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test node access by key --
 [init -> test-xml_node] content of sub node "filename" = "init"
 [init -> test-xml_node] content of sub node "quota" = "16M"
 [init -> test-xml_node] sub node "info" is not defined
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test access to XML attributes --
 [init -> test-xml_node] XML node: name = "config", number of subnodes = 3
 [init -> test-xml_node]   attribute name="priolevels", value="4"
@@ -103,14 +109,17 @@ compare_output_to {
 [init -> test-xml_node]   XML node: name = "single-tag-with-attr", leaf content = ""
 [init -> test-xml_node]     attribute name="name", value="ein_name"
 [init -> test-xml_node]     attribute name="quantum", value="2K"
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test parsing XML with nodes mixed with text --
 [init -> test-xml_node] XML node: name = "config", number of subnodes = 2
 [init -> test-xml_node]   XML node: name = "program", leaf content = ""
 [init -> test-xml_node]     attribute name="attr", value="abcd"
 [init -> test-xml_node]   XML node: name = "program", leaf content = "inProgram"
+[init -> test-xml_node]
 [init -> test-xml_node] -- Test parsing XML with comments --
 [init -> test-xml_node] XML node: name = "config", number of subnodes = 2
 [init -> test-xml_node]   XML node: name = "visible-tag", leaf content = ""
 [init -> test-xml_node]   XML node: name = "visible-tag", leaf content = ""
+[init -> test-xml_node]
 [init -> test-xml_node] --- End of XML-parser test ---
 }

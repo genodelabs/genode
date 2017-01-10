@@ -4,8 +4,16 @@
  * \date   2007-08-21
  */
 
+/*
+ * Copyright (C) 2015-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #include <util/xml_node.h>
-#include <base/printf.h>
+#include <base/component.h>
+#include <base/log.h>
 
 using namespace Genode;
 
@@ -164,47 +172,72 @@ static const char *token_type_string(typename Token<SCANNER_POLICY>::Type token_
  * Print attributes of XML token
  */
 template <typename SCANNER_POLICY>
-static void print_xml_token_info(Token<SCANNER_POLICY> xml_token)
+static void log_xml_token_info(Token<SCANNER_POLICY> xml_token)
 {
 	static char content_buf[128];
 	xml_token.string(content_buf, sizeof(content_buf));
-	printf("token type=\"%s\", len=%ld, content=\"%s\"\n",
-	       token_type_string<SCANNER_POLICY>(xml_token.type()),
-	       xml_token.len(), content_buf);
+	log("token type=\"", token_type_string<SCANNER_POLICY>(xml_token.type()), "\", "
+	    "len=", xml_token.len(), ", content=\"", Cstring(content_buf), "\"");
 }
 
 
 template <typename SCANNER_POLICY>
-static void print_xml_tokens(const char *xml_string)
+static void log_xml_tokens(const char *xml_string)
 {
 	Token<SCANNER_POLICY> token(xml_string);
 	while (token.type() != Token<SCANNER_POLICY>::END) {
-		print_xml_token_info(token);
+		log_xml_token_info(token);
 		token = token.next();
 	}
 }
 
 
+struct Indentation
+{
+	unsigned const _spaces;
+
+	Indentation(unsigned spaces) : _spaces(spaces) { }
+
+	void print(Output &output) const
+	{
+		for (unsigned i = 0; i < _spaces; i++)
+			Genode::print(output, " ");
+	}
+};
+
+
+/**
+ * Helper for the formatted output of XML attribute information
+ */
+struct Formatted_xml_attribute
+{
+	Xml_node::Attribute const _attr;
+	unsigned            const _indent;
+
+	Formatted_xml_attribute(Xml_node::Attribute attr, unsigned indent)
+	: _attr(attr), _indent(indent) { }
+
+	void print(Output &output) const
+	{
+		char value[32]; value[0] = 0;
+		_attr.value(value, sizeof(value));
+
+		Genode::print(output, Indentation(_indent),
+		              "attribute name=\"", _attr.name(), "\", "
+		              "value=\"", Cstring(value), "\"");
+	}
+};
+
+
 /**
  * Print attributes of XML node
  */
-static void print_xml_attr_info(Xml_node xml_node, int indent = 0)
+static void print_xml_attr_info(Output &output, Xml_node node, int indent = 0)
 {
 	try {
-		for (Xml_node::Attribute a = xml_node.attribute(0U); ; a = a.next()) {
+		for (Xml_node::Attribute a = node.attribute(0U); ; a = a.next())
+			print(output, Formatted_xml_attribute(a, indent), "\n");
 
-			/* indentation */
-			for (int i = 0; i < indent; i++)
-				printf(" ");
-
-			/* read attribute name and value */
-			char name[32]; name[0] = 0;
-			a.type(name, sizeof(name));
-			char value[32]; value[0] = 0;
-			a.value(value, sizeof(value));
-
-			printf("attribute name=\"%s\", value=\"%s\"\n", name, value);
-		}
 	} catch (Xml_node::Nonexistent_attribute) { }
 }
 
@@ -215,103 +248,109 @@ static void print_xml_attr_info(Xml_node xml_node, int indent = 0)
  * \param xml_node  root fo XML sub tree to print
  * \param indent    current indentation level
  */
-static void print_xml_node_info(Xml_node xml_node, int indent = 0)
+struct Formatted_xml_node
 {
-	char buf[128];
-	xml_node.type_name(buf, sizeof(buf));
+	Xml_node const _node;
+	unsigned const _indent;
 
-	/* indentation */
-	for (int i = 0; i < indent; i++)
-		printf(" ");
+	Formatted_xml_node(Xml_node node, unsigned indent = 0)
+	: _node(node), _indent(indent) { }
 
-	/* print node information */
-	printf("XML node: name = \"%s\", ", buf);
-	if (xml_node.num_sub_nodes() == 0) {
-		xml_node.value(buf, sizeof(buf));
-		printf("leaf content = \"%s\"\n", buf);
-	} else
-		printf("number of subnodes = %ld\n",
-		        xml_node.num_sub_nodes());
+	void print(Output &output) const
+	{
+		using Genode::print;
 
-	print_xml_attr_info(xml_node, indent + 2);
+		/* print node information */
+		print(output, Indentation(_indent),
+		      "XML node: name = \"", _node.type(), "\", ");
+		if (_node.num_sub_nodes() == 0) {
+			char buf[128];
+			_node.value(buf, sizeof(buf));
+			print(output, "leaf content = \"", Cstring(buf), "\"");
+		} else
+			print(output, "number of subnodes = ", _node.num_sub_nodes());
 
-	/* print information of sub nodes */
-	for (unsigned i = 0; i < xml_node.num_sub_nodes(); i++) {
-		try {
-			Xml_node sub_node = xml_node.sub_node(i);
-			print_xml_node_info(sub_node, indent + 2);
-		} catch (Xml_node::Invalid_syntax) {
-			printf("invalid syntax of sub node %d\n", i);
+		print(output, "\n");
+
+		print_xml_attr_info(output, _node, _indent + 2);
+
+		/* print information of sub nodes */
+		for (unsigned i = 0; i < _node.num_sub_nodes(); i++) {
+			try {
+				print(output, Formatted_xml_node(_node.sub_node(i), _indent + 2));
+			} catch (Xml_node::Invalid_syntax) {
+				print(output, "invalid syntax of sub node ", i, "\n");
+			}
 		}
 	}
-}
+};
 
 
 /**
  * Print content of sub node with specified type
  */
-static void print_key(Xml_node node, const char *key)
+static void log_key(Xml_node node, char const *key)
 {
 	try {
 		Xml_node sub_node = node.sub_node(key);
 		char buf[32];
 		sub_node.value(buf, sizeof(buf));
-		printf("content of sub node \"%s\" = \"%s\"\n", key, buf);
+		log("content of sub node \"", key, "\" = \"", Cstring(buf), "\"");
 	} catch (Xml_node::Nonexistent_sub_node) {
-		printf("sub node \"%s\" is not defined\n", key);
+		log("sub node \"", key, "\" is not defined\n");
 	} catch (Xml_node::Invalid_syntax) {
-		printf("invalid syntax of node \"%s\"\n", key);
+		log("invalid syntax of node \"", key, "\"");
 	}
 }
 
 
-static void print_xml_info(const char *xml_string)
+static void log_xml_info(const char *xml_string)
 {
 	try {
-		print_xml_node_info(Xml_node(xml_string));
+		log(Formatted_xml_node(Xml_node(xml_string)));
 	} catch (Xml_node::Invalid_syntax) {
-		printf("string has invalid XML syntax\n");
+		log("string has invalid XML syntax\n");
 	}
 }
 
 
-int main()
+void Component::construct(Genode::Env &env)
 {
-	printf("--- XML-token test ---\n");
-	print_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
+	log("--- XML-token test ---");
+	log_xml_tokens<Scanner_policy_identifier_with_underline>(xml_test_text_between_nodes);
 
-	printf("--- XML-parser test ---\n");
+	log("--- XML-parser test ---");
 
-	printf("-- Test valid XML structure --\n");
-	print_xml_info(xml_test_valid);
+	log("-- Test valid XML structure --");
+	log_xml_info(xml_test_valid);
 
-	printf("-- Test invalid XML structure (broken tag) --\n");
-	print_xml_info(xml_test_broken_tag);
+	log("-- Test invalid XML structure (broken tag) --");
+	log_xml_info(xml_test_broken_tag);
 
-	printf("-- Test invalid XML structure (truncated) --\n");
-	print_xml_info(xml_test_truncated);
+	log("-- Test invalid XML structure (truncated) --");
+	log_xml_info(xml_test_truncated);
 
-	printf("-- Test invalid XML structure (truncated comment) --\n");
-	print_xml_info(xml_test_truncated_comment);
+	log("-- Test invalid XML structure (truncated comment) --");
+	log_xml_info(xml_test_truncated_comment);
 
-	printf("-- Test invalid XML structure (unfinished string) --\n");
-	print_xml_info(xml_test_unfinished_string);
+	log("-- Test invalid XML structure (unfinished string) --");
+	log_xml_info(xml_test_unfinished_string);
 
-	printf("-- Test node access by key --\n");
+	log("-- Test node access by key --");
 	Xml_node prg(Xml_node(xml_test_valid).sub_node(0U));
-	print_key(prg, "filename");
-	print_key(prg, "quota");
-	print_key(prg, "info");
+	log_key(prg, "filename");
+	log_key(prg, "quota");
+	log_key(prg, "info");
 
-	printf("-- Test access to XML attributes --\n");
-	print_xml_info(xml_test_attributes);
+	log("-- Test access to XML attributes --");
+	log_xml_info(xml_test_attributes);
 
-	printf("-- Test parsing XML with nodes mixed with text --\n");
-	print_xml_info(xml_test_text_between_nodes);
+	log("-- Test parsing XML with nodes mixed with text --");
+	log_xml_info(xml_test_text_between_nodes);
 
-	printf("-- Test parsing XML with comments --\n");
-	print_xml_info(xml_test_comments);
+	log("-- Test parsing XML with comments --");
+	log_xml_info(xml_test_comments);
 
-	printf("--- End of XML-parser test ---\n");
-	return 0;
+	log("--- End of XML-parser test ---");
+	env.parent().exit(0);
 }
