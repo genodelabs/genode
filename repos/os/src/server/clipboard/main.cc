@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/heap.h>
 #include <base/component.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <report_rom/rom_service.h>
 #include <report_rom/report_service.h>
 
@@ -72,8 +72,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 {
 	Genode::Env &_env;
 
-	Genode::Sliced_heap _sliced_heap = { Genode::env()->ram_session(),
-	                                     Genode::env()->rm_session() };
+	Genode::Sliced_heap _sliced_heap = { _env.ram(), _env.rm() };
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
@@ -87,7 +86,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 
 	typedef Genode::String<100> Domain;
 
-	Genode::Attached_rom_dataspace _focus_ds { "focus" };
+	Genode::Attached_rom_dataspace _focus_ds { _env, "focus" };
 
 	Genode::Signal_handler<Main> _focus_handler =
 		{ _env.ep(), *this, &Main::_handle_focus };

@@ -57,13 +57,15 @@ compare_output_to {
 	[init -> test-report_rom] Reporter: open session
 	[init -> test-report_rom] Reporter: brightness 10
 	[init -> test-report_rom] ROM client: request brightness report
-	[init -> test-report_rom]          -> <brightness brightness="10"/>
+	[init -> test-report_rom]          -> <brightness value="10"/>
 	[init -> test-report_rom] Reporter: updated brightness to 77
 	[init -> test-report_rom] ROM client: wait for update notification
 	[init -> test-report_rom] ROM client: got signal
 	[init -> test-report_rom] ROM client: request updated brightness report
-	[init -> test-report_rom]          -> <brightness brightness="77"/>
-	[init -> test-report_rom] Reporter: close report session
+	[init -> test-report_rom]          -> <brightness value="77"/>
+	[init -> test-report_rom] Reporter: close report session, wait a bit
+	[init -> test-report_rom] got timeout
+	[init -> test-report_rom]          -> <brightness value="77"/>
 	[init -> test-report_rom] ROM client: ROM is available despite report was closed - OK
 	[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
 	[init -> test-report_rom] ROM client: wait for update notification

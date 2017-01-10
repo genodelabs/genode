@@ -12,26 +12,37 @@
  */
 
 /* Genode includes */
-#include <os/server.h>
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <report_session/connection.h>
-#include <os/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <util/xml_generator.h>
 #include <util/xml_node.h>
 #include <timer_session/connection.h>
 
+namespace Test {
+	class Nitpicker;
+	class Subsystem;
+	struct Handle_step_fn;
+	class Main;
 
-class Nitpicker
+	using namespace Genode;
+}
+
+
+class Test::Nitpicker
 {
 	private:
 
+		Env &_env;
+
 		Timer::Session &_timer;
 
-		Genode::Reporter _focus_reporter { "focus" };
+		Reporter _focus_reporter { _env, "focus" };
 
 		void _focus(char const *domain, bool active)
 		{
-			Genode::Reporter::Xml_generator xml(_focus_reporter, [&] () {
+			Reporter::Xml_generator xml(_focus_reporter, [&] () {
 				xml.attribute("domain", domain);
 				xml.attribute("active", active ? "yes" : "no");
 			});
@@ -46,9 +57,9 @@ class Nitpicker
 
 	public:
 
-		Nitpicker(Timer::Session &timer)
+		Nitpicker(Env &env, Timer::Session &timer)
 		:
-			_timer(timer)
+			_env(env), _timer(timer)
 		{
 			_focus_reporter.enabled(true);
 		}
@@ -63,19 +74,19 @@ class Nitpicker
  *
  * This function drives the state machine of the test program.
  */
-struct Handle_step_fn
+struct Test::Handle_step_fn
 {
-	virtual void handle_step(unsigned) = 0;
+	virtual void handle_step() = 0;
 };
 
 
-class Subsystem
+class Test::Subsystem
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Env &_env;
 
-		typedef Genode::String<100> Label;
+		typedef String<100> Label;
 
 		Label _name;
 
@@ -86,25 +97,25 @@ class Subsystem
 		Label _session_label()
 		{
 			char buf[Label::capacity()];
-			Genode::snprintf(buf, sizeof(buf), "%s -> clipboard", _name.string());
-			return Label(Genode::Cstring(buf));
+			snprintf(buf, sizeof(buf), "%s -> clipboard", _name.string());
+			return Label(Cstring(buf));
 		}
 
-		Genode::Attached_rom_dataspace _import_rom;
+		Attached_rom_dataspace _import_rom;
 
 		char const *_import_content = nullptr;
 
-		Report::Connection _export_report { _session_label().string() };
+		Report::Connection _export_report { _env, _session_label().string() };
 
-		Genode::Attached_dataspace _export_report_ds { _export_report.dataspace() };
+		Attached_dataspace _export_report_ds { _env.rm(), _export_report.dataspace() };
 
-		static void _log_lines(char const *string, Genode::size_t len)
+		static void _log_lines(char const *string, size_t len)
 		{
-			Genode::print_lines<200>(string, len,
-			                         [&] (char const *line) { Genode::log("  ", line); });
+			print_lines<200>(string, len,
+			                 [&] (char const *line) { log("  ", line); });
 		}
 
-		void _handle_import(unsigned)
+		void _handle_import()
 		{
 			if (!_expect_import) {
 				class Unexpected_clipboard_import { };
@@ -122,21 +133,21 @@ class Subsystem
 			_log_lines(_import_content, _import_rom.size());
 
 			/* trigger next step */
-			_handle_step_fn.handle_step(0);
+			_handle_step_fn.handle_step();
 		}
 
-		Genode::Signal_rpc_member<Subsystem> _import_dispatcher =
-			{ _ep, *this, &Subsystem::_handle_import };
+		Signal_handler<Subsystem> _import_handler =
+			{ _env.ep(), *this, &Subsystem::_handle_import };
 
-		static void _strip_outer_whitespace(char const **str_ptr, Genode::size_t &len)
+		static void _strip_outer_whitespace(char const **str_ptr, size_t &len)
 		{
 			char const *str = *str_ptr;
 
 			/* strip leading whitespace */
-			for (; Genode::is_whitespace(*str); str++, len--);
+			for (; is_whitespace(*str); str++, len--);
 
 			/* strip trailing whitespace */
-			for (; len > 1 && Genode::is_whitespace(str[len - 1]); len--);
+			for (; len > 1 && is_whitespace(str[len - 1]); len--);
 
 			*str_ptr = str;
 		}
@@ -146,39 +157,36 @@ class Subsystem
 		 *
 		 * \throw Xml_node::Nonexistent_sub_node
 		 */
-		Genode::Xml_node _imported_text() const
+		Xml_node _imported_text() const
 		{
 			if (!_import_content)
-				throw Genode::Xml_node::Nonexistent_sub_node();
+				throw Xml_node::Nonexistent_sub_node();
 
-			Genode::Xml_node clipboard(_import_content,
-			                           _import_rom.size());
+			Xml_node clipboard(_import_content, _import_rom.size());
 
 			return clipboard.sub_node("text");
 		}
 
 	public:
 
-		Subsystem(Server::Entrypoint &ep, char const *name,
-		          Handle_step_fn &handle_step_fn)
+		Subsystem(Env &env, char const *name, Handle_step_fn &handle_step_fn)
 		:
-			_ep(ep),
+			_env(env),
 			_name(name),
 			_handle_step_fn(handle_step_fn),
-			_import_rom(_session_label().string())
+			_import_rom(_env, _session_label().string())
 		{
-			_import_rom.sigh(_import_dispatcher);
+			_import_rom.sigh(_import_handler);
 		}
 
 		void copy(char const *str)
 		{
-			Genode::Xml_generator xml(_export_report_ds.local_addr<char>(),
-			                          _export_report_ds.size(),
-			                          "clipboard", [&] ()
+			Xml_generator xml(_export_report_ds.local_addr<char>(),
+			                  _export_report_ds.size(), "clipboard", [&] ()
 			{
 				xml.attribute("origin", _name.string());
 				xml.node("text", [&] () {
-					xml.append(str, Genode::strlen(str));
+					xml.append(str, strlen(str));
 				});
 			});
 
@@ -192,7 +200,7 @@ class Subsystem
 		{
 			using namespace Genode;
 			try {
-				typedef Genode::String<100> String;
+				typedef String<100> String;
 
 				String const expected(str);
 				String const imported = _imported_text().decoded_content<String>();
@@ -219,12 +227,9 @@ class Subsystem
 };
 
 
-namespace Server { struct Main; }
-
-
-struct Server::Main : Handle_step_fn
+struct Test::Main : Handle_step_fn
 {
-	Entrypoint &_ep;
+	Env &_env;
 
 	enum State {
 		INIT,
@@ -268,7 +273,7 @@ struct Server::Main : Handle_step_fn
 		_state = state;
 	}
 
-	void handle_step(unsigned cnt) override
+	void handle_step() override
 	{
 		log("\n -- state ", _state_name(_state), " --");
 
@@ -399,35 +404,25 @@ struct Server::Main : Handle_step_fn
 		}
 	}
 
-	Genode::Signal_rpc_member<Main> _step_dispatcher =
-		{ _ep, *this, &Main::handle_step };
+	Signal_handler<Main> _step_handler =
+		{ _env.ep(), *this, &Main::handle_step };
 
-	Subsystem _admin { _ep, "noux",  *this };
-	Subsystem _hobby { _ep, "linux", *this };
-	Subsystem _work  { _ep, "win7",  *this };
+	Subsystem _admin { _env, "noux",  *this };
+	Subsystem _hobby { _env, "linux", *this };
+	Subsystem _work  { _env, "win7",  *this };
 
-	Timer::Connection _timer;
+	Timer::Connection _timer { _env };
 
-	Nitpicker _nitpicker { _timer };
+	Nitpicker _nitpicker { _env, _timer };
 
-	Main(Entrypoint &ep) : _ep(ep)
+	Main(Env &env) : _env(env)
 	{
-		_timer.sigh(_step_dispatcher);
+		_timer.sigh(_step_handler);
 
 		/* trigger first step */
-		handle_step(0);
+		handle_step();
 	}
 };
 
 
-namespace Server {
-
-	char const *name() { return "ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Main main(ep);
-	}
-}
+void Component::construct(Genode::Env &env) { static Test::Main main(env); }

@@ -35,6 +35,9 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 {
 	private:
 
+		Genode::Ram_session &_ram;
+		Genode::Region_map  &_rm;
+
 		Registry_for_reader &_registry;
 
 		Genode::Session_label const _label;
@@ -69,9 +72,25 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 	public:
 
-		Session_component(Registry_for_reader &registry,
+		Session_component(Genode::Ram_session &ram, Genode::Region_map &rm,
+		                  Registry_for_reader &registry,
 		                  Genode::Session_label const &label)
 		:
+			_ram(ram), _rm(rm),
+			_registry(registry), _label(label), _module(_init_module(label))
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \deprecated
+		 * \noapi
+		 */
+		Session_component(Registry_for_reader &registry,
+		                  Genode::Session_label const &label) __attribute__((deprecated))
+		:
+			_ram(*Genode::env_deprecated()->ram_session()),
+			_rm(*Genode::env_deprecated()->rm_session()),
 			_registry(registry), _label(label), _module(_init_module(label))
 		{ }
 
@@ -88,7 +107,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 				/* replace dataspace by new one */
 				/* XXX we could keep the old dataspace if the size fits */
-				_ds.construct(env()->ram_session(), _module.size());
+				_ds.construct(_ram, _rm, _module.size());
 
 				/* fill dataspace content with report contained in module */
 				_content_size =
@@ -160,6 +179,7 @@ class Rom::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
+		Genode::Env         &_env;
 		Registry_for_reader &_registry;
 
 	protected:
@@ -169,7 +189,7 @@ class Rom::Root : public Genode::Root_component<Session_component>
 			using namespace Genode;
 
 			return new (md_alloc())
-				Session_component(_registry, label_from_args(args));
+				Session_component(_env.ram(), _env.rm(), _registry, label_from_args(args));
 		}
 
 	public:
@@ -179,7 +199,7 @@ class Rom::Root : public Genode::Root_component<Session_component>
 		     Registry_for_reader  &registry)
 		:
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
-			_registry(registry)
+			_env(env), _registry(registry)
 		{ }
 };
 
