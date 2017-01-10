@@ -14,7 +14,9 @@
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
 
+#include <base/allocator.h>
 #include <base/allocator_avl.h>
+#include <base/env.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 
@@ -30,7 +32,8 @@ class Acpi::Memory
 				Genode::Io_mem_connection _io_mem;
 
 			public:
-				Io_mem(Genode::addr_t phys) : _io_mem(phys, 0x1000UL) { }
+				Io_mem(Genode::Env &env, Genode::addr_t phys)
+				: _io_mem(env, phys, 0x1000UL) { }
 
 				Genode::Io_mem_dataspace_capability dataspace()
 				{
@@ -38,22 +41,27 @@ class Acpi::Memory
 				}
 		};
 
+		Genode::Env              &_env;
 		Genode::addr_t      const ACPI_REGION_SIZE_LOG2;
 		Genode::Rm_connection     _rm;
 		Genode::Region_map_client _rm_acpi;
 		Genode::addr_t      const _acpi_base;
+		Genode::Allocator        &_heap;
 		Genode::Allocator_avl     _range;
 		Genode::List<Io_mem>      _io_mem_list;
 
 	public:
 
-		Memory()
+		Memory(Genode::Env &env, Genode::Allocator &heap)
 		:
+			_env(env),
 			/* 1 GB range */
 			ACPI_REGION_SIZE_LOG2(30),
+			_rm(env),
 			_rm_acpi(_rm.create(1UL << ACPI_REGION_SIZE_LOG2)),
-			_acpi_base(Genode::env()->rm_session()->attach(_rm_acpi.dataspace())),
-			_range(Genode::env()->heap())
+			_acpi_base(env.rm().attach(_rm_acpi.dataspace())),
+			_heap(heap),
+			_range(&_heap)
 		{
 			_range.add_range(0, 1UL << ACPI_REGION_SIZE_LOG2);
 		}
@@ -83,7 +91,7 @@ class Acpi::Memory
 					continue;
 
 				/* allocate acpi page as io memory */
-				Io_mem *mem = new (Genode::env()->heap()) Io_mem(phys_aligned + size);
+				Io_mem *mem = new (_heap) Io_mem(_env, phys_aligned + size);
 				/* attach acpi page to this process */
 				_rm_acpi.attach_at(mem->dataspace(), low, 0x1000UL);
 				/* add to list to free when parsing acpi table is done */
@@ -97,7 +105,7 @@ class Acpi::Memory
 		{
 			while (Io_mem * io_mem = _io_mem_list.first()) {
 				_io_mem_list.remove(io_mem);
-				destroy(Genode::env()->heap(), io_mem);
+				destroy(_heap, io_mem);
 			}
 		}
 };

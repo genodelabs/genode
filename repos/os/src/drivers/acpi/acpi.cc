@@ -11,7 +11,7 @@
  */
 
  /*
-  * Copyright (C) 2009-2016 Genode Labs GmbH
+  * Copyright (C) 2009-2017 Genode Labs GmbH
   *
   * This file is part of the Genode OS framework, which is distributed
   * under the terms of the GNU General Public License version 2.
@@ -24,7 +24,6 @@
 
 /* os includes */
 #include <os/reporter.h>
-#include <os/attached_rom_dataspace.h>
 
 #include "acpi.h"
 #include "memory.h"
@@ -291,12 +290,6 @@ class Pci_config_space : public List<Pci_config_space>::Element
 };
 
 
-static Acpi::Memory & acpi_memory()
-{
-	static Acpi::Memory _memory;
-	return _memory;
-}
-
 
 /**
  * ACPI table wrapper that for mapping tables to this address space
@@ -422,17 +415,18 @@ class Table_wrapper
 			Dmar_entry::list()->insert(new (&alloc) Dmar_entry(head->clone(alloc)));
 		}
 
-		Table_wrapper(addr_t base) : _base(base), _table(0)
+		Table_wrapper(Acpi::Memory &memory, addr_t base)
+		: _base(base), _table(0)
 		{
 			/* if table is on page boundary, map two pages, otherwise one page */
 			size_t const map_size = 0x1000UL - _offset() < 8 ? 0x1000UL : 1UL;
 
 			/* make table header accessible */
-			_table = reinterpret_cast<Generic *>(acpi_memory().phys_to_virt(base, map_size));
+			_table = reinterpret_cast<Generic *>(memory.phys_to_virt(base, map_size));
 
 			/* table size is known now - make it complete accessible */
 			if (_offset() + _table->size > 0x1000UL)
-				acpi_memory().phys_to_virt(base, _table->size);
+				memory.phys_to_virt(base, _table->size);
 
 			memset(_name, 0, 5);
 			memcpy(_name, _table->signature, 4);
@@ -1118,6 +1112,7 @@ class Acpi_table
 
 		Genode::Env       &_env;
 		Genode::Allocator &_alloc;
+		Acpi::Memory       _memory;
 
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
@@ -1130,7 +1125,8 @@ class Acpi_table
 		uint8_t *_search_rsdp(uint8_t *area)
 		{
 			for (addr_t addr = 0; area && addr < BIOS_SIZE; addr += 16)
-				if (!memcmp(area + addr, "RSD PTR ", 8) && !Table_wrapper::checksum(area + addr, 20))
+				if (!memcmp(area + addr, "RSD PTR ", 8) &&
+				    !Table_wrapper::checksum(area + addr, 20))
 					return area + addr;
 
 			throw -2;
@@ -1174,7 +1170,7 @@ class Acpi_table
 			for (uint32_t i = 0; i < count; i++) {
 				uint32_t dsdt = 0;
 				{
-					Table_wrapper table(entries[i]);
+					Table_wrapper table(_memory, entries[i]);
 					if (table.is_facp()) {
 						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
 						dsdt = fadt.read<Fadt::Dsdt>();
@@ -1206,7 +1202,7 @@ class Acpi_table
 				}
 
 				if (dsdt) {
-					Table_wrapper table(dsdt);
+					Table_wrapper table(_memory, dsdt);
 					if (table.is_searched()) {
 						if (verbose)
 							Genode::log("Found dsdt ", table.name());
@@ -1221,7 +1217,7 @@ class Acpi_table
 	public:
 
 		Acpi_table(Genode::Env &env, Genode::Allocator &alloc)
-		: _env(env), _alloc(alloc)
+		: _env(env), _alloc(alloc), _memory(_env, _alloc)
 		{
 			uint8_t * ptr_rsdp = _rsdp();
 
@@ -1264,12 +1260,12 @@ class Acpi_table
 
 			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
-				Table_wrapper table(xsdt);
+				Table_wrapper table(_memory, xsdt);
 				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
 				_parse_tables(alloc, entries, table.entry_count(entries));
 			} else {
 				/* running (32bit) or (64bit and xsdt isn't valid) */
-				Table_wrapper table(rsdt);
+				Table_wrapper table(_memory, rsdt);
 				uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
 				_parse_tables(alloc, entries, table.entry_count(entries));
 			}
@@ -1278,7 +1274,7 @@ class Acpi_table
 			Element::clean_list(alloc);
 
 			/* free up io memory */
-			acpi_memory().free_io_memory();
+			_memory.free_io_memory();
 		}
 };
 
@@ -1298,7 +1294,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 	Acpi_table acpi_table(env, alloc);
 
 	enum { REPORT_SIZE = 4 * 4096 };
-	static Reporter acpi("acpi", "acpi", REPORT_SIZE);
+	static Reporter acpi(env, "acpi", "acpi", REPORT_SIZE);
 	acpi.enabled(true);
 
 	Genode::Reporter::Xml_generator xml(acpi, [&] () {
