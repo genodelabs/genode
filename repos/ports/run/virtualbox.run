@@ -3,6 +3,10 @@ set use_ps2 [have_spec ps2]
 set use_usb 0
 set use_serial 0
 
+set virtualbox_binary "virtualbox-rem"
+if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
+if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+
 set build_components {
 	core init virtualbox
 	drivers/framebuffer
@@ -116,7 +120,10 @@ append_if [expr $use_serial] config {
 }
 
 append config {
-	<start name="virtualbox" priority="-2">
+	<start name="virtualbox" priority="-2">}
+append config "
+		<binary name=\"$virtualbox_binary\"/>"
+append config {
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
@@ -139,7 +146,9 @@ install_config $config
 
 exec cp ${genode_dir}/repos/ports/run/test.vbox bin/.
 
-set boot_modules { core ld.lib.so init timer virtualbox test.iso test.vbox }
+set boot_modules { core ld.lib.so init timer test.iso test.vbox }
+
+append boot_modules $virtualbox_binary
 
 # platform-specific modules
 lappend_if [expr         $use_usb] boot_modules usb_drv

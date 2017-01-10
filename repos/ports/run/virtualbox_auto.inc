@@ -324,10 +324,10 @@ append boot_modules {
 lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs
-lappend_if [expr $use_vbox4] boot_modules virtualbox
+lappend_if [expr $use_vbox4] boot_modules $virtualbox_binary
 lappend_if [expr $use_vbox5] boot_modules virtualbox5
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
-lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules ${overlay_image}
+lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
 lappend_if [expr    $use_cpu_load] boot_modules trace_subject_reporter
 lappend_if [expr    $use_cpu_load] boot_modules cpu_load_display
 

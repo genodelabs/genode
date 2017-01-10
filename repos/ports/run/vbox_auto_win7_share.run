@@ -68,6 +68,10 @@ if {(![have_spec nova] && ![have_spec muen])} {
 	exit 0
 }
 
+set virtualbox_binary "virtualbox-rem"
+if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
+if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+
 set flavor   "win7"
 
 set use_vbox4 1
@@ -207,8 +211,10 @@ set config_of_app {
 		<config> <rom/> </config>
 	</start>
 
-	<start name="vbox" priority="-2">
-		<binary name="virtualbox"/>
+	<start name="vbox" priority="-2">}
+append config_of_app "
+		<binary name=\"$virtualbox_binary\"/>"
+append config_of_app {
 		<resource name="RAM" quantum="1280M"/>
 		<config vbox_file="vm_auto_share.vbox" vm_name="AutoDisk">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
