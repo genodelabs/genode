@@ -60,7 +60,7 @@ struct Decorator::Main : Window_factory_base
 
 	Window_base::Hover _hover;
 
-	Reporter _hover_reporter = { "hover" };
+	Reporter _hover_reporter = { _env, "hover" };
 
 	/**
 	 * Nitpicker connection used to sync animations
@@ -73,9 +73,9 @@ struct Decorator::Main : Window_factory_base
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Theme _theme { _heap };
+	Theme _theme { _env.ram(), _env.rm(), _heap };
 
-	Reporter _decorator_margins_reporter = { "decorator_margins" };
+	Reporter _decorator_margins_reporter = { _env, "decorator_margins" };
 
 	/**
 	 * Process the update every 'frame_period' nitpicker sync signals. The
@@ -166,8 +166,8 @@ struct Decorator::Main : Window_factory_base
 	Window_base *create(Xml_node window_node) override
 	{
 		return new (_heap)
-			Window(attribute(window_node, "id", 0UL), _nitpicker, _animator,
-			       _env.ram(), _theme, _decorator_config);
+			Window(_env, attribute(window_node, "id", 0UL), _nitpicker, _animator,
+			       _theme, _decorator_config);
 	}
 
 	/**

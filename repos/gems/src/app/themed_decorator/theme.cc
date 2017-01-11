@@ -36,31 +36,33 @@ struct Texture_from_png_file
 	typedef Genode::Texture<Genode::Pixel_rgb888> Texture;
 
 	File       png_file;
-	Png_image  png_image { png_file.data<void>() };
+	Png_image  png_image;
 	Texture   &texture { *png_image.texture<Genode::Pixel_rgb888>() };
 
-	Texture_from_png_file(char const *path, Genode::Allocator &alloc)
+	Texture_from_png_file(Genode::Ram_session &ram, Genode::Region_map &rm,
+	                      Genode::Allocator &alloc, char const *path)
 	:
-		png_file(path, alloc)
+		png_file(path, alloc), png_image(ram, rm, alloc, png_file.data<void>())
 	{ }
 };
 
 
 static Genode::Texture<Genode::Pixel_rgb888> const &
-texture_by_id(Texture_id texture_id, Genode::Allocator &alloc)
+texture_by_id(Genode::Ram_session &ram, Genode::Region_map &rm,
+              Genode::Allocator &alloc, Texture_id texture_id)
 {
 	if (texture_id == TEXTURE_ID_DEFAULT) {
-		static Texture_from_png_file texture("theme/default.png", alloc);
+		static Texture_from_png_file texture(ram, rm, alloc, "theme/default.png");
 		return texture.texture;
 	}
 
 	if (texture_id == TEXTURE_ID_CLOSER) {
-		static Texture_from_png_file texture("theme/closer.png", alloc);
+		static Texture_from_png_file texture(ram, rm, alloc, "theme/closer.png");
 		return texture.texture;
 	}
 
 	if (texture_id == TEXTURE_ID_MAXIMIZER) {
-		static Texture_from_png_file texture("theme/maximizer.png", alloc);
+		static Texture_from_png_file texture(ram, rm, alloc, "theme/maximizer.png");
 		return texture.texture;
 	}
 
@@ -70,14 +72,15 @@ texture_by_id(Texture_id texture_id, Genode::Allocator &alloc)
 
 
 static Genode::Texture<Genode::Pixel_rgb888> const &
-texture_by_element_type(Decorator::Theme::Element_type type, Genode::Allocator &alloc)
+texture_by_element_type(Genode::Ram_session &ram, Genode::Region_map &rm,
+                        Genode::Allocator &alloc, Decorator::Theme::Element_type type)
 {
 	switch (type) {
 	case Decorator::Theme::ELEMENT_TYPE_CLOSER:
-		return texture_by_id(TEXTURE_ID_CLOSER, alloc);
+		return texture_by_id(ram, rm, alloc, TEXTURE_ID_CLOSER);
 
 	case Decorator::Theme::ELEMENT_TYPE_MAXIMIZER:
-		return texture_by_id(TEXTURE_ID_MAXIMIZER, alloc);
+		return texture_by_id(ram, rm, alloc, TEXTURE_ID_MAXIMIZER);
 	}
 	struct Invalid_element_type { };
 	throw  Invalid_element_type();
@@ -106,7 +109,8 @@ Decorator::Area Decorator::Theme::background_size() const
 	if (decor_margins().none() && aura_margins().none())
 		return Decorator::Area(0, 0);
 
-	Genode::Texture<Pixel_rgb888> const &texture = texture_by_id(TEXTURE_ID_DEFAULT, _alloc);
+	Genode::Texture<Pixel_rgb888> const &texture =
+		texture_by_id(_ram, _rm, _alloc, TEXTURE_ID_DEFAULT);
 
 	return texture.size();
 }
@@ -150,7 +154,8 @@ Decorator::Rect Decorator::Theme::title_geometry() const
 
 
 static Decorator::Rect
-element_geometry(Genode::Allocator &alloc, char const *sub_node_type,
+element_geometry(Genode::Ram_session &ram, Genode::Region_map &rm,
+                 Genode::Allocator &alloc, char const *sub_node_type,
                  Texture_id texture_id)
 {
 	using namespace Decorator;
@@ -161,7 +166,7 @@ element_geometry(Genode::Allocator &alloc, char const *sub_node_type,
 		return Rect(Point(0, 0), Area(0, 0));
 
 	return Rect(point_attribute(node.sub_node(sub_node_type)),
-	            texture_by_id(texture_id, alloc).size());
+	            texture_by_id(ram, rm, alloc, texture_id).size());
 }
 
 
@@ -169,10 +174,10 @@ Decorator::Rect Decorator::Theme::element_geometry(Element_type type) const
 {
 
 	if (type == ELEMENT_TYPE_CLOSER)
-		return ::element_geometry(_alloc, "closer", TEXTURE_ID_CLOSER);
+		return ::element_geometry(_ram, _rm, _alloc, "closer", TEXTURE_ID_CLOSER);
 
 	if (type == ELEMENT_TYPE_MAXIMIZER)
-		return ::element_geometry(_alloc, "maximizer", TEXTURE_ID_MAXIMIZER);
+		return ::element_geometry(_ram, _rm, _alloc, "maximizer", TEXTURE_ID_MAXIMIZER);
 
 	struct Invalid_element_type { };
 	throw  Invalid_element_type();
@@ -191,7 +196,8 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface pixel_surface,
 	if (!background_size().valid())
 		return;
 
-	Genode::Texture<Pixel_rgb888> const &texture = texture_by_id(TEXTURE_ID_DEFAULT, _alloc);
+	Genode::Texture<Pixel_rgb888> const &texture =
+		texture_by_id(_ram, _rm, _alloc, TEXTURE_ID_DEFAULT);
 
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Rect  Rect;
@@ -280,7 +286,7 @@ void Decorator::Theme::draw_element(Decorator::Pixel_surface pixel_surface,
 		return;
 
 	Genode::Texture<Pixel_rgb888> const &texture =
-		texture_by_element_type(element_type, _alloc);
+		texture_by_element_type(_ram, _rm, _alloc, element_type);
 
 	Rect  const surface_rect(Point(0, 0), pixel_surface.size());
 	Rect  const element_rect = element_geometry(element_type);

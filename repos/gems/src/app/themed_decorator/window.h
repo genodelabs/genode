@@ -45,7 +45,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 {
 	private:
 
-		Genode::Ram_session &_ram;
+		Genode::Env &_env;
 
 		Theme const &_theme;
 
@@ -231,14 +231,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 * Nitpicker session that contains the upper and lower window
 		 * decorations.
 		 */
-		Nitpicker::Connection _nitpicker_top_bottom;
+		Nitpicker::Connection _nitpicker_top_bottom { _env };
 		Genode::Constructible<Nitpicker_buffer> _buffer_top_bottom;
 
 		/**
 		 * Nitpicker session that contains the left and right window
 		 * decorations.
 		 */
-		Nitpicker::Connection _nitpicker_left_right;
+		Nitpicker::Connection _nitpicker_left_right { _env };
 		Genode::Constructible<Nitpicker_buffer> _buffer_left_right;
 
 		Nitpicker_view _bottom_view { _nitpicker, _nitpicker_top_bottom },
@@ -264,7 +264,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 			                                               Framebuffer::Mode::RGB565),
 			                             use_alpha);
 
-			_buffer_top_bottom.construct(_nitpicker_top_bottom, size_top_bottom, _ram);
+			_buffer_top_bottom.construct(_nitpicker_top_bottom, size_top_bottom,
+			                             _env.ram(), _env.rm());
 
 			Area const size_left_right(outer_size.w() - inner_size.w(),
 			                           outer_size.h());
@@ -274,7 +275,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 			                                               Framebuffer::Mode::RGB565),
 			                             use_alpha);
 
-			_buffer_left_right.construct(_nitpicker_left_right, size_left_right, _ram);
+			_buffer_left_right.construct(_nitpicker_left_right, size_left_right,
+			                             _env.ram(), _env.rm());
 		}
 
 		void _repaint_decorations(Nitpicker_buffer &buffer)
@@ -314,13 +316,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 	public:
 
-		Window(unsigned id, Nitpicker::Session_client &nitpicker,
-		       Animator &animator, Genode::Ram_session &ram,
-		       Theme const &theme, Config const &config)
+		Window(Genode::Env &env, unsigned id, Nitpicker::Session_client &nitpicker,
+		       Animator &animator, Theme const &theme, Config const &config)
 		:
 			Window_base(id),
 			Animator::Item(animator),
-			_ram(ram), _theme(theme), _animator(animator),
+			_env(env),_theme(theme), _animator(animator),
 			_nitpicker(nitpicker), _config(config)
 		{
 			_reallocate_nitpicker_buffers();
