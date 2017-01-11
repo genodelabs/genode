@@ -59,11 +59,11 @@ struct Menu_view::Main
 	Signal_handler<Main> _dialog_update_handler = {
 		_env.ep(), *this, &Main::_handle_dialog_update};
 
-	Style_database _styles;
+	Heap _heap { _env.ram(), _env.rm() };
+
+	Style_database _styles { _env.ram(), _env.rm(), _heap };
 
 	Animator _animator;
-
-	Heap _heap { _env.ram(), _env.rm() };
 
 	Widget_factory _widget_factory { _heap, _styles, _animator };
 
@@ -71,7 +71,7 @@ struct Menu_view::Main
 
 	Attached_rom_dataspace _dialog_rom { _env, "dialog" };
 
-	Attached_dataspace _input_ds { _nitpicker.input()->dataspace() };
+	Attached_dataspace _input_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
 	Widget::Unique_id _hovered;
 
@@ -107,7 +107,7 @@ struct Menu_view::Main
 	Signal_handler<Main> _frame_timer_handler = {
 		_env.ep(), *this, &Main::_handle_frame_timer};
 
-	Genode::Reporter _hover_reporter = { "hover" };
+	Genode::Reporter _hover_reporter = { _env, "hover" };
 
 	bool _schedule_redraw = false;
 
@@ -254,7 +254,7 @@ void Menu_view::Main::_handle_frame_timer()
 		Area const size     = _root_widget.min_size();
 
 		if (!_buffer.constructed() || size != old_size)
-			_buffer.construct(_nitpicker, size, _env.ram());
+			_buffer.construct(_nitpicker, size, _env.ram(), _env.rm());
 		else
 			_buffer->reset_surface();
 

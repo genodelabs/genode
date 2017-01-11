@@ -44,6 +44,7 @@ struct Nitpicker_buffer
 	typedef Genode::Attached_ram_dataspace Ram_ds;
 
 	Genode::Ram_session &ram;
+	Genode::Region_map  &rm;
 
 	Nitpicker::Connection &nitpicker;
 
@@ -65,7 +66,7 @@ struct Nitpicker_buffer
 		return nitpicker.framebuffer()->dataspace();
 	}
 
-	Genode::Attached_dataspace fb_ds { _ds_cap(nitpicker) };
+	Genode::Attached_dataspace fb_ds { rm, _ds_cap(nitpicker) };
 
 	Genode::size_t pixel_surface_num_bytes() const
 	{
@@ -77,16 +78,30 @@ struct Nitpicker_buffer
 		return size().count();
 	}
 
-	Ram_ds pixel_surface_ds { &ram, pixel_surface_num_bytes() };
-	Ram_ds alpha_surface_ds { &ram, alpha_surface_num_bytes() };
+	Ram_ds pixel_surface_ds { ram, rm, pixel_surface_num_bytes() };
+	Ram_ds alpha_surface_ds { ram, rm, alpha_surface_num_bytes() };
 
 	/**
 	 * Constructor
 	 */
 	Nitpicker_buffer(Nitpicker::Connection &nitpicker, Area size,
-	                 Genode::Ram_session &ram)
+	                 Genode::Ram_session &ram, Genode::Region_map &rm)
 	:
-		ram(ram), nitpicker(nitpicker),
+		ram(ram), rm(rm), nitpicker(nitpicker),
+		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
+		     nitpicker.mode().format())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \deprecated
+	 * \noapi
+	 */
+	Nitpicker_buffer(Nitpicker::Connection &nitpicker, Area size,
+	                 Genode::Ram_session &ram) __attribute__((deprecated))
+	:
+		ram(ram), rm(*Genode::env_deprecated()->rm_session()), nitpicker(nitpicker),
 		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
 		     nitpicker.mode().format())
 	{ }

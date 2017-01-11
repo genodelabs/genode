@@ -42,11 +42,12 @@ class Menu_view::Style_database
 			 *
 			 * \throw Reading_failed
 			 */
-			Texture_entry(char const *path, Allocator &alloc)
+			Texture_entry(Ram_session &ram, Region_map &rm,
+			              Allocator &alloc, char const *path)
 			:
 				path(path),
 				png_file(path, alloc),
-				png_image(png_file.data<void>()),
+				png_image(ram, rm, alloc, png_file.data<void>()),
 				texture(*png_image.texture<Pixel_rgb888>())
 			{ }
 		};
@@ -69,6 +70,10 @@ class Menu_view::Style_database
 				font(tff_file.data<char>())
 			{ }
 		};
+
+		Ram_session &_ram;
+		Region_map  &_rm;
+		Allocator   &_alloc;
 
 		/*
 		 * The list is mutable because it is populated as a side effect of
@@ -103,6 +108,11 @@ class Menu_view::Style_database
 
 	public:
 
+		Style_database(Ram_session &ram, Region_map &rm, Allocator &alloc)
+		:
+			_ram(ram), _rm(rm), _alloc(alloc)
+		{ }
+
 		Texture<Pixel_rgb888> const *texture(Xml_node node, char const *png_name) const
 		{
 			Path const path = _construct_path(node, png_name, "png");
@@ -114,8 +124,8 @@ class Menu_view::Style_database
 			 * Load and remember PNG image
 			 */
 			try {
-				Texture_entry *e = new (env()->heap())
-					Texture_entry(path.string(), *env()->heap());
+				Texture_entry *e = new (_alloc)
+					Texture_entry(_ram, _rm, _alloc, path.string());
 
 				_textures.insert(e);
 				return &e->texture;
@@ -140,8 +150,8 @@ class Menu_view::Style_database
 			 * Load and remember font
 			 */
 			try {
-				Font_entry *e = new (env()->heap())
-					Font_entry(path.string(), *env()->heap());
+				Font_entry *e = new (_alloc)
+					Font_entry(path.string(), _alloc);
 
 				_fonts.insert(e);
 				return &e->font;

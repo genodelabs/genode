@@ -17,14 +17,15 @@
 #include <os/texture.h>
 
 template <typename PT>
-static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst)
+static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst,
+                  Genode::Allocator &alloc)
 {
 	/* sanity check to prevent division by zero */
 	if (dst.size().count() == 0)
 		return;
 
 	Genode::size_t const row_num_bytes = dst.size().w()*4;
-	unsigned char *row = (unsigned char *)Genode::env()->heap()->alloc(row_num_bytes);
+	unsigned char *row = (unsigned char *)alloc.alloc(row_num_bytes);
 
 	unsigned const mx = (src.size().w() << 16) / dst.size().w();
 	unsigned const my = (src.size().h() << 16) / dst.size().h();
@@ -53,21 +54,34 @@ static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst)
 		dst.rgba(row, dst.size().w(), y);
 	}
 
-	Genode::env()->heap()->free(row, row_num_bytes);
+	alloc.free(row, row_num_bytes);
+}
+
+
+/*
+ * \deprecated
+ */
+template <typename PT>
+static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst) __attribute__ ((deprecated));
+template <typename PT>
+static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst)
+{
+	scale(src, dst, *Genode::env_deprecated()->heap());
 }
 
 
 template <typename SRC_PT, typename DST_PT>
 static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
                                  Genode::Texture<DST_PT>       &dst,
-                                 unsigned                       alpha)
+                                 unsigned                       alpha,
+                                 Genode::Allocator             &alloc)
 {
 	/* sanity check */
 	if (src.size() != dst.size())
 		return;
 
 	Genode::size_t const row_num_bytes = dst.size().w()*4;
-	unsigned char *row = (unsigned char *)Genode::env()->heap()->alloc(row_num_bytes);
+	unsigned char *row = (unsigned char *)alloc.alloc(row_num_bytes);
 
 	/* shortcuts */
 	unsigned const w = dst.size().w(), h = dst.size().h();
@@ -91,7 +105,23 @@ static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
 		dst.rgba(row, w, y);
 	}
 
-	Genode::env()->heap()->free(row, row_num_bytes);
+	alloc.free(row, row_num_bytes);
+}
+
+
+/*
+ * deprecated
+ */
+template <typename SRC_PT, typename DST_PT>
+static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
+                                 Genode::Texture<DST_PT>       &dst,
+                                 unsigned                       alpha) __attribute__((deprecated));
+template <typename SRC_PT, typename DST_PT>
+static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
+                                 Genode::Texture<DST_PT>       &dst,
+                                 unsigned                       alpha)
+{
+	convert_pixel_format(src, dst, alpha, *Genode::env_deprecated()->heap());
 }
 
 #endif /* _INCLUDE__GEMS__TEXTURE_UTILS_H_ */
