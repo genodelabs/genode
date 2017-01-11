@@ -21,9 +21,7 @@
 
 #include <base/allocator.h>
 #include <base/service.h>
-#include <base/printf.h>
 #include <base/lock.h>
-#include <cap_session/connection.h>
 #include <timer_session/timer_session.h>
 #include <pd_session/client.h>
 #include <init/child.h>

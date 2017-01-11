@@ -14,14 +14,17 @@
 #ifndef _SERVICES_H_
 #define _SERVICES_H_
 
-#include <base/rpc_server.h>
+#include <base/component.h>
+#include <base/allocator.h>
 #include <scout/canvas.h>
 
 #include "elements.h"
 
 extern Scout::Element *window_content();
-extern void init_window_content(unsigned fb_w, unsigned fb_h, bool config_alpha);
-extern void init_services(Genode::Rpc_entrypoint &ep);
+extern void init_window_content(Genode::Ram_session &, Genode::Region_map &,
+                                Genode::Allocator &, Input::Session_component &,
+                                unsigned fb_w, unsigned fb_h, bool config_alpha);
+extern void init_services(Genode::Env &, Input::Session_component &);
 extern void lock_window_content();
 extern void unlock_window_content();
 

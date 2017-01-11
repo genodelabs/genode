@@ -14,12 +14,14 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-namespace Scout { namespace Config {
-	extern int iconbar_detail;
-	extern int background_detail;
-	extern int mouse_cursor;
-	extern int browser_attr;
-} }
+namespace Scout { struct Config; }
 
+
+struct Scout::Config
+{
+	bool background_detail = 1;
+	bool mouse_cursor      = 0;
+	int browser_attr       = 7;
+};
 
 #endif /* _CONFIG_H_ */

@@ -232,15 +232,15 @@ template <typename PT>
 Browser_window<PT>::Browser_window(Document *initial_content,
                                    Graphics_backend &gfx_backend,
                                    Point position, Area size,
-                                   Area max_size, int attr)
+                                   Area max_size, Config const &config)
 :
 	Browser(_IH + _TH), Window(gfx_backend, position, size, max_size, true),
+	_config(config),
 	_gfx_backend(gfx_backend)
 {
 	/* init attributes */
 	_ypos     = 0;
 	_document = initial_content;
-	_attr     = attr;
 
 	/* init docview and history with initial document */
 	_docview.texture(&_texture);

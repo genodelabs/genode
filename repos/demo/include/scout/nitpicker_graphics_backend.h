@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <nitpicker_session/connection.h>
 #include <os/pixel_rgb565.h>
+#include <base/attached_dataspace.h>
 
 /* Scout includes */
 #include <scout/graphics_backend.h>
@@ -32,6 +33,8 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 {
 	private:
 
+		Genode::Region_map &_local_rm;
+
 		Nitpicker::Connection &_nitpicker;
 
 		Genode::Dataspace_capability _init_fb_ds(Area max_size)
@@ -43,20 +46,13 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 
 		Area _max_size;
 
-		Genode::Dataspace_capability _fb_ds = { _init_fb_ds(_max_size) };
-
-		void *_map_fb_ds()
-		{
-			return Genode::env()->rm_session()->attach(_fb_ds);
-		}
-
-		void *_fb_local_base = { _map_fb_ds() };
+		Genode::Attached_dataspace _fb_ds { _local_rm, _init_fb_ds(_max_size) };
 
 		typedef Nitpicker::Session::View_handle View_handle;
 
 		Point        _position;
 		Area         _view_size;
-		View_handle  _view;
+		View_handle  _view { _nitpicker.create_view() };
 		Canvas_base *_canvas[2];
 		bool         _flip_state = { false };
 
@@ -83,7 +79,7 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 		template <typename PT>
 		PT *_base(unsigned idx)
 		{
-			return (PT *)_fb_local_base + idx*_max_size.count();
+			return (PT *)_fb_ds.local_addr<PT>() + idx*_max_size.count();
 		}
 
 		unsigned _front_idx() const { return _flip_state ? 1 : 0; }
@@ -91,20 +87,27 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 
 	public:
 
-		Nitpicker_graphics_backend(Nitpicker::Connection &nitpicker,
+		/**
+		 * Constructor
+		 *
+		 * \param alloc  allocator used for allocating textures
+		 */
+		Nitpicker_graphics_backend(Genode::Region_map &local_rm,
+		                           Nitpicker::Connection &nitpicker,
+		                           Genode::Allocator &alloc,
 		                           Area max_size, Point position, Area view_size)
 		:
+			_local_rm(local_rm),
 			_nitpicker(nitpicker),
 			_max_size(max_size),
 			_position(position),
-			_view_size(view_size),
-			_view(_nitpicker.create_view())
+			_view_size(view_size)
 		{
 			bring_to_front();
 
 			typedef Genode::Pixel_rgb565 PT;
-			static Canvas<PT> canvas_0(_base<PT>(0), max_size);
-			static Canvas<PT> canvas_1(_base<PT>(1), max_size);
+			static Canvas<PT> canvas_0(_base<PT>(0), max_size, alloc);
+			static Canvas<PT> canvas_1(_base<PT>(1), max_size, alloc);
 
 			_canvas[0] = &canvas_0;
 			_canvas[1] = &canvas_1;
@@ -115,8 +118,8 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 		 ** Graphics_backend interface **
 		 ********************************/
 
-		Canvas_base &front() { return *_canvas[_front_idx()]; }
-		Canvas_base &back()  { return *_canvas[ _back_idx()]; }
+		Canvas_base &front() override { return *_canvas[_front_idx()]; }
+		Canvas_base &back()  override { return *_canvas[ _back_idx()]; }
 
 		void copy_back_to_front(Rect rect)
 		{

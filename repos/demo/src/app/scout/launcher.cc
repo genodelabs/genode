@@ -21,6 +21,11 @@
 using namespace Genode;
 using namespace Scout;
 
+/* initialized by 'Launcher::init' */
+static Launchpad *_launchpad_ptr;
+static Allocator *_alloc_ptr;
+static Env       *_env_ptr;
+
 
 /**********************************************
  ** Registry containing child configurations **
@@ -55,7 +60,7 @@ struct Config_registry::Entry : List<Config_registry::Entry>::Element
 		snprintf(buf, sizeof(buf), "%s.config", name);
 		Rom_connection *config = 0;
 		try {
-			config = new (env()->heap()) Rom_connection(buf);
+			config = new (*_alloc_ptr) Rom_connection(*_env_ptr, buf);
 			return config->dataspace();
 		}
 		catch (...) { }
@@ -80,7 +85,7 @@ Dataspace_capability Config_registry::config(char const *name)
 			return e->dataspace;
 
 	/* if lookup failed, create and register new config */
-	Entry *entry = new (env()->heap()) Entry(name);
+	Entry *entry = new (*_alloc_ptr) Entry(name);
 	_configs.insert(entry);
 
 	return entry->dataspace;
@@ -91,25 +96,12 @@ Dataspace_capability Config_registry::config(char const *name)
  ** Launcher interface **
  ************************/
 
-
-static Launchpad *launchpad_ptr;
-
-
-static Launchpad &launchpad()
-{
-	if (!launchpad_ptr) {
-		class Missing_launchpad_init_call { };
-		throw Missing_launchpad_init_call();
-	}
-
-	return *launchpad_ptr;
-}
-
-
-void Launcher::init(Genode::Env &env)
+void Launcher::init(Genode::Env &env, Allocator &alloc)
 {
 	static Launchpad launchpad(env, env.ram().avail());
-	launchpad_ptr = &launchpad;
+	_launchpad_ptr = &launchpad;
+	_alloc_ptr     = &alloc;
+	_env_ptr       = &env;
 }
 
 
@@ -117,6 +109,11 @@ void Launcher::launch()
 {
 	static Config_registry config_registry;
 
-	launchpad().start_child(prg_name(), quota(),
-	                        config_registry.config(prg_name().string()));
+	if (!_launchpad_ptr) {
+		class Missing_launchpad_init_call { };
+		throw Missing_launchpad_init_call();
+	}
+
+	_launchpad_ptr->start_child(prg_name(), quota(),
+	                            config_registry.config(prg_name().string()));
 }

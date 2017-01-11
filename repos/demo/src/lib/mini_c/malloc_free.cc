@@ -11,10 +11,25 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
+#include <base/log.h>
 #include <util/string.h>
+#include <mini_c/init.h>
 
 using namespace Genode;
+
+static Allocator *_alloc_ptr;
+static Allocator &alloc()
+{
+	if (_alloc_ptr)
+		return *_alloc_ptr;
+
+	error("missing call of mini_c_init");
+	class Missing_mini_c_init { };
+	throw Missing_mini_c_init();
+}
+
+
+void mini_c_init(Allocator &alloc) { _alloc_ptr = &alloc; }
 
 
 extern "C" void *malloc(unsigned size)
@@ -27,7 +42,7 @@ extern "C" void *malloc(unsigned size)
 	 */
 	unsigned long real_size = size + sizeof(unsigned long);
 	void *addr = 0;
-	if (!env()->heap()->alloc(real_size, &addr))
+	if (!alloc().alloc(real_size, &addr))
 		return 0;
 
 	*(unsigned long *)addr = real_size;
@@ -46,5 +61,5 @@ extern "C" void *calloc(unsigned nmemb, unsigned size)
 extern "C" void free(void *ptr)
 {
 	unsigned long *addr = ((unsigned long *)ptr) - 1;
-	env()->heap()->free(addr, *addr);
+	alloc().free(addr, *addr);
 }

@@ -12,14 +12,11 @@
  */
 
 #include <util/arg_string.h>
-#include <base/env.h>
-#include <base/sleep.h>
-#include <base/lock.h>
+#include <base/component.h>
 #include <base/heap.h>
-#include <base/snprintf.h>
 #include <base/rpc_server.h>
+#include <base/session_label.h>
 #include <root/component.h>
-#include <cap_session/connection.h>
 #include <log_session/log_session.h>
 #include <nitpicker_session/connection.h>
 #include <timer_session/connection.h>
@@ -48,6 +45,18 @@ typedef Genode::Color               Color;
  */
 extern char _binary_mono_tff_start;
 Font default_font(&_binary_mono_tff_start);
+
+
+namespace Nitlog {
+
+	class Session_component;
+	class Root;
+	struct Main;
+
+	using namespace Genode;
+}
+
+
 
 
 /**
@@ -248,81 +257,82 @@ class Log_window
 };
 
 
-class Log_session_component : public Genode::Rpc_object<Genode::Log_session>
+class Nitlog::Session_component : public Rpc_object<Log_session>
 {
-	public:
-
-		enum { LABEL_LEN = 64 };
-
 	private:
 
-		Genode::Color _color;
-		Log_window   *_log_window;
-		char          _label[LABEL_LEN];
-		int           _id;
+		Log_window &_log_window;
+
+		Session_label const _label;
+
+		int const _id;
 
 		static int _bit(int v, int bit_num) { return (v >> bit_num) & 1; }
+
+		/**
+		 * Compute session color
+		 */
+		static Color _session_color(int id)
+		{
+			int const scale  = 32;
+			int const offset = 64;
+
+			int r = (_bit(id, 3) + 2*_bit(id, 0))*scale + offset;
+			int g = (_bit(id, 4) + 2*_bit(id, 1))*scale + offset;
+			int b = (_bit(id, 5) + 2*_bit(id, 2))*scale + offset;
+
+			return Color(r, g, b);
+		}
+
+		Color const _color = _session_color(_id);
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Log_session_component(const char *label, Log_window *log_window)
-		: _color(0, 0, 0), _log_window(log_window)
-		{
-			static int cnt;
-
-			_id = cnt++;
-
-			const int scale  = 32;
-			const int offset = 64;
-
-			/* compute session color */
-			int r = (_bit(_id, 3) + 2*_bit(_id, 0))*scale + offset;
-			int g = (_bit(_id, 4) + 2*_bit(_id, 1))*scale + offset;
-			int b = (_bit(_id, 5) + 2*_bit(_id, 2))*scale + offset;
-
-			_color = Genode::Color(r, g, b);
-
-			Genode::strncpy(_label, label, sizeof(_label));
-		}
+		Session_component(Session_label const &label,
+		                  Log_window &log_window, int &cnt)
+		:
+			_log_window(log_window), _label(label), _id(cnt++)
+		{ }
 
 
 		/***************************
 		 ** Log session interface **
 		 ***************************/
 
-		Genode::size_t write(String const &log_text)
+		size_t write(String const &log_text)
 		{
 			if (!log_text.valid_string()) {
-				Genode::error("corrupted string");
+				error("corrupted string");
 				return 0;
 			}
 
-			_log_window->write(_color, _label, log_text.string(), _id);
-			return Genode::strlen(log_text.string());
+			_log_window.write(_color, _label.string(), log_text.string(), _id);
+			return strlen(log_text.string());
 		}
 };
 
 
-class Log_root_component : public Genode::Root_component<Log_session_component>
+class Nitlog::Root : public Root_component<Session_component>
 {
 	private:
 
-		Log_window *_log_window;
+		Log_window &_log_window;
+
+		/* session counter, used as a key to generate session colors */
+		int _session_cnt = 0;
 
 	protected:
 
-		Log_session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args)
 		{
-			Genode::log("create log session args: ", args);
-			char label_buf[Log_session_component::LABEL_LEN];
+			log("create log session args: ", args);
 
-			Genode::Arg label_arg = Genode::Arg_string::find_arg(args, "label");
-			label_arg.string(label_buf, sizeof(label_buf), "");
-
-			return new (md_alloc()) Log_session_component(label_buf, _log_window);
+			return new (md_alloc())
+				Session_component(label_from_args(args),
+				                  _log_window, _session_cnt);
 		}
 
 	public:
@@ -330,12 +340,11 @@ class Log_root_component : public Genode::Root_component<Log_session_component>
 		/**
 		 * Constructor
 		 */
-		Log_root_component(Genode::Rpc_entrypoint *ep,
-		                   Genode::Allocator      *md_alloc,
-		                   Log_window             *log_window)
+		Root(Entrypoint &ep, Allocator &md_alloc, Log_window &log_window)
 		:
-			Genode::Root_component<Log_session_component>(ep, md_alloc),
-			_log_window(log_window) { }
+			Root_component<Session_component>(ep, md_alloc),
+			_log_window(log_window)
+		{ }
 };
 
 
@@ -382,91 +391,109 @@ class Log_view
 };
 
 
-int main(int argc, char **argv)
+struct Nitlog::Main
 {
-	using namespace Genode;
-
-	/* make sure that we connect to LOG before providing this service by ourself */
-	log("--- nitlog ---");
+	Env &_env;
 
 	/* calculate size of log view in pixels */
-	int log_win_w = default_font.str_w(" ") * LOG_W + 2;
-	int log_win_h = default_font.str_h(" ") * LOG_H + 2;
+	unsigned const _win_w = default_font.str_w(" ") * LOG_W + 2;
+	unsigned const _win_h = default_font.str_h(" ") * LOG_H + 2;
 
 	/* init sessions to the required external services */
-	static Nitpicker::Connection nitpicker;
-	static     Timer::Connection timer;
+	Nitpicker::Connection _nitpicker { _env };
+	Timer::Connection     _timer     { _env };
 
-	nitpicker.buffer(Framebuffer::Mode(log_win_w, log_win_h,
-	                 Framebuffer::Mode::RGB565), false);
+	void _init_nitpicker_buffer()
+	{
+		_nitpicker.buffer(Framebuffer::Mode(_win_w, _win_h,
+		                  Framebuffer::Mode::RGB565), false);
+	}
 
-	/* initialize entry point that serves the root interface */
-	enum { STACK_SIZE = 4096*sizeof(long) };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nitlog_ep");
+	bool const _nitpicker_buffer_initialized = (_init_nitpicker_buffer(), true);
 
-	/*
-	 * Use sliced heap to allocate each session component at a separate
-	 * dataspace.
-	 */
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create log window */
-	void *addr = env()->rm_session()->attach(nitpicker.framebuffer()->dataspace());
+	Attached_dataspace _fb_ds { _env.rm(), _nitpicker.framebuffer()->dataspace() };
 
-	static Canvas<Pixel_rgb565> canvas((Pixel_rgb565 *)addr,
-	                                          ::Area(log_win_w, log_win_h));
-	static Log_window log_window(canvas);
+	Canvas<Pixel_rgb565> _canvas { _fb_ds.local_addr<Pixel_rgb565>(),
+	                               ::Area(_win_w, _win_h) };
 
-	/*
-	 * We clip a border of one pixel off the canvas. This way, the
-	 * border remains unaffected by the drawing operations and
-	 * acts as an outline for the log window.
-	 */
-	canvas.clip(::Rect(::Point(1, 1), ::Area(log_win_w - 2, log_win_h - 2)));
+	Log_window _log_window { _canvas };
+
+	void _init_canvas()
+	{
+		/*
+		 * We clip a border of one pixel off the canvas. This way, the
+		 * border remains unaffected by the drawing operations and
+		 * acts as an outline for the log window.
+		 */
+		_canvas.clip(::Rect(::Point(1, 1), ::Area(_win_w - 2, _win_h - 2)));
+	}
+
+	bool const _canvas_initialized = (_init_canvas(), true);
 
 	/* create view for log window */
-	Nitpicker::Rect log_view_geometry(Nitpicker::Point(20, 20),
-	                                  Nitpicker::Area(log_win_w, log_win_h));
-	Log_view log_view(nitpicker, log_view_geometry);
+	Nitpicker::Rect const _view_geometry { Nitpicker::Point(20, 20),
+	                                       Nitpicker::Area(_win_w, _win_h) };
+	Log_view _view { _nitpicker, _view_geometry };
 
 	/* create root interface for service */
-	static Log_root_component log_root(&ep, &sliced_heap, &log_window);
+	Root _root { _env.ep(), _sliced_heap, _log_window };
 
-	/* announce service at our parent */
-	env()->parent()->announce(ep.manage(&log_root));
+	Attached_dataspace _ev_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
-	/* handle input events */
-	Input::Event *ev_buf = env()->rm_session()->attach(nitpicker.input()->dataspace());
-	Nitpicker::Point old_mouse_pos;
-	unsigned key_cnt = 0;
-	while (1) {
+	Nitpicker::Point _old_mouse_pos;
+	unsigned _key_cnt = 0;
 
-		while (!nitpicker.input()->pending()) {
-			if (log_window.draw())
-				nitpicker.framebuffer()->refresh(0, 0, log_win_w, log_win_h);
-			timer.msleep(20);
-		}
+	Signal_handler<Main> _input_handler {
+		_env.ep(), *this, &Main::_handle_input };
 
-		for (int i = 0, num_ev = nitpicker.input()->flush(); i < num_ev; i++) {
+	void _handle_input()
+	{
+		Input::Event const *ev_buf = _ev_ds.local_addr<Input::Event const>();
 
-			Input::Event *ev = &ev_buf[i];
+		for (int i = 0, num_ev = _nitpicker.input()->flush(); i < num_ev; i++) {
 
-			if (ev->type() == Input::Event::PRESS)   key_cnt++;
-			if (ev->type() == Input::Event::RELEASE) key_cnt--;
+			Input::Event const &ev = ev_buf[i];
 
-			Nitpicker::Point mouse_pos(ev->ax(), ev->ay());
+			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
+			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
+
+			Nitpicker::Point mouse_pos(ev.ax(), ev.ay());
 
 			/* move view */
-			if (ev->type() == Input::Event::MOTION && key_cnt > 0)
-				log_view.move(log_view.pos() + mouse_pos - old_mouse_pos);
+			if (ev.type() == Input::Event::MOTION && _key_cnt > 0)
+				_view.move(_view.pos() + mouse_pos - _old_mouse_pos);
 
 			/* find selected view and bring it to front */
-			if (ev->type() == Input::Event::PRESS && key_cnt == 1)
-				log_view.top();
+			if (ev.type() == Input::Event::PRESS && _key_cnt == 1)
+				_view.top();
 
-			old_mouse_pos = mouse_pos;
+			_old_mouse_pos = mouse_pos;
 		}
 	}
-	return 0;
-}
+
+	Signal_handler<Main> _timer_handler {
+		_env.ep(), *this, &Main::_handle_timer };
+
+	void _handle_timer()
+	{
+		if (_log_window.draw())
+			_nitpicker.framebuffer()->refresh(0, 0, _win_w, _win_h);
+	}
+
+	Main(Env &env) : _env(env)
+	{
+		/* announce service at our parent */
+		_env.parent().announce(_env.ep().manage(_root));
+
+		_timer.sigh(_timer_handler);
+		_timer.trigger_periodic(20*1000);
+
+		_nitpicker.input()->sigh(_input_handler);
+	}
+};
+
+
+void Component::construct(Genode::Env &env) { static Nitlog::Main main(env); }

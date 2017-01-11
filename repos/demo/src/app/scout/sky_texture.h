@@ -32,14 +32,18 @@ class Scout::Sky_texture : public Element
 {
 	private:
 
+		bool const _detailed;
+
 		Sky_texture_painter::Static_sky_texture<PT, TW, TH> _sky_texture;
 
 	public:
 
+		Sky_texture(bool detailed = true) : _detailed(detailed) { }
+
 		void draw(Canvas_base &canvas, Point abs_position)
 		{
 			canvas.draw_sky_texture(abs_position.y(), _sky_texture,
-			                        Config::background_detail);
+			                        _detailed);
 		}
 };
 

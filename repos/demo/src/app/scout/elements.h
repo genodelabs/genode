@@ -236,7 +236,7 @@ class Scout::Launcher : public Anchor
 
 	public:
 
-		static void init(Genode::Env &);
+		static void init(Genode::Env &, Genode::Allocator &);
 
 		/**
 		 * Constructors
@@ -402,6 +402,8 @@ class Scout::Png_image : public Element
 		Texture_base *_texture;
 
 	public:
+
+		static void init(Genode::Allocator &);
 
 		/**
 		 * Constructor

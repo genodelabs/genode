@@ -29,16 +29,6 @@
 typedef Genode::Texture<Genode::Pixel_rgb565> Texture_rgb565;
 
 
-/**
- * Return singleton instance of input session component
- */
-Input::Session_component &input_session()
-{
-	static Input::Session_component inst;
-	return inst;
-}
-
-
 class Window_content : public Scout::Element
 {
 	private:
@@ -88,18 +78,21 @@ class Window_content : public Scout::Element
 
 		struct Fb_texture
 		{
+			Genode::Allocator                    &alloc;
 			unsigned                              w, h;
 			Genode::Attached_ram_dataspace        ds;
 			Genode::Pixel_rgb565                 *pixel;
 			unsigned char                        *alpha;
 			Genode::Texture<Genode::Pixel_rgb565> texture;
 
-			Fb_texture(unsigned w, unsigned h, bool config_alpha)
+			Fb_texture(Genode::Ram_session &ram, Genode::Region_map &local_rm,
+			           Genode::Allocator &alloc,
+			           unsigned w, unsigned h, bool config_alpha)
 			:
-				w(w), h(h),
-				ds(Genode::env()->ram_session(), w*h*sizeof(Genode::Pixel_rgb565)),
+				alloc(alloc), w(w), h(h),
+				ds(ram, local_rm, w*h*sizeof(Genode::Pixel_rgb565)),
 				pixel(ds.local_addr<Genode::Pixel_rgb565>()),
-				alpha((unsigned char *)Genode::env()->heap()->alloc(w*h)),
+				alpha((unsigned char *)alloc.alloc(w*h)),
 				texture(pixel, alpha, Scout::Area(w, h))
 			{
 				int alpha_min = config_alpha ? 0 : 255;
@@ -122,14 +115,18 @@ class Window_content : public Scout::Element
 
 			~Fb_texture()
 			{
-				Genode::env()->heap()->free(alpha, w*h);
+				alloc.free(alpha, w*h);
 			}
 
 		};
 
+		Genode::Ram_session   &_ram;
+		Genode::Region_map    &_rm;
+		Genode::Allocator     &_alloc;
 		bool                   _config_alpha;
 		Content_event_handler  _ev_handler;
-		Fb_texture            *_fb;
+
+		Genode::Reconstructible<Fb_texture> _fb;
 
 		/**
 		 * Size of the framebuffer handed out by the next call of 'dataspace'
@@ -152,13 +149,15 @@ class Window_content : public Scout::Element
 
 	public:
 
-		Window_content(unsigned fb_w, unsigned fb_h,
+		Window_content(Genode::Ram_session &ram, Genode::Region_map &rm,
+		               Genode::Allocator &alloc, unsigned fb_w, unsigned fb_h,
 		               Input::Session_component &input_session,
 		               bool config_alpha)
 		:
+			_ram(ram), _rm(rm), _alloc(alloc),
 			_config_alpha(config_alpha),
 			_ev_handler(input_session, this),
-			_fb(new (Genode::env()->heap()) Fb_texture(fb_w, fb_h, _config_alpha)),
+			_fb(_ram, _rm, _alloc, fb_w, fb_h, _config_alpha),
 			_next_size(fb_w, fb_h),
 			_designated_size(_next_size)
 		{
@@ -189,10 +188,7 @@ class Window_content : public Scout::Element
 			if (_next_size.w() == _fb->w && _next_size.h() == _fb->h)
 				return;
 
-			Genode::destroy(Genode::env()->heap(), _fb);
-
-			_fb = new (Genode::env()->heap())
-			      Fb_texture(_next_size.w(), _next_size.h(), _config_alpha);
+			_fb.construct(_ram, _rm, _alloc, _next_size.w(), _next_size.h(), _config_alpha);
 		}
 
 		/**
@@ -235,8 +231,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 	public:
 
-		Session_component(Window_content &window_content)
-		: _window_content(window_content) { }
+		Session_component(Genode::Env &env, Window_content &window_content)
+		: _timer(env), _window_content(window_content) { }
 
 		Genode::Dataspace_capability dataspace() override
 		{
@@ -266,26 +262,30 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 };
 
 
-void init_window_content(unsigned fb_w, unsigned fb_h, bool config_alpha)
+void init_window_content(Genode::Ram_session &ram, Genode::Region_map &rm,
+                         Genode::Allocator &alloc,
+                         Input::Session_component &input_component,
+                         unsigned fb_w, unsigned fb_h, bool config_alpha)
 {
-	static Window_content content(fb_w, fb_h, input_session(), config_alpha);
+	static Window_content content(ram, rm, alloc, fb_w, fb_h,
+	                              input_component, config_alpha);
 	_window_content = &content;
 }
 
 
-void init_services(Genode::Rpc_entrypoint &ep)
+void init_services(Genode::Env &env, Input::Session_component &input_component)
 {
 	using namespace Genode;
 
-	static Framebuffer::Session_component fb_session(*_window_content);
-	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
+	static Framebuffer::Session_component fb_session(env, *_window_content);
+	static Static_root<Framebuffer::Session> fb_root(env.ep().manage(fb_session));
 
-	static Input::Root_component input_root(ep, input_session());
+	static Input::Root_component input_root(env.ep().rpc_ep(), input_component);
 
 	/*
 	 * Now, the root interfaces are ready to accept requests.
 	 * This is the right time to tell mummy about our services.
 	 */
-	env()->parent()->announce(ep.manage(&fb_root));
-	env()->parent()->announce(ep.manage(&input_root));
+	env.parent().announce(env.ep().manage(fb_root));
+	env.parent().announce(env.ep().manage(input_root));
 }

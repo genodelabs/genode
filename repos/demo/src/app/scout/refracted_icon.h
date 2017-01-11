@@ -30,14 +30,17 @@ class Scout::Refracted_icon : public Element
 {
 	private:
 
-		PT            *_backbuf;                 /* pixel back buffer       */
-		int            _filter_backbuf;          /* backbuf filtering flag  */
-		DT            *_distmap;                 /* distortion table        */
-		int            _distmap_w, _distmap_h;   /* size of distmap         */
-		PT            *_fg;                      /* foreground pixels       */
-		unsigned char *_fg_alpha;                /* foreground alpha values */
+		bool           _detailed = true;                /* level of detail         */
+		PT            *_backbuf = nullptr;              /* pixel back buffer       */
+		int            _filter_backbuf = 0;             /* backbuf filtering flag  */
+		DT            *_distmap = nullptr;              /* distortion table        */
+		int            _distmap_w = 0, _distmap_h = 0;  /* size of distmap         */
+		PT            *_fg = nullptr;                   /* foreground pixels       */
+		unsigned char *_fg_alpha = nullptr;             /* foreground alpha values */
 
 	public:
+
+		void detailed(bool detailed) { _detailed = detailed; }
 
 		/**
 		 * Define pixel back buffer for the icon.  This buffer is used for the
@@ -112,7 +115,7 @@ class Scout::Refracted_icon : public Element
 			Texture<PT> fg(_fg, _fg_alpha, Area(_distmap_w/2, _distmap_h/2));
 
 			canvas.draw_refracted_icon(_position + abs_position, distmap, tmp, fg,
-			                           Config::iconbar_detail, _filter_backbuf);
+			                           _detailed, _filter_backbuf);
 		}
 };
 

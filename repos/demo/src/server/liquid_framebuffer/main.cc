@@ -12,8 +12,10 @@
  */
 
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/rpc_server.h>
 #include <base/attached_rom_dataspace.h>
+#include <input/component.h>
 #include <scout/user_state.h>
 #include <scout/nitpicker_graphics_backend.h>
 
@@ -21,16 +23,9 @@
 #include "services.h"
 
 
-/**
- * Runtime configuration
- */
-namespace Scout { namespace Config
-{
-	int iconbar_detail    = 1;
-	int background_detail = 1;
-	int mouse_cursor      = 1;
-	int browser_attr      = 0;
-} }
+static Genode::Allocator *_alloc_ptr;
+
+void *operator new (__SIZE_TYPE__ n) { return _alloc_ptr->alloc(n); }
 
 
 void Scout::Launcher::launch() { }
@@ -40,27 +35,26 @@ class Background_animator : public Scout::Tick
 {
 	private:
 
-		Framebuffer_window<Scout::Pixel_rgb565> *_fb_win;
+		Framebuffer_window<Scout::Pixel_rgb565> &_fb_win;
 
-		int _bg_offset;
+		int _bg_offset = 0;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Background_animator(Framebuffer_window<Scout::Pixel_rgb565> *fb_win):
-			_fb_win(fb_win), _bg_offset(0) {
-			schedule(20); }
+		Background_animator(Framebuffer_window<Scout::Pixel_rgb565> &fb_win)
+		: _fb_win(fb_win) { schedule(20); }
 
 		/**
 		 * Tick interface
 		 */
 		int on_tick()
 		{
-			_fb_win->bg_offset(_bg_offset);
+			_fb_win.bg_offset(_bg_offset);
 			_bg_offset += 2;
-			_fb_win->refresh();
+			_fb_win.refresh();
 
 			/* schedule next tick */
 			return 1;
@@ -77,10 +71,10 @@ static bool config_alpha   = true;
 /**
  * Size and position of virtual frame buffer
  */
-static long config_fb_width  = 500;
-static long config_fb_height = 400;
-static long config_fb_x      = 400;
-static long config_fb_y      = 260;
+static unsigned long config_fb_width  = 500;
+static unsigned long config_fb_height = 400;
+static long          config_fb_x      = 400;
+static long          config_fb_y      = 260;
 
 /**
  * Window title
@@ -171,15 +165,88 @@ struct Input_handler
 };
 
 
-class Main : public Scout::Event_handler
+namespace Liquid_fb {
+	class Main;
+	using namespace Scout;
+	using namespace Genode;
+}
+
+
+class Liquid_fb::Main : public Scout::Event_handler
 {
 	private:
 
-		Scout::Platform                          &_pf;
-		Scout::User_state                        &_user_state;
-		Framebuffer_window<Genode::Pixel_rgb565> &_fb_win;
-		Genode::Attached_rom_dataspace           &_config;
-		unsigned long                             _curr_time, _old_time;
+		Env &_env;
+
+		Heap _heap { _env.ram(), _env.rm() };
+
+		bool const _global_new_initialized = (_alloc_ptr = &_heap, true);
+
+		Attached_rom_dataspace _config { _env, "config" };
+
+		void _process_config()
+		{
+			try { read_config(_config.xml()); } catch (...) { }
+		}
+
+		bool const _config_processed = (_process_config(), true);
+
+		/* heuristic for allocating the double-buffer backing store */
+		enum { WINBORDER_WIDTH = 10, WINBORDER_HEIGHT = 40 };
+
+		Nitpicker::Connection _nitpicker { _env };
+
+		Platform _platform { _env, *_nitpicker.input() };
+
+		bool const _event_handler_registered = (_platform.event_handler(*this), true);
+
+		Scout::Area  const _max_size { config_fb_width  + WINBORDER_WIDTH,
+		                               config_fb_height + WINBORDER_HEIGHT };
+		Scout::Point const _initial_position { config_fb_x, config_fb_y };
+		Scout::Area  const _initial_size = _max_size;
+
+		Nitpicker_graphics_backend
+			_graphics_backend { _env.rm(), _nitpicker, _heap, _max_size,
+			                    _initial_position, _initial_size };
+
+		Input::Session_component _input_session_component { _env, _env.ram() };
+
+		bool const _window_content_initialized =
+			(init_window_content(_env.ram(), _env.rm(), _heap, _input_session_component,
+			                     config_fb_width, config_fb_height, config_alpha), true);
+
+		Framebuffer_window<Pixel_rgb565>
+			_fb_win { _graphics_backend, window_content(),
+			          _initial_position, _initial_size, _max_size,
+			          config_title, config_alpha,
+			          config_resize_handle, config_decoration };
+
+		/* create background animator if configured */
+		Constructible<Background_animator> _fb_win_bg_anim;
+		void _init_background_animator()
+		{
+			if (config_animate) {
+				_fb_win_bg_anim.construct(_fb_win);
+			}
+		}
+		bool _background_animator_initialized = (_init_background_animator(), true);
+
+		User_state _user_state { &_fb_win, &_fb_win,
+		                         _initial_position.x(), _initial_position.y() };
+
+		void _init_fb_win()
+		{
+			_fb_win.parent(&_user_state);
+			_fb_win.content_geometry(config_fb_x, config_fb_y,
+			                         config_fb_width, config_fb_height);
+		}
+
+		bool _fb_win_initialized = (_init_fb_win(), true);
+
+		bool _services_initialized = (init_services(_env, _input_session_component), true);
+
+		unsigned long _curr_time = _platform.timer_ticks();
+		unsigned long _old_time  = _curr_time;
 
 		void _handle_config()
 		{
@@ -204,26 +271,10 @@ class Main : public Scout::Event_handler
 			_user_state.update_view_offset();
 		}
 
-		Genode::Signal_handler<Main> _config_handler;
+		Signal_handler<Main> _config_handler {
+			_env.ep(), *this, &Main::_handle_config };
 
 	public:
-
-		Main(Scout::Platform                          &pf,
-		     Scout::User_state                        &user_state,
-		     Framebuffer_window<Genode::Pixel_rgb565> &fb_win,
-		     Genode::Entrypoint                       &ep,
-		     Genode::Attached_rom_dataspace           &config)
-		:
-			_pf(pf),
-			_user_state(user_state),
-			_fb_win(fb_win),
-			_config(config),
-			_config_handler(ep, *this, &Main::_handle_config)
-		{
-			_curr_time = _old_time = _pf.timer_ticks();
-
-			config.sigh(_config_handler);
-		}
 
 		void handle_event(Scout::Event const &event) override
 		{
@@ -242,70 +293,22 @@ class Main : public Scout::Event_handler
 				_user_state.handle_event(ev);
 
 			if (ev.type == Event::TIMER) {
-				Scout::Tick::handle(_pf.timer_ticks());
+				Scout::Tick::handle(_platform.timer_ticks());
 			}
 
 			/* perform periodic redraw */
-			_curr_time = _pf.timer_ticks();
+			_curr_time = _platform.timer_ticks();
 			if ((_curr_time - _old_time > 20) || (_curr_time < _old_time)) {
 				_old_time = _curr_time;
 				_fb_win.process_redraw();
 			}
 		}
+
+		Main(Env &env) : _env(env)
+		{
+			_config.sigh(_config_handler);
+		}
 };
 
 
-/***************
- ** Component **
- ***************/
-
-void Component::construct(Genode::Env &env)
-{
-	using namespace Scout;
-
-	static Genode::Attached_rom_dataspace config(env, "config");
-
-	try { read_config(config.xml()); } catch (...) { }
-
-	/* heuristic for allocating the double-buffer backing store */
-	enum { WINBORDER_WIDTH = 10, WINBORDER_HEIGHT = 40 };
-
-	/* init platform */
-	static Nitpicker::Connection nitpicker(env);
-	static Platform pf(env, *nitpicker.input());
-
-	Area  const max_size(config_fb_width  + WINBORDER_WIDTH,
-	                     config_fb_height + WINBORDER_HEIGHT);
-	Point const initial_position(config_fb_x, config_fb_y);
-	Area  const initial_size = max_size;
-
-	static Nitpicker_graphics_backend
-		graphics_backend(nitpicker, max_size, initial_position, initial_size);
-
-	/* initialize our window content */
-	init_window_content(config_fb_width, config_fb_height, config_alpha);
-
-	/* create instance of browser window */
-	static Framebuffer_window<Pixel_rgb565>
-		fb_win(graphics_backend, window_content(),
-		       initial_position, initial_size, max_size,
-		       config_title, config_alpha,
-		       config_resize_handle, config_decoration);
-
-	if (config_animate) {
-		static Background_animator fb_win_bg_anim(&fb_win);
-	}
-
-	/* create user state manager */
-	static User_state user_state(&fb_win, &fb_win,
-	                             initial_position.x(), initial_position.y());
-	fb_win.parent(&user_state);
-	fb_win.content_geometry(config_fb_x, config_fb_y,
-	                        config_fb_width, config_fb_height);
-
-	/* initialize public services */
-	init_services(env.ep().rpc_ep());
-
-	static Main main(pf, user_state, fb_win, env.ep(), config);
-	pf.event_handler(main);
-}
+void Component::construct(Genode::Env &env) { static Liquid_fb::Main main(env); }

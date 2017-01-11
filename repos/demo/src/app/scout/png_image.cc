@@ -12,13 +12,24 @@
  */
 
 #include <png.h>
-
 #include <scout/misc_math.h>
-#include <scout/alloc.h>
+#include <mini_c/init.h>
 
 #include "elements.h"
 
 using namespace Scout;
+
+
+static Genode::Allocator *_alloc_ptr;
+static Genode::Allocator &alloc()
+{
+	if (_alloc_ptr)
+		return *_alloc_ptr;
+
+	Genode::error("missing call of Png_image::init");
+	class Png_image_init_missing { };
+	throw Png_image_init_missing();
+}
 
 
 class Png_stream
@@ -66,6 +77,13 @@ extern "C" int l4libpng_fread(void *buf, int size, int nmemb, void *stream)
 }
 
 
+void Png_image::init(Genode::Allocator &alloc)
+{
+	_alloc_ptr = &alloc;
+	mini_c_init(alloc);
+}
+
+
 /***********************
  ** Element interface **
  ***********************/
@@ -74,8 +92,7 @@ void Png_image::fill_cache(Canvas_base &canvas)
 {
 	if (_texture) return;
 
-
-	Png_stream *stream = new Png_stream((char *)_png_data);
+	Png_stream *stream = new (alloc()) Png_stream((char *)_png_data);
 
 	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
 	if (!png_ptr) return;
@@ -120,8 +137,8 @@ void Png_image::fill_cache(Canvas_base &canvas)
 	int needed_row_size = png_get_rowbytes(png_ptr, info_ptr)*8;
 
 	if (curr_row_size < needed_row_size) {
-		if (row_ptr) Scout::free(row_ptr);
-		row_ptr = (png_byte *)Scout::malloc(needed_row_size);
+		if (row_ptr) alloc().free(row_ptr, curr_row_size);
+		row_ptr = (png_byte *)alloc().alloc(needed_row_size);
 		curr_row_size = needed_row_size;
 	}
 
