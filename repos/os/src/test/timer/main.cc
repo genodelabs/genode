@@ -1,192 +1,160 @@
 /*
  * \brief  Test for timer service
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2009-06-22
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <util/list.h>
-#include <base/log.h>
-#include <base/sleep.h>
-#include <base/thread.h>
+/* Genode includes */
+#include <base/component.h>
+#include <base/heap.h>
 #include <timer_session/connection.h>
-
-enum { STACK_SIZE = 1024*sizeof(long) };
-
-class Timer_client : public Genode::List<Timer_client>::Element,
-                     Timer::Connection, Genode::Thread_deprecated<STACK_SIZE>
-{
-	private:
-
-		unsigned long _period_msec;
-		unsigned long _cnt;
-		bool          _stop;
-
-		/**
-		 * Thread entry function
-		 */
-		void entry()
-		{
-			while (!_stop) {
-
-				/* call timer service to block for a while */
-				msleep(_period_msec);
-				_cnt++;
-			}
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Timer_client(unsigned long period_msec)
-		: Thread_deprecated("timer_client"),
-		  _period_msec(period_msec), _cnt(0), _stop(false) { }
-
-		/**
-		 * Start calling the timer service
-		 */
-		void start()
-		{
-			Genode::Thread_deprecated<STACK_SIZE>::start();
-		}
-
-		/**
-		 * Stop calling the timer service
-		 */
-		void stop() { _stop = true; }
-
-		/**
-		 * Return configured period in milliseconds
-		 */
-		unsigned long period_msec() { return _period_msec; }
-
-		/**
-		 * Return the number of performed calls to the timer service
-		 */
-		unsigned long cnt() { return _cnt; }
-};
-
-
-/**
- * Timer client that continuously reprograms timeouts
- */
-struct Timer_stressful_client : Timer::Connection, Genode::Thread_deprecated<STACK_SIZE>
-{
-	unsigned long us;
-
-	/*
-	 * In principle, we could constantly execute 'trigger_once' in a busy loop.
-	 * This however would significantly skew the precision of the timer on
-	 * platforms w/o priority support. The behaviour would highly depend on the
-	 * kernel's scheduling and its parameters such as the time-slice length. To
-	 * even out those kernel-specific peculiarities, we let the stressful
-	 * client delay its execution after each iteration instead of keeping it
-	 * busy all the time. The delay must be smaller than scheduled 'us' to
-	 * trigger the edge case of constantly reprogramming timeouts that never
-	 * trigger.
-	 */
-	Timer::Connection delayer;
-
-	void entry() { for (;;) { trigger_once(us); delayer.usleep(us/2); } }
-
-	Timer_stressful_client(unsigned long us)
-	:
-		Thread_deprecated("timer_stressful_client"), us(us)
-	{
-		Genode::Thread_deprecated<STACK_SIZE>::start();
-	}
-};
-
+#include <base/registry.h>
 
 using namespace Genode;
 
-extern "C" int usleep(unsigned long usec);
 
-
-int main(int argc, char **argv)
+struct Lazy_test
 {
-	log("--- timer test ---");
+	struct Faster_timer_too_slow : Exception { };
 
-	static Genode::List<Timer_client> timer_clients;
-	static Timer::Connection main_timer;
+	Env                      &env;
+	Signal_transmitter        done;
+	Timer::Connection         slow_timer     { env };
+	Signal_handler<Lazy_test> slow_handler   { env.ep(), *this,
+	                                           &Lazy_test::handle_slow_timer };
+	Timer::Connection         fast_timer     { env };
+	Signal_handler<Lazy_test> fast_handler   { env.ep(), *this,
+	                                           &Lazy_test::handle_fast_timer };
+	Timer::Connection         faster_timer   { env };
+	Signal_handler<Lazy_test> faster_handler { env.ep(), *this,
+	                                           &Lazy_test::handle_faster_timer };
 
-	/*
-	 * Check long single timeout in the presence of another client that
-	 * reprograms timeouts all the time.
-	 */
+	void handle_slow_timer()
 	{
-		/* will get destructed at the end of the current scope */
-		Timer_stressful_client stressful_client(250*1000);
+		log("timeout fired");
+		done.submit();
+	}
+
+	void handle_fast_timer()   { throw Faster_timer_too_slow(); }
+	void handle_faster_timer() { set_fast_timers(); }
+
+	void set_fast_timers()
+	{
+		enum { TIMEOUT_US = 50*1000 };
+		fast_timer.trigger_once(TIMEOUT_US);
+		faster_timer.trigger_once(TIMEOUT_US/2);
+	}
+
+	Lazy_test(Env &env, Signal_context_capability done) : env(env), done(done)
+	{
+		slow_timer.sigh(slow_handler);
+		fast_timer.sigh(fast_handler);
+		faster_timer.sigh(faster_handler);
 
 		log("register two-seconds timeout...");
-		main_timer.msleep(2000);
-		log("timeout fired");
+		slow_timer.trigger_once(2*1000*1000);
+		set_fast_timers();
 	}
+};
 
-	/* check periodic timeouts */
-	Signal_receiver           sig_rcv;
-	Signal_context            sig_cxt;
-	Signal_context_capability sig = sig_rcv.manage(&sig_cxt);
-	main_timer.sigh(sig);
-	enum { PTEST_TIME_US = 2000000 };
-	unsigned period_us = 500000, periods = PTEST_TIME_US / period_us, i = 0;
-	log("start periodic timeouts");
-	for (unsigned j = 0; j < 5; j++) {
-		unsigned elapsed_ms = main_timer.elapsed_ms();
-		main_timer.trigger_periodic(period_us);
-		while (i < periods) {
-			Signal s = sig_rcv.wait_for_signal();
-			i += s.num();
+
+struct Stress_test
+{
+	struct Slave
+	{
+		Signal_handler<Slave> timer_handler;
+		Timer::Connection     timer;
+		unsigned              us;
+		unsigned              count { 0 };
+
+		Slave(Env &env, unsigned ms)
+		: timer_handler(env.ep(), *this, &Slave::handle_timer),
+		  timer(env), us(ms * 1000) { timer.sigh(timer_handler); }
+
+		void handle_timer()
+		{
+			count++;
+			timer.trigger_once(us);
 		}
-		elapsed_ms = main_timer.elapsed_ms() - elapsed_ms;
-		unsigned const min_ms     = ((i - 1) * period_us) / 1000;
-		unsigned const max_us     = i * period_us;
-		unsigned const max_err_us = max_us / 100;
-		unsigned const max_ms     = (max_us + max_err_us) / 1000;
-		if (min_ms > elapsed_ms || max_ms < elapsed_ms) {
-			error("timing ", period_us / 1000, " ms "
-			      "period ", i, " times failed: ",
-			      elapsed_ms, " ms (min ", min_ms, ", max ", max_ms, ")");
-			return -1;
+
+		void dump() {
+			log("timer (period ", us / 1000, " ms) triggered ", count,
+			    " times -> slept ", (us / 1000) * count, " ms"); }
+
+		void start() { timer.trigger_once(us); }
+		void stop()  { timer.sigh(Signal_context_capability()); }
+	};
+
+	Env                         &env;
+	Signal_transmitter           done;
+	Heap                         heap    { &env.ram(), &env.rm() };
+	Timer::Connection            timer   { env };
+	unsigned                     count   { 0 };
+	Signal_handler<Stress_test>  handler { env.ep(), *this, &Stress_test::handle };
+	Registry<Registered<Slave> > slaves;
+
+	void handle()
+	{
+		enum { MAX_COUNT = 10 };
+		if (count < MAX_COUNT) {
+			count++;
+			log("wait ", count, "/", (unsigned)MAX_COUNT);
+			timer.trigger_once(1000 * 1000);
+		} else {
+			slaves.for_each([&] (Slave &timer) { timer.stop(); });
+			slaves.for_each([&] (Slave &timer) { timer.dump(); });
+			done.submit();
 		}
-		log("Done ", period_us / 1000, " ms period ", i, " times: ",
-		    elapsed_ms, " ms (min ", min_ms, ", max ", max_ms, ")");
-		i = 0, period_us /= 2, periods = PTEST_TIME_US / period_us;
 	}
 
-	/* create timer clients with different periods */
-	for (unsigned period_msec = 1; period_msec < 28; period_msec++) {
-		Timer_client *tc = new (env()->heap()) Timer_client(period_msec);
-		timer_clients.insert(tc);
-		tc->start();
+	Stress_test(Env &env, Signal_context_capability done) : env(env), done(done)
+	{
+		timer.sigh(handler);
+		for (unsigned ms = 1; ms < 28; ms++) {
+			new (heap) Registered<Slave>(slaves, env, ms); }
+		slaves.for_each([&] (Slave &slv) { slv.start(); });
+		timer.trigger_once(1000 * 1000);
 	}
 
-	enum { SECONDS_TO_WAIT = 10 };
-	for (unsigned i = 0; i < SECONDS_TO_WAIT; i++) {
-		main_timer.msleep(1000);
-		log("wait ", i + 1, "/", (int)SECONDS_TO_WAIT);
+	~Stress_test() {
+		slaves.for_each([&] (Registered<Slave> &slv) { destroy(heap, &slv); }); }
+};
+
+
+struct Main
+{
+	Env                       &env;
+	Constructible<Lazy_test>   test_1;
+	Signal_handler<Main>       test_1_done { env.ep(), *this, &Main::handle_test_1_done };
+	Constructible<Stress_test> test_2;
+	Signal_handler<Main>       test_2_done { env.ep(), *this, &Main::handle_test_2_done };
+
+	void handle_test_1_done()
+	{
+		test_1.destruct();
+		test_2.construct(env, test_2_done);
 	}
 
-	/* stop all timers */
-	for (Timer_client *curr = timer_clients.first(); curr; curr = curr->next())
-		curr->stop();
+	void handle_test_2_done()
+	{
+		log("--- timer test finished ---");
+		env.parent().exit(0);
+	}
 
-	/* print statistics about each timer client */
-	for (Timer_client *curr = timer_clients.first(); curr; curr = curr->next())
-		log("timer (period ", curr->period_msec(), " ms) "
-		    "triggered ", curr->cnt(), " times -> "
-		    "slept ", curr->period_msec()*curr->cnt(), " ms");
+	Main(Env &env) : env(env)
+	{
+		log("--- timer test ---");
+		test_1.construct(env, test_1_done);
+	}
+};
 
-	log("--- timer test finished ---");
-	Genode::sleep_forever();
 
-	return 0;
-}
+void Component::construct(Env &env) { static Main main(env); }
