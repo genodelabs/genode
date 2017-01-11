@@ -45,3 +45,18 @@ code respectively the download source of binaries are described below.
   commit 972765fe8245cdf44d465329f33b5aa9ac6c2f47.
 
   The following modules were included: part_msdos iso9660 part_gpt ext2 multiboot multiboot2 fat normal configfile setpci serial efi_uga efi_gop
+
+:'tianocore.bin'
+
+  Open Virtual Machine Firmware (OVMF) developed by
+  http://www.tianocore.org/ovmf. OVMF is an project to enable UEFI support for
+  Virtual Machines. This UEFI binary is supposed to be used with QEMU.
+
+  The UEFI firmware was built based on the description of
+
+  https://github.com/tianocore/tianocore.github.io/wiki/How-to-build-OVMF
+
+  and the source code has been obtained from
+
+  https://github.com/tianocore/edk2.git
+  git commit 6e5e544f227f031d0b45828b56cec5668dd1bf5b

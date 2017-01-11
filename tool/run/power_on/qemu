@@ -78,17 +78,18 @@ proc run_power_on { } {
 		if {[have_include "load/tftp"]} {
 			append qemu_args " -boot n -tftp [run_dir] -bootp boot/pulsar -no-reboot -no-shutdown "
 		} else {
-			if {[have_include "image/iso"]} {
-				append qemu_args " -cdrom [run_dir].iso "
-			} else {
-				if {[have_include "image/disk"]} {
-					append qemu_args " -hda [run_dir].img "
-				} else {
-					puts "Aborting, cannot execute Qemu without a ISO or disk image"
-					exit -4
-				}
-			}
-		}
+		if {[have_include "image/iso"]} {
+			append qemu_args " -cdrom [run_dir].iso "
+		} else {
+		if {[have_include "image/disk"]} {
+			append qemu_args " -hda [run_dir].img "
+		} else {
+		if {[have_include "image/uefi"]} {
+			append qemu_args " --bios [genode_dir]/tool/boot/tianocore.bin -net none -drive format=raw,file=[run_dir].img "
+		} else {
+			puts "Aborting, cannot execute Qemu without a ISO or disk image"
+			exit -4
+		} } } }
 	}
 
 	# on ARM, we supply the boot image as kernel
