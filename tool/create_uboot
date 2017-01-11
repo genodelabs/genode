@@ -18,14 +18,14 @@ help:
 	$(ECHO) "  create_uboot <platform> [BUILD_DIR=<build-dir>]"
 	$(ECHO)
 	$(ECHO) "  <platform>   can be:"
-	$(ECHO) "                  'hw_wand_quad'"
-	$(ECHO) "                  'hw_usb_armory'"
+	$(ECHO) "                  'wand_quad'"
+	$(ECHO) "                  'usb_armory'"
 	$(ECHO)
 	$(ECHO) "  The image will be located at:"
 	$(ECHO) "  $(UBOOT_BUILD_DIR)<platform>/$(shell basename $(MMC_IMG))"
 	$(ECHO)
 
-PLATFORMS_ARM := hw_wand_quad hw_usb_armory
+PLATFORMS_ARM := wand_quad usb_armory
 PLATFORMS     := $(PLATFORMS_ARM)
 
 # get targeted platform based on the make target
@@ -67,7 +67,7 @@ UBOOT_MAKE := \
 # Platform settings
 #
 
-ifeq ($(PLATFORM), hw_wand_quad)
+ifeq ($(PLATFORM), wand_quad)
 UBOOT_IMG     := $(UBOOT_BUILD_DIR)/u-boot.img
 UBOOT_IMG_SPL := $(UBOOT_BUILD_DIR)/SPL
 UBOOT_IMGS    := $(UBOOT_IMG) $(UBOOT_IMG_SPL)
@@ -77,7 +77,7 @@ FINISH_IMAGE  := \
 	dd if=$(UBOOT_IMG)     of=$(MMC_IMG) bs=1k seek=68 conv=notrunc,fsync;
 endif
 
-ifeq ($(PLATFORM), hw_usb_armory)
+ifeq ($(PLATFORM), usb_armory)
 UBOOT_IMG     := $(UBOOT_BUILD_DIR)/u-boot.imx
 UBOOT_IMGS    := $(UBOOT_IMG)
 UBOOT_CONF    := usbarmory_config
