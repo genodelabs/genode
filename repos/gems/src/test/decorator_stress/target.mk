@@ -1,6 +1,6 @@
 TARGET = test-decorator_stress
 SRC_CC = main.cc
-LIBS   = posix
+LIBS   = libc libm
 
 INC_DIR += $(PRG_DIR)
 

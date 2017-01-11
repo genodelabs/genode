@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <libc/component.h>
 #include <util/list.h>
 #include <util/geometry.h>
 #include <timer_session/connection.h>
@@ -72,22 +73,34 @@ void report_window_layout(Param param, Genode::Reporter &reporter)
 }
 
 
-int main(int argc, char **argv)
+struct Main
 {
-	Param param(0, 1, 2, 3);
+	Genode::Env &_env;
 
-	Genode::Reporter window_layout_reporter("window_layout", "window_layout", 10*4096);
-	window_layout_reporter.enabled(true);
+	Param _param { 0, 1, 2, 3 };
 
-	static Timer::Connection timer;
+	Genode::Reporter _window_layout_reporter { _env, "window_layout", "window_layout", 10*4096 };
 
-	for (;;) {
+	Timer::Connection _timer { _env };
 
-		report_window_layout(param, window_layout_reporter);
+	void _handle_timer()
+	{
+		report_window_layout(_param, _window_layout_reporter);
 
-		param = param + Param(0.0331/2, 0.042/2, 0.051/2, 0.04/2);
-
-		timer.msleep(10);
+		_param = _param + Param(0.0331/2, 0.042/2, 0.051/2, 0.04/2);
 	}
-	return 0;
-}
+
+	Genode::Signal_handler<Main> _timer_handler {
+		_env.ep(), *this, &Main::_handle_timer };
+
+	Main(Genode::Env &env) : _env(env)
+	{
+		_window_layout_reporter.enabled(true);
+		_timer.sigh(_timer_handler);
+		_timer.trigger_periodic(10*1000);
+	}
+};
+
+
+void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
+
