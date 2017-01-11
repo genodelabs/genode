@@ -48,7 +48,8 @@ struct Decorator::Main : Window_factory_base
 	                               _nitpicker.framebuffer()->dataspace()) };
 
 	Canvas<Pixel_rgb565> _canvas = { _fb_ds.local_addr<Pixel_rgb565>(),
-	                                 Area(_mode.width(), _mode.height()) };
+	                                 Area(_mode.width(), _mode.height()),
+	                                 _env.ram(), _env.rm() };
 
 	Window_stack _window_stack = { *this };
 
@@ -74,11 +75,11 @@ struct Decorator::Main : Window_factory_base
 
 	Window_base::Hover _hover;
 
-	Reporter _hover_reporter = { "hover" };
+	Reporter _hover_reporter = { _env, "hover" };
 
 	bool _window_layout_update_needed = false;
 
-	Reporter _decorator_margins_reporter = { "decorator_margins" };
+	Reporter _decorator_margins_reporter = { _env, "decorator_margins" };
 
 	Animator _animator;
 

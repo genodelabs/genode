@@ -34,7 +34,9 @@ namespace Decorator {
 		TEXTURE_ID_WINDOWED
 	};
 
-	Genode::Texture_base const &texture_by_id(Texture_id);
+	Genode::Texture_base const &texture_by_id(Texture_id,
+	                                          Genode::Ram_session &,
+	                                          Genode::Region_map &);
 
 	class Canvas_base;
 	template <typename PT> class Canvas;
@@ -60,11 +62,14 @@ class Decorator::Canvas : public Decorator::Canvas_base
 {
 	private:
 
-		Genode::Surface<PT> _surface;
+		Genode::Ram_session &_ram;
+		Genode::Region_map  &_rm;
+		Genode::Surface<PT>  _surface;
 
 	public:
 
-		Canvas(PT *base, Area size) : _surface(base, size) { }
+		Canvas(PT *base, Area size, Genode::Ram_session &ram, Genode::Region_map &rm)
+		: _ram(ram), _rm(rm), _surface(base, size) { }
 
 		Rect clip() const override { return _surface.clip(); }
 
@@ -84,7 +89,7 @@ class Decorator::Canvas : public Decorator::Canvas_base
 		void draw_texture(Point pos, Texture_id id)
 		{
 			Genode::Texture<PT> const &texture =
-				static_cast<Genode::Texture<PT> const &>(texture_by_id(id));
+				static_cast<Genode::Texture<PT> const &>(texture_by_id(id, _ram, _rm));
 
 			unsigned const alpha = 255;
 
