@@ -4,6 +4,50 @@
                                ===========
 
 
+Genode at FOSDEM 2017 | 2017-01-11
+##################################
+
+| The microkernel developer room at this year's FOSDEM will host four
+| Genode-related talks, ranging from our custom kernel, over
+| kernel-independent binaries, execution replay, to Genode's VFS
+| infrastructure.
+
+To us, the microkernel developer room at FOSDEM in Brussels has become
+the most anticipated joint event of the open-source microkernel world.
+The developer room is part of FOSDEM, which is the world's largest
+event of the Free-Software and Open-Source community. The upcoming
+FOSDEM will be held on 4th - 5th of February in Brussels:
+
+FOSDEM 2017: [https://fosdem.org/2017/]
+
+Originally initiated by our friends of the HelenOS project, the micro-kernel
+developer room is shepherded by a different project each year. In 2017, it's
+our turn to host the event. The developer room is open for all open-source
+projects that are related to microkernels or component-based operating
+systems. It features a mix of project introductions, experience stories,
+progress reports, discussions, and demos. This year, the following
+Genode-related topics will be presented:
+
+Saturday 10:45 *A kernel in a library Genode's custom kernel approach*
+_Microkernel devroom (AW1.125)_
+[https://fosdem.org/2017/schedule/event/microkernel_kernel_library/ - abstract...]
+
+Saturday 12:45 *Deterministic replay support for Genode components*
+_Microkernel devroom (AW1.125)_
+[https://fosdem.org/2017/schedule/event/microkernel_replay_support/ - abstract...]
+
+Saturday 14:24 *Introducing kernel-agnostic Genode executables*
+_Microkernel devroom (AW1.125)_
+[https://fosdem.org/2017/schedule/event/microkernel_kernel_agnostic_genode_executables/ - abstract...]
+
+Saturday 17:10 *The VFS paradigm from the perspective of a component OS*
+_Microkernel devroom (AW1.125)_
+[https://fosdem.org/2017/schedule/event/microkernel_vfs_component_os/ - abstract...]
+
+The complete schedule of the developer room is available at
+[https://fosdem.org/2017/schedule/track/microkernels_and_component_based_os/].
+
+
 Genode OS Framework release 16.11 | 2016-11-30
 ##############################################
 
