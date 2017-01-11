@@ -15,6 +15,7 @@
 #define _SYNC_SESSION__SYNC_SESSION_H_
 
 /* Genode includes */
+#include <base/capability.h>
 #include <session/session.h>
 #include <base/signal.h>
 
@@ -23,8 +24,8 @@ namespace Sync
 	using Genode::Signal_context_capability;
 
 	struct Session;
+	using  Session_capability = Genode::Capability<Session>;
 }
-
 
 struct Sync::Session : Genode::Session
 {
@@ -32,23 +33,11 @@ struct Sync::Session : Genode::Session
 
 	virtual ~Session() { }
 
-	/**
-	 * Set the submission threshold of a synchronization signal
-	 */
-	virtual void threshold(unsigned id, unsigned threshold) = 0;
+	virtual void threshold(unsigned threshold) = 0;
+	virtual void submit(Signal_context_capability signal) = 0;
 
-	/**
-	 * Submit to a synchronization signal
-	 */
-	virtual void submit(unsigned id, Signal_context_capability sigc) = 0;
-
-
-	/*********************
-	 ** RPC declaration **
-	 *********************/
-
-	GENODE_RPC(Rpc_threshold, void, threshold, unsigned, unsigned);
-	GENODE_RPC(Rpc_submit, void, submit, unsigned, Signal_context_capability);
+	GENODE_RPC(Rpc_threshold, void, threshold, unsigned);
+	GENODE_RPC(Rpc_submit, void, submit, Signal_context_capability);
 
 	GENODE_RPC_INTERFACE(Rpc_threshold, Rpc_submit);
 };

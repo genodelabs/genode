@@ -16,45 +16,22 @@
 
 /* Genode includes */
 #include <base/connection.h>
+#include <base/rpc_client.h>
 
 /* local includes */
-#include <sync_session/client.h>
+#include <sync_session/sync_session.h>
 
-namespace Sync
+namespace Sync { class Connection; }
+
+struct Sync::Connection : public Genode::Connection<Session>,
+                          public Genode::Rpc_client<Session>
 {
-	using Genode::Parent;
+		explicit Connection(Genode::Env &env)
+		: Genode::Connection<Session>(env, session("ram_quota=4K")),
+		  Genode::Rpc_client<Session>(cap()) { }
 
-	class Connection;
-}
-
-
-class Sync::Connection : public Genode::Connection<Session>,
-                         public Session_client
-{
-	public:
-
-		class Connection_failed : public Parent::Exception { };
-
-	private:
-
-		Session_capability _create_session()
-		{
-			try { return session("ram_quota=4K"); }
-			catch (...) { throw Connection_failed(); }
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \throw Connection_failed
-		 */
-		Connection() __attribute__((deprecated))
-		:
-			Genode::Connection<Session>(_create_session()),
-			Session_client(cap())
-		{ }
+		void threshold(unsigned threshold)            override { call<Rpc_threshold>(threshold); }
+		void submit(Signal_context_capability signal) override { call<Rpc_submit>(signal); }
 };
 
 #endif /* _SYNC_SESSION__CONNECTION_H_ */

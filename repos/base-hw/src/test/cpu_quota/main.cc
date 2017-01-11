@@ -12,166 +12,150 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/thread.h>
+#include <base/component.h>
 #include <base/sleep.h>
 #include <timer_session/connection.h>
+
+/* local includes */
 #include <sync_session/connection.h>
 
 using namespace Genode;
 
-enum { SYNC_SIG = 0 };
-
-namespace Sync { class Signal; }
-
-class Single_signal
+struct Single_signal
 {
-	private:
+		Signal_receiver           receiver;
+		Signal_context            context;
+		Signal_context_capability cap;
+		Signal_transmitter        transmitter;
 
-		Signal_receiver           _sigr;
-		Signal_context            _sigx;
-		Signal_context_capability _sigc;
-		Signal_transmitter        _sigt;
+		Single_signal() : cap(receiver.manage(&context)), transmitter(cap) { }
 
-	public:
-
-		Single_signal() : _sigc(_sigr.manage(&_sigx)), _sigt(_sigc) { }
-
-		~Single_signal() { _sigr.dissolve(&_sigx); }
-
-		void receive() { _sigr.wait_for_signal(); }
-
-		void submit() { _sigt.submit(); }
-
-		operator Signal_context_capability() { return _sigc; }
+		~Single_signal() { receiver.dissolve(&context); }
+		void receive()   { receiver.wait_for_signal(); }
+		void submit()    { transmitter.submit(); }
 };
 
-class Sync::Signal
+
+struct Synchronizer
 {
-	private:
+	Single_signal  signal;
+	Sync::Session &session;
 
-		Signal_receiver           _sigr;
-		Signal_context            _sigx;
-		Signal_context_capability _sigc;
-		Session * const           _session;
-		unsigned const            _id;
+	Synchronizer(Sync::Session &session) : session(session) { }
 
-	public:
+	void threshold(unsigned threshold) { session.threshold(threshold); }
 
-		Signal(Session * const session, unsigned const id)
-		: _sigc(_sigr.manage(&_sigx)), _session(session), _id(id) { }
-
-		~Signal() { _sigr.dissolve(&_sigx); }
-
-		void threshold(unsigned const threshold) {
-			_session->threshold(_id, threshold); }
-
-		void sync()
-		{
-			_session->submit(_id, _sigc);
-			_sigr.wait_for_signal();
-		}
+	void synchronize()
+	{
+		session.submit(signal.cap);
+		signal.receive();
+	}
 };
 
-class Counter : private Thread_deprecated<2 * 1024 * sizeof(Genode::addr_t)>
+
+class Counter : public Thread
 {
 	private:
 
-		String<64>                  _name;
-		unsigned long long volatile _value;
-		Sync::Signal                _sync_sig;
-		unsigned volatile           _stage;
-		Single_signal               _stage_1_end;
-		Single_signal               _stage_2_reached;
+		enum { STACK_SIZE = 2 * 1024 * sizeof(addr_t) };
 
-		inline void _stage_0_and_1(unsigned long long volatile & value)
-		{
-			_stage_1_end.receive();
-			_stage = 0;
-			_sync_sig.sync();
-			while(_stage == 0) { value++; }
-		}
+		enum Stage { PAUSE, MEASUREMENT, DESTRUCTION };
+
+		Name               const    &_name;
+		unsigned long long volatile  _value { 0 };
+		Stage              volatile  _stage { PAUSE };
+		Single_signal                _start_measurement;
+		Single_signal                _start_destruction;
+		Synchronizer                 _synchronizer;
 
 		void entry()
 		{
 			unsigned long long volatile value = 0;
-			while (_stage < 2) { _stage_0_and_1(value); }
+			while (_stage == PAUSE) {
+				_start_measurement.receive();
+				_stage = MEASUREMENT;
+				_synchronizer.synchronize();
+				while (_stage == MEASUREMENT) { value++; }
+			}
 			_value = value;
-			_stage_2_reached.submit();
-			sleep_forever();
+			_start_destruction.submit();
 		}
 
 	public:
 
-		Counter(char const *name, size_t const weight,
-		        Sync::Session * const sync)
+		Counter(Env &env, Name const &name, unsigned cpu_percent, Sync::Session &sync)
 		:
-			Thread_deprecated(weight, "counter"), _name(name), _value(0) ,
-			_sync_sig(sync, SYNC_SIG), _stage(1)
-		{
-			Thread::start();
-		}
+			Thread(env, name, STACK_SIZE, Location(),
+			       Weight(Cpu_session::quota_lim_upscale(cpu_percent, 100)),
+			       env.cpu()),
+			_name(name), _synchronizer(sync) { start(); }
 
 		void destruct()
 		{
-			_stage = 2;
-			_stage_2_reached.receive();
+			_stage = DESTRUCTION;
+			_start_destruction.receive();
 			this->~Counter();
 		}
 
-		void pause() { _stage = 1; }
+		void pause()   { _stage = PAUSE; }
+		void measure() { _start_measurement.submit(); }
 
-		void go() { _stage_1_end.submit(); }
-
-		void result() { log("counter ", _name, " ", _value); }
+		void print(Output &output) const { Genode::print(output, _name, " ", _value); }
 };
 
 
-void measure(Timer::Connection & timer, Single_signal & timer_sig,
-             Sync::Signal & sync_sig, unsigned const sec)
+struct Main
 {
-	timer.trigger_once(sec * 1000 * 1000);
-	sync_sig.sync();
-	timer_sig.receive();
-}
+	enum { DURATION_BASE_SEC           = 20,
+	       MEASUREMENT_1_NR_OF_THREADS = 9,
+	       MEASUREMENT_2_NR_OF_THREADS = 6,
+	       CONCLUSION_NR_OF_THREADS    = 3, };
+
+	Env                 &env;
+	Single_signal        timer_signal;
+	Timer::Connection    timer        { env };
+	Sync::Connection     sync         { env };
+	Synchronizer         synchronizer { sync };
+	Counter::Name const  name_a       { "counter A" };
+	Counter::Name const  name_b       { "counter B" };
+	Counter              counter_a    { env, name_a, 10, sync };
+	Counter              counter_b    { env, name_b, 90, sync };
+
+	Main(Env &env) : env(env)
+	{
+		timer.sigh(timer_signal.cap);
+
+		auto measure = [&] (unsigned duration_sec) {
+			timer.trigger_once(duration_sec * 1000 * 1000);
+			synchronizer.synchronize();
+			timer_signal.receive();
+		};
+		/* measurement 1 */
+		synchronizer.threshold(MEASUREMENT_1_NR_OF_THREADS);
+		counter_a.measure();
+		counter_b.measure();
+		measure(3 * DURATION_BASE_SEC);
+		counter_a.pause();
+		counter_b.destruct();
+
+		/* measurement 2 */
+		synchronizer.threshold(MEASUREMENT_2_NR_OF_THREADS);
+		counter_a.measure();
+		measure(DURATION_BASE_SEC);
+		counter_a.destruct();
+
+		/* conclusion */
+		synchronizer.threshold(CONCLUSION_NR_OF_THREADS);
+		synchronizer.synchronize();
+		Cpu_session::Quota quota = env.cpu().quota();
+		log("quota super period ", quota.super_period_us);
+		log("quota ", quota.us);
+		log(counter_a);
+		log(counter_b);
+		log("done");
+	}
+};
 
 
-int main()
-{
-	enum { DURATION_BASE_SEC = 20 };
-
-	/* prepare */
-	Single_signal     timer_sig;
-	Timer::Connection timer;
-	Sync::Connection  sync;
-	Sync::Signal      sync_sig(&sync, SYNC_SIG);
-	Counter           counter_a("A", Cpu_session::quota_lim_upscale(10, 100), &sync);
-	Counter           counter_b("B", Cpu_session::quota_lim_upscale(90, 100), &sync);
-
-	timer.sigh(timer_sig);
-
-	/* measure stage 1 */
-	sync_sig.threshold(9);
-	counter_a.go();
-	counter_b.go();
-	measure(timer, timer_sig, sync_sig, 3 * DURATION_BASE_SEC);
-	counter_a.pause();
-	counter_b.destruct();
-
-	/* measure stage 2 */
-	sync_sig.threshold(6);
-	counter_a.go();
-	measure(timer, timer_sig, sync_sig, DURATION_BASE_SEC);
-	counter_a.destruct();
-
-	/* print results */
-	sync_sig.threshold(3);
-	sync_sig.sync();
-	Cpu_session::Quota quota = Genode::env()->cpu_session()->quota();
-	log("quota super period ", quota.super_period_us);
-	log("quota ", quota.us);
-	counter_a.result();
-	counter_b.result();
-	log("done");
-	sleep_forever();
-}
+void Component::construct(Env &env) { static Main main(env); }
