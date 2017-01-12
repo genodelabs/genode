@@ -22,11 +22,11 @@ class Acpica::Reportstate {
 
 	private:
 
-		Genode::Reporter _reporter_lid { "acpi_lid" };
-		Genode::Reporter _reporter_ac  { "acpi_ac" };
-		Genode::Reporter _reporter_sb  { "acpi_battery" };
-		Genode::Reporter _reporter_ec  { "acpi_ec" };
-		Genode::Reporter _reporter_fix { "acpi_fixed" };
+		Genode::Reporter _reporter_lid;
+		Genode::Reporter _reporter_ac;
+		Genode::Reporter _reporter_sb;
+		Genode::Reporter _reporter_ec;
+		Genode::Reporter _reporter_fix;
 
 		bool _changed_lid   = false;
 		bool _changed_ac    = false;
@@ -42,7 +42,14 @@ class Acpica::Reportstate {
 
 	public:
 
-		Reportstate() { }
+		Reportstate(Genode::Env &env)
+		:
+			_reporter_lid(env, "acpi_lid"),
+			_reporter_ac (env, "acpi_ac"),
+			_reporter_sb (env, "acpi_battery"),
+			_reporter_ec (env, "acpi_ec"),
+			_reporter_fix(env, "acpi_fixed")
+		{ }
 
 		void add_notify(Acpica::Callback<Battery> * s) { _list_sb.insert(s); }
 		void add_notify(Acpica::Callback<Fixed> * f)   { _fixed = f; }

@@ -139,7 +139,8 @@ class Acpica::Io_mem
 				io_mem._virt = 0;
 
 				io_mem._io_mem = new (Acpica::heap())
-					Genode::Io_mem_connection(io_mem._phys, io_mem._size);
+					Genode::Io_mem_connection(Acpica::env(), io_mem._phys,
+					                          io_mem._size);
 
 				return &io_mem;
 			});

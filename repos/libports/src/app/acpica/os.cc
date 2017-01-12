@@ -53,10 +53,10 @@ struct Acpica::Statechange
 	bool _enable_reset;
 	bool _enable_poweroff;
 
-	Statechange(Genode::Entrypoint &ep, bool reset, bool poweroff)
+	Statechange(Genode::Env &env, bool reset, bool poweroff)
 	:
-		_dispatcher(ep, *this, &Statechange::state_changed),
-		_system_state("system"),
+		_dispatcher(env.ep(), *this, &Statechange::state_changed),
+		_system_state(env, "system"),
 		_enable_reset(reset), _enable_poweroff(poweroff)
 	{
 		_system_state.sigh(_dispatcher);
@@ -131,7 +131,7 @@ struct Acpica::Main
 		bool const enable_ready    = config.xml().attribute_value("acpi_ready", false);
 
 		if (enable_report)
-			report = new (heap) Acpica::Reportstate();
+			report = new (heap) Acpica::Reportstate(env);
 
 		init_acpica();
 
@@ -139,8 +139,7 @@ struct Acpica::Main
 			report->enable();
 
 		if (enable_reset || enable_poweroff)
-			new (heap) Acpica::Statechange(env.ep(), enable_reset,
-			                               enable_poweroff);
+			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff);
 
 		/* setup IRQ */
 		if (!irq_handler.handler) {
@@ -148,7 +147,7 @@ struct Acpica::Main
 			return;
 		}
 
-		sci_conn.construct(irq_handler.irq);
+		sci_conn.construct(env, irq_handler.irq);
 
 		Genode::log("SCI IRQ: ", irq_handler.irq);
 
@@ -159,7 +158,7 @@ struct Acpica::Main
 			return;
 
 		/* we are ready - signal it via changing system state */
-		static Genode::Reporter _system_rom { "system", "acpi_ready" };
+		static Genode::Reporter _system_rom(env, "system", "acpi_ready");
 		_system_rom.enabled(true);
 		Genode::Reporter::Xml_generator xml(_system_rom, [&] () {
 			xml.attribute("state", "acpi_ready");
