@@ -5,26 +5,25 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/component.h>
 #include <report_session/report_session.h>
 #include <util/arg_string.h>
 #include <base/heap.h>
 #include <base/env.h>
+#include <base/log.h>
 #include <base/session_label.h>
-#include <base/printf.h>
 #include <root/component.h>
-#include <os/server.h>
 #include <os/attached_ram_dataspace.h>
 
 
 namespace Report {
-	using Server::Entrypoint;
-	using Genode::env;
+	using namespace Genode;
 
 	class  Session_component;
 	class  Root;
@@ -42,9 +41,12 @@ class Report::Session_component : public Genode::Rpc_object<Session>
 
 	public:
 
-		Session_component(Genode::Session_label const &label, size_t buffer_size)
+		Session_component(Ram_session                 &ram,
+		                  Region_map                  &rm,
+		                  Genode::Session_label const &label,
+		                  size_t                       buffer_size)
 		:
-			_label(label), _ds(env()->ram_session(), buffer_size)
+			_label(label), _ds(ram, rm, buffer_size)
 		{ }
 
 		Dataspace_capability dataspace() override { return _ds.cap(); }
@@ -53,14 +55,14 @@ class Report::Session_component : public Genode::Rpc_object<Session>
 		{
 			using namespace Genode;
 
-			printf("\nreport: %s\n", _label.string());
+			log("\nreport: ", _label.string());
 
 			char buf[1024];
 			for (size_t consumed = 0; consumed < length; consumed += strlen(buf)) {
 				strncpy(buf, _ds.local_addr<char>() + consumed, sizeof(buf));
-				printf("%s", buf);
+				log(Cstring(buf));
 			}
-			printf("\nend of report\n");
+			log("\nend of report");
 		}
 
 		void response_sigh(Genode::Signal_context_capability) override { }
@@ -71,6 +73,11 @@ class Report::Session_component : public Genode::Rpc_object<Session>
 
 class Report::Root : public Genode::Root_component<Session_component>
 {
+	private:
+
+		Ram_session &_ram;
+		Region_map  &_rm;
+
 	protected:
 
 		Session_component *_create_session(const char *args) override
@@ -85,41 +92,32 @@ class Report::Root : public Genode::Root_component<Session_component>
 				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
 
 			return new (md_alloc())
-				Session_component(label, buffer_size);
+				Session_component(_ram, _rm, label, buffer_size);
 		}
 
 	public:
 
-		Root(Entrypoint &ep, Genode::Allocator &md_alloc)
+		Root(Entrypoint &ep, Genode::Allocator &md_alloc,
+		     Ram_session &ram, Region_map &rm)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc)
+			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
+			_ram(ram), _rm(rm)
 		{ }
 };
 
 
 struct Report::Main
 {
-	Entrypoint &ep;
+	Env &_env;
 
-	Genode::Sliced_heap sliced_heap = { env()->ram_session(),
-	                                    env()->rm_session() };
-	Root root = { ep, sliced_heap };
+	Sliced_heap sliced_heap { _env.ram(), _env.rm() };
 
-	Main(Entrypoint &ep) : ep(ep)
+	Root root { _env.ep(), sliced_heap, _env.ram(), _env.rm() };
+
+	Main(Env &env) : _env(env)
 	{
-		env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
-
-namespace Server {
-
-	char const *name() { return "log_report_ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Report::Main main(ep);
-	}
-}
+void Component::construct(Genode::Env &env) { static Report::Main main(env); }
