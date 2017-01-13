@@ -5,16 +5,16 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/heap.h>
 #include <root/component.h>
-#include <os/server.h>
 #include <os/attached_ram_dataspace.h>
 #include <terminal_session/terminal_session.h>
 #include <log_session/log_session.h>
@@ -99,9 +99,11 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 	public:
 
-		Session_component(size_t io_buffer_size)
+		Session_component(Ram_session &ram,
+		                  Region_map  &rm,
+		                  size_t       io_buffer_size)
 		:
-			_io_buffer(env()->ram_session(), io_buffer_size)
+			_io_buffer(ram, rm, io_buffer_size)
 		{ }
 
 
@@ -148,50 +150,45 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 class Terminal::Root_component : public Genode::Root_component<Session_component>
 {
+	private:
+
+		Ram_session &_ram;
+		Region_map  &_rm;
+
 	protected:
 
 		Session_component *_create_session(const char *args)
 		{
 			size_t const io_buffer_size = 4096;
-			return new (md_alloc()) Session_component(io_buffer_size);
+			return new (md_alloc()) Session_component(_ram, _rm, io_buffer_size);
 		}
 
 	public:
 
-		Root_component(Server::Entrypoint &ep, Genode::Allocator  &md_alloc)
+		Root_component(Entrypoint  &ep,
+		               Allocator   &md_alloc,
+		               Ram_session &ram,
+		               Region_map  &rm)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc)
+			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
+			_ram(ram), _rm(rm)
 		{ }
 };
 
 
 struct Terminal::Main
 {
-	Server::Entrypoint &ep;
+	Env &_env;
 
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Sliced_heap sliced_heap { _env.ram(), _env.rm() };
 
-	Root_component terminal_root = { ep, sliced_heap };
+	Root_component terminal_root { _env.ep(), sliced_heap,
+	                               _env.ram(), _env.rm() };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Env &env) : _env(env)
 	{
-		env()->parent()->announce(ep.manage(terminal_root));
+		env.parent().announce(env.ep().manage(terminal_root));
 	}
 };
 
-
-/************
- ** Server **
- ************/
-
-namespace Server {
-
-	char const *name() { return "log_terminal_ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Terminal::Main terminal(ep);
-	}
-}
+void Component::construct(Genode::Env &env) { static Terminal::Main main(env); }
