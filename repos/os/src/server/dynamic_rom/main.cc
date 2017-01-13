@@ -46,6 +46,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 {
 	private:
 
+		Env                      &_env;
 		bool                     &_verbose;
 		Xml_node                  _rom_node;
 		Timer::Connection         _timer;
@@ -153,7 +154,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 
 		Session_component(Env &env, Xml_node rom_node, bool &verbose)
 		:
-			_verbose(verbose), _rom_node(rom_node), _timer(env), _ep(env.ep())
+			_env(env), _verbose(verbose), _rom_node(rom_node), _timer(env), _ep(env.ep())
 		{
 			/* init timer signal handler */
 			_timer.sigh(_timer_handler);
@@ -170,7 +171,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 				return Rom_dataspace_capability();
 
 			/* replace dataspace by new one */
-			_ram_ds.construct(env()->ram_session(), _rom_node.size());
+			_ram_ds.construct(_env.ram(), _env.rm(), _rom_node.size());
 
 			/* fill with content of current step */
 			Xml_node step_node = _rom_node.sub_node(_last_content_idx);
