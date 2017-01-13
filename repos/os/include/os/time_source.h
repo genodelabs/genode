@@ -29,6 +29,8 @@ struct Genode::Time_source
 		unsigned long value;
 
 		explicit Microseconds(unsigned long const value) : value(value) { }
+
+		static Microseconds max() { return Microseconds(~0UL); }
 	};
 
 	/**
