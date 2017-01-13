@@ -223,7 +223,7 @@ struct Nit_fb::Main : View_updater
 
 	Nitpicker::Session::View_handle view = nitpicker.create_view();
 
-	Genode::Attached_dataspace input_ds { nitpicker.input()->dataspace() };
+	Genode::Attached_dataspace input_ds { env.rm(), nitpicker.input()->dataspace() };
 
 	Framebuffer::Mode _initial_mode()
 	{
