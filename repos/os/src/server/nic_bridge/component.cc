@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -118,7 +118,8 @@ Session_component::Session_component(Genode::Ram_session        &ram,
                                      char                       *ip_addr)
 : Stream_allocator(ram, rm, amount),
   Stream_dataspaces(ram, tx_buf_size, rx_buf_size),
-  Session_rpc_object(Stream_dataspaces::tx_ds,
+  Session_rpc_object(rm,
+                     Stream_dataspaces::tx_ds,
                      Stream_dataspaces::rx_ds,
                      Stream_allocator::range_allocator(), ep.rpc_ep()),
   Packet_handler(ep, nic.vlan()),

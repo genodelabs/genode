@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -121,10 +121,10 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 }
 
 
-Net::Nic::Nic(Genode::Entrypoint &ep, Genode::Heap &heap, Net::Vlan &vlan)
-: Packet_handler(ep, vlan),
+Net::Nic::Nic(Genode::Env &env, Genode::Heap &heap, Net::Vlan &vlan)
+: Packet_handler(env.ep(), vlan),
   _tx_block_alloc(&heap),
-  _nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE),
+  _nic(env, &_tx_block_alloc, BUF_SIZE, BUF_SIZE),
   _mac(_nic.mac_address().addr)
 {
 	_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
