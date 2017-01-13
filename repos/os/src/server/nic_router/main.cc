@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -49,8 +49,9 @@ Main::Main(Env &env)
 :
 	_timer_connection(env), _timer(_timer_connection, env.ep()),
 	_heap(&env.ram(), &env.rm()), _config(config()->xml_node(), _heap),
-	_uplink(env.ep(), _timer, _heap, _config),
-	_root(env.ep(), _timer, _heap, _uplink.router_mac(), _config, env.ram())
+	_uplink(env, _timer, _heap, _config),
+	_root(env.ep(), _timer, _heap, _uplink.router_mac(), _config, env.ram(),
+	      env.rm())
 {
 	env.parent().announce(env.ep().manage(_root));
 }

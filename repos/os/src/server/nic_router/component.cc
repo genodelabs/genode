@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -60,13 +60,14 @@ Net::Session_component::Session_component(Allocator         &alloc,
                                           Ram_session       &buf_ram,
                                           size_t      const  tx_buf_size,
                                           size_t      const  rx_buf_size,
+                                          Region_map        &region_map,
                                           Mac_address const  mac,
                                           Entrypoint        &ep,
                                           Mac_address const &router_mac,
                                           Domain            &domain)
 :
 	Session_component_base(alloc, amount, buf_ram, tx_buf_size, rx_buf_size),
-	Session_rpc_object(_tx_buf, _rx_buf, &_range_alloc, ep.rpc_ep()),
+	Session_rpc_object(region_map, _tx_buf, _rx_buf, &_range_alloc, ep.rpc_ep()),
 	Interface(ep, timer, router_mac, _guarded_alloc, mac, domain)
 {
 	_tx.sigh_ready_to_ack(_sink_ack);
@@ -98,10 +99,12 @@ Net::Root::Root(Entrypoint        &ep,
                 Allocator         &alloc,
                 Mac_address const &router_mac,
                 Configuration     &config,
-                Ram_session       &buf_ram)
+                Ram_session       &buf_ram,
+                Region_map        &region_map)
 :
 	Root_component<Session_component>(&ep.rpc_ep(), &alloc), _timer(timer),
-	_ep(ep), _router_mac(router_mac), _config(config), _buf_ram(buf_ram)
+	_ep(ep), _router_mac(router_mac), _config(config), _buf_ram(buf_ram),
+	_region_map(region_map)
 { }
 
 
@@ -138,7 +141,7 @@ Session_component *Net::Root::_create_session(char const *args)
 		}
 		return new (md_alloc())
 			Session_component(*md_alloc(), _timer, ram_quota - session_size,
-			                  _buf_ram, tx_buf_size, rx_buf_size,
+			                  _buf_ram, tx_buf_size, rx_buf_size, _region_map,
 			                  _mac_alloc.alloc(), _ep, _router_mac,
 			                  domain);
 	}

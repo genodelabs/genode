@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -89,6 +89,7 @@ class Net::Session_component : public Session_component_base,
 		                  Genode::Ram_session  &buf_ram,
 		                  Genode::size_t const  tx_buf_size,
 		                  Genode::size_t const  rx_buf_size,
+		                  Genode::Region_map   &region_map,
 		                  Mac_address    const  mac,
 		                  Genode::Entrypoint   &ep,
 		                  Mac_address    const &router_mac,
@@ -115,6 +116,7 @@ class Net::Root : public Genode::Root_component<Session_component>
 		Mac_address const    _router_mac;
 		Configuration       &_config;
 		Genode::Ram_session &_buf_ram;
+		Genode::Region_map  &_region_map;
 
 
 		/********************
@@ -130,7 +132,8 @@ class Net::Root : public Genode::Root_component<Session_component>
 		     Genode::Allocator   &alloc,
 		     Mac_address const   &router_mac,
 		     Configuration       &config,
-		     Genode::Ram_session &buf_ram);
+		     Genode::Ram_session &buf_ram,
+		     Genode::Region_map  &region_map);
 };
 
 #endif /* _COMPONENT_H_ */

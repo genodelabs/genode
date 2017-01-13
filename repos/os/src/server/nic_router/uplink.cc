@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -23,14 +23,14 @@ using namespace Net;
 using namespace Genode;
 
 
-Net::Uplink::Uplink(Entrypoint        &ep,
+Net::Uplink::Uplink(Env               &env,
                     Genode::Timer     &timer,
                     Genode::Allocator &alloc,
                     Configuration     &config)
 :
 	Nic::Packet_allocator(&alloc),
-	Nic::Connection(this, BUF_SIZE, BUF_SIZE),
-	Interface(ep, timer, mac_address(), alloc, Mac_address(),
+	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE),
+	Interface(env.ep(), timer, mac_address(), alloc, Mac_address(),
 	          config.domains().find_by_name(Cstring("uplink")))
 {
 	rx_channel()->sigh_ready_to_ack(_sink_ack);
