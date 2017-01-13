@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -34,7 +34,7 @@ class Main
 
 		Genode::Env &       _env;
 		Genode::Heap        _heap   { _env.ram(), _env.rm() };
-		Block::Driver       _driver { _env.ep(), _heap      };
+		Block::Driver       _driver { _env, _heap      };
 		Mbr_partition_table _mbr    { _heap, _driver        };
 		Gpt                 _gpt    { _heap, _driver        };
 		Block::Root         _root   { _env, _heap, _driver, _table() };

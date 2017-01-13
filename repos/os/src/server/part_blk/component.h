@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013-2016 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -125,8 +125,9 @@ class Block::Session_component : public Block::Session_rpc_object,
 		Session_component(Ram_dataspace_capability  rq_ds,
 		                  Partition                *partition,
 		                  Genode::Entrypoint       &ep,
+		                  Genode::Region_map       &rm,
 		                  Block::Driver            &driver)
-		: Session_rpc_object(rq_ds, ep.rpc_ep()),
+		: Session_rpc_object(rm, rq_ds, ep.rpc_ep()),
 		  _rq_ds(rq_ds),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
 		  _partition(partition),
@@ -282,7 +283,7 @@ class Block::Root :
 			ds_cap = _env.ram().alloc(tx_buf_size);
 			Session_component *session = new (md_alloc())
 				Session_component(ds_cap, _table.partition(num),
-				                  _env.ep(), _driver);
+				                  _env.ep(), _env.rm(), _driver);
 
 			log("session opened at partition ", num, " for '", label_str, "'");
 			return session;

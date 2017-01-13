@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -111,12 +111,12 @@ class Block::Driver
 
 	public:
 
-		Driver(Genode::Entrypoint &ep, Genode::Heap &heap)
+		Driver(Genode::Env &env, Genode::Heap &heap)
 		: _r_slab(&heap),
 		  _block_alloc(&heap),
-		  _session(&_block_alloc, 4 * 1024 * 1024),
-		  _source_ack(ep, *this, &Driver::_ack_avail),
-		  _source_submit(ep, *this, &Driver::_ready_to_submit)
+		  _session(env, &_block_alloc, 4 * 1024 * 1024),
+		  _source_ack(env.ep(), *this, &Driver::_ack_avail),
+		  _source_submit(env.ep(), *this, &Driver::_ready_to_submit)
 		{
 			_session.info(&_blk_cnt, &_blk_size, &_ops);
 		}
