@@ -193,7 +193,7 @@ class Audio_out::Mixer
 		 *
 		 * Each session in a channel is reported as an input node.
 		 */
-		Genode::Reporter reporter { "channel_list" };
+		Genode::Reporter reporter { env, "channel_list" };
 
 		/**
 		 * Report available channels
