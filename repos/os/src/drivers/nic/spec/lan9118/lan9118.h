@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -304,7 +304,7 @@ class Lan9118 : public Nic::Session_component
 		        Genode::Allocator   &rx_block_md_alloc,
 		        Genode::Env         &env)
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-		                    env.ram(), env.ep()),
+		                    env.ram(), env.rm(), env.ep()),
 		  _mmio(env, mmio_base, mmio_size),
 		  _reg_base(_mmio.local_addr<Genode::uint32_t>()),
 		  _irq(env, irq),

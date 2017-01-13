@@ -5,17 +5,17 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/sleep.h>
-#include <cap_session/connection.h>
 #include <drivers/board_base.h>
-#include <os/server.h>
 #include <nic/xml_node.h>
 #include <nic/root.h>
 
@@ -23,7 +23,14 @@
 
 #include "cadence_gem.h"
 
-class Gem_session_component
+namespace Server {
+	using namespace Genode;
+
+	class Gem_session_component;
+	struct Main;
+}
+
+class Server::Gem_session_component
 :
 	public Cadence_gem
 {
@@ -32,9 +39,11 @@ class Gem_session_component
 		                      Genode::size_t const rx_buf_size,
 		                      Genode::Allocator   &rx_block_md_alloc,
 		                      Genode::Ram_session &ram_session,
+		                      Genode::Region_map  &region_map,
 		                      Server::Entrypoint  &ep)
 		:
-			Cadence_gem(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep,
+			Cadence_gem(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+			            ram_session, region_map, ep,
 			            Board_base::EMAC_0_MMIO_BASE,
 			            Board_base::EMAC_0_MMIO_SIZE,
 			            Board_base::EMAC_0_IRQ)
@@ -61,20 +70,19 @@ class Gem_session_component
 		}
 };
 
-namespace Server { struct Main; }
 
 struct Server::Main
 {
-	Entrypoint &ep;
-	Nic::Root<Gem_session_component> nic_root{ ep, *Genode::env()->heap() };
+	Env  &_env;
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	Main(Entrypoint &ep) : ep(ep)
+	Nic::Root<Gem_session_component> nic_root{ _env, *Genode::env()->heap() };
+
+	Main(Env &env) : _env(env)
 	{
-		Genode::env()->parent()->announce(ep.manage(nic_root));
+		_env.parent().announce(_env.ep().manage(nic_root));
 	}
 };
 
+void Component::construct(Genode::Env &env) { static Server::Main main(env); }
 
-char const * Server::name()            { return "nic_ep"; }
-size_t Server::stack_size()            { return 16*1024*sizeof(long); }
-void Server::construct(Entrypoint &ep) { static Main main(ep); }

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -460,11 +460,13 @@ namespace Genode
 			            Genode::size_t const rx_buf_size,
 			            Genode::Allocator   &rx_block_md_alloc,
 			            Genode::Ram_session &ram_session,
+			            Genode::Region_map  &region_map,
 			            Server::Entrypoint  &ep,
 			            addr_t const base, size_t const size, const int irq)
 			:
 				Genode::Attached_mmio(base, size),
-				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
+				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+				                  ram_session, region_map, ep),
 				_irq(irq),
 				_irq_handler(ep, *this, &Cadence_gem::_handle_irq),
 				_phy(*this)

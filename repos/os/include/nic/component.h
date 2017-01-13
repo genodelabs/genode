@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -34,13 +34,15 @@ class Nic::Communication_buffers
 		Nic::Packet_allocator          _rx_packet_alloc;
 		Genode::Attached_ram_dataspace _tx_ds, _rx_ds;
 
-		Communication_buffers(Genode::Allocator &rx_block_md_alloc,
+		Communication_buffers(Genode::Allocator   &rx_block_md_alloc,
 		                      Genode::Ram_session &ram_session,
-		                      Genode::size_t tx_size, Genode::size_t rx_size)
+		                      Genode::Region_map  &region_map,
+		                      Genode::size_t       tx_size,
+		                      Genode::size_t       rx_size)
 		:
 			_rx_packet_alloc(&rx_block_md_alloc),
-			_tx_ds(&ram_session, tx_size),
-			_rx_ds(&ram_session, rx_size)
+			_tx_ds(ram_session, region_map, tx_size),
+			_rx_ds(ram_session, region_map, rx_size)
 		{ }
 };
 
@@ -90,11 +92,13 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Ram_session &ram_session,
+		                  Genode::Region_map  &region_map,
 		                  Server::Entrypoint  &ep)
 		:
-			Communication_buffers(rx_block_md_alloc, ram_session,
+			Communication_buffers(rx_block_md_alloc, ram_session, region_map,
 			                      tx_buf_size, rx_buf_size),
-			Session_rpc_object(_tx_ds.cap(),
+			Session_rpc_object(region_map,
+			                   _tx_ds.cap(),
 			                   _rx_ds.cap(),
 			                  &_rx_packet_alloc, ep.rpc_ep()),
 			_ep(ep)

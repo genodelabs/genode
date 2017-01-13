@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -49,10 +49,11 @@ class Nic_loopback::Session_component : public Nic::Session_component
 		                  size_t const rx_buf_size,
 		                  Allocator   &rx_block_md_alloc,
 		                  Ram_session &ram_session,
+		                  Region_map  &region_map,
 		                  Entrypoint  &ep)
 		:
 			Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-			                       ram_session, ep)
+			                       ram_session, region_map, ep)
 		{ }
 
 		Nic::Mac_address mac_address() override
@@ -146,6 +147,7 @@ class Nic_loopback::Root : public Root_component<Session_component>
 
 		Entrypoint  &_ep;
 		Ram_session &_ram;
+		Region_map  &_rm;
 
 	protected:
 
@@ -172,15 +174,18 @@ class Nic_loopback::Root : public Root_component<Session_component>
 			}
 
 			return new (md_alloc()) Session_component(tx_buf_size, rx_buf_size,
-			                                          *md_alloc(), _ram, _ep);
+			                                          *md_alloc(), _ram, _rm, _ep);
 		}
 
 	public:
 
-		Root(Entrypoint &ep, Ram_session &ram, Allocator &md_alloc)
+		Root(Entrypoint  &ep,
+		     Ram_session &ram,
+		     Region_map  &rm,
+		     Allocator   &md_alloc)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _ram(ram)
+			_ep(ep), _ram(ram), _rm(rm)
 		{ }
 };
 
@@ -191,7 +196,7 @@ struct Nic_loopback::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Nic_loopback::Root _root { _env.ep(), _env.ram(), _heap };
+	Nic_loopback::Root _root { _env.ep(), _env.ram(), _env.rm(), _heap };
 
 	Main(Env &env) : _env(env)
 	{

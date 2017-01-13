@@ -17,13 +17,15 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode */
+#include <base/component.h>
+#include <base/heap.h>
 #include <base/thread.h>
 #include <base/log.h>
 #include <nic/root.h>
@@ -38,7 +40,11 @@
 #include <net/if.h>
 #include <linux/if_tun.h>
 
-namespace Server { struct Main; }
+namespace Server {
+	using namespace Genode;
+
+	struct Main;
+}
 
 
 class Linux_session_component : public Nic::Session_component
@@ -193,9 +199,11 @@ class Linux_session_component : public Nic::Session_component
 		                        Genode::size_t const rx_buf_size,
 		                        Genode::Allocator   &rx_block_md_alloc,
 		                        Genode::Ram_session &ram_session,
+		                        Genode::Region_map  &region_map,
 		                        Server::Entrypoint  &ep)
 		:
-			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
+			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+			                  ram_session, region_map, ep),
 			_tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, _packet_stream_dispatcher)
 		{
 			/* try using configured MAC address */
@@ -223,16 +231,15 @@ class Linux_session_component : public Nic::Session_component
 
 struct Server::Main
 {
-	Entrypoint &ep;
-	Nic::Root<Linux_session_component> nic_root{ ep, *Genode::env()->heap() };
+	Env  &_env;
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	Main(Entrypoint &ep) : ep(ep)
+	Nic::Root<Linux_session_component> nic_root { _env, _heap };
+
+	Main(Env &env) : _env(env)
 	{
-		Genode::env()->parent()->announce(ep.manage(nic_root));
+		_env.parent().announce(_env.ep().manage(nic_root));
 	}
 };
 
-
-char const * Server::name()            { return "nic_ep"; }
-Genode::size_t Server::stack_size()    { return 16*1024*sizeof(long); }
-void Server::construct(Entrypoint &ep) { static Main main(ep); }
+void Component::construct(Genode::Env &env) { static Server::Main main(env); }

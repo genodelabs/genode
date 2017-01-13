@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,6 +18,7 @@
 #include <root/component.h>
 
 namespace Nic {
+	using namespace Genode;
 
 	template <class SESSION_COMPONENT> class Root;
 };
@@ -29,7 +30,8 @@ class Nic::Root : public Genode::Root_component<SESSION_COMPONENT,
 {
 	private:
 
-		Server::Entrypoint &_ep;
+		Env       &_env;
+		Allocator &_md_alloc;
 
 	protected:
 
@@ -59,16 +61,17 @@ class Nic::Root : public Genode::Root_component<SESSION_COMPONENT,
 
 			return new (Root::md_alloc())
 			            SESSION_COMPONENT(tx_buf_size, rx_buf_size,
-			                             *env()->heap(),
-			                             *env()->ram_session(),
-			                             _ep);
+			                             _md_alloc,
+			                             _env.ram(),
+			                             _env.rm(),
+			                             _env.ep());
 		}
 
 	public:
 
-		Root(Server::Entrypoint &ep, Genode::Allocator &md_alloc)
-		: Genode::Root_component<SESSION_COMPONENT, Genode::Single_client>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep)
+		Root(Genode::Env &env, Genode::Allocator &md_alloc)
+		: Genode::Root_component<SESSION_COMPONENT, Genode::Single_client>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _md_alloc(md_alloc)
 		{ }
 };
 

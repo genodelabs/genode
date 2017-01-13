@@ -6,23 +6,24 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode */
+#include <base/component.h>
 #include <base/env.h>
+#include <base/heap.h>
 #include <base/sleep.h>
 #include <base/log.h>
-#include <cap_session/connection.h>
 #include <nic/component.h>
 #include <nic/root.h>
-#include <os/server.h>
 
 #include <dde_ipxe/nic.h>
 
+using namespace Genode;
 
 class Ipxe_session_component  : public Nic::Session_component
 {
@@ -101,8 +102,10 @@ class Ipxe_session_component  : public Nic::Session_component
 		                       Genode::size_t const rx_buf_size,
 		                       Genode::Allocator   &rx_block_md_alloc,
 		                       Genode::Ram_session &ram_session,
+		                       Genode::Region_map  &region_map,
 		                       Server::Entrypoint  &ep)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+		                    ram_session, region_map, ep)
 		{
 			instance = this;
 
@@ -137,29 +140,23 @@ Ipxe_session_component *Ipxe_session_component::instance;
 
 struct Main
 {
-	Server::Entrypoint &ep;
+	Env  &_env;
 
-	Nic::Root<Ipxe_session_component> root {ep, *Genode::env()->heap() };
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Nic::Root<Ipxe_session_component> root {_env, _heap };
+
+	Main(Env &env) : _env(env)
 	{
 		Genode::log("--- iPXE NIC driver started ---");
 
 		Genode::log("-- init iPXE NIC");
-		int cnt = dde_ipxe_nic_init(&ep);
+		int cnt = dde_ipxe_nic_init(&_env.ep());
 		Genode::log("    number of devices: ", cnt);
 
-		Genode::env()->parent()->announce(ep.manage(root));
+		_env.parent().announce(_env.ep().manage(root));
 	}
 };
 
+void Component::construct(Genode::Env &env) { static Main main(env); }
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "nic_drv_ep";         }
-	size_t      stack_size()       { return 16*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);      }
-}

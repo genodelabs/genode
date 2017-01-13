@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -180,9 +180,11 @@ class Usb_nic::Session_component : public Nic::Session_component
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Ram_session &ram_session,
+		                  Genode::Region_map  &region_map,
 		                  Genode::Entrypoint  &ep,
 		                  Device *device)
-		: Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep),
+		: Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+		                         ram_session, region_map, ep),
 			_device(device)
 			{ _device->session(this); }
 
@@ -257,7 +259,7 @@ class Root : public Root_component
 			return new (Root::md_alloc())
 			            Usb_nic::Session_component(tx_buf_size, rx_buf_size,
 			                                       Lx::Malloc::mem(),
-			                                       _env.ram(),
+			                                       _env.ram(), _env.rm(),
 			                                       _env.ep(), _device);
 		}
 

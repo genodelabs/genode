@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -134,8 +134,10 @@ class Openvpn_component : public Tuntap_device,
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Ram_session &ram_session,
+		                  Genode::Region_map  &region_map,
 		                  Genode::Entrypoint  &ep)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, ram_session, ep)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
+		                    ram_session, region_map, ep)
 		{
 			char buf[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
 			_mac_addr = Nic::Mac_address((void*)buf);
@@ -236,7 +238,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			Openvpn_component *component = new (Root::md_alloc())
 			                               Openvpn_component(tx_buf_size, rx_buf_size,
 			                                                _heap,
-			                                                _env.ram(),
+			                                                _env.ram(), _env.rm(),
 			                                                _env.ep());
 			/**
 			 * Setting the pointer in this manner is quite hackish but it has
