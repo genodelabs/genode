@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2007-2015 Genode Labs GmbH
+ * Copyright (C) 2007-2017 Genode Labs GmbH
  * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
@@ -14,13 +14,6 @@
  */
 
 /* Genode */
-#include <base/env.h>
-#include <base/sleep.h>
-#include <base/rpc_server.h>
-#include <root/component.h>
-#include <cap_session/connection.h>
-#include <rtc_session/rtc_session.h>
-#include <base/printf.h>
 #include <io_port_session/connection.h>
 
 #include "rtc.h"
@@ -73,23 +66,12 @@ enum RTC
 };
 
 
-/*
- * Our RTC port session
- */
-static Io_port_connection & rtc_ports()
-{
-	static Io_port_connection inst(RTC_PORT_BASE, RTC_PORT_SIZE);
-
-	return inst;
-}
-
-
-static inline unsigned cmos_read(unsigned char addr)
+static inline unsigned cmos_read(Io_port_connection &rtc_ports, unsigned char addr)
 {
 	unsigned char val;
-	rtc_ports().outb(RTC_PORT_ADDR, addr);
+	rtc_ports.outb(RTC_PORT_ADDR, addr);
 //	iodelay();
-	val = rtc_ports().inb(RTC_PORT_DATA);
+	val = rtc_ports.inb(RTC_PORT_DATA);
 //	iodelay();
 	return val;
 }
@@ -100,8 +82,13 @@ static inline unsigned cmos_read(unsigned char addr)
 #define BIN_TO_BCD(val)  ((val) = (((val)/10) << 4) + (val) % 10)
 
 
-Rtc::Timestamp Rtc::get_time(void)
+Rtc::Timestamp Rtc::get_time(Env &env)
 {
+	/*
+	 * Our RTC port session
+	 */
+	static Io_port_connection rtc_ports(env, RTC_PORT_BASE, RTC_PORT_SIZE);
+
 	unsigned year, mon, day, hour, min, sec;
 	int i;
 
@@ -112,22 +99,22 @@ Rtc::Timestamp Rtc::get_time(void)
 
 	/* read RTC exactly on falling edge of update flag */
 	for (i = 0 ; i < 1000000 ; i++)
-		if (cmos_read(RTC_FREQ_SELECT) & RTC_UIP) break;
+		if (cmos_read(rtc_ports, RTC_FREQ_SELECT) & RTC_UIP) break;
 
 	for (i = 0 ; i < 1000000 ; i++)
-		if (!(cmos_read(RTC_FREQ_SELECT) & RTC_UIP)) break;
+		if (!(cmos_read(rtc_ports, RTC_FREQ_SELECT) & RTC_UIP)) break;
 
 	do {
-		sec  = cmos_read(RTC_SECONDS);
-		min  = cmos_read(RTC_MINUTES);
-		hour = cmos_read(RTC_HOURS);
-		day  = cmos_read(RTC_DAY_OF_MONTH);
-		mon  = cmos_read(RTC_MONTH);
-		year = cmos_read(RTC_YEAR);
-	} while (sec != cmos_read(RTC_SECONDS));
+		sec  = cmos_read(rtc_ports, RTC_SECONDS);
+		min  = cmos_read(rtc_ports, RTC_MINUTES);
+		hour = cmos_read(rtc_ports, RTC_HOURS);
+		day  = cmos_read(rtc_ports, RTC_DAY_OF_MONTH);
+		mon  = cmos_read(rtc_ports, RTC_MONTH);
+		year = cmos_read(rtc_ports, RTC_YEAR);
+	} while (sec != cmos_read(rtc_ports, RTC_SECONDS));
 
 	/* convert BCD to binary format if needed */
-	if (!(cmos_read(RTC_CONTROL) & RTC_DM_BINARY) || RTC_ALWAYS_BCD) {
+	if (!(cmos_read(rtc_ports, RTC_CONTROL) & RTC_DM_BINARY) || RTC_ALWAYS_BCD) {
 		BCD_TO_BIN(sec);
 		BCD_TO_BIN(min);
 		BCD_TO_BIN(hour);

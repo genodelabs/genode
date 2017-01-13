@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,7 +15,6 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <root/component.h>
-#include <rtc_session/rtc_session.h>
 
 #include "rtc.h"
 
@@ -31,32 +30,41 @@ namespace Rtc {
 
 struct Rtc::Session_component : public Genode::Rpc_object<Session>
 {
+	Env &_env;
+
 	Timestamp current_time() override
 	{
-		Timestamp ret = Rtc::get_time();
+		Timestamp ret = Rtc::get_time(_env);
 
 		return ret;
 	}
+
+	Session_component(Env &env) : _env(env) { }
 };
 
 
 class Rtc::Root : public Genode::Root_component<Session_component>
 {
+	private:
+
+		Env &_env;
+
 	protected:
 
 		Session_component *_create_session(const char *args)
 		{
-			return new (md_alloc()) Session_component();
+			return new (md_alloc()) Session_component(_env);
 		}
 
 	public:
 
-		Root(Entrypoint &ep, Allocator &md_alloc)
+		Root(Env &env, Allocator &md_alloc)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc)
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env)
 		{
 			/* trigger initial RTC read */
-			Rtc::get_time();
+			Rtc::get_time(_env);
 		}
 };
 
@@ -67,7 +75,7 @@ struct Rtc::Main
 
 	Sliced_heap sliced_heap { env.ram(), env.rm() };
 
-	Root root { env.ep(), sliced_heap };
+	Root root { env, sliced_heap };
 
 	Main(Env &env) : env(env) { env.parent().announce(env.ep().manage(root)); }
 };
