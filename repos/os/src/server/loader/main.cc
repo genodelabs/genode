@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2016 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -160,6 +160,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		struct Local_nitpicker_factory : Local_service<Nitpicker::Session_component>::Factory
 		{
 			Entrypoint  &_ep;
+			Env         &_env;
 			Region_map  &_rm;
 			Ram_session &_ram;
 
@@ -170,8 +171,8 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			Constructible<Nitpicker::Session_component> session;
 
-			Local_nitpicker_factory(Entrypoint &ep, Region_map &rm, Ram_session &ram)
-			: _ep(ep), _rm(rm), _ram(ram) { }
+			Local_nitpicker_factory(Entrypoint &ep, Env &env, Region_map &rm, Ram_session &ram)
+			: _ep(ep), _env(env), _rm(rm), _ram(ram) { }
 
 			void constrain_geometry(Area size) { _max_size = size; }
 
@@ -187,7 +188,7 @@ class Loader::Session_component : public Rpc_object<Session>
 					throw Parent::Service_denied();
 				}
 
-				session.construct(_ep, _rm, _ram, _max_size,
+				session.construct(_ep, _env, _rm, _ram, _max_size,
 				                  _parent_view, view_ready_sigh, args.string());
 				return *session;
 			}
@@ -213,7 +214,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		Local_rom_service           _rom_service { _rom_factory };
 		Local_cpu_service           _cpu_service { _env };
 		Local_pd_service            _pd_service  { _env };
-		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _env.rm(), _local_ram };
+		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _env, _env.rm(), _local_ram };
 		Local_nitpicker_service     _nitpicker_service { _nitpicker_factory };
 		Signal_context_capability   _fault_sigh;
 		Constructible<Child>        _child;

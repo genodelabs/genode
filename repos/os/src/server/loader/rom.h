@@ -4,10 +4,16 @@
  * \date   2012-04-17
  */
 
+/*
+ * Copyright (C) 2012-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _ROM_H_
 #define _ROM_H_
 
-//#include <util/string.h>
 #include <rom_session/rom_session.h>
 #include <base/rpc_server.h>
 #include <os/attached_ram_dataspace.h>
@@ -45,7 +51,7 @@ namespace Genode {
 			           Ram_session &ram_session, Origin origin)
 			:
 				_name(name), _ram(ram_session),
-				_fg(&_ram, 0), _bg(&_ram, 0),
+				_fg(_ram, env.rm(), 0), _bg(_ram, env.rm(), 0),
 				_bg_has_pending_data(false),
 				_lock(Lock::LOCKED)
 			{

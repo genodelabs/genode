@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -150,6 +150,7 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 		 * Constructor
 		 */
 		Session_component(Entrypoint                &ep,
+		                  Env                       &env,
 		                  Region_map                &rm,
 		                  Ram_session               &ram,
 		                  Area                       max_size,
@@ -160,6 +161,7 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 			_view_ready_sigh(view_ready_sigh),
 			_ep(ep),
 			_max_size(max_size),
+			_nitpicker(env),
 
 			/* import parent view */
 			_parent_view_handle(_nitpicker.view_handle(parent_view)),
@@ -169,7 +171,7 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 
 			_proxy_input(rm, _nitpicker.input_session(), _motion_delta),
 
-			_command_ds(&ram, sizeof(Command_buffer))
+			_command_ds(ram, env.rm(), sizeof(Command_buffer))
 		{
 			_ep.manage(_proxy_input);
 			_ep.manage(*this);

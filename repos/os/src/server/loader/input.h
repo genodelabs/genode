@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -55,7 +55,7 @@ class Input::Session_component : public Rpc_object<Session>
 		                  Session_capability real_input,
 		                  Motion_delta      &motion_delta)
 		:
-			_real_input(real_input), _motion_delta(motion_delta),
+			_real_input(rm, real_input), _motion_delta(motion_delta),
 			_ev_ds(rm, _real_input.dataspace()),
 			_ev_buf(_ev_ds.local_addr<Event>())
 		{ }
