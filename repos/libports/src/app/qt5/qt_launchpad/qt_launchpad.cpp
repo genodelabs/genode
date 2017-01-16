@@ -6,6 +6,8 @@
 
 #include <QScrollArea>
 
+#include <base/log.h>
+
 #include "qt_launchpad.h"
 
 #include "launch_entry.h"
@@ -109,7 +111,7 @@ void Qt_launchpad::remove_child(Launchpad_child::Name const &name, Genode::Alloc
 	  childrenDockWidgetContents->findChild<Child_entry*>(QString(name.string()) + "_child_entry");
 
 	if (!child_entry) {
-		PWRN("child entry lookup failed");
+		Genode::warning("child entry lookup failed");
 		return;
 	}
 
