@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2016 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -149,9 +149,10 @@ class File_system::Session_component : public Session_rpc_object
 		 * Constructor
 		 */
 		Session_component(size_t tx_buf_size, Genode::Entrypoint &ep,
+		                  Genode::Region_map &rm,
 		                  Directory &root, bool writable)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), rm, ep.rpc_ep()),
 			_ep(ep),
 			_root(root),
 			_writable(writable),
@@ -417,6 +418,7 @@ class File_system::Root : public Root_component<Session_component>
 	private:
 
 		Genode::Entrypoint    &_ep;
+		Genode::Region_map    &_rm;
 		Genode::Xml_node const _config;
 		Directory             &_root_dir;
 
@@ -501,7 +503,7 @@ class File_system::Root : public Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, *session_root_dir, writeable);
+				Session_component(tx_buf_size, _ep, _rm, *session_root_dir, writeable);
 		}
 
 	public:
@@ -513,11 +515,11 @@ class File_system::Root : public Root_component<Session_component>
 		 * \param md_alloc  meta-data allocator
 		 * \param root_dir  root-directory handle (anchor for fs)
 		 */
-		Root(Genode::Entrypoint &ep, Genode::Xml_node config,
-		     Allocator &md_alloc, Directory &root_dir)
+		Root(Genode::Entrypoint &ep, Genode::Region_map &rm,
+		     Genode::Xml_node config, Allocator &md_alloc, Directory &root_dir)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _config(config), _root_dir(root_dir)
+			_ep(ep), _rm(rm), _config(config), _root_dir(root_dir)
 		{ }
 };
 
@@ -637,7 +639,7 @@ struct File_system::Main
 	 */
 	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
-	Root _fs_root { _env.ep(), _config.xml(), _sliced_heap, _root_dir };
+	Root _fs_root { _env.ep(), _env.rm(), _config.xml(), _sliced_heap, _root_dir };
 
 	Genode::Heap _heap { _env.ram(), _env.rm() };
 

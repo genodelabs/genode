@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2016 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -168,10 +168,11 @@ namespace File_system {
 			 * Constructor
 			 */
 			Session_component(size_t tx_buf_size, Rpc_entrypoint &ep,
+			                  Region_map &rm,
 			                  Signal_receiver &sig_rec,
 			                  Directory &root, bool writable)
 			:
-				Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep),
+				Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), rm, ep),
 				_root(root),
 				_writable(writable),
 				_process_packet_dispatcher(sig_rec, *this,
@@ -821,6 +822,7 @@ namespace File_system {
 		private:
 
 			Rpc_entrypoint  &_channel_ep;
+			Region_map      &_rm;
 			Signal_receiver &_sig_rec;
 			Directory       &_root_dir;
 
@@ -936,7 +938,7 @@ namespace File_system {
 					throw Root::Quota_exceeded();
 				}
 				return new (md_alloc())
-					Session_component(tx_buf_size, _channel_ep, _sig_rec,
+					Session_component(tx_buf_size, _channel_ep, _rm, _sig_rec,
 					                  *session_root_dir, writeable);
 			}
 
@@ -951,10 +953,12 @@ namespace File_system {
 			 * \param md_alloc    meta-data allocator
 			 */
 			Root(Rpc_entrypoint &session_ep, Allocator &md_alloc,
+			     Region_map &rm,
 			     Signal_receiver &sig_rec, Directory &root_dir)
 			:
 				Root_component<Session_component>(&session_ep, &md_alloc),
-				_channel_ep(session_ep), _sig_rec(sig_rec), _root_dir(root_dir)
+				_channel_ep(session_ep), _rm(rm), _sig_rec(sig_rec),
+				_root_dir(root_dir)
 			{ }
 	};
 };
@@ -981,7 +985,7 @@ int main(int, char **)
 
 	static Directory root_dir("/");
 
-	static File_system::Root root(ep, sliced_heap, sig_rec, root_dir);
+	static File_system::Root root(ep, sliced_heap, *env()->rm_session(), sig_rec, root_dir);
 
 	env()->parent()->announce(ep.manage(&root));
 

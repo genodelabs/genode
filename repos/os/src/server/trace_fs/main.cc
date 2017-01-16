@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <file_system/node_handle_registry.h>
 #include <cap_session/connection.h>
 #include <file_system_session/rpc_object.h>
@@ -606,6 +607,7 @@ class File_system::Session_component : public Session_rpc_object
 	private:
 
 		Server::Entrypoint   &_ep;
+		Genode::Region_map   &_rm;
 		Allocator            &_md_alloc;
 		Directory            &_root_dir;
 		Node_handle_registry  _handle_registry;
@@ -738,6 +740,7 @@ class File_system::Session_component : public Session_rpc_object
 		 */
 		Session_component(size_t                 tx_buf_size,
 		                  Server::Entrypoint     &ep,
+		                  Genode::Region_map     &rm,
 		                  File_system::Directory &root_dir,
 		                  Allocator              &md_alloc,
 		                  unsigned                subject_limit,
@@ -748,8 +751,9 @@ class File_system::Session_component : public Session_rpc_object
 		                  size_t                  buffer_size,
 		                  size_t                  buffer_size_max)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), _rm, ep.rpc_ep()),
 			_ep(ep),
+			_rm(rm),
 			_md_alloc(md_alloc),
 			_root_dir(root_dir),
 			_subject_limit(subject_limit),
@@ -905,6 +909,7 @@ class File_system::Root : public Root_component<Session_component>
 	private:
 
 		Server::Entrypoint &_ep;
+		Genode::Region_map &_rm;
 
 		Directory          &_root_dir;
 
@@ -1003,7 +1008,7 @@ class File_system::Root : public Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, _root_dir, *md_alloc(),
+				Session_component(tx_buf_size, _ep, _rm, _root_dir, *md_alloc(),
 				                  subject_limit, interval, trace_quota,
 				                  trace_meta_quota, trace_parent_levels,
 				                  buffer_size, buffer_size_max);
@@ -1019,10 +1024,12 @@ class File_system::Root : public Root_component<Session_component>
 		 *                    data-flow signals of packet streams
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Server::Entrypoint &ep, Allocator &md_alloc, Directory &root_dir)
+		Root(Server::Entrypoint &ep, Allocator &md_alloc, Region_map &rm,
+		     Directory &root_dir)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
 			_ep(ep),
+			_rm(rm),
 			_root_dir(root_dir)
 		{ }
 };
@@ -1030,28 +1037,21 @@ class File_system::Root : public Root_component<Session_component>
 
 struct File_system::Main
 {
-	Server::Entrypoint &ep;
+	Env &_env;
 
 	Directory           root_dir = { "/" };
 
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
+	Sliced_heap sliced_heap = { _env.ram(), _env.rm() };
 
-	Root fs_root = { ep, sliced_heap, root_dir };
+	Root fs_root = { _env.ep(), sliced_heap, _env.rm(), root_dir };
 
-	Main(Server::Entrypoint &ep) : ep(ep)
+	Main(Env &env) : _env(env)
 	{
-		env()->parent()->announce(ep.manage(fs_root));
+		env.parent().announce(env.ep().manage(fs_root));
 	}
 };
 
-
-/**********************
- ** Server framework **
- **********************/
-
-char const *   Server::name()                            { return "trace_fs_ep"; }
-Genode::size_t Server::stack_size()                      { return 64*1024*sizeof(long); }
-void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }
+void Component::construct(Genode::Env &env) { static File_system::Main main(env); }

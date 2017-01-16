@@ -251,7 +251,7 @@ class Vfs_server::Session_component :
 		                  char           const *root_path,
 		                  bool                  writable)
 		:
-			Session_rpc_object(env.ram().alloc(tx_buf_size), env.ep().rpc_ep()),
+			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
 			_label(label),
 			_process_packet_dispatcher(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),

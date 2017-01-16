@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -154,7 +154,7 @@ class File_system::Session_component : public Session_rpc_object
 		                  bool                writeable,
 		                  Allocator          &md_alloc)
 		:
-			Session_rpc_object(env.ram().alloc(tx_buf_size), env.ep().rpc_ep()),
+			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
 			_writable(writeable),

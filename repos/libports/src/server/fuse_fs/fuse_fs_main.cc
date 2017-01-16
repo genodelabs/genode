@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013-2016 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -159,11 +159,12 @@ class File_system::Session_component : public Session_rpc_object
 		 */
 		Session_component(size_t              tx_buf_size,
 		                  Genode::Entrypoint &ep,
+		                  Genode::Region_map &rm,
 		                  char const         *root_dir,
 		                  bool                writeable,
 		                  Allocator          &md_alloc)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), rm, ep.rpc_ep()),
 			_ep(ep),
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
@@ -409,6 +410,7 @@ class File_system::Root : public Root_component<Session_component>
 	private:
 
 		Genode::Entrypoint &_ep;
+		Genode::Region_map &_rm;
 
 	protected:
 
@@ -488,7 +490,7 @@ class File_system::Root : public Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, root_dir, writeable, *md_alloc());
+				Session_component(tx_buf_size, _ep, _rm, root_dir, writeable, *md_alloc());
 		}
 
 	public:
@@ -501,10 +503,10 @@ class File_system::Root : public Root_component<Session_component>
 		 *                    data-flow signals of packet streams
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Genode::Entrypoint &ep, Allocator &md_alloc)
+		Root(Genode::Entrypoint &ep, Allocator &md_alloc, Genode::Region_map &rm)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep)
+			_ep(ep), _rm(rm)
 		{ }
 };
 
@@ -512,15 +514,16 @@ class File_system::Root : public Root_component<Session_component>
 struct File_system::Main
 {
 	Genode::Entrypoint &ep;
+	Genode::Region_map &rm;
 
 	/*
 	 * Initialize root interface
 	 */
 	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
-	Root fs_root = { ep, sliced_heap };
+	Root fs_root = { ep, sliced_heap, rm };
 
-	Main(Genode::Entrypoint &ep) : ep(ep)
+	Main(Genode::Entrypoint &ep, Genode::Region_map &rm) : ep(ep), rm(rm)
 	{
 		if (!Fuse::init_fs()) {
 			Genode::error("FUSE fs initialization failed");
@@ -545,6 +548,6 @@ struct File_system::Main
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	static File_system::Main inst(env.ep());
+	static File_system::Main inst(env.ep(), env.rm());
 }
 
