@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -60,7 +60,7 @@ class Rom_prefetcher::Rom_session_component : public Genode::Rpc_object<Genode::
 		 */
 		Rom_session_component(Genode::Env &env, Genode::Session_label const &label)
 		:
-			_rom(label.string())
+			_rom(env, label.string())
 		{
 			prefetch_dataspace(env.rm(), _rom.dataspace());
 		}
