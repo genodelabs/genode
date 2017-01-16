@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/component.h>
 #include <file_system/node_handle_registry.h>
-#include <cap_session/connection.h>
 #include <file_system_session/rpc_object.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
@@ -229,6 +228,7 @@ class Trace_file_system
 		};
 
 
+		Genode::Region_map        &_rm;
 		Genode::Allocator         &_alloc;
 		Genode::Trace::Connection &_trace;
 		Directory                 &_root_dir;
@@ -385,13 +385,14 @@ class Trace_file_system
 		/**
 		 * Constructor
 		 */
-		Trace_file_system(Genode::Allocator &alloc,
-		                  Trace             &trace,
-		                  Directory         &root_dir,
-		                  size_t             buffer_size,
-		                  size_t             buffer_size_max)
+		Trace_file_system(Genode::Region_map &rm,
+		                  Genode::Allocator  &alloc,
+		                  Trace              &trace,
+		                  Directory          &root_dir,
+		                  size_t              buffer_size,
+		                  size_t              buffer_size_max)
 		:
-			_alloc(alloc), _trace(trace), _root_dir(root_dir),
+			_rm(rm), _alloc(alloc), _trace(trace), _root_dir(root_dir),
 			_buffer_size(buffer_size), _buffer_size_max(buffer_size_max),
 			_followed_subject_registry(_alloc)
 		{ }
@@ -441,14 +442,14 @@ class Trace_file_system
 
 							Genode::Dataspace_capability ds_cap = _trace.policy(id);
 							if (ds_cap.valid()) {
-								void *ram = Genode::env()->rm_session()->attach(ds_cap);
+								void *ram = _rm.attach(ds_cap);
 								size_t n = policy_file->read((char *)ram, policy_length, 0UL);
 
 								if (n != policy_length) {
 									Genode::error("error while copying policy content");
 								} else { subject->policy_id(id); }
 
-								Genode::env()->rm_session()->detach(ram);
+								_rm.detach(ram);
 							}
 						} catch (...) { Genode::error("could not allocate policy"); }
 					}
@@ -574,7 +575,7 @@ class Trace_file_system
 					subject_dir_name.replace('/', '_');
 
 					followed_subject = _followed_subject_registry.alloc(subject_dir_name.data(),
-					                                                    subjects[i]);
+					                                                    subjects[i], _rm);
 
 					/* set trace buffer size */
 					followed_subject->buffer_size_file.size_limit(_buffer_size_max);
@@ -607,7 +608,7 @@ class File_system::Session_component : public Session_rpc_object
 	private:
 
 		Server::Entrypoint   &_ep;
-		Genode::Region_map   &_rm;
+		Ram_session          &_ram;
 		Allocator            &_md_alloc;
 		Directory            &_root_dir;
 		Node_handle_registry  _handle_registry;
@@ -740,7 +741,9 @@ class File_system::Session_component : public Session_rpc_object
 		 */
 		Session_component(size_t                 tx_buf_size,
 		                  Server::Entrypoint     &ep,
+		                  Genode::Ram_session    &ram,
 		                  Genode::Region_map     &rm,
+		                  Genode::Env            &env,
 		                  File_system::Directory &root_dir,
 		                  Allocator              &md_alloc,
 		                  unsigned                subject_limit,
@@ -751,15 +754,16 @@ class File_system::Session_component : public Session_rpc_object
 		                  size_t                  buffer_size,
 		                  size_t                  buffer_size_max)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), _rm, ep.rpc_ep()),
+			Session_rpc_object(ram.alloc(tx_buf_size), rm, ep.rpc_ep()),
 			_ep(ep),
-			_rm(rm),
+			_ram(ram),
 			_md_alloc(md_alloc),
 			_root_dir(root_dir),
 			_subject_limit(subject_limit),
 			_poll_interval(poll_interval),
-			_trace(new (&_md_alloc) Genode::Trace::Connection(trace_quota, trace_meta_quota, trace_parent_levels)),
-			_trace_fs(new (&_md_alloc) Trace_file_system(_md_alloc, *_trace, _root_dir, buffer_size, buffer_size_max)),
+			_fs_update_timer(env),
+			_trace(new (&_md_alloc) Genode::Trace::Connection(env, trace_quota, trace_meta_quota, trace_parent_levels)),
+			_trace_fs(new (&_md_alloc) Trace_file_system(rm, _md_alloc, *_trace, _root_dir, buffer_size, buffer_size_max)),
 			_process_packet_dispatcher(_ep, *this, &Session_component::_process_packets),
 			_fs_update_dispatcher(_ep, *this, &Session_component::_fs_update)
 		{
@@ -788,7 +792,7 @@ class File_system::Session_component : public Session_rpc_object
 			destroy(&_md_alloc, _trace);
 
 			Dataspace_capability ds = tx_sink()->dataspace();
-			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
+			_ram.free(static_cap_cast<Ram_dataspace>(ds));
 		}
 
 
@@ -908,10 +912,12 @@ class File_system::Root : public Root_component<Session_component>
 {
 	private:
 
-		Server::Entrypoint &_ep;
-		Genode::Region_map &_rm;
+		Server::Entrypoint  &_ep;
+		Genode::Ram_session &_ram;
+		Genode::Region_map  &_rm;
+		Genode::Env         &_env;
 
-		Directory          &_root_dir;
+		Directory           &_root_dir;
 
 	protected:
 
@@ -1008,10 +1014,11 @@ class File_system::Root : public Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, _rm, _root_dir, *md_alloc(),
-				                  subject_limit, interval, trace_quota,
-				                  trace_meta_quota, trace_parent_levels,
-				                  buffer_size, buffer_size_max);
+				Session_component(tx_buf_size, _ep, _ram, _rm, _env, _root_dir,
+				                  *md_alloc(), subject_limit, interval,
+				                  trace_quota, trace_meta_quota,
+				                  trace_parent_levels, buffer_size,
+				                  buffer_size_max);
 		}
 
 	public:
@@ -1024,12 +1031,14 @@ class File_system::Root : public Root_component<Session_component>
 		 *                    data-flow signals of packet streams
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Server::Entrypoint &ep, Allocator &md_alloc, Region_map &rm,
-		     Directory &root_dir)
+		Root(Server::Entrypoint &ep, Allocator &md_alloc, Ram_session &ram,
+		     Region_map &rm, Env &env, Directory &root_dir)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
 			_ep(ep),
+			_ram(ram),
 			_rm(rm),
+			_env(env),
 			_root_dir(root_dir)
 		{ }
 };
@@ -1046,7 +1055,7 @@ struct File_system::Main
 	 */
 	Sliced_heap sliced_heap = { _env.ram(), _env.rm() };
 
-	Root fs_root = { _env.ep(), sliced_heap, _env.rm(), root_dir };
+	Root fs_root = { _env.ep(), sliced_heap, _env.ram(), _env.rm(), _env, root_dir };
 
 	Main(Env &env) : _env(env)
 	{

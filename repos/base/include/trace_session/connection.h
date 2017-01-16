@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -49,7 +49,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	:
 		Genode::Connection<Session>(env, _session(env.parent(), ram_quota,
 		                                          arg_buffer_size, parent_levels)),
-		Session_client(cap())
+		Session_client(env.rm(), cap())
 	{ }
 
 	/**
@@ -63,7 +63,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	:
 		Genode::Connection<Session>(_session(*env()->parent(), ram_quota,
 		                                     arg_buffer_size, parent_levels)),
-		Session_client(cap())
+		Session_client(*env()->rm_session(), cap())
 	{ }
 };
 

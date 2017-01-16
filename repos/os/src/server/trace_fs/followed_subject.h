@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -52,9 +52,10 @@ namespace Trace_fs {
 
 				public:
 
-				Trace_buffer_manager(Genode::Dataspace_capability ds_cap)
+				Trace_buffer_manager(Genode::Region_map           &rm,
+				                     Genode::Dataspace_capability  ds_cap)
 				:
-					buffer(Genode::env()->rm_session()->attach(ds_cap)),
+					buffer(rm.attach(ds_cap)),
 					current_entry(buffer->first())
 				{ }
 
@@ -79,6 +80,8 @@ namespace Trace_fs {
 
 			Genode::Allocator         &_md_alloc;
 
+			Genode::Region_map        &_rm;
+
 			int                        _handle;
 
 			Genode::Trace::Subject_id  _id;
@@ -98,10 +101,12 @@ namespace Trace_fs {
 			File_system::Policy_file      policy_file;
 
 			Followed_subject(Genode::Allocator &md_alloc, char const *name,
-			              Genode::Trace::Subject_id &id, int handle)
+			                 Genode::Region_map &rm,
+			                 Genode::Trace::Subject_id &id, int handle)
 			:
 				Directory(name),
 				_md_alloc(md_alloc),
+				_rm(rm),
 				_handle(handle),
 				_id(id),
 				_was_traced(false),
@@ -141,7 +146,7 @@ namespace Trace_fs {
 				if (_buffer_manager != 0)
 					throw Trace_buffer_manager::Already_managed();
 
-				_buffer_manager = new (&_md_alloc) Trace_buffer_manager(ds_cap);
+				_buffer_manager = new (&_md_alloc) Trace_buffer_manager(_rm, ds_cap);
 			}
 
 			void unmanage_trace_buffer()
@@ -227,11 +232,12 @@ namespace Trace_fs {
 			 * \param name name of subject
 			 * \param id subject id of tracre subject
 			 */
-			Followed_subject *alloc(char const *name, Genode::Trace::Subject_id &id)
+			Followed_subject *alloc(char const *name, Genode::Trace::Subject_id &id,
+			                        Genode::Region_map &rm)
 			{
 				int handle = _find_free_handle();
 
-				_subjects[handle] = new (&_md_alloc) Followed_subject(_md_alloc, name, id, handle);
+				_subjects[handle] = new (&_md_alloc) Followed_subject(_md_alloc, name, rm, id, handle);
 
 				return _subjects[handle];
 			}
