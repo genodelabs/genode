@@ -11,14 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/env.h>
-#include <base/rpc_server.h>
-#include <base/sleep.h>
 #include <root/component.h>
+#include <base/component.h>
+#include <base/heap.h>
 #include <util/string.h>
 
 #include <terminal_session/connection.h>
-#include <cap_session/connection.h>
 #include <log_session/log_session.h>
 
 
@@ -33,14 +31,14 @@ namespace Genode {
 		private:
 
 			char                  _label[LABEL_LEN];
-			Terminal::Connection *_terminal;
+			Terminal::Connection &_terminal;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Termlog_component(const char *label, Terminal::Connection *terminal)
+			Termlog_component(const char *label, Terminal::Connection &terminal)
 			: _terminal(terminal) { snprintf(_label, LABEL_LEN, "[%s] ", label); }
 
 
@@ -74,16 +72,16 @@ namespace Genode {
 				 */
 				enum { ESC = 27 };
 				if ((string[0] == ESC) && (len == 5) && (string[4] == '\n')) {
-					_terminal->write(string, len - 1);
+					_terminal.write(string, len - 1);
 					return len;
 				}
 
-				_terminal->write(_label, strlen(_label));
-				_terminal->write(string, len);
+				_terminal.write(_label, strlen(_label));
+				_terminal.write(string, len);
 
 				/* if last character of string was not a line break, add one */
 				if ((len > 0) && (string[len - 1] != '\n'))
-					_terminal->write("\n", 1);
+					_terminal.write("\n", 1);
 
 				return len;
 			}
@@ -94,7 +92,7 @@ namespace Genode {
 	{
 		private:
 
-			Terminal::Connection *_terminal;
+			Terminal::Connection _terminal;
 
 		protected:
 
@@ -127,39 +125,19 @@ namespace Genode {
 			 * \param session_ep  entry point for managing cpu session objects
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
-			Termlog_root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
-			         Terminal::Connection *terminal)
-			: Root_component<Termlog_component>(session_ep, md_alloc),
-			  _terminal(terminal) { }
+			Termlog_root(Genode::Env &env, Allocator &md_alloc)
+			: Root_component<Termlog_component>(env.ep(), md_alloc),
+			  _terminal(env, "log") { }
 	};
 }
 
 
-int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
 
-	/*
-	 * Open Terminal session
-	 */
-	static Terminal::Connection terminal;
+	static Sliced_heap session_alloc(env.ram(), env.rm());
+	static Genode::Termlog_root termlog_root(env, session_alloc);
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "termlog_ep");
-	static Termlog_root termlog_root(&ep, env()->heap(), &terminal);
-
-	/*
-	 * Announce services
-	 */
-	env()->parent()->announce(ep.manage(&termlog_root));
-
-	/**
-	 * Got to sleep forever
-	 */
-	sleep_forever();
-	return 0;
+	env.parent().announce(env.ep().manage(termlog_root));
 }
