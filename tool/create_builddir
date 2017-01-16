@@ -132,7 +132,7 @@ BUILD_CONF(wand_quad)    := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(odroid_xu)    := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(odroid_x2)    := run_kernel_foc    run_boot_dir repos
 BUILD_CONF(zynq_qemu)    := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_opt_arm repos
-BUILD_CONF(muen)         := run_kernel_hw run_opt_muen        run_boot_dir repos
+BUILD_CONF(muen)         := run_kernel_hw run_opt_muen        run_boot_dir repos repos_x86
 BUILD_CONF(riscv_spike)  := run_kernel_hw run_opt_spike       run_boot_dir repos
 BUILD_CONF(linux)        := run_kernel_linux repos
 
