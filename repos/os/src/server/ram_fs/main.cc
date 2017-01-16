@@ -42,6 +42,8 @@ class File_system::Session_component : public Session_rpc_object
 	private:
 
 		Genode::Entrypoint   &_ep;
+		Genode::Ram_session  &_ram;
+		Genode::Allocator    &_alloc;
 		Directory            &_root;
 		Node_handle_registry  _handle_registry;
 		bool                  _writable;
@@ -149,11 +151,14 @@ class File_system::Session_component : public Session_rpc_object
 		 * Constructor
 		 */
 		Session_component(size_t tx_buf_size, Genode::Entrypoint &ep,
-		                  Genode::Region_map &rm,
+		                  Genode::Ram_session &ram, Genode::Region_map &rm,
+		                  Genode::Allocator &alloc,
 		                  Directory &root, bool writable)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), rm, ep.rpc_ep()),
+			Session_rpc_object(ram.alloc(tx_buf_size), rm, ep.rpc_ep()),
 			_ep(ep),
+			_ram(ram),
+			_alloc(alloc),
 			_root(root),
 			_writable(writable),
 			_process_packet_handler(_ep, *this, &Session_component::_process_packets)
@@ -172,7 +177,7 @@ class File_system::Session_component : public Session_rpc_object
 		~Session_component()
 		{
 			Dataspace_capability ds = tx_sink()->dataspace();
-			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
+			_ram.free(static_cap_cast<Ram_dataspace>(ds));
 		}
 
 
@@ -202,8 +207,8 @@ class File_system::Session_component : public Session_rpc_object
 					throw Node_already_exists();
 
 				try {
-					File * const file = new (env()->heap())
-					                    File(*env()->heap(), name.string());
+					File * const file = new (_alloc)
+					                    File(_alloc, name.string());
 
 					dir->adopt_unsynchronized(file);
 				}
@@ -232,7 +237,7 @@ class File_system::Session_component : public Session_rpc_object
 					throw Node_already_exists();
 
 				try {
-					Symlink * const symlink = new (env()->heap())
+					Symlink * const symlink = new (_alloc)
 					                    Symlink(name.string());
 
 					dir->adopt_unsynchronized(symlink);
@@ -272,7 +277,7 @@ class File_system::Session_component : public Session_rpc_object
 					throw Node_already_exists();
 
 				try {
-					parent->adopt_unsynchronized(new (env()->heap()) Directory(name));
+					parent->adopt_unsynchronized(new (_alloc) Directory(name));
 				} catch (Allocator::Out_of_memory) {
 					throw No_space();
 				}
@@ -350,7 +355,7 @@ class File_system::Session_component : public Session_rpc_object
 			//     is still referenced by a node handle
 
 			node->unlock();
-			destroy(env()->heap(), node);
+			destroy(_alloc, node);
 		}
 
 		void truncate(File_handle file_handle, file_size_t size)
@@ -418,6 +423,8 @@ class File_system::Root : public Root_component<Session_component>
 	private:
 
 		Genode::Entrypoint    &_ep;
+		Genode::Allocator     &_alloc;
+		Genode::Ram_session   &_ram;
 		Genode::Region_map    &_rm;
 		Genode::Xml_node const _config;
 		Directory             &_root_dir;
@@ -503,7 +510,8 @@ class File_system::Root : public Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, _rm, *session_root_dir, writeable);
+				Session_component(tx_buf_size, _ep, _ram, _rm, _alloc,
+				                  *session_root_dir, writeable);
 		}
 
 	public:
@@ -513,13 +521,16 @@ class File_system::Root : public Root_component<Session_component>
 		 *
 		 * \param ep        entrypoint
 		 * \param md_alloc  meta-data allocator
+		 * \param alloc     general-purpose allocator
 		 * \param root_dir  root-directory handle (anchor for fs)
 		 */
-		Root(Genode::Entrypoint &ep, Genode::Region_map &rm,
-		     Genode::Xml_node config, Allocator &md_alloc, Directory &root_dir)
+		Root(Genode::Entrypoint &ep, Genode::Ram_session &ram,
+		     Genode::Region_map &rm, Genode::Xml_node config,
+		     Allocator &md_alloc, Allocator &alloc, Directory &root_dir)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _rm(rm), _config(config), _root_dir(root_dir)
+			_ep(ep), _alloc(alloc), _ram(ram), _rm(rm), _config(config),
+			_root_dir(root_dir)
 		{ }
 };
 
@@ -564,7 +575,8 @@ struct Attribute_string
 };
 
 
-static void preload_content(Genode::Allocator      &alloc,
+static void preload_content(Genode::Env            &env,
+                            Genode::Allocator      &alloc,
                             Genode::Xml_node        node,
                             File_system::Directory &dir)
 {
@@ -587,7 +599,7 @@ static void preload_content(Genode::Allocator      &alloc,
 			Directory *sub_dir = new (&alloc) Directory(name);
 
 			/* traverse into the new directory */
-			preload_content(alloc, sub_node, *sub_dir);
+			preload_content(env, alloc, sub_node, *sub_dir);
 
 			dir.adopt_unsynchronized(sub_dir);
 		}
@@ -602,7 +614,7 @@ static void preload_content(Genode::Allocator      &alloc,
 
 			/* read file content from ROM module */
 			try {
-				Attached_rom_dataspace rom(name);
+				Attached_rom_dataspace rom(env, name);
 				File *file = new (&alloc) File(alloc, as);
 				file->write(rom.local_addr<char>(), rom.size(), 0);
 				dir.adopt_unsynchronized(file);
@@ -639,15 +651,16 @@ struct File_system::Main
 	 */
 	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
-	Root _fs_root { _env.ep(), _env.rm(), _config.xml(), _sliced_heap, _root_dir };
-
 	Genode::Heap _heap { _env.ram(), _env.rm() };
+
+	Root _fs_root { _env.ep(), _env.ram(), _env.rm(), _config.xml(),
+	                _sliced_heap, _heap, _root_dir };
 
 	Main(Genode::Env &env) : _env(env)
 	{
 		/* preload RAM file system with content as declared in the config */
 		try {
-			preload_content(_heap, _config.xml().sub_node("content"), _root_dir); }
+			preload_content(_env, _heap, _config.xml().sub_node("content"), _root_dir); }
 		catch (Xml_node::Nonexistent_sub_node) { }
 
 		_env.parent().announce(_env.ep().manage(_fs_root));
