@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -138,8 +138,8 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 	public:
 
-		Storage_device(struct scsi_device *sdev)
-		: Block::Driver(), _sdev(sdev)
+		Storage_device(Genode::Ram_session &ram, struct scsi_device *sdev)
+		: Block::Driver(ram), _sdev(sdev)
 		{
 			/* read device capacity */
 			_capacity();
@@ -186,7 +186,8 @@ struct Factory : Block::Driver_factory
 {
 	Storage_device device;
 
-	Factory(struct scsi_device *sdev) : device(sdev) {}
+	Factory(Genode::Ram_session &ram, struct scsi_device *sdev)
+	: device(ram, sdev) {}
 
 	Block::Driver *create() { return &device; }
 	void destroy(Block::Driver *driver) { }
@@ -215,7 +216,7 @@ void scsi_add_device(struct scsi_device *sdev)
 	using namespace Genode;
 	static bool announce = false;
 
-	static struct Factory factory(sdev);
+	static struct Factory factory(_signal->ram(), sdev);
 	device = &factory.device;
 
 	/*
@@ -223,7 +224,8 @@ void scsi_add_device(struct scsi_device *sdev)
 	 */
 	if (!announce) {
 		PREPARE_WORK(&delayed, ack_packet);
-		static Block::Root root(_signal->ep(), Lx::Malloc::mem(), factory);
+		static Block::Root root(_signal->ep(), Lx::Malloc::mem(),
+		                        _signal->rm(), factory);
 		_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
 		announce = true;
 	}

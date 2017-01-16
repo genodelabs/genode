@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -177,9 +177,10 @@ class Block::Session_component : public Block::Session_component_base,
 		 */
 		Session_component(Driver_factory     &driver_factory,
 		                  Genode::Entrypoint &ep,
+		                  Genode::Region_map &rm,
 		                  size_t              buf_size)
 		: Session_component_base(driver_factory, buf_size),
-		  Driver_session(_rq_ds, ep.rpc_ep()),
+		  Driver_session(rm, _rq_ds, ep.rpc_ep()),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
 		  _sink_ack(ep, *this, &Session_component::_signal),
 		  _sink_submit(ep, *this, &Session_component::_signal),
@@ -250,6 +251,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 
 		Driver_factory     &_driver_factory;
 		Genode::Entrypoint &_ep;
+		Genode::Region_map &_rm;
 
 	protected:
 
@@ -282,7 +284,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 			}
 
 			return new (md_alloc()) Session_component(_driver_factory,
-			                                          _ep, tx_buf_size);
+			                                          _ep, _rm, tx_buf_size);
 		}
 
 	public:
@@ -292,14 +294,16 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		 *
 		 * \param ep              entrypoint handling this root component
 		 * \param md_alloc        allocator to allocate session components
+		 * \param rm              region map
 		 * \param driver_factory  factory to create and destroy driver backend
 		 */
 		Root(Genode::Entrypoint &ep,
 		     Allocator          &md_alloc,
+		     Genode::Region_map &rm,
 		     Driver_factory     &driver_factory)
 		:
 			Root_component(ep, md_alloc),
-			_driver_factory(driver_factory), _ep(ep)
+			_driver_factory(driver_factory), _ep(ep), _rm(rm)
 		{ }
 };
 

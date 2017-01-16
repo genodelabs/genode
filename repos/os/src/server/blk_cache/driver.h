@@ -334,7 +334,8 @@ class Driver : public Block::Driver
 		 * \param ep  server entrypoint
 		 */
 		Driver(Genode::Env &env, Genode::Heap &heap)
-		: _env(env),
+		: Block::Driver(env.ram()),
+		  _env(env),
 		  _r_slab(&heap),
 		  _alloc(&heap, CACHE_BLK_SIZE),
 		  _blk(_env, &_alloc, Block::Session::TX_QUEUE_SIZE*CACHE_BLK_SIZE),

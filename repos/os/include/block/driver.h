@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -83,6 +83,8 @@ class Block::Driver
 {
 	private:
 
+		Genode::Ram_session &_ram_session;
+
 		Driver_session_base *_session = nullptr;
 
 	public:
@@ -92,6 +94,12 @@ class Block::Driver
 		 */
 		class Io_error           : public ::Genode::Exception { };
 		class Request_congestion : public ::Genode::Exception { };
+
+		/**
+		 * Constructor
+		 */
+		Driver(Genode::Ram_session &ram_session)
+		: _ram_session(ram_session) { }
 
 		/**
 		 * Destructor
@@ -201,7 +209,7 @@ class Block::Driver
 		 */
 		virtual Genode::Ram_dataspace_capability
 		alloc_dma_buffer(Genode::size_t size) {
-			return Genode::env()->ram_session()->alloc(size); }
+			return _ram_session.alloc(size); }
 
 		/**
 		 * Free buffer which is suitable for DMA.
@@ -209,7 +217,7 @@ class Block::Driver
 		 * Note: has to be overriden by DMA-capable devices
 		 */
 		virtual void free_dma_buffer(Genode::Ram_dataspace_capability c) {
-			return Genode::env()->ram_session()->free(c); }
+			return _ram_session.free(c); }
 
 		/**
 		 * Synchronize with device.

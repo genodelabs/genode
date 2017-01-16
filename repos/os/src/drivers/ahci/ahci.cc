@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -69,7 +69,7 @@ struct Ahci
 		hba.init();
 
 		/* search for devices */
-		scan_ports(env.rm());
+		scan_ports(env.rm(), env.ram());
 	}
 
 	bool atapi(unsigned sig)
@@ -114,7 +114,7 @@ struct Ahci
 		log("64-bit support: ", hba.supports_64bit() ? "yes" : "no");
 	}
 
-	void scan_ports(Genode::Region_map &rm)
+	void scan_ports(Genode::Region_map &rm, Genode::Ram_session &ram)
 	{
 		Genode::log("number of ports: ", hba.port_count(), " "
 		            "pi: ", Genode::Hex(hba.read<Hba::Pi>()));
@@ -150,13 +150,13 @@ struct Ahci
 			switch (sig) {
 
 				case ATA_SIG:
-					ports[i] = new (&alloc) Ata_driver(alloc, port, root,
+					ports[i] = new (&alloc) Ata_driver(alloc, port, ram, root,
 					                                   ready_count);
 					break;
 
 				case ATAPI_SIG:
 				case ATAPI_SIG_QEMU:
-					ports[i] = new (&alloc) Atapi_driver(port, root,
+					ports[i] = new (&alloc) Atapi_driver(port, ram, root,
 					                                     ready_count);
 					break;
 

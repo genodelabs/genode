@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -32,8 +32,10 @@ class Driver : public Block::Driver
 
 	public:
 
-		Driver(Heap &heap, size_t block_size, ::String &uri)
-		: _block_size(block_size), _http(heap, uri) {}
+		Driver(Heap &heap, Ram_session &ram,
+		       size_t block_size, ::String &uri)
+		: Block::Driver(ram),
+		  _block_size(block_size), _http(heap, uri) {}
 
 
 		/*******************************
@@ -88,7 +90,7 @@ class Factory : public Block::Driver_factory
 		}
 
 		Block::Driver *create() {
-			return new (&_heap) Driver(_heap, _blk_sz, _uri); }
+			return new (&_heap) Driver(_heap, _env.ram(), _blk_sz, _uri); }
 
 	void destroy(Block::Driver *driver) {
 		Genode::destroy(&_heap, driver); }
@@ -100,7 +102,7 @@ struct Main
 	Env        &env;
 	Heap        heap { env.ram(), env.rm() };
 	Factory     factory { env, heap };
-	Block::Root root { env.ep(), heap, factory };
+	Block::Root root { env.ep(), heap, env.rm(), factory };
 
 	Main(Env &env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

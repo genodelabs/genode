@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -710,6 +710,7 @@ struct Usb::Block_driver : Usb::Completion,
 	Block_driver(Env &env, Genode::Allocator &alloc,
 	             Genode::Signal_context_capability sigh)
 	:
+		Block::Driver(env.ram()),
 		env(env), ep(env.ep()), announce_sigh(sigh), alloc(&alloc),
 		device(&alloc, usb, ep)
 	{
@@ -817,7 +818,7 @@ struct Usb::Main
 	};
 
 	Factory     factory { env, heap, announce_dispatcher };
-	Block::Root root    { env.ep(), heap, factory };
+	Block::Root root    { env.ep(), heap, env.rm(), factory };
 
 	Main(Env &env) : env(env) { }
 };

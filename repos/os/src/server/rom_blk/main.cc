@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2016 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -36,7 +36,8 @@ class Rom_blk : public Block::Driver
 		using String = Genode::String<64UL>;
 
 		Rom_blk(Env &env, String &name, size_t blk_sz)
-		: _env(env), _rom(env, name.string()), _blk_sz(blk_sz) {}
+		: Block::Driver(env.ram()), _env(env), _rom(env, name.string()),
+		  _blk_sz(blk_sz) {}
 
 
 		/****************************
@@ -116,7 +117,7 @@ struct Main
 			Genode::destroy(&heap, driver); }
 	} factory { env, heap };
 
-	Block::Root root { env.ep(), heap, factory };
+	Block::Root root { env.ep(), heap, env.rm(), factory };
 
 	Main(Env &env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

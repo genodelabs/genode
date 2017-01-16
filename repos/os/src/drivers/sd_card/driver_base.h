@@ -30,6 +30,9 @@ class Sd_card::Driver_base : public    Block::Driver,
 {
 	public:
 
+		Driver_base(Genode::Ram_session &ram)
+		: Block::Driver(ram) { }
+
 		/*******************
 		 ** Block::Driver **
 		 *******************/

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2016 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -235,6 +235,7 @@ void Driver::write_dma(Block::sector_t           blk_nr,
 
 Driver::Driver(Env &env)
 :
+	Driver_base(env.ram()),
 	Attached_mmio(Board_base::SDHC_MMIO_BASE, Board_base::SDHC_MMIO_SIZE),
 	_env(env)
 {

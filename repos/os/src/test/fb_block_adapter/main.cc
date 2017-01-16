@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -33,8 +33,9 @@ class Driver : public Block::Driver
 
 	public:
 
-		Driver()
-		: _fb_mode(_fb.mode()),
+		Driver(Genode::Ram_session &ram)
+		: Block::Driver(ram),
+		  _fb_mode(_fb.mode()),
 		  _fb_cap(_fb.dataspace()),
 		  _fb_dsc(_fb_cap),
 		  _fb_addr(Genode::env()->rm_session()->attach(_fb_cap)),
@@ -99,11 +100,13 @@ class Driver : public Block::Driver
 
 struct Factory : Block::Driver_factory
 {
-	Genode::Heap &heap;
+	Genode::Ram_session &ram;
+	Genode::Heap        &heap;
 
-	Factory(Genode::Heap &heap) : heap(heap) {}
+	Factory(Genode::Ram_session &ram, Genode::Heap &heap)
+	: ram(ram), heap(heap) {}
 
-	Block::Driver *create() { return new (&heap) Driver(); }
+	Block::Driver *create() { return new (&heap) Driver(ram); }
 
 	void destroy(Block::Driver *driver) { Genode::destroy(&heap, driver); }
 };
@@ -113,8 +116,8 @@ struct Main
 {
 	Genode::Env    &env;
 	Genode::Heap    heap { env.ram(), env.rm() };
-	struct Factory  factory { heap };
-	Block::Root     root { env.ep(), heap, factory };
+	struct Factory  factory { env.ram(), heap };
+	Block::Root     root { env.ep(), heap, env.rm(), factory };
 
 	Main(Genode::Env &env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

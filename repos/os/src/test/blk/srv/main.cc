@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013-2016 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -36,7 +36,8 @@ class Driver : public Block::Driver
 	public:
 
 		Driver(Genode::Env &env, Genode::size_t number, Genode::size_t size)
-		: _number(number), _size(size),
+		: Block::Driver(env.ram()),
+		  _number(number), _size(size),
 		  _blk_ds(env.ram().alloc(number*size)),
 		  _blk_buf(env.rm().attach(_blk_ds)) {}
 
@@ -123,7 +124,7 @@ struct Main
 		void destroy(Block::Driver *driver) { }
 	} factory { env, heap };
 
-	Block::Root                    root { env.ep(), heap, factory };
+	Block::Root                    root { env.ep(), heap, env.rm(), factory };
 	Timer::Connection              timer { env };
 	Genode::Signal_handler<Driver> dispatcher { env.ep(), *factory.driver,
 	                                            &Driver::handler };

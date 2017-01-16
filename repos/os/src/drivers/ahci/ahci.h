@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -796,9 +796,10 @@ struct Port_driver : Port, Block::Driver
 	Ahci_root &root;
 	unsigned  &sem;
 
-	Port_driver(Port &port, Ahci_root &root, unsigned &sem)
-	: Port(port), root(root), sem(sem) {
-		sem++; }
+	Port_driver(Port &port, Genode::Ram_session &ram, Ahci_root &root,
+	            unsigned &sem)
+	: Port(port), Block::Driver(ram),
+	  root(root), sem(sem) { sem++; }
 
 	virtual void handle_irq() = 0;
 

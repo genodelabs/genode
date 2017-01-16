@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -189,8 +189,9 @@ struct Ata_driver : Port_driver
 	Block::Packet_descriptor                  pending[32];
 
 	Ata_driver(Genode::Allocator &alloc,
-	           Port &port, Ahci_root &root, unsigned &sem)
-	: Port_driver(port, root, sem), alloc(alloc)
+	           Port &port, Genode::Ram_session &ram,
+	           Ahci_root &root, unsigned &sem)
+	: Port_driver(port, ram, root, sem), alloc(alloc)
 	{
 		Port::init();
 		identify_device();

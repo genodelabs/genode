@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2010-2016 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -72,7 +72,7 @@ class Ram_blk : public Block::Driver
 		 */
 		Ram_blk(Env &env, Allocator &alloc,
 		        const char *name, size_t block_size)
-		:
+		:	Block::Driver(env.ram()),
 			_env(env), _alloc(&alloc),
 			_rom_ds(new (_alloc) Attached_rom_dataspace(_env, name)),
 			_size(_rom_ds->size()),
@@ -89,7 +89,7 @@ class Ram_blk : public Block::Driver
 		 * Construct empty RAM dataspace
 		 */
 		Ram_blk(Env &env, size_t size, size_t block_size)
-		:
+		:	Block::Driver(env.ram()),
 			_env(env),
 			_size(size),
 			_block_size(block_size),
@@ -194,7 +194,7 @@ struct Main
 			Genode::destroy(&alloc, driver); }
 	} factory { env, heap, config_rom.xml() };
 
-	Block::Root root { env.ep(), heap, factory };
+	Block::Root root { env.ep(), heap, env.rm(), factory };
 
 	Main(Env &env) : env(env)
 	{

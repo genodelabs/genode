@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -55,8 +55,9 @@ class Session_component : public Block::Session_component
 
 		Session_component(Block::Driver_factory &driver_factory,
 		                  Genode::Entrypoint    &ep,
+		                  Genode::Region_map    &rm,
 		                  Genode::size_t         buf_size)
-		: Block::Session_component(driver_factory, ep, buf_size) { }
+		: Block::Session_component(driver_factory, ep, rm, buf_size) { }
 
 		Block::Driver_factory &factory() { return _driver_factory; }
 };
@@ -137,7 +138,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 
 			Block::Factory *factory = new (&_alloc) Block::Factory(num);
 			::Session_component *session = new (&_alloc)
-				::Session_component(*factory, _env.ep(), tx_buf_size);
+				::Session_component(*factory, _env.ep(), _env.rm(), tx_buf_size);
 			log("session opened at device ", num, " for '", label, "'");
 			return session;
 		}
