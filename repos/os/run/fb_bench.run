@@ -69,19 +69,13 @@ install_config $config
 # Boot modules
 #
 
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer
-	test-fb_bench
-}
+set boot_modules { core ld.lib.so init timer test-fb_bench }
 
-# platform-specific modules
 append_platform_drv_boot_modules
 
-lappend_if [have_spec sdl]              boot_modules fb_sdl
-lappend_if [have_spec framebuffer]      boot_modules fb_drv
+lappend_if [have_spec sdl]         boot_modules fb_sdl
+lappend_if [have_spec framebuffer] boot_modules fb_drv
 
 build_boot_image $boot_modules
 
-run_genode_until forever
-
+run_genode_until {.*--- Framebuffer benchmark finished ---.*\n} 30

@@ -11,65 +11,63 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/log.h>
+/* Genode includes */
+#include <base/component.h>
 #include <base/thread.h>
 #include <timer_session/connection.h>
 
 using namespace Genode;
 
 
-struct Worker : Genode::Thread_deprecated<4096>
+struct Worker : Thread
 {
-	Timer::Session   &timer;
-	unsigned    const result_value;
-	unsigned volatile result;
+	Timer::Session    &timer;
+	unsigned const     result_value;
+	unsigned volatile  result;
 
 	void entry()
 	{
-		log("worker thread is up");
+		log("Worker thread is up");
 		timer.msleep(250);
 
-		log("worker is leaving the entry function with "
-		    "result=", result_value, "...");
+		log("Worker is leaving the entry function with result=", result_value);
 		result = result_value;
 	}
 
-	Worker(Timer::Session &timer, int result_value)
-	:
-		Thread_deprecated("worker"),
-		timer(timer), result_value(result_value), result(~0)
+	Worker(Env &env, Timer::Session &timer, unsigned result_value)
+	: Thread(env, "worker", 1024 * sizeof(addr_t)), timer(timer),
+	  result_value(result_value), result(~0)
 	{
-		start();
+		Thread::start();
 	}
 };
 
 
-/**
- * Main program
- */
-int main(int, char **)
+struct Main
 {
-	log("--- thread join test ---");
+	struct Worker_unfinished_after_join : Exception { };
 
 	Timer::Connection timer;
 
-	for (unsigned i = 0; i < 10; i++) {
+	Main(Env &env) : timer(env)
+	{
+		log("--- Thread join test ---");
+		for (unsigned i = 0; i < 10; i++) {
 
-		/*
-		 * A worker thread is created in each iteration. Just before
-		 * leaving the entry function, the worker assigns the result
-		 * to 'Worker::result' variable. By validating this value,
-		 * we determine whether the worker has finished or not.
-		 */
-		Worker worker(timer, i);
-		worker.join();
-
-		if (worker.result != i) {
-			error("work remains unfinished after 'join()' returned");
-			return -1;
+			/*
+			 * A worker thread is created in each iteration. Just before
+			 * leaving the entry function, the worker assigns the result
+			 * to 'Worker::result' variable. By validating this value,
+			 * we determine whether the worker has finished or not.
+			 */
+			Worker worker(env, timer, i);
+			worker.join();
+			if (worker.result != i) {
+				throw Worker_unfinished_after_join(); }
 		}
+		log("--- Thread join test finished ---");
 	}
+};
 
-	log("--- signalling test finished ---");
-	return 0;
-}
+
+void Component::construct(Genode::Env &env) { static Main main(env); }

@@ -25,43 +25,43 @@ build_boot_image "core ld.lib.so init test-reconstructible"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-reconstructible" exited with exit value 0.*\n} 10
+run_genode_until {.*--- Reconstructible utility test finished ---.*\n} 10
 
 grep_output {-> test-reconstructible}
 
 compare_output_to {
-[init -> test-reconstructible] --- test-reconstructible started ---
+[init -> test-reconstructible] --- Reconstructible utility test ---
 [init -> test-reconstructible] construct Object 1
 [init -> test-reconstructible] construct Object 2
-[init -> test-reconstructible] -- create Compound object --
+[init -> test-reconstructible] create Compound object
 [init -> test-reconstructible] construct Member_with_reference
 [init -> test-reconstructible] construct Compound
 [init -> test-reconstructible] compound.member.constructed returns 1
 [init -> test-reconstructible] compound.lazy_member.constructed returns 0
-[init -> test-reconstructible] -- construct lazy member --
+[init -> test-reconstructible] construct lazy member
 [init -> test-reconstructible] construct Member_with_reference
 [init -> test-reconstructible] compound.lazy_member.constructed returns 1
-[init -> test-reconstructible] -- call method on member (with reference to Object 1) --
+[init -> test-reconstructible] call method on member (with reference to Object 1)
 [init -> test-reconstructible] const method called on Object 1
-[init -> test-reconstructible] -- reconstruct member with Object 2 as reference --
+[init -> test-reconstructible] reconstruct member with Object 2 as reference
 [init -> test-reconstructible] destruct Member_with_reference
 [init -> test-reconstructible] construct Member_with_reference
-[init -> test-reconstructible] -- call method on member --
+[init -> test-reconstructible] call method on member
 [init -> test-reconstructible] const method called on Object 2
-[init -> test-reconstructible] -- destruct member --
+[init -> test-reconstructible] destruct member
 [init -> test-reconstructible] destruct Member_with_reference
-[init -> test-reconstructible] -- try to call method on member, catch exception --
+[init -> test-reconstructible] try to call method on member, catch exception
 [init -> test-reconstructible] got exception, as expected
-[init -> test-reconstructible] -- destruct Compound and Objects 1 and 2 --
+[init -> test-reconstructible] destruct Compound and Objects 1 and 2
 [init -> test-reconstructible] destruct Compound
 [init -> test-reconstructible] destruct Member_with_reference
 [init -> test-reconstructible] destruct Object 2
 [init -> test-reconstructible] destruct Object 1
-[init -> test-reconstructible] -- construct Throwing object
+[init -> test-reconstructible] construct Throwing object
 [init -> test-reconstructible] construct Throwing -> don't throw
 [init -> test-reconstructible] destruct Throwing
 [init -> test-reconstructible] construct Throwing -> throw exception
-[init -> test-reconstructible] -- catched exception as expected
-[init -> test-reconstructible] --- test-reconstructible finished ---
+[init -> test-reconstructible] got exception, as expected
+[init -> test-reconstructible] --- Reconstructible utility test finished ---
 }
 

@@ -24,6 +24,12 @@ install_config {
 		<start name="loader">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Loader"/></provides>
+			<config>
+				<policy label_prefix="test-dynamic_config_loader">
+					<parent-rom name="test-dynamic_config"/>
+					<parent-rom name="ld.lib.so"/>
+				</policy>
+			</config>
 		</start>
 		<start name="test-dynamic_config_loader">
 			<resource name="RAM" quantum="10M"/>

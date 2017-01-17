@@ -30,13 +30,13 @@ build_boot_image "core ld.lib.so init test-ram_fs_chunk"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-ram_fs_chunk" exited with exit value 0.*\n} 10
+run_genode_until {.*--- RAM filesystem chunk test finished ---.*\n} 10
 
 grep_output {^\[init -> test-ram_fs_chunk\]}
 unify_output { sizeof=[0-9]+} {}
 
 compare_output_to {
-	[init -> test-ram_fs_chunk] --- ram_fs_chunk test ---
+	[init -> test-ram_fs_chunk] --- RAM filesystem chunk test ---
 	[init -> test-ram_fs_chunk] chunk sizes
 	[init -> test-ram_fs_chunk]   level 0: payload=120
 	[init -> test-ram_fs_chunk]   level 1: payload=24
@@ -77,6 +77,7 @@ compare_output_to {
 	[init -> test-ram_fs_chunk] trunc(2) -> content (size=2): "fi"
 	[init -> test-ram_fs_chunk] trunc(1) -> content (size=1): "f"
 	[init -> test-ram_fs_chunk] allocator: sum=0
+	[init -> test-ram_fs_chunk] --- RAM filesystem chunk test finished ---
 }
 
 

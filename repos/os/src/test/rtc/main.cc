@@ -13,10 +13,10 @@
 
 #include <base/component.h>
 #include <base/env.h>
-#include <base/log.h>
-#include <base/printf.h>
 #include <rtc_session/connection.h>
 #include <timer_session/connection.h>
+
+using namespace Genode;
 
 struct Main
 {
@@ -31,9 +31,8 @@ struct Main
 		for (unsigned i = 0; i < 4; ++i) {
 			Rtc::Timestamp now = rtc.current_time();
 
-			Genode::printf("RTC: %u-%02u-%02u %02u:%02u:%02u\n",
-		               	   now.year, now.month, now.day,
-		               	   now.hour, now.minute, now.second);
+			log("RTC: ", now.year, "-", now.month,  "-", now.day, " ",
+			             now.hour, ":", now.minute, ":", now.second);
 
 			timer.msleep(1000);
 		}

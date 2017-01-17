@@ -16,7 +16,7 @@
 #include <base/component.h>
 #include <timer_session/connection.h>
 #include <os/attached_ram_dataspace.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 
 /* local includes */
 #include <driver.h>
@@ -51,14 +51,14 @@ struct Main
 	Env                    &env;
 	Packet_descriptor       pkt;
 	unsigned long           time_before_ms;
-	Timer::Connection       timer;
+	Timer::Connection       timer        { env };
 	Operation               operation    { READ };
 	Signal_handler<Main>    ack_handler  { env.ep(), *this, &Main::update_state };
 	Driver_session          drv_session  { ack_handler };
 	Sd_card::Driver         drv          { env };
-	size_t const            buf_size_kib { config()->xml_node()
-	                                       .attribute_value("buffer_size_kib",
-	                                                        (size_t)0) };
+	size_t const            buf_size_kib { Attached_rom_dataspace(env, "config")
+	                                       .xml().attribute_value("buffer_size_kib",
+	                                                              (size_t)0) };
 	size_t const            buf_size     { buf_size_kib * 1024 };
 	Attached_ram_dataspace  buf          { &env.ram(), buf_size, UNCACHED };
 	char                   *buf_virt     { buf.local_addr<char>() };

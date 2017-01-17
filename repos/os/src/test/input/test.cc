@@ -5,21 +5,19 @@
  */
 
 /*
- * Copyright (C) 2010-2016 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/component.h>
-#include <base/env.h>
-#include <base/log.h>
 #include <timer_session/connection.h>
 #include <input_session/connection.h>
-#include <input/event.h>
-
 
 using namespace Genode;
+
 
 static char const * ev_type(Input::Event::Type type)
 {
@@ -47,62 +45,42 @@ static char const * key_name(Input::Event const &ev)
 }
 
 
-class Test_environment
+struct Main
 {
-	private:
+	Env                  &env;
+	Input::Connection     input      { env };
+	Signal_handler<Main>  input_sigh { env.ep(), *this, &Main::handle_input };
+	unsigned              event_cnt  { 0 };
 
-		Genode::Env &_env;
+	void handle_input();
 
-		Input::Connection _input;
-
-		Genode::Signal_handler<Test_environment> _input_sigh;
-
-		unsigned int event_count = 0;
-
-		void _handle_input();
-
-	public:
-
-		Test_environment(Genode::Env &env)
-		: _env(env),
-		  _input_sigh(env.ep(), *this, &Test_environment::_handle_input)
-		{
-			log("--- Input test is up ---");
-
-			_input.sigh(_input_sigh);
-		}
+	Main(Env &env) : env(env)
+	{
+		log("--- Input test ---");
+		input.sigh(input_sigh);
+	}
 };
 
 
-void Test_environment::_handle_input()
+void Main::handle_input()
 {
-	/*
-	 * Handle input events
-	 */
 	int key_cnt = 0;
-
-	_input.for_each_event([&] (Input::Event const &ev) {
-		event_count++;
+	input.for_each_event([&] (Input::Event const &ev) {
+		event_cnt++;
 
 		if (ev.type() == Input::Event::PRESS)   key_cnt++;
 		if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
-		/* log event */
-		log("Input event #", event_count, "\t"
+		log("Input event #", event_cnt,          "\t"
 		    "type=",         ev_type(ev.type()), "\t"
 		    "code=",         ev.code(),          "\t"
 		    "rx=",           ev.rx(),            "\t"
 		    "ry=",           ev.ry(),            "\t"
 		    "ax=",           ev.ax(),            "\t"
 		    "ay=",           ev.ay(),            "\t"
-		    "key_cnt=",      key_cnt, "\t", key_name(ev));
+		    "key_cnt=",      key_cnt,            "\t", key_name(ev));
 	});
 }
 
-void Component::construct(Genode::Env &env)
-{
-	using namespace Genode;
 
-	log("--- Test input ---\n");
-	static Test_environment te(env);
-}
+void Component::construct(Env &env) { static Main main(env); }

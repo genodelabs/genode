@@ -61,7 +61,7 @@ struct Test::Base
 
 		enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
-		Nic::Connection _nic { &_tx_block_alloc, BUF_SIZE, BUF_SIZE };
+		Nic::Connection _nic { _env, &_tx_block_alloc, BUF_SIZE, BUF_SIZE };
 
 		void _handle_nic() { if (!_done) handle_nic(); }
 

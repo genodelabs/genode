@@ -54,7 +54,6 @@ set config  {
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
-	</config>
 }
 
 install_config $config
@@ -74,5 +73,11 @@ set boot_modules {
 }
 
 build_boot_image $boot_modules
-run_genode_until forever
+run_genode_until {.*Round 04:  A  A.*\n.*Setting CPU frequency low.*\n.*Setting CPU frequency high.*\n.*Round 05:  A  A} 60
 
+grep_output {^\[init -> test-cpufreq\] }
+
+compare_output_to {
+[init -> test-cpufreq] Setting CPU frequency low
+[init -> test-cpufreq] Setting CPU frequency high
+}

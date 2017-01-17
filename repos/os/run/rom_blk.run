@@ -1,9 +1,3 @@
-#
-# \brief  Test for 'rom_blk' service
-# \author Stefan Kalkowski
-# \date   2011-05-10
-#
-
 build "core init server/rom_blk test/rom_blk"
 
 create_boot_directory
@@ -37,4 +31,4 @@ build_boot_image "core ld.lib.so init rom_blk test-rom_blk"
 
 append qemu_args "-m 64 -nographic "
 
-run_genode_until "all done, finished!" 10
+run_genode_until {.*--- ROM Block test finished ---.*\n} 10

@@ -1,6 +1,7 @@
 /*
  * \brief  Test for changing configuration at runtime (server-side)
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2012-04-04
  *
  * This program provides a generated config file as ROM service. After
@@ -8,65 +9,56 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/signal.h>
 #include <os/attached_ram_dataspace.h>
 #include <os/static_root.h>
 #include <timer_session/connection.h>
 #include <rom_session/rom_session.h>
-#include <cap_session/connection.h>
+#include <base/component.h>
 
+using namespace Genode;
 
 /*
  * The implementation of this class follows the lines of
  * 'os/include/os/child_policy_dynamic_rom.h'.
  */
-class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
+class Rom_session_component : public Rpc_object<Rom_session>
 {
 	private:
 
-		Genode::Attached_ram_dataspace _fg;
-		Genode::Attached_ram_dataspace _bg;
-
-		bool _bg_has_pending_data;
-
-		Genode::Lock _lock;
-
-		Genode::Signal_context_capability _sigh;
+		Env                       &_env;
+		Attached_ram_dataspace     _fg              { _env.ram(), _env.rm(), 0 };
+		Attached_ram_dataspace     _bg              { _env.ram(), _env.rm(), 0 };
+		bool                       _bg_pending_data { false };
+		Signal_context_capability  _sigh;
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Rom_session_component()
-		: _fg(0, 0), _bg(0, 0), _bg_has_pending_data(false) { }
+		Rom_session_component(Env &env) : _env(env) { }
 
 		/**
 		 * Update the config file
 		 */
 		void configure(char const *data)
 		{
-			Genode::Lock::Guard guard(_lock);
-
-			Genode::size_t const data_len = Genode::strlen(data) + 1;
+			size_t const data_len = strlen(data) + 1;
 
 			/* let background buffer grow if needed */
 			if (_bg.size() < data_len)
-				_bg.realloc(Genode::env()->ram_session(), data_len);
+				_bg.realloc(&_env.ram(), data_len);
 
-			Genode::strncpy(_bg.local_addr<char>(), data, data_len);
-			_bg_has_pending_data = true;
+			strncpy(_bg.local_addr<char>(), data, data_len);
+			_bg_pending_data = true;
 
 			/* inform client about the changed data */
 			if (_sigh.valid())
-				Genode::Signal_transmitter(_sigh).submit();
+				Signal_transmitter(_sigh).submit();
 		}
 
 
@@ -74,67 +66,51 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 ** ROM session interface **
 		 ***************************/
 
-		Genode::Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace() override
 		{
-			Genode::Lock::Guard guard(_lock);
-
-			if (!_fg.size() && !_bg_has_pending_data) {
-				Genode::error("no data loaded");
-				return Genode::Rom_dataspace_capability();
+			if (!_fg.size() && !_bg_pending_data) {
+				error("no data loaded");
+				return Rom_dataspace_capability();
 			}
-
 			/*
 			 * Keep foreground if no background exists. Otherwise, use old
 			 * background as new foreground.
 			 */
-			if (_bg_has_pending_data) {
+			if (_bg_pending_data) {
 				_fg.swap(_bg);
-				_bg_has_pending_data = false;
+				_bg_pending_data = false;
 			}
-
-			Genode::Dataspace_capability ds_cap = _fg.cap();
-			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds_cap);
+			Dataspace_capability ds_cap = _fg.cap();
+			return static_cap_cast<Rom_dataspace>(ds_cap);
 		}
 
-		void sigh(Genode::Signal_context_capability sigh_cap)
-		{
-			Genode::Lock::Guard guard(_lock);
-			_sigh = sigh_cap;
-		}
+		void sigh(Signal_context_capability sigh_cap) override { _sigh = sigh_cap; }
 };
 
-
-int main(int argc, char **argv)
+struct Main
 {
-	using namespace Genode;
+	enum { STACK_SIZE = 2 * 1024 * sizeof(addr_t) };
 
-	/* connection to capability service needed to create capabilities */
-	static Cap_connection cap;
+	Env                      &env;
+	Rom_session_component     rom_session   { env };
+	Static_root<Rom_session>  rom_root      { env.ep().manage(rom_session) };
+	int                       counter       { -1 };
+	Timer::Connection         timer         { env };
+	Signal_handler<Main>      timer_handler { env.ep(), *this, &Main::handle_timer };
 
-	enum { STACK_SIZE = 8*1024 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "rom_ep");
-
-	static Rom_session_component rom_session;
-	static Static_root<Rom_session> rom_root(ep.manage(&rom_session));
-
-	rom_session.configure("<config><counter>-1</counter></config>");
-
-	/* announce server */
-	env()->parent()->announce(ep.manage(&rom_root));
-
-	int counter = 0;
-	for (;;) {
-
-		static Timer::Connection timer;
-		timer.msleep(250);
-
-		/* re-generate configuration */
-		char buf[100];
-		Genode::snprintf(buf, sizeof(buf),
-		                 "<config><counter>%d</counter></config>",
-		                 counter++);
-
-		rom_session.configure(buf);
+	void handle_timer()
+	{
+		String<100> config("<config><counter>", counter++, "</counter></config>");
+		rom_session.configure(config.string());
+		timer.trigger_once(250 * 1000);
 	}
-	return 0;
+
+	Main(Env &env) : env(env)
+	{
+		timer.sigh(timer_handler);
+		handle_timer();
+		env.parent().announce(env.ep().manage(rom_root));
+	}
 };
+
+void Component::construct(Env &env) { static Main main(env); }

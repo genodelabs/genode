@@ -64,5 +64,4 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic -serial mon:stdio -m 256 "
 
-run_genode_until forever
-#{.*child exited with exit value 0.* } 60
+run_genode_until "--- test-trace finished ---" 30

@@ -13,14 +13,16 @@
 
 /* Genode includes */
 #include <base/synced_interface.h>
-#include <base/log.h>
+#include <base/component.h>
+
+using namespace Genode;
 
 
 struct Adder
 {
 	int add(int a, int b)
 	{
-		Genode::log("adding ", a, " + ", b);
+		log("adding ", a, " + ", b);
 		return a + b;
 	}
 };
@@ -28,22 +30,25 @@ struct Adder
 
 struct Pseudo_lock
 {
-	void lock()   { Genode::log("lock"); }
-	void unlock() { Genode::log("unlock"); }
+	void lock()   { log("lock"); }
+	void unlock() { log("unlock"); }
 };
 
 
-int main(int, char **)
+struct Main
 {
-	using namespace Genode;
+	Pseudo_lock                          lock;
+	Adder                                adder;
+	Synced_interface<Adder, Pseudo_lock> synced_adder { lock, &adder };
 
-	Pseudo_lock lock;
-	Adder       adder;
+	Main(Env &env)
+	{
+		log("--- Synced interface test ---");
+		int const res = synced_adder()->add(13, 14);
+		log("result is ", res);
+		log("--- Synced interface test finished ---");
+	}
+};
 
-	Synced_interface<Adder, Pseudo_lock> synced_adder(lock, &adder);
 
-	int const res = synced_adder()->add(13, 14);
-
-	log("result is ", res);
-	return 0;
-}
+void Component::construct(Env &env) { static Main main(env); }

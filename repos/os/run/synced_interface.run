@@ -25,14 +25,15 @@ build_boot_image "core ld.lib.so init test-synced_interface"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until {child "test-synced_interface" exited with exit value 0} 10
+run_genode_until {.*--- Synced interface test finished ---.*\n} 10
 
 grep_output {-> test-synced_interface}
 
 compare_output_to {
+[init -> test-synced_interface] --- Synced interface test ---
 [init -> test-synced_interface] lock
 [init -> test-synced_interface] adding 13 + 14
 [init -> test-synced_interface] unlock
 [init -> test-synced_interface] result is 27
+[init -> test-synced_interface] --- Synced interface test finished ---
 }
-

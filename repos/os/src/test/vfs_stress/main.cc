@@ -477,7 +477,7 @@ void Component::construct(Genode::Env &env)
 	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
 
 	unsigned long elapsed_ms;
-	Timer::Connection timer;
+	Timer::Connection timer(env);
 
 	/* populate the directory file system at / */
 	vfs_root.num_dirent("/");

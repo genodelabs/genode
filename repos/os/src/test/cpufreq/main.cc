@@ -1,42 +1,49 @@
 /*
  * \brief  Test for changing the CPU frequency
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2013-06-14
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <base/log.h>
-#include <base/env.h>
-#include <base/sleep.h>
-
+#include <base/component.h>
 #include <regulator/consts.h>
 #include <regulator_session/connection.h>
 #include <timer_session/connection.h>
 
-int main(int argc, char **argv)
+using namespace Genode;
+
+struct Main
 {
-	using namespace Genode;
+	enum { PERIOD_US = 8 * 1000 * 1000 };
 
-	log("--- test-cpufreq started ---");
+	Env                   &env;
+	Timer::Connection      timer         { env };
+	Regulator::Connection  cpu_regulator { env, Regulator::CLK_CPU };
+	Signal_handler<Main>   timer_handler { env.ep(), *this, &Main::handle_timer };
+	bool                   high          { true };
 
-	static Timer::Connection     timer;
-	static Regulator::Connection cpu_regulator(Regulator::CLK_CPU);
-	bool high = true;
-
-	while (true) {
-		timer.msleep(10000);
+	void handle_timer()
+	{
 		log("Setting CPU frequency ", high ? "low" : "high");
-		cpu_regulator.level(high ? Regulator::CPU_FREQ_200
-		                         : Regulator::CPU_FREQ_1600);
+		cpu_regulator.level(high ? Regulator::CPU_FREQ_200 :
+		                           Regulator::CPU_FREQ_1600);
 		high = !high;
+		timer.trigger_once(PERIOD_US);
 	}
 
-	return 1;
-}
+	Main(Env &env) : env(env)
+	{
+		timer.sigh(timer_handler);
+		timer.trigger_once(PERIOD_US);
+	}
+};
+
+void Component::construct(Env &env) { static Main main(env); }

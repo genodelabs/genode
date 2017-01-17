@@ -12,53 +12,40 @@
  */
 
 /* Genode includes */
-#include <base/snprintf.h>
-#include <base/sleep.h>
 #include <timer_session/connection.h>
 #include <loader_session/connection.h>
-
+#include <base/component.h>
 
 using namespace Genode;
 
-
-enum { CONFIG_SIZE = 100 };
-
-static Loader::Connection loader(8*1024*1024);
-
-
-static void update_config(int counter)
+struct Main
 {
-	Dataspace_capability config_ds =
-		loader.alloc_rom_module("config", CONFIG_SIZE);
+	enum { CONFIG_SIZE = 100 };
 
-	char *config_ds_addr = env()->rm_session()->attach(config_ds);
+	Env                  &env;
+	int                   counter       { -1 };
+	Loader::Connection    loader        { env, 8 * 1024 * 1024 };
+	Timer::Connection     timer         { env };
+	Signal_handler<Main>  timer_handler { env.ep(), *this, &Main::handle_timer };
 
-	snprintf(config_ds_addr, CONFIG_SIZE,
-	         "<config><counter>%d</counter></config>",
-	         counter);
+	void handle_timer()
+	{
+		char *config_ds_addr =
+			env.rm().attach(loader.alloc_rom_module("config", CONFIG_SIZE));
 
-	env()->rm_session()->detach(config_ds_addr);
-
-	loader.commit_rom_module("config");
-}
-
-
-int main(int, char **)
-{
-	update_config(-1);
-
-	loader.start("test-dynamic_config", "test-label");
-
-	/* update slave config at regular intervals */
-	int counter = 0;
-	for (;;) {
-
-		static Timer::Connection timer;
-		timer.msleep(250);
-		update_config(counter++);
+		String<100> config("<config><counter>", counter++, "</counter></config>");
+		strncpy(config_ds_addr, config.string(), CONFIG_SIZE);
+		env.rm().detach(config_ds_addr);
+		loader.commit_rom_module("config");
+		timer.trigger_once(250 * 1000);
 	}
 
-	sleep_forever();
+	Main(Env &env) : env(env)
+	{
+		timer.sigh(timer_handler);
+		handle_timer();
+		loader.start("test-dynamic_config", "test-label");
+	}
+};
 
-	return 0;
-}
+void Component::construct(Env &env) { static Main main(env); }
