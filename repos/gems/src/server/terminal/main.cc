@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -427,7 +427,7 @@ namespace Terminal {
 				return num_bytes;
 			}
 
-			void _write(Genode::size_t num_bytes)
+			Genode::size_t _write(Genode::size_t num_bytes)
 			{
 				Genode::Lock::Guard guard(_lock);
 
@@ -439,6 +439,8 @@ namespace Terminal {
 					_decoder.insert(src[i]);
 				}
 				_trigger_flush_callback.trigger_flush();
+
+				return num_bytes;
 			}
 
 			Genode::Dataspace_capability _dataspace()

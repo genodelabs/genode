@@ -74,7 +74,7 @@ namespace Terminal {
 
 			Genode::size_t _read(Genode::size_t dst_len);
 
-			void _write(Genode::size_t num_bytes);
+			Genode::size_t _write(Genode::size_t num_bytes);
 
 			Genode::Dataspace_capability _dataspace();
 

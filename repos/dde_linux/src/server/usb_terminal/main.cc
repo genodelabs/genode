@@ -277,14 +277,15 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 			return num_bytes;
 		}
 
-		void _write(size_t num_bytes)
+		size_t _write(size_t num_bytes)
 		{
 			char *dst = _io_buffer.local_addr<char>();
-			while (num_bytes) {
-				size_t size = _driver.write(dst, num_bytes);
-				num_bytes -= size;
-				dst       += size;
+			size_t written_bytes;
+			for (written_bytes = 0; written_bytes < num_bytes; ) {
+				written_bytes += _driver.write(dst + written_bytes,
+				                               num_bytes - written_bytes);
 			}
+			return written_bytes;
 		}
 
 		Dataspace_capability _dataspace() { return _io_buffer.cap(); }

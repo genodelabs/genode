@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -168,14 +168,16 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 			return n;
 		}
 
-		void _write(Genode::size_t num_bytes)
+		Genode::size_t _write(Genode::size_t num_bytes)
 		{
-			/* constain argument to I/O buffer size */
+			/* constrain argument to I/O buffer size */
 			num_bytes = Genode::min(num_bytes, _io_buffer.size());
 
 			char const *io_buf = _io_buffer.local_addr<char>();
 			for (Genode::size_t i = 0; i < num_bytes; i++)
 				_driver.put_char(io_buf[i]);
+
+			return num_bytes;
 		}
 
 		Genode::Dataspace_capability _dataspace() {

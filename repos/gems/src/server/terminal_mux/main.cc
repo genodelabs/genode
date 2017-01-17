@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -297,7 +297,7 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 			return num_bytes;
 		}
 
-		void _write(Genode::size_t num_bytes)
+		Genode::size_t _write(Genode::size_t num_bytes)
 		{
 			unsigned char *src = _io_buffer.local_addr<unsigned char>();
 
@@ -306,6 +306,8 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 				/* submit character to sequence decoder */
 				_decoder.insert(src[i]);
 			}
+
+			return num_bytes;
 		}
 
 		Genode::Dataspace_capability _dataspace()

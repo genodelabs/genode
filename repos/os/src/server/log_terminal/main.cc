@@ -117,16 +117,19 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 		size_t _read(size_t dst_len) { return 0; }
 
-		void _write(Genode::size_t num_bytes)
+		size_t _write(Genode::size_t num_bytes)
 		{
 			/* sanitize argument */
 			num_bytes = Genode::min(num_bytes, _io_buffer.size());
 
 			char const *src = _io_buffer.local_addr<char>();
 
-			for (size_t written_bytes = 0; written_bytes < num_bytes; )
+			size_t written_bytes;
+			for (written_bytes = 0; written_bytes < num_bytes; )
 				written_bytes += _output.write(src + written_bytes,
 				                               num_bytes - written_bytes);
+
+			return written_bytes;
 		}
 
 		Dataspace_capability _dataspace() { return _io_buffer.cap(); }

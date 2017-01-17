@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -183,14 +183,22 @@ namespace Terminal {
 				return num_bytes;
 			}
 
-			void _write(Genode::size_t num_bytes)
+			Genode::size_t _write(Genode::size_t num_bytes)
 			{
 				/* sanitize argument */
 				num_bytes = Genode::min(num_bytes, _io_buffer.size());
 
 				/* write data to descriptor */
-				if (::write(fd(), _io_buffer.local_addr<char>(), num_bytes) < 0)
+				ssize_t written_bytes = ::write(fd(),
+				                                _io_buffer.local_addr<char>(),
+				                                num_bytes);
+
+				if (written_bytes < 0) {
 					Genode::error("write error, dropping data");
+					return 0;
+				}
+
+				return written_bytes;
 			}
 
 			Genode::Dataspace_capability _dataspace()

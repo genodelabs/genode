@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -91,7 +91,7 @@ struct Terminal::Session : Genode::Session
 	GENODE_RPC(Rpc_size, Size, size);
 	GENODE_RPC(Rpc_avail, bool, avail);
 	GENODE_RPC(Rpc_read, Genode::size_t, _read, Genode::size_t);
-	GENODE_RPC(Rpc_write, void, _write, Genode::size_t);
+	GENODE_RPC(Rpc_write, Genode::size_t, _write, Genode::size_t);
 	GENODE_RPC(Rpc_connected_sigh, void, connected_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_read_avail_sigh, void, read_avail_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, _dataspace);
