@@ -5,35 +5,40 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
-#include <base/signal.h>
+#include <base/component.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <terminal_session/connection.h>
 
-using namespace Genode;
+namespace Test_terminal_crosslink {
+
+	using namespace Genode;
+
+	class Partner;
+	class Client;
+	class Server;
+	struct Main;
+
+	enum {
+		STACK_SIZE          = sizeof(addr_t)*1024,
+		TEST_DATA_SIZE      = 4097,
+		READ_BUFFER_SIZE    = 8192
+	};
+
+	static const char *client_text = "Hello from client.";
+	static const char *server_text = "Hello from server, too.";
+
+	static char test_data[TEST_DATA_SIZE];
+}
 
 
-enum {
-	STACK_SIZE          = sizeof(addr_t)*1024,
-	SERVICE_BUFFER_SIZE = 4096,
-	TEST_DATA_SIZE      = 4097,
-	READ_BUFFER_SIZE    = 8192
-};
-
-static const char *client_text = "Hello from client.";
-static const char *server_text = "Hello from server, too.";
-
-static char test_data[TEST_DATA_SIZE];
-
-
-class Partner : public Thread_deprecated<STACK_SIZE>
+class Test_terminal_crosslink::Partner : public Thread
 {
 	protected:
 
@@ -44,111 +49,129 @@ class Partner : public Thread_deprecated<STACK_SIZE>
 		Signal_receiver _sig_rec;
 		Signal_context  _sig_ctx;
 
+		void _write_all(void const *buf, Genode::size_t num_bytes)
+		{
+			Genode::size_t written_bytes = 0;
+			char const * const src       = (char const *)buf;
+
+			while (written_bytes < num_bytes) {
+				written_bytes += _terminal.write(&src[written_bytes],
+				                                 num_bytes - written_bytes);
+			}
+		}
+
+		void _read_all(void *buf, Genode::size_t buf_size)
+		{
+			Genode::size_t read_bytes = 0;
+			char * const dst = (char *)buf;
+
+			while (read_bytes < buf_size) {
+				_sig_rec.wait_for_signal();
+				read_bytes += _terminal.read(&dst[read_bytes],
+				                             buf_size - read_bytes);
+			}
+		}
+
 	public:
 
-		Partner(const char *name) : Thread_deprecated<STACK_SIZE>(name)
+		Partner(Env &env, char const *name)
+		: Thread(env, name, STACK_SIZE),
+		  _terminal(env)
 		{
 			_terminal.read_avail_sigh(_sig_rec.manage(&_sig_ctx));
 		}
 };
 
 
-class Client : public Partner
+class Test_terminal_crosslink::Client : public Partner
 {
 	public:
 
-		Client() : Partner("client") { }
+		Client(Env &env) : Partner(env, "client") { }
 
 		void entry()
 		{
-			printf("Short message test\n");
+			log("Short message test");
 
 			/* write client text */
 
-			_terminal.write(client_text, strlen(client_text) + 1);
+			_write_all(client_text, strlen(client_text) + 1);
 
 			/* read server text */
 
-			_sig_rec.wait_for_signal();
-			_terminal.read(_read_buffer, sizeof(_read_buffer));
+			_read_all(_read_buffer, strlen(server_text) + 1);
 
-			printf("Client received: %s\n", _read_buffer);
+			log("Client received: ", Cstring(_read_buffer));
 
 			if (strcmp(_read_buffer, server_text) != 0) {
-				printf("Error: received data is not as expected\n");
+				error("Received data is not as expected");
 				sleep_forever();
 			}
 
 			/* write test data */
 
-			printf("Long message test\n");
+			log("Long message test");
 
 			memset(test_data, 5, sizeof(test_data));
-			_terminal.write(test_data, sizeof(test_data));
+			_write_all(test_data, sizeof(test_data));
 		}
 };
 
 
-class Server : public Partner
+class Test_terminal_crosslink::Server : public Partner
 {
 	public:
 
-		Server() : Partner("server") { }
+		Server(Env &env) : Partner(env, "server") { }
 
 		void entry()
 		{
 			/* read client text */
 
-			_sig_rec.wait_for_signal();
-			_terminal.read(_read_buffer, sizeof(_read_buffer));
+			_read_all(_read_buffer, strlen(client_text) + 1);
 
-			printf("Server received: %s\n", _read_buffer);
+			log("Server received: ", Cstring(_read_buffer));
 
 			if (strcmp(_read_buffer, client_text) != 0) {
-				printf("Error: received data is not as expected\n");
+				error("Received data is not as expected");
 				sleep_forever();
 			}
 
 			/* write server text */
 
-			_terminal.write(server_text, strlen(server_text) + 1);
+			_write_all(server_text, strlen(server_text) + 1);
 
 			/* read test data */
 
-			size_t num_read = 0;
-			size_t num_read_total = 0;
+			_read_all(_read_buffer, TEST_DATA_SIZE);
 
-			do {
-				_sig_rec.wait_for_signal();
-				num_read = _terminal.read(_read_buffer, sizeof(_read_buffer));
-				num_read_total += num_read;
+			for (size_t i = 0; i < TEST_DATA_SIZE; i++)
+				if (_read_buffer[i] != 5) {
+					error("Received data is not as expected");
+					sleep_forever();
+				}
 
-				for (size_t i = 0; i < num_read; i++)
-					if (_read_buffer[i] != 5) {
-						printf("Error: received data is not as expected\n");
-						sleep_forever();
-					}
-			} while(num_read == SERVICE_BUFFER_SIZE);
-
-			if (num_read_total != TEST_DATA_SIZE) {
-				printf("Error: received an unexpected number of bytes\n");
-				sleep_forever();
-			}
-
-			printf("Test succeeded\n");
+			log("Test succeeded");
 		}
 };
 
 
-int main(int, char **)
+struct Test_terminal_crosslink::Main
 {
-	static Server server;
-	static Client client;
+	Env &_env;
 
-	server.start();
-	client.start();
+	Server server { _env };
+	Client client { _env };
 
-	sleep_forever();
+	Main(Env &env) : _env(env)
+	{
+		server.start();
+		client.start();
+	}
+};
 
-	return 0;
+
+void Component::construct(Genode::Env &env)
+{
+	static Test_terminal_crosslink::Main main(env);
 }
