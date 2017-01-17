@@ -5,31 +5,40 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <cap_session/connection.h>
-#include <base/printf.h>
-#include <base/rpc_server.h>
-#include <base/sleep.h>
+#include <base/component.h>
+#include <base/heap.h>
 
 /* local includes */
 #include "terminal_root.h"
 
-int main(int argc, char **argv)
-{
+namespace Terminal_crosslink {
+
 	using namespace Genode;
 
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, Terminal::STACK_SIZE, "terminal_ep");
+	struct Main;
+}
 
-	static Terminal::Root terminal_root(&ep, env()->heap(), cap);
-	env()->parent()->announce(ep.manage(&terminal_root));
+struct Terminal_crosslink::Main
+{
+	Env  &_env;
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	sleep_forever();
-	return 0;
+	Root  _terminal_root { _env, _heap };
+
+	Main(Env &env) : _env(env)
+	{
+		env.parent().announce(env.ep().manage(_terminal_root));
+	}
+};
+
+void Component::construct(Genode::Env &env)
+{
+	static Terminal_crosslink::Main main(env);
 }
