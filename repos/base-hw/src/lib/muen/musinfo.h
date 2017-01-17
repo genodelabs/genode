@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__MUEN__MUSINFO_H_
-#define _BASE__MUEN__MUSINFO_H_
+#ifndef _LIB__MUEN__MUSINFO_H_
+#define _LIB__MUEN__MUSINFO_H_
 
 #include <base/stdint.h>
 
@@ -82,4 +82,4 @@ struct subject_info_type {
 	struct dev_info_type dev_info[MAX_RESOURCE_COUNT];
 } __attribute__((packed, aligned (8)));
 
-#endif /* _BASE__MUEN__MUSINFO_H_ */
+#endif /* _LIB__MUEN__MUSINFO_H_ */

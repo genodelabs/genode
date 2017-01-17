@@ -6,7 +6,7 @@ include $(REP_DIR)/lib/mk/virtualbox-common.inc
 #
 VBOX_CC_OPT += -include base/log.h
 
-LIBS  += stdcxx
+LIBS  += stdcxx sinfo-muen
 
 SRC_CC = pgm.cc sup.cc
 
