@@ -4,6 +4,22 @@
                                ===========
 
 
+Road Map for 2017 | 2017-01-17
+##############################
+
+| The year 2017 will be overall focused on stressing the scalability and
+| stability of the framework.
+
+After wrapping up the revision of Genode's architectural underpinnings and its
+API in 2016, it is time to push the scalability of the framework further.
+Over the course of 2017, we plan to greatly ease the creation of Genode
+systems out of packages, enable automated system updates, move our regular
+work flows from GNU/Linux to the Genode world, and extend the application
+scope of Genode systems to cloud-based appliances.
+
+The new road map is available at the [https:/about/road-map - road-map page].
+
+
 Genode at FOSDEM 2017 | 2017-01-11
 ##################################
 
