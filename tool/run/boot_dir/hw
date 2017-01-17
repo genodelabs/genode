@@ -30,7 +30,7 @@ proc core_link_address { } {
 proc run_boot_dir {binaries} {
 
 	# generate static ACPI report for platform driver on Muen
-	if {[have_spec "x86_64_muen"]} {
+	if {[have_spec "muen"]} {
 		set fh [open "bin/acpi" "WRONLY CREAT TRUNC"]
 		puts $fh "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/></acpi>"
 		close $fh
