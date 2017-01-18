@@ -467,6 +467,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		void _revert_quota_and_destroy(Session_state &);
 
+		void _discard_env_session(Id_space<Parent::Client>::Id);
+
 		Close_result _close(Session_state &);
 
 		/**

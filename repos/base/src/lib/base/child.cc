@@ -620,9 +620,18 @@ void Child::_try_construct_env_dependent_members()
 }
 
 
-Child::Child(Region_map             &local_rm,
-             Rpc_entrypoint         &entrypoint,
-             Child_policy           &policy)
+void Child::_discard_env_session(Id_space<Parent::Client>::Id id)
+{
+	auto discard_id_fn = [&] (Session_state &s) { s.discard_id_at_client(); };
+
+	try { _id_space.apply<Session_state>(id, discard_id_fn); }
+	catch (Id_space<Parent::Client>::Unknown_id) { }
+}
+
+
+Child::Child(Region_map      &local_rm,
+             Rpc_entrypoint  &entrypoint,
+             Child_policy    &policy)
 :
 	_policy(policy), _local_rm(local_rm), _entrypoint(entrypoint),
 	_parent_cap(_entrypoint.manage(this))
@@ -668,12 +677,10 @@ Child::~Child()
 	/*
 	 * Remove statically created env sessions from the child's ID space.
 	 */
-	auto discard_id_fn = [&] (Session_state &s) { s.discard_id_at_client(); };
-
-	_id_space.apply<Session_state>(Env::ram(), discard_id_fn);
-	_id_space.apply<Session_state>(Env::cpu(), discard_id_fn);
-	_id_space.apply<Session_state>(Env::pd(),  discard_id_fn);
-	_id_space.apply<Session_state>(Env::log(), discard_id_fn);
+	_discard_env_session(Env::ram());
+	_discard_env_session(Env::cpu());
+	_discard_env_session(Env::pd());
+	_discard_env_session(Env::log());
 
 	/*
 	 * Remove dynamically created sessions from the child's ID space.

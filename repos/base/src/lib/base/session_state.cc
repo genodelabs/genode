@@ -94,6 +94,14 @@ void Session_state::destroy()
 	 */
 	id_at_server.destruct();
 
+	/*
+	 * Make sure that the session does not appear as being alive. I.e., if
+	 * 'destroy' was called during the destruction of a service, prevent the
+	 * 'Local_connection' destructor of a dangling session to initiate a close
+	 * request to the no-longer existing service.
+	 */
+	phase = CLOSED;
+
 	if (_factory)
 		_factory->_destroy(*this);
 }
