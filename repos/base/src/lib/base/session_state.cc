@@ -73,11 +73,26 @@ void Session_state::destroy()
 {
 	/*
 	 * Manually release client-side ID so that static env sessions are
-	 * immediately by removed from the cliend ID space when 'destroy' is
+	 * immediately removed from the client ID space when 'destroy' is
 	 * called. Otherwise, the iterative cleanup of the cliend ID space
 	 * via 'apply_any' would end up in an infinite loop.
 	 */
 	_id_at_client.destruct();
+
+	/*
+	 * Manually release the server-side ID of the session from server ID space
+	 * to make sure that the iterative cleanup of child-provided sessions (in
+	 * the 'Child' destructor) always terminates regardless of the used
+	 * session-state factory.
+	 *
+	 * In particular, if the to-be-destructed child provided an environment
+	 * session of another child, there is no factory for such an environment
+	 * session. The server-ID destructor of such an environment session would
+	 * be called not before destructing the corresponent 'Env_connection' of
+	 * the client, independent from the destruction of the session-providing
+	 * child.
+	 */
+	id_at_server.destruct();
 
 	if (_factory)
 		_factory->_destroy(*this);
