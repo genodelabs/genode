@@ -59,9 +59,9 @@ class Png_image
 
 			static void callback(png_structp png_ptr, png_bytep dst, png_size_t len)
 			{
-				Png_image *png = (Png_image *)png_get_io_ptr(png_ptr);
-				Genode::memcpy(dst, png->_read_struct.data + png->_read_struct.pos, len);
-				png->_read_struct.pos += len;
+				Read_struct &read_struct = *(Read_struct *)png_get_io_ptr(png_ptr);
+				Genode::memcpy(dst, read_struct.data + read_struct.pos, len);
+				read_struct.pos += len;
 			}
 
 			png_structp png_ptr =
