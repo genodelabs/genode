@@ -25,12 +25,9 @@
 	<start name="noux">
 		<resource name="RAM" quantum="24M"/>
 		<route>
-			<service name="Terminal">
-				<if-arg key="label" value=""/><parent/>
-			</service>
-			<service name="Terminal">
-				<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_gdb"/>
-			</service>
+			<service name="Terminal" label=""> <parent/> </service>
+			<service name="Terminal" label="noux(terminal_fs)">
+				<child name="terminal_gdb"/> </service>
 			<any-service> <any-child/> <parent/> </any-service>
 		</route>
 		<config>

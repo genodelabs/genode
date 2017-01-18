@@ -159,12 +159,10 @@ append config {
 	<start name="noux">
 		<resource name="RAM" quantum="1G" />
 		<route>
-			<service name="Terminal">
-				<if-arg key="label" value=""/><child name="terminal_noux"/>
-			</service>
-			<service name="Terminal">
-				<if-arg key="label" value="terminal_fs"/><child name="terminal_test"/>
-			</service>
+			<service name="Terminal" label="">
+				<child name="terminal_noux"/> </service>
+			<service name="Terminal" label="terminal_fs">
+				<child name="terminal_test"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config>

@@ -23,6 +23,9 @@ install_config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
 			<service name="LOG"/>
 		</parent-provides>
 		<default-route>

@@ -139,14 +139,16 @@ append config {
 			<report activity="yes" affinity="yes"/>
 		</config>
 		<route>
-			<any-service> <child name="report_rom"/> <any-child/> <parent/> </any-service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
 	<start name="cpu_load_display">
 		<resource name="RAM" quantum="6M"/>
 		<route>
-			<any-service> <child name="report_rom"/> <any-child/> <parent/> </any-service>
+			<service name="ROM" label="trace_subjects"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
@@ -182,7 +184,8 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<configfile name="cpu_burner1.config"/>
 		<route>
-			<any-service> <child name="dynamic_rom"/> <any-child/> <parent/> </any-service>
+			<service name="ROM" label="cpu_burner1.config"> <child name="dynamic_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
@@ -191,7 +194,8 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<configfile name="cpu_burner2.config"/>
 		<route>
-			<any-service> <child name="dynamic_rom"/> <any-child/> <parent/> </any-service>
+			<service name="ROM" label="cpu_burner2.config"> <child name="dynamic_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 </config>}

@@ -54,7 +54,8 @@ install_config {
 		<config verbose="yes">
 			<parent-provides>
 				<service name="ROM"/>
-				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="PD"/>
 				<service name="RAM"/>
 				<service name="LOG"/>
 				<service name="Timer"/>
@@ -65,7 +66,8 @@ install_config {
 			</start>
 		</config>
 		<route>
-			<any-service> <child name="tar_rom"/> <parent/> <any-child/> </any-service>
+			<service name="ROM" label="test-timer"> <child name="tar_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 </config>

@@ -160,7 +160,7 @@ append config {
 			</output>
 		</config>
 		<route>
-			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -175,7 +175,7 @@ append config {
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -200,7 +200,7 @@ append config {
 	<start name="status_bar">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

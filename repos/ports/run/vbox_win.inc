@@ -61,13 +61,9 @@ append config_of_app {
 		</config>
 		<route> }
 append_if [expr $use_ps2] config_of_app {
-			<service name="Input">
-				<if-arg key="label" value="ps2" /> <child name="ps2_drv" />
-			</service> }
+			<service name="Input" label="ps2"> <child name="ps2_drv" /> </service> }
 append_if [expr $use_usb] config_of_app {
-			<service name="Input">
-				<if-arg key="label" value="usb_hid" /> <child name="usb_drv" />
-			</service> }
+			<service name="Input" label="usb_hid"> <child name="usb_drv" /> </service> }
 append config_of_app {
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
@@ -159,9 +155,17 @@ append config_of_app "
 append config_of_app {
 		</config>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
-			<service name="ROM">       <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>}
+
+for { set i 1} { $i <= $use_vms } { incr i} {
+append config_of_app "
+			<service name=\"ROM\" label=\"shape$i\"> <child name=\"report_rom\"/> </service>"
+}
+
+append config_of_app {
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>}
 
@@ -186,8 +190,8 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 			<service name=\"ROM\" label=\"nit_fb${i}.config\"> <child name=\"nit_fb-config\"/> </service>"
 
 	append config_of_app {
-			<service name="LOG"> <parent/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent /> </any-service>
 		</route>
 	</start>}
 }
@@ -231,9 +235,8 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 append config_of_app {
 		</config>
 		<route>
-			<service name="RM"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent /> </any-service>
 		</route>
 	</start>}
 
@@ -294,9 +297,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 			<service name=\"Input\"> <child name=\"nit_fb${i}\" /> </service>"
 	append config_of_app {
 			<service name="Report"><child name="report_rom" /></service>
-			<service name="ROM">
-				<if-arg key="label" value="usb_devices"/> <child name="report_rom"/>
-			</service>
+			<service name="ROM" label="usb_devices"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}

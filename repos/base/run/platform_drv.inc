@@ -81,9 +81,13 @@ proc append_platform_drv_config {} {
 		append config {
 		<resource name="RAM" quantum="3M"/>
 		<route>
-			<service name="LOG"> <parent/> </service>
 			<service name="IO_MEM"> <parent/> </service>
-			<service name="RM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="RAM">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
 			<service name="Report"> <child name="acpi_report_rom"/> </service>
 		</route>
 	</start>}
@@ -103,7 +107,10 @@ proc append_platform_drv_config {} {
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
-			<service name="RM"> <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="RAM">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
 		</route>
 	</start>}
 

@@ -17,7 +17,6 @@ create_boot_directory
 install_config {
 	<config>
 		<parent-provides>
-			<service name="CAP"/>
 			<service name="CPU"/>
 			<service name="IO_PORT"/>
 			<service name="IRQ"/>
@@ -25,8 +24,6 @@ install_config {
 			<service name="PD"/>
 			<service name="RAM"/>
 			<service name="ROM"/>
-			<service name="RM"/>
-			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -50,10 +47,11 @@ install_config {
 			<resource name="RAM" quantum="2M"/>
 			<config>
 				<parent-provides>
-					<service name="CAP"/>
 					<service name="LOG"/>
-					<service name="RM"/>
-					<service name="SIGNAL"/>
+					<service name="CPU"/>
+					<service name="RAM"/>
+					<service name="ROM"/>
+					<service name="PD"/>
 				</parent-provides>
 				<default-route>
 					<any-service> <parent/> </any-service>

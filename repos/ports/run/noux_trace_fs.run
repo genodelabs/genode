@@ -180,17 +180,14 @@ append config {
 			</start>
 		</config>
 		<route>
-			<service name="File_system">
-				<if-arg key="label" value="home"/> <child name="ram_fs" /> </service>
-			<service name="File_system">
-				<if-arg key="label" value="root"/> <child name="ram_fs" />
-			</service>
-			<service name="File_system">
-				<if-arg key="label" value="tmp"/> <child name="ram_fs" />
-			</service>
-			<service name="File_system">
-				<if-arg key="label" value="trace"/> <child name="trace_fs"/>
-			</service>
+			<service name="File_system" label="home">
+				<child name="ram_fs" /> </service>
+			<service name="File_system" label="root">
+				<child name="ram_fs" /> </service>
+			<service name="File_system" label="tmp">
+				<child name="ram_fs" /> </service>
+			<service name="File_system" label="trace">
+				<child name="trace_fs"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>

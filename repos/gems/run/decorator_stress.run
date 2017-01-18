@@ -130,14 +130,10 @@ append config {
 	<start name="decorator">
 		<resource name="RAM" quantum="8M"/>
 		<route>
-			<service name="ROM">
-				<if-arg key="label" value="pointer" />
-				<child name="report_rom" />
-			</service>
-			<service name="ROM">
-				<if-arg key="label" value="window_layout" />
-				<child name="report_rom" />
-			</service>
+			<service name="ROM" label="pointer">
+				<child name="report_rom" /> </service>
+			<service name="ROM" label="window_layout">
+				<child name="report_rom" /> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>

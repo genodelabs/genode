@@ -14,8 +14,6 @@ set build_components {
 	app/backdrop
 }
 
-lappend_if [have_spec usb] build_components drivers/usb
-
 build $build_components
 
 create_boot_directory
@@ -110,10 +108,8 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<configfile name="nano3d.config"/>
 		<route>
-			<service name="ROM">
-				<if-arg key="label" value="nano3d.config" />
-				<child name="dynamic_rom" />
-			</service>
+			<service name="ROM" label="nano3d.config">
+				<child name="dynamic_rom" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

@@ -157,7 +157,7 @@ append config {
 	</start>
 
 	<start name="cpu_sampler">
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="CPU"/>
 		</provides>
@@ -171,19 +171,20 @@ append config {
 	</start>
 
 	<start name="init">
-		<resource name="RAM" quantum="16M"/>
+		<resource name="RAM" quantum="2M"/>
 		<config>
 			<parent-provides>
-				<service name="CAP"/>
+				<service name="CPU"/>
 				<service name="LOG"/>
-				<service name="RM"/>
-				<service name="SIGNAL"/>
+				<service name="RAM"/>
+				<service name="ROM"/>
+				<service name="PD"/>
 			</parent-provides>
 			<default-route>
 				<any-service> <parent/> </any-service>
 			</default-route>
 			<start name="test-cpu_sampler">
-				<resource name="RAM" quantum="4M"/>
+				<resource name="RAM" quantum="1M"/>
 				<config ld_verbose="yes"/>
 			</start>
 		</config>
@@ -194,7 +195,7 @@ append config {
 	</start>
 
 	<start name="noux">
-		<resource name="RAM" quantum="1G" />
+		<resource name="RAM" quantum="16M" />
 		<config>
 			<fstab>
 				<tar name="coreutils.tar" />

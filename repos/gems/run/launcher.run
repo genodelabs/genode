@@ -115,7 +115,7 @@ append config {
 			<hover domain="decorator"/>
 		</config>
 		<route>
-			<service name="ROM">       <child name="report_rom"/> </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -124,7 +124,7 @@ append config {
 	<start name="status_bar">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -163,8 +163,10 @@ append config {
 			<policy label_prefix="launcher -> testnit" role="direct"/>
 		</config>
 		<route>
+			<service name="ROM" label="focus">          <child name="report_rom"/> </service>
+			<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
 			<any-service>
-				<child name="nitpicker"/> <child name="report_rom"/> <parent/> <any-child/>
+				<child name="nitpicker"/> <parent/> <any-child/>
 			</any-service>
 		</route>
 	</start>
@@ -173,8 +175,12 @@ append config {
 		<binary name="floating_window_layouter"/>
 		<resource name="RAM" quantum="4M"/>
 		<route>
+			<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
+			<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
+			<service name="ROM" label="hover">             <child name="report_rom"/> </service>
+			<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
 			<any-service>
-				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+				<child name="wm"/> <parent/> <any-child/>
 			</any-service>
 		</route>
 	</start>
@@ -186,8 +192,12 @@ append config {
 		<route>
 			<service name="ROM" label="decorator.config">
 				<child name="decorator_config"/> </service>
+			<service name="ROM" label="window_layout">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="pointer">
+				<child name="report_rom"/> </service>
 			<any-service>
-				<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+				<child name="wm"/> <parent/> <any-child/>
 			</any-service>
 		</route>
 	</start>
@@ -220,7 +230,7 @@ append config {
 
 		</config>
 		<route>
-			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -270,9 +280,7 @@ append config {
 
 		</config>
 		<route>
-			<service name="ROM"> <if-arg key="label" value="focus"/>
-				<child name="report_rom" />
-			</service>
+			<service name="ROM" label="focus"> <child name="report_rom" /> </service>
 			<any-service> <child name="wm"/> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

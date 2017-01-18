@@ -171,12 +171,10 @@ set config_of_app {
 			</start>
 		</config>
 		<route>
-			<service name="File_system">
-				<if-arg key="label" value="share_from"/>
+			<service name="File_system" label="share_from">
 				<child name="ram_fs_from"/>
 			</service>
-			<service name="File_system">
-				<if-arg key="label" value="share_to"/>
+			<service name="File_system" label="share_to">
 				<child name="ram_fs_to"/>
 			</service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -235,18 +233,15 @@ append config_of_app {
 			<service name="Report"> <child name="report_rom"/> </service>}
 
 append_if [expr $use_ram_fs] config_of_app {
-			<service name="File_system">
-				<if-arg key="label" value="from_ram_fs"/>
+			<service name="File_system" label="from_ram_fs">
 				<child name="ram_fs"/>
 			</service>}
 
 append config_of_app {
-			<service name="File_system">
-				<if-arg key="label" value="share_ram_fs_from"/>
+			<service name="File_system" label="share_ram_fs_from">
 				<child name="ram_fs_from"/>
 			</service>
-			<service name="File_system">
-				<if-arg key="label" value="share_ram_fs_to"/>
+			<service name="File_system" label="share_ram_fs_to">
 				<child name="ram_fs_to"/>
 			</service>
 			<service name="File_system"> <child name="rump_fs"/> </service>

@@ -125,35 +125,27 @@ namespace Init {
 
 	/**
 	 * Return sub string of label with the leading child name stripped out
+	 *
+	 * \return character pointer to the scoped part of the label,
+	 *         or nullptr if the label is not correctly prefixed with the child's
+	 *         name
 	 */
 	inline char const *skip_label_prefix(char const *child_name, char const *label)
 	{
 		size_t const child_name_len = strlen(child_name);
 
-		/*
-		 * If the method was called with a valid "label" string, the
-		 * following condition should be always satisfied. See the
-		 * comment in 'service_node_args_condition_satisfied'.
-		 */
-		if (strcmp(child_name, label, child_name_len) == 0)
-			label += child_name_len;
+		if (strcmp(child_name, label, child_name_len) != 0)
+			return nullptr;
 
-		/*
-		 * If the original label was empty, the 'Child_policy_enforce_labeling'
-		 * does not append a label separator after the child-name prefix. In
-		 * this case, we resulting label is empty.
-		 */
-		if (*label == 0)
-			return label;
+		label += child_name_len;
 
 		/*
 		 * Skip label separator. This condition should be always satisfied.
 		 */
-		if (strcmp(" -> ", label, 4) == 0)
-			return label + 4;
+		if (strcmp(" -> ", label, 4) != 0)
+			return nullptr;
 
-		warning("cannot skip label prefix while processing <if-arg>");
-		return label;
+		return label + 4;
 	}
 
 
@@ -176,50 +168,23 @@ namespace Init {
 		if (!service_matches)
 			return false;
 
-		Session_label const session_label(skip_label_prefix(
-			child_name.string(), label_from_args(args).string()));
+		bool const route_depends_on_child_provided_label =
+			service_node.has_attribute("label") ||
+			service_node.has_attribute("label_prefix") ||
+			service_node.has_attribute("label_suffix");
+
+		if (!route_depends_on_child_provided_label)
+			return true;
+
+		char const * const scoped_label = skip_label_prefix(
+			child_name.string(), label_from_args(args).string());
+
+		if (!scoped_label)
+			return false;
+
+		Session_label const session_label(scoped_label);
 
 		return !Xml_node_label_score(service_node, session_label).conflict();
-	}
-
-
-	/**
-	 * Check if arguments satisfy the condition specified for the route
-	 */
-	inline bool service_node_args_condition_satisfied(Xml_node service_node,
-	                                                  Session_state::Args const &args,
-	                                                  Child_policy::Name  const &child_name)
-	{
-		try {
-			Xml_node if_arg = service_node.sub_node("if-arg");
-			enum { KEY_MAX_LEN = 64, VALUE_MAX_LEN = 64 };
-			char key[KEY_MAX_LEN];
-			char value[VALUE_MAX_LEN];
-			if_arg.attribute("key").value(key, sizeof(key));
-			if_arg.attribute("value").value(value, sizeof(value));
-
-			char arg_value[VALUE_MAX_LEN];
-			Arg_string::find_arg(args.string(), key).string(arg_value, sizeof(arg_value), "");
-
-			/*
-			 * Skip child-name prefix if the key is the process "label".
-			 *
-			 * Because 'filter_session_args' is called prior the call of
-			 * 'resolve_session_request' from the 'Child::session' method,
-			 * 'args' contains the filtered arguments, in particular the label
-			 * prefixed with the child's name. For the 'if-args' declaration,
-			 * however, we want to omit specifying this prefix because the
-			 * session route is specific to the named start node anyway. So
-			 * the prefix information is redundant.
-			 */
-			if (strcmp("label", key) == 0)
-				return strcmp(value, skip_label_prefix(child_name.string(), arg_value)) == 0;
-
-			return strcmp(value, arg_value) == 0;
-		} catch (...) { }
-
-		/* if no if-arg node exists, the condition is met */
-		return true;
 	}
 
 
@@ -566,7 +531,10 @@ class Init::Child : Child_policy, Child_service::Wakeup
 						               name, _child.ram_session_cap(), *this);
 
 				}
-			} catch (Xml_node::Nonexistent_sub_node) { }
+			}
+			catch (Xml_node::Nonexistent_sub_node) { }
+			catch (Genode::Child::Inactive) {
+				error(this->name(), ": incomplete environment at construction time"); }
 		}
 
 		virtual ~Child()
@@ -622,20 +590,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Service &resolve_session_request(Service::Name const &service_name,
 		                                 Session_state::Args const &args) override
 		{
-			/* route environment session requests to the parent */
 			Session_label const label(label_from_args(args.string()));
-			if (label == name()) {
-				if (service_name == Ram_session::service_name()) return _env_ram_service;
-				if (service_name == Cpu_session::service_name()) return _env_cpu_service;
-				if (service_name == Pd_session::service_name())  return _env_pd_service;
-				if (service_name == Log_session::service_name()) return _env_log_service;
-			}
-
-			/* route initial ROM requests (binary and linker) to the parent */
-			if (service_name == Rom_session::service_name()) {
-				if (label.last_element() == binary_name()) return _env_rom_service;
-				if (label.last_element() == linker_name()) return _env_rom_service;
-			}
 
 			Service *service = nullptr;
 
@@ -646,7 +601,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			/* check for "session_requests" ROM request */
 			if (service_name == Rom_session::service_name()
 			 && label.last_element() == Session_requester::rom_name())
-			 	return _session_requester.service();
+				return _session_requester.service();
 
 			try {
 				Xml_node route_node = _default_route_node;
@@ -660,9 +615,6 @@ class Init::Child : Child_policy, Child_service::Wakeup
 					bool service_wildcard = service_node.has_type("any-service");
 
 					if (!service_node_matches(service_node, args.string(), name(), service_name))
-						continue;
-
-					if (!service_node_args_condition_satisfied(service_node, args, name()))
 						continue;
 
 					Xml_node target = service_node.sub_node();

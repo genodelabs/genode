@@ -9,8 +9,9 @@ create_boot_directory
 install_config {
 <config>
 	<parent-provides>
+		<service name="PD"/>
 		<service name="ROM"/>
-		<service name="RM"/>
+		<service name="RAM"/>
 		<service name="LOG"/>
 		<service name="IO_PORT"/>
 		<service name="IO_MEM"/>

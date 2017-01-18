@@ -12,12 +12,10 @@ Example configuration:
 		<input label="usb_hid" />
 	</config>
 	<route>
-		<service name="Input">
-			<if-arg key="label" value="ps2" /> <child name="ps2_drv" />
-		</service>
-		<service name="Input">
-			<if-arg key="label" value="usb_hid" /> <child name="usb_drv" />
-		</service>
+		<service name="Input" label="ps2">
+			<child name="ps2_drv"/> </service>
+		<service name="Input" label="usb_hid">
+			<child name="usb_drv" /> </service>
 		<any-service> <parent /> <any-child /> </any-service>
 	</route>
 </start>

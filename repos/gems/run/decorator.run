@@ -24,7 +24,8 @@ append config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
 		<service name="LOG"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
@@ -154,12 +155,10 @@ append config {
 	<start name="decorator">
 		<resource name="RAM" quantum="4M"/>
 		<route>
-			<service name="ROM">
-				<if-arg key="label" value="pointer" />
+			<service name="ROM" label="pointer">
 				<child name="report_rom" />
 			</service>
-			<service name="ROM">
-				<if-arg key="label" value="window_layout" />
+			<service name="ROM" label="window_layout">
 				<child name="dynamic_rom" />
 			</service>
 			<any-service> <parent/> <any-child/> </any-service>

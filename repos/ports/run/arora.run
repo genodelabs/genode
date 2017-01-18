@@ -95,9 +95,7 @@ append config {
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
 			<service name="Report"> <child name="clipboard"/> </service>
-			<service name="ROM">
-				<if-arg key="label" value="clipboard"/> <child name="clipboard"/>
-			</service>
+			<service name="ROM" label="clipboard"> <child name="clipboard"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

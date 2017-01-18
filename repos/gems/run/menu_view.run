@@ -24,6 +24,8 @@ create_boot_directory
 append config {
 <config>
 	<parent-provides>
+		<service name="PD"/>
+		<service name="CPU"/>
 		<service name="ROM"/>
 		<service name="RAM"/>
 		<service name="RM"/>
@@ -117,16 +119,14 @@ append config {
 	<start name="menu_view">
 		<resource name="RAM" quantum="5M"/>
 		<config xpos="200" ypos="100">
-			<libc>
-				<vfs>
-					<tar name="menu_view_styles.tar" />
-				</vfs>
-			</libc>
+			<libc stderr="/dev/log"/>
+			<vfs>
+				<tar name="menu_view_styles.tar" />
+				<dir name="dev"> <log/> </dir>
+			</vfs>
 		</config>
 		<route>
-			<service name="ROM"> <if-arg key="label" value="dialog"/>
-				<child name="dynamic_rom" />
-			</service>
+			<service name="ROM" label="dialog"> <child name="dynamic_rom" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

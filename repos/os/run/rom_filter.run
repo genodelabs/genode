@@ -20,8 +20,9 @@ append config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="RM"/>
+		<service name="PD"/>
 		<service name="LOG"/>
+		<service name="CPU"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -90,7 +91,7 @@ append config {
 
 		</config>
 		<route>
-			<service name="ROM"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="dynamic_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -99,7 +100,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<config rom="generated" />
 		<route>
-			<service name="ROM"> <child name="rom_filter"/> </service>
+			<service name="ROM" label="generated"> <child name="rom_filter"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

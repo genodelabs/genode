@@ -176,9 +176,7 @@ append config {
 		</config>
 		<route>
 			<service name="Report"><child name="report_rom" /></service>
-			<service name="ROM">
-				<if-arg key="label" value="usb_devices"/> <child name="report_rom"/>
-			</service>
+			<service name="ROM" label="usb_devices"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>

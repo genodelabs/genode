@@ -14,8 +14,9 @@ install_config {
 		<parent-provides>
 			<service name="LOG"/>
 			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="ROM"/>
+			<service name="PD"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>

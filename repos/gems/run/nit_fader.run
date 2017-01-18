@@ -25,7 +25,8 @@ append config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
-		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
 		<service name="LOG"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
@@ -93,7 +94,7 @@ append config {
 		<provides><service name="Nitpicker"/></provides>
 		<configfile name="nit_fader.config" />
 		<route>
-			<service name="ROM"> <if-arg key="label" value="nit_fader.config"/>
+			<service name="ROM" label="nit_fader.config">
 				<child name="dynamic_rom" />
 			</service>
 			<service name="Nitpicker"> <child name="nitpicker" /> </service>

@@ -192,7 +192,7 @@ append config {
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
-			<service name="ROM"> <if-arg key="label" value="channel_list" /> <child name="dynamic_rom" /> </service>
+			<service name="ROM" label="channel_list"> <child name="dynamic_rom" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}

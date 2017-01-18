@@ -6,8 +6,10 @@ set config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
 			<service name="LOG"/>
-			<service name="RM" />
+			<service name="PD"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>

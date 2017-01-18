@@ -8,8 +8,10 @@ install_config {
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
-			<service name="RM"/>
+			<service name="PD"/>
 			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>
