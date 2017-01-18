@@ -64,11 +64,10 @@ class Launcher::Menu_view_slave
 					snprintf(config, sizeof(config),
 					         "<config xpos=\"%d\" ypos=\"%d\">\n"
 					         "  <report hover=\"yes\"/>\n"
-					         "  <libc>\n"
-					         "    <vfs>\n"
-					         "      <tar name=\"menu_view_styles.tar\" />\n"
-					         "    </vfs>\n"
-					         "  </libc>\n"
+					         "  <libc stderr=\"/dev/log\"/>\n"
+					         "  <vfs>\n"
+					         "    <tar name=\"menu_view_styles.tar\" />\n"
+					         "  </vfs>\n"
 					         "</config>",
 					         pos.x(), pos.y());
 
