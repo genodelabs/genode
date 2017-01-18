@@ -47,6 +47,8 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Name const _name;
 
+		Binary_name const _elf_name;
+
 		Genode::Env &_env;
 
 		Genode::Ram_session_capability _ref_ram_cap;
@@ -87,13 +89,13 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Launchpad_child(Genode::Env                 &env,
 		                Genode::Session_label const &label,
-		                Name                  const &elf_name,
+		                Binary_name           const &elf_name,
 		                Genode::size_t               ram_quota,
 		                Parent_services             &parent_services,
 		                Child_services              &child_services,
 		                Genode::Dataspace_capability config_ds)
 		:
-			_name(label),
+			_name(label), _elf_name(elf_name),
 			_env(env), _ref_ram_cap(env.ram_session_cap()), _ram_quota(ram_quota),
 			_parent_services(parent_services),
 			_child_services(child_services),
@@ -119,6 +121,8 @@ class Launchpad_child : public Genode::Child_policy,
 		 ****************************/
 
 		Name name() const override { return _name; }
+
+		Binary_name binary_name() const override { return _elf_name; }
 
 		Genode::Ram_session &ref_ram() override { return _ref_ram; }
 
