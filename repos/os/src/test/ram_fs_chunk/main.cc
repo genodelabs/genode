@@ -21,8 +21,20 @@ namespace Genode {
 
 	struct Allocator_tracer : Allocator
 	{
-		size_t     _sum;
-		Allocator &_wrapped;
+		struct Alloc
+		{
+			using Id = Id_space<Alloc>::Id;
+
+			Id_space<Alloc>::Element id_space_elem;
+			size_t                   size;
+
+			Alloc(Id_space<Alloc> &space, Id id, size_t size)
+			: id_space_elem(*this, space, id), size(size) { }
+		};
+
+		Id_space<Alloc>  _allocs;
+		size_t           _sum;
+		Allocator       &_wrapped;
 
 		Allocator_tracer(Allocator &wrapped) : _sum(0), _wrapped(wrapped) { }
 
@@ -31,13 +43,18 @@ namespace Genode {
 		bool alloc(size_t size, void **out_addr)
 		{
 			_sum += size;
-			return _wrapped.alloc(size, out_addr);
+			bool result = _wrapped.alloc(size, out_addr);
+			new (_wrapped) Alloc(_allocs, Alloc::Id { (addr_t)*out_addr }, size);
+			return result;
 		}
 
 		void free(void *addr, size_t size)
 		{
-			_sum -= size;
-			_wrapped.free(addr, size);
+			_allocs.apply<Alloc>(Alloc::Id { (addr_t)addr }, [&] (Alloc &alloc) {
+				_sum -= alloc.size;
+				destroy(_wrapped, &alloc);
+				_wrapped.free(addr, size);
+			});
 		}
 
 		size_t overhead(size_t size) const override { return _wrapped.overhead(size); }
