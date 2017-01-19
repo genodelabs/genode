@@ -114,8 +114,13 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 	} catch (Rm_session::Out_of_metadata) {
 		throw;
 	} catch (Rm_session::Region_conflict) {
-		/* memory already attached before - done */
-		return;
+		/*
+		 * DMA memory already attached before or collision with normal
+		 * device_pd memory (text, data, etc).
+		 * Currently we can't distinguish it easily - show error
+		 * message as a precaution.
+		 */
+		Genode::error("region conflict");
 	} catch (...) { }
 
 	/* sanity check */
@@ -166,7 +171,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 			using Genode::print;
 			using Genode::Hex;
 			print(out, Hex(v >> 8, Hex::Prefix::OMIT_PREFIX), ":",
-			      Hex((v >> 3) & 3, Hex::Prefix::OMIT_PREFIX), ".",
+			      Hex((v >> 3) & 0x1f, Hex::Prefix::OMIT_PREFIX), ".",
 			      Hex(v & 0x7, Hex::Prefix::OMIT_PREFIX));
 		}
 	};
