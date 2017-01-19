@@ -19,6 +19,7 @@
 #include <timer_session/connection.h>
 #include <nic/packet_allocator.h>
 #include <os/config.h>
+#include <base/sleep.h>
 
 extern "C" {
 #include <lwip/sockets.h>
@@ -166,5 +167,13 @@ int main()
 	}
 
 	log("Test done");
+
+	/*
+	 * FIXME Cleaning up LWIP when returning from the main function
+	 *       sporadically leads to endless errors "Error: sys_arch_mbox_fetch:
+	 *       unknown exception occured!". We let the client sleep here to
+	 *       prevent tests from failing due to a flooded log.
+	 */
+	sleep_forever();
 	return 0;
 }
