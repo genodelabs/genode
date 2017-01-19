@@ -75,7 +75,11 @@ class Cpu_sampler::Native_cpu_component : public Rpc_object<Foc_native_cpu,
 
 		Foc_thread_state thread_state(Thread_capability cap) override
 		{
-			return _foc_native_cpu.thread_state(cap);
+			auto lambda = [&] (Cpu_sampler::Cpu_thread_component *cpu_thread) {
+				return _foc_native_cpu.thread_state(cpu_thread->parent_thread());
+			};
+
+			return _cpu_session_component.thread_ep().apply(cap, lambda);
 		}
 };
 
