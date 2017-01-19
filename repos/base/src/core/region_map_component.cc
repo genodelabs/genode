@@ -453,6 +453,10 @@ void Region_map_component::detach(Local_addr local_addr)
 		return;
 	}
 
+	if (region_ptr->base() != static_cast<addr_t>(local_addr))
+		warning("detach: ", static_cast<void *>(local_addr), " is not "
+		        "the beginning of the region ", Hex(region_ptr->base()));
+
 	Dataspace_component *dsc = region_ptr->dataspace();
 	if (!dsc)
 		warning("detach: region of ", this, " may be inconsistent!");
@@ -478,7 +482,7 @@ void Region_map_component::detach(Local_addr local_addr)
 	 * refer to an empty region not to the dataspace, which we just removed.
 	 */
 	if (platform()->supports_unmap())
-		_map.free(local_addr);
+		_map.free(reinterpret_cast<void *>(region.base()));
 
 	/*
 	 * This function gets called from the destructor of 'Dataspace_component',
