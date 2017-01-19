@@ -64,7 +64,7 @@ struct Genode::Xml_node_label_score
 			Prefix const prefix = node.attribute_value("label_prefix", Prefix());
 
 			if (!strcmp(label.string(), prefix.string(), prefix.length() - 1))
-				prefix_match = prefix.length()-1;
+				prefix_match = prefix.length();
 		}
 
 		if (suffix_present) {
@@ -75,7 +75,7 @@ struct Genode::Xml_node_label_score
 				unsigned const offset = label.length() - suffix.length();
 
 				if (!strcmp(label.string() + offset, suffix.string()))
-					suffix_match = suffix.length()-1;
+					suffix_match = suffix.length();
 			}
 		}
 	}
