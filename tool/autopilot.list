@@ -76,3 +76,9 @@ timeout
 nic_router
 init_smp
 sd_card_bench
+ram_fs_chunk
+fb_bench
+rom_blk
+reconstructible
+synced_interface
+timer_accuracy
