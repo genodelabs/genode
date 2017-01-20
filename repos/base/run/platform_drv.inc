@@ -10,6 +10,26 @@ proc have_platform_drv {} {
 	          || [have_spec x86]]
 }
 
+
+##
+# Return 1 if the scenario depends on the USB driver on the used platform
+#
+# On most ARM platform, user input is provided by an USB HID device. On other
+# platforms, the USB driver may be omitted.
+#
+proc need_usb_hid { } {
+
+	# covered by fb_sdl
+	if {[have_spec linux]} { return 0 }
+
+	# covered by ps2_drv
+	if {[have_spec x86]}   { return 0 }
+	if {[have_spec pbxa9]} { return 0 }
+
+	return [have_spec usb]
+}
+
+
 proc append_platform_drv_build_components {} {
 	global build_components
 
@@ -18,6 +38,7 @@ proc append_platform_drv_build_components {} {
 	lappend_if [have_spec acpi]    build_components server/report_rom
 	lappend_if [have_spec nova]    build_components drivers/platform/spec/x86/device_pd
 }
+
 
 proc append_platform_drv_boot_modules {} {
 	global boot_modules
@@ -28,6 +49,7 @@ proc append_platform_drv_boot_modules {} {
 	lappend_if [have_spec nova]      boot_modules device_pd
 	lappend_if [have_spec muen]      boot_modules acpi
 }
+
 
 proc platform_drv_policy {} {
 
@@ -50,6 +72,7 @@ proc platform_drv_policy {} {
 	}
 }
 
+
 proc platform_drv_priority {} { return "" }
 proc platform_drv_add_routing {} {
 	if {[have_spec acpi]} {
@@ -60,6 +83,7 @@ proc platform_drv_add_routing {} {
 	return ""
 }
 
+
 proc platform_drv_config_config {} {
 	if {[have_spec acpi] || [have_spec arm] || [have_spec muen]} {
 		return {
@@ -69,6 +93,7 @@ proc platform_drv_config_config {} {
 	return {
 		<config acpi="no">}
 }
+
 
 proc append_platform_drv_config {} {
 	global config

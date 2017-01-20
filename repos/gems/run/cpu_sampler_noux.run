@@ -4,11 +4,6 @@ if { ![have_spec foc] && ![have_spec nova] &&
 	exit 0
 }
 
-#
-# On OMAP4 where no PS/2 is available, we rely on USB HID
-#
-proc use_usb_input { } { return [expr ![have_spec ps2] && [have_spec usb]] }
-
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
 	drivers/framebuffer drivers/input
@@ -20,7 +15,9 @@ set build_components {
 	test/cpu_sampler
 }
 
-lappend_if [use_usb_input]  build_components drivers/usb
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+lappend_if [need_usb_hid]   build_components drivers/usb
 lappend_if [have_spec gpio] build_components drivers/gpio
 
 #
@@ -29,7 +26,6 @@ lappend_if [have_spec gpio] build_components drivers/gpio
 foreach pkg {bash coreutils vim diffutils} {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
 build $build_components
@@ -97,7 +93,7 @@ append_if [have_spec gpio] config {
 		<config/>
 	</start>}
 
-append_if [use_usb_input] config {
+append_if [need_usb_hid] config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
@@ -240,7 +236,7 @@ set boot_modules {
 # platform-specific modules
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [use_usb_input]         boot_modules usb_drv
+lappend_if [need_usb_hid]          boot_modules usb_drv
 lappend_if [have_spec gpio]        boot_modules gpio_drv
 
 append_platform_drv_boot_modules

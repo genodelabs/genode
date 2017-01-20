@@ -59,9 +59,7 @@ proc use_timer { feature_arg } {
 
 proc use_usb_input { feature_arg } {
 	upvar $feature_arg feature
-	return [expr {[info exists feature(Input)] &&
-	              ([have_spec usb] || 
-	               ([have_spec x86] && ![have_spec linux]))}]
+	return [expr {[info exists feature(Input)] && [need_usb_hid]}]
 }
 
 proc use_usb_nic { feature_arg } {
