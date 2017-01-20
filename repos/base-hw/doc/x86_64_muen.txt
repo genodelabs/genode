@@ -11,8 +11,7 @@ Abstract
 
 This is a short tutorial that depicts a handy way to get a Genode image, built
 with 'base-hw', started as subject on the Muen Separation Kernel (SK)
-[http://muen.sk]. For general information about how to build Genode images with
-'base-hw', have a look at '<genode_dir>/repos/base-hw/doc/hw.txt'.
+[https://muen.sk].
 
 Tutorial
 ########
@@ -22,7 +21,7 @@ project website. In summary: install the Ada/SPARK tool-chain and all required
 distribution packages. Also ensure that you have installed the Genode tool-chain
 that is available at:
 
-:[http://genode.org/download/tool-chain]:
+:[https://genode.org/download/tool-chain]:
   Genode tool-chain
 
 To automatically download the Muen kernel and integrate it with Genode, issue
@@ -50,7 +49,7 @@ found at '<genode_dir>/contrib/muen-*/src/kernel/muen'.
 
 To get a list of all currently supported platforms issue the following command:
 
-! ls contrib/muen-*/src/kernel/muen/policy/platform/ | cut -f 1 -d '.'
+! ls contrib/muen-*/src/kernel/muen/policy/platform/ | grep -v common
 
 Set the '--image-muen-hardware' parameter to point to the hardware
 configuration file of your intended hardware platform. Note that the specified
@@ -61,16 +60,16 @@ other parameters to match your environment.
 
 If no hardware configuration for your specific hardware is available, refer to
 the README of the 'mugenhwcfg' tool
-[http://git.codelabs.ch/?p=muen/mugenhwcfg.git] for instructions on how to
+[https://git.codelabs.ch/?p=muen/mugenhwcfg.git] for instructions on how to
 generate a new configuration.
 
 You can now change to the created build directory and compile a Genode system:
 
 ! cd build/muen/
-! make run/printf
+! make run/log
 
 Once the build is done, the Muen system which contains the Genode scenario is
-available as a Multiboot binary image under 'var/run/printf/image.bin'. If an
+available as a Multiboot binary image under 'var/run/log/image.bin'. If an
 error occurs during the Muen build process check the log file located at
 'kernel/build.log'.
 
@@ -122,7 +121,7 @@ hardware.
 
 As a first step acquire the Muen sources by execute the following commands:
 
-! git clone http://git.codelabs.ch/git/muen.git
+! git clone https://git.codelabs.ch/git/muen.git
 ! cd muen
 ! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm tau0 time" emulate
 
@@ -145,7 +144,7 @@ your build Genode directory like so:
 After this change you can build the Genode 'base-hw' image and export it to the
 Muen working directory using the following command:
 
-! objcopy -O binary var/run/printf/image.elf <muen_workdir>/policy/obj/base_hw
+! objcopy -O binary var/run/log/image.elf <muen_workdir>/policy/obj/base_hw
 
 Change back to the Muen working directory to package the system image and
 restart emulation:
@@ -156,7 +155,7 @@ restart emulation:
 The serial output of the system is written to the
 '<muen_workdir>/emulate/serial.out' file. You should see the following line:
 
-! [init -> test-printf] -1 = -1 = -1
+! [init -> test-log] Test done.
 
-This indicates the successful execution of the Genode 'run/printf' scenario as
+This indicates the successful execution of the Genode 'run/log' scenario as
 Muen subject on Bochs.
