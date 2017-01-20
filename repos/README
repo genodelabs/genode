@@ -120,14 +120,6 @@ but build upon of each other:
   as used for the 'libports' repository. Please consult 'libports/README'
   for further information.
 
-:'ports-<platform>':
-
-  These platform-specific source-code repositories contain software that
-  capitalizes special features of the respective kernel platform.
-  For the Fiasco.OC platform, 'ports-foc' hosts a port of the L4Linux
-  kernel. For further information, please refer to the README file at the
-  top level of the respective repository.
-
 :'gems':
 
   This source-code repository contains Genode applications that use

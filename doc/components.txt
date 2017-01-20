@@ -584,13 +584,6 @@ Runtime environments
   that enables the use of unmodified command-line based GNU software. For using
   noux, refer to the run script 'ports/run/noux.run'.
 
-:'ports-foc/src/l4linux': L4Linux is a paravirtualized Linux kernel that
-  enables the use of Linux-based OSes as subsystems on the Fiasco.OC kernel.
-  For using L4Linux, refer to the run script 'ports-foc/run/l4linux.run'.
-
-:'ports-foc/src/l4android': L4Android is a variant of L4Linux that is able
-  to execute the Android software stack on top of the Fiasco.OC kernel.
-
 :'ports/src/app/seoul': Seoul is a virtual-machine monitor developed for
   the use with the NOVA platform. It virtualizes 32bit x86 PC hardware
   including various peripherals.

@@ -16,7 +16,6 @@ timed_semaphore
 signal
 sub_rm
 python
-l4linux
 lx_hybrid_ctors
 lx_hybrid_exception
 lx_hybrid_pthread_ipc
@@ -31,9 +30,6 @@ netperf_lxip
 netperf_lxip_usb30
 netperf_lxip_bridge
 netperf_lxip_wifi
-l4linux_netperf
-l4linux_netperf_usb30
-l4linux_netperf_bridge
 noux_tool_chain_auto
 affinity
 mp_server

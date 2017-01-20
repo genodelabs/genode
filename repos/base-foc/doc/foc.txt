@@ -83,34 +83,6 @@ instead of building everything:
 ! make run/demo
 
 
-Running L4Linux on top of Genode
-################################
-
-To get the L4Linux running on top of Genode, you have to change prepare its
-sources:
-
-! ./tool/ports/prepare_port l4linux
-
-This will fetch the currently supported version from the L4Linux subversion
-repository, and apply a patch to it, that is needed to execute it on top of
-Genode.
-
-Before compiling L4Linux for Genode/Fiasco.OC you have to integrate the 'ports-foc'
-repository into your build environment. Therefore edit the 'etc/build.conf' file
-in your build directory, and uncomment the following line:
-
-! REPOSITORIES += $(GENODE_DIR)/repos/ports-foc
-
-After that you can build and run L4Linux by issuing:
-
-! make run/l4linux
-
-in your build directory. This run-script boots a single L4Linux instance into
-a minimal console environment. After booting completes, the run-scripts tries
-to download the Genode project webpage via the 'wget' tool within the L4Linux
-environment. If all wents fine the run-script completes successfully.
-
-
 Further Information
 ###################
 
