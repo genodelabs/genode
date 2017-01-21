@@ -244,7 +244,7 @@ void Backdrop::Main::apply_image(Xml_node operation)
 
 	Anchor anchor(operation);
 
-	Png_image png_image(file.data<void>());
+	Png_image png_image(env.ram(), env.rm(), heap, file.data<void>());
 
 	Area const scaled_size = calc_scaled_size(operation, png_image.size(),
 	                                          Area(buffer->mode.width(),
@@ -277,8 +277,8 @@ void Backdrop::Main::apply_image(Xml_node operation)
 	Texture<Pixel_rgb888> *png_texture = png_image.texture<Pixel_rgb888>();
 
 	/* create texture with the scaled image */
-	Chunky_texture<Pixel_rgb888> scaled_texture(env.ram(), scaled_size);
-	scale(*png_texture, scaled_texture);
+	Chunky_texture<Pixel_rgb888> scaled_texture(env.ram(), env.rm(), scaled_size);
+	scale(*png_texture, scaled_texture, heap);
 
 	png_image.release_texture(png_texture);
 
@@ -288,8 +288,8 @@ void Backdrop::Main::apply_image(Xml_node operation)
 
 	/* create texture with down-sampled scaled image */
 	typedef Pixel_rgb565 PT;
-	Chunky_texture<PT> texture(env.ram(), scaled_size);
-	convert_pixel_format(scaled_texture, texture, alpha);
+	Chunky_texture<PT> texture(env.ram(), env.rm(), scaled_size);
+	convert_pixel_format(scaled_texture, texture, alpha, heap);
 
 	/* paint texture onto surface */
 	Surface<PT> surface = buffer->surface<PT>();
