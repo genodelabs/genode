@@ -14,7 +14,7 @@ INC_DIR += $(REP_DIR)/src/core/include/spec/imx
 SRC_CC += platform_services.cc
 SRC_CC += spec/imx6/platform_support.cc
 
-NR_OF_CPUS = 1
+NR_OF_CPUS = 4
 
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/cortex_a9/core-hw.inc

@@ -111,6 +111,12 @@ void Kernel::Cpu::init(Kernel::Pic &pic, Kernel::Pd & core_pd, Genode::Board & b
 	Actlr::enable_smp();
 	smp_coherency_enabled.inc();
 
+	/*
+	 * strangely, some older versions (imx6) seem to not work cache coherent
+	 * until SMP bit is set, so write back the variable here.
+	 */
+	clean_invalidate_inner_data_cache();
+
 	/* wait for other cores' coherency activation */
 	smp_coherency_enabled.wait_for(NR_OF_CPUS);
 

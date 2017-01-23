@@ -66,6 +66,9 @@ struct Genode::Board_base
 		PL310_MMIO_BASE = 0x00a02000,
 		PL310_MMIO_SIZE = 0x00001000,
 
+		/* System reset controller */
+		SRC_MMIO_BASE = 0x20d8000,
+
 		/* CPU cache */
 		CACHE_LINE_SIZE_LOG2 = 5,
 
