@@ -165,7 +165,9 @@ proc run_boot_dir_arm { binaries } {
 		set tftp_base_dir [load_tftp_base_dir]
 		set tftp_offset_dir [load_tftp_offset_dir]
 
-		exec ln -sf [pwd]/[run_dir]/image.elf $tftp_base_dir$tftp_offset_dir
+		exec rm -rf $tftp_base_dir$tftp_offset_dir
+		exec mkdir $tftp_base_dir$tftp_offset_dir
+		exec ln -sf [pwd]/[run_dir]/image.elf $tftp_base_dir$tftp_offset_dir/image.elf
 		if {[have_include "image/uboot"]} {
 			exec ln -sf [pwd]/[run_dir]/uImage $tftp_base_dir$tftp_offset_dir/uImage
 		}
