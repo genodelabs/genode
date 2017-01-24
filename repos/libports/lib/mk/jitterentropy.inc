@@ -8,7 +8,7 @@ SRC_CC = jitterentropy-base-genode.cc
 
 CC_OPT += -DJITTERENTROPY_GENODE
 
-CC_OLEVEL := -O0
+override CC_OLEVEL := -O0
 
 vpath %.c  $(JENT_CONTRIB_DIR)/src/lib/jitterentropy
 vpath %.cc $(REP_DIR)/src/lib/jitterentropy
