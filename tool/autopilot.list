@@ -8,10 +8,12 @@ tar_rom
 noux
 noux_net_netcat
 libc_ffat
+libc_getenv
 libc_pipe
 libc_vfs
-libc_vfs_ram
+libc_vfs_ext2
 libc_vfs_fs
+libc_vfs_ram
 timed_semaphore
 signal
 sub_rm
@@ -41,7 +43,6 @@ part_blk
 xml_generator
 blk_cache
 rump_ext2
-libc_vfs_ext2
 thread
 pthread
 vbox_auto_win7

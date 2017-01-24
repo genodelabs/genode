@@ -1,0 +1,53 @@
+build "core init drivers/timer test/libc_getenv"
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="test-libc_getenv">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log"/>
+			<arg value="test-libc_getenv"/>
+			<arg value="foo"/>
+			<arg value="bar"/>
+			<arg value="baz"/>
+			<env key="foo" value="bar"/>
+			<env key="bar" value="foo"/>
+		</config>
+	</start>
+</config>
+}
+
+build_boot_image {
+	core init timer test-libc_getenv
+	ld.lib.so libc.lib.so libm.lib.so
+}
+
+append qemu_args " -nographic -m 64 "
+
+run_genode_until "child .* exited with exit value 0.*\n" 10
+
+grep_output {\[init -\> test-libc_getenv\]}
+
+compare_output_to {
+[init -> test-libc_getenv] foo="bar"
+[init -> test-libc_getenv] bar="foo"
+[init -> test-libc_getenv] baz="(null)"
+}
