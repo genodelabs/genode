@@ -293,7 +293,7 @@ append_if [expr $use_usb] config {
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes"/>
 	</start>}
