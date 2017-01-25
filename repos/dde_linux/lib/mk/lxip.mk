@@ -8,8 +8,6 @@ LIBS += lxip_include
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/lxip
 NET_DIR        := $(LX_CONTRIB_DIR)/net
 
-CC_OLEVEL = -O2
-
 SETUP_SUFFIX =
 CC_OPT += -DSETUP_SUFFIX=$(SETUP_SUFFIX)
 

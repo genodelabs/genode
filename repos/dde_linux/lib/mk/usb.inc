@@ -10,8 +10,6 @@ LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/usb
 DRIVERS_DIR    := $(LX_CONTRIB_DIR)/drivers
 USB_DIR        := $(DRIVERS_DIR)/usb
 
-CC_OLEVEL = -O2
-
 #
 # The order of include-search directories is important, we need to look into
 # 'contrib' before falling back to our custom 'lx_emul.h' header.
