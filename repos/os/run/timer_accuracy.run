@@ -1,0 +1,69 @@
+# build program images
+build { core init drivers/timer test/timer_accuracy }
+
+# create directory where boot files are written to
+create_boot_directory
+
+# define XML configuration for init
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service><parent/><any-child/></any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="test-timer_accuracy">
+		<resource name="RAM" quantum="10M"/>
+	</start>
+</config>
+}
+# build boot files from source binaries
+build_boot_image { core ld.lib.so init timer test-timer_accuracy }
+
+# configure Qemu
+append qemu_args " -m 64 -nographic"
+
+set err_cnt      0
+set test_timeout 20
+set rounds       9
+
+# wait for initial tic
+run_genode_until {\[init -> test-timer_accuracy\].*\n} $test_timeout
+set serial_id [output_spawn_id]
+
+# measure the delays between the following tics
+for {set i 1} {$i <= $rounds} {incr i} {
+	set start_time($i) [clock milliseconds]
+	run_genode_until {\[init -> test-timer_accuracy\].*\n} $test_timeout $serial_id
+	set end_time($i) [clock milliseconds]
+}
+# print results and count errors
+foreach i [lsort [array names start_time]] {
+	set class "Good:"
+	set test_result [expr $end_time($i) - $start_time($i)]
+	set host_result [expr $i * 1000]
+	set result_diff [expr abs($test_result - $host_result)]
+	if {[expr $result_diff > 500]} {
+		set class "Bad: "
+		set err_cnt [expr $err_cnt + 1]
+	}
+	puts "$class round $i, host measured $host_result ms, test measured $test_result ms"
+}
+# check the error count
+if {[expr $err_cnt > 0]} {
+	puts "Test failed because of $err_cnt errors"
+	exit -1
+}
