@@ -1,0 +1,14 @@
++++ src/noux-pkg/less/Makefile.in
+@@ -57,10 +57,10 @@ less$(EXEEXT): ${OBJ}
+ 	${CC} ${LDFLAGS} -o $@ ${OBJ} ${LIBS}
+ 
+ lesskey$(EXEEXT): lesskey.${O} version.${O}
+-	${CC} ${LDFLAGS} -o $@ lesskey.${O} version.${O}
++	${CC} ${LDFLAGS} -o $@ lesskey.${O} version.${O} ${LIBS}
+ 
+ lessecho$(EXEEXT): lessecho.${O} version.${O}
+-	${CC} ${LDFLAGS} -o $@ lessecho.${O} version.${O}
++	${CC} ${LDFLAGS} -o $@ lessecho.${O} version.${O} ${LIBS}
+ 
+ ${OBJ}: ${srcdir}/less.h ${srcdir}/funcs.h defines.h 
+ 
