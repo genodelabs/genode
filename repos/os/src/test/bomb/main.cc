@@ -20,6 +20,7 @@
 #include <init/child_policy.h>
 #include <timer_session/connection.h>
 #include <os/child_policy_dynamic_rom.h>
+#include <os/static_parent_services.h>
 
 using namespace Genode;
 
@@ -170,9 +171,8 @@ struct Bomb
 
 	Children child_registry;
 
-	/* names of services provided by the parent */
-	const char *names[6] = { "RAM", "PD", "CPU", "ROM", "LOG", 0};
-	Registry<Registered<Parent_service> > parent_services;
+	Static_parent_services<Ram_session, Pd_session, Cpu_session,
+	                       Rom_session, Log_session> parent_services;
 
 	void construct_children()
 	{
@@ -233,9 +233,6 @@ struct Bomb
 
 	Bomb(Genode::Env &env) : env(env)
 	{
-		for (unsigned i = 0; names[i]; i++)
-			new (heap) Registered<Parent_service>(parent_services, names[i]);
-
 		/*
 		 * Don't ask parent for further resources if we ran out of memory.
 		 * Prevent us to block for resource upgrades caused by clients
