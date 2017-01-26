@@ -43,11 +43,13 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route>
-			<service name="LOG"> <parent/> </service>
-			<service name="RM">  <parent/> </service>
-			<service name="ROM"> <parent/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="IRQ">    <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="RAM">     <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
 		</route>
 	</start>}
@@ -60,11 +62,12 @@ append_if [have_spec ps2] config {
 		<provides><service name="Input"/></provides>
 		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 		<route>
-			<service name="IO_PORT"> <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-			<service name="RM">      <parent/> </service>
-			<service name="IO_MEM">  <parent/> </service>
-			<service name="IRQ">     <parent/> </service>
+			<service name="ROM">      <parent/>    </service>
+			<service name="CPU">      <parent/>    </service>
+			<service name="RAM">      <parent/>    </service>
+			<service name="PD">       <parent/>    </service>
+			<service name="IO_PORT">  <parent/>    </service>
+			<service name="LOG">      <parent/>    </service>
 			<service name="Platform"> <any-child/> </service>
 		</route>
 	</start>
@@ -75,8 +78,11 @@ append_if [have_spec sdl] config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Input"/> <service name="Framebuffer"/> </provides>
 		<route>
+			<service name="ROM">   <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+			<service name="RAM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
 			<service name="LOG">   <parent/> </service>
-			<service name="RM">    <parent/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 		</route>
 	</start>
@@ -86,9 +92,12 @@ append config {
 	<start name="test-input">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="LOG">   <parent/> </service>
-			<service name="RM">    <parent/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="RAM">   <parent/>                 </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
 			<service name="Input"> <child name="input_drv"/> </service>
 		</route>
 	</start>}
