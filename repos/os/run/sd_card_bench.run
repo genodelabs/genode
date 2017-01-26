@@ -4,10 +4,11 @@
 
       if {[have_spec pl180]}   { set buffer_size_kib [expr 12 * 1024]
 } elseif {[have_spec imx6]}    { set buffer_size_kib [expr      1024]
-} elseif {[have_spec imx53]}   { set buffer_size_kib [expr      1024]
+} elseif {[have_spec imx53] &&
+          ![have_spec foc]}    { set buffer_size_kib [expr      1024]
 } elseif {[have_spec rpi]}     { set buffer_size_kib [expr  4 * 1024]
 } elseif {[have_spec omap4]}   { set buffer_size_kib [expr  4 * 1024]
-} elseif {[have_spec exynos5]} { set buffer_size_kib [expr      1024]
+} elseif {[have_spec arndale]} { set buffer_size_kib [expr      1024]
 } else   {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
@@ -51,7 +52,6 @@ append config {
 	</default-route>}
 
 append_platform_drv_config
-
 
 append config {
 	<start name="timer">
