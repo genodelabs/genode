@@ -89,7 +89,7 @@ bool flush_delayed_work(struct delayed_work *dwork);
 bool queue_work(struct workqueue_struct *wq, struct work_struct *work);
 
 #define DECLARE_DELAYED_WORK(n, f) \
-	struct delayed_work n
+	struct delayed_work n = { .work = { .func = f }, .timer = { .function = 0 } }
 
 bool mod_delayed_work(struct workqueue_struct *, struct delayed_work *,
                       unsigned long);
