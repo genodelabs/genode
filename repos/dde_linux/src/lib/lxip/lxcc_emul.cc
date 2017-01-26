@@ -690,3 +690,31 @@ size_t csum_and_copy_to_iter(void *addr, size_t bytes, __wsum *csum, struct iov_
  ******************/
 
 void __wake_up(wait_queue_head_t *q, bool all) { }
+
+
+/***********************
+ ** linux/workqueue.h **
+ ***********************/
+
+static void execute_delayed_work(unsigned long dwork)
+{
+	delayed_work *d = (delayed_work *)dwork;
+	d->work.func(&d->work);
+}
+
+
+bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
+                      unsigned long delay)
+{
+	/* treat delayed work without delay like any other work */
+	if (delay == 0) {
+		execute_delayed_work((unsigned long)dwork);
+	} else {
+		if (!dwork->timer.function) {
+			setup_timer(&dwork->timer, execute_delayed_work,
+			            (unsigned long)dwork);
+		}
+		mod_timer(&dwork->timer, delay);
+	}
+	return true;
+}
