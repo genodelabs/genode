@@ -351,6 +351,8 @@ void Init::Main::_handle_config()
 			catch (Region_map::Attach_failed) {
 				warning("failed to attach dataspace to local address space "
 				        "during child construction"); }
+			catch (Parent::Service_denied) {
+				warning("failed to create session during child construction"); }
 		});
 	}
 	catch (Xml_node::Nonexistent_sub_node) { error("no children to start"); }
