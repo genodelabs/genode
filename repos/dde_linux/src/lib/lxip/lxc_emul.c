@@ -161,6 +161,12 @@ struct netdev_queue *dev_ingress_queue(struct net_device *dev)
 	return dev->ingress_queue; 
 }
 
+void rtnl_notify(struct sk_buff *skb, struct net *net, u32 pid, u32 group,
+                 struct nlmsghdr *nlh, gfp_t flags)
+{
+	nlmsg_free(skb);
+}
+
 
 /****************
  ** linux/ip.h **

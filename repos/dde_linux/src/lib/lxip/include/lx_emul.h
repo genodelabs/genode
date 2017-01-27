@@ -1022,7 +1022,7 @@ void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
 int  timer_pending(const struct timer_list * timer);
 int  del_timer(struct timer_list *timer);
 void timer_stats_timer_clear_start_info(struct timer_list *);
-long round_jiffies_relative(unsigned long);
+unsigned long round_jiffies_relative(unsigned long);
 
 unsigned long round_jiffies(unsigned long);
 unsigned long round_jiffies_up(unsigned long);

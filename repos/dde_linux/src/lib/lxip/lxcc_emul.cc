@@ -718,3 +718,54 @@ bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
 	}
 	return true;
 }
+
+int schedule_delayed_work(struct delayed_work *dwork, unsigned long delay)
+{
+	return mod_delayed_work(0, dwork, delay);
+}
+
+
+/*******************
+ ** linux/timer.h **
+ *******************/
+
+static unsigned long round_jiffies(unsigned long j, bool force_up)
+{
+	unsigned remainder = j % HZ;
+
+	/*
+	 * from timer.c
+	 *
+	 * If the target jiffie is just after a whole second (which can happen
+	 * due to delays of the timer irq, long irq off times etc etc) then
+	 * we should round down to the whole second, not up. Use 1/4th second
+	 * as cutoff for this rounding as an extreme upper bound for this.
+	 * But never round down if @force_up is set.
+	 */
+
+	/* per default round down */
+	j = j - remainder;
+
+	/* round up if remainder more than 1/4 second (or if we're forced to) */
+	if (remainder >= HZ/4 || force_up)
+		j += HZ;
+
+	return j;
+}
+
+unsigned long round_jiffies(unsigned long j)
+{
+	return round_jiffies(j, false);
+}
+
+
+unsigned long round_jiffies_up(unsigned long j)
+{
+	return round_jiffies(j, true);
+}
+
+
+unsigned long round_jiffies_relative(unsigned long j)
+{
+	return round_jiffies(j + jiffies, false) - jiffies;
+}
