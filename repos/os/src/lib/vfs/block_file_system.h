@@ -205,12 +205,12 @@ class Vfs::Block_file_system : public Single_file_system
 					nbytes = _block_io(blk_nr, (void*)(buf + written),
 					                   bytes_left, true, true);
 					if (nbytes == 0) {
-						Genode::error("error while write block:", blk_nr, " from block device");
+						Genode::error("error while write block:", blk_nr, " to block device");
 						return WRITE_ERR_INVALID;
 					}
 
-					written += nbytes;
-					count   -= nbytes;
+					written     += nbytes;
+					count       -= nbytes;
 					seek_offset += nbytes;
 
 					continue;
@@ -223,23 +223,19 @@ class Vfs::Block_file_system : public Single_file_system
 				 * write the whole block back. In addition if length is less
 				 * than block size, we also have to read the block first.
 				 */
-				if (displ > 0 || length < _block_size) {
-
+				if (displ > 0 || length < _block_size)
 					_block_io(blk_nr, _block_buffer, _block_size, false);
-					/* rewind seek offset to account for the block read */
-					seek_offset -= _block_size;
-				}
 
 				Genode::memcpy(_block_buffer + displ, buf + written, length);
 
 				nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
 				if ((unsigned)nbytes != _block_size) {
-					Genode::error("error while writing block:", blk_nr, " to Block_device");
+					Genode::error("error while writing block:", blk_nr, " to block_device");
 					return WRITE_ERR_INVALID;
 				}
 
-				written += length;
-				count -= length;
+				written     += length;
+				count       -= length;
 				seek_offset += length;
 			}
 
@@ -273,7 +269,7 @@ class Vfs::Block_file_system : public Single_file_system
 					length = count;
 
 				/*
-				 * We take a shortcut and read the blocks all at once if t he
+				 * We take a shortcut and read the blocks all at once if the
 				 * offset is aligned on a block boundary and we the count is a
 				 * multiple of the block size, e.g. 4K reads will be read at
 				 * once.
