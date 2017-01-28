@@ -14,6 +14,7 @@ libc_vfs
 libc_vfs_ext2
 libc_vfs_fs
 libc_vfs_ram
+libc_vfs_block
 timed_semaphore
 signal
 sub_rm

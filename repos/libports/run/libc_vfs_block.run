@@ -1,0 +1,87 @@
+#
+# \brief  Test for using the block-session support of the libc_vfs plugin
+# \author Norman Feske
+# \date   2016-01-28
+#
+
+#
+# Build
+#
+
+build { core init server/ram_blk test/libc_vfs_block }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="ram_blk">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Block"/> </provides>
+		<config size="16K" block_size="4096"/>
+	</start>
+	<start name="test-libc_vfs_block">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<vfs> <dir name="dev"> <block/> </dir> </vfs>
+			<libc/>
+
+			<!-- Populate the block device with a pattern and validate the
+			     write operation by reading back the content. -->
+			<sequence>
+				<write  content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+				<expect content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+			</sequence>
+
+			<!-- Write single 512 block. This requires the successive reading,
+			     modification, and writing of the compound 4096 block. -->
+			<sequence>
+				<write  at="9" content="%"/>
+				<expect content="abcdefghI%KLMNOPqrstuvwxYZABCDEF"/>
+			</sequence>
+
+			<!-- Reset the pattern and write multiple 512 blocks that cross
+			     a 4096 boundary. -->
+			<sequence>
+				<write  content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+				<write  at="15" content="123"/>
+				<expect content="abcdefghIJKLMNO123stuvwxYZABCDEF"/>
+			</sequence>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init
+	ld.lib.so libc.lib.so libm.lib.so
+	ram_blk test-libc_vfs_block
+}
+
+#
+# Execute test case
+#
+
+append qemu_args " -m 128 -nographic "
+run_genode_until {.*child "test-libc_vfs_block" exited with exit value 0.*} 60
+
