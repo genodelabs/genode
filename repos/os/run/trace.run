@@ -6,7 +6,7 @@ set build_components {
 	core init
 	drivers/timer
 	test/trace
-	lib/trace/policy/rpc_name
+	lib/trace/policy/null
 }
 
 build $build_components
@@ -41,7 +41,7 @@ append config {
 	<start name="test-trace">
 		<resource name="RAM" quantum="10M"/>
 		<config>
-			<trace_policy label_prefix="init -> test-trace" module="rpc_name" />
+			<trace_policy label="init -> test-trace" module="null" />
 		</config>
 	</start>
 </config>}
@@ -57,11 +57,11 @@ set boot_modules {
 	core ld.lib.so init
 	timer
 	test-trace
-	rpc_name
+	null
 }
 
 build_boot_image $boot_modules
 
 append qemu_args " -nographic -serial mon:stdio -m 256 "
 
-run_genode_until "--- test-trace finished ---" 30
+run_genode_until {.*child "test-trace" exited with exit value 0.*} 30

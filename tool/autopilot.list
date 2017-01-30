@@ -84,3 +84,4 @@ rom_blk
 reconstructible
 synced_interface
 timer_accuracy
+trace

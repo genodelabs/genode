@@ -73,13 +73,14 @@ class Trace_buffer_monitor
 			_rm(rm), _id(id), _buffer(rm.attach(ds_cap)),
 			_curr_entry(_buffer->first())
 		{
-			log("monitor subject:", _id.id, " buffer:", Hex((addr_t)_buffer));
+			log("monitor "
+				"subject:", _id.id, " "
+				"buffer:",  Hex((addr_t)_buffer));
 		}
 
 		~Trace_buffer_monitor()
 		{
-			if (_buffer)
-				_rm.detach(_buffer);
+			if (_buffer) { _rm.detach(_buffer); }
 		}
 
 		Trace::Subject_id id() { return _id; };
@@ -88,15 +89,16 @@ class Trace_buffer_monitor
 		{
 			log("overflows: ", _buffer->wrapped());
 			log("read all remaining events");
+
 			for (; !_curr_entry.last(); _curr_entry = _buffer->next(_curr_entry)) {
 				/* omit empty entries */
 				if (_curr_entry.length() == 0)
 					continue;
 
-				const char *data = _terminate_entry(_curr_entry);
-				if (data)
-					log(data);
+				char const * const data = _terminate_entry(_curr_entry);
+				if (data) { log(data); }
 			}
+
 			/* reset after we read all available entries */
 			_curr_entry = _buffer->first();
 		}
@@ -130,6 +132,7 @@ struct Test_out_of_metadata
 			/* we should never arrive here */
 			struct Unexpectedly_got_no_exception{};
 			throw  Unexpectedly_got_no_exception();
+
 		} catch (Parent::Service_denied) {
 			log("got Parent::Service_denied exception as expected"); }
 
@@ -152,18 +155,19 @@ struct Test_out_of_metadata
 
 struct Test_tracing
 {
-	Env                      &env;
-	Attached_rom_dataspace    config       { env, "config" };
-	Heap                      heap         { env.ram(), env.rm() };
-	Trace::Connection         trace        { env, 1024*1024, 64*1024, 0 };
-	Timer::Connection         timer        { env };
-	Test_thread::Name         thread_name  { "test-thread" };
-	Test_thread               thread       { env, thread_name };
-	Trace_buffer_monitor     *test_monitor { nullptr };
-	bool                      policy_set   { false };
-	Trace::Policy_id          policy_id;
-	char                      policy_label[64];
-	char                      policy_module[64];
+	Env                     &env;
+	Attached_rom_dataspace   config       { env, "config" };
+	Trace::Connection        trace        { env, 1024*1024, 64*1024, 0 };
+	Timer::Connection        timer        { env };
+	Test_thread::Name        thread_name  { "test-thread" };
+	Test_thread              thread       { env, thread_name };
+	Trace::Policy_id         policy_id;
+
+	Constructible<Trace_buffer_monitor> test_monitor;
+
+	typedef Genode::String<64> String;
+	String                    policy_label;
+	String                    policy_module;
 	Rom_dataspace_capability  policy_module_rom_ds;
 
 	char const *state_name(Trace::Subject_info::State state)
@@ -179,95 +183,114 @@ struct Test_tracing
 		return "undefined";
 	}
 
+	template <typename FUNC>
+	void for_each_subject(Trace::Subject_id subjects[],
+	                      size_t max_subjects, FUNC const &func)
+	{
+		for (size_t i = 0; i < max_subjects; i++) {
+			Trace::Subject_info info = trace.subject_info(subjects[i]);
+			func(subjects[i].id, info);
+		}
+	}
+
+	struct Failed : Genode::Exception { };
+
 	Test_tracing(Env &env) : env(env)
 	{
+		log("test Tracing");
+
 		try {
 			Xml_node policy = config.xml().sub_node("trace_policy");
-			for (;; policy = policy.next("trace_policy")) {
-				try {
-					policy.attribute("label").value(policy_label, sizeof (policy_label));
-					policy.attribute("module").value(policy_module, sizeof (policy_module));
+			policy.attribute("label").value(&policy_label);
+			policy.attribute("module").value(&policy_module);
 
-					Rom_connection policy_rom(env, policy_module);
-					policy_module_rom_ds = policy_rom.dataspace();
+			Rom_connection policy_rom(env, policy_module.string());
+			policy_module_rom_ds = policy_rom.dataspace();
 
-					size_t rom_size = Dataspace_client(policy_module_rom_ds).size();
+			size_t rom_size = Dataspace_client(policy_module_rom_ds).size();
 
-					policy_id = trace.alloc_policy(rom_size);
-					Dataspace_capability ds_cap = trace.policy(policy_id);
+			policy_id = trace.alloc_policy(rom_size);
+			Dataspace_capability ds_cap = trace.policy(policy_id);
 
-					if (ds_cap.valid()) {
-						void *ram = env.rm().attach(ds_cap);
-						void *rom = env.rm().attach(policy_module_rom_ds);
-						memcpy(ram, rom, rom_size);
+			if (ds_cap.valid()) {
+				void *ram = env.rm().attach(ds_cap);
+				void *rom = env.rm().attach(policy_module_rom_ds);
+				memcpy(ram, rom, rom_size);
 
-						env.rm().detach(ram);
-						env.rm().detach(rom);
-					}
-				} catch (...) {
-					error("could not load module '", Cstring(policy_module), "' for "
-					      "label '", Cstring(policy_label), "'");
-				}
-
-				log("load module: '", Cstring(policy_module), "' for "
-				    "label: '", Cstring(policy_label), "'");
-
-				if (policy.last("trace_policy")) break;
+				env.rm().detach(ram);
+				env.rm().detach(rom);
 			}
 
-		} catch (...) { }
-
-		for (size_t cnt = 0; cnt < 5; cnt++) {
-
-			timer.msleep(3000);
-
-			Trace::Subject_id subjects[32];
-			size_t num_subjects = trace.subjects(subjects, 32);
-
-			log(num_subjects, " tracing subjects present");
-
-			for (size_t i = 0; i < num_subjects; i++) {
-
-				Trace::Subject_info info = trace.subject_info(subjects[i]);
-				log("ID:",      subjects[i].id,           " "
-				    "label:\"", info.session_label(),   "\" "
-				    "name:\"",  info.thread_name(),     "\" "
-				    "state:",   state_name(info.state()), " "
-				    "policy:",  info.policy_id().id,      " "
-				    "time:",    info.execution_time().value);
-
-				/* enable tracing */
-				if (!policy_set
-				    && strcmp(info.session_label().string(), policy_label) == 0
-				    && strcmp(info.thread_name().string(), "test-thread") == 0) {
-					try {
-						log("enable tracing for "
-						    "thread:'", info.thread_name().string(), "' with "
-						    "policy:", policy_id.id);
-
-						trace.trace(subjects[i].id, policy_id, 16384U);
-
-						Dataspace_capability ds_cap = trace.buffer(subjects[i].id);
-						test_monitor = new (heap)
-							Trace_buffer_monitor(env.rm(), subjects[i].id, ds_cap);
-
-					} catch (Trace::Source_is_dead) { error("source is dead"); }
-
-					policy_set = true;
-				}
-
-				/* read events from trace buffer */
-				if (test_monitor) {
-					if (subjects[i].id == test_monitor->id().id)
-						test_monitor->dump();
-				}
-			}
+			log("load module: '", policy_module, "' for "
+			    "label: '", policy_label, "'");
+		} catch (...) {
+			error("could not load module '", policy_module, "' for "
+			      "label '", policy_label, "'");
+			throw Failed();
 		}
 
-		if (test_monitor)
-			destroy(heap, test_monitor);
+		/* wait some time before querying the subjects */
+		timer.msleep(3000);
+
+		Trace::Subject_id subjects[32];
+		size_t num_subjects = trace.subjects(subjects, 32);
+
+		log(num_subjects, " tracing subjects present");
+
+		auto print_info = [this] (Trace::Subject_id id, Trace::Subject_info info) {
+
+			log("ID:",      id.id,                    " "
+			    "label:\"", info.session_label(),   "\" "
+			    "name:\"",  info.thread_name(),     "\" "
+			    "state:",   state_name(info.state()), " "
+			    "policy:",  info.policy_id().id,      " "
+			    "time:",    info.execution_time().value);
+		};
+
+		for_each_subject(subjects, num_subjects, print_info);
+
+		/* enable tracing for test-thread */
+		auto enable_tracing = [this, &env] (Trace::Subject_id id,
+		                                    Trace::Subject_info info) {
+
+			if (   info.session_label() != policy_label
+			    || info.thread_name()   != "test-thread") {
+				return;
+			}
+
+			try {
+				log("enable tracing for "
+				    "thread:'", info.thread_name().string(), "' with "
+				    "policy:", policy_id.id);
+
+				trace.trace(id.id, policy_id, 16384U);
+
+				Dataspace_capability ds_cap = trace.buffer(id.id);
+				test_monitor.construct(env.rm(), id.id, ds_cap);
+
+			} catch (Trace::Source_is_dead) {
+				error("source is dead");
+				throw Failed();
+			}
+		};
+
+		for_each_subject(subjects, num_subjects, enable_tracing);
+
+		/* give the test thread some time to run */
+		timer.msleep(3000);
+
+		for_each_subject(subjects, num_subjects, print_info);
+
+		/* read events from trace buffer */
+		if (test_monitor.constructed()) {
+			test_monitor->dump();
+			test_monitor.destruct();
+		}
+
+		log("passed Tracing test");
 	}
 };
+
 
 struct Main
 {
@@ -276,12 +299,12 @@ struct Main
 
 	Main(Env &env)
 	{
-		log("--- test-trace started ---");
 		test_1.construct(env);
 		test_1.destruct();
 		test_2.construct(env);
 		test_2.destruct();
-		log("--- test-trace finished ---");
+
+		env.parent().exit(0);
 	}
 };
 
