@@ -19,6 +19,8 @@
 #include <vfs/dir_file_system.h>
 #include <os/session_policy.h>
 #include <vfs/file_system_factory.h>
+#include <os/ram_session_guard.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/sleep.h>
 #include <base/component.h>
 
@@ -34,15 +36,6 @@ namespace Vfs_server {
 	class  Session_component;
 	class  Root;
 
-	static Genode::Xml_node vfs_config()
-	{
-		try { return Genode::config()->xml_node().sub_node("vfs"); }
-		catch (...) {
-			Genode::error("VFS not configured");
-			Genode::env()->parent()->exit(~0);
-			Genode::sleep_forever();
-		}
-	}
 };
 
 
@@ -53,10 +46,8 @@ class Vfs_server::Session_component :
 
 		Node_space _node_space;
 
-		Genode::String<160>     _label;
-
-		Genode::Ram_connection  _ram;
-		Genode::Heap            _alloc;
+		Genode::Ram_session_guard _ram;
+		Genode::Heap              _alloc;
 
 		Genode::Signal_handler<Session_component> _process_packet_handler;
 
@@ -242,7 +233,8 @@ class Vfs_server::Session_component :
 		                  bool                  writable)
 		:
 			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
-			_label(label), _ram(env), _alloc(_ram, env.rm()),
+			_ram(env.ram(), env.ram_session_cap(), ram_quota),
+			_alloc(_ram, env.rm()),
 			_process_packet_handler(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),
 			_root(),
@@ -254,9 +246,6 @@ class Vfs_server::Session_component :
 			 */
 			_tx.sigh_packet_avail(_process_packet_handler);
 			_tx.sigh_ready_to_ack(_process_packet_handler);
-
-			_ram.ref_account(env.ram_session_cap());
-			env.ram().transfer_quota(_ram.cap(), ram_quota);
 
 			_root.construct(_node_space, vfs, root_path, false);
 		}
@@ -277,7 +266,7 @@ class Vfs_server::Session_component :
 		{
 			size_t new_quota =
 				Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			Genode::env()->ram_session()->transfer_quota(_ram.cap(), new_quota);
+			_ram.upgrade(new_quota);
 		}
 
 
@@ -483,6 +472,18 @@ class Vfs_server::Root :
 		Genode::Env  &_env;
 		Genode::Heap  _heap { &_env.ram(), &_env.rm() };
 
+		Genode::Attached_rom_dataspace _config_rom { _env, "config" };
+
+		Genode::Xml_node vfs_config()
+		{
+			try { return _config_rom.xml().sub_node("vfs"); }
+			catch (...) {
+				Genode::error("VFS not configured");
+				_env.parent().exit(~0);
+				throw;
+			}
+		}
+
 		Vfs::Dir_file_system _vfs
 			{ _env, _heap, vfs_config(), Vfs::global_file_system_factory() };
 
@@ -492,14 +493,44 @@ class Vfs_server::Root :
 		{
 			using namespace Genode;
 
+			Session_label const label = label_from_args(args);
 			Path session_root;
 			bool writeable = false;
 
-			Session_label const label = label_from_args(args);
+			/*****************
+			 ** Quota check **
+			 *****************/
+
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota").aligned_size();
+			size_t tx_buf_size =
+				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
+
+			if (!tx_buf_size)
+				throw Root::Invalid_args();
+
+			size_t session_size =
+				max((size_t)4096, sizeof(Session_component)) +
+				tx_buf_size;
+
+			if (session_size > ram_quota) {
+				error("insufficient 'ram_quota' from '", label, "' "
+				      "got ", ram_quota, ", need ", session_size);
+				throw Root::Quota_exceeded();
+			}
+			ram_quota -= session_size;
+
+
+			/**************************
+			 ** Apply session policy **
+			 **************************/
+
+			/* pull in policy changes */
+			_config_rom.update();
 
 			char tmp[MAX_PATH_LEN];
 			try {
-				Session_policy policy(label);
+				Session_policy policy(label, _config_rom.xml());
 
 				/* Determine the session root directory.
 				 * Defaults to '/' if not specified by session
@@ -529,29 +560,6 @@ class Vfs_server::Root :
 			 * read-only access to the root.
 			 */
 
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota").aligned_size();
-			size_t tx_buf_size =
-				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
-
-			if (!tx_buf_size)
-				throw Root::Invalid_args();
-
-			/*
-			 * Check if donated ram quota suffices for session data,
-			 * and communication buffer.
-			 */
-			size_t session_size =
-				max((size_t)4096, sizeof(Session_component)) +
-				tx_buf_size;
-
-			if (session_size > ram_quota) {
-				error("insufficient 'ram_quota' from '", label, "' "
-				      "got ", ram_quota, ", need ", session_size);
-				throw Root::Quota_exceeded();
-			}
-			ram_quota -= session_size;
-
 			/* check if the session root exists */
 			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {
 				error("session root '", session_root, "' not found for '", label, "'");
@@ -572,10 +580,8 @@ class Vfs_server::Root :
 		}
 
 		void _upgrade_session(Session_component *session,
-		                      char        const *args) override
-		{
-			session->upgrade(args);
-		}
+		                      char        const *args) override {
+			session->upgrade(args); }
 
 	public:
 
