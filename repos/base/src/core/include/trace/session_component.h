@@ -35,16 +35,16 @@ class Genode::Trace::Session_component
 {
 	private:
 
-		Ram_session         &_ram;
-		Allocator_guard      _md_alloc;
-		Tslab<Subject, 4096> _subjects_slab;
-		Tslab<Policy, 4096>  _policies_slab;
-		unsigned             _parent_levels;
-		Session_label        _label;
-		Source_registry     &_sources;
-		Policy_registry     &_policies;
-		Subject_registry     _subjects;
-		unsigned             _policy_cnt;
+		Ram_session                 &_ram;
+		Allocator_guard              _md_alloc;
+		Tslab<Trace::Subject, 4096>  _subjects_slab;
+		Tslab<Trace::Policy, 4096>   _policies_slab;
+		unsigned                     _parent_levels;
+		Session_label                _label;
+		Source_registry             &_sources;
+		Policy_registry             &_policies;
+		Subject_registry             _subjects;
+		unsigned                     _policy_cnt;
 
 		struct Argument_buffer
 		{
