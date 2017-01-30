@@ -52,7 +52,8 @@ set wrong_version [catch {
 if {$wrong_version} {
 	puts -nonewline "\nPlease compile a netperf client of version $version "
 	puts "for your host system."
-	puts "The sources are available in 'ports/contrib/netperf'."
+	puts "The sources are available in 'contrib/netperf-<hash>' (after you "
+	puts "prepared the port by calling 'tool/ports/prepare_port netperf')."
 	puts "Please name the binary netperf-$version\n"
 	exit 1;
 }
@@ -202,16 +203,15 @@ append_if $use_wifi_driver config {
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
-				<vfs>
-					<dir name="dev">
-						<log/> 
-						<jitterentropy name="random"/>
-						<jitterentropy name="urandom"/>
-					</dir>
-					<dir name="config"> <fs label="config"/> </dir>
-				</vfs>
-			</libc>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<jitterentropy name="random"/>
+					<jitterentropy name="urandom"/>
+				</dir>
+				<dir name="config"> <fs label="config"/> </dir>
+			</vfs>
 		</config>
 		<route>
 			<service name="Rtc"> <any-child/> </service>
@@ -238,9 +238,8 @@ append config {
 			<libc tx_buf_size="2M" rx_buf_size="2M"}
 append_if [have_spec linux] config " ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
 append config {
-			      stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			      stdout="/dev/log" stderr="/dev/log"/>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 		</config>}
 append_if $use_nic_bridge config {
 		<route>
