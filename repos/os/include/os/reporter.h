@@ -15,7 +15,7 @@
 #define _INCLUDE__OS__REPORTER_H_
 
 #include <util/reconstructible.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <report_session/connection.h>
 #include <util/xml_generator.h>
 

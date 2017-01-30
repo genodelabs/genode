@@ -16,8 +16,8 @@
 
 #include <rom_session/rom_session.h>
 #include <base/rpc_server.h>
-#include <os/attached_ram_dataspace.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 namespace Genode {
 

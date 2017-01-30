@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/heap.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <blit/blit.h>
 #include <framebuffer_session/connection.h>
 #include <timer_session/connection.h>

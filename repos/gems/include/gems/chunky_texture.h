@@ -16,7 +16,7 @@
 
 #include <os/surface.h>
 #include <os/texture.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 template <typename PT>
 class Chunky_texture : Genode::Attached_ram_dataspace, public Genode::Texture<PT>

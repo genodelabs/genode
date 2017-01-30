@@ -13,8 +13,8 @@
  */
 
 /* Genode includes */
-#include <os/attached_rom_dataspace.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/pixel_alpha8.h>
 #include <os/pixel_rgb888.h>
 #include <os/surface.h>

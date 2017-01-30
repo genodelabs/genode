@@ -20,7 +20,7 @@
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
 #include <cap_session/connection.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/session_policy.h>
 
 /* socket API */

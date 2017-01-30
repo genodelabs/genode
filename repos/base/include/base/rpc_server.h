@@ -21,7 +21,7 @@
 #include <base/lock.h>
 #include <base/log.h>
 #include <base/trace/events.h>
-#include <cap_session/cap_session.h>
+#include <pd_session/pd_session.h>
 
 namespace Genode {
 
@@ -396,7 +396,7 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		/**
 		 * Constructor
 		 *
-		 * \param cap_session  'Cap_session' for creating capabilities
+		 * \param pd_session   'Pd_session' for creating capabilities
 		 *                     for the RPC objects managed by this entry
 		 *                     point
 		 * \param stack_size   stack size of entrypoint thread

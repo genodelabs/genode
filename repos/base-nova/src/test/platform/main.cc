@@ -23,7 +23,7 @@
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/config.h>
 
 #include <trace/timestamp.h>

@@ -15,7 +15,7 @@
 #define _INCLUDE__FILE_H_
 
 /* Genode includes */
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 /* local includes */
 #include <util.h>

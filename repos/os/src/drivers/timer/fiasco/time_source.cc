@@ -15,7 +15,7 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 /* Fiasco includes */
 namespace Fiasco {

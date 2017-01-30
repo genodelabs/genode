@@ -21,7 +21,7 @@
 /* Genode includes */
 #include <util/string.h>
 #include <base/entrypoint.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <nitpicker_session/nitpicker_session.h>
 #include <input_session/client.h>
 #include <input/event.h>

@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <drivers/board_base.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <input/event_queue.h>
 #include <input/event.h>
 #include <input/keycodes.h>

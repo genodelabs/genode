@@ -19,7 +19,7 @@
 #include <util/mmio.h>
 #include <util/string.h>
 #include <drivers/board_base.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 
 
 class Ipu : Genode::Mmio

@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <drivers/board_base.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <timer_session/connection.h>
 #include <util/mmio.h>
 

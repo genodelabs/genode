@@ -19,7 +19,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
 #include <timer_session/connection.h>
 

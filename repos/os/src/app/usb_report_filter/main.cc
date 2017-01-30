@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/allocator_avl.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/config.h>
 #include <os/reporter.h>
 #include <os/server.h>

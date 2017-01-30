@@ -20,7 +20,7 @@
 #include <ram_session/ram_session.h>
 #include <rom_session/rom_session.h>
 #include <base/rpc_server.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 namespace Genode { class Child_policy_dynamic_rom_file; }
 

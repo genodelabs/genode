@@ -13,7 +13,7 @@
 
 #include <base/component.h>
 #include <base/log.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 using namespace Genode;
 

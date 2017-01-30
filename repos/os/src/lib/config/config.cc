@@ -13,7 +13,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#define INCLUDED_BY_OS_CONFIG_CC
 #include <os/config.h>
+#undef INCLUDED_BY_OS_CONFIG_CC
 
 using namespace Genode;
 

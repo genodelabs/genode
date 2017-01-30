@@ -19,7 +19,7 @@
 #include <base/log.h>
 #include <base/session_label.h>
 #include <root/component.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 
 namespace Report {

@@ -8,6 +8,10 @@
  * This header is scheduled for removal. It exists for API compatiblity only.
  */
 
+#ifndef INCLUDED_BY_ENTRYPOINT_CC
+#warning cap_session/cap_session.h is deprecated
+#endif
+
 /*
  * Copyright (C) 2006-2013 Genode Labs GmbH
  *

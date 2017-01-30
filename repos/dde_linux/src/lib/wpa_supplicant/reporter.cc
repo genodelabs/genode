@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <util/string.h>
 

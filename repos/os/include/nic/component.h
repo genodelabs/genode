@@ -15,7 +15,7 @@
 #ifndef _INCLUDE__NIC__COMPONENT_H_
 #define _INCLUDE__NIC__COMPONENT_H_
 
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/server.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>

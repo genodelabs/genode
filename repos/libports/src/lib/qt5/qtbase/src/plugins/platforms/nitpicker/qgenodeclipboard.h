@@ -19,7 +19,7 @@
 #ifndef QT_NO_CLIPBOARD
 
 /* Genode includes */
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <qoost/qmember.h>
 

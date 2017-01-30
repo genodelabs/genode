@@ -16,7 +16,7 @@
 #include <util/misc_math.h>
 
 /* core includes */
-#include <cap_session/cap_session.h>
+#include <pd_session/pd_session.h>
 #include <rpc_cap_factory.h>
 #include <platform.h>
 
@@ -40,7 +40,7 @@ Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory *owner,
 	Rpc_obj_key const rpc_obj_key(++unique_id_cnt);
 
 	// XXX remove cast
-	return Capability_space::create_rpc_obj_cap(ep, (Cap_session*)owner, rpc_obj_key);
+	return Capability_space::create_rpc_obj_cap(ep, (Pd_session*)owner, rpc_obj_key);
 }
 
 

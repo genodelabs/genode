@@ -17,7 +17,7 @@
 #define _DRIVERS__GPIO__SPEC__IMX53__GPIO_H_
 
 /* Genode includes */
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
 
 struct Gpio_reg : Genode::Attached_io_mem_dataspace, Genode::Mmio

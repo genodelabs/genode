@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
 #include <polygon_gfx/interpolate_rgb565.h>
 #include <os/pixel_alpha8.h>

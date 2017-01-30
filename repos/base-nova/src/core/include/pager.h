@@ -19,7 +19,6 @@
 #include <base/object_pool.h>
 #include <base/capability.h>
 #include <base/session_label.h>
-#include <cap_session/cap_session.h>
 #include <pager/capability.h>
 
 /* NOVA includes */

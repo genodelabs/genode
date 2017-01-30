@@ -15,7 +15,7 @@
 #include <rom_session/connection.h>
 #include <base/signal.h>
 #include <os/config.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/print_lines.h>
 #include <os/server.h>
 #include <util/reconstructible.h>

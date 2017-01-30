@@ -16,7 +16,7 @@
 
 #include <base/env.h>
 #include <base/rpc_server.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/ring_buffer.h>
 #include <root/component.h>
 #include <input_session/input_session.h>

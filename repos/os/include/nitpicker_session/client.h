@@ -16,7 +16,7 @@
 
 #include <nitpicker_session/capability.h>
 #include <base/rpc_client.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 
 namespace Nitpicker { struct Session_client; }
 

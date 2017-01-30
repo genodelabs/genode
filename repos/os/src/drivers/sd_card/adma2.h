@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/register.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 namespace Adma2
 {

@@ -13,7 +13,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <block_session/rpc_object.h>
 
 #include "component.h"

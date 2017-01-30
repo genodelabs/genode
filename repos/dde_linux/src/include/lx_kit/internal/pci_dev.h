@@ -21,7 +21,7 @@
 #include <platform_session/connection.h>
 #include <platform_device/client.h>
 #include <io_mem_session/connection.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <util/retry.h>
 
 /* Linux emulation environment includes */

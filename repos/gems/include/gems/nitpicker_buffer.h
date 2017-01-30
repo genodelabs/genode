@@ -17,8 +17,8 @@
 /* Genode includes */
 #include <ram_session/ram_session.h>
 #include <nitpicker_session/connection.h>
-#include <os/attached_dataspace.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/surface.h>
 #include <os/pixel_rgb565.h>
 #include <os/pixel_alpha8.h>

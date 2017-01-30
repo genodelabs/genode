@@ -18,7 +18,7 @@
 #define _GPIO_H_
 
 /* Genode includes */
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
 
 #include <base/printf.h>

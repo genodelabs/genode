@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/ring_buffer.h>
 #include <terminal_session/terminal_session.h>
 

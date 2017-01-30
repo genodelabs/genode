@@ -21,7 +21,7 @@
 #include <base/log.h>
 #include <base/child.h>
 #include <rm_session/connection.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 using namespace Genode;
 

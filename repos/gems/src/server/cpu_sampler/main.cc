@@ -16,7 +16,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <cpu_session/cpu_session.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <os/server.h>
 #include <os/session_policy.h>
 #include <os/static_root.h>

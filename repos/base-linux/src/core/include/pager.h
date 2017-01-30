@@ -20,7 +20,6 @@
 /* Genode includes */
 #include <base/signal.h>
 #include <pager/capability.h>
-#include <cap_session/cap_session.h>
 #include <thread/capability.h>
 
 /* core-local includes */

@@ -21,7 +21,7 @@
 #include <drivers/board_base.h>
 #include <regulator_session/connection.h>
 #include <irq_session/connection.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 /* local includes */
 #include <driver_base.h>

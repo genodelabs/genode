@@ -18,8 +18,8 @@
 #include <base/component.h>
 #include <base/session_label.h>
 #include <base/log.h>
-#include <os/attached_rom_dataspace.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <rom_session/rom_session.h>
 #include <timer_session/connection.h>
 #include <root/component.h>

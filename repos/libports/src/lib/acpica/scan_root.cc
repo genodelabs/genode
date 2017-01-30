@@ -12,7 +12,7 @@
  */
 
 #include <io_mem_session/connection.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 
 #include "env.h"
 

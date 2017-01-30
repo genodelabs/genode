@@ -8,7 +8,7 @@
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <base/log.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/server.h>
 #include <os/signal_rpc_dispatcher.h>
 #include <usb_session/connection.h>

@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/heap.h>
 #include <base/log.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 
 /* local includes */
 #include <uart_component.h>

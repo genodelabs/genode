@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <timer_session/connection.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 
 /* local includes */

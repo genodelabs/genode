@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 /* NOVA includes */
 #include <nova/native_thread.h>

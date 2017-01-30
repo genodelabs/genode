@@ -20,7 +20,6 @@
 #include <base/session_label.h>
 #include <base/thread.h>
 #include <base/object_pool.h>
-#include <cap_session/cap_session.h>
 #include <pager/capability.h>
 #include <ipc_pager.h>
 

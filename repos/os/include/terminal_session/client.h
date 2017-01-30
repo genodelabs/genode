@@ -19,7 +19,7 @@
 #include <util/string.h>
 #include <base/lock.h>
 #include <base/rpc_client.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 
 #include <terminal_session/terminal_session.h>
 

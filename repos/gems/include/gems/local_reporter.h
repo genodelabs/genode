@@ -15,7 +15,7 @@
 #define _INCLUDE__GEMS__LOCAL_REPORTER_H_
 
 /* Genode includes */
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <util/xml_generator.h>
 #include <report_session/client.h>
 

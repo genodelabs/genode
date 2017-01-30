@@ -15,7 +15,7 @@
 /* Genode includes */
 #include <util/bit_allocator.h>
 #include <base/log.h>
-#include <os/attached_io_mem_dataspace.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <os/reporter.h>
 
 /* local includes */

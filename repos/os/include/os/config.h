@@ -11,6 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#ifndef INCLUDED_BY_OS_CONFIG_CC
+#ifndef INCLUDED_FROM_OS_SESSION_POLICY_H
+#warning os/config.h is deprecated, use 'Attached_rom_dataspace' instead
+#endif
+#endif
+
 #ifndef _INCLUDE__OS__CONFIG_H_
 #define _INCLUDE__OS__CONFIG_H_
 

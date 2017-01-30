@@ -16,7 +16,7 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/sleep.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/xml_node.h>
 #include <util/string.h>
 

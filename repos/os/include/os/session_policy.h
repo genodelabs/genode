@@ -15,8 +15,12 @@
 #define _INCLUDE__OS__SESSION_POLICY_H_
 
 #include <util/arg_string.h>
-#include <os/config.h>
 #include <base/session_label.h>
+
+/* to be removed along with the \deprecated API */
+#define INCLUDED_FROM_OS_SESSION_POLICY_H
+#include <os/config.h>
+#undef INCLUDED_FROM_OS_SESSION_POLICY_H
 
 namespace Genode {
 

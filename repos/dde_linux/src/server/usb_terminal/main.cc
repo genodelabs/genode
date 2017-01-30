@@ -14,7 +14,7 @@
 
 #include <base/component.h>
 #include <base/heap.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/ring_buffer.h>
 #include <os/static_root.h>
 #include <terminal_session/terminal_session.h>

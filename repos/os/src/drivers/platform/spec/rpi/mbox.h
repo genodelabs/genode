@@ -18,7 +18,7 @@
 #include <util/mmio.h>
 #include <base/env.h>
 #include <os/attached_mmio.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/log.h>
 #include <dataspace/client.h>
 #include <timer_session/connection.h>

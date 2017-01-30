@@ -19,7 +19,7 @@
 #include <dataspace/client.h>
 #include <root/component.h>
 #include <util/avl_string.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/session_label.h>
 #include <block_session/connection.h>
 #include <rom_session/rom_session.h>

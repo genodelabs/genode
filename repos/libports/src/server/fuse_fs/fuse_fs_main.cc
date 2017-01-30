@@ -15,7 +15,7 @@
 #include <base/heap.h>
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/config.h>
 #include <os/session_policy.h>
 #include <root/component.h>

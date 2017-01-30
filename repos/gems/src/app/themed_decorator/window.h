@@ -18,7 +18,7 @@
 #include <ram_session/ram_session.h>
 #include <decorator/window.h>
 #include <nitpicker_session/connection.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <util/reconstructible.h>
 
 /* demo includes */

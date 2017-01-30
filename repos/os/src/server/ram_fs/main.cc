@@ -18,7 +18,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <root/component.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/session_policy.h>
 
 /* local includes */

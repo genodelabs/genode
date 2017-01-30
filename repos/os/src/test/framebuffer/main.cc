@@ -18,7 +18,7 @@
 #include <base/log.h>
 #include <dataspace/client.h>
 #include <framebuffer_session/connection.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <util/reconstructible.h>
 
 

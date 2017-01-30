@@ -7,7 +7,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/thread.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 /* Qt includes */
 #include <QApplication>

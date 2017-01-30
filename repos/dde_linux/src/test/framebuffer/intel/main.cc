@@ -17,7 +17,7 @@
 #include <base/log.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/xml_generator.h>
 #include <util/xml_node.h>
 

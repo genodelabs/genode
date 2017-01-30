@@ -17,7 +17,7 @@
 #include <base/rpc_server.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>

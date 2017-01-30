@@ -22,9 +22,9 @@
 #include <framebuffer_session/framebuffer_session.h>
 #include <timer_session/connection.h>
 #include <util/reconstructible.h>
-#include <os/attached_dataspace.h>
-#include <os/attached_ram_dataspace.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_dataspace.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <blit/blit.h>
 
 #include <lx_emul_c.h>

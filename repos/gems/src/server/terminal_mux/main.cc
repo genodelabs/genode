@@ -18,7 +18,7 @@
 #include <base/session_label.h>
 #include <util/arg_string.h>
 #include <root/component.h>
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <timer_session/connection.h>
 
 /* terminal includes */

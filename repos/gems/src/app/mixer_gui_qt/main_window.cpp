@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <mixer/channel.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/config.h>
 #include <os/reporter.h>
 #include <rom_session/connection.h>

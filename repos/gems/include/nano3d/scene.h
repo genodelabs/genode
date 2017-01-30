@@ -25,7 +25,7 @@
 #include <nitpicker_session/connection.h>
 #include <os/surface.h>
 #include <os/pixel_alpha8.h>
-#include <os/attached_dataspace.h>
+#include <base/attached_dataspace.h>
 #include <input/event.h>
 
 namespace Nano3d {

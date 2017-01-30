@@ -21,7 +21,7 @@
 /* os includes */
 #include <input/component.h>
 #include <input/root.h>
-#include <os/attached_rom_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 namespace Transform {
 	using Genode::Xml_node;

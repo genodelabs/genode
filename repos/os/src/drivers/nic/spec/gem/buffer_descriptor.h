@@ -15,7 +15,7 @@
 #define _INCLUDE__DRIVERS__NIC__GEM__BUFFER_DESCRIPTOR_H_
 
 /* Genode includes */
-#include <os/attached_ram_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 #include <util/mmio.h>
 
 using namespace Genode;
