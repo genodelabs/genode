@@ -140,6 +140,7 @@ proc platform_drv_config {} {
 			<service name="CPU">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 			<service name="Report"> <child name="acpi_report_rom"/> </service>
+			<service name="ROM" label="platform_info"> <parent/> </service>
 		</route>
 	</start>}
 

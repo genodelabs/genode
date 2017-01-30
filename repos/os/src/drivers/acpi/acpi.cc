@@ -19,6 +19,7 @@
 
 /* base includes */
 #include <base/attached_io_mem_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/misc_math.h>
 #include <util/mmio.h>
 
@@ -1132,9 +1133,9 @@ class Acpi_table
 		/**
 		 * Search for RSDP pointer signature in area
 		 */
-		uint8_t *_search_rsdp(uint8_t *area)
+		uint8_t *_search_rsdp(uint8_t *area, size_t const area_size)
 		{
-			for (addr_t addr = 0; area && addr < BIOS_SIZE; addr += 16)
+			for (addr_t addr = 0; area && addr < area_size; addr += 16)
 				if (!memcmp(area + addr, "RSD PTR ", 8) &&
 				    !Table_wrapper::checksum(area + addr, 20))
 					return area + addr;
@@ -1152,21 +1153,22 @@ class Acpi_table
 			/* try BIOS area (0xe0000 - 0xfffffh)*/
 			try {
 				_mmio.construct(_env, BIOS_BASE, BIOS_SIZE);
-				return _search_rsdp(_mmio->local_addr<uint8_t>());
+				return _search_rsdp(_mmio->local_addr<uint8_t>(), BIOS_SIZE);
 			}
 			catch (...) { }
 
 			/* search EBDA (BIOS addr + 0x40e) */
 			try {
 				/* read RSDP base address from EBDA */
+				size_t const size = 0x1000;
 
-				_mmio.construct(_env, 0x0, 0x1000);
+				_mmio.construct(_env, 0x0, size);
 				uint8_t const * const ebda = _mmio->local_addr<uint8_t const>();
 				unsigned short const rsdp_phys =
 					(*reinterpret_cast<unsigned short const *>(ebda + 0x40e)) << 4;
 
-				_mmio.construct(_env, rsdp_phys, 0x1000);
-				return _search_rsdp(_mmio->local_addr<uint8_t>());
+				_mmio.construct(_env, rsdp_phys, size);
+				return _search_rsdp(_mmio->local_addr<uint8_t>(), size);
 			}
 			catch (...) { }
 
@@ -1229,44 +1231,59 @@ class Acpi_table
 		Acpi_table(Genode::Env &env, Genode::Allocator &alloc)
 		: _env(env), _alloc(alloc), _memory(_env, _alloc)
 		{
-			uint8_t * ptr_rsdp = _rsdp();
+			addr_t rsdt = 0, xsdt = 0;
+			uint8_t acpi_revision = 0;
 
-			struct rsdp {
-				char     signature[8];
-				uint8_t  checksum;
-				char     oemid[6];
-				uint8_t  revision;
-				/* table pointer at 16 byte offset in RSDP structure (5.2.5.3) */
-				uint32_t rsdt;
-				/* With ACPI 2.0 */
-				uint32_t len;
-				uint64_t xsdt;
-				uint8_t  checksum_extended;
-				uint8_t  reserved[3];
-			} __attribute__((packed));
-			struct rsdp * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
+			/* try platform_info ROM provided by core */
+			try {
+				Genode::Attached_rom_dataspace info(_env, "platform_info");
+				Genode::Xml_node xml(info.local_addr<char>(), info.size());
+				Xml_node acpi_node = xml.sub_node("acpi");
+				acpi_revision = acpi_node.attribute_value("revision", 0U);
+				rsdt = acpi_node.attribute_value("rsdt", 0UL);
+				xsdt = acpi_node.attribute_value("xsdt", 0UL);
+			} catch (...) { }
 
-			if (!rsdp) {
-				if (verbose)
-					Genode::log("No rsdp structure found");
-				return;
+			/* try legacy way if not found in platform_info */
+			if (!rsdt && !xsdt) {
+				uint8_t * ptr_rsdp = _rsdp();
+
+				struct rsdp {
+					char     signature[8];
+					uint8_t  checksum;
+					char     oemid[6];
+					uint8_t  revision;
+					/* table pointer at 16 byte offset in RSDP structure (5.2.5.3) */
+					uint32_t rsdt;
+					/* With ACPI 2.0 */
+					uint32_t len;
+					uint64_t xsdt;
+					uint8_t  checksum_extended;
+					uint8_t  reserved[3];
+				} __attribute__((packed));
+				struct rsdp * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
+
+				if (!rsdp) {
+					Genode::error("No valid ACPI RSDP structure found");
+					return;
+				}
+
+				if (verbose) {
+					uint8_t oem[7];
+					memcpy(oem, rsdp->oemid, 6);
+					oem[6] = 0;
+					Genode::log("ACPI revision ", rsdp->revision, " of "
+					            "OEM '", oem, "', "
+					            "rsdt:", Genode::Hex(rsdp->rsdt), " "
+					            "xsdt:", Genode::Hex(rsdp->xsdt));
+				}
+
+				rsdt = rsdp->rsdt;
+				xsdt = rsdp->xsdt;
+				acpi_revision = rsdp->revision;
+				/* drop rsdp io_mem mapping since rsdt/xsdt may overlap */
+				_mmio.destruct();
 			}
-
-			if (verbose) {
-				uint8_t oem[7];
-				memcpy(oem, rsdp->oemid, 6);
-				oem[6] = 0;
-				Genode::log("ACPI revision ", rsdp->revision, " of "
-				            "OEM '", oem, "', "
-				            "rsdt:", Genode::Hex(rsdp->rsdt), " "
-				            "xsdt:", Genode::Hex(rsdp->xsdt));
-			}
-
-			addr_t const rsdt = rsdp->rsdt;
-			addr_t const xsdt = rsdp->xsdt;
-			uint8_t const acpi_revision = rsdp->revision;
-			/* drop rsdp io_mem mapping since rsdt/xsdt may overlap */
-			_mmio.destruct();
 
 			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
