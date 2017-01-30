@@ -23,39 +23,65 @@ class Input::Event
 {
 	public:
 
-		enum Type { INVALID, MOTION, PRESS, RELEASE, WHEEL, FOCUS, LEAVE, TOUCH };
+		enum Type { INVALID, MOTION, PRESS, RELEASE, WHEEL, FOCUS, LEAVE, TOUCH,
+		            CHARACTER };
 
 	private:
 
-		Type _type;
+		Type _type = INVALID;
 
 		/*
 		 * For PRESS and RELEASE events, '_code' contains the key code.
 		 * For FOCUS events, '_code' is set to 1 (focus) or 0 (unfocus).
 		 */
-		int _code;
+		int _code = 0;
 
 		/*
 		 * Absolute pointer position coordinates
 		 */
-		int _ax, _ay;
+		int _ax = 0, _ay = 0;
 
 		/*
 		 * Relative pointer motion vector
 		 */
-		int _rx, _ry;
+		int _rx = 0, _ry = 0;
 
 	public:
 
 		/**
-		 * Constructors
+		 * UTF8-encoded symbolic character
 		 */
-		Event():
-			_type(INVALID), _code(0), _ax(0), _ay(0), _rx(0), _ry(0) { }
+		struct Utf8
+		{
+			typedef unsigned char byte;
 
+			byte b0, b1, b2, b3;
+
+			Utf8(byte b0, byte b1 = 0, byte b2 = 0, byte b3 = 0)
+			: b0(b0), b1(b1), b2(b2), b3(b3) { }
+		};
+
+		/**
+		 * Default constructor creates an invalid event
+		 */
+		Event() { }
+
+		/**
+		 * Constructor creates a low-level event
+		 */
 		Event(Type type, int code, int ax, int ay, int rx, int ry):
 			_type(type), _code(code),
 			_ax(ax), _ay(ay), _rx(rx), _ry(ry) { }
+
+		/**
+		 * Constructor creates a symbolic character event
+		 */
+		Event(Utf8 const &utf8)
+		:
+			_type(CHARACTER),
+			_code(((unsigned)utf8.b3 << 24) | ((unsigned)utf8.b2 << 16) |
+			      ((unsigned)utf8.b1 <<  8) | ((unsigned)utf8.b0 <<  0))
+		{ }
 
 		/**
 		 * Accessors
@@ -66,6 +92,13 @@ class Input::Event
 		int  ay()   const { return _ay; }
 		int  rx()   const { return _rx; }
 		int  ry()   const { return _ry; }
+
+		/**
+		 * Return symbolic character encoded as UTF8 byte sequence
+		 *
+		 * This method must only be called if type is CHARACTER.
+		 */
+		Utf8 utf8() const { return Utf8(_code, _code >> 8, _code >> 16, _code >> 24); }
 
 		/**
 		 * Return key code for press/release events
