@@ -155,7 +155,10 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 
 			SESSION_TYPE *s = 0;
 			try { s = _create_session(adjusted_args, affinity); }
-			catch (Allocator::Out_of_memory) { throw Root::Unavailable(); }
+			catch (Allocator::Out_of_memory) {
+				error("out of memory for session creation, '", args, "'");
+				throw Root::Unavailable();
+			}
 
 			_ep->manage(s);
 
