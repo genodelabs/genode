@@ -36,5 +36,6 @@ compare_output_to {
 [init -> test-log] negative hex char:  0xfe
 [init -> test-log] positive hex char:  0x02
 [init -> test-log] multiarg string:    "parent -> child.7"
+[init -> test-log] String(Hex(3)):     0x3
 [init -> test-log] Test done.
 }

@@ -592,7 +592,7 @@ class Genode::String
 
 			void out_string(char const *str, size_t n) override
 			{
-				while (n-- > 0 && _capacity_left())
+				while (n-- > 0 && _capacity_left() && *str)
 					_append(*str++);
 			}
 		};

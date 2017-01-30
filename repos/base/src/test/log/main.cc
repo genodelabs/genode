@@ -30,5 +30,8 @@ void Component::construct(Genode::Env &env)
 	typedef String<128> Label;
 	log("multiarg string:    ", Label(Char('"'), "parent -> child.", 7, Char('"')));
 
+	String<32> hex(Hex(3));
+	log("String(Hex(3)):     ", hex);
+
 	log("Test done.");
 }
