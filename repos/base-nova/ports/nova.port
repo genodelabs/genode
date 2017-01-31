@@ -4,7 +4,7 @@ DOWNLOADS := nova.git
 
 # r9 branch - use r9_debug for more verbose kernel messages
 URL(nova) := https://github.com/alex-ab/NOVA.git
-REV(nova) := dc6cf64fa104fc6b24e92dbe7af4a0486c2540ae
+REV(nova) := 2436fe22c67d1eabcc4d5e837d2c1fe4be67d7d8
 DIR(nova) := src/kernel/nova
 
 PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)
