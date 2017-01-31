@@ -1,5 +1,6 @@
 /*
- * \brief  I/O memory backend for ACPICA library
+ * \brief  I/O memory backend for ACPICA library and lookup code
+ *         for initial ACPI RSDP pointer
  * \author Alexander Boettcher
  * \date   2016-11-14
  */
@@ -11,6 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <base/attached_io_mem_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 #include <util/misc_math.h>
 
@@ -32,7 +35,84 @@ extern "C" {
 		return retval; \
 	}
 
-namespace Acpica { class Io_mem; };
+namespace Acpica {
+	class Io_mem;
+	class Rsdp;
+};
+
+
+class Acpica::Rsdp
+{
+	private:
+
+		/* BIOS range to scan for RSDP */
+		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
+
+		/**
+		 * Search for RSDP pointer signature in area
+		 */
+		Genode::uint8_t *_search_rsdp(Genode::uint8_t *area,
+		                              Genode::size_t const area_size)
+		{
+			for (Genode::addr_t addr = 0; area && addr < area_size; addr += 16)
+				/* XXX checksum table */
+				if (!Genode::memcmp(area + addr, "RSD PTR ", 8))
+					return area + addr;
+
+			return nullptr;
+		}
+
+		/**
+		 * Return 'Root System Descriptor Pointer' (ACPI spec 5.2.5.1)
+		 */
+		Genode::uint64_t _rsdp(Genode::Env &env)
+		{
+			Genode::uint8_t * local = 0;
+
+			/* try BIOS area */
+			{
+				Genode::Attached_io_mem_dataspace io_mem(env, BIOS_BASE, BIOS_SIZE);
+				local = _search_rsdp(io_mem.local_addr<Genode::uint8_t>(), BIOS_SIZE);
+				if (local)
+					return BIOS_BASE + (local - io_mem.local_addr<Genode::uint8_t>());
+			}
+
+			/* search EBDA (BIOS addr + 0x40e) */
+			try {
+				unsigned short base = 0;
+				{
+					Genode::Attached_io_mem_dataspace io_mem(env, 0, 0x1000);
+					local = io_mem.local_addr<Genode::uint8_t>();
+					if (local)
+						base = (*reinterpret_cast<unsigned short *>(local + 0x40e)) << 4;
+				}
+
+				if (!base)
+					return 0;
+
+				Genode::Attached_io_mem_dataspace io_mem(env, base, 1024);
+				local = _search_rsdp(io_mem.local_addr<Genode::uint8_t>(), 1024);
+
+				if (local)
+					return base + (local - io_mem.local_addr<Genode::uint8_t>());
+			} catch (...) {
+				Genode::warning("failed to scan EBDA for RSDP root");
+			}
+
+			return 0;
+		}
+
+	public:
+
+		Rsdp() { }
+
+		Genode::addr_t phys_rsdp(Genode::Env &env)
+		{
+			Genode::uint64_t phys_rsdp = _rsdp(env);
+			return phys_rsdp;
+		}
+};
+
 
 class Acpica::Io_mem
 {
@@ -231,9 +311,38 @@ class Acpica::Io_mem
 
 Acpica::Io_mem Acpica::Io_mem::_ios[32];
 
+static ACPI_TABLE_RSDP faked_rsdp;
+enum { FAKED_PHYS_RSDP_ADDR = 1 };
+
+ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer (void)
+{
+	Genode::Env &env = Acpica::env();
+
+	/* try platform_info ROM provided by core */
+	try {
+		Genode::Attached_rom_dataspace info(env, "platform_info");
+		Genode::Xml_node xml(info.local_addr<char>(), info.size());
+		Genode::Xml_node acpi_node = xml.sub_node("acpi");
+
+		faked_rsdp.Revision = acpi_node.attribute_value("revision", 0U);
+		faked_rsdp.RsdtPhysicalAddress = acpi_node.attribute_value("rsdt", 0UL);
+		faked_rsdp.XsdtPhysicalAddress = acpi_node.attribute_value("xsdt", 0UL);
+
+		if (faked_rsdp.XsdtPhysicalAddress || faked_rsdp.RsdtPhysicalAddress)
+			return FAKED_PHYS_RSDP_ADDR;
+	} catch (...) { }
+
+	/* legacy way - search and grep for the pointer */
+	Acpica::Rsdp acpi_table;
+	ACPI_PHYSICAL_ADDRESS rsdp = acpi_table.phys_rsdp(env);
+	return rsdp;
+}
 
 void * AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys, ACPI_SIZE size)
 {
+	if (phys == FAKED_PHYS_RSDP_ADDR)
+		return &faked_rsdp;
+
 	Genode::addr_t virt = Acpica::Io_mem::apply_u([&] (Acpica::Io_mem &io_mem) {
 		if (io_mem.unused() || io_mem.stale())
 			return 0UL;
@@ -265,6 +374,9 @@ void * AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys, ACPI_SIZE size)
 
 void AcpiOsUnmapMemory (void * ptr, ACPI_SIZE size)
 {
+	if (ptr == &faked_rsdp)
+		return;
+
 	Genode::uint8_t const * virt = reinterpret_cast<Genode::uint8_t *>(ptr);
 
 	if (Acpica::Io_mem::apply_u([&] (Acpica::Io_mem &io_mem) {

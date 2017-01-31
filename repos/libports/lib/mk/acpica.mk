@@ -15,7 +15,7 @@ SRC_C += $(addprefix resources/, $(notdir $(wildcard $(ACPICA_COMP)/resources/*.
 SRC_C += $(addprefix tables/, $(notdir $(wildcard $(ACPICA_COMP)/tables/*.c)))
 SRC_C += $(addprefix utilities/, $(notdir $(wildcard $(ACPICA_COMP)/utilities/*.c)))
 
-SRC_CC += osl.cc iomem.cc pci.cc scan_root.cc env.cc
+SRC_CC += osl.cc iomem.cc pci.cc env.cc
 
 include $(REP_DIR)/lib/import/import-acpica.mk
 
