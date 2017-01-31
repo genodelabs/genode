@@ -3,7 +3,9 @@
 #
 
 if {[have_spec odroid_xu]} {
-	puts "Run script not supported for this platform."; exit 0 }
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
 
 set build_components { core init test/fb_bench drivers/framebuffer drivers/timer }
 
