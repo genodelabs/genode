@@ -1,0 +1,84 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer server/terminal_crosslink test/libc_counter
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="terminal_crosslink">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+	</start>
+
+	<start name="test-libc_counter-source">
+		<resource name="RAM" quantum="8M"/>
+		<config ld_verbose="yes">
+			<vfs>
+				<dir name="dev"> <terminal/> <log/> </dir>
+			</vfs>
+			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
+		</config>
+	</start>
+	<start name="test-libc_counter-sink">
+		<resource name="RAM" quantum="8M"/>
+		<config ld_verbose="yes">
+			<vfs>
+				<dir name="dev"> <terminal/> <log/> <null/> </dir>
+			</vfs>
+			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+
+set boot_modules {
+	core init timer terminal_crosslink
+	test-libc_counter-source test-libc_counter-sink
+	ld.lib.so libc.lib.so libm.lib.so
+}
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic -m 64"
+
+#
+# Execute test case
+#
+
+run_genode_until forever
+
+# vi: set ft=tcl :
