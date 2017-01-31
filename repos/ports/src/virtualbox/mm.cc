@@ -57,7 +57,8 @@ static Libc::Mem_alloc * heap_by_mmtag(MMTAG enmTag)
 		return memory_regions[enmTag].heap;
 
 	memory_regions[enmTag].conn = new Sub_rm_connection(genode_env(), REGION_SIZE);
-	memory_regions[enmTag].heap = new Libc::Mem_alloc_impl(memory_regions[enmTag].conn);
+	memory_regions[enmTag].heap = new Libc::Mem_alloc_impl(*memory_regions[enmTag].conn,
+	                                                       genode_env().ram());
 
 	return memory_regions[enmTag].heap;
 }

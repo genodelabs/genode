@@ -1,19 +1,23 @@
-/**
- * \brief  DL interface bindings
+/*
+ * \brief  Dynamic linker interface bindings
  * \author Sebastian Sumpf
  * \date   2014-10-24
  *
  * Wrap Genode's shared library interface onto libc semantics.
  */
 
-#include <base/env.h>
+/* Genode includes */
 #include <base/log.h>
 #include <base/shared_object.h>
 #include <base/snprintf.h>
 
+/* Genode-specific libc includes */
+#include <libc/allocator.h>
+
 /* libc-internal includes */
 #include <libc_init.h>
 
+/* libc includes */
 extern "C" {
 #include <dlfcn.h>
 }
@@ -71,8 +75,9 @@ void *dlopen(const char *name, int mode)
 	}
 
 	try {
-		return new (env()->heap())
-			Shared_object(*genode_env, *env()->heap(), name, bind, keep);
+		static Libc::Allocator global_alloc;
+		return new (global_alloc)
+			Shared_object(*genode_env, global_alloc, name, bind, keep);
 	} catch (...) {
 		snprintf(err_str, MAX_ERR, "Unable to open file %s\n", name);
 	}
@@ -117,7 +122,7 @@ int dladdr(const void *addr, Dl_info *dlip)
 
 int dlclose(void *handle)
 {
-	destroy(env()->heap(), to_object(handle));
+	destroy(Libc::Allocator(), to_object(handle));
 	return 0;
 }
 

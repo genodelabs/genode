@@ -23,6 +23,11 @@ namespace Libc {
 	 * Support for shared libraries
 	 */
 	void init_dl(Genode::Env &env);
+
+	/**
+	 * Global memory allocator
+	 */
+	void init_mem_alloc(Genode::Env &env);
 }
 
 #endif /* _LIBC_INIT_H_ */

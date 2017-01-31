@@ -278,7 +278,7 @@ extern "C" void pthread_yield(void)
 
 void *operator new (__SIZE_TYPE__ size, int log2_align)
 {
-	static Libc::Mem_alloc_impl heap(&genode_env().rm());
+	static Libc::Mem_alloc_impl heap(genode_env().rm(), genode_env().ram());
 	return heap.alloc(size, log2_align);
 }
 

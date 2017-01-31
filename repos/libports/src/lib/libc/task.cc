@@ -641,6 +641,7 @@ Genode::size_t Component::stack_size() { return Libc::Component::stack_size(); }
 void Component::construct(Genode::Env &env)
 {
 	/* pass Genode::Env to libc subsystems that depend on it */
+	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
 
 	kernel = unmanaged_singleton<Libc::Kernel>(env);
