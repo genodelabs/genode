@@ -89,6 +89,7 @@ struct Genode::Timer : private Genode::Timer_time_source,
                        public  Genode::Alarm_timeout_scheduler
 {
 	using Time_source::Microseconds;
+	using Alarm_timeout_scheduler::curr_time;
 
 	Timer(::Timer::Session &session, Entrypoint &ep)
 	:
