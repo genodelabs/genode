@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__SHARED_OBJECT_H_
 #define _INCLUDE__BASE__SHARED_OBJECT_H_
 
+#include <base/env.h>
+#include <base/allocator.h>
 #include <base/exception.h>
 #include <base/stdint.h>
 
