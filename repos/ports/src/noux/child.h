@@ -33,6 +33,7 @@
 #include <interrupt_handler.h>
 #include <kill_broadcaster.h>
 #include <parent_execve.h>
+#include <empty_rom_service.h>
 #include <local_rom_service.h>
 #include <verbose.h>
 #include <user_info.h>
@@ -187,6 +188,8 @@ class Noux::Child : public Rpc_object<Session>,
 		/*
 		 * Locally-provided ROM service
 		 */
+		Empty_rom_factory _empty_rom_factory { _heap, _ep };
+		Empty_rom_service _empty_rom_service { _empty_rom_factory };
 		Local_rom_factory _rom_factory { _heap, _env, _ep, _root_dir, _ds_registry };
 		Local_rom_service _rom_service { _rom_factory };
 
@@ -359,12 +362,11 @@ class Noux::Child : public Rpc_object<Session>,
 			_args_ds_info(_ds_registry, _args.cap()),
 			_sysio_env_ds_info(_ds_registry, _sysio_env.cap()),
 			_config_ds_info(_ds_registry, _config.cap()),
-			_child_policy(name,
-			              forked ? Rom_session_component::forked_magic_binary_name()
-			                     : name,
+			_child_policy(name, forked,
 			              _args.cap(), _sysio_env.cap(), _config.cap(),
 			              _ep, _pd_service, _ram_service, _cpu_service,
-			              _noux_service, _rom_service, _parent_services,
+			              _noux_service, _empty_rom_service,
+			              _rom_service, _parent_services,
 			              *this, parent_exit, *this, _destruct_handler,
 			              ref_ram, ref_ram_cap, _verbose.enabled()),
 			_child(_env.rm(), _ep, _child_policy)

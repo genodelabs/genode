@@ -21,6 +21,7 @@
 #include <family_member.h>
 #include <parent_exit.h>
 #include <file_descriptor_registry.h>
+#include <empty_rom_service.h>
 #include <local_rom_service.h>
 
 namespace Noux {
@@ -42,7 +43,7 @@ class Noux::Child_policy : public Genode::Child_policy
 	private:
 
 		Name                          const _name;
-		Binary_name                   const _binary_name;
+		bool                                _forked;
 		Init::Child_policy_provide_rom_file _args_policy;
 		Init::Child_policy_provide_rom_file _env_policy;
 		Init::Child_policy_provide_rom_file _config_policy;
@@ -50,6 +51,7 @@ class Noux::Child_policy : public Genode::Child_policy
 		Ram_service                        &_ram_service;
 		Cpu_service                        &_cpu_service;
 		Noux_service                       &_noux_service;
+		Empty_rom_service                  &_empty_rom_service;
 		Local_rom_service                  &_rom_service;
 		Parent_services                    &_parent_services;
 		Family_member                      &_family_member;
@@ -75,7 +77,7 @@ class Noux::Child_policy : public Genode::Child_policy
 	public:
 
 		Child_policy(Name               const &name,
-		             Binary_name        const &binary_name,
+		             bool                      forked,
 		             Dataspace_capability      args_ds,
 		             Dataspace_capability      env_ds,
 		             Dataspace_capability      config_ds,
@@ -84,6 +86,7 @@ class Noux::Child_policy : public Genode::Child_policy
 		             Ram_service              &ram_service,
 		             Cpu_service              &cpu_service,
 		             Noux_service             &noux_service,
+		             Empty_rom_service        &empty_rom_service,
 		             Local_rom_service        &rom_service,
 		             Parent_services          &parent_services,
 		             Family_member            &family_member,
@@ -94,13 +97,13 @@ class Noux::Child_policy : public Genode::Child_policy
 		             Ram_session_capability    ref_ram_cap,
 		             bool                      verbose)
 		:
-			_name(name),
-			_binary_name(binary_name),
+			_name(name), _forked(forked),
 			_args_policy(  "args",   args_ds,   &entrypoint),
 			_env_policy(   "env",    env_ds,    &entrypoint),
 			_config_policy("config", config_ds, &entrypoint),
 			_pd_service(pd_service),   _ram_service(ram_service),
 			_cpu_service(cpu_service), _noux_service(noux_service),
+			_empty_rom_service(empty_rom_service),
 			_rom_service(rom_service), _parent_services(parent_services),
 			_family_member(family_member),
 			_parent_exit(parent_exit),
@@ -117,8 +120,7 @@ class Noux::Child_policy : public Genode::Child_policy
 		 ** Child policy interface **
 		 ****************************/
 
-		Name        name()        const override { return _name; }
-		Binary_name binary_name() const override { return _binary_name; }
+		Name name() const override { return _name; }
 
 		Ram_session &ref_ram() override { return _ref_ram; }
 
@@ -134,10 +136,14 @@ class Noux::Child_policy : public Genode::Child_policy
 		{
 			Session_label const label(Genode::label_from_args(args.string()));
 
-			/* route initial ROM requests (binary and linker) to the parent */
-			if (service_name == Genode::Rom_session::service_name()) {
-				if (label.last_element() == binary_name()) return _rom_service;
-				if (label.last_element() == linker_name()) return _rom_service;
+			/*
+			 * Route initial ROM requests (binary and linker) of a forked child
+			 * to the empty ROM service, since the ROMs are already attached in
+			 * the replayed region map.
+			 */
+			if (_forked && (service_name == Genode::Rom_session::service_name())) {
+				if (label.last_element() == name())        return _empty_rom_service;
+				if (label.last_element() == linker_name()) return _empty_rom_service;
 			}
 
 			Genode::Service *service = nullptr;
