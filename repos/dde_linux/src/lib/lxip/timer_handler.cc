@@ -1,11 +1,13 @@
 /*
  * \brief  Signal context for timer events
- * \author Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+ * \author Sebastian Sumpf
+ * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2012-05-23
  */
 
 /*
- * Copyright (C) 2012-2016 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -85,8 +87,10 @@ class Lx::Timer
 
 		::Timer::Connection                          _timer_conn;
 		Lx_kit::List<Context>                        _list;
-		Genode::Signal_dispatcher<Lx::Timer>         _dispatcher;
+		Genode::Signal_handler<Lx::Timer>            _handler;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
+
+		void (*_tick)();
 
 	public:
 
@@ -167,7 +171,7 @@ class Lx::Timer
 		/**
 		 * Handle trigger_once signal
 		 */
-		void _handle(unsigned)
+		void _handle()
 		{
 			update_jiffies();
 
@@ -178,6 +182,9 @@ class Lx::Timer
 				ctx->function();
 				del(ctx->timer);
 			}
+
+			/* tick the higher layer of the component */
+			_tick();
 		}
 
 	public:
@@ -185,12 +192,14 @@ class Lx::Timer
 		/**
 		 * Constructor
 		 */
-		Timer(Genode::Signal_receiver &sig_rec)
+		Timer(Genode::Env &env, Genode::Allocator &alloc, void (*tick)())
 		:
-			_dispatcher(sig_rec, *this, &Lx::Timer::_handle),
-			_timer_alloc(Genode::env()->heap())
+			_timer_conn(env),
+			_handler(env.ep(), *this, &Lx::Timer::_handle),
+			_timer_alloc(&alloc),
+			_tick(tick)
 		{
-			_timer_conn.sigh(_dispatcher);
+			_timer_conn.sigh(_handler);
 			jiffies = 0;
 		}
 
@@ -287,9 +296,9 @@ class Lx::Timer
 static Lx::Timer *_timer;
 
 
-void Lx::timer_init(Genode::Signal_receiver &sig_rec)
+void Lx::timer_init(Genode::Env &env, Genode::Allocator &alloc, void (*tick)())
 {
-	static Lx::Timer inst(sig_rec);
+	static Lx::Timer inst(env, alloc, tick);
 	_timer = &inst;
 }
 

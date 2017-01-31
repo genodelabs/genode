@@ -2,11 +2,12 @@
  * \brief  Linux emulation code
  * \author Sebastian Sumpf
  * \author Josef Soentgen
+ * \author Emery Hemingway
  * \date   2013-08-28
  */
 
 /*
- * Copyright (C) 2013-2016 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -34,15 +35,16 @@ class Nic_client
 		Nic::Packet_allocator _tx_block_alloc;
 		Nic::Connection       _nic;
 
-		Genode::Signal_dispatcher<Nic_client> _sink_ack;
-		Genode::Signal_dispatcher<Nic_client> _sink_submit;
-		Genode::Signal_dispatcher<Nic_client> _source_ack;
-		Genode::Signal_dispatcher<Nic_client> _source_submit;
+		Genode::Signal_handler<Nic_client> _sink_ack;
+		Genode::Signal_handler<Nic_client> _sink_submit;
+		Genode::Signal_handler<Nic_client> _source_ack;
+
+		void (*_tick)();
 
 		/**
 		 * submit queue not empty anymore
 		 */
-		void _packet_avail(unsigned)
+		void _packet_avail()
 		{
 			enum { MAX_PACKETS = 20 };
 
@@ -59,20 +61,23 @@ class Nic_client
 
 			if (_nic.rx()->packet_avail())
 				Genode::Signal_transmitter(_sink_submit).submit();
+
+			/* tick the higher layer of the component */
+			_tick();
 		}
 
 		/**
 		 * acknoledgement queue not full anymore
 		 */
-		void _ready_to_ack(unsigned num)
+		void _ready_to_ack()
 		{
-			_packet_avail(num);
+			_packet_avail();
 		}
 
 		/**
 		 * acknoledgement queue not empty anymore
 		 */
-		void _ack_avail(unsigned)
+		void _ack_avail()
 		{
 			while (_nic.tx()->ack_avail()) {
 				Nic::Packet_descriptor p = _nic.tx()->get_acked_packet();
@@ -80,29 +85,24 @@ class Nic_client
 			}
 		}
 
-		/**
-		 * submit queue not full anymore
-		 *
-		 * TODO: by now, we just drop packets that cannot be transferred
-		 *       to the other side, that's why we ignore this signal.
-		 */
-		void _ready_to_submit(unsigned) { }
 
 	public:
 
-		Nic_client(Genode::Signal_receiver &sig_rec)
+		Nic_client(Genode::Env &env,
+		           Genode::Allocator &alloc,
+		           void (*ticker)())
 		:
-			_tx_block_alloc(Genode::env()->heap()),
-			_nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE),
-			_sink_ack(sig_rec, *this, &Nic_client::_ready_to_ack),
-			_sink_submit(sig_rec, *this, &Nic_client::_packet_avail),
-			_source_ack(sig_rec, *this, &Nic_client::_ack_avail),
-			_source_submit(sig_rec, *this, &Nic_client::_ready_to_submit)
+			_tx_block_alloc(&alloc),
+			_nic(env, &_tx_block_alloc, BUF_SIZE, BUF_SIZE),
+			_sink_ack(env.ep(), *this, &Nic_client::_packet_avail),
+			_sink_submit(env.ep(), *this, &Nic_client::_ready_to_ack),
+			_source_ack(env.ep(), *this, &Nic_client::_ack_avail),
+			_tick(ticker)
 		{
 			_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
 			_nic.rx_channel()->sigh_packet_avail(_sink_submit);
 			_nic.tx_channel()->sigh_ack_avail(_source_ack);
-			_nic.tx_channel()->sigh_ready_to_submit(_source_submit);
+			/* ready_to_submit not handled */
 		}
 
 		Nic::Connection *nic() { return &_nic; }
@@ -112,9 +112,11 @@ class Nic_client
 static Nic_client *_nic_client;
 
 
-void Lx::nic_client_init(Genode::Signal_receiver &sig_rec)
+void Lx::nic_client_init(Genode::Env &env,
+	                     Genode::Allocator &alloc,
+	                     void (*ticker)())
 {
-	static Nic_client _inst(sig_rec);
+	static Nic_client _inst(env, alloc, ticker);
 	_nic_client = &_inst;
 }
 

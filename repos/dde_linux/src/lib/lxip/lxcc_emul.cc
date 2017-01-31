@@ -1,11 +1,13 @@
 /**
  * \brief  Linux emulation code
  * \author Sebastian Sumpf
+ * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2013-08-28
  */
 
 /*
- * Copyright (C) 2013-2016 Genode Labs GmbH
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -293,38 +295,60 @@ void *memmove(void *d, const void *s, size_t n)
  ** linux/sched.h **
  *******************/
 
-static Genode::Signal_receiver *_sig_rec;
-
-
-void Lx::event_init(Genode::Signal_receiver &sig_rec)
+struct Timeout : Genode::Signal_handler<Timeout>
 {
-	_sig_rec = &sig_rec;
-}
+	Genode::Entrypoint &ep;
+	Timer::Connection timer;
+	void (*tick)();
+	bool pending = false;
 
-
-struct Timeout : Genode::Signal_dispatcher<Timeout>
-{
-	void handle(unsigned) { update_jiffies(); }
-
-	Timeout(Timer::Session_client &timer, signed long msec)
-	: Signal_dispatcher<Timeout>(*_sig_rec, *this, &Timeout::handle)
+	void handle()
 	{
-		if (msec > 0) {
-			timer.sigh(*this);
-			timer.trigger_once(msec*1000);
-		}
+		update_jiffies();
+		pending = false;
+
+		/* tick the higher layer of the component */
+		tick();
+	}
+
+	Timeout(Genode::Env &env, void (*ticker)())
+	:
+		Signal_handler<Timeout>(env.ep(), *this, &Timeout::handle),
+		ep(env.ep()), timer(env), tick(ticker)
+	{
+		timer.sigh(*this);
+	}
+
+	void schedule(signed long msec)
+	{
+		timer.trigger_once(msec * 1000);
+		pending = true;
+	}
+
+	void wait()
+	{
+		while (pending)
+			ep.wait_and_dispatch_one_signal();
 	}
 };
 
 
-static void wait_for_timeout(signed long timeout)
-{
-	static Timer::Connection timer;
-	Timeout to(timer, timeout);
+static Timeout *_timeout;
+static Genode::Signal_context_capability tick_sig_cap;
 
-	/* dispatch signal */
-	Genode::Signal s = _sig_rec->wait_for_signal();
-	static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+void Lx::event_init(Genode::Env &env, void (*ticker)())
+{
+	static Timeout handler(env, ticker);
+	_timeout = &handler;
+}
+
+signed long schedule_timeout(signed long timeout)
+{
+	long start = jiffies;
+	_timeout->schedule(timeout);
+	_timeout->wait();
+	timeout -= jiffies - start;
+	return timeout < 0 ? 0 : timeout;
 }
 
 
@@ -333,19 +357,9 @@ long schedule_timeout_uninterruptible(signed long timeout)
 	return schedule_timeout(timeout);
 }
 
-
-signed long schedule_timeout(signed long timeout)
-{
-	long start = jiffies;
-	wait_for_timeout(timeout);
-	timeout -= jiffies - start;
-	return timeout < 0 ? 0 : timeout;
-}
-
-
 void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
 {
-	wait_for_timeout(0);
+	_timeout->wait();
 }
 
 
