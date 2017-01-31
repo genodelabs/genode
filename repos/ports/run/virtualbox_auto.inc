@@ -27,6 +27,7 @@ lappend_if [have_spec x86]    build_components drivers/rtc
 lappend_if [expr $use_ram_fs || $use_usb] build_components server/ram_fs
 lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
 lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
+lappend_if [expr $use_cpu_load] build_components app/top
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 # override defaults of platform_drv.inc
@@ -114,7 +115,7 @@ append_if [expr $use_rumpfs] config {
 append_if [expr $use_ram_fs] config {
 	<start name="ram_fs" priority="-1">}
 append_if [expr $use_ram_fs] config "
-		<resource name=\"RAM\" quantum=\"[expr $use_vms * 3 * 128]M\"/>"
+		<resource name=\"RAM\" quantum=\"[expr $use_vms * 8 * 128]M\"/>"
 append_if [expr $use_ram_fs] config {
 		<provides><service name="File_system"/></provides>
 		<config>
@@ -188,6 +189,18 @@ append_if [expr $use_cpu_load] config {
 			<service name="Timer"><child name="timer"/></service>
 			<service name="ROM" label="trace_subjects"><child name="report_rom"/></service>
 			<service name="Nitpicker"><child name="nitpicker"/></service>
+			<any-service><parent/></any-service>
+		</route>
+	</start>
+
+	<start name="top" priorirty="-1">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="10000"/>
+		<route>
+			<service name="TRACE"><parent/></service>
+			<service name="LOG"><parent/></service>
+			<service name="Timer"><child name="timer"/></service>
+			<service name="Report"><child name="report_rom"/></service>
 			<any-service><parent/></any-service>
 		</route>
 	</start>}
@@ -327,11 +340,12 @@ lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs
 lappend_if [expr $use_vbox4] boot_modules $virtualbox_binary
-lappend_if [expr $use_vbox5] boot_modules virtualbox5
+lappend_if [expr $use_vbox5] boot_modules $virtualbox5_binary
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
 lappend_if [expr    $use_cpu_load] boot_modules trace_subject_reporter
 lappend_if [expr    $use_cpu_load] boot_modules cpu_load_display
+lappend_if [expr    $use_cpu_load] boot_modules top
 
 # platform-specific modules
 lappend_if [expr         $use_ps2] boot_modules ps2_drv

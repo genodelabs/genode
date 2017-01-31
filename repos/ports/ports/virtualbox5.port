@@ -119,41 +119,41 @@ UNZIP_OPT(virtualbox_sdk) := $(VIRTUALBOX_SDK_ZIP) sdk/bindings/xpcom/include/Vi
 
 default : additional_steps
 additional_steps : $(DOWNLOADS)
-	@xsltproc --stringparam mode declare \
+	$(VERBOSE)xsltproc --stringparam mode declare \
 	   -o src/app/virtualbox/src/VBox/Main/xml/SchemaDefs.h \
 	   src/app/virtualbox/src/VBox/Main/xml/SchemaDefs.xsl \
 	   src/app/virtualbox/src/VBox/Main/xml/VirtualBox-settings.xsd
-	xsltproc -o VirtualBox_stripped.xidl \
+	$(VERBOSE)xsltproc -o VirtualBox_stripped.xidl \
 	   src/app/virtualbox/src/VBox/Main/idl/docstrip.xsl \
 	   src/app/virtualbox/src/VBox/Main/idl/VirtualBox.xidl
-	xsltproc --stringparam KBUILD_HOST genode \
+	$(VERBOSE)xsltproc --stringparam KBUILD_HOST genode \
 	   --stringparam generating "headers" -o VBoxAPIWrap/apiwrappers-headers \
 	   src/app/virtualbox/src/VBox/Main/idl/apiwrap-server.xsl \
 	   VirtualBox_stripped.xidl
-	xsltproc --stringparam KBUILD_HOST genode \
+	$(VERBOSE)xsltproc --stringparam KBUILD_HOST genode \
 	   --stringparam generating "sources" --param reminder 0 \
 	   -o VBoxAPIWrap/apiwrappers-sources-even \
 	   src/app/virtualbox/src/VBox/Main/idl/apiwrap-server.xsl \
 	   VirtualBox_stripped.xidl
-	xsltproc --stringparam KBUILD_HOST genode \
+	$(VERBOSE)xsltproc --stringparam KBUILD_HOST genode \
 	   --stringparam generating "sources" --param reminder 1 \
 	   -o VBoxAPIWrap/apiwrappers-sources-odd \
 	   src/app/virtualbox/src/VBox/Main/idl/apiwrap-server.xsl \
 	   VirtualBox_stripped.xidl
-	mkdir -p src/app/virtualbox/VBoxAPIWrap
-	csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-headers '/##### ENDFILE.*$$/' '{*}' && \
+	$(VERBOSE)mkdir -p src/app/virtualbox/VBoxAPIWrap
+	$(VERBOSE)csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-headers '/##### ENDFILE.*$$/' '{*}' && \
 	i=0 && \
 	for f in $$(grep "BEGINFILE \"" VBoxAPIWrap/apiwrappers-headers | sed "s,//.*BEGINFILE \",,g" | sed "s,\",,g"); do \
 		mv "VBoxAPIWrap/xx$$((i++))" "src/app/virtualbox/VBoxAPIWrap/$$f"; \
 	done && \
 	rm "VBoxAPIWrap/xx$$((i))"
-	csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-sources-even '/##### ENDFILE.*$$/' '{*}' && \
+	$(VERBOSE)csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-sources-even '/##### ENDFILE.*$$/' '{*}' && \
 	i=0 && \
 	for f in $$(grep "BEGINFILE \"" VBoxAPIWrap/apiwrappers-sources-even | sed "s,//.*BEGINFILE \",,g" | sed "s,\",,g"); do \
 		mv "VBoxAPIWrap/xx$$((i++))" "src/app/virtualbox/VBoxAPIWrap/$$f"; \
 	done && \
 	rm "VBoxAPIWrap/xx$$((i))"
-	csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-sources-odd '/##### ENDFILE.*$$/' '{*}' && \
+	$(VERBOSE)csplit -s -n 1 -f "VBoxAPIWrap/xx" VBoxAPIWrap/apiwrappers-sources-odd '/##### ENDFILE.*$$/' '{*}' && \
 	i=0 && \
 	for f in $$(grep "BEGINFILE \"" VBoxAPIWrap/apiwrappers-sources-odd | sed "s,//.*BEGINFILE \",,g" | sed "s,\",,g"); do \
 		mv "VBoxAPIWrap/xx$$((i++))" "src/app/virtualbox/VBoxAPIWrap/$$f"; \

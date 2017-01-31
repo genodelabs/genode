@@ -44,7 +44,7 @@
       <RemoteDisplay enabled="false" authType="Null" authTimeout="5000"/>
       <BIOS>
         <ACPI enabled="true"/>
-        <IOAPIC enabled="false"/>
+        <IOAPIC enabled="true"/>
         <Logo fadeIn="true" fadeOut="true" displayTime="0"/>
         <BootMenu mode="MessageAndMenu"/>
         <TimeOffset value="0"/>
@@ -125,7 +125,7 @@
         </Adapter>
       </Network>
       <UART>
-        <Port slot="0" enabled="false" IOBase="0x3f8" IRQ="4" path="/dev/terminal" hostMode="HostDevice"/>
+        <Port slot="0" enabled="true" IOBase="0x3f8" IRQ="4" path="/dev/terminal" hostMode="HostDevice"/>
         <Port slot="1" enabled="false" IOBase="0x2f8" IRQ="3" hostMode="Disconnected"/>
       </UART>
       <LPT>

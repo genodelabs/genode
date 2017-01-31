@@ -1,16 +1,26 @@
 set use_net 0
 set use_ps2 [have_spec ps2]
 set use_usb 0
-set use_serial 0
+set use_serial 1
 
-set virtualbox_binary "virtualbox-rem"
-if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
-if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+set use_vbox4 1
+set use_vbox5 [expr !$use_vbox4]
 
 set build_components {
-	core init virtualbox
+	core init
 	drivers/framebuffer
 	drivers/timer
+}
+
+if {$use_vbox4} {
+	append build_components virtualbox
+	set virtualbox_binary "virtualbox-rem"
+	if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
+	if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+} else {
+	append build_components virtualbox5
+	set virtualbox_binary "virtualbox5-rem"
+	if {[have_spec nova]} { set virtualbox_binary "virtualbox5-nova" }
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
