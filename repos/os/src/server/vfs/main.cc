@@ -1,11 +1,12 @@
 /*
  * \brief  VFS File_system server
  * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2015-08-16
  */
 
 /*
- * Copyright (C) 2015-2016 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -138,6 +139,10 @@ class Vfs_server::Session_component :
 					if (node.mode&WRITE_ONLY)
 						res_length = node.write(_vfs, (char const *)content, length, seek);
 				}); } catch (...) { }
+				break;
+
+			case Packet_descriptor::READ_READY:
+				/* not supported */
 				break;
 			}
 

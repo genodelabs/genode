@@ -98,6 +98,10 @@ namespace File_system {
 					case Packet_descriptor::WRITE:
 						res_length = node.write((char const *)content, length, offset);
 						break;
+
+					case Packet_descriptor::READ_READY:
+						/* not supported */
+						break;
 				}
 
 				packet.length(res_length);

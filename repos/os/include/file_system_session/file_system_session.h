@@ -1,11 +1,13 @@
 /*
  * \brief  File-system session interface
  * \author Norman Feske
+ * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2012-04-05
  */
 
 /*
- * Copyright (C) 2012-2016 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -117,7 +119,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
 
-		enum Opcode { READ, WRITE };
+		enum Opcode { READ, WRITE, READ_READY };
 
 	private:
 

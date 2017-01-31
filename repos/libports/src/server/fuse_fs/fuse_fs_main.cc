@@ -86,6 +86,10 @@ class File_system::Session_component : public Session_rpc_object
 
 				res_length = node.write((char const *)content, length, offset);
 				break;
+
+			case Packet_descriptor::READ_READY:
+				/* not supported */
+				break;
 			}
 
 			packet.length(res_length);
