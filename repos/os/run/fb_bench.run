@@ -2,7 +2,7 @@
 # Build
 #
 
-if {[have_spec odroid_xu]} {
+if {[have_spec odroid_xu] || [have_spec wand_quad]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }
