@@ -185,3 +185,15 @@ index 2f01f69..9b13e37 100644
                      pFilter->i_getId() = NULL;
                  }
              }
+--- a/src/VBox/Devices/USB/DrvVUSBRootHub.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/USB/DrvVUSBRootHub.cpp
+@@ -599,7 +614,8 @@
+ 
+         uint64_t tsNext = vusbRhR3ProcessFrame(pThis, false /* fCallback */);
+ 
+-        if (tsNext >= 250 * RT_NS_1US)
++        /* spinning as high priority thread is evil */
++        if (true) //tsNext >= 250 * RT_NS_1US)
+         {
+             rc = RTSemEventMultiWaitEx(pThis->hSemEventPeriodFrame, RTSEMWAIT_FLAGS_RELATIVE | RTSEMWAIT_FLAGS_NANOSECS | RTSEMWAIT_FLAGS_UNINTERRUPTIBLE,
+                                        tsNext);

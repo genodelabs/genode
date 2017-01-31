@@ -1,0 +1,26 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
+@@ -605,7 +605,7 @@
+     rc = SUPR3CallVMMR0Ex(NIL_RTR0PTR, NIL_VMCPUID, VMMR0_DO_GVMM_CREATE_VM, 0, &CreateVMReq.Hdr);
+     if (RT_SUCCESS(rc))
+     {
+-        PVM pVM = pUVM->pVM = CreateVMReq.pVMR3;
++        PVM pVM = CreateVMReq.pVMR3;
+         AssertRelease(VALID_PTR(pVM));
+         AssertRelease(pVM->pVMR0 == CreateVMReq.pVMR0);
+         AssertRelease(pVM->pSession == pUVM->vm.s.pSession);
+@@ -635,6 +635,14 @@
+             pUVM->aCpus[i].pVM              = pVM;
+         }
+ 
++        /*
++         * vmR3EmulationThreadWithId checks (from within another thread) for
++         * !pUVM->pVM. If not null the function also expects
++         * pUVM->aCpus[i].pVCpu to be not null. So, make the assignment after
++         * pUVM->aCpus[i] are actually initialized.
++         */
++        ASMCompilerBarrier();
++        pUVM->pVM = pVM;
+ 
+         /*
+          * Init the configuration.

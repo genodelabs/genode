@@ -33,29 +33,37 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	int rc = 0;
 
 	/* platform */
+	REGISTER(DevicePCI);
+	REGISTER(DevicePciIch9);
 	REGISTER(DevicePcArch);
 	REGISTER(DevicePcBios);
+	REGISTER(DeviceIOAPIC);
+	REGISTER(DevicePS2KeyboardMouse);
+	REGISTER(DevicePIIX3IDE);
 	REGISTER(DeviceI8254);
 	REGISTER(DeviceI8259);
-	REGISTER(DeviceDMA);
+	REGISTER(DeviceHPET);
+	REGISTER(DeviceSmc);
 	REGISTER(DeviceMC146818);
-	REGISTER(DeviceACPI);
-	REGISTER(DevicePCI);
-	REGISTER(DevicePCIBridge);
-
-	/* devices */
-	REGISTER(DevicePS2KeyboardMouse);
 	REGISTER(DeviceVga);
-	REGISTER(DeviceFloppyController);
-	REGISTER(DeviceSerialPort);
-	REGISTER(DevicePIIX3IDE);
-	REGISTER(DeviceAHCI);
-	REGISTER(DevicePCNet);
-	REGISTER(DeviceE1000);
 	REGISTER(DeviceVMMDev);
-	REGISTER(DeviceOHCI);
+	REGISTER(DevicePCNet);
+#ifdef VBOX_WITH_E1000
+	REGISTER(DeviceE1000);
+#endif
 	REGISTER(DeviceICHAC97);
 	REGISTER(DeviceHDA);
+	REGISTER(DeviceOHCI);
+	REGISTER(DeviceACPI);
+	REGISTER(DeviceDMA);
+	REGISTER(DeviceFloppyController);
+	REGISTER(DeviceSerialPort);
+#ifdef VBOX_WITH_AHCI
+	REGISTER(DeviceAHCI);
+#endif
+	REGISTER(DevicePCIBridge);
+	REGISTER(DevicePciIch9Bridge);
+	REGISTER(DeviceLPC);
 
 	return VINF_SUCCESS;
 }

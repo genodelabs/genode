@@ -58,6 +58,8 @@ SRC_CC += VMM/VMMAll/EMAll.cpp
 SRC_CC += VMM/VMMR3/EM.cpp
 SRC_CC += VMM/VMMR3/EMHM.cpp
 
+SRC_CC += VMM/VMMAll/HMAll.cpp
+
 SRC_CC += VMM/VMMR3/TRPM.cpp
 SRC_CC += VMM/VMMAll/SELMAll.cpp
 

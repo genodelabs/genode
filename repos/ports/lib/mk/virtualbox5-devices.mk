@@ -1,19 +1,26 @@
 include $(REP_DIR)/lib/mk/virtualbox5-common.inc
 
-SRC_CC += Devices/PC/DevFwCommon.cpp
-SRC_CC += Devices/PC/DevPcBios.cpp
 SRC_CC += Devices/Bus/DevPCI.cpp
-SRC_CC += Devices/PC/DevACPI.cpp
-SRC_CC += Devices/PC/ACPI/VBoxAcpi.cpp
-SRC_C  += Devices/PC/DevPcArch.c
+SRC_CC += Devices/Bus/DevPciIch9.cpp
+SRC_CC += Devices/Bus/MsiCommon.cpp
+SRC_CC += Devices/Bus/MsixCommon.cpp
+SRC_CC += Devices/EFI/DevSmc.cpp
 SRC_CC += Devices/Input/DevPS2.cpp
 SRC_CC += Devices/Input/PS2K.cpp
 SRC_CC += Devices/Input/PS2M.cpp
+SRC_CC += Devices/PC/DevAPIC.cpp
+SRC_CC += Devices/PC/DevACPI.cpp
+SRC_CC += Devices/PC/DevFwCommon.cpp
+SRC_CC += Devices/PC/DevDMA.cpp
+SRC_CC += Devices/PC/DevHPET.cpp
+SRC_CC += Devices/PC/DevIoApic.cpp
+SRC_CC += Devices/PC/DevLPC.cpp
+SRC_CC += Devices/PC/DevPcBios.cpp
+SRC_C  += Devices/PC/DevPcArch.c
 SRC_CC += Devices/PC/DevPit-i8254.cpp
 SRC_CC += Devices/PC/DevPIC.cpp
 SRC_CC += Devices/PC/DevRTC.cpp
-SRC_CC += Devices/PC/DevDMA.cpp
-SRC_CC += Devices/PC/DevAPIC.cpp
+SRC_CC += Devices/PC/ACPI/VBoxAcpi.cpp
 SRC_CC += Devices/Graphics/DevVGA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VBVA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VDMA.cpp
@@ -33,7 +40,6 @@ SRC_CC += Devices/Network/DevPCNet.cpp
 SRC_CC += Devices/VMMDev/VMMDev.cpp
 SRC_CC += Devices/VMMDev/VMMDevHGCM.cpp
 SRC_CC += Devices/Serial/DevSerial.cpp
-SRC_CC += Devices/PC/DevIoApic.cpp
 
 SRC_CC += Devices/Audio/AudioMixBuffer.cpp
 SRC_CC += Devices/Audio/AudioMixer.cpp

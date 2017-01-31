@@ -97,13 +97,9 @@ void Host::i_getUSBFilters(Host::USBDeviceFilterList *aGlobalFilters)
 HRESULT Host::i_checkUSBProxyService()
 	TRACE(S_OK)
 
-/*
 #include "HostUSBDeviceImpl.h"
-#include "USBDeviceFilterImpl.h"
-
-bool HostUSBDevice::isMatch(const USBDeviceFilter::Data &aData)
+bool HostUSBDevice::i_isMatch(const USBDeviceFilter::BackupableUSBDeviceFilterData &)
 	DUMMY(false)
-*/
 #endif
 
 

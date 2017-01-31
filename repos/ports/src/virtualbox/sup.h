@@ -23,12 +23,10 @@
 #include <VBox/com/ptr.h>
 #include <iprt/param.h>
 
-#if VBOX_VERSION_MAJOR == 4
 #include "MachineImpl.h"
 HRESULT genode_setup_machine(ComObjPtr<Machine> machine);
 
 HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
-#endif
 
 /**
  * Returns true if a vCPU could be started. If false we run without

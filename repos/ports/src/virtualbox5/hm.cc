@@ -57,12 +57,15 @@ VMMR3DECL(int) HMR3Init(PVM pVM)
 	for (VMCPUID i = 0; i < pVM->cCpus; i++)
 		pVM->aCpus[i].hm.s.fActive = false;
 
-	pVM->hm.s.fNestedPaging = true;
-
 #if HC_ARCH_BITS == 64
 	PGMSetLargePageUsage(pVM, true);
 #endif
 
+	/* XXX check for intel and feature bits XXX */
+	if (pVM->hm.s.vmx.fAllowUnrestricted)
+		pVM->hm.s.vmx.fUnrestrictedGuest = true;
+
+	pVM->fHMEnabledFixed = true;
 	return VINF_SUCCESS;
 }
 
@@ -97,13 +100,9 @@ VMMR3_INT_DECL(int) HMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 		}
 	}
 
+	pVM->hm.s.fNestedPaging = true;
+
 	return rc;
-}
-
-
-VMMDECL(bool) HMIsEnabledNotMacro(PVM pVM)
-{
-	return pVM->fHMEnabled;
 }
 
 
@@ -121,10 +120,6 @@ VMMR3DECL(bool) HMR3IsActive(PVMCPU pVCpu)
 	return pVCpu->hm.s.fActive;
 }
 
-VMM_INT_DECL(bool) HMIsLongModeAllowed(PVM pVM)                                 
-{                                                                               
-	return HMIsEnabled(pVM) && pVM->hm.s.fAllow64BitGuests;                     
-} 
 
 VMMR3DECL(bool) HMR3IsRescheduleRequired(PVM pVM, PCPUMCTX pCtx)
 {
@@ -137,7 +132,7 @@ VMMR3DECL(bool) HMR3IsRescheduleRequired(PVM pVM, PCPUMCTX pCtx)
 
 VMMR3DECL(bool) HMR3IsEventPending(PVMCPU pVCpu)
 {
-	return false;
+	return  HMIsEnabled(pVCpu->pVMR3) && pVCpu->hm.s.Event.fPending;
 }
 
 
@@ -157,53 +152,18 @@ VMMR3DECL(bool) HMR3CanExecuteGuest(PVM pVM, PCPUMCTX pCtx)
 	return pVCpu->hm.s.fActive;
 }
 
-
-VMM_INT_DECL(int) HMFlushTLB(PVMCPU pVCpu) {
-	return VINF_SUCCESS;
-}
-
-VMM_INT_DECL(bool) HMAreNestedPagingAndFullGuestExecEnabled(PVM pVM)
-{
-    return HMIsEnabled(pVM)
-        && (   (pVM->hm.s.vmx.fSupported && pVM->hm.s.vmx.fAllowUnrestricted)
-            || pVM->hm.s.svm.fSupported);
-}
-
-
 VMMR3_INT_DECL(void) HMR3ResetCpu(PVMCPU pVCpu)
 {
 	pVCpu->hm.s.fActive = false;
-}
-
-
-VMM_INT_DECL(bool) HMIsNestedPagingActive(PVM pVM)
-{
-    return HMIsEnabled(pVM);
-}
-
-/* VMM/VMMAll/HMAll.cpp */
-VMM_INT_DECL(PGMMODE) HMGetShwPagingMode(PVM pVM)
-{
-	Assert(HMIsNestedPagingActive(pVM));
- 
-	if (pVM->hm.s.svm.fSupported)
-		return PGMMODE_NESTED;
-
-//	Assert(pVM->hm.s.vmx.fSupported);
-	return PGMMODE_EPT;
 }
 
 VMMR3_INT_DECL(void) HMR3PagingModeChanged(PVM pVM, PVMCPU pVCpu, PGMMODE enmShadowMode, PGMMODE enmGuestMode)
 {
 }
 
-VMM_INT_DECL(int) HMFlushTLBOnAllVCpus(PVM pVM)
-{
-	if (VERBOSE_HM)
-		Genode::log(__func__, " called");
-	return VINF_SUCCESS;
-}
-
+/**
+ * Restarting I/O instruction refused in ring-0 - no mean for us
+ */
 VBOXSTRICTRC HMR3RestartPendingIOInstr(PVM, PVMCPU, PCPUMCTX) {
 	return VERR_NOT_FOUND; }
 

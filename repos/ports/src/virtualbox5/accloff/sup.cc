@@ -124,6 +124,12 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 }
 
 
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
+{
+	return genode_check_memory_config(machine);
+}
+
+
 extern "C" void pthread_yield() { Genode::warning(__func__, " unimplemented"); }
 
 int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,

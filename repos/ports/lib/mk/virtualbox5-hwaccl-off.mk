@@ -5,6 +5,9 @@ LIBS  += stdcxx
 SRC_CC = sup.cc
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
+
+INC_DIR += $(VIRTUALBOX_DIR)/VBoxAPIWrap
+
 INC_DIR += $(VBOX_DIR)/Main/xml
 INC_DIR += $(VBOX_DIR)/Main/include
 INC_DIR += $(VBOX_DIR)/VMM/include

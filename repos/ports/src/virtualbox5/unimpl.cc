@@ -24,8 +24,11 @@ void name(void) { \
 	while (1) { Assert(!"not implemented"); } \
 }
 
-DUMMY(DBGFR3CoreWrite)
 DUMMY(DBGCRegisterCommands)
+
+DUMMY(DBGFR3AsLineByAddrA)
+DUMMY(DBGFR3AsSymbolByAddrA)
+DUMMY(DBGFR3CoreWrite)
 DUMMY(DBGFR3LogModifyDestinations)
 DUMMY(DBGFR3LogModifyFlags)
 DUMMY(DBGFR3LogModifyGroups)
@@ -38,16 +41,11 @@ DUMMY(DBGFR3StackWalkBegin)
 DUMMY(DBGFR3StackWalkBeginEx)
 DUMMY(DBGFR3StackWalkNext)
 DUMMY(DBGFR3StackWalkEnd)
+DUMMY(DBGFR3PagingDumpEx)
 DUMMY(DBGFR3PlugInUnload)
 DUMMY(DBGFR3PlugInUnloadAll)
 
 DUMMY(HBDMgrDestroy)
-
-DUMMY(HMGetPaePdpes)
-DUMMY(HMInvalidatePage)
-DUMMY(HMInvalidatePageOnAllVCpus)
-DUMMY(HMInvalidatePhysPage)
-DUMMY(HMSetSingleInstruction)
 
 DUMMY(HMR3CheckError)
 DUMMY(HMR3DisablePatching)
@@ -81,7 +79,6 @@ DUMMY(pgmR3SyncPTResolveConflictPAE)
 
 DUMMY(PGMR3HandlerVirtualRegister)
 
-DUMMY(DBGFR3PagingDumpEx)
 DUMMY(MMPagePhys2PageEx)
 DUMMY(PGMR3DbgR3Ptr2GCPhys)
 
@@ -217,4 +214,6 @@ DUMMY(GIMExecHypercallInstr)
 DUMMY(GIMReadMsr)
 DUMMY(GIMWriteMsr)
 
+DUMMY(RTDbgLineFree)
+DUMMY(RTDbgSymbolFree)
 } /* extern "C" */

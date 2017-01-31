@@ -37,6 +37,7 @@
 #include "console.h"
 #include "fb.h"
 #include "vmm.h"
+#include "sup.h"
 
 static char c_vbox_file[128];
 static char c_vbox_vmname[128];
@@ -120,6 +121,10 @@ HRESULT setupmachine(Genode::Env &env)
 	if (FAILED(rc))
 		return rc;
 
+	rc = genode_setup_machine(machine);
+	if (FAILED(rc))
+		return rc;
+
 	rc = virtualbox->RegisterMachine(machine);
 	if (FAILED(rc))
 		return rc;
@@ -139,22 +144,6 @@ HRESULT setupmachine(Genode::Env &env)
 	rc = machine->COMGETTER(MemorySize)(&memory_vbox);
 	if (FAILED(rc))
 		return rc;
-
-	/* request max available memory */
-	size_t memory_genode = genode_env().ram().avail() >> 20;
-	size_t memory_vmm    = 28;
-
-	if (memory_vbox + memory_vmm > memory_genode) {
-		using Genode::error;
-		error("Configured memory ", memory_vmm, " MB (vbox file) is insufficient.");
-		error(memory_genode,              " MB (1) - ",
-		      memory_vmm,                 " MB (2) = ",
-		      memory_genode - memory_vmm, " MB (3)");
-		error("(1) available memory based defined by Genode config");
-		error("(2) minimum memory required for VBox VMM");
-		error("(3) maximal available memory to VM");
-		return E_FAIL;
-	}
 
 	/* Console object */
 	static ComPtr<IConsole> gConsole;

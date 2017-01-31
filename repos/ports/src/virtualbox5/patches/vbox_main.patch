@@ -546,6 +546,17 @@ index a717aff..3d52b9f 100644
  
      { NULL, NULL, 0 }
  #undef MY_ERR
+--- a/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/MachineImpl.h
+@@ -39,7 +39,7 @@
+ #include "Performance.h"
+ #include "PerformanceImpl.h"
+-#include "ThreadTask.h"
+ #endif /* VBOX_WITH_RESOURCE_USAGE_API */
++#include "ThreadTask.h"
+ 
+ // generated header
+ #include "SchemaDefs.h"
 --- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
 @@ -8227,8 +8227,14 @@
