@@ -153,16 +153,17 @@ class Vfs::Fs_file_system : public File_system
 
 		Fs_file_system(Genode::Env       &env,
 		               Genode::Allocator &alloc,
-		               Genode::Xml_node   config)
+		               Genode::Xml_node   config,
+		               Io_response_handler &)
 		:
 			_env(env),
 			_fs_packet_alloc(&alloc),
 			_label(config.attribute_value("label", Label_string())),
 			_root( config.attribute_value("root",  Root_string())),
-			_fs(_fs_packet_alloc,
-			    ::File_system::DEFAULT_TX_BUF_SIZE,
+			_fs(env, _fs_packet_alloc,
 			    _label.string(), _root.string(),
-			    config.attribute_value("writeable", true))
+			    config.attribute_value("writeable", true),
+			    ::File_system::DEFAULT_TX_BUF_SIZE)
 		{ }
 
 

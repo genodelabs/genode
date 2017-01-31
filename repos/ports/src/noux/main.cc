@@ -212,7 +212,13 @@ struct Noux::Main
 	/* initialize virtual file system */
 	Vfs::Global_file_system_factory &_fs_factory = Vfs::global_file_system_factory();
 
+	struct Io_response_handler : Vfs::Io_response_handler
+	{
+		void handle_io_response() override { Genode::log(__func__, " called"); }
+	} _io_response_handler;
+
 	Vfs::Dir_file_system _root_dir { _env, _heap, _config.xml().sub_node("fstab"),
+	                                 _io_response_handler,
 	                                 _fs_factory };
 
 	Pid_allocator _pid_allocator;

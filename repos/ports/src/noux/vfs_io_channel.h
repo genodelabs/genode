@@ -122,7 +122,7 @@ struct Noux::Vfs_io_channel : Io_channel
 
 		default:
 
-			PWRN("invalid fcntl command %d", sysio.fcntl_in.cmd);
+			warning("invalid fcntl command ", (int)sysio.fcntl_in.cmd);
 			sysio.error.fcntl = Sysio::FCNTL_ERR_CMD_INVALID;
 			return false;
 		};

@@ -149,8 +149,13 @@ struct Cli_monitor::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
+	struct Io_response_handler : Vfs::Io_response_handler
+	{
+		void handle_io_response() { }
+	} io_response_handler;
+
 	/* initialize virtual file system */
-	Vfs::Dir_file_system _root_dir { _env, _heap, _vfs_config(),
+	Vfs::Dir_file_system _root_dir { _env, _heap, _vfs_config(), io_response_handler,
 	                                 Vfs::global_file_system_factory() };
 
 	Subsystem_config_registry _subsystem_config_registry { _root_dir, _heap };

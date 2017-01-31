@@ -39,7 +39,8 @@ struct Vfs::File_system_factory
 	 */
 	virtual File_system *create(Genode::Env &env,
 	                            Genode::Allocator &alloc,
-	                            Xml_node config) = 0;
+	                            Xml_node config,
+	                            Io_response_handler &io_handler) = 0;
 };
 
 

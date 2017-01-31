@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -28,6 +28,9 @@
 #include "tar_file_system.h"
 #include "terminal_file_system.h"
 #include "zero_file_system.h"
+
+
+using Vfs::Io_response_handler;
 
 
 class Default_file_system_factory : public Vfs::Global_file_system_factory
@@ -57,9 +60,10 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 			Vfs::File_system *create(Genode::Env       &env,
 			                         Genode::Allocator &alloc,
-			                         Genode::Xml_node   node) override
+			                         Genode::Xml_node   node,
+			                         Io_response_handler &io_handler) override
 			{
-				return new (alloc) FILE_SYSTEM(env, alloc, node);
+				return new (alloc) FILE_SYSTEM(env, alloc, node, io_handler);
 			}
 		};
 
@@ -74,8 +78,9 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 			Vfs::File_system *create(Genode::Env       &env,
 			                         Genode::Allocator &alloc,
-			                         Genode::Xml_node   node) override {
-				return _fs_factory.create(env, alloc, node); }
+			                         Genode::Xml_node   node,
+			                         Io_response_handler &io_handler) override {
+				return _fs_factory.create(env, alloc, node, io_handler); }
 		};
 
 		Genode::List<Entry_base> _list;
@@ -88,11 +93,12 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 		Vfs::File_system *_try_create(Genode::Env       &env,
 		                              Genode::Allocator &alloc,
-		                              Genode::Xml_node   node)
+		                              Genode::Xml_node   node,
+		                              Io_response_handler &io_handler)
 		{
 			for (Entry_base *e = _list.first(); e; e = e->next())
 				if (e->matches(node))
-					return e->create(env, alloc, node);
+					return e->create(env, alloc, node, io_handler);
 
 			return 0;
 		}
@@ -151,12 +157,13 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 				return *query_fn();
 
 			} catch (Genode::Shared_object::Invalid_rom_module) {
-				PWRN("could not open '%s'", lib_name.string());
+				Genode::warning("could not open '", lib_name, "'");
 				throw Factory_not_available();
 
 			} catch (Genode::Shared_object::Invalid_symbol) {
-				PWRN("could not find symbol '%s' in '%s'",
-				     _factory_symbol(), lib_name.string());
+				Genode::warning("could not find symbol '",
+				                Genode::Cstring(_factory_symbol()),
+				                "' in '", lib_name, "'");
 
 				Genode::destroy(alloc, shared_object);
 				throw Factory_not_available();
@@ -181,11 +188,12 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 
 		Vfs::File_system *create(Genode::Env       &env,
 		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node   node) override
+		                         Genode::Xml_node   node,
+		                         Io_response_handler &io_handler) override
 		{
 			try {
 				/* try if type is handled by the currently registered fs types */
-				if (Vfs::File_system *fs = _try_create(env, alloc, node))
+				if (Vfs::File_system *fs = _try_create(env, alloc, node, io_handler))
 					return fs;
 				/* if the builtin fails, do not try loading an external */
 			} catch (...) { return 0; }
@@ -194,7 +202,7 @@ class Default_file_system_factory : public Vfs::Global_file_system_factory
 				/* probe for file system implementation available as shared lib */
 				if (_probe_external_factory(env, alloc, node)) {
 					/* try again with the new file system type loaded */
-					if (Vfs::File_system *fs = _try_create(env, alloc, node))
+					if (Vfs::File_system *fs = _try_create(env, alloc, node, io_handler))
 						return fs;
 				}
 			} catch (...) { }

@@ -68,7 +68,7 @@ class Noux::Child_env
 				try {
 					binary_addr = local_rm.attach(binary_ds);
 				} catch(...)  {
-					PWRN("could not attach dataspace");
+					warning("could not attach dataspace");
 					interpretable = false;
 				}
 

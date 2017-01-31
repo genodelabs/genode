@@ -108,6 +108,8 @@ inline void assert_read(Vfs::File_io_service::Read_result r)
 	typedef Vfs::File_io_service::Read_result Result;
 	switch (r) {
 	case Result::READ_OK: return;
+	case Result::READ_QUEUED:
+		error("READ_QUEUED"); break;
 	case Result::READ_ERR_AGAIN:
 		error("READ_ERR_AGAIN"); break;
 	case Result::READ_ERR_WOULD_BLOCK:
@@ -470,7 +472,13 @@ void Component::construct(Genode::Env &env)
 	Attached_rom_dataspace config_rom(env, "config");
 	Xml_node const config_xml = config_rom.xml();
 
+	struct Io_response_handler : Vfs::Io_response_handler
+	{
+		void handle_io_response() override { Genode::log(__func__, " called"); }
+	} io_response_handler;
+
 	Vfs::Dir_file_system vfs_root(env, heap, config_xml.sub_node("vfs"),
+	                              io_response_handler,
 	                              Vfs::global_file_system_factory());
 	char path[Vfs::MAX_PATH_LEN];
 

@@ -43,6 +43,7 @@ namespace Libc {
 	class Timer_accessor;
 	class Timeout;
 	class Timeout_handler;
+	class Io_response_handler;
 
 	using Microseconds = Genode::Time_source::Microseconds;
 }
@@ -79,10 +80,11 @@ class Libc::Env_implementation : public Libc::Env
 
 	public:
 
-		Env_implementation(Genode::Env &env, Genode::Allocator &alloc)
+		Env_implementation(Genode::Env &env, Genode::Allocator &alloc,
+		                   Vfs::Io_response_handler &io_response_handler)
 		:
 			_env(env),
-			_vfs(_env, alloc, _vfs_config(),
+			_vfs(_env, alloc, _vfs_config(), io_response_handler,
 			     Vfs::global_file_system_factory())
 		{ }
 
@@ -301,6 +303,15 @@ struct Libc::Pthreads
 };
 
 
+struct Libc::Io_response_handler : Vfs::Io_response_handler
+{
+	void handle_io_response() override
+	{
+		Libc::resume_all();
+	}
+};
+
+
 /* internal utility */
 static void resumed_callback();
 static void suspended_callback();
@@ -320,10 +331,11 @@ struct Libc::Kernel
 {
 	private:
 
-		Genode::Env       &_env;
-		Genode::Heap       _heap { _env.ram(), _env.rm() };
-		Env_implementation _libc_env { _env, _heap };
-		Vfs_plugin         _vfs { _libc_env, _heap };
+		Genode::Env        &_env;
+		Genode::Heap        _heap { _env.ram(), _env.rm() };
+		Io_response_handler _io_response_handler;
+		Env_implementation  _libc_env { _env, _heap, _io_response_handler };
+		Vfs_plugin          _vfs { _libc_env, _heap };
 
 		jmp_buf _kernel_context;
 		jmp_buf _user_context;

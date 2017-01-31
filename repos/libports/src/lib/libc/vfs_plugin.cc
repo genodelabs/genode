@@ -38,6 +38,7 @@
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
 #include "libc_errno.h"
+#include "task.h"
 
 
 static Vfs::Vfs_handle *vfs_handle(Libc::File_descriptor *fd)
@@ -287,15 +288,28 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Vfs::file_size out_count = 0;
+	Vfs::file_size out_count  = 0;
+	Result         out_result = Result::READ_OK;
 
-	switch (handle->fs().read(handle, (char *)buf, count, out_count)) {
-	case Result::READ_ERR_AGAIN:       errno = EAGAIN;      return -1;
-	case Result::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; return -1;
-	case Result::READ_ERR_INVALID:     errno = EINVAL;      return -1;
-	case Result::READ_ERR_IO:          errno = EIO;         return -1;
-	case Result::READ_ERR_INTERRUPT:   errno = EINTR;       return -1;
-	case Result::READ_OK:                                   break;
+	while (!handle->fs().queue_read(handle, (char *)buf, count,
+	                                out_result, out_count))
+		Libc::suspend();
+
+	while (out_result == Result::READ_QUEUED) {
+		out_result = handle->fs().complete_read(handle, (char *)buf, count, out_count);
+		if (out_result == Result::READ_QUEUED)
+			Libc::suspend();
+	}
+
+	switch (out_result) {
+	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);
+	case Result::READ_ERR_WOULD_BLOCK: return Errno(EWOULDBLOCK);
+	case Result::READ_ERR_INVALID:     return Errno(EINVAL);
+	case Result::READ_ERR_IO:          return Errno(EIO);
+	case Result::READ_ERR_INTERRUPT:   return Errno(EINTR);
+	case Result::READ_OK:              break;
+
+	case Result::READ_QUEUED: /* handled above, so never reached */ break;
 	}
 
 	handle->advance_seek(out_count);

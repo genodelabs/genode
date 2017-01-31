@@ -24,7 +24,8 @@ struct Vfs::Zero_file_system : Single_file_system
 {
 	Zero_file_system(Genode::Env&,
 	                 Genode::Allocator&,
-	                 Genode::Xml_node config)
+	                 Genode::Xml_node config,
+	                 Io_response_handler &)
 	:
 		Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
 	{ }

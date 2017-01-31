@@ -114,7 +114,8 @@ class Vfs::Block_file_system : public Single_file_system
 
 		Block_file_system(Genode::Env &env,
 		                  Genode::Allocator &alloc,
-		                  Genode::Xml_node config)
+		                  Genode::Xml_node config,
+		                  Io_response_handler &)
 		:
 			Single_file_system(NODE_TYPE_BLOCK_DEVICE, name(), config),
 			_alloc(alloc),

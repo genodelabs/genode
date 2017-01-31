@@ -2,11 +2,12 @@
  * \brief  Terminal file system
  * \author Christian Prochaska
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2012-05-23
  */
 
 /*
- * Copyright (C) 2012-2016 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -17,6 +18,8 @@
 
 #include <terminal_session/connection.h>
 #include <vfs/single_file_system.h>
+#include <base/signal.h>
+
 
 namespace Vfs { class Terminal_file_system; }
 
@@ -28,33 +31,40 @@ class Vfs::Terminal_file_system : public Single_file_system
 		typedef Genode::String<64> Label;
 		Label _label;
 
-		Terminal::Connection _terminal;
+		Genode::Env         &_env;
+		Io_response_handler &_io_handler;
+
+		Terminal::Connection _terminal { _env, _label.string() };
+
+		Genode::Signal_handler<Terminal_file_system> _read_avail_handler {
+			_env.ep(), *this, &Terminal_file_system::_handle_read_avail };
+
+		void _handle_read_avail() { _io_handler.handle_io_response(); }
+
+		Read_result _read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                  file_size &out_count)
+		{
+			if (_terminal.avail()) {
+				out_count = _terminal.read(dst, count);
+				return READ_OK;
+			} else {
+				return READ_QUEUED;
+			}
+		}
 
 	public:
 
 		Terminal_file_system(Genode::Env &env,
 		                     Genode::Allocator&,
-		                     Genode::Xml_node config)
+		                     Genode::Xml_node config,
+		                     Io_response_handler &io_handler)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_label(config.attribute_value("label", Label())),
-			_terminal(env, _label.string())
+			_env(env), _io_handler(io_handler)
 		{
-			/*
-			 * Wait for connection-established signal
-			 */
-
-			/* create signal receiver, just for the single signal */
-			Genode::Signal_context    sig_ctx;
-			Genode::Signal_receiver   sig_rec;
-			Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
-
-			/* register signal handler */
-			_terminal.connected_sigh(sig_cap);
-
-			/* wati for signal */
-			sig_rec.wait_for_signal();
-			sig_rec.dissolve(&sig_ctx);
+			/* register for read-avail notification */
+			_terminal.read_avail_sigh(_read_avail_handler);
 		}
 
 		static const char *name() { return "terminal"; }
@@ -76,6 +86,19 @@ class Vfs::Terminal_file_system : public Single_file_system
 		{
 			out_count = _terminal.read(dst, count);
 			return READ_OK;
+		}
+
+		bool queue_read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                Read_result &out_result, file_size &out_count) override
+		{
+			out_result = _read(vfs_handle, dst, count, out_count);
+			return true;
+		}
+
+		Read_result complete_read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                          file_size &out_count) override
+		{
+			return _read(vfs_handle, dst, count, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override

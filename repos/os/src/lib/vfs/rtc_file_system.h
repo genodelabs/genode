@@ -32,7 +32,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 		Rtc_file_system(Genode::Env &env,
 		                Genode::Allocator&,
-		                Genode::Xml_node config)
+		                Genode::Xml_node config,
+		                Io_response_handler &)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_rtc(env)

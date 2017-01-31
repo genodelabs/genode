@@ -35,6 +35,7 @@ namespace Vfs_server {
 
 	class  Session_component;
 	class  Root;
+	class  Io_response_handler;
 
 };
 
@@ -464,6 +465,15 @@ class Vfs_server::Session_component :
 };
 
 
+struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
+{
+	void handle_io_response() override
+	{
+		Genode::log(__func__, " called");
+	}
+};
+
+
 class Vfs_server::Root :
 	public Genode::Root_component<Session_component>
 {
@@ -484,8 +494,11 @@ class Vfs_server::Root :
 			}
 		}
 
-		Vfs::Dir_file_system _vfs
-			{ _env, _heap, vfs_config(), Vfs::global_file_system_factory() };
+		Io_response_handler _io_response_handler;
+
+		Vfs::Dir_file_system _vfs {
+			_env, _heap, vfs_config(), _io_response_handler,
+			Vfs::global_file_system_factory() };
 
 	protected:
 

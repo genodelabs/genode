@@ -422,7 +422,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 		Ram_file_system(Genode::Env       &env,
 		                Genode::Allocator &alloc,
-		                Genode::Xml_node)
+		                Genode::Xml_node,
+		                Io_response_handler &)
 		: _env(env), _alloc(alloc) { }
 
 		~Ram_file_system() { _root.empty(_alloc); }
