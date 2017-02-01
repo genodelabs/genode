@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/component.h>
+#include <os/static_parent_services.h>
 #include <os/slave.h>
 #include <timer_session/connection.h>
 
@@ -26,20 +27,16 @@ namespace Test {
 }
 
 
-struct Test::Policy : Genode::Slave::Policy
+struct Test::Policy
+:
+	private Static_parent_services<Cpu_session, Ram_session, Rom_session,
+	                               Pd_session, Log_session>,
+	public Slave::Policy
 {
-	const char **_permitted_services() const
-	{
-		static const char *permitted_services[] = {
-			"CPU", "RAM", "ROM", "PD", "LOG", 0 };
-
-		return permitted_services;
-	};
-
-	Policy(Genode::Env &env, Name const &name)
+	Policy(Env &env, Name const &name)
 	:
-		Genode::Slave::Policy(name, name, env.ep().rpc_ep(), env.rm(),
-		                      env.ram_session_cap(), 1024*1024)
+		Slave::Policy(name, name, *this, env.ep().rpc_ep(), env.rm(),
+		              env.ram_session_cap(), 1024*1024)
 	{ }
 };
 

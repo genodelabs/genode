@@ -16,7 +16,9 @@
 
 /* Genode includes */
 #include <base/service.h>
+#include <os/static_parent_services.h>
 #include <os/slave.h>
+#include <timer_session/timer_session.h>
 
 /* local includes */
 #include "framebuffer_service_factory.h"
@@ -26,21 +28,19 @@ class Filter_framebuffer_slave
 {
 	private:
 
-		class Policy : public Genode::Slave::Policy
+		class Policy
+		:
+			private Genode::Static_parent_services<Genode::Cpu_session,
+			                                       Genode::Log_session,
+			                                       Genode::Pd_session,
+			                                       Genode::Ram_session,
+			                                       Genode::Rom_session,
+			                                       Timer::Session>,
+			public Genode::Slave::Policy
 		{
 			private:
 
 				Framebuffer_service_factory &_framebuffer_service_factory;
-
-			protected:
-
-				const char **_permitted_services() const
-				{
-					static const char *permitted_services[] = {
-						"CPU", "LOG", "PD", "RAM", "RM", "ROM", "Timer", 0 };
-
-					return permitted_services;
-				};
 
 			public:
 
@@ -50,11 +50,13 @@ class Filter_framebuffer_slave
 				       Name const                     &name,
 				       size_t                          quota,
 				       Framebuffer_service_factory    &framebuffer_service_factory)
-				: Genode::Slave::Policy(name, name, entrypoint, rm, ram, quota),
-		  	  	  _framebuffer_service_factory(framebuffer_service_factory) { }
+				:
+					Genode::Slave::Policy(name, name, *this, entrypoint, rm, ram, quota),
+					_framebuffer_service_factory(framebuffer_service_factory)
+				{ }
 
 				Genode::Service &resolve_session_request(Genode::Service::Name       const &service_name,
-		                                         	 	 Genode::Session_state::Args const &args) override
+				                                         Genode::Session_state::Args const &args) override
 				{
 					if (service_name == "Framebuffer")
 						return _framebuffer_service_factory.create(args);

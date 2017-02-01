@@ -13,23 +13,22 @@
 
 #pragma once
 
+#include <os/static_parent_services.h>
 #include <os/slave.h>
 
 enum { STACK_SIZE = 4 * sizeof(void *) * 1024 };
 
 namespace Platform { class Device_pd_policy; }
 
-class Platform::Device_pd_policy : public Genode::Slave::Policy
+class Platform::Device_pd_policy
+:
+	private Genode::Static_parent_services<Genode::Ram_session,
+	                                       Genode::Pd_session,
+	                                       Genode::Cpu_session,
+	                                       Genode::Log_session,
+	                                       Genode::Rom_session>,
+	public Genode::Slave::Policy
 {
-	protected:
-
-		char const **_permitted_services() const override
-		{
-			static char const *permitted_services[] = {
-				"RAM", "PD", "CPU", "LOG", "ROM", 0 };
-			return permitted_services;
-		};
-
 	public:
 
 		Device_pd_policy(Genode::Rpc_entrypoint        &slave_ep,
@@ -38,9 +37,8 @@ class Platform::Device_pd_policy : public Genode::Slave::Policy
 		                 Genode::size_t                 ram_quota,
 		                 Genode::Session_label   const &label)
 		:
-			Genode::Slave::Policy(label, "device_pd", slave_ep, local_rm,
+			Genode::Slave::Policy(label, "device_pd", *this, slave_ep, local_rm,
 			                      ram_ref_cap, ram_quota)
 		{ }
 };
-
 

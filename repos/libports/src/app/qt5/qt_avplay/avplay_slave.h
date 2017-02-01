@@ -23,6 +23,9 @@
 
 /* Genode includes */
 #include <input/component.h>
+#include <timer_session/timer_session.h>
+#include <audio_out_session/audio_out_session.h>
+#include <os/static_parent_services.h>
 #include <os/slave.h>
 
 /* local includes */
@@ -36,7 +39,16 @@ class Avplay_slave : public QObject
 
 	private:
 
-		class Policy : public Genode::Slave::Policy
+		class Policy
+		:
+			private Genode::Static_parent_services<Genode::Cpu_session,
+			                                       Genode::Log_session,
+			                                       Genode::Pd_session,
+			                                       Genode::Ram_session,
+			                                       Genode::Rom_session,
+			                                       Timer::Session,
+			                                       Audio_out::Session>,
+			public Genode::Slave::Policy
 		{
 			private:
 
@@ -94,16 +106,6 @@ class Avplay_slave : public QObject
 				static Genode::size_t _quota() { return 32*1024*1024; }
 				static Name           _name()  { return "avplay"; }
 
-			protected:
-
-				const char **_permitted_services() const override
-				{
-					static const char *permitted_services[] = {
-						"CPU", "LOG", "PD", "RAM", "RM", "ROM", "Timer", "Audio_out", 0 };
-
-					return permitted_services;
-				};
-
 			public:
 
 				Policy(Genode::Rpc_entrypoint         &entrypoint,
@@ -112,12 +114,13 @@ class Avplay_slave : public QObject
 				       Input_service                  &input_service,
 				       Framebuffer_service_factory    &framebuffer_service_factory,
 				       char const                     *mediafile)
-				: Genode::Slave::Policy(_name(), _name(), entrypoint, rm, ram,
-				                        _quota()),
-		  	  	  _input_service(input_service),
-		  	  	  _framebuffer_service_factory(framebuffer_service_factory),
-		  	  	  _mediafile(mediafile),
-		  	  	  _sdl_audio_volume(100)
+				:
+					Genode::Slave::Policy(_name(), _name(), *this, entrypoint,
+					                      rm, ram, _quota()),
+					_input_service(input_service),
+					_framebuffer_service_factory(framebuffer_service_factory),
+					_mediafile(mediafile),
+					_sdl_audio_volume(100)
 				{
 					configure(_config());
 				}

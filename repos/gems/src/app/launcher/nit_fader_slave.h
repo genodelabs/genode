@@ -15,6 +15,7 @@
 #define _NIT_FADER_SLAVE_H_
 
 /* Genode includes */
+#include <os/static_parent_services.h>
 #include <os/slave.h>
 #include <nitpicker_session/nitpicker_session.h>
 
@@ -28,21 +29,21 @@ class Launcher::Nit_fader_slave
 {
 	private:
 
-		class Policy : public Slave::Policy
+		class Policy
+		:
+			private Genode::Static_parent_services<Genode::Ram_session,
+			                                       Genode::Cpu_session,
+			                                       Genode::Pd_session,
+			                                       Genode::Rom_session,
+			                                       Genode::Log_session,
+			                                       Timer::Session>,
+			public Slave::Policy
 		{
 			private:
 
 				Genode::Service &_nitpicker_service;
 
 			protected:
-
-				char const **_permitted_services() const
-				{
-					static char const *permitted_services[] = {
-						"RAM", "CPU", "PD", "ROM", "LOG", "Timer", 0 };
-
-					return permitted_services;
-				};
 
 				static Name   _name()  { return "nit_fader"; }
 				static size_t _quota() { return 2*1024*1024; }
@@ -54,7 +55,7 @@ class Launcher::Nit_fader_slave
 				       Ram_session_capability  ram,
 				       Genode::Service        &nitpicker_service)
 				:
-					Genode::Slave::Policy(_name(), _name(), ep, rm, ram, _quota()),
+					Genode::Slave::Policy(_name(), _name(), *this, ep, rm, ram, _quota()),
 					_nitpicker_service(nitpicker_service)
 				{
 					visible(false);

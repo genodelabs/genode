@@ -47,17 +47,8 @@ class Genode::Slave::Policy : public Child_policy
 		typedef Child_policy::Name Name;
 		typedef Session_label      Label;
 
-	protected:
-
 		typedef Registered<Genode::Parent_service> Parent_service;
 		typedef Registry<Parent_service>           Parent_services;
-
-		/**
-		 * Return white list of services the slave is permitted to use
-		 *
-		 * The list is terminated via a null pointer.
-		 */
-		virtual char const **_permitted_services() const = 0;
 
 	private:
 
@@ -66,20 +57,10 @@ class Genode::Slave::Policy : public Child_policy
 		Ram_session_client             _ram;
 		Genode::Parent_service         _binary_service;
 		size_t                         _ram_quota;
-		Parent_services                _parent_services;
+		Parent_services               &_parent_services;
 		Rpc_entrypoint                &_ep;
 		Child_policy_dynamic_rom_file  _config_policy;
-
-		bool _service_permitted(Service::Name const &service_name) const
-		{
-			for (const char **s = _permitted_services(); *s; ++s)
-				if (service_name == *s)
-					return true;
-
-			return false;
-		}
-
-		Session_requester _session_requester;
+		Session_requester              _session_requester;
 
 	public:
 
@@ -98,6 +79,7 @@ class Genode::Slave::Policy : public Child_policy
 		 */
 		Policy(Label            const &label,
 		       Name             const &binary_name,
+		       Parent_services        &parent_services,
 		       Rpc_entrypoint         &ep,
 		       Region_map             &rm,
 		       Ram_session_capability  ram_cap,
@@ -105,7 +87,7 @@ class Genode::Slave::Policy : public Child_policy
 		:
 			_label(label), _binary_name(binary_name), _ram(ram_cap),
 			_binary_service(Rom_session::service_name()),
-			_ram_quota(ram_quota), _ep(ep),
+			_ram_quota(ram_quota), _parent_services(parent_services), _ep(ep),
 			_config_policy("config", _ep, &_ram),
 			_session_requester(ep, _ram, rm)
 		{
@@ -163,21 +145,17 @@ class Genode::Slave::Policy : public Child_policy
 				if (rom_name == "session_requests") return _session_requester.service();
 			}
 
-			if (!_service_permitted(service_name)) {
-				error(name(), ": illegal session request of "
-				      "service \"", service_name, "\" (", args, ")");
-				throw Parent::Service_denied();
-			}
-
 			/* fill parent service registry on demand */
 			Parent_service *service = nullptr;
 			_parent_services.for_each([&] (Parent_service &s) {
 				if (!service && s.name() == service_name)
 					service = &s; });
 
-			if (!service)
-				service = new (env()->heap())
-					Parent_service(_parent_services, service_name);
+			if (!service) {
+				error(name(), ": illegal session request of "
+				      "service \"", service_name, "\" (", args, ")");
+				throw Parent::Service_denied();
+			}
 
 			return *service;
 		}

@@ -32,7 +32,14 @@
 #include <base/log.h>
 #include <base/signal.h>
 #include <timer_session/connection.h>
+#include <os/static_parent_services.h>
 #include <os/slave.h>
+
+namespace Test {
+	class Child;
+	class Parent;
+	using namespace Genode;
+}
 
 
 /****************
@@ -43,21 +50,19 @@
  * The child eats more and more RAM. However, when receiving a yield request,
  * it releases the requested amount of resources.
  */
-class Child
+class Test::Child
 {
 	private:
 
-		typedef Genode::size_t size_t;
-
-		struct Ram_chunk : Genode::List<Ram_chunk>::Element
+		struct Ram_chunk : List<Ram_chunk>::Element
 		{
-			Genode::Env &env;
+			Env &env;
 
 			size_t const size;
 
-			Genode::Ram_dataspace_capability ds_cap;
+			Ram_dataspace_capability ds_cap;
 
-			Ram_chunk(Genode::Env &env, size_t size)
+			Ram_chunk(Env &env, size_t size)
 			:
 				env(env),size(size), ds_cap(env.ram().alloc(size))
 			{ }
@@ -65,14 +70,14 @@ class Child
 			~Ram_chunk() { env.ram().free(ds_cap); }
 		};
 
-		Genode::Env                  &_env;
-		Genode::Heap                  _heap { _env.ram(), _env.rm() };
-		bool                    const _expand;
-		Genode::List<Ram_chunk>       _ram_chunks;
-		Timer::Connection             _timer { _env };
-		Genode::Signal_handler<Child> _periodic_timeout_handler;
-		Genode::Signal_handler<Child> _yield_handler;
-		unsigned long           const _period_ms;
+		Env                  &_env;
+		Heap                  _heap { _env.ram(), _env.rm() };
+		bool            const _expand;
+		List<Ram_chunk>       _ram_chunks;
+		Timer::Connection     _timer { _env };
+		Signal_handler<Child> _periodic_timeout_handler;
+		Signal_handler<Child> _yield_handler;
+		unsigned long   const _period_ms;
 
 		void _handle_periodic_timeout();
 		void _handle_yield();
@@ -84,19 +89,19 @@ class Child
 
 	public:
 
-		Child(Genode::Env &, Genode::Xml_node);
+		Child(Env &, Xml_node);
 		void main();
 };
 
 
-void Child::_handle_periodic_timeout()
+void Test::Child::_handle_periodic_timeout()
 {
 	size_t const chunk_size = 1024*1024;
 
 	if (_env.ram().avail() < chunk_size) {
 
 		if (_expand) {
-			Genode::log("quota consumed, request additional resources");
+			log("quota consumed, request additional resources");
 
 			/*
 			 * The attempt to allocate RAM will result in a resource request to
@@ -105,7 +110,7 @@ void Child::_handle_periodic_timeout()
 			 */
 
 		} else {
-			Genode::log("consumed all of our quota, stop allocating");
+			log("consumed all of our quota, stop allocating");
 			return;
 		}
 	}
@@ -113,18 +118,16 @@ void Child::_handle_periodic_timeout()
 	/* perform allocation and remember chunk in list */
 	_ram_chunks.insert(new (_heap) Ram_chunk(_env, chunk_size));
 
-	Genode::log("allocated chunk of ", chunk_size / 1024, " KiB");
+	log("allocated chunk of ", chunk_size / 1024, " KiB");
 
 	_schedule_next_timeout();
 }
 
 
-void Child::_handle_yield()
+void Test::Child::_handle_yield()
 {
-	using namespace Genode;
-
 	/* request yield request arguments */
-	Parent::Resource_args const args = _env.parent().yield_request();
+	Genode::Parent::Resource_args const args = _env.parent().yield_request();
 
 	log("yield request: ", args.string());
 
@@ -156,7 +159,7 @@ void Child::_handle_yield()
 }
 
 
-Child::Child(Genode::Env &env, Genode::Xml_node config)
+Test::Child::Child(Env &env, Xml_node config)
 :
 	_env(env),
 	_expand(config.attribute_value("expand", false)),
@@ -182,22 +185,20 @@ Child::Child(Genode::Env &env, Genode::Xml_node config)
  * The parent grants resource requests as long as it has free resources.
  * Once in a while, it politely requests the child to yield resources.
  */
-class Parent
+class Test::Parent
 {
 	private:
 
-		Genode::Env &_env;
-
-		typedef Genode::size_t size_t;
+		Env &_env;
 
 		Timer::Connection _timer { _env };
 
-		Genode::Lock _yield_blockade;
+		Lock _yield_blockade;
 
 		void _print_status()
 		{
-			Genode::log("quota: ", _child.ram().quota() / 1024, " KiB  "
-			            "used: ",  _child.ram().used()  / 1024, " KiB");
+			log("quota: ", _child.ram().quota() / 1024, " KiB  "
+			    "used: ",  _child.ram().used()  / 1024, " KiB");
 		}
 
 		size_t _used_ram_prior_yield = 0;
@@ -214,7 +215,7 @@ class Parent
 
 		void _schedule_one_second_timeout()
 		{
-			Genode::log("wait ", _wait_cnt, "/", _wait_secs);
+			log("wait ", _wait_cnt, "/", _wait_secs);
 			_timer.trigger_once(1000*1000);
 		}
 
@@ -230,7 +231,7 @@ class Parent
 			/* remember quantum of resources used by the child */
 			_used_ram_prior_yield = _child.ram().used();
 
-			Genode::log("request yield (ram prior yield: ", _used_ram_prior_yield);
+			log("request yield (ram prior yield: ", _used_ram_prior_yield);
 
 			/* issue yield request */
 			Genode::Parent::Resource_args yield_args("ram_quota=5M");
@@ -252,7 +253,7 @@ class Parent
 
 		void _yield_response()
 		{
-			Genode::log("got yield response");
+			log("got yield response");
 			_state = YIELD_GOT_RESPONSE;
 
 			_print_status();
@@ -260,43 +261,42 @@ class Parent
 			/* validate that the amount of yielded resources matches the request */
 			size_t const used_after_yield = _child.ram().used();
 			if (used_after_yield + 5*1024*1024 > _used_ram_prior_yield) {
-				Genode::error("child has not yielded enough resources");
+				error("child has not yielded enough resources");
 				throw Insufficient_yield();
 			}
 
 			if (_cnt-- > 0) {
 				_init();
 			} else {
-				Genode::log("--- test-resource_yield finished ---");
+				log("--- test-resource_yield finished ---");
 				_env.parent().exit(0);
 			}
 		}
 
-		Genode::Signal_handler<Parent> _timeout_handler {
+		Signal_handler<Parent> _timeout_handler {
 			_env.ep(), *this, &Parent::_handle_timeout };
 
-		struct Policy : Genode::Slave::Policy
+		struct Policy
+		:
+			private Static_parent_services<Ram_session, Pd_session,
+			                               Cpu_session, Rom_session,
+			                               Log_session, Timer::Session>,
+			public Slave::Policy
 		{
 			Parent &_parent;
 
 			enum { SLAVE_QUOTA = 10*1024*1024 };
-
-			char const **_permitted_services() const override
-			{
-				static char const *services[] = { "RAM", "PD", "CPU", "ROM", "LOG", "Timer" };
-				return services;
-			}
 
 			void yield_response() override
 			{
 				_parent._yield_response();
 			}
 
-			Policy(Parent &parent, Genode::Env &env)
+			Policy(Parent &parent, Env &env)
 			:
-				Genode::Slave::Policy(Label("child"), "test-resource_yield",
-				                      env.ep().rpc_ep(), env.rm(),
-				                      env.ram_session_cap(), SLAVE_QUOTA),
+				Slave::Policy(Label("child"), "test-resource_yield",
+				              *this, env.ep().rpc_ep(), env.rm(),
+				              env.ram_session_cap(), SLAVE_QUOTA),
 				_parent(parent)
 			{
 				configure("<config child=\"yes\" />");
@@ -314,7 +314,7 @@ class Parent
 		/**
 		 * Constructor
 		 */
-		Parent(Genode::Env &env) : _env(env)
+		Parent(Env &env) : _env(env)
 		{
 			_timer.sigh(_timeout_handler);
 			_init();
@@ -339,9 +339,9 @@ void Component::construct(Genode::Env &env)
 
 	if (is_child) {
 		log("--- test-resource_yield child role started ---");
-		static ::Child child(env, config.xml());
+		static Test::Child child(env, config.xml());
 	} else {
 		log("--- test-resource_yield parent role started ---");
-		static ::Parent parent(env);
+		static Test::Parent parent(env);
 	}
 }
