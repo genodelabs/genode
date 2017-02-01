@@ -664,6 +664,21 @@ void Libc::schedule_suspend(void (*suspended) ())
 }
 
 
+void Libc::execute_in_application_context(Libc::Application_code &app_code)
+{
+	warning("executing code in application context, not implemented");
+
+	/*
+	 * XXX missing: switch to/from libc app task
+	 * XXX Should we detect nested calls?
+	 */
+
+	app_code.execute();
+
+	warning("leaving application context");
+}
+
+
 /***************************
  ** Component entry point **
  ***************************/

@@ -933,7 +933,12 @@ _write T
 _writev T
 
 
+#
+# Public interface between Genode-component code and the libc runtime
+#
 _ZN4Libc9Component9constructERNS_3EnvE U
+_ZN4Libc30execute_in_application_contextERNS_16Application_codeE T
+
 
 #
 # Libc plugin interface
