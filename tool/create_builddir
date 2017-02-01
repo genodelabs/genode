@@ -10,6 +10,47 @@ MAKEOVERRIDES =
 
 PLATFORM = $(MAKECMDGOALS)
 
+PLATFORMS = x86_32  x86_64  panda  pbxa9  rpi arndale imx53_qsb imx53_qsb_tz \
+            usb_armory wand_quad odroid_xu odroid_x2 zynq_qemu muen \
+            riscv_spike linux
+
+PLATFORMS_DEPR = linux_x86 linux_arm fiasco_x86 okl4_x86 pistachio_x86 \
+                 nova_x86_32 nova_x86_64 hw_x86_64 foc_x86_32 foc_x86_64 \
+                 sel4_x86_32 hw_panda foc_panda hw_pbxa9 foc_pbxa9 hw_rpi \
+                 foc_rpi hw_arndale foc_arndale hw_imx53_qsb foc_imx53 \
+                 hw_imx53_qsb_tz hw_usb_armory hw_wand_quad hw_odroid_xu \
+                 hw_zynq hw_x86_64_muen hw_riscv foc_odroid_x2
+
+PLATFORM_ALT(linux_x86)       = linux
+PLATFORM_ALT(linux_arm)       = linux
+PLATFORM_ALT(fiasco_x86)      = x86_32
+PLATFORM_ALT(okl4_x86)        = x86_32
+PLATFORM_ALT(pistachio_x86)   = x86_32
+PLATFORM_ALT(nova_x86_32)     = x86_32
+PLATFORM_ALT(nova_x86_64)     = x86_64
+PLATFORM_ALT(hw_x86_64)       = x86_64
+PLATFORM_ALT(foc_x86_32)      = x86_32
+PLATFORM_ALT(foc_x86_64)      = x86_64
+PLATFORM_ALT(sel4_x86_32)     = x86_32
+PLATFORM_ALT(hw_panda)        = panda
+PLATFORM_ALT(foc_panda)       = panda
+PLATFORM_ALT(hw_pbxa9)        = pbxa9
+PLATFORM_ALT(foc_pbxa9)       = pbxa9
+PLATFORM_ALT(hw_rpi)          = rpi
+PLATFORM_ALT(foc_rpi)         = rpi
+PLATFORM_ALT(hw_arndale)      = arndale
+PLATFORM_ALT(foc_arndale)     = arndale
+PLATFORM_ALT(hw_imx53_qsb)    = imx53_qsb
+PLATFORM_ALT(foc_imx53)       = imx53_qsb
+PLATFORM_ALT(hw_imx53_qsb_tz) = imx53_qsb_tz
+PLATFORM_ALT(hw_usb_armory)   = usb_armory
+PLATFORM_ALT(hw_wand_quad)    = wand_quad
+PLATFORM_ALT(hw_odroid_xu)    = odroid_xu
+PLATFORM_ALT(hw_zynq)         = zynq_qemu
+PLATFORM_ALT(hw_x86_64_muen)  = muen
+PLATFORM_ALT(hw_riscv)        = riscv_spike
+PLATFORM_ALT(foc_odroid_x2)   = odroid_x2
+
 usage:
 	@echo
 	@echo "Tool for preparing Genode build directories"
@@ -19,53 +60,12 @@ usage:
 	@echo "  create_builddir <platform> [BUILD_DIR=<build-dir>]"
 	@echo
 	@echo "  <platform>   can be:"
-	@echo "                  'x86_32'"
-	@echo "                  'x86_64'"
-	@echo "                  'panda'"
-	@echo "                  'pbxa9'"
-	@echo "                  'rpi'"
-	@echo "                  'arndale'"
-	@echo "                  'imx53_qsb'"
-	@echo "                  'imx53_qsb_tz'"
-	@echo "                  'usb_armory'"
-	@echo "                  'wand_quad'"
-	@echo "                  'odroid_xu'"
-	@echo "                  'odroid_x2'"
-	@echo "                  'zynq_qemu'"
-	@echo "                  'muen'"
-	@echo "                  'riscv_spike'"
-	@echo "                  'linux'"
+	@$(foreach PLAT,$(PLATFORMS), \
+	   echo "                  '$(PLAT)'";)
 	@echo
 	@echo "  the following <platform> arguments are deprecated:"
-	@echo "                  'linux_x86'       (use 'linux')"
-	@echo "                  'linux_arm'       (use 'linux')"
-	@echo "                  'fiasco_x86'      (use 'x86_32')"
-	@echo "                  'okl4_x86'        (use 'x86_32')"
-	@echo "                  'pistachio_x86'   (use 'x86_32')"
-	@echo "                  'nova_x86_32'     (use 'x86_32')"
-	@echo "                  'nova_x86_64'     (use 'x86_64')"
-	@echo "                  'hw_x86_64'       (use 'x86_64')"
-	@echo "                  'foc_x86_32'      (use 'x86_32')"
-	@echo "                  'foc_x86_64'      (use 'x86_64')"
-	@echo "                  'sel4_x86_32'     (use 'x86_32')"
-	@echo "                  'hw_panda'        (use 'panda')"
-	@echo "                  'foc_panda'       (use 'panda')"
-	@echo "                  'hw_pbxa9'        (use 'pbxa9')"
-	@echo "                  'foc_pbxa9'       (use 'pbxa9')"
-	@echo "                  'hw_rpi'          (use 'rpi')"
-	@echo "                  'foc_rpi'         (use 'rpi')"
-	@echo "                  'hw_arndale'      (use 'arndale')"
-	@echo "                  'foc_arndale'     (use 'arndale')"
-	@echo "                  'hw_imx53_qsb'    (use 'imx53_qsb')"
-	@echo "                  'foc_imx53'       (use 'imx53_qsb')"
-	@echo "                  'hw_imx53_qsb_tz' (use 'imx53_qsb_tz')"
-	@echo "                  'hw_usb_armory'   (use 'usb_armory')"
-	@echo "                  'hw_wand_quad'    (use 'wand_quad')"
-	@echo "                  'hw_odroid_xu'    (use 'odroid_xu')"
-	@echo "                  'hw_zynq'         (use 'zynq_qemu')"
-	@echo "                  'hw_x86_64_muen'  (use 'muen')"
-	@echo "                  'hw_riscv'        (use 'riscv_spike')"
-	@echo "                  'foc_odroid_x2'   (use 'odroid_x2')"
+	@$(foreach PLAT,$(PLATFORMS_DEPR), \
+	   printf "                  %-20s(use '$(PLATFORM_ALT($(PLAT)))')\n" "'$(PLAT)'";)
 	@echo
 	@echo "  The definition of BUILD_DIR is optional. If specified,"
 	@echo "  <build-dir> is the location of the build directory to create."
@@ -84,14 +84,29 @@ GENODE_DIR ?= $(realpath $(dir $(MAKEFILE_LIST))/..)
 #
 BUILD_DIR ?= $(GENODE_DIR)/build/$(PLATFORM)
 
+#
+# Sanity checks
+#
+ifneq ($(PLATFORM),)
+   #
+   # Check if platform is deprecated or unknown
+   #
+   ifneq ($(filter $(PLATFORM),$(PLATFORMS_DEPR)),)
+      $(warning Platform '$(PLATFORM)' is deprecated, use '$(PLATFORM_ALT($(PLATFORM)))' instead)
+   else ifeq ($(filter $(PLATFORM),$(PLATFORMS)),)
+      $(error Bad platform argument '$(PLATFORM)')
+   endif
+
+   #
+   # Check if build directory exists already
+   #
+   ifneq ($(wildcard $(BUILD_DIR)),)
+      $(error Build directory '$(BUILD_DIR)' already exists)
+   endif
+endif
+
 SHELL := bash
 
-ifneq ($(wildcard $(BUILD_DIR)),)
-$(PLATFORM):: build_dir_already_exists
-build_dir_already_exists:
-	@echo "Directory $(BUILD_DIR) already exists."
-	@false
-endif
 
 #
 # Convert GENODE_DIR to an absolute directory because the user
