@@ -1,5 +1,5 @@
 set build_components {
-	core init drivers/timer server/terminal_crosslink
+	core init drivers/timer server/terminal_crosslink server/vfs
 	test/libc_select test/libc_counter
 }
 
@@ -33,6 +33,16 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
+	<start name="vfs">
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<terminal/>
+			</vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
 
 	<start name="test-libc_counter-source">
 		<resource name="RAM" quantum="8M"/>
@@ -48,15 +58,14 @@ set config {
 		<config>
 			<arg value="test-libc_select"/>
 			<arg value="/dev/log"/>
-			<arg value="/dev/terminal"/>
+			<arg value="/vfs/terminal"/>
 			<!--
 			<arg value=":"/>
 			<arg value="/dev/log"/>
 			-->
 			<vfs>
-				<dir name="dev">
-					<log/> <null/> <zero/> <terminal/>
-				</dir>
+				<dir name="dev"> <log/> <null/> <zero/> </dir>
+				<dir name="vfs"> <fs/> </dir>
 			</vfs>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
 		</config>
@@ -67,7 +76,7 @@ set config {
 install_config $config
 
 set boot_modules {
-	core init timer terminal_crosslink
+	core init timer terminal_crosslink vfs
 	test-libc_counter-source test-libc_select
 	ld.lib.so libc.lib.so libm.lib.so stdcxx.lib.so pthread.lib.so
 	libc_pipe.lib.so

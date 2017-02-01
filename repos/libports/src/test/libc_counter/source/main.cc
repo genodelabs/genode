@@ -24,6 +24,9 @@ int main(int argc, char **argv)
 {
 	fprintf(stderr, "--- counter source started ---\n");
 
+	/* idle some time, so the sink has a chance to block ;-) */
+	sleep(2);
+
 	static char buf[32];
 
 	/* stdin/stdout are connected to the source */

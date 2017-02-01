@@ -3,7 +3,8 @@
 #
 
 set build_components {
-	core init drivers/timer server/terminal_crosslink test/libc_counter
+	core init drivers/timer server/terminal_crosslink server/vfs
+	test/libc_counter
 }
 
 build $build_components
@@ -36,6 +37,16 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
+	<start name="vfs">
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<terminal/>
+			</vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
 
 	<start name="test-libc_counter-source">
 		<resource name="RAM" quantum="8M"/>
@@ -50,9 +61,10 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config>
 			<vfs>
-				<dir name="dev"> <terminal/> <log/> <null/> </dir>
+				<dir name="dev"> <log/> <null/> </dir>
+				<dir name="vfs"> <fs/> </dir>
 			</vfs>
-			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
+			<libc stdin="/vfs/terminal" stdout="/vfs/terminal" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>
@@ -66,7 +78,7 @@ install_config $config
 
 
 set boot_modules {
-	core init timer terminal_crosslink
+	core init timer terminal_crosslink vfs
 	test-libc_counter-source test-libc_counter-sink
 	ld.lib.so libc.lib.so libm.lib.so
 }
