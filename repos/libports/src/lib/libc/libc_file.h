@@ -1,11 +1,12 @@
 /*
  * \brief  File-operation utilities
  * \author Christian Helmuth
+ * \author Emery Hemingway
  * \date   2015-06-30
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -71,6 +72,5 @@ static inline Libc::File_descriptor *libc_fd_to_fd(int libc_fd, const char *func
 
 #define FNAME_FUNC_WRAPPER(func_name, path, ...) \
 	FNAME_FUNC_WRAPPER_GENERIC(return, func_name, path, ##__VA_ARGS__ )
-
 
 #endif /* _LIBC_FILE_H_ */

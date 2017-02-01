@@ -470,6 +470,8 @@ class Vfs::Rump_file_system : public File_system
 			return READ_OK;
 		}
 
+		bool read_ready(Vfs_handle *) override { return true; }
+
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
 		{
 			Rump_vfs_handle *handle =
@@ -525,7 +527,8 @@ class Rump_factory : public Vfs::File_system_factory
 
 		Vfs::File_system *create(Genode::Env       &env,
 		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node   config) override
+		                         Genode::Xml_node   config,
+		                         Vfs::Io_response_handler &) override
 		{
 			return new (alloc) Vfs::Rump_file_system(config);
 		}
@@ -538,10 +541,11 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 	{
 		Vfs::File_system *create(Genode::Env &env,
 		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node node) override
+		                         Genode::Xml_node node,
+		                         Vfs::Io_response_handler &io_handler) override
 		{
 			static Rump_factory factory(env, alloc);
-			return factory.create(env, alloc, node);
+			return factory.create(env, alloc, node, io_handler);
 		}
 	};
 

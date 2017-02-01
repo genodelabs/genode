@@ -2,11 +2,13 @@
  * \brief  libc file operations
  * \author Christian Prochaska
  * \author Norman Feske
+ * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2010-01-21
  */
 
 /*
- * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2010-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -216,8 +218,10 @@ extern "C" int chdir(const char *path)
 }
 
 
-extern "C" int _close(int libc_fd) {
-	FD_FUNC_WRAPPER(close, libc_fd); }
+extern "C" int _close(int libc_fd)
+{
+	FD_FUNC_WRAPPER(close, libc_fd);
+}
 
 
 extern "C" int close(int libc_fd) { return _close(libc_fd); }
@@ -538,8 +542,10 @@ extern "C" int pipe(int pipefd[2])
 }
 
 
-extern "C" ssize_t _read(int libc_fd, void *buf, ::size_t count) {
-	FD_FUNC_WRAPPER(read, libc_fd, buf, count); }
+extern "C" ssize_t _read(int libc_fd, void *buf, ::size_t count)
+{
+	FD_FUNC_WRAPPER(read, libc_fd, buf, count);
+}
 
 
 extern "C" ssize_t read(int libc_fd, void *buf, ::size_t count)

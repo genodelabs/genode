@@ -98,6 +98,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 			return READ_OK;
 		}
+
+		bool read_ready(Vfs_handle *) override { return true; }
 };
 
 #endif /* _INCLUDE__VFS__RTC_FILE_SYSTEM_H_ */

@@ -98,6 +98,8 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 
 			return READ_OK;
 		}
+
+		bool read_ready(Vfs::Vfs_handle *) override { return true; }
 };
 
 #endif /* _JITTERENTROPY_FILE_SYSTEM_H_ */

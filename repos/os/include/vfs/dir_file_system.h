@@ -1,11 +1,13 @@
 /*
  * \brief  Directory file system
  * \author Norman Feske
+ * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2012-04-23
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -600,6 +602,14 @@ class Vfs::Dir_file_system : public File_system
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_ERR_NO_PERM;
+		}
+
+		bool read_ready(Vfs_handle *handle) override
+		{
+			if (&handle->fs() == this)
+				return true;
+
+			return handle->fs().read_ready(handle);
 		}
 };
 

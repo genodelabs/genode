@@ -96,6 +96,8 @@ class Vfs::Inline_file_system : public Single_file_system
 			out_count = num_bytes;
 			return READ_OK;
 		}
+
+		bool read_ready(Vfs_handle *) override { return true; }
 };
 
 #endif /* _INCLUDE__VFS__INLINE_FILE_SYSTEM_H_ */

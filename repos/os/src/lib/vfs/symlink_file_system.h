@@ -82,6 +82,8 @@ class Vfs::Symlink_file_system : public Single_file_system
 		Read_result read(Vfs_handle *, char *, file_size, file_size &) override {
 			return READ_ERR_INVALID; }
 
+		bool read_ready(Vfs_handle *) override { return false; }
+
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override {
 			return FTRUNCATE_ERR_NO_PERM; }
 };

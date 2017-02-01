@@ -101,6 +101,11 @@ class Vfs::Terminal_file_system : public Single_file_system
 			return _read(vfs_handle, dst, count, out_count);
 		}
 
+		bool read_ready(Vfs_handle *) override
+		{
+			return _terminal.avail();
+		}
+
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
 		{
 			return FTRUNCATE_OK;

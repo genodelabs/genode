@@ -53,6 +53,8 @@ struct Vfs::Null_file_system : Single_file_system
 		return READ_OK;
 	}
 
+	bool read_ready(Vfs_handle *) override { return false; }
+
 	Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
 	{
 		return FTRUNCATE_OK;

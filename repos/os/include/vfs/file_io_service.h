@@ -76,6 +76,11 @@ struct Vfs::File_io_service
 	                                  file_size &out_count)
 	{ return read(vfs_handle, dst, count, out_count); }
 
+	/**
+	 * Return true if the handle has readable data
+	 */
+	virtual bool read_ready(Vfs_handle *) = 0;
+
 
 	/***************
 	 ** Ftruncate **

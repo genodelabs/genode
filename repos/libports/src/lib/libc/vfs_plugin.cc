@@ -1,11 +1,13 @@
 /*
- * \brief   Libc plugin for using a process-local virtual file system
- * \author  Norman Feske
- * \date    2014-04-09
+ * \brief  Libc plugin for using a process-local virtual file system
+ * \author Norman Feske
+ * \author Christian Helmuth
+ * \author Emery Hemingway
+ * \date   2014-04-09
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -36,7 +38,7 @@
 #include <vfs_plugin.h>
 
 /* libc-internal includes */
-#include <libc_mem_alloc.h>
+#include "libc_mem_alloc.h"
 #include "libc_errno.h"
 #include "task.h"
 
@@ -724,4 +726,73 @@ int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
 	Libc::mem_alloc()->free(addr);
 	return 0;
+}
+
+
+bool Libc::Vfs_plugin::supports_select(int nfds,
+                                       fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+                                       struct timeval *timeout)
+{
+	/* return true if any file descriptor (which is set) belongs to the VFS */
+	for (int fd = 0; fd < nfds; ++fd) {
+
+		if (FD_ISSET(fd, readfds) || FD_ISSET(fd, writefds) || FD_ISSET(fd, exceptfds)) {
+
+			Libc::File_descriptor *fdo =
+				Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+
+			if (fdo && (fdo->plugin == this))
+				return true;
+		}
+	}
+	return false;
+}
+
+
+int Libc::Vfs_plugin::select(int nfds,
+                             fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+                             struct timeval *timeout)
+{
+	int nready = 0;
+
+	fd_set const in_readfds  = *readfds;
+	fd_set const in_writefds = *writefds;
+	/* XXX exceptfds not supported */
+
+	/* clear fd sets */
+	FD_ZERO(readfds);
+	FD_ZERO(writefds);
+	FD_ZERO(exceptfds);
+
+	for (int fd = 0; fd < nfds; ++fd) {
+
+		Libc::File_descriptor *fdo =
+			Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+
+		/* handle only fds that belong to this plugin */
+		if (!fdo || (fdo->plugin != this))
+			continue;
+
+		Vfs::Vfs_handle *handle = vfs_handle(fdo);
+		if (!handle) continue;
+
+		if (FD_ISSET(fd, &in_readfds)) {
+			if (handle->fs().read_ready(handle)) {
+				FD_SET(fd, readfds);
+				++nready;
+			} else {
+//				handle->fs().notify_read_ready(handle);
+			}
+		}
+
+		if (FD_ISSET(fd, &in_writefds)) {
+			if (true /* XXX always writeable */) {
+				FD_SET(fd, writefds);
+				++nready;
+			}
+		}
+
+		/* XXX exceptfds not supported */
+	}
+	return nready;
 }
