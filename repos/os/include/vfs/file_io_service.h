@@ -16,6 +16,8 @@
 #ifndef _INCLUDE__VFS__FILE_IO_SERVICE_H_
 #define _INCLUDE__VFS__FILE_IO_SERVICE_H_
 
+#include <vfs/vfs_handle.h>
+
 namespace Vfs {
 	class Vfs_handle;
 	struct Io_response_handler;
@@ -25,7 +27,7 @@ namespace Vfs {
 
 struct Vfs::Io_response_handler
 {
-	virtual void handle_io_response() = 0;
+	virtual void handle_io_response(Vfs::Vfs_handle::Context *context) = 0;
 };
 
 
@@ -80,6 +82,16 @@ struct Vfs::File_io_service
 	 * Return true if the handle has readable data
 	 */
 	virtual bool read_ready(Vfs_handle *) = 0;
+
+	/**
+	 * Explicitly indicate interest in read-ready for a handle
+	 *
+	 * For example, the file-system-session plugin can then send READ_READY
+	 * packets to the server.
+	 *
+	 * \return false if notification setup failed
+	 */
+	virtual bool notify_read_ready(Vfs_handle *) { return true; }
 
 
 	/***************

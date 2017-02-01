@@ -214,7 +214,7 @@ struct Noux::Main
 
 	struct Io_response_handler : Vfs::Io_response_handler
 	{
-		void handle_io_response() override { Genode::log(__func__, " called"); }
+		void handle_io_response(Vfs::Vfs_handle::Context *) override { }
 	} _io_response_handler;
 
 	Vfs::Dir_file_system _root_dir { _env, _heap, _config.xml().sub_node("fstab"),

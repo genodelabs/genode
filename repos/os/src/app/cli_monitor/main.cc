@@ -151,7 +151,7 @@ struct Cli_monitor::Main
 
 	struct Io_response_handler : Vfs::Io_response_handler
 	{
-		void handle_io_response() { }
+		void handle_io_response(Vfs::Vfs_handle::Context *) override { }
 	} io_response_handler;
 
 	/* initialize virtual file system */

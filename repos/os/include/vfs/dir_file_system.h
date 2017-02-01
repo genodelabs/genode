@@ -424,9 +424,9 @@ class Vfs::Dir_file_system : public File_system
 		}
 
 		Open_result open(char const  *path,
-	                     unsigned     mode,
-	                     Vfs_handle **out_handle,
-	                     Allocator   &alloc) override
+		                 unsigned     mode,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
 			/*
 			 * If 'path' is a directory, we create a 'Vfs_handle'
@@ -630,6 +630,14 @@ class Vfs::Dir_file_system : public File_system
 				return true;
 
 			return handle->fs().read_ready(handle);
+		}
+
+		bool notify_read_ready(Vfs_handle *handle) override
+		{
+			if (&handle->fs() == this)
+				return true;
+
+			return handle->fs().notify_read_ready(handle);
 		}
 };
 

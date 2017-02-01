@@ -781,7 +781,8 @@ int Libc::Vfs_plugin::select(int nfds,
 				FD_SET(fd, readfds);
 				++nready;
 			} else {
-//				handle->fs().notify_read_ready(handle);
+				while (!handle->fs().notify_read_ready(handle))
+					Libc::suspend();
 			}
 		}
 

@@ -304,10 +304,17 @@ struct Libc::Pthreads
 };
 
 
+extern void (*libc_select_notify)();
+
 struct Libc::Io_response_handler : Vfs::Io_response_handler
 {
-	void handle_io_response() override
+	void handle_io_response(Vfs::Vfs_handle::Context *) override
 	{
+		/* some contexts may have been deblocked from select() */
+		if (libc_select_notify)
+			libc_select_notify();
+
+		/* resume all as any context may have been deblocked from blocking I/O */
 		Libc::resume_all();
 	}
 };

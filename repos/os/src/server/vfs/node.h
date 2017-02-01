@@ -1,11 +1,12 @@
 /*
  * \brief  Internal nodes of VFS server
  * \author Emery Hemingway
+ * \author Christian Helmuth
  * \date   2016-03-29
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -34,6 +35,11 @@ namespace Vfs_server {
 	struct Symlink;
 
 	typedef Genode::Id_space<Node> Node_space;
+
+	struct File_io_handler
+	{
+		virtual void handle_file_io(File &file) = 0;
+	};
 
 	/* Vfs::MAX_PATH is shorter than File_system::MAX_PATH */
 	enum { MAX_PATH_LEN = Vfs::MAX_PATH_LEN };
@@ -70,7 +76,8 @@ namespace Vfs_server {
 }
 
 
-struct Vfs_server::Node : File_system::Node_base, Node_space::Element
+struct Vfs_server::Node : File_system::Node_base, Node_space::Element,
+                          Vfs::Vfs_handle::Context
 {
 	Path const _path;
 	Mode const  mode;
@@ -87,7 +94,8 @@ struct Vfs_server::Node : File_system::Node_base, Node_space::Element
 
 	virtual size_t read(Vfs::File_system&, char*, size_t, seek_off_t) { return 0; }
 	virtual size_t write(Vfs::File_system&, char const*, size_t, seek_off_t) { return 0; }
-
+	virtual bool read_ready() { return false; }
+	virtual void handle_io_response() { }
 };
 
 struct Vfs_server::Symlink : Node
@@ -127,6 +135,8 @@ struct Vfs_server::Symlink : Node
 		notify_listeners();
 		return target.length();
 	}
+
+	bool read_ready() override { return true; }
 };
 
 
@@ -134,24 +144,32 @@ class Vfs_server::File : public Node
 {
 	private:
 
+		File_io_handler &_file_io_handler;
+
 		Vfs::Vfs_handle *_handle;
 		char const      *_leaf_path; /* offset pointer to Node::_path */
 
 	public:
 
-		File(Node_space &space,
+		bool notify_read_ready = false;
+
+		File(Node_space        &space,
 		     Vfs::File_system  &vfs,
 		     Genode::Allocator &alloc,
+		     File_io_handler   &file_io_handler,
 		     char       const  *file_path,
 		     Mode               fs_mode,
 		     bool               create)
-		: Node(space, file_path, fs_mode)
+		:
+			Node(space, file_path, fs_mode),
+			_file_io_handler(file_io_handler)
 		{
 			unsigned vfs_mode =
 				(fs_mode-1) | (create ? Vfs::Directory_service::OPEN_MODE_CREATE : 0);
 
 			assert_open(vfs.open(file_path, vfs_mode, &_handle, alloc));
-			_leaf_path = vfs.leaf_path(path());
+			_leaf_path       = vfs.leaf_path(path());
+			_handle->context = this;
 		}
 
 		~File() { _handle->ds().close(_handle); }
@@ -167,7 +185,8 @@ class Vfs_server::File : public Node
 		 ** Node interface **
 		 ********************/
 
-		size_t read(Vfs::File_system&, char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(Vfs::File_system&, char *dst, size_t len,
+		            seek_off_t seek_offset) override
 		{
 			Vfs::file_size res = 0;
 
@@ -185,7 +204,8 @@ class Vfs_server::File : public Node
 			return res;
 		}
 
-		size_t write(Vfs::File_system&, char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(Vfs::File_system&, char const *src, size_t len,
+		             seek_off_t seek_offset) override
 		{
 			Vfs::file_size res = 0;
 
@@ -204,6 +224,13 @@ class Vfs_server::File : public Node
 				mark_as_updated();
 			return res;
 		}
+
+		bool read_ready() override { return _handle->fs().read_ready(_handle); }
+
+		void handle_io_response() override
+		{
+			_file_io_handler.handle_file_io(*this);
+		}
 };
 
 
@@ -219,6 +246,7 @@ struct Vfs_server::Directory : Node
 	Node_space::Id file(Node_space        &space,
 	                    Vfs::File_system  &vfs,
 	                    Genode::Allocator &alloc,
+	                    File_io_handler   &file_io_handler,
 	                    char        const *file_path,
 	                    Mode               mode,
 	                    bool               create)
@@ -227,8 +255,11 @@ struct Vfs_server::Directory : Node
 		char const *path_str = subpath.base();
 
 		File *file;
-		try { file = new (alloc) File(space, vfs, alloc, path_str, mode, create); }
-		catch (Out_of_memory) { throw Out_of_metadata(); }
+		try {
+			file = new (alloc)
+			       File(space, vfs, alloc, file_io_handler, path_str, mode, create);
+		} catch (Out_of_memory) { throw Out_of_metadata(); }
+
 		if (create)
 			mark_as_updated();
 		return file->id();
@@ -297,6 +328,8 @@ struct Vfs_server::Directory : Node
 		}
 		return len - remains;
 	}
+
+	bool read_ready() override { return true; }
 };
 
 #endif /* _VFS__NODE_H_ */

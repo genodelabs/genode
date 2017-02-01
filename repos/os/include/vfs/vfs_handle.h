@@ -14,10 +14,12 @@
 #ifndef _INCLUDE__VFS__VFS_HANDLE_H_
 #define _INCLUDE__VFS__VFS_HANDLE_H_
 
-#include <vfs/file_io_service.h>
 #include <vfs/directory_service.h>
 
-namespace Vfs { class Vfs_handle; }
+namespace Vfs{
+	class Vfs_handle;
+	class File_io_service;
+}
 
 
 class Vfs::Vfs_handle
@@ -31,6 +33,13 @@ class Vfs::Vfs_handle
 		file_size          _seek = 0;
 
 	public:
+
+		/**
+		 * Opaque handle context
+		 */
+		struct Context { };
+
+		Context *context = nullptr;
 
 		struct Guard
 		{
