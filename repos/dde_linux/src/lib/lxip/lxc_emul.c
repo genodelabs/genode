@@ -514,6 +514,30 @@ int lxip_init(char const *address_config)
 }
 
 
+static void lxip_configure(char const *address_config)
+{
+	__ip_auto_config_setup((char *)address_config);
+	late_ip_auto_config();
+}
+
+
+void lxip_configure_static(char const *addr, char const *netmask,
+                           char const *gateway, char const *nameserver)
+{
+	char address_config[128];
+	snprintf(address_config, sizeof(address_config),
+	         "%s::%s:%s:::off:%s",
+	         addr, gateway, netmask, nameserver);
+	lxip_configure(address_config);
+}
+
+
+void lxip_configure_dhcp()
+{
+	lxip_configure("dhcp");
+}
+
+
 /******************
  ** Lxip private **
  ******************/
