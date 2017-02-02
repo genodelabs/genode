@@ -18,10 +18,23 @@
 
 .section ".text.crt0"
 
-	/* magic multi-boot header to make GRUB happy */
+	/* magic multi-boot 1 header */
 	.long 0x1badb002
 	.long 0x0
 	.long 0xe4524ffe
+
+	.long 0x0 /* align to 8 byte for mbi2 */
+	__mbi2_start:
+	/* magic multi-boot 2 header */
+	.long   0xe85250d6
+	.long   0x0
+	.long   (__mbi2_end - __mbi2_start)
+	.long  -(0xe85250d6 + (__mbi2_end - __mbi2_start))
+	/* end tag - type, flags, size */
+	.word   0x0
+	.word   0x0
+	.long   0x8
+	__mbi2_end:
 
 	/**********************************
 	 ** Startup code for primary CPU **
@@ -30,6 +43,9 @@
 .code32
 	.global _start
 	_start:
+
+	/* preserve multiboot magic value register, used below later */
+	movl %eax, %esi
 
 	/**
 	 * zero-fill BSS segment
@@ -91,6 +107,9 @@
 	leaq _stack_high@GOTPCREL(%rip),%rax
 	movq (%rax), %rsp
 
+	movq __initial_ax@GOTPCREL(%rip),%rax
+	movq %rsi, (%rax)
+
 	movq __initial_bx@GOTPCREL(%rip),%rax
 	movq %rbx, (%rax)
 
@@ -113,6 +132,9 @@
 	.p2align 8
 	.space 32 * 1024
 	_stack_high:
+	.globl __initial_ax
+	__initial_ax:
+	.space 8
 	.globl __initial_bx
 	__initial_bx:
 	.space 8

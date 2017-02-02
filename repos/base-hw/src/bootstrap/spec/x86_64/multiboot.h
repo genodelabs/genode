@@ -33,6 +33,10 @@ class Genode::Multiboot_info : Mmio
 
 	public:
 
+		enum {
+			MAGIC = 0x2badb002,
+		};
+
 		Multiboot_info(addr_t mbi) : Mmio(mbi) { }
 		Multiboot_info(addr_t mbi, bool strip);
 
