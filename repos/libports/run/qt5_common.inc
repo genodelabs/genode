@@ -53,7 +53,7 @@ proc qt5_start_nodes { feature_arg } {
 
 	append start_nodes {
 		<start name="nitpicker">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Nitpicker"/></provides>
 			<route> }
 	append_if [use_fb_sdl feature] start_nodes { 
@@ -115,8 +115,11 @@ proc qt5_start_nodes { feature_arg } {
 				<policy label_prefix="layouter"  role="layouter"/>
 			</config>
 			<route>
+				<service name="ROM" label="focus">          <child name="report_rom"/> </service>
+				<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
+				<service name="Report">                     <child name="report_rom"/> </service>
 				<any-service>
-					<child name="nitpicker"/> <child name="report_rom"/> <parent/> <any-child/>
+					<child name="nitpicker"/> <parent/> <any-child/>
 				</any-service>
 			</route>
 		</start>
@@ -125,8 +128,13 @@ proc qt5_start_nodes { feature_arg } {
 			<binary name="floating_window_layouter"/>
 			<resource name="RAM" quantum="4M"/>
 			<route>
+				<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
+				<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
+				<service name="ROM" label="hover">             <child name="report_rom"/> </service>
+				<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
+				<service name="Report">                        <child name="report_rom"/> </service>
 				<any-service>
-					<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+					<child name="wm"/> <parent/> <any-child/>
 				</any-service>
 			</route>
 		</start>
@@ -135,8 +143,11 @@ proc qt5_start_nodes { feature_arg } {
 			<binary name="decorator"/>
 			<resource name="RAM" quantum="12M"/>
 			<route>
+				<service name="ROM" label="window_layout"> <child name="report_rom"/> </service>
+				<service name="ROM" label="pointer">       <child name="report_rom"/> </service>
+				<service name="Report">                    <child name="report_rom"/> </service>
 				<any-service>
-					<child name="wm"/> <child name="report_rom"/> <parent/> <any-child/>
+					<child name="wm"/> <parent/> <any-child/>
 				</any-service>
 			</route>
 		</start>

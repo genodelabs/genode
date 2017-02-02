@@ -89,26 +89,24 @@ append config {
 	<start name="textedit">
 		<resource name="RAM" quantum="70M"/>
 		<config xpos="3" ypos="0" width="500" height="710">
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_textedit.tar"/>
-					<dir name="fs">	<fs/> </dir>
-				</vfs>
-			</libc>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_textedit.tar"/>
+				<dir name="fs">	<fs/> </dir>
+			</vfs>
 		</config>
 	</start>
 	<start name="textedit2">
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
 		<config xpos="512" ypos="0" width="500" height="710">
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_textedit.tar"/>
-					<dir name="fs">	<fs/> </dir>
-				</vfs>
-			</libc>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_textedit.tar"/>
+				<dir name="fs">	<fs/> </dir>
+			</vfs>
 		</config>
 	</start>
 </config>

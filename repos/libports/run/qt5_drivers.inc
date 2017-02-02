@@ -187,7 +187,11 @@ proc drivers_start_nodes { feature_arg } {
 		append start_nodes {
 				</config>
 				<route>
-					<service name="LOG"> <parent/> </service>}
+					<service name="LOG"> <parent/> </service>
+					<service name="RAM"> <parent/> </service>
+					<service name="CPU"> <parent/> </service>
+					<service name="ROM"> <parent/> </service>
+					<service name="PD">  <parent/> </service>}
 		append_if [use_ps2_drv feature] start_nodes {
 					<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>}
 		append_if [use_usb_drv feature] start_nodes {
