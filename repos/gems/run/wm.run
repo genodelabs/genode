@@ -99,7 +99,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
@@ -145,6 +145,7 @@ append config {
 		<route>
 			<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
 			<service name="ROM" label="focus">          <child name="report_rom"/> </service>
+			<service name="Report">                     <child name="report_rom"/> </service>
 			<any-service>
 				<child name="nitpicker"/> <parent/> <any-child/>
 			</any-service>
@@ -158,6 +159,7 @@ append config {
 			<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
 			<service name="ROM" label="hover">             <child name="report_rom"/> </service>
 			<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
+			<service name="Report">                        <child name="report_rom"/> </service>
 			<any-service>
 				<child name="wm"/> <parent/> <any-child/>
 			</any-service>
@@ -174,6 +176,7 @@ append config {
 				<child name="report_rom"/> </service>
 			<service name="ROM" label="pointer">
 				<child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service>
 				<child name="wm"/> <parent/> <any-child/>
 			</any-service>
