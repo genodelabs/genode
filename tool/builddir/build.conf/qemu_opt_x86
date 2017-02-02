@@ -16,5 +16,5 @@ QEMU_OPT += -display sdl
 QEMU_OPT(nova) += -cpu core2duo
 
 # add kernel-specific Qemu arguments
-QEMU_OPT += $(QEMU_OPT(${KERNEL})}
+QEMU_OPT += $(QEMU_OPT(${KERNEL}))
 

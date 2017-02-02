@@ -10,5 +10,5 @@
 QEMU_OPT += -display sdl
 
 # add kernel-specific Qemu arguments
-QEMU_OPT += $(QEMU_OPT(${KERNEL})}
+QEMU_OPT += $(QEMU_OPT(${KERNEL}))
 
