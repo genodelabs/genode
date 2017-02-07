@@ -26,6 +26,7 @@
 
 /* libc includes */
 #include <libc/component.h>
+#include <libc-plugin/plugin_registry.h>
 
 /* libc-internal includes */
 #include <internal/call_func.h>
@@ -655,6 +656,12 @@ void Component::construct(Genode::Env &env)
 	/* pass Genode::Env to libc subsystems that depend on it */
 	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
+
+	/* initialize plugins that require Genode::Env */
+	auto init_plugin = [&] (Libc::Plugin &plugin) {
+		plugin.init(env);
+	};
+	Libc::plugin_registry()->for_each_plugin(init_plugin);
 
 	kernel = unmanaged_singleton<Libc::Kernel>(env);
 	kernel->run();

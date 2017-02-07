@@ -46,6 +46,15 @@ struct Libc::Plugin_registry : List<Plugin>
 	Plugin *get_plugin_for_stat(const char *path, struct stat *);
 	Plugin *get_plugin_for_symlink(const char *oldpath, const char *newpath);
 	Plugin *get_plugin_for_unlink(const char *path);
+
+	template <typename FUNC>
+	void for_each_plugin(FUNC const &fn) const
+	{
+		for (Plugin *plugin = plugin_registry()->first(); plugin;
+		     plugin = plugin->next()) {
+			fn(*plugin);
+		}
+	}
 };
 
 #endif /* _LIBC_PLUGIN__PLUGIN_REGISTRY_H_ */

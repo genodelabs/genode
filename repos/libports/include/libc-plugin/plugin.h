@@ -23,11 +23,14 @@
 #include <sys/stat.h>
 #include <sys/mount.h>  /* for 'struct statfs' */
 
+namespace Genode { class Env; }
+
 namespace Libc {
 
 	using namespace Genode;
 	
 	class File_descriptor;
+
 	
 	typedef Genode::Path<PATH_MAX> Absolute_path;
 
@@ -69,6 +72,11 @@ namespace Libc {
 			virtual bool supports_symlink(const char *oldpath, const char *newpath);
 			virtual bool supports_unlink(const char *path);
 			virtual bool supports_mmap();
+
+			/*
+			 * Should be overwritten for plugins that require the Genode environment
+			 */
+			virtual void init(Genode::Env &env) { }
 
 			virtual File_descriptor *accept(File_descriptor *,
 			                                struct ::sockaddr *addr,
