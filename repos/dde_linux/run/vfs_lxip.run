@@ -1,0 +1,108 @@
+assert_spec linux
+
+set build_components {
+	core init
+	drivers/timer drivers/nic
+	server/tcp_terminal
+	test/terminal_echo
+	lib/vfs/lxip
+	test/vfs_lxip
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+<!--
+	<start name="tcp_terminal">
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config ld_verbose="yes">
+			<policy label="test-terminal_echo" port="8888"/>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<dir name="socket">
+						<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
+					</dir>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+-->
+	<!-- use telnet on the client to connect to the test component -->
+	<start name="test-vfs_lxip">
+		<resource name="RAM" quantum="48M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<dir name="socket">
+						<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
+					</dir>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+<!--
+	<start name="test-terminal_echo">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+-->
+}
+
+append_platform_drv_config
+
+append config {
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer
+	nic_drv
+	ld.lib.so libc.lib.so libc_lock_pipe.lib.so
+	libm.lib.so
+	vfs_lxip.lib.so lxip.lib.so
+	tcp_terminal
+	test-terminal_echo
+	test-vfs_lxip
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+run_genode_until forever
+
+# vi: set ft=tcl :

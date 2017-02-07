@@ -1,0 +1,103 @@
+set build_components {
+	core init
+	drivers/nic
+	drivers/timer
+	lib/vfs/lxip
+	server/vfs
+	server/dynamic_rom
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="socket_fs.config"><inline description="static">
+			<config>
+				<vfs>
+					<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
+				</vfs>
+			</config>
+			</inline>
+			<sleep milliseconds="2500"/> <inline description="dynamic">
+			<config>
+				<vfs>
+					<lxip dhcp="yes"/>
+				</vfs>
+			</config>
+			</inline>
+			<sleep milliseconds="2500"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="socket_fs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="File_system"/> </provides>
+		<configfile name="socket_fs.config"/>
+		<route>
+			<service name="ROM" label="socket_fs.config"> <child name="dynamic_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+}
+
+append_platform_drv_config
+
+append config {
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer nic_drv vfs dynamic_rom
+	ld.lib.so vfs_lxip.lib.so lxip.lib.so
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+puts "#################################################################"
+puts "## run simultaneous ping to 10.0.2.55 and <dynamic IP address> ##"
+puts "#################################################################"
+sleep 1
+
+append qemu_args " -nographic -net nic,model=e1000 -net tap,ifname=tap0,downscript=no,script=no "
+
+run_genode_until forever
+
+# vi: set ft=tcl :
