@@ -140,12 +140,18 @@ Genode::size_t Libc::Mem_alloc_impl::size_at(void const *addr) const
 static Libc::Mem_alloc *_libc_mem_alloc;
 
 
+static void _init_mem_alloc(Genode::Region_map &rm, Genode::Ram_session &ram)
+{
+	static Libc::Mem_alloc_impl inst(rm, ram);
+	_libc_mem_alloc = &inst;
+}
+
+
 namespace Libc {
 
 	void init_mem_alloc(Genode::Env &env)
 	{
-		static Libc::Mem_alloc_impl inst(env.rm(), env.ram());
-		_libc_mem_alloc = &inst;
+		_init_mem_alloc(env.rm(), env.ram());
 	}
 }
 
@@ -154,9 +160,8 @@ Libc::Mem_alloc *Libc::mem_alloc()
 {
 	if (!_libc_mem_alloc) {
 		error("attempt to use 'Libc::mem_alloc' before call of 'init_mem_alloc'");
-		Genode::sleep_forever();
+		_init_mem_alloc(*env_deprecated()->rm_session(), *env_deprecated()->ram_session());
 	}
 	return _libc_mem_alloc;
 }
-
 
