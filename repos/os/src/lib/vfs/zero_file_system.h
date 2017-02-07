@@ -30,8 +30,8 @@ struct Vfs::Zero_file_system : Single_file_system
 		Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
 	{ }
 
-	static char const *name() { return "zero"; }
-
+	static char const *name()   { return "zero"; }
+	char const *type() override { return "zero"; }
 
 	/********************************
 	 ** File I/O service interface **

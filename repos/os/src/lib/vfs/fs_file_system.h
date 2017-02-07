@@ -581,7 +581,8 @@ class Vfs::Fs_file_system : public File_system
 		 ** File_system interface **
 		 ***************************/
 
-		static char const *name() { return "fs"; }
+		static char const *name()   { return "fs"; }
+		char const *type() override { return "fs"; }
 
 		void sync(char const *path) override
 		{

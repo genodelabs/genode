@@ -358,7 +358,6 @@ class Vfs::Tar_file_system : public File_system
 			_for_each_tar_record_do(Add_node_action(_alloc, _root_node));
 		}
 
-
 		/*********************************
 		 ** Directory-service interface **
 		 *********************************/
@@ -574,7 +573,8 @@ class Vfs::Tar_file_system : public File_system
 		 ** File_system interface **
 		 ***************************/
 
-		static char const *name() { return "tar"; }
+		static char const *name()   { return "tar"; }
+		char const *type() override { return "tar"; }
 
 
 		/********************************

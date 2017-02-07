@@ -172,7 +172,8 @@ class Vfs::Rump_file_system : public File_system
 		 ** File_system interface **
 		 ***************************/
 
-		static char const *name() { return "rump"; }
+		static char const *name()   { return "rump"; }
+		char const *type() override { return "rump"; }
 
 
 		/*********************************

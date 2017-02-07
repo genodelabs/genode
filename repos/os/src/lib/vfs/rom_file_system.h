@@ -58,8 +58,8 @@ class Vfs::Rom_file_system : public Single_file_system
 			_rom(env, _label.string)
 		{ }
 
-		static char const *name() { return "rom"; }
-
+		static char const *name()   { return "rom"; }
+		char const *type() override { return "rom"; }
 
 		/*********************************
 		 ** Directory-service interface **

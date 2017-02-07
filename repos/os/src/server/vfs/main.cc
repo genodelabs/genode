@@ -500,6 +500,15 @@ class Vfs_server::Root :
 			_env, _heap, vfs_config(), _io_response_handler,
 			Vfs::global_file_system_factory() };
 
+		Genode::Signal_handler<Root> _config_dispatcher {
+			_env.ep(), *this, &Root::_config_update };
+
+		void _config_update()
+		{
+			_config_rom.update();
+			_vfs.apply_config(vfs_config());
+		}
+
 	protected:
 
 		Session_component *_create_session(const char *args) override
@@ -603,6 +612,7 @@ class Vfs_server::Root :
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env)
 		{
+			_config_rom.sigh(_config_dispatcher);
 			env.parent().announce(env.ep().manage(*this));
 		}
 };

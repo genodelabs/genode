@@ -67,8 +67,8 @@ class Vfs::Terminal_file_system : public Single_file_system
 			_terminal.read_avail_sigh(_read_avail_handler);
 		}
 
-		static const char *name() { return "terminal"; }
-
+		static const char *name()   { return "terminal"; }
+		char const *type() override { return "terminal"; }
 
 		/********************************
 		 ** File I/O service interface **

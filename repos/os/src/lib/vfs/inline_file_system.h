@@ -41,8 +41,8 @@ class Vfs::Inline_file_system : public Single_file_system
 			_size(config.content_size())
 		{ }
 
-		static char const *name() { return "inline"; }
-
+		static char const *name()   { return "inline"; }
+		char const *type() override { return "inline"; }
 
 		/********************************
 		 ** Directory service interface **

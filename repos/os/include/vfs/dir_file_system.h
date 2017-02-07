@@ -562,7 +562,8 @@ class Vfs::Dir_file_system : public File_system
 		 ** File_system interface **
 		 ***************************/
 
-		char const *name() const { return "dir"; }
+		char const *name() const    { return "dir"; }
+		char const *type() override { return "dir"; }
 
 		/**
 		 * Synchronize all file systems
@@ -581,6 +582,25 @@ class Vfs::Dir_file_system : public File_system
 
 			for (File_system *fs = _first_file_system; fs; fs = fs->next)
 				fs->sync(path);
+		}
+
+		void apply_config(Genode::Xml_node const &node) override
+		{
+			using namespace Genode;
+
+			File_system *curr = _first_file_system;
+			for (unsigned i = 0; i < node.num_sub_nodes(); i++, curr = curr->next) {
+				Xml_node const &sub_node = node.sub_node(i);
+
+				/* check if type of XML node matches current file-system type */
+				if (sub_node.has_type(curr->type()) == false) {
+					Genode::error("VFS config update failed (node type '",
+					               sub_node.type(), "' != fs type '", curr->type(),"')");
+					return;
+				}
+
+				curr->apply_config(node.sub_node(i));
+			}
 		}
 
 

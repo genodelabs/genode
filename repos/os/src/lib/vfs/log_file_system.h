@@ -58,8 +58,8 @@ class Vfs::Log_file_system : public Single_file_system
 			_log(_log_session(env))
 		{ }
 
-		static const char *name() { return "log"; }
-
+		static const char *name()   { return "log"; }
+		char const *type() override { return "log"; }
 
 		/********************************
 		 ** File I/O service interface **

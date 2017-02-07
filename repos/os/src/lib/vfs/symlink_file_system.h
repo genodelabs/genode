@@ -40,8 +40,8 @@ class Vfs::Symlink_file_system : public Single_file_system
 			_target(config.attribute_value("target", Target()))
 		{ }
 
-		static char const *name() { return "symlink"; }
-
+		static char const *name()   { return "symlink"; }
+		char const *type() override { return "symlink"; }
 
 		/*********************************
 		 ** Directory-service interface **

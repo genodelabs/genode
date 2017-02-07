@@ -39,8 +39,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 			_rtc(env)
 		{ }
 
-		static char const *name() { return "rtc"; }
-
+		static char const *name()   { return "rtc"; }
+		char const *type() override { return "rtc"; }
 
 		/*********************************
 		 ** Directory-service interface **

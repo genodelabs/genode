@@ -148,8 +148,8 @@ class Vfs::Block_file_system : public Single_file_system
 			destroy(_alloc, _block_buffer);
 		}
 
-		static char const *name() { return "block"; }
-
+		static char const *name()   { return "block"; }
+		char const *type() override { return "block"; }
 
 		/*********************************
 		 ** Directory service interface **
