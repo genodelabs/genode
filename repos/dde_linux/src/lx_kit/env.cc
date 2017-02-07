@@ -25,7 +25,8 @@ Lx_kit::Env &Lx_kit::env()
 }
 
 
-void Lx_kit::construct_env(Genode::Env &env)
+Lx_kit::Env &Lx_kit::construct_env(Genode::Env &env)
 {
 	_env.construct(env);
+	return *_env;
 }

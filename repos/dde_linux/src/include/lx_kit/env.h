@@ -24,7 +24,7 @@ namespace Lx_kit {
 
 	Env &env();
 
-	void construct_env(Genode::Env &env);
+	Env &construct_env(Genode::Env &env);
 }
 
 class Lx_kit::Env
@@ -42,6 +42,8 @@ class Lx_kit::Env
 		Genode::Env                    &env()        { return _env; }
 		Genode::Heap                   &heap()       { return _heap; }
 		Genode::Attached_rom_dataspace &config_rom() { return _config; }
+		Genode::Ram_session            &ram()        { return _env.ram(); }
+		Genode::Region_map             &rm()         { return _env.rm(); }
 };
 
 #endif /* _LX_KIT__ENV_H_ */
