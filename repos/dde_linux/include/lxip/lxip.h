@@ -78,7 +78,18 @@ namespace Lxip {
 	};
 
 	enum Ioctl_cmd {
-		LINUX_FIONREAD = 0x541b /* == SIOCINQ */
+		LINUX_FIONREAD = 0x541b, /* == SIOCINQ */
+		LINUX_IFADDR   = 0x8915, /* == SIOCGIFADDR */
+	};
+
+	/*
+	 * Must match errno values from lx_emul.h
+	*/
+	enum Io_result {
+		LINUX_EAGAIN      = -35,
+		LINUX_EINPROGRESS = -36,
+		LINUX_EALREADY    = -37,
+		LINUX_EISCONN     = -56,
 	};
 }
 
