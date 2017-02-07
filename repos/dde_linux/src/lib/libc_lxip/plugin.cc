@@ -19,7 +19,9 @@
 #include <sys/ioctl.h>
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/env.h>
+#include <base/heap.h>
 #include <base/log.h>
 
 /* Libc plugin includes */
@@ -76,12 +78,34 @@ struct Plugin : Libc::Plugin
 	/**
 	 * Interface to LXIP stack
 	 */
-	struct Lxip::Socketcall &socketcall;
+	struct Socketcall
+	{
+		Genode::Heap      heap;
+		Lxip::Socketcall &socketcall;
+
+		Socketcall(Genode::Env &env, char const *address_config)
+		:  heap(env.ram(), env.rm()), socketcall(Lxip::init(env, address_config))
+		{ }
+	};
+
+	Genode::Constructible<Socketcall> socketconstruct;
+
+	Lxip::Socketcall &socketcall()
+	{
+		return socketconstruct->socketcall;
+	}
+
+	Genode::Heap &heap()
+	{
+		return socketconstruct->heap;
+	}
 
 	/**
 	 * Constructor
 	 */
-	Plugin(char const *address_config);
+	Plugin();
+
+	void init(Genode::Env &env) override;
 
 	bool supports_select(int nfds,
 	                     fd_set *readfds,
@@ -138,11 +162,71 @@ struct Plugin : Libc::Plugin
 };
 
 
-Plugin::Plugin(char const *address_config) : socketcall(Lxip::init(address_config))
+Plugin::Plugin()
 {
 	Genode::log("using the lxip libc plugin");
 }
 
+
+void Plugin::init(Genode::Env &env)
+{
+	char ip_addr_str[16] = {0};
+	char netmask_str[16] = {0};
+	char gateway_str[16] = {0};
+	char address_buf[128];
+	char const *address_config;
+
+	Genode::Attached_rom_dataspace config { env, "config"} ;
+
+	try {
+		Genode::Xml_node libc_node = config.xml().sub_node("libc");
+
+		try {
+			libc_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));
+		} catch(...) { }
+
+		try {
+			libc_node.attribute("netmask").value(netmask_str, sizeof(netmask_str));
+		} catch(...) { }
+
+		try {
+			libc_node.attribute("gateway").value(gateway_str, sizeof(gateway_str));
+		} catch(...) { }
+
+		/* either none or all 3 interface attributes must exist */
+		if ((Genode::strlen(ip_addr_str) != 0) ||
+		    (Genode::strlen(netmask_str) != 0) ||
+		    (Genode::strlen(gateway_str) != 0)) {
+			if (Genode::strlen(ip_addr_str) == 0) {
+				Genode::error("missing \"ip_addr\" attribute. Ignoring network interface config.");
+				throw Genode::Xml_node::Nonexistent_attribute();
+			} else if (Genode::strlen(netmask_str) == 0) {
+				Genode::error("missing \"netmask\" attribute. Ignoring network interface config.");
+				throw Genode::Xml_node::Nonexistent_attribute();
+			} else if (Genode::strlen(gateway_str) == 0) {
+				Genode::error("missing \"gateway\" attribute. Ignoring network interface config.");
+				throw Genode::Xml_node::Nonexistent_attribute();
+			}
+		} else
+			throw -1;
+
+		Genode::log("static network interface: ",
+		            "ip_addr=", Genode::Cstring(ip_addr_str), " "
+		            "netmask=", Genode::Cstring(netmask_str), " "
+		            "gateway=", Genode::Cstring(gateway_str));
+
+		Genode::snprintf(address_buf, sizeof(address_buf), "%s::%s:%s:::off",
+		                 ip_addr_str, gateway_str, netmask_str);
+		address_config = address_buf;
+	}
+	catch (...) {
+		Genode::log("Using DHCP for interface configuration.");
+		address_config = "dhcp";
+	}
+
+	Genode::log("Plugin::init() address config=", address_config);
+	socketconstruct.construct(env, address_config);
+};
 
 /* TODO shameful copied from lwip... generalize this */
 bool Plugin::supports_select(int             nfds,
@@ -184,7 +268,7 @@ Libc::File_descriptor *Plugin::accept(Libc::File_descriptor *sockfdo,
 {
 	Lxip::Handle handle;
 	
-	handle = socketcall.accept(context(sockfdo)->handle(), (void *)addr, addrlen);
+	handle = socketcall().accept(context(sockfdo)->handle(), (void *)addr, addrlen);
 	if (!handle.socket)
 		return 0;
 
@@ -193,7 +277,7 @@ Libc::File_descriptor *Plugin::accept(Libc::File_descriptor *sockfdo,
 		addr->sa_len    = *addrlen;
 	}
 
-	Plugin_context *context   = new (Genode::env()->heap()) Plugin_context(handle);
+	Plugin_context *context   = new (heap()) Plugin_context(handle);
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
 	return fd;
 }
@@ -209,7 +293,7 @@ int Plugin::bind(Libc::File_descriptor *sockfdo, const struct sockaddr *addr,
 		return -1;
 	}
 
-	errno = -socketcall.bind(context(sockfdo)->handle(), family, (void*)addr);
+	errno = -socketcall().bind(context(sockfdo)->handle(), family, (void*)addr);
 
 	return errno > 0 ? -1 : 0;
 }
@@ -217,10 +301,10 @@ int Plugin::bind(Libc::File_descriptor *sockfdo, const struct sockaddr *addr,
 
 int Plugin::close(Libc::File_descriptor *sockfdo)
 {
-	socketcall.close(context(sockfdo)->handle());
+	socketcall().close(context(sockfdo)->handle());
 
 	if (context(sockfdo))
-		Genode::destroy(Genode::env()->heap(), context(sockfdo));
+		Genode::destroy(heap(), context(sockfdo));
 
 	Libc::file_descriptor_allocator()->free(sockfdo);
 
@@ -239,7 +323,7 @@ int Plugin::connect(Libc::File_descriptor *sockfdo,
 		return -1;
 	}
 
-	errno = -socketcall.connect(context(sockfdo)->handle(), family, (void *)addr);
+	errno = -socketcall().connect(context(sockfdo)->handle(), family, (void *)addr);
 	return errno > 0 ? -1 : 0;
 }
 
@@ -277,7 +361,7 @@ int Plugin::getpeername(Libc::File_descriptor *sockfdo,
 		return -1;
 	}
 
-	errno = -socketcall.getpeername(context(sockfdo)->handle(), (void *)addr, addrlen);
+	errno = -socketcall().getpeername(context(sockfdo)->handle(), (void *)addr, addrlen);
 
 	addr->sa_family = bsd_family(addr);
 	addr->sa_len    = *addrlen;
@@ -295,7 +379,7 @@ int Plugin::getsockname(Libc::File_descriptor *sockfdo,
 		return -1;
 	}
 
-	errno = -socketcall.getsockname(context(sockfdo)->handle(), (void *)addr, addrlen);
+	errno = -socketcall().getsockname(context(sockfdo)->handle(), (void *)addr, addrlen);
 
 	addr->sa_family = bsd_family(addr);
 	addr->sa_len    = *addrlen;
@@ -319,7 +403,7 @@ int Plugin::getsockopt(Libc::File_descriptor *sockfdo, int level,
 		return -1;
 	}
 
-	return socketcall.getsockopt(context(sockfdo)->handle(), Lxip::LINUX_SOL_SOCKET,
+	return socketcall().getsockopt(context(sockfdo)->handle(), Lxip::LINUX_SOL_SOCKET,
 	                             optname, optval, (int *)optlen);
 }
 
@@ -335,7 +419,7 @@ int Plugin::ioctl(Libc::File_descriptor *sockfdo, int request, char *argp)
 
 		case FIONREAD:
 
-			errno = -socketcall.ioctl(context(sockfdo)->handle(), Lxip::LINUX_FIONREAD,
+			errno = -socketcall().ioctl(context(sockfdo)->handle(), Lxip::LINUX_FIONREAD,
 			                          argp);
 			return errno > 0 ? -1 : 0;
 
@@ -350,14 +434,14 @@ int Plugin::ioctl(Libc::File_descriptor *sockfdo, int request, char *argp)
 
 int Plugin::listen(Libc::File_descriptor *sockfdo, int backlog)
 {
-	errno = -socketcall.listen(context(sockfdo)->handle(), backlog);
+	errno = -socketcall().listen(context(sockfdo)->handle(), backlog);
 	return errno > 0 ? -1 : 0;
 }
 
 
 int Plugin::shutdown(Libc::File_descriptor *sockfdo, int how)
 {
-	errno = -socketcall.shutdown(context(sockfdo)->handle(), how);
+	errno = -socketcall().shutdown(context(sockfdo)->handle(), how);
 	return errno > 0 ? -1 : 0;
 }
 
@@ -405,7 +489,7 @@ int Plugin::select(int nfds,
 			continue;
 
 		/* call IP stack blocking/non-blocking */
-		int mask = socketcall.poll(context(sockfdo)->handle(), block);
+		int mask = socketcall().poll(context(sockfdo)->handle(), block);
 
 		if (mask)
 			block = false;
@@ -448,7 +532,7 @@ ssize_t Plugin::recvfrom(Libc::File_descriptor *sockfdo, void *buf, ::size_t len
 		return -1;
 	}
 
-	int recv =  socketcall.recv(context(sockfdo)->handle(), buf, len, translate_msg_flags(flags),
+	int recv =  socketcall().recv(context(sockfdo)->handle(), buf, len, translate_msg_flags(flags),
 	                            family, (void *)src_addr, addrlen);
 
 	if (recv < 0) {
@@ -482,7 +566,7 @@ ssize_t Plugin::sendto(Libc::File_descriptor *sockfdo, const void *buf,
 		return -1;
 	}
 
-	int send =  socketcall.send(context(sockfdo)->handle(), buf, len, translate_msg_flags(flags),
+	int send =  socketcall().send(context(sockfdo)->handle(), buf, len, translate_msg_flags(flags),
 	                            family, (void *)dest_addr);
 	if (send < 0)
 		errno = -send;
@@ -507,7 +591,7 @@ int Plugin::setsockopt(Libc::File_descriptor *sockfdo, int level,
 		return -1;
 	}
 
-	return socketcall.setsockopt(context(sockfdo)->handle(), Lxip::LINUX_SOL_SOCKET,
+	return socketcall().setsockopt(context(sockfdo)->handle(), Lxip::LINUX_SOL_SOCKET,
 	                             optname, optval, optlen);
 }
 
@@ -515,14 +599,14 @@ int Plugin::setsockopt(Libc::File_descriptor *sockfdo, int level,
 Libc::File_descriptor *Plugin::socket(int domain, int type, int protocol)
 {
 	using namespace Lxip;
-	Handle handle = socketcall.socket(type == SOCK_STREAM ? TYPE_STREAM : TYPE_DGRAM);
+	Handle handle = socketcall().socket(type == SOCK_STREAM ? TYPE_STREAM : TYPE_DGRAM);
 
 	if (!handle.socket) {
 		errno = EBADF;
 		return 0;
 	}
 
-	Plugin_context *context   = new (Genode::env()->heap()) Plugin_context(handle);
+	Plugin_context *context   = new (heap()) Plugin_context(handle);
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
 	return fd;
 }
@@ -647,7 +731,7 @@ int Plugin::translate_ops_linux(int optname)
 } /* unnamed namespace */
 
 
-void create_lxip_plugin(char const *address_config)
+void __attribute__((constructor)) init_lxip_plugin()
 {
-	static Plugin lxip_plugin(address_config);
+	static Plugin lxip_plugin;
 }

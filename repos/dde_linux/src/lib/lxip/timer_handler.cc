@@ -192,10 +192,11 @@ class Lx::Timer
 		/**
 		 * Constructor
 		 */
-		Timer(Genode::Env &env, Genode::Allocator &alloc, void (*tick)())
+		Timer(Genode::Env &env, Genode::Entrypoint &ep, Genode::Allocator &alloc,
+		      void (*tick)())
 		:
 			_timer_conn(env),
-			_handler(env.ep(), *this, &Lx::Timer::_handle),
+			_handler(ep, *this, &Lx::Timer::_handle),
 			_timer_alloc(&alloc),
 			_tick(tick)
 		{
@@ -296,9 +297,10 @@ class Lx::Timer
 static Lx::Timer *_timer;
 
 
-void Lx::timer_init(Genode::Env &env, Genode::Allocator &alloc, void (*tick)())
+void Lx::timer_init(Genode::Env &env, Genode::Entrypoint &ep,
+                    Genode::Allocator &alloc, void (*tick)())
 {
-	static Lx::Timer inst(env, alloc, tick);
+	static Lx::Timer inst(env, ep, alloc, tick);
 	_timer = &inst;
 }
 

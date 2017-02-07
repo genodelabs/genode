@@ -17,19 +17,30 @@
 
 #include <base/signal.h>
 
+namespace Lx_kit { class Env; }
+
 namespace Lx {
 
 	void nic_client_init(Genode::Env &env,
+	                     Genode::Entrypoint &ep,
 	                     Genode::Allocator &alloc,
 	                     void (*ticker)());
+
 	void timer_init(Genode::Env &env,
+	                Genode::Entrypoint &ep,
 	                Genode::Allocator &alloc,
 	                void (*ticker)());
-	void event_init(Genode::Env &env, void (*ticker)());
+
+	void event_init(Genode::Env &env,
+	                Genode::Entrypoint &ep,
+	                void (*ticker)());
 
 	void timer_update_jiffies();
+
+	void lxcc_emul_init(Lx_kit::Env &env);
 }
 
 extern "C" int lxip_init(char const *address_config);
+
 
 #endif /* _LX_H_ */

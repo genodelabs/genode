@@ -28,19 +28,28 @@
 #include <lx.h>
 
 
+/* Lx_kit */
+#include <lx_kit/env.h>
+
 /*********************************
  ** Lx::Backend_alloc interface **
  *********************************/
 
 #include <lx_kit/backend_alloc.h>
 
+static Lx_kit::Env *lx_env;
+
+void Lx::lxcc_emul_init(Lx_kit::Env &env)
+{
+	lx_env = &env;
+}
 
 struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
 {
 	Memory_object_base(Genode::Ram_dataspace_capability cap)
 	: Genode::Object_pool<Memory_object_base>::Entry(cap) {}
 
-	void free() { Genode::env()->ram_session()->free(ram_cap()); }
+	void free() { lx_env->ram().free(ram_cap()); }
 
 	Genode::Ram_dataspace_capability ram_cap()
 	{
@@ -58,8 +67,8 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 {
 	using namespace Genode;
 
-	Genode::Ram_dataspace_capability cap = env()->ram_session()->alloc(size);
-	Memory_object_base *o = new (env()->heap()) Memory_object_base(cap);
+	Genode::Ram_dataspace_capability cap = lx_env->ram().alloc(size);
+	Memory_object_base *o = new (lx_env->heap()) Memory_object_base(cap);
 
 	memory_pool.insert(o);
 	return cap;
@@ -79,7 +88,7 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 
 		object = o; /* save for destroy */
 	});
-	destroy(env()->heap(), object);
+	destroy(lx_env->heap(), object);
 }
 
 
@@ -104,7 +113,8 @@ void *alloc_large_system_hash(const char *tablename,
 	unsigned long nlog2 = ilog2(elements);
 	nlog2 <<= (1 << nlog2) < elements ? 1 : 0;
 
-	void *table = Genode::env()->heap()->alloc(elements * bucketsize);
+	void *table;
+	lx_env->heap().alloc(elements * bucketsize, &table);
 
 	if (_hash_mask)
 		*_hash_mask = (1 << nlog2) - 1;
@@ -311,10 +321,10 @@ struct Timeout : Genode::Signal_handler<Timeout>
 		tick();
 	}
 
-	Timeout(Genode::Env &env, void (*ticker)())
+	Timeout(Genode::Env &env, Genode::Entrypoint &ep, void (*ticker)())
 	:
-		Signal_handler<Timeout>(env.ep(), *this, &Timeout::handle),
-		ep(env.ep()), timer(env), tick(ticker)
+		Signal_handler<Timeout>(ep, *this, &Timeout::handle),
+		ep(ep), timer(env), tick(ticker)
 	{
 		timer.sigh(*this);
 	}
@@ -336,9 +346,9 @@ struct Timeout : Genode::Signal_handler<Timeout>
 static Timeout *_timeout;
 static Genode::Signal_context_capability tick_sig_cap;
 
-void Lx::event_init(Genode::Env &env, void (*ticker)())
+void Lx::event_init(Genode::Env &env, Genode::Entrypoint &ep, void (*ticker)())
 {
-	static Timeout handler(env, ticker);
+	static Timeout handler(env, ep, ticker);
 	_timeout = &handler;
 }
 
@@ -438,7 +448,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 {
 	Avl_page *p;
 	try {
-		p = (Avl_page *)new (Genode::env()->heap()) Avl_page(PAGE_SIZE << order);
+		p = (Avl_page *)new (lx_env->heap()) Avl_page(PAGE_SIZE << order);
 		tree.insert(p);
 	} catch (...) { return 0; }
 
@@ -461,7 +471,7 @@ void __free_page_frag(void *addr)
 	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)addr);
 
 	tree.remove(p);
-	destroy(Genode::env()->heap(), p);
+	destroy(lx_env->heap(), p);
 }
 
 
@@ -487,7 +497,7 @@ void put_page(struct page *page)
 	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)page->addr);
 
 	tree.remove(p);
-	destroy(Genode::env()->heap(), p);
+	destroy(lx_env->heap(), p);
 }
 
 

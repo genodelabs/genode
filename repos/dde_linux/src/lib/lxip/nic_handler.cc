@@ -89,14 +89,15 @@ class Nic_client
 	public:
 
 		Nic_client(Genode::Env &env,
+		           Genode::Entrypoint &ep,
 		           Genode::Allocator &alloc,
 		           void (*ticker)())
 		:
 			_tx_block_alloc(&alloc),
 			_nic(env, &_tx_block_alloc, BUF_SIZE, BUF_SIZE),
-			_sink_ack(env.ep(), *this, &Nic_client::_packet_avail),
-			_sink_submit(env.ep(), *this, &Nic_client::_ready_to_ack),
-			_source_ack(env.ep(), *this, &Nic_client::_ack_avail),
+			_sink_ack(ep, *this, &Nic_client::_packet_avail),
+			_sink_submit(ep, *this, &Nic_client::_ready_to_ack),
+			_source_ack(ep, *this, &Nic_client::_ack_avail),
 			_tick(ticker)
 		{
 			_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
@@ -113,10 +114,11 @@ static Nic_client *_nic_client;
 
 
 void Lx::nic_client_init(Genode::Env &env,
-	                     Genode::Allocator &alloc,
-	                     void (*ticker)())
+	                       Genode::Entrypoint &ep,
+	                       Genode::Allocator &alloc,
+	                       void (*ticker)())
 {
-	static Nic_client _inst(env, alloc, ticker);
+	static Nic_client _inst(env, ep, alloc, ticker);
 	_nic_client = &_inst;
 }
 
