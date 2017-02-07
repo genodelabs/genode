@@ -480,13 +480,10 @@ void late_tcp_congestion_default(void);
 /**
  * Initialize sub-systems
  */
-int lxip_init(char const *address_config)
+void lxip_init()
 {
 	/* init data */
 	INIT_LIST_HEAD(&init_net.dev_base_head);
-
-	/* call __setup stuff */
-	__ip_auto_config_setup((char *)address_config);
 
 	core_sock_init();
 	core_netlink_proto_init();
@@ -506,13 +503,12 @@ int lxip_init(char const *address_config)
 
 	/* late  */
 	late_tcp_congestion_default();
-
-	/* dhcp or static configuration */
-	late_ip_auto_config();
-
-	return 0;
 }
 
+
+/*
+ * Network configuration
+ */
 
 static void lxip_configure(char const *address_config)
 {

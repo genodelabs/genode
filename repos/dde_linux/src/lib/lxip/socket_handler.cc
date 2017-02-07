@@ -617,7 +617,11 @@ class Net::Socketcall : public Lxip::Socketcall,
 
 static void ticker() { }
 
-Lxip::Socketcall & Lxip::init(Genode::Env &env, char const *address_config)
+Lxip::Socketcall & Lxip::init(Genode::Env &env,
+                              char const  *ip_addr_str,
+                              char const  *netmask_str,
+                              char const  *gateway_str,
+                              char const  *nameserver_str)
 {
 	Lx_kit::Env &lx_env = Lx_kit::construct_env(env);
 
@@ -628,7 +632,15 @@ Lxip::Socketcall & Lxip::init(Genode::Env &env, char const *address_config)
 	Lx::nic_client_init(env, socketcall, lx_env.heap(), ticker);
 	Lx::lxcc_emul_init(lx_env);
 
-	lxip_init(address_config);
+	lxip_init();
+
+	if ((!ip_addr_str || (ip_addr_str[0] == 0)) ||
+	    (!netmask_str || (netmask_str[0] == 0)) ||
+	    (!gateway_str || (gateway_str[0] == 0)) ||
+	    (!nameserver_str || (nameserver_str[0] == 0)))
+		lxip_configure_dhcp();
+	else
+		lxip_configure_static(ip_addr_str, netmask_str, gateway_str, nameserver_str);
 
 	return socketcall;
 }

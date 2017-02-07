@@ -34,12 +34,18 @@ namespace Lxip {
 	/**
 	 * Init backend
 	 *
-	 * \param  address_config  for dynamic configuration use "dhcp", for static
-	 *                         configuration use "<ip>::<gw-ip>:<netmask>:::off"
+	 * \param  ip_addr_str     IP address
+	 * \param  netmask_str     Netmask
+	 * \param  gateway_str     Gateway
+	 * \param  nameserver_str  Nameserver
 	 *
 	 * \return Reference to Socketcall object
 	 */
-	Socketcall & init(Genode::Env &env, char const *address_config);
+	Socketcall & init(Genode::Env &env,
+	                  char const  *ip_addr_str,
+	                  char const  *netmask_str,
+	                  char const  *gateway_str,
+	                  char const  *nameserver_str);
 
 	typedef Genode::uint8_t  uint8_t;
 	typedef Genode::uint16_t uint16_t;

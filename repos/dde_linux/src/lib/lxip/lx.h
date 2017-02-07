@@ -40,7 +40,12 @@ namespace Lx {
 	void lxcc_emul_init(Lx_kit::Env &env);
 }
 
-extern "C" int lxip_init(char const *address_config);
+extern "C" void lxip_init();
 
+extern "C" void lxip_configure_static(char const *addr,
+                                      char const *netmask,
+                                      char const *gateway,
+                                      char const *nameserver);
+extern "C" void lxip_configure_dhcp();
 
 #endif /* _LX_H_ */

@@ -83,8 +83,13 @@ struct Plugin : Libc::Plugin
 		Genode::Heap      heap;
 		Lxip::Socketcall &socketcall;
 
-		Socketcall(Genode::Env &env, char const *address_config)
-		:  heap(env.ram(), env.rm()), socketcall(Lxip::init(env, address_config))
+		Socketcall(Genode::Env &env,
+		           char const  *ip_addr_str,
+		           char const  *netmask_str,
+		           char const  *gateway_str)
+		:  heap(env.ram(), env.rm()),
+		   socketcall(Lxip::init(env, ip_addr_str, netmask_str,
+		                         gateway_str, gateway_str))
 		{ }
 	};
 
@@ -174,7 +179,6 @@ void Plugin::init(Genode::Env &env)
 	char netmask_str[16] = {0};
 	char gateway_str[16] = {0};
 	char address_buf[128];
-	char const *address_config;
 
 	Genode::Attached_rom_dataspace config { env, "config"} ;
 
@@ -214,18 +218,12 @@ void Plugin::init(Genode::Env &env)
 		            "ip_addr=", Genode::Cstring(ip_addr_str), " "
 		            "netmask=", Genode::Cstring(netmask_str), " "
 		            "gateway=", Genode::Cstring(gateway_str));
-
-		Genode::snprintf(address_buf, sizeof(address_buf), "%s::%s:%s:::off",
-		                 ip_addr_str, gateway_str, netmask_str);
-		address_config = address_buf;
 	}
 	catch (...) {
 		Genode::log("Using DHCP for interface configuration.");
-		address_config = "dhcp";
 	}
 
-	Genode::log("Plugin::init() address config=", address_config);
-	socketconstruct.construct(env, address_config);
+	socketconstruct.construct(env, ip_addr_str, netmask_str, gateway_str);
 };
 
 /* TODO shameful copied from lwip... generalize this */
