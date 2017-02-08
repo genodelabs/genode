@@ -16,7 +16,7 @@
 #define _INCLUDE__NIC__COMPONENT_H_
 
 #include <base/attached_ram_dataspace.h>
-#include <os/server.h>
+#include <base/entrypoint.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 
@@ -51,7 +51,7 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 {
 	protected:
 
-		Server::Entrypoint               &_ep;
+		Genode::Entrypoint               &_ep;
 		Genode::Signal_context_capability _link_state_sigh;
 
 
@@ -70,9 +70,9 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		 */
 		virtual void _handle_packet_stream() = 0;
 
-		void _dispatch(unsigned) { _handle_packet_stream(); }
+		void _dispatch() { _handle_packet_stream(); }
 
-		Genode::Signal_rpc_member<Session_component> _packet_stream_dispatcher {
+		Genode::Signal_handler<Session_component> _packet_stream_dispatcher {
 			_ep, *this, &Session_component::_dispatch };
 
 	public:
@@ -93,7 +93,7 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Ram_session &ram_session,
 		                  Genode::Region_map  &region_map,
-		                  Server::Entrypoint  &ep)
+		                  Genode::Entrypoint  &ep)
 		:
 			Communication_buffers(rx_block_md_alloc, ram_session, region_map,
 			                      tx_buf_size, rx_buf_size),
