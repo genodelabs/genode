@@ -151,6 +151,15 @@ int rt_genid(struct net *net)
 	return -1;
 }
 
+int rt_genid_ipv4(struct net *net)
+{
+    return atomic_read(&net->ipv4.rt_genid);
+}
+
+void rt_genid_bump_ipv4(struct net *net)
+{
+    atomic_inc(&net->ipv4.rt_genid);
+}
 
 /**********************
  ** linx/rtnetlink.h **
