@@ -36,8 +36,8 @@ int main(void)
 	}
 
 	unsigned port = 0;
-	Xml_node libc_node = config()->xml_node().sub_node("libc");
-	try { libc_node.attribute("port").value(&port); }
+	Xml_node config_node = config()->xml_node();
+	try { config_node.attribute("port").value(&port); }
 	catch (...) {
 		error("Missing \"port\" attribute.");
 		throw Xml_node::Nonexistent_attribute();
