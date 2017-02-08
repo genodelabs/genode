@@ -25,9 +25,6 @@
 #include <iprt/uint128.h>
 #include <VBox/err.h>
 
-/* libc memory allocator */
-#include <libc_mem_alloc.h>
-
 
 struct Attached_gip : Genode::Attached_ram_dataspace
 {
@@ -283,7 +280,13 @@ void genode_VMMR0_DO_GVMM_CREATE_VM(PSUPVMMR0REQHDR pReqHdr)
 	 * PDMR3CritSectGetNop().
 	 */
 	size_t const cbVM = RT_UOFFSETOF(VM, aCpus[cCpus]);
-	VM *pVM = (VM *)Libc::mem_alloc()->alloc(cbVM, Genode::log2(PAGE_SIZE));
+
+	static Genode::Attached_ram_dataspace vm(genode_env().ram(),
+	                                         genode_env().rm(),
+	                                         cbVM);
+	Assert (vm.size() >= cbVM);
+
+	VM *pVM = vm.local_addr<VM>();
 	Genode::memset(pVM, 0, cbVM);
 
 	/*

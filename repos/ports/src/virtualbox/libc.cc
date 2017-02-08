@@ -28,6 +28,8 @@
 
 #include "libc_errno.h"
 
+/* Genode specific Vbox include */
+#include "vmm.h"
 
 /* libc memory allocator */
 #include <libc_mem_alloc.h>
@@ -39,13 +41,45 @@
 static const bool verbose = false;
 
 /*
+ * We need an initial buffer currently, since the libc issues during
+ * initialization malloc (dup) calls to the one defined below. At this
+ * point we have not any env pointer.
+ * Additionally static constructors are executed currently before the libc
+ * is done with initialization and so we also have no Env pointer here.
+ */
+static char     buffer[2048];
+static unsigned buffer_len = 0;
+
+static bool initial_memory(void * ptr)
+{
+	return buffer <= ptr && ptr < buffer + sizeof(buffer);
+}
+
+/*
  * We cannot use the libc's version of malloc because it does not satisfies
  * the alignment constraints asserted by 'Runtime/r3/alloc.cpp'.
  */
+static Libc::Mem_alloc_impl * memory()
+{
+	try { genode_env(); } catch (...) { return nullptr; }
+
+	static Libc::Mem_alloc_impl mem( genode_env().rm(), genode_env().ram());
+	return &mem;
+}
 
 extern "C" void *malloc(::size_t size)
 {
-	return Libc::mem_alloc()->alloc(size, Genode::log2(RTMEM_ALIGNMENT));
+	if (memory())
+		return memory()->alloc(size, Genode::log2(RTMEM_ALIGNMENT));
+
+	void * ret = buffer + buffer_len;
+	buffer_len += (size + RTMEM_ALIGNMENT - 1) & ~(0ULL + RTMEM_ALIGNMENT - 1);
+
+	if (buffer_len <= sizeof(buffer))
+		return ret;
+
+	struct Not_enough_initial_memory : Genode::Exception { };
+	throw Not_enough_initial_memory();
 }
 
 
@@ -60,7 +94,8 @@ extern "C" void *calloc(::size_t nmemb, ::size_t size)
 
 extern "C" void free(void *ptr)
 {
-	Libc::mem_alloc()->free(ptr);
+	if (!initial_memory(ptr))
+		memory()->free(ptr);
 }
 
 
@@ -74,12 +109,16 @@ extern "C" void *realloc(void *ptr, ::size_t size)
 		return 0;
 	}
 
-	/* determine size of old block content (without header) */
-	unsigned long old_size = Libc::mem_alloc()->size_at(ptr);
+	unsigned long old_size = size;
 
-	/* do not reallocate if new size is less than the current size */
-	if (size <= old_size)
-		return ptr;
+	if (!initial_memory(ptr)) {
+		/* determine size of old block content (without header) */
+		old_size = memory()->size_at(ptr);
+
+		/* do not reallocate if new size is less than the current size */
+		if (size <= old_size)
+			return ptr;
+	}
 
 	/* allocate new block */
 	void *new_addr = malloc(size);
