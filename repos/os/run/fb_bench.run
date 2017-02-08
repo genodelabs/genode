@@ -2,7 +2,7 @@
 # Build
 #
 
-if {[have_spec odroid_xu] || [have_spec wand_quad] || [have_spec zynq]} {
+if {[have_spec odroid_xu] || [have_spec wand_quad] || [have_spec zynq] || [have_spec imx53] && [have_spec foc]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }
@@ -64,13 +64,13 @@ append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
 append config {
 	<start name="test-fb_bench">
-		<resource name="RAM" quantum="92M"/>
+		<resource name="RAM" quantum="40M"/>
 	</start>
 </config>}
 
