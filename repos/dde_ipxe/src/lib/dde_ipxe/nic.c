@@ -18,6 +18,7 @@
 #include <ipxe/iobuf.h>
 
 #include <dde_ipxe/nic.h>
+
 /* local includes */
 #include "local.h"
 #include <dde_support.h>
@@ -290,9 +291,11 @@ int dde_ipxe_nic_get_mac_addr(unsigned if_index, unsigned char *out_mac_addr)
 }
 
 
-int dde_ipxe_nic_init(void *ep)
+int dde_ipxe_nic_init()
 {
-	dde_init(ep);
+	if (!dde_support_initialized()) {
+		return 0;
+	}
 
 	dde_lock_enter();
 

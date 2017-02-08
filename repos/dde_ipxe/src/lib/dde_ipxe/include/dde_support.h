@@ -29,7 +29,8 @@ typedef unsigned int   dde_uint32_t;
 /*****************
  ** Initialization
  *****************/
-void dde_init(void *ep);
+
+int dde_support_initialized(void);
 
 
 /***********

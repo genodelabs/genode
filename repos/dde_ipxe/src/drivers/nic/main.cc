@@ -16,11 +16,11 @@
 #include <base/component.h>
 #include <base/env.h>
 #include <base/heap.h>
-#include <base/sleep.h>
 #include <base/log.h>
 #include <nic/component.h>
 #include <nic/root.h>
 
+#include <dde_ipxe/support.h>
 #include <dde_ipxe/nic.h>
 
 using namespace Genode;
@@ -103,7 +103,7 @@ class Ipxe_session_component  : public Nic::Session_component
 		                       Genode::Allocator   &rx_block_md_alloc,
 		                       Genode::Ram_session &ram_session,
 		                       Genode::Region_map  &region_map,
-		                       Server::Entrypoint  &ep)
+		                       Genode::Entrypoint  &ep)
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
 		                    ram_session, region_map, ep)
 		{
@@ -151,12 +151,16 @@ struct Main
 		Genode::log("--- iPXE NIC driver started ---");
 
 		Genode::log("-- init iPXE NIC");
-		int cnt = dde_ipxe_nic_init(&_env.ep());
-		Genode::log("    number of devices: ", cnt);
+
+		/* pass Env to backend */
+		dde_support_init(_env, _heap);
+
+		if (!dde_ipxe_nic_init()) {
+			Genode::error("could not find usable NIC device");
+		}
 
 		_env.parent().announce(_env.ep().manage(root));
 	}
 };
 
 void Component::construct(Genode::Env &env) { static Main main(env); }
-

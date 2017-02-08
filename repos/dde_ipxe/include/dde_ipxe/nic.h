@@ -84,11 +84,9 @@ extern int dde_ipxe_nic_link_state(unsigned if_index);
 /**
  * Initialize network sub-system
  *
- * \param ep pointer to Server::Entrypoint
- *
  * \return  number of network devices
  */
-extern int dde_ipxe_nic_init(void *ep);
+extern int dde_ipxe_nic_init();
 
 #ifdef __cplusplus
 } /* extern "C" */
