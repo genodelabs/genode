@@ -165,11 +165,10 @@ append_if $udp_down_to_down_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config server_ip="10.0.98.33" server_port="1337">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.98.55"
-			      gateway="10.0.98.33" netmask="255.255.255.0"
-			      server_ip="10.0.98.33" server_port="1337"/>
+			      gateway="10.0.98.33" netmask="255.255.255.0"/>
 		</config>
 	</start>
 
@@ -180,10 +179,10 @@ append_if $udp_down_to_down_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config port="1337">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.99.55"
-			      gateway="10.0.99.33" netmask="255.255.255.0" port="1337"/>
+			      gateway="10.0.99.33" netmask="255.255.255.0"/>
 		</config>
 	</start>}
 
@@ -196,11 +195,10 @@ append_if $udp_up_to_down_1 config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config server_ip="10.0.2.55" server_port="1">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.123"
-			      gateway="10.0.2.55" netmask="255.255.255.0"
-			      server_ip="10.0.2.55" server_port="1"/>
+			      gateway="10.0.2.55" netmask="255.255.255.0"/>
 		</config>
 	</start>
 
@@ -211,10 +209,10 @@ append_if $udp_up_to_down_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config port="1">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="18.17.16.15"
-			      gateway="18.17.16.14" netmask="255.255.0.0" port="1"/>
+			      gateway="18.17.16.14" netmask="255.255.0.0"/>
 		</config>
 	</start>}
 
@@ -227,11 +225,10 @@ append_if $udp_down_to_up_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config server_ip="10.0.2.70" server_port="65535">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="217.13.192.2"
-			      gateway="217.13.192.1" netmask="255.255.192.0"
-			      server_ip="10.0.2.70" server_port="65535"/>
+			      gateway="217.13.192.1" netmask="255.255.192.0"/>
 		</config>
 	</start>
 
@@ -242,10 +239,10 @@ append_if $udp_down_to_up_1 config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config port="65535">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.70"
-			      netmask="255.255.255.0" gateway="10.0.2.55" port="65535"/>
+			      netmask="255.255.255.0" gateway="10.0.2.55"/>
 		</config>
 	</start>}
 
@@ -258,12 +255,13 @@ append_if $tcp_up_to_down_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config ld_verbose="yes">
+		<config port="80">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="192.168.1.18"
-			      netmask="255.255.255.0" gateway="192.168.1.1" http_port="80"/>
+			      netmask="255.255.255.0" gateway="192.168.1.1" />
 		</config>
 	</start>
+
 	<start name="http_client_1">
 		<binary name="test-http_clnt"/>
 		<resource name="RAM" quantum="2M"/>
@@ -271,10 +269,9 @@ append_if $tcp_up_to_down_1 config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
+		<config server_ip="10.0.2.55" server_port="80">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
-			      http_port="80"/>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>}
 
@@ -287,13 +284,13 @@ append_if $tcp_up_to_down_2 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
+		<config port="8080">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="192.168.2.72"
-			      netmask="255.255.255.0" gateway="192.168.2.1"
-			      http_port="8080"/>
+			      netmask="255.255.255.0" gateway="192.168.2.1"/>
 		</config>
 	</start>
+
 	<start name="http_client_2">
 		<binary name="test-http_clnt"/>
 		<resource name="RAM" quantum="2M"/>
@@ -301,10 +298,9 @@ append_if $tcp_up_to_down_2 config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
+		<config server_ip="10.0.2.55" server_port="8080">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
-			      http_port="8080"/>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>}
 
@@ -317,10 +313,10 @@ append_if $tcp_down_to_up_1 config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
+		<config port="2345">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.11"
-			      netmask="255.255.255.0" gateway="10.0.2.1"  http_port="2345"/>
+			      netmask="255.255.255.0" gateway="10.0.2.1"/>
 		</config>
 	</start>
 	<start name="http_client_3">
@@ -330,11 +326,10 @@ append_if $tcp_down_to_up_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
+		<config server_ip="10.0.2.11" server_port="2345">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="100.200.0.128"
-			      netmask="255.255.0.0" gateway="100.200.0.1"
-			      server_ip="10.0.2.11" http_port="2345"/>
+			      netmask="255.255.0.0" gateway="100.200.0.1"/>
 		</config>
 	</start>}
 

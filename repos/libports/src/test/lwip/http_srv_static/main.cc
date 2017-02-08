@@ -114,7 +114,8 @@ int main()
 	uint32_t gw = 0;
 	unsigned port = 0;
 
-	Xml_node libc_node = config()->xml_node().sub_node("libc");
+	Xml_node config_node = config()->xml_node();
+	Xml_node libc_node   = config_node.sub_node("libc");
 	String<ADDR_STR_SZ> ip_addr_str =
 		read_string_attribute<ADDR_STR_SZ>(libc_node, "ip_addr", String<ADDR_STR_SZ>());
 	String<ADDR_STR_SZ> netmask_str =
@@ -122,9 +123,9 @@ int main()
 	String<ADDR_STR_SZ> gateway_str =
 		read_string_attribute<ADDR_STR_SZ>(libc_node, "gateway", String<ADDR_STR_SZ>());
 
-	try { libc_node.attribute("http_port").value(&port); }
+	try { config_node.attribute("port").value(&port); }
 	catch(...) {
-		error("Missing \"http_port\" attribute.");
+		error("Missing \"port\" attribute.");
 		throw Xml_node::Nonexistent_attribute();
 	}
 

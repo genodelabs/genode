@@ -90,8 +90,9 @@ int main()
 
 	enum { ADDR_STR_SZ = 16 };
 	char serv_addr[ADDR_STR_SZ] = { 0 };
-	Xml_node libc_node = config()->xml_node().sub_node("libc");
-	try { libc_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
+	Xml_node config_node = config()->xml_node();
+	Xml_node libc_node   = config_node.sub_node("libc");
+	try { config_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
 	catch(...) {
 		error("Missing \"server_ip\" attribute.");
 		throw Xml_node::Nonexistent_attribute();
@@ -124,9 +125,9 @@ int main()
 		log("Connect to server ...");
 
 		unsigned port = 0;
-		try { libc_node.attribute("http_port").value(&port); }
+		try { config_node.attribute("server_port").value(&port); }
 		catch (...) {
-			error("Missing \"http_port\" attribute.");
+			error("Missing \"server_port\" attribute.");
 			throw Xml_node::Nonexistent_attribute();
 		}
 

@@ -53,9 +53,9 @@ set config {
 	</start>
 	<start name="test-lxip_udp_echo">
 		<resource name="RAM" quantum="2M"/>
-		<config ld_verbose="yes">
+		<config port="1337">
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.55"
-			      gateway="10.0.2.1" netmask="255.255.255.0" port="1337">
+			      gateway="10.0.2.1" netmask="255.255.255.0">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -100,7 +100,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer
-	libc.lib.so lxip.lib.so test-lxip_udp_echo
+	libc.lib.so libm.lib.so lxip.lib.so test-lxip_udp_echo
 	libc_resolv.lib.so
 }
 

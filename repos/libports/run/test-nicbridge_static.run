@@ -67,11 +67,10 @@ append config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
+		<config port="80">
 			<libc stdout="/dev/log" stderr="/dev/log"
 			      ip_addr="10.0.2.55" netmask="255.255.255.0"
-			      gateway="10.0.2.1" http_port="80"
-			>
+			      gateway="10.0.2.1">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -82,11 +81,8 @@ append config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config>
-			<libc
-				stdout="/dev/log" stderr="/dev/log" server_ip="10.0.2.55"
-				http_port="80"
-			>
+		<config server_ip="10.0.2.55" server_port="80">
+			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			</libc>
 		</config>
@@ -106,6 +102,7 @@ set boot_modules {
 	nic_bridge
 	ld.lib.so
 	libc.lib.so
+	libm.lib.so
 	lwip.lib.so
 	test-http_clnt
 	test-lwip_httpsrv_static
