@@ -307,6 +307,7 @@ class Lan9118 : public Nic::Session_component
 		                    env.ram(), env.rm(), env.ep()),
 		  _mmio(env, mmio_base, mmio_size),
 		  _reg_base(_mmio.local_addr<Genode::uint32_t>()),
+		  _timer(env),
 		  _irq(env, irq),
 		  _irq_handler(env.ep(), *this, &Lan9118::_handle_irq)
 		{
