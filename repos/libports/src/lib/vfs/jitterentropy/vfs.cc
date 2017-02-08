@@ -24,7 +24,7 @@ struct Jitterentropy_factory : Vfs::File_system_factory
 	                         Genode::Xml_node node,
 	                         Vfs::Io_response_handler &) override
 	{
-		return new (alloc) Jitterentropy_file_system(node);
+		return new (alloc) Jitterentropy_file_system(alloc, node);
 	}
 };
 

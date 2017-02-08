@@ -19,9 +19,7 @@
 #include <vfs/single_file_system.h>
 
 /* jitterentropy includes */
-extern "C" {
 #include <jitterentropy.h>
-}
 
 class Jitterentropy_file_system : public Vfs::Single_file_system
 {
@@ -30,8 +28,11 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 		struct rand_data *_ec_stir;
 		bool              _initialized;
 
-		bool _init_jitterentropy()
+		bool _init_jitterentropy(Genode::Allocator &alloc)
 		{
+			/* initialize private allocator backend */
+			jitterentropy_init(alloc);
+
 			int err = jent_entropy_init();
 			if (err) {
 				Genode::error("jitterentropy library could not be initialized!");
@@ -50,11 +51,12 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 
 	public:
 
-		Jitterentropy_file_system(Genode::Xml_node config)
+		Jitterentropy_file_system(Genode::Allocator &alloc,
+		                          Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_ec_stir(0),
-			_initialized(_init_jitterentropy())
+			_initialized(_init_jitterentropy(alloc))
 		{ }
 
 		~Jitterentropy_file_system()

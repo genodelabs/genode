@@ -1,6 +1,6 @@
---- a/jitterentropy.h	2014-04-07 21:07:13.000000000 +0200
-+++ b/jitterentropy.h	2014-08-18 14:42:32.609235231 +0200
-@@ -42,11 +42,15 @@
+--- a/jitterentropy.h.orig
++++ b/jitterentropy.h
+@@ -42,11 +42,19 @@
  #ifndef _JITTERENTROPY_H
  #define _JITTERENTROPY_H
  
@@ -13,6 +13,19 @@
  #include "jitterentropy-base-user.h"
  #endif /* __KERNEL__ */
 +#endif
++
++#ifdef __cplusplus
++extern "C" {
++#endif
  
  /* Statistical data from the entropy source */
  struct entropy_stat {
+@@ -171,4 +179,8 @@
+ 
+ /* -- END of statistical test function -- */
+ 
++#ifdef __cplusplus
++}
++#endif /* extern "C" */
++
+ #endif /* _JITTERENTROPY_H */
