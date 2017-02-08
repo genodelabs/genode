@@ -102,6 +102,10 @@ proc drivers_build_components { feature_arg } {
 	return $build_components
 }
 
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
 #
 # Configuration
 #
@@ -164,13 +168,12 @@ proc drivers_start_nodes { feature_arg } {
 		</start>
 	}
 
-	append_if [use_gpio_drv feature] start_nodes {
-		<start name="gpio_drv">
-			<resource name="RAM" quantum="4M"/>
-			<provides><service name="Gpio"/></provides>
+	append_if [use_gpio_drv feature] start_nodes "
+		<start name=\"[gpio_drv]\">
+			<resource name=\"RAM\" quantum=\"4M\"/>
+			<provides><service name=\"Gpio\"/></provides>
 			<config/>
-		</start>
-	}
+		</start>"
 
 	if { [use_input_merger feature] } {
 		append start_nodes {
@@ -267,7 +270,7 @@ proc drivers_boot_modules { feature_arg } {
 	lappend_if [use_audio_drv feature]    boot_modules audio_drv
 	lappend_if [use_fb_drv feature]       boot_modules fb_drv
 	lappend_if [use_fb_sdl feature]       boot_modules fb_sdl
-	lappend_if [use_gpio_drv feature]     boot_modules gpio_drv
+	lappend_if [use_gpio_drv feature]     boot_modules [gpio_drv]
 	lappend_if [use_input_merger feature] boot_modules input_merger
 	lappend_if [use_nic_drv feature]      boot_modules nic_drv
 	lappend_if [use_ps2_drv feature]      boot_modules ps2_drv

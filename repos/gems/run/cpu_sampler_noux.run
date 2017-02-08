@@ -51,6 +51,10 @@ exec tar cfv bin/diffutils.tar -h -C bin/diffutils .
 
 create_boot_directory
 
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
 append config {
 	<config verbose="yes">
 		<parent-provides>
@@ -86,12 +90,12 @@ append_if [have_spec ps2] config {
 		<provides><service name="Input"/></provides>
 	</start> }
 
-append_if [have_spec gpio] config {
-	<start name="gpio_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Gpio"/></provides>
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
 		<config/>
-	</start>}
+	</start>"
 
 append_if [need_usb_hid] config {
 	<start name="usb_drv">
@@ -237,7 +241,7 @@ set boot_modules {
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [need_usb_hid]          boot_modules usb_drv
-lappend_if [have_spec gpio]        boot_modules gpio_drv
+lappend_if [have_spec gpio]        boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules
 

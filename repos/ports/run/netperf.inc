@@ -7,6 +7,10 @@
 # setting environment variable FORCE_QEMU permits running netperf in qemu
 set force_qemu [info exists ::env(FORCE_QEMU)]
 
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
 if {[expr [have_include "power_on/qemu"] && !$force_qemu]} {
 	puts "\nNetperf running on Qemu is not recommended.\n"
 	exit
@@ -122,12 +126,12 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start> }
 
-append_if [have_spec gpio] config {
-	<start name="gpio_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Gpio"/></provides>
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
 		<config/>
-	</start>}
+	</start>"
 
 append_if $use_nic_bridge config {
 	<start name="nic_bridge">
@@ -268,7 +272,7 @@ append                     boot_modules " $netperf_stack "
 lappend_if $use_nic_bridge boot_modules nic_bridge
 
 # platform-specific modules
-lappend_if [have_spec gpio]          boot_modules gpio_drv
+lappend_if [have_spec gpio]          boot_modules [gpio_drv]
 lappend_if $use_usb_driver           boot_modules usb_drv
 lappend_if $use_nic_driver           boot_modules nic_drv
 

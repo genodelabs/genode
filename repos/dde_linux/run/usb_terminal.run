@@ -11,6 +11,10 @@ if {[have_include power_on/qemu]} {
 	set usb_raw_device $::env(USB_RAW_DEVICE)
 }
 
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
 #
 # Build
 #
@@ -52,12 +56,12 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
-append_if [have_spec gpio] config {
-	<start name="gpio_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Gpio"/></provides>
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
 		<config/>
-	</start>}
+	</start>"
 
 append_platform_drv_config
 
@@ -96,7 +100,7 @@ set boot_modules {
 	usb_terminal
 }
 
-lappend_if [have_spec gpio]             boot_modules gpio_drv
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules
 

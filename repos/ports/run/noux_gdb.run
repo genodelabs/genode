@@ -26,6 +26,10 @@ set build_components {
 	app/gdb_monitor
 }
 
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
 lappend_if [have_spec gpio] build_components drivers/gpio
 
 lappend_if [have_spec nova] build_components lib/ld/nova
@@ -108,12 +112,12 @@ append_if [have_spec ps2] config {
 			<provides><service name="Input"/></provides>
 		</start>}
 
-append_if [have_spec gpio] config {
-	<start name="gpio_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Gpio"/></provides>
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
 		<config/>
-	</start>}
+	</start>"
 
 append_if [expr ![have_spec ps2] && [have_spec usb]] config {
 		<start name="usb_drv">
@@ -227,7 +231,7 @@ lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec         usb] boot_modules usb_drv
-lappend_if [have_spec        gpio] boot_modules gpio_drv
+lappend_if [have_spec        gpio] boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules
 
