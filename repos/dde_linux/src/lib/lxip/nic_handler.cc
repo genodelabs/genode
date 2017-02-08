@@ -38,8 +38,18 @@ class Nic_client
 		Genode::Signal_handler<Nic_client> _sink_ack;
 		Genode::Signal_handler<Nic_client> _sink_submit;
 		Genode::Signal_handler<Nic_client> _source_ack;
+		Genode::Signal_handler<Nic_client> _link_state_change;
 
 		void (*_tick)();
+
+		void _link_state()
+		{
+			if (_nic.link_state() == false || lxip_do_dhcp() == false)
+				return;
+
+			/* reconnect dhcp client */
+			lxip_configure_dhcp();
+		}
 
 		/**
 		 * submit queue not empty anymore
@@ -98,11 +108,13 @@ class Nic_client
 			_sink_ack(ep, *this, &Nic_client::_packet_avail),
 			_sink_submit(ep, *this, &Nic_client::_ready_to_ack),
 			_source_ack(ep, *this, &Nic_client::_ack_avail),
+			_link_state_change(ep, *this, &Nic_client::_link_state),
 			_tick(ticker)
 		{
 			_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
 			_nic.rx_channel()->sigh_packet_avail(_sink_submit);
 			_nic.tx_channel()->sigh_ack_avail(_source_ack);
+			_nic.link_state_sigh(_link_state_change);
 			/* ready_to_submit not handled */
 		}
 

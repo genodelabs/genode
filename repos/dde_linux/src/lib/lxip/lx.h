@@ -48,4 +48,6 @@ extern "C" void lxip_configure_static(char const *addr,
                                       char const *nameserver);
 extern "C" void lxip_configure_dhcp();
 
+extern "C" bool lxip_do_dhcp();
+
 #endif /* _LX_H_ */

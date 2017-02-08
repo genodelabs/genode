@@ -509,7 +509,6 @@ void lxip_init()
 /*
  * Network configuration
  */
-
 static void lxip_configure(char const *address_config)
 {
 	__ip_auto_config_setup((char *)address_config);
@@ -517,10 +516,16 @@ static void lxip_configure(char const *address_config)
 }
 
 
+static bool dhcp_configured = false;
+static bool dhcp_pending    = false;
+
 void lxip_configure_static(char const *addr, char const *netmask,
                            char const *gateway, char const *nameserver)
 {
 	char address_config[128];
+
+	dhcp_configured = false;
+
 	snprintf(address_config, sizeof(address_config),
 	         "%s::%s:%s:::off:%s",
 	         addr, gateway, netmask, nameserver);
@@ -530,7 +535,17 @@ void lxip_configure_static(char const *addr, char const *netmask,
 
 void lxip_configure_dhcp()
 {
+	dhcp_configured = true;
+	dhcp_pending    = true;
+
 	lxip_configure("dhcp");
+	dhcp_pending = false;
+}
+
+
+bool lxip_do_dhcp()
+{
+	return dhcp_configured && !dhcp_pending;
 }
 
 
