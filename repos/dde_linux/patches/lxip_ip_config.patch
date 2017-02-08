@@ -4,11 +4,11 @@ From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
 
 
 ---
- net/ipv4/ipconfig.c |   26 ++++++++++++++++----------
- 1 file changed, 16 insertions(+), 10 deletions(-)
+ net/ipv4/ipconfig.c |   55 ++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 45 insertions(+), 10 deletions(-)
 
 diff --git a/net/ipv4/ipconfig.c b/net/ipv4/ipconfig.c
-index 0bc7412..c907f8d 100644
+index 0bc7412..a92c6e3 100644
 --- a/net/ipv4/ipconfig.c
 +++ b/net/ipv4/ipconfig.c
 @@ -133,7 +133,7 @@ int ic_proto_enabled __initdata = 0
@@ -29,7 +29,41 @@ index 0bc7412..c907f8d 100644
  static u8 ic_domain[64];		/* DNS (not NIS) domain name */
  
  /*
-@@ -1531,24 +1531,24 @@ static int __init ip_auto_config(void)
+@@ -435,6 +435,33 @@ static int __init ic_setup_routes(void)
+ 	return 0;
+ }
+ 
++static int __init ic_delete_routes(void)
++{
++	/* No need to delete device routes, only the default route... */
++
++	if (ic_gateway != NONE) {
++		struct rtentry rm;
++		int err;
++
++		memset(&rm, 0, sizeof(rm));
++		if ((ic_gateway ^ ic_myaddr) & ic_netmask) {
++			pr_err("IP-Config: Gateway not on directly connected network\n");
++			return -1;
++		}
++		set_sockaddr((struct sockaddr_in *) &rm.rt_dst, 0, 0);
++		set_sockaddr((struct sockaddr_in *) &rm.rt_genmask, 0, 0);
++		set_sockaddr((struct sockaddr_in *) &rm.rt_gateway, ic_gateway, 0);
++		rm.rt_flags = RTF_UP | RTF_GATEWAY;
++		if ((err = ic_route_ioctl(SIOCDELRT, &rm)) < 0) {
++			pr_err("IP-Config: Cannot delete default route (%d)\n",
++			       err);
++			return -1;
++		}
++	}
++
++	return 0;
++}
++
+ /*
+  *	Fill in default values for all missing parameters.
+  */
+@@ -1531,24 +1558,24 @@ static int __init ip_auto_config(void)
  	 */
  	pr_info("IP-Config: Complete:\n");
  
@@ -62,10 +96,12 @@ index 0bc7412..c907f8d 100644
  	pr_cont("\n");
  #endif /* !SILENT */
  
-@@ -1621,6 +1621,12 @@ static int __init ip_auto_config_setup(char *addrs)
+@@ -1621,6 +1648,14 @@ static int __init ip_auto_config_setup(char *addrs)
  	ic_set_manually = 1;
  	ic_enable = 1;
  
++	ic_delete_routes();
++
 +	ic_myaddr = NONE;
 +	ic_netmask = NONE;
 +	ic_gateway = NONE;
