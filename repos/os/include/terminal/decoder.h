@@ -209,6 +209,7 @@ class Terminal::Decoder
 				case 'P': return (_screen.dch(1), true);
 				case '@': return (_screen.ich(1), true);
 				case 'R': return (_screen.cpr(),  true);
+				case 'm': return (_screen.sgr0(), true);
 				default:  return false;
 				}
 				break;
