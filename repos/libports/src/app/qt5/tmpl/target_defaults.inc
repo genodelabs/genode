@@ -13,8 +13,12 @@ PROJECT_DIR_NAME = $(notdir $(abspath $(PRG_DIR)))
 
 QMAKE_PROJECT_FILE ?= $(realpath $(PRG_DIR)/$(PROJECT_DIR_NAME).pro)
 
+ifneq ($(call select_from_ports,qoost),)
+ifneq ($(call select_from_ports,qt5),)
 ifneq ($(strip $(QMAKE_PROJECT_FILE)),)
 include $(QMAKE_PROJECT_FILE)
+endif
+endif
 endif
 
 # how to name the generated executable
