@@ -38,8 +38,11 @@ proc run_log { wait_for_re timeout_value } {
 		return false
 	}
 
+	set amt_tool [get_cmd_arg --amt-tool "wsman"]
+
 	# Check that SOL is correctly configured if wsman is available
-	if {[have_installed wsman]} {
+	if {[have_installed wsman] && $amt_tool=="wsman" } {
+		puts "Test for working AMT SOL redirection service ..."
 		set redir_state [exec wsman get http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [power_on_amt_host] -P 16992 -u admin -p [power_on_amt_password]]
 		set redir_state [regexp -inline {ListenerEnabled.*ListenerEnabled} $redir_state]
 
@@ -49,7 +52,8 @@ proc run_log { wait_for_re timeout_value } {
 			puts "  wsman put http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [power_on_amt_host] -P 16992 -u admin -p <your-intel-me-amt-password> -k ListenerEnabled=true"
 			puts ""
 		}
-
+	} else {
+		puts " Warning: could not check AMT SOL redirection service because of missing wsman tool, --amt-tool==$amt_tool"
 	}
 
 	#
