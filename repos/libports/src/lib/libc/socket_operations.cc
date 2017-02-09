@@ -67,38 +67,6 @@ extern "C" int _connect(int libc_fd, const struct sockaddr *addr,
 }
 
 
-extern "C" void freeaddrinfo(struct addrinfo *res)
-{
-	Plugin *plugin;
-
-	plugin = plugin_registry()->get_plugin_for_freeaddrinfo(res);
-
-	if (!plugin) {
-		Genode::error("no plugin found for freeaddrinfo()");
-		return;
-	}
-
-	plugin->freeaddrinfo(res);
-}
-
-
-extern "C" int getaddrinfo(const char *node, const char *service,
-                           const struct addrinfo *hints,
-                           struct addrinfo **res)
-{
-	Plugin *plugin;
-
-	plugin = plugin_registry()->get_plugin_for_getaddrinfo(node, service, hints, res);
-
-	if (!plugin) {
-		Genode::error("no plugin found for getaddrinfo()");
-		return -1;
-	}
-
-	return plugin->getaddrinfo(node, service, hints, res);
-}
-
-
 extern "C" int _getpeername(int libc_fd, struct sockaddr *addr, socklen_t *addrlen) {
 	FD_FUNC_WRAPPER(getpeername, libc_fd, addr, addrlen); }
 
