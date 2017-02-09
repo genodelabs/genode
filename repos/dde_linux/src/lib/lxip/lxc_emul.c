@@ -91,7 +91,7 @@ unsigned long get_zeroed_page(gfp_t gfp_mask)
 
 void *__alloc_percpu(size_t size, size_t align)
 {
-	return kmalloc(size, 0);
+	return kzalloc(size, 0);
 }
 
 
