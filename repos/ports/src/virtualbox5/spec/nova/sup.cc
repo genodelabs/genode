@@ -6,6 +6,7 @@
  */
 
 /*
+ * Copyright (C) 2006-2013 Oracle Corporation
  * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
@@ -13,6 +14,7 @@
  */
 
 /* Genode includes */
+#include <util/bit_allocator.h>
 #include <base/log.h>
 #include <base/semaphore.h>
 #include <util/flex_iterator.h>
@@ -29,6 +31,7 @@
 #include <nova/syscalls.h>
 
 /* Genode's VirtualBox includes */
+#include "EMInternal.h" /* enable access to em.s.* */
 #include "vmm.h"
 #include "vcpu.h"
 #include "vcpu_svm.h"
@@ -39,8 +42,45 @@
 
 #include "mm.h"
 
+
 extern "C" bool PGMUnmapMemoryGenode(void *, ::size_t);
 
+
+/*
+ * Tracking required to fulfill VMM allocation requests of VM memory
+ */
+enum {
+	CHUNKID_PAGE_START = 1,
+	CHUNKID_PAGE_END   = 2,
+	CHUNKID_START      = CHUNKID_PAGE_END + 1,
+
+	ONE_PAGE_SIZE      = 4096,
+	PAGES_SUPERPAGE    = GMM_CHUNK_SIZE / ONE_PAGE_SIZE,
+	HANDY_PAGES        = PAGES_SUPERPAGE * (CHUNKID_PAGE_END - CHUNKID_PAGE_START + 1),
+
+	MAX_VM_MEMORY      = 16ULL * 1024 * 1024 * 1024, /* 16 Gb */
+	MAX_CHUNK_IDS      = MAX_VM_MEMORY / GMM_CHUNK_SIZE,
+};
+
+typedef Genode::Bit_allocator<HANDY_PAGES>   Page_ids;
+typedef Genode::Bit_allocator<MAX_CHUNK_IDS> Chunk_ids;
+typedef Genode::Bit_array<PAGES_SUPERPAGE>    Free_ids;
+
+static Page_ids  page_ids;
+static Chunk_ids chunk_ids;
+
+
+static Sub_rm_connection &vm_memory(Genode::addr_t vm_size = 0)
+{
+	/* memory used by the VM in any order as the VMM asks for allocations */
+	static Sub_rm_connection vm_memory(genode_env(), vm_size);
+	return vm_memory;
+}
+
+
+/*
+ * VCPU handling
+ */
 
 static Genode::List<Vcpu_handler> &vcpu_handler_list()
 {
@@ -59,6 +99,24 @@ static Vcpu_handler *lookup_vcpu_handler(unsigned int cpu_id)
 
 	return 0;
 }
+
+
+HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
+{
+	ULONG memory_vbox;
+	HRESULT rc = machine->COMGETTER(MemorySize)(&memory_vbox);
+	if (FAILED(rc))
+		return rc;
+
+	/*
+	 * Extra memory because of:
+	 * - first chunkid (0) can't be used (VBox don't like chunkid 0)
+	 * - second chunkid (1..2) is reserved for handy pages allocation
+	 * - another chunkid is used additional for handy pages but as large page
+	 */
+	vm_memory(memory_vbox * 1024 * 1024 + (CHUNKID_START + 1) * GMM_CHUNK_SIZE);
+	return genode_check_memory_config(machine);
+};
 
 
 /* Genode specific function */
@@ -115,7 +173,7 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	using Genode::Attached_ram_dataspace;
 	Attached_ram_dataspace * ds = new Attached_ram_dataspace(genode_env().ram(),
 	                                                         genode_env().rm(),
-	                                                         cPages * 4096); /* XXX PAGE_SIZE ? */
+	                                                         cPages * ONE_PAGE_SIZE);
 	*ppvPages = ds->local_addr<void>();
 	if (pR0Ptr)
 		*pR0Ptr = reinterpret_cast<RTR0PTR>(*ppvPages);
@@ -128,28 +186,93 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	for (unsigned iPage = 0; iPage < cPages; iPage++)
 	{
 		paPages[iPage].uReserved = 0;
-		paPages[iPage].Phys = reinterpret_cast<RTHCPHYS>(ds->local_addr<void>()) + iPage * 4096;
+		paPages[iPage].Phys = reinterpret_cast<RTHCPHYS>(ds->local_addr<void>()) + iPage * ONE_PAGE_SIZE;
 	}
 
 	return VINF_SUCCESS;
 }
 
+enum { MAX_TRACKING = 4 };
+static struct {
+	Free_ids free;
+	unsigned freed;
+	unsigned chunkid;
+} track_free[MAX_TRACKING];
 
-int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
-                     uOperation, uint64_t u64Arg, PSUPVMMR0REQHDR pReqHdr)
+static void partial_free_large_page(unsigned chunkid, unsigned page_id)
 {
-	/* XXX does not work on 32bit host - since vm memory is from 0 - 4G and
-	 * such large areas can't be attached to a process
-	 * We need several sub_rm areas .... XXX
-	 */
-	static Sub_rm_connection vm_memory(genode_env(), (sizeof(void *) == 4 ? 2UL : 4UL) * 1024 * 1024 * 1024);
+	unsigned pos = 0;
 
-	static unsigned long chunkid = 1500;
+	/* lookup if already exist */
+	for (; pos < MAX_TRACKING; pos++)
+	{
+		if (track_free[pos].chunkid == chunkid)
+			break;
+	}
+
+	/* if not exist find free place */
+	if (pos >= MAX_TRACKING) {
+		for (int i = 0; i < MAX_TRACKING; i++) {
+			if (track_free[i].chunkid)
+				continue;
+
+			track_free[i].chunkid = chunkid;
+			track_free[i].freed   = 0;
+			pos = i;
+			break;
+		}
+
+		/* too many chunkids in use ? */
+		Assert (pos < MAX_TRACKING);
+		if (pos >= MAX_TRACKING)
+			return;
+	}
+
+	try {
+		/* mark as in use */
+		track_free[pos].free.set(page_id, 1);
+		track_free[pos].freed += 1;
+
+		if (track_free[pos].freed >= 512) {
+			/* slow ? optimize ? XXX */
+			for (unsigned i = 0; i < 512; i++) {
+				if (!track_free[pos].free.get(i, 1))
+					throw 1;
+				track_free[pos].free.clear(i, 1);
+			}
+
+			track_free[pos].chunkid = 0;
+			track_free[pos].freed   = 0;
+
+			chunk_ids.free(chunkid);
+		}
+	} catch (...) {
+		Genode::error(__func__," ", __LINE__, " allocation failed ", pos, ":",
+		              chunkid, ":", page_id);
+		throw;
+	}
+}
+
+int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
+                     uint64_t u64Arg, PSUPVMMR0REQHDR pReqHdr)
+{
 
 	switch (uOperation) {
 
 	case VMMR0_DO_GVMM_CREATE_VM:
 		genode_VMMR0_DO_GVMM_CREATE_VM(pReqHdr);
+
+		/* reserve lower chunk ids */
+		try {
+			for (unsigned i = 0; i < CHUNKID_START; i++) {
+				unsigned chunkid = chunk_ids.alloc();
+				AssertMsg(chunkid == i, ("chunkid %u != %u i\n", chunkid, i));
+			}
+		} catch (...) {
+			Genode::error(__func__," ", __LINE__, " allocation failed");
+			throw;
+		}
+
 		return VINF_SUCCESS;
 
 	case VMMR0_DO_GVMM_REGISTER_VMCPU:
@@ -218,32 +341,52 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	}
 	case VMMR0_DO_GMM_ALLOCATE_PAGES:
 	{
-		static_assert(PGM_HANDY_PAGES * 4096 == GMM_CHUNK_SIZE, "Don't do that - you're going to waste tons of memory");
-		Assert(pReqHdr->u32Magic == SUPVMMR0REQHDR_MAGIC);
-/* XXX VMM/VMMR0/GMMR0.cpp check there XXX */
+		/*
+		 * VMM is asking for some host virtual memory pages without
+		 * allocating the backing store actually. The backing store allocation
+		 * takes place via VMMR0_DO_GMM_MAP_UNMAP_CHUNK. The assignment of the
+		 * guest addresses is known at this point.
+		 */
 
-		Genode::log("ALLOCATE_PAGES pReq ", pReqHdr);
+		static_assert(PGM_HANDY_PAGES * ONE_PAGE_SIZE == GMM_CHUNK_SIZE,
+		              "Don't do that - you're going to waste tons of memory");
+		Assert(pReqHdr->u32Magic == SUPVMMR0REQHDR_MAGIC);
+
+		/* XXX VMM/VMMR0/GMMR0.cpp check there XXX */
 
 		PGMMALLOCATEPAGESREQ req = reinterpret_cast<PGMMALLOCATEPAGESREQ>(pReqHdr);
 
 		for (unsigned i = 0; i < req->cPages; i++) {
 			RTHCPHYS guest_addr = req->aPages[i].HCPhysGCPhys;
-			unsigned long chunkid = (req->aPages[i].HCPhysGCPhys / GMM_CHUNK_SIZE) + 1;
-			unsigned long pageidx = (req->aPages[i].HCPhysGCPhys % GMM_CHUNK_SIZE) / 4096;
-			Assert (pageidx <= GMM_PAGEID_IDX_MASK);
-			Assert (chunkid < 1500 || chunkid > 2047); /* XXX reserved at the moment */
+			unsigned long page_idx = 0;
+			unsigned long chunk_id = 0;
 
-			req->aPages[i].idPage = (chunkid << GMM_CHUNKID_SHIFT) | pageidx;
-			req->aPages[i].HCPhysGCPhys = vm_memory.local_addr(req->aPages[i].HCPhysGCPhys);
-			Assert(vm_memory.contains(req->aPages[i].HCPhysGCPhys));
+			try {
+				page_idx = page_ids.alloc();
+				chunk_id = CHUNKID_PAGE_START + page_idx / PAGES_SUPERPAGE;
+			} catch (...) {
+				Genode::error(__func__," ", __LINE__, " allocation failed");
+				throw;
+			}
 
+			Assert (page_idx <= GMM_PAGEID_IDX_MASK);
+
+			req->aPages[i].idPage = (chunk_id << GMM_CHUNKID_SHIFT) | page_idx;
+			req->aPages[i].HCPhysGCPhys = vm_memory().local_addr((chunk_id * GMM_CHUNK_SIZE) | (page_idx * ONE_PAGE_SIZE));
+			Assert(vm_memory().contains(req->aPages[i].HCPhysGCPhys));
+
+			#if 0
 			Genode::log("cPages ", Genode::Hex(req->cPages), " "
 			            "chunkID=", req->aPages[i].idPage >> GMM_CHUNKID_SHIFT, " "
 			            "pageIDX=", req->aPages[i].idPage & GMM_PAGEID_IDX_MASK, " "
 			            "idPage=", Genode::Hex(req->aPages[i].idPage), " "
 			            "GCPhys=", Genode::Hex(guest_addr), " "
 			            "HCPhys=", Genode::Hex(req->aPages[i].HCPhysGCPhys), " "
-			            "start_vm=", vm_memory.local_addr(0));
+			            "(", Genode::Hex(chunk_id * GMM_CHUNK_SIZE), " "
+			            "| ", Genode::Hex(page_idx * ONE_PAGE_SIZE), ") pageidx=", page_idx, " "
+			            "start_vm=", vm_memory().local_addr(0));
+			#endif
+
 		}
 
 		return VINF_SUCCESS;
@@ -253,23 +396,18 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		PGMMMAPUNMAPCHUNKREQ req = reinterpret_cast<PGMMMAPUNMAPCHUNKREQ>(pReqHdr);
 
 		Assert(pReqHdr->u32Magic == SUPVMMR0REQHDR_MAGIC);
-
-//		PINF("UNMAP_CHUNK map=%u unmap=%u pvR3=%p start", req->idChunkMap, req->idChunkUnmap, req->pvR3);
-
 		Assert(req->idChunkUnmap == NIL_GMM_CHUNKID);
 		Assert(req->idChunkMap   != NIL_GMM_CHUNKID);
 
 		Genode::Ram_dataspace_capability ds = genode_env().ram().alloc(GMM_CHUNK_SIZE);
-		Genode::addr_t local_addr_offset = (req->idChunkMap - 1) << GMM_CHUNK_SHIFT;
+		Genode::addr_t local_addr_offset = req->idChunkMap << GMM_CHUNK_SHIFT;
 
 		enum { OFFSET_DS = 0, USE_LOCAL_ADDR = true };
-		Genode::addr_t to = vm_memory.attach(ds, GMM_CHUNK_SIZE, OFFSET_DS,
-		                                     USE_LOCAL_ADDR, local_addr_offset);
-		Assert(to == vm_memory.local_addr(local_addr_offset));
+		Genode::addr_t to = vm_memory().attach(ds, GMM_CHUNK_SIZE, OFFSET_DS,
+		                                       USE_LOCAL_ADDR, local_addr_offset);
+		Assert(to == vm_memory().local_addr(local_addr_offset));
 
 		req->pvR3 = reinterpret_cast<RTR3PTR>(to);
-
-//		PINF("UNMAP_CHUNK map=%u unmap=%u pvR3=%p done", req->idChunkMap, req->idChunkUnmap, req->pvR3);
 
 		return VINF_SUCCESS;
 	}
@@ -283,6 +421,13 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 	}
 	case VMMR0_DO_PGM_ALLOCATE_HANDY_PAGES:
 	{
+		/*
+		 * VMM is asking for some host virtual memory pages without
+		 * allocating the backing store actually. The backing store allocation
+		 * takes place via VMMR0_DO_GMM_MAP_UNMAP_CHUNK. The assignment of the
+		 * guest addresses to these host pages is unknown at this point.
+		 */
+
 		PVM pVM = reinterpret_cast<PVM>(pVMR0);
 
 		/* based on PGMR0PhysAllocateHandyPages() in VMM/VMMR0/PGMR0.cpp - start */
@@ -317,13 +462,20 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 			AssertMsgReturn(pVM->pgm.s.aHandyPages[iFirst + iPage].idSharedPage == NIL_GMM_PAGEID, ("#%#x: %#x\n", iFirst + iPage, pVM->pgm.s.aHandyPages[iFirst + iPage].idSharedPage),  VERR_INVALID_PARAMETER);
 		}
 
-		Assert (chunkid >= 1500 && chunkid <= 2047); /* XXX reserved at the moment */
+		unsigned chunkid = 0;
 
-		if (cPagesToAlloc != GMM_CHUNK_SIZE / 4096)
-			Genode::log("special chunkid=", chunkid, " "
-			            "toupdate=", cPagesToUpdate, " "
-			            "toalloc=", cPagesToAlloc, " "
-			            "virt=", Genode::Hex(vm_memory.local_addr(((chunkid - 1) << GMM_CHUNK_SHIFT))));
+		try {
+			chunkid = chunk_ids.alloc();
+		} catch (...) {
+			Genode::error(__func__," ", __LINE__, " allocation failed");
+			throw;
+		}
+
+		if (cPagesToAlloc != GMM_CHUNK_SIZE / ONE_PAGE_SIZE)
+			Vmm::log("special chunkid=", chunkid, " "
+			         "toupdate=", cPagesToUpdate, " "
+			         "toalloc=", cPagesToAlloc, " "
+			         "virt=", Genode::Hex(vm_memory().local_addr(chunkid << GMM_CHUNK_SHIFT)));
 
 		for (unsigned i = 0; i < cPagesToUpdate; i++) {
 			if (pVM->pgm.s.aHandyPages[iFirst + i].idPage != NIL_GMM_PAGEID)
@@ -350,7 +502,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 				pVM->pgm.s.aHandyPages[iFirst + i].idPage = (chunkid << GMM_CHUNKID_SHIFT) | (iFirst + reverse);
 				pVM->pgm.s.aHandyPages[iFirst + i].idSharedPage = NIL_GMM_PAGEID;
 
-				pVM->pgm.s.aHandyPages[iFirst + i].HCPhysGCPhys = vm_memory.local_addr(((chunkid - 1) << GMM_CHUNK_SHIFT) | ((iFirst + reverse) * 4096)); /* XXX PAGE_SIZE XXX */
+				pVM->pgm.s.aHandyPages[iFirst + i].HCPhysGCPhys = vm_memory().local_addr((chunkid << GMM_CHUNK_SHIFT) | ((iFirst + reverse) * ONE_PAGE_SIZE));
 			}
 		}
 		/* based on GMMR0AllocateHandyPages in VMM/VMMR0/GMMR0.cpp - end */
@@ -368,39 +520,48 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 		}
 		/* based on PGMR0PhysAllocateHandyPages() in VMM/VMMR0/PGMR0.cpp - end */
 
-		chunkid ++; /* XXX */
-
 		return VINF_SUCCESS;
 	}
 	case VMMR0_DO_PGM_ALLOCATE_LARGE_HANDY_PAGE:
 	{
+		/*
+		 * VMM is asking for some host large virtual memory pages without
+		 * allocating the backing store actually. The backing store allocation
+		 * takes place via VMMR0_DO_GMM_MAP_UNMAP_CHUNK. The assignment of the
+		 * guest addresses to these host pages is unknown at this point.
+		 */
+
 		PVM pVM = reinterpret_cast<PVM>(pVMR0);
 
 		Assert(pVM);
 		Assert(pVM->pgm.s.cLargeHandyPages == 0);
 
-		pVM->pgm.s.aLargeHandyPage[0].idPage = (chunkid << GMM_CHUNKID_SHIFT);
-		pVM->pgm.s.aLargeHandyPage[0].HCPhysGCPhys = vm_memory.local_addr(((chunkid - 1) << GMM_CHUNK_SHIFT));
+		try {
+			unsigned chunkid = chunk_ids.alloc();
 
-		pVM->pgm.s.cLargeHandyPages = 1;
+			pVM->pgm.s.aLargeHandyPage[0].idPage = (chunkid << GMM_CHUNKID_SHIFT);
+			pVM->pgm.s.aLargeHandyPage[0].HCPhysGCPhys = vm_memory().local_addr(chunkid << GMM_CHUNK_SHIFT);
 
-		chunkid ++; /* XXX */
+			pVM->pgm.s.cLargeHandyPages = 1;
+		} catch (...) {
+			Genode::error(__func__," ", __LINE__, " allocation failed");
+			throw;
+		}
 
 		return VINF_SUCCESS;
 	}
 	case VMMR0_DO_GMM_BALLOONED_PAGES:
-	{
-		/* during VM shutdown - ignore */
-		return VINF_SUCCESS;
-	}
 	case VMMR0_DO_GMM_RESET_SHARED_MODULES:
-	{
-		/* during VM shutdown - ignore */
-		return VINF_SUCCESS;
-	}
 	case VMMR0_DO_PGM_FLUSH_HANDY_PAGES:
 	{
-		/* during VM shutdown - ignore */
+		PVM    const pVM   = reinterpret_cast<PVM>(pVMR0);
+		PVMCPU const pVCpu = &pVM->aCpus[idCpu];
+
+		/* if not in VM shutdown - complain - bug ahead */
+		if (pVCpu->em.s.enmState != EMSTATE_TERMINATING)
+			Genode::error("unexpected call of type ", uOperation, ", "
+			              "em state=", (int)pVCpu->em.s.enmState);
+
 		return VINF_SUCCESS;
 	}
 	case VMMR0_DO_GMM_FREE_PAGES:
@@ -434,19 +595,34 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 			                ("#%#x: %#x\n", iPage, paPages[iPage].idPage), VERR_INVALID_PARAMETER);
 
 		uint32_t fPage = (paPages[0].idPage >> GMM_CHUNKID_SHIFT);
-		void * vmm_local = reinterpret_cast<void *>(vm_memory.local_addr((fPage - 1) << GMM_CHUNK_SHIFT));
+		void * vmm_local = reinterpret_cast<void *>(vm_memory().local_addr(fPage  << GMM_CHUNK_SHIFT));
+
+		/* revoke mapping from guest VM */
 		PGMUnmapMemoryGenode(vmm_local, GMM_CHUNK_SIZE);
 
-		uint32_t iPage;
-		for (iPage = 0; iPage < cPages; iPage++)
+		for (uint32_t iPage = 0; iPage < cPages; iPage++)
 		{
-			uint32_t idPage = paPages[iPage].idPage;
+			uint32_t const idPage   = paPages[iPage].idPage;
+			uint32_t const page_idx = idPage & GMM_PAGEID_IDX_MASK;
+			uint32_t const chunkid  = idPage >> GMM_CHUNKID_SHIFT;
+
 			if ((idPage >> GMM_CHUNKID_SHIFT) != fPage) {
-				Genode::log(iPage, " idPage=", Genode::Hex(idPage), " "
-				            "(id=", idPage >> GMM_CHUNKID_SHIFT, " "
-				            "page=%u)", idPage & GMM_PAGEID_IDX_MASK, " "
-				            "vm_memory.local=", Genode::Hex(vm_memory.local_addr((((idPage >>GMM_CHUNKID_SHIFT) - 1) << GMM_CHUNK_SHIFT))));
+				Vmm::log("chunkid=", chunkid, " "
+				         "page_idx=", page_idx, ") "
+				         "vm_memory.local=", Genode::Hex(vm_memory().local_addr((chunkid << GMM_CHUNK_SHIFT))), " "
+				         "idPage=", Genode::Hex(idPage), " i=", iPage);
 			}
+			if (CHUNKID_PAGE_START <= chunkid && chunkid <= CHUNKID_PAGE_END) {
+				try {
+					page_ids.free((chunkid - CHUNKID_PAGE_START) * PAGES_SUPERPAGE + page_idx);
+				} catch (...) {
+					Genode::error(__func__," ", __LINE__, " clearing failed");
+					throw;
+				}
+			}
+
+			partial_free_large_page(chunkid, page_idx);
+
 			paPages[iPage].idPage = NIL_GMM_PAGEID;
 		}
 

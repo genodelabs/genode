@@ -133,10 +133,18 @@ int Vcpu_handler::map_memory(RTGCPHYS GCPhys, size_t cbWrite,
 	}
 
 /*
-	Vmm::printf("0x%lx->0x%lx type=%u state=0x%u pde=%u iPage=%u range_size=0x%lx pages=%u\n",
-	            PGM_PAGE_GET_HCPHYS(pPage), GCPhys, PGM_PAGE_GET_TYPE(pPage),
-	            PGM_PAGE_GET_STATE(pPage), PGM_PAGE_GET_PDE_TYPE(pPage),
-	            iPage, pRam->cb, pRam->cb >> PAGE_SHIFT);
+	if (VERBOSE_PGM)
+		Vmm::log(Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)),
+		         "->", Genode::Hex(GCPhys),
+		         " type=", PGM_PAGE_GET_TYPE(pPage),
+		         " state=", PGM_PAGE_GET_STATE(pPage),
+		         " pde_type=", PGM_PAGE_GET_PDE_TYPE(pPage),
+		         PGM_PAGE_GET_PDE_TYPE(pPage) == PGM_PAGE_PDE_TYPE_PDE ? "(is pde)" : "(not pde)",
+		         " iPage=", iPage,
+		         " range_start=", Genode::Hex(pRam->GCPhys),
+		         " range_size=", Genode::Hex(pRam->cb),
+		         " pages=", pRam->cb >> PAGE_SHIFT
+		);
 */
 
 	if (PGM_PAGE_GET_PDE_TYPE(pPage) == PGM_PAGE_PDE_TYPE_PDE) {
