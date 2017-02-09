@@ -310,12 +310,10 @@ struct Timeout : Genode::Signal_handler<Timeout>
 	Genode::Entrypoint &ep;
 	Timer::Connection timer;
 	void (*tick)();
-	bool pending = false;
 
 	void handle()
 	{
 		update_jiffies();
-		pending = false;
 
 		/* tick the higher layer of the component */
 		tick();
@@ -332,13 +330,11 @@ struct Timeout : Genode::Signal_handler<Timeout>
 	void schedule(signed long msec)
 	{
 		timer.trigger_once(msec * 1000);
-		pending = true;
 	}
 
 	void wait()
 	{
-		while (pending)
-			ep.wait_and_dispatch_one_signal();
+		ep.wait_and_dispatch_one_signal();
 	}
 };
 
