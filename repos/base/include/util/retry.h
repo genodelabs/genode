@@ -38,7 +38,7 @@ namespace Genode {
  */
 template <typename EXC, typename FUNC, typename HANDLER>
 auto Genode::retry(FUNC func, HANDLER handler,
-                   unsigned attempts = ~0U) -> decltype(func())
+                   unsigned attempts) -> decltype(func())
 {
 	for (unsigned i = 0; attempts == ~0U || i < attempts; i++)
 		try { return func(); }
