@@ -86,9 +86,9 @@ append config {
 			<policy label_prefix="status_bar"             domain="panel"/>
 			<default-policy                               domain="default"/>
 
-			<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
-			<global-key name="KEY_F1"         label="xray_trigger" />
-			<global-key name="KEY_F2"         label="xray_trigger" />
+			<global-key name="KEY_SCROLLLOCK" label="xray_trigger -> input" />
+			<global-key name="KEY_F1"         label="xray_trigger -> input" />
+			<global-key name="KEY_F2"         label="xray_trigger -> input" />
 			<global-key name="KEY_LEFTMETA"   label="wm -> launcher" />
 			<global-key name="KEY_F3"         label="wm -> launcher" />
 		</config>

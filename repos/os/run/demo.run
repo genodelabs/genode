@@ -154,9 +154,9 @@ append config {
 					<policy label_prefix="scout -> launchpad" domain="launchpad"/>
 					<default-policy                           domain=""/>
 
-					<global-key name="KEY_SCROLLLOCK" label="xray_trigger" />
-					<global-key name="KEY_F1"         label="xray_trigger" />
-					<global-key name="KEY_F2"         label="xray_trigger" />
+					<global-key name="KEY_SCROLLLOCK" label="xray_trigger -> input" />
+					<global-key name="KEY_F1"         label="xray_trigger -> input" />
+					<global-key name="KEY_F2"         label="xray_trigger -> input" />
 				</inline>
 			</output>
 		</config>
