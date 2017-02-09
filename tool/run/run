@@ -785,6 +785,9 @@ proc build_core_image {binaries} {
 	build_core $core_obj $modules [run_dir]/image.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
+	# Save config part of the image.elf for easy inspection
+	exec cp -f  [run_dir]/genode/config [run_dir].config
+
 	# remove individual binaries, which are now contained in 'image.elf'
 	exec rm -rf [run_dir]/genode
 }
