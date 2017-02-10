@@ -62,7 +62,7 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
 
 			_permit_single_rules.insert(&rule);
 			if (config.verbose()) {
-				log(protocol, " rule: ", _dst, " ", rule); }
+				log("  ", protocol, " rule: ", _dst, " ", rule); }
 		}
 		catch (Rule::Invalid) { warning("invalid permit rule"); }
 	});
