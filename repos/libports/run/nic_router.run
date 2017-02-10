@@ -144,9 +144,11 @@ append config {
 		<provides><service name="Nic"/></provides>
 		<config>
 			<policy label_prefix="nic_router"    ip_addr="10.0.2.55"  />
-			<policy label_prefix="http_server_3" ip_addr="10.0.2.11"  />
-			<policy label_prefix="udp_client_2"  ip_addr="10.0.2.123" />
-			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.70"  />
+			<policy label_prefix="http_client_1" ip_addr="10.0.2.201"  />
+			<policy label_prefix="http_client_2" ip_addr="10.0.2.202"  />
+			<policy label_prefix="http_server_3" ip_addr="10.0.2.203"  />
+			<policy label_prefix="udp_client_2"  ip_addr="10.0.2.212" />
+			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.213"  />
 		</config>
 		<route>}
 append config "
@@ -197,8 +199,8 @@ append_if $udp_up_to_down_1 config {
 		</route>
 		<config server_ip="10.0.2.55" server_port="1">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.123"
-			      gateway="10.0.2.55" netmask="255.255.255.0"/>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.212"
+			      gateway="10.0.2.1" netmask="255.255.255.0"/>
 		</config>
 	</start>
 
@@ -225,7 +227,7 @@ append_if $udp_down_to_up_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config server_ip="10.0.2.70" server_port="65535">
+		<config server_ip="10.0.2.213" server_port="65535">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="217.13.192.2"
 			      gateway="217.13.192.1" netmask="255.255.192.0"/>
@@ -241,8 +243,8 @@ append_if $udp_down_to_up_1 config {
 		</route>
 		<config port="65535">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.70"
-			      netmask="255.255.255.0" gateway="10.0.2.55"/>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.213"
+			      gateway="10.0.2.55" netmask="255.255.255.0"/>
 		</config>
 	</start>}
 
@@ -271,7 +273,8 @@ append_if $tcp_up_to_down_1 config {
 		</route>
 		<config server_ip="10.0.2.55" server_port="80">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.201"
+			      gateway="10.0.2.1" netmask="255.255.255.0"/>
 		</config>
 	</start>}
 
@@ -300,7 +303,8 @@ append_if $tcp_up_to_down_2 config {
 		</route>
 		<config server_ip="10.0.2.55" server_port="8080">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.202"
+			      gateway="10.0.2.1" netmask="255.255.255.0"/>
 		</config>
 	</start>}
 
@@ -315,8 +319,8 @@ append_if $tcp_down_to_up_1 config {
 		</route>
 		<config port="2345">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.11"
-			      netmask="255.255.255.0" gateway="10.0.2.1"/>
+			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.203"
+			      gateway="10.0.2.1" netmask="255.255.255.0"/>
 		</config>
 	</start>
 	<start name="http_client_3">
@@ -326,7 +330,7 @@ append_if $tcp_down_to_up_1 config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config server_ip="10.0.2.11" server_port="2345">
+		<config server_ip="10.0.2.203" server_port="2345">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="100.200.0.128"
 			      netmask="255.255.0.0" gateway="100.200.0.1"/>
