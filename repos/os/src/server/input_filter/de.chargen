@@ -1,0 +1,164 @@
+<chargen>
+	<map>
+		<key name="KEY_ESC"        ascii="27"/>
+		<key name="KEY_1"          char="1"/>
+		<key name="KEY_2"          char="2"/>
+		<key name="KEY_3"          char="3"/>
+		<key name="KEY_4"          char="4"/>
+		<key name="KEY_5"          char="5"/>
+		<key name="KEY_6"          char="6"/>
+		<key name="KEY_7"          char="7"/>
+		<key name="KEY_8"          char="8"/>
+		<key name="KEY_9"          char="9"/>
+		<key name="KEY_0"          char="0"/>
+		<key name="KEY_MINUS"      b0="195" b1="159"/>  <!-- 'ß' -->
+		<key name="KEY_EQUAL"      ascii="39"/>         <!-- '´' -->
+		<key name="KEY_BACKSPACE"  ascii="8"/>
+		<key name="KEY_TAB"        ascii="9"/>
+		<key name="KEY_Q"          char="q"/>
+		<key name="KEY_W"          char="w"/>
+		<key name="KEY_E"          char="e"/>
+		<key name="KEY_R"          char="r"/>
+		<key name="KEY_T"          char="t"/>
+		<key name="KEY_Y"          char="z"/>
+		<key name="KEY_U"          char="u"/>
+		<key name="KEY_I"          char="i"/>
+		<key name="KEY_O"          char="o"/>
+		<key name="KEY_P"          char="p"/>
+		<key name="KEY_LEFTBRACE"  b0="195" b1="188"/>  <!-- 'ü' -->
+		<key name="KEY_RIGHTBRACE" char="+"/>
+		<key name="KEY_ENTER"      ascii="10"/>
+		<key name="KEY_A"          char="a"/>
+		<key name="KEY_S"          char="s"/>
+		<key name="KEY_D"          char="d"/>
+		<key name="KEY_F"          char="f"/>
+		<key name="KEY_G"          char="g"/>
+		<key name="KEY_H"          char="h"/>
+		<key name="KEY_J"          char="j"/>
+		<key name="KEY_K"          char="k"/>
+		<key name="KEY_L"          char="l"/>
+		<key name="KEY_SEMICOLON"  b0="195" b1="182"/>  <!-- 'ö' -->
+		<key name="KEY_APOSTROPHE" b0="195" b1="164"/>  <!-- 'ä' -->
+		<key name="KEY_GRAVE"      char="^"/>
+		<key name="KEY_BACKSLASH"  char="#"/>
+		<key name="KEY_102ND"      ascii="60"/>         <!-- '<' -->
+		<key name="KEY_Z"          char="y"/>
+		<key name="KEY_X"          char="x"/>
+		<key name="KEY_C"          char="c"/>
+		<key name="KEY_V"          char="v"/>
+		<key name="KEY_B"          char="b"/>
+		<key name="KEY_N"          char="n"/>
+		<key name="KEY_M"          char="m"/>
+		<key name="KEY_COMMA"      char=","/>
+		<key name="KEY_DOT"        char="."/>
+		<key name="KEY_SLASH"      char="-"/>
+		<key name="KEY_SPACE"      char=" "/>
+		<key name="KEY_KP7"        char="7"/>
+		<key name="KEY_KP8"        char="8"/>
+		<key name="KEY_KP9"        char="9"/>
+		<key name="KEY_KPMINUS"    char="-"/>
+		<key name="KEY_KP4"        char="4"/>
+		<key name="KEY_KP5"        char="5"/>
+		<key name="KEY_KP6"        char="6"/>
+		<key name="KEY_KPPLUS"     char="+"/>
+		<key name="KEY_KP1"        char="1"/>
+		<key name="KEY_KP2"        char="2"/>
+		<key name="KEY_KP3"        char="3"/>
+		<key name="KEY_KP0"        char="0"/>
+		<key name="KEY_KPDOT"      char="."/>
+		<key name="KEY_KPENTER"    ascii="10"/>
+		<key name="KEY_KPSLASH"    char="/"/>
+	</map>
+	<map mod1="yes">
+		<key name="KEY_1"          char="!"/>
+		<key name="KEY_2"          ascii="34"/>         <!-- '"' -->
+		<key name="KEY_3"          b0="194" b1="167"/>  <!-- '§' -->
+		<key name="KEY_4"          char="$"/>
+		<key name="KEY_5"          char="%"/>
+		<key name="KEY_6"          ascii="38"/>         <!-- '&' -->
+		<key name="KEY_7"          char="/"/>           <!-- '/' -->
+		<key name="KEY_8"          char="("/>
+		<key name="KEY_9"          char=")"/>
+		<key name="KEY_0"          char="="/>
+		<key name="KEY_MINUS"      char="?"/>
+		<key name="KEY_EQUAL"      char="`"/>
+		<key name="KEY_Q"          char="Q"/>
+		<key name="KEY_W"          char="W"/>
+		<key name="KEY_E"          char="E"/>
+		<key name="KEY_R"          char="R"/>
+		<key name="KEY_T"          char="T"/>
+		<key name="KEY_Y"          char="Z"/>
+		<key name="KEY_U"          char="U"/>
+		<key name="KEY_I"          char="I"/>
+		<key name="KEY_O"          char="O"/>
+		<key name="KEY_P"          char="P"/>
+		<key name="KEY_LEFTBRACE"  b0="195" b1="156"/>  <!-- 'Ü' -->
+		<key name="KEY_RIGHTBRACE" char="*"/>
+		<key name="KEY_A"          char="A"/>
+		<key name="KEY_S"          char="S"/>
+		<key name="KEY_D"          char="D"/>
+		<key name="KEY_F"          char="F"/>
+		<key name="KEY_G"          char="G"/>
+		<key name="KEY_H"          char="H"/>
+		<key name="KEY_J"          char="J"/>
+		<key name="KEY_K"          char="K"/>
+		<key name="KEY_L"          char="L"/>
+		<key name="KEY_SEMICOLON"  b0="195" b1="150"/>  <!-- 'Ö' -->
+		<key name="KEY_APOSTROPHE" b0="195" b1="132"/>  <!-- 'Ä' -->
+		<key name="KEY_GRAVE"      b0="194" b1="176"/>  <!-- '°' -->
+		<key name="KEY_BACKSLASH"  char="'"/>
+		<key name="KEY_102ND"      ascii="62"/>         <!-- '>' -->
+		<key name="KEY_Z"          char="Y"/>
+		<key name="KEY_X"          char="X"/>
+		<key name="KEY_C"          char="C"/>
+		<key name="KEY_V"          char="V"/>
+		<key name="KEY_B"          char="B"/>
+		<key name="KEY_N"          char="N"/>
+		<key name="KEY_M"          char="M"/>
+		<key name="KEY_COMMA"      char=";"/>
+		<key name="KEY_DOT"        char=":"/>
+		<key name="KEY_SLASH"      char="_"/>
+	</map>
+	<map mod2="yes">
+		<key name="KEY_A" ascii="1"/>
+		<key name="KEY_B" ascii="2"/>
+		<key name="KEY_C" ascii="3"/>
+		<key name="KEY_D" ascii="4"/>
+		<key name="KEY_E" ascii="5"/>
+		<key name="KEY_F" ascii="6"/>
+		<key name="KEY_G" ascii="7"/>
+		<key name="KEY_H" ascii="8"/>
+		<key name="KEY_I" ascii="9"/>
+		<key name="KEY_J" ascii="10"/>
+		<key name="KEY_K" ascii="11"/>
+		<key name="KEY_L" ascii="12"/>
+		<key name="KEY_M" ascii="13"/>
+		<key name="KEY_N" ascii="14"/>
+		<key name="KEY_O" ascii="15"/>
+		<key name="KEY_P" ascii="16"/>
+		<key name="KEY_Q" ascii="17"/>
+		<key name="KEY_R" ascii="18"/>
+		<key name="KEY_S" ascii="19"/>
+		<key name="KEY_T" ascii="20"/>
+		<key name="KEY_U" ascii="21"/>
+		<key name="KEY_V" ascii="22"/>
+		<key name="KEY_W" ascii="23"/>
+		<key name="KEY_X" ascii="24"/>
+		<key name="KEY_Y" ascii="26"/>
+		<key name="KEY_Z" ascii="25"/>
+	</map>
+	<map mod3="yes">
+		<key name="KEY_2"          b0="194" b1="178"/>  <!-- superscript two -->
+		<key name="KEY_3"          b0="194" b1="179"/>  <!-- superscript three -->
+		<key name="KEY_7"          char="{"/>
+		<key name="KEY_8"          char="["/>
+		<key name="KEY_9"          char="]"/>
+		<key name="KEY_0"          char="}"/>
+		<key name="KEY_E"          b0="226" b1="130" b2="172"/>  <!-- euro sign -->
+		<key name="KEY_MINUS"      ascii="92"/>         <!-- '\' -->
+		<key name="KEY_Q"          char="@"/>
+		<key name="KEY_M"          b0="194" b1="181"/>  <!-- small micro -->
+		<key name="KEY_102ND"      char="|"/>
+		<key name="KEY_RIGHTBRACE" char="~"/>
+	</map>
+</chargen>

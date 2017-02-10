@@ -1,0 +1,110 @@
+This component transforms input events originating from multiple sources.
+
+
+Configuration
+-------------
+
+An input-filter configuration consists of two parts, a declaration of
+input sources ("Input" connections) that the component should request,
+and the definition of a filter chain. Each input source is defined via
+an '<input>' node with the name of the input source as 'name' attribute and
+the session label as 'label' attribute. The latter can be used to route
+several input sources to different components, i.e, input device drivers.
+
+The filter chain is defined via one '<output>' node. It contains exactly
+one of the following filters:
+
+:<input name="..."/>:
+
+  Refers to the input source with the matching 'name'.
+
+:<remap>:
+
+  Applies low-level key remapping to the events produced by another filter
+  that is embedded as a child node.
+
+  It may contain any number of '<key>' nodes. Each of those key nodes has
+  the key name as 'name' attribute, may feature an optional 'to' attribute
+  with the name of the key that should be reported instead of 'name', and
+  an optional 'sticky' attribute. If the latter is set to "yes", the key
+  behaves like a sticky key. That means, only press events are evaluated
+  and every second press event is reported as a release event. This is
+  useful for special keys like capslock.
+
+:<merge>:
+
+  Merges the results of any number of filters that appear as child nodes.
+
+:<chargen>:
+
+  Supplements the input-event stream of another filter with artificial
+  'CHARACTER' events by applying character mapping rules. The originating
+  filter is defined as a child node.
+
+
+Character generator rules
+-------------------------
+
+The character-generator ('<chargen>') rules are defined via the following
+sub nodes:
+
+:<mod1>/<mod2>/<mod3>/<mod4>:
+
+  Defines which physical keys are interpreted as modifier keys. Usually,
+  '<mod1>' corresponds to shift, '<mod2>' to control, and '<mod3>' to altgr
+  (on German keyboards). Each modifier node may host any number of '<key>'
+  nodes with their corresponding 'name' attribute. For example:
+
+  ! <mod1>
+  !   <key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
+  ! </mod1>
+
+:<map mod1="..." mod2="..." mod3="..." mod4="...">:
+
+  A '<map>' node contains a list of keys that emit a specified character when
+  pressed. Any number of '<map>' nodes can be present. For each map node, the
+  attributes 'mod1' to 'mod4' denote the condition, under which it is
+  considered. Each 'mod' attribute has three possible values. If the attribute
+  is not present, the state of the modifier does not matter. If set to 'yes',
+  the modifier must be active. If set to 'no', the modifier must not be active.
+
+  Each '<map>' may contain any number of '<key>' subnodes. Each '<key>'
+  must have the key name as 'name' attribute. The to-be-emitted character
+  is defined by the attributes 'ascii', 'char', or 'b0/b1/b2/b3'. The
+  'ascii' attribute accepts an integer value between 0 and 127, the
+  'char' attribute accepts a single ASCII character, the 'b0/b1/b2/b3'
+  attributes define the individual bytes of an UTF-8 character.
+
+:<repeat delay_ms="500" rate_ms="250">:
+
+  The '<repeat>' node defines the character-repeat delay and rate that
+  triggers the periodic emission of the last produced character while
+  the corresponding key is held.
+
+:<include rom="...">:
+
+  The '<include>' node includes further content into the '<chargen>' node
+  and thereby allows the easy reuse of common rules. The included ROM must
+  have an '<chargen>' top-level node.
+
+
+Additional features
+-------------------
+
+The input filter is able to respond to configuration updates as well as updates
+of included ROM modules. However, a new configuration is applied only if the
+input sources are in their idle state - that is, no key is pressed. This
+ensures the consistency of the generated key events (for each press event there
+must be a corresponding release event), on which clients of the input filter
+may depend. However, this deferred reconfiguration can be overridden by setting
+the 'force' attribute of the '<config>' node to 'yes'. If forced, the new
+configuration is applied immediately.
+
+
+Examples
+--------
+
+An automated test that exercises various corner cases of the input filter
+can be found at _os/run/input_filter.run_. For a practical example of how
+to use the input filter with the terminal, please refer to the
+_gems/run/terminal_echo.run_ script.
