@@ -30,6 +30,13 @@ namespace Genode {
 
 class Genode::Entrypoint : Genode::Noncopyable
 {
+	public:
+
+		/**
+		 * Functor for post signal-handler hook
+		 */
+		struct Post_signal_hook { virtual void function() = 0; };
+
 	private:
 
 		struct Signal_proxy
@@ -46,10 +53,13 @@ class Genode::Entrypoint : Genode::Noncopyable
 
 			void signal()
 			{
+				/* XXX introduce while-pending loop */
 				try {
 					Signal sig = ep._sig_rec->pending_signal();
 					ep._dispatch_signal(sig);
 				} catch (Signal_receiver::Signal_not_pending) { }
+
+				ep._execute_post_signal_hook();
 			}
 		};
 
@@ -78,6 +88,16 @@ class Genode::Entrypoint : Genode::Noncopyable
 		bool _suspended                = false;
 		void (*_suspended_callback) () = nullptr;
 		void (*_resumed_callback)   () = nullptr;
+
+		Post_signal_hook *_post_signal_hook = nullptr;
+
+		void _execute_post_signal_hook()
+		{
+			if (_post_signal_hook != nullptr)
+				_post_signal_hook->function();
+
+			_post_signal_hook = nullptr;
+		}
 
 		/*
 		 * This signal handler is solely used to force an iteration of the
@@ -146,8 +166,11 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 */
 		void wait_and_dispatch_one_signal()
 		{
-			Signal sig = _sig_rec->wait_for_signal();
-			_dispatch_signal(sig);
+			{
+				Signal sig = _sig_rec->wait_for_signal();
+				_dispatch_signal(sig);
+			}
+			_execute_post_signal_hook();
 		}
 
 		/**
@@ -162,6 +185,14 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 * state, while 'resumed is called when the entrypoint is fully functional again.
 		 */
 		void schedule_suspend(void (*suspended)(), void (*resumed)());
+
+		/**
+		 * Register hook functor to be called after signal was handled
+		 */
+		void schedule_post_signal_hook(Post_signal_hook *hook)
+		{
+			_post_signal_hook = hook;
+		}
 };
 
 #endif /* _INCLUDE__BASE__ENTRYPOINT_H_ */
