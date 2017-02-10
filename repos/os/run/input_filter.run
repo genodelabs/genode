@@ -1,0 +1,355 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer
+	server/report_rom server/input_filter test/input_filter
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_rom" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="ROM"/> <service name="Report"/> </provides>
+		<config>
+			<policy label_prefix="input_filter -> input_filter.config"
+			        report="test-input_filter -> input_filter.config"/>
+			<policy label_prefix="input_filter -> chargen_include"
+			        report="test-input_filter -> chargen_include"/>
+			<policy label_prefix="input_filter -> remap_include"
+			        report="test-input_filter -> remap_include"/>
+		</config>
+	</start>
+
+	<start name="input_filter" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Input"/> </provides>
+		<configfile name="input_filter.config"/>
+		<route>
+			<service name="ROM" label="input_filter.config"> <child name="report_rom"/> </service>
+			<service name="ROM" label="chargen_include">     <child name="report_rom"/> </service>
+			<service name="ROM" label="remap_include">       <child name="report_rom"/> </service>
+			<service name="Input"> <child name="test-input_filter"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="test-input_filter" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Input"/> </provides>
+		<config>
+
+			<message string="test merging of two input sources"/>
+
+			<filter_config>
+				<input label="ps2"/>
+				<input label="usb"/>
+				<output>
+					<merge>
+						<input name="ps2"/>
+						<input name="usb"/>
+					</merge>
+				</output>
+			</filter_config>
+			<sleep ms="250"/>
+
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
+			<expect_press   code="KEY_A"/>
+			<expect_release code="KEY_A"/>
+
+			<ps2> <press code="KEY_B"/> <release code="KEY_B"/> </ps2>
+			<expect_press   code="KEY_B"/>
+			<expect_release code="KEY_B"/>
+
+
+			<message string="test key remapping"/>
+
+			<filter_config>
+				<input label="ps2"/>
+				<input label="usb"/>
+				<output>
+					<remap>
+						<merge>
+							<input name="usb"/>
+							<remap>
+								<input name="ps2"/>
+								<key name="KEY_A" to="KEY_C"/>
+							</remap>
+						</merge>
+						<key name="KEY_A" to="KEY_B"/>
+					</remap>
+				</output>
+			</filter_config>
+			<sleep ms="250"/>
+
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
+			<expect_press   code="KEY_B"/>
+			<expect_release code="KEY_B"/>
+
+			<ps2> <press code="KEY_A"/> <release code="KEY_A"/> </ps2>
+			<expect_press   code="KEY_C"/>
+			<expect_release code="KEY_C"/>
+
+
+			<message string="test deferred reconfiguration"/>
+
+			<!-- hold key while reconfiguring the filter, the remapping applies -->
+			<usb> <press code="KEY_A"/> </usb>
+			<expect_press code="KEY_B"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output> <input name="usb"/> </output>
+			</filter_config>
+			<sleep ms="250"/>
+
+			<!-- expect the remapping rules to persist until all keys are released -->
+			<usb> <release code="KEY_A"/> </usb>
+			<expect_release code="KEY_B"/>
+
+			<!-- input_filter now requests a new input session from us -->
+			<sleep ms="100"/>
+
+			<!-- now the default configuration is expected to take effect -->
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
+			<expect_press   code="KEY_A"/>
+			<expect_release code="KEY_A"/>
+
+
+			<message string="test emission of characters"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<input name="usb"/>
+						<mod1>
+							<key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
+						</mod1>
+						<map>            <key name="KEY_A" char="a"/> </map>
+						<map mod1="yes"> <key name="KEY_A" char="A"/> </map>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="250"/>
+			<usb>
+				<press   code="KEY_A"/> <release code="KEY_A"/>
+				<press   code="KEY_LEFTSHIFT"/>
+				<press   code="KEY_A"/> <release code="KEY_A"/>
+				<release code="KEY_LEFTSHIFT"/>
+				<press   code="KEY_RIGHTSHIFT"/>
+				<press   code="KEY_A"/> <release code="KEY_A"/>
+				<release code="KEY_RIGHTSHIFT"/>
+			</usb>
+			<expect_press   code="KEY_A"/>
+			<expect_char    char="a"/>
+			<expect_release code="KEY_A"/>
+			<expect_press   code="KEY_LEFTSHIFT"/>
+			<expect_press   code="KEY_A"/>
+			<expect_char    char="A"/>
+			<expect_release code="KEY_A"/>
+			<expect_release code="KEY_LEFTSHIFT"/>
+			<expect_press   code="KEY_RIGHTSHIFT"/>
+			<expect_press   code="KEY_A"/>
+			<expect_char    char="A"/>
+			<expect_release code="KEY_A"/>
+			<expect_release code="KEY_RIGHTSHIFT"/>
+
+
+			<message string="test character repeat"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<input name="usb"/>
+						<repeat delay_ms="600" rate_ms="200"/>
+						<map> <key name="KEY_A" char="a"/> </map>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="500"/>
+			<usb> <press code="KEY_A"/> </usb>
+			<sleep ms="1500"/>
+			<usb> <release code="KEY_A"/> </usb>
+			<!-- periodic characters should stop now -->
+			<sleep ms="1000"/> 
+			<usb> <press code="KEY_B"/> <release code="KEY_B"/> </usb>
+			<expect_press   code="KEY_A"/>
+			<expect_char    char="a"/> <!-- original press           (0 ms) -->
+			<expect_char    char="a"/> <!-- character after delay  (600 ms) -->
+			<expect_char    char="a"/> <!-- periodic character     (800 ms) -->
+			<expect_char    char="a"/> <!-- periodic character    (1000 ms) -->
+			<expect_char    char="a"/> <!-- periodic character    (1200 ms) -->
+			<expect_char    char="a"/> <!-- periodic character    (1400 ms) -->
+			<expect_release code="KEY_A"/>
+			<expect_press   code="KEY_B"/>
+			<expect_release code="KEY_B"/>
+
+
+			<message string="capslock handling"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<remap>
+							<input name="usb"/>
+							<key name="KEY_CAPSLOCK" sticky="yes"/>
+						</remap>
+						<mod1> <key name="KEY_CAPSLOCK"/> </mod1>
+						<map>            <key name="KEY_A" char="a"/> </map>
+						<map mod1="yes"> <key name="KEY_A" char="A"/> </map>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="250"/>
+			<usb>
+				<press code="KEY_A"/>        <release code="KEY_A"/>
+				<press code="KEY_CAPSLOCK"/> <release code="KEY_CAPSLOCK"/>
+				<press code="KEY_A"/>        <release code="KEY_A"/>
+				<press code="KEY_CAPSLOCK"/> <release code="KEY_CAPSLOCK"/>
+				<press code="KEY_A"/>        <release code="KEY_A"/>
+			</usb>
+			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
+			<expect_press code="KEY_CAPSLOCK"/>
+			<expect_press code="KEY_A"/> <expect_char char="A"/> <expect_release code="KEY_A"/>
+			<expect_release code="KEY_CAPSLOCK"/>
+			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
+
+
+			<message string="survive deeply nested config"/>
+
+			<deep_filter_config depth="50"/>
+			<sleep ms="100"/>
+
+
+			<message string="survive attempt to include non-existing ROM"/>
+
+			<remap_include>   </remap_include>
+			<chargen_include> </chargen_include>
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<input name="usb"/>
+						<include rom="nonexisting_include"/>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+
+
+			<message string="detect top-level node mismatch in included ROM"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<input name="usb"/>
+						<include rom="remap_include"/>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+
+
+			<message string="survive include recursion"/>
+
+			<chargen_include> <include rom="chargen_include"/> </chargen_include>
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<input name="usb"/>
+						<include rom="chargen_include"/>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+
+
+			<message string="include valid chargen rules"/>
+
+			<chargen_include>
+				<map> <key name="KEY_A" char="a"/> </map>
+			</chargen_include>
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<input name="usb"/>
+						<include rom="chargen_include"/>
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
+			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
+
+
+			<message string="update included chargen ROM"/>
+
+			<chargen_include>
+				<map> <key name="KEY_A" char="b"/> </map>
+			</chargen_include>
+			<sleep ms="100"/>
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
+			<expect_press code="KEY_A"/> <expect_char char="b"/> <expect_release code="KEY_A"/>
+
+		</config>
+		<route>
+			<service name="Input">  <child name="input_filter"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules { core ld.lib.so init timer report_rom
+                   input_filter test-input_filter }
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic "
+
+run_genode_until {.*child "test-input_filter" exited with exit value 0.*} 60
+
