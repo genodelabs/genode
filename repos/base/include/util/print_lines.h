@@ -85,7 +85,7 @@ void Genode::print_lines(char const *string, size_t len, FUNC const &func)
 		 * Copy line from (untrusted) caller to local line buffer
 		 */
 		char line_buf[MAX_LINE_LEN];
-		Genode::strncpy(line_buf, string, Genode::min(line_len + 1, sizeof(line_buf)));
+		Genode::strncpy(line_buf, string, Genode::min(line_len, sizeof(line_buf)));
 		func(line_buf);
 
 		string += line_len;
