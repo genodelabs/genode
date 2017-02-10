@@ -11,26 +11,19 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <os/timed_semaphore.h>
-
+/* Libc includes */
 #include <sys/time.h>
+
+#include "task.h"
 
 using namespace Genode;
 
 extern "C" __attribute__((weak))
 int _nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	Genode::Alarm::Time sleep_msec = (req->tv_sec * 1000) + (req->tv_nsec / 1000000);
+	unsigned long sleep_ms = req->tv_sec*1000 + req->tv_nsec/1000000;
 
-	/* Timed_semaphore does not support timeouts < 10ms */
-	if (sleep_msec < 10)
-		sleep_msec = 10;
-
-	Timed_semaphore sem(0);
-	try {
-		sem.down(sleep_msec);
-	} catch(Timeout_exception) {
-	}
+	do { sleep_ms = Libc::suspend(sleep_ms); } while (sleep_ms);
 
 	if (rem) {
 		rem->tv_sec = 0;

@@ -539,15 +539,22 @@ struct Libc::Kernel
 		 */
 		unsigned long suspend(unsigned long timeout_ms)
 		{
-			if (timeout_ms > _timer_accessor.timer().max_timeout())
+			if (timeout_ms > 0
+			 && timeout_ms > _timer_accessor.timer().max_timeout()) {
 				Genode::warning("libc: limiting exceeding timeout of ",
 				                timeout_ms, " ms to maximum of ",
 				                _timer_accessor.timer().max_timeout(), " ms");
 
-			timeout_ms = min(timeout_ms, _timer_accessor.timer().max_timeout());
+				timeout_ms = min(timeout_ms, _timer_accessor.timer().max_timeout());
+			}
 
 			return _main_context() ? _suspend_main(timeout_ms)
 			                       : _pthreads.suspend_myself(timeout_ms);
+		}
+
+		unsigned long current_time()
+		{
+			return _timer_accessor.timer().curr_time();
 		}
 
 		/**
@@ -631,6 +638,12 @@ void Libc::resume_all() { kernel->resume_all(); }
 unsigned long Libc::suspend(unsigned long timeout_ms)
 {
 	return kernel->suspend(timeout_ms);
+}
+
+
+unsigned long Libc::current_time()
+{
+	return kernel->current_time();
 }
 
 

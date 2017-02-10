@@ -50,6 +50,11 @@ namespace Libc {
 	unsigned long suspend(unsigned long timeout_ms = 0UL);
 
 	/**
+	 * Get time since startup in ms
+	 */
+	unsigned long current_time();
+
+	/**
 	 * Suspend main user context and the component entrypoint
 	 *
 	 * This interface is solely used by the implementation of fork().

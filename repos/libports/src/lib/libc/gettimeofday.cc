@@ -11,31 +11,34 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <os/timed_semaphore.h>
-
+/* Libc includes */
 #include <sys/time.h>
 
-namespace Libc {
-extern time_t read_rtc();
-}
+#include "task.h"
+
+
+namespace Libc { time_t read_rtc(); }
+
 
 extern "C" __attribute__((weak))
-int gettimeofday(struct timeval *tv, struct timezone *tz)
+int gettimeofday(struct timeval *tv, struct timezone *)
 {
+	if (!tv) return 0;
+
 	static bool read_rtc = false;
 	static time_t rtc = 0;
+	static unsigned long t0 = 0;
 
 	if (!read_rtc) {
 		rtc = Libc::read_rtc();
 		read_rtc = true;
+		t0 = Libc::current_time();
 	}
 
-	Genode::Alarm::Time time = Genode::Timeout_thread::alarm_timer()->time();
+	unsigned long time = Libc::current_time() - t0;
 
-	if (tv) {
-		tv->tv_sec = rtc + time / 1000;
-		tv->tv_usec = (time % 1000) * 1000;
-	}
+	tv->tv_sec  = rtc + time/1000;
+	tv->tv_usec = (time % 1000) * 1000;
 
 	return 0;
 }

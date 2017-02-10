@@ -14,12 +14,9 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
-#include <os/timed_semaphore.h>
-
+/* Libc includes */
 #include <libc-plugin/plugin_registry.h>
 #include <libc-plugin/plugin.h>
-
 #include <sys/select.h>
 #include <sys/poll.h>
 #include <stdlib.h>
