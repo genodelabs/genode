@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -507,7 +507,7 @@ void Audio::init_driver(Genode::Env &env, Genode::Allocator &alloc,
 {
 	Bsd::mem_init(env, alloc);
 	Bsd::irq_init(env.ep(), alloc);
-	Bsd::timer_init(env.ep());
+	Bsd::timer_init(env);
 
 	static Task_args args(env, alloc, config);
 

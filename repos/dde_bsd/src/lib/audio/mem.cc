@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -81,9 +81,10 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 
 	public:
 
-		Slab_backend_alloc(Genode::Ram_session &ram, Genode::Region_map &rm,
-		                   Genode::Allocator &md_alloc)
+		Slab_backend_alloc(Genode::Env &env, Genode::Ram_session &ram,
+		                   Genode::Region_map &rm, Genode::Allocator &md_alloc)
 		:
+			Rm_connection(env),
 			Region_map_client(Rm_connection::create(VM_SIZE)),
 			_index(0), _range(&md_alloc), _ram(ram)
 		{
@@ -311,7 +312,7 @@ static Bsd::Malloc *_malloc;
 
 void Bsd::mem_init(Genode::Env &env, Genode::Allocator &alloc)
 {
-	static Bsd::Slab_backend_alloc sb(env.ram(), env.rm(), alloc);
+	static Bsd::Slab_backend_alloc sb(env, env.ram(), env.rm(), alloc);
 	static Bsd::Malloc m(sb, alloc);
 	_malloc = &m;
 }

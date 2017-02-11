@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -49,7 +49,7 @@ class Pci_driver : public Bsd::Bus_driver
 
 		struct pci_attach_args _pa { 0, 0, 0, 0, 0 };
 
-		Platform::Connection        _pci;
+		Platform::Connection        _pci { _env };
 		Platform::Device_capability _cap;
 
 		Genode::Io_port_connection *_io_port { nullptr };
