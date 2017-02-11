@@ -42,7 +42,7 @@ proc platform_drv_build_components {} {
 
 proc append_platform_drv_build_components {} {
 	global build_components
-	append build_components [platform_drv_build_components]
+	append build_components { } [platform_drv_build_components]
 }
 
 proc platform_drv_boot_modules {} {
@@ -57,7 +57,7 @@ proc platform_drv_boot_modules {} {
 
 proc append_platform_drv_boot_modules {} {
 	global boot_modules
-	append boot_modules $platform_drv_boot_modules
+	append boot_modules { } [platform_drv_boot_modules]
 }
 
 
