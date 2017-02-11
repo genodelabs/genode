@@ -7,7 +7,7 @@ QEMU_EMUL_H      := $(REP_DIR)/src/lib/qemu-usb/include/qemu_emul.h
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'qemu_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -rh "^\#include .*" $(QEMU_CONTRIB_DIR) |\
+GEN_INCLUDES := $(shell grep -rIh "^\#include .*" $(QEMU_CONTRIB_DIR) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | sort | uniq)
 #
 # Put Qemu headers in 'GEN_INC' dir

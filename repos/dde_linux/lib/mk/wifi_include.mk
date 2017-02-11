@@ -7,7 +7,7 @@ LX_EMUL_H        := $(REP_DIR)/src/lib/wifi/include/lx_emul.h
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'lx_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(WIFI_CONTRIB_DIR) |\
+GEN_INCLUDES := $(shell grep -rIh "^\#include .*\/" $(WIFI_CONTRIB_DIR) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" |\
                         sort | uniq)
 #
