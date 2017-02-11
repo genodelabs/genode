@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -55,9 +55,10 @@ class Bsd::Timer
 		/**
 		 * Constructor
 		 */
-		Timer(Genode::Entrypoint &ep)
+		Timer(Genode::Env &env)
 		:
-			_dispatcher(ep, *this, &Bsd::Timer::_handle)
+			_timer_conn(env),
+			_dispatcher(env.ep(), *this, &Bsd::Timer::_handle)
 		{
 			_timer_conn.sigh(_dispatcher);
 		}
@@ -69,16 +70,21 @@ class Bsd::Timer
 		{
 			millisecs = _timer_conn.elapsed_ms();
 		}
+
+		void delay(unsigned ms)
+		{
+			_timer_conn.msleep(ms);
+		}
 };
 
 
 static Bsd::Timer *_bsd_timer;
 
 
-void Bsd::timer_init(Genode::Entrypoint &ep)
+void Bsd::timer_init(Genode::Env &env)
 {
 	/* XXX safer way preventing possible nullptr access? */
-	static Bsd::Timer bsd_timer(ep);
+	static Bsd::Timer bsd_timer(env);
 	_bsd_timer = &bsd_timer;
 
 	/* initialize value explicitly */
@@ -88,9 +94,6 @@ void Bsd::timer_init(Genode::Entrypoint &ep)
 
 void Bsd::update_time() {
 	_bsd_timer->update_millisecs(); }
-
-
-static Timer::Connection _timer;
 
 
 static Bsd::Task *_sleep_task;
@@ -128,5 +131,5 @@ extern "C" void wakeup(const volatile void *ident)
 
 extern "C" void delay(int delay)
 {
-	_timer.msleep(delay);
+	_bsd_timer->delay(delay);
 }
