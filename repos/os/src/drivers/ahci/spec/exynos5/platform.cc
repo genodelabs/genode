@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -78,8 +78,9 @@ struct I2c_interface : Attached_mmio
 	 * \param base        physical MMIO base
 	 * \param slave_addr  ID of the targeted slave
 	 */
-	I2c_interface(addr_t base, unsigned slave_addr, Mmio::Delayer &delayer)
-	: Attached_mmio(base, 0x10000), delayer(delayer),
+	I2c_interface(Genode::Env &env,
+	              addr_t base, unsigned slave_addr, Mmio::Delayer &delayer)
+	: Attached_mmio(env, base, 0x10000), delayer(delayer),
 	  start_msg(Start_msg::Addr::bits(slave_addr))
 	{ }
 
@@ -166,8 +167,8 @@ struct I2c_sataphy : I2c_interface
 	/**
 	 * Constructor
 	 */
-	I2c_sataphy(Mmio::Delayer &delayer)
-	: I2c_interface(0x121d0000, SLAVE_ADDR, delayer)
+	I2c_sataphy(Genode::Env &env, Mmio::Delayer &delayer)
+	: I2c_interface(env, 0x121d0000, SLAVE_ADDR, delayer)
 	{ }
 
 	/**
@@ -221,7 +222,7 @@ struct I2c_sataphy : I2c_interface
 struct Sata_phy_ctrl : Attached_mmio
 {
 	Mmio::Delayer &delayer;
-	I2c_sataphy    i2c_sataphy { delayer };
+	I2c_sataphy    i2c_sataphy;
 
 	/********************************
 	 ** MMIO structure description **
@@ -259,8 +260,10 @@ struct Sata_phy_ctrl : Attached_mmio
 	/**
 	 * Constructor
 	 */
-	Sata_phy_ctrl(Mmio::Delayer &delayer)
-	: Attached_mmio(0x12170000, 0x10000), delayer(delayer)
+	Sata_phy_ctrl(Genode::Env &env, Mmio::Delayer &delayer)
+	:
+		Attached_mmio(env, 0x12170000, 0x10000), delayer(delayer),
+		i2c_sataphy(env, delayer)
 	{
 		i2c_sataphy.init();
 	}
@@ -317,7 +320,7 @@ struct Exynos5_hba : Platform::Hba
 {
 	Genode::Env &env;
 
-	Irq_connection        irq { Board_base::SATA_IRQ };
+	Irq_connection              irq { env, Board_base::SATA_IRQ };
 	Regulator::Connection clock_src { env, Regulator::CLK_SATA };
 	Regulator::Connection power_src { env, Regulator::PWR_SATA };
 
@@ -327,20 +330,20 @@ struct Exynos5_hba : Platform::Hba
 		clock_src.state(true);
 		power_src.state(true);
 
-		Sata_phy_ctrl phy(delayer);
+		Sata_phy_ctrl phy(env, delayer);
 
 		if (phy.init())
 			throw Root::Unavailable();
 
 		/* additionally perform some generic initializations */
-		::Hba hba(*this);
+		::Hba hba(env, *this, delayer);
 
 		::Hba::Cap::access_t cap = hba.read< ::Hba::Cap>();
 		::Hba::Cap2::access_t cap2 = hba.read< ::Hba::Cap2>();
 
 		/* reset */
 		hba.write< ::Hba::Ghc::Hr>(1);
-		if (!hba.wait_for< ::Hba::Ghc::Hr>(0, ::Hba::delayer(), 1000, 1000)) {
+		if (!hba.wait_for< ::Hba::Ghc::Hr>(0, hba.delayer(), 1000, 1000)) {
 			Genode::error("HBA reset failed");
 			throw Root::Unavailable();
 		}
