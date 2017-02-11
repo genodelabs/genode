@@ -13,7 +13,8 @@ SRC_CC  += irq.cc \
            printf.cc \
            scheduler.cc \
            timer.cc \
-           work.cc
+           work.cc \
+           env.cc
 
 INC_DIR += $(REP_DIR)/src/include
 

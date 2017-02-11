@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,7 +18,6 @@
 
 #include <base/log.h>
 #include <util/xml_node.h>
-#include <os/signal_rpc_dispatcher.h>
 #include <irq_session/capability.h>
 
 #include <lx_kit/env.h>
@@ -121,6 +120,8 @@ struct Services
 			        "Use <config (u/e/x)hci=\"yes\"> in your 'usb_drv' configuration");
 	}
 };
+
+void backend_alloc_init(Genode::Env &env, Genode::Ram_session &ram, Genode::Allocator &alloc);
 
 void platform_hcd_init(Services *services);
 Genode::Irq_session_capability platform_irq_activate(int irq);

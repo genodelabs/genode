@@ -1021,7 +1021,8 @@ void __iomem __must_check *pci_map_rom(struct pci_dev *pdev, size_t *size)
 {
 	enum { VIDEO_ROM_BASE = 0xC0000, VIDEO_ROM_SIZE = 0x20000 };
 
-	static Genode::Attached_io_mem_dataspace vrom(VIDEO_ROM_BASE, VIDEO_ROM_SIZE);
+	static Genode::Attached_io_mem_dataspace vrom(Lx_kit::env().env(),
+	                                              VIDEO_ROM_BASE, VIDEO_ROM_SIZE);
 	*size = VIDEO_ROM_SIZE;
 	return vrom.local_addr<void*>();
 }

@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2015-2016 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Linux kit includes */
+#include <lx_kit/env.h>
 #include <lx_kit/pci_dev_registry.h>
 #include <lx_kit/mapped_io_mem_range.h>
 
@@ -49,7 +50,7 @@ extern "C" int pci_register_driver(struct pci_driver *driver)
 			return false;
 
 		/* create 'pci_dev' struct for matching device */
-		pci_dev = new (env()->heap()) Lx::Pci_dev(cap);
+		pci_dev = new (&Lx_kit::env().heap()) Lx::Pci_dev(cap);
 
 		/* enable ioremap to work */
 		Lx::pci_dev_registry()->insert(pci_dev);

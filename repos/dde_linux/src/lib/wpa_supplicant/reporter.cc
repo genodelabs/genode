@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -29,8 +29,18 @@ extern "C" {
 }
 
 
-static Genode::Reporter accesspoints_reporter = { "wlan_accesspoints" };
-static Genode::Reporter state_reporter        = { "wlan_state" };
+static Genode::Constructible<Genode::Reporter> accesspoints_reporter;
+static Genode::Constructible<Genode::Reporter> state_reporter;
+
+
+extern "C" void wpa_reporter_init(void *env)
+{
+	accesspoints_reporter.construct(*static_cast<Genode::Env*>(env), "wlan_accesspoints");
+	accesspoints_reporter->enabled(true);
+
+	state_reporter.construct(*static_cast<Genode::Env*>(env), "wlan_state");
+	state_reporter->enabled(true);
+}
 
 
 enum { SSID_MAX_LEN = 32 + 1, MAC_STR_LEN = 6*2 + 5 + 1};
@@ -45,10 +55,8 @@ static inline void mac2str(char *buf, u8 const *mac)
 
 extern "C" void wpa_report_connect_event(struct wpa_supplicant *wpa_s)
 {
-	state_reporter.enabled(true);
-
 	try {
-		Genode::Reporter::Xml_generator xml(state_reporter, [&]() {
+		Genode::Reporter::Xml_generator xml(*state_reporter, [&]() {
 			struct wpa_ssid *wpa_ssid = wpa_s->current_ssid;
 
 			/* FIXME ssid may contain any characters, even NUL */
@@ -70,10 +78,8 @@ extern "C" void wpa_report_connect_event(struct wpa_supplicant *wpa_s)
 
 extern "C" void wpa_report_disconnect_event(struct wpa_supplicant *wpa_s)
 {
-	state_reporter.enabled(true);
-
 	try {
-		Genode::Reporter::Xml_generator xml(state_reporter, [&]() {
+		Genode::Reporter::Xml_generator xml(*state_reporter, [&]() {
 			struct wpa_ssid *wpa_ssid = wpa_s->current_ssid;
 
 			/* FIXME ssid may contain any characters, even NUL */
@@ -113,10 +119,8 @@ static inline int approximate_quality(struct wpa_bss *bss)
 
 extern "C" void wpa_report_scan_results(struct wpa_supplicant *wpa_s)
 {
-	accesspoints_reporter.enabled(true);
-
 	try {
-		Genode::Reporter::Xml_generator xml(accesspoints_reporter, [&]() {
+		Genode::Reporter::Xml_generator xml(*accesspoints_reporter, [&]() {
 			for (unsigned i = 0; i < wpa_s->last_scan_res_used; i++) {
 				struct wpa_bss *bss = wpa_s->last_scan_res[i];
 

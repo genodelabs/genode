@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -723,7 +723,7 @@ int request_firmware_nowait(struct module *module, bool uevent,
 
 	char const *fw_name = fwl->available_name
 	                    ? fwl->available_name : fwl->requested_name;
-	Genode::Rom_connection rom(fw_name);
+	Genode::Rom_connection rom(Lx_kit::env().env(), fw_name);
 	Genode::Dataspace_capability ds_cap = rom.dataspace();
 
 	if (!ds_cap.valid()) {
@@ -1225,7 +1225,7 @@ int request_module(char const* format, ...)
  * XXX We have to create the waiters list lazy because the way
  *     DEFINE_MUTEX is currently implemented does not work w/o
  *     a global Env that was constructed before the static ctors
- *     are called.
+ *     are called
  */
 static inline void __check_or_initialize_mutex(struct mutex *m)
 {

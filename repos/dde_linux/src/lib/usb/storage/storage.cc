@@ -14,7 +14,6 @@
 #include <base/log.h>
 #include <base/rpc_server.h>
 #include <block/component.h>
-#include <cap_session/connection.h>
 #include <util/endian.h>
 #include <util/list.h>
 

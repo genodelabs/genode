@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2015-2016 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Linux kint includes */
+#include <lx_kit/env.h>
 #include <lx_kit/internal/task.h>
 
 typedef Lx::Task::List_element Wait_le;
@@ -20,25 +21,23 @@ typedef Lx::Task::List         Wait_list;
 
 void init_waitqueue_head(wait_queue_head_t *wq)
 {
-	wq->list = new (Genode::env()->heap()) Wait_list;
+	wq->list = new (&Lx_kit::env().heap()) Wait_list;
 }
 
 
 void remove_wait_queue(wait_queue_head_t *wq, wait_queue_t *wait)
 {
 	Wait_list *list = static_cast<Wait_list*>(wq->list);
-	if (!list)
-		return;
+	if (!list) { return; }
 
-	destroy(Genode::env()->heap(), list);
+	destroy(&Lx_kit::env().heap(), list);
 }
 
 
 int waitqueue_active(wait_queue_head_t *wq)
 {
 	Wait_list *list = static_cast<Wait_list*>(wq->list);
-	if (!list)
-		return 0;
+	if (!list) { return 0; }
 
 	return list->first() ? 1 : 0;
 }
@@ -55,8 +54,7 @@ void __wake_up(wait_queue_head_t *wq, bool all)
 
 	Wait_le *le = list->first();
 	do {
-		if (!le)
-			return;
+		if (!le) { return; }
 
 		le->object()->unblock();
 	} while (all && (le = le->next()));

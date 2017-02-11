@@ -6,6 +6,7 @@
 
 		/* needed by wifi_drv */
 		wpa_main;
+		wpa_reporter_init;
 
 		/* needed by wpa_driver_nl80211 */
 		__hide_aliasing_typecast;

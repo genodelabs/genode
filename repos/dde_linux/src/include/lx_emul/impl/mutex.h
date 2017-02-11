@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2016 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -13,7 +13,7 @@
 
 /* Linux kit includes */
 #include <lx_kit/scheduler.h>
-
+#include <lx_kit/env.h>
 
 enum { MUTEX_UNLOCKED = 1, MUTEX_LOCKED = 0, MUTEX_WAITERS = -1 };
 
@@ -23,7 +23,7 @@ void mutex_init(struct mutex *m)
 
 	m->state   = MUTEX_UNLOCKED;
 	m->holder  = nullptr;
-	m->waiters = new (Genode::env()->heap()) Lx::Task::List;
+	m->waiters = nullptr;
 	m->id      = ++id;
 	m->counter = 0;
 }
@@ -31,9 +31,14 @@ void mutex_init(struct mutex *m)
 
 void mutex_destroy(struct mutex *m)
 {
-	/* FIXME potentially blocked tasks are not unblocked */
+	Lx::Task::List *waiters = static_cast<Lx::Task::List *>(m->waiters);
 
-	Genode::destroy(Genode::env()->heap(), static_cast<Lx::Task::List *>(m->waiters));
+	/* FIXME potentially blocked tasks are not unblocked */
+	if (waiters->first()) {
+		Genode::error(__func__, "destroying non-empty waiters list");
+	}
+
+	Genode::destroy(&Lx_kit::env().heap(), waiters);
 
 	m->holder  = nullptr;
 	m->waiters = nullptr;
@@ -42,8 +47,18 @@ void mutex_destroy(struct mutex *m)
 }
 
 
+static inline void __check_or_initialize_mutex(struct mutex *m)
+{
+	if (!m->waiters) {
+		m->waiters = new (&Lx_kit::env().heap()) Lx::Task::List;
+	}
+}
+
+
 void mutex_lock(struct mutex *m)
 {
+	__check_or_initialize_mutex(m);
+
 	while (1) {
 		if (m->state == MUTEX_UNLOCKED) {
 			m->state  = MUTEX_LOCKED;

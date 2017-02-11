@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -128,8 +128,8 @@ class Lx::Socket
 
 
 		Genode::Signal_transmitter            _sender;
-		Genode::Signal_rpc_member<Lx::Socket> _dispatcher;
-		Lx::Task                              _task;
+		Genode::Signal_handler<Lx::Socket> _dispatcher;
+		Lx::Task                           _task;
 
 		struct socket *_call_socket()
 		{
@@ -326,7 +326,7 @@ class Lx::Socket
 			_call.handle->non_block = _call.non_block.value;
 		}
 
-		void _handle(unsigned)
+		void _handle()
 		{
 			_task.unblock();
 			Lx::scheduler().schedule();

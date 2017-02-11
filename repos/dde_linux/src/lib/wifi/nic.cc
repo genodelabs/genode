@@ -17,7 +17,6 @@
 #include <base/rpc_server.h>
 #include <base/snprintf.h>
 #include <base/tslab.h>
-#include <cap_session/connection.h>
 #include <nic/xml_node.h>
 #include <nic/component.h>
 #include <root/component.h>
@@ -93,7 +92,7 @@ class Wifi_session_component : public Nic::Session_component
 		                       Genode::Allocator   &rx_block_md_alloc,
 		                       Genode::Ram_session &ram_session,
 		                       Genode::Region_map  &region_map,
-		                       Server::Entrypoint  &ep, net_device *ndev)
+		                       Genode::Entrypoint  &ep, net_device *ndev)
 		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
 		                    ram_session, region_map, ep),
 		  _ndev(ndev)

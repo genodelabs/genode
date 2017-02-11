@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -13,9 +13,6 @@
 
 #ifndef _LX_H_
 #define _LX_H_
-
-/* Genode includes */
-#include <os/server.h>
 
 /* local includes */
 #include <lx_kit/scheduler.h>

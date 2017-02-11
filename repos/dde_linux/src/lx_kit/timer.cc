@@ -7,14 +7,13 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
 /* Genode includes */
-#include <os/server.h>
 #include <base/tslab.h>
 #include <timer_session/connection.h>
 
@@ -84,7 +83,7 @@ class Lx_kit::Timer : public Lx::Timer
 		::Timer::Connection                          _timer_conn;
 		Lx_kit::List<Context>                        _list;
 		Lx::Task                                     _timer_task;
-		Genode::Signal_rpc_member<Lx_kit::Timer>     _dispatcher;
+		Genode::Signal_handler<Lx_kit::Timer>        _dispatcher;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
 		Lx::jiffies_update_func                      _jiffies_func = nullptr;
 
@@ -161,7 +160,7 @@ class Lx_kit::Timer : public Lx::Timer
 		/**
 		 * Handle trigger_once signal
 		 */
-		void _handle(unsigned)
+		void _handle()
 		{
 			_timer_task.unblock();
 
@@ -173,13 +172,15 @@ class Lx_kit::Timer : public Lx::Timer
 		/**
 		 * Constructor
 		 */
-		Timer(Server::Entrypoint &ep, unsigned long &jiffies)
+		Timer(Genode::Env &env, Genode::Entrypoint &ep,
+		      Genode::Allocator &alloc, unsigned long &jiffies)
 		:
 			_jiffies(jiffies),
+			_timer_conn(env),
 			_timer_task(Timer::run_timer, reinterpret_cast<void*>(this),
 			            "timer", Lx::Task::PRIORITY_2, Lx::scheduler()),
 			_dispatcher(ep, *this, &Lx_kit::Timer::_handle),
-			_timer_alloc(Genode::env()->heap())
+			_timer_alloc(&alloc)
 		{
 			_timer_conn.sigh(_dispatcher);
 		}
@@ -215,6 +216,7 @@ class Lx_kit::Timer : public Lx::Timer
 		/*************************
 		 ** Lx::Timer interface **
 		 *************************/
+
 		void add(void *timer, Type type)
 		{
 			Context *t = nullptr;
@@ -294,6 +296,9 @@ class Lx_kit::Timer : public Lx::Timer
 
 		void register_jiffies_func(Lx::jiffies_update_func func) {
 			_jiffies_func = func; }
+
+		void usleep(unsigned us) {
+			_timer_conn.usleep(us); }
 };
 
 
@@ -301,9 +306,11 @@ class Lx_kit::Timer : public Lx::Timer
  ** Lx::Timer implementation **
  ******************************/
 
-Lx::Timer &Lx::timer(Server::Entrypoint *ep, unsigned long *jiffies)
+Lx::Timer &Lx::timer(Genode::Env *env, Genode::Entrypoint *ep,
+                     Genode::Allocator *md_alloc,
+                     unsigned long *jiffies)
 {
-	static Lx_kit::Timer inst(*ep, *jiffies);
+	static Lx_kit::Timer inst(*env, *ep, *md_alloc, *jiffies);
 	return inst;
 }
 

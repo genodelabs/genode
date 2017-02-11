@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -80,26 +80,17 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 
 	public:
 
-		Slab_backend_alloc(Genode::Cache_attribute cached)
+		Slab_backend_alloc(Genode::Env &env, Genode::Allocator &md_alloc,
+		                   Genode::Cache_attribute cached)
 		:
+			Rm_connection(env),
 			Region_map_client(Rm_connection::create(VM_SIZE)),
-			_cached(cached), _index(0), _range(Genode::env()->heap())
+			_cached(cached), _index(0), _range(&md_alloc)
 		{
 			/* reserver attach us, anywere */
-			_base = Genode::env()->rm_session()->attach(dataspace());
+			_base = env.rm().attach(dataspace());
 		}
 
-		static Slab_backend_alloc &mem()
-		{
-			static Lx_kit::Slab_backend_alloc inst(Genode::CACHED);
-			return inst;
-		}
-
-		static Slab_backend_alloc &dma()
-		{
-			static Lx_kit::Slab_backend_alloc inst(Genode::UNCACHED);
-			return inst;
-		}
 
 		/**************************************
 		 ** Lx::Slab_backend_alloc interface **
@@ -177,11 +168,11 @@ class Lx_kit::Malloc : public Lx::Malloc
 		typedef Lx::Slab_alloc         Slab_alloc;
 		typedef Lx::Slab_backend_alloc Slab_backend_alloc;
 
-		Slab_backend_alloc     &_back_allocator;
-		Slab_alloc             *_allocator[NUM_SLABS];
-		Genode::Cache_attribute _cached; /* cached or un-cached memory */
-		addr_t                  _start;  /* VM region of this allocator */
-		addr_t                  _end;
+		Slab_backend_alloc                &_back_allocator;
+		Genode::Constructible<Slab_alloc>  _allocator[NUM_SLABS];
+		Genode::Cache_attribute            _cached; /* cached or un-cached memory */
+		addr_t                             _start;  /* VM region of this allocator */
+		addr_t                             _end;
 
 		/**
 		 * Set 'value' at 'addr'
@@ -233,21 +224,9 @@ class Lx_kit::Malloc : public Lx::Malloc
 		{
 			/* init slab allocators */
 			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++)
-				_allocator[i - SLAB_START_LOG2] = new (Genode::env()->heap())
-				                                  Slab_alloc(1U << i, alloc);
+				_allocator[i - SLAB_START_LOG2].construct(1U << i, alloc);
 		}
 
-		static Malloc & mem()
-		{
-			static Malloc inst(Slab_backend_alloc::mem(), Genode::CACHED);
-			return inst;
-		}
-
-		static Malloc & dma()
-		{
-			static Malloc inst(Slab_backend_alloc::dma(), Genode::UNCACHED);
-			return inst;
-		}
 
 		/**************************
 		 ** Lx::Malloc interface **
@@ -333,7 +312,6 @@ class Lx_kit::Malloc : public Lx::Malloc
 			_back_allocator.free(ptr);
 		}
 
-
 		size_t size(void const *a)
 		{
 			using namespace Genode;
@@ -357,29 +335,42 @@ class Lx_kit::Malloc : public Lx::Malloc
  ** Lx::Malloc implementation **
  *******************************/
 
+static Genode::Constructible<Lx_kit::Slab_backend_alloc> _mem_backend_alloc;
+static Genode::Constructible<Lx_kit::Slab_backend_alloc> _dma_backend_alloc;
+static Genode::Constructible<Lx_kit::Malloc>             _mem_alloc;
+static Genode::Constructible<Lx_kit::Malloc>             _dma_alloc;
+
+
+void Lx::malloc_init(Genode::Env &env, Genode::Allocator &md_alloc)
+{
+	_mem_backend_alloc.construct(env, md_alloc, Genode::CACHED);
+	_dma_backend_alloc.construct(env, md_alloc, Genode::UNCACHED);
+
+	_mem_alloc.construct(*_mem_backend_alloc, Genode::CACHED);
+	_dma_alloc.construct(*_dma_backend_alloc, Genode::UNCACHED);
+}
+
+
 /**
  * Cached memory backend allocator
  */
 Lx::Slab_backend_alloc &Lx::Slab_backend_alloc::mem() {
-	return Lx_kit::Slab_backend_alloc::mem(); }
+	return *_mem_backend_alloc; }
 
 
 /**
  * DMA memory backend allocator
  */
 Lx::Slab_backend_alloc &Lx::Slab_backend_alloc::dma() {
-	return Lx_kit::Slab_backend_alloc::dma(); }
+	return *_dma_backend_alloc; }
 
 
 /**
  * Cached memory allocator
  */
-Lx::Malloc &Lx::Malloc::mem() {
-	return Lx_kit::Malloc::mem(); }
+Lx::Malloc &Lx::Malloc::mem() { return *_mem_alloc; }
 
 /**
  * DMA memory allocator
  */
-Lx::Malloc &Lx::Malloc::dma() {
-	return Lx_kit::Malloc::dma(); }
-
+Lx::Malloc &Lx::Malloc::dma() { return *_dma_alloc; }

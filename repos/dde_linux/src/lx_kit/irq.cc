@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -113,7 +113,7 @@ class Lx_kit::Irq : public Lx::Irq
 				/**
 				 * Constructor
 				 */
-				Context(Server::Entrypoint &ep,
+				Context(Genode::Entrypoint &ep,
 				        Platform::Device &dev)
 				:
 					_name(dev),
@@ -166,7 +166,7 @@ class Lx_kit::Irq : public Lx::Irq
 		using Context_slab = Genode::Tslab<Context, 3 * sizeof(Context)>;
 		using Handler_slab = Genode::Tslab<Handler, 3 * sizeof(Handler)>;
 
-		Server::Entrypoint    &_ep;
+		Genode::Entrypoint    &_ep;
 		Lx_kit::List<Context>  _list;
 		Context_slab           _context_alloc;
 		Handler_slab           _handler_alloc;
@@ -181,14 +181,14 @@ class Lx_kit::Irq : public Lx::Irq
 			return nullptr;
 		}
 
-		Irq(Server::Entrypoint &ep, Genode::Allocator &alloc)
+		Irq(Genode::Entrypoint &ep, Genode::Allocator &alloc)
 		: _ep(ep),
 		  _context_alloc(&alloc),
 		  _handler_alloc(&alloc) { }
 
 	public:
 
-		static Irq &irq(Server::Entrypoint &ep, Genode::Allocator &alloc)
+		static Irq &irq(Genode::Entrypoint &ep, Genode::Allocator &alloc)
 		{
 			static Irq inst(ep, alloc);
 			return inst;
@@ -227,5 +227,5 @@ class Lx_kit::Irq : public Lx::Irq
  ** Lx::Irq implementation **
  ****************************/
 
-Lx::Irq &Lx::Irq::irq(Server::Entrypoint *ep, Genode::Allocator *alloc) {
+Lx::Irq &Lx::Irq::irq(Genode::Entrypoint *ep, Genode::Allocator *alloc) {
 	return Lx_kit::Irq::irq(*ep, *alloc); }

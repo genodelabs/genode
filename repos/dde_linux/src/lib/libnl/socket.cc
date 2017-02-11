@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -61,12 +61,10 @@ using namespace Wifi;
 extern Socket_call socket_call;
 
 
-struct Socket_fd : public Genode::List<Socket_fd>::Element
+struct Socket_fd
 {
 	Socket *s;
 	int     fd;
-
-	Socket_fd(Socket *s, int fd) : s(s), fd(fd) { }
 };
 
 
@@ -75,47 +73,77 @@ class Socket_registry
 	private :
 
 		/* abritary value (it goes to eleven!) */
-		enum { SOCKETS_INITIAL_VALUE = 11, };
+		enum {
+			SOCKETS_INITIAL_VALUE = 11,
+			MAX_SOCKETS = 7,
+		};
 
+		static Socket_fd _socket_fd[MAX_SOCKETS];
 		static unsigned _sockets;
 
-		static Genode::List<Socket_fd> *_list() /* XXX ptr array instead of list? */
+		template <typename FUNC>
+		static void _for_each_socket_fd(FUNC const & func)
 		{
-			static Genode::List<Socket_fd> _l;
-			return &_l;
+			for (int i = 0; i < MAX_SOCKETS; i++) {
+				if (func(_socket_fd[i])) { break; }
+			}
 		}
 
 	public:
 
 		static int insert(Socket *s)
 		{
-			Socket_fd *sfd = new (Genode::env()->heap()) Socket_fd(s, ++_sockets);
+			int fd = -1;
 
-			_list()->insert(sfd);
+			auto lambda = [&] (Socket_fd &sfd) {
+				if (sfd.s != nullptr) { return false; }
 
-			return sfd->fd;
+				sfd.s  = s;
+				sfd.fd = ++_sockets;
+
+				/* return fd */
+				fd = sfd.fd;
+				return true;
+			};
+
+			_for_each_socket_fd(lambda);
+
+			return fd;
 		}
 
 		static void remove(Socket *s)
 		{
-			for (Socket_fd *sfd = _list()->first(); sfd; sfd = sfd->next())
-				if (sfd->s == s) {
-					_list()->remove(sfd);
-					destroy(Genode::env()->heap(), sfd);
-					break;
-				}
+			auto lambda = [&] (Socket_fd &sfd) {
+				if (sfd.s != s) { return false; }
+
+				sfd.s  = nullptr;
+				sfd.fd = 0;
+
+				return true;
+			};
+
+			_for_each_socket_fd(lambda);
 		}
 
 		static Socket *find(int fd)
 		{
-			for (Socket_fd *sfd = _list()->first(); sfd; sfd = sfd->next())
-				if (sfd->fd == fd)
-					return sfd->s;
+			Socket *s = nullptr;
 
-			return 0;
+			auto lambda = [&] (Socket_fd &sfd) {
+				if (sfd.fd != fd) { return false; }
+
+				/* return socket */
+				s = sfd.s;
+				return true;
+			};
+
+			_for_each_socket_fd(lambda);
+
+			return s;
 		}
 };
 
+Socket_fd Socket_registry::_socket_fd[MAX_SOCKETS] = {};
 unsigned Socket_registry::_sockets = Socket_registry::SOCKETS_INITIAL_VALUE;
 
 

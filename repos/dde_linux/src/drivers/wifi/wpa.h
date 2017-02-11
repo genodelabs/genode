@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,6 +19,7 @@
 
 /* entry function */
 extern "C" int wpa_main(int debug_msg, int connected_scan_interval);
+extern "C" void wpa_reporter_init(void *env);
 extern "C" void wpa_conf_reload(void);
 
 class Wpa_thread : public Genode::Thread
@@ -38,7 +39,9 @@ class Wpa_thread : public Genode::Thread
 			Thread(env, "wpa_supplicant", 8*1024*sizeof(long)),
 			_lock(lock), _exit(-1),
 			_debug_msg(debug_msg), _connected_scan_interval(connected_scan_interval)
-		{ }
+		{
+			wpa_reporter_init(&env);
+		}
 
 		void entry()
 		{

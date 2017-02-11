@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,6 +21,13 @@
 /****************************
  ** lx_kit/backend_alloc.h **
  ****************************/
+
+void backend_alloc_init(Genode::Env&, Genode::Ram_session&,
+                        Genode::Allocator&)
+{
+	/* intentionally left blank */
+}
+
 
 Genode::Ram_dataspace_capability
 Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached) {
@@ -38,7 +45,7 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap) {
 extern "C" int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                            const char *name, void *dev)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(irq), handler, dev);
+	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), handler, dev);
 
 	return 0;
 }

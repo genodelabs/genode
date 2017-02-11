@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -53,20 +53,57 @@ struct Lx_kit::Memory_object_base : Genode::Object_pool<Memory_object_base>::Ent
 
 struct Lx_kit::Ram_object : Memory_object_base
 {
-	Ram_object(Genode::Ram_dataspace_capability cap)
-	: Memory_object_base(cap) {}
+	Genode::Ram_session &_ram;
 
-	void free() { Genode::env()->ram_session()->free(ram_cap()); }
+	Ram_object(Genode::Ram_session &ram,
+	           Genode::Ram_dataspace_capability cap)
+	: Memory_object_base(cap), _ram(ram) {}
+
+	void free() { _ram.free(ram_cap()); }
 };
 
 
 struct Lx_kit::Dma_object : Memory_object_base
 {
-	Dma_object(Genode::Ram_dataspace_capability cap)
-	: Memory_object_base(cap) {}
+	Platform::Connection &_pci;
 
-	void free() { Lx::pci()->free_dma_buffer(ram_cap()); }
+	Dma_object(Platform::Connection &pci,
+	           Genode::Ram_dataspace_capability cap)
+	: Memory_object_base(cap), _pci(pci) {}
+
+	void free() { _pci.free_dma_buffer(ram_cap()); }
 };
+
+
+/********************
+ ** Pci singletons **
+ ********************/
+
+static Genode::Constructible<Platform::Connection> _global_pci;
+static Genode::Allocator   *_global_md_alloc;
+static Genode::Ram_session *_global_ram;
+
+
+void Lx::pci_init(Genode::Env &env, Genode::Ram_session &ram,
+                  Genode::Allocator &md_alloc)
+{
+	_global_pci.construct(env);
+	_global_ram      = &ram;
+	_global_md_alloc = &md_alloc;
+}
+
+
+Platform::Connection *Lx::pci()
+{
+	return &*_global_pci;
+}
+
+
+Lx::Pci_dev_registry *Lx::pci_dev_registry()
+{
+	static Lx::Pci_dev_registry _pci_dev_registry;
+	return &_pci_dev_registry;
+}
 
 
 /*********************************
@@ -79,24 +116,24 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 	using namespace Genode;
 	using namespace Lx_kit;
 
-	Memory_object_base *o;
+	Memory_object_base *obj;
 	Genode::Ram_dataspace_capability cap;
 	if (cached == CACHED) {
-		cap = env()->ram_session()->alloc(size);
-		o = new (env()->heap())	Ram_object(cap);
+		cap = _global_ram->alloc(size);
+		obj = new (_global_md_alloc) Ram_object(*_global_ram, cap);
 	} else {
 		Genode::size_t donate = size;
 		cap = retry<Platform::Session::Out_of_metadata>(
-			[&] () { return Lx::pci()->alloc_dma_buffer(size); },
+			[&] () { return _global_pci->alloc_dma_buffer(size); },
 			[&] () {
-				Lx::pci()->upgrade_ram(donate);
+				_global_pci->upgrade_ram(donate);
 				donate = donate * 2 > size ? 4096 : donate * 2;
 			});
 
-		o = new (env()->heap()) Dma_object(cap);
+		obj = new (_global_md_alloc) Dma_object(*_global_pci, cap);
 	}
 
-	memory_pool.insert(o);
+	memory_pool.insert(obj);
 	return cap;
 }
 
@@ -107,31 +144,12 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 	using namespace Lx_kit;
 
 	Memory_object_base *object;
-	memory_pool.apply(cap, [&] (Memory_object_base *o) {
-		object = o;
-		if (!object)
-			return;
+	memory_pool.apply(cap, [&] (Memory_object_base *obj) {
+		object = obj;
+		if (!object) { return; }
 
 		object->free();
 		memory_pool.remove(object);
 	});
-	destroy(env()->heap(), object);
-}
-
-
-/********************
- ** Pci singletons **
- ********************/
-
-Platform::Connection *Lx::pci()
-{
-	static Platform::Connection _pci;
-	return &_pci;
-}
-
-
-Lx::Pci_dev_registry *Lx::pci_dev_registry()
-{
-	static Lx::Pci_dev_registry _pci_dev_registry;
-	return &_pci_dev_registry;
+	destroy(_global_md_alloc, object);
 }
