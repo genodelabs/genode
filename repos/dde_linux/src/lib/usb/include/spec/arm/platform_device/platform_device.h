@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -34,17 +34,19 @@ namespace Platform { struct Device; }
 
 struct Platform::Device : Platform::Abstract_device, Genode::List<Device>::Element
 {
+	Genode::Env &env;
+
 	unsigned                                      irq_num;
 	Genode::Constructible<Genode::Irq_connection> irq_connection;
 
-	Device(unsigned irq) : irq_num(irq) { }
+	Device(Genode::Env &env, unsigned irq) : env(env), irq_num(irq) { }
 
 	unsigned vendor_id() { return ~0U; }
 	unsigned device_id() { return ~0U; }
 
 	Genode::Irq_session_capability irq(Genode::uint8_t) override
 	{
-		irq_connection.construct(irq_num);
+		irq_connection.construct(env, irq_num);
 		return irq_connection->cap();
 	}
 
@@ -62,14 +64,14 @@ struct Platform::Device : Platform::Abstract_device, Genode::List<Device>::Eleme
 		return l;
 	}
 
-	static Device &create(unsigned irq_num)
+	static Device &create(Genode::Env &env, unsigned irq_num)
 	{
 		Device *d;
 		for (d = list().first(); d; d = d->next())
 			if (d->irq_num == irq_num)
 				return *d;
 
-		d = new (Lx::Malloc::mem()) Device(irq_num);
+		d = new (Lx::Malloc::mem()) Device(env, irq_num);
 		list().insert(d);
 
 		return *d;

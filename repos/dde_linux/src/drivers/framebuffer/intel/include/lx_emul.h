@@ -216,12 +216,6 @@ extern struct atomic_notifier_head panic_notifier_list;
 		(void) (&_min1 == &_min2);              \
 		_min1 < _min2 ? _min1 : _min2; })
 
-#define max(x, y) ({                            \
-		typeof(x) _max1 = (x);                  \
-		typeof(y) _max2 = (y);                  \
-		(void) (&_max1 == &_max2);              \
-		_max1 > _max2 ? _max1 : _max2; })
-
 #define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
 
 /* linux/i2c.h */

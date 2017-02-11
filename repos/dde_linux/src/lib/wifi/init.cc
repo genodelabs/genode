@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,10 +21,12 @@
 
 #include <lx_emul.h>
 
+#include <lx_kit/malloc.h>
 #include <lx_kit/env.h>
 #include <lx_kit/irq.h>
 #include <lx_kit/work.h>
 #include <lx_kit/timer.h>
+#include <lx_kit/pci.h>
 
 
 extern "C" void core_netlink_proto_init(void);
@@ -142,15 +144,18 @@ void wifi_init(Genode::Env &env, Genode::Lock &lock, bool disable_11n)
 	/* add init_net namespace to namespace list */
 	list_add_tail_rcu(&init_net.list, &net_namespace_list);
 
-	Lx::scheduler();
+	Lx::scheduler(&env);
 
-	Lx::timer(&env.ep(), &jiffies);
+	Lx::timer(&env, &env.ep(), &Lx_kit::env().heap(), &jiffies);
 
 	Lx::Irq::irq(&env.ep(), &Lx_kit::env().heap());
 	Lx::Work::work_queue(&Lx_kit::env().heap());
 
 	Lx::socket_init(env.ep(), Lx_kit::env().heap());
 	Lx::nic_init(env, Lx_kit::env().heap());
+
+	Lx::pci_init(env, env.ram(), Lx_kit::env().heap());
+	Lx::malloc_init(env, Lx_kit::env().heap());
 
 	/* set IWL_DISABLE_HT_ALL if disable 11n is requested */
 	if (disable_11n) {

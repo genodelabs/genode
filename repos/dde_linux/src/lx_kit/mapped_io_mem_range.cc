@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2016 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -21,6 +21,7 @@
 #include <lx_emul.h>
 
 /* Linux emulation environment includes */
+#include <lx_kit/env.h>
 #include <lx_kit/internal/list.h>
 #include <lx_kit/mapped_io_mem_range.h>
 #include <lx_kit/pci_dev_registry.h>
@@ -34,8 +35,7 @@ namespace Lx_kit { class Mapped_io_mem_range; }
  *
  * This class is supposed to be a private utility to support 'ioremap'.
  */
-class Lx_kit::Mapped_io_mem_range : public Lx_kit::List<Mapped_io_mem_range>::Element,
-                                    public Genode::Rm_connection
+class Lx_kit::Mapped_io_mem_range : public Lx_kit::List<Mapped_io_mem_range>::Element
 {
 	private:
 
@@ -47,15 +47,20 @@ class Lx_kit::Mapped_io_mem_range : public Lx_kit::List<Mapped_io_mem_range>::El
 
 	public:
 
-		Mapped_io_mem_range(Genode::addr_t phys, Genode::size_t size,
+		Mapped_io_mem_range(Genode::Env &env,
+		                    Genode::Rm_connection &rm,
+		                    Genode::addr_t phys, Genode::size_t size,
 		                    Genode::Io_mem_dataspace_capability ds_cap,
 		                    Genode::addr_t offset)
-		: _size(size),
-		  _phys(phys),
-		  _region_map(Rm_connection::create(size)),
-		  _ds(_region_map.dataspace()),
-		  _virt((Genode::addr_t)_ds.local_addr<void>() | (phys &0xfffUL)) {
-			_region_map.attach_at(ds_cap, 0, size, offset); }
+		:
+			_size(size),
+			_phys(phys),
+			_region_map(rm.create(size)),
+			_ds(env.rm(), _region_map.dataspace()),
+			_virt((Genode::addr_t)_ds.local_addr<void>() | (phys &0xfffUL))
+		{
+			_region_map.attach_at(ds_cap, 0, size, offset);
+		}
 
 		Genode::addr_t phys() const { return _phys; }
 		Genode::addr_t virt() const { return _virt; }
@@ -82,9 +87,12 @@ class Lx_kit::Mapped_io_mem_range : public Lx_kit::List<Mapped_io_mem_range>::El
 static Lx_kit::List<Lx_kit::Mapped_io_mem_range> ranges;
 
 
-/********************************************
+/************************************************
  ** Lx_kit::Mapped_io_mem_range implementation **
- ********************************************/
+ ************************************************/
+
+static Genode::Constructible<Genode::Rm_connection> _global_rm;
+
 
 void *Lx::ioremap(addr_t phys_addr, unsigned long size,
                   Genode::Cache_attribute cache_attribute)
@@ -113,9 +121,23 @@ void *Lx::ioremap(addr_t phys_addr, unsigned long size,
 		return nullptr;
 	}
 
-	Lx_kit::Mapped_io_mem_range *io_mem =
-		new (env()->heap()) Lx_kit::Mapped_io_mem_range(phys_addr, size,
-		                                            ds_cap, offset);
+	if (!_global_rm.constructed()) {
+		_global_rm.construct(Lx_kit::env().env());
+	}
+
+	Lx_kit::Mapped_io_mem_range *io_mem = nullptr;
+
+	retry<Genode::Region_map::Out_of_metadata>(
+		[&] () {
+			io_mem = new (&Lx_kit::env().heap())
+			Lx_kit::Mapped_io_mem_range(Lx_kit::env().env(), *_global_rm,
+		                                phys_addr, size, ds_cap, offset);
+		},
+		[&] () {
+			_global_rm->upgrade_ram(16384);
+		},
+		10
+	);
 
 	ranges.insert(io_mem);
 
@@ -134,7 +156,7 @@ void Lx::iounmap(volatile void * virt)
 
 		if (r->virt() == (addr_t)virt) {
 			ranges.remove(r);
-			destroy(env()->heap(), r);
+			destroy(&Lx_kit::env().heap(), r);
 			return;
 		}
 	}

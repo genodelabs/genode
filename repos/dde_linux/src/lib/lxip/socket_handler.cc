@@ -24,6 +24,7 @@
 
 /* Lx_kit */
 #include <lx_kit/env.h>
+#include <lx_kit/malloc.h>
 
 static const bool verbose = false;
 
@@ -627,10 +628,11 @@ Lxip::Socketcall & Lxip::init(Genode::Env &env,
 
 	static Net::Socketcall socketcall(env);
 
+	Lx::lxcc_emul_init(lx_env);
+	Lx::malloc_init(env, lx_env.heap());
 	Lx::timer_init(env, socketcall, lx_env.heap(), ticker);
 	Lx::event_init(env, socketcall, ticker);
 	Lx::nic_client_init(env, socketcall, lx_env.heap(), ticker);
-	Lx::lxcc_emul_init(lx_env);
 
 	lxip_init();
 

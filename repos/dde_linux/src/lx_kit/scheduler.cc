@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -67,16 +67,18 @@ class Lx_kit::Scheduler : public Lx::Scheduler
 			return _ansi_esc_black();
 		}
 
-		struct Logger : Genode::Thread_deprecated<0x4000>
+		struct Logger : Genode::Thread
 		{
 			Timer::Connection  _timer;
 			Lx::Scheduler     &_scheduler;
 			unsigned     const _interval;
 
-			Logger(Lx::Scheduler &scheduler, unsigned interval_seconds)
+			Logger(Genode::Env &env, Lx::Scheduler &scheduler,
+			       unsigned interval_seconds)
 			:
-				Genode::Thread_deprecated<0x4000>("logger"),
-				_scheduler(scheduler), _interval(interval_seconds)
+				Genode::Thread(env, "logger", 0x4000),
+				_timer(env), _scheduler(scheduler),
+				_interval(interval_seconds)
 			{
 				start();
 			}
@@ -91,12 +93,13 @@ class Lx_kit::Scheduler : public Lx::Scheduler
 			}
 		};
 
+		Genode::Constructible<Logger> _logger;
+
 	public:
 
-		Scheduler()
+		Scheduler(Genode::Env &env)
 		{
-			if (verbose)
-				new (Genode::env()->heap()) Logger(*this, 10);
+			if (verbose) { _logger.construct(env, *this, 10); }
 		}
 
 		/*****************************
@@ -220,8 +223,8 @@ Lx::Task::~Task()
  ** Lx::Scheduler implementation **
  **********************************/
 
-Lx::Scheduler &Lx::scheduler()
+Lx::Scheduler &Lx::scheduler(Genode::Env *env)
 {
-	static Lx_kit::Scheduler inst;
+	static Lx_kit::Scheduler inst { *env };
 	return inst;
 }

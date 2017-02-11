@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,27 +26,15 @@ using namespace Genode;
 
 
 /**
- * Return singleton instance of input-session component
+ * Singleton instance of input-session component
  */
-static Input::Session_component &input_session()
-{
-	static Input::Session_component inst;
-	return inst;
-}
+static Genode::Constructible<Input::Session_component> _input_session;
 
 
 /**
- * Return singleton instance of input-root component
- *
- * On the first call (from 'start_input_service'), the 'ep' argument is
- * specified. All subsequent calls (from 'input_callback') just return the
- * reference to the singleton instance.
+ * Singleton instance of input-root component
  */
-static Input::Root_component &input_root(Rpc_entrypoint *ep = 0)
-{
-	static Input::Root_component root(*ep, input_session());
-	return root;
-}
+static Genode::Constructible<Input::Root_component> _input_root;
 
 
 /**
@@ -66,7 +54,7 @@ static void input_callback(enum input_event_type type,
 		case EVENT_TYPE_TOUCH:   t = Input::Event::TOUCH; break;
 	}
 
-	input_session().submit(Input::Event(t, code,
+	_input_session->submit(Input::Event(t, code,
 	                                    absolute_x, absolute_y,
 	                                    relative_x, relative_y));
 }
@@ -78,7 +66,10 @@ void start_input_service(void *ep_ptr, void * service_ptr)
 	Services *service = static_cast<Services *>(service_ptr);
 	Env &env = service->env;
 
-	env.parent().announce(ep->manage(&input_root(ep)));
+	_input_session.construct(env, env.ram());
+	_input_root.construct(*ep, *_input_session);
+
+	env.parent().announce(ep->manage(&*_input_root));
 
 	genode_input_register(input_callback, service->screen_width,
 	                      service->screen_height, service->multitouch);

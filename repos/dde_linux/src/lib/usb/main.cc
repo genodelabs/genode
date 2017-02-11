@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2012-2014 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  * Copyright (C) 2014      Ksys Labs LLC
  *
  * This file is part of the Genode OS framework, which is distributed
@@ -17,7 +17,6 @@
 
 /* Genode */
 #include <base/sleep.h>
-#include <os/server.h>
 #include <nic_session/nic_session.h>
 
 /* Local */
@@ -25,6 +24,7 @@
 #include <lx_emul.h>
 
 #include <lx_kit/env.h>
+#include <lx_kit/pci.h>
 #include <lx_kit/irq.h>
 #include <lx_kit/malloc.h>
 #include <lx_kit/scheduler.h>
@@ -107,6 +107,12 @@ void start_usb_driver(Genode::Env &env)
 {
 	/* initialize USB env */
 	Lx_kit::construct_env(env);
+
+	/* sets up backend alloc needed by malloc */
+	backend_alloc_init(env, env.ram(), Lx_kit::env().heap());
+
+	Lx::malloc_init(env, Lx_kit::env().heap());
+
 	static Services services(env);
 
 	if (services.hid)
@@ -118,8 +124,8 @@ void start_usb_driver(Genode::Env &env)
 	if (services.raw)
 		Raw::init(env, services.raw_report_device_list);
 
-	Lx::Scheduler &sched  = Lx::scheduler();
-	Lx::Timer &timer = Lx::timer(&env.ep(), &jiffies);
+	Lx::Scheduler &sched = Lx::scheduler(&env);
+	Lx::Timer &timer = Lx::timer(&env, &env.ep(), &Lx_kit::env().heap(), &jiffies);
 
 	Lx::Irq::irq(&env.ep(), &Lx_kit::env().heap());
 	Lx::Work::work_queue(&Lx_kit::env().heap());
