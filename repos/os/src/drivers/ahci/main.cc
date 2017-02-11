@@ -187,5 +187,4 @@ struct Block::Main
 };
 
 
-
 void Component::construct(Genode::Env &env) { static Block::Main server(env); }

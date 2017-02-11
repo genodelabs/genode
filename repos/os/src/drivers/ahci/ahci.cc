@@ -11,22 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+
+/* Genode includes */
 #include <timer_session/connection.h>
-#include "ata_driver.h"
-#include "atapi_driver.h"
 
-
-struct Timer_delayer : Mmio::Delayer, Timer::Connection
-{
-	void usleep(unsigned us) { Timer::Connection::usleep(us); }
-};
-
-
-Mmio::Delayer &Hba::delayer()
-{
-	static Timer_delayer d;
-	return d;
-}
+/* local includes */
+#include <ata_driver.h>
+#include <atapi_driver.h>
 
 
 struct Ahci
@@ -41,9 +32,17 @@ struct Ahci
 		ATAPI_SIG_QEMU = 0xeb140000, /* will be fixed in Qemu */
 	};
 
+	struct Timer_delayer : Mmio::Delayer, Timer::Connection
+	{
+		Timer_delayer(Genode::Env &env)
+		: Timer::Connection(env) { }
+
+		void usleep(unsigned us) { Timer::Connection::usleep(us); }
+	} _delayer { env };
+
 	Ahci_root     &root;
-	Platform::Hba &platform_hba = Platform::init(env, Hba::delayer());
-	Hba            hba          = { platform_hba };
+	Platform::Hba &platform_hba = Platform::init(env, _delayer);
+	Hba            hba          { env, platform_hba, _delayer };
 
 	enum { MAX_PORTS = 32 };
 	Port_driver   *ports[MAX_PORTS];
@@ -238,5 +237,3 @@ long Ahci_driver::device_number(char const *model_num, char const *serial_num)
 {
 	return sata_ahci()->device_number(model_num, serial_num);
 }
-
-

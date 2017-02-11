@@ -16,7 +16,6 @@
 
 #include <block/component.h>
 #include <os/attached_mmio.h>
-#include <os/server.h>
 #include <util/retry.h>
 #include <util/reconstructible.h>
 
@@ -74,8 +73,10 @@ struct Platform::Hba
  */
 struct Hba : Genode::Attached_mmio
 {
-	Hba(Platform::Hba &hba)
-	: Attached_mmio(hba.base(), hba.size()) { }
+	Mmio::Delayer &_delayer;
+
+	Hba(Genode::Env &env, Platform::Hba &hba, Mmio::Delayer &delayer)
+	: Attached_mmio(env, hba.base(), hba.size()), _delayer(delayer) { }
 
 	/**
 	 * Host capabilites
@@ -136,7 +137,7 @@ struct Hba : Genode::Attached_mmio
 		write<Ghc::Ie>(1);
 	}
 
-	static Mmio::Delayer &delayer();
+	Mmio::Delayer &delayer() { return _delayer; }
 };
 
 
@@ -426,7 +427,7 @@ struct Port : Genode::Mmio
 		rm(rm), hba(hba), platform_hba(platform_hba)
 	{
 		stop();
-		if (!wait_for<Cmd::Cr>(0, Hba::delayer(), 500, 1000))
+		if (!wait_for<Cmd::Cr>(0, hba.delayer(), 500, 1000))
 			Genode::error("failed to stop command list processing");
 	}
 
@@ -667,7 +668,7 @@ struct Port : Genode::Mmio
 	/**
 	 * Serial ATA control
 	 */
-	struct Sctl : Register<0x2c, 32> 
+	struct Sctl : Register<0x2c, 32>
 	{
 		struct Det  : Bitfield<0, 4> { }; /* device dectection initialization */
 		struct Ipmt : Bitfield<8, 4> { }; /* allowed power management transitions */
