@@ -29,7 +29,7 @@ extern char **environ;
 extern "C" int main(int argc, char ** argv, char **envp);
 
 
-void Libc::Component::construct(Libc::Env &env)
+static void construct_component(Libc::Env &env)
 {
 	using Genode::Xml_node;
 	using Genode::Xml_attribute;
@@ -104,4 +104,10 @@ void Libc::Component::construct(Libc::Env &env)
 	});
 
 	exit(main(genode_argc, genode_argv, genode_envp));
+}
+
+
+void Libc::Component::construct(Libc::Env &env)
+{
+	Libc::with_libc([&] () { construct_component(env); });
 }
