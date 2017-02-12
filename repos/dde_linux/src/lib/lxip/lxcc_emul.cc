@@ -368,6 +368,11 @@ void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table 
 	_timeout->wait();
 }
 
+bool poll_does_not_wait(const poll_table *p)
+{
+	return p == nullptr;
+}
+
 
 /******************
  ** linux/time.h **

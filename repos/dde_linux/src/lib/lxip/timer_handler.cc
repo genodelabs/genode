@@ -176,7 +176,7 @@ class Lx::Timer
 			update_jiffies();
 
 			while (Lx::Timer::Context *ctx = _list.first()) {
-			if (ctx->timeout > jiffies)
+				if (ctx->timeout > jiffies)
 					break;
 
 				ctx->function();
