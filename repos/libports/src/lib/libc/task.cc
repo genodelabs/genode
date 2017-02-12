@@ -255,7 +255,7 @@ struct Libc::Pthreads
 				_timeout.start(timeout_ms);
 		}
 
-		void handle_timeout()
+		void handle_timeout() override
 		{
 			lock.unlock();
 		}
@@ -347,6 +347,7 @@ struct Libc::Kernel
 
 		jmp_buf _kernel_context;
 		jmp_buf _user_context;
+		bool    _valid_user_context = false;
 
 		Genode::Thread &_myself { *Genode::Thread::myself() };
 
@@ -354,14 +355,17 @@ struct Libc::Kernel
 			_myself.alloc_secondary_stack(_myself.name().string(),
 			                              Component::stack_size()) };
 
-		Genode::Reconstructible<Genode::Signal_handler<Kernel>> _resume_main_handler {
-			_env.ep(), *this, &Kernel::_resume_main };
-
 		void (*_original_suspended_callback)() = nullptr;
 
 		enum State { KERNEL, USER };
 
 		State _state = KERNEL;
+
+		Application_code *_app_code     = nullptr;
+		bool              _app_returned = false;
+
+		bool _resume_main_once = false;
+		void _resume_main() { _resume_main_once = true; }
 
 		struct Timer_accessor : Libc::Timer_accessor
 		{
@@ -393,10 +397,9 @@ struct Libc::Kernel
 
 		struct Main_timeout : Timeout_handler
 		{
-			Genode::Signal_context_capability _signal_cap;
-
 			Timer_accessor        &_timer_accessor;
 			Constructible<Timeout> _timeout;
+			Kernel                &_kernel;
 
 			void _construct_timeout_once()
 			{
@@ -404,13 +407,12 @@ struct Libc::Kernel
 					_timeout.construct(_timer_accessor, *this);
 			}
 
-			Main_timeout(Timer_accessor &timer_accessor)
-			: _timer_accessor(timer_accessor)
+			Main_timeout(Timer_accessor &timer_accessor, Kernel &kernel)
+			: _timer_accessor(timer_accessor), _kernel(kernel)
 			{ }
 
-			void timeout(unsigned long timeout_ms, Signal_context_capability signal_cap)
+			void timeout(unsigned long timeout_ms)
 			{
-				_signal_cap = signal_cap;
 				_construct_timeout_once();
 				_timeout->start(timeout_ms);
 			}
@@ -421,20 +423,13 @@ struct Libc::Kernel
 				return _timeout->duration_left();
 			}
 
-			void handle_timeout()
+			void handle_timeout() override
 			{
-				/*
-				 * XXX I don't dare to call _resume_main() here as this switches
-				 * immediately to the user stack, which would result in dead lock
-				 * if the calling context holds any lock in the timeout
-				 * implementation.
-				 */
-
-				Genode::Signal_transmitter(_signal_cap).submit();
+				_kernel._resume_main();
 			}
 		};
 
-		Main_timeout _main_timeout { _timer_accessor };
+		Main_timeout _main_timeout { _timer_accessor, *this };
 
 		Pthreads _pthreads { _timer_accessor };
 
@@ -445,10 +440,9 @@ struct Libc::Kernel
 		 */
 		static void _user_entry(Libc::Kernel *kernel)
 		{
-			Libc::Component::construct(kernel->_libc_env);
-
-			/* returned from user - switch stack to libc and return to dispatch loop */
-			kernel->_switch_to_kernel();
+			kernel->_app_code->execute();
+			kernel->_app_returned = true;
+			kernel->_suspend_main(0);
 		}
 
 		bool _main_context() const { return &_myself == Genode::Thread::myself(); }
@@ -473,29 +467,25 @@ struct Libc::Kernel
 		 */
 		void _switch_to_user()
 		{
+			if (!_valid_user_context)
+				Genode::error("switching to invalid user context");
+
+			_resume_main_once = false;
 			_state = USER;
 			_longjmp(_user_context, 1);
-		}
-
-		/* called from signal handler */
-		void _resume_main()
-		{
-			if (!_main_context() || _state != KERNEL) {
-				Genode::error(__PRETTY_FUNCTION__, " called from non-kernel context");
-				return;
-			}
-
-			if (!_setjmp(_kernel_context))
-				_switch_to_user();
 		}
 
 		unsigned long _suspend_main(unsigned long timeout_ms)
 		{
 			if (timeout_ms > 0)
-				_main_timeout.timeout(timeout_ms, *_resume_main_handler);
+				_main_timeout.timeout(timeout_ms);
 
-			if (!_setjmp(_user_context))
+			if (!_setjmp(_user_context)) {
+				_valid_user_context = true;
 				_switch_to_kernel();
+			} else {
+				_valid_user_context = false;
+			}
 
 			return timeout_ms > 0 ? _main_timeout.duration_left() : 0;
 		}
@@ -506,29 +496,39 @@ struct Libc::Kernel
 
 		~Kernel() { Genode::error(__PRETTY_FUNCTION__, " should not be executed!"); }
 
+		Libc::Env & libc_env() { return _libc_env; }
+
 		/**
 		 * Setup kernel context and run libc application main context
 		 *
-		 * This function is called by the component thread at component
-		 * construction time.
+		 * This function is called by the component thread on with_libc().
 		 */
-		void run()
+		void run(Libc::Application_code &app_code)
 		{
 			if (!_main_context() || _state != KERNEL) {
 				Genode::error(__PRETTY_FUNCTION__, " called from non-kernel context");
 				return;
 			}
 
+			_app_returned = false;
+			_app_code     = &app_code;
+
 			/* save continuation of libc kernel (incl. current stack) */
 			if (!_setjmp(_kernel_context)) {
-				/* _setjmp() returned directly -> switch to user stack and launch component */
+				/* _setjmp() returned directly -> switch to user stack and call application code */
 				_state = USER;
 				call_func(_user_stack, (void *)_user_entry, (void *)this);
 
 				/* never reached */
 			}
 
-			/* _setjmp() returned after _longjmp() -> we're done */
+			/* _setjmp() returned after _longjmp() - user context suspended */
+
+			while (!_app_returned) {
+				_env.ep().wait_and_dispatch_one_signal();
+				if (_resume_main_once)
+					_switch_to_user();
+			}
 		}
 
 		/**
@@ -536,8 +536,7 @@ struct Libc::Kernel
 		 */
 		void resume_all()
 		{
-			Genode::Signal_transmitter(*_resume_main_handler).submit();
-
+			_resume_main();
 			_pthreads.resume_all();
 		}
 
@@ -582,8 +581,12 @@ struct Libc::Kernel
 			_original_suspended_callback = original_suspended_callback;
 			_env.ep().schedule_suspend(suspended_callback, resumed_callback);
 
-			if (!_setjmp(_user_context))
+			if (!_setjmp(_user_context)) {
+				_valid_user_context = true;
 				_switch_to_kernel();
+			} else {
+				_valid_user_context = false;
+			}
 		}
 
 		/**
@@ -591,8 +594,6 @@ struct Libc::Kernel
 		 */
 		void entrypoint_suspended()
 		{
-			_resume_main_handler.destruct();
-
 			_original_suspended_callback();
 		}
 
@@ -601,9 +602,7 @@ struct Libc::Kernel
 		 */
 		void entrypoint_resumed()
 		{
-			_resume_main_handler.construct(_env.ep(), *this, &Kernel::_resume_main);
-
-			Genode::Signal_transmitter(*_resume_main_handler).submit();
+			/* TODO */ _resume_main();
 		}
 };
 
@@ -657,7 +656,7 @@ unsigned long Libc::current_time()
 void Libc::schedule_suspend(void (*suspended) ())
 {
 	if (!kernel) {
-		error("libc kernel not initialized, needed for suspend");
+		error("libc kernel not initialized, needed for suspend()");
 		return;
 	}
 	kernel->schedule_suspend(suspended);
@@ -669,11 +668,25 @@ void Libc::execute_in_application_context(Libc::Application_code &app_code)
 	warning("executing code in application context, not implemented");
 
 	/*
-	 * XXX missing: switch to/from libc app task
-	 * XXX Should we detect nested calls?
+	 * XXX We don't support a second entrypoint - pthreads should work as they
+	 *     don't use this code.
 	 */
 
-	app_code.execute();
+	static bool nested = false;
+
+	if (nested) {
+		error("nested call of with_libc() detected");
+		return;
+	}
+
+	if (!kernel) {
+		error("libc kernel not initialized, needed for with_libc()");
+		return;
+	}
+
+	nested = true;
+	kernel->run(app_code);
+	nested = false;
 
 	warning("leaving application context");
 }
@@ -699,7 +712,9 @@ void Component::construct(Genode::Env &env)
 	Libc::plugin_registry()->for_each_plugin(init_plugin);
 
 	kernel = unmanaged_singleton<Libc::Kernel>(env);
-	kernel->run();
+
+	/* construct libc component on kernel stack */
+	Libc::Component::construct(kernel->libc_env());
 }
 
 
@@ -707,7 +722,4 @@ void Component::construct(Genode::Env &env)
  * Default stack size for libc-using components
  */
 Genode::size_t Libc::Component::stack_size() __attribute__((weak));
-Genode::size_t Libc::Component::stack_size() {
-	return 32UL * 1024 * sizeof(Genode::addr_t); }
-
-
+Genode::size_t Libc::Component::stack_size() { return 32UL*1024*sizeof(long); }
