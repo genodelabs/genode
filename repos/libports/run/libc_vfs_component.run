@@ -1,0 +1,114 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer server/terminal_crosslink server/vfs
+	test/libc_counter test/libc_component
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="terminal_crosslink">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+	</start>
+	<start name="vfs">
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<dir name="dev"> <terminal/> </dir>
+				<dir name="tmp"> <ram/> </dir>
+			</vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="test-libc_component">
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="LOG"/> </provides>
+		<config ld_verbose="yes">
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<fs/>
+			</vfs>
+			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
+		</config>
+	</start>
+	<start name="counter-terminal">
+		<binary name="test-libc_counter-source"/>
+		<resource name="RAM" quantum="8M"/>
+		<config>
+			<vfs>
+				<dir name="dev"> <terminal/> <log/> </dir>
+			</vfs>
+			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
+		</config>
+	</start>
+	<start name="counter-log">
+		<binary name="test-libc_counter-source"/>
+		<resource name="RAM" quantum="8M"/>
+		<config>
+			<vfs>
+				<dir name="dev"> <log/> <log name="log2" label="2"/> </dir>
+			</vfs>
+			<libc stdin="/dev/log2" stdout="/dev/log2" stderr="/dev/log"/>
+		</config>
+		<route>
+			<service name="LOG" label="2"> <child name="test-libc_component"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+
+set boot_modules {
+	core init timer terminal_crosslink vfs
+	test-libc_counter-source test-libc_component
+	ld.lib.so libc.lib.so libm.lib.so
+}
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic -m 128"
+
+#
+# Execute test case
+#
+
+run_genode_until forever
+run_genode_until "child \"test-libc_counter-sink\" exited with exit value 0.*\n" 30
+
+# vi: set ft=tcl :
