@@ -139,15 +139,36 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
+
 				try {
-					_apply(packet.handle(), [&] (Node &node) {
-						if (!node.read_ready())
+					_apply(static_cast<File_handle>(packet.handle().value), [&] (File &node) {
+						if (!node.read_ready()) {
+							node.notify_read_ready(true);
 							throw Not_read_ready();
+						}
+
 						if (node.mode&READ_ONLY)
 							res_length = node.read(_vfs, (char *)content, length, seek);
 					});
-				} catch (Not_read_ready) { throw;
-				} catch (...) { }
+				}
+				catch (Not_read_ready) { throw; }
+				catch (Operation_incomplete) { throw Not_read_ready(); }
+				catch (...) {
+
+					try {
+						_apply(packet.handle(), [&] (Node &node) {
+							if (!node.read_ready())
+								throw Not_read_ready();
+							
+							if (node.mode&READ_ONLY)
+								res_length = node.read(_vfs, (char *)content, length, seek);
+						});
+					}
+					catch (Not_read_ready) { throw; }
+					catch (Operation_incomplete) { throw Not_read_ready(); }
+					catch (...) { }
+				}
+
 				break;
 
 			case Packet_descriptor::WRITE:
@@ -162,11 +183,15 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			case Packet_descriptor::READ_READY:
 				try {
 					_apply(static_cast<File_handle>(packet.handle().value), [] (File &node) {
-						node.notify_read_ready = true;
+						if (!node.read_ready()) {
+							node.notify_read_ready(true);
+							throw Dont_ack();
+						}
 					});
-				} catch (...) { }
-
-				throw Dont_ack();
+				}
+				catch (Dont_ack) { throw; }
+				catch (...) { }
+				break;
 			}
 
 			packet.length(res_length);
@@ -353,13 +378,14 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		/* File_io_handler interface */
 		void handle_file_io(File &file) override
 		{
-			if (file.notify_read_ready && tx_sink()->ready_to_ack()) {
+			if (file.notify_read_ready() && file.read_ready()
+			 && tx_sink()->ready_to_ack()) {
 				Packet_descriptor packet(Packet_descriptor(),
 				                         Node_handle(file.id().value),
 				                         Packet_descriptor::READ_READY,
 				                         0, 0);
 				tx_sink()->acknowledge_packet(packet);
-				file.notify_read_ready = false;
+				file.notify_read_ready(false);
 			}
 			_process_packets();
 		}

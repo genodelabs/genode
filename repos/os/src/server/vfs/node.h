@@ -41,6 +41,13 @@ namespace Vfs_server {
 		virtual void handle_file_io(File &file) = 0;
 	};
 
+	/**
+	 * Read/write operation incomplete exception
+	 *
+	 * The operation can be retried later.
+	 */
+	struct Operation_incomplete { };
+
 	/* Vfs::MAX_PATH is shorter than File_system::MAX_PATH */
 	enum { MAX_PATH_LEN = Vfs::MAX_PATH_LEN };
 
@@ -149,9 +156,13 @@ class Vfs_server::File : public Node
 		Vfs::Vfs_handle *_handle;
 		char const      *_leaf_path; /* offset pointer to Node::_path */
 
-	public:
+		bool _notify_read_ready = false;
 
-		bool notify_read_ready = false;
+		enum class Op_state {
+			IDLE, READ_QUEUED
+		} op_state = Op_state::IDLE;
+
+	public:
 
 		File(Node_space        &space,
 		     Vfs::File_system  &vfs,
@@ -180,6 +191,15 @@ class Vfs_server::File : public Node
 			mark_as_updated();
 		}
 
+		void notify_read_ready(bool requested)
+		{
+			if (requested)
+				_handle->fs().notify_read_ready(_handle);
+			_notify_read_ready = requested;
+		}
+
+		bool notify_read_ready() const { return _notify_read_ready; }
+
 
 		/********************
 		 ** Node interface **
@@ -188,8 +208,6 @@ class Vfs_server::File : public Node
 		size_t read(Vfs::File_system&, char *dst, size_t len,
 		            seek_off_t seek_offset) override
 		{
-			Vfs::file_size res = 0;
-
 			if (seek_offset == SEEK_TAIL) {
 				typedef Directory_service::Stat_result Result;
 				Vfs::Directory_service::Stat st;
@@ -200,8 +218,68 @@ class Vfs_server::File : public Node
 			}
 
 			_handle->seek(seek_offset);
-			_handle->fs().read(_handle, dst, len, res);
-			return res;
+
+			typedef Vfs::File_io_service::Read_result Result;
+
+			Vfs::file_size out_count  = 0;
+			Result         out_result = Result::READ_OK;
+
+			switch (op_state) {
+			case Op_state::IDLE:
+
+				if (!_handle->fs().queue_read(_handle, dst, len, out_result, out_count))
+					throw Operation_incomplete();
+
+				switch (out_result) {
+				case Result::READ_OK:
+					op_state = Op_state::IDLE;
+					return out_count;
+
+				case Result::READ_ERR_WOULD_BLOCK:
+				case Result::READ_ERR_AGAIN:
+				case Result::READ_ERR_INTERRUPT:
+					op_state = Op_state::IDLE;
+					throw Operation_incomplete();
+
+				case Result::READ_ERR_IO:
+				case Result::READ_ERR_INVALID:
+					op_state = Op_state::IDLE;
+					/* FIXME revise error handling */
+					return 0;
+
+				case Result::READ_QUEUED:
+					op_state = Op_state::READ_QUEUED;
+					break;
+				}
+				/* fall through */
+
+			case Op_state::READ_QUEUED:
+				out_result = _handle->fs().complete_read(_handle, dst, len, out_count);
+				switch (out_result) {
+				case Result::READ_OK:
+					op_state = Op_state::IDLE;
+					return out_count;
+
+				case Result::READ_ERR_WOULD_BLOCK:
+				case Result::READ_ERR_AGAIN:
+				case Result::READ_ERR_INTERRUPT:
+					op_state = Op_state::IDLE;
+					throw Operation_incomplete();
+
+				case Result::READ_ERR_IO:
+				case Result::READ_ERR_INVALID:
+					op_state = Op_state::IDLE;
+					/* FIXME revise error handling */
+					return 0;
+
+				case Result::READ_QUEUED:
+					op_state = Op_state::READ_QUEUED;
+					throw Operation_incomplete();
+				}
+				break;
+			}
+
+			return 0;
 		}
 
 		size_t write(Vfs::File_system&, char const *src, size_t len,
