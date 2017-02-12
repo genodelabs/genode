@@ -111,6 +111,13 @@ namespace Libc {
 		static Config_attr rtc("rtc", "");
 		return rtc.string();
 	}
+
+	char const *config_socket() __attribute__((weak));
+	char const *config_socket()
+	{
+		static Config_attr socket("socket", "");
+		return socket.string();
+	}
 }
 
 int Libc::Vfs_plugin::access(const char *path, int amode)
@@ -796,4 +803,18 @@ int Libc::Vfs_plugin::select(int nfds,
 		/* XXX exceptfds not supported */
 	}
 	return nready;
+}
+
+namespace Libc {
+
+	bool read_ready(Libc::File_descriptor *fd)
+	{
+		Vfs::Vfs_handle *handle = vfs_handle(fd);
+		if (!handle) return false;
+
+		handle->fs().notify_read_ready(handle);
+
+		return handle->fs().read_ready(handle);
+	}
+
 }
