@@ -56,6 +56,7 @@ class Nic_client
 		 */
 		void _packet_avail()
 		{
+			/* process a batch of only MAX_PACKETS in one run */
 			enum { MAX_PACKETS = 20 };
 
 			int count = 0;
@@ -69,6 +70,7 @@ class Nic_client
 				_nic.rx()->acknowledge_packet(p);
 			}
 
+			/* schedule next batch if there are still packets available */
 			if (_nic.rx()->packet_avail())
 				Genode::Signal_transmitter(_sink_submit).submit();
 
