@@ -510,8 +510,9 @@ struct Libc::Kernel
 				return;
 			}
 
-			_app_returned = false;
-			_app_code     = &app_code;
+			_resume_main_once = false;
+			_app_returned     = false;
+			_app_code         = &app_code;
 
 			/* save continuation of libc kernel (incl. current stack) */
 			if (!_setjmp(_kernel_context)) {
@@ -526,7 +527,7 @@ struct Libc::Kernel
 
 			while (!_app_returned) {
 				_env.ep().wait_and_dispatch_one_signal();
-				if (_resume_main_once)
+				if (_resume_main_once && !_setjmp(_kernel_context))
 					_switch_to_user();
 			}
 		}
@@ -665,8 +666,6 @@ void Libc::schedule_suspend(void (*suspended) ())
 
 void Libc::execute_in_application_context(Libc::Application_code &app_code)
 {
-	warning("executing code in application context, not implemented");
-
 	/*
 	 * XXX We don't support a second entrypoint - pthreads should work as they
 	 *     don't use this code.
@@ -687,8 +686,6 @@ void Libc::execute_in_application_context(Libc::Application_code &app_code)
 	nested = true;
 	kernel->run(app_code);
 	nested = false;
-
-	warning("leaving application context");
 }
 
 
