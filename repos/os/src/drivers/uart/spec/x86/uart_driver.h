@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2011-2016 Genode Labs GmbH
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -117,7 +117,7 @@ class Uart::Driver : public Uart::Driver_base
 		       Uart::Char_avail_functor &func)
 		: Driver_base(env, _irq_number(index), func),
 		  _port_base(_io_port_base(index)),
-		  _io_port(_port_base, 0xf) {
+		  _io_port(env, _port_base, 0xf) {
 			_init_comport(_baud_rate(baud)); }
 
 
