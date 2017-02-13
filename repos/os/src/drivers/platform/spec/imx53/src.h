@@ -32,9 +32,9 @@ class Src : public Genode::Attached_io_mem_dataspace,
 
 	public:
 
-		Src()
-		: Genode::Attached_io_mem_dataspace(Genode::Board_base::SRC_BASE,
-		                                    Genode::Board_base::SRC_SIZE),
+		Src(Genode::Env &env)
+		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::SRC_BASE,
+		                                         Genode::Board_base::SRC_SIZE),
 		  Genode::Mmio((Genode::addr_t)local_addr<void>()) {}
 
 		void reset_ipu() { write<Ctrl_reg::Ipu_rst>(1); }

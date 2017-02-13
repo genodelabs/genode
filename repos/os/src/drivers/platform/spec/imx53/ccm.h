@@ -65,9 +65,9 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 
 	public:
 
-		Ccm()
-		: Genode::Attached_io_mem_dataspace(Genode::Board_base::CCM_BASE,
-		                                    Genode::Board_base::CCM_SIZE),
+		Ccm(Genode::Env &env)
+		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::CCM_BASE,
+		                                         Genode::Board_base::CCM_SIZE),
 		  Genode::Mmio((Genode::addr_t)local_addr<void>()) { }
 
 		void i2c_1_enable(void) { write<Ccgr1::I2c_1>(3); }

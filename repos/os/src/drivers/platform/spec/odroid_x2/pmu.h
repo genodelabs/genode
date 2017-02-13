@@ -112,8 +112,9 @@ class Pmu : public Regulator::Driver,
 		/**
 		 * Constructor
 		 */
-		Pmu() : Genode::Attached_mmio(Genode::Board_base::PMU_MMIO_BASE,
-		                              Genode::Board_base::PMU_MMIO_SIZE)
+		Pmu(Genode::Env &env)
+		: Genode::Attached_mmio(env, Genode::Board_base::PMU_MMIO_BASE,
+		                             Genode::Board_base::PMU_MMIO_SIZE)
 		{
 			write<Usbdrd_phy_control::Enable>(0);
 			write<Usbhost_phy1_control::Enable>(0);

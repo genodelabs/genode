@@ -112,10 +112,12 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 {
 	private:
 
-		Iim   _iim;
-		Iomux _iomux;
-		Ccm   _ccm;
-		Src   _src;
+		Genode::Env &_env;
+
+		Iim   _iim   { _env };
+		Iomux _iomux { _env };
+		Ccm   _ccm   { _env };
+		Src   _src   { _env };
 
 	protected:
 
@@ -124,9 +126,10 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	public:
 
-		Root(Genode::Entrypoint & session_ep,
-		     Genode::Allocator &  md_alloc)
-		: Genode::Root_component<Session_component>(session_ep, md_alloc) { }
+		Root(Genode::Env       &env,
+		     Genode::Allocator &md_alloc)
+		: Genode::Root_component<Session_component>(env.ep(), md_alloc), _env(env)
+		{ }
 };
 
 
@@ -134,7 +137,7 @@ struct Main
 {
 	Genode::Env &  env;
 	Genode::Heap   heap { env.ram(), env.rm() };
-	Platform::Root root { env.ep(), heap };
+	Platform::Root root { env, heap };
 
 	Main(Genode::Env & env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

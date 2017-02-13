@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -25,6 +25,8 @@ struct Driver_factory : Regulator::Driver_factory
 {
 	Cmu _cmu;
 	Pmu _pmu;
+
+	Driver_factory(Genode::Env &env) : _cmu(env), _pmu(env) { }
 
 	Regulator::Driver &create(Regulator::Regulator_id id) {
 		switch (id) {
@@ -53,7 +55,7 @@ struct Main
 {
 	Genode::Env &    env;
 	Genode::Heap     heap { env.ram(), env.rm() };
-	::Driver_factory factory;
+	::Driver_factory factory { env };
 	Regulator::Root  root { env, heap, factory };
 
 	Main(Genode::Env & env) : env(env) {

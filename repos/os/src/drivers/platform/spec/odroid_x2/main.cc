@@ -28,6 +28,8 @@ struct Driver_factory : Regulator::Driver_factory
 	Cmu _cmu;
 	Pmu _pmu;
 
+	Driver_factory(Genode::Env &env) : _cmu(env), _pmu(env) { }
+
 	Regulator::Driver &create(Regulator::Regulator_id id)
 	{
 		switch (id) {
@@ -46,8 +48,7 @@ struct Driver_factory : Regulator::Driver_factory
 		};
 	}
 
-	void destroy(Regulator::Driver &driver) {
-	}
+	void destroy(Regulator::Driver &driver) { }
 };
 
 
@@ -55,7 +56,7 @@ struct Main
 {
 	Genode::Env &    env;
 	Genode::Heap     heap { env.ram(), env.rm() };
-	::Driver_factory factory;
+	::Driver_factory factory { env };
 	Regulator::Root  root { env, heap, factory };
 
 	Main(Genode::Env & env) : env(env) {

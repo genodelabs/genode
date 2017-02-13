@@ -311,9 +311,9 @@ class Cmu : public Regulator::Driver,
 		/**
 		 * Constructor
 		 */
-		Cmu()
-		: Genode::Attached_mmio(Genode::Board_base::CMU_MMIO_BASE,
-		                        Genode::Board_base::CMU_MMIO_SIZE),
+		Cmu(Genode::Env &env)
+		: Genode::Attached_mmio(env, Genode::Board_base::CMU_MMIO_BASE,
+		                             Genode::Board_base::CMU_MMIO_SIZE),
 		  _cpu_freq(CPU_FREQ_1400)
 		{
 			/**
