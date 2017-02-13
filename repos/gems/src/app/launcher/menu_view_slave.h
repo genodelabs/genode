@@ -87,7 +87,7 @@ class Launcher::Menu_view_slave
 				       Position                       position)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, ep, rm, ram, _quota()),
-					_nitpicker(nitpicker_session),
+					_nitpicker(rm, nitpicker_session),
 					_dialog_rom(dialog_rom_session),
 					_hover_report(hover_report_session),
 					_position(position)

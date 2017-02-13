@@ -294,13 +294,14 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 		             Nitpicker::Session &nitpicker)
 		:
 			_alloc(alloc),
+			_timer(env),
 			_subsystem_manager(subsystem_manager),
 			_nitpicker(nitpicker),
 			_dialog(env, report_rom_slave, "panel_dialog", "panel_hover",
 			        *this, *this, *this, *this, _position),
 			_timer_handler(env.ep(), *this, &Panel_dialog::_handle_timer),
 			_context_dialog(env, report_rom_slave, *this),
-			_menu_dialog(env, report_rom_slave, *this)
+			_menu_dialog(env, alloc, report_rom_slave, *this)
 		{
 			_elements.insert(&_menu_button);
 			_timer.sigh(_timer_handler);

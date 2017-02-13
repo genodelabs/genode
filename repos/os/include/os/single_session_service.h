@@ -40,7 +40,8 @@ class Genode::Single_session_service
 		 */
 		struct Client : SESSION::Client
 		{
-			Client(Session_capability cap) : SESSION::Client(cap) { }
+			Client(Session_capability cap)                 : SESSION::Client(cap) { }
+			Client(Region_map &rm, Session_capability cap) : SESSION::Client(rm, cap) { }
 			Session_capability cap() const { return *this; }
 		};
 
@@ -54,6 +55,9 @@ class Genode::Single_session_service
 	public:
 
 		Single_session_service(Session_capability cap) : _client(cap) { }
+
+		Single_session_service(Region_map &rm, Session_capability cap)
+		: _client(rm, cap) { }
 
 		Service &service() { return _service; }
 };

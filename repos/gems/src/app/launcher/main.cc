@@ -98,7 +98,7 @@ struct Launcher::Main
 
 	Label _focus_prefix;
 
-	Genode::Attached_rom_dataspace _focus_rom { "focus" };
+	Genode::Attached_rom_dataspace _focus_rom { _env, "focus" };
 
 	void _handle_focus_update();
 

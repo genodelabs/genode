@@ -15,7 +15,7 @@
 #define _SUBSYSTEM_MANAGER_H_
 
 /* Genode includes */
-#include <os/server.h>
+#include <base/component.h>
 #include <decorator/xml_utils.h>
 
 /* CLI-monitor includes */
