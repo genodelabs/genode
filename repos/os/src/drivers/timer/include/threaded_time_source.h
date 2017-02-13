@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2009-2015 Genode Labs GmbH
+ * Copyright (C) 2009-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -16,20 +16,18 @@
 #define _THREADED_TIME_SOURCE_H_
 
 /* Genode inludes */
-#include <base/entrypoint.h>
+#include <base/env.h>
 #include <base/rpc_client.h>
 #include <os/time_source.h>
 
 namespace Timer {
-
-	enum { STACK_SIZE = 8 * 1024 * sizeof(Genode::addr_t) };
 
 	class Threaded_time_source;
 }
 
 
 class Timer::Threaded_time_source : public Genode::Time_source,
-                                    protected Genode::Thread_deprecated<STACK_SIZE>
+                                    protected Genode::Thread
 {
 	private:
 
@@ -76,10 +74,10 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 
 	public:
 
-		Threaded_time_source(Genode::Entrypoint &ep)
+		Threaded_time_source(Genode::Env &env)
 		:
-			Thread_deprecated<STACK_SIZE>("threaded_time_source"),
-			_irq_dispatcher_cap(ep.rpc_ep().manage(&_irq_dispatcher_component))
+			Thread(env, "threaded_time_source", 8 * 1024 * sizeof(Genode::addr_t)),
+			_irq_dispatcher_cap(env.ep().rpc_ep().manage(&_irq_dispatcher_component))
 		{ }
 
 		void handler(Timeout_handler &handler) {

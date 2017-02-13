@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2014-2015 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -26,10 +26,10 @@ using namespace Nova;
 using Microseconds = Genode::Time_source::Microseconds;
 
 
-Timer::Time_source::Time_source(Entrypoint &ep) : Threaded_time_source(ep)
+Timer::Time_source::Time_source(Env &env) : Threaded_time_source(env)
 {
 	/* read out the tsc frequenzy once */
-	Attached_rom_dataspace _ds("hypervisor_info_page");
+	Attached_rom_dataspace _ds(env, "hypervisor_info_page");
 	Nova::Hip * const hip = _ds.local_addr<Nova::Hip>();
 	_tsc_khz = hip->tsc_freq;
 	start();

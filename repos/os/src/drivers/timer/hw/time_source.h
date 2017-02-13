@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2015 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -30,7 +30,7 @@ class Timer::Time_source : public Genode::Signalled_time_source
 
 	public:
 
-		Time_source(Genode::Entrypoint &ep);
+		Time_source(Genode::Env &env);
 
 
 		/*************************

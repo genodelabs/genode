@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2009-2015 Genode Labs GmbH
+ * Copyright (C) 2009-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -104,11 +104,11 @@ Microseconds Timer::Time_source::curr_time() const
 }
 
 
-Timer::Time_source::Time_source(Entrypoint &ep)
+Timer::Time_source::Time_source(Env &env)
 :
-	Signalled_time_source(ep),
-	_io_port(PIT_DATA_PORT_0, PIT_CMD_PORT - PIT_DATA_PORT_0 + 1),
-	_timer_irq(IRQ_PIT)
+	Signalled_time_source(env),
+	_io_port(env, PIT_DATA_PORT_0, PIT_CMD_PORT - PIT_DATA_PORT_0 + 1),
+	_timer_irq(env, IRQ_PIT)
 {
 	/* operate PIT in one-shot mode */
 	_io_port.outb(PIT_CMD_PORT, PIT_CMD_SELECT_CHANNEL_0 |
