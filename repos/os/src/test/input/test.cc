@@ -22,14 +22,15 @@ using namespace Genode;
 static char const * ev_type(Input::Event::Type type)
 {
 	switch (type) {
-	case Input::Event::INVALID: return "INVALID";
-	case Input::Event::MOTION:  return "MOTION ";
-	case Input::Event::PRESS:   return "PRESS  ";
-	case Input::Event::RELEASE: return "RELEASE";
-	case Input::Event::WHEEL:   return "WHEEL  ";
-	case Input::Event::FOCUS:   return "FOCUS  ";
-	case Input::Event::LEAVE:   return "LEAVE  ";
-	case Input::Event::TOUCH:   return "TOUCH  ";
+	case Input::Event::INVALID:   return "INVALID";
+	case Input::Event::MOTION:    return "MOTION ";
+	case Input::Event::PRESS:     return "PRESS  ";
+	case Input::Event::RELEASE:   return "RELEASE";
+	case Input::Event::WHEEL:     return "WHEEL  ";
+	case Input::Event::FOCUS:     return "FOCUS  ";
+	case Input::Event::LEAVE:     return "LEAVE  ";
+	case Input::Event::TOUCH:     return "TOUCH  ";
+	case Input::Event::CHARACTER: return "CHARACTER";
 	}
 
 	return "";
