@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,9 +15,9 @@
 #define _SIGNALLED_TIME_SOURCE_H_
 
 /* Genode includes */
+#include <base/env.h>
 #include <os/time_source.h>
 #include <base/rpc_client.h>
-#include <base/entrypoint.h>
 
 namespace Genode { class Signalled_time_source; }
 
@@ -39,9 +39,9 @@ class Genode::Signalled_time_source : public Time_source
 
 	public:
 
-		Signalled_time_source(Entrypoint &ep)
+		Signalled_time_source(Env &env)
 		:
-			_signal_handler(ep, *this,
+			_signal_handler(env.ep(), *this,
 			                &Signalled_time_source::_handle_timeout)
 		{ }
 };

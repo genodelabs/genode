@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -52,10 +52,10 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 
 	public:
 
-		Root_component(Genode::Entrypoint &ep, Genode::Allocator &md_alloc)
+		Root_component(Genode::Env &env, Genode::Allocator &md_alloc)
 		:
-			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_time_source(ep), _timeout_scheduler(_time_source)
+			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_time_source(env), _timeout_scheduler(_time_source)
 		{ }
 };
 

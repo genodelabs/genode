@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2015 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -32,7 +32,7 @@ class Main
 	public:
 
 		Main(Env &env) : _sliced_heap(env.ram(), env.rm()),
-		                 _root(env.ep(), _sliced_heap)
+		                 _root(env, _sliced_heap)
 		{
 			env.parent().announce(env.ep().manage(_root));
 		}

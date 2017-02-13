@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -74,7 +74,7 @@ Microseconds Timer::Time_source::max_timeout() const
 Microseconds Timer::Time_source::curr_time() const
 {
 	Genode::Lock::Guard lock_guard(_lock);
-	static Genode::Attached_rom_dataspace kip_ds("l4v2_kip");
+	static Genode::Attached_rom_dataspace kip_ds(_env, "l4v2_kip");
 	static Fiasco::l4_kernel_info_t * const kip =
 		kip_ds.local_addr<Fiasco::l4_kernel_info_t>();
 
