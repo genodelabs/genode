@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -70,8 +70,9 @@ class Buffer_descriptor : protected Attached_ram_dataspace, protected Mmio
 		 * start of the ram spave contains all buffer descriptors
 		 * after that the data spaces for the ethernet packages are following
 		 */
-		Buffer_descriptor(const size_t buffer_count = 1) :
-			Attached_ram_dataspace(env()->ram_session(), BUFFER_SIZE * buffer_count, UNCACHED),
+		Buffer_descriptor(Genode::Env &env, const size_t buffer_count = 1)
+		:
+			Attached_ram_dataspace(env.ram(), env.rm(), BUFFER_SIZE * buffer_count, UNCACHED),
 			Genode::Mmio( reinterpret_cast<addr_t>(local_addr<void>()) ),
 			_buffer_count(buffer_count),
 			_buffer_offset(BUFFER_DESC_SIZE * buffer_count),

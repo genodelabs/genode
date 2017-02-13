@@ -79,9 +79,8 @@ set config {
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="5M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>}
 

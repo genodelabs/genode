@@ -61,10 +61,7 @@ class Nic::Root : public Genode::Root_component<SESSION_COMPONENT,
 
 			return new (Root::md_alloc())
 			            SESSION_COMPONENT(tx_buf_size, rx_buf_size,
-			                             _md_alloc,
-			                             _env.ram(),
-			                             _env.rm(),
-			                             _env.ep());
+			                             _md_alloc, _env);
 		}
 
 	public:

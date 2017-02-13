@@ -12,14 +12,18 @@
  */
 
 /* Genode includes */
+/*
+ * Needs to be included first because otherwise
+ * util/xml_node.h will not pick up the ascii_to
+ * overload.
+ */
+#include <nic/xml_node.h>
+
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <base/sleep.h>
 #include <drivers/board_base.h>
-#include <nic/xml_node.h>
 #include <nic/root.h>
-
-#include <os/config.h>
 
 #include "cadence_gem.h"
 
@@ -30,29 +34,30 @@ namespace Server {
 	struct Main;
 }
 
-class Server::Gem_session_component
-:
-	public Cadence_gem
+class Server::Gem_session_component : public Cadence_gem
 {
+	private:
+
+		Genode::Attached_rom_dataspace _config_rom;
+
 	public:
+
 		Gem_session_component(Genode::size_t const tx_buf_size,
 		                      Genode::size_t const rx_buf_size,
 		                      Genode::Allocator   &rx_block_md_alloc,
-		                      Genode::Ram_session &ram_session,
-		                      Genode::Region_map  &region_map,
-		                      Server::Entrypoint  &ep)
+		                      Genode::Env         &env)
 		:
-			Cadence_gem(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-			            ram_session, region_map, ep,
+			Cadence_gem(tx_buf_size, rx_buf_size, rx_block_md_alloc, env,
 			            Board_base::EMAC_0_MMIO_BASE,
 			            Board_base::EMAC_0_MMIO_SIZE,
-			            Board_base::EMAC_0_IRQ)
+			            Board_base::EMAC_0_IRQ),
+			_config_rom(env, "config")
 		{
 			Nic::Mac_address mac_addr;
 
 			/* try using configured MAC address */
 			try {
-				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
+				Genode::Xml_node nic_config = _config_rom.xml().sub_node("nic");
 				nic_config.attribute("mac").value(&mac_addr);
 				Genode::log("Using configured MAC address ", mac_addr);
 			} catch (...) {
@@ -76,7 +81,7 @@ struct Server::Main
 	Env  &_env;
 	Heap  _heap { _env.ram(), _env.rm() };
 
-	Nic::Root<Gem_session_component> nic_root{ _env, *Genode::env()->heap() };
+	Nic::Root<Gem_session_component> nic_root{ _env, _heap };
 
 	Main(Env &env) : _env(env)
 	{
@@ -84,5 +89,5 @@ struct Server::Main
 	}
 };
 
-void Component::construct(Genode::Env &env) { static Server::Main main(env); }
 
+void Component::construct(Genode::Env &env) { static Server::Main main(env); }

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -108,9 +108,13 @@ class System_control : private Genode::Attached_mmio
 
 		unsigned int old_data[0x300];
 
+
+		Timer::Connection &_timer;
+
 	public:
-		System_control() :
-			Attached_mmio(Board_base::MMIO_1_BASE, 0xB80)
+		System_control(Genode::Env &env, Timer::Connection &timer) :
+			Attached_mmio(env, Board_base::MMIO_1_BASE, 0xB80),
+			_timer(timer)
 		{
 			Lock_guard lock(*this);
 
@@ -143,8 +147,7 @@ class System_control : private Genode::Attached_mmio
 			write<Gem0_clk_ctrl>(clk);
 			write<Gem0_rclk_ctrl>(rclk);
 
-			static Timer::Connection timer;
-			timer.msleep(100);
+			_timer.msleep(100);
 		}
 };
 

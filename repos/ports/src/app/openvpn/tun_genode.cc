@@ -14,9 +14,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/snprintf.h>
-#include <cap_session/connection.h>
 #include <nic_session/rpc_object.h>
-#include <os/server.h>
 #include <root/component.h>
 #include <util/string.h>
 

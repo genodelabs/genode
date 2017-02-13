@@ -133,11 +133,8 @@ class Openvpn_component : public Tuntap_device,
 		Openvpn_component(Genode::size_t const tx_buf_size,
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
-		                  Genode::Ram_session &ram_session,
-		                  Genode::Region_map  &region_map,
-		                  Genode::Entrypoint  &ep)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-		                    ram_session, region_map, ep)
+		                  Genode::Env         &env)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env)
 		{
 			char buf[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
 			_mac_addr = Nic::Mac_address((void*)buf);
@@ -236,10 +233,9 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			}
 
 			Openvpn_component *component = new (Root::md_alloc())
-			                               Openvpn_component(tx_buf_size, rx_buf_size,
-			                                                _heap,
-			                                                _env.ram(), _env.rm(),
-			                                                _env.ep());
+			                               Openvpn_component(tx_buf_size,
+			                                                 rx_buf_size,
+			                                                 _heap, _env);
 			/**
 			 * Setting the pointer in this manner is quite hackish but it has
 			 * to be valid before OpenVPN calls open_tun(), which unfortunatly

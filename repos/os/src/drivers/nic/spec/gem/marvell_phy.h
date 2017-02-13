@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -162,7 +162,7 @@ namespace Genode
 				PHY_AUTONEGOTIATE_TIMEOUT = 5000
 			};
 
-			Timer::Connection _timer;
+			Timer::Connection &_timer;
 			Phyio& _phyio;
 			int8_t _phyaddr;
 			bool _link_up;
@@ -551,7 +551,9 @@ namespace Genode
 
 
 		public:
-			Marvel_phy(Phyio& phyio) :
+			Marvel_phy(Phyio& phyio, Timer::Connection &timer)
+			:
+				_timer(timer),
 				_phyio(phyio),
 				_phyaddr(0),
 				_link_up(false),

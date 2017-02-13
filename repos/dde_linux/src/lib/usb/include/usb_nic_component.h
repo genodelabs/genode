@@ -179,12 +179,9 @@ class Usb_nic::Session_component : public Nic::Session_component
 		Session_component(Genode::size_t const tx_buf_size,
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
-		                  Genode::Ram_session &ram_session,
-		                  Genode::Region_map  &region_map,
-		                  Genode::Entrypoint  &ep,
+		                  Genode::Env         &env,
 		                  Device *device)
-		: Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-		                         ram_session, region_map, ep),
+		: Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
 			_device(device)
 			{ _device->session(this); }
 
@@ -258,9 +255,7 @@ class Root : public Root_component
 
 			return new (Root::md_alloc())
 			            Usb_nic::Session_component(tx_buf_size, rx_buf_size,
-			                                       Lx::Malloc::mem(),
-			                                       _env.ram(), _env.rm(),
-			                                       _env.ep(), _device);
+			                                       Lx::Malloc::mem(), _env, _device);
 		}
 
 	public:

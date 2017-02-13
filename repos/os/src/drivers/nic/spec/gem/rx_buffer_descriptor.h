@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -52,7 +52,7 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 
 
 	public:
-		Rx_buffer_descriptor() : Buffer_descriptor(BUFFER_COUNT)
+		Rx_buffer_descriptor(Genode::Env &env) : Buffer_descriptor(env, BUFFER_COUNT)
 		{
 			/*
 			 * mark the last buffer descriptor
