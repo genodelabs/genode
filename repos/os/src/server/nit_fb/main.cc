@@ -72,6 +72,7 @@ static Input::Event translate_event(Input::Event  const ev,
 
 	case Input::Event::INVALID:
 	case Input::Event::WHEEL:
+	case Input::Event::CHARACTER:
 		return ev;
 	}
 	return Input::Event();

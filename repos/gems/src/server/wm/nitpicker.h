@@ -508,6 +508,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				}
 
 			case Input::Event::TOUCH:
+			case Input::Event::CHARACTER:
 			case Input::Event::WHEEL:
 				{
 					Point abs_pos = Point(ev.ax(), ev.ay()) + input_origin;
