@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2016 Genode Labs GmbH
+ * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -552,10 +552,12 @@ class Usb::Session_component : public Session_rpc_object,
 			DEVICE_REMOVE,
 		};
 
-		Session_component(Genode::Ram_dataspace_capability tx_ds, Genode::Entrypoint &ep,
+		Session_component(Genode::Ram_dataspace_capability tx_ds,
+		                  Genode::Entrypoint &ep,
+		                  Genode::Region_map &rm,
 		                  unsigned long vendor, unsigned long product,
 		                  long bus, long dev)
-		: Session_rpc_object(tx_ds, ep.rpc_ep()),
+		: Session_rpc_object(tx_ds, ep.rpc_ep(), rm),
 		  _ep(ep),
 		  _vendor(vendor), _product(product), _bus(bus), _dev(dev),
 		  _packet_avail(ep, *this, &Session_component::_receive),
@@ -818,7 +820,7 @@ class Usb::Root : public Genode::Root_component<Session_component>
 
 				Ram_dataspace_capability tx_ds = _env.ram().alloc(tx_buf_size);
 				Session_component *session = new (md_alloc())
-					Session_component(tx_ds, _env.ep(), vendor, product, bus, dev);
+					Session_component(tx_ds, _env.ep(), _env.rm(), vendor, product, bus, dev);
 				::Session::list()->insert(session);
 				return session;
 			} catch (Genode::Session_policy::No_policy_defined) {
