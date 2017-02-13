@@ -1,6 +1,6 @@
 set build_components {
 	core init drivers/timer
-	server/terminal test/terminal_echo
+	server/input_filter server/terminal test/terminal_echo
 	drivers/framebuffer drivers/input
 }
 
@@ -10,6 +10,9 @@ append_platform_drv_build_components
 build $build_components
 
 create_boot_directory
+
+exec cp -f [genode_dir]/repos/os/src/server/input_filter/en_us.chargen bin/
+exec cp -f [genode_dir]/repos/os/src/server/input_filter/de.chargen bin/
 
 append config {
 	<config verbose="yes">
@@ -36,7 +39,9 @@ append_if [have_spec sdl] config {
 			<service name="Input"/>
 			<service name="Framebuffer"/>
 		</provides>
-	</start>}
+		<config width="640" height="480"/>
+	</start>
+	<alias name="input_drv" child="fb_sdl"/>}
 
 append_platform_drv_config
 
@@ -44,27 +49,63 @@ append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
+		<config width="640" height="480"/>
 	</start>}
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start> }
+	</start>
+	<alias name="input_drv" child="ps2_drv"/>}
 
 append config {
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
+		<start name="input_filter">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Input"/> </provides>
+			<config>
+				<input label="input"/>
+				<output>
+					<chargen>
+						<input name="input"/>
+						<mod1>
+							<key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
+						</mod1>
+						<mod2>
+							<key name="KEY_LEFTCTRL"/> <key name="KEY_RIGHTCTRL"/>
+						</mod2>
+						<mod3>
+							<key name="KEY_RIGHTALT"/> <!-- AltGr -->
+						</mod3>
+						<repeat delay_ms="500" rate_ms="250"/>
+						<!-- <include rom="de.chargen"/> -->
+						<include rom="en_us.chargen"/>
+					</chargen>
+				</output>
+			</config>
+			<route>
+				<service name="Input"> <child name="input_drv"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
 		<start name="terminal">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Terminal"/></provides>
 			<config>
+				<keyboard layout="none"/>
 				<!-- supported built-in font sizes are 8, 12, and 16 -->
 				<font size="12" />
 			</config>
+			<route>
+				<service name="Input"> <child name="input_filter"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
+
 		<start name="test-terminal_echo">
 			<resource name="RAM" quantum="1M"/>
 		</start>
@@ -79,7 +120,8 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer terminal test-terminal_echo
+	core ld.lib.so init timer input_filter terminal test-terminal_echo
+	en_us.chargen de.chargen
 }
 
 # platform-specific modules

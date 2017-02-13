@@ -113,7 +113,7 @@ class Terminal::Scancode_tracker
 			_mod_altgr(false),
 			_last_character(0),
 			_last_sequence(0)
-		{ };
+		{ }
 
 		/**
 		 * Submit key event to state machine

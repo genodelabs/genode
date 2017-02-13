@@ -544,7 +544,7 @@ struct Terminal::Main
 	/* create root interface for service */
 	Terminal::Root_component _root;
 
-	Terminal::Scancode_tracker _scancode_tracker;
+	Constructible<Terminal::Scancode_tracker> _scancode_tracker;
 
 	/* state needed for key-repeat handling */
 	unsigned const _repeat_delay = 250;
@@ -608,27 +608,45 @@ struct Terminal::Main
 		      font_family),
 		_scancode_tracker(keymap, shift, altgr, Terminal::control)
 	{
+		/*
+		 * Construct scancode tracker only if a key map is defined. Otherwise,
+		 * the terminal responds solely by 'CHARACTER' input events.
+		 */
+		if (keymap)
+			_scancode_tracker.construct(keymap, shift, altgr, Terminal::control);
+
 		_input.sigh(_input_handler);
 
 		/* announce service at our parent */
 		_env.parent().announce(_env.ep().manage(_root));
 	}
-
 };
 
 
 void Terminal::Main::_handle_input()
 {
 	_input.for_each_event([&] (Input::Event const &event) {
+
+	 	if (event.type() == Input::Event::CHARACTER) {
+	 		Input::Event::Utf8 const utf8 = event.utf8();
+	 		_read_buffer.add(utf8.b0);
+	 		if (utf8.b1) _read_buffer.add(utf8.b1);
+	 		if (utf8.b2) _read_buffer.add(utf8.b2);
+	 		if (utf8.b3) _read_buffer.add(utf8.b3);
+		}
+
+		if (!_scancode_tracker.constructed())
+			return;
+
 		bool press   = (event.type() == Input::Event::PRESS   ? true : false);
 		bool release = (event.type() == Input::Event::RELEASE ? true : false);
 		int  keycode =  event.code();
 
 		if (press || release)
-			_scancode_tracker.submit(keycode, press);
+			_scancode_tracker->submit(keycode, press);
 
 		if (press) {
-			_scancode_tracker.emit_current_character(_read_buffer);
+			_scancode_tracker->emit_current_character(_read_buffer);
 
 			/* setup first key repeat */
 			_repeat_next = _repeat_delay;
@@ -648,7 +666,7 @@ void Terminal::Main::_handle_key_repeat(Time_source::Microseconds)
 	if (_repeat_next) {
 
 		/* repeat current character or sequence */
-		_scancode_tracker.emit_current_character(_read_buffer);
+		_scancode_tracker->emit_current_character(_read_buffer);
 
 		_repeat_next = _repeat_rate;
 	}
@@ -723,10 +741,18 @@ void Component::construct(Genode::Env &env)
 	try {
 		if (config.xml().sub_node("keyboard")
 		                        .attribute("layout").has_value("de")) {
-
 			keymap = Terminal::german_keymap;
 			shift  = Terminal::german_shift;
 			altgr  = Terminal::german_altgr;
+		}
+	} catch (...) { }
+
+	try {
+		if (config.xml().sub_node("keyboard")
+		                        .attribute("layout").has_value("none")) {
+			keymap = nullptr;
+			shift  = nullptr;
+			altgr  = nullptr;
 		}
 	} catch (...) { }
 
