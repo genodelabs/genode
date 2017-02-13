@@ -53,19 +53,21 @@ struct Launcher::Dialog_nitpicker_session : Wrapped_nitpicker_session
 		virtual bool handle_input_event(Input::Event const &ev) = 0;
 	};
 
+	Env &_env;
+
 	Input_event_handler &_input_event_handler;
 
 	Rpc_entrypoint &_session_ep;
 
 	Nitpicker::Session &_nitpicker_session;
 
-	Input::Session_client _nitpicker_input { _nitpicker_session.input_session() };
+	Input::Session_client _nitpicker_input { _env.rm(), _nitpicker_session.input_session() };
 
-	Attached_dataspace _nitpicker_input_ds { _nitpicker_input.dataspace() };
+	Attached_dataspace _nitpicker_input_ds { _env.rm(), _nitpicker_input.dataspace() };
 
 	Signal_handler<Dialog_nitpicker_session> _input_handler;
 
-	Input::Session_component _input_session;
+	Input::Session_component _input_session { _env, _env.ram() };
 
 	/**
 	 * Constructor
@@ -75,12 +77,13 @@ struct Launcher::Dialog_nitpicker_session : Wrapped_nitpicker_session
 	 * \param service_ep     entrypoint providing the nitpicker session
 	 *                       (slave-specific ep)
 	 */
-	Dialog_nitpicker_session(Nitpicker::Session &nitpicker_session,
+	Dialog_nitpicker_session(Env &env, Nitpicker::Session &nitpicker_session,
 	                         Entrypoint &input_sigh_ep,
 	                         Rpc_entrypoint &session_ep,
 	                         Input_event_handler &input_event_handler)
 	:
 		Wrapped_nitpicker_session(nitpicker_session),
+		_env(env),
 		_input_event_handler(input_event_handler),
 		_session_ep(session_ep),
 		_nitpicker_session(nitpicker_session),

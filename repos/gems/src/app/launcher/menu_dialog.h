@@ -39,6 +39,8 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 
 	private:
 
+		Allocator &_alloc;
+
 		Response_handler &_response_handler;
 
 		typedef String<128> Title;
@@ -104,10 +106,11 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 	public:
 
 		Menu_dialog(Env              &env,
+		            Allocator        &alloc,
 		            Report_rom_slave &report_rom_slave,
 		            Response_handler &response_handler)
 		:
-			_response_handler(response_handler),
+			_alloc(alloc), _response_handler(response_handler),
 			_dialog(env, report_rom_slave, "menu_dialog", "menu_hover",
 			        *this, *this, *this, *this, _position)
 		{ }
@@ -253,7 +256,7 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 			subsystems.for_each_sub_node("subsystem",
 			                             [&] (Xml_node subsystem)
 			{
-				Element * const e = new (env()->heap()) Element(subsystem);
+				Element * const e = new (_alloc) Element(subsystem);
 
 				_elements.insert(e, last);
 				last = e;

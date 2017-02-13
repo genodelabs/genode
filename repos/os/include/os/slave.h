@@ -280,6 +280,13 @@ struct Genode::Slave::Connection : private Connection_base<CONNECTION>,
 		Connection_base<CONNECTION>(policy, args, affinity),
 		CONNECTION::Client(Connection_base<CONNECTION>::_cap())
 	{ }
+
+	Connection(Region_map &rm, Slave::Policy &policy, Args const &args,
+	           Affinity const &affinity = Affinity())
+	:
+		Connection_base<CONNECTION>(policy, args, affinity),
+		CONNECTION::Client(rm, Connection_base<CONNECTION>::_cap())
+	{ }
 };
 
 #endif /* _INCLUDE__OS__SLAVE_H_ */

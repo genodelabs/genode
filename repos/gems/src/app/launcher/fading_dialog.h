@@ -54,6 +54,8 @@ class Launcher::Fading_dialog : private Input_event_handler
 {
 	private:
 
+		Region_map &_rm;
+
 		Slave::Connection<Rom_connection> _dialog_rom;
 
 		/* dialog reported locally */
@@ -66,7 +68,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 		/* hovered element reported by menu view */
 		Slave::Connection<Report::Connection> _hover_report;
 
-		Local_reporter _dialog_reporter { "dialog", _dialog_report };
+		Local_reporter _dialog_reporter;
 
 		Input_event_handler &_dialog_input_event_handler;
 
@@ -106,7 +108,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 				if (!_hover_ds.constructed() || _hover_rom.update() == false) {
 					if (_hover_ds.constructed())
 						_hover_ds->invalidate();
-					_hover_ds.construct(_hover_rom.dataspace());
+					_hover_ds.construct(_rm, _hover_rom.dataspace());
 				}
 
 				Xml_node hover(_hover_ds->local_addr<char>());
@@ -178,12 +180,14 @@ class Launcher::Fading_dialog : private Input_event_handler
 		              Dialog_model          &dialog_model,
 		              Position               initial_position)
 		:
+			_rm(env.rm()),
 			_dialog_rom(report_rom_slave.policy(), Slave::Args("label=", dialog_name)),
 			_dialog_report(report_rom_slave.policy(),
 			               Slave::Args("label=", dialog_name, ", buffer_size=4096")),
 			_hover_rom(report_rom_slave.policy(), Slave::Args("label=", hover_name)),
 			_hover_report(report_rom_slave.policy(),
 			              Slave::Args("label=", hover_name, ", buffer_size=4096")),
+			_dialog_reporter(env.rm(), "dialog", _dialog_report),
 			_dialog_input_event_handler(input_event_handler),
 			_hover_handler(hover_handler),
 			_dialog_generator(dialog_generator),
@@ -191,10 +195,10 @@ class Launcher::Fading_dialog : private Input_event_handler
 			_hover_update_handler(env.ep(), *this, &Fading_dialog::_handle_hover_update),
 			_fader_slave_ep(&env.pd(), _fader_slave_ep_stack_size, "nit_fader"),
 			_nitpicker_connection(env, "menu"),
-			_nitpicker_session(_nitpicker_connection, env.ep(), _fader_slave_ep, *this),
+			_nitpicker_session(env, _nitpicker_connection, env.ep(), _fader_slave_ep, *this),
 			_nit_fader_slave(_fader_slave_ep, env.rm(), env.ram_session_cap(),
 			                 _nitpicker_service),
-			_nit_fader_connection(_nit_fader_slave.policy(), Slave::Args("label=menu")),
+			_nit_fader_connection(env.rm(), _nit_fader_slave.policy(), Slave::Args("label=menu")),
 			_menu_view_slave(env.pd(), env.rm(), env.ram_session_cap(),
 			                 _nit_fader_connection,
 			                 _dialog_rom, _hover_report, initial_position)
