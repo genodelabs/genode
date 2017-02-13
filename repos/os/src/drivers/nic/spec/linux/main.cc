@@ -24,13 +24,19 @@
  */
 
 /* Genode */
+/*
+ * Needs to be included first because otherwise
+ * util/xml_node.h will not pick up the ascii_to
+ * overload.
+ */
+#include <nic/xml_node.h>
+
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/thread.h>
 #include <base/log.h>
 #include <nic/root.h>
-#include <nic/xml_node.h>
-#include <os/config.h>
 
 /* Linux */
 #include <errno.h>
@@ -76,6 +82,8 @@ class Linux_session_component : public Nic::Session_component
 			}
 		};
 
+		Genode::Attached_rom_dataspace _config_rom;
+
 		Nic::Mac_address _mac_addr;
 		int              _tap_fd;
 		Rx_signal_thread _rx_thread;
@@ -104,7 +112,7 @@ class Linux_session_component : public Nic::Session_component
 
 			/* get tap device from config */
 			try {
-				Genode::Xml_node nic_node = Genode::config()->xml_node().sub_node("nic");
+				Genode::Xml_node nic_node = _config_rom.xml().sub_node("nic");
 				nic_node.attribute("tap").value(ifr.ifr_name, sizeof(ifr.ifr_name));
 				Genode::log("using tap device \"", Genode::Cstring(ifr.ifr_name), "\"");
 			} catch (...) {
@@ -198,17 +206,15 @@ class Linux_session_component : public Nic::Session_component
 		Linux_session_component(Genode::size_t const tx_buf_size,
 		                        Genode::size_t const rx_buf_size,
 		                        Genode::Allocator   &rx_block_md_alloc,
-		                        Genode::Ram_session &ram_session,
-		                        Genode::Region_map  &region_map,
-		                        Server::Entrypoint  &ep)
+		                        Server::Env         &env)
 		:
-			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-			                  ram_session, region_map, ep),
+			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
+			_config_rom(env, "config"),
 			_tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, _packet_stream_dispatcher)
 		{
 			/* try using configured MAC address */
 			try {
-				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
+				Genode::Xml_node nic_config = _config_rom.xml().sub_node("nic");
 				nic_config.attribute("mac").value(&_mac_addr);
 				Genode::log("Using configured MAC address ", _mac_addr);
 			} catch (...) {

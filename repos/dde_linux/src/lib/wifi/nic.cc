@@ -90,11 +90,8 @@ class Wifi_session_component : public Nic::Session_component
 		Wifi_session_component(Genode::size_t const tx_buf_size,
 		                       Genode::size_t const rx_buf_size,
 		                       Genode::Allocator   &rx_block_md_alloc,
-		                       Genode::Ram_session &ram_session,
-		                       Genode::Region_map  &region_map,
-		                       Genode::Entrypoint  &ep, net_device *ndev)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-		                    ram_session, region_map, ep),
+		                       Genode::Env  &env, net_device *ndev)
+		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
 		  _ndev(ndev)
 		{
 			_ndev->lx_nic_device = this;
@@ -198,9 +195,7 @@ class Root : public Genode::Root_component<Wifi_session_component,
 
 			session = new (md_alloc())
 			          Wifi_session_component(tx_buf_size, rx_buf_size,
-			                                *md_alloc(),
-			                                _env.ram(), _env.rm(),
-			                                _env.ep(), device);
+			                                *md_alloc(), _env, device);
 			return session;
 		}
 

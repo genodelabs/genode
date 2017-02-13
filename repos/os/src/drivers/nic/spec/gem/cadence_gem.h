@@ -459,17 +459,16 @@ namespace Genode
 			Cadence_gem(Genode::size_t const tx_buf_size,
 			            Genode::size_t const rx_buf_size,
 			            Genode::Allocator   &rx_block_md_alloc,
-			            Genode::Ram_session &ram_session,
-			            Genode::Region_map  &region_map,
-			            Server::Entrypoint  &ep,
+			            Genode::Env         &env,
 			            addr_t const base, size_t const size, const int irq)
 			:
-				Genode::Attached_mmio(base, size),
-				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-				                  ram_session, region_map, ep),
-				_irq(irq),
-				_irq_handler(ep, *this, &Cadence_gem::_handle_irq),
-				_phy(*this)
+				Genode::Attached_mmio(env, base, size),
+				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
+				_timer(env),
+				_sys_ctrl(env, _timer), _tx_buffer(env, _timer), _rx_buffer(env),
+				_irq(env, irq),
+				_irq_handler(env.ep(), *this, &Cadence_gem::_handle_irq),
+				_phy(*this, _timer)
 			{
 				_irq.sigh(_irq_handler);
 				_irq.ack_irq();
