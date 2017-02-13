@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2007-2013 Genode Labs GmbH
+ * Copyright (C) 2007-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -35,7 +35,7 @@ struct Ps2::Main
 {
 	Genode::Env &_env;
 
-	Input::Session_component _session;
+	Input::Session_component _session { _env, _env.ram() };
 	Input::Root_component    _root { _env.ep().rpc_ep(), _session };
 
 	Platform::Connection _platform { _env };
