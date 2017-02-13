@@ -28,9 +28,9 @@ class Iim : public Genode::Attached_io_mem_dataspace,
 
 	public:
 
-		Iim()
-		: Genode::Attached_io_mem_dataspace(Genode::Board_base::IIM_BASE,
-		                                    Genode::Board_base::IIM_SIZE),
+		Iim(Genode::Env &env)
+		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::IIM_BASE,
+		                                         Genode::Board_base::IIM_SIZE),
 		Genode::Mmio((Genode::addr_t)local_addr<void>()) {}
 
 		unsigned long revision() { return read<Fuse_bank0_gp6>() & 0xf; }

@@ -93,8 +93,9 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	public:
 
-		Root(Entrypoint & session_ep, Allocator & md_alloc)
-		: Root_component<Session_component>(session_ep, md_alloc) { }
+		Root(Env& env, Allocator & md_alloc)
+		: Root_component<Session_component>(env.ep(), md_alloc), _mbox(env)
+		{ }
 };
 
 
@@ -102,7 +103,7 @@ struct Main
 {
 	Genode::Env &  env;
 	Genode::Heap   heap { env.ram(), env.rm() };
-	Platform::Root root { env.ep(), heap };
+	Platform::Root root { env, heap };
 
 	Main(Genode::Env & env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

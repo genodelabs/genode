@@ -58,11 +58,11 @@ class Iomux : public Genode::Attached_io_mem_dataspace,
 
 	public:
 
-		Iomux()
-		: Genode::Attached_io_mem_dataspace(Genode::Board_base::IOMUXC_BASE,
-		                                    Genode::Board_base::IOMUXC_SIZE),
-		Genode::Mmio((Genode::addr_t)local_addr<void>()) {
-		}
+		Iomux(Genode::Env &env)
+		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::IOMUXC_BASE,
+		                                         Genode::Board_base::IOMUXC_SIZE),
+		  Genode::Mmio((Genode::addr_t)local_addr<void>())
+		{ }
 
 		void i2c_2_enable()
 		{

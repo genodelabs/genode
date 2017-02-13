@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2013 Genode Labs GmbH
+ * Copyright (C) 2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -159,8 +159,9 @@ class Pmu : public Regulator::Driver,
 		/**
 		 * Constructor
 		 */
-		Pmu() : Genode::Attached_mmio(Genode::Board_base::PMU_MMIO_BASE,
-		                              Genode::Board_base::PMU_MMIO_SIZE)
+		Pmu(Genode::Env &env)
+		: Genode::Attached_mmio(env, Genode::Board_base::PMU_MMIO_BASE,
+		                             Genode::Board_base::PMU_MMIO_SIZE)
 		{
 			write<Hdmi_phy_control   ::Enable>(0);
 			write<Usbdrd_phy_control ::Enable>(0);

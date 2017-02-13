@@ -27,6 +27,8 @@ class Mbox : Genode::Attached_mmio
 {
 	private:
 
+		Genode::Env &_env;
+
 		enum { verbose = false };
 
 		typedef Genode::addr_t           addr_t;
@@ -52,8 +54,8 @@ class Mbox : Genode::Attached_mmio
 		};
 
 		enum { MSG_BUFFER_SIZE = 0x1000 };
-		Genode::Attached_ram_dataspace _msg_buffer = { Genode::env()->ram_session(),
-		                                              MSG_BUFFER_SIZE };
+		Genode::Attached_ram_dataspace _msg_buffer { _env.ram(), _env.rm(),
+		                                             MSG_BUFFER_SIZE };
 
 		addr_t const _msg_phys = { Dataspace_client(_msg_buffer.cap()).phys_addr() };
 
@@ -61,7 +63,9 @@ class Mbox : Genode::Attached_mmio
 		{
 			Timer::Connection timer;
 			void usleep(unsigned us) { timer.usleep(us); }
-		} _delayer;;
+
+			Delayer(Genode::Env &env) : timer(env) { }
+		} _delayer { _env };
 
 		template <typename MESSAGE>
 		MESSAGE &_message()
@@ -71,7 +75,8 @@ class Mbox : Genode::Attached_mmio
 
 	public:
 
-		Mbox() : Genode::Attached_mmio(BASE, SIZE) { }
+		Mbox(Genode::Env &env)
+		: Genode::Attached_mmio(env, BASE, SIZE), _env(env) { }
 
 		/**
 		 * Return reference to typed message buffer
