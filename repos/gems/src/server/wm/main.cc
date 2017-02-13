@@ -59,7 +59,7 @@ struct Wm::Main
 
 	Window_registry window_registry { heap, window_list_reporter };
 
-	Nitpicker::Connection focus_nitpicker_session;
+	Nitpicker::Connection focus_nitpicker_session { env };
 
 	Nitpicker::Root nitpicker_root { env, window_registry,
 	                                 heap, env.ram_session_cap(),

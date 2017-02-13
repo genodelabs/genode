@@ -159,6 +159,8 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	Genode::Env &_env;
 
+	Genode::Heap _heap { _env.ram(), _env.rm() };
+
 	Ram_session_client _ram;
 
 	Nitpicker::Connection _nitpicker_session { _env, "decorator" };
@@ -180,12 +182,12 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 	Decorator_content_callback &_content_callback;
 
 	/* XXX don't allocate content-registry entries from heap */
-	Decorator_content_registry _content_registry { *Genode::env()->heap() };
+	Decorator_content_registry _content_registry { _heap };
 
 	Allocator &_md_alloc;
 
 	/* Nitpicker::Connection requires a valid input session */
-	Input::Session_component  _dummy_input_component;
+	Input::Session_component  _dummy_input_component { _env, _env.ram() };
 	Input::Session_capability _dummy_input_component_cap =
 		_env.ep().manage(_dummy_input_component);
 
@@ -448,7 +450,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		/*
 		 * See comment in 'Wm::Nitpicker::Session_component::buffer'.
 		 */
-		Nitpicker::Session_client(_nitpicker_session.cap()).buffer(mode, use_alpha);
+		Nitpicker::Session_client(_env.rm(), _nitpicker_session.cap()).buffer(mode, use_alpha);
 	}
 
 	void focus(Genode::Capability<Nitpicker::Session>) { }

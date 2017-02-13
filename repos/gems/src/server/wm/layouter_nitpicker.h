@@ -41,11 +41,11 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	Attached_ram_dataspace _command_ds;
 
-	Layouter_nitpicker_session(Genode::Ram_session &ram,
+	Layouter_nitpicker_session(Genode::Env &env,
 	                           Input::Session_capability input_session_cap)
 	:
 		_input_session_cap(input_session_cap),
-		_command_ds(&ram, 4096)
+		_mode_sigh_nitpicker(env), _command_ds(env.ram(), env.rm(), 4096)
 	{ }
 
 

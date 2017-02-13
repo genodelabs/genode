@@ -444,7 +444,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Tslab<Child_view, 4000>      _child_view_alloc;
 		List<Top_level_view>         _top_level_views;
 		List<Child_view>             _child_views;
-		Input::Session_component     _input_session;
+		Input::Session_component     _input_session { _env, _ram };
 		Input::Session_capability    _input_session_cap;
 		Click_handler               &_click_handler;
 		Signal_context_capability    _mode_sigh;
@@ -457,7 +457,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		 */
 		typedef Nitpicker::Session::Command_buffer Command_buffer;
 
-		Attached_ram_dataspace _command_ds { &_ram, sizeof(Command_buffer) };
+		Attached_ram_dataspace _command_ds { _ram, _env.rm(), sizeof(Command_buffer) };
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
@@ -472,8 +472,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		/*
 		 * Input
 		 */
-		Input::Session_client _nitpicker_input    { _session.input_session() };
-		Attached_dataspace    _nitpicker_input_ds { _nitpicker_input.dataspace() };
+		Input::Session_client _nitpicker_input    { _env.rm(), _session.input_session() };
+		Attached_dataspace    _nitpicker_input_ds { _env.rm(), _nitpicker_input.dataspace() };
 
 		Signal_handler<Session_component> _input_handler {
 			_env.ep(), *this, &Session_component::_handle_input };
@@ -964,7 +964,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			 * session upgrades initiated by the wm client's buffer
 			 * operation twice.
 			 */
-			Nitpicker::Session_client(_session.cap()).buffer(mode, has_alpha);
+			Nitpicker::Session_client(_env.rm(), _session.cap()).buffer(mode, has_alpha);
 			_has_alpha = has_alpha;
 		}
 
@@ -1005,7 +1005,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		Window_registry &_window_registry;
 
-		Input::Session_component _window_layouter_input;
+		Input::Session_component _window_layouter_input { _env, _env.ram() };
 
 		Input::Session_capability _window_layouter_input_cap { _env.ep().manage(_window_layouter_input) };
 
@@ -1165,8 +1165,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 			case ROLE_LAYOUTER:
 				{
 					_layouter_session = new (_md_alloc)
-						Layouter_nitpicker_session(*Genode::env()->ram_session(),
-						                           _window_layouter_input_cap);
+						Layouter_nitpicker_session(_env, _window_layouter_input_cap);
 
 					return _env.ep().manage(*_layouter_session);
 				}
@@ -1174,7 +1173,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 			case ROLE_DIRECT:
 				{
 					Direct_nitpicker_session *session = new (_md_alloc)
-						Direct_nitpicker_session(session_label);
+						Direct_nitpicker_session(_env, session_label);
 
 					return _env.ep().manage(*session);
 				}
