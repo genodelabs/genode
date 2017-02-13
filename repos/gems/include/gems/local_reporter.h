@@ -27,9 +27,10 @@ struct Local_reporter
 
 	char const *_name;
 
-	Local_reporter(char const *name, Genode::Capability<Report::Session> session_cap)
+	Local_reporter(Genode::Region_map &rm, char const *name,
+	               Genode::Capability<Report::Session> session_cap)
 	:
-		_session(session_cap), _ds(_session.dataspace()), _name(name)
+		_session(session_cap), _ds(rm, _session.dataspace()), _name(name)
 	{ }
 
 	struct Xml_generator : public Genode::Xml_generator

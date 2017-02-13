@@ -26,16 +26,17 @@ class Wm::Direct_nitpicker_session : public Genode::Rpc_object<Nitpicker::Sessio
 	private:
 
 		Genode::Session_label _session_label;
-		Nitpicker::Connection _session { _session_label.string() };
+		Nitpicker::Connection _session;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Direct_nitpicker_session(Genode::Session_label const &session_label)
+		Direct_nitpicker_session(Genode::Env &env, Genode::Session_label const &session_label)
 		:
-			_session_label(session_label)
+			_session_label(session_label),
+			_session(env, _session_label.string())
 		{ }
 
 		void upgrade(char const *args)
