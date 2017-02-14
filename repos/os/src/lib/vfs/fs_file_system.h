@@ -244,26 +244,29 @@ class Vfs::Fs_file_system : public File_system
 
 				Handle_space::Id const id(packet.handle());
 
-				_handle_space.apply<Fs_vfs_handle>(id, [&] (Fs_vfs_handle &handle)
-				{
-					switch (packet.operation()) {
-					case Packet_descriptor::READ_READY:
-						handle.read_ready_state = Handle_state::Read_ready_state::READY;
-						break;
+				try {
+					_handle_space.apply<Fs_vfs_handle>(id, [&] (Fs_vfs_handle &handle)
+					{
+						switch (packet.operation()) {
+						case Packet_descriptor::READ_READY:
+							handle.read_ready_state = Handle_state::Read_ready_state::READY;
+							break;
 
-					case Packet_descriptor::READ:
-						handle.queued_read_packet = packet;
-						handle.queued_read_state  = Handle_state::Queued_state::ACK;
-						break;
+						case Packet_descriptor::READ:
+							handle.queued_read_packet = packet;
+							handle.queued_read_state  = Handle_state::Queued_state::ACK;
+							break;
 
-					case Packet_descriptor::WRITE:
-						handle.queued_write_packet = packet;
-						handle.queued_write_state  = Handle_state::Queued_state::ACK;
-						break;
-					}
+						case Packet_descriptor::WRITE:
+							handle.queued_write_packet = packet;
+							handle.queued_write_state  = Handle_state::Queued_state::ACK;
+							break;
+						}
 
-					_post_signal_hook.arm(handle.context);
-				});
+						_post_signal_hook.arm(handle.context);
+					});
+				} catch (Handle_space::Unknown_id) {
+					Genode::warning("ack for unknown VFS handle"); }
 			}
 		}
 
