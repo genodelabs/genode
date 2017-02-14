@@ -40,8 +40,9 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 		xml.node("create", [&] () {
 			xml.attribute("id", id_at_server->id().value);
 			xml.attribute("service", _service.name());
+			xml.attribute("label", _label);
 			xml.node("args", [&] () {
-				xml.append_sanitized(_args.string());
+				xml.append_sanitized(Server_args(*this).string());
 			});
 		});
 		break;
@@ -110,11 +111,12 @@ void Session_state::destroy()
 Session_state::Session_state(Service                  &service,
                              Id_space<Parent::Client> &client_id_space,
                              Parent::Client::Id        client_id,
+                             Session_label      const &label,
                              Args const               &args,
                              Affinity           const &affinity)
 :
 	_service(service),
 	_donated_ram_quota(Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0)),
 	_id_at_client(*this, client_id_space, client_id),
-	_args(args), _affinity(affinity)
+	_label(label), _args(args), _affinity(affinity)
 { }

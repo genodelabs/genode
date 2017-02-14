@@ -69,11 +69,38 @@ struct Genode::Child_policy
 	 * Determine service to provide a session request
 	 *
 	 * \return  service to be contacted for the new session
+	 * \deprecated
 	 *
 	 * \throw Parent::Service_denied
 	 */
 	virtual Service &resolve_session_request(Service::Name       const &,
-	                                         Session_state::Args const &) = 0;
+	                                         Session_state::Args const &)
+	{
+		throw Parent::Service_denied();
+	}
+
+	/**
+	 * Routing destination of a session request
+	 */
+	struct Route
+	{
+		Service &service;
+		Session_label const label;
+	};
+
+	/**
+	 * Determine service and server-side label for a given session request
+	 *
+	 * \return  routing and policy-selection information for the session
+	 *
+	 * \throw Parent::Service_denied
+	 */
+	virtual Route resolve_session_request(Service::Name const &,
+	                                      Session_label const &)
+	{
+		/* \deprecated  make pure virtual once the old version is gone */
+		throw Parent::Service_denied();
+	}
 
 	/**
 	 * Apply transformations to session arguments
@@ -271,6 +298,9 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		typedef Session_state::Args Args;
 
+		static Child_policy::Route _resolve_session_request(Child_policy &,
+                                                            Service::Name const &,
+                                                            char const *);
 		/*
 		 * Members that are initialized not before the child's environment is
 		 * complete.
@@ -370,7 +400,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 			Args const _args;
 
-			Service &_service;
+			Child_policy::Route _route;
 
 			/*
 			 * The 'Env_service' monitors session responses in order to attempt
@@ -439,8 +469,9 @@ class Genode::Child : protected Rpc_object<Parent>,
 			               Label const &label = Label())
 			:
 				_args(_construct_args(child._policy, label)),
-				_service(child._policy.resolve_session_request(_service_name(), _args)),
-				_env_service(child, _service),
+				_route(child._resolve_session_request(child._policy, _service_name(),
+				                                      _args.string())),
+				_env_service(child, _route.service),
 				_connection(_env_service, child._id_space, id, _args,
 				            child._policy.filter_session_affinity(Affinity()))
 			{ }
