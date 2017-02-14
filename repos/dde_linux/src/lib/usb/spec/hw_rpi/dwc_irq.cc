@@ -4,11 +4,4 @@
  * \date   2015-06-21
  */
 
-#ifndef _INCLUDE_USB_IRQ_H_
-#define _INCLUDE_USB_IRQ_H_
-
-enum{
-	DWC_IRQ  = 17,
-};
-
-#endif /* _INCLUDE_USB_IRQ_H_ */
+unsigned dwc_irq() { return 17; }

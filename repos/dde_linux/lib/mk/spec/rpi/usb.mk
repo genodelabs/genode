@@ -45,3 +45,5 @@ vpath %.c         $(LX_CONTRIB_DIR)/drivers/net/usb
 
 # enable C++11 support
 CC_CXX_OPT += -std=gnu++11
+
+LIBS += rpi_usb

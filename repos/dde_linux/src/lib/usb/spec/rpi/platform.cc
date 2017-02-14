@@ -29,13 +29,11 @@
 #include <dwc_otg_dbg.h>
 #undef new
 
-#include <usb_irq.h>
-
-
 using namespace Genode;
 
 namespace Genode { template <unsigned long> class Sp804_base; }
 
+unsigned dwc_irq();
 
 
 /**
@@ -164,7 +162,7 @@ enum {
 static resource _dwc_otg_resource[] =
 {
 	{ DWC_BASE, DWC_BASE + DWC_SIZE - 1, "dwc_otg", IORESOURCE_MEM },
-	{ DWC_IRQ, DWC_IRQ, "dwc_otg-irq" /* name unused */, IORESOURCE_IRQ }
+	{ dwc_irq(), dwc_irq(), "dwc_otg-irq" /* name unused */, IORESOURCE_IRQ }
 };
 
 
