@@ -16,6 +16,8 @@
 #include <base/entrypoint.h>
 #include <base/component.h>
 
+#include <cpu/atomic.h>
+
 #define INCLUDED_BY_ENTRYPOINT_CC  /* prevent "deprecated" warning */
 #include <cap_session/connection.h>
 #undef INCLUDED_BY_ENTRYPOINT_CC
@@ -63,17 +65,28 @@ void Entrypoint::_process_incoming_signals()
 		do {
 			_sig_rec->block_for_signal();
 
-			/*
-			 * It might happen that we try to forward a signal to the
-			 * entrypoint, while the context of that signal is already
-			 * destroyed. In that case we will get an ipc error exception
-			 * as result, which has to be caught.
-			 */
-			retry<Genode::Blocking_canceled>(
-				[&] () { _signal_proxy_cap.call<Signal_proxy::Rpc_signal>(); },
-				[]  () { warning("blocking canceled during signal processing"); }
-			);
+			int success = cmpxchg(&_signal_recipient, NONE, SIGNAL_PROXY);
 
+			/* common case, entrypoint is not in 'wait_and_dispatch_one_signal' */
+			if (success) {
+				/*
+				 * It might happen that we try to forward a signal to the
+				 * entrypoint, while the context of that signal is already
+				 * destroyed. In that case we will get an ipc error exception
+				 * as result, which has to be caught.
+				 */
+				retry<Blocking_canceled>(
+					[&] () { _signal_proxy_cap.call<Signal_proxy::Rpc_signal>(); },
+					[]  () { warning("blocking canceled during signal processing"); });
+
+				cmpxchg(&_signal_recipient, SIGNAL_PROXY, NONE);
+			} else {
+				/*
+				 * Entrypoint is in 'wait_and_dispatch_one_signal', wakup it up and
+				 * block for next signal
+				 */
+				_sig_rec->unblock_signal_waiter(*_rpc_ep);
+			}
 		} while (!_suspended);
 
 		_suspend_dispatcher.destruct();
@@ -107,6 +120,33 @@ void Entrypoint::_process_incoming_signals()
 }
 
 
+void Entrypoint::wait_and_dispatch_one_signal()
+{
+	for (;;) {
+
+		try {
+
+			{
+				cmpxchg(&_signal_recipient, NONE, ENTRYPOINT);
+
+				Signal sig  =_sig_rec->pending_signal();
+
+				cmpxchg(&_signal_recipient, ENTRYPOINT, NONE);
+
+				_dispatch_signal(sig);
+			}
+
+			_execute_post_signal_hook();
+
+			return;
+
+		} catch (Signal_receiver::Signal_not_pending) {
+			_sig_rec->block_for_signal();
+		}
+	}
+}
+
+
 void Entrypoint::schedule_suspend(void (*suspended)(), void (*resumed)())
 {
 	_suspended_callback = suspended;
@@ -119,7 +159,7 @@ void Entrypoint::schedule_suspend(void (*suspended)(), void (*resumed)())
 	_suspend_dispatcher.construct(*this, *this, &Entrypoint::_handle_suspend);
 
 	/* trigger wakeup of the signal-dispatch loop for suspend */
-	Genode::Signal_transmitter(*_suspend_dispatcher).submit();
+	Signal_transmitter(*_suspend_dispatcher).submit();
 }
 
 
@@ -186,7 +226,7 @@ Entrypoint::Entrypoint(Env &env)
 
 	try {
 		constructor_cap.call<Constructor::Rpc_construct>();
-	} catch (Genode::Blocking_canceled) {
+	} catch (Blocking_canceled) {
 		warning("blocking canceled in entrypoint constructor");
 	}
 

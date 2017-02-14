@@ -89,6 +89,11 @@ class Genode::Entrypoint : Genode::Noncopyable
 		void (*_suspended_callback) () = nullptr;
 		void (*_resumed_callback)   () = nullptr;
 
+		enum Signal_recipient {
+			NONE = 0, ENTRYPOINT = 1, SIGNAL_PROXY = 2
+		};
+
+		int               _signal_recipient { NONE };
 		Post_signal_hook *_post_signal_hook = nullptr;
 
 		void _execute_post_signal_hook()
@@ -164,14 +169,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 *     receiver belongs to the calling entrypoint. Alternatively,
 		 *     remove it.
 		 */
-		void wait_and_dispatch_one_signal()
-		{
-			{
-				Signal sig = _sig_rec->wait_for_signal();
-				_dispatch_signal(sig);
-			}
-			_execute_post_signal_hook();
-		}
+		void wait_and_dispatch_one_signal();
 
 		/**
 		 * Return RPC entrypoint

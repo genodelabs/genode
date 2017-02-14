@@ -28,6 +28,7 @@ namespace Kernel { struct Signal_receiver; }
 namespace Genode {
 
 	class Entrypoint;
+	class Rpc_entrypoint;
 	class Signal_source;
 
 	class Signal_receiver;
@@ -263,6 +264,11 @@ class Genode::Signal_receiver : Noncopyable
 		 * Block until a signal is received
 		 */
 		void block_for_signal();
+
+		/**
+		 * Unblock signal waiter
+		 */
+		void unblock_signal_waiter(Rpc_entrypoint &rpc_ep);
 
 		/**
 		 * Retrieve  pending signal
