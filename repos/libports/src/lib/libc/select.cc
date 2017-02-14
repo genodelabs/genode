@@ -27,6 +27,8 @@
 /* Libc includes */
 #include <libc-plugin/plugin_registry.h>
 #include <libc-plugin/plugin.h>
+#include <libc/select.h>
+#include <stdlib.h>
 #include <sys/select.h>
 #include <signal.h>
 
@@ -35,20 +37,17 @@
 
 namespace Libc {
 	struct Select_cb;
+	struct Select_cb_list;
 }
 
 
 void (*libc_select_notify)() __attribute__((weak));
 
 
-/** The global list of tasks waiting for select */
-static Libc::Select_cb *select_cb_list;
-
-
 /** Description for a task waiting in select */
 struct Libc::Select_cb
 {
-	Select_cb *next; /* TODO genode list */
+	Select_cb *next = nullptr;
 
 	int const nfds;
 	int       nready = 0;
@@ -63,11 +62,55 @@ struct Libc::Select_cb
 };
 
 
-static Genode::Lock &select_cb_list_lock()
+struct Libc::Select_cb_list
 {
-	static Genode::Lock _select_cb_list_lock;
-	return _select_cb_list_lock;
-}
+	Genode::Lock  _mutex;
+	Select_cb    *_first = nullptr;
+
+	struct Guard : Genode::Lock::Guard
+	{
+Select_cb_list *l;
+
+		Guard(Select_cb_list &list) : Genode::Lock::Guard(list._mutex), l(&list) { }
+	};
+
+	void unsynchronized_insert(Select_cb *scb)
+	{
+		scb->next = _first;
+		_first = scb;
+	}
+
+	void insert(Select_cb *scb)
+	{
+		Guard guard(*this);
+		unsynchronized_insert(scb);
+	}
+
+	void remove(Select_cb *scb)
+	{
+		Guard guard(*this);
+
+		/* address of pointer to next allows to change the head */
+		for (Select_cb **next = &_first; *next; next = &(*next)->next) {
+			if (*next == scb) {
+				*next = scb->next;
+				break;
+			}
+		}
+	}
+
+	template <typename FUNC>
+	void for_each(FUNC const &func)
+	{
+		Guard guard(*this);
+
+		for (Select_cb *scb = _first; scb; scb = scb->next)
+			func(*scb);
+	}
+};
+
+/** The global list of tasks waiting for select */
+static Libc::Select_cb_list select_cb_list;
 
 
 /**
@@ -135,27 +178,23 @@ static int selscan(int nfds,
 static void select_notify()
 {
 	bool resume_all = false;
-	Libc::Select_cb *scb;
-	int nready = 0;
 	fd_set tmp_readfds, tmp_writefds, tmp_exceptfds;
 
 	/* check for each waiting select() function if one of its fds is ready now
 	 * and if so, wake all up */
-	Genode::Lock::Guard guard(select_cb_list_lock());
 
-	for (scb = select_cb_list; scb; scb = scb->next) {
-		nready = selscan(scb->nfds,
-		                 &scb->readfds, &scb->writefds, &scb->exceptfds,
-		                 &tmp_readfds,  &tmp_writefds,  &tmp_exceptfds);
-		if (nready > 0) {
-			scb->nready    = nready;
-			scb->readfds   = tmp_readfds;
-			scb->writefds  = tmp_writefds;
-			scb->exceptfds = tmp_exceptfds;
+	select_cb_list.for_each([&] (Libc::Select_cb &scb) {
+		scb.nready = selscan(scb.nfds,
+		                     &scb.readfds, &scb.writefds, &scb.exceptfds,
+		                     &tmp_readfds,  &tmp_writefds,  &tmp_exceptfds);
+		if (scb.nready > 0) {
+			scb.readfds   = tmp_readfds;
+			scb.writefds  = tmp_writefds;
+			scb.exceptfds = tmp_exceptfds;
 
 			resume_all = true;
 		}
-	}
+	});
 
 	if (resume_all)
 		Libc::resume_all();
@@ -194,7 +233,11 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	if (exceptfds) in_exceptfds = *exceptfds; else FD_ZERO(&in_exceptfds);
 
 	{
-		Genode::Lock::Guard guard(select_cb_list_lock());
+		/*
+		 * We use the guard directly to atomically check is any descripor is
+		 * ready, and insert into select-callback list otherwise.
+		 */
+		Libc::Select_cb_list::Guard guard(select_cb_list);
 
 		int const nready = selscan(nfds,
 		                           &in_readfds, &in_writefds, &in_exceptfds,
@@ -212,9 +255,7 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
 		select_cb.construct(nfds, in_readfds, in_writefds, in_exceptfds);
 
-		/* add our callback to list */
-		select_cb->next = select_cb_list;
-		select_cb_list = &(*select_cb);
+		select_cb_list.unsynchronized_insert(&(*select_cb));
 	}
 
 	struct Timeout
@@ -232,22 +273,7 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		timeout.duration = Libc::suspend(timeout.duration);
 	} while (!timeout.expired() && select_cb->nready == 0);
 
-	{
-		Genode::Lock::Guard guard(select_cb_list_lock());
-
-		/* take us off the list */
-		if (select_cb_list == &(*select_cb))
-			select_cb_list = select_cb->next;
-		else
-			for (Libc::Select_cb *p_selcb = select_cb_list;
-			     p_selcb;
-			     p_selcb = p_selcb->next) {
-				if (p_selcb->next == &(*select_cb)) {
-					p_selcb->next = select_cb->next;
-					break;
-				}
-			}
-	}
+	select_cb_list.remove(&(*select_cb));
 
 	if (timeout.expired())
 		return 0;
@@ -304,3 +330,75 @@ pselect(int nfds, fd_set *readfds, fd_set *writefds,
 {
 	return _pselect(nfds, readfds, writefds, exceptfds, timeout, sigmask);
 }
+
+
+/****************************************
+ ** Select handler for libc components **
+ ****************************************/
+
+int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
+                                      fd_set &writefds, fd_set &exceptfds)
+{
+	fd_set in_readfds, in_writefds, in_exceptfds;
+
+	/* initialize the select notification function pointer */
+	if (!libc_select_notify)
+		libc_select_notify = select_notify;
+
+	in_readfds   = readfds;
+	in_writefds  = writefds;
+	in_exceptfds = exceptfds;
+
+	/* remove potentially enqueued callback from list */
+	if (_select_cb->constructed())
+		select_cb_list.remove(&(**_select_cb));
+
+	{
+		/*
+		 * We use the guard directly to atomically check is any descripor is
+		 * ready, and insert into select-callback list otherwise.
+		 */
+		Libc::Select_cb_list::Guard guard(select_cb_list);
+
+		int const nready = selscan(nfds,
+		                           &in_readfds, &in_writefds, &in_exceptfds,
+		                           &readfds, &writefds, &exceptfds);
+
+		/* return if any descripor is ready */
+		if (nready)
+			return nready;
+
+		/* suspend as we don't have any immediate events */
+
+		_select_cb->construct(nfds, readfds, writefds, exceptfds);
+
+		select_cb_list.unsynchronized_insert(&(**_select_cb));
+	}
+
+	Libc::schedule_select(this);
+
+	return 0;
+}
+
+
+void Libc::Select_handler_base::dispatch_select()
+{
+	Select_handler_cb &select_cb = *_select_cb;
+
+	if (select_cb->nready == 0) return;
+
+	select_cb_list.remove(&(*select_cb));
+	Libc::schedule_select(nullptr);
+
+	select_ready(select_cb->nready, select_cb->readfds,
+	             select_cb->writefds, select_cb->exceptfds);
+}
+
+
+Libc::Select_handler_base::Select_handler_base()
+:
+	_select_cb((Select_handler_cb*)malloc(sizeof(*_select_cb)))
+{ }
+
+Libc::Select_handler_base::~Select_handler_base()
+{ }
