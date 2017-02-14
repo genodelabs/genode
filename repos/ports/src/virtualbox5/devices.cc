@@ -38,6 +38,9 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	REGISTER(DevicePcArch);
 	REGISTER(DevicePcBios);
 	REGISTER(DeviceIOAPIC);
+#ifndef VBOX_WITH_NEW_APIC
+	REGISTER(DeviceAPIC);
+#endif
 	REGISTER(DevicePS2KeyboardMouse);
 	REGISTER(DevicePIIX3IDE);
 	REGISTER(DeviceI8254);

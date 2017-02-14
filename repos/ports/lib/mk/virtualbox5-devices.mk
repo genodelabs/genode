@@ -13,7 +13,11 @@ SRC_CC += Devices/PC/DevACPI.cpp
 SRC_CC += Devices/PC/DevFwCommon.cpp
 SRC_CC += Devices/PC/DevDMA.cpp
 SRC_CC += Devices/PC/DevHPET.cpp
+ifeq ($(filter $(VBOX_CC_OPT),-DVBOX_WITH_NEW_IOAPIC),)
+SRC_CC += Devices/PC/DevIoApic_Old.cpp
+else
 SRC_CC += Devices/PC/DevIoApic.cpp
+endif
 SRC_CC += Devices/PC/DevLPC.cpp
 SRC_CC += Devices/PC/DevPcBios.cpp
 SRC_C  += Devices/PC/DevPcArch.c

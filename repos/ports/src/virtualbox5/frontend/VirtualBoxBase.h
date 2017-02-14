@@ -182,8 +182,12 @@ class Backupable : public Shareable<T>
 		void rollback() { }
 		void commit() { }
 		void commitCopy() { }
-		void assignCopy(const T *) { }
-		void assignCopy(const Backupable &) { }
+
+		void assignCopy(const T *t) {
+			*this->Shareable<T>::data() = *t; }
+
+		void assignCopy(const Backupable<T> &t) {
+			*this->Shareable<T>::data() = *t.data(); }
 
 		HRESULT backupEx() { return S_OK; }
 

@@ -71,6 +71,8 @@ if {(![have_spec nova] && ![have_spec muen])} {
 set virtualbox_binary "virtualbox-rem"
 if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
 if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+set virtualbox5_binary "virtualbox5-rem"
+if {[have_spec nova]} { set virtualbox5_binary "virtualbox5-nova" }
 
 set flavor   "win7"
 

@@ -1,14 +1,14 @@
 #
-# Windows 7 in VirtualBox 5
+# Windows 10 in VirtualBox 4
 #
 
 assert_spec nova
 assert_spec 64bit
 
-set flavor   "win7"
+set flavor   "win10"
 
-set use_vbox4 0
-set use_vbox5 5
+set use_vbox4 1
+set use_vbox5 0
 
 set use_rumpfs 1
 # Write overlay only into ram
