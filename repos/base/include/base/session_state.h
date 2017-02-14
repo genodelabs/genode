@@ -21,6 +21,7 @@
 #include <base/id_space.h>
 #include <base/env.h>
 #include <base/log.h>
+#include <base/session_label.h>
 
 namespace Genode {
 
@@ -62,8 +63,9 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 		Reconstructible<Id_space<Parent::Client>::Element> _id_at_client;
 
-		Args     _args;
-		Affinity _affinity;
+		Session_label const _label;
+		Args                _args;
+		Affinity            _affinity;
 
 	public:
 
@@ -110,15 +112,22 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 		 * Constructor
 		 *
 		 * \param service          interface that was used to create the session
+		 * \param label            session label to be presented to the server
 		 * \param client_id_space  ID space for client-side session IDs
 		 * \param client_id        session ID picked by the client
 		 * \param args             session arguments
 		 *
 		 * \throw Id_space<Parent::Client>::Conflicting_id
+		 *
+		 * The client-provided (and child-name-prefixed) session label is
+		 * contained in 'args'. In contrast, the 'label' argument is the label
+		 * presented to the server along with the session request, which
+		 * depends on the policy of 'Child_policy::resolve_session_request'.
 		 */
 		Session_state(Service                  &service,
 		              Id_space<Parent::Client> &client_id_space,
 		              Parent::Client::Id        client_id,
+		              Session_label      const &label,
 		              Args               const &args,
 		              Affinity           const &affinity);
 
@@ -195,6 +204,24 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 		 * This function has no effect for sessions not created via a 'Factory'.
 		 */
 		void destroy();
+
+		/**
+		 * Utility to override the client-provided label by the label assigned
+		 * by 'Child_policy::resolve_session_request'.
+		 */
+		struct Server_args
+		{
+			char _buf[Args::capacity()];
+
+			Server_args(Session_state const &session)
+			{
+				Genode::strncpy(_buf, session._args.string(), sizeof(_buf));
+				Arg_string::set_arg_string(_buf, sizeof(_buf),
+				                           "label", session._label.string());
+			}
+
+			char const *string() const { return _buf; }
+		};
 };
 
 

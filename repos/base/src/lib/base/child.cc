@@ -156,12 +156,13 @@ void Child::session_sigh(Signal_context_capability sigh)
  */
 Session_state &
 create_session(Child_policy::Name const &child_name, Service &service,
+               Session_label const &label,
                Session_state::Factory &factory, Id_space<Parent::Client> &id_space,
                Parent::Client::Id id, Session_state::Args const &args,
                Affinity const &affinity)
 {
 	try {
-		return service.create_session(factory, id_space, id, args, affinity);
+		return service.create_session(factory, id_space, id, label, args, affinity);
 	}
 	catch (Allocator::Out_of_memory) {
 		error("could not allocate session meta data for child ", child_name);
@@ -176,6 +177,34 @@ create_session(Child_policy::Name const &child_name, Service &service,
 			error("existing session: ", session); });
 	}
 	throw Parent::Service_denied();
+}
+
+
+/*
+ * \deprecated  Temporary wrapper around 'Child_policy::resolve_session_request'
+ *              that tries both overloads.
+ *
+ * \throw Parent::Service_denied
+ */
+Child_policy::Route Child::_resolve_session_request(Child_policy &policy,
+                                                    Service::Name const &name,
+                                                    char const *argbuf)
+{
+	Session_label const label = label_from_args(argbuf);
+
+	/*
+	 * \deprecated  Try old interface, remove once all 'Child_policy'
+	 *              implementations are updated.
+	 */
+	try {
+
+		Session_state::Args args(argbuf);
+		return Child_policy::Route {
+			policy.resolve_session_request(name, args), label };
+	}
+	catch (Parent::Service_denied) { }
+
+	return policy.resolve_session_request(name, label);
 }
 
 
@@ -202,10 +231,11 @@ Session_capability Child::session(Parent::Client::Id id,
 	Affinity const filtered_affinity = _policy.filter_session_affinity(affinity);
 
 	/* may throw a 'Parent::Service_denied' exception */
-	Service &service = _policy.resolve_session_request(name.string(), argbuf);
+	Child_policy::Route route = _resolve_session_request(_policy, name.string(), argbuf);
+	Service &service = route.service;
 
 	Session_state &session =
-		create_session(_policy.name(), service, *_session_factory,
+		create_session(_policy.name(), service, route.label, *_session_factory,
 		               _id_space, id, argbuf, filtered_affinity);
 
 	session.ready_callback = this;

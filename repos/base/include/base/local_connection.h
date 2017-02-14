@@ -60,8 +60,8 @@ struct Genode::Local_connection_base : Noncopyable
 		                      Args const &args, Affinity const &affinity,
 		                      size_t ram_quota)
 		:
-			_session_state(service, id_space, id, _init_args(args, ram_quota),
-			               affinity)
+			_session_state(service, id_space, id, label_from_args(args.string()),
+			               _init_args(args, ram_quota), affinity)
 		{
 			_session_state.service().initiate_request(_session_state);
 		}

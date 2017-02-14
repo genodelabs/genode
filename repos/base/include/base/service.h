@@ -192,7 +192,7 @@ class Genode::Local_service : public Service
 			case Session_state::CREATE_REQUESTED:
 
 				try {
-					SESSION &rpc_obj = _factory.create(session.args(),
+					SESSION &rpc_obj = _factory.create(Session_state::Server_args(session).string(),
 					                                   session.affinity());
 					session.local_ptr = &rpc_obj;
 					session.cap       = rpc_obj.cap();
@@ -272,9 +272,10 @@ class Genode::Parent_service : public Service
 				session.id_at_parent.construct(session.parent_client,
 				                               _env.id_space());
 				try {
+
 					session.cap = _env.session(name().string(),
 					                           session.id_at_parent->id(),
-					                           session.args().string(),
+					                           Session_state::Server_args(session).string(),
 					                           session.affinity());
 
 					session.phase = Session_state::AVAILABLE;

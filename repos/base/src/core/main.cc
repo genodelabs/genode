@@ -94,7 +94,8 @@ Session_capability Core_parent::session(Parent::Client::Id          id,
 			return;
 
 		Session_state &session = *new (_alloc)
-			Session_state(service, _id_space, id, args.string(), affinity);
+			Session_state(service, _id_space, id, label_from_args(args.string()),
+			              args.string(), affinity);
 
 		service.initiate_request(session);
 
