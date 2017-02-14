@@ -173,6 +173,21 @@ namespace Init {
 			service_node.has_attribute("label_prefix") ||
 			service_node.has_attribute("label_suffix");
 
+		char const *unscoped_attr = "unscoped_label";
+		if (service_node.has_attribute(unscoped_attr)) {
+
+			/*
+			 * If an 'unscoped_label' attribute is provided, don't consider any
+			 * scoped label attribute.
+			 */
+			if (route_depends_on_child_provided_label)
+				warning("service node contains both scoped and unscoped label attributes");
+
+			typedef String<Session_label::capacity()> Label;
+			Label const label = service_node.attribute_value(unscoped_attr, Label());
+			return label == label_from_args(args);
+		}
+
 		if (!route_depends_on_child_provided_label)
 			return true;
 
