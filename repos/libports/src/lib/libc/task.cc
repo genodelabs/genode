@@ -26,6 +26,7 @@
 
 /* libc includes */
 #include <libc/component.h>
+#include <libc/select.h>
 #include <libc-plugin/plugin_registry.h>
 
 /* libc-internal includes */
@@ -365,6 +366,9 @@ struct Libc::Kernel
 		bool              _app_returned = false;
 
 		bool _resume_main_once = false;
+
+		Select_handler_base *_scheduled_select_handler = nullptr;
+
 		void _resume_main() { _resume_main_once = true; }
 
 		struct Timer_accessor : Libc::Timer_accessor
@@ -537,7 +541,13 @@ struct Libc::Kernel
 		 */
 		void resume_all()
 		{
-			_resume_main();
+			if (_app_returned) {
+				if (_scheduled_select_handler)
+					_scheduled_select_handler->dispatch_select();
+			} else {
+				_resume_main();
+			}
+
 			_pthreads.resume_all();
 		}
 
@@ -590,6 +600,11 @@ struct Libc::Kernel
 			}
 		}
 
+		void schedule_select(Select_handler_base *h)
+		{
+			_scheduled_select_handler = h;
+		}
+
 		/**
 		 * Called from the context of the initial thread (on fork)
 		 */
@@ -603,7 +618,7 @@ struct Libc::Kernel
 		 */
 		void entrypoint_resumed()
 		{
-			/* TODO */ _resume_main();
+			_resume_main();
 		}
 };
 
@@ -661,6 +676,16 @@ void Libc::schedule_suspend(void (*suspended) ())
 		return;
 	}
 	kernel->schedule_suspend(suspended);
+}
+
+
+void Libc::schedule_select(Libc::Select_handler_base *h)
+{
+	if (!kernel) {
+		error("libc kernel not initialized, needed for select()");
+		return;
+	}
+	kernel->schedule_select(h);
 }
 
 

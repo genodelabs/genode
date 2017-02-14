@@ -61,6 +61,12 @@ namespace Libc {
 	 */
 	void schedule_suspend(void (*suspended) ());
 
+	struct Select_handler_base;
+
+	/**
+	 * Schedule select handler that is deblocked by ready fd sets
+	 */
+	void schedule_select(Select_handler_base *);
 }
 
 #endif /* _LIBC__TASK_H_ */
