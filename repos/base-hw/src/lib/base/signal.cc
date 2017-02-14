@@ -114,7 +114,7 @@ void Signal_receiver::block_for_signal()
 {
 	/* wait for a signal */
 	if (Kernel::await_signal(Capability_space::capid(_cap))) {
-		Genode::error("failed to receive signal");
+		/* canceled */
 		return;
 	}
 	/* read signal data */
@@ -130,6 +130,13 @@ void Signal_receiver::block_for_signal()
 	}
 	/* end kernel-aided life-time management */
 	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
+}
+
+
+void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &rpc_ep)
+{
+	/* force ep out of 'await_signal' in 'block_for_signal' */
+	rpc_ep.cancel_blocking();
 }
 
 
