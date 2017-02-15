@@ -26,7 +26,7 @@ struct Main
 	Uart::Connection  uart;
 	char              buf[100];
 
-	Main(Env &env)
+	Main(Env &env) : timer(env), uart(env)
 	{
 		log("--- UART test started ---");
 
