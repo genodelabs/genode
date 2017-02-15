@@ -77,8 +77,36 @@ void Signal::_inc_ref()
 Signal::Signal(Signal::Data data) : _data(data)
 {
 	if (_data.context) {
-		_data.context->_ref_cnt = 1;
-		_data.context->_destroy_lock.lock();
+		_data.context->_ref_cnt++;
+
+		/*
+		 * Defer the destruction of the context until the handling of the
+		 * 'Signal' has completed.
+		 *
+		 * Normally, the context can only have one 'Signal' in flight, which is
+		 * destroyed before 'pending_signal' is called the next time. However,
+		 * one exception is a signal handler that unexpectedly calls
+		 * 'pending_signal' itself (i.e., via 'wait_and_dispatch_one_signal').
+		 * As this is dangerous programming pattern (that should be fixed), we
+		 * print a warning.
+		 *
+		 * In this situation, the context-destroy lock is already taken by the
+		 * outer scope. To avoid a deadlock during the attempt to create
+		 * a second 'Signal' object for the same context, we take the lock
+		 * only in the outer scope (where the context's reference counter
+		 * is in its clear state).
+		 */
+		if (_data.context->_ref_cnt == 1) {
+			_data.context->_destroy_lock.lock();
+		} else {
+
+			/* print warning only once to avoid flooding the log */
+			static bool printed;
+			if (!printed) {
+				warning("attempt to handle the same signal context twice (nested)");
+				printed = true;
+			}
+		}
 	}
 }
 
