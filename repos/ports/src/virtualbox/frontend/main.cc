@@ -237,19 +237,20 @@ void Libc::Component::construct(Libc::Env &env)
 	/* enable stdout/stderr for VBox Log infrastructure */
 	init_libc_vbox_logger();
 
-	static char  argv0[] = { '_', 'm', 'a', 'i', 'n', 0};
-	static char *argv[1] = { argv0 };
-	char **dummy_argv = argv;
+	Libc::with_libc([&] () {
+		static char  argv0[] = { '_', 'm', 'a', 'i', 'n', 0};
+		static char *argv[1] = { argv0 };
+		char **dummy_argv = argv;
 
-	int rc = RTR3InitExe(1, &dummy_argv, 0);
-	if (RT_FAILURE(rc))
-		throw -1;
+		int rc = RTR3InitExe(1, &dummy_argv, 0);
+		if (RT_FAILURE(rc))
+			throw -1;
 
-	HRESULT hrc = setupmachine(env);
-	if (FAILED(hrc)) {
-		Genode::error("startup of VMM failed - reason ", hrc, " - exiting ...");
-		throw -2;
-	}
-
+		HRESULT hrc = setupmachine(env);
+		if (FAILED(hrc)) {
+			Genode::error("startup of VMM failed - reason ", hrc, " - exiting ...");
+			throw -2;
+		}
+	});
 	Genode::error("VMM exiting ...");
 }
