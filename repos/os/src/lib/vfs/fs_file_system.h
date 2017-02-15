@@ -161,14 +161,16 @@ class Vfs::Fs_file_system : public File_system
 			                                  clipped_count,
 			                                  seek_offset);
 
+			/* wait until packet was acknowledged */
+			handle.queued_read_state = Handle_state::Queued_state::QUEUED;
+
 			/* pass packet to server side */
 			source.submit_packet(packet_in);
 
-			/* wait until packet was acknowledged */
-			handle.queued_read_state = Handle_state::Queued_state::QUEUED;
-			do {
+			while (handle.queued_read_state != Handle_state::Queued_state::ACK)
+			{
 				_env.ep().wait_and_dispatch_one_signal();
-			} while (handle.queued_read_state != Handle_state::Queued_state::ACK);
+			}
 
 			/* obtain result packet descriptor with updated status info */
 			Packet_descriptor const packet_out = handle.queued_read_packet;
@@ -211,14 +213,16 @@ class Vfs::Fs_file_system : public File_system
 
 			memcpy(source.packet_content(packet_in), buf, count);
 
+			/* wait until packet was acknowledged */
+			handle.queued_write_state = Handle_state::Queued_state::QUEUED;
+
 			/* pass packet to server side */
 			source.submit_packet(packet_in);
 
-			/* wait until packet was acknowledged */
-			handle.queued_write_state = Handle_state::Queued_state::QUEUED;
-			do {
+			while (handle.queued_write_state != Handle_state::Queued_state::ACK)
+			{
 				_env.ep().wait_and_dispatch_one_signal();
-			} while (handle.queued_write_state != Handle_state::Queued_state::ACK);
+			}
 
 			/* obtain result packet descriptor with updated status info */
 			Packet_descriptor const packet_out = handle.queued_write_packet;
@@ -746,13 +750,13 @@ class Vfs::Fs_file_system : public File_system
 				       ::File_system::Packet_descriptor::READ,
 				       clipped_count, handle->seek());
 
-			/* pass packet to server side */
-			source.submit_packet(packet);
-
 			handle->read_ready_state  = Handle_state::Read_ready_state::IDLE;
 			handle->queued_read_state = Handle_state::Queued_state::QUEUED;
 
 			out_result = READ_QUEUED;
+
+			/* pass packet to server side */
+			source.submit_packet(packet);
 
 			return true;
 		}
@@ -777,11 +781,12 @@ class Vfs::Fs_file_system : public File_system
 
 			memcpy(dst, source.packet_content(packet), read_num_bytes);
 
-			source.release_packet(packet);
 			handle->queued_read_state  = Handle_state::Queued_state::IDLE;
 			handle->queued_read_packet = ::File_system::Packet_descriptor();
 
 			out_count  = read_num_bytes;
+
+			source.release_packet(packet);
 
 			return READ_OK;
 		}
@@ -811,8 +816,9 @@ class Vfs::Fs_file_system : public File_system
 			                         Packet_descriptor::READ_READY,
 			                         0, 0);
 
-			source.submit_packet(packet);
 			handle->read_ready_state = Handle_state::Read_ready_state::PENDING;
+
+			source.submit_packet(packet);
 
 			/*
 			 * When the packet is acknowledged the application is notified via
