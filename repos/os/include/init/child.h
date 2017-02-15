@@ -156,7 +156,8 @@ namespace Init {
 	 * \param child_name    name of the originator of the session request
 	 * \param service_name  name of the requested service
 	 */
-	inline bool service_node_matches(Xml_node service_node, char const *args,
+	inline bool service_node_matches(Xml_node           const  service_node,
+	                                 Session_label      const &label,
 	                                 Child_policy::Name const &child_name,
 	                                 Service::Name      const &service_name)
 	{
@@ -184,15 +185,14 @@ namespace Init {
 				warning("service node contains both scoped and unscoped label attributes");
 
 			typedef String<Session_label::capacity()> Label;
-			Label const label = service_node.attribute_value(unscoped_attr, Label());
-			return label == label_from_args(args);
+			return label == service_node.attribute_value(unscoped_attr, Label());
 		}
 
 		if (!route_depends_on_child_provided_label)
 			return true;
 
 		char const * const scoped_label = skip_label_prefix(
-			child_name.string(), label_from_args(args).string());
+			child_name.string(), label.string());
 
 		if (!scoped_label)
 			return false;
@@ -602,21 +602,19 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Id_space<Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }
 
-		Service &resolve_session_request(Service::Name const &service_name,
-		                                 Session_state::Args const &args) override
+		Route resolve_session_request(Service::Name const &service_name,
+		                              Session_label const &label) override
 		{
-			Session_label const label(label_from_args(args.string()));
-
 			Service *service = nullptr;
 
 			/* check for "config" ROM request */
-			if ((service = _config_policy.resolve_session_request(service_name.string(), args.string())))
-				return *service;
+			if ((service = _config_policy.resolve_session_request_with_label(service_name, label)))
+				return Route { *service, label };
 
 			/* check for "session_requests" ROM request */
 			if (service_name == Rom_session::service_name()
 			 && label.last_element() == Session_requester::rom_name())
-				return _session_requester.service();
+				return Route { _session_requester.service() };
 
 			try {
 				Xml_node route_node = _default_route_node;
@@ -629,16 +627,29 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 					bool service_wildcard = service_node.has_type("any-service");
 
-					if (!service_node_matches(service_node, args.string(), name(), service_name))
+					if (!service_node_matches(service_node, label, name(), service_name))
 						continue;
 
 					Xml_node target = service_node.sub_node();
 					for (; ; target = target.next()) {
 
+						/*
+						 * Determine session label to be provided to the server.
+						 *
+						 * By default, the client's identity (accompanied with
+						 * the a client-provided label) is presented as session
+						 * label to the server. However, the target node can
+						 * explicitly override the client's identity by a
+						 * custom label via the 'label' attribute.
+						 */
+						typedef String<Session_label::capacity()> Label;
+						Label const target_label =
+							target.attribute_value("label", Label(label.string()));
+
 						if (target.has_type("parent")) {
 
 							if ((service = find_service(_parent_services, service_name)))
-								return *service;
+								return Route { *service, target_label };
 
 							if (!service_wildcard) {
 								warning(name(), ": service lookup for "
@@ -658,7 +669,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 								 && s.child_name() == server_name)
 									service = &s; });
 							if (service)
-								return *service;
+								return Route { *service, target_label };
 
 							if (!service_wildcard) {
 								warning(name(), ": lookup to child "
@@ -675,7 +686,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 							}
 
 							if ((service = find_service(_child_services, service_name)))
-								return *service;
+								return Route { *service, target_label };
 
 							if (!service_wildcard) {
 								warning(name(), ": lookup for service "
@@ -695,7 +706,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			if (!service)
 				throw Parent::Service_denied();
 
-			return *service;
+			return Route { *service };
 		}
 
 		void filter_session_args(Service::Name const &service,

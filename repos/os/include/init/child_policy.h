@@ -162,18 +162,18 @@ class Init::Child_policy_provide_rom_file
 			_session(*ep, ds_cap), _module_name(module_name)
 		{ }
 
+		Service *resolve_session_request_with_label(Service::Name const &name,
+		                                            Session_label const &label)
+		{
+			return (name == "ROM" && label.last_element() == _module_name)
+			       ? &_service : nullptr;
+		}
+
 		Service *resolve_session_request(const char *service_name,
 		                                         const char *args)
 		{
-			/* ignore session requests for non-ROM services */
-			if (strcmp(service_name, "ROM")) return 0;
-
-			/* drop out if request refers to another file name */
-			{
-				Session_label const label = label_from_args(args);
-				return label.last_element() == _module_name
-				       ? &_service : nullptr;
-			}
+			return resolve_session_request_with_label(service_name,
+			                                          label_from_args(args));
 		}
 };
 
