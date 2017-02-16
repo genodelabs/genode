@@ -49,6 +49,7 @@ namespace Libc {
 
 		void path(char const *newpath)
 		{
+			if (fd_path) { Genode::warning("may leak former FD path memory"); }
 			if (newpath) {
 				Genode::size_t const path_size = ::strlen(newpath) + 1;
 				char *buf = (char*)malloc(path_size);
