@@ -154,9 +154,11 @@ struct Cli_monitor::Main
 		void handle_io_response(Vfs::Vfs_handle::Context *) override { }
 	} io_response_handler;
 
+	Vfs::Global_file_system_factory _global_file_system_factory { _heap };
+
 	/* initialize virtual file system */
 	Vfs::Dir_file_system _root_dir { _env, _heap, _vfs_config(), io_response_handler,
-	                                 Vfs::global_file_system_factory() };
+	                                 _global_file_system_factory };
 
 	Subsystem_config_registry _subsystem_config_registry { _root_dir, _heap };
 

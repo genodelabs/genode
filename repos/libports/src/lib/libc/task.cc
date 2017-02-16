@@ -20,6 +20,7 @@
 #include <base/rpc_client.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
+#include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <timer_session/connection.h>
 #include <os/timer.h>
@@ -75,7 +76,8 @@ class Libc::Env_implementation : public Libc::Env
 			return Genode::Xml_node("<vfs/>");
 		}
 
-		Vfs::Dir_file_system _vfs;
+		Vfs::Global_file_system_factory _file_system_factory;
+		Vfs::Dir_file_system            _vfs;
 
 		Genode::Xml_node _config_xml() const override {
 			return _config.xml(); };
@@ -85,9 +87,9 @@ class Libc::Env_implementation : public Libc::Env
 		Env_implementation(Genode::Env &env, Genode::Allocator &alloc,
 		                   Vfs::Io_response_handler &io_response_handler)
 		:
-			_env(env),
+			_env(env), _file_system_factory(alloc),
 			_vfs(_env, alloc, _vfs_config(), io_response_handler,
-			     Vfs::global_file_system_factory())
+			     _file_system_factory)
 		{ }
 
 
