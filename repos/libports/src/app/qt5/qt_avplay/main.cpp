@@ -39,13 +39,15 @@ extern char **genode_argv;
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	QApplication app(genode_argc, genode_argv);
+	Libc::with_libc([&] {
+		QApplication app(genode_argc, genode_argv);
 
-	load_stylesheet();
+		load_stylesheet();
 
-	QMember<Main_window> main_window(env);
+		QMember<Main_window> main_window(env);
 
-	main_window->show();
+		main_window->show();
 
-	app.exec();
+		app.exec();
+	});
 }

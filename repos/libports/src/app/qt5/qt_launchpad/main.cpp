@@ -59,20 +59,22 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	static Qt_launchpad_namespace::Local_env local_env(env);
+	Libc::with_libc([&] {
+		Qt_launchpad_namespace::Local_env local_env(env);
 
-	static QApplication a(genode_argc, genode_argv);
+		QApplication a(genode_argc, genode_argv);
 
-	static Qt_launchpad launchpad(local_env, env.ram().avail());
+		Qt_launchpad launchpad(local_env, env.ram().avail());
 
-	static Genode::Attached_rom_dataspace config(env, "config");
+		Genode::Attached_rom_dataspace config(env, "config");
 
-	try { launchpad.process_config(config.xml()); } catch (...) { }
+		try { launchpad.process_config(config.xml()); } catch (...) { }
 
-	launchpad.move(300,100);
-	launchpad.show();
+		launchpad.move(300,100);
+		launchpad.show();
 
-	a.connect(&a, SIGNAL(lastWindowClosed()), &a, SLOT(quit()));
+		a.connect(&a, SIGNAL(lastWindowClosed()), &a, SLOT(quit()));
 
-	a.exec();
+		a.exec();
+	});
 }
