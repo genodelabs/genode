@@ -82,7 +82,9 @@ namespace {
 
 		~Socket_context()
 		{
-			if (_data_fd != -1) close(_data_fd);
+			if (_data_fd != -1)   close(_data_fd);
+			if (_local_fd != -1)  close(_local_fd);
+			if (_remote_fd != -1) close(_remote_fd);
 		}
 
 		int _open_file(char const *file_name)
