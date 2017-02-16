@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015 Genode Labs GmbH
+ * Copyright (C) 2015-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -480,9 +480,11 @@ void Component::construct(Genode::Env &env)
 		}
 	} io_response_handler;
 
+	Vfs::Global_file_system_factory global_file_system_factory(heap);
+
 	Vfs::Dir_file_system vfs_root(env, heap, config_xml.sub_node("vfs"),
 	                              io_response_handler,
-	                              Vfs::global_file_system_factory());
+	                              global_file_system_factory);
 	char path[Vfs::MAX_PATH_LEN];
 
 	MAX_DEPTH = config_xml.attribute_value("depth", 16U);

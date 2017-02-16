@@ -625,9 +625,11 @@ class Vfs_server::Root :
 
 		Io_response_handler _io_response_handler { _session_registry };
 
+		Vfs::Global_file_system_factory _global_file_system_factory { _heap };
+
 		Vfs::Dir_file_system _vfs {
 			_env, _heap, vfs_config(), _io_response_handler,
-			Vfs::global_file_system_factory() };
+			_global_file_system_factory };
 
 		Genode::Signal_handler<Root> _config_dispatcher {
 			_env.ep(), *this, &Root::_config_update };

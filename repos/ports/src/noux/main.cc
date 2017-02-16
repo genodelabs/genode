@@ -210,7 +210,7 @@ struct Noux::Main
 	}
 
 	/* initialize virtual file system */
-	Vfs::Global_file_system_factory &_fs_factory = Vfs::global_file_system_factory();
+	Vfs::Global_file_system_factory _global_file_system_factory { _heap };
 
 	struct Io_response_handler : Vfs::Io_response_handler
 	{
@@ -219,7 +219,7 @@ struct Noux::Main
 
 	Vfs::Dir_file_system _root_dir { _env, _heap, _config.xml().sub_node("fstab"),
 	                                 _io_response_handler,
-	                                 _fs_factory };
+	                                 _global_file_system_factory };
 
 	Pid_allocator _pid_allocator;
 
