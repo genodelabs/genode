@@ -31,6 +31,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 	private:
 
 		Ram_session *_ram;
+		Region_map  &_rm;
 
 		/*
 		 * The ROM module may be written and consumed by different threads,
@@ -72,13 +73,37 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 *
 		 * If 'ram' is 0, the child policy is ineffective.
 		 */
-		Child_policy_dynamic_rom_file(const char     *module_name,
+		Child_policy_dynamic_rom_file(Region_map     &rm,
+		                              char const     *module_name,
 		                              Rpc_entrypoint &ep,
 		                              Ram_session    *ram)
 		:
 			Service("ROM", Ram_session_capability()),
-			_ram(ram),
-			_fg(0, 0), _bg(0, 0),
+			_ram(ram), _rm(rm),
+			_fg(*_ram, _rm, 0), _bg(*_ram, _rm, 0),
+			_bg_has_pending_data(false),
+			_ep(ep),
+			_rom_session_cap(_ep.manage(this)),
+			_module_name(module_name)
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \param ram  RAM session used to allocate the backing store
+		 *             for buffering ROM module data
+		 *
+		 * \deprecated
+		 *
+		 * If 'ram' is 0, the child policy is ineffective.
+		 */
+		Child_policy_dynamic_rom_file(char const     *module_name,
+		                              Rpc_entrypoint &ep,
+		                              Ram_session    *ram) __attribute__((deprecated))
+		:
+			Service("ROM", Ram_session_capability()),
+			_ram(ram), _rm(*env_deprecated()->rm_session()),
+			_fg(*_ram, _rm, 0), _bg(*_ram, _rm, 0),
 			_bg_has_pending_data(false),
 			_ep(ep),
 			_rom_session_cap(_ep.manage(this)),

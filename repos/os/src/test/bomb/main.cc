@@ -42,7 +42,7 @@ class Bomb_child : public Child_policy
 
 		Registry<Registered<Parent_service> > &_parent_services;
 
-		Child_policy_dynamic_rom_file _config_policy { "config", _ep, &_env.ram() };
+		Child_policy_dynamic_rom_file _config_policy { _env.rm(), "config", _ep, &_env.ram() };
 
 		Child _child { _env.rm(), _ep, *this };
 

@@ -88,7 +88,7 @@ class Genode::Slave::Policy : public Child_policy
 			_label(label), _binary_name(binary_name), _ram(ram_cap),
 			_binary_service(Rom_session::service_name()),
 			_ram_quota(ram_quota), _parent_services(parent_services), _ep(ep),
-			_config_policy("config", _ep, &_ram),
+			_config_policy(rm, "config", _ep, &_ram),
 			_session_requester(ep, _ram, rm)
 		{
 			configure("<config/>");
