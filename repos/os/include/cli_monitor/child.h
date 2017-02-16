@@ -112,7 +112,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			_ref_ram_cap(ref_ram_cap), _ref_ram(ref_ram),
 			_ram_quota(ram_quota), _ram_limit(ram_limit),
 			_entrypoint(&pd_session, ENTRYPOINT_STACK_SIZE, _label.string(), false),
-			_config_policy("config", _entrypoint, &ref_ram),
+			_config_policy(local_rm, "config", _entrypoint, &ref_ram),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap),
 			_child(local_rm, _entrypoint, *this)
