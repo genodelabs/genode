@@ -206,7 +206,7 @@ struct Floating_window_layouter::Main : Operations
 	Signal_handler<Main> window_list_dispatcher = {
 		env.ep(), *this, &Main::handle_window_list_update };
 
-	Attached_rom_dataspace window_list { "window_list" };
+	Attached_rom_dataspace window_list { env, "window_list" };
 
 
 	/**
@@ -221,7 +221,7 @@ struct Floating_window_layouter::Main : Operations
 	Signal_handler<Main> focus_request_dispatcher = {
 		env.ep(), *this, &Main::handle_focus_request_update };
 
-	Attached_rom_dataspace focus_request { "focus_request" };
+	Attached_rom_dataspace focus_request { env, "focus_request" };
 
 
 	/**
@@ -232,13 +232,13 @@ struct Floating_window_layouter::Main : Operations
 	Signal_handler<Main> hover_dispatcher = {
 		env.ep(), *this, &Main::handle_hover_update };
 
-	Attached_rom_dataspace hover { "hover" };
+	Attached_rom_dataspace hover { env, "hover" };
 
 
 	/**
 	 * Respond to decorator-margins information reported by the decorator
 	 */
-	Attached_rom_dataspace decorator_margins { "decorator_margins" };
+	Attached_rom_dataspace decorator_margins { env, "decorator_margins" };
 
 	void handle_decorator_margins_update()
 	{
@@ -265,7 +265,7 @@ struct Floating_window_layouter::Main : Operations
 	Signal_handler<Main> input_dispatcher {
 		env.ep(), *this, &Main::handle_input };
 
-	Nitpicker::Connection nitpicker;
+	Nitpicker::Connection nitpicker { env };
 
 	Rect maximized_window_geometry;
 
@@ -295,9 +295,9 @@ struct Floating_window_layouter::Main : Operations
 		env.ep(), *this, &Main::handle_mode_change };
 
 
-	Input::Session_client input { nitpicker.input_session() };
+	Input::Session_client input { env.rm(), nitpicker.input_session() };
 
-	Attached_dataspace input_ds { input.dataspace() };
+	Attached_dataspace input_ds { env.rm(), input.dataspace() };
 
 	Reporter window_layout_reporter  = { env, "window_layout" };
 	Reporter resize_request_reporter = { env, "resize_request" };
