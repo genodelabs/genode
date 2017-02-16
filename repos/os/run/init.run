@@ -1,0 +1,129 @@
+#
+# Build
+#
+
+set build_components { core init drivers/timer app/dummy test/init }
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="ROM"/> <service name="Report"/> </provides>
+		<config verbose="no">
+			<policy label="init -> init.config" report="test-init -> init.config"/>
+			<policy label="test-init -> state"  report="init -> state"/>
+		</config>
+	</start>
+
+	<start name="test-init">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="LOG"/> </provides>
+		<config>
+
+			<!-- let init settle, processing the initially invalid config -->
+			<sleep ms="250"/>
+
+
+			<message string="test state reporting"/>
+
+			<init_config version="initial">
+				<report init_ram="yes" ids="yes" child_ram="yes" requested="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="RAM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="application">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1G"/>
+					<config>
+						<log string="started"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> application] started"/>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<attribute name="version" value="initial"/>
+				<node name="child">
+					<attribute name="name"   value="application"/>
+					<attribute name="binary" value="dummy"/>
+					<node name="requested">
+						<node name="session">
+							<attribute name="service" value="PD"/>
+							<attribute name="label"   value="application"/>
+							<attribute name="state"   value="CAP_HANDED_OUT"/>
+						</node>
+					</node>
+				</node>
+			</expect_init_state>
+
+		</config>
+		<route>
+			<service name="Report">            <child name="report_rom"/> </service>
+			<service name="ROM" label="state"> <child name="report_rom"/> </service>
+			<service name="Timer">             <child name="timer"/>      </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="init">
+		<binary name="init"/>
+		<resource name="RAM" quantum="16M"/>
+		<configfile name="init.config"/>
+		<route>
+			<service name="ROM" label="init.config"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="LOG">    <child name="test-init"/> </service>
+			<service name="Timer">  <child name="timer"/>     </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules { core ld.lib.so init timer report_rom test-init dummy }
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic "
+
+run_genode_until {.*child "test-init" exited with exit value 0.*} 60
+
