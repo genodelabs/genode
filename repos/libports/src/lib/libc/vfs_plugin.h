@@ -66,6 +66,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 				 * We have to allocate the path from the libc (done via 'strdup')
 				 * such that the path can be freed when an stdio fd is closed.
 				 */
+				if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
 				fd->fd_path = strdup(path.string());
 
 			} catch (Xml_node::Nonexistent_attribute) { }
