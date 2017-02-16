@@ -24,6 +24,7 @@
 #include <init/verbose.h>
 #include <init/child_config.h>
 #include <init/child_policy.h>
+#include <init/report.h>
 
 namespace Init {
 
@@ -234,6 +235,21 @@ namespace Init {
 				service = &s; });
 		return service;
 	}
+
+
+	inline void generate_ram_info(Xml_generator &xml, Ram_session const &ram)
+	{
+		/*
+		 * The const cast is needed because the 'Ram_session' accessors are
+		 * non-const methods.
+		 */
+		Ram_session &ram_nonconst = const_cast<Ram_session &>(ram);
+
+		typedef String<32> Value;
+		xml.attribute("quota", Value(Number_of_bytes(ram_nonconst.quota())));
+		xml.attribute("used",  Value(Number_of_bytes(ram_nonconst.used())));
+		xml.attribute("avail", Value(Number_of_bytes(ram_nonconst.avail())));
+	}
 }
 
 
@@ -312,6 +328,11 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		class Child_name_is_not_unique { };
 
+		/**
+		 * Unique ID of the child, solely used for diagnostic purposes
+		 */
+		struct Id { unsigned value; };
+
 	private:
 
 		friend class Child_registry;
@@ -319,6 +340,10 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Env &_env;
 
 		Verbose const &_verbose;
+
+		Id const _id;
+
+		Report_update_trigger &_report_update_trigger;
 
 		List_element<Child> _list_element;
 
@@ -488,6 +513,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		Child(Env                      &env,
 		      Verbose            const &verbose,
+		      Id                        id,
+		      Report_update_trigger    &report_update_trigger,
 		      Xml_node                  start_node,
 		      Xml_node                  default_route_node,
 		      Name_registry            &name_registry,
@@ -496,7 +523,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		      Registry<Parent_service> &parent_services,
 		      Registry<Routed_service> &child_services)
 		:
-			_env(env), _verbose(verbose),
+			_env(env), _verbose(verbose), _id(id),
+			_report_update_trigger(report_update_trigger),
 			_list_element(this),
 			_start_node(start_node),
 			_default_route_node(default_route_node),
@@ -563,6 +591,51 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 * Return true if the child has the specified name
 		 */
 		bool has_name(Child_policy::Name const &str) const { return str == name(); }
+
+		void report_state(Xml_generator &xml, Report_detail const &detail) const
+		{
+			xml.node("child", [&] () {
+
+				xml.attribute("name",   _name.unique);
+				xml.attribute("binary", _name.file);
+
+				if (detail.ids())
+					xml.attribute("id", _id.value);
+
+				if (detail.child_ram() && _child.ram_session_cap().valid()) {
+					xml.node("ram", [&] () {
+						/*
+						 * The const cast is needed because there is no const
+						 * accessor for the RAM session of the child.
+						 */
+						auto &nonconst_child = const_cast<Genode::Child &>(_child);
+						generate_ram_info(xml, nonconst_child.ram());
+					});
+				}
+
+				Session_state::Detail const
+					session_detail { detail.session_args() ? Session_state::Detail::ARGS
+					                                       : Session_state::Detail::NO_ARGS};
+
+				if (detail.requested()) {
+					xml.node("requested", [&] () {
+						_child.for_each_session([&] (Session_state const &session) {
+							xml.node("session", [&] () {
+								session.generate_client_side_info(xml, session_detail); }); }); });
+				}
+
+				if (detail.provided()) {
+					xml.node("provided", [&] () {
+
+						auto fn = [&] (Session_state const &session) {
+							xml.node("session", [&] () {
+								session.generate_server_side_info(xml, session_detail); }); };
+
+						server_id_space().for_each<Session_state const>(fn);
+					});
+				}
+			});
+		}
 
 
 		/****************************
@@ -791,6 +864,11 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			 * printed by the default implementation of 'Child_policy::exit'.
 			 */
 			Child_policy::exit(exit_value);
+		}
+
+		void session_state_changed() override
+		{
+			_report_update_trigger.trigger_report_update();
 		}
 };
 

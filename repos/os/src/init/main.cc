@@ -11,8 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
+#include <os/reporter.h>
+#include <timer_session/connection.h>
+
+/* init includes */
 #include <init/child.h>
 
 namespace Init {
@@ -208,6 +213,22 @@ class Init::Child_registry : public Name_registry, Child_list
 			return _aliases.first() ? _aliases.first() : 0;
 		}
 
+		void report_state(Xml_generator &xml, Report_detail const &detail) const
+		{
+			Genode::List_element<Child> const *curr = first();
+			for (; curr; curr = curr->next())
+				curr->object()->report_state(xml, detail);
+
+			/* check for name clash with an existing alias */
+			for (Alias const *a = _aliases.first(); a; a = a->next()) {
+				xml.node("alias", [&] () {
+					xml.attribute("name", a->name);
+					xml.attribute("child", a->child);
+				});
+			}
+
+		}
+
 
 		/*****************************
 		 ** Name-registry interface **
@@ -241,10 +262,129 @@ class Init::Child_registry : public Name_registry, Child_list
 };
 
 
-namespace Init { struct Main; }
+namespace Init {
+	struct State_reporter;
+	struct Main;
+}
 
 
-struct Init::Main
+class Init::State_reporter : public Report_update_trigger
+{
+	public:
+
+		struct Producer
+		{
+			virtual void produce_state_report(Xml_generator &xml,
+			                                  Report_detail const &) const = 0;
+		};
+
+	private:
+
+		Env &_env;
+
+		Producer &_producer;
+
+		Constructible<Reporter> _reporter;
+
+		size_t _buffer_size = 0;
+
+		Reconstructible<Report_detail> _report_detail;
+
+		unsigned _report_delay_ms = 0;
+
+		/* version string from config, to be reflected in the report */
+		typedef String<64> Version;
+		Version _version;
+
+		Constructible<Timer::Connection> _timer;
+
+		Signal_handler<State_reporter> _timer_handler {
+			_env.ep(), *this, &State_reporter::_handle_timer };
+
+		bool _scheduled = false;
+
+		void _handle_timer()
+		{
+			_scheduled = false;
+
+			try {
+				Reporter::Xml_generator xml(*_reporter, [&] () {
+
+					if (_version.valid())
+						xml.attribute("version", _version);
+
+					_producer.produce_state_report(xml, *_report_detail);
+				});
+			}
+			catch(Xml_generator::Buffer_exceeded) {
+
+				error("state report exceeds maximum size");
+
+				/* try to reflect the error condition as state report */
+				try {
+					Reporter::Xml_generator xml(*_reporter, [&] () {
+						xml.attribute("error", "report buffer exceeded"); });
+				}
+				catch (...) { }
+			}
+		}
+
+	public:
+
+		State_reporter(Env &env, Producer &producer)
+		:
+			_env(env), _producer(producer)
+		{ }
+
+		void apply_config(Xml_node config)
+		{
+			try {
+				Xml_node report = config.sub_node("report");
+
+				/* (re-)construct reporter whenever the buffer size is changed */
+				Number_of_bytes const buffer_size =
+					report.attribute_value("buffer", Number_of_bytes(4096));
+
+				if (buffer_size != _buffer_size || !_reporter.constructed()) {
+					_buffer_size = buffer_size;
+					_reporter.construct(_env, "state", "state", _buffer_size);
+				}
+
+				_report_detail.construct(report);
+				_report_delay_ms = report.attribute_value("delay_ms", 100UL);
+				_reporter->enabled(true);
+			}
+			catch (Xml_node::Nonexistent_sub_node) {
+				_report_detail.construct();
+				_report_delay_ms = 0;
+				if (_reporter.constructed())
+					_reporter->enabled(false);
+			}
+
+			_version = config.attribute_value("version", Version());
+
+			if (_report_delay_ms) {
+
+				if (!_timer.constructed()) {
+					_timer.construct(_env);
+					_timer->sigh(_timer_handler);
+				}
+
+				trigger_report_update();
+			}
+		}
+
+		void trigger_report_update() override
+		{
+			if (!_scheduled && _timer.constructed() && _report_delay_ms) {
+				_timer->trigger_once(_report_delay_ms*1000);
+				_scheduled = true;
+			}
+		}
+};
+
+
+struct Init::Main : State_reporter::Producer
 {
 	Env &_env;
 
@@ -258,7 +398,20 @@ struct Init::Main
 
 	Reconstructible<Verbose> _verbose { _config.xml() };
 
+	unsigned _child_cnt = 0;
+
 	void _handle_resource_avail() { }
+
+	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const
+	{
+		if (detail.init_ram())
+			xml.node("ram", [&] () { generate_ram_info(xml, _env.ram()); });
+
+		if (detail.children())
+			_children.report_state(xml, detail);
+	}
+
+	State_reporter _state_reporter { _env, *this };
 
 	Signal_handler<Main> _resource_avail_handler {
 		_env.ep(), *this, &Main::_handle_resource_avail };
@@ -300,12 +453,10 @@ void Init::Main::_handle_config()
 	_parent_services.for_each([&] (Init::Parent_service &service) {
 		destroy(_heap, &service); });
 
-	/* reload config */
-	try { config()->reload(); } catch (...) { }
-
 	_config.update();
 
 	_verbose.construct(_config.xml());
+	_state_reporter.apply_config(_config.xml());
 
 	try { determine_parent_services(_parent_services, _config.xml(),
 	                                _heap, _verbose->enabled()); }
@@ -335,7 +486,10 @@ void Init::Main::_handle_config()
 
 			try {
 				_children.insert(new (_heap)
-				                 Init::Child(_env, *_verbose, start_node, default_route_node,
+				                 Init::Child(_env, *_verbose,
+				                             Init::Child::Id { ++_child_cnt },
+				                             _state_reporter,
+				                             start_node, default_route_node,
 				                             _children, read_prio_levels(_config.xml()),
 				                             read_affinity_space(_config.xml()),
 				                             _parent_services, _child_services));
