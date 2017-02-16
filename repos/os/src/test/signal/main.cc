@@ -433,6 +433,99 @@ struct Many_contexts_test : Signal_test
 	}
 };
 
+/**
+ * Test 'wait_and_dispatch_one_signal' implementation for entrypoints
+ *
+ * Normally Genode signals are delivered by a signal thread, which blocks for
+ * incoming signals and is woken up when a signals arrives, the thread then
+ * sends an RPC to an entrypoint that, in turn, processes the signal.
+ * 'wait_and_dispatch_one_signal' allows an entrypoint to receive signals
+ * directly, by taking advantage of the same code as the signal thread. This
+ * leaves the problem that at this point two entities (the signal thread and the
+ * entrypoint) may wait for signals to arrive. It is not decidable which entity
+ * is woken up on signal arrival. If the signal thread is woken up and tries to
+ * deliver the signal RPC, system may dead lock when no additional signal
+ * arrives to pull the entrypoint out of the signal waiting code. This test
+ * triggers this exact situation. We also test nesting with the same signal
+ * context of 'wait_and_dispatch_one_signal' here, which also caused dead locks
+ * in the past.
+ */
+struct Wait_and_dispatch_test : Signal_test
+{
+	static constexpr char const *brief = "wait and dispatch signals at entrypoint";
+
+	struct Wait_interface
+	{
+		GENODE_RPC(Rpc_dispatch_test, void, dispatch_test);
+		GENODE_RPC_INTERFACE(Rpc_dispatch_test);
+	};
+
+	struct Wait_component :
+		Rpc_object<Wait_interface, Wait_component>
+	{
+		Entrypoint &ep;
+
+		Wait_component(Entrypoint &ep) : ep(ep) { }
+
+		void dispatch_test()
+		{
+			log("1/5: [ep] wait for signal during RPC from [outside]");
+			ep.wait_and_dispatch_one_signal();
+			log("5/5: [ep] success");
+		}
+	};
+
+	struct Sender_thread : Thread
+	{
+		Signal_context_capability cap;
+		Timer::Connection         timer;
+
+		Sender_thread(Env &env, Signal_context_capability cap)
+		: Thread(env, "sender_thread", 1024 * sizeof(long)), cap(cap), timer(env)
+		{ }
+
+		void entry() {
+			timer.msleep(500);
+			log("2/5: [outside] submit initial signal");
+			Signal_transmitter(cap).submit();
+		}
+	};
+
+	Env                                    &env;
+	Entrypoint                              ep { env, 2048 * sizeof(long),
+		"wait_dispatch_ep" };
+	Signal_handler<Wait_and_dispatch_test>  dispatcher { ep, *this,
+		&Wait_and_dispatch_test::handle };
+	Wait_component                          wait  { ep };
+	Capability<Wait_interface>              wait_cap = ep.manage(wait);
+	Sender_thread                           thread { env, dispatcher };
+	bool                                    nested { false };
+
+	Wait_and_dispatch_test(Env &env, int id) : Signal_test(id, brief), env(env)
+	{
+		thread.start();
+		wait_cap.call<Wait_interface::Rpc_dispatch_test>();
+	}
+
+	~Wait_and_dispatch_test()
+	{
+		ep.dissolve(wait);
+	}
+
+	void handle()
+	{
+		if (nested) {
+			log("4/5: [ep] nested signal received");
+			return;
+		}
+
+		log("3/5: [ep] signal received - sending nested signal");
+		nested = true;
+		Signal_transmitter(dispatcher).submit();
+		ep.wait_and_dispatch_one_signal();
+	}
+};
+
 struct Main
 {
 	Constructible<Fast_sender_test>              test_1;
@@ -442,6 +535,7 @@ struct Main
 	Constructible<Context_management_test>       test_5;
 	Constructible<Synchronized_destruction_test> test_6;
 	Constructible<Many_contexts_test>            test_7;
+	Constructible<Wait_and_dispatch_test>        test_8;
 
 	Main(Env &env)
 	{
@@ -453,8 +547,9 @@ struct Main
 		test_5.construct(env, 5); test_5.destruct();
 		test_6.construct(env, 6); test_6.destruct();
 		test_7.construct(env, 7); test_7.destruct();
-	log("--- Signalling test finished ---");
-}
+		test_8.construct(env, 8); test_8.destruct();
+		log("--- Signalling test finished ---");
+	}
 };
 
 void Component::construct(Genode::Env &env) { static Main main(env); }
