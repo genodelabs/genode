@@ -267,7 +267,7 @@ class Nit_fader::Nitpicker_session_component
 
 		Reconstructible<Src_buffer> _src_buffer { _env, Area(1, 1), false };
 
-		Nitpicker::Connection _nitpicker;
+		Nitpicker::Connection _nitpicker { _env };
 
 		Genode::Attached_ram_dataspace _command_ds {
 			_env.ram(), _env.rm(), sizeof(Nitpicker::Session::Command_buffer) };
