@@ -91,7 +91,6 @@ int main()
 	enum { ADDR_STR_SZ = 16 };
 	char serv_addr[ADDR_STR_SZ] = { 0 };
 	Xml_node config_node = config()->xml_node();
-	Xml_node libc_node   = config_node.sub_node("libc");
 	try { config_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
 	catch(...) {
 		error("Missing \"server_ip\" attribute.");
