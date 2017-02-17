@@ -45,11 +45,12 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		typedef Genode::size_t size_t;
 
 		typedef Genode::Registered<Genode::Parent_service> Parent_service;
-		typedef Genode::Registry<Parent_service>           Parent_services;
 
 	private:
 
 		Ram &_ram;
+
+		Genode::Allocator &_alloc;
 
 		Genode::Session_label const _label;
 		Binary_name           const _binary_name;
@@ -60,7 +61,15 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		size_t _ram_quota;
 		size_t _ram_limit;
 
-		Parent_services _parent_services;
+		struct Parent_services : Genode::Registry<Parent_service>
+		{
+			Genode::Allocator &_alloc;
+			Parent_services(Genode::Allocator &alloc) : _alloc(alloc) { }
+			~Parent_services()
+			{
+				for_each([&] (Parent_service &s) { Genode::destroy(_alloc, &s); });
+			}
+		} _parent_services { _alloc };
 
 		enum { ENTRYPOINT_STACK_SIZE = 12*1024 };
 		Genode::Rpc_entrypoint _entrypoint;
@@ -94,8 +103,11 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		 * \param ref_ram  used as reference account for the child'd RAM
 		 *                 session and for allocating the backing store
 		 *                 for the child's configuration
+		 * \param alloc    allocator used to fill parent-service registry
+		 *                 on demand
 		 */
 		Child_base(Ram                              &ram,
+		           Genode::Allocator                &alloc,
 		           Name                       const &label,
 		           Binary_name                const &binary_name,
 		           Genode::Pd_session               &pd_session,
@@ -107,7 +119,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		           Genode::Signal_context_capability yield_response_sig_cap,
 		           Genode::Signal_context_capability exit_sig_cap)
 		:
-			_ram(ram),
+			_ram(ram), _alloc(alloc),
 			_label(label), _binary_name(binary_name),
 			_ref_ram_cap(ref_ram_cap), _ref_ram(ref_ram),
 			_ram_quota(ram_quota), _ram_limit(ram_limit),
@@ -289,7 +301,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			if (service)
 				return *service;
 
-			return *new (Genode::env()->heap()) Parent_service(_parent_services, name);
+			return *new (_alloc) Parent_service(_parent_services, name);
 		}
 
 		void yield_response()

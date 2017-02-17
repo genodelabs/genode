@@ -28,6 +28,7 @@ struct Cli_monitor::Child : Child_base, List<Child>::Element
 	Argument argument;
 
 	Child(Ram                              &ram,
+	      Genode::Allocator                &alloc,
 	      Name                       const &label,
 	      Binary_name                const &binary,
 	      Genode::Pd_session               &pd_session,
@@ -40,6 +41,7 @@ struct Cli_monitor::Child : Child_base, List<Child>::Element
 	      Genode::Signal_context_capability exit_sig_cap)
 	:
 		Child_base(ram,
+		           alloc,
 		           label,
 		           binary,
 		           pd_session,
