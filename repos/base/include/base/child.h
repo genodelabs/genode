@@ -188,6 +188,11 @@ struct Genode::Child_policy
 	virtual Id_space<Parent::Server> &server_id_space() { throw Nonexistent_id_space(); }
 
 	/**
+	 * Notification hook invoked each time a session state is modified
+	 */
+	virtual void session_state_changed() { }
+
+	/**
 	 * Return region map for the child's address space
 	 *
 	 * \param pd  the child's PD session capability
@@ -560,6 +565,12 @@ class Genode::Child : protected Rpc_object<Parent>,
 			return Cpu_connection::RAM_QUOTA + Ram_connection::RAM_QUOTA +
 			        Pd_connection::RAM_QUOTA + Log_connection::RAM_QUOTA +
 			     2*Rom_connection::RAM_QUOTA;
+		}
+
+		template <typename FN>
+		void for_each_session(FN const &fn) const
+		{
+			_id_space.for_each<Session_state const>(fn);
 		}
 
 		/**

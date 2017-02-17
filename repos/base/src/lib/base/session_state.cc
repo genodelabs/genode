@@ -18,12 +18,36 @@
 using namespace Genode;
 
 
+struct Formatted_phase
+{
+	Session_state::Phase _phase;
+
+	Formatted_phase(Session_state::Phase phase) : _phase(phase) { }
+
+	void print(Output &output) const
+	{
+		using Genode::print;
+		typedef Genode::Session_state State;
+
+		switch (_phase) {
+		case State::CREATE_REQUESTED:   print(output, "CREATE_REQUESTED");  break;
+		case State::INVALID_ARGS:       print(output, "INVALID_ARGS");      break;
+		case State::AVAILABLE:          print(output, "AVAILABLE");         break;
+		case State::CAP_HANDED_OUT:     print(output, "CAP_HANDED_OUT");    break;
+		case State::UPGRADE_REQUESTED:  print(output, "UPGRADE_REQUESTED"); break;
+		case State::CLOSE_REQUESTED:    print(output, "CLOSE_REQUESTED");   break;
+		case State::CLOSED:             print(output, "CLOSED");            break;
+		}
+	}
+};
+
+
 void Session_state::print(Output &out) const
 {
 	using Genode::print;
 
 	print(out, "service=", _service.name(), " cid=", _id_at_client, " "
-	      "args='", _args, "' state=", (int)phase, " "
+	      "args='", _args, "' state=", Formatted_phase(phase), " "
 	      "ram_quota=", _donated_ram_quota);
 }
 
@@ -67,6 +91,24 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 	case CLOSED:
 		break;
 	}
+}
+
+
+void Session_state::generate_client_side_info(Xml_generator &xml, Detail detail) const
+{
+	xml.attribute("service", _service.name());
+	xml.attribute("label", _label);
+	xml.attribute("state", String<32>(Formatted_phase(phase)));
+	xml.attribute("ram", String<32>(Number_of_bytes(_donated_ram_quota)));
+
+	if (detail.args == Detail::ARGS)
+		xml.node("args", [&] () { xml.append_sanitized(_args.string()); });
+}
+
+
+void Session_state::generate_server_side_info(Xml_generator &xml, Detail detail) const
+{
+	generate_client_side_info(xml, detail);
 }
 
 
