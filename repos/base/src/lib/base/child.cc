@@ -238,6 +238,8 @@ Session_capability Child::session(Parent::Client::Id id,
 		create_session(_policy.name(), service, route.label, *_session_factory,
 		               _id_space, id, argbuf, filtered_affinity);
 
+	_policy.session_state_changed();
+
 	session.ready_callback = this;
 	session.closed_callback = this;
 
@@ -322,6 +324,7 @@ Session_capability Child::session_cap(Client::Id id)
 	catch (Id_space<Parent::Client>::Unknown_id) {
 		warning(_policy.name(), " requested session cap for unknown ID"); }
 
+	_policy.session_state_changed();
 	return cap;
 }
 
@@ -369,11 +372,13 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 
 		if (session.phase == Session_state::CAP_HANDED_OUT) {
 			result = UPGRADE_DONE;
+			_policy.session_state_changed();
 			return;
 		}
 
 		session.service().wakeup();
 	});
+	_policy.session_state_changed();
 	return result;
 }
 
@@ -396,6 +401,7 @@ void Child::_revert_quota_and_destroy(Session_state &session)
 		warning(_policy.name(), ": could not revert session quota (", session, ")"); }
 
 	session.destroy();
+	_policy.session_state_changed();
 }
 
 
@@ -426,6 +432,8 @@ Child::Close_result Child::_close(Session_state &session)
 		_revert_quota_and_destroy(session);
 		return CLOSE_DONE;
 	}
+
+	_policy.session_state_changed();
 
 	session.discard_id_at_client();
 	session.service().wakeup();

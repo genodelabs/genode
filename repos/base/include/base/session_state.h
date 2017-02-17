@@ -167,7 +167,12 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 		Affinity const &affinity() const { return _affinity; }
 
-		void generate_session_request(Xml_generator &xml) const;
+		void generate_session_request(Xml_generator &) const;
+
+		struct Detail { enum Args { NO_ARGS, ARGS } args; };
+
+		void generate_client_side_info(Xml_generator &, Detail detail) const;
+		void generate_server_side_info(Xml_generator &, Detail detail) const;
 
 		size_t donated_ram_quota() const { return _donated_ram_quota; }
 
