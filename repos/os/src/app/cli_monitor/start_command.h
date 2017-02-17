@@ -113,8 +113,8 @@ class Cli_monitor::Start_command : public Command
 				Child *child = 0;
 				try {
 					child = new (_alloc)
-						Child(_ram, label, binary_name, _pd, _ref_ram, _ref_ram_cap,
-						      _local_rm, ram, ram_limit,
+						Child(_ram, _alloc, label, binary_name, _pd, _ref_ram,
+						      _ref_ram_cap, _local_rm, ram, ram_limit,
 						      _yield_response_sigh_cap, _exit_sig_cap);
 				}
 				catch (Genode::Parent::Service_denied) {

@@ -175,7 +175,7 @@ class Launcher::Subsystem_manager
 
 			try {
 				Child *child = new (_heap)
-					Child(_ram, label, binary_name.string(),
+					Child(_ram, _heap, label, binary_name.string(),
 					      _env.pd(),
 					      _env.ram(),
 					      _env.ram_session_cap(),
