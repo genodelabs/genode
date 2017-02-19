@@ -502,6 +502,8 @@ void Init::Main::_handle_config()
 			}
 			catch (Ram_session::Alloc_failed) {
 				warning("failed to allocate memory during child construction"); }
+			catch (Child::Missing_name_attribute) {
+				warning("skipped startup of nameless child"); }
 			catch (Region_map::Attach_failed) {
 				warning("failed to attach dataspace to local address space "
 				        "during child construction"); }

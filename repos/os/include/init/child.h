@@ -36,7 +36,6 @@ namespace Init {
 	using namespace Genode;
 	using Genode::size_t;
 	using Genode::strlen;
-	using Genode::strncpy;
 
 	typedef Genode::Registered<Genode::Parent_service> Parent_service;
 }
@@ -324,9 +323,10 @@ class Init::Child : Child_policy, Child_service::Wakeup
 	public:
 
 		/**
-		 * Exception type
+		 * Exception types
 		 */
-		class Child_name_is_not_unique { };
+		struct Child_name_is_not_unique : Exception { };
+		struct Missing_name_attribute   : Exception { };
 
 		/**
 		 * Unique ID of the child, solely used for diagnostic purposes
@@ -355,14 +355,29 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		Name_registry &_name_registry;
 
-		/**
-		 * Unique child name and file name of ELF binary
-		 */
-		struct Name
+		typedef String<64> Name;
+
+		struct Unique_name : Name
 		{
-			enum { MAX_NAME_LEN = 64 };
-			char file[MAX_NAME_LEN];
-			char unique[MAX_NAME_LEN];
+			/**
+			 * Read name from XML and check for name confict with other children
+			 *
+			 * \throw Missing_name_attribute
+			 */
+			static Name _checked(Xml_node start_node, Name_registry const &registry)
+			{
+				Name const name = start_node.attribute_value("name", Name());
+				if (!name.valid()) {
+					warning("missing 'name' attribute in '<start>' entry");
+					throw Missing_name_attribute();
+				}
+
+				if (registry.unique(name.string()))
+					return name;
+
+				error("child name \"", name, "\" is not unique");
+				throw Child_name_is_not_unique();
+			}
 
 			/**
 			 * Constructor
@@ -371,30 +386,24 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			 *
 			 * \param start_node XML start node
 			 * \param registry   registry tracking unique names
+			 *
+			 * \throw Missing_name_attribute
 			 */
-			Name(Xml_node start_node, Name_registry const &registry) {
-				try {
-					start_node.attribute("name").value(unique, sizeof(unique)); }
-				catch (Xml_node::Nonexistent_attribute) {
-					warning("missing 'name' attribute in '<start>' entry");
-					throw; }
+			Unique_name(Xml_node start_node, Name_registry const &registry)
+			: Name(_checked(start_node, registry)) { }
 
-				/* check for a name confict with the other children */
-				if (!registry.unique(unique)) {
-					error("child name \"", Cstring(unique), "\" is not unique");
-					throw Child_name_is_not_unique();
-				}
+		} _unique_name;
 
-				/* use name as default file name if not declared otherwise */
-				strncpy(file, unique, sizeof(file));
+		static Binary_name _binary_name_from_xml(Xml_node start_node,
+		                                         Unique_name const &unique_name)
+		{
+			if (!start_node.has_sub_node("binary"))
+				return unique_name;
 
-				/* check for a binary declaration */
-				try {
-					Xml_node binary = start_node.sub_node("binary");
-					binary.attribute("name").value(file, sizeof(file));
-				} catch (...) { }
-			}
-		} _name;
+			return start_node.sub_node("binary").attribute_value("name", Name());
+		}
+
+		Binary_name const _binary_name;
 
 		struct Read_quota
 		{
@@ -449,10 +458,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			size_t   cpu_quota_pc;
 			bool     constrain_phys;
 
-			Resources(Xml_node start_node, const char *label,
-			          long prio_levels,
-			          Affinity::Space const &affinity_space,
-			          size_t ram_avail,
+			Resources(Xml_node start_node, long prio_levels,
+			          Affinity::Space const &affinity_space, size_t ram_avail,
 			          Verbose const &verbose)
 			:
 				Read_quota(start_node, ram_quota, cpu_quota_pc,
@@ -535,10 +542,10 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			_start_node(start_node),
 			_default_route_node(default_route_node),
 			_name_registry(name_registry),
-			_name(start_node, name_registry),
-			_resources(start_node, _name.unique, prio_levels,
-			           affinity_space, avail_slack_ram_quota(_env.ram().avail()),
-			           _verbose),
+			_unique_name(start_node, name_registry),
+			_binary_name(_binary_name_from_xml(start_node, _unique_name)),
+			_resources(start_node, prio_levels, affinity_space,
+			           avail_slack_ram_quota(_env.ram().avail()), _verbose),
 			_parent_services(parent_services),
 			_child_services(child_services),
 			_config(_env.ram(), _env.rm(), start_node),
@@ -550,12 +557,12 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		{
 			if (_resources.ram_quota == 0)
 				warning("no valid RAM resource for child "
-				        "\"", Cstring(_name.unique), "\"");
+				        "\"", _unique_name, "\"");
 
 			if (_verbose.enabled()) {
-				log("child \"", Cstring(_name.unique), "\"");
+				log("child \"",       _unique_name, "\"");
 				log("  RAM quota:  ", _resources.ram_quota);
-				log("  ELF binary: ", Cstring(_name.file));
+				log("  ELF binary: ", _binary_name);
 				log("  priority:   ", _resources.priority);
 			}
 
@@ -599,8 +606,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		{
 			xml.node("child", [&] () {
 
-				xml.attribute("name",   _name.unique);
-				xml.attribute("binary", _name.file);
+				xml.attribute("name",   _unique_name);
+				xml.attribute("binary", _binary_name);
 
 				if (detail.ids())
 					xml.attribute("id", _id.value);
@@ -645,9 +652,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 ** Child-policy interface **
 		 ****************************/
 
-		Child_policy::Name name() const override { return _name.unique; }
+		Child_policy::Name name() const override { return _unique_name; }
 
-		Binary_name binary_name() const override { return _name.file; }
+		Binary_name binary_name() const override { return _binary_name; }
 
 		Ram_session           &ref_ram()           override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
