@@ -13,6 +13,7 @@
  */
 
 /* Genode includes */
+#include <util/retry.h>
 #include <base/component.h>
 #include <base/connection.h>
 #include <base/service.h>
@@ -108,12 +109,64 @@ namespace {
 		{
 			Lock::Guard guard(_lock);
 
-			Session_capability cap = _parent.session(id, name, args, affinity);
-			if (cap.valid())
-				return cap;
+			/*
+			 * Since we account for the backing store for session meta data on
+			 * the route between client and server, the session quota provided
+			 * by the client may become successively diminished by intermediate
+			 * components, prompting the server to deny the session request.
+			 *
+			 * If the session creation failed due to insufficient session
+			 * quota, we try to repeatedly increase the quota up to
+			 * 'NUM_ATTEMPTS'.
+			 */
+			enum { NUM_ATTEMPTS = 10 };
 
-			_block_for_session();
-			return _parent.session_cap(id);
+			/* extract session quota as specified by the 'Connection' */
+			char argbuf[Parent::Session_args::MAX_SIZE];
+			strncpy(argbuf, args.string(), sizeof(argbuf));
+			size_t ram_quota = Arg_string::find_arg(argbuf, "ram_quota").ulong_value(0);
+
+			return retry<Parent::Quota_exceeded>([&] () {
+
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+				                    String<32>(Number_of_bytes(ram_quota)).string());
+
+				Session_capability cap =
+					_parent.session(id, name, Parent::Session_args(argbuf), affinity);
+
+				if (cap.valid())
+					return cap;
+
+				_block_for_session();
+				return _parent.session_cap(id);
+			},
+			[&] () {
+					/*
+					 * If our RAM session has less quota available than the
+					 * session quota, the session-quota transfer failed. In
+					 * this case, we try to recover by issuing a resource
+					 * request to the parent.
+					 *
+					 * Otherwise, the session-quota transfer succeeded but
+					 * the request was denied by the server.
+					 */
+					if (ram_quota > ram().avail()) {
+
+						/* issue resource request */
+						char buf[128];
+						snprintf(buf, sizeof(buf), "ram_quota=%lu", ram_quota);
+
+						_parent.resource_request(Parent::Resource_args(buf));
+					} else {
+						ram_quota += 4096;
+					}
+
+			}, NUM_ATTEMPTS);
+
+			warning("giving up to increase session quota for ", name.string(), " session "
+			        "after ", (int)NUM_ATTEMPTS, " attempts");
+
+			throw Parent::Quota_exceeded();
 		}
 
 		void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override

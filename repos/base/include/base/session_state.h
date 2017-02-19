@@ -18,6 +18,7 @@
 #include <util/list.h>
 #include <util/reconstructible.h>
 #include <session/capability.h>
+#include <base/slab.h>
 #include <base/id_space.h>
 #include <base/env.h>
 #include <base/log.h>
@@ -78,6 +79,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 		enum Phase { CREATE_REQUESTED,
 		             INVALID_ARGS,
+		             QUOTA_EXCEEDED,
 		             AVAILABLE,
 		             CAP_HANDED_OUT,
 		             UPGRADE_REQUESTED,
@@ -182,6 +184,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 			case CREATE_REQUESTED:
 			case INVALID_ARGS:
+			case QUOTA_EXCEEDED:
 			case CLOSED:
 				return false;
 
@@ -234,17 +237,34 @@ class Genode::Session_state::Factory : Noncopyable
 {
 	private:
 
-		Allocator &_md_alloc;
+		size_t const _batch_size;
+
+		Slab _slab;
 
 	public:
+
+		struct Batch_size { size_t value; };
 
 		/**
 		 * Constructor
 		 *
 		 * \param md_alloc  meta-data allocator used for allocating
 		 *                  'Session_state' objects
+		 *
+		 * \param batch     granularity of allocating blocks at 'md_alloc',
+		 *                  must be greater than 0
 		 */
-		Factory(Allocator &md_alloc) : _md_alloc(md_alloc) { }
+		Factory(Allocator &md_alloc, Batch_size batch)
+		:
+			_batch_size(batch.value),
+			/*
+			 * The calculation of 'block_size' is just an approximation as
+			 * a slab block contains a few bytes of meta data in addition
+			 * to the actual slab entries.
+			 */
+			_slab(sizeof(Session_state), sizeof(Session_state)*_batch_size,
+			      nullptr, &md_alloc)
+		{ }
 
 		/**
 		 * Create a new session-state object
@@ -256,10 +276,15 @@ class Genode::Session_state::Factory : Noncopyable
 		template <typename... ARGS>
 		Session_state &create(ARGS &&... args)
 		{
-			Session_state &session = *new (_md_alloc) Session_state(args...);
+			Session_state &session = *new (_slab) Session_state(args...);
 			session.owner(*this);
 			return session;
 		}
+
+		/**
+		 * Return number of bytes consumed per session
+		 */
+		size_t session_costs() const { return _slab.overhead(sizeof(Session_state)); }
 
 	private:
 
@@ -270,7 +295,7 @@ class Genode::Session_state::Factory : Noncopyable
 		 */
 		friend class Session_state;
 
-		void _destroy(Session_state &session) { Genode::destroy(_md_alloc, &session); }
+		void _destroy(Session_state &session) { Genode::destroy(_slab, &session); }
 };
 
 

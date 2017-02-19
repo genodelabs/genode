@@ -27,7 +27,7 @@ struct Input::Connection : Genode::Connection<Session>, Session_client
 	 * \noapi
 	 */
 	Capability<Input::Session> _session(Genode::Parent &parent, char const *label) {
-		return session(parent, "ram_quota=16K, label=\"%s\"", label); }
+		return session(parent, "ram_quota=18K, label=\"%s\"", label); }
 
 	/**
 	 * Constructor
@@ -48,7 +48,7 @@ struct Input::Connection : Genode::Connection<Session>, Session_client
 	Connection() __attribute__((deprecated))
 	:
 		Genode::Connection<Input::Session>(
-			session(*Genode::env_deprecated()->parent(), "ram_quota=16K")),
+			session(*Genode::env_deprecated()->parent(), "ram_quota=18K")),
 		Session_client(*Genode::env_deprecated()->rm_session(), cap())
 	{ }
 };

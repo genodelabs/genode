@@ -28,7 +28,7 @@ struct Rtc::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection(Genode::Env &env)
 	:
-		Genode::Connection<Rtc::Session>(env, session(env.parent(), "ram_quota=4K")),
+		Genode::Connection<Rtc::Session>(env, session(env.parent(), "ram_quota=8K")),
 		Session_client(cap())
 	{ }
 
@@ -41,7 +41,7 @@ struct Rtc::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection() __attribute__((deprecated))
 	:
-		Genode::Connection<Rtc::Session>(session("ram_quota=4K")),
+		Genode::Connection<Rtc::Session>(session("ram_quota=8K")),
 		Session_client(cap())
 	{ }
 };

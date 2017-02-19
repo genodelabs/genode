@@ -27,7 +27,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 * Constructor
 	 */
 	Connection(Genode::Env &env)
-	: Genode::Connection<Session>(env, session(env.parent(), "ram_quota=4K")),
+	: Genode::Connection<Session>(env, session(env.parent(), "ram_quota=6K")),
 	  Client(cap()) { }
 
 	/**
@@ -38,7 +38,7 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 *              argument instead
 	 */
 	Connection() __attribute__((deprecated))
-	: Genode::Connection<Session>(session("ram_quota=4K")),
+	: Genode::Connection<Session>(session("ram_quota=6K")),
 	  Client(cap()) { }
 };
 

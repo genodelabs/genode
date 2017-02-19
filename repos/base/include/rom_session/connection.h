@@ -28,7 +28,7 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 
 		class Rom_connection_failed : public Parent::Exception { };
 
-		enum { RAM_QUOTA = 4096UL };
+		enum { RAM_QUOTA = 6*1024UL };
 
 	private:
 

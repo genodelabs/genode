@@ -70,7 +70,7 @@ compare_output_to {
 	[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
 	[init -> test-report_rom] ROM client: wait for update notification
 	[init -> test-report_rom] ROM client: try to open the same report again
-	[init -> test-report_rom] Error: Report-session creation failed (label="brightness", ram_quota=12288, buffer_size=4096)
+	[init -> test-report_rom] Error: Report-session creation failed (label="brightness", ram_quota=14336, buffer_size=4096)
 	[init -> test-report_rom] ROM client: catched Parent::Service_denied - OK
 	[init -> test-report_rom] --- test-report_rom finished ---
 }
