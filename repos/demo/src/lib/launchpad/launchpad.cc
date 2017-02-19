@@ -154,7 +154,15 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 
 	if (ram_quota > _env.ram().avail()) {
 		error("child's ram quota is higher than our available quota, using available quota");
-		ram_quota = _env.ram().avail() - 256*1000;
+
+		size_t const avail     = _env.ram().avail();
+		size_t const preserved = 256*1024;
+
+		if (avail < preserved) {
+			error("giving up, our own quota is too low (", avail, ")");
+			return 0;
+		}
+		ram_quota = avail - preserved;
 	}
 
 	size_t metadata_size = 4096*16 + sizeof(Launchpad_child);
@@ -168,7 +176,7 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 
 	try {
 		Launchpad_child *c = new (&_sliced_heap)
-			Launchpad_child(_env, unique_name, binary_name, ram_quota,
+			Launchpad_child(_env, _heap, unique_name, binary_name, ram_quota,
 			                _parent_services, _child_services, config_ds);
 
 		Lock::Guard lock_guard(_children_lock);

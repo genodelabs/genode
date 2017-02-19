@@ -102,6 +102,14 @@ class Genode::Slab : public Allocator
 		~Slab();
 
 		/**
+		 * Return number of bytes consumed per slab entry
+		 *
+		 * The function takes the slab-internal meta-data needs and the actual
+		 * slab entry into account.
+		 */
+		static size_t entry_costs(size_t slab_size, size_t block_size);
+
+		/**
 		 * Add new slab block as backing store
 		 *
 		 * The specified 'ptr' has to point to a buffer with the size of one

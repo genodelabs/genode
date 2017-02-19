@@ -22,7 +22,7 @@ namespace Report { struct Connection; }
 
 struct Report::Connection : Genode::Connection<Session>, Session_client
 {
-	enum { RAM_QUOTA = 4*4096 }; /* value used for 'Slave::Connection' */
+	enum { RAM_QUOTA = 6*4096 }; /* value used for 'Slave::Connection' */
 
 	/**
 	 * Issue session request
@@ -33,7 +33,7 @@ struct Report::Connection : Genode::Connection<Session>, Session_client
 	                                     char const *label, size_t buffer_size)
 	{
 		return session(parent, "label=\"%s\", ram_quota=%ld, buffer_size=%zd",
-		               label, 2*4096 + buffer_size, buffer_size);
+		               label, 10*1024 + buffer_size, buffer_size);
 	}
 
 	/**

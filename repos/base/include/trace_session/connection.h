@@ -35,7 +35,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	{
 		return session(parent,
 		               "ram_quota=%lu, arg_buffer_size=%lu, parent_levels=%u",
-		               ram_quota, arg_buffer_size, parent_levels);
+		               ram_quota + 2048, arg_buffer_size, parent_levels);
 	}
 
 	/**

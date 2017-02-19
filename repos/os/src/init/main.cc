@@ -486,7 +486,7 @@ void Init::Main::_handle_config()
 
 			try {
 				_children.insert(new (_heap)
-				                 Init::Child(_env, *_verbose,
+				                 Init::Child(_env, _heap, *_verbose,
 				                             Init::Child::Id { ++_child_cnt },
 				                             _state_reporter,
 				                             start_node, default_route_node,

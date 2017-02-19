@@ -186,7 +186,7 @@ void Root_proxy::_handle_session_request(Xml_node request)
 		catch (Root::Invalid_args) {
 			_env.parent().session_response(id, Parent::INVALID_ARGS); }
 		catch (Root::Quota_exceeded) {
-			_env.parent().session_response(id, Parent::INVALID_ARGS); }
+			_env.parent().session_response(id, Parent::QUOTA_EXCEEDED); }
 		catch (Root::Unavailable) {
 			_env.parent().session_response(id, Parent::INVALID_ARGS); }
 	}

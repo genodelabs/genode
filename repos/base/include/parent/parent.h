@@ -183,6 +183,8 @@ class Genode::Parent
 		 * Request session capability
 		 *
 		 * \throw Service_denied
+		 * \throw Quota_exceeded   session quota does not suffice for
+		 *                         the creation of the new session
 		 *
 		 * In the exception case, the parent implicitly closes the session.
 		 */
@@ -215,7 +217,7 @@ class Genode::Parent
 		 * Interface for providing services
 		 */
 
-		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS };
+		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS, QUOTA_EXCEEDED };
 
 		/**
 		 * Set state of a session provided by the child service

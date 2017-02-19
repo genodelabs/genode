@@ -92,27 +92,7 @@ class Genode::Expanding_parent_client : public Parent_client
 		                           Session_args const &args,
 		                           Affinity     const &affinity) override
 		{
-			enum { NUM_ATTEMPTS = 2 };
-			return retry<Parent::Quota_exceeded>(
-				[&] () { return Parent_client::session(id, name, args, affinity); },
-				[&] () {
-
-					/*
-					 * Request amount of session quota from the parent.
-					 *
-					 * XXX We could deduce the available quota of our
-					 *     own RAM session from the request.
-					 */
-					size_t const ram_quota =
-						Arg_string::find_arg(args.string(), "ram_quota")
-							.ulong_value(0);
-
-					char buf[128];
-					snprintf(buf, sizeof(buf), "ram_quota=%lu", ram_quota);
-
-					resource_request(Resource_args(buf));
-				},
-				NUM_ATTEMPTS);
+			return Parent_client::session(id, name, args, affinity);
 		}
 
 		Upgrade_result upgrade(Client::Id id, Upgrade_args const &args) override

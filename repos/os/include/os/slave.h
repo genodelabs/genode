@@ -213,6 +213,7 @@ class Genode::Slave::Connection_base
 					break;
 
 				case Session_state::INVALID_ARGS:
+				case Session_state::QUOTA_EXCEEDED:
 				case Session_state::AVAILABLE:
 				case Session_state::CAP_HANDED_OUT:
 				case Session_state::CLOSED:

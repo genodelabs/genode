@@ -189,6 +189,8 @@ class Core_child : public Child_policy
 
 		Ram_session           &ref_ram()           { return _core_ram; }
 		Ram_session_capability ref_ram_cap() const { return _core_ram_cap; }
+
+		size_t session_alloc_batch_size() const override { return 128; }
 };
 
 

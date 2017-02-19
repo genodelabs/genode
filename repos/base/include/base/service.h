@@ -130,7 +130,10 @@ class Genode::Local_service : public Service
 			class Denied : Exception { };
 
 			/**
+			 * Create session
+			 *
 			 * \throw Denied
+			 * \throw Quota_exceeded
 			 */
 			virtual SESSION &create(Args const &, Affinity)  = 0;
 
@@ -200,6 +203,8 @@ class Genode::Local_service : public Service
 				}
 				catch (typename Factory::Denied) {
 					session.phase = Session_state::INVALID_ARGS; }
+				catch (Quota_exceeded) {
+					session.phase = Session_state::QUOTA_EXCEEDED; }
 
 				break;
 
@@ -225,6 +230,7 @@ class Genode::Local_service : public Service
 				break;
 
 			case Session_state::INVALID_ARGS:
+			case Session_state::QUOTA_EXCEEDED:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:
@@ -317,6 +323,7 @@ class Genode::Parent_service : public Service
 				break;
 
 			case Session_state::INVALID_ARGS:
+			case Session_state::QUOTA_EXCEEDED:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:

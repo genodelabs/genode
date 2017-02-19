@@ -339,6 +339,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		Env &_env;
 
+		Allocator &_alloc;
+
 		Verbose const &_verbose;
 
 		Id const _id;
@@ -424,9 +426,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 				/*
 				 * If the configured RAM quota exceeds our own quota, we donate
-				 * all remaining quota to the child but we need to count in
-				 * our allocation of the child meta data from the heap.
-				 * Hence, we preserve some of our own quota.
+				 * all remaining quota to the child.
 				 */
 				if (ram_quota > ram_avail) {
 					ram_quota = ram_avail;
@@ -506,12 +506,18 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		/**
 		 * Constructor
 		 *
+		 * \param alloc  allocator solely used for configuration-dependent
+		 *               allocations. It is not used for allocations on behalf
+		 *               of the child's behavior.
+		 *
+		 *
 		 * \throw Ram_session::Alloc_failed  allocation of config buffer failed
 		 * \throw Region_map::Attach_failed  failed to temporarily attach
 		 *                                   config dataspace to local address
 		 *                                   space
 		 */
 		Child(Env                      &env,
+		      Allocator                &alloc,
 		      Verbose            const &verbose,
 		      Id                        id,
 		      Report_update_trigger    &report_update_trigger,
@@ -523,7 +529,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		      Registry<Parent_service> &parent_services,
 		      Registry<Routed_service> &child_services)
 		:
-			_env(env), _verbose(verbose), _id(id),
+			_env(env), _alloc(alloc), _verbose(verbose), _id(id),
 			_report_update_trigger(report_update_trigger),
 			_list_element(this),
 			_start_node(start_node),
@@ -567,24 +573,21 @@ class Init::Child : Child_policy, Child_service::Wakeup
 					if (_verbose.enabled())
 						log("  provides service ", Cstring(name));
 
-					new (_child.heap())
+					new (_alloc)
 						Routed_service(child_services, this->name(),
 						               _session_requester.id_space(),
 						               _child.session_factory(),
 						               name, _child.ram_session_cap(), *this);
-
 				}
 			}
 			catch (Xml_node::Nonexistent_sub_node) { }
-			catch (Genode::Child::Inactive) {
-				error(this->name(), ": incomplete environment at construction time"); }
 		}
 
 		virtual ~Child()
 		{
 			_child_services.for_each([&] (Routed_service &service) {
 				if (service.has_id_space(_session_requester.id_space()))
-					destroy(_child.heap(), &service); });
+					destroy(_alloc, &service); });
 		}
 
 		/**

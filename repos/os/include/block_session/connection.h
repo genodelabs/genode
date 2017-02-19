@@ -31,7 +31,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 	                                    char const *label, Genode::size_t tx_buf_size)
 	{
 		return session(parent, "ram_quota=%ld, tx_buf_size=%ld, label=\"%s\"",
-		               3*4096 + tx_buf_size, tx_buf_size, label);
+		               14*1024 + tx_buf_size, tx_buf_size, label);
 	}
 
 	/**

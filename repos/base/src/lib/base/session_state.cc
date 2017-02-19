@@ -32,6 +32,7 @@ struct Formatted_phase
 		switch (_phase) {
 		case State::CREATE_REQUESTED:   print(output, "CREATE_REQUESTED");  break;
 		case State::INVALID_ARGS:       print(output, "INVALID_ARGS");      break;
+		case State::QUOTA_EXCEEDED:     print(output, "QUOTA_EXCEEDED");    break;
 		case State::AVAILABLE:          print(output, "AVAILABLE");         break;
 		case State::CAP_HANDED_OUT:     print(output, "CAP_HANDED_OUT");    break;
 		case State::UPGRADE_REQUESTED:  print(output, "UPGRADE_REQUESTED"); break;
@@ -86,6 +87,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 		break;
 
 	case INVALID_ARGS:
+	case QUOTA_EXCEEDED:
 	case AVAILABLE:
 	case CAP_HANDED_OUT:
 	case CLOSED:
