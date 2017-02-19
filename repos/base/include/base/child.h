@@ -201,6 +201,16 @@ struct Genode::Child_policy
 	virtual size_t session_alloc_batch_size() const { return 16; }
 
 	/**
+	 * Return true to create the environment sessions at child construction
+	 *
+	 * By returning 'false', it is possible to create 'Child' objects without
+	 * routing of their environment sessions at construction time. Once the
+	 * routing information is available, the child's environment sessions
+	 * must be manually initiated by calling 'Child::initiate_env_sessions()'.
+	 */
+	virtual bool initiate_env_sessions() const { return true; }
+
+	/**
 	 * Return region map for the child's address space
 	 *
 	 * \param pd  the child's PD session capability
@@ -413,11 +423,13 @@ class Genode::Child : protected Rpc_object<Parent>,
 		template <typename CONNECTION>
 		struct Env_connection
 		{
+			Child &_child;
+
+			Id_space<Parent::Client>::Id const _client_id;
+
 			typedef String<64> Label;
 
 			Args const _args;
-
-			Child_policy::Route _route;
 
 			/*
 			 * The 'Env_service' monitors session responses in order to attempt
@@ -456,10 +468,11 @@ class Genode::Child : protected Rpc_object<Parent>,
 				}
 
 				void wakeup() override { _service.wakeup(); }
+			};
 
-			} _env_service;
+			Constructible<Env_service> _env_service;
 
-			Local_connection<CONNECTION> _connection;
+			Constructible<Local_connection<CONNECTION> > _connection;
 
 			/**
 			 * Construct session arguments with the child policy applied
@@ -485,18 +498,34 @@ class Genode::Child : protected Rpc_object<Parent>,
 			Env_connection(Child &child, Id_space<Parent::Client>::Id id,
 			               Label const &label = Label())
 			:
-				_args(_construct_args(child._policy, label)),
-				_route(child._resolve_session_request(child._policy, _service_name(),
-				                                      _args.string())),
-				_env_service(child, _route.service),
-				_connection(_env_service, child._id_space, id, _args,
-				            child._policy.filter_session_affinity(Affinity()))
+				_child(child), _client_id(id),
+				_args(_construct_args(child._policy, label))
 			{ }
+
+			/**
+			 * Initiate routing and creation of the environment session
+			 */
+			void initiate()
+			{
+				/* don't attempt to initiate env session twice */
+				if (_connection.constructed())
+					return;
+
+				Child_policy::Route const route =
+					_child._resolve_session_request(_child._policy,
+					                                _service_name(),
+					                                _args.string());
+
+				_env_service.construct(_child, route.service);
+				_connection.construct(*_env_service, _child._id_space, _client_id,
+				                      _args, _child._policy.filter_session_affinity(Affinity()));
+			}
 
 			typedef typename CONNECTION::Session_type SESSION;
 
-			SESSION             &session()  { return _connection.session(); }
-			Capability<SESSION> cap() const { return _connection.cap(); }
+			SESSION &session() { return _connection->session(); }
+
+			Capability<SESSION> cap() const { return _connection->cap(); }
 		};
 
 		Env_connection<Ram_connection> _ram    { *this, Env::ram(),    _policy.name() };
@@ -568,6 +597,18 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * of the binary could not be obtained.
 		 */
 		bool active() const { return _process.constructed(); }
+
+		/**
+		 * Initialize the child's RAM session
+		 */
+		void initiate_env_ram_session();
+
+		/**
+		 * Trigger the routing and creation of the child's environment session
+		 *
+		 * See the description of 'Child_policy::initiate_env_sessions'.
+		 */
+		void initiate_env_sessions();
 
 		/**
 		 * RAM quota unconditionally consumed by the child's environment

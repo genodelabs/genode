@@ -108,10 +108,7 @@ class Genode::Service : Noncopyable
 		/**
 		 * Return the RAM session to be used for trading resources
 		 */
-		Ram_session_capability ram() const
-		{
-			return _ram;
-		}
+		virtual Ram_session_capability ram() const { return _ram; }
 };
 
 
