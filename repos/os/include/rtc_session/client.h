@@ -5,11 +5,11 @@
  */
 
 /*
- * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013-14 Genode Labs GmbH
+ * Copyright (C) 2012      Intel Corporation
+ * Copyright (C) 2013-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU General Public License version 2.
+ * under the terms of the GNU Affero General Public License version 3.
  */
 
 #ifndef _INCLUDE__RTC_SESSION__CLIENT_H_

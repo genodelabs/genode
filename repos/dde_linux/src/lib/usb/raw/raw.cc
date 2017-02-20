@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Server side USB session implementation
  * \author Sebastian Sumpf
  * \date   2014-12-08
@@ -7,8 +7,8 @@
 /*
  * Copyright (C) 2014-2017 Genode Labs GmbH
  *
- * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU General Public License version 2.
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
  */
 
 #include <base/log.h>

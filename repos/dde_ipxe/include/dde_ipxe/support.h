@@ -2,14 +2,13 @@
  * \brief  DDE iPXE SUPPORT API
  * \author Josef Soentgen
  * \date   2017-02-08
- *
  */
 
 /*
  * Copyright (C) 2017 Genode Labs GmbH
  *
- * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU General Public License version 2.
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
  */
 
 #ifndef _DDE_IPXE__SUPPORT_H_
