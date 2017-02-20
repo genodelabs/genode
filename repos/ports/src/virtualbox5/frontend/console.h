@@ -111,20 +111,19 @@ class GenodeConsole : public Console {
 
 	private:
 
-		Input::Connection                         _input;
-		Genode::Signal_receiver                   _receiver;
-		unsigned                                  _ax, _ay;
-		bool                                      _last_received_motion_event_was_absolute;
-		Report::Connection                        _shape_report_connection;
-		Genode::Attached_dataspace                _shape_report_ds;
-		Vbox_pointer::Shape_report               *_shape_report;
-		Genode::Reporter                         *_clipboard_reporter;
-		Genode::Attached_rom_dataspace           *_clipboard_rom;
-		IKeyboard                                *_vbox_keyboard;
-		IMouse                                   *_vbox_mouse;
-		Genode::Signal_dispatcher<GenodeConsole>  _input_signal_dispatcher;
-		Genode::Signal_dispatcher<GenodeConsole>  _mode_change_signal_dispatcher;
-		Genode::Signal_dispatcher<GenodeConsole>  _clipboard_signal_dispatcher;
+		Input::Connection                      _input;
+		unsigned                               _ax, _ay;
+		bool                                   _last_received_motion_event_was_absolute;
+		Report::Connection                     _shape_report_connection;
+		Genode::Attached_dataspace             _shape_report_ds;
+		Vbox_pointer::Shape_report            *_shape_report;
+		Genode::Reporter                      *_clipboard_reporter;
+		Genode::Attached_rom_dataspace        *_clipboard_rom;
+		IKeyboard                             *_vbox_keyboard;
+		IMouse                                *_vbox_mouse;
+		Genode::Signal_handler<GenodeConsole>  _input_signal_dispatcher;
+		Genode::Signal_handler<GenodeConsole>  _mode_change_signal_dispatcher;
+		Genode::Signal_handler<GenodeConsole>  _clipboard_signal_dispatcher;
 
 		bool _key_status[Input::KEY_MAX + 1];
 
@@ -151,9 +150,9 @@ class GenodeConsole : public Console {
 			_clipboard_rom(nullptr),
 			_vbox_keyboard(0),
 			_vbox_mouse(0),
-			_input_signal_dispatcher(_receiver, *this, &GenodeConsole::handle_input),
-			_mode_change_signal_dispatcher(_receiver, *this, &GenodeConsole::handle_mode_change),
-			_clipboard_signal_dispatcher(_receiver, *this, &GenodeConsole::handle_cb_rom_change)
+			_input_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_input),
+			_mode_change_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_mode_change),
+			_clipboard_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_cb_rom_change)
 		{
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 				_key_status[i] = 0;
@@ -163,7 +162,7 @@ class GenodeConsole : public Console {
 
 		void init_clipboard();
 
-		void event_loop(IKeyboard * gKeyboard, IMouse * gMouse);
+		void init_backends(IKeyboard * gKeyboard, IMouse * gMouse);
 
 		void i_onMouseCapabilityChange(BOOL supportsAbsolute,
 		                               BOOL supportsRelative, BOOL supportsMT,
@@ -229,7 +228,7 @@ class GenodeConsole : public Console {
 
 		void update_video_mode();
 
-		void handle_input(unsigned);
-		void handle_mode_change(unsigned);
-		void handle_cb_rom_change(unsigned);
+		void handle_input();
+		void handle_mode_change();
+		void handle_cb_rom_change();
 };
