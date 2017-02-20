@@ -99,13 +99,13 @@ HRESULT setupmachine(Genode::Env &env)
 	static com::Utf8Str vm_name(c_vbox_vmname);
 
 	/* Machine object */
-	ComObjPtr<Machine> machine;
+	static ComObjPtr<Machine> machine;
 	rc = machine.createObject();
 	if (FAILED(rc))
 		return rc;
 
 	/* Virtualbox object */
-	ComObjPtr<VirtualBox> virtualbox;
+	static ComObjPtr<VirtualBox> virtualbox;
 	rc = virtualbox.createObject();
 	if (FAILED(rc))
 		return rc;
@@ -125,7 +125,7 @@ HRESULT setupmachine(Genode::Env &env)
 		return rc;
 
 	// open a session
-	ComObjPtr<Session> session;
+	static ComObjPtr<Session> session;
 	rc = session.createObject();
 	if (FAILED(rc))
 		return rc;
@@ -157,17 +157,17 @@ HRESULT setupmachine(Genode::Env &env)
 	}
 
 	/* Console object */
-	ComPtr<IConsole> gConsole;
+	static ComPtr<IConsole> gConsole;
 	rc = session->COMGETTER(Console)(gConsole.asOutParam());
 
 	/* handle input of Genode and forward it to VMM layer */
-	ComPtr<GenodeConsole> genodeConsole = gConsole;
+	static ComPtr<GenodeConsole> genodeConsole = gConsole;
 	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
 
 	genodeConsole->init_clipboard();
 
 	/* Display object */
-	ComPtr<IDisplay> display;
+	static ComPtr<IDisplay> display;
 	rc = gConsole->COMGETTER(Display)(display.asOutParam());
 	if (FAILED(rc))
 		return rc;
@@ -213,16 +213,15 @@ HRESULT setupmachine(Genode::Env &env)
 	Assert (&*gMouse);
 
 	/* request keyboard object */
-	ComPtr<IKeyboard> gKeyboard;
+	static ComPtr<IKeyboard> gKeyboard;
 	rc = gConsole->COMGETTER(Keyboard)(gKeyboard.asOutParam());
 	if (FAILED(rc))
 		return rc;
 	Assert (&*gKeyboard);
 
-	genodeConsole->event_loop(gKeyboard, gMouse);
+	genodeConsole->init_backends(gKeyboard, gMouse);
 
-	Assert(!"return not expected");
-	return E_FAIL;
+	return rc;
 }
 
 
@@ -284,6 +283,4 @@ void Libc::Component::construct(Libc::Env &env)
 			throw -2;
 		}
 	});
-
-	Genode::error("VMM exiting ...");
 }
