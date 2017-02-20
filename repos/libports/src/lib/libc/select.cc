@@ -269,9 +269,19 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		Timeout(timeval *tv) : _tv(tv) { }
 	} timeout { tv };
 
-	do {
-		timeout.duration = Libc::suspend(timeout.duration);
-	} while (!timeout.expired() && select_cb->nready == 0);
+	struct Check : Libc::Suspend_functor {
+		struct Timeout  *timeout;
+		Libc::Select_cb *select_cb;
+
+		Check(Timeout *timeout, Libc::Select_cb * select_cb)
+		: timeout(timeout), select_cb(select_cb) { }
+
+		bool suspend() override {
+			return !timeout->expired() && select_cb->nready == 0; }
+	} check ( &timeout, &*select_cb );
+
+	while (!timeout.expired() && select_cb->nready == 0)
+		timeout.duration = Libc::suspend(check, timeout.duration);
 
 	select_cb_list.remove(&(*select_cb));
 

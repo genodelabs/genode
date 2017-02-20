@@ -290,24 +290,61 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 }
 
 
+typedef Vfs::File_io_service::Read_result Result;
+
+struct Read_check : Libc::Suspend_functor {
+	Vfs::Vfs_handle * handle;
+	void            * buf;
+	::size_t        * count;
+	Vfs::file_size  * out_count;
+	Result          * out_result;
+
+	Read_check(Vfs::Vfs_handle * handle, void * buf, ::size_t * count,
+	           Vfs::file_size  * out_count, Result * out_result)
+	: handle(handle), buf(buf), count(count), out_count(out_count),
+	  out_result(out_result)
+	{ }
+};
+
 ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
                                ::size_t count)
 {
-	typedef Vfs::File_io_service::Read_result Result;
-
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
 	Vfs::file_size out_count  = 0;
 	Result         out_result = Result::READ_OK;
 
 	while (!handle->fs().queue_read(handle, (char *)buf, count,
-	                                out_result, out_count))
-		Libc::suspend();
+	                                out_result, out_count)) {
+		struct Check : Read_check {
+			Check(Vfs::Vfs_handle * handle, void * buf, ::size_t * count,
+			      Vfs::file_size * out_count, Result * out_result)
+			: Read_check (handle, buf, count, out_count, out_result) { }
+
+			bool suspend() override {
+				return !handle->fs().queue_read(handle, (char *)buf, *count,
+				                                *out_result, *out_count); }
+		} check ( handle, buf, &count, &out_count, &out_result);
+
+		Libc::suspend(check);
+	}
 
 	while (out_result == Result::READ_QUEUED) {
-		out_result = handle->fs().complete_read(handle, (char *)buf, count, out_count);
-		if (out_result == Result::READ_QUEUED)
-			Libc::suspend();
+
+		struct Check : Read_check {
+			Check(Vfs::Vfs_handle * handle, void * buf, ::size_t * count,
+			      Vfs::file_size * out_count, Result * out_result)
+			: Read_check (handle, buf, count, out_count, out_result) { }
+
+			bool suspend() override {
+				*out_result = handle->fs().complete_read(handle, (char *)buf,
+				                                         *count, *out_count);
+				/* suspend me if read is still queued */
+				return *out_result == Result::READ_QUEUED;
+			}
+		} check ( handle, buf, &count, &out_count, &out_result);
+
+		Libc::suspend(check);
 	}
 
 	switch (out_result) {
@@ -788,8 +825,15 @@ int Libc::Vfs_plugin::select(int nfds,
 				FD_SET(fd, readfds);
 				++nready;
 			} else {
+				struct Check : Libc::Suspend_functor {
+					Vfs::Vfs_handle * handle;
+					Check(Vfs::Vfs_handle * handle) : handle (handle) { }
+					bool suspend() override {
+						return !handle->fs().notify_read_ready(handle); }
+				} check ( handle );
+
 				while (!handle->fs().notify_read_ready(handle))
-					Libc::suspend();
+					Libc::suspend(check);
 			}
 		}
 
