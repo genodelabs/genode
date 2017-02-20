@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  ARM specific implemenations used on all SOCs
  * \author Sebastian Sumpf
  * \date   2016-04-25
@@ -7,8 +7,8 @@
 /*
  * Copyright (C) 2016-2017 Genode Labs GmbH
  *
- * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU General Public License version 2.
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
  */
 
 #include <lx_emul/irq.h>

@@ -6,11 +6,11 @@
  */
 
 /*
+ * Copyright (C) 2011-2017 Genode Labs GmbH
  * Copyright (C) 2014 Ksys Labs LLC
- * Copyright (C) 2011-2013 Genode Labs GmbH
  *
- * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU General Public License version 2.
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
  */
 
 /* Linux kernel API */
