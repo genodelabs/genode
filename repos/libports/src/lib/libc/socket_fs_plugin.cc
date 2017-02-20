@@ -283,8 +283,15 @@ static int read_sockaddr_in(int read_fd, Socket_context *context,
 	if (!addrlen || *addrlen <= 0) return Errno(EINVAL);
 	if (read_fd == -1)             return Errno(ENOTCONN);
 
+	struct Check : Libc::Suspend_functor {
+		Socket_context *context;
+		Check (Socket_context *context) : context (context) { }
+		bool suspend() override {
+			return !context->remote_read_ready(); }
+	} check ( context );
+
 	while (block_for_read && !context->remote_read_ready())
-		Libc::suspend();
+		Libc::suspend(check);
 
 	Sockaddr_string addr_string;
 	int const n = read(read_fd, addr_string.base(), addr_string.capacity() - 1);

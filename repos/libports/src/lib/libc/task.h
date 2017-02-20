@@ -47,7 +47,8 @@ namespace Libc {
 	 * or as separate pthread. This function returns after the libc kernel
 	 * resumed the user context execution.
 	 */
-	unsigned long suspend(unsigned long timeout_ms = 0UL);
+	struct Suspend_functor { virtual bool suspend() = 0; };
+	unsigned long suspend(Suspend_functor &, unsigned long timeout_ms = 0UL);
 
 	/**
 	 * Get time since startup in ms

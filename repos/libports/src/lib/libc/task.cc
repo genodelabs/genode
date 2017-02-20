@@ -280,7 +280,7 @@ struct Libc::Pthreads
 			p->lock.unlock();
 	}
 
-	unsigned long suspend_myself(unsigned long timeout_ms)
+	unsigned long suspend_myself(Suspend_functor & check, unsigned long timeout_ms)
 	{
 		Pthread myself { timer_accessor, timeout_ms };
 		{
@@ -289,7 +289,10 @@ struct Libc::Pthreads
 			myself.next = pthreads;
 			pthreads    = &myself;
 		}
-		myself.lock.lock();
+
+		if (check.suspend())
+			myself.lock.lock();
+
 		{
 			Genode::Lock::Guard g(mutex);
 
@@ -449,9 +452,13 @@ struct Libc::Kernel
 		 */
 		static void _user_entry(Libc::Kernel *kernel)
 		{
+			struct Check : Suspend_functor {
+				bool suspend() override { return true; }
+			} check;
+
 			kernel->_app_code->execute();
 			kernel->_app_returned = true;
-			kernel->_suspend_main(0);
+			kernel->_suspend_main(check, 0);
 		}
 
 		bool _main_context() const { return &_myself == Genode::Thread::myself(); }
@@ -484,8 +491,12 @@ struct Libc::Kernel
 			_longjmp(_user_context, 1);
 		}
 
-		unsigned long _suspend_main(unsigned long timeout_ms)
+		unsigned long _suspend_main(Suspend_functor &check,
+		                            unsigned long timeout_ms)
 		{
+			if (!check.suspend())
+				return 0;
+
 			if (timeout_ms > 0)
 				_main_timeout.timeout(timeout_ms);
 
@@ -562,7 +573,7 @@ struct Libc::Kernel
 		/**
 		 * Suspend this context (main or pthread)
 		 */
-		unsigned long suspend(unsigned long timeout_ms)
+		unsigned long suspend(Suspend_functor &check, unsigned long timeout_ms)
 		{
 			if (timeout_ms > 0
 			 && timeout_ms > _timer_accessor.timer().max_timeout()) {
@@ -573,8 +584,8 @@ struct Libc::Kernel
 				timeout_ms = min(timeout_ms, _timer_accessor.timer().max_timeout());
 			}
 
-			return _main_context() ? _suspend_main(timeout_ms)
-			                       : _pthreads.suspend_myself(timeout_ms);
+			return _main_context() ? _suspend_main(check, timeout_ms)
+			                       : _pthreads.suspend_myself(check, timeout_ms);
 		}
 
 		unsigned long current_time()
@@ -669,11 +680,11 @@ static void resumed_callback() { kernel->entrypoint_resumed(); }
 void Libc::resume_all() { kernel->resume_all(); }
 
 
-unsigned long Libc::suspend(unsigned long timeout_ms)
+unsigned long Libc::suspend(Suspend_functor &s,
+                             unsigned long timeout_ms)
 {
-	return kernel->suspend(timeout_ms);
+	return kernel->suspend(s, timeout_ms);
 }
-
 
 unsigned long Libc::current_time()
 {
