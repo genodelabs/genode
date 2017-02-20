@@ -1,0 +1,60 @@
+set build_components {
+	core init drivers/timer test/libc_with_libc
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>}
+
+append_platform_drv_config
+
+append config {
+	<start name="test-libc_with_libc">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log"/>
+		</config>
+	</start>
+</config>}
+
+install_config $config
+
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so
+	test-libc_with_libc
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -m 64 "
+
+run_genode_until ".*finished with_libc tests.*\n" 10

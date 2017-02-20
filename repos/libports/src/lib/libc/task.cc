@@ -370,6 +370,8 @@ struct Libc::Kernel
 
 		State _state = KERNEL;
 
+		Application_code *_nested_app_code = nullptr;
+
 		Application_code *_app_code     = nullptr;
 		bool              _app_returned = false;
 
@@ -507,6 +509,25 @@ struct Libc::Kernel
 				_valid_user_context = false;
 			}
 
+			/*
+			 * During the supension of the application code a nested
+			 * Libc::with_libc() call took place, which will be executed
+			 * before returning to the first Libc::with_libc() call.
+			 */
+			if (_nested_app_code) {
+
+				/*
+				 * We have to explicitly set the user context back to true
+				 * because we are borrowing it to execute our nested application
+				 * code.
+				 */
+				_valid_user_context = true;
+
+				_nested_app_code->execute();
+				_nested_app_code = nullptr;
+				_longjmp(_kernel_context, 1);
+			}
+
 			return timeout_ms > 0 ? _main_timeout.duration_left() : 0;
 		}
 
@@ -547,6 +568,7 @@ struct Libc::Kernel
 
 			while (!_app_returned) {
 				_env.ep().wait_and_dispatch_one_signal();
+
 				if (_resume_main_once && !_setjmp(_kernel_context))
 					_switch_to_user();
 			}
@@ -643,6 +665,23 @@ struct Libc::Kernel
 
 			_resume_main();
 		}
+
+		/**
+		 * Return if main is currently suspended
+		 */
+		bool main_suspended() { return _state == KERNEL; }
+
+		/**
+		 * Execute application code while already executing in run()
+		 */
+		void nested_execution(Libc::Application_code &app_code)
+		{
+			_nested_app_code = &app_code;
+
+			if (!_setjmp(_kernel_context)) {
+				_switch_to_user();
+			}
+		}
 };
 
 
@@ -722,7 +761,12 @@ void Libc::execute_in_application_context(Libc::Application_code &app_code)
 	static bool nested = false;
 
 	if (nested) {
-		error("nested call of with_libc() detected");
+
+		if (kernel->main_suspended()) {
+			kernel->nested_execution(app_code);
+		} else {
+			app_code.execute();
+		}
 		return;
 	}
 
