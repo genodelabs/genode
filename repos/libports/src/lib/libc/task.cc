@@ -342,11 +342,14 @@ struct Libc::Kernel
 {
 	private:
 
-		Genode::Env        &_env;
-		Genode::Heap        _heap { _env.ram(), _env.rm() };
-		Io_response_handler _io_response_handler;
-		Env_implementation  _libc_env { _env, _heap, _io_response_handler };
-		Vfs_plugin          _vfs { _libc_env, _heap };
+		Genode::Env         &_env;
+		Genode::Heap         _heap { _env.ram(), _env.rm() };
+		Io_response_handler  _io_response_handler;
+		Env_implementation   _libc_env { _env, _heap, _io_response_handler };
+		Vfs_plugin           _vfs { _libc_env, _heap };
+
+		Genode::Reconstructible<Genode::Signal_handler<Kernel>> _resume_main_handler {
+			_env.ep(), *this, &Kernel::_resume_main };
 
 		jmp_buf _kernel_context;
 		jmp_buf _user_context;
@@ -547,7 +550,10 @@ struct Libc::Kernel
 				if (_scheduled_select_handler)
 					_scheduled_select_handler->dispatch_select();
 			} else {
-				_resume_main();
+				if (_main_context())
+					_resume_main();
+				else
+					Genode::Signal_transmitter(*_resume_main_handler).submit();
 			}
 
 			_pthreads.resume_all();
@@ -612,6 +618,8 @@ struct Libc::Kernel
 		 */
 		void entrypoint_suspended()
 		{
+			_resume_main_handler.destruct();
+
 			_original_suspended_callback();
 		}
 
@@ -620,6 +628,8 @@ struct Libc::Kernel
 		 */
 		void entrypoint_resumed()
 		{
+			_resume_main_handler.construct(_env.ep(), *this, &Kernel::_resume_main);
+
 			_resume_main();
 		}
 };
