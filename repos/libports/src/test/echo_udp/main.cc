@@ -50,22 +50,44 @@ int main(void)
 {
 	int udp_sock;
 	int rv = 0;
+	int err = 0;
 	ssize_t numbytes;
 	struct sockaddr_in their_addr;
 	char buf[MAXBUFLEN];
 	socklen_t addr_len;
+	struct sockaddr_in const addr = { 0, AF_INET, htons(ECHO_PORT), { INADDR_ANY } };
+
+	Genode::log("Create, bind, and close test...");
+	unsigned i = 0;
+	for (; i < 10000; i++) {
+
+		udp_sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (udp_sock < 0) {
+			Genode::log("create failed with error ", udp_sock);
+			return errno;
+		}
+		err = bind(udp_sock, (struct sockaddr*)&addr, sizeof(addr));
+		if (err) {
+			Genode::log("bind failed with error ", err);
+			return errno;
+		}
+		err = close(udp_sock);
+		if (err) {
+			Genode::log("close failed with error ", err);
+			return errno;
+		}
+	}
+	Genode::log("Create, bind, and close test succeeded");
+	Genode::log("UDP echo test...");
 
 	udp_sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (udp_sock < 0) {
-		Genode::log("socket failed");
+		Genode::log("create failed with error ", udp_sock);
 		return errno;
 	}
-
-	struct sockaddr_in const addr = { 0, AF_INET, htons(ECHO_PORT), { INADDR_ANY } };
-
-	if (bind(udp_sock, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-		close(udp_sock);
-		Genode::log("bind failed");
+	err = bind(udp_sock, (struct sockaddr*)&addr, sizeof(addr));
+	if (err) {
+		Genode::log("bind failed with error ", err);
 		return errno;
 	}
 
