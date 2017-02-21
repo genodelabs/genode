@@ -384,7 +384,7 @@ class Init::State_reporter : public Report_update_trigger
 };
 
 
-struct Init::Main : State_reporter::Producer
+struct Init::Main : State_reporter::Producer, Child::Default_route_accessor
 {
 	Env &_env;
 
@@ -398,6 +398,8 @@ struct Init::Main : State_reporter::Producer
 
 	Reconstructible<Verbose> _verbose { _config.xml() };
 
+	Constructible<Buffered_xml> _default_route;
+
 	unsigned _child_cnt = 0;
 
 	void _handle_resource_avail() { }
@@ -409,6 +411,15 @@ struct Init::Main : State_reporter::Producer
 
 		if (detail.children())
 			_children.report_state(xml, detail);
+	}
+
+	/**
+	 * Default_route_accessor interface
+	 */
+	Xml_node default_route() override
+	{
+		return _default_route.constructed() ? _default_route->xml()
+		                                    : Xml_node("<empty/>");
 	}
 
 	State_reporter _state_reporter { _env, *this };
@@ -463,10 +474,8 @@ void Init::Main::_handle_config()
 	catch (...) { }
 
 	/* determine default route for resolving service requests */
-	Xml_node default_route_node("<empty/>");
 	try {
-		default_route_node =
-		_config.xml().sub_node("default-route"); }
+		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
 	catch (...) { }
 
 	/* create aliases */
@@ -489,7 +498,7 @@ void Init::Main::_handle_config()
 				                 Init::Child(_env, _heap, *_verbose,
 				                             Init::Child::Id { ++_child_cnt },
 				                             _state_reporter,
-				                             start_node, default_route_node,
+				                             start_node, *this,
 				                             _children, read_prio_levels(_config.xml()),
 				                             read_affinity_space(_config.xml()),
 				                             _parent_services, _child_services));
@@ -500,6 +509,8 @@ void Init::Main::_handle_config()
 				 * by the Rom_connection constructor.
 				 */
 			}
+			catch (Allocator::Out_of_memory) {
+				warning("local memory exhausted during child creation"); }
 			catch (Ram_session::Alloc_failed) {
 				warning("failed to allocate memory during child construction"); }
 			catch (Child::Missing_name_attribute) {
