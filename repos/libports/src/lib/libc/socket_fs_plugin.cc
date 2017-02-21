@@ -627,6 +627,11 @@ extern "C" int socket_fs_shutdown(int libc_fd, int how)
 {
 	/* TODO ENOTCONN */
 
+	if (how != SHUT_RDWR) {
+		Genode::error("function '", __func__ , "' only implemented for 'how",
+		              "value 'SHUT_RDWR'");
+	}
+
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd)
 		return Errno(EBADF);
