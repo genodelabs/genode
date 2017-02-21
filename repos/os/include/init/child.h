@@ -22,12 +22,13 @@
 
 /* init includes */
 #include <init/verbose.h>
-#include <init/child_config.h>
 #include <init/child_policy.h>
 #include <init/report.h>
 
 namespace Init {
 
+	class Abandonable;
+	class Parent_service;
 	class Buffered_xml;
 	class Routed_service;
 	class Name_registry;
@@ -37,8 +38,6 @@ namespace Init {
 	using namespace Genode;
 	using Genode::size_t;
 	using Genode::strlen;
-
-	typedef Genode::Registered<Genode::Parent_service> Parent_service;
 }
 
 
@@ -226,8 +225,8 @@ namespace Init {
 
 
 	template <typename T>
-	inline Service *find_service(Registry<T> &services,
-	                             Service::Name const &name)
+	inline T *find_service(Registry<T> &services,
+	                       Service::Name const &name)
 	{
 		T *service = nullptr;
 		services.for_each([&] (T &s) {
@@ -251,6 +250,36 @@ namespace Init {
 		xml.attribute("avail", Value(Number_of_bytes(ram_nonconst.avail())));
 	}
 }
+
+
+class Init::Abandonable
+{
+	private:
+
+		bool _abandoned = false;
+
+	public:
+
+		void abandon() { _abandoned = true; }
+
+		bool abandoned() const { return _abandoned; }
+};
+
+
+class Init::Parent_service : public Genode::Parent_service, public Abandonable
+{
+	private:
+
+		Registry<Parent_service>::Element _reg_elem;
+
+	public:
+
+		Parent_service(Registry<Parent_service> &registry, Env &env,
+		               Service::Name const &name)
+		:
+			Genode::Parent_service(env, name), _reg_elem(registry, *this)
+		{ }
+};
 
 
 class Init::Buffered_xml
@@ -292,15 +321,19 @@ class Init::Buffered_xml
 /**
  * Init-specific representation of a child service
  */
-class Init::Routed_service : public Child_service
+class Init::Routed_service : public Child_service, public Abandonable
 {
 	public:
 
 		typedef Child_policy::Name Child_name;
 
+		struct Ram_accessor { virtual Ram_session_capability ram() const = 0; };
+
 	private:
 
 		Child_name _child_name;
+
+		Ram_accessor &_ram_accessor;
 
 		Registry<Routed_service>::Element _registry_element;
 
@@ -316,17 +349,21 @@ class Init::Routed_service : public Child_service
 		 */
 		Routed_service(Registry<Routed_service>         &services,
 		               Child_name                 const &child_name,
+		               Ram_accessor                     &ram_accessor,
 		               Id_space<Parent::Server>         &server_id_space,
 		               Session_state::Factory           &factory,
 		               Service::Name              const &name,
-		               Ram_session_capability            ram,
 		               Child_service::Wakeup            &wakeup)
 		:
-			Child_service(server_id_space, factory, name, ram, wakeup),
-			_child_name(child_name), _registry_element(services, *this)
+			Child_service(server_id_space, factory, name,
+			              Ram_session_capability(), wakeup),
+			_child_name(child_name), _ram_accessor(ram_accessor),
+			_registry_element(services, *this)
 		{ }
 
 		Child_name const &child_name() const { return _child_name; }
+
+		Ram_session_capability ram() const { return _ram_accessor.ram(); }
 };
 
 
@@ -386,6 +423,11 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Verbose const &_verbose;
 
 		Id const _id;
+
+		enum State { STATE_INITIAL, STATE_RAM_INITIALIZED, STATE_ALIVE,
+		             STATE_ABANDONED };
+
+		State _state = STATE_INITIAL;
 
 		Report_update_trigger &_report_update_trigger;
 
@@ -525,10 +567,52 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Registry<Parent_service> &_parent_services;
 		Registry<Routed_service> &_child_services;
 
-		/**
-		 * Private child configuration
-		 */
-		Init::Child_config _config;
+		struct Inline_config_rom_service : Abandonable, Dynamic_rom_session::Content_producer
+		{
+			typedef Local_service<Dynamic_rom_session> Service;
+
+			Child &_child;
+
+			Dynamic_rom_session _session { _child._env.ep().rpc_ep(),
+			                               _child.ref_ram(), _child._env.rm(),
+			                               *this };
+
+			Service::Single_session_factory _factory { _session };
+			Service                         _service { _factory };
+
+			Inline_config_rom_service(Child &child) : _child(child) { }
+
+			/**
+			 * Dynamic_rom_session::Content_producer interface
+			 */
+			void produce_content(char *dst, Genode::size_t dst_len) override
+			{
+				Xml_node config = _child._start_node->xml().has_sub_node("config")
+				                ? _child._start_node->xml().sub_node("config")
+				                : Xml_node("<config/>");
+
+				size_t const config_len = config.size();
+
+				if (config_len + 1 /* null termination */ >= dst_len)
+					throw Buffer_capacity_exceeded();
+
+				/*
+				 * The 'config.size()' method returns the number of bytes of
+				 * the config-node content, which is not null-terminated. Since
+				 * 'Genode::strncpy' always null-terminates the result, the
+				 * last byte of the source string is not copied. Hence, it is
+				 * safe to add '1' to 'config_len' and thereby include the
+				 * last actual config-content character in the result.
+				 */
+				Genode::strncpy(dst, config.addr(), config_len + 1);
+			}
+
+			void trigger_update() { _session.trigger_update(); }
+
+			Service &service() { return _service; }
+		};
+
+		Constructible<Inline_config_rom_service> _config_rom_service;
 
 		Session_requester _session_requester;
 
@@ -536,11 +620,17 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 * Policy helpers
 		 */
 		Init::Child_policy_handle_cpu_priorities _priority_policy;
-		Init::Child_policy_provide_rom_file      _config_policy;
-		Init::Child_policy_redirect_rom_file     _configfile_policy;
 		Init::Child_policy_ram_phys              _ram_session_policy;
 
 		Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
+
+		struct Ram_accessor : Routed_service::Ram_accessor
+		{
+			Genode::Child &_child;
+			Ram_accessor(Genode::Child &child) : _child(child) { }
+			Ram_session_capability ram() const override {
+				return _child.ram_session_cap(); }
+		} _ram_accessor { _child };
 
 		/**
 		 * Child_service::Wakeup callback
@@ -548,6 +638,26 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		void wakeup_child_service() override
 		{
 			_session_requester.trigger_update();
+		}
+
+		/**
+		 * Return true if the policy results in the current route of the session
+		 *
+		 * This method is used to check if a policy change affects an existing
+		 * client session of a child, i.e., to determine whether the child must
+		 * be restarted.
+		 */
+		bool _route_valid(Session_state const &session)
+		{
+			try {
+				Route const route =
+					resolve_session_request(session.service().name(),
+					                        session.client_label());
+
+				return (session.service() == route.service)
+				    && (route.label == session.label());
+			}
+			catch (Parent::Service_denied) { return false; }
 		}
 
 	public:
@@ -591,11 +701,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			           avail_slack_ram_quota(_env.ram().avail()), _verbose),
 			_parent_services(parent_services),
 			_child_services(child_services),
-			_config(_env.ram(), _env.rm(), start_node),
 			_session_requester(_env.ep().rpc_ep(), _env.ram(), _env.rm()),
 			_priority_policy(_resources.prio_levels_log2, _resources.priority),
-			_config_policy("config", _config.dataspace(), &_env.ep().rpc_ep()),
-			_configfile_policy("config", _config.filename()),
 			_ram_session_policy(_resources.constrain_phys)
 		{
 			if (_resources.ram_quota == 0)
@@ -624,13 +731,19 @@ class Init::Child : Child_policy, Child_service::Wakeup
 						log("  provides service ", Cstring(name));
 
 					new (_alloc)
-						Routed_service(child_services, this->name(),
+						Routed_service(child_services, this->name(), _ram_accessor,
 						               _session_requester.id_space(),
 						               _child.session_factory(),
-						               name, _child.ram_session_cap(), *this);
+						               name, *this);
 				}
 			}
 			catch (Xml_node::Nonexistent_sub_node) { }
+
+			/*
+			 * Construct inline config ROM service if "config" node is present.
+			 */
+			if (start_node.has_sub_node("config"))
+				_config_rom_service.construct(*this);
 		}
 
 		virtual ~Child()
@@ -644,6 +757,125 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 * Return true if the child has the specified name
 		 */
 		bool has_name(Child_policy::Name const &str) const { return str == name(); }
+
+		void initiate_env_ram_session()
+		{
+			if (_state == STATE_INITIAL) {
+				_child.initiate_env_ram_session();
+				_state = STATE_RAM_INITIALIZED;
+			}
+		}
+
+		void initiate_env_sessions()
+		{
+			if (_state == STATE_RAM_INITIALIZED) {
+
+				_child.initiate_env_sessions();
+
+				/* check for completeness of the child's environment */
+				if (_verbose.enabled())
+					_child.for_each_session([&] (Session_state const &session) {
+						if (session.phase != Session_state::AVAILABLE)
+							warning(name(), ": incomplete environment ",
+							        session.service().name(), " session "
+							        "(", session.label(), ")"); });
+
+				_state = STATE_ALIVE;
+			}
+		}
+
+		void abandon()
+		{
+			_state = STATE_ABANDONED;
+
+			_child_services.for_each([&] (Routed_service &service) {
+				if (service.has_id_space(_session_requester.id_space()))
+					service.abandon(); });
+		}
+
+		bool abandoned() const { return _state == STATE_ABANDONED; }
+
+		enum Apply_config_result { MAY_HAVE_SIDE_EFFECTS, NO_SIDE_EFFECTS };
+
+		/**
+		 * Apply new configuration to child
+		 *
+		 * \throw Allocator::Out_of_memory  unable to allocate buffer for new
+		 *                                  config
+		 */
+		Apply_config_result apply_config(Xml_node start_node)
+		{
+			Child_policy &policy = *this;
+
+			if (_state == STATE_ABANDONED)
+				return NO_SIDE_EFFECTS;
+
+			enum Config_update { CONFIG_APPEARED, CONFIG_VANISHED,
+			                     CONFIG_CHANGED,  CONFIG_UNCHANGED };
+
+			Config_update config_update = CONFIG_UNCHANGED;
+
+			/* import new start node if new version differs */
+			if (start_node.size() != _start_node->xml().size() ||
+			    Genode::memcmp(start_node.addr(), _start_node->xml().addr(),
+			                   start_node.size()) != 0)
+			{
+				/*
+				 * Start node changed
+				 *
+				 * Determine how the inline config is affected.
+				 */
+				char const * const tag = "config";
+				bool const config_was_present = _start_node->xml().has_sub_node(tag);
+				bool const config_is_present  = start_node.has_sub_node(tag);
+
+				if (config_was_present && !config_is_present)
+					config_update = CONFIG_VANISHED;
+
+				if (!config_was_present && config_is_present)
+					config_update = CONFIG_APPEARED;
+
+				if (config_was_present && config_is_present) {
+
+					Xml_node old_config = _start_node->xml().sub_node(tag);
+					Xml_node new_config = start_node.sub_node(tag);
+
+					if (Genode::memcmp(old_config.addr(), new_config.addr(),
+					                   min(old_config.size(), new_config.size())))
+						config_update = CONFIG_CHANGED;
+				}
+
+				/* import new start node */
+				_start_node.construct(_alloc, start_node);
+			}
+
+			/*
+			 * Apply change to '_config_rom_service'. This will
+			 * potentially result in a change of the "config" ROM route, which
+			 * may in turn prompt the routing-check below to abandon (restart)
+			 * the child.
+			 */
+			switch (config_update) {
+			case CONFIG_UNCHANGED:                                       break;
+			case CONFIG_CHANGED:  _config_rom_service->trigger_update(); break;
+			case CONFIG_APPEARED: _config_rom_service.construct(*this);  break;
+			case CONFIG_VANISHED: _config_rom_service->abandon();        break;
+			}
+
+			/* validate that the routes of all existing sessions remain intact */
+			{
+				bool routing_changed = false;
+				_child.for_each_session([&] (Session_state const &session) {
+					if (!_route_valid(session))
+						routing_changed = true; });
+
+				if (routing_changed) {
+					abandon();
+					return MAY_HAVE_SIDE_EFFECTS;
+				}
+			}
+			return NO_SIDE_EFFECTS;
+		}
 
 		void report_state(Xml_generator &xml, Report_detail const &detail) const
 		{
@@ -731,11 +963,41 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Route resolve_session_request(Service::Name const &service_name,
 		                              Session_label const &label) override
 		{
-			Service *service = nullptr;
-
 			/* check for "config" ROM request */
-			if ((service = _config_policy.resolve_session_request_with_label(service_name, label)))
-				return Route { *service, label };
+			if (service_name == Rom_session::service_name() &&
+			    label.last_element() == "config") {
+
+				if (_config_rom_service.constructed() &&
+				   !_config_rom_service->abandoned())
+					return Route { _config_rom_service->service(), label };
+
+				/*
+				 * \deprecated  the support for the <configfile> tag will
+				 *              be removed
+				 */
+				if (_start_node->xml().has_sub_node("configfile")) {
+
+					typedef String<50> Name;
+					Name const rom =
+						_start_node->xml().sub_node("configfile")
+						                  .attribute_value("name", Name());
+
+					/* prevent infinite recursion */
+					if (rom == "config") {
+						error("configfile must not be named 'config'");
+						throw Parent::Service_denied();
+					}
+
+					return resolve_session_request(service_name,
+					                               prefixed_label(name(), rom));
+				}
+
+				/*
+				 * If there is neither an inline '<config>' nor a
+				 * '<configfile>' node present, we apply the regular session
+				 * routing to the "config" ROM request.
+				 */
+			}
 
 			/* check for "session_requests" ROM request */
 			if (service_name == Rom_session::service_name()
@@ -774,8 +1036,13 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 						if (target.has_type("parent")) {
 
+							Parent_service *service = nullptr;
+
 							if ((service = find_service(_parent_services, service_name)))
 								return Route { *service, target_label };
+
+							if (service && service->abandoned())
+								throw Parent::Service_denied();
 
 							if (!service_wildcard) {
 								warning(name(), ": service lookup for "
@@ -790,10 +1057,16 @@ class Init::Child : Child_policy, Child_service::Wakeup
 							Name server_name = target.attribute_value("name", Name());
 							server_name = _name_registry.deref_alias(server_name);
 
+							Routed_service *service = nullptr;
+
 							_child_services.for_each([&] (Routed_service &s) {
 								if (s.name()       == Service::Name(service_name)
 								 && s.child_name() == server_name)
 									service = &s; });
+
+							if (service && service->abandoned())
+								throw Parent::Service_denied();
+
 							if (service)
 								return Route { *service, target_label };
 
@@ -805,11 +1078,14 @@ class Init::Child : Child_policy, Child_service::Wakeup
 						}
 
 						if (target.has_type("any-child")) {
+
 							if (is_ambiguous(_child_services, service_name)) {
 								error(name(), ": ambiguous routes to "
 								      "service \"", service_name, "\"");
 								throw Parent::Service_denied();
 							}
+
+							Routed_service *service = nullptr;
 
 							if ((service = find_service(_child_services, service_name)))
 								return Route { *service, target_label };
@@ -825,21 +1101,16 @@ class Init::Child : Child_policy, Child_service::Wakeup
 							break;
 					}
 				}
-			} catch (...) {
-				warning(name(), ": no route to service \"", service_name, "\"");
-			}
+			} catch (Xml_node::Nonexistent_sub_node) { }
 
-			if (!service)
-				throw Parent::Service_denied();
-
-			return Route { *service };
+			warning(name(), ": no route to service \"", service_name, "\"");
+			throw Parent::Service_denied();
 		}
 
 		void filter_session_args(Service::Name const &service,
 		                         char *args, size_t args_len) override
 		{
 			_priority_policy.   filter_session_args(service.string(), args, args_len);
-			_configfile_policy. filter_session_args(service.string(), args, args_len);
 			_ram_session_policy.filter_session_args(service.string(), args, args_len);
 		}
 
@@ -923,6 +1194,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		{
 			_report_update_trigger.trigger_report_update();
 		}
+
+		bool initiate_env_sessions() const override { return false; }
 };
 
 #endif /* _INCLUDE__INIT__CHILD_H_ */
