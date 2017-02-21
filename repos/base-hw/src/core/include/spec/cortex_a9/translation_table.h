@@ -15,9 +15,13 @@
 #ifndef _CORE__INCLUDE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_
 #define _CORE__INCLUDE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_
 
-/* core includes */
-#include <short_translation_table.h>
+#include <hw/spec/arm/page_table.h>
 
-constexpr unsigned Genode::Translation::_device_tex() { return 2; }
+constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
+	return 2; }
+
+constexpr bool Hw::Page_table::Descriptor_base::_smp() { return true; }
+
+void Hw::Page_table::_translation_added(unsigned long, unsigned long) { }
 
 #endif /* _CORE__INCLUDE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_ */

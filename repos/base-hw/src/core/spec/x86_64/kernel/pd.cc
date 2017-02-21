@@ -12,10 +12,11 @@
  */
 
 /* core includes */
+#include <hw/assert.h>
 #include <platform_pd.h>
 #include <kernel/pd.h>
 
-Kernel::Pd::Pd(Kernel::Pd::Table   * const table,
+Kernel::Pd::Pd(Hw::Page_table * const table,
                Genode::Platform_pd * const platform_pd)
 : _table(table), _platform_pd(platform_pd)
 {

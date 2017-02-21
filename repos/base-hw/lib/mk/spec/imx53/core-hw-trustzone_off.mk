@@ -8,7 +8,6 @@
 # add C++ sources
 SRC_CC += kernel/vm_thread_off.cc
 SRC_CC += spec/imx53/platform_support.cc
-SRC_CC += spec/imx53/pic.cc
 SRC_CC += platform_services.cc
 
 # include less specific configuration

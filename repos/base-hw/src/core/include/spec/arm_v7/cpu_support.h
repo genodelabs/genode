@@ -82,30 +82,6 @@ class Genode::Arm_v7 : public Arm
 		};
 
 		/**
-		 * System control register
-		 */
-		struct Sctlr : Arm::Sctlr
-		{
-			struct Z : Bitfield<11,1> { }; /* enable program flow prediction */
-
-			static access_t init_value()
-			{
-				access_t v = read();
-				C::set(v, 1);
-				I::set(v, 1);
-				V::set(v, 1);
-				A::set(v, 0);
-				M::set(v, 1);
-				Z::set(v, 1);
-				return v;
-			}
-
-			static void enable_mmu_and_caches() {
-				write(init_value()); }
-		};
-
-
-		/**
 		 * Memory attribute indirection register 0
 		 */
 		struct Mair0 : Register<32>
@@ -120,11 +96,6 @@ class Genode::Arm_v7 : public Arm
 		};
 
 		/**
-		 * Finish all previous data transfers
-		 */
-		static void data_synchronization_barrier() { asm volatile ("dsb"); }
-
-		/**
 		 * Wait for the next interrupt as cheap as possible
 		 */
 		static void wait_for_interrupt() { asm volatile ("wfi"); }
@@ -132,12 +103,12 @@ class Genode::Arm_v7 : public Arm
 		/**
 		 * Write back dirty lines of inner data cache and invalidate all
 		 */
-		void clean_invalidate_inner_data_cache();
+		static void clean_invalidate_inner_data_cache();
 
 		/**
 		 * Invalidate all lines of the inner data cache
 		 */
-		void invalidate_inner_data_cache();
+		static void invalidate_inner_data_cache();
 
 		/**
 		 * Invalidate all lines of the instruction cache

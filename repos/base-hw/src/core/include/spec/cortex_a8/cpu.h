@@ -28,13 +28,13 @@ class Genode::Cpu : public Arm_v7
 		/**
 		 * Write back dirty cache lines and invalidate the whole cache
 		 */
-		void clean_invalidate_data_cache() {
+		static void clean_invalidate_data_cache() {
 			clean_invalidate_inner_data_cache(); }
 
 		/**
 		 * Invalidate all cache lines
 		 */
-		void invalidate_data_cache() {
+		static void invalidate_data_cache() {
 			invalidate_inner_data_cache(); }
 
 		/**

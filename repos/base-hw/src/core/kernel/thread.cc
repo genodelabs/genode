@@ -23,7 +23,7 @@
 #include <base/internal/crt0.h>
 
 /* core includes */
-#include <assert.h>
+#include <hw/assert.h>
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
@@ -583,8 +583,8 @@ void Thread::_call()
 	case call_id_thread_pager():           _call_pager(); return;
 	case call_id_update_pd():              _call_update_pd(); return;
 	case call_id_new_pd():
-		_call_new<Pd>((Genode::Translation_table *) user_arg_2(),
-		              (Genode::Platform_pd *)       user_arg_3());
+		_call_new<Pd>((Hw::Page_table *)      user_arg_2(),
+		              (Genode::Platform_pd *) user_arg_3());
 		return;
 	case call_id_delete_pd():              _call_delete<Pd>(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;

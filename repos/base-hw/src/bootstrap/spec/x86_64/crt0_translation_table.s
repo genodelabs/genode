@@ -13,7 +13,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-.include "macros.s"
+.set MIN_PAGE_SIZE_LOG2, 12
 
 .data
 

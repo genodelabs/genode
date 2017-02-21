@@ -11,6 +11,7 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/include
 INC_DIR += $(BASE_DIR)/src/core/include
 INC_DIR += $(BASE_DIR)/../base-hw/src/include
 INC_DIR += $(BASE_DIR)/src/include
+INC_DIR += $(BASE_DIR)/../base-hw/src/lib
 
 # add C++ sources
 SRC_CC += cpu_session_component.cc

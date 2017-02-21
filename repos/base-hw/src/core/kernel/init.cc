@@ -29,7 +29,7 @@ static_assert(sizeof(Genode::sizet_arithm_t) >= 2 * sizeof(size_t),
 	"Bad result type for size_t arithmetics.");
 
 Pd * Kernel::core_pd() {
-	return unmanaged_singleton<Genode::Core_platform_pd>()->kernel_pd(); }
+	return &unmanaged_singleton<Genode::Core_platform_pd>()->kernel_pd(); }
 
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
@@ -38,27 +38,29 @@ Genode::Board & Kernel::board() {
 	return *unmanaged_singleton<Genode::Board>(); }
 
 
+extern "C" void _start() __attribute__((section(".text.crt0")));
+
 /**
  * Setup kernel environment
  */
-extern "C" void init_kernel()
+extern "C" void _start()
 {
 	static volatile bool initialized = false;
 	if (Cpu::executing_id()) while (!initialized) ;
+	else {
+		Genode::log("");
+		Genode::log("kernel initialized");
+	}
 
 	/* initialize cpu pool */
 	cpu_pool();
 
 	/* initialize current cpu */
-	cpu_pool()->cpu(Cpu::executing_id())->init(*pic()/*, *core_pd(), board()*/);
+	cpu_pool()->cpu(Cpu::executing_id())->init(*pic());
 
 	Core_thread::singleton();
 
-	if (!Cpu::executing_id()) {
-		initialized = true;
-		Genode::log("");
-		Genode::log("kernel initialized");
-	}
+	if (!Cpu::executing_id()) initialized = true;
 
 	kernel();
 }

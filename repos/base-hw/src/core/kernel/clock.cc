@@ -13,7 +13,7 @@
 
 /* Core includes */
 #include <kernel/clock.h>
-#include <assert.h>
+#include <hw/assert.h>
 
 using namespace Kernel;
 

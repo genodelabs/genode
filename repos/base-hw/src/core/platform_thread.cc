@@ -13,7 +13,6 @@
  */
 
 /* core includes */
-#include <assert.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <core_env.h>
@@ -145,7 +144,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 			_utcb_pd_addr           = utcb_main_thread();
 			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
 			if (!as->insert_translation((addr_t)_utcb_pd_addr, dsc->phys_addr(),
-			                            sizeof(Native_utcb), PAGE_FLAGS_UTCB)) {
+			                            sizeof(Native_utcb), Hw::PAGE_FLAGS_UTCB)) {
 				error("failed to attach UTCB");
 				return -1;
 			}
@@ -176,7 +175,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 		utcb->cap_add(Capability_space::capid(_pd->parent()));
 		utcb->cap_add(Capability_space::capid(_utcb));
 	}
-	Kernel::start_thread(kernel_object(), cpu, _pd->kernel_pd(),
+	Kernel::start_thread(kernel_object(), cpu, &_pd->kernel_pd(),
 	                     _utcb_core_addr);
 	return 0;
 }

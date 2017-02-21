@@ -12,7 +12,8 @@
  */
 
 #include <base/log.h>
-#include <assert.h>
+#include <hw/assert.h>
+
 #include <platform_pd.h>
 #include <kernel/vm.h>
 

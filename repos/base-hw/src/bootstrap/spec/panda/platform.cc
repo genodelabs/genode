@@ -12,9 +12,8 @@
  */
 
 #include <platform.h>
-#include <cortex_a9_wugen.h>
 
-Platform::Board::Board()
+Bootstrap::Platform::Board::Board()
 : early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE }),
   core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
                             CORTEX_A9_PRIVATE_MEM_SIZE },
@@ -24,28 +23,28 @@ Platform::Board::Board()
                             PL310_MMIO_SIZE }) { }
 
 
-void Cortex_a9::Board::wake_up_all_cpus(void * const ip)
+bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata err) {
+	return false; }
+
+
+void Bootstrap::Cpu::wake_up_all_cpus(void * const ip)
 {
-	Genode::Cortex_a9_wugen wugen;
-	wugen.init_cpu_1(ip);
+	struct Wakeup_generator : Genode::Mmio
+	{
+		struct Aux_core_boot_0 : Register<0x800, 32> {
+			struct Cpu1_status : Bitfield<2, 2> { }; };
+
+		struct Aux_core_boot_1 : Register<0x804, 32> { };
+
+		Wakeup_generator(void * const ip)
+		: Mmio(Genode::Board_base::CORTEX_A9_WUGEN_MMIO_BASE)
+		{
+			write<Aux_core_boot_1>((addr_t)ip);
+			write<Aux_core_boot_0::Cpu1_status>(1);
+		}
+	};
+
+	Wakeup_generator wgen(ip);
 	asm volatile("dsb\n"
 	             "sev\n");
-}
-
-
-bool Cortex_a9::Board::errata(Cortex_a9::Board::Errata err)
-{
-	switch (err) {
-		case Cortex_a9::Board::PL310_588369:
-		case Cortex_a9::Board::PL310_727915: return true;
-		default: ;
-	};
-	return false;
-}
-
-
-void Genode::Cpu::Actlr::enable_smp(Genode::Board & board)
-{
-	Board::Secure_monitor monitor;
-	monitor.call(Board::Secure_monitor::CPU_ACTLR_SMP_BIT_RAISE, 0);
 }

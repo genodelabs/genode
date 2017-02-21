@@ -11,12 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
 #include <base/log.h>
-
-/* core includes */
+#include <hw/assert.h>
 #include <kernel/cpu_scheduler.h>
-#include <assert.h>
 
 using namespace Kernel;
 

@@ -16,9 +16,9 @@
 #define _CORE__INCLUDE__KERNEL__PD_H_
 
 /* core includes */
-#include <translation_table_allocator_tpl.h>
 #include <kernel/cpu.h>
 #include <kernel/object.h>
+#include <translation_table.h>
 
 namespace Genode {
 	class Platform_pd;
@@ -58,8 +58,8 @@ struct Kernel::Mode_transition_control
 	 * \param tt     translation buffer of the address space
 	 * \param alloc  translation table allocator used for the mapping
 	 */
-	void map(Genode::Translation_table * tt,
-	         Genode::Translation_table_allocator * alloc);
+	void map(Hw::Page_table & tt,
+	         Hw::Page_table::Allocator & alloc);
 
 	/**
 	 * Continue execution of client context
@@ -92,12 +92,11 @@ class Kernel::Pd : public Cpu::Pd,
 
 		static constexpr unsigned max_cap_ids = 1 << (sizeof(capid_t) * 8);
 
-		using Table           = Genode::Translation_table;
 		using Capid_allocator = Genode::Bit_allocator<max_cap_ids>;
 
 	private:
 
-		Table                  * const _table;
+		Hw::Page_table         * const _table;
 		Genode::Platform_pd    * const _platform_pd;
 		Capid_allocator                _capid_alloc;
 		Object_identity_reference_tree _cap_tree;
@@ -110,7 +109,8 @@ class Kernel::Pd : public Cpu::Pd,
 		 * \param table        translation table of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Table * const table, Genode::Platform_pd * const platform_pd);
+		Pd(Hw::Page_table * const table,
+		   Genode::Platform_pd * const platform_pd);
 
 		~Pd();
 
@@ -121,7 +121,7 @@ class Kernel::Pd : public Cpu::Pd,
 
 
 		static capid_t syscall_create(void * const dst,
-		                              Genode::Translation_table * tt,
+		                              Hw::Page_table * tt,
 		                              Genode::Platform_pd * const pd)
 		{
 			return call(call_id_new_pd(), (Call_arg)dst,
@@ -136,7 +136,7 @@ class Kernel::Pd : public Cpu::Pd,
 		 ***************/
 
 		Genode::Platform_pd * platform_pd()       const { return _platform_pd; }
-		Table               * translation_table() const { return _table;       }
+		Hw::Page_table      * translation_table() const { return _table;       }
 		Capid_allocator     & capid_alloc()             { return _capid_alloc; }
 		Object_identity_reference_tree & cap_tree()     { return _cap_tree;    }
 };

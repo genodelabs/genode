@@ -70,65 +70,6 @@ class Genode::Arm
 		};
 
 		/**
-		 * System control register
-		 */
-		struct Sctlr : Register<32>
-		{
-			struct M : Bitfield<0,1>  { }; /* enable MMU */
-			struct A : Bitfield<1,1>  { }; /* enable alignment checks */
-			struct C : Bitfield<2,1>  { }; /* enable data cache */
-			struct I : Bitfield<12,1> { }; /* enable instruction caches */
-			struct V : Bitfield<13,1> { }; /* select exception entry */
-
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (v) :: );
-				return v;
-			}
-
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (v) : ); }
-
-			static void init()
-			{
-				access_t v = read();
-
-				/* disable alignment checks */
-				A::set(v, 0);
-
-				/* set exception vector to 0xffff0000 */
-				V::set(v, 1);
-				write(v);
-			}
-
-			static void enable_mmu_and_caches()
-			{
-				access_t v = read();
-				C::set(v, 1);
-				I::set(v, 1);
-				M::set(v, 1);
-				write(v);
-			}
-		};
-
-		/**
-		 * Translation table base control register
-		 */
-		struct Ttbcr : Register<32>
-		{
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %0, c2, c0, 2" :: "r" (v) : ); }
-
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mrc p15, 0, %0, c2, c0, 2" : "=r" (v) :: );
-				return v;
-			}
-		};
-
-		/**
 		 * Translation table base register 0
 		 */
 		struct Ttbr0 : Register<32>
@@ -480,35 +421,19 @@ class Genode::Arm
 		/**
 		 * Invalidate all entries of all instruction caches
 		 */
-		void invalidate_instr_cache() {
+		static void invalidate_instr_cache() {
 			asm volatile ("mcr p15, 0, %0, c7, c5, 0" :: "r" (0) : ); }
 
 		/**
 		 * Flush all entries of all data caches
 		 */
-		void clean_invalidate_data_cache();
+		static void clean_invalidate_data_cache();
 
 		/**
 		 * Invalidate all branch predictions
 		 */
 		static void invalidate_branch_predicts() {
 			asm volatile ("mcr p15, 0, r0, c7, c5, 6" ::: "r0"); };
-
-		/**
-		 * Switch on MMU and caches
-		 *
-		 * \param table  page tables physical address
-		 */
-		void enable_mmu_and_caches(Genode::addr_t table)
-		{
-			invalidate_tlb();
-			Cidr::write(0);
-			Dacr::write(Dacr::init_virt_kernel());
-			Ttbr0::write(Ttbr0::init(table));
-			Ttbcr::write(0);
-			Sctlr::enable_mmu_and_caches();
-			invalidate_branch_predicts();
-		}
 
 		/**
 		 * Invalidate all TLB entries of the address space named 'pid'

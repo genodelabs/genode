@@ -30,13 +30,9 @@ namespace Genode
 	{
 		public:
 
-			/**
-			 * Constructor
-			 *
-			 * XXX: The 'baud_rate' argument is ignored for now.
-			 */
-			Serial(unsigned)
-			: Imx_uart_base(Platform::mmio_to_virt(Board::UART_1_MMIO_BASE)) { }
+			Serial(unsigned baudrate)
+			: Imx_uart_base(Platform::mmio_to_virt(Board::UART_1_MMIO_BASE),
+			                /* ignored clock rate */ 0, baudrate) { }
 	};
 }
 

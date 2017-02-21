@@ -233,7 +233,7 @@ class Genode::Imx_uart_base : Mmio
 	/**
 	 * Transmit character 'c' without care about its type
 	 */
-	inline void _put_char(char const c)
+	void _put_char(char c)
 	{
 		while (!read<Sr2::Txdc>()) ;
 		write<Txd::Tx_data>(c);
@@ -246,7 +246,7 @@ class Genode::Imx_uart_base : Mmio
 		 *
 		 * \param base  device MMIO base
 		 */
-		explicit Imx_uart_base(addr_t const base) : Mmio(base)
+		Imx_uart_base(addr_t base, uint32_t, uint32_t) : Mmio(base)
 		{
 			write<Cr1>(Cr1::init_value());
 			write<Cr2>(Cr2::init_value());
@@ -257,7 +257,7 @@ class Genode::Imx_uart_base : Mmio
 		/**
 		 * Print character 'c' through the UART
 		 */
-		inline void put_char(char const c)
+		void put_char(char c)
 		{
 			enum { ASCII_LINE_FEED       = 10,
 			       ASCII_CARRIAGE_RETURN = 13 };

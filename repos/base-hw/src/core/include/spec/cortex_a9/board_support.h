@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <drivers/board_base.h>
-#include <spec/arm/pl310.h>
+#include <hw/spec/arm/pl310.h>
 
 namespace Cortex_a9 { class Board; }
 
@@ -24,7 +24,7 @@ class Cortex_a9::Board : public Genode::Board_base
 {
 	public:
 
-		using L2_cache = Arm::Pl310;
+		using L2_cache = Hw::Pl310;
 
 		static constexpr bool SMP = true;
 
@@ -38,9 +38,6 @@ class Cortex_a9::Board : public Genode::Board_base
 		};
 
 		enum {
-			/* snoop control unit */
-			SCU_MMIO_BASE             = CORTEX_A9_PRIVATE_MEM_BASE,
-
 			/* interrupt controller */
 			IRQ_CONTROLLER_DISTR_BASE = CORTEX_A9_PRIVATE_MEM_BASE + 0x1000,
 			IRQ_CONTROLLER_DISTR_SIZE = 0x1000,

@@ -1,8 +1,11 @@
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/panda
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/tl16c750
-
-SRC_CC  += bootstrap/spec/panda/platform.cc
-
 NR_OF_CPUS = 2
 
-include $(BASE_DIR)/../base-hw/lib/mk/spec/cortex_a9/bootstrap-hw.inc
+INC_DIR   += $(BASE_DIR)/../base-hw/src/bootstrap/spec/panda
+SRC_CC    += bootstrap/spec/arm/cpu.cc
+SRC_CC    += bootstrap/spec/arm/cortex_a9_mmu.cc
+SRC_CC    += bootstrap/spec/arm/pic.cc
+SRC_CC    += bootstrap/spec/panda/platform.cc
+SRC_CC    += hw/spec/arm/arm_v7_cpu.cc
+SRC_S     += bootstrap/spec/arm/crt0.s
+
+include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc

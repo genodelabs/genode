@@ -12,7 +12,7 @@
  */
 
 #include <base/lock.h>
-#include <assert.h>
+#include <hw/assert.h>
 
 Genode::Cancelable_lock::Cancelable_lock(Genode::Cancelable_lock::State state)
 : _state(state), _owner(nullptr) { }

@@ -18,7 +18,6 @@
 #include <base/tslab.h>
 
 /* core-local includes */
-#include <assertion.h>
 #include <signal_source_component.h>
 
 namespace Genode { class Signal_broker; }

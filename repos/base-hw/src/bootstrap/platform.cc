@@ -11,13 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-internal includes */
 #include <base/internal/crt0.h>
+#include <hw/assert.h>
 
-/* core includes */
-#include <assert.h>
 #include <boot_modules.h>
 #include <platform.h>
+
+using namespace Bootstrap;
 
 
 /*****************************
@@ -27,6 +27,7 @@
 void * Platform::Ram_allocator::alloc_aligned(size_t size, unsigned align)
 {
 	using namespace Genode;
+	using namespace Hw;
 
 	void * ret;
 	assert(Base::alloc_aligned(round_page(size), &ret,
@@ -55,18 +56,16 @@ void Platform::Ram_allocator::remove(Memory_region const & region) {
  ******************/
 
 Platform::Pd::Pd(Platform::Ram_allocator & alloc)
-: table_base(alloc.alloc_aligned(sizeof(Bootinfo::Table),
-                                 Bootinfo::Table::ALIGNM_LOG2)),
-  allocator_base(alloc.alloc_aligned(sizeof(Bootinfo::Table_allocator),
-                                     Bootinfo::Table::ALIGNM_LOG2)),
-  table(*Genode::construct_at<Bootinfo::Table>(table_base)),
-  allocator(*Genode::construct_at<Bootinfo::Table_allocator>(allocator_base))
+: table_base(alloc.alloc_aligned(sizeof(Table),       Table::ALIGNM_LOG2)),
+  array_base(alloc.alloc_aligned(sizeof(Table_array), Table::ALIGNM_LOG2)),
+  table(*Genode::construct_at<Table>(table_base)),
+  array(*Genode::construct_at<Table_array>(array_base))
 {
 	using namespace Genode;
 	map_insert(Mapping((addr_t)table_base, (addr_t)table_base,
-	                   sizeof(Bootinfo::Table), PAGE_FLAGS_KERN_DATA));
-	map_insert(Mapping((addr_t)allocator_base, (addr_t)allocator_base,
-	                   sizeof(Bootinfo::Table_allocator), PAGE_FLAGS_KERN_DATA));
+	                   sizeof(Table),       Hw::PAGE_FLAGS_KERN_DATA));
+	map_insert(Mapping((addr_t)array_base, (addr_t)array_base,
+	                   sizeof(Table_array), Hw::PAGE_FLAGS_KERN_DATA));
 }
 
 
@@ -74,8 +73,8 @@ void Platform::Pd::map(Mapping m)
 {
 	try {
 		table.insert_translation(m.virt(), m.phys(), m.size(), m.flags(),
-		                         allocator.alloc());
-	} catch(Genode::Allocator::Out_of_memory) {
+		                         array.alloc());
+	} catch (Hw::Out_of_tables &) {
 		Genode::error("translation table needs to much RAM");
 	} catch (...) {
 		Genode::error("invalid mapping ", m);
@@ -97,6 +96,7 @@ void Platform::Pd::map_insert(Mapping m)
 addr_t Platform::_load_elf()
 {
 	using namespace Genode;
+	using namespace Hw;
 
 	addr_t start = ~0UL;
 	addr_t end   = 0;
@@ -166,7 +166,7 @@ Platform::Platform()
 	/* temporarily map all bootstrap memory 1:1 for transition to core */
 	// FIXME do not insert as mapping for core
 	core_pd->map_insert(Mapping(bootstrap_region.base, bootstrap_region.base,
-	                            bootstrap_region.size, PAGE_FLAGS_KERN_TEXT));
+	                            bootstrap_region.size, Hw::PAGE_FLAGS_KERN_TEXT));
 
 	/* map memory-mapped I/O for core */
 	board.core_mmio.for_each_mapping([&] (Mapping const & m) {
@@ -176,11 +176,12 @@ Platform::Platform()
 	addr_t const elf_end = _load_elf();
 
 	/* setup boot info page */
-	void * bi_base = ram_alloc.alloc(sizeof(Bootinfo));
-	core_pd->map_insert(Mapping((addr_t)bi_base, elf_end, sizeof(Bootinfo),
-								PAGE_FLAGS_KERN_TEXT));
-	Bootinfo & bootinfo =
-		*construct_at<Bootinfo>(bi_base, &core_pd->table, &core_pd->allocator,
+	void * bi_base = ram_alloc.alloc(sizeof(Boot_info));
+	core_pd->map_insert(Mapping((addr_t)bi_base, elf_end, sizeof(Boot_info),
+								Hw::PAGE_FLAGS_KERN_TEXT));
+	Boot_info & bootinfo =
+		*construct_at<Boot_info>(bi_base, (addr_t)&core_pd->table,
+		                        (addr_t)&core_pd->array,
 		                        core_pd->mappings, board.core_mmio);
 
 	/* add all left RAM to bootinfo */

@@ -12,7 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
 #include <cpu.h>
 
 void Genode::Cpu::translation_added(addr_t const addr, size_t const size) {

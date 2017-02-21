@@ -14,7 +14,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-.include "macros.s"
+.include "hw/spec/x86_64/gdt.s"
 
 .section ".text.crt0"
 

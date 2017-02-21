@@ -9,5 +9,7 @@
 INC_DIR += $(REP_DIR)/src/core/include/spec/imx53
 INC_DIR += $(REP_DIR)/src/core/include/spec/imx
 
+SRC_CC += spec/imx53/pic.cc
+
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/cortex_a8/core-hw.inc

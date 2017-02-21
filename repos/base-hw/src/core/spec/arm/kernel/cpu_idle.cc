@@ -13,7 +13,7 @@
  */
 
 /* core includes */
-#include <assert.h>
+#include <base/log.h>
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
@@ -37,5 +37,5 @@ void Cpu_idle::exception(unsigned const cpu)
 	case INTERRUPT_REQUEST:      _interrupt(cpu); return;
 	case FAST_INTERRUPT_REQUEST: _interrupt(cpu); return;
 	case RESET:                                   return;
-	default: assert(0); }
+	default: Genode::raw("Unknown exception in idle thread"); }
 }

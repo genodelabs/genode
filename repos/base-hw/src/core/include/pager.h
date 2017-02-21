@@ -26,12 +26,17 @@
 
 /* core-local includes */
 #include <kernel/signal_receiver.h>
-#include <mapping.h>
+#include <hw/mapping.h>
 #include <object.h>
 #include <rpc_cap_factory.h>
 
 namespace Genode
 {
+	/**
+	 * Interface used by generic region_map code
+	 */
+	struct Mapping;
+
 	/**
 	 * Interface between the generic paging system and the base-hw backend
 	 */
@@ -50,6 +55,25 @@ namespace Genode
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
 
+
+struct Genode::Mapping : Hw::Mapping
+{
+	Mapping() {}
+
+	Mapping(addr_t virt,
+	        addr_t phys,
+	        Cache_attribute cacheable,
+	        bool io,
+	        unsigned size_log2,
+	        bool writeable)
+	: Hw::Mapping(phys, virt, 1 << size_log2,
+	              { writeable ? Hw::RW : Hw::RO, Hw::EXEC, Hw::USER,
+	                Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable }) {}
+
+	void prepare_map_operation() const {}
+};
+
+
 class Genode::Ipc_pager
 {
 	protected:
@@ -63,10 +87,9 @@ class Genode::Ipc_pager
 			addr_t addr;
 			addr_t writes;
 			addr_t signal;
-		};
+		} _fault;
 
-		Fault_thread_regs _fault;
-		Mapping           _mapping;
+		Mapping _mapping;
 
 	public:
 

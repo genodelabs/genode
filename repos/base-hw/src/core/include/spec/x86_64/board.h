@@ -19,18 +19,11 @@ namespace Genode
 	struct Board
 	{
 		enum {
-			MMIO_LAPIC_BASE  = 0xfee00000,
-			MMIO_LAPIC_SIZE  = 0x1000,
-			MMIO_IOAPIC_BASE = 0xfec00000,
-			MMIO_IOAPIC_SIZE = 0x1000,
-
 			VECTOR_REMAP_BASE   = 48,
 			TIMER_VECTOR_KERNEL = 32,
 			TIMER_VECTOR_USER   = 50,
 			ISA_IRQ_END         = 15,
 		};
-
-		void init() { }
 	};
 }
 

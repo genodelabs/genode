@@ -234,8 +234,3 @@
 	.p2align 2
 	.global _mt_end
 	_mt_end:
-
-	/* FIXME exists only because _vm_mon_entry pollutes generic kernel code */
-	.global _mt_vm_entry_pic
-	_mt_vm_entry_pic:
-	1: b 1b
