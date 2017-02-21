@@ -375,7 +375,8 @@ struct Libc::Kernel
 		Application_code *_app_code     = nullptr;
 		bool              _app_returned = false;
 
-		bool _resume_main_once = false;
+		bool _resume_main_once  = false;
+		bool _suspend_scheduled = false;
 
 		Select_handler_base *_scheduled_select_handler = nullptr;
 
@@ -446,6 +447,21 @@ struct Libc::Kernel
 		Main_timeout _main_timeout { _timer_accessor, *this };
 
 		Pthreads _pthreads { _timer_accessor };
+
+		struct Resumer
+		{
+			GENODE_RPC(Rpc_resume, void, resume);
+			GENODE_RPC_INTERFACE(Rpc_resume);
+		};
+
+		struct Resumer_component : Rpc_object<Resumer, Resumer_component>
+		{
+			Kernel &_kernel;
+
+			Resumer_component(Kernel &kernel) : _kernel(kernel) { }
+
+			void resume() { _kernel.run_after_resume(); }
+		};
 
 		/**
 		 * Trampoline to application (user) code
@@ -566,12 +582,31 @@ struct Libc::Kernel
 
 			/* _setjmp() returned after _longjmp() - user context suspended */
 
-			while (!_app_returned) {
+			while ((!_app_returned) && (!_suspend_scheduled)) {
 				_env.ep().wait_and_dispatch_one_signal();
 
 				if (_resume_main_once && !_setjmp(_kernel_context))
 					_switch_to_user();
 			}
+
+			_suspend_scheduled = false;
+		}
+
+		/*
+		 * Run libc application main context after suspend and resume
+		 */
+		void run_after_resume()
+		{
+			if (!_setjmp(_kernel_context))
+				_switch_to_user();
+
+			while ((!_app_returned) && (!_suspend_scheduled)) {
+				_env.ep().wait_and_dispatch_one_signal();
+				if (_resume_main_once && !_setjmp(_kernel_context))
+					_switch_to_user();
+			}
+
+			_suspend_scheduled = false;
 		}
 
 		/**
@@ -635,6 +670,7 @@ struct Libc::Kernel
 
 			if (!_setjmp(_user_context)) {
 				_valid_user_context = true;
+				_suspend_scheduled = true;
 				_switch_to_kernel();
 			} else {
 				_valid_user_context = false;
@@ -663,7 +699,14 @@ struct Libc::Kernel
 		{
 			_resume_main_handler.construct(_env.ep(), *this, &Kernel::_resume_main);
 
-			_resume_main();
+			Resumer_component resumer { *this };
+
+			Capability<Resumer> resumer_cap =
+				_env.ep().rpc_ep().manage(&resumer);
+
+			resumer_cap.call<Resumer::Rpc_resume>();
+
+			_env.ep().rpc_ep().dissolve(&resumer);
 		}
 
 		/**
