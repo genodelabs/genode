@@ -28,6 +28,7 @@
 
 namespace Init {
 
+	class Buffered_xml;
 	class Routed_service;
 	class Name_registry;
 	class Child_registry;
@@ -252,6 +253,42 @@ namespace Init {
 }
 
 
+class Init::Buffered_xml
+{
+	private:
+
+		Allocator         &_alloc;
+		char const * const _ptr;   /* pointer to dynamically allocated buffer */
+		Xml_node     const _xml;   /* referring to buffer of '_ptr' */
+
+		/**
+		 * \throw Allocator::Out_of_memory
+		 */
+		static char const *_init_ptr(Allocator &alloc, Xml_node node)
+		{
+			char *ptr = (char *)alloc.alloc(node.size());
+			Genode::memcpy(ptr, node.addr(), node.size());
+			return ptr;
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \throw Allocator::Out_of_memory
+		 */
+		Buffered_xml(Allocator &alloc, Xml_node node)
+		:
+			_alloc(alloc), _ptr(_init_ptr(alloc, node)), _xml(_ptr, node.size())
+		{ }
+
+		~Buffered_xml() { _alloc.free(const_cast<char *>(_ptr), _xml.size()); }
+
+		Xml_node xml() const { return _xml; }
+};
+
+
 /**
  * Init-specific representation of a child service
  */
@@ -333,6 +370,11 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		struct Id { unsigned value; };
 
+		struct Default_route_accessor
+		{
+			virtual Xml_node default_route() = 0;
+		};
+
 	private:
 
 		friend class Child_registry;
@@ -349,9 +391,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		List_element<Child> _list_element;
 
-		Xml_node _start_node;
+		Reconstructible<Buffered_xml> _start_node;
 
-		Xml_node _default_route_node;
+		Default_route_accessor &_default_route_accessor;
 
 		Name_registry &_name_registry;
 
@@ -522,6 +564,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 * \throw Region_map::Attach_failed  failed to temporarily attach
 		 *                                   config dataspace to local address
 		 *                                   space
+		 * \throw Allocator::Out_of_memory   could not buffer the XML start node
 		 */
 		Child(Env                      &env,
 		      Allocator                &alloc,
@@ -529,7 +572,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		      Id                        id,
 		      Report_update_trigger    &report_update_trigger,
 		      Xml_node                  start_node,
-		      Xml_node                  default_route_node,
+		      Default_route_accessor   &default_route_accessor,
 		      Name_registry            &name_registry,
 		      long                      prio_levels,
 		      Affinity::Space const    &affinity_space,
@@ -539,8 +582,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			_env(env), _alloc(alloc), _verbose(verbose), _id(id),
 			_report_update_trigger(report_update_trigger),
 			_list_element(this),
-			_start_node(start_node),
-			_default_route_node(default_route_node),
+			_start_node(_alloc, start_node),
+			_default_route_accessor(default_route_accessor),
 			_name_registry(name_registry),
 			_unique_name(start_node, name_registry),
 			_binary_name(_binary_name_from_xml(start_node, _unique_name)),
@@ -700,9 +743,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				return Route { _session_requester.service() };
 
 			try {
-				Xml_node route_node = _default_route_node;
+				Xml_node route_node = _default_route_accessor.default_route();
 				try {
-					route_node = _start_node.sub_node("route"); }
+					route_node = _start_node->xml().sub_node("route"); }
 				catch (...) { }
 				Xml_node service_node = route_node.sub_node();
 
@@ -862,7 +905,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		void exit(int exit_value) override
 		{
 			try {
-				if (_start_node.sub_node("exit").attribute_value("propagate", false)) {
+				if (_start_node->xml().sub_node("exit").attribute_value("propagate", false)) {
 					_env.parent().exit(exit_value);
 					return;
 				}
