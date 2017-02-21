@@ -795,6 +795,8 @@ int Socket_plugin::close(Libc::File_descriptor *fd)
 	Socket_context *context = dynamic_cast<Socket_context *>(fd->context);
 	if (!context) return Errno(EBADF);
 
+	::unlink(context->path.base());
+
 	Genode::destroy(Genode::env()->heap(), context);
 	Libc::file_descriptor_allocator()->free(fd);
 
