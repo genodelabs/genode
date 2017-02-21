@@ -139,7 +139,8 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 				error("dangling session in parent-side ID space: ", *this);
 		}
 
-		Service &service() { return _service; }
+		Service       &service()       { return _service; }
+		Service const &service() const { return _service; }
 
 		/**
 		 * Extend amount of ram attached to the session
@@ -196,6 +197,16 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 			}
 			return false;
 		}
+
+		/**
+		 * Return client-side label of the session request
+		 */
+		Session_label client_label() const { return label_from_args(_args.string()); }
+
+		/**
+		 * Return label presented to the server along with the session request
+		 */
+		Session_label label() const { return _label; }
 
 		/**
 		 * Assign owner

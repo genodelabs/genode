@@ -468,6 +468,11 @@ class Genode::Child : protected Rpc_object<Parent>,
 				}
 
 				void wakeup() override { _service.wakeup(); }
+
+				bool operator == (Service const &other) const override
+				{
+					return _service == other;
+				}
 			};
 
 			Constructible<Env_service> _env_service;
