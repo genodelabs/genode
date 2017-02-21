@@ -16,12 +16,11 @@
 
 /* base-hw includes */
 #include <kernel/types.h>
+#include <hw/spec/riscv/machine_call.h>
 
 /* Genode includes */
 #include <base/stdint.h>
 
-/* Core includes */
-#include <machine_call.h>
 
 namespace Genode { class Timer; }
 
@@ -65,7 +64,7 @@ struct Genode::Timer
 		void start_one_shot(time_t const tics, unsigned const)
 		{
 			_timeout = _stime() + tics;
-			Machine::set_sys_timer(_timeout);
+			Hw::set_sys_timer(_timeout);
 		}
 
 		time_t tics_to_us(time_t const tics) const {

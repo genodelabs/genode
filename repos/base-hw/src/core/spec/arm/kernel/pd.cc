@@ -15,7 +15,7 @@
 #include <util/bit_allocator.h>
 
 /* core includes */
-#include <assert.h>
+#include <hw/assert.h>
 #include <kernel/pd.h>
 
 using Asid_allocator = Genode::Bit_allocator<256>;
@@ -24,7 +24,7 @@ static Asid_allocator &alloc() {
 	return *unmanaged_singleton<Asid_allocator>(); }
 
 
-Kernel::Pd::Pd(Kernel::Pd::Table * const table,
+Kernel::Pd::Pd(Hw::Page_table * const table,
                Genode::Platform_pd * const platform_pd)
 : Kernel::Cpu::Pd((Genode::uint8_t)alloc().alloc()),
   _table(table), _platform_pd(platform_pd)

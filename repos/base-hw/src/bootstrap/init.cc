@@ -18,13 +18,14 @@
 #include <base/internal/globals.h>
 #include <base/internal/unmanaged_singleton.h>
 
-Platform & platform() { return *unmanaged_singleton<Platform>(); }
+Bootstrap::Platform & Bootstrap::platform() {
+	return *unmanaged_singleton<Bootstrap::Platform>(); }
 
 extern "C" void init() __attribute__ ((noreturn));
 
 extern "C" void init()
 {
 	Genode::init_log();
-	platform().enable_mmu();
-	platform().start_core();
+	Bootstrap::platform().enable_mmu();
+	Bootstrap::platform().start_core();
 }

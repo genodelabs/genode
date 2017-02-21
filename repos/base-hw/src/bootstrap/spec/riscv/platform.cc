@@ -12,31 +12,30 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <util/string.h>
+
 #include <platform.h>
 
-Platform::Board::Board()
-: early_ram_regions(Genode::Memory_region { 0, 128 * 1024 * 1024 } ) {}
+Bootstrap::Platform::Board::Board()
+: early_ram_regions(Memory_region { 0, 128 * 1024 * 1024 } ) {}
 
 
-struct Mstatus : Genode::Register<64>
+void Bootstrap::Platform::enable_mmu()
 {
-	enum {
-		USER       = 0,
-		SUPERVISOR = 1,
-		Sv39       = 9,
+	struct Mstatus : Genode::Register<64>
+	{
+		enum {
+			USER       = 0,
+			SUPERVISOR = 1,
+			Sv39       = 9,
+		};
+		struct Ie    : Bitfield<0, 1> { };
+		struct Priv  : Bitfield<1, 2> { };
+		struct Ie1   : Bitfield<3, 1> { };
+		struct Priv1 : Bitfield<4, 2> { };
+		struct Fs    : Bitfield<12, 2> { enum { INITIAL = 1 }; };
+		struct Vm    : Bitfield<17, 5> { };
 	};
-	struct Ie    : Bitfield<0, 1> { };
-	struct Priv  : Bitfield<1, 2> { };
-	struct Ie1   : Bitfield<3, 1> { };
-	struct Priv1 : Bitfield<4, 2> { };
-	struct Fs    : Bitfield<12, 2> { enum { INITIAL = 1 }; };
-	struct Vm    : Bitfield<17, 5> { };
-};
-
-
-void Platform::enable_mmu()
-{
-	using Genode::Cpu;
 
 	/* read status register */
 	Mstatus::access_t mstatus = 0;
@@ -56,4 +55,20 @@ void Platform::enable_mmu()
 	                "r" (core_pd->table_base),
 	                "r" (mstatus)
 	              : "memory");
+}
+
+
+extern int _machine_begin, _machine_end;
+
+extern "C" void setup_riscv_exception_vector()
+{
+	using namespace Genode;
+
+	/* retrieve exception vector */
+	addr_t vector;
+	asm volatile ("csrr %0, mtvec\n" : "=r"(vector));
+
+	/* copy  machine mode exception vector */
+	memcpy((void *)vector,
+	       &_machine_begin, (addr_t)&_machine_end - (addr_t)&_machine_begin);
 }

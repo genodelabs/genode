@@ -12,7 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <assert.h>
+#include <assertion.h>
 #include <kernel/cpu.h>
 
 void Kernel::Cpu_idle::exception(unsigned const cpu)
@@ -27,5 +27,6 @@ void Kernel::Cpu_idle::exception(unsigned const cpu)
 
 	Genode::warning("Unknown exception ", trapno, " with error code ", errcode,
 	                " at ip=", (void *)ip);
-	assert(0);
+
+	ASSERT_NEVER_CALLED;
 }

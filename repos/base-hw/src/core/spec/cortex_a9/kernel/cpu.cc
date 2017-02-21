@@ -17,6 +17,7 @@
 #include <kernel/pd.h>
 #include <pic.h>
 #include <platform_pd.h>
+#include <platform.h>
 
 extern int _mt_begin;
 extern int _mt_master_context_begin;
@@ -24,11 +25,11 @@ extern int _mt_master_context_begin;
 
 void Kernel::Cpu::init(Kernel::Pic &pic)
 {
-	pic.init_cpu_local();
+	Cpu_context * c = (Cpu_context*)
+		(Cpu::exception_entry + ((addr_t)&_mt_master_context_begin -
+		                         (addr_t)&_mt_begin));
+	c->cpu_exception = Genode::Cpu::Ttbr0::read();
 
-	static Hw::Address_space invalid_space(nullptr);
-	Cpu_context * c = (Cpu_context*) (Cpu::exception_entry + ((addr_t)&_mt_master_context_begin - (addr_t)&_mt_begin));
-	c->cpu_exception = Genode::Cpu::Ttbr0::init((addr_t)invalid_space.translation_table_phys());
 	_fpu.init();
 
 	{

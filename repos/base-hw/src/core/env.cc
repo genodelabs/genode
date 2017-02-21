@@ -11,11 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <assert.h>
-
-/* base-internal includes */
 #include <base/internal/native_env.h>
+#include <assertion.h>
 
-
-void Genode::upgrade_pd_quota_non_blocking(Genode::size_t quota) { assert(false); }
+void Genode::upgrade_pd_quota_non_blocking(Genode::size_t quota) {
+	ASSERT_NEVER_CALLED; }

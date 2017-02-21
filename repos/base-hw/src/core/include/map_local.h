@@ -14,10 +14,11 @@
 #ifndef _CORE__INCLUDE__MAP_LOCAL_H_
 #define _CORE__INCLUDE__MAP_LOCAL_H_
 
-/* core includes */
-#include <page_flags.h>
+#include <hw/page_flags.h>
 
 namespace Genode {
+
+	using Hw::Page_flags;
 
 	/**
 	 * Map physical pages to core-local virtual address range
@@ -30,7 +31,7 @@ namespace Genode {
 	 * \return true on success
 	 */
 	bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
-	               Page_flags flags = PAGE_FLAGS_KERN_DATA);
+	               Page_flags flags = Hw::PAGE_FLAGS_KERN_DATA);
 
 	/**
 	 * Unmap pages from core's address space

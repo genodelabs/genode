@@ -20,7 +20,7 @@ void Kernel::Cpu_context::_init(size_t const stack_size, addr_t const table)
 	cpu_exception = Genode::Cpu::Ttbr0::init(table);
 	protection_domain(0);
 	translation_table(table);
-	sctlr = Cpu::Sctlr::init_value();
-	ttbrc = Cpu::Ttbcr::init_virt_kernel();
-	mair0 = Cpu::Mair0::init_virt_kernel();
+	sctlr = 0x00003805; // FIXME
+	ttbrc = 0x80002500; // FIXME
+	mair0 = 0x04ff0444; // FIXME
 }

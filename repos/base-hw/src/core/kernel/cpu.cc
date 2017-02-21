@@ -20,7 +20,7 @@
 #include <kernel/pd.h>
 #include <pic.h>
 #include <timer.h>
-#include <assert.h>
+#include <hw/assert.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -261,7 +261,7 @@ Genode::size_t  kernel_stack_size = KERNEL_STACK_SIZE;
 Genode::uint8_t kernel_stack[NR_OF_CPUS][KERNEL_STACK_SIZE]
 __attribute__((aligned(Genode::get_page_size())));
 
-Cpu_context::Cpu_context(Genode::Translation_table * const table)
+Cpu_context::Cpu_context(Hw::Page_table * const table)
 {
 	sp = (addr_t)kernel_stack;
 	ip = (addr_t)kernel;

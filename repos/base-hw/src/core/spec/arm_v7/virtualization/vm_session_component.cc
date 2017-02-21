@@ -22,26 +22,29 @@
 
 using namespace Genode;
 
+static Core_mem_allocator * cma() {
+	return static_cast<Core_mem_allocator*>(platform()->core_mem_alloc()); }
+
 
 void Vm_session_component::exception_handler(Signal_context_capability handler)
 {
-	Core_mem_allocator * cma =
-		static_cast<Core_mem_allocator*>(platform()->core_mem_alloc());
-
 	if (!create((void*)_ds.core_local_addr(), Capability_space::capid(handler),
-	            cma->phys_addr(_table)))
+	            cma()->phys_addr(&_table)))
 		Genode::warning("Cannot instantiate vm kernel object, invalid signal context?");
 }
 
 
 void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size)
 {
+	using namespace Hw;
+
 	Page_flags pflags { RW, NO_EXEC, USER, NO_GLOBAL, RAM, CACHED };
 
 	try {
-		_table->insert_translation(vm_addr, phys_addr, size, pflags, _tt_alloc);
+		_table.insert_translation(vm_addr, phys_addr, size, pflags,
+		                          _table_array.alloc());
 		return;
-	} catch(Allocator::Out_of_memory) {
+	} catch(Hw::Out_of_tables &) {
 		Genode::error("Translation table needs to much RAM");
 	} catch(...) {
 		Genode::error("Invalid mapping ", Genode::Hex(phys_addr), " -> ",
@@ -69,29 +72,32 @@ void Vm_session_component::attach_pic(addr_t vm_addr)
 
 
 void Vm_session_component::detach(addr_t vm_addr, size_t size) {
-	_table->remove_translation(vm_addr, size, _tt_alloc); }
+	_table.remove_translation(vm_addr, size, _table_array.alloc()); }
+
+
+
+void * Vm_session_component::_alloc_table()
+{
+	void * table;
+	/* get some aligned space for the translation table */
+	if (!cma()->alloc_aligned(sizeof(Table), (void**)&table,
+	                          Table::ALIGNM_LOG2).ok()) {
+		error("failed to allocate kernel object");
+		throw Root::Quota_exceeded();
+	}
+	return table;
+}
 
 
 Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
                                            size_t           ram_quota)
 : _ds_ep(ds_ep), _ds(_ds_size(), _alloc_ds(ram_quota), UNCACHED, true, 0),
-  _ds_cap(static_cap_cast<Dataspace>(_ds_ep->manage(&_ds)))
+  _ds_cap(static_cap_cast<Dataspace>(_ds_ep->manage(&_ds))),
+  _table(*construct_at<Table>(_alloc_table())),
+  _table_array(*(new (cma()) Array([this] (void * virt) {
+	return (addr_t)cma()->phys_addr(virt);})))
 {
 	_ds.assign_core_local_addr(core_env()->rm_session()->attach(_ds_cap));
-
-	Core_mem_allocator * cma =
-		static_cast<Core_mem_allocator*>(platform()->core_mem_alloc());
-	void *tt;
-
-	/* get some aligned space for the translation table */
-	if (!cma->alloc_aligned(sizeof(Translation_table), (void**)&tt,
-	                        Translation_table::ALIGNM_LOG2).ok()) {
-		error("failed to allocate kernel object");
-		throw Root::Quota_exceeded();
-	}
-
-	_table    = construct_at<Translation_table>(tt);
-	_tt_alloc = (new (cma) Table_allocator(cma))->alloc();
 }
 
 
@@ -105,6 +111,6 @@ Vm_session_component::~Vm_session_component()
 	platform()->ram_alloc()->free((void*)_ds.phys_addr());
 
 	/* free guest-to-host page tables */
-	destroy(platform()->core_mem_alloc(), _table);
-	destroy(platform()->core_mem_alloc(), Table_allocator::base(_tt_alloc));
+	destroy(platform()->core_mem_alloc(), &_table);
+	destroy(platform()->core_mem_alloc(), &_table_array);
 }

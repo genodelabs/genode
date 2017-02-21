@@ -15,9 +15,20 @@
 #ifndef _CORE__INCLUDE__SPEC__ARM_V6__TRANSLATION_TABLE_H_
 #define _CORE__INCLUDE__SPEC__ARM_V6__TRANSLATION_TABLE_H_
 
-/* core includes */
-#include <spec/arm/short_translation_table.h>
+#include <hw/spec/arm/page_table.h>
+#include <kernel/interface.h>
 
-constexpr unsigned Genode::Translation::_device_tex() { return 0; }
+#include <cpu.h>
+
+constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
+	return 0; }
+
+constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }
+
+void Hw::Page_table::_translation_added(unsigned long addr, unsigned long size)
+{
+	if (Genode::Cpu::is_user()) Kernel::update_data_region(addr, size);
+	else Genode::Cpu::clean_invalidate_data_cache();
+}
 
 #endif /* _CORE__INCLUDE__SPEC__ARM_V6__TRANSLATION_TABLE_H_ */

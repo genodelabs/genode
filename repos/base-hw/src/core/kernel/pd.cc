@@ -12,22 +12,18 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
-#include <kernel/pd.h>
-#include <util.h>
-#include <assert.h>
-#include <page_flags.h>
-#include <platform.h>
-
-#include <util/construct_at.h>
-#include <base/log.h>
-
-/* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/unmanaged_singleton.h>
+#include <base/log.h>
+#include <hw/page_flags.h>
+#include <hw/util.h>
+#include <kernel/pd.h>
+#include <util/construct_at.h>
+
+#include <platform.h>
 
 using namespace Kernel;
-using Genode::Translation_table;
+using Hw::Page_table;
 using Genode::Platform;
 
 /* structure of the mode transition */
@@ -36,15 +32,15 @@ extern int _mt_user_entry_pic;
 extern int _mt_client_context_ptr;
 
 
-void Mode_transition_control::map(Genode::Translation_table * tt,
-                                  Genode::Translation_table_allocator * alloc)
+void Mode_transition_control::map(Page_table & tt,
+                                  Page_table::Allocator & alloc)
 {
 	static addr_t const phys_base =
 		Platform::core_phys_addr((addr_t)&_mt_begin);
 
 	try {
-		tt->insert_translation(Cpu::exception_entry, phys_base, Cpu::mtc_size,
-		                       Genode::PAGE_FLAGS_KERN_EXCEP, alloc);
+		tt.insert_translation(Cpu::exception_entry, phys_base, Cpu::mtc_size,
+		                      Hw::PAGE_FLAGS_KERN_EXCEP, alloc);
 	} catch(...) {
 		Genode::error("inserting exception vector in page table failed!"); }
 }

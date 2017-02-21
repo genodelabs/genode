@@ -14,7 +14,6 @@
 
 /* core includes */
 #include <bios_data_area.h>
-#include <cpu.h>
 #include <platform.h>
 #include <multiboot.h>
 
@@ -23,12 +22,12 @@ using namespace Genode;
 /* contains physical pointer to multiboot */
 extern "C" Genode::addr_t __initial_bx;
 
-Platform::Board::Board()
+Bootstrap::Platform::Board::Board()
 : core_mmio(Memory_region { 0, 0x1000 },
-            Memory_region { Board::MMIO_LAPIC_BASE,
-                            Board::MMIO_LAPIC_SIZE  },
-            Memory_region { Board::MMIO_IOAPIC_BASE,
-                            Board::MMIO_IOAPIC_SIZE },
+            Memory_region { Hw::Cpu_memory_map::MMIO_LAPIC_BASE,
+                            Hw::Cpu_memory_map::MMIO_LAPIC_SIZE  },
+            Memory_region { Hw::Cpu_memory_map::MMIO_IOAPIC_BASE,
+                            Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE },
             Memory_region { __initial_bx & ~0xFFFUL,
                             get_page_size() })
 {
@@ -68,8 +67,12 @@ Platform::Board::Board()
 }
 
 
-void Platform::enable_mmu() {
-	Cpu::Cr3::write(Cpu::Cr3::init((addr_t)core_pd->table_base)); }
+void Bootstrap::Platform::enable_mmu() {
+	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base)); }
 
 
 addr_t Bios_data_area::_mmio_base_virt() { return 0x1ff000; }
+
+
+Bootstrap::Serial::Serial(addr_t, size_t, unsigned baudrate)
+:X86_uart_base(Bios_data_area::singleton()->serial_port(), 0, baudrate) {}

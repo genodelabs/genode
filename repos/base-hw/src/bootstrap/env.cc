@@ -11,11 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base includes */
 #include <base/env.h>
-
-/* core includes */
-#include <assert.h>
+#include <hw/assert.h>
 
 Genode::Env_deprecated * Genode::env_deprecated()
 {

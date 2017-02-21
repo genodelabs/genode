@@ -21,7 +21,7 @@
 #include <kernel/cpu_scheduler.h>
 #include <kernel/irq.h>
 
-namespace Genode { class Translation_table; }
+namespace Hw { class Page_table; }
 
 namespace Kernel
 {
@@ -80,7 +80,7 @@ class Kernel::Cpu_context : public Genode::Cpu::Context
 		 *
 		 * \param table  mode-transition table
 		 */
-		Cpu_context(Genode::Translation_table * const table);
+		Cpu_context(Hw::Page_table * const table);
 };
 
 class Kernel::Cpu_domain_update : public Double_list_item

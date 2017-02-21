@@ -13,6 +13,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <assertion.h>
 #include <platform_pd.h>
 #include <kernel/vm.h>
 #include <cpu/cpu_state.h>
@@ -52,7 +53,8 @@ void Kernel::Vm::exception(unsigned const cpu_id)
 	}
 	Genode::warning("VM: triggered unknown exception ", _state->trapno,
 	                " with error code ", _state->errcode);
-	assert(false);
+
+	ASSERT_NEVER_CALLED;
 }
 
 

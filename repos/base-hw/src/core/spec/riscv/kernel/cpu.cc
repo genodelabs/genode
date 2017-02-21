@@ -12,7 +12,7 @@
  */
 
 /* core includes */
-#include <assert.h>
+#include <assertion.h>
 #include <kernel/cpu.h>
 #include <kernel/pd.h>
 
@@ -51,5 +51,5 @@ void Cpu_idle::exception(unsigned const cpu)
 		return;
 	} else if (cpu_exception == RESET) return;
 
-	assert(0);
+	ASSERT_NEVER_CALLED;
 }

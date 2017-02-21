@@ -19,11 +19,12 @@
 #include <base/rpc_server.h>
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
-#include <long_translation_table.h>
+#include <hw/spec/arm/lpae.h>
 
 /* Core includes */
 #include <dataspace_component.h>
 #include <object.h>
+#include <translation_table.h>
 #include <kernel/vm.h>
 
 namespace Genode {
@@ -36,24 +37,23 @@ class Genode::Vm_session_component
 {
 	private:
 
-		using Translation_table =
-			Genode::Level_1_stage_2_translation_table;
-		using Table_allocator = Translation_table_allocator_tpl<
-			Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
+		using Table = Hw::Level_1_stage_2_translation_table;
+		using Array = Table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Rpc_entrypoint              *_ds_ep;
-		Range_allocator             *_ram_alloc;
-		Dataspace_component          _ds;
-		Dataspace_capability         _ds_cap;
-		addr_t                       _ds_addr;
-		Translation_table           *_table;
-		Translation_table_allocator *_tt_alloc;
+		Rpc_entrypoint        *_ds_ep;
+		Range_allocator       *_ram_alloc;
+		Dataspace_component    _ds;
+		Dataspace_capability   _ds_cap;
+		addr_t                 _ds_addr;
+		Table                 &_table;
+		Array                 &_table_array;
 
 		static size_t _ds_size() {
 			return align_addr(sizeof(Cpu_state_modes),
 			                  get_page_size_log2()); }
 
 		addr_t _alloc_ds(size_t &ram_quota);
+		void * _alloc_table();
 		void   _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
 
 	public:

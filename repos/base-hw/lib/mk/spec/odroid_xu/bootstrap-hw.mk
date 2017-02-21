@@ -1,4 +1,9 @@
-SRC_CC += bootstrap/spec/odroid_xu/cpu.cc
-SRC_CC += core/spec/arm_gic/pic.cc
+INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/odroid_xu
 
-include $(REP_DIR)/lib/mk/spec/exynos5/bootstrap-hw.inc
+SRC_CC  += bootstrap/spec/arm/cortex_a15_cpu.cc
+SRC_CC  += bootstrap/spec/arm/pic.cc
+SRC_CC  += bootstrap/spec/odroid_xu/platform.cc
+SRC_CC  += hw/spec/arm/arm_v7_cpu.cc
+SRC_S   += bootstrap/spec/arm/crt0.s
+
+include $(REP_DIR)/lib/mk/bootstrap-hw.inc

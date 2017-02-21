@@ -19,7 +19,7 @@
 #include <translation_table.h>
 #include <platform.h>
 #include <address_space.h>
-#include <translation_table_allocator.h>
+#include <hw/page_table_allocator.h>
 #include <object.h>
 #include <kernel/configuration.h>
 #include <kernel/object.h>
@@ -51,6 +51,8 @@ namespace Genode
 	 * Platform specific part of Core's protection domain
 	 */
 	class Core_platform_pd;
+
+	using Hw::Page_flags;
 }
 
 
@@ -61,14 +63,14 @@ class Hw::Address_space : public Genode::Address_space
 		friend class Genode::Platform;
 		friend class Genode::Mapped_mem_allocator;
 
-		using Table_allocator =
-			Translation_table_allocator_tpl<DEFAULT_TRANSLATION_TABLE_MAX>;
-
-		Genode::Lock                          _lock;     /* table lock      */
-		Genode::Translation_table           * _tt;       /* table virt addr */
-		Genode::Translation_table           * _tt_phys;  /* table phys addr */
-		Genode::Translation_table_allocator * _tt_alloc; /* table allocator */
-		Kernel::Pd                          * _kernel_pd;
+		using Table = Hw::Page_table;
+		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
+		Genode::Lock       _lock;     /* table lock      */
+		Table            & _tt;       /* table virt addr */
+		Genode::addr_t     _tt_phys;  /* table phys addr */
+		Array            * _tt_array = nullptr;
+		Table::Allocator & _tt_alloc; /* table allocator */
+		Kernel::Pd       & _kernel_pd;
 
 		static inline Genode::Core_mem_allocator * _cma();
 		static inline void * _table_alloc();
@@ -83,9 +85,9 @@ class Hw::Address_space : public Genode::Address_space
 		 * \param tt        pointer to translation table
 		 * \param tt_alloc  pointer to translation table allocator
 		 */
-		Address_space(Kernel::Pd                          * pd,
-		              Genode::Translation_table           * tt,
-		              Genode::Translation_table_allocator * tt_alloc);
+		Address_space(Kernel::Pd                & pd,
+		              Hw::Page_table            & tt,
+		              Hw::Page_table::Allocator & tt_alloc);
 
 	public:
 
@@ -94,7 +96,7 @@ class Hw::Address_space : public Genode::Address_space
 		 *
 		 * \param pd    pointer to kernel's pd object
 		 */
-		Address_space(Kernel::Pd* pd);
+		Address_space(Kernel::Pd & pd);
 
 		~Address_space();
 
@@ -121,10 +123,9 @@ class Hw::Address_space : public Genode::Address_space
 		 ** Accessors **
 		 ***************/
 
-		Kernel::Pd * kernel_pd() { return _kernel_pd; }
-		Genode::Translation_table * translation_table() { return _tt; }
-		Genode::Translation_table * translation_table_phys() {
-			return _tt_phys; }
+		Kernel::Pd & kernel_pd() { return _kernel_pd; }
+		Hw::Page_table & translation_table() { return _tt; }
+		Genode::addr_t translation_table_phys() { return _tt_phys; }
 };
 
 
@@ -168,8 +169,8 @@ class Genode::Platform_pd : public Hw::Address_space,
 		 * \param tt        translation table address
 		 * \param tt_alloc  translation table allocator
 		 */
-		Platform_pd(Translation_table           * tt,
-		            Translation_table_allocator * tt_alloc);
+		Platform_pd(Hw::Page_table            & tt,
+		            Hw::Page_table::Allocator & tt_alloc);
 
 	public:
 

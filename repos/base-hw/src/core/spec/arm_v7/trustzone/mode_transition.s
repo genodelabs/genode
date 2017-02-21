@@ -61,6 +61,30 @@
 
 .section .text
 
+/*
+ * On TrustZone exceptions the CPU has to jump to one of the following
+ * 7 entry vectors to switch to a kernel context.
+ */
+.p2align MIN_PAGE_SIZE_LOG2
+.global _mon_kernel_entry
+_mon_kernel_entry:
+	b _mon_rst_entry           /* reset                  */
+	b _mon_und_entry           /* undefined instruction  */
+	b _mon_svc_entry           /* supervisor call        */
+	b _mon_pab_entry           /* prefetch abort         */
+	b _mon_dab_entry           /* data abort             */
+	nop                        /* reserved               */
+	b _mon_irq_entry           /* interrupt request      */
+	_nonsecure_to_secure FIQ_TYPE, 4  /* fast interrupt request */
+
+	/* PICs that switch from a vm exception to the kernel */
+	_mon_rst_entry: _nonsecure_to_secure RST_TYPE, 0
+	_mon_und_entry: _nonsecure_to_secure UND_TYPE, 4
+	_mon_svc_entry: _nonsecure_to_secure SVC_TYPE, 0
+	_mon_pab_entry: _nonsecure_to_secure PAB_TYPE, 4
+	_mon_dab_entry: _nonsecure_to_secure DAB_TYPE, 8
+	_mon_irq_entry: _nonsecure_to_secure IRQ_TYPE, 4
+
 /* space for a copy of the kernel context */
 .p2align 2
 .global _tz_master_context
@@ -98,28 +122,3 @@ _nonsecure_kernel_entry:
 .global _mt_nonsecure_entry_pic
 _mt_nonsecure_entry_pic:
 	_secure_to_nonsecure
-
-/*
- * On TrustZone exceptions the CPU has to jump to one of the following
- * 7 entry vectors to switch to a kernel context.
- */
-.p2align 5
-.global _mon_kernel_entry
-_mon_kernel_entry:
-	b _mon_rst_entry           /* reset                  */
-	b _mon_und_entry           /* undefined instruction  */
-	b _mon_svc_entry           /* supervisor call        */
-	b _mon_pab_entry           /* prefetch abort         */
-	b _mon_dab_entry           /* data abort             */
-	nop                        /* reserved               */
-	b _mon_irq_entry           /* interrupt request      */
-	_nonsecure_to_secure FIQ_TYPE, 4  /* fast interrupt request */
-
-	/* PICs that switch from a vm exception to the kernel */
-	_mon_rst_entry: _nonsecure_to_secure RST_TYPE, 0
-	_mon_und_entry: _nonsecure_to_secure UND_TYPE, 4
-	_mon_svc_entry: _nonsecure_to_secure SVC_TYPE, 0
-	_mon_pab_entry: _nonsecure_to_secure PAB_TYPE, 4
-	_mon_dab_entry: _nonsecure_to_secure DAB_TYPE, 8
-	_mon_irq_entry: _nonsecure_to_secure IRQ_TYPE, 4
-

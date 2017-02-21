@@ -17,16 +17,9 @@
 #include <kernel/pd.h>
 #include <kernel/perf_counter.h>
 #include <pic.h>
-#include <trustzone.h>
 
 void Kernel::Cpu::init(Kernel::Pic &pic)
 {
-	/* locally initialize interrupt controller */
-	pic.init_cpu_local();
-
-	/* TrustZone initialization code */
-	init_trustzone(pic);
-
 	/* enable performance counter */
 	perf_counter()->enable();
 

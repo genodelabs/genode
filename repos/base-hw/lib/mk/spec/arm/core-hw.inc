@@ -14,7 +14,6 @@ SRC_CC += spec/arm/kernel/pd.cc
 SRC_CC += spec/arm/platform_support.cc
 
 # add assembly sources
-SRC_S += spec/arm/kernel/crt0.s
 SRC_S += spec/arm/crt0.s
 
 # include less specific configuration

@@ -12,6 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <hw/spec/x86_64/x86_64.h>
+
 /* core includes */
 #include <timer.h>
 #include <platform.h>
@@ -46,7 +48,7 @@ uint32_t Timer::_pit_calc_timer_freq(void)
 }
 
 
-Timer::Timer() : Mmio(Platform::mmio_to_virt(Board::MMIO_LAPIC_BASE))
+Timer::Timer() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE))
 {
 	write<Divide_configuration::Divide_value>(
 		Divide_configuration::Divide_value::MAX);

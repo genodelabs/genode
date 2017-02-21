@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <irq_session/irq_session.h>
+#include <hw/spec/x86_64/x86_64.h>
 
 /* core includes */
 #include <port_io.h>
@@ -29,7 +30,7 @@ enum {
 	PIC_DATA_SLAVE  = 0xa1,
 };
 
-Pic::Pic() : Mmio(Platform::mmio_to_virt(Board::MMIO_LAPIC_BASE))
+Pic::Pic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE))
 {
 	/* Start initialization sequence in cascade mode */
 	outb(PIC_CMD_MASTER, 0x11);
@@ -167,7 +168,7 @@ Irte::access_t Ioapic::_create_irt_entry(unsigned const irq)
 }
 
 
-Ioapic::Ioapic() : Mmio(Platform::mmio_to_virt(Board::MMIO_IOAPIC_BASE))
+Ioapic::Ioapic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_IOAPIC_BASE))
 {
 	for (unsigned i = 0; i < IRQ_COUNT; i++)
 	{

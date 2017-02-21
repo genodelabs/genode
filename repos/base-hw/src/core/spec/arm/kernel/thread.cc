@@ -12,8 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
-#include <assert.h>
 #include <kernel/thread.h>
 #include <kernel/pd.h>
 #include <kernel/kernel.h>

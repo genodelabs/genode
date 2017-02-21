@@ -17,11 +17,12 @@
 #include <root/root.h>
 
 /* core includes */
-#include <assert.h>
+#include <hw/assert.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
 
 using namespace Genode;
+using Hw::Page_table;
 
 
 /**************************************
@@ -35,8 +36,8 @@ Core_mem_allocator * Hw::Address_space::_cma() {
 void * Hw::Address_space::_table_alloc()
 {
 	void * ret;
-	if (!_cma()->alloc_aligned(sizeof(Translation_table), (void**)&ret,
-	                           Translation_table::ALIGNM_LOG2).ok())
+	if (!_cma()->alloc_aligned(sizeof(Page_table), (void**)&ret,
+	                           Page_table::ALIGNM_LOG2).ok())
 		throw Root::Quota_exceeded();
 	return ret;
 }
@@ -49,9 +50,9 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 		for (;;) {
 			try {
 				Lock::Guard guard(_lock);
-				_tt->insert_translation(virt, phys, size, flags, _tt_alloc);
+				_tt.insert_translation(virt, phys, size, flags, _tt_alloc);
 				return true;
-			} catch(Allocator::Out_of_memory) {
+			} catch(Hw::Out_of_tables &) {
 				flush(platform()->vm_start(), platform()->vm_size());
 			}
 		}
@@ -67,27 +68,29 @@ void Hw::Address_space::flush(addr_t virt, size_t size)
 	Lock::Guard guard(_lock);
 
 	try {
-		assert(_tt);
-		_tt->remove_translation(virt, size, _tt_alloc);
+		_tt.remove_translation(virt, size, _tt_alloc);
 
 		/* update translation caches */
-		Kernel::update_pd(_kernel_pd);
+		Kernel::update_pd(&_kernel_pd);
 	} catch(...) {
 		error("tried to remove invalid region!");
 	}
 }
 
 
-Hw::Address_space::Address_space(Kernel::Pd* pd, Translation_table * tt,
-                                 Translation_table_allocator * tt_alloc)
-: _tt(tt), _tt_phys(tt), _tt_alloc(tt_alloc), _kernel_pd(pd) {
+Hw::Address_space::Address_space(Kernel::Pd & pd, Page_table & tt,
+                                 Page_table::Allocator & tt_alloc)
+: _tt(tt), _tt_phys(Platform::core_phys_addr((addr_t)&tt)),
+  _tt_alloc(tt_alloc), _kernel_pd(pd) {
 	Kernel::mtc()->map(_tt, _tt_alloc); }
 
 
-Hw::Address_space::Address_space(Kernel::Pd * pd)
-: _tt(construct_at<Translation_table>(_table_alloc())),
-  _tt_phys(reinterpret_cast<Translation_table*>(_cma()->phys_addr(_tt))),
-  _tt_alloc((new (_cma()) Table_allocator(_cma()))->alloc()),
+Hw::Address_space::Address_space(Kernel::Pd & pd)
+: _tt(*construct_at<Page_table>(_table_alloc())),
+  _tt_phys((addr_t)_cma()->phys_addr(&_tt)),
+  _tt_array(new (_cma()) Array([this] (void * virt) {
+    return (addr_t)_cma()->phys_addr(virt);})),
+  _tt_alloc(_tt_array->alloc()),
   _kernel_pd(pd)
 {
 	Lock::Guard guard(_lock);
@@ -98,8 +101,8 @@ Hw::Address_space::Address_space(Kernel::Pd * pd)
 Hw::Address_space::~Address_space()
 {
 	flush(platform()->vm_start(), platform()->vm_size());
-	destroy(_cma(), Table_allocator::base(_tt_alloc));
-	destroy(_cma(), _tt);
+	destroy(_cma(), _tt_array);
+	destroy(_cma(), &_tt);
 }
 
 
@@ -151,16 +154,16 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Translation_table * tt,
-                         Translation_table_allocator * alloc)
-: Hw::Address_space(kernel_object(), tt, alloc),
-  Kernel_object<Kernel::Pd>(false, tt, this),
+Platform_pd::Platform_pd(Page_table & tt,
+                         Page_table::Allocator & alloc)
+: Hw::Address_space(*kernel_object(), tt, alloc),
+  Kernel_object<Kernel::Pd>(false, (Page_table*)translation_table_phys(), this),
   _label("core") { }
 
 
 Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
-: Hw::Address_space(kernel_object()),
-  Kernel_object<Kernel::Pd>(true, translation_table_phys(), this),
+: Hw::Address_space(*kernel_object()),
+  Kernel_object<Kernel::Pd>(true, (Page_table*)translation_table_phys(), this),
   _label(label)
 {
 	if (!_cap.valid()) {
@@ -183,9 +186,9 @@ Platform_pd::~Platform_pd()
 extern int _mt_master_context_begin;
 
 Core_platform_pd::Core_platform_pd()
-: Platform_pd(Platform::core_translation_table(),
-              Platform::core_translation_table_allocator())
+: Platform_pd(Platform::core_page_table(),
+              Platform::core_page_table_allocator())
 {
 	Genode::construct_at<Kernel::Cpu_context>(&_mt_master_context_begin,
-	                                          translation_table_phys());
+	                                          (Page_table*)translation_table_phys());
 }

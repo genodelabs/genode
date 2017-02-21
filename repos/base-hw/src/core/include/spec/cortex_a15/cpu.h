@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__SPEC__CORTEX_A15__CPU_H_
 
 /* core includes */
-#include <translation_table.h>
 #include <spec/arm_v7/cpu_support.h>
 
 namespace Genode { class Cpu; }
@@ -26,55 +25,32 @@ class Genode::Cpu : public Arm_v7
 {
 	public:
 
-		/**
-		 * Translation table base control register
-		 */
-		struct Ttbcr : Arm::Ttbcr
+		struct Sctlr : Register<32>
 		{
-			struct Irgn0 : Bitfield<8,  2> { };
-			struct Orgn0 : Bitfield<10, 2> { };
-			struct Sh0   : Bitfield<12, 2> { };
-			struct Eae   : Bitfield<31, 1> { }; /* extended address enable */
-
-			static access_t init_virt_kernel()
+			static access_t read()
 			{
-				access_t v = 0;
-				Irgn0::set(v, 1);
-				Orgn0::set(v, 1);
-				Sh0::set(v, 0b10);
-				Eae::set(v, 1);
+				access_t v;
+				asm volatile ("mcr p15, 0, %[v], c1, c0, 0" : [v] "=r" (v));
 				return v;
 			}
 		};
-
-		/**
-		 * Memory attribute indirection register 0
-		 */
-		struct Mair0 : Arm_v7::Mair0
+		struct Ttbcr : Register<32>
 		{
-			enum Attr {
-				DEVICE_MEMORY          = 0x04,
-				NORMAL_MEMORY_UNCACHED = 0x44,
-				NORMAL_MEMORY_CACHED   = 0xff,
-			};
-
-			static access_t init_virt_kernel()
+			static access_t read()
 			{
-				access_t v = 0;
-				Attr0::set(v, NORMAL_MEMORY_UNCACHED);
-				Attr1::set(v, DEVICE_MEMORY);
-				Attr2::set(v, NORMAL_MEMORY_CACHED);
-				Attr3::set(v, DEVICE_MEMORY);
+				access_t v;
+				asm volatile ("mcr p15, 0, %[v], c2, c0, 2" : [v] "=r" (v));
 				return v;
 			}
 		};
-
-		/**
-		 * Non-secure access control register
-		 */
-		struct Nsacr : Arm_v7::Nsacr
+		struct Mair0 : Register<32>
 		{
-			struct Ns_smp : Bitfield<18,1> { };
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mcr p15, 0, %[v], c10, c2, 0" : [v] "=r" (v));
+				return v;
+			}
 		};
 
 		/**
@@ -121,83 +97,6 @@ class Genode::Cpu : public Arm_v7
 		/*********************************
 		 **  Virtualization extensions  **
 		 *********************************/
-
-		/**
-		 * Hypervisor translation table base register
-		 */
-		struct Httbr : Register<64>
-		{
-			static void translation_table(addr_t const table)
-			{
-				asm volatile ("mcrr p15, 4, %[v0], %[v1], c2"
-				              :: [v0]"r"(table), [v1]"r"(0));
-			}
-		};
-
-		/**
-		 * Hypervisor translation control register
-		 */
-		struct Htcr : Register<32>
-		{
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 4, %[v], c2, c0, 2" :: [v] "r" (v)); }
-		};
-
-		/**
-		 * Hypervisor coprocessor trap register
-		 */
-		struct Hcptr : Register<32>
-		{
-			/* Coprocessor access trap */
-			template <unsigned COPROC>
-			struct Tcp : Bitfield<COPROC, 1> {};
-
-			struct Tase  : Bitfield<15, 1> { };
-			struct Tta   : Bitfield<20, 1> { };
-			struct Tcpac : Bitfield<31, 1> { };
-
-			static access_t init()
-			{
-				/* don't trap on cporocessor 10 + 11, but all others */
-				access_t v = 0;
-				Tcp<0>::set(v, 1);
-				Tcp<1>::set(v, 1);
-				Tcp<2>::set(v, 1);
-				Tcp<3>::set(v, 1);
-				Tcp<4>::set(v, 1);
-				Tcp<5>::set(v, 1);
-				Tcp<6>::set(v, 1);
-				Tcp<7>::set(v, 1);
-				Tcp<8>::set(v, 1);
-				Tcp<9>::set(v, 1);
-				Tcp<12>::set(v, 1);
-				Tcp<13>::set(v, 1);
-				Tta::set(v, 1);
-				Tcpac::set(v, 1);
-				return v;
-			}
-
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 4, %[v], c1, c1, 2" :: [v] "r" (v)); }
-		};
-
-		/**
-		 * Hypervisor Memory attribute indirection register 0
-		 */
-		struct Hmair0 : Register<32>
-		{
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 4, %[v], c10, c2, 0" :: [v] "r" (v)); }
-		};
-
-		/**
-		 * Hypervisor system control register
-		 */
-		struct Hsctlr : Arm_v7::Sctlr
-		{
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 4, %[v], c1, c0, 0" :: [v] "r" (v)); }
-		};
 
 		/**
 		 * Hypervisor system trap register
@@ -262,24 +161,6 @@ class Genode::Cpu : public Arm_v7
 		};
 
 		/**
-		 * Virtualization translation control register
-		 */
-		struct Vtcr : Ttbcr
-		{
-			struct Sl0 : Bitfield<6,2> {};
-
-			static access_t init()
-			{
-				access_t v = Ttbcr::init_virt_kernel();
-				Sl0::set(v, 1); /* set to starting level 1 */
-				return v;
-			}
-
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 4, %[v], c2, c1, 2" :: [v] "r" (v)); }
-		};
-
-		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
 		 *
 		 * Note: this class redefines Genode::Arm::Context
@@ -287,9 +168,9 @@ class Genode::Cpu : public Arm_v7
 		struct Context : Genode::Cpu_state
 		{
 			Ttbr0::access_t ttbr0 = 0;
-			Sctlr::access_t sctlr = 0;
-			Ttbcr::access_t ttbrc = 0;
-			Mair0::access_t mair0 = 0;
+			addr_t sctlr = 0;
+			addr_t ttbrc = 0;
+			addr_t mair0 = 0;
 
 			/**
 			 * Return base of assigned translation table
@@ -408,13 +289,6 @@ class Genode::Cpu : public Arm_v7
 		static unsigned primary_id();
 
 		/**
-		 * Switch to the virtual mode in kernel
-		 *
-		 * \param pd  kernel pd object pointer
-		 */
-		static void init_virt_kernel(Kernel::Pd & pd);
-
-		/**
 		 * Write back dirty cache lines and invalidate all cache lines
 		 */
 		void clean_invalidate_data_cache() {
@@ -425,27 +299,6 @@ class Genode::Cpu : public Arm_v7
 		 */
 		void invalidate_data_cache() {
 			invalidate_inner_data_cache(); }
-
-		/**
-		 * Hook function called at the very beginning
-		 * of the local cpu initialization
-		 */
-		void init(Genode::Translation_table&);
-
-		/**
-		 * Switch on MMU and caches
-		 *
-		 * \param table  physical page table address
-		 */
-		void enable_mmu_and_caches(Genode::addr_t table)
-		{
-			Cpu::Mair0::write(Cpu::Mair0::init_virt_kernel());
-			Cpu::Dacr::write(Cpu::Dacr::init_virt_kernel());
-			Cpu::Ttbr0::write(Cpu::Ttbr0::init(table, 0));
-			Cpu::Ttbcr::write(Cpu::Ttbcr::init_virt_kernel());
-			Cpu::Sctlr::enable_mmu_and_caches();
-			invalidate_branch_predicts();
-		}
 
 
 		/*************
