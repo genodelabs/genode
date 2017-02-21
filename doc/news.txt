@@ -4,6 +4,41 @@
                                ===========
 
 
+Open-source license update | 2017-02-21
+#######################################
+
+| With the upcoming version 17.02, Genode will adopt the GNU Affero General
+| Public License (AGPLv3) as its regular open-source license.
+
+Since our first release in 2008, Genode has been available under two flavors
+of licenses addressing different user bases. With Genode's regular open-source
+license, we address the Free-Software community, researchers, and technology
+enthusiasts. With the commercial license, Genode Labs enables product vendors
+to leverage Genode's technology for their businesses.
+
+For our open-source license, we originally picked the time-tested GNU General
+Public License version 2 (GPLv2). However, the time did not stand still. After
+9 years, it is time to update the license to a more recent version. After
+careful review of the open-source licensing landscape, we settled on the GNU
+Affero General Public License (AGPLv3), which is based on the GNU GPLv3 and
+thereby rectifies several shortcomings of the GPLv2. Furthermore, it closes
+loopholes of the GPLv3 license with respect to web applications. Unlike 2008
+when most applications were programs executed directly on the end user's
+computer, web applications have become predominant by now.
+
+To address possible concerns about the interoperability of the AGPLv3 with
+other open-source licenses, Genode's license will be accompanied with a
+linking-exception clause that clarifies our consent to link Genode with all
+commonly established open-source licenses.
+
+In December, we presented our plan of the license change to the subscribers of
+Genode's mailing list. The following constructive
+[https://sourceforge.net/p/genode/mailman/genode-main/thread/585116C8.2020607%40genode-labs.com/#msg35550569 - discussion]
+within the community helped us to refine our linking clause and to create a
+common understanding of the rationale behind our licensing choice. Thanks to
+everyone who participated in this discussion!
+
+
 Road Map for 2017 | 2017-01-17
 ##############################
 
