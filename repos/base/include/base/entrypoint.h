@@ -131,6 +131,11 @@ class Genode::Entrypoint : Genode::Noncopyable
 
 		Entrypoint(Env &env, size_t stack_size, char const *name);
 
+		~Entrypoint()
+		{
+			_rpc_ep->dissolve(&_signal_proxy);
+		}
+
 		/**
 		 * Associate RPC object with the entry point
 		 */
