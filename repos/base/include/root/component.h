@@ -123,6 +123,18 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			POLICY::aquire(args.string());
 
 			/*
+			 * Guard to ensure that 'release' is called whenever the scope
+			 * is left with an exception.
+			 */
+			struct Guard
+			{
+				bool ack = false;
+				Root_component &root;
+				Guard(Root_component &root) : root(root) { }
+				~Guard() { if (!ack) root.release(); }
+			} aquire_guard { *this };
+
+			/*
 			 * We need to decrease 'ram_quota' by
 			 * the size of the session object.
 			 */
@@ -163,6 +175,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 
 			_ep->manage(s);
 
+			aquire_guard.ack = true;
 			return *s;
 		}
 
