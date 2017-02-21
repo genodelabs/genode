@@ -49,7 +49,7 @@ append config {
 		<config>
 
 			<!-- let init settle, processing the initially invalid config -->
-			<sleep ms="250"/>
+			<sleep ms="150"/>
 
 
 			<message string="test state reporting"/>
@@ -88,6 +88,151 @@ append config {
 					</node>
 				</node>
 			</expect_init_state>
+
+
+			<message string="routing to custom log service"/>
+
+			<init_config version="chained log services">
+				<report ids="yes" requested="yes" provided="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="RAM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="indirect_server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route>
+						<service name="LOG"> <child name="server"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+				<start name="client">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="client started"/> </config>
+					<route>
+						<service name="LOG"> <child name="indirect_server"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> server] [indirect_server] [client] client started"/>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<node name="child">
+					<attribute name="name" value="server"/>
+					<attribute name="id"   value="2"/>
+				</node>
+				<node name="child">
+					<attribute name="name" value="client"/>
+					<attribute name="id"   value="4"/>
+				</node>
+			</expect_init_state>
+			<sleep ms="150"/>
+
+
+			<message string="changing route of indirect server"/>
+
+			<!-- Because the route to the LOG session of the 'indirect_server'
+			     is re-directed to the parent, the 'indirect_server' must be
+			     restarted. As the 'client' depends on the 'indirect_server'
+			     for its LOG session, the client must implicitly be restarted
+			     as well. -->
+
+			<init_config version="restarted indirect server">
+				<report ids="yes" requested="yes" provided="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="RAM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="indirect_server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="client">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="client started"/> </config>
+					<route>
+						<service name="LOG"> <child name="indirect_server"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<!-- the output of the new 'client' does no longer go via 'server' -->
+			<expect_log string="[init -> indirect_server] [client] client started"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child">
+					<attribute name="name" value="server"/>
+					<attribute name="id"   value="2"/>
+				</node>
+				<node name="child">
+					<attribute name="name" value="client"/>
+					<attribute name="id"   value="6"/> <!-- client was restarted -->
+				</node>
+			</expect_init_state>
+			<sleep ms="100"/>
+
+
+			<message string="update child config"/>
+
+			<init_config>
+				<report ids="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="application">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="Version A"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> application] config 1: Version A"/>
+			<init_config>
+				<report ids="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="application">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="Version B"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> application] config 2: Version B"/>
+			<sleep ms="100"/>
 
 		</config>
 		<route>

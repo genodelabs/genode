@@ -55,28 +55,6 @@ namespace Init {
 		} catch (...) {
 			return Affinity::Space(1, 1); }
 	}
-
-
-	/**
-	 * Read parent-provided services from config
-	 */
-	inline void determine_parent_services(Registry<Init::Parent_service> &services,
-	                                      Xml_node config, Allocator &alloc,
-	                                      bool verbose)
-	{
-		if (verbose)
-			log("parent provides");
-
-		config.sub_node("parent-provides")
-		      .for_each_sub_node("service", [&] (Xml_node node) {
-
-			Service::Name name = node.attribute_value("name", Service::Name());
-
-			new (alloc) Init::Parent_service(services, name);
-			if (verbose)
-				log("  service \"", name, "\"");
-		});
-	}
 }
 
 
@@ -213,11 +191,27 @@ class Init::Child_registry : public Name_registry, Child_list
 			return _aliases.first() ? _aliases.first() : 0;
 		}
 
-		void report_state(Xml_generator &xml, Report_detail const &detail) const
+		template <typename FN>
+		void for_each_child(FN const &fn) const
 		{
 			Genode::List_element<Child> const *curr = first();
 			for (; curr; curr = curr->next())
-				curr->object()->report_state(xml, detail);
+				fn(*curr->object());
+		}
+
+		template <typename FN>
+		void for_each_child(FN const &fn)
+		{
+			Genode::List_element<Child> *curr = first(), *next = nullptr;
+			for (; curr; curr = next) {
+				next = curr->next();
+				fn(*curr->object());
+			}
+		}
+
+		void report_state(Xml_generator &xml, Report_detail const &detail) const
+		{
+			for_each_child([&] (Child &child) { child.report_state(xml, detail); });
 
 			/* check for name clash with an existing alias */
 			for (Alias const *a = _aliases.first(); a; a = a->next()) {
@@ -226,7 +220,6 @@ class Init::Child_registry : public Name_registry, Child_list
 					xml.attribute("child", a->child);
 				});
 			}
-
 		}
 
 
@@ -427,6 +420,11 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor
 	Signal_handler<Main> _resource_avail_handler {
 		_env.ep(), *this, &Main::_handle_resource_avail };
 
+	void _update_aliases_from_config();
+	void _update_parent_services_from_config();
+	void _abandon_obsolete_children();
+	void _update_children_config();
+	void _destroy_abandoned_parent_services();
 	void _handle_config();
 
 	Signal_handler<Main> _config_handler {
@@ -444,39 +442,64 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor
 };
 
 
-void Init::Main::_handle_config()
+void Init::Main::_update_parent_services_from_config()
 {
-	/* kill all currently running children */
-	while (_children.any()) {
-		Init::Child *child = _children.any();
-		_children.remove(child);
-		destroy(_heap, child);
-	}
+	Xml_node const node = _config.xml().has_sub_node("parent-provides")
+	                    ? _config.xml().sub_node("parent-provides")
+	                    : Xml_node("<empty/>");
 
+	/* remove services that are no longer present in config */
+	_parent_services.for_each([&] (Parent_service &service) {
+
+		Service::Name const name = service.name();
+
+		bool obsolete = true;
+		node.for_each_sub_node("service", [&] (Xml_node service) {
+			if (name == service.attribute_value("name", Service::Name())) {
+				obsolete = false; }});
+
+		if (obsolete)
+			service.abandon();
+	});
+
+	if (_verbose->enabled())
+		log("parent provides");
+
+	/* register new services */
+	node.for_each_sub_node("service", [&] (Xml_node service) {
+
+		Service::Name const name = service.attribute_value("name", Service::Name());
+
+		bool registered = false;
+		_parent_services.for_each([&] (Parent_service const &service) {
+			if (service.name() == name)
+				registered = true; });
+
+		if (!registered) {
+			new (_heap) Init::Parent_service(_parent_services, _env, name);
+			if (_verbose->enabled())
+				log("  service \"", name, "\"");
+		}
+	});
+}
+
+
+void Init::Main::_destroy_abandoned_parent_services()
+{
+	_parent_services.for_each([&] (Parent_service &service) {
+		if (service.abandoned())
+			destroy(_heap, &service); });
+}
+
+
+void Init::Main::_update_aliases_from_config()
+{
 	/* remove all known aliases */
 	while (_children.any_alias()) {
 		Init::Alias *alias = _children.any_alias();
 		_children.remove_alias(alias);
 		destroy(_heap, alias);
 	}
-
-	/* reset knowledge about parent services */
-	_parent_services.for_each([&] (Init::Parent_service &service) {
-		destroy(_heap, &service); });
-
-	_config.update();
-
-	_verbose.construct(_config.xml());
-	_state_reporter.apply_config(_config.xml());
-
-	try { determine_parent_services(_parent_services, _config.xml(),
-	                                _heap, _verbose->enabled()); }
-	catch (...) { }
-
-	/* determine default route for resolving service requests */
-	try {
-		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
-	catch (...) { }
 
 	/* create aliases */
 	_config.xml().for_each_sub_node("alias", [&] (Xml_node alias_node) {
@@ -488,10 +511,98 @@ void Init::Main::_handle_config()
 		catch (Alias::Child_is_missing) {
 			warning("missing 'child' attribute in '<alias>' entry"); }
 	});
+}
 
-	/* create children */
+
+void Init::Main::_abandon_obsolete_children()
+{
+	_children.for_each_child([&] (Child &child) {
+
+		Child_policy::Name const name = child.name();
+
+		bool obsolete = true;
+		_config.xml().for_each_sub_node("start", [&] (Xml_node node) {
+			if (node.attribute_value("name", Child_policy::Name()) == name)
+				obsolete = false; });
+
+		if (obsolete)
+			child.abandon();
+	});
+}
+
+
+void Init::Main::_update_children_config()
+{
+	for (;;) {
+
+		/*
+		 * Children are abandoned if any of their client sessions can no longer
+		 * be routed or result in a different route. As each child may be a
+		 * service, an avalanche effect may occur. It stops if no update causes
+		 * a potential side effect in one iteration over all chilren.
+		 */
+		bool side_effects = false;
+
+		_config.xml().for_each_sub_node("start", [&] (Xml_node node) {
+
+			Child_policy::Name const start_node_name =
+				node.attribute_value("name", Child_policy::Name());
+
+			_children.for_each_child([&] (Child &child) {
+				if (child.name() == start_node_name) {
+					switch (child.apply_config(node)) {
+					case Child::NO_SIDE_EFFECTS: break;
+					case Child::MAY_HAVE_SIDE_EFFECTS: side_effects = true; break;
+					};
+				}
+			});
+		});
+
+		if (!side_effects)
+			break;
+	}
+}
+
+
+void Init::Main::_handle_config()
+{
+	_config.update();
+
+	_verbose.construct(_config.xml());
+	_state_reporter.apply_config(_config.xml());
+
+	/* determine default route for resolving service requests */
+	try {
+		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
+	catch (...) { }
+
+	_update_aliases_from_config();
+	_update_parent_services_from_config();
+	_abandon_obsolete_children();
+	_update_children_config();
+
+	/* kill abandoned children */
+	_children.for_each_child([&] (Child &child) {
+		if (child.abandoned()) {
+			_children.remove(&child);
+			destroy(_heap, &child);
+		}
+	});
+
+	_destroy_abandoned_parent_services();
+
+	/* create new children */
 	try {
 		_config.xml().for_each_sub_node("start", [&] (Xml_node start_node) {
+
+			/* skip start node if corresponding child already exists */
+			bool exists = false;
+			_children.for_each_child([&] (Child const &child) {
+				if (child.name() == start_node.attribute_value("name", Child_policy::Name()))
+					exists = true; });
+			if (exists) {
+				return;
+			}
 
 			try {
 				_children.insert(new (_heap)
@@ -526,6 +637,18 @@ void Init::Main::_handle_config()
 	catch (Xml_node::Invalid_syntax) { error("config has invalid syntax"); }
 	catch (Init::Child::Child_name_is_not_unique) { }
 	catch (Init::Child_registry::Alias_name_is_not_unique) { }
+
+	/*
+	 * Initiate RAM sessions of all new children
+	 */
+	_children.for_each_child([&] (Child &child) {
+		child.initiate_env_ram_session(); });
+
+	/*
+	 * Initiate remaining environment sessions of all new children
+	 */
+	_children.for_each_child([&] (Child &child) {
+		child.initiate_env_sessions(); });
 }
 
 

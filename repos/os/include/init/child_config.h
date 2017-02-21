@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__INIT__CHILD_CONFIG_H_
 #define _INCLUDE__INIT__CHILD_CONFIG_H_
 
+#warning header is deprecated, used os/dynamic_rom_session.h instead
+
 #include <util/xml_node.h>
 #include <base/attached_dataspace.h>
 #include <ram_session/ram_session.h>
