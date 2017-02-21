@@ -109,6 +109,8 @@ class Genode::Service : Noncopyable
 		 * Return the RAM session to be used for trading resources
 		 */
 		virtual Ram_session_capability ram() const { return _ram; }
+
+		virtual bool operator == (Service const &other) const { return this == &other; }
 };
 
 
