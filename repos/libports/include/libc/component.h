@@ -51,6 +51,11 @@ class Libc::Env : public Genode::Env
 		 * Virtual File System configured for this component
 		 */
 		virtual Vfs::File_system &vfs() = 0;
+
+		/**
+		 * Libc configuration for this component
+		 */
+		virtual Genode::Xml_node libc_config() = 0;
 };
 
 

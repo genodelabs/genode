@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <util/xml_node.h>
 
 namespace Libc {
 
@@ -33,6 +34,11 @@ namespace Libc {
 	 * Support for querying available RAM quota in sysctl functions
 	 */
 	void sysctl_init(Genode::Env &env);
+
+	/**
+	 * Set libc config node
+	 */
+	void libc_config_init(Genode::Xml_node node);
 }
 
 #endif /* _LIBC_INIT_H_ */

@@ -76,6 +76,14 @@ class Libc::Env_implementation : public Libc::Env
 			return Genode::Xml_node("<vfs/>");
 		}
 
+		Genode::Xml_node _libc_config()
+		{
+			try { return _config.xml().sub_node("libc"); }
+			catch (Genode::Xml_node::Nonexistent_sub_node) { }
+
+			return Genode::Xml_node("<libc/>");
+		}
+
 		Vfs::Global_file_system_factory _file_system_factory;
 		Vfs::Dir_file_system            _vfs;
 
@@ -99,6 +107,9 @@ class Libc::Env_implementation : public Libc::Env
 
 		Vfs::File_system &vfs() override {
 			return _vfs; }
+
+		Genode::Xml_node libc_config() override {
+			return _libc_config(); }
 
 
 		/***************************
@@ -845,6 +856,8 @@ void Component::construct(Genode::Env &env)
 	Libc::plugin_registry()->for_each_plugin(init_plugin);
 
 	kernel = unmanaged_singleton<Libc::Kernel>(env);
+
+	Libc::libc_config_init(kernel->libc_env().libc_config());
 
 	/* construct libc component on kernel stack */
 	Libc::Component::construct(kernel->libc_env());
