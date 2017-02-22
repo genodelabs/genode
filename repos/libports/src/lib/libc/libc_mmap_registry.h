@@ -11,9 +11,7 @@
 #include <base/lock.h>
 #include <base/env.h>
 #include <base/log.h>
-
-/* Genode libc includes */
-#include <errno.h>
+#include <libc/allocator.h>
 
 /* libc-internal includes */
 #include <libc-plugin/plugin.h>
@@ -46,6 +44,8 @@ class Libc::Mmap_registry
 		};
 
 	private:
+
+		Libc::Allocator _md_alloc;
 
 		Genode::List<Mmap_registry::Entry> _list;
 
@@ -86,7 +86,7 @@ class Libc::Mmap_registry
 				return;
 			}
 
-			_list.insert(new (Genode::env()->heap()) Entry(start, plugin));
+			_list.insert(new (&_md_alloc) Entry(start, plugin));
 		}
 
 		Plugin *lookup_plugin_by_addr(void *start) const
@@ -117,7 +117,7 @@ class Libc::Mmap_registry
 			}
 
 			_list.remove(e);
-			destroy(Genode::env()->heap(), e);
+			destroy(&_md_alloc, e);
 		}
 };
 
