@@ -27,9 +27,19 @@
 #include <unistd.h>
 
 #include "libc_errno.h"
+#include "libc_init.h"
 
 
 enum { PAGESIZE = 4096 };
+
+
+static Genode::Env *_global_env;
+
+
+void Libc::sysctl_init(Genode::Env &env)
+{
+	_global_env = &env;
+}
 
 
 extern "C" long sysconf(int name)
@@ -42,7 +52,7 @@ extern "C" long sysconf(int name)
 	case _SC_PAGESIZE:         return PAGESIZE;
 
 	case _SC_PHYS_PAGES:
-		return Genode::env()->ram_session()->quota() / PAGESIZE;
+		return _global_env->ram().quota() / PAGESIZE;
 	default:
 		Genode::warning(__func__, "(", name, ") not implemented");
 		return Libc::Errno(EINVAL);
@@ -117,7 +127,7 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 
 			case HW_PHYSMEM:
 			case HW_USERMEM:
-				*(unsigned long*)oldp = Genode::env()->ram_session()->quota();
+				*(unsigned long*)oldp = _global_env->ram().quota();
 				*oldlenp = sizeof(unsigned long);
 				return 0;
 
