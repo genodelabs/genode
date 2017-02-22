@@ -73,7 +73,7 @@ namespace Libc {
 			/**
 			 * Constructor
 			 */
-			File_descriptor_allocator();
+			File_descriptor_allocator(Genode::Allocator &md_alloc);
 
 			/**
 			 * Allocate file descriptor
