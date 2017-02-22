@@ -25,8 +25,6 @@
 #include "elements.h"
 #include "launchpad_window.h"
 
-#include <init/child_config.h>
-
 
 static Genode::Allocator *_alloc_ptr;
 
