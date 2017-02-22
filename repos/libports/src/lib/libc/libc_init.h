@@ -28,6 +28,11 @@ namespace Libc {
 	 * Global memory allocator
 	 */
 	void init_mem_alloc(Genode::Env &env);
+
+	/**
+	 * Support for querying available RAM quota in sysctl functions
+	 */
+	void sysctl_init(Genode::Env &env);
 }
 
 #endif /* _LIBC_INIT_H_ */

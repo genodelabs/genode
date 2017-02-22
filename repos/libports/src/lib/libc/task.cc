@@ -836,6 +836,7 @@ void Component::construct(Genode::Env &env)
 	/* pass Genode::Env to libc subsystems that depend on it */
 	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
+	Libc::sysctl_init(env);
 
 	/* initialize plugins that require Genode::Env */
 	auto init_plugin = [&] (Libc::Plugin &plugin) {
