@@ -41,6 +41,7 @@ run_genode_until {child ".*" exited with exit value 123.*\n} 10
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 unify_output {\[init \-\> test\-ldso\] upgrading quota donation for .* \([0-9]+ bytes\)} ""
+unify_output {ram_quota=[0-9]+} "ram_quota=UNIFIED"
 trim_lines
 
 compare_output_to {
@@ -81,7 +82,7 @@ compare_output_to {
 [init -> test-ldso] Catch exceptions in program
 [init -> test-ldso] ---------------------------
 [init -> test-ldso] exception in remote procedure call:
-[init -> test-ldso] Error: ROM-session creation failed (ram_quota=4096, label="unknown_file")
+[init -> test-ldso] Error: ROM-session creation failed (ram_quota=UNIFIED, label="unknown_file")
 [init -> test-ldso] Error: Could not open ROM session for "unknown_file"
 [init -> test-ldso] caught
 [init -> test-ldso] exception in program: caught
