@@ -19,6 +19,7 @@
 #include <base/log.h>
 #include <vfs/types.h>
 #include <util/string.h>
+#include <libc/allocator.h>
 
 /* libc includes */
 #include <netinet/in.h>
@@ -48,6 +49,8 @@ namespace Libc {
  ***************/
 
 namespace {
+
+	Libc::Allocator global_allocator;
 
 	using Libc::Errno;
 
@@ -380,7 +383,7 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	}
 
 	Absolute_path accept_path(accept_socket, Libc::config_socket());
-	Socket_context *accept_context = new (Genode::env()->heap())
+	Socket_context *accept_context = new (&global_allocator)
 	                                      Socket_context(accept_path);
 	Libc::File_descriptor *accept_fd =
 		Libc::file_descriptor_allocator()->alloc(&socket_plugin(), accept_context);
@@ -695,7 +698,7 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 		path.append(socket_path.string());
 	} catch (New_socket_failed) { return Errno(EINVAL); }
 
-	Socket_context *context = new (Genode::env()->heap())
+	Socket_context *context = new (&global_allocator)
 	                          Socket_context(path);
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->alloc(&socket_plugin(), context);
@@ -797,7 +800,7 @@ int Socket_plugin::close(Libc::File_descriptor *fd)
 
 	::unlink(context->path.base());
 
-	Genode::destroy(Genode::env()->heap(), context);
+	Genode::destroy(&global_allocator, context);
 	Libc::file_descriptor_allocator()->free(fd);
 
 	return 0;
