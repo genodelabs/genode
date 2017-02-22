@@ -12,6 +12,9 @@
 #include <base/env.h>
 #include <base/log.h>
 
+/* Genode libc includes */
+#include <errno.h>
+
 /* libc-internal includes */
 #include <libc-plugin/plugin.h>
 

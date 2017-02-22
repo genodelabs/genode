@@ -16,32 +16,32 @@
 #include <util/construct_at.h>
 #include <base/env.h>
 #include <base/log.h>
+#include <libc/allocator.h>
 
 /* libc plugin interface */
 #include <libc-plugin/fd_alloc.h>
-
-namespace Libc {
-
-	File_descriptor_allocator *file_descriptor_allocator()
-	{
-		static bool constructed = 0;
-		static char placeholder[sizeof(File_descriptor_allocator)];
-		if (!constructed) {
-			Genode::construct_at<File_descriptor_allocator>(placeholder);
-			constructed = 1;
-		}
-
-		return reinterpret_cast<File_descriptor_allocator *>(placeholder);
-	}
-}
-
 
 using namespace Libc;
 using namespace Genode;
 
 
-File_descriptor_allocator::File_descriptor_allocator()
-: Allocator_avl_tpl<File_descriptor>(Genode::env()->heap())
+File_descriptor_allocator *Libc::file_descriptor_allocator()
+{
+	static bool constructed = false;
+	static char placeholder[sizeof(File_descriptor_allocator)];
+	static Libc::Allocator md_alloc;
+
+	if (!constructed) {
+		Genode::construct_at<File_descriptor_allocator>(placeholder, md_alloc);
+		constructed = true;
+	}
+
+	return reinterpret_cast<File_descriptor_allocator *>(placeholder);
+}
+
+
+File_descriptor_allocator::File_descriptor_allocator(Genode::Allocator &md_alloc)
+: Allocator_avl_tpl<File_descriptor>(&md_alloc)
 {
 	add_range(0, MAX_NUM_FDS);
 }
