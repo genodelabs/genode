@@ -38,6 +38,21 @@ proc run_power_on { } {
 	    ![regexp -- {-serial}    $qemu_args dummy]} {
 	    append qemu_args " -serial mon:stdio " }
 
+	# SVM virtualization is broken beginning with 2.5.0 until 2.8.*
+	# We use "-cpu phenom" when using VMs in Qemu
+	if {[regexp -- {-cpu phenom} $qemu_args dummy]} {
+		catch {exec $qemu --version} qemu_version
+		set qemu_version [regexp -inline {version[ ][0-9]+\.[0-9]+[\.0-9]*} $qemu_version]
+		set qemu_version [regexp -inline {[0-9]+\.[0-9]+[\.0-9]*} $qemu_version]
+		if {[string compare $qemu_version "2.5"] != -1} {
+			if {[string compare $qemu_version "2.9"] == -1} {
+				puts "\nYour Qemu version '$qemu_version' is not working with AMD SVM virtualization"
+				puts "Known good Qemu versions are until 2.4.1 and starting with 2.9.0\n"
+				exit
+			}
+		}
+	}
+
 	# tweak emulated platform for specific platforms
 	if {[have_spec pbxa9]}  {
 		#
