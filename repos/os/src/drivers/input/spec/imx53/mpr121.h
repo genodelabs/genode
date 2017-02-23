@@ -52,13 +52,16 @@ class Input::Buttons {
 
 	public:
 
-		Buttons(Server::Entrypoint &ep) :
-		            _irq_handler(ep, Genode::Board_base::I2C_2_IRQ),
-		            _i2c_ds(Genode::Board_base::I2C_2_BASE,
-		                    Genode::Board_base::I2C_2_SIZE),
-		            _i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
-		                  _irq_handler),
-		            _state(0)
+		Buttons(Genode::Env &env, Timer::Connection &timer)
+		:
+			_irq_handler(env, Genode::Board_base::I2C_2_IRQ),
+			_i2c_ds(env,
+			        Genode::Board_base::I2C_2_BASE,
+			        Genode::Board_base::I2C_2_SIZE),
+			_i2c(timer,
+			     (Genode::addr_t)_i2c_ds.local_addr<void>(),
+			     _irq_handler),
+			_state(0)
 		{
 			static Genode::uint8_t init_cmd[][2] = {
 				{0x41, 0x8 }, {0x42, 0x5 }, {0x43, 0x8 },

@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <irq_session/connection.h>
-#include <os/server.h>
 
 class Irq_handler
 {
@@ -31,9 +30,9 @@ class Irq_handler
 
 	public:
 
-		Irq_handler(Server::Entrypoint &ep, int irq_number)
+		Irq_handler(Genode::Env &env, int irq_number)
 		:
-			_irq(irq_number),
+			_irq(env, irq_number),
 			_dispatcher(_sig_rec, *this, &Irq_handler::_handle)
 		{
 			_irq.sigh(_dispatcher);

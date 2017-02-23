@@ -14,10 +14,9 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
 #include <base/env.h>
-#include <base/sleep.h>
 #include <base/rpc_server.h>
-#include <cap_session/connection.h>
 #include <platform_session/connection.h>
 #include <input/component.h>
 #include <input/root.h>
@@ -30,39 +29,39 @@
 using namespace Genode;
 
 
+Input::Tablet_driver* Input::Tablet_driver::factory(Genode::Env &env,
+                                                    Event_queue &ev_queue)
+{
+	static Input::Tablet_driver driver(env, ev_queue);
+	return &driver;
+}
+
+
 struct Main
 {
-	Server::Entrypoint &ep;
+	Genode::Env &env;
 
-	Input::Session_component session;
-	Input::Root_component    root;
+	Input::Session_component session { env, env.ram() };
+	Input::Root_component    root { env.ep().rpc_ep(), session };
 
-	Main(Server::Entrypoint &ep)
-	: ep(ep), root(ep.rpc_ep(), session)
+	Main(Genode::Env &env) : env(env)
 	{
-		Platform::Connection plat_drv;
+		Platform::Connection plat_drv { env };
 		switch (plat_drv.revision()) {
 			case Platform::Session::SMD:
 				plat_drv.enable(Platform::Session::I2C_2);
 				plat_drv.enable(Platform::Session::I2C_3);
 				plat_drv.enable(Platform::Session::BUTTONS);
-				Input::Tablet_driver::factory(ep, session.event_queue());
+				Input::Tablet_driver::factory(env, session.event_queue());
 				break;
 			default:
 				PWRN("No input driver available for this board");
 		}
 
 		/* tell parent about the service */
-		env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
-/************
- ** Server **
- ************/
 
-namespace Server {
-	char const *name()             { return "input_drv_ep";       }
-	size_t stack_size()            { return 16*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);      }
-}
+void Component::construct(Genode::Env &env) { static Main main(env); }

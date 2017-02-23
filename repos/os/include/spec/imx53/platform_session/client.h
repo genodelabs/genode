@@ -15,7 +15,7 @@
 #define _INCLUDE__PLATFORM_SESSION__CLIENT_H_
 
 #include <base/capability.h>
-#include <base/rpc.h>
+#include <base/rpc_client.h>
 #include <platform_session/platform_session.h>
 
 namespace Platform { struct Client; }
