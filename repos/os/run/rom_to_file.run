@@ -27,7 +27,7 @@ install_config {
 		<service name="PD" />
 	</parent-provides>
 	<default-route>
-		<any-service> <any-child/> <parent/> </any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -55,6 +55,11 @@ install_config {
 	<start name="rom_to_file">
 		<resource name="RAM" quantum="4M"/>
 		<config rom="test" />
+		<route>
+			<service name="ROM" label="test"> <child name="dynamic_rom"/> </service>
+			<service name="File_system">      <child name="lx_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 	</start>
 </config>}
 
