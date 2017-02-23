@@ -470,7 +470,8 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	                           usb_signal_thread, usb_signal_thread_wakeup,
 	                           32 * 1024 , RTTHREADTYPE_IO, "usb_signal");
 
-	pThis->ctl = Qemu::usb_init(timer_queue, pci_device, *pThis->usb_sig_rec);
+	pThis->ctl = Qemu::usb_init(timer_queue, pci_device, *pThis->usb_sig_rec,
+	                            vmm_heap(), genode_env());
 
 	/*
 	 * Init instance data.

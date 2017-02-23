@@ -6,11 +6,8 @@
  */
 
 #include <base/allocator_avl.h>
-#include <base/sleep.h>
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/server.h>
-#include <os/signal_rpc_dispatcher.h>
 #include <usb_session/connection.h>
 #include <usb/usb.h>
 #include <util/xml_node.h>
@@ -119,8 +116,8 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	Signal_receiver  &sig_rec;
 	Signal_dispatcher<Usb_host_device> state_dispatcher { sig_rec, *this, &Usb_host_device::state_change };
 
-	Allocator_avl   alloc { env()->heap() };
-	Usb::Connection usb_raw { &alloc, label, 1024*1024, state_dispatcher };
+	Allocator_avl   _alloc;
+	Usb::Connection usb_raw; // { &alloc, label, 1024*1024, state_dispatcher };
 
 	Signal_dispatcher<Usb_host_device> ack_avail_dispatcher { sig_rec, *this, &Usb_host_device::ack_avail };
 
@@ -157,9 +154,13 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		return result;
 	}
 
-	Usb_host_device(Signal_receiver &sig_rec, char const *label,
+	Usb_host_device(Signal_receiver &sig_rec, Allocator &alloc,
+	                Genode::Env &env, char const *label,
 	                unsigned bus, unsigned dev)
-	: label(label), bus(bus), dev(dev), sig_rec(sig_rec)
+	:
+		label(label), _alloc(&alloc),
+		usb_raw(env, &_alloc, label, 1024*1024, state_dispatcher),
+		bus(bus), dev(dev), sig_rec(sig_rec)
 	{
 		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
 
@@ -530,8 +531,10 @@ static void usb_host_register_types(void)
 struct Usb_devices : List<Usb_host_device>
 {
 	Signal_receiver               &_sig_rec;
+	Env                           &_env;
+	Allocator                     &_alloc;
 	Signal_dispatcher<Usb_devices> _device_dispatcher { _sig_rec, *this, &Usb_devices::_devices_update };
-	Attached_rom_dataspace         _devices_rom       { "usb_devices" };
+	Attached_rom_dataspace         _devices_rom = { _env, "usb_devices" };
 
 	void _garbage_collect()
 	{
@@ -540,7 +543,7 @@ struct Usb_devices : List<Usb_host_device>
 				continue;
 
 			remove(d);
-			Genode::destroy(env()->heap(), d);
+			Genode::destroy(_alloc, d);
 		}
 	}
 
@@ -610,8 +613,9 @@ struct Usb_devices : List<Usb_host_device>
 			if (_find_usb_device(bus, dev)) return;
 
 			try {
-				Usb_host_device *new_device = new (env()->heap())
-					Usb_host_device(_sig_rec, label.string(), bus, dev);
+				Usb_host_device *new_device = new (_alloc)
+					Usb_host_device(_sig_rec, _alloc, _env, label.string(),
+					                bus, dev);
 
 				insert(new_device);
 
@@ -623,8 +627,8 @@ struct Usb_devices : List<Usb_host_device>
 		});
 	}
 
-	Usb_devices(Signal_receiver *sig_rec)
-	: _sig_rec(*sig_rec)
+	Usb_devices(Signal_receiver *sig_rec, Allocator &alloc, Genode::Env &env)
+	: _sig_rec(*sig_rec), _env(env), _alloc(alloc)
 	{
 		_devices_rom.sigh(_device_dispatcher);
 	}
@@ -661,10 +665,12 @@ extern "C" void usb_host_update_devices()
 /*
  * Do not use type_init macro because of name mangling
  */
-extern "C" void _type_init_usb_host_register_types(Genode::Signal_receiver *sig_rec)
+extern "C" void _type_init_usb_host_register_types(Genode::Signal_receiver *sig_rec,
+                                                   Genode::Allocator *alloc,
+                                                   Genode::Env *env)
 {
 	usb_host_register_types();
 
-	static Usb_devices devices(sig_rec);
+	static Usb_devices devices(sig_rec, *alloc, *env);
 	_devices = &devices;
 }

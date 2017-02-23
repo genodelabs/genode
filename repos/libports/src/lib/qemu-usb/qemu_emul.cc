@@ -36,7 +36,9 @@ static bool const verbose_iov  = false;
 static bool const verbose_mmio = false;
 
 extern "C" void _type_init_usb_register_types();
-extern "C" void _type_init_usb_host_register_types(Genode::Signal_receiver*);
+extern "C" void _type_init_usb_host_register_types(Genode::Signal_receiver*,
+                                                   Genode::Allocator*,
+                                                   Genode::Env *);
 extern "C" void _type_init_xhci_register_types();
 
 extern Genode::Lock _lock;
@@ -47,15 +49,19 @@ Qemu::Controller *qemu_controller();
 static Qemu::Timer_queue* _timer_queue;
 static Qemu::Pci_device*  _pci_device;
 
+static Genode::Allocator *_heap = nullptr;
 
-Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci, Genode::Signal_receiver &sig_rec)
+Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci,
+                                 Genode::Signal_receiver &sig_rec,
+                                 Genode::Allocator &alloc, Genode::Env &env)
 {
+	_heap = &alloc;
 	_timer_queue = &tq;
 	_pci_device  = &pci;
 
 	_type_init_usb_register_types();
 	_type_init_xhci_register_types();
-	_type_init_usb_host_register_types(&sig_rec);
+	_type_init_usb_host_register_types(&sig_rec, &alloc, &env);
 
 	return qemu_controller();
 }
@@ -87,7 +93,7 @@ void Qemu::usb_timer_callback(void (*cb)(void*), void *data)
  **********/
 
 void *malloc(size_t size) {
-	return Genode::env()->heap()->alloc(size); }
+	return _heap->alloc(size); }
 
 
 void *memset(void *s, int c, size_t n) {
@@ -96,7 +102,7 @@ void *memset(void *s, int c, size_t n) {
 
 void free(void *p) {
 	if (!p) return;
-	Genode::env()->heap()->free(p, 0);
+	_heap->free(p, 0);
 }
 
 
