@@ -12,11 +12,9 @@
  */
 
 /* Genode includes */
+#include <libc/component.h>
 #include <base/heap.h>
 #include <base/log.h>
-#include <base/rpc_server.h>
-#include <base/sleep.h>
-#include <cap_session/connection.h>
 #include <base/attached_ram_dataspace.h>
 #include <os/session_policy.h>
 #include <root/component.h>
@@ -157,10 +155,11 @@ namespace Terminal {
 
 		public:
 
-			Session_component(Genode::size_t io_buffer_size, const char *filename)
+			Session_component(Genode::Env &env,
+			                  Genode::size_t io_buffer_size, const char *filename)
 			:
 				Open_file(filename),
-				_io_buffer(Genode::env()->ram_session(), io_buffer_size)
+				_io_buffer(env.ram(), env.rm(), io_buffer_size)
 			{ }
 
 			/********************************
@@ -223,6 +222,10 @@ namespace Terminal {
 
 	class Root_component : public Genode::Root_component<Session_component>
 	{
+		private:
+
+			Genode::Env &_env;
+
 		protected:
 
 			Session_component *_create_session(const char *args)
@@ -240,7 +243,7 @@ namespace Terminal {
 						policy.attribute("io_buffer_size").value(&io_buffer_size);
 
 					return new (md_alloc())
-					       Session_component(io_buffer_size, filename);
+					       Session_component(_env, io_buffer_size, filename);
 
 				} catch (Genode::Xml_node::Nonexistent_attribute) {
 					Genode::error("missing \"filename\" attribute in policy definition");
@@ -256,38 +259,35 @@ namespace Terminal {
 			/**
 			 * Constructor
 			 */
-			Root_component(Genode::Rpc_entrypoint *ep,
-			               Genode::Allocator      *md_alloc)
+			Root_component(Genode::Env       &env,
+			               Genode::Allocator *md_alloc)
 			:
-				Genode::Root_component<Session_component>(ep, md_alloc)
+				Genode::Root_component<Session_component>(&env.ep().rpc_ep(), md_alloc),
+				_env(env)
 			{ }
 	};
 }
 
 
-int main()
+struct Main
 {
-	using namespace Genode;
+	Genode::Env &_env;
 
-	Genode::log("--- file terminal started ---");
-
-	/**
-	 * The stack needs to be that large because certain functions
-	 * in the libc (e.g. mktime(3)) require a huge stack.
-	 */
-	enum { STACK_SIZE = 16*sizeof(addr_t)*1024 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "terminal_ep");
-
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create root interface for service */
-	static Terminal::Root_component root(&ep, &sliced_heap);
+	Terminal::Root_component _root { _env, &_sliced_heap };
 
-	/* announce service at our parent */
-	env()->parent()->announce(ep.manage(&root));
+	Main(Genode::Env &env) : _env(env)
+	{
+		using namespace Genode;
 
-	Genode::sleep_forever();
+		Genode::log("--- file terminal started ---");
 
-	return 0;
-}
+		/* announce service at our parent */
+		_env.parent().announce(env.ep().manage(_root));
+	}
+};
+
+
+void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
