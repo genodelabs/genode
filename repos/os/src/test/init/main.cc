@@ -44,10 +44,20 @@ static inline bool Test::xml_attribute_matches(Xml_node condition, Xml_node node
 	typedef String<32> Name;
 	typedef String<64> Value;
 
-	Name  const name  = condition.attribute_value("name",  Name());
-	Value const value = condition.attribute_value("value", Value());
+	Name const name = condition.attribute_value("name",  Name());
 
-	return node.attribute_value(name.string(), Value()) == value;
+	if (condition.has_attribute("value")) {
+		Value const value = condition.attribute_value("value", Value());
+		return node.attribute_value(name.string(), Value()) == value;
+	}
+
+	if (condition.has_attribute("higher")) {
+		size_t const value = condition.attribute_value("higher", Number_of_bytes());
+		return (size_t)node.attribute_value(name.string(), Number_of_bytes()) > value;
+	}
+
+	error("missing condition in <attribute> node");
+	return false;
 }
 
 

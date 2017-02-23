@@ -234,6 +234,40 @@ append config {
 			<expect_log string="[init -> application] config 2: Version B"/>
 			<sleep ms="100"/>
 
+
+			<message string="test RAM preservation"/>
+			<init_config>
+				<report init_ram="yes"/>
+				<resource name="RAM" preserve="2M"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="regular">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="regular component started"/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="greedy">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1G"/>
+					<config> <log string="greedy component started"/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="250"/>
+			<!-- wait until both children are started -->
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="regular"/> </node>
+				<node name="child"> <attribute name="name" value="greedy"/> </node>
+			</expect_init_state>
+			<expect_init_state>
+				<node name="ram"> <attribute name="avail" higher="2M"/> </node>
+			</expect_init_state>
+			<sleep ms="100"/>
+
 		</config>
 		<route>
 			<service name="Report">            <child name="report_rom"/> </service>

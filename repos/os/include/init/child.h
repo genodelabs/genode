@@ -38,6 +38,8 @@ namespace Init {
 	using namespace Genode;
 	using Genode::size_t;
 	using Genode::strlen;
+
+	struct Ram_quota { size_t value; };
 }
 
 
@@ -110,18 +112,6 @@ namespace Init {
 		}
 		catch (...) { return Location(0, 0, space.width(), space.height()); }
 	}
-
-
-	/**
-	 * Return amount of RAM that is currently unused
-	 */
-	static inline size_t avail_slack_ram_quota(size_t ram_avail)
-	{
-		size_t const preserve = 148*1024;
-
-		return ram_avail > preserve ? ram_avail - preserve : 0;
-	}
-
 
 	/**
 	 * Return sub string of label with the leading child name stripped out
@@ -407,10 +397,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		struct Id { unsigned value; };
 
-		struct Default_route_accessor
-		{
-			virtual Xml_node default_route() = 0;
-		};
+		struct Default_route_accessor { virtual Xml_node default_route() = 0; };
+
+		struct Ram_limit_accessor { virtual Ram_quota ram_limit() = 0; };
 
 	private:
 
@@ -436,6 +425,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		Reconstructible<Buffered_xml> _start_node;
 
 		Default_route_accessor &_default_route_accessor;
+
+		Ram_limit_accessor &_ram_limit_accessor;
 
 		Name_registry &_name_registry;
 
@@ -491,12 +482,12 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		struct Read_quota
 		{
-			Read_quota(Xml_node       start_node,
-			           size_t        &ram_quota,
-			           size_t        &cpu_quota_pc,
-			           bool          &constrain_phys,
-			           size_t  const  ram_avail,
-			           Verbose const &verbose)
+			Read_quota(Xml_node        start_node,
+			           size_t         &ram_quota,
+			           size_t         &cpu_quota_pc,
+			           bool           &constrain_phys,
+			           Ram_quota const ram_limit,
+			           Verbose  const &verbose)
 			{
 				cpu_quota_pc   = 0;
 				constrain_phys = false;
@@ -521,11 +512,11 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				 * If the configured RAM quota exceeds our own quota, we donate
 				 * all remaining quota to the child.
 				 */
-				if (ram_quota > ram_avail) {
-					ram_quota = ram_avail;
+				if (ram_quota > ram_limit.value) {
+					ram_quota = ram_limit.value;
 
 					if (verbose.enabled())
-						warn_insuff_quota(ram_avail);
+						warn_insuff_quota(ram_limit.value);
 				}
 			}
 		};
@@ -538,23 +529,23 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			long     prio_levels_log2;
 			long     priority;
 			Affinity affinity;
-			size_t   ram_quota;
+			size_t   assigned_ram_quota;
+			size_t   effective_ram_quota;
 			size_t   cpu_quota_pc;
 			bool     constrain_phys;
 
 			Resources(Xml_node start_node, long prio_levels,
-			          Affinity::Space const &affinity_space, size_t ram_avail,
+			          Affinity::Space const &affinity_space, Ram_quota ram_limit,
 			          Verbose const &verbose)
 			:
-				Read_quota(start_node, ram_quota, cpu_quota_pc,
-				           constrain_phys, ram_avail, verbose),
+				Read_quota(start_node, assigned_ram_quota, cpu_quota_pc,
+				           constrain_phys, ram_limit, verbose),
 				prio_levels_log2(log2(prio_levels)),
 				priority(read_priority(start_node, prio_levels)),
 				affinity(affinity_space,
 				         read_affinity_location(affinity_space, start_node))
 			{
-				/* deduce session costs from usable ram quota */
-				ram_quota = Genode::Child::effective_ram_quota(ram_quota);
+				effective_ram_quota = Genode::Child::effective_ram_quota(assigned_ram_quota);
 			}
 		} _resources;
 
@@ -684,6 +675,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		      Xml_node                  start_node,
 		      Default_route_accessor   &default_route_accessor,
 		      Name_registry            &name_registry,
+		      Ram_limit_accessor       &ram_limit_accessor,
 		      long                      prio_levels,
 		      Affinity::Space const    &affinity_space,
 		      Registry<Parent_service> &parent_services,
@@ -694,24 +686,25 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			_list_element(this),
 			_start_node(_alloc, start_node),
 			_default_route_accessor(default_route_accessor),
+			_ram_limit_accessor(ram_limit_accessor),
 			_name_registry(name_registry),
 			_unique_name(start_node, name_registry),
 			_binary_name(_binary_name_from_xml(start_node, _unique_name)),
 			_resources(start_node, prio_levels, affinity_space,
-			           avail_slack_ram_quota(_env.ram().avail()), _verbose),
+			           ram_limit_accessor.ram_limit(), _verbose),
 			_parent_services(parent_services),
 			_child_services(child_services),
 			_session_requester(_env.ep().rpc_ep(), _env.ram(), _env.rm()),
 			_priority_policy(_resources.prio_levels_log2, _resources.priority),
 			_ram_session_policy(_resources.constrain_phys)
 		{
-			if (_resources.ram_quota == 0)
+			if (_resources.effective_ram_quota == 0)
 				warning("no valid RAM resource for child "
 				        "\"", _unique_name, "\"");
 
 			if (_verbose.enabled()) {
 				log("child \"",       _unique_name, "\"");
-				log("  RAM quota:  ", _resources.ram_quota);
+				log("  RAM quota:  ", _resources.effective_ram_quota);
 				log("  ELF binary: ", _binary_name);
 				log("  priority:   ", _resources.priority);
 			}
@@ -758,6 +751,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		bool has_name(Child_policy::Name const &str) const { return str == name(); }
 
+		Ram_quota ram_quota() const { return Ram_quota { _resources.assigned_ram_quota }; }
+
 		void initiate_env_ram_session()
 		{
 			if (_state == STATE_INITIAL) {
@@ -775,7 +770,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				/* check for completeness of the child's environment */
 				if (_verbose.enabled())
 					_child.for_each_session([&] (Session_state const &session) {
-						if (session.phase != Session_state::AVAILABLE)
+						if (!session.alive())
 							warning(name(), ": incomplete environment ",
 							        session.service().name(), " session "
 							        "(", session.label(), ")"); });
@@ -937,7 +932,15 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		void init(Ram_session &session, Ram_session_capability cap) override
 		{
 			session.ref_account(_env.ram_session_cap());
-			_env.ram().transfer_quota(cap, _resources.ram_quota);
+
+			size_t const initial_session_costs =
+				session_alloc_batch_size()*_child.session_factory().session_costs();
+
+			size_t const transfer_ram = _resources.effective_ram_quota > initial_session_costs
+			                          ? _resources.effective_ram_quota - initial_session_costs
+			                          : 0;
+			if (transfer_ram)
+				_env.ram().transfer_quota(cap, transfer_ram);
 		}
 
 		void init(Cpu_session &session, Cpu_session_capability cap) override
@@ -1161,7 +1164,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				Arg_string::find_arg(args.string(), "ram_quota")
 					.ulong_value(0);
 
-			if (avail_slack_ram_quota(_env.ram().avail()) < requested_ram_quota) {
+			if (_ram_limit_accessor.ram_limit().value < requested_ram_quota) {
 				warning("cannot respond to resource request - out of memory");
 				return;
 			}
