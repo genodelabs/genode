@@ -5,10 +5,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  .../fontdatabases/basic/qbasicfontdatabase.cpp     |    9 +++++++++
- .../input/evdevkeyboard/qevdevkeyboardhandler.cpp  |    9 ++++++---
+ .../input/evdevkeyboard/qevdevkeyboardhandler.cpp  |   18 +++++++++++++++---
  .../input/evdevkeyboard/qevdevkeyboardhandler_p.h  |    2 ++
  qtbase/src/widgets/kernel/qwidget_qpa.cpp          |    2 +-
- 4 files changed, 18 insertions(+), 4 deletions(-)
+ 4 files changed, 27 insertions(+), 4 deletions(-)
 
 diff --git a/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp b/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
 index 9b87418..aa25c6b 100644
@@ -32,7 +32,7 @@ index 9b87418..aa25c6b 100644
  }
  
 diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
-index 26dc116..3d0e3e2 100644
+index 26dc116..f0c104d 100644
 --- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
 +++ b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
 @@ -49,7 +49,9 @@
@@ -68,7 +68,7 @@ index 26dc116..3d0e3e2 100644
  QEvdevKeyboardHandler *QEvdevKeyboardHandler::create(const QString &device, const QString &specification)
  {
  #ifdef QT_QPA_KEYMAP_DEBUG
-@@ -218,7 +221,7 @@ void QEvdevKeyboardHandler::readKeycode()
+@@ -218,10 +221,19 @@ void QEvdevKeyboardHandler::readKeycode()
          }
      }
  }
@@ -77,6 +77,18 @@ index 26dc116..3d0e3e2 100644
  void QEvdevKeyboardHandler::processKeyEvent(int nativecode, int unicode, int qtcode,
                                              Qt::KeyboardModifiers modifiers, bool isPress, bool autoRepeat)
  {
++#ifdef Q_OS_GENODE
++    /* characters are handled separately by the QPA plugin */
++    unicode = 0xffff;
++
++    /* Ctrl-A .. Ctrl-Z is handled separately by the QPA plugin */
++    if ((modifiers & Qt::ControlModifier) &&
++        ((qtcode >= Qt::Key_A) && (qtcode <= Qt::Key_Z)))
++        return;
++#endif
+     QWindowSystemInterface::handleExtendedKeyEvent(0, (isPress ? QEvent::KeyPress : QEvent::KeyRelease),
+                                                    qtcode, modifiers, nativecode + 8, 0, int(modifiers),
+                                                    QString(unicode), autoRepeat);
 diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
 index 1065b05..b395d46 100644
 --- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
