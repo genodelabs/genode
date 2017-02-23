@@ -377,7 +377,8 @@ class Init::State_reporter : public Report_update_trigger
 };
 
 
-struct Init::Main : State_reporter::Producer, Child::Default_route_accessor
+struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
+                    Child::Ram_limit_accessor
 {
 	Env &_env;
 
@@ -394,6 +395,24 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor
 	Constructible<Buffered_xml> _default_route;
 
 	unsigned _child_cnt = 0;
+
+	static Ram_quota _preserved_ram_from_config(Xml_node config)
+	{
+		Number_of_bytes preserve { 40*sizeof(long)*1024 };
+
+		config.for_each_sub_node("resource", [&] (Xml_node node) {
+			if (node.attribute_value("name", String<16>()) == "RAM")
+				preserve = node.attribute_value("preserve", preserve); });
+
+		return Ram_quota { preserve };
+	}
+
+	Ram_quota _ram_limit { 0 };
+
+	/**
+	 * Child::Ram_limit_accessor interface
+	 */
+	Ram_quota ram_limit() override { return _ram_limit; }
 
 	void _handle_resource_avail() { }
 
@@ -591,6 +610,24 @@ void Init::Main::_handle_config()
 
 	_destroy_abandoned_parent_services();
 
+	Ram_quota const preserved_ram = _preserved_ram_from_config(_config.xml());
+
+	Ram_quota avail_ram { _env.ram().avail() };
+
+	if (preserved_ram.value > avail_ram.value) {
+		error("RAM preservation exceeds available memory");
+		return;
+	}
+
+	/* deduce preserved quota from available quota */
+	avail_ram = Ram_quota { avail_ram.value - preserved_ram.value };
+
+	/* initial RAM limit before starting new children */
+	_ram_limit = Ram_quota { avail_ram.value };
+
+	/* variable used to track the RAM taken by new started children */
+	Ram_quota used_ram { 0 };
+
 	/* create new children */
 	try {
 		_config.xml().for_each_sub_node("start", [&] (Xml_node start_node) {
@@ -604,15 +641,29 @@ void Init::Main::_handle_config()
 				return;
 			}
 
+			if (used_ram.value > avail_ram.value) {
+				error("RAM exhausted while starting childen");
+				throw Ram_session::Alloc_failed();
+			}
+
 			try {
-				_children.insert(new (_heap)
-				                 Init::Child(_env, _heap, *_verbose,
-				                             Init::Child::Id { ++_child_cnt },
-				                             _state_reporter,
-				                             start_node, *this,
-				                             _children, read_prio_levels(_config.xml()),
-				                             read_affinity_space(_config.xml()),
-				                             _parent_services, _child_services));
+				Init::Child &child = *new (_heap)
+					Init::Child(_env, _heap, *_verbose,
+					            Init::Child::Id { ++_child_cnt }, _state_reporter,
+					            start_node, *this, _children, *this,
+					            read_prio_levels(_config.xml()),
+					            read_affinity_space(_config.xml()),
+					            _parent_services, _child_services);
+				_children.insert(&child);
+
+				/* account for the start XML node buffered in the child */
+				size_t const metadata_overhead = start_node.size()
+				                               + sizeof(Init::Child);
+				/* track used memory and RAM limit */
+				used_ram = Ram_quota { used_ram.value
+				                     + child.ram_quota().value
+				                     + metadata_overhead };
+				_ram_limit = Ram_quota { avail_ram.value - used_ram.value };
 			}
 			catch (Rom_connection::Rom_connection_failed) {
 				/*
