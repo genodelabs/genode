@@ -18,7 +18,6 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <root/component.h>
-#include <base/attached_rom_dataspace.h>
 #include <os/session_policy.h>
 
 /* local includes */
@@ -619,6 +618,9 @@ static void preload_content(Genode::Env            &env,
 			/* read file content from ROM module */
 			try {
 				Attached_rom_dataspace rom(env, name);
+				if (!rom.valid())
+					throw Rm_session::Attach_failed();
+
 				File *file = new (&alloc) File(alloc, as);
 				file->write(rom.local_addr<char>(), rom.size(), 0);
 				dir.adopt_unsynchronized(file);
