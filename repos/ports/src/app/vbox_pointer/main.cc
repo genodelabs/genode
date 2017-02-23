@@ -136,7 +136,7 @@ void Vbox_pointer::Main::_show_default_pointer()
 		return;
 	}
 
-	Genode::Attached_dataspace ds { _pointer_ds };
+	Genode::Attached_dataspace ds { _env.rm(), _pointer_ds };
 
 	convert_default_pointer_data_to_pixels(ds.local_addr<Genode::Pixel_rgb565>(),
 	                                       pointer_size);
