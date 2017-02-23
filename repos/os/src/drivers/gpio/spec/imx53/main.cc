@@ -15,51 +15,52 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
+#include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
-#include <base/sleep.h>
 #include <gpio/component.h>
 #include <gpio/config.h>
-#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
 
 
+Imx53_driver &Imx53_driver::factory(Genode::Env &env)
+{
+	static Imx53_driver driver(env);
+	return driver;
+}
+
+
 struct Main
 {
-	Server::Entrypoint   &ep;
+	Genode::Env          &env;
 	Genode::Sliced_heap   sliced_heap;
 	Imx53_driver         &driver;
 	Gpio::Root            root;
 
-	Main(Server::Entrypoint &ep)
+	Genode::Attached_rom_dataspace config_rom { env, "config" };
+
+	Main(Genode::Env &env)
 	:
-		ep(ep),
-		sliced_heap(Genode::env()->ram_session(), Genode::env()->rm_session()),
-		driver(Imx53_driver::factory(ep)),
-		root(&ep.rpc_ep(), &sliced_heap, driver)
+		env(env),
+		sliced_heap(env.ram(), env.rm()),
+		driver(Imx53_driver::factory(env)),
+		root(&env.ep().rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;
 
 		log("--- i.MX53 gpio driver ---");
 
-		Gpio::process_config(driver);
+		Gpio::process_config(config_rom.xml(), driver);
 
 		/*
 		 * Announce service
 		 */
-		env()->parent()->announce(ep.manage(root));
+		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-/************
- ** Server **
- ************/
-
-namespace Server {
-	char const *name()             { return "gpio_drv_ep";        }
-	size_t stack_size()            { return 16*1024*sizeof(long); }
-	void construct(Entrypoint &ep) { static Main server(ep);      }
-}
+void Component::construct(Genode::Env &env) { static Main main(env); }

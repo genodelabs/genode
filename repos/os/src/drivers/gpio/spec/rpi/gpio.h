@@ -113,6 +113,8 @@ class Gpio::Reg : Attached_io_mem_dataspace, Mmio
 
 		struct Timer_delayer : Timer::Connection, Mmio::Delayer
 		{
+			Timer_delayer(Genode::Env &env) : Timer::Connection(env) { }
+
 			/**
 			 * Implementation of 'Delayer' interface
 			 */
@@ -134,10 +136,12 @@ class Gpio::Reg : Attached_io_mem_dataspace, Mmio
 
 	public:
 
-		Reg(addr_t base, off_t offset, size_t size)
+		Reg(Genode::Env &env,
+		    addr_t base, off_t offset, size_t size)
 		:
-			Attached_io_mem_dataspace(base, size),
-			Mmio((addr_t)local_addr<Reg>() + offset)
+			Attached_io_mem_dataspace(env, base, size),
+			Mmio((addr_t)local_addr<Reg>() + offset),
+			_delayer(env)
 		{ }
 
 		enum Function {

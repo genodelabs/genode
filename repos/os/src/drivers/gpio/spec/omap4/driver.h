@@ -37,26 +37,17 @@ class Omap4_driver : public Gpio::Driver
 		};
 
 
-		struct Timer_delayer : Timer::Connection, Genode::Mmio::Delayer
-		{
-			/**
-			 * Implementation of 'Delayer' interface
-			 */
-			void usleep(unsigned us) { Timer::Connection::usleep(us); }
-		} _delayer;
-
-
 		class Gpio_bank
 		{
 			private:
 
 				Gpio_reg                             _reg;
 				Genode::Irq_connection               _irq;
-				Genode::Signal_rpc_member<Gpio_bank> _dispatcher;
+				Genode::Signal_handler<Gpio_bank>    _dispatcher;
 				Genode::Signal_context_capability    _sig_cap[MAX_PINS];
 				bool                                 _irq_enabled[MAX_PINS];
 
-				void _handle(unsigned)
+				void _handle()
 				{
 					_reg.write<Gpio_reg::Irqstatus_0>(0xffffffff);
 
@@ -74,11 +65,11 @@ class Omap4_driver : public Gpio::Driver
 
 			public:
 
-				Gpio_bank(Server::Entrypoint &ep,
+				Gpio_bank(Genode::Env &env,
 				          Genode::addr_t base, Genode::size_t size,
 				          unsigned irq)
-				: _reg(base, size), _irq(irq),
-				  _dispatcher(ep, *this, &Gpio_bank::_handle)
+				: _reg(env, base, size), _irq(env, irq),
+				  _dispatcher(env.ep(), *this, &Gpio_bank::_handle)
 				{
 					for (unsigned i = 0; i < MAX_PINS; i++)
 						_irq_enabled[i] = false;
@@ -105,8 +96,6 @@ class Omap4_driver : public Gpio::Driver
 				void sigh(int pin, Genode::Signal_context_capability cap) {
 					_sig_cap[pin] = cap; }
 		};
-
-		Server::Entrypoint &_ep;
 
 		Gpio_bank _gpio_bank_0;
 		Gpio_bank _gpio_bank_1;
@@ -138,26 +127,25 @@ class Omap4_driver : public Gpio::Driver
 
 		int _gpio_index(int gpio)       { return gpio & 0x1f; }
 
-		Omap4_driver(Server::Entrypoint &ep)
+		Omap4_driver(Genode::Env &env)
 		:
-			_ep(ep),
-			_gpio_bank_0(_ep, Genode::Board_base::GPIO1_MMIO_BASE, Genode::Board_base::GPIO1_MMIO_SIZE,
+			_gpio_bank_0(env, Genode::Board_base::GPIO1_MMIO_BASE, Genode::Board_base::GPIO1_MMIO_SIZE,
 			             Genode::Board_base::GPIO1_IRQ),
-			_gpio_bank_1(_ep, Genode::Board_base::GPIO2_MMIO_BASE, Genode::Board_base::GPIO2_MMIO_SIZE,
+			_gpio_bank_1(env, Genode::Board_base::GPIO2_MMIO_BASE, Genode::Board_base::GPIO2_MMIO_SIZE,
 			             Genode::Board_base::GPIO2_IRQ),
-			_gpio_bank_2(_ep, Genode::Board_base::GPIO3_MMIO_BASE, Genode::Board_base::GPIO3_MMIO_SIZE,
+			_gpio_bank_2(env, Genode::Board_base::GPIO3_MMIO_BASE, Genode::Board_base::GPIO3_MMIO_SIZE,
 			             Genode::Board_base::GPIO3_IRQ),
-			_gpio_bank_3(_ep, Genode::Board_base::GPIO4_MMIO_BASE, Genode::Board_base::GPIO4_MMIO_SIZE,
+			_gpio_bank_3(env, Genode::Board_base::GPIO4_MMIO_BASE, Genode::Board_base::GPIO4_MMIO_SIZE,
 			             Genode::Board_base::GPIO4_IRQ),
-			_gpio_bank_4(_ep, Genode::Board_base::GPIO5_MMIO_BASE, Genode::Board_base::GPIO5_MMIO_SIZE,
+			_gpio_bank_4(env, Genode::Board_base::GPIO5_MMIO_BASE, Genode::Board_base::GPIO5_MMIO_SIZE,
 			             Genode::Board_base::GPIO5_IRQ),
-			_gpio_bank_5(_ep, Genode::Board_base::GPIO6_MMIO_BASE, Genode::Board_base::GPIO6_MMIO_SIZE,
+			_gpio_bank_5(env, Genode::Board_base::GPIO6_MMIO_BASE, Genode::Board_base::GPIO6_MMIO_SIZE,
 			             Genode::Board_base::GPIO6_IRQ)
 		{ }
 
 	public:
 
-		static Omap4_driver& factory(Server::Entrypoint &ep);
+		static Omap4_driver& factory(Genode::Env &env);
 
 
 		/******************************
@@ -267,12 +255,5 @@ class Omap4_driver : public Gpio::Driver
 
 		bool gpio_valid(unsigned gpio) { return gpio < (MAX_PINS*MAX_BANKS); }
 };
-
-
-Omap4_driver& Omap4_driver::factory(Server::Entrypoint &ep)
-{
-	static Omap4_driver driver(ep);
-	return driver;
-}
 
 #endif /* _DRIVERS__GPIO__SPEC__OMAP4__DRIVER_H_ */
