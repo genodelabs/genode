@@ -30,13 +30,12 @@ proc nic_drv_build { } {
 	if {[nic_drv] == "usb_drv"} { return drivers/usb }
 }
 
-proc gpio_drv_build { } { if {[gpio_drv] != ""} { return " drivers/gpio" } }
+proc gpio_drv_build { } { if {[gpio_drv] != ""} { return drivers/gpio } }
 
-build [string cat {
-	core init drivers/timer server/nic_router server/nic_bridge
-	test/lwip/http_srv_static test/lwip/http_clnt test/lxip/udp_echo
-	test/lxip/udp_client } [nic_drv_build] { } [gpio_drv_build] {
-	} [platform_drv_build_components]]
+build "core init drivers/timer server/nic_router server/nic_bridge
+       test/lwip/http_srv_static test/lwip/http_clnt test/lxip/udp_echo
+       test/lxip/udp_client [nic_drv_build] [gpio_drv_build]
+       [platform_drv_build_components]"
 
 create_boot_directory
 
@@ -45,35 +44,38 @@ create_boot_directory
 #
 
 proc gpio_drv_config { } {
-
-	if {[have_spec gpio]} { return [string cat {
-
-		<start name="} [gpio_drv] {">
-			<resource name="RAM" quantum="4M"/>
-			<provides><service name="Gpio"/></provides>
-		</start>}] }
+	if {[have_spec gpio]} {
+		append result {
+			<start name="} [gpio_drv] {">
+				<resource name="RAM" quantum="4M"/>
+				<provides><service name="Gpio"/></provides>
+			</start>}
+		return $result
+	}
 }
 
 proc nic_drv_config { } {
-
-	if {[nic_drv] == "nic_drv"} { return [string cat {
-
-		<start name="nic_drv">
-			<resource name="RAM" quantum="6M"/>
-			<provides><service name="Nic"/></provides>
-		</start>}] }
-
-	if {[nic_drv] == "usb_drv"} { return [string cat {
-
-		<start name="usb_drv">
-			<resource name="RAM" quantum="12M"/>
-			<provides>
-				<service name="Nic"/>
-			</provides>
-			<config ehci="yes">
-				<nic mac="02:00:00:00:01:01" />
-			</config>
-		</start>}] }
+	if {[nic_drv] == "nic_drv"} {
+		append result {
+			<start name="nic_drv">
+				<resource name="RAM" quantum="6M"/>
+				<provides><service name="Nic"/></provides>
+			</start>}
+		return $result
+	}
+	if {[nic_drv] == "usb_drv"} {
+		append result {
+			<start name="usb_drv">
+				<resource name="RAM" quantum="12M"/>
+				<provides>
+					<service name="Nic"/>
+				</provides>
+				<config ehci="yes">
+					<nic mac="02:00:00:00:01:01" />
+				</config>
+			</start>}
+		return $result
+	}
 }
 
 proc client_bin { prot } {
@@ -85,8 +87,7 @@ proc server_bin { prot } {
 	if {$prot == "http"} { return "test-lwip_httpsrv_static" } }
 
 proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
-	return [string cat {
-
+	append result {
 		<start name="} $prot {_client_} $index {">
 			<binary  name="} [client_bin $prot] {" />
 			<resource name="RAM" quantum="2M"/>
@@ -99,12 +100,12 @@ proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 				<libc stdout="/dev/log" stderr="/dev/log" ip_addr="} $ip_addr {"
 				      gateway="} $gateway {" netmask="} $netmask {"/>
 			</config>
-		</start>}]
+		</start>}
+	return $result
 }
 
 proc server_config { prot index ip_addr gateway netmask nic port } {
-	return [string cat {
-
+	append result {
 		<start name="} $prot {_server_} $index {">
 			<binary  name="} [server_bin $prot] {" />
 			<resource name="RAM" quantum="2M"/>
@@ -117,46 +118,47 @@ proc server_config { prot index ip_addr gateway netmask nic port } {
 				<libc stdout="/dev/log" stderr="/dev/log" ip_addr="} $ip_addr {"
 				      gateway="} $gateway {" netmask="} $netmask {"/>
 			</config>
-		</start>}]
+		</start>}
+	return $result
 }
 
 proc test_1_config { } {
-	if {[enable_test_1]} { return [string cat {
-		} [client_config udp 1 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33] {
-		} [server_config udp 1 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]] }
+	if {[enable_test_1]} { return "
+		[client_config udp 1 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
+		[server_config udp 1 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]" }
 }
 
 proc test_2_config { } {
-	if {[enable_test_2]} { return [string cat {
-		} [client_config udp 2 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55] {
-		} [server_config udp 2 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]] }
+	if {[enable_test_2]} { return "
+		[client_config udp 2 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
+		[server_config udp 2 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
 }
 
 proc test_3_config { } {
-	if {[enable_test_3]} { return [string cat {
-		} [client_config udp 3 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213] {
-		} [server_config udp 3 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]] }
+	if {[enable_test_3]} { return "
+		[client_config udp 3 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213]
+		[server_config udp 3 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
 }
 
 proc test_4_config { } {
-	if {[enable_test_4]} { return [string cat {
-		} [client_config http 1 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55] {
-		} [server_config http 1 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]] }
+	if {[enable_test_4]} { return "
+		[client_config http 1 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
+		[server_config http 1 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
 }
 
 proc test_5_config { } {
-	if {[enable_test_5]} { return [string cat {
-		} [client_config http 2 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55] {
-		} [server_config http 2 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]] }
+	if {[enable_test_5]} { return "
+		[client_config http 2 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55]
+		[server_config http 2 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
 }
 
 proc test_6_config { } {
-	if {[enable_test_6]} { return [string cat {
-		} [client_config http 3 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203] {
-		} [server_config http 3 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]] }
+	if {[enable_test_6]} { return "
+		[client_config http 3 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
+		[server_config http 3 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
 }
 
-install_config [string cat {
+append config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -254,22 +256,25 @@ install_config [string cat {
 	} [test_5_config] {
 	} [test_6_config] {
 
-</config> }]
+</config> }
+
+install_config $config
 
 #
 # Create single image and execute
 #
 
-build_boot_image [string cat {
+
+build_boot_image "
 	core init timer nic_router nic_bridge ld.lib.so libc.lib.so libm.lib.so
 	libc_resolv.lib.so lwip.lib.so lxip.lib.so test-http_clnt
 	test-lwip_httpsrv_static test-lxip_udp_echo test-lxip_udp_client
-	} [nic_drv] { } [gpio_drv] { } [platform_drv_boot_modules]]
+	[nic_drv] [gpio_drv] [platform_drv_boot_modules]"
 
 proc nic_qemu_args { } {
 	if {[have_spec x86]}     { return "-net nic,model=e1000" }
 	if {[have_spec lan9118]} { return "-net nic,model=lan9118" } }
 
-append qemu_args { -m 384 -nographic -net user -redir udp:5555::1337 } [nic_qemu_args]
+append qemu_args "-m 384 -nographic -net user -redir udp:5555::1337 [nic_qemu_args]"
 
 run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 60
