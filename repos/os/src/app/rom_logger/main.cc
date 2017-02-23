@@ -83,7 +83,7 @@ void Rom_logger::Main::_handle_update()
 	 * If ROM name changed, reconstruct '_rom_ds'
 	 */
 	if (rom_name != _rom_name) {
-		_rom_ds.construct(rom_name.string());
+		_rom_ds.construct(_env, rom_name.string());
 		_rom_ds->sigh(_update_handler);
 		_rom_name = rom_name;
 	}
