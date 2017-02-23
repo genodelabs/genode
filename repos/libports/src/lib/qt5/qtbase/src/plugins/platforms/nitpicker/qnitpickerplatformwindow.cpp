@@ -85,20 +85,20 @@ void QNitpickerPlatformWindow::_process_touch_events(QList<Input::Event> const &
 	QWindowSystemInterface::handleTouchEvent(0, _touch_device, touch_points);
 }
 
-void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
+void QNitpickerPlatformWindow::_process_mouse_event(Input::Event const &ev)
 {
-	QPoint global_position(ev->ax(), ev->ay());
+	QPoint global_position(ev.ax(), ev.ay());
 	QPoint local_position(global_position.x() - geometry().x(),
 			              global_position.y() - geometry().y());
 
-	switch (ev->type()) {
+	switch (ev.type()) {
 
 		case Input::Event::PRESS:
 
 			/* make this window the focused window */
 			requestActivateWindow();
 
-			switch (ev->code()) {
+			switch (ev.code()) {
 				case Input::BTN_LEFT:
 					_mouse_button_state |= Qt::LeftButton;
 					break;
@@ -119,7 +119,7 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 
 		case Input::Event::RELEASE:
 
-			switch (ev->code()) {
+			switch (ev.code()) {
 				case Input::BTN_LEFT:
 					_mouse_button_state &= ~Qt::LeftButton;
 					break;
@@ -143,7 +143,7 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 			QWindowSystemInterface::handleWheelEvent(window(),
 					                                 local_position,
 					                                 local_position,
-					                                 ev->ry() * 120,
+					                                 ev.ry() * 120,
 					                                 Qt::Vertical);
 			return;
 
@@ -158,10 +158,10 @@ void QNitpickerPlatformWindow::_process_mouse_event(Input::Event *ev)
 }
 
 
-void QNitpickerPlatformWindow::_process_key_event(Input::Event *ev)
+void QNitpickerPlatformWindow::_process_key_event(Input::Event const &ev)
 {
-	const bool pressed = (ev->type() == Input::Event::PRESS);
-	const int keycode = ev->code();
+	const bool pressed = (ev.type() == Input::Event::PRESS);
+	const int keycode = ev.code();
 
 	if (pressed) {
 		_last_keycode = keycode;
@@ -183,34 +183,57 @@ void QNitpickerPlatformWindow::_key_repeat()
 void QNitpickerPlatformWindow::_handle_input(unsigned int)
 {
 	QList<Input::Event> touch_events;
-	for (int i = 0, num_ev = _input_session.flush(); i < num_ev; i++) {
 
-		Input::Event *ev = &_ev_buf[i];
+	_input_session.for_each_event([&] (Input::Event const &event) {
 
-		bool const is_key_event = ev->type() == Input::Event::PRESS ||
-					              ev->type() == Input::Event::RELEASE;
+		bool const is_key_event = event.type() == Input::Event::PRESS ||
+					              event.type() == Input::Event::RELEASE;
 
 		bool const is_mouse_button_event =
-			is_key_event && (ev->code() == Input::BTN_LEFT ||
-			                 ev->code() == Input::BTN_MIDDLE ||
-			                 ev->code() == Input::BTN_RIGHT);
+			is_key_event && (event.code() == Input::BTN_LEFT ||
+			                 event.code() == Input::BTN_MIDDLE ||
+			                 event.code() == Input::BTN_RIGHT);
 
-		if (ev->type() == Input::Event::MOTION ||
-			ev->type() == Input::Event::WHEEL ||
+		if (event.type() == Input::Event::MOTION ||
+			event.type() == Input::Event::WHEEL ||
 			is_mouse_button_event) {
 
-			_process_mouse_event(ev);
+			_process_mouse_event(event);
 
-		} else if (ev->type() == Input::Event::TOUCH) {
+		} else if (event.type() == Input::Event::TOUCH) {
 
-			touch_events.push_back(*ev);
+			touch_events.push_back(event);
 
-		} else if (is_key_event && (ev->code() < 128)) {
+		} else if (event.type() == Input::Event::CHARACTER) {
 
-			_process_key_event(ev);
+			Input::Event::Utf8 const utf8 = event.utf8();
+
+			if ((utf8.b0 >= 1) && (utf8.b0 <= 26)) {
+
+				/* Ctrl-A .. Ctrl-Z */
+
+				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress,
+				                                       Qt::Key_A + (utf8.b0 - 1),
+				                                       Qt::ControlModifier);
+				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease,
+				                                       Qt::Key_A + (utf8.b0 - 1),
+				                                       Qt::ControlModifier);
+			} else {
+
+				char const utf8_string[] = { utf8.b0, utf8.b1, utf8.b2, utf8.b3, '\0' };
+
+				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress, 0, 0,
+				                                       QString::fromUtf8(utf8_string));
+				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease, 0, 0,
+				                                       QString::fromUtf8(utf8_string));
+			}
+
+		} else if (is_key_event && (event.code() < 128)) {
+
+			_process_key_event(event);
 
 		}
-	}
+	});
 
 	/* process all gathered touch events */
 	_process_touch_events(touch_events);

@@ -70,8 +70,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		QTouchDevice                                *_touch_device;
 		QTouchDevice * _init_touch_device();
 
-		void _process_mouse_event(Input::Event *ev);
-		void _process_key_event(Input::Event *ev);
+		void _process_mouse_event(Input::Event const &ev);
+		void _process_key_event(Input::Event const &ev);
 		void _process_touch_events(QList<Input::Event> const &events);
 
 		Nitpicker::Session::View_handle _create_view();

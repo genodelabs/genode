@@ -63,7 +63,7 @@ proc qt5_start_nodes { feature_arg } {
 				<service name="Framebuffer"> <child name="fb_drv" /> </service>
 	}
 	append start_nodes {
-				<service name="Input">  <child name="input_merger"/> </service>
+				<service name="Input">  <child name="input_filter"/> </service>
 				<service name="Report"> <child name="report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
