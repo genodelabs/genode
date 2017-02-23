@@ -12,12 +12,12 @@
  */
 
 /* Genode includes */
+#include <base/component.h>
+#include <base/heap.h>
 #include <rom_session/connection.h>
 #include <base/signal.h>
-#include <os/config.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/print_lines.h>
-#include <os/server.h>
 #include <util/reconstructible.h>
 
 #include <base/heap.h>
@@ -43,11 +43,14 @@ namespace Rom_to_file {
 
 struct Rom_to_file::Main
 {
-	Server::Entrypoint &_ep;
+	Genode::Env  &_env;
+	Genode::Heap  _heap { _env.ram(), _env.rm() };
 
-	Allocator_avl alloc;
+	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-	File_system::Connection _fs;
+	Allocator_avl _alloc { &_heap };
+
+	File_system::Connection _fs { _env, _alloc, "", "/", true, TX_BUF_SIZE };
 
 	Constructible<Attached_rom_dataspace> _rom_ds;
 
@@ -64,29 +67,31 @@ struct Rom_to_file::Main
 	 * Signal handler that is invoked when the configuration or the ROM module
 	 * changes.
 	 */
-	void _handle_update(unsigned);
+	void _handle_update();
 
-	Signal_rpc_member<Main> _update_dispatcher =
-		{ _ep, *this, &Main::_handle_update };
+	Signal_handler<Main> _update_dispatcher {
+		_env.ep(), *this, &Main::_handle_update };
 
-	Main(Server::Entrypoint &ep) : _ep(ep), alloc(env()->heap()), _fs(alloc, TX_BUF_SIZE)
+	Main(Genode::Env &env) : _env(env)
 	{
-		config()->sigh(_update_dispatcher);
-		_handle_update(0);
+		_config_rom.sigh(_update_dispatcher);
+		_handle_update();
 	}
 };
 
 
-void Rom_to_file::Main::_handle_update(unsigned)
+void Rom_to_file::Main::_handle_update()
 {
-	config()->reload();
+	_config_rom.update();
+
+	Genode::Xml_node config = _config_rom.xml();
 
 	/*
 	 * Query name of ROM module from config
 	 */
 	Rom_name rom_name;
 	try {
-		rom_name = config()->xml_node().attribute_value("rom", rom_name);
+		rom_name = config.attribute_value("rom", rom_name);
 
 	} catch (...) {
 		warning("could not determine ROM name from config");
@@ -97,7 +102,7 @@ void Rom_to_file::Main::_handle_update(unsigned)
 	 * If ROM name changed, reconstruct '_rom_ds'
 	 */
 	if (rom_name != _rom_name) {
-		_rom_ds.construct(rom_name.string());
+		_rom_ds.construct(_env, rom_name.string());
 		_rom_ds->sigh(_update_dispatcher);
 		_rom_name = rom_name;
 	}
@@ -157,14 +162,4 @@ void Rom_to_file::Main::_handle_update(unsigned)
 }
 
 
-namespace Server {
-
-	char const *name() { return "rom_to_file_ep"; }
-
-	size_t stack_size() { return 16*1024*sizeof(long); }
-
-	void construct(Entrypoint &ep)
-	{
-		static Rom_to_file::Main main(ep);
-	}
-}
+void Component::construct(Genode::Env &env) { static Rom_to_file::Main main(env); }
