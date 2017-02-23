@@ -10,7 +10,7 @@
     <MediaRegistry>
       <HardDisks>
         <HardDisk uuid="{8e55fcfc-4c09-4173-9066-341968be4864}" location="/win7.vdi" format="VDI" type="Immutable">
-          <HardDisk uuid="{4c5ed34f-f6cf-48e8-808d-2c06f0d11464}" location="/ram/overlay.vdi" format="VDI" autoReset="true"/>
+          <HardDisk uuid="{4c5ed34f-f6cf-48e8-808d-2c06f0d11464}" location="/ram/overlay_win7.vdi" format="VDI" autoReset="true"/>
         </HardDisk>
       </HardDisks>
       <DVDImages/>
@@ -130,7 +130,7 @@
         <Port slot="0" enabled="false" IOBase="0x378" IRQ="7"/>
         <Port slot="1" enabled="false" IOBase="0x378" IRQ="7"/>
       </LPT>
-      <AudioAdapter controller="AC97" driver="Pulse" enabled="false"/>
+      <AudioAdapter controller="HDA" driver="Pulse" enabled="false"/>
       <RTC localOrUTC="UTC"/>
       <SharedFolders/>
       <Clipboard mode="Disabled"/>
