@@ -37,38 +37,40 @@ class Input::Tablet_driver
 			GPIO_BUTTON = 132,
 		};
 
+		Timer::Connection                         _timer;
 		Event_queue                              &_ev_queue;
 		Gpio::Connection                          _gpio_ts;
 		Gpio::Connection                          _gpio_bt;
 		Genode::Irq_session_client                _irq_ts;
 		Genode::Irq_session_client                _irq_bt;
-		Genode::Signal_rpc_member<Tablet_driver>  _ts_dispatcher;
-		Genode::Signal_rpc_member<Tablet_driver>  _bt_dispatcher;
+		Genode::Signal_handler<Tablet_driver>     _ts_dispatcher;
+		Genode::Signal_handler<Tablet_driver>     _bt_dispatcher;
 		Touchscreen                               _touchscreen;
 		Buttons                                   _buttons;
 
-		void _handle_ts(unsigned)
+		void _handle_ts()
 		{
 			_touchscreen.event(_ev_queue);
 			_irq_ts.ack_irq();
 		}
 
-		void _handle_bt(unsigned)
+		void _handle_bt()
 		{
 			_buttons.event(_ev_queue);
 			_irq_bt.ack_irq();
 		}
 
-		Tablet_driver(Server::Entrypoint &ep, Event_queue &ev_queue)
+		Tablet_driver(Genode::Env &env, Event_queue &ev_queue)
 		:
+			_timer(env),
 			_ev_queue(ev_queue),
-			_gpio_ts(GPIO_TOUCH),
-			_gpio_bt(GPIO_BUTTON),
+			_gpio_ts(env, GPIO_TOUCH),
+			_gpio_bt(env, GPIO_BUTTON),
 			_irq_ts(_gpio_ts.irq_session(Gpio::Session::LOW_LEVEL)),
 			_irq_bt(_gpio_bt.irq_session(Gpio::Session::FALLING_EDGE)),
-			_ts_dispatcher(ep, *this, &Tablet_driver::_handle_ts),
-			_bt_dispatcher(ep, *this, &Tablet_driver::_handle_bt),
-			_touchscreen(ep), _buttons(ep)
+			_ts_dispatcher(env.ep(), *this, &Tablet_driver::_handle_ts),
+			_bt_dispatcher(env.ep(), *this, &Tablet_driver::_handle_bt),
+			_touchscreen(env, _timer), _buttons(env, _timer)
 		{
 			/* GPIO touchscreen handling */
 			_gpio_ts.direction(Gpio::Session::OUT);
@@ -89,15 +91,7 @@ class Input::Tablet_driver
 
 	public:
 
-		static Tablet_driver* factory(Server::Entrypoint &ep, Event_queue &ev_queue);
+		static Tablet_driver* factory(Genode::Env &env, Event_queue &ev_queue);
 };
-
-
-Input::Tablet_driver* Input::Tablet_driver::factory(Server::Entrypoint &ep,
-                                                    Event_queue &ev_queue)
-{
-	static Input::Tablet_driver driver(ep, ev_queue);
-	return &driver;
-}
 
 #endif /* _DRIVERS__INPUT__SPEC__IMX53__DRIVER_H_ */

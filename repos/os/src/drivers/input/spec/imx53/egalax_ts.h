@@ -44,12 +44,14 @@ class Input::Touchscreen {
 
 	public:
 
-		Touchscreen(Server::Entrypoint &ep)
+		Touchscreen(Genode::Env &env, Timer::Connection &timer)
 		:
-			_irq_handler(ep, Genode::Board_base::I2C_3_IRQ),
-			_i2c_ds(Genode::Board_base::I2C_3_BASE,
+			_irq_handler(env, Genode::Board_base::I2C_3_IRQ),
+			_i2c_ds(env,
+			        Genode::Board_base::I2C_3_BASE,
 			        Genode::Board_base::I2C_3_SIZE),
-			_i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
+			_i2c(timer,
+			     (Genode::addr_t)_i2c_ds.local_addr<void>(),
 			     _irq_handler),
 			     _state(RELEASED)
 		{
