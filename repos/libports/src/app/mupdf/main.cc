@@ -12,6 +12,8 @@
  */
 
 /* Genode includes */
+#include <base/env.h>
+#include <libc/component.h>
 #include <framebuffer_session/connection.h>
 #include <base/sleep.h>
 #include <input_session/connection.h>
@@ -117,6 +119,8 @@ class Pdf_view
 
 	private:
 
+		Framebuffer::Mode _framebuffer_mode;
+
 		struct _Framebuffer : Framebuffer::Connection
 		{
 			typedef uint16_t pixel_t;
@@ -124,10 +128,11 @@ class Pdf_view
 			Framebuffer::Mode mode;
 			pixel_t          *base;
 
-			_Framebuffer()
+			_Framebuffer(Genode::Env &env, Framebuffer::Mode &mode)
 			:
+				Framebuffer::Connection(env, mode),
 				mode(Framebuffer::Connection::mode()),
-				base(Genode::env()->rm_session()->attach(dataspace()))
+				base(env.rm().attach(dataspace()))
 			{
 				if (mode.format() != Framebuffer::Mode::RGB565) {
 					Genode::error("Color modes other than RGB565 are not supported. Exiting.");
@@ -147,7 +152,10 @@ class Pdf_view
 		 * \throw Invalid_input_file_name
 		 * \throw Unexpected_document_color_depth
 		 */
-		Pdf_view(char const *file_name)
+		Pdf_view(Genode::Env &env, char const *file_name)
+		:
+			_framebuffer_mode(0, 0, Framebuffer::Mode::RGB565),
+			_framebuffer(env, _framebuffer_mode)
 		{
 			pdfapp_init(&_pdfapp);
 			_pdfapp.userdata = this;
@@ -242,10 +250,7 @@ void winwarn(pdfapp_t *, char *msg)
 }
 
 
-void winhelp(pdfapp_t *)
-{
-	Genode::warning(__func__, " not implemented");
-}
+void winhelp(pdfapp_t *) { }
 
 
 char *winpassword(pdfapp_t *, char *)
@@ -267,16 +272,10 @@ void winreloadfile(pdfapp_t *)
 }
 
 
-void wintitle(pdfapp_t *app, char *s)
-{
-	Genode::warning(__func__, " not implemented");
-}
+void wintitle(pdfapp_t *app, char *s) { }
 
 
-void winresize(pdfapp_t *app, int w, int h)
-{
-	Genode::warning(__func__, " not implemented");
-}
+void winresize(pdfapp_t *app, int w, int h) { }
 
 
 /******************
@@ -299,35 +298,35 @@ static int keycode_to_ascii(int code)
 }
 
 
-int main(int, char **)
+struct Main
 {
-	char const *file_name = "test.pdf"; /* XXX read from config */
+	Genode::Env       &_env;
 
-	static Pdf_view pdf_view(file_name);
+	char const        *_file_name { "test.pdf" }; /* XXX read from config */
 
-	static Input::Connection input;
-	static Timer::Connection timer;
+	Pdf_view           _pdf_view { _env, _file_name };
+	Input::Connection  _input    { _env };
 
-	int key_cnt = 0;
+	void _handle_input()
+	{
+		_input.for_each_event([&] (Input::Event const &ev) {
 
-	/*
-	 * Input event loop
-	 */
-	for (;;) {
-		while (!input.pending()) timer.msleep(20);
-
-		input.for_each_event([&] (Input::Event const &ev) {
-			if (ev.type() == Input::Event::PRESS)   key_cnt++;
-			if (ev.type() == Input::Event::RELEASE) key_cnt--;
-
-			if (ev.type() == Input::Event::PRESS && key_cnt == 1) {
+			if (ev.type() == Input::Event::PRESS) {
 
 				int const ascii = keycode_to_ascii(ev.code());
-				if (ascii)
-					pdf_view.handle_key(ascii);
+				if (ascii) { _pdf_view.handle_key(ascii); }
 			}
 		});
 	}
-	Genode::sleep_forever();
-	return 0;
-}
+
+	Genode::Signal_handler<Main> _input_dispatcher {
+		_env.ep(), *this, &Main::_handle_input };
+
+	Main(Genode::Env &env) : _env(env)
+	{
+		_input.sigh(_input_dispatcher);
+	}
+};
+
+
+void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
