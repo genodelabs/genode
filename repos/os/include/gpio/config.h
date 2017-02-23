@@ -27,23 +27,24 @@
 #ifndef _INCLUDE__GPIO__CONFIG_H_
 #define _INCLUDE__GPIO__CONFIG_H_
 
+/* Genode includes */
 #include <base/exception.h>
-#include <os/config.h>
 #include <gpio/driver.h>
+#include <util/xml_node.h>
 
 namespace Gpio {
 
 	class Invalid_gpio_number : Genode::Exception {};
 	class Invalid_mode        : Genode::Exception {};
 
-	static void process_config(Gpio::Driver &driver);
+	static void process_config(Genode::Xml_node const &config, Gpio::Driver &driver);
 }
 
 
-void Gpio::process_config(Gpio::Driver &driver)
+void Gpio::process_config(Genode::Xml_node const &config, Gpio::Driver &driver)
 {
 	try {
-		Genode::Xml_node gpio_node = Genode::config()->xml_node().sub_node("gpio");
+		Genode::Xml_node gpio_node = config.sub_node("gpio");
 
 		for (;; gpio_node = gpio_node.next("gpio")) {
 			unsigned num     = 0;

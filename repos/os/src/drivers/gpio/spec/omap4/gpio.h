@@ -22,9 +22,10 @@
 
 struct Gpio_reg : Genode::Attached_io_mem_dataspace, Genode::Mmio
 {
-	Gpio_reg(Genode::addr_t const mmio_base,
+	Gpio_reg(Genode::Env &env,
+	         Genode::addr_t const mmio_base,
 	         Genode::size_t const mmio_size)
-	: Genode::Attached_io_mem_dataspace(mmio_base, mmio_size),
+	: Genode::Attached_io_mem_dataspace(env, mmio_base, mmio_size),
 	  Genode::Mmio((Genode::addr_t)local_addr<void>()) { }
 
 	struct Oe              : Register_array<0x134, 32, 32, 1> {};

@@ -32,18 +32,18 @@ namespace Gpio { class Odroid_x2_driver; }
 class Gpio::Odroid_x2_driver : public Driver
 {
 	private:
-		Server::Entrypoint                         &_ep;
+
 		Reg                                         _reg1;
 		Reg                                         _reg2;
 		Reg                                         _reg3;
 		Reg                                         _reg4;
 		Genode::Irq_connection                      _irq;
-		Genode::Signal_rpc_member<Odroid_x2_driver> _dispatcher;
+		Genode::Signal_handler<Odroid_x2_driver>    _dispatcher;
 		Genode::Signal_context_capability           _sig_cap[MAX_PINS];
 		bool                                        _irq_enabled[MAX_PINS];
 		bool                                        _async;
 
-		void _handle(unsigned)
+		void _handle()
 		{
 			handle_irq();
 		}
@@ -70,14 +70,14 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		int _gpio_index(int gpio) { return gpio & 0x1f; }
 
-		Odroid_x2_driver(Server::Entrypoint &ep)
-		: _ep(ep),
-		  _reg1(0x11400000, 1000),
-		  _reg2(0x11000000, 1000),
-		  _reg3(0x03860000, 1000),
-		  _reg4(0x106E0000, 1000),
-		  _irq(104),
-		  _dispatcher(ep, *this, &Odroid_x2_driver::_handle),
+		Odroid_x2_driver(Genode::Env &env)
+		:
+		  _reg1(env, 0x11400000, 1000),
+		  _reg2(env, 0x11000000, 1000),
+		  _reg3(env, 0x03860000, 1000),
+		  _reg4(env, 0x106E0000, 1000),
+		  _irq(env, 104),
+		  _dispatcher(env.ep(), *this, &Odroid_x2_driver::_handle),
 		  _async(false)
 		{
 			_irq.sigh(_dispatcher);
@@ -87,7 +87,7 @@ class Gpio::Odroid_x2_driver : public Driver
 
 	public:
 
-		static Odroid_x2_driver& factory(Server::Entrypoint &ep);
+		static Odroid_x2_driver& factory(Genode::Env &env);
 
 
 		/******************************
@@ -217,12 +217,5 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		bool gpio_valid(unsigned gpio) { return gpio < (MAX_PINS); }
 };
-
-
-Gpio::Odroid_x2_driver& Gpio::Odroid_x2_driver::factory(Server::Entrypoint &ep)
-{
-	static Odroid_x2_driver driver(ep);
-	return driver;
-}
 
 #endif /* _DRIVER_H_ */

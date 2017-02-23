@@ -1,5 +1,5 @@
 TARGET   = foc_gpio_drv
 REQUIRES = rpi
 SRC_CC  += ../main.cc
-LIBS    += base config server
+LIBS    += base
 INC_DIR += $(PRG_DIR) $(PRG_DIR)/..

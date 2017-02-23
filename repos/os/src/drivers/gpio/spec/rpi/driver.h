@@ -37,15 +37,14 @@ class Gpio::Rpi_driver : public Driver
 
 		enum { MAX_PINS = 54 };
 
-		Server::Entrypoint                     &_ep;
 		Reg                                    _reg;
 		Genode::Irq_connection                 _irq;
-		Genode::Signal_rpc_member<Rpi_driver>  _dispatcher;
+		Genode::Signal_handler<Rpi_driver>     _dispatcher;
 		Genode::Signal_context_capability      _sig_cap[MAX_PINS];
 		bool                                   _irq_enabled[MAX_PINS];
 		bool                                   _async;
 
-		void _handle(unsigned)
+		void _handle()
 		{
 			_reg.for_each_gpio_status([&] (unsigned i, bool s) {
 				if (!s || !_irq_enabled[i] || !_sig_cap[i].valid()) { return; }
@@ -53,13 +52,12 @@ class Gpio::Rpi_driver : public Driver
 			});
 		}
 
-		Rpi_driver(Server::Entrypoint &ep)
+		Rpi_driver(Genode::Env &env)
 		:
-			_ep(ep),
-			_reg(Genode::Board_base::GPIO_CONTROLLER_BASE,
+			_reg(env, Genode::Board_base::GPIO_CONTROLLER_BASE,
 			     0, Genode::Board_base::GPIO_CONTROLLER_SIZE),
-			_irq(IRQ),
-			_dispatcher(ep,*this,&Rpi_driver::_handle),
+			_irq(env, IRQ),
+			_dispatcher(env.ep(), *this, &Rpi_driver::_handle),
 			_async(false)
 		{
 			_irq.sigh(_dispatcher);
@@ -81,7 +79,7 @@ class Gpio::Rpi_driver : public Driver
 			_reg.set_gpio_function(gpio, function);
 		}
 
-		static Rpi_driver& factory(Server::Entrypoint &ep);
+		static Rpi_driver& factory(Genode::Env &env);
 
 
 		/******************************
@@ -207,12 +205,5 @@ class Gpio::Rpi_driver : public Driver
 			_sig_cap[gpio] = cap;
 		}
 };
-
-
-Gpio::Rpi_driver& Gpio::Rpi_driver::factory(Server::Entrypoint &ep)
-{
-	static Rpi_driver driver(ep);
-	return driver;
-}
 
 #endif /* _DRIVERS__GPIO__SPEC__RPI__DRIVER_H_ */

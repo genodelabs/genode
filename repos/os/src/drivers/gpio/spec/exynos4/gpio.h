@@ -77,8 +77,8 @@ struct Gpio::Reg : Attached_io_mem_dataspace, Mmio
 		}
 	};
 
-	Reg(addr_t base, size_t size)
-	: Attached_io_mem_dataspace(base, size),
+	Reg(Genode::Env &env, addr_t base, size_t size)
+	: Attached_io_mem_dataspace(env, base, size),
 	  Mmio((addr_t)local_addr<Reg>()) { }
 
 	void set_direction(int gpio, bool input, Genode::off_t offset)
