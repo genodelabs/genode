@@ -19,6 +19,8 @@
 #include <base/trace/events.h>
 
 /* base-internal includes */
+#include <base/internal/native_thread.h>
+#include <base/internal/lock_helper.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/native_env.h>
 #include <base/internal/capability_space.h>
@@ -135,8 +137,7 @@ void Signal_receiver::block_for_signal()
 
 void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &rpc_ep)
 {
-	/* force ep out of 'await_signal' in 'block_for_signal' */
-	rpc_ep.cancel_blocking();
+	Kernel::cancel_next_await_signal(native_thread_id(&rpc_ep));
 }
 
 

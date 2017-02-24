@@ -94,6 +94,8 @@ class Genode::Entrypoint : Genode::Noncopyable
 		};
 
 		int               _signal_recipient { NONE };
+		Genode::Lock      _signal_pending_lock;
+		Genode::Lock      _signal_pending_ack_lock;
 		Post_signal_hook *_post_signal_hook = nullptr;
 
 		void _execute_post_signal_hook()
