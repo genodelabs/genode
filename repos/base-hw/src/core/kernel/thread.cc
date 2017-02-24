@@ -404,6 +404,12 @@ void Thread::_call_print_char() { Kernel::log((char)user_arg_1()); }
 
 void Thread::_call_await_signal()
 {
+	/* cancel if another thread set our "cancel next await signal" bit */
+	if (_cancel_next_await_signal) {
+		user_arg_0(-1);
+		_cancel_next_await_signal = false;
+		return;
+	}
 	/* lookup receiver */
 	Signal_receiver * const r = pd()->cap_tree().find<Signal_receiver>(user_arg_1());
 	if (!r) {
@@ -419,6 +425,31 @@ void Thread::_call_await_signal()
 		return;
 	}
 	user_arg_0(0);
+}
+
+
+void Thread::_call_cancel_next_await_signal()
+{
+	/* kill the caller if he has no protection domain */
+	if (!pd()) {
+		error(*this, ": PD not set");
+		_die();
+		return;
+	}
+	/* kill the caller if the capability of the target thread is invalid */
+	Thread * const thread = pd()->cap_tree().find<Thread>(user_arg_1());
+	if (!thread || pd() != thread->pd()) {
+		error(*this, ": failed to lookup thread ", (unsigned)user_arg_1());
+		_die();
+		return;
+	}
+	/* resume the target thread directly if it blocks for signals */
+	if (thread->_state == AWAITS_SIGNAL) {
+		thread->_cancel_blocking();
+		return;
+	}
+	/* if not, keep in mind to cancel its next signal blocking */
+	thread->_cancel_next_await_signal = true;
 }
 
 
@@ -545,24 +576,25 @@ void Thread::_call()
 	/* switch over unrestricted kernel calls */
 	unsigned const call_id = user_arg_0();
 	switch (call_id) {
-	case call_id_update_data_region():   _call_update_data_region(); return;
-	case call_id_update_instr_region():  _call_update_instr_region(); return;
-	case call_id_stop_thread():          _call_stop_thread(); return;
-	case call_id_restart_thread():       _call_restart_thread(); return;
-	case call_id_yield_thread():         _call_yield_thread(); return;
-	case call_id_send_request_msg():     _call_send_request_msg(); return;
-	case call_id_send_reply_msg():       _call_send_reply_msg(); return;
-	case call_id_await_request_msg():    _call_await_request_msg(); return;
-	case call_id_kill_signal_context():  _call_kill_signal_context(); return;
-	case call_id_submit_signal():        _call_submit_signal(); return;
-	case call_id_await_signal():         _call_await_signal(); return;
-	case call_id_ack_signal():           _call_ack_signal(); return;
-	case call_id_print_char():           _call_print_char(); return;
-	case call_id_ack_cap():              _call_ack_cap(); return;
-	case call_id_delete_cap():           _call_delete_cap(); return;
-	case call_id_timeout():              _call_timeout(); return;
-	case call_id_timeout_age_us():       _call_timeout_age_us(); return;
-	case call_id_timeout_max_us():       _call_timeout_max_us(); return;
+	case call_id_update_data_region():       _call_update_data_region(); return;
+	case call_id_update_instr_region():      _call_update_instr_region(); return;
+	case call_id_stop_thread():              _call_stop_thread(); return;
+	case call_id_restart_thread():           _call_restart_thread(); return;
+	case call_id_yield_thread():             _call_yield_thread(); return;
+	case call_id_send_request_msg():         _call_send_request_msg(); return;
+	case call_id_send_reply_msg():           _call_send_reply_msg(); return;
+	case call_id_await_request_msg():        _call_await_request_msg(); return;
+	case call_id_kill_signal_context():      _call_kill_signal_context(); return;
+	case call_id_submit_signal():            _call_submit_signal(); return;
+	case call_id_await_signal():             _call_await_signal(); return;
+	case call_id_cancel_next_await_signal(): _call_cancel_next_await_signal(); return;
+	case call_id_ack_signal():               _call_ack_signal(); return;
+	case call_id_print_char():               _call_print_char(); return;
+	case call_id_ack_cap():                  _call_ack_cap(); return;
+	case call_id_delete_cap():               _call_delete_cap(); return;
+	case call_id_timeout():                  _call_timeout(); return;
+	case call_id_timeout_age_us():           _call_timeout_age_us(); return;
+	case call_id_timeout_max_us():           _call_timeout_max_us(); return;
 	default:
 		/* check wether this is a core thread */
 		if (!_core()) {

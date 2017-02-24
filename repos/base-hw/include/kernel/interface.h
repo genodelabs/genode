@@ -23,24 +23,25 @@ namespace Kernel
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_stop_thread()          { return  0; }
-	constexpr Call_arg call_id_restart_thread()       { return  1; }
-	constexpr Call_arg call_id_yield_thread()         { return  2; }
-	constexpr Call_arg call_id_send_request_msg()     { return  3; }
-	constexpr Call_arg call_id_send_reply_msg()       { return  4; }
-	constexpr Call_arg call_id_await_request_msg()    { return  5; }
-	constexpr Call_arg call_id_kill_signal_context()  { return  6; }
-	constexpr Call_arg call_id_submit_signal()        { return  7; }
-	constexpr Call_arg call_id_await_signal()         { return  8; }
-	constexpr Call_arg call_id_ack_signal()           { return  9; }
-	constexpr Call_arg call_id_print_char()           { return 10; }
-	constexpr Call_arg call_id_update_data_region()   { return 11; }
-	constexpr Call_arg call_id_update_instr_region()  { return 12; }
-	constexpr Call_arg call_id_ack_cap()              { return 13; }
-	constexpr Call_arg call_id_delete_cap()           { return 14; }
-	constexpr Call_arg call_id_timeout()              { return 15; }
-	constexpr Call_arg call_id_timeout_age_us()       { return 16; }
-	constexpr Call_arg call_id_timeout_max_us()       { return 17; }
+	constexpr Call_arg call_id_stop_thread()              { return  0; }
+	constexpr Call_arg call_id_restart_thread()           { return  1; }
+	constexpr Call_arg call_id_yield_thread()             { return  2; }
+	constexpr Call_arg call_id_send_request_msg()         { return  3; }
+	constexpr Call_arg call_id_send_reply_msg()           { return  4; }
+	constexpr Call_arg call_id_await_request_msg()        { return  5; }
+	constexpr Call_arg call_id_kill_signal_context()      { return  6; }
+	constexpr Call_arg call_id_submit_signal()            { return  7; }
+	constexpr Call_arg call_id_await_signal()             { return  8; }
+	constexpr Call_arg call_id_cancel_next_await_signal() { return  9; }
+	constexpr Call_arg call_id_ack_signal()               { return 10; }
+	constexpr Call_arg call_id_print_char()               { return 11; }
+	constexpr Call_arg call_id_update_data_region()       { return 12; }
+	constexpr Call_arg call_id_update_instr_region()      { return 13; }
+	constexpr Call_arg call_id_ack_cap()                  { return 14; }
+	constexpr Call_arg call_id_delete_cap()               { return 15; }
+	constexpr Call_arg call_id_timeout()                  { return 16; }
+	constexpr Call_arg call_id_timeout_age_us()           { return 17; }
+	constexpr Call_arg call_id_timeout_max_us()           { return 18; }
 
 
 	/*****************************************************************
@@ -279,6 +280,22 @@ namespace Kernel
 	inline int await_signal(capid_t const receiver_id)
 	{
 		return call(call_id_await_signal(), receiver_id);
+	}
+
+	/**
+	 * Request to cancel the next signal blocking of a local thread
+	 *
+	 * \param thread_id  capability id of the targeted thread
+	 *
+	 * Does not block. Targeted thread must be in the same PD as the caller.
+	 * If the targeted thread is in a signal blocking, cancels the blocking
+	 * directly. Otherwise, stores the request and avoids the next signal
+	 * blocking of the targeted thread as if it was immediately cancelled.
+	 * If the target thread already holds a request, further ones get ignored.
+	 */
+	inline void cancel_next_await_signal(capid_t const thread_id)
+	{
+		call(call_id_cancel_next_await_signal(), thread_id);
 	}
 
 

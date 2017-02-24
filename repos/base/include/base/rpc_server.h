@@ -31,6 +31,8 @@ namespace Genode {
 	class Rpc_object_base;
 	template <typename, typename> struct Rpc_object;
 	class Rpc_entrypoint;
+
+	class Signal_receiver;
 }
 
 
@@ -293,6 +295,14 @@ struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVE
  */
 class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 {
+	/**
+	 * This is only needed because in 'base-hw' we need the Thread
+	 * pointer of the entrypoint to cancel its next signal blocking.
+	 * Remove it as soon as signal dispatching in 'base-hw' doesn't need
+	 * multiple threads anymore.
+	 */
+	friend class Signal_receiver;
+
 	private:
 
 		/**

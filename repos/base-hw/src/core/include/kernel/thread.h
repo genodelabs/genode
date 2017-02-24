@@ -109,6 +109,7 @@ class Kernel::Thread
 		char const * const _label;
 		capid_t            _timeout_sigid = 0;
 		bool               _paused = false;
+		bool               _cancel_next_await_signal = false;
 
 		void _init();
 
@@ -210,6 +211,7 @@ class Kernel::Thread
 		void _call_update_instr_region();
 		void _call_print_char();
 		void _call_await_signal();
+		void _call_cancel_next_await_signal();
 		void _call_submit_signal();
 		void _call_ack_signal();
 		void _call_kill_signal_context();
