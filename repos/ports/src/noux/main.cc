@@ -18,6 +18,7 @@
 
 /* Noux includes */
 #include <child.h>
+#include <construct.h>
 #include <noux_session/sysio.h>
 #include <vfs_io_channel.h>
 #include <terminal_io_channel.h>
@@ -307,10 +308,7 @@ struct Noux::Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Noux::Main main(env); }
-
-
-/**
- * Support for the noux/net version
- */
-void Libc::Component::construct(Libc::Env &env) { Component::construct(env); }
+void noux_construct(Genode::Env &env)
+{
+	static Noux::Main main(env);
+}

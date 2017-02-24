@@ -1,6 +1,6 @@
 TARGET   = noux
 LIBS     = alarm vfs
-SRC_CC   = main.cc syscall.cc dummy_net.cc
+SRC_CC   = main.cc syscall.cc dummy_net.cc construct.cc
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(PRG_DIR)/../
 
