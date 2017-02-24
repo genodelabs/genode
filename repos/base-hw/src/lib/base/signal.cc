@@ -79,7 +79,7 @@ Signal_receiver::Signal_receiver()
 void Signal_receiver::_platform_destructor()
 {
 	/* release server resources of receiver */
-	env()->pd_session()->free_signal_source(_cap);
+	env_deprecated()->pd_session()->free_signal_source(_cap);
 }
 
 
@@ -101,7 +101,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	retry<Pd_session::Out_of_metadata>(
 		[&] () {
 			/* use signal context as imprint */
-			c->_cap = env()->pd_session()->alloc_context(_cap, (unsigned long)c);
+			c->_cap = env_deprecated()->pd_session()->alloc_context(_cap, (unsigned long)c);
 			c->_receiver = this;
 			_contexts.insert(&c->_receiver_le);
 			return c->_cap;
