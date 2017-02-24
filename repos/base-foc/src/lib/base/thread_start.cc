@@ -49,13 +49,14 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)
-		_cpu_session = env()->cpu_session();
+		_cpu_session = env_deprecated()->cpu_session();
 
 	if (type == NORMAL)
 	{
 		/* create thread at core */
-		_thread_cap = _cpu_session->create_thread(env()->pd_session_cap(), name(),
-		                                          Location(), Weight(weight));
+		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
+		                                          name(), Location(),
+		                                          Weight(weight));
 
 		/* assign thread to protection domain */
 		if (!_thread_cap.valid())
@@ -65,7 +66,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	}
 	/* adjust values whose computation differs for a main thread */
 	native_thread().kcap = Fiasco::MAIN_THREAD_CAP;
-	_thread_cap = env()->parent()->main_thread_cap();
+	_thread_cap = env_deprecated()->parent()->main_thread_cap();
 
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();

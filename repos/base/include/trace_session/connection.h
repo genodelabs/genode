@@ -61,9 +61,10 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 */
 	Connection(size_t ram_quota, size_t arg_buffer_size, unsigned parent_levels) __attribute__((deprecated))
 	:
-		Genode::Connection<Session>(_session(*env()->parent(), ram_quota,
-		                                     arg_buffer_size, parent_levels)),
-		Session_client(*env()->rm_session(), cap())
+		Genode::Connection<Session>(_session(*env_deprecated()->parent(),
+		                                     ram_quota, arg_buffer_size,
+		                                     parent_levels)),
+		Session_client(*env_deprecated()->rm_session(), cap())
 	{ }
 };
 

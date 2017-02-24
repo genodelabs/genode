@@ -11,25 +11,23 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/env.h>
-#include <base/log.h>
+#include <base/component.h>
 #include <ram_session/connection.h>
 #include <timer_session/connection.h>
 
+using namespace Genode;
 
-static void test_linux_rmmap_bug()
+static void test_linux_rmmap_bug(Env &env)
 {
 	enum { QUOTA = 1*1024*1024, CHUNK = 0x1000, ROUNDS = 0x10 };
 
-	using namespace Genode;
-
 	log("line: ", __LINE__);
-	Ram_connection ram;
+	Ram_connection ram(env);
 
 #if 1 /* transfer quota */
 	log("line: ", __LINE__);
-	ram.ref_account(env()->ram_session_cap());
-	env()->ram_session()->transfer_quota(ram.cap(), QUOTA);
+	ram.ref_account(env.ram_session_cap());
+	env.ram().transfer_quota(ram.cap(), QUOTA);
 #endif
 
 	log("line: ", __LINE__);
@@ -41,10 +39,14 @@ static void test_linux_rmmap_bug()
 	log("Done.");
 }
 
+struct Main { Main(Env &env); };
 
-int main()
+Main::Main(Env &env)
 {
 	Genode::log("--- test-rm_session_mmap started ---");
 
-	test_linux_rmmap_bug();
+	test_linux_rmmap_bug(env);
 }
+
+
+void Component::construct(Env &env) { static Main main(env); }
