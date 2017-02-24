@@ -14,8 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
-#include <base/log.h>
+#include <base/component.h>
 #include <log_session/connection.h>
 #include <foc/capability_space.h>
 
@@ -25,14 +24,18 @@
 using namespace Genode;
 using namespace Fiasco;
 
-int main(int argc, char **argv)
+
+struct Main { Main(Env &env); };
+
+
+Main::Main(Env &env)
 {
 	log("--- capability integrity test ---");
 
 	enum { COUNT = 1000 };
 
 	Cap_index*           idx = cap_idx_alloc()->alloc_range(COUNT);
-	Fiasco::l4_cap_idx_t tid = Capability_space::kcap(env()->ram_session_cap());
+	Fiasco::l4_cap_idx_t tid = Capability_space::kcap(env.ram_session_cap());
 
 	/* try the first 1000 local name IDs */
 	for (int local_name = 0; local_name < COUNT; local_name++, idx++) {
@@ -50,5 +53,8 @@ int main(int argc, char **argv)
 	}
 
 	log("--- finished capability integrity test ---");
-	return 0;
+	env.parent().exit(0);
 }
+
+
+void Component::construct(Env &env) { static Main main(env); }
