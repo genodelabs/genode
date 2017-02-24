@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <base/heap.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
@@ -33,7 +34,8 @@ class Scene : public Nano3d::Scene<PT>
 
 	private:
 
-		Genode::Env &_env;
+		Genode::Env  &_env;
+		Genode::Heap  _heap { _env.ram(), _env.rm() };
 
 		Nitpicker::Area const _size;
 
@@ -114,10 +116,8 @@ class Scene : public Nano3d::Scene<PT>
 
 	private:
 
-		Polygon::Shaded_painter _shaded_painter {
-			*Genode::env()->heap(), _size.h() };
-		Polygon::Textured_painter _textured_painter {
-			*Genode::env()->heap(), _size.h() };
+		Polygon::Shaded_painter   _shaded_painter   { _heap, _size.h() };
+		Polygon::Textured_painter _textured_painter { _heap, _size.h() };
 
 		Nano3d::Cube_shape         const _cube         { 7000 };
 		Nano3d::Dodecahedron_shape const _dodecahedron { 10000 };
