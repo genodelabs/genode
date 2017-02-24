@@ -40,5 +40,7 @@ void Libc::Component::construct(Libc::Env &env)
 	int argc = 3;
 	const char *argv[] = { "gdbserver", "/dev/terminal", "target", 0 };
 
-	gdbserver_main(argc, argv);
+	Libc::with_libc([&] () {
+		gdbserver_main(argc, argv);
+	});
 }
