@@ -69,6 +69,8 @@ class Nano3d::Scene
 		{
 			enum { NUM_BUFFERS = 3 };
 
+			Genode::Region_map &rm;
+
 			static Framebuffer::Session &
 			_init_framebuffer(Nitpicker::Connection &nitpicker,
 			                  Nitpicker::Area const size)
@@ -104,7 +106,7 @@ class Nano3d::Scene
 				return Nitpicker::Area(mode.width(), mode.height()/NUM_BUFFERS);
 			}
 
-			Genode::Attached_dataspace ds { framebuffer.dataspace() };
+			Genode::Attached_dataspace ds { rm, framebuffer.dataspace() };
 
 			PT *pixel_base(unsigned i)
 			{
@@ -134,12 +136,13 @@ class Nano3d::Scene
 				               NUM_BUFFERS*size().count());
 			}
 
-			Mapped_framebuffer(Nitpicker::Connection &nitpicker, Nitpicker::Area size)
+			Mapped_framebuffer(Nitpicker::Connection &nitpicker, Nitpicker::Area size,
+			                   Genode::Region_map &rm)
 			:
-				framebuffer(_init_framebuffer(nitpicker, size))
+				rm(rm), framebuffer(_init_framebuffer(nitpicker, size))
 			{ }
 
-		} _framebuffer { _nitpicker, _size };
+		} _framebuffer { _nitpicker, _size, _env.rm() };
 
 		Nitpicker::Session::View_handle _view_handle = _nitpicker.create_view();
 
@@ -189,7 +192,7 @@ class Nano3d::Scene
 
 		Timer::Connection _timer { _env };
 
-		Genode::Attached_dataspace _input_ds { _nitpicker.input()->dataspace() };
+		Genode::Attached_dataspace _input_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
 		Input_handler *_input_handler_callback = nullptr;
 
