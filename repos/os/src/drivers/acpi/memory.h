@@ -107,6 +107,10 @@ class Acpi::Memory
 				_io_mem_list.remove(io_mem);
 				destroy(_heap, io_mem);
 			}
+
+			Genode::addr_t out_addr;
+			while (_range.any_block_addr(&out_addr))
+				_range.free((void *)out_addr);
 		}
 };
 
