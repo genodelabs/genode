@@ -25,6 +25,8 @@ set build_components {
 	drivers/framebuffer drivers/input
 }
 
+lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
@@ -112,12 +114,17 @@ install_config $config
 # Boot modules
 #
 
+# evaluated by the run tool
+proc binary_name_gdbserver_platform_lib_so { } {
+	return "gdbserver_platform-$::env(KERNEL).lib.so"
+}
+
 # generic modules
 set boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	uart_drv
-	gdb_monitor
+	gdb_monitor gdbserver_platform.lib.so
 	nitpicker pointer scout
 }
 

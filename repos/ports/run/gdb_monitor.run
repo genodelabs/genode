@@ -19,12 +19,16 @@ if {![have_include "power_on/qemu"] ||
 # Build
 #
 
-build {
+set build_components {
 	core init
 	drivers/timer drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
 }
+
+lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
+
+build $build_components
 
 create_boot_directory
 
@@ -87,12 +91,17 @@ install_config $config
 # Boot modules
 #
 
+# evaluated by the run tool
+proc binary_name_gdbserver_platform_lib_so { } {
+	return "gdbserver_platform-$::env(KERNEL).lib.so"
+}
+
 # generic modules
 set boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so libm.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	uart_drv
-	gdb_monitor test-gdb_monitor
+	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
 }
 
 build_boot_image $boot_modules

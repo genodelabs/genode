@@ -26,6 +26,8 @@ set build_components {
 	app/gdb_monitor
 }
 
+lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
+
 proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
                     if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
                     return gpio_drv }
@@ -217,12 +219,17 @@ install_config $config
 # Boot modules
 #
 
+# evaluated by the run tool
+proc binary_name_gdbserver_platform_lib_so { } {
+	return "gdbserver_platform-$::env(KERNEL).lib.so"
+}
+
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so noux terminal terminal_crosslink
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
 	libc_pipe.lib.so libc_terminal.lib.so
-	gdb_monitor test-gdb_monitor
+	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
 	gdb.tar test-gdb_monitor.tar test-gdb_monitor-src.tar
 }
 
