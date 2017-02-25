@@ -65,7 +65,11 @@ void Entrypoint::_process_incoming_signals()
 		do {
 			_sig_rec->block_for_signal();
 
-			int success = cmpxchg(&_signal_recipient, NONE, SIGNAL_PROXY);
+			int success;
+			{
+				Lock::Guard guard(_signal_pending_lock);
+				success = cmpxchg(&_signal_recipient, NONE, SIGNAL_PROXY);
+			}
 
 			/* common case, entrypoint is not in 'wait_and_dispatch_one_signal' */
 			if (success) {
@@ -125,25 +129,24 @@ void Entrypoint::wait_and_dispatch_one_signal()
 	for (;;) {
 
 		try {
+			_signal_pending_lock.lock();
 
-			{
-				cmpxchg(&_signal_recipient, NONE, ENTRYPOINT);
+			cmpxchg(&_signal_recipient, NONE, ENTRYPOINT);
+			Signal sig =_sig_rec->pending_signal();
+			cmpxchg(&_signal_recipient, ENTRYPOINT, NONE);
 
-				Signal sig  =_sig_rec->pending_signal();
+			_signal_pending_lock.unlock();
 
-				cmpxchg(&_signal_recipient, ENTRYPOINT, NONE);
-
-				_dispatch_signal(sig);
-			}
-
-			_execute_post_signal_hook();
-
-			return;
+			_dispatch_signal(sig);
+			break;
 
 		} catch (Signal_receiver::Signal_not_pending) {
+			_signal_pending_lock.unlock();
 			_sig_rec->block_for_signal();
 		}
 	}
+
+	_execute_post_signal_hook();
 }
 
 
