@@ -6,6 +6,6 @@ SRC_CC += main.cc \
 
 INC_DIR = $(REP_DIR)/src/server/cpu_sampler
 
-LIBS   += base
+LIBS   += base cpu_sampler_platform
 
 vpath %.cc $(REP_DIR)/src/server/cpu_sampler

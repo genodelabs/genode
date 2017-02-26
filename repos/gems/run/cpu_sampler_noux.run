@@ -15,6 +15,12 @@ set build_components {
 	test/cpu_sampler
 }
 
+if {[have_spec foc]} {
+	lappend build_components lib/cpu_sampler_platform-foc
+} else {
+	lappend build_components lib/cpu_sampler_platform-generic
+}
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 lappend_if [need_usb_hid]   build_components drivers/usb
@@ -229,12 +235,21 @@ install_config $config
 # Boot modules
 #
 
+# evaluated by the run tool
+proc binary_name_cpu_sampler_platform_lib_so { } {
+	if {[have_spec foc]} {
+		return "cpu_sampler_platform-foc.lib.so"
+	} else {
+		return "cpu_sampler_platform-generic.lib.so"
+	}
+}
+
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer noux terminal ram_fs log_terminal
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
 	bash.tar coreutils.tar diffutils.tar vim.tar
-	fs_log cpu_sampler test-cpu_sampler
+	fs_log cpu_sampler cpu_sampler_platform.lib.so test-cpu_sampler
 }
 
 # platform-specific modules

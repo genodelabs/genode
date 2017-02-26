@@ -4,13 +4,21 @@ if { ![have_spec foc] && ![have_spec hw] && ![have_spec nova] &&
 	exit 0
 }
 
-build {
+set build_components {
 	core
 	init
 	drivers/timer
 	server/cpu_sampler
 	test/cpu_sampler
 }
+
+if {[have_spec foc]} {
+	lappend build_components lib/cpu_sampler_platform-foc
+} else {
+	lappend build_components lib/cpu_sampler_platform-generic
+}
+
+build $build_components
 
 create_boot_directory
 
@@ -69,7 +77,24 @@ install_config {
 	</config>
 }
 
-build_boot_image { core ld.lib.so init timer cpu_sampler test-cpu_sampler }
+#
+# Boot modules
+#
+
+# evaluated by the run tool
+proc binary_name_cpu_sampler_platform_lib_so { } {
+	if {[have_spec foc]} {
+		return "cpu_sampler_platform-foc.lib.so"
+	} else {
+		return "cpu_sampler_platform-generic.lib.so"
+	}
+}
+
+build_boot_image {
+	core ld.lib.so init timer
+	cpu_sampler cpu_sampler_platform.lib.so
+	test-cpu_sampler
+}
 
 append qemu_args "-nographic -m 128"
 
