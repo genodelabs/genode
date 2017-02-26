@@ -136,7 +136,7 @@ append config {
 				<dir name="home">
 					<inline name=".bashrc"> }
 append_if [get_cmd_switch --autopilot] config {
-						FILE=/samples/cpu_sampler/samples/init/test-cpu_sampler/ep.*.log
+						FILE=/samples/cpu_sampler/samples/test-cpu_sampler/ep.*.log
 						while true; do if [ -e $FILE ]; then cat $FILE; fi; done }
 append_if [expr ![get_cmd_switch --autopilot]] config {
 						echo "The sample data will appear in the /samples directory" }
@@ -168,7 +168,7 @@ append config {
 			<service name="CPU"/>
 		</provides>
 		<config sample_interval_ms="1000" sample_duration_s="10">
-			<policy label_prefix="init -> test-cpu_sampler ->" />
+			<policy label_prefix="test-cpu_sampler ->" />
 		</config>
 		<route>
 			<service name="LOG" label_prefix="samples"> <child name="fs_log"/> </service>
@@ -176,24 +176,9 @@ append config {
 		</route>
 	</start>
 
-	<start name="init">
-		<resource name="RAM" quantum="2M"/>
-		<config>
-			<parent-provides>
-				<service name="CPU"/>
-				<service name="LOG"/>
-				<service name="RAM"/>
-				<service name="ROM"/>
-				<service name="PD"/>
-			</parent-provides>
-			<default-route>
-				<any-service> <parent/> </any-service>
-			</default-route>
-			<start name="test-cpu_sampler">
-				<resource name="RAM" quantum="1M"/>
-				<config ld_verbose="yes"/>
-			</start>
-		</config>
+	<start name="test-cpu_sampler">
+		<resource name="RAM" quantum="1M"/>
+		<config ld_verbose="yes"/>
 		<route>
 			<service name="CPU"> <child name="cpu_sampler"/> </service>
 			<any-service> <parent/> </any-service>
