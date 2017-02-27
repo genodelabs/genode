@@ -171,7 +171,7 @@ struct Wlan_configration
 		enum { MAX_SSID_LENGTH = 32 + 1,
 		       BSSID_LENGTH    = 12 + 5 + 1,
 		       PROT_LENGTH     = 7 + 1,
-		       MIN_PSK_LENGTH  = 8,
+		       MIN_PSK_LENGTH  = 8 + 1,
 		       MAX_PSK_LENGTH  = 63 + 1};
 
 		String<MAX_SSID_LENGTH> ssid;
