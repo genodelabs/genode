@@ -19,6 +19,7 @@
 #include <thread/capability.h>
 #include <base/thread_state.h>
 #include <base/thread.h>
+#include <nova_native_cpu/nova_native_cpu.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -144,6 +145,12 @@ namespace Genode {
 			/************************
 			 ** Accessor functions **
 			 ************************/
+
+			/**
+			 * Set thread type and exception portal base
+			 */
+			void thread_type(Nova_native_cpu::Thread_type thread_type,
+			                 Nova_native_cpu::Exception_base exception_base);
 
 			/**
 			 * Set pager

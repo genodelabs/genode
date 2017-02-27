@@ -267,37 +267,13 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::state(Thread_state s)
 {
-	if (_sel_exc_base == Native_thread::INVALID_INDEX) {
+	if (!_pager) throw Cpu_thread::State_access_failed();
 
-		/* you can do it only once */
+	if (!_pager->copy_thread_state(s))
+		throw Cpu_thread::State_access_failed();
 
-		/*
-		 * s.sel_exc_base exception base of thread in caller
-		 *                protection domain - not in Core !
-		 * s.is_vcpu      If true it will run as vCPU,
-		 *                otherwise it will be a thread.
-		 */
-		if (!main_thread() || s.vcpu)
-			_sel_exc_base = s.sel_exc_base;
-
-		if (!s.global_thread)
-			_features |= WORKER;
-
-		if (!s.vcpu)
-			return;
-
-		_features |= VCPU;
-
-	} else {
-
-		if (!_pager) throw Cpu_thread::State_access_failed();
-
-		if (!_pager->copy_thread_state(s))
-			throw Cpu_thread::State_access_failed();
-
-		/* the new state is transferred to the kernel by the recall handler */
-		_pager->client_recall(false);
-	}
+	/* the new state is transferred to the kernel by the recall handler */
+	_pager->client_recall(false);
 }
 
 
@@ -349,6 +325,23 @@ void Platform_thread::pager(Pager_object *pager)
 {
 	_pager = pager;
 	_pager->assign_pd(_pd->pd_sel());
+}
+
+
+void Platform_thread::thread_type(Nova_native_cpu::Thread_type thread_type,
+                                  Nova_native_cpu::Exception_base exception_base)
+{
+	/* you can do it only once */
+	if (_sel_exc_base != Native_thread::INVALID_INDEX)
+		return;
+
+	if (!main_thread() || (thread_type == Nova_native_cpu::Thread_type::VCPU))
+		_sel_exc_base = exception_base.exception_base;
+
+	if (thread_type == Nova_native_cpu::Thread_type::LOCAL)
+		_features |= WORKER;
+	else if (thread_type == Nova_native_cpu::Thread_type::VCPU)
+		_features |= VCPU;
 }
 
 

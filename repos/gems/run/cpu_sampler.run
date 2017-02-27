@@ -12,8 +12,8 @@ set build_components {
 	test/cpu_sampler
 }
 
-if {[have_spec foc]} {
-	lappend build_components lib/cpu_sampler_platform-foc
+if {[have_spec foc] || [have_spec nova]} {
+	lappend build_components lib/cpu_sampler_platform-$::env(KERNEL)
 } else {
 	lappend build_components lib/cpu_sampler_platform-generic
 }
@@ -68,8 +68,8 @@ install_config {
 
 # evaluated by the run tool
 proc binary_name_cpu_sampler_platform_lib_so { } {
-	if {[have_spec foc]} {
-		return "cpu_sampler_platform-foc.lib.so"
+	if {[have_spec foc] || [have_spec nova]} {
+		return "cpu_sampler_platform-$::env(KERNEL).lib.so"
 	} else {
 		return "cpu_sampler_platform-generic.lib.so"
 	}

@@ -20,6 +20,7 @@
 #include <pd_session/connection.h>
 #include <region_map/client.h>
 #include <cpu_thread/client.h>
+#include <nova_native_cpu/client.h>
 
 /* NOVA includes */
 #include <nova/native_thread.h>
@@ -72,12 +73,12 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 				                            _location, Cpu_session::Weight());
 
 			/* tell parent that this will be a vCPU */
-			Thread_state state;
-			state.sel_exc_base = _exc_pt_sel;
-			state.vcpu         = true;
+			Nova_native_cpu::Thread_type thread_type { Nova_native_cpu::Thread_type::VCPU };
+			Nova_native_cpu::Exception_base exception_base { _exc_pt_sel };
+			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
+			native_cpu.thread_type(vcpu_vm, thread_type, exception_base);
 
 			Cpu_thread_client cpu_thread(vcpu_vm);
-			cpu_thread.state(state);
 
 			/*
 			 * Translate vcpu_vm thread cap via current executing thread,
