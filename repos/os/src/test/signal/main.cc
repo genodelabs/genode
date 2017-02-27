@@ -450,7 +450,7 @@ struct Many_contexts_test : Signal_test
  * context of 'wait_and_dispatch_one_signal' here, which also caused dead locks
  * in the past.
  */
-struct Wait_and_dispatch_test : Signal_test
+struct Nested_test : Signal_test
 {
 	static constexpr char const *brief = "wait and dispatch signals at entrypoint";
 
@@ -494,20 +494,20 @@ struct Wait_and_dispatch_test : Signal_test
 	Env                                    &env;
 	Entrypoint                              ep { env, 2048 * sizeof(long),
 		"wait_dispatch_ep" };
-	Signal_handler<Wait_and_dispatch_test>  dispatcher { ep, *this,
-		&Wait_and_dispatch_test::handle };
+	Signal_handler<Nested_test>  dispatcher { ep, *this,
+		&Nested_test::handle };
 	Wait_component                          wait  { ep };
 	Capability<Wait_interface>              wait_cap = ep.manage(wait);
 	Sender_thread                           thread { env, dispatcher };
 	bool                                    nested { false };
 
-	Wait_and_dispatch_test(Env &env, int id) : Signal_test(id, brief), env(env)
+	Nested_test(Env &env, int id) : Signal_test(id, brief), env(env)
 	{
 		thread.start();
 		wait_cap.call<Wait_interface::Rpc_dispatch_test>();
 	}
 
-	~Wait_and_dispatch_test()
+	~Nested_test()
 	{
 		ep.dissolve(wait);
 	}
@@ -526,8 +526,136 @@ struct Wait_and_dispatch_test : Signal_test
 	}
 };
 
+/**
+ * Stress-test 'wait_and_dispatch_one_signal' implementation for entrypoints
+ *
+ * Let multiple entrypoints directly wait and dispatch signals in a
+ * highly nested manner and with multiple stressful senders.
+ */
+struct Nested_stress_test : Signal_test
+{
+	static constexpr char const *brief = "stressful wait and dispatch signals at entrypoint";
+
+	enum {
+		COUNTER_GOAL          = 300,
+		UNWIND_COUNT_MOD_LOG2 = 5,
+		POLLING_PERIOD_US     = 1000000,
+	};
+
+	struct Sender : Thread
+	{
+		Signal_transmitter transmitter;
+		bool               destruct { false };
+
+		Sender(Env &env, char const *name, Signal_context_capability cap)
+		: Thread(env, name, 1024 * sizeof(long)), transmitter(cap) { }
+
+		void entry()
+		{
+			/* send signals as fast as possible */
+			while (!destruct) { transmitter.submit(); }
+		}
+	};
+
+	struct Receiver
+	{
+		Entrypoint               ep;
+		char const              *name;
+		Signal_handler<Receiver> handler  { ep, *this, &Receiver::handle };
+		unsigned                 count    { 0 };
+		bool                     destruct { false };
+
+		Receiver(Env &env, char const *name)
+		: ep(env, 3 * 1024 * sizeof(long), name), name(name) { }
+
+		void handle()
+		{
+			/*
+			 * We have to get out of the nesting if the host wants to destroy
+			 * us to avoid a deadlock at the lock in the signal handler.
+			 */
+			if (destruct) {
+				return; }
+
+			/* raise call counter */
+			count++;
+
+			/*
+			 * Open a new nesting level with each signal until count module X
+			 * gives zero, then unwind the whole nesting and start afresh.
+			 */
+			if ((count & ((1 << UNWIND_COUNT_MOD_LOG2) - 1)) != 0) {
+				ep.wait_and_dispatch_one_signal(); }
+		}
+	};
+
+	Env                &env;
+	Timer::Connection   timer      { env };
+	Receiver            receiver_1 { env, "receiver-1" };
+	Receiver            receiver_2 { env, "receiver-2" };
+	Receiver            receiver_3 { env, "receiver-3" };
+	Sender              sender_1   { env, "sender-1", receiver_1.handler };
+	Sender              sender_2   { env, "sender-2", receiver_2.handler };
+	Sender              sender_3   { env, "sender-3", receiver_3.handler };
+	Signal_transmitter  done;
+
+	Signal_handler<Nested_stress_test> poll
+		{ env.ep(), *this, &Nested_stress_test::handle_poll };
+
+	Nested_stress_test(Env &env, int id, Signal_context_capability done)
+	: Signal_test(id, brief), env(env), done(done)
+	{
+		/* let senders start sending signals like crazy */
+		sender_1.start();
+		sender_2.start();
+		sender_3.start();
+
+		/* initialize polling for the receiver counts */
+		timer.sigh(poll);
+		timer.trigger_periodic(POLLING_PERIOD_US);
+	}
+
+	~Nested_stress_test()
+	{
+		/* let senders stop burning our CPU time */
+		sender_1.destruct = true;
+		sender_2.destruct = true;
+		sender_3.destruct = true;
+
+		/* let receivers unwind their nesting and stop with the next signal */
+		receiver_1.destruct = true;
+		receiver_2.destruct = true;
+		receiver_3.destruct = true;
+
+		/*
+		 * Send final signals ourselves because otherwise we would have to
+		 * synchronize with the senders.
+		 */
+		sender_1.transmitter.submit();
+		sender_2.transmitter.submit();
+		sender_3.transmitter.submit();
+	}
+
+	void handle_poll()
+	{
+		/* print counter status */
+		log(receiver_1.name, " received ", receiver_1.count, " times");
+		log(receiver_2.name, " received ", receiver_2.count, " times");
+		log(receiver_3.name, " received ", receiver_3.count, " times");
+
+		/* request to end the test if receiver counts are all high enough */
+		if (receiver_1.count > COUNTER_GOAL &&
+		    receiver_2.count > COUNTER_GOAL &&
+		    receiver_3.count > COUNTER_GOAL)
+		{ done.submit(); }
+	}
+};
+
 struct Main
 {
+	Env                  &env;
+	Signal_handler<Main>  test_9_done { env.ep(), *this, &Main::handle_test_9_done };
+
 	Constructible<Fast_sender_test>              test_1;
 	Constructible<Multiple_handlers_test>        test_2;
 	Constructible<Stress_test>                   test_3;
@@ -535,9 +663,16 @@ struct Main
 	Constructible<Context_management_test>       test_5;
 	Constructible<Synchronized_destruction_test> test_6;
 	Constructible<Many_contexts_test>            test_7;
-	Constructible<Wait_and_dispatch_test>        test_8;
+	Constructible<Nested_test>                   test_8;
+	Constructible<Nested_stress_test>            test_9;
 
-	Main(Env &env)
+	void handle_test_9_done()
+	{
+		test_9.destruct();
+		log("--- Signalling test finished ---");
+	}
+
+	Main(Env &env) : env(env)
 	{
 		log("--- Signalling test ---");
 		test_1.construct(env, 1); test_1.destruct();
@@ -548,7 +683,7 @@ struct Main
 		test_6.construct(env, 6); test_6.destruct();
 		test_7.construct(env, 7); test_7.destruct();
 		test_8.construct(env, 8); test_8.destruct();
-		log("--- Signalling test finished ---");
+		test_9.construct(env, 9, test_9_done);
 	}
 };
 
