@@ -19,6 +19,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
+#include <base/sleep.h>
 
 using namespace Genode;
 
@@ -109,6 +110,15 @@ struct Test_out_of_metadata
 {
 	Env &env;
 
+	struct Test_thread : Genode::Thread
+	{
+		Test_thread(Genode::Env          &env,
+		            Genode::Thread::Name  name)
+		: Thread(env, name, 4096) { start(); }
+
+		void entry() { Genode::sleep_forever(); }
+	};
+
 	Test_out_of_metadata(Env &env) : env(env)
 	{
 		log("test Out_of_metadata exception of Trace::Session::subjects call");
@@ -137,6 +147,20 @@ struct Test_out_of_metadata
 			log("got Parent::Service_denied exception as expected"); }
 
 		try {
+			/*
+			 * Create multiple threads because on some platforms there
+			 * are not enough available subjects to trigger the Out_of_metadata
+			 * exception.
+			 */
+			Test_thread::Name thread_name1 { "test-thread1" };
+			Test_thread       thread1      { env, thread_name1 };
+			Test_thread::Name thread_name2 { "test-thread2" };
+			Test_thread       thread2      { env, thread_name2 };
+			Test_thread::Name thread_name3 { "test-thread3" };
+			Test_thread       thread3      { env, thread_name3 };
+			Test_thread::Name thread_name4 { "test-thread4" };
+			Test_thread       thread4      { env, thread_name4 };
+
 			Trace::Connection trace(env, sizeof(subject_ids) + 5*4096,
 			                        sizeof(subject_ids), 0);
 			trace.subjects(subject_ids, MAX_SUBJECT_IDS);
