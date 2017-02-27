@@ -251,8 +251,6 @@ extern "C" void dwc_otg_fiq_fsm(struct fiq_state *state, int num_channels) { TRA
 
 unsigned char _dwc_otg_fiq_stub, _dwc_otg_fiq_stub_end;
 
-extern int fiq_enable, fiq_fsm_enable;
-
 
 /***********************
  ** asm/dma_mapping.h **
