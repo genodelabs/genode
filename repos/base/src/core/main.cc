@@ -121,7 +121,7 @@ class Core_child : public Child_policy
 		 * Entry point used for serving the parent interface
 		 */
 		Rpc_entrypoint _entrypoint;
-		enum { STACK_SIZE = 2 * 1024 * sizeof(Genode::addr_t)};
+		enum { STACK_SIZE = 4 * 1024 * sizeof(Genode::addr_t)};
 
 		Registry<Service> &_services;
 
