@@ -1,9 +1,0 @@
-LICENSE   := BSD
-VERSION   := 0.5.6
-DOWNLOADS := dash.archive
-
-URL(dash) := http://gondor.apana.org.au/~herbert/dash/files/dash-$(VERSION).tar.gz
-SHA(dash) := c62f94f09feb5eeb5e4b90793c5b6d5dad6ac003
-DIR(dash) := src/noux-pkg/dash
-
-PATCHES   := src/noux-pkg/dash/build.patch
