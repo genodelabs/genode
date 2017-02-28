@@ -131,11 +131,17 @@ void GenodeConsole::handle_input()
 
 	/* read out input capabilities of guest */
 	bool guest_abs = false, guest_rel = false, guest_multi = false;
-	_vbox_mouse->COMGETTER(AbsoluteSupported)(&guest_abs);
-	_vbox_mouse->COMGETTER(RelativeSupported)(&guest_rel);
-	_vbox_mouse->COMGETTER(MultiTouchSupported)(&guest_multi);
+	if (_vbox_mouse) {
+		_vbox_mouse->COMGETTER(AbsoluteSupported)(&guest_abs);
+		_vbox_mouse->COMGETTER(RelativeSupported)(&guest_rel);
+		_vbox_mouse->COMGETTER(MultiTouchSupported)(&guest_multi);
+	}
 
 	_input.for_each_event([&] (Input::Event const &ev) {
+		/* if keyboard/mouse not available, consume input events and drop it */
+		if (!_vbox_keyboard || !_vbox_mouse)
+			return;
+
 		bool const press   = ev.type() == Input::Event::PRESS;
 		bool const release = ev.type() == Input::Event::RELEASE;
 		bool const key     = press || release;
