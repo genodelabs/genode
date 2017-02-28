@@ -4,6 +4,41 @@
                                ===========
 
 
+Genode OS Framework release 17.02 | 2017-02-28
+##############################################
+
+| By introducing application binary interfaces, version 17.02 cultivates
+| the cross-kernel binary compatibility of components. Furthermore, the
+| new version comes with a vastly improved VFS infrastructure, new input-event
+| processing capabilities, and a dynamic component-composition engine.
+
+On the long road towards binary compatibility of Genode components across OS
+kernels as different as L4, NOVA, seL4, or Linux, we reached a breakthrough by
+mid of 2016. It took us another six months to fully cultivate this unique
+feature and to integrate it seamlessly into our development work flows. With
+the current version, we have ultimately reached the point where one can move
+entire system scenarios from one kernel to another in just a few seconds.
+
+With the improved virtual file-system (VFS) infrastructure that comes with the
+new version, such system scenarios can become more and more sophisticated.
+Genode takes the meaning of _virtual_ file systems to an entirely new level.
+Not only does Genode virtualize the physical location of files but each
+component can have its own VFS whereby the supported file-system types are
+provided by VFS plugins. Those plugins can go as far as providing a TCP/IP
+stack as showcased by Genode's use of the Linux TCP/IP stack as VFS plugin.
+
+The composition of subsystems out of Genode components is another highlight of
+the current release. In each Genode-based system, the init component already
+plays a central role as it bootstraps the initial system components. Thanks to
+Genode's recursive system structure, init can easily be nested. With the
+improvements of the new version, such a nested init becomes a dynamic
+system-composition engine that responds to configuration updates and applies
+changes to its subsystem in a differential way.
+
+These and many more improvements are covered in full detail in the
+[https:/documentation/release-notes/17.02 - release documentation of version 17.02...]
+
+
 Open-source license update | 2017-02-21
 #######################################
 
