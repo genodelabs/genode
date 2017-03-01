@@ -34,17 +34,11 @@ class Bomb_child : public Child_policy
 		Name        const _label;
 		size_t      const _ram_quota;
 
-		/*
-		 * Entry point used for serving the parent interface
-		 */
-		enum { STACK_SIZE =  2048 * sizeof(addr_t) };
-		Rpc_entrypoint _ep { &_env.pd(), STACK_SIZE, "bomb_ep_child", false };
-
 		Registry<Registered<Parent_service> > &_parent_services;
 
-		Child_policy_dynamic_rom_file _config_policy { _env.rm(), "config", _ep, &_env.ram() };
+		Child_policy_dynamic_rom_file _config_policy { _env.rm(), "config", _env.ep().rpc_ep(), &_env.ram() };
 
-		Child _child { _env.rm(), _ep, *this };
+		Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
 	public:
 
@@ -61,7 +55,6 @@ class Bomb_child : public Child_policy
 		{
 			String<64> config("<config generations=\"", generation, "\"/>");
 			_config_policy.load(config.string(), config.length());
-			_ep.activate();
 		}
 
 		~Bomb_child() { log(__PRETTY_FUNCTION__); }
