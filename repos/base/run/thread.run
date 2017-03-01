@@ -14,7 +14,7 @@ proc pause_resume_supported { } {
 }
 
 set config {
-	<config>
+	<config prio_levels="2">
 		<parent-provides>
 			<service name="LOG"/>
 			<service name="CPU"/>
@@ -27,6 +27,7 @@ set config {
 		</default-route>
 		<start name="test-thread">
 			<resource name="RAM" quantum="10M"/>
+			<resource name="CPU" quantum="100"/>
 			<config>}
 
 append_if [pause_resume_supported] config {				<pause_resume/> }
