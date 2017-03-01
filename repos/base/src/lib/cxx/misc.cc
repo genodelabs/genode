@@ -18,19 +18,20 @@
 #include <base/thread.h>
 #include <util/string.h>
 
-using namespace Genode;
+#include <cxxabi.h>
 
 
 extern "C" void __cxa_pure_virtual()
 {
-	Genode::warning("cxa pure virtual function called, return addr is ",
-	                __builtin_return_address(0));
+	Genode::error(__func__, " called, return addr is ", __builtin_return_address(0));
+	std::terminate();
 }
 
 
 extern "C" void __pure_virtual()
 {
-	Genode::warning("pure virtual function called");
+	Genode::error(__func__, " called, return addr is ", __builtin_return_address(0));
+	std::terminate();
 }
 
 
@@ -93,7 +94,7 @@ void __register_frame(void *) { }
  */
 extern "C" __attribute__((weak)) void raise()
 {
-	warning("cxx: raise called - not implemented");
+	Genode::warning("cxx: raise called - not implemented");
 }
 
 
@@ -104,7 +105,7 @@ extern "C" __attribute__((weak)) void raise()
 extern "C" void *abort(void)
 {
 	Genode::Thread const * const myself = Genode::Thread::myself();
-	Thread::Name name = "unknown";
+	Genode::Thread::Name name = "unknown";
 
 	if (myself)
 		name = myself->name();
@@ -113,9 +114,9 @@ extern "C" void *abort(void)
 
 	/* Notify the parent of failure */
 	if (name != "main")
-		env_deprecated()->parent()->exit(1);
+		Genode::env_deprecated()->parent()->exit(1);
 
-	sleep_forever();
+	Genode::sleep_forever();
 	return 0;
 }
 
