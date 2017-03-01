@@ -333,6 +333,97 @@ static void test_create_as_many_threads(Env &env)
 }
 
 
+/*********************************
+ ** Using Locks in creative ways *
+ *********************************/
+
+struct Lock_helper : Thread
+{
+	enum { STACK_SIZE = 0x1000 };
+
+	Lock &lock;
+	bool &lock_is_free;
+	bool  unlock;
+
+	Lock_helper(Env &env, const char * name, Cpu_session &cpu, Lock &lock,
+	            bool &lock_is_free, bool unlock = false)
+	:
+		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(),
+		       cpu),
+		lock(lock), lock_is_free(lock_is_free), unlock(unlock)
+	{ }
+
+	void entry()
+	{
+		log(" thread '", name(), "' started");
+
+		if (unlock)
+			lock.unlock();
+
+		lock.lock();
+
+		if (!lock_is_free) {
+			log(" thread '", name(), "' got lock but somebody else is within"
+			    " critical section !?");
+			throw -22;
+		}
+
+		log(" thread '", name(), "' done");
+
+		lock.unlock();
+	}
+};
+
+static void test_locks(Genode::Env &env)
+{
+	Lock lock         (Lock::LOCKED);
+
+	bool lock_is_free = true;
+
+	Cpu_connection cpu_m(env, "prio middle", Cpu_session::PRIORITY_LIMIT / 4);
+	Cpu_connection cpu_l(env, "prio low", Cpu_session::PRIORITY_LIMIT / 2);
+
+	enum { SYNC_STARTUP = true };
+
+	Lock_helper l1(env, "lock_low1", cpu_l, lock, lock_is_free);
+	Lock_helper l2(env, "lock_low2", cpu_l, lock, lock_is_free);
+	Lock_helper l3(env, "lock_low3", cpu_l, lock, lock_is_free);
+	Lock_helper l4(env, "lock_low4", cpu_l, lock, lock_is_free, SYNC_STARTUP);
+
+	l1.start();
+	l2.start();
+	l3.start();
+	l4.start();
+
+	lock.lock();
+
+	log(" thread '", Thread::myself()->name(), "' - I'm the lock holder - "
+	    "take lock again");
+
+	/* we are within the critical section - lock is not free */
+	lock_is_free = false;
+
+	/* start another low prio thread to wake current thread when it blocks */
+	Lock_helper l5(env, "lock_low5", cpu_l, lock, lock_is_free, SYNC_STARTUP);
+	l5.start();
+
+	lock.lock();
+	log(" I'm the lock holder - still alive");
+	lock_is_free = true;
+
+	lock.unlock();
+
+	/* check that really all threads come back ! */
+	l1.join();
+	l2.join();
+	l3.join();
+	l4.join();
+	l5.join();
+
+	log("running '", __func__, "' done");
+}
+
+
 void Component::construct(Env &env)
 {
 	log("--- thread test started ---");
@@ -344,6 +435,7 @@ void Component::construct(Env &env)
 		test_stack_alignment(env);
 		test_main_thread();
 		test_cpu_session(env);
+		test_locks(env);
 
 		if (config.xml().has_sub_node("pause_resume"))
 			test_pause_resume(env);
