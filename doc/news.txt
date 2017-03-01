@@ -4,6 +4,50 @@
                                ===========
 
 
+Google Summer of Code | 2017-03-01
+##################################
+
+| Genode will participate under the umbrella of the FOSDEM microkernel
+| devroom as mentoring organization in this year's Google Summer of Code
+| program.
+
+Thanks to the initiative of Jakub Jermar and Martin Decky of the
+HelenOS project, multiple prominent open-source microkernel projects submitted
+a joint application to this year's Google Summer of Code (GSoC) program under
+the umbrella of FOSDEM microkernel devroom.
+
+As announced on the umbrella's [http://gsoc.microkernel.info - official GSoC page],
+the involved projects are HelenOS, Redox, MINIX 3, and Genode. In anticipation
+of the application, we have largely revisited our list of future technical
+challenges:
+
+*Genode-related topics:* [https://genode.org/about/challenges]
+
+Those topics are meant as inspiration. It goes without saying that we
+welcome other suggestions. If you are interested to participate in this
+year's GSoC with a Genode-related topic, the following steps are best way
+to get started:
+
+Learn the basics about Genode by skimming through the
+[https://genode.org/documentation/genode-foundations-16-05.pdf - Genode Foundations book],
+downloading the code, and experimenting with a few simple example scenarios.
+You will find the steps described in the book.
+
+If this experience leaves a good impression on you, please continue with
+making yourself known at the
+[https://genode.org/community/mailing-lists - Genode mailing list] by posting
+a short introduction of yourself, your primary interests, and possibly a topic
+that you'd like to engage in. Please don't hesitate to consult the list with
+any technical questions you might have. Note that the mailing list will be the
+tool of choice for mentoring you during GSoC. Hence, you should be comfortable
+in using it. Please keep in mind that friendly and concise written
+communication is crucial for our project, and will thereby be an important
+criterion for considering your application.
+
+We thank Google for accepting the microkernel devroom as a mentoring
+organization this year and look forward to GSoC students engaging with us!
+
+
 Genode OS Framework release 17.02 | 2017-02-28
 ##############################################
 
