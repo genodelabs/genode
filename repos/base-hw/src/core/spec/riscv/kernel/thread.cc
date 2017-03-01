@@ -45,11 +45,10 @@ void Thread::exception(unsigned const cpu)
 void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
-	_fault_pd     = (addr_t)_pd->platform_pd();
-	_fault_signal = (addr_t)_fault.signal_context();
-	_fault_addr   = Cpu::sbadaddr();
+	_fault_pd   = (addr_t)_pd->platform_pd();
+	_fault_addr = Cpu::sbadaddr();
 
-	_fault.submit();
+	if (_pager) _pager->submit(1);
 }
 
 
@@ -66,9 +65,3 @@ void Thread::_call_update_data_region()
 
 
 void Thread::_call_update_instr_region() { }
-
-
-void Thread_event::_signal_acknowledged()
-{
-	_thread->_restart();
-}

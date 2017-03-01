@@ -40,7 +40,7 @@ namespace Kernel
 	constexpr Call_arg call_id_start_thread()           { return 102; }
 	constexpr Call_arg call_id_pause_thread()           { return 103; }
 	constexpr Call_arg call_id_resume_thread()          { return 104; }
-	constexpr Call_arg call_id_route_thread_event()     { return 105; }
+	constexpr Call_arg call_id_thread_pager()           { return 105; }
 	constexpr Call_arg call_id_thread_quota()           { return 106; }
 	constexpr Call_arg call_id_update_pd()              { return 107; }
 	constexpr Call_arg call_id_new_pd()                 { return 108; }
@@ -167,18 +167,12 @@ namespace Kernel
 	 * Set or unset the handler of an event that can be triggered by a thread
 	 *
 	 * \param thread             pointer to thread kernel object
-	 * \param event_id           capability id of the targeted thread event
-	 * \param signal_context_id  capability id of the handlers signal context
-	 *
-	 * \retval  0  succeeded
-	 * \retval -1  failed
+	 * \param signal_context_id  capability id of the page-fault handler
 	 */
-	inline int route_thread_event(Thread * const thread,
-	                              capid_t  const event_id,
-	                              capid_t  const signal_context_id)
+	inline void thread_pager(Thread * const thread,
+	                         capid_t  const signal_context_id)
 	{
-		return call(call_id_route_thread_event(), (Call_arg)thread,
-		            event_id, signal_context_id);
+		call(call_id_thread_pager(), (Call_arg)thread, signal_context_id);
 	}
 
 

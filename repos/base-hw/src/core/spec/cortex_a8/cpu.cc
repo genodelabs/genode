@@ -16,12 +16,6 @@
 #include <kernel/kernel.h>
 #include <kernel/cpu.h>
 
-void Genode::Cpu::translation_table_insertions()
-{
-	clean_invalidate_data_cache();
-	invalidate_tlb();
-}
-
 
 void Genode::Cpu::translation_added(Genode::addr_t const addr,
                                     Genode::size_t const size)

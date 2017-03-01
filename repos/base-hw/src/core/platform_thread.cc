@@ -186,11 +186,8 @@ void Platform_thread::pager(Pager_object * const pager)
 {
 	using namespace Kernel;
 
-	if (route_thread_event(kernel_object(), Thread_event_id::FAULT,
-	                       pager ? Capability_space::capid(pager->cap())
-	                             : cap_id_invalid()))
-		error("failed to set pager object for thread ", label());
-
+	thread_pager(kernel_object(), pager ? Capability_space::capid(pager->cap())
+	                                    : cap_id_invalid());
 	_pager = pager;
 }
 
@@ -209,4 +206,10 @@ void Platform_thread::state(Thread_state thread_state)
 {
 	Cpu_state * cstate = static_cast<Cpu_state *>(kernel_object());
 	*cstate = static_cast<Cpu_state>(thread_state);
+}
+
+
+void Platform_thread::restart()
+{
+	Kernel::restart_thread(Capability_space::capid(_cap));
 }

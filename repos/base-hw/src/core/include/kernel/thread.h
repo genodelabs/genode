@@ -24,53 +24,8 @@
 namespace Kernel
 {
 	class Thread;
-	class Thread_event;
 	class Core_thread;
 }
-
-/**
- * Event that is provided by kernel thread-objects for user handling
- */
-class Kernel::Thread_event : public Signal_ack_handler
-{
-	private:
-
-		Thread * const   _thread;
-		Signal_context * _signal_context;
-
-
-		/************************
-		 ** Signal_ack_handler **
-		 ************************/
-
-		void _signal_acknowledged();
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param t  thread that blocks on the event
-		 */
-		Thread_event(Thread * const t);
-
-		/**
-		 * Submit to listening handlers just like a signal context
-		 */
-		void submit();
-
-		/**
-		 * Kernel name of assigned signal context or 0 if not assigned
-		 */
-		Signal_context * const signal_context() const;
-
-		/**
-		 * Override signal context of the event
-		 *
-		 * \param c  new signal context or 0 to dissolve current signal context
-		 */
-		void signal_context(Signal_context * const c);
-};
 
 /**
  * Kernel back-end for userland execution-contexts
@@ -81,7 +36,6 @@ class Kernel::Thread
 	public Ipc_node, public Signal_context_killer, public Signal_handler,
 	private Timeout
 {
-	friend class Thread_event;
 	friend class Core_thread;
 
 	private:
@@ -99,11 +53,10 @@ class Kernel::Thread
 			DEAD                        = 7,
 		};
 
-		Thread_event       _fault;
+		Signal_context *   _pager = nullptr;
 		addr_t             _fault_pd;
 		addr_t             _fault_addr;
 		addr_t             _fault_writes;
-		addr_t             _fault_signal;
 		State              _state;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
@@ -129,16 +82,6 @@ class Kernel::Thread
 		 */
 		int _route_event(unsigned         const event_id,
 		                 Signal_context * const signal_context_id);
-
-		/**
-		 * Map kernel name of thread event to the corresponding member
-		 *
-		 * \param id  kernel name of targeted thread event
-		 *
-		 * \retval  0  failed
-		 * \retval >0  targeted member pointer
-		 */
-		Thread_event Thread::* _event(unsigned const id) const;
 
 		/**
 		 * Return wether this is a core thread
@@ -219,7 +162,7 @@ class Kernel::Thread
 		void _call_delete_vm();
 		void _call_run_vm();
 		void _call_pause_vm();
-		void _call_route_thread_event();
+		void _call_pager();
 		void _call_new_irq();
 		void _call_ack_irq();
 		void _call_new_obj();
@@ -346,7 +289,6 @@ class Kernel::Thread
 		addr_t fault_pd()     const { return _fault_pd; }
 		addr_t fault_addr()   const { return _fault_addr; }
 		addr_t fault_writes() const { return _fault_writes; }
-		addr_t fault_signal() const { return _fault_signal; }
 };
 
 

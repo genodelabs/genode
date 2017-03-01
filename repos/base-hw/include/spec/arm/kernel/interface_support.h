@@ -21,14 +21,6 @@ namespace Kernel
 {
 	typedef Genode::uint32_t Call_arg;
 	typedef Genode::uint32_t Call_ret;
-
-	/**
-	 * Events that are provided by a kernel thread-object for user handling
-	 */
-	struct Thread_event_id
-	{
-		enum { FAULT = 0 };
-	};
 }
 
 #endif /* _INCLUDE__SPEC__ARM__KERNEL__INTERFACE_SUPPORT_H_ */

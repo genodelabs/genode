@@ -67,16 +67,6 @@ class Genode::Cpu : public Arm
 			return Ctr::P::get(Ctr::read()); }
 
 		/**
-		 * Ensure that TLB insertions get applied
-		 */
-		void translation_table_insertions()
-		{
-			clean_invalidate_data_cache();
-			invalidate_instr_cache();
-			invalidate_tlb();
-		}
-
-		/**
 		 * Post processing after a translation was added to a translation table
 		 *
 		 * \param addr  virtual address of the translation

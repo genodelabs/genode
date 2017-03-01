@@ -128,8 +128,6 @@ class Genode::Cortex_a9 : public Arm_v7
 			Kernel::board().l2_cache().clean_invalidate();
 		}
 
-		void translation_table_insertions() { invalidate_branch_predicts(); }
-
 		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
 
 

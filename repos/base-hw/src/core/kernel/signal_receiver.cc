@@ -17,16 +17,6 @@
 using namespace Kernel;
 
 
-/************************
- ** Signal_ack_handler **
- ************************/
-
-Signal_ack_handler::~Signal_ack_handler()
-{
-	if (_signal_context) { _signal_context->ack_handler(0); }
-}
-
-
 /********************
  ** Signal_handler **
  ********************/
@@ -83,13 +73,6 @@ void Signal_context::_delivered()
 void Signal_context::_killer_cancelled() { _killer = 0; }
 
 
-void Signal_context::ack_handler(Signal_ack_handler * const h)
-{
-	_ack_handler = h ? h : &_default_ack_handler;
-	_ack_handler->_signal_context = this;
-}
-
-
 int Signal_context::submit(unsigned const n)
 {
 	if (_killed || _submits >= (unsigned)~0 - n) { return -1; }
@@ -101,7 +84,6 @@ int Signal_context::submit(unsigned const n)
 
 void Signal_context::ack()
 {
-	_ack_handler->_signal_acknowledged();
 	if (_ack) { return; }
 	if (!_killed) {
 		_ack = 1;
@@ -153,8 +135,7 @@ Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint
 	_submits(0),
 	_ack(1),
 	_killed(0),
-	_killer(0),
-	_ack_handler(&_default_ack_handler)
+	_killer(0)
 {
 	r->_add_context(this);
 }

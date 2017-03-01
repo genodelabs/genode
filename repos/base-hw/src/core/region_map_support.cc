@@ -44,50 +44,45 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 
 void Pager_entrypoint::entry()
 {
+	Untyped_capability cap;
+
 	while (1)
 	{
+		if (cap.valid()) Kernel::ack_signal(Capability_space::capid(cap));
+
 		/* receive fault */
 		if (Kernel::await_signal(Capability_space::capid(_cap))) continue;
 
-		Untyped_capability cap =
-			(*(Pager_object**)Thread::myself()->utcb()->data())->cap();
+		Pager_object *po = *(Pager_object**)Thread::myself()->utcb()->data();
+		cap = po->cap();
 
-		/*
-		 * Synchronize access and ensure that the object is still managed
-		 *
-		 * FIXME: The implicit lookup of the oject isn't needed.
-		 */
-		auto lambda = [&] (Pager_object *po) {
-			if (!po) return;
+		if (!po) continue;
 
-			/* fetch fault data */
-			Platform_thread * const pt = (Platform_thread *)po->badge();
-			if (!pt) {
-				Genode::warning("failed to get platform thread of faulter");
-				return;
-			}
+		/* fetch fault data */
+		Platform_thread * const pt = (Platform_thread *)po->badge();
+		if (!pt) {
+			Genode::warning("failed to get platform thread of faulter");
+			continue;
+		}
 
-			_fault.ip     = pt->kernel_object()->ip;
-			_fault.addr   = pt->kernel_object()->fault_addr();
-			_fault.writes = pt->kernel_object()->fault_writes();
-			_fault.signal = pt->kernel_object()->fault_signal();
+		_fault.ip     = pt->kernel_object()->ip;
+		_fault.addr   = pt->kernel_object()->fault_addr();
+		_fault.writes = pt->kernel_object()->fault_writes();
 
-			/* try to resolve fault directly via local region managers */
-			if (po->pager(*this)) return;
+		/* try to resolve fault directly via local region managers */
+		if (po->pager(*this)) continue;
 
-			/* apply mapping that was determined by the local region managers */
-			{
-				Locked_ptr<Address_space> locked_ptr(pt->address_space());
-				if (!locked_ptr.valid()) return;
+		/* apply mapping that was determined by the local region managers */
+		{
+			Locked_ptr<Address_space> locked_ptr(pt->address_space());
+			if (!locked_ptr.valid()) continue;
 
-				Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
-				as->insert_translation(_mapping.virt(), _mapping.phys(),
-				                       _mapping.size(), _mapping.flags());
-			}
+			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
+			as->insert_translation(_mapping.virt(), _mapping.phys(),
+			                       _mapping.size(), _mapping.flags());
+		}
 
-			/* let pager object go back to no-fault state */
-			po->wake_up();
-		};
-		apply(cap, lambda);
+		/* let pager object go back to no-fault state */
+		po->wake_up();
 	}
 }

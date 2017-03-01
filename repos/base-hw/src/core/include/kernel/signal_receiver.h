@@ -28,11 +28,6 @@ namespace Kernel
 	class Signal_handler;
 
 	/**
-	 * Ability to get informed about signal acks
-	 */
-	class Signal_ack_handler;
-
-	/**
 	 * Ability to destruct signal contexts
 	 */
 	class Signal_context_killer;
@@ -48,31 +43,6 @@ namespace Kernel
 	class Signal_receiver;
 }
 
-class Kernel::Signal_ack_handler
-{
-	friend class Signal_context;
-
-	private:
-
-		Signal_context * _signal_context;
-
-	protected:
-
-		/**
-		 * Provide custom handler for acks at a signal context
-		 */
-		virtual void _signal_acknowledged() = 0;
-
-		/**
-		 * Constructor
-		 */
-		Signal_ack_handler() : _signal_context(0) { }
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Signal_ack_handler();
-};
 
 class Kernel::Signal_handler
 {
@@ -170,20 +140,6 @@ class Kernel::Signal_context : public Kernel::Object
 
 		typedef Genode::Fifo_element<Signal_context> Fifo_element;
 
-		/**
-		 * Dummy handler that is used every time no other handler is available
-		 */
-		class Default_ack_handler : public Signal_ack_handler
-		{
-			private:
-
-				/************************
-				 ** Signal_ack_handler **
-				 ************************/
-
-				void _signal_acknowledged() { }
-		};
-
 		Fifo_element            _deliver_fe;
 		Fifo_element            _contexts_fe;
 		Signal_receiver * const _receiver;
@@ -192,8 +148,6 @@ class Kernel::Signal_context : public Kernel::Object
 		bool                    _ack;
 		bool                    _killed;
 		Signal_context_killer * _killer;
-		Default_ack_handler     _default_ack_handler;
-		Signal_ack_handler    * _ack_handler;
 
 		/**
 		 * Tell receiver about the submits of the context if any
@@ -226,13 +180,6 @@ class Kernel::Signal_context : public Kernel::Object
 		 * \throw  Assign_to_receiver_failed
 		 */
 		Signal_context(Signal_receiver * const r, unsigned const imprint);
-
-		/**
-		 * Attach or detach a handler for acknowledgments at this context
-		 *
-		 * \param h  handler that shall be attached or 0 to detach handler
-		 */
-		void ack_handler(Signal_ack_handler * const h);
 
 		/**
 		 * Submit the signal

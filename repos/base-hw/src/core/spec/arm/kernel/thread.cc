@@ -58,8 +58,7 @@ void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
 	if (in_fault(_fault_addr, _fault_writes)) {
-		_fault_pd     = (addr_t)_pd->platform_pd();
-		_fault_signal = (addr_t)_fault.signal_context();
+		_fault_pd = (addr_t)_pd->platform_pd();
 
 		/*
 		 * Core should never raise a page-fault. If this happens, print out an
@@ -69,7 +68,7 @@ void Thread::_mmu_exception()
 			Genode::error("page fault in core thread (", label(), "): "
 			              "ip=", Genode::Hex(ip), " fault=", Genode::Hex(_fault_addr));
 
-		_fault.submit();
+		if (_pager) _pager->submit(1);
 		return;
 	}
 	Genode::error(*this, ": raised unhandled ",
@@ -129,18 +128,3 @@ void Kernel::Thread::_call_update_instr_region()
 	cpu->clean_invalidate_data_cache_by_virt_region(base, size);
 	cpu->invalidate_instr_cache_by_virt_region(base, size);
 }
-
-
-void Thread_event::_signal_acknowledged()
-{
-	/*
-	 * FIXME: this is currently only called as reply to a page-fault resolution.
-	 *        On some ARM platforms, we have to do maintainance operations
-	 *        after new page table entries where added. If core runs completely
-	 *        in privileged mode, we should move this hook to the mappings
-	 *        functions.
-	 */
-	cpu_pool()->cpu(Cpu::executing_id())->translation_table_insertions();
-	_thread->_restart();
-}
-

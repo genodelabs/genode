@@ -129,6 +129,8 @@ namespace Genode {
 			 */
 			int start(void * const ip, void * const sp);
 
+			void restart();
+
 			/**
 			 * Pause this thread
 			 */

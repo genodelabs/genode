@@ -38,11 +38,6 @@ class Genode::Cpu : public Arm_v7
 			invalidate_inner_data_cache(); }
 
 		/**
-		 * Ensure that TLB insertions get applied
-		 */
-		void translation_table_insertions();
-
-		/**
 		 * Post processing after a translation was added to a translation table
 		 *
 		 * \param addr  virtual address of the translation

@@ -18,6 +18,7 @@
 #include <pager.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
+#include <region_map_component.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space.h>
@@ -44,8 +45,8 @@ void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 
 void Pager_object::wake_up()
 {
-	using Object = Kernel_object<Kernel::Signal_context>;
-	Kernel::ack_signal(Capability_space::capid(Object::_cap));
+	Platform_thread * const pt = (Platform_thread *)badge();
+	if (pt) pt->restart();
 }
 
 void Pager_object::start_paging(Kernel::Signal_receiver * receiver)
@@ -93,7 +94,10 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 
 void Pager_entrypoint::dissolve(Pager_object * const o)
 {
-	remove(o);
+	if (o) {
+		Kernel::kill_signal_context(Capability_space::capid(o->cap()));
+		remove(o);
+	}
 }
 
 
@@ -109,4 +113,3 @@ Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 	insert(o);
 	return reinterpret_cap_cast<Pager_object>(o->cap());
 }
-
