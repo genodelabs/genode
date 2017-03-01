@@ -77,8 +77,9 @@ void Driver::write_dma(Block::sector_t           block_number,
 bool Driver::_reset()
 {
 	Mmio::write<Ctrl::Reset>(0x7);
-
-	if (!wait_for<Ctrl::Reset>(0, _delayer, 100, 1000)) {
+	try { wait_for(Attempts(100), Microseconds(1000), _delayer,
+	               Ctrl::Reset::Equal(0)); }
+	catch (Polling_timeout) {
 		error("Could not reset host contoller");
 		return false;
 	}
@@ -89,8 +90,9 @@ bool Driver::_reset()
 void Driver::_reset_fifo()
 {
 	Mmio::write<Ctrl::Reset>(0x2);
-
-	if (!wait_for<Ctrl::Reset>(0, _delayer, 100, 1000)) {
+	try { wait_for(Attempts(100), Microseconds(1000), _delayer,
+	               Ctrl::Reset::Equal(0)); }
+	catch (Polling_timeout) {
 		error("Could not reset fifo"); }
 }
 
@@ -110,7 +112,8 @@ bool Driver::_update_clock_registers()
 	Cmd::Start_cmd::set(cmd, 1);
 	Mmio::write<Cmd>(cmd);
 
-	if (!wait_for<Cmd::Start_cmd>(0, _delayer)) {
+	try { wait_for(_delayer, Cmd::Start_cmd::Equal(0)); }
+	catch (Polling_timeout) {
 		error("Update clock registers failed");
 		return false;
 	}
@@ -298,9 +301,11 @@ void Driver::_handle_irq()
 
 bool Driver::_issue_command(Command_base const &command)
 {
-	if (!wait_for<Status::Data_busy>(0, _delayer, 10000, 100)) {
+	try { wait_for(Attempts(10000), Microseconds(100), _delayer,
+	               Status::Data_busy::Equal(0)); }
+	catch (Polling_timeout) {
 		error("wait for State::Data_busy timed out ",
-		              Hex(Mmio::read<Status>()));
+		      Hex(Mmio::read<Status>()));
 		return false;
 	}
 
@@ -338,11 +343,13 @@ bool Driver::_issue_command(Command_base const &command)
 	/* issue command */
 	Mmio::write<Cmd>(cmd);
 
-	if (!wait_for<Rintsts::Command_done>(1, _delayer, 10000, 100)) {
+	try { wait_for(Attempts(10000), Microseconds(100), _delayer,
+	               Rintsts::Command_done::Equal(1)); }
+	catch (Polling_timeout) {
 		error("command failed "
-		              "Rintst: ", Mmio::read<Rintsts>(), " "
-		              "Mintst: ", Mmio::read<Mintsts>(), " "
-		              "Status: ", Mmio::read<Status>());
+		      "Rintst: ", Mmio::read<Rintsts>(), " "
+		      "Mintst: ", Mmio::read<Mintsts>(), " "
+		      "Status: ", Mmio::read<Status>());
 
 		if (Mmio::read<Rintsts::Response_timeout>())
 			warning("timeout");
@@ -394,7 +401,8 @@ size_t Driver::_read_ext_csd()
 	if (!issue_command(Mmc_send_ext_csd()))
 		throw Detection_failed();
 
-	if (!wait_for<Rintsts::Data_transfer_over>(1, _delayer, 10000, 100)) {
+	try { wait_for(_delayer, Rintsts::Data_transfer_over::Equal(1)); }
+	catch (Polling_timeout) {
 		error("cannot retrieve extented CSD");
 		throw Detection_failed();
 	}
