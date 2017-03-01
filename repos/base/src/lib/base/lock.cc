@@ -23,7 +23,7 @@ using namespace Genode;
 
 static inline Genode::Thread *invalid_thread_base()
 {
-	return (Genode::Thread*)~0;
+	return (Genode::Thread*)~0UL;
 }
 
 
@@ -66,10 +66,6 @@ void Cancelable_lock::lock()
 
 	spinlock_lock(&_spinlock_state);
 
-	/* reset ownership if one thread 'lock' twice */
-	if (_owner == myself)
-		_owner = Applicant(invalid_thread_base());
-
 	if (cmpxchg(&_state, UNLOCKED, LOCKED)) {
 
 		/* we got the lock */
@@ -84,8 +80,28 @@ void Cancelable_lock::lock()
 	 * list of applicants and block for the current lock holder.
 	 */
 
-	_last_applicant->applicant_to_wake_up(&myself);
-	_last_applicant = &myself;
+	/* reset ownership if one thread 'lock' twice */
+	if (_owner == myself) {
+		/* remember applicants already in list */
+		Applicant * applicants =_owner.applicant_to_wake_up();
+
+		/* reset owner */
+		_owner = Applicant(invalid_thread_base());
+
+		/* register thread calling twice 'lock' as first applicant */
+		_owner.applicant_to_wake_up(&myself);
+
+		/* if we had already applicants, add after myself in list */
+		myself.applicant_to_wake_up(applicants);
+
+		/* if we had applicants, _last_applicant already points to the last */
+		if (!applicants)
+			_last_applicant = &myself;
+	} else {
+		_last_applicant->applicant_to_wake_up(&myself);
+		_last_applicant = &myself;
+	}
+
 	spinlock_unlock(&_spinlock_state);
 
 	/*
@@ -179,4 +195,3 @@ Cancelable_lock::Cancelable_lock(Cancelable_lock::State initial)
 	if (initial == LOCKED)
 		lock();
 }
-
