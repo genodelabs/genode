@@ -15,7 +15,6 @@
 #define _TERMINAL_ROOT_H_
 
 /* Genode includes */
-#include <cap_session/cap_session.h>
 #include <root/component.h>
 
 /* local includes */
