@@ -4,6 +4,43 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp b/src/app/vir
 index 8ce46a8..a6b84b0 100644
 --- a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
+@@ -335,9 +335,9 @@
+         /* Check additions interface version. */
+         pThis->fu32AdditionsOk = VBOX_GUEST_INTERFACE_VERSION_OK(pThis->guestInfo.interfaceVersion);
+ 
+-        LogRel(("Guest Additions information report: Interface = 0x%08X osType = 0x%08X (%u-bit)\n",
++        RTLogPrintf("Guest Additions information report: Interface = 0x%08X osType = 0x%08X (%u-bit)\n",
+                 pThis->guestInfo.interfaceVersion, pThis->guestInfo.osType,
+-                (pThis->guestInfo.osType & VBOXOSTYPE_x64) ? 64 : 32));
++                (pThis->guestInfo.osType & VBOXOSTYPE_x64) ? 64 : 32);
+ 
+         if (pThis->pDrv && pThis->pDrv->pfnUpdateGuestInfo)
+             pThis->pDrv->pfnUpdateGuestInfo(pThis->pDrv, &pThis->guestInfo);
+@@ -413,9 +413,9 @@
+     AssertMsgReturn(pReqHdr->size == sizeof(VMMDevReportGuestInfo2), ("%u\n", pReqHdr->size), VERR_INVALID_PARAMETER);
+     VBoxGuestInfo2 const *pInfo2 = &((VMMDevReportGuestInfo2 *)pReqHdr)->guestInfo;
+ 
+-    LogRel(("Guest Additions information report: Version %d.%d.%d r%d '%.*s'\n",
++    RTLogPrintf("Guest Additions information report: Version %d.%d.%d r%d '%.*s'\n",
+             pInfo2->additionsMajor, pInfo2->additionsMinor, pInfo2->additionsBuild,
+-            pInfo2->additionsRevision, sizeof(pInfo2->szName), pInfo2->szName));
++            pInfo2->additionsRevision, sizeof(pInfo2->szName), pInfo2->szName);
+ 
+     /* The interface was introduced in 3.2 and will definitely not be
+        backported beyond 3.0 (bird). */
+@@ -746,10 +746,10 @@
+         /* make a copy of supplied information */
+         pThis->guestCaps = fu32Caps;
+ 
+-        LogRel(("Guest Additions capability report (legacy): (0x%x) seamless: %s, hostWindowMapping: %s, graphics: yes\n",
++        RTLogPrintf("Guest Additions capability report (legacy): (0x%x) seamless: %s, hostWindowMapping: %s, graphics: yes\n",
+                 fu32Caps,
+                 fu32Caps & VMMDEV_GUEST_SUPPORTS_SEAMLESS ? "yes" : "no",
+-                fu32Caps & VMMDEV_GUEST_SUPPORTS_GUEST_HOST_WINDOW_MAPPING ? "yes" : "no"));
++                fu32Caps & VMMDEV_GUEST_SUPPORTS_GUEST_HOST_WINDOW_MAPPING ? "yes" : "no");
+ 
+         if (pThis->pDrv && pThis->pDrv->pfnUpdateGuestCapabilities)
+             pThis->pDrv->pfnUpdateGuestCapabilities(pThis->pDrv, fu32Caps);
 @@ -774,11 +774,11 @@
      fu32Caps |= pReq->u32OrMask;
      fu32Caps &= ~pReq->u32NotMask;
@@ -29,6 +66,18 @@ index 8ce46a8..a6b84b0 100644
      int rc = pThis->pDrv->pfnIsPageFusionEnabled(pThis->pDrv, &pReq->fEnabled);
      if (RT_FAILURE(rc))
          pReq->fEnabled = false;
+@@ -3469,9 +3469,9 @@
+ 
+     if (pThis->fu32AdditionsOk)
+     {
+-        LogRel(("Guest Additions information report: additionsVersion = 0x%08X, osType = 0x%08X (%u-bit)\n",
++        RTLogPrintf("Guest Additions information report: additionsVersion = 0x%08X, osType = 0x%08X (%u-bit)\n",
+                 pThis->guestInfo.interfaceVersion, pThis->guestInfo.osType,
+-                (pThis->guestInfo.osType & VBOXOSTYPE_x64) ? 64 : 32));
++                (pThis->guestInfo.osType & VBOXOSTYPE_x64) ? 64 : 32);
+         if (pThis->pDrv)
+         {
+             if (pThis->guestInfo2.uFullVersion && pThis->pDrv->pfnUpdateGuestInfo2)
 +++ a/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
 +++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/VM.cpp
 @@ -2805,7 +2805,7 @@

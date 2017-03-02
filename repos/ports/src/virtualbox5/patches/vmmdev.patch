@@ -4,6 +4,43 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp b/src/app/vir
 index 8ce46a8..a6b84b0 100644
 --- a/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
+@@ -230,9 +230,9 @@
+         case VBOXOSTYPE_Haiku:                            pszOs = "Haiku";          break;
+         default:                                          pszOs = "unknown";        break;
+     }
+-    LogRel(("VMMDev: Guest Additions information report: Interface = 0x%08X osType = 0x%08X (%s, %u-bit)\n",
++    RTLogPrintf("VMMDev: Guest Additions information report: Interface = 0x%08X osType = 0x%08X (%s, %u-bit)\n",
+             pGuestInfo->interfaceVersion, pGuestInfo->osType, pszOs,
+-            pGuestInfo->osType & VBOXOSTYPE_x64 ? 64 : 32));
++            pGuestInfo->osType & VBOXOSTYPE_x64 ? 64 : 32);
+ }
+ 
+ /**
+@@ -617,9 +617,9 @@
+     AssertMsgReturn(pReqHdr->size == sizeof(VMMDevReportGuestInfo2), ("%u\n", pReqHdr->size), VERR_INVALID_PARAMETER);
+     VBoxGuestInfo2 const *pInfo2 = &((VMMDevReportGuestInfo2 *)pReqHdr)->guestInfo;
+ 
+-    LogRel(("VMMDev: Guest Additions information report: Version %d.%d.%d r%d '%.*s'\n",
++    RTLogPrintf("VMMDev: Guest Additions information report: Version %d.%d.%d r%d '%.*s'\n",
+             pInfo2->additionsMajor, pInfo2->additionsMinor, pInfo2->additionsBuild,
+-            pInfo2->additionsRevision, sizeof(pInfo2->szName), pInfo2->szName));
++            pInfo2->additionsRevision, sizeof(pInfo2->szName), pInfo2->szName);
+ 
+     /* The interface was introduced in 3.2 and will definitely not be
+        backported beyond 3.0 (bird). */
+@@ -949,10 +949,10 @@
+         /* make a copy of supplied information */
+         pThis->guestCaps = fu32Caps;
+ 
+-        LogRel(("VMMDev: Guest Additions capability report (legacy): (0x%x) seamless: %s, hostWindowMapping: %s, graphics: yes\n",
++        RTLogPrintf("VMMDev: Guest Additions capability report (legacy): (0x%x) seamless: %s, hostWindowMapping: %s, graphics: yes\n",
+                 fu32Caps,
+                 fu32Caps & VMMDEV_GUEST_SUPPORTS_SEAMLESS ? "yes" : "no",
+-                fu32Caps & VMMDEV_GUEST_SUPPORTS_GUEST_HOST_WINDOW_MAPPING ? "yes" : "no"));
++                fu32Caps & VMMDEV_GUEST_SUPPORTS_GUEST_HOST_WINDOW_MAPPING ? "yes" : "no");
+ 
+         if (pThis->pDrv && pThis->pDrv->pfnUpdateGuestCapabilities)
+             pThis->pDrv->pfnUpdateGuestCapabilities(pThis->pDrv, fu32Caps);
 @@ -976,11 +976,11 @@
      fu32Caps |= pReq->u32OrMask;
      fu32Caps &= ~pReq->u32NotMask;
