@@ -146,7 +146,8 @@ class Genode::Reporter : Noncopyable
 				                      reporter._xml_name.string(),
 				                      func)
 			{
-				reporter._conn->report.submit(used());
+				if (reporter.enabled())
+					reporter._conn->report.submit(used());
 			}
 		};
 };
