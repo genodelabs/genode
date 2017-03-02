@@ -234,7 +234,7 @@ class Sd_card::Driver : public  Driver_base,
 		void _enable_clock_finish();
 		void _clock(Clock clock);
 		void _clock_finish(Clock clock);
-		int  _reset(Delayer & delayer);
+		int  _reset();
 		void _reset_amendments();
 		int  _wait_for_cmd_allowed();
 		int  _wait_for_cmd_complete();

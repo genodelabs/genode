@@ -105,9 +105,8 @@ void Driver::_handle_irq()
 	 * done with other controllers - isn't sufficient. Instead, both "Transfer
 	 * Complete" and "Command Complete" must be gathered.
 	 */
-	if (!wait_for<Irqstat::Cc>(1, _delayer) ||
-	    !wait_for<Irqstat::Tc>(1, _delayer))
-	{
+	try { wait_for(_delayer, Irqstat::Cc::Equal(1), Irqstat::Tc::Equal(1)); }
+	catch (Polling_timeout) {
 		error("Completion host signal timed out");
 		throw -1;
 	}
@@ -127,7 +126,9 @@ void Driver::_handle_irq()
 
 int Driver::_wait_for_cmd_complete()
 {
-	if (!wait_for<Irqstat::Cc>(1, _delayer, 200, 5000)) {
+	try { wait_for(Attempts(200), Microseconds(5000), _delayer,
+	               Irqstat::Cc::Equal(1)); }
+	catch (Polling_timeout) {
 		error("command timed out");
 		return -1;
 	}
@@ -276,11 +277,11 @@ int Driver::_wait_for_cmd_allowed()
 	 * "Auto Command 12", waiting only for "Command Inhibit" isn't sufficient
 	 * as "Data Line Active" and "Data Inhibit" may also be active.
 	 */
-	if (!wait_for<Prsstat::Dla>(0, _delayer) ||
-	    !wait_for<Prsstat::Sdstb>(1, _delayer) ||
-	    !wait_for<Prsstat::Cihb>(0, _delayer) ||
-	    !wait_for<Prsstat::Cdihb>(0, _delayer))
-	{
+	try { wait_for(_delayer, Prsstat::Dla::Equal(0),
+	                         Prsstat::Sdstb::Equal(1),
+	                         Prsstat::Cihb::Equal(0),
+	                         Prsstat::Cdihb::Equal(0)); }
+	catch (Polling_timeout) {
 		error("wait till issuing a new command is allowed timed out");
 		return -1;
 	}
@@ -295,7 +296,8 @@ Card_info Driver::_init()
 	_irq.ack_irq();
 
 	/* configure host for initialization stage */
-	if (_reset(_delayer)) { _detect_err("Host reset failed"); }
+	if (_reset()) {
+		_detect_err("Host reset failed"); }
 	_disable_irqs();
 
 	if (!_supported_host_version(Mmio::read<Hostver>())) {
@@ -429,14 +431,15 @@ void Driver::_detect_err(char const * const err)
 }
 
 
-int Driver::_reset(Delayer &delayer)
+int Driver::_reset()
 {
 	/* start reset */
 	Mmio::write<Sysctl::Rsta>(1);
 	_reset_amendments();
 
 	/* wait for reset completion */
-	if (!wait_for<Sysctl::Rsta>(0, delayer)) {
+	try { wait_for(_delayer, Sysctl::Rsta::Equal(0)); }
+	catch (Polling_timeout) {
 		error("Reset timed out");
 		return -1;
 	}
@@ -521,7 +524,7 @@ void Driver::_enable_clock(Clock_divider divider)
 
 void Driver::_clock(Clock clock)
 {
-	wait_for<Prsstat::Sdstb>(1, _delayer);
+	wait_for(_delayer, Prsstat::Sdstb::Equal(1));
 	_disable_clock();
 	_clock_finish(clock);
 }
