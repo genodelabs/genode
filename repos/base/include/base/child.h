@@ -523,7 +523,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				_env_service.construct(_child, route.service);
 				_connection.construct(*_env_service, _child._id_space, _client_id,
-				                      _args, _child._policy.filter_session_affinity(Affinity()));
+				                      _args, _child._policy.filter_session_affinity(Affinity()),
+				                      route.label);
 			}
 
 			typedef typename CONNECTION::Session_type SESSION;

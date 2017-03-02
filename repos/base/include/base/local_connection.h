@@ -54,16 +54,16 @@ struct Genode::Local_connection_base : Noncopyable
 
 	protected:
 
-		Local_connection_base(Service &service,
-		                      Id_space<Parent::Client> &id_space,
-		                      Parent::Client::Id id,
+		Local_connection_base(Service                          &service,
+		                      Id_space<Parent::Client>         &id_space,
+		                      Parent::Client::Id                id,
 		                      Args const &args, Affinity const &affinity,
-		                      size_t ram_quota)
+		                      Session_label              const &label,
+		                      size_t                            ram_quota)
 		{
 			enum { NUM_ATTEMPTS = 10 };
 			for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
-				_session_state.construct(service, id_space, id,
-				                         label_from_args(args.string()),
+				_session_state.construct(service, id_space, id, label,
 				                         _init_args(args, ram_quota), affinity);
 
 				_session_state->service().initiate_request(*_session_state);
@@ -137,10 +137,12 @@ class Genode::Local_connection : Local_connection_base
 
 		Local_connection(Service &service, Id_space<Parent::Client> &id_space,
 		                 Parent::Client::Id id, Args const &args,
-		                 Affinity const &affinity)
+		                 Affinity const &affinity,
+		                 Session_label const &label = Session_label())
 		:
-			Local_connection_base(service, id_space, id, args,
-			                      affinity, CONNECTION::RAM_QUOTA)
+			Local_connection_base(service, id_space, id, args, affinity,
+			                      label.valid() ? label : label_from_args(args.string()),
+			                      CONNECTION::RAM_QUOTA)
 		{
 			service.wakeup();
 		}
