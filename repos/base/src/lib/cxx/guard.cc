@@ -11,24 +11,33 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <base/log.h>
+#include <base/registry.h>
+#include <base/semaphore.h>
 #include <cpu/atomic.h>
+
+
+static Genode::Registry<Genode::Registered<Genode::Semaphore> > blocked;
+
 
 namespace __cxxabiv1 
 {
+	enum State { INIT_NONE = 0, INIT_DONE = 1, IN_INIT = 0x100, WAITERS = 0x200 };
 
 	/*
 	 * A guarded variable can be in three states:
 	 *
-	 *   1) not initialized
-	 *   2) in initialization (transient)
-	 *   3) initialized
+	 *   1) not initialized               - INIT_NONE
+	 *   2) in initialization (transient) - IN_INIT and optionally WAITERS
+	 *   3) initialized                   - INIT_DONE
 	 *
 	 * The generic ABI uses the first byte of a 64-bit guard variable for state
 	 * 1), 2) and 3). ARM-EABI uses the first byte of a 32-bit guard variable.
 	 * Therefore we define '__guard' as a 32-bit type and use the least
 	 * significant byte for 1) and 3) and the following byte for 2) and let the
-	 * other threads spin until the guard is released by the thread in
-	 * initialization.
+	 * other threads block until the guard is released by the thread in
+	 * initialization. All waiting threads are stored in the 'blocked'
+	 * registry and will be woken up by the thread releasing a guard.
 	 */
 
 	typedef int __guard;
@@ -39,12 +48,20 @@ namespace __cxxabiv1
 		volatile int  *in_init     = (int *)guard;
 
 		/* check for state 3) */
-		if (*initialized) return 0;
+		if (*initialized == INIT_DONE) return 0;
 
 		/* atomically check and set state 2) */
-		if (!Genode::cmpxchg(in_init, 0, 0x100)) {
-			/* spin until state 3) is reached if other thread is in init */
-			while (!*initialized) ;
+		if (!Genode::cmpxchg(in_init, INIT_NONE, IN_INIT)) {
+
+			/* register current thread for blocking */
+			Genode::Registered<Genode::Semaphore> block(blocked);
+
+			/* tell guard thread that current thread needs a wakeup */
+			while (!Genode::cmpxchg(in_init, *in_init, *in_init | WAITERS)) ;
+
+			/* wait until state 3) is reached by guard thread */
+			while (*initialized != INIT_DONE)
+				block.down();
 
 			/* guard not acquired */
 			return 0;
@@ -61,12 +78,22 @@ namespace __cxxabiv1
 
 	extern "C" void __cxa_guard_release(__guard *guard)
 	{
-		volatile char *initialized = (char *)guard;
+		volatile int  *in_init     = (int *)guard;
 
 		/* set state 3) */
-		*initialized = 1;
+		while (!Genode::cmpxchg(in_init, *in_init, *in_init | INIT_DONE)) ;
+
+		/* check whether somebody blocked on this guard */
+		if (!(*in_init & WAITERS))
+			return;
+
+		/* we had contention - wake all up */
+		blocked.for_each([](Genode::Registered<Genode::Semaphore> &wake) {
+			wake.up();
+		});
 	}
 
 
-	extern "C" void __cxa_guard_abort(__guard *) { }
+	extern "C" void __cxa_guard_abort(__guard *) {
+		Genode::error(__func__, " called"); }
 }
