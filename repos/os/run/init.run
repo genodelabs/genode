@@ -235,7 +235,78 @@ append config {
 			<sleep ms="100"/>
 
 
+			<message string="test label rewritiong and binary-name update"/>
+
+			<init_config>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="binary-name test"/>
+					<route>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 1: binary-name test"/>
+
+			<!-- We change the binary name, but also use the label-rewriting
+			     feature of init to produce the same route as the original
+			     binary. Consequently, init does not need to restart the
+			     child. Instead the original child merely prints a new
+			     config version (count 2). -->
+
+			<init_config>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="renamed_dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="binary re-routed to same route"/>
+					<route>
+						<service name="ROM" unscoped_label="renamed_dummy">
+							<parent label="dummy"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 2: binary re-routed to same route"/>
+
+			<!-- We change the binary name in a way that results in a
+			     different route for the binary ROM request, which requires
+			     restart of the child. The config version printed by the
+			     new child will have a count of 1. -->
+
+			<init_config>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="another_dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="binary re-routed to other route"/>
+					<route>
+						<service name="ROM" unscoped_label="renamed_dummy">
+							<parent label="dummy"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 1: binary re-routed to other route"/>
+			<sleep ms="100"/>
+
+
 			<message string="test RAM preservation"/>
+
 			<init_config>
 				<report init_ram="yes"/>
 				<resource name="RAM" preserve="2M"/>
@@ -286,6 +357,11 @@ append config {
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="LOG">    <child name="test-init"/> </service>
 			<service name="Timer">  <child name="timer"/>     </service>
+
+			<!-- alias for the binary as requested by the binary-name update test -->
+			<service name="ROM" label="another_dummy">
+				<parent label="dummy"/> </service>
+
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

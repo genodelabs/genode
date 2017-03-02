@@ -478,7 +478,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			return start_node.sub_node("binary").attribute_value("name", Name());
 		}
 
-		Binary_name const _binary_name;
+		/* updated on configuration update */
+		Binary_name _binary_name;
 
 		struct Read_quota
 		{
@@ -840,6 +841,13 @@ class Init::Child : Child_policy, Child_service::Wakeup
 						config_update = CONFIG_CHANGED;
 				}
 
+				/*
+				 * Import new binary name. A change may affect the route for
+				 * the binary's ROM session, triggering the restart of the
+				 * child.
+				 */
+				_binary_name = _binary_name_from_xml(start_node, _unique_name);
+
 				/* import new start node */
 				_start_node.construct(_alloc, start_node);
 			}
@@ -924,7 +932,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		Child_policy::Name name() const override { return _unique_name; }
 
-		Binary_name binary_name() const override { return _binary_name; }
+		Binary_name binary_name() const override { return _unique_name; }
 
 		Ram_session           &ref_ram()           override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
@@ -1001,6 +1009,19 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				 * routing to the "config" ROM request.
 				 */
 			}
+
+			/*
+			 * Check for the binary's ROM request
+			 *
+			 * The binary is requested as a ROM with the child's unique
+			 * name ('Child_policy::binary_name' equals 'Child_policy::name').
+			 * If the binary name differs from the child's unique name,
+			 * we resolve the session request with the binary name as label.
+			 * Otherwise the regular routing is applied.
+			 */
+			if (service_name == Rom_session::service_name() &&
+			    label == _unique_name && _unique_name != _binary_name)
+				return resolve_session_request(service_name, _binary_name);
 
 			/* check for "session_requests" ROM request */
 			if (service_name == Rom_session::service_name()
