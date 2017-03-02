@@ -140,15 +140,6 @@ proc check_counter { name opt cnt total_cnt } {
 	set    is    0
 
 	#
-	# On X86, the timer driver uses the PIT with a maximum timeout of 54 ms.
-	# Thus, the driver frequently interrupts the counters with highest
-	# priority to update the timer. This is why we need a higher error
-	# tolerance as for ARM where the driver, once configured, can sleep for
-	# the whole test timeout.
-	#
-	if {[have_spec x86]} { set tol 0.02 }
-
-	#
 	# Zynq is currently tested merely in Qemu and most likely because of
 	# that, the results are less precise.
 	#
