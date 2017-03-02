@@ -116,8 +116,11 @@ Card_info Driver::_init()
 
 bool Driver::_wait_for_bre()
 {
-	if (!wait_for<Pstate::Bre>(1, _delayer, 1000*1000, 0)) {
-		if (!wait_for<Pstate::Bre>(1, _delayer)) {
+	try { wait_for(Attempts(1000000), Microseconds(0), _delayer,
+	               Pstate::Bre::Equal(1)); }
+	catch (Polling_timeout) {
+		try { wait_for(_delayer, Pstate::Bre::Equal(1)); }
+		catch (Polling_timeout) {
 			error("Pstate::Bre timed out");
 			return false;
 		}
@@ -128,8 +131,11 @@ bool Driver::_wait_for_bre()
 
 bool Driver::_wait_for_bwe()
 {
-	if (!wait_for<Pstate::Bwe>(1, _delayer, 1000*1000, 0)) {
-		if (!wait_for<Pstate::Bwe>(1, _delayer)) {
+	try { wait_for(Attempts(1000000), Microseconds(0), _delayer,
+	               Pstate::Bwe::Equal(1)); }
+	catch (Polling_timeout) {
+		try { wait_for(_delayer, Pstate::Bwe::Equal(1)); }
+		catch (Polling_timeout) {
 			error("Pstate::Bwe timed out");
 			return false;
 		}
@@ -173,11 +179,15 @@ bool Driver::_reset_cmd_line()
 	 * bit, the polling would be infinite. Apparently the hardware
 	 * depends on the timing here.
 	 */
-	if (!wait_for<Sysctl::Src>(1, _delayer, 1000, 0)) {
+	try { wait_for(Attempts(1000), Microseconds(0), _delayer,
+	               Sysctl::Src::Equal(1)); }
+	catch (Polling_timeout) {
 		error("reset of cmd line timed out (src != 1)");
 		return false;
 	}
-	if (!wait_for<Sysctl::Src>(0, _delayer, 1000, 0)) {
+	try { wait_for(Attempts(1000), Microseconds(0), _delayer,
+	               Sysctl::Src::Equal(0)); }
+	catch (Polling_timeout) {
 		error("reset of cmd line timed out (src != 0)");
 		return false;
 	}
@@ -213,7 +223,8 @@ bool Driver::_sd_bus_power_on()
 {
 	Mmio::write<Hctl::Sdbp>(Hctl::Sdbp::POWER_ON);
 
-	if (!wait_for<Hctl::Sdbp>(1, _delayer)) {
+	try { wait_for(_delayer, Hctl::Sdbp::Equal(1)); }
+	catch (Polling_timeout) {
 		error("setting Hctl::Sdbp timed out");
 		return false;
 	}
@@ -233,11 +244,11 @@ bool Driver::_set_and_enable_clock(enum Clock_divider divider)
 	Mmio::write<Sysctl::Ice>(1);
 
 	/* wait for clock to become stable */
-	if (!wait_for<Sysctl::Ics>(1, _delayer)) {
+	try { wait_for(_delayer, Sysctl::Ics::Equal(1)); }
+	catch (Polling_timeout) {
 		error("clock enable timed out");
 		return false;
 	}
-
 	/* enable clock */
 	Mmio::write<Sysctl::Ce>(1);
 
@@ -270,7 +281,9 @@ bool Driver::_init_stream()
 	Mmio::write<Con::Init>(1);
 	Mmio::write<Cmd>(0);
 
-	if (!wait_for<Stat::Cc>(1, _delayer, 1000*1000, 0)) {
+	try { wait_for(Attempts(1000000), Microseconds(0), _delayer,
+	               Stat::Cc::Equal(1)); }
+	catch (Polling_timeout) {
 		error("init stream timed out");
 		return false;
 	}
@@ -284,7 +297,8 @@ bool Driver::_init_stream()
 
 bool Driver::_issue_command(Command_base const &command)
 {
-	if (!wait_for<Pstate::Cmdi>(0, _delayer)) {
+	try { wait_for(_delayer, Pstate::Cmdi::Equal(0)); }
+	catch (Polling_timeout) {
 		error("wait for Pstate::Cmdi timed out");
 		return false;
 	}
