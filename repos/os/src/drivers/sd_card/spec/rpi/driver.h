@@ -162,11 +162,13 @@ class Sd_card::Driver : public  Driver_base,
 		bool _poll_and_wait_for(unsigned value)
 		{
 			/* poll for a while */
-			if (!wait_for<REG>(value, _delayer, 5000, 0)) {
+			try { wait_for(Attempts(5000), Microseconds(0), _delayer,
+			               typename REG::Equal(value)); }
+			catch (Polling_timeout) {
 
 				/* if the value was not reached while polling, start sleeping */
-				if (!wait_for<REG>(value, _delayer)) {
-					return false; }
+				try { wait_for(_delayer, typename REG::Equal(value)); }
+				catch (Polling_timeout) { return false; }
 			}
 			return true;
 		}
