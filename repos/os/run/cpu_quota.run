@@ -135,7 +135,7 @@ proc check_counter { name opt cnt total_cnt } {
 
 	global err_cnt
 	set    bad   0
-	set    class "Good: "
+	set    class "Good:"
 	set    tol   0.01
 	set    is    0
 
@@ -176,23 +176,37 @@ proc check_counter { name opt cnt total_cnt } {
 
 	if {[expr abs($err) > $tol]} {
 
-		set class   "Bad:  "
+		set class   "Bad: "
 		set err_cnt [expr $err_cnt + 1]
 	}
-	puts "$class$name received $is_fmt% CPU (goal $opt_fmt% tol $tol_fmt% err $err_fmt%)"
+	puts "$class $name received $is_fmt% CPU (goal $opt_fmt% tol $tol_fmt% err $err_fmt%)"
 }
 
-proc check_quota { name opt_sp quota_sp opt quota } {
+proc check_quota { name opt_sp quota_sp opt_pc quota } {
 
 	global err_cnt
-	if {[expr $quota != $opt]} {
-		puts "Bad:  $name has quota $quota us (goal $opt us)"
+	set    opt         [expr $opt_sp * $opt_pc / 100]
+	set    quota_err   [expr $quota - $opt]
+	set    quota_class "Good:"
+	set    sp_class    "Good:"
+
+	#
+	# We tolerate rounding errors up to 0.01% of the super period as the two
+	# quota translations from init to core and then from core to the user are
+	# distinct.
+	#
+	set quota_tol [expr $opt_sp * 1 / 10000]
+
+	if {[expr abs($quota_err) > $quota_tol]} {
+		set quota_class "Bad: "
 		set err_cnt [expr $err_cnt + 1]
 	}
 	if {[expr $quota_sp != $opt_sp]} {
-		puts "Bad:  $name has super period $quota_sp us (goal $opt_sp us)"
+		set sp_class "Bad: "
 		set err_cnt [expr $err_cnt + 1]
 	}
+	puts "$quota_class $name has_quota $quota us (goal $opt tol $quota_tol err $quota_err us)"
+	puts "$sp_class $name has super period $quota_sp us (goal $opt_sp us)"
 }
 
 # pre-define variables if regexp does not match
@@ -207,17 +221,11 @@ regexp {[0-9]+} [regexp -inline {slow. quota super period [0-9]+} $output] slow_
 regexp {[0-9]+} [regexp -inline {midl. quota super period [0-9]+} $output] midl_quota_sp
 regexp {[0-9]+} [regexp -inline {fast. quota super period [0-9]+} $output] fast_quota_sp
 
-#
-# We have to consider the rounding errors as the two translations from init to
-# core and then from core to the user are distinct.
-#
-# Slow quota (1000000 * (0x8000 *  5 / 100)) / 0x8000 =  49987
-# Slow quota (1000000 * (0x8000 * 20 / 100)) / 0x8000 = 199981
-# Slow quota (1000000 * (0x8000 * 60 / 100)) / 0x8000 = 599975
-#
-check_quota "Slow test"   1000000 $slow_quota_sp  49987 $slow_quota
-check_quota "Middle test" 1000000 $midl_quota_sp 199981 $midl_quota
-check_quota "Fast test"   1000000 $fast_quota_sp 599975 $fast_quota
+set super_period_us 1000000
+
+check_quota "Slow test"   $super_period_us $slow_quota_sp  5 $slow_quota
+check_quota "Middle test" $super_period_us $midl_quota_sp 20 $midl_quota
+check_quota "Fast test"   $super_period_us $fast_quota_sp 60 $fast_quota
 
 regexp {[0-9]+} [regexp -inline {slow. counter A [0-9]+} $output] slow_a_cnt
 regexp {[0-9]+} [regexp -inline {midl. counter A [0-9]+} $output] midl_a_cnt

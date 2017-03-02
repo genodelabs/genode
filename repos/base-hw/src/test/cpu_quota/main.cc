@@ -124,6 +124,10 @@ struct Main
 
 	Main(Env &env) : env(env)
 	{
+		Cpu_session::Quota quota = env.cpu().quota();
+		log("quota super period ", quota.super_period_us);
+		log("quota ", quota.us);
+		log("start measurement ...");
 		timer.sigh(timer_signal.cap);
 
 		auto measure = [&] (unsigned duration_sec) {
@@ -148,9 +152,6 @@ struct Main
 		/* conclusion */
 		synchronizer.threshold(CONCLUSION_NR_OF_THREADS);
 		synchronizer.synchronize();
-		Cpu_session::Quota quota = env.cpu().quota();
-		log("quota super period ", quota.super_period_us);
-		log("quota ", quota.us);
 		log(counter_a);
 		log(counter_b);
 		log("done");
