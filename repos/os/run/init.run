@@ -203,7 +203,6 @@ append config {
 			<message string="update child config"/>
 
 			<init_config>
-				<report ids="yes"/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
 					<service name="CPU"/> <service name="PD"/>
@@ -218,7 +217,6 @@ append config {
 			</init_config>
 			<expect_log string="[init -> application] config 1: Version A"/>
 			<init_config>
-				<report ids="yes"/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
 					<service name="CPU"/> <service name="PD"/>
@@ -232,6 +230,31 @@ append config {
 				</start>
 			</init_config>
 			<expect_log string="[init -> application] config 2: Version B"/>
+
+			<!-- Add 'version' attribute to start node, which should trigger
+			     the restart of the child, printing a version count of 1.
+			     We also validate that the version is reflected in the state
+			     report. -->
+
+			<init_config>
+				<report/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="application" version="X">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="Version B"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> application] config 1: Version B"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="version" value="X"/> </node>
+			</expect_init_state>
 			<sleep ms="100"/>
 
 
@@ -261,6 +284,7 @@ append config {
 			     config version (count 2). -->
 
 			<init_config>
+				<report/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
 					<service name="CPU"/> <service name="PD"/>
@@ -302,7 +326,6 @@ append config {
 				</start>
 			</init_config>
 			<expect_log string="[init -> test] config 1: binary re-routed to other route"/>
-			<sleep ms="100"/>
 
 
 			<message string="test RAM preservation"/>

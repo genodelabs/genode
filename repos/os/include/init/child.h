@@ -424,6 +424,12 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		Reconstructible<Buffered_xml> _start_node;
 
+		/*
+		 * Version attribute of the start node, used to force child restarts.
+		 */
+		typedef String<80> Version;
+		Version _version { _start_node->xml().attribute_value("version", Version()) };
+
 		Default_route_accessor &_default_route_accessor;
 
 		Ram_limit_accessor &_ram_limit_accessor;
@@ -817,6 +823,15 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			                   start_node.size()) != 0)
 			{
 				/*
+				 * Check for a change of the version attribute, force restart
+				 * if the version changed.
+				 */
+				if (_version != start_node.attribute_value("version", Version())) {
+					abandon();
+					return MAY_HAVE_SIDE_EFFECTS;
+				}
+
+				/*
 				 * Start node changed
 				 *
 				 * Determine how the inline config is affected.
@@ -886,6 +901,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 				xml.attribute("name",   _unique_name);
 				xml.attribute("binary", _binary_name);
+
+				if (_version.valid())
+					xml.attribute("version", _version);
 
 				if (detail.ids())
 					xml.attribute("id", _id.value);
