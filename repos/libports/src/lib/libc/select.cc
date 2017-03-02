@@ -380,7 +380,7 @@ int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
 
 		/* suspend as we don't have any immediate events */
 
-		_select_cb->construct(nfds, readfds, writefds, exceptfds);
+		_select_cb->construct(nfds, in_readfds, in_writefds, in_exceptfds);
 
 		select_cb_list.unsynchronized_insert(&(**_select_cb));
 	}
