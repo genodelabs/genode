@@ -156,27 +156,24 @@ void Console::onAdditionsStateChange()
 void GenodeConsole::update_video_mode()
 {
 	Display  *d    = getDisplay();
-	Guest    *g    = getGuest();
 	Genodefb *fb   = dynamic_cast<Genodefb *>(d->getFramebuffer());
-	LONG64 ignored = 0;
 
-	if (fb && (fb->w() == 0) && (fb->h() == 0)) {
+	if (!fb)
+		return;
+
+	if ((fb->w() == 0) && (fb->h() == 0)) {
 		/* interpret a size of 0x0 as indication to quit VirtualBox */
 		if (PowerButton() != S_OK)
 			Genode::error("ACPI shutdown failed");
 		return;
 	}
 
-	AdditionsFacilityType_T is_graphics;
-	g->GetFacilityStatus(AdditionsFacilityType_Graphics, &ignored, &is_graphics);
-
-	if (fb && is_graphics)
-		d->SetVideoModeHint(0 /*=display*/,
-		                    true /*=enabled*/, false /*=changeOrigin*/,
-		                    0 /*=originX*/, 0 /*=originY*/,
-		                    fb->w(), fb->h(),
-		                    /* Windows 8 only accepts 32-bpp modes */
-		                    32);
+	d->SetVideoModeHint(0 /*=display*/,
+	                    true /*=enabled*/, false /*=changeOrigin*/,
+	                    0 /*=originX*/, 0 /*=originY*/,
+	                    fb->w(), fb->h(),
+	                    /* Windows 8 only accepts 32-bpp modes */
+	                    32);
 }
 
 void GenodeConsole::handle_input()
