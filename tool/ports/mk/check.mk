@@ -54,8 +54,13 @@ check: $(DOWNLOADS)
 #
 # Check plain remote file
 #
+# We call curl a second time if the first check fails. This gives download
+# sites time to reconsider their response and helps, for example, to check the
+# qemu-usb port.
+#
+CURL_CMD = curl -f -L -k -r -2 --max-time 15 --retry 2 $(URL($*)) > /dev/null 2>&1
 %.file:
-	$(VERBOSE)curl -f -L -k -r -2 --max-time 15 --retry 2 $(URL($*)) > /dev/null 2>&1
+	$(VERBOSE)$(CURL_CMD) || (sleep 1; $(CURL_CMD))
 
 %.archive: %.file
 	$(VERBOSE)true
