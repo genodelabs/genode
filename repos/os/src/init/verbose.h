@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__INIT__VERBOSE_H_
-#define _INCLUDE__INIT__VERBOSE_H_
+#ifndef _SRC__INIT__VERBOSE_H_
+#define _SRC__INIT__VERBOSE_H_
 
 #include <util/noncopyable.h>
 #include <util/xml_node.h>
@@ -34,4 +34,4 @@ class Init::Verbose : Genode::Noncopyable
 		bool enabled() const { return _enabled; }
 };
 
-#endif /* _INCLUDE__INIT__VERBOSE_H_ */
+#endif /* _SRC__INIT__VERBOSE_H_ */

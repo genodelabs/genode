@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__INIT__REPORT_H_
-#define _INCLUDE__INIT__REPORT_H_
+#ifndef _SRC__INIT__REPORT_H_
+#define _SRC__INIT__REPORT_H_
 
 #include <util/noncopyable.h>
 #include <util/xml_node.h>
@@ -65,4 +65,4 @@ struct Init::Report_update_trigger
 	virtual void trigger_report_update() = 0;
 };
 
-#endif /* _INCLUDE__INIT__REPORT_H_ */
+#endif /* _SRC__INIT__REPORT_H_ */
