@@ -200,6 +200,111 @@ append config {
 			<sleep ms="100"/>
 
 
+			<message string="test changing provided services"/>
+
+			<!-- Initially, the log service lacks the <provides> declaration.
+			     Therefore the attempt to route the LOG session of the client
+			     to the 'log' fails. The environment of 'dummy' will remain
+			     incomplete. -->
+
+			<init_config>
+				<report requested="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="log">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="dummy">
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="started"/> </config>
+					<route>
+						<service name="LOG"> <child name="log"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="log"/> </node>
+				<node name="child">
+					<attribute name="name"  value="dummy"/>
+					<attribute name="state" value="incomplete"/>
+				</node>
+			</expect_init_state>
+
+			<!-- We add the <provides> node to the log server and thereby
+			     make the LOG route of the 'dummy' client available. The
+			     server is expected to remain unaffected but the client should
+			     be restarted to re-route its LOG session to the server -->
+
+			<init_config>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="log">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config version="providing service"> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="dummy">
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="started"/> </config>
+					<route>
+						<service name="LOG"> <child name="log"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> log] config 2: providing service"/>
+			<expect_log string="[init -> log] [dummy] started"/>
+
+			<!-- We remove <provides> node from 'log' service and thereby
+			     make the LOG service unavailble for 'dummy'. Consequently,
+			     'dummy' will be restarted but will ultimately remain
+			     incomplete (as the LOG environment session cannot be routed).
+			     The server stays alive and reports its third config. -->
+
+			<init_config>
+				<report requested="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="log">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="became unavailable"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="dummy">
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="started"/> </config>
+					<route>
+						<service name="LOG"> <child name="log"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child">
+					<attribute name="name"  value="dummy"/>
+					<attribute name="state" value="incomplete"/>
+				</node>
+			</expect_init_state>
+
+
 			<message string="update child config"/>
 
 			<init_config>

@@ -658,6 +658,49 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			catch (Parent::Service_denied) { return false; }
 		}
 
+		static Xml_node _provides_sub_node(Xml_node start_node)
+		{
+			return start_node.has_sub_node("provides")
+			     ? start_node.sub_node("provides") : Xml_node("<provides/>");
+		}
+
+		/**
+		 * Return true if service is provided by this child
+		 */
+		bool _provided_by_this(Routed_service const &service)
+		{
+			return service.has_id_space(_session_requester.id_space());
+		}
+
+		/**
+		 * Return true if service of specified <provides> sub node is known
+		 */
+		bool _service_exists(Xml_node node) const
+		{
+			bool exists = false;
+			_child_services.for_each([&] (Routed_service const &service) {
+				if (_provided_by_this(service) &&
+				    service.name() == node.attribute_value("name", Service::Name()))
+					exists = true; });
+
+			return exists;
+		}
+
+		void _add_service(Xml_node service)
+		{
+			Service::Name const name =
+				service.attribute_value("name", Service::Name());
+
+			if (_verbose.enabled())
+				log("  provides service ", name);
+
+			new (_alloc)
+				Routed_service(_child_services, this->name(), _ram_accessor,
+				               _session_requester.id_space(),
+				               _child.session_factory(),
+				               name, *this);
+		}
+
 	public:
 
 		/**
@@ -719,25 +762,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			/*
 			 * Determine services provided by the child
 			 */
-			try {
-				Xml_node service_node = start_node.sub_node("provides").sub_node("service");
-
-				for (; ; service_node = service_node.next("service")) {
-
-					char name[Service::Name::capacity()];
-					service_node.attribute("name").value(name, sizeof(name));
-
-					if (_verbose.enabled())
-						log("  provides service ", Cstring(name));
-
-					new (_alloc)
-						Routed_service(child_services, this->name(), _ram_accessor,
-						               _session_requester.id_space(),
-						               _child.session_factory(),
-						               name, *this);
-				}
-			}
-			catch (Xml_node::Nonexistent_sub_node) { }
+			_provides_sub_node(start_node)
+				.for_each_sub_node("service",
+				                   [&] (Xml_node node) { _add_service(node); });
 
 			/*
 			 * Construct inline config ROM service if "config" node is present.
@@ -812,6 +839,17 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			if (_state == STATE_ABANDONED)
 				return NO_SIDE_EFFECTS;
 
+			/*
+			 * If the child's environment is incomplete, restart it to attempt
+			 * the re-routing of its environment sessions.
+			 */
+			if (!_child.active()) {
+				abandon();
+				return MAY_HAVE_SIDE_EFFECTS;
+			}
+
+			bool provided_services_changed = false;
+
 			enum Config_update { CONFIG_APPEARED, CONFIG_VANISHED,
 			                     CONFIG_CHANGED,  CONFIG_UNCHANGED };
 
@@ -857,6 +895,41 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				}
 
 				/*
+				 * Import updated <provides> node
+				 *
+				 * First abandon services that are no longer present in the
+				 * <provides> node. Then add services that have newly appeared.
+				 */
+				_child_services.for_each([&] (Routed_service &service) {
+
+					if (!_provided_by_this(service))
+						return;
+
+					typedef Service::Name Name;
+					Name const name = service.name();
+
+					bool still_provided = false;
+					_provides_sub_node(start_node)
+						.for_each_sub_node("service", [&] (Xml_node node) {
+							if (name == node.attribute_value("name", Name()))
+								still_provided = true; });
+
+					if (!still_provided) {
+						service.abandon();
+						provided_services_changed = true;
+					}
+				});
+
+				_provides_sub_node(start_node).for_each_sub_node("service",
+				                                                 [&] (Xml_node node) {
+					if (_service_exists(node))
+						return;
+
+					_add_service(node);
+					provided_services_changed = true;
+				});
+
+				/*
 				 * Import new binary name. A change may affect the route for
 				 * the binary's ROM session, triggering the restart of the
 				 * child.
@@ -892,6 +965,10 @@ class Init::Child : Child_policy, Child_service::Wakeup
 					return MAY_HAVE_SIDE_EFFECTS;
 				}
 			}
+
+			if (provided_services_changed)
+				return MAY_HAVE_SIDE_EFFECTS;
+
 			return NO_SIDE_EFFECTS;
 		}
 
@@ -907,6 +984,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 				if (detail.ids())
 					xml.attribute("id", _id.value);
+
+				if (!_child.active())
+					xml.attribute("state", "incomplete");
 
 				if (detail.child_ram() && _child.ram_session_cap().valid()) {
 					xml.node("ram", [&] () {

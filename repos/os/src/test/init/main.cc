@@ -178,6 +178,8 @@ struct Test::Main : Log_message_handler
 
 	Timer::Connection _timer { _env };
 
+	bool _timer_scheduled = false;
+
 	Reporter _init_config_reporter { _env, "config",  "init.config" };
 
 	Attached_rom_dataspace _config { _env, "config" };
@@ -269,8 +271,11 @@ struct Test::Main : Log_message_handler
 			}
 
 			if (step.type() == "sleep") {
-				unsigned long const timeout_ms = step.attribute_value("ms", 250UL);
-				_timer.trigger_once(timeout_ms*1000);
+				if (!_timer_scheduled) {
+					unsigned long const timeout_ms = step.attribute_value("ms", 250UL);
+					_timer.trigger_once(timeout_ms*1000);
+					_timer_scheduled = true;
+				}
 				return;
 			}
 
@@ -310,6 +315,8 @@ struct Test::Main : Log_message_handler
 			error("got spurious timeout signal");
 			throw Exception();
 		}
+
+		_timer_scheduled = false;
 
 		_advance_step();
 		_execute_curr_step();
