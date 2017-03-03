@@ -91,7 +91,7 @@ namespace Libc {
 	Genode::Xml_node config() __attribute__((weak));
 	Genode::Xml_node config()
 	{
-		return _config_node->sub_node("libc");
+		return *_config_node;
 	}
 
 	class Config_attr
