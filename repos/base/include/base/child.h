@@ -516,22 +516,28 @@ class Genode::Child : protected Rpc_object<Parent>,
 				if (_connection.constructed())
 					return;
 
-				Child_policy::Route const route =
-					_child._resolve_session_request(_child._policy,
-					                                _service_name(),
-					                                _args.string());
-
-				_env_service.construct(_child, route.service);
-				_connection.construct(*_env_service, _child._id_space, _client_id,
-				                      _args, _child._policy.filter_session_affinity(Affinity()),
-				                      route.label);
+				try {
+					Child_policy::Route const route =
+						_child._resolve_session_request(_child._policy,
+						                                _service_name(),
+						                                _args.string());
+					_env_service.construct(_child, route.service);
+					_connection.construct(*_env_service, _child._id_space, _client_id,
+					                      _args, _child._policy.filter_session_affinity(Affinity()),
+					                      route.label);
+				}
+				catch (Parent::Service_denied) {
+					error(_child._policy.name(), ": ", _service_name(), " "
+					      "environment session denied"); }
 			}
 
 			typedef typename CONNECTION::Session_type SESSION;
 
 			SESSION &session() { return _connection->session(); }
 
-			Capability<SESSION> cap() const { return _connection->cap(); }
+			Capability<SESSION> cap() const {
+				return _connection.constructed() ? _connection->cap()
+				                                 : Capability<SESSION>(); }
 		};
 
 		Env_connection<Ram_connection> _ram    { *this, Env::ram(),    _policy.name() };
