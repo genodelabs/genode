@@ -18,7 +18,6 @@
 #include <base/child.h>
 #include <base/service.h>
 
-#include <init/child_config.h>
 #include <init/child_policy.h>
 
 #include <util/arg_string.h>
@@ -28,6 +27,7 @@
 #include "cpu_session_component.h"
 #include "pd_session_component.h"
 #include "rom.h"
+#include "child_config.h"
 
 namespace Gdb_monitor {
 	using namespace Genode;
