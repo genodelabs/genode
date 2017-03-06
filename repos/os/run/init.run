@@ -651,7 +651,7 @@ append config {
 			</init_config>
 			<expect_log string="[init -> test] config 7: consume 2 MiB"/>
 			<expect_log string="[init -> test] consume 2M bytes of memory"/>
-			<sleep ms="500"/>
+			<sleep ms="300"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="test"/>
 					<node name="ram">
@@ -662,7 +662,7 @@ append config {
 
 			<!-- reduce child quota by 2M, triggering a resource-yield request -->
 			<init_config>
-				<report init_ram="yes" child_ram="yes" delay_ms="250"/>
+				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
 					<service name="CPU"/> <service name="PD"/>
@@ -687,15 +687,63 @@ append config {
 				</node>
 			</expect_init_state>
 
-			<sleep ms="500"/>
+			<!-- let child issue a resource request -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes" delay_ms="250"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="2M"/>
+					<config version="request more quota than avail">
+						<consume_ram amount="4M"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 8: request more quota than avail"/>
+			<sleep ms="300"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="test"/>
 					<node name="ram">
-						<attribute name="assigned" value="2M"/>
-						<attribute name="quota"    lower="2M"/>
+						<attribute name="assigned"   value="2M"/>
+						<attribute name="requested" higher="4000K"/>
 					</node>
 				</node>
 			</expect_init_state>
+
+			<!-- respond to resource request-->
+			<init_config>
+				<report init_ram="yes" child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="6M"/>
+					<config version="request more quota than avail">
+						<consume_ram amount="4M"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" value="6M"/>
+						<attribute name="quota"   higher="5M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+
+			<message string="test complete"/>
 
 		</config>
 		<route>

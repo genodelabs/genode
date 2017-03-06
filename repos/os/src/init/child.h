@@ -250,6 +250,21 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		bool const _constrain_phys { _resources.constrain_phys };
 
+		/**
+		 * Resource request initiated by the child
+		 */
+		struct Requested_resources
+		{
+			Ram_quota const ram;
+			Requested_resources(Parent::Resource_args const &args)
+			:
+				ram(Ram_quota { Arg_string::find_arg(args.string(), "ram_quota")
+				                                    .ulong_value(0) })
+			{ }
+		};
+
+		Constructible<Requested_resources> _requested_resources;
+
 		Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
 		struct Ram_accessor : Routed_service::Ram_accessor

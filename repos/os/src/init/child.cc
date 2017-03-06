@@ -203,6 +203,12 @@ void Init::Child::apply_ram_upgrade()
 		_check_resource_constraints(_ram_limit_accessor.ram_limit());
 
 		ref_ram().transfer_quota(_child.ram_session_cap(), transfer);
+
+		/* wake up child that blocks on a resource request */
+		if (_requested_resources.constructed()) {
+			_child.notify_resource_avail();
+			_requested_resources.destruct();
+		}
 	}
 }
 
@@ -288,6 +294,10 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 				 */
 				auto &nonconst_child = const_cast<Genode::Child &>(_child);
 				generate_ram_info(xml, nonconst_child.ram());
+
+				if (_requested_resources.constructed())
+					xml.attribute("requested", String<32> {
+						Number_of_bytes(_requested_resources->ram.value) });
 			});
 		}
 
@@ -592,22 +602,10 @@ void Init::Child::announce_service(Service::Name const &service_name)
 
 void Init::Child::resource_request(Parent::Resource_args const &args)
 {
-	log("child \"", name(), "\" requests resources: ", args.string());
+	log("child \"", name(), "\" requests resources: ", args);
 
-	size_t const requested_ram_quota =
-		Arg_string::find_arg(args.string(), "ram_quota")
-			.ulong_value(0);
-
-	if (_ram_limit_accessor.ram_limit().value < requested_ram_quota) {
-		warning("cannot respond to resource request - out of memory");
-		return;
-	}
-
-	_env.ram().transfer_quota(_child.ram_session_cap(),
-	                          requested_ram_quota);
-
-	/* wake up child that was starved for resources */
-	_child.notify_resource_avail();
+	_requested_resources.construct(args);
+	_report_update_trigger.trigger_report_update();
 }
 
 
