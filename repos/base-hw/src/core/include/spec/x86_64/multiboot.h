@@ -48,10 +48,10 @@ class Genode::Multiboot_info : Mmio
 		/**
 		 * Physical ram regions
 		 */
-		Mmap phys_ram(unsigned i, bool solely_within_4k_base = true) {
+		addr_t phys_ram_mmap_base(unsigned i, bool solely_within_4k_base = true) {
 
 			if (!read<Flags::Mem_map>())
-				return Mmap(0);
+				return 0;
 
 			Mmap_length::access_t const mmap_length = read<Mmap_length>();
 			Mmap_addr::access_t const mmap_start  = read<Mmap_addr>();
@@ -63,21 +63,22 @@ class Genode::Multiboot_info : Mmio
 
 				if (solely_within_4k_base &&
 				    (mmap + MMAP_SIZE_OF >= Genode::align_addr(base + 1, 12)))
-					return Mmap(0);
+					return 0;
 
 				Mmap r(mmap);
+				addr_t last_mmap = mmap;
 				mmap += r.read<Mmap::Size>() + MMAP_SIZE_SIZE_OF;
 
 				if (r.read<Mmap::Type>() != Mmap::Type::MEMORY)
 					continue;
 
 				if (i == j)
-					return r;
+					return last_mmap;
 
 				j++;
 			}
 
-			return Mmap(0);
+			return 0;
 		}
 };
 

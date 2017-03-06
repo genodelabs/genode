@@ -36,7 +36,7 @@ Platform::Board::Board()
 	static constexpr size_t initial_map_max = 1024 * 1024 * 1024;
 
 	for (unsigned i = 0; true; i++) {
-		Mmap v = Multiboot_info(__initial_bx).phys_ram(i);
+		Mmap v(Multiboot_info(__initial_bx).phys_ram_mmap_base(i));
 		if (!v.base) break;
 
 		Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
