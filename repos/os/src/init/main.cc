@@ -54,12 +54,25 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 		return Ram_quota { preserve };
 	}
 
-	Ram_quota _ram_limit { 0 };
+	Ram_quota _avail_ram()
+	{
+		Ram_quota const preserved_ram = _preserved_ram_from_config(_config.xml());
+
+		Ram_quota avail_ram { _env.ram().avail() };
+
+		if (preserved_ram.value > avail_ram.value) {
+			error("RAM preservation exceeds available memory");
+			return Ram_quota { 0 };
+		}
+
+		/* deduce preserved quota from available quota */
+		return Ram_quota { avail_ram.value - preserved_ram.value };
+	}
 
 	/**
 	 * Child::Ram_limit_accessor interface
 	 */
-	Ram_quota ram_limit() override { return _ram_limit; }
+	Ram_quota ram_limit() override { return _avail_ram(); }
 
 	void _handle_resource_avail() { }
 
@@ -242,6 +255,9 @@ void Init::Main::_handle_config()
 		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
 	catch (...) { }
 
+	long            const prio_levels    = prio_levels_from_xml(_config.xml());
+	Affinity::Space const affinity_space = affinity_space_from_xml(_config.xml());
+
 	_update_aliases_from_config();
 	_update_parent_services_from_config();
 	_abandon_obsolete_children();
@@ -257,20 +273,8 @@ void Init::Main::_handle_config()
 
 	_destroy_abandoned_parent_services();
 
-	Ram_quota const preserved_ram = _preserved_ram_from_config(_config.xml());
-
-	Ram_quota avail_ram { _env.ram().avail() };
-
-	if (preserved_ram.value > avail_ram.value) {
-		error("RAM preservation exceeds available memory");
-		return;
-	}
-
-	/* deduce preserved quota from available quota */
-	avail_ram = Ram_quota { avail_ram.value - preserved_ram.value };
-
 	/* initial RAM limit before starting new children */
-	_ram_limit = Ram_quota { avail_ram.value };
+	Ram_quota const avail_ram = _avail_ram();
 
 	/* variable used to track the RAM taken by new started children */
 	Ram_quota used_ram { 0 };
@@ -297,9 +301,9 @@ void Init::Main::_handle_config()
 				Init::Child &child = *new (_heap)
 					Init::Child(_env, _heap, *_verbose,
 					            Init::Child::Id { ++_child_cnt }, _state_reporter,
-					            start_node, *this, _children, *this,
-					            prio_levels_from_xml(_config.xml()),
-					            affinity_space_from_xml(_config.xml()),
+					            start_node, *this, _children,
+					            Ram_quota { avail_ram.value - used_ram.value },
+					             *this, prio_levels, affinity_space,
 					            _parent_services, _child_services);
 				_children.insert(&child);
 
@@ -310,7 +314,6 @@ void Init::Main::_handle_config()
 				used_ram = Ram_quota { used_ram.value
 				                     + child.ram_quota().value
 				                     + metadata_overhead };
-				_ram_limit = Ram_quota { avail_ram.value - used_ram.value };
 			}
 			catch (Rom_connection::Rom_connection_failed) {
 				/*
@@ -346,6 +349,15 @@ void Init::Main::_handle_config()
 	 */
 	_children.for_each_child([&] (Child &child) {
 		child.initiate_env_sessions(); });
+
+	/*
+	 * (Re-)distribute RAM among the childen, given their resource assignments
+	 * and the available slack memory. We first apply possible downgrades to
+	 * free as much memory as we can. This memory is then incorporated in the
+	 * subsequent upgrade step.
+	 */
+	_children.for_each_child([&] (Child &child) { child.apply_ram_downgrade(); });
+	_children.for_each_child([&] (Child &child) { child.apply_ram_upgrade(); });
 }
 
 

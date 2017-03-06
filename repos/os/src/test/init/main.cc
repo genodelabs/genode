@@ -56,6 +56,11 @@ static inline bool Test::xml_attribute_matches(Xml_node condition, Xml_node node
 		return (size_t)node.attribute_value(name.string(), Number_of_bytes()) > value;
 	}
 
+	if (condition.has_attribute("lower")) {
+		size_t const value = condition.attribute_value("lower", Number_of_bytes());
+		return (size_t)node.attribute_value(name.string(), Number_of_bytes()) < value;
+	}
+
 	error("missing condition in <attribute> node");
 	return false;
 }

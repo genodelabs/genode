@@ -456,7 +456,7 @@ append config {
 					<route> <any-service> <parent/> </any-service> </route>
 				</start>
 			</init_config>
-			<sleep ms="250"/>
+			<sleep ms="350"/>
 			<!-- wait until both children are started -->
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="regular"/> </node>
@@ -466,6 +466,236 @@ append config {
 				<node name="ram"> <attribute name="avail" higher="2M"/> </node>
 			</expect_init_state>
 			<sleep ms="100"/>
+
+
+			<message string="test RAM-quota adjustments"/>
+
+			<init_config>
+				<report child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="initial" />
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 1: initial"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" value="1M"/>
+						<attribute name="quota"    lower="1M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- increase RAM quota of child by 3 MiB -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="upgraded" />
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 2: upgraded"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" value="4M"/>
+						<attribute name="quota"    higher="3M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- start second child consuming all slack memory -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="greedy">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1G"/>
+					<config version="started"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> greedy] config 1: started"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="ram"> <attribute name="avail" lower="1M"/> </node>
+			</expect_init_state>
+
+			<!-- attempt to upgrade the 'test' child to 8 MiB, hitting the RAM limit -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="8M"/>
+					<config version="upgrade impossible"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="greedy">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1G"/>
+					<config version="started"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 4: upgrade impossible"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" lower="8M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- kill greedy child, now the upgrade of 'test' can be completed -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="8M"/>
+					<config version="upgraded to 8 MiB"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 5: upgraded to 8 MiB"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" value="8M"/>
+						<attribute name="quota"    higher="7M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- reduce quota -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="downgraded to 4 MiB"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 6: downgraded to 4 MiB"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" value="4M"/>
+						<attribute name="quota"    lower="4M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- let child consume quota -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes" delay_ms="250"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="consume 2 MiB">
+						<handle_yield_requests/>
+						<consume_ram amount="2M"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 7: consume 2 MiB"/>
+			<expect_log string="[init -> test] consume 2M bytes of memory"/>
+			<sleep ms="500"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="avail" lower="2M"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- reduce child quota by 2M, triggering a resource-yield request -->
+			<init_config>
+				<report init_ram="yes" child_ram="yes" delay_ms="250"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="2M"/>
+					<config version="consume 2 MiB">
+						<handle_yield_requests/>
+						<consume_ram amount="2M"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] got yield request"/>
+			<expect_log string="[init -> test] release 2M bytes of memory"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram"> <attribute name="quota" lower="2M"/> </node>
+				</node>
+			</expect_init_state>
+
+			<sleep ms="500"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram">
+						<attribute name="assigned" value="2M"/>
+						<attribute name="quota"    lower="2M"/>
+					</node>
+				</node>
+			</expect_init_state>
 
 		</config>
 		<route>

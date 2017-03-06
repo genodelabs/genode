@@ -125,9 +125,13 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			long      priority;
 			Affinity  affinity;
 			Ram_quota assigned_ram_quota;
-			Ram_quota effective_ram_quota;
 			size_t    cpu_quota_pc;
 			bool      constrain_phys;
+
+			Ram_quota effective_ram_quota() const
+			{
+				return Ram_quota { Genode::Child::effective_ram_quota(assigned_ram_quota.value) };
+			}
 		};
 
 		Resources _resources_from_start_node(Xml_node start_node, long prio_levels,
@@ -157,19 +161,16 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			                  Affinity(affinity_space,
 			                           affinity_location_from_xml(affinity_space, start_node)),
 			                  Ram_quota { ram_bytes },
-			                  Ram_quota { Genode::Child::effective_ram_quota(ram_bytes) },
 			                  cpu_quota_pc,
 			                  constrain_phys };
 		}
 
 		Resources _resources;
 
-		void _check_resource_constraints()
+		void _check_resource_constraints(Ram_quota ram_limit)
 		{
-			if (_resources.effective_ram_quota.value == 0)
+			if (_resources.effective_ram_quota().value == 0)
 				warning("no valid RAM RESOURCE for child \"", _unique_name, "\"");
-
-			Ram_quota const ram_limit = _ram_limit_accessor.ram_limit();
 
 			/*
 			 * If the configured RAM quota exceeds our own quota, we donate
@@ -183,7 +184,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			}
 		}
 
-		bool const _resources_checked = (_check_resource_constraints(), true);
+		bool const _resources_checked;
 
 		Registry<Parent_service> &_parent_services;
 		Registry<Routed_service> &_child_services;
@@ -335,11 +336,19 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		/**
 		 * Constructor
 		 *
-		 * \param alloc  allocator solely used for configuration-dependent
-		 *               allocations. It is not used for allocations on behalf
-		 *               of the child's behavior.
+		 * \param alloc               allocator solely used for configuration-
+		 *                            dependent allocations. It is not used for
+		 *                            allocations on behalf of the child's
+		 *                            behavior.
 		 *
-		 * \throw Allocator::Out_of_memory   could not buffer the XML start node
+		 * \param ram_limit           maximum amount of RAM to be consumed at
+		 *                            creation time.
+		 *
+		 * \param ram_limit_accessor  interface for querying the available
+		 *                            RAM, used for dynamic RAM balancing at
+		 *                            runtime.
+		 *
+		 * \throw Allocator::Out_of_memory  could not buffer the XML start node
 		 */
 		Child(Env                      &env,
 		      Allocator                &alloc,
@@ -349,6 +358,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		      Xml_node                  start_node,
 		      Default_route_accessor   &default_route_accessor,
 		      Name_registry            &name_registry,
+		      Ram_quota                 ram_limit,
 		      Ram_limit_accessor       &ram_limit_accessor,
 		      long                      prio_levels,
 		      Affinity::Space const    &affinity_space,
@@ -411,6 +421,9 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		 */
 		Apply_config_result apply_config(Xml_node start_node);
 
+		void apply_ram_upgrade();
+		void apply_ram_downgrade();
+
 		void report_state(Xml_generator &xml, Report_detail const &detail) const;
 
 
@@ -460,6 +473,12 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		}
 
 		bool initiate_env_sessions() const override { return false; }
+
+		void yield_response() override
+		{
+			apply_ram_downgrade();
+			_report_update_trigger.trigger_report_update();
+		}
 };
 
 #endif /* _SRC__INIT__CHILD_H_ */

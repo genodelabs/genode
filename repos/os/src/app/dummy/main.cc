@@ -24,6 +24,8 @@ namespace Dummy {
 
 	struct Log_service;
 	struct Log_connections;
+	struct Ram_consumer;
+	struct Resource_yield_handler;
 	struct Main;
 	using namespace Genode;
 }
@@ -109,6 +111,64 @@ struct Dummy::Log_connections
 };
 
 
+struct Dummy::Ram_consumer
+{
+	size_t _amount = 0;
+
+	Ram_dataspace_capability _ds_cap;
+
+	Ram_session &_ram;
+
+	Ram_consumer(Ram_session &ram) : _ram(ram) { }
+
+	void release()
+	{
+		if (!_amount)
+			return;
+
+		log("release ", Number_of_bytes(_amount), " bytes of memory");
+		_ram.free(_ds_cap);
+
+		_ds_cap = Ram_dataspace_capability();
+		_amount = 0;
+	}
+
+	void consume(size_t amount)
+	{
+		if (_amount)
+			release();
+
+		log("consume ", Number_of_bytes(amount), " bytes of memory");
+		_ds_cap = _ram.alloc(amount);
+		_amount = amount;
+	}
+};
+
+
+struct Dummy::Resource_yield_handler
+{
+	Env &_env;
+
+	Ram_consumer &_ram_consumer;
+
+	void _handle_yield()
+	{
+		log("got yield request");
+		_ram_consumer.release();
+		_env.parent().yield_response();
+	}
+
+	Signal_handler<Resource_yield_handler> _yield_handler {
+		_env.ep(), *this, &Resource_yield_handler::_handle_yield };
+
+	Resource_yield_handler(Env &env, Ram_consumer &ram_consumer)
+	: _env(env), _ram_consumer(ram_consumer)
+	{
+		_env.parent().yield_sigh(_yield_handler);
+	}
+};
+
+
 struct Dummy::Main
 {
 	Env &_env;
@@ -124,6 +184,10 @@ struct Dummy::Main
 	Version _config_version;
 
 	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
+
+	Ram_consumer _ram_consumer { _env.ram() };
+
+	Constructible<Resource_yield_handler> _resource_yield_handler;
 
 	void _handle_config()
 	{
@@ -149,6 +213,12 @@ struct Dummy::Main
 
 			if (node.type() == "log_service")
 				_log_service.construct(_env);
+
+			if (node.type() == "consume_ram")
+				_ram_consumer.consume(node.attribute_value("amount", Number_of_bytes()));
+
+			if (node.type() == "handle_yield_requests")
+				_resource_yield_handler.construct(_env, _ram_consumer);
 
 			if (node.type() == "sleep") {
 
