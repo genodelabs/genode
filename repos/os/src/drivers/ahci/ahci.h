@@ -202,7 +202,7 @@ struct Command_fis : Genode::Mmio
 	}
 
 	static constexpr Genode::size_t size() { return 0x14; }
-	void clear() { Genode::memset((void *)base, 0, size()); }
+	void clear() { Genode::memset((void *)base(), 0, size()); }
 
 
 	/************************
@@ -402,7 +402,7 @@ struct Port_base : Genode::Mmio
 	static constexpr Genode::size_t size()   { return 0x80;  }
 
 	Port_base(unsigned number, Hba &hba)
-	: Mmio(hba.base + offset() + (number * size())) { }
+	: Mmio(hba.base() + offset() + (number * size())) { }
 };
 
 

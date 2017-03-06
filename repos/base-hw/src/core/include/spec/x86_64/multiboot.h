@@ -62,7 +62,7 @@ class Genode::Multiboot_info : Mmio
 				enum { MMAP_SIZE_SIZE_OF = 4, MMAP_SIZE_OF = 4 + 8 + 1 };
 
 				if (solely_within_4k_base &&
-				    (mmap + MMAP_SIZE_OF >= Genode::align_addr(base + 1, 12)))
+				    (mmap + MMAP_SIZE_OF >= Genode::align_addr(base() + 1, 12)))
 					return 0;
 
 				Mmap r(mmap);

@@ -37,7 +37,7 @@ Platform::Board::Board()
 
 	for (unsigned i = 0; true; i++) {
 		Mmap v(Multiboot_info(__initial_bx).phys_ram_mmap_base(i));
-		if (!v.base) break;
+		if (!v.base()) break;
 
 		Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
 		Mmap::Length::access_t size = v.read<Mmap::Length>();

@@ -30,17 +30,9 @@ class Genode::Mmio_plain_access
 {
 	friend Register_set_plain_access;
 
-	public:
-
-		/**
-		 * FIXME We keep this public only to stay interface compatible
-		 *       but the value should be accessible only through an
-		 *       accessor.
-		 */
-		addr_t const base;
-
 	private:
 
+		addr_t const _base;
 
 		/**
 		 * Write '_ACCESS_T' typed 'value' to MMIO base + 'offset'
@@ -48,7 +40,7 @@ class Genode::Mmio_plain_access
 		template <typename ACCESS_T>
 		inline void _write(off_t const offset, ACCESS_T const value)
 		{
-			addr_t const dst = base + offset;
+			addr_t const dst = _base + offset;
 			*(ACCESS_T volatile *)dst = value;
 		}
 
@@ -58,7 +50,7 @@ class Genode::Mmio_plain_access
 		template <typename ACCESS_T>
 		inline ACCESS_T _read(off_t const &offset) const
 		{
-			addr_t const dst = base + offset;
+			addr_t const dst = _base + offset;
 			ACCESS_T const value = *(ACCESS_T volatile *)dst;
 			return value;
 		}
@@ -70,7 +62,9 @@ class Genode::Mmio_plain_access
 		 *
 		 * \param base  base address of targeted MMIO region
 		 */
-		Mmio_plain_access(addr_t const base) : base(base) { }
+		Mmio_plain_access(addr_t const base) : _base(base) { }
+
+		addr_t base() const { return _base; }
 };
 
 

@@ -133,7 +133,7 @@ struct Dmar_struct_header : Generic
 
 			func(dmar);
 
-			addr = dmar.base + dmar.read<Dmar_common::Length>();
+			addr = dmar.base() + dmar.read<Dmar_common::Length>();
 		} while (addr < dmar_entry_end());
 	}
 
@@ -178,14 +178,14 @@ struct Dmar_rmrr : Genode::Mmio
 	template <typename FUNC>
 	void apply(FUNC const &func = [] () { } )
 	{
-		addr_t addr = base + 24;
+		addr_t addr = base() + 24;
 		do {
 			Device_scope scope(addr);
 
 			func(scope);
 
-			addr = scope.base + scope.read<Device_scope::Length>();
-		} while (addr < base + read<Length>());
+			addr = scope.base() + scope.read<Device_scope::Length>();
+		} while (addr < base() + read<Length>());
 	}
 };
 
@@ -1349,7 +1349,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 				if (dmar.read<Dmar_common::Type>() != Dmar_common::Type::RMRR)
 					return;
 
-				Dmar_rmrr rmrr(dmar.base);
+				Dmar_rmrr rmrr(dmar.base());
 
 				xml.node("rmrr", [&] () {
 					attribute_hex(xml, "start", rmrr.read<Dmar_rmrr::Base>());

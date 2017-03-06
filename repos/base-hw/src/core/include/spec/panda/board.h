@@ -114,7 +114,7 @@ class Genode::Board : public Cortex_a9::Board
 
 	private:
 
-		L2_cache _l2_cache { Base::l2_cache().base };
+		L2_cache _l2_cache { Base::l2_cache().base() };
 };
 
 #endif /* _CORE__INCLUDE__SPEC__PANDA__BOARD_H_ */
