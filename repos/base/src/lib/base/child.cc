@@ -784,6 +784,8 @@ Child::~Child()
 	_discard_env_session(Env::cpu());
 	_discard_env_session(Env::pd());
 	_discard_env_session(Env::log());
+	_discard_env_session(Env::binary());
+	_discard_env_session(Env::linker());
 
 	/*
 	 * Remove dynamically created sessions from the child's ID space.
