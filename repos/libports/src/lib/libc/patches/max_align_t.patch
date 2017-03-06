@@ -1,0 +1,59 @@
+From 689bb2db9dbb8fa247c030735dbd6e4f861d0e60 Mon Sep 17 00:00:00 2001
+From: jhb <jhb@FreeBSD.org>
+Date: Fri, 21 Oct 2016 23:50:02 +0000
+Subject: [PATCH] Define max_align_t for C11.
+
+libc++'s stddef.h includes an existing definition of max_align_t for
+C++11, but it is only defined for C++, not for C.  In addition, GCC and
+clang both define an alternate version of max_align_t that uses a
+union of multiple types rather than a plain long double as in libc++.
+This adds a __max_align_t to <sys/_types.h> that matches the GCC and
+clang definition that is mapped to max_align_t in <stddef.h>.
+
+PR:		210890
+Reviewed by:	dim
+MFC after:	1 month
+Differential Revision:	https://reviews.freebsd.org/D8194
+
+cproc: slightly modified for Genode (_Alignof -> __alignof__)
+
+---
+ include/stddef.h | 8 ++++++++
+ sys/sys/_types.h | 5 +++++
+ 2 files changed, 13 insertions(+)
+
+diff --git a/include/stddef.h b/include/stddef.h
+index 7898da2..7f2d2f0c 100644
+--- src/lib/libc/include/stddef.h
++++ src/lib/libc/include/stddef.h
+@@ -62,6 +62,14 @@ typedef	___wchar_t	wchar_t;
+ #endif
+ #endif
+ 
++#if __STDC_VERSION__ >= 201112L || __cplusplus >= 201103L
++#ifndef __CLANG_MAX_ALIGN_T_DEFINED
++typedef	__max_align_t	max_align_t;
++#define __CLANG_MAX_ALIGN_T_DEFINED
++#define __GCC_MAX_ALIGN_T
++#endif
++#endif
++
+ #define	offsetof(type, member)	__offsetof(type, member)
+ 
+ #endif /* _STDDEF_H_ */
+diff --git a/sys/sys/_types.h b/sys/sys/_types.h
+index ecc1c7e..8736651 100644
+--- src/lib/libc/sys/sys/_types.h
++++ src/lib/libc/sys/sys/_types.h
+@@ -100,6 +100,11 @@ typedef	__uint_least32_t __char32_t;
+ #define	_CHAR32_T_DECLARED
+ #endif
+ 
++typedef struct {
++	long long __max_align1 __aligned(__alignof__(long long));
++	long double __max_align2 __aligned(__alignof__(long double));
++} __max_align_t;
++
+ typedef	__uint32_t	__dev_t;	/* device number */
+ 
+ typedef	__uint32_t	__fixpt_t;	/* fixed point number */
