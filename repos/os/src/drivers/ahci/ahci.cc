@@ -71,16 +71,6 @@ struct Ahci
 		scan_ports(env.rm(), env.ram());
 	}
 
-	bool atapi(unsigned sig)
-	{
-		return enable_atapi && (sig == ATAPI_SIG_QEMU || sig == ATAPI_SIG);
-	}
-
-	bool ata(unsigned sig)
-	{
-		return sig == ATA_SIG;
-	}
-
 	/**
 	 * Forward IRQs to ports
 	 */
@@ -115,8 +105,8 @@ struct Ahci
 
 	void scan_ports(Genode::Region_map &rm, Genode::Ram_session &ram)
 	{
-		Genode::log("number of ports: ", hba.port_count(), " "
-		            "pi: ", Genode::Hex(hba.read<Hba::Pi>()));
+		log("number of ports: ", hba.port_count(), " pi: ",
+		    Hex(hba.read<Hba::Pi>()));
 
 		unsigned available = hba.read<Hba::Pi>();
 		for (unsigned i = 0; i < hba.port_count(); i++) {
@@ -125,42 +115,35 @@ struct Ahci
 			if (!(available & (1U << i)))
 				continue;
 
-			Port port(rm, hba, platform_hba, i);
-
-			/* check for ATA/ATAPI devices */
-			unsigned sig = port.read<Port::Sig>();
-			if (!atapi(sig) && !ata(sig)) {
-				Genode::log("\t\t#", i, ": off");
-				continue;
-			}
-
-			port.reset();
-
 			bool enabled = false;
-			try { enabled = port.enable(); }
-			catch (Port::Not_ready) { Genode::error("could not enable port ", i); }
 
-			Genode::log("\t\t#", i, ": ", atapi(sig) ? "ATAPI" : "ATA");
-
-			if (!enabled)
-				continue;
-
-
-			switch (sig) {
-
+			switch (Port_base(i, hba).read<Port_base::Sig>()) {
 				case ATA_SIG:
-					ports[i] = new (&alloc) Ata_driver(alloc, port, ram, root,
-					                                   ready_count);
+					try {
+						ports[i] = new (&alloc)
+							Ata_driver(alloc, ram, root, ready_count, rm, hba,
+							           platform_hba, i);
+						enabled = true;
+					} catch (...) { }
+
+					log("\t\t#", i, ":", enabled ? " ATA" : " off (ATA)");
 					break;
 
 				case ATAPI_SIG:
 				case ATAPI_SIG_QEMU:
-					ports[i] = new (&alloc) Atapi_driver(port, ram, root,
-					                                     ready_count);
+					if (enable_atapi)
+						try {
+							ports[i] = new (&alloc)
+								Atapi_driver(ram, root, ready_count, rm, hba,
+								             platform_hba, i);
+							enabled = true;
+						} catch (...) { }
+
+					log("\t\t#", i, ":", enabled ? " ATAPI" : " off (ATAPI)");
 					break;
 
 				default:
-					Genode::warning("device signature ", Genode::Hex(sig), " unsupported");
+					log("\t\t#", i, ": off (unknown device signature)");
 			}
 		}
 	};

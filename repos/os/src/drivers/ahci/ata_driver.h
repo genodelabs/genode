@@ -188,10 +188,16 @@ struct Ata_driver : Port_driver
 	Io_command                               *io_cmd = nullptr;
 	Block::Packet_descriptor                  pending[32];
 
-	Ata_driver(Genode::Allocator &alloc,
-	           Port &port, Genode::Ram_session &ram,
-	           Ahci_root &root, unsigned &sem)
-	: Port_driver(port, ram, root, sem), alloc(alloc)
+	Ata_driver(Genode::Allocator   &alloc,
+	           Genode::Ram_session &ram,
+	           Ahci_root           &root,
+	           unsigned            &sem,
+	           Genode::Region_map  &rm,
+	           Hba                 &hba,
+	           Platform::Hba       &platform_hba,
+	           unsigned             number)
+	: Port_driver(ram, root, sem, rm, hba, platform_hba, number),
+	  alloc(alloc)
 	{
 		Port::init();
 		identify_device();

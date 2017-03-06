@@ -24,8 +24,14 @@ struct Atapi_driver : Port_driver
 	unsigned                 sense_tries = 0;
 	Block::Packet_descriptor pending;
 
-	Atapi_driver(Port &port, Genode::Ram_session &ram, Ahci_root &root, unsigned &sem)
-	: Port_driver(port, ram, root, sem)
+	Atapi_driver(Genode::Ram_session &ram,
+	             Ahci_root           &root,
+	             unsigned            &sem,
+	             Genode::Region_map  &rm,
+	             Hba                 &hba,
+	             Platform::Hba       &platform_hba,
+	             unsigned             number)
+	: Port_driver(ram, root, sem, rm, hba, platform_hba, number)
 	{
 		Port::init();
 		Port::write<Cmd::Atapi>(1);
