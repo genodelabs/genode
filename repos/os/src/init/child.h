@@ -134,7 +134,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 			}
 		};
 
-		Resources _resources_from_start_node(Xml_node start_node, long prio_levels,
+		Resources _resources_from_start_node(Xml_node start_node, Prio_levels prio_levels,
 		                                     Affinity::Space const &affinity_space)
 		{
 			size_t          cpu_quota_pc   = 0;
@@ -156,13 +156,13 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				}
 			});
 
-			return Resources { log2(prio_levels),
-			                  priority_from_xml(start_node, prio_levels),
-			                  Affinity(affinity_space,
-			                           affinity_location_from_xml(affinity_space, start_node)),
-			                  Ram_quota { ram_bytes },
-			                  cpu_quota_pc,
-			                  constrain_phys };
+			return Resources { log2(prio_levels.value),
+			                   priority_from_xml(start_node, prio_levels),
+			                   Affinity(affinity_space,
+			                            affinity_location_from_xml(affinity_space, start_node)),
+			                   Ram_quota { ram_bytes },
+			                   cpu_quota_pc,
+			                   constrain_phys };
 		}
 
 		Resources _resources;
@@ -360,7 +360,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		      Name_registry            &name_registry,
 		      Ram_quota                 ram_limit,
 		      Ram_limit_accessor       &ram_limit_accessor,
-		      long                      prio_levels,
+		      Prio_levels               prio_levels,
 		      Affinity::Space const    &affinity_space,
 		      Registry<Parent_service> &parent_services,
 		      Registry<Routed_service> &child_services);

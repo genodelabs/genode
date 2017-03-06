@@ -621,7 +621,7 @@ Init::Child::Child(Env                      &env,
                    Name_registry            &name_registry,
                    Ram_quota                 ram_limit,
                    Ram_limit_accessor       &ram_limit_accessor,
-                   long                      prio_levels,
+                   Prio_levels               prio_levels,
                    Affinity::Space const    &affinity_space,
                    Registry<Parent_service> &parent_services,
                    Registry<Routed_service> &child_services)

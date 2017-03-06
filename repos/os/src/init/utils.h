@@ -151,19 +151,19 @@ namespace Init {
 	/**
 	 * Read priority-levels declaration from config
 	 */
-	inline long prio_levels_from_xml(Xml_node config)
+	inline Prio_levels prio_levels_from_xml(Xml_node config)
 	{
 		long const prio_levels = config.attribute_value("prio_levels", 0UL);
 
 		if (prio_levels && (prio_levels != (1 << log2(prio_levels)))) {
 			warning("prio levels is not power of two, priorities are disabled");
-			return 0;
+			return Prio_levels { 0 };
 		}
-		return prio_levels;
+		return Prio_levels { prio_levels };
 	}
 
 
-	inline long priority_from_xml(Xml_node start_node, long prio_levels)
+	inline long priority_from_xml(Xml_node start_node, Prio_levels prio_levels)
 	{
 		long priority = Cpu_session::DEFAULT_PRIORITY;
 		try { start_node.attribute("priority").value(&priority); }
@@ -178,8 +178,8 @@ namespace Init {
 		 */
 		priority = -priority;
 
-		if (priority && (priority >= prio_levels)) {
-			long new_prio = prio_levels ? prio_levels-1 : 0;
+		if (priority && (priority >= prio_levels.value)) {
+			long new_prio = prio_levels.value ? prio_levels.value - 1 : 0;
 			char name[Service::Name::capacity()];
 			start_node.attribute("name").value(name, sizeof(name));
 			warning(Cstring(name), ": invalid priority, upgrading "

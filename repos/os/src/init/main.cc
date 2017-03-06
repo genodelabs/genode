@@ -255,7 +255,7 @@ void Init::Main::_handle_config()
 		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
 	catch (...) { }
 
-	long            const prio_levels    = prio_levels_from_xml(_config.xml());
+	Prio_levels     const prio_levels    = prio_levels_from_xml(_config.xml());
 	Affinity::Space const affinity_space = affinity_space_from_xml(_config.xml());
 
 	_update_aliases_from_config();
