@@ -1,3 +1,12 @@
+proc test_char_repeat { } {
+
+	# the character-repeat test is too timing sensitive to run reliably on
+	# Qemu
+	if {[have_include "power_on/qemu"]} { return 0 }
+
+	return 1
+}
+
 #
 # Build
 #
@@ -183,8 +192,9 @@ append config {
 			<expect_press   code="KEY_A"/>
 			<expect_char    char="A"/>
 			<expect_release code="KEY_A"/>
-			<expect_release code="KEY_RIGHTSHIFT"/>
+			<expect_release code="KEY_RIGHTSHIFT"/>}
 
+append_if [test_char_repeat] config {
 
 			<message string="test character repeat"/>
 
@@ -214,9 +224,9 @@ append config {
 			<expect_char    char="a"/> <!-- periodic character    (1400 ms) -->
 			<expect_release code="KEY_A"/>
 			<expect_press   code="KEY_B"/>
-			<expect_release code="KEY_B"/>
+			<expect_release code="KEY_B"/>}
 
-
+append config {
 			<message string="capslock handling"/>
 
 			<filter_config>
