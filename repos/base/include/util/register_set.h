@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/register.h>
+#include <util/noncopyable.h>
 #include <base/exception.h>
 
 namespace Genode {
@@ -83,7 +84,7 @@ struct Genode::Register_set_plain_access
  * 'Register_array_base' or 'Array_bitfield_base'.
  */
 template <typename PLAIN_ACCESS>
-class Genode::Register_set
+class Genode::Register_set : Noncopyable
 {
 	private:
 
