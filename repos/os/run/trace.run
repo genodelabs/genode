@@ -7,6 +7,7 @@ set build_components {
 	drivers/timer
 	test/trace
 	lib/trace/policy/null
+	app/top
 }
 
 build $build_components
@@ -44,6 +45,10 @@ append config {
 			<trace_policy label="init -> test-trace" module="null" />
 		</config>
 	</start>
+	<start name="top">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="2000"/>
+	</start>
 </config>}
 
 install_config $config
@@ -56,12 +61,13 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init
 	timer
+	top
 	test-trace
 	null
 }
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -serial mon:stdio -m 256 "
+append qemu_args " -nographic -serial mon:stdio -m 256 -smp 2 "
 
 run_genode_until {.*child "test-trace" exited with exit value 0.*} 30

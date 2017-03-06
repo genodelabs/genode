@@ -1,0 +1,13 @@
+This component obtains the information about the existing trace subjects from
+core's "TRACE" service and shows via the LOG session the highest CPU consumer
+per CPU in percentage.
+
+Configuration
+-------------
+
+The interval of output generation can be defined via the 'period_ms' attribute
+of the '<config>' node. The value is specified in milliseconds.
+
+The following example shows the default values.
+
+! <config period_ms="5000"/>
