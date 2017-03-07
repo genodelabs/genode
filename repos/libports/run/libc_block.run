@@ -1,10 +1,11 @@
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
-set use_ahci_drv    [have_spec x86]
+set use_ahci_drv    [expr [have_spec x86] && ![have_spec linux]]
+set use_ram_blk     [have_spec linux]
 
-if {[expr [have_spec linux] || [have_spec odroid_xu]]} {
+if {[have_spec odroid_xu]} {
 	puts "Run script does not support this platform"; exit }
 
-if {![have_include power_on/qemu]} {
+if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -23,6 +24,7 @@ set build_components {
 
 lappend_if $use_ahci_drv    build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
+lappend_if $use_ram_blk     build_components server/ram_blk
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -57,14 +59,13 @@ set config {
 	<start name="test-libc_block">
 		<resource name="RAM" quantum="2M"/>
 		<config>
-			<libc stdout="/dev/log">
-				<vfs>
-					<dir name="dev">
-						<log/>
-						<block name="blkdev"/>
-					</dir>
-				</vfs>
-			</libc>
+			<libc stdout="/dev/log"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<block name="blkdev"/>
+				</dir>
+			</vfs>
 		</config>
 	</start>}
 
@@ -87,6 +88,13 @@ append_if $use_sd_card_drv config {
 	</start>
 }
 
+append_if $use_ram_blk config {
+	<start name="ram_blk">
+		<resource name="RAM" quantum="128M" />
+		<provides><service name="Block"/></provides>
+		<config file="test.hda" block_size="512"/>
+	</start>}
+
 append config {
 </config>
 }
@@ -106,6 +114,8 @@ set boot_modules {
 
 lappend_if $use_ahci_drv     boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+lappend_if $use_ram_blk      boot_modules ram_blk
+lappend_if $use_ram_blk      boot_modules test.hda
 
 append_platform_drv_boot_modules
 
