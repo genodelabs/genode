@@ -18,7 +18,6 @@
 #include <base/semaphore.h>
 #include <base/thread.h>
 #include <nic_session/connection.h>
-#include <os/server.h>
 #include <net/ethernet.h>
 #include <net/ipv4.h>
 
