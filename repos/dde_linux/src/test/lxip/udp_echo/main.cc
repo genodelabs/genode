@@ -12,7 +12,9 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
+#include <libc/component.h>
 
 /* libc includes */
 #include <sys/types.h>
@@ -21,22 +23,24 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <os/config.h>
 
 using namespace Genode;
 
-int main(void)
+
+struct Test_failed : Genode::Exception { };
+
+
+static void server_loop(Genode::Xml_node config_node)
 {
 	int s;
 
 	Genode::log("Create new socket ...");
 	if((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		Genode::error("no socket available!");
-		return -1;
+		throw Test_failed();
 	}
 
 	unsigned port = 0;
-	Xml_node config_node = config()->xml_node();
 	try { config_node.attribute("port").value(&port); }
 	catch (...) {
 		error("Missing \"port\" attribute.");
@@ -49,7 +53,7 @@ int main(void)
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if(bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
 		Genode::error("bind failed!");
-		return -1;
+		throw Test_failed();
 	}
 
 	Genode::log("Start the server loop ...");
@@ -77,5 +81,20 @@ int main(void)
 		n = sendto(s, buf, n, 0, (struct sockaddr*)&addr, len);
 		Genode::log("Send ", n, " bytes back");
 	}
-	return 0;
 }
+
+
+struct Main
+{
+	Main(Genode::Env &env)
+	{
+		Genode::Attached_rom_dataspace config_rom { env, "config" };
+
+		Libc::with_libc([&] () {
+			server_loop(config_rom.xml());
+		});
+	}
+};
+
+
+void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
