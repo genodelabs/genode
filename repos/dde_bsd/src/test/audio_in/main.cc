@@ -110,8 +110,8 @@ class Recording
 			_audio_in.progress_sigh(_record_progress);
 			_audio_in.overrun_sigh(_record_overrun);
 
-			_audio_out[0] = new (&md_alloc) Audio_out::Connection("front left", true);
-			_audio_out[1] = new (&md_alloc) Audio_out::Connection("front right", true);
+			_audio_out[0] = new (&md_alloc) Audio_out::Connection(env, "front left", true);
+			_audio_out[1] = new (&md_alloc) Audio_out::Connection(env, "front right", true);
 
 			_audio_out[0]->start();
 			_audio_out[1]->start();
