@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <os/path.h>
 
@@ -27,6 +28,9 @@
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
+
+/* Genode block backend */
+#include <ffat/block.h>
 
 /* ffat includes */
 namespace Ffat { extern "C" {
@@ -138,6 +142,8 @@ class Plugin : public Libc::Plugin
 {
 	private:
 
+		Genode::Constructible<Genode::Heap> _heap;
+
 		Ffat::FATFS _fatfs;
 
 		Ffat::FIL *_get_ffat_file(Libc::File_descriptor *fd)
@@ -170,8 +176,20 @@ class Plugin : public Libc::Plugin
 		/**
 		 * Constructor
 		 */
-		Plugin() : Libc::Plugin(PLUGIN_PRIORITY)
+		Plugin() : Libc::Plugin(PLUGIN_PRIORITY) { }
+
+		~Plugin()
 		{
+			/* unmount the file system */
+			Ffat::f_mount(0, NULL);
+		}
+
+		void init(Genode::Env &env) override
+		{
+			_heap.construct(env.ram(), env.rm());
+
+			Ffat::block_init(env, *_heap);
+
 			/* mount the file system */
 			if (verbose)
 				Genode::log(__func__, ": mounting device ...");
@@ -179,12 +197,6 @@ class Plugin : public Libc::Plugin
 			if (f_mount(0, &_fatfs) != Ffat::FR_OK) {
 				Genode::error("mount failed");
 			}
-		}
-
-		~Plugin()
-		{
-			/* unmount the file system */
-			Ffat::f_mount(0, NULL);
 		}
 
 		/*
@@ -251,14 +263,14 @@ class Plugin : public Libc::Plugin
 
 			if (!ffat_file){
 				/* directory */
-				Genode::destroy(Genode::env()->heap(), context(fd));
+				Genode::destroy(&*_heap, context(fd));
 				Libc::file_descriptor_allocator()->free(fd);
 				return 0;
 			}
 
 			FRESULT res = f_close(ffat_file);
 
-			Genode::destroy(Genode::env()->heap(), context(fd));
+			Genode::destroy(&*_heap, context(fd));
 			Libc::file_descriptor_allocator()->free(fd);
 
 			switch(res) {
@@ -513,7 +525,7 @@ class Plugin : public Libc::Plugin
 
 			switch(res) {
 				case FR_OK: {
-					Plugin_context *context = new (Genode::env()->heap())
+					Plugin_context *context = new (&*_heap)
 						File_plugin_context(pathname, ffat_file);
 					context->status_flags(flags);
 					Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
@@ -533,7 +545,7 @@ class Plugin : public Libc::Plugin
 						Genode::log(__func__, ": opendir res=", (int)f_opendir_res);
 					switch(f_opendir_res) {
 						case FR_OK: {
-							Plugin_context *context = new (Genode::env()->heap())
+							Plugin_context *context = new (&*_heap)
 								Directory_plugin_context(pathname, ffat_dir);
 							context->status_flags(flags);
 							Libc::File_descriptor *f =

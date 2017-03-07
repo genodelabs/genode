@@ -16,20 +16,35 @@
 #include <base/log.h>
 #include <block_session/connection.h>
 
+/* Genode block backend */
+#include <ffat/block.h>
+
 /* Ffat includes */
 extern "C" {
 #include <ffat/diskio.h>
+}
+
+namespace Ffat {
+	void block_init(Genode::Env &, Genode::Allocator &alloc);
 }
 
 using namespace Genode;
 
 static bool const verbose = false;
 
-static Genode::Allocator_avl _block_alloc(Genode::env()->heap());
-static Block::Connection *_block_connection;
+static Constructible<Genode::Allocator_avl> _block_alloc;
+static Constructible<Block::Connection>     _block_connection;
 static size_t _blk_size = 0;
 static Block::sector_t _blk_cnt  = 0;
 static Block::Session::Tx::Source *_source;
+static Genode::Env *_global_env;
+
+
+void Ffat::block_init(Genode::Env &env, Genode::Allocator &alloc)
+{
+	_global_env = &env;
+	_block_alloc.construct(&alloc);
+}
 
 
 extern "C" DSTATUS disk_initialize (BYTE drv)
@@ -50,7 +65,7 @@ extern "C" DSTATUS disk_initialize (BYTE drv)
 	}
 
 	try {
-		_block_connection = new (Genode::env()->heap()) Block::Connection(&_block_alloc);
+		_block_connection.construct(*_global_env, &*_block_alloc);
 	} catch(...) {
 		Genode::error("could not open block connection");
 		return STA_NOINIT;
@@ -64,7 +79,7 @@ extern "C" DSTATUS disk_initialize (BYTE drv)
 	/* check for read- and write-capability */
 	if (!ops.supported(Block::Packet_descriptor::READ)) {
 		Genode::error("block device not readable!");
-		destroy(env()->heap(), _block_connection);
+		_block_connection.destruct();
 		return STA_NOINIT;
 	}
 	if (!ops.supported(Block::Packet_descriptor::WRITE)) {

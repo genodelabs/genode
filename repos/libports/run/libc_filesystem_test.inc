@@ -13,15 +13,15 @@ if {[have_spec odroid_xu] || [have_spec zynq]} {
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
 
 # use AHCI on x86
-set use_ahci        [have_spec x86]
+set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
+
+# use ram_blk on Linux
+set use_ram_blk     [have_spec linux]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
 
-if {[have_spec linux]} {
-	puts "Run script does not support this platform"; exit }
-
-if {![have_include "power_on/qemu"]} {
+if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -41,6 +41,7 @@ lappend build_components test/libc_$filesystem
 
 lappend_if $use_ahci        build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
+lappend_if $use_ram_blk     build_components server/ram_blk
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -82,15 +83,14 @@ append config {
 append_if [have_include "power_on/qemu"] config {
 			<write-read size="1M" buffer_size="8K"/>}
 append config {
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev">}
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev">}
 append config $libc_dev_blkdev
 append config {
-						<log/>
-					</dir>
-				</vfs>
-			</libc>
+					<log/>
+				</dir>
+			</vfs>
 		</config>
 	</start>}
 
@@ -117,6 +117,13 @@ append_if $use_sd_card_drv config {
 	</start>
 }
 
+append_if $use_ram_blk config {
+	<start name="ram_blk">
+		<resource name="RAM" quantum="128M" />
+		<provides><service name="Block"/></provides>
+		<config file="test.hda" block_size="512"/>
+	</start>}
+
 append config {
 </config>
 }
@@ -139,6 +146,8 @@ append boot_modules libc_$filesystem.lib.so
 
 lappend_if $use_ahci         boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+lappend_if $use_ram_blk      boot_modules ram_blk
+lappend_if $use_ram_blk      boot_modules test.hda
 
 append_platform_drv_boot_modules
 

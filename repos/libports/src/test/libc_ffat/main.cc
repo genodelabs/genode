@@ -13,7 +13,8 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
+#include <libc/component.h>
 
 /* libc includes */
 #include <dirent.h>
@@ -27,14 +28,27 @@
 #include <errno.h>
 
 
-static void test_write_read()
+struct Test_failed : Genode::Exception { };
+
+#define CALL_AND_CHECK(ret, operation, condition, info_string, ...) \
+	printf("calling " #operation " " info_string "\n", ##__VA_ARGS__); \
+	ret = operation; \
+	if (condition) { \
+		printf(#operation " succeeded\n"); \
+	} else { \
+		printf(#operation " failed, " #ret "=%ld, errno=%d\n", (long)ret, errno); \
+		throw Test_failed(); \
+	}
+
+
+static void test_write_read(Genode::Xml_node node)
 {
 	size_t rounds      = 4;
 	size_t size        = 4*1024*1024;
 	size_t buffer_size = 32*1024;
 
 	try {
-		Genode::Xml_node config = Genode::config()->xml_node().sub_node("write-read");
+		Genode::Xml_node config = node.sub_node("write-read");
 
 		try { config.attribute("rounds").value(&rounds); } catch (...) { }
 
@@ -78,18 +92,7 @@ static void test_write_read()
 }
 
 
-#define CALL_AND_CHECK(ret, operation, condition, info_string, ...) \
-	printf("calling " #operation " " info_string "\n", ##__VA_ARGS__); \
-	ret = operation; \
-	if (condition) { \
-		printf(#operation " succeeded\n"); \
-	} else { \
-		printf(#operation " failed, " #ret "=%ld, errno=%d\n", (long)ret, errno); \
-		return -1; \
-	}
-
-
-int main(int argc, char *argv[])
+static void test(Genode::Xml_node node)
 {
 	int ret, fd;
 	ssize_t count;
@@ -108,7 +111,7 @@ int main(int argc, char *argv[])
 	unsigned int iterations = 1;
 
 	try {
-		Genode::config()->xml_node().sub_node("iterations").attribute("value").value(&iterations);
+		node.sub_node("iterations").attribute("value").value(&iterations);
 	} catch(...) { }
 
 	for (unsigned int i = 0; i < iterations; i++) {
@@ -148,7 +151,7 @@ int main(int argc, char *argv[])
 		printf("content of file: \"%s\"\n", buf);
 		if (strcmp(buf, pattern) != 0) {
 			printf("unexpected content of file\n");
-			return -1;
+			throw Test_failed();
 		} else {
 			printf("file content is correct\n");
 		}
@@ -176,7 +179,7 @@ int main(int argc, char *argv[])
 		printf("content of file: \"%s\"\n", buf);
 		if (strcmp(buf, &pattern[2]) != 0) {
 			printf("unexpected content of file\n");
-			return -1;
+			throw Test_failed();
 		} else {
 			printf("file content is correct\n");
 		}
@@ -205,7 +208,7 @@ int main(int argc, char *argv[])
 		printf("content of buffer: \"%s\"\n", buf);
 		if (strcmp(buf, pattern) != 0) {
 			printf("unexpected content of file\n");
-			return -1;
+			throw Test_failed();
 		} else {
 			printf("file content is correct\n");
 		}
@@ -234,21 +237,21 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(ret, ftruncate(fd, 100), ret == 0, ""); /* increase size */
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		CALL_AND_CHECK(ret, stat(file_name4, &stat_buf),
-		               (ret == 0) && (stat_buf.st_size == 100),
-		               "file_name=%s", file_name4);
+					   (ret == 0) && (stat_buf.st_size == 100),
+					   "file_name=%s", file_name4);
 		CALL_AND_CHECK(fd, open(file_name4, O_WRONLY), fd >= 0, "file_name=%s", file_name4);
 		CALL_AND_CHECK(ret, ftruncate(fd, 10), ret == 0, ""); /* decrease size */
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		CALL_AND_CHECK(ret, stat(file_name4, &stat_buf),
-		               (ret == 0) && (stat_buf.st_size == 10),
-		               "file_name=%s", file_name4);
+					   (ret == 0) && (stat_buf.st_size == 10),
+					   "file_name=%s", file_name4);
 
 		/* test 'O_TRUNC' flag */
 		CALL_AND_CHECK(fd, open(file_name4, O_WRONLY | O_TRUNC), fd >= 0, "file_name=%s", file_name4);
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		CALL_AND_CHECK(ret, stat(file_name4, &stat_buf),
-		               (ret == 0) && (stat_buf.st_size == 0),
-		               "file_name=%s", file_name4);
+					   (ret == 0) && (stat_buf.st_size == 0),
+					   "file_name=%s", file_name4);
 
 		/* test 'fchdir()' */
 		CALL_AND_CHECK(fd, open(dir_name, O_RDONLY), fd >= 0, "dir_name=%s", dir_name);
@@ -268,7 +271,7 @@ int main(int argc, char *argv[])
 			CALL_AND_CHECK(ret, mkdir("a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "a");
 			CALL_AND_CHECK(ret, mkdir("c", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "c");
 			CALL_AND_CHECK(ret, symlink("../a", "c/d"),
-			               ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c/d");
+						   ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c/d");
 			CALL_AND_CHECK(ret, symlink("c", "e"), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "e");
 
 			CALL_AND_CHECK(fd, open("a/b", O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", "a/b");
@@ -281,7 +284,7 @@ int main(int argc, char *argv[])
 			printf("content of file: \"%s\"\n", buf);
 			if (strcmp(buf, pattern) != 0) {
 				printf("unexpected content of file\n");
-				return -1;
+				throw Test_failed();
 			} else {
 				printf("file content is correct\n");
 			}
@@ -294,10 +297,26 @@ int main(int argc, char *argv[])
 		if (i < (iterations - 1))
 			sleep(2);
 	}
-
-	test_write_read();
-
-	printf("test finished\n");
-
-	return 0;
 }
+
+
+struct Main
+{
+	Main(Genode::Env &env)
+	{
+		Genode::Attached_rom_dataspace config_rom { env, "config" };
+
+		Libc::with_libc([&] () {
+
+			test(config_rom.xml());
+			test_write_read(config_rom.xml());
+
+			printf("test finished\n");
+		});
+
+		env.parent().exit(0);
+	}
+};
+
+
+void Libc::Component::construct(Libc::Env &env) { static Main main(env); }

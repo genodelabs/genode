@@ -1,5 +1,5 @@
 TARGET = test-libc_vfs
-LIBS   = posix
+LIBS   = libc
 SRC_CC = main.cc
 
 # we re-use the libc_ffat test
