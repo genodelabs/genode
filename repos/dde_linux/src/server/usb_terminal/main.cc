@@ -12,6 +12,7 @@
  * version 2.
  */
 
+/* Genode includes */
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_ram_dataspace.h>
@@ -67,7 +68,7 @@ struct Usb::Pl2303_driver : Completion
 	Genode::Signal_handler<Pl2303_driver> _state_handler {
 		_env.ep(), *this, &Pl2303_driver::_handle_state_change };
 
-	Usb::Connection _connection { &_alloc, "usb_serial", 512 * 1024, _state_handler };
+	Usb::Connection _connection { _env, &_alloc, "usb_serial", 512 * 1024, _state_handler };
 	Usb::Device     _device     { &_heap, _connection, _env.ep() };
 
 	Signal_context_capability _connected_sigh;
