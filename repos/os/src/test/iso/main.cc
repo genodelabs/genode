@@ -61,7 +61,7 @@ void Component::construct(Genode::Env &env)
 	log(Hexdump(ptr, 0x10000));
 	log(Hexdump(ptr, 0x20000));
 
-	Attached_rom_dataspace rom("/notavail.txt");
+	Attached_rom_dataspace rom(env, "/notavail.txt");
 	if (!rom.valid())
 		log("Expected ROM error occured");
 	else
