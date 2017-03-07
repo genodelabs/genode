@@ -12,7 +12,10 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/snprintf.h>
+#include <libc/component.h>
+#include <timer_session/connection.h>
 
 /* libc includes */
 #include <sys/types.h>
@@ -21,25 +24,25 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <timer_session/connection.h>
-#include <os/config.h>
 
 using namespace Genode;
 
-int main(void)
+
+struct Failure : Genode::Exception { };
+
+
+static void client_loop(Genode::Xml_node config_node, Timer::Connection &timer)
 {
 	int s;
-	static Timer::Connection _timer;
 	log("Start the client loop ...");
 	for(int j = 0; j != 5; ++j) {
-		_timer.msleep(2000);
+		timer.msleep(2000);
 		if((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			error("No socket available!");
-			return -1;
+			throw Failure();
 		}
 		enum { ADDR_STR_SZ = 16 };
 		char serv_addr[ADDR_STR_SZ] = { 0 };
-		Xml_node config_node = config()->xml_node();
 		try { config_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
 		catch(...) {
 			error("Missing \"server_ip\" attribute.");
@@ -72,8 +75,24 @@ int main(void)
 		}
 		log("Received \"", String<64>(buf), " ...\"");
 	}
-	_timer.msleep(2000);
+	timer.msleep(2000);
 
 	log("Test done");
-	return 0;
 }
+
+
+struct Main
+{
+	Main(Genode::Env &env)
+	{
+		Genode::Attached_rom_dataspace config_rom { env, "config" };
+		Timer::Connection              timer      { env };
+
+		Libc::with_libc([&] () {
+			client_loop(config_rom.xml(), timer);
+		});
+	}
+};
+
+
+void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
