@@ -1,0 +1,44 @@
+
+                      ==================================
+                      Component for tracking NIC traffic
+                      ==================================
+
+
+Brief
+#####
+
+The 'nic_dump' component is a bump-in-the-wire component for the NIC service
+that does deep packet inspection for each passing packet and dumps the
+gathered information to the log. This includes information about Ethernet,
+ARP, IPv4, TCP, UDP, and DHCP.
+
+
+Basics
+######
+
+The component knows three configuration attributes:
+
+! <config uplink="karl" downlink="olivia" time="yes"/>
+
+The values of the 'uplink' and 'downlink' attributes are used as log labels
+for the two NIC peers. These labels are only relevant for the readability of
+the log. The third attribute 'time' defines wether to print timing
+information or not.
+
+An example output snippet of the component might be:
+
+! (olivia <- karl) ETH ... ARP ... time 4626 (15)
+! (karl <- olivia) ETH ... ARP ... time 4639 (7)
+! (olivia <- karl) ETH ... IPV4 ... TCP ... time 4644 (5)
+! (karl <- olivia) ETH ... IPV4 ... TCP ... time 4660 (6)
+
+After the NIC peer labels and the traffic direction, the unfolding of the
+protocols and their information follows. The printing order is from the lowest
+to the highest networking layer. At the end of each line there is the word
+'time' followed by two numbers if you have enabled timing information. The
+first number is the packet-arrival time (the milliseconds since 'nic_dump' was
+started). The second number is the time from the last packet that passed till
+this one (milliseconds).
+
+A comprehensive example of how to use the NIC dump can be found in the test
+script 'libports/run/nic_dump.run'.
