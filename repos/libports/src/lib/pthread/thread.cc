@@ -586,9 +586,44 @@ extern "C" {
 	}
 
 
-	static unsigned long timespec_to_ms(const struct timespec ts)
+	static uint64_t timeout_ms(struct timespec currtime,
+	                           struct timespec abstimeout)
 	{
-		return (ts.tv_sec * 1000) + (ts.tv_nsec / (1000 * 1000));
+		enum { S_IN_MS = 1000, S_IN_NS = 1000 * 1000 * 1000 };
+
+		if (currtime.tv_nsec >= S_IN_NS) {
+			currtime.tv_sec  += currtime.tv_nsec / S_IN_NS;
+			currtime.tv_nsec  = currtime.tv_nsec % S_IN_NS;
+		}
+		if (abstimeout.tv_nsec >= S_IN_NS) {
+			abstimeout.tv_sec  += abstimeout.tv_nsec / S_IN_NS;
+			abstimeout.tv_nsec  = abstimeout.tv_nsec % S_IN_NS;
+		}
+
+		/* check whether absolute timeout is in the past */
+		if (currtime.tv_sec > abstimeout.tv_sec)
+			return 0;
+
+		uint64_t diff_ms = (abstimeout.tv_sec - currtime.tv_sec) * S_IN_MS;
+		uint64_t diff_ns = 0;
+
+		if (abstimeout.tv_nsec >= currtime.tv_nsec)
+			diff_ns = abstimeout.tv_nsec - currtime.tv_nsec;
+		else {
+			/* check whether absolute timeout is in the past */
+			if (diff_ms == 0)
+				return 0;
+			diff_ns  = S_IN_NS - currtime.tv_nsec + abstimeout.tv_nsec;
+			diff_ms -= S_IN_MS;
+		}
+
+		diff_ms += diff_ns / 1000 / 1000;
+
+		/* if there is any diff then let the timeout be at least 1 MS */
+		if (diff_ms == 0 && diff_ns != 0)
+			return 1;
+
+		return diff_ms;
 	}
 
 
@@ -597,7 +632,6 @@ extern "C" {
 	                           const struct timespec *__restrict abstime)
 	{
 		int result = 0;
-		Alarm::Time timeout = 0;
 
 		if (!cond || !*cond)
 			return EINVAL;
@@ -615,10 +649,9 @@ extern "C" {
 		else {
 			struct timespec currtime;
 			clock_gettime(CLOCK_REALTIME, &currtime);
-			unsigned long abstime_ms = timespec_to_ms(*abstime);
-			unsigned long currtime_ms = timespec_to_ms(currtime);
-			if (abstime_ms > currtime_ms)
-				timeout = abstime_ms - currtime_ms;
+
+			Alarm::Time timeout = timeout_ms(currtime, *abstime);
+
 			try {
 				c->signal_sem.down(timeout);
 			} catch (Timeout_exception) {
