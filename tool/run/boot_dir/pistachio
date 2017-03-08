@@ -1,19 +1,10 @@
 proc binary_name_ld_lib_so { } { return "ld-pistachio.lib.so" }
 proc binary_name_core_o    { } { return "pistachio/core.o"    }
-proc binary_name_timer     { } { return "pistachio_timer_drv" }
+proc binary_name_timer     { } { return "pit_timer_drv" }
 
 
 proc run_boot_string   { } { return "\n\r\033\\\[1m\033\\\[33mL4Ka::Pistachio -" }
 proc core_link_address { } { return "0x02000000" }
-
-
-##
-# Install files needed to boot via PXE
-#
-proc install_pxe_bootloader_to_run_dir { } {
-	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
-	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
-}
 
 
 ##
