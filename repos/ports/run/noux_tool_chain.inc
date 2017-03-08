@@ -151,7 +151,7 @@ append config {
 		</config>
 	</start>
 	<start name="ram_fs">
-		<resource name="RAM" quantum="100M"/>
+		<resource name="RAM" quantum="124M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<content>
