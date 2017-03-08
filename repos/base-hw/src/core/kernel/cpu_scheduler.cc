@@ -132,10 +132,14 @@ void Cpu_scheduler::_quota_adaption(Share * const s, unsigned const q)
 
 void Cpu_scheduler::update(unsigned q)
 {
-	unsigned const r = _trim_consumption(q);
-	if (_head_claims) { _head_claimed(r); }
-	else { _head_filled(r); }
-	_consumed(q);
+	/* do not detract the quota if the head context was removed even now */
+	if (_head) {
+		unsigned const r = _trim_consumption(q);
+		if (_head_claims) { _head_claimed(r); }
+		else              { _head_filled(r);  }
+		_consumed(q);
+	}
+
 	if (_claim_for_head()) { return; }
 	if (_fill_for_head()) { return; }
 	_set_head(_idle, _fill, 0);
@@ -144,6 +148,8 @@ void Cpu_scheduler::update(unsigned q)
 
 bool Cpu_scheduler::ready_check(Share * const s1)
 {
+	assert(_head);
+
 	ready(s1);
 	Share * s2 = _head;
 	if (!s1->_claim) { return s2 == _idle; }
@@ -185,16 +191,7 @@ void Cpu_scheduler::remove(Share * const s)
 {
 	assert(s != _idle);
 
-	/*
-	 * FIXME
-	 * Thanks to helping, this can happen and shall not be treated as bad
-	 * behavior. But by now, we have no stable solution for it.
-	 *
-	 */
-	if (s == _head) {
-		Genode::error("Removing the head of the CPU scheduler isn't supported by now.");
-		while (1) ;
-	}
+	if (s == _head) _head = nullptr;
 	if (s->_ready) { _fills.remove(s); }
 	if (!s->_quota) { return; }
 	if (s->_ready) { _rcl[s->_prio].remove(s); }
