@@ -1,3 +1,5 @@
+REQUIRES = x86
+
 TARGET := dosbox
 
 DOSBOX_DIR := $(call select_from_ports,dosbox)/src/app/dosbox
