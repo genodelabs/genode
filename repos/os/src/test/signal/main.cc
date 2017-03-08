@@ -617,6 +617,9 @@ struct Nested_stress_test : Signal_test
 
 	~Nested_stress_test()
 	{
+		/* tell timer not to send any signals anymore. */
+		timer.sigh(Timer::Session::Signal_context_capability());
+
 		/* let senders stop burning our CPU time */
 		sender_1.destruct = true;
 		sender_2.destruct = true;
@@ -634,6 +637,9 @@ struct Nested_stress_test : Signal_test
 		sender_1.transmitter.submit();
 		sender_2.transmitter.submit();
 		sender_3.transmitter.submit();
+
+		/* wait until threads joined */
+		sender_1.join(); sender_2.join(), sender_3.join();
 	}
 
 	void handle_poll()
