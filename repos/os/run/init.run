@@ -743,6 +743,118 @@ append config {
 			</expect_init_state>
 
 
+			<message string="forward session request to children"/>
+
+			<init_config>
+				<report child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="service_init">
+					<binary name="init"/>
+					<resource name="RAM" quantum="10M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config>
+						<parent-provides>
+							<service name="ROM"/> <service name="RAM"/>
+							<service name="CPU"/> <service name="PD"/>
+							<service name="LOG"/>
+						</parent-provides>
+						<service name="LOG">
+							<default-policy> <child name="server"/> </default-policy>
+						</service>
+						<start name="server">
+							<binary name="dummy"/>
+							<resource name="RAM" quantum="1M"/>
+							<provides> <service name="LOG"/> </provides>
+							<config> <log_service verbose="yes"/> </config>
+							<route> <any-service> <parent/> </any-service> </route>
+						</start>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="initial">
+						<create_log_connections count="1" ram_upgrade="3M"/>
+						<destroy_log_connections/>
+					</config>
+					<route>
+						<service name="LOG"> <child name="service_init"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> service_init -> server] created LOG service"/>
+			<expect_log string="[init -> service_init -> server] opening session with label test"/>
+			<expect_log string="[init -> service_init -> server] [test] going to create 1 LOG connections"/>
+			<expect_log string="[init -> service_init -> server] opening session with label test -> 0"/>
+			<expect_log string="[init -> service_init -> server] [test] upgrade connection 0"/>
+			<expect_log string="[init -> service_init -> server] received session quota upgrade"/>
+			<expect_log string="[init -> service_init -> server] [test] created all LOG connections"/>
+			<expect_log string="[init -> service_init -> server] closing session with label test -> 0"/>
+			<expect_log string="[init -> service_init -> server] [test] destroyed all LOG connections"/>
+			<sleep ms="150"/>
+			<!-- after closing the LOG session, the session quota is returned to
+			     the 'test' client -->
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="ram"> <attribute name="avail" higher="3M"/> </node>
+				</node>
+			</expect_init_state>
+
+			<!-- change init service policy such that the route of the
+			     remaining LOG session of 'test' is no longer valid. We
+			     expect the 'service_init' to issue a close request to the
+			     embedded server -->
+
+			<init_config>
+				<report child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/> <service name="RAM"/>
+					<service name="CPU"/> <service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="service_init">
+					<binary name="init"/>
+					<resource name="RAM" quantum="10M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config>
+						<parent-provides>
+							<service name="ROM"/> <service name="RAM"/>
+							<service name="CPU"/> <service name="PD"/>
+							<service name="LOG"/>
+						</parent-provides>
+						<start name="server">
+							<binary name="dummy"/>
+							<resource name="RAM" quantum="1M"/>
+							<provides> <service name="LOG"/> </provides>
+							<config> <log_service verbose="yes"/> </config>
+							<route> <any-service> <parent/> </any-service> </route>
+						</start>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="initial">
+						<create_log_connections count="1" ram_upgrade="3M"/>
+						<destroy_log_connections/>
+					</config>
+					<route>
+						<service name="LOG"> <child name="service_init"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> service_init -> server] closing session with label test"/>
+			<sleep ms="100"/>
+
+
 			<message string="test complete"/>
 
 		</config>
@@ -786,5 +898,5 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-init" exited with exit value 0.*} 60
+run_genode_until {.*child "test-init" exited with exit value 0.*} 120
 

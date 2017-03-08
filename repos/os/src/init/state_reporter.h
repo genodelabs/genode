@@ -14,8 +14,12 @@
 #ifndef _SRC__INIT__STATE_REPORTER_H_
 #define _SRC__INIT__STATE_REPORTER_H_
 
+/* Genode includes */
 #include <os/reporter.h>
 #include <timer_session/connection.h>
+
+/* local includes */
+#include <report.h>
 
 namespace Init { class State_reporter; }
 

@@ -20,6 +20,7 @@
 #include <child.h>
 #include <alias.h>
 #include <state_reporter.h>
+#include <server.h>
 
 namespace Init { struct Main; }
 
@@ -108,6 +109,8 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
+
+	Server _server { _env, _heap, _child_services, _state_reporter };
 
 	Main(Env &env) : _env(env)
 	{
@@ -358,6 +361,8 @@ void Init::Main::_handle_config()
 	 */
 	_children.for_each_child([&] (Child &child) { child.apply_ram_downgrade(); });
 	_children.for_each_child([&] (Child &child) { child.apply_ram_upgrade(); });
+
+	_server.apply_config(_config.xml());
 }
 
 

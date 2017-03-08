@@ -15,6 +15,7 @@
 #define _SRC__INIT__TYPES_H_
 
 #include <util/string.h>
+#include <util/list.h>
 
 namespace Init {
 

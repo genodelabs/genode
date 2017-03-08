@@ -14,6 +14,9 @@
 #ifndef _SRC__INIT__BUFFERED_XML_H_
 #define _SRC__INIT__BUFFERED_XML_H_
 
+/* Genode includes */
+#include <util/xml_node.h>
+
 namespace Init { class Buffered_xml; }
 
 

@@ -14,10 +14,15 @@
 #ifndef _SRC__INIT__SERVICE_H_
 #define _SRC__INIT__SERVICE_H_
 
+/* Genode includes */
+#include <base/service.h>
+#include <base/child.h>
+
 namespace Init {
 	class Abandonable;
 	class Parent_service;
 	class Routed_service;
+	class Forwarded_service;
 }
 
 
@@ -68,6 +73,8 @@ class Init::Routed_service : public Child_service, public Abandonable
 
 		Ram_accessor &_ram_accessor;
 
+		Session_state::Factory &_factory;
+
 		Registry<Routed_service>::Element _registry_element;
 
 	public:
@@ -91,12 +98,21 @@ class Init::Routed_service : public Child_service, public Abandonable
 			Child_service(server_id_space, factory, name,
 			              Ram_session_capability(), wakeup),
 			_child_name(child_name), _ram_accessor(ram_accessor),
-			_registry_element(services, *this)
+			_factory(factory), _registry_element(services, *this)
 		{ }
 
 		Child_name const &child_name() const { return _child_name; }
 
 		Ram_session_capability ram() const { return _ram_accessor.ram(); }
+
+		/**
+		 * Return factory for creating/destroying session-state objects
+		 *
+		 * This accessor is solely meant to be used by 'Forwarded_service' to
+		 * allocate session-state objects for sessions requested by init's
+		 * parent.
+		 */
+		Session_state::Factory &factory() { return _factory; }
 };
 
 #endif /* _SRC__INIT__SERVICE_H_ */
