@@ -112,11 +112,12 @@ struct Test_out_of_metadata
 
 	struct Test_thread : Genode::Thread
 	{
-		Test_thread(Genode::Env          &env,
-		            Genode::Thread::Name  name)
-		: Thread(env, name, 4096) { start(); }
+		Test_thread(Genode::Env &env, const char * name)
+		: Thread(env, Thread::Name(name), 4096) { start(); }
 
-		void entry() { Genode::sleep_forever(); }
+		~Test_thread() { join(); }
+
+		void entry() { }
 	};
 
 	Test_out_of_metadata(Env &env) : env(env)
@@ -152,14 +153,11 @@ struct Test_out_of_metadata
 			 * are not enough available subjects to trigger the Out_of_metadata
 			 * exception.
 			 */
-			Test_thread::Name thread_name1 { "test-thread1" };
-			Test_thread       thread1      { env, thread_name1 };
-			Test_thread::Name thread_name2 { "test-thread2" };
-			Test_thread       thread2      { env, thread_name2 };
-			Test_thread::Name thread_name3 { "test-thread3" };
-			Test_thread       thread3      { env, thread_name3 };
-			Test_thread::Name thread_name4 { "test-thread4" };
-			Test_thread       thread4      { env, thread_name4 };
+			Test_thread thread1 { env, "test-thread1" };
+			Test_thread thread2 { env, "test-thread2" };
+			Test_thread thread3 { env, "test-thread3" };
+			Test_thread thread4 { env, "test-thread4" };
+			Test_thread thread5 { env, "test-thread5" };
 
 			Trace::Connection trace(env, sizeof(subject_ids) + 5*4096,
 			                        sizeof(subject_ids), 0);

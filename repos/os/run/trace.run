@@ -68,6 +68,7 @@ set boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -serial mon:stdio -m 256 -smp 2 "
+append qemu_args " -nographic -serial mon:stdio -m 256 "
+append_if [have_spec x86] qemu_args " -smp 2 "
 
 run_genode_until {.*child "test-trace" exited with exit value 0.*} 30
