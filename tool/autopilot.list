@@ -87,3 +87,4 @@ timer_accuracy
 trace
 input_filter
 init
+nic_dump
