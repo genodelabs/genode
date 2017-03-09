@@ -8,8 +8,9 @@ proc enable_test_2 { } { return 1 }
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 proc nic_drv { } {
-	if {[have_spec omap4] || [have_spec arndale] || [have_spec rpi]} { return usb_drv }
-	if {!([have_spec imx53] || [have_spec riscv] || [have_spec odroid_xu] || [have_spec wand_quad])} { return nic_drv }
+	if {[nic_drv_binary] == "usb_drv"} { return usb_drv }
+	if {[nic_drv_binary] == ""}        { return "" }
+	return nic_drv
 }
 
 proc gpio_drv { } {
@@ -54,6 +55,7 @@ proc nic_drv_config { } {
 	if {[nic_drv] == "nic_drv"} {
 		append result {
 			<start name="nic_drv">
+				<binary name="} [nic_drv_binary] {"/>
 				<resource name="RAM" quantum="6M"/>
 				<provides><service name="Nic"/></provides>
 			</start>}
@@ -247,7 +249,7 @@ build_boot_image "
 	core init timer nic_router nic_bridge ld.lib.so libc.lib.so libm.lib.so
 	libc_resolv.lib.so lwip.lib.so lxip.lib.so test-http_clnt
 	test-lwip_httpsrv_static nic_dump test-lxip_udp_echo test-lxip_udp_client
-	[nic_drv] [gpio_drv] [platform_drv_boot_modules]"
+	[nic_drv_binary] [gpio_drv] [platform_drv_boot_modules]"
 
 proc nic_qemu_args { } {
 	if {[have_spec x86]}     { return "-net nic,model=e1000" }

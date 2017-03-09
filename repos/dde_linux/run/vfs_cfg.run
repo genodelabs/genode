@@ -14,7 +14,7 @@ build $build_components
 
 create_boot_directory
 
-set config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="CPU"/>
@@ -35,7 +35,8 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
@@ -82,8 +83,8 @@ append config {
 
 install_config $config
 
-set boot_modules {
-	core init timer nic_drv vfs dynamic_rom
+append boot_modules {
+	core init timer } [nic_drv_binary] { vfs dynamic_rom
 	ld.lib.so vfs_lxip.lib.so lxip.lib.so
 }
 

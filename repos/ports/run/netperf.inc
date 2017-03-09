@@ -167,6 +167,7 @@ append_if $use_usb_driver config {
 
 append_if $use_nic_driver config {
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>}
@@ -274,7 +275,7 @@ lappend_if $use_nic_bridge boot_modules nic_bridge
 # platform-specific modules
 lappend_if [have_spec gpio]          boot_modules [gpio_drv]
 lappend_if $use_usb_driver           boot_modules usb_drv
-lappend_if $use_nic_driver           boot_modules nic_drv
+lappend_if $use_nic_driver           boot_modules [nic_drv_binary]
 
 append_if $use_wifi_driver boot_modules {
 	ram_fs fs_rom report_rom

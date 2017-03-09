@@ -47,6 +47,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -96,9 +97,9 @@ install_config $config
 #
 
 # generic modules
-set boot_modules {
+append boot_modules {
 	core init
-	timer nic_drv
+	timer } [nic_drv_binary] {
 	nic_bridge
 	ld.lib.so
 	libc.lib.so
@@ -116,7 +117,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 512 "
+append qemu_args " -m 512 -nographic "
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "

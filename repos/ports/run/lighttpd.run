@@ -43,6 +43,7 @@ append_platform_drv_config
 
 append config {
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -53,15 +54,14 @@ append config {
 			<arg value="-f" />
 			<arg value="/etc/lighttpd/lighttpd.conf" />
 			<arg value="-D" />
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev">
-						<log/>
-						<null/>
-					</dir>
-					<dir name="etc">
-						<dir name="lighttpd">
-							<inline name="lighttpd.conf">
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<null/>
+				</dir>
+				<dir name="etc">
+					<dir name="lighttpd">
+						<inline name="lighttpd.conf">
 # lighttpd configuration
 server.port          = 80
 server.document-root = "/website"
@@ -74,11 +74,11 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
-							</inline>
-						</dir>
+						</inline>
 					</dir>
-					<dir name="website">
-						<inline name="index.html">
+				</dir>
+				<dir name="website">
+					<inline name="index.html">
 <html>
 	<head>
 		<title>Hello</title>
@@ -88,10 +88,10 @@ mimetype.assign      = (
 		<b>I am bold ;-)</b>
 	</body>
 </html>
-						</inline>
-					</dir>
-				</vfs>
-			</libc>
+					</inline>
+				</dir>
+			</vfs>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>}
 
@@ -106,8 +106,8 @@ install_config $config
 #
 
 # generic modules
-set boot_modules {
-	core init timer ld.lib.so nic_drv
+append boot_modules {
+	core init timer ld.lib.so } [nic_drv_binary] {
 	libc.lib.so libm.lib.so
 	lwip.lib.so zlib.lib.so
 	lighttpd

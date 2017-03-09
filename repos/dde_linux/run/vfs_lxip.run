@@ -16,7 +16,7 @@ build $build_components
 
 create_boot_directory
 
-set config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -39,6 +39,7 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
@@ -63,14 +64,13 @@ set config {
 	<start name="test-vfs_lxip">
 		<resource name="RAM" quantum="48M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="socket">
-						<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
-					</dir>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket">
+					<lxip ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 <!--
@@ -88,9 +88,8 @@ append config {
 
 install_config $config
 
-set boot_modules {
-	core init timer
-	nic_drv
+append boot_modules {
+	core init timer } [nic_drv_binary] {
 	ld.lib.so libc.lib.so libc_lock_pipe.lib.so
 	libm.lib.so
 	vfs_lxip.lib.so lxip.lib.so

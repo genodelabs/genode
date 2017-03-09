@@ -47,6 +47,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -68,16 +69,14 @@ append config {
 			<arg value="-f" />
 			<arg value="/etc/lighttpd/lighttpd.conf" />
 			<arg value="-D" />
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1">
-				<vfs>
-					<dir name="dev">
-						<log/>
-						<null/>
-					</dir>
-					<dir name="etc">
-						<dir name="lighttpd">
-							<inline name="lighttpd.conf">
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<null/>
+				</dir>
+				<dir name="etc">
+					<dir name="lighttpd">
+						<inline name="lighttpd.conf">
 # lighttpd configuration
 server.port          = 80
 server.document-root = "/website"
@@ -90,11 +89,11 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
-							</inline>
-						</dir>
+						</inline>
 					</dir>
-					<dir name="website">
-						<inline name="index.html">
+				</dir>
+				<dir name="website">
+					<inline name="index.html">
 <html>
 	<head>
 		<title>Hello</title>
@@ -104,10 +103,11 @@ mimetype.assign      = (
 		<b>I am bold ;-)</b>
 	</body>
 </html>
-						</inline>
-					</dir>
-				</vfs>
-			</libc>
+					</inline>
+				</dir>
+			</vfs>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -121,9 +121,8 @@ mimetype.assign      = (
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config server_ip="10.0.2.55" server_port="80">
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>}
@@ -135,9 +134,9 @@ install_config $config
 #
 
 # generic modules
-set boot_modules {
+append boot_modules {
 	core init
-	timer nic_drv
+	timer } [nic_drv_binary] {
 	nic_bridge
 	ld.lib.so
 	libc.lib.so

@@ -1,4 +1,4 @@
-assert_spec linux
+assert_spec x86
 
 set build_components {
 	core init
@@ -14,7 +14,7 @@ build $build_components
 
 create_boot_directory
 
-set config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -37,7 +37,8 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
@@ -146,8 +147,8 @@ append config {
 
 install_config $config
 
-set boot_modules {
-	core init timer nic_drv ram_fs vfs
+append boot_modules {
+	core init timer } [nic_drv_binary] { ram_fs vfs
 	ld.lib.so libc.lib.so libm.lib.so
 	libc_resolv.lib.so stdcxx.lib.so libc_pipe.lib.so
 	vfs_lxip.lib.so lxip.lib.so
@@ -157,6 +158,8 @@ set boot_modules {
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
+
+append qemu_args " -nographic -net nic,model=e1000 -net tap,ifname=tap0,downscript=no,script=no "
 
 run_genode_until forever
 

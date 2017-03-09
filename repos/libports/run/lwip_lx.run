@@ -1,3 +1,5 @@
+assert_spec linux
+
 #
 # Build
 #
@@ -34,16 +36,15 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="nic_drv">
+	<start name="linux_nic_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="5M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>
@@ -56,8 +57,8 @@ install_config $config
 #
 
 set boot_modules {
-	core init timer nic_drv
-	ld.lib.so libc.lib.so lwip.lib.so test-lwip_httpsrv
+	core init timer linux_nic_drv
+	ld.lib.so libc.lib.so libm.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 build_boot_image $boot_modules

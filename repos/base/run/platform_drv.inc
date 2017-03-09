@@ -30,6 +30,16 @@ proc need_usb_hid { } {
 }
 
 
+##
+# Return name of the NIC driver binary
+#
+proc nic_drv_binary { } {
+	if {[have_spec linux]} { return linux_nic_drv }
+	if {[have_spec omap4] || [have_spec arndale] || [have_spec rpi]} { return usb_drv }
+	if {!([have_spec imx53] || [have_spec riscv] || [have_spec odroid_xu] || [have_spec wand_quad])} { return nic_drv }
+}
+
+
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform

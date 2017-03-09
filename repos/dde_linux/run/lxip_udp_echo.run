@@ -29,7 +29,7 @@ create_boot_directory
 # Generate config
 #
 
-set config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -52,21 +52,20 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="test-lxip_udp_echo">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="28M"/>
 		<config port="1337">
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" ip_addr="10.0.2.55"
-			      gateway="10.0.2.1" netmask="255.255.255.0">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			      gateway="10.0.2.1" netmask="255.255.255.0"/>
 		</config>
 	</start>}
 
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
+append_if [have_spec gpio] config {
+	<start name="} [gpio_drv] {">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Gpio\"/></provides>
 		<config/>
-	</start>"
+	</start>}
 
 append_if $use_usb_driver config {
 	<start name="usb_drv">
@@ -83,6 +82,7 @@ append_platform_drv_config
 
 append_if $use_nic_driver config {
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>}
@@ -106,7 +106,7 @@ set boot_modules {
 
 # platform-specific modules
 lappend_if $use_usb_driver              boot_modules usb_drv
-lappend_if $use_nic_driver              boot_modules nic_drv
+lappend_if $use_nic_driver              boot_modules [nic_drv_binary]
 lappend_if [have_spec gpio]             boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules
