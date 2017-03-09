@@ -75,11 +75,17 @@ class Test::Input_from_filter
 
 		bool _input_expected = false;
 
+		bool _handle_input_in_progress = false;
+
 		void _handle_input()
 		{
+			_handle_input_in_progress = true;
+
 			if (_input_expected)
 				_connection.for_each_event([&] (Input::Event const &event) {
 					_event_handler.handle_event_from_filter(event); });
+
+			_handle_input_in_progress = false;
 		}
 
 		Signal_handler<Input_from_filter> _input_handler {
@@ -97,6 +103,12 @@ class Test::Input_from_filter
 		void input_expected(bool expected)
 		{
 			_input_expected = expected;
+
+			/* prevent nested call of '_handle_input' */
+			if (!_input_expected || _handle_input_in_progress)
+				return;
+
+			/* if new step expects input, process currently pending events */
 			_handle_input();
 		}
 };
