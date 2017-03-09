@@ -78,6 +78,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="audio_drv">
+		<binary name="} [audio_drv_binary] {"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<any-service> <any-child /> <parent /></any-service>
@@ -114,8 +115,8 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules {
-	core init timer audio_drv avplay
+append boot_modules {
+	core init timer } [audio_drv_binary] { avplay
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so zlib.lib.so sdl.lib.so
 	avfilter.lib.so avutil.lib.so avcodec.lib.so avformat.lib.so swscale.lib.so
 	avresample.lib.so

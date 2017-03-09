@@ -40,6 +40,15 @@ proc nic_drv_binary { } {
 }
 
 
+##
+# Return name of the audio driver binary
+#
+proc audio_drv_binary { } {
+	if {[have_spec linux]} { return linux_audio_drv }
+	if {[have_spec x86]}   { return audio_drv }
+}
+
+
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform

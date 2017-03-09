@@ -80,6 +80,7 @@ append_if [have_spec ps2] config {
 
 append config {
 	<start name="audio_drv">
+		<binary name="} [audio_drv_binary] {"/>
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Audio_out"/></provides>
 	</start>
@@ -117,8 +118,8 @@ if {![file exists bin/dosbox.tar]} {
 #
 
 # generic modules
-set boot_modules {
-	core init timer audio_drv
+append boot_modules {
+	core init timer } [audio_drv_binary] {
 	ld.lib.so
 	libc.lib.so
 	libm.lib.so lwip.lib.so libpng.lib.so
