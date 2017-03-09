@@ -952,14 +952,26 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				[&] () {
 					Ram_capability ram = Genode::retry<Genode::Ram_session::Out_of_metadata>(
 						[&] () { return _ram.alloc(size, Genode::UNCACHED); },
-						[&] () { throw Genode::Ram_session::Quota_exceeded(); });
+						[&] () {
+							if (!_env_ram.withdraw(UPGRADE_QUOTA)) {
+								_rollback(size);
+							}
+
+							/* upgrade meta-data quota */
+							_ram.upgrade_ram(UPGRADE_QUOTA);
+						});
+
 					return ram;
 				},
 				[&] () {
-					if (!_env_ram.withdraw(UPGRADE_QUOTA))
-						_rollback(size);
-
-					_ram.upgrade_ram(UPGRADE_QUOTA);
+					/*
+					 * This condition is mostly triggered when the session
+					 * specific ram session is low on quota and it cannot
+					 * process the request due to book-keeping overhead.
+					 * It is therefore enough to increase the quota in
+					 * UPGRADE_QUOTA steps.
+					 */
+					_env_ram.transfer_quota<Out_of_metadata>(_ram, UPGRADE_QUOTA);
 				});
 
 			if (!ram_cap.valid())
