@@ -72,9 +72,9 @@ proc create_boot_directory { } {
 ##
 # Append string to variable only if 'condition' is satisfied
 #
-proc append_if {condition var string} {
+proc append_if {condition var args} {
 	upvar $var up_var
-	if {$condition} { append up_var $string }
+	if {$condition} { append up_var [join $args ""] }
 }
 
 
