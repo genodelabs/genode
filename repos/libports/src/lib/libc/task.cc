@@ -37,6 +37,7 @@
 #include "libc_init.h"
 #include "task.h"
 
+extern char **environ;
 
 namespace Libc {
 	class Env_implementation;
@@ -844,6 +845,10 @@ Genode::size_t Component::stack_size() { return Libc::Component::stack_size(); }
 
 void Component::construct(Genode::Env &env)
 {
+	/* initialize the global pointer to environment variables */
+	static char *null_env = nullptr;
+	if (!environ) environ = &null_env;
+
 	/* pass Genode::Env to libc subsystems that depend on it */
 	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
