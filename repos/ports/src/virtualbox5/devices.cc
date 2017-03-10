@@ -55,7 +55,7 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 	REGISTER(DeviceE1000);
 #endif
 	REGISTER(DeviceICHAC97);
-	REGISTER(DeviceHDA);
+	REGISTER(DeviceICH6_HDA);
 	REGISTER(DeviceOHCI);
 	REGISTER(DeviceACPI);
 	REGISTER(DeviceDMA);

@@ -150,6 +150,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			if (cr == 8)
 				_default_handler();
 
+			_vm_exits ++;
+
 			Genode::uint64_t *pdpte = pdpte_map(_current_vm, utcb->cr3);
 
 			Assert(pdpte != 0);
@@ -197,6 +199,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 			/* we don't support tsc offsetting for now - so let the rdtsc exit */
 			register_handler<VMX_EXIT_RDTSC, This,
+				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+			register_handler<VMX_EXIT_RDTSCP, This,
 				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
 
 			register_handler<VMX_EXIT_VMCALL, This,

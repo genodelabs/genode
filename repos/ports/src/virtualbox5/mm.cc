@@ -256,13 +256,6 @@ void MMR3HeapFree(void *pv)
 }
 
 
-uint64_t MMR3PhysGetRamSize(PVM pVM)
-{
-	/* when called from REMR3Init, it is expected to return 0 */
-	return 0;
-}
-
-
 int MMR3HyperMapHCPhys(PVM pVM, void *pvR3, RTR0PTR pvR0, RTHCPHYS HCPhys,
                        size_t cb, const char *pszDesc, PRTGCPTR pGCPtr)
 {
@@ -279,12 +272,6 @@ int MMR3HyperReserve(PVM pVM, unsigned cb, const char *pszDesc, PRTGCPTR pGCPtr)
 		Genode::log("MMR3HyperReserve: cb=", Genode::Hex(cb), ", "
 		            "pszDesc=", pszDesc);
 
-	return VINF_SUCCESS;
-}
-
-
-VMMR3DECL(int) MMR3IncreaseBaseReservation(PVM pVM, uint64_t cAddBasePages)
-{
 	return VINF_SUCCESS;
 }
 
@@ -307,79 +294,6 @@ int MMR3HyperMapMMIO2(PVM pVM, PPDMDEVINS pDevIns, uint32_t iSubDev,
 		            "off=", Genode::Hex(off), " cb=", Genode::Hex(cb));
 
 	return VINF_SUCCESS;
-}
-
-
-/*
- * Based on 'VBox/VMM/VMMR3/MM.cpp'
- */
-int MMR3InitPaging(PVM pVM)
-{
-    /*
-     * Query the CFGM values.
-     */
-    int rc;
-    PCFGMNODE pMMCfg = CFGMR3GetChild(CFGMR3GetRoot(pVM), "MM");
-    if (!pMMCfg)
-    {
-        rc = CFGMR3InsertNode(CFGMR3GetRoot(pVM), "MM", &pMMCfg);
-        AssertRCReturn(rc, rc);
-    }
-
-    /** @cfgm{RamSize, uint64_t, 0, 16TB, 0}
-     * Specifies the size of the base RAM that is to be set up during
-     * VM initialization.
-     */
-    uint64_t cbRam;
-    rc = CFGMR3QueryU64(CFGMR3GetRoot(pVM), "RamSize", &cbRam);
-    if (rc == VERR_CFGM_VALUE_NOT_FOUND)
-        cbRam = 0;
-    else
-        AssertMsgRCReturn(rc, ("Configuration error: Failed to query integer \"RamSize\", rc=%Rrc.\n", rc), rc);
-    cbRam &= X86_PTE_PAE_PG_MASK;
-
-    /** @cfgm{RamHoleSize, uint32_t, 0, 4032MB, 512MB}
-     * Specifies the size of the memory hole. The memory hole is used
-     * to avoid mapping RAM to the range normally used for PCI memory regions.
-     * Must be aligned on a 4MB boundary. */
-    uint32_t cbRamHole;
-    rc = CFGMR3QueryU32Def(CFGMR3GetRoot(pVM), "RamHoleSize", &cbRamHole, MM_RAM_HOLE_SIZE_DEFAULT);
-    uint64_t const offRamHole = _4G - cbRamHole;
-
-    /*
-     * Make the initial memory reservation with GMM.
-     */
-    LogFlow(("GMMR3INitialReservation missing\n"));
-
-    /*
-     * If RamSize is 0 we're done now.
-     */
-    if (cbRam < PAGE_SIZE)
-    {
-        Log(("MM: No RAM configured\n"));
-        return VINF_SUCCESS;
-    }
-
-    /*
-     * Setup the base ram (PGM).
-     */
-    if (cbRam > offRamHole)
-    {
-        pVM->mm.s.cbRamBelow4GB = offRamHole;
-        rc = PGMR3PhysRegisterRam(pVM, 0, offRamHole, "Base RAM");
-        if (RT_SUCCESS(rc))
-        {
-            pVM->mm.s.cbRamAbove4GB = cbRam - offRamHole;
-            rc = PGMR3PhysRegisterRam(pVM, _4G, cbRam - offRamHole, "Above 4GB Base RAM");
-        }
-    } else {
-        pVM->mm.s.cbRamBelow4GB = cbRam;
-        pVM->mm.s.cbRamAbove4GB = 0;
-        rc = PGMR3PhysRegisterRam(pVM, 0, RT_MIN(cbRam, offRamHole), "Base RAM");
-    }
-
-    LogFlow(("MMR3InitPaging: returns %Rrc\n", rc));
-    return rc;
 }
 
 
@@ -469,20 +383,6 @@ VMMDECL(uint32_t) MMHyperHeapPtrToOffset(PVM pVM, void *pv)
 	Assert (reinterpret_cast<void *>(offset) == pv);
 
 	return offset;
-}
-
-
-VMMR3DECL(uint32_t) MMR3PhysGetRamSizeBelow4GB(PVM pVM)
-{
-	VM_ASSERT_VALID_EXT_RETURN(pVM, UINT32_MAX);
-	return pVM->mm.s.cbRamBelow4GB;
-}
-
-
-VMMR3DECL(uint64_t) MMR3PhysGetRamSizeAbove4GB(PVM pVM)
-{
-	VM_ASSERT_VALID_EXT_RETURN(pVM, UINT64_MAX);
-	return pVM->mm.s.cbRamAbove4GB;
 }
 
 

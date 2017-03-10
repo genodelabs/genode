@@ -83,13 +83,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		Vmm::Vcpu_other_pd _vcpu;
 
-		Genode::addr_t _ec_sel; 
-		bool _irq_win;
+		Genode::addr_t     _ec_sel;
+		bool               _irq_win = false;
 
-		unsigned int      _cpu_id;
-
-		unsigned int _last_inj_info;
-		unsigned int _last_inj_error;
+		unsigned int       _cpu_id;
+		unsigned int       _last_inj_info  = 0;
+		unsigned int       _last_inj_error = 0;
 
 		void fpu_save(char * data) {
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
@@ -133,6 +132,15 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 	protected:
 
+		Genode::addr_t     _vm_exits    = 0;
+		Genode::addr_t     _recall_skip = 0;
+		Genode::addr_t     _recall_req  = 0;
+		Genode::addr_t     _recall_inv  = 0;
+		Genode::addr_t     _recall_drop = 0;
+		Genode::addr_t     _irq_request = 0;
+		Genode::addr_t     _irq_inject  = 0;
+		Genode::addr_t     _irq_drop    = 0;
+
 		struct {
 			Nova::mword_t mtd;
 			unsigned intr_state;
@@ -164,6 +172,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
+			_vm_exits ++;
+
 			/* go back to VirtualBox */
 			_fpu_save_and_longjmp();
 		}
@@ -171,6 +181,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		__attribute__((noreturn)) void _recall_handler()
 		{
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread::utcb());
+
+			_vm_exits ++;
+			_recall_inv ++;
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
@@ -184,10 +197,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 				Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
 
-/*
 				if (!continue_hw_accelerated(utcb))
-					Vmm::log("WARNING - recall ignored during IRQ delivery");
-*/
+					_recall_drop ++;
+
 				/* got recall during irq injection and the guest is ready for
 				 * delivery of IRQ - just continue */
 				Nova::reply(_stack_reply);
@@ -235,6 +247,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			continue_hw_accelerated(utcb, true);
 
 			if (_irq_win) {
+				_irq_drop++;
 				_irq_win = false;
 				utcb->inj_info  = IRQ_INJ_NONE;
 				utcb->mtd      |= Nova::Mtd::INJ;
@@ -583,6 +596,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				                             VMCPU_FF_INTERRUPT_PIC)))
 				return false;
 
+			_irq_request++;
+
 			unsigned vector = 0;
 			utcb->inj_info  = NOVA_REQ_IRQWIN_EXIT | vector;
 			utcb->mtd      |= Nova::Mtd::INJ;
@@ -594,6 +609,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 		__attribute__((noreturn)) void _irq_window()
 		{
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread::utcb());
+
+			_vm_exits ++;
 
 			PVMCPU   pVCpu = _current_vcpu;
 
@@ -625,12 +642,14 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 				}
 
 				if (!TRPMHasTrap(pVCpu)) {
+					_irq_drop++;
 					/* happens if PDMApicSetTPR (see above) mask IRQ */
 					utcb->inj_info = IRQ_INJ_NONE;
 					utcb->mtd      = Nova::Mtd::INJ | Nova::Mtd::FPU;
 					Nova::reply(_stack_reply);
 				}
 			}
+			_irq_inject++;
 
 			/*
 			 * If we have no IRQ for injection, something with requesting the
@@ -773,7 +792,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			                              name),
 			_vcpu(cpu_session, location, pd_vcpu),
 			_ec_sel(Genode::cap_map()->insert()),
-			_irq_win(false),
 			_cpu_id(cpu_id)
 		{ }
 
@@ -783,15 +801,41 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			_vcpu.start(_ec_sel);
 		}
 
-		void recall()
+		void recall(Vcpu_handler * other = nullptr)
 		{
 			using namespace Nova;
+
+			asm volatile ("":::"memory");
+
+			_recall_req ++;
+
+			if (_irq_win) {
+				_recall_skip ++;
+				return;
+			}
 
 			if (ec_ctrl(EC_RECALL, _ec_sel) != NOVA_OK) {
 				Genode::error("recall failed");
 				Genode::Lock lock(Genode::Lock::LOCKED);
 				lock.lock();
 			}
+
+#if 0
+			if (_recall_req % 1000 == 0) {
+				using Genode::log;
+
+				while (other) {
+					log(other->_cpu_id, " exits=", other->_vm_exits,
+					    " req:skip:drop,inv recall=", other->_recall_req, ":",
+					    other->_recall_skip, ":", other->_recall_drop, ":",
+					    other->_recall_inv, " req:inj:drop irq=",
+					    other->_irq_request, ":", other->_irq_inject, ":",
+					    other->_irq_drop);
+
+					other = other->next();
+				}
+			}
+#endif
 		}
 
 		void halt(Genode::uint64_t tsc_abs)

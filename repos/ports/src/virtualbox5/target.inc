@@ -41,6 +41,7 @@ SRC_CC += HostServices/SharedFolders/service.cpp
 SRC_CC += HostServices/SharedFolders/mappings.cpp
 SRC_CC += HostServices/SharedFolders/vbsf.cpp
 SRC_CC += HostServices/SharedFolders/vbsfpath.cpp
+SRC_CC += HostServices/SharedFolders/vbsfpathabs.cpp
 SRC_CC += HostServices/SharedFolders/shflhandle.cpp
 
 SRC_CC += HostServices/SharedClipboard/service.cpp

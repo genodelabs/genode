@@ -336,7 +336,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
 		if (vcpu_handler)
-			vcpu_handler->recall();
+			vcpu_handler->recall(vcpu_handler_list().first());
 		return VINF_SUCCESS;
 	}
 	case VMMR0_DO_GMM_ALLOCATE_PAGES:
@@ -628,6 +628,12 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 		return VINF_SUCCESS;
 	}
+	case VMMR0_DO_GMM_INITIAL_RESERVATION:
+		Genode::log("VMMR0_DO_GMM_INITIAL_RESERVATION called");
+		return VINF_SUCCESS;
+	case VMMR0_DO_GMM_UPDATE_RESERVATION:
+		Genode::log("VMMR0_DO_GMM_UPDATE_RESERVATION called");
+		return VINF_SUCCESS;
 	default:
 		Genode::error("SUPR3CallVMMR0Ex: unhandled uOperation ", uOperation,
 		              " ", (int)VMMR0_DO_PGM_ALLOCATE_HANDY_PAGES, " ",

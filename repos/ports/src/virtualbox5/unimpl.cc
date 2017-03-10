@@ -136,10 +136,6 @@ DUMMY(SUPR3PageMapKernel)
 DUMMY(SUPR3ReadTsc)
 DUMMY(SUPGetCpuHzFromGipForAsyncMode)
 
-DUMMY(SUPSemEventMultiSignal)
-DUMMY(SUPSemEventMultiWaitNoResume)
-DUMMY(SUPSemEventMultiReset)
-
 DUMMY(VMMR3GetHostToGuestSwitcher)
 
 DUMMY(RTHeapSimpleRelocate)

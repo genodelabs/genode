@@ -1,17 +1,17 @@
 LICENSE         := GPLv2
-VERSION         := 5.1.14
+VERSION         := 5.1.18
 DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
 VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
-VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-112924.zip
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-114002.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := 9f5c4880b6a94bf57a6c6e64166753147ccee5e1
+SHA(virtualbox) := 672939da34addc06a71b20df0a0e47d8c8940f71
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/app/virtualbox_sdk
-SHA(virtualbox_sdk) := c94dc6fcd0ccd02d6342865c0c53e7ae16c72acc
+SHA(virtualbox_sdk) := 3115c50899ababaf5cbdafdc14950ced2e8a2f50
 
 PATCHES_DIR       := src/virtualbox5/patches
 PATCHES_DIR_VBOX4 := src/virtualbox/patches
@@ -106,7 +106,7 @@ VBOX_CONTENT += $(addprefix include/VBox/, $(VBOX_INC))
 VBOX_CONTENT += $(addprefix include/VBox/com/, $(VBOX_INC_COM))
 VBOX_CONTENT += include/VBox/HostServices/
 
-VBOX_CONTENT += src/libs/zlib-1.2.8 src/libs/liblzf-3.4 src/libs/libxml2-2.9.2
+VBOX_CONTENT += src/libs/zlib-1.2.8 src/libs/liblzf-3.4 src/libs/libxml2-2.9.4
 VBOX_CONTENT += src/recompiler include/VBox/vmm include/iprt Config.kmk
 
 

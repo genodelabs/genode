@@ -1,7 +1,7 @@
 include $(REP_DIR)/lib/mk/virtualbox5-common.inc
 
 ZLIB_DIR   = $(VIRTUALBOX_DIR)/src/libs/zlib-1.2.8
-LIBXML_DIR = $(VIRTUALBOX_DIR)/src/libs/libxml2-2.9.2
+LIBXML_DIR = $(VIRTUALBOX_DIR)/src/libs/libxml2-2.9.4
 
 INC_DIR += $(ZLIB_DIR)
 INC_DIR += $(LIBXML_DIR)/include

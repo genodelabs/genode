@@ -1,0 +1,98 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/MM.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/MM.cpp
+@@ -185,6 +185,7 @@
+  * @returns VBox status code.
+  * @param   pUVM    Pointer to the user mode VM structure.
+  */
++#if 0
+ VMMR3DECL(int) MMR3InitUVM(PUVM pUVM)
+ {
+     /*
+@@ -208,6 +209,7 @@
+     }
+     return rc;
+ }
++#endif
+ 
+ 
+ /**
+@@ -228,6 +230,7 @@
+  * @returns VBox status code.
+  * @param   pVM         The cross context VM structure.
+  */
++#if 0
+ VMMR3DECL(int) MMR3Init(PVM pVM)
+ {
+     LogFlow(("MMR3Init\n"));
+@@ -284,6 +287,7 @@
+     MMR3Term(pVM);
+     return rc;
+ }
++#endif
+ 
+ 
+ /**
+@@ -456,6 +460,7 @@
+  * @returns VBox status code.
+  * @param   pVM         The cross context VM structure.
+  */
++#if 0
+ VMMR3DECL(int) MMR3Term(PVM pVM)
+ {
+     /*
+@@ -484,6 +489,7 @@
+ 
+     return VINF_SUCCESS;
+ }
++#endif
+ 
+ 
+ /**
+@@ -495,6 +501,7 @@
+  * @returns VBox status code.
+  * @param   pUVM        Pointer to the user mode VM structure.
+  */
++#if 0
+ VMMR3DECL(void) MMR3TermUVM(PUVM pUVM)
+ {
+     /*
+@@ -508,6 +515,7 @@
+     mmR3HeapDestroy(pUVM->mm.s.pHeap);
+     pUVM->mm.s.pHeap = NULL;
+ }
++#endif
+ 
+ 
+ /**
+@@ -656,6 +664,7 @@
+  * @param   pVM             The cross context VM structure.
+  * @param   cHandyPages     The number of handy pages.
+  */
++#if 0
+ VMMR3DECL(int) MMR3ReserveHandyPages(PVM pVM, uint32_t cHandyPages)
+ {
+     AssertReturn(!pVM->mm.s.cHandyPages, VERR_WRONG_ORDER);
+@@ -671,6 +680,7 @@
+     }
+     return rc;
+ }
++#endif
+ 
+ 
+ /**
+@@ -683,6 +693,7 @@
+  * @param   cDeltaFixedPages    The number of pages to add (positive) or subtract (negative).
+  * @param   pszDesc             Some description associated with the reservation.
+  */
++#if 0
+ VMMR3DECL(int) MMR3AdjustFixedReservation(PVM pVM, int32_t cDeltaFixedPages, const char *pszDesc)
+ {
+     const uint32_t cOld = pVM->mm.s.cFixedPages;
+@@ -697,6 +708,7 @@
+     }
+     return rc;
+ }
++#endif
+ 
+ 
+ /**

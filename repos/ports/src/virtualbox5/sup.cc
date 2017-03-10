@@ -215,8 +215,7 @@ int SUPSemEventWaitNoResume(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent,
 }
 
 
-SUPDECL(int) SUPSemEventMultiCreate(PSUPDRVSESSION,
-                                    PSUPSEMEVENTMULTI phEventMulti)
+int SUPSemEventMultiCreate(PSUPDRVSESSION, PSUPSEMEVENTMULTI phEventMulti)
 {
     RTSEMEVENTMULTI sem;
 
@@ -236,10 +235,21 @@ SUPDECL(int) SUPSemEventMultiCreate(PSUPDRVSESSION,
 }
 
 
-SUPDECL(int) SUPSemEventMultiClose(PSUPDRVSESSION, SUPSEMEVENTMULTI hEvMulti)
+int SUPSemEventMultiWaitNoResume(PSUPDRVSESSION, SUPSEMEVENTMULTI event,
+                                 uint32_t ms)
 {
-	return RTSemEventMultiDestroy(reinterpret_cast<RTSEMEVENTMULTI>(hEvMulti));
+	RTSEMEVENTMULTI const rtevent = reinterpret_cast<RTSEMEVENTMULTI>(event);
+	return RTSemEventMultiWait(rtevent, ms);
 }
+
+int SUPSemEventMultiSignal(PSUPDRVSESSION, SUPSEMEVENTMULTI event) {
+	return RTSemEventMultiSignal(reinterpret_cast<RTSEMEVENTMULTI>(event)); }
+
+int SUPSemEventMultiReset(PSUPDRVSESSION, SUPSEMEVENTMULTI event) {
+	return RTSemEventMultiReset(reinterpret_cast<RTSEMEVENTMULTI>(event)); }
+
+int SUPSemEventMultiClose(PSUPDRVSESSION, SUPSEMEVENTMULTI event) {
+	return RTSemEventMultiDestroy(reinterpret_cast<RTSEMEVENTMULTI>(event)); }
 
 
 int SUPR3CallVMMR0(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
