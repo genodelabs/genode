@@ -19,6 +19,8 @@ CC_OPT += -Wno-unused-function -Wno-unused-variable \
           -Wno-unused-but-set-variable -Wno-cpp \
           -Wno-maybe-uninitialized -Wno-uninitialized
 
+CC_C_OPT += -std=gnu89
+
 LIBS += libc
 
 vpath %.c $(EXT2FS_DIR)
