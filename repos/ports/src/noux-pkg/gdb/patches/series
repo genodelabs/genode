@@ -5,3 +5,4 @@ x86_64.patch
 noux_build.patch
 gdbserver_genode.patch
 gdbserver_x86_64.patch
+gcc6.patch
