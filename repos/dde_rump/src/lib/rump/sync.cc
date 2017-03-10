@@ -164,15 +164,50 @@ void rumpuser_mutex_destroy(struct rumpuser_mtx *mtx)
  ***************************/
 
 struct timespec {
-	long   tv_sec;    /* seconds */
-	long   tv_nsec;/* nanoseconds */
+	int64_t tv_sec;  /* seconds */
+	long    tv_nsec; /* nanoseconds */
 };
 
+enum { S_IN_MS = 1000, S_IN_NS = 1000 * 1000 * 1000 };
 
-static unsigned long timespec_to_ms(const struct timespec ts)
+static uint64_t timeout_ms(struct timespec currtime,
+                           struct timespec abstimeout)
 {
-	return (ts.tv_sec * 1000) + (ts.tv_nsec / (1000 * 1000));
+	if (currtime.tv_nsec >= S_IN_NS) {
+		currtime.tv_sec  += currtime.tv_nsec / S_IN_NS;
+		currtime.tv_nsec  = currtime.tv_nsec % S_IN_NS;
+	}
+	if (abstimeout.tv_nsec >= S_IN_NS) {
+		abstimeout.tv_sec  += abstimeout.tv_nsec / S_IN_NS;
+		abstimeout.tv_nsec  = abstimeout.tv_nsec % S_IN_NS;
+	}
+
+	/* check whether absolute timeout is in the past */
+	if (currtime.tv_sec > abstimeout.tv_sec)
+		return 0;
+
+	int64_t diff_ms = (abstimeout.tv_sec - currtime.tv_sec) * S_IN_MS;
+	int64_t diff_ns = 0;
+
+	if (abstimeout.tv_nsec >= currtime.tv_nsec)
+		diff_ns = abstimeout.tv_nsec - currtime.tv_nsec;
+	else {
+		/* check whether absolute timeout is in the past */
+		if (diff_ms == 0)
+			return 0;
+		diff_ns  = S_IN_NS - currtime.tv_nsec + abstimeout.tv_nsec;
+		diff_ms -= S_IN_MS;
+	}
+
+	diff_ms += diff_ns / 1000 / 1000;
+
+	/* if there is any diff then let the timeout be at least 1 MS */
+	if (diff_ms == 0 && diff_ns != 0)
+		return 1;
+
+	return diff_ms;
 }
+
 
 
 struct Cond
@@ -190,7 +225,6 @@ struct Cond
 	{
 		using namespace Genode;
 		int result = 0;
-		Alarm::Time timeout = 0;
 	
 		counter_lock.lock();
 		num_waiters++;
@@ -202,11 +236,9 @@ struct Cond
 			signal_sem.down();
 		else {
 			struct timespec currtime;
-			rumpuser_clock_gettime(0, (int64_t *)&currtime.tv_sec, &currtime.tv_nsec);
-			unsigned long abstime_ms = timespec_to_ms(*abstime);
-			unsigned long currtime_ms = timespec_to_ms(currtime);
-			if (abstime_ms > currtime_ms)
-				timeout = abstime_ms - currtime_ms;
+			rumpuser_clock_gettime(0, &currtime.tv_sec, &currtime.tv_nsec);
+
+			Alarm::Time timeout = timeout_ms(currtime, *abstime);
 			try {
 				signal_sem.down(timeout);
 			} catch (Timeout_exception) {
@@ -350,15 +382,15 @@ int rumpuser_cv_timedwait(struct rumpuser_cv *cv, struct rumpuser_mtx *mtx,
 	 * The condition variables should use CLOCK_MONOTONIC, but since
 	 * that's not available everywhere, leave it for another day.
 	 */
-	rumpuser_clock_gettime(0, (int64_t *)&ts.tv_sec, &ts.tv_nsec);
+	rumpuser_clock_gettime(0, &ts.tv_sec, &ts.tv_nsec);
 
 	cv_unschedule(mtx, &nlocks);
 
 	ts.tv_sec += sec;
 	ts.tv_nsec += nsec;
-	if (ts.tv_nsec >= 1000*1000*1000) {
-		ts.tv_sec++;
-		ts.tv_nsec -= 1000*1000*1000;
+	if (ts.tv_nsec >= S_IN_NS) {
+		ts.tv_sec  += ts.tv_nsec / S_IN_NS;
+		ts.tv_nsec  = ts.tv_nsec % S_IN_NS;
 	}
 
 	rv = cv->cond.timedwait(mtx, &ts);
