@@ -111,7 +111,6 @@ static inline bool vmx_load_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 	}
 
 	/* tr */
-	Assert(pCtx->tr.Attr.u & X86_SEL_TYPE_SYS_TSS_BUSY_MASK);
 	{
 		utcb->mtd |= Nova::Mtd::TR;
 

@@ -320,7 +320,6 @@ inline void check_vm_state(PVMCPU pVCpu, struct Subject_state *cur_state)
 	Assert(cur_state->ldtr.base   == pCtx->ldtr.u64Base);
 	if(cur_state->ldtr.sel != 0)
 		Assert(cur_state->ldtr.access == pCtx->ldtr.Attr.u);
-	Assert(pCtx->tr.Attr.u & X86_SEL_TYPE_SYS_TSS_BUSY_MASK);
 	{
 		Assert(cur_state->tr.sel    == pCtx->tr.Sel);
 		Assert(cur_state->tr.limit  == pCtx->tr.u32Limit);
@@ -455,7 +454,6 @@ int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 			cur_state->ldtr.base   = pCtx->ldtr.u64Base;
 			cur_state->ldtr.access = pCtx->ldtr.Attr.u;
 		}
-		Assert(pCtx->tr.Attr.u & X86_SEL_TYPE_SYS_TSS_BUSY_MASK);
 		{
 			cur_state->tr.sel    = pCtx->tr.Sel;
 			cur_state->tr.limit  = pCtx->tr.u32Limit;

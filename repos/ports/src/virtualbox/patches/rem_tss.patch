@@ -1,0 +1,34 @@
+--- a/src/app/virtualbox/src/recompiler/VBoxRecompiler.c
+--- b/src/app/virtualbox/src/recompiler/VBoxRecompiler.c
+@@ -2664,13 +2664,14 @@
+ #endif
+     }
+ 
++    bool busy_set = ((pCtx->tr.Attr.u & SEL_FLAGS_SMASK) << SEL_FLAGS_SHIFT) & DESC_TSS_BUSY_MASK;
+     if (    pCtx->tr.Sel      != pVM->rem.s.Env.tr.selector
+         ||  pCtx->tr.ValidSel != pVM->rem.s.Env.tr.selector
+         ||  pCtx->tr.u64Base  != pVM->rem.s.Env.tr.base
+         ||  pCtx->tr.u32Limit != pVM->rem.s.Env.tr.limit
+             /* Qemu and AMD/Intel have different ideas about the busy flag ... */ /** @todo just fix qemu! */
+         ||  pCtx->tr.Attr.u   != (  (pVM->rem.s.Env.tr.flags >> SEL_FLAGS_SHIFT) & (SEL_FLAGS_SMASK & ~DESC_INTEL_UNUSABLE)
+-                                  ? (pVM->rem.s.Env.tr.flags | DESC_TSS_BUSY_MASK) >> SEL_FLAGS_SHIFT
++                                  ? (pVM->rem.s.Env.tr.flags | (busy_set ? DESC_TSS_BUSY_MASK : 0)) >> SEL_FLAGS_SHIFT
+                                   : 0)
+         ||  !(pCtx->tr.fFlags & CPUMSELREG_FLAGS_VALID)
+        )
+@@ -2905,13 +2906,14 @@
+ #endif
+     }
+ 
++    bool busy_set = ((pCtx->tr.Attr.u & SEL_FLAGS_SMASK) << SEL_FLAGS_SHIFT) & DESC_TSS_BUSY_MASK;
+     if (    pCtx->tr.Sel      != pVM->rem.s.Env.tr.selector
+         ||  pCtx->tr.ValidSel != pVM->rem.s.Env.tr.selector
+         ||  pCtx->tr.u64Base  != pVM->rem.s.Env.tr.base
+         ||  pCtx->tr.u32Limit != pVM->rem.s.Env.tr.limit
+             /* Qemu and AMD/Intel have different ideas about the busy flag ... */
+         ||  pCtx->tr.Attr.u   != (  (pVM->rem.s.Env.tr.flags >> SEL_FLAGS_SHIFT) & (SEL_FLAGS_SMASK & ~DESC_INTEL_UNUSABLE)
+-                                  ? (pVM->rem.s.Env.tr.flags | DESC_TSS_BUSY_MASK) >> SEL_FLAGS_SHIFT
++                                  ? (pVM->rem.s.Env.tr.flags | (busy_set ? DESC_TSS_BUSY_MASK : 0)) >> SEL_FLAGS_SHIFT
+                                   : 0)
+         ||  !(pCtx->tr.fFlags & CPUMSELREG_FLAGS_VALID)
+        )

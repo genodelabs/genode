@@ -15,3 +15,4 @@ tm_retries.patch
 vmdk.patch
 tm_tpr.patch
 tm_4s.patch
+rem_tss.patch
