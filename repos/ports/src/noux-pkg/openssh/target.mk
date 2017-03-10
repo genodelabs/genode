@@ -9,6 +9,7 @@ CONFIGURE_ARGS += --disable-ip6 \
                   --with-md5-passwords  \
                   --without-zlib-version-check \
                   --with-ssl-engine \
+                  --without-stackprotect \
                   --disable-finger \
                   --disable-gopher \
                   --disable-news \
