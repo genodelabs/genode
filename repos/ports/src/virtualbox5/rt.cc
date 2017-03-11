@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/allocator_avl.h>
+#include <util/bit_allocator.h>
 
 
 /* VirtualBox includes */
@@ -29,7 +30,7 @@
 #include "vmm.h"
 
 enum {
-	MEMORY_MAX = 64 * 1024 * 1024,
+	MEMORY_MAX = 128 * 1024 * 1024,
 	MEMORY_CACHED = 16 * 1024 * 1024,
 };
 
@@ -130,6 +131,18 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 
 			return coarse ? head->find_coarse_match(size, size * 2)
 			              : head->find_size(size);
+		}
+
+		static Genode::addr_t max_size_at(void * p)
+		{
+			Avl_ds * ds_obj = Avl_ds::_runtime_ds.first();
+			if (ds_obj)
+				ds_obj = ds_obj->find_virt(reinterpret_cast<Genode::addr_t>(p));
+
+			if (!ds_obj)
+				return 0;
+
+			return ds_obj->_size;
 		}
 
 		Genode::addr_t ds_virt() const { return _virt; }
@@ -271,6 +284,137 @@ void RTMemPageFree(void *pv, size_t cb)
 	Genode::Lock::Guard guard(lock_ds);
 
 	Avl_ds::free_memory(pv, cb);
+}
+
+/**
+ * The tiny code generator (TCG) of the REM allocates quite a hugh amount
+ * of individal TCG_CACHED_SIZE blocks. Using a dataspace per allocation
+ * increases the cap count significantly (e.g. 9G RAM caused 2500 allocations).
+ * Using a Slab for the known size avoids the cap issue.
+ */
+
+enum { TCG_CACHE = 4 * 1024 * 1024, TCG_CACHED_SIZE = 0x4000 };
+
+typedef Genode::Bit_allocator<TCG_CACHE / TCG_CACHED_SIZE> Tcg_idx_allocator;
+
+struct Tcg_slab : Genode::List<Tcg_slab>::Element {
+	Tcg_idx_allocator _slots;
+	Genode::addr_t    _base { 0 };
+	bool              _full { false };
+
+	Tcg_slab(void *memory)
+	: _base(reinterpret_cast<Genode::addr_t>(memory)) { };
+
+	void * alloc()
+	{
+		unsigned idx = _slots.alloc();
+		return reinterpret_cast<void *>(_base + idx * TCG_CACHED_SIZE);
+	}
+
+	Genode::addr_t contains(Genode::addr_t const ptr) const {
+		return _base <= ptr && ptr < _base + TCG_CACHED_SIZE; }
+};
+
+static Genode::List<Tcg_slab> list;
+
+void * RTMemTCGAlloc(size_t cb)
+{
+	if (cb != TCG_CACHED_SIZE)
+		return alloc_mem(cb, __func__);
+
+	{
+		Genode::Lock::Guard guard(lock_ds);
+
+		for (Tcg_slab * tcg = list.first(); tcg; tcg = tcg->next()) {
+			if (tcg->_full)
+				continue;
+
+			try {
+				return tcg->alloc();
+			} catch (Tcg_idx_allocator::Out_of_indices) {
+				tcg->_full = true;
+				/* try on another slab */
+			}
+		}
+	}
+
+	Tcg_slab * tcg = new (vmm_heap()) Tcg_slab(alloc_mem(TCG_CACHE, __func__));
+	if (tcg && tcg->_base) {
+		{
+			Genode::Lock::Guard guard(lock_ds);
+			list.insert(tcg);
+		}
+		return RTMemTCGAlloc(cb);
+	}
+
+	Genode::error("no memory left for TCG");
+
+	if (tcg)
+		destroy(vmm_heap(), tcg);
+
+	return nullptr;
+}
+
+
+void * RTMemTCGAllocZ(size_t cb)
+{
+	void * ptr = RTMemTCGAlloc(cb);
+	if (ptr)
+		Genode::memset(ptr, 0, cb);
+
+	return ptr;
+}
+
+void RTMemTCGFree(void *pv)
+{
+	Genode::Lock::Guard guard(lock_ds);
+
+	Genode::addr_t const ptr = reinterpret_cast<Genode::addr_t>(pv);
+	for (Tcg_slab * tcg = list.first(); tcg; tcg = tcg->next()) {
+		if (!tcg->contains(ptr))
+			continue;
+
+		Genode::warning("could not free up TCG memory ", pv);
+		return;
+	}
+	Avl_ds::free_memory(pv, Avl_ds::max_size_at(pv));
+}
+
+void * RTMemTCGRealloc(void *ptr, size_t size)
+{
+	if (!ptr && size)
+		return RTMemTCGAllocZ(size);
+
+	if (!size) {
+		if (ptr)
+			RTMemTCGFree(ptr);
+		return nullptr;
+	}
+
+	Genode::addr_t max_size = 0;
+	{
+		Genode::Lock::Guard guard(lock_ds);
+
+		max_size = Avl_ds::max_size_at(ptr);
+		if (!max_size) {
+			Genode::error("bug - unknown pointer");
+			return nullptr;
+		}
+
+		if (size <= max_size)
+			return ptr;
+	}
+
+	void * new_ptr = RTMemTCGAllocZ(size);
+	if (!new_ptr) {
+		Genode::error("no memory left ", size);
+		return nullptr;
+	}
+	Genode::memcpy(new_ptr, ptr, max_size);
+
+	RTMemTCGFree(ptr);
+
+	return new_ptr;
 }
 
 #include <iprt/buildconfig.h>

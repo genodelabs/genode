@@ -1,0 +1,34 @@
+--- a/src/app/virtualbox/include/iprt/mem.h
++++ b/src/app/virtualbox/include/iprt/mem.h
+@@ -1014,6 +1014,14 @@
+  */
+ RTDECL(void *) RTMemEfDupExNP(const void *pvSrc, size_t cbSrc, size_t cbExtra, const char *pszTag) RT_NO_THROW_PROTO;
+ 
++/**
++ * REM memory allocations must be within 1<<31 window - use specific calls
++ */
++RTDECL(void *)  RTMemTCGAlloc(size_t cb) RT_NO_THROW_PROTO;
++RTDECL(void *)  RTMemTCGAllocZ(size_t cb) RT_NO_THROW_PROTO;
++RTDECL(void *)  RTMemTCGRealloc(void *pvOld, size_t cbNew) RT_NO_THROW_PROTO;
++RTDECL(void)    RTMemTCGFree(void *pv) RT_NO_THROW_PROTO;
++
+ /** @} */
+ 
+ RT_C_DECLS_END
+--- a/src/app/virtualbox/src/recompiler/osdep.h
++++ b/src/app/virtualbox/src/recompiler/osdep.h
+@@ -21,10 +21,10 @@
+                                 RTLogPrintfV((pszFormat), (args))
+ 
+ /**@todo the following macros belongs elsewhere */
+-#define qemu_malloc(cb)         RTMemAlloc(cb)
+-#define qemu_mallocz(cb)        RTMemAllocZ(cb)
+-#define qemu_realloc(ptr, cb)   RTMemRealloc(ptr, cb)
+-#define qemu_free(pv)           RTMemFree(pv)
++#define qemu_malloc(cb)         RTMemTCGAlloc(cb)
++#define qemu_mallocz(cb)        RTMemTCGAllocZ(cb)
++#define qemu_realloc(ptr, cb)   RTMemTCGRealloc(ptr, cb)
++#define qemu_free(pv)           RTMemTCGFree(pv)
+ #define qemu_strdup(psz)        RTStrDup(psz)
+ 
+ /* Misc wrappers */
