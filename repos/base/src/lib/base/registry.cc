@@ -12,6 +12,7 @@
  */
 
 #include <base/registry.h>
+#include <base/thread.h>
 
 using namespace Genode;
 
@@ -28,15 +29,26 @@ Registry_base::Element::~Element()
 {
 	{
 		Lock::Guard guard(_lock);
-		if (_keep_ptr && _registry._curr == this) {
+		if (_notify_ptr && _registry._curr == this) {
 
 			/*
 			 * The destructor is called from the functor of a
 			 * 'Registry::for_each' loop with the element temporarily dequeued.
 			 * We flag the element to be not re-inserted into the list.
 			 */
-			*_keep_ptr = DISCARD;
-			return;
+			_notify_ptr->keep = Notify::Keep::DISCARD;
+
+			/* done if and only if running in the context of same thread */
+			if (Thread::myself() == _notify_ptr->thread)
+				return;
+
+			/*
+			 * We synchronize on the _lock of the _registry, by invoking
+			 * the _remove method below. This ensures that the object leaves
+			 * the destructor not before the registry lost the pointer to this
+			 * object. The actual removal attempt will be ignored by the list
+			 * implementation, since the current object was removed already.
+			 */
 		}
 	}
 	_registry._remove(*this);
@@ -59,18 +71,21 @@ void Registry_base::_remove(Element &element)
 }
 
 
-Registry_base::Element *Registry_base::_processed(Keep const keep,
+Registry_base::Element *Registry_base::_processed(Notify &notify,
                                                   List<Element> &processed,
                                                   Element &e, Element *at)
 {
 	_curr = nullptr;
 
 	/* if 'e' was dropped from the list, keep the current re-insert position */
-	if (keep == DISCARD)
+	if (notify.keep == Notify::Keep::DISCARD)
 		return at;
 
 	/* make sure that the critical section of '~Element' is completed */
 	Lock::Guard guard(e._lock);
+
+	/* here we know that 'e' still exists */
+	e._notify_ptr = nullptr;
 
 	/*
 	 * If '~Element' was preempted between the condition check and the
@@ -78,11 +93,8 @@ Registry_base::Element *Registry_base::_processed(Keep const keep,
 	 * flag. Now, with the acquired lock, we know that the 'keep' value is
 	 * up to date.
 	 */
-	if (keep == DISCARD)
+	if (notify.keep == Notify::Keep::DISCARD)
 		return at;
-
-	/* here we know that 'e' still exists */
-	e._keep_ptr = nullptr;
 
 	/* insert 'e' into the list of processed elements */
 	processed.insert(&e, at);
@@ -103,12 +115,12 @@ void Registry_base::_for_each(Untyped_functor &functor)
 
 	while (Element *e = _elements.first()) {
 
-		Keep keep = KEEP;
+		Notify notify(Notify::Keep::KEEP, Thread::myself());
 		{
 			/* tell the element where to report its status */
 			Lock::Guard guard(e->_lock);
 			_curr = e;
-			e->_keep_ptr = &keep;
+			e->_notify_ptr = &notify;
 		}
 
 		/*
@@ -122,9 +134,9 @@ void Registry_base::_for_each(Untyped_functor &functor)
 		try { functor.call(e->_obj); }
 
 		/* propagate exceptions while keeping registry consistent */
-		catch (...) { at = _processed(keep, processed, *e, at); throw; }
+		catch (...) { at = _processed(notify, processed, *e, at); throw; }
 
-		at = _processed(keep, processed, *e, at);
+		at = _processed(notify, processed, *e, at);
 	}
 
 	/* use list of processed elements as '_elements' list */

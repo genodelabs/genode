@@ -29,7 +29,12 @@ class Genode::Registry_base
 {
 	private:
 
-		enum Keep { KEEP, DISCARD };
+		struct Notify {
+			enum Keep { KEEP, DISCARD } keep;
+			void * thread;
+
+			Notify(Keep k, void *t) : keep(k), thread(t) { }
+		};
 
 	protected:
 
@@ -49,7 +54,7 @@ class Genode::Registry_base
 				/*
 				 * Assigned by 'Registry::_for_each'
 				 */
-				Keep *_keep_ptr = nullptr;
+				Notify *_notify_ptr = nullptr;
 
 			protected:
 
@@ -77,7 +82,7 @@ class Genode::Registry_base
 		void _insert(Element &);
 		void _remove(Element &);
 
-		Element *_processed(Keep, List<Element> &, Element &, Element *);
+		Element *_processed(Notify &, List<Element> &, Element &, Element *);
 
 	protected:
 
