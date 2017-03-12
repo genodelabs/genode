@@ -80,25 +80,40 @@ namespace {
 		int _remote_fd = -1;
 		int _local_fd  = -1;
 
+		template <typename FUNC>
+		void _fd_apply(FUNC const &fn)
+		{
+			if (_data_fd != -1)   fn(_data_fd);
+			if (_local_fd != -1)  fn(_local_fd);
+			if (_remote_fd != -1) fn(_remote_fd);
+		}
+
+		int _fd_flags = 0;
+
 		Socket_context(Absolute_path const &path)
 		: path(path.base()) { }
 
 		~Socket_context()
 		{
-			if (_data_fd != -1)   close(_data_fd);
-			if (_local_fd != -1)  close(_local_fd);
-			if (_remote_fd != -1) close(_remote_fd);
+			_fd_apply([] (int fd) { close(fd); });
 		}
 
 		int _open_file(char const *file_name)
 		{
 			Absolute_path file(file_name, path.base());
-			int const fd = open(file.base(), O_RDWR);
+			int const fd = open(file.base(), O_RDWR|_fd_flags);
 			if (fd == -1) {
 				Genode::error(__func__, ": ", file_name, " file not accessible");
 				throw Inaccessible();
 			}
 			return fd;
+		}
+
+		int fd_flags() const { return _fd_flags; }
+		void fd_flags(int flags)
+		{
+			_fd_flags = flags;
+			_fd_apply([flags] (int fd) { fcntl(fd, F_SETFL, flags); });
 		}
 
 		int data_fd()
@@ -144,6 +159,7 @@ namespace {
 
 		ssize_t read(Libc::File_descriptor *, void *, ::size_t) override;
 		ssize_t write(Libc::File_descriptor *, const void *, ::size_t) override;
+		int fcntl(Libc::File_descriptor *, int, long) override;
 		int close(Libc::File_descriptor *) override;
 		int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
 	};
@@ -367,7 +383,7 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	char accept_socket[10];
 	{
 		Absolute_path file("accept", context->path.base());
-		int const fd = open(file.base(), O_RDONLY);
+		int const fd = open(file.base(), O_RDONLY|context->fd_flags());
 		if (fd == -1) {
 			Genode::error(__func__, ": accept file not accessible");
 			return Errno(EINVAL);
@@ -390,7 +406,7 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 
 	if (addr && addrlen) {
 		Absolute_path file("remote", accept_path.base());
-		int const fd = open(file.base(), O_RDONLY);
+		int const fd = open(file.base(), O_RDONLY|context->fd_flags());
 		if (fd == -1) {
 			Genode::error(__func__, ": remote file not accessible");
 			return Errno(EINVAL);
@@ -408,6 +424,9 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		memcpy(addr, &remote_addr, *addrlen);
 		*addrlen = sizeof(remote_addr);
 	}
+
+	/* inherit the O_NONBLOCK flag if set */
+	accept_context->fd_flags(context->fd_flags());
 
 	return accept_fd->libc_fd;
 }
@@ -711,7 +730,22 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
  ** File-plugin operations **
  ****************************/
 
-//int Socket_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg) override;
+int Socket_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
+{
+	Socket_context *context = dynamic_cast<Socket_context *>(fd->context);
+	if (!context)
+		return Errno(EINVAL);
+
+	switch (cmd) {
+	case F_GETFL:
+		return context->fd_flags();
+	case F_SETFL:
+		context->fd_flags(arg); return 0;
+	default:
+		Genode::error(__func__, " command ", cmd, " not supported on sockets");
+		return Errno(EBADF);
+	}
+}
 
 ssize_t Socket_plugin::read(Libc::File_descriptor *fd, void *buf, ::size_t count)
 {

@@ -190,7 +190,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
 
-	fd->status = flags;
+	fd->flags = flags & (O_NONBLOCK|O_APPEND);
 
 	if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1)) {
 		/* XXX leaking fd, missing errno */
@@ -632,9 +632,11 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 
 			return new_fd->libc_fd;
 		}
-	case F_GETFD:                  return fd->flags;
-	case F_SETFD: fd->flags = arg; return 0;
-	case F_GETFL:                  return fd->status;
+	case F_GETFD: return fd->cloexec ? FD_CLOEXEC : 0;
+	case F_SETFD: fd->cloexec = arg == FD_CLOEXEC;  return 0;
+
+	case F_GETFL: return fd->flags;
+	case F_SETFL: fd->flags = arg; return 0;
 
 	default:
 		break;

@@ -43,8 +43,8 @@ namespace Libc {
 		char     const *fd_path = 0;  /* for 'fchdir', 'fstat' */
 		Plugin         *plugin  = 0;
 		Plugin_context *context = 0;
-		unsigned        flags   = 0;  /* for 'fcntl' */
-		unsigned        status  = 0;  /* for 'fcntl' */
+		int             flags   = 0;  /* for 'fcntl' */
+		bool            cloexec = 0;  /* for 'fcntl' */
 		Genode::Lock    lock;
 
 		void path(char const *newpath)
