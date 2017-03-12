@@ -76,6 +76,7 @@ namespace {
 
 		Absolute_path path;
 
+		int _accept_fd = -1;
 		int _data_fd   = -1;
 		int _remote_fd = -1;
 		int _local_fd  = -1;
@@ -83,8 +84,9 @@ namespace {
 		template <typename FUNC>
 		void _fd_apply(FUNC const &fn)
 		{
-			if (_data_fd != -1)   fn(_data_fd);
-			if (_local_fd != -1)  fn(_local_fd);
+			if (_accept_fd != -1) fn(_accept_fd);
+			if (_data_fd   != -1) fn(_data_fd);
+			if (_local_fd  != -1) fn(_local_fd);
 			if (_remote_fd != -1) fn(_remote_fd);
 		}
 
@@ -98,10 +100,10 @@ namespace {
 			_fd_apply([] (int fd) { close(fd); });
 		}
 
-		int _open_file(char const *file_name)
+		int _open_file(char const *file_name, int flags)
 		{
 			Absolute_path file(file_name, path.base());
-			int const fd = open(file.base(), O_RDWR|_fd_flags);
+			int const fd = open(file.base(), flags|_fd_flags);
 			if (fd == -1) {
 				Genode::error(__func__, ": ", file_name, " file not accessible");
 				throw Inaccessible();
@@ -116,10 +118,24 @@ namespace {
 			_fd_apply([flags] (int fd) { fcntl(fd, F_SETFL, flags); });
 		}
 
+		int accept_fd()
+		{
+			if (_accept_fd == -1)
+				_accept_fd = _open_file("accept", O_RDONLY);
+
+			return _accept_fd;
+		}
+
+		bool accept_read_ready()
+		{
+			return Libc::read_ready(
+				Libc::file_descriptor_allocator()->find_by_libc_fd(accept_fd()));
+		}
+
 		int data_fd()
 		{
 			if (_data_fd == -1)
-				_data_fd = _open_file("data");
+				_data_fd = _open_file("data", O_RDWR);
 
 			return _data_fd;
 		}
@@ -133,7 +149,7 @@ namespace {
 		int local_fd()
 		{
 			if (_local_fd == -1)
-				_local_fd = _open_file("local");
+				_local_fd = _open_file("local", O_RDWR);
 
 			return _local_fd;
 		}
@@ -141,7 +157,7 @@ namespace {
 		int remote_fd()
 		{
 			if (_remote_fd == -1)
-				_remote_fd = _open_file("remote");
+				_remote_fd = _open_file("remote", O_RDONLY);
 
 			return _remote_fd;
 		}
@@ -150,6 +166,16 @@ namespace {
 		{
 			return Libc::read_ready(
 				Libc::file_descriptor_allocator()->find_by_libc_fd(remote_fd()));
+		}
+
+		/**
+		 * Read ready for select
+		 */
+		bool read_ready()
+		{
+			return _accept_fd == -1
+				? data_read_ready()
+				: accept_read_ready();
 		}
 	};
 
@@ -382,16 +408,11 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 
 	char accept_socket[10];
 	{
-		Absolute_path file("accept", context->path.base());
-		int const fd = open(file.base(), O_RDONLY|context->fd_flags());
-		if (fd == -1) {
-			Genode::error(__func__, ": accept file not accessible");
-			return Errno(EINVAL);
-		}
 		int n = 0;
 		/* XXX currently reading accept may return without new connection */
-		do { n = read(fd, accept_socket, sizeof(accept_socket)); } while (n == 0);
-		close(fd);
+		do {
+			n = read(context->accept_fd(), accept_socket, sizeof(accept_socket));
+		} while (n == 0);
 		if (n == -1 || n >= (int)sizeof(accept_socket) - 1)
 			return Errno(EINVAL);
 
@@ -523,6 +544,8 @@ extern "C" int socket_fs_listen(int libc_fd, int backlog)
 		if ((unsigned)n != strlen(buf)) return Errno(EIO);
 	}
 
+	/* open the accept file for polling */
+	context->accept_fd();
 	return 0;
 }
 
@@ -806,7 +829,8 @@ int Socket_plugin::select(int nfds,
 		if (FD_ISSET(fd, &in_readfds)) {
 			try {
 				Socket_context *context = dynamic_cast<Socket_context *>(fdo->context);
-				if (context->data_read_ready()) {
+
+				if (context->read_ready()) {
 					FD_SET(fd, readfds);
 					++nready;
 				}
