@@ -1,6 +1,7 @@
 /*
  * \brief  Test GPIO driver with Leds
  * \author Reinier Millo Sánchez <rmillo@uclv.cu>
+ * \author Martin Stein
  * \date   2015-07-26
  */
 
@@ -11,48 +12,44 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/log.h>
-#include <base/signal.h>
+/* Genode includes */
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
-#include <util/mmio.h>
 #include <timer_session/connection.h>
 
-#include <os/config.h>
+using namespace Genode;
 
-int main(int, char **)
+
+struct Main
 {
-	unsigned int _delay = 1000;
-	unsigned int _gpio_pin = 16;
-	unsigned int _times = 10;
+	Env                    &env;
+	Attached_rom_dataspace  config   { env, "config" };
+	unsigned                delay    { config.xml().attribute_value("delay", (unsigned)1000) };
+	unsigned                gpio_pin { config.xml().attribute_value("gpio_pin", (unsigned)16) };
+	unsigned                times    { config.xml().attribute_value("times", (unsigned)10) };
+	Gpio::Connection        led      { env, gpio_pin };
+	Timer::Connection       timer    { env };
 
-	try {
-		Genode::config()->xml_node().attribute("gpio_pin").value(&_gpio_pin);
-	} catch (...) { }
+	Main(Env &env);
+};
 
-	try {
-		Genode::config()->xml_node().attribute("delay").value(&_delay);
-	} catch (...) { }
 
-	try {
-		Genode::config()->xml_node().attribute("times").value(&_times);
-	} catch (...) { }
+Main::Main(Env &env) : env(env)
+{
+	log("--- GPIO Led test [GPIO Pin: ", gpio_pin, ", "
+	    "Timer delay: ", delay, ", Times: ", times, "] ---");
 
-	Genode::log("--- GPIO Led test [GPIO Pin: ", _gpio_pin, ", "
-	            "Timer delay: ", _delay, ", Times: ", _times, "] ---");
-
-	Gpio::Connection _led(_gpio_pin);
-	Timer::Connection _timer;
-
-	while(_times--)
-	{
-		Genode::log("Remains blinks: ",_times);
-		_led.write(false);
-		_timer.msleep(_delay);
-		_led.write(true);
-		_timer.msleep(_delay);
+	while (times--) {
+		log("Remaining blinks: ", times);
+		led.write(false);
+		timer.msleep(delay);
+		led.write(true);
+		timer.msleep(delay);
 	}
-
-	Genode::log("Test finished");
-	return 0;
+	log("Test finished");
 }
+
+
+void Component::construct(Env &env) { static Main main(env); }

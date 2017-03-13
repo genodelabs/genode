@@ -1,6 +1,7 @@
 /*
  * \brief  Test GPIO driver
  * \author Reinier Millo Sánchez <rmillo@uclv.cu>
+ * \author Martin Stein
  * \date   2015-07-26
  */
 
@@ -11,81 +12,68 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/log.h>
-#include <base/signal.h>
+/* Genode includes */
+#include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
-#include <util/mmio.h>
 #include <timer_session/connection.h>
-
-#include <os/config.h>
 
 using namespace Genode;
 
-int main(int, char **)
+
+struct Main
 {
-	Signal_receiver   sig_rec;
-	Signal_context    sig_ctx;
-	Timer::Connection _timer;
+	Env                    &env;
+	Attached_rom_dataspace  config       { env, "config" };
+	Signal_receiver         sig_rec;
+	Signal_context          sig_ctx;
+	Timer::Connection       timer        { env };
+	unsigned                gpio_pin     { config.xml().attribute_value("gpio_pin", (unsigned)16) };
+	unsigned                gpio_pin_in  { config.xml().attribute_value("gpio_pin_in", (unsigned)17) };
+	unsigned                gpio_pin_out { config.xml().attribute_value("gpio_pin_out", (unsigned)18) };
+	bool                    state        { config.xml().attribute_value("state", (unsigned)0) > 0 };
 
-	unsigned _gpio_pin     = 16;
-	unsigned _gpio_pin_in  = 17;
-	unsigned _gpio_pin_out = 18;
-	unsigned _tmp          = 0;
-	bool _state            = false;
+	Main(Env &env);
+};
 
-	try {
-		Genode::config()->xml_node().attribute("gpio_pin").value(&_gpio_pin);
-	} catch (...) { }
 
-	try {
-		Genode::config()->xml_node().attribute("gpio_pin_in").value(&_gpio_pin_in);
-	} catch (...) { }
-
-	try {
-		Genode::config()->xml_node().attribute("gpio_pin_out").value(&_gpio_pin_out);
-	} catch (...) { }
-
-	try {
-		Genode::config()->xml_node().attribute("state").value(&_tmp);
-	} catch (...) { }
-	_state = _tmp>0;
-
+Main::Main(Env &env) : env(env)
+{
 	log("--- GPIO Signals test [LED "
-	    "pin: ",           _gpio_pin, ", "
-	    "Input pin: ",     _gpio_pin_in, ", "
-	    "Output pin: ",    _gpio_pin_out, ", "
-	    "Initial state: ", _state, "] ---");
+	    "pin: ",           gpio_pin, ", "
+	    "Input pin: ",     gpio_pin_in, ", "
+	    "Output pin: ",    gpio_pin_out, ", "
+	    "Initial state: ", state, "] ---");
 
-	Gpio::Connection _led(_gpio_pin);
-	Gpio::Connection _signal_input(_gpio_pin_in);
-	Gpio::Connection _signal_output(_gpio_pin_out);
+	Gpio::Connection led(env, gpio_pin);
+	Gpio::Connection signal_input(env, gpio_pin_in);
+	Gpio::Connection signal_output(env, gpio_pin_out);
 
 	/*
 	 * Set pins direction.
 	 * This values can be set by configuration
 	 */
-	_signal_input.direction(Gpio::Session::IN);
-	_signal_output.direction(Gpio::Session::OUT);
-
+	signal_input.direction(Gpio::Session::IN);
+	signal_output.direction(Gpio::Session::OUT);
 
 	/*
 	 * Power on the signal output
 	 */
-	_signal_output.write(true);
+	signal_output.write(true);
 
 
 	/*
 	 * Initialize the pin IRQ signal
 	 */
-	Genode::Irq_session_client irq(_signal_input.irq_session(Gpio::Session::HIGH_LEVEL));
+	Irq_session_client irq(signal_input.irq_session(Gpio::Session::HIGH_LEVEL));
 	irq.sigh(sig_rec.manage(&sig_ctx));
 	irq.ack_irq();
 
-	while(1)
+	while(true)
 	{
-		_state = !_state;
-		_led.write(_state);
+		state = !state;
+		led.write(state);
 
 		/*
 		 * Wait for a GIO signal on _signal_input
@@ -95,21 +83,19 @@ int main(int, char **)
 		/*
 		 * Small delay between push button actions
 		 */
-		_timer.msleep(100);
+		timer.msleep(100);
 
 		/*
 		 * Switch the LED state
 		 */
-		if(!_state)
-		{
-			Genode::log("Led going OFF");
-		}else
-		{
-			Genode::log("Led going ON");
-		}
+		if(!state) {
+			log("Led going OFF");
+		} else {
+			log("Led going ON"); }
 
 		irq.ack_irq();
 	}
-
-	return 0;
 }
+
+
+void Component::construct(Env &env) { static Main main(env); }
