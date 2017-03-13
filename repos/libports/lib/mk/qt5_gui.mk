@@ -44,7 +44,9 @@ LIBS += qt5_core jpeg zlib libpng gallium
 # install fonts
 #
 
+ifneq ($(call select_from_ports,qt5),)
 all: $(BUILD_BASE_DIR)/bin/qt5_fs/qt/lib/fonts
+endif
 
 $(BUILD_BASE_DIR)/bin/qt5_fs/qt/lib/fonts:
 	$(VERBOSE)mkdir -p $@

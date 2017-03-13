@@ -18,7 +18,9 @@ CC_WARN =
 # that's why they can be quite long
 #
 
+ifneq ($(call select_from_ports,qt5),)
 all: $(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.tag
+endif
 
 JAVASCRIPTCORE_DIR = $(QT5_CONTRIB_DIR)/qtwebkit/Source/JavaScriptCore
 

@@ -23,7 +23,9 @@ QT_INCPATH := qtwebkit/Source/WebCore/dom
 # that's why they can be quite long
 #
 
+ifneq ($(call select_from_ports,qt5),)
 all: $(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/generated/generated.tag
+endif
 
 # command names used by some of the extracted generator commands
 DEL_FILE := rm

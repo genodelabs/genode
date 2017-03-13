@@ -26,7 +26,9 @@ $(QTQUICK_QMLDIR): $(QTQUICK_INSTALL_DIR)
 $(QTQUICK_PLUGIN): $(QTQUICK_INSTALL_DIR)
 	$(VERBOSE)ln -sf $(BUILD_BASE_DIR)/bin/$(QTQUICK_PLUGIN_NAME) $(QTQUICK_INSTALL_DIR)/$(QTQUICK_PLUGIN_NAME)
 
+ifneq ($(call select_from_ports,qt5),)
 all: $(QTQUICK_QMLDIR) $(QTQUICK_PLUGIN)
+endif
 
 #
 # unfortunately, these clean rules don't trigger
