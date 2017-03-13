@@ -50,9 +50,11 @@ VBOX_CC_OPT += -DVBOX_WITH_E1000
 
 VBOX_CC_OPT += -DVBOX_WITH_AHCI
 
+ifneq ($(call select_from_ports,virtualbox5),)
 VIRTUALBOX_VERSION_MAJOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_MAJOR = " | grep -v "'VBOX_VERSION_MAJOR" | sed "s/^.*= //")
 VIRTUALBOX_VERSION_MINOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_MINOR = " | grep -v "'VBOX_VERSION_MINOR" | sed "s/^.*= //")
 VIRTUALBOX_VERSION_BUILD := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_BUILD = " | grep -v "'VBOX_VERSION_BUILD" | sed "s/^.*= //")
+endif
 
 ifeq ($(VBOX_MACH),x86_32)
 VIRTUALBOX_PACKAGE_STRING = GenodeOS_32BIT_GENERIC
