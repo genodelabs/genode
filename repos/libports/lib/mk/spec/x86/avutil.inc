@@ -5,4 +5,4 @@ CC_C_OPT += -DARCH_X86=1
 
 include $(REP_DIR)/lib/mk/avutil.inc
 
-include $(LIBAVUTIL_DIR)/x86/Makefile
+-include $(LIBAVUTIL_DIR)/x86/Makefile
