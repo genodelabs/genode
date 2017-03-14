@@ -91,6 +91,10 @@ namespace Libc {
 	Genode::Xml_node config() __attribute__((weak));
 	Genode::Xml_node config()
 	{
+		if (!_config_node) {
+			error("libc config not initialized - aborting");
+			exit(1);
+		}
 		return *_config_node;
 	}
 

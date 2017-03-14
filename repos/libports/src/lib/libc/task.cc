@@ -524,6 +524,13 @@ struct Libc::Kernel
 		unsigned long _suspend_main(Suspend_functor &check,
 		                            unsigned long timeout_ms)
 		{
+			/* check if we're running on the user context */
+			if (Thread::myself()->mystack().top != (Genode::addr_t)_user_stack) {
+				error("libc suspend() called from non-user context (",
+				      __builtin_return_address(0), ") - aborting");
+				exit(1);
+			}
+
 			if (!check.suspend())
 				return 0;
 
@@ -774,9 +781,12 @@ static void resumed_callback() { kernel->entrypoint_resumed(); }
 void Libc::resume_all() { kernel->resume_all(); }
 
 
-unsigned long Libc::suspend(Suspend_functor &s,
-                             unsigned long timeout_ms)
+unsigned long Libc::suspend(Suspend_functor &s, unsigned long timeout_ms)
 {
+	if (!kernel) {
+		error("libc kernel not initialized, needed for suspend()");
+		exit(1);
+	}
 	return kernel->suspend(s, timeout_ms);
 }
 
@@ -789,8 +799,8 @@ unsigned long Libc::current_time()
 void Libc::schedule_suspend(void (*suspended) ())
 {
 	if (!kernel) {
-		error("libc kernel not initialized, needed for suspend()");
-		return;
+		error("libc kernel not initialized, needed for fork()");
+		exit(1);
 	}
 	kernel->schedule_suspend(suspended);
 }
@@ -800,7 +810,7 @@ void Libc::schedule_select(Libc::Select_handler_base *h)
 {
 	if (!kernel) {
 		error("libc kernel not initialized, needed for select()");
-		return;
+		exit(1);
 	}
 	kernel->schedule_select(h);
 }
@@ -813,6 +823,11 @@ void Libc::execute_in_application_context(Libc::Application_code &app_code)
 	 *     don't use this code.
 	 */
 
+	if (!kernel) {
+		error("libc kernel not initialized, needed for with_libc()");
+		exit(1);
+	}
+
 	static bool nested = false;
 
 	if (nested) {
@@ -822,11 +837,6 @@ void Libc::execute_in_application_context(Libc::Application_code &app_code)
 		} else {
 			app_code.execute();
 		}
-		return;
-	}
-
-	if (!kernel) {
-		error("libc kernel not initialized, needed for with_libc()");
 		return;
 	}
 
