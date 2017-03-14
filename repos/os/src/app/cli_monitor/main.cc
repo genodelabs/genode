@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
-#include <base/registry.h>
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <base/component.h>

@@ -17,7 +17,7 @@
 #include <cpu/atomic.h>
 
 
-static Genode::Registry<Genode::Registered<Genode::Semaphore> > blocked;
+static Genode::Registry<Genode::Registered_no_delete<Genode::Semaphore> > blocked;
 
 
 namespace __cxxabiv1 
@@ -54,7 +54,7 @@ namespace __cxxabiv1
 		if (!Genode::cmpxchg(in_init, INIT_NONE, IN_INIT)) {
 
 			/* register current thread for blocking */
-			Genode::Registered<Genode::Semaphore> block(blocked);
+			Genode::Registered_no_delete<Genode::Semaphore> block(blocked);
 
 			/* tell guard thread that current thread needs a wakeup */
 			while (!Genode::cmpxchg(in_init, *in_init, *in_init | WAITERS)) ;
@@ -88,7 +88,7 @@ namespace __cxxabiv1
 			return;
 
 		/* we had contention - wake all up */
-		blocked.for_each([](Genode::Registered<Genode::Semaphore> &wake) {
+		blocked.for_each([](Genode::Registered_no_delete<Genode::Semaphore> &wake) {
 			wake.up();
 		});
 	}

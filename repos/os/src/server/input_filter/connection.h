@@ -63,6 +63,8 @@ class Input_filter::Input_connection
 			_connection.sigh(_input_handler);
 		}
 
+		virtual ~Input_connection() { }
+
 		Session_label label() const { return _label; }
 
 		template <typename FUNC>

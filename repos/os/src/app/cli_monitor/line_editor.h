@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/registry.h>
 #include <terminal_session/connection.h>
 #include <util/string.h>
 #include <util/list.h>
@@ -26,7 +25,6 @@
 
 namespace Cli_monitor {
 
-	using Genode::Registry;
 	using Genode::List;
 	using Genode::max;
 	using Genode::strlen;

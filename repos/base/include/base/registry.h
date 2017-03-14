@@ -22,6 +22,7 @@ namespace Genode {
 	class Registry_base;
 	template <typename T> struct Registry;
 	template <typename T> class Registered;
+	template <typename T> class Registered_no_delete;
 }
 
 
@@ -157,8 +158,32 @@ class Genode::Registered : public T
 
 	public:
 
+		static_assert(__has_virtual_destructor(T), "registered object must have virtual destructor");
+
 		template <typename... ARGS>
 		Registered(Registry<Registered<T> > &registry, ARGS &&... args)
+		: T(args...), _element(registry, *this) { }
+};
+
+
+/**
+ * Variant of Registered that does not require a vtable in the base class
+ *
+ * The generic Registered convenience class requires the base class to provide
+ * a vtable resp. a virtual destructor for safe deletion of a base class
+ * pointer. By using Registered_no_delete this requirement can be lifted.
+ */
+template <typename T>
+class Genode::Registered_no_delete : public T
+{
+	private:
+
+		typename Registry<Registered_no_delete<T> >::Element _element;
+
+	public:
+
+		template <typename... ARGS>
+		Registered_no_delete(Registry<Registered_no_delete<T> > &registry, ARGS &&... args)
 		: T(args...), _element(registry, *this) { }
 };
 

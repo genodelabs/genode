@@ -79,6 +79,8 @@ struct Stress_test
 		: timer_handler(env.ep(), *this, &Slave::handle_timer),
 		  timer(env), us(ms * 1000) { timer.sigh(timer_handler); }
 
+		virtual ~Slave() { }
+
 		void handle_timer()
 		{
 			count++;
