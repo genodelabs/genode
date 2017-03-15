@@ -104,7 +104,7 @@ else
 #
 # Add a list of symbols that shall always be added to the dynsym section
 #
-LD_OPT += --dynamic-list=$(call select_from_repositories,src/ld/genode_dyn.dl)
+LD_OPT += --dynamic-list=$(BASE_DIR)/src/ld/genode_dyn.dl
 
 LD_SCRIPTS := $(LD_SCRIPT_DYN)
 LD_CMD     += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
