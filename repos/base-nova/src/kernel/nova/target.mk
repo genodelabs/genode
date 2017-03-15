@@ -23,7 +23,7 @@ CC_OPT          += -pipe \
                    -fno-asynchronous-unwind-tables -std=gnu++0x 
 CC_OPT_PIC      :=
 ifeq ($(filter-out $(SPECS),32bit),)
-CC_WARN         += -Wframe-larger-than=92
+CC_WARN         += -Wframe-larger-than=96
 CC_OPT          += -mpreferred-stack-boundary=2 -mregparm=3
 else
 ifeq ($(filter-out $(SPECS),64bit),)
