@@ -47,10 +47,14 @@ SYMBOLS_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/symbols/spec
 LIB_MK  = $(firstword $(wildcard $(addsuffix /$(LIB).mk,$(LIB_MK_DIRS))))
 SYMBOLS = $(firstword $(wildcard $(addsuffix /$(LIB),   $(SYMBOLS_DIRS))))
 
+ifneq ($(SYMBOLS),)
+SHARED_LIB := yes
+endif
+
 #
-# Sanity check to detect missing library description file
+# Sanity check to detect missing library-description file
 #
-ifeq ($(LIB_MK),)
+ifeq ($(sort $(LIB_MK) $(SYMBOLS)),)
 all: warn_missing_lib_mk
 else
 all: check_unsatisfied_requirements
