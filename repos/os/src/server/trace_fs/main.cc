@@ -16,7 +16,6 @@
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/server.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <base/heap.h>
@@ -606,7 +605,7 @@ class File_system::Session_component : public Session_rpc_object
 {
 	private:
 
-		Server::Entrypoint   &_ep;
+		Genode::Entrypoint   &_ep;
 		Ram_session          &_ram;
 		Allocator            &_md_alloc;
 		Directory            &_root_dir;
@@ -621,8 +620,8 @@ class File_system::Session_component : public Session_rpc_object
 		Trace::Connection    *_trace;
 		Trace_file_system    *_trace_fs;
 
-		Signal_rpc_member<Session_component> _process_packet_dispatcher;
-		Signal_rpc_member<Session_component> _fs_update_dispatcher;
+		Signal_handler<Session_component> _process_packet_dispatcher;
+		Signal_handler<Session_component> _fs_update_dispatcher;
 
 
 		/**************************
@@ -632,7 +631,7 @@ class File_system::Session_component : public Session_rpc_object
 		/**
 		 * Update the file system hierarchie and data of active trace subjects
 		 */
-		void _fs_update(unsigned)
+		void _fs_update()
 		{
 			_trace_fs->update(_subject_limit);
 		}
@@ -702,7 +701,7 @@ class File_system::Session_component : public Session_rpc_object
 		 * Called by signal dispatcher, executed in the context of the main
 		 * thread (not serialized with the RPC functions)
 		 */
-		void _process_packets(unsigned)
+		void _process_packets()
 		{
 			while (tx_sink()->packet_avail()) {
 
@@ -743,7 +742,7 @@ class File_system::Session_component : public Session_rpc_object
 		 * Constructor
 		 */
 		Session_component(size_t                 tx_buf_size,
-		                  Server::Entrypoint     &ep,
+		                  Genode::Entrypoint     &ep,
 		                  Genode::Ram_session    &ram,
 		                  Genode::Region_map     &rm,
 		                  Genode::Env            &env,
@@ -915,7 +914,7 @@ class File_system::Root : public Root_component<Session_component>
 {
 	private:
 
-		Server::Entrypoint  &_ep;
+		Genode::Entrypoint  &_ep;
 		Genode::Ram_session &_ram;
 		Genode::Region_map  &_rm;
 		Genode::Env         &_env;
@@ -1034,7 +1033,7 @@ class File_system::Root : public Root_component<Session_component>
 		 *                    data-flow signals of packet streams
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Server::Entrypoint &ep, Allocator &md_alloc, Ram_session &ram,
+		Root(Genode::Entrypoint &ep, Allocator &md_alloc, Ram_session &ram,
 		     Region_map &rm, Env &env, Directory &root_dir)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
