@@ -13,7 +13,6 @@
 
 
 /* Genode includes */
-#include <cap_session/connection.h>
 #include <dataspace/client.h>
 #include <base/lock.h>
 
@@ -39,19 +38,19 @@ void (*libc_select_notify)();
 	Socket_io_channel_backend *name = \
 	dynamic_cast<Socket_io_channel_backend*>(backend)
 
-static Genode::Lock _select_notify_lock;
-
 /**
  * This callback function is called from lwip via the libc_select_notify
  * function pointer if an event occurs.
  */
 static void select_notify()
 {
+	static Genode::Lock mutex;
+
 	/*
 	 * The function could be called multiple times while actually
 	 * still running.
 	 */
-	Genode::Lock::Guard guard(_select_notify_lock);
+	Genode::Lock::Guard guard(mutex);
 
 	for (Io_receptor *r = io_receptor_registry()->first();
 	     r != 0; r = r->next()) {

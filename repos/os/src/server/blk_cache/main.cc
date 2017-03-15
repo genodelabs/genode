@@ -82,4 +82,10 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Main server(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Main server(env);
+}

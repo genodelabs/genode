@@ -243,4 +243,10 @@ struct Framebuffer::Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Framebuffer::Main inst(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Framebuffer::Main inst(env);
+}

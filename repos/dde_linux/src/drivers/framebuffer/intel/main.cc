@@ -121,4 +121,10 @@ static void run_linux(void * m)
 }
 
 
-void Component::construct(Genode::Env &env) { static Main m(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Main m(env);
+}

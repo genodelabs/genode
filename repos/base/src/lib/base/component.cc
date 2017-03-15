@@ -27,6 +27,15 @@
  */
 static Genode::Env *env_ptr = nullptr;
 
+/**
+ * Excecute pending static constructors
+ *
+ * The weak function is used for statically linked binaries. The dynamic linker
+ * provides the real implementation for dynamically linked components.
+ */
+void Genode::exec_static_constructors() __attribute__((weak));
+void Genode::exec_static_constructors() { }
+
 namespace {
 
 	using namespace Genode;
@@ -183,6 +192,11 @@ namespace {
 
 			if (_parent.close(id) == Parent::CLOSE_PENDING)
 				_block_for_session();
+		}
+
+		void exec_static_constructors() override
+		{
+			Genode::exec_static_constructors();
 		}
 	};
 }

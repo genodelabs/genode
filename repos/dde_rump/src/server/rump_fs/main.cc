@@ -521,4 +521,10 @@ struct File_system::Main
 };
 
 
-void Component::construct(Genode::Env &env) { static File_system::Main inst(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics (uses shared objects) */
+	env.exec_static_constructors();
+
+	static File_system::Main inst(env);
+}

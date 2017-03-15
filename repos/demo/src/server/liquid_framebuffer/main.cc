@@ -311,4 +311,10 @@ class Liquid_fb::Main : public Scout::Event_handler
 };
 
 
-void Component::construct(Genode::Env &env) { static Liquid_fb::Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Liquid_fb::Main main(env);
+}

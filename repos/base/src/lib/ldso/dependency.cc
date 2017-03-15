@@ -91,5 +91,5 @@ Linker::Root_object::Root_object(Env &env, Allocator &md_alloc,
 	new (md_alloc) Dependency(env, md_alloc, linker_name(), this, _deps, DONT_KEEP);
 
 	/* relocate and call constructors */
-	Init::list()->initialize(bind);
+	Init::list()->initialize(bind, STAGE_SO);
 }

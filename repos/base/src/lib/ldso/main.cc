@@ -290,7 +290,10 @@ Elf::Addr Ld::jmp_slot(Dependency const &dep, Elf::Size index)
 		Reloc_jmpslot slot(dep, dep.obj().dynamic().pltrel_type(), 
 		                   dep.obj().dynamic().pltrel(), index);
 		return slot.target_addr();
-	} catch (...) { error("LD: jump slot relocation failed. FATAL!"); }
+	} catch (...) {
+		error("LD: jump slot relocation failed. FATAL!");
+		throw;
+	}
 
 	return 0;
 }
@@ -336,6 +339,8 @@ static void exit_on_suspended() { genode_exit(exit_status); }
  */
 struct Linker::Binary : Root_object, Elf_object
 {
+	bool static_construction_finished = false;
+
 	Binary(Env &env, Allocator &md_alloc, Bind bind)
 	:
 		Root_object(md_alloc),
@@ -357,7 +362,7 @@ struct Linker::Binary : Root_object, Elf_object
 		binary->load_needed(env, md_alloc, deps(), DONT_KEEP);
 
 		/* relocate and call constructors */
-		Init::list()->initialize(bind);
+		Init::list()->initialize(bind, STAGE_BINARY);
 	}
 
 	Elf::Addr lookup_symbol(char const *name)
@@ -368,6 +373,32 @@ struct Linker::Binary : Root_object, Elf_object
 			return base + sym->st_value;
 		}
 		catch (Linker::Not_found) { return 0; }
+	}
+
+	bool static_construction_pending()
+	{
+		if (static_construction_finished) return false;
+
+		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
+		Func * const ctors_end   = (Func *)lookup_symbol("_ctors_end");
+
+		return (ctors_end != ctors_start) || Init::list()->contains_deps();
+	}
+
+	void finish_static_construction()
+	{
+		Init::list()->exec_static_constructors();
+
+		/* call static construtors and register destructors */
+		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
+		Func * const ctors_end   = (Func *)lookup_symbol("_ctors_end");
+		for (Func * ctor = ctors_end; ctor != ctors_start; (*--ctor)());
+
+		Func * const dtors_start = (Func *)lookup_symbol("_dtors_start");
+		Func * const dtors_end   = (Func *)lookup_symbol("_dtors_end");
+		for (Func * dtor = dtors_start; dtor != dtors_end; genode_atexit(*dtor++));
+
+		static_construction_finished = true;
 	}
 
 	void call_entry_point(Env &env)
@@ -382,18 +413,16 @@ struct Linker::Binary : Root_object, Elf_object
 			Thread::myself()->stack_size(stack_size);
 		}
 
-		/* call static construtors and register destructors */
-		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
-		Func * const ctors_end   = (Func *)lookup_symbol("_ctors_end");
-		for (Func * ctor = ctors_end; ctor != ctors_start; (*--ctor)());
-
-		Func * const dtors_start = (Func *)lookup_symbol("_dtors_start");
-		Func * const dtors_end   = (Func *)lookup_symbol("_dtors_end");
-		for (Func * dtor = dtors_start; dtor != dtors_end; genode_atexit(*dtor++));
-
 		/* call 'Component::construct' function if present */
 		if (Elf::Addr addr = lookup_symbol("_ZN9Component9constructERN6Genode3EnvE")) {
 			((void(*)(Env &))addr)(env);
+
+			if (static_construction_pending()) {
+				error("Component::construct() returned without executing "
+				      "pending static constructors (fix by calling "
+				      "Genode::Env::exec_static_constructors())");
+				throw Fatal();
+			}
 			return;
 		}
 
@@ -405,6 +434,9 @@ struct Linker::Binary : Root_object, Elf_object
 		 */
 		if (Elf::Addr addr = lookup_symbol("main")) {
 			warning("using legacy main function, please convert to 'Component::construct'");
+
+			/* execute static constructors before calling legacy 'main' */
+			finish_static_construction();
 
 			exit_status = ((int (*)(int, char **, char **))addr)(genode_argc,
 			                                                     genode_argv,
@@ -418,6 +450,7 @@ struct Linker::Binary : Root_object, Elf_object
 		}
 
 		error("dynamic linker: component-entrypoint lookup failed");
+		throw Fatal();
 	}
 
 	void relocate(Bind bind) override
@@ -610,6 +643,11 @@ void Genode::init_ldso_phdr(Env &env)
 	/* load program headers of linker now */
 	if (!Ld::linker().file())
 		Ld::linker().load_phdr(env, *heap());
+}
+
+void Genode::exec_static_constructors()
+{
+	binary_ptr->finish_static_construction();
 }
 
 

@@ -159,6 +159,9 @@ class Libc::Env_implementation : public Libc::Env
 
 		void close(Parent::Client::Id id) override {
 			return _env.close(id); }
+
+		/* already done by the libc */
+		void exec_static_constructors() override { }
 };
 
 
@@ -864,15 +867,29 @@ void Component::construct(Genode::Env &env)
 	Libc::init_dl(env);
 	Libc::sysctl_init(env);
 
+	kernel = unmanaged_singleton<Libc::Kernel>(env);
+
+	Libc::libc_config_init(kernel->libc_env().libc_config());
+
+	/*
+	 * XXX The following two steps leave us with the dilemma that we don't know
+	 * which linked library may depend on the successfull initialization of a
+	 * plugin. For example, some high-level library may try to open a network
+	 * connection in its constructor before the network-stack library is
+	 * initialized. But, we can't initialize plugins before calling static
+	 * constructors as those are needed to know about the libc plugin. The only
+	 * solution is to remove all libc plugins beside the VFS implementation,
+	 * which is our final goal anyway.
+	 */
+
+	/* finish static construction of component and libraries */
+	Libc::with_libc([&] () { env.exec_static_constructors(); });
+
 	/* initialize plugins that require Genode::Env */
 	auto init_plugin = [&] (Libc::Plugin &plugin) {
 		plugin.init(env);
 	};
 	Libc::plugin_registry()->for_each_plugin(init_plugin);
-
-	kernel = unmanaged_singleton<Libc::Kernel>(env);
-
-	Libc::libc_config_init(kernel->libc_env().libc_config());
 
 	/* construct libc component on kernel stack */
 	Libc::Component::construct(kernel->libc_env());

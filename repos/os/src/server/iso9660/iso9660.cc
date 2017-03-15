@@ -43,8 +43,6 @@ class Iso::Sector {
 			BLOCK_SIZE = 2048,
 		};
 
-		static Lock _lock;
-
 	private:
 
 		Block::Session::Tx::Source &_source;
@@ -56,8 +54,6 @@ class Iso::Sector {
 		       unsigned long blk_nr, unsigned long count)
 		: _source(*block.tx())
 		{
-			// Lock::Guard lock_guard(_lock);
-
 			try {
 				_p = Block::Packet_descriptor(
 					block.dma_alloc_packet(blk_size() * count),
@@ -81,7 +77,6 @@ class Iso::Sector {
 		}
 
 		~Sector() {
-			// Lock::Guard lock_guard(_lock);
 			_source.release_packet(_p);
 		}
 
@@ -96,12 +91,6 @@ class Iso::Sector {
 		static unsigned long to_blk(unsigned long bytes) {
 			return ((bytes + blk_size() - 1) & ~(blk_size() - 1)) / blk_size(); }
 };
-
-
-/*
- * Static members of Sector
- */
-Lock Iso::Sector::_lock;
 
 
 /**

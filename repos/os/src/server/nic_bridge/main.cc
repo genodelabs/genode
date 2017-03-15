@@ -65,4 +65,10 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Main nic_bridge(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Main nic_bridge(env);
+}

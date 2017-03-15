@@ -16,4 +16,10 @@
 extern void start_usb_driver(Genode::Env &env);
 
 
-void Component::construct(Genode::Env &env) { start_usb_driver(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	start_usb_driver(env);
+}

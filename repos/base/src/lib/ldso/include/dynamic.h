@@ -126,7 +126,7 @@ class Linker::Dynamic
 		{
 			if (!_md_alloc) {
 				error("unexpected call of section_dt_needed");
-				return;
+				throw Fatal();
 			}
 			Needed *n = new (*_md_alloc) Needed(d->un.ptr);
 			_needed.enqueue(n);

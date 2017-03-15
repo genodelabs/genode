@@ -54,6 +54,8 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	{ return genode_env.upgrade(id, args); }
 
 	void close(Parent::Client::Id id) { return genode_env.close(id); }
+
+	void exec_static_constructors() override { }
 };
 
 

@@ -36,6 +36,18 @@ struct Linker::Init : List<Object>
 		return &_list;
 	}
 
+	bool contains_deps() const
+	{
+		for (Object const *obj = first(); obj; obj = obj->next_init()) {
+			if (obj->is_linker()) continue;
+			if (obj->is_binary()) continue;
+
+			return true;
+		}
+
+		return false;
+	}
+
 	Object *contains(char const *file)
 	{
 		for (Object *elf = first(); elf; elf = elf->next_init())
@@ -62,7 +74,7 @@ struct Linker::Init : List<Object>
 		});
 	}
 
-	void initialize(Bind bind)
+	void initialize(Bind bind, Stage stage)
 	{
 		Object *obj = first();
 
@@ -74,7 +86,7 @@ struct Linker::Init : List<Object>
 		}
 
 		/*
-		 * Recursive initialization call is not allowed here. This might happend
+		 * Recursive initialization call is not allowed here. This might happen
 		 * when Shared_objects (e.g. dlopen and friends) are constructed from within
 		 * global constructors (ctors).
 		 */
@@ -83,10 +95,21 @@ struct Linker::Init : List<Object>
 			return;
 		}
 
+		/*
+		 * We do not call static constructors in the binary stage as this must
+		 * be done by the component itself. Later for shared objects, the
+		 * constructors are executed immediately.
+		 */
+		if (stage != STAGE_BINARY)
+			exec_static_constructors();
+	}
+
+	void exec_static_constructors()
+	{
 		in_progress = true;
 
 		/* call static constructors */
-		obj = first();
+		Object *obj = first();
 		while (obj) {
 
 			Object *next = obj->next_init();

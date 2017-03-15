@@ -1394,4 +1394,10 @@ void Nitpicker::Main::handle_fb_mode()
 }
 
 
-void Component::construct(Genode::Env &env) { static Nitpicker::Main nitpicker(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Nitpicker::Main nitpicker(env);
+}

@@ -690,6 +690,9 @@ extern char _binary_terminus_16_tff_start;
 
 void Component::construct(Genode::Env &env)
 {
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
 	using namespace Genode;
 
 	Attached_rom_dataspace config(env, "config");

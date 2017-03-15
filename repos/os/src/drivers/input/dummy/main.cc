@@ -26,23 +26,20 @@
 using namespace Genode;
 
 
-/*****************************************
- ** Implementation of the input service **
- *****************************************/
-
-/*
- * Input event buffer that is shared with the client
- */
-enum { MAX_EVENTS = 1000 };
-static Dataspace_capability ev_ds_cap;
-
 namespace Input {
 
 	class Session_component : public Genode::Rpc_object<Session>
 	{
+		private:
+
+			Dataspace_capability _ev_ds_cap;
+
 		public:
 
-			Dataspace_capability dataspace() override { return ev_ds_cap; }
+			Session_component(Dataspace_capability ev_ds_cap)
+			: _ev_ds_cap(ev_ds_cap) { }
+
+			Dataspace_capability dataspace() override { return _ev_ds_cap; }
 
 			bool pending() const override { return 0; }
 
@@ -60,36 +57,36 @@ namespace Input {
 	{
 		protected:
 
+			Dataspace_capability _ev_ds_cap;
+
 			Session_component *_create_session(const char *args) {
-				return new (md_alloc()) Session_component(); }
+				return new (md_alloc()) Session_component(_ev_ds_cap); }
 
 		public:
 
-			Root(Genode::Entrypoint &ep, Allocator &md_alloc)
-			: Root_component<Session_component>(ep, md_alloc) { }
+			Root(Genode::Entrypoint &ep, Allocator &md_alloc,
+			     Dataspace_capability ev_ds_cap)
+			:
+				Root_component<Session_component>(ep, md_alloc),
+				_ev_ds_cap(ev_ds_cap)
+			{ }
 	};
 }
 
 
 struct Main
 {
-	Genode::Sliced_heap heap;
+	Genode::Env &env;
 
-	Input::Root root;
+	Sliced_heap heap { env.ram(), env.rm() };
 
-	Main(Genode::Env &env)
-	:
-		heap(env.ram(), env.rm()),
-		root(env.ep(), heap)
+	Dataspace_capability ev_ds_cap {
+		env.ram().alloc(1000*sizeof(Input::Event)) };
+
+	Input::Root root { env.ep(), heap, ev_ds_cap };
+
+	Main(Genode::Env &env) : env(env)
 	{
-		/* create dataspace for event buffer that is shared with the client */
-		try { ev_ds_cap = env.ram().alloc(MAX_EVENTS*sizeof(Input::Event)); }
-		catch (Ram_session::Alloc_failed) {
-			Genode::error("could not allocate dataspace for event buffer");
-			throw Genode::Exception();
-		}
-
-		/* tell parent about the service */
 		env.parent().announce(env.ep().manage(root));
 	}
 };

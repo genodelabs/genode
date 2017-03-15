@@ -32,12 +32,15 @@ namespace Linker {
 	class Incompatible : Exception  { };
 	class Invalid_file : Exception  { };
 	class Not_found    : Exception  { };
+	class Fatal        : Exception  { };
 
 	enum Keep { DONT_KEEP = Shared_object::DONT_KEEP,
 	            KEEP      = Shared_object::KEEP };
 
 	enum Bind { BIND_LAZY = Shared_object::BIND_LAZY,
 	            BIND_NOW  = Shared_object::BIND_NOW };
+
+	enum Stage { STAGE_BINARY, STAGE_SO };
 
 	/**
 	 * Invariants

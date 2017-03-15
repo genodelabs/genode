@@ -128,6 +128,17 @@ struct Genode::Env
 	 * Close session and block until the session is gone
 	 */
 	virtual void close(Parent::Client::Id) = 0;
+
+	/**
+	 * Excecute pending static constructors
+	 *
+	 * On component startup, the dynamic linker does not call possible static
+	 * constructors in the binary and shared libraries the binary depends on. If
+	 * the component requires static construction it needs to call this function
+	 * at construction time explicitly. For example, the libc implementation
+         * executes this function before constructing libc components.
+	 */
+	virtual void exec_static_constructors() = 0;
 };
 
 #endif /* _INCLUDE__BASE__ENV_H_ */

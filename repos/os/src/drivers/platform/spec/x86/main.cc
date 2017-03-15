@@ -143,4 +143,10 @@ struct Platform::Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Platform::Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	/* XXX execute constructors of global statics */
+	env.exec_static_constructors();
+
+	static Platform::Main main(env);
+}
