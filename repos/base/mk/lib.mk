@@ -64,18 +64,9 @@ include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-
 #
 include $(BASE_DIR)/mk/global.mk
 
-#
-# Name of <libname>.lib.a or <libname>.lib.so file to create
-#
-ifdef SHARED_LIB
-LIB_SO       := $(addsuffix .lib.so,$(LIB))
-INSTALL_SO   := $(INSTALL_DIR)/$(LIB_SO)
-LIB_FILENAME := $(LIB_SO)
-else
-LIB_A        := $(addsuffix .lib.a,$(LIB))
-LIB_FILENAME := $(LIB_A)
+ifneq ($(SYMBOLS),)
+SHARED_LIB := yes
 endif
-LIB_TAG := $(addsuffix .lib.tag,$(LIB))
 
 #
 # If a symbol list is provided, we create an ABI stub named '<lib>.abi.so'
@@ -128,9 +119,27 @@ all: message
 message:
 	$(MSG_LIB)$(LIB)
 
+include $(BASE_DIR)/mk/generic.mk
+
+#
+# Name of <libname>.lib.a or <libname>.lib.so file to create
+#
+# Skip the creation and installation of an .so file if there are no
+# ingredients. This is the case if the library is present as ABI only.
+#
+ifdef SHARED_LIB
+ ifneq ($(sort $(OBJECTS) $(LIBS)),)
+  LIB_SO     := $(addsuffix .lib.so,$(LIB))
+  INSTALL_SO := $(INSTALL_DIR)/$(LIB_SO)
+ endif
+else
+LIB_A := $(addsuffix .lib.a,$(LIB))
+endif
+
 #
 # Trigger the creation of the <libname>.lib.a or <libname>.lib.so file
 #
+LIB_TAG := $(addsuffix .lib.tag,$(LIB))
 all: $(LIB_TAG)
 
 #
@@ -144,8 +153,6 @@ $(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
 
 $(LIB_TAG): $(LIB_A) $(LIB_SO) $(ABI_SO) $(INSTALL_SO)
 	@touch $@
-
-include $(BASE_DIR)/mk/generic.mk
 
 #
 # Rust support
