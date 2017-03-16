@@ -207,7 +207,7 @@ append config {
 			     to the 'log' fails. The environment of 'dummy' will remain
 			     incomplete. -->
 
-			<init_config>
+			<init_config version="incomplete">
 				<report requested="yes"/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
@@ -229,7 +229,7 @@ append config {
 					</route>
 				</start>
 			</init_config>
-			<sleep ms="200"/>
+			<sleep ms="1000"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="log"/> </node>
 				<node name="child">
@@ -456,7 +456,7 @@ append config {
 					<route> <any-service> <parent/> </any-service> </route>
 				</start>
 			</init_config>
-			<sleep ms="350"/>
+			<sleep ms="1000"/>
 			<!-- wait until both children are started -->
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="regular"/> </node>
@@ -632,8 +632,8 @@ append config {
 			</expect_init_state>
 
 			<!-- let child consume quota -->
-			<init_config>
-				<report init_ram="yes" child_ram="yes" delay_ms="250"/>
+			<init_config version="consumed">
+				<report init_ram="yes" child_ram="yes" delay_ms="1500"/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
 					<service name="CPU"/> <service name="PD"/>
@@ -651,7 +651,7 @@ append config {
 			</init_config>
 			<expect_log string="[init -> test] config 7: consume 2 MiB"/>
 			<expect_log string="[init -> test] consume 2M bytes of memory"/>
-			<sleep ms="300"/>
+			<sleep ms="1600"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="test"/>
 					<node name="ram">
@@ -680,7 +680,7 @@ append config {
 			</init_config>
 			<expect_log string="[init -> test] got yield request"/>
 			<expect_log string="[init -> test] release 2M bytes of memory"/>
-			<sleep ms="150"/>
+			<sleep ms="500"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="test"/>
 					<node name="ram"> <attribute name="quota" lower="2M"/> </node>
@@ -688,8 +688,8 @@ append config {
 			</expect_init_state>
 
 			<!-- let child issue a resource request -->
-			<init_config>
-				<report init_ram="yes" child_ram="yes" delay_ms="250"/>
+			<init_config version="resources requested">
+				<report init_ram="yes" child_ram="yes" delay_ms="2000"/>
 				<parent-provides>
 					<service name="ROM"/> <service name="RAM"/>
 					<service name="CPU"/> <service name="PD"/>
@@ -705,7 +705,7 @@ append config {
 				</start>
 			</init_config>
 			<expect_log string="[init -> test] config 8: request more quota than avail"/>
-			<sleep ms="300"/>
+			<sleep ms="2000"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="test"/>
 					<node name="ram">
