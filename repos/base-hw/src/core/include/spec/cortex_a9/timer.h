@@ -85,8 +85,31 @@ class Genode::Timer : public Mmio
 		 */
 		void start_one_shot(time_t const tics, unsigned const);
 
-		time_t tics_to_us(time_t const tics) const {
-			return (tics / TICS_PER_MS) * 1000; }
+		time_t tics_to_us(time_t const tics) const
+		{
+			/*
+			 * If we would do the translation with one division and
+			 * multiplication over the whole argument, we would loose
+			 * microseconds granularity although the timer frequency would
+			 * allow for such granularity. Thus, we treat the most significant
+			 * half and the least significant half of the argument separate.
+			 * Each half is shifted to the best bit position for the
+			 * translation, then translated, and then shifted back.
+			 */
+			static_assert(TICS_PER_MS >= 1000, "Bad TICS_PER_MS value");
+			enum {
+				HALF_WIDTH = (sizeof(time_t) << 2),
+				MSB_MASK  = ~0UL << HALF_WIDTH,
+				LSB_MASK  = ~0UL >> HALF_WIDTH,
+				MSB_RSHIFT = 10,
+				LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
+			};
+			time_t const msb = (((tics >> MSB_RSHIFT)
+			                     * 1000) / TICS_PER_MS) << MSB_RSHIFT;
+			time_t const lsb = ((((tics & LSB_MASK) << LSB_LSHIFT)
+			                     * 1000) / TICS_PER_MS) >> LSB_LSHIFT;
+			return (msb & MSB_MASK) | lsb;
+		}
 
 		time_t us_to_tics(time_t const us) const {
 			return (us / 1000) * TICS_PER_MS; }
