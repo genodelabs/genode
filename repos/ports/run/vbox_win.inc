@@ -149,7 +149,7 @@ append config_of_app {
 	</start>
 
 	<start name="vbox_pointer" priority="-1">
-		<resource name="RAM" quantum="1200K"/>
+		<resource name="RAM" quantum="2M"/>
 		<config>}
 
 for { set i 1} { $i <= $use_vms } { incr i} {
