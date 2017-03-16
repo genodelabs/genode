@@ -58,7 +58,8 @@ class Genode::Number_of_bytes
 
 			enum { KB = 1024UL, MB = KB*1024UL, GB = MB*1024UL };
 
-			if      (_n % GB == 0) print(output, _n/GB, "G");
+			if      (_n      == 0) print(output, 0);
+			else if (_n % GB == 0) print(output, _n/GB, "G");
 			else if (_n % MB == 0) print(output, _n/MB, "M");
 			else if (_n % KB == 0) print(output, _n/KB, "K");
 			else                   print(output, _n);
