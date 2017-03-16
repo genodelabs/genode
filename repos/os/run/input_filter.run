@@ -60,7 +60,7 @@ append config {
 	</start>
 
 	<start name="input_filter" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Input"/> </provides>
 		<configfile name="input_filter.config"/>
 		<route>
