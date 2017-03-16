@@ -1,4 +1,4 @@
-build "core init test/resource_request drivers/timer"
+build "core init server/report_rom test/resource_request drivers/timer"
 
 create_boot_directory
 
@@ -8,7 +8,6 @@ install_config {
 			<service name="ROM"/>
 			<service name="RAM"/>
 			<service name="CPU"/>
-			<service name="RM"/>
 			<service name="PD"/>
 			<service name="IRQ"/>
 			<service name="IO_PORT"/>
@@ -22,14 +21,34 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="test-resource_request">
+		<start name="report_rom">
 			<resource name="RAM" quantum="2M"/>
-			<provides> <service name="ROM" /> </provides>
+			<provides> <service name="ROM"/> <service name="Report"/> </provides>
+			<config verbose="no">
+				<policy label="init -> config" report="init_monitor -> init.config"/>
+				<policy label="init_monitor -> state" report="init -> state"/>
+			</config>
+		</start>
+		<start name="init">
+			<resource name="RAM" quantum="10M"/>
+			<route>
+				<service name="ROM" label="config"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+		<start name="init_monitor">
+			<binary name="test-resource_request"/>
+			<resource name="RAM" quantum="2M"/>
+			<config role="monitor"/>
+			<route>
+				<service name="ROM" label="state"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
 	</config>
 }
 
-build_boot_image "core ld.lib.so init timer test-resource_request"
+build_boot_image "core ld.lib.so init timer report_rom test-resource_request"
 
 append qemu_args "-nographic -m 128"
 

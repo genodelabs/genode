@@ -16,7 +16,14 @@
 
 #include <base/component.h>
 #include <base/log.h>
+#include <base/attached_rom_dataspace.h>
 #include <ram_session/connection.h>
+#include <os/reporter.h>
+
+namespace Test {
+	using namespace Genode;
+	struct Monitor;
+}
 
 
 static void print_quota_stats(Genode::Ram_session &ram)
@@ -31,9 +38,98 @@ static void print_quota_stats(Genode::Ram_session &ram)
 		throw Error(); }
 
 
+struct Test::Monitor
+{
+	Env &_env;
+
+	Attached_rom_dataspace _init_state { _env, "state" };
+
+	Reporter _init_config { _env, "init.config" };
+
+	size_t _ram_quota = 2*1024*1024;
+
+	void _gen_service_xml(Xml_generator &xml, char const *name)
+	{
+		xml.node("service", [&] () { xml.attribute("name", name); });
+	};
+
+	void _generate_init_config()
+	{
+		Reporter::Xml_generator xml(_init_config, [&] () {
+
+			xml.node("report", [&] () { xml.attribute("child_ram", true); });
+
+			xml.node("parent-provides", [&] () {
+				_gen_service_xml(xml, "ROM");
+				_gen_service_xml(xml, "CPU");
+				_gen_service_xml(xml, "PD");
+				_gen_service_xml(xml, "RAM");
+				_gen_service_xml(xml, "LOG");
+				_gen_service_xml(xml, "Timer");
+			});
+
+			xml.node("start", [&] () {
+				xml.attribute("name", "test-resource_request");
+				xml.node("resource", [&] () {
+					xml.attribute("name", "RAM");
+					xml.attribute("quantum", _ram_quota);
+				});
+				xml.node("route", [&] () {
+					xml.node("any-service", [&] () {
+						xml.node("parent", [&] () { }); }); });
+			});
+		});
+	}
+
+	size_t _resource_request_from_init_state()
+	{
+		try {
+			return _init_state.xml().sub_node("child")
+			                        .sub_node("ram")
+			                        .attribute_value("requested", Number_of_bytes(0));
+		}
+		catch (...) { return 0; }
+	}
+
+	Signal_handler<Monitor> _init_state_handler {
+		_env.ep(), *this, &Monitor::_handle_init_state };
+
+	void _handle_init_state()
+	{
+		_init_state.update();
+
+		size_t const requested = _resource_request_from_init_state();
+		if (requested > 0) {
+			log("responding to resource request of ", Number_of_bytes(requested));
+
+			_ram_quota += requested;
+			_generate_init_config();
+		}
+	}
+
+	Monitor(Env &env) : _env(env)
+	{
+		_init_config.enabled(true);
+		_init_state.sigh(_init_state_handler);
+		_generate_init_config();
+	}
+};
+
+
 void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
+
+	/*
+	 * Distinguish the roles of the program. If configured as playing the
+	 * monitor role, it manages the configuration of a sub init and monitors
+	 * the init state for resource requests.
+	 */
+	Attached_rom_dataspace config { env, "config" };
+	if (config.xml().attribute_value("role", String<32>()) == "monitor") {
+		static Test::Monitor monitor(env);
+		return;
+	}
 
 	class Error : Exception { };
 
