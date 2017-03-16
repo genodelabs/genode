@@ -79,7 +79,12 @@ append_if [have_spec framebuffer] config {
 
 append config {
 	<start name="test-fb_bench">
-		<resource name="RAM" quantum="40M"/>
+		<!--
+		  - We need this big amount of RAM because the VESA driver reports a
+		  - large buffer on some hardware and the test mirrors this buffer in
+		  - RAM.
+		  -->
+		<resource name="RAM" quantum="72M"/>
 	</start>
 </config>}
 
