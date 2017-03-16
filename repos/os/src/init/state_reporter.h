@@ -116,17 +116,24 @@ class Init::State_reporter : public Report_update_trigger
 					_reporter->enabled(false);
 			}
 
-			_version = config.attribute_value("version", Version());
+			bool trigger_update = false;
+
+			Version const version = config.attribute_value("version", Version());
+			if (version != _version) {
+				_version = version;
+				trigger_update = true;
+			}
 
 			if (_report_delay_ms) {
-
 				if (!_timer.constructed()) {
 					_timer.construct(_env);
 					_timer->sigh(_timer_handler);
 				}
-
-				trigger_report_update();
+				trigger_update = true;
 			}
+
+			if (trigger_update)
+				trigger_report_update();
 		}
 
 		void trigger_report_update() override
