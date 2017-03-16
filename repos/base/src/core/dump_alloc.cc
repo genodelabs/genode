@@ -12,6 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <util/string.h>
 #include <base/allocator_avl.h>
 
 void Genode::Allocator_avl_base::print(Genode::Output & out) const
@@ -24,9 +25,10 @@ void Genode::Allocator_avl_base::print(Genode::Output & out) const
 
 	_addr_tree.for_each([&] (Block const & b)
 	{
-		print(out, " Block: [", Hex(b.addr()), ",", Hex(b.addr() + b.size()),
-		      "] ", "size=", Hex(b.size()), " avail=", Hex(b.avail()), " ",
-		      "max_avail=", Hex(b.max_avail()), "\n");
+		print(out, " Block: ", Hex_range<addr_t>(b.addr(), b.size()), " "
+		      "size=",      Number_of_bytes(b.size()), " "
+		      "avail=",     Number_of_bytes(b.avail()), " "
+		      "max_avail=", Number_of_bytes(b.max_avail()), "\n");
 		mem_size  += b.size();
 		mem_avail += b.avail();
 	});
