@@ -7,3 +7,18 @@ SHA(binutils) := b46cc90ebaba7ffcf6c6d996d60738881b14e50d
 SIG(binutils) := ${URL(binutils)}.sig
 KEY(binutils) := GNU
 DIR(binutils) := src/noux-pkg/binutils
+
+PATCHES   := $(addprefix ${DIR(binutils)}/patches/, \
+                         $(shell cat $(REP_DIR)/${DIR(binutils)}/patches/series))
+PATCH_OPT := -p1 -d ${DIR(binutils)}
+
+AUTOCONF := autoconf2.64
+
+$(call check_tool,$(AUTOCONF))
+
+default: _patch
+	@#
+	@# Re-generate configure scripts
+	@#
+	$(VERBOSE)cd ${DIR(binutils)}/bfd; $(AUTOCONF)
+	$(VERBOSE)touch $@

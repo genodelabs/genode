@@ -8,12 +8,6 @@ SIG(gdb)  := ${URL(gdb)}.sig
 KEY(gdb)  := GNU
 DIR(gdb)  := src/noux-pkg/gdb
 
-GENODE_DIR  := $(REP_DIR)/../..
-PATCHES_DIR := $(GENODE_DIR)/tool/patches/gdb-$(VERSION)
-PATCHES     := $(addprefix $(PATCHES_DIR)/,$(shell cat $(PATCHES_DIR)/series)) \
-               $(REP_DIR)/src/app/gdb_monitor/siginfo.patch \
-               $(REP_DIR)/src/app/gdb_monitor/gdbserver_genode.patch \
-               $(REP_DIR)/src/noux-pkg/gdb/build.patch \
-               $(REP_DIR)/src/app/gdb_monitor/gdbserver_x86_64.patch
-
-PATCH_OPT   := -p1 -d ${DIR(gdb)}
+PATCHES   := $(addprefix ${DIR(gdb)}/patches/, \
+                         $(shell cat $(REP_DIR)/${DIR(gdb)}/patches/series))
+PATCH_OPT := -p1 -d ${DIR(gdb)}
