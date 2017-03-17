@@ -38,18 +38,18 @@ class Acpica::Io_mem
 {
 	private:
 
-		ACPI_PHYSICAL_ADDRESS      _phys;
-		ACPI_SIZE                  _size;
+		ACPI_PHYSICAL_ADDRESS      _phys   = 0;
+		ACPI_SIZE                  _size   = 0;
 		Genode::uint8_t           *_virt   = nullptr;
 		Genode::Io_mem_connection *_io_mem = nullptr;
-		unsigned                   _ref;
+		unsigned                   _ref    = 0;
 
 		static Acpica::Io_mem _ios[32];
 
 	public:
 
-		bool valid() const { return _io_mem != nullptr; }
-		bool refs() const { return _ref != ~0U; }
+		bool unused() const { return _phys == 0 && _size == 0 && _io_mem == nullptr; }
+		bool stale() const { return !unused() && _io_mem == nullptr; }
 		bool contains_virt (const Genode::uint8_t * v, const ACPI_SIZE s) const
 		{
 			return _virt <= v && v + s <= _virt + _size;
@@ -73,35 +73,40 @@ class Acpica::Io_mem
 				func(_ios[i]);
 		}
 
-		void invalidate(ACPI_SIZE s)
+		void invalidate()
 		{
-			if (_io_mem && refs())
-				Genode::destroy(Acpica::heap(), _io_mem);
+			if (unused())
+				FAIL();
 
-			ACPI_PHYSICAL_ADDRESS const p = _phys;
+			if (stale()) {
+				/**
+				 * Look for the larger entry that replaced this one.
+				 * Required to decrement ref count.
+				 */
+				apply_to_all([&] (Acpica::Io_mem &io_mem) {
+					if (&io_mem == this)
+						return;
+
+					if (!io_mem.contains_phys(_phys, _size))
+						return;
+
+					if (io_mem.ref_dec())
+						return;
+
+					io_mem._ref++;
+					io_mem.invalidate();
+				});
+			}
+
+			if (ref_dec())
+				return;
+
+			if (!stale())
+				Genode::destroy(Acpica::heap(), _io_mem);
 
 			_phys   = _size = 0;
 			_virt   = nullptr;
 			_io_mem = nullptr;
-
-			if (refs())
-				return;
-
-			_ref = 0;
-
-			/**
-			 * Continue in order to look for the larger entry that replaced
-			 * this one. Required to decrement ref count.
-			 */
-			apply_to_all([&] (Acpica::Io_mem &io_mem) {
-				if (!io_mem.contains_phys(p, s) || !io_mem.refs())
-					return;
-
-				if (io_mem.ref_dec())
-					return;
-
-				io_mem.invalidate(s);
-			});
 		}
 
 		template <typename FUNC>
@@ -130,7 +135,7 @@ class Acpica::Io_mem
 		                                 unsigned r)
 		{
 			return Acpica::Io_mem::apply_p([&] (Acpica::Io_mem &io_mem) {
-				if (io_mem.valid())
+				if (!io_mem.unused())
 					return reinterpret_cast<Acpica::Io_mem *>(0);
 
 				io_mem._phys = p & ~0xFFFUL;
@@ -163,8 +168,6 @@ class Acpica::Io_mem
 			if (_io_mem)
 				Genode::destroy(Acpica::heap(), _io_mem);
 
-			_io_mem = nullptr;
-
 			Genode::addr_t xsize = _phys - p + _size;
 			if (!allocate(p, xsize, _ref))
 				FAIL(0)
@@ -187,48 +190,34 @@ class Acpica::Io_mem
 		Genode::addr_t _expand(ACPI_PHYSICAL_ADDRESS const p, ACPI_SIZE const s)
 		{
 			/* mark this element as a stale reference */
-			_ref = ~0U;
+			_io_mem = nullptr;
 
 			/* find new created entry */
 			Genode::addr_t res = Acpica::Io_mem::apply_u([&] (Acpica::Io_mem &io_mem) {
-				if (!io_mem.valid() || !io_mem.refs() ||
+				if (io_mem.unused() || io_mem.stale() ||
 				    !io_mem.contains_phys(p, s))
 					return 0UL;
 
 				Genode::Io_mem_dataspace_capability const io_ds = io_mem._io_mem->dataspace();
 
 				/* re-attach mem of stale entries partially using this iomem */
-				unsigned stale_count = 0;
 				Acpica::Io_mem::apply_to_all([&] (Acpica::Io_mem &io2) {
-					if (!io2.valid() || !io_mem.contains_phys(io2._phys, 0))
+					if (io2.unused() || !io2.stale() ||
+					    !io_mem.contains_phys(io2._phys, 0))
 						return;
 
-					if (io2.refs())
-						return;
- 
 					Genode::addr_t off_phys = io2._phys - io_mem._phys;
-					stale_count ++;
 
-					io2._io_mem = io_mem._io_mem;
 					Genode::addr_t virt = reinterpret_cast<Genode::addr_t>(io2._virt);
 
 					Acpica::env().rm().attach_at(io_ds, virt, io2._size, off_phys);
 				});
-
-				/**
-				 * In case the old *this* entry was solely a placeholder for
-				 * other stale entries, the new one *io_mem* becomes just
-				 * a placeholder too -> meaning ref must be increased by 1.
-				 */
-				if (io_mem._ref == stale_count)
-					io_mem._ref ++;
 
 				if (io_mem._virt)
 					FAIL(0UL);
 
 				/* attach whole memory */
 				io_mem._virt = Acpica::env().rm().attach(io_ds);
-
 				return io_mem.to_virt(p);
 			});
 
@@ -246,7 +235,7 @@ Acpica::Io_mem Acpica::Io_mem::_ios[32];
 void * AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys, ACPI_SIZE size)
 {
 	Genode::addr_t virt = Acpica::Io_mem::apply_u([&] (Acpica::Io_mem &io_mem) {
-		if (!io_mem.valid() || !io_mem.refs())
+		if (io_mem.unused() || io_mem.stale())
 			return 0UL;
 
 		if (io_mem.contains_phys(phys, size))
@@ -279,13 +268,10 @@ void AcpiOsUnmapMemory (void * ptr, ACPI_SIZE size)
 	Genode::uint8_t const * virt = reinterpret_cast<Genode::uint8_t *>(ptr);
 
 	if (Acpica::Io_mem::apply_u([&] (Acpica::Io_mem &io_mem) {
-		if (!io_mem.valid() || !io_mem.contains_virt(virt, size))
+		if (io_mem.unused() || !io_mem.contains_virt(virt, size))
 			return 0;
 
-		if (io_mem.refs() && io_mem.ref_dec())
-			return 1;
-
-		io_mem.invalidate(size);
+		io_mem.invalidate();
 		return 1;
 	}))
 		return;
