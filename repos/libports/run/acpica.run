@@ -56,6 +56,8 @@ set config {
 			<service name="ROM"/>
 			<service name="LOG"/>
 			<service name="RM"/>
+			<service name="PD"/>
+			<service name="CPU"/>
 			<service name="IO_MEM" />
 			<service name="IO_PORT" />
 		</parent-provides>
@@ -100,10 +102,7 @@ append config {
 				<policy label="acpi_input -> acpi_lid" report="acpica -> acpi_lid"/>
 			</config>
 			<route>
-				<service name="LOG"> <parent/> </service>
-				<service name="SIGNAL"> <parent/> </service>
-				<service name="CAP"> <parent/> </service>
-				<service name="RM"> <parent/> </service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
 
@@ -139,9 +138,9 @@ append config {
 				<input label="acpi" />
 			</config>
 			<route>
-				<service name="LOG"> <parent/> </service>
 				<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
 				<service name="Input" label="acpi"> <child name="acpi_input" /> </service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
 
@@ -151,20 +150,17 @@ append config {
 			<provides><service name="Input"/></provides>
 			<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 			<route>
-				<service name="LOG">     <parent/> </service>
-				<service name="RM">      <parent/> </service>
 				<service name="Platform"> <child name="platform_drv"/> </service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>
 
 		<start name="test-input">
 			<resource name="RAM" quantum="1M"/>
 			<route>
-				<service name="LOG">     <parent/> </service>
-				<service name="RM">      <parent/> </service>
-
-				<service name="Input">   <child name="input_merger"/> </service>
-				<service name="Timer">   <child name="timer"/> </service>
+				<service name="Input"> <child name="input_merger"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
 
@@ -191,7 +187,7 @@ append config {
 				<service name="ROM" label="acpi_ec"> <child name="acpi_state"/> </service>
 				<service name="ROM" label="acpi_fixed"> <child name="acpi_state"/> </service>
 				<service name="ROM" label="acpi_lid"> <child name="acpi_state"/> </service>
-				<service name="LOG"> <parent/> </service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
 
