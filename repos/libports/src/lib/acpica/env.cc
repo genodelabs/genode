@@ -38,7 +38,7 @@ struct Acpica::Env
 		Genode::reinterpret_cap_cast<Platform::Session>(
 			env.session(announce_for_acpica,
 			            id_space_element.id(),
-			            "ram_quota=32K", Genode::Affinity())) };
+			            "ram_quota=36K", Genode::Affinity())) };
 
 	Platform::Client platform { cap };
 
