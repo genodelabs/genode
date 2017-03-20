@@ -69,6 +69,8 @@ class Worker : public Genode::Thread_deprecated<0x4000>
 {
 	protected:
 
+		Timer::Connection _timer;
+
 		char     _name[128];
 		unsigned _id;
 		int      _sd;
@@ -82,24 +84,23 @@ class Worker : public Genode::Thread_deprecated<0x4000>
 
 	public:
 
-		Worker(char const *type, unsigned id, int sd)
+		Worker(Genode::Env &env, char const *type, unsigned id, int sd)
 		:
 			Genode::Thread_deprecated<0x4000>(_init_name(type, id)),
-			_id(id), _sd(sd)
+			_timer(env), _id(id), _sd(sd)
 		{ }
 };
 
 
 struct Reader : Worker
 {
-	Reader(unsigned id, int sd) : Worker("reader", id, sd) { }
+	Reader(Genode::Env &env, unsigned id, int sd)
+	: Worker(env, "reader", id, sd) { }
 
 	void entry() override
 	{
-		Timer::Connection timer;
-
 		while (true) {
-//			timer.msleep(100);
+//			_timer.msleep(100);
 
 			int const ret = ::read(_sd, _buf, sizeof(_buf));
 
@@ -114,12 +115,11 @@ struct Reader : Worker
 
 struct Writer : Worker
 {
-	Writer(unsigned id, int sd) : Worker("writer", id, sd) { }
+	Writer(Genode::Env &env, unsigned id, int sd)
+	: Worker(env, "writer", id, sd) { }
 
 	void entry() override
 	{
-		Timer::Connection timer;
-
 		size_t size = 0;
 
 		if (0) {
@@ -132,7 +132,7 @@ struct Writer : Worker
 		_buf[size - 1] = '\n';
 
 		while (true) {
-//			timer.msleep(10 + _id*5);
+//			_timer.msleep(10 + _id*5);
 
 			int const ret = ::write(_sd, _buf, size);
 
@@ -145,14 +145,14 @@ struct Writer : Worker
 };
 
 
-static void test_reader_writer(int cd)
+static void test_reader_writer(Genode::Env &env, int cd)
 {
-	static Reader r0(0, cd);
-	static Reader r1(1, cd);
-	static Reader r2(2, cd);
-	static Writer w0(0, cd);
-	static Writer w1(1, cd);
-	static Writer w2(2, cd);
+	static Reader r0(env, 0, cd);
+	static Reader r1(env, 1, cd);
+	static Reader r2(env, 2, cd);
+	static Writer w0(env, 0, cd);
+	static Writer w1(env, 1, cd);
+	static Writer w2(env, 2, cd);
 
 	r0.start();
 	r1.start();
@@ -225,7 +225,7 @@ static void test_getnames(int sd)
 }
 
 
-static void server(Genode::Xml_node const config)
+static void server(Genode::Env &env, Genode::Xml_node const config)
 {
 	int ret = 0;
 
@@ -267,7 +267,7 @@ static void server(Genode::Xml_node const config)
 		test_getnames(cd);
 
 		if (0) {
-			test_reader_writer(cd);
+			test_reader_writer(env, cd);
 		} else {
 			size_t const count = test_traditional(cd, use_read_write);
 			Genode::log("echoed ", count, " bytes");
@@ -348,7 +348,7 @@ struct Main
 			mode = config.attribute_value("mode", mode);
 
 			if (mode == "server") {
-				server(config);
+				server(env, config);
 			} else if (mode == "client") {
 				client(config);
 			} else {

@@ -41,14 +41,11 @@ set config {
 append_if [have_include "power_on/qemu"] config {
 			<write-read size="1M" buffer_size="8K"/>}
 append config {
-			<libc stdout="/dev/log" cwd="/tmp" >
-				<vfs>
-					<dir name="tmp" >
-						<fs/>
-					</dir>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="tmp"> <fs/> </dir>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" cwd="/tmp"/>
 		</config>
 	</start>
 </config>

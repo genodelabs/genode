@@ -21,6 +21,8 @@
 #include <os/config.h>
 #include <base/sleep.h>
 
+#include <libc/component.h>
+
 extern "C" {
 #include <lwip/sockets.h>
 #include <lwip/api.h>
@@ -75,11 +77,11 @@ bool static_ip_config(uint32_t & ip, uint32_t & nm, uint32_t & gw)
  * and sends as much 'http get' requests as possible,
  * printing out the response.
  */
-int main()
+void Libc::Component::construct(Libc::Env &env)
 {
 	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
-	static Timer::Connection _timer;
+	static Timer::Connection _timer(env);
 	_timer.msleep(2000);
 	lwip_tcpip_init();
 
@@ -100,13 +102,13 @@ int main()
 	if (static_ip) {
 		if (lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE)) {
 			error("We got no IP address!");
-			return 0;
+			exit(1);
 		}
 	} else {
 		if( lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE))
 		{
 			error("got no IP address!");
-			return 0;
+			exit(1);
 		}
 	}
 
@@ -167,13 +169,4 @@ int main()
 	}
 
 	log("Test done");
-
-	/*
-	 * FIXME Cleaning up LWIP when returning from the main function
-	 *       sporadically leads to endless errors "Error: sys_arch_mbox_fetch:
-	 *       unknown exception occured!". We let the client sleep here to
-	 *       prevent tests from failing due to a flooded log.
-	 */
-	sleep_forever();
-	return 0;
 }

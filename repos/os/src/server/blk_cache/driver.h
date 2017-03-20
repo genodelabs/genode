@@ -15,7 +15,6 @@
 #include <block_session/connection.h>
 #include <block/component.h>
 #include <os/packet_allocator.h>
-#include <os/server.h>
 
 #include "chunk.h"
 

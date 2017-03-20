@@ -86,19 +86,18 @@ append config {
 	<start name="test-smartcard">
 		<resource name="RAM" quantum="4M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="ifd-ccid.bundle">
-						<dir name="Contents">
-							<rom name="Info.plist"/>
-						</dir>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="ifd-ccid.bundle">
+					<dir name="Contents">
+						<rom name="Info.plist"/>
 					</dir>
-					<inline name="config.pcsc-lite">
-						<config vendor_id="0x04e6" product_id="0x5116"/>
-					</inline>
-				</vfs>
-			</libc>
+				</dir>
+				<inline name="config.pcsc-lite">
+					<config vendor_id="0x04e6" product_id="0x5116"/>
+				</inline>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>}

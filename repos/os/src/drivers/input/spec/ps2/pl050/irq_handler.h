@@ -15,8 +15,9 @@
 #define _IRQ_HANDLER_H_
 
 /* Genode includes */
+#include <base/env.h>
+#include <base/signal.h>
 #include <irq_session/connection.h>
-#include <os/server.h>
 
 /* local includes */
 #include "input_driver.h"
@@ -26,11 +27,11 @@ class Irq_handler
 {
 	private:
 
-		Genode::Irq_connection                  _irq;
-		Genode::Signal_rpc_member<Irq_handler>  _dispatcher;
-		Input_driver                           &_input_driver;
+		Genode::Irq_connection               _irq;
+		Genode::Signal_handler<Irq_handler>  _dispatcher;
+		Input_driver                        &_input_driver;
 
-		void _handle(unsigned)
+		void _handle()
 		{
 			_irq.ack_irq();
 
@@ -41,11 +42,11 @@ class Irq_handler
 
 	public:
 
-		Irq_handler(Server::Entrypoint &ep, int irq_number,
+		Irq_handler(Genode::Env &env, int irq_number,
 		            Serial_interface &, Input_driver &input_driver)
 		:
-			_irq(irq_number),
-			_dispatcher(ep, *this, &Irq_handler::_handle),
+			_irq(env, irq_number),
+			_dispatcher(env.ep(), *this, &Irq_handler::_handle),
 			_input_driver(input_driver)
 		{
 			_irq.sigh(_dispatcher);

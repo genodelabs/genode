@@ -178,7 +178,6 @@ void Plugin::init(Genode::Env &env)
 	char ip_addr_str[16] = {0};
 	char netmask_str[16] = {0};
 	char gateway_str[16] = {0};
-	char address_buf[128];
 
 	Genode::Attached_rom_dataspace config { env, "config"} ;
 

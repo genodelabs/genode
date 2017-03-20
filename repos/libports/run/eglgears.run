@@ -104,9 +104,8 @@ append config {
 						<resource name="RAM" quantum="1G"/>
 						<route><any-service> <parent /> <any-child/> </any-service></route>
 						<config>
-							<libc stdout="/dev/log">
-								<vfs> <dir name="dev"> <log/> </dir> </vfs>
-							</libc>
+							<vfs> <dir name="dev"> <log/> </dir> </vfs>
+							<libc stdout="/dev/log"/>
 						</config>
 					</start>
 				</config>

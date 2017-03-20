@@ -35,6 +35,7 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 		enum { SAMPLE_BUF_SIZE = 1024 };
 
 		Cpu_session_component &_cpu_session_component;
+		Env                   &_env;
 
 		Allocator             &_md_alloc;
 
@@ -48,11 +49,12 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 		Genode::addr_t         _sample_buf[SAMPLE_BUF_SIZE];
 		unsigned int           _sample_buf_index = 0;
 
-		Log_connection        *_log = 0;
+		Constructible<Log_connection> _log;
 
 	public:
 
 		Cpu_thread_component(Cpu_session_component   &cpu_session_component,
+		                     Env                     &env,
 		                     Allocator               &md_alloc,
 		                     Pd_session_capability    pd,
 		                     Cpu_session::Name const &name,

@@ -38,15 +38,14 @@ install_config {
 	<start name="test-expat">
 		<resource name="RAM" quantum="2M"/>
 		<config>
-			<libc stdout="/dev/log">
-				<vfs>
-					<inline name="config"><config>
-							<test_tag test_attribute="test_value" />
-						</config>
-					</inline>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-			</libc>
+			<vfs>
+				<inline name="config"><config>
+						<test_tag test_attribute="test_value" />
+					</config>
+				</inline>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log"/>
 		</config>
 	</start>
 </config>

@@ -68,7 +68,7 @@ append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes"/>
 	</start>}

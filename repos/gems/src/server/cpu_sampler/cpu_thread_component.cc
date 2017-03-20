@@ -23,6 +23,7 @@ using namespace Genode;
 
 Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
                                 Cpu_session_component   &cpu_session_component,
+                                Env                     &env,
                                 Allocator               &md_alloc,
                                 Pd_session_capability    pd,
                                 Cpu_session::Name const &name,
@@ -31,7 +32,7 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
                                 addr_t                   utcb,
                                 char              const *thread_name,
                                 unsigned int             thread_id)
-: _cpu_session_component(cpu_session_component),
+: _cpu_session_component(cpu_session_component), _env(env),
   _md_alloc(md_alloc),
   _parent_cpu_thread(
       _cpu_session_component.parent_cpu_session().create_thread(pd,
@@ -60,9 +61,6 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
 Cpu_sampler::Cpu_thread_component::~Cpu_thread_component()
 {
 	flush();
-
-	if (_log)
-		destroy(_md_alloc, _log);
 
 	_cpu_session_component.thread_ep().dissolve(this);
 }
@@ -111,8 +109,8 @@ void Cpu_sampler::Cpu_thread_component::flush()
 	if (_sample_buf_index == 0)
 		return;
 
-	if (!_log)
-		_log = new (_md_alloc) Log_connection(_log_session_label);
+	if (!_log.constructed())
+		_log.construct(_env, _log_session_label);
 
 	/* number of hex characters + newline + '\0' */
 	enum { SAMPLE_STRING_SIZE = 2 * sizeof(addr_t) + 1 + 1 };

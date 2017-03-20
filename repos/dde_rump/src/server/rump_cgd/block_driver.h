@@ -37,7 +37,7 @@ class Driver : public Block::Driver
 
 	public:
 
-		Driver(Server::Entrypoint &ep, Genode::Ram_session &ram)
+		Driver(Genode::Entrypoint &ep, Genode::Ram_session &ram)
 		:
 			Block::Driver(ram),
 			_blk_sz(0), _blk_cnt(0), _cgd_device(0)

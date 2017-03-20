@@ -73,9 +73,8 @@ set config {
 			<resource name="RAM" quantum="4M"/>
 			<config ld_verbose="yes" reset="no" poweroff="no" report="yes" acpi_ready="yes">
 <!-- required for "debug-acpica":
-				<libc stdout="/dev/log">
-					<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				</libc>
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log"/>
 -->
 			</config>
 			<route>

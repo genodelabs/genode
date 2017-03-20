@@ -19,9 +19,8 @@ install_config {
 		<start name="test-stdcxx">
 			<resource name="RAM" quantum="10M"/>
 			<config>
-				<libc stdout="/dev/log">
-					<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				</libc>
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log"/>
 			</config>
 		</start>
 	</config>

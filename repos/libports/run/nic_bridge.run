@@ -69,11 +69,10 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config port="80">
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log"
 			      ip_addr="10.0.2.55" netmask="255.255.255.0"
-			      gateway="10.0.2.1">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			      gateway="10.0.2.1"/>
 		</config>
 	</start>
 	<start name="test-http_clnt">
@@ -83,9 +82,8 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config server_ip="10.0.2.55" server_port="80">
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>}

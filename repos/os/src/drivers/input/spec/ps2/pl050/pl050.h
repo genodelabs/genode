@@ -19,7 +19,7 @@
 
 /* Genode includes */
 #include <os/ring_buffer.h>
-#include <io_mem_session/connection.h>
+#include <base/attached_io_mem_dataspace.h>
 
 /* local includes */
 #include "serial_interface.h"
@@ -63,19 +63,9 @@ class Pl050
 	{
 		private:
 
-			Genode::Lock               _lock;
-			Genode::Io_mem_connection  _io_mem;
-			volatile Genode::uint32_t *_reg_base;
-
-			/**
-			 * Attach memory-mapped PL050 registers to local address space
-			 *
-			 * \return local base address of memory-mapped I/O registers
-			 */
-			Genode::uint32_t *_attach(Genode::Io_mem_session &ios)
-			{
-				return Genode::env()->rm_session()->attach(ios.dataspace());
-			}
+			Genode::Lock                      _lock;
+			Genode::Attached_io_mem_dataspace _io_mem;
+			volatile Genode::uint32_t        *_reg_base;
 
 			/**
 			 * Return true if input is available
@@ -91,9 +81,11 @@ class Pl050
 			 * \param phys_base  local address of the channel's device
 			 *                   registers
 			 */
-			_Channel(Genode::addr_t phys_base, Genode::size_t phys_size)
+			_Channel(Genode::Env &env,
+			         Genode::addr_t phys_base, Genode::size_t phys_size)
 			:
-				_io_mem(phys_base, phys_size), _reg_base(_attach(_io_mem))
+				_io_mem(env, phys_base, phys_size),
+				_reg_base(_io_mem.local_addr<Genode::uint32_t>())
 			{ }
 
 			/**
@@ -137,9 +129,9 @@ class Pl050
 		/**
 		 * Constructor
 		 */
-		Pl050() :
-			_kbd(PL050_KEYBD_PHYS, PL050_KEYBD_SIZE),
-			_aux(PL050_MOUSE_PHYS, PL050_MOUSE_SIZE)
+		Pl050(Genode::Env &env) :
+			_kbd(env, PL050_KEYBD_PHYS, PL050_KEYBD_SIZE),
+			_aux(env, PL050_MOUSE_PHYS, PL050_MOUSE_SIZE)
 		{
 			_kbd.enable_irq();
 			_aux.enable_irq();

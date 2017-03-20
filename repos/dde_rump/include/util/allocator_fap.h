@@ -112,6 +112,7 @@ namespace Allocator {
 
 			Backend_alloc(Cache_attribute cached)
 			:
+				Rm_connection(Rump::env().env()),
 				Region_map_client(Rm_connection::create(VM_SIZE)),
 				_cached(cached),
 				_range(&Rump::env().heap())

@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <os/server.h>
+#include <base/component.h>
 
 /* local includes */
 #include "block_driver.h"

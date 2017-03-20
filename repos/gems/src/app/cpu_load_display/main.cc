@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <polygon_gfx/shaded_polygon_painter.h>
 #include <polygon_gfx/interpolate_rgb565.h>
@@ -122,6 +123,7 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 {
 	private:
 
+		Genode::Allocator     &_heap;
 		Genode::Point<>  const _pos;
 		Genode::List<Timeline> _timelines;
 
@@ -138,8 +140,7 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 			}
 
 			/* add new timeline */
-			Timeline *t = new (Genode::env()->heap())
-				Timeline(subject_id, Genode::Cstring(label));
+			Timeline *t = new (_heap) Timeline(subject_id, Genode::Cstring(label));
 			_timelines.insert(t);
 			return t;
 		}
@@ -156,7 +157,8 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 
 	public:
 
-		Cpu(Genode::Point<> pos) : _pos(pos) { }
+		Cpu(Genode::Allocator &heap, Genode::Point<> pos)
+		: _heap(heap), _pos(pos) { }
 
 		bool has_pos(Genode::Point<> pos) const
 		{
@@ -183,7 +185,7 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 				if (t->idle()) {
 
 					_timelines.remove(t);
-					Genode::destroy(Genode::env()->heap(), t);
+					Genode::destroy(_heap, t);
 				}
 			}
 		}
@@ -211,6 +213,8 @@ class Cpu_load_display::Cpu_registry
 {
 	private:
 
+		Genode::Allocator &_heap;
+
 		Genode::List<Cpu> _cpus;
 
 		static Genode::Point<> _cpu_pos(Xml_node subject)
@@ -234,7 +238,7 @@ class Cpu_load_display::Cpu_registry
 			}
 
 			/* add new CPU */
-			Cpu *cpu = new (Genode::env()->heap()) Cpu(cpu_pos);
+			Cpu *cpu = new (_heap) Cpu(_heap, cpu_pos);
 			_cpus.insert(cpu);
 			return cpu;
 		}
@@ -247,6 +251,8 @@ class Cpu_load_display::Cpu_registry
 		}
 
 	public:
+
+		Cpu_registry(Genode::Allocator &heap) : _heap(heap) { }
 
 		void import_trace_subjects(Xml_node node, unsigned now)
 		{
@@ -284,11 +290,13 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 		Genode::Signal_handler<Scene> _config_handler;
 
-		Genode::Attached_rom_dataspace _trace_subjects { "trace_subjects" };
+		Genode::Attached_rom_dataspace _trace_subjects { _env, "trace_subjects" };
 
 		unsigned _now = 0;
 
-		Cpu_registry _cpu_registry;
+		Genode::Heap _heap { _env.ram(), _env.rm() };
+
+		Cpu_registry _cpu_registry { _heap };
 
 		void _handle_trace_subjects()
 		{
@@ -325,8 +333,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 	private:
 
-		Polygon::Shaded_painter _shaded_painter {
-			*Genode::env()->heap(), _size.h() };
+		Polygon::Shaded_painter _shaded_painter { _heap, _size.h() };
 
 		long _activity_sum[Timeline::HISTORY_LEN];
 		long _y_level[Timeline::HISTORY_LEN];

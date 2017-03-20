@@ -192,7 +192,7 @@ struct Framebuffer::Main
 	void *            _lcd_base   { _env.rm().attach(_lcd_io_mem.dataspace()) };
 
 	/* locally map system control registers */
-	Io_mem_connection _sys_mem  { SP810_PHYS, SP810_SIZE };
+	Io_mem_connection _sys_mem  { _env, SP810_PHYS, SP810_SIZE };
 	void *            _sys_base { _env.rm().attach(_sys_mem.dataspace()) };
 
 	Dataspace_capability _fb_ds_cap  { _env.ram().alloc(Framebuffer::FRAMEBUFFER_SIZE) };

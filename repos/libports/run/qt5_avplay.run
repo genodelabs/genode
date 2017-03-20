@@ -53,12 +53,11 @@ append config {
 	<start name="qt_avplay">
 		<resource name="RAM" quantum="2G"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_qt_avplay.tar"/>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_qt_avplay.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<mediafile name="mediafile"/>
 		</config>
 	</start>

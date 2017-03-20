@@ -17,7 +17,6 @@
 #include <base/heap.h>
 #include <cpu_session/cpu_session.h>
 #include <base/attached_dataspace.h>
-#include <os/server.h>
 #include <os/session_policy.h>
 #include <os/static_root.h>
 #include <timer_session/connection.h>
@@ -32,7 +31,6 @@
 namespace Cpu_sampler { struct Main; }
 
 static constexpr bool verbose = false;
-static constexpr bool verbose_missed_timeouts = false;
 static constexpr bool verbose_sample_duration = true;
 
 
@@ -46,7 +44,7 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 	Genode::Heap            alloc;
 	Cpu_root                cpu_root;
 	Attached_rom_dataspace  config;
-	Timer::Connection       timer;
+	Timer::Connection       timer { env };
 	Thread_list             thread_list;
 	Thread_list             selected_thread_list;
 
@@ -55,11 +53,8 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 	unsigned int            timeout_us;
 
 
-	void handle_timeout(unsigned int num)
+	void handle_timeout()
 	{
-		if (verbose_missed_timeouts && (num > 1))
-			Genode::log("missed ", num - 1, " timeouts");
-
 		auto lambda = [&] (Thread_element *cpu_thread_element) {
 
 			Cpu_thread_component *cpu_thread = cpu_thread_element->object();
@@ -82,11 +77,11 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 	}
 
 
-	Signal_rpc_member<Main> timeout_dispatcher =
+	Signal_handler<Main> timeout_dispatcher =
 		{ env.ep(), *this, &Main::handle_timeout };
 
 
-	void handle_config_update(unsigned)
+	void handle_config_update()
 	{
 		config.update();
 
@@ -111,7 +106,7 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 	}
 
 
-	Signal_rpc_member<Main> config_update_dispatcher =
+	Signal_handler<Main> config_update_dispatcher =
 		{ env.ep(), *this, &Main::handle_config_update};
 
 
@@ -184,7 +179,7 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 		/*
 		 * Apply initial configuration
 		 */
-		handle_config_update(0);
+		handle_config_update();
 
 		/*
 		 * Announce service

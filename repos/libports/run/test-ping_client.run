@@ -113,9 +113,8 @@ append config "
 			<arg value=\"$ip_addr\"/>"
 append config {
 			<argv verbose="0" listenip="0.0.0.0" />
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>}
 

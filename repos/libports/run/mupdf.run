@@ -61,12 +61,11 @@ append config {
 	<start name="mupdf">
 		<resource name="RAM" quantum="1G"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<rom name="test.pdf" />
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-			</libc>
+			<vfs>
+				<rom name="test.pdf" />
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>

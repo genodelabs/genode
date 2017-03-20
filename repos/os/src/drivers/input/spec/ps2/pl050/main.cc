@@ -30,8 +30,8 @@ struct Ps2::Main
 {
 	Genode::Env &_env;
 
-	Pl050                    _pl050;
-	Input::Session_component _session;
+	Pl050                    _pl050 { _env };
+	Input::Session_component _session { _env, _env.ram() };
 	Input::Root_component    _root { _env.ep().rpc_ep(), _session };
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
@@ -41,8 +41,8 @@ struct Ps2::Main
 	Mouse    _mouse    { _pl050.aux_interface(), _session.event_queue(),       _verbose };
 	Keyboard _keyboard { _pl050.kbd_interface(), _session.event_queue(), true, _verbose };
 
-	Irq_handler _mouse_irq    { _env.ep(), PL050_MOUSE_IRQ, _pl050.aux_interface(), _mouse };
-	Irq_handler _keyboard_irq { _env.ep(), PL050_KEYBD_IRQ, _pl050.kbd_interface(), _keyboard };
+	Irq_handler _mouse_irq    { _env, PL050_MOUSE_IRQ, _pl050.aux_interface(), _mouse };
+	Irq_handler _keyboard_irq { _env, PL050_KEYBD_IRQ, _pl050.kbd_interface(), _keyboard };
 
 	Main(Genode::Env &env) : _env(env)
 	{

@@ -93,12 +93,11 @@ append config {
 			<arg value="avplay"/>
 			<arg value="mediafile"/>
 			<sdl_audio_volume value="100"/>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<rom name="mediafile"/>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<rom name="mediafile"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 		<route>
 			<service name="Platform"> <any-child /> </service>

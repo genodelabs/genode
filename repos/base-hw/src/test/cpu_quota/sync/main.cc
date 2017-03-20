@@ -12,10 +12,9 @@
  */
 
 /* Genode includes */
-#include <os/server.h>
-#include <root/component.h>
 #include <base/heap.h>
 #include <base/component.h>
+#include <root/component.h>
 
 /* local includes */
 #include <sync_session/connection.h>

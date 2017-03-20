@@ -444,7 +444,7 @@ Cgd::Device *Cgd::Device::configure(Genode::Allocator *alloc, Cgd::Params const 
 /**
  * Initialize a new Cgd::Device
  */
-Cgd::Device *Cgd::init(Genode::Allocator *alloc, Server::Entrypoint &ep)
+Cgd::Device *Cgd::init(Genode::Allocator *alloc, Genode::Entrypoint &ep)
 {
 	/* start rumpkernel */
 	rump_init();

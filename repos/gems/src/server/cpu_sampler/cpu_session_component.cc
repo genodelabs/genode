@@ -29,7 +29,7 @@ Cpu_sampler::Cpu_session_component::create_thread(Pd_session_capability  pd,
                                                   addr_t                 utcb)
 {
 	Cpu_thread_component *cpu_thread = new (_md_alloc)
-		Cpu_thread_component(*this,
+		Cpu_thread_component(*this, _env,
 	                         _md_alloc,
 	                          pd,
 	                          name,

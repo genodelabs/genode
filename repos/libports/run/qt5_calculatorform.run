@@ -41,12 +41,11 @@ append config {
 	<start name="calculatorform">
 		<resource name="RAM" quantum="80M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_calculatorform.tar"/>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_calculatorform.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>

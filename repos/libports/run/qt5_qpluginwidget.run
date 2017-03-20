@@ -47,12 +47,11 @@ append config {
 	<start name="test-qpluginwidget">
 		<resource name="RAM" quantum="30M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_test-qpluginwidget.tar"/>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_test-qpluginwidget.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>

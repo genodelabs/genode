@@ -15,7 +15,6 @@
 #define _CGD_H_
 
 #include <base/signal.h>
-#include <os/server.h>
 
 namespace Cgd {
 
@@ -52,7 +51,7 @@ namespace Cgd {
 	};
 
 
-	Device *init(Genode::Allocator *alloc, Server::Entrypoint &ep);
+	Device *init(Genode::Allocator *alloc, Genode::Entrypoint &ep);
 	void    deinit(Genode::Allocator *alloc, Device *dev);
 }
 

@@ -220,6 +220,8 @@ static int test_connect_recv(char const *sock_root, char const *sock_fd)
 	ssize_t n = write(fd, host, sizeof(host));
 	(void)n;
 	close(fd);
+
+	return 0;
 }
 
 
@@ -252,7 +254,7 @@ static void test_proto(char const *sock_root, char const *proto)
 	ls_socket_fs(sock_dir);
 
 	test_bind_accept(sock_root, sock_path);
-	// test_connect_recv(proto_root, sock_fd);
+	if (0) test_connect_recv(proto_root, sock_path);
 
 	ls_socket_fs(sock_dir);
 

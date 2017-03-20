@@ -39,10 +39,9 @@ set config {
 		<resource name="RAM" quantum="3M"/>
 		<config>
 			<script name="hello.py"/>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<inline name="hello.py">
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<inline name="hello.py">
 print " \r\n\r";
 print "        -============================-";
 print "        ||                          ||";
@@ -54,9 +53,9 @@ print "        -============================-";
 print " \r";
 print "   2011 by Genode Labs www.genode-labs.com";
 print " \r\n\r";
-					</inline>
-				</vfs>
-			</libc>
+				</inline>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>

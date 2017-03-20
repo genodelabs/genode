@@ -40,12 +40,11 @@ append config {
 	<start name="previewer">
 		<resource name="RAM" quantum="2G"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_previewer.tar"/>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_previewer.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>

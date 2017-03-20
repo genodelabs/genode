@@ -17,7 +17,6 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <base/tslab.h>
-#include <os/server.h>
 #include <timer_session/connection.h>
 #include <util/reconstructible.h>
 

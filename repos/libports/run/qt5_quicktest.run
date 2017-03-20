@@ -41,12 +41,11 @@ append config {
 	<start name="qt_quicktest">
 		<resource name="RAM" quantum="80M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<tar name="qt5_fs_qt_quicktest.tar" />
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_qt_quicktest.tar" />
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>
