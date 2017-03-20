@@ -64,7 +64,7 @@ proc nic_drv_config { } {
 	if {[nic_drv] == "usb_drv"} {
 		append result {
 			<start name="usb_drv">
-				<resource name="RAM" quantum="12M"/>
+				<resource name="RAM" quantum="14M"/>
 				<provides>
 					<service name="Nic"/>
 				</provides>
@@ -84,11 +84,16 @@ proc server_bin { prot } {
 	if {$prot == "udp"}  { return "test-lxip_udp_echo" }
 	if {$prot == "http"} { return "test-lwip_httpsrv_static" } }
 
+proc ram_quota { prot } {
+	if {$prot == "udp"}  { return 28M }
+	if {$prot == "http"} { return 12M }
+}
+
 proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 	append result {
 		<start name="} $prot {_client_} $index {">
 			<binary  name="} [client_bin $prot] {" />
-			<resource name="RAM" quantum="28M"/>
+			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -106,7 +111,7 @@ proc server_config { prot index ip_addr gateway netmask nic port } {
 	append result {
 		<start name="} $prot {_server_} $index {">
 			<binary  name="} [server_bin $prot] {" />
-			<resource name="RAM" quantum="28M"/>
+			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

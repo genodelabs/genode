@@ -149,9 +149,14 @@ append_if $use_nic_bridge config {
 		</route>
 	</start> }
 
+proc usb_drv_ram_quota {} {
+	if {[have_spec x86]} { return 18M }
+	return 14M
+}
+
 append_if $use_usb_driver config {
 	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
+		<resource name="RAM" quantum="} [usb_drv_ram_quota] {"/>
 		<provides>
 			<service name="Nic"/>
 		</provides>}
@@ -165,7 +170,7 @@ append_if $use_usb_driver config {
 append_if $use_nic_driver config {
 	<start name="nic_drv">
 		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Nic"/></provides>
 	</start>}
 

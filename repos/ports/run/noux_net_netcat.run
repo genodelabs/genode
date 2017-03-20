@@ -92,7 +92,7 @@ append config {
 		</config>
 	</start>
 	<start name="nic_bridge">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
 		<config/>
 		<route>}
