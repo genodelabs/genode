@@ -138,8 +138,8 @@ void Driver::_write_data(unsigned    length,
 }
 
 
-Driver::Driver(Env &env) : Block::Driver(env.ram()),
-                           Attached_mmio(PL180_PHYS, PL180_SIZE), _timer(env)
+Driver::Driver(Env &env)
+: Block::Driver(env.ram()), Attached_mmio(env, PL180_PHYS, PL180_SIZE), _timer(env)
 {
 	enum { POWER_UP = 2, POWER_ON = 3 };
 

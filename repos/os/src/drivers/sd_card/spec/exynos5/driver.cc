@@ -22,7 +22,7 @@ using namespace Sd_card;
 Driver::Driver(Env &env)
 :
 	Driver_base(env.ram()),
-	Attached_mmio(MSH_BASE, MSH_SIZE), _env(env)
+	Attached_mmio(env, MSH_BASE, MSH_SIZE), _env(env)
 {
 	_irq.sigh(_irq_handler);
 	_irq.ack_irq();
