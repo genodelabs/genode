@@ -86,4 +86,6 @@ if { [file exists $disk_image] == 0 } then {
 
 run_genode_until forever
 
+exec rm $disk_image
+
 # vi: set ft=tcl :

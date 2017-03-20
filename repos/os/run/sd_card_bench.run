@@ -91,9 +91,9 @@ build_boot_image $boot_modules
 # If we run on qemu, provide a virtual disk
 #
 
+set disk_image "bin/sd_card.img"
 if {[have_include power_on/qemu]} {
 
-	set disk_image "bin/sd_card.img"
 	if { [file exists $disk_image] == 0 } then {
 		catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 } }
 
@@ -102,3 +102,5 @@ if {[have_include power_on/qemu]} {
 }
 
 run_genode_until "--- SD card benchmark finished ---" 120
+
+exec rm -f $disk_image
