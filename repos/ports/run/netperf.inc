@@ -4,15 +4,12 @@
 # \date   2013-04-18
 #
 
-# setting environment variable FORCE_QEMU permits running netperf in qemu
-set force_qemu [info exists ::env(FORCE_QEMU)]
-
 proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
                     if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
                     return gpio_drv }
 
-if {[expr [have_include "power_on/qemu"] && !$force_qemu]} {
-	puts "\nNetperf running on Qemu is not recommended.\n"
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
+	puts "\nRunning netperf in autopilot on Qemu is not recommended.\n"
 	exit
 }
 
@@ -302,7 +299,7 @@ build_boot_image $boot_modules
 #
 
 # qemu config
-append qemu_args " -m 128 "
+append qemu_args " -m 128 -nographic "
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
