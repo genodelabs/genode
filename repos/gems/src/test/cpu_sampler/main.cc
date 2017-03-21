@@ -11,18 +11,22 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <base/component.h>
 #include <base/log.h>
 
 void __attribute((noinline)) func()
 {
-	for (;;) { }
+	for (;;) {
+		/* define an exact label to support -fno-omit-frame-poiner */
+		asm volatile (".global label_in_loop\nlabel_in_loop:");
+	}
 }
 
-int main(int argc, char *argv[])
+extern int label_in_loop;
+
+void Component::construct(Genode::Env &)
 {
-	Genode::log("Test started. func: ", func);
+	Genode::log("Test started. func: ", &label_in_loop);
 
 	func();
-
-	return 0;
 }
