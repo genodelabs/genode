@@ -86,3 +86,5 @@ append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none -device a
 append qemu_args " -drive id=cd,file=[run_dir]/../ahci_blk.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1"
 
 run_genode_until "Tests finished successfully!" 100
+
+exec rm -f bin/ext2.raw
