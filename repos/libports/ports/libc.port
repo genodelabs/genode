@@ -5,7 +5,7 @@ VERSION := 8.2.0
 # Check for tools
 #
 $(call check_tool,svn)
-$(call check_tool,lex)
+$(call check_tool,flex)
 $(call check_tool,bison)
 $(call check_tool,rpcgen)
 
@@ -203,7 +203,7 @@ src/lib/libc/lib/libc/net/nslexer.l : $(DOWNLOADS)
 
 src/lib/libc/lib/libc/net/nslexer.c: src/lib/libc/lib/libc/net/nslexer.l
 	@$(MSG_GENERATE)$(notdir $@)
-	$(VERBOSE)$(LEX) -P_nsyy -t $< | sed -e '/YY_BUF_SIZE/s/16384/1024/' > $@
+	$(VERBOSE)flex -P_nsyy -t $< | sed -e '/YY_BUF_SIZE/s/16384/1024/' > $@
 
 generated_files += src/lib/libc/lib/libc/net/nsparser.c
 
