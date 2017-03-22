@@ -135,7 +135,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 
 bool Heap::_try_local_alloc(size_t size, void **out_addr)
 {
-	if (_alloc->alloc_aligned(size, out_addr, log2(sizeof(addr_t))).error())
+	if (_alloc->alloc_aligned(size, out_addr, log2(16)).error())
 		return false;
 
 	_quota_used += size;
