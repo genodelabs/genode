@@ -62,12 +62,6 @@ class Backend
 		{
 			using namespace Block;
 
-			/* sync request */
-			if (op & RUMPUSER_BIO_SYNC) {
-				sync();
-				return true;
-			}
-
 			Genode::Lock::Guard guard(_session_lock);
 
 			Packet_descriptor::Opcode opcode;
@@ -98,6 +92,11 @@ class Backend
 
 			bool succeeded = packet.succeeded();
 			_session.tx()->release_packet(packet);
+
+			/* sync request */
+			if (op & RUMPUSER_BIO_SYNC) {
+				_session.sync();
+			}
 
 			return succeeded;
 		}
