@@ -19,9 +19,9 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="200"/>
 	<start name="test-libc">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="400M"/>
 		<config>
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log"/>
@@ -35,7 +35,7 @@ build_boot_image {
 	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
 }
 
-append qemu_args " -nographic -m 64 "
+append qemu_args " -nographic -m 512 "
 
 run_genode_until "child .* exited with exit value 0.*\n" 10
 
