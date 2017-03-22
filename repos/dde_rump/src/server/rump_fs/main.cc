@@ -516,7 +516,7 @@ struct File_system::Main
 		env.parent().resource_avail_sigh(resource_handler);
 
 		_timer.sigh(sync_handler);
-		_timer.trigger_periodic(10*1000*1000);
+		_timer.trigger_periodic(2*1000*1000);
 	}
 };
 
