@@ -2,7 +2,6 @@
  * \brief  Slab allocator test
  * \author Norman Feske
  * \date   2015-03-31
- *
  */
 
 /*
@@ -65,7 +64,7 @@ struct Array_of_slab_elements
 
 void Component::construct(Genode::Env & env)
 {
-	Genode::Heap heap(env.ram(), env.rm());
+	static Genode::Heap heap(env.ram(), env.rm());
 
 	log("--- slab test ---");
 
@@ -94,7 +93,7 @@ void Component::construct(Genode::Env & env)
 		 * take the overhead of the two block allocations at the heap into
 		 * account.
 		 */
-		enum { HEAP_OVERHEAD = 36 };
+		enum { HEAP_OVERHEAD = 9*sizeof(long) };
 		if (alloc.consumed() > 2*(BLOCK_SIZE + HEAP_OVERHEAD)) {
 			error("slab failed to release empty slab blocks");
 			return;
@@ -106,6 +105,22 @@ void Component::construct(Genode::Env & env)
 	if (alloc.consumed() > 0) {
 		error("slab failed to release all backing store");
 		return;
+	}
+
+	{
+		log("test double-free detection - error message is expected");
+
+		Genode::Slab slab(SLAB_SIZE, BLOCK_SIZE, nullptr, &alloc);
+
+		void *p = nullptr;
+		{
+			Array_of_slab_elements array(slab, 4096, SLAB_SIZE, heap);
+			p = array.elem[1705];
+		}
+		slab.free(p, SLAB_SIZE);
+		{
+			Array_of_slab_elements array(slab, 4096, SLAB_SIZE, heap);
+		}
 	}
 
 	log("Test done");

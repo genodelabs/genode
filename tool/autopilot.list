@@ -90,3 +90,4 @@ trace
 input_filter
 init
 nic_dump
+slab
