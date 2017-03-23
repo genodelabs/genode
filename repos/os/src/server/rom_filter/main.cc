@@ -279,7 +279,14 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 				if (node.has_sub_node("else"))
 					_evaluate_node(node.sub_node("else"), xml);
 			}
-		}
+		} else
+
+		if (node.has_type("attribute")) {
+			typedef Genode::String<128> String;
+			xml.attribute(
+				node.attribute_value("name", String()).string(),
+				node.attribute_value("value", String()).string());
+		} else
 
 		if (node.has_type("inline")) {
 			char const *src     = node.content_base();
