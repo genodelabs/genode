@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
 	static Compound_widget<QWidget, QHBoxLayout> w;
 
-	static QString plugin_args("ram_quota=3M");
+	static QString plugin_args("ram_quota=4M");
 	static QPluginWidget plugin_widget(&w, QUrl("rom:///test-plugin.tar"), plugin_args, 100, 100);
 
 	w.layout()->addWidget(&plugin_widget);
