@@ -194,6 +194,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			_read_buf_bytes_used = ::read(_sd, _read_buf, sizeof(_read_buf));
 
 			if (_read_buf_bytes_used == 0) {
+				close(_sd);
 				_sd = -1;
 				return;
 			}
@@ -406,7 +407,7 @@ Open_socket::Open_socket(int tcp_port)
 
 Open_socket::~Open_socket()
 {
-	close(_sd);
+	if (_sd != -1) close(_sd);
 	open_socket_pool()->remove(this);
 }
 
