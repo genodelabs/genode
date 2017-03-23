@@ -119,6 +119,9 @@ static void test(Genode::Xml_node node)
 		/* create directory (short name) */
 		CALL_AND_CHECK(ret, mkdir(dir_name, 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", dir_name);
 
+		/* try to create again */
+		CALL_AND_CHECK(ret, mkdir(dir_name, 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", dir_name);
+
 		/* change to new directory */
 		CALL_AND_CHECK(ret, chdir(dir_name), ret == 0, "dir_name=%s", dir_name);
 

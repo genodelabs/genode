@@ -50,7 +50,14 @@ class File_system::Directory : public Node
 				mode_t ugo = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
 				ret = rump_sys_mkdir(path, ugo);
 				if (ret == -1)
-					throw No_space();
+					switch (errno) {
+					case ENAMETOOLONG: throw Name_too_long();
+					case EACCES:       throw Permission_denied();
+					case ENOENT:       throw Lookup_failed();
+					case EEXIST:       throw Node_already_exists();
+					case ENOSPC:
+					default:           throw No_space();
+					}
 			}
 
 			struct stat s;
