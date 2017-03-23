@@ -21,6 +21,7 @@
 #include <core_parent.h>        /* for 'Core_service' type */
 #include <map_local.h>
 #include <vm_root.h>
+#include <platform.h>
 
 extern Genode::addr_t _vt_host_context_ptr;
 extern Genode::addr_t _vt_host_entry;

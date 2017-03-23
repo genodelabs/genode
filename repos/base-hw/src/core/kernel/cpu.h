@@ -16,7 +16,7 @@
 #define _CORE__KERNEL__CPU_H_
 
 /* core includes */
-#include <kernel/clock.h>
+#include <kernel/timer.h>
 #include <cpu.h>
 #include <kernel/cpu_scheduler.h>
 #include <kernel/irq.h>
@@ -269,21 +269,21 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 		};
 
 		unsigned const _id;
-		Clock          _clock;
+		Timer          _timer;
 		Cpu_idle       _idle;
 		Cpu_scheduler  _scheduler;
 		Ipi            _ipi_irq;
-		Irq            _timer_irq; /* timer irq implemented as empty event */
+		Irq            _timer_irq; /* timer IRQ implemented as empty event */
 
-		unsigned _quota() const { return _clock.us_to_tics(cpu_quota_us); }
-		unsigned _fill() const  { return _clock.us_to_tics(cpu_fill_us); }
+		unsigned _quota() const { return _timer.us_to_ticks(cpu_quota_us); }
+		unsigned _fill() const  { return _timer.us_to_ticks(cpu_fill_us); }
 
 	public:
 
 		/**
-		 * Construct object for CPU 'id' with scheduling timer 'timer'
+		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned const id, Timer * const timer);
+		Cpu(unsigned const id);
 
 		/**
 		 * Initialize primary cpu object
@@ -335,13 +335,15 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 
 		unsigned id() const { return _id; }
 		Cpu_scheduler * scheduler() { return &_scheduler; }
+
+		time_t us_to_ticks(time_t const us) const { return _timer.us_to_ticks(us); };
+
+		unsigned timer_interrupt_id() const { return _timer.interrupt_id(); }
 };
 
 class Kernel::Cpu_pool
 {
 	private:
-
-		Timer _timer;
 
 		/*
 		 * Align to machine word size, otherwise load/stores might fail on some
@@ -369,11 +371,13 @@ class Kernel::Cpu_pool
 		 */
 		Cpu * executing_cpu() const { return cpu(Cpu::executing_id()); }
 
-		/*
-		 * Accessors
-		 */
-
-		Timer * timer() { return &_timer; }
+		template <typename FUNC>
+		void for_each_cpu(FUNC const &func) const
+		{
+			for (unsigned i = 0; i < sizeof(_cpus)/sizeof(_cpus[i]); i++) {
+				func(*cpu(i));
+			}
+		}
 };
 
 #endif /* _CORE__KERNEL__CPU_H_ */

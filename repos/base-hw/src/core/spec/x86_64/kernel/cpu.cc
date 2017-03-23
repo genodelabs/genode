@@ -38,13 +38,13 @@ void Kernel::Cpu::init(Pic &pic)
 	Idt::init();
 	Tss::init();
 
-	Timer::disable_pit();
+	Timer::init_cpu_local();
 
 	fpu().init();
 
 	/* enable timer interrupt */
 	unsigned const cpu = Cpu::executing_id();
-	pic.unmask(Timer::interrupt_id(cpu), cpu);
+	pic.unmask(_timer.interrupt_id(), cpu);
 }
 
 

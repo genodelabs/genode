@@ -153,8 +153,8 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 {
 	using Genode::Cpu_session;
 	using Genode::sizet_arithm_t;
-	size_t const tics = cpu_pool()->timer()->us_to_tics(Kernel::cpu_quota_us);
-	return Cpu_session::quota_lim_downscale<sizet_arithm_t>(quota, tics);
+	size_t const ticks = _cpu->us_to_ticks(Kernel::cpu_quota_us);
+	return Cpu_session::quota_lim_downscale<sizet_arithm_t>(quota, ticks);
 }
 
 

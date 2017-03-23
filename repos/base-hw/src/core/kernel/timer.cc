@@ -1,5 +1,5 @@
 /*
- * \brief   A clock manages a continuous time and timeouts on it
+ * \brief   A timer manages a continuous time and timeouts on it
  * \author  Martin Stein
  * \date    2016-03-23
  */
@@ -12,38 +12,33 @@
  */
 
 /* Core includes */
-#include <kernel/clock.h>
+#include <kernel/timer.h>
+#include <kernel/configuration.h>
 #include <hw/assert.h>
 
 using namespace Kernel;
 
 
-time_t Clock::us_to_tics(time_t const us) const
-{
-	return _timer->us_to_tics(us);
-}
-
-
-time_t Clock::timeout_age_us(Timeout const * const timeout) const
+time_t Timer::timeout_age_us(Timeout const * const timeout) const
 {
 	time_t const age = (time_t)_time - timeout->_start;
-	return _timer->tics_to_us(age);
+	return _ticks_to_us(age);
 }
 
 
-time_t Clock::timeout_max_us() const
+time_t Timer::timeout_max_us() const
 {
-	return _timer->tics_to_us(_timer->max_value());
+	return _ticks_to_us(_max_value());
 }
 
 
-bool Clock::_time_overflow(time_t const duration) const
+bool Timer::_time_overflow(time_t const duration) const
 {
 	return duration > ~(time_t)0 - _time;
 }
 
 
-void Clock::set_timeout(Timeout * const timeout, time_t const duration)
+void Timer::set_timeout(Timeout * const timeout, time_t const duration)
 {
 	/*
 	 * Remove timeout if it is already in use. Timeouts may get overridden as
@@ -73,7 +68,7 @@ void Clock::set_timeout(Timeout * const timeout, time_t const duration)
 }
 
 
-void Clock::schedule_timeout()
+void Timer::schedule_timeout()
 {
 	/* get the timeout with the nearest end time */
 	Timeout * timeout = _timeout_list[_time_period].first();
@@ -84,15 +79,15 @@ void Clock::schedule_timeout()
 	/* install timeout at timer hardware */
 	time_t const duration = (time_t)timeout->_end - _time;
 	_last_timeout_duration = duration;
-	_timer->start_one_shot(duration, _cpu_id);
+	_start_one_shot(duration);
 }
 
 
-time_t Clock::update_time()
+time_t Timer::update_time()
 {
 	/* determine how much time has passed */
 	time_t const old_value = _last_timeout_duration;
-	time_t const new_value = _timer->value(_cpu_id);
+	time_t const new_value = _value();
 	time_t const duration  = old_value > new_value ? old_value - new_value : 1;
 
 	/* is this the end of the current period? */
@@ -117,7 +112,7 @@ time_t Clock::update_time()
 }
 
 
-void Clock::process_timeouts()
+void Timer::process_timeouts()
 {
 	/*
 	 * Walk through timeouts until the first whose end time is in the future.
@@ -136,6 +131,23 @@ void Clock::process_timeouts()
 }
 
 
-Clock::Clock(unsigned const cpu_id, Timer * const timer)
-:
-	_cpu_id(cpu_id), _timer(timer) { }
+Timer::Timer(unsigned cpu_id) : _cpu_id(cpu_id), _driver(cpu_id)
+{
+	/*
+	 * The timer frequency should allow a good accuracy on the smallest
+	 * timeout syscall value (1 us).
+	 */
+	assert(_ticks_to_us(1) < 1 || _ticks_to_us(_max_value()) == _max_value());
+
+	/*
+	 * The maximum measurable timeout is also the maximum age of a timeout
+	 * installed by the timeout syscall. The timeout-age syscall returns a
+	 * bogus value for older timeouts. A user that awoke from waiting for a
+	 * timeout might not be schedulable in the same super period anymore.
+	 * However, if the user can't manage to read the timeout age during the
+	 * next super period, it's a bad configuration or the users fault. That
+	 * said, the maximum timeout should be at least two times the super
+	 * period).
+	 */
+	assert(_ticks_to_us(_max_value()) > 2 * cpu_quota_us);
+}

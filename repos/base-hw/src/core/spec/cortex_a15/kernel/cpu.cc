@@ -38,6 +38,6 @@ void Kernel::Cpu::init(Kernel::Pic &pic/*, Kernel::Pd & core_pd, Genode::Board &
 		perf_counter()->enable();
 
 		/* enable timer interrupt */
-		pic.unmask(Timer::interrupt_id(id()), id());
+		pic.unmask(_timer.interrupt_id(), id());
 	}
 }
