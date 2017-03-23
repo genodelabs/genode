@@ -124,7 +124,7 @@ class Kernel::Thread
 		void _call();
 
 		/**
-		 * Return amount of timer tics that 'quota' is worth
+		 * Return amount of timer ticks that 'quota' is worth
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
 

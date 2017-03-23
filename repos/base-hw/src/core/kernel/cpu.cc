@@ -19,7 +19,6 @@
 #include <kernel/irq.h>
 #include <kernel/pd.h>
 #include <pic.h>
-#include <timer.h>
 #include <hw/assert.h>
 
 /* base-internal includes */
@@ -133,14 +132,14 @@ void Cpu_idle::_main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
  *********/
 
 void Cpu::set_timeout(Timeout * const timeout, time_t const duration_us) {
-	_clock.set_timeout(timeout, _clock.us_to_tics(duration_us)); }
+	_timer.set_timeout(timeout, _timer.us_to_ticks(duration_us)); }
 
 
 time_t Cpu::timeout_age_us(Timeout const * const timeout) const {
-	return _clock.timeout_age_us(timeout); }
+	return _timer.timeout_age_us(timeout); }
 
 
-time_t Cpu::timeout_max_us() const { return _clock.timeout_max_us(); }
+time_t Cpu::timeout_max_us() const { return _timer.timeout_max_us(); }
 
 
 void Cpu::schedule(Job * const job)
@@ -162,19 +161,19 @@ bool Cpu::interrupt(unsigned const irq_id)
 Cpu_job & Cpu::schedule()
 {
 	/* update scheduler */
-	time_t quota = _clock.update_time();
+	time_t quota = _timer.update_time();
 	Job & old_job = scheduled_job();
 	old_job.exception(id());
-	_clock.process_timeouts();
+	_timer.process_timeouts();
 	_scheduler.update(quota);
 
 	/* get new job */
 	Job & new_job = scheduled_job();
 	quota = _scheduler.head_quota();
 
-	_clock.set_timeout(this, quota);
+	_timer.set_timeout(this, quota);
 
-	_clock.schedule_timeout();
+	_timer.schedule_timeout();
 
 	/* switch to new job */
 	switch_to(new_job);
@@ -184,11 +183,11 @@ Cpu_job & Cpu::schedule()
 }
 
 
-Cpu::Cpu(unsigned const id, Timer * const timer)
+Cpu::Cpu(unsigned const id)
 :
-	_id(id), _clock(_id, timer), _idle(this),
+	_id(id), _timer(_id), _idle(this),
 	_scheduler(&_idle, _quota(), _fill()),
-	_ipi_irq(*this), _timer_irq(timer->interrupt_id(_id), *this)
+	_ipi_irq(*this), _timer_irq(_timer.interrupt_id(), *this)
 { }
 
 
@@ -206,27 +205,8 @@ Cpu * Cpu_pool::cpu(unsigned const id) const
 
 Cpu_pool::Cpu_pool()
 {
-	/*
-	 * The timer frequency should allow a good accuracy on the smallest
-	 * timeout syscall value (1 us).
-	 */
-	assert(_timer.tics_to_us(1) < 1 ||
-	       _timer.tics_to_us(_timer.max_value()) == _timer.max_value());
-
-	/*
-	 * The maximum measurable timeout is also the maximum age of a timeout
-	 * installed by the timeout syscall. The timeout-age syscall returns a
-	 * bogus value for older timeouts. A user that awoke from waiting for a
-	 * timeout might not be schedulable in the same super period anymore.
-	 * However, if the user can't manage to read the timeout age during the
-	 * next super period, it's a bad configuration or the users fault. That
-	 * said, the maximum timeout should be at least two times the super
-	 * period).
-	 */
-	assert(_timer.tics_to_us(_timer.max_value()) > 2 * cpu_quota_us);
-
 	for (unsigned id = 0; id < NR_OF_CPUS; id++) {
-		new (_cpus[id]) Cpu(id, &_timer); }
+		new (_cpus[id]) Cpu(id); }
 }
 
 

@@ -27,6 +27,7 @@
 #include <pic.h>
 #include <kernel/kernel.h>
 #include <translation_table.h>
+#include <kernel/cpu.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -89,6 +90,8 @@ Platform::Platform()
 	_io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc())
 {
+	struct Kernel_resource : Exception { };
+
 	_core_mem_alloc.virt_alloc()->add_range(VIRT_ADDR_SPACE_START,
 	                                        VIRT_ADDR_SPACE_SIZE);
 	_core_virt_regions().for_each([this] (Hw::Memory_region const & r) {
@@ -102,8 +105,18 @@ Platform::Platform()
 
 	/* make all non-kernel interrupts available to the interrupt allocator */
 	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++) {
-		if (i == Timer::interrupt_id(i) || i == Pic::IPI)
+		bool kernel_resource = false;
+		Kernel::cpu_pool()->for_each_cpu([&] (Kernel::Cpu const &cpu) {
+			if (i == cpu.timer_interrupt_id()) {
+				kernel_resource = true;
+			}
+		});
+		if (i == Pic::IPI) {
+			kernel_resource = true;
+		}
+		if (kernel_resource) {
 			continue;
+		}
 		_irq_alloc.add_range(i, 1);
 	}
 

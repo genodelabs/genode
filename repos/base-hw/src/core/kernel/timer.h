@@ -1,5 +1,5 @@
 /*
- * \brief   A clock manages a continuous time and timeouts on it
+ * \brief   A timer manages a continuous time and timeouts on it
  * \author  Martin Stein
  * \date    2016-03-23
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__KERNEL__CLOCK_H_
-#define _CORE__KERNEL__CLOCK_H_
+#ifndef _CORE__KERNEL__TIMER_H_
+#define _CORE__KERNEL__TIMER_H_
 
 /* base-hw includes */
 #include <kernel/types.h>
@@ -21,12 +21,12 @@
 #include <util/list.h>
 
 /* Core includes */
-#include <timer.h>
+#include <timer_driver.h>
 
 namespace Kernel
 {
 	class Timeout;
-	class Clock;
+	class Timer;
 }
 
 /**
@@ -34,7 +34,7 @@ namespace Kernel
  */
 class Kernel::Timeout : public Genode::List<Timeout>::Element
 {
-	friend class Clock;
+	friend class Timer;
 
 	private:
 
@@ -54,14 +54,16 @@ class Kernel::Timeout : public Genode::List<Timeout>::Element
 };
 
 /**
- * A clock manages a continuous time and timeouts on it
+ * A timer manages a continuous time and timeouts on it
  */
-class Kernel::Clock
+class Kernel::Timer
 {
 	private:
 
+		using Driver = Timer_driver;
+
 		unsigned const        _cpu_id;
-		Timer * const         _timer;
+		Driver                _driver;
 		time_t                _time = 0;
 		bool                  _time_period = false;
 		Genode::List<Timeout> _timeout_list[2];
@@ -69,39 +71,34 @@ class Kernel::Clock
 
 		bool _time_overflow(time_t const duration) const;
 
+		void _start_one_shot(time_t const ticks);
+
+		time_t _ticks_to_us(time_t const ticks) const;
+
+		time_t _value();
+
+		time_t _max_value() const;
+
 	public:
 
-		Clock(unsigned const cpu_id, Timer * const timer);
+		Timer(unsigned cpu_id);
 
-		/**
-		 * Set-up timer according to the current timeout schedule
-		 */
 		void schedule_timeout();
 
-		/**
-		 * Update time and work off expired timeouts
-		 *
-		 * \return  time that passed since the last scheduling
-		 */
 		time_t update_time();
 		void process_timeouts();
 
-		/**
-		 * Set-up 'timeout' to trigger at time + 'duration'
-		 */
 		void set_timeout(Timeout * const timeout, time_t const duration);
 
-		/**
-		 * Return native time value that equals the given microseconds 'us'
-		 */
-		time_t us_to_tics(time_t const us) const;
+		time_t us_to_ticks(time_t const us) const;
 
-		/**
-		 * Return microseconds that passed since the last set-up of 'timeout'
-		 */
 		time_t timeout_age_us(Timeout const * const timeout) const;
 
 		time_t timeout_max_us() const;
+
+		unsigned interrupt_id() const;
+
+		static void init_cpu_local();
 };
 
-#endif /* _CORE__KERNEL__CLOCK_H_ */
+#endif /* _CORE__KERNEL__TIMER_H_ */

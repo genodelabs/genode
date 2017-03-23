@@ -2,6 +2,7 @@
  * \brief  Timer driver for core
  * \author Adrian-Ken Rueegsegger
  * \author Reto Buerki
+ * \author Martin Stein
  * \date   2015-02-06
  */
 
@@ -15,13 +16,14 @@
 #include <hw/spec/x86_64/x86_64.h>
 
 /* core includes */
-#include <timer.h>
+#include <kernel/timer.h>
 #include <platform.h>
 
 using namespace Genode;
-using Kernel::time_t;
+using namespace Kernel;
 
-uint32_t Timer::_pit_calc_timer_freq(void)
+
+uint32_t Timer_driver::pit_calc_timer_freq(void)
 {
 	uint32_t t_start, t_end;
 
@@ -48,7 +50,8 @@ uint32_t Timer::_pit_calc_timer_freq(void)
 }
 
 
-Timer::Timer() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE))
+Timer_driver::Timer_driver(unsigned)
+: Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE))
 {
 	write<Divide_configuration::Divide_value>(
 		Divide_configuration::Divide_value::MAX);
@@ -60,31 +63,41 @@ Timer::Timer() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE
 	write<Tmr_lvt::Timer_mode>(0);
 
 	/* Calculate timer frequency */
-	_tics_per_ms = _pit_calc_timer_freq();
+	ticks_per_ms = pit_calc_timer_freq();
 }
 
 
-void Timer::disable_pit()
+void Timer::init_cpu_local()
 {
-	outb(PIT_MODE, 0x30);
-	outb(PIT_CH0_DATA, 0);
-	outb(PIT_CH0_DATA, 0);
+	/**
+	 * Disable PIT timer channel. This is necessary since BIOS sets up
+	 * channel 0 to fire periodically.
+	 */
+	outb(Driver::PIT_MODE, 0x30);
+	outb(Driver::PIT_CH0_DATA, 0);
+	outb(Driver::PIT_CH0_DATA, 0);
 }
 
 
-void Timer::start_one_shot(time_t const tics, unsigned const) {
-	write<Tmr_initial>(tics); }
+void Timer::_start_one_shot(time_t const ticks) {
+	_driver.write<Driver::Tmr_initial>(ticks); }
 
 
-time_t Timer::tics_to_us(time_t const tics) const {
-	return (tics / _tics_per_ms) * 1000; }
+time_t Timer::_ticks_to_us(time_t const ticks) const {
+	return (ticks / _driver.ticks_per_ms) * 1000; }
 
 
-time_t Timer::us_to_tics(time_t const us) const {
-	return (us / 1000) * _tics_per_ms; }
+time_t Timer::us_to_ticks(time_t const us) const {
+	return (us / 1000) * _driver.ticks_per_ms; }
 
 
-time_t Timer::max_value() { return (Tmr_initial::access_t)~0; }
+time_t Timer::_max_value() const {
+	return (Driver::Tmr_initial::access_t)~0; }
 
 
-time_t Timer::value(unsigned const) { return read<Tmr_current>(); }
+time_t Timer::_value() {
+	return _driver.read<Driver::Tmr_current>(); }
+
+
+unsigned Timer::interrupt_id() const {
+	return Board::TIMER_VECTOR_KERNEL; }
