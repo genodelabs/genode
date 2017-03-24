@@ -1,3 +1,8 @@
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
+	puts "\nRunning slab benchmark in autopilot on Qemu is not recommended.\n"
+	exit
+}
+
 build "core init drivers/timer test/slab"
 
 create_boot_directory
