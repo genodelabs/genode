@@ -65,18 +65,21 @@ append config {
 	</start>
 
 	<start name="backdrop">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="20M"/>
 		<config>
-			<libc>
-				<vfs>
-					<rom name="genode_logo.png"/>
-					<rom name="grid.png"/>
-				</vfs>
-			</libc>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+				<rom name="grid.png"/>
+			</vfs>
 			<fill color="#122334" />
 			<image png="grid.png"        tiled="yes" alpha="200" />
 			<image png="genode_logo.png" anchor="bottom_right" alpha="150"/>
 		</config>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker" label="backdrop" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="dynamic_rom">

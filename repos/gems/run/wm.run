@@ -206,33 +206,31 @@ append config {
 		</route>
 	</start>
 	<start name="backdrop" priority="-1">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="24M"/>
 		<config>
-			<libc>
-				<vfs>
-					<rom name="genode_logo.png"/>
-					<rom name="grid.png"/>
-				</vfs>
-			</libc>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+				<rom name="grid.png"/>
+			</vfs>
 			<fill color="#224433" />
 			<image png="grid.png"        tiled="yes" alpha="200" />
 			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
 			                             xpos="-20" ypos="-20" />
 		</config>
 		<route>
-			<any-service> <child name="nitpicker"/> <parent/> <any-child/>
+			<any-service> <child name="nitpicker" label="backdrop"/> <parent/> <any-child/>
 			</any-service>
 		</route>
 	</start>
 	<start name="wm_backdrop" priority="-1">
 		<binary name="backdrop" />
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="24M"/>
 		<config>
-			<libc>
-				<vfs>
-					<rom name="genode_logo.png"/>
-				</vfs>
-			</libc>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+			</vfs>
 			<fill color="#664455" />
 			<image png="genode_logo.png" scale="zoom" alpha="150" />
 			<image png="genode_logo.png" scale="fit" alpha="150" tiled="yes" />
