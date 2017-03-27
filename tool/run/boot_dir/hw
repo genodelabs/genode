@@ -102,7 +102,7 @@ proc run_boot_dir {binaries} {
 		}
 	}
 
-	if {[have_spec x86] && ![have_spec muen] && [have_include "load/tftp"]} {
+	if {[have_spec x86] && [have_include "load/tftp"]} {
 		#
 		# Install PXE bootloader pulsar
 		#
@@ -112,8 +112,14 @@ proc run_boot_dir {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		puts $fh " exec /boot/bender"
-		puts $fh " load /image.elf"
+		if {[have_spec "muen"]} {
+			exec gzip [run_dir]/image.bin
+			puts $fh " exec /boot/unzip"
+			puts $fh " load /image.bin.gz"
+		} else {
+			puts $fh " exec /boot/bender"
+			puts $fh " load /image.elf"
+		}
 		close $fh
 
 		generate_tftp_config
@@ -129,13 +135,9 @@ proc run_boot_dir {binaries} {
 		if {[have_spec "muen"]} {
 			puts $fh "kernel image.bin"
 		} else {
+			install_pxe_bootloader_to_run_dir
 			puts $fh "kernel boot/bender"
 			puts $fh "module image.elf"
-
-			#
-			# Install bender
-			#
-			install_bender_to_run_dir
 		}
 		puts $fh "boot"
 		close $fh
