@@ -147,7 +147,7 @@ append_if [expr $use_ram_fs] config {
 append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 	<start name="overlay_from_disk" priority="-1">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="} [expr 256 * $use_vms] {M"/>
 		<provides><service name="ROM"/></provides>
 		<route>}
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
