@@ -529,49 +529,52 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			case Command::OP_GEOMETRY:
 				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
+					Command::Geometry const &cmd = command.geometry;
+					Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 					if (!view.valid())
 						return;
 
-					Point pos = command.geometry.rect.p1();
+					Point pos = cmd.rect.p1();
 
 					/* transpose position of top-level views by vertical session offset */
 					if (view->top_level())
 						pos = ::Session::phys_pos(pos, _view_stack.size());
 
 					if (view.valid())
-						_view_stack.geometry(*view, Rect(pos, command.geometry.rect.area()));
+						_view_stack.geometry(*view, Rect(pos, cmd.rect.area()));
 
 					return;
 				}
 
 			case Command::OP_OFFSET:
 				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
+					Command::Offset const &cmd = command.offset;
+					Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 
 					if (view.valid())
-						_view_stack.buffer_offset(*view, command.offset.offset);
+						_view_stack.buffer_offset(*view, cmd.offset);
 
 					return;
 				}
 
 			case Command::OP_TO_FRONT:
 				{
-					if (_views_are_equal(command.to_front.view, command.to_front.neighbor))
+					Command::To_front const &cmd = command.to_front;
+					if (_views_are_equal(cmd.view, cmd.neighbor))
 						return;
 
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
+					Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 					if (!view.valid())
 						return;
 
 					/* bring to front if no neighbor is specified */
-					if (!command.to_front.neighbor.valid()) {
+					if (!cmd.neighbor.valid()) {
 						_view_stack.stack(*view, nullptr, true);
 						return;
 					}
 
 					/* stack view relative to neighbor */
-					Locked_ptr<View> neighbor(_view_handle_registry.lookup(command.to_front.neighbor));
+					Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
 					if (neighbor.valid())
 						_view_stack.stack(*view, &(*neighbor), false);
 
@@ -580,21 +583,22 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			case Command::OP_TO_BACK:
 				{
-					if (_views_are_equal(command.to_front.view, command.to_front.neighbor))
+					Command::To_back const &cmd = command.to_back;
+					if (_views_are_equal(cmd.view, cmd.neighbor))
 						return;
 
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_back.view));
+					Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 					if (!view.valid())
 						return;
 
 					/* bring to front if no neighbor is specified */
-					if (!command.to_front.neighbor.valid()) {
+					if (!cmd.neighbor.valid()) {
 						_view_stack.stack(*view, nullptr, false);
 						return;
 					}
 
 					/* stack view relative to neighbor */
-					Locked_ptr<View> neighbor(_view_handle_registry.lookup(command.to_back.neighbor));
+					Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
 					if (neighbor.valid())
 						_view_stack.stack(*view, &(*neighbor), true);
 
@@ -603,8 +607,9 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			case Command::OP_BACKGROUND:
 				{
+					Command::Background const &cmd = command.background;
 					if (_provides_default_bg) {
-						Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
+						Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 						if (!view.valid())
 							return;
 
@@ -618,7 +623,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 						::Session::background()->background(false);
 
 					/* assign session background */
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
+					Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 					if (!view.valid())
 						return;
 
@@ -633,10 +638,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			case Command::OP_TITLE:
 				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.title.view));
+					Command::Title const &cmd = command.title;
+					Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 
 					if (view.valid())
-						_view_stack.title(*view, command.title.title.string());
+						_view_stack.title(*view, cmd.title.string());
 
 					return;
 				}
