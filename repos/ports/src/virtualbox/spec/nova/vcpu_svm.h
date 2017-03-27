@@ -24,30 +24,13 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 		__attribute__((noreturn)) void _svm_default() { _default_handler(); }
 
-		__attribute__((noreturn)) void _svm_vintr() { _irq_window(); }
-
-		__attribute__((noreturn)) void _svm_ioio()
+		__attribute__((noreturn)) void _svm_invalid()
 		{
-			using namespace Nova;
-			using namespace Genode;
-
-			Thread *myself = Thread::myself();
-			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
-
-			if (utcb->qual[0] & 0x4) {
-				unsigned ctrl0 = utcb->ctrl[0];
-
-				Vmm::warning("invalid gueststate");
-
-				utcb->ctrl[0] = ctrl0;
-				utcb->ctrl[1] = 0;
-				utcb->mtd = Mtd::CTRL;
-				
-				Nova::reply(_stack_reply);
-			}
-
+			Vmm::error("invalid guest state - dead ?");
 			_default_handler();
 		}
+
+		__attribute__((noreturn)) void _svm_vintr() { _irq_window(); }
 
 		template <unsigned X>
 		__attribute__((noreturn)) void _svm_npt()
@@ -68,8 +51,29 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 			/* enable VM exits for CPUID */
 			next_utcb.mtd     = Nova::Mtd::CTRL;
-			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_CPUID;
-			next_utcb.ctrl[1] = 0;
+			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_INTR
+			                  | SVM_CTRL1_INTERCEPT_NMI
+			                  | SVM_CTRL1_INTERCEPT_INIT
+			                  | SVM_CTRL1_INTERCEPT_RDPMC
+			                  | SVM_CTRL1_INTERCEPT_CPUID
+			                  | SVM_CTRL1_INTERCEPT_RSM
+			                  | SVM_CTRL1_INTERCEPT_HLT
+			                  | SVM_CTRL1_INTERCEPT_INOUT_BITMAP
+			                  | SVM_CTRL1_INTERCEPT_MSR_SHADOW
+			                  | SVM_CTRL1_INTERCEPT_INVLPGA
+			                  | SVM_CTRL1_INTERCEPT_SHUTDOWN
+			                  | SVM_CTRL1_INTERCEPT_FERR_FREEZE;
+
+			next_utcb.ctrl[1] = SVM_CTRL2_INTERCEPT_VMRUN
+			                  | SVM_CTRL2_INTERCEPT_VMMCALL
+			                  | SVM_CTRL2_INTERCEPT_VMLOAD
+			                  | SVM_CTRL2_INTERCEPT_VMSAVE
+			                  | SVM_CTRL2_INTERCEPT_STGI
+			                  | SVM_CTRL2_INTERCEPT_CLGI
+			                  | SVM_CTRL2_INTERCEPT_SKINIT
+			                  | SVM_CTRL2_INTERCEPT_WBINVD
+			                  | SVM_CTRL2_INTERCEPT_MONITOR
+			                  | SVM_CTRL2_INTERCEPT_MWAIT;
 
 			void *exit_status = _start_routine(_arg);
 			pthread_exit(exit_status);
@@ -80,6 +84,12 @@ class Vcpu_handler_svm : public Vcpu_handler
 		__attribute__((noreturn)) void _svm_recall()
 		{
 			Vcpu_handler::_recall_handler();
+		}
+
+		__attribute__((noreturn)) void _svm_triple()
+		{
+			Vmm::error("triple fault - dead");
+			exit(-1);
 		}
 
 	public:
@@ -100,10 +110,14 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 			typedef Vcpu_handler_svm This;
 
+			register_handler<SVM_EXIT_SHUTDOWN, This,
+				&This::_svm_triple> (exc_base, Mtd::ALL | Mtd::FPU);
+			register_handler<SVM_EXIT_READ_CR0, This,
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<RECALL, This,
 				&This::_svm_recall>       (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<SVM_EXIT_IOIO, This,
-				&This::_svm_ioio>         (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_VINTR, This,
 				&This::_svm_vintr>        (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_RDTSC, This,
@@ -118,6 +132,11 @@ class Vcpu_handler_svm : public Vcpu_handler
 				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<VCPU_STARTUP, This,
 				&This::_svm_startup>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_WBINVD, This,
+				&This::_svm_default>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
+
+			register_handler<SVM_INVALID, This,
+				&This::_svm_invalid>      (exc_base, Mtd(Mtd::ALL | Mtd::FPU));
 
 			start();
 		}

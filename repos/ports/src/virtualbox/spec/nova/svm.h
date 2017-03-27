@@ -21,9 +21,9 @@
 	          (pCtx->REG.Attr.n.u1Granularity \
 	           ? (pCtx->REG.u32Limit & 0xfffU) == 0xfffU \
 	           :  pCtx->REG.u32Limit <= 0xfffffU), \
-	           ("%u %u %#x %#x %#llx\n", pCtx->REG.Attr.n.u1Present, \
+	           ("Invalid Segment Attributes %u %u %#x %#x %#llx line=%u\n", pCtx->REG.Attr.n.u1Present, \
 	            pCtx->REG.Attr.n.u1Granularity, pCtx->REG.u32Limit, \
-	            pCtx->REG.Attr.u, pCtx->REG.u64Base))
+	            pCtx->REG.Attr.u, pCtx->REG.u64Base, __LINE__))
 
 #define GENODE_READ_SELREG(REG) \
 	pCtx->REG.Sel      = utcb->REG.sel; \
@@ -43,6 +43,14 @@ static inline bool svm_save_state(Nova::Utcb * utcb, VM * pVM, PVMCPU pVCpu)
 	GENODE_READ_SELREG(fs);
 	GENODE_READ_SELREG(gs);
 	GENODE_READ_SELREG(ss);
+
+    if (   !pCtx->cs.Attr.n.u1Granularity
+        && pCtx->cs.Attr.n.u1Present
+        && pCtx->cs.u32Limit > UINT32_C(0xfffff))
+    {
+        Assert((pCtx->cs.u32Limit & 0xfff) == 0xfff);
+        pCtx->cs.Attr.n.u1Granularity = 1;
+    }
 
 	GENODE_SVM_ASSERT_SELREG(cs);
 	GENODE_SVM_ASSERT_SELREG(ds);

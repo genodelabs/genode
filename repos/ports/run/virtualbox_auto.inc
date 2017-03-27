@@ -216,7 +216,7 @@ append_if [expr $use_usb] config {
 				<inline name="usb_drv.config">}
 
 append_if [expr $use_usb && ![have_spec muen]] config {
-<config uhci="yes" ehci="yes" xhci="yes">}
+<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">}
 
 append_if [expr $use_usb && [have_spec muen]] config {
 <config uhci="no" ehci="no" xhci="yes">}
