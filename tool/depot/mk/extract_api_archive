@@ -1,0 +1,54 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling an API archive
+# \author Norman Feske
+# \date   2016-05-13
+#
+
+define HELP_MESSAGE
+
+  Tool for assembling an API archive
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <api-name> USER=<user>
+
+    <api-name>   name of API, usually the name of the library that
+                 implements the API
+    <user>       identity of the archive creator
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+#
+# The target is the name of the archive
+#
+ARCHIVE  := $(TARGET)
+TAG_FILE := LICENSE
+
+#
+# Define location of recipe and the exported archive
+#
+RECIPE_DIR    := $(call recipe_dir,api/$(ARCHIVE))
+REP_DIR       := $(RECIPE_DIR:/recipes/api/$(ARCHIVE)=)
+DEPOT_SUB_DIR := $(DEPOT_DIR)/$(USER)/api
+
+#
+# Include common archive-creation steps
+#
+include $(GENODE_DIR)/tool/depot/mk/extract.inc
+include $(GENODE_DIR)/tool/depot/mk/extract_content.inc
+
+#
+# Add suplements that are specific for API archives
+#
+$(DEPOT_ARCHIVE_DIR).hash: $(DEPOT_ARCHIVE_DIR)/lib/mk/$(ARCHIVE).mk
+
+$(DEPOT_ARCHIVE_DIR)/lib/mk/$(ARCHIVE).mk:
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)touch $@
+

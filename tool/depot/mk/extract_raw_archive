@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling a raw-data archive
+# \author Norman Feske
+# \date   2016-05-13
+#
+
+define HELP_MESSAGE
+
+  Tool for assembling a raw-data archive
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <raw-name> USER=<user>
+
+    <raw-name>   name of the raw-data archive
+    <user>       identity of the archive creator
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+#
+# The target is the name of the archive
+#
+ARCHIVE  := $(TARGET)
+TAG_FILE := none
+
+ifeq ($(USER),)
+$(error USER undefined)
+endif
+
+#
+# Define location of recipe and the exported archive
+#
+RECIPE_DIR    := $(call recipe_dir,raw/$(ARCHIVE))
+REP_DIR       := $(RECIPE_DIR:/recipes/raw/$(ARCHIVE)=)
+DEPOT_SUB_DIR := $(DEPOT_DIR)/$(USER)/raw
+
+#
+# Include common archive-creation steps
+#
+include $(GENODE_DIR)/tool/depot/mk/extract.inc
+include $(GENODE_DIR)/tool/depot/mk/extract_content.inc
+

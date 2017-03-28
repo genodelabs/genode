@@ -1,0 +1,87 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling a package archive
+# \author Norman Feske
+# \date   2017-03-17
+#
+
+define HELP_MESSAGE
+
+  Compress and sign depot content for publishing
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path> {PUBLIC=<public>}
+
+  The <archive-path> denotes the archives (and implicitly their
+  dependencies) to publish from the depot to the public directory.
+  It must be given including the version number of the package archive.
+
+  This tool does not touch any Genode source repository. It solely
+  reads from the depot and writes to the public directory.
+
+  The optional 'PUBLIC' argument defines the location of the public
+  directory. If not specified, '<genode-dir>/public/' is used.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+PUBLIC_DIR ?= $(GENODE_DIR)/public
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+
+#
+# Determine dependencies, check for completeness
+#
+
+ifneq ($(MAKECMDGOALS),)
+DEPENDENCIES_CMD    := $(GENODE_DIR)/tool/depot/dependencies $(MAKECMDGOALS)
+DEPENDENCIES_RESULT := $(shell $(DEPENDENCIES_CMD) 2> /dev/null || true)
+endif
+
+ifeq ($(filter Error:,$(DEPENDENCIES_RESULT)),)
+ARCHIVES := $(DEPENDENCIES_RESULT)
+else
+ARCHIVES :=
+$(MAKECMDGOALS): dependencies_error
+endif
+
+# re-execute the dependencies command to present the error to the user
+dependencies_error:
+	@$(DEPENDENCIES_CMD)
+
+
+#
+# Generate compressed and signed archives
+#
+
+include $(GENODE_DIR)/tool/depot/mk/gpg.inc
+
+MISSING_PUBKEY_FILES := $(sort \
+                           $(foreach A,$(ARCHIVES),\
+                              $(if $(call pubkey_path,$A),,\
+                                 $(DEPOT_DIR)/$(call pubkey_filename,$A))))
+
+TARGETS := $(addsuffix .tgz.gpg,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
+
+$(PUBLIC_DIR)/%.tgz.gpg : $(PUBLIC_DIR)/%.tgz
+	$(VERBOSE)rm -f $@;
+	$(VERBOSE)gpg --sign --no-tty --use-agent --local-user $(call pubkey_id,$*) $<
+
+.PRECIOUS: $(TARGETS:.tgz.gpg=.tgz)
+
+$(PUBLIC_DIR)/%.tgz: $(DEPOT_DIR)/%
+	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
+	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
+	$(VERBOSE)tar czf $@ -C $(dir $<) $(notdir $<)
+
+ifneq ($(MISSING_PUBKEY_FILES),)
+$(MAKECMDGOALS) $(TARGETS): missing_pubkey_files
+endif
+
+$(MAKECMDGOALS): $(TARGETS)
+	@true
+

@@ -1,0 +1,84 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling a package archive
+# \author Norman Feske
+# \date   2017-03-17
+#
+
+define HELP_MESSAGE
+
+  Tool for assembling a package archive
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <pkg-name> USER=<user>
+
+    <pkg-name>  name of the package
+    <user>      identity of the archive creator
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+#
+# The target is the name of the archive
+#
+ARCHIVE  := $(TARGET)
+TAG_FILE := README
+
+#
+# Define location of recipe and the exported archive
+#
+RECIPE_DIR    := $(call recipe_dir,pkg/$(ARCHIVE))
+DEPOT_SUB_DIR := $(DEPOT_DIR)/$(USER)/pkg
+
+#
+# Include common archive-creation steps
+#
+include $(GENODE_DIR)/tool/depot/mk/extract.inc
+
+#
+# Generate 'archives' list with version information
+#
+_version = $(call recipe_version,$(call archive_type,$1)/$(call archive_recipe,$1))
+
+_versioned_entry = _/$(call archive_type,$1)/$(call archive_recipe,$1)-$(call _version,$1)
+
+VERSIONED_ARCHIVES := $(foreach A,$(call file_content,$(RECIPE_DIR)/archives),\
+                         $(if $(call archive_has_user,$A,_),$(call _versioned_entry,$A),$A))
+
+$(DEPOT_ARCHIVE_DIR).hash: $(DEPOT_ARCHIVE_DIR)/_archives
+
+$(DEPOT_ARCHIVE_DIR)/_archives: checked_recipe_hash_value_exists
+	$(VERBOSE)( $(foreach A,$(VERSIONED_ARCHIVES),echo "$A";) ) > $@
+
+#
+# Copy remaining recipe content to archive as is, except for files with a
+# special meaning or backup files.
+#
+RECIPE_FILES := $(notdir $(wildcard $(RECIPE_DIR)/*))
+RECIPE_FILES := $(patsubst %~,,$(RECIPE_FILES))
+RECIPE_FILES := $(filter-out archives hash,$(RECIPE_FILES))
+
+checked_readme_exists:
+ifneq ($(filter-out $(RECIPE_FILES),README),)
+	@$(ECHO) "Error: missing README in package recipe, expected:\n" \
+	          "      $(RECIPE_DIR)/README"; false
+endif
+
+.NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE)
+
+$(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): checked_readme_exists
+	$(VERBOSE)cp $(addprefix $(RECIPE_DIR)/,$(RECIPE_FILES)) $(DEPOT_ARCHIVE_DIR)/
+
+#
+# Replace the '_' marker in the 'archives' list with the actual user name
+#
+$(DEPOT_ARCHIVE_DIR)/archives: $(DEPOT_ARCHIVE_DIR).hash $(DEPOT_ARCHIVE_DIR)/_archives
+	$(VERBOSE)sed "s/^_/$(USER)/" $(DEPOT_ARCHIVE_DIR)/_archives > $@
+	$(VERBOSE)rm -f $(DEPOT_ARCHIVE_DIR)/_archives
+
+_rename_to_final_archive: $(DEPOT_ARCHIVE_DIR)/archives

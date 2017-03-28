@@ -1,0 +1,71 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Simulate the download of files by copying content from a directory
+# \author Norman Feske
+# \date   2017-03-23
+#
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+
+REMOTE_DIR ?= $(GENODE_DIR)/remote
+PUBLIC_DIR ?= $(GENODE_DIR)/public
+DEPOT_DIR  ?= $(GENODE_DIR)/depot
+
+define HELP_MESSAGE
+
+  Simulate the download of files by copying content from a directory
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>...
+
+endef
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+TARGETS := $(addprefix $(DEPOT_DIR)/,$(MAKECMDGOALS))
+
+
+#
+# Unpack after checking signature against public key as stored in the depot
+#
+# Unfortunately, gpg does not allow us to specify the armored public-key
+# file directly as keyring for the verify operation. So we need to create a
+# temporary dearmored version.
+#
+
+ARCHIVES := $(MAKECMDGOALS)
+
+include $(GENODE_DIR)/tool/depot/mk/gpg.inc
+
+$(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tgz $(PUBLIC_DIR)/%.tgz.gpg
+	$(VERBOSE)pubkey_file=$(DEPOT_DIR)/$(call archive_user,$*)/pubkey; \
+	          gpg --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
+	          ( gpg --no-tty --no-default-keyring \
+	                --keyring $$pubkey_file.dearmored \
+	                --verify $(PUBLIC_DIR)/$*.tgz.gpg 2> /dev/null; retval=$$?; \
+	            rm -f $$pubkey_file.dearmored; \
+	            exit $$retval \
+	          ) || ( echo -e "Error: could not verify '$*', signature does not match\n" \
+	                          "      public key '$$pubkey_file'"; \
+	                 false )
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)tar xfz $(PUBLIC_DIR)/$*.tgz -C $(dir $@)
+
+DOWNLOADED_FILES := $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz)) \
+                    $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz.gpg))
+
+.PRECIOUS: $(DOWNLOADED_FILES)
+
+ifneq ($(MISSING_PUBKEY_FILES),)
+$(DOWNLOADED_FILES): missing_pubkey_files
+endif
+
+$(PUBLIC_DIR)/%:
+	@$(ECHO) "$(DARK_COL)download$(DEFAULT_COL) $*"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp $(REMOTE_DIR)/$* $@
+
+$(MAKECMDGOALS): $(TARGETS)
+	@true

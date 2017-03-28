@@ -1,0 +1,63 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for determining the dependencies of depot content
+# \author Norman Feske
+# \date   2017-03-17
+#
+
+define HELP_MESSAGE
+
+  Show the dependencies of depot content
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>...
+
+  This tool operates solely on the depot content. It prints the
+  result only if all dependencies are present within the depot.
+  Otherwise, the missing archives are given as an error message.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(GENODE_DIR)/tool/depot/mk/categorize_args.inc
+
+
+#
+# Collect dependencies for all specified arguments
+#
+
+api_file = $(addsuffix /api,$(addprefix $(DEPOT_DIR)/,$1))
+
+used_apis_file = $(addsuffix /used_apis,$(addprefix $(DEPOT_DIR)/,$1))
+
+_pkg_archives_of_type = $(call grep_archive_type,$1,\
+                           $(call file_content,\
+                              $(addsuffix /archives,$(addprefix $(DEPOT_DIR)/,$2))))
+
+pkg_src_archives  = $(call _pkg_archives_of_type,src,$1)
+pkg_raw_archives  = $(call _pkg_archives_of_type,raw,$1)
+pkg_pkg_archives  = $(call _pkg_archives_of_type,pkg,$1)
+
+include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
+
+
+#
+# Print gathered information
+#
+
+NEEDED_ARCHIVES  := $(foreach TYPE,pkg src raw api bin,${ARCHIVES(${TYPE})})
+MISSING_ARCHIVES := $(sort $(foreach A,$(NEEDED_ARCHIVES),\
+                              $(if $(wildcard $(addprefix $(DEPOT_DIR)/,$A)),,$A)))
+checked_completeness:
+ifneq ($(MISSING_ARCHIVES),)
+	@echo "Error: incomplete or missing archives:"; \
+	 for i in $(MISSING_ARCHIVES); do echo "       $$i"; done; false
+endif
+
+$(MAKECMDGOALS): checked_completeness
+	@for i in $(NEEDED_ARCHIVES); do echo $$i; done
+

@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Download packages
+# \author Norman Feske
+# \date   2017-03-23
+#
+
+define HELP_MESSAGE
+
+  Download, verify, and uncompress depot content
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path> {PUBLIC=<public>}
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+PUBLIC_DIR ?= $(GENODE_DIR)/public
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+# sanitize arguments
+ARGS := $(subst ..,__,$(MAKECMDGOALS))
+
+DEPENDENCIES_CMD = $(GENODE_DIR)/tool/depot/dependencies $(ARGS)
+DOWNLOAD_CMD     = $(GENODE_DIR)/tool/depot/mk/cp_downloader VERBOSE=$(VERBOSE)
+
+.PHONY: download
+download:
+	$(VERBOSE)\
+	while true; do \
+		if $(DEPENDENCIES_CMD) > /dev/null 2> /dev/null; then break; fi; \
+		missing_deps=`$(DEPENDENCIES_CMD) 2> /dev/null | sed -n "/^ /s/ *//p"`; \
+		$(DOWNLOAD_CMD) $$missing_deps || break; \
+	done;
+
+$(MAKECMDGOALS): download
+	@true
+
