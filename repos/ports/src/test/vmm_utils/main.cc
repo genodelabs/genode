@@ -17,7 +17,7 @@
 /* VMM utility includes */
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
-#include <vmm/printf.h>
+#include <vmm/log.h>
 
 
 template <typename T>
