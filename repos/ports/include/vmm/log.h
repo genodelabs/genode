@@ -45,6 +45,40 @@ namespace Vmm {
 
 		*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
 	}
+
+	template <typename... ARGS>
+	void warning(ARGS... args)
+	{
+		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
+
+		static Lock        lock;
+		static Utcb_backup utcb_backup;
+
+		Lock::Guard guard(lock);
+
+		utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
+
+		Genode::warning("VMM: ", args...);
+
+		*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
+	}
+
+	template <typename... ARGS>
+	void error(ARGS... args)
+	{
+		struct Utcb_backup { char buf[Nova::Utcb::size()]; };
+
+		static Lock        lock;
+		static Utcb_backup utcb_backup;
+
+		Lock::Guard guard(lock);
+
+		utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
+
+		Genode::error("VMM: ", args...);
+
+		*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
+	}
 }
 
 #endif /* _INCLUDE__VMM__PRINTF_H_ */

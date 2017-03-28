@@ -24,7 +24,7 @@
 
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
-#include <vmm/printf.h>
+#include <vmm/log.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
