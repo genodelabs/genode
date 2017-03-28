@@ -1,0 +1,7 @@
+This archive contains the L4ka::Pistachio-specific part of Genode.
+
+It also contains the source code of the Pistachio kernel in the
+src/kernel/pistachio directory.
+
+Please note that Pistachio has a license distinct from Genode. Pistachio's
+license can be found at 'src/kernel/pistachio/README'.

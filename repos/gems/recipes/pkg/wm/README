@@ -1,0 +1,13 @@
+
+       Subsystem for presenting GUI applications in floating windows
+
+
+The package uses the motif-inspired default decorator. The decorator is
+executed in a sub-init instance according to 'decorator_init.config'. This
+allows us to easily override the decorator with another implementation (like
+the themed decorator) provided by another package while keeping the overall
+configuration of the wm subsystem.
+
+As another advantage of hosting the decorator in a dedicated init instance,
+it is possible to restart or replace the decorator at runtime by serving
+the 'decorator_init.config' from a dynamic ROM service.
