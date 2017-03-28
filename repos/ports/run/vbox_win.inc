@@ -329,7 +329,6 @@ if {$use_rumpfs} {
 	set wait_timeout 170
 	for { set i 1 } { $i <= $use_vms } { incr i } {
 		run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} $wait_timeout [output_spawn_id]
-		set wait_timeout 25
 	}
 } else {
 	run_genode_until {\[init\] child "vbox1" exited with exit value 0} 60 [output_spawn_id]

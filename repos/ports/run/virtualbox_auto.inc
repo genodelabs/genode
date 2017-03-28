@@ -103,9 +103,9 @@ append_if [expr $use_rumpfs] config {
 		<config ld_verbose="yes" fs="ext2fs">}
 
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
-			<policy label_prefix="overlay_from_disk" root="/ram" writeable="yes"/>}
+			<policy label_prefix="overlay_from_disk" root="/ram" writeable="no"/>}
 append_if [expr $use_rumpfs] config {
-			<default-policy root="/" writeable="yes"/>
+			<default-policy root="/" writeable="no"/>
 		</config>
 		<route>
 			<any-service><child name="part_blk"/> <parent/><any-child/></any-service>
@@ -147,7 +147,7 @@ append_if [expr $use_ram_fs] config {
 append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 	<start name="overlay_from_disk" priority="-1">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="} [expr 256 * $use_vms] {M"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides><service name="ROM"/></provides>
 		<route>}
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
