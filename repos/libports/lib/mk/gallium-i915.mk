@@ -26,7 +26,7 @@ INC_DIR += $(LIBDRM_DIR)/include/drm $(LIBDRM_DIR)/intel
 SRC_C += $(notdir $(wildcard $(GALLIUM_SRC_DIR)/winsys/drm/intel/gem/*.c))
 vpath %.c $(GALLIUM_SRC_DIR)/winsys/drm/intel/gem
 
-LIBS += cxx libdrm
+LIBS += libdrm
 LIBS += gpu_i915_drv
 
 SHARED_LIB = yes
