@@ -937,6 +937,7 @@ _writev T
 # Public interface between Genode-component code and the libc runtime
 #
 _ZN4Libc9Component9constructERNS_3EnvE U
+_ZN4Libc9Component10stack_sizeEv W
 _ZN4Libc30execute_in_application_contextERNS_16Application_codeE T
 _ZN4Libc19Select_handler_base6selectEiR6fd_setS2_S2_ T
 _ZN4Libc19Select_handler_baseC1Ev T
