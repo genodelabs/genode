@@ -1,0 +1,9 @@
+This archive contains the NOVA-specific part of Genode.
+
+It also contains the source code of the NOVA hypervisor in the src/kernel/nova/
+directory.
+
+This NOVA version is maintained at 'https://github.com/alex-ab/NOVA.git'.
+
+Please note that NOVA has a license distinct from Genode. NOVA's license can
+be found at 'src/kernel/nova/LICENSE'.

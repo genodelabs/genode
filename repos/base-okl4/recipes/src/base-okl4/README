@@ -1,0 +1,7 @@
+This archive contains the OKL4-specific part of Genode.
+
+It also contains the source code of the OKL4 kernel in the src/kernel/okl4
+directory.
+
+Please note that OKL4 has a license distinct from Genode. OKL4 is licensed
+under the terms of the GNU General Public License version 2.

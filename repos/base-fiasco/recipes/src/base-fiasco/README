@@ -1,0 +1,7 @@
+This archive contains the L4/Fiasco-specific part of Genode.
+
+It also contains the source code of the Fiasco kernel in the
+'src/kernel/fiasco' directory.
+
+Please note that Fiasco has a license distinct from Genode. Fiasco's
+license can be found at 'src/kernel/fiasco/fiasco/snapshot/l4/COPYING'.

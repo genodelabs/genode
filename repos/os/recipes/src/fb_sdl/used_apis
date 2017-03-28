@@ -1,0 +1,6 @@
+base-linux
+base
+os
+input_session
+framebuffer_session
+timer_session

@@ -1,0 +1,7 @@
+This archive contains the Fiasco.OC-specific part of Genode.
+
+It also contains the source code of the Fiasco.OC kernel in the
+'src/kernel/foc' directory.
+
+Please note that Fiasco.OC has a license distinct from Genode. Fiasco.OC's
+license can be found at 'src/kernel/foc/COPYING-GPL-2'.

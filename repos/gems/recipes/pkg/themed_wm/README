@@ -1,0 +1,6 @@
+
+      Subsystem for presenting GUI applications in floating windows
+                    using the themed window decorator
+
+This package overrides parts of the wm package such that the themed decorator
+is used instead of the default one.

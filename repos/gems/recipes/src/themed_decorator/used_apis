@@ -1,0 +1,15 @@
+base
+os
+nitpicker_gfx
+scout_gfx
+polygon_gfx
+blit
+libc
+libpng
+zlib
+gems
+vfs
+input_session
+nitpicker_session
+framebuffer_session
+report_session
