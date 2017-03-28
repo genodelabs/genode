@@ -1,7 +1,7 @@
 MESA_PORT_DIR := $(call select_from_ports,mesa)
 MESA_SRC_DIR  := $(MESA_PORT_DIR)/src/lib/mesa/src/mesa
 
-LIBS += cxx libc libm mesa_host_tools
+LIBS += libc libm mesa_host_tools
 
 #
 # Prevent warning about non-existing 'fpu_control.h' included

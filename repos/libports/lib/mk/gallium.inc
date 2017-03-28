@@ -1,7 +1,7 @@
 MESA_PORT_DIR   := $(call select_from_ports,mesa)
 GALLIUM_SRC_DIR := $(MESA_PORT_DIR)/src/lib/mesa/src/gallium
 
-LIBS += cxx libc libm mesa_host_tools
+LIBS += libc libm mesa_host_tools
 
 INC_DIR += $(GALLIUM_SRC_DIR)/include \
            $(GALLIUM_SRC_DIR)/auxiliary \
