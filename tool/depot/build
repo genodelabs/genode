@@ -1,0 +1,146 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Build binary archives from source
+# \author Norman Feske
+# \date   2017-03-16
+#
+
+define HELP_MESSAGE
+
+  Build binary archives from source archives stored in the depot
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>...
+
+  The <archive-path> argument denotes the archive to create in the
+  form of a path. The first path element correponds to the identity
+  of the archive creator, the second element corresponds to the type
+  of the archive (bin or pkg), the third element specifies the target
+  architectures (e.g., x86_64), and the fourth element is the name
+  of the corresponding source archive including the version.
+
+  E.g., the user 'alan' may build the following archives:
+
+    alan/bin/x86_64/zlib-<version>  - a binary archive of the zlib
+                                      library with the specified
+                                      version, built for the 64-bit
+                                      x86 architecture
+
+    alan/pkg/x86_32/wm-<version>    - all binary archives needed by
+                                      the 'wm' package archive, built
+                                      for the 32-bit x86 architecture
+
+  The following arguments tweak the operation of the tool:
+
+    FORCE=1            Replace existing archives with freshly created
+                       ones.
+
+    VERBOSE=           Show individual operations.
+
+    -j<N>              Enable the parallel creation of packages where
+                       <N> denotes the level of parallelism.
+
+    KEEP_BUILD_DIR=1   Do not remove build directories of built binary
+                       packages. This is useful for debugging build
+                       problems.
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(GENODE_DIR)/tool/depot/mk/categorize_args.inc
+
+
+#
+# Collect dependencies for all specified arguments
+#
+# The following accessor functions used by 'mk/dependencies.inc'.
+#
+
+_file_within_archive = $(wildcard $(DEPOT_DIR)/$1/$2)
+
+api_file       = $(call _file_within_archive,$1,api)
+used_apis_file = $(call _file_within_archive,$1,used_apis)
+
+_pkg_archives_content = $(call file_content,$(call _file_within_archive,$1,archives))
+
+pkg_src_archives = $(call grep_archive_type,src,$(call _pkg_archives_content,$1))
+pkg_raw_archives = $(call grep_archive_type,raw,$(call _pkg_archives_content,$1))
+pkg_pkg_archives = $(call grep_archive_type,pkg,$(call _pkg_archives_content,$1))
+
+include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
+
+
+#
+# Detect missing source archives
+#
+
+archive_exists_in_depot = $(wildcard $(DEPOT_DIR)/$1)
+
+MISSING_ARCHIVES := $(sort \
+                       $(foreach A,${ARCHIVES(bin)},\
+                          $(if $(call archive_exists_in_depot,$(call src_of_bin,$A)),,$A)))
+
+checked_source_archives_exist:
+ifneq ($(MISSING_ARCHIVES),)
+	@echo "Error: archives missing in the depot ($(MISSING_ARCHIVES))"; false
+endif
+
+
+#
+# Generate makefile for archive-build stage
+#
+
+bin_archive_spec   = $(word 3,$(subst /, ,$1))
+bin_archive_recipe = $(word 4,$(subst /, ,$1))
+
+# determine binary-archive path within the depot
+_api_subdir = $(addsuffix /,$(call file_content,$(call api_file,$(call src_of_bin,$1))))
+_dst_bin_spec_path = $(call archive_user,$1)/bin/$(call bin_archive_spec,$1)/
+dst_archive_path = $(call _dst_bin_spec_path,$1)$(call _api_subdir,$1)$(call bin_archive_recipe,$1)
+
+BUILD_MK_FILE := $(DEPOT_DIR)/var/build.mk
+
+.PHONY: $(BUILD_MK_FILE)
+
+wipe_existing_archives:
+	$(VERBOSE)rm -rf $(addprefix $(DEPOT_DIR)/,\
+	                    $(foreach A,${ARCHIVES(bin)},$(call dst_archive_path,$A)))
+
+$(BUILD_MK_FILE): checked_source_archives_exist checked_no_uncategorized
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)( echo -e "all:\n"; \
+	            echo "TOOL_DIR := $(GENODE_DIR)/tool"; \
+	             $(foreach A,${ARCHIVES(bin)},\
+	                target=$(call dst_archive_path,$A); \
+	                user=$(call archive_user,$A); \
+	                recipe=$(call bin_archive_recipe,$A); \
+	                spec=$(call bin_archive_spec,$A); \
+	                echo ""; \
+	                echo "TARGETS += $$target"; \
+	                echo "TOOL($$target) := build_bin_archive"; \
+	                echo "ARGS($$target) := $$recipe USER=$$user SPEC=$$spec"; \
+	             ) \
+	             echo -e "\nall: \$$(TARGETS)"; \
+	             echo -e "\n\$$(TARGETS):"; \
+	             echo -e "\t\$$(MAKE) -f \$$(TOOL_DIR)/depot/mk/\$${TOOL(\$$@)}" \
+	                     "\$${ARGS(\$$@)} VERBOSE=\$$(VERBOSE)\n"; \
+	          ) > $@
+
+
+#
+# Invoke sub make to process generated makefile
+#
+execute_generated_build_mk_file: $(BUILD_MK_FILE)
+	$(VERBOSE)$(MAKE) $(if $(VERBOSE),--quiet) -f $(BUILD_MK_FILE) \
+	                  -C $(DEPOT_DIR) VERBOSE=$(VERBOSE)
+
+ifneq ($(FORCE),)
+execute_generated_build_mk_file: wipe_existing_archives
+endif
+
+$(MAKECMDGOALS): execute_generated_build_mk_file
+	@true
+

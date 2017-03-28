@@ -1,0 +1,61 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling API/source/binary archives
+# \author Norman Feske
+# \date   2017-03-16
+#
+
+define HELP_MESSAGE
+
+  Populate depot with source and binary archives based of the current
+  version of the Genode source tree
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>...
+
+  This tool is a front end to the 'extract' and 'build' tools.
+  It accepts an arbitrary number of archives without their version
+  suffix as arguments. Furthermore, it supports the supplemental
+  arguments of those tools (like VERBOSE, FORCE, -j<N>).
+
+  The 'create' tool first invokes the 'extract' tool to create the
+  API/source/package/raw archives needed for the specified archives.
+  This step is followed by the invokation of the 'build' tool with
+  archive arguments that match their current versions. Combined
+  with the 'UPDATE_VERSIONS=1' argument, it thereby allows for the
+  source-archive creation, version updating, and building of binary
+  archives via a single command.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+
+.PHONY: extract build
+
+extract:
+	$(VERBOSE)$(MAKE) -f $(GENODE_DIR)/tool/depot/extract $(MAKECMDGOALS) \
+	                     VERBOSE=$(VERBOSE) FORCE=$(FORCE) \
+	                     UPDATE_VERSIONS=$(UPDATE_VERSIONS) \
+
+
+_versioned_src_of_bin = $1-$(call recipe_version,src/$(call bin_archive_recipe,$1))
+_versioned_pkg        = $1-$(call recipe_version,pkg/$(call bin_archive_recipe,$1))
+
+versioned_archive = $(if $(call archive_has_type,$1,bin),$(call _versioned_src_of_bin,$1),\
+                       $(if $(call archive_has_type,$1,pkg),$(call _versioned_pkg,$1)))
+
+build: extract
+	$(VERBOSE)$(MAKE) -f $(GENODE_DIR)/tool/depot/build \
+	                     $(foreach A,$(MAKECMDGOALS),$(call versioned_archive,$A))\
+	                     VERBOSE=$(VERBOSE) FORCE=$(FORCE) \
+	                     KEEP_BUILD_DIR=$(KEEP_BUILD_DIR)
+
+
+$(MAKECMDGOALS): build
+	@true
+

@@ -1,0 +1,219 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for building a binary archive from source
+# \author Norman Feske
+# \date   2016-05-17
+#
+
+define HELP_MESSAGE
+
+  Build a binary archive from source
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <src-name> SPEC=<spec> USER=<user>
+
+    <src-name>   name of the source archive to build
+    <spec>       build spec, e.g., x86_32, x86_64
+    <user>       identity of the archive creator
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+
+#
+# The target is the name of the archive
+#
+ARCHIVE := $(TARGET)
+
+#
+# Define location of source archive
+#
+RECIPE_DIR    := $(call recipe_dir,src/$(ARCHIVE))
+REP_DIR       := $(RECIPE_DIR:/recipes/src/$(ARCHIVE)=)
+DEPOT_API_DIR := $(DEPOT_DIR)/$(USER)/api
+DEPOT_SRC_DIR := $(DEPOT_DIR)/$(USER)/src
+DEPOT_BIN_DIR := $(DEPOT_DIR)/$(USER)/bin
+
+
+#
+# Look up hash of the source archive from the src recipe
+#
+
+EXPECTED_SRC_HASH_FILE := $(RECIPE_DIR)/hash
+SRC_HASH_FILE := $(wildcard $(EXPECTED_SRC_HASH_FILE))
+
+checked_src_hash_file:
+ifeq ($(SRC_HASH_FILE),)
+	@$(ECHO) "Error: source-archive hash file missing,"
+	@$(ECHO) "       expected at '$(EXPECTED_SRC_HASH_FILE)'"
+	@false
+else
+
+SRC_HASH_FILE_CONTENT := $(shell cat $(SRC_HASH_FILE))
+SRC_VERSION           := $(firstword $(SRC_HASH_FILE_CONTENT))
+endif
+
+
+#
+# Look for source archive
+#
+# First try to locate the source archive in the depot, which succeeds only
+# if the archive is given with a versioned name. The archive version is
+# unspecified, we look up the version information from the archive recipe.
+#
+
+VERSIONED_ARCHIVE := $(ARCHIVE)
+
+SRC_DIR := $(DEPOT_SRC_DIR)/$(VERSIONED_ARCHIVE)
+SRC_DIR := $(if $(wildcard $(SRC_DIR)),$(SRC_DIR),)
+
+checked_src_archive:
+	@true
+
+ifeq ($(SRC_DIR),)
+VERSIONED_ARCHIVE := $(ARCHIVE)-$(SRC_VERSION)
+SRC_DIR := $(DEPOT_SRC_DIR)/$(VERSIONED_ARCHIVE)
+checked_src_archive: checked_src_hash_file
+endif
+
+ifeq ($(wildcard $(SRC_DIR)),)
+checked_src_archive: error_missing_source_archive
+endif
+
+error_missing_source_archive:
+	@$(ECHO) "Error: missing source archive $(SRC_DIR)"
+	@false
+
+
+#
+# Check for missing SPEC argument
+#
+
+checked_spec_argument:
+ifeq ($(SPEC),)
+	@$(ECHO) "Error: missing SPEC argument"
+	@false
+endif
+
+
+#
+# Look for src/api to determine whether to build a library or a target.
+# If building a library, concatenate archive dir as <apihash>/<srchash>.
+# Otherwise use <srchash> has archive dir.
+#
+
+API_FILE := $(wildcard $(addsuffix /api,$(SRC_DIR)))
+
+ifneq ($(API_FILE),)
+API := $(call file_content,$(API_FILE))
+DEPOT_ARCHIVE_DIR := $(DEPOT_BIN_DIR)/$(SPEC)/$(API)/$(VERSIONED_ARCHIVE)
+else
+DEPOT_ARCHIVE_DIR := $(DEPOT_BIN_DIR)/$(SPEC)/$(VERSIONED_ARCHIVE)
+endif
+
+DEPOT_ARCHIVE_BUILD_DIR := $(addsuffix .build,$(DEPOT_ARCHIVE_DIR))
+
+
+#
+# Create archive build directory, which corresponds to a Genode build directory
+#
+# etc/build.conf: REPOSITORIES point to the source archive and all used api
+# archive. The list of used api archive comes from the '<srcdir>/used_apis'
+# file.
+#
+
+# if building a library, always incorporate the API implemented by the library
+USED_APIS += $(API)
+
+# incorporate all APIs used by the source archive
+USED_APIS_FILE := $(SRC_DIR)/used_apis
+ifneq ($(wildcard $(USED_APIS_FILE)),)
+USED_APIS += $(shell cat $(USED_APIS_FILE))
+endif
+
+BUILD_CONF := $(DEPOT_ARCHIVE_BUILD_DIR)/etc/build.conf
+SPECS_CONF := $(DEPOT_ARCHIVE_BUILD_DIR)/etc/specs.conf
+TOOLS_CONF := $(DEPOT_ARCHIVE_BUILD_DIR)/etc/tools.conf
+BUILD_MK   := $(DEPOT_ARCHIVE_BUILD_DIR)/Makefile
+
+# validate that all API archives exist
+USED_API_DIRS    := $(addprefix $(DEPOT_API_DIR)/, $(USED_APIS))
+MISSING_API_DIRS := $(filter-out $(wildcard $(USED_API_DIRS)), $(USED_API_DIRS))
+
+checked_api_archives:
+ifneq ($(MISSING_API_DIRS),)
+	@($(ECHO) "Error: The following API archives are missing:"; \
+	  for api in $(MISSING_API_DIRS); do $(ECHO) "      " $$api; done);
+	@false
+endif
+
+$(BUILD_CONF): checked_src_archive checked_api_archives
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE) \
+	( echo "GENODE_DIR := $(GENODE_DIR)"; \
+	  echo "BASE_DIR := $(GENODE_DIR)/repos/base"; \
+	  echo "REPOSITORIES := $(SRC_DIR)"; \
+	  for api in $(USED_APIS); do \
+	      echo "REPOSITORIES += $(DEPOT_API_DIR)/$$api"; done \
+	) > $(BUILD_CONF)
+
+$(SPECS_CONF): checked_spec_argument
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)echo "SPECS += genode $(SPEC)" > $@
+
+$(TOOLS_CONF):
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp $(GENODE_DIR)/repos/base/etc/tools.conf $@
+
+$(BUILD_MK):
+	$(VERBOSE)ln -sf $(GENODE_DIR)/tool/builddir/build.mk $@
+
+$(BUILD_CONF) $(SPECS_CONF) $(TOOLS_CONF) $(BUILD_MK): wiped_build_dir
+
+wiped_build_dir:
+	$(VERBOSE)rm -rf $(DEPOT_ARCHIVE_BUILD_DIR)
+
+
+#
+# Invoke the Genode build system in the build directory
+#
+
+ifeq ($(KEEP_BUILD_DIR),)
+RM_BUILD_DIR_CMD := rm -rf $(DEPOT_ARCHIVE_BUILD_DIR)
+else
+RM_BUILD_DIR_CMD := true
+endif
+
+$(DEPOT_ARCHIVE_BUILD_DIR)/bin: $(BUILD_CONF) $(SPECS_CONF) $(TOOLS_CONF) $(BUILD_MK)
+	$(VERBOSE)$(MAKE) -C $(DEPOT_ARCHIVE_BUILD_DIR) $(BUILD_ARG) ||\
+	          ( $(RM_BUILD_DIR_CMD); false )
+
+
+#
+# Extract build results from build directory into binary-archive directory
+#
+
+$(DEPOT_ARCHIVE_DIR): $(DEPOT_ARCHIVE_BUILD_DIR)/bin
+	$(VERBOSE)mkdir -p $@
+	$(VERBOSE)find $< -maxdepth 0 -not -empty -exec cp -rL $</* $@/ \;
+
+$(TARGET): $(DEPOT_ARCHIVE_DIR)
+	@$(ECHO) "$(DARK_COL)created$(DEFAULT_COL) $(USER)/bin/$(SPEC)/$(VERSIONED_ARCHIVE)"
+
+
+#
+# Remove intermediate build artifacts
+#
+
+ifeq ($(KEEP_BUILD_DIR),)
+$(TARGET): remove_build_dir_when_done
+remove_build_dir_when_done: $(DEPOT_ARCHIVE_DIR)
+	$(VERBOSE)$(RM_BUILD_DIR_CMD)
+endif
+
+

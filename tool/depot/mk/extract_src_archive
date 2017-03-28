@@ -1,0 +1,93 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling a source archive
+# \author Norman Feske
+# \date   2016-05-13
+#
+
+define HELP_MESSAGE
+
+  Tool for assembling a source archive
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <src-name> USER=<user>
+
+    <src-name>   name of the source archive
+    <user>       identity of the archive creator
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+#
+# The target is the name of the archive
+#
+ARCHIVE  := $(TARGET)
+TAG_FILE := LICENSE
+
+ifeq ($(USER),)
+$(error USER undefined)
+endif
+
+#
+# Define location of recipe and the exported archive
+#
+RECIPE_DIR    := $(call recipe_dir,src/$(ARCHIVE))
+REP_DIR       := $(RECIPE_DIR:/recipes/src/$(ARCHIVE)=)
+DEPOT_SUB_DIR := $(DEPOT_DIR)/$(USER)/src
+
+#
+# Include common archive-creation steps
+#
+include $(GENODE_DIR)/tool/depot/mk/extract.inc
+include $(GENODE_DIR)/tool/depot/mk/extract_content.inc
+
+#
+# Add used_apis information, supplemented with the current API hashes
+#
+ifneq ($(wildcard $(RECIPE_DIR)/used_apis),)
+$(DEPOT_ARCHIVE_DIR).hash: $(DEPOT_ARCHIVE_DIR)/used_apis
+endif
+
+$(DEPOT_ARCHIVE_DIR)/used_apis: $(DEPOT_ARCHIVE_DIR)
+$(DEPOT_ARCHIVE_DIR)/used_apis: $(RECIPE_DIR)/used_apis
+	$(VERBOSE) \
+	for api in $(shell cat $<); do \
+	  hash_file=$(GENODE_DIR)/repos/**/recipes/api/$$api/hash; \
+	  if [ ! -f $$hash_file ]; then \
+	    echo "Error: archive $(ARCHIVE) depends on nonexisting API '$$api',"; \
+	    echo "       expected $$hash_file"; \
+	    rm -r $(DEPOT_ARCHIVE_DIR); \
+	    result=false; \
+	    break; \
+	  fi; \
+	  hash_file_content=$$(< $$hash_file); \
+	  version=$${hash_file_content%% *}; \
+	  echo "$$api-$$version" >> $@; \
+	done; $$result
+
+#
+# If the archive is a library, add the hash of its implemented API
+#
+ifneq ($(wildcard $(RECIPE_DIR)/api),)
+$(DEPOT_ARCHIVE_DIR).hash: $(DEPOT_ARCHIVE_DIR)/api
+endif
+$(DEPOT_ARCHIVE_DIR)/api: $(DEPOT_ARCHIVE_DIR)
+$(DEPOT_ARCHIVE_DIR)/api: $(RECIPE_DIR)/api
+	$(VERBOSE) \
+	api=$$(< $<); \
+	  hash_file=$(GENODE_DIR)/repos/**/recipes/api/$$api/hash; \
+	  if [ ! -f $$hash_file ]; then \
+	    echo "Error: library '$(ARCHIVE)' implements unknown API '$$api',"; \
+	    echo "       expected $$hash_file"; \
+	    rm -r $(DEPOT_ARCHIVE_DIR); \
+	    exit -1; \
+	  fi; \
+	  hash_file_content=$$(< $$hash_file); \
+	  version=$${hash_file_content%% *}; \
+	  echo "$$api-$$version" >> $@;
+

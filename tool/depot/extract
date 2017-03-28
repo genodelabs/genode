@@ -1,0 +1,182 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Extract API/source/binary archives from Genode source tree
+# \author Norman Feske
+# \date   2017-03-16
+#
+
+define HELP_MESSAGE
+
+  Extract API/source/raw archives from the Genode source tree
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>...
+
+  The <archive-path> argument denotes the archive to extract in the
+  form of a path. The first path element correponds to the identity
+  of the archive creator, the second element corresponds to the type
+  of the archive, and the third element refers to the recipe of
+  the archive description.
+
+  E.g., the user 'alan' may create the following archives:
+
+    alan/api/libc - an API archive for the libc
+    alan/src/zlib - a source archive for the zlib library
+
+  The following arguments tweak the operation of the tool:
+
+    FORCE=1            Replace existing archives with freshly created
+                       ones. This is useful during the development of
+                       recipes.
+
+    VERBOSE=           Show individual operations.
+
+    -j<N>              Enable the parallel creation of packages where
+                       <N> denotes the level of parallelism.
+
+    UPDATE_VERSIONS=1  Automatically increase the version of recipe
+                       hash files whenever their respective archive
+                       content has changed. The versions are named
+                       after the current date, suffixed with a single
+                       letter to differentiate multiple versions
+                       created on the same day.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(GENODE_DIR)/tool/depot/mk/categorize_args.inc
+
+
+#
+# Collect dependencies for all specified arguments
+#
+# The following accessor functions used by 'mk/dependencies.inc'. The
+# information found in the 'archives' file of a package recipe has the
+# placeholder '_' for the user. Only archives with this placeholder are
+# considered. The '_user_pkg_archives' function transforms those archive paths
+# into user-specific archive paths.
+#
+
+_file_in_depot  = $(wildcard $(DEPOT_DIR)/$(call archive_user,$1)/src/$(call archive_recipe,$1)/$2)
+_file_in_recipe = $(addsuffix /$2,$(call recipe_dir,src/$(call archive_recipe,$1)))
+
+_file_in_depot_or_recipe = $(if $(call _file_in_depot,$1,$2),\
+                                $(call _file_in_depot,$1,$2),\
+                                $(call _file_in_recipe,$1,$2))
+
+api_file       = $(call _file_in_depot_or_recipe,$1,api)
+used_apis_file = $(call _file_in_depot_or_recipe,$1,used_apis)
+
+_pkg_archives_file = $(call recipe_dir,pkg/$(call archive_recipe,$1))/archives
+_user_pkg_archives = $(patsubst _/%,$(call archive_user,$1)/%,\
+                        $(call grep_archive_user,_,\
+                           $(call file_content,$(call _pkg_archives_file,$1))))
+
+pkg_src_archives = $(call grep_archive_type,src,$(call _user_pkg_archives,$1))
+pkg_raw_archives = $(call grep_archive_type,raw,$(call _user_pkg_archives,$1))
+pkg_pkg_archives = $(call grep_archive_type,pkg,$(call _user_pkg_archives,$1))
+
+include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
+
+
+#
+# Obtain version information from recipes
+#
+# The 'archive_version' function takes the archive type and name as arguments
+# and returns the version identifier as present in the corresponding recipe.
+# The nested foreach loop populates 'ARCHIVE_VERSION' with the version
+# identifier for each archive.
+#
+# If an archive is given with a complete (versioned) name, we don't need to
+# consult any recipe but only check if the corresponding archive exists within
+# the depot. For binary archives, it suffices that the corresponding source
+# archive is present.
+#
+
+$(foreach TYPE,api src raw pkg,\
+   $(foreach PATH,${ARCHIVES(${TYPE})},\
+      $(eval ARCHIVE_VERSION(${PATH}) := $(call archive_version,$(PATH)))))
+
+archive_exists_in_depot = $(wildcard $(DEPOT_DIR)/$1)
+
+ARCHIVES_WITH_NO_VERSION := $(sort \
+                               $(foreach TYPE,api src raw pkg,\
+                                  $(foreach A,${ARCHIVES(${TYPE})},\
+                                    $(if $(call archive_exists_in_depot,$A),,\
+                                       $(if ${ARCHIVE_VERSION($A)},,$A)))))
+
+checked_versions_defined:
+ifneq ($(ARCHIVES_WITH_NO_VERSION),)
+	@echo "Error: incomplete or missing recipe ($(sort $(ARCHIVES_WITH_NO_VERSION)))"; false
+endif
+
+
+#
+# Generate makefile for archive-extraction stage
+#
+
+# return versioned archive path, if 'ARCHIVE_VERSION' is undefined, assume
+# that the argument is already a versiond path
+versioned_archive = $(if $(ARCHIVE_VERSION($1)),$(addsuffix -${ARCHIVE_VERSION($1)},$1),$1)
+
+EXTRACT_MK_FILE := $(DEPOT_DIR)/var/extract.mk
+
+.PHONY: $(EXTRACT_MK_FILE)
+
+wipe_existing_archives:
+	$(VERBOSE)rm -rf $(addprefix $(DEPOT_DIR)/, $(foreach TYPE,api src raw pkg,\
+	                                               $(foreach A,${ARCHIVES(${TYPE})},\
+	                                                  $(call versioned_archive,$A))))
+
+$(EXTRACT_MK_FILE): checked_versions_defined checked_no_uncategorized
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)( echo -e "all:\n"; \
+	            echo "TOOL_DIR := $(GENODE_DIR)/tool"; \
+	            $(foreach TYPE,api src raw pkg,\
+	                $(foreach A,${ARCHIVES(${TYPE})},\
+	                   target=$(call versioned_archive,$A); \
+	                   user=$(call archive_user,$A); \
+	                   recipe=$(call archive_recipe,$A); \
+	                   echo ""; \
+	                   echo "ARCHIVES(${TYPE}) += $$target"; \
+	                   echo "TOOL($$target) := extract_$(TYPE)_archive"; \
+	                   echo "ARGS($$target) := $$recipe USER=$$user"; \
+	             ) ) \
+	             echo -e ""; \
+	             $(foreach A,${ARCHIVES(pkg)},\
+	                $(foreach DEP,$(call pkg_pkg_archives,$A),\
+	                   echo -e "$(call versioned_archive,$A) :" \
+	                           "$(call versioned_archive,$(DEP))";)) \
+	             echo -e ""; \
+	             echo -e "\$${ARCHIVES(src)} : \$${ARCHIVES(api)}"; \
+	             echo -e "\$${ARCHIVES(pkg)} : \$${ARCHIVES(api)}"; \
+	             echo -e "\$${ARCHIVES(pkg)} : \$${ARCHIVES(src)}"; \
+	             echo -e "\$${ARCHIVES(pkg)} : \$${ARCHIVES(raw)}"; \
+	             echo -e "\nTARGETS := \$$(foreach T,api src raw pkg,\$${ARCHIVES(\$$T)})"; \
+	             echo -e "\nall: \$$(TARGETS)"; \
+	             echo -e "\n\$$(TARGETS):"; \
+	             echo -e "\t\$$(MAKE) -f \$$(TOOL_DIR)/depot/mk/\$${TOOL(\$$@)}" \
+	                     "\$${ARGS(\$$@)}" \
+	                     "VERBOSE=\$$(VERBOSE)" \
+	                     "UPDATE_VERSIONS=\$$(UPDATE_VERSIONS)\n"; \
+	          ) > $@
+
+#
+# Invoke sub make to process generated makefile
+#
+execute_generated_extract_mk_file: $(EXTRACT_MK_FILE)
+	$(VERBOSE)$(MAKE) $(if $(VERBOSE),--quiet) -f $(EXTRACT_MK_FILE) \
+	                  -C $(DEPOT_DIR) VERBOSE=$(VERBOSE) \
+	                                  UPDATE_VERSIONS=$(UPDATE_VERSIONS)
+
+ifneq ($(FORCE),)
+execute_generated_extract_mk_file: wipe_existing_archives
+endif
+
+$(MAKECMDGOALS): execute_generated_extract_mk_file
+	@true
+
