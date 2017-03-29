@@ -207,3 +207,10 @@ proc run_boot_dir {binaries} {
 		generate_tftp_config
 	}
 }
+
+
+##
+# Base source archive within depot
+#
+proc base_src { } { return base-okl4 }
+

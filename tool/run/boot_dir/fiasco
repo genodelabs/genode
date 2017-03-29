@@ -76,3 +76,10 @@ proc run_boot_dir {binaries} {
 		create_symlink_for_iso
 	}
 }
+
+
+##
+# Base source archive within depot
+#
+proc base_src { } { return base-fiasco }
+

@@ -145,3 +145,16 @@ proc run_boot_dir {binaries} {
 		update_ipxe_boot_dir
 	}
 }
+
+
+##
+# Base source archive within depot
+#
+proc base_src { } {
+
+	if {[have_spec x86_64]} { return base-hw-pc }
+	if {[have_spec pbxa9]}  { return base-hw-pbxa9 }
+
+	puts stderr "base-hw kernel does not support this build configuration"
+	exit 1
+}
