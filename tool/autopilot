@@ -122,9 +122,16 @@ proc build_dir { platform } {
 ##
 # Return name of log file for test of 'run_script' on 'platform'
 #
+proc log_file_name { platform kernel run_script } {
+	return $platform.$kernel.$run_script.log
+}
+
+##
+# Return path to log file for test of 'run_script' on 'platform'
+#
 proc log_file { platform kernel run_script } {
 	global test_dir
-	return [file join $test_dir $platform.$kernel.$run_script.log]
+	return [file join $test_dir [log_file_name $platform $kernel $run_script]]
 }
 
 
@@ -341,7 +348,7 @@ set info_fd [open [file join $test_dir $info_file] "WRONLY CREAT TRUNC"]
 foreach platform $platforms {
 	foreach kernel $kernels {
 		foreach run_script $run_scripts {
-			puts $info_fd "$platform.$kernel.$run_script.log"
+			puts $info_fd "[log_file_name $platform $kernel $run_script]"
 		}
 	}
 }
