@@ -14,3 +14,9 @@ proc run_boot_dir {binaries} {
 		set src_binary_path "../../../../bin/[kernel_specific_binary $binary]"
 		exec ln -sf $src_binary_path [run_dir]/genode/$binary }
 }
+
+
+##
+# Base source archive within depot
+#
+proc base_src { } { return base-linux }

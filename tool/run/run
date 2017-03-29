@@ -124,6 +124,7 @@ proc install_config {config} {
 #                  '<build-dir>/bin/' directory
 #
 proc build_boot_image {binaries} {
+	check_for_missing_depot_archives
 	run_boot_dir $binaries
 }
 
@@ -791,6 +792,8 @@ proc build_core_image {binaries} {
 	# remove individual binaries, which are now contained in 'image.elf'
 	exec rm -rf [run_dir]/genode
 }
+
+source [genode_dir]/tool/run/depot.inc
 
 
 ##

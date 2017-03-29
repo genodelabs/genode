@@ -183,3 +183,10 @@ proc run_boot_dir {binaries} {
 	if {[have_spec x86]} { return [run_boot_dir_x86 $binaries] }
 	if {[have_spec arm]} { return [run_boot_dir_arm $binaries] }
 }
+
+
+##
+# Base source archive within depot
+#
+proc base_src { } { return base-foc }
+
