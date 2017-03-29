@@ -49,6 +49,7 @@ proc help { } {
 		                   [-k <kernel> ...]
 		                   [-r <run-script> ...]
 		                   [-d <test-dir>] [-j <make-jobs>]
+		                   [-i <info-file-name>]
 		                   [--help] [--cleanup] [--force] [--keep]
 		                   [--stdout] [--skip-clean-rules]
 		                   [--enable-ccache]
@@ -327,6 +328,24 @@ foreach platform $platforms {
 
 	exec echo "RUN_OPT += --autopilot" >> $build_conf
 }
+
+
+#
+# Create info file that contains all expected log files
+#
+
+set info_file "autopilot.log"
+foreach_cmdline_arg i { global info_file; set info_file $i }
+
+set info_fd [open [file join $test_dir $info_file] "WRONLY CREAT TRUNC"]
+foreach platform $platforms {
+	foreach kernel $kernels {
+		foreach run_script $run_scripts {
+			puts $info_fd "$platform.$kernel.$run_script.log"
+		}
+	}
+}
+close $info_fd
 
 
 #
