@@ -35,7 +35,6 @@ proc genode_dir { } {
 
 
 proc default_test_dir { } { global env; return "/tmp/autopilot.$env(USER)" }
-proc default_log_file { } { return "autopilot.log" }
 
 
 ##
