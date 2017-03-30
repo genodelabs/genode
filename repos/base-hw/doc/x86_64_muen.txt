@@ -115,15 +115,16 @@ Integration of Muen with Genode
 Instead of letting the Genode build system compile and assemble the complete
 Muen system, you can let it only build a specific Genode base-hw run scenario
 and then do the integration yourself. This will for example allow you to run a
-simple script like run/printf on Muen in the Bochs x86 emulator
+simple script like run/log on Muen in the Bochs x86 emulator
 [http://bochs.sf.net], removing the requirement for having access to supported
 hardware.
 
-As a first step acquire the Muen sources by execute the following commands:
+As a first step acquire the Muen sources by executing the following commands:
 
 ! git clone https://git.codelabs.ch/git/muen.git
 ! cd muen
-! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm tau0 time" emulate
+! git submodule update --init tools/mugenschedcfg
+! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm time" emulate
 
 This will build a Muen SK system and start it using the Bochs emulator. You
 should get the following error:
@@ -135,9 +136,9 @@ This means that the Muen packer tool was unable to find the component binary
 'base_hw', which is expected since it has not yet been compiled.
 
 Now it is time to build the Genode 'base-hw' image for Muen. To tell the Genode
-build system that the Muen system integration is performed externallyby changing
-the --image-muen-external-build parameter in the 'etc/build.conf' file within
-your build Genode directory like so:
+build system that the Muen system integration is performed externally by
+changing the --image-muen-external-build parameter in the 'etc/build.conf' file
+within your build Genode directory like so:
 
 ! RUN_OPT += --image-muen-external-build 1
 
@@ -150,7 +151,7 @@ Change back to the Muen working directory to package the system image and
 restart emulation:
 
 ! cd <muen_workdir>
-! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm tau0 time" emulate
+! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm time" emulate
 
 The serial output of the system is written to the
 '<muen_workdir>/emulate/serial.out' file. You should see the following line:
