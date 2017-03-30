@@ -98,17 +98,22 @@ class Genode::Timer : public Mmio
 			 */
 			static_assert(TICS_PER_MS >= 1000, "Bad TICS_PER_MS value");
 			enum {
-				HALF_WIDTH = (sizeof(time_t) << 2),
-				MSB_MASK  = ~0UL << HALF_WIDTH,
-				LSB_MASK  = ~0UL >> HALF_WIDTH,
-				MSB_RSHIFT = 10,
-				LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
+				TICS_WIDTH      = sizeof(time_t) * 8,
+				TICS_HALF_WIDTH = TICS_WIDTH / 2,
+
+				TICS_MSB_MASK  = ~0UL << TICS_HALF_WIDTH,
+				TICS_LSB_MASK  = ~0UL >> TICS_HALF_WIDTH,
+
+				TICS_MSB_RSHIFT = 10,
+				TICS_LSB_LSHIFT = TICS_HALF_WIDTH - TICS_MSB_RSHIFT,
 			};
-			time_t const msb = (((tics >> MSB_RSHIFT)
-			                     * 1000) / TICS_PER_MS) << MSB_RSHIFT;
-			time_t const lsb = ((((tics & LSB_MASK) << LSB_LSHIFT)
-			                     * 1000) / TICS_PER_MS) >> LSB_LSHIFT;
-			return (msb & MSB_MASK) | lsb;
+			time_t const tics_msb = (tics & TICS_MSB_MASK) >> TICS_MSB_RSHIFT;
+			time_t const tics_lsb = (tics & TICS_LSB_MASK) << TICS_LSB_LSHIFT;
+
+			time_t const us_msb = ((tics_msb * 1000) / TICS_PER_MS) << TICS_MSB_RSHIFT;
+			time_t const us_lsb = ((tics_lsb * 1000) / TICS_PER_MS) >> TICS_LSB_LSHIFT;
+
+			return us_msb | us_lsb;
 		}
 
 		time_t us_to_tics(time_t const us) const {
