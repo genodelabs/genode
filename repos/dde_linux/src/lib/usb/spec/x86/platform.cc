@@ -18,6 +18,8 @@ extern "C" void module_ax88179_178a_driver_init();
 extern "C" void module_usbnet_init();
 extern "C" void module_ehci_hcd_init();
 extern "C" void module_ehci_pci_init();
+extern "C" void module_ohci_hcd_mod_init();
+extern "C" void module_ohci_pci_init();
 extern "C" void module_uhci_hcd_init();
 extern "C" void module_xhci_hcd_init();
 extern "C" void module_xhci_pci_init();
@@ -40,6 +42,12 @@ void platform_hcd_init(Services *s)
 		module_ehci_pci_init();
 	}
 
-	if (s->uhci)
+	if (s->ohci) {
+		module_ohci_hcd_mod_init();
+		module_ohci_pci_init();
+	}
+
+	if (s->uhci) {
 		module_uhci_hcd_init();
+	}
 }

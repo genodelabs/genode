@@ -9,7 +9,7 @@ Controller configuration
 The driver can be started using different or all USB controller types a platform
 offers (USB 1.0/2.0/3.0). Note that not all controllers are supported by all
 platforms.  Controllers can be enabled as attribute in the config node of the
-driver.  Supported attributes are: 'uhci', 'ehci', and 'xhci'.
+driver.  Supported attributes are: 'uhci', 'ohci', 'ehci', and 'xhci'.
 
 
 Configuration snippet to enable UHCI and EHCI
@@ -40,7 +40,7 @@ Configuration snippet:
 !<start name="usb_drv">
 !  <resource name="RAM" quantum="3M"/>
 !  <provides><service name="Input"/></provides>
-!  <config uhci="yes" ehci="yes" xhci="yes">
+!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <hid/>
 !  </config>
 !</start>
@@ -80,7 +80,7 @@ Configuration snippet:
 !  <resource name="RAM" quantum="2M"/>
 !  <provides> <service name="Block"/> </provides>
 !  <config><storage /></config>
-!</start uhci="yes">
+!</start>
 
 
 Network (Nic)
@@ -119,7 +119,7 @@ Configuration snippet:
 !<start name="usb_drv">
 !  <resource name="RAM" quantum="8M"/>
 !  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ehci="yes" xhci="yes">
+!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <raw>
 !        <report devices="yes"/>
 !    </raw>
@@ -150,7 +150,7 @@ access the device 'usb-1-6':
 !<start name="usb_drv">
 !  <resource name="RAM" quantum="8M"/>
 !  <provides><service name="Usb"/></provides>
-!  <config uhci="yes" ehci="yes" xhci="yes">
+!  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <raw>
 !        <report devices="yes"/>
 !        <policy label="comp1 -> usb-1-6" vendor_id="0x13fe" product_id="0x5200" bus="0x0001" dev="0x0006"/>

@@ -37,7 +37,9 @@
 #define cpu_to_le16s __cpu_to_le16s
 #define cpu_to_be16  __cpu_to_be16
 #define cpu_to_le32  __cpu_to_le32
+#define cpu_to_le32p __cpu_to_le32p
 #define cpu_to_be32  __cpu_to_be32
+#define cpu_to_be32p __cpu_to_be32p
 #define cpu_to_le32s __cpu_to_le32s
 #define cpu_to_le64  __cpu_to_le64
 #define le16_to_cpup __le16_to_cpup

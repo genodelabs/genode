@@ -66,7 +66,7 @@ append config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="Block"/> </provides>
-		<config uhci="yes" ehci="yes" xhci="yes"><storage /></config>
+		<config uhci="yes" ohci="yes" ehci="yes" xhci="yes"><storage /></config>
 	</start>
 		<start name="test-usb">
 		<resource name="RAM" quantum="2M" />

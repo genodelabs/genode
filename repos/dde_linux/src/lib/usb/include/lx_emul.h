@@ -1518,6 +1518,7 @@ enum {
 	GFP_NOWAIT   = 0x2000000u,
 };
 
+unsigned long get_zeroed_page(gfp_t gfp_mask);
 unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);
 #define __get_free_page(gfp_mask)  __get_free_pages((gfp_mask), 0)
 

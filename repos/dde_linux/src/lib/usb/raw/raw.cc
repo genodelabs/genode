@@ -786,11 +786,13 @@ class Usb::Root : public Genode::Root_component<Session_component>
 			bool const uhci = config.attribute_value<bool>("uhci", false);
 			bool const ehci = config.attribute_value<bool>("ehci", false);
 			bool const xhci = config.attribute_value<bool>("xhci", false);
+			bool const ohci = config.attribute_value<bool>("ohci", false);
 
 			Genode::Reporter::Xml_generator xml(_config_reporter, [&] {
 				if (uhci) xml.attribute("uhci", "yes");
 				if (ehci) xml.attribute("ehci", "yes");
 				if (xhci) xml.attribute("xhci", "yes");
+				if (ohci) xml.attribute("ohci", "yes");
 
 				xml.append(config.content_base(), config.content_size());
 			});

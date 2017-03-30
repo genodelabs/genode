@@ -35,6 +35,7 @@ struct Services
 
 	/* Controller types */
 	bool uhci = false; /* 1.0 */
+	bool ohci = false;
 	bool ehci = false; /* 2.0 */
 	bool xhci = false; /* 3.0 */
 
@@ -105,6 +106,11 @@ struct Services
 			log("Enabled UHCI (USB 1.0/1.1) support");
 		}
 
+		if (config_node.attribute_value("ohci", false)) {
+			ohci = true;
+			log("Enabled OHCI (USB 1.0/1.1) support");
+		}
+
 		if (config_node.attribute_value("ehci", false)) {
 			ehci = true;
 			log("Enabled EHCI (USB 2.0) support");
@@ -115,9 +121,9 @@ struct Services
 			log("Enabled XHCI (USB 3.0) support");
 		}
 
-		if (!(uhci | ehci | xhci))
+		if (!(uhci | ohci | ehci | xhci))
 			warning("Warning: No USB controllers enabled.\n"
-			        "Use <config (u/e/x)hci=\"yes\"> in your 'usb_drv' configuration");
+			        "Use <config (u/o/e/x)hci=\"yes\"> in your 'usb_drv' configuration");
 	}
 };
 
