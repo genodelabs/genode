@@ -68,6 +68,13 @@ linux-4.4.3/drivers/usb/host/ehci-q.c
 linux-4.4.3/drivers/usb/host/ehci-sched.c
 linux-4.4.3/drivers/usb/host/ehci-sysfs.c
 linux-4.4.3/drivers/usb/host/ehci-timer.c
+linux-4.4.3/drivers/usb/host/ohci-hcd.c
+linux-4.4.3/drivers/usb/host/ohci.h
+linux-4.4.3/drivers/usb/host/ohci-hub.c
+linux-4.4.3/drivers/usb/host/ohci-dbg.c
+linux-4.4.3/drivers/usb/host/ohci-mem.c
+linux-4.4.3/drivers/usb/host/ohci-q.c
+linux-4.4.3/drivers/usb/host/ohci-pci.c
 linux-4.4.3/drivers/usb/host/pci-quirks.h
 linux-4.4.3/drivers/usb/host/pci-quirks.c
 linux-4.4.3/drivers/usb/host/uhci-debug.c

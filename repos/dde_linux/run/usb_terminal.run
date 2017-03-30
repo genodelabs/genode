@@ -73,7 +73,7 @@ append config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Usb"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes">
+		<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 			<raw>
 				<policy label="usb_terminal -> usb_serial" vendor_id="0x67b" product_id="0x2303"/>
 			</raw>

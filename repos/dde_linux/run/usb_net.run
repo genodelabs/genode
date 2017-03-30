@@ -59,7 +59,7 @@ set config {
 		<provides>
 			<service name="Nic"/>
 		</provides>
-		<config uhci="no" ehci="yes" xhci="yes">
+		<config uhci="no" ohci="no" ehci="yes" xhci="yes">
 			<nic mac="02:00:00:00:01:01" />
 		</config>
 	</start>

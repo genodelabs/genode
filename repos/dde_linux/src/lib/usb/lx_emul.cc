@@ -256,6 +256,16 @@ void *memscan(void *addr, int c, size_t size)
 }
 
 
+/*****************
+ ** linux/gfp.h **
+ *****************/
+
+unsigned long get_zeroed_page(gfp_t gfp_mask)
+{
+	return (unsigned long)kzalloc(PAGE_SIZE, 0);
+}
+
+
 /******************
  ** linux/log2.h **
  ******************/
