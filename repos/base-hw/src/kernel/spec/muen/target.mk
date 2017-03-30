@@ -17,11 +17,15 @@ BUILD_OPTS      = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) NO_PROOF=true
 
 ifneq ($(filter muen, $(SPECS)),)
 $(TARGET): $(MUEN_DST_DIR)
-	$(MSG_BUILD)Muen kernel
-	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR) $(BUILD_OPTS) kernel >> $(MUEN_LOG) 2>&1
+	$(MSG_BUILD)Muen policy
+	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR) $(BUILD_OPTS) policy-merge rts >> $(MUEN_LOG) 2>&1
 	$(MSG_BUILD)Muen components
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/components \
 		COMPONENTS=$(MUEN_COMPONENTS) $(BUILD_OPTS) >> $(MUEN_LOG) 2>&1
+	$(MSG_BUILD)Muen kernel
+	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/policy $(BUILD_OPTS) compile >> $(MUEN_LOG) 2>&1
+	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/kernel $(BUILD_OPTS) >> $(MUEN_LOG) 2>&1
+	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/components $(BUILD_OPTS) install-tau0 >> $(MUEN_LOG) 2>&1
 
 $(MUEN_DST_DIR): download_contrib
 	$(VERBOSE)mkdir -p $(MUEN_DST_DIR)
