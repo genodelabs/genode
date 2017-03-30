@@ -127,7 +127,7 @@ append config_of_app {
 	</start>
 
 	<start name="nitpicker" priority="-1">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>

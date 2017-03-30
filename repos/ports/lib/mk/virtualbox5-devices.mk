@@ -70,6 +70,8 @@ SRC_CC += Devices/build/VBoxDD.cpp
 SRC_CC += GuestHost/HGSMI/HGSMICommon.cpp
 SRC_CC += GuestHost/HGSMI/HGSMIMemAlloc.cpp
 
+SRC_CC += devxhci.cc
+
 INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus
 
@@ -108,4 +110,4 @@ vboxssdt-cpuhotplug.hex: vbox-cpuhotplug.dsl
 	rm $@.tmp $@.pre $@.pre1
 
 vpath %.dsl $(VBOX_DIR)/Devices/PC
-vpath %.cc  $(REP_DIR)/src/virtualbox
+vpath devxhci.cc $(REP_DIR)/src/virtualbox5

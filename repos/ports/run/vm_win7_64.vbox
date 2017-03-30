@@ -53,7 +53,9 @@
         <PXEDebug enabled="false"/>
       </BIOS>
       <USB>
-        <Controllers/>
+        <Controllers>
+          <Controller name="OHCI" type="OHCI"/>
+        </Controllers>
         <DeviceFilters/>
       </USB>
       <Network>

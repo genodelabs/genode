@@ -892,6 +892,24 @@ index a717aff..3d52b9f 100644
  
  void Console::i_attachStatusDriver(PCFGMNODE pCtlInst, PPDMLED *papLeds,
                                     uint64_t uFirst, uint64_t uLast,
+@@ -1977,6 +1977,17 @@
+                 }
+             } /* for every USB controller. */
+ 
++            extern bool use_xhci_controller();
++            if (use_xhci_controller()) {
++                /*
++                 * NEC XHCI Device
++                 */
++                InsertConfigNode(pDevices, "nec-xhci", &pDev);
++                InsertConfigNode(pDev,     "0",        &pInst);
++                InsertConfigNode(pInst,    "Config",   &pCfg);
++                InsertConfigInteger(pInst, "Trusted",  1);
++                hrc = pBusMgr->assignPCIDevice("nec-xhci", pInst);                  H();
++            }
+ 
+             /*
+              * Virtual USB Devices.
 @@ -2625,6 +2629,7 @@
           * Parallel (LPT) Ports
           */
@@ -1049,3 +1067,14 @@ index a717aff..3d52b9f 100644
  
  
  /*********************************************************************************************************************************
+--- a/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
+@@ -71,6 +71,8 @@
+     {"usb-ehci",      0, 11,  0, 0},
+     {"usb-xhci",      0, 12,  0, 0},
+ 
++    {"nec-xhci",      0, 29,  0, 0},
++
+     /* ACPI controller */
+     {"acpi",          0,  7,  0, 0},
+ 

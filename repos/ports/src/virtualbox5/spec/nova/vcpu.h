@@ -628,7 +628,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 			if (!TRPMHasTrap(pVCpu)) {
 
 				bool res = VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_INTERRUPT_NMI);
-				Assert(!res);
+				if (res)
+					Vmm::log("NMI was set");
 
 				if (VMCPU_FF_IS_PENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC |
 				                               VMCPU_FF_INTERRUPT_PIC))) {
