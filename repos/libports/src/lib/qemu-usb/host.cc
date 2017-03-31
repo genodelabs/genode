@@ -538,12 +538,15 @@ struct Usb_devices : List<Usb_host_device>
 
 	void _garbage_collect()
 	{
-		for (Usb_host_device *d = first(); d; d = d->next()) {
-			if (d->deleted == false)
+		for (Usb_host_device *next = first(); next;) {
+			Usb_host_device *current = next;
+			next = current->next();
+
+			if (current->deleted == false)
 				continue;
 
-			remove(d);
-			Genode::destroy(_alloc, d);
+			remove(current);
+			Genode::destroy(_alloc, current);
 		}
 	}
 
