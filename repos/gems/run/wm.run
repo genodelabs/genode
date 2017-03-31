@@ -120,70 +120,14 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="report_rom">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Report"/>
-			<service name="ROM"/>
-		</provides>
-		<config>
-			<policy label="layouter -> window_list"       report="wm -> window_list"/>
-			<policy label="layouter -> focus_request"     report="wm -> focus_request"/>
-			<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
-			<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
-			<policy label="decorator -> pointer"          report="wm -> pointer"/>
-			<policy label="layouter -> hover"             report="decorator -> hover"/>
-			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
-			<policy label="wm -> focus"                   report="layouter -> focus"/>
-		</config>
-	</start>
-	<start name="wm" priority="-1">
-		<resource name="RAM" quantum="6M"/>
-		<provides>
-			<service name="Nitpicker"/>
-		</provides>
-		<config>
-			<policy label_prefix="decorator" role="decorator"/>
-			<policy label_prefix="layouter"  role="layouter"/>
-		</config>
+	<start name="wm">
+		<resource name="RAM" quantum="24M"/>
+		<binary name="init"/>
+		<provides> <service name="Nitpicker"/> </provides>
 		<route>
-			<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
-			<service name="ROM" label="focus">          <child name="report_rom"/> </service>
-			<service name="Report">                     <child name="report_rom"/> </service>
-			<any-service>
-				<child name="nitpicker"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-	<start name="layouter" priority="-1">
-		<binary name="floating_window_layouter"/>
-		<resource name="RAM" quantum="4M"/>
-		<route>
-			<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
-			<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
-			<service name="ROM" label="hover">             <child name="report_rom"/> </service>
-			<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
-			<service name="Report">                        <child name="report_rom"/> </service>
-			<any-service>
-				<child name="wm"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-	<start name="decorator" priority="-1">
-		<binary name="decorator"/>
-		<resource name="RAM" quantum="8M"/>
-		<config>
-			<controls> <maximizer/> <title/> </controls>
-		</config>
-		<route>
-			<service name="ROM" label="window_layout">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="pointer">
-				<child name="report_rom"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service>
-				<child name="wm"/> <parent/> <any-child/>
-			</any-service>
+			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 	<start name="launchpad" priority="-1">
@@ -249,6 +193,8 @@ install_config $config
 foreach file { genode_logo.png grid.png } {
 	file copy -force [genode_dir]/repos/gems/src/app/backdrop/$file bin/ }
 
+file copy -force [genode_dir]/repos/gems/src/server/wm/wm.config bin/
+
 
 #
 # Boot modules
@@ -258,7 +204,7 @@ foreach file { genode_logo.png grid.png } {
 set boot_modules {
 	core ld.lib.so init
 	timer
-	wm decorator
+	wm decorator wm.config
 	floating_window_layouter
 	nitpicker pointer report_rom
 	backdrop
