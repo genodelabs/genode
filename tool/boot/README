@@ -28,3 +28,12 @@ code respectively the download source of binaries are described below.
   of the modified Grub 0.97 were obtained from
   http://os.inf.tu-dresden.de/~adam/grub.
 
+:'unzip'
+
+  The 'unzip' tool is part of the 'morbo' toolchain available under GPL.
+  The toolchain was obtained from https://github.com/TUD-OS/morbo.
+  For Genode the unzip was modified so that raw binary images with a Multiboot
+  OS header can be loaded.
+  The changes are available on the genode_bender branch of
+  https://github.com/skalk/morbo.git.
+
