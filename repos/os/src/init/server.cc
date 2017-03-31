@@ -81,7 +81,7 @@ Init::Server::Service::resolve_session_request(Session_label const &label)
 
 		Routed_service *match = nullptr;
 		_child_services.for_each([&] (Routed_service &service) {
-			if (service.child_name() == child_name)
+			if (service.child_name() == child_name && service.name() == name())
 				match = &service; });
 
 		if (!match || match->abandoned())
