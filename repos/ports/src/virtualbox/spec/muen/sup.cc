@@ -219,10 +219,6 @@ inline bool set_cr(struct Subject_state *cur_state, unsigned cr, uint64_t value)
 			cur_state->Regs.Cr2 = value;
 			res = true;
 			break;
-		case 3:
-			cur_state->Cr3 = value;
-			res = true;
-			break;
 		case 4:
 			cur_state->Shadow_cr4 = value;
 			cur_state->Cr4  = value | 1 << 13;
@@ -433,7 +429,6 @@ int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 
 		set_cr(cur_state, 0, pCtx->cr0);
 		set_cr(cur_state, 2, pCtx->cr2);
-		set_cr(cur_state, 3, pCtx->cr3);
 		set_cr(cur_state, 4, pCtx->cr4);
 
 		GENODE_WRITE_SELREG(cs);
