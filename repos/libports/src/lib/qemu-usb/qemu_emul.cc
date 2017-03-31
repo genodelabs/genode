@@ -556,8 +556,8 @@ struct Controller : public Qemu::Controller
 			ptr = (void*)&Object_pool::p()->xhci_state()->ports[port];
 		}
 
-		uint64_t v        = mmio.ops->read(ptr, reg, size);
-		*((uint32_t*)buf) = v;
+		uint64_t v = mmio.ops->read(ptr, reg, size);
+		memcpy(buf, &v, Genode::min(sizeof(v), size));
 
 		if (verbose_mmio)
 			Genode::log(__func__, ": ", Hex(mmio.id), " offset: ", Hex(offset), " "
@@ -571,9 +571,10 @@ struct Controller : public Qemu::Controller
 		Genode::Lock::Guard g(_lock);
 		Mmio &mmio        = find_region(offset);
 		Genode::off_t reg = offset - mmio.offset;
-		uint64_t v        = *((uint64_t*)buf);
+		void *ptr         = Object_pool::p()->xhci_state();
+		uint64_t v        = 0ULL;
 
-		void *ptr = Object_pool::p()->xhci_state();
+		memcpy(&v, buf, Genode::min(sizeof(v), size));
 
 		/*
 		 * Handle port access
