@@ -55,3 +55,8 @@ CC_OPT += -D__ISO_C_VISIBLE=1999
 # or 'sincosf', which is a GNU extension, not provided by our libc.
 #
 CC_OPT += -fno-builtin-sin -fno-builtin-cos -fno-builtin-sinf -fno-builtin-cosf
+
+#
+# Enable Nim POSIX support when linking with this library
+#
+NIM_OPT += -d:posix

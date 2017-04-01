@@ -20,5 +20,7 @@ CC_MARCH ?= -m64
 #
 LD_MARCH ?= -melf_x86_64
 
+NIM_CPU ?= amd64
+
 include $(BASE_DIR)/mk/spec/64bit.mk
 include $(BASE_DIR)/mk/spec/x86.mk
