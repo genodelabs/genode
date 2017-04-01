@@ -51,6 +51,16 @@ GNATMAKE = $(CUSTOM_GNATMAKE)
 HOST_CC  = $(CUSTOM_HOST_CC)
 
 #
+# Nim toolchain
+#
+NIM ?= nim
+
+#
+# JSON parsing utility
+#
+JQ ?= jq
+
+#
 # Compiler and Linker options
 #
 
