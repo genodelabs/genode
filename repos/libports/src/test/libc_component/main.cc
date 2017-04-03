@@ -14,10 +14,12 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/rpc_server.h>
+#include <base/signal.h>
 #include <os/static_root.h>
 #include <libc/component.h>
 #include <libc/select.h>
 #include <log_session/log_session.h>
+#include <timer_session/connection.h>
 
 /* libc includes */
 #include <errno.h>
@@ -32,6 +34,7 @@
 namespace Log {
 	using Genode::Static_root;
 	using Genode::Log_session;
+	using Genode::Signal_handler;
 
 	struct Session_component;
 	struct Main;
@@ -74,11 +77,24 @@ static void use_file_system()
 
 struct Log::Session_component : Genode::Rpc_object<Log_session>
 {
+	Libc::Env         &_env;
+	Timer::Connection  _timer { _env };
+
+	Signal_handler<Log::Session_component> _timer_handler {
+		_env.ep(), *this, &Session_component::_handle_timer };
+
+	void _handle_timer()
+	{
+		if (_in_read)
+			Genode::error("timer fired during read?");
+	}
+
 	char   _buf[Log_session::MAX_STRING_LEN];
 	int    _fd = -1;
 	fd_set _readfds;
 	fd_set _writefds;
 	fd_set _exceptfds;
+	bool   _in_read = false;
 
 	void _select()
 	{
@@ -96,6 +112,24 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 
 	Libc::Select_handler<Session_component> _select_handler {
 		*this, &Session_component::_select_ready };
+
+	void _read()
+	{
+		_in_read = true;
+
+		/* never mind the potentially nested with_libc */
+		Libc::with_libc([&] () {
+			int const result = read(_fd, _buf, sizeof(_buf)-1);
+			if (result <= 0) {
+				Genode::warning("read returned ", result, " in select handler");
+				return;
+			}
+			_buf[result] = 0;
+			Genode::log("read from file \"", Genode::Cstring(_buf), "\"");
+		});
+
+		_in_read = false;
+	}
 
 	void _select_ready(int nready, fd_set const &readfds, fd_set const &writefds, fd_set const &exceptfds)
 	{
@@ -116,17 +150,11 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 
 				return;
 			}
-			int const result = read(_fd, _buf, sizeof(_buf)-1);
-			if (result <= 0) {
-				Genode::warning("read returned ", result, " in select handler");
-				return;
-			}
-			_buf[result] = 0;
-			Genode::log("read from file \"", Genode::Cstring(_buf), "\"");
+			_read();
 		});
 	}
 
-	Session_component()
+	Session_component(Libc::Env &env) : _env(env)
 	{
 		Libc::with_libc([&] () {
 			_fd = open("/dev/terminal", O_RDWR);
@@ -137,6 +165,12 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 			FD_ZERO(&_exceptfds);
 			FD_SET(_fd, &_readfds);
 		});
+
+		_timer.sigh(_timer_handler);
+		_timer.trigger_periodic(500*1000);
+
+		/* initially call read two times to ensure blocking */
+		_read(); _read();
 	}
 
 	Genode::size_t write(String const &string_buf)
@@ -160,7 +194,7 @@ struct Log::Session_component : Genode::Rpc_object<Log_session>
 struct Log::Main
 {
 	Libc::Env               &_env;
-	Session_component        _session { };
+	Session_component        _session { _env };
 	Static_root<Log_session> _root    { _env.ep().manage(_session) };
 
 	Main(Libc::Env &env) : _env(env)
