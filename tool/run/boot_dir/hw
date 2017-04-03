@@ -117,8 +117,8 @@ proc run_boot_dir {binaries} {
 			puts $fh " exec /boot/unzip"
 			puts $fh " load /image.bin.gz"
 		} else {
-			puts $fh "kernel boot/bender"
-			puts $fh "module image.elf"
+			puts $fh " exec /boot/bender"
+			puts $fh " load /image.elf"
 		}
 		close $fh
 
