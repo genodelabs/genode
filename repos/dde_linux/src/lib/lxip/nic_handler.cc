@@ -35,10 +35,10 @@ class Nic_client
 		Nic::Packet_allocator _tx_block_alloc;
 		Nic::Connection       _nic;
 
-		Genode::Signal_handler<Nic_client> _sink_ack;
-		Genode::Signal_handler<Nic_client> _sink_submit;
-		Genode::Signal_handler<Nic_client> _source_ack;
-		Genode::Signal_handler<Nic_client> _link_state_change;
+		Genode::Io_signal_handler<Nic_client> _sink_ack;
+		Genode::Io_signal_handler<Nic_client> _sink_submit;
+		Genode::Io_signal_handler<Nic_client> _source_ack;
+		Genode::Io_signal_handler<Nic_client> _link_state_change;
 
 		void (*_tick)();
 

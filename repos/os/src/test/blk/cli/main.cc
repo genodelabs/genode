@@ -68,9 +68,9 @@ class Test
 		Genode::Entrypoint          &_ep;
 		Genode::Allocator_avl        _alloc;
 		Block::Connection            _session;
-		Genode::Signal_handler<Test> _disp_ack;
-		Genode::Signal_handler<Test> _disp_submit;
-		Genode::Signal_handler<Test> _disp_timeout;
+		Genode::Io_signal_handler<Test> _disp_ack;
+		Genode::Io_signal_handler<Test> _disp_submit;
+		Genode::Io_signal_handler<Test> _disp_timeout;
 		Timer::Connection            _timer;
 		bool                         _handle;
 
@@ -110,7 +110,7 @@ class Test
 		void _handle_signal()
 		{
 			_handle = true;
-			while (_handle) _ep.wait_and_dispatch_one_signal();
+			while (_handle) _ep.wait_and_dispatch_one_io_signal();
 		}
 };
 

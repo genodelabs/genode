@@ -305,7 +305,7 @@ void *memmove(void *d, const void *s, size_t n)
  ** linux/sched.h **
  *******************/
 
-struct Timeout : Genode::Signal_handler<Timeout>
+struct Timeout : Genode::Io_signal_handler<Timeout>
 {
 	Genode::Entrypoint &ep;
 	Timer::Connection timer;
@@ -321,7 +321,7 @@ struct Timeout : Genode::Signal_handler<Timeout>
 
 	Timeout(Genode::Env &env, Genode::Entrypoint &ep, void (*ticker)())
 	:
-		Signal_handler<Timeout>(ep, *this, &Timeout::handle),
+		Io_signal_handler<Timeout>(ep, *this, &Timeout::handle),
 		ep(ep), timer(env), tick(ticker)
 	{
 		timer.sigh(*this);
@@ -334,7 +334,7 @@ struct Timeout : Genode::Signal_handler<Timeout>
 
 	void wait()
 	{
-		ep.wait_and_dispatch_one_signal();
+		ep.wait_and_dispatch_one_io_signal();
 	}
 };
 

@@ -533,8 +533,8 @@ class Usb::Session_component : public Session_rpc_object,
 		long                               _dev = 0;
 		Device                            *_device = nullptr;
 		Signal_context_capability          _sigh_state_change;
-		Signal_handler<Session_component>  _packet_avail;
-		Signal_handler<Session_component>  _ready_ack;
+		Io_signal_handler<Session_component> _packet_avail;
+		Io_signal_handler<Session_component> _ready_ack;
 		Worker                             _worker;
 		Ram_dataspace_capability           _tx_ds;
 

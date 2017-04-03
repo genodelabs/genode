@@ -167,9 +167,8 @@ class Vfs::Fs_file_system : public File_system
 			/* pass packet to server side */
 			source.submit_packet(packet_in);
 
-			while (handle.queued_read_state != Handle_state::Queued_state::ACK)
-			{
-				_env.ep().wait_and_dispatch_one_signal();
+			while (handle.queued_read_state != Handle_state::Queued_state::ACK) {
+				_env.ep().wait_and_dispatch_one_io_signal();
 			}
 
 			/* obtain result packet descriptor with updated status info */
@@ -219,9 +218,8 @@ class Vfs::Fs_file_system : public File_system
 			/* pass packet to server side */
 			source.submit_packet(packet_in);
 
-			while (handle.queued_write_state != Handle_state::Queued_state::ACK)
-			{
-				_env.ep().wait_and_dispatch_one_signal();
+			while (handle.queued_write_state != Handle_state::Queued_state::ACK) {
+				_env.ep().wait_and_dispatch_one_io_signal();
 			}
 
 			/* obtain result packet descriptor with updated status info */
@@ -274,7 +272,7 @@ class Vfs::Fs_file_system : public File_system
 			}
 		}
 
-		Genode::Signal_handler<Fs_file_system> _ack_handler {
+		Genode::Io_signal_handler<Fs_file_system> _ack_handler {
 			_env.ep(), *this, &Fs_file_system::_handle_ack };
 
 	public:

@@ -123,9 +123,9 @@ class Driver : public Block::Driver
 		Genode::size_t                    _blk_sz;    /* block size         */
 		Block::sector_t                   _blk_cnt;   /* block count        */
 		Chunk_level_0                     _cache;     /* chunk hierarchy    */
-		Genode::Signal_handler<Driver>    _source_ack;
-		Genode::Signal_handler<Driver>    _source_submit;
-		Genode::Signal_handler<Driver>    _yield;
+		Genode::Io_signal_handler<Driver> _source_ack;
+		Genode::Io_signal_handler<Driver> _source_submit;
+		Genode::Io_signal_handler<Driver> _yield;
 
 		Driver(Driver const&);            /* singleton pattern */
 		Driver& operator=(Driver const&); /* singleton pattern */
@@ -279,7 +279,7 @@ class Driver : public Block::Driver
 					 */
 					off = e.off;
 					len = _blk_sz * _blk_cnt - off;
-					_env.ep().wait_and_dispatch_one_signal();
+					_env.ep().wait_and_dispatch_one_io_signal();
 				}
 			}
 		}

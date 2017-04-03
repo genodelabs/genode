@@ -494,8 +494,8 @@ class Rump_factory : public Vfs::File_system_factory
 {
 	private:
 
-		Timer::Connection                    _timer;
-		Genode::Signal_handler<Rump_factory> _sync_handler;
+		Timer::Connection                       _timer;
+		Genode::Io_signal_handler<Rump_factory> _sync_handler;
 
 		void _sync() { _rump_sync(); }
 
