@@ -441,12 +441,12 @@ class File_system::Root : public Root_component<Session_component>
 			 * the client's label.
 			 */
 
-			Directory *session_root_dir = 0;
-			bool writeable = false;
-
 			enum { ROOT_MAX_LEN = 256 };
-			char root[ROOT_MAX_LEN];
-			root[0] = 0;
+			Genode::Path<MAX_PATH_LEN> session_root;
+			char tmp[MAX_PATH_LEN];
+
+			Directory *session_root_dir = nullptr;
+			bool writeable = false;
 
 			Session_label const label = label_from_args(args);
 			try {
@@ -454,48 +454,56 @@ class File_system::Root : public Root_component<Session_component>
 
 				/*
 				 * Determine directory that is used as root directory of
-				 * the session.
+				 * the session. Clients without a specified root are denied.
 				 */
 				try {
-					policy.attribute("root").value(root, sizeof(root));
-					if (strcmp("/", root) == 0) {
-						session_root_dir = &_root_dir;
-					} else {
-
-						/*
-						 * Make sure the root path is specified with a
-						 * leading path delimiter. For performing the
-						 * lookup, we skip the first character.
-						 */
-						if (root[0] != '/')
-							throw Lookup_failed();
-
-						session_root_dir = _root_dir.lookup_and_lock_dir(root + 1);
-						session_root_dir->unlock();
-					}
+					policy.attribute("root").value(tmp, sizeof(tmp));
+					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) {
 					Genode::error("missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
-				} catch (Lookup_failed) {
-					Genode::error("session root directory \"",
-					              Genode::Cstring(root), "\" does not exist");
 					throw Root::Unavailable();
 				}
 
 				/*
-				 * Determine if write access is permitted for the session.
+				 * Determine if the session is writeable.
+				 * Policy overrides client argument, both default to false.
 				 */
-				writeable = policy.attribute_value("writeable", false);
+				if (policy.attribute_value("writeable", false))
+					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
 
 			} catch (Session_policy::No_policy_defined) {
 				Genode::error("invalid session request, no matching policy");
 				throw Root::Unavailable();
 			}
 
+			/* apply client's root offset */
+			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+				session_root.append("/");
+				session_root.append(tmp);
+			}
+			session_root.remove_trailing('/');
+			if (session_root == "/") {
+				session_root_dir = &_root_dir;
+			} else {
+				try {
+					/*
+					 * The root path is specified with a leading path
+					 * delimiter. For performing the lookup, we skip the first
+					 * character.
+					 */
+					session_root_dir = _root_dir.lookup_and_lock_dir(
+						session_root.base() + 1);
+					session_root_dir->unlock();
+				} catch (Lookup_failed) {
+					throw Root::Unavailable();
+				}
+			}
+
 			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+				Arg_string::find_arg(args, "ram_quota"  ).aligned_size();
 			size_t tx_buf_size =
-				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");

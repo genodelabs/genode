@@ -410,28 +410,24 @@ class File_system::Root : public Root_component<Session_component>
 			try {
 				Session_policy policy(label);
 
-				/* Determine the session root directory.
-				 * Defaults to '/' if not specified by session
-				 * policy or session arguments.
-				 */
+				/* determine policy root offset */
 				try {
 					policy.attribute("root").value(tmp, sizeof(tmp));
 					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) { }
 
-				/* Determine if the session is writeable.
-				 * Policy overrides arguments, both default to false.
+				/*
+				 * Determine if the session is writeable.
+				 * Policy overrides client argument, both default to false.
 				 */
 				if (policy.attribute_value("writeable", false))
 					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
+			} catch (Session_policy::No_policy_defined) {
+				/* missing policy - deny request */
+				throw Root::Unavailable();
+			}
 
-			} catch (...) { }
-
-			/*
-			 * If no policy matches the client gets
-			 * read-only access to the root.
-			 */
-
+			/* apply client's root offset */
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
 			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
 				session_root.append("/");
