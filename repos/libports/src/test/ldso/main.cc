@@ -157,10 +157,11 @@ void test_dynamic_cast_call(Object_base *o)
 	b->func();
 }
 
-static void test_dynamic_cast()
+static void test_dynamic_cast(Genode::Allocator &heap)
 {
-	Object *o = new (Genode::env()->heap()) Object;
+	Object *o = new (heap) Object;
 	test_dynamic_cast_call(o);
+	destroy(heap, o);
 }
 
 
@@ -222,7 +223,7 @@ void Libc::Component::construct(Libc::Env &env)
 	printf("Catch exceptions in program\n");
 	printf("---------------------------\n");
 	printf("exception in remote procedure call:\n");
-	try { Rom_connection rom("unknown_file"); }
+	try { Rom_connection rom(env, "unknown_file"); }
 	catch (Rom_connection::Rom_connection_failed) { printf("caught\n"); }
 
 	printf("exception in program: ");
@@ -250,7 +251,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 	printf("Dynamic cast\n");
 	printf("------------\n");
-	test_dynamic_cast();
+	test_dynamic_cast(heap);
 	printf("\n");
 
 	printf("Shared-object API\n");

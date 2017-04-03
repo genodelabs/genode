@@ -1,3 +1,3 @@
 TARGET = test-moon
-LIBS   = luacxx posix
+LIBS   = luacxx libc
 SRC_CC = main.cc

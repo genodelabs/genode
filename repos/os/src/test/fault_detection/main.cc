@@ -211,7 +211,8 @@ struct Faulting_loader_grand_child_test
 
 		/* import config into loader session */
 		{
-			Attached_dataspace ds(loader->alloc_rom_module("config", config_size()));
+			Attached_dataspace ds(env.rm(),
+			                      loader->alloc_rom_module("config", config_size()));
 			memcpy(ds.local_addr<char>(), config(), config_size());
 			loader->commit_rom_module("config");
 		}
