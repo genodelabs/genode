@@ -684,34 +684,31 @@ class Vfs_server::Root :
 			char tmp[MAX_PATH_LEN];
 			try {
 				Session_policy policy(label, _config_rom.xml());
+				/* Clients without a policy match are denied. */
 
-				/* Determine the session root directory.
-				 * Defaults to '/' if not specified by session
-				 * policy or session arguments.
-				 */
+				/* Determine the optional session root offset. */
 				try {
 					policy.attribute("root").value(tmp, sizeof(tmp));
 					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) { }
 
-				/* Determine if the session is writeable.
-				 * Policy overrides arguments, both default to false.
+				/*
+				 * Determine if the session is writeable.
+				 * Policy overrides client argument, both default to false.
 				 */
 				if (policy.attribute_value("writeable", false))
 					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
 
-			} catch (Session_policy::No_policy_defined) { }
+			} catch (Session_policy::No_policy_defined) {
+				throw Root::Service_denied();
+			}
 
+			/* Apply the client root offset. */
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
 			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
 				session_root.append("/");
 				session_root.append(tmp);
 			}
-
-			/*
-			 * If no policy matches the client gets
-			 * read-only access to the root.
-			 */
 
 			/* check if the session root exists */
 			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {

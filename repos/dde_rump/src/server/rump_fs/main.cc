@@ -373,15 +373,8 @@ class File_system::Root : public Root_component<Session_component>
 		{
 			using namespace Genode;
 
-			/*
-			 * Determine client-specific policy defined implicitly by
-			 * the client's label.
-			 */
-
 			Genode::Path<MAX_PATH_LEN> session_root;
 			bool writeable = false;
-
-			Session_label const label = label_from_args(args);
 
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota").aligned_size();
@@ -406,32 +399,34 @@ class File_system::Root : public Root_component<Session_component>
 			}
 			ram_quota -= session_size;
 
+			/*
+			 * Determine client-specific policy defined implicitly by
+			 * the client's label.
+			 */
+			Session_label const label = label_from_args(args);
+
 			char tmp[MAX_PATH_LEN];
 			try {
 				Session_policy policy(label);
+				/* Clients without a policy match are denied. */
 
-				/* Determine the session root directory.
-				 * Defaults to '/' if not specified by session
-				 * policy or session arguments.
-				 */
+				/* Determine the policy root offset. */
 				try {
 					policy.attribute("root").value(tmp, sizeof(tmp));
 					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) { }
 
-				/* Determine if the session is writeable.
-				 * Policy overrides arguments, both default to false.
+				/*
+				 * Determine if the session is writeable.
+				 * Policy overrides client argument, both default to false.
 				 */
 				if (policy.attribute_value("writeable", false))
 					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
+			} catch (Session_policy::No_policy_defined) {
+				throw Root::Service_denied();
+			}
 
-			} catch (...) { }
-
-			/*
-			 * If no policy matches the client gets
-			 * read-only access to the root.
-			 */
-
+			/* Apply the client root offset. */
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
 			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
 				session_root.append("/");
