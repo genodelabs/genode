@@ -16,7 +16,6 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/log.h>
-#include <dataspace/client.h>
 #include <framebuffer_session/connection.h>
 #include <base/attached_dataspace.h>
 #include <util/reconstructible.h>
@@ -38,8 +37,10 @@ class Test_environment
 
 		enum State { STRIPES, ALL_BLUE, ALL_GREEN, ALL_RED, COLORED };
 
-		Framebuffer::Connection                  _fb;
+		Genode::Env &_env;
+
 		Framebuffer::Mode                        _mode;
+		Framebuffer::Connection                  _fb { _env, _mode };
 		Ds                                       _fb_ds;
 		Genode::Signal_handler<Test_environment> _mode_sigh;
 		Genode::Signal_handler<Test_environment> _sync_sigh;
@@ -61,9 +62,11 @@ class Test_environment
 
 	public:
 
-		Test_environment(Genode::Entrypoint &ep)
-		: _mode_sigh(ep, *this, &Test_environment::_mode_handle),
-		  _sync_sigh(ep, *this, &Test_environment::_sync_handle)
+		Test_environment(Genode::Env &env)
+		:
+			_env(env),
+			_mode_sigh(_env.ep(), *this, &Test_environment::_mode_handle),
+			_sync_sigh(_env.ep(), *this, &Test_environment::_sync_handle)
 		{
 			_fb.mode_sigh(_mode_sigh);
 			_fb.sync_sigh(_sync_sigh);
@@ -137,7 +140,7 @@ void Test_environment::_mode_handle()
 	if (_fb_ds.is_constructed())
 		_fb_ds.destruct();
 
-	_fb_ds.construct(_fb.dataspace());
+	_fb_ds.construct(_env.rm(), _fb.dataspace());
 
 	Genode::log("framebuffer is ", _mode);
 
@@ -152,8 +155,6 @@ void Test_environment::_mode_handle()
 
 void Component::construct(Genode::Env &env)
 {
-	using namespace Genode;
-
-	Genode::log("--- Test framebuffer ---\n");
-	static Test_environment te(env.ep());
+	Genode::log("--- Test framebuffer ---");
+	static Test_environment te(env);
 }

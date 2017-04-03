@@ -7,9 +7,13 @@
 #ifndef _NCURSES_CXX_H_
 #define _NCURSES_CXX_H_
 
+namespace Genode { class Allocator; }
+
 class Ncurses
 {
 	private:
+
+		Genode::Allocator &_alloc;
 
 		unsigned _columns;
 		unsigned _lines;
@@ -52,7 +56,7 @@ class Ncurses
 
 		void do_update();
 
-		Ncurses();
+		Ncurses(Genode::Allocator &);
 
 		void cursor_visible(bool);
 

@@ -13,12 +13,12 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <libc/component.h>
-#include <base/heap.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/session_label.h>
+#include <libc/component.h>
+#include <libc/allocator.h>
 #include <util/arg_string.h>
 #include <root/component.h>
-#include <base/attached_ram_dataspace.h>
 #include <timer_session/connection.h>
 
 /* terminal includes */
@@ -349,7 +349,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 		 * RAM costs significantly, which would break all connections to this
 		 * server.
 		 */
-		Genode::Heap _heap { _env.ram(), _env.rm() };
+		Genode::Allocator &_heap;
 
 	protected:
 
@@ -371,14 +371,15 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 		 * Constructor
 		 */
 		Root_component(Genode::Env       &env,
-		               Genode::Allocator &md_alloc,
+		               Genode::Allocator &heap,
 		               Ncurses           &ncurses,
 		               Session_manager   &session_manager)
 		:
-			Genode::Root_component<Session_component>(env.ep(), md_alloc),
+			Genode::Root_component<Session_component>(env.ep(), heap),
 			_env(env),
 			_ncurses(ncurses),
-			_session_manager(session_manager)
+			_session_manager(session_manager),
+			_heap(heap)
 		{ }
 };
 
@@ -664,17 +665,17 @@ struct Main
 {
 	Genode::Env &env;
 
-	Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
+	Libc::Allocator heap;
 
 	Registry      registry;
-	Ncurses       ncurses;
+	Ncurses       ncurses       { heap };
 	Status_window status_window { ncurses };
 	Menu          menu          { ncurses, registry, status_window };
 
 	User_input      user_input      { ncurses };
 	Session_manager session_manager { ncurses, registry, status_window, menu };
 
-	Terminal::Root_component root { env, sliced_heap, ncurses, session_manager };
+	Terminal::Root_component root { env, heap, ncurses, session_manager };
 
 	Timer::Connection timer { env };
 
