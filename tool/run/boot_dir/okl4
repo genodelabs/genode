@@ -2,6 +2,8 @@ proc binary_name_ld_lib_so { } { return "ld-okl4.lib.so" }
 proc binary_name_core_o    { } { return "core-okl4.o"    }
 proc binary_name_timer     { } { return "pit_timer_drv"  }
 
+proc kernel_files { } { return okl4 }
+
 
 ##
 # Get the base-okl4 repository
@@ -25,15 +27,6 @@ proc okl4_dir { } {
 	}
 
 	return $_okl4_dir
-}
-
-
-##
-# Return whether okl4 kernel is provided from the outside
-#
-proc okl4_external { } {
-	if {"[okl4_dir]" == "[base_okl4_dir]/contrib/okl4"} { return 0 }
-	return 1
 }
 
 
@@ -113,24 +106,18 @@ proc run_boot_dir {binaries} {
 	global weaver_xml_template
 
 	#
-	# Build kernel if needed
+	# Build kernel and dynamic linker if needed
 	#
-	# Once the kernel is exists, it gets never revisited automatically.
-	# Consequently, when changing the kernel sources, the kernel build must be
-	# issued explicitly via 'make kernel'. This way, the rare case of changing
-	# the kernel does not stand in the way of the everyday's work flow of
-	# executing run scripts as quick as possible.
-	#
-	if {![okl4_external] && ![file exists bin/okl4]} {
-		build { lib/ld/okl4 kernel/okl4 }
-	} else {
-		build { lib/ld/okl4 }
-	}
+	set kernel_arg ""
+	set ld_arg     ""
+	if {![file exists [run_dir]/genode/okl4]}      { set kernel_arg kernel/okl4 }
+	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     lib/ld/okl4 }
+	set targets "$kernel_arg $ld_arg"
+	if {[llength $targets]} { build $targets }
+	if {$kernel_arg != ""} { file copy -force bin/okl4 [run_dir]/genode/okl4 }
 
 	build_core_image $binaries
 	exec mv [run_dir]/image.elf [run_dir].image
-
-	exec cp bin/okl4 [run_dir]/kernel
 
 	#
 	# Generate ELF weaver config
@@ -139,7 +126,7 @@ proc run_boot_dir {binaries} {
 	puts $fh {<?xml version="1.0"?>}
 	puts $fh {<!DOCTYPE image SYSTEM "weaver-1.1.dtd">}
 	puts $fh {<image>}
-	regsub okl4_kernel $weaver_xml_template "[run_dir]/kernel" weaver_xml_template
+	regsub okl4_kernel $weaver_xml_template "[run_dir]/genode/okl4" weaver_xml_template
 	regsub core $weaver_xml_template "[run_dir].image" weaver_xml_template
 	puts $fh $weaver_xml_template
 	puts $fh {</image>}

@@ -2,31 +2,7 @@ proc binary_name_ld_lib_so { } { return "ld-nova.lib.so" }
 proc binary_name_core_o    { } { return "core-nova.o" }
 proc binary_name_timer     { } { return "nova_timer_drv" }
 
-
-##
-# Read the location of the NOVA kernel directory from 'etc/nova.conf'
-#
-proc nova_kernel { } {
-	global _nova_kernel
-
-	if {![info exists _nova_kernel]} {
-		if {[file exists etc/nova.conf]} {
-			set _nova_kernel [exec sed -n "/^NOVA_KERNEL/s/^.*=\\s*//p" etc/nova.conf]
-		} else {
-		        set _nova_kernel "[pwd]/kernel/nova/hypervisor"
-		}
-	}
-	return $_nova_kernel
-}
-
-
-##
-# Return whether nova is provided from the outside
-#
-proc nova_external { } {
-	if {[nova_kernel] == "[pwd]/kernel/nova/hypervisor"} { return 0 }
-	return 1
-}
+proc kernel_files { } { return hypervisor }
 
 
 proc run_boot_string { } {
@@ -35,6 +11,7 @@ proc run_boot_string { } {
 
 
 proc core_link_address { } { return "0x100000" }
+
 
 proc core_ld_opts { } {
 	set ret { -Wl,-T }
@@ -48,20 +25,35 @@ proc core_ld_opts { } {
 #
 proc run_boot_dir {binaries} {
 
-	if {![nova_external]} {
-		build { lib/ld/nova kernel }
-	} else {
-		build { lib/ld/nova }
-	}
+	#
+	# Build kernel-specific targets if needed
+	#
+	# If the run scripts imports the base-nova binary archive, [run_dir] is
+	# already populated, so we can skip the build.
+	#
+	set kernel_arg ""
+	set core_arg   ""
+	set ld_arg     ""
+	if {![file exists [run_dir]/genode/hypervisor]}  { set kernel_arg kernel }
+	if {![file exists [run_dir]/genode/core-nova.o]} { set core_arg   core/nova }
+	if {![file exists [run_dir]/genode/ld.lib.so]}   { set ld_arg     lib/ld/nova }
+
+	set targets "$kernel_arg $core_arg $ld_arg"
+	if {[llength $targets]} { build $targets }
+
+	if {$kernel_arg != ""} { file copy -force bin/hypervisor     [run_dir]/genode/hypervisor }
+	if {$core_arg   != ""} { file copy -force bin/core-nova.o    [run_dir]/genode/core.o }
+	if {$ld_arg     != ""} { file copy -force bin/ld-nova.lib.so [run_dir]/genode/ld.lib.so }
 
 	#
 	# Collect contents of the ISO image
 	#
 	build_core_image $binaries
 
-	puts "using NOVA kernel at [nova_kernel]"
-	exec [cross_dev_prefix]objcopy -O elf32-i386 [nova_kernel] [run_dir]/hypervisor
+	exec [cross_dev_prefix]objcopy -O elf32-i386 [run_dir]/genode/hypervisor [run_dir]/hypervisor
 	exec [cross_dev_prefix]strip [run_dir]/hypervisor
+
+	exec rm -rf [run_dir]/genode
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 		#

@@ -466,16 +466,10 @@ proc kernel_specific_binary { binary } {
 }
 
 
-##
-# Copy the specified binaries from the 'bin/' directory to the run
-# directory and try to strip executables.
-#
-proc copy_and_strip_genode_binaries_to_run_dir { binaries } {
+proc copy_genode_binaries_to_run_dir { binaries } {
 
 	foreach binary $binaries {
-		exec cp bin/[kernel_specific_binary $binary] [run_dir]/genode/$binary
-		catch {
-			exec [cross_dev_prefix]strip [run_dir]/genode/$binary || true }
+		file copy -force bin/[kernel_specific_binary $binary] [run_dir]/genode/$binary
 	}
 }
 
@@ -520,13 +514,16 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 
 ##
 # Dummy boot_string procedure
+#
 proc run_boot_string { } { return ""; }
+
 
 ##
 # Fall-back boot_dir module
 #
 # If this function is called someone forgot to include an appropriate boot_dir
 # module. So, we exit with an error.
+#
 proc run_boot_dir { binaries } {
 	puts stderr "Error: boot_dir module missing, e.g., '--include boot_dir/hw'"
 	exit 1
@@ -765,32 +762,47 @@ proc build_core {lib modules target link_address} {
 
 
 ##
+# Return kernel-specific files to be excluded from the core image
+#
+proc kernel_files { } { return { } }
+
+
+##
 # Generate bootable core image containing all boot-modules
 #
-proc build_core_image {binaries} {
+proc build_core_image { modules } {
 
-	# boot module list without core
-	set idx [lsearch $binaries "core"]
-	set modules [lreplace $binaries $idx $idx]
+	set core_obj [kernel_specific_binary core.o]
 
-	# strip binaries
-	copy_and_strip_genode_binaries_to_run_dir $modules
-	lappend modules "config"
+	# replace 'core' with actual core-object name in 'modules' list
+	if {[lsearch $modules "core"] != -1} {
+		set idx [lsearch $modules "core"]
+		set modules [lreplace $modules $idx $idx]
+		lappend modules $core_obj
+	}
 
-	set core_obj bin/[kernel_specific_binary core.o]
+	copy_genode_binaries_to_run_dir $modules
 
 	# create core binary without modules for debugging
-	build_core $core_obj {} [run_dir].core [core_link_address]
+	build_core [run_dir]/genode/$core_obj {} [run_dir].core [core_link_address]
+
+	# determine modules to be incorporated into the core image
+	set modules [glob -nocomplain -tails -directory [run_dir]/genode/ *]
+	set excluded_modules [kernel_files]
+	lappend excluded_modules $core_obj
+	foreach excluded $excluded_modules {
+		set modules [lsearch -inline -not -all $modules $excluded] }
+
+	# check syntax of all boot modules named *.config
+	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
+		check_xml_syntax $file }
 
 	# create core binary containing the boot modules
-	build_core $core_obj $modules [run_dir]/image.elf [core_link_address]
+	build_core [run_dir]/genode/$core_obj $modules [run_dir]/image.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
 	# Save config part of the image.elf for easy inspection
-	exec cp -f  [run_dir]/genode/config [run_dir].config
-
-	# remove individual binaries, which are now contained in 'image.elf'
-	exec rm -rf [run_dir]/genode
+	exec cp -f [run_dir]/genode/config [run_dir].config
 }
 
 source [genode_dir]/tool/run/depot.inc

@@ -57,13 +57,34 @@ proc l4_bin_dir { } {
 
 proc run_boot_dir_x86 {binaries} {
 
-	build { lib/ld/foc kernel/foc }
+	#
+	# Build kernel and dynamic linker on demand, if not yet present in
+	# '[run_dir]/genode/'
+	#
+	set kernel_arg ""
+	set ld_arg     ""
+	if {![file exists [run_dir]/genode/foc]}       { set kernel_arg "kernel/foc" }
+	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld/foc" }
+	set targets "$kernel_arg $ld_arg"
+
+	if {[llength $targets]} { build $targets }
+
+	if {$kernel_arg != ""} {
+		file copy -force [pwd]/bin/foc           [run_dir]/genode/foc
+		file copy -force [pwd]/bin/sigma0-foc    [run_dir]/genode/sigma0-foc
+		file copy -force [pwd]/bin/bootstrap-foc [run_dir]/genode/bootstrap-foc
+	}
 
 	build_core_image $binaries
 
-	file copy -force [pwd]/bin/foc           [run_dir]/kernel
-	file copy -force [pwd]/bin/sigma0-foc    [run_dir]/sigma0
-	file copy -force [pwd]/bin/bootstrap-foc [run_dir]/bootstrap
+	#
+	# Move kernel files to distinct location within the boot directory so that
+	# we can remove [run_dir]/genode after the core image has been built.
+	#
+	file copy -force [run_dir]/genode/foc           [run_dir]/kernel
+	file copy -force [run_dir]/genode/sigma0-foc    [run_dir]/sigma0
+	file copy -force [run_dir]/genode/bootstrap-foc [run_dir]/bootstrap
+	exec rm -r [run_dir]/genode
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
