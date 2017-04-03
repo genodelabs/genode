@@ -434,77 +434,106 @@ struct Many_contexts_test : Signal_test
 };
 
 /**
- * Test 'wait_and_dispatch_one_signal' implementation for entrypoints
+ * Test 'wait_and_dispatch_one_io_signal' implementation for entrypoints
  *
  * Normally Genode signals are delivered by a signal thread, which blocks for
  * incoming signals and is woken up when a signals arrives, the thread then
  * sends an RPC to an entrypoint that, in turn, processes the signal.
- * 'wait_and_dispatch_one_signal' allows an entrypoint to receive signals
- * directly, by taking advantage of the same code as the signal thread. This
- * leaves the problem that at this point two entities (the signal thread and the
- * entrypoint) may wait for signals to arrive. It is not decidable which entity
- * is woken up on signal arrival. If the signal thread is woken up and tries to
- * deliver the signal RPC, system may dead lock when no additional signal
- * arrives to pull the entrypoint out of the signal waiting code. This test
- * triggers this exact situation. We also test nesting with the same signal
- * context of 'wait_and_dispatch_one_signal' here, which also caused dead locks
- * in the past.
+ * 'wait_and_dispatch_one_io_signal' allows an entrypoint to receive I/O-level
+ * signals directly, by taking advantage of the same code as the signal thread.
+ * This leaves the problem that at this point two entities (the signal thread
+ * and the entrypoint) may wait for signals to arrive. It is not decidable
+ * which entity is woken up on signal arrival. If the signal thread is woken up
+ * and tries to deliver the signal RPC, system may dead lock when no additional
+ * signal arrives to pull the entrypoint out of the signal waiting code. This
+ * test triggers this exact situation. We also test nesting with the same
+ * signal context of 'wait_and_dispatch_one_io_signal' here, which also caused
+ * dead locks in the past. Also, the test verifies application-level signals
+ * are deferred during 'wait_and_dispatch_one_io_signal'.
  */
 struct Nested_test : Signal_test
 {
 	static constexpr char const *brief = "wait and dispatch signals at entrypoint";
 
-	struct Wait_interface
+	struct Test_interface
 	{
-		GENODE_RPC(Rpc_dispatch_test, void, dispatch_test);
-		GENODE_RPC_INTERFACE(Rpc_dispatch_test);
+		GENODE_RPC(Rpc_test_io_dispatch,  void, test_io_dispatch);
+		GENODE_RPC(Rpc_test_app_dispatch, void, test_app_dispatch);
+		GENODE_RPC_INTERFACE(Rpc_test_io_dispatch, Rpc_test_app_dispatch);
 	};
 
-	struct Wait_component :
-		Rpc_object<Wait_interface, Wait_component>
+	struct Test_component : Rpc_object<Test_interface, Test_component>
 	{
-		Entrypoint &ep;
+		Nested_test &test;
 
-		Wait_component(Entrypoint &ep) : ep(ep) { }
+		Test_component(Nested_test &test) : test(test) { }
 
-		void dispatch_test()
+		void test_io_dispatch()
 		{
-			log("1/5: [ep] wait for signal during RPC from [outside]");
-			ep.wait_and_dispatch_one_signal();
-			log("5/5: [ep] success");
+			log("1/8: [ep] wait for I/O-level signal during RPC from [outside]");
+			while (!test.io_done) test.ep.wait_and_dispatch_one_io_signal();
+			log("6/8: [ep] I/O completed");
+		}
+
+		void test_app_dispatch()
+		{
+			if (!test.app_done)
+				error("8/8: [ep] application-level signal was not dispatched");
+			else
+				log("8/8: [ep] success");
 		}
 	};
 
 	struct Sender_thread : Thread
 	{
-		Signal_context_capability cap;
-		Timer::Connection         timer;
+		Nested_test       &test;
+		Timer::Connection  timer;
 
-		Sender_thread(Env &env, Signal_context_capability cap)
-		: Thread(env, "sender_thread", 1024 * sizeof(long)), cap(cap), timer(env)
+		Sender_thread(Env &env, Nested_test &test)
+		:
+			Thread(env, "sender_thread", 1024 * sizeof(long)),
+			test(test), timer(env)
 		{ }
 
-		void entry() {
-			timer.msleep(500);
-			log("2/5: [outside] submit initial signal");
-			Signal_transmitter(cap).submit();
+		void entry()
+		{
+			timer.msleep(1000);
+
+			log("2/8: [outside] submit application-level signal (should be deferred)");
+			Signal_transmitter(test.nop_handler).submit();
+			Signal_transmitter(test.app_handler).submit();
+			Signal_transmitter(test.nop_handler).submit();
+
+			log("3/8: [outside] submit I/O-level signal");
+			Signal_transmitter(test.io_handler).submit();
+			Signal_transmitter(test.nop_handler).submit();
 		}
 	};
 
-	Env                                    &env;
-	Entrypoint                              ep { env, 2048 * sizeof(long),
-		"wait_dispatch_ep" };
-	Signal_handler<Nested_test>  dispatcher { ep, *this,
-		&Nested_test::handle };
-	Wait_component                          wait  { ep };
-	Capability<Wait_interface>              wait_cap = ep.manage(wait);
-	Sender_thread                           thread { env, dispatcher };
-	bool                                    nested { false };
+	Env &env;
+	Entrypoint ep { env, 2048 * sizeof(long), "wait_dispatch_ep" };
+
+	Signal_handler<Nested_test>   app_handler { ep, *this, &Nested_test::handle_app };
+	Signal_handler<Nested_test>   nop_handler { ep, *this, &Nested_test::handle_nop };
+	Io_signal_handler<Nested_test> io_handler { ep, *this, &Nested_test::handle_io };
+
+	Test_component             wait     { *this };
+	Capability<Test_interface> wait_cap { ep.manage(wait) };
+	Sender_thread              thread   { env, *this };
+	bool                       nested   { false };
+	bool volatile              app_done { false };
+	bool volatile              io_done  { false };
+
+	Timer::Connection timer { env };
 
 	Nested_test(Env &env, int id) : Signal_test(id, brief), env(env)
 	{
 		thread.start();
-		wait_cap.call<Wait_interface::Rpc_dispatch_test>();
+		wait_cap.call<Test_interface::Rpc_test_io_dispatch>();
+
+		/* grant the ep some time for application-signal handling */
+		timer.msleep(1000);
+		wait_cap.call<Test_interface::Rpc_test_app_dispatch>();
 	}
 
 	~Nested_test()
@@ -512,22 +541,35 @@ struct Nested_test : Signal_test
 		ep.dissolve(wait);
 	}
 
-	void handle()
+	void handle_app()
+	{
+		if (!io_done)
+			error("7/8: [ep] application-level signal was not deferred");
+		else
+			log("7/8: [ep] application-level signal received");
+
+		app_done = true;
+	}
+
+	void handle_nop() { }
+
+	void handle_io()
 	{
 		if (nested) {
-			log("4/5: [ep] nested signal received");
+			log("5/8: [ep] nested I/O-level signal received");
+			io_done = true;
 			return;
 		}
 
-		log("3/5: [ep] signal received - sending nested signal");
+		log("4/8: [ep] I/O-level signal received - sending nested signal");
 		nested = true;
-		Signal_transmitter(dispatcher).submit();
-		ep.wait_and_dispatch_one_signal();
+		Signal_transmitter(io_handler).submit();
+		ep.wait_and_dispatch_one_io_signal();
 	}
 };
 
 /**
- * Stress-test 'wait_and_dispatch_one_signal' implementation for entrypoints
+ * Stress-test 'wait_and_dispatch_one_io_signal' implementation for entrypoints
  *
  * Let multiple entrypoints directly wait and dispatch signals in a
  * highly nested manner and with multiple stressful senders.
@@ -559,11 +601,12 @@ struct Nested_stress_test : Signal_test
 
 	struct Receiver
 	{
-		Entrypoint               ep;
-		char const              *name;
-		Signal_handler<Receiver> handler  { ep, *this, &Receiver::handle };
-		unsigned                 count    { 0 };
-		bool                     destruct { false };
+		Entrypoint  ep;
+		char const *name;
+		unsigned    count    { 0 };
+		bool        destruct { false };
+
+		Io_signal_handler<Receiver> handler { ep, *this, &Receiver::handle };
 
 		Receiver(Env &env, char const *name)
 		: ep(env, 3 * 1024 * sizeof(long), name), name(name) { }
@@ -574,8 +617,7 @@ struct Nested_stress_test : Signal_test
 			 * We have to get out of the nesting if the host wants to destroy
 			 * us to avoid a deadlock at the lock in the signal handler.
 			 */
-			if (destruct) {
-				return; }
+			if (destruct) { return; }
 
 			/* raise call counter */
 			count++;
@@ -585,7 +627,7 @@ struct Nested_stress_test : Signal_test
 			 * gives zero, then unwind the whole nesting and start afresh.
 			 */
 			if ((count & ((1 << UNWIND_COUNT_MOD_LOG2) - 1)) != 0) {
-				ep.wait_and_dispatch_one_signal(); }
+				ep.wait_and_dispatch_one_io_signal(); }
 		}
 	};
 
@@ -599,8 +641,8 @@ struct Nested_stress_test : Signal_test
 	Sender              sender_3   { env, "sender-3", receiver_3.handler };
 	Signal_transmitter  done;
 
-	Signal_handler<Nested_stress_test> poll
-		{ env.ep(), *this, &Nested_stress_test::handle_poll };
+	Io_signal_handler<Nested_stress_test> poll {
+		env.ep(), *this, &Nested_stress_test::handle_poll };
 
 	Nested_stress_test(Env &env, int id, Signal_context_capability done)
 	: Signal_test(id, brief), env(env), done(done)

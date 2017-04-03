@@ -55,28 +55,24 @@ struct Explicitly_nested : Test
 
 
 /*
- * Implicitly_nested test
+ * App_signal_deferred test
  *
- * Call with_libc from within a signal handler while being
- * suspended in a select() call.
+ * Application-level signals do not interrupt blocking libc calls but are
+ * deferred until the component returns to the entrypoint event loop.
  */
-struct Implicitly_nested : Test
+struct App_signal_deferred : Test
 {
 	Env &_env;
 
 	void _handle()
 	{
-		log("calling with_libc from signal handler");
-		Libc::with_libc([&] () {
-
-			printf("Hello from with_libc in signal handler\n");
-		});
+		error("application-level signal was dispatched during select()");
 	}
 
-	Signal_handler<Implicitly_nested> _dispatcher {
-		_env.ep(), *this, &Implicitly_nested::_handle };
+	Signal_handler<App_signal_deferred> _dispatcher {
+		_env.ep(), *this, &App_signal_deferred::_handle };
 
-	Implicitly_nested(Env &env, int id)
+	App_signal_deferred(Env &env, int id)
 	: Test(env, id), _env(env)
 	{
 		log("calling with_libc");
@@ -124,7 +120,7 @@ struct Explicitly_triple_nested : Test
 struct Main
 {
 	Constructible<Explicitly_nested>        test_1;
-	Constructible<Implicitly_nested>        test_2;
+	Constructible<App_signal_deferred>      test_2;
 	Constructible<Explicitly_triple_nested> test_3;
 
 	Main(Env &env)

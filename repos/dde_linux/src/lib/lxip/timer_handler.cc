@@ -86,7 +86,7 @@ class Lx::Timer
 
 		::Timer::Connection                          _timer_conn;
 		Lx_kit::List<Context>                        _list;
-		Genode::Signal_handler<Lx::Timer>            _handler;
+		Genode::Io_signal_handler<Lx::Timer>         _handler;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
 
 		void (*_tick)();

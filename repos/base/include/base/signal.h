@@ -39,7 +39,9 @@ namespace Genode {
 	class Signal_dispatcher_base;
 
 	template <typename>           class Signal_dispatcher;
+	template <typename>           class Io_signal_dispatcher;
 	template <typename, typename> class Signal_handler;
+	template <typename, typename> class Io_signal_handler;
 
 	typedef Capability<Signal_context> Signal_context_capability;
 }
@@ -305,9 +307,18 @@ class Genode::Signal_receiver : Noncopyable
  * to multple contexts. If a signal arrives, the context is provided with the
  * signal. This enables the receiver to distinguish different signal sources
  * and dispatch incoming signals context-specific.
+ *
+ * Signal contexts are classified to represent one of two levels: application
+ * and I/O. The signal level determines how a signal is handled by
+ * 'wait_and_dispatch_one_io_signal', which defers signals corresponding to
+ * application-level contexts and dispatches only I/O-level signals.
  */
 class Genode::Signal_context
 {
+	public:
+
+		enum class Level { App, Io };
+
 	private:
 
 		/**
@@ -319,6 +330,11 @@ class Genode::Signal_context
 		 * List element in process-global registry
 		 */
 		List_element<Signal_context> _registry_le;
+
+		/**
+		 * List element in deferred application signal list
+		 */
+		List_element<Signal_context> _deferred_le;
 
 		/**
 		 * Receiver to which the context is associated with
@@ -347,13 +363,17 @@ class Genode::Signal_context
 		friend class Signal_receiver;
 		friend class Signal_context_registry;
 
+	protected:
+
+		Level _level = Level::App;
+
 	public:
 
 		/**
 		 * Constructor
 		 */
 		Signal_context()
-		: _receiver_le(this), _registry_le(this),
+		: _receiver_le(this), _registry_le(this), _deferred_le(this),
 		  _receiver(0), _pending(0), _ref_cnt(0) { }
 
 		/**
@@ -364,6 +384,10 @@ class Genode::Signal_context
 		 * casted.
 		 */
 		virtual ~Signal_context();
+
+		Level level() const { return _level; }
+
+		List_element<Signal_context> *deferred_le() { return &_deferred_le; }
 
 		/**
 		 * Local signal submission (DEPRECATED)
@@ -442,6 +466,19 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 
 
 /**
+ * Signal dispatcher for I/O-level signals
+ */
+template <typename T>
+struct Genode::Io_signal_dispatcher : Signal_dispatcher<T>
+{
+	Io_signal_dispatcher(Signal_receiver &sig_rec,
+	                     T &obj, void (T::*member)(unsigned))
+	: Signal_dispatcher<T>(sig_rec, obj, member)
+	{ Signal_context::_level = Signal_context::Level::Io; }
+};
+
+
+/**
  * Signal dispatcher for handling signals by an object method
  *
  * This utility associates an object method with signals. It is intended to
@@ -477,6 +514,18 @@ struct Genode::Signal_handler : Genode::Signal_dispatcher_base,
 	 * Interface of Signal_dispatcher_base
 	 */
 	void dispatch(unsigned num) override { (obj.*member)(); }
+};
+
+
+/**
+ * Signal handler for I/O-level signals
+ */
+template <typename T, typename EP = Genode::Entrypoint>
+struct Genode::Io_signal_handler : Signal_handler<T, EP>
+{
+	Io_signal_handler(EP &ep, T &obj, void (T::*member)())
+	: Signal_handler<T, EP>(ep, obj, member)
+	{ Signal_context::_level = Signal_context::Level::Io; }
 };
 
 #endif /* _INCLUDE__BASE__SIGNAL_H_ */

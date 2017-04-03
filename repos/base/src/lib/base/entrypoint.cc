@@ -46,6 +46,19 @@ namespace Genode {
 static char const *initial_ep_name() { return "ep"; }
 
 
+void Entrypoint::Signal_proxy_component::signal()
+{
+	/* XXX introduce while-pending loop */
+	try {
+		Signal sig = ep._sig_rec->pending_signal();
+		ep._dispatch_signal(sig);
+	} catch (Signal_receiver::Signal_not_pending) { }
+
+	ep._execute_post_signal_hook();
+	ep._process_deferred_signals();
+}
+
+
 void Entrypoint::_dispatch_signal(Signal &sig)
 {
 	Signal_dispatcher_base *dispatcher = 0;
@@ -55,6 +68,35 @@ void Entrypoint::_dispatch_signal(Signal &sig)
 		return;
 
 	dispatcher->dispatch(sig.num());
+}
+
+
+void Entrypoint::_defer_signal(Signal &sig)
+{
+	Signal_context *context = sig.context();
+
+	Lock::Guard guard(_deferred_signals_mutex);
+	_deferred_signals.remove(context->deferred_le());
+	_deferred_signals.insert(context->deferred_le());
+}
+
+
+void Entrypoint::_process_deferred_signals()
+{
+	for (;;) {
+		Signal_context *context = nullptr;
+		{
+			Lock::Guard guard(_deferred_signals_mutex);
+			if (!_deferred_signals.first()) return;
+
+			context = _deferred_signals.first()->object();
+			_deferred_signals.remove(_deferred_signals.first());
+		}
+
+		Signal_dispatcher_base *dispatcher =
+			dynamic_cast<Signal_dispatcher_base *>(context);
+		if (dispatcher) dispatcher->dispatch(1);
+	}
 }
 
 
@@ -71,7 +113,7 @@ void Entrypoint::_process_incoming_signals()
 				success = cmpxchg(&_signal_recipient, NONE, SIGNAL_PROXY);
 			}
 
-			/* common case, entrypoint is not in 'wait_and_dispatch_one_signal' */
+			/* common case, entrypoint is not in 'wait_and_dispatch_one_io_signal' */
 			if (success) {
 				/*
 				 * It might happen that we try to forward a signal to the
@@ -86,7 +128,7 @@ void Entrypoint::_process_incoming_signals()
 				cmpxchg(&_signal_recipient, SIGNAL_PROXY, NONE);
 			} else {
 				/*
-				 * Entrypoint is in 'wait_and_dispatch_one_signal', wakup it up and
+				 * Entrypoint is in 'wait_and_dispatch_one_io_signal', wakup it up and
 				 * block for next signal
 				 */
 				_sig_rec->unblock_signal_waiter(*_rpc_ep);
@@ -98,6 +140,7 @@ void Entrypoint::_process_incoming_signals()
 			}
 		} while (!_suspended);
 
+		_deferred_signal_handler.destruct();
 		_suspend_dispatcher.destruct();
 		_sig_rec.destruct();
 		dissolve(_signal_proxy);
@@ -129,7 +172,7 @@ void Entrypoint::_process_incoming_signals()
 }
 
 
-void Entrypoint::wait_and_dispatch_one_signal()
+void Entrypoint::wait_and_dispatch_one_io_signal()
 {
 	for (;;) {
 
@@ -144,6 +187,12 @@ void Entrypoint::wait_and_dispatch_one_signal()
 
 			_signal_pending_ack_lock.unlock();
 
+			/* defer application-level signals */
+			if (sig.context()->level() == Signal_context::Level::App) {
+				_defer_signal(sig);
+				continue;
+			}
+
 			_dispatch_signal(sig);
 			break;
 
@@ -154,6 +203,15 @@ void Entrypoint::wait_and_dispatch_one_signal()
 	}
 
 	_execute_post_signal_hook();
+
+	/* initiate potential deferred-signal handling in entrypoint */
+	if (_deferred_signals.first()) {
+		/* construct the handler on demand (otherwise we break core) */
+		if (!_deferred_signal_handler.constructed())
+			_deferred_signal_handler.construct(*this, *this,
+			                                   &Entrypoint::_handle_deferred_signals);
+		Signal_transmitter(*_deferred_signal_handler).submit();
+	}
 }
 
 
@@ -186,6 +244,12 @@ void Genode::Entrypoint::dissolve(Signal_dispatcher_base &dispatcher)
 	/* _sig_rec is invalid for a small window in _process_incoming_signals */
 	if (_sig_rec.constructed())
 		_sig_rec->dissolve(&dispatcher);
+
+	/* also remove context from deferred signal list */
+	{
+		Lock::Guard guard(_deferred_signals_mutex);
+		_deferred_signals.remove(dispatcher.deferred_le());
+	}
 }
 
 

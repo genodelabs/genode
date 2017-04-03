@@ -26,11 +26,11 @@ class Usb::Packet_handler
 		Usb::Connection                  &_connection;
 		Genode::Entrypoint               &_ep;
 
-		Signal_handler<Packet_handler> _rpc_ack_avail =
-			{_ep, *this, &Packet_handler::_packet_handler };
+		Io_signal_handler<Packet_handler> _rpc_ack_avail {
+			_ep, *this, &Packet_handler::_packet_handler };
 
-		Signal_handler<Packet_handler> _rpc_ready_submit =
-			{ _ep, *this, &Packet_handler::_ready_handler };
+		Io_signal_handler<Packet_handler> _rpc_ready_submit {
+			_ep, *this, &Packet_handler::_ready_handler };
 
 		bool _ready_submit = true;
 
@@ -76,7 +76,7 @@ class Usb::Packet_handler
 
 		void wait_for_packet()
 		{
-			packet_avail() ? _packet_handler() : _ep.wait_and_dispatch_one_signal();
+			packet_avail() ? _packet_handler() : _ep.wait_and_dispatch_one_io_signal();
 		}
 
 		Packet_descriptor alloc(size_t size)
@@ -108,7 +108,7 @@ class Usb::Packet_handler
 
 				/* wait for ready_to_submit signal */
 				while (!_ready_submit)
-					_ep.wait_and_dispatch_one_signal();
+					_ep.wait_and_dispatch_one_io_signal();
 			}
 
 			_connection.source()->submit_packet(p);

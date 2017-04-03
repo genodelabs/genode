@@ -74,7 +74,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 		Handle_registry _handle_registry;
 
-		Genode::Signal_handler<Terminal_file_system> _read_avail_handler {
+		Genode::Io_signal_handler<Terminal_file_system> _read_avail_handler {
 			_env.ep(), *this, &Terminal_file_system::_handle_read_avail };
 
 		void _handle_read_avail()

@@ -51,16 +51,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 			Entrypoint &ep;
 			Signal_proxy_component(Entrypoint &ep) : ep(ep) { }
 
-			void signal()
-			{
-				/* XXX introduce while-pending loop */
-				try {
-					Signal sig = ep._sig_rec->pending_signal();
-					ep._dispatch_signal(sig);
-				} catch (Signal_receiver::Signal_not_pending) { }
-
-				ep._execute_post_signal_hook();
-			}
+			void signal();
 		};
 
 		struct Signal_proxy_thread : Thread
@@ -84,6 +75,12 @@ class Genode::Entrypoint : Genode::Noncopyable
 		Capability<Signal_proxy> _signal_proxy_cap = _rpc_ep->manage(&_signal_proxy);
 
 		Reconstructible<Signal_receiver> _sig_rec;
+
+		Lock                               _deferred_signals_mutex;
+		List<List_element<Signal_context>> _deferred_signals;
+
+		void _handle_deferred_signals() { }
+		Constructible<Signal_handler<Entrypoint>> _deferred_signal_handler;
 
 		bool _suspended                = false;
 		void (*_suspended_callback) () = nullptr;
@@ -116,7 +113,8 @@ class Genode::Entrypoint : Genode::Noncopyable
 		Constructible<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher;
 
 		void _dispatch_signal(Signal &sig);
-
+		void _defer_signal(Signal &sig);
+		void _process_deferred_signals();
 		void _process_incoming_signals();
 
 		Constructible<Signal_proxy_thread> _signal_proxy_thread;
@@ -168,15 +166,19 @@ class Genode::Entrypoint : Genode::Noncopyable
 		void dissolve(Signal_dispatcher_base &);
 
 		/**
-		 * Block and dispatch a single signal, return afterwards
+		 * Block and dispatch a single I/O-level signal, return afterwards
 		 *
 		 * \noapi
+		 *
+		 * Only I/O signals are dispatched by this function. If an
+		 * application-level signal occurs the dispatching of the signal is
+		 * deferred until the entrypoint would block for the next time.
 		 *
 		 * XXX Turn into static function that ensures that the used signal
 		 *     receiver belongs to the calling entrypoint. Alternatively,
 		 *     remove it.
 		 */
-		void wait_and_dispatch_one_signal();
+		void wait_and_dispatch_one_io_signal();
 
 		/**
 		 * Return RPC entrypoint

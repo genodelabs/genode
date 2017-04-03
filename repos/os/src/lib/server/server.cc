@@ -34,5 +34,5 @@ void Component::construct(Genode::Env &env)
 void Server::wait_and_dispatch_one_signal()
 {
 	if (_env)
-		_env->ep().wait_and_dispatch_one_signal();
+		_env->ep().wait_and_dispatch_one_io_signal();
 }

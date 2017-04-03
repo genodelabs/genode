@@ -86,7 +86,7 @@ Signal::Signal(Signal::Data data) : _data(data)
 		 * Normally, the context can only have one 'Signal' in flight, which is
 		 * destroyed before 'pending_signal' is called the next time. However,
 		 * one exception is a signal handler that unexpectedly calls
-		 * 'pending_signal' itself (i.e., via 'wait_and_dispatch_one_signal').
+		 * 'pending_signal' itself (i.e., via 'wait_and_dispatch_one_io_signal').
 		 * As this is dangerous programming pattern (that should be fixed), we
 		 * print a warning.
 		 *
@@ -221,7 +221,7 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 	env_deprecated()->pd_session()->free_context(context->_cap);
 
 	/* restore default initialization of signal context */
-	context->_receiver = 0;
+	context->_receiver = nullptr;
 	context->_cap      = Signal_context_capability();
 
 	/* remove context from context list */
