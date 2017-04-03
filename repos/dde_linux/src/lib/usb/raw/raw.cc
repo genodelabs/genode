@@ -91,6 +91,12 @@ struct Device : List<Device>::Element
 
 	usb_interface *interface(unsigned index)
 	{
+		if (!udev || !udev->actconfig)
+			return nullptr;
+
+		if (index >= udev->actconfig->desc.bNumInterfaces)
+			return nullptr;
+
 		usb_interface *iface = udev->actconfig->interface[index];
 		return iface;
 	}
@@ -580,7 +586,7 @@ class Usb::Session_component : public Session_rpc_object,
 		~Session_component()
 		{
 			/* release claimed interfaces */
-			if (_device) {
+			if (_device && _device->udev && _device->udev->actconfig) {
 				unsigned const num = _device->udev->actconfig->desc.bNumInterfaces;
 				for (unsigned i = 0; i < num; i++)
 					release_interface(i);
@@ -643,7 +649,11 @@ class Usb::Session_component : public Session_rpc_object,
 			if (!_device)
 				throw Device_not_found();
 
-			return _device->interface(index)->num_altsetting;
+			usb_interface *iface = _device->interface(index);
+			if (!iface)
+				throw Interface_not_found();
+
+			return iface->num_altsetting;
 		}
 
 		void interface_descriptor(unsigned index, unsigned alt_setting,
@@ -652,10 +662,10 @@ class Usb::Session_component : public Session_rpc_object,
 			if (!_device)
 				throw Device_not_found();
 
-			if (index >= _device->udev->actconfig->desc.bNumInterfaces)
+			usb_interface *iface = _device->interface(index);
+			if (!iface)
 				throw Interface_not_found();
 
-			usb_interface *iface = _device->interface(index);
 			Genode::memcpy(interface_descr, &iface->altsetting[alt_setting].desc,
 			               sizeof(usb_interface_descriptor));
 
@@ -668,13 +678,13 @@ class Usb::Session_component : public Session_rpc_object,
 		                         unsigned              endpoint_num,
 		                         Endpoint_descriptor  *endpoint_descr) override
 		{
-			if (!_device)
+			if (!_device || !_device->udev)
 				throw Device_not_found();
 
-			if (interface_num >= _device->udev->actconfig->desc.bNumInterfaces)
+			usb_interface *iface = usb_ifnum_to_if(_device->udev, interface_num);
+			if (!iface)
 				throw Interface_not_found();
 
-			usb_interface *iface = usb_ifnum_to_if(_device->udev, interface_num);
 			Genode::memcpy(endpoint_descr, &_device->endpoint(iface, alt_setting,
 			               endpoint_num)->desc, sizeof(usb_endpoint_descriptor));
 		}
