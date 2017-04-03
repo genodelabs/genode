@@ -12,11 +12,30 @@ proc core_link_address { } { return "0x02000000" }
 #
 proc run_boot_dir {binaries} {
 
-	# build sel4 kernel
-	build { lib/ld/sel4 kernel/sel4 }
-	exec cp bin/sel4 [run_dir]/sel4
+	#
+	# Build kernel and dynamic linker on demand, if not yet present in
+	# '[run_dir]/genode/'
+	#
+	set kernel_arg ""
+	set ld_arg     ""
+	if {![file exists [run_dir]/genode/sel4]}      { set kernel_arg "kernel/sel4" }
+	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld/sel4" }
+	set targets "$kernel_arg $ld_arg"
+
+	if {[llength $targets]} { build $targets }
+
+	if {$kernel_arg != ""} {
+		file copy -force [pwd]/bin/sel4 [run_dir]/genode/sel4
+	}
 
 	build_core_image $binaries
+
+	#
+	# Move kernel files to distinct location within the boot directory so that
+	# we can remove [run_dir]/genode after the core image has been built.
+	#
+	file copy -force [run_dir]/genode/sel4 [run_dir]/sel4
+	exec rm -r [run_dir]/genode
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 		#

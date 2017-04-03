@@ -41,30 +41,58 @@ proc run_boot_dir {binaries} {
 		close $fh
 	}
 
-	build { lib/ld/hw bootstrap }
+	#
+	# Build bootstrap, the core object, and the dynamic linker on demand
+	#
+	# If those parts were imported from the depot, the build step is skipped.
+	#
+	set bootstrap_arg ""
+	set core_arg      ""
+	set ld_arg        ""
 
-	# boot module list without core
+	if {![file exists [run_dir]/genode/ld.lib.so]}      { set ld_arg        lib/ld/hw    }
+	if {![file exists [run_dir]/genode/core-hw.o]}      { set core_arg      core/hw      }
+	if {![file exists [run_dir]/genode/bootstrap-hw.o]} { set bootstrap_arg bootstrap/hw }
+
+	set build_args "$bootstrap_arg $core_arg $ld_arg"
+	if {[llength $build_args]} { build $build_args }
+
+	if {$ld_arg        != ""} { file copy -force bin/ld-hw.lib.so   [run_dir]/genode/ld.lib.so }
+	if {$core_arg      != ""} { file copy -force bin/core-hw.o      [run_dir]/genode/core-hw.o }
+	if {$bootstrap_arg != ""} { file copy -force bin/bootstrap-hw.o [run_dir]/genode/bootstrap-hw.o }
+
+	#
+	# Copy specified modules to the run directory, excluding core.
+	#
 	set idx [lsearch $binaries "core"]
 	set modules [lreplace $binaries $idx $idx]
-
-	# strip binaries
-	copy_and_strip_genode_binaries_to_run_dir $modules
-	lappend modules "config"
+	copy_genode_binaries_to_run_dir $modules
 
 	puts "core link address is [core_link_address]"
 
-	set core_obj core/hw/core-hw.o
-	set bootstrap_obj bootstrap/hw/bootstrap.o
+	set core_obj      core-hw.o
+	set bootstrap_obj bootstrap-hw.o
 
 	# create core and bootstrap binary without modules for debugging
-	build_core $core_obj      {} [run_dir].core      [core_link_address]
-	build_core $bootstrap_obj {} [run_dir].bootstrap [bootstrap_link_address]
+	build_core [run_dir]/genode/$core_obj      {} [run_dir].core      [core_link_address]
+	build_core [run_dir]/genode/$bootstrap_obj {} [run_dir].bootstrap [bootstrap_link_address]
+
+	# determine modules to be incorporated into the core image
+	set modules [glob -tails -directory [run_dir]/genode/ *]
+	set excluded_modules {}
+	lappend excluded_modules $core_obj $bootstrap_obj
+	foreach excluded $excluded_modules {
+		set modules [lsearch -inline -not -all $modules $excluded] }
+
+	# check syntax of all boot modules named *.config
+	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
+		check_xml_syntax $file }
 
 	# create core binary containing the boot modules
-	build_core $core_obj $modules [run_dir]/genode/core.elf [core_link_address]
+	build_core [run_dir]/genode/$core_obj $modules [run_dir]/genode/core.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/genode/core.elf
-	build_core $bootstrap_obj { core.elf } [run_dir]/image.elf [bootstrap_link_address]
-	exec rm -f [run_dir]/genode/core.elf
+	build_core [run_dir]/genode/$bootstrap_obj { core.elf } [run_dir]/image.elf [bootstrap_link_address]
+	exec rm -fr [run_dir]/genode
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
