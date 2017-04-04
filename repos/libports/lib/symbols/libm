@@ -18,6 +18,7 @@ __exp__D T
 __fe_dfl_env R
 __fedisableexcept T
 __feenableexcept T
+__has_sse D 4
 __ieee754_rem_pio2 T
 __ieee754_rem_pio2_s_cos T
 __ieee754_rem_pio2_s_sin T
@@ -47,6 +48,7 @@ __log__D T
 __signbit T
 __signbitf T
 __signbitl T
+__test_sse T
 _scan_nan T
 acos T
 acosf T
