@@ -211,9 +211,7 @@ class Genode::Session_policy : public Xml_node
 		 * Constructor
 		 *
 		 * \param label   label used as the selector of a policy
-		 * \param config  XML node that contains the policies as sub nodes,
-		 *                using the component's top-level config node by
-		 *                default
+		 * \param config  XML node that contains the policies as sub nodes
 		 *
 		 * \throw No_policy_defined  the server configuration has no
 		 *                           policy defined for the specified label
@@ -227,11 +225,24 @@ class Genode::Session_policy : public Xml_node
 		 * with the longest label is selected.
 		 */
 		template <size_t N>
-		explicit Session_policy(String<N> const &label,
-		                        Xml_node config = Genode::config()->xml_node())
+		Session_policy(String<N> const &label, Xml_node config)
 		:
 			Xml_node(_query_policy(label, config))
 		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * \param label   label used as the selector of a policy
+		 *
+		 * \deprecated  use constructor with explicit 'config' argument
+		 */
+		template <size_t N> explicit Session_policy(String<N> const &label) __attribute__((deprecated));
 };
+
+template <Genode::size_t N> Genode::Session_policy::Session_policy(String<N> const &label)
+:
+	Xml_node(_query_policy(label, Genode::config()->xml_node()))
+{ }
 
 #endif /* _INCLUDE__OS__SESSION_POLICY_H_ */
