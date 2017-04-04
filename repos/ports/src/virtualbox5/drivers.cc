@@ -20,17 +20,15 @@ extern "C" int VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_t u32Version
 	PDMDRVREG const *drvs[] = {
 		&g_DrvKeyboardQueue,
 		&g_DrvMouseQueue,
-//		&g_DrvBlock,
-//		&g_DrvMediaISO,
 		&g_DrvACPI,
 		&g_DrvChar,
-//		&g_DrvRawImage,
 		&g_DrvRawFile,
 		&g_DrvHostSerial,
 		&g_DrvVD,
 		&g_DrvHostInterface,
 		&g_DrvVUSBRootHub,
 		&g_DrvAUDIO,
+		&g_DrvHostOSSAudio,
 		&g_DrvHostNullAudio,
 		0
 	};
