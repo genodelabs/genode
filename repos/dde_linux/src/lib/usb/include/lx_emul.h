@@ -181,6 +181,8 @@ typedef struct { __u8 b[16]; } uuid_le;
 
 #include <lx_emul/byteorder.h>
 
+#define __aligned(N) __attribute__((aligned(N)))
+
 struct __una_u16 { u16 x; } __attribute__((packed));
 struct __una_u32 { u32 x; } __attribute__((packed));
 struct __una_u64 { u64 x; } __attribute__((packed));
