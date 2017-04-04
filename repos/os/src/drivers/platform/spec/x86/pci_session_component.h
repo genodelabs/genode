@@ -205,7 +205,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Genode::Region_map             &_local_rm;
 		Genode::Heap                    _md_alloc;
 		Genode::Session_label    const  _label;
-		Genode::Session_policy   const  _policy { _label };
+		Genode::Session_policy   const  _policy { _label, _config.xml() };
 		Genode::List<Device_component>  _device_list;
 		Platform::Pci_buses            &_pci_bus;
 		Genode::Heap                   &_global_heap;
