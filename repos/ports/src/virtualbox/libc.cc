@@ -19,7 +19,6 @@
 /* libc includes */
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/time.h>
 #include <sys/mount.h>    /* statfs */
 #include <sys/statvfs.h>
 #include <unistd.h>
@@ -162,6 +161,9 @@ extern "C" char *getenv(const char *name)
 //		               "+shared_folders.e.l.f"
 //		               "+drv_host_serial.e.l.f"
 //		               "+dev_audio.e.l.f"
+//		               "+dev_hda.e"
+//		               "+drv_host_audio.e.l.f"
+//		               "+drv_audio.e.l.f"
 		               ;
 
 	if (Genode::strcmp(name, "VBOX_LOG_FLAGS") == 0 ||
@@ -183,17 +185,6 @@ extern "C" int sigaction(int signum, const struct sigaction *act,
 
 	return 0;
 }
-
-
-/* our libc provides a _nanosleep function */
-extern "C" int _nanosleep(const struct timespec *req, struct timespec *rem);
-extern "C" int nanosleep(const struct timespec *req, struct timespec *rem)
-{
-	Assert(req);
-
-	return _nanosleep(req, rem);
-}
-
 
 
 /* Some dummy implementation for LibC functions */
