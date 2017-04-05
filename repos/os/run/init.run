@@ -2,7 +2,7 @@
 # Build
 #
 
-set build_components { core init drivers/timer app/dummy test/init }
+set build_components { core init drivers/timer server/report_rom app/dummy test/init }
 
 build $build_components
 
