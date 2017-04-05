@@ -9,7 +9,7 @@ ifneq ($(DEBUG_DIR),)
 $(TARGET): $(INSTALL_DIR)/$(CORE_OBJ)
 
 $(INSTALL_DIR)/$(CORE_OBJ) : $(DEBUG_DIR)/$(CORE_OBJ)
-	$(VERBOSE)$(STRIP) -o $@ $<
+	$(VERBOSE)$(STRIP) --strip-debug -o $@ $<
 
 $(DEBUG_DIR)/$(CORE_OBJ) : $(CORE_OBJ)
 	$(VERBOSE)ln -sf $(CURDIR)/$(CORE_OBJ) $(DEBUG_DIR)/$(CORE_OBJ)
