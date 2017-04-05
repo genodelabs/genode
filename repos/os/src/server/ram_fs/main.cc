@@ -452,19 +452,15 @@ class File_system::Root : public Root_component<Session_component>
 			try {
 				Session_policy policy(label, _config);
 
+				/*
+				 * Determine directory that is used as root directory of
+				 * the session. Clients without a specified root are denied.
+				 */
 				try {
-					/*
-					 * Determine directory that is used as root directory of
-					 * the session. Clients without a specified root are denied.
-					 */
-					try {
-						policy.attribute("root").value(tmp, sizeof(tmp));
-						session_root.import(tmp, "/");
-					} catch (Xml_node::Nonexistent_attribute) {
-						Genode::error("missing \"root\" attribute in policy definition");
-						throw Root::Unavailable();
-					}
-				} catch (Session_policy::No_policy_defined) {
+					policy.attribute("root").value(tmp, sizeof(tmp));
+					session_root.import(tmp, "/");
+				} catch (Xml_node::Nonexistent_attribute) {
+					Genode::error("missing \"root\" attribute in policy definition");
 					throw Root::Unavailable();
 				}
 
