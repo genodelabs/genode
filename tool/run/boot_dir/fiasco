@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-fiasco.lib.so" }
-proc binary_name_core_o    { } { return "fiasco/core.o" }
+proc binary_name_core_o    { } { return "core-fiasco.o"    }
 proc binary_name_timer     { } { return "fiasco_timer_drv" }
 
 

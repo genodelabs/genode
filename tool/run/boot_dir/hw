@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-hw.lib.so" }
-proc binary_name_core_o    { } { return "hw/core.o"    }
+proc binary_name_core_o    { } { return "core-hw.o"    }
 proc binary_name_timer     { } { return "hw_timer_drv" }
 
 
@@ -53,7 +53,7 @@ proc run_boot_dir {binaries} {
 
 	puts "core link address is [core_link_address]"
 
-	set core_obj core/hw/core.o
+	set core_obj core/hw/core-hw.o
 	set bootstrap_obj bootstrap/hw/bootstrap.o
 
 	# create core and bootstrap binary without modules for debugging

@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-nova.lib.so" }
-proc binary_name_core_o    { } { return "nova/core.o" }
+proc binary_name_core_o    { } { return "core-nova.o" }
 proc binary_name_timer     { } { return "nova_timer_drv" }
 
 
