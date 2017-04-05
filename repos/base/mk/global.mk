@@ -187,8 +187,6 @@ ALL_INC_DIR += $(foreach REP,$(REPOSITORIES),$(REP)/include)
 ALL_INC_DIR += $(LIBGCC_INC_DIR)
 ALL_INC_DIR += $(HOST_INC_DIR)
 
-INSTALL_DIR ?=
-
 VERBOSE     ?= @
 VERBOSE_DIR ?= --no-print-directory
 

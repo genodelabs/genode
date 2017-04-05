@@ -10,7 +10,8 @@
 ##   VERBOSE_MK       - verboseness of make calls
 ##   BUILD_BASE_DIR   - base of build directory tree
 ##   LIB_CACHE_DIR    - library build cache location
-##   INSTALL_DIR      - program target build directory
+##   INSTALL_DIR      - installation directory for stripped shared objects
+##   DEBUG_DIR        - installation directory for unstripped shared objects
 ##   SHARED_LIBS      - shared-library dependencies of the library
 ##   ARCHIVES         - archive dependencies of the library
 ##   REP_DIR          - repository where the library resides
@@ -131,6 +132,7 @@ ifdef SHARED_LIB
  ifneq ($(sort $(OBJECTS) $(LIBS)),)
   LIB_SO     := $(addsuffix .lib.so,$(LIB))
   INSTALL_SO := $(INSTALL_DIR)/$(LIB_SO)
+  DEBUG_SO   := $(DEBUG_DIR)/$(LIB_SO)
  endif
 else
 LIB_A := $(addsuffix .lib.a,$(LIB))
@@ -151,7 +153,7 @@ all: $(LIB_TAG)
 #
 $(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
 
-$(LIB_TAG): $(LIB_A) $(LIB_SO) $(ABI_SO) $(INSTALL_SO)
+$(LIB_TAG): $(LIB_A) $(LIB_SO) $(ABI_SO) $(INSTALL_SO) $(DEBUG_SO)
 	@touch $@
 
 #
@@ -246,6 +248,11 @@ $(ABI_SO): $(LIB).symbols.o
 	                $(LIB_SO_DEPS) $< \
 	                --end-group --no-whole-archive
 
-$(INSTALL_SO):
-	$(VERBOSE)ln -sf $(CURDIR)/$(LIB_SO) $@
+$(LIB_SO).stripped: $(LIB_SO)
+	$(VERBOSE)$(STRIP) -o $@ $<
 
+$(DEBUG_SO): $(LIB_SO)
+	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+
+$(INSTALL_SO): $(LIB_SO).stripped
+	$(VERBOSE)ln -sf $(CURDIR)/$< $@

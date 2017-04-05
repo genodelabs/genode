@@ -7,7 +7,8 @@
 ##   REP_DIR          - source repository of the program
 ##   PRG_REL_DIR      - directory of the program relative to 'src/'
 ##   REPOSITORIES     - repositories providing libs and headers
-##   INSTALL_DIR      - final install location
+##   INSTALL_DIR      - installation directory for stripped executables
+##   DEBUG_DIR        - installation directory for unstripped executables
 ##   VERBOSE          - build verboseness modifier
 ##   VERBOSE_DIR      - verboseness modifier for changing directories
 ##   VERBOSE_MK       - verboseness of make calls
@@ -67,11 +68,15 @@ LD_SCRIPT_STATIC ?= $(BASE_DIR)/src/ld/genode.ld
 include $(BASE_DIR)/mk/generic.mk
 include $(BASE_DIR)/mk/base-libs.mk
 
-ifeq ($(INSTALL_DIR),)
 all: message $(TARGET)
-else
-all: message $(INSTALL_DIR)/$(TARGET)
+
+ifneq ($(INSTALL_DIR),)
+ifneq ($(DEBUG_DIR),)
+all: message $(INSTALL_DIR)/$(TARGET) $(DEBUG_DIR)/$(TARGET)
 endif
+endif
+
+all:
 	@true # prevent nothing-to-be-done message
 
 .PHONY: message
@@ -174,16 +179,29 @@ $(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS)) $(LIB_SO_DEPS)
 	$(MSG_LINK)$(TARGET)
 	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD_CMD) -o $@
 
-$(INSTALL_DIR)/$(TARGET): $(TARGET)
-	$(VERBOSE)ln -sf $(CURDIR)/$(TARGET) $@
+STRIP_TARGET_CMD ?= $(STRIP) -o $@ $<
+
+$(TARGET).stripped: $(TARGET)
+	$(VERBOSE)$(STRIP_TARGET_CMD)
+
+$(INSTALL_DIR)/$(TARGET): $(TARGET).stripped
+	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+
+ifneq ($(DEBUG_DIR),)
+$(DEBUG_DIR)/$(TARGET): $(TARGET)
+	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+endif
+
 else
 $(TARGET):
 $(INSTALL_DIR)/$(TARGET): $(TARGET)
+$(DEBUG_DIR)/$(TARGET): $(TARGET)
 endif
+
 
 clean_prg_objects:
 	$(MSG_CLEAN)$(PRG_REL_DIR)
-	$(VERBOSE)$(RM) -f $(OBJECTS) $(OBJECTS:.o=.d) $(TARGET)
+	$(VERBOSE)$(RM) -f $(OBJECTS) $(OBJECTS:.o=.d) $(TARGET) $(TARGET).stripped
 	$(VERBOSE)$(RM) -f *.d *.i *.ii *.s *.ali *.lib.so
 
 clean: clean_prg_objects
