@@ -684,9 +684,8 @@ class Vfs_server::Root :
 			char tmp[MAX_PATH_LEN];
 			try {
 				Session_policy policy(label, _config_rom.xml());
-				/* Clients without a policy match are denied. */
 
-				/* Determine the optional session root offset. */
+				/* determine optional session root offset. */
 				try {
 					policy.attribute("root").value(tmp, sizeof(tmp));
 					session_root.import(tmp, "/");
@@ -700,10 +699,11 @@ class Vfs_server::Root :
 					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
 
 			} catch (Session_policy::No_policy_defined) {
-				throw Root::Service_denied();
+				/* missing policy - deny request */
+				throw Root::Unavailable();
 			}
 
-			/* Apply the client root offset. */
+			/* apply client's root offset. */
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
 			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
 				session_root.append("/");

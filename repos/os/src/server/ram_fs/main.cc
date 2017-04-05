@@ -451,7 +451,6 @@ class File_system::Root : public Root_component<Session_component>
 			Session_label const label = label_from_args(args);
 			try {
 				Session_policy policy(label, _config);
-				/* Clients without a policy match are denied. */
 
 				try {
 					/*
@@ -466,7 +465,7 @@ class File_system::Root : public Root_component<Session_component>
 						throw Root::Unavailable();
 					}
 				} catch (Session_policy::No_policy_defined) {
-					throw Root::Service_denied();
+					throw Root::Unavailable();
 				}
 
 				/*
@@ -481,7 +480,7 @@ class File_system::Root : public Root_component<Session_component>
 				throw Root::Unavailable();
 			}
 
-			/* Apply the client root offset. */
+			/* apply client's root offset */
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
 			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
 				session_root.append("/");
@@ -492,7 +491,11 @@ class File_system::Root : public Root_component<Session_component>
 				session_root_dir = &_root_dir;
 			} else {
 				try {
-					/* For performing the lookup, we skip the first character. */
+					/*
+					 * The root path is specified with a leading path
+					 * delimiter. For performing the lookup, we skip the first
+					 * character.
+					 */
 					session_root_dir = _root_dir.lookup_and_lock_dir(
 						session_root.base() + 1);
 					session_root_dir->unlock();
