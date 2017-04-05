@@ -1,8 +1,20 @@
 TARGET    = core
 CORE_OBJ ?= core.o
 
-$(TARGET): $(CORE_OBJ)
-	$(VERBOSE)ln -sf $(CURDIR)/$(CORE_OBJ) $(INSTALL_DIR)/$(CORE_OBJ)
+$(TARGET):
+	@true
+
+ifneq ($(INSTALL_DIR),)
+ifneq ($(DEBUG_DIR),)
+$(TARGET): $(INSTALL_DIR)/$(CORE_OBJ)
+
+$(INSTALL_DIR)/$(CORE_OBJ) : $(DEBUG_DIR)/$(CORE_OBJ)
+	$(VERBOSE)$(STRIP) -o $@ $<
+
+$(DEBUG_DIR)/$(CORE_OBJ) : $(CORE_OBJ)
+	$(VERBOSE)ln -sf $(CURDIR)/$(CORE_OBJ) $(DEBUG_DIR)/$(CORE_OBJ)
+endif
+endif
 
 .PHONY: $(CORE_OBJ)
 $(CORE_OBJ):

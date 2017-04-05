@@ -70,7 +70,8 @@ endif
 	  echo "	     ARCHIVES=\"\$$(sort \$$(DEP_A_$(TARGET).prg))\" \\"; \
 	  echo "	     SHARED_LIBS=\"\$$(sort \$$(DEP_SO_$(TARGET).prg))\" \\"; \
 	  echo "	     SHELL=$(SHELL) \\"; \
-	  echo "	     INSTALL_DIR=\"\$$(INSTALL_DIR)\""; \
+	  echo "	     INSTALL_DIR=\"\$$(INSTALL_DIR)\" \\"; \
+	  echo "	     DEBUG_DIR=\"\$$(DEBUG_DIR)\""; \
 	  echo "") >> $(LIB_DEP_FILE)
 #
 # Make 'all' depend on the target, which triggers the building of the target

@@ -42,6 +42,7 @@
 -include etc/build.conf
 
 BUILD_BASE_DIR := $(CURDIR)
+DEBUG_DIR      := $(CURDIR)/debug
 INSTALL_DIR    := $(CURDIR)/bin
 
 export BASE_DIR         ?= ../base
@@ -169,6 +170,7 @@ init_libdep_file: $(dir $(LIB_DEP_FILE))
 	  echo "VERBOSE_MK   ?= $(VERBOSE_MK)"; \
 	  echo "VERBOSE_DIR  ?= $(VERBOSE_DIR)"; \
 	  echo "INSTALL_DIR  ?= $(INSTALL_DIR)"; \
+	  echo "DEBUG_DIR    ?= $(DEBUG_DIR)"; \
 	  echo "SHELL        ?= $(SHELL)"; \
 	  echo "MKDIR        ?= mkdir"; \
 	  echo ""; \
@@ -262,11 +264,11 @@ endif
 ## Second stage: build targets based on the result of the first stage
 ##
 
-$(INSTALL_DIR):
+$(INSTALL_DIR) $(DEBUG_DIR):
 	$(VERBOSE)mkdir -p $@
 
 .PHONY: gen_deps_and_build_targets
-gen_deps_and_build_targets: $(INSTALL_DIR) $(LIB_DEP_FILE)
+gen_deps_and_build_targets: $(INSTALL_DIR) $(DEBUG_DIR) $(LIB_DEP_FILE)
 	@(echo ""; \
 	  echo "ifneq (\$$(MISSING_PORTS),)"; \
 	  echo "check_ports:"; \
@@ -285,7 +287,7 @@ gen_deps_and_build_targets: $(INSTALL_DIR) $(LIB_DEP_FILE)
 	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
 
 .PHONY: again
-again: $(INSTALL_DIR)
+again: $(INSTALL_DIR) $(DEBUG_DIR)
 	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
 
 ##
@@ -352,7 +354,10 @@ clean_gen_files:
 clean_install_dir:
 	$(VERBOSE)(test -d $(INSTALL_DIR) && find $(INSTALL_DIR) -type l -not -readable -delete) || true
 
-clean_empty_dirs: clean_targets clean_libcache clean_run clean_gen_files clean_install_dir
+clean_debug_dir:
+	$(VERBOSE)(test -d $(DEBUG_DIR) && find $(DEBUG_DIR) -type f -delete) || true
+
+clean_empty_dirs: clean_targets clean_libcache clean_run clean_gen_files clean_install_dir clean_debug_dir
 	$(VERBOSE)$(GNU_FIND) . -depth -type d -empty -delete
 
 clean cleanall: clean_empty_dirs
