@@ -15,7 +15,6 @@
 #ifndef _ARCH_EXECUTE_H_
 #define _ARCH_EXECUTE_H_
 
-#if defined(USE_INTERNAL_SETJMP)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,7 +28,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif /* USE_INTERNAL_SETJMP */
 
 
 static inline

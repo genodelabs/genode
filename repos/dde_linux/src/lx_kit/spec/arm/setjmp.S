@@ -32,8 +32,18 @@
  * SUCH DAMAGE.
  */
 
-//#include <machine/asm.h>
-__FBSDID("$FreeBSD$");
+/* needed parts from <machine/asm.h> */
+#define __FBSDID(x)
+#define ENTRY(x)           .text; .align 0; .globl x; .type x,#function; x:;
+#define WEAK_ALIAS(x,y)
+#define RET                mov pc, lr
+#define _JB_MAGIC__SETJMP  0x4278f500
+
+#define __SOFTFP__ 1
+#define _STANDALONE
+/* end of <machine/asm.h> */
+
+__FBSDID("$FreeBSD: release/8.2.0/lib/libc/arm/gen/_setjmp.S 193145 2009-05-31 02:03:40Z marcel $");
 
 /*
  * C library -- _setjmp, _longjmp
@@ -51,9 +61,15 @@ __FBSDID("$FreeBSD$");
 ENTRY(_setjmp)
 	ldr	r1, .L_setjmp_magic
 	str	r1, [r0], #4
-
-	/* SOFTFP */
+#ifdef __SOFTFP__
 	add	r0, r0, #52
+#else
+	/* Store fp registers */
+	sfm	f4, 4, [r0], #48
+	/* Store fpsr */
+	rfs	r1
+	str	r1, [r0], #0x0004
+#endif	/* __SOFTFP__ */
 	/* Store integer registers */
         stmia	r0, {r4-r14}
 
@@ -70,8 +86,15 @@ ENTRY(_longjmp)
 	teq	r2, r3
 	bne	botch
 
-	/* SOFTFP */
+#ifdef __SOFTFP__
 	add	r0, r0, #52
+#else
+	/* Restore fp registers */
+	lfm	f4, 4, [r0], #48
+	/* Restore fpsr */
+	ldr	r4, [r0], #0x0004
+	wfs	r4
+#endif	/* __SOFTFP__ */
        	/* Restore integer registers */
         ldmia	r0, {r4-r14}
 
@@ -88,4 +111,10 @@ ENTRY(_longjmp)
 
 	/* validation failed, die die die. */
 botch:
+#if !defined(_STANDALONE)
+	bl	PIC_SYM(_C_LABEL(longjmperror), PLT)
+	bl	PIC_SYM(_C_LABEL(abort), PLT)
+	b	. - 8		/* Cannot get here */
+#else
 	b	.
+#endif

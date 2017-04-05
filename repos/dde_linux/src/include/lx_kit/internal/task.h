@@ -25,11 +25,6 @@
 #include <lx_kit/internal/list.h>
 #include <lx_kit/internal/arch_execute.h>
 
-#if !defined(USE_INTERNAL_SETJMP)
-/* libc includes */
-#include <setjmp.h>
-#endif /* USE_INTERNAL_SETJMP */
-
 
 namespace Lx {
 

@@ -11,17 +11,15 @@ SHARED_LIB = yes
 # wifi_include *must* be the first library, otherwise the include
 # order is wrong
 #
-LIBS  += wifi_include libc
+LIBS  += wifi_include lx_kit_setjmp libc
 
 LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 
 SRC_CC += dummies.cc init.cc lxcc_emul.cc nic.cc socket_call.cc
 
 # lx_kit
-CC_OPT += -DUSE_INTERNAL_SETJMP
 SRC_CC += mapped_io_mem_range.cc irq.cc pci.cc malloc.cc scheduler.cc \
           work.cc timer.cc printf.cc env.cc
-SRC_S  += setjmp.S
 
 SRC_C += lxc_emul.c
 
