@@ -34,6 +34,7 @@ $(MUEN_DST_DIR): download_contrib
 download_contrib: $(MUEN_SRC_DIR)
 	$(MSG_BUILD)Muen contrib
 	$(VERBOSE)cd $(MUEN_SRC_DIR) && git submodule update --init tools/mugenschedcfg > $(MUEN_LOG) 2>&1
+	$(VERBOSE)cd $(MUEN_SRC_DIR) && git submodule update --init components/libxhcidbg > $(MUEN_LOG) 2>&1
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_SRC_DIR)/contrib \
 		QUIET=true download >> $(MUEN_LOG) 2>&1
 

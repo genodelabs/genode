@@ -11,7 +11,7 @@ RUN_OPT = --include boot_dir/hw --include image/muen
 # The specified file must be relative to the Muen policy directory or an
 # absolute path.
 #
-RUN_OPT += --image-muen-hardware platform/lenovo-t430s.xml
+RUN_OPT += --image-muen-hardware hardware/lenovo-t430s.xml
 
 #
 # Directory, where the GNAT toolchain is installed
@@ -36,7 +36,7 @@ RUN_OPT += --image-muen-system xml/genode-base_hw.xml
 #
 # Available components are located in the Muen project directory 'components/'.
 #
-RUN_OPT += --image-muen-components 'libdebuglog libmutime dbgserver sm time'
+RUN_OPT += --image-muen-components 'libdebuglog libmutime libxhcidbg dbgserver sm time'
 
 #
 # External Muen build
