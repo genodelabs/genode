@@ -38,8 +38,8 @@ struct Ps2::Main
 
 	Verbose _verbose { _config.xml() };
 
-	Mouse    _mouse    { _pl050.aux_interface(), _session.event_queue(),       _verbose };
-	Keyboard _keyboard { _pl050.kbd_interface(), _session.event_queue(), true, _verbose };
+	Mouse    _mouse    { _pl050.aux_interface(), _session.event_queue(),        _verbose };
+	Keyboard _keyboard { _pl050.kbd_interface(), _session.event_queue(), false, _verbose };
 
 	Irq_handler _mouse_irq    { _env, PL050_MOUSE_IRQ, _pl050.aux_interface(), _mouse };
 	Irq_handler _keyboard_irq { _env, PL050_KEYBD_IRQ, _pl050.kbd_interface(), _keyboard };
