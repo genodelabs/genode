@@ -1,7 +1,7 @@
 LIB_DIR     = $(REP_DIR)/src/lib/usb
 LIB_INC_DIR = $(LIB_DIR)/include
 
-LIBS     += usb_include libc-setjmp config
+LIBS     += usb_include lx_kit_setjmp config
 SRC_CC   += main.cc lx_emul.cc storage.cc \
             input_component.cc evdev.cc nic.cc raw.cc
 SRC_C    += dummies.c scsi.c raw_driver.c

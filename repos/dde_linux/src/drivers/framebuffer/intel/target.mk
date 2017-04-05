@@ -1,7 +1,7 @@
 REQUIRES = x86
 
 TARGET   = intel_fb_drv
-LIBS     = base intel_fb_drv intel_fb_include libc-setjmp blit
+LIBS     = base intel_fb_drv intel_fb_include lx_kit_setjmp blit
 SRC_CC   = main.cc lx_emul.cc
 SRC_C    = dummies.c i915_params.c lx_emul_c.c
 
