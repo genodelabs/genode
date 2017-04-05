@@ -1,8 +1,8 @@
-TARGET   = core
-CORE_OBJ = core.o
+TARGET    = core
+CORE_OBJ ?= core.o
 
 $(TARGET): $(CORE_OBJ)
-	$(VERBOSE)true
+	$(VERBOSE)ln -sf $(CURDIR)/$(CORE_OBJ) $(INSTALL_DIR)/$(CORE_OBJ)
 
 .PHONY: $(CORE_OBJ)
 $(CORE_OBJ):

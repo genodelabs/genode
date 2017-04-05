@@ -776,7 +776,7 @@ proc build_core_image {binaries} {
 	copy_and_strip_genode_binaries_to_run_dir $modules
 	lappend modules "config"
 
-	set core_obj core/[kernel_specific_binary core.o]
+	set core_obj bin/[kernel_specific_binary core.o]
 
 	# create core binary without modules for debugging
 	build_core $core_obj {} [run_dir].core [core_link_address]

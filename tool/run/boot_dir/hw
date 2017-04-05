@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-hw.lib.so" }
-proc binary_name_core_o    { } { return "hw/core.o"    }
+proc binary_name_core_o    { } { return "core-hw.o"    }
 proc binary_name_timer     { } { return "hw_timer_drv" }
 
 
