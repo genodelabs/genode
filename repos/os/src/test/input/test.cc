@@ -51,6 +51,7 @@ struct Main
 	Env                  &env;
 	Input::Connection     input      { env };
 	Signal_handler<Main>  input_sigh { env.ep(), *this, &Main::handle_input };
+	int                   key_cnt    { 0 };
 	unsigned              event_cnt  { 0 };
 
 	void handle_input();
@@ -65,7 +66,6 @@ struct Main
 
 void Main::handle_input()
 {
-	int key_cnt = 0;
 	input.for_each_event([&] (Input::Event const &ev) {
 		event_cnt++;
 

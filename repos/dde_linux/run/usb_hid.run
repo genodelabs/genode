@@ -166,11 +166,11 @@ trim_lines
 
 compare_output_to {
 [init -> test-input] Input event #1	type=PRESS  	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=1	KEY_X
-[init -> test-input] Input event #2	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	KEY_X
+[init -> test-input] Input event #2	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=0	KEY_X
 [init -> test-input] Input event #3	type=PRESS  	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=1	BTN_LEFT
 [init -> test-input] Input event #4	type=MOTION 	code=0	rx=-1	ry=0	ax=0	ay=0	key_cnt=1	
 [init -> test-input] Input event #5	type=MOTION 	code=0	rx=0	ry=1	ax=0	ay=0	key_cnt=1	
-[init -> test-input] Input event #6	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	BTN_LEFT
+[init -> test-input] Input event #6	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=0	BTN_LEFT
 [init -> usb_drv] dev_info: USB disconnect, device
 [init -> usb_drv] dev_info: new full-speed USB device
 [init -> usb_drv] dev_info: D L
@@ -178,9 +178,9 @@ compare_output_to {
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Mouse [D L]
 [init -> test-input] Input event #7	type=PRESS  	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=1	KEY_X
-[init -> test-input] Input event #8	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	KEY_X
+[init -> test-input] Input event #8	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=0	KEY_X
 [init -> test-input] Input event #9	type=PRESS  	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=1	BTN_LEFT
 [init -> test-input] Input event #10	type=MOTION 	code=0	rx=-1	ry=0	ax=0	ay=0	key_cnt=1	
 [init -> test-input] Input event #11	type=MOTION 	code=0	rx=0	ry=1	ax=0	ay=0	key_cnt=1	
-[init -> test-input] Input event #12	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	BTN_LEFT
+[init -> test-input] Input event #12	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=0	BTN_LEFT
 }
