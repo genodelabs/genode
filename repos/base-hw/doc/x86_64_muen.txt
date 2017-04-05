@@ -44,19 +44,20 @@ are all set to their default values.
 Muen systems are built for a specific hardware platform and by default the
 system is built for the Lenovo T430s. All currently supported platforms have a
 corresponding hardware specification which can be found in the Muen project
-directory under 'policy/platform'. Note that the Muen project directory can be
+directory under 'policy/hardware'. Note that the Muen project directory can be
 found at '<genode_dir>/contrib/muen-*/src/kernel/muen'.
 
-To get a list of all currently supported platforms issue the following command:
+To get a list of all currently supported hardware platforms issue the following
+command:
 
-! ls contrib/muen-*/src/kernel/muen/policy/platform/ | grep -v common
+! ls contrib/muen-*/src/kernel/muen/policy/hardware/ | grep -v common
 
-Set the '--image-muen-hardware' parameter to point to the hardware
-configuration file of your intended hardware platform. Note that the specified
-paths for both '--image-muen-hardware' and '--image-muen-system' must be either
-relative to the Muen policy directory (e.g. 'platform/lenovo-t430s.xml' or
-'xml/genode-base_hw_simple.xml') or absolute paths. Also change the
-other parameters to match your environment.
+Set the '--image-muen-hardware' and '--image-muen-platform' parameters to point
+to the configuration files of your intended hardware platform. Note that the
+specified paths for both '--image-muen-hardware', '--image-muen-platform' and
+'--image-muen-system' must be either relative to the Muen policy directory
+(e.g. 'platform/lenovo-t430s.xml' or 'xml/genode-base_hw_simple.xml') or
+absolute paths. Also change the other parameters to match your environment.
 
 If no hardware configuration for your specific hardware is available, refer to
 the README of the 'mugenhwcfg' tool
@@ -124,7 +125,8 @@ As a first step acquire the Muen sources by executing the following commands:
 ! git clone https://git.codelabs.ch/git/muen.git
 ! cd muen
 ! git submodule update --init tools/mugenschedcfg
-! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime dbgserver sm time" emulate
+! git submodule update --init components/libxhcidbg
+! make SYSTEM=xml/genode-base_hw_simple.xml COMPONENTS="libdebuglog libmutime libxhcidbg dbgserver sm time" emulate
 
 This will build a Muen SK system and start it using the Bochs emulator. You
 should get the following error:

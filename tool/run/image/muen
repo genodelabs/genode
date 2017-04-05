@@ -4,7 +4,8 @@
 # \param --image-muen-external-build  Muen system is built automatically or externally
 # \param --image-muen-system          Muen system policy
 # \param --image-muen-components      Muen system components
-# \param --image-muen-hardware        Muen hardware platform
+# \param --image-muen-hardware        Muen hardware specification
+# \param --image-muen-platform        Muen platform specification
 # \param --image-muen-gnat-path       Path to GNAT toolchain
 # \param --image-muen-spark-path      Path to SPARK toolchain
 #
@@ -22,6 +23,10 @@ proc muen_components { } {
 
 proc muen_hardware { } {
 	return [get_cmd_arg --image-muen-hardware ""]
+}
+
+proc muen_platform { } {
+	return [get_cmd_arg --image-muen-platform ""]
 }
 
 proc muen_gnat_path { } {
@@ -58,6 +63,7 @@ proc run_image {elf_img} {
 	puts $fh "SYSTEM     = [muen_system]"
 	puts $fh "COMPONENTS = \"[muen_components]\""
 	puts $fh "HARDWARE   = [muen_hardware]"
+	puts $fh "PLATFORM   = [muen_platform]"
 	close $fh
 
 	#
@@ -76,6 +82,6 @@ proc run_image {elf_img} {
 	# Package Muen system image
 	#
 	exec cp $bin_img "kernel/muen/policy/obj/base_hw"
-	exec make -C kernel/muen/pack SYSTEM=[muen_system] HARDWARE=[muen_hardware]
+	exec make -C kernel/muen/pack SYSTEM=[muen_system] HARDWARE=[muen_hardware] PLATFORM=[muen_platform]
 	exec cp kernel/muen/pack/obj/muen.img "[run_dir]/image.bin"
 }
