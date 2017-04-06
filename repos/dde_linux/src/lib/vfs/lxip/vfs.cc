@@ -1011,6 +1011,12 @@ class Vfs::Lxip_new_socket_file : public Vfs::File
 			}
 			set_sock_wait(sock, 0);
 
+			/* XXX always allow UDP broadcast */
+			if (type == SOCK_DGRAM) {
+				int enable = 1;
+				sock_setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char *)&enable, sizeof(enable));
+			}
+
 			try {
 				unsigned const id = _parent.adopt_socket(*sock, false);
 				return Genode::snprintf(dst, len, "%s/%u\n", _parent.top_dir(), id);
