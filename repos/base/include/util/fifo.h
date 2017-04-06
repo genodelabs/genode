@@ -186,6 +186,9 @@ class Genode::Fifo_element : public Fifo<Fifo_element<T> >::Element
 		 * Zero-pointer save: Returns 0 if this pointer is 0 to
 		 * cover the case of accessing an empty FIFO.
 		 */
+
+		/* prevent the compiler from optimizing out the 'this' pointer check */
+		__attribute__((optimize("-fno-delete-null-pointer-checks")))
 		inline T *object()
 		{
 			if (this) { return _object; }
