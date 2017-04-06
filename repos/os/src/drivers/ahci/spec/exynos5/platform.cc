@@ -121,7 +121,9 @@ struct I2c_interface : Attached_mmio
 	int send(uint8_t * msg, size_t msg_size)
 	{
 		/* initiate message transfer */
-		if (!wait_for<Stat::Busy>(0, delayer)) {
+		try {
+			wait_for(delayer, Stat::Busy::Equal(0));
+		} catch (Polling_timeout) {
 			Genode::error("I2C busy");
 			return -1;
 		}
@@ -148,7 +150,9 @@ struct I2c_interface : Attached_mmio
 		write<Con::Irq_en>(0);
 		write<Con::Irq_pending>(0); /* FIXME fixup */
 		if (arbitration_error()) return -1;
-		if (!wait_for<Stat::Busy>(0, delayer)) {
+		try {
+			wait_for(delayer, Stat::Busy::Equal(0));
+		} catch (Polling_timeout) {
 			Genode::error("I2C end transfer failed");
 			return -1;
 		}
@@ -304,7 +308,9 @@ struct Sata_phy_ctrl : Attached_mmio
 		 *       at this point we should study the Linux behavior
 		 *       in more depth.
 		 */
-		if (!wait_for<Phstatm::Pll_locked>(1, delayer)) {
+		try {
+			wait_for(delayer, Phstatm::Pll_locked::Equal(1));
+		} catch (Polling_timeout) {
 			Genode::error("PLL lock failed");
 			return -1;
 		}
@@ -343,7 +349,10 @@ struct Exynos5_hba : Platform::Hba
 
 		/* reset */
 		hba.write< ::Hba::Ghc::Hr>(1);
-		if (!hba.wait_for< ::Hba::Ghc::Hr>(0, hba.delayer(), 1000, 1000)) {
+		try {
+			hba.wait_for(::Hba::Attempts(1000), ::Hba::Microseconds(1000),
+			             hba.delayer(), ::Hba::Ghc::Hr::Equal(0));
+		} catch (::Hba::Polling_timeout) {
 			Genode::error("HBA reset failed");
 			throw Root::Unavailable();
 		}

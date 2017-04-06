@@ -64,13 +64,6 @@ append config {
 	<start name="test-ahci">
 		<binary name="test-blk-bench" />
 		<resource name="RAM" quantum="5M" />
-		<config>
-			<libc stdout="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-			</libc>
-		</config>
 		<route>
 			<service name="Block"><child name="ahci_drv"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
@@ -83,8 +76,7 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core init timer ahci_drv test-blk-bench libc.lib.so
-                   ld.lib.so }
+set boot_modules { core init timer ahci_drv test-blk-bench ld.lib.so }
 
 append_platform_drv_boot_modules
 
