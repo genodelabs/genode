@@ -53,7 +53,7 @@ proc run_boot_dir {binaries} {
 
 	puts "core link address is [core_link_address]"
 
-	set core_obj core/hw/core.o
+	set core_obj core/hw/core-hw.o
 	set bootstrap_obj bootstrap/hw/bootstrap.o
 
 	# create core and bootstrap binary without modules for debugging
