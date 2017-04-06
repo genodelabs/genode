@@ -130,8 +130,7 @@ proc run_boot_dir {binaries} {
 	build_core_image $binaries
 	exec mv [run_dir]/image.elf [run_dir].image
 
-	# elfweaver needs an unstripped binary
-	exec cp debug/okl4 [run_dir]/kernel
+	exec cp bin/okl4 [run_dir]/kernel
 
 	#
 	# Generate ELF weaver config
