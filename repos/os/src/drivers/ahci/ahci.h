@@ -591,12 +591,16 @@ struct Port : Port_base
 		if (read<Cmd::St>())
 			return;
 
-		if (!wait_for<Tfd::Sts_bsy>(0, hba.delayer(), 500, 1000)) {
+		try {
+			wait_for(hba.delayer(), Tfd::Sts_bsy::Equal(0));
+		} catch (Polling_timeout) {
 			Genode::error("HBA busy unable to start command processing.");
 			return;
 		}
 
-		if (!wait_for<Tfd::Sts_drq>(0, hba.delayer(), 500, 1000)) {
+		try {
+			wait_for(hba.delayer(), Tfd::Sts_drq::Equal(0));
+		} catch (Polling_timeout) {
 			Genode::error("HBA in DRQ unable to start command processing.");
 			return;
 		}
@@ -694,8 +698,11 @@ struct Port : Port_base
 		hba.delayer().usleep(1000);
 		write<Sctl::Det>(0);
 
-		if (!wait_for<Ssts::Dec>(Ssts::Dec::ESTABLISHED, hba.delayer()))
+		try {
+			wait_for(hba.delayer(), Ssts::Dec::Equal(Ssts::Dec::ESTABLISHED));
+		} catch (Polling_timeout) {
 			Genode::warning("Port reset failed");
+		}
 	}
 
 	/**
