@@ -20,24 +20,19 @@
 #include "vmm.h"
 
 /* VirtualBox includes */
-#include <iprt/semaphore.h>
 #include <iprt/ldr.h>
+#include <iprt/semaphore.h>
+#include <iprt/timer.h>
 #include <iprt/uint128.h>
 #include <VBox/err.h>
 
-
-struct Attached_gip : Genode::Attached_ram_dataspace
-{
-	Attached_gip()
-	: Attached_ram_dataspace(genode_env().ram(), genode_env().rm(), PAGE_SIZE)
-	{ }
-};
-
+static PFNRTTIMER rttimer_func = nullptr;
+static void *     rttimer_obj  = nullptr;
 
 enum {
 	UPDATE_HZ  = 1000,
-	UPDATE_MS  = 1000 / UPDATE_HZ,
-	UPDATE_NS  = UPDATE_MS * 1000 * 1000,
+	UPDATE_US  = 1000 * 1000 / UPDATE_HZ,
+	UPDATE_NS  = UPDATE_US * 1000,
 };
 
 
@@ -95,10 +90,49 @@ struct Periodic_gip : public Genode::Thread
 		 * read struct SUPGIPCPU description for more details.
 		 */
 		ASMAtomicIncU32(&cpu->u32TransactionId);
+
+		/* call the timer function of the RTTimerCreate call */
+		if (rttimer_func)
+			rttimer_func(nullptr, rttimer_obj, 0);
 	}
 
-	void entry() override { genode_update_tsc(update, UPDATE_MS * 1000); }
+	void entry() override { genode_update_tsc(update, UPDATE_US); }
 };
+
+
+struct Attached_gip : Genode::Attached_ram_dataspace
+{
+	Attached_gip()
+	: Attached_ram_dataspace(genode_env().ram(), genode_env().rm(), PAGE_SIZE)
+	{ }
+};
+
+
+int RTTimerCreate(PRTTIMER *pptimer, unsigned ms, PFNRTTIMER func, void *obj)
+{
+	if (pptimer)
+		*pptimer = NULL;
+
+	/* used solely at one place in TM.cpp */
+	Assert(!rttimer_func);
+
+	/*
+	 * Ignore (10) ms which is too high for audio. Instead the callback
+	 * handler will run at UPDATE_HZ rate.
+	 */
+	rttimer_func = func;
+	rttimer_obj  = obj;
+
+	return VINF_SUCCESS;
+}
+
+
+int RTTimerDestroy(PRTTIMER)
+{
+	rttimer_obj  = nullptr;
+	rttimer_func = nullptr;
+	return VINF_SUCCESS;
+}
 
 
 int SUPR3Init(PSUPDRVSESSION *ppSession)
@@ -212,8 +246,7 @@ int SUPSemEventWaitNoResume(PSUPDRVSESSION pSession, SUPSEMEVENT hEvent,
 }
 
 
-SUPDECL(int) SUPSemEventMultiCreate(PSUPDRVSESSION,
-                                    PSUPSEMEVENTMULTI phEventMulti)
+int SUPSemEventMultiCreate(PSUPDRVSESSION, PSUPSEMEVENTMULTI phEventMulti)
 {
     RTSEMEVENTMULTI sem;
 
@@ -233,10 +266,21 @@ SUPDECL(int) SUPSemEventMultiCreate(PSUPDRVSESSION,
 }
 
 
-SUPDECL(int) SUPSemEventMultiClose(PSUPDRVSESSION, SUPSEMEVENTMULTI hEvMulti)
+int SUPSemEventMultiWaitNoResume(PSUPDRVSESSION, SUPSEMEVENTMULTI event,
+                                 uint32_t ms)
 {
-	return RTSemEventMultiDestroy(reinterpret_cast<RTSEMEVENTMULTI>(hEvMulti));
+	RTSEMEVENTMULTI const rtevent = reinterpret_cast<RTSEMEVENTMULTI>(event);
+	return RTSemEventMultiWait(rtevent, ms);
 }
+
+int SUPSemEventMultiSignal(PSUPDRVSESSION, SUPSEMEVENTMULTI event) {
+	return RTSemEventMultiSignal(reinterpret_cast<RTSEMEVENTMULTI>(event)); }
+
+int SUPSemEventMultiReset(PSUPDRVSESSION, SUPSEMEVENTMULTI event) {
+	return RTSemEventMultiReset(reinterpret_cast<RTSEMEVENTMULTI>(event)); }
+
+int SUPSemEventMultiClose(PSUPDRVSESSION, SUPSEMEVENTMULTI event) {
+	return RTSemEventMultiDestroy(reinterpret_cast<RTSEMEVENTMULTI>(event)); }
 
 
 int SUPR3CallVMMR0(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,

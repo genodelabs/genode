@@ -25,7 +25,9 @@ FILTERED_OUT_SRC_CC = RTLogDefaultInit-generic.cpp \
                       RTSemMutexRequest-generic.cpp \
                       RTSemMutexRequestDebug-generic.cpp \
                       RTDirExists-generic.cpp \
-                      RTMpOnPair-generic.cpp
+                      RTMpOnPair-generic.cpp \
+                      RTTimerCreate-generic.cpp \
+                      timer-generic.cpp
 
 CC_WARN += -Wno-unused-variable
 
