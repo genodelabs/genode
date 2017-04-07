@@ -17,7 +17,7 @@ CC_OPT_version += -DGENODE_VERSION="\"$(GENODE_VERSION)\""
 
 SRC_CC += version.cc
 
-vpath version.cc $(BASE_DIR)/src/core
+vpath version.cc $(dir $(call select_from_repositories,src/core/version.cc))
 
 version.o: force_version_compilation
 
