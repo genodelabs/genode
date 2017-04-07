@@ -16,11 +16,9 @@ proc run_boot_dir {binaries} {
 
 	build_core_image $binaries
 
-	exec mkdir -p [run_dir]/pistachio
-
-	exec cp kernel/pistachio/kernel    [run_dir]/pistachio
-	exec cp kernel/pistachio/sigma0    [run_dir]/pistachio
-	exec cp kernel/pistachio/kickstart [run_dir]/pistachio
+	exec cp bin/pistachio           [run_dir]/kernel
+	exec cp bin/sigma0-pistachio    [run_dir]/sigma0
+	exec cp bin/kickstart-pistachio [run_dir]/kickstart
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
@@ -39,9 +37,9 @@ proc run_boot_dir {binaries} {
 		puts $fh "timeout 0"
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on L4ka::Pistachio"
-		puts $fh " kernel /pistachio/kickstart"
-		puts $fh " module /pistachio/kernel"
-		puts $fh " module /pistachio/sigma0"
+		puts $fh " kernel /kickstart"
+		puts $fh " module /kernel"
+		puts $fh " module /sigma0"
 		puts $fh " module /image.elf"
 		close $fh
 	}
@@ -62,9 +60,9 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /pistachio/kickstart"
-		puts $fh " load /pistachio/kernel"
-		puts $fh " load /pistachio/sigma0"
+		puts $fh " load /kickstart"
+		puts $fh " load /kernel"
+		puts $fh " load /sigma0"
 		puts $fh " load /image.elf"
 		close $fh
 
