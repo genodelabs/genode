@@ -42,32 +42,7 @@ append config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="socket_fs">}
-
-if { false } { append config {
-		<binary name="ram_fs"/>
-		<resource name="RAM" quantum="10M"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<content>
-				<inline name="new_socket">33</inline>
-				<dir name="33">
-					<inline name="bind"></inline>
-					<inline name="listen"></inline>
-					<inline name="accept">44</inline>
-					<inline name="local">10.0.2.55:8888</inline>
-					<!-- not connected <inline name="remote"></inline> -->
-					<!-- not connected <inline name="data"></inline> -->
-				</dir>
-				<dir name="44">
-					<inline name="local">10.0.2.55:8888</inline>
-					<inline name="remote">10.0.2.1:13001</inline>
-					<inline name="data">REQUEST</inline>
-				</dir>
-			</content>
-			<default-policy root="/" writeable="yes" />
-		</config>}
-} else { append config {
+	<start name="socket_fs">
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="File_system"/> </provides>
@@ -79,15 +54,13 @@ if { false } { append config {
 				</dir>
 			</vfs>
 			<default-policy root="/socket" writeable="yes" />
-		</config>}
-}
-append config {
+		</config>
 	</start>
 
 	<start name="netty-server-80">
 		<binary name="test-netty"/>
 		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" port="80" read_write="no">
+		<config ld_verbose="yes" port="80" read_write="no" nonblock="true">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
 				<dir name="socket"> <fs/>  </dir>
@@ -100,7 +73,7 @@ append config {
 	<start name="netty-server-8080">
 		<binary name="test-netty"/>
 		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="server" port="8080">
+		<config ld_verbose="yes" mode="server" port="8080" nonblock="false">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
 				<dir name="socket"> <fs/>  </dir>
