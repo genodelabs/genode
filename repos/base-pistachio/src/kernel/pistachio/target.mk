@@ -68,11 +68,15 @@ clean cleanall:
 #
 LIBS += syscall-pistachio
 
-$(TARGET): sigma0 kickstart
+$(TARGET): $(INSTALL_DIR)/sigma0-pistachio \
+           $(INSTALL_DIR)/kickstart-pistachio \
+           $(INSTALL_DIR)/pistachio
 
-sigma0:
-	$(VERBOSE)ln -sf $(LIB_CACHE_DIR)/syscall-pistachio/serv/sigma0/sigma0
+$(INSTALL_DIR)/sigma0-pistachio:
+	$(VERBOSE)ln -sf $(LIB_CACHE_DIR)/syscall-pistachio/serv/sigma0/sigma0 $@
 
-kickstart:
-	$(VERBOSE)ln -sf $(LIB_CACHE_DIR)/syscall-pistachio/util/kickstart/kickstart
+$(INSTALL_DIR)/kickstart-pistachio:
+	$(VERBOSE)ln -sf $(LIB_CACHE_DIR)/syscall-pistachio/util/kickstart/kickstart $@
 
+$(INSTALL_DIR)/pistachio: $(KERNEL_BUILD_DIR)/x86-kernel
+	$(VERBOSE)ln -sf $< $@
