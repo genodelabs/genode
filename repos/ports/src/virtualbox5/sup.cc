@@ -17,14 +17,17 @@
 
 /* Genode/Virtualbox includes */
 #include "sup.h"
+#include "vmm.h"
 
 /* VirtualBox includes */
-#include <iprt/semaphore.h>
 #include <iprt/ldr.h>
+#include <iprt/semaphore.h>
+#include <iprt/timer.h>
 #include <iprt/uint128.h>
 #include <VBox/err.h>
 
-#include "vmm.h"
+static PFNRTTIMER rttimer_func = nullptr;
+static void *     rttimer_obj  = nullptr;
 
 enum {
 	UPDATE_HZ  = 1000,
@@ -87,6 +90,10 @@ struct Periodic_gip : public Genode::Thread
 		 * read struct SUPGIPCPU description for more details.
 		 */
 		ASMAtomicIncU32(&cpu->u32TransactionId);
+
+		/* call the timer function of the RTTimerCreate call */
+		if (rttimer_func)
+			rttimer_func(nullptr, rttimer_obj, 0);
 	}
 
 	void entry() override { genode_update_tsc(update, UPDATE_US); }
@@ -135,6 +142,33 @@ struct Attached_gip : Genode::Attached_ram_dataspace
 		static Periodic_gip periodic_gip(genode_env());
 	}
 };
+
+
+int RTTimerCreate(PRTTIMER *pptimer, unsigned ms, PFNRTTIMER func, void *obj)
+{
+	if (pptimer)
+		*pptimer = NULL;
+
+	/* used solely at one place in TM.cpp */
+	Assert(!rttimer_func);
+
+	/*
+	 * Ignore (10) ms which is too high for audio. Instead the callback
+	 * handler will run at UPDATE_HZ rate.
+	 */
+	rttimer_func = func;
+	rttimer_obj  = obj;
+
+	return VINF_SUCCESS;
+}
+
+
+int RTTimerDestroy(PRTTIMER)
+{
+	rttimer_obj  = nullptr;
+	rttimer_func = nullptr;
+	return VINF_SUCCESS;
+}
 
 
 int SUPR3Init(PSUPDRVSESSION *ppSession)

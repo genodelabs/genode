@@ -27,7 +27,9 @@ FILTERED_OUT_SRC_CC = fs-stubs-generic.cpp \
                       RTSemEventMultiWait-2-ex-generic.cpp \
                       RTSemMutexRequest-generic.cpp \
                       RTSemMutexRequestDebug-generic.cpp \
-                      RTTimeLocalExplode-generic.cpp
+                      RTTimeLocalExplode-generic.cpp \
+                      RTTimerCreate-generic.cpp \
+                      timer-generic.cpp
 
 CC_WARN += -Wno-unused-variable
 

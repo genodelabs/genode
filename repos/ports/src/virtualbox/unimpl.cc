@@ -128,9 +128,6 @@ DUMMY(SELMR3GetShadowSelectorInfo)
 
 DUMMY(SUPR3HardenedLdrLoadPlugIn)
 
-DUMMY(SUPSemEventMultiWaitNoResume)
-DUMMY(SUPSemEventMultiReset)
-
 DUMMY(VMMR3GetHostToGuestSwitcher)
 
 DUMMY(RTHeapSimpleRelocate)
