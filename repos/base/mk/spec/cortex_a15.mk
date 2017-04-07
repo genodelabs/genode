@@ -23,4 +23,4 @@ REP_INC_DIR += include/spec/cortex_a15
 CC_MARCH += -mcpu=cortex-a15
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/arm_v7a.mk)
+include $(BASE_DIR)/mk/spec/arm_v7a.mk

@@ -11,5 +11,5 @@ SPECS += arm_v6 usb framebuffer gpio
 REP_INC_DIR += include/spec/rpi
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/arm_v6.mk)
-include $(call select_from_repositories,mk/spec/pl011.mk)
+include $(BASE_DIR)/mk/spec/arm_v6.mk
+include $(BASE_DIR)/mk/spec/pl011.mk

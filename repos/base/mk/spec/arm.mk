@@ -11,4 +11,4 @@ SPECS += 32bit
 #
 CC_OPT += -Wno-psabi
 
-include $(call select_from_repositories,mk/spec/32bit.mk)
+include $(BASE_DIR)/mk/spec/32bit.mk
