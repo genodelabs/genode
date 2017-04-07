@@ -1,5 +1,5 @@
 /*
- * \brief  Network echo test
+ * \brief  Network TCP echo test
  * \author Christian Helmuth
  * \date   2015-09-21
  */
@@ -25,6 +25,7 @@
 #include <cstring>
 
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -56,121 +57,63 @@ static void print(Genode::Output &output, sockaddr_in const &addr)
 }
 
 
-enum Test_mode { TEST_READER_WRITER, TEST_TRADITIONAL };
-
-static Test_mode const test_mode = TEST_TRADITIONAL;
-
-
-/***************************************
- ** Multi-threaded reader-writer test **
- ***************************************/
-
-class Worker : public Genode::Thread_deprecated<0x4000>
+static size_t test_nonblocking(int cd, bool const use_read_write)
 {
-	protected:
+	Genode::log("test in non-blocking mode");
 
-		Timer::Connection _timer;
+	int ret = 0;
 
-		char     _name[128];
-		unsigned _id;
-		int      _sd;
-		char     _buf[4096];
-
-		char const *_init_name(char const *type, unsigned id)
-		{
-			snprintf(_name, sizeof(_name), "%s.%u", type, id);
-			return _name;
-		}
-
-	public:
-
-		Worker(Genode::Env &env, char const *type, unsigned id, int sd)
-		:
-			Genode::Thread_deprecated<0x4000>(_init_name(type, id)),
-			_timer(env), _id(id), _sd(sd)
-		{ }
-};
-
-
-struct Reader : Worker
-{
-	Reader(Genode::Env &env, unsigned id, int sd)
-	: Worker(env, "reader", id, sd) { }
-
-	void entry() override
 	{
-		while (true) {
-//			_timer.msleep(100);
+		ret = fcntl(cd, F_GETFL);
+		if (ret == -1) DIE("fcntl");
+		Genode::log("F_GETFL returned ", Genode::Hex(ret), "(O_NONBLOCK=", !!(ret & O_NONBLOCK), ")");
 
-			int const ret = ::read(_sd, _buf, sizeof(_buf));
+		ret = fcntl(cd, F_SETFL, ret | O_NONBLOCK);
+		if (ret == -1) DIE("fcntl");
 
-			if (ret == -1)
-				break;
-		}
-
-		Genode::log(Genode::Cstring(_name), " finished errno=", errno);
+		ret = fcntl(cd, F_GETFL);
+		if (ret == -1) DIE("fcntl");
+		Genode::log("F_GETFL returned ", Genode::Hex(ret), "(O_NONBLOCK=", !!(ret & O_NONBLOCK), ")");
 	}
-};
 
+	size_t count = 0;
+	static char data[64*1024];
 
-struct Writer : Worker
-{
-	Writer(Genode::Env &env, unsigned id, int sd)
-	: Worker(env, "writer", id, sd) { }
+	while (true) {
+		ret = use_read_write
+		    ? read(cd, data, sizeof(data))
+		    : recv(cd, data, sizeof(data), 0);
 
-	void entry() override
-	{
-		size_t size = 0;
-
-		if (0) {
-			size = sizeof(_buf);
-			memset(_buf, 'x', size - 1);
-		} else {
-			size = strlen(_name) + 1;
-			strcpy(_buf, _name);
-		}
-		_buf[size - 1] = '\n';
-
-		while (true) {
-//			_timer.msleep(10 + _id*5);
-
-			int const ret = ::write(_sd, _buf, size);
-
-			if (ret == -1)
-				break;
+		if (ret == 0) {
+			Genode::log("experienced EOF");
+			return count;
 		}
 
-		Genode::log(Genode::Cstring(_name), " finished errno=", errno);
+		if (ret > 0) {
+			/* echo received data */
+			ret = use_read_write
+			    ? write(cd, data, ret)
+			    : send(cd, data, ret, 0);
+			if (ret == -1) DIE(use_read_write ? "write" : "send");
+
+			count += ret;
+			continue;
+		}
+
+		if (errno != EAGAIN) DIE(use_read_write ? "read" : "recv");
+
+		Genode::log("block in select because of EAGAIN");
+		fd_set read_fds; FD_ZERO(&read_fds); FD_SET(cd, &read_fds);
+		int ret = select(cd + 1, &read_fds, nullptr, nullptr, nullptr);
+		if (ret == -1) DIE("select");
 	}
-};
-
-
-static void test_reader_writer(Genode::Env &env, int cd)
-{
-	static Reader r0(env, 0, cd);
-	static Reader r1(env, 1, cd);
-	static Reader r2(env, 2, cd);
-	static Writer w0(env, 0, cd);
-	static Writer w1(env, 1, cd);
-	static Writer w2(env, 2, cd);
-
-	r0.start();
-	r1.start();
-	r2.start();
-	w0.start();
-	w1.start();
-	w2.start();
-
-	Genode::sleep_forever();
 }
 
 
-/****************************************
- ** Traditional (blocking) socket test **
- ****************************************/
-
-static size_t test_traditional(int cd, bool const use_read_write)
+static size_t test_blocking(int cd, bool const use_read_write)
 {
+	Genode::log("test in blocking mode");
+
 	size_t count = 0;
 	int ret = 0;
 	static char data[64*1024];
@@ -185,7 +128,10 @@ static size_t test_traditional(int cd, bool const use_read_write)
 		}
 
 		/* EOF */
-		if (ret == 0) return count;
+		if (ret == 0) {
+			Genode::log("experienced EOF");
+			return count;
+		}
 
 		if (use_read_write) {
 			ret = write(cd, data, ret);
@@ -238,6 +184,10 @@ static void server(Genode::Env &env, Genode::Xml_node const config)
 
 	unsigned const port           = config.attribute_value("port", 8080U);
 	bool     const use_read_write = config.attribute_value("read_write", false);
+	bool     const nonblock       = config.attribute_value("nonblock", false);
+
+	Genode::log("config: port=", port, " read_write=", use_read_write,
+	            " nonblock=", nonblock);
 
 	sockaddr_in const  addr { 0, AF_INET, htons(port), { INADDR_ANY } };
 	sockaddr    const *paddr = reinterpret_cast<sockaddr const *>(&addr);
@@ -266,12 +216,10 @@ static void server(Genode::Env &env, Genode::Xml_node const config)
 
 		test_getnames(cd);
 
-		if (0) {
-			test_reader_writer(env, cd);
-		} else {
-			size_t const count = test_traditional(cd, use_read_write);
-			Genode::log("echoed ", count, " bytes");
-		}
+		size_t const count = nonblock
+		                   ? test_nonblocking(cd, use_read_write)
+		                   : test_blocking(cd, use_read_write);
+		Genode::log("echoed ", count, " bytes");
 
 		ret = shutdown(cd, SHUT_RDWR);
 		if (ret == -1) DIE("shutdown");
