@@ -130,6 +130,30 @@ namespace Libc {
 		static Config_attr socket("socket", "");
 		return socket.string();
 	}
+
+	void notify_read_ready(Vfs::Vfs_handle *handle)
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			Vfs::Vfs_handle *handle;
+			Check(Vfs::Vfs_handle *handle) : handle(handle) { }
+			bool suspend() override { return !handle->fs().notify_read_ready(handle); }
+		} check(handle);
+
+		while (!handle->fs().notify_read_ready(handle))
+			Libc::suspend(check);
+	}
+
+	bool read_ready(Libc::File_descriptor *fd)
+	{
+		Vfs::Vfs_handle *handle = vfs_handle(fd);
+		if (!handle) return false;
+
+		notify_read_ready(handle);
+
+		return handle->fs().read_ready(handle);
+	}
+
 }
 
 int Libc::Vfs_plugin::access(const char *path, int amode)
@@ -325,6 +349,9 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 
 	Vfs::file_size out_count  = 0;
 	Result         out_result = Result::READ_OK;
+
+	if (fd->flags & O_NONBLOCK && !Libc::read_ready(fd))
+		return Errno(EAGAIN);
 
 	while (!handle->fs().queue_read(handle, (char *)buf, count,
 	                                out_result, out_count)) {
@@ -839,15 +866,7 @@ int Libc::Vfs_plugin::select(int nfds,
 				FD_SET(fd, readfds);
 				++nready;
 			} else {
-				struct Check : Libc::Suspend_functor {
-					Vfs::Vfs_handle * handle;
-					Check(Vfs::Vfs_handle * handle) : handle (handle) { }
-					bool suspend() override {
-						return !handle->fs().notify_read_ready(handle); }
-				} check ( handle );
-
-				while (!handle->fs().notify_read_ready(handle))
-					Libc::suspend(check);
+				Libc::notify_read_ready(handle);
 			}
 		}
 
@@ -861,18 +880,4 @@ int Libc::Vfs_plugin::select(int nfds,
 		/* XXX exceptfds not supported */
 	}
 	return nready;
-}
-
-namespace Libc {
-
-	bool read_ready(Libc::File_descriptor *fd)
-	{
-		Vfs::Vfs_handle *handle = vfs_handle(fd);
-		if (!handle) return false;
-
-		handle->fs().notify_read_ready(handle);
-
-		return handle->fs().read_ready(handle);
-	}
-
 }
