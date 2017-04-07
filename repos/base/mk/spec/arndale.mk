@@ -11,5 +11,5 @@ SPECS += exynos5
 REP_INC_DIR += include/spec/arndale
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/exynos5.mk)
+include $(BASE_DIR)/mk/spec/exynos5.mk
 

@@ -14,5 +14,5 @@ CC_MARCH += -march=armv6
 REP_INC_DIR += include/spec/arm_v6
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/arm.mk)
+include $(BASE_DIR)/mk/spec/arm.mk
 

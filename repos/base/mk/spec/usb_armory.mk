@@ -11,4 +11,4 @@ SPECS += imx53
 REP_INC_DIR += include/spec/usb_armory
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/imx53.mk)
+include $(BASE_DIR)/mk/spec/imx53.mk

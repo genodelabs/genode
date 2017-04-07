@@ -12,5 +12,5 @@ REP_INC_DIR += include/spec/imx53
 REP_INC_DIR += include/spec/imx
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/cortex_a8.mk)
+include $(BASE_DIR)/mk/spec/cortex_a8.mk
 

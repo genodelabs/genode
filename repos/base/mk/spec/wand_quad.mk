@@ -11,4 +11,4 @@ SPECS += imx6
 REP_INC_DIR += include/spec/wand_quad
 
 # include implied specs
-include $(call select_from_repositories,mk/spec/imx6.mk)
+include $(BASE_DIR)/mk/spec/imx6.mk
