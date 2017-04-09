@@ -695,7 +695,7 @@ extern "C" void sync(void)
 }
 
 
-extern "C" int kill(int pid, int sig)
+extern "C" int kill(__pid_t pid, int sig)
 {
 	if (verbose_signals)
 		log(__func__, ": pid=", pid, ", sig=", sig);

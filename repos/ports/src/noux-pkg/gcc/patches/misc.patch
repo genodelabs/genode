@@ -9,7 +9,7 @@ Changes lacking documentation
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/libgcc/config/t-libunwind-elf b/libgcc/config/t-libunwind-elf
-index beacf04..4556eb1 100644
+index cfde66e..aacf57c 100644
 --- a/libgcc/config/t-libunwind-elf
 +++ b/libgcc/config/t-libunwind-elf
 @@ -32,7 +32,7 @@ SHLIBUNWIND_SONAME = @shlib_base_name@.so.$(SHLIBUNWIND_SOVERSION)
@@ -22,7 +22,7 @@ index beacf04..4556eb1 100644
  	if [ -f $(SHLIB_DIR)/$(SHLIBUNWIND_SONAME) ]; then \
  	  mv -f $(SHLIB_DIR)/$(SHLIBUNWIND_SONAME) \
 diff --git a/libgcc/config/t-slibgcc b/libgcc/config/t-slibgcc
-index 1696fe8..0beb525 100644
+index 8c5f890..f2285a3 100644
 --- a/libgcc/config/t-slibgcc
 +++ b/libgcc/config/t-slibgcc
 @@ -26,7 +26,7 @@ SHLIB_MAP = @shlib_map_file@

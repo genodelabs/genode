@@ -8,10 +8,10 @@ Don't build libbacktrace, which needs a libc.
  1 file changed, 1 deletion(-)
 
 diff --git a/configure.ac b/configure.ac
-index 27ee905..8174460 100644
+index 74bf58a..dbfaf4d 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -152,7 +152,6 @@ libgcj="target-libffi \
+@@ -151,7 +151,6 @@ libgcj="target-libffi \
  # the host libraries and the host tools (which may be a cross compiler)
  # Note that libiberty is not a target library.
  target_libraries="target-libgcc \

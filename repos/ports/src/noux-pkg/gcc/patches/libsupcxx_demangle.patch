@@ -6,14 +6,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 ---
  include/libiberty.h                |    4 ++++
  libiberty/cp-demangle.c            |    4 +++-
- libstdc++-v3/libsupc++/Makefile.in |   10 +++++-----
- 3 files changed, 12 insertions(+), 6 deletions(-)
+ libstdc++-v3/libsupc++/Makefile.in |   19 ++++++++++++++++++-
+ 3 files changed, 25 insertions(+), 2 deletions(-)
 
 diff --git a/include/libiberty.h b/include/libiberty.h
-index 78c42eb..4fcf284 100644
+index a9c885f..a1479af 100644
 --- a/include/libiberty.h
 +++ b/include/libiberty.h
-@@ -47,7 +47,11 @@ extern "C" {
+@@ -46,7 +46,11 @@ extern "C" {
  /* Get a definition for va_list.  */
  #include <stdarg.h>
  
@@ -26,10 +26,10 @@ index 78c42eb..4fcf284 100644
  /* If the OS supports it, ensure that the supplied stream is setup to
     avoid any multi-threaded locking.  Otherwise leave the FILE pointer
 diff --git a/libiberty/cp-demangle.c b/libiberty/cp-demangle.c
-index 3d5d33e..e5f542f 100644
+index 78e5978..d9da7a4 100644
 --- a/libiberty/cp-demangle.c
 +++ b/libiberty/cp-demangle.c
-@@ -103,7 +103,9 @@
+@@ -107,7 +107,9 @@
  #include "config.h"
  #endif
  
@@ -39,7 +39,7 @@ index 3d5d33e..e5f542f 100644
  
  #ifdef HAVE_STDLIB_H
  #include <stdlib.h>
-@@ -5875,7 +5877,7 @@ d_demangle (const char *mangled, int options, size_t *palc)
+@@ -6187,7 +6189,7 @@ d_demangle (const char *mangled, int options, size_t *palc)
    return dgs.buf;
  }
  
@@ -49,38 +49,52 @@ index 3d5d33e..e5f542f 100644
  extern char *__cxa_demangle (const char *, char *, size_t *, int *);
  
 diff --git a/libstdc++-v3/libsupc++/Makefile.in b/libstdc++-v3/libsupc++/Makefile.in
-index 88b237e..f861d29 100644
+index f3648ac..169b927 100644
 --- a/libstdc++-v3/libsupc++/Makefile.in
 +++ b/libstdc++-v3/libsupc++/Makefile.in
-@@ -104,7 +104,7 @@ am__objects_1 = array_type_info.lo atexit_arm.lo atexit_thread.lo \
- 	new_opv.lo new_opvnt.lo pbase_type_info.lo pmem_type_info.lo \
- 	pointer_type_info.lo pure.lo si_class_type_info.lo tinfo.lo \
- 	tinfo2.lo vec.lo vmi_class_type_info.lo vterminate.lo
--@GLIBCXX_HOSTED_TRUE@am__objects_2 = cp-demangle.lo
+@@ -128,7 +128,11 @@ am__objects_1 = array_type_info.lo atexit_arm.lo atexit_thread.lo \
+ 	pbase_type_info.lo pmem_type_info.lo pointer_type_info.lo \
+ 	pure.lo si_class_type_info.lo tinfo.lo tinfo2.lo vec.lo \
+ 	vmi_class_type_info.lo vterminate.lo
++ifeq ($(GENODE),yes)
 +am__objects_2 = cp-demangle.lo
- @ENABLE_VTABLE_VERIFY_TRUE@am__objects_3 = vtv_stubs.lo
++else
+ @GLIBCXX_HOSTED_TRUE@am__objects_2 = cp-demangle.lo
++endif
+ @ENABLE_VTABLE_VERIFY_TRUE@@VTV_CYGMIN_FALSE@am__objects_3 =  \
+ @ENABLE_VTABLE_VERIFY_TRUE@@VTV_CYGMIN_FALSE@	vtv_stubs.lo
  am_libsupc___la_OBJECTS = $(am__objects_1) $(am__objects_2) \
- 	$(am__objects_3)
-@@ -367,8 +367,8 @@ bits_HEADERS = \
+@@ -398,8 +402,14 @@ bits_HEADERS = \
  	exception_defines.h exception_ptr.h hash_bytes.h nested_exception.h
  
  headers = $(std_HEADERS) $(bits_HEADERS)
--@GLIBCXX_HOSTED_TRUE@c_sources = \
--@GLIBCXX_HOSTED_TRUE@	cp-demangle.c
++
++ifeq ($(GENODE),yes)
 +c_sources = \
-+	cp-demangle.c
++  cp-demangle.c
++else
+ @GLIBCXX_HOSTED_TRUE@c_sources = \
+-@GLIBCXX_HOSTED_TRUE@	cp-demangle.c
++@GLIBCXX_HOSTED_TRUE@  cp-demangle.c
++endif
  
  sources = \
  	array_type_info.cc \
-@@ -801,9 +801,9 @@ cp-demangle.c:
+@@ -840,10 +850,17 @@ uninstall-am: uninstall-bitsHEADERS uninstall-stdHEADERS \
+ cp-demangle.c:
  	rm -f $@
  	$(LN_S) $(toplevel_srcdir)/libiberty/cp-demangle.c $@
- cp-demangle.lo: cp-demangle.c
--	$(LTCOMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
++ifeq ($(GENODE),yes)
++cp-demangle.lo: cp-demangle.c
 +	$(LTCOMPILE) -DGENODE -Wno-error -c $<
- cp-demangle.o: cp-demangle.c
--	$(C_COMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
++cp-demangle.o: cp-demangle.c
 +	$(C_COMPILE) -DGENODE -Wno-error -c $<
++else
+ cp-demangle.lo: cp-demangle.c
+ 	$(LTCOMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
+ cp-demangle.o: cp-demangle.c
+ 	$(C_COMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
++endif
  
  # Use special rules for the C++11 sources so that the proper flags are passed.
  bad_array_length.lo: bad_array_length.cc

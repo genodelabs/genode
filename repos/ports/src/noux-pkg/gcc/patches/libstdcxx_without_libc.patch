@@ -4,41 +4,42 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- libstdc++-v3/configure.ac |   10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ libstdc++-v3/configure.ac |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index 3e8b9c5..1543c25 100644
+index fdc4622..ed8a338 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -89,9 +89,9 @@ CXXFLAGS="$save_CXXFLAGS"
+@@ -89,9 +89,11 @@ CXXFLAGS="$save_CXXFLAGS"
  GLIBCXX_CONFIGURE
  
  # Libtool setup.
--if test "x${with_newlib}" != "xyes"; then
--  AC_LIBTOOL_DLOPEN
--fi
-+#if test "x${with_newlib}" != "xyes"; then
-+#  AC_LIBTOOL_DLOPEN
-+#fi
++if test "$is_hosted" = yes; then
+ if test "x${with_newlib}" != "xyes"; then
+   AC_LIBTOOL_DLOPEN
+ fi
++fi
  AM_PROG_LIBTOOL
  ACX_LT_HOST_FLAGS
  AC_SUBST(enable_shared)
-@@ -205,7 +205,7 @@ AC_CHECK_HEADERS(fenv.h complex.h)
+@@ -209,7 +211,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
  GLIBCXX_CHECK_C99_TR1
  
  # For the EOF, SEEK_CUR, and SEEK_END integer constants.
--GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS
-+#GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS
++if test "$is_hosted" = yes; then
+ GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS
++fi
  
  # For gettimeofday support.
  GLIBCXX_CHECK_GETTIMEOFDAY
-@@ -358,7 +358,7 @@ GCC_CHECK_UNWIND_GETIPINFO
+@@ -362,7 +366,9 @@ GCC_CHECK_UNWIND_GETIPINFO
  
  GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
  
--GCC_HEADER_STDINT(include/gstdint.h)
-+#GCC_HEADER_STDINT(include/gstdint.h)
++if test "$is_hosted" = yes; then
+ GCC_HEADER_STDINT(include/gstdint.h)
++fi
  
  GLIBCXX_ENABLE_SYMVERS([yes])
  AC_SUBST(libtool_VERSION)

@@ -13,7 +13,7 @@ nothing rather than '-prefer-pic'.
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index 1de0f6c..3e8b9c5 100644
+index 9e19e99..fdc4622 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
 @@ -115,16 +115,16 @@ fi

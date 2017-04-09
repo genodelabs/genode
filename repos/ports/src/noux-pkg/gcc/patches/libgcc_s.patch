@@ -4,30 +4,34 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- libgcc/Makefile.in |    6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+ libgcc/Makefile.in |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
 diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
-index e86e98d..ca2275d 100644
+index f09b39b..cabc562 100644
 --- a/libgcc/Makefile.in
 +++ b/libgcc/Makefile.in
-@@ -907,7 +907,7 @@ libgcc_s$(SHLIB_EXT): libunwind$(SHLIB_EXT)
+@@ -913,7 +913,11 @@ all: libunwind.a
  endif
  
  ifeq ($(enable_shared),yes)
--all: libgcc_eh.a libgcc_s$(SHLIB_EXT)
++ifeq ($(GENODE),yes)
 +all: libgcc_eh.a
++else
+ all: libgcc_eh.a libgcc_s$(SHLIB_EXT)
++endif
  ifneq ($(LIBUNWIND),)
  all: libunwind$(SHLIB_EXT)
- endif
-@@ -1090,10 +1090,6 @@ install-shared:
+ libgcc_s$(SHLIB_EXT): libunwind$(SHLIB_EXT)
+@@ -1115,9 +1119,11 @@ install-shared:
  	chmod 644 $(DESTDIR)$(inst_libdir)/libgcc_eh.a
  	$(RANLIB) $(DESTDIR)$(inst_libdir)/libgcc_eh.a
  
--	$(subst @multilib_dir@,$(MULTIDIR),$(subst \
--		@shlib_base_name@,libgcc_s,$(subst \
--		@shlib_slibdir_qual@,$(MULTIOSSUBDIR),$(SHLIB_INSTALL))))
--
++ifneq ($(GENODE),yes)
+ 	$(subst @multilib_dir@,$(MULTIDIR),$(subst \
+ 		@shlib_base_name@,libgcc_s,$(subst \
+ 		@shlib_slibdir_qual@,$(MULTIOSSUBDIR),$(SHLIB_INSTALL))))
++endif
+ 
  install-leaf: $(install-shared) $(install-libunwind)
  	$(mkinstalldirs) $(DESTDIR)$(inst_libdir)
- 

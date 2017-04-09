@@ -1,5 +1,3 @@
-riscv_files.patch
-riscv.patch
 config.patch
 misc.patch
 no_short_enums.patch
@@ -10,6 +8,5 @@ libsupcxx_demangle.patch
 libgcc_s.patch
 go_libbacktrace.patch
 target_libbacktrace.patch
-gnu_inline_mismatch.patch
 noux_build.patch
 arm.patch

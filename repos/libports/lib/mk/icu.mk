@@ -85,6 +85,9 @@ binary_$(ICU_DAT).o : $(ICU_DAT)
 
 CC_OPT += -DU_COMMON_IMPLEMENTATION -DU_I18N_IMPLEMENTATION
 
+# prevent redefinition of the 'uintptr_t' type
+CC_OPT += -D__intptr_t_defined
+
 CC_WARN += -Wno-deprecated-declarations
 
 LIBS = stdcxx pthread

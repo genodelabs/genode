@@ -4,14 +4,24 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- gcc/config/arm/arm.h |    1 -
- 1 file changed, 1 deletion(-)
+ gcc/config/arm/arm.h           |    3 +--
+ libgcc/config/arm/unwind-arm.h |    2 +-
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index c60d9a4..fefa7d4 100644
+index ad123dd..31ccb95 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -2381,7 +2381,6 @@ extern const char *arm_rewrite_mcpu (int argc, const char **argv);
+@@ -865,7 +865,7 @@ extern int arm_arch_crc;
+ #define EH_RETURN_STACKADJ_RTX	gen_rtx_REG (SImode, ARM_EH_STACKADJ_REGNUM)
+ 
+ #ifndef ARM_TARGET2_DWARF_FORMAT
+-#define ARM_TARGET2_DWARF_FORMAT DW_EH_PE_pcrel
++#define ARM_TARGET2_DWARF_FORMAT (DW_EH_PE_pcrel | DW_EH_PE_indirect)
+ #endif
+ 
+ /* ttype entries (the only interesting data references used)
+@@ -2250,7 +2250,6 @@ extern const char *arm_rewrite_mcpu (int argc, const char **argv);
  #if defined(__arm__)
  extern const char *host_detect_local_cpu (int argc, const char **argv);
  # define EXTRA_SPEC_FUNCTIONS						\
@@ -19,3 +29,16 @@ index c60d9a4..fefa7d4 100644
    BIG_LITTLE_CPU_SPEC_FUNCTIONS
  
  # define MCPU_MTUNE_NATIVE_SPECS					\
+diff --git a/libgcc/config/arm/unwind-arm.h b/libgcc/config/arm/unwind-arm.h
+index d67383f..9812a47 100644
+--- a/libgcc/config/arm/unwind-arm.h
++++ b/libgcc/config/arm/unwind-arm.h
+@@ -49,7 +49,7 @@ extern "C" {
+ 	return 0;
+ 
+ #if (defined(linux) && !defined(__uClinux__)) || defined(__NetBSD__) \
+-    || defined(__FreeBSD__)
++    || defined(__FreeBSD__) || 1
+       /* Pc-relative indirect.  */
+ #define _GLIBCXX_OVERRIDE_TTYPE_ENCODING (DW_EH_PE_pcrel | DW_EH_PE_indirect)
+       tmp += ptr;
