@@ -1,2 +1,2 @@
-riscv_files.patch
-riscv.patch
+arm.patch
+dynamic_list.patch
