@@ -1,0 +1,46 @@
+include_next.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ include/c_global/cmath   |    7 ++++++-
+ include/c_global/cstdlib |    7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/include/c_global/cmath b/include/c_global/cmath
+index 560632a..7a1c651 100644
+--- a/include/c_global/cmath
++++ b/include/c_global/cmath
+@@ -42,7 +42,12 @@
+ #include <bits/cpp_type_traits.h>
+ #include <ext/type_traits.h>
+ #define _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+-#include_next <math.h>
++// On Genode, the libc include paths appear before the stdcxx include paths
++// and the original '#include_next' failed. Adding the libc include paths
++// to INC_DIR again did not help, because the duplication was detected
++// and ignored. So, math.h is included with '#include' again, like in
++// previous GCC versions.
++#include <math.h>
+ #undef _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+ 
+ #ifndef _GLIBCXX_CMATH
+diff --git a/include/c_global/cstdlib b/include/c_global/cstdlib
+index 1ba5fb7..8ca65a1 100644
+--- a/include/c_global/cstdlib
++++ b/include/c_global/cstdlib
+@@ -72,7 +72,12 @@ namespace std
+ // Need to ensure this finds the C library's <stdlib.h> not a libstdc++
+ // wrapper that might already be installed later in the include search path.
+ #define _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+-#include_next <stdlib.h>
++// On Genode, the libc include paths appear before the stdcxx include paths
++// and the original '#include_next' failed. Adding the libc include paths
++// to INC_DIR again did not help, because the duplication was detected
++// and ignored. So, stdlib.h is included with '#include' again, like in
++// previous GCC versions.
++#include <stdlib.h>
+ #undef _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+ 
+ // Get rid of those macros defined in <stdlib.h> in lieu of real functions.

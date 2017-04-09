@@ -1,48 +1,68 @@
 LICENSE   := LGPL
-VERSION   := 4.9.2
+VERSION   := 6.3.0
 DOWNLOADS := gcc.archive
 
 URL(gcc) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
-SHA(gcc) := 79dbcb09f44232822460d80b033c962c0237c6d8
+SHA(gcc) := 928ab552666ee08eed645ff20ceb49d139205dea
 DIR(gcc) := src/lib/stdcxx
 SIG(gcc) := ${URL(gcc)}
 KEY(gcc) := GNU
 
-TAR_OPT(gcc) := gcc-$(VERSION)/libstdc++-v3 --strip-components=2
+TAR_OPT(gcc) := gcc-$(VERSION)/libstdc++-v3 \
+                gcc-$(VERSION)/libgcc/gthr-single.h \
+                --strip-components=2
 
-PATCHES   := src/lib/stdcxx/type_traits.patch
+PATCHES   := src/lib/stdcxx/*.patch
 PATCH_OPT := -p1 -d src/lib/stdcxx
 
 DIRS := include/stdcxx
 DIR_CONTENT(include/stdcxx) := \
     src/lib/stdcxx/include/* \
-    src/lib/stdcxx/libsupc++/new \
+    src/lib/stdcxx/include/c_compatibility/complex.h \
+    src/lib/stdcxx/include/c_compatibility/fenv.h \
+    src/lib/stdcxx/include/c_compatibility/tgmath.h \
+    src/lib/stdcxx/libsupc++/cxxabi.h \
     src/lib/stdcxx/libsupc++/exception \
-    src/lib/stdcxx/libsupc++/typeinfo \
-    src/lib/stdcxx/libsupc++/initializer_list
+    src/lib/stdcxx/libsupc++/initializer_list \
+    src/lib/stdcxx/libsupc++/new \
+    src/lib/stdcxx/libsupc++/typeinfo
 
 DIRS += include/stdcxx/bits
 DIR_CONTENT(include/stdcxx/bits) := \
-    src/lib/stdcxx/libsupc++/hash_bytes.h \
+    src/lib/stdcxx/libsupc++/atomic_lockfree_defines.h \
+    src/lib/stdcxx/libsupc++/cxxabi_forced.h \
     src/lib/stdcxx/libsupc++/exception_defines.h \
     src/lib/stdcxx/libsupc++/exception_ptr.h \
+    src/lib/stdcxx/libsupc++/hash_bytes.h \
     src/lib/stdcxx/libsupc++/nested_exception.h \
-    src/lib/stdcxx/libsupc++/cxxabi_forced.h \
-    src/lib/stdcxx/libsupc++/atomic_lockfree_defines.h \
+    src/lib/stdcxx/config/cpu/generic/atomic_word.h \
     src/lib/stdcxx/config/cpu/generic/cpu_defines.h \
     src/lib/stdcxx/config/cpu/generic/cxxabi_tweaks.h \
-    src/lib/stdcxx/config/os/generic/error_constants.h \
-    src/lib/stdcxx/config/os/generic/os_defines.h \
-    src/lib/stdcxx/config/cpu/generic/atomic_word.h \
+    src/lib/stdcxx/config/cpu/generic/opt/bits/opt_random.h \
     src/lib/stdcxx/config/os/generic/ctype_base.h \
     src/lib/stdcxx/config/os/generic/ctype_inline.h \
-    src/lib/stdcxx/config/locale/generic/time_members.h \
-    src/lib/stdcxx/config/locale/generic/messages_members.h
+    src/lib/stdcxx/config/os/generic/error_constants.h \
+    src/lib/stdcxx/config/os/generic/os_defines.h \
+    src/lib/stdcxx/config/locale/generic/messages_members.h \
+    src/lib/stdcxx/config/locale/generic/time_members.h
 
 DIRS += include/stdcxx/config
 DIR_CONTENT(include/stdcxx/config) := \
     src/lib/stdcxx/config/allocator/new_allocator_base.h \
-    src/lib/stdcxx/config/locale/generic/c_locale.h \
     src/lib/stdcxx/config/io/basic_file_stdio.h \
-    src/lib/stdcxx/config/io/c_io_stdio.h
+    src/lib/stdcxx/config/io/c_io_stdio.h \
+    src/lib/stdcxx/config/locale/generic/c_locale.h
 
+default: symlinks
+
+symlinks: $(DOWNLOADS)
+	ln -s ../../config/io/basic_file_stdio.h src/lib/stdcxx/include/bits/basic_file.h
+	ln -s ../../config/allocator/new_allocator_base.h src/lib/stdcxx/include/bits/c++allocator.h
+	ln -s ../../config/io/c_io_stdio.h src/lib/stdcxx/include/bits/c++io.h
+	ln -s ../../config/locale/generic/c_locale.h src/lib/stdcxx/include/bits/c++locale.h
+	ln -s ../../gthr-single.h src/lib/stdcxx/include/bits/gthr.h
+	ln -s atomicity_builtins/atomicity.h src/lib/stdcxx/config/cpu/generic/atomicity.cc
+	ln -s collate_members.cc src/lib/stdcxx/config/locale/generic/collate_members_cow.cc
+	ln -s messages_members.cc src/lib/stdcxx/config/locale/generic/messages_members_cow.cc
+	ln -s monetary_members.cc src/lib/stdcxx/config/locale/generic/monetary_members_cow.cc
+	ln -s numeric_members.cc src/lib/stdcxx/config/locale/generic/numeric_members_cow.cc
