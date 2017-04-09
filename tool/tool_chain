@@ -48,7 +48,7 @@ GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 #
 
 GCC_VERSION       = 4.9.2
-BINUTILS_VERSION  = 2.25
+BINUTILS_VERSION  = 2.28
 INSTALL_LOCATION  = /usr/local/genode-gcc
 
 #
@@ -192,6 +192,11 @@ BINUTILS_CONFIG += $(COMMON_CONFIG) --disable-werror
 # Fortunately, this define is not used outside of gas.
 #
 BINUTILS_CONFIG += CFLAGS=-DTE_LINUX
+
+# Disable the generation of new relocation types introduced with binutils 2.26
+# which are not recognized by older 'ld' versions. This is needed for hybrid
+# Genode/Linux components on Ubuntu 14.04 with binutils 2.24.
+BINUTILS_CONFIG_x86 += --disable-x86-relax-relocations
 
 #
 # Add platform-specific binutils configure arguments

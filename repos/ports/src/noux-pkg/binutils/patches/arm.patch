@@ -1,0 +1,21 @@
+Make the 'R_ARM_TARGET2' relocation type suitable for dynamic linking
+(needed for linking stdcxx.lib.so).
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+ ld/emultempl/armelf.em |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ld/emultempl/armelf.em b/ld/emultempl/armelf.em
+index 8a57727..98a668d 100644
+--- a/ld/emultempl/armelf.em
++++ b/ld/emultempl/armelf.em
+@@ -22,7 +22,7 @@
+ # This file is sourced from elf32.em, and defines extra arm-elf
+ # specific routines.
+ #
+-test -z "$TARGET2_TYPE" && TARGET2_TYPE="rel"
++test -z "$TARGET2_TYPE" && TARGET2_TYPE="got-rel"
+ fragment <<EOF
+ 
+ #include "ldctor.h"

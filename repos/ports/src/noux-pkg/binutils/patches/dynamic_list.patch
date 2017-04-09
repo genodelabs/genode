@@ -1,0 +1,57 @@
+From 73ec947d59c511411377ad51ef792a5fcdd3f0cc Mon Sep 17 00:00:00 2001
+From: Alan Modra <amodra@gmail.com>
+Date: Tue, 2 May 2017 21:56:43 +0930
+Subject: [PATCH] PR 21384, --dynamic-list regression with f02cb058
+
+The commit to "Always descend into output section statements in
+lang_do_assignments" meant that linker script symbols were not
+bfd_link_hash_new when ld called bfd_elf_record_link_assignment.
+This patch corrects that problem by testing h->non_elf instead.
+
+	PR 21384
+	* elflink.c (bfd_elf_link_mark_dynamic_symbol): Test h->non_elf
+	rather than h->root.type == bfd_link_hash_new.
+	(bfd_elf_record_link_assignment): Similarly, call
+	bfd_elf_link_mark_dynamic_symbol when h->non_elf.
+---
+ bfd/ChangeLog |  8 ++++++++
+ bfd/elflink.c | 12 +++++++++---
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/bfd/elflink.c b/bfd/elflink.c
+index 4af4b1c..9acc069 100644
+--- a/bfd/elflink.c
++++ b/bfd/elflink.c
+@@ -580,7 +580,7 @@ bfd_elf_link_mark_dynamic_symbol (struct bfd_link_info *info,
+ 	       && (ELF_ST_TYPE (sym->st_info) == STT_OBJECT
+ 		   || ELF_ST_TYPE (sym->st_info) == STT_COMMON))))
+       || (d != NULL
+-	  && h->root.type == bfd_link_hash_new
++	  && h->non_elf
+ 	  && (*d->match) (&d->head, NULL, h->root.root.string)))
+     h->dynamic = 1;
+ }
+@@ -623,6 +623,14 @@ bfd_elf_record_link_assignment (bfd *output_bfd,
+ 	}
+     }
+ 
++  /* Symbols defined in a linker script but not referenced anywhere
++     else will have non_elf set.  */
++  if (h->non_elf)
++    {
++      bfd_elf_link_mark_dynamic_symbol (info, h, NULL);
++      h->non_elf = 0;
++    }
++
+   switch (h->root.type)
+     {
+     case bfd_link_hash_defined:
+@@ -639,8 +647,6 @@ bfd_elf_record_link_assignment (bfd *output_bfd,
+ 	bfd_link_repair_undef_list (&htab->root);
+       break;
+     case bfd_link_hash_new:
+-      bfd_elf_link_mark_dynamic_symbol (info, h, NULL);
+-      h->non_elf = 0;
+       break;
+     case bfd_link_hash_indirect:
+       /* We had a versioned symbol in a dynamic library.  We make the
