@@ -122,7 +122,7 @@ endif
 # Empty DST_DIRS is interpreted as a tool-chain agnostic target, e.g., clean.
 #
 ifneq ($(DST_DIRS),)
-REQUIRED_GCC_VERSION ?= 4.9.2
+REQUIRED_GCC_VERSION ?= 6.3.0
 GCC_VERSION := $(filter $(REQUIRED_GCC_VERSION) ,$(shell $(CUSTOM_CXX) --version))
 ifneq ($(GCC_VERSION), $(REQUIRED_GCC_VERSION))
 $(error "$(CUSTOM_CXX) version $(REQUIRED_GCC_VERSION) is required")

@@ -9,12 +9,5 @@ this example calls the Ada main procedure. The test further exercises the call
 of C functions from Ada code. So the integration of Ada and C code is almost
 seamless.
 
-For building the Ada test program, you must have installed the GNU GNAT Ada
-compiler. Right now, we are using the host version of this compiler, which
-is save as long as we do not use advanced Ada features such as exceptions.
-To enable building the test program, add 'gnat' to the 'SPECS' declaration
-of your '<builddir>/etc/specs.conf'. Otherwise, the Genode build system
-will skip the target.
-
 Please note that the current version of this program does not use 'gnatbind'.
 Therefore, package elaboration is not executed.

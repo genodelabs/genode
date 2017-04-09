@@ -1,0 +1,36 @@
+build "core init test/ada"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+			<service name="RAM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-ada">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core ld.lib.so init test-ada"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {child "test-ada" exited with exit value 0.*} 10
+
+grep_output {init -> test-ada}
+unify_output {0x[0-9a-f]+} "UNIFIED"
+
+compare_output_to {
+	[init -> test-ada] Warning: using legacy main function, please convert to 'Component::construct'
+	[init -> test-ada] add called with a=13, b=14, result at address UNIFIED
+	[init -> test-ada] print_int called with argument 27
+}

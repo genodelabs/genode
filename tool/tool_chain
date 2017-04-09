@@ -13,11 +13,14 @@ help:
 	$(ECHO) "and will be created at '$(LOCAL_INSTALL_LOCATION)'."
 	$(ECHO)
 	$(ECHO) "--- available commands ---"
-	$(ECHO) "x86        - create tool chain for x86"
-	$(ECHO) "arm        - create tool chain for arm"
-	$(ECHO) "riscv      - create tool chain for riscv"
-	$(ECHO) "clean      - clean everything except downloaded archives"
-	$(ECHO) "cleanall   - clean everything including downloaded archives"
+	$(ECHO) "x86         - create tool chain for x86"
+	$(ECHO) "arm         - create tool chain for arm"
+	$(ECHO) "riscv       - create tool chain for riscv"
+	$(ECHO) "clean       - clean everything except downloaded archives"
+	$(ECHO) "cleanall    - clean everything including downloaded archives"
+	$(ECHO)
+	$(ECHO) "--- available command line options ---"
+	$(ECHO) "MAKE_JOBS=4 - number of parallel make jobs (default: 4)"
 	$(ECHO)
 
 #
@@ -34,7 +37,7 @@ $(SUPPORTED_PLATFORMS): install
 # Enable parallel build for 2nd-level $(MAKE) by default
 #
 
-MAKE_OPT ?= -j4
+MAKE_JOBS ?= 4
 
 #
 # Determine Genode base directory based on the known location of the
@@ -47,7 +50,7 @@ GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 # Tool versions and install location
 #
 
-GCC_VERSION       = 4.9.2
+GCC_VERSION       = 6.3.0
 BINUTILS_VERSION  = 2.28
 INSTALL_LOCATION  = /usr/local/genode-gcc
 
@@ -75,13 +78,7 @@ VERBOSE     = @
 #
 # Check if 'autoconf' is installed
 #
-AUTOCONF_VERSION_gcc_4.9.2 = 2.64
-
-AUTOCONF_VERSION = $(AUTOCONF_VERSION_gcc_$(GCC_VERSION))
-
-ifeq ($(AUTOCONF_VERSION),)
-$(error Unknown autoconf version for GCC $(GCC_VERSION).)
-endif
+AUTOCONF_VERSION = 2.64
 
 AUTOCONF_VERSION_STRING = "autoconf (GNU Autoconf) $(AUTOCONF_VERSION)"
 ifeq ($(shell autoconf -V | grep $(AUTOCONF_VERSION_STRING)),)
@@ -143,9 +140,16 @@ EXPAT_OK = $(call check_equal_f,\
              $(shell pkg-config --exists expat && echo ok),ok,\
              Need to have 'libexpat' installed.)
 
+#
+# Check if 'GNAT' is installed
+#
+HOST_GCC_VERSION := $(shell gcc -dumpversion)
+GNAT_OK = $(call check_equal_f,$(shell gnatmake --version | sed -n -e 's/GNATMAKE //p'),$(HOST_GCC_VERSION),\
+            Need to have GNAT installed and the GNAT version must match the GCC version (found GCC $(HOST_GCC_VERSION)).)
 
 TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
-           $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK)
+           $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK) \
+           $(GNAT_OK)
 
 ifneq ($(strip $(TOOLS_OK)),)
 $(error Please install missing tools.)
@@ -154,6 +158,9 @@ endif
 #
 # 'configure' parameters for binutils, gcc and gdb
 #
+
+LOCAL_BOOTSTRAP_INSTALL_LOCATION = $(shell pwd)/build/bootstrap/install
+export PATH := $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin:$(PATH)
 
 LOCAL_INSTALL_LOCATION = $(shell pwd)/build/install
 
@@ -175,6 +182,27 @@ CONFIG_QUIET = --quiet
 MAKEFLAGS   += --quiet
 export MAKEFLAGS
 endif
+
+COMMON_BOOTSTRAP_CONFIG = $(CONFIG_QUIET) \
+                          --prefix=$(LOCAL_BOOTSTRAP_INSTALL_LOCATION) \
+                          --disable-multilib
+
+BINUTILS_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG)
+
+GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
+                        --enable-languages=c,c++,ada \
+                        --disable-bootstrap \
+                        --disable-libatomic \
+                        --disable-libcilkrts \
+                        --disable-libgomp \
+                        --disable-libitm \
+                        --disable-libmpx \
+                        --disable-libsanitizer \
+                        --disable-libquadmath \
+                        --disable-libssp \
+                        --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
+                        --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION) \
+                        --with-mpc=$(LOCAL_LIB_INSTALL_LOCATION)
 
 COMMON_CONFIG = $(CONFIG_QUIET) \
                 --prefix=$(LOCAL_INSTALL_LOCATION) \
@@ -209,11 +237,13 @@ BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 GDB_CONFIG += $(COMMON_CONFIG) --disable-werror
 
 GCC_CONFIG += $(COMMON_CONFIG) \
-              --enable-languages=c,c++,go \
+              --enable-languages=c,c++,go,ada \
               --disable-libgo \
+              --disable-gotools \
               --disable-libssp \
               --disable-libquadmath \
               --disable-libffi \
+              --disable-libada \
               --enable-targets=all \
               --with-gnu-as \
               --with-gnu-ld \
@@ -243,12 +273,14 @@ TARGET_CONFIG_ARGS = $(CONFIG_QUIET)
 
 GCC_INSTALL_RULE = install-strip
 
+MAKE_OPT += GENODE="yes"
+
 #
 # Platform-specific multilib support
 #
 
-MAKE_OPT_x86 := MULTILIB_OPTIONS="m64/m32" MULTILIB_DIRNAMES="64 32"
-MAKE_OPT += $(MAKE_OPT_$(PLATFORM))
+GCC_MAKE_OPT_x86 := MULTILIB_OPTIONS="m64/m32" MULTILIB_DIRNAMES="64 32"
+GCC_MAKE_OPT += $(MAKE_OPT) $(GCC_MAKE_OPT_$(PLATFORM))
 
 #
 # Build rules and dependencies between build steps
@@ -257,9 +289,14 @@ MAKE_OPT += $(MAKE_OPT_$(PLATFORM))
 # dependencies. All other programs will be generated as side effect.
 #
 
+BINUTILS_BOOTSTRAP_BINARIES           = build/bootstrap/binutils/binutils/objdump
+BINUTILS_BOOTSTRAP_INSTALLED_BINARIES = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/objdump
+GCC_BOOTSTRAP_BINARIES                = build/bootstrap/gcc/gcc/xg++
+GCC_BOOTSTRAP_INSTALLED_BINARIES      = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/g++
+
 BINUTILS_BINARIES           = build/$(PLATFORM)/binutils/binutils/objdump
 BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-objdump
-GCC_BINARIES                = build/$(PLATFORM)/gcc/gcc/g++
+GCC_BINARIES                = build/$(PLATFORM)/gcc/gcc/g++-cross
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
 GDB_BINARIES                = build/$(PLATFORM)/gdb/gdb/gdb
 
@@ -301,20 +338,36 @@ $(BINUTILS_CONTRIB_DIR)/configure:
 	$(ECHO) "$(BRIGHT_COL)preparing binutils...$(DEFAULT_COL)"
 	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port binutils
 
-build/$(PLATFORM)/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure
+build/bootstrap/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure
+	$(ECHO) "$(BRIGHT_COL)configuring bootstrap binutils...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_BOOTSTRAP_CONFIG)
+
+$(BINUTILS_BOOTSTRAP_BINARIES): build/bootstrap/binutils/Makefile
+	$(ECHO) "$(BRIGHT_COL)building bootstrap binutils...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) -j$(MAKE_JOBS)
+
+$(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES): $(BINUTILS_BOOTSTRAP_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)installing bootstrap binutils...$(DEFAULT_COL)"
+	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
+		$(MAKE) -C build/bootstrap/binutils/$$i install-strip; done
+	$(VERBOSE)$(MAKE) -C build/bootstrap/binutils/libiberty install
+
+build/$(PLATFORM)/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure \
+                                     $(GCC_BOOTSTRAP_INSTALLED_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_CONFIG)
 
 $(BINUTILS_BINARIES): build/$(PLATFORM)/binutils/Makefile
-	$(ECHO) "$(BRIGHT_COL)builing binutils...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT)
+	$(ECHO) "$(BRIGHT_COL)building binutils...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT) -j$(MAKE_JOBS)
 
 $(BINUTILS_INSTALLED_BINARIES): $(BINUTILS_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing binutils...$(DEFAULT_COL)"
 	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
-		$(MAKE) -C build/$(PLATFORM)/binutils/$$i install-strip; done
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/binutils/libiberty install
+		$(MAKE) -C build/$(PLATFORM)/binutils/$$i install-strip $(MAKE_OPT); done
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/binutils/libiberty install $(MAKE_OPT)
 
 COMMON_LIB_CONFIG = --prefix=$(LOCAL_LIB_INSTALL_LOCATION) \
                     --disable-shared --enable-static
@@ -360,6 +413,25 @@ build/mpc/Makefile:
 	$(VERBOSE)cd $(dir $@); \
 		$(MPC_CONTRIB_DIR)/configure $(MPC_CONFIG)
 
+build/bootstrap/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
+                              $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES) \
+                              $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
+                              $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
+                              $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
+
+build/bootstrap/gcc/Makefile:
+	$(ECHO) "$(BRIGHT_COL)configuring bootstrap gcc...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); $(GCC_CONTRIB_DIR)/configure $(GCC_BOOTSTRAP_CONFIG)
+
+$(GCC_BOOTSTRAP_BINARIES): build/bootstrap/gcc/Makefile
+	$(ECHO) "$(BRIGHT_COL)building bootstrap gcc...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) -j$(MAKE_JOBS)
+
+$(GCC_BOOTSTRAP_INSTALLED_BINARIES): $(GCC_BOOTSTRAP_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)installing bootstrap gcc...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C build/bootstrap/gcc $(GCC_INSTALL_RULE)
+
 build/$(PLATFORM)/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
                                 $(BINUTILS_INSTALLED_BINARIES) \
                                 $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
@@ -374,16 +446,15 @@ build/$(PLATFORM)/gcc/Makefile:
 		target_configargs="$(TARGET_CONFIG_ARGS)" \
 		$(GCC_CONTRIB_DIR)/configure $(GCC_CONFIG)
 
-$(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile \
-                 $(LIBC)
-
 $(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile
-	$(ECHO) "$(BRIGHT_COL)builing gcc...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT)
+
+$(GCC_BINARIES):
+	$(ECHO) "$(BRIGHT_COL)building gcc...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(GCC_MAKE_OPT) -j$(MAKE_JOBS)
 
 $(GCC_INSTALLED_BINARIES): $(GCC_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gcc...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gcc $(GCC_INSTALL_RULE)
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gcc $(GCC_INSTALL_RULE) $(GCC_MAKE_OPT)
 
 GDB_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gdb)/src/noux-pkg/gdb
 
@@ -398,12 +469,12 @@ build/$(PLATFORM)/gdb/Makefile: $(GDB_CONTRIB_DIR)/configure
 		$(GDB_CONTRIB_DIR)/configure $(GDB_CONFIG)
 
 $(GDB_BINARIES): build/$(PLATFORM)/gdb/Makefile
-	$(ECHO) "$(BRIGHT_COL)builing gdb...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT)
+	$(ECHO) "$(BRIGHT_COL)building gdb...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT) -j$(MAKE_JOBS)
 
 $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gdb...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gdb install MAKEINFO=true
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
 
 #
 # Clean rules
@@ -421,4 +492,4 @@ cleanall: clean
 install: build_all
 	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
 	$(VERBOSE)sudo cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
-
+	$(VERBOSE)sudo cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake

@@ -67,9 +67,12 @@ endif
 #
 # Compiling Ada source codes
 #
+# The mandatory runtime directories 'adainclude' and 'adalib' are expected in
+# the program directory.
+#
 %.o: %.adb
 	$(MSG_COMP)$@
-	$(VERBOSE)gnatmake -q -c $(CC_ADA_OPT) $(INCLUDES) $<
+	$(VERBOSE)$(GNATMAKE) -q -c --GCC=$(CC) --RTS=$(PRG_DIR) $< -cargs $(CC_ADA_OPT) $(INCLUDES)
 
 #
 # Compiling Rust sources
