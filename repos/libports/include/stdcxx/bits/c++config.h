@@ -1,7 +1,6 @@
 // Predefined symbols and macros -*- C++ -*-
 
-// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+// Copyright (C) 1997-2016 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -32,7 +31,7 @@
 #define _GLIBCXX_CXX_CONFIG_H 1
 
 // The current version of the C++ library in compressed ISO date format.
-#define __GLIBCXX__ 20120920
+#define __GLIBCXX__ 20161221
 
 // Macros for various attributes.
 //   _GLIBCXX_PURE
@@ -59,14 +58,6 @@
 # endif
 #endif
 
-#ifndef _GLIBCXX_THROW_OR_ABORT
-# if __EXCEPTIONS
-#  define _GLIBCXX_THROW_OR_ABORT(_EXC) (throw (_EXC))
-# else
-#  define _GLIBCXX_THROW_OR_ABORT(_EXC) (__builtin_abort())
-# endif
-#endif
-
 // Macros for visibility attributes.
 //   _GLIBCXX_HAVE_ATTRIBUTE_VISIBILITY
 //   _GLIBCXX_VISIBILITY
@@ -87,7 +78,7 @@
 # define _GLIBCXX_USE_DEPRECATED 1
 #endif
 
-#if defined(__DEPRECATED) && defined(__GXX_EXPERIMENTAL_CXX0X__)
+#if defined(__DEPRECATED) && (__cplusplus >= 201103L)
 # define _GLIBCXX_DEPRECATED __attribute__ ((__deprecated__))
 #else
 # define _GLIBCXX_DEPRECATED
@@ -98,11 +89,12 @@
 # define _GLIBCXX_ABI_TAG_CXX11 __attribute ((__abi_tag__ ("cxx11")))
 #endif
 
+
 #if __cplusplus
 
 // Macro for constexpr, to support in mixed 03/0x mode.
 #ifndef _GLIBCXX_CONSTEXPR
-# ifdef __GXX_EXPERIMENTAL_CXX0X__
+# if __cplusplus >= 201103L
 #  define _GLIBCXX_CONSTEXPR constexpr
 #  define _GLIBCXX_USE_CONSTEXPR constexpr
 # else
@@ -111,14 +103,24 @@
 # endif
 #endif
 
+#ifndef _GLIBCXX14_CONSTEXPR
+# if __cplusplus >= 201402L
+#  define _GLIBCXX14_CONSTEXPR constexpr
+# else
+#  define _GLIBCXX14_CONSTEXPR
+# endif
+#endif
+
 // Macro for noexcept, to support in mixed 03/0x mode.
 #ifndef _GLIBCXX_NOEXCEPT
-# ifdef __GXX_EXPERIMENTAL_CXX0X__
+# if __cplusplus >= 201103L
 #  define _GLIBCXX_NOEXCEPT noexcept
+#  define _GLIBCXX_NOEXCEPT_IF(_COND) noexcept(_COND)
 #  define _GLIBCXX_USE_NOEXCEPT noexcept
 #  define _GLIBCXX_THROW(_EXC)
 # else
 #  define _GLIBCXX_NOEXCEPT
+#  define _GLIBCXX_NOEXCEPT_IF(_COND)
 #  define _GLIBCXX_USE_NOEXCEPT throw()
 #  define _GLIBCXX_THROW(_EXC) throw(_EXC)
 # endif
@@ -128,7 +130,15 @@
 # define _GLIBCXX_NOTHROW _GLIBCXX_USE_NOEXCEPT
 #endif
 
-// Macro for extern template, ie controling template linkage via use
+#ifndef _GLIBCXX_THROW_OR_ABORT
+# if __cpp_exceptions
+#  define _GLIBCXX_THROW_OR_ABORT(_EXC) (throw (_EXC))
+# else
+#  define _GLIBCXX_THROW_OR_ABORT(_EXC) (__builtin_abort())
+# endif
+#endif
+
+// Macro for extern template, ie controlling template linkage via use
 // of extern keyword on template declaration. As documented in the g++
 // manual, it inhibits all implicit instantiations and is used
 // throughout the library to avoid multiple weak definitions for
@@ -169,6 +179,11 @@
     namespace placeholders { }
     namespace regex_constants { }
     namespace this_thread { }
+    inline namespace literals {
+      inline namespace chrono_literals { }
+      inline namespace complex_literals { }
+      inline namespace string_literals { }
+    }
   }
 
   namespace abi { }
@@ -186,10 +201,41 @@ namespace std
   typedef __SIZE_TYPE__ 	size_t;
   typedef __PTRDIFF_TYPE__	ptrdiff_t;
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#if __cplusplus >= 201103L
   typedef decltype(nullptr)	nullptr_t;
 #endif
 }
+
+# define _GLIBCXX_USE_DUAL_ABI 1
+
+#if ! _GLIBCXX_USE_DUAL_ABI
+// Ignore any pre-defined value of _GLIBCXX_USE_CXX11_ABI
+# undef _GLIBCXX_USE_CXX11_ABI
+#endif
+
+#ifndef _GLIBCXX_USE_CXX11_ABI
+# define _GLIBCXX_USE_CXX11_ABI 1
+#endif
+
+#if _GLIBCXX_USE_CXX11_ABI
+namespace std
+{
+  inline namespace __cxx11 __attribute__((__abi_tag__ ("cxx11"))) { }
+}
+namespace __gnu_cxx
+{
+  inline namespace __cxx11 __attribute__((__abi_tag__ ("cxx11"))) { }
+}
+# define _GLIBCXX_NAMESPACE_CXX11 __cxx11::
+# define _GLIBCXX_BEGIN_NAMESPACE_CXX11 namespace __cxx11 {
+# define _GLIBCXX_END_NAMESPACE_CXX11 }
+# define _GLIBCXX_DEFAULT_ABI_TAG _GLIBCXX_ABI_TAG_CXX11
+#else
+# define _GLIBCXX_NAMESPACE_CXX11
+# define _GLIBCXX_BEGIN_NAMESPACE_CXX11
+# define _GLIBCXX_END_NAMESPACE_CXX11
+# define _GLIBCXX_DEFAULT_ABI_TAG
+#endif
 
 
 // Defined if inline namespaces are used for versioning.
@@ -222,8 +268,13 @@ namespace std
   namespace regex_constants { inline namespace __7 { } }
   namespace this_thread { inline namespace __7 { } }
 
+  inline namespace literals {
+    inline namespace chrono_literals { inline namespace __7 { } }
+    inline namespace complex_literals { inline namespace __7 { } }
+    inline namespace string_literals { inline namespace __7 { } }
+  }
+
   namespace __detail { inline namespace __7 { } }
-  namespace __regex { inline namespace __7 { } }
 }
 
 namespace __gnu_cxx
@@ -247,9 +298,13 @@ namespace std
   // Non-inline namespace for components replaced by alternates in active mode.
   namespace __cxx1998
   {
-#if _GLIBCXX_INLINE_VERSION
- inline namespace __7 { }
-#endif
+# if _GLIBCXX_INLINE_VERSION
+  inline namespace __7 { }
+# endif
+
+# if _GLIBCXX_USE_CXX11_ABI
+  inline namespace __cxx11 __attribute__((__abi_tag__ ("cxx11"))) { }
+# endif
   }
 
   // Inline namespace for debug mode.
@@ -301,9 +356,7 @@ namespace std
 # define _GLIBCXX_BEGIN_NAMESPACE_CONTAINER \
 	 namespace _GLIBCXX_STD_C { _GLIBCXX_BEGIN_NAMESPACE_VERSION
 # define _GLIBCXX_END_NAMESPACE_CONTAINER \
-	 } _GLIBCXX_END_NAMESPACE_VERSION
-# undef _GLIBCXX_EXTERN_TEMPLATE
-# define _GLIBCXX_EXTERN_TEMPLATE -1
+	 _GLIBCXX_END_NAMESPACE_VERSION }
 #endif
 
 #ifdef _GLIBCXX_PARALLEL
@@ -311,7 +364,7 @@ namespace std
 # define _GLIBCXX_BEGIN_NAMESPACE_ALGO \
 	 namespace _GLIBCXX_STD_A { _GLIBCXX_BEGIN_NAMESPACE_VERSION
 # define _GLIBCXX_END_NAMESPACE_ALGO \
-	 } _GLIBCXX_END_NAMESPACE_VERSION
+	 _GLIBCXX_END_NAMESPACE_VERSION }
 #endif
 
 #ifndef _GLIBCXX_STD_A
@@ -356,11 +409,30 @@ namespace std
 # define _GLIBCXX_BEGIN_NAMESPACE_LDBL
 # define _GLIBCXX_END_NAMESPACE_LDBL
 #endif
+#if _GLIBCXX_USE_CXX11_ABI
+# define _GLIBCXX_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_NAMESPACE_CXX11
+# define _GLIBCXX_BEGIN_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_BEGIN_NAMESPACE_CXX11
+# define _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_END_NAMESPACE_CXX11
+#else
+# define _GLIBCXX_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_NAMESPACE_LDBL
+# define _GLIBCXX_BEGIN_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_BEGIN_NAMESPACE_LDBL
+# define _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_END_NAMESPACE_LDBL
+#endif
+
+// Debug Mode implies checking assertions.
+#ifdef _GLIBCXX_DEBUG
+# define _GLIBCXX_ASSERTIONS 1
+#endif
+
+// Disable std::string explicit instantiation declarations in order to assert.
+#ifdef _GLIBCXX_ASSERTIONS
+# undef _GLIBCXX_EXTERN_TEMPLATE
+# define _GLIBCXX_EXTERN_TEMPLATE -1
+#endif
 
 // Assert.
-#if !defined(_GLIBCXX_DEBUG) && !defined(_GLIBCXX_PARALLEL)
-# define __glibcxx_assert(_Condition)
-#else
+#if defined(_GLIBCXX_ASSERTIONS) \
+  || defined(_GLIBCXX_PARALLEL) || defined(_GLIBCXX_PARALLEL_ASSERTIONS)
 namespace std
 {
   // Avoid the use of assert, because we're trying to keep the <cassert>
@@ -374,13 +446,19 @@ namespace std
     __builtin_abort();
   }
 }
-#define __glibcxx_assert(_Condition)				   	 \
+#define __glibcxx_assert_impl(_Condition)				 \
   do 									 \
   {							      		 \
     if (! (_Condition))                                                  \
       std::__replacement_assert(__FILE__, __LINE__, __PRETTY_FUNCTION__, \
 				#_Condition);				 \
   } while (false)
+#endif
+
+#if defined(_GLIBCXX_ASSERTIONS)
+# define __glibcxx_assert(_Condition) __glibcxx_assert_impl(_Condition)
+#else
+# define __glibcxx_assert(_Condition)
 #endif
 
 // Macros for race detectors.
@@ -415,6 +493,8 @@ namespace std
 # define _GLIBCXX_BEGIN_EXTERN_C extern "C" {
 # define _GLIBCXX_END_EXTERN_C }
 
+# define _GLIBCXX_USE_ALLOCATOR_NEW 1
+
 #else // !__cplusplus
 # define _GLIBCXX_BEGIN_EXTERN_C
 # define _GLIBCXX_END_EXTERN_C
@@ -442,6 +522,28 @@ namespace std
 # define _GLIBCXX_WEAK_DEFINITION
 #endif
 
+// By default, we assume that __GXX_WEAK__ also means that there is support
+// for declaring functions as weak while not defining such functions.  This
+// allows for referring to functions provided by other libraries (e.g.,
+// libitm) without depending on them if the respective features are not used.
+#ifndef _GLIBCXX_USE_WEAK_REF
+# define _GLIBCXX_USE_WEAK_REF __GXX_WEAK__
+#endif
+
+// Conditionally enable annotations for the Transactional Memory TS on C++11.
+// Most of the following conditions are due to limitations in the current
+// implementation.
+#if __cplusplus >= 201103L && _GLIBCXX_USE_CXX11_ABI			\
+  && _GLIBCXX_USE_DUAL_ABI && __cpp_transactional_memory >= 201505L	\
+  &&  !_GLIBCXX_FULLY_DYNAMIC_STRING && _GLIBCXX_USE_WEAK_REF		\
+  && _GLIBCXX_USE_ALLOCATOR_NEW
+#define _GLIBCXX_TXN_SAFE transaction_safe
+#define _GLIBCXX_TXN_SAFE_DYN transaction_safe_dynamic
+#else
+#define _GLIBCXX_TXN_SAFE
+#define _GLIBCXX_TXN_SAFE_DYN
+#endif
+
 
 // The remainder of the prewritten config is automatic; all the
 // user hooks are listed above.
@@ -462,6 +564,42 @@ namespace std
 // For example, <windows.h> is known to #define min and max as macros...
 #undef min
 #undef max
+
+// N.B. these _GLIBCXX_USE_C99_XXX macros are defined unconditionally
+// so they should be tested with #if not with #ifdef.
+#if __cplusplus >= 201103L
+# ifndef _GLIBCXX_USE_C99_MATH
+#  define _GLIBCXX_USE_C99_MATH _GLIBCXX11_USE_C99_MATH
+# endif
+# ifndef _GLIBCXX_USE_C99_COMPLEX
+# define _GLIBCXX_USE_C99_COMPLEX _GLIBCXX11_USE_C99_COMPLEX
+# endif
+# ifndef _GLIBCXX_USE_C99_STDIO
+# define _GLIBCXX_USE_C99_STDIO _GLIBCXX11_USE_C99_STDIO
+# endif
+# ifndef _GLIBCXX_USE_C99_STDLIB
+# define _GLIBCXX_USE_C99_STDLIB _GLIBCXX11_USE_C99_STDLIB
+# endif
+# ifndef _GLIBCXX_USE_C99_WCHAR
+# define _GLIBCXX_USE_C99_WCHAR _GLIBCXX11_USE_C99_WCHAR
+# endif
+#else
+# ifndef _GLIBCXX_USE_C99_MATH
+#  define _GLIBCXX_USE_C99_MATH _GLIBCXX98_USE_C99_MATH
+# endif
+# ifndef _GLIBCXX_USE_C99_COMPLEX
+# define _GLIBCXX_USE_C99_COMPLEX _GLIBCXX98_USE_C99_COMPLEX
+# endif
+# ifndef _GLIBCXX_USE_C99_STDIO
+# define _GLIBCXX_USE_C99_STDIO _GLIBCXX98_USE_C99_STDIO
+# endif
+# ifndef _GLIBCXX_USE_C99_STDLIB
+# define _GLIBCXX_USE_C99_STDLIB _GLIBCXX98_USE_C99_STDLIB
+# endif
+# ifndef _GLIBCXX_USE_C99_WCHAR
+# define _GLIBCXX_USE_C99_WCHAR _GLIBCXX98_USE_C99_WCHAR
+# endif
+#endif
 
 // End of prewritten config; the settings discovered at configure time follow.
 /* config.h.  Generated from config.h.in by configure.  */
@@ -494,6 +632,9 @@ namespace std
 /* Define to 1 if you have the `atanl' function. */
 /* #undef _GLIBCXX_HAVE_ATANL */
 
+/* Define to 1 if you have the `at_quick_exit' function. */
+/* #undef _GLIBCXX_HAVE_AT_QUICK_EXIT */
+
 /* Define to 1 if the target assembler supports thread-local storage. */
 /* #undef _GLIBCXX_HAVE_CC_TLS */
 
@@ -517,6 +658,9 @@ namespace std
 
 /* Define to 1 if you have the `cosl' function. */
 /* #undef _GLIBCXX_HAVE_COSL */
+
+/* Define to 1 if you have the <dirent.h> header file. */
+#define _GLIBCXX_HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define _GLIBCXX_HAVE_DLFCN_H 1
@@ -596,6 +740,9 @@ namespace std
 /* Define to 1 if you have the `fabsl' function. */
 /* #undef _GLIBCXX_HAVE_FABSL */
 
+/* Define to 1 if you have the <fcntl.h> header file. */
+#define _GLIBCXX_HAVE_FCNTL_H 1
+
 /* Define to 1 if you have the <fenv.h> header file. */
 #define _GLIBCXX_HAVE_FENV_H 1
 
@@ -638,7 +785,7 @@ namespace std
 /* Define if _Unwind_GetIPInfo is available. */
 #define _GLIBCXX_HAVE_GETIPINFO 1
 
-/* Define if gets is available in <stdio.h>. */
+/* Define if gets is available in <stdio.h> before C++14. */
 #define _GLIBCXX_HAVE_GETS 1
 
 /* Define to 1 if you have the `hypot' function. */
@@ -762,8 +909,14 @@ namespace std
 /* Define to 1 if you have the <nan.h> header file. */
 /* #undef _GLIBCXX_HAVE_NAN_H */
 
+/* Define if <math.h> defines obsolete isinf function. */
+#define _GLIBCXX_HAVE_OBSOLETE_ISINF 1
+
+/* Define if <math.h> defines obsolete isnan function. */
+#define _GLIBCXX_HAVE_OBSOLETE_ISNAN 1
+
 /* Define if poll is available in <poll.h>. */
-/* #undef _GLIBCXX_HAVE_POLL */
+#define _GLIBCXX_HAVE_POLL 1
 
 /* Define to 1 if you have the `powf' function. */
 /* #undef _GLIBCXX_HAVE_POWF */
@@ -773,6 +926,9 @@ namespace std
 
 /* Define to 1 if you have the `qfpclass' function. */
 /* #undef _GLIBCXX_HAVE_QFPCLASS */
+
+/* Define to 1 if you have the `quick_exit' function. */
+/* #undef _GLIBCXX_HAVE_QUICK_EXIT */
 
 /* Define to 1 if you have the `setenv' function. */
 /* #undef _GLIBCXX_HAVE_SETENV */
@@ -797,6 +953,9 @@ namespace std
 
 /* Define to 1 if you have the `sinl' function. */
 /* #undef _GLIBCXX_HAVE_SINL */
+
+/* Defined if sleep exists. */
+#define _GLIBCXX_HAVE_SLEEP 1
 
 /* Define to 1 if you have the `sqrtf' function. */
 /* #undef _GLIBCXX_HAVE_SQRTF */
@@ -834,6 +993,9 @@ namespace std
 /* Define to 1 if you have the `strtold' function. */
 /* #undef _GLIBCXX_HAVE_STRTOLD */
 
+/* Define to 1 if `d_type' is a member of `struct dirent'. */
+#define _GLIBCXX_HAVE_STRUCT_DIRENT_D_TYPE 1
+
 /* Define if strxfrm_l is available in <string.h>. */
 /* #undef _GLIBCXX_HAVE_STRXFRM_L */
 
@@ -862,8 +1024,14 @@ namespace std
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #define _GLIBCXX_HAVE_SYS_RESOURCE_H 1
 
+/* Define to 1 if you have a suitable <sys/sdt.h> header file */
+/* #undef _GLIBCXX_HAVE_SYS_SDT_H */
+
 /* Define to 1 if you have the <sys/sem.h> header file. */
 #define _GLIBCXX_HAVE_SYS_SEM_H 1
+
+/* Define to 1 if you have the <sys/statvfs.h> header file. */
+#define _GLIBCXX_HAVE_SYS_STATVFS_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define _GLIBCXX_HAVE_SYS_STAT_H 1
@@ -904,8 +1072,17 @@ namespace std
 /* Define to 1 if the target supports thread-local storage. */
 /* #undef _GLIBCXX_HAVE_TLS */
 
+/* Define to 1 if you have the <uchar.h> header file. */
+/* #undef _GLIBCXX_HAVE_UCHAR_H */
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #define _GLIBCXX_HAVE_UNISTD_H 1
+
+/* Defined if usleep exists. */
+#define _GLIBCXX_HAVE_USLEEP 1
+
+/* Define to 1 if you have the <utime.h> header file. */
+#define _GLIBCXX_HAVE_UTIME_H 1
 
 /* Defined if vfwscanf exists. */
 #define _GLIBCXX_HAVE_VFWSCANF 1
@@ -924,6 +1101,9 @@ namespace std
 
 /* Define to 1 if you have the <wctype.h> header file. */
 #define _GLIBCXX_HAVE_WCTYPE_H 1
+
+/* Defined if Sleep exists. */
+/* #undef _GLIBCXX_HAVE_WIN32_SLEEP */
 
 /* Define if writev is available in <sys/uio.h>. */
 #define _GLIBCXX_HAVE_WRITEV 1
@@ -1114,6 +1294,9 @@ namespace std
 /* Define to 1 if you have the `_tanl' function. */
 /* #undef _GLIBCXX_HAVE__TANL */
 
+/* Define to 1 if you have the `__cxa_thread_atexit_impl' function. */
+/* #undef _GLIBCXX_HAVE___CXA_THREAD_ATEXIT_IMPL */
+
 /* Define as const if the declaration of iconv() needs const. */
 /* #undef _GLIBCXX_ICONV_CONST */
 
@@ -1163,8 +1346,52 @@ namespace std
 /* Version number of package */
 /* #undef _GLIBCXX_VERSION */
 
+/* Define if C99 functions in <complex.h> should be used in <complex> for
+   C++11. Using compiler builtins for these functions requires corresponding
+   C99 library functions to be present. */
+/* #undef _GLIBCXX11_USE_C99_COMPLEX */
+
+/* Define if C99 functions or macros in <math.h> should be imported in <cmath>
+   in namespace std for C++11. */
+#define _GLIBCXX11_USE_C99_MATH 1
+
+/* Define if C99 functions or macros in <stdio.h> should be imported in
+   <cstdio> in namespace std for C++11. */
+#define _GLIBCXX11_USE_C99_STDIO 1
+
+/* Define if C99 functions or macros in <stdlib.h> should be imported in
+   <cstdlib> in namespace std for C++11. */
+/* #undef _GLIBCXX11_USE_C99_STDLIB */
+
+/* Define if C99 functions or macros in <wchar.h> should be imported in
+   <cwchar> in namespace std for C++11. */
+/* #undef _GLIBCXX11_USE_C99_WCHAR */
+
+/* Define if C99 functions in <complex.h> should be used in <complex> for
+   C++98. Using compiler builtins for these functions requires corresponding
+   C99 library functions to be present. */
+/* #undef _GLIBCXX98_USE_C99_COMPLEX */
+
+/* Define if C99 functions or macros in <math.h> should be imported in <cmath>
+   in namespace std for C++98. */
+#define _GLIBCXX98_USE_C99_MATH 1
+
+/* Define if C99 functions or macros in <stdio.h> should be imported in
+   <cstdio> in namespace std for C++98. */
+#define _GLIBCXX98_USE_C99_STDIO 1
+
+/* Define if C99 functions or macros in <stdlib.h> should be imported in
+   <cstdlib> in namespace std for C++98. */
+/* #undef _GLIBCXX98_USE_C99_STDLIB */
+
+/* Define if C99 functions or macros in <wchar.h> should be imported in
+   <cwchar> in namespace std for C++98. */
+/* #undef _GLIBCXX98_USE_C99_WCHAR */
+
 /* Define if the compiler supports C++11 atomics. */
+#ifndef __ARM_EABI__
 #define _GLIBCXX_ATOMIC_BUILTINS 1
+#endif
 
 /* Define to use concept checking code from the boost libraries. */
 /* #undef _GLIBCXX_CONCEPT_CHECKS */
@@ -1181,6 +1408,13 @@ namespace std
 
 /* Define if compatibility should be provided for -mlong-double-64. */
 
+/* Define to the letter to which size_t is mangled. */
+#ifdef __x86_64__
+#define _GLIBCXX_MANGLE_SIZE_T m
+#else
+#define _GLIBCXX_MANGLE_SIZE_T j
+#endif
+
 /* Define if ptrdiff_t is int. */
 #ifndef __x86_64__
 #define _GLIBCXX_PTRDIFF_T_IS_INT 1
@@ -1193,9 +1427,6 @@ namespace std
 #ifndef __x86_64__
 #define _GLIBCXX_SIZE_T_IS_UINT 1
 #endif
-
-/* Define if the compiler is configured for setjmp/longjmp exceptions. */
-/* #undef _GLIBCXX_SJLJ_EXCEPTIONS */
 
 /* Define to the value of the EOF integer constant. */
 #define _GLIBCXX_STDIO_EOF -1
@@ -1221,14 +1452,13 @@ namespace std
 /* Define to use Sun versioning in the shared library. */
 /* #undef _GLIBCXX_SYMVER_SUN */
 
+/* Define if C11 functions in <uchar.h> should be imported into namespace std
+   in <cuchar>. */
+/* #undef _GLIBCXX_USE_C11_UCHAR_CXX11 */
+
 /* Define if C99 functions or macros from <wchar.h>, <math.h>, <complex.h>,
    <stdio.h>, and <stdlib.h> can be used or exposed. */
 #define _GLIBCXX_USE_C99 1
-
-/* Define if C99 functions in <complex.h> should be used in <complex>. Using
-   compiler builtins for these functions requires corresponding C99 library
-   functions to be present. */
-#define _GLIBCXX_USE_C99_COMPLEX 1
 
 /* Define if C99 functions in <complex.h> should be used in <tr1/complex>.
    Using compiler builtins for these functions requires corresponding C99
@@ -1251,10 +1481,6 @@ namespace std
    <tr1/cinttypes> in namespace std::tr1. */
 /* #undef _GLIBCXX_USE_C99_INTTYPES_WCHAR_T_TR1 */
 
-/* Define if C99 functions or macros in <math.h> should be imported in <cmath>
-   in namespace std. */
-#define _GLIBCXX_USE_C99_MATH 1
-
 /* Define if C99 functions or macros in <math.h> should be imported in
    <tr1/cmath> in namespace std::tr1. */
 /* #undef _GLIBCXX_USE_C99_MATH_TR1 */
@@ -1262,6 +1488,10 @@ namespace std
 /* Define if C99 types in <stdint.h> should be imported in <tr1/cstdint> in
    namespace std::tr1. */
 #define _GLIBCXX_USE_C99_STDINT_TR1 1
+
+/* Defined if clock_gettime syscall has monotonic and realtime clock support.
+   */
+/* #undef _GLIBCXX_USE_CLOCK_GETTIME_SYSCALL */
 
 /* Defined if clock_gettime has monotonic clock support. */
 /* #undef _GLIBCXX_USE_CLOCK_MONOTONIC */
@@ -1272,6 +1502,12 @@ namespace std
 /* Define if ISO/IEC TR 24733 decimal floating point types are supported on
    this host. */
 /* #undef _GLIBCXX_USE_DECIMAL_FLOAT */
+
+/* Define if fchmod is available in <sys/stat.h>. */
+#define _GLIBCXX_USE_FCHMOD 1
+
+/* Define if fchmodat is available in <sys/stat.h>. */
+#define _GLIBCXX_USE_FCHMODAT 1
 
 /* Define if __float128 is supported on this host. */
 #ifndef __ARM_EABI__
@@ -1304,9 +1540,15 @@ namespace std
 /* Define if pthreads_num_processors_np is available in <pthread.h>. */
 /* #undef _GLIBCXX_USE_PTHREADS_NUM_PROCESSORS_NP */
 
+/* Define if POSIX read/write locks are available in <gthr.h>. */
+/* #undef _GLIBCXX_USE_PTHREAD_RWLOCK_T */
+
 /* Define if /dev/random and /dev/urandom are available for the random_device
    of TR1 (Chapter 5.1). */
 /* #undef _GLIBCXX_USE_RANDOM_TR1 */
+
+/* Define if usable realpath is available in <stdlib.h>. */
+/* #undef _GLIBCXX_USE_REALPATH */
 
 /* Defined if sched_yield is available. */
 /* #undef _GLIBCXX_USE_SCHED_YIELD */
@@ -1317,28 +1559,44 @@ namespace std
 /* Define if _SC_NPROC_ONLN is available in <unistd.h>. */
 /* #undef _GLIBCXX_USE_SC_NPROC_ONLN */
 
+/* Define if sendfile is available in <sys/sendfile.h>. */
+/* #undef _GLIBCXX_USE_SENDFILE */
+
+/* Define if struct stat has timespec members. */
+/* #undef _GLIBCXX_USE_ST_MTIM */
+
 /* Define if sysctl(), CTL_HW and HW_NCPU are available in <sys/sysctl.h>. */
 /* #undef _GLIBCXX_USE_SYSCTL_HW_NCPU */
+
+/* Define if obsolescent tmpnam is available in <stdio.h>. */
+#define _GLIBCXX_USE_TMPNAM 1
+
+/* Define if utimensat and UTIME_OMIT are available in <sys/stat.h> and
+   AT_FDCWD in <fcntl.h>. */
+/* #undef _GLIBCXX_USE_UTIMENSAT */
 
 /* Define if code specialized for wchar_t should be used. */
 #define _GLIBCXX_USE_WCHAR_T 1
 
+/* Define to 1 if a verbose library is built, or 0 otherwise. */
+#define _GLIBCXX_VERBOSE 1
+
+/* Defined if as can handle rdrand. */
+#ifndef __ARM_EABI__
+#define _GLIBCXX_X86_RDRAND 1
+#endif
+
 /* Define to 1 if mutex_timedlock is available. */
 #define _GTHREAD_USE_MUTEX_TIMEDLOCK 1
 
-/* Define if all C++ overloads are available in <math.h>.  */
-#if __cplusplus >= 199711L
-/* #undef __CORRECT_ISO_CPP_MATH_H_PROTO1 */
+/* Define if all C++11 floating point overloads are available in <math.h>.  */
+#if __cplusplus >= 201103L
+/* #undef __CORRECT_ISO_CPP11_MATH_H_PROTO_FP */
 #endif
 
-/* Define if only double std::abs(double) is available in <math.h>.  */
-#if __cplusplus >= 199711L
-/* #undef __CORRECT_ISO_CPP_MATH_H_PROTO2 */
-#endif
-
-/* Define if all C++ overloads are available in <stdlib.h>.  */
-#if __cplusplus >= 199711L
-/* #undef __CORRECT_ISO_CPP_STDLIB_H_PROTO */
+/* Define if all C++11 integral type overloads are available in <math.h>.  */
+#if __cplusplus >= 201103L
+/* #undef __CORRECT_ISO_CPP11_MATH_H_PROTO_INT */
 #endif
 
 #if defined (_GLIBCXX_HAVE__ACOSF) && ! defined (_GLIBCXX_HAVE_ACOSF)

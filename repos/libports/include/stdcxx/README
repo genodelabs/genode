@@ -2,11 +2,15 @@ file origins
 ------------
 
 - bits/gstdint.h:   manually created
-- bits/gthr.h:      renamed copy of 'libgcc/gthr-single.h' from GCC source
 - bits/c++config.h:
-  - run 'make noux-pkg/gcc_x86' for a 32-bit x86 platform
-  - run 'make noux-pkg/gcc_x86' for a 64-bit x86 platform
-  - run 'make noux-pkg/gcc_arm' for a 32-bit ARM platform
-  - compare the generated 'c++config.h' files
-  - create a combined 'c++config.h' file by making the differing macros
+  - apply https://github.com/cproc/genode_stuff/blob/stdcxx/stdcxx_update_genode.patch
+    (update the gcc port hash if it conflicts)
+  - prepare the modified gcc port
+  - run 'make noux-pkg/gcc_x86' for the 'x86_32' platform
+  - find 'build/x86_32/noux-pkg/gcc_x86/x86_64-pc-elf/32/libstdc++-v3/include/x86_64-pc-elf/bits/c++config.h'
+  - run 'make noux-pkg/gcc_x86' for the 'x86_64' platform
+  - find 'build/x86_64/noux-pkg/gcc_x86/x86_64-pc-elf/64/libstdc++-v3/include/x86_64-pc-elf/bits/c++config.h'
+  - run 'make noux-pkg/gcc_arm' for the 'pbxa9' platform
+  - find 'build/pbxa9/noux-pkg/gcc_arm/arm-none-eabi/libstdc++-v3/include/arm-none-eabi/bits/c++config.h'
+  - create a combined 'c++config.h' file by making the differing macros of the three generated files
     depend on the '__x86_64__' and '__ARM_EABI__' macros
