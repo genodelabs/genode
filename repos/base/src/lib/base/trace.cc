@@ -122,6 +122,7 @@ bool Trace::Logger::_evaluate_control()
 }
 
 
+__attribute__((optimize("-fno-delete-null-pointer-checks")))
 void Trace::Logger::log(char const *msg, size_t len)
 {
 	if (!this || !_evaluate_control()) return;
