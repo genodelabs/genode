@@ -37,13 +37,13 @@ constexpr size_t Link_side_id::data_size()
 
 bool Link_side_id::operator == (Link_side_id const &id) const
 {
-	return memcmp(id.data, data, data_size()) == 0;
+	return memcmp(id.data_base(), data_base(), data_size()) == 0;
 }
 
 
 bool Link_side_id::operator > (Link_side_id const &id) const
 {
-	return memcmp(id.data, data, data_size()) > 0;
+	return memcmp(id.data_base(), data_base(), data_size()) > 0;
 }
 
 

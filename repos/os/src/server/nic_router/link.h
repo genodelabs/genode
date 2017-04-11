@@ -42,13 +42,14 @@ namespace Net {
 
 struct Net::Link_side_id
 {
-	int          const data[];
 	Ipv4_address const src_ip;
 	Port         const src_port;
 	Ipv4_address const dst_ip;
 	Port         const dst_port;
 
 	static constexpr Genode::size_t data_size();
+
+	void *data_base() const { return (void *)&src_ip; }
 
 
 	/************************
