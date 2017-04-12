@@ -32,7 +32,7 @@ Ipc_pager::Ipc_pager(Nova::Utcb * utcb, addr_t pd_dst, addr_t pd_core)
 	_sp(utcb->sp),
 	_fault_type(utcb->qual[0]),
 	_syscall_res(Nova::NOVA_OK),
-	_normal_ipc((((addr_t)&utcb->qual[2] - (addr_t)utcb->msg) / sizeof(addr_t))
+	_normal_ipc((((addr_t)&utcb->qual[2] - (addr_t)utcb->msg()) / sizeof(addr_t))
 	            == utcb->msg_words())
 {
 

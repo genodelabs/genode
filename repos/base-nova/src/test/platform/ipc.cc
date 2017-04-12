@@ -36,9 +36,9 @@ long Test::cap_void_manual(Genode::Native_capability dst,
 	/* don't open receive window */
 	utcb->crd_rcv = Nova::Obj_crd();
 	/* not used on base-nova */
-	utcb->msg[0]  = 0;
+	utcb->msg()[0]  = 0;
 	/* method number of RPC interface to be called on server side */
-	utcb->msg[1]  = 0;
+	utcb->msg()[1]  = 0;
 	utcb->set_msg_word(2);
 
 	Nova::Crd crd = Genode::Capability_space::crd(arg1);
@@ -50,7 +50,7 @@ long Test::cap_void_manual(Genode::Native_capability dst,
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
 
-	local_reply = utcb->msg[1];
-	return (res == Nova::NOVA_OK && utcb->msg_words() == 3 && utcb->msg[2])
-	       ? utcb->msg[0] : Genode::Rpc_exception_code::INVALID_OBJECT;
+	local_reply = utcb->msg()[1];
+	return (res == Nova::NOVA_OK && utcb->msg_words() == 3 && utcb->msg()[2])
+	       ? utcb->msg()[0] : Genode::Rpc_exception_code::INVALID_OBJECT;
 }

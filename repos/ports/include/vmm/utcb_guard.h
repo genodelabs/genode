@@ -45,7 +45,7 @@ class Vmm::Utcb_guard
 			Nova::Utcb *utcb =
 				reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 
-			unsigned header_len = (char *)utcb->msg - (char *)utcb;
+			unsigned header_len = (char *)utcb->msg() - (char *)utcb;
 			unsigned len = header_len + utcb->msg_words() * sizeof(Nova::mword_t);
 			Genode::memcpy(&_backup_utcb, utcb, len);
 
@@ -57,7 +57,7 @@ class Vmm::Utcb_guard
 		{
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(&_backup_utcb);
 
-			unsigned header_len = (char *)utcb->msg - (char *)utcb;
+			unsigned header_len = (char *)utcb->msg() - (char *)utcb;
 			unsigned len = header_len + utcb->msg_words() * sizeof(Nova::mword_t);
 			Genode::memcpy(Thread::myself()->utcb(), utcb, len);
 		}

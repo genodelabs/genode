@@ -90,7 +90,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	_delay_start.unlock();
 
 	/* make a IPC to ensure that cap() identifier is not used anymore */
-	utcb->msg[0] = 0xdead;
+	utcb->msg()[0] = 0xdead;
 	utcb->set_msg_word(1);
 	if (uint8_t res = call(_cap.local_name()))
 		error(utcb, " - could not clean up entry point of thread ", this->utcb(), " - res ", res);

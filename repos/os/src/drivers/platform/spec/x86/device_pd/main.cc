@@ -82,7 +82,7 @@ static bool map_eager(Genode::addr_t const page, unsigned log2_order)
 
 	while (true) {
 		/* setup faked page fault information */
-		utcb->set_msg_word(((addr_t)&utcb->qual[2] - (addr_t)utcb->msg) /
+		utcb->set_msg_word(((addr_t)&utcb->qual[2] - (addr_t)utcb->msg()) /
 		                   sizeof(addr_t));
 		utcb->ip      = reinterpret_cast<addr_t>(map_eager);
 		utcb->qual[1] = page;
