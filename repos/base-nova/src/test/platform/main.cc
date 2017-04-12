@@ -438,7 +438,7 @@ class Pager : private Genode::Thread {
 				while (1) { }
 			}
 
-			Genode::addr_t map_from = utcb->msg[0];
+			Genode::addr_t map_from = utcb->msg()[0];
 //			Genode::error("pager: got map request ", Genode::Hex(map_from));
 
 			utcb->set_msg_word(0);
@@ -524,14 +524,14 @@ class Cause_mapping : public Genode::Thread {
 
 //				touch_read((unsigned char *)_mem_st);
 
-				nova_utcb->msg[0] = _mem_st;
+				nova_utcb->msg()[0] = _mem_st;
 				nova_utcb->set_msg_word(1);
 				nova_utcb->crd_rcv = Nova::Mem_crd(_mem_nd >> 12, 0,
 				                                   _mapping_rwx);
 				Nova::call(_call_to_map.local_name());
 				//touch_read((unsigned char *)_mem_nd);
 
-				nova_utcb->msg[0] = _mem_nd;
+				nova_utcb->msg()[0] = _mem_nd;
 				nova_utcb->set_msg_word(1);
 				nova_utcb->crd_rcv = Nova::Mem_crd((_mem_nd + 0x1000) >> 12, 0,
 				                                   _mapping_rwx);

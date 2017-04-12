@@ -40,7 +40,7 @@ inline void request_event_portal(Genode::addr_t const cap,
 
 	/* request event-handler portal */
 	utcb->crd_rcv = Nova::Obj_crd(sel, 0);
-	utcb->msg[0]  = event;
+	utcb->msg()[0]  = event;
 	utcb->set_msg_word(1);
 
 	Genode::uint8_t res = Nova::call(cap);
@@ -85,7 +85,7 @@ inline void translate_remote_pager(Genode::addr_t const cap,
 	};
 
 	/* translate one item */
-	utcb->msg[0] = 0xaffe;
+	utcb->msg()[0] = 0xaffe;
 	utcb->set_msg_word(1);
 
 	Nova::Obj_crd obj_crd(sel, 0);

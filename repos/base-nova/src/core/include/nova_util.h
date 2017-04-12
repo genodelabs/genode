@@ -69,16 +69,16 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 	utcb->crd_rcv = dst_crd;
 
 	/* tell echo thread what to map */
-	utcb->msg[0] = src_crd.value();
-	utcb->msg[1] = 0;
-	utcb->msg[2] = kern_pd;
-	utcb->msg[3] = dma_mem;
-	utcb->msg[4] = write_combined;
+	utcb->msg()[0] = src_crd.value();
+	utcb->msg()[1] = 0;
+	utcb->msg()[2] = kern_pd;
+	utcb->msg()[3] = dma_mem;
+	utcb->msg()[4] = write_combined;
 	utcb->set_msg_word(5);
 
 	/* establish the mapping via a portal traversal during reply phase */
 	Nova::uint8_t res = Nova::call(echo()->pt_sel());
-	if (res != Nova::NOVA_OK || utcb->msg_words() != 1 || !utcb->msg[0] ||
+	if (res != Nova::NOVA_OK || utcb->msg_words() != 1 || !utcb->msg()[0] ||
 	    utcb->msg_items() != 1) {
 
 		typedef Genode::Hex Hex;
@@ -88,7 +88,7 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 		      "result=", Hex(res), " "
 		      "msg=",    Hex(utcb->msg_items()), ":",
 		                 Hex(utcb->msg_words()), ":",
-		                 Hex(utcb->msg[0]), " !!! "
+		                 Hex(utcb->msg()[0]), " !!! "
 		      "utcb=",   utcb, " "
 		      "kern=",   kern_pd);
 		return res > 0 ? res : -1;

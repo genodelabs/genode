@@ -44,7 +44,7 @@ static inline Nova::mword_t copy_utcb_to_msgbuf(Nova::Utcb             &utcb,
 		return 0;
 
 	/* the UTCB contains the protocol word followed by the message data */
-	mword_t const protocol_word  = utcb.msg[0];
+	mword_t const protocol_word  = utcb.msg()[0];
 	size_t        num_data_words = num_msg_words - 1;
 
 	if (num_data_words*sizeof(mword_t) > rcv_msg.capacity()) {
@@ -55,7 +55,7 @@ static inline Nova::mword_t copy_utcb_to_msgbuf(Nova::Utcb             &utcb,
 	}
 
 	/* read message payload into destination message buffer */
-	mword_t *src = (mword_t *)(void *)(&utcb.msg[1]);
+	mword_t *src = (mword_t *)(void *)(&utcb.msg()[1]);
 	mword_t *dst = (mword_t *)rcv_msg.data();
 	for (unsigned i = 0; i < num_data_words; i++)
 		*dst++ = *src++;
@@ -96,11 +96,11 @@ static inline bool copy_msgbuf_to_utcb(Nova::Utcb                &utcb,
 		num_msg_words = NUM_MSG_REGS;
 	}
 
-	utcb.msg[0] = protocol_value;
+	utcb.msg()[0] = protocol_value;
 
 	/* store message into UTCB message registers */
 	mword_t *src = (mword_t *)&msg_buf[0];
-	mword_t *dst = (mword_t *)(void *)&utcb.msg[1];
+	mword_t *dst = (mword_t *)(void *)&utcb.msg()[1];
 	for (unsigned i = 0; i < num_data_words; i++)
 		*dst++ = *src++;
 

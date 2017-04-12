@@ -311,7 +311,7 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 		reply(myself->stack_top());
 	}
 
-	addr_t const event = utcb->msg[0];
+	addr_t const event = utcb->msg()[0];
 
 	/* check for translated pager portals - required for vCPU in remote PDs */
 	if (utcb->msg_items() == 1 && utcb->msg_words() == 1 && event == 0xaffe) {

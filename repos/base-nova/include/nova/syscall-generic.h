@@ -518,9 +518,6 @@ namespace Nova {
 		 */
 		union {
 
-			/* message payload */
-			mword_t msg[];
-
 			/* exception state */
 			struct {
 				mword_t mtd, instr_len, ip, flags;
@@ -565,6 +562,9 @@ namespace Nova {
 				unsigned long long tsc_val, tsc_off;
 			} __attribute__((packed));
 		};
+
+		/* message payload */
+		mword_t * msg() { return reinterpret_cast<mword_t *>(&mtd); }
 
 		struct Item {
 			mword_t crd;
@@ -673,7 +673,7 @@ namespace Nova {
 			item += (PAGE_SIZE_BYTE / sizeof(struct Item)) - msg_items();
 
 			/* check that there is enough space left on UTCB */
-			if (msg + msg_words() >= reinterpret_cast<mword_t *>(item)) {
+			if (msg() + msg_words() >= reinterpret_cast<mword_t *>(item)) {
 				items -= 1 << 16;
 				return false;
 			}
@@ -707,7 +707,7 @@ namespace Nova {
 		Item * get_item(const unsigned i) {
 			if (i > (PAGE_SIZE_BYTE / sizeof(struct Item))) return 0;
 			Item * item = reinterpret_cast<Item *>(this) + (PAGE_SIZE_BYTE / sizeof(struct Item)) - i - 1;
-			if (reinterpret_cast<mword_t *>(item) < this->msg) return 0;
+			if (reinterpret_cast<mword_t *>(item) < this->msg()) return 0;
 			return item;
 		}
 
