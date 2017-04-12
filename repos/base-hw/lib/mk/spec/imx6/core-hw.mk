@@ -12,7 +12,6 @@ INC_DIR += $(REP_DIR)/src/core/spec/imx
 
 # add C++ sources
 SRC_CC += platform_services.cc
-SRC_CC += spec/imx6/platform_support.cc
 
 NR_OF_CPUS = 4
 

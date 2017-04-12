@@ -18,33 +18,6 @@
 /* core includes */
 #include <spec/arm/cpu_support.h>
 
-namespace Genode { class Cpu; }
-
-
-class Genode::Cpu : public Arm
-{
-	public:
-
-		/**
-		 * Cache type register
-		 */
-		struct Ctr : Arm::Ctr
-		{
-			struct P : Bitfield<23, 1> { }; /* page mapping restriction on */
-		};
-
-		/**
-		 * If page descriptor bits [13:12] are restricted
-		 */
-		static bool restricted_page_mappings() {
-			return Ctr::P::get(Ctr::read()); }
-
-
-		/*************
-		 ** Dummies **
-		 *************/
-
-		static void wait_for_interrupt() { /* FIXME */ }
-};
+namespace Genode { using Cpu = Arm_cpu; }
 
 #endif /* _CORE__SPEC__ARM_V6__CPU_H_ */

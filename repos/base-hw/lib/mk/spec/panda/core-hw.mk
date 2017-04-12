@@ -11,7 +11,6 @@ INC_DIR += $(REP_DIR)/src/core/spec/tl16c750
 
 # add C++ sources
 SRC_CC += platform_services.cc
-SRC_CC += spec/panda/platform_support.cc
 
 NR_OF_CPUS += 2
 

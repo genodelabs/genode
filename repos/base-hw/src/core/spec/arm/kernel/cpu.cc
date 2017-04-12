@@ -28,5 +28,8 @@ void Kernel::Cpu::init(Kernel::Pic &pic)
 }
 
 
-void Kernel::Cpu_domain_update::_domain_update() {
-	cpu_pool()->cpu(Cpu::executing_id())->invalidate_tlb_by_pid(_domain_id); }
+void Kernel::Cpu_domain_update::_domain_update()
+{
+	/* flush TLB by ASID */
+	Cpu::Tlbiasid::write(_domain_id);
+}

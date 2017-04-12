@@ -21,61 +21,16 @@
 namespace Genode { class Cpu; }
 
 
-class Genode::Cpu : public Arm_v7
+class Genode::Cpu : public Arm_v7_cpu
 {
 	public:
-
-		struct Sctlr : Register<32>
-		{
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mcr p15, 0, %[v], c1, c0, 0" : [v] "=r" (v));
-				return v;
-			}
-		};
-		struct Ttbcr : Register<32>
-		{
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mcr p15, 0, %[v], c2, c0, 2" : [v] "=r" (v));
-				return v;
-			}
-		};
-		struct Mair0 : Register<32>
-		{
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mcr p15, 0, %[v], c10, c2, 0" : [v] "=r" (v));
-				return v;
-			}
-		};
 
 		/**
 		 * Translation table base register 0 (64-bit format)
 		 */
-		struct Ttbr0 : Register<64>
+		struct Ttbr0 : Ttbr0_64bit
 		{
 			enum Memory_region { NON_CACHEABLE = 0, CACHEABLE = 1 };
-
-			struct Ba   : Bitfield<5, 34> { }; /* translation table base */
-			struct Asid : Bitfield<48,8>  { };
-
-			static void write(access_t const v)
-			{
-				asm volatile ("mcrr p15, 0, %[v0], %[v1], c2"
-				              :: [v0]"r"(v), [v1]"r"(v >> 32) : );
-			}
-
-			static access_t read()
-			{
-				uint32_t v0, v1;
-				asm volatile ("mrrc p15, 0, %[v0], %[v1], c2"
-				              : [v0]"=r"(v0), [v1]"=r"(v1) :: );
-				return (access_t) v0 | ((access_t)v1 << 32);
-			}
 
 			/**
 			 * Return initialized value
@@ -84,8 +39,8 @@ class Genode::Cpu : public Arm_v7
 			 */
 			static access_t init(addr_t const table, unsigned const id)
 			{
-				access_t v = Ba::masked((access_t)table);
-				Asid::set(v, id);
+				access_t v = Ttbr_64bit::Ba::masked((access_t)table);
+				Ttbr_64bit::Asid::set(v, id);
 				return v;
 			}
 
@@ -176,19 +131,19 @@ class Genode::Cpu : public Arm_v7
 			 * Return base of assigned translation table
 			 */
 			addr_t translation_table() const {
-				return Ttbr0::Ba::masked(ttbr0); }
+				return Ttbr_64bit::Ba::masked(ttbr0); }
 
 			/**
 			 * Assign translation-table base 'table'
 			 */
 			void translation_table(addr_t const table) {
-				Ttbr0::Ba::set(ttbr0, (Ttbr0::access_t)(table >> 5)); }
+				Ttbr_64bit::Ba::set(ttbr0, (Ttbr_64bit::access_t)(table >> 5)); }
 
 			/**
 			 * Assign protection domain
 			 */
 			void protection_domain(Genode::uint8_t const id) {
-				Ttbr0::Asid::set(ttbr0, id); }
+				Ttbr_64bit::Asid::set(ttbr0, id); }
 		};
 
 
@@ -199,10 +154,14 @@ class Genode::Cpu : public Arm_v7
 		 */
 		struct User_context : Context
 		{
-			/**
-			 * Constructor
-			 */
-			User_context() { cpsr = Psr::init_user(); }
+			User_context()
+			{
+				Psr::access_t v = 0;
+				Psr::M::set(v, Psr::M::USR);
+				Psr::F::set(v, 1);
+				Psr::A::set(v, 1);
+				cpsr = v;
+			}
 
 			/**
 			 * Support for kernel calls
@@ -249,7 +208,7 @@ class Genode::Cpu : public Arm_v7
 				case PREFETCH_ABORT:
 					{
 						/* check if fault was caused by a translation miss */
-						Ifsr::access_t const fs = Ifsr::Fs::get(Ifsr::read());
+						Fsr::access_t const fs = Fsr::Fs::get(Ifsr::read());
 						if ((fs & 0b11100) != 0b100) return false;
 
 						/* fetch fault data */
@@ -261,7 +220,7 @@ class Genode::Cpu : public Arm_v7
 				case DATA_ABORT:
 					{
 						/* check if fault was caused by translation miss */
-						Dfsr::access_t const fs = Dfsr::Fs::get(Dfsr::read());
+						Fsr::access_t const fs = Fsr::Fs::get(Dfsr::read());
 						if ((fs & 0b11100) != 0b100) return false;
 
 						/* fetch fault data */

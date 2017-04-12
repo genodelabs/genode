@@ -128,7 +128,7 @@
 	::: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9"
 
 
-void Genode::Arm_v7::invalidate_inner_data_cache()
+void Genode::Arm_v7_cpu::invalidate_inner_data_cache()
 {
 	/**
 	 * Data Cache Invalidate by Set/Way for all Set/Way
@@ -139,7 +139,7 @@ void Genode::Arm_v7::invalidate_inner_data_cache()
 }
 
 
-void Genode::Arm_v7::clean_invalidate_inner_data_cache()
+void Genode::Arm_v7_cpu::clean_invalidate_inner_data_cache()
 {
 	/**
 	 * Data Cache Clean by Set/Way for all Set/Way
@@ -147,14 +147,4 @@ void Genode::Arm_v7::clean_invalidate_inner_data_cache()
 	asm volatile (FOR_ALL_SET_WAY_IN_R6_0
 	              WRITE_DCCSW(r6)
 	              FOR_ALL_SET_WAY_IN_R6_1);
-}
-
-
-Genode::Arm::Psr::access_t Genode::Arm::Psr::init_user_with_trustzone()
-{
-	access_t v = 0;
-	M::set(v, M::USR);
-	I::set(v, 1);
-	A::set(v, 1);
-	return v;
 }
