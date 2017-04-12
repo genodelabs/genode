@@ -92,6 +92,12 @@ append config {
 
 			<message string="routing to custom log service"/>
 
+			<!-- We let the client manually create a LOG session in addition
+			     to its env LOG session. So there are two sessions at the
+			     server, one initiated by init and one initiated by the
+			     child. Both cases trigger distinct code paths at child-
+			     destruction time. -->
+
 			<init_config version="chained log services">
 				<report ids="yes" requested="yes" provided="yes"/>
 				<parent-provides>
@@ -121,7 +127,10 @@ append config {
 				<start name="client">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
-					<config> <log string="client started"/> </config>
+					<config>
+						<log string="client started"/>
+						<create_log_connections count="1"/>
+					</config>
 					<route>
 						<service name="LOG"> <child name="indirect_server"/> </service>
 						<any-service> <parent/> </any-service>
@@ -177,7 +186,10 @@ append config {
 				<start name="client">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
-					<config> <log string="client started"/> </config>
+					<config>
+						<log string="client started"/>
+						<create_log_connections count="1"/>
+					</config>
 					<route>
 						<service name="LOG"> <child name="indirect_server"/> </service>
 						<any-service> <parent/> </any-service>
@@ -198,6 +210,44 @@ append config {
 				</node>
 			</expect_init_state>
 			<sleep ms="100"/>
+
+			<!-- Kill the client and validate that all session states are freed -->
+
+			<init_config version="client removed">
+				<report ids="yes" requested="yes" provided="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="RAM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="indirect_server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child">
+					<attribute name="name" value="indirect_server"/>
+					<node name="provided">
+						<not>
+							<node name="session"/>
+						</not>
+					</node>
+				</node>
+			</expect_init_state>
 
 
 			<message string="test changing provided services"/>

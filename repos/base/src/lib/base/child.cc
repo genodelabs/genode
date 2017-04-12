@@ -533,8 +533,17 @@ void Child::session_response(Server::Id id, Session_response response)
 
 			case Parent::SESSION_CLOSED:
 				session.phase = Session_state::CLOSED;
+
+				/*
+				 * If the client exists, reflect the response to the client
+				 * via the 'closed_callback'. If the client has vanished,
+				 * i.e., if the close request was issued by ourself while
+				 * killing a child, we drop the session state immediately.
+				 */
 				if (session.closed_callback)
 					session.closed_callback->session_closed(session);
+				else
+					_revert_quota_and_destroy(session);
 				break;
 
 			case Parent::INVALID_ARGS:
