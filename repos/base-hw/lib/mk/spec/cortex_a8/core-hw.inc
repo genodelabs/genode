@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/cortex_a8
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/cortex_a8
 
 # add C++ sources
 SRC_CC += spec/cortex_a8/cpu.cc

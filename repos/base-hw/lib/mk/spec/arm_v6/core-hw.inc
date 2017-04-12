@@ -6,7 +6,7 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/arm_v6
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm_v6
 
 # add C++ sources
 SRC_CC += spec/arm_v6/cpu.cc

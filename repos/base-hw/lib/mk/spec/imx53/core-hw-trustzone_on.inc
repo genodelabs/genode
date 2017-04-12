@@ -6,8 +6,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v7/trustzone
-INC_DIR += $(REP_DIR)/src/core/include/spec/imx53/trustzone
+INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/trustzone
+INC_DIR += $(REP_DIR)/src/core/spec/imx53/trustzone
 
 # add C++ sources
 SRC_CC += spec/imx53/trustzone/platform_support.cc

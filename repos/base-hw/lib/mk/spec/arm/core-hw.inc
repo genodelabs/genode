@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/arm
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm
 
 # add C++ sources
 SRC_CC += spec/arm/kernel/thread.cc

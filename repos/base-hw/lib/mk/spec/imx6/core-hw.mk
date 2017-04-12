@@ -7,8 +7,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/imx6
-INC_DIR += $(REP_DIR)/src/core/include/spec/imx
+INC_DIR += $(REP_DIR)/src/core/spec/imx6
+INC_DIR += $(REP_DIR)/src/core/spec/imx
 
 # add C++ sources
 SRC_CC += platform_services.cc

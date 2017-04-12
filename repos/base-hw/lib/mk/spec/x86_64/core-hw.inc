@@ -6,7 +6,7 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/x86_64
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/x86_64
 
 # add assembly sources
 SRC_S += spec/x86_64/mode_transition.s

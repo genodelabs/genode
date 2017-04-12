@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/imx53_qsb/trustzone
+INC_DIR += $(REP_DIR)/src/core/spec/imx53_qsb/trustzone
 
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/imx53/core-hw-trustzone_on.inc

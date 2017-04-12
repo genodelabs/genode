@@ -5,7 +5,7 @@
 #
 
 TARGET  = test-double_list
-INC_DIR = $(REP_DIR)/src/core/include
+INC_DIR = $(REP_DIR)/src/core
 SRC_CC  = test.cc double_list.cc
 LIBS    = base
 
