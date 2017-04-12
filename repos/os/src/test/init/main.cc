@@ -91,6 +91,9 @@ static inline bool Test::xml_matches(Xml_node expected, Xml_node node)
 
 			matches = matches && at_least_one_sub_node_matches;
 		}
+
+		if (condition.type() == "not")
+			matches = matches && !xml_matches(condition, node);
 	});
 	return matches;
 }
