@@ -282,7 +282,7 @@ class Rom_filter::Input_rom_registry
 		/**
 		 * \throw Nonexistent_input_value
 		 */
-		Input_value _query_value_in_roms(Xml_node input_node)
+		Input_value _query_value_in_roms(Xml_node input_node) const
 		{
 			Entry const *entry =
 				_lookup_entry_by_name(_input_rom_name(input_node));
