@@ -7,7 +7,7 @@
 REQUIRES = muen
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/x86_64/muen
+INC_DIR += $(REP_DIR)/src/core/spec/x86_64/muen
 
 # add C++ sources
 SRC_CC += spec/x86_64/muen/kernel/cpu_exception.cc

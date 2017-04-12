@@ -6,7 +6,7 @@
 
 TARGET   = test-cpu_scheduler
 SRC_CC   = test.cc cpu_scheduler.cc double_list.cc
-INC_DIR  = $(REP_DIR)/src/core/include $(BASE_DIR)/src/include
+INC_DIR  = $(REP_DIR)/src/core $(REP_DIR)/src/lib $(BASE_DIR)/src/include
 LIBS     = base
 
 vpath test.cc $(PRG_DIR)

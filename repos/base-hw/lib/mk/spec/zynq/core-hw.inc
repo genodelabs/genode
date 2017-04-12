@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include/spec/zynq
+INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/zynq
 
 # add C++ sources
 SRC_CC += platform_services.cc

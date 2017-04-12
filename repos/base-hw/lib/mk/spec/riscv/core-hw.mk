@@ -1,4 +1,4 @@
-INC_DIR += $(REP_DIR)/src/core/include/spec/riscv
+INC_DIR += $(REP_DIR)/src/core/spec/riscv
 
 CC_OPT += -fno-delete-null-pointer-checks -msoft-float
 

@@ -6,8 +6,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/panda
-INC_DIR += $(REP_DIR)/src/core/include/spec/tl16c750
+INC_DIR += $(REP_DIR)/src/core/spec/panda
+INC_DIR += $(REP_DIR)/src/core/spec/tl16c750
 
 # add C++ sources
 SRC_CC += platform_services.cc

@@ -7,7 +7,7 @@
 LIBS += base-hw-common cxx
 
 # add include paths
-INC_DIR += $(BASE_DIR)/../base-hw/src/core/include
+INC_DIR += $(BASE_DIR)/../base-hw/src/core
 INC_DIR += $(BASE_DIR)/src/core/include
 INC_DIR += $(BASE_DIR)/../base-hw/src/include
 INC_DIR += $(BASE_DIR)/src/include

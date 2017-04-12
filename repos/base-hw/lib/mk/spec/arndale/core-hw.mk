@@ -5,7 +5,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include/spec/arm_v7/virtualization
+INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/virtualization
 
 # add C++ sources
 SRC_CC += spec/arm_gic/pic.cc
