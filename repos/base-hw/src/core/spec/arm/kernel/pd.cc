@@ -43,7 +43,7 @@ Kernel::Pd::~Pd() {
 	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
 	cpu->clean_invalidate_data_cache();
 	cpu->invalidate_instr_cache();
-	cpu->invalidate_tlb_by_pid(asid);
+	Cpu::Tlbiasid::write(asid); /* flush TLB by ASID */
 	alloc().free(asid);
 }
 

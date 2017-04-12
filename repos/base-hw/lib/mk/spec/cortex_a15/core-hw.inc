@@ -12,6 +12,7 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm_gic
 SRC_CC += spec/cortex_a15/kernel/cpu.cc
 SRC_CC += spec/arm/smp/kernel/thread_update_pd.cc
 SRC_CC += spec/arm/smp/kernel/cpu.cc
+SRC_CC += spec/arm/cpu_context.cc
 
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/spec/smp/core-hw.inc

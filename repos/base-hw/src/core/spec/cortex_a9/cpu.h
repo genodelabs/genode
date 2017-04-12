@@ -22,7 +22,7 @@
 
 namespace Genode { class Cpu; }
 
-class Genode::Cpu : public Arm_v7
+class Genode::Cpu : public Arm_v7_cpu
 {
 	protected:
 
@@ -57,7 +57,7 @@ class Genode::Cpu : public Arm_v7
 				asm volatile ("mcr p15, 0, %[v], c1, c0, 2" :: [v]"r"(v) :); }
 		};
 
-		struct User_context : Arm::User_context, Fpu::Context { };
+		struct User_context : Arm_cpu::User_context, Fpu::Context { };
 
 		/**
 		 * Next cpu context to switch to
@@ -99,7 +99,7 @@ class Genode::Cpu : public Arm_v7
 		void clean_invalidate_data_cache_by_virt_region(addr_t base,
 		                                                size_t const size)
 		{
-			Arm::clean_invalidate_data_cache_by_virt_region(base, size);
+			Arm_cpu::clean_invalidate_data_cache_by_virt_region(base, size);
 			Kernel::board().l2_cache().clean_invalidate();
 		}
 

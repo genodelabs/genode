@@ -18,32 +18,30 @@
 /* core includes */
 #include <spec/arm_v7/cpu_support.h>
 
-namespace Genode { class Cpu; }
+namespace Genode { struct Cpu; }
 
 
-class Genode::Cpu : public Arm_v7
+struct Genode::Cpu : Arm_v7_cpu
 {
-	public:
+	/**
+	 * Write back dirty cache lines and invalidate the whole cache
+	 */
+	static void clean_invalidate_data_cache() {
+		clean_invalidate_inner_data_cache(); }
 
-		/**
-		 * Write back dirty cache lines and invalidate the whole cache
-		 */
-		static void clean_invalidate_data_cache() {
-			clean_invalidate_inner_data_cache(); }
+	/**
+	 * Invalidate all cache lines
+	 */
+	static void invalidate_data_cache() {
+		invalidate_inner_data_cache(); }
 
-		/**
-		 * Invalidate all cache lines
-		 */
-		static void invalidate_data_cache() {
-			invalidate_inner_data_cache(); }
-
-		/**
-		 * Post processing after a translation was added to a translation table
-		 *
-		 * \param addr  virtual address of the translation
-		 * \param size  size of the translation
-		 */
-		static void translation_added(addr_t const addr, size_t const size);
+	/**
+	 * Post processing after a translation was added to a translation table
+	 *
+	 * \param addr  virtual address of the translation
+	 * \param size  size of the translation
+	 */
+	static void translation_added(addr_t const addr, size_t const size);
 };
 
 #endif /* _CORE__SPEC__CORTEX_A8__CPU_H_ */

@@ -31,7 +31,9 @@ struct Hw::Arm_cpu
 	ARM_CP15_REGISTER_32BIT(Ctr, c0, c0, 0, 1);
 
 	/* Multiprocessor Affinity Register */
-	ARM_CP15_REGISTER_32BIT(Mpidr, c0, c0, 0, 5);
+	ARM_CP15_REGISTER_32BIT(Mpidr, c0, c0, 0, 5,
+		struct Aff_0 : Bitfield<0, 8> { }; /* affinity value 0 */
+	);
 
 	/* System Control Register */
 	ARM_CP15_REGISTER_32BIT(Sctlr, c1, c0, 0, 0,
@@ -182,6 +184,9 @@ struct Hw::Arm_cpu
 
 	/* Invalidate entire unified TLB */
 	ARM_CP15_REGISTER_32BIT(Tlbiall, c8, c7, 0, 0);
+
+	/* Invalidate unified TLB by ASID */
+	ARM_CP15_REGISTER_32BIT(Tlbiasid, c8, c7, 0, 2);
 
 	/* Memory Attribute Indirection Register 0 */
 	ARM_CP15_REGISTER_32BIT(Mair0, c10, c2, 0, 0,
