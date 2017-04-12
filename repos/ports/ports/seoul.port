@@ -3,8 +3,8 @@ VERSION   := git
 DOWNLOADS := seoul.git
 
 URL(seoul) := https://github.com/alex-ab/seoul.git
-# branch genode_15_11
-REV(seoul) := 31c07e2b61e67732dbb115561665ebb3415a49a7
+# branch genode_17_05
+REV(seoul) := 878f0ea5593d0bc87bbbad3c5499c26d5f64d472
 DIR(seoul) := src/app/seoul
 
 #
@@ -33,3 +33,5 @@ additional_steps : $(DOWNLOADS)
 	          ./genreg.py reg_pci.py ../../include/model/intel82576vfpci.inc && \
 	cd $(CURDIR)/$(I82576VF_DIR) && \
 	          ./genreg.py reg_mmio.py ../../include/model/intel82576vfmmio.inc
+
+.PHONY: additional_steps
