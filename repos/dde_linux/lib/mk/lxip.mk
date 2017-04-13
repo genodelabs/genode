@@ -19,6 +19,7 @@ CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
           -Wno-unused-function -Wno-overflow -Wno-pointer-arith \
           -Wno-sign-compare
 
+CC_C_OPT  += -std=gnu89
 CC_C_OPT  += -Wno-unused-but-set-variable -Wno-pointer-sign
 
 CC_C_OPT  += -include $(LIB_INC_DIR)/lx_emul.h
