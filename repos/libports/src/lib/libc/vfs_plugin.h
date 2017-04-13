@@ -82,17 +82,19 @@ class Libc::Vfs_plugin : public Libc::Plugin
 
 			if (_root_dir.num_dirent("/"))
 				env.config([&] (Xml_node const &top) {
-					Xml_node const node = top.sub_node("libc");
-
 					try {
-						Genode::String<Vfs::MAX_PATH_LEN> path;
-						node.attribute("cwd").value(&path);
-						chdir(path.string());
-					} catch (Xml_node::Nonexistent_attribute) { }
+						Xml_node const node = top.sub_node("libc");
 
-					_open_stdio(node, "stdin",  0, O_RDONLY);
-					_open_stdio(node, "stdout", 1, O_WRONLY);
-					_open_stdio(node, "stderr", 2, O_WRONLY);
+						try {
+							Genode::String<Vfs::MAX_PATH_LEN> path;
+							node.attribute("cwd").value(&path);
+							chdir(path.string());
+						} catch (Xml_node::Nonexistent_attribute) { }
+
+						_open_stdio(node, "stdin",  0, O_RDONLY);
+						_open_stdio(node, "stdout", 1, O_WRONLY);
+						_open_stdio(node, "stderr", 2, O_WRONLY);
+					} catch (Xml_node::Nonexistent_sub_node) { }
 				});
 		}
 
