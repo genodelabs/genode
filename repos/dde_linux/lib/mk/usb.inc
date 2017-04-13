@@ -25,7 +25,7 @@ CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG -DCONFIG_USB_PHY=1 \
 CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
           -Wno-unused-function -Wno-overflow
 
-CC_C_OPT += -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-unused-label
+CC_C_OPT += -std=gnu89 -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-unused-label
 
 CC_CXX_OPT = -fpermissive
 

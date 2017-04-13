@@ -14,6 +14,11 @@ SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/drivers/video/fbdev/core/*.c))
 SRC_C   += $(notdir $(wildcard $(LX_CONTRIB_DIR)/lib/*.c))
 
 #
+# Linux sources are C89 with GNU extensions
+#
+CC_C_OPT += -std=gnu89
+
+#
 # Reduce build noise of compiling contrib code
 #
 CC_WARN = -Wall -Wno-uninitialized -Wno-unused-but-set-variable \

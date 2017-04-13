@@ -26,6 +26,7 @@ SRC_C += lxc_emul.c
 CC_WARN  =
 CC_OPT  += -fno-builtin-toupper
 
+CC_C_OPT   += -std=gnu89
 CC_C_OPT   += -include $(LIB_INC_DIR)/lx_emul.h
 CC_C_OPT   += -Wall -Wno-unused-variable -Wno-unused-function -Wno-uninitialized
 CC_C_OPT   += -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-cast-qual
