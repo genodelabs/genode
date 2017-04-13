@@ -70,7 +70,7 @@ char *strcpy(char *dest, const char *src)
 char *strcat(char *dest, const char *src)
 	{ printf("%s: not implemented\n", __func__); return 0; }
 
-inline size_t min(size_t v1, size_t v2) { return v1 < v2 ? v1 : v2; }
+static inline size_t min(size_t v1, size_t v2) { return v1 < v2 ? v1 : v2; }
 
 char *strncpy(char *dst, const char *src, size_t n)
 {
