@@ -1,50 +1,51 @@
-#
-# Build
-#
-if {![have_spec linux]} {
-	puts "Runs on Linux only"
-	exit 0
-}
-
-set build_components {
-	core init drivers/timer drivers/framebuffer
-	server/dynamic_rom server/report_rom server/nitpicker app/decorator
-}
-
-build $build_components
-
 create_boot_directory
 
-#
-# Generate config
-#
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/src/init \
+                  genodelabs/src/report_rom \
+                  genodelabs/src/dynamic_rom \
+                  genodelabs/src/nitpicker \
+                  genodelabs/src/libc \
+                  genodelabs/src/libpng \
+                  genodelabs/src/zlib
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
 		<service name="CPU"/>
 		<service name="PD"/>
+		<service name="RM"/>
 		<service name="LOG"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
 	</parent-provides>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
+	<start name="drivers">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="ROM" />
@@ -53,6 +54,7 @@ append config {
 			<policy label="decorator -> pointer" report="nitpicker -> pointer"/>
 		</config>
 	</start>
+
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -62,6 +64,7 @@ append config {
 			<default-policy domain="default"/>
 		</config>
 	</start>
+
 	<start name="dynamic_rom">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
@@ -152,6 +155,7 @@ append config {
 			</rom>
 		</config>
 	</start>
+
 	<start name="decorator">
 		<resource name="RAM" quantum="4M"/>
 		<route>
@@ -166,17 +170,8 @@ append config {
 	</start>
 </config>}
 
-install_config $config
+build { app/decorator }
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer dynamic_rom report_rom fb_sdl nitpicker decorator
-}
-
-build_boot_image $boot_modules
+build_boot_image { decorator }
 
 run_genode_until forever

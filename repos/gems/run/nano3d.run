@@ -1,26 +1,12 @@
-#
-# Build
-#
-if {![have_spec linux]} {
-	puts "Runs on Linux only"
-	exit 0
-}
-
-set build_components {
-	core init
-	drivers/timer
-	server/nitpicker server/dynamic_rom app/nano3d
-	drivers/framebuffer
-	app/backdrop
-}
-
-build $build_components
-
 create_boot_directory
 
-#
-# Generate config
-#
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/raw/genode_bg \
+                  genodelabs/pkg/backdrop \
+                  genodelabs/src/init \
+                  genodelabs/src/dynamic_rom \
+                  genodelabs/src/nitpicker
 
 append config {
 <config>
@@ -35,15 +21,21 @@ append config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
+	<start name="drivers">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
+			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
 	</start>
 
@@ -120,27 +112,8 @@ append config {
 
 install_config $config
 
-# copy backdrop PNG images to bin directory
-foreach file { genode_logo.png grid.png } {
-	file copy -force [genode_dir]/repos/gems/src/app/backdrop/$file bin/ }
+build { app/nano3d }
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	timer
-	nitpicker dynamic_rom nano3d
-	backdrop
-	libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
-	genode_logo.png grid.png
-}
-
-# platform-specific modules
-lappend_if [have_spec linux] boot_modules fb_sdl
-
-build_boot_image $boot_modules
+build_boot_image { nano3d }
 
 run_genode_until forever
