@@ -1,42 +1,21 @@
-#
-# Build
-#
-
-if {[have_spec odroid_xu]} {
-	puts "Run script not supported on this platform."; exit 0 }
-
-set build_components {
-	core init
-	drivers/timer
-	server/wm app/decorator app/floating_window_layouter
-	server/nitpicker app/pointer server/report_rom
-	drivers/framebuffer drivers/input
-	test/nitpicker
-	app/backdrop
-	app/launchpad
-	server/nit_fb
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-lappend_if [need_usb_hid]   build_components drivers/usb
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
 
 #
-# Generate config
+# To use the themed decorator instead of the default one, replace 'pkg/wm'
+# with 'pkg/themed_wm'.
 #
 
-append config {
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/wm \
+                  genodelabs/raw/genode_bg \
+                  genodelabs/pkg/backdrop \
+                  genodelabs/src/demo \
+                  genodelabs/src/init \
+                  genodelabs/src/nitpicker \
+                  genodelabs/src/nit_fb
+
+install_config {
 <config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
@@ -51,57 +30,26 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append_if [have_spec imx53] config {
-	<start name="input_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-		<config/>
-	</start> }
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start>}
-
-append_if [need_usb_hid] config {
-	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
-		<config ehci="yes" uhci="yes" xhci="no"> <hid/> </config>
-	</start> }
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
+	<start name="drivers">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -113,6 +61,7 @@ append config {
 			<default-policy domain="default"/>
 		</config>
 	</start>
+
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 		<route>
@@ -120,6 +69,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="wm">
 		<resource name="RAM" quantum="24M"/>
 		<binary name="init"/>
@@ -130,6 +80,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="launchpad" priority="-1">
 		<resource name="RAM" quantum="20M"/>
 		<config>
@@ -149,6 +100,7 @@ append config {
 			</any-service>
 		</route>
 	</start>
+
 	<start name="backdrop" priority="-1">
 		<resource name="RAM" quantum="24M"/>
 		<config>
@@ -167,6 +119,7 @@ append config {
 			</any-service>
 		</route>
 	</start>
+
 	<start name="wm_backdrop" priority="-1">
 		<binary name="backdrop" />
 		<resource name="RAM" quantum="24M"/>
@@ -187,43 +140,7 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-# copy backdrop PNG images to bin directory
-foreach file { genode_logo.png grid.png } {
-	file copy -force [genode_dir]/repos/gems/src/app/backdrop/$file bin/ }
-
-file copy -force [genode_dir]/repos/gems/src/server/wm/wm.config bin/
-
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	timer
-	wm decorator wm.config
-	floating_window_layouter
-	nitpicker pointer report_rom
-	backdrop
-	testnit launchpad nit_fb
-	libpng.lib.so libc.lib.so libm.lib.so zlib.lib.so
-	genode_logo.png grid.png
-}
-
-# platform-specific modules
-append_platform_drv_boot_modules
-
-lappend_if [have_spec linux]       boot_modules fb_sdl
-lappend_if [have_spec ps2]         boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [need_usb_hid]          boot_modules usb_drv
-lappend_if [have_spec gpio]        boot_modules [gpio_drv]
-lappend_if [have_spec imx53]       boot_modules input_drv
-
-build_boot_image $boot_modules
+build_boot_image { }
 
 append qemu_args " -m 256 "
 
