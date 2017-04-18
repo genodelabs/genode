@@ -109,10 +109,10 @@ class Throughput
 				return;
 
 			_stop = _timer.elapsed_ms();
-			log(!_read_done ? "Read" : "Wrote", " ", _bytes / 1024, " KB in ",
+			log(!_read_done ? "Read" : "Wrote", " ", _bytes / 1024, " KiB in ",
 			    _stop - _start, " ms (",
 				((double)_bytes / (1024 * 1024)) / ((double)(_stop - _start) / 1000),
-				" MB/s)");
+				" MiB/s)");
 
 			/* start write */
 			if (!_read_done ) {
@@ -142,7 +142,7 @@ class Throughput
 			_session.info(&_blk_count, &_blk_size, &blk_ops);
 
 			warning("block count ", _blk_count, " size ", _blk_size);
-			log("read/write ", TEST_SIZE / 1024, " KB ...");
+			log("read/write ", TEST_SIZE / 1024, " KiB ...");
 			_start = _timer.elapsed_ms();
 			_submit();
 		}
