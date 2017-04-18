@@ -2,6 +2,7 @@ proc binary_name_ld_lib_so { } { return "ld-foc.lib.so" }
 proc binary_name_core_o    { } { return "core-foc.o"    }
 proc binary_name_timer     { } { return "foc_timer_drv" }
 
+proc kernel_files { } { return { foc sigma0-foc bootstrap-foc } }
 
 proc run_boot_string { } { return "\nL4 Bootstrapper" }
 
@@ -39,7 +40,7 @@ proc reset_target { {spawn_id_arg -1} } {
 proc l4_build_dir { } { return "[pwd]/var/libcache/syscall-foc/build" }
 
 
-proc kernel_binary { } { return "[pwd]/var/libcache/kernel-foc/build/fiasco" }
+proc kernel_binary { } { return "[pwd]/bin/foc" }
 
 
 proc l4_bin_dir { } {
@@ -60,10 +61,9 @@ proc run_boot_dir_x86 {binaries} {
 
 	build_core_image $binaries
 
-	exec mkdir [run_dir]/foc
-	exec cp [kernel_binary]         [run_dir]/foc/kernel
-	exec cp [l4_bin_dir]/l4f/sigma0 [run_dir]/foc
-	exec cp [l4_bin_dir]/bootstrap  [run_dir]/foc
+	file copy -force [pwd]/bin/foc           [run_dir]/kernel
+	file copy -force [pwd]/bin/sigma0-foc    [run_dir]/sigma0
+	file copy -force [pwd]/bin/bootstrap-foc [run_dir]/bootstrap
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
@@ -83,9 +83,9 @@ proc run_boot_dir_x86 {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on Fiasco.OC"
 		puts $fh " kernel /boot/bender"
-		puts $fh " module /foc/bootstrap"
-		puts $fh " module /foc/kernel [fiasco_serial_esc_arg]"
-		puts $fh " module /foc/sigma0"
+		puts $fh " module /bootstrap"
+		puts $fh " module /kernel [fiasco_serial_esc_arg]"
+		puts $fh " module /sigma0"
 		puts $fh " module /image.elf"
 		close $fh
 	}
@@ -106,9 +106,9 @@ proc run_boot_dir_x86 {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /foc/bootstrap"
-		puts $fh " load /foc/kernel -serial_esc"
-		puts $fh " load /foc/sigma0"
+		puts $fh " load /bootstrap"
+		puts $fh " load /kernel -serial_esc"
+		puts $fh " load /sigma0"
 		puts $fh " load /image.elf"
 		close $fh
 
