@@ -70,7 +70,7 @@ append config {
 		</config>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
+		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
 			<raw>
@@ -82,15 +82,15 @@ append_if [expr !$use_qemu] config  {
 					corresponding device.
 				 -->
 				<!-- zte open c needs interface="3" -->
-				<default-policy vendor="0x19d2" product="0x1350"/>
+				<default-policy vendor_id="0x19d2" product_id="0x1350"/>
 				<!-- kingston -->
-				<default-policy vendor="0x0951" product="0x1666"/>
+				<default-policy vendor_id="0x0951" product_id="0x1666"/>
 				<!-- voyager gt stick -->
-				<default-policy vendor="0x1b1c" product="0x1a09"/>
+				<default-policy vendor_id="0x1b1c" product_id="0x1a09"/>
 				<!-- usb3 hdd adapter -->
-				<default-policy vendor="0x174c" product="0x5106"/>
+				<default-policy vendor_id="0x174c" product_id="0x5106"/>
 				<!-- lenovo disc -->
-				<default-policy vendor="0x0984" product="0x0066"/>
+				<default-policy vendor_id="0x0984" product_id="0x0066"/>
 }
 append_if $use_qemu config {
 				<default-policy bus="0x001" dev="0x002"/> }
@@ -113,9 +113,9 @@ append config {
 		</route>
 	</start>
 	<start name="test-usb">
-		<resource name="RAM" quantum="4M"/>
-		<!-- <binary name="test-blk-bench"/> -->
-		<binary name="test-blk-cli"/>
+		<resource name="RAM" quantum="128M"/>
+		<binary name="test-blk-bench"/>
+		<!--binary name="test-blk-cli"/-->
 		<config>
 			<libc stdout="/dev/log">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
@@ -138,7 +138,7 @@ install_config $config
 set boot_modules {
 	core init timer report_rom usb_drv usb_block_drv
 	test-blk-cli test-blk-bench
-	ld.lib.so libc.lib.so
+	ld.lib.so
 }
 
 lappend_if [have_spec gpio] boot_modules [gpio_drv]
@@ -160,7 +160,7 @@ if {$use_qemu} {
 #
 # Qemu opts for EHCI
 #
-append qemu_args " -m 128 -nographic -M pc -boot order=d "
+append qemu_args " -m 256 -nographic -M pc -boot order=d "
 append qemu_args " -drive if=none,id=disk,file=$disk_image,format=raw "
 append qemu_args " -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=disk "
 
