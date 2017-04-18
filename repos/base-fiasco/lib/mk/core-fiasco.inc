@@ -1,4 +1,5 @@
-GEN_CORE_DIR = $(BASE_DIR)/src/core
+GEN_CORE_DIR := $(dir $(call select_from_repositories,src/core/main.cc))
+GEN_SRC_DIR  := $(realpath $(GEN_CORE_DIR)/..)
 
 SRC_CC      += stack_area.cc \
                core_log.cc \
@@ -40,7 +41,7 @@ SRC_CC      += stack_area.cc \
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
                $(REP_DIR)/src/include \
-               $(BASE_DIR)/src/include
+               $(GEN_SRC_DIR)/include
 
 LIBS        += base-fiasco-common syscall-fiasco cxx
 
@@ -70,4 +71,3 @@ vpath default_log.cc              $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
-vpath %.cc                        $(REP_DIR)/src/core
