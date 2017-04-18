@@ -2,6 +2,7 @@ proc binary_name_ld_lib_so { } { return "ld-fiasco.lib.so" }
 proc binary_name_core_o    { } { return "core-fiasco.o"    }
 proc binary_name_timer     { } { return "fiasco_timer_drv" }
 
+proc kernel_files { } { return { fiasco sigma0-fiasco bootstrap-fiasco } }
 
 proc fiasco_serial_esc_arg { } { return "-serial_esc " }
 proc run_boot_string       { } { return "\nL4 Bootstrapper" }
@@ -17,10 +18,9 @@ proc run_boot_dir {binaries} {
 
 	build_core_image $binaries
 
-	exec mkdir -p [run_dir]/fiasco
-	exec cp kernel/fiasco/kernel    [run_dir]/fiasco
-	exec cp kernel/fiasco/sigma0    [run_dir]/fiasco
-	exec cp kernel/fiasco/bootstrap [run_dir]/fiasco
+	file copy -force kernel/fiasco/kernel    [run_dir]/kernel
+	file copy -force kernel/fiasco/sigma0    [run_dir]/sigma0
+	file copy -force kernel/fiasco/bootstrap [run_dir]/bootstrap
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
@@ -40,9 +40,9 @@ proc run_boot_dir {binaries} {
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on L4/Fiasco"
 		puts $fh " kernel /boot/bender"
-		puts $fh " module /fiasco/bootstrap -serial"
-		puts $fh " module /fiasco/kernel -serial -jdb_cmd=JH [fiasco_serial_esc_arg]"
-		puts $fh " module /fiasco/sigma0"
+		puts $fh " module /bootstrap -serial"
+		puts $fh " module /kernel -serial -jdb_cmd=JH [fiasco_serial_esc_arg]"
+		puts $fh " module /sigma0"
 		puts $fh " module /image.elf"
 		puts $fh " vbeset 0x117 506070"
 		close $fh
@@ -61,9 +61,9 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /fiasco/bootstrap -serial"
-		puts $fh " load /fiasco/kernel -serial -serial_esc -jdb_cmd=JH"
-		puts $fh " load /fiasco/sigma0"
+		puts $fh " load /bootstrap -serial"
+		puts $fh " load /kernel -serial -serial_esc -jdb_cmd=JH"
+		puts $fh " load /sigma0"
 		puts $fh " load /image.elf"
 		close $fh
 

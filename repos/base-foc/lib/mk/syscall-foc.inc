@@ -57,3 +57,21 @@ $(PKG_TAGS): $(addprefix include/,$(L4_INC_TARGETS))
 # Compile 'syscall-foc.lib.a' not before the 'PKGS' are completely built
 #
 $(SRC_S) $(SRC_C) : $(PKG_TAGS)
+
+#
+# Install sigma0 and bootstap to <build-dir>/bin such that the binaries will be
+# included in the depot's base-foc binary archives.
+#
+ifneq ($(INSTALL_DIR),)
+all: $(INSTALL_DIR)/sigma0-foc $(INSTALL_DIR)/bootstrap-foc
+
+$(INSTALL_DIR)/sigma0-foc $(INSTALL_DIR)/bootstrap-foc: $(PKG_TAGS)
+
+$(INSTALL_DIR)/sigma0-foc:
+	$(VERBOSE)ln -sf $(L4_BIN_DIR)/l4f/sigma0 $@
+
+$(INSTALL_DIR)/bootstrap-foc:
+	$(VERBOSE)ln -sf $(L4_BIN_DIR)/bootstrap $@
+endif
+
+
