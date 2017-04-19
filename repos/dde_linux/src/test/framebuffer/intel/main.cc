@@ -37,11 +37,11 @@ struct Framebuffer_controller
 	void report_changed();
 
 	Framebuffer_controller(Env &env)
-	: rom("connectors"),
+	: rom(env, "connectors"),
 	  rom_sigh(env.ep(), *this, &Framebuffer_controller::report_changed),
 	  heap(env.ram(), env.rm()),
 	  fs_alloc(&heap),
-	  fs(fs_alloc, 128*1024, "")
+	  fs(env, fs_alloc, "", "/", true, 128*1024)
 	{
 		rom.sigh(rom_sigh);
 	}
