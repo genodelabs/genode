@@ -12,15 +12,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/env.h>
 #include <base/log.h>
-#include <base/sleep.h>
 #include <base/thread.h>
 #include <os/timed_semaphore.h>
 #include <util/list.h>
 
 #include <errno.h>
 #include <pthread.h>
+#include <stdlib.h> /* malloc, free */
 #include "thread.h"
 
 using namespace Genode;
@@ -36,12 +35,16 @@ struct thread_cleanup : List<thread_cleanup>::Element
 
 	~thread_cleanup() {
 		if (thread)
-			destroy(env()->heap(), thread);
+			delete thread;
 	}
 };
 
 static Lock pthread_cleanup_list_lock;
 static List<thread_cleanup> pthread_cleanup_list;
+
+
+void * operator new(__SIZE_TYPE__ size) { return malloc(size); }
+void operator delete (void * p) { return free(p); }
 
 
 /*
@@ -114,7 +117,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = new (env()->heap()) pthread_attr;
+		*attr = new pthread_attr;
 
 		return 0;
 	}
@@ -125,7 +128,7 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		destroy(env()->heap(), *attr);
+		delete *attr;
 		*attr = 0;
 
 		return 0;
@@ -139,7 +142,7 @@ extern "C" {
 
 			while (thread_cleanup * t = pthread_cleanup_list.first()) {
 				pthread_cleanup_list.remove(t);
-				destroy(env()->heap(), t);
+				delete t;
 			}
 		}
 	}
@@ -151,9 +154,9 @@ extern "C" {
 
 		if (pthread_equal(pthread_self(), thread)) {
 			Lock_guard<Lock> lock_guard(pthread_cleanup_list_lock);
-			pthread_cleanup_list.insert(new (env()->heap()) thread_cleanup(thread));
+			pthread_cleanup_list.insert(new thread_cleanup(thread));
 		} else
-			destroy(env()->heap(), thread);
+			delete thread;
 
 		return 0;
 	}
@@ -161,7 +164,9 @@ extern "C" {
 	void pthread_exit(void *value_ptr)
 	{
 		pthread_cancel(pthread_self());
-		sleep_forever();
+
+		Lock lock;
+		while (true) lock.lock();
 	}
 
 
@@ -203,8 +208,7 @@ extern "C" {
 		 */
 
 		static struct pthread_attr main_thread_attr;
-		static struct pthread *main = new (Genode::env()->heap())
-		                              struct pthread(*myself, &main_thread_attr);
+		static struct pthread *main = new pthread(*myself, &main_thread_attr);
 
 		return main;
 	}
@@ -415,7 +419,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = new (env()->heap()) pthread_mutex_attr;
+		*attr = new pthread_mutex_attr;
 
 		return 0;
 	}
@@ -426,7 +430,7 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		destroy(env()->heap(), *attr);
+		delete *attr;
 		*attr = 0;
 
 		return 0;
@@ -450,7 +454,7 @@ extern "C" {
 		if (!mutex)
 			return EINVAL;
 
-		*mutex = new (env()->heap()) pthread_mutex(attr);
+		*mutex = new pthread_mutex(attr);
 
 		return 0;
 	}
@@ -461,7 +465,7 @@ extern "C" {
 		if ((!mutex) || (*mutex == PTHREAD_MUTEX_INITIALIZER))
 			return EINVAL;
 
-		destroy(env()->heap(), *mutex);
+		delete *mutex;
 		*mutex = PTHREAD_MUTEX_INITIALIZER;
 
 		return 0;
@@ -568,7 +572,7 @@ extern "C" {
 		if (!cond)
 			return EINVAL;
 
-		*cond = new (env()->heap()) pthread_cond;
+		*cond = new pthread_cond;
 
 		return 0;
 	}
@@ -579,7 +583,7 @@ extern "C" {
 		if (!cond || !*cond)
 			return EINVAL;
 
-		destroy(env()->heap(), *cond);
+		delete *cond;
 		*cond = 0;
 
 		return 0;
@@ -757,7 +761,7 @@ extern "C" {
 			 * thread to mark the key slot as used.
 			 */
 			if (!key_list[k].first()) {
-				Key_element *key_element = new (env()->heap()) Key_element(Thread::myself(), 0);
+				Key_element *key_element = new Key_element(Thread::myself(), 0);
 				key_list[k].insert(key_element);
 				*key = k;
 				return 0;
@@ -777,7 +781,7 @@ extern "C" {
 
 		while (Key_element * element = key_list[key].first()) {
 			key_list[key].remove(element);
-			destroy(env()->heap(), element);
+			delete element;
 		}
 
 		return 0;
@@ -801,7 +805,7 @@ extern "C" {
 			}
 
 		/* key element does not exist yet - create a new one */
-		Key_element *key_element = new (env()->heap()) Key_element(Thread::myself(), value);
+		Key_element *key_element = new Key_element(Thread::myself(), value);
 		key_list[key].insert(key_element);
 		return 0;
 	}
@@ -832,7 +836,7 @@ extern "C" {
 			return EINTR;
 
 		if (!once->mutex) {
-			pthread_mutex_t p = new (env()->heap()) pthread_mutex(0);
+			pthread_mutex_t p = new pthread_mutex(0);
 			/* be paranoid */
 			if (!p)
 				return EINTR;
@@ -851,7 +855,7 @@ extern "C" {
 			 * free our mutex since it is not used.
 			 */
 			if (p)
-				destroy(env()->heap(), p);
+				delete p;
 		}
 
 		once->mutex->lock();

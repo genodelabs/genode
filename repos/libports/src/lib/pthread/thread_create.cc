@@ -14,7 +14,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/env.h>
+#include <base/thread.h>
 
 #include <errno.h>
 #include <pthread.h>
@@ -30,8 +30,7 @@ extern "C"
 		/* cleanup threads which tried to self-destruct */
 		pthread_cleanup();
 
-		pthread_t thread_obj = new (Genode::env()->heap())
-		                           pthread(attr ? *attr : 0, start_routine,
+		pthread_t thread_obj = new pthread(attr ? *attr : 0, start_routine,
 		                           arg, STACK_SIZE, "pthread", nullptr,
 		                           Genode::Affinity::Location());
 
