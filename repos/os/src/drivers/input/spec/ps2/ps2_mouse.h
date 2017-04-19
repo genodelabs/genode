@@ -31,6 +31,7 @@ class Ps2::Mouse : public Input_driver
 		CMD_ENABLE_STREAM  = 0xf4,
 		CMD_DISABLE_STREAM = 0xf5,
 		CMD_SET_DEFAULTS   = 0xf6,
+		CMD_RESET          = 0xff,
 	};
 
 	enum Return
@@ -174,9 +175,13 @@ class Ps2::Mouse : public Input_driver
 
 		void reset()
 		{
-			_aux.write(CMD_SET_DEFAULTS);
+			_aux.write(CMD_RESET);
 			if (_aux.read() != RET_ACK)
-				Genode::warning("could not set defaults");
+				Genode::warning("could not reset mouse (missing ack)");
+			if (_aux.read() != 0xaa)
+				Genode::warning("could not reset mouse (unexpected response)");
+			if (_aux.read() != 0x00)
+				Genode::warning("could not reset mouse (unexpected secondary response)");
 
 			_aux.write(CMD_ENABLE_STREAM);
 			if (_aux.read() != RET_ACK)
