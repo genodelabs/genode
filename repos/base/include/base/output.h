@@ -140,6 +140,17 @@ namespace Genode {
 	void print(Output &output, double);
 
 	/**
+	 * Print single-precision float
+	 */
+	void print(Output &output, float);
+
+	/**
+	 * Print double-precision float
+	 */
+	void print(Output &output, double);
+
+
+	/**
 	 * Helper for the hexadecimal output of integer values
 	 *
 	 * To output an integer value as hexadecimal number, the value can be
