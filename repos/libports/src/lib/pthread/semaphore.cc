@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/env.h>
 #include <base/log.h>
+#include <base/semaphore.h>
 #include <semaphore.h>
 
 using namespace Genode;
@@ -39,7 +39,7 @@ extern "C" {
 
 	int sem_destroy(sem_t *sem)
 	{
-		destroy(env()->heap(), *sem);
+		delete *sem;
 		return 0;
 	}
 
@@ -53,7 +53,7 @@ extern "C" {
 
 	int sem_init(sem_t *sem, int pshared, unsigned int value)
 	{
-		*sem = new (env()->heap()) struct sem(value);
+		*sem = new struct sem(value);
 		return 0;
 	}
 
