@@ -47,7 +47,7 @@ static const bool verbose = false;
  * Additionally static constructors are executed currently before the libc
  * is done with initialization and so we also have no Env pointer here.
  */
-static char     buffer[2048];
+static char     buffer[3 * 1024];
 static unsigned buffer_len = 0;
 
 static bool initial_memory(void * ptr)
