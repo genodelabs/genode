@@ -276,7 +276,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					throw Out_of_metadata();
 			}
 
-			~Quota_reservation()
+			~Quota_reservation() noexcept(false)
 			{
 				if (!guard.revert_withdraw(amount))
 					throw Fatal();
@@ -624,9 +624,9 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					if (!find_dev_in_policy(policy_device, DOUBLET))
 						return;
 
-						Genode::error("'", _label, "' - device "
-						              "'", Genode::Cstring(policy_device), "' "
-						              "is part of more than one policy");
+					Genode::error("'", _label, "' - device "
+					              "'", Genode::Cstring(policy_device), "' "
+					              "is part of more than one policy");
 				} catch (Genode::Xml_node::Nonexistent_attribute) {
 					Genode::error("'", _label, "' - device node "
 					              "misses a 'name' attribute");
