@@ -192,6 +192,10 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				catch (Dont_ack) { throw; }
 				catch (...) { }
 				break;
+
+			case Packet_descriptor::CONTENT_CHANGED:
+				/* The VFS does not track file changes yet */
+				throw Dont_ack();
 			}
 
 			packet.length(res_length);
@@ -569,8 +573,6 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				});
 			});
 		}
-
-		void sigh(Node_handle handle, Signal_context_capability sigh) override { }
 
 		/**
 		 * Sync the VFS and send any pending signals on the node.

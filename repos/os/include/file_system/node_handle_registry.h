@@ -182,7 +182,7 @@ namespace File_system {
 			/**
 			 * Register signal handler to be notified of node changes
 			 */
-			void sigh(Node_handle handle, Genode::Signal_context_capability sigh)
+			void register_notify(Sink &sink, Node_handle handle)
 			{
 				Genode::Lock::Guard guard(_lock);
 
@@ -192,9 +192,6 @@ namespace File_system {
 				Node_base *node = dynamic_cast<Node_base *>(_nodes[handle.value]);
 				if (!node)
 					throw Invalid_handle();
-
-				node->lock();
-				Node_lock_guard node_lock_guard(node);
 
 				Listener &listener = _listeners[handle.value];
 
@@ -208,7 +205,7 @@ namespace File_system {
 				/*
 				 * Register new handler
 				 */
-				listener = Listener(sigh);
+				listener = Listener(sink, handle);
 				node->add_listener(&listener);
 			}
 	};

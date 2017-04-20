@@ -263,6 +263,9 @@ class Vfs::Fs_file_system : public File_system
 							handle.queued_write_packet = packet;
 							handle.queued_write_state  = Handle_state::Queued_state::ACK;
 							break;
+
+						case Packet_descriptor::CONTENT_CHANGED:
+							break;
 						}
 
 						_post_signal_hook.arm(handle.context);
