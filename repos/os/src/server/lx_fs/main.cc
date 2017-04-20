@@ -58,12 +58,6 @@ class File_system::Session_component : public Session_rpc_object
 		{
 			void     * const content = tx_sink()->packet_content(packet);
 			size_t     const length  = packet.length();
-			seek_off_t const offset  = packet.position();
-
-			if (!content || (packet.length() > packet.size())) {
-				packet.succeeded(false);
-				return;
-			}
 
 			/* resulting length */
 			size_t res_length = 0;
@@ -71,12 +65,21 @@ class File_system::Session_component : public Session_rpc_object
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
-				res_length = node.read((char *)content, length, offset);
+				if (content && (packet.length() <= packet.size()))
+					res_length = node.read((char *)content, length, packet.position());
 				break;
 
 			case Packet_descriptor::WRITE:
-				res_length = node.write((char const *)content, length, offset);
+				if (content && (packet.length() <= packet.size()))
+					res_length = node.write((char const *)content, length, packet.position());
 				break;
+
+			case Packet_descriptor::CONTENT_CHANGED:
+				_handle_registry.register_notify(*tx_sink(), packet.handle());
+				/* notify_listeners may bounce the packet back*/
+				node.notify_listeners();
+				/* otherwise defer acknowledgement of this packet */
+				return;
 
 			case Packet_descriptor::READ_READY:
 				/* not supported */
@@ -85,6 +88,7 @@ class File_system::Session_component : public Session_rpc_object
 
 			packet.length(res_length);
 			packet.succeeded(res_length > 0);
+			tx_sink()->acknowledge_packet(packet);
 		}
 
 		void _process_packet()
@@ -101,12 +105,6 @@ class File_system::Session_component : public Session_rpc_object
 				_process_packet_op(packet, *node);
 			}
 			catch (Invalid_handle) { Genode::error("Invalid_handle"); }
-
-			/*
-			 * The 'acknowledge_packet' function cannot block because we
-			 * checked for 'ready_to_ack' in '_process_packets'.
-			 */
-			tx_sink()->acknowledge_packet(packet);
 		}
 
 		/**
@@ -302,11 +300,6 @@ class File_system::Session_component : public Session_rpc_object
 		void move(Dir_handle, Name const &, Dir_handle, Name const &)
 		{
 			Genode::error(__func__, " not implemented");
-		}
-
-		void sigh(Node_handle node_handle, Signal_context_capability sigh)
-		{
-			_handle_registry.sigh(node_handle, sigh);
 		}
 
 		/**

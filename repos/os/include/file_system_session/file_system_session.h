@@ -119,7 +119,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
 
-		enum Opcode { READ, WRITE, READ_READY };
+		enum Opcode { READ, WRITE, CONTENT_CHANGED, READ_READY };
 
 	private:
 
@@ -156,6 +156,19 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 			Genode::Packet_descriptor(p.offset(), p.size()),
 			_handle(handle), _op(op),
 			_position(position), _length(length), _success(false)
+		{ }
+
+		/**
+		 * Constructor
+		 *
+		 * This constructor provided for sending server-side
+		 * notification packets.
+		 */
+		Packet_descriptor(Node_handle handle, Opcode op)
+		:
+			Genode::Packet_descriptor(0, 0),
+			_handle(handle), _op(op),
+			_position(0), _length(0), _success(true)
 		{ }
 
 		Node_handle handle()    const { return _handle;   }
@@ -352,11 +365,6 @@ struct File_system::Session : public Genode::Session
 	                  Dir_handle, Name const &to) = 0;
 
 	/**
-	 * Register handler that should be notified on node changes
-	 */
-	virtual void sigh(Node_handle, Genode::Signal_context_capability sigh) = 0;
-
-	/**
 	 * Synchronize file system
 	 *
 	 * This is only needed by file systems that maintain an internal
@@ -406,14 +414,11 @@ struct File_system::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Permission_denied),
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
-	GENODE_RPC_THROW(Rpc_sigh, void, sigh,
-	                 GENODE_TYPE_LIST(Invalid_handle),
-	                 Node_handle, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_sync, void, sync, Node_handle);
 
 	GENODE_RPC_INTERFACE(Rpc_tx_cap, Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node,
 	                     Rpc_close, Rpc_status, Rpc_control, Rpc_unlink,
-	                     Rpc_truncate, Rpc_move, Rpc_sigh, Rpc_sync);
+	                     Rpc_truncate, Rpc_move, Rpc_sync);
 };
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__FILE_SYSTEM_SESSION_H_ */

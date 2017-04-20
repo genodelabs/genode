@@ -16,6 +16,7 @@
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <os/path.h>
+#include <base/attached_ram_dataspace.h>
 #include <root/component.h>
 #include <base/component.h>
 #include <base/session_label.h>
@@ -23,17 +24,29 @@
 #include <base/heap.h>
 #include <base/log.h>
 
-
-using namespace Genode;
-
 /*****************
  ** ROM service **
  *****************/
 
+namespace Fs_rom {
+	using namespace Genode;
+
+	struct Packet_handler;
+
+	class Rom_session_component;
+	class Rom_root;
+
+	typedef Genode::List<Rom_session_component> Sessions;
+
+	typedef File_system::Session_client::Tx::Source Tx_source;
+}
+
+
 /**
  * A 'Rom_session_component' exports a single file of the file system
  */
-class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
+class Fs_rom::Rom_session_component :
+	public Genode::Rpc_object<Genode::Rom_session>, public Sessions::Element
 {
 	private:
 
@@ -60,6 +73,11 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		File_system::file_size_t _file_size = 0;
 
 		/**
+		 * Read offset of the file
+		 */
+		File_system::seek_off_t _file_seek = 0;
+
+		/**
 		 * Handle of currently watched compound directory
 		 *
 		 * The compund directory is watched only if the requested file could
@@ -70,35 +88,12 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		/**
 		 * Dataspace exposed as ROM module to the client
 		 */
-		Genode::Ram_dataspace_capability _file_ds;
+		Genode::Attached_ram_dataspace _file_ds;
 
 		/**
 		 * Signal destination for ROM file changes
 		 */
 		Genode::Signal_context_capability _sigh;
-
-		/**
-		 * Signal-handling function called by the main thread the compound
-		 * directory changed.
-		 */
-		void _dir_changed()
-		{
-			Genode::log("detected directory change");
-			if (_sigh.valid())
-				Genode::Signal_transmitter(_sigh).submit();
-		}
-
-		/**
-		 * Handler that is called each time when the requested file is not
-		 * yet available and the compound directory changes
-		 *
-		 * The change of the compound directory bears the chance that the
-		 * requested file re-appears. So we inform the client about a ROM
-		 * module change and thereby give it a chance to call 'dataspace()' in
-		 * response.
-		 */
-		Genode::Signal_handler<Rom_session_component> _dir_change_handler
-			{ _env.ep(), *this, &Rom_session_component::_dir_changed };
 
 		/**
 		 * Open compound directory of specified file
@@ -162,12 +157,15 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			catch (Invalid_handle)    { Genode::error(_file_path, ": Invalid_handle"); }
 			catch (Invalid_name)      { Genode::error(_file_path, ": invalid_name"); }
 			catch (Lookup_failed)     { Genode::error(_file_path, ": lookup_failed"); }
+			catch (...)               { Genode::error(_file_path, ": unhandled error"); };
 
 			return file_handle;
 		}
 
 		void _register_for_compound_dir_changes()
 		{
+			using namespace File_system;
+
 			/* forget about the previously watched compound directory */
 			if (_compound_dir_handle.valid())
 				_fs.close(_compound_dir_handle);
@@ -176,7 +174,9 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 
 			/* register for changes in compound directory */
 			if (_compound_dir_handle.valid())
-				_fs.sigh(_compound_dir_handle, _dir_change_handler);
+				_fs.tx()->submit_packet(File_system::Packet_descriptor(
+					_compound_dir_handle,
+					File_system::Packet_descriptor::CONTENT_CHANGED));
 			else
 				Genode::warning("could not track compound dir, giving up");
 		}
@@ -200,12 +200,11 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 					File_system::file_size_t const new_file_size =
 						_fs.status(file_handle).size;
 
-					if (_file_ds.valid() && (new_file_size > _file_size)) {
-						_env.ram().free(_file_ds);
-
+					if (_file_ds.size() && (new_file_size > _file_size)) {
 						/* mark as invalid */
-						_file_ds = Ram_dataspace_capability();
+						_file_ds.realloc(&_env.ram(), 0);
 						_file_size = 0;
+						_file_seek = 0;
 					}
 				}
 				_fs.close(file_handle);
@@ -225,8 +224,9 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 				_fs.close(_compound_dir_handle);
 
 			/* register for file changes */
-			if (_sigh.valid() && _file_handle.valid())
-				_fs.sigh(_file_handle, _sigh);
+			if (_file_handle.valid())
+				_fs.tx()->submit_packet(File_system::Packet_descriptor(
+					_file_handle, File_system::Packet_descriptor::CONTENT_CHANGED));
 
 			size_t const file_size = _file_handle.valid()
 			                       ? _fs.status(_file_handle).size : 0;
@@ -234,30 +234,37 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			/* allocate new RAM dataspace according to file size */
 			if (file_size > 0) {
 				try {
-					if (!_file_ds.valid()) {
-						_file_ds = _env.ram().alloc(file_size);
-						_file_size = file_size;
-					}
+					_file_seek = 0;
+					_file_ds.realloc(&_env.ram(), file_size);
+					_file_size = file_size;
 				} catch (...) {
-					Genode::error("couldn't allocate memory for file, empty result");
-					_file_ds = Ram_dataspace_capability();
+					Genode::error("couldn't allocate memory for file, empty result");;
 					return;
 				}
-			}
-
-			if (!_file_ds.valid()) {
+			} else {
 				_register_for_compound_dir_changes();
 				return;
 			}
 
-			/* map dataspace locally */
-			void * const dst_addr = _env.rm().attach(_file_ds);
-
 			/* read content from file */
-			read(_fs, _file_handle, dst_addr, file_size);
+			Tx_source &source = *_fs.tx();
+			while (_file_seek < _file_size) {
+				/* if we cannot submit then process acknowledgements */
+				if (source.ready_to_submit()) {
+					size_t chunk_size = min(_file_size - _file_seek,
+					                        source.bulk_buffer_size() / 2);
+					File_system::Packet_descriptor
+						packet(source.alloc_packet(chunk_size),
+						       _file_handle,
+						       File_system::Packet_descriptor::READ,
+						       chunk_size,
+						       _file_seek);
+					source.submit_packet(packet);
+				}
 
-			/* unmap dataspace */
-			_env.rm().detach(dst_addr);
+				/* process ack at the global signal handler */
+				_env.ep().wait_and_dispatch_one_io_signal();
+			}
 		}
 
 	public:
@@ -275,8 +282,10 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		Rom_session_component(Genode::Env &env,
 		                      File_system::Session &fs, const char *file_path)
 		:
-			_env(env), _fs(fs), _file_path(file_path),
-			_file_handle(_open_file(_fs, _file_path))
+			_env(env), _fs(fs),
+			_file_path(file_path),
+			_file_handle(_open_file(_fs, _file_path)),
+			_file_ds(env.ram(), env.rm(), 0) /* realloc later */
 		{
 			if (!_file_handle.valid())
 				_register_for_compound_dir_changes();
@@ -293,9 +302,6 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 
 			if (_compound_dir_handle.valid())
 				_fs.close(_compound_dir_handle);
-
-			/* close file */
-			_env.ram().free(_file_ds);
 		}
 
 		/**
@@ -304,20 +310,88 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		Genode::Rom_dataspace_capability dataspace()
 		{
 			_update_dataspace();
-			Genode::Dataspace_capability ds = _file_ds;
+			Genode::Dataspace_capability ds = _file_ds.cap();
 			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds);
 		}
 
-		void sigh(Genode::Signal_context_capability sigh)
+		void sigh(Genode::Signal_context_capability sigh) {
+			_sigh = sigh; }
+
+		/**
+		 * If packet corresponds to this session then process and return true.
+		 *
+		 * Called from the signal handler.
+		 */
+		bool process_packet(File_system::Packet_descriptor const packet)
 		{
-			_sigh = sigh;
-			if (_file_handle.valid())
-				_fs.sigh(_file_handle, _sigh);
+			switch (packet.operation()) {
+
+			case File_system::Packet_descriptor::CONTENT_CHANGED:
+				if (_file_handle == packet.handle() ||
+				    _compound_dir_handle == packet.handle())
+				{
+					if (_sigh.valid())
+						Genode::Signal_transmitter(_sigh).submit();
+					return true;
+				}
+				return false;
+
+			case File_system::Packet_descriptor::READ: {
+				if (_file_handle != packet.handle())
+					return false;
+
+				if (packet.position() > _file_seek || _file_seek >= _file_size) {
+						error("bad packet seek position");
+						_file_ds.realloc(&_env.ram(), 0);
+						return true;
+				}
+
+				size_t const n = min(packet.length(), _file_size - _file_seek);
+				memcpy(_file_ds.local_addr<char>()+_file_seek,
+				       _fs.tx()->packet_content(packet), n);
+				_file_seek += n;
+				return true;
+			}
+
+			default:
+				Genode::error("discarding strange packet acknowledgement");
+				return true;
+			}
+			return false;
 		}
 };
 
+struct Fs_rom::Packet_handler : Genode::Io_signal_handler<Packet_handler>
+{
+	Tx_source &source;
 
-class Rom_root : public Genode::Root_component<Rom_session_component>
+	/* list of open sessions */
+	Sessions sessions;
+
+	void handle_packets()
+	{
+		while (source.ack_avail()) {
+			File_system::Packet_descriptor pack = source.get_acked_packet();
+			for (Rom_session_component *session = sessions.first();
+	   		     session; session = session->next())
+			{
+				if (session->process_packet(pack))
+					break;
+			}
+			source.release_packet(pack);
+		}
+	}
+
+	Packet_handler(Genode::Entrypoint &ep, Tx_source &source)
+	:
+		Genode::Io_signal_handler<Packet_handler>(
+			ep, *this, &Packet_handler::handle_packets),
+		source(source)
+	{ }
+};
+
+
+class Fs_rom::Rom_root : public Genode::Root_component<Fs_rom::Rom_session_component>
 {
 	private:
 
@@ -328,7 +402,9 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 		/* open file-system session */
 		File_system::Connection _fs { _env, _fs_tx_block_alloc };
 
-		Rom_session_component *_create_session(const char *args)
+		Packet_handler _packet_handler { _env.ep(), *_fs.tx() };
+
+		Rom_session_component *_create_session(const char *args) override
 		{
 			Genode::Session_label const label = label_from_args(args);
 			Genode::Session_label const module_name = label.last_element();
@@ -336,8 +412,17 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 			Genode::log("request for ", label);
 
 			/* create new session for the requested file */
-			return new (md_alloc())
+			Rom_session_component *session = new (md_alloc())
 				Rom_session_component(_env, _fs, module_name.string());
+
+			_packet_handler.sessions.insert(session);
+			return session;
+		}
+
+		void _destroy_session(Rom_session_component *session) override
+		{
+			_packet_handler.sessions.remove(session);
+			Genode::destroy(md_alloc(), session);
 		}
 
 	public:
@@ -354,6 +439,9 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 			Genode::Root_component<Rom_session_component>(env.ep(), md_alloc),
 			_env(env)
 		{
+			/* Process CONTENT_CHANGED acknowledgement packets at the entrypoint  */
+			_fs.sigh_ack_avail(_packet_handler);
+
 			env.parent().announce(env.ep().manage(*this));
 		}
 };
@@ -361,6 +449,6 @@ class Rom_root : public Genode::Root_component<Rom_session_component>
 
 void Component::construct(Genode::Env &env)
 {
-	static Sliced_heap sliced_heap(env.ram(), env.rm());
-	static Rom_root inst(env, sliced_heap);
+	static Genode::Sliced_heap sliced_heap(env.ram(), env.rm());
+	static Fs_rom::Rom_root inst(env, sliced_heap);
 }
