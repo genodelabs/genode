@@ -6,6 +6,8 @@ set use_serial 1
 set use_vbox4 1
 set use_vbox5 [expr !$use_vbox4]
 
+set use_gui 0
+
 set build_components {
 	core init
 	drivers/framebuffer
@@ -33,6 +35,11 @@ lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [have_spec x86]    build_components drivers/rtc
 
 lappend_if [expr $use_net]    build_components drivers/nic
+
+lappend_if [expr $use_gui]    build_components server/report_rom
+lappend_if [expr $use_gui]    build_components server/nitpicker
+lappend_if [expr $use_gui]    build_components server/nit_fb
+lappend_if [expr $use_gui]    build_components app/vbox_pointer
 
 append_platform_drv_build_components
 
@@ -121,7 +128,7 @@ append_if [expr $use_net] config {
 }
 
 append_if [expr $use_serial] config {
-	<start name="log_terminal">
+	<start name="log_terminal" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Terminal"/>
@@ -129,8 +136,113 @@ append_if [expr $use_serial] config {
 	</start>
 }
 
+append_if [expr $use_gui] config {
+	<start name="report_rom" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
+			<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
+			<policy label="vbox_pointer -> shape1"              report="vbox1 -> shape"/>
+			<policy label="vbox_pointer -> shape2"              report="vbox2 -> shape"/>
+		</config>
+	</start>
+
+	<start name="nitpicker" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Framebuffer"> <child name="fb_drv" /> </service>
+			<service name="Report"> <child name="report_rom" /> </service>}
+
+append_if [expr ($use_gui && $use_ps2)] config {
+			<service name="Input"> <child name="ps2_drv"/> </service>}
+append_if [expr ($use_gui && $use_usb)] config {
+			<service name="Input"> <child name="usb_drv"/> </service>}
+
+append_if [expr $use_gui] config {
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+		<config>
+			<report focus="yes" hover="yes" xray="yes" />
+
+			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
+			<domain name=""         layer="2" content="client" focus="click" hover="always" />
+
+			<policy label_prefix="vbox_pointer"     domain="pointer"/>
+			<default-policy domain=""/>
+		</config>
+	</start>
+
+	<start name="vbox_pointer" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<policy label="nit_fb1" rom="shape1"/>
+			<policy label="nit_fb2" rom="shape2"/>
+		</config>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="ROM" label="shape1"> <child name="report_rom"/> </service>
+			<service name="ROM" label="shape2"> <child name="report_rom"/> </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="nit_fb1" priority="-1">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="8M" />
+		<provides>
+			<service name="Framebuffer" />
+			<service name="Input" />
+		</provides>
+
+		<config xpos="10" ypos="10" width="800" height="600"/>
+
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nit_fb2" priority="-1">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="8M" />
+		<provides>
+			<service name="Framebuffer" />
+			<service name="Input" />
+		</provides>
+		<config xpos="410" ypos="310" width="800" height="600"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="vbox2" priority="-2">}
+append_if [expr $use_gui] config "
+		<binary name=\"$virtualbox_binary\"/>"
+append_if [expr $use_gui] config {
+		<resource name="RAM" quantum="448M"/>
+		<config vbox_file="test.vbox" vm_name="TestVM">
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev"> <log/> <rtc/> </dir>
+				<rom name="test.vbox" />
+				<rom name="test.iso" />
+			</vfs>
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Framebuffer"> <child name="nit_fb2" /> </service>
+			<service name="Input"> <child name="nit_fb2" /> </service>
+			<any-service> <parent /> <any-child /> </any-service>
+		</route>
+	</start>}
+
 append config {
-	<start name="virtualbox" priority="-2">}
+	<start name="vbox1" priority="-2">}
 append config "
 		<binary name=\"$virtualbox_binary\"/>"
 append config {
@@ -148,6 +260,16 @@ append config {
 				<rom name="test.iso" />
 			</vfs>
 		</config>
+		<route>}
+
+append_if [expr $use_gui] config {
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Framebuffer"> <child name="nit_fb1" /> </service>
+			<service name="Input"> <child name="nit_fb1" /> </service>}
+
+append config {
+			<any-service> <parent /> <any-child /> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -167,6 +289,11 @@ lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         x86] boot_modules rtc_drv
 
+lappend_if [expr         $use_gui] boot_modules report_rom
+lappend_if [expr         $use_gui] boot_modules nitpicker
+lappend_if [expr         $use_gui] boot_modules nit_fb
+lappend_if [expr         $use_gui] boot_modules vbox_pointer
+
 append boot_modules {
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
 	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
@@ -181,7 +308,12 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 if {[have_include "power_on/qemu"]} {
-	append qemu_args " -m 512 "
+	if {[expr $use_gui]} {
+		append qemu_args " -m 2048 "
+	} else {
+		append qemu_args " -m 768 "
+	}
+
 	append qemu_args " -cpu phenom "
 	if {[expr $use_usb]} {
 		append qemu_args " -usbdevice mouse -usbdevice keyboard"
