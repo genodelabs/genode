@@ -55,7 +55,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 			Timer::Connection connection;
 			Genode::Timer     timer;
 
-			Lazy(Env &env) : connection(env), timer(connection, env.ep()) { }
+			Lazy(Env &env) : connection(env), timer(env.ep(), connection) { }
 		};
 
 		Env &_env;

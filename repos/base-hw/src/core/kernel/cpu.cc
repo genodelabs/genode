@@ -42,6 +42,9 @@ time_t Cpu_job::timeout_age_us(Timeout const * const timeout) const
 }
 
 
+time_t Cpu_job::time() const { return _cpu->time(); }
+
+
 time_t Cpu_job::timeout_max_us() const
 {
 	return _cpu->timeout_max_us();

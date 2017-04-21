@@ -532,7 +532,7 @@ struct Terminal::Main
 	Framebuffer::Connection _framebuffer { _env, Framebuffer::Mode() };
 	Input::Connection       _input { _env };
 	Timer::Connection       _timer_conection { _env };
-	Genode::Timer           _timer { _timer_conection, _env.ep() };
+	Genode::Timer           _timer { _env.ep(), _timer_conection };
 
 	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
@@ -556,12 +556,12 @@ struct Terminal::Main
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
 
-	void _handle_key_repeat(Time_source::Microseconds);
+	void _handle_key_repeat(Duration);
 
 	One_shot_timeout<Main> _key_repeat_timeout {
 		_timer, *this, &Main::_handle_key_repeat };
 
-	void _handle_flush(Time_source::Microseconds);
+	void _handle_flush(Duration);
 
 	/*
 	 * Time in milliseconds between a change of the terminal content and the
@@ -575,7 +575,7 @@ struct Terminal::Main
 	void _trigger_flush()
 	{
 		if (!_flush_scheduled) {
-			_flush_timeout.start(Time_source::Microseconds{1000*_flush_delay});
+			_flush_timeout.schedule(Microseconds{1000*_flush_delay});
 			_flush_scheduled = true;
 		}
 	}
@@ -657,11 +657,11 @@ void Terminal::Main::_handle_input()
 	});
 
 	if (_repeat_next)
-		_key_repeat_timeout.start(Time_source::Microseconds{1000*_repeat_next});
+		_key_repeat_timeout.schedule(Microseconds{1000*_repeat_next});
 }
 
 
-void Terminal::Main::_handle_key_repeat(Time_source::Microseconds)
+void Terminal::Main::_handle_key_repeat(Duration)
 {
 	if (_repeat_next) {
 
@@ -675,7 +675,7 @@ void Terminal::Main::_handle_key_repeat(Time_source::Microseconds)
 }
 
 
-void Terminal::Main::_handle_flush(Time_source::Microseconds)
+void Terminal::Main::_handle_flush(Duration)
 {
 	_flush_scheduled = false;
 	_flush_callback_registry.flush();

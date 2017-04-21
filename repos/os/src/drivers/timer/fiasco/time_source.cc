@@ -39,7 +39,8 @@ namespace Fiasco {
 #include <time_source.h>
 
 using namespace Fiasco;
-using Microseconds = Genode::Time_source::Microseconds;
+using Microseconds = Genode::Microseconds;
+using Duration     = Genode::Duration;
 
 
 static l4_timeout_s mus_to_timeout(unsigned long mus)
@@ -71,14 +72,14 @@ Microseconds Timer::Time_source::max_timeout() const
 }
 
 
-Microseconds Timer::Time_source::curr_time() const
+Duration Timer::Time_source::curr_time()
 {
 	Genode::Lock::Guard lock_guard(_lock);
 	static Genode::Attached_rom_dataspace kip_ds(_env, "l4v2_kip");
 	static Fiasco::l4_kernel_info_t * const kip =
 		kip_ds.local_addr<Fiasco::l4_kernel_info_t>();
 
-	return Microseconds(kip->clock);
+	return Duration(Microseconds(kip->clock));
 }
 
 

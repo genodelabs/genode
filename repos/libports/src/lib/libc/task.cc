@@ -49,7 +49,7 @@ namespace Libc {
 	class Timeout_handler;
 	class Io_response_handler;
 
-	using Microseconds = Genode::Time_source::Microseconds;
+	using Genode::Microseconds;
 }
 
 
@@ -173,12 +173,12 @@ struct Libc::Timer
 	Timer(Genode::Env &env)
 	:
 		_timer_connection(env),
-		_timer(_timer_connection, env.ep())
+		_timer(env.ep(), _timer_connection)
 	{ }
 
-	unsigned long curr_time() const
+	unsigned long curr_time()
 	{
-		return _timer.curr_time().value/1000;
+		return _timer.curr_time().trunc_to_plain_us().value/1000;
 	}
 
 	static Microseconds microseconds(unsigned long timeout_ms)
@@ -188,7 +188,7 @@ struct Libc::Timer
 
 	static unsigned long max_timeout()
 	{
-		return Genode::Timer::Microseconds::max().value/1000;
+		return Microseconds::max().value/1000;
 	}
 };
 
@@ -224,7 +224,7 @@ struct Libc::Timeout
 	bool          _expired             = true;
 	unsigned long _absolute_timeout_ms = 0;
 
-	void _handle(Microseconds now)
+	void _handle(Duration now)
 	{
 		_expired             = true;
 		_absolute_timeout_ms = 0;
@@ -245,7 +245,7 @@ struct Libc::Timeout
 		_expired             = false;
 		_absolute_timeout_ms = now + timeout_ms;
 
-		_timeout.start(_timer_accessor.timer().microseconds(timeout_ms));
+		_timeout.schedule(_timer_accessor.timer().microseconds(timeout_ms));
 	}
 
 	unsigned long duration_left() const

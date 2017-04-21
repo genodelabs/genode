@@ -50,7 +50,7 @@ class Timer::Time_source : public Threaded_time_source
 		 ** Genode::Time_source **
 		 *************************/
 
-		Microseconds curr_time() const override;
+		Duration curr_time() override;
 		Microseconds max_timeout() const override;
 		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
 };

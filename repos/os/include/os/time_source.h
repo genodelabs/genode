@@ -14,7 +14,15 @@
 #ifndef _OS__TIME_SOURCE_H_
 #define _OS__TIME_SOURCE_H_
 
-namespace Genode { class Time_source; }
+/* Genode includes */
+#include <os/duration.h>
+
+namespace Genode {
+
+	class Time_source;
+	class Timeout_scheduler;
+}
+
 
 /**
  * Interface of a time source that can handle one timeout at a time
@@ -22,29 +30,17 @@ namespace Genode { class Time_source; }
 struct Genode::Time_source
 {
 	/**
-	 * Makes it clear which time unit an interfaces takes
-	 */
-	struct Microseconds
-	{
-		unsigned long value;
-
-		explicit Microseconds(unsigned long const value) : value(value) { }
-
-		static Microseconds max() { return Microseconds(~0UL); }
-	};
-
-	/**
 	 * Interface of a timeout callback
 	 */
 	struct Timeout_handler
 	{
-		virtual void handle_timeout(Microseconds curr_time) = 0;
+		virtual void handle_timeout(Duration curr_time) = 0;
 	};
 
 	/**
 	 * Return the current time of the source
 	 */
-	virtual Microseconds curr_time() const = 0;
+	virtual Duration curr_time() = 0;
 
 	/**
 	 * Return the maximum timeout duration that the source can handle
@@ -59,6 +55,15 @@ struct Genode::Time_source
 	 */
 	virtual void schedule_timeout(Microseconds     duration,
 	                              Timeout_handler &handler) = 0;
+
+	/**
+	 * Tell the time source which scheduler to use for its own timeouts
+	 *
+	 * This method enables a time source for example to synchronize with an
+	 * accurate but expensive timer only on a periodic basis while using a
+	 * cheaper interpolation in general.
+	 */
+	virtual void scheduler(Timeout_scheduler &scheduler) { };
 };
 
 #endif /* _OS__TIME_SOURCE_H_ */

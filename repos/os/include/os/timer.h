@@ -15,11 +15,15 @@
 #define _TIMER_H_
 
 /* Genode includes */
+#include <util/reconstructible.h>
+#include <base/entrypoint.h>
 #include <timer_session/timer_session.h>
 #include <os/time_source.h>
 #include <os/timeout.h>
+#include <trace/timestamp.h>
 
 namespace Genode {
+
 	class Timer;
 	class Timer_time_source;
 }
@@ -34,47 +38,64 @@ class Genode::Timer_time_source : public Genode::Time_source
 {
 	private:
 
-		enum { MIN_TIMEOUT_US = 5000 };
+		/*
+		 * The higher the factor shift, the more precise is the time
+		 * interpolation but the more likely it becomes that an overflow
+		 * would occur during calculations. In this case, the timer
+		 * down-scales the values live which is avoidable overhead.
+		 */
+		enum { TS_TO_US_RATIO_SHIFT       = 8 };
+		enum { MIN_TIMEOUT_US             = 5000 };
+		enum { REAL_TIME_UPDATE_PERIOD_US = 100000 };
+		enum { MAX_TS                     = ~(Trace::Timestamp)0ULL >> TS_TO_US_RATIO_SHIFT };
+		enum { MAX_INTERPOLATION_QUALITY  = 3 };
+		enum { MAX_REMOTE_TIME_LATENCY_US = 500 };
+		enum { MAX_REMOTE_TIME_TRIALS     = 5 };
 
-		using Signal_handler = Genode::Io_signal_handler<Timer_time_source>;
+		::Timer::Session                                    &_session;
+		Io_signal_handler<Timer_time_source>                 _signal_handler;
+		Timeout_handler                                     *_handler = nullptr;
+		Constructible<Periodic_timeout<Timer_time_source> >  _real_time_update;
 
-		::Timer::Session &_session;
-		Signal_handler    _signal_handler;
-		Timeout_handler  *_handler = nullptr;
+		Lock             _real_time_lock        { Lock::UNLOCKED };
+		unsigned long    _ms                    { _session.elapsed_ms() };
+		Trace::Timestamp _ts                    { _timestamp() };
+		Duration         _real_time             { Milliseconds(_ms) };
+		Duration         _interpolated_time     { _real_time };
+		unsigned         _interpolation_quality { 0 };
+		unsigned long    _us_to_ts_factor       { 1UL << TS_TO_US_RATIO_SHIFT };
 
-		void _handle_timeout()
-		{
-			if (_handler)
-				_handler->handle_timeout(curr_time());
-		}
+		Trace::Timestamp _timestamp();
+
+		void _update_interpolation_quality(unsigned long min_factor,
+		                                   unsigned long max_factor);
+
+		unsigned long _ts_to_us_ratio(Trace::Timestamp ts, unsigned long us);
+
+		void _handle_real_time_update(Duration);
+
+		Duration _update_interpolated_time(Duration &interpolated_time);
+
+		void _handle_timeout();
 
 	public:
 
-		Timer_time_source(::Timer::Session &session, Entrypoint &ep)
-		:
-			_session(session),
-			_signal_handler(ep, *this, &Timer_time_source::_handle_timeout)
-		{
-			_session.sigh(_signal_handler);
-		}
+		Timer_time_source(Entrypoint       &ep,
+		                  ::Timer::Session &session);
 
-		Microseconds curr_time() const {
-			return Microseconds(1000UL * _session.elapsed_ms()); }
+
+		/*****************
+		 ** Time_source **
+		 *****************/
 
 		void schedule_timeout(Microseconds     duration,
-		                      Timeout_handler &handler)
-		{
-			if (duration.value < MIN_TIMEOUT_US)
-				duration.value = MIN_TIMEOUT_US;
+		                      Timeout_handler &handler) override;
 
-			if (duration.value > max_timeout().value)
-				duration.value = max_timeout().value;
+		Microseconds max_timeout() const override { return Microseconds::max(); }
 
-			_handler = &handler;
-			_session.trigger_once(duration.value);
-		}
+		Duration curr_time() override;
 
-		Microseconds max_timeout() const { return Microseconds::max(); }
+		void scheduler(Timeout_scheduler &scheduler) override;
 };
 
 
@@ -83,17 +104,12 @@ class Genode::Timer_time_source : public Genode::Time_source
  *
  * Multiplexes a timer session amongst different timeouts.
  */
-struct Genode::Timer : private Genode::Timer_time_source,
-                       public  Genode::Alarm_timeout_scheduler
+struct Genode::Timer : public Genode::Timer_time_source,
+                       public Genode::Alarm_timeout_scheduler
 {
-	using Time_source::Microseconds;
 	using Alarm_timeout_scheduler::curr_time;
 
-	Timer(::Timer::Session &session, Entrypoint &ep)
-	:
-		Timer_time_source(session, ep),
-		Alarm_timeout_scheduler(*(Time_source*)this)
-	{ }
+	Timer(Entrypoint &ep, ::Timer::Session &session);
 };
 
 #endif /* _TIMER_H_ */

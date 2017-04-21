@@ -4,7 +4,7 @@
 LIBS   = libc-string libc-locale libc-stdlib libc-stdio libc-gen libc-gdtoa \
          libc-inet libc-stdtime libc-regex libc-compat libc-setjmp libc-mem
 
-LIBS  += base vfs timeout
+LIBS  += base vfs
 
 #
 # Back end

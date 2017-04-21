@@ -48,7 +48,7 @@ class Main
 
 Main::Main(Env &env)
 :
-	_timer_connection(env), _timer(_timer_connection, env.ep()),
+	_timer_connection(env), _timer(env.ep(), _timer_connection),
 	_heap(&env.ram(), &env.rm()), _config_rom(env, "config"),
 	_config(_config_rom.xml(), _heap),
 	_uplink(env, _timer, _heap, _config),

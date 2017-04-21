@@ -38,10 +38,6 @@ namespace Genode {
  */
 class Genode::Timeout_scheduler
 {
-	public:
-
-		using Microseconds = Time_source::Microseconds;
-
 	private:
 
 		friend Timeout;
@@ -74,7 +70,7 @@ class Genode::Timeout_scheduler
 		/**
 		 *  Read out the now time of the scheduler
 		 */
-		virtual Microseconds curr_time() const = 0;
+		virtual Duration curr_time() = 0;
 };
 
 
@@ -97,15 +93,10 @@ class Genode::Timeout : private Noncopyable
 		 */
 		struct Handler
 		{
-			using Microseconds = Time_source::Microseconds;
-
-			virtual void handle_timeout(Microseconds curr_time) = 0;
+			virtual void handle_timeout(Duration curr_time) = 0;
 		};
 
 	private:
-
-		using Microseconds = Time_source::Microseconds;
-
 
 		struct Alarm : Genode::Alarm
 		{
@@ -137,22 +128,20 @@ class Genode::Timeout : private Noncopyable
 		void schedule_one_shot(Microseconds duration, Handler &handler);
 
 		void discard();
+
+		bool scheduled() { return _alarm.handler != nullptr; }
 };
 
 
 /**
- * Periodic timeout that is linked to a custom handler, starts when constructed
+ * Periodic timeout that is linked to a custom handler, scheduled when constructed
  */
 template <typename HANDLER>
 struct Genode::Periodic_timeout : private Noncopyable
 {
-	public:
-
-		using Microseconds = Timeout_scheduler::Microseconds;
-
 	private:
 
-		typedef void (HANDLER::*Handler_method)(Microseconds);
+		typedef void (HANDLER::*Handler_method)(Duration);
 
 		Timeout _timeout;
 
@@ -169,7 +158,7 @@ struct Genode::Periodic_timeout : private Noncopyable
 			 ** Timeout::Handler **
 			 **********************/
 
-			void handle_timeout(Microseconds curr_time) override {
+			void handle_timeout(Duration curr_time) override {
 				(object.*method)(curr_time); }
 
 		} _handler;
@@ -189,16 +178,14 @@ struct Genode::Periodic_timeout : private Noncopyable
 
 
 /**
- * One-shot timeout that is linked to a custom handler, started manually
+ * One-shot timeout that is linked to a custom handler, scheduled manually
  */
 template <typename HANDLER>
 class Genode::One_shot_timeout : private Noncopyable
 {
 	private:
 
-		using Microseconds = Timeout_scheduler::Microseconds;
-
-		typedef void (HANDLER::*Handler_method)(Microseconds);
+		typedef void (HANDLER::*Handler_method)(Duration);
 
 		Timeout _timeout;
 
@@ -215,7 +202,7 @@ class Genode::One_shot_timeout : private Noncopyable
 			 ** Timeout::Handler **
 			 **********************/
 
-			void handle_timeout(Microseconds curr_time) override {
+			void handle_timeout(Duration curr_time) override {
 				(object.*method)(curr_time); }
 
 		} _handler;
@@ -227,8 +214,12 @@ class Genode::One_shot_timeout : private Noncopyable
 		                 Handler_method     method)
 		: _timeout(timeout_scheduler), _handler(object, method) { }
 
-		void start(Microseconds duration) {
+		void schedule(Microseconds duration) {
 			_timeout.schedule_one_shot(duration, _handler); }
+
+		void discard() { _timeout.discard(); }
+
+		bool scheduled() { return _timeout.scheduled(); }
 };
 
 
@@ -249,7 +240,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 		 ** Time_source::Timeout_handler **
 		 **********************************/
 
-		void handle_timeout(Microseconds curr_time) override;
+		void handle_timeout(Duration curr_time) override;
 
 
 		/***********************
@@ -271,7 +262,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 		 ** Timeout_scheduler **
 		 ***********************/
 
-		Microseconds curr_time() const override {
+		Duration curr_time() override {
 			return _time_source.curr_time(); }
 };
 

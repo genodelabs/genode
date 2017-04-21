@@ -30,7 +30,7 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 void Timer::Time_source::_wait_for_irq()
 {
 	enum { SLEEP_GRANULARITY_US = 1000UL };
-	unsigned long last_time_us = curr_time().value;
+	unsigned long last_time_us = curr_time().trunc_to_plain_us().value;
 	_lock.lock();
 	while (_next_timeout_us > 0) {
 		_lock.unlock();
@@ -38,7 +38,7 @@ void Timer::Time_source::_wait_for_irq()
 		try { _usleep(SLEEP_GRANULARITY_US); }
 		catch (Blocking_canceled) { }
 
-		unsigned long curr_time_us = curr_time().value;
+		unsigned long curr_time_us = curr_time().trunc_to_plain_us().value;
 		unsigned long sleep_duration_us = curr_time_us - last_time_us;
 		last_time_us = curr_time_us;
 

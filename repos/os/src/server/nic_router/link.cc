@@ -127,11 +127,11 @@ Link::Link(Interface                           &cln_interface,
 	_close_timeout_us(_config.rtt_sec() * 2 * 1000 * 1000),
 	_protocol(protocol)
 {
-	_close_timeout.start(_close_timeout_us);
+	_close_timeout.schedule(_close_timeout_us);
 }
 
 
-void Link::_handle_close_timeout(Genode::Timer::Microseconds)
+void Link::_handle_close_timeout(Duration)
 {
 	dissolve();
 	_client._interface.link_closed(*this, _protocol);
@@ -179,7 +179,7 @@ Tcp_link::Tcp_link(Interface                           &cln_interface,
 void Tcp_link::_fin_acked()
 {
 	if (_server_fin_acked && _client_fin_acked) {
-		_close_timeout.start(_close_timeout_us);
+		_close_timeout.schedule(_close_timeout_us);
 		_closed = true;
 	}
 }

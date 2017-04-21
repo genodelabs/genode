@@ -64,8 +64,8 @@ class Timer::Time_source : public Threaded_time_source
 
 		Microseconds max_timeout() const override { return _tsc_to_us(~0UL); }
 		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
-		Microseconds curr_time() const override {
-			return _tsc_to_us(Genode::Trace::timestamp()); }
+		Duration curr_time() override {
+			return Duration(_tsc_to_us(Genode::Trace::timestamp())); }
 };
 
 #endif /* _TIME_SOURCE_H_ */

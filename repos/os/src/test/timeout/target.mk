@@ -1,4 +1,4 @@
 TARGET   = test-timeout
 SRC_CC  += main.cc
-LIBS    += base timeout
+LIBS    += base
 INC_DIR += $(PRG_DIR)

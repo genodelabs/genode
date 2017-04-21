@@ -1,5 +1,6 @@
 SRC_CC += timeout.cc
-
-LIBS += alarm
+SRC_CC += timer.cc
+SRC_CC += timer_timestamp.cc
+SRC_CC += duration.cc
 
 vpath % $(REP_DIR)/src/lib/timeout

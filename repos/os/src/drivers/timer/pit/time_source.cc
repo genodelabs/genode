@@ -16,7 +16,6 @@
 #include <time_source.h>
 
 using namespace Genode;
-using Microseconds = Genode::Time_source::Microseconds;
 
 
 void Timer::Time_source::_set_counter(uint16_t value)
@@ -67,7 +66,7 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 }
 
 
-Microseconds Timer::Time_source::curr_time() const
+Duration Timer::Time_source::curr_time()
 {
 	uint32_t passed_ticks;
 
@@ -100,7 +99,7 @@ Microseconds Timer::Time_source::curr_time() const
 
 	/* use current counter as the reference for the next update */
 	_counter_init_value = curr_counter;
-	return Microseconds(_curr_time_us);
+	return Duration(Microseconds(_curr_time_us));
 }
 
 
