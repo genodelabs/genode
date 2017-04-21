@@ -36,7 +36,8 @@ CC_OPT += -DL4SYS_USE_UTCB_WRAP=1
 # build system will stuble over predefined variables, i.e., 'LIB'
 #
 $(L4_BUILD_DIR)/.kconfig:
-	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(L4_SRC_DIR)/l4 \
+	$(VERBOSE_MK) set -o pipefail; \
+	     MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(L4_SRC_DIR)/l4 \
 	     B=$(L4_BUILD_DIR) DROPSCONF_DEFCONFIG="$(L4_CONFIG)" \
 	     VERBOSE="$(VERBOSE)" SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	     2>&1 | sed "s/^/      [l4build]  /"

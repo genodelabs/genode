@@ -8,13 +8,15 @@ MAKEOVERRIDES := $(filter-out KERNEL=%,$(MAKEOVERRIDES))
 unexport KERNEL
 
 $(FOC_BUILD_DIR):
-	$(VERBOSE_MK) $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) set -o pipefail; \
+	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                      $(VERBOSE_DIR) -C $(FOC_SRC) BUILDDIR=$@ \
 	                      $(KERNEL_BUILD_OUTPUT_FILTER)
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
 
 $(FOC): $(FOC_BUILD_DIR)
-	$(VERBOSE_MK) $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) set -o pipefail; \
+	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                      CC="$(CC)" CXX="$(CXX)" \
 	                      $(VERBOSE_DIR) -C $(FOC_BUILD_DIR) \
 	                      $(KERNEL_BUILD_OUTPUT_FILTER)
