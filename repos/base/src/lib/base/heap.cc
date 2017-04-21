@@ -100,7 +100,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 	if (enforce_separate_metadata) {
 
 		/* allocate the Dataspace structure */
-		if (_unsynchronized_alloc(sizeof(Heap::Dataspace), &ds_meta_data_addr) < 0) {
+		if (!_unsynchronized_alloc(sizeof(Heap::Dataspace), &ds_meta_data_addr)) {
 			warning("could not allocate dataspace meta data");
 			return 0;
 		}
