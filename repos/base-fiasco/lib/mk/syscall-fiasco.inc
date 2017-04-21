@@ -15,7 +15,8 @@ L4_BUILD_DIR := $(shell pwd)
 .Makeconf.bid.old:
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cp $(L4_CONFIG) $(@:.old=)
-	$(VERBOSE_MK) MAKEFLAGS= make $(VERBOSE_DIR) -C $(L4_SRC_DIR)/l4 \
+	$(VERBOSE_MK) set -o pipefail; \
+	   MAKEFLAGS= make $(VERBOSE_DIR) -C $(L4_SRC_DIR)/l4 \
 	   O=$(L4_BUILD_DIR) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" oldconfig \
 	   2>&1 | sed "s/^/      [l4build]  /"
 	$(VERBOSE)touch $@

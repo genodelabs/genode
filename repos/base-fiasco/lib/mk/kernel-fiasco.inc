@@ -7,17 +7,20 @@ FIASCO_SRC       = $(L4_SRC_DIR)/kernel/fiasco
 KERNEL_BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [fiasco]  /"
 
 $(FIASCO_BUILD_DIR):
-	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) set -o pipefail; \
+	              MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_SRC) BUILDDIR=$@ \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
-	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) set -o pipefail; \
+	              MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $@ oldconfig \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
 
 $(FIASCO): $(FIASCO_BUILD_DIR)
-	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
+	$(VERBOSE_MK) set -o pipefail; \
+	              MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_BUILD_DIR) \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)
 

@@ -50,7 +50,8 @@ endif
 .NOTPARALLEL: $(PKG_TAGS)
 
 %.tag:
-	$(VERBOSE_MK) $(MAKE) $(VERBOSE_DIR) O=$(L4_BUILD_DIR) -C $(L4_PKG_DIR)/$* \
+	$(VERBOSE_MK) set -o pipefail; \
+	              $(MAKE) $(VERBOSE_DIR) O=$(L4_BUILD_DIR) -C $(L4_PKG_DIR)/$* \
 	                      "$(L4_BUILD_OPT)" $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)mkdir -p $(dir $@) && touch $@
 
