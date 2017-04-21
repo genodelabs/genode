@@ -93,7 +93,7 @@ class Net::Session_component : public Session_component_base,
 		                  Genode::Region_map   &region_map,
 		                  Uplink               &uplink,
 		                  Genode::Xml_node      config,
-		                  Genode::Timer        &timer,
+		                  Timer::Connection    &timer,
 		                  unsigned             &curr_time,
 		                  Genode::Entrypoint   &ep);
 
@@ -118,7 +118,7 @@ class Net::Root : public Genode::Root_component<Session_component,
 		Genode::Ram_session &_buf_ram;
 		Genode::Region_map  &_region_map;
 		Genode::Xml_node     _config;
-		Genode::Timer       &_timer;
+		Timer::Connection   &_timer;
 		unsigned            &_curr_time;
 
 
@@ -135,7 +135,7 @@ class Net::Root : public Genode::Root_component<Session_component,
 		     Uplink              &uplink,
 		     Genode::Ram_session &buf_ram,
 		     Genode::Xml_node     config,
-		     Genode::Timer       &timer,
+		     Timer::Connection   &timer,
 		     unsigned            &curr_time,
 		     Genode::Region_map  &region_map);
 };

@@ -2,6 +2,11 @@
  * \brief  Multiplexing one time source amongst different timeouts
  * \author Martin Stein
  * \date   2016-11-04
+ *
+ * These classes are not meant to be used directly. They merely exist to share
+ * the generic parts of timeout-scheduling between the Timer::Connection and the
+ * Timer driver. For user-level timeout-scheduling you should use the interface
+ * in timer_session/connection.h instead.
  */
 
 /*
@@ -11,22 +16,71 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _OS__TIMEOUT_H_
-#define _OS__TIMEOUT_H_
+#ifndef _TIMER__TIMEOUT_H_
+#define _TIMER__TIMEOUT_H_
 
 /* Genode includes */
 #include <util/noncopyable.h>
-#include <os/time_source.h>
 #include <os/alarm.h>
+#include <base/log.h>
+#include <os/duration.h>
 
 namespace Genode {
 
+	class Time_source;
 	class Timeout_scheduler;
 	class Timeout;
 	class Alarm_timeout_scheduler;
-	template <typename> class Periodic_timeout;
-	template <typename> class One_shot_timeout;
 }
+
+namespace Timer
+{
+	class Connection;
+	class Root_component;
+}
+
+
+/**
+ * Interface of a time source that can handle one timeout at a time
+ */
+struct Genode::Time_source
+{
+	/**
+	 * Interface of a timeout callback
+	 */
+	struct Timeout_handler
+	{
+		virtual void handle_timeout(Duration curr_time) = 0;
+	};
+
+	/**
+	 * Return the current time of the source
+	 */
+	virtual Duration curr_time() = 0;
+
+	/**
+	 * Return the maximum timeout duration that the source can handle
+	 */
+	virtual Microseconds max_timeout() const = 0;
+
+	/**
+	 * Install a timeout, overrides the last timeout if any
+	 *
+	 * \param duration  timeout duration
+	 * \param handler   timeout callback
+	 */
+	virtual void schedule_timeout(Microseconds     duration,
+	                              Timeout_handler &handler) = 0;
+
+	/**
+	 * Tell the time source which scheduler to use for its own timeouts
+	 *
+	 * This method enables a time source for example to synchronize with an
+	 * accurate but expensive timer only on a periodic basis while using a
+	 * cheaper interpolation in general.
+	 */
+	virtual void scheduler(Timeout_scheduler &scheduler) { };
+};
 
 
 /**
@@ -38,10 +92,6 @@ namespace Genode {
  */
 class Genode::Timeout_scheduler
 {
-	public:
-
-		using Microseconds = Time_source::Microseconds;
-
 	private:
 
 		friend Timeout;
@@ -74,7 +124,7 @@ class Genode::Timeout_scheduler
 		/**
 		 *  Read out the now time of the scheduler
 		 */
-		virtual Microseconds curr_time() const = 0;
+		virtual Duration curr_time() = 0;
 };
 
 
@@ -97,15 +147,10 @@ class Genode::Timeout : private Noncopyable
 		 */
 		struct Handler
 		{
-			using Microseconds = Time_source::Microseconds;
-
-			virtual void handle_timeout(Microseconds curr_time) = 0;
+			virtual void handle_timeout(Duration curr_time) = 0;
 		};
 
 	private:
-
-		using Microseconds = Time_source::Microseconds;
-
 
 		struct Alarm : Genode::Alarm
 		{
@@ -137,98 +182,8 @@ class Genode::Timeout : private Noncopyable
 		void schedule_one_shot(Microseconds duration, Handler &handler);
 
 		void discard();
-};
 
-
-/**
- * Periodic timeout that is linked to a custom handler, starts when constructed
- */
-template <typename HANDLER>
-struct Genode::Periodic_timeout : private Noncopyable
-{
-	public:
-
-		using Microseconds = Timeout_scheduler::Microseconds;
-
-	private:
-
-		typedef void (HANDLER::*Handler_method)(Microseconds);
-
-		Timeout _timeout;
-
-		struct Handler : Timeout::Handler
-		{
-			HANDLER              &object;
-			Handler_method const  method;
-
-			Handler(HANDLER &object, Handler_method method)
-			: object(object), method(method) { }
-
-
-			/**********************
-			 ** Timeout::Handler **
-			 **********************/
-
-			void handle_timeout(Microseconds curr_time) override {
-				(object.*method)(curr_time); }
-
-		} _handler;
-
-	public:
-
-		Periodic_timeout(Timeout_scheduler &timeout_scheduler,
-		                 HANDLER           &object,
-		                 Handler_method     method,
-		                 Microseconds       duration)
-		:
-			_timeout(timeout_scheduler), _handler(object, method)
-		{
-			_timeout.schedule_periodic(duration, _handler);
-		}
-};
-
-
-/**
- * One-shot timeout that is linked to a custom handler, started manually
- */
-template <typename HANDLER>
-class Genode::One_shot_timeout : private Noncopyable
-{
-	private:
-
-		using Microseconds = Timeout_scheduler::Microseconds;
-
-		typedef void (HANDLER::*Handler_method)(Microseconds);
-
-		Timeout _timeout;
-
-		struct Handler : Timeout::Handler
-		{
-			HANDLER              &object;
-			Handler_method const  method;
-
-			Handler(HANDLER &object, Handler_method method)
-			: object(object), method(method) { }
-
-
-			/**********************
-			 ** Timeout::Handler **
-			 **********************/
-
-			void handle_timeout(Microseconds curr_time) override {
-				(object.*method)(curr_time); }
-
-		} _handler;
-
-	public:
-
-		One_shot_timeout(Timeout_scheduler &timeout_scheduler,
-		                 HANDLER           &object,
-		                 Handler_method     method)
-		: _timeout(timeout_scheduler), _handler(object, method) { }
-
-		void start(Microseconds duration) {
-			_timeout.schedule_one_shot(duration, _handler); }
+		bool scheduled() { return _alarm.handler != nullptr; }
 };
 
 
@@ -239,17 +194,22 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
                                         public  Timeout_scheduler,
                                         public  Time_source::Timeout_handler
 {
+	friend class Timer::Connection;
+	friend class Timer::Root_component;
+
 	private:
 
 		Time_source     &_time_source;
 		Alarm_scheduler  _alarm_scheduler;
+
+		void _enable();
 
 
 		/**********************************
 		 ** Time_source::Timeout_handler **
 		 **********************************/
 
-		void handle_timeout(Microseconds curr_time) override;
+		void handle_timeout(Duration curr_time) override;
 
 
 		/***********************
@@ -271,8 +231,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 		 ** Timeout_scheduler **
 		 ***********************/
 
-		Microseconds curr_time() const override {
-			return _time_source.curr_time(); }
+		Duration curr_time() override { return _time_source.curr_time(); }
 };
 
-#endif /* _OS__TIMEOUT_H_ */
+#endif /* _TIMER__TIMEOUT_H_ */

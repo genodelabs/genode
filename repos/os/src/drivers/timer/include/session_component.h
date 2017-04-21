@@ -21,9 +21,14 @@
 #include <util/list.h>
 #include <timer_session/timer_session.h>
 #include <base/rpc_server.h>
-#include <os/timeout.h>
+#include <timer/timeout.h>
 
-namespace Timer { class Session_component; }
+namespace Timer {
+
+	using Microseconds = Genode::Microseconds;
+	using Duration     = Genode::Duration;
+	class Session_component;
+}
 
 
 class Timer::Session_component : public Genode::Rpc_object<Session>,
@@ -36,9 +41,10 @@ class Timer::Session_component : public Genode::Rpc_object<Session>,
 		Genode::Timeout_scheduler         &_timeout_scheduler;
 		Genode::Signal_context_capability  _sigh;
 
-		unsigned long const _init_time_us = _timeout_scheduler.curr_time().value;
+		unsigned long const _init_time_us =
+			_timeout_scheduler.curr_time().trunc_to_plain_us().value;
 
-		void handle_timeout(Microseconds) {
+		void handle_timeout(Duration) {
 			Genode::Signal_transmitter(_sigh).submit(); }
 
 	public:
@@ -65,7 +71,8 @@ class Timer::Session_component : public Genode::Rpc_object<Session>,
 		}
 
 		unsigned long elapsed_ms() const override {
-			return (_timeout_scheduler.curr_time().value - _init_time_us) / 1000; }
+			return (_timeout_scheduler.curr_time().trunc_to_plain_us().value -
+			        _init_time_us) / 1000; }
 
 		void msleep(unsigned) override { /* never called at the server side */ }
 		void usleep(unsigned) override { /* never called at the server side */ }

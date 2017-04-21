@@ -15,10 +15,10 @@
 #define _INPUT_FILTER__TIMER_ACCESSOR_H_
 
 /* Genode includes */
-#include <os/timer.h>
+#include <timer_session/connection.h>
 
 namespace Input_filter { struct Timer_accessor; }
 
-struct Input_filter::Timer_accessor { virtual Genode::Timer &timer() = 0; };
+struct Input_filter::Timer_accessor { virtual Timer::Connection &timer() = 0; };
 
 #endif /* _INPUT_FILTER__TIMER_ACCESSOR_H_ */

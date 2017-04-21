@@ -23,7 +23,6 @@
 #include <kernel/interface.h>
 
 using namespace Genode;
-using Microseconds = Genode::Time_source::Microseconds;
 
 enum { MIN_TIMEOUT_US = 1000 };
 
@@ -56,14 +55,14 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 }
 
 
-Microseconds Timer::Time_source::curr_time() const
+Duration Timer::Time_source::curr_time()
 {
 	unsigned long const timeout_age_us = Kernel::timeout_age_us();
 	if (timeout_age_us > _last_timeout_age_us) {
 
 		/* increment time by the difference since the last update */
-		_curr_time_us += timeout_age_us - _last_timeout_age_us;
+		_curr_time += Microseconds(timeout_age_us - _last_timeout_age_us);
 		_last_timeout_age_us = timeout_age_us;
 	}
-	return Microseconds(_curr_time_us);
+	return _curr_time;
 }

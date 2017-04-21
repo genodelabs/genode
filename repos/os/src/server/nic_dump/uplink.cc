@@ -22,11 +22,11 @@ using namespace Net;
 using namespace Genode;
 
 
-Net::Uplink::Uplink(Env           &env,
-                    Xml_node       config,
-                    Genode::Timer &timer,
-                    unsigned      &curr_time,
-                    Allocator     &alloc)
+Net::Uplink::Uplink(Env               &env,
+                    Xml_node           config,
+                    Timer::Connection &timer,
+                    unsigned          &curr_time,
+                    Allocator         &alloc)
 :
 	Nic::Packet_allocator(&alloc),
 	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE),

@@ -2,7 +2,28 @@
 # Build
 #
 
-build "core init drivers/timer test/timeout"
+#
+# Do not run on QEMU as its time emulation is not precise enough
+#
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
+	puts "\nRunning timeout test in autopilot on Qemu is not recommended.\n"
+	exit 0
+}
+
+#
+# Do not run on ARM with kernels other than HW
+#
+# The ARM performance counter has no reliable frequency as the ARM idle command
+# (often called on idle) halts the counter. Only on the HW kernel we have a syscall
+# that enables us to avoid the use of the performance counter by reading the kernel
+# time instead.
+#
+if {[expr [have_spec arm] && ![have_spec hw]]} {
+	puts "\n Run script is not supported on this platform.\n";
+	exit 0
+}
+
+build "core init drivers/platform drivers/timer test/timeout test/cpufreq"
 
 #
 # Boot image
@@ -33,7 +54,7 @@ install_config {
 		</start>
 		<start name="test">
 			<binary name="test-timeout"/>
-			<resource name="RAM" quantum="10M"/>
+			<resource name="RAM" quantum="250M"/>
 		</start>
 	</config>
 }
@@ -44,30 +65,8 @@ build_boot_image "core ld.lib.so init timer test-timeout"
 # Execution
 #
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic -m 350"
 
-#
-# We check for each timeout that has a distance of at least 200ms to each
-# other timeout:
-#
-#    0 ms
-#    0 ms
-#  700 ms -> check for  700 ms
-# 1000 ms -> check for 1000 ms
-# 1400 ms -> check for  700 ms
-# 2000 ms
-# 2100 ms
-# 2800 ms -> check for  700 ms
-# 3000 ms -> check for 1000 ms
-# 3250 ms -> check for 3250 ms
-# 3500 ms -> check for  700 ms
-# 4000 ms -> check for 1000 ms
-# 4200 ms -> check for  700 ms
-# 4900 ms
-# 5000 ms
-# 5200 ms -> check for 5200 ms
-# 5600 ms -> check for  700 ms
-# 6000 ms -> check for 1000 ms
-#
-
-run_genode_until ".*700ms timeout.*\n.*1000ms timeout.*\n.*700ms timeout.*\n.*700ms timeout.*\n.*1000ms timeout.*\n.*3250ms timeout.*\n.*700ms timeout.*\n.*1000ms timeout.*\n.*700ms timeout.*\n.*5200ms timeout.*\n.*700ms timeout.*\n.*1000ms timeout.*\n" 20
+run_genode_until "child \"test\" exited with exit value.*\n" 900
+grep_output {\[init\] child "test" exited with exit value}
+compare_output_to {[init] child "test" exited with exit value 0}

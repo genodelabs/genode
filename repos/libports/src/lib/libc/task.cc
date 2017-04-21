@@ -23,7 +23,6 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/dir_file_system.h>
 #include <timer_session/connection.h>
-#include <os/timer.h>
 
 /* libc includes */
 #include <libc/component.h>
@@ -49,7 +48,7 @@ namespace Libc {
 	class Timeout_handler;
 	class Io_response_handler;
 
-	using Microseconds = Genode::Time_source::Microseconds;
+	using Genode::Microseconds;
 }
 
 
@@ -167,18 +166,13 @@ class Libc::Env_implementation : public Libc::Env
 
 struct Libc::Timer
 {
-	::Timer::Connection _timer_connection;
-	Genode::Timer       _timer;
+	::Timer::Connection _timer;
 
-	Timer(Genode::Env &env)
-	:
-		_timer_connection(env),
-		_timer(_timer_connection, env.ep())
-	{ }
+	Timer(Genode::Env &env) : _timer(env) { }
 
-	unsigned long curr_time() const
+	unsigned long curr_time()
 	{
-		return _timer.curr_time().value/1000;
+		return _timer.curr_time().trunc_to_plain_us().value/1000;
 	}
 
 	static Microseconds microseconds(unsigned long timeout_ms)
@@ -188,7 +182,7 @@ struct Libc::Timer
 
 	static unsigned long max_timeout()
 	{
-		return Genode::Timer::Microseconds::max().value/1000;
+		return ~0UL/1000;
 	}
 };
 
@@ -217,14 +211,14 @@ struct Libc::Timeout_handler
  */
 struct Libc::Timeout
 {
-	Libc::Timer_accessor              &_timer_accessor;
-	Timeout_handler                   &_handler;
-	Genode::One_shot_timeout<Timeout>  _timeout;
+	Libc::Timer_accessor               &_timer_accessor;
+	Timeout_handler                    &_handler;
+	::Timer::One_shot_timeout<Timeout>  _timeout;
 
 	bool          _expired             = true;
 	unsigned long _absolute_timeout_ms = 0;
 
-	void _handle(Microseconds now)
+	void _handle(Duration now)
 	{
 		_expired             = true;
 		_absolute_timeout_ms = 0;
@@ -245,7 +239,7 @@ struct Libc::Timeout
 		_expired             = false;
 		_absolute_timeout_ms = now + timeout_ms;
 
-		_timeout.start(_timer_accessor.timer().microseconds(timeout_ms));
+		_timeout.schedule(_timer_accessor.timer().microseconds(timeout_ms));
 	}
 
 	unsigned long duration_left() const

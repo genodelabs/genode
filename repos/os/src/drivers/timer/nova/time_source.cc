@@ -23,7 +23,6 @@
 
 using namespace Genode;
 using namespace Nova;
-using Microseconds = Genode::Time_source::Microseconds;
 
 
 Timer::Time_source::Time_source(Env &env) : Threaded_time_source(env)

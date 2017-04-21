@@ -47,7 +47,7 @@ class Net::Uplink : public Nic::Packet_allocator,
 	public:
 
 		Uplink(Genode::Env        &env,
-		       Genode::Timer      &timer,
+		       Timer::Connection  &timer,
 		       Genode::Allocator  &alloc,
 		       Configuration      &config);
 

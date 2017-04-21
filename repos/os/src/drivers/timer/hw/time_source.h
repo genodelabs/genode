@@ -14,17 +14,26 @@
 #ifndef _TIME_SOURCE_H_
 #define _TIME_SOURCE_H_
 
+/* Genode includes */
+#include <os/duration.h>
+
 /* local includes */
 #include <signalled_time_source.h>
 
-namespace Timer { class Time_source; }
+namespace Timer {
+
+	using Microseconds = Genode::Microseconds;
+	using Duration     = Genode::Duration;
+	class Time_source;
+}
 
 
 class Timer::Time_source : public Genode::Signalled_time_source
 {
 	private:
 
-		unsigned long mutable _curr_time_us = 0;
+
+		Duration      mutable _curr_time { Microseconds(0) };
 		unsigned long mutable _last_timeout_age_us = 0;
 		unsigned long const   _max_timeout_us;
 
@@ -37,7 +46,7 @@ class Timer::Time_source : public Genode::Signalled_time_source
 		 ** Genode::Time_source **
 		 *************************/
 
-		Microseconds curr_time() const override;
+		Duration curr_time() override;
 		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
 		Microseconds max_timeout() const override {
 			return Microseconds(_max_timeout_us); };

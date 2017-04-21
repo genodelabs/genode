@@ -6,4 +6,4 @@ SRC_CC += capability.cc
 SRC_CC += cache.cc
 SRC_CC += raw_write_string.cc
 
-LIBS += startup-hw base-hw-common
+LIBS += startup-hw base-hw-common timeout-hw

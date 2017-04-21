@@ -18,10 +18,12 @@
 /* Genode inludes */
 #include <base/env.h>
 #include <base/rpc_client.h>
-#include <os/time_source.h>
+#include <timer/timeout.h>
 
 namespace Timer {
 
+	using Genode::Microseconds;
+	using Genode::Duration;
 	class Threaded_time_source;
 }
 
@@ -33,7 +35,7 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 
 		struct Irq_dispatcher
 		{
-			GENODE_RPC(Rpc_do_dispatch, void, do_dispatch, Microseconds);
+			GENODE_RPC(Rpc_do_dispatch, void, do_dispatch, Duration);
 			GENODE_RPC_INTERFACE(Rpc_do_dispatch);
 		};
 
@@ -47,10 +49,10 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 				 ** Irq_dispatcher **
 				 ********************/
 
-				void do_dispatch(Microseconds duration)
+				void do_dispatch(Duration curr_time)
 				{
 					if (handler) {
-						handler->handle_timeout(Microseconds(duration)); }
+						handler->handle_timeout(Duration(curr_time)); }
 				}
 
 		} _irq_dispatcher_component;

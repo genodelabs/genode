@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <os/timeout.h>
+#include <timer/timeout.h>
 
 using namespace Genode;
 
@@ -28,12 +28,14 @@ void Timeout::schedule_periodic(Microseconds duration, Handler &handler)
 	_alarm.timeout_scheduler._schedule_periodic(*this, duration);
 }
 
+
 void Timeout::schedule_one_shot(Microseconds duration, Handler &handler)
 {
 	_alarm.handler = &handler;
 	_alarm.periodic = false;
 	_alarm.timeout_scheduler._schedule_one_shot(*this, duration);
 }
+
 
 void Timeout::discard()
 {
@@ -49,24 +51,29 @@ void Timeout::discard()
 bool Timeout::Alarm::on_alarm(unsigned)
 {
 	if (handler) {
-		handler->handle_timeout(timeout_scheduler.curr_time()); }
+		Handler *current = handler;
+		if (!periodic) {
+			handler = nullptr;
+		}
+		current->handle_timeout(timeout_scheduler.curr_time());
+	}
 	return periodic;
 }
-
 
 
 /*****************************
  ** Alarm_timeout_scheduler **
  *****************************/
 
-void Alarm_timeout_scheduler::handle_timeout(Microseconds curr_time)
+void Alarm_timeout_scheduler::handle_timeout(Duration curr_time)
 {
-	_alarm_scheduler.handle(curr_time.value);
+	unsigned long const curr_time_us = curr_time.trunc_to_plain_us().value;
+	_alarm_scheduler.handle(curr_time_us);
 
 	unsigned long sleep_time_us;
 	Alarm::Time deadline_us;
 	if (_alarm_scheduler.next_deadline(&deadline_us)) {
-		sleep_time_us = deadline_us - curr_time.value;
+		sleep_time_us = deadline_us - curr_time_us;
 	} else {
 		sleep_time_us = _time_source.max_timeout().value; }
 
@@ -83,17 +90,21 @@ void Alarm_timeout_scheduler::handle_timeout(Microseconds curr_time)
 Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source &time_source)
 :
 	_time_source(time_source)
+{ }
+
+
+void Alarm_timeout_scheduler::_enable()
 {
-	time_source.schedule_timeout(Microseconds(0), *this);
+	_time_source.schedule_timeout(Microseconds(0), *this);
 }
 
 
 void Alarm_timeout_scheduler::_schedule_one_shot(Timeout      &timeout,
                                                  Microseconds  duration)
 {
-	_alarm_scheduler.schedule_absolute(&timeout._alarm,
-	                                   _time_source.curr_time().value +
-	                                   duration.value);
+	_alarm_scheduler.schedule_absolute(
+		&timeout._alarm,
+		_time_source.curr_time().trunc_to_plain_us().value + duration.value);
 
 	if (_alarm_scheduler.head_timeout(&timeout._alarm)) {
 		_time_source.schedule_timeout(Microseconds(0), *this); }
@@ -103,7 +114,7 @@ void Alarm_timeout_scheduler::_schedule_one_shot(Timeout      &timeout,
 void Alarm_timeout_scheduler::_schedule_periodic(Timeout      &timeout,
                                                  Microseconds  duration)
 {
-	_alarm_scheduler.handle(_time_source.curr_time().value);
+	_alarm_scheduler.handle(_time_source.curr_time().trunc_to_plain_us().value);
 	_alarm_scheduler.schedule(&timeout._alarm, duration.value);
 	if (_alarm_scheduler.head_timeout(&timeout._alarm)) {
 		_time_source.schedule_timeout(Microseconds(0), *this); }

@@ -15,7 +15,6 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/timer.h>
 #include <nic/xml_node.h>
 #include <timer_session/connection.h>
 
@@ -32,8 +31,7 @@ class Main
 {
 	private:
 
-		Timer::Connection              _timer_connection;
-		Genode::Timer                  _timer;
+		Timer::Connection              _timer;
 		Genode::Heap                   _heap;
 		Genode::Attached_rom_dataspace _config_rom;
 		Configuration                  _config;
@@ -48,12 +46,10 @@ class Main
 
 Main::Main(Env &env)
 :
-	_timer_connection(env), _timer(_timer_connection, env.ep()),
-	_heap(&env.ram(), &env.rm()), _config_rom(env, "config"),
-	_config(_config_rom.xml(), _heap),
-	_uplink(env, _timer, _heap, _config),
-	_root(env.ep(), _timer, _heap, _uplink.router_mac(), _config, env.ram(),
-	      env.rm())
+	_timer(env), _heap(&env.ram(), &env.rm()), _config_rom(env, "config"),
+	_config(_config_rom.xml(), _heap), _uplink(env, _timer, _heap, _config),
+	_root(env.ep(), _timer, _heap, _uplink.router_mac(), _config,
+	      env.ram(), env.rm())
 {
 	env.parent().announce(env.ep().manage(_root));
 }

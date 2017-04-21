@@ -20,7 +20,6 @@
 #include <time_source.h>
 
 using namespace Genode;
-using Microseconds = Genode::Time_source::Microseconds;
 
 
 inline int lx_gettimeofday(struct timeval *tv, struct timeval *tz) {
@@ -34,11 +33,11 @@ Microseconds Timer::Time_source::max_timeout() const
 }
 
 
-Microseconds Timer::Time_source::curr_time() const
+Duration Timer::Time_source::curr_time()
 {
 	struct timeval tv;
 	lx_gettimeofday(&tv, 0);
-	return Microseconds(tv.tv_sec * 1000 * 1000 + tv.tv_usec);
+	return Duration(Microseconds(tv.tv_sec * 1000 * 1000 + tv.tv_usec));
 }
 
 

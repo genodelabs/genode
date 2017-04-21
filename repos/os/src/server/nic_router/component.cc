@@ -55,7 +55,7 @@ Session_component_base(Allocator    &guarded_alloc_backing,
  ***********************/
 
 Net::Session_component::Session_component(Allocator         &alloc,
-                                          Genode::Timer     &timer,
+                                          Timer::Connection &timer,
                                           size_t      const  amount,
                                           Ram_session       &buf_ram,
                                           size_t      const  tx_buf_size,
@@ -95,7 +95,7 @@ void Session_component::link_state_sigh(Signal_context_capability sigh)
  **********/
 
 Net::Root::Root(Entrypoint        &ep,
-                Genode::Timer     &timer,
+                Timer::Connection &timer,
                 Allocator         &alloc,
                 Mac_address const &router_mac,
                 Configuration     &config,

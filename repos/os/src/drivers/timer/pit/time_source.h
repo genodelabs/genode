@@ -18,11 +18,17 @@
 /* Genode includes */
 #include <io_port_session/connection.h>
 #include <irq_session/connection.h>
+#include <os/duration.h>
 
 /* local includes */
 #include <signalled_time_source.h>
 
-namespace Timer { class Time_source; }
+namespace Timer {
+
+	using Microseconds = Genode::Microseconds;
+	using Duration     = Genode::Duration;
+	class Time_source;
+}
 
 
 class Timer::Time_source : public Genode::Signalled_time_source
@@ -81,7 +87,7 @@ class Timer::Time_source : public Genode::Signalled_time_source
 		 ** Genode::Time_source **
 		 *************************/
 
-		Microseconds curr_time() const override;
+		Duration curr_time() override;
 		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
 		Microseconds max_timeout() const override {
 			return Microseconds(PIT_MAX_USEC); }

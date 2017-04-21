@@ -28,7 +28,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame &eth = *new (eth_base) Ethernet_frame(eth_size);
 		Interface &remote = _remote.deref();
-		unsigned new_time = _timer.curr_time().value / 1000;
+		unsigned new_time = _timer.curr_time().trunc_to_plain_us().value / 1000;
 		if (_log_time) {
 			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ", eth,
 			    " \033[33mtime ", new_time, " (", new_time - _curr_time,
@@ -86,12 +86,12 @@ void Interface::_ready_to_ack()
 }
 
 
-Interface::Interface(Entrypoint      &ep,
-                     Interface_label  label,
-                     Genode::Timer   &timer,
-                     unsigned        &curr_time,
-                     bool             log_time,
-                     Allocator       &alloc)
+Interface::Interface(Entrypoint        &ep,
+                     Interface_label    label,
+                     Timer::Connection &timer,
+                     unsigned          &curr_time,
+                     bool               log_time,
+                     Allocator         &alloc)
 :
 	_sink_ack     (ep, *this, &Interface::_ack_avail),
 	_sink_submit  (ep, *this, &Interface::_ready_to_submit),

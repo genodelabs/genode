@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <os/time_source.h>
+#include <timer/timeout.h>
 #include <base/rpc_client.h>
 
 namespace Genode { class Signalled_time_source; }

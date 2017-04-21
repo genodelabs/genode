@@ -54,17 +54,17 @@ Session_component_base(Allocator    &guarded_alloc_backing,
  ** Session_component **
  ***********************/
 
-Net::Session_component::Session_component(Allocator     &alloc,
-                                          size_t const   amount,
-                                          Ram_session   &buf_ram,
-                                          size_t const   tx_buf_size,
-                                          size_t const   rx_buf_size,
-                                          Region_map    &region_map,
-                                          Uplink        &uplink,
-                                          Xml_node       config,
-                                          Genode::Timer &timer,
-                                          unsigned      &curr_time,
-                                          Entrypoint    &ep)
+Net::Session_component::Session_component(Allocator         &alloc,
+                                          size_t const       amount,
+                                          Ram_session       &buf_ram,
+                                          size_t const       tx_buf_size,
+                                          size_t const       rx_buf_size,
+                                          Region_map        &region_map,
+                                          Uplink            &uplink,
+                                          Xml_node           config,
+                                          Timer::Connection &timer,
+                                          unsigned          &curr_time,
+                                          Entrypoint        &ep)
 :
 	Session_component_base(alloc, amount, buf_ram, tx_buf_size, rx_buf_size),
 	Session_rpc_object(region_map, _tx_buf, _rx_buf, &_range_alloc, ep.rpc_ep()),
@@ -99,14 +99,14 @@ void Session_component::link_state_sigh(Signal_context_capability sigh)
  ** Root **
  **********/
 
-Net::Root::Root(Entrypoint    &ep,
-                Allocator     &alloc,
-                Uplink        &uplink,
-                Ram_session   &buf_ram,
-                Xml_node       config,
-                Genode::Timer &timer,
-                unsigned      &curr_time,
-                Region_map    &region_map)
+Net::Root::Root(Entrypoint        &ep,
+                Allocator         &alloc,
+                Uplink            &uplink,
+                Ram_session       &buf_ram,
+                Xml_node           config,
+                Timer::Connection &timer,
+                unsigned          &curr_time,
+                Region_map        &region_map)
 :
 	Root_component<Session_component, Genode::Single_client>(&ep.rpc_ep(),
 	                                                         &alloc),

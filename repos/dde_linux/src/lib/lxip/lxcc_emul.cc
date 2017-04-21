@@ -344,7 +344,7 @@ static Genode::Signal_context_capability tick_sig_cap;
 
 void Lx::event_init(Genode::Env &env, Genode::Entrypoint &ep, void (*ticker)())
 {
-	static Timeout handler(env, ep, ticker);
+	static ::Timeout handler(env, ep, ticker);
 	_timeout = &handler;
 }
 

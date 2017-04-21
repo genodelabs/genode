@@ -30,8 +30,7 @@ class Main
 	private:
 
 		Genode::Attached_rom_dataspace _config;
-		Timer::Connection              _timer_connection;
-		Genode::Timer                  _timer;
+		Timer::Connection              _timer;
 		unsigned                       _curr_time { 0 };
 		Genode::Heap                   _heap;
 		Uplink                         _uplink;
@@ -45,8 +44,7 @@ class Main
 
 Main::Main(Env &env)
 :
-	_config(env, "config"), _timer_connection(env),
-	_timer(_timer_connection, env.ep()), _heap(&env.ram(), &env.rm()),
+	_config(env, "config"), _timer(env), _heap(&env.ram(), &env.rm()),
 	_uplink(env, _config.xml(), _timer, _curr_time, _heap),
 	_root(env.ep(), _heap, _uplink, env.ram(), _config.xml(), _timer,
 	      _curr_time, env.rm())

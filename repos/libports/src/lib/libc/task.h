@@ -21,10 +21,6 @@
 #ifndef _LIBC__TASK_H_
 #define _LIBC__TASK_H_
 
-/* Genode includes */
-#include <os/timeout.h>
-
-
 namespace Libc {
 
 	/**

@@ -20,7 +20,7 @@
 /* Genode includes */
 #include <nic_session/nic_session.h>
 #include <util/string.h>
-#include <os/timer.h>
+#include <timer_session/connection.h>
 
 namespace Net {
 
@@ -49,7 +49,7 @@ class Net::Interface
 		Genode::Allocator  &_alloc;
 		Pointer<Interface>  _remote;
 		Interface_label     _label;
-		Genode::Timer      &_timer;
+		Timer::Connection  &_timer;
 		unsigned           &_curr_time;
 		bool                _log_time;
 
@@ -77,7 +77,7 @@ class Net::Interface
 
 		Interface(Genode::Entrypoint &ep,
 		          Interface_label     label,
-		          Genode::Timer      &timer,
+		          Timer::Connection  &timer,
 		          unsigned           &curr_time,
 		          bool                log_time,
 		          Genode::Allocator  &alloc);

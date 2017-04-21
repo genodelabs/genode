@@ -196,6 +196,8 @@ class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 
 		time_t timeout_max_us() const;
 
+		time_t time() const;
+
 		/***************
 		 ** Accessors **
 		 ***************/
@@ -322,6 +324,8 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 		time_t timeout_age_us(Timeout const * const timeout) const;
 
 		time_t timeout_max_us() const;
+
+		time_t time() const { return _timer.time(); }
 
 		/***************
 		 ** Accessors **

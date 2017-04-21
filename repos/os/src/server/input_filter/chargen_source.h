@@ -333,28 +333,28 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 		 */
 		struct Char_repeater
 		{
-			Source::Sink  &_destination;
-			Genode::Timer &_timer;
+			Source::Sink      &_destination;
+			Timer::Connection &_timer;
 
-			Time_source::Microseconds const _delay;
-			Time_source::Microseconds const _rate;
+			Microseconds const _delay;
+			Microseconds const _rate;
 
 			Input::Event::Utf8 _curr_character { 0 };
 
 			enum State { IDLE, REPEAT } _state;
 
-			void _handle_timeout(Time_source::Microseconds)
+			void _handle_timeout(Duration)
 			{
 				if (_state == REPEAT) {
 					_destination.submit_event(Input::Event(_curr_character));
-					_timeout.start(_rate);
+					_timeout.schedule(_rate);
 				}
 			}
 
-			One_shot_timeout<Char_repeater> _timeout {
+			Timer::One_shot_timeout<Char_repeater> _timeout {
 				_timer, *this, &Char_repeater::_handle_timeout };
 
-			Char_repeater(Source::Sink &destination, Genode::Timer &timer,
+			Char_repeater(Source::Sink &destination, Timer::Connection &timer,
 			              Xml_node node)
 			:
 				_destination(destination), _timer(timer),
@@ -367,7 +367,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				_curr_character = character;
 				_state          = REPEAT;
 
-				_timeout.start(_delay);
+				_timeout.schedule(_delay);
 			}
 
 			void cancel()

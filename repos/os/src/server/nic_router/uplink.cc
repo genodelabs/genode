@@ -24,7 +24,7 @@ using namespace Genode;
 
 
 Net::Uplink::Uplink(Env               &env,
-                    Genode::Timer     &timer,
+                    Timer::Connection &timer,
                     Genode::Allocator &alloc,
                     Configuration     &config)
 :

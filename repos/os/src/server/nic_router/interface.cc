@@ -570,7 +570,7 @@ void Interface::_send(Ethernet_frame &eth, Genode::size_t const size)
 
 
 Interface::Interface(Entrypoint        &ep,
-                     Genode::Timer     &timer,
+                     Timer::Connection &timer,
                      Mac_address const  router_mac,
                      Genode::Allocator &alloc,
                      Mac_address const  mac,

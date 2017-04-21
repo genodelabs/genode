@@ -16,8 +16,6 @@
 
 #include "task.h"
 
-using namespace Genode;
-
 extern "C" __attribute__((weak))
 int _nanosleep(const struct timespec *req, struct timespec *rem)
 {
