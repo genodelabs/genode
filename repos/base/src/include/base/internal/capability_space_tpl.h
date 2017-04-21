@@ -191,10 +191,6 @@ class Genode::Capability_space_tpl
 
 		Capability_space::Ipc_cap_data ipc_cap_data(Data const &data) const
 		{
-			if (&data == nullptr) {
-				raw("ipc_cap_data nullptr");
-				for (;;);
-			}
 			return { data.dst, data.rpc_obj_key() };
 		}
 
