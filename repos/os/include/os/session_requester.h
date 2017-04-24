@@ -76,6 +76,11 @@ class Genode::Session_requester
 		Id_space<Parent::Server> &id_space() { return _id_space; }
 
 		/**
+		 * Non-modifiable ID space for sessios requests supplied to the child
+		 */
+		Id_space<Parent::Server> const &id_space() const { return _id_space; }
+
+		/**
 		 * ROM service providing a single "session_requests" session
 		 */
 		Service &service() { return _service; }

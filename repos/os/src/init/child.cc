@@ -18,8 +18,6 @@
 Init::Child::Apply_config_result
 Init::Child::apply_config(Xml_node start_node)
 {
-	Child_policy &policy = *this;
-
 	if (_state == STATE_ABANDONED)
 		return NO_SIDE_EFFECTS;
 
@@ -319,7 +317,7 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 					xml.node("session", [&] () {
 						session.generate_server_side_info(xml, session_detail); }); };
 
-				server_id_space().for_each<Session_state const>(fn);
+				_session_requester.id_space().for_each<Session_state const>(fn);
 			});
 		}
 	});
