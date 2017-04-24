@@ -48,7 +48,7 @@ namespace Libc {
  ** Utilities **
  ***************/
 
-namespace {
+namespace Socket_fs {
 
 	Libc::Allocator global_allocator;
 
@@ -66,50 +66,104 @@ namespace {
 		}
 	};
 
+	template <int> class String;
+	typedef String<NI_MAXHOST> Host_string;
+	typedef String<NI_MAXSERV> Port_string;
+	struct Sockaddr_string;
+
 	struct Exception { };
 	struct New_socket_failed : Exception { };
 	struct Address_conversion_failed : Exception { };
 
-	struct Socket_context : Libc::Plugin_context
-	{
+	struct Context;
+	struct Plugin;
+	struct Sockaddr_functor;
+	struct Remote_functor;
+	struct Local_functor;
+
+	Plugin & plugin();
+}
+
+
+using namespace Socket_fs;
+
+
+struct Socket_fs::Context : Libc::Plugin_context
+{
+	public:
+
+		enum Proto { TCP, UDP };
+
 		struct Inaccessible { }; /* exception */
 
 		Absolute_path path;
 
-		int _accept_fd = -1;
-		int _data_fd   = -1;
-		int _remote_fd = -1;
-		int _local_fd  = -1;
+	private:
+
+		enum Fd : unsigned {
+			DATA, CONNECT, BIND, LISTEN, ACCEPT, LOCAL, REMOTE, MAX
+		};
+
+		Proto const _proto;
+
+		struct
+		{
+			char const            *name;
+			int                    num;
+			Libc::File_descriptor *file;
+		} _fd[Fd::MAX] = {
+			{ "data",    -1, nullptr },
+			{ "connect", -1, nullptr }, { "bind",   -1, nullptr },
+			{ "listen",  -1, nullptr }, { "accept", -1, nullptr },
+			{ "local",   -1, nullptr }, { "remote", -1, nullptr }
+		};
+
+		int  _fd_flags    = 0;
+		bool _accept_only = false;
 
 		template <typename FUNC>
 		void _fd_apply(FUNC const &fn)
 		{
-			if (_accept_fd != -1) fn(_accept_fd);
-			if (_data_fd   != -1) fn(_data_fd);
-			if (_local_fd  != -1) fn(_local_fd);
-			if (_remote_fd != -1) fn(_remote_fd);
+			for (unsigned i = 0; i < Fd::MAX; ++i)
+				if (_fd[i].num != -1) fn(_fd[i].num);
 		}
 
-		int _fd_flags = 0;
+		int _fd_for_type(Fd type, int flags)
+		{
+			/* open file on demand */
+			if (_fd[type].num == -1) {
+				Absolute_path file(_fd[type].name, path.base());
+				int const fd = open(file.base(), flags|_fd_flags);
+				if (fd == -1) {
+					Genode::error(__func__, ": ", _fd[type].name, " file not accessible");
+					throw Inaccessible();
+				}
+				_fd[type].num  = fd;
+				_fd[type].file = Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+			}
 
-		Socket_context(Absolute_path const &path)
-		: path(path.base()) { }
+			return _fd[type].num;
+		}
 
-		~Socket_context()
+		bool _fd_read_ready(Fd type)
+		{
+			if (_fd[type].file)
+				return Libc::read_ready(_fd[type].file);
+			else
+				return false;
+		}
+
+	public:
+
+		Context(Proto proto, Absolute_path const &path)
+		: path(path.base()), _proto(proto) { }
+
+		~Context()
 		{
 			_fd_apply([] (int fd) { close(fd); });
 		}
 
-		int _open_file(char const *file_name, int flags)
-		{
-			Absolute_path file(file_name, path.base());
-			int const fd = open(file.base(), flags|_fd_flags);
-			if (fd == -1) {
-				Genode::error(__func__, ": ", file_name, " file not accessible");
-				throw Inaccessible();
-			}
-			return fd;
-		}
+		Proto proto() const { return _proto; }
 
 		int fd_flags() const { return _fd_flags; }
 		void fd_flags(int flags)
@@ -118,160 +172,143 @@ namespace {
 			_fd_apply([flags] (int fd) { fcntl(fd, F_SETFL, flags); });
 		}
 
-		int accept_fd()
-		{
-			if (_accept_fd == -1)
-				_accept_fd = _open_file("accept", O_RDONLY);
+		int data_fd()    { return _fd_for_type(Fd::DATA,    O_RDWR); }
+		int connect_fd() { return _fd_for_type(Fd::CONNECT, O_WRONLY); }
+		int bind_fd()    { return _fd_for_type(Fd::BIND,    O_WRONLY); }
+		int listen_fd()  { return _fd_for_type(Fd::LISTEN,  O_WRONLY); }
+		int accept_fd()  { return _fd_for_type(Fd::ACCEPT,  O_RDONLY); }
+		int local_fd()   { return _fd_for_type(Fd::LOCAL,   O_RDWR); }
+		int remote_fd()  { return _fd_for_type(Fd::REMOTE,  O_RDWR); }
 
-			return _accept_fd;
-		}
+		/* request the appropriate fd to ensure the file is open */
+		bool data_read_ready()   { data_fd();   return _fd_read_ready(Fd::DATA); }
+		bool accept_read_ready() { accept_fd(); return _fd_read_ready(Fd::ACCEPT); }
+		bool local_read_ready()  { local_fd();  return _fd_read_ready(Fd::LOCAL); }
+		bool remote_read_ready() { remote_fd(); return _fd_read_ready(Fd::REMOTE); }
 
-		bool accept_read_ready()
-		{
-			return Libc::read_ready(
-				Libc::file_descriptor_allocator()->find_by_libc_fd(accept_fd()));
-		}
+		void accept_only() { _accept_only = true; }
 
-		int data_fd()
-		{
-			if (_data_fd == -1)
-				_data_fd = _open_file("data", O_RDWR);
-
-			return _data_fd;
-		}
-
-		bool data_read_ready()
-		{
-			return Libc::read_ready(
-				Libc::file_descriptor_allocator()->find_by_libc_fd(data_fd()));
-		}
-
-		int local_fd()
-		{
-			if (_local_fd == -1)
-				_local_fd = _open_file("local", O_RDWR);
-
-			return _local_fd;
-		}
-
-		int remote_fd()
-		{
-			if (_remote_fd == -1)
-				_remote_fd = _open_file("remote", O_RDONLY);
-
-			return _remote_fd;
-		}
-
-		bool remote_read_ready()
-		{
-			return Libc::read_ready(
-				Libc::file_descriptor_allocator()->find_by_libc_fd(remote_fd()));
-		}
-
-		/**
-		 * Read ready for select
-		 */
 		bool read_ready()
 		{
-			return _accept_fd == -1
-				? data_read_ready()
-				: accept_read_ready();
+			return _accept_only ? accept_read_ready() : data_read_ready();
 		}
-	};
+};
 
-	struct Socket_plugin : Libc::Plugin
+
+struct Socket_fs::Sockaddr_functor : Libc::Suspend_functor
+{
+	Socket_fs::Context &context;
+	bool const          nonblocking;
+
+	Sockaddr_functor(Socket_fs::Context &context, bool nonblocking)
+	: context(context), nonblocking(nonblocking) { }
+
+	virtual int fd() = 0;
+};
+
+
+struct Socket_fs::Remote_functor : Socket_fs::Sockaddr_functor
+{
+	Remote_functor(Socket_fs::Context &context, bool nonblocking)
+	: Sockaddr_functor(context, nonblocking) { }
+
+	bool suspend() override { return !nonblocking && !context.remote_read_ready(); }
+	int fd()       override { return context.remote_fd(); }
+};
+
+
+struct Socket_fs::Local_functor : Socket_fs::Sockaddr_functor
+{
+	Local_functor(Socket_fs::Context &context, bool nonblocking)
+	: Sockaddr_functor(context, nonblocking) { }
+
+	bool suspend() override { return !nonblocking && !context.local_read_ready(); }
+	int fd()       override { return context.local_fd(); }
+};
+
+
+struct Socket_fs::Plugin : Libc::Plugin
+{
+	bool supports_select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
+
+	ssize_t read(Libc::File_descriptor *, void *, ::size_t) override;
+	ssize_t write(Libc::File_descriptor *, const void *, ::size_t) override;
+	int fcntl(Libc::File_descriptor *, int, long) override;
+	int close(Libc::File_descriptor *) override;
+	int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
+};
+
+
+template <int CAPACITY> class Socket_fs::String
+{
+	private:
+
+		char _buf[CAPACITY] { 0 };
+
+	public:
+
+		String() { }
+
+		constexpr size_t capacity() { return CAPACITY; }
+
+		char const * base() const { return _buf; }
+		char       * base()       { return _buf; }
+
+		void terminate(size_t at) { _buf[at] = 0; }
+
+		void remove_trailing_newline()
+		{
+			int i = 0;
+			while (_buf[i] && _buf[i + 1]) i++;
+
+			if (i > 0 && _buf[i] == '\n')
+				_buf[i] = 0;
+		}
+};
+
+/*
+ * Both NI_MAXHOST and NI_MAXSERV include the terminating 0, which allows
+ * use to put ':' between host and port on concatenation.
+ */
+struct Socket_fs::Sockaddr_string : String<NI_MAXHOST + NI_MAXSERV>
+{
+	Sockaddr_string() { }
+
+	Sockaddr_string(Host_string const &host, Port_string const &port)
 	{
-		bool supports_select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
-
-		ssize_t read(Libc::File_descriptor *, void *, ::size_t) override;
-		ssize_t write(Libc::File_descriptor *, const void *, ::size_t) override;
-		int fcntl(Libc::File_descriptor *, int, long) override;
-		int close(Libc::File_descriptor *) override;
-		int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
-	};
-
-	Socket_plugin & socket_plugin()
-	{
-		static Socket_plugin inst;
-		return inst;
+		char *b = base();
+		b = stpcpy(b, host.base());
+		b = stpcpy(b, ":");
+		b = stpcpy(b, port.base());
 	}
 
-	template <int CAPACITY> class String
+	Host_string host() const
 	{
-		private:
+		Host_string host;
 
-			char _buf[CAPACITY] { 0 };
+		strncpy(host.base(), base(), host.capacity());
+		char *at = strstr(host.base(), ":");
+		if (!at)
+			throw Address_conversion_failed();
+		*at = 0;
 
-		public:
+		return host;
+	}
 
-			String() { }
-
-			constexpr size_t capacity() { return CAPACITY; }
-
-			char const * base() const { return _buf; }
-			char       * base()       { return _buf; }
-
-			void terminate(size_t at) { _buf[at] = 0; }
-
-			void remove_trailing_newline()
-			{
-				int i = 0;
-				while (_buf[i] && _buf[i + 1]) i++;
-
-				if (i > 0 && _buf[i] == '\n')
-					_buf[i] = 0;
-			}
-	};
-
-	typedef String<NI_MAXHOST> Host_string;
-	typedef String<NI_MAXSERV> Port_string;
-
-	/*
-	 * Both NI_MAXHOST and NI_MAXSERV include the terminating 0, which allows
-	 * use to put ':' between host and port on concatenation.
-	 */
-	struct Sockaddr_string : String<NI_MAXHOST + NI_MAXSERV>
+	Port_string port() const
 	{
-		Sockaddr_string() { }
+		Port_string port;
 
-		Sockaddr_string(Host_string const &host, Port_string const &port)
-		{
-			char *b = base();
-			b = stpcpy(b, host.base());
-			b = stpcpy(b, ":");
-			b = stpcpy(b, port.base());
-		}
+		char *at = strstr(base(), ":");
+		if (!at)
+			throw Address_conversion_failed();
 
-		Host_string host() const
-		{
-			Host_string host;
+		strncpy(port.base(), ++at, port.capacity());
 
-			strncpy(host.base(), base(), host.capacity());
-			char *at = strstr(host.base(), ":");
-			if (!at)
-				throw Address_conversion_failed();
-			*at = 0;
+		return port;
+	}
+};
 
-			return host;
-		}
-
-		Port_string port() const
-		{
-			Port_string port;
-
-			char *at = strstr(base(), ":");
-			if (!at)
-				throw Address_conversion_failed();
-
-			strncpy(port.base(), ++at, port.capacity());
-
-			return port;
-		}
-	};
-}
-
-
-/* TODO move to C++ structs or something */
 
 static Port_string port_string(sockaddr_in const &addr)
 {
@@ -320,31 +357,25 @@ static sockaddr_in sockaddr_in_struct(Host_string const &host, Port_string const
 }
 
 
-static int read_sockaddr_in(int read_fd, Socket_context *context,
-                            struct sockaddr_in *addr, socklen_t *addrlen,
-                            bool block_for_read = false)
+static int read_sockaddr_in(Socket_fs::Sockaddr_functor &func,
+                            struct sockaddr_in *addr, socklen_t *addrlen)
 {
 	if (!addr)                     return Errno(EFAULT);
 	if (!addrlen || *addrlen <= 0) return Errno(EINVAL);
-	if (read_fd == -1)             return Errno(ENOTCONN);
 
-	struct Check : Libc::Suspend_functor {
-		Socket_context *context;
-		Check (Socket_context *context) : context (context) { }
-		bool suspend() override {
-			return !context->remote_read_ready(); }
-	} check ( context );
-
-	while (block_for_read && !context->remote_read_ready())
-		Libc::suspend(check);
+	while (!func.nonblocking && func.suspend())
+		Libc::suspend(func);
 
 	Sockaddr_string addr_string;
-	int const n = read(read_fd, addr_string.base(), addr_string.capacity() - 1);
+	int const n = read(func.fd(), addr_string.base(), addr_string.capacity() - 1);
 
-	if (!n) /* probably a UDP socket */
-		return Errno(ENOTCONN);
-	if (n == -1 || !n || n >= (int)addr_string.capacity() - 1)
-		return Errno(EINVAL);
+	if (n == -1) return Errno(errno);
+	if (!n)
+		switch (func.context.proto()) {
+		case Socket_fs::Context::Proto::UDP: return Errno(EAGAIN);
+		case Socket_fs::Context::Proto::TCP: return Errno(ENOTCONN);
+		}
+	if (n >= (int)addr_string.capacity() - 1) return Errno(EINVAL);
 
 	addr_string.terminate(n);
 	addr_string.remove_trailing_newline();
@@ -372,11 +403,19 @@ extern "C" int socket_fs_getpeername(int libc_fd, sockaddr *addr, socklen_t *add
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd) return Errno(EBADF);
 
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
 
-	return read_sockaddr_in(context->remote_fd(), context, (sockaddr_in *)addr, addrlen);
+	switch (context->proto()) {
+	case Socket_fs::Context::Proto::UDP: return Errno(ENOTCONN);
+	case Socket_fs::Context::Proto::TCP:
+		{
+			Socket_fs::Remote_functor func(*context, false);
+			return read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
+		}
+	}
+
+	return 0;
 }
 
 
@@ -385,11 +424,11 @@ extern "C" int socket_fs_getsockname(int libc_fd, sockaddr *addr, socklen_t *add
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd) return Errno(EBADF);
 
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
 
-	return read_sockaddr_in(context->local_fd(), context, (sockaddr_in *)addr, addrlen);
+	Socket_fs::Local_functor func(*context, false);
+	return read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
 }
 
 
@@ -400,11 +439,13 @@ extern "C" int socket_fs_getsockname(int libc_fd, sockaddr *addr, socklen_t *add
 extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 {
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
-	if (!fd)
-		return Errno(EBADF);
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	if (!fd) return Errno(EBADF);
+
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+
+	/* TODO EOPNOTSUPP - no SOCK_STREAM */
+	/* TODO ECONNABORTED */
 
 	char accept_socket[10];
 	{
@@ -413,6 +454,8 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		do {
 			n = read(context->accept_fd(), accept_socket, sizeof(accept_socket));
 		} while (n == 0);
+		if (n == -1 && errno == EAGAIN)
+			return Errno(EAGAIN);
 		if (n == -1 || n >= (int)sizeof(accept_socket) - 1)
 			return Errno(EINVAL);
 
@@ -420,68 +463,45 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	}
 
 	Absolute_path accept_path(accept_socket, Libc::config_socket());
-	Socket_context *accept_context = new (&global_allocator)
-	                                      Socket_context(accept_path);
-	Libc::File_descriptor *accept_fd =
-		Libc::file_descriptor_allocator()->alloc(&socket_plugin(), accept_context);
+	Socket_fs::Context *accept_context = new (&global_allocator)
+	                                     Socket_fs::Context(context->proto(), accept_path);
+	Libc::File_descriptor *new_fd =
+		Libc::file_descriptor_allocator()->alloc(&plugin(), accept_context);
 
 	if (addr && addrlen) {
-		Absolute_path file("remote", accept_path.base());
-		int const fd = open(file.base(), O_RDONLY|context->fd_flags());
-		if (fd == -1) {
-			Genode::error(__func__, ": remote file not accessible");
-			return Errno(EINVAL);
-		}
-		Sockaddr_string remote;
-		int const n = read(fd, remote.base(), remote.capacity() - 1);
-		close(fd);
-		if (n == -1 || !n || n >= (int)remote.capacity() - 1)
-			return Errno(EINVAL);
-
-		remote.terminate(n);
-		remote.remove_trailing_newline();
-
-		sockaddr_in remote_addr = sockaddr_in_struct(remote.host(), remote.port());
-		memcpy(addr, &remote_addr, *addrlen);
-		*addrlen = sizeof(remote_addr);
+		Socket_fs::Remote_functor func(*accept_context, false);
+		int ret = read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
+		if (ret == -1) return ret;
 	}
 
 	/* inherit the O_NONBLOCK flag if set */
 	accept_context->fd_flags(context->fd_flags());
 
-	return accept_fd->libc_fd;
+	return new_fd->libc_fd;
 }
 
 
 extern "C" int socket_fs_bind(int libc_fd, sockaddr const *addr, socklen_t addrlen)
 {
+	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	if (!fd) return Errno(EBADF);
+
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+
+	if (!addr) return Errno(EFAULT);
+
 	if (addr->sa_family != AF_INET) {
 		Genode::error(__func__, ": family not supported");
 		return Errno(EAFNOSUPPORT);
 	}
 
-	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
-	if (!fd)
-		return Errno(EBADF);
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	Sockaddr_string addr_string(host_string(*(sockaddr_in *)addr),
+	                            port_string(*(sockaddr_in *)addr));
 
-	{
-		Sockaddr_string addr_string(host_string(*(sockaddr_in *)addr),
-		                            port_string(*(sockaddr_in *)addr));
-
-		Absolute_path file("bind", context->path.base());
-		int const fd = open(file.base(), O_WRONLY);
-		if (fd == -1) {
-			Genode::error(__func__, ": bind file not accessible");
-			return Errno(EINVAL);
-		}
-		int const len = strlen(addr_string.base());
-		int const n   = write(fd, addr_string.base(), len);
-		close(fd);
-		if (n != len) return Errno(EIO);
-	}
+	int const len = strlen(addr_string.base());
+	int const n   = write(context->bind_fd(), addr_string.base(), len);
+	if (n != len) return Errno(EACCES);
 
 	return 0;
 }
@@ -489,33 +509,29 @@ extern "C" int socket_fs_bind(int libc_fd, sockaddr const *addr, socklen_t addrl
 
 extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t addrlen)
 {
+	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	if (!fd) return Errno(EBADF);
+
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+
+	if (!addr) return Errno(EFAULT);
+
 	if (addr->sa_family != AF_INET) {
 		Genode::error(__func__, ": family not supported");
 		return Errno(EAFNOSUPPORT);
 	}
 
-	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
-	if (!fd)
-		return Errno(EBADF);
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	/* TODO EISCONN */
+	/* TODO ECONNREFUSED */
+	/* TODO maybe EALREADY, EINPROGRESS, ETIMEDOUT */
 
-	{
-		Sockaddr_string addr_string(host_string(*(sockaddr_in const *)addr),
-		                            port_string(*(sockaddr_in const *)addr));
+	Sockaddr_string addr_string(host_string(*(sockaddr_in const *)addr),
+	                            port_string(*(sockaddr_in const *)addr));
 
-		Absolute_path file("connect", context->path.base());
-		int const fd = open(file.base(), O_WRONLY);
-		if (fd == -1) {
-			Genode::error(__func__, ": connect file not accessible");
-			return Errno(EINVAL);
-		}
-		int const len = strlen(addr_string.base());
-		int const n   = write(fd, addr_string.base(), len);
-		close(fd);
-		if (n != len) return Errno(EIO);
-	}
+	int const len = strlen(addr_string.base());
+	int const n   = write(context->connect_fd(), addr_string.base(), len);
+	if (n != len) return Errno(ECONNREFUSED);
 
 	return 0;
 }
@@ -524,28 +540,17 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 extern "C" int socket_fs_listen(int libc_fd, int backlog)
 {
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
-	if (!fd)
-		return Errno(EBADF);
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	if (!fd) return Errno(EBADF);
 
-	{
-		Absolute_path file("listen", context->path.base());
-		int const fd = open(file.base(), O_WRONLY);
-		if (fd == -1) {
-			Genode::error(__func__, ": listen file not accessible");
-			return Errno(EINVAL);
-		}
-		char buf[10];
-		snprintf(buf, sizeof(buf), "%d", backlog);
-		int const n = write(fd, buf, strlen(buf));
-		close(fd);
-		if ((unsigned)n != strlen(buf)) return Errno(EIO);
-	}
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
 
-	/* open the accept file for polling */
-	context->accept_fd();
+	char buf[10];
+	int const len = snprintf(buf, sizeof(buf), "%d", backlog);
+	int const n   = write(context->listen_fd(), buf, len);
+	if (n != len) return Errno(EOPNOTSUPP);
+
+	context->accept_only();
 	return 0;
 }
 
@@ -554,23 +559,25 @@ static ssize_t do_recvfrom(Libc::File_descriptor *fd,
                            void *buf, ::size_t len, int flags,
                            struct sockaddr *src_addr, socklen_t *src_addrlen)
 {
-	Socket_context *context = dynamic_cast<Socket_context *>(fd->context);
-	if (!context)     return Errno(ENOTSOCK);
-	if (!buf || !len) return Errno(EINVAL);
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+	if (!buf)     return Errno(EFAULT);
+	if (!len)     return Errno(EINVAL);
 
-	/* TODO if "remote" is empty we have to block for the next packet */
 	if (src_addr) {
-		int const res = read_sockaddr_in(context->remote_fd(), context,
-		                                 (sockaddr_in *)src_addr, src_addrlen,
-		                                 true);
+		Socket_fs::Remote_functor func(*context, context->fd_flags() & O_NONBLOCK);
+		int const res = read_sockaddr_in(func, (sockaddr_in *)src_addr, src_addrlen);
 		if (res < 0) return res;
 	}
+
+	/* TODO ENOTCONN */
+	/* TODO ECONNREFUSED */
 
 	try {
 		lseek(context->data_fd(), 0, 0);
 		ssize_t out_len = read(context->data_fd(), buf, len);
 		return out_len;
-	} catch (Socket_context::Inaccessible) {
+	} catch (Socket_fs::Context::Inaccessible) {
 		return Errno(EINVAL);
 	}
 }
@@ -604,24 +611,20 @@ static ssize_t do_sendto(Libc::File_descriptor *fd,
                          void const *buf, ::size_t len, int flags,
                          sockaddr const *dest_addr, socklen_t dest_addrlen)
 {
-	Socket_context *context = dynamic_cast<Socket_context *>(fd->context);
-	if (!context)     return Errno(ENOTSOCK);
-	if (!buf || !len) return Errno(EINVAL);
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+	if (!buf)     return Errno(EFAULT);
+	if (!len)     return Errno(EINVAL);
+
+	/* TODO ENOTCONN, EISCONN, EDESTADDRREQ */
+	/* TODO ECONNRESET */
 
 	if (dest_addr) {
 		Sockaddr_string addr_string(host_string(*(sockaddr_in const *)dest_addr),
 		                            port_string(*(sockaddr_in const *)dest_addr));
 
-#warning TODO use remote_fd()
-		Absolute_path file("remote", context->path.base());
-		int const fd = open(file.base(), O_WRONLY);
-		if (fd == -1) {
-			Genode::error(__func__, ": remote file not accessible");
-			return Errno(EINVAL);
-		}
 		int const len = strlen(addr_string.base());
-		int const n   = write(fd, addr_string.base(), len);
-		close(fd);
+		int const n   = write(context->remote_fd(), addr_string.base(), len);
 		if (n != len) return Errno(EIO);
 	}
 
@@ -629,7 +632,7 @@ static ssize_t do_sendto(Libc::File_descriptor *fd,
 		lseek(context->data_fd(), 0, 0);
 		ssize_t out_len = write(context->data_fd(), buf, len);
 		return out_len;
-	} catch (Socket_context::Inaccessible) {
+	} catch (Socket_fs::Context::Inaccessible) {
 		return Errno(EINVAL);
 	}
 }
@@ -655,36 +658,65 @@ extern "C" ssize_t socket_fs_send(int libc_fd, void const *buf, ::size_t len, in
 extern "C" int socket_fs_getsockopt(int libc_fd, int level, int optname,
                                     void *optval, socklen_t *optlen)
 {
-	Genode::warning("##########  TODO  ########## ", __func__);
-	return 0;
+	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	if (!fd) return Errno(EBADF);
+
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+
+	if (!optval) return Errno(EFAULT);
+
+	switch (level) {
+	case SOL_SOCKET:
+		switch (optname) {
+		case SO_REUSEADDR:
+			Genode::log("getsockopt: SO_REUSEADDR not yet implemented - return true");
+			*(int *)optval = 1;
+			return 0;
+		default: return Errno(ENOPROTOOPT);
+		}
+
+	default: return Errno(EINVAL);
+	}
 }
 
 
 extern "C" int socket_fs_setsockopt(int libc_fd, int level, int optname,
                                     void const *optval, socklen_t optlen)
 {
-	Genode::warning("##########  TODO  ########## ", __func__);
-	return 0;
+	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	if (!fd) return Errno(EBADF);
+
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+
+	if (!optval) return Errno(EFAULT);
+
+	switch (level) {
+	case SOL_SOCKET:
+		switch (optname) {
+		case SO_REUSEADDR:
+			Genode::log("setsockopt: SO_REUSEADDR not yet implemented - always true");
+			return 0;
+		default: return Errno(ENOPROTOOPT);
+		}
+
+	default: return Errno(EINVAL);
+	}
 }
 
 
 extern "C" int socket_fs_shutdown(int libc_fd, int how)
 {
-	/* TODO ENOTCONN */
-
-	if (how != SHUT_RDWR) {
-		Genode::error("function '", __func__ , "' only implemented for 'how",
-		              "value 'SHUT_RDWR'");
-	}
-
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
-	if (!fd)
-		return Errno(EBADF);
-	Socket_context *context;
-	if (!(context = dynamic_cast<Socket_context *>(fd->context)))
-		return Errno(ENOTSOCK);
+	if (!fd) return Errno(EBADF);
 
-	unlink(context->path.base());
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(ENOTSOCK);
+
+	/* TODO ENOTCONN */
+	/* TODO EINVAL - returned if 'how' is not supported but we don't support
+	   shutdown at all currently */
 
 	return 0;
 }
@@ -728,22 +760,24 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 	}
 
 	/* socket is ensured to be TCP or UDP */
+	typedef Socket_fs::Context::Proto Proto;
+	Proto proto = (type == SOCK_STREAM) ? Proto::TCP : Proto::UDP;
 	try {
 		Absolute_path proto_path(path);
-		if (type == SOCK_STREAM)
-			proto_path.append("/tcp");
-		else
-			proto_path.append("/udp");
+		switch (proto) {
+		case Proto::TCP: proto_path.append("/tcp"); break;
+		case Proto::UDP: proto_path.append("/udp"); break;
+		}
 
 		Genode::String<16> socket_path = new_socket(proto_path);
 		path.append("/");
 		path.append(socket_path.string());
-	} catch (New_socket_failed) { return Errno(EINVAL); }
+	} catch (New_socket_failed) { return Errno(EACCES); }
 
-	Socket_context *context = new (&global_allocator)
-	                          Socket_context(path);
+	Socket_fs::Context *context =
+		new (&global_allocator) Socket_fs::Context(proto, path);
 	Libc::File_descriptor *fd =
-		Libc::file_descriptor_allocator()->alloc(&socket_plugin(), context);
+		Libc::file_descriptor_allocator()->alloc(&plugin(), context);
 
 	return fd->libc_fd;
 }
@@ -753,38 +787,51 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
  ** File-plugin operations **
  ****************************/
 
-int Socket_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
+int Socket_fs::Plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 {
-	Socket_context *context = dynamic_cast<Socket_context *>(fd->context);
-	if (!context)
-		return Errno(EINVAL);
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(EBADF);
 
 	switch (cmd) {
 	case F_GETFL:
 		return context->fd_flags();
 	case F_SETFL:
-		context->fd_flags(arg); return 0;
+		context->fd_flags(arg);
+		return 0;
 	default:
 		Genode::error(__func__, " command ", cmd, " not supported on sockets");
-		return Errno(EBADF);
+		return Errno(EINVAL);
 	}
 }
 
-ssize_t Socket_plugin::read(Libc::File_descriptor *fd, void *buf, ::size_t count)
+ssize_t Socket_fs::Plugin::read(Libc::File_descriptor *fd, void *buf, ::size_t count)
 {
-	return do_recvfrom(fd, buf, count, 0, nullptr, nullptr);
+	ssize_t const ret = do_recvfrom(fd, buf, count, 0, nullptr, nullptr);
+	if (ret != -1) return ret;
+
+	/* TODO map recvfrom errno to write errno */
+	switch (errno) {
+	default: return Errno(errno);
+	}
 }
 
 
-ssize_t Socket_plugin::write(Libc::File_descriptor *fd, const void *buf, ::size_t count)
+ssize_t Socket_fs::Plugin::write(Libc::File_descriptor *fd, const void *buf, ::size_t count)
 {
-	return do_sendto(fd, buf, count, 0, nullptr, 0);
+
+	ssize_t const ret = do_sendto(fd, buf, count, 0, nullptr, 0);
+	if (ret != -1) return ret;
+
+	/* TODO map sendto errno to write errno */
+	switch (errno) {
+	default: return Errno(errno);
+	}
 }
 
 
-bool Socket_plugin::supports_select(int nfds,
-                                    fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-                                    struct timeval *timeout)
+bool Socket_fs::Plugin::supports_select(int nfds,
+                                        fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+                                        struct timeval *timeout)
 {
 	/* return true if any file descriptor (which is set) belongs to the VFS */
 	for (int fd = 0; fd < nfds; ++fd) {
@@ -802,9 +849,9 @@ bool Socket_plugin::supports_select(int nfds,
 }
 
 
-int Socket_plugin::select(int nfds,
-                          fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-                          timeval *timeout)
+int Socket_fs::Plugin::select(int nfds,
+                              fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+                              timeval *timeout)
 {
 	int nready = 0;
 
@@ -828,13 +875,13 @@ int Socket_plugin::select(int nfds,
 
 		if (FD_ISSET(fd, &in_readfds)) {
 			try {
-				Socket_context *context = dynamic_cast<Socket_context *>(fdo->context);
+				Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
 
 				if (context->read_ready()) {
 					FD_SET(fd, readfds);
 					++nready;
 				}
-			} catch (Socket_context::Inaccessible) { }
+			} catch (Socket_fs::Context::Inaccessible) { }
 		}
 
 		if (FD_ISSET(fd, &in_writefds)) {
@@ -851,9 +898,9 @@ int Socket_plugin::select(int nfds,
 }
 
 
-int Socket_plugin::close(Libc::File_descriptor *fd)
+int Socket_fs::Plugin::close(Libc::File_descriptor *fd)
 {
-	Socket_context *context = dynamic_cast<Socket_context *>(fd->context);
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
 	if (!context) return Errno(EBADF);
 
 	::unlink(context->path.base());
@@ -862,4 +909,11 @@ int Socket_plugin::close(Libc::File_descriptor *fd)
 	Libc::file_descriptor_allocator()->free(fd);
 
 	return 0;
+}
+
+
+Plugin & Socket_fs::plugin()
+{
+	static Plugin inst;
+	return inst;
 }
