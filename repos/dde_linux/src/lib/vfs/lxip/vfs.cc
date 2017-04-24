@@ -232,8 +232,7 @@ struct Vfs::File : Vfs::Node
 	/**
 	 * Check for data to read or write
 	 */
-	virtual bool poll(bool trigger_io_response = false,
-	                  Vfs::Vfs_handle::Context *context = nullptr) { return false; }
+	virtual bool poll(bool trigger_io_response, Vfs::Vfs_handle::Context *context) = 0;
 };
 
 
@@ -413,6 +412,8 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 		 ** File interface **
 		 ********************/
 
+		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
+
 		Lxip::ssize_t write(char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
@@ -476,6 +477,8 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 		 ** File interface **
 		 ********************/
 
+		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
+
 		Lxip::ssize_t write(char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
@@ -528,6 +531,8 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 		/********************
 		 ** File interface **
 		 ********************/
+
+		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
 		Lxip::ssize_t write(char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
@@ -599,27 +604,7 @@ class Vfs::Lxip_local_file : public Vfs::Lxip_file
 		 ** File interface **
 		 ********************/
 
-		bool poll(bool trigger_io_response,
-		          Vfs::Vfs_handle::Context *context) override
-		{
-			using namespace Linux;
-
-			file f;
-			f.f_flags = 0;
-
-			switch (_parent.parent().type()) {
-			case Lxip::Protocol_dir::TYPE_DGRAM:
-				if (_sock.ops->poll(&f, &_sock, nullptr) & (POLLIN_SET)) {
-					if (trigger_io_response)
-						_parent.trigger_io_response(context);
-					return true;
-				}
-			case Lxip::Protocol_dir::TYPE_STREAM:
-				return true;
-			}
-
-			return false;
-		}
+		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
 		Lxip::ssize_t read(char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
@@ -672,7 +657,11 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 						_parent.trigger_io_response(context);
 					return true;
 				}
+				return false;
+
 			case Lxip::Protocol_dir::TYPE_STREAM:
+				if (trigger_io_response)
+					_parent.trigger_io_response(context);
 				return true;
 			}
 
@@ -709,7 +698,8 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 					iov.iov_len  = sizeof(_content_buffer);
 
 					int const res = _sock.ops->recvmsg(&_sock, &msg, 0, MSG_DONTWAIT|MSG_PEEK);
-					if (res < 0) return -1;
+					if (res == -EAGAIN) throw Would_block();
+					if (res < 0)        return -1;
 				}
 				break;
 			case Lxip::Protocol_dir::TYPE_STREAM:
@@ -1223,6 +1213,8 @@ class Vfs::Lxip_address_file : public Vfs::File
 		Lxip_address_file(char const *name, unsigned int &numeric_address)
 		: Vfs::File(name), _numeric_address(numeric_address) { }
 
+		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
+
 		Lxip::ssize_t read(char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
@@ -1574,7 +1566,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->file;
 
 			if (!count)
-				Genode::error("zero read of ",file.name());
+				Genode::error("zero read of ", file.name());
 
 			if (count) try {
 				Lxip::ssize_t res = file.read(dst, count, vfs_handle->seek());
@@ -1612,8 +1604,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			Lxip_vfs_handle *handle =
 				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle);
 
-			/* TODO when to _polling_handles.remove(handle); ? */
-			return handle->file.poll();
+			return handle->file.poll(false, nullptr);
 		}
 };
 
