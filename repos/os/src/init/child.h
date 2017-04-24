@@ -312,7 +312,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		/**
 		 * Return true if service is provided by this child
 		 */
-		bool _provided_by_this(Routed_service const &service)
+		bool _provided_by_this(Routed_service const &service) const
 		{
 			return service.has_id_space(_session_requester.id_space());
 		}
