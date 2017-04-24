@@ -234,8 +234,8 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
 	{
 		/*
-		 * We use the guard directly to atomically check is any descripor is
-		 * ready, and insert into select-callback list otherwise.
+		 * We use the guard directly to atomically check if any descripor is
+		 * ready, but insert into select-callback list otherwise.
 		 */
 		Libc::Select_cb_list::Guard guard(select_cb_list);
 
