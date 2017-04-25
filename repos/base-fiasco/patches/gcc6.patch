@@ -1,0 +1,242 @@
+gcc6.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ fiasco/snapshot/kernel/fiasco/src/Makeconf         |    4 +-
+ .../snapshot/kernel/fiasco/src/kern/shared/gdt.cpp |   10 +++--
+ .../kernel/fiasco/src/kern/shared/kdb_ke.cpp       |    9 ++--
+ fiasco/snapshot/l4/pkg/crtx/lib/src/construction.c |   44 ++++++++++----------
+ .../snapshot/l4/pkg/cxx/lib/start/src/cxx_main.cc  |    6 +--
+ 5 files changed, 38 insertions(+), 35 deletions(-)
+
+diff --git fiasco/snapshot/kernel/fiasco/src/Makeconf fiasco/snapshot/kernel/fiasco/src/Makeconf
+index 07401e1..daee531 100644
+--- fiasco/snapshot/kernel/fiasco/src/Makeconf
++++ fiasco/snapshot/kernel/fiasco/src/Makeconf
+@@ -28,8 +28,8 @@ ECHO		:= echo
+ ECHO_E		:= bash --norc -c 'echo -e "$$0" "$$@"'
+ CP		:= cp
+ AWKP		?= gawk --posix
+-CFLAGS		:=
+-CXXFLAGS	:=
++CFLAGS		:= $(CFLAGS)
++CXXFLAGS	:= $(CXXFLAGS)
+ OPT_CFLAGS	:= -O2
+ OPT_CXXFLAGS	:= -O2
+ NOOPT_CFLAGS	:= -Os
+diff --git fiasco/snapshot/kernel/fiasco/src/kern/shared/gdt.cpp fiasco/snapshot/kernel/fiasco/src/kern/shared/gdt.cpp
+index 2113170..d0eafd0 100644
+--- fiasco/snapshot/kernel/fiasco/src/kern/shared/gdt.cpp
++++ fiasco/snapshot/kernel/fiasco/src/kern/shared/gdt.cpp
+@@ -43,9 +43,6 @@ public:
+       Selector_user       = 0x03,
+       Selector_kernel     = 0x00,
+     };
+-
+-private:
+-  Gdt_entry _entries[];
+ };
+ 
+ 
+@@ -130,6 +127,7 @@ void
+ Gdt::set_entry_byte(int nr, Address base, Unsigned32 limit,
+ 		    Unsigned8 access, Unsigned8 szbits)
+ {
++  Gdt_entry *_entries = reinterpret_cast<Gdt_entry*>(this);
+   _entries[nr] = Gdt_entry(base, limit, access, szbits);
+ }
+ 
+@@ -138,6 +136,7 @@ void
+ Gdt::set_entry_4k(int nr, Address base, Unsigned32 limit,
+ 		  Unsigned8 access, Unsigned8 szbits)
+ {
++  Gdt_entry *_entries = reinterpret_cast<Gdt_entry*>(this);
+   _entries[nr] = Gdt_entry(base, limit >> 12, access, szbits | 0x08);
+ }
+ 
+@@ -145,6 +144,7 @@ PUBLIC inline
+ void
+ Gdt::set_raw(int nr, Unsigned32 low, Unsigned32 high)
+ {
++  Gdt_entry *_entries = reinterpret_cast<Gdt_entry*>(this);
+   _entries[nr].set_raw(low, high);
+ }
+ 
+@@ -152,6 +152,7 @@ PUBLIC inline
+ void
+ Gdt::set_raw(int nr, Unsigned64 val)
+ {
++  Gdt_entry *_entries = reinterpret_cast<Gdt_entry*>(this);
+   _entries[nr].set_raw(val);
+ }
+ 
+@@ -159,6 +160,7 @@ PUBLIC inline
+ void
+ Gdt::get_raw(int nr, Unsigned32 *low, Unsigned32 *high)
+ {
++  Gdt_entry *_entries = reinterpret_cast<Gdt_entry*>(this);
+   _entries[nr].get_raw(low, high);
+ }
+ 
+@@ -173,7 +175,7 @@ PUBLIC inline
+ Gdt_entry*
+ Gdt::entries()
+ {
+-  return _entries;
++  return reinterpret_cast<Gdt_entry*>(this);
+ }
+ 
+ 
+diff --git fiasco/snapshot/kernel/fiasco/src/kern/shared/kdb_ke.cpp fiasco/snapshot/kernel/fiasco/src/kern/shared/kdb_ke.cpp
+index 77a51aa..9978b3b 100644
+--- fiasco/snapshot/kernel/fiasco/src/kern/shared/kdb_ke.cpp
++++ fiasco/snapshot/kernel/fiasco/src/kern/shared/kdb_ke.cpp
+@@ -1,15 +1,16 @@
+ INTERFACE [ia32,ux,amd64]:
+ 
+ #define kdb_ke(msg)			\
+-  asm ("int3           		\n\t"	\
++  asm volatile ("int3           		\n\t"	\
+        "jmp 1f			\n\t"	\
+        ".ascii " #msg  "	\n\t"	\
+-       "1:			\n\t");
++       "1:			\n\t" \
++       : : : "memory");
+ 
+ #define kdb_ke_sequence(msg)		\
+-  asm ("int3			\n\t"	\
++  asm volatile ("int3			\n\t"	\
+        "jmp 1f			\n\t"	\
+        ".ascii \"*##\"		\n\t"	\
+        "1:			\n\t"	\
+-       : : "a"(msg));
++       : : "a"(msg) : "memory");
+ 
+diff --git fiasco/snapshot/l4/pkg/crtx/lib/src/construction.c fiasco/snapshot/l4/pkg/crtx/lib/src/construction.c
+index 17e8b99..9020245 100644
+--- fiasco/snapshot/l4/pkg/crtx/lib/src/construction.c
++++ fiasco/snapshot/l4/pkg/crtx/lib/src/construction.c
+@@ -7,8 +7,8 @@
+ 
+ int __cxa_atexit(void (*function)(void *), void *arg, void *dso_handle);
+ 
+-#define BEG		{ (crt0_hook) ~1U }
+-#define END		{ (crt0_hook)   0 }
++#define BEG		(crt0_hook) ~1U
++#define END		(crt0_hook)   0
+ 
+ // make sure that unused symbols are not discarded
+ #if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || __GNUC__ >= 4
+@@ -19,22 +19,22 @@ int __cxa_atexit(void (*function)(void *), void *arg, void *dso_handle);
+ 
+ typedef void (*const crt0_hook)(void);
+ 
+-static crt0_hook __L4DDE_CTOR_BEG__[1] SECTION(".mark_beg_l4dde_ctors")  = BEG;
+-static crt0_hook __L4DDE_CTOR_END__[1] SECTION(".mark_end_l4dde_ctors")  = END;
+-static crt0_hook __CTOR_BEG__[1]       SECTION(".mark_beg_ctors")        = BEG;
+-static crt0_hook __CTOR_END__[1]       SECTION(".mark_end_ctors")        = END;
+-static crt0_hook __C_CTOR_BEG__[1]     SECTION(".mark_beg_c_ctors")      = BEG;
+-static crt0_hook __C_CTOR_END__[1]     SECTION(".mark_end_c_ctors")      = END;
+-static crt0_hook __DTOR_BEG__[1]       SECTION(".mark_beg_dtors")        = BEG;
+-static crt0_hook __DTOR_END__[1]       SECTION(".mark_end_dtors")        = END;
+-static crt0_hook __C_SYS_DTOR_BEG__[1] SECTION(".mark_beg_c_sys_dtors")  = BEG;
+-static crt0_hook __C_SYS_DTOR_END__[1] SECTION(".mark_end_c_sys_dtors")  = END;
+-static crt0_hook __C_DTOR_BEG__[1]     SECTION(".mark_beg_c_dtors")      = BEG;
+-static crt0_hook __C_DTOR_END__[1]     SECTION(".mark_end_c_dtors")      = END;
++static crt0_hook __L4DDE_CTOR_BEG__ SECTION(".mark_beg_l4dde_ctors")  = BEG;
++static crt0_hook __L4DDE_CTOR_END__ SECTION(".mark_end_l4dde_ctors")  = END;
++static crt0_hook __CTOR_BEG__       SECTION(".mark_beg_ctors")        = BEG;
++static crt0_hook __CTOR_END__       SECTION(".mark_end_ctors")        = END;
++static crt0_hook __C_CTOR_BEG__     SECTION(".mark_beg_c_ctors")      = BEG;
++static crt0_hook __C_CTOR_END__     SECTION(".mark_end_c_ctors")      = END;
++static crt0_hook __DTOR_BEG__       SECTION(".mark_beg_dtors")        = BEG;
++static crt0_hook __DTOR_END__       SECTION(".mark_end_dtors")        = END;
++static crt0_hook __C_SYS_DTOR_BEG__ SECTION(".mark_beg_c_sys_dtors")  = BEG;
++static crt0_hook __C_SYS_DTOR_END__ SECTION(".mark_end_c_sys_dtors")  = END;
++static crt0_hook __C_DTOR_BEG__     SECTION(".mark_beg_c_dtors")      = BEG;
++static crt0_hook __C_DTOR_END__     SECTION(".mark_end_c_dtors")      = END;
+ 
+ 
+ static void
+-run_hooks_forward(crt0_hook list[], const char *name)
++run_hooks_forward(crt0_hook *list, const char *name)
+ {
+ #ifdef DEBUG
+   outstring("list (forward) ");
+@@ -57,7 +57,7 @@ run_hooks_forward(crt0_hook list[], const char *name)
+ }
+ 
+ static void
+-run_hooks_backward(crt0_hook list[], const char *name)
++run_hooks_backward(crt0_hook *list, const char *name)
+ {
+ #ifdef DEBUG
+   outstring("list (backward) ");
+@@ -83,11 +83,11 @@ static void
+ static_construction(void)
+ {
+   /* call constructors made with L4_C_CTOR */
+-  run_hooks_forward(__C_CTOR_BEG__, "__C_CTOR_BEG__");
++  run_hooks_forward(&__C_CTOR_BEG__, "__C_CTOR_BEG__");
+ 
+   /* call constructors made with __attribute__((constructor))
+    * and static C++ constructors */
+-  run_hooks_backward(__CTOR_END__, "__CTOR_END__");
++  run_hooks_backward(&__CTOR_END__, "__CTOR_END__");
+ }
+ 
+ static void
+@@ -95,17 +95,17 @@ static_destruction(void *x __attribute__((unused)))
+ {
+   /* call destructors made with __attribute__((destructor))
+    * and static C++ destructors */
+-  run_hooks_forward(__DTOR_BEG__, "__DTOR_BEG__");
++  run_hooks_forward(&__DTOR_BEG__, "__DTOR_BEG__");
+ 
+   /* call destructors made with L4_C_DTOR except system destructors */
+-  run_hooks_backward(__C_DTOR_END__, "__C_DTOR_END__");
++  run_hooks_backward(&__C_DTOR_END__, "__C_DTOR_END__");
+ }
+ 
+ /* call system destructors */
+ void
+ crt0_sys_destruction(void)
+ {
+-  run_hooks_forward(__C_SYS_DTOR_BEG__, "__C_SYS_DTOR_BEG__");
++  run_hooks_forward(&__C_SYS_DTOR_BEG__, "__C_SYS_DTOR_BEG__");
+ }
+ 
+ extern void *__dso_handle __attribute__((weak));
+@@ -121,7 +121,7 @@ crt0_construction(void)
+ void
+ crt0_dde_construction(void)
+ {
+-  run_hooks_forward(__L4DDE_CTOR_BEG__, "__L4DDE_CTOR_BEG__");
++  run_hooks_forward(&__L4DDE_CTOR_BEG__, "__L4DDE_CTOR_BEG__");
+ }
+ 
+ asm (".hidden _init");
+diff --git fiasco/snapshot/l4/pkg/cxx/lib/start/src/cxx_main.cc fiasco/snapshot/l4/pkg/cxx/lib/start/src/cxx_main.cc
+index e202139..22e8ddb 100644
+--- fiasco/snapshot/l4/pkg/cxx/lib/start/src/cxx_main.cc
++++ fiasco/snapshot/l4/pkg/cxx/lib/start/src/cxx_main.cc
+@@ -13,14 +13,14 @@
+ 
+ #include "cxx_atexit.h"
+ 
+-extern L4::MainThread *main;
++extern L4::MainThread *main_thread;
+ 
+ extern "C" 
+ void __main()
+ {
+   crt0_construction();
+-  if(main)
+-    main->run();
++  if(main_thread)
++    main_thread->run();
+   __cxa_finalize(0);
+   crt0_sys_destruction();
+   l4_sleep_forever();
