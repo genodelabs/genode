@@ -594,24 +594,20 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 			                /*||  paPages[iPage].idPage == NIL_GMM_PAGEID*/,
 			                ("#%#x: %#x\n", iPage, paPages[iPage].idPage), VERR_INVALID_PARAMETER);
 
-		uint32_t fPage = (paPages[0].idPage >> GMM_CHUNKID_SHIFT);
-		void * vmm_local = reinterpret_cast<void *>(vm_memory().local_addr(fPage  << GMM_CHUNK_SHIFT));
-
-		/* revoke mapping from guest VM */
-		PGMUnmapMemoryGenode(vmm_local, GMM_CHUNK_SIZE);
-
-		for (uint32_t iPage = 0; iPage < cPages; iPage++)
+		for (uint32_t last_chunk = ~0U, iPage = 0; iPage < cPages; iPage++)
 		{
 			uint32_t const idPage   = paPages[iPage].idPage;
 			uint32_t const page_idx = idPage & GMM_PAGEID_IDX_MASK;
 			uint32_t const chunkid  = idPage >> GMM_CHUNKID_SHIFT;
 
-			if ((idPage >> GMM_CHUNKID_SHIFT) != fPage) {
-				Vmm::log("chunkid=", chunkid, " "
-				         "page_idx=", page_idx, ") "
-				         "vm_memory.local=", Genode::Hex(vm_memory().local_addr((chunkid << GMM_CHUNK_SHIFT))), " "
-				         "idPage=", Genode::Hex(idPage), " i=", iPage);
+			if (last_chunk != chunkid) {
+				/* revoke mapping from guest VM */
+				void * vmm_local = reinterpret_cast<void *>(vm_memory().local_addr(chunkid << GMM_CHUNK_SHIFT));
+				PGMUnmapMemoryGenode(vmm_local, GMM_CHUNK_SIZE);
+
+				last_chunk = chunkid;
 			}
+
 			if (CHUNKID_PAGE_START <= chunkid && chunkid <= CHUNKID_PAGE_END) {
 				try {
 					page_ids.free((chunkid - CHUNKID_PAGE_START) * PAGES_SUPERPAGE + page_idx);
