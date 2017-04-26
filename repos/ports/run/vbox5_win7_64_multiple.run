@@ -1,0 +1,35 @@
+#
+# Windows 7 64bit in VirtualBox
+#
+# Prepared for internal test machine, which has 8 logical cores.
+
+# 6 Win7 64bit VMs are started, each having 2 vCPUs, using the same image and
+# different overlays. Changes to the VM are written to the overlays of ram_fs
+# and dropped after the test.
+
+# lCPU 0  : Genode base system and drivers
+# lCPU 1-2: VM1 2 vCPUs
+# ...
+# lCPU 6-7: VM6 2 vCPUs
+
+assert_spec 64bit
+
+set flavor   "win7_64"
+
+set use_vbox4 0
+set use_vbox5 1
+
+set use_rumpfs 1
+# Write overlay only into ram
+set use_ram_fs 1
+# However read initial overlay from disk
+set use_overlay_from_disk 1
+
+set use_usb 1
+set use_ps2 [have_spec ps2]
+
+set use_vms 6
+set affinity_space_width 8
+set use_cpu_load 1
+
+source ${genode_dir}/repos/ports/run/vbox_win.inc
