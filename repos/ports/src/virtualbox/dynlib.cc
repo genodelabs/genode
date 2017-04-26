@@ -24,6 +24,7 @@ extern "C" {
 
 DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_sf (VBOXHGCMSVCFNTABLE *ptable);
 DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_cb (VBOXHGCMSVCFNTABLE *ptable);
+DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_gp (VBOXHGCMSVCFNTABLE *ptable);
 
 
 static struct shared {
@@ -32,7 +33,8 @@ static struct shared {
 	void * func;
 } shared[] = {
 	{ "VBoxSharedFolders", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad_sf },
-	{ "VBoxSharedClipboard", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad_cb }
+	{ "VBoxSharedClipboard", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad_cb  },
+	{ "VBoxGuestPropSvc", VBOX_HGCM_SVCLOAD_NAME, (void *)VBoxHGCMSvcLoad_gp }
 };
 
 

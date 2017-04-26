@@ -18,3 +18,13 @@
  {
      int rc = VINF_SUCCESS;
  
++++ a/src/app/virtualbox/src/VBox/HostServices/GuestProperties/service.cpp
+@@ -1627,7 +1627,7 @@
+ /**
+  * @copydoc VBOXHGCMSVCLOAD
+  */
+-extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad (VBOXHGCMSVCFNTABLE *ptable)
++extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad_gp (VBOXHGCMSVCFNTABLE *ptable)
+ {
+     int rc = VERR_IPE_UNINITIALIZED_STATUS;
+ 

@@ -19,6 +19,7 @@
 #include "EMInternal.h"
 #include "PDMInternal.h"
 
+#include <iprt/buildconfig.h>
 #include <iprt/err.h>
 #include <iprt/mem.h>
 #include <VBox/vmm/cpum.h>
@@ -165,6 +166,11 @@ void RTAssertMsg2Add(const char *pszFormat, ...)
 	Genode::error(__func__, "not implemented");
 	Genode::Lock lock(Genode::Lock::LOCKED);
 	lock.lock();
+}
+
+const char * RTBldCfgRevisionStr(void)
+{
+	return "Genode";
 }
 
 RT_C_DECLS_END

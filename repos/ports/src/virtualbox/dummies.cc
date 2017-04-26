@@ -197,4 +197,9 @@ char *pdmR3FileR3(const char * file, bool)
 	TRACE(pv)
 }
 
+const char * RTBldCfgRevisionStr(void)
+{
+	return "Genode";
+}
+
 RT_C_DECLS_END

@@ -41,3 +41,5 @@ void fireNATNetworkPortForwardEvent(IEventSource* aSource, CBSTR a_networkName,
 void fireHostNameResolutionConfigurationChangeEvent(IEventSource* aSource);
 
 void fireMediumChangedEvent(IEventSource *, IMediumAttachment *);
+
+#define fireGuestPropertyChangedEvent(a, b, c, d, e)

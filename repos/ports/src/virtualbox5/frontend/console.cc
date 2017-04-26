@@ -334,8 +334,9 @@ void GenodeConsole::init_backends(IKeyboard * gKeyboard, IMouse * gMouse)
 	Assert(SUCCEEDED(rc) && pFramebuffer);
 
 	Genodefb *fb = dynamic_cast<Genodefb *>(pFramebuffer);
-
 	fb->mode_sigh(_mode_change_signal_dispatcher);
+
+	handle_mode_change();
 }
 
 void GenodeConsole::i_onMouseCapabilityChange(BOOL supportsAbsolute,

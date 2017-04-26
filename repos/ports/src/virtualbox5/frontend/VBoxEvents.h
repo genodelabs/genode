@@ -49,3 +49,5 @@ void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal, CBSTR a_id,
 #define fireVideoCaptureChangedEvent(a)
 #define fireVRDEServerChangedEvent(a)
 #define fireVRDEServerInfoChangedEvent(a)
+
+#define fireGuestPropertyChangedEvent(a, b, c, d, e)
