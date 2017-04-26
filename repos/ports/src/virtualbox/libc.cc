@@ -154,21 +154,28 @@ extern "C" char *getenv(const char *name)
 //		               "+dev_pcnet.e.l.f"
 //		               "+dev_pic.e.l.f"
 //		               "+dev_apic.e.l.f"
-//		               "+dev_vmm.e"
 //		               "+usb_mouse.e.l.f"
-//		               "+main.e.l.f"
-//		               "+hgcm.e.l.f"
+//		               "+main.e.l3.f"
 //		               "+shared_folders.e.l.f"
 //		               "+drv_host_serial.e.l.f"
 //		               "+dev_audio.e.l.f"
 //		               "+dev_hda.e"
 //		               "+drv_host_audio.e.l.f"
 //		               "+drv_audio.e.l.f"
+//		               "+dev_vmm_backdoor.e.l.f"
+//		               "+hgcm.e.l.f"
+//		               "+dev_vmm.e.l.f"
 		               ;
+
+	/*
+	 * see https://www.virtualbox.org/wiki/VBoxLogging for useful tips to
+	 * enable useful debugging of Guest additions in Windows/Linux together
+	 * with +dev_vmm_backdoor, hgcm and dev_vmm
+	 */
 
 	if (Genode::strcmp(name, "VBOX_LOG_FLAGS") == 0 ||
 	    Genode::strcmp(name, "VBOX_RELEASE_LOG_FLAGS") == 0)
-		return (char *)"thread";
+		return (char *)"thread"; //" tsc";
 
 	return 0;
 }

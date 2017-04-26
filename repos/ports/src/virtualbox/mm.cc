@@ -324,10 +324,10 @@ int MMR3InitPaging(PVM pVM)
 
 char * MMR3HeapStrDup(PVM pVM, MMTAG enmTag, const char *psz)
 {
-    size_t cch = strlen(psz) + 1;
-    char *pszDup = (char *)MMR3HeapAllocU(pVM->pUVM, enmTag, cch);
-    if (pszDup)
-        memcpy(pszDup, psz, cch);
+	size_t cch = strlen(psz) + 1;
+	char *pszDup = (char *)MMR3HeapAllocU(pVM->pUVM, enmTag, cch);
+	if (pszDup)
+		memcpy(pszDup, psz, cch);
 
 	return pszDup;
 }

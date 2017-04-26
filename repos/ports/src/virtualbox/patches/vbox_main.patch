@@ -533,15 +533,33 @@ index 69e3109..3c534df 100644
  /**
   * Uninitializes the Console object.
   */
-@@ -1035,6 +1066,8 @@ void Console::guestPropertiesVRDPUpdateDisconnect(uint32_t u32ClientId)
- 
- #endif /* VBOX_WITH_GUEST_PROPS */
+@@ -817,6 +848,8 @@
+     LogFlowThisFuncLeave();
+ }
  
 +#endif /* #if 0 */
 +
- bool Console::isResetTurnedIntoPowerOff(void)
+ #ifdef VBOX_WITH_GUEST_PROPS
+ 
+ /**
+@@ -858,6 +891,8 @@
+         LogRel(("RESET: Unable to enumerate guest properties, rc=%Rhrc\n", hrc));
+ }
+ 
++#if 0
++
+ bool Console::guestPropertiesVRDPEnabled(void)
  {
      Bstr value;
+@@ -1055,6 +1090,8 @@
+     return;
+ }
+ 
++#endif /* #if 0 */
++
+ #endif /* VBOX_WITH_GUEST_PROPS */
+ 
+ bool Console::isResetTurnedIntoPowerOff(void)
 @@ -1046,6 +1079,8 @@ bool Console::isResetTurnedIntoPowerOff(void)
      return false;
  }
@@ -690,6 +708,23 @@ index 69e3109..3c534df 100644
  HRESULT Console::onVideoCaptureChange()
  {
      AutoCaller autoCaller(this);
+@@ -5778,6 +5844,8 @@
+     return hrc;
+ }
+ 
++#endif /* #if 0 */
++
+ /**
+  * @note Temporarily locks this object for writing.
+  */
+@@ -5978,6 +6046,7 @@
+ #endif /* VBOX_WITH_GUEST_PROPS */
+ }
+ 
++#if 0
+ 
+ /*
+  * Internal: helper function for connecting progress reporting
 @@ -6490,6 +6544,8 @@ void Console::onMouseCapabilityChange(BOOL supportsAbsolute, BOOL supportsRelati
      fireMouseCapabilityChangedEvent(mEventSource, supportsAbsolute, supportsRelative, supportsMT, needsHostCursor);
  }

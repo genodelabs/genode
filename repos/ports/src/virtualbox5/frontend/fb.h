@@ -188,41 +188,62 @@ class Genodefb :
 		}
 
 		STDMETHODIMP COMGETTER(Overlay) (IFramebufferOverlay **) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(WinId) (PRInt64 *winId) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
-		STDMETHODIMP VideoModeSupported(ULONG, ULONG, ULONG, BOOL *) override {
-			return E_NOTIMPL; }
+		STDMETHODIMP VideoModeSupported(ULONG width, ULONG height,
+		                                ULONG bpp, BOOL *supported) override
+		{
+			if (!supported)
+				return E_POINTER;
+
+			*supported = ((width <= (ULONG)_next_fb_mode.width()) &&
+			              (height <= (ULONG)_next_fb_mode.height()));
+
+			return S_OK;
+		}
 
 		STDMETHODIMP Notify3DEvent(PRUint32, PRUint32, PRUint8 *) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP ProcessVHWACommand(BYTE *pCommand) override {
+			Assert(!"FixMe");
 		    return E_NOTIMPL; }
 
 		STDMETHODIMP GetVisibleRegion(BYTE *, ULONG, ULONG *) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 		
 		STDMETHODIMP SetVisibleRegion(BYTE *, ULONG) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(PixelFormat) (ULONG *format) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		HRESULT NotifyUpdate(ULONG x, ULONG y, ULONG w, ULONG h) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(BitsPerPixel)(ULONG *bits) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(BytesPerLine)(ULONG *line) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(Width)(ULONG *width) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
 		STDMETHODIMP COMGETTER(Height)(ULONG *height) override {
+			Assert(!"FixMe");
 			return E_NOTIMPL; }
 };

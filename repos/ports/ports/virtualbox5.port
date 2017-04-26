@@ -79,6 +79,7 @@ VBOX_MAIN_INC += ThreadTask USBProxyBackend
 VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
 VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
 VBOX_SRC_VBOX += HostServices/SharedClipboard
+VBOX_SRC_VBOX += HostServices/GuestProperties
 VBOX_SRC_VBOX += Main/xml/VirtualBox-settings.xsd Main/xml/SchemaDefs.xsl
 VBOX_SRC_VBOX += Main/idl/docstrip.xsl Main/idl/VirtualBox.xidl
 VBOX_SRC_VBOX += Main/idl/apiwrap-server.xsl

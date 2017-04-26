@@ -66,6 +66,7 @@ VBOX_MAIN_INC += USBDeviceImpl HostUSBDeviceImpl Matching Wrapper
 VBOX_SRC_VBOX := VMM Devices Runtime GuestHost/HGSMI Storage Disassembler
 VBOX_SRC_VBOX += HostServices/SharedFolders Main/xml/Settings.cpp
 VBOX_SRC_VBOX += HostServices/SharedClipboard
+VBOX_SRC_VBOX += HostServices/GuestProperties
 VBOX_SRC_VBOX += Main/xml/VirtualBox-settings.xsd Main/xml/SchemaDefs.xsl
 VBOX_SRC_VBOX += $(addsuffix .h,   $(addprefix Main/include/, $(VBOX_MAIN_INC)))
 VBOX_SRC_VBOX += $(addsuffix .cpp, $(addprefix Main/src-client/, $(VBOX_MAIN_CLI)))
@@ -84,7 +85,7 @@ VBOX_INC += usb.h usbfilter.h
 VBOX_INC_COM := array.h assert.h AutoLock.h ErrorInfo.h EventQueue.h Guid.h
 VBOX_INC_COM += list.h MultiResult.h string.h
 
-VBOX_INC_HOST := VBoxClipboardExt.h VBoxClipboardSvc.h
+VBOX_INC_HOST := VBoxClipboardExt.h VBoxClipboardSvc.h GuestPropertySvc.h
 
 VBOX_CONTENT += $(addprefix src/VBox/,$(VBOX_SRC_VBOX))
 VBOX_CONTENT += $(addprefix include/VBox/, $(VBOX_INC))

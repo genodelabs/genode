@@ -1,3 +1,22 @@
+/**
+ * VirtualBox COM base class definition adjusted to Genode
+ * - based on VBox/Main/include/VirtualBoxBase.h
+ */
+
+/*
+ * Copyright (C) 2006-2013 Oracle Corporation
+ * Copyright (C) 2013-2017 Genode Labs GmbH
+ *
+ * This file is part of VirtualBox Open Source Edition (OSE), as
+ * available from http://www.virtualbox.org. This file is free software;
+ * you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License (GPL) as published by the Free Software
+ * Foundation, in version 2 as it comes in the "COPYING" file of the
+ * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
+ * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ */
+
+
 #ifndef ____H_VIRTUALBOXBASEIMPL
 #define ____H_VIRTUALBOXBASEIMPL
 
@@ -346,6 +365,17 @@ class Backupable : public Shareable<T>
     do { \
         if (RT_UNLIKELY((arg) == NULL)) \
             return setError(E_INVALIDARG, tr("Argument %s is NULL"), #arg); \
+    } while (0)
+
+/**
+ * Checks that the pointer argument is a valid pointer or NULL and returns
+ * E_INVALIDARG + extended error info on failure.
+ * @param arg   Input pointer-type argument (strings, interface pointers...)
+ */
+#define CheckComArgMaybeNull(arg) \
+    do { \
+        if (RT_UNLIKELY(!RT_VALID_PTR(arg) && (arg) != NULL)) \
+            return setError(E_INVALIDARG, tr("Argument %s is an invalid pointer"), #arg); \
     } while (0)
 
 /**
