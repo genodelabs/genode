@@ -199,8 +199,19 @@ class Launcher::Subsystem_manager
 
 				/* configure child */
 				try {
-					Xml_node config_node = subsystem.sub_node("config");
-					child->configure(config_node.addr(), config_node.size());
+					if (subsystem.has_sub_node("configfile")) {
+						Genode::String<96> name;
+						Xml_node node = subsystem.sub_node("configfile");
+						Xml_attribute attr = node.attribute("name");
+						attr.value(&name);
+
+						Attached_rom_dataspace rom(_env, name.string());
+						Xml_node config_node = rom.xml();
+						child->configure(config_node.addr(), config_node.size());
+					} else {
+						Xml_node config_node = subsystem.sub_node("config");
+						child->configure(config_node.addr(), config_node.size());
+					}
 				} catch (...) { }
 
 				_children.insert(child);
