@@ -147,7 +147,7 @@ struct Trace_subject_registry
 						continue;
 					}
 					if (load[x][y][replace]->recent_execution_time
-					    <= load[x][y][i]->recent_execution_time)
+					    > load[x][y][i]->recent_execution_time)
 						replace = i;
 				}
 
