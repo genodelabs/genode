@@ -20,14 +20,14 @@
 #include <platform.h>
 
 /* Genode includes */
-#include <drivers/uart_base.h>
+#include <drivers/uart/exynos.h>
 
 namespace Genode
 {
 	/**
 	 * Serial output driver for core
 	 */
-	class Serial : public Exynos_uart_base
+	class Serial : public Exynos_uart
 	{
 		public:
 
@@ -38,8 +38,8 @@ namespace Genode
 			 */
 			Serial(unsigned const baud_rate)
 			:
-				Exynos_uart_base(Platform::mmio_to_virt(Board::UART_2_MMIO_BASE),
-				                 Board::UART_2_CLOCK, baud_rate)
+				Exynos_uart(Platform::mmio_to_virt(Board::UART_2_MMIO_BASE),
+				            Board::UART_2_CLOCK, baud_rate)
 			{ }
 	};
 }

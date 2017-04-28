@@ -16,7 +16,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <base/component.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <drivers/trustzone.h>
 
 /* local includes */
@@ -53,7 +53,7 @@ class Main
 		                         Trustzone::NONSECURE_RAM_SIZE,
 		                         KERNEL_OFFSET, Machine_type(MACHINE_QSB),
 		                         Board_revision(BOARD_QSB) };
-		M4if          _m4if    { _env, Board_base::M4IF_BASE, Board_base::M4IF_SIZE };
+		M4if          _m4if    { _env, Imx53::M4IF_BASE, Imx53::M4IF_SIZE };
 		Serial_driver _serial  { _env.ram() };
 		Block_driver  _block   { _env.ep(), _config.xml(), _heap, _vm };
 

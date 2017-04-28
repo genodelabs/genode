@@ -19,7 +19,7 @@
 #include <base/log.h>
 #include <regulator/consts.h>
 #include <regulator/driver.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/odroid_x2.h>
 #include <os/attached_mmio.h>
 
 using Genode::warning;
@@ -113,8 +113,8 @@ class Pmu : public Regulator::Driver,
 		 * Constructor
 		 */
 		Pmu(Genode::Env &env)
-		: Genode::Attached_mmio(env, Genode::Board_base::PMU_MMIO_BASE,
-		                             Genode::Board_base::PMU_MMIO_SIZE)
+		: Genode::Attached_mmio(env, Odroid_x2::PMU_MMIO_BASE,
+		                             Odroid_x2::PMU_MMIO_SIZE)
 		{
 			write<Usbdrd_phy_control::Enable>(0);
 			write<Usbhost_phy1_control::Enable>(0);

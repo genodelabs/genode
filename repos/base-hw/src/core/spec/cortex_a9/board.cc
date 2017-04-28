@@ -14,7 +14,10 @@
 #include <board.h>
 #include <platform.h>
 
-using namespace Genode;
+Board::L2_cache & Board::l2_cache()
+{
+	using namespace Genode;
 
-Cortex_a9::Board::Board()
-: _l2_cache(Platform::mmio_to_virt(Board_base::PL310_MMIO_BASE)) {}
+	static L2_cache cache(Platform::mmio_to_virt(Board::PL310_MMIO_BASE));
+	return cache;
+}

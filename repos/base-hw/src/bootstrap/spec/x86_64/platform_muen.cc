@@ -46,5 +46,5 @@ void Bootstrap::Platform::enable_mmu() {
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base)); }
 
 
-Bootstrap::Serial::Serial(addr_t, size_t, unsigned baudrate)
-:X86_uart_base(COM1_PORT, 0, baudrate) {}
+Board::Serial::Serial(Genode::addr_t, Genode::size_t, unsigned baudrate)
+:X86_uart(COM1_PORT, 0, baudrate) {}

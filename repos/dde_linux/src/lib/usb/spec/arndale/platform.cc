@@ -12,7 +12,7 @@
  */
 
 /* Genode */
-#include <drivers/board_base.h>
+#include <drivers/defs/arndale.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
 #include <regulator/consts.h>
@@ -32,8 +32,8 @@ enum {
 	DWC3_BASE     = 0x12000000,
 	DWC3_PHY_BASE = 0x12100000,
 	GPIO_BASE     = 0x11400000,
-	EHCI_IRQ      = Board_base::USB_HOST20_IRQ,
-	DWC3_IRQ      = Board_base::USB_DRD30_IRQ,
+	EHCI_IRQ      = Arndale::USB_HOST20_IRQ,
+	DWC3_IRQ      = Arndale::USB_DRD30_IRQ,
 };
 
 static resource _ehci[] =

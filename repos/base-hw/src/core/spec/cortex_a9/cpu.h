@@ -80,7 +80,7 @@ class Genode::Cpu : public Arm_v7_cpu
 		void clean_invalidate_data_cache()
 		{
 			clean_invalidate_inner_data_cache();
-			Kernel::board().l2_cache().clean_invalidate();
+			Board::l2_cache().clean_invalidate();
 		}
 
 		/**
@@ -89,7 +89,7 @@ class Genode::Cpu : public Arm_v7_cpu
 		void invalidate_data_cache()
 		{
 			invalidate_inner_data_cache();
-			Kernel::board().l2_cache().invalidate();
+			Board::l2_cache().invalidate();
 		}
 
 		/**
@@ -100,7 +100,7 @@ class Genode::Cpu : public Arm_v7_cpu
 		                                                size_t const size)
 		{
 			Arm_cpu::clean_invalidate_data_cache_by_virt_region(base, size);
-			Kernel::board().l2_cache().clean_invalidate();
+			Board::l2_cache().clean_invalidate();
 		}
 
 		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }

@@ -18,7 +18,7 @@
 /* Genode includes */
 #include <os/attached_mmio.h>
 #include <timer_session/connection.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/exynos5.h>
 #include <regulator_session/connection.h>
 #include <irq_session/connection.h>
 #include <base/attached_ram_dataspace.h>
@@ -175,7 +175,7 @@ class Sd_card::Driver : public  Driver_base,
 		Block_transfer          _block_transfer;
 		Clock_regulator         _clock_regulator  { _env };
 		Signal_handler<Driver>  _irq_handler      { _env.ep(), *this, &Driver::_handle_irq };
-		Irq_connection          _irq              { Board_base::SDMMC0_IRQ };
+		Irq_connection          _irq              { Exynos5::SDMMC0_IRQ };
 		Attached_ram_dataspace  _idmac_desc_ds    { &_env.ram(),
 		                                            IDMAC_DESC_MAX_ENTRIES * sizeof(Idmac_desc),
 		                                            UNCACHED };

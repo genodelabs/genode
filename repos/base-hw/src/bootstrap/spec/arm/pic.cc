@@ -14,7 +14,6 @@
 #include <spec/arm/pic.h>
 #include <platform.h>
 
-using Memory_map = Hw::Cpu_memory_map<Bootstrap::CPU_MMIO_BASE>;
 using Bootstrap::Platform;
 
 void Bootstrap::Pic::init_cpu_local()
@@ -31,8 +30,8 @@ void Bootstrap::Pic::init_cpu_local()
 
 
 Hw::Pic::Pic()
-: _distr(Memory_map::IRQ_CONTROLLER_DISTR_BASE),
-  _cpui (Memory_map::IRQ_CONTROLLER_CPU_BASE),
+: _distr(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE),
+  _cpui (Board::Cpu_mmio::IRQ_CONTROLLER_CPU_BASE),
   _last_iar(Cpu_interface::Iar::Irq_id::bits(spurious_id)),
   _max_irq(_distr.max_irq())
 {

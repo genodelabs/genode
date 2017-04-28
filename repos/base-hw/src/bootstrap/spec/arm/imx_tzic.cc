@@ -13,11 +13,11 @@
 
 #include <board.h>
 
-Hw::Pic::Pic() : Genode::Mmio(Genode::Board_base::IRQ_CONTROLLER_BASE)
+Hw::Pic::Pic() : Genode::Mmio(Board::IRQ_CONTROLLER_BASE)
 {
 	for (unsigned i = 0; i < NR_OF_IRQ; i++) {
-		write<Intsec::Nonsecure>(!Bootstrap::secure_irq(i), i);
-		if (!Bootstrap::secure_irq(i)) write<Priority>(0x80, i);
+		write<Intsec::Nonsecure>(!Board::secure_irq(i), i);
+		if (!Board::secure_irq(i)) write<Priority>(0x80, i);
 		write<Enclear::Clear_enable>(1, i);
 	}
 	write<Priomask::Mask>(0xff);

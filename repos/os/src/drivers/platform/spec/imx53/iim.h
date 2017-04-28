@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <base/attached_io_mem_dataspace.h>
 
 class Iim : public Genode::Attached_io_mem_dataspace,
@@ -29,8 +29,8 @@ class Iim : public Genode::Attached_io_mem_dataspace,
 	public:
 
 		Iim(Genode::Env &env)
-		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::IIM_BASE,
-		                                         Genode::Board_base::IIM_SIZE),
+		: Genode::Attached_io_mem_dataspace(env, Imx53::IIM_BASE,
+		                                         Imx53::IIM_SIZE),
 		Genode::Mmio((Genode::addr_t)local_addr<void>()) {}
 
 		unsigned long revision() { return read<Fuse_bank0_gp6>() & 0xf; }

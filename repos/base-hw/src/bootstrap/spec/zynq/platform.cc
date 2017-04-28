@@ -15,6 +15,8 @@
 /* core includes */
 #include <platform.h>
 
+using namespace Board;
+
 Bootstrap::Platform::Board::Board()
 : early_ram_regions(Memory_region { RAM_0_BASE + 0x1000,
                                     RAM_0_SIZE - 0x1000 }),

@@ -18,7 +18,7 @@
 
 #include <regulator/consts.h>
 #include <regulator/driver.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/odroid_x2.h>
 #include <os/attached_mmio.h>
 #include <base/log.h>
 
@@ -312,8 +312,8 @@ class Cmu : public Regulator::Driver,
 		 * Constructor
 		 */
 		Cmu(Genode::Env &env)
-		: Genode::Attached_mmio(env, Genode::Board_base::CMU_MMIO_BASE,
-		                             Genode::Board_base::CMU_MMIO_SIZE),
+		: Genode::Attached_mmio(env, Odroid_x2::CMU_MMIO_BASE,
+		                             Odroid_x2::CMU_MMIO_SIZE),
 		  _cpu_freq(CPU_FREQ_1400)
 		{
 			/**

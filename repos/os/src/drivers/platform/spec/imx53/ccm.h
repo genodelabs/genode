@@ -17,7 +17,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <base/attached_io_mem_dataspace.h>
 
 class Ccm : public Genode::Attached_io_mem_dataspace,
@@ -66,8 +66,8 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 	public:
 
 		Ccm(Genode::Env &env)
-		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::CCM_BASE,
-		                                         Genode::Board_base::CCM_SIZE),
+		: Genode::Attached_io_mem_dataspace(env, Imx53::CCM_BASE,
+		                                         Imx53::CCM_SIZE),
 		  Genode::Mmio((Genode::addr_t)local_addr<void>()) { }
 
 		void i2c_1_enable(void) { write<Ccgr1::I2c_1>(3); }

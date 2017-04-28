@@ -40,7 +40,7 @@ class Bootstrap::Platform
 {
 	private:
 
-		struct Board : Genode::Board_base
+		struct Board
 		{
 			Memory_region_array early_ram_regions;
 			Memory_region_array late_ram_regions;

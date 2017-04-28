@@ -17,7 +17,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <base/attached_io_mem_dataspace.h>
 
 class Src : public Genode::Attached_io_mem_dataspace,
@@ -33,8 +33,8 @@ class Src : public Genode::Attached_io_mem_dataspace,
 	public:
 
 		Src(Genode::Env &env)
-		: Genode::Attached_io_mem_dataspace(env, Genode::Board_base::SRC_BASE,
-		                                         Genode::Board_base::SRC_SIZE),
+		: Genode::Attached_io_mem_dataspace(env, Imx53::SRC_BASE,
+		                                         Imx53::SRC_SIZE),
 		  Genode::Mmio((Genode::addr_t)local_addr<void>()) {}
 
 		void reset_ipu() { write<Ctrl_reg::Ipu_rst>(1); }

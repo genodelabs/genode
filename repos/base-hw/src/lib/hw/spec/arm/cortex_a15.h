@@ -16,10 +16,10 @@
 
 #include <base/stdint.h>
 
-namespace Hw { template <Genode::addr_t> struct Cpu_memory_map; }
+namespace Hw { template <Genode::addr_t> struct Cortex_a15_mmio; }
 
 template <typename Genode::addr_t BASE>
-struct Hw::Cpu_memory_map
+struct Hw::Cortex_a15_mmio
 {
 	enum {
 		IRQ_CONTROLLER_DISTR_BASE = BASE + 0x1000,

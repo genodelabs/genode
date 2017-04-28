@@ -16,14 +16,14 @@
 
 /* Genode includes */
 #include <bios_data_area.h>
-#include <drivers/uart_base.h>
+#include <drivers/uart/x86_pc.h>
 
 namespace Genode { class Serial; }
 
 /**
  * Serial output driver for core
  */
-class Genode::Serial : public X86_uart_base
+class Genode::Serial : public X86_uart
 {
 	private:
 
@@ -33,8 +33,8 @@ class Genode::Serial : public X86_uart_base
 
 		Serial(unsigned baud_rate)
 		:
-			X86_uart_base(Bios_data_area::singleton()->serial_port(),
-			              CLOCK_UNUSED, baud_rate)
+			X86_uart(Bios_data_area::singleton()->serial_port(),
+			         CLOCK_UNUSED, baud_rate)
 		{ }
 };
 

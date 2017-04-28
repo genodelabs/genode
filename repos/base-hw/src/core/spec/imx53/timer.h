@@ -22,7 +22,6 @@
 
 /* core includes */
 #include <board.h>
-#include <platform.h>
 
 namespace Genode { class Timer; }
 
@@ -136,7 +135,7 @@ class Genode::Timer : public Mmio
 			return Board::EPIT_1_IRQ;
 		}
 
-		Timer() : Mmio(Platform::mmio_to_virt(Board::EPIT_1_MMIO_BASE)) { }
+		Timer();
 
 		/**
 		 * Start single timeout run

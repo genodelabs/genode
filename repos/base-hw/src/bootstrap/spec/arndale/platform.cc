@@ -16,6 +16,8 @@
 extern "C" void *    _start_setup_stack;   /* entrypoint for non-boot CPUs */
 static unsigned char hyp_mode_stack[1024]; /* hypervisor mode's kernel stack */
 
+using namespace Board;
+
 Bootstrap::Platform::Board::Board()
 : early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE }),
   core_mmio(Memory_region { IRQ_CONTROLLER_BASE, IRQ_CONTROLLER_SIZE },
@@ -176,6 +178,6 @@ void Bootstrap::Platform::enable_mmu()
 
 void Bootstrap::Cpu::wake_up_all_cpus(void * const ip)
 {
-	*(void * volatile *)Genode::Board_base::IRAM_BASE = ip;
+	*(void * volatile *)Board::IRAM_BASE = ip;
 	asm volatile("dsb; sev;");
 }

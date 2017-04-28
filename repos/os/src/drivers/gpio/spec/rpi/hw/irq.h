@@ -15,11 +15,11 @@
 #define _DRIVERS__GPIO__SPEC__RPI__SPEC__HW__IRQ_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/rpi.h>
 
 namespace Gpio
 {
-	enum { IRQ = Genode::Board_base::GPU_IRQ_BASE + 49 };
+	enum { IRQ = Rpi::GPU_IRQ_BASE + 49 };
 }
 
 #endif /* _DRIVERS__GPIO__SPEC__RPI__SPEC__HW__IRQ_H_ */

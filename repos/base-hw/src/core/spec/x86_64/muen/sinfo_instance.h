@@ -16,17 +16,13 @@
 
 /* base includes */
 #include <muen/sinfo.h>
-#include <platform.h>
 
 namespace Genode
 {
 	/**
 	 * Return sinfo singleton
 	 */
-	static Sinfo * sinfo() {
-		static Sinfo singleton(Platform::mmio_to_virt(Sinfo::PHYSICAL_BASE_ADDR));
-		return &singleton;
-	}
+	Sinfo * sinfo();
 }
 
 #endif /* _CORE__SPEC__X86_64__MUEN__SINFO_INSTANCE_H_ */

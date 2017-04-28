@@ -76,7 +76,7 @@ class Genode::Timer : public Mmio
 		 * Return kernel name of timer interrupt
 		 */
 		static unsigned interrupt_id(unsigned const) {
-			return Board::PRIVATE_TIMER_IRQ; }
+			return Board::Cpu_mmio::PRIVATE_TIMER_IRQ; }
 
 		/**
 		 * Start single timeout run

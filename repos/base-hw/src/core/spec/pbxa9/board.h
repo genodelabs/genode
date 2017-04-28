@@ -14,12 +14,20 @@
 #ifndef _CORE__SPEC__PBXA9__BOARD_H_
 #define _CORE__SPEC__PBXA9__BOARD_H_
 
-/* core includes */
-#include <spec/cortex_a9/board_support.h>
+/* base includes */
+#include <drivers/defs/pbxa9.h>
 
-namespace Genode
-{
-	using Board = Cortex_a9::Board;
+#include <hw/spec/arm/cortex_a9.h>
+#include <hw/spec/arm/pl310.h>
+
+namespace Board {
+	using namespace Pbxa9;
+	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
+	using L2_cache = Hw::Pl310;
+
+	static constexpr bool SMP = true;
+
+	L2_cache & l2_cache();
 }
 
 #endif /* _CORE__SPEC__PBXA9__BOARD_H_ */

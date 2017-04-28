@@ -74,5 +74,5 @@ void Bootstrap::Platform::enable_mmu() {
 addr_t Bios_data_area::_mmio_base_virt() { return 0x1ff000; }
 
 
-Bootstrap::Serial::Serial(addr_t, size_t, unsigned baudrate)
-:X86_uart_base(Bios_data_area::singleton()->serial_port(), 0, baudrate) {}
+Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
+:X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate) {}

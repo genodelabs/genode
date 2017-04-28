@@ -18,7 +18,7 @@
 #include <base/exception.h>
 #include <base/log.h>
 #include <cpu/cpu_state.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/exynos5.h>
 #include <os/ring_buffer.h>
 #include <terminal_session/connection.h>
 #include <timer_session/connection.h>
@@ -620,7 +620,7 @@ class Vmm
 
 				enum Irqs {
 					SGI_MAX = 15,
-					TIMER   = Genode::Board_base::VT_TIMER_IRQ,
+					TIMER   = Exynos5::VT_TIMER_IRQ,
 					MAX_IRQ = 256,
 				};
 
@@ -859,7 +859,7 @@ class Vmm
 				void irq_occured()
 				{
 					switch(_vm.state().gic_irq) {
-					case Genode::Board_base::VT_MAINTAINANCE_IRQ:
+					case Exynos5::VT_MAINTAINANCE_IRQ:
 						_handle_eoi();
 						return;
 					case TIMER:
@@ -877,8 +877,6 @@ class Vmm
 		{
 			private:
 
-				using Board = Genode::Board_base;
-
 				Timer::Connection             _timer;
 				Signal_handler<Generic_timer> _handler;
 				Gic                           &_gic;
@@ -887,7 +885,7 @@ class Vmm
 				{
 					_vm.state().timer_ctrl = 5;
 					_vm.state().timer_val  = 0xffffffff;
-					_gic.inject_irq(Board::VT_TIMER_IRQ);
+					_gic.inject_irq(Exynos5::VT_TIMER_IRQ);
 				}
 
 			public:
@@ -904,7 +902,7 @@ class Vmm
 				  _gic(gic)
 				{
 					_timer.sigh(_handler);
-					_gic.register_irq(Board::VT_TIMER_IRQ, this, true);
+					_gic.register_irq(Exynos5::VT_TIMER_IRQ, this, true);
 				}
 
 				void schedule_timeout()

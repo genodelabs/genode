@@ -14,19 +14,21 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__USB_ARMORY__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__USB_ARMORY__BOARD_H_
 
-#include <drivers/board_base.h>
-#include <drivers/uart_base.h>
+#include <drivers/defs/usb_armory.h>
+#include <drivers/uart/imx.h>
 #include <hw/spec/arm/imx_tzic.h>
 
 #include <spec/arm/cortex_a8_page_table.h>
 #include <spec/arm/cpu.h>
 
-namespace Bootstrap {
-	using Hw::Pic;
-	using Serial = Genode::Imx_uart_base;
+namespace Bootstrap { using Hw::Pic; }
+
+namespace Board {
+	using namespace Usb_armory;
+	using Serial = Genode::Imx_uart;
 
 	enum {
-		UART_BASE  = Genode::Board_base::UART_1_MMIO_BASE,
+		UART_BASE  = UART_1_MMIO_BASE,
 		UART_CLOCK = 0, /* ignored value */
 	};
 

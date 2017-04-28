@@ -15,7 +15,7 @@
 #define _DRIVERS__FRAMEBUFFER__SPEC__IMX53__DRIVER_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
 #include <gpio_session/connection.h>
@@ -66,9 +66,9 @@ class Framebuffer::Driver
 		Driver(Genode::Env &env)
 		: _env(env),
 		  _platform(_env),
-		  _ipu_mmio(_env, Board_base::IPU_BASE, Board_base::IPU_SIZE),
+		  _ipu_mmio(_env, Imx53::IPU_BASE, Imx53::IPU_SIZE),
 		  _ipu((addr_t)_ipu_mmio.local_addr<void>()),
-		  _pwm_mmio(_env, Board_base::PWM2_BASE, Board_base::PWM2_SIZE),
+		  _pwm_mmio(_env, Imx53::PWM2_BASE, Imx53::PWM2_SIZE),
 		  _pwm((addr_t)_pwm_mmio.local_addr<void>()),
 		  _board(_platform.revision()),
 		  _width(_board == Platform::Session::QSB ? QSB_WIDTH : SMD_WIDTH),

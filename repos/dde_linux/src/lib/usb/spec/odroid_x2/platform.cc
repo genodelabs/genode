@@ -15,7 +15,7 @@
  */
 
 /* Genode */
-#include <drivers/board_base.h>
+#include <drivers/defs/odroid_x2.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
 #include <regulator/consts.h>
@@ -37,7 +37,7 @@ enum {
 	EHCI_BASE     = 0x12580000,
 	GPIO_BASE     = 0x11000000,
 	USBOTG	      = 0x125B0000,
-	EHCI_IRQ      = Board_base::USB_HOST20_IRQ,
+	EHCI_IRQ      = Odroid_x2::USB_HOST20_IRQ,
 };
 
 static resource _ehci[] =

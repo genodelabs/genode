@@ -34,10 +34,6 @@ Pd * Kernel::core_pd() {
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
-Genode::Board & Kernel::board() {
-	return *unmanaged_singleton<Genode::Board>(); }
-
-
 extern "C" void _start() __attribute__((section(".text.crt0")));
 
 /**

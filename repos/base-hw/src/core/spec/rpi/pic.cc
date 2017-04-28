@@ -92,10 +92,10 @@ bool Genode::Pic::take_request(unsigned &irq)
 		if (!_is_pending(i, p1, p2))
 			continue;
 
-		irq = Board_base::GPU_IRQ_BASE + i;
+		irq = Board::GPU_IRQ_BASE + i;
 
 		/* handle SOF interrupts locally, filter from the user land */
-		if (irq == Board_base::DWC_IRQ)
+		if (irq == Board::DWC_IRQ)
 			if (_usb.handle_sof())
 				return false;
 

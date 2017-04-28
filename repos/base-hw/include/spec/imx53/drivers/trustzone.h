@@ -15,7 +15,7 @@
 #define _INCLUDE__SPEC__IMX53__DRIVERS__TRUSTZONE_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 
 namespace Trustzone
 {
@@ -26,9 +26,9 @@ namespace Trustzone
 		 * on this platform allows to protect a max. region of
 		 * 256MB per RAM bank only.
 		 */
-		SECURE_RAM_BASE    = Genode::Board_base::RAM0_BASE,
+		SECURE_RAM_BASE    = Imx53::RAM_BANK_0_BASE,
 		SECURE_RAM_SIZE    = 256 * 1024 * 1024,
-		NONSECURE_RAM_BASE = Genode::Board_base::RAM0_BASE + SECURE_RAM_SIZE,
+		NONSECURE_RAM_BASE = Imx53::RAM_BANK_0_BASE + SECURE_RAM_SIZE,
 		NONSECURE_RAM_SIZE = 256 * 1024 * 1024,
 	};
 }

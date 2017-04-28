@@ -19,7 +19,7 @@
 using namespace Genode;
 
 Hw::Pic::Pic()
-: _distr(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_DISTR_BASE)),
-  _cpui (Platform::mmio_to_virt(Board::IRQ_CONTROLLER_CPU_BASE)),
+: _distr(Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE)),
+  _cpui (Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_CPU_BASE)),
   _last_iar(Cpu_interface::Iar::Irq_id::bits(spurious_id)),
   _max_irq(_distr.max_irq()) { }

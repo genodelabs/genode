@@ -19,12 +19,12 @@
 #include <platform.h>
 
 /* Genode includes */
-#include <drivers/uart_base.h>
+#include <drivers/uart/pl011.h>
 
 namespace Genode { class Serial; }
 
 
-class Genode::Serial : public Pl011_base
+class Genode::Serial : public Pl011_uart
 {
 	public:
 
@@ -35,7 +35,7 @@ class Genode::Serial : public Pl011_base
 		 */
 		Serial(unsigned const baud_rate)
 		:
-			Pl011_base(Platform::mmio_to_virt(Board::PL011_0_MMIO_BASE),
+			Pl011_uart(Platform::mmio_to_virt(Board::PL011_0_MMIO_BASE),
 			           Board::PL011_0_CLOCK, baud_rate)
 		{ }
 };

@@ -18,7 +18,7 @@
 #define _DRIVERS__GPIO__SPEC__IMX53__DRIVER_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 #include <timer_session/connection.h>
@@ -149,20 +149,20 @@ class Imx53_driver : public Gpio::Driver
 
 		Imx53_driver(Genode::Env &env)
 		:
-			_gpio_bank_0(env, Genode::Board_base::GPIO1_MMIO_BASE, Genode::Board_base::GPIO1_MMIO_SIZE,
-			             Genode::Board_base::GPIO1_IRQL, Genode::Board_base::GPIO1_IRQH),
-			_gpio_bank_1(env, Genode::Board_base::GPIO2_MMIO_BASE, Genode::Board_base::GPIO2_MMIO_SIZE,
-			             Genode::Board_base::GPIO2_IRQL, Genode::Board_base::GPIO2_IRQH),
-			_gpio_bank_2(env, Genode::Board_base::GPIO3_MMIO_BASE, Genode::Board_base::GPIO3_MMIO_SIZE,
-			             Genode::Board_base::GPIO3_IRQL, Genode::Board_base::GPIO3_IRQH),
-			_gpio_bank_3(env, Genode::Board_base::GPIO4_MMIO_BASE, Genode::Board_base::GPIO4_MMIO_SIZE,
-			             Genode::Board_base::GPIO4_IRQL, Genode::Board_base::GPIO4_IRQH),
-			_gpio_bank_4(env, Genode::Board_base::GPIO5_MMIO_BASE, Genode::Board_base::GPIO5_MMIO_SIZE,
-			             Genode::Board_base::GPIO5_IRQL, Genode::Board_base::GPIO5_IRQH),
-			_gpio_bank_5(env, Genode::Board_base::GPIO6_MMIO_BASE, Genode::Board_base::GPIO6_MMIO_SIZE,
-			             Genode::Board_base::GPIO6_IRQL, Genode::Board_base::GPIO6_IRQH),
-			_gpio_bank_6(env, Genode::Board_base::GPIO7_MMIO_BASE, Genode::Board_base::GPIO7_MMIO_SIZE,
-			             Genode::Board_base::GPIO7_IRQL, Genode::Board_base::GPIO7_IRQH)
+			_gpio_bank_0(env, Imx53::GPIO1_MMIO_BASE, Imx53::GPIO1_MMIO_SIZE,
+			             Imx53::GPIO1_IRQL, Imx53::GPIO1_IRQH),
+			_gpio_bank_1(env, Imx53::GPIO2_MMIO_BASE, Imx53::GPIO2_MMIO_SIZE,
+			             Imx53::GPIO2_IRQL, Imx53::GPIO2_IRQH),
+			_gpio_bank_2(env, Imx53::GPIO3_MMIO_BASE, Imx53::GPIO3_MMIO_SIZE,
+			             Imx53::GPIO3_IRQL, Imx53::GPIO3_IRQH),
+			_gpio_bank_3(env, Imx53::GPIO4_MMIO_BASE, Imx53::GPIO4_MMIO_SIZE,
+			             Imx53::GPIO4_IRQL, Imx53::GPIO4_IRQH),
+			_gpio_bank_4(env, Imx53::GPIO5_MMIO_BASE, Imx53::GPIO5_MMIO_SIZE,
+			             Imx53::GPIO5_IRQL, Imx53::GPIO5_IRQH),
+			_gpio_bank_5(env, Imx53::GPIO6_MMIO_BASE, Imx53::GPIO6_MMIO_SIZE,
+			             Imx53::GPIO6_IRQL, Imx53::GPIO6_IRQH),
+			_gpio_bank_6(env, Imx53::GPIO7_MMIO_BASE, Imx53::GPIO7_MMIO_SIZE,
+			             Imx53::GPIO7_IRQL, Imx53::GPIO7_IRQH)
 		{
 			for (unsigned i = 0; i < MAX_BANKS; ++i) {
 				Gpio_reg *regs = _gpio_bank(i << PIN_SHIFT)->regs();

@@ -13,7 +13,7 @@
 
 #include <platform.h>
 
-#include <drivers/board_base.h>
+#include <drivers/defs/panda.h>
 #include <gpio_session/connection.h>
 #include <io_mem_session/connection.h>
 #include <util/mmio.h>
@@ -39,7 +39,7 @@ enum {
 /**
  * Inerrupt numbers
  */
-enum { IRQ_EHCI = Board_base::HSUSB_EHCI_IRQ };
+enum { IRQ_EHCI = Panda::HSUSB_EHCI_IRQ };
 
 
 /**

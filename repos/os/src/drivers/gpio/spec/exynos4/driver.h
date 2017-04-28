@@ -18,7 +18,6 @@
 #define _DRIVER_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 #include <timer_session/connection.h>

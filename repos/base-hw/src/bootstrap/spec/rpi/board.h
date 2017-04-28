@@ -14,22 +14,22 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__RPI__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__RPI__BOARD_H_
 
-#include <drivers/board_base.h>
-#include <drivers/uart_base.h>
+#include <drivers/defs/rpi.h>
+#include <drivers/uart/pl011.h>
 #include <hw/spec/arm/page_table.h>
 
 #include <spec/arm/cpu.h>
 
-namespace Bootstrap {
-	using Serial   = Genode::Pl011_base;
+namespace Board {
+	using Serial   = Genode::Pl011_uart;
 
 	enum {
-		UART_BASE  = Genode::Board_base::PL011_0_MMIO_BASE,
-		UART_CLOCK = Genode::Board_base::PL011_0_CLOCK,
+		UART_BASE  = Rpi::PL011_0_MMIO_BASE,
+		UART_CLOCK = Rpi::PL011_0_CLOCK,
 	};
-
-	struct Pic {};
 }
+
+namespace Bootstrap { struct Pic {}; }
 
 
 constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {

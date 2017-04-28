@@ -18,7 +18,7 @@
 #include <os/attached_mmio.h>
 #include <timer_session/connection.h>
 
-#include <drivers/board_base.h>
+#include <drivers/defs/zynq.h>
 
 
 using namespace Genode;
@@ -113,7 +113,7 @@ class System_control : private Genode::Attached_mmio
 
 	public:
 		System_control(Genode::Env &env, Timer::Connection &timer) :
-			Attached_mmio(env, Board_base::MMIO_1_BASE, 0xB80),
+			Attached_mmio(env, Zynq::MMIO_1_BASE, 0xB80),
 			_timer(timer)
 		{
 			Lock_guard lock(*this);

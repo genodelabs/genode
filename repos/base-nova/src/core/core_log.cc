@@ -16,14 +16,14 @@
 
 /* Genode includes */
 #include <bios_data_area.h>
-#include <drivers/uart_base.h>
+#include <drivers/uart/x86_pc.h>
 
 void Genode::Core_log::out(char const c)
 {
 	enum { CLOCK = 0, BAUDRATE = 115200 };
 
-	static X86_uart_base uart(Bios_data_area::singleton()->serial_port(),
-	                          CLOCK, BAUDRATE);
+	static X86_uart uart(Bios_data_area::singleton()->serial_port(),
+	                     CLOCK, BAUDRATE);
 	if (c == '\n')
 		uart.put_char('\r');
 	uart.put_char(c);

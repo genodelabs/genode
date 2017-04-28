@@ -22,7 +22,7 @@
 
 #include <board.h>
 
-using namespace Bootstrap;
+using namespace Board;
 using namespace Genode;
 
 struct Buffer

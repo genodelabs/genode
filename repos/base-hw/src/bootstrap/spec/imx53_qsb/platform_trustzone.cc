@@ -16,16 +16,16 @@
 #include <spec/arm/imx_aipstz.h>
 #include <spec/arm/imx_csu.h>
 
-bool Bootstrap::secure_irq(unsigned i)
-{
-	using Board = Genode::Board_base;
+using namespace Board;
 
-	if (i == Board::EPIT_1_IRQ)                           return true;
-	if (i == Board::EPIT_2_IRQ)                           return true;
-	if (i == Board::I2C_2_IRQ)                            return true;
-	if (i == Board::I2C_3_IRQ)                            return true;
-	if (i >= Board::GPIO1_IRQL && i <= Board::GPIO4_IRQH) return true;
-	if (i >= Board::GPIO5_IRQL && i <= Board::GPIO7_IRQH) return true;
+bool Board::secure_irq(unsigned i)
+{
+	if (i == EPIT_1_IRQ)                           return true;
+	if (i == EPIT_2_IRQ)                           return true;
+	if (i == I2C_2_IRQ)                            return true;
+	if (i == I2C_3_IRQ)                            return true;
+	if (i >= GPIO1_IRQL && i <= GPIO4_IRQH) return true;
+	if (i >= GPIO5_IRQL && i <= GPIO7_IRQH) return true;
 	return false;
 }
 
@@ -51,5 +51,5 @@ Bootstrap::Platform::Board::Board()
 	Cpu::Nsacr::write(v);
 
 	/* configure central security unit */
-	Csu csu(Genode::Board_base::CSU_BASE, false, true, false, true);
+	Csu csu(CSU_BASE, false, true, false, true);
 }

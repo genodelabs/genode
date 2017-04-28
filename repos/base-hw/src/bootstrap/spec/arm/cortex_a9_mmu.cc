@@ -66,9 +66,7 @@ struct Scu : Genode::Mmio
 		struct Cpu3_way : Bitfield<12, 4> { };
 	};
 
-	using Memory_map = Hw::Cpu_memory_map<Bootstrap::CPU_MMIO_BASE>;
-
-	Scu() : Genode::Mmio(Memory_map::SCU_MMIO_BASE) { }
+	Scu() : Genode::Mmio(Board::Cpu_mmio::SCU_MMIO_BASE) { }
 
 	void invalidate()
 	{
@@ -128,7 +126,7 @@ void Bootstrap::Platform::enable_mmu()
 	if (primary) {
 		Scu scu;
 		scu.invalidate();
-		Bootstrap::L2_cache l2_cache(Board::PL310_MMIO_BASE);
+		::Board::L2_cache l2_cache(::Board::PL310_MMIO_BASE);
 		l2_cache.disable();
 		l2_cache.invalidate();
 		scu.enable(Cpu::errata(Cpu::ARM_764369));
@@ -146,7 +144,7 @@ void Bootstrap::Platform::enable_mmu()
 	data_cache_enabled.wait_for(NR_OF_CPUS);
 
 	if (primary) {
-		Bootstrap::L2_cache l2_cache(board.core_mmio.virt_addr(Board::PL310_MMIO_BASE));
+		::Board::L2_cache l2_cache(board.core_mmio.virt_addr(::Board::PL310_MMIO_BASE));
 		l2_cache.enable();
 	}
 

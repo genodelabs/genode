@@ -16,14 +16,14 @@
 #define _CORE__SPEC__X86_64__MUEN__SERIAL_H_
 
 /* Genode includes */
-#include <drivers/uart_base.h>
+#include <drivers/uart/x86_pc.h>
 
 namespace Genode { class Serial; }
 
 /**
  * Serial output driver for core
  */
-class Genode::Serial : public X86_uart_base
+class Genode::Serial : public X86_uart
 {
 	private:
 
@@ -36,7 +36,7 @@ class Genode::Serial : public X86_uart_base
 
 		Serial(unsigned baud_rate)
 		:
-			X86_uart_base(COM1_PORT, CLOCK_UNUSED, baud_rate)
+			X86_uart(COM1_PORT, CLOCK_UNUSED, baud_rate)
 		{ }
 };
 
