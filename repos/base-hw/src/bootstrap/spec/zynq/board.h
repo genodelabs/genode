@@ -14,8 +14,8 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__ZYNQ__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__ZYNQ__BOARD_H_
 
-#include <drivers/board_base.h>
-#include <drivers/uart_base.h>
+#include <drivers/defs/zynq_qemu.h>
+#include <drivers/uart/xilinx.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
 
@@ -24,14 +24,14 @@
 #include <spec/arm/cpu.h>
 #include <spec/arm/pic.h>
 
-namespace Bootstrap {
+namespace Board {
+	using namespace Zynq_qemu;
 	using L2_cache = Hw::Pl310;
-	using Serial   = Genode::Xilinx_uartps_base;
+	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
+	using Serial   = Genode::Xilinx_uart;
 
 	enum {
-		UART_BASE  = Genode::Board_base::UART_0_MMIO_BASE,
-		UART_CLOCK = Genode::Board_base::UART_CLOCK,
-		CPU_MMIO_BASE = Genode::Board_base::CORTEX_A9_PRIVATE_MEM_BASE,
+		UART_BASE  = UART_0_MMIO_BASE,
 	};
 }
 

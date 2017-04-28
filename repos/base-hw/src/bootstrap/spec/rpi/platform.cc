@@ -15,6 +15,8 @@
 #include <hw/assert.h>
 #include <platform.h>
 
+using namespace Rpi;
+
 /**
  * Leave out the first page (being 0x0) from bootstraps RAM allocator,
  * some code does not feel happy with addresses being zero

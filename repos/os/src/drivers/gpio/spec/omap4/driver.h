@@ -17,7 +17,7 @@
 #define _DRIVERS__GPIO__SPEC__OMAP4__DRIVER_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/panda.h>
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 #include <timer_session/connection.h>
@@ -129,18 +129,18 @@ class Omap4_driver : public Gpio::Driver
 
 		Omap4_driver(Genode::Env &env)
 		:
-			_gpio_bank_0(env, Genode::Board_base::GPIO1_MMIO_BASE, Genode::Board_base::GPIO1_MMIO_SIZE,
-			             Genode::Board_base::GPIO1_IRQ),
-			_gpio_bank_1(env, Genode::Board_base::GPIO2_MMIO_BASE, Genode::Board_base::GPIO2_MMIO_SIZE,
-			             Genode::Board_base::GPIO2_IRQ),
-			_gpio_bank_2(env, Genode::Board_base::GPIO3_MMIO_BASE, Genode::Board_base::GPIO3_MMIO_SIZE,
-			             Genode::Board_base::GPIO3_IRQ),
-			_gpio_bank_3(env, Genode::Board_base::GPIO4_MMIO_BASE, Genode::Board_base::GPIO4_MMIO_SIZE,
-			             Genode::Board_base::GPIO4_IRQ),
-			_gpio_bank_4(env, Genode::Board_base::GPIO5_MMIO_BASE, Genode::Board_base::GPIO5_MMIO_SIZE,
-			             Genode::Board_base::GPIO5_IRQ),
-			_gpio_bank_5(env, Genode::Board_base::GPIO6_MMIO_BASE, Genode::Board_base::GPIO6_MMIO_SIZE,
-			             Genode::Board_base::GPIO6_IRQ)
+			_gpio_bank_0(env, Panda::GPIO1_MMIO_BASE, Panda::GPIO1_MMIO_SIZE,
+			             Panda::GPIO1_IRQ),
+			_gpio_bank_1(env, Panda::GPIO2_MMIO_BASE, Panda::GPIO2_MMIO_SIZE,
+			             Panda::GPIO2_IRQ),
+			_gpio_bank_2(env, Panda::GPIO3_MMIO_BASE, Panda::GPIO3_MMIO_SIZE,
+			             Panda::GPIO3_IRQ),
+			_gpio_bank_3(env, Panda::GPIO4_MMIO_BASE, Panda::GPIO4_MMIO_SIZE,
+			             Panda::GPIO4_IRQ),
+			_gpio_bank_4(env, Panda::GPIO5_MMIO_BASE, Panda::GPIO5_MMIO_SIZE,
+			             Panda::GPIO5_IRQ),
+			_gpio_bank_5(env, Panda::GPIO6_MMIO_BASE, Panda::GPIO6_MMIO_SIZE,
+			             Panda::GPIO6_IRQ)
 		{ }
 
 	public:

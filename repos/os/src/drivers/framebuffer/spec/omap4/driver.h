@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/panda.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <timer_session/connection.h>
 #include <util/mmio.h>
@@ -99,13 +99,13 @@ class Framebuffer::Driver
 Framebuffer::Driver::Driver(Genode::Env &env)
 :
 	_env(env),
-	_dss_mmio(_env, Board_base::DSS_MMIO_BASE, Board_base::DSS_MMIO_SIZE),
+	_dss_mmio(_env, Panda::DSS_MMIO_BASE, Panda::DSS_MMIO_SIZE),
 	_dss((addr_t)_dss_mmio.local_addr<void>()),
 
-	_dispc_mmio(_env, Board_base::DISPC_MMIO_BASE, Board_base::DISPC_MMIO_SIZE),
+	_dispc_mmio(_env, Panda::DISPC_MMIO_BASE, Panda::DISPC_MMIO_SIZE),
 	_dispc((addr_t)_dispc_mmio.local_addr<void>()),
 
-	_hdmi_mmio(_env, Board_base::HDMI_MMIO_BASE, Board_base::HDMI_MMIO_SIZE),
+	_hdmi_mmio(_env, Panda::HDMI_MMIO_BASE, Panda::HDMI_MMIO_SIZE),
 	_hdmi((addr_t)_hdmi_mmio.local_addr<void>()),
 
 	_fb_width(0),

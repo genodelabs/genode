@@ -16,10 +16,10 @@
 
 #include <base/stdint.h>
 
-namespace Hw { template <Genode::addr_t> struct Cpu_memory_map; }
+namespace Hw { template <Genode::addr_t> struct Cortex_a9_mmio; }
 
 template <typename Genode::addr_t BASE>
-struct Hw::Cpu_memory_map
+struct Hw::Cortex_a9_mmio
 {
 	enum {
 		SCU_MMIO_BASE             = BASE,

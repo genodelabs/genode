@@ -237,7 +237,7 @@ void Driver::write_dma(Block::sector_t           blk_nr,
 Driver::Driver(Env &env)
 :
 	Driver_base(env.ram()),
-	Attached_mmio(env, Board_base::SDHC_MMIO_BASE, Board_base::SDHC_MMIO_SIZE),
+	Attached_mmio(env, Imx53::SDHC_MMIO_BASE, Imx53::SDHC_MMIO_SIZE),
 	_env(env)
 {
 	log("SD card detected");

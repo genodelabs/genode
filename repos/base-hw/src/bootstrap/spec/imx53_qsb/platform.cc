@@ -14,7 +14,9 @@
 #include <platform.h>
 #include <spec/arm/imx_aipstz.h>
 
-bool Bootstrap::secure_irq(unsigned i) { return true; }
+using namespace Board;
+
+bool Board::secure_irq(unsigned i) { return true; }
 
 
 Bootstrap::Platform::Board::Board()

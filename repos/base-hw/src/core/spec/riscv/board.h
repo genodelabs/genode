@@ -14,6 +14,6 @@
 #ifndef _CORE__SPEC__RISCV__BOARD_H_
 #define _CORE__SPEC__RISCV__BOARD_H_
 
-namespace Genode { struct Board { void init() { } }; }
+namespace Board { }
 
 #endif /* _CORE__SPEC__RISCV__BOARD_H_ */

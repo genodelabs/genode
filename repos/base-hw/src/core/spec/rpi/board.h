@@ -16,13 +16,10 @@
 #define _CORE__SPEC__RPI__BOARD_H_
 
 /* core includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/rpi.h>
 
-namespace Genode { struct Board; }
-
-struct Genode::Board : Board_base
-{
-	void init() { }
+namespace Board {
+	using namespace Rpi;
 
 	static constexpr bool SMP = false;
 };

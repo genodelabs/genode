@@ -14,8 +14,8 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__PBXA9__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__PBXA9__BOARD_H_
 
-#include <drivers/board_base.h>
-#include <drivers/uart_base.h>
+#include <drivers/defs/pbxa9.h>
+#include <drivers/uart/pl011.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
 
@@ -24,14 +24,17 @@
 #include <spec/arm/cpu.h>
 #include <spec/arm/pic.h>
 
-namespace Bootstrap {
+namespace Board {
+
+	using namespace Pbxa9;
+
 	using L2_cache = Hw::Pl310;
-	using Serial   = Genode::Pl011_base;
+	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
+	using Serial   = Genode::Pl011_uart;
 
 	enum {
-		UART_BASE     = Genode::Board_base::PL011_0_MMIO_BASE,
-		UART_CLOCK    = Genode::Board_base::PL011_0_CLOCK,
-		CPU_MMIO_BASE = Genode::Board_base::CORTEX_A9_PRIVATE_MEM_BASE,
+		UART_BASE  = PL011_0_MMIO_BASE,
+		UART_CLOCK = PL011_0_CLOCK,
 	};
 }
 

@@ -19,7 +19,7 @@
 #include <base/printf.h>
 
 /* board-specific includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/rpi.h>
 
 namespace Platform {
 	using namespace Genode;
@@ -199,9 +199,9 @@ struct Platform::Property_message
 
 	static unsigned channel() { return 8; }
 
-	static Board_base::Videocore_cache_policy cache_policy()
+	static Rpi::Videocore_cache_policy cache_policy()
 	{
-		return Board_base::NON_COHERENT; /* for channel 8 only */
+		return Rpi::NON_COHERENT; /* for channel 8 only */
 	}
 
 	void dump(char const *label)

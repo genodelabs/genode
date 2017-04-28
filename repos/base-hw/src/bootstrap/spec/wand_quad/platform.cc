@@ -16,6 +16,8 @@
 #include <platform.h>
 #include <spec/arm/imx_aipstz.h>
 
+using namespace Board;
+
 Bootstrap::Platform::Board::Board()
 : early_ram_regions(Memory_region { RAM0_BASE, RAM0_SIZE }),
   core_mmio(Memory_region { UART_1_MMIO_BASE,
@@ -52,8 +54,7 @@ void Bootstrap::Cpu::wake_up_all_cpus(void * const entry)
 		struct Gpr5 : Register<0x30, 32> {}; /* ep core 2 */
 		struct Gpr7 : Register<0x38, 32> {}; /* ep core 3 */
 
-		Src(void * const entry)
-		: Genode::Mmio(Genode::Board_base::SRC_MMIO_BASE)
+		Src(void * const entry) : Genode::Mmio(SRC_MMIO_BASE)
 		{
 			write<Gpr3>((Gpr3::access_t)entry);
 			write<Gpr5>((Gpr5::access_t)entry);

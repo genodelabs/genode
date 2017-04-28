@@ -18,7 +18,6 @@
 /* Genode includes */
 #include <util/mmio.h>
 #include <util/string.h>
-#include <drivers/board_base.h>
 #include <base/attached_io_mem_dataspace.h>
 
 

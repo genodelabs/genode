@@ -13,6 +13,8 @@
 
 #include <platform.h>
 
+using namespace Board;
+
 Bootstrap::Platform::Board::Board()
 : early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE }),
   core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
@@ -36,8 +38,7 @@ void Bootstrap::Cpu::wake_up_all_cpus(void * const ip)
 
 		struct Aux_core_boot_1 : Register<0x804, 32> { };
 
-		Wakeup_generator(void * const ip)
-		: Mmio(Genode::Board_base::CORTEX_A9_WUGEN_MMIO_BASE)
+		Wakeup_generator(void * const ip) : Mmio(CORTEX_A9_WUGEN_MMIO_BASE)
 		{
 			write<Aux_core_boot_1>((addr_t)ip);
 			write<Aux_core_boot_0::Cpu1_status>(1);

@@ -14,8 +14,8 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__PANDA__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__PANDA__BOARD_H_
 
-#include <drivers/board_base.h>
-#include <drivers/uart_base.h>
+#include <drivers/defs/panda.h>
+#include <drivers/uart/tl16c750.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
 #include <hw/spec/arm/panda_trustzone_firmware.h>
@@ -24,19 +24,20 @@
 #include <spec/arm/cpu.h>
 #include <spec/arm/pic.h>
 
-namespace Bootstrap {
+namespace Board {
 	class L2_cache;
 
-	using Serial = Genode::Tl16c750_base;
+	using namespace Panda;
+	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
+	using Serial   = Genode::Tl16c750_uart;
 
 	enum {
-		UART_BASE  = Genode::Board_base::TL16C750_3_MMIO_BASE,
-		UART_CLOCK = Genode::Board_base::TL16C750_CLOCK,
-		CPU_MMIO_BASE = Genode::Board_base::CORTEX_A9_PRIVATE_MEM_BASE,
+		UART_BASE  = TL16C750_3_MMIO_BASE,
+		UART_CLOCK = TL16C750_CLOCK,
 	};
-
-	struct Actlr;
 }
+
+namespace Bootstrap { struct Actlr; }
 
 
 struct Bootstrap::Actlr
@@ -46,7 +47,7 @@ struct Bootstrap::Actlr
 };
 
 
-class Bootstrap::L2_cache : Hw::Pl310
+class Board::L2_cache : Hw::Pl310
 {
 	private:
 

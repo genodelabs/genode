@@ -5,6 +5,7 @@
 #
 
 # add include paths
+INC_DIR += $(REP_DIR)/src/core/spec/arndale
 INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/virtualization
 
 # add C++ sources

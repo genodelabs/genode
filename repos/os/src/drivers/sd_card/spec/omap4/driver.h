@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <os/attached_mmio.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/panda.h>
 #include <timer_session/connection.h>
 #include <irq_session/connection.h>
 
@@ -167,7 +167,7 @@ class Sd_card::Driver : public  Driver_base,
 		Block_transfer          _block_transfer;
 		Timer_delayer           _delayer;
 		Signal_handler<Driver>  _irq_handler { _ep, *this, &Driver::_handle_irq };
-		Irq_connection          _irq         { Board_base::HSMMC_IRQ };
+		Irq_connection          _irq         { Panda::HSMMC_IRQ };
 		Card_info               _card_info   { _init() };
 
 		Card_info _init();

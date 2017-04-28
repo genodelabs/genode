@@ -14,26 +14,24 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__X86_64__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__X86_64__BOARD_H_
 
-#include <drivers/uart_base.h>
+#include <drivers/uart/x86_pc.h>
 
 #include <hw/spec/x86_64/page_table.h>
 #include <hw/spec/x86_64/cpu.h>
 #include <hw/spec/x86_64/x86_64.h>
 
-namespace Genode { struct Board_base {}; }
-
 namespace Bootstrap {
-
-	struct Serial;
 	struct Pic {};
-
 	using Cpu = Hw::X86_64_cpu;
+}
 
+namespace Board {
+	struct Serial;
 	enum Dummies { UART_BASE, UART_CLOCK };
 }
 
 
-struct Bootstrap::Serial : Genode::X86_uart_base
+struct Board::Serial : Genode::X86_uart
 {
 	Serial(Genode::addr_t, Genode::size_t, unsigned);
 };

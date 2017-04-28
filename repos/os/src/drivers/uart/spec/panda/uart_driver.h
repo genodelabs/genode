@@ -19,8 +19,8 @@
 /* Genode includes */
 #include <base/attached_io_mem_dataspace.h>
 #include <base/env.h>
-#include <drivers/uart_base.h>
-#include <spec/panda/drivers/board_base.h>
+#include <drivers/defs/panda.h>
+#include <drivers/uart/tl16c750.h>
 
 enum { UARTS_NUM = 4 }; /* needed by base class definitions */
 
@@ -28,7 +28,7 @@ enum { UARTS_NUM = 4 }; /* needed by base class definitions */
 #include <uart_driver_base.h>
 
 class Uart::Driver : public Genode::Attached_io_mem_dataspace,
-                     public Genode::Tl16c750_base,
+                     public Genode::Tl16c750_uart,
                      public Uart::Driver_base
 {
 	private:
@@ -71,14 +71,14 @@ class Uart::Driver : public Genode::Attached_io_mem_dataspace,
 			using namespace Genode;
 
 			static Uart cfg[UARTS_NUM] = {
-				{ Board_base::TL16C750_1_MMIO_BASE, Board_base::TL16C750_MMIO_SIZE,
-				  Board_base::TL16C750_1_IRQ },
-				{ Board_base::TL16C750_2_MMIO_BASE, Board_base::TL16C750_MMIO_SIZE,
-				  Board_base::TL16C750_2_IRQ },
-				{ Board_base::TL16C750_3_MMIO_BASE, Board_base::TL16C750_MMIO_SIZE,
-				  Board_base::TL16C750_3_IRQ },
-				{ Board_base::TL16C750_4_MMIO_BASE, Board_base::TL16C750_MMIO_SIZE,
-				  Board_base::TL16C750_4_IRQ },
+				{ Panda::TL16C750_1_MMIO_BASE, Panda::TL16C750_MMIO_SIZE,
+				  Panda::TL16C750_1_IRQ },
+				{ Panda::TL16C750_2_MMIO_BASE, Panda::TL16C750_MMIO_SIZE,
+				  Panda::TL16C750_2_IRQ },
+				{ Panda::TL16C750_3_MMIO_BASE, Panda::TL16C750_MMIO_SIZE,
+				  Panda::TL16C750_3_IRQ },
+				{ Panda::TL16C750_4_MMIO_BASE, Panda::TL16C750_MMIO_SIZE,
+				  Panda::TL16C750_4_IRQ },
 			};
 			return cfg[index];
 		}
@@ -98,8 +98,8 @@ class Uart::Driver : public Genode::Attached_io_mem_dataspace,
 		       unsigned baud_rate, Char_avail_functor &func)
 		: Genode::Attached_io_mem_dataspace(env, _config(index).mmio_base,
 		                                     _config(index).mmio_size),
-		  Tl16c750_base((Genode::addr_t)local_addr<void>(),
-		                Genode::Board_base::TL16C750_CLOCK,
+		  Tl16c750_uart((Genode::addr_t)local_addr<void>(),
+		                Panda::TL16C750_CLOCK,
 		                _baud_rate(baud_rate)),
 		  Driver_base(env, _config(index).irq_number, func) {
 			_enable_rx_interrupt(); }
@@ -119,7 +119,7 @@ class Uart::Driver : public Genode::Attached_io_mem_dataspace,
 			Driver_base::handle_irq();
 		}
 
-		void put_char(char c) override { Tl16c750_base::put_char(c); }
+		void put_char(char c) override { Tl16c750_uart::put_char(c); }
 
 		bool char_avail() override { return read<Uart_lsr::Rx_fifo_empty>(); }
 
@@ -127,7 +127,7 @@ class Uart::Driver : public Genode::Attached_io_mem_dataspace,
 
 		void baud_rate(int bits_per_second) override
 		{
-			_init(Genode::Board_base::TL16C750_CLOCK, bits_per_second);
+			_init(Panda::TL16C750_CLOCK, bits_per_second);
 			_enable_rx_interrupt();
 		}
 };

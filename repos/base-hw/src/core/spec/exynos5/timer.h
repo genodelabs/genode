@@ -19,7 +19,6 @@
 
 /* core include */
 #include <board.h>
-#include <platform.h>
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -203,21 +202,7 @@ class Genode::Timer : public Mmio
 			}
 		}
 
-		/**
-		 * Constructor
-		 */
-		Timer()
-		:
-			Mmio(Platform::mmio_to_virt(Board::MCT_MMIO_BASE)),
-			_tics_per_ms(_calc_tics_per_ms(Board::MCT_CLOCK))
-		{
-			Mct_cfg::access_t mct_cfg = 0;
-			Mct_cfg::Prescaler::set(mct_cfg, PRESCALER);
-			Mct_cfg::Div_mux::set(mct_cfg, DIV_MUX);
-			write<Mct_cfg>(mct_cfg);
-			write<L0_int_enb>(L0_int_enb::Frceie::bits(1));
-			write<L1_int_enb>(L1_int_enb::Frceie::bits(1));
-		}
+		Timer();
 
 		/**
 		 * Raise interrupt of CPU 'cpu' once after timeout 'tics'

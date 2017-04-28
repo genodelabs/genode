@@ -11,7 +11,6 @@ INC_DIR += $(REP_DIR)/src/core/spec/pl011
 
 # add C++ sources
 SRC_CC += platform_services.cc
-SRC_CC += spec/pbxa9/board.cc
 
 NR_OF_CPUS = 1
 

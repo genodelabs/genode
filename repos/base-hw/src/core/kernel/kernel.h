@@ -16,7 +16,6 @@
 #define _CORE__KERNEL__KERNEL_H_
 
 #include <pic.h>
-#include <board.h>
 
 /**
  * Main routine of every kernel pass
@@ -28,9 +27,8 @@ namespace Kernel {
 
 	class Pd;
 
-	Pd            * core_pd();
-	Pic           * pic();
-	Genode::Board & board();
+	Pd  * core_pd();
+	Pic * pic();
 }
 
 #endif /* _CORE__KERNEL__KERNEL_H_ */

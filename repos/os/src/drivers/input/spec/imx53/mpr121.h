@@ -15,7 +15,7 @@
 #define _DRIVERS__INPUT__SPEC__IMX53__MPR121_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/imx53.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <input/event_queue.h>
 #include <input/event.h>
@@ -54,10 +54,8 @@ class Input::Buttons {
 
 		Buttons(Genode::Env &env, Timer::Connection &timer)
 		:
-			_irq_handler(env, Genode::Board_base::I2C_2_IRQ),
-			_i2c_ds(env,
-			        Genode::Board_base::I2C_2_BASE,
-			        Genode::Board_base::I2C_2_SIZE),
+			_irq_handler(env, Imx53::I2C_2_IRQ),
+			_i2c_ds(env, Imx53::I2C_2_BASE, Imx53::I2C_2_SIZE),
 			_i2c(timer,
 			     (Genode::addr_t)_i2c_ds.local_addr<void>(),
 			     _irq_handler),

@@ -14,14 +14,18 @@
 #include <platform.h>
 #include <timer.h>
 
-Genode::Timer::Timer()
-: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::PRIVATE_TIMER_MMIO_BASE))
+using Genode::Timer;
+using Genode::Mmio;
+using Genode::Platform;
+
+Timer::Timer()
+: Mmio(Platform::mmio_to_virt(Board::Cpu_mmio::PRIVATE_TIMER_MMIO_BASE))
 {
 	write<Control::Timer_enable>(0);
 }
 
 
-void Genode::Timer::start_one_shot(time_t const tics, unsigned const)
+void Timer::start_one_shot(time_t const tics, unsigned const)
 {
 	enum { PRESCALER = Board::CORTEX_A9_PRIVATE_TIMER_DIV - 1 };
 

@@ -15,48 +15,46 @@
 #ifndef _CORE__SPEC__PANDA__BOARD_H_
 #define _CORE__SPEC__PANDA__BOARD_H_
 
+/* base includes */
+#include <drivers/defs/panda.h>
+
+#include <hw/spec/arm/cortex_a9.h>
+#include <hw/spec/arm/pl310.h>
 #include <hw/spec/arm/panda_trustzone_firmware.h>
-#include <spec/cortex_a9/board_support.h>
 
-namespace Genode { class Board; }
+namespace Board {
 
+	using namespace Panda;
+	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
 
-class Genode::Board : public Cortex_a9::Board
-{
-	public:
+	static constexpr bool SMP = true;
 
-		using Base = Cortex_a9::Board;
+	class L2_cache : public Hw::Pl310
+	{
+		private:
 
-		class L2_cache : public Base::L2_cache
-		{
-			private:
+			unsigned long _debug_value()
+			{
+				Debug::access_t v = 0;
+				Debug::Dwb::set(v, 1);
+				Debug::Dcl::set(v, 1);
+				return v;
+			}
 
-				unsigned long _debug_value()
-				{
-					Debug::access_t v = 0;
-					Debug::Dwb::set(v, 1);
-					Debug::Dcl::set(v, 1);
-					return v;
-				}
+		public:
 
-			public:
+			L2_cache(Genode::addr_t mmio) : Hw::Pl310(mmio) { }
 
-				L2_cache(Genode::addr_t mmio) : Base::L2_cache(mmio) { }
+			void clean_invalidate()
+			{
+				using namespace Hw;
+				call_panda_firmware(L2_CACHE_SET_DEBUG_REG, _debug_value());
+				Pl310::clean_invalidate();
+				call_panda_firmware(L2_CACHE_SET_DEBUG_REG, 0);
+			}
+	};
 
-				void clean_invalidate()
-				{
-					using namespace Hw;
-					call_panda_firmware(L2_CACHE_SET_DEBUG_REG, _debug_value());
-					Base::L2_cache::clean_invalidate();
-					call_panda_firmware(L2_CACHE_SET_DEBUG_REG, 0);
-				}
-		};
-
-		L2_cache & l2_cache() { return _l2_cache; }
-
-	private:
-
-		L2_cache _l2_cache { Base::l2_cache().base() };
-};
+	L2_cache & l2_cache();
+}
 
 #endif /* _CORE__SPEC__PANDA__BOARD_H_ */

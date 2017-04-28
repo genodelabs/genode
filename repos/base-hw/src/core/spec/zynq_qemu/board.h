@@ -16,18 +16,20 @@
 #ifndef _CORE__SPEC__ZYNQ_QEMU__BOARD_H_
 #define _CORE__SPEC__ZYNQ_QEMU__BOARD_H_
 
-/* core includes */
-#include <spec/cortex_a9/board_support.h>
+/* base includes */
+#include <drivers/defs/zynq_qemu.h>
 
-namespace Genode
-{
-	struct Board : Cortex_a9::Board
-	{
-		enum {
-			KERNEL_UART_BASE = UART_0_MMIO_BASE,
-			KERNEL_UART_SIZE = UART_SIZE,
-		};
-	};
+#include <hw/spec/arm/cortex_a9.h>
+#include <hw/spec/arm/pl310.h>
+
+namespace Board {
+	using namespace Zynq_qemu;
+	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
+	using L2_cache = Hw::Pl310;
+
+	static constexpr bool SMP = true;
+
+	L2_cache & l2_cache();
 }
 
 #endif /* _CORE__SPEC__ZYNQ_QEMU__BOARD_H_ */

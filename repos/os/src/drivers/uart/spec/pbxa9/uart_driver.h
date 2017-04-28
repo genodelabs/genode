@@ -18,7 +18,7 @@
 /* Genode includes */
 #include <base/attached_io_mem_dataspace.h>
 #include <base/env.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/pbxa9.h>
 
 enum { UARTS_NUM = 4 }; /* needed by base class definitions */
 
@@ -44,10 +44,10 @@ class Uart::Driver : public Genode::Attached_io_mem_dataspace,
 			/**
 			 * Interrupt lines
 			 */
-			PL011_IRQ0 = Genode::Board_base::PL011_0_IRQ, /* UART 0 */
-			PL011_IRQ1 = Genode::Board_base::PL011_1_IRQ, /* UART 1 */
-			PL011_IRQ2 = Genode::Board_base::PL011_2_IRQ, /* UART 2 */
-			PL011_IRQ3 = Genode::Board_base::PL011_3_IRQ, /* UART 3 */
+			PL011_IRQ0 = Pbxa9::PL011_0_IRQ, /* UART 0 */
+			PL011_IRQ1 = Pbxa9::PL011_1_IRQ, /* UART 1 */
+			PL011_IRQ2 = Pbxa9::PL011_2_IRQ, /* UART 2 */
+			PL011_IRQ3 = Pbxa9::PL011_3_IRQ, /* UART 3 */
 
 			/**
 			 * UART baud rate configuration (precalculated)

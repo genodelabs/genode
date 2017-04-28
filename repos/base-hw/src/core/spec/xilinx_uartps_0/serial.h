@@ -19,14 +19,14 @@
 #include <platform.h>
 
 /* Genode includes */
-#include <drivers/uart_base.h>
+#include <drivers/uart/xilinx.h>
 
 namespace Genode { class Serial; }
 
 /**
  * Serial output driver for core
  */
-class Genode::Serial : public Xilinx_uartps_base
+class Genode::Serial : public Xilinx_uart
 {
 	public:
 
@@ -37,8 +37,8 @@ class Genode::Serial : public Xilinx_uartps_base
 		 */
 		Serial(unsigned const baud_rate)
 		:
-			Xilinx_uartps_base(Platform::mmio_to_virt(Board::UART_0_MMIO_BASE),
-			                   Board::UART_CLOCK, baud_rate)
+			Xilinx_uart(Platform::mmio_to_virt(Board::UART_0_MMIO_BASE),
+			            Board::UART_CLOCK, baud_rate)
 		{ }
 };
 

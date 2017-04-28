@@ -4,6 +4,9 @@
 # \date   2015-02-09
 #
 
+# add include paths
+INC_DIR += $(REP_DIR)/src/core/spec/odroid_xu
+
 # add C++ sources
 SRC_CC += spec/arm/kernel/cpu_context.cc
 SRC_CC += spec/arm_gic/pic.cc

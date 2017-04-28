@@ -22,7 +22,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/zynq.h>
 #include <nic/root.h>
 
 #include "cadence_gem.h"
@@ -48,9 +48,9 @@ class Server::Gem_session_component : public Cadence_gem
 		                      Genode::Env         &env)
 		:
 			Cadence_gem(tx_buf_size, rx_buf_size, rx_block_md_alloc, env,
-			            Board_base::EMAC_0_MMIO_BASE,
-			            Board_base::EMAC_0_MMIO_SIZE,
-			            Board_base::EMAC_0_IRQ),
+			            Zynq::EMAC_0_MMIO_BASE,
+			            Zynq::EMAC_0_MMIO_SIZE,
+			            Zynq::EMAC_0_IRQ),
 			_config_rom(env, "config")
 		{
 			Nic::Mac_address mac_addr;

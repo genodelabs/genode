@@ -19,14 +19,14 @@
 #include <platform.h>
 
 /* Genode includes */
-#include <drivers/uart_base.h>
+#include <drivers/uart/tl16c750.h>
 
 namespace Genode
 {
 	/**
 	 * Serial output driver for core
 	 */
-	class Serial : public Tl16c750_base
+	class Serial : public Tl16c750_uart
 	{
 		public:
 
@@ -37,7 +37,7 @@ namespace Genode
 			 */
 			Serial(unsigned const baud_rate)
 			:
-				Tl16c750_base(Platform::mmio_to_virt(Board::TL16C750_3_MMIO_BASE),
+				Tl16c750_uart(Platform::mmio_to_virt(Board::TL16C750_3_MMIO_BASE),
 				              Board::TL16C750_CLOCK, baud_rate)
 			{ }
 	};

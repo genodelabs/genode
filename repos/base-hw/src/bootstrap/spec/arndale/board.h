@@ -14,23 +14,23 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__ARNDALE__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__ARNDALE__BOARD_H_
 
-#include <drivers/board_base.h>
-#include <drivers/uart_base.h>
+#include <drivers/defs/arndale.h>
+#include <drivers/uart/exynos.h>
 
 #include <hw/spec/arm/cortex_a15.h>
 #include <hw/spec/arm/lpae.h>
 #include <spec/arm/cpu.h>
 #include <spec/arm/pic.h>
 
-namespace Bootstrap {
-	class L2_cache;
+namespace Board {
 
-	using Serial = Genode::Exynos_uart_base;
+	using namespace Arndale;
+	using Cpu_mmio = Hw::Cortex_a15_mmio<IRQ_CONTROLLER_BASE>;
+	using Serial = Genode::Exynos_uart;
 
 	enum {
-		UART_BASE     = Genode::Board_base::UART_2_MMIO_BASE,
-		UART_CLOCK    = Genode::Board_base::UART_2_CLOCK,
-		CPU_MMIO_BASE = Genode::Board_base::IRQ_CONTROLLER_BASE,
+		UART_BASE  = UART_2_MMIO_BASE,
+		UART_CLOCK = UART_2_CLOCK,
 	};
 }
 

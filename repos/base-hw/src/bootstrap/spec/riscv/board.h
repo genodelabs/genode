@@ -17,12 +17,12 @@
 #include <hw/spec/riscv/page_table.h>
 #include <hw/spec/riscv/uart.h>
 
-namespace Genode { struct Board_base {}; }
-
 namespace Bootstrap {
 	struct Cpu {};
 	struct Pic {};
+}
 
+namespace Board {
 	enum { UART_BASE, UART_CLOCK };
 	struct Serial : Hw::Riscv_uart {
 		Serial(unsigned, unsigned, unsigned) {} };

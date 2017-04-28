@@ -19,19 +19,19 @@
 #include <platform.h>
 
 /* Genode includes */
-#include <drivers/uart_base.h>
+#include <drivers/uart/imx.h>
 
 namespace Genode
 {
 	/**
 	 * Serial output driver for core
 	 */
-	class Serial : public Imx_uart_base
+	class Serial : public Imx_uart
 	{
 		public:
 
 			Serial(unsigned baudrate)
-			: Imx_uart_base(Platform::mmio_to_virt(Board::UART_1_MMIO_BASE),
+			: Imx_uart(Platform::mmio_to_virt(Board::UART_1_MMIO_BASE),
 			                /* ignored clock rate */ 0, baudrate) { }
 	};
 }

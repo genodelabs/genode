@@ -16,13 +16,13 @@
 #include <spec/arm/imx_aipstz.h>
 #include <spec/arm/imx_csu.h>
 
-bool Bootstrap::secure_irq(unsigned i)
-{
-	using Board = Genode::Board_base;
+using namespace Board;
 
-	if (i == Board::EPIT_1_IRQ) return true;
-	if (i == Board::EPIT_2_IRQ) return true;
-	if (i == Board::SDHC_IRQ)   return true;
+bool Board::secure_irq(unsigned i)
+{
+	if (i == EPIT_1_IRQ) return true;
+	if (i == EPIT_2_IRQ) return true;
+	if (i == SDHC_IRQ)   return true;
 	return false;
 }
 
@@ -48,5 +48,5 @@ Bootstrap::Platform::Board::Board()
 	Cpu::Nsacr::write(v);
 
 	/* configure central security unit */
-	Csu csu(Genode::Board_base::CSU_BASE, true, false, true, false);
+	Csu csu(CSU_BASE, true, false, true, false);
 }

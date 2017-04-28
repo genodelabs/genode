@@ -18,7 +18,7 @@
 
 /* Genode includes */
 #include <timer_session/connection.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/rpi.h>
 #include <os/attached_mmio.h>
 #include <irq_session/connection.h>
 
@@ -155,7 +155,7 @@ class Sd_card::Driver : public  Driver_base,
 
 		Ram_session    &_ram;
 		Timer_delayer   _delayer;
-		Irq_connection  _irq       { Board_base::SDHCI_IRQ };
+		Irq_connection  _irq       { Rpi::SDHCI_IRQ };
 		Card_info       _card_info { _init() };
 
 		template <typename REG>

@@ -12,7 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <drivers/board_base.h>
+#include <drivers/defs/exynos5.h>
 #include <irq_session/connection.h>
 #include <regulator/consts.h>
 #include <regulator_session/connection.h>
@@ -326,7 +326,7 @@ struct Exynos5_hba : Platform::Hba
 {
 	Genode::Env &env;
 
-	Irq_connection              irq { env, Board_base::SATA_IRQ };
+	Irq_connection              irq { env, Exynos5::SATA_IRQ };
 	Regulator::Connection clock_src { env, Regulator::CLK_SATA };
 	Regulator::Connection power_src { env, Regulator::PWR_SATA };
 

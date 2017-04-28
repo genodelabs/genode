@@ -7,7 +7,7 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/imx6
+INC_DIR += $(REP_DIR)/src/core/spec/wand_quad
 INC_DIR += $(REP_DIR)/src/core/spec/imx
 
 # add C++ sources

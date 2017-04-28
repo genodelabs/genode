@@ -14,12 +14,6 @@
 #ifndef _DRIVERS__GPIO__SPEC__RPI__SPEC__FOC__IRQ_H_
 #define _DRIVERS__GPIO__SPEC__RPI__SPEC__FOC__IRQ_H_
 
-/* Genode includes */
-#include <drivers/board_base.h>
-
-namespace Gpio
-{
-	enum { IRQ = 49 };
-}
+namespace Gpio { enum { IRQ = 49 }; }
 
 #endif /* _DRIVERS__GPIO__SPEC__RPI__SPEC__FOC__IRQ_H_ */

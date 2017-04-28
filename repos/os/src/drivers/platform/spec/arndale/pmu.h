@@ -17,7 +17,7 @@
 #include <base/log.h>
 #include <regulator/consts.h>
 #include <regulator/driver.h>
-#include <drivers/board_base.h>
+#include <drivers/defs/arndale.h>
 #include <os/attached_mmio.h>
 
 using namespace Regulator;
@@ -160,8 +160,8 @@ class Pmu : public Regulator::Driver,
 		 * Constructor
 		 */
 		Pmu(Genode::Env &env)
-		: Genode::Attached_mmio(env, Genode::Board_base::PMU_MMIO_BASE,
-		                             Genode::Board_base::PMU_MMIO_SIZE)
+		: Genode::Attached_mmio(env, Arndale::PMU_MMIO_BASE,
+		                             Arndale::PMU_MMIO_SIZE)
 		{
 			write<Hdmi_phy_control   ::Enable>(0);
 			write<Usbdrd_phy_control ::Enable>(0);

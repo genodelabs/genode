@@ -19,7 +19,7 @@
 #include <base/printf.h>
 
 /* board-specific includes */
-#include <drivers/board_base.h>
+#include <drivers/defs/rpi.h>
 #include <platform/framebuffer_info.h>
 
 namespace Platform { struct Framebuffer_message; }
@@ -36,9 +36,8 @@ struct Platform::Framebuffer_message : Framebuffer_info
 
 	static unsigned channel() { return 1; }
 
-	static Genode::Board_base::Videocore_cache_policy cache_policy()
-	{
-		return Genode::Board_base::COHERENT;
+	static Rpi::Videocore_cache_policy cache_policy() {
+		return Rpi::COHERENT;
 	}
 
 	void dump(char const *label)
