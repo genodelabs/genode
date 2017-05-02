@@ -7,7 +7,6 @@
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/spec/pbxa9
-INC_DIR += $(REP_DIR)/src/core/spec/pl011
 
 # add C++ sources
 SRC_CC += platform_services.cc

@@ -5,7 +5,6 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/spec/xilinx_uartps_0
 INC_DIR += $(REP_DIR)/src/core/spec/zynq_qemu
 
 NR_OF_CPUS = 1

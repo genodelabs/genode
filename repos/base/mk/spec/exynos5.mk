@@ -5,11 +5,10 @@
 #
 
 # denote specs that are fullfilled by this spec
-SPECS += exynos cortex_a15 framebuffer usb
+SPECS += cortex_a15 framebuffer usb
 
 # add repository relative paths
 REP_INC_DIR += include/spec/exynos5
-REP_INC_DIR += include/spec/exynos
 
 # include implied specs
 include $(BASE_DIR)/mk/spec/cortex_a15.mk

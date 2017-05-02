@@ -94,3 +94,8 @@ void Platform::_init_additional()
 	               Rom_module((addr_t)Sinfo::PHYSICAL_BASE_ADDR,
 	               Sinfo::SIZE, "subject_info_page"));
 }
+
+
+enum { COM1_PORT = 0x3f8 };
+Board::Serial::Serial(Genode::addr_t, Genode::size_t, unsigned baudrate)
+:X86_uart(COM1_PORT, 0, baudrate) {}
