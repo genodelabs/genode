@@ -35,7 +35,7 @@ VERSION_USB  := 4.4.3
 URL(usb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB).tar.xz
 SHA(usb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(usb)     := $(SRC_DIR_USB)
-TAR_OPT(usb) := --strip-components=1 --files-from $(REP_DIR)/usb.list
+TAR_OPT(usb) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB)/g' $(REP_DIR)/usb.list)
 HASH_INPUT   += $(REP_DIR)/usb.list
 
 #
@@ -54,7 +54,7 @@ VERSION_INTEL_FB  := 4.4.3
 URL(intel_fb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
 SHA(intel_fb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
-TAR_OPT(intel_fb) := --strip-components=1  --files-from $(REP_DIR)/intel_fb.list
+TAR_OPT(intel_fb) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_INTEL_FB)/g' $(REP_DIR)/intel_fb.list)
 HASH_INPUT        += $(REP_DIR)/intel_fb.list
 
 #
@@ -65,7 +65,7 @@ VERSION_WIFI  := 4.4.3
 URL(wifi)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
 SHA(wifi)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(wifi)     := $(SRC_DIR_WIFI)
-TAR_OPT(wifi) := --strip-components=1  --files-from $(REP_DIR)/wifi.list
+TAR_OPT(wifi) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_WIFI)/g' $(REP_DIR)/wifi.list)
 HASH_INPUT    += $(REP_DIR)/wifi.list
 
 #
@@ -76,7 +76,7 @@ VERSION_LXIP  := 4.4.3
 URL(lxip)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_LXIP).tar.xz
 SHA(lxip)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
 DIR(lxip)     := $(SRC_DIR_LXIP)
-TAR_OPT(lxip) := --strip-components=1  --files-from $(REP_DIR)/lxip.list
+TAR_OPT(lxip) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_LXIP)/g' $(REP_DIR)/lxip.list)
 HASH_INPUT    += $(REP_DIR)/lxip.list
 
 
