@@ -15,11 +15,18 @@
 #ifndef _CORE__SPEC__RPI__BOARD_H_
 #define _CORE__SPEC__RPI__BOARD_H_
 
-/* core includes */
 #include <drivers/defs/rpi.h>
+#include <drivers/uart/pl011.h>
 
 namespace Board {
 	using namespace Rpi;
+
+	using Serial   = Genode::Pl011_uart;
+
+	enum {
+		UART_BASE  = Rpi::PL011_0_MMIO_BASE,
+		UART_CLOCK = Rpi::PL011_0_CLOCK,
+	};
 
 	static constexpr bool SMP = false;
 };

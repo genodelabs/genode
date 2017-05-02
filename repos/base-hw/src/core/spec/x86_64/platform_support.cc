@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
+#include <bios_data_area.h>
 #include <platform.h>
 #include <kernel/kernel.h>
 
@@ -29,3 +29,7 @@ void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
                               addr_t &data, unsigned &irq_number) {
 	return false; }
+
+
+Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
+:X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate) {}

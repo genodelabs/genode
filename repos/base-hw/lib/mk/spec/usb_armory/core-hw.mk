@@ -7,7 +7,6 @@
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/spec/usb_armory
 INC_DIR += $(REP_DIR)/src/core/spec/imx53
-INC_DIR += $(REP_DIR)/src/core/spec/imx
 INC_DIR += $(REP_DIR)/src/core/spec/arm_v7/trustzone
 INC_DIR += $(REP_DIR)/src/core/spec/imx53/trustzone
 

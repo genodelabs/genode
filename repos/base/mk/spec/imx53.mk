@@ -5,11 +5,10 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += cortex_a8 imx gpio framebuffer
+SPECS += cortex_a8 gpio framebuffer
 
 # add repository relative include paths
 REP_INC_DIR += include/spec/imx53
-REP_INC_DIR += include/spec/imx
 
 # include implied specs
 include $(BASE_DIR)/mk/spec/cortex_a8.mk

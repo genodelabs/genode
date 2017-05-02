@@ -12,4 +12,3 @@ REP_INC_DIR += include/spec/rpi
 
 # include implied specs
 include $(BASE_DIR)/mk/spec/arm_v6.mk
-include $(BASE_DIR)/mk/spec/pl011.mk

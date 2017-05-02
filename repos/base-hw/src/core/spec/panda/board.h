@@ -17,6 +17,7 @@
 
 /* base includes */
 #include <drivers/defs/panda.h>
+#include <drivers/uart/tl16c750.h>
 
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
@@ -26,6 +27,12 @@ namespace Board {
 
 	using namespace Panda;
 	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
+	using Serial   = Genode::Tl16c750_uart;
+
+	enum {
+		UART_BASE  = TL16C750_3_MMIO_BASE,
+		UART_CLOCK = TL16C750_CLOCK,
+	};
 
 	static constexpr bool SMP = true;
 

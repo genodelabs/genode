@@ -15,13 +15,14 @@
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
 
-#include <serial.h>
+#include <board.h>
+#include <platform.h>
 #include <kernel/log.h>
 
 
 void Kernel::log(char const c)
 {
-	using Genode::Serial;
+	using namespace Board;
 
 	enum {
 		ASCII_LINE_FEED = 10,
@@ -29,7 +30,8 @@ void Kernel::log(char const c)
 		BAUD_RATE = 115200
 	};
 
-	Serial & serial = *unmanaged_singleton<Serial>(BAUD_RATE);
+	static Serial serial { Genode::Platform::mmio_to_virt(UART_BASE),
+	                       UART_CLOCK, BAUD_RATE };
 	if (c == ASCII_LINE_FEED) serial.put_char(ASCII_CARRIAGE_RETURN);
 	serial.put_char(c);
 }
