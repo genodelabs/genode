@@ -191,6 +191,10 @@ void Entrypoint::_process_incoming_signals()
 
 bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 {
+	if (!_rpc_ep->is_myself())
+		warning(__func__, " called from non-entrypoint thread \"",
+		       Thread::myself()->name(), "\"");
+
 	for (;;) {
 
 		try {
