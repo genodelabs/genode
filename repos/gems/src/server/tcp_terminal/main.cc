@@ -20,6 +20,7 @@
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
 #include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/session_policy.h>
 
 #include <libc/component.h>
@@ -502,6 +503,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 	private:
 
 		Genode::Env &_env;
+		Genode::Xml_node  _config;
 
 	protected:
 
@@ -516,7 +518,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 			try {
 				Session_label const label = label_from_args(args);
-				Session_policy policy(label);
+				Session_policy policy(label, _config);
 
 				unsigned tcp_port = 0;
 				policy.attribute("port").value(&tcp_port);
@@ -537,11 +539,13 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 		/**
 		 * Constructor
 		 */
-		Root_component(Genode::Env &env, Genode::Allocator &md_alloc)
+		Root_component(Genode::Env       &env,
+		               Genode::Xml_node   config,
+		               Genode::Allocator &md_alloc)
 		:
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(),
 			                                          &md_alloc),
-			_env(env)
+			_env(env), _config(config)
 		{ }
 };
 
@@ -550,10 +554,13 @@ struct Main
 {
 	Genode::Env &_env;
 
+	Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
+	Genode::Xml_node                _config     { _config_rom.xml() };
+
 	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create root interface for service */
-	Terminal::Root_component _root { _env, _sliced_heap };
+	Terminal::Root_component _root { _env, _config, _sliced_heap };
 
 	Main(Genode::Env &env) : _env(env)
 	{

@@ -382,7 +382,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 					input_node.attribute_value("label", Label());
 
 				try {
-					Input_connection &conn = *new (_heap)
+					new (_heap)
 						Registered<Input_connection>(_input_connections, _env,
 						                             label, *this, _heap);
 
