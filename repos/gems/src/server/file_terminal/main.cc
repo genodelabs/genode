@@ -12,11 +12,12 @@
  */
 
 /* Genode includes */
-#include <libc/component.h>
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <os/session_policy.h>
+#include <libc/component.h>
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
 
@@ -224,7 +225,8 @@ namespace Terminal {
 	{
 		private:
 
-			Genode::Env &_env;
+			Genode::Env      &_env;
+			Genode::Xml_node  _config;
 
 		protected:
 
@@ -234,7 +236,7 @@ namespace Terminal {
 
 				try {
 					Genode::Session_label  label = Genode::label_from_args(args);
-					Genode::Session_policy policy(label);
+					Genode::Session_policy policy(label, _config);
 
 					char filename[256];
 					policy.attribute("filename").value(filename, sizeof(filename));
@@ -260,10 +262,11 @@ namespace Terminal {
 			 * Constructor
 			 */
 			Root_component(Genode::Env       &env,
+			               Genode::Xml_node   config,
 			               Genode::Allocator *md_alloc)
 			:
 				Genode::Root_component<Session_component>(&env.ep().rpc_ep(), md_alloc),
-				_env(env)
+				_env(env), _config(config)
 			{ }
 	};
 }
@@ -273,10 +276,13 @@ struct Main
 {
 	Genode::Env &_env;
 
+	Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
+	Genode::Xml_node                _config     { _config_rom.xml() };
+
 	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create root interface for service */
-	Terminal::Root_component _root { _env, &_sliced_heap };
+	Terminal::Root_component _root { _env, _config, &_sliced_heap };
 
 	Main(Genode::Env &env) : _env(env)
 	{
