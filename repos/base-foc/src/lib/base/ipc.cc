@@ -242,8 +242,6 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 
 	for (unsigned i = 0; i < num_caps; i++) {
 
-		Native_capability const &cap = snd_msg.cap(i);
-
 		/* store badge as normal message word */
 		*msg_words++ = caps[i].valid ? caps[i].badge : INVALID_BADGE;
 

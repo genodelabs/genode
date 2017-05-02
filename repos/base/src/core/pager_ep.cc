@@ -35,15 +35,16 @@ void Pager_entrypoint::entry()
 
 		Pool::apply(_pager.badge(), [&] (Pager_object *obj) {
 			if (obj) {
-				if (_pager.exception())
+				if (_pager.exception()) {
 					obj->submit_exception_signal();
-				else
+				} else {
 					/* send reply if page-fault handling succeeded */
 					reply_pending = !obj->pager(_pager);
 					if (!reply_pending)
 						warning("page-fault, ", *obj,
 						        " ip=", Hex(_pager.fault_ip()),
 						        " pf-addr=", Hex(_pager.fault_addr()));
+				}
 			} else {
 
 				/*

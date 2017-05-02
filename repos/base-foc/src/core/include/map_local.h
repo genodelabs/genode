@@ -124,11 +124,11 @@ namespace Genode {
 	}
 
 
-	static inline void unmap_local(addr_t local_base, size_t num_pages)
+	static inline void unmap_local(addr_t const local_base, size_t const num_pages)
 	{
 		using namespace Fiasco;
 
-		size_t size = num_pages << get_page_size_log2();
+		size_t const size = num_pages << get_page_size_log2();
 		addr_t addr = local_base;
 
 		/*
@@ -138,7 +138,8 @@ namespace Genode {
 			l4_task_unmap(L4_BASE_TASK_CAP,
 			              l4_fpage(addr, L4_LOG2_PAGESIZE, L4_FPAGE_RW),
 			              L4_FP_OTHER_SPACES);
-			l4_cache_dma_coherent(local_base, local_base + size);
+
+		l4_cache_dma_coherent(local_base, local_base + size);
 	}
 }
 
