@@ -237,37 +237,6 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		}
 
 		/**
-		 * Session-local RAM account
-		 *
-		 * Restrict physical address to 3G on 32bit, 4G on 64bit
-		 */
-		Genode::Ram_connection _ram { _env, _label.string(), 0,
-		                              (sizeof(void *) == 4) ? 0xc0000000UL : 0x100000000UL };
-
-		/*
-		 * Associate session RAM session with platform_drv _ram session and
-		 * equip RAM session with initial quota to account for core-internal
-		 * allocation meta-data overhead.
-		 */
-		void _init_ram()
-		{
-			_ram.ref_account(_env_ram_cap);
-
-			enum { OVERHEAD = 4096 };
-			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{OVERHEAD}); }
-			catch (...) { throw Genode::Insufficient_ram_quota(); }
-
-			/*
-			 * XXX instead of eagerly upgrading the RAM session, upgrade it
-			 *     on demand, paid by the client's cap session quota.
-			 */
-			using namespace Genode;
-			_ram.upgrade(Session::Resources { Ram_quota{0}, Cap_quota{10} });
-		}
-
-		bool const _ram_initialized = (_init_ram(), true);
-
-		/**
 		 * Deduce specified amount of quota from an allocator guard, or throw
 		 * an 'Out_of_ram' exception if the guard's quota is depleted.
 		 */
@@ -745,6 +714,11 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			/* release all elements of the session's device list */
 			while (_device_list.first())
 				release_device(_device_list.first()->cap());
+
+			while (Platform::Ram_dataspace *ds = _ram_caps.first()) {
+				_ram_caps.remove(ds);
+				destroy(_md_alloc, ds);
+			}
 		}
 
 
@@ -956,10 +930,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		               bool const throw_oom = true)
 		{
 			if (ram_cap.valid())
-				_ram.free(ram_cap);
-
-			if (_env_ram.revert_transfer_quota(_ram, size))
-				throw Fatal();
+				_env_ram.free(ram_cap);
 
 			if (throw_oom)
 				throw Genode::Out_of_ram();
@@ -974,70 +945,21 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			 */
 			_try_init_device_pd();
 
-			/* transfer ram quota to session specific ram session */
-			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{size}); }
-			catch (Genode::Out_of_ram) { throw; }
-			catch (Genode::Out_of_caps) {
-				Genode::warning("Out_of_caps during alloc_dma_buffer");
-				throw;
-			}
-			catch (...) { }
+			Ram_capability ram_cap;
 
-			enum { UPGRADE_QUOTA = 4096 };
-
-			/* allocate dataspace from session specific ram session */
-			Ram_capability ram_cap = Genode::retry<Genode::Out_of_ram>(
-				[&] () {
-					Ram_capability ram = Genode::retry<Genode::Out_of_ram>(
-						[&] () {
-							try { return _ram.alloc(size, Genode::UNCACHED); }
-							catch (Genode::Out_of_caps) {
-								Genode::error("Out_of_caps during alloc_dma_buffer (alloc)");
-								throw Fatal();
-							}
-						},
-						[&] () {
-							if (!_env_ram.withdraw(UPGRADE_QUOTA)) {
-								_rollback(size);
-							}
-
-							/* upgrade meta-data quota */
-							_ram.upgrade_ram(UPGRADE_QUOTA);
-						});
-
-					return ram;
-				},
-				[&] () {
-					/*
-					 * This condition is mostly triggered when the session
-					 * specific ram session is low on quota and it cannot
-					 * process the request due to book-keeping overhead.
-					 * It is therefore enough to increase the quota in
-					 * UPGRADE_QUOTA steps.
-					 */
-					try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{UPGRADE_QUOTA}); }
-					catch (Genode::Out_of_ram) { throw; }
-				});
+			try { ram_cap = _env_ram.alloc(size, Genode::UNCACHED); }
+			catch (Genode::Out_of_ram) { _rollback(size); }
 
 			if (!ram_cap.valid())
 				return ram_cap;
 
 			if (_device_pd) {
-				Genode::retry<Genode::Out_of_ram>(
-					[&] () { _device_pd->session().attach_dma_mem(ram_cap); },
-					[&] () {
-						if (!_env_ram.withdraw(UPGRADE_QUOTA))
-							_rollback(size, ram_cap);
-
-						using namespace Genode;
-
-						try { _env_ram.transfer_quota(_ram, Ram_quota{UPGRADE_QUOTA}); }
-						catch (...) { throw Fatal(); }
-
-						try { _ram.transfer_quota(_device_pd->ram_session_cap(),
-						                          Ram_quota{UPGRADE_QUOTA}); }
-						catch (...) { throw Fatal(); }
-					});
+				try { _device_pd->session().attach_dma_mem(ram_cap); }
+				catch (Out_of_ram)  { _rollback(size, ram_cap);; }
+				catch (Out_of_caps) {
+					Genode::warning("Out_of_caps while attaching DMA memory");
+					_rollback(size, ram_cap);;
+				}
 			}
 
 			try { _insert(ram_cap); }
