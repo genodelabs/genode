@@ -49,8 +49,7 @@ struct X86_hba : Platform::Hba
 			[&] () { pci.upgrade_ram(4096); });
 
 		if (!pci_device_cap.valid()) {
-			Genode::error("no AHCI controller found");
-				throw -1;
+			throw Ahci_driver::Missing_controller();
 		}
 
 		/* construct pci client */
