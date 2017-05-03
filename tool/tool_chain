@@ -175,7 +175,7 @@ LOCAL_LIB_INSTALL_LOCATION = $(shell pwd)/build/lib-install
 
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
-TARGET_NAME_riscv      = riscv-unknown-elf
+TARGET_NAME_riscv      = riscv64-unknown-elf
 
 ifneq ($(VERBOSE),)
 CONFIG_QUIET = --quiet
@@ -302,8 +302,11 @@ GDB_BINARIES                = build/$(PLATFORM)/gdb/gdb/gdb
 
 ifeq ($(PLATFORM),riscv)
 GDB_INSTALLED_BINARIES      =
+LIB_GCC                     = sudo ln -sf $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/include \
+                                          $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64/include
 else
 GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
+LIB_GCC                     =
 endif
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
@@ -493,3 +496,4 @@ install: build_all
 	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
 	$(VERBOSE)sudo cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
 	$(VERBOSE)sudo cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
+	$(VERBOSE)$(LIB_GCC)
