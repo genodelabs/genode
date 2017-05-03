@@ -168,14 +168,12 @@ int MMR3HeapAllocZEx(PVM pVM, MMTAG enmTag, size_t cbSize, void **ppv)
 
 int MMR3HyperInitFinalize(PVM)
 {
-	Genode::log(__func__, " called");
 	return VINF_SUCCESS;
 }
 
 
 int MMR3HyperSetGuard(PVM, void* ptr, size_t, bool)
 {
-	Genode::log(__func__, " called ", ptr);
 	return VINF_SUCCESS;
 }
 
@@ -297,47 +295,6 @@ int MMR3HyperMapMMIO2(PVM pVM, PPDMDEVINS pDevIns, uint32_t iSubDev,
 }
 
 
-char * MMR3HeapStrDupU(PUVM pUVM, MMTAG enmTag, const char *string)
-{
-	if (!string)
-		return NULL;
-
-	size_t len = strlen(string) + 1;
-	char *dup = reinterpret_cast<char *>(MMR3HeapAllocU(pUVM, enmTag, len));
-	if (dup)
-		memcpy(dup, string, len);
-
-	return dup;
-}
-
-
-char * MMR3HeapStrDup(PVM pVM, MMTAG enmTag, const char *string)
-{
-	Assert(pVM);
-	Assert(pVM->pUVM);
-	return MMR3HeapStrDupU(pVM->pUVM, enmTag, string);
-}
-
-
-char * MMR3HeapAPrintfVU(PUVM pUVM, MMTAG enmTag, const char *pszFormat, va_list va)
-{
-    /*
-     * The lazy bird way.
-     */
-    char *psz;
-    int cch = RTStrAPrintfV(&psz, pszFormat, va);
-    if (cch < 0)
-        return NULL;
-    Assert(psz[cch] == '\0');
-    char *pszRet = (char *)MMR3HeapAllocU(pUVM, enmTag, cch + 1);
-    if (pszRet)
-        memcpy(pszRet, psz, cch + 1);
-    RTStrFree(psz);
-	Genode::log(__func__, " called ", Genode::Cstring(pszRet), " ", Genode::Cstring(pszFormat));
-    return pszRet;
-}
-
-
 VMMR3DECL(RTHCPHYS) MMR3HyperHCVirt2HCPhys(PVM pVM, void *pvR3) {
 	return (RTHCPHYS)(uintptr_t)pvR3; }
 
@@ -360,7 +317,8 @@ VMMR3DECL(void *) MMR3PageAllocLow(PVM pVM) { return MMR3PageAlloc(pVM); }
 
 int MMR3ReserveHandyPages(PVM pVM, uint32_t cHandyPages)
 {
-	Genode::log(__func__, " called");
+	if (VERBOSE_MM)
+		Genode::log(__func__, " called");
 	return VINF_SUCCESS;
 }
 
@@ -383,18 +341,4 @@ VMMDECL(uint32_t) MMHyperHeapPtrToOffset(PVM pVM, void *pv)
 	Assert (reinterpret_cast<void *>(offset) == pv);
 
 	return offset;
-}
-
-
-extern "C" {
-
-char * MMR3HeapAPrintf(PVM pVM, MMTAG enmTag, const char *pszFormat, ...)
-{
-    va_list va;
-    va_start(va, pszFormat);
-    char *psz = MMR3HeapAPrintfVU(pVM->pUVM, enmTag, pszFormat, va);
-    va_end(va);
-    return psz;
-}
-
 }

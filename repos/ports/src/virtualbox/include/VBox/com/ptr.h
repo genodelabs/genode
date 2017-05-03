@@ -44,15 +44,6 @@ class ComPtr {
 			return operator=((T*)that);
 		}
 
-		template <class T2>
-		ComPtr& operator=(T2 *p)
-		{
-			_obj = dynamic_cast<T*>(p);
-			if (!_obj)
-				Genode::log(__func__, ": dynamic cast failed");
-			return *this;
-		}
-
 		ComPtr& operator=(T *p)
 		{
 			_obj = p;

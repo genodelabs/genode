@@ -16,6 +16,7 @@
 #include <util/string.h>
 
 /* VirtualBox includes */
+#include "PGMInternal.h"
 #include <VBox/vmm/pgm.h>
 
 static bool verbose = false;
@@ -55,4 +56,20 @@ int PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
 	*pcb = 0;
 
 	return 0;
+}
+
+
+int pgmMapActivateCR3(PVM, PPGMPOOLPAGE)
+{
+	if (verbose)
+		Genode::log(__func__, ": not implemented ", __builtin_return_address(0));
+	return VINF_SUCCESS;
+}
+
+
+int pgmMapDeactivateCR3(PVM, PPGMPOOLPAGE)
+{
+	if (verbose)
+		Genode::log(__func__, ": not implemented ", __builtin_return_address(0));
+	return VINF_SUCCESS;
 }

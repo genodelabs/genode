@@ -93,6 +93,7 @@ SRC_CC += VMM/VMMAll/APICAll.cpp
 endif
 
 SRC_CC += VMM/VMMR3/MM.cpp
+SRC_CC += VMM/VMMR3/MMHeap.cpp
 
 CC_OPT += -DVBOX_IN_VMM
 

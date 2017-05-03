@@ -167,6 +167,7 @@ SRC_S  += Runtime/common/asm/ASMAtomicUoReadU64.as
 SRC_S  += Runtime/common/asm/ASMAtomicXchgU64.asm
 SRC_S  += Runtime/common/asm/ASMCpuIdExSlow.asm
 SRC_S  += Runtime/common/asm/ASMGetXcr0.asm
+SRC_S  += Runtime/common/asm/ASMFxSave.asm
 SRC_S  += Runtime/common/asm/ASMMemFirstMismatchingU8.asm
 
 SRC_CC += Runtime/common/err/errmsg.cpp

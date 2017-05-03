@@ -137,3 +137,51 @@
              break;
          }
          if (pVM->pgm.s.aHandyPages[i].idSharedPage == idPage)
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/IEMR3.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/IEMR3.cpp
+@@ -195,8 +195,10 @@
+     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
+     {
+         pVM->aCpus[idCpu].iem.s.pCtxRC = VM_RC_ADDR(pVM, pVM->aCpus[idCpu].iem.s.pCtxR3);
++#if defined(VBOX_WITH_STATISTICS)
+         if (pVM->aCpus[idCpu].iem.s.pStatsRC)
+             pVM->aCpus[idCpu].iem.s.pStatsRC = MMHyperR3ToRC(pVM, pVM->aCpus[idCpu].iem.s.pStatsCCR3);
++#endif
+     }
+ }
+ 
+--- a/src/app/virtualbox/src/VBox/VMM/include/IEMInternal.h
++++ b/src/app/virtualbox/src/VBox/VMM/include/IEMInternal.h
+@@ -83,7 +83,7 @@
+ 
+ //#define IEM_WITH_CODE_TLB// - work in progress
+ 
+-
++#if defined(VBOX_WITH_STATISTICS)
+ #if !defined(IN_TSTVMSTRUCT) && !defined(DOXYGEN_RUNNING)
+ /** Instruction statistics.   */
+ typedef struct IEMINSTRSTATS
+@@ -98,6 +98,7 @@
+ #endif
+ /** Pointer to IEM instruction statistics. */
+ typedef IEMINSTRSTATS *PIEMINSTRSTATS;
++#endif
+ 
+ /** Finish and move to types.h */
+ typedef union
+@@ -727,6 +728,7 @@
+     /** Pointer to the CPU context - raw-mode context. */
+     RCPTRTYPE(PCPUMCTX)     pCtxRC;
+ 
++#if defined(VBOX_WITH_STATISTICS)
+     /** Pointer to instruction statistics for raw-mode context (same as R0). */
+     RCPTRTYPE(PIEMINSTRSTATS) pStatsRC;
+     /** Pointer to instruction statistics for ring-0 context (same as RC). */
+@@ -735,6 +737,7 @@
+     R3PTRTYPE(PIEMINSTRSTATS) pStatsCCR3;
+     /** Pointer to instruction statistics for ring-3 context. */
+     R3PTRTYPE(PIEMINSTRSTATS) pStatsR3;
++#endif
+ 
+ #ifdef IEM_VERIFICATION_MODE_FULL
+     /** The event verification records for what IEM did (LIFO). */

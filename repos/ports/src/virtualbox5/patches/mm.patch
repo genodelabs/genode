@@ -96,3 +96,35 @@
  
  
  /**
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/MMHeap.cpp
++++ b/src/app/virtualbox/src/VBox/VMM/VMMR3/MMHeap.cpp
+@@ -34,6 +34,7 @@
+ #include <iprt/assert.h>
+ #include <iprt/string.h>
+ 
++#if 0
+ 
+ /*********************************************************************************************************************************
+ *   Internal Functions                                                                                                           *
+@@ -510,6 +511,7 @@
+     return pHdrNew + 1;
+ }
+ 
++#endif /*#if 0 */
+ 
+ /**
+  * Duplicates the specified string.
+@@ -632,6 +634,7 @@
+     return pszRet;
+ }
+ 
++#if 0
+ 
+ /**
+  * Releases memory allocated with MMR3HeapAlloc() or MMR3HeapRealloc().
+@@ -693,4 +696,4 @@
+      */
+     RTMemFree(pHdr);
+ }
+-
++#endif /* #if 0 */
