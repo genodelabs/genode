@@ -174,9 +174,12 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	Attached_ram_dataspace * ds = new Attached_ram_dataspace(genode_env().ram(),
 	                                                         genode_env().rm(),
 	                                                         cPages * ONE_PAGE_SIZE);
+
+	Genode::addr_t const vmm_local = reinterpret_cast<Genode::addr_t>(ds->local_addr<void>());
+
 	*ppvPages = ds->local_addr<void>();
 	if (pR0Ptr)
-		*pR0Ptr = reinterpret_cast<RTR0PTR>(*ppvPages);
+		*pR0Ptr = vmm_local;
 
 	Genode::log(__func__, " cPages ", cPages, " alloc=", *ppvPages, " done");
 
@@ -186,7 +189,7 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	for (unsigned iPage = 0; iPage < cPages; iPage++)
 	{
 		paPages[iPage].uReserved = 0;
-		paPages[iPage].Phys = reinterpret_cast<RTHCPHYS>(ds->local_addr<void>()) + iPage * ONE_PAGE_SIZE;
+		paPages[iPage].Phys = vmm_local + iPage * ONE_PAGE_SIZE;
 	}
 
 	return VINF_SUCCESS;

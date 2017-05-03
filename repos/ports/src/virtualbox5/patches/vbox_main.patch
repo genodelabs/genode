@@ -559,6 +559,24 @@ index a717aff..3d52b9f 100644
  #include "SchemaDefs.h"
 --- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+@@ -1371,6 +1372,17 @@
+         }
+     }
+ 
++    if (*aParavirtProvider != ParavirtProvider_None)
++    {
++        HRESULT rc = setError(S_OK, tr("ParavirtProvider '%s'(%d) not supported on VBox@Genode."),
++                              *aParavirtProvider == ParavirtProvider_Minimal ? "Minimal" :
++                              *aParavirtProvider == ParavirtProvider_HyperV ? "HyperV" :
++                              *aParavirtProvider == ParavirtProvider_KVM ? "KVM" : "unknown",
++                              *aParavirtProvider);
++        *aParavirtProvider = ParavirtProvider_None;
++        return rc;
++    }
++
+     Assert(   *aParavirtProvider == ParavirtProvider_None
+            || *aParavirtProvider == ParavirtProvider_Minimal
+            || *aParavirtProvider == ParavirtProvider_HyperV
 @@ -8227,8 +8227,14 @@
  {
      AutoCaller autoCaller(this);

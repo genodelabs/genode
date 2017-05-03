@@ -387,7 +387,7 @@ HRESULT genode_check_memory_config(ComObjPtr<Machine> machine)
 
 	if (memory_vbox + memory_vmm > memory_genode) {
 		using Genode::error;
-		error("Configured memory ", memory_vmm, " MB (vbox file) is insufficient.");
+		error("Configured memory ", memory_vbox, " MB (vbox file) is insufficient.");
 		error(memory_genode,              " MB (1) - ",
 		      memory_vmm,                 " MB (2) = ",
 		      memory_genode - memory_vmm, " MB (3)");

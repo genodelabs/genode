@@ -135,7 +135,6 @@ HRESULT setupmachine(Genode::Env &env)
 
 	/* handle input of Genode and forward it to VMM layer */
 	static ComPtr<GenodeConsole> genodeConsole = gConsole;
-	RTLogPrintf("genodeConsole = %p\n", genodeConsole);
 
 	genodeConsole->init_clipboard();
 

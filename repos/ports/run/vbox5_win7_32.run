@@ -3,7 +3,6 @@
 #
 
 assert_spec nova
-assert_spec 64bit
 
 set flavor   "win7"
 
