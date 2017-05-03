@@ -175,7 +175,9 @@ LOCAL_LIB_INSTALL_LOCATION = $(shell pwd)/build/lib-install
 
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
-TARGET_NAME_riscv      = riscv-unknown-elf
+TARGET_NAME_riscv      = riscv64-unknown-elf
+
+GCC_CONFIG_riscv       = --with-arch=rv64imac
 
 ifneq ($(VERBOSE),)
 CONFIG_QUIET = --quiet
@@ -188,6 +190,19 @@ COMMON_BOOTSTRAP_CONFIG = $(CONFIG_QUIET) \
                           --disable-multilib
 
 BINUTILS_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG)
+
+ifeq ($(PLATFORM),riscv)
+LANGUAGES              = c,c++
+GDB_INSTALLED_BINARIES =
+LIB_GCC                = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
+                         sudo ln -sf ../../include include
+INSTALL_ADA            =
+else
+LANGUAGES              = c,c++,ada
+GDB_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
+LIB_GCC                =
+INSTALL_ADA            = sudo cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
+endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
                         --enable-languages=c,c++,ada \
@@ -237,7 +252,7 @@ BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 GDB_CONFIG += $(COMMON_CONFIG) --disable-werror
 
 GCC_CONFIG += $(COMMON_CONFIG) \
-              --enable-languages=c,c++,go,ada \
+              --enable-languages=$(LANGUAGES),go \
               --disable-libgo \
               --disable-gotools \
               --disable-libssp \
@@ -300,11 +315,6 @@ GCC_BINARIES                = build/$(PLATFORM)/gcc/gcc/g++-cross
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
 GDB_BINARIES                = build/$(PLATFORM)/gdb/gdb/gdb
 
-ifeq ($(PLATFORM),riscv)
-GDB_INSTALLED_BINARIES      =
-else
-GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
-endif
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
 
@@ -492,4 +502,5 @@ cleanall: clean
 install: build_all
 	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
 	$(VERBOSE)sudo cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
-	$(VERBOSE)sudo cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
+	$(VERBOSE)$(INSTALL_ADA)
+	$(VERBOSE)$(LIB_GCC)
