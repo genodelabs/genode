@@ -389,8 +389,10 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 			iov.iov_base = dst;
 			iov.iov_len  = len;
 
-			/* FIXME this read does not block */
-			return _sock.ops->recvmsg(&_sock, &msg, len, MSG_DONTWAIT);
+			Lxip::ssize_t ret = _sock.ops->recvmsg(&_sock, &msg, len, MSG_DONTWAIT);
+			if (ret == -EAGAIN)
+				throw Would_block();
+			return ret;
 		}
 };
 
@@ -777,18 +779,19 @@ class Vfs::Lxip_accept_file : public Vfs::Lxip_file
 		{
 			using namespace Linux;
 
-			/* FIXME this read does not block */
-			if (!poll(false, nullptr))
-				return -1;
+			if (!poll(false, nullptr)) {
+				throw Would_block();
+			}
 
 			socket *new_sock = sock_alloc();
 
 			if (int res = _sock.ops->accept(&_sock, new_sock, O_NONBLOCK)) {
 				kfree(new_sock);
-				if (res == -EAGAIN)
+				if (res == -EAGAIN) {
 					throw Would_block();
-				else
+				} else {
 					return -1;
+				}
 			}
 			set_sock_wait(new_sock, 0);
 
@@ -1301,6 +1304,25 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
 		}
 
+		Read_result _read(Vfs::Vfs_handle *vfs_handle, char *dst,
+		                  Vfs::file_size count,
+		                  Vfs::file_size &out_count)
+		{
+			Vfs::File &file =
+				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->file;
+
+			if (!count)
+				Genode::error("zero read of ", file.name());
+
+			if (count) {
+				Lxip::ssize_t res = file.read(dst, count, vfs_handle->seek());
+				if (res < 0) return READ_ERR_IO;
+
+				out_count = res;
+			}
+			return READ_OK;
+		}
+
 	public:
 
 		Lxip_file_system(Genode::Env &env, Genode::Allocator &alloc,
@@ -1563,23 +1585,25 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		                 Vfs::file_size count,
 		                 Vfs::file_size &out_count) override
 		{
-			Vfs::File &file =
-				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->file;
-
-			if (!count)
-				Genode::error("zero read of ", file.name());
-
-			if (count) try {
-				Lxip::ssize_t res = file.read(dst, count, vfs_handle->seek());
-				if (res < 0) return READ_ERR_IO;
-
-				out_count = res;
-
-			} catch (File::Would_block) { return READ_ERR_WOULD_BLOCK; }
-			return READ_OK;
+			try { return _read(vfs_handle, dst, count, out_count); }
+			catch (File::Would_block) { return READ_ERR_WOULD_BLOCK; }
 		}
 
-		/* XXX check if queue_read / complete_read semantics fit better */
+		bool queue_read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		                        Read_result &out_result, file_size &out_count)
+		{
+			try { out_result = _read(vfs_handle, dst, count, out_count); }
+			catch (File::Would_block) { out_result = READ_QUEUED; }
+			return true;
+		}
+
+		Read_result complete_read(Vfs_handle *vfs_handle,
+		                                  char *dst, file_size count,
+		                                  file_size &out_count)
+		{
+			try { return _read(vfs_handle, dst, count, out_count); }
+			catch (File::Would_block) { return READ_QUEUED; }
+		}
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
 		{
