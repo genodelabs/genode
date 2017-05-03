@@ -151,18 +151,28 @@ struct Dmar_struct_header : Generic
 /* Intel VT-d IO Spec - 8.3.1. */
 struct Device_scope : Genode::Mmio
 {
+	enum { MAX_PATHS = 4 };
+
 	Device_scope(addr_t a) : Genode::Mmio(a) { }
 
 	struct Type   : Register<0x0, 8> { enum { PCI_END_POINT = 0x1 }; };
 	struct Length : Register<0x1, 8> { };
 	struct Bus    : Register<0x5, 8> { };
 
-	struct Path   : Register_array<0x6, 8, 1, 16> {
+	struct Path   : Register_array<0x6, 8, MAX_PATHS, 16> {
 		struct Dev  : Bitfield<0,8> { };
 		struct Func : Bitfield<8,8> { };
 	};
 
-	unsigned count() const { return (read<Length>() - 6) / 2; }
+	unsigned count() const {
+		unsigned paths = (read<Length>() - 6) / 2;
+		if (paths > MAX_PATHS) {
+			Genode::error("Device_scope: more paths (", paths, ") than"
+			              " supported (", (int)MAX_PATHS,")");
+			return MAX_PATHS;
+		}
+		return paths;
+	}
 };
 
 
