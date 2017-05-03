@@ -182,7 +182,16 @@ struct Block::Main
 	{
 		Genode::log("--- Starting AHCI driver ---");
 		bool support_atapi = config.xml().attribute_value("atapi", false);
-		Ahci_driver::init(env, heap, root, support_atapi);
+		try { Ahci_driver::init(env, heap, root, support_atapi); }
+
+		catch (Ahci_driver::Missing_controller) {
+			Genode::error("no AHCI controller found");
+			env.parent().exit(~0);
+		}
+		catch (Genode::Parent::Service_denied) {
+			Genode::error("hardware access denied");
+			env.parent().exit(~0);
+		}
 	}
 };
 

@@ -43,6 +43,8 @@ namespace Ahci_driver {
 
 	Block::Driver *claim_port(long device_num);
 	void           free_port(long device_num);
+
+	struct Missing_controller { };
 }
 
 
