@@ -83,7 +83,7 @@ HASH_INPUT    += $(REP_DIR)/lxip.list
 #
 # libnl sources
 #
-URL(libnl) := https://www.infradead.org/~tgr/libnl/files/libnl-3.2.25.tar.gz
+URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/libnl-3.2.25.tar.gz
 SHA(libnl) := b7a4981f7edf7398256d35fd3c0b87bc84ae27d1
 DIR(libnl) := src/lib/libnl
 
