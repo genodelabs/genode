@@ -339,17 +339,25 @@ bool Slab::alloc(size_t size, void **out_addr)
 
 		/* allocate new block for slab */
 		_nested = true;
-		Block * const sb = _new_slab_block();
-		_nested = false;
 
-		if (!sb) return false;
+		try {
+			Block * const sb = _new_slab_block();
 
-		/*
-		 * The new block has the maximum number of available slots and
-		 * so we can insert it at the beginning of the sorted block
-		 * list.
-		 */
-		_insert_sb(sb);
+			_nested = false;
+
+			if (!sb) return false;
+
+			/*
+			 * The new block has the maximum number of available slots and
+			 * so we can insert it at the beginning of the sorted block
+			 * list.
+			 */
+			_insert_sb(sb);
+		}
+		catch (...) {
+			_nested = false;
+			throw;
+		}
 	}
 
 	/* skip completely occupied slab blocks, detect cycles */
