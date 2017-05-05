@@ -718,6 +718,8 @@ class Plugin : public Libc::Plugin
 			/* TODO: handle more attributes */
 
 			struct tm tm;
+			::memset(&tm, 0, sizeof(tm));
+
 			tm.tm_year = ((file_info.fdate & 0b1111111000000000) >> 9) + 80;
 			tm.tm_mon  =  (file_info.fdate & 0b0000000111100000) >> 5;
 			tm.tm_mday =  (file_info.fdate & 0b0000000000011111);
