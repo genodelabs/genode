@@ -42,12 +42,12 @@ struct Genode::Ram_session_client : Rpc_client<Ram_session>
 	int ref_account(Ram_session_capability ram_session) override {
 		return call<Rpc_ref_account>(ram_session); }
 
-	int transfer_quota(Ram_session_capability ram_session, size_t amount) override {
-		return call<Rpc_transfer_quota>(ram_session, amount); }
+	int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override {
+		return call<Rpc_transfer_ram_quota>(ram_session, amount); }
 
-	size_t quota() override { return call<Rpc_quota>(); }
+	Ram_quota ram_quota() const override { return call<Rpc_ram_quota>(); }
 
-	size_t used() override { return call<Rpc_used>(); }
+	Ram_quota used_ram() const override { return call<Rpc_used_ram>(); }
 };
 
 #endif /* _INCLUDE__RAM_SESSION__CLIENT_H_ */

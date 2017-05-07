@@ -31,6 +31,7 @@ namespace Loader {
 
 	using Genode::Dataspace_capability;
 	using Genode::Signal_context_capability;
+	using Genode::Ram_quota;
 
 	struct Session;
 }
@@ -101,7 +102,7 @@ struct Loader::Session : Genode::Session
 	 * If 'ram_quota' is not called prior calling 'start', all available
 	 * session resources will be assigned to the subsystem.
 	 */
-	virtual void ram_quota(size_t quantum) = 0;
+	virtual void ram_quota(Ram_quota quantum) = 0;
 
 	/**
 	 * Constrain size of the nitpicker buffer used by the subsystem
@@ -166,7 +167,7 @@ struct Loader::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_commit_rom_module, void, commit_rom_module,
 	                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
 	                 Name const &);
-	GENODE_RPC(Rpc_ram_quota, void, ram_quota, size_t);
+	GENODE_RPC(Rpc_ram_quota, void, ram_quota, Ram_quota);
 	GENODE_RPC(Rpc_constrain_geometry, void, constrain_geometry, Area);
 	GENODE_RPC(Rpc_parent_view, void, parent_view, Nitpicker::View_capability);
 	GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);

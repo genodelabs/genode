@@ -52,7 +52,7 @@ extern "C" long sysconf(int name)
 	case _SC_PAGESIZE:         return PAGESIZE;
 
 	case _SC_PHYS_PAGES:
-		return _global_env->ram().quota() / PAGESIZE;
+		return _global_env->ram().ram_quota().value / PAGESIZE;
 	default:
 		Genode::warning(__func__, "(", name, ") not implemented");
 		return Libc::Errno(EINVAL);
@@ -127,7 +127,7 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 
 			case HW_PHYSMEM:
 			case HW_USERMEM:
-				*(unsigned long*)oldp = _global_env->ram().quota();
+				*(unsigned long*)oldp = _global_env->ram().ram_quota().value;
 				*oldlenp = sizeof(unsigned long);
 				return 0;
 

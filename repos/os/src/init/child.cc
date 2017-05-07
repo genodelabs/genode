@@ -198,9 +198,9 @@ void Init::Child::apply_ram_upgrade()
 		_resources.assigned_ram_quota =
 			Ram_quota { _resources.assigned_ram_quota.value + transfer };
 
-		_check_resource_constraints(_ram_limit_accessor.ram_limit());
+		_check_ram_constraints(_ram_limit_accessor.ram_limit());
 
-		ref_ram().transfer_quota(_child.ram_session_cap(), transfer);
+		ref_ram().transfer_quota(_child.ram_session_cap(), Ram_quota{transfer});
 
 		/* wake up child that blocks on a resource request */
 		if (_requested_resources.constructed()) {
@@ -231,14 +231,14 @@ void Init::Child::apply_ram_downgrade()
 
 		/* give up if the child's available RAM is exhausted */
 		size_t const preserved = 16*1024;
-		size_t const avail     = _child.ram().avail();
+		size_t const avail     = _child.ram().avail_ram().value;
 
 		if (avail < preserved)
 			break;
 
 		size_t const transfer = min(avail - preserved, decrease);
 
-		if (_child.ram().transfer_quota(ref_ram_cap(), transfer) == 0) {
+		if (_child.ram().transfer_quota(ref_ram_cap(), Ram_quota{transfer}) == 0) {
 			_resources.assigned_ram_quota =
 				Ram_quota { _resources.assigned_ram_quota.value - transfer };
 			break;
@@ -335,7 +335,7 @@ void Init::Child::init(Ram_session &session, Ram_session_capability cap)
 	                          ? _resources.effective_ram_quota().value - initial_session_costs
 	                          : 0;
 	if (transfer_ram)
-		_env.ram().transfer_quota(cap, transfer_ram);
+		_env.ram().transfer_quota(cap, Ram_quota{transfer_ram});
 }
 
 
@@ -630,14 +630,14 @@ Init::Child::Child(Env                      &env,
 	_ram_limit_accessor(ram_limit_accessor),
 	_name_registry(name_registry),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space)),
-	_resources_checked((_check_resource_constraints(ram_limit), true)),
+	_resources_checked((_check_ram_constraints(ram_limit), true)),
 	_parent_services(parent_services),
 	_child_services(child_services),
 	_session_requester(_env.ep().rpc_ep(), _env.ram(), _env.rm())
 {
 	if (_verbose.enabled()) {
 		log("child \"",       _unique_name, "\"");
-		log("  RAM quota:  ", Number_of_bytes(_resources.effective_ram_quota().value));
+		log("  RAM quota:  ", _resources.effective_ram_quota());
 		log("  ELF binary: ", _binary_name);
 		log("  priority:   ", _resources.priority);
 	}

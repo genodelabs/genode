@@ -29,7 +29,7 @@ void Component::construct(Genode::Env &env)
 
 	log("allocate dataspace from one RAM session");
 	ram_1.ref_account(env.ram_session_cap());
-	env.ram().transfer_quota(ram_1.cap(), 8*1024);
+	env.ram().transfer_quota(ram_1.cap(), Ram_quota{8*1024});
 	Ram_dataspace_capability ds = ram_1.alloc(sizeof(unsigned));
 
 	log("attempt to free dataspace from foreign RAM session");
@@ -41,11 +41,11 @@ void Component::construct(Genode::Env &env)
 	log("attach operation succeeded");
 
 	log("free dataspace from legitimate RAM session");
-	size_t const quota_before_free = ram_1.avail();
+	Ram_quota const quota_before_free { ram_1.avail_ram() };
 	ram_1.free(ds);
-	size_t const quota_after_free = ram_1.avail();
+	Ram_quota const quota_after_free { ram_1.avail_ram() };
 
-	if (quota_after_free > quota_before_free)
+	if (quota_after_free.value > quota_before_free.value)
 		log("test succeeded");
 	else
 		error("test failed");

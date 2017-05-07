@@ -341,7 +341,7 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 			#endif
 			return 0;
 		case RLIMIT_RSS:
-			rlim->rlim_cur = rlim->rlim_max = Genode::env()->ram_session()->quota();
+			rlim->rlim_cur = rlim->rlim_max = Genode::env()->ram_session()->ram_quota().value;
 			return 0;
 		case RLIMIT_NPROC:
 		case RLIMIT_NOFILE:

@@ -76,7 +76,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 		xml.node("upgrade", [&] () {
 			xml.attribute("id", id_at_server->id().value);
-			xml.attribute("ram_quota", ram_upgrade);
+			xml.attribute("ram_quota", ram_upgrade.value);
 		});
 		break;
 
@@ -101,7 +101,7 @@ void Session_state::generate_client_side_info(Xml_generator &xml, Detail detail)
 	xml.attribute("service", _service.name());
 	xml.attribute("label", _label);
 	xml.attribute("state", String<32>(Formatted_phase(phase)));
-	xml.attribute("ram", String<32>(Number_of_bytes(_donated_ram_quota)));
+	xml.attribute("ram", String<32>(_donated_ram_quota));
 
 	if (detail.args == Detail::ARGS)
 		xml.node("args", [&] () { xml.append_sanitized(_args.string()); });
@@ -160,7 +160,7 @@ Session_state::Session_state(Service                  &service,
                              Affinity           const &affinity)
 :
 	_service(service),
-	_donated_ram_quota(Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0)),
+	_donated_ram_quota(ram_quota_from_args(args.string())),
 	_id_at_client(*this, client_id_space, client_id),
 	_label(label), _args(args), _affinity(affinity)
 { }

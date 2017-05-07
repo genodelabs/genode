@@ -21,10 +21,6 @@
 #include <session/session.h>
 
 namespace Genode {
-
-	struct Ram_dataspace;
-	typedef Capability<Ram_dataspace> Ram_dataspace_capability;
-
 	struct Ram_session_client;
 	struct Ram_session;
 }
@@ -70,26 +66,22 @@ struct Genode::Ram_session : Session, Ram_allocator
 	 * Quota can only be transfered if the specified RAM session is
 	 * either the reference account for this session or vice versa.
 	 */
-	virtual int transfer_quota(Ram_session_capability ram_session, size_t amount) = 0;
+	virtual int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) = 0;
 
 	/**
 	 * Return current quota limit
 	 */
-	virtual size_t quota() = 0;
+	virtual Ram_quota ram_quota() const = 0;
 
 	/**
 	 * Return used quota
 	 */
-	virtual size_t used() = 0;
+	virtual Ram_quota used_ram() const = 0;
 
 	/**
 	 * Return amount of available quota
 	 */
-	size_t avail()
-	{
-		size_t q = quota(), u = used();
-		return q > u ? q - u : 0;
-	}
+	Ram_quota avail_ram() const { return { ram_quota().value - used_ram().value }; }
 
 
 	/*********************
@@ -101,12 +93,12 @@ struct Genode::Ram_session : Session, Ram_allocator
 	                 size_t, Cache_attribute);
 	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_ref_account, int, ref_account, Ram_session_capability);
-	GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Ram_session_capability, size_t);
-	GENODE_RPC(Rpc_quota, size_t, quota);
-	GENODE_RPC(Rpc_used, size_t, used);
+	GENODE_RPC(Rpc_transfer_ram_quota, int, transfer_quota, Ram_session_capability, Ram_quota);
+	GENODE_RPC(Rpc_ram_quota, Ram_quota, ram_quota);
+	GENODE_RPC(Rpc_used_ram, Ram_quota, used_ram);
 
 	GENODE_RPC_INTERFACE(Rpc_alloc, Rpc_free, Rpc_ref_account,
-	                     Rpc_transfer_quota, Rpc_quota, Rpc_used);
+	                     Rpc_transfer_ram_quota, Rpc_ram_quota, Rpc_used_ram);
 };
 
 #endif /* _INCLUDE__RAM_SESSION__RAM_SESSION_H_ */

@@ -130,7 +130,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 			Ram_quota effective_ram_quota() const
 			{
-				return Ram_quota { Genode::Child::effective_ram_quota(assigned_ram_quota.value) };
+				return Genode::Child::effective_quota(assigned_ram_quota);
 			}
 		};
 
@@ -167,7 +167,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 
 		Resources _resources;
 
-		void _check_resource_constraints(Ram_quota ram_limit)
+		void _check_ram_constraints(Ram_quota ram_limit)
 		{
 			if (_resources.effective_ram_quota().value == 0)
 				warning("no valid RAM RESOURCE for child \"", _unique_name, "\"");

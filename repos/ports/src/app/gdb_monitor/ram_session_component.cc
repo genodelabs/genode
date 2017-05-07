@@ -56,20 +56,20 @@ int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 
 
 int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
-                                          size_t amount)
+                                          Ram_quota amount)
 {
 	return _parent_ram_session.transfer_quota(ram_session_cap, amount);
 }
 
 
-size_t Ram_session_component::quota()
+Ram_quota Ram_session_component::ram_quota() const
 {
-	return _parent_ram_session.quota();
+	return _parent_ram_session.ram_quota();
 }
 
 
-size_t Ram_session_component::used()
+Ram_quota Ram_session_component::used_ram() const
 {
-	return _parent_ram_session.used();
+	return _parent_ram_session.used_ram();
 }
 

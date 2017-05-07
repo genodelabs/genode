@@ -136,16 +136,11 @@ namespace Init {
 
 	inline void generate_ram_info(Xml_generator &xml, Ram_session const &ram)
 	{
-		/*
-		 * The const cast is needed because the 'Ram_session' accessors are
-		 * non-const methods.
-		 */
-		Ram_session &ram_nonconst = const_cast<Ram_session &>(ram);
 
 		typedef String<32> Value;
-		xml.attribute("quota", Value(Number_of_bytes(ram_nonconst.quota())));
-		xml.attribute("used",  Value(Number_of_bytes(ram_nonconst.used())));
-		xml.attribute("avail", Value(Number_of_bytes(ram_nonconst.avail())));
+		xml.attribute("quota", Value(ram.ram_quota()));
+		xml.attribute("used",  Value(ram.used_ram()));
+		xml.attribute("avail", Value(ram.avail_ram()));
 	}
 
 	/**

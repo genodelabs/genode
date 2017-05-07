@@ -91,11 +91,11 @@ struct Stack_area_ram_session : Genode::Ram_session
 
 	int ref_account(Genode::Ram_session_capability) override { return 0; }
 
-	int transfer_quota(Genode::Ram_session_capability, Genode::size_t) override { return 0; }
+	int transfer_quota(Genode::Ram_session_capability, Genode::Ram_quota) override { return 0; }
 
-	Genode::size_t quota() override { return 0; }
+	Genode::Ram_quota ram_quota() const override { return { 0 }; }
 
-	Genode::size_t used() override { return 0; }
+	Genode::Ram_quota used_ram() const override { return { 0 }; }
 };
 
 

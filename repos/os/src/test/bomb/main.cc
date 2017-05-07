@@ -32,7 +32,7 @@ class Bomb_child : public Child_policy
 		Env              &_env;
 		Binary_name const _binary_name;
 		Name        const _label;
-		size_t      const _ram_quota;
+		Ram_quota   const _ram_quota;
 
 		Registry<Registered<Parent_service> > &_parent_services;
 
@@ -45,12 +45,12 @@ class Bomb_child : public Child_policy
 		Bomb_child(Env                                   &env,
 		           Name                            const &binary_name,
 		           Name                            const &label,
-		           size_t                                 ram_quota,
+		           Ram_quota                       const  ram_quota,
 		           Registry<Registered<Parent_service> > &parent_services,
 		           unsigned                               generation)
 		:
 			_env(env), _binary_name(binary_name), _label(label),
-			_ram_quota(Child::effective_ram_quota(ram_quota)),
+			_ram_quota(Child::effective_quota(ram_quota)),
 			_parent_services(parent_services)
 		{
 			String<64> config("<config generations=\"", generation, "\"/>");
@@ -158,7 +158,7 @@ struct Bomb
 	unsigned const generation  = config.xml().attribute_value("generations", 1U);
 	unsigned const children    = config.xml().attribute_value("children", 2U);
 	unsigned const sleeptime   = config.xml().attribute_value("sleep", 2000U);
-	unsigned long const demand = config.xml().attribute_value("demand", 1024UL * 1024);
+	size_t   const ram_demand = config.xml().attribute_value("demand", 1024UL * 1024);
 
 	Heap heap { env.ram(), env.rm() };
 
@@ -169,9 +169,10 @@ struct Bomb
 
 	void construct_children()
 	{
-		unsigned long avail = env.ram().avail();
-		unsigned long amount = (avail - demand) / children;
-		if (amount < (demand * children)) {
+		unsigned long avail_ram = env.ram().avail_ram().value;
+		Ram_quota const ram_amount { (avail_ram - ram_demand) / children };
+
+		if (ram_amount.value < (ram_demand * children)) {
 			log("I'm a leaf node - generation ", generation,
 			    " - not enough memory.");
 			return;
@@ -191,7 +192,8 @@ struct Bomb
 				                       unique_child_name(child_registry,
 				                                         binary_name,
 				                                         generation - 1),
-				                       amount, parent_services, generation - 1);
+				                       ram_amount,
+				                       parent_services, generation - 1);
 		}
 
 		/* master if we have a timer connection */
@@ -241,7 +243,7 @@ struct Bomb
 			timer->sigh(signal_timeout);
 
 			log("rounds=", rounds, " generations=", generation, " children=",
-			    children, " sleep=", sleeptime, " demand=", demand/1024, "K");
+			    children, " sleep=", sleeptime, " demand=", ram_demand/1024, "K");
 		}
 
 		construct_children();

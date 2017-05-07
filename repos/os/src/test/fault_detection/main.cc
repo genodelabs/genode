@@ -70,7 +70,7 @@ class Test_child : public Genode::Child_policy
 	private:
 
 		Env                      &_env;
-		size_t              const _ram_quota = 1024*1024;
+		Ram_quota           const _ram_quota { 1024*1024 };
 		Binary_name         const _binary_name;
 		Signal_context_capability _sigh;
 		Parent_service            _cpu_service { _env, Cpu_session::service_name() };
@@ -162,7 +162,7 @@ struct Faulting_loader_child_test
 
 	void start_iteration(Env &env, Signal_context_capability fault_sigh)
 	{
-		loader.construct(env, 1024*1024);
+		loader.construct(env, Ram_quota{1024*1024});
 
 		/* register fault handler at loader session */
 		loader->fault_sigh(fault_sigh);
@@ -207,7 +207,7 @@ struct Faulting_loader_grand_child_test
 
 	void start_iteration(Env &env, Signal_context_capability fault_sigh)
 	{
-		loader.construct(env, 2*1024*1024);
+		loader.construct(env, Ram_quota{2*1024*1024});
 
 		/* import config into loader session */
 		{

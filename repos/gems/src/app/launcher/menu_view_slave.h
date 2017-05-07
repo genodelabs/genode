@@ -73,8 +73,8 @@ class Launcher::Menu_view_slave
 					configure(config);
 				}
 
-				static Name           _name()  { return "menu_view"; }
-				static Genode::size_t _quota() { return 6*1024*1024; }
+				static Name              _name()  { return "menu_view"; }
+				static Genode::Ram_quota _quota() { return { 6*1024*1024 }; }
 
 			public:
 

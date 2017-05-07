@@ -58,7 +58,8 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Genode::Ram_session_capability _ref_ram_cap;
 		Genode::Ram_session_client     _ref_ram { _ref_ram_cap };
-		Genode::size_t           const _ram_quota;
+
+		Genode::Ram_quota const _ram_quota;
 
 		Parent_services &_parent_services;
 		Child_services  &_child_services;
@@ -96,14 +97,15 @@ class Launchpad_child : public Genode::Child_policy,
 		                Genode::Allocator           &alloc,
 		                Genode::Session_label const &label,
 		                Binary_name           const &elf_name,
-		                Genode::size_t               ram_quota,
+		                Genode::Ram_quota            ram_quota,
 		                Parent_services             &parent_services,
 		                Child_services              &child_services,
 		                Genode::Dataspace_capability config_ds)
 		:
 			_name(label), _elf_name(elf_name),
 			_env(env), _alloc(alloc),
-			_ref_ram_cap(env.ram_session_cap()), _ram_quota(ram_quota),
+			_ref_ram_cap(env.ram_session_cap()),
+			_ram_quota(Genode::Child::effective_quota(ram_quota)),
 			_parent_services(parent_services),
 			_child_services(child_services),
 			_session_requester(env.ep().rpc_ep(), _env.ram(), _env.rm()),
@@ -231,6 +233,8 @@ class Launchpad
 
 	public:
 
+		typedef Genode::Ram_quota Ram_quota;
+
 		Launchpad(Genode::Env &env, unsigned long initial_quota);
 
 		unsigned long initial_quota() { return _initial_quota; }
@@ -262,7 +266,7 @@ class Launchpad
 		                          Genode::Allocator &) { }
 
 		Launchpad_child *start_child(Launchpad_child::Name const &binary_name,
-		                             unsigned long quota,
+		                             Ram_quota quota,
 		                             Genode::Dataspace_capability config_ds);
 
 		/**

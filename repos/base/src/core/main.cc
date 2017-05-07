@@ -131,7 +131,7 @@ class Core_child : public Child_policy
 		Capability<Cpu_session> _core_cpu_cap;
 		Cpu_session            &_core_cpu;
 
-		size_t const _ram_quota;
+		Ram_quota const _ram_quota;
 
 		Child _child;
 
@@ -141,14 +141,14 @@ class Core_child : public Child_policy
 		 * Constructor
 		 */
 		Core_child(Registry<Service> &services, Ram_session &core_ram,
-		           Capability<Ram_session> core_ram_cap, size_t ram_quota,
+		           Capability<Ram_session> core_ram_cap, Ram_quota ram_quota,
 		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap)
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init_child", false),
 			_services(services),
 			_core_ram_cap(core_ram_cap), _core_ram(core_ram),
 			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
-			_ram_quota(Child::effective_ram_quota(ram_quota)),
+			_ram_quota(Child::effective_quota(ram_quota)),
 			_child(*env_deprecated()->rm_session(), _entrypoint, *this)
 		{
 			_entrypoint.activate();
@@ -294,20 +294,23 @@ int main()
 		         "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability core_cpu_cap = core_env()->entrypoint()->manage(&core_cpu);
 
-	/*
-	 * Transfer all left memory to init, but leave some memory left for core
-	 *
-	 * NOTE: exception objects thrown in core components are currently
-	 * allocated on core's heap and not accounted by the component's meta data
-	 * allocator
-	 */
+	/* calculate RAM to be assigned to init */
+	size_t const platform_ram_limit = platform()->ram_alloc()->avail();
+	size_t const preserved_ram_quota = 224*1024;
 
-	Genode::size_t const ram_quota = platform()->ram_alloc()->avail() - 224*1024;
-	log("", ram_quota / (1024*1024), " MiB RAM assigned to init");
+	if (platform_ram_limit < preserved_ram_quota) {
+		error("platform RAM limit lower than preservation for core");
+		return -1;
+	}
+
+	size_t const avail_ram_quota = platform_ram_limit - preserved_ram_quota;
+
+	log("", avail_ram_quota / (1024*1024), " MiB RAM "
+	    "assigned to init");
 
 	static Reconstructible<Core_child>
 		init(services, *env_deprecated()->ram_session(), env_deprecated()->ram_session_cap(),
-		     ram_quota, core_cpu, core_cpu_cap);
+		     Ram_quota{avail_ram_quota}, core_cpu, core_cpu_cap);
 
 	platform()->wait_for_exit();
 

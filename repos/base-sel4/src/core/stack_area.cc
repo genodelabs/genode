@@ -132,12 +132,12 @@ struct Stack_area_ram_session : Ram_session
 
 	int ref_account(Ram_session_capability ram_session) override { return 0; }
 
-	int transfer_quota(Ram_session_capability ram_session, size_t amount) override {
+	int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override {
 		return 0; }
 
-	size_t quota() override { return 0; }
+	Ram_quota ram_quota() const override { return { 0 }; }
 
-	size_t used() override { return 0; }
+	Ram_quota used_ram() const override { return { 0 }; }
 };
 
 

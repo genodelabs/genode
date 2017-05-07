@@ -59,7 +59,7 @@ struct Expanding_region_map_client : Genode::Region_map_client
 			[&] () {
 				enum { UPGRADE_QUOTA = 4096 };
 
-				if (_env.ram().avail() < UPGRADE_QUOTA)
+				if (_env.ram().avail_ram().value < UPGRADE_QUOTA)
 					throw;
 
 				Genode::String<32> arg("ram_quota=", (unsigned)UPGRADE_QUOTA);

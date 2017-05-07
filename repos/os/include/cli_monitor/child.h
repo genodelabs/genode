@@ -190,7 +190,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 
 			/* wake up child if resource request is in flight */
 			size_t const req = requested_ram_quota();
-			if (req && _child.ram().avail() >= req) {
+			if (req && _child.ram().avail_ram().value >= req) {
 				_child.notify_resource_avail();
 
 				/* clear request state */
@@ -256,9 +256,9 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		{
 			return Ram_status(_ram_quota,
 			                  _ram_limit,
-			                  _ram_quota - _child.ram().quota(),
-			                  _child.ram().used(),
-			                  _child.ram().avail(),
+			                  _ram_quota - _child.ram().ram_quota().value,
+			                  _child.ram().used_ram().value,
+			                  _child.ram().avail_ram().value,
 			                  requested_ram_quota());
 		}
 
@@ -281,7 +281,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		void init(Genode::Ram_session &session, Genode::Ram_session_capability cap) override
 		{
 			session.ref_account(_ref_ram_cap);
-			_ref_ram.transfer_quota(cap, _ram_quota);
+			_ref_ram.transfer_quota(cap, Genode::Ram_quota{_ram_quota});
 		}
 
 		Genode::Service &resolve_session_request(Genode::Service::Name const &name,
@@ -309,8 +309,8 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			if (_withdraw_on_yield_response) {
 				enum { RESERVE = 4*1024*1024 };
 
-				size_t amount = _child.ram().avail() < RESERVE
-				                ? 0 : _child.ram().avail() - RESERVE;
+				size_t amount = _child.ram().avail_ram().value < RESERVE
+				                ? 0 : _child.ram().avail_ram().value - RESERVE;
 
 				/* try to immediately withdraw freed-up resources */
 				try { withdraw_ram_quota(amount); }

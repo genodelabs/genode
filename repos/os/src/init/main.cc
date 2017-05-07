@@ -59,7 +59,7 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 	{
 		Ram_quota const preserved_ram = _preserved_ram_from_config(_config.xml());
 
-		Ram_quota avail_ram { _env.ram().avail() };
+		Ram_quota avail_ram = _env.ram().avail_ram();
 
 		if (preserved_ram.value > avail_ram.value) {
 			error("RAM preservation exceeds available memory");

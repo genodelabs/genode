@@ -54,7 +54,7 @@ class Genode::Connection_base : public Noncopyable
 
 		void upgrade_ram(size_t bytes)
 		{
-			String<64> const args("ram_quota=", bytes);
+			String<64> const args("ram_quota=", Ram_quota{bytes});
 			_env.upgrade(_id_space_element.id(), args.string());
 		}
 };

@@ -45,8 +45,8 @@ class Launcher::Nit_fader_slave
 
 			protected:
 
-				static Name   _name()  { return "nit_fader"; }
-				static size_t _quota() { return 2*1024*1024; }
+				static Name              _name()  { return "nit_fader"; }
+				static Genode::Ram_quota _quota() { return { 2*1024*1024 }; }
 
 			public:
 
