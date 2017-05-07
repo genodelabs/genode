@@ -95,8 +95,8 @@ int PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
 
 	}
 	catch (Guest_memory::Region_conflict) { return VERR_PGM_MAPPING_CONFLICT; }
-	catch (Ram_session::Alloc_failed) { return VERR_PGM_MAPPING_CONFLICT; }
-	catch (Rm_session::Attach_failed) { return VERR_PGM_MAPPING_CONFLICT; }
+	catch (Genode::Out_of_ram)  { return VERR_PGM_MAPPING_CONFLICT; }
+	catch (Genode::Out_of_caps) { return VERR_PGM_MAPPING_CONFLICT; }
 
 	return VINF_SUCCESS;
 }
@@ -315,9 +315,13 @@ int PGMR3PhysRegisterRam(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb,
 	}
 	catch (Guest_memory::Region_conflict) {
 		return VERR_PGM_MAPPING_CONFLICT; }
-	catch (Ram_session::Alloc_failed) {
+	catch (Genode::Out_of_ram) {
 		return VERR_PGM_MAPPING_CONFLICT; /* XXX use a better error code? */ }
-	catch (Rm_session::Attach_failed) {
+	catch (Genode::Out_of_caps) {
+		Genode::warning("Out_of_caps during 'add_ram_mapping'");
+		return VERR_PGM_MAPPING_CONFLICT; /* XXX use a better error code? */ }
+	catch (Genode::Region_map::Region_conflict) {
+		Genode::warning("Region_conflict during 'add_ram_mapping'");
 		return VERR_PGM_MAPPING_CONFLICT; /* XXX use a better error code? */ }
 
 	return VINF_SUCCESS;

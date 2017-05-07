@@ -145,11 +145,11 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 {
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi)
-		throw Root::Unavailable();
+		throw Service_denied();
 
 	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
 		error("unavailable IRQ ", Hex(_irq_number), " requested");
-		throw Root::Unavailable();
+		throw Service_denied();
 	}
 
 	_irq_object.start();

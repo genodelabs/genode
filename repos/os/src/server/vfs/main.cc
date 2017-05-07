@@ -420,7 +420,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 			Directory *dir;
 			try { dir = new (_alloc) Directory(_node_space, _vfs, path_str, create); }
-			catch (Out_of_memory) { throw Out_of_metadata(); }
+			catch (Out_of_memory) { throw Out_of_ram(); }
 
 			return Dir_handle(dir->id().value);
 		}
@@ -478,7 +478,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			Node *node;
 
 			try { node  = new (_alloc) Node(_node_space, path_str, STAT_ONLY); }
-			catch (Out_of_memory) { throw Out_of_metadata(); }
+			catch (Out_of_memory) { throw Out_of_ram(); }
 
 			return Node_handle(node->id().value);
 		}
@@ -662,7 +662,7 @@ class Vfs_server::Root :
 				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
 
 			if (!tx_buf_size)
-				throw Root::Invalid_args();
+				throw Service_denied();
 
 			size_t session_size =
 				max((size_t)4096, sizeof(Session_component)) +
@@ -702,7 +702,7 @@ class Vfs_server::Root :
 
 			} catch (Session_policy::No_policy_defined) {
 				/* missing policy - deny request */
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			/* apply client's root offset. */
@@ -715,7 +715,7 @@ class Vfs_server::Root :
 			/* check if the session root exists */
 			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {
 				error("session root '", session_root, "' not found for '", label, "'");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			Session_component *session = new (md_alloc())

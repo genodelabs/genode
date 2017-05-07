@@ -165,7 +165,7 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
 {
 	if (!_cap.valid()) {
 		error("failed to create kernel object");
-		throw Root::Unavailable();
+		throw Service_denied();
 	}
 }
 

@@ -34,6 +34,7 @@ namespace Genode {
 	 */
 	struct Insufficient_ram_quota : Exception { };
 	struct Insufficient_cap_quota : Exception { };
+	struct Service_denied         : Exception { };
 }
 
 

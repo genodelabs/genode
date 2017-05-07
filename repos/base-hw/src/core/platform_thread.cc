@@ -69,7 +69,7 @@ Platform_thread::Platform_thread(const char * const label,
 	void *utcb_phys;
 	if (!platform()->ram_alloc()->alloc(sizeof(Native_utcb), &utcb_phys)) {
 		error("failed to allocate UTCB");
-		throw Cpu_session::Out_of_metadata();
+		throw Out_of_ram();
 	}
 	map_local((addr_t)utcb_phys, (addr_t)_utcb_core_addr,
 	          sizeof(Native_utcb) / get_page_size());
@@ -94,7 +94,7 @@ Platform_thread::Platform_thread(size_t const quota,
 		                                         CACHED);
 	} catch (...) {
 		error("failed to allocate UTCB");
-		throw Cpu_session::Out_of_metadata();
+		throw Out_of_ram();
 	}
 	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
 	affinity(location);

@@ -139,7 +139,7 @@ class Test_child : public Genode::Child_policy
 			if (service == Log_session::service_name()) return _log_service;
 			if (service == Rom_session::service_name()) return _rom_service;
 
-			throw Parent::Service_denied();
+			throw Service_denied();
 		}
 };
 

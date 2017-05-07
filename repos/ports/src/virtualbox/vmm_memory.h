@@ -67,8 +67,9 @@ class Vmm_memory
 		Vmm_memory(Genode::Env &env) : _env(env) { }
 
 		/**
-		 * \throw  Ram_session::Alloc_failed
-		 * \throw  Region_map::Attach_failed
+		 * \throw  Out_of_ram
+		 * \throw  Out_of_caps
+		 * \throw  Region_map::Region_conflict
 		 */
 		void *alloc(size_t cb, PPDMDEVINS pDevIns, unsigned iRegion)
 		{
@@ -81,11 +82,15 @@ class Vmm_memory
 
 				return r->local_addr<void>();
 
-			} catch (Genode::Ram_session::Alloc_failed) {
+			} catch (Genode::Out_of_ram) {
 				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
 				              "RAM allocation failed");
 				throw;
-			} catch (Genode::Region_map::Attach_failed) {
+			} catch (Genode::Out_of_caps) {
+				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
+				              "RAM allocation failed (out of caps)");
+				throw;
+			} catch (Genode::Region_map::Region_conflict) {
 				Genode::error("Vmm_memory::alloc(", Genode::Hex(cb), "): "
 				              "RM attach failed");
 				throw;

@@ -19,6 +19,7 @@
 #include <base/object_pool.h>
 #include <base/capability.h>
 #include <base/session_label.h>
+#include <cpu_session/cpu_session.h>
 #include <pager/capability.h>
 
 /* NOVA includes */
@@ -30,6 +31,8 @@
 
 
 namespace Genode {
+
+	typedef Cpu_session::Thread_creation_failed Invalid_thread;
 
 	class Pager_entrypoint;
 	class Pager_object;

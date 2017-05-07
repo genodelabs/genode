@@ -42,9 +42,8 @@ struct Ps2::Main
 
 	Platform::Device_capability _ps2_device_cap()
 	{
-		return Genode::retry<Platform::Session::Out_of_metadata>(
-			[&] () { return _platform.device("PS2"); },
-			[&] () { _platform.upgrade_ram(4096); });
+		return _platform.with_upgrade([&] () {
+			return _platform.device("PS2"); });
 	}
 
 	Platform::Device_client _device_ps2 { _ps2_device_cap() };

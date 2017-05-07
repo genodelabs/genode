@@ -140,7 +140,7 @@ class Test::Input_root : public Root_component<Input::Session_component>
 			if (label.last_element() == "ps2") return &_ps2_input;
 
 			error("no matching policy for session label ", label);
-			throw Root::Invalid_args();
+			throw Service_denied();
 		}
 
 		/*

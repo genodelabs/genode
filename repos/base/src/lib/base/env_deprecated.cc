@@ -52,8 +52,8 @@ Genode::Expanding_parent_client::_fallback_sig_cap()
 
 		/*
 		 * Because the 'manage' function consumes meta data of the signal
-		 * session, calling it may result in an 'Out_of_metadata' error. The
-		 * 'manage' function handles this error by upgrading the session quota
+		 * session, calling it may result in an 'Out_of_ram' or 'Out_of_caps' error.
+		 * The 'manage' function handles this error by upgrading the session quota
 		 * accordingly. However, this upgrade, in turn, may result in the
 		 * depletion of the process' RAM quota. In this case, the process would
 		 * issue a resource request to the parent. But in order to do so, the

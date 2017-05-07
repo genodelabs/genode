@@ -31,21 +31,12 @@ struct Genode::Rm_session : Session
 	enum { CAP_QUOTA = 2 };
 
 	/**
-	 * Exception types
-	 *
-	 * \deprecated  The following type definitions will be removed after the
-	 *              transition to the 'Region_map' API is completed.
-	 */
-	typedef Region_map::Attach_failed   Attach_failed;
-	typedef Region_map::Out_of_metadata Out_of_metadata;
-	typedef Region_map::Region_conflict Region_conflict;
-
-	/**
 	 * Create region map
 	 *
 	 * \param size  upper bound of region map
 	 * \return      region-map capability
-	 * \throw       Out_of_metadata
+	 * \throw       Out_of_ram
+	 * \throw       Out_of_caps
 	 */
 	virtual Capability<Region_map> create(size_t size) = 0;
 
@@ -60,7 +51,7 @@ struct Genode::Rm_session : Session
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_create, Capability<Region_map>, create,
-	                 GENODE_TYPE_LIST(Out_of_metadata), size_t);
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), size_t);
 	GENODE_RPC(Rpc_destroy, void, destroy, Capability<Region_map>);
 
 	GENODE_RPC_INTERFACE(Rpc_create, Rpc_destroy);

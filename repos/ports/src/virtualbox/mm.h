@@ -49,12 +49,16 @@ class Sub_rm_connection : private Genode::Rm_connection,
 		                  Local_addr local_addr = (void *)0,
 		                  bool executable = false) override
 		{
-			Local_addr addr = Genode::retry<Rm_session::Out_of_metadata>(
+			Local_addr addr = Genode::retry<Genode::Out_of_ram>(
 				[&] () {
-					return Region_map_client::attach(ds, size, offset,
-					                                 use_local_addr,
-					                                 local_addr,
-					                                 executable); },
+					return Genode::retry<Genode::Out_of_caps>(
+						[&] () {
+							return Region_map_client::attach(ds, size, offset,
+							                                 use_local_addr,
+							                                 local_addr,
+							                                 executable); },
+						[&] () { upgrade_caps(2); });
+					},
 				[&] () { upgrade_ram(8192); });
 
 			Genode::addr_t new_addr = addr;

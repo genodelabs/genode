@@ -23,14 +23,21 @@
 #include <input_session/capability.h>
 
 namespace Nitpicker {
+
 	using Genode::size_t;
+
 	struct Session_client;
 	struct View;
-	typedef Genode::Capability<View> View_capability;
 	struct Session;
+
+	typedef Genode::Capability<View> View_capability;
+
 	typedef Genode::Surface_base::Rect  Rect;
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Area  Area;
+
+	typedef Genode::Out_of_ram  Out_of_ram;
+	typedef Genode::Out_of_caps Out_of_caps;
 }
 
 
@@ -194,7 +201,6 @@ struct Nitpicker::Session : Genode::Session
 	/**
 	 * Exception types
 	 */
-	struct Out_of_metadata : Genode::Exception { };
 	struct Invalid_handle  : Genode::Exception { };
 
 	virtual ~Session() { }
@@ -238,7 +244,8 @@ struct Nitpicker::Session : Genode::Session
 	 * \param handle  designated view handle to be assigned to the imported
 	 *                view. By default, a new handle will be allocated.
 	 *
-	 * \throw Out_of_metadata
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
 	 */
 	virtual View_handle view_handle(View_capability,
 	                                View_handle handle = View_handle()) = 0;
@@ -279,8 +286,9 @@ struct Nitpicker::Session : Genode::Session
 	/**
 	 * Define dimensions of virtual framebuffer
 	 *
-	 * \throw Out_of_metadata  session quota does not suffice for specified
-	 *                         buffer dimensions
+	 * \throw Out_of_ram  session quota does not suffice for specified
+	 *                    buffer dimensions
+	 * \throw Out_of_caps
 	 */
 	virtual void buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
 
@@ -335,10 +343,10 @@ struct Nitpicker::Session : Genode::Session
 	GENODE_RPC(Rpc_framebuffer_session, Framebuffer::Session_capability, framebuffer_session);
 	GENODE_RPC(Rpc_input_session, Input::Session_capability, input_session);
 	GENODE_RPC_THROW(Rpc_create_view, View_handle, create_view,
-	                 GENODE_TYPE_LIST(Out_of_metadata, Invalid_handle), View_handle);
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Invalid_handle), View_handle);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_handle);
 	GENODE_RPC_THROW(Rpc_view_handle, View_handle, view_handle,
-	                 GENODE_TYPE_LIST(Out_of_metadata), View_capability, View_handle);
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), View_capability, View_handle);
 	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_handle);
 	GENODE_RPC(Rpc_release_view_handle, void, release_view_handle, View_handle);
 	GENODE_RPC(Rpc_command_dataspace, Genode::Dataspace_capability, command_dataspace);
@@ -348,7 +356,7 @@ struct Nitpicker::Session : Genode::Session
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Genode::Capability<Session>);
 	GENODE_RPC(Rpc_session_control, void, session_control, Label, Session_control);
-	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_metadata),
+	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Framebuffer::Mode, bool);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer_session, Rpc_input_session,

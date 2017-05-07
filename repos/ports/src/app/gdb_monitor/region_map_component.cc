@@ -60,14 +60,14 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 
 	if (offset < 0 || (size_t)offset >= ds_size) {
 		PWRN("offset outside of dataspace");
-		throw Invalid_args();
+		throw Region_conflict();
 	}
 
 	if (size == 0)
 		size = ds_size - offset;
 	else if (size > ds_size - offset) {
 		PWRN("size bigger than remainder of dataspace");
-		throw Invalid_args();
+		throw Region_conflict();
 	}
 
 	void *addr = _parent_region_map.attach(ds_cap, size, offset,

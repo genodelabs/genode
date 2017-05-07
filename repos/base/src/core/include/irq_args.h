@@ -50,7 +50,7 @@ class Genode::Irq_args
 			default:
 				error("invalid trigger mode ", irq_trg, " specified for IRQ ",
 				      _irq_number);
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			switch (irq_pol) {
@@ -67,7 +67,7 @@ class Genode::Irq_args
 			default:
 				error("invalid polarity ", irq_pol, " specified for IRQ ",
 				      _irq_number);
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 		}
 

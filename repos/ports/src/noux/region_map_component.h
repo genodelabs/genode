@@ -241,9 +241,9 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 					local_addr = _rm.attach(ds, size, offset, use_local_addr,
 					                        local_addr, executable);
 					break;
-				} catch (Region_map::Out_of_metadata) {
-					_pd.upgrade_ram(8*1024);
 				}
+				catch (Out_of_ram)  { _pd.upgrade_ram(8*1024); }
+				catch (Out_of_caps) { _pd.upgrade_caps(2); }
 			}
 
 			Region * region = new (_alloc)

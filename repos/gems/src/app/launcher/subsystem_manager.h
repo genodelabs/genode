@@ -206,8 +206,8 @@ class Launcher::Subsystem_manager
 				_children.insert(child);
 
 				child->start();
-
-			} catch (Parent::Service_denied) {
+			}
+			catch (Service_denied) {
 				Genode::error("failed to start ", binary_name);
 				throw Invalid_config();
 			}

@@ -835,10 +835,11 @@ class Usb::Root : public Genode::Root_component<Session_component>
 					Session_component(tx_ds, _env.ep(), _env.rm(), vendor, product, bus, dev);
 				::Session::list()->insert(session);
 				return session;
-			} catch (Genode::Session_policy::No_policy_defined) {
+			}
+			catch (Genode::Session_policy::No_policy_defined) {
 				error("Invalid session request, no matching policy for '",
 				      label.string(), "'");
-				throw Genode::Root::Unavailable();
+				throw Genode::Service_denied();
 			}
 		}
 

@@ -426,9 +426,11 @@ void Component::construct(Genode::Env &env)
 		perform<Violation_test>(env, heap, 1000);
 
 		log("Tests finished successfully!");
-	} catch(Genode::Parent::Service_denied) {
+	}
+	catch (Genode::Service_denied) {
 		error("opening block session was denied!");
-	} catch(Test::Exception &e) {
+	}
+	catch (Test::Exception &e) {
 		error("test failed!");
 		e.print_error();
 	}

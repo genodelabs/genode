@@ -39,7 +39,7 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 			unsigned parent_levels = Arg_string::find_arg(args, "parent_levels").ulong_value(0);
 
 			if (arg_buffer_size > ram_quota)
-				throw Root::Invalid_args();
+				throw Service_denied();
 
 			return new (md_alloc())
 			       Session_component(*md_alloc(), ram_quota, arg_buffer_size,

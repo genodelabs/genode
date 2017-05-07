@@ -81,13 +81,13 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 		_is_msi =
 			Platform::get_msi_params(mmconf, _address, _value, _irq_number);
 		if (!_is_msi)
-			throw Root::Unavailable();
+			throw Service_denied();
 	}
 
 	/* allocate interrupt */
 	if (_irq_alloc->alloc_addr(1, _irq_number).error()) {
 		error("unavailable interrupt ", _irq_number, " requested");
-		throw Root::Invalid_args();
+		throw Service_denied();
 	}
 
 	Irq_args const irq_args(args);

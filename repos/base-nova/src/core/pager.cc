@@ -516,7 +516,7 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
 	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 
 	addr_t const ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
@@ -526,7 +526,7 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 	uint8_t res = create_portal(obj->exc_pt_sel_client() + EV,
 	                            platform_specific()->core_pd_sel(), ec_sel, mtd, entry, obj);
 	if (res != Nova::NOVA_OK)
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 }
 
 
@@ -597,12 +597,12 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 
 	if (Native_thread::INVALID_INDEX == _selectors ||
 	    Native_thread::INVALID_INDEX == _client_exc_pt_sel)
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 
 	/* ypos information not supported by now */
 	if (location.ypos()) {
 		warning("unsupported location ", location.xpos(), "x", location.ypos());
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
@@ -611,7 +611,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
 	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 
 	addr_t ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
@@ -637,7 +637,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	 */
 	res = Nova::create_sm(exc_pt_sel_client() + SM_SEL_EC, pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 
 	/* create portal for final cleanup call used during destruction */
@@ -645,19 +645,19 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	                    reinterpret_cast<addr_t>(_invoke_handler), this);
 	if (res != Nova::NOVA_OK) {
 		error("could not create pager cleanup portal, error=", res);
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 
 	/* semaphore used to block paged thread during recall */
 	res = Nova::create_sm(sel_sm_block_pause(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 
 	/* semaphore used to block paged thread during OOM memory revoke */
 	res = Nova::create_sm(sel_sm_block_oom(), pd_sel, 0);
 	if (res != Nova::NOVA_OK) {
-		throw Region_map::Invalid_thread();
+		throw Invalid_thread();
 	}
 }
 

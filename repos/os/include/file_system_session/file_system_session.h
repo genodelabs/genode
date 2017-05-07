@@ -33,6 +33,9 @@ namespace File_system {
 	typedef Genode::uint64_t seek_off_t;
 	typedef Genode::uint64_t file_size_t;
 
+	typedef Genode::Out_of_ram  Out_of_ram;
+	typedef Genode::Out_of_caps Out_of_caps;
+
 	class Packet_descriptor;
 
 	/**
@@ -72,7 +75,6 @@ namespace File_system {
 	class Node_already_exists : Exception { };
 	class No_space            : Exception { };
 	class Not_empty           : Exception { };
-	class Out_of_metadata     : Exception { };
 	class Permission_denied   : Exception { };
 
 	struct Session;
@@ -274,7 +276,8 @@ struct File_system::Session : public Genode::Session
 	 * \throw Node_already_exists  file cannot be created because a node with
 	 *                             the same name already exists
 	 * \throw No_space             storage exhausted
-	 * \throw Out_of_metadata      server cannot allocate metadata
+	 * \throw Out_of_ram           server cannot allocate metadata
+	 * \throw Out_of_caps
 	 * \throw Permission_denied
 	 */
 	virtual File_handle file(Dir_handle, Name const &name, Mode, bool create) = 0;
@@ -288,7 +291,8 @@ struct File_system::Session : public Genode::Session
 	 * \throw Node_already_exists  symlink cannot be created because a node with
 	 *                             the same name already exists
 	 * \throw No_space             storage exhausted
-	 * \throw Out_of_metadata      server cannot allocate metadata
+	 * \throw Out_of_ram           server cannot allocate metadata
+	 * \throw Out_of_caps
 	 * \throw Permission_denied
 	 */
 	virtual Symlink_handle symlink(Dir_handle, Name const &name, bool create) = 0;
@@ -302,7 +306,8 @@ struct File_system::Session : public Genode::Session
 	 * \throw Node_already_exists  directory cannot be created because a
 	 *                             node with the same name already exists
 	 * \throw No_space             storage exhausted
-	 * \throw Out_of_metadata      server cannot allocate metadata
+	 * \throw Out_of_ram           server cannot allocate metadata
+	 * \throw Out_of_caps
 	 * \throw Permission_denied
 	 */
 	virtual Dir_handle dir(Path const &path, bool create) = 0;
@@ -315,7 +320,8 @@ struct File_system::Session : public Genode::Session
 	 *
 	 * \throw Lookup_failed    path lookup failed because one element
 	 *                         of 'path' does not exist
-	 * \throw Out_of_metadata  server cannot allocate metadata
+	 * \throw Out_of_ram       server cannot allocate metadata
+	 * \throw Out_of_caps
 	 */
 	virtual Node_handle node(Path const &path) = 0;
 
@@ -383,22 +389,22 @@ struct File_system::Session : public Genode::Session
 	GENODE_RPC_THROW(Rpc_file, File_handle, file,
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Node_already_exists,
-	                                  No_space, Out_of_metadata,
+	                                  No_space, Out_of_ram, Out_of_caps,
 	                                  Permission_denied),
 	                 Dir_handle, Name const &, Mode, bool);
 	GENODE_RPC_THROW(Rpc_symlink, Symlink_handle, symlink,
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed,  Node_already_exists,
-	                                  No_space, Out_of_metadata,
+	                                  No_space, Out_of_ram, Out_of_caps,
 	                                  Permission_denied),
 	                 Dir_handle, Name const &, bool);
 	GENODE_RPC_THROW(Rpc_dir, Dir_handle, dir,
 	                 GENODE_TYPE_LIST(Lookup_failed, Name_too_long,
 	                                  Node_already_exists, No_space,
-	                                  Out_of_metadata, Permission_denied),
+	                                  Out_of_ram, Out_of_caps, Permission_denied),
 	                 Path const &, bool);
 	GENODE_RPC_THROW(Rpc_node, Node_handle, node,
-	                 GENODE_TYPE_LIST(Lookup_failed, Out_of_metadata),
+	                 GENODE_TYPE_LIST(Lookup_failed, Out_of_ram, Out_of_caps),
 	                 Path const &);
 	GENODE_RPC(Rpc_close, void, close, Node_handle);
 	GENODE_RPC(Rpc_status, Status, status, Node_handle);

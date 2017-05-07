@@ -56,13 +56,6 @@ class Genode::Service : public Ram_transfer::Account,
 
 	public:
 
-		/*********************
-		 ** Exception types **
-		 *********************/
-
-		class Invalid_args : Exception { };
-		class Unavailable  : Exception { };
-
 		/**
 		 * Constructor
 		 *
@@ -121,12 +114,10 @@ class Genode::Local_service : public Service
 		{
 			typedef Session_state::Args Args;
 
-			class Denied : Exception { };
-
 			/**
 			 * Create session
 			 *
-			 * \throw Denied
+			 * \throw Service_denied
 			 * \throw Insufficient_ram_quota
 			 * \throw Insufficient_cap_quota
 			 */
@@ -193,8 +184,8 @@ class Genode::Local_service : public Service
 					session.cap       = rpc_obj.cap();
 					session.phase     = Session_state::AVAILABLE;
 				}
-				catch (typename Factory::Denied) {
-					session.phase = Session_state::INVALID_ARGS; }
+				catch (Service_denied) {
+					session.phase = Session_state::SERVICE_DENIED; }
 				catch (Insufficient_cap_quota) {
 					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
 				catch (Insufficient_ram_quota) {
@@ -224,7 +215,7 @@ class Genode::Local_service : public Service
 				}
 				break;
 
-			case Session_state::INVALID_ARGS:
+			case Session_state::SERVICE_DENIED:
 			case Session_state::INSUFFICIENT_RAM_QUOTA:
 			case Session_state::INSUFFICIENT_CAP_QUOTA:
 			case Session_state::AVAILABLE:
@@ -285,11 +276,11 @@ class Genode::Parent_service : public Service
 				}
 				catch (Out_of_ram) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::INVALID_ARGS; }
+					session.phase = Session_state::SERVICE_DENIED; }
 
 				catch (Out_of_caps) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::INVALID_ARGS; }
+					session.phase = Session_state::SERVICE_DENIED; }
 
 				catch (Insufficient_ram_quota) {
 					session.id_at_parent.destruct();
@@ -299,9 +290,9 @@ class Genode::Parent_service : public Service
 					session.id_at_parent.destruct();
 					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
 
-				catch (Parent::Service_denied) {
+				catch (Service_denied) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::INVALID_ARGS; }
+					session.phase = Session_state::SERVICE_DENIED; }
 
 				break;
 
@@ -334,7 +325,7 @@ class Genode::Parent_service : public Service
 				session.phase = Session_state::CLOSED;
 				break;
 
-			case Session_state::INVALID_ARGS:
+			case Session_state::SERVICE_DENIED:
 			case Session_state::INSUFFICIENT_RAM_QUOTA:
 			case Session_state::INSUFFICIENT_CAP_QUOTA:
 			case Session_state::AVAILABLE:

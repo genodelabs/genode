@@ -53,13 +53,6 @@ class Genode::Parent
 
 	public:
 
-		/*********************
-		 ** Exception types **
-		 *********************/
-
-		struct Service_denied : Exception { };
-		struct Unavailable    : Exception { };
-
 		typedef Rpc_in_buffer<64>  Service_name;
 		typedef Rpc_in_buffer<160> Session_args;
 		typedef Rpc_in_buffer<160> Upgrade_args;
@@ -171,8 +164,6 @@ class Genode::Parent
 		 * server. The parent delivers a signal to the handler as registered
 		 * via 'session_sigh' once the server responded to the request. Now the
 		 * session capability can be picked up by calling 'session_cap'.
-		 *
-		 * \throw Unavailable
 		 */
 		virtual Session_capability session(Client::Id          id,
 		                                   Service_name const &service_name,
@@ -220,7 +211,7 @@ class Genode::Parent
 		 * Interface for providing services
 		 */
 
-		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS,
+		enum Session_response { SESSION_OK, SESSION_CLOSED, SERVICE_DENIED,
 		                        INSUFFICIENT_RAM_QUOTA, INSUFFICIENT_CAP_QUOTA };
 
 		/**
@@ -301,12 +292,12 @@ class Genode::Parent
 		GENODE_RPC_THROW(Rpc_session, Session_capability, session,
 		                 GENODE_TYPE_LIST(Service_denied, Out_of_caps,
 		                                  Out_of_ram, Insufficient_cap_quota,
-		                                  Insufficient_ram_quota, Unavailable),
+		                                  Insufficient_ram_quota),
 		                 Client::Id, Service_name const &, Session_args const &,
 		                 Affinity const &);
 		GENODE_RPC_THROW(Rpc_session_cap, Session_capability, session_cap,
 		                 GENODE_TYPE_LIST(Service_denied, Insufficient_cap_quota,
-		                                  Insufficient_ram_quota, Unavailable),
+		                                  Insufficient_ram_quota),
 		                 Client::Id);
 		GENODE_RPC_THROW(Rpc_upgrade, Upgrade_result, upgrade,
 		                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),

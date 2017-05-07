@@ -66,7 +66,7 @@ struct Vmm::Virtual_reservation : private Rm_connection, Region_map_client
 			env.rm().attach_at(Region_map_client::dataspace(), PAGE_SIZE, 0,
 			                   PAGE_SIZE);
 
-		} catch (Rm_session::Region_conflict) {
+		} catch (Region_map::Region_conflict) {
 			error("region conflict while attaching guest-physical memory");
 		}
 	}

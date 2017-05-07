@@ -58,7 +58,7 @@ struct Main
 
 			/* announce at parent */
 			env.parent().announce(ep.manage(root));
-		} catch (Genode::Parent::Service_denied) {
+		} catch (Genode::Service_denied) {
 			Genode::error("Could not connect to uplink NIC");
 		}
 	}

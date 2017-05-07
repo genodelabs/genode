@@ -161,9 +161,7 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 
 		_device_list.insert(dev);
 		return _env.ep().rpc_ep().manage(dev);
-	} catch (Genode::Allocator::Out_of_memory) {
-		throw Out_of_metadata();
-	} catch (Genode::Parent::Service_denied) {
-		return Device_capability();
 	}
+	catch (Genode::Out_of_ram)     { throw; }
+	catch (Genode::Service_denied) { return Device_capability(); }
 }

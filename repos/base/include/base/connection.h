@@ -64,6 +64,11 @@ class Genode::Connection_base : public Noncopyable
 		{
 			upgrade(Session::Resources { Ram_quota{bytes}, Cap_quota{0} });
 		}
+
+		void upgrade_caps(size_t caps)
+		{
+			upgrade(Session::Resources { Ram_quota{0}, Cap_quota{caps} });
+		}
 };
 
 

@@ -524,13 +524,14 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 				policy.attribute("port").value(&tcp_port);
 				return new (md_alloc())
 				       Session_component(_env, io_buffer_size, tcp_port);
-
-			} catch (Xml_node::Nonexistent_attribute) {
+			}
+			catch (Xml_node::Nonexistent_attribute) {
 				error("Missing \"port\" attribute in policy definition");
-				throw Root::Unavailable();
-			} catch (Session_policy::No_policy_defined) {
+				throw Service_denied();
+			}
+			catch (Session_policy::No_policy_defined) {
 				error("Invalid session request, no matching policy");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 		}
 

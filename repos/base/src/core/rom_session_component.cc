@@ -29,7 +29,7 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 {
 	/* ROM module not found */
 	if (!_rom_module)
-		throw Root::Invalid_args();
+		throw Service_denied();
 
 	_ds_cap = static_cap_cast<Rom_dataspace>(_ds_ep->manage(&_ds));
 }

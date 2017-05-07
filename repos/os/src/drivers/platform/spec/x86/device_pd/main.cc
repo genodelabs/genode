@@ -50,19 +50,30 @@ struct Expanding_region_map_client : Genode::Region_map_client
 	                  Local_addr local_addr,
 	                  bool executable) override
 	{
-		return Genode::retry<Genode::Region_map::Out_of_metadata>(
+		return Genode::retry<Genode::Out_of_ram>(
 			[&] () {
-				return Region_map_client::attach(ds, size, offset,
-				                                 use_local_addr,
-				                                 local_addr,
-				                                 executable); },
-			[&] () {
-				enum { UPGRADE_QUOTA = 4096 };
+				return Genode::retry<Genode::Out_of_caps>(
+					[&] () {
+						return Region_map_client::attach(ds, size, offset,
+						                                 use_local_addr,
+						                                 local_addr,
+						                                 executable); },
+					[&] () {
+						enum { UPGRADE_CAP_QUOTA = 2 };
+						if (_env.pd().avail_caps().value < UPGRADE_CAP_QUOTA)
+							throw;
 
-				if (_env.ram().avail_ram().value < UPGRADE_QUOTA)
+						Genode::String<32> arg("cap_quota=", (unsigned)UPGRADE_CAP_QUOTA);
+						_env.upgrade(Genode::Parent::Env::pd(), arg.string());
+					}
+				);
+			},
+			[&] () {
+				enum { UPGRADE_RAM_QUOTA = 4096 };
+				if (_env.ram().avail_ram().value < UPGRADE_RAM_QUOTA)
 					throw;
 
-				Genode::String<32> arg("ram_quota=", (unsigned)UPGRADE_QUOTA);
+				Genode::String<32> arg("ram_quota=", (unsigned)UPGRADE_RAM_QUOTA);
 				_env.upgrade(Genode::Parent::Env::pd(), arg.string());
 			}
 		);
@@ -109,11 +120,10 @@ void Platform::Device_pd_component::attach_dma_mem(Genode::Dataspace_capability 
 
 	addr_t page = ~0UL;
 
-	try {
-		page = _address_space.attach_at(ds_cap, phys);
-	} catch (Rm_session::Out_of_metadata) {
-		throw;
-	} catch (Rm_session::Region_conflict) {
+	try { page = _address_space.attach_at(ds_cap, phys); }
+	catch (Out_of_ram)  { throw; }
+	catch (Out_of_caps) { throw; }
+	catch (Region_map::Region_conflict) {
 		/*
 		 * DMA memory already attached before or collision with normal
 		 * device_pd memory (text, data, etc).
@@ -155,7 +165,7 @@ void Platform::Device_pd_component::assign_pci(Genode::Io_mem_dataspace_capabili
 	addr_t page = _address_space.attach(io_mem_cap);
 	/* sanity check */
 	if (!page)
-		throw Rm_session::Region_conflict();
+		throw Region_map::Region_conflict();
 
 	/* trigger mapping of whole memory area */
 	if (!map_eager(page, 12))

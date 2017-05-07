@@ -76,7 +76,7 @@ void Child::session_sigh(Signal_context_capability sigh)
 		if (session.phase == Session_state::AVAILABLE ||
 		    session.phase == Session_state::INSUFFICIENT_RAM_QUOTA ||
 		    session.phase == Session_state::INSUFFICIENT_CAP_QUOTA ||
-		    session.phase == Session_state::INVALID_ARGS) {
+		    session.phase == Session_state::SERVICE_DENIED) {
 
 			if (sigh.valid() && session.async_client_notify)
 				Signal_transmitter(sigh).submit();
@@ -89,9 +89,10 @@ void Child::session_sigh(Signal_context_capability sigh)
  * Create session-state object for a dynamically created session
  *
  * \throw Out_of_ram
+ * \throw Out_of_caps
  * \throw Insufficient_cap_quota
  * \throw Insufficient_ram_quota
- * \throw Parent::Service_denied
+ * \throw Service_denied
  */
 Session_state &
 create_session(Child_policy::Name const &child_name, Service &service,
@@ -123,7 +124,7 @@ create_session(Child_policy::Name const &child_name, Service &service,
 		id_space.apply<Session_state>(id, [&] (Session_state &session) {
 			error("existing session: ", session); });
 	}
-	throw Parent::Service_denied();
+	throw Service_denied();
 }
 
 
@@ -131,7 +132,7 @@ create_session(Child_policy::Name const &child_name, Service &service,
  * \deprecated  Temporary wrapper around 'Child_policy::resolve_session_request'
  *              that tries both overloads.
  *
- * \throw Parent::Service_denied
+ * \throw Service_denied
  */
 Child_policy::Route Child::_resolve_session_request(Child_policy &policy,
                                                     Service::Name const &name,
@@ -149,7 +150,7 @@ Child_policy::Route Child::_resolve_session_request(Child_policy &policy,
 		return { policy.resolve_session_request(name, args), label,
 		         session_diag_from_args(argbuf) };
 	}
-	catch (Parent::Service_denied) { }
+	catch (Service_denied) { }
 
 	return policy.resolve_session_request(name, label);
 }
@@ -160,7 +161,8 @@ Session_capability Child::session(Parent::Client::Id id,
                                   Parent::Session_args const &args,
                                   Affinity             const &affinity)
 {
-	if (!name.valid_string() || !args.valid_string()) throw Unavailable();
+	if (!name.valid_string() || !args.valid_string())
+		throw Service_denied();
 
 	char argbuf[Parent::Session_args::MAX_SIZE];
 
@@ -192,7 +194,7 @@ Session_capability Child::session(Parent::Client::Id id,
 	/* adjust the session information as presented to the server */
 	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
 
-	/* may throw a 'Parent::Service_denied' exception */
+	/* may throw a 'Service_denied' exception */
 	Child_policy::Route route = _resolve_session_request(_policy, name.string(), argbuf);
 	Service &service = route.service;
 
@@ -226,7 +228,7 @@ Session_capability Child::session(Parent::Client::Id id,
 		/* try to dispatch session request synchronously */
 		service.initiate_request(session);
 
-		if (session.phase == Session_state::INVALID_ARGS) {
+		if (session.phase == Session_state::SERVICE_DENIED) {
 			_revert_quota_and_destroy(session);
 			throw Service_denied();
 		}
@@ -284,7 +286,7 @@ Session_capability Child::session_cap(Client::Id id)
 
 	auto lamda = [&] (Session_state &session) {
 
-		if (session.phase == Session_state::INVALID_ARGS
+		if (session.phase == Session_state::SERVICE_DENIED
 		 || session.phase == Session_state::INSUFFICIENT_RAM_QUOTA
 		 || session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
 
@@ -298,7 +300,7 @@ Session_capability Child::session_cap(Client::Id id)
 			_revert_quota_and_destroy(session);
 
 			switch (phase) {
-			case Session_state::INVALID_ARGS:           throw Parent::Service_denied();
+			case Session_state::SERVICE_DENIED:         throw Service_denied();
 			case Session_state::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
 			case Session_state::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
 			default: break;
@@ -449,7 +451,7 @@ Child::Close_result Child::_close(Session_state &session)
 	 * If session could not be established, destruct session immediately
 	 * without involving the server
 	 */
-	if (session.phase == Session_state::INVALID_ARGS
+	if (session.phase == Session_state::SERVICE_DENIED
 	 || session.phase == Session_state::INSUFFICIENT_RAM_QUOTA
 	 || session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
 		_revert_quota_and_destroy(session);
@@ -544,8 +546,8 @@ void Child::session_response(Server::Id id, Session_response response)
 					_revert_quota_and_destroy(session);
 				break;
 
-			case Parent::INVALID_ARGS:
-				session.phase = Session_state::INVALID_ARGS;
+			case Parent::SERVICE_DENIED:
+				session.phase = Session_state::SERVICE_DENIED;
 				if (session.ready_callback)
 					session.ready_callback->session_ready(session);
 				break;
@@ -710,10 +712,10 @@ void Child::_try_construct_env_dependent_members()
 	catch (Out_of_ram)                          { _error("out of RAM during ELF loading"); }
 	catch (Out_of_caps)                         { _error("out of caps during ELF loading"); }
 	catch (Cpu_session::Thread_creation_failed) { _error("unable to create initial thread"); }
-	catch (Cpu_session::Out_of_metadata)        { _error("CPU session quota exhausted"); }
 	catch (Process::Missing_dynamic_linker)     { _error("dynamic linker unavailable"); }
 	catch (Process::Invalid_executable)         { _error("invalid ELF executable"); }
-	catch (Region_map::Attach_failed)           { _error("ELF loading failed"); }
+	catch (Region_map::Invalid_dataspace)       { _error("ELF loading failed (Invalid_dataspace)"); }
+	catch (Region_map::Region_conflict)         { _error("ELF loading failed (Region_conflict)"); }
 }
 
 
@@ -745,7 +747,7 @@ void Child::initiate_env_sessions()
 		_linker.construct(*this, Parent::Env::linker(), _policy.linker_name());
 		_linker->initiate();
 	}
-	catch (Parent::Service_denied) { }
+	catch (Service_denied) { }
 
 	_try_construct_env_dependent_members();
 }

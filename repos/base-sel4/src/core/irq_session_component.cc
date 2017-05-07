@@ -122,19 +122,19 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 {
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi)
-		throw Root::Unavailable();
+		throw Service_denied();
 
 	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
-		Genode::error("Unavailable IRQ ", _irq_number, " requested");
-		throw Root::Unavailable();
+		Genode::error("unavailable IRQ ", _irq_number, " requested");
+		throw Service_denied();
 	}
 
 
 	Irq_args const irq_args(args);
 
 	if (!_irq_object.associate(irq_args.trigger(), irq_args.polarity())) {
-		Genode::error("Could not associate with IRQ ", irq_args.irq_number());
-		throw Root::Unavailable();
+		Genode::error("could not associate with IRQ ", irq_args.irq_number());
+		throw Service_denied();
 	}
 
 	_irq_object.start();

@@ -199,7 +199,7 @@ class Launchpad_child : public Genode::Child_policy,
 				return *service;
 
 			Genode::warning(name(), ": service ", service_name, " not available");
-			throw Genode::Parent::Service_denied();
+			throw Genode::Service_denied();
 		}
 
 		void announce_service(Genode::Service::Name const &service_name) override

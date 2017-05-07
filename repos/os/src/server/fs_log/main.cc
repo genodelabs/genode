@@ -114,9 +114,9 @@ class Fs_log::Root_component :
 					dir_path = path_from_label<Path>(label_str);
 				}
 
-			} catch (Session_policy::No_policy_defined) {
-				dir_path = path_from_label<Path>(label_str);
 			}
+			catch (Session_policy::No_policy_defined) {
+				dir_path = path_from_label<Path>(label_str); }
 
 			if (dir_path == "/") {
 				strncpy(file_name, "log", sizeof(file_name));
@@ -142,21 +142,22 @@ class Fs_log::Root_component :
 					/* don't truncate at every new child session */
 					if (truncate && (strcmp(label_prefix, "") == 0))
 						_fs.truncate(handle, 0);
-
-				} catch (File_system::Lookup_failed) {
+				}
+				catch (File_system::Lookup_failed) {
 					handle = _fs.file(dir_handle, file_name,
 					                  File_system::WRITE_ONLY, true);
 				}
 
 				return new (md_alloc()) Session_component(_fs, handle, label_prefix);
 			}
-
 			catch (Permission_denied) {
 				errstr = "permission denied"; }
 			catch (No_space) {
 				errstr = "file system out of space"; }
-			catch (Out_of_metadata) {
-				errstr = "file system server out of metadata"; }
+			catch (Out_of_ram) {
+				errstr = "file system server out of RAM"; }
+			catch (Out_of_caps) {
+				errstr = "file system server out of caps"; }
 			catch (Invalid_name) {
 				errstr = "invalid path"; }
 			catch (Name_too_long) {
@@ -167,7 +168,7 @@ class Fs_log::Root_component :
 			Genode::error("cannot open log file ",
 			              (char const *)dir_path.base(),
 			              ", ", errstr);
-			throw Root::Unavailable();
+			throw Service_denied();
 		}
 
 	public:

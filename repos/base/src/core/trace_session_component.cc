@@ -29,14 +29,7 @@ Dataspace_capability Session_component::dataspace()
 
 size_t Session_component::subjects()
 {
-	try {
-		_subjects.import_new_sources(_sources);
-
-	} catch (Allocator::Out_of_memory) {
-
-		warning("TRACE session ran out of memory");
-		throw Out_of_metadata();
-	}
+	_subjects.import_new_sources(_sources);
 
 	return _subjects.subjects((Subject_id *)_argument_buffer.base,
 	                          _argument_buffer.size/sizeof(Subject_id));
@@ -55,7 +48,7 @@ Policy_id Session_component::alloc_policy(size_t size)
 	Policy_id const id(++_policy_cnt);
 
 	if (!_md_alloc.withdraw(size))
-		throw Out_of_metadata();
+		throw Out_of_ram();
 
 	try {
 		Ram_dataspace_capability ds = _ram.alloc(size);
@@ -64,7 +57,7 @@ Policy_id Session_component::alloc_policy(size_t size)
 	} catch (...) {
 		/* revert withdrawal or quota */
 		_md_alloc.upgrade(size);
-		throw Out_of_metadata();
+		throw Out_of_ram();
 	}
 
 	return id;
@@ -94,7 +87,7 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 	 * session.
 	 */
 	if (!_md_alloc.withdraw(required_ram))
-		throw Out_of_metadata();
+		throw Out_of_ram();
 
 	try {
 		Trace::Subject *subject = _subjects.lookup_by_id(subject_id);
@@ -103,7 +96,7 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 	} catch (...) {
 		/* revert withdrawal or quota */
 		_md_alloc.upgrade(required_ram);
-		throw Out_of_metadata();
+		throw Out_of_ram();
 	}
 }
 

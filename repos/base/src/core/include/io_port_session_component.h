@@ -49,7 +49,7 @@ namespace Genode {
 			 * \param io_port_alloc  IO_PORT region allocator
 			 * \param args           session construction arguments, in
 			 *                       particular port base and size
-			 * \throw                Root::Invalid_args
+			 * \throw                Service_denied
 			 */
 			Io_port_session_component(Range_allocator *io_port_alloc,
 			                          const char      *args);

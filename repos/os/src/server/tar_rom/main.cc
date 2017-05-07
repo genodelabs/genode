@@ -142,6 +142,8 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		 * \param  tar_addr  local address to tar archive
 		 * \param  tar_size  size of tar archive in bytes
 		 * \param  label     name of the requested ROM module
+		 *
+		 * \throw Service_denied
 		 */
 		Rom_session_component(Ram_session &ram, Region_map &rm,
 		                      char const *tar_addr, unsigned tar_size,
@@ -151,7 +153,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 			_file_ds(_init_file_ds(ram, rm, label))
 		{
 			if (!_file_ds.valid())
-				throw Root::Invalid_args();
+				throw Service_denied();
 		}
 
 		/**

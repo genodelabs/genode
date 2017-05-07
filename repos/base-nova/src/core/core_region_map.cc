@@ -72,7 +72,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 		/* allocate the virtual region contiguous for the dataspace */
 		void * virt_ptr = alloc_region(ds, page_rounded_size);
 		if (!virt_ptr)
-			throw Out_of_metadata();
+			throw Out_of_ram();
 
 		/* map it */
 		Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
@@ -81,7 +81,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 		if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
 		              page_rounded_size >> get_page_size_log2(), rights, true)) {
 			platform()->region_alloc()->free(virt_ptr, page_rounded_size);
-			throw Out_of_metadata();
+			throw Out_of_ram();
 		}
 
 		return virt_ptr;

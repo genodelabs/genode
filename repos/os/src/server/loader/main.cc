@@ -88,7 +88,7 @@ class Loader::Session_component : public Rpc_object<Session>
 
 				} catch (...) { }
 
-				throw Denied();
+				throw Service_denied();
 			}
 
 			void upgrade(Rom_session_component &, Args const &) override { }
@@ -184,7 +184,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			{
 				if (session.constructed()) {
 					warning("attempt to open more than one nitpicker session");
-					throw Parent::Service_denied();
+					throw Service_denied();
 				}
 
 				session.construct(_ep, _env, _rm, _ram, _max_size,
@@ -357,7 +357,7 @@ class Loader::Session_component : public Rpc_object<Session>
 				                 _cpu_service, _pd_service, _nitpicker_service,
 				                 _fault_sigh);
 			}
-			catch (Genode::Parent::Service_denied) {
+			catch (Genode::Service_denied) {
 				throw Rom_module_does_not_exist(); }
 		}
 

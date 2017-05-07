@@ -135,12 +135,13 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 					Session_policy policy(rom_label, rom_node);
 					policy.attribute("report").value(&report);
 					return Rom::Module::Name(report.string());
-				} catch (Xml_node::Nonexistent_sub_node)    { /* no <rom> node */ }
-				  catch (Session_policy::No_policy_defined) { }
+				}
+				catch (Xml_node::Nonexistent_sub_node) { /* no <rom> node */ }
+				catch (Session_policy::No_policy_defined) { }
 			}
 
 			warning("no valid policy for ROM request '", rom_label, "'");
-			throw Root::Invalid_args();
+			throw Service_denied();
 		}
 
 	public:
@@ -162,7 +163,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 			 */
 			if (module._num_writers() > 1) {
 				release(writer, module);
-				throw Root::Invalid_args();
+				throw Genode::Service_denied();
 			}
 
 			return module;

@@ -129,7 +129,7 @@ class Test_child_policy : public Child_policy
 					service = &s; });
 
 			if (!service)
-				throw Parent::Service_denied();
+				throw Service_denied();
 
 			return *service;
 		}
@@ -237,7 +237,7 @@ void Component::construct(Env &env)
 		static Main_parent parent(env);
 		log("-- parent role started --");
 	}
-	catch (Parent::Service_denied) {
+	catch (Service_denied) {
 		main_child();
 	}
 }

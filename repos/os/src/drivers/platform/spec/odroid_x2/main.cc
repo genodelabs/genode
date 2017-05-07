@@ -42,10 +42,9 @@ struct Driver_factory : Regulator::Driver_factory
 		case Regulator::PWR_HDMI:
 			return _pmu;
 
-
 		default:
-			throw Root::Invalid_args(); /* invalid regulator */
-		};
+			throw Genode::Service_denied(); /* invalid regulator */
+		}
 	}
 
 	void destroy(Regulator::Driver &driver) { }

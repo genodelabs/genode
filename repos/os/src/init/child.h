@@ -357,7 +357,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 				return (session.service() == route.service)
 				    && (route.label == session.label());
 			}
-			catch (Parent::Service_denied) { return false; }
+			catch (Service_denied) { return false; }
 		}
 
 		static Xml_node _provides_sub_node(Xml_node start_node)

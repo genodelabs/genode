@@ -91,10 +91,14 @@ namespace Allocator {
 					/* lookup phys. address */
 					_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
 				} catch (Genode::Out_of_ram) {
-					warning("backend allocator exhausted");
+					warning("backend allocator exhausted (out of RAM)");
 					_quota_exceeded = true;
 					return false;
-				} catch (Genode::Region_map::Attach_failed) {
+				} catch (Genode::Out_of_caps) {
+					warning("backend allocator exhausted (out of caps)");
+					_quota_exceeded = true;
+					return false;
+				} catch (Genode::Region_map::Region_conflict) {
 					warning("backend VM region exhausted");
 					_quota_exceeded = true;
 					return false;

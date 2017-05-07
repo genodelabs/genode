@@ -78,8 +78,8 @@ class Genode::Slave::Policy : public Child_policy
 		 * \param local_rm  local address space, needed to populate dataspaces
 		 *                  provided to the child (config, session_requests)
 		 *
-		 * \throw Ram_session::Alloc_failed by 'Child_policy_dynamic_rom_file'
-		 * \throw Rm_session::Attach_failed by 'Child_policy_dynamic_rom_file'
+		 * \throw Out_of_ram   by 'Child_policy_dynamic_rom_file'
+		 * \throw Out_of_caps  by 'Child_policy_dynamic_rom_file'
 		 */
 		Policy(Label               const &label,
 		       Name                const &binary_name,
@@ -174,7 +174,7 @@ class Genode::Slave::Policy : public Child_policy
 			if (!service) {
 				error(name(), ": illegal session request of "
 				      "service \"", service_name, "\" (", args, ")");
-				throw Parent::Service_denied();
+				throw Service_denied();
 			}
 
 			return *service;
@@ -231,7 +231,7 @@ class Genode::Slave::Connection_base
 					session.phase = Session_state::CLOSED;
 					break;
 
-				case Session_state::INVALID_ARGS:
+				case Session_state::SERVICE_DENIED:
 				case Session_state::INSUFFICIENT_RAM_QUOTA:
 				case Session_state::INSUFFICIENT_CAP_QUOTA:
 				case Session_state::AVAILABLE:
@@ -301,7 +301,7 @@ class Genode::Slave::Connection_base
 			_policy.trigger_session_requests();
 			_service._lock.lock();
 			if (!_service._alive)
-				throw Parent::Service_denied();
+				throw Service_denied();
 		}
 
 		~Connection_base()
@@ -323,9 +323,10 @@ struct Genode::Slave::Connection : private Connection_base<CONNECTION>,
 	/**
 	 * Constructor
 	 *
-	 * \throw Parent::Service_denied   parent denies session request
-	 * \throw Out_of_ram               our own quota does not suffice for
-	 *                                 the creation of the new session
+	 * \throw Service_denied   parent denies session request
+	 * \throw Out_of_ram       our own quota does not suffice for
+	 *                         the creation of the new session
+	 * \throw Out_of_caps
 	 */
 	Connection(Slave::Policy &policy, Args const &args,
 	           Affinity const &affinity = Affinity())

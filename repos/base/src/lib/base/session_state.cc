@@ -31,7 +31,7 @@ struct Formatted_phase
 
 		switch (_phase) {
 		case State::CREATE_REQUESTED:       print(output, "CREATE_REQUESTED");       break;
-		case State::INVALID_ARGS:           print(output, "INVALID_ARGS");           break;
+		case State::SERVICE_DENIED:         print(output, "SERVICE_DENIED");         break;
 		case State::INSUFFICIENT_RAM_QUOTA: print(output, "INSUFFICIENT_RAM_QUOTA"); break;
 		case State::INSUFFICIENT_CAP_QUOTA: print(output, "INSUFFICIENT_CAP_QUOTA"); break;
 		case State::AVAILABLE:              print(output, "AVAILABLE");              break;
@@ -88,7 +88,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 			xml.attribute("id", id_at_server->id().value); });
 		break;
 
-	case INVALID_ARGS:
+	case SERVICE_DENIED:
 	case INSUFFICIENT_RAM_QUOTA:
 	case INSUFFICIENT_CAP_QUOTA:
 	case AVAILABLE:

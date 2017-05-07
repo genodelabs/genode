@@ -887,43 +887,45 @@ namespace File_system {
 									throw Lookup_failed();
 								case FR_NOT_READY:
 									error("f_chdir() failed with error code FR_NOT_READY");
-									throw Root::Unavailable();
+									throw Service_denied();
 								case FR_DISK_ERR:
 									error("f_chdir() failed with error code FR_DISK_ERR");
-									throw Root::Unavailable();
+									throw Service_denied();
 								case FR_INT_ERR:
 									error("f_chdir() failed with error code FR_INT_ERR");
-									throw Root::Unavailable();
+									throw Service_denied();
 								case FR_NOT_ENABLED:
 									error("f_chdir() failed with error code FR_NOT_ENABLED");
-									throw Root::Unavailable();
+									throw Service_denied();
 								case FR_NO_FILESYSTEM:
 									error("f_chdir() failed with error code FR_NO_FILESYSTEM");
-									throw Root::Unavailable();
+									throw Service_denied();
 								default:
 									/* not supposed to occur according to the libffat documentation */
 									error("f_chdir() returned an unexpected error code");
-									throw Root::Unavailable();
+									throw Service_denied();
 							}
 
 							session_root_dir = new (&_md_alloc) Directory(root);
 						}
-					} catch (Xml_node::Nonexistent_attribute) {
+					}
+					catch (Xml_node::Nonexistent_attribute) {
 						error("missing \"root\" attribute in policy definition");
-						throw Root::Unavailable();
-					} catch (Lookup_failed) {
+						throw Service_denied();
+					}
+					catch (Lookup_failed) {
 						error("session root directory \"", Cstring(root), "\" does not exist");
-						throw Root::Unavailable();
+						throw Service_denied();
 					}
 
 					/*
 					 * Determine if write access is permitted for the session.
 					 */
 					writeable = policy.attribute_value("writeable", false);
-
-				} catch (Session_policy::No_policy_defined) {
+				}
+				catch (Session_policy::No_policy_defined) {
 					error("Invalid session request, no matching policy");
-					throw Root::Unavailable();
+					throw Service_denied();
 				}
 
 				size_t ram_quota =
@@ -933,7 +935,7 @@ namespace File_system {
 
 				if (!tx_buf_size) {
 					error(label, " requested a session with a zero length transmission buffer");
-					throw Root::Invalid_args();
+					throw Service_denied();
 				}
 
 				/*

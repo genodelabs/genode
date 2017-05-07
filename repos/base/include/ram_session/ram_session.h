@@ -45,9 +45,6 @@ struct Genode::Ram_session : Session, Ram_allocator
 	class Invalid_session       : public Exception { };
 	class Undefined_ref_account : public Exception { };
 
-	/* deprecated */
-	typedef Out_of_ram Quota_exceeded;
-
 	/**
 	 * Destructor
 	 */

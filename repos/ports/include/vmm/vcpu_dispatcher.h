@@ -116,7 +116,7 @@ class Vmm::Vcpu_dispatcher : public T
 				Capability_space::import(T::native_thread().ec_sel);
 
 			Untyped_capability handler =
-				retry<Genode::Pd_session::Out_of_metadata>(
+				retry<Genode::Out_of_ram>(
 					[&] () {
 						/* manually define selector used for RPC result */
 						Thread::myself()->native_thread().client_rcv_sel = exc_base + EV;

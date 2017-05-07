@@ -39,11 +39,11 @@ Io_port_session_component::Io_port_session_component(Range_allocator *io_port_al
 
 	case Range_allocator::Alloc_return::RANGE_CONFLICT:
 		error("I/O port ", Hex_range<uint16_t>(base, size), " not available");
-		throw Root::Invalid_args();
+		throw Service_denied();
 
 	case Range_allocator::Alloc_return::OUT_OF_METADATA:
 		error("I/O port allocator ran out of meta data");
-		throw Root::Invalid_args();
+		throw Service_denied();
 
 	case Range_allocator::Alloc_return::OK: break;
 	}

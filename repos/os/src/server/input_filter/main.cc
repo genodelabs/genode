@@ -386,7 +386,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 						Registered<Input_connection>(_input_connections, _env,
 						                             label, *this, _heap);
 
-				} catch (Genode::Parent::Service_denied) {
+				} catch (Genode::Service_denied) {
 					error("parent denied input source '", label, "'");
 				}
 			} catch (Xml_node::Nonexistent_attribute) {

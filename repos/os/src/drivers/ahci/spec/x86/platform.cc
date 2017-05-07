@@ -43,10 +43,9 @@ struct X86_hba : Platform::Hba
 
 	X86_hba(Genode::Env &env) : env(env)
 	{
-		pci_device_cap = retry<Platform::Session::Out_of_metadata>(
+		pci_device_cap = pci.with_upgrade(
 			[&] () { return pci.next_device(pci_device_cap, AHCI_DEVICE,
-				                            CLASS_MASK); },
-			[&] () { pci.upgrade_ram(4096); });
+			                                CLASS_MASK); });
 
 		if (!pci_device_cap.valid()) {
 			throw Ahci_driver::Missing_controller();
@@ -98,8 +97,12 @@ struct X86_hba : Platform::Hba
 	                   Platform::Device::Access_size width)
 	{
 		Genode::size_t donate = 4096;
-		Genode::retry<Platform::Device::Quota_exceeded>(
-			[&] () { pci_device->config_write(op, cmd, width); },
+		Genode::retry<Platform::Out_of_ram>(
+			[&] () {
+				Genode::retry<Platform::Out_of_caps>(
+					[&] () { pci_device->config_write(op, cmd, width); },
+					[&] () { pci.upgrade_caps(2); });
+			},
 			[&] () {
 				pci.upgrade_ram(donate);
 				donate *= 2;
@@ -127,8 +130,12 @@ struct X86_hba : Platform::Hba
 	{
 		size_t donate = size;
 
-		return retry<Platform::Session::Out_of_metadata>(
-			[&] () { return pci.alloc_dma_buffer(size); },
+		return retry<Genode::Out_of_ram>(
+			[&] () {
+				return retry<Genode::Out_of_caps>(
+					[&] () { return pci.alloc_dma_buffer(size); },
+					[&] () { pci.upgrade_caps(2); });
+			},
 			[&] () {
 				pci.upgrade_ram(donate);
 				donate = donate * 2 > size ? 4096 : donate * 2;

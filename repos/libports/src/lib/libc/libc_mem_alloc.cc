@@ -58,7 +58,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	}
 	catch (Out_of_ram) { return -2; }
 	catch (Out_of_caps) { return -4; }
-	catch (Region_map::Attach_failed) {
+	catch (Region_map::Region_conflict) {
 		_ram_session->free(new_ds_cap);
 		return -3;
 	}

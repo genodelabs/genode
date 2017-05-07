@@ -306,7 +306,8 @@ class Trace_file_system
 				catch (...) { Genode::error("trace buffer is already managed"); }
 
 				subject->active_file.set_active();
-			} catch (...) { Genode::error("could not enable tracing"); }
+			}
+			catch (...) { Genode::error("could not enable tracing"); }
 		}
 
 		/**
@@ -330,7 +331,8 @@ class Trace_file_system
 				try {
 					child = new (&_alloc) Directory(walker.element());
 					parent.adopt_unsynchronized(child);
-				} catch (...) {
+				}
+				catch (...) {
 					Genode::error("could not create '", walker.element(), "'");
 					return 0;
 				}
@@ -449,12 +451,13 @@ class Trace_file_system
 
 								_rm.detach(ram);
 							}
-						} catch (...) { Genode::error("could not allocate policy"); }
+						}
+						catch (...) { Genode::error("could not allocate policy"); }
 					}
 
 					policy_changed = true;
-
-				} catch (Trace_fs::Followed_subject_registry::Invalid_subject) { }
+				}
+				catch (Trace_fs::Followed_subject_registry::Invalid_subject) { }
 			}
 
 			Enable_file *enable_file = dynamic_cast<Enable_file*>(node);
@@ -558,6 +561,7 @@ class Trace_file_system
 						continue;
 					}
 				} catch (Trace_fs::Followed_subject_registry::Invalid_subject) {
+
 					/* ignore unknown but already dead subject */
 					if (state == Subject_info::State::DEAD)
 						continue;
@@ -689,10 +693,15 @@ class File_system::Session_component : public Session_rpc_object
 
 			try {
 				Node *node = _handle_registry.lookup(packet.handle());
-
 				_process_packet_op(packet, *node);
 			}
-			catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
+			catch (Invalid_handle) { Genode::error("Invalid_handle"); }
+
+			/*
+			 * The 'acknowledge_packet' function cannot block because we
+			 * checked for 'ready_to_ack' in '_process_packets'.
+			 */
+			tx_sink()->acknowledge_packet(packet);
 		}
 
 		/**
@@ -898,7 +907,8 @@ class File_system::Session_component : public Session_rpc_object
 
 				File *file = dynamic_cast<File*>(node);
 				if (file) { file->truncate(size); }
-			} catch (Invalid_handle) { }
+			}
+			catch (Invalid_handle) { }
 		}
 
 		void move(Dir_handle, Name const &, Dir_handle, Name const &) { }
@@ -949,20 +959,20 @@ class File_system::Root : public Root_component<Session_component>
 				 * Override default settings with specific session settings by
 				 * evaluating the policy.
 				 */
-				try { policy.attribute("interval").value(&interval);
-				} catch (...) { }
-				try { policy.attribute("subject_limit").value(&subject_limit);
-				} catch (...) { }
-				try { policy.attribute("trace_quota").value(&trace_quota);
-				} catch (...) { }
-				try { policy.attribute("trace_meta_quota").value(&trace_meta_quota);
-				} catch (...) { }
-				try { policy.attribute("parent_levels").value(&trace_parent_levels);
-				} catch (...) { }
-				try { policy.attribute("buffer_size").value(&buffer_size);
-				} catch (...) { }
-				try { policy.attribute("buffer_size_max").value(&buffer_size_max);
-				} catch (...) { }
+				try { policy.attribute("interval").value(&interval); }
+				catch (...) { }
+				try { policy.attribute("subject_limit").value(&subject_limit); }
+				catch (...) { }
+				try { policy.attribute("trace_quota").value(&trace_quota); }
+				catch (...) { }
+				try { policy.attribute("trace_meta_quota").value(&trace_meta_quota); }
+				catch (...) { }
+				try { policy.attribute("parent_levels").value(&trace_parent_levels); } 
+				catch (...) { }
+				try { policy.attribute("buffer_size").value(&buffer_size); }
+				catch (...) { }
+				try { policy.attribute("buffer_size_max").value(&buffer_size_max); }
+				catch (...) { }
 
 				/*
 				 * Determine directory that is used as root directory of
@@ -978,18 +988,20 @@ class File_system::Root : public Root_component<Session_component>
 					 */
 					if (root[0] != '/')
 						throw Lookup_failed();
-				} catch (Xml_node::Nonexistent_attribute) {
+				}
+				catch (Xml_node::Nonexistent_attribute) {
 					Genode::error("Missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
-				} catch (Lookup_failed) {
+					throw Service_denied();
+				}
+				catch (Lookup_failed) {
 					Genode::error("session root directory "
 					              "\"", Genode::Cstring(root), "\" does not exist");
-					throw Root::Unavailable();
+					throw Service_denied();
 				}
-
-			} catch (Session_policy::No_policy_defined) {
+			}
+			catch (Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			size_t ram_quota =
@@ -999,7 +1011,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");
-				throw Root::Invalid_args();
+				throw Genode::Service_denied();
 			}
 
 			/*

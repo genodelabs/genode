@@ -37,12 +37,16 @@ struct Genode::Expanding_region_map_client : Region_map_client
 	                  bool use_local_addr, Local_addr local_addr,
 	                  bool executable) override
 	{
-		return retry<Region_map::Out_of_metadata>(
+		return retry<Out_of_ram>(
 			[&] () {
-				return Region_map_client::attach(ds, size, offset,
-				                                 use_local_addr,
-				                                 local_addr,
-				                                 executable); },
+				return retry<Out_of_caps>(
+					[&] {
+						return Region_map_client::attach(ds, size, offset,
+						                                 use_local_addr,
+						                                 local_addr,
+						                                 executable); },
+					[&] { _pd_client.upgrade_caps(2); });
+			},
 			[&] () { _pd_client.upgrade_ram(8*1024); });
 	}
 };

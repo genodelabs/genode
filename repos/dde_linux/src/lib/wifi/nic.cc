@@ -190,7 +190,7 @@ class Root : public Genode::Root_component<Wifi_session_component,
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
 				Genode::error("insufficient 'ram_quota', got ", ram_quota, " need ",
 				              tx_buf_size + rx_buf_size + session_size);
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 			}
 
 			session = new (md_alloc())

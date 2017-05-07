@@ -54,7 +54,7 @@ struct Init::Server::Service
 	 * Determine route to child service for a given label according
 	 * to the <service> node policy
 	 *
-	 * \throw Parent::Service_denied
+	 * \throw Service_denied
 	 */
 	Route resolve_session_request(Session_label const &);
 
@@ -69,7 +69,7 @@ Init::Server::Service::resolve_session_request(Session_label const &label)
 		Session_policy policy(label, _service_node.xml());
 
 		if (!policy.has_sub_node("child"))
-			throw Parent::Service_denied();
+			throw Service_denied();
 
 		Xml_node target_node = policy.sub_node("child");
 
@@ -86,12 +86,12 @@ Init::Server::Service::resolve_session_request(Session_label const &label)
 				match = &service; });
 
 		if (!match || match->abandoned())
-			throw Parent::Service_denied();
+			throw Service_denied();
 
 		return Route { *match, target_label };
 	}
 	catch (Session_policy::No_policy_defined) {
-		throw Parent::Service_denied(); }
+		throw Service_denied(); }
 }
 
 
@@ -109,7 +109,7 @@ Init::Server::_resolve_session_request(Service::Name const &service_name,
 			matching_service = &service; });
 
 	if (!matching_service)
-		throw Parent::Service_denied();
+		throw Service_denied();
 
 	return matching_service->resolve_session_request(label);
 }
@@ -226,7 +226,7 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 			        "(", ram_quota, " bytes, ", cap_quota, " caps) "
 			        "of forwarded ", name, " session");
 			session.destroy();
-			throw Parent::Service_denied();
+			throw Service_denied();
 		}
 
 		session.ready_callback  = this;
@@ -239,22 +239,22 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		if (session.phase == Session_state::CREATE_REQUESTED)
 			route.service.wakeup();
 
-		if (session.phase == Session_state::INVALID_ARGS)
-			throw Parent::Service_denied();
+		if (session.phase == Session_state::SERVICE_DENIED)
+			throw Service_denied();
 
 		if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA)
-			throw Genode::Insufficient_ram_quota();
+			throw Insufficient_ram_quota();
 
 		if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA)
-			throw Genode::Insufficient_cap_quota();
+			throw Insufficient_cap_quota();
 	}
-	catch (Parent::Service_denied) {
+	catch (Service_denied) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
-		                               Parent::INVALID_ARGS); }
-	catch (Genode::Insufficient_ram_quota) {
+		                               Parent::SERVICE_DENIED); }
+	catch (Insufficient_ram_quota) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
 		                               Parent::INSUFFICIENT_RAM_QUOTA); }
-	catch (Genode::Insufficient_cap_quota) {
+	catch (Insufficient_cap_quota) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
 		                               Parent::INSUFFICIENT_CAP_QUOTA); }
 }
@@ -373,9 +373,8 @@ void Init::Server::apply_config(Xml_node config)
 			bool const route_unchanged = (route.service == session.service())
 			                          && (route.label == session.label());
 			if (!route_unchanged)
-				throw Parent::Service_denied();
+				throw Service_denied();
 		}
-		catch (Parent::Service_denied) {
-			close_session(session); }
+		catch (Service_denied) { close_session(session); }
 	});
 }

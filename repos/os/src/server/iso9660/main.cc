@@ -153,9 +153,9 @@ class Iso::Root : public Iso::Root_component
 			try {
 				return new (_alloc) Rom_component(_env, _alloc, _cache, _block, _path);
 			}
-			catch (Io_error)       { throw Root::Unavailable(); }
-			catch (Non_data_disc)  { throw Root::Unavailable(); }
-			catch (File_not_found) { throw Root::Invalid_args(); }
+			catch (Io_error)       { throw Service_denied(); }
+			catch (Non_data_disc)  { throw Service_denied(); }
+			catch (File_not_found) { throw Service_denied(); }
 		}
 
 	public:

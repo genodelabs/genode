@@ -166,9 +166,8 @@ ACPI_STATUS AcpiOsReadPort (ACPI_IO_ADDRESS port, UINT32 *value, UINT32 width)
 		default:
 			FAIL(AE_BAD_PARAMETER)
 		}
-	} catch (Genode::Parent::Service_denied) {
-		return AE_BAD_PARAMETER;
 	}
+	catch (Genode::Service_denied) { return AE_BAD_PARAMETER; }
 
 	return AE_OK;
 }
@@ -196,9 +195,8 @@ ACPI_STATUS AcpiOsWritePort (ACPI_IO_ADDRESS port, UINT32 value, UINT32 width)
 		default:
 			FAIL(AE_BAD_PARAMETER)
 		}
-	} catch (Genode::Parent::Service_denied) {
-		return AE_BAD_PARAMETER;
 	}
+	catch (Genode::Service_denied) { return AE_BAD_PARAMETER; }
 
 	return AE_OK;
 }

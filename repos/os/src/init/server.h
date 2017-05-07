@@ -69,7 +69,7 @@ class Init::Server : Session_state::Ready_callback,
 		Constructible<Signal_handler<Server> > _session_request_handler;
 
 		/**
-		 * \throw Parent::Service_denied
+		 * \throw Service_denied
 		 */
 		Route _resolve_session_request(Genode::Service::Name const &,
 		                               Session_label const &);

@@ -441,13 +441,15 @@ class File_system::Root : public Root_component<Session_component>
 						throw Lookup_failed();
 
 					root_dir = root;
-				} catch (Xml_node::Nonexistent_attribute) {
+				}
+				catch (Xml_node::Nonexistent_attribute) {
 					Genode::error("missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
-				} catch (Lookup_failed) {
+					throw Service_denied();
+				}
+				catch (Lookup_failed) {
 					Genode::error("session root directory \"",
 					              Genode::Cstring(root), "\" does not exist");
-					throw Root::Unavailable();
+					throw Service_denied();
 				}
 
 				/*
@@ -459,7 +461,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			} catch (Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy");
-				throw Root::Unavailable();
+				throw Genode::Service_denied();
 			}
 
 			size_t ram_quota =
@@ -469,7 +471,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");
-				throw Root::Invalid_args();
+				throw Genode::Service_denied();
 			}
 
 			/*

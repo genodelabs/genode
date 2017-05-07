@@ -126,13 +126,13 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	for (unsigned i = 0; i < 2; i++) {
 		using namespace Genode;
 
-		try {
-			return create_thread(thread, attr, start_routine, arg);
-		} catch (Cpu_session::Out_of_metadata) {
+		try { return create_thread(thread, attr, start_routine, arg); }
+		catch (Out_of_ram) {
 			log("Upgrading memory for creation of "
 			    "thread '", Cstring(rtthread->szName), "'");
 			cpu_connection(rtthread->enmType)->upgrade_ram(4096);
-		} catch (...) { break; }
+		}
+		catch (...) { break; }
 	}
 
 	Genode::error("could not create vbox pthread - halt");

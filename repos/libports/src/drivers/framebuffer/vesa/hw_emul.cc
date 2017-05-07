@@ -72,16 +72,14 @@ class Pci_card
 
 		Platform::Device_capability _first_device()
 		{
-			return Genode::retry<Platform::Session::Out_of_metadata>(
-				[&] () { return _pci_drv.first_device(); },
-				[&] () { _pci_drv.upgrade_ram(4096); });
+			return _pci_drv.with_upgrade([&] () {
+				return _pci_drv.first_device(); });
 		}
 
 		Platform::Device_capability _next_device(Platform::Device_capability prev)
 		{
-			return Genode::retry<Platform::Session::Out_of_metadata>(
-				[&] () { return _pci_drv.next_device(prev); },
-				[&] () { _pci_drv.upgrade_ram(4096); });
+			return _pci_drv.with_upgrade([&] () {
+				return _pci_drv.next_device(prev); });
 		}
 
 		Platform::Device_capability _find_vga_card()

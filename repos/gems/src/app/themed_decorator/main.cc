@@ -118,7 +118,7 @@ struct Decorator::Main : Window_factory_base
 		 * high amount of view handles.
 		 *
 		 * XXX Consider upgrading the session quota on demand by responding
-		 * to Out_of_metadata exceptions raised by the create_view
+		 * to Out_of_ram or Out_of_caps exceptions raised by the create_view
 		 * and view_handle operations. Currently, these exceptions will
 		 * abort the decorator.
 		 */

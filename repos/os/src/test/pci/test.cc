@@ -71,16 +71,9 @@ void Component::construct(Genode::Env &env)
 	/* open session to pci service */
 	static Platform::Connection pci(env);
 
-	/*
-	 * Functor that is called if the platform driver throws a
-	 * 'Out_of_metadata' exception.
-	 */
-	auto handler = [&] () { pci.upgrade_ram(4096); };
-
 	Platform::Device_capability prev_device_cap, device_cap;
 
-	auto attempt = [&] () { device_cap = pci.first_device(); };
-	retry<Platform::Session::Out_of_metadata>(attempt, handler);
+	pci.with_upgrade([&] () { device_cap = pci.first_device(); });
 
 	/*
 	 * Iterate through all installed devices
@@ -92,8 +85,7 @@ void Component::construct(Genode::Env &env)
 		pci.release_device(prev_device_cap);
 		prev_device_cap = device_cap;
 
-		auto attempt = [&] () { device_cap = pci.next_device(device_cap); };
-		retry<Platform::Session::Out_of_metadata>(attempt, handler);
+		pci.with_upgrade([&] () { device_cap = pci.next_device(device_cap); });
 	}
 
 	/* release last device */

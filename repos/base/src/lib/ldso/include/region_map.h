@@ -92,7 +92,7 @@ class Linker::Region_map
 		Local_addr attach_at(Dataspace_capability ds, addr_t local_addr,
 		                     size_t size = 0, off_t offset = 0)
 		{
-			return retry<Genode::Region_map::Out_of_metadata>(
+			return retry<Genode::Out_of_ram>(
 				[&] () {
 					return _rm.attach_at(ds, local_addr - _base, size, offset);
 				},
@@ -105,7 +105,7 @@ class Linker::Region_map
 		Local_addr attach_executable(Dataspace_capability ds, addr_t local_addr,
 		                             size_t size = 0, off_t offset = 0)
 		{
-			return retry<Genode::Region_map::Out_of_metadata>(
+			return retry<Genode::Out_of_ram>(
 				[&] () {
 					return _rm.attach_executable(ds, local_addr - _base, size, offset);
 				},

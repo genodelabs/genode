@@ -60,7 +60,8 @@ class Noux::Local_rom_factory : public Local_rom_service::Factory
 				return *new (_alloc)
 					Rom_session_component(_alloc, _env, _ep, _root_dir, _registry, rom_name);
 			}
-			catch (Rom_connection::Rom_connection_failed) { throw Denied(); }
+			catch (Rom_connection::Rom_connection_failed) {
+				throw Service_denied(); }
 		}
 
 		void upgrade(Rom_session_component &, Args const &) override { }

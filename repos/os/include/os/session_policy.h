@@ -167,7 +167,7 @@ class Genode::Session_policy : public Xml_node
 		/**
 		 * Exception type
 		 */
-		class No_policy_defined { };
+		class No_policy_defined : public Service_denied { };
 
 	private:
 

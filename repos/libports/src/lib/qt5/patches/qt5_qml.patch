@@ -90,7 +90,7 @@ index 5702c59..3d616b5 100644
  QT_BEGIN_NAMESPACE
 diff --git a/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 new file mode 100644
-index 0000000..25bdfc7
+index 0000000..705b371
 --- /dev/null
 +++ b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 @@ -0,0 +1,686 @@
@@ -483,7 +483,7 @@ index 0000000..25bdfc7
 +
 +  try {
 +	  rm->attach(ds_cap, (Genode::addr_t)base, is_executable);
-+  } catch (Genode::Rm_session::Region_conflict) {
++  } catch (Genode::Region_map::Region_conflict) {
 +	return false;
 +  }
 +

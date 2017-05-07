@@ -237,12 +237,12 @@ struct Audio_out::Root_policy
 		if (!Out::channel_number(channel_name, &channel_number)) {
 			Genode::error("invalid output channel '",(char const *)channel_name,"' requested, "
 			              "denying '",Genode::label_from_args(args),"'");
-			throw ::Root::Invalid_args();
+			throw Genode::Service_denied();
 		}
 		if (Audio_out::channel_acquired[channel_number]) {
 			Genode::error("output channel '",(char const *)channel_name,"' is unavailable, "
 			              "denying '",Genode::label_from_args(args),"'");
-			throw ::Root::Unavailable();
+			throw Genode::Service_denied();
 		}
 	}
 
@@ -428,12 +428,12 @@ struct Audio_in::Root_policy
 		if (!In::channel_number(channel_name, &channel_number)) {
 			Genode::error("invalid input channel '",(char const *)channel_name,"' requested, "
 			              "denying '",Genode::label_from_args(args),"'");
-			throw ::Root::Invalid_args();
+			throw Genode::Service_denied();
 		}
 		if (Audio_in::channel_acquired) {
 			Genode::error("input channel '",(char const *)channel_name,"' is unavailable, "
 			              "denying '",Genode::label_from_args(args),"'");
-			throw Genode::Root::Unavailable();
+			throw Genode::Service_denied();
 		}
 	}
 

@@ -54,7 +54,7 @@ class Input::Root_component : public Genode::Static_root<Input::Session>
     	        Genode::Affinity           const &affinity) override
 		{
 			if (_session.event_queue().enabled())
-				throw Root::Unavailable();
+				throw Genode::Service_denied();
 
 			_session.event_queue().enabled(true);
 

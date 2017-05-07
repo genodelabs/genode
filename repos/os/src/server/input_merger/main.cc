@@ -101,7 +101,7 @@ struct Input_merger::Main
 
 					input_source_list.insert(input_source);
 
-				} catch (Genode::Parent::Service_denied) {
+				} catch (Genode::Service_denied) {
 					error("parent denied input source '", label, "'");
 				}
 			} catch (Xml_node::Nonexistent_attribute) {

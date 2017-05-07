@@ -81,7 +81,7 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator *io_mem_alloc
 		error("Local MMIO mapping failed!");
 
 		_ds_cap = Io_mem_dataspace_capability();
-		throw Root::Invalid_args();
+		throw Service_denied();
 	}
 
 	_ds_cap = static_cap_cast<Io_mem_dataspace>(_ds_ep->manage(&_ds));

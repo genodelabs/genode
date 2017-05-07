@@ -647,7 +647,8 @@ class Display : public native_display
 			try {
 				_mode.width        = genode_framebuffer()->width();
 				_mode.height       = genode_framebuffer()->height();
-			} catch (Genode::Parent::Service_denied) {
+			}
+			catch (Genode::Service_denied) {
 				Genode::warning("EGL driver: could not create a Framebuffer session. "
 				                "Screen surfaces cannot be used.");
 				_mode.width  = 1;
