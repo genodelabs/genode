@@ -15,8 +15,13 @@
 #ifndef _CORE__INCLUDE__PLATFORM_H_
 #define _CORE__INCLUDE__PLATFORM_H_
 
+/* Genode includes */
 #include <base/allocator_avl.h>
 
+/* base-internal includes */
+#include <base/internal/capability_space.h>
+
+/* core-local includes */
 #include "synced_range_allocator.h"
 #include "platform_generic.h"
 #include "platform_thread.h"
@@ -136,15 +141,16 @@ namespace Genode {
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator *core_mem_alloc() { return &_ram_alloc; }
-			Range_allocator *ram_alloc()      { return &_ram_alloc; }
-			Range_allocator *io_mem_alloc()   { return &_io_mem_alloc; }
-			Range_allocator *io_port_alloc()  { return &_io_port_alloc; }
-			Range_allocator *irq_alloc()      { return &_irq_alloc; }
-			Range_allocator *region_alloc()   { return &_region_alloc; }
-			addr_t           vm_start() const { return _vm_start; }
-			size_t           vm_size()  const { return _vm_size; }
-			Rom_fs          *rom_fs()         { return &_rom_fs; }
+			Range_allocator *core_mem_alloc() override { return &_ram_alloc; }
+			Range_allocator *ram_alloc()      override { return &_ram_alloc; }
+			Range_allocator *io_mem_alloc()   override { return &_io_mem_alloc; }
+			Range_allocator *io_port_alloc()  override { return &_io_port_alloc; }
+			Range_allocator *irq_alloc()      override { return &_irq_alloc; }
+			Range_allocator *region_alloc()   override { return &_region_alloc; }
+			addr_t           vm_start() const override { return _vm_start; }
+			size_t           vm_size()  const override { return _vm_size; }
+			Rom_fs          *rom_fs()         override { return &_rom_fs; }
+			size_t           max_caps() const override { return Capability_space::max_caps(); }
 
 			void wait_for_exit();
 

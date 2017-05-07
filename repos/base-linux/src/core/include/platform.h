@@ -83,15 +83,28 @@ namespace Genode {
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator *core_mem_alloc() { return &_core_mem_alloc; }
-			Range_allocator *ram_alloc()      { return &_ram_alloc; }
-			Range_allocator *io_mem_alloc()   { return 0; }
-			Range_allocator *io_port_alloc()  { return 0; }
-			Range_allocator *irq_alloc()      { return 0; }
-			Range_allocator *region_alloc()   { return 0; }
-			addr_t           vm_start() const { return 0; }
-			size_t           vm_size()  const { return 0; }
-			Rom_fs          *rom_fs()         { return 0; }
+			Range_allocator *core_mem_alloc() override { return &_core_mem_alloc; }
+			Range_allocator *ram_alloc()      override { return &_ram_alloc; }
+			Range_allocator *io_mem_alloc()   override { return 0; }
+			Range_allocator *io_port_alloc()  override { return 0; }
+			Range_allocator *irq_alloc()      override { return 0; }
+			Range_allocator *region_alloc()   override { return 0; }
+			addr_t           vm_start() const override { return 0; }
+			size_t           vm_size()  const override { return 0; }
+			Rom_fs          *rom_fs()         override { return 0; }
+
+			/*
+			 * On Linux, the maximum number of capabilities is primarily
+			 * constrained by the limited number of file descriptors within
+			 * core. Each dataspace and and each thread consumes one
+			 * descriptor. However, all capabilies managed by the same
+			 * entrypoint share the same file descriptor such that the fd
+			 * limit would be an overly pessimistic upper bound.
+			 *
+			 * Hence, we define the limit somewhat arbitrary on Linux and
+			 * accept that scenarios may break when reaching core's fd limit.
+			 */
+			size_t max_caps() const override { return 10000; }
 
 			void wait_for_exit();
 	};

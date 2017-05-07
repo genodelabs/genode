@@ -198,6 +198,10 @@ class Genode::Platform : public Platform_generic
 		size_t region_alloc_size_at(void * addr) {
 			return (*_core_mem_alloc.virt_alloc())()->size_at(addr); }
 
+		size_t max_caps() const override
+		{
+			return 1UL << Core_cspace::NUM_CORE_SEL_LOG2;
+		}
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_H_ */

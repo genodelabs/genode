@@ -642,7 +642,8 @@ Platform::Platform() :
 	}
 
 	/* add capability selector ranges to map */
-	unsigned index = 0x2000;
+	unsigned const first_index = 0x2000;
+	unsigned index = first_index;
 	for (unsigned i = 0; i < 32; i++)
 	{
 		void * phys_ptr = 0;
@@ -658,6 +659,7 @@ Platform::Platform() :
 
 		index = range->base() + range->elements();
 	}
+	_max_caps = index - first_index;
 
 	/* add idle ECs to trace sources */
 	for (unsigned genode_cpu_id = 0; genode_cpu_id < _cpus.width(); genode_cpu_id++) {

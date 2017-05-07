@@ -134,6 +134,8 @@ namespace Genode {
 			{
 				construct_at<Cap_index_allocator_tpl<T, SZ> >(this);
 			}
+
+			size_t max_caps() const override { return SZ; }
 	};
 }
 

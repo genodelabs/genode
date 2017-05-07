@@ -41,9 +41,11 @@ using namespace Genode;
  */
 namespace {
 
+	enum { NUM_LOCAL_CAPS = 64*1024 };
+
 	struct Local_capability_space
 	:
-		Capability_space_tpl<64*1024, Native_capability::Data>
+		Capability_space_tpl<NUM_LOCAL_CAPS, Native_capability::Data>
 	{ };
 
 	static Local_capability_space &local_capability_space()
@@ -92,6 +94,9 @@ Native_capability Capability_space::import(Rpc_destination dst, Rpc_obj_key key)
 {
 	return local_capability_space().import(dst, key);
 }
+
+
+size_t Capability_space::max_caps() { return NUM_LOCAL_CAPS; }
 
 
 void Capability_space::print(Output &out, Native_capability::Data const &data)

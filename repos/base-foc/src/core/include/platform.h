@@ -158,6 +158,8 @@ namespace Genode {
 			Rom_fs           *rom_fs()         { return &_rom_fs;        }
 			Affinity::Space   affinity_space() const;
 
+			size_t max_caps() const override { return cap_idx_alloc()->max_caps(); }
+
 			void wait_for_exit();
 	};
 }

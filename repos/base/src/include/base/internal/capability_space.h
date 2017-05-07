@@ -48,6 +48,11 @@ namespace Genode { namespace Capability_space {
 	Rpc_obj_key rpc_obj_key(Native_capability::Data const &);
 
 	/**
+	 * Return capacity of the capability space
+	 */
+	size_t max_caps();
+
+	/**
 	 * Print internal capability representation
 	 */
 	void print(Output &, Native_capability::Data const &);

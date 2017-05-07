@@ -51,6 +51,8 @@ namespace Genode {
 
 			addr_t _map_pages(addr_t phys_page, addr_t pages);
 
+			size_t _max_caps = 0;
+
 		public:
 
 			/**
@@ -72,6 +74,7 @@ namespace Genode {
 			addr_t           vm_start() const override { return _vm_base; }
 			size_t           vm_size()  const override { return _vm_size;  }
 			Rom_fs          *rom_fs()         override { return &_rom_fs; }
+			size_t           max_caps() const override { return _max_caps; }
 
 			void wait_for_exit() override;
 			bool supports_unmap() override { return true; }
