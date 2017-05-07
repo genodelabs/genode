@@ -99,6 +99,11 @@ namespace Genode {
 			{
 				return Affinity::Space(1);
 			}
+
+			/**
+			 * Return system-wide maximum number of capabilities
+			 */
+			virtual size_t max_caps() const = 0;
 	};
 
 

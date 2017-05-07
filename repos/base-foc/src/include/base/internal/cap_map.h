@@ -113,6 +113,11 @@ namespace Genode {
 			 * Redo construction of the object
 			 */
 			virtual void reinit() = 0;
+
+			/**
+			 * Return capacity of allocator
+			 */
+			virtual size_t max_caps() const = 0;
 	};
 
 

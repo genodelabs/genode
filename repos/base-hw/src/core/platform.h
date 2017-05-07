@@ -25,6 +25,7 @@
 #include <hw/memory_region.h>
 #include <kernel/configuration.h>
 #include <kernel/core_interface.h>
+#include <kernel/pd.h>
 
 /* core includes */
 #include <platform_generic.h>
@@ -140,6 +141,12 @@ class Genode::Platform : public Genode::Platform_generic
 
 		Affinity::Space affinity_space() const {
 			return Affinity::Space(NR_OF_CPUS); }
+
+		/*
+		 * The system-wide maximum number of capabilities is constrained
+		 * by core's local capability space.
+		 */
+		size_t max_caps() const override { return Kernel::Pd::max_cap_ids; }
 };
 
 #endif /* _CORE__PLATFORM_H_ */
