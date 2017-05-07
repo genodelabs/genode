@@ -133,23 +133,24 @@ namespace {
 			/* extract session quota as specified by the 'Connection' */
 			char argbuf[Parent::Session_args::MAX_SIZE];
 			strncpy(argbuf, args.string(), sizeof(argbuf));
-			size_t ram_quota = Arg_string::find_arg(argbuf, "ram_quota").ulong_value(0);
+			Ram_quota ram_quota = ram_quota_from_args(argbuf);
 
-			return retry<Parent::Quota_exceeded>([&] () {
+			return retry<Parent::Quota_exceeded>(
+				[&] () {
 
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
-				                    String<32>(Number_of_bytes(ram_quota)).string());
+					Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+					                    String<32>(ram_quota).string());
 
-				Session_capability cap =
-					_parent.session(id, name, Parent::Session_args(argbuf), affinity);
+					Session_capability cap =
+						_parent.session(id, name, Parent::Session_args(argbuf), affinity);
 
-				if (cap.valid())
-					return cap;
+					if (cap.valid())
+						return cap;
 
-				_block_for_session();
-				return _parent.session_cap(id);
-			},
-			[&] () {
+					_block_for_session();
+					return _parent.session_cap(id);
+				},
+				[&] () {
 					/*
 					 * If our RAM session has less quota available than the
 					 * session quota, the session-quota transfer failed. In
@@ -159,18 +160,14 @@ namespace {
 					 * Otherwise, the session-quota transfer succeeded but
 					 * the request was denied by the server.
 					 */
-					if (ram_quota > ram().avail()) {
-
-						/* issue resource request */
-						char buf[128];
-						snprintf(buf, sizeof(buf), "ram_quota=%lu", ram_quota);
-
-						_parent.resource_request(Parent::Resource_args(buf));
+					if (ram_quota.value > ram().avail_ram().value) {
+						Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
+						_parent.resource_request(args);
 					} else {
-						ram_quota += 4096;
+						ram_quota = Ram_quota { ram_quota.value + 4096 };
 					}
-
-			}, NUM_ATTEMPTS);
+				},
+				NUM_ATTEMPTS);
 
 			warning("giving up to increase session quota for ", name.string(), " session "
 			        "after ", (int)NUM_ATTEMPTS, " attempts");

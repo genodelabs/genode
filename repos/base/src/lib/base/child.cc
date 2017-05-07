@@ -37,7 +37,7 @@ namespace {
 		class Transfer {
 
 			bool                   _ack;
-			size_t                 _quantum;
+			Ram_quota              _quantum;
 			Ram_session_capability _from;
 			Ram_session_capability _to;
 
@@ -54,7 +54,7 @@ namespace {
 				 *
 				 * \throw Quota_exceeded
 				 */
-				Transfer(size_t quantum,
+				Transfer(Ram_quota quantum,
 				         Ram_session_capability from,
 				         Ram_session_capability to)
 				: _ack(false), _quantum(quantum), _from(from), _to(to)
@@ -240,28 +240,27 @@ Session_capability Child::session(Parent::Client::Id id,
 	/* filter session affinity */
 	Affinity const filtered_affinity = _policy.filter_session_affinity(affinity);
 
-	size_t const ram_quota = Arg_string::find_arg(argbuf, "ram_quota").ulong_value(0);
+	Ram_quota const ram_quota = ram_quota_from_args(argbuf);
 
 	/* portion of quota to keep for ourself to maintain the session meta data */
 	size_t const keep_ram_quota = _session_factory.session_costs();
 
-	if (ram_quota < keep_ram_quota)
+	if (ram_quota.value < keep_ram_quota)
 		throw Parent::Quota_exceeded();
 
 	/* ram quota to be forwarded to the server */
-	size_t const forward_ram_quota = ram_quota - keep_ram_quota;
+	Ram_quota const forward_ram_quota { ram_quota.value - keep_ram_quota };
 
 	/* adjust the session information as presented to the server */
-	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
-	                    forward_ram_quota);
+	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
 
 	/* may throw a 'Parent::Service_denied' exception */
 	Child_policy::Route route = _resolve_session_request(_policy, name.string(), argbuf);
 	Service &service = route.service;
 
 	Session_state &session =
-		create_session(_policy.name(), service, route.label, _session_factory,
-		               _id_space, id, argbuf, filtered_affinity);
+		create_session(_policy.name(), service, route.label,
+		               _session_factory, _id_space, id, argbuf, filtered_affinity);
 
 	_policy.session_state_changed();
 
@@ -380,8 +379,8 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			return;
 		}
 
-		size_t const ram_quota =
-			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
+		Ram_quota const ram_quota {
+			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0) };
 
 		try {
 			/* transfer quota from client to ourself */
@@ -431,8 +430,8 @@ void Child::_revert_quota_and_destroy(Session_state &session)
 		 * quota that we preserved for locally storing the session meta data
 		 * ('session_costs').
 		 */
-		Transfer donation_to_client(session.donated_ram_quota() +
-		                            _session_factory.session_costs(),
+		Transfer donation_to_client(Ram_quota{session.donated_ram_quota().value +
+		                                      _session_factory.session_costs()},
 		                            _policy.ref_ram_cap(), ram_session_cap());
 		/* finish transaction */
 		donation_from_service.acknowledge();

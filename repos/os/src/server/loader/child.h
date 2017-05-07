@@ -45,7 +45,7 @@ class Loader::Child : public Child_policy
 		Session_label const _label;
 		Name          const _binary_name;
 
-		size_t const _ram_quota;
+		Ram_quota const _ram_quota;
 
 		Parent_services &_parent_services;
 
@@ -62,7 +62,7 @@ class Loader::Child : public Child_policy
 		      Allocator                 &alloc,
 		      Name                const &binary_name,
 		      Session_label       const &label,
-		      size_t                     ram_quota,
+		      Ram_quota                  ram_quota,
 		      Parent_services           &parent_services,
 		      Service                   &local_rom_service,
 		      Service                   &local_cpu_service,
@@ -74,7 +74,7 @@ class Loader::Child : public Child_policy
 			_alloc(alloc),
 			_label(label),
 			_binary_name(binary_name),
-			_ram_quota(Genode::Child::effective_ram_quota(ram_quota)),
+			_ram_quota(Genode::Child::effective_quota(ram_quota)),
 			_parent_services(parent_services),
 			_local_nitpicker_service(local_nitpicker_service),
 			_local_rom_service(local_rom_service),

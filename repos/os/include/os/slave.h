@@ -56,7 +56,7 @@ class Genode::Slave::Policy : public Child_policy
 		Binary_name              const _binary_name;
 		Ram_session_client             _ram;
 		Genode::Parent_service         _binary_service;
-		size_t                         _ram_quota;
+		Ram_quota                const _ram_quota;
 		Parent_services               &_parent_services;
 		Rpc_entrypoint                &_ep;
 		Child_policy_dynamic_rom_file  _config_policy;
@@ -83,7 +83,7 @@ class Genode::Slave::Policy : public Child_policy
 		       Rpc_entrypoint         &ep,
 		       Region_map             &rm,
 		       Ram_session_capability  ram_cap,
-		       size_t                  ram_quota)
+		       Ram_quota               ram_quota)
 		:
 			_label(label), _binary_name(binary_name), _ram(ram_cap),
 			_binary_service(Rom_session::service_name()),

@@ -162,7 +162,7 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 	if (!Genode::strcmp(name, "RUMP_MEMLIMIT")) {
 
 		/* leave 2 MB for the Genode */
-		size_t rump_ram =  Rump::env().env().ram().avail();
+		size_t rump_ram =  Rump::env().env().ram().avail_ram().value;
 
 		if (rump_ram <= RESERVE_MEM) {
 			Genode::error("insufficient quota left: ",

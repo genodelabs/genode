@@ -467,7 +467,7 @@ extern "C" int fork()
 		return -1;
 	}
 
-	Number_of_bytes ram_quota = genode_env->ram().avail() - preserved_ram_quota;
+	Number_of_bytes ram_quota = genode_env->ram().avail_ram().value - preserved_ram_quota;
 
 	/* start the application */
 
@@ -482,7 +482,7 @@ extern "C" int fork()
 	App_child *child = new (alloc) App_child(*genode_env,
 	                                         alloc,
 	                                         filename,
-	                                         ram_quota,
+	                                         Ram_quota{ram_quota},
 	                                         signal_receiver,
 	                                         target_node);
 

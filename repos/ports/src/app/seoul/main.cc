@@ -1403,7 +1403,7 @@ void Component::construct(Genode::Env &env)
 		Genode::log("--- Vancouver VMM starting ---");
 
 		/* request max available memory */
-		vm_size = env.ram().avail();
+		vm_size = env.ram().avail_ram().value;
 		/* reserve some memory for the VMM */
 		vm_size -= 8 * 1024 * 1024;
 		/* calculate max memory for the VM */

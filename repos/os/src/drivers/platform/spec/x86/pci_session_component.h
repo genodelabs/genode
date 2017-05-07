@@ -252,7 +252,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_ram.ref_account(_env_ram_cap);
 
 			enum { OVERHEAD = 4096 };
-			if (_env_ram.transfer_quota(_ram, OVERHEAD) != 0)
+			if (_env_ram.transfer_quota(_ram, Genode::Ram_quota{OVERHEAD}) != 0)
 				throw Genode::Root::Quota_exceeded();
 		}
 
@@ -322,7 +322,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				          Genode::Session_label   const &label)
 				try :
 					_reservation(guard, RAM_QUOTA),
-					_policy(ep, local_rm, ref_ram, RAM_QUOTA, label),
+					_policy(ep, local_rm, ref_ram, Genode::Ram_quota{RAM_QUOTA}, label),
 					_child(local_rm, ep, _policy),
 					_connection(_policy, Genode::Slave::Args())
 				{ }
@@ -984,10 +984,11 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						if (!_env_ram.withdraw(UPGRADE_QUOTA))
 							_rollback(size, ram_cap);
 
-						if (_env_ram.transfer_quota(_ram, UPGRADE_QUOTA))
+						if (_env_ram.transfer_quota(_ram, Genode::Ram_quota{UPGRADE_QUOTA}))
 							throw Fatal();
 
-						if (_ram.transfer_quota(_device_pd->ram_session_cap(), UPGRADE_QUOTA))
+						if (_ram.transfer_quota(_device_pd->ram_session_cap(),
+						                        Genode::Ram_quota{UPGRADE_QUOTA}))
 							throw Fatal();
 					});
 			}

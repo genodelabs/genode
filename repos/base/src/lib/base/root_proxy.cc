@@ -195,13 +195,11 @@ void Root_proxy::_handle_session_request(Xml_node request)
 
 		_id_space.apply<Session>(id, [&] (Session &session) {
 
-			size_t ram_quota = request.attribute_value("ram_quota", 0UL);
+			Ram_quota const ram_quota { request.attribute_value("ram_quota", 0UL) };
 
-			char buf[64];
-			snprintf(buf, sizeof(buf), "ram_quota=%ld", ram_quota);
+			String<80> const args("ram_quota=", ram_quota);
 
-			// XXX handle Root::Invalid_args
-			Root_client(session.service.root).upgrade(session.cap, buf);
+			Root_client(session.service.root).upgrade(session.cap, args.string());
 
 			_env.parent().session_response(id, Parent::SESSION_OK);
 		});

@@ -180,9 +180,9 @@ namespace Genode {
 			 ***************************/
 
 			int ref_account(Ram_session_capability);
-			int transfer_quota(Ram_session_capability, size_t);
-			size_t quota() { return _quota_limit; }
-			size_t used()  { return _payload; }
+			int transfer_quota(Ram_session_capability, Ram_quota);
+			Ram_quota ram_quota() const override { return { _quota_limit}; }
+			Ram_quota used_ram()  const override { return { _payload}; }
 	};
 }
 

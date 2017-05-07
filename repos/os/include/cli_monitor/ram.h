@@ -37,11 +37,11 @@ class Cli_monitor::Ram
 
 		void _validate_preservation()
 		{
-			if (_ram.avail() < _preserve)
+			if (_ram.avail_ram().value < _preserve)
 				Genode::Signal_transmitter(_yield_sigh).submit();
 
 			/* verify to answer outstanding resource requests too */
-			if (_ram.avail() > _preserve)
+			if (_ram.avail_ram().value > _preserve)
 				Genode::Signal_transmitter(_resource_avail_sigh).submit();
 		}
 
@@ -86,7 +86,8 @@ class Cli_monitor::Ram
 		{
 			Genode::Lock::Guard guard(_lock);
 
-			return Status(_ram.quota(), _ram.used(), _ram.avail(), _preserve);
+			return Status(_ram.ram_quota().value, _ram.used_ram().value,
+			              _ram.avail_ram().value, _preserve);
 		}
 
 		void validate_preservation()
@@ -109,7 +110,7 @@ class Cli_monitor::Ram
 			Genode::Lock::Guard guard(_lock);
 
 			int const ret =
-				Genode::Ram_session_client(from).transfer_quota(_ram_cap, amount);
+				Genode::Ram_session_client(from).transfer_quota(_ram_cap, Genode::Ram_quota{amount});
 
 			if (ret != 0)
 				throw Transfer_quota_failed();
@@ -124,18 +125,18 @@ class Cli_monitor::Ram
 		{
 			Genode::Lock::Guard guard(_lock);
 
-			if (_ram.avail() < (_preserve + amount)) {
+			if (_ram.avail_ram().value < (_preserve + amount)) {
 				Genode::Signal_transmitter(_yield_sigh).submit();
 				throw Transfer_quota_failed();
 			}
 
-			int const ret = _ram.transfer_quota(to, amount);
+			int const ret = _ram.transfer_quota(to, Genode::Ram_quota{amount});
 
 			if (ret != 0)
 				throw Transfer_quota_failed();
 		}
 
-		size_t avail() const { return _ram.avail(); }
+		size_t avail() const { return _ram.avail_ram().value; }
 };
 
 #endif /* _INCLUDE__CLI_MONITOR__RAM_H_ */

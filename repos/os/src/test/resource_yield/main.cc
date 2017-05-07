@@ -98,7 +98,7 @@ void Test::Child::_handle_periodic_timeout()
 {
 	size_t const chunk_size = 1024*1024;
 
-	if (_env.ram().avail() < chunk_size) {
+	if (_env.ram().avail_ram().value < chunk_size) {
 
 		if (_expand) {
 			log("quota consumed, request additional resources");
@@ -197,8 +197,8 @@ class Test::Parent
 
 		void _print_status()
 		{
-			log("quota: ", _child.ram().quota() / 1024, " KiB  "
-			    "used: ",  _child.ram().used()  / 1024, " KiB");
+			log("quota: ", _child.ram().ram_quota().value / 1024, " KiB  "
+			    "used: ",  _child.ram().used_ram().value  / 1024, " KiB");
 		}
 
 		size_t _used_ram_prior_yield = 0;
@@ -229,7 +229,7 @@ class Test::Parent
 		void _request_yield()
 		{
 			/* remember quantum of resources used by the child */
-			_used_ram_prior_yield = _child.ram().used();
+			_used_ram_prior_yield = _child.ram().used_ram().value;
 
 			log("request yield (ram prior yield: ", _used_ram_prior_yield);
 
@@ -259,7 +259,7 @@ class Test::Parent
 			_print_status();
 
 			/* validate that the amount of yielded resources matches the request */
-			size_t const used_after_yield = _child.ram().used();
+			size_t const used_after_yield = _child.ram().used_ram().value;
 			if (used_after_yield + 5*1024*1024 > _used_ram_prior_yield) {
 				error("child has not yielded enough resources");
 				throw Insufficient_yield();
@@ -296,7 +296,7 @@ class Test::Parent
 			:
 				Slave::Policy(Label("child"), "test-resource_yield",
 				              *this, env.ep().rpc_ep(), env.rm(),
-				              env.ram_session_cap(), SLAVE_QUOTA),
+				              env.ram_session_cap(), Ram_quota{SLAVE_QUOTA}),
 				_parent(parent)
 			{
 				configure("<config child=\"yes\" />");

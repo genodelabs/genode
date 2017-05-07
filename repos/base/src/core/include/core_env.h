@@ -96,22 +96,22 @@ namespace Genode {
 				return RAM_SESSION_IMPL::ref_account(session);
 			}
 
-			int transfer_quota(Ram_session_capability session, size_t size)
+			int transfer_quota(Ram_session_capability session, Ram_quota size)
 			{
 				Lock::Guard lock_guard(_lock);
 				return RAM_SESSION_IMPL::transfer_quota(session, size);
 			}
 
-			size_t quota()
+			Ram_quota ram_quota() const override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::quota();
+				return RAM_SESSION_IMPL::ram_quota();
 			}
 
-			size_t used()
+			Ram_quota used_ram() const override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::used();
+				return RAM_SESSION_IMPL::used_ram();
 			}
 	};
 

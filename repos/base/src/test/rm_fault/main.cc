@@ -106,7 +106,7 @@ class Test_child_policy : public Child_policy
 		{
 			enum { CHILD_QUOTA = 1*1024*1024 };
 			session.ref_account(_env.ram_session_cap());
-			_env.ram().transfer_quota(cap, CHILD_QUOTA);
+			_env.ram().transfer_quota(cap, Ram_quota{CHILD_QUOTA});
 		}
 
 		void init(Pd_session &session, Pd_session_capability cap) override

@@ -75,7 +75,7 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 			genode_env().ram().free(_ds);
 			Genode::log("free up ", _size, " ", _mem_allocated, "/",
 			            _mem_unused, " hit=", hit, "/", hit_coarse, " avail=",
-			            genode_env().ram().avail());
+			            genode_env().ram().avail_ram());
 		}
 
 		void unused()
@@ -140,7 +140,7 @@ class Avl_ds : public Genode::Avl_node<Avl_ds>
 			while (_unused_ds.first() && cbx &&
 			       (_mem_allocated + cb > MEMORY_MAX ||
 			        _mem_unused + cb > MEMORY_CACHED ||
-			        genode_env().ram().avail() < cb * 2
+			        genode_env().ram().avail_ram().value < cb * 2
 			       )
 			      )
 			{

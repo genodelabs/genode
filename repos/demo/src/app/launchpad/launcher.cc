@@ -20,7 +20,8 @@ using namespace Scout;
 
 void Launcher::launch()
 {
-	_launchpad->start_child(prg_name(), quota(),
+	_launchpad->start_child(prg_name(),
+	                        Launchpad::Ram_quota{quota()},
 	                        _config ? _config->config_ds()
 	                                : Genode::Dataspace_capability());
 }

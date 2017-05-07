@@ -274,10 +274,10 @@ int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 
 
 int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
-                                          size_t amount)
+                                          Ram_quota amount)
 {
 	auto lambda = [&] (Ram_session_component *dst) {
-		return _transfer_quota(dst, amount); };
+		return _transfer_quota(dst, amount.value); };
 
 	if (this->cap() == ram_session_cap)
 		return 0;

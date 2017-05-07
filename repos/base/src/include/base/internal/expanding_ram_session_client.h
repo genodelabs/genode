@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/retry.h>
-#include <ram_session/client.h>
+#include <ram_session/connection.h>
 
 /* base-internal includes */
 #include <base/internal/upgradeable_client.h>
@@ -26,6 +26,11 @@ namespace Genode { class Expanding_ram_session_client; }
 
 struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_session_client>
 {
+	void _request_ram_from_parent(size_t amount)
+	{
+		Parent &parent = *env_deprecated()->parent();
+		parent.resource_request(String<128>("ram_quota=", amount).string());
+	}
 	Expanding_ram_session_client(Ram_session_capability cap, Parent::Client::Id id)
 	: Upgradeable_client<Genode::Ram_session_client>(cap, id) { }
 
@@ -47,8 +52,6 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 					[&] () { upgrade_ram(8*1024); });
 			},
 			[&] () {
-				char buf[128];
-
 				/*
 				 * The RAM service withdraws the meta data for the allocator
 				 * from the RAM quota. In the worst case, a new slab block
@@ -59,16 +62,18 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 				 * Because the worst case almost never happens, we request
 				 * a bit too much quota for the most time.
 				 */
-				enum { ALLOC_OVERHEAD = 4096U };
-				Genode::snprintf(buf, sizeof(buf), "ram_quota=%lu",
-				                 size + ALLOC_OVERHEAD);
-				env_deprecated()->parent()->resource_request(buf);
+				enum { OVERHEAD = 4096UL };
+				_request_ram_from_parent(size + OVERHEAD);
 			},
 			NUM_ATTEMPTS);
 	}
 
-	int transfer_quota(Ram_session_capability ram_session, size_t amount) override
+	int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override
 	{
+		/*
+		 * Should the transfer fail because we don't have enough quota, request
+		 * the needed amount from the parent.
+		 */
 		enum { NUM_ATTEMPTS = 2 };
 		int ret = -1;
 		for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
@@ -76,15 +81,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 			ret = Ram_session_client::transfer_quota(ram_session, amount);
 			if (ret != -3) break;
 
-			/*
-			 * The transfer failed because we don't have enough quota. Request
-			 * the needed amount from the parent.
-			 *
-			 * XXX Let transfer_quota throw 'Ram_session::Quota_exceeded'
-			 */
-			char buf[128];
-			Genode::snprintf(buf, sizeof(buf), "ram_quota=%lu", amount);
-			env_deprecated()->parent()->resource_request(buf);
+			_request_ram_from_parent(amount.value);
 		}
 		return ret;
 	}

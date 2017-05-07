@@ -98,7 +98,7 @@ Dataspace_capability Config_registry::config(char const *name)
 
 void Launcher::init(Genode::Env &env, Allocator &alloc)
 {
-	static Launchpad launchpad(env, env.ram().avail());
+	static Launchpad launchpad(env, env.ram().avail_ram().value);
 	_launchpad_ptr = &launchpad;
 	_alloc_ptr     = &alloc;
 	_env_ptr       = &env;
@@ -114,6 +114,7 @@ void Launcher::launch()
 		throw Missing_launchpad_init_call();
 	}
 
-	_launchpad_ptr->start_child(prg_name(), quota(),
+	_launchpad_ptr->start_child(prg_name(),
+	                            Launchpad::Ram_quota{quota()},
 	                            config_registry.config(prg_name().string()));
 }

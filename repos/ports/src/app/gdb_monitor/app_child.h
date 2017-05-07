@@ -59,7 +59,7 @@ class Gdb_monitor::App_child : public Child_policy
 
 		Region_map                         &_rm;
 
-		size_t                              _ram_quota;
+		Ram_quota                           _ram_quota;
 
 		Rpc_entrypoint                      _entrypoint;
 
@@ -111,7 +111,7 @@ class Gdb_monitor::App_child : public Child_policy
 		App_child(Env             &env,
 		          Allocator       &alloc,
 		          char const      *unique_name,
-		          size_t           ram_quota,
+		          Ram_quota        ram_quota,
 		          Signal_receiver &signal_receiver,
 		          Xml_node         target_node)
 		:

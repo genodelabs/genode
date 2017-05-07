@@ -43,8 +43,8 @@ class Report_rom_slave : public Genode::Noncopyable
 
 			protected:
 
-				static Name           _name()  { return "report_rom"; }
-				static Genode::size_t _quota() { return 1024*1024; }
+				static Name              _name()  { return "report_rom"; }
+				static Genode::Ram_quota _quota() { return { 1024*1024 }; }
 
 			public:
 

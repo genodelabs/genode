@@ -19,6 +19,7 @@
 #include <base/service.h>
 #include <base/lock.h>
 #include <base/local_connection.h>
+#include <base/quota_guard.h>
 #include <util/arg_string.h>
 #include <ram_session/connection.h>
 #include <region_map/client.h>
@@ -140,6 +141,7 @@ struct Genode::Child_policy
 	 */
 	virtual Ram_session           &ref_ram() = 0;
 	virtual Ram_session_capability ref_ram_cap() const = 0;
+
 
 	/**
 	 * Respond to the release of resources by the child
@@ -570,6 +572,15 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 */
 		void session_closed(Session_state &) override;
 
+		template <typename UNIT>
+		static UNIT _effective_quota(UNIT requested_quota, UNIT env_quota)
+		{
+			if (requested_quota.value < env_quota.value)
+				return UNIT { 0 };
+
+			return UNIT { requested_quota.value - env_quota.value };
+		}
+
 	public:
 
 		/**
@@ -623,13 +634,13 @@ class Genode::Child : protected Rpc_object<Parent>,
 		void initiate_env_sessions();
 
 		/**
-		 * RAM quota unconditionally consumed by the child's environment
+		 * Quota unconditionally consumed by the child's environment
 		 */
-		static size_t env_ram_quota()
+		static Ram_quota env_ram_quota()
 		{
-			return Cpu_connection::RAM_QUOTA + Ram_connection::RAM_QUOTA +
-			        Pd_connection::RAM_QUOTA + Log_connection::RAM_QUOTA +
-			     2*Rom_connection::RAM_QUOTA;
+			return { Cpu_connection::RAM_QUOTA + Ram_connection::RAM_QUOTA +
+			         Pd_connection::RAM_QUOTA + Log_connection::RAM_QUOTA +
+			         2*Rom_connection::RAM_QUOTA };
 		}
 
 		template <typename FN>
@@ -639,14 +650,11 @@ class Genode::Child : protected Rpc_object<Parent>,
 		}
 
 		/**
-		 * Deduce session costs from usable ram quota
+		 * Deduce env session costs from usable RAM quota
 		 */
-		static size_t effective_ram_quota(size_t const ram_quota)
+		static Ram_quota effective_quota(Ram_quota quota)
 		{
-			if (ram_quota < env_ram_quota())
-				return 0;
-
-			return ram_quota - env_ram_quota();
+			return _effective_quota(quota, env_ram_quota());
 		}
 
 		Ram_session_capability ram_session_cap() const { return _ram.cap(); }

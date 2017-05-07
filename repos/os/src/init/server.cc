@@ -180,15 +180,15 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		char argbuf[Parent::Session_args::MAX_SIZE];
 		strncpy(argbuf, args.string(), sizeof(argbuf));
 
-		size_t const ram_quota  = Arg_string::find_arg(argbuf, "ram_quota").ulong_value(0);
+		Ram_quota const ram_quota = ram_quota_from_args(argbuf);
 		size_t const keep_quota = route.service.factory().session_costs();
 
-		if (ram_quota < keep_quota)
+		if (ram_quota.value < keep_quota)
 			throw Genode::Service::Quota_exceeded();
 
-		size_t const forward_ram_quota = ram_quota - keep_quota;
+		Ram_quota const forward_ram_quota { ram_quota.value - keep_quota };
 
-		Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota);
+		Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
 
 		Session_state &session =
 			route.service.create_session(route.service.factory(),
@@ -237,7 +237,7 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 
-		size_t const ram_quota = request.attribute_value("ram_quota", 0UL);
+		Ram_quota const ram_quota { request.attribute_value("ram_quota", 0UL) };
 
 		session.phase = Session_state::UPGRADE_REQUESTED;
 

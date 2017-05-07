@@ -34,7 +34,7 @@ struct Loader::Session_client : Genode::Rpc_client<Session>
 	void commit_rom_module(Name const &name) override {
 		call<Rpc_commit_rom_module>(name); }
 
-	void ram_quota(size_t quantum) override {
+	void ram_quota(Ram_quota quantum) override {
 		call<Rpc_ram_quota>(quantum); }
 
 	void constrain_geometry(Area size) override {

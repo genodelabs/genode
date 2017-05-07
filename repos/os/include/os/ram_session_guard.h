@@ -48,7 +48,7 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 		template <typename T>
 		int transfer_quota(Ram_session_capability ram_session, size_t amount)
 		{
-			int const error = transfer_quota(ram_session, amount);
+			int const error = transfer_quota(ram_session, Ram_quota{amount});
 
 			if (error == RM_SESSION_INSUFFICIENT_QUOTA)
 				throw T();
@@ -98,7 +98,7 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			if (amount > _used)
 				return -4;
 
-			int error = ram_session.transfer_quota(_session_cap, amount);
+			int error = ram_session.transfer_quota(_session_cap, Ram_quota{amount});
 			if (!error)
 				_used -= amount;
 
@@ -140,22 +140,21 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			return _session.ref_account(ram_session); }
 
 		int transfer_quota(Ram_session_capability ram_session,
-		                   size_t amount) override
+		                   Ram_quota amount) override
 		{
-			if (_used + amount <= _used || _used + amount > _quota)
+			if (_used + amount.value <= _used || _used + amount.value > _quota)
 				return RM_SESSION_INSUFFICIENT_QUOTA;
 
 			int const error = _session.transfer_quota(ram_session, amount);
 
 			if (!error)
-				_used += amount;
+				_used += amount.value;
 
 			return error;
 		}
 
-		size_t quota() override { return _quota; }
-
-		size_t used() override { return _used; }
+		Ram_quota ram_quota() const override { return Ram_quota{_quota}; }
+		Ram_quota used_ram()  const override { return Ram_quota{_used}; }
 };
 
 #endif /* _INCLUDE__OS__RAM_SESSION_GUARD_H_ */

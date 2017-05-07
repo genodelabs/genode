@@ -63,7 +63,7 @@ static int l_quota(lua_State *lua)
 		return 0;
 	}
 
-	lua_pushnumber(lua, Moon::env->ram.quota());
+	lua_pushnumber(lua, Moon::env->ram.ram_quota().value);
 
 	return 1;
 }

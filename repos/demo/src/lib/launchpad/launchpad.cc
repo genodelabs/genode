@@ -143,7 +143,7 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 
 
 Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name,
-                                        unsigned long ram_quota,
+                                        Ram_quota ram_quota,
                                         Dataspace_capability config_ds)
 {
 	log("starting ", binary_name, " with quota ", ram_quota);
@@ -152,27 +152,27 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 	Launchpad_child::Name const unique_name = _get_unique_child_name(binary_name);
 	log("using unique child name \"", unique_name, "\"");
 
-	if (ram_quota > _env.ram().avail()) {
-		error("child's ram quota is higher than our available quota, using available quota");
+	if (ram_quota.value > _env.ram().avail_ram().value) {
+		warning("child's ram quota is higher than our available quota, using available quota");
 
-		size_t const avail     = _env.ram().avail();
+		size_t const avail     = _env.ram().avail_ram().value;
 		size_t const preserved = 256*1024;
 
 		if (avail < preserved) {
 			error("giving up, our own quota is too low (", avail, ")");
 			return 0;
 		}
-		ram_quota = avail - preserved;
+		ram_quota = Ram_quota { avail - preserved };
 	}
 
 	size_t metadata_size = 4096*16 + sizeof(Launchpad_child);
 
-	if (metadata_size > ram_quota) {
+	if (metadata_size > ram_quota.value) {
 		error("too low ram_quota to hold child metadata");
 		return 0;
 	}
 
-	ram_quota -= metadata_size;
+	ram_quota = Ram_quota { ram_quota.value - metadata_size };
 
 	try {
 		Launchpad_child *c = new (&_sliced_heap)
@@ -182,7 +182,7 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 		Lock::Guard lock_guard(_children_lock);
 		_children.insert(c);
 
-		add_child(unique_name, ram_quota, *c, _heap);
+		add_child(unique_name, ram_quota.value, *c, _heap);
 		return c;
 
 	} catch (...) {

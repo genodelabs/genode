@@ -189,9 +189,9 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 		}
 
 		int ref_account(Ram_session_capability) { return 0; }
-		int transfer_quota(Ram_session_capability, size_t) { return 0; }
-		size_t quota() { return _ram.quota(); }
-		size_t used() { return _used_ram_quota; }
+		int transfer_quota(Ram_session_capability, Ram_quota) { return 0; }
+		Ram_quota ram_quota() const override { return _ram.ram_quota(); }
+		Ram_quota used_ram()  const override { return Ram_quota{_used_ram_quota}; }
 };
 
 #endif /* _NOUX__RAM_SESSION_COMPONENT_H_ */
