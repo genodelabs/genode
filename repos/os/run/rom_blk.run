@@ -15,6 +15,7 @@ install_config {
 	<default-route>
 		<any-service>  <any-child/> <parent/></any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="rom_blk">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Block"/></provides>

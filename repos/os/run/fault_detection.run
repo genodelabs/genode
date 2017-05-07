@@ -45,7 +45,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<start name="loader">
+		<start name="loader" caps="100">
 			<resource name="RAM" quantum="10M"/>
 			<provides> <service name="Loader"/> </provides>
 			<config>
@@ -56,7 +56,7 @@ install_config {
 				</policy>
 			</config>
 		</start>
-		<start name="test-fault_detection">
+		<start name="test-fault_detection" caps="500">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>

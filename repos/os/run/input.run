@@ -38,6 +38,7 @@ append config {
 		<service name="LOG"/>
 	</parent-provides>
 	<default-route/>
+	<default caps="100"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>

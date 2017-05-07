@@ -34,12 +34,14 @@ install_config {
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 
+	<default caps="100"/>
+
 	<start name="test-sync">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Sync"/></provides>
 	</start>
 
-	<start name="init_1" priority="-1">
+	<start name="init_1" priority="-1" caps="1000">
 		<binary name="init"/>
 		<resource name="RAM" quantum="20M"/>
 		<resource name="CPU" quantum="10"/>
@@ -60,6 +62,7 @@ install_config {
 			<default-route>
 				<any-service><parent/><any-child/></any-service>
 			</default-route>
+			<default caps="100"/>
 
 			<start name="test_slow">
 				<binary name="test-cpu_quota"/>
@@ -70,7 +73,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="init_2" priority="-2">
+	<start name="init_2" priority="-2" caps="1000">
 		<binary name="init"/>
 		<resource name="RAM" quantum="30M"/>
 		<resource name="CPU" quantum="80"/>
@@ -91,6 +94,8 @@ install_config {
 			<default-route>
 				<any-service><parent/></any-service>
 			</default-route>
+
+			<default caps="100"/>
 
 			<start name="test_midl" priority="0">
 				<binary name="test-cpu_quota"/>

@@ -33,6 +33,7 @@ append config {
 append config [qt5_parent_provides feature]
 append config {
 	</parent-provides>
+	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
 	</default-route>}
@@ -40,7 +41,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="loader">
+	<start name="loader" caps="100">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Loader"/></provides>
 		<config>
@@ -52,7 +53,7 @@ append config {
 			</policy>
 		</config>
 	</start>
-	<start name="test-qpluginwidget">
+	<start name="test-qpluginwidget" caps="900">
 		<resource name="RAM" quantum="30M"/>
 		<config>
 			<vfs>

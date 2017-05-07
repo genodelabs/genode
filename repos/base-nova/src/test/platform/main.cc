@@ -24,7 +24,6 @@
 #include <region_map/client.h>
 
 #include <base/attached_rom_dataspace.h>
-#include <os/config.h>
 
 #include <trace/timestamp.h>
 
@@ -270,7 +269,7 @@ void test_revoke(Genode::Env &env)
 void test_pat(Genode::Env &env)
 {
 	/* read out the tsc frequenzy once */
-	Genode::Attached_rom_dataspace _ds("hypervisor_info_page");
+	Genode::Attached_rom_dataspace _ds(env, "hypervisor_info_page");
 	Nova::Hip * const hip = _ds.local_addr<Nova::Hip>();
 
 	enum { DS_ORDER = 12, PAGE_4K = 12 };
@@ -647,8 +646,13 @@ Main::Main(Env &env) : env(env)
 	log("testing base-nova platform");
 
 	try {
-		Genode::config()->xml_node().attribute("check_pat").value(&check_pat);
-	} catch (...) { }
+		Attached_rom_dataspace config(env, "config");
+		config.xml().attribute("check_pat").value(&check_pat);
+	} catch (...) {
+		Genode::error("no check_pat attribute found");
+		env.parent().exit(-__LINE__);
+		return;
+	}
 
 	Thread * myself = Thread::myself();
 	if (!myself) {

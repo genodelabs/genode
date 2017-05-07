@@ -129,10 +129,8 @@ proc platform_drv_config {} {
 
 	if {[have_spec acpi]} {
 
-		append drv_config "
-	<start name=\"acpi_drv\" [platform_drv_priority]>"
-
 		append drv_config {
+	<start name="acpi_drv" } [platform_drv_priority] { caps="150" >
 		<resource name="RAM" quantum="3M"/>
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
@@ -172,10 +170,8 @@ proc platform_drv_config {} {
 
 	if {[have_platform_drv]} {
 
-		append drv_config "
-	<start name=\"platform_drv\" [platform_drv_priority]>"
-
 		append drv_config {
+	<start name="platform_drv" } [platform_drv_priority] { caps="700">
 		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
 		<provides>
 			<service name="Platform"/>}

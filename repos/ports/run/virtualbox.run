@@ -68,6 +68,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -220,7 +221,7 @@ append_if [expr $use_gui] config {
 		</route>
 	</start>
 
-	<start name="vbox2" priority="-2">}
+	<start name="vbox2" priority="-2" caps="200">}
 append_if [expr $use_gui] config "
 		<binary name=\"$virtualbox_binary\"/>"
 append_if [expr $use_gui] config {
@@ -242,7 +243,7 @@ append_if [expr $use_gui] config {
 	</start>}
 
 append config {
-	<start name="vbox1" priority="-2">}
+	<start name="vbox1" priority="-2" caps="200">}
 append config "
 		<binary name=\"$virtualbox_binary\"/>"
 append config {

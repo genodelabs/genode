@@ -35,6 +35,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="test-python">
 		<resource name="RAM" quantum="3M"/>
 		<config>

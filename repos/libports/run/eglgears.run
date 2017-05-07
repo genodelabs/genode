@@ -28,13 +28,15 @@ set config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
+	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 }
 
 append_if [have_spec sdl] config {
-	<start name="fb_sdl">
+	<start name="fb_sdl" caps="200">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Input"/>
@@ -45,7 +47,7 @@ append_if [have_spec sdl] config {
 append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
+	<start name="fb_drv" caps="200">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
@@ -75,10 +77,10 @@ append config {
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 	</start>
-	<start name="launchpad">
+	<start name="launchpad" caps="400">
 		<resource name="RAM" quantum="1G"/>
 		<config>
-			<launcher name="init" ram_quota="100M">
+			<launcher name="init" ram_quota="100M" caps="300">
 				<config>
 					<parent-provides>
 						<service name="ROM"/>
@@ -94,6 +96,7 @@ append config {
 						<service name="Nitpicker"/>
 						<service name="Timer"/>
 					</parent-provides>
+					<default caps="100"/>
 					<start name="nit_fb">
 						<resource name="RAM" quantum="2M"/>
 						<provides><service name="Input"/><service name="Framebuffer"/></provides>

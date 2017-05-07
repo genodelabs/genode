@@ -29,7 +29,7 @@ set config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
-	<start name="test-libc_vfs">
+	<start name="test-libc_vfs" caps="100">
 		<resource name="RAM" quantum="12M"/>
 		<route>
 			<any-service> <parent/> </any-service>

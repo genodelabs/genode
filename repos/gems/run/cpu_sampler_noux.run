@@ -185,7 +185,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="noux">
+	<start name="noux" caps="500">
 		<resource name="RAM" quantum="16M" />
 		<config>
 			<fstab>

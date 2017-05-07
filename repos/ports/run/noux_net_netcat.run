@@ -61,6 +61,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -134,7 +135,7 @@ append_if $use_usb_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="noux_net">
+	<start name="noux_net" caps="500">
 		<resource name="RAM" quantum="1G"/>
 		<config>
 			<fstab> <tar name="noux_netcat.tar" at="/"/> </fstab>

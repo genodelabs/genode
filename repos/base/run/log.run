@@ -14,6 +14,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
+		<default caps="50"/>
 		<start name="test-log">
 			<resource name="RAM" quantum="10M"/>
 		</start>

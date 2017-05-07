@@ -20,7 +20,7 @@ set config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-platform">
+		<start name="test-platform" caps="6000">
 			<resource name="RAM" quantum="96M"/>}
 
 append config "
@@ -35,7 +35,7 @@ install_config $config
 
 build_boot_image "core ld.lib.so init test-platform"
 
-append qemu_args "-nographic -m 128 -smp 2"
+append qemu_args "-nographic -m 192 -smp 2"
 
 run_genode_until {Test finished} 200
 

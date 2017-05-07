@@ -37,7 +37,8 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+	<default caps="100"/>}
 
 append_platform_drv_config
 
@@ -51,7 +52,7 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
-	<start name="nic_bridge">
+	<start name="nic_bridge" caps="200">
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
 		<config>

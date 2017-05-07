@@ -117,6 +117,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -232,7 +233,7 @@ append_if $use_wifi_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="netserver_genode">
+	<start name="netserver_genode" caps="200">
 }
 append config "<binary name=\"$netperf_app\"/>"
 append config {

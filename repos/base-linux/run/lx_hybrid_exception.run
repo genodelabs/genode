@@ -31,6 +31,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="test-lx_hybrid_exception">
 			<resource name="RAM" quantum="1M"/>
 		</start>

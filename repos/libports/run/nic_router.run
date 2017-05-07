@@ -95,7 +95,7 @@ proc ram_quota { prot } {
 
 proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 	append result {
-		<start name="} $prot {_client_} $index {">
+		<start name="} $prot {_client_} $index {" caps="200">
 			<binary  name="} [client_bin $prot] {" />
 			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
 			<route>
@@ -113,7 +113,7 @@ proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 
 proc server_config { prot index ip_addr gateway netmask nic port } {
 	append result {
-		<start name="} $prot {_server_} $index {">
+		<start name="} $prot {_server_} $index {" caps="200">
 			<binary  name="} [server_bin $prot] {" />
 			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
 			<route>
@@ -183,6 +183,8 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
+	<default caps="100"/>
+
 	} [gpio_drv_config] {
 	} [nic_drv_config] {
 	} [platform_drv_config] {
@@ -192,7 +194,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_router">
+	<start name="nic_router" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config rtt_sec="3" verbose="no">
@@ -239,7 +241,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_bridge">
+	<start name="nic_bridge" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config>

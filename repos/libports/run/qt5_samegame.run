@@ -31,6 +31,7 @@ append config {
 append config [qt5_parent_provides feature]
 append config {
 	</parent-provides>
+	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
 	</default-route>}
@@ -38,7 +39,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="samegame">
+	<start name="samegame" caps="200">
 		<resource name="RAM" quantum="128M"/>
 		<config>
 			<vfs>

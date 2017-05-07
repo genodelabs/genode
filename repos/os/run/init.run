@@ -29,6 +29,8 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
+	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -63,6 +65,7 @@ append config {
 					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="application">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1G"/>
@@ -107,6 +110,7 @@ append config {
 					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="server">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -169,6 +173,7 @@ append config {
 					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="server">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -222,6 +227,7 @@ append config {
 					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="server">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -264,6 +270,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="log">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -299,6 +306,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="log">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -331,6 +339,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="log">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -363,6 +372,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="application">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -377,6 +387,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="application">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -398,6 +409,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="application" version="X">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -421,6 +433,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -445,6 +458,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="renamed_dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -469,6 +483,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="another_dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -493,6 +508,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="regular">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -527,6 +543,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="1M"/>
@@ -553,6 +570,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="4M"/>
@@ -579,6 +597,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="4M"/>
@@ -606,6 +625,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="8M"/>
@@ -637,6 +657,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="8M"/>
@@ -663,6 +684,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="4M"/>
@@ -689,6 +711,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="4M"/>
@@ -718,6 +741,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="2M"/>
@@ -745,6 +769,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="2M"/>
@@ -773,6 +798,7 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
+				<default caps="100"/>
 				<start name="test">
 					<binary name="dummy"/>
 					<resource name="RAM" quantum="6M"/>
@@ -802,7 +828,8 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
-				<start name="service_init">
+				<default caps="100"/>
+				<start name="service_init" caps="200">
 					<binary name="init"/>
 					<resource name="RAM" quantum="10M"/>
 					<provides> <service name="LOG"/> </provides>
@@ -812,6 +839,7 @@ append config {
 							<service name="CPU"/> <service name="PD"/>
 							<service name="LOG"/>
 						</parent-provides>
+						<default caps="60"/>
 						<service name="LOG">
 							<default-policy> <child name="server"/> </default-policy>
 						</service>
@@ -868,7 +896,8 @@ append config {
 					<service name="CPU"/> <service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
-				<start name="service_init">
+				<default caps="100"/>
+				<start name="service_init" caps="200">
 					<binary name="init"/>
 					<resource name="RAM" quantum="10M"/>
 					<provides> <service name="LOG"/> </provides>
@@ -878,6 +907,7 @@ append config {
 							<service name="CPU"/> <service name="PD"/>
 							<service name="LOG"/>
 						</parent-provides>
+						<default caps="60"/>
 						<start name="server">
 							<binary name="dummy"/>
 							<resource name="RAM" quantum="1M"/>
@@ -916,7 +946,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="init">
+	<start name="init" caps="2000">
 		<binary name="init"/>
 		<resource name="RAM" quantum="16M"/>
 		<configfile name="init.config"/>

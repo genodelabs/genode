@@ -14,6 +14,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="test-rust">
 			<resource name="RAM" quantum="10M"/>
 		</start>

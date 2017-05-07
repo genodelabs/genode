@@ -70,6 +70,8 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -97,7 +99,7 @@ append config {
 	</start>}
 
 append_if [expr $use_rumpfs] config {
-	<start name="rump_fs" priority="-1">
+	<start name="rump_fs" priority="-1" caps="200">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
 		<config ld_verbose="yes" fs="ext2fs">}
@@ -113,7 +115,7 @@ append_if [expr $use_rumpfs] config {
 	</start>}
 
 append_if [expr $use_ram_fs] config {
-	<start name="ram_fs" priority="-1">}
+	<start name="ram_fs" priority="-1" caps="400">}
 append_if [expr $use_ram_fs] config "
 		<resource name=\"RAM\" quantum=\"[expr $use_vms * 8 * 128]M\"/>"
 append_if [expr $use_ram_fs] config {
@@ -305,7 +307,7 @@ append_if [expr $use_usb] config {
 }
 
 append_if [have_spec framebuffer] config {
-	<start name="fb_drv" priority="-1">
+	<start name="fb_drv" priority="-1" caps="150">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes"/>
