@@ -52,6 +52,13 @@ struct Report::Session : Genode::Session
 {
 	static const char *service_name() { return "Report"; }
 
+	/*
+	 * A report session consumes a dataspace capability for the server's
+	 * session-object allocation, the session capability, and a dataspace
+	 * capability for the report buffer.
+	 */
+	enum { CAP_QUOTA = 3 };
+
 	typedef Session_client Client;
 
 	/**

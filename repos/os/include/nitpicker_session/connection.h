@@ -53,6 +53,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			 */
 			using Genode::Arg_string;
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", RAM_QUOTA);
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota", CAP_QUOTA);
 
 			return session(parent, argbuf);
 		}

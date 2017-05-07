@@ -35,6 +35,14 @@ struct Genode::Pd_session : Session
 {
 	static const char *service_name() { return "PD"; }
 
+	/*
+	 * A PD session consumes a dataspace capability for the session-object
+	 * allocation, a capability for the 'Native_pd' RPC interface, its
+	 * session capability, and the RPC capabilities for the 3 contained
+	 * region maps.
+	 */
+	enum { CAP_QUOTA = 6 };
+
 	typedef Pd_session_client Client;
 
 	virtual ~Pd_session() { }

@@ -32,8 +32,8 @@ struct Report::Connection : Genode::Connection<Session>, Session_client
 	Capability<Report::Session> _session(Genode::Parent &parent,
 	                                     char const *label, size_t buffer_size)
 	{
-		return session(parent, "label=\"%s\", ram_quota=%ld, buffer_size=%zd",
-		               label, 10*1024 + buffer_size, buffer_size);
+		return session(parent, "label=\"%s\", ram_quota=%ld, cap_quota=%ld, buffer_size=%zd",
+		               label, 10*1024 + buffer_size, CAP_QUOTA, buffer_size);
 	}
 
 	/**

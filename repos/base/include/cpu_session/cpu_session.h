@@ -34,6 +34,13 @@ struct Genode::Cpu_session : Session
 {
 	static const char *service_name() { return "CPU"; }
 
+	/*
+	 * A CPU session consumes a dataspace capability for the session-object
+	 * allocation, its session capability, the capability of the 'Native_cpu'
+	 * RPC interface, and a capability for the trace-control dataspace.
+	 */
+	enum { CAP_QUOTA = 4 };
+
 	typedef Cpu_session_client Client;
 
 

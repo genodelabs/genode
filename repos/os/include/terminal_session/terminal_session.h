@@ -26,6 +26,13 @@ struct Terminal::Session : Genode::Session
 {
 	static const char *service_name() { return "Terminal"; }
 
+	/*
+	 * A terminal session consumes a dataspace capability for the server's
+	 * session-object allocation, its session capability, and a dataspace
+	 * capability for the communication buffer.
+	 */
+	enum { CAP_QUOTA = 3 };
+
 	class Size
 	{
 		private:

@@ -22,7 +22,7 @@ namespace Genode { struct Ram_connection; }
 
 struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
 {
-	enum { RAM_QUOTA = 4*1024*sizeof(long) };
+	enum { RAM_QUOTA = 4096*sizeof(long) };
 
 	/**
 	 * Issue session request
@@ -33,8 +33,8 @@ struct Genode::Ram_connection : Connection<Ram_session>, Ram_session_client
 	                                 addr_t phys_start, size_t phys_size)
 	{
 		return session(parent,
-		               "ram_quota=%u, phys_start=0x%lx, phys_size=0x%lx, "
-		               "label=\"%s\"", RAM_QUOTA, phys_start, phys_size, label);
+		               "ram_quota=%u, cap_quota=%u, phys_start=0x%lx, phys_size=0x%lx, "
+		               "label=\"%s\"", RAM_QUOTA, CAP_QUOTA, phys_start, phys_size, label);
 	}
 
 	/**

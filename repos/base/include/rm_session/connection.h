@@ -29,7 +29,8 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 	 */
 	Rm_connection(Env &env)
 	:
-		Connection<Rm_session>(env, session(env.parent(), "ram_quota=%u", RAM_QUOTA)),
+		Connection<Rm_session>(env, session(env.parent(), "ram_quota=%u, cap_quota=%u",
+		                       RAM_QUOTA, CAP_QUOTA)),
 		Rm_session_client(cap())
 	{ }
 
@@ -42,7 +43,7 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 	 */
 	Rm_connection() __attribute__((deprecated))
 	:
-		Connection<Rm_session>(session("ram_quota=%u", RAM_QUOTA)),
+		Connection<Rm_session>(session("ram_quota=%u, cap_quota=%u", RAM_QUOTA, CAP_QUOTA)),
 		Rm_session_client(cap())
 	{ }
 };

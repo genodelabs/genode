@@ -28,6 +28,8 @@ struct Timer::Session : Genode::Session
 
 	static const char *service_name() { return "Timer"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	virtual ~Session() { }
 
 	/**

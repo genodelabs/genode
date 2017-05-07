@@ -38,6 +38,15 @@ struct Nitpicker::Session : Genode::Session
 {
 	static const char *service_name() { return "Nitpicker"; }
 
+	/*
+	 * A nitpicker session consumes a dataspace capability for the server's
+	 * session-object allocation, a session capability, a dataspace capability
+	 * for the command buffer, and the capabilities needed for the aggregated
+	 * 'Framebuffer' and 'Input' sessions.
+	 */
+	enum { CAP_QUOTA = Framebuffer::Session::CAP_QUOTA
+	                 + Input::Session::CAP_QUOTA + 3 };
+
 	typedef Session_client Client;
 
 	/**

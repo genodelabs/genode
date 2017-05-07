@@ -34,7 +34,8 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 
 		Rom_session_capability _session(Parent &parent, char const *label)
 		{
-			return session("ram_quota=%ld, label=\"%s\"", RAM_QUOTA, label);
+			return session("ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
+			               RAM_QUOTA, CAP_QUOTA, label);
 		}
 
 	public:

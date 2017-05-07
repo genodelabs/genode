@@ -30,6 +30,8 @@ struct Platform::Device_pd : Genode::Session
 {
 	static const char *service_name() { return "DEVICE_PD"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	typedef Device_pd_client Client;
 
 	GENODE_RPC_THROW(Rpc_attach_dma_mem, void, attach_dma_mem,

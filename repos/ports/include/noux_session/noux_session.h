@@ -30,6 +30,8 @@ namespace Noux {
 	{
 		static const char *service_name() { return "Noux"; }
 
+		enum { CAP_QUOTA = 3 };
+
 		virtual ~Session() { }
 
 		virtual Dataspace_capability sysio_dataspace() = 0;

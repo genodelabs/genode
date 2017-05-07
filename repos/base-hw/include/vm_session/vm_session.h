@@ -26,6 +26,8 @@ namespace Genode {
 	{
 			static const char *service_name() { return "VM"; }
 
+			enum { CAP_QUOTA = 3 };
+
 			class Invalid_dataspace : Exception { };
 
 			/**

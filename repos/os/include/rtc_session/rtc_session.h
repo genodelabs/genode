@@ -42,6 +42,8 @@ struct Rtc::Session : Genode::Session
 {
 	static const char *service_name() { return "Rtc"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	virtual Timestamp current_time() = 0;
 
 	GENODE_RPC(Rpc_current_time, Timestamp, current_time);

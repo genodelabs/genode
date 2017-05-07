@@ -27,7 +27,8 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 * Constructor
 	 */
 	Connection(Genode::Env &env)
-	: Genode::Connection<Session>(env, session(env.parent(), "ram_quota=6K")),
+	: Genode::Connection<Session>(env, session(env.parent(),
+	                              "ram_quota=6K, cap_quota=%ld", CAP_QUOTA)),
 	  Client(cap()) { }
 
 	/**

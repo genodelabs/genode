@@ -32,8 +32,8 @@ struct Regulator::Connection : Genode::Connection<Session>, Session_client
 	                                        char const *label,
 	                                        Regulator_id regulator)
 	{
-		return session("ram_quota=8K, regulator=\"%s\", label=\"%s\"",
-		               regulator_name_by_id(regulator), label);
+		return session("ram_quota=8K, cap_quota=%ld, regulator=\"%s\", label=\"%s\"",
+		               CAP_QUOTA, regulator_name_by_id(regulator), label);
 	}
 
 	/**

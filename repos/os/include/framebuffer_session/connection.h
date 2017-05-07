@@ -43,8 +43,9 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 			char argbuf[ARGBUF_SIZE];
 			argbuf[0] = 0;
 
-			/* donate ram quota for storing server-side meta data */
+			/* donate ram and cap quota for storing server-side meta data */
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", RAM_QUOTA);
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota", CAP_QUOTA);
 
 			/* set optional session-constructor arguments */
 			if (width)
