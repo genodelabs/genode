@@ -18,7 +18,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-rm_fault">
+		<start name="test-rm_fault" caps="100">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>

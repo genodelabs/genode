@@ -21,6 +21,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
@@ -42,4 +43,4 @@ build_boot_image {
 
 append qemu_args " -nographic -m 65 "
 
-run_genode_until {.*test-moon.*Finished\..*} 30
+run_genode_until {.*test-moon.*Finished\..*} 40

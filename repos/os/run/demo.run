@@ -51,7 +51,8 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+	<default caps="100"/>}
 
 append_if [have_spec sdl] config {
 	<start name="fb_sdl">
@@ -210,7 +211,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="scout">
+	<start name="scout" caps="10000">
 		<resource name="RAM" quantum="64M" />
 	</start>
 </config>}
@@ -222,16 +223,16 @@ install_config $config
 #
 set launchpad_config_fd [open "bin/launchpad.config" w]
 puts $launchpad_config_fd {<config>
-	<launcher name="testnit"   ram_quota="768K" />
-	<launcher name="scout"     ram_quota="41M" />
-	<launcher name="launchpad" ram_quota="6M">
+	<launcher name="testnit"   ram_quota="768K" caps="50"/>
+	<launcher name="scout"     ram_quota="41M"  caps="200"/>
+	<launcher name="launchpad" ram_quota="6M"   caps="1000">
 		<configfile name="launchpad.config" />
 	</launcher>
-	<launcher name="nitlog"    ram_quota="1M" />
-	<launcher name="liquid_fb" ram_quota="7M">
+	<launcher name="nitlog"    ram_quota="1M" caps="50"/>
+	<launcher name="liquid_fb" ram_quota="7M" caps="70">
 		<config resize_handle="on" />
 	</launcher>
-	<launcher name="nitpicker" ram_quota="1M">
+	<launcher name="nitpicker" ram_quota="1M" caps="70">
 		<config>
 			<domain name="" layer="3" conten="client" label="no" focus="click"/>
 			<default-policy domain="" />

@@ -117,6 +117,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -124,7 +125,7 @@ set config {
 	</start> }
 
 append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
+	<start name=\"[gpio_drv]\" caps=\"120\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Gpio\"/></provides>
 		<config/>
@@ -168,7 +169,7 @@ append_if $use_usb_driver config {
 	</start>}
 
 append_if $use_nic_driver config {
-	<start name="nic_drv">
+	<start name="nic_drv" caps="120">
 		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Nic"/></provides>
@@ -206,7 +207,7 @@ append_if $use_wifi_driver config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="wifi_drv">
+	<start name="wifi_drv" caps="200">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config>
@@ -232,7 +233,7 @@ append_if $use_wifi_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="netserver_genode">
+	<start name="netserver_genode" caps="200">
 }
 append config "<binary name=\"$netperf_app\"/>"
 append config {

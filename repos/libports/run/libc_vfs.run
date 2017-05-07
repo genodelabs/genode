@@ -29,6 +29,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="ram_fs">
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="File_system"/> </provides>

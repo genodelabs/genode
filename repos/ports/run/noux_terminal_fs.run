@@ -55,13 +55,15 @@ append config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start> }
 
 append_if [have_spec sdl] config {
-	<start name="fb_sdl">
+	<start name="fb_drv">
+		<binary name="fb_sdl"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Input"/>
@@ -72,7 +74,7 @@ append_if [have_spec sdl] config {
 append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
+	<start name="fb_drv" caps="200">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start> }
@@ -96,6 +98,8 @@ append config {
 		<route> }
 append_if [have_spec ps2] config {
 			<service name="Input"><child name="ps2_drv"/></service> }
+append_if [have_spec sdl] config {
+			<service name="Input"><child name="fb_drv"/> </service>}
 append config {
 			<service name="Framebuffer"><child name="fb_drv"/> </service>
 			<any-service><parent/><any-child/></any-service>
@@ -156,7 +160,7 @@ append config {
 			<policy label="noux -> root" root="/" />
 		</config>
 	</start>
-	<start name="noux">
+	<start name="noux" caps="300">
 		<resource name="RAM" quantum="1G" />
 		<route>
 			<service name="Terminal" label="">

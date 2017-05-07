@@ -50,6 +50,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
@@ -111,7 +112,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="wm" >
+	<start name="wm" caps="150">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
@@ -179,7 +180,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="mixer_gui_qt">
+	<start name="mixer_gui_qt" caps="200">
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log">

@@ -46,6 +46,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 }
 
 append_if [have_spec sdl] config {
@@ -87,7 +88,7 @@ append config {
 			<service name="Audio_out"/>
 		</provides>
 	</start>
-	<start name="avplay">
+	<start name="avplay" caps="200">
 		<resource name="RAM" quantum="64M"/>
 		<config>
 			<arg value="avplay"/>

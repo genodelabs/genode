@@ -36,7 +36,8 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+	<default caps="100"/>}
 
 append_platform_drv_config
 
@@ -83,7 +84,7 @@ append config {
 			</policy>
 		</config>
 	</start>
-	<start name="test-loader">
+	<start name="test-loader" caps="200">
 		<resource name="RAM" quantum="1G"/>
 	</start>
 </config>}

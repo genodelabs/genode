@@ -18,6 +18,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="test-region_map_mmap">
 			<resource name="RAM" quantum="2M"/>
 		</start>

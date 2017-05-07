@@ -23,6 +23,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="test">
 			<binary name="test-fpu"/>
 			<resource name="RAM" quantum="10M"/>

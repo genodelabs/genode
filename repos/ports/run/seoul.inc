@@ -158,6 +158,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -219,7 +220,7 @@ append_if $use_nic_session config {
 
 append_if [expr $use_nic_session && $use_nic_bridge] config {
 	<start name="nic_bridge" priority="-3">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
 		<config/>
 		<route>
@@ -243,7 +244,7 @@ append_if $use_framebuffer config {
 
 if {!$use_fancy_stuff} {
 append config {
-	<start name="seoul" priority="-3">
+	<start name="seoul" priority="-3" caps="200">
 		<binary name="seoul"/>}
 append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
@@ -306,7 +307,7 @@ append_if $use_fancy_stuff config {
 	<start name="status_bar">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="ROM"> <child name="report_rom"/> </service>
+			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -317,7 +318,7 @@ append_if $use_fancy_stuff config {
 			<policy label="status_bar -> focus" report="nitpicker -> focus"/>
 		</config>
 	</start>
-	<start name="launchpad" priority="-2">
+	<start name="launchpad" priority="-2" caps="1500">
 		<resource name="RAM" quantum="64000M"/>
 		<configfile name="launchpad-config"/>
 		<route>
@@ -336,7 +337,7 @@ if {$use_fancy_stuff} {
 	set launchpad_cfg_fd [open "bin/launchpad-config" w]
 
 	puts $launchpad_cfg_fd "<config>
-	<launcher ram_quota=\"$memory_init\" name=\"init\">"
+	<launcher ram_quota=\"$memory_init\" name=\"init\" caps=\"400\" >"
 
 	puts $launchpad_cfg_fd {
 		<config>
@@ -357,7 +358,7 @@ if {$use_fancy_stuff} {
 				<service name="Rtc"/>
 			</parent-provides>
 
-			<start name="fb.seoul" priority="-1">
+			<start name="fb.seoul" priority="-1" caps="100">
 				<binary name="liquid_fb"/>
 				<resource name="RAM" quantum="16M"/>
 				<provides>
@@ -370,7 +371,7 @@ if {$use_fancy_stuff} {
 				<config xpos="10" ypos="10" width="800" height="600" animate="off"/>
 			</start>
 
-			<start name="seoul" priority="-1">
+			<start name="seoul" priority="-1" caps="200">
 				<binary name="seoul"/>
 				<resource name="RAM" quantum="256M"/>
 				<route>

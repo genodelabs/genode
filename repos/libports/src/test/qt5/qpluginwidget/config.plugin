@@ -12,7 +12,7 @@
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="testnit">
+	<start name="testnit" caps="100">
 		<resource name="RAM" quantum="1M"/>
 	</start>
 </config>

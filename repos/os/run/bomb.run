@@ -36,12 +36,12 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="timer">
+	<start name="timer" caps="100">
 		<resource name="CPU" quantum="10"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="bomb-master" priority="-1">
+	<start name="bomb-master" priority="-1" caps="100000">
 		<binary name="bomb"/>
 		<resource name="CPU" quantum="90"/>
 		<resource name="RAM" quantum="2G"/>}

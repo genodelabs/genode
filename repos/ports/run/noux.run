@@ -23,6 +23,7 @@ install_config {
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -32,7 +33,7 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Terminal"/></provides>
 		</start>
-		<start name="noux">
+		<start name="noux" caps="500">
 			<resource name="RAM" quantum="1G"/>
 			<config verbose="yes">
 				<fstab> <tar name="coreutils.tar" /> </fstab>

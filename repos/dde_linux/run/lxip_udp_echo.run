@@ -47,11 +47,12 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="test-lxip_udp_echo">
+	<start name="test-lxip_udp_echo" caps="200">
 		<resource name="RAM" quantum="28M"/>
 		<config port="1337">
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
@@ -83,7 +84,7 @@ append_platform_drv_config
 append_if $use_nic_driver config {
 	<start name="nic_drv">
 		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Nic"/></provides>
 	</start>}
 

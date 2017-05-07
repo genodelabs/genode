@@ -22,6 +22,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="50"/>
 	<start name="hello_server">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Hello"/> </provides>

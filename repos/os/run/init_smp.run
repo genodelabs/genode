@@ -42,6 +42,7 @@ append config {
 		<service name="LOG"/>
 	</parent-provides>
 	<default-route><any-service><parent/><any-child/></any-service></default-route>
+	<default caps="100"/>
 
 	<start name="timer">
 		<resource name="CPU" quantum="10"/>
@@ -53,7 +54,7 @@ append config {
 for { set i 0} { $i < ${cpus} } { incr i} {
 
 	append config "
-			<start name=\"init_$i\">
+			<start name=\"init_$i\" caps=\"1100\">
 				<affinity xpos=\"$i\" width=\"1\"/>
 				<resource name=\"RAM\" quantum=\"${init_ram}M\"/>"
 	append config {
@@ -71,6 +72,7 @@ for { set i 0} { $i < ${cpus} } { incr i} {
 					<default-route>
 						<any-service> <parent/> <any-child/> </any-service>
 					</default-route>
+					<default caps="1000"/>
 
 					<start name="bomb-master">
 						<binary name="bomb"/>

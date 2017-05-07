@@ -14,6 +14,7 @@ set config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="test-ldso">
 			<resource name="RAM" quantum="2M"/>
 			<config ld_bind_now="no" ld_verbose="no">

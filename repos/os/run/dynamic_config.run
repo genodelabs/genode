@@ -17,6 +17,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -25,7 +26,7 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM" /> </provides>
 		</start>
-		<start name="test-dynamic_config">
+		<start name="test-dynamic_config" cap="500">
 			<resource name="RAM" quantum="1M"/>
 			<configfile name="config.dynamic" />
 			<route>

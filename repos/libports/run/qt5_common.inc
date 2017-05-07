@@ -105,7 +105,7 @@ proc qt5_start_nodes { feature_arg } {
 			</config>
 		</start>
 
-		<start name="wm">
+		<start name="wm" caps="150">
 			<resource name="RAM" quantum="12M"/>
 			<provides>
 				<service name="Nitpicker"/>

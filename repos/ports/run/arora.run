@@ -38,6 +38,7 @@ append config {
 append config [qt5_parent_provides feature]
 append config {
 	</parent-provides>
+	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
@@ -82,7 +83,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="arora">
+	<start name="arora" caps="2000">
 		<resource name="RAM" quantum="2G"/>
 		<config clipboard="yes">
 			<libc stdout="/dev/log" stderr="/dev/log">

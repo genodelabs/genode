@@ -38,6 +38,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -49,7 +50,7 @@ install_config {
 			<archive name="archive.tar"/>
 		</config>
 	</start>
-	<start name="init">
+	<start name="init" caps="1000">
 		<resource name="RAM" quantum="2M"/>
 		<config verbose="yes">
 			<parent-provides>
@@ -60,6 +61,7 @@ install_config {
 				<service name="LOG"/>
 				<service name="Timer"/>
 			</parent-provides>
+			<default caps="100"/>
 			<start name="test-timer">
 				<resource name="RAM" quantum="1M"/>
 				<route> <any-service> <parent/> </any-service> </route>

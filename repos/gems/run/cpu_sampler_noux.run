@@ -77,6 +77,7 @@ append config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -185,7 +186,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="noux">
+	<start name="noux" caps="500">
 		<resource name="RAM" quantum="16M" />
 		<config>
 			<fstab>

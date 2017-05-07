@@ -117,7 +117,7 @@ foreach pkg {bash coreutils} {
 
 set boot_modules {
 	ram_fs
-	noux libc_noux.lib.so bash.tar coreutils.tar
+	noux libc_noux.lib.so posix.lib.so bash.tar coreutils.tar
 	tcp_terminal lwip.lib.so nic_drv report_rom
 	input_merger
 	test.bin template.bat
@@ -129,22 +129,20 @@ set config_of_app {
 	<start name="nic_drv" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
-		<route>
-			<service name="IRQ"><child name="acpi"/></service>
-			<any-service> <parent/> <any-child/></any-service>
-		</route>
 	</start>
 
-	<start name="tcp_terminal" priority="-1">
+	<start name="tcp_terminal" priority="-1" caps="200">
 		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<policy label_prefix="noux" port="8888"/>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log"/>
 		</config>
 	</start>
 
-	<start name="noux" priority="-1">
-		<resource name="RAM" quantum="32M"/>
+	<start name="noux" priority="-1" caps="600">
+		<resource name="RAM" quantum="32M" caps="200"/>
 		<config>
 			<fstab>
 				<tar name="coreutils.tar"/>
@@ -190,7 +188,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="report_rom">
+	<start name="report_rom" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
@@ -200,7 +198,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="input_merger">
+	<start name="input_merger" priority="-1">
 		<resource name="RAM" quantum="1M" />
 		<provides>
 			<service name="Input" />
@@ -222,7 +220,7 @@ append config_of_app {
 		</route>
 	</start>
 
-	<start name="vbox1" priority="-2">}
+	<start name="vbox1" priority="-2" caps="600">}
 append_if [expr $use_vbox4] config_of_app "
 		<binary name=\"$virtualbox_binary\" />"
 append_if [expr $use_vbox5] config_of_app "

@@ -52,6 +52,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Timer"/> </provides>
@@ -66,7 +67,7 @@ set config {
 			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
-	<start name="gdb_monitor">
+	<start name="gdb_monitor" caps="1000">
 		<resource name="RAM" quantum="7M"/>
 		<config>
 			<target name="test-gdb_monitor">

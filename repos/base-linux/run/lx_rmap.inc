@@ -27,16 +27,14 @@ set config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RM"/>
+		<service name="PD"/>
 		<service name="LOG"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-		<service name="IRQ"/>
 		<service name="CPU"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+	<default caps="100"/>}
 
 append_if [expr {$test_type eq "static"}] config {
 	<start name="test-lx_rmap_static">}

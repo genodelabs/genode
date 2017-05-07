@@ -25,7 +25,7 @@ set config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-thread">
+		<start name="test-thread" caps="2000">
 			<resource name="RAM" quantum="10M"/>
 			<resource name="CPU" quantum="100"/>
 			<config>}

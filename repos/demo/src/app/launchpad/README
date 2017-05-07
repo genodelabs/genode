@@ -8,8 +8,8 @@ following example configuration tells launchpad to display a list of three
 launcher entries:
 
 !<config>
-!  <launcher name="sdl_pathfind" ram_quota="10M" />
-!  <launcher name="liquid_fb"    ram_quota="10M" />
-!  <launcher name="hello"        ram_quota="1M" />
+!  <launcher name="sdl_pathfind" ram_quota="10M" caps="50"/>
+!  <launcher name="liquid_fb"    ram_quota="10M" caps="50"/>
+!  <launcher name="hello"        ram_quota="1M"  caps="50"/>
 !</config>
 
