@@ -18,9 +18,9 @@
 using namespace Genode;
 
 
-Sliced_heap::Sliced_heap(Ram_session &ram_session, Region_map &region_map)
+Sliced_heap::Sliced_heap(Ram_allocator &ram_alloc, Region_map &region_map)
 :
-	_ram_session(ram_session), _region_map(region_map), _consumed(0)
+	_ram_alloc(ram_alloc), _region_map(region_map), _consumed(0)
 { }
 
 
@@ -47,13 +47,13 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 	Block *block = nullptr;
 
 	try {
-		ds_cap = _ram_session.alloc(size);
+		ds_cap = _ram_alloc.alloc(size);
 		block  = _region_map.attach(ds_cap);
 	} catch (Region_map::Attach_failed) {
 		error("could not attach dataspace to local address space");
-		_ram_session.free(ds_cap);
+		_ram_alloc.free(ds_cap);
 		return false;
-	} catch (Ram_session::Alloc_failed) {
+	} catch (Ram_allocator::Alloc_failed) {
 		error("could not allocate dataspace with size ", size);
 		return false;
 	}
@@ -101,7 +101,7 @@ void Sliced_heap::free(void *addr, size_t size)
 	}
 
 	_region_map.detach(local_addr);
-	_ram_session.free(ds_cap);
+	_ram_alloc.free(ds_cap);
 }
 
 

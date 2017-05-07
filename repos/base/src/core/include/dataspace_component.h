@@ -147,7 +147,7 @@ namespace Genode {
 			/**
 			 * Check if dataspace is owned by a specific owner
 			 */
-			bool owner(Dataspace_owner * const o) const { return _owner == o; }
+			bool owner(Dataspace_owner const *o) const { return _owner == o; }
 
 			List<Rm_region> *regions() { return &_regions; }
 

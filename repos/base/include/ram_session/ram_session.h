@@ -15,9 +15,7 @@
 #define _INCLUDE__RAM_SESSION__RAM_SESSION_H_
 
 #include <base/stdint.h>
-#include <base/capability.h>
-#include <base/exception.h>
-#include <base/cache.h>
+#include <base/ram_allocator.h>
 #include <dataspace/capability.h>
 #include <ram_session/capability.h>
 #include <session/session.h>
@@ -32,13 +30,10 @@ namespace Genode {
 }
 
 
-struct Genode::Ram_dataspace : Dataspace { };
-
-
 /**
  * RAM session interface
  */
-struct Genode::Ram_session : Session
+struct Genode::Ram_session : Session, Ram_allocator
 {
 	static const char *service_name() { return "RAM"; }
 
@@ -47,39 +42,10 @@ struct Genode::Ram_session : Session
 	typedef Ram_session_client Client;
 
 
-	/*********************
-	 ** Exception types **
-	 *********************/
-
-	class Alloc_failed    : public Exception    { };
-	class Quota_exceeded  : public Alloc_failed { };
-	class Out_of_metadata : public Alloc_failed { };
-
 	/**
 	 * Destructor
 	 */
 	virtual ~Ram_session() { }
-
-	/**
-	 * Allocate RAM dataspace
-	 *
-	 * \param  size    size of RAM dataspace
-	 * \param  cached  selects cacheability attributes of the memory,
-	 *                 uncached memory, i.e., for DMA buffers
-	 *
-	 * \throw  Quota_exceeded
-	 * \throw  Out_of_metadata
-	 * \return capability to new RAM dataspace
-	 */
-	virtual Ram_dataspace_capability alloc(size_t size,
-	                                       Cache_attribute cached = CACHED) = 0;
-
-	/**
-	 * Free RAM dataspace
-	 *
-	 * \param ds  dataspace capability as returned by alloc
-	 */
-	virtual void free(Ram_dataspace_capability ds) = 0;
 
 	/**
 	 * Define reference account for the RAM session

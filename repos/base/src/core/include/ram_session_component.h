@@ -163,12 +163,22 @@ namespace Genode {
 			 */
 			addr_t phys_addr(Ram_dataspace_capability ds);
 
+
+			/*****************************
+			 ** Ram_allocator interface **
+			 *****************************/
+
+			Ram_dataspace_capability alloc(size_t, Cache_attribute) override;
+
+			void free(Ram_dataspace_capability) override;
+
+			size_t dataspace_size(Ram_dataspace_capability ds) const override;
+
+
 			/***************************
 			 ** RAM Session interface **
 			 ***************************/
 
-			Ram_dataspace_capability alloc(size_t, Cache_attribute);
-			void free(Ram_dataspace_capability);
 			int ref_account(Ram_session_capability);
 			int transfer_quota(Ram_session_capability, size_t);
 			size_t quota() { return _quota_limit; }
