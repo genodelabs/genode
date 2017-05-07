@@ -110,6 +110,11 @@ class Genode::Slab : public Allocator
 		static size_t entry_costs(size_t slab_size, size_t block_size);
 
 		/**
+		 * Return number of unused slab entries
+		 */
+		size_t avail_entries() const { return _total_avail; }
+
+		/**
 		 * Add new slab block as backing store
 		 *
 		 * The specified 'ptr' has to point to a buffer with the size of one
