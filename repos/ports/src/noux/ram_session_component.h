@@ -106,7 +106,7 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 		 *
 		 * XXX not used yet
 		 */
-		size_t _used_quota;
+		size_t _used_ram_quota = 0;
 
 		Dataspace_registry &_registry;
 
@@ -118,8 +118,7 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 		Ram_session_component(Ram_session &ram, Allocator &alloc,
 		                      Rpc_entrypoint &ep, Dataspace_registry &registry)
 		:
-			_ram(ram), _alloc(alloc), _ep(ep), _used_quota(0),
-			_registry(registry)
+			_ram(ram), _alloc(alloc), _ep(ep), _registry(registry)
 		{
 			_ep.manage(this);
 		}
@@ -140,14 +139,14 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 		 ** Ram_session interface **
 		 ***************************/
 
-		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
+		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
 		{
 			Ram_dataspace_capability ds_cap =
 				_ram.alloc(size, cached);
 
 			Ram_dataspace_info *ds_info = new (_alloc) Ram_dataspace_info(ds_cap);
 
-			_used_quota += ds_info->size();
+			_used_ram_quota += ds_info->size();
 
 			_registry.insert(ds_info);
 			_list.insert(ds_info);
@@ -155,7 +154,7 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 			return ds_cap;
 		}
 
-		void free(Ram_dataspace_capability ds_cap)
+		void free(Ram_dataspace_capability ds_cap) override
 		{
 			Ram_dataspace_info *ds_info;
 
@@ -172,7 +171,7 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 				ds_info->dissolve_users();
 
 				_list.remove(ds_info);
-				_used_quota -= ds_info->size();
+				_used_ram_quota -= ds_info->size();
 
 				_ram.free(ds_cap);
 			};
@@ -180,10 +179,19 @@ class Noux::Ram_session_component : public Rpc_object<Ram_session>
 			destroy(_alloc, ds_info);
 		}
 
+		size_t dataspace_size(Ram_dataspace_capability ds_cap) const override
+		{
+			size_t result = 0;
+			_registry.apply(ds_cap, [&] (Ram_dataspace_info *rdi) {
+				if (rdi)
+					result = rdi->size(); });
+			return result;
+		}
+
 		int ref_account(Ram_session_capability) { return 0; }
 		int transfer_quota(Ram_session_capability, size_t) { return 0; }
 		size_t quota() { return _ram.quota(); }
-		size_t used() { return _used_quota; }
+		size_t used() { return _used_ram_quota; }
 };
 
 #endif /* _NOUX__RAM_SESSION_COMPONENT_H_ */

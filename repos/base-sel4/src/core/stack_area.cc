@@ -120,24 +120,24 @@ class Stack_area_region_map : public Region_map
 };
 
 
-class Stack_area_ram_session : public Ram_session
+struct Stack_area_ram_session : Ram_session
 {
-	public:
+	Ram_dataspace_capability alloc(size_t, Cache_attribute) override {
+		return reinterpret_cap_cast<Ram_dataspace>(Native_capability()); }
 
-		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) {
-			return reinterpret_cap_cast<Ram_dataspace>(Native_capability()); }
+	void free(Ram_dataspace_capability) override {
+		warning(__func__, " not implemented"); }
 
-		void free(Ram_dataspace_capability ds) {
-			warning(__func__, " not implemented"); }
+	size_t dataspace_size(Ram_dataspace_capability) const override { return 0; }
 
-		int ref_account(Ram_session_capability ram_session) { return 0; }
+	int ref_account(Ram_session_capability ram_session) override { return 0; }
 
-		int transfer_quota(Ram_session_capability ram_session, size_t amount) {
-			return 0; }
+	int transfer_quota(Ram_session_capability ram_session, size_t amount) override {
+		return 0; }
 
-		size_t quota() { return 0; }
+	size_t quota() override { return 0; }
 
-		size_t used() { return 0; }
+	size_t used() override { return 0; }
 };
 
 

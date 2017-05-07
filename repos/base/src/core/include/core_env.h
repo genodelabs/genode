@@ -51,7 +51,7 @@ namespace Genode {
 	{
 		private:
 
-			Lock _lock;
+			Lock mutable _lock;
 
 		public:
 
@@ -82,6 +82,12 @@ namespace Genode {
 			void free(Ram_dataspace_capability ds)
 			{
 				RAM_SESSION_IMPL::free(ds);
+			}
+
+			size_t dataspace_size(Ram_dataspace_capability ds) const override
+			{
+				Lock::Guard lock_guard(_lock);
+				return RAM_SESSION_IMPL::dataspace_size(ds);
 			}
 
 			int ref_account(Ram_session_capability session)

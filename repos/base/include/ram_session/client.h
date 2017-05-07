@@ -16,7 +16,7 @@
 
 #include <ram_session/capability.h>
 #include <ram_session/ram_session.h>
-#include <base/rpc_client.h>
+#include <dataspace/client.h>
 
 namespace Genode { struct Ram_session_client; }
 
@@ -27,10 +27,17 @@ struct Genode::Ram_session_client : Rpc_client<Ram_session>
 	: Rpc_client<Ram_session>(session) { }
 
 	Ram_dataspace_capability alloc(size_t size,
-	                               Cache_attribute cached = CACHED) override {
-		return call<Rpc_alloc>(size, cached); }
+	                               Cache_attribute cached = CACHED) override
+	{
+		return call<Rpc_alloc>(size, cached);
+	}
 
 	void free(Ram_dataspace_capability ds) override { call<Rpc_free>(ds); }
+
+	size_t dataspace_size(Ram_dataspace_capability ds) const override
+	{
+		return ds.valid() ? Dataspace_client(ds).size() : 0;
+	}
 
 	int ref_account(Ram_session_capability ram_session) override {
 		return call<Rpc_ref_account>(ram_session); }

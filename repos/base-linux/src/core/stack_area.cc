@@ -78,23 +78,24 @@ class Stack_area_region_map : public Genode::Region_map
 };
 
 
-class Stack_area_ram_session : public Genode::Ram_session
+struct Stack_area_ram_session : Genode::Ram_session
 {
-	public:
 
-		Genode::Ram_dataspace_capability alloc(Genode::size_t size,
-		                                       Genode::Cache_attribute) {
-			return Genode::Ram_dataspace_capability(); }
+	Genode::Ram_dataspace_capability alloc(Genode::size_t size,
+	                                       Genode::Cache_attribute) override {
+		return Genode::Ram_dataspace_capability(); }
 
-		void free(Genode::Ram_dataspace_capability) { }
+	void free(Genode::Ram_dataspace_capability) override { }
 
-		int ref_account(Genode::Ram_session_capability) { return 0; }
+	Genode::size_t dataspace_size(Genode::Ram_dataspace_capability) const override { return 0; }
 
-		int transfer_quota(Genode::Ram_session_capability, Genode::size_t) { return 0; }
+	int ref_account(Genode::Ram_session_capability) override { return 0; }
 
-		Genode::size_t quota() { return 0; }
+	int transfer_quota(Genode::Ram_session_capability, Genode::size_t) override { return 0; }
 
-		Genode::size_t used() { return 0; }
+	Genode::size_t quota() override { return 0; }
+
+	Genode::size_t used() override { return 0; }
 };
 
 

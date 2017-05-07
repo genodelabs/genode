@@ -25,16 +25,16 @@ namespace Genode {
 	{
 		private:
 
-			size_t _amount;        /* total amount */
-			size_t _consumed;      /* already consumed bytes */
-			Lock   _consumed_lock;
+			size_t const _amount;        /* total amount */
+			size_t       _consumed;      /* already consumed bytes */
+			Lock mutable _consumed_lock;
 
 		public:
 
 			Ram_session_client_guard(Ram_session_capability session, size_t amount)
 			: Ram_session_client(session), _amount(amount), _consumed(0) { }
 
-			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
+			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
@@ -52,7 +52,7 @@ namespace Genode {
 				return cap;
 			}
 
-			void free(Ram_dataspace_capability ds)
+			void free(Ram_dataspace_capability ds) override
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
@@ -61,7 +61,12 @@ namespace Genode {
 				Ram_session_client::free(ds);
 			}
 
-			int transfer_quota(Ram_session_capability ram_session, size_t amount)
+			size_t dataspace_size(Ram_dataspace_capability ds) const override
+			{
+				return Ram_session_client::dataspace_size(ds);
+			}
+
+			int transfer_quota(Ram_session_capability ram_session, size_t amount) override
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
@@ -79,12 +84,12 @@ namespace Genode {
 				return result;
 			}
 
-			size_t quota()
+			size_t quota() override
 			{
 				return _amount;
 			}
 
-			size_t used()
+			size_t used() override
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 				return _consumed;

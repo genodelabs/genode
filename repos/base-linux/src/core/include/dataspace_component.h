@@ -100,7 +100,7 @@ namespace Genode {
 			/**
 			 * Check if dataspace is owned by a specified object
 			 */
-			bool owner(Dataspace_owner * const o) const { return _owner == o; }
+			bool owner(Dataspace_owner const *o) const { return _owner == o; }
 
 			/**
 			 * Detach dataspace from all rm sessions.

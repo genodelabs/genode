@@ -43,6 +43,12 @@ void Ram_session_component::free(Ram_dataspace_capability ds_cap)
 }
 
 
+size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) const
+{
+	return _parent_ram_session.dataspace_size(ds_cap);
+}
+
+
 int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 {
 	return _parent_ram_session.ref_account(ram_session_cap);

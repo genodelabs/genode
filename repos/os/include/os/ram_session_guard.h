@@ -131,6 +131,11 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			_used -= size;
 		}
 
+		size_t dataspace_size(Ram_dataspace_capability ds) const override
+		{
+			return _session.dataspace_size(ds);
+		}
+
 		int ref_account(Ram_session_capability ram_session) override {
 			return _session.ref_account(ram_session); }
 

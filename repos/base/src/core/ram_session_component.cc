@@ -236,6 +236,20 @@ void Ram_session_component::free(Ram_dataspace_capability ds_cap) {
 	_free_ds(ds_cap); }
 
 
+size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) const
+{
+	if (this->cap() == ds_cap)
+		return 0;
+
+	size_t result = 0;
+	_ds_ep->apply(ds_cap, [&] (Dataspace_component *c) {
+		if (c && c->owner(this))
+			result = c->size(); });
+
+	return result;
+}
+
+
 int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 {
 	/* the reference account cannot be defined twice */

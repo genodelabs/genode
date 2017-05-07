@@ -16,7 +16,7 @@
 
 #include <util/list.h>
 #include <util/reconstructible.h>
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 #include <region_map/region_map.h>
 #include <base/allocator_avl.h>
 #include <base/lock.h>
@@ -32,7 +32,8 @@ namespace Genode {
  * Heap that uses dataspaces as backing store
  *
  * The heap class provides an allocator that uses a list of dataspaces of a RAM
- * session as backing store. One dataspace may be used for holding multiple blocks.
+ * allocator as backing store. One dataspace may be used for holding multiple
+ * blocks.
  */
 class Genode::Heap : public Allocator
 {
@@ -56,18 +57,18 @@ class Genode::Heap : public Allocator
 		 */
 		struct Dataspace_pool : public List<Dataspace>
 		{
-			Ram_session *ram_session; /* RAM session for backing store */
-			Region_map  *region_map;
+			Ram_allocator *ram_alloc; /* backing store */
+			Region_map    *region_map;
 
-			Dataspace_pool(Ram_session *ram, Region_map *rm)
-			: ram_session(ram), region_map(rm) { }
+			Dataspace_pool(Ram_allocator *ram, Region_map *rm)
+			: ram_alloc(ram), region_map(rm) { }
 
 			~Dataspace_pool();
 
 			void remove_and_free(Dataspace &);
 
-			void reassign_resources(Ram_session *ram, Region_map *rm) {
-				ram_session = ram, region_map = rm; }
+			void reassign_resources(Ram_allocator *ram, Region_map *rm) {
+				ram_alloc = ram, region_map = rm; }
 		};
 
 		Lock                           _lock;
@@ -108,13 +109,13 @@ class Genode::Heap : public Allocator
 
 		enum { UNLIMITED = ~0 };
 
-		Heap(Ram_session *ram_session,
-		     Region_map  *region_map,
-		     size_t       quota_limit = UNLIMITED,
-		     void        *static_addr = 0,
-		     size_t       static_size = 0);
+		Heap(Ram_allocator *ram_allocator,
+		     Region_map    *region_map,
+		     size_t         quota_limit = UNLIMITED,
+		     void          *static_addr = 0,
+		     size_t         static_size = 0);
 
-		Heap(Ram_session &ram, Region_map &rm) : Heap(&ram, &rm) { }
+		Heap(Ram_allocator &ram, Region_map &rm) : Heap(&ram, &rm) { }
 
 		~Heap();
 
@@ -127,9 +128,9 @@ class Genode::Heap : public Allocator
 		int quota_limit(size_t new_quota_limit);
 
 		/**
-		 * Re-assign RAM and RM sessions
+		 * Re-assign RAM allocator and region map
 		 */
-		void reassign_resources(Ram_session *ram, Region_map *rm) {
+		void reassign_resources(Ram_allocator *ram, Region_map *rm) {
 			_ds_pool.reassign_resources(ram, rm); }
 
 
@@ -164,7 +165,7 @@ class Genode::Sliced_heap : public Allocator
 			{ }
 		};
 
-		Ram_session    &_ram_session;  /* RAM session for backing store   */
+		Ram_allocator  &_ram_alloc;    /* RAM allocator for backing store */
 		Region_map     &_region_map;   /* region map of the address space */
 		size_t          _consumed;     /* number of allocated bytes       */
 		List<Block>     _blocks;       /* list of allocated blocks        */
@@ -183,13 +184,13 @@ class Genode::Sliced_heap : public Allocator
 		 * \deprecated  Use the other constructor that takes reference
 		 *              arguments
 		 */
-		Sliced_heap(Ram_session *ram_session, Region_map *region_map)
-		: Sliced_heap(*ram_session, *region_map) { }
+		Sliced_heap(Ram_allocator *ram_alloc, Region_map *region_map)
+		: Sliced_heap(*ram_alloc, *region_map) { }
 
 		/**
 		 * Constructor
 		 */
-		Sliced_heap(Ram_session &ram_session, Region_map &region_map);
+		Sliced_heap(Ram_allocator &ram_alloc, Region_map &region_map);
 
 		/**
 		 * Destructor
