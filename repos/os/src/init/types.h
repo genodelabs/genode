@@ -25,8 +25,6 @@ namespace Init {
 	using Genode::size_t;
 	using Genode::strlen;
 
-	struct Ram_quota { size_t value; };
-
 	struct Prio_levels { long value; };
 
 	typedef List<List_element<Init::Child> > Child_list;
