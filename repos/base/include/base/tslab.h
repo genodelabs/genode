@@ -26,6 +26,10 @@ struct Genode::Tslab : Slab
 	: Slab(sizeof(T), BLOCK_SIZE, initial_sb, backing_store)
 	{ }
 
+	Tslab(Allocator &backing_store, void *initial_sb = 0)
+	: Slab(sizeof(T), BLOCK_SIZE, initial_sb, &backing_store)
+	{ }
+
 	T *first_object() { return (T *)Slab::any_used_elem(); }
 };
 
