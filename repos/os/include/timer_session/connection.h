@@ -40,7 +40,9 @@ class Timer::Connection : public Genode::Connection<Session>, public Session_cli
 		 */
 		Connection(Genode::Env &env, char const *label = "")
 		:
-			Genode::Connection<Session>(env, session(env.parent(), "ram_quota=10K, label=\"%s\"", label)),
+			Genode::Connection<Session>(env, session(env.parent(),
+			                            "ram_quota=10K, cap_quota=%u, label=\"%s\"",
+			                            CAP_QUOTA, label)),
 			Session_client(cap())
 		{
 			/* register default signal handler */

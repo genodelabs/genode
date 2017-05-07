@@ -33,6 +33,13 @@ struct Genode::Io_mem_session : Session
 {
 	static const char *service_name() { return "IO_MEM"; }
 
+	/*
+	 * An I/O-memory session consumes a dataspace capability for the
+	 * session-object allocation, its session capability, and a dataspace
+	 * capability for the handed-out memory-mapped I/O dataspace.
+	 */
+	enum { CAP_QUOTA = 3 };
+
 	virtual ~Io_mem_session() { }
 
 	/**

@@ -38,6 +38,8 @@ struct Platform::Session : Genode::Session
 
 	static const char *service_name() { return "Platform"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	virtual ~Session() { }
 
 	virtual void enable(Device dev)   = 0;

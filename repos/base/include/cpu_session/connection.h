@@ -33,8 +33,8 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	                                 long priority, Affinity const &affinity)
 	{
 		return session(parent, affinity,
-		               "priority=0x%lx, ram_quota=128K, label=\"%s\"",
-		               priority, label);
+		               "priority=0x%lx, ram_quota=128K, cap_quota=%u, label=\"%s\"",
+		               priority, CAP_QUOTA, label);
 	}
 
 	/**

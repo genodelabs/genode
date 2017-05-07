@@ -42,6 +42,8 @@ struct Genode::Ram_session : Session
 {
 	static const char *service_name() { return "RAM"; }
 
+	enum { CAP_QUOTA = 8 };
+
 	typedef Ram_session_client Client;
 
 

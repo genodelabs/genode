@@ -39,6 +39,8 @@ struct Test::Session : Genode::Session
 {
 	static const char *service_name() { return "TEST"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	GENODE_RPC(Rpc_cap_void, bool, cap_void, Genode::Native_capability,
 	           Genode::addr_t &);
 	GENODE_RPC(Rpc_void_cap, Genode::Native_capability,

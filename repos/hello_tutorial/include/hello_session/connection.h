@@ -26,7 +26,7 @@ struct Hello::Connection : Genode::Connection<Session>, Session_client
 	:
 		/* create session */
 		Genode::Connection<Hello::Session>(env, session(env.parent(),
-		                                                "ram_quota=6K")),
+		                                                "ram_quota=6K, cap_quota=4")),
 
 		/* initialize RPC interface */
 		Session_client(cap()) { }

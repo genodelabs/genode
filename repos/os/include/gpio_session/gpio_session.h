@@ -28,6 +28,8 @@ struct Gpio::Session : Genode::Session
 {
 	static const char *service_name() { return "Gpio"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	enum Direction { IN, OUT };
 
 	enum Irq_type  { LOW_LEVEL, HIGH_LEVEL, FALLING_EDGE, RISING_EDGE };

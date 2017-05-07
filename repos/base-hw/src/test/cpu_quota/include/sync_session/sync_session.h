@@ -31,6 +31,8 @@ struct Sync::Session : Genode::Session
 {
 	static const char *service_name() { return "Sync"; }
 
+	enum { CAP_QUOTA = 2 };
+
 	virtual ~Session() { }
 
 	virtual void threshold(unsigned threshold) = 0;

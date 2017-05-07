@@ -24,6 +24,12 @@ struct Genode::Rm_session : Session
 {
 	static const char *service_name() { return "RM"; }
 
+	/*
+	 * An RM session consumes a dataspace capability for the session-object
+	 * allocation and its session capability.
+	 */
+	enum { CAP_QUOTA = 2 };
+
 	/**
 	 * Exception types
 	 *

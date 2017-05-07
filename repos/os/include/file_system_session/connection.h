@@ -48,11 +48,13 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 	{
 		return session(parent,
 		               "ram_quota=%ld, "
+		               "cap_quota=%ld, "
 		               "tx_buf_size=%ld, "
 		               "label=\"%s\", "
 		               "root=\"%s\", "
 		               "writeable=%d",
 		               8*1024*sizeof(long) + tx_buf_size,
+		               CAP_QUOTA,
 		               tx_buf_size,
 		               label, root, writeable);
 	}

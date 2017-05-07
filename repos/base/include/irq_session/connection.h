@@ -32,7 +32,7 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 	                                 Irq_session::Polarity polarity,
 	                                 Genode::addr_t        device_config_phys)
 	{
-		return session("ram_quota=6K, irq_number=%u, irq_trigger=%u, "
+		return session("ram_quota=6K, cap_quota=4, irq_number=%u, irq_trigger=%u, "
 		               " irq_polarity=%u, device_config_phys=0x%lx",
 		               irq, trigger, polarity, device_config_phys);
 	}

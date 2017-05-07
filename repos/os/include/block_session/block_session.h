@@ -129,6 +129,8 @@ struct Block::Session : public Genode::Session
 
 	static const char *service_name() { return "Block"; }
 
+	enum { CAP_QUOTA = 5 };
+
 	virtual ~Session() { }
 
 	/**

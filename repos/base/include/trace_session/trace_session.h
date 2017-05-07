@@ -26,6 +26,8 @@ struct Genode::Trace::Session : Genode::Session
 {
 	static const char *service_name() { return "TRACE"; }
 
+	enum { CAP_QUOTA = 4 };
+
 	/**
 	 * Allocate policy-module backing store
 	 *

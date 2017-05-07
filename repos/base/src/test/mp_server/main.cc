@@ -28,6 +28,8 @@ namespace Test {
 	{
 		static const char *service_name() { return "MP_RPC_TEST"; }
 
+		enum { CAP_QUOTA = 2 };
+
 		GENODE_RPC(Rpc_test_untyped, void, test_untyped, unsigned);
 		GENODE_RPC(Rpc_test_cap, void, test_cap, Genode::Native_capability);
 		GENODE_RPC(Rpc_test_cap_reply, Genode::Native_capability,
