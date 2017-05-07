@@ -105,7 +105,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size)
-				throw Invalid_args();
+				throw Service_denied();
 
 			size_t session_size = sizeof(::Session_component)
 			                    + sizeof(Factory) +	tx_buf_size;
@@ -128,12 +128,12 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 				error("rejecting session request, no matching policy for '", label, "'",
 				      model_buf[0] == 0 ? ""
 				      : " (model=", Cstring(model_buf), " serial=", Cstring(sn_buf), ")");
-				throw Root::Invalid_args();
+				throw Service_denied();
 			}
 
 			if (!Ahci_driver::avail(num)) {
 				error("Device ", num, " not available");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			Block::Factory *factory = new (&_alloc) Block::Factory(num);
@@ -188,7 +188,7 @@ struct Block::Main
 			Genode::error("no AHCI controller found");
 			env.parent().exit(~0);
 		}
-		catch (Genode::Parent::Service_denied) {
+		catch (Genode::Service_denied) {
 			Genode::error("hardware access denied");
 			env.parent().exit(~0);
 		}

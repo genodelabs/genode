@@ -95,7 +95,7 @@ void Component::construct(Env &env)
 			sub_rm.attach(ds, 0, 0, false, (addr_t)0);
 			fail("sub rm attach_any unexpectedly did not fail");
 		}
-		catch (Region_map::Out_of_metadata) {
+		catch (Region_map::Region_conflict) {
 			log("attach failed as expected"); }
 	}
 
@@ -166,7 +166,7 @@ void Component::construct(Env &env)
 			env.rm().attach(sub_rm.dataspace());
 			fail("double attachment of sub RM session went undetected\n");
 		}
-		catch (Region_map::Out_of_metadata) {
+		catch (Region_map::Region_conflict) {
 			log("doubly attaching sub RM session failed as expected"); }
 	}
 

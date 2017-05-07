@@ -228,10 +228,9 @@ class Guest_memory
 				_local_addr = env.rm().attach(_ds);
 				_fb_addr = env.rm().attach_at(_fb_ds,
 				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
-
-			} catch (Genode::Rm_session::Region_conflict) {
-				Genode::error("region conflict");
 			}
+			catch (Genode::Region_map::Region_conflict) {
+				Genode::error("region conflict"); }
 		}
 
 		~Guest_memory()

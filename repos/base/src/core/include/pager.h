@@ -21,6 +21,7 @@
 #include <base/thread.h>
 #include <base/object_pool.h>
 #include <pager/capability.h>
+#include <cpu_session/cpu_session.h>
 #include <ipc_pager.h>
 
 /* core-local includes */
@@ -28,6 +29,8 @@
 #include <pager_object_exception_state.h>
 
 namespace Genode {
+
+	typedef Cpu_session::Thread_creation_failed Invalid_thread;
 
 	/**
 	 * Special server object for paging
@@ -79,6 +82,8 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 * Constructor
 		 *
 		 * \param location  affinity of paged thread to physical CPU
+		 *
+		 * \throw Invalid_thread
 		 */
 		Pager_object(Cpu_session_capability cpu_sesion,
 		             Thread_capability thread,

@@ -82,7 +82,7 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 
 				return rm->cap();
 			}
-			catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
+			catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
 		}
 
 		void destroy(Capability<Region_map> cap) override

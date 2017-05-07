@@ -681,7 +681,7 @@ class Audio_out::Root : public Audio_out::Root_component
 
 			Channel::Number ch = number_from_string(channel_name);
 			if (ch == Channel::Number::INVALID)
-				throw Root::Invalid_args();
+				throw Genode::Service_denied();
 
 			Session_component *session = new (md_alloc())
 				Session_component(_env, label, (Channel::Number)ch, _mixer);

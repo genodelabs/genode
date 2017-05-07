@@ -213,7 +213,7 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 					_gsi = msi;
 					return;
 				}
-			} catch (Genode::Parent::Service_denied) { }
+			} catch (Genode::Service_denied) { }
 
 			irq_alloc.free_msi(msi);
 		}
@@ -235,7 +235,7 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 		if (Irq_component::get_irq_proxy(_gsi, &irq_alloc, trigger,
 		                                 polarity, &env, &heap))
 			return;
-	} catch (Genode::Parent::Service_denied) { }
+	} catch (Genode::Service_denied) { }
 
 	Genode::error("unavailable IRQ ", Genode::Hex(_gsi), " requested");
 }

@@ -179,7 +179,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 	/* only support attach_at for sub RM sessions */
 	if (_sub_rm && !use_local_addr) {
 		error("Region_map_mmap::attach: attaching w/o local addr not supported");
-		throw Out_of_metadata();
+		throw Region_conflict();
 	}
 
 	if (offset < 0) {
@@ -261,7 +261,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 			 */
 			if (rm->_base) {
 				error("Region_map_mmap::attach: mapping a sub RM session twice is not supported");
-				throw Out_of_metadata();
+				throw Region_conflict();
 			}
 
 			/*

@@ -221,9 +221,9 @@ struct Audio_out::Root_policy
 		                                             sizeof(channel_name),
 		                                             "left");
 		if (!channel_number_from_string(channel_name, &channel_number))
-			throw ::Root::Invalid_args();
+			throw Genode::Service_denied();
 		if (Audio_out::channel_acquired[channel_number])
-			throw ::Root::Unavailable();
+			throw Genode::Service_denied();
 	}
 
 	void release() { }

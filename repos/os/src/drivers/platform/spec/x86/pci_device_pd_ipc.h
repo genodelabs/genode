@@ -35,11 +35,11 @@ struct Platform::Device_pd : Genode::Session
 	typedef Device_pd_client Client;
 
 	GENODE_RPC_THROW(Rpc_attach_dma_mem, void, attach_dma_mem,
-	                 GENODE_TYPE_LIST(Genode::Rm_session::Out_of_metadata),
+	                 GENODE_TYPE_LIST(Genode::Out_of_ram, Genode::Out_of_caps),
 	                 Genode::Dataspace_capability);
 	GENODE_RPC_THROW(Rpc_assign_pci, void, assign_pci,
-	                 GENODE_TYPE_LIST(Genode::Rm_session::Out_of_metadata,
-	                                  Genode::Rm_session::Region_conflict),
+	                 GENODE_TYPE_LIST(Genode::Out_of_ram, Genode::Out_of_caps,
+	                                  Genode::Region_map::Region_conflict),
 	                 Genode::Io_mem_dataspace_capability, Genode::uint16_t);
 
 	GENODE_RPC_INTERFACE(Rpc_attach_dma_mem, Rpc_assign_pci);

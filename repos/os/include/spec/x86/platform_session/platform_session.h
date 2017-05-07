@@ -30,9 +30,7 @@ struct Platform::Session : Genode::Session
 	 ** Exception types **
 	 *********************/
 
-	class Alloc_failed    : public Genode::Exception { };
-	class Out_of_metadata : public Alloc_failed { };
-	class Fatal           : public Alloc_failed { };
+	class Fatal : public Genode::Out_of_ram { };
 
 	static const char *service_name() { return "Platform"; }
 
@@ -86,20 +84,20 @@ struct Platform::Session : Genode::Session
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_first_device, Device_capability, first_device,
-	                 GENODE_TYPE_LIST(Out_of_metadata),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 unsigned, unsigned);
 	GENODE_RPC_THROW(Rpc_next_device, Device_capability, next_device,
-	                 GENODE_TYPE_LIST(Out_of_metadata),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Device_capability, unsigned, unsigned);
 	GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
 	GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Genode::Ram_dataspace_capability,
 	                 alloc_dma_buffer,
-	                 GENODE_TYPE_LIST(Out_of_metadata, Fatal),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Fatal),
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_dma_buffer, void, free_dma_buffer,
 	           Genode::Ram_dataspace_capability);
 	GENODE_RPC_THROW(Rpc_device, Device_capability, device,
-	                 GENODE_TYPE_LIST(Out_of_metadata),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 String const &);
 
 	GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,

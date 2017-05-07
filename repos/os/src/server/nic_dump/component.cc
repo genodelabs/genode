@@ -145,6 +145,6 @@ Session_component *Net::Root::_create_session(char const *args)
 			Session_component(*md_alloc(), ram_quota - session_size,
 			                  _buf_ram, tx_buf_size, rx_buf_size, _region_map,
 			                  _uplink, _config, _timer, _curr_time, _ep);
-	} catch (...) {
-		throw Root::Unavailable(); }
+	}
+	catch (...) { throw Service_denied(); }
 }

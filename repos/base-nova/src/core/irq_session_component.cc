@@ -146,7 +146,7 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
 	if (ret) {
 		error("getting IRQ from kernel failed - ", irq);
-		throw Root::Unavailable();
+		throw Service_denied();
 	}
 
 	/* associate GSI or MSI to device belonging to device_phys */
@@ -157,7 +157,7 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 		ok = associate(irq_sel(), _msi_addr, _msi_data, _sigh_cap);
 
 	if (!ok)
-		throw Root::Unavailable();
+		throw Service_denied();
 
 	_device_phys = device_phys;
 }
@@ -208,17 +208,17 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	if (device_phys) {
 
 		if ((unsigned long)irq_number >= kernel_hip()->sel_gsi)
-			throw Root::Unavailable();
+			throw Service_denied();
 
 		irq_number = kernel_hip()->sel_gsi - 1 - irq_number;
 		/* XXX last GSI number unknown - assume 40 GSIs (depends on IO-APIC) */
 		if (irq_number < 40)
-			throw Root::Unavailable();
+			throw Service_denied();
 	}
 
 	if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
 		error("unavailable IRQ ", irq_number, " requested");
-		throw Root::Unavailable();
+		throw Service_denied();
 	}
 
 	_irq_number = irq_number;

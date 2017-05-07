@@ -104,9 +104,14 @@ class Memory_model
 					_region     = region;
 					_local_base = rm.attach(_region->ds_cap(),
 					                        0, _region->offset());
-				} catch (Region_map::Attach_failed) {
+				}
+				catch (Region_map::Region_conflict) {
 					flush(rm);
-					error(__func__, ": RM attach failed");
+					error(__func__, ": RM attach failed (region conflict)");
+				}
+				catch (Region_map::Invalid_dataspace) {
+					flush(rm);
+					error(__func__, ": RM attach failed (invalid dataspace)");
 				}
 			}
 

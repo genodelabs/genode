@@ -50,8 +50,13 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 		ds_cap = _ram_alloc.alloc(size);
 		block  = _region_map.attach(ds_cap);
 	}
-	catch (Region_map::Attach_failed) {
-		error("could not attach dataspace to local address space");
+	catch (Region_map::Region_conflict) {
+		error("sliced_heap: region conflict while attaching dataspace");
+		_ram_alloc.free(ds_cap);
+		return false;
+	}
+	catch (Region_map::Invalid_dataspace) {
+		error("sliced_heap: attempt to attach invalid dataspace");
 		_ram_alloc.free(ds_cap);
 		return false;
 	}

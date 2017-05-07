@@ -354,7 +354,7 @@ class File_system::Root : public Root_component<Session_component>
 					if (root[0] != '/') {
 						Genode::error("Root directory must start with / but is \"",
 						              Genode::Cstring(root), "\"");
-						throw Root::Unavailable();
+						throw Service_denied();
 					}
 
 					for (root_dir = root; *root_dir == '/'; ++root_dir) ;
@@ -364,17 +364,17 @@ class File_system::Root : public Root_component<Session_component>
 						root_dir = ".";
 				} catch (Xml_node::Nonexistent_attribute) {
 					Genode::error("missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
+					throw Service_denied();
 				}
 
 				/*
 				 * Determine if write access is permitted for the session.
 				 */
 				writeable = policy.attribute_value("writeable", false);
-
-			} catch (Session_policy::No_policy_defined) {
+			}
+			catch (Session_policy::No_policy_defined) {
 				Genode::error("invalid session request, no matching policy");
-				throw Root::Unavailable();
+				throw Genode::Service_denied();
 			}
 
 			size_t ram_quota =
@@ -384,7 +384,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");
-				throw Root::Invalid_args();
+				throw Genode::Service_denied();
 			}
 
 			/*
@@ -401,10 +401,11 @@ class File_system::Root : public Root_component<Session_component>
 			try {
 				return new (md_alloc())
 				       Session_component(tx_buf_size, _env, root_dir, writeable, *md_alloc());
-			} catch (Lookup_failed) {
+			}
+			catch (Lookup_failed) {
 				Genode::error("session root directory \"", Genode::Cstring(root), "\" "
 				              "does not exist");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 		}
 

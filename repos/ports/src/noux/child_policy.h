@@ -172,7 +172,7 @@ class Noux::Child_policy : public Genode::Child_policy
 			if ((service = _find_service(_parent_services, service_name)))
 				return *service;
 
-			throw Parent::Service_denied();
+			throw Service_denied();
 		}
 
 		void exit(int exit_value) override

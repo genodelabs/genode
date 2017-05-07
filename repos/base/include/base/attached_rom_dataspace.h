@@ -66,7 +66,10 @@ class Genode::Attached_rom_dataspace
 		 * Constructor
 		 *
 		 * \throw Rom_connection::Rom_connection_failed
-		 * \throw Rm_session::Attach_failed
+		 * \throw Region_map::Region_conflict
+		 * \throw Region_map::Invalid_dataspace
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
 		 */
 		Attached_rom_dataspace(Env &env, char const *name)
 		: _rm(env.rm()), _rom(env, name) { _try_attach(); }

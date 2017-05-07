@@ -241,16 +241,16 @@ class Block::Root :
 			} catch (Xml_node::Nonexistent_attribute) {
 				error("policy does not define partition number for for '",
 				      label_str, "'");
-				throw Root::Unavailable();
+				throw Service_denied();
 			} catch (Session_policy::No_policy_defined) {
 				error("rejecting session request, no matching policy for '",
 				      label_str, "'");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			if (!_table.partition(num)) {
 				error("Partition ", num, " unavailable for '", label_str, "'");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			size_t ram_quota =
@@ -259,7 +259,7 @@ class Block::Root :
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size)
-				throw Root::Invalid_args();
+				throw Service_denied();
 
 			/* delete ram quota by the memory needed for the session */
 			size_t session_size = max((size_t)4096,

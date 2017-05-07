@@ -123,8 +123,12 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 		obj = new (_global_md_alloc) Ram_object(*_global_ram, cap);
 	} else {
 		Genode::size_t donate = size;
-		cap = retry<Platform::Session::Out_of_metadata>(
-			[&] () { return _global_pci->alloc_dma_buffer(size); },
+		cap = retry<Genode::Out_of_ram>(
+			[&] () {
+				return retry<Genode::Out_of_caps>(
+					[&] () { return _global_pci->alloc_dma_buffer(size); },
+					[&] () { _global_pci->upgrade_caps(2); });
+			},
 			[&] () {
 				_global_pci->upgrade_ram(donate);
 				donate = donate * 2 > size ? 4096 : donate * 2;

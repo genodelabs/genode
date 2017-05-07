@@ -77,7 +77,7 @@ class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 			: trace_control_area(trace_control_area)
 			{
 				if (!trace_control_area.alloc(index))
-					throw Cpu_session::Out_of_metadata();
+					throw Out_of_ram();
 			}
 
 			~Trace_control_slot()
@@ -156,7 +156,7 @@ class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 
 			/*
 			 * Acquaint thread with its pager object, caution on some base platforms
-			 * this may raise an 'Out_of_meta_data' exception, which causes the
+			 * this may raise an 'Out_of_ram' exception, which causes the
 			 * destructor of this object to not being called. Catch it and remove this
 			 * object from the object pool
 			 */

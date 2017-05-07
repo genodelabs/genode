@@ -141,8 +141,11 @@ class Boot_module_provider
 			catch (Xml_node::Nonexistent_attribute) { }
 			catch (Destination_buffer_too_small) {
 				error("Boot_module_provider: destination buffer too small"); }
-			catch (Region_map::Attach_failed) {
-				error("Boot_module_provider: Region_map::Attach_failed");
+			catch (Region_map::Region_conflict) {
+				error("Boot_module_provider: Region_map::Region_conflict");
+				throw Module_loading_failed(); }
+			catch (Region_map::Invalid_dataspace) {
+				error("Boot_module_provider: Region_map::Invalid_dataspace");
 				throw Module_loading_failed(); }
 			catch (Rom_connection::Rom_connection_failed) {
 				error("Boot_module_provider: Rom_connection_failed"); }

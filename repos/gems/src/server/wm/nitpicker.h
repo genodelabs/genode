@@ -1184,7 +1184,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		void upgrade(Genode::Session_capability session_cap, Upgrade_args const &args) override
 		{
-			if (!args.valid_string()) throw Root::Invalid_args();
+			if (!args.valid_string()) return;
 
 			auto lambda = [&] (Rpc_object_base *session) {
 				if (!session) {

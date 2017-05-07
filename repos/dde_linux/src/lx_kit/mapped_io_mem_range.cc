@@ -127,7 +127,7 @@ void *Lx::ioremap(addr_t phys_addr, unsigned long size,
 
 	Lx_kit::Mapped_io_mem_range *io_mem = nullptr;
 
-	retry<Genode::Region_map::Out_of_metadata>(
+	retry<Genode::Out_of_ram>(
 		[&] () {
 			io_mem = new (&Lx_kit::env().heap())
 			Lx_kit::Mapped_io_mem_range(Lx_kit::env().env(), *_global_rm,

@@ -459,7 +459,7 @@ class File_system::Root : public Root_component<Session_component>
 					session_root.import(tmp, "/");
 				} catch (Xml_node::Nonexistent_attribute) {
 					Genode::error("missing \"root\" attribute in policy definition");
-					throw Root::Unavailable();
+					throw Service_denied();
 				}
 
 				/*
@@ -471,7 +471,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			} catch (Session_policy::No_policy_defined) {
 				Genode::error("invalid session request, no matching policy");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 
 			/* apply client's root offset */
@@ -493,9 +493,8 @@ class File_system::Root : public Root_component<Session_component>
 					session_root_dir = _root_dir.lookup_and_lock_dir(
 						session_root.base() + 1);
 					session_root_dir->unlock();
-				} catch (Lookup_failed) {
-					throw Root::Unavailable();
 				}
+				catch (Lookup_failed) { throw Service_denied(); }
 			}
 
 			size_t ram_quota =
@@ -505,7 +504,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");
-				throw Root::Invalid_args();
+				throw Service_denied();
 			}
 
 			/*
@@ -562,9 +561,8 @@ struct Attribute_string
 	 */
 	Attribute_string(Genode::Xml_node node, char const *attr, char *fallback = 0)
 	{
-		try {
-			node.attribute(attr).value(buf, sizeof(buf));
-		} catch (Genode::Xml_node::Nonexistent_attribute) {
+		try { node.attribute(attr).value(buf, sizeof(buf)); }
+		catch (Genode::Xml_node::Nonexistent_attribute) {
 
 			if (fallback) {
 				Genode::strncpy(buf, fallback, sizeof(buf));
@@ -624,17 +622,15 @@ static void preload_content(Genode::Env            &env,
 			/* read file content from ROM module */
 			try {
 				Attached_rom_dataspace rom(env, name);
-				if (!rom.valid())
-					throw Rm_session::Attach_failed();
 
 				File *file = new (&alloc) File(alloc, as);
 				file->write(rom.local_addr<char>(), rom.size(), 0);
 				dir.adopt_unsynchronized(file);
 			}
 			catch (Rom_connection::Rom_connection_failed) {
-				Genode::warning("failed to open ROM file \"", name, "\""); }
-			catch (Rm_session::Attach_failed) {
-				Genode::warning("Could not locally attach ROM file \"", name, "\""); }
+				Genode::warning("failed to open ROM module \"", name, "\""); }
+			catch (Region_map::Region_conflict) {
+				Genode::warning("Could not locally attach ROM module \"", name, "\""); }
 		}
 
 		/*

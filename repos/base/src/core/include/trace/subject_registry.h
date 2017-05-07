@@ -183,10 +183,11 @@ class Genode::Trace::Subject
 		 *
 		 * \param size  trace buffer size
 		 *
-		 * \throw   Out_of_metadata
-		 * \throw   Already_traced
-		 * \throw   Source_is_dead
-		 * \throw   Traced_by_other_session
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
+		 * \throw Already_traced
+		 * \throw Source_is_dead
+		 * \throw Traced_by_other_session
 		 */
 		void trace(Policy_id policy_id, Dataspace_capability policy_ds,
 		           size_t policy_size, Ram_session &ram, size_t size)

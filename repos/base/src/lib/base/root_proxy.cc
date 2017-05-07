@@ -183,14 +183,12 @@ void Root_proxy::_handle_session_request(Xml_node request)
 				_env.parent().deliver_session_cap(id, cap);
 			});
 		}
-		catch (Root::Invalid_args) {
-			_env.parent().session_response(id, Parent::INVALID_ARGS); }
 		catch (Insufficient_ram_quota) {
 			_env.parent().session_response(id, Parent::INSUFFICIENT_RAM_QUOTA); }
 		catch (Insufficient_cap_quota) {
 			_env.parent().session_response(id, Parent::INSUFFICIENT_CAP_QUOTA); }
-		catch (Root::Unavailable) {
-			_env.parent().session_response(id, Parent::INVALID_ARGS); }
+		catch (Service_denied) {
+			_env.parent().session_response(id, Parent::SERVICE_DENIED); }
 	}
 
 	if (request.has_type("upgrade")) {

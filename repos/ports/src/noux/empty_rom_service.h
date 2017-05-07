@@ -45,9 +45,9 @@ class Noux::Empty_rom_factory : public Empty_rom_service::Factory
 		Empty_rom_session_component &create(Args const &args, Affinity) override
 		{
 			try {
-				return *new (_alloc) Empty_rom_session_component(_ep);
-			}
-			catch (Rom_connection::Rom_connection_failed) { throw Denied(); }
+				return *new (_alloc) Empty_rom_session_component(_ep); }
+			catch (Rom_connection::Rom_connection_failed) {
+				throw Service_denied(); }
 		}
 
 		void upgrade(Empty_rom_session_component &, Args const &) override { }

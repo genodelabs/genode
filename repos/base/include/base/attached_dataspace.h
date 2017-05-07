@@ -24,10 +24,7 @@ class Genode::Attached_dataspace : Noncopyable
 {
 	public:
 
-		/**
-		 * Exception type
-		 */
-		class Invalid_dataspace { };
+		typedef Region_map::Invalid_dataspace Invalid_dataspace;
 
 	private:
 
@@ -44,7 +41,7 @@ class Genode::Attached_dataspace : Noncopyable
 			if (ds.valid())
 				return ds;
 
-			throw Invalid_dataspace();
+			throw Region_map::Invalid_dataspace();
 		}
 
 	public:
@@ -52,8 +49,10 @@ class Genode::Attached_dataspace : Noncopyable
 		/**
 		 * Constructor
 		 *
-		 * \throw Rm_session::Attach_failed
-		 * \throw Invalid_dataspace
+		 * \throw Region_map::Region_conflict
+		 * \throw Region_map::Invalid_dataspace
+		 * \throw Out_of_caps
+		 * \throw Out_of_ram
 		 */
 		Attached_dataspace(Region_map &rm, Dataspace_capability ds)
 		: _ds(_check(ds)), _rm(rm), _local_addr(_rm.attach(_ds)) { }

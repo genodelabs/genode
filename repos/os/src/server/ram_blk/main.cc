@@ -164,7 +164,8 @@ struct Main
 					Genode::Number_of_bytes bytes;
 					config.attribute("size").value(&bytes);
 					size = bytes;
-				} catch (...) {
+				}
+				catch (...) {
 					error("neither file nor size attribute specified");
 					throw Exception();
 				}
@@ -185,9 +186,8 @@ struct Main
 					            size, " and block size ", block_size);
 					return new (&alloc) Ram_blk(env, size, block_size);
 				}
-			} catch (...) {
-				throw Root::Unavailable();
 			}
+			catch (...) { throw Service_denied(); }
 		}
 
 		void destroy(Block::Driver *driver) {

@@ -46,7 +46,7 @@ class Driver : public Block::Driver
 				_cgd_device = Cgd::init(Genode::env()->heap(), ep);
 			} catch (...) {
 				Genode::error("could not initialize cgd device.");
-				throw Genode::Root::Unavailable();
+				throw Genode::Service_denied();
 			}
 
 			_blk_cnt = _cgd_device->block_count();

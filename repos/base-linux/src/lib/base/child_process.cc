@@ -77,8 +77,10 @@ Child::Process::Process(Dataspace_capability  elf_ds,
 	/* attach ELF locally */
 	addr_t elf_addr;
 	try { elf_addr = local_rm.attach(elf_ds); }
-	catch (Region_map::Attach_failed) {
-		error("local attach of ELF executable failed"); throw; }
+	catch (Region_map::Invalid_dataspace) {
+		error("local attach of ELF executable failed (Invalid_dataspace)"); throw; }
+	catch (Region_map::Region_conflict) {
+		error("local attach of ELF executable failed (Region_conflict)"); throw; }
 
 	/* setup ELF object and read program entry pointer */
 	Elf_binary elf(elf_addr);

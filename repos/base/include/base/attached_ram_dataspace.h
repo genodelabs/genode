@@ -60,12 +60,10 @@ class Genode::Attached_ram_dataspace
 			try {
 				_ds         = _ram->alloc(_size, _cached);
 				_local_addr = _rm->attach(_ds);
-
-			/* revert allocation if attaching the dataspace failed */
-			} catch (Region_map::Attach_failed) {
-				_ram->free(_ds);
-				throw;
 			}
+			/* revert allocation if attaching the dataspace failed */
+			catch (Region_map::Region_conflict)   { _ram->free(_ds); throw; }
+			catch (Region_map::Invalid_dataspace) { _ram->free(_ds); throw; }
 
 			/*
 			 * Eagerly map dataspace if used for DMA
@@ -92,7 +90,8 @@ class Genode::Attached_ram_dataspace
 		 *
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
-		 * \throw Rm_session::Attach_failed
+		 * \throw Region_map::Region_conflict
+		 * \throw Region_map::Invalid_dataspace
 		 */
 		Attached_ram_dataspace(Ram_session &ram, Region_map &rm,
 		                       size_t size, Cache_attribute cached = CACHED)

@@ -104,7 +104,7 @@ class Bomb_child : public Child_policy
 					service = &s; });
 
 			if (!service)
-				throw Parent::Service_denied();
+				throw Service_denied();
 
 			return *service;
 		}
@@ -260,7 +260,7 @@ struct Bomb
 		log("--- bomb started ---");
 
 		/* try to create timer session, if it fails, bomb is our parent */
-		try { timer.construct(env); } catch (Parent::Service_denied) { }
+		try { timer.construct(env); } catch (Service_denied) { }
 
 		if (timer.constructed()) {
 			timer->sigh(signal_timeout);

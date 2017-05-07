@@ -77,7 +77,7 @@ namespace Vfs_server {
 	/*
 	 * Note that the file objects are created at the
 	 * VFS in the local node constructors, this is to
-	 * ensure that Out_of_metadata is thrown before
+	 * ensure that Out_of_ram is thrown before
 	 * the VFS is modified.
 	 */
 }
@@ -336,7 +336,7 @@ struct Vfs_server::Directory : Node
 		try {
 			file = new (alloc)
 			       File(space, vfs, alloc, file_io_handler, path_str, mode, create);
-		} catch (Out_of_memory) { throw Out_of_metadata(); }
+		} catch (Out_of_memory) { throw Out_of_ram(); }
 
 		if (create)
 			mark_as_updated();
@@ -360,7 +360,7 @@ struct Vfs_server::Directory : Node
 
 		Symlink *link;
 		try { link = new (alloc) Symlink(space, vfs, path_str, mode, create); }
-		catch (Out_of_memory) { throw Out_of_metadata(); }
+		catch (Out_of_memory) { throw Out_of_ram(); }
 		if (create)
 			mark_as_updated();
 		return link->id();

@@ -121,9 +121,8 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	try {
 		lwip_nic_init(ip_addr, netmask, gateway,
 		              (Genode::size_t)tx_buf_size, (Genode::size_t)rx_buf_size);
-	} catch (Genode::Parent::Service_denied) {
-		/* ignore for now */
 	}
+	catch (Genode::Service_denied) { /* ignore for now */ }
 
 	if (provide_etc_resolv_conf)
 		create_etc_resolv_conf_plugin();

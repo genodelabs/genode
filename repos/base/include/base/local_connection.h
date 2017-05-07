@@ -150,7 +150,7 @@ class Genode::Local_connection : Local_connection_base
 			 */
 			error(SESSION::service_name(), " session (", _session_state->args(), ") "
 			      "unavailable");
-			throw Parent::Service_denied();
+			throw Service_denied();
 		}
 
 		SESSION const &session() const

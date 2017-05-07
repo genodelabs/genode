@@ -384,7 +384,7 @@ class File_system::Root : public Root_component<Session_component>
 				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
 
 			if (!tx_buf_size)
-				throw Root::Invalid_args();
+				throw Service_denied();
 
 			/*
 			 * Check if donated ram quota suffices for session data,
@@ -417,10 +417,8 @@ class File_system::Root : public Root_component<Session_component>
 				 */
 				if (policy.attribute_value("writeable", false))
 					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
-			} catch (Session_policy::No_policy_defined) {
-				/* missing policy - deny request */
-				throw Root::Unavailable();
 			}
+			catch (Session_policy::No_policy_defined) { throw Service_denied(); }
 
 			/* apply client's root offset */
 			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
@@ -435,9 +433,10 @@ class File_system::Root : public Root_component<Session_component>
 			try {
 				return new (md_alloc())
 					Session_component(_env, tx_buf_size, root_dir, writeable, *md_alloc());
-			} catch (Lookup_failed) {
+			}
+			catch (Lookup_failed) {
 				Genode::error("File system root directory \"", root_dir, "\" does not exist");
-				throw Root::Unavailable();
+				throw Service_denied();
 			}
 		}
 

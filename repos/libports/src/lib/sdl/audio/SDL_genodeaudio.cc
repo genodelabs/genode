@@ -152,7 +152,8 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 				Audio_out::Connection(channel_names[channel],
 				                      false, channel == 0 ? true : false);
 			_this->hidden->audio[channel]->start();
-		} catch(Genode::Parent::Service_denied) {
+		}
+		catch(Genode::Service_denied) {
 			Genode::error("could not connect to 'Audio_out' service");
 
 			while(--channel > 0)

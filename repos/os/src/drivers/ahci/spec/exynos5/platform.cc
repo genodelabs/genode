@@ -339,7 +339,7 @@ struct Exynos5_hba : Platform::Hba
 		Sata_phy_ctrl phy(env, delayer);
 
 		if (phy.init())
-			throw Root::Unavailable();
+			throw Service_denied();
 
 		/* additionally perform some generic initializations */
 		::Hba hba(env, *this, delayer);
@@ -354,7 +354,7 @@ struct Exynos5_hba : Platform::Hba
 			             hba.delayer(), ::Hba::Ghc::Hr::Equal(0));
 		} catch (::Hba::Polling_timeout) {
 			Genode::error("HBA reset failed");
-			throw Root::Unavailable();
+			throw Service_denied();
 		}
 
 		hba.write< ::Hba::Cap>(cap);

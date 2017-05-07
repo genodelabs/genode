@@ -67,8 +67,7 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 	};
 
 	try { _thread_ep->apply(pd_cap, create_thread_lambda); }
-	catch (Region_map::Out_of_metadata)                 { throw Out_of_metadata(); }
-	catch (Allocator::Out_of_memory)                    { throw Out_of_metadata(); }
+	catch (Allocator::Out_of_memory)                    { throw Out_of_ram(); }
 	catch (Native_capability::Reference_count_overflow) { throw Thread_creation_failed(); }
 
 	thread->session_exception_sigh(_exception_sigh);

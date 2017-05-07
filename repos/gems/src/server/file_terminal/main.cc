@@ -246,13 +246,14 @@ namespace Terminal {
 
 					return new (md_alloc())
 					       Session_component(_env, io_buffer_size, filename);
-
-				} catch (Genode::Xml_node::Nonexistent_attribute) {
+				}
+				catch (Genode::Xml_node::Nonexistent_attribute) {
 					Genode::error("missing \"filename\" attribute in policy definition");
-					throw Genode::Root::Unavailable();
-				} catch (Genode::Session_policy::No_policy_defined) {
+					throw Genode::Service_denied();
+				}
+				catch (Genode::Session_policy::No_policy_defined) {
 					Genode::error("invalid session request, no matching policy");
-					throw Genode::Root::Unavailable();
+					throw Genode::Service_denied();
 				}
 			}
 

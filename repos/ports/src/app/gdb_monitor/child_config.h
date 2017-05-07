@@ -45,8 +45,9 @@ class Init::Child_config
 		/**
 		 * Buffer '<config>' sub node in a dedicated RAM dataspace
 		 *
-		 * \throw Ram_session::Alloc_failed
-		 * \throw Rm_session::Attach_failed
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
+		 * \throw Region_map::Region_conflict
 		 */
 		Genode::Ram_dataspace_capability
 		_ram_ds_from_start_node(Genode::Xml_node start,
@@ -81,7 +82,7 @@ class Init::Child_config
 
 				return ram_ds;
 			}
-			catch (Genode::Region_map::Attach_failed) { ram.free(ram_ds); throw; }
+			catch (Genode::Region_map::Region_conflict) { ram.free(ram_ds); throw; }
 		}
 
 	public:
@@ -93,12 +94,13 @@ class Init::Child_config
 		 * holding the copy of the child's configuration data unless the
 		 * configuration is supplied via a config ROM module.
 		 *
-		 * \throw Ram_session::Alloc_failed  failed to allocate the backing
-		 *                                   store for holding config data
+		 * \throw Out_of_ram                   failed to allocate the backing
+		 *                                     store for holding config data
+		 * \throw Out_of_caps
 		 *
-		 * \throw Region_map::Attach_failed  failed to temporarily attach the
-		 *                                   config dataspace to the local
-		 *                                   address space
+		 * \throw Region_map::Region_conflict  failed to temporarily attach the
+		 *                                     config dataspace to the local
+		 *                                     address space
 		 *
 		 * If the start node contains a 'filename' entry, we only keep the
 		 * information about the ROM module name.

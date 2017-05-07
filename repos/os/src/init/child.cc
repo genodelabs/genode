@@ -402,7 +402,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 			/* prevent infinite recursion */
 			if (rom == "config") {
 				error("configfile must not be named 'config'");
-				throw Parent::Service_denied();
+				throw Service_denied();
 			}
 
 			return resolve_session_request(service_name,
@@ -475,12 +475,12 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 						return Route { *service, target_label, target_diag };
 
 					if (service && service->abandoned())
-						throw Parent::Service_denied();
+						throw Service_denied();
 
 					if (!service_wildcard) {
 						warning(name(), ": service lookup for "
 						        "\"", service_name, "\" at parent failed");
-						throw Parent::Service_denied();
+						throw Service_denied();
 					}
 				}
 
@@ -498,7 +498,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 							service = &s; });
 
 					if (service && service->abandoned())
-						throw Parent::Service_denied();
+						throw Service_denied();
 
 					if (service)
 						return Route { *service, target_label, target_diag };
@@ -506,7 +506,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 					if (!service_wildcard) {
 						warning(name(), ": lookup to child "
 						        "server \"", server_name, "\" failed");
-						throw Parent::Service_denied();
+						throw Service_denied();
 					}
 				}
 
@@ -515,7 +515,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 					if (is_ambiguous(_child_services, service_name)) {
 						error(name(), ": ambiguous routes to "
 						      "service \"", service_name, "\"");
-						throw Parent::Service_denied();
+						throw Service_denied();
 					}
 
 					Routed_service *service = nullptr;
@@ -526,7 +526,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 					if (!service_wildcard) {
 						warning(name(), ": lookup for service "
 						        "\"", service_name, "\" failed");
-						throw Parent::Service_denied();
+						throw Service_denied();
 					}
 				}
 
@@ -537,7 +537,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 	} catch (Xml_node::Nonexistent_sub_node) { }
 
 	warning(name(), ": no route to service \"", service_name, "\"");
-	throw Parent::Service_denied();
+	throw Service_denied();
 }
 
 

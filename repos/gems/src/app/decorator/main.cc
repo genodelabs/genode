@@ -161,9 +161,14 @@ struct Decorator::Main : Window_factory_base
 				return new (_heap)
 					Window(attribute(window_node, "id", 0UL), _nitpicker,
 					       _animator, _decorator_config);
-			} catch (Nitpicker::Session::Out_of_metadata) {
-				Genode::log("Handle Out_of_metadata of nitpicker session - upgrade by 8K");
+			}
+			catch (Genode::Out_of_ram) {
+				Genode::log("Handle Out_of_ram of nitpicker session - upgrade by 8K");
 				_nitpicker.upgrade_ram(8192);
+			}
+			catch (Genode::Out_of_caps) {
+				Genode::log("Handle Out_of_caps of nitpicker session - upgrade by 2");
+				_nitpicker.upgrade_ram(2);
 			}
 		}
 		return nullptr;

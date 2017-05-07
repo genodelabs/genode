@@ -37,7 +37,8 @@ int main(int argc, char *argv[])
 		Genode::memcpy(buffer, blk.tx()->packet_content(p), blk_sz);
 
 		/* XXX compare content */
-	} catch(Genode::Parent::Service_denied) {
+	}
+	catch(Genode::Service_denied) {
 		Genode::error("opening block session was denied");
 		return -1;
 	}

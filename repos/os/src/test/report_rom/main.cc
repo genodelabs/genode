@@ -75,9 +75,10 @@ struct Test::Main
 				again.enabled(true);
 				error("expected Service_denied");
 				throw -3;
-			} catch (Genode::Parent::Service_denied) {
-				log("ROM client: catched Parent::Service_denied - OK");
 			}
+			catch (Service_denied) {
+				log("ROM client: caught Service_denied - OK"); }
+
 			log("--- test-report_rom finished ---");
 			_env.parent().exit(0);
 			return;

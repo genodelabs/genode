@@ -45,13 +45,13 @@ class Genode::Attached_io_mem_dataspace
 		 * \param size            size of resource
 		 * \param write_combined  enable write combining for the resource
 		 *
-		 * \throw Parent::Service_denied
+		 * \throw Service_denied
 		 * \throw Insufficient_ram_quota
 		 * \throw Insufficient_cap_quota
-		 * \throw Parent::Unavailable
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
-		 * \throw Rm_session::Attach_failed
+		 * \throw Region_map::Region_conflict
+		 * \throw Region_map::Invalid_dataspace
 		 */
 		Attached_io_mem_dataspace(Env &env, Genode::addr_t base, Genode::size_t size,
 		                          bool write_combined = false)

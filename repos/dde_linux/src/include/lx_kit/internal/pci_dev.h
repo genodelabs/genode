@@ -184,13 +184,8 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 		template <typename T>
 		void config_write(unsigned int devfn, T val)
 		{
-			Genode::size_t donate = 4096;
-			Genode::retry<Platform::Device::Quota_exceeded>(
-				[&] () { _client.config_write(devfn, val, _access_size(val)); },
-				[&] () {
-					pci()->upgrade_ram(donate);
-					donate *= 2;
-				});
+			pci()->with_upgrade([&] () {
+				_client.config_write(devfn, val, _access_size(val)); });
 		}
 
 		Platform::Device &client() { return _client; }
@@ -224,18 +219,12 @@ template <typename FUNC>
 void Lx::for_each_pci_device(FUNC const &func)
 {
 	/*
-	 * Functor that is called if the platform driver throws a
-	 * 'Out_of_metadata' exception.
-	 */
-	auto handler = [&] () { Lx::pci()->upgrade_ram(4096); };
-
-	/*
 	 * Obtain first device, the operation may exceed the session quota.
 	 * So we use the 'retry' mechanism.
 	 */
-	Platform::Device_capability cap;
-	auto attempt = [&] () { cap = Lx::pci()->first_device(); };
-	Genode::retry<Platform::Session::Out_of_metadata>(attempt, handler);
+	Platform::Device_capability cap =
+		Lx::pci()->with_upgrade([&] () {
+			return Lx::pci()->first_device(); });
 
 	/*
 	 * Iterate over the devices of the platform session.
@@ -252,12 +241,12 @@ void Lx::for_each_pci_device(FUNC const &func)
 		 * Release current device and try next one. Upgrade session
 		 * quota on demand.
 		 */
-		auto attempt = [&] () {
-			Platform::Device_capability next_cap = pci()->next_device(cap);
-			Lx::pci()->release_device(cap);
-			cap = next_cap;
-		};
-		Genode::retry<Platform::Session::Out_of_metadata>(attempt, handler);
+		Platform::Device_capability next_cap =
+			Lx::pci()->with_upgrade([&] () {
+				return pci()->next_device(cap); });
+
+		Lx::pci()->release_device(cap);
+		cap = next_cap;
 	}
 }
 

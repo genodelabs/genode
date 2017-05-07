@@ -228,10 +228,10 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 					Session_component(_env,
 					                  _lookup_rom_node_in_config(module_name),
 					                  _verbose);
-
-			} catch (Nonexistent_rom_module) {
+			}
+			catch (Nonexistent_rom_module) {
 				error("ROM module lookup of '", label.string(), "' failed");
-				throw Root::Invalid_args();
+				throw Service_denied();
 			}
 		}
 

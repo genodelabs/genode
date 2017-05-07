@@ -110,7 +110,7 @@ struct Main
 			} catch(Rom_connection::Rom_connection_failed) {
 				error("cannot open file ", file);
 			}
-			throw Root::Unavailable();
+			throw Service_denied();
 		}
 
 		void destroy(Block::Driver *driver) {

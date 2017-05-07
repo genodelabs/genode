@@ -39,7 +39,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 
 	/* only files inside the current working directory are allowed */
 	for (const char *c = fname.buf; *c; ++c)
-		if (*c == '/') throw Root::Invalid_args();
+		if (*c == '/') throw Service_denied();
 
 	return fname;
 }
@@ -48,7 +48,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 Genode::size_t Dataspace_component::_file_size()
 {
 	struct stat64 s;
-	if (lx_stat(_fname.buf, &s) < 0) throw Root::Invalid_args();
+	if (lx_stat(_fname.buf, &s) < 0) throw Service_denied();
 
 	return s.st_size;
 }

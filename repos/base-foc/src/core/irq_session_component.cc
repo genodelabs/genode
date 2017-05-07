@@ -191,13 +191,13 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	if (msi) {
 		if (msi_alloc.get(irq_args.irq_number(), 1)) {
 			error("unavailable MSI ", irq_args.irq_number(), " requested");
-			throw Root::Unavailable();
+			throw Service_denied();
 		}
 		msi_alloc.set(irq_args.irq_number(), 1);
 	} else {
 		if (!irq_alloc || irq_alloc->alloc_addr(1, irq_args.irq_number()).error()) {
 			error("unavailable IRQ ", irq_args.irq_number(), " requested");
-			throw Root::Unavailable();
+			throw Service_denied();
 		}
 	}
 

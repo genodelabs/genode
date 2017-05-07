@@ -163,9 +163,8 @@ int Framebuffer::map_io_mem(addr_t base, size_t size, bool write_combined,
 
 	try {
 		*out_addr = genode_env().rm().attach(io_ds, size, 0, addr != 0, addr);
-	} catch (Rm_session::Attach_failed) {
-		return -3;
 	}
+	catch (Region_map::Region_conflict) { return -3; }
 
 	log("fb mapped to ", *out_addr);
 

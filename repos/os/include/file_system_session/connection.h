@@ -110,45 +110,47 @@ struct File_system::Connection : File_system::Connection_base
 	using Connection_base::Connection_base;
 
 	/**
-	 * Upgrade the session quota in response to Out_of_metadata
+	 * Extend session quota on demand while calling an RPC function
+	 *
+	 * \noapi
 	 */
-	void upgrade_ram()
+	template <typename FUNC>
+	auto _retry(FUNC func) -> decltype(func())
 	{
-		File_system::Connection_base::upgrade_ram(8*1024);
+		enum { UPGRADE_ATTEMPTS = 2 };
+		return Genode::retry<Out_of_ram>(
+			[&] () {
+				return Genode::retry<Out_of_caps>(
+					[&] () { return func(); },
+					[&] () { File_system::Connection_base::upgrade_caps(2); },
+					UPGRADE_ATTEMPTS);
+			},
+			[&] () { File_system::Connection_base::upgrade_ram(8*1024); },
+			UPGRADE_ATTEMPTS);
 	}
-
-	enum { UPGRADE_ATTEMPTS = 2 };
 
 	Dir_handle dir(Path const &path, bool create) override
 	{
-		return Genode::retry<Out_of_metadata>(
-			[&] () { return Session_client::dir(path, create); },
-			[&] () { upgrade_ram(); },
-			UPGRADE_ATTEMPTS);
+		return _retry([&] () {
+			return Session_client::dir(path, create); });
 	}
 
 	File_handle file(Dir_handle dir, Name const &name, Mode mode, bool create) override
 	{
-		return Genode::retry<Out_of_metadata>(
-			[&] () { return Session_client::file(dir, name, mode, create); },
-			[&] () { upgrade_ram(); },
-			UPGRADE_ATTEMPTS);
+		return _retry([&] () {
+			return Session_client::file(dir, name, mode, create); });
 	}
 
 	Symlink_handle symlink(Dir_handle dir, Name const &name, bool create) override
 	{
-		return Genode::retry<Out_of_metadata>(
-			[&] () { return Session_client::symlink(dir, name, create); },
-			[&] () { upgrade_ram(); },
-			UPGRADE_ATTEMPTS);
+		return _retry([&] () {
+			return Session_client::symlink(dir, name, create); });
 	}
 
 	Node_handle node(Path const &path) override
 	{
-		return Genode::retry<Out_of_metadata>(
-			[&] () { return Session_client::node(path); },
-			[&] () { upgrade_ram(); },
-			UPGRADE_ATTEMPTS);
+		return _retry([&] () {
+			return Session_client::node(path); });
 	}
 };
 

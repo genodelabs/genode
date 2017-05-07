@@ -288,7 +288,8 @@ extern "C" {
 			nic = new (env()->heap()) Nic::Connection(tx_block_alloc,
 			                                          nbs->tx_buf_size,
 			                                          nbs->rx_buf_size);
-		} catch (Parent::Service_denied) {
+		}
+		catch (Service_denied) {
 			destroy(env()->heap(), tx_block_alloc);
 			return ERR_IF;
 		}

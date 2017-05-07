@@ -234,13 +234,14 @@ class Uart::Root : public Uart::Root_component
 				return new (md_alloc())
 					Session_component(_env, _driver_factory, index,
 					                  baudrate, detect_size);
-
-			} catch (Xml_node::Nonexistent_attribute) {
+			}
+			catch (Xml_node::Nonexistent_attribute) {
 				Genode::error("Missing \"uart\" attribute in policy definition");
-				throw Root::Unavailable();
-			} catch (Session_policy::No_policy_defined) {
+				throw Genode::Service_denied();
+			}
+			catch (Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy");
-				throw Root::Unavailable();
+				throw Genode::Service_denied();
 			}
 		}
 

@@ -90,11 +90,18 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 		new_ds_cap = _ds_pool.ram_alloc->alloc(size);
 		ds_addr = _ds_pool.region_map->attach(new_ds_cap);
 	}
-	catch (Out_of_ram) { return nullptr; }
-	catch (Region_map::Attach_failed) {
-		warning("could not attach dataspace");
+	catch (Out_of_ram) {
+		return nullptr;
+	}
+	catch (Region_map::Invalid_dataspace) {
+		warning("heap: attempt to attach invalid dataspace");
 		_ds_pool.ram_alloc->free(new_ds_cap);
-		return 0;
+		return nullptr;
+	}
+	catch (Region_map::Region_conflict) {
+		warning("heap: region conflict while allocating dataspace");
+		_ds_pool.ram_alloc->free(new_ds_cap);
+		return nullptr;
 	}
 
 	if (enforce_separate_metadata) {

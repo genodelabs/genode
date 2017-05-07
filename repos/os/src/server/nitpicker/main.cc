@@ -129,8 +129,9 @@ class Buffer
 		/**
 		 * Constructor - allocate and map dataspace for virtual frame buffer
 		 *
-		 * \throw Ram_session::Alloc_failed
-		 * \throw Rm_session::Attach_failed
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
+		 * \throw Region_map::Region_conflict
 		 */
 		Buffer(Genode::Ram_session &ram, Genode::Region_map &rm,
 		       Area size, Framebuffer::Mode::Format format, Genode::size_t bytes)
@@ -787,9 +788,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 				catch (View_handle_registry::Lookup_failed) {
 					return View_handle(); }
 				catch (View_handle_registry::Out_of_memory) {
-					throw Nitpicker::Session::Out_of_metadata(); }
-				catch (Genode::Allocator::Out_of_memory) {
-					throw Nitpicker::Session::Out_of_metadata(); }
+					throw Genode::Out_of_ram(); }
 			}
 
 			/*
@@ -803,7 +802,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 						     nullptr);
 					}
 				catch (Genode::Allocator::Out_of_memory) {
-					throw Nitpicker::Session::Out_of_metadata(); }
+					throw Genode::Out_of_ram(); }
 			}
 
 			view->apply_origin_policy(_pointer_origin);
@@ -813,7 +812,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			try { return _view_handle_registry.alloc(*view); }
 			catch (View_handle_registry::Out_of_memory) {
-				throw Nitpicker::Session::Out_of_metadata(); }
+				throw Genode::Out_of_ram(); }
 		}
 
 		void destroy_view(View_handle handle) override
@@ -852,7 +851,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			try { return _env.ep().rpc_ep().apply(view_cap, lambda); }
 			catch (View_handle_registry::Out_of_memory) {
-				throw Nitpicker::Session::Out_of_metadata(); }
+				throw Genode::Out_of_ram(); }
 		}
 
 		View_capability view_capability(View_handle handle) override
@@ -912,7 +911,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		{
 			/* check if the session quota suffices for the specified mode */
 			if (_session_alloc.quota() < ram_quota(mode, use_alpha))
-				throw Nitpicker::Session::Out_of_metadata();
+				throw Genode::Out_of_ram();
 
 			_framebuffer_session_component.notify_mode_change(mode, use_alpha);
 		}

@@ -198,7 +198,7 @@ class Framebuffer::Root : public Root_component
 			if (Framebuffer::set_mode(scr_width, scr_height, scr_depth) != 0) {
 				Genode::warning("Could not set vesa mode ",
 				                scr_width, "x", scr_height, "@", scr_depth);
-				throw Root::Invalid_args();
+				throw Genode::Service_denied();
 			}
 
 			Genode::log("using video mode: ",

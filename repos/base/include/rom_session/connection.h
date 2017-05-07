@@ -26,7 +26,7 @@ class Genode::Rom_connection : public Connection<Rom_session>,
 {
 	public:
 
-		class Rom_connection_failed : public Parent::Service_denied { };
+		class Rom_connection_failed : public Service_denied { };
 
 		enum { RAM_QUOTA = 6*1024UL };
 

@@ -38,6 +38,10 @@ namespace File_system {
 
 	class Node_handle_registry
 	{
+		public:
+
+			class Out_of_node_handles : public Exception { };
+
 		private:
 
 			/* maximum number of open nodes per session */
@@ -56,7 +60,7 @@ namespace File_system {
 			/**
 			 * Allocate node handle
 			 *
-			 * \throw Out_of_metadata
+			 * \throw Out_of_node_handles
 			 */
 			int _alloc(Node_base *node)
 			{
@@ -68,7 +72,7 @@ namespace File_system {
 						return i;
 					}
 
-				throw Out_of_metadata();
+				throw Out_of_node_handles();
 			}
 
 			bool _in_range(int handle) const

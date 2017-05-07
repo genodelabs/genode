@@ -147,8 +147,11 @@ void Rom_to_file::Main::_handle_update()
 			} catch (No_space) {
 				error("file system out of space");
 
-			} catch (Out_of_metadata) {
-				error("server ran out of memory");
+			} catch (Out_of_ram) {
+				error("server ran out of RAM");
+
+			} catch (Out_of_caps) {
+				error("server ran out of caps");
 
 			} catch (Invalid_name) {
 				error(Cstring(dir_path), file_name, ": invalid path");

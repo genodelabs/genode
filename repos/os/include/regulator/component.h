@@ -84,7 +84,7 @@ class Regulator::Root :
 				throw Insufficient_ram_quota();
 
 			if (!strlen(reg_name))
-				throw Root::Invalid_args();
+				throw Service_denied();
 
 			return new (md_alloc())
 				Session_component(regulator_id_by_name(reg_name),

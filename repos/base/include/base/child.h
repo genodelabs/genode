@@ -72,12 +72,12 @@ struct Genode::Child_policy
 	 * \return  service to be contacted for the new session
 	 * \deprecated
 	 *
-	 * \throw Parent::Service_denied
+	 * \throw Service_denied
 	 */
 	virtual Service &resolve_session_request(Service::Name       const &,
 	                                         Session_state::Args const &)
 	{
-		throw Parent::Service_denied();
+		throw Service_denied();
 	}
 
 	/**
@@ -95,13 +95,13 @@ struct Genode::Child_policy
 	 *
 	 * \return  routing and policy-selection information for the session
 	 *
-	 * \throw Parent::Service_denied
+	 * \throw Service_denied
 	 */
 	virtual Route resolve_session_request(Service::Name const &,
 	                                      Session_label const &)
 	{
 		/* \deprecated  make pure virtual once the old version is gone */
-		throw Parent::Service_denied();
+		throw Service_denied();
 	}
 
 	/**
@@ -297,7 +297,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 				 * Constructor
 				 *
 				 * \throw Cpu_session::Thread_creation_failed
-				 * \throw Cpu_session::Out_of_metadata
+				 * \throw Out_of_ram
+				 * \throw Out_of_caps
 				 */
 				Initial_thread(Cpu_session &, Pd_session_capability, Name const &);
 				~Initial_thread();
@@ -377,10 +378,12 @@ class Genode::Child : protected Rpc_object<Parent>,
 				 *                  the local address space to initialize their
 				 *                  content with the data from the 'elf_ds'
 				 *
-				 * \throw Region_map::Attach_failed
+				 * \throw Region_map::Region_conflict
+				 * \throw Region_map::Invalid_dataspace
 				 * \throw Invalid_executable
 				 * \throw Missing_dynamic_linker
-				 * \throw Ram_session::Alloc_failed
+				 * \throw Out_of_ram
+				 * \throw Out_of_caps
 				 */
 				Loaded_executable(Dataspace_capability elf_ds,
 				                  Dataspace_capability ldso_ds,
@@ -400,7 +403,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 			 *
 			 * \throw Missing_dynamic_linker
 			 * \throw Invalid_executable
-			 * \throw Region_map::Attach_failed
+			 * \throw Region_map::Region_conflict
+			 * \throw Region_map::Invalid_dataspace
 			 * \throw Out_of_ram
 			 * \throw Out_of_caps
 			 *
@@ -466,7 +470,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 					session.async_client_notify = true;
 					_service.initiate_request(session);
 
-					if (session.phase == Session_state::INVALID_ARGS)
+					if (session.phase == Session_state::SERVICE_DENIED)
 						error(_child._policy.name(), ": environment ",
 						      CONNECTION::service_name(), " session denied "
 						      "(", session.args(), ")");
@@ -575,7 +579,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 					                      _args, _child._policy.filter_session_affinity(Affinity()),
 					                      route.label, route.diag);
 				}
-				catch (Parent::Service_denied) {
+				catch (Service_denied) {
 					error(_child._policy.name(), ": ", _service_name(), " "
 					      "environment session denied"); }
 			}
@@ -639,9 +643,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 *                    the child
 		 * \param policy      policy for the child
 		 *
-		 * \throw Parent::Service_denied  if the initial sessions for the
-		 *                                child's environment could not be
-		 *                                opened
+		 * \throw Service_denied  the initial sessions for the child's
+		 *                        environment could not be established
 		 */
 		Child(Region_map &rm, Rpc_entrypoint &entrypoint, Child_policy &policy);
 

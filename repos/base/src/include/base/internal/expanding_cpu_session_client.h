@@ -42,7 +42,7 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 	create_thread(Pd_session_capability pd, Name const &name,
 	              Affinity::Location location, Weight weight, addr_t utcb) override
 	{
-		return retry<Cpu_session::Out_of_metadata>(
+		return retry<Out_of_ram>(
 			[&] () {
 				return Cpu_session_client::create_thread(pd, name, location,
 				                                         weight, utcb); },

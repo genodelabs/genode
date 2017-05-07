@@ -178,7 +178,7 @@ class Core_child : public Child_policy
 					service = &s; });
 
 			if (!service)
-				throw Parent::Service_denied();
+				throw Service_denied();
 
 			return *service;
 		}

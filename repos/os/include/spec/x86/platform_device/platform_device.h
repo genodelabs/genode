@@ -24,8 +24,13 @@
 /* os includes */
 #include <platform_device/device.h>
 
+namespace Platform {
 
-namespace Platform { struct Device; }
+	struct Device;
+
+	using Genode::Out_of_caps;
+	using Genode::Out_of_ram;
+}
 
 
 struct Platform::Device : Platform::Abstract_device
@@ -33,10 +38,6 @@ struct Platform::Device : Platform::Abstract_device
 	/*********************
 	 ** Exception types **
 	 *********************/
-
-	class Alloc_failed    : public Genode::Exception { };
-	class Quota_exceeded  : public Alloc_failed      { };
-
 
 	class Resource
 	{
@@ -161,6 +162,9 @@ struct Platform::Device : Platform::Abstract_device
 
 	/**
 	 * Write configuration space
+	 *
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
 	 */
 	virtual void config_write(unsigned char address, unsigned value,
 	                          Access_size size) = 0;
@@ -169,6 +173,9 @@ struct Platform::Device : Platform::Abstract_device
 	 * Query Io_port of specified bar
 	 *
 	 * \param id   index of according PCI resource of the device
+	 *
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
 	 */
 	virtual Genode::Io_port_session_capability io_port(Genode::uint8_t id) = 0;
 
@@ -235,14 +242,14 @@ struct Platform::Device : Platform::Abstract_device
 	GENODE_RPC(Rpc_config_read, unsigned, config_read,
 	           unsigned char, Access_size);
 	GENODE_RPC_THROW(Rpc_config_write, void, config_write,
-	                 GENODE_TYPE_LIST(Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 unsigned char, unsigned, Access_size);
 	GENODE_RPC(Rpc_irq, Genode::Irq_session_capability, irq, Genode::uint8_t);
 	GENODE_RPC_THROW(Rpc_io_port, Genode::Io_port_session_capability, io_port,
-	                 GENODE_TYPE_LIST(Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Genode::uint8_t);
 	GENODE_RPC_THROW(Rpc_io_mem, Genode::Io_mem_session_capability, io_mem,
-	                 GENODE_TYPE_LIST(Quota_exceeded),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Genode::uint8_t, Genode::Cache_attribute,
 	                 Genode::addr_t, Genode::size_t);
 

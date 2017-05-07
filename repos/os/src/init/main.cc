@@ -383,10 +383,13 @@ void Init::Main::_handle_config()
 				warning("local capabilities exhausted during child creation"); }
 			catch (Child::Missing_name_attribute) {
 				warning("skipped startup of nameless child"); }
-			catch (Region_map::Attach_failed) {
+			catch (Region_map::Region_conflict) {
 				warning("failed to attach dataspace to local address space "
 				        "during child construction"); }
-			catch (Parent::Service_denied) {
+			catch (Region_map::Invalid_dataspace) {
+				warning("attempt to attach invalid dataspace to local address space "
+				        "during child construction"); }
+			catch (Service_denied) {
 				warning("failed to create session during child construction"); }
 		});
 	}

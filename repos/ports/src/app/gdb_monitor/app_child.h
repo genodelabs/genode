@@ -205,7 +205,7 @@ class Gdb_monitor::App_child : public Child_policy
 				service = new (_alloc) Parent_service(_parent_services, _env, service_name);
 
 			if (!service)
-				throw Parent::Service_denied();
+				throw Service_denied();
 
 			return *service;
 		}

@@ -46,10 +46,9 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 		Readable_module &_init_module(Genode::Session_label const &label)
 		{
-			try {
-				return _registry.lookup(*this, label.string()); }
+			try { return _registry.lookup(*this, label.string()); }
 			catch (Registry_for_reader::Lookup_failed) {
-				throw Genode::Root::Invalid_args(); }
+				throw Genode::Service_denied(); }
 		}
 
 		Constructible<Genode::Attached_ram_dataspace> _ds;

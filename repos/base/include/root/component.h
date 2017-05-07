@@ -49,7 +49,7 @@ class Genode::Single_client
 		void aquire(const char *)
 		{
 			if (_used)
-				throw Root::Unavailable();
+				throw Service_denied();
 
 			_used = true;
 		}
@@ -217,10 +217,11 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * affinity, it suffices to override the overload without the
 		 * affinity argument.
 		 *
-		 * \throw Allocator::Out_of_memory  typically caused by the
-		 *                                  meta-data allocator
-		 * \throw Root::Invalid_args        typically caused by the
-		 *                                  session-component constructor
+		 * \throw Out_of_ram 
+		 * \throw Out_of_caps
+		 * \throw Service_denied
+		 * \throw Insufficient_cap_quota
+		 * \throw Insufficient_ram_quota
 		 */
 		virtual SESSION_TYPE *_create_session(const char *args,
 		                                      Affinity const &)
@@ -230,7 +231,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 
 		virtual SESSION_TYPE *_create_session(const char *args)
 		{
-			throw Root::Invalid_args();
+			throw Service_denied();
 		}
 
 		/**
@@ -301,13 +302,10 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		SESSION_TYPE &create(Session_state::Args const &args,
 		                     Affinity affinity) override
 		{
-			try {
-				return _create(args, affinity); }
-
+			try { return _create(args, affinity); }
 			catch (Insufficient_ram_quota) { throw; }
 			catch (Insufficient_cap_quota) { throw; }
-			catch (...) {
-				throw typename Local_service<SESSION_TYPE>::Factory::Denied(); }
+			catch (...) { throw Service_denied(); }
 		}
 
 		void upgrade(SESSION_TYPE &session,
@@ -329,14 +327,14 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		Session_capability session(Root::Session_args const &args,
 		                           Affinity           const &affinity) override
 		{
-			if (!args.valid_string()) throw Root::Invalid_args();
+			if (!args.valid_string()) throw Service_denied();
 			SESSION_TYPE &session = _create(args.string(), affinity);
 			return session.cap();
 		}
 
 		void upgrade(Session_capability session, Root::Upgrade_args const &args) override
 		{
-			if (!args.valid_string()) throw Root::Invalid_args();
+			if (!args.valid_string()) throw Service_denied();
 
 			_ep->apply(session, [&] (SESSION_TYPE *s) {
 				if (!s) return;
