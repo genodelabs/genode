@@ -1,5 +1,5 @@
-if {!([have_spec nova] || ([have_spec foc] && [have_spec 32bit]))} {
-	puts "\nThe Noux GDB scenario is only supported for NOVA or 32-bit Fiasco.OC\n"
+if {!([have_spec nova])} {
+	puts "\nThe Noux GDB scenario is only supported for NOVA\n"
 	exit 0
 }
 

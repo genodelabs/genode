@@ -6,13 +6,12 @@
 #
 
 #
-# Only the NOVA and 32-bit Fiasco.OC base platforms support most of the tested features
-# at this time.
+# Only the NOVA platform supports most of the tested features at this time.
 #
 
 if {![have_include "power_on/qemu"] ||
-    !([have_spec nova] || ([have_spec foc] && [have_spec 32bit]))} {
-	 puts "Run script is only supported for NOVA or 32-bit Fiasco.OC in Qemu"; exit 0
+    !([have_spec nova])} {
+	 puts "Run script is only supported for NOVA in Qemu"; exit 0
 }
 
 #
