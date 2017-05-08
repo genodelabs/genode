@@ -115,17 +115,14 @@ Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 void Cap_space::upgrade_slab(Allocator &alloc)
 {
-	for (;;) {
-		void *block = nullptr;
+	enum { NEEDED_AVAIL_ENTRIES_FOR_SUCCESSFUL_SYSCALL = 8 };
 
-		/*
-		 * On every upgrade we try allocating as many blocks as possible.
-		 * If the underlying allocator complains that its quota is exceeded
-		 * this is normal as we use it as indication when to exit the loop.
-		 */
-		if (!alloc.alloc(SLAB_SIZE, &block)) return;
+	if (_slab.avail_entries() > NEEDED_AVAIL_ENTRIES_FOR_SUCCESSFUL_SYSCALL)
+		return;
+
+	void *block = nullptr;
+	if (alloc.alloc(SLAB_SIZE, &block))
 		_slab.insert_sb(block);
-	}
 }
 
 
