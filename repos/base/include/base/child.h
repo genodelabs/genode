@@ -535,7 +535,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 			typedef typename CONNECTION::Session_type SESSION;
 
-			SESSION &session() { return _connection->session(); }
+			SESSION       &session()       { return _connection->session(); }
+			SESSION const &session() const { return _connection->session(); }
 
 			Capability<SESSION> cap() const {
 				return _connection.constructed() ? _connection->cap()
@@ -661,9 +662,10 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		Parent_capability parent_cap() const { return cap(); }
 
-		Ram_session &ram() { return _ram.session(); }
-		Cpu_session &cpu() { return _cpu.session(); }
-		Pd_session  &pd()  { return _pd .session(); }
+		Ram_session       &ram()       { return _ram.session(); }
+		Ram_session const &ram() const { return _ram.session(); }
+		Cpu_session       &cpu()       { return _cpu.session(); }
+		Pd_session        &pd()        { return _pd .session(); }
 
 		/**
 		 * Request factory for creating session-state objects

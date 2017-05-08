@@ -135,6 +135,11 @@ class Genode::Local_connection : Local_connection_base
 			throw Parent::Service_denied();
 		}
 
+		SESSION const &session() const
+		{
+			return const_cast<Local_connection *>(this)->session();
+		}
+
 		Local_connection(Service &service, Id_space<Parent::Client> &id_space,
 		                 Parent::Client::Id id, Args const &args,
 		                 Affinity const &affinity,
