@@ -70,6 +70,7 @@ class Test_child : public Genode::Child_policy
 	private:
 
 		Env                      &_env;
+		Cap_quota           const _cap_quota { 30 };
 		Ram_quota           const _ram_quota { 1024*1024 };
 		Binary_name         const _binary_name;
 		Signal_context_capability _sigh;
@@ -101,6 +102,9 @@ class Test_child : public Genode::Child_policy
 
 		Binary_name binary_name() const override { return _binary_name; }
 
+		Pd_session           &ref_pd()           override { return _env.pd(); }
+		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+
 		Ram_session           &ref_ram()           override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
 
@@ -116,8 +120,11 @@ class Test_child : public Genode::Child_policy
 			cpu.exception_sigh(_sigh);
 		}
 
-		void init(Pd_session &pd, Pd_session_capability) override
+		void init(Pd_session &pd, Pd_session_capability pd_cap) override
 		{
+			pd.ref_account(ref_pd_cap());
+			ref_pd().transfer_quota(pd_cap, _cap_quota);
+
 			/* register handler for unresolvable page faults */
 			Region_map_client address_space(pd.address_space());
 			address_space.fault_handler(_sigh);
@@ -162,7 +169,7 @@ struct Faulting_loader_child_test
 
 	void start_iteration(Env &env, Signal_context_capability fault_sigh)
 	{
-		loader.construct(env, Ram_quota{1024*1024});
+		loader.construct(env, Ram_quota{1024*1024}, Cap_quota{100});
 
 		/* register fault handler at loader session */
 		loader->fault_sigh(fault_sigh);
@@ -207,7 +214,7 @@ struct Faulting_loader_grand_child_test
 
 	void start_iteration(Env &env, Signal_context_capability fault_sigh)
 	{
-		loader.construct(env, Ram_quota{2*1024*1024});
+		loader.construct(env, Ram_quota{2*1024*1024}, Cap_quota{100});
 
 		/* import config into loader session */
 		{

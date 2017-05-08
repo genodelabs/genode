@@ -17,9 +17,11 @@
 #define _CORE__INCLUDE__PD_SESSION_COMPONENT_H_
 
 /* Genode includes */
+#include <util/reconstructible.h>
 #include <base/allocator_guard.h>
-#include <base/session_label.h>
-#include <base/rpc_server.h>
+#include <base/session_object.h>
+#include <base/registry.h>
+#include <base/heap.h>
 #include <pd_session/pd_session.h>
 #include <util/arg_string.h>
 
@@ -33,88 +35,111 @@
 #include <native_pd_component.h>
 #include <region_map_component.h>
 #include <platform_generic.h>
+#include <account.h>
 
 namespace Genode { class Pd_session_component; }
 
 
-class Genode::Pd_session_component : public Rpc_object<Pd_session>
+class Genode::Pd_session_component : public Session_object<Pd_session>
 {
 	private:
 
-		/**
-		 * Read and store the PD label
-		 */
-		struct Label {
-
-			enum { MAX_LEN = 64 };
-			char string[MAX_LEN];
-
-			Label(char const *args)
-			{
-				Arg_string::find_arg(args, "label").string(string,
-				                                           sizeof(string), "");
-			}
-		} const _label;
-
-		Allocator_guard     _md_alloc;   /* guarded meta-data allocator */
-		Platform_pd         _pd;
-		Capability<Parent>  _parent;
-		Rpc_entrypoint     &_thread_ep;
-		Pager_entrypoint   &_pager_ep;
-		Signal_broker       _signal_broker;
-		Rpc_cap_factory     _rpc_cap_factory;
-		Native_pd_component _native_pd;
+		Constrained_ram_allocator _constrained_md_ram_alloc;
+		Sliced_heap               _sliced_heap;
+		Platform_pd               _pd { &_sliced_heap, _label.string() };
+		Capability<Parent>        _parent;
+		Rpc_entrypoint           &_ep;
+		Pager_entrypoint         &_pager_ep;
+		Signal_broker             _signal_broker { _sliced_heap, _ep, _ep };
+		Rpc_cap_factory           _rpc_cap_factory { _sliced_heap };
+		Native_pd_component       _native_pd;
 
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
 		Region_map_component _linker_area;
 
-		size_t _ram_quota(char const * args) {
-			return Arg_string::find_arg(args, "ram_quota").long_value(0); }
+		Constructible<Account<Cap_quota> > _cap_account;
 
 		friend class Native_pd_component;
+
+		enum Cap_type { RPC_CAP, SIG_SOURCE_CAP, SIG_CONTEXT_CAP, IGN_CAP };
+
+		char const *_name(Cap_type type)
+		{
+			switch (type) {
+			case RPC_CAP:         return "RPC";
+			case SIG_SOURCE_CAP:  return "signal-source";
+			case SIG_CONTEXT_CAP: return "signal-context";
+			default:              return "";
+			}
+		}
+
+		/*
+		 * \throw Out_of_caps
+		 */
+		void _consume_cap(Cap_type type)
+		{
+			try { Cap_quota_guard::withdraw(Cap_quota{1}); }
+			catch (Out_of_caps) {
+				diag("out of caps while consuming ", _name(type), " cap "
+				     "(", _cap_account, ")");
+				throw;
+			}
+			diag("consumed ", _name(type), " cap (", _cap_account, ")");
+		}
+
+		void _released_cap_silent() { Cap_quota_guard::replenish(Cap_quota{1}); }
+
+		void _released_cap(Cap_type type)
+		{
+			_released_cap_silent();
+			diag("released ", _name(type), " cap (", _cap_account, ")");
+		}
 
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param receiver_ep  entrypoint holding signal-receiver component
-		 *                     objects
-		 * \param context_ep   global pool of all signal contexts
-		 * \param md_alloc     backing-store allocator for
-		 *                     signal-context component objects
-		 *
-		 * To maintain proper synchronization, 'receiver_ep' must be
-		 * the same entrypoint as used for the signal-session component.
-		 * The 'signal_context_ep' is only used for associative array
-		 * to map signal-context capabilities to 'Signal_context_component'
-		 * objects and as capability allocator for such objects.
+		 * \param ep          entrypoint holding signal-receiver component
+		 *                    objects, signal contexts, thread objects
+		 * \param ram_alloc   backing store for dynamically allocated
+		 *                    session meta data
 		 */
-		Pd_session_component(Rpc_entrypoint   &thread_ep,
-		                     Rpc_entrypoint   &receiver_ep,
-		                     Rpc_entrypoint   &context_ep,
-		                     Allocator        &md_alloc,
+		Pd_session_component(Rpc_entrypoint   &ep,
+		                     Resources         resources,
+		                     Label      const &label,
+		                     Diag              diag,
+		                     Ram_allocator    &ram_alloc,
+		                     Region_map       &local_rm,
 		                     Pager_entrypoint &pager_ep,
 		                     char const       *args)
 		:
-			_label(args),
-			_md_alloc(&md_alloc, _ram_quota(args)),
-			_pd(&_md_alloc, _label.string),
-			_thread_ep(thread_ep), _pager_ep(pager_ep),
-			_signal_broker(_md_alloc, receiver_ep, context_ep),
-			_rpc_cap_factory(_md_alloc),
+			Session_object(ep, resources, label, diag),
+			_constrained_md_ram_alloc(ram_alloc, *this, *this),
+			_sliced_heap(_constrained_md_ram_alloc, local_rm),
+			_ep(ep), _pager_ep(pager_ep),
+			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
-			_address_space(thread_ep, _md_alloc, pager_ep,
+			_address_space(ep, _sliced_heap, pager_ep,
 			               platform()->vm_start(), platform()->vm_size()),
-			_stack_area(thread_ep, _md_alloc, pager_ep, 0, stack_area_virtual_size()),
-			_linker_area(thread_ep, _md_alloc, pager_ep, 0, LINKER_AREA_SIZE)
+			_stack_area (_ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size()),
+			_linker_area(_ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE)
 		{ }
 
 		/**
-		 * Register quota donation at allocator guard
+		 * Initialize cap account without providing a reference account
+		 *
+		 * This method is solely used to set up the initial PD session within
+		 * core. The cap accounts of regular PD session are initialized via
+		 * 'ref_account'.
 		 */
-		void upgrade_ram_quota(size_t ram_quota);
+		void init_cap_account() { _cap_account.construct(*this, _label); }
+
+		/**
+		 * Session_object interface
+		 */
+		void session_quota_upgraded() override;
 
 		/**
 		 * Associate thread with PD
@@ -135,8 +160,6 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 			return _address_space;
 		}
 
-		Session_label label() { return Session_label(_label.string); }
-
 
 		/**************************
 		 ** PD session interface **
@@ -147,42 +170,62 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 
 		Signal_source_capability alloc_signal_source() override
 		{
-			try {
-				return _signal_broker.alloc_signal_source(); }
+			_consume_cap(SIG_SOURCE_CAP);
+			try { return _signal_broker.alloc_signal_source(); }
 			catch (Genode::Allocator::Out_of_memory) {
-				throw Pd_session::Out_of_metadata(); }
+				_released_cap_silent();
+				throw Out_of_ram();
+			}
 		}
 
-		void free_signal_source(Signal_source_capability sig_rec_cap) override {
-			_signal_broker.free_signal_source(sig_rec_cap); }
+		void free_signal_source(Signal_source_capability sig_rec_cap) override
+		{
+			_signal_broker.free_signal_source(sig_rec_cap);
+			_released_cap(SIG_SOURCE_CAP);
+		}
 
 		Signal_context_capability
 		alloc_context(Signal_source_capability sig_rec_cap, unsigned long imprint) override
 		{
+			Cap_quota_guard::Reservation cap_costs(*this, Cap_quota{1});
 			try {
-				return _signal_broker.alloc_context(sig_rec_cap, imprint); }
+				Signal_context_capability cap =
+					_signal_broker.alloc_context(sig_rec_cap, imprint);
+
+				cap_costs.acknowledge();
+				diag("consumed signal-context cap (", _cap_account, ")");
+				return cap;
+			}
 			catch (Genode::Allocator::Out_of_memory) {
-				throw Pd_session::Out_of_metadata(); }
+				throw Out_of_ram(); }
 			catch (Signal_broker::Invalid_signal_source) {
 				throw Pd_session::Invalid_signal_source(); }
 		}
 
-		void free_context(Signal_context_capability cap) override {
-			_signal_broker.free_context(cap); }
+		void free_context(Signal_context_capability cap) override
+		{
+			_signal_broker.free_context(cap);
+			_released_cap(SIG_CONTEXT_CAP);
+		}
 
 		void submit(Signal_context_capability cap, unsigned n) override {
 			_signal_broker.submit(cap, n); }
 
+		/*
+		 * \throw Out_of_caps  by '_consume_cap'
+		 * \throw Out_of_ram   by '_rpc_cap_factory.alloc'
+		 */
 		Native_capability alloc_rpc_cap(Native_capability ep) override
 		{
-			try {
-				return _rpc_cap_factory.alloc(ep); }
-			catch (Genode::Allocator::Out_of_memory) {
-				throw Pd_session::Out_of_metadata(); }
+			_consume_cap(RPC_CAP);
+			return _rpc_cap_factory.alloc(ep);
 		}
 
-		void free_rpc_cap(Native_capability cap) override {
-			_rpc_cap_factory.free(cap); }
+		void free_rpc_cap(Native_capability cap) override
+		{
+			_rpc_cap_factory.free(cap);
+			_released_cap(RPC_CAP);
+		}
 
 		Capability<Region_map> address_space() {
 			return _address_space.cap(); }
@@ -192,6 +235,65 @@ class Genode::Pd_session_component : public Rpc_object<Pd_session>
 
 		Capability<Region_map> linker_area() {
 			return _linker_area.cap(); }
+
+		void ref_account(Capability<Pd_session> pd_cap) override
+		{
+			/* the reference account can be defined only once */
+			if (_cap_account.constructed())
+				return;
+
+			if (this->cap() == pd_cap)
+				return;
+
+			_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
+
+				if (!pd || !pd->_cap_account.constructed()) {
+					error("invalid PD session specified as ref account");
+					throw Invalid_session();
+				}
+
+				_cap_account.construct(*this, _label, *pd->_cap_account);
+			});
+		}
+
+		void transfer_quota(Capability<Pd_session> pd_cap, Cap_quota amount) override
+		{
+			/* the reference account can be defined only once */
+			if (!_cap_account.constructed())
+				throw Undefined_ref_account();
+
+			if (this->cap() == pd_cap)
+				return;
+
+			_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
+
+				if (!pd || !pd->_cap_account.constructed())
+					throw Invalid_session();
+
+				try {
+					_cap_account->transfer_quota(*pd->_cap_account, amount);
+					diag("transferred ", amount, " caps "
+					     "to '", pd->_cap_account->label(), "' (", _cap_account, ")");
+				}
+				catch (Account<Cap_quota>::Unrelated_account) {
+					warning("attempt to transfer cap quota to unrelated PD session");
+					throw Invalid_session(); }
+				catch (Account<Cap_quota>::Limit_exceeded) {
+					warning("cap limit (", *_cap_account, ") exceeded "
+					        "during transfer_quota(", amount, ")");
+					throw Out_of_caps(); }
+			});
+		}
+
+		Cap_quota cap_quota() const
+		{
+			return _cap_account.constructed() ? _cap_account->limit() : Cap_quota { 0 };
+		}
+
+		Cap_quota used_caps() const
+		{
+			return _cap_account.constructed() ? _cap_account->used() : Cap_quota { 0 };
+		}
 
 		Capability<Native_pd> native_pd() { return _native_pd.cap(); }
 };

@@ -123,23 +123,26 @@ namespace {
 			 * the route between client and server, the session quota provided
 			 * by the client may become successively diminished by intermediate
 			 * components, prompting the server to deny the session request.
-			 *
-			 * If the session creation failed due to insufficient session
-			 * quota, we try to repeatedly increase the quota up to
-			 * 'NUM_ATTEMPTS'.
 			 */
-			enum { NUM_ATTEMPTS = 10 };
 
 			/* extract session quota as specified by the 'Connection' */
 			char argbuf[Parent::Session_args::MAX_SIZE];
 			strncpy(argbuf, args.string(), sizeof(argbuf));
-			Ram_quota ram_quota = ram_quota_from_args(argbuf);
 
-			return retry<Insufficient_ram_quota>(
-				[&] () {
+			Ram_quota ram_quota = ram_quota_from_args(argbuf);
+			Cap_quota cap_quota = cap_quota_from_args(argbuf);
+
+			unsigned warn_after_attempts = 2;
+
+			for (unsigned cnt = 0;; cnt++) {
+
+				try {
 
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
 					                    String<32>(ram_quota).string());
+
+					Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota",
+					                    String<32>(cap_quota).string());
 
 					Session_capability cap =
 						_parent.session(id, name, Parent::Session_args(argbuf), affinity);
@@ -149,30 +152,34 @@ namespace {
 
 					_block_for_session();
 					return _parent.session_cap(id);
-				},
-				[&] () {
-					/*
-					 * If our RAM session has less quota available than the
-					 * session quota, the session-quota transfer failed. In
-					 * this case, we try to recover by issuing a resource
-					 * request to the parent.
-					 *
-					 * Otherwise, the session-quota transfer succeeded but
-					 * the request was denied by the server.
-					 */
+				}
+
+				catch (Insufficient_ram_quota) {
+					ram_quota = Ram_quota { ram_quota.value + 4096 }; }
+
+				catch (Insufficient_cap_quota) {
+					cap_quota = Cap_quota { cap_quota.value + 4 }; }
+
+				catch (Out_of_ram) {
 					if (ram_quota.value > ram().avail_ram().value) {
 						Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
 						_parent.resource_request(args);
-					} else {
-						ram_quota = Ram_quota { ram_quota.value + 4096 };
 					}
-				},
-				NUM_ATTEMPTS);
+				}
 
-			warning("giving up to increase session quota for ", name.string(), " session "
-			        "after ", (int)NUM_ATTEMPTS, " attempts");
+				catch (Out_of_caps) {
+					if (cap_quota.value > pd().avail_caps().value) {
+						Parent::Resource_args args(String<64>("cap_quota=", cap_quota));
+						_parent.resource_request(args);
+					}
+				}
 
-			throw Insufficient_ram_quota();
+				if (cnt == warn_after_attempts) {
+					warning("re-attempted ", name.string(), " session request ",
+					        cnt, " times (args: ", Cstring(argbuf), ")");
+					warn_after_attempts *= 2;
+				}
+			}
 		}
 
 		void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override

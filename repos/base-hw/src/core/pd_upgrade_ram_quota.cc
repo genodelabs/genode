@@ -17,9 +17,8 @@
 using namespace Genode;
 
 
-void Pd_session_component::upgrade_ram_quota(size_t ram_quota)
+void Pd_session_component::session_quota_upgraded()
 {
-	_md_alloc.upgrade(ram_quota);
-	_pd.upgrade_slab(_md_alloc);
+	_pd.upgrade_slab(_sliced_heap);
 }
 

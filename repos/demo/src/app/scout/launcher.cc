@@ -115,6 +115,7 @@ void Launcher::launch()
 	}
 
 	_launchpad_ptr->start_child(prg_name(),
+	                            Launchpad::Cap_quota{caps()},
 	                            Launchpad::Ram_quota{quota()},
 	                            config_registry.config(prg_name().string()));
 }

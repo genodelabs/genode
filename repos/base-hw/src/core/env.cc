@@ -14,5 +14,6 @@
 #include <base/internal/native_env.h>
 #include <assertion.h>
 
-void Genode::upgrade_pd_quota_non_blocking(Genode::size_t quota) {
-	ASSERT_NEVER_CALLED; }
+using namespace Genode;
+
+void Genode::upgrade_pd_quota_non_blocking(Ram_quota, Cap_quota) { ASSERT_NEVER_CALLED; }

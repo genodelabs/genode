@@ -18,8 +18,9 @@
 #include <base/internal/globals.h>
 #include <base/internal/native_env.h>
 
-void Genode::upgrade_pd_quota_non_blocking(size_t quota)
+void Genode::upgrade_pd_quota_non_blocking(Ram_quota ram, Cap_quota caps)
 {
 	internal_env().parent().upgrade(Parent::Env::pd(),
-	                                String<64>("ram_quota=", quota).string());
+	                                String<100>("ram_quota=", ram, ", "
+	                                            "cap_quota=", caps).string());
 }

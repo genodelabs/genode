@@ -59,6 +59,7 @@ class Launchpad_child : public Genode::Child_policy,
 		Genode::Ram_session_capability _ref_ram_cap;
 		Genode::Ram_session_client     _ref_ram { _ref_ram_cap };
 
+		Genode::Cap_quota const _cap_quota;
 		Genode::Ram_quota const _ram_quota;
 
 		Parent_services &_parent_services;
@@ -97,6 +98,7 @@ class Launchpad_child : public Genode::Child_policy,
 		                Genode::Allocator           &alloc,
 		                Genode::Session_label const &label,
 		                Binary_name           const &elf_name,
+		                Genode::Cap_quota            cap_quota,
 		                Genode::Ram_quota            ram_quota,
 		                Parent_services             &parent_services,
 		                Child_services              &child_services,
@@ -105,6 +107,7 @@ class Launchpad_child : public Genode::Child_policy,
 			_name(label), _elf_name(elf_name),
 			_env(env), _alloc(alloc),
 			_ref_ram_cap(env.ram_session_cap()),
+			_cap_quota(Genode::Child::effective_quota(cap_quota)),
 			_ram_quota(Genode::Child::effective_quota(ram_quota)),
 			_parent_services(parent_services),
 			_child_services(child_services),
@@ -133,8 +136,18 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Binary_name binary_name() const override { return _elf_name; }
 
+		Genode::Pd_session           &ref_pd()           override { return _env.pd(); }
+		Genode::Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+
 		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }
 		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
+
+		void init(Genode::Pd_session &session,
+		          Genode::Pd_session_capability cap) override
+		{
+			session.ref_account(_env.pd_session_cap());
+			_env.pd().transfer_quota(cap, _cap_quota);
+		}
 
 		void init(Genode::Ram_session &session,
 		          Genode::Ram_session_capability cap) override
@@ -200,7 +213,8 @@ class Launchpad_child : public Genode::Child_policy,
 				Child_service(_child_services, service_name,
 				              _session_requester.id_space(),
 				              _child.session_factory(), *this,
-				              _child.ram_session_cap());
+				              _child.ram_session_cap(),
+				              _child.pd_session_cap());
 		}
 };
 
@@ -233,6 +247,7 @@ class Launchpad
 
 	public:
 
+		typedef Genode::Cap_quota Cap_quota;
 		typedef Genode::Ram_quota Ram_quota;
 
 		Launchpad(Genode::Env &env, unsigned long initial_quota);
@@ -254,7 +269,7 @@ class Launchpad
 		virtual void quota(unsigned long quota) { }
 
 		virtual void add_launcher(Launchpad_child::Name const &binary_name,
-		                          unsigned long default_quota,
+		                          Cap_quota caps, unsigned long default_quota,
 		                          Genode::Dataspace_capability config_ds) { }
 
 		virtual void add_child(Launchpad_child::Name const &,
@@ -266,7 +281,7 @@ class Launchpad
 		                          Genode::Allocator &) { }
 
 		Launchpad_child *start_child(Launchpad_child::Name const &binary_name,
-		                             Ram_quota quota,
+		                             Cap_quota cap_quota, Ram_quota ram_quota,
 		                             Genode::Dataspace_capability config_ds);
 
 		/**

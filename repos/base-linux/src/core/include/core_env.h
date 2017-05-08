@@ -122,8 +122,8 @@ namespace Genode {
 			 * method to issue out-of-order replies to
 			 * 'Signal_source::wait_for_signal' calls.
 			 */
-			Core_pd_session_component _pd_session_component;
-			Pd_session_client         _pd_session_client;
+			Core_pd_session_component _pd_session_component { _entrypoint };
+			Pd_session_client         _pd_session_client { _pd_session_component.cap() };
 
 			Registry<Service> _services;
 
@@ -155,9 +155,7 @@ namespace Genode {
 				             Session::Diag{false},
 				             *platform()->ram_alloc(),
 				             *Platform_env_base::rm_session(),
-				             Ram_session_component::any_phys_range()),
-				_pd_session_component(_entrypoint),
-				_pd_session_client(_entrypoint.manage(&_pd_session_component))
+				             Ram_session_component::any_phys_range())
 			{
 				_ram_session.init_ram_account();
 			}

@@ -285,7 +285,7 @@ class Test::Parent
 		{
 			Parent &_parent;
 
-			enum { SLAVE_QUOTA = 10*1024*1024 };
+			enum { SLAVE_CAPS = 50, SLAVE_RAM = 10*1024*1024 };
 
 			void yield_response() override
 			{
@@ -296,7 +296,8 @@ class Test::Parent
 			:
 				Slave::Policy(Label("child"), "test-resource_yield",
 				              *this, env.ep().rpc_ep(), env.rm(),
-				              env.ram(), env.ram_session_cap(), Ram_quota{SLAVE_QUOTA}),
+				              env.pd(),  env.pd_session_cap(),  Cap_quota{SLAVE_CAPS},
+				              env.ram(), env.ram_session_cap(), Ram_quota{SLAVE_RAM}),
 				_parent(parent)
 			{
 				configure("<config child=\"yes\" />");

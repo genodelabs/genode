@@ -98,6 +98,21 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 					 */
 					return true;
 				}
+				catch (Out_of_caps) {
+
+					error("ouf of child cap quota while delivering dynamic ROM");
+
+					/*
+					 * XXX We may try to generate a resource request on
+					 *     behalf of the child.
+					 */
+
+					/*
+					 * Don't let the child try again to obtain a dataspace
+					 * by pretending that the ROM module is up-to-date.
+					 */
+					return true;
+				}
 
 				try {
 					_content_producer.produce_content(_ds->local_addr<char>(),
@@ -165,6 +180,9 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 			if (!_ds.constructed())
 				_unsynchronized_update();
+
+			if (!_ds.constructed())
+				return Rom_dataspace_capability();
 
 			Dataspace_capability ds_cap = _ds->cap();
 

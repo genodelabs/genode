@@ -143,6 +143,9 @@ class Noux::Child : public Rpc_object<Session>,
 		enum { STACK_SIZE = 8*1024*sizeof(long) };
 		Rpc_entrypoint _ep { &_env.pd(), STACK_SIZE, "noux_process", false };
 
+		Pd_session                  &_ref_pd;
+		Pd_session_capability  const _ref_pd_cap;
+
 		Ram_session                 &_ref_ram;
 		Ram_session_capability const _ref_ram_cap;
 
@@ -334,6 +337,8 @@ class Noux::Child : public Rpc_object<Session>,
 		      Args               const &args,
 		      Sysio::Env         const &sysio_env,
 		      Allocator                &heap,
+		      Pd_session               &ref_pd,
+		      Pd_session_capability     ref_pd_cap,
 		      Ram_session              &ref_ram,
 		      Ram_session_capability    ref_ram_cap,
 		      Parent_services          &parent_services,
@@ -354,6 +359,7 @@ class Noux::Child : public Rpc_object<Session>,
 			_root_dir(root_dir),
 			_destruct_queue(destruct_queue),
 			_heap(heap),
+			_ref_pd (ref_pd),  _ref_pd_cap (ref_pd_cap),
 			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
 			_args(ref_ram, _env.rm(), ARGS_DS_SIZE, args),
 			_sysio_env(_ref_ram, _env.rm(), sysio_env),
@@ -368,7 +374,8 @@ class Noux::Child : public Rpc_object<Session>,
 			              _noux_service, _empty_rom_service,
 			              _rom_service, _parent_services,
 			              *this, parent_exit, *this, _destruct_handler,
-			              ref_ram, ref_ram_cap, _verbose.enabled()),
+			              ref_pd, ref_pd_cap, ref_ram, ref_ram_cap,
+			              _verbose.enabled()),
 			_child(_env.rm(), _ep, _child_policy)
 		{
 			if (_verbose.enabled())
@@ -534,6 +541,7 @@ class Noux::Child : public Rpc_object<Session>,
 			                                 args,
 			                                 env,
 			                                 _heap,
+			                                 _ref_pd,  _ref_pd_cap,
 			                                 _ref_ram, _ref_ram_cap,
 			                                 _parent_services,
 			                                 false,

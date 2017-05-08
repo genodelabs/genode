@@ -229,21 +229,26 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 	/* register context at process-wide registry */
 	signal_context_registry()->insert(&context->_registry_le);
 
-	retry<Pd_session::Out_of_metadata>(
-		[&] () {
+	for (;;) {
+
+		Ram_quota ram_upgrade { 0 };
+		Cap_quota cap_upgrade { 0 };
+
+		try {
 			/* use signal context as imprint */
 			context->_cap = env_deprecated()->pd_session()->alloc_context(_cap, (long)context);
-		},
-		[&] () {
-			size_t const quota = 1024*sizeof(long);
-			char buf[64];
-			snprintf(buf, sizeof(buf), "ram_quota=%ld", quota);
-
-			log("upgrading quota donation for PD session (", quota, " bytes)");
-
-			env_deprecated()->parent()->upgrade(Parent::Env::pd(), buf);
+			break;
 		}
-	);
+		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
+		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
+
+		log("upgrading quota donation for PD session "
+		    "(", ram_upgrade, " bytes, ", cap_upgrade, " caps)");
+
+		env_deprecated()->parent()->upgrade(Parent::Env::pd(),
+		                                    String<100>("ram_quota=", ram_upgrade, ", "
+		                                                "cap_quota=", cap_upgrade).string());
+	}
 
 	return context->_cap;
 }

@@ -136,11 +136,18 @@ namespace Init {
 
 	inline void generate_ram_info(Xml_generator &xml, Ram_session const &ram)
 	{
-
 		typedef String<32> Value;
 		xml.attribute("quota", Value(ram.ram_quota()));
 		xml.attribute("used",  Value(ram.used_ram()));
 		xml.attribute("avail", Value(ram.avail_ram()));
+	}
+
+	inline void generate_caps_info(Xml_generator &xml, Pd_session const &pd)
+	{
+		typedef String<32> Value;
+		xml.attribute("quota", Value(pd.cap_quota()));
+		xml.attribute("used",  Value(pd.used_caps()));
+		xml.attribute("avail", Value(pd.avail_caps()));
 	}
 
 	/**

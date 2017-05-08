@@ -34,6 +34,9 @@ struct Loader::Session_client : Genode::Rpc_client<Session>
 	void commit_rom_module(Name const &name) override {
 		call<Rpc_commit_rom_module>(name); }
 
+	void cap_quota(Cap_quota limit) override {
+		call<Rpc_cap_quota>(limit); }
+
 	void ram_quota(Ram_quota quantum) override {
 		call<Rpc_ram_quota>(quantum); }
 

@@ -60,8 +60,10 @@ void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 	});
 
 	/* call dataspace destructors and free memory */
-	if (ds)
+	if (ds) {
 		destroy(*_ds_slab, ds);
+		Cap_quota_guard::replenish(Cap_quota{1});
+	}
 }
 
 
@@ -91,6 +93,11 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	{
 		Ram_quota_guard::Reservation sbs_ram_costs(*this, Ram_quota{SBS});
 	}
+
+	/*
+	 * Each dataspace is an RPC object and thereby consumes a capability.
+	 */
+	Cap_quota_guard::Reservation dataspace_cap_costs(*this, Cap_quota{1});
 
 	/*
 	 * Allocate physical backing store
@@ -191,6 +198,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	Dataspace_capability result = _ep.manage(ds);
 
 	dataspace_ram_costs.acknowledge();
+	dataspace_cap_costs.acknowledge();
 	phys_alloc_guard.ack = true;
 
 	return static_cap_cast<Ram_dataspace>(result);

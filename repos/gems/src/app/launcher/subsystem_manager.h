@@ -147,6 +147,18 @@ class Launcher::Subsystem_manager
 			return Ram_config { quantum, limit };
 		}
 
+		static Cap_quota _caps_config(Xml_node subsystem)
+		{
+			Cap_quota const caps { subsystem.attribute_value("caps", 0UL) };
+
+			if (caps.value)
+				return caps;
+
+			Genode::error("missing 'caps' attribute for ",
+			              subsystem.attribute_value("name", Label()));
+			throw Invalid_config();
+		}
+
 	public:
 
 		Subsystem_manager(Genode::Env & env,
@@ -166,8 +178,7 @@ class Launcher::Subsystem_manager
 		{
 			Child::Binary_name const binary_name = _binary_name(subsystem);
 
-			Label const label = string_attribute(subsystem, "name",
-			                                            Label(""));
+			Label const label = string_attribute(subsystem, "name", Label(""));
 
 			Ram_config const ram_config = _ram_config(subsystem);
 
@@ -177,9 +188,11 @@ class Launcher::Subsystem_manager
 				Child *child = new (_heap)
 					Child(_ram, _heap, label, binary_name.string(),
 					      _env.pd(),
+					      _env.pd_session_cap(),
 					      _env.ram(),
 					      _env.ram_session_cap(),
 					      _env.rm(),
+					      _caps_config(subsystem),
 					      ram_config.quantum, ram_config.limit,
 					      _yield_broadcast_handler,
 					      _exited_child_sig_cap);

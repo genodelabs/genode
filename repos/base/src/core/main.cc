@@ -125,12 +125,16 @@ class Core_child : public Child_policy
 
 		Registry<Service> &_services;
 
+		Capability<Pd_session>  _core_pd_cap;
+		Pd_session             &_core_pd;
+
 		Capability<Ram_session> _core_ram_cap;
 		Ram_session            &_core_ram;
 
 		Capability<Cpu_session> _core_cpu_cap;
 		Cpu_session            &_core_cpu;
 
+		Cap_quota const _cap_quota;
 		Ram_quota const _ram_quota;
 
 		Child _child;
@@ -141,14 +145,17 @@ class Core_child : public Child_policy
 		 * Constructor
 		 */
 		Core_child(Registry<Service> &services,
+		           Pd_session  &core_pd,  Capability<Pd_session>  core_pd_cap,
 		           Ram_session &core_ram, Capability<Ram_session> core_ram_cap,
 		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap,
-		           Ram_quota ram_quota)
+		           Cap_quota cap_quota, Ram_quota ram_quota)
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init_child", false),
 			_services(services),
+			_core_pd_cap (core_pd_cap),  _core_pd (core_pd),
 			_core_ram_cap(core_ram_cap), _core_ram(core_ram),
 			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
+			_cap_quota(Child::effective_quota(cap_quota)),
 			_ram_quota(Child::effective_quota(ram_quota)),
 			_child(*env_deprecated()->rm_session(), _entrypoint, *this)
 		{
@@ -176,6 +183,12 @@ class Core_child : public Child_policy
 			return *service;
 		}
 
+		void init(Pd_session &session, Capability<Pd_session> cap) override
+		{
+			session.ref_account(_core_pd_cap);
+			_core_pd.transfer_quota(cap, _cap_quota);
+		}
+
 		void init(Ram_session &session, Capability<Ram_session> cap) override
 		{
 			session.ref_account(_core_ram_cap);
@@ -187,6 +200,9 @@ class Core_child : public Child_policy
 			session.ref_account(_core_cpu_cap);
 			_core_cpu.transfer_quota(cap, Cpu_session::quota_lim_upscale(100, 100));
 		}
+
+		Pd_session           &ref_pd()           { return _core_pd; }
+		Pd_session_capability ref_pd_cap() const { return _core_pd_cap; }
 
 		Ram_session           &ref_ram()           { return _core_ram; }
 		Ram_session_capability ref_ram_cap() const { return _core_ram_cap; }
@@ -271,7 +287,7 @@ int main()
 	static Rm_root      rm_root      (e, &sliced_heap, pager_ep);
 	static Cpu_root     cpu_root     (e, e, &pager_ep, &sliced_heap,
 	                                  Trace::sources());
-	static Pd_root      pd_root      (e, e, pager_ep, &sliced_heap);
+	static Pd_root      pd_root      (*e, pager_ep, core_ram_alloc, local_rm, sliced_heap);
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
 	                                  platform()->ram_alloc(), &sliced_heap);
@@ -292,7 +308,27 @@ int main()
 	/* make platform-specific services known to service pool */
 	platform_add_local_services(e, &sliced_heap, &services);
 
-	/* create CPU session representing core */
+	/* calculate number of capabilities to be assigned to init */
+	size_t const preservered_cap_quota = 1000;
+
+	if (platform()->max_caps() < preservered_cap_quota) {
+		error("platform cap limit lower than preservation for core");
+		return -1;
+	}
+
+	size_t const avail_cap_quota = platform()->max_caps() - preservered_cap_quota;
+
+	/* PD session representing core */
+	static Pd_session_component
+		core_pd(*e,
+		        Session::Resources { Ram_quota { 16*1024 },
+		                             Cap_quota { avail_cap_quota } },
+		        Session::Label("core"), Session::Diag{false},
+		        core_ram_alloc, local_rm, pager_ep, "");
+
+	core_pd.init_cap_account();
+
+	/* CPU session representing core */
 	static Cpu_session_component
 		core_cpu(e, e, &pager_ep, &sliced_heap, Trace::sources(),
 		         "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
@@ -309,14 +345,15 @@ int main()
 
 	size_t const avail_ram_quota = platform_ram_limit - preserved_ram_quota;
 
-	log("", avail_ram_quota / (1024*1024), " MiB RAM "
+	log("", avail_ram_quota / (1024*1024), " MiB RAM and ", avail_cap_quota, " caps "
 	    "assigned to init");
 
 	static Reconstructible<Core_child>
 		init(services,
+		     core_pd, core_pd.cap(),
 		     *env_deprecated()->ram_session(), env_deprecated()->ram_session_cap(),
 		     core_cpu, core_cpu_cap,
-		     Ram_quota{avail_ram_quota});
+		     core_pd.cap_quota(), Ram_quota{avail_ram_quota});
 
 	platform()->wait_for_exit();
 

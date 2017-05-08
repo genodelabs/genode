@@ -272,6 +272,8 @@ struct Noux::Main
 	                          _args_of_init_process(),
 	                          env_string_of_init_process(_config.xml()),
 	                          _heap,
+	                          _env.pd(),
+	                          _env.pd_session_cap(),
 	                          _ref_ram,
 	                          Ram_session_capability(),
 	                          _parent_services,

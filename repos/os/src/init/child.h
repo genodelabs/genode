@@ -48,6 +48,8 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		struct Default_route_accessor { virtual Xml_node default_route() = 0; };
 
+		struct Default_caps_accessor { virtual Cap_quota default_caps() = 0; };
+
 		struct Ram_limit_accessor { virtual Ram_quota ram_limit() = 0; };
 
 	private:
@@ -124,6 +126,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			long      priority;
 			Affinity  affinity;
 			Ram_quota assigned_ram_quota;
+			Cap_quota assigned_cap_quota;
 			size_t    cpu_quota_pc;
 			bool      constrain_phys;
 
@@ -131,14 +134,38 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			{
 				return Genode::Child::effective_quota(assigned_ram_quota);
 			}
+
+			Cap_quota effective_cap_quota() const
+			{
+				/* capabilities consumed by 'Genode::Child' */
+				Cap_quota const effective =
+					Genode::Child::effective_quota(assigned_cap_quota);
+
+				/* capabilities additionally consumed by init */
+				enum {
+					STATIC_COSTS = 1  /* possible heap backing-store
+					                     allocation for session object */
+					             + 1  /* buffered XML start node */
+					             + 2  /* dynamic ROM for config */
+					             + 2  /* dynamic ROM for session requester */
+				};
+
+				if (effective.value < STATIC_COSTS)
+					return Cap_quota{0};
+
+				return Cap_quota{effective.value - STATIC_COSTS};
+			}
 		};
 
 		Resources _resources_from_start_node(Xml_node start_node, Prio_levels prio_levels,
-		                                     Affinity::Space const &affinity_space)
+		                                     Affinity::Space const &affinity_space,
+		                                     Cap_quota default_cap_quota, Cap_quota cap_limit)
 		{
 			size_t          cpu_quota_pc   = 0;
 			bool            constrain_phys = false;
 			Number_of_bytes ram_bytes      = 0;
+
+			size_t caps = start_node.attribute_value("caps", default_cap_quota.value);
 
 			start_node.for_each_sub_node("resource", [&] (Xml_node rsc) {
 
@@ -153,6 +180,10 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 				if (name == "CPU") {
 					cpu_quota_pc = rsc.attribute_value("quantum", 0UL);
 				}
+
+				if (name == "CAP") {
+					caps = rsc.attribute_value("quantum", 0UL);
+				}
 			});
 
 			return Resources { log2(prio_levels.value),
@@ -160,6 +191,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			                   Affinity(affinity_space,
 			                            affinity_location_from_xml(affinity_space, start_node)),
 			                   Ram_quota { ram_bytes },
+			                   Cap_quota { caps },
 			                   cpu_quota_pc,
 			                   constrain_phys };
 		}
@@ -171,6 +203,9 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			if (_resources.effective_ram_quota().value == 0)
 				warning(name(), ": no valid RAM quota defined");
 
+			if (_resources.effective_cap_quota().value == 0)
+				warning(name(), ": no valid cap quota defined");
+
 			/*
 			 * If the configured RAM quota exceeds our own quota, we donate
 			 * all remaining quota to the child.
@@ -180,6 +215,20 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 				if (_verbose.enabled())
 					warn_insuff_quota(ram_limit.value);
+			}
+		}
+
+		void _check_cap_constraints(Cap_quota cap_limit)
+		{
+			if (_resources.assigned_cap_quota.value == 0)
+				warning(name(), ": no valid cap quota defined");
+
+			if (_resources.assigned_cap_quota.value > cap_limit.value) {
+
+				warning(name(), ": assigned caps (", _resources.assigned_cap_quota.value, ") "
+				        "exceed available caps (", cap_limit.value, ")");
+
+				_resources.assigned_cap_quota.value = cap_limit.value;
 			}
 		}
 
@@ -255,10 +304,12 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		struct Requested_resources
 		{
 			Ram_quota const ram;
+			Cap_quota const caps;
 
 			Requested_resources(Parent::Resource_args const &args)
 			:
-				ram (ram_quota_from_args(args.string()))
+				ram (ram_quota_from_args(args.string())),
+				caps(cap_quota_from_args(args.string()))
 			{ }
 		};
 
@@ -266,16 +317,20 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
-		struct Ram_accessor : Routed_service::Ram_accessor
+		struct Ram_pd_accessor : Routed_service::Ram_accessor,
+		                         Routed_service::Pd_accessor
 		{
 			Genode::Child &_child;
 
-			Ram_accessor(Genode::Child &child) : _child(child) { }
+			Ram_pd_accessor(Genode::Child &child) : _child(child) { }
 
 			Ram_session           &ram()           override { return _child.ram(); }
 			Ram_session_capability ram_cap() const override { return _child.ram_session_cap(); }
 
-		} _ram_accessor { _child };
+			Pd_session            &pd()            override { return _child.pd(); }
+			Pd_session_capability  pd_cap()  const override { return _child.pd_session_cap(); }
+
+		} _ram_pd_accessor { _child };
 
 		/**
 		 * Async_service::Wakeup callback
@@ -343,7 +398,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 			new (_alloc)
 				Routed_service(_child_services, this->name(),
-				               _ram_accessor,
+				               _ram_pd_accessor, _ram_pd_accessor,
 				               _session_requester.id_space(),
 				               _child.session_factory(),
 				               name, *this);
@@ -375,8 +430,10 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		      Report_update_trigger    &report_update_trigger,
 		      Xml_node                  start_node,
 		      Default_route_accessor   &default_route_accessor,
+		      Default_caps_accessor    &default_caps_accessor,
 		      Name_registry            &name_registry,
 		      Ram_quota                 ram_limit,
+		      Cap_quota                 cap_limit,
 		      Ram_limit_accessor       &ram_limit_accessor,
 		      Prio_levels               prio_levels,
 		      Affinity::Space const    &affinity_space,
@@ -391,6 +448,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		bool has_name(Child_policy::Name const &str) const { return str == name(); }
 
 		Ram_quota ram_quota() const { return _resources.assigned_ram_quota; }
+		Cap_quota cap_quota() const { return _resources.assigned_cap_quota; }
 
 		void initiate_env_ram_session()
 		{
@@ -451,9 +509,13 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		Child_policy::Name name() const override { return _unique_name; }
 
+		Pd_session           &ref_pd()           override { return _env.pd(); }
+		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+
 		Ram_session           &ref_ram()           override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
 
+		void init(Pd_session  &, Pd_session_capability)  override;
 		void init(Ram_session &, Ram_session_capability) override;
 		void init(Cpu_session &, Cpu_session_capability) override;
 

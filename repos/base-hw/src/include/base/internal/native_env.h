@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <base/quota_guard.h>
 
 namespace Genode
 {
@@ -26,7 +27,7 @@ namespace Genode
 	 * needed when doing upgrades in situations where the environment is
 	 * already locked due to the operation that triggered the upgrade.
 	 */
-	void upgrade_pd_quota_non_blocking(size_t);
+	void upgrade_pd_quota_non_blocking(Ram_quota, Cap_quota);
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_ */

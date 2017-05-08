@@ -28,13 +28,13 @@ Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
 :
 	_pd_session(pd_session)
 {
-	_pd_session._thread_ep.manage(this);
+	_pd_session._ep.manage(this);
 }
 
 
 Native_pd_component::~Native_pd_component()
 {
-	_pd_session._thread_ep.dissolve(this);
+	_pd_session._ep.dissolve(this);
 }
 
 

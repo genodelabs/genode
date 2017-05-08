@@ -127,12 +127,12 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 			_status_entry.refresh();
 		}
 
-		void add_launcher(Launchpad_child::Name const &name,
+		void add_launcher(Launchpad_child::Name const &name, Cap_quota caps,
 		                  unsigned long default_quota,
 		                  Genode::Dataspace_capability config_ds = Genode::Dataspace_capability()) override
 		{
 			Launch_entry<PT> *le;
-			le = new Launch_entry<PT>(name, default_quota / 1024,
+			le = new Launch_entry<PT>(name, caps.value, default_quota / 1024,
 			                          initial_quota() / 1024,
 			                          this, config_ds);
 			_launch_section.append(le);

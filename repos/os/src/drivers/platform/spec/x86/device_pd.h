@@ -33,12 +33,16 @@ class Platform::Device_pd_policy
 
 		Device_pd_policy(Genode::Rpc_entrypoint        &slave_ep,
 		                 Genode::Region_map            &local_rm,
+		                 Genode::Pd_session            &pd_ref,
+		                 Genode::Pd_session_capability  pd_ref_cap,
+		                 Genode::Cap_quota              cap_quota,
 		                 Genode::Ram_session           &ram_ref,
 		                 Genode::Ram_session_capability ram_ref_cap,
 		                 Genode::Ram_quota              ram_quota,
 		                 Genode::Session_label   const &label)
 		:
 			Genode::Slave::Policy(label, "device_pd", *this, slave_ep, local_rm,
+			                      pd_ref,  pd_ref_cap,  cap_quota,
 			                      ram_ref, ram_ref_cap, ram_quota)
 		{ }
 };

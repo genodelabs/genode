@@ -34,18 +34,23 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capabili
 
 	Nova_native_pd_client native_pd(_native_pd_cap);
 
-	Untyped_capability new_obj_cap =
-		retry<Genode::Pd_session::Out_of_metadata>(
-			[&] () {
-				return native_pd.alloc_rpc_cap(ep, entry, 0);
-			},
-			[&] () {
-				internal_env().upgrade(Parent::Env::pd(), "ram_quota=16K");
-			});
+	for (;;) {
 
-	native_pd.imprint_rpc_cap(new_obj_cap, new_obj_cap.local_name());
+		Ram_quota ram_upgrade { 0 };
+		Cap_quota cap_upgrade { 0 };
 
-	return new_obj_cap;
+		try {
+			Untyped_capability new_obj_cap = native_pd.alloc_rpc_cap(ep, entry, 0);
+			native_pd.imprint_rpc_cap(new_obj_cap, new_obj_cap.local_name());
+			return new_obj_cap;
+		}
+		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
+		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
+
+		env_deprecated()->parent()->upgrade(Parent::Env::pd(),
+		                                    String<100>("ram_quota=", ram_upgrade, ", "
+		                                                "cap_quota=", cap_upgrade).string());
+	}
 }
 
 

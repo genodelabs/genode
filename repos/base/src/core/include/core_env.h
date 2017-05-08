@@ -112,11 +112,10 @@ namespace Genode {
 			bool _init_stack_area() { init_stack_area(); return true; }
 			bool _stack_area_initialized = _init_stack_area();
 
-			Rpc_entrypoint         _entrypoint;
-			Core_region_map        _region_map;
-			Ram_session_component  _ram_session;
-			Ram_session_capability _ram_session_cap;
-			Synced_ram_session     _synced_ram_session { _ram_session };
+			Rpc_entrypoint        _entrypoint;
+			Core_region_map       _region_map;
+			Ram_session_component _ram_session;
+			Synced_ram_session    _synced_ram_session { _ram_session };
 
 			/*
 			 * The core-local PD session is provided by a real RPC object
@@ -159,7 +158,8 @@ namespace Genode {
 				             _region_map,
 				             Ram_session_component::any_phys_range()),
 				_pd_session_component(_entrypoint),
-				_pd_session_client(_entrypoint.manage(&_pd_session_component))
+				_pd_session_client(_pd_session_component.cap()),
+				_heap(_ram_session, _region_map)
 			{
 				_ram_session.init_ram_account();
 			}
@@ -192,7 +192,7 @@ namespace Genode {
 
 			Cpu_session_capability cpu_session_cap() override
 			{
-				warning(__func__, " not implemented");
+				warning(__FILE__, ":", __LINE__, " not implemented");
 				return Cpu_session_capability();
 			}
 

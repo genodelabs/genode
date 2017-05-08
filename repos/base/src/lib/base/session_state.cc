@@ -33,6 +33,7 @@ struct Formatted_phase
 		case State::CREATE_REQUESTED:       print(output, "CREATE_REQUESTED");       break;
 		case State::INVALID_ARGS:           print(output, "INVALID_ARGS");           break;
 		case State::INSUFFICIENT_RAM_QUOTA: print(output, "INSUFFICIENT_RAM_QUOTA"); break;
+		case State::INSUFFICIENT_CAP_QUOTA: print(output, "INSUFFICIENT_CAP_QUOTA"); break;
 		case State::AVAILABLE:              print(output, "AVAILABLE");              break;
 		case State::CAP_HANDED_OUT:         print(output, "CAP_HANDED_OUT");         break;
 		case State::UPGRADE_REQUESTED:      print(output, "UPGRADE_REQUESTED");      break;
@@ -49,7 +50,7 @@ void Session_state::print(Output &out) const
 
 	print(out, "service=", _service.name(), " cid=", _id_at_client, " "
 	      "args='", _args, "' state=", Formatted_phase(phase), " "
-	      "ram_quota=", _donated_ram_quota);
+	      "ram_quota=", _donated_ram_quota, ", cap_quota=", _donated_cap_quota);
 }
 
 
@@ -77,6 +78,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 		xml.node("upgrade", [&] () {
 			xml.attribute("id", id_at_server->id().value);
 			xml.attribute("ram_quota", ram_upgrade.value);
+			xml.attribute("cap_quota", cap_upgrade.value);
 		});
 		break;
 
@@ -88,6 +90,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 	case INVALID_ARGS:
 	case INSUFFICIENT_RAM_QUOTA:
+	case INSUFFICIENT_CAP_QUOTA:
 	case AVAILABLE:
 	case CAP_HANDED_OUT:
 	case CLOSED:
@@ -102,6 +105,7 @@ void Session_state::generate_client_side_info(Xml_generator &xml, Detail detail)
 	xml.attribute("label", _label);
 	xml.attribute("state", String<32>(Formatted_phase(phase)));
 	xml.attribute("ram", String<32>(_donated_ram_quota));
+	xml.attribute("caps", String<32>(_donated_cap_quota));
 
 	if (detail.args == Detail::ARGS)
 		xml.node("args", [&] () { xml.append_sanitized(_args.string()); });
@@ -161,6 +165,7 @@ Session_state::Session_state(Service                  &service,
 :
 	_service(service),
 	_donated_ram_quota(ram_quota_from_args(args.string())),
+	_donated_cap_quota(cap_quota_from_args(args.string())),
 	_id_at_client(*this, client_id_space, client_id),
 	_label(label), _args(args), _affinity(affinity)
 { }

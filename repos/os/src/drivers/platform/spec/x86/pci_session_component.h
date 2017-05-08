@@ -202,6 +202,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Genode::Attached_rom_dataspace &_config;
 		Genode::Ram_session_guard       _env_ram;
 		Genode::Ram_session_capability  _env_ram_cap;
+		Genode::Pd_session             &_env_pd;
+		Genode::Pd_session_capability   _env_pd_cap;
 		Genode::Region_map             &_local_rm;
 		Genode::Heap                    _md_alloc;
 		Genode::Session_label    const  _label;
@@ -254,6 +256,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			enum { OVERHEAD = 4096 };
 			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{OVERHEAD}); }
 			catch (...) { throw Genode::Insufficient_ram_quota(); }
+
+			/*
+			 * XXX instead of eagerly upgrading the RAM session, upgrade it
+			 *     on demand, paid by the client's cap session quota.
+			 */
+			using namespace Genode;
+			_ram.upgrade(Session::Resources { Ram_quota{0}, Cap_quota{10} });
 		}
 
 		bool const _ram_initialized = (_init_ram(), true);
@@ -291,7 +300,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			private:
 
-				enum { RAM_QUOTA = 190 * 4096 };
+				enum { CAP_QUOTA = 60, RAM_QUOTA = 190 * 4096 };
 
 				Quota_reservation const _reservation;
 				Device_pd_policy        _policy;
@@ -319,11 +328,15 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				          Genode::Rpc_entrypoint        &ep,
 				          Genode::Ram_session_guard     &ref_ram,
 				          Genode::Ram_session_capability ref_ram_cap,
+				          Genode::Pd_session            &ref_pd,
+				          Genode::Pd_session_capability  ref_pd_cap,
 				          Genode::Session_label   const &label)
 				try :
 					_reservation(ref_ram, RAM_QUOTA),
 					_policy(ep, local_rm,
-					        ref_ram, ref_ram_cap, Genode::Ram_quota{RAM_QUOTA}, label),
+					        ref_pd,  ref_pd_cap,  Genode::Cap_quota{CAP_QUOTA},
+					        ref_ram, ref_ram_cap, Genode::Ram_quota{RAM_QUOTA},
+					        label),
 					_child(local_rm, ep, _policy),
 					_connection(_policy, Genode::Slave::Args())
 				{ }
@@ -331,8 +344,18 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				catch (Out_of_metadata) { throw; }
 				/* thrown by 'Device_pd_policy' or 'Child' */
 				catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
-				/* throw by 'Slave::Connection' */
+				catch (Genode::Out_of_caps) {
+					/* XXX reflect 'Out_of_caps' exception to client */
+					Genode::error("Out_of_caps during device-pd creation");
+					throw Out_of_metadata();
+				}
+				/* thrown by 'Slave::Connection' */
 				catch (Genode::Insufficient_ram_quota) { throw Out_of_metadata(); }
+				/* thrown by 'Slave::Connection' */
+				catch (Genode::Insufficient_cap_quota) {
+					Genode::error("Insufficient_cap_quota during device-pd creation");
+					throw Out_of_metadata();
+				}
 
 				Device_pd_client &session() { return _connection; }
 
@@ -368,12 +391,18 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			try {
 				_device_pd = new (_md_alloc)
-					Device_pd(_local_rm, _device_pd_ep, _env_ram,
-					          _env_ram_cap, _label);
+					Device_pd(_local_rm, _device_pd_ep, _env_ram, _env_ram_cap,
+					          _env_pd, _env_pd_cap, _label);
 			}
 
 			/* thrown by '_md_alloc' */
 			catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
+
+			catch (Genode::Out_of_caps) {
+				/* XXX reflect exception to client */
+				Genode::error("Out_of_caps during Device_pd construction");
+				throw Out_of_metadata();
+			}
 
 			/* thrown by 'Device_pd' */
 			catch (Out_of_metadata) { throw; }
@@ -609,6 +638,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_env_ram(env.ram(), env.ram_session_cap(),
 			         Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
 			_env_ram_cap(env.ram_session_cap()),
+			_env_pd(env.pd()),
+			_env_pd_cap(env.pd_session_cap()),
 			_local_rm(env.rm()),
 			_md_alloc(_env_ram, env.rm()),
 			_label(Genode::label_from_args(args)),
@@ -846,6 +877,10 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					return _env.ep().rpc_ep().manage(dev);
 				} catch (Genode::Allocator::Out_of_memory) {
 					throw Out_of_metadata();
+				} catch (Genode::Out_of_caps) {
+					/* XXX reflect exception to client */
+					Genode::error("Out_of_caps during Device_component construction");
+					throw Out_of_metadata();
 				}
 			};
 			return _env.ep().rpc_ep().apply(prev_device, lambda);
@@ -945,24 +980,35 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			/* transfer ram quota to session specific ram session */
 			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{size}); }
 			catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
-			catch (...) { throw Fatal(); }
+			catch (Genode::Out_of_caps) {
+				Genode::error("Out_of_caps during alloc_dma_buffer (transfer_quota)");
+				throw Fatal();
+			}
+			catch (...) { }
 
 			enum { UPGRADE_QUOTA = 4096 };
 
 			/* allocate dataspace from session specific ram session */
 			Ram_capability ram_cap = Genode::retry<Genode::Out_of_ram>(
 				[&] () {
-					try {
-						return _ram.alloc(size, Genode::UNCACHED);
-					}
-					catch (Genode::Out_of_ram) {
+					Ram_capability ram = Genode::retry<Genode::Out_of_ram>(
+						[&] () {
+							try { return _ram.alloc(size, Genode::UNCACHED); }
+							catch (Genode::Out_of_caps) {
+								Genode::error("Out_of_caps during alloc_dma_buffer (alloc)");
+								throw Fatal();
+							}
+						},
+						[&] () {
+							if (!_env_ram.withdraw(UPGRADE_QUOTA)) {
+								_rollback(size);
+							}
 
-						if (!_env_ram.withdraw(UPGRADE_QUOTA))
-							_rollback(size);
+							/* upgrade meta-data quota */
+							_ram.upgrade_ram(UPGRADE_QUOTA);
+						});
 
-						throw;
-					}
-
+					return ram;
 				},
 				[&] () {
 					/*
@@ -973,7 +1019,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					 * UPGRADE_QUOTA steps.
 					 */
 					try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{UPGRADE_QUOTA}); }
-					catch (...) { throw Genode::Out_of_ram(); }
+					catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
 				});
 
 			if (!ram_cap.valid())

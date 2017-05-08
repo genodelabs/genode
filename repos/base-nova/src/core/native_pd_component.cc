@@ -24,6 +24,7 @@ Native_capability Native_pd_component::alloc_rpc_cap(Native_capability ep,
                                                      addr_t entry, addr_t mtd)
 {
 	try {
+		_pd_session._consume_cap(Pd_session_component::RPC_CAP);
 		return _pd_session._rpc_cap_factory.alloc(ep, entry, mtd); }
 
 	catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
@@ -42,13 +43,13 @@ Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
 :
 	_pd_session(pd_session)
 {
-	_pd_session._thread_ep.manage(this);
+	_pd_session._ep.manage(this);
 }
 
 
 Native_pd_component::~Native_pd_component()
 {
-	_pd_session._thread_ep.dissolve(this);
+	_pd_session._ep.dissolve(this);
 }
 
 

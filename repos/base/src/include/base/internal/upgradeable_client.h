@@ -35,10 +35,12 @@ struct Genode::Upgradeable_client : CLIENT
 
 	void upgrade_ram(size_t quota)
 	{
-		char buf[128];
-		snprintf(buf, sizeof(buf), "ram_quota=%lu", quota);
+		env_deprecated()->parent()->upgrade(_id, String<64>("ram_quota=", quota).string());
+	}
 
-		env_deprecated()->parent()->upgrade(_id, buf);
+	void upgrade_caps(size_t quota)
+	{
+		env_deprecated()->parent()->upgrade(_id, String<64>("cap_quota=", quota).string());
 	}
 };
 

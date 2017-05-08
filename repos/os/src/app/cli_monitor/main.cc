@@ -172,7 +172,8 @@ struct Cli_monitor::Main
 	/* initialize generic commands */
 	Registered<Help_command>  _help_command    { _commands };
 	Registered<Kill_command>  _kill_command    { _commands, _children, _heap };
-	Registered<Start_command> _start_command   { _commands, _ram, _heap, _env.pd(),
+	Registered<Start_command> _start_command   { _commands, _ram, _heap,
+	                                             _env.pd(),  _env.pd_session_cap(),
 	                                             _env.ram(), _env.ram_session_cap(),
 	                                             _env.rm(), _children,
 	                                             _subsystem_config_registry,

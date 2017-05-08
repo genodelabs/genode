@@ -43,7 +43,7 @@ struct Launcher::Main
 		"</config>";
 
 	Report_rom_slave _report_rom_slave {
-		_env.pd(), _env.rm(), _env.ram(), _env.ram_session_cap(),
+		_env.rm(), _env.pd(), _env.pd_session_cap(), _env.ram(), _env.ram_session_cap(),
 		_report_rom_config };
 
 	/**

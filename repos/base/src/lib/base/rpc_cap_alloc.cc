@@ -23,13 +23,19 @@ using namespace Genode;
 Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd,
                                                  Native_capability ep, addr_t)
 {
-	Untyped_capability new_obj_cap =
-		retry<Genode::Pd_session::Out_of_metadata>(
-			[&] () { return pd.alloc_rpc_cap(_cap); },
-			[&] () { env_deprecated()->parent()->upgrade(Parent::Env::pd(),
-			                                             "ram_quota=16K"); });
+	for (;;) {
 
-	return new_obj_cap;
+		Ram_quota ram_upgrade { 0 };
+		Cap_quota cap_upgrade { 0 };
+
+		try { return pd.alloc_rpc_cap(_cap); }
+		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
+		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
+
+		env_deprecated()->parent()->upgrade(Parent::Env::pd(),
+		                                    String<100>("ram_quota=", ram_upgrade, ", "
+		                                                "cap_quota=", cap_upgrade).string());
+	}
 }
 
 

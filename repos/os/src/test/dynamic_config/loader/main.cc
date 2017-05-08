@@ -24,7 +24,7 @@ struct Main
 
 	Env                  &env;
 	int                   counter       { -1 };
-	Loader::Connection    loader        { env, Ram_quota{8*1024*1024} };
+	Loader::Connection    loader        { env, Ram_quota{8*1024*1024}, Cap_quota{100} };
 	Timer::Connection     timer         { env };
 	Signal_handler<Main>  timer_handler { env.ep(), *this, &Main::handle_timer };
 

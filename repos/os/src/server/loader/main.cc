@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/heap.h>
-#include <base/rpc_server.h>
 #include <base/sleep.h>
 #include <loader_session/loader_session.h>
 #include <root/component.h>
@@ -204,9 +203,11 @@ class Loader::Session_component : public Rpc_object<Session>
 		Env                        &_env;
 		Session_label         const _label;
 		Xml_node              const _config;
+		Cap_quota             const _cap_quota;
 		Ram_quota             const _ram_quota;
 		Ram_session_client_guard    _local_ram { _env.ram_session_cap(), _ram_quota };
 		Heap                        _md_alloc { _local_ram, _env.rm() };
+		size_t                      _subsystem_cap_quota_limit = 0;
 		size_t                      _subsystem_ram_quota_limit = 0;
 		Parent_services             _parent_services;
 		Rom_module_registry         _rom_modules { _env, _config, _local_ram, _md_alloc };
@@ -243,10 +244,11 @@ class Loader::Session_component : public Rpc_object<Session>
 		/**
 		 * Constructor
 		 */
-		Session_component(Env &env, Session_label const &label,
-		                  Xml_node config, Ram_quota quota)
+		Session_component(Env &env, Session_label const &label, Xml_node config,
+		                  Cap_quota cap_quota, Ram_quota ram_quota)
 		:
-			_env(env), _label(label), _config(config), _ram_quota(quota)
+			_env(env), _label(label), _config(config),
+			_cap_quota(cap_quota), _ram_quota(ram_quota)
 		{
 			/* fetch all parent-provided ROMs according to the config */
 			config.for_each_sub_node("parent-rom", [&] (Xml_node rom)
@@ -285,6 +287,11 @@ class Loader::Session_component : public Rpc_object<Session>
 				_rom_modules.commit_rom_module(name.string()); }
 			catch (Rom_module_registry::Lookup_failed) {
 				throw Rom_module_does_not_exist(); }
+		}
+
+		void cap_quota(Cap_quota caps) override
+		{
+			_subsystem_cap_quota_limit = caps.value;
 		}
 
 		void ram_quota(Ram_quota quantum) override
@@ -334,6 +341,10 @@ class Loader::Session_component : public Rpc_object<Session>
 				return;
 			}
 
+			size_t const cap_quota = (_subsystem_cap_quota_limit > 0)
+			                       ? min(_subsystem_cap_quota_limit, _cap_quota.value)
+			                       : _cap_quota.value;
+
 			size_t const ram_quota = (_subsystem_ram_quota_limit > 0)
 			                       ? min(_subsystem_ram_quota_limit, _ram_quota.value)
 			                       : _ram_quota.value;
@@ -341,7 +352,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			try {
 				_child.construct(_env, _md_alloc, binary_name.string(),
 				                 prefixed_label(_label, Session_label(label.string())),
-				                 Ram_quota{ram_quota},
+				                 Cap_quota{cap_quota}, Ram_quota{ram_quota},
 				                 _parent_services, _rom_service,
 				                 _cpu_service, _pd_service, _nitpicker_service,
 				                 _fault_sigh);
@@ -381,6 +392,7 @@ class Loader::Root : public Root_component<Session_component>
 			catch (...) { }
 
 			return new (md_alloc()) Session_component(_env, label, session_config,
+			                                          cap_quota_from_args(args),
 			                                          ram_quota_from_args(args));
 		}
 

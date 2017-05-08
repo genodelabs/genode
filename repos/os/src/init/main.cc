@@ -26,7 +26,7 @@ namespace Init { struct Main; }
 
 
 struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
-                    Child::Ram_limit_accessor
+                    Child::Default_caps_accessor, Child::Ram_limit_accessor
 {
 	Env &_env;
 
@@ -41,6 +41,8 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 	Reconstructible<Verbose> _verbose { _config.xml() };
 
 	Constructible<Buffered_xml> _default_route;
+
+	Cap_quota _default_caps { 0 };
 
 	unsigned _child_cnt = 0;
 
@@ -70,6 +72,32 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 		return Ram_quota { avail_ram.value - preserved_ram.value };
 	}
 
+	static Cap_quota _preserved_caps_from_config(Xml_node config)
+	{
+		size_t preserve = 20;
+
+		config.for_each_sub_node("resource", [&] (Xml_node node) {
+			if (node.attribute_value("name", String<16>()) == "CAP")
+				preserve = node.attribute_value("preserve", preserve); });
+
+		return Cap_quota { preserve };
+	}
+
+	Cap_quota _avail_caps()
+	{
+		Cap_quota const preserved_caps = _preserved_caps_from_config(_config.xml());
+
+		Cap_quota avail_caps { _env.pd().avail_caps().value };
+
+		if (preserved_caps.value > avail_caps.value) {
+			error("Capability preservation exceeds available capabilities");
+			return Cap_quota { 0 };
+		}
+
+		/* deduce preserved quota from available quota */
+		return Cap_quota { avail_caps.value - preserved_caps.value };
+	}
+
 	/**
 	 * Child::Ram_limit_accessor interface
 	 */
@@ -80,7 +108,10 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const
 	{
 		if (detail.init_ram())
-			xml.node("ram", [&] () { generate_ram_info(xml, _env.ram()); });
+			xml.node("ram",  [&] () { generate_ram_info (xml, _env.ram()); });
+
+		if (detail.init_caps())
+			xml.node("caps", [&] () { generate_caps_info(xml, _env.pd()); });
 
 		if (detail.children())
 			_children.report_state(xml, detail);
@@ -94,6 +125,11 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 		return _default_route.constructed() ? _default_route->xml()
 		                                    : Xml_node("<empty/>");
 	}
+
+	/**
+	 * Default_caps_accessor interface
+	 */
+	Cap_quota default_caps() override { return _default_caps; }
 
 	State_reporter _state_reporter { _env, *this };
 
@@ -258,6 +294,12 @@ void Init::Main::_handle_config()
 		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
 	catch (...) { }
 
+	_default_caps = Cap_quota { 0 };
+	try {
+		_default_caps = Cap_quota { _config.xml().sub_node("default")
+		                                   .attribute_value("caps", 0UL) }; }
+	catch (...) { }
+
 	Prio_levels     const prio_levels    = prio_levels_from_xml(_config.xml());
 	Affinity::Space const affinity_space = affinity_space_from_xml(_config.xml());
 
@@ -278,9 +320,11 @@ void Init::Main::_handle_config()
 
 	/* initial RAM and caps limit before starting new children */
 	Ram_quota const avail_ram  = _avail_ram();
+	Cap_quota const avail_caps = _avail_caps();
 
 	/* variable used to track the RAM and caps taken by new started children */
 	Ram_quota used_ram  { 0 };
+	Cap_quota used_caps { 0 };
 
 	/* create new children */
 	try {
@@ -300,12 +344,18 @@ void Init::Main::_handle_config()
 				throw Out_of_ram();
 			}
 
+			if (used_caps.value > avail_caps.value) {
+				error("capabilities exhausted while starting childen");
+				throw Out_of_caps();
+			}
+
 			try {
 				Init::Child &child = *new (_heap)
 					Init::Child(_env, _heap, *_verbose,
 					            Init::Child::Id { ++_child_cnt }, _state_reporter,
-					            start_node, *this, _children,
-					            Ram_quota { avail_ram.value - used_ram.value },
+					            start_node, *this, *this, _children,
+					            Ram_quota { avail_ram.value  - used_ram.value },
+					            Cap_quota { avail_caps.value - used_caps.value },
 					             *this, prio_levels, affinity_space,
 					            _parent_services, _child_services);
 				_children.insert(&child);
@@ -317,6 +367,9 @@ void Init::Main::_handle_config()
 				used_ram = Ram_quota { used_ram.value
 				                     + child.ram_quota().value
 				                     + metadata_overhead };
+
+				used_caps = Cap_quota { used_caps.value
+				                      + child.cap_quota().value };
 			}
 			catch (Rom_connection::Rom_connection_failed) {
 				/*
@@ -326,6 +379,8 @@ void Init::Main::_handle_config()
 			}
 			catch (Out_of_ram) {
 				warning("memory exhausted during child creation"); }
+			catch (Out_of_caps) {
+				warning("local capabilities exhausted during child creation"); }
 			catch (Child::Missing_name_attribute) {
 				warning("skipped startup of nameless child"); }
 			catch (Region_map::Attach_failed) {

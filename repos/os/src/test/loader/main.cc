@@ -25,7 +25,7 @@ struct Test::Main
 {
 	Env &_env;
 
-	Loader::Connection _loader { _env, Ram_quota{8*1024*1024} };
+	Loader::Connection _loader { _env, Ram_quota{8*1024*1024}, Cap_quota{100} };
 	Timer::Connection  _timer  { _env };
 
 	Loader::Area  _size;

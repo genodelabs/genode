@@ -57,9 +57,8 @@ class Genode::Parent
 		 ** Exception types **
 		 *********************/
 
-		class Exception      : public ::Genode::Exception { };
-		class Service_denied : public Exception { };
-		class Unavailable    : public Exception { };
+		struct Service_denied : Exception { };
+		struct Unavailable    : Exception { };
 
 		typedef Rpc_in_buffer<64>  Service_name;
 		typedef Rpc_in_buffer<160> Session_args;
@@ -160,7 +159,9 @@ class Genode::Parent
 		 * \param affinity         preferred CPU affinity for the session
 		 *
 		 * \throw Service_denied          parent denies session request
+		 * \throw Insufficient_cap_quota  donated cap quota does not suffice
 		 * \throw Insufficient_ram_quota  donated RAM quota does not suffice
+		 * \throw Out_of_caps             session CAP quota exceeds our resources
 		 * \throw Out_of_ram              session RAM quota exceeds our resources
 		 *
 		 * \return session capability of the new session is immediately
@@ -182,7 +183,10 @@ class Genode::Parent
 		 * Request session capability
 		 *
 		 * \throw Service_denied
+		 * \throw Insufficient_cap_quota
 		 * \throw Insufficient_ram_quota
+		 *
+		 * See 'session' for more documentation.
 		 *
 		 * In the exception case, the parent implicitly closes the session.
 		 */
@@ -196,6 +200,7 @@ class Genode::Parent
 		 * \param id         ID of recipient session
 		 * \param args       description of the amount of quota to transfer
 		 *
+		 * \throw Out_of_caps
 		 * \throw Out_of_ram
 		 *
 		 * The 'args' argument has the same principle format as the 'args'
@@ -216,7 +221,7 @@ class Genode::Parent
 		 */
 
 		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS,
-		                        INSUFFICIENT_RAM_QUOTA };
+		                        INSUFFICIENT_RAM_QUOTA, INSUFFICIENT_CAP_QUOTA };
 
 		/**
 		 * Set state of a session provided by the child service
@@ -294,16 +299,17 @@ class Genode::Parent
 		           Service_name const &);
 		GENODE_RPC(Rpc_session_sigh, void, session_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_session, Session_capability, session,
-		                 GENODE_TYPE_LIST(Service_denied, Out_of_ram,
+		                 GENODE_TYPE_LIST(Service_denied, Out_of_caps,
+		                                  Out_of_ram, Insufficient_cap_quota,
 		                                  Insufficient_ram_quota, Unavailable),
 		                 Client::Id, Service_name const &, Session_args const &,
 		                 Affinity const &);
 		GENODE_RPC_THROW(Rpc_session_cap, Session_capability, session_cap,
-		                 GENODE_TYPE_LIST(Service_denied,
+		                 GENODE_TYPE_LIST(Service_denied, Insufficient_cap_quota,
 		                                  Insufficient_ram_quota, Unavailable),
 		                 Client::Id);
 		GENODE_RPC_THROW(Rpc_upgrade, Upgrade_result, upgrade,
-		                 GENODE_TYPE_LIST(Out_of_ram),
+		                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 		                 Client::Id, Upgrade_args const &);
 		GENODE_RPC(Rpc_close, Close_result, close, Client::Id);
 		GENODE_RPC(Rpc_session_response, void, session_response,
