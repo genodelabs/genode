@@ -107,7 +107,7 @@ namespace Genode {
 				/* delete ram quota by the memory needed for the session */
 				size_t session_size = max((size_t)4096, sizeof(Termlog_component));
 				if (ram_quota < session_size)
-					throw Root::Quota_exceeded();
+					throw Insufficient_ram_quota();
 
 				char label_buf[Termlog_component::LABEL_LEN];
 

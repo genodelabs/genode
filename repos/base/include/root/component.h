@@ -146,7 +146,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 				warning("insufficient ram quota "
 				        "for ", SESSION_TYPE::service_name(), " session, "
 				        "provided=", ram_quota, ", required=", needed);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			Ram_quota const remaining_ram_quota { ram_quota.value - needed };
@@ -284,7 +284,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		{
 			try {
 				return _create(args, affinity); }
-			catch (Root::Quota_exceeded) { throw Service::Quota_exceeded(); }
+			catch (Insufficient_ram_quota) { throw; }
 			catch (...) {
 				throw typename Local_service<SESSION_TYPE>::Factory::Denied(); }
 		}

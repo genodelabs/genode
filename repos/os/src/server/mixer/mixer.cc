@@ -676,7 +676,7 @@ class Audio_out::Root : public Audio_out::Root_component
 			    (sizeof(Stream) > ram_quota - session_size)) {
 				Genode::error("insufficient 'ram_quota', got ", ram_quota, ", "
 				              "need ", sizeof(Stream) + session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			Channel::Number ch = number_from_string(channel_name);

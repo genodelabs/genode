@@ -314,7 +314,7 @@ class Volume_descriptor : public Iso::Iso_base
 			Directory_record *buf;
 
 			if (!(alloc.alloc(ROOT_SIZE, &buf)))
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 
 			memcpy(buf, root_record(), ROOT_SIZE);
 

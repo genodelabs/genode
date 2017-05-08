@@ -66,7 +66,7 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 			/* deplete ram quota by the memory needed for the session structure */
 			size_t session_size = max(4096UL, (unsigned long)sizeof(Lan9118));
 			if (ram_quota < session_size)
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 
 			/*
 			 * Check if donated ram quota suffices for both communication
@@ -76,7 +76,7 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", "
 				      "need ", tx_buf_size + rx_buf_size + session_size);
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 			}
 
 			return new (Root::md_alloc())

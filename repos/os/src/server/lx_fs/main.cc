@@ -395,7 +395,7 @@ class File_system::Root : public Root_component<Session_component>
 			if (max((size_t)4096, session_size) > ram_quota) {
 				Genode::error("insufficient 'ram_quota', "
 				              "got ", ram_quota, ", need ", session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			try {

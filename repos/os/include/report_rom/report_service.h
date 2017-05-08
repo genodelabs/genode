@@ -129,7 +129,7 @@ struct Report::Root : Genode::Root_component<Session_component>
 
 			if (ram_quota < session_size) {
 				Genode::error("insufficient ram donation from ", label.string());
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			if (buffer_size == 0) {

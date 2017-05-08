@@ -132,14 +132,14 @@ Session_component *Net::Root::_create_session(char const *args)
 			max((size_t)4096, sizeof(Session_component));
 
 		if (ram_quota < session_size) {
-			throw Root::Quota_exceeded(); }
+			throw Insufficient_ram_quota(); }
 
 		if (tx_buf_size               > ram_quota - session_size ||
 		    rx_buf_size               > ram_quota - session_size ||
 		    tx_buf_size + rx_buf_size > ram_quota - session_size)
 		{
 			error("insufficient 'ram_quota' for session creation");
-			throw Root::Quota_exceeded();
+			throw Insufficient_ram_quota();
 		}
 		return new (md_alloc())
 			Session_component(*md_alloc(), ram_quota - session_size,

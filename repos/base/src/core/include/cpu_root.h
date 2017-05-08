@@ -40,7 +40,7 @@ namespace Genode {
 					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 				if (ram_quota < Trace::Control_area::SIZE)
-					throw Root::Quota_exceeded();
+					throw Insufficient_ram_quota();
 
 				return new (md_alloc())
 					Cpu_session_component(

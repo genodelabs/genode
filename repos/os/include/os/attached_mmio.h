@@ -43,7 +43,7 @@ class Genode::Attached_mmio : public Attached_io_mem_dataspace,
 		 * \param write_combined  enable write combining for the resource
 		 *
 		 * \throw Parent::Service_denied
-		 * \throw Parent::Quota_exceeded
+		 * \throw Insufficient_ram_quota
 		 * \throw Parent::Unavailable
 		 * \throw Rm_session::Attach_failed
 		 */

@@ -44,7 +44,7 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 			if (ram_quota < sizeof(Session_component)) {
-				throw Root::Quota_exceeded(); }
+				throw Insufficient_ram_quota(); }
 
 			return new (md_alloc())
 				Session_component(_timeout_scheduler);

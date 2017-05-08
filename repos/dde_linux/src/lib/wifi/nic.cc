@@ -180,7 +180,7 @@ class Root : public Genode::Root_component<Wifi_session_component,
 			/* deplete ram quota by the memory needed for the session structure */
 			size_t session_size = max(4096UL, (unsigned long)sizeof(Wifi_session_component));
 			if (ram_quota < session_size)
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 
 			/*
 			 * Check if donated ram quota suffices for both communication

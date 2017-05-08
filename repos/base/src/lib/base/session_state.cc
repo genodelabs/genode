@@ -30,14 +30,14 @@ struct Formatted_phase
 		typedef Genode::Session_state State;
 
 		switch (_phase) {
-		case State::CREATE_REQUESTED:   print(output, "CREATE_REQUESTED");  break;
-		case State::INVALID_ARGS:       print(output, "INVALID_ARGS");      break;
-		case State::QUOTA_EXCEEDED:     print(output, "QUOTA_EXCEEDED");    break;
-		case State::AVAILABLE:          print(output, "AVAILABLE");         break;
-		case State::CAP_HANDED_OUT:     print(output, "CAP_HANDED_OUT");    break;
-		case State::UPGRADE_REQUESTED:  print(output, "UPGRADE_REQUESTED"); break;
-		case State::CLOSE_REQUESTED:    print(output, "CLOSE_REQUESTED");   break;
-		case State::CLOSED:             print(output, "CLOSED");            break;
+		case State::CREATE_REQUESTED:       print(output, "CREATE_REQUESTED");       break;
+		case State::INVALID_ARGS:           print(output, "INVALID_ARGS");           break;
+		case State::INSUFFICIENT_RAM_QUOTA: print(output, "INSUFFICIENT_RAM_QUOTA"); break;
+		case State::AVAILABLE:              print(output, "AVAILABLE");              break;
+		case State::CAP_HANDED_OUT:         print(output, "CAP_HANDED_OUT");         break;
+		case State::UPGRADE_REQUESTED:      print(output, "UPGRADE_REQUESTED");      break;
+		case State::CLOSE_REQUESTED:        print(output, "CLOSE_REQUESTED");        break;
+		case State::CLOSED:                 print(output, "CLOSED");                 break;
 		}
 	}
 };
@@ -87,7 +87,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 		break;
 
 	case INVALID_ARGS:
-	case QUOTA_EXCEEDED:
+	case INSUFFICIENT_RAM_QUOTA:
 	case AVAILABLE:
 	case CAP_HANDED_OUT:
 	case CLOSED:
@@ -155,7 +155,7 @@ void Session_state::destroy()
 Session_state::Session_state(Service                  &service,
                              Id_space<Parent::Client> &client_id_space,
                              Parent::Client::Id        client_id,
-                             Session_label      const &label,
+                             Session::Label     const &label,
                              Args const               &args,
                              Affinity           const &affinity)
 :

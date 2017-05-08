@@ -57,9 +57,8 @@ class Genode::Service : Noncopyable
 		 ** Exception types **
 		 *********************/
 
-		class Invalid_args   { };
-		class Unavailable    { };
-		class Quota_exceeded { };
+		class Invalid_args : Exception { };
+		class Unavailable  : Exception { };
 
 		/**
 		 * Constructor
@@ -132,7 +131,7 @@ class Genode::Local_service : public Service
 			 * Create session
 			 *
 			 * \throw Denied
-			 * \throw Quota_exceeded
+			 * \throw Insufficient_ram_quota
 			 */
 			virtual SESSION &create(Args const &, Affinity)  = 0;
 
@@ -202,8 +201,8 @@ class Genode::Local_service : public Service
 				}
 				catch (typename Factory::Denied) {
 					session.phase = Session_state::INVALID_ARGS; }
-				catch (Quota_exceeded) {
-					session.phase = Session_state::QUOTA_EXCEEDED; }
+				catch (Insufficient_ram_quota) {
+					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
 
 				break;
 
@@ -229,7 +228,7 @@ class Genode::Local_service : public Service
 				break;
 
 			case Session_state::INVALID_ARGS:
-			case Session_state::QUOTA_EXCEEDED:
+			case Session_state::INSUFFICIENT_RAM_QUOTA:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:
@@ -285,9 +284,9 @@ class Genode::Parent_service : public Service
 
 					session.phase = Session_state::AVAILABLE;
 				}
-				catch (Parent::Quota_exceeded) {
+				catch (Insufficient_ram_quota) {
 					session.id_at_parent.destruct();
-					session.phase = Session_state::INVALID_ARGS; }
+					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
 
 				catch (Parent::Service_denied) {
 					session.id_at_parent.destruct();
@@ -304,7 +303,7 @@ class Genode::Parent_service : public Service
 
 					try {
 						_env.upgrade(session.id_at_parent->id(), args.string()); }
-					catch (Parent::Quota_exceeded) {
+					catch (Out_of_ram) {
 						warning("quota exceeded while upgrading parent session"); }
 
 					session.confirm_ram_upgrade();
@@ -322,7 +321,7 @@ class Genode::Parent_service : public Service
 				break;
 
 			case Session_state::INVALID_ARGS:
-			case Session_state::QUOTA_EXCEEDED:
+			case Session_state::INSUFFICIENT_RAM_QUOTA:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:

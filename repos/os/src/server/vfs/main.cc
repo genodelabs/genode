@@ -671,7 +671,7 @@ class Vfs_server::Root :
 			if (session_size > ram_quota) {
 				error("insufficient 'ram_quota' from '", label, "' "
 				      "got ", ram_quota, ", need ", session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 			ram_quota -= session_size;
 

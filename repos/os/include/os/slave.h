@@ -213,7 +213,7 @@ class Genode::Slave::Connection_base
 					break;
 
 				case Session_state::INVALID_ARGS:
-				case Session_state::QUOTA_EXCEEDED:
+				case Session_state::INSUFFICIENT_RAM_QUOTA:
 				case Session_state::AVAILABLE:
 				case Session_state::CAP_HANDED_OUT:
 				case Session_state::CLOSED:
@@ -272,7 +272,7 @@ struct Genode::Slave::Connection : private Connection_base<CONNECTION>,
 	 * Constructor
 	 *
 	 * \throw Parent::Service_denied   parent denies session request
-	 * \throw Parent::Quota_exceeded   our own quota does not suffice for
+	 * \throw Out_of_ram               our own quota does not suffice for
 	 *                                 the creation of the new session
 	 */
 	Connection(Slave::Policy &policy, Args const &args,

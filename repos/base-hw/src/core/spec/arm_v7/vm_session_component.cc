@@ -24,7 +24,7 @@ addr_t Vm_session_component::_alloc_ds(size_t &ram_quota)
 	if (_ds_size() > ram_quota ||
 		platform()->ram_alloc()->alloc_aligned(_ds_size(), (void**)&addr,
 		                                       get_page_size_log2()).error())
-		throw Root::Quota_exceeded();
+		throw Insufficient_ram_quota();
 	ram_quota -= _ds_size();
 	return addr;
 }

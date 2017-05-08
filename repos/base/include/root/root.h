@@ -47,7 +47,7 @@ struct Genode::Root
 	 * Create session
 	 *
 	 * \throw Unavailable
-	 * \throw Quota_exceeded
+	 * \throw Insufficient_ram_quota
 	 * \throw Invalid_args
 	 *
 	 * \return capability to new session
@@ -71,7 +71,8 @@ struct Genode::Root
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_session, Session_capability, session,
-	                 GENODE_TYPE_LIST(Unavailable, Quota_exceeded, Invalid_args),
+	                 GENODE_TYPE_LIST(Unavailable, Insufficient_ram_quota,
+	                                  Invalid_args),
 	                 Session_args const &, Affinity const &);
 	GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
 	                 GENODE_TYPE_LIST(Invalid_args),

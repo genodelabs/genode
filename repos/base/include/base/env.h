@@ -92,9 +92,8 @@ struct Genode::Env
 	 * \param args             session constructor arguments
 	 * \param affinity         preferred CPU affinity for the session
 	 *
-	 * \throw Service_denied   parent denies session request
-	 * \throw Quota_exceeded   our own quota does not suffice for
-	 *                         the creation of the new session
+	 * \throw Service_denied
+	 * \throw Insufficient_ram_quota
 	 * \throw Unavailable
 	 *
 	 * This method blocks until the session is available or an error

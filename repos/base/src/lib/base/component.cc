@@ -135,7 +135,7 @@ namespace {
 			strncpy(argbuf, args.string(), sizeof(argbuf));
 			Ram_quota ram_quota = ram_quota_from_args(argbuf);
 
-			return retry<Parent::Quota_exceeded>(
+			return retry<Insufficient_ram_quota>(
 				[&] () {
 
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
@@ -172,7 +172,7 @@ namespace {
 			warning("giving up to increase session quota for ", name.string(), " session "
 			        "after ", (int)NUM_ATTEMPTS, " attempts");
 
-			throw Parent::Quota_exceeded();
+			throw Insufficient_ram_quota();
 		}
 
 		void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override

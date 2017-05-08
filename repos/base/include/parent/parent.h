@@ -59,7 +59,6 @@ class Genode::Parent
 
 		class Exception      : public ::Genode::Exception { };
 		class Service_denied : public Exception { };
-		class Quota_exceeded : public Exception { };
 		class Unavailable    : public Exception { };
 
 		typedef Rpc_in_buffer<64>  Service_name;
@@ -160,9 +159,9 @@ class Genode::Parent
 		 * \param args             session constructor arguments
 		 * \param affinity         preferred CPU affinity for the session
 		 *
-		 * \throw Service_denied   parent denies session request
-		 * \throw Quota_exceeded   our own quota does not suffice for
-		 *                         the creation of the new session
+		 * \throw Service_denied          parent denies session request
+		 * \throw Insufficient_ram_quota  donated RAM quota does not suffice
+		 * \throw Out_of_ram              session RAM quota exceeds our resources
 		 *
 		 * \return session capability of the new session is immediately
 		 *         available, or an invalid capability
@@ -183,8 +182,7 @@ class Genode::Parent
 		 * Request session capability
 		 *
 		 * \throw Service_denied
-		 * \throw Quota_exceeded   session quota does not suffice for
-		 *                         the creation of the new session
+		 * \throw Insufficient_ram_quota
 		 *
 		 * In the exception case, the parent implicitly closes the session.
 		 */
@@ -198,7 +196,7 @@ class Genode::Parent
 		 * \param id         ID of recipient session
 		 * \param args       description of the amount of quota to transfer
 		 *
-		 * \throw Quota_exceeded  quota could not be transferred
+		 * \throw Out_of_ram
 		 *
 		 * The 'args' argument has the same principle format as the 'args'
 		 * argument of the 'session' operation.
@@ -217,7 +215,8 @@ class Genode::Parent
 		 * Interface for providing services
 		 */
 
-		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS, QUOTA_EXCEEDED };
+		enum Session_response { SESSION_OK, SESSION_CLOSED, INVALID_ARGS,
+		                        INSUFFICIENT_RAM_QUOTA };
 
 		/**
 		 * Set state of a session provided by the child service
@@ -295,14 +294,16 @@ class Genode::Parent
 		           Service_name const &);
 		GENODE_RPC(Rpc_session_sigh, void, session_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_session, Session_capability, session,
-		                 GENODE_TYPE_LIST(Service_denied, Quota_exceeded, Unavailable),
+		                 GENODE_TYPE_LIST(Service_denied, Out_of_ram,
+		                                  Insufficient_ram_quota, Unavailable),
 		                 Client::Id, Service_name const &, Session_args const &,
 		                 Affinity const &);
 		GENODE_RPC_THROW(Rpc_session_cap, Session_capability, session_cap,
-		                 GENODE_TYPE_LIST(Service_denied, Quota_exceeded, Unavailable),
+		                 GENODE_TYPE_LIST(Service_denied,
+		                                  Insufficient_ram_quota, Unavailable),
 		                 Client::Id);
 		GENODE_RPC_THROW(Rpc_upgrade, Upgrade_result, upgrade,
-		                 GENODE_TYPE_LIST(Quota_exceeded),
+		                 GENODE_TYPE_LIST(Out_of_ram),
 		                 Client::Id, Upgrade_args const &);
 		GENODE_RPC(Rpc_close, Close_result, close, Client::Id);
 		GENODE_RPC(Rpc_session_response, void, session_response,

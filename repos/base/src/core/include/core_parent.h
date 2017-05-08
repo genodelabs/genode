@@ -73,7 +73,7 @@ class Genode::Core_parent : public Parent
 		Session_capability session_cap(Client::Id) override { return Session_capability(); }
 
 		Upgrade_result upgrade(Client::Id, Upgrade_args const &) override {
-			throw Quota_exceeded(); }
+			throw Out_of_ram(); }
 
 		Close_result close(Client::Id) override { return CLOSE_DONE; }
 

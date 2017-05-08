@@ -212,7 +212,7 @@ struct Audio_out::Root_policy
 		    (sizeof(Stream) > ram_quota - session_size)) {
 			Genode::error("insufficient 'ram_quota', got ", ram_quota,
 			              " need ", sizeof(Stream) + session_size);
-			throw ::Root::Quota_exceeded();
+			throw Genode::Insufficient_ram_quota();
 		}
 
 		char channel_name[16];
