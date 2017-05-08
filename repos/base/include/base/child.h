@@ -86,7 +86,8 @@ struct Genode::Child_policy
 	struct Route
 	{
 		Service &service;
-		Session_label const label;
+		Session::Label const label;
+		Session::Diag  const diag;
 	};
 
 	/**
@@ -543,7 +544,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 					_env_service.construct(_child, route.service);
 					_connection.construct(*_env_service, _child._id_space, _client_id,
 					                      _args, _child._policy.filter_session_affinity(Affinity()),
-					                      route.label);
+					                      route.label, route.diag);
 				}
 				catch (Parent::Service_denied) {
 					error(_child._policy.name(), ": ", _service_name(), " "

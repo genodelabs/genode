@@ -39,7 +39,8 @@ struct Genode::Local_connection_base : Noncopyable
 
 	private:
 
-		static Args _init_args(Args const &args, size_t const &ram_quota)
+		static Args _init_args(Args const &args, size_t const &ram_quota,
+		                       Session::Diag diag)
 		{
 			/* copy original arguments into modifiable buffer */
 			char buf[Args::capacity()];
@@ -47,6 +48,7 @@ struct Genode::Local_connection_base : Noncopyable
 
 			Arg_string::set_arg(buf, sizeof(buf), "ram_quota",
 			                    String<64>(ram_quota).string());
+			Arg_string::set_arg(buf, sizeof(buf), "diag", diag.enabled);
 
 			/* return result as a copy  */
 			return Args(Cstring(buf));
@@ -58,13 +60,15 @@ struct Genode::Local_connection_base : Noncopyable
 		                      Id_space<Parent::Client>         &id_space,
 		                      Parent::Client::Id                id,
 		                      Args const &args, Affinity const &affinity,
-		                      Session_label              const &label,
+		                      Session::Label             const &label,
+		                      Session::Diag                     diag,
 		                      size_t                            ram_quota)
 		{
 			enum { NUM_ATTEMPTS = 10 };
 			for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
 				_session_state.construct(service, id_space, id, label,
-				                         _init_args(args, ram_quota), affinity);
+				                         _init_args(args, ram_quota, diag),
+				                         affinity);
 
 				_session_state->service().initiate_request(*_session_state);
 
@@ -143,10 +147,12 @@ class Genode::Local_connection : Local_connection_base
 		Local_connection(Service &service, Id_space<Parent::Client> &id_space,
 		                 Parent::Client::Id id, Args const &args,
 		                 Affinity const &affinity,
-		                 Session_label const &label = Session_label())
+		                 Session::Label const &label = Session_label(),
+		                 Session::Diag diag = { false })
 		:
 			Local_connection_base(service, id_space, id, args, affinity,
 			                      label.valid() ? label : label_from_args(args.string()),
+			                      diag,
 			                      CONNECTION::RAM_QUOTA)
 		{
 			service.wakeup();
