@@ -107,15 +107,14 @@ class Cli_monitor::Ram
 		 */
 		void withdraw_from(Genode::Ram_session_capability from, size_t amount)
 		{
-			Genode::Lock::Guard guard(_lock);
+			using namespace Genode;
 
-			int const ret =
-				Genode::Ram_session_client(from).transfer_quota(_ram_cap, Genode::Ram_quota{amount});
+			Lock::Guard guard(_lock);
 
-			if (ret != 0)
-				throw Transfer_quota_failed();
+			try { Ram_session_client(from).transfer_quota(_ram_cap, Ram_quota{amount}); }
+			catch (...) { throw Transfer_quota_failed(); }
 
-			Genode::Signal_transmitter(_resource_avail_sigh).submit();
+			Signal_transmitter(_resource_avail_sigh).submit();
 		}
 
 		/**
@@ -130,10 +129,8 @@ class Cli_monitor::Ram
 				throw Transfer_quota_failed();
 			}
 
-			int const ret = _ram.transfer_quota(to, Genode::Ram_quota{amount});
-
-			if (ret != 0)
-				throw Transfer_quota_failed();
+			try { _ram.transfer_quota(to, Genode::Ram_quota{amount}); }
+			catch (...) { throw Transfer_quota_failed(); }
 		}
 
 		size_t avail() const { return _ram.avail_ram().value; }

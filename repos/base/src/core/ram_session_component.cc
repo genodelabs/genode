@@ -67,14 +67,15 @@ void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 }
 
 
-int Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t amount)
+void Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t amount)
 {
 	/* check if recipient is a valid Ram_session_component */
-	if (!dst) return -1;
+	if (!dst)
+		throw Invalid_session();
 
 	/* check for reference account relationship */
 	if ((ref_account() != dst) && (dst->ref_account() != this))
-		return -2;
+		throw Invalid_session();
 
 	/* decrease quota limit of this session - check against used quota */
 	if (_quota_limit < amount + _payload) {
@@ -82,15 +83,13 @@ int Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t am
 		        "'", Cstring(_label), "' to '", Cstring(dst->_label), "' "
 		        "have ", (_quota_limit - _payload)/1024, " KiB, "
 		        "need ", amount/1024, " KiB");
-		return -3;
+		throw Out_of_ram();
 	}
 
 	_quota_limit -= amount;
 
 	/* increase quota_limit of recipient */
 	dst->_quota_limit += amount;
-
-	return 0;
 }
 
 
@@ -250,37 +249,37 @@ size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) co
 }
 
 
-int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
+void Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 {
 	/* the reference account cannot be defined twice */
-	if (_ref_account) return -2;
+	if (_ref_account)
+		return;
+
+	if (this->cap() == ram_session_cap)
+		return;
 
 	auto lambda = [this] (Ram_session_component *ref) {
 
 		/* check if recipient is a valid Ram_session_component */
-		if (!ref) return -1;
-
-		/* deny the usage of the ram session as its own ref account */
-		/* XXX also check for cycles along the tree of ref accounts */
-		if (ref == this) return -3;
+		if (!ref)
+			throw Invalid_session();
 
 		_ref_account = ref;
 		_ref_account->_register_ref_account_member(this);
-		return 0;
 	};
 
-	return _ram_session_ep->apply(ram_session_cap, lambda);
+	_ram_session_ep->apply(ram_session_cap, lambda);
 }
 
 
-int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
-                                          Ram_quota amount)
+void Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
+                                           Ram_quota amount)
 {
 	auto lambda = [&] (Ram_session_component *dst) {
-		return _transfer_quota(dst, amount.value); };
+		_transfer_quota(dst, amount.value); };
 
 	if (this->cap() == ram_session_cap)
-		return 0;
+		return;
 
 	return _ram_session_ep->apply(ram_session_cap, lambda);
 }
@@ -322,7 +321,7 @@ Ram_session_component::~Ram_session_component()
 	if (!_ref_account) return;
 
 	/* transfer remaining quota to reference account */
-	_transfer_quota(_ref_account, _quota_limit);
+	try { _transfer_quota(_ref_account, _quota_limit); } catch (...) { }
 
 	/* remember our original reference account */
 	Ram_session_component *orig_ref_account = _ref_account;

@@ -80,7 +80,6 @@ class Stack_area_region_map : public Genode::Region_map
 
 struct Stack_area_ram_session : Genode::Ram_session
 {
-
 	Genode::Ram_dataspace_capability alloc(Genode::size_t size,
 	                                       Genode::Cache_attribute) override {
 		return Genode::Ram_dataspace_capability(); }
@@ -89,9 +88,9 @@ struct Stack_area_ram_session : Genode::Ram_session
 
 	Genode::size_t dataspace_size(Genode::Ram_dataspace_capability) const override { return 0; }
 
-	int ref_account(Genode::Ram_session_capability) override { return 0; }
+	void ref_account(Genode::Ram_session_capability) override { }
 
-	int transfer_quota(Genode::Ram_session_capability, Genode::Ram_quota) override { return 0; }
+	void transfer_quota(Genode::Ram_session_capability, Genode::Ram_quota) override { }
 
 	Genode::Ram_quota ram_quota() const override { return { 0 }; }
 

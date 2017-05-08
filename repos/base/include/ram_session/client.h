@@ -39,11 +39,11 @@ struct Genode::Ram_session_client : Rpc_client<Ram_session>
 		return ds.valid() ? Dataspace_client(ds).size() : 0;
 	}
 
-	int ref_account(Ram_session_capability ram_session) override {
-		return call<Rpc_ref_account>(ram_session); }
+	void ref_account(Ram_session_capability ram_session) override {
+		call<Rpc_ref_account>(ram_session); }
 
-	int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override {
-		return call<Rpc_transfer_ram_quota>(ram_session, amount); }
+	void transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override {
+		call<Rpc_transfer_ram_quota>(ram_session, amount); }
 
 	Ram_quota ram_quota() const override { return call<Rpc_ram_quota>(); }
 

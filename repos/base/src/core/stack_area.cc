@@ -134,8 +134,9 @@ struct Stack_area_ram_session : Ram_session
 
 	size_t dataspace_size(Ram_dataspace_capability) const override { return 0; }
 
-	int    ref_account    (Ram_session_capability)            override { return 0; }
-	int    transfer_quota (Ram_session_capability, Ram_quota) override { return 0; }
+	void ref_account    (Ram_session_capability)            override { }
+	void transfer_quota (Ram_session_capability, Ram_quota) override { }
+
 	Ram_quota ram_quota () const override { return { 0 }; }
 	Ram_quota used_ram  () const override { return { 0 }; }
 };

@@ -59,8 +59,8 @@ class Gdb_monitor::Ram_session_component : public Rpc_object<Ram_session>
 		Ram_dataspace_capability alloc(size_t, Cache_attribute) override;
 		void free(Ram_dataspace_capability) override;
 		size_t dataspace_size(Ram_dataspace_capability) const override;
-		int ref_account(Ram_session_capability) override;
-		int transfer_quota(Ram_session_capability, Ram_quota) override;
+		void ref_account(Ram_session_capability) override;
+		void transfer_quota(Ram_session_capability, Ram_quota) override;
 		Ram_quota ram_quota() const override;
 		Ram_quota used_ram()  const override;
 };

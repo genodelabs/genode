@@ -238,11 +238,12 @@ void Init::Child::apply_ram_downgrade()
 
 		size_t const transfer = min(avail - preserved, decrease);
 
-		if (_child.ram().transfer_quota(ref_ram_cap(), Ram_quota{transfer}) == 0) {
+		try {
+			_child.ram().transfer_quota(ref_ram_cap(), Ram_quota{transfer});
 			_resources.assigned_ram_quota =
 				Ram_quota { _resources.assigned_ram_quota.value - transfer };
 			break;
-		}
+		} catch (...) { }
 	}
 
 	if (attempts == max_attempts)
