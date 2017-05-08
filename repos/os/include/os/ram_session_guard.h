@@ -96,7 +96,7 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 		                               Cache_attribute cached = CACHED) override
 		{
 			if (_used + size <= _used || _used + size > _quota)
-				throw Quota_exceeded();
+				throw Out_of_ram();
 
 			Ram_dataspace_capability cap = _session.alloc(size, cached);
 

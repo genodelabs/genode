@@ -115,8 +115,6 @@ namespace Genode {
 			Ram_session_component _ram_session;
 			Synced_ram_session    _synced_ram_session { _ram_session };
 
-			Ram_session_capability const _ram_session_cap;
-
 			/*
 			 * The core-local PD session is provided by a real RPC object
 			 * dispatched by the same entrypoint as the signal-source RPC
@@ -133,6 +131,14 @@ namespace Genode {
 
 			Core_parent _core_parent { _heap, _services };
 
+			typedef String<100> Ram_args;
+
+			static Session::Resources _ram_resources()
+			{
+				return { Ram_quota { platform()->ram_alloc()->avail() },
+				         Cap_quota { 1000 } };
+			}
+
 		public:
 
 			/**
@@ -143,13 +149,18 @@ namespace Genode {
 				Platform_env_base(Ram_session_capability(),
 				                  Cpu_session_capability(),
 				                  Pd_session_capability()),
-				_ram_session(&_entrypoint, &_entrypoint,
-				             platform()->ram_alloc(), platform()->core_mem_alloc(),
-				             "ram_quota=4M", platform()->ram_alloc()->avail()),
-				_ram_session_cap(_entrypoint.manage(&_ram_session)),
+				_ram_session(_entrypoint,
+				             _ram_resources(),
+				             Session::Label("core"),
+				             Session::Diag{false},
+				             *platform()->ram_alloc(),
+				             *Platform_env_base::rm_session(),
+				             Ram_session_component::any_phys_range()),
 				_pd_session_component(_entrypoint),
 				_pd_session_client(_entrypoint.manage(&_pd_session_component))
-			{ }
+			{
+				_ram_session.init_ram_account();
+			}
 
 			/**
 			 * Destructor
@@ -165,7 +176,7 @@ namespace Genode {
 			 ******************************/
 
 			Parent                 *parent()          override { return &_core_parent; }
-			Ram_session            *ram_session()     override { return &_synced_ram_session; }
+			Ram_session            *ram_session()     override { return &_ram_session; }
 			Ram_session_capability  ram_session_cap() override { return  _ram_session.cap(); }
 			Pd_session             *pd_session()      override { return &_pd_session_client; }
 			Allocator              *heap()            override { log(__func__, ": not implemented"); return nullptr; }

@@ -28,14 +28,14 @@ addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
 		return dsc->phys_addr();
 	};
 
-	return _ds_ep->apply(ds, lambda);
+	return _ep.apply(ds, lambda);
 }
 
 
 void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 {
 	Dataspace_component *ds = nullptr;
-	_ds_ep->apply(ds_cap, [&] (Dataspace_component *c)
+	_ep.apply(ds_cap, [&] (Dataspace_component *c)
 	{
 		if (!c) return;
 		if (!c->owner(this)) return;
@@ -45,7 +45,7 @@ void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 		size_t ds_size = ds->size();
 
 		/* tell entry point to forget the dataspace */
-		_ds_ep->dissolve(ds);
+		_ep.dissolve(ds);
 
 		/* remove dataspace from all RM sessions */
 		ds->detach_from_rm_sessions();
@@ -54,64 +54,14 @@ void Ram_session_component::_free_ds(Dataspace_capability ds_cap)
 		_revoke_ram_ds(ds);
 
 		/* free physical memory that was backing the dataspace */
-		_ram_alloc->free((void *)ds->phys_addr(), ds_size);
+		_phys_alloc.free((void *)ds->phys_addr(), ds_size);
 
-		/* adjust payload */
-		Lock::Guard lock_guard(_ref_members_lock);
-		_payload -= ds_size;
+		_ram_account->replenish(Ram_quota{ds_size});
 	});
 
 	/* call dataspace destructors and free memory */
 	if (ds)
-		destroy(&_ds_slab, ds);
-}
-
-
-void Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t amount)
-{
-	/* check if recipient is a valid Ram_session_component */
-	if (!dst)
-		throw Invalid_session();
-
-	/* check for reference account relationship */
-	if ((ref_account() != dst) && (dst->ref_account() != this))
-		throw Invalid_session();
-
-	/* decrease quota limit of this session - check against used quota */
-	if (_quota_limit < amount + _payload) {
-		warning("insufficient quota for transfer: "
-		        "'", Cstring(_label), "' to '", Cstring(dst->_label), "' "
-		        "have ", (_quota_limit - _payload)/1024, " KiB, "
-		        "need ", amount/1024, " KiB");
-		throw Out_of_ram();
-	}
-
-	_quota_limit -= amount;
-
-	/* increase quota_limit of recipient */
-	dst->_quota_limit += amount;
-}
-
-
-void Ram_session_component::_register_ref_account_member(Ram_session_component *new_member)
-{
-	Lock::Guard lock_guard(_ref_members_lock);
-	_ref_members.insert(new_member);
-	new_member->_ref_account = this;
-}
-
-
-void Ram_session_component::_unsynchronized_remove_ref_account_member(Ram_session_component *member)
-{
-	member->_ref_account = 0;
-	_ref_members.remove(member);
-}
-
-
-void Ram_session_component::_remove_ref_account_member(Ram_session_component *member)
-{
-	Lock::Guard lock_guard(_ref_members_lock);
-	_unsynchronized_remove_ref_account_member(member);
+		destroy(*_ds_slab, ds);
 }
 
 
@@ -124,14 +74,23 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	ds_size = align_addr(ds_size, 12);
 
 	/*
-	 * Check quota!
+	 * Track quota usage
 	 *
-	 * In the worst case, we need to allocate a new slab block for the
-	 * meta data of the dataspace to be created - therefore, we add
-	 * the slab block size here.
+	 * We use a guard to roll back the withdrawal of the quota whenever
+	 * we leave the method scope via an exception. The withdrawal is
+	 * acknowledge just before successfully leaving the method.
 	 */
-	if (used_quota() + SBS + ds_size > _quota_limit)
-		throw Quota_exceeded();
+	Ram_quota_guard::Reservation dataspace_ram_costs(*this, Ram_quota{ds_size});
+
+	/*
+	 * In the worst case, we need to allocate a new slab block for the
+	 * meta data of the dataspace to be created. Therefore, we temporarily
+	 * withdraw the slab block size here to trigger an exception if the
+	 * account does not have enough room for the meta data.
+	 */
+	{
+		Ram_quota_guard::Reservation sbs_ram_costs(*this, Ram_quota{SBS});
+	}
 
 	/*
 	 * Allocate physical backing store
@@ -150,11 +109,11 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	 * preserve lower physical regions for device drivers, which may have DMA
 	 * constraints.
 	 */
-	if (_phys_start == 0 && _phys_end == ~0UL) {
+	if (_phys_range.start == 0 && _phys_range.end == ~0UL) {
 		addr_t const high_start = (sizeof(void *) == 4 ? 3UL : 4UL) << 30;
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-			if (_ram_alloc->alloc_aligned(ds_size, &ds_addr, align_log2,
-			                              high_start, _phys_end).ok()) {
+			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2,
+			                              high_start, _phys_range.end).ok()) {
 				alloc_succeeded = true;
 				break;
 			}
@@ -164,13 +123,30 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	/* apply constraints or re-try because higher memory allocation failed */
 	if (!alloc_succeeded) {
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-			if (_ram_alloc->alloc_aligned(ds_size, &ds_addr, align_log2,
-			                              _phys_start, _phys_end).ok()) {
+			if (_phys_alloc.alloc_aligned(ds_size, &ds_addr, align_log2,
+			                              _phys_range.start, _phys_range.end).ok()) {
 				alloc_succeeded = true;
 				break;
 			}
 		}
 	}
+
+	/*
+	 * Helper to release the allocated physical memory whenever we leave the
+	 * scope via an exception.
+	 */
+	struct Phys_alloc_guard
+	{
+		Range_allocator &phys_alloc;
+		void * const ds_addr;
+		bool ack = false;
+
+		Phys_alloc_guard(Range_allocator &phys_alloc, void *ds_addr)
+		: phys_alloc(phys_alloc), ds_addr(ds_addr) { }
+
+		~Phys_alloc_guard() { if (!ack) phys_alloc.free(ds_addr); }
+
+	} phys_alloc_guard(_phys_alloc, ds_addr);
 
 	/*
 	 * Normally, init's quota equals the size of physical memory and this quota
@@ -180,38 +156,29 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	 */
 	if (!alloc_succeeded) {
 		error("out of physical memory while allocating ", ds_size, " bytes ",
-		      "in range [", Hex(_phys_start), "-", Hex(_phys_end), "] - label ",
-		      Cstring(_label));
-		throw Quota_exceeded();
+		      "in range [", Hex(_phys_range.start), "-", Hex(_phys_range.end), "]");
+		throw Out_of_ram();
 	}
 
-	Dataspace_component *ds;
-	try {
-		/*
-		 * For non-cached RAM dataspaces, we mark the dataspace as write
-		 * combined and expect the pager to evaluate this dataspace property
-		 * when resolving page faults.
-		 */
-		ds = new (&_ds_slab)
-			Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
-	} catch (Allocator::Out_of_memory) {
-		warning("could not allocate metadata");
-		/* cleanup unneeded resources */
-		_ram_alloc->free(ds_addr);
-
-		throw Out_of_metadata();
-	}
+	/*
+	 * For non-cached RAM dataspaces, we mark the dataspace as write
+	 * combined and expect the pager to evaluate this dataspace property
+	 * when resolving page faults.
+	 *
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
+	 */
+	Dataspace_component *ds = new (*_ds_slab)
+		Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
 
 	/* create native shared memory representation of dataspace */
-	try {
-		_export_ram_ds(ds);
-	} catch (Out_of_metadata) {
+	try { _export_ram_ds(ds); }
+	catch (Core_virtual_memory_exhausted) {
 		warning("could not export RAM dataspace of size ", ds->size());
-		/* cleanup unneeded resources */
-		destroy(&_ds_slab, ds);
-		_ram_alloc->free(ds_addr);
 
-		throw Quota_exceeded();
+		/* cleanup unneeded resources */
+		destroy(*_ds_slab, ds);
+		throw Out_of_ram();
 	}
 
 	/*
@@ -221,18 +188,19 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, Cache_attr
 	 */
 	_clear_ds(ds);
 
-	Dataspace_capability result = _ds_ep->manage(ds);
+	Dataspace_capability result = _ep.manage(ds);
 
-	Lock::Guard lock_guard(_ref_members_lock);
-	/* keep track of the used quota for actual payload */
-	_payload += ds_size;
+	dataspace_ram_costs.acknowledge();
+	phys_alloc_guard.ack = true;
 
 	return static_cap_cast<Ram_dataspace>(result);
 }
 
 
-void Ram_session_component::free(Ram_dataspace_capability ds_cap) {
-	_free_ds(ds_cap); }
+void Ram_session_component::free(Ram_dataspace_capability ds_cap)
+{
+	_free_ds(ds_cap);
+}
 
 
 size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) const
@@ -241,7 +209,7 @@ size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) co
 		return 0;
 
 	size_t result = 0;
-	_ds_ep->apply(ds_cap, [&] (Dataspace_component *c) {
+	_ep.apply(ds_cap, [&] (Dataspace_component *c) {
 		if (c && c->owner(this))
 			result = c->size(); });
 
@@ -251,102 +219,76 @@ size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) co
 
 void Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 {
-	/* the reference account cannot be defined twice */
-	if (_ref_account)
+	/* the reference account can be defined only once */
+	if (_ram_account.constructed())
 		return;
 
 	if (this->cap() == ram_session_cap)
 		return;
 
-	auto lambda = [this] (Ram_session_component *ref) {
+	_ep.apply(ram_session_cap, [&] (Ram_session_component *ram) {
 
-		/* check if recipient is a valid Ram_session_component */
-		if (!ref)
+		if (!ram || !ram->_ram_account.constructed()) {
+			error("invalid RAM session specified as ref account");
 			throw Invalid_session();
+		}
 
-		_ref_account = ref;
-		_ref_account->_register_ref_account_member(this);
-	};
-
-	_ram_session_ep->apply(ram_session_cap, lambda);
+		_ram_account.construct(*this, _label, *ram->_ram_account);
+	});
 }
 
 
 void Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
                                            Ram_quota amount)
 {
-	auto lambda = [&] (Ram_session_component *dst) {
-		_transfer_quota(dst, amount.value); };
+	/* the reference account can be defined only once */
+	if (!_ram_account.constructed())
+		throw Undefined_ref_account();
 
 	if (this->cap() == ram_session_cap)
 		return;
 
-	return _ram_session_ep->apply(ram_session_cap, lambda);
+	_ep.apply(ram_session_cap, [&] (Ram_session_component *ram) {
+
+		if (!ram || !ram->_ram_account.constructed())
+			throw Invalid_session();
+
+		try {
+			_ram_account->transfer_quota(*ram->_ram_account, amount); }
+		catch (Account<Ram_quota>::Unrelated_account) {
+			warning("attempt to transfer RAM quota to unrelated RAM session");
+			throw Invalid_session(); }
+		catch (Account<Ram_quota>::Limit_exceeded) {
+			warning("RAM limit (", *_ram_account, ") exceeded "
+			        "during transfer_quota(", amount, ")");
+			throw Out_of_ram(); }
+	});
 }
 
 
-Ram_session_component::Ram_session_component(Rpc_entrypoint  *ds_ep,
-                                             Rpc_entrypoint  *ram_session_ep,
-                                             Range_allocator *ram_alloc,
-                                             Allocator       *md_alloc,
-                                             const char      *args,
-                                             size_t           quota_limit)
+Ram_session_component::Ram_session_component(Rpc_entrypoint  &ep,
+                                             Resources        resources,
+                                             Label     const &label,
+                                             Diag             diag,
+                                             Range_allocator &phys_alloc,
+                                             Region_map      &local_rm,
+                                             Phys_range       phys_range)
 :
-	_ds_ep(ds_ep), _ram_session_ep(ram_session_ep), _ram_alloc(ram_alloc),
-	_quota_limit(quota_limit), _payload(0),
-	_md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").ulong_value(0)),
-	_ds_slab(&_md_alloc), _ref_account(0),
-	_phys_start(Arg_string::find_arg(args, "phys_start").ulong_value(0))
+	Session_object(ep, resources, label, diag),
+	_ep(ep),
+	_phys_alloc(phys_alloc),
+	_constrained_md_ram_alloc(*this, *this, *this),
+	_phys_range(phys_range)
 {
-	Arg_string::find_arg(args, "label").string(_label, sizeof(_label), "");
-
-	size_t phys_size = Arg_string::find_arg(args, "phys_size").ulong_value(0);
-	/* sanitize overflow and interpret phys_size==0 as maximum phys address */
-	if (_phys_start + phys_size <= _phys_start)
-		_phys_end = ~0UL;
-	else
-		_phys_end = _phys_start + phys_size - 1;
+	_sliced_heap.construct(_constrained_md_ram_alloc, local_rm);
+	_ds_slab.construct(*_sliced_heap, _initial_sb);
 }
 
 
 Ram_session_component::~Ram_session_component()
 {
 	/* destroy all dataspaces */
-	for (Dataspace_component *ds; (ds = _ds_slab()->first_object());
+	Ds_slab &ds_slab = *_ds_slab;
+	for (Dataspace_component *ds; (ds = ds_slab.first_object());
 	     _free_ds(ds->cap()));
-
-	if (_payload != 0)
-		warning("remaining payload of ", _payload, " in ram session to destroy");
-
-	if (!_ref_account) return;
-
-	/* transfer remaining quota to reference account */
-	try { _transfer_quota(_ref_account, _quota_limit); } catch (...) { }
-
-	/* remember our original reference account */
-	Ram_session_component *orig_ref_account = _ref_account;
-
-	/* remove reference to us from the reference account */
-	_ref_account->_remove_ref_account_member(this);
-
-	/*
-	 * Now, the '_ref_account' member has become invalid.
-	 */
-
-	Lock::Guard lock_guard(_ref_members_lock);
-
-	/* assign all sub accounts to our original reference account */
-	for (Ram_session_component *rsc; (rsc = _ref_members.first()); ) {
-
-		_unsynchronized_remove_ref_account_member(rsc);
-
-		/*
-		 * This function grabs the '_ref_account_lock' of the '_ref_account',
-		 * which is never identical to ourself. Hence, deadlock cannot happen
-		 * here.
-		 */
-		orig_ref_account->_register_ref_account_member(rsc);
-	}
-
-	_ref_account = 0;
 }

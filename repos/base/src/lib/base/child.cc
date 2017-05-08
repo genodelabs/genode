@@ -87,6 +87,7 @@ void Child::session_sigh(Signal_context_capability sigh)
 /**
  * Create session-state object for a dynamically created session
  *
+ * \throw Out_of_ram
  * \throw Insufficient_ram_quota
  * \throw Parent::Service_denied
  */
@@ -648,7 +649,6 @@ void Child::_try_construct_env_dependent_members()
 		                   _parent_cap);
 	}
 	catch (Out_of_ram)                          { _error("out of RAM during ELF loading"); }
-	catch (Ram_session::Alloc_failed)           { _error("RAM allocation failed during ELF loading"); }
 	catch (Cpu_session::Thread_creation_failed) { _error("unable to create initial thread"); }
 	catch (Cpu_session::Out_of_metadata)        { _error("CPU session quota exhausted"); }
 	catch (Process::Missing_dynamic_linker)     { _error("dynamic linker unavailable"); }

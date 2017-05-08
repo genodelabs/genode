@@ -140,9 +140,10 @@ class Core_child : public Child_policy
 		/**
 		 * Constructor
 		 */
-		Core_child(Registry<Service> &services, Ram_session &core_ram,
-		           Capability<Ram_session> core_ram_cap, Ram_quota ram_quota,
-		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap)
+		Core_child(Registry<Service> &services,
+		           Ram_session &core_ram, Capability<Ram_session> core_ram_cap,
+		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap,
+		           Ram_quota ram_quota)
 		:
 			_entrypoint(nullptr, STACK_SIZE, "init_child", false),
 			_services(services),
@@ -249,11 +250,14 @@ int main()
 
 	Registry<Service> &services = core_env()->services();
 
+	static Ram_allocator &core_ram_alloc = *core_env()->ram_session();
+	static Region_map    &local_rm       = *core_env()->rm_session();
+
 	/*
 	 * Allocate session meta data on distinct dataspaces to enable independent
 	 * destruction (to enable quota trading) of session component objects.
 	 */
-	static Sliced_heap sliced_heap(env_deprecated()->ram_session(), env_deprecated()->rm_session());
+	static Sliced_heap sliced_heap(core_ram_alloc, local_rm);
 
 	/*
 	 * Factory for creating RPC capabilities within core
@@ -262,7 +266,7 @@ int main()
 
 	static Pager_entrypoint pager_ep(rpc_cap_factory);
 
-	static Ram_root     ram_root     (e, e, platform()->ram_alloc(), &sliced_heap);
+	static Ram_root     ram_root     (*e, *platform()->ram_alloc(), local_rm, sliced_heap);
 	static Rom_root     rom_root     (e, e, platform()->rom_fs(), &sliced_heap);
 	static Rm_root      rm_root      (e, &sliced_heap, pager_ep);
 	static Cpu_root     cpu_root     (e, e, &pager_ep, &sliced_heap,
@@ -309,8 +313,10 @@ int main()
 	    "assigned to init");
 
 	static Reconstructible<Core_child>
-		init(services, *env_deprecated()->ram_session(), env_deprecated()->ram_session_cap(),
-		     Ram_quota{avail_ram_quota}, core_cpu, core_cpu_cap);
+		init(services,
+		     *env_deprecated()->ram_session(), env_deprecated()->ram_session_cap(),
+		     core_cpu, core_cpu_cap,
+		     Ram_quota{avail_ram_quota});
 
 	platform()->wait_for_exit();
 

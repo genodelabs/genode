@@ -90,7 +90,7 @@ class Genode::Attached_ram_dataspace
 		/**
 		 * Constructor
 		 *
-		 * \throw Ram_session::Alloc_failed
+		 * \throw Out_of_ram
 		 * \throw Rm_session::Attach_failed
 		 */
 		Attached_ram_dataspace(Ram_session &ram, Region_map &rm,

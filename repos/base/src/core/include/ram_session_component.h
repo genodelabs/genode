@@ -18,25 +18,28 @@
 #include <util/list.h>
 #include <base/heap.h>
 #include <base/tslab.h>
-#include <base/rpc_server.h>
+#include <base/session_object.h>
 #include <base/allocator_guard.h>
 #include <base/synced_allocator.h>
+#include <base/session_label.h>
 
 /* core includes */
 #include <dataspace_component.h>
 #include <util.h>
+#include <account.h>
 
-namespace Genode {
-
-	class Ram_session_component;
-	typedef List<Ram_session_component> Ram_ref_account_members;
-}
+namespace Genode { class Ram_session_component; }
 
 
-class Genode::Ram_session_component : public Rpc_object<Ram_session>,
-                                      public Ram_ref_account_members::Element,
+class Genode::Ram_session_component : public Session_object<Ram_session>,
                                       public Dataspace_owner
 {
+	public:
+
+		struct Phys_range { addr_t start, end; };
+
+		static Phys_range any_phys_range() { return { 0UL, ~0UL }; }
+
 	private:
 
 		class Invalid_dataspace : public Exception { };
@@ -47,61 +50,46 @@ class Genode::Ram_session_component : public Rpc_object<Ram_session>,
 		 */
 		static constexpr size_t SBS = get_page_size() - Sliced_heap::meta_data_size();
 
-		using Ds_slab = Synced_allocator<Tslab<Dataspace_component, SBS> >;
+		using Ds_slab = Tslab<Dataspace_component, SBS>;
 
-		Rpc_entrypoint         *_ds_ep;
-		Rpc_entrypoint         *_ram_session_ep;
-		Range_allocator        *_ram_alloc;
-		size_t                  _quota_limit;
-		size_t                  _payload;      /* quota used for payload      */
-		Allocator_guard         _md_alloc;     /* guarded meta-data allocator */
-		Ds_slab                 _ds_slab;      /* meta-data allocator         */
-		Ram_session_component  *_ref_account;  /* reference ram session       */
-		addr_t                  _phys_start;
-		addr_t                  _phys_end;
+		Rpc_entrypoint &_ep;
 
-		enum { MAX_LABEL_LEN = 64 };
-		char _label[MAX_LABEL_LEN];
+		Range_allocator &_phys_alloc;
 
-		/**
-		 * List of RAM sessions that use us as their reference account
+		Constrained_ram_allocator _constrained_md_ram_alloc;
+
+		Constructible<Sliced_heap> _sliced_heap;
+
+		/*
+		 * Statically allocated initial slab block for '_ds_slab', needed to
+		 * untangle the hen-and-egg problem of allocating the meta data for
+		 * core's RAM allocator from itself. I also saves the allocation
+		 * of one dataspace (along with a dataspace capability) per session.
 		 */
-		Ram_ref_account_members _ref_members;
-		Lock                    _ref_members_lock;  /* protect '_ref_members' */
+		uint8_t _initial_sb[SBS];
 
-		/**
-		 * Register RAM session to use us as reference account
-		 */
-		void _register_ref_account_member(Ram_session_component *new_member);
+		Constructible<Ds_slab> _ds_slab;
 
-		/**
-		 * Dissolve reference-account relationship of a member account
-		 */
-		void _remove_ref_account_member(Ram_session_component *member);
-		void _unsynchronized_remove_ref_account_member(Ram_session_component *member);
+		Phys_range const _phys_range;
 
-		/**
-		 * Return portion of RAM quota that is currently in use
-		 */
-		size_t used_quota() { return _payload; }
+		Constructible<Account<Ram_quota> > _ram_account;
 
 		/**
 		 * Free dataspace
 		 */
 		void _free_ds(Dataspace_capability ds_cap);
 
-		/**
-		 * Transfer quota to another RAM session
-		 */
-		void _transfer_quota(Ram_session_component *dst, size_t amount);
-
 
 		/********************************************
 		 ** Platform-implemented support functions **
 		 ********************************************/
 
+		struct Core_virtual_memory_exhausted : Exception { };
+
 		/**
 		 * Export RAM dataspace as shared memory block
+		 *
+		 * \throw Core_virtual_memory_exhausted
 		 */
 		void _export_ram_ds(Dataspace_component *ds);
 
@@ -117,44 +105,24 @@ class Genode::Ram_session_component : public Rpc_object<Ram_session>,
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param ds_ep           server entry point to manage the
-		 *                        dataspaces created by the Ram session
-		 * \param ram_session_ep  entry point that manages Ram sessions,
-		 *                        used for looking up another ram session
-		 *                        in transfer_quota()
-		 * \param ram_alloc       memory pool to manage
-		 * \param md_alloc        meta-data allocator
-		 * \param md_ram_quota    limit of meta-data backing store
-		 * \param quota_limit     initial quota limit
-		 *
-		 * The 'quota_limit' parameter is only used for the very
-		 * first ram session in the system. All other ram session
-		 * load their quota via 'transfer_quota'.
-		 */
-		Ram_session_component(Rpc_entrypoint  *ds_ep,
-		                      Rpc_entrypoint  *ram_session_ep,
-		                      Range_allocator *ram_alloc,
-		                      Allocator       *md_alloc,
-		                      const char      *args,
-		                      size_t           quota_limit = 0);
+		Ram_session_component(Rpc_entrypoint      &ep,
+		                      Resources            resources,
+		                      Session_label const &label,
+		                      Diag                 diag,
+		                      Range_allocator     &phys_alloc,
+		                      Region_map          &local_rm,
+		                      Phys_range           phys_range);
 
-		/**
-		 * Destructor
-		 */
 		~Ram_session_component();
 
 		/**
-		 * Accessors
+		 * Initialize RAM account without providing a reference account
+		 *
+		 * This method is solely used to set up the initial RAM session within
+		 * core. The RAM accounts of regular RAM session are initialized via
+		 * 'ref_account'.
 		 */
-		Ram_session_component *ref_account() { return _ref_account; }
-
-		/**
-		 * Register quota donation at allocator guard
-		 */
-		void upgrade_ram_quota(size_t ram_quota) { _md_alloc.upgrade(ram_quota); }
+		void init_ram_account() { _ram_account.construct(*this, _label); }
 
 		/**
 		 * Get physical address of the RAM that backs a dataspace
@@ -181,10 +149,19 @@ class Genode::Ram_session_component : public Rpc_object<Ram_session>,
 		 ** RAM Session interface **
 		 ***************************/
 
-		void ref_account(Ram_session_capability);
-		void transfer_quota(Ram_session_capability, Ram_quota);
-		Ram_quota ram_quota() const override { return { _quota_limit}; }
-		Ram_quota used_ram()  const override { return { _payload}; }
+		void ref_account(Ram_session_capability) override;
+
+		void transfer_quota(Ram_session_capability, Ram_quota) override;
+
+		Ram_quota ram_quota() const override
+		{
+			return _ram_account.constructed() ? _ram_account->limit() : Ram_quota { 0 };
+		}
+
+		Ram_quota used_ram() const override
+		{
+			return _ram_account.constructed() ? _ram_account->used() : Ram_quota { 0 };
+		}
 };
 
 #endif /* _CORE__INCLUDE__RAM_SESSION_COMPONENT_H_ */

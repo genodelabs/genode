@@ -115,7 +115,7 @@ struct Genode::Env
 	 * \param id    ID of recipient session
 	 * \param args  description of the amount of quota to transfer
 	 *
-	 * \throw Quota_exceeded  quota could not be transferred
+	 * \throw Out_of_ram
 	 *
 	 * The 'args' argument has the same principle format as the 'args'
 	 * argument of the 'session' operation.
@@ -135,7 +135,7 @@ struct Genode::Env
 	 * constructors in the binary and shared libraries the binary depends on. If
 	 * the component requires static construction it needs to call this function
 	 * at construction time explicitly. For example, the libc implementation
-         * executes this function before constructing libc components.
+	 * executes this function before constructing libc components.
 	 */
 	virtual void exec_static_constructors() = 0;
 };

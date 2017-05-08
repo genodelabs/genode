@@ -16,6 +16,7 @@
 
 #include <base/stdint.h>
 #include <base/exception.h>
+#include <base/quota_guard.h>
 
 namespace Genode {
 
@@ -59,7 +60,7 @@ struct Genode::Allocator : Deallocator
 	/**
 	 * Exception type
 	 */
-	class Out_of_memory : public Exception { };
+	typedef Out_of_ram Out_of_memory;
 
 	/**
 	 * Destructor
@@ -72,6 +73,9 @@ struct Genode::Allocator : Deallocator
 	 * \param size      block size to allocate
 	 * \param out_addr  resulting pointer to the new block,
 	 *                  undefined in the error case
+	 *
+	 * \throw           Out_of_ram
+	 *
 	 * \return          true on success
 	 */
 	virtual bool alloc(size_t size, void **out_addr) = 0;
@@ -83,6 +87,8 @@ struct Genode::Allocator : Deallocator
 	 * a non-void type. By providing this method, we prevent the
 	 * compiler from warning us about "dereferencing type-punned
 	 * pointer will break strict-aliasing rules".
+	 *
+	 * \throw Out_of_ram
 	 */
 	template <typename T> bool alloc(size_t size, T **out_addr)
 	{
@@ -105,9 +111,11 @@ struct Genode::Allocator : Deallocator
 	/**
 	 * Allocate block and signal error as an exception
 	 *
-	 * \param   size block size to allocate
-	 * \return  pointer to the new block
-	 * \throw   Out_of_memory
+	 * \param size  block size to allocate
+	 *
+	 * \throw       Out_of_ram
+	 *
+	 * \return      pointer to the new block
 	 */
 	void *alloc(size_t size)
 	{

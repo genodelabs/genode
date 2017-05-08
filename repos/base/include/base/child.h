@@ -392,7 +392,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 			 * \throw Missing_dynamic_linker
 			 * \throw Invalid_executable
 			 * \throw Region_map::Attach_failed
-			 * \throw Ram_session::Alloc_failed
+			 * \throw Out_of_ram
 			 *
 			 * The other arguments correspond to those of 'Child::Child'.
 			 *

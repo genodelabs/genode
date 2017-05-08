@@ -297,7 +297,7 @@ void Init::Main::_handle_config()
 
 			if (used_ram.value > avail_ram.value) {
 				error("RAM exhausted while starting childen");
-				throw Ram_session::Alloc_failed();
+				throw Out_of_ram();
 			}
 
 			try {
@@ -326,8 +326,6 @@ void Init::Main::_handle_config()
 			}
 			catch (Out_of_ram) {
 				warning("memory exhausted during child creation"); }
-			catch (Ram_session::Alloc_failed) {
-				warning("failed to allocate memory during child construction"); }
 			catch (Child::Missing_name_attribute) {
 				warning("skipped startup of nameless child"); }
 			catch (Region_map::Attach_failed) {

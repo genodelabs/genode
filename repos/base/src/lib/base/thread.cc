@@ -65,9 +65,7 @@ void Stack::size(size_t const size)
 		if (ds_addr != (addr_t)attach_addr)
 			throw Thread::Out_of_stack_space();
 	}
-	catch (Ram_session::Alloc_failed) {
-		throw Thread::Stack_alloc_failed();
-	}
+	catch (Out_of_ram) { throw Thread::Stack_alloc_failed(); }
 
 	/* update stack information */
 	_base -= ds_size;
@@ -110,7 +108,7 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 		if (attach_addr != (addr_t)env_stack_area_region_map->attach_at(ds_cap, attach_addr, ds_size))
 			throw Stack_alloc_failed();
 	}
-	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
+	catch (Out_of_ram) { throw Stack_alloc_failed(); }
 
 	/*
 	 * Now the stack is backed by memory, so it is safe to access its members.

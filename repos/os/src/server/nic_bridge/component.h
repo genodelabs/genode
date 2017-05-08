@@ -220,7 +220,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 			} catch (Mac_allocator::Alloc_failed) {
 				Genode::warning("Mac address allocation failed!");
 				throw Root::Unavailable();
-			} catch(Ram_session::Quota_exceeded) {
+			} catch (Out_of_ram) {
 				Genode::warning("insufficient 'ram_quota'");
 				throw Insufficient_ram_quota();
 			}

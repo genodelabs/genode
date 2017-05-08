@@ -89,9 +89,9 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 	try {
 		new_ds_cap = _ds_pool.ram_alloc->alloc(size);
 		ds_addr = _ds_pool.region_map->attach(new_ds_cap);
-	} catch (Ram_session::Alloc_failed) {
-		return 0;
-	} catch (Region_map::Attach_failed) {
+	}
+	catch (Out_of_ram) { return nullptr; }
+	catch (Region_map::Attach_failed) {
 		warning("could not attach dataspace");
 		_ds_pool.ram_alloc->free(new_ds_cap);
 		return 0;

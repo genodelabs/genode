@@ -41,16 +41,8 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 		 * to the parent and retry.
 		 */
 		enum { NUM_ATTEMPTS = 2 };
-		return retry<Ram_session::Quota_exceeded>(
-			[&] () {
-				/*
-				 * If the RAM session runs out of meta data, upgrade the
-				 * session quota and retry.
-				 */
-				return retry<Ram_session::Out_of_metadata>(
-					[&] () { return Ram_session_client::alloc(size, cached); },
-					[&] () { upgrade_ram(8*1024); });
-			},
+		return retry<Out_of_ram>(
+			[&] () { return Ram_session_client::alloc(size, cached); },
 			[&] () {
 				/*
 				 * The RAM service withdraws the meta data for the allocator

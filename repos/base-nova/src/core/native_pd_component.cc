@@ -26,8 +26,7 @@ Native_capability Native_pd_component::alloc_rpc_cap(Native_capability ep,
 	try {
 		return _pd_session._rpc_cap_factory.alloc(ep, entry, mtd); }
 
-	catch (Allocator::Out_of_memory) {
-		throw Pd_session::Out_of_metadata(); }
+	catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
 }
 
 

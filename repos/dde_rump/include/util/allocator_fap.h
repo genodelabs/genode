@@ -90,7 +90,7 @@ namespace Allocator {
 					Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 					/* lookup phys. address */
 					_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
-				} catch (Genode::Ram_session::Quota_exceeded) {
+				} catch (Genode::Out_of_ram) {
 					warning("backend allocator exhausted");
 					_quota_exceeded = true;
 					return false;
