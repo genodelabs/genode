@@ -17,7 +17,7 @@ PLATFORMS = x86_32  x86_64  panda  pbxa9  rpi arndale imx53_qsb imx53_qsb_tz \
 PLATFORMS_DEPR = linux_x86 linux_arm fiasco_x86 okl4_x86 pistachio_x86 \
                  nova_x86_32 nova_x86_64 hw_x86_64 foc_x86_32 foc_x86_64 \
                  sel4_x86_32 hw_panda foc_panda hw_pbxa9 foc_pbxa9 hw_rpi \
-                 foc_rpi hw_arndale foc_arndale hw_imx53_qsb foc_imx53 \
+                 foc_rpi hw_arndale foc_arndale hw_imx53_qsb \
                  hw_imx53_qsb_tz hw_usb_armory hw_wand_quad hw_odroid_xu \
                  hw_zynq hw_x86_64_muen hw_riscv foc_odroid_x2
 
@@ -41,7 +41,6 @@ PLATFORM_ALT(foc_rpi)         = rpi
 PLATFORM_ALT(hw_arndale)      = arndale
 PLATFORM_ALT(foc_arndale)     = arndale
 PLATFORM_ALT(hw_imx53_qsb)    = imx53_qsb
-PLATFORM_ALT(foc_imx53)       = imx53_qsb
 PLATFORM_ALT(hw_imx53_qsb_tz) = imx53_qsb_tz
 PLATFORM_ALT(hw_usb_armory)   = usb_armory
 PLATFORM_ALT(hw_wand_quad)    = wand_quad
@@ -172,7 +171,6 @@ BUILD_CONF(foc_rpi)         := run_kernel_foc run_boot_dir repos
 BUILD_CONF(hw_arndale)      := ${BUILD_CONF(arndale)}
 BUILD_CONF(foc_arndale)     := run_kernel_foc run_boot_dir repos
 BUILD_CONF(hw_imx53_qsb)    := ${BUILD_CONF(imx53_qsb)}
-BUILD_CONF(foc_imx53)       := run_kernel_foc run_boot_dir repos
 BUILD_CONF(hw_imx53_qsb_tz) := ${BUILD_CONF(imx53_qsb_tz)}
 BUILD_CONF(hw_usb_armory)   := ${BUILD_CONF(usb_armory)}
 BUILD_CONF(hw_wand_quad)    := ${BUILD_CONF(wand_quad)}
@@ -255,7 +253,6 @@ SPECS(foc_rpi)         := foc_rpi rpi
 SPECS(hw_arndale)      := ${SPECS(arndale)}
 SPECS(foc_arndale)     := foc_arndale arndale
 SPECS(hw_imx53_qsb)    := ${SPECS(imx53_qsb)}
-SPECS(foc_imx53)       := foc_imx53 imx53_qsb
 SPECS(hw_imx53_qsb_tz) := ${SPECS(imx53_qsb_tz)}
 SPECS(hw_usb_armory)   := ${SPECS(usb_armory)}
 SPECS(hw_wand_quad)    := ${SPECS(wand_quad)}

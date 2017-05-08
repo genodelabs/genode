@@ -26,14 +26,8 @@ struct Genode::Foc_native_cpu_client : Rpc_client<Foc_native_cpu>
 	explicit Foc_native_cpu_client(Capability<Native_cpu> cap)
 	: Rpc_client<Foc_native_cpu>(static_cap_cast<Foc_native_cpu>(cap)) { }
 
-	void enable_vcpu(Thread_capability cap, addr_t vcpu_state) override {
-		call<Rpc_enable_vcpu>(cap, vcpu_state); }
-
 	Native_capability native_cap(Thread_capability cap) override {
 		return call<Rpc_native_cap>(cap); }
-
-	Native_capability alloc_irq() override {
-		return call<Rpc_alloc_irq>(); }
 
 	Foc_thread_state thread_state(Thread_capability cap) override {
 		return call<Rpc_thread_state>(cap); }

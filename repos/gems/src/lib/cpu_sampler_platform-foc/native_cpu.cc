@@ -50,15 +50,6 @@ class Cpu_sampler::Native_cpu_component : public Rpc_object<Foc_native_cpu,
 			_cpu_session_component.thread_ep().dissolve(this);
 		}
 
-		void enable_vcpu(Thread_capability thread_cap, addr_t vcpu_state) override
-		{
-			auto lambda = [&] (Cpu_sampler::Cpu_thread_component *cpu_thread) {
-				_foc_native_cpu.enable_vcpu(cpu_thread->parent_thread(), vcpu_state);
-			};
-
-			_cpu_session_component.thread_ep().apply(thread_cap, lambda);
-		}
-
 		Native_capability native_cap(Thread_capability thread_cap) override
 		{
 			auto lambda = [&] (Cpu_sampler::Cpu_thread_component *cpu_thread) {
@@ -66,11 +57,6 @@ class Cpu_sampler::Native_cpu_component : public Rpc_object<Foc_native_cpu,
 			};
 
 			return _cpu_session_component.thread_ep().apply(thread_cap, lambda);
-		}
-
-		Native_capability alloc_irq() override
-		{
-			return _foc_native_cpu.alloc_irq();
 		}
 
 		Foc_thread_state thread_state(Thread_capability cap) override

@@ -4,8 +4,8 @@
 # \date   2013-01-21
 #
 
-if {![have_spec foc] && ![have_spec fiasco]} {
-	puts "Run script only supports Fiasco/Fiasco.OC."; exit 0 }
+if {![have_spec fiasco]} {
+	puts "Run script only supports Fiasco."; exit 0 }
 
 #
 # Build
