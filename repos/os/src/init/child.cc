@@ -289,9 +289,20 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 
 				generate_ram_info(xml, _child.ram());
 
-				if (_requested_resources.constructed())
-					xml.attribute("requested", String<32> {
-						Number_of_bytes(_requested_resources->ram.value) });
+				if (_requested_resources.constructed() && _requested_resources->ram.value)
+					xml.attribute("requested", String<32>(_requested_resources->ram));
+			});
+		}
+
+		if (detail.child_caps() && _child.pd_session_cap().valid()) {
+			xml.node("caps", [&] () {
+
+				xml.attribute("assigned", String<32>(_resources.assigned_cap_quota));
+
+				generate_caps_info(xml, _child.pd());
+
+				if (_requested_resources.constructed() && _requested_resources->caps.value)
+					xml.attribute("requested", String<32>(_requested_resources->caps));
 			});
 		}
 
@@ -317,6 +328,18 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 			});
 		}
 	});
+}
+
+
+void Init::Child::init(Pd_session &session, Pd_session_capability cap)
+{
+	session.ref_account(_env.pd_session_cap());
+
+	Cap_quota const quota { _resources.effective_cap_quota().value };
+
+	try { _env.pd().transfer_quota(cap, quota); }
+	catch (Out_of_caps) {
+		error(name(), ": unable to initialize cap quota of PD"); }
 }
 
 
@@ -613,8 +636,10 @@ Init::Child::Child(Env                      &env,
                    Report_update_trigger    &report_update_trigger,
                    Xml_node                  start_node,
                    Default_route_accessor   &default_route_accessor,
+                   Default_caps_accessor    &default_caps_accessor,
                    Name_registry            &name_registry,
                    Ram_quota                 ram_limit,
+                   Cap_quota                 cap_limit,
                    Ram_limit_accessor       &ram_limit_accessor,
                    Prio_levels               prio_levels,
                    Affinity::Space const    &affinity_space,
@@ -628,8 +653,10 @@ Init::Child::Child(Env                      &env,
 	_default_route_accessor(default_route_accessor),
 	_ram_limit_accessor(ram_limit_accessor),
 	_name_registry(name_registry),
-	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space)),
-	_resources_checked((_check_ram_constraints(ram_limit), true)),
+	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
+	                                      default_caps_accessor.default_caps(), cap_limit)),
+	_resources_checked((_check_ram_constraints(ram_limit),
+	                    _check_cap_constraints(cap_limit), true)),
 	_parent_services(parent_services),
 	_child_services(child_services),
 	_session_requester(_env.ep().rpc_ep(), _env.ram(), _env.rm())
@@ -637,6 +664,7 @@ Init::Child::Child(Env                      &env,
 	if (_verbose.enabled()) {
 		log("child \"",       _unique_name, "\"");
 		log("  RAM quota:  ", _resources.effective_ram_quota());
+		log("  cap quota:  ", _resources.effective_cap_quota());
 		log("  ELF binary: ", _binary_name);
 		log("  priority:   ", _resources.priority);
 	}

@@ -66,13 +66,22 @@ void Signal_transmitter::submit(unsigned cnt)
 
 Signal_receiver::Signal_receiver()
 {
-	retry<Pd_session::Out_of_metadata>(
-		[&] () { _cap = internal_env().pd().alloc_signal_source(); },
-		[&] () {
-			log("upgrading quota donation for PD session");
-			internal_env().upgrade(Parent::Env::pd(), "ram_quota=8K");
+	for (;;) {
+
+		Ram_quota ram_upgrade { 0 };
+		Cap_quota cap_upgrade { 0 };
+
+		try {
+			_cap = internal_env().pd().alloc_signal_source();
+			break;
 		}
-	);
+		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
+		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
+
+		internal_env().upgrade(Parent::Env::pd(),
+		                       String<100>("ram_quota=", ram_upgrade, ", "
+		                                   "cap_quota=", cap_upgrade).string());
+	}
 }
 
 
@@ -98,17 +107,23 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	Lock::Guard context_guard(c->_lock);
 	if (c->_receiver) { throw Context_already_in_use(); }
 
-	retry<Pd_session::Out_of_metadata>(
-		[&] () {
+	for (;;) {
+
+		Ram_quota ram_upgrade { 0 };
+		Cap_quota cap_upgrade { 0 };
+
+		try {
 			/* use signal context as imprint */
 			c->_cap = env_deprecated()->pd_session()->alloc_context(_cap, (unsigned long)c);
 			c->_receiver = this;
 			_contexts.insert(&c->_receiver_le);
 			return c->_cap;
-		},
-		[&] () { upgrade_pd_quota_non_blocking(1024 * sizeof(addr_t)); });
+		}
+		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
+		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
-	return c->_cap;
+		upgrade_pd_quota_non_blocking(ram_upgrade, cap_upgrade);
+	}
 }
 
 

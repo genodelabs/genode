@@ -19,6 +19,7 @@
 #include <base/rpc_args.h>
 #include <dataspace/capability.h>
 #include <nitpicker_session/client.h>
+#include <pd_session/pd_session.h>
 #include <base/signal.h>
 #include <session/session.h>
 #include <util/geometry.h>
@@ -32,6 +33,7 @@ namespace Loader {
 	using Genode::Dataspace_capability;
 	using Genode::Signal_context_capability;
 	using Genode::Ram_quota;
+	using Genode::Cap_quota;
 
 	struct Session;
 }
@@ -89,6 +91,11 @@ struct Loader::Session : Genode::Session
 	 *                                   allocated beforehand
 	 */
 	virtual void commit_rom_module(Name const &name) = 0;
+
+	/**
+	 * Define capability quota assigned to the subsystem
+	 */
+	virtual void cap_quota(Cap_quota) = 0;
 
 	/**
 	 * Define RAM quota assigned to the subsystem
@@ -167,6 +174,7 @@ struct Loader::Session : Genode::Session
 	GENODE_RPC_THROW(Rpc_commit_rom_module, void, commit_rom_module,
 	                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
 	                 Name const &);
+	GENODE_RPC(Rpc_cap_quota, void, cap_quota, Cap_quota);
 	GENODE_RPC(Rpc_ram_quota, void, ram_quota, Ram_quota);
 	GENODE_RPC(Rpc_constrain_geometry, void, constrain_geometry, Area);
 	GENODE_RPC(Rpc_parent_view, void, parent_view, Nitpicker::View_capability);
@@ -182,7 +190,7 @@ struct Loader::Session : Genode::Session
 	                 GENODE_TYPE_LIST(View_does_not_exist));
 
 	GENODE_RPC_INTERFACE(Rpc_alloc_rom_module, Rpc_commit_rom_module,
-	                     Rpc_ram_quota, Rpc_constrain_geometry,
+	                     Rpc_cap_quota, Rpc_ram_quota, Rpc_constrain_geometry,
 	                     Rpc_parent_view, Rpc_view_ready_sigh, Rpc_fault_sigh,
 	                     Rpc_start, Rpc_view_geometry, Rpc_view_size);
 };

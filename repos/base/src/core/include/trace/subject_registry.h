@@ -387,7 +387,7 @@ class Genode::Trace::Subject_registry
 		}
 
 		/**
-		 * \throw  Ram_session::Quota_exceeded
+		 * \throw  Out_of_ram
 		 */
 		void import_new_sources(Source_registry &sources)
 		{

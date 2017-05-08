@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <base/quota_transfer.h>
 #include <os/session_policy.h>
 
 /* local includes */
@@ -149,9 +150,13 @@ void Init::Server::session_closed(Session_state &session)
 	_report_update_trigger.trigger_report_update();
 
 	Ram_transfer::Account &service_ram_account = session.service();
+	Cap_transfer::Account &service_cap_account = session.service();
 
 	service_ram_account.try_transfer(_env.ram_session_cap(),
 	                                 session.donated_ram_quota());
+
+	service_cap_account.try_transfer(_env.pd_session_cap(),
+	                                 session.donated_cap_quota());
 
 	Parent::Server::Id id { session.id_at_client().value };
 
@@ -183,7 +188,9 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		char argbuf[Parent::Session_args::MAX_SIZE];
 		strncpy(argbuf, args.string(), sizeof(argbuf));
 
+		Cap_quota const cap_quota = cap_quota_from_args(argbuf);
 		Ram_quota const ram_quota = ram_quota_from_args(argbuf);
+
 		size_t const keep_quota = route.service.factory().session_costs();
 
 		if (ram_quota.value < keep_quota)
@@ -201,10 +208,13 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		/* transfer session quota */
 		try {
 			Ram_transfer::Remote_account env_ram_account(_env.ram(), _env.ram_session_cap());
+			Cap_transfer::Remote_account env_cap_account(_env.pd(),  _env.pd_session_cap());
 
 			Ram_transfer ram_transfer(forward_ram_quota, env_ram_account, route.service);
+			Cap_transfer cap_transfer(cap_quota,         env_cap_account, route.service);
 
 			ram_transfer.acknowledge();
+			cap_transfer.acknowledge();
 		}
 		catch (...) {
 			/*
@@ -212,7 +222,8 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 			 * transfor the session quota to us prior issuing the session
 			 * request.
 			 */
-			warning("unable to transfer session quota (", ram_quota, " bytes) "
+			warning("unable to transfer session quota "
+			        "(", ram_quota, " bytes, ", cap_quota, " caps) "
 			        "of forwarded ", name, " session");
 			session.destroy();
 			throw Parent::Service_denied();
@@ -233,6 +244,9 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 
 		if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA)
 			throw Genode::Insufficient_ram_quota();
+
+		if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA)
+			throw Genode::Insufficient_cap_quota();
 	}
 	catch (Parent::Service_denied) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
@@ -240,6 +254,9 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 	catch (Genode::Insufficient_ram_quota) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
 		                               Parent::INSUFFICIENT_RAM_QUOTA); }
+	catch (Genode::Insufficient_cap_quota) {
+		_env.parent().session_response(Parent::Server::Id { id.value },
+		                               Parent::INSUFFICIENT_CAP_QUOTA); }
 }
 
 
@@ -249,23 +266,28 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 
 		Ram_quota const ram_quota { request.attribute_value("ram_quota", 0UL) };
+		Cap_quota const cap_quota { request.attribute_value("cap_quota", 0UL) };
 
 		session.phase = Session_state::UPGRADE_REQUESTED;
 
 		try {
 			Ram_transfer::Remote_account env_ram_account(_env.ram(), _env.ram_session_cap());
+			Cap_transfer::Remote_account env_cap_account(_env.pd(),  _env.pd_session_cap());
 
 			Ram_transfer ram_transfer(ram_quota, env_ram_account, session.service());
+			Cap_transfer cap_transfer(cap_quota, env_cap_account, session.service());
 
 			ram_transfer.acknowledge();
+			cap_transfer.acknowledge();
 		}
 		catch (...) {
-			warning("unable to upgrade session quota (", ram_quota, " bytes) "
+			warning("unable to upgrade session quota "
+			        "(", ram_quota, " bytes, ", cap_quota, " caps) "
 			        "of forwarded ", session.service().name(), " session");
 			return;
 		}
 
-		session.increase_donated_quota(ram_quota);
+		session.increase_donated_quota(ram_quota, cap_quota);
 		session.service().initiate_request(session);
 		session.service().wakeup();
 	});

@@ -30,20 +30,17 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 {
 	private:
 
-		Rpc_entrypoint &_signal_source_ep;
+		Rpc_entrypoint &_ep;
 
 	public:
 
 		/**
 		 * Constructor
-		 *
-		 * \param context_ep  entrypoint that serves the signal-source
-		 *                    components
 		 */
-		Core_pd_session_component(Rpc_entrypoint &signal_source_ep)
-		:
-			_signal_source_ep(signal_source_ep)
-		{ }
+		Core_pd_session_component(Rpc_entrypoint &ep) : _ep(ep)
+		{
+			ep.manage(this);
+		}
 
 		void assign_parent(Capability<Parent> parent) override
 		{
@@ -83,7 +80,7 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 
 		void submit(Capability<Signal_context> cap, unsigned cnt = 1) override
 		{
-			_signal_source_ep.apply(cap, [&] (Signal_context_component *context) {
+			_ep.apply(cap, [&] (Signal_context_component *context) {
 				if (!context) {
 					warning("invalid signal-context capability");
 					return;
@@ -103,11 +100,17 @@ class Genode::Core_pd_session_component : public Rpc_object<Pd_session>
 			ASSERT_NEVER_CALLED;
 		}
 
-		Capability<Region_map> address_space() { ASSERT_NEVER_CALLED; }
+		Capability<Region_map> address_space() override { ASSERT_NEVER_CALLED; }
+		Capability<Region_map> stack_area()    override { ASSERT_NEVER_CALLED; }
+		Capability<Region_map> linker_area()   override { ASSERT_NEVER_CALLED; }
 
-		Capability<Region_map> stack_area() { ASSERT_NEVER_CALLED; }
+		void ref_account(Capability<Pd_session>) override { ASSERT_NEVER_CALLED; }
 
-		Capability<Region_map> linker_area() { ASSERT_NEVER_CALLED; }
+		void transfer_quota(Capability<Pd_session>, Cap_quota) override {
+			ASSERT_NEVER_CALLED; }
+
+		Cap_quota cap_quota() const { ASSERT_NEVER_CALLED; }
+		Cap_quota used_caps() const { ASSERT_NEVER_CALLED; }
 
 		Capability<Native_pd> native_pd() override { ASSERT_NEVER_CALLED; }
 };

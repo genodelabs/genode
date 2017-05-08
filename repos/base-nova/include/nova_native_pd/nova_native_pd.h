@@ -28,7 +28,8 @@ struct Genode::Nova_native_pd : Pd_session::Native_pd
 	 * \param entry  server-side instruction pointer of the RPC handler
 	 * \param mtd    NOVA message transfer descriptor
 	 *
-	 * \throw        Pd_session::Out_of_metadata
+	 * \throw        Out_of_ram
+	 * \throw        Out_of_caps
 	 *
 	 * \return new RPC object capability
 	 */
@@ -41,7 +42,7 @@ struct Genode::Nova_native_pd : Pd_session::Native_pd
 	virtual void imprint_rpc_cap(Native_capability cap, unsigned long badge) = 0;
 
 	GENODE_RPC_THROW(Rpc_alloc_rpc_cap, Native_capability, alloc_rpc_cap,
-	                 GENODE_TYPE_LIST(Pd_session::Out_of_metadata),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Native_capability, addr_t, addr_t);
 	GENODE_RPC(Rpc_imprint_rpc_cap, void, imprint_rpc_cap,
 	           Native_capability, unsigned long);

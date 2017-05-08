@@ -16,6 +16,7 @@
 
 #include <util/string.h>
 #include <util/list.h>
+#include <session/session.h>
 
 namespace Init {
 

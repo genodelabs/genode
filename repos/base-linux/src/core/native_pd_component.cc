@@ -143,7 +143,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	/* prefix name of Linux program (helps killing some zombies) */
 	char const *prefix = "[Genode] ";
 	char pname_buf[sizeof(_pd_session._label) + sizeof(prefix)];
-	snprintf(pname_buf, sizeof(pname_buf), "%s%s", prefix, _pd_session._label.string);
+	snprintf(pname_buf, sizeof(pname_buf), "%s%s", prefix, _pd_session._label.string());
 	char *argv_buf[2];
 	argv_buf[0] = pname_buf;
 	argv_buf[1] = 0;
@@ -184,7 +184,7 @@ Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
 :
 	_pd_session(pd_session)
 {
-	_pd_session._thread_ep.manage(this);
+	_pd_session._ep.manage(this);
 }
 
 
@@ -193,14 +193,14 @@ Native_pd_component::~Native_pd_component()
 	if (_pid)
 		lx_kill(_pid, 9);
 
-	_pd_session._thread_ep.dissolve(this);
+	_pd_session._ep.dissolve(this);
 }
 
 
 void Native_pd_component::start(Capability<Dataspace> binary)
 {
 	/* lookup binary dataspace */
-	_pd_session._thread_ep.apply(binary, [&] (Dataspace_component *ds) {
+	_pd_session._ep.apply(binary, [&] (Dataspace_component *ds) {
 
 		if (ds)
 			_start(*ds);

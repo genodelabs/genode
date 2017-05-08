@@ -187,6 +187,8 @@ void Root_proxy::_handle_session_request(Xml_node request)
 			_env.parent().session_response(id, Parent::INVALID_ARGS); }
 		catch (Insufficient_ram_quota) {
 			_env.parent().session_response(id, Parent::INSUFFICIENT_RAM_QUOTA); }
+		catch (Insufficient_cap_quota) {
+			_env.parent().session_response(id, Parent::INSUFFICIENT_CAP_QUOTA); }
 		catch (Root::Unavailable) {
 			_env.parent().session_response(id, Parent::INVALID_ARGS); }
 	}
@@ -196,8 +198,9 @@ void Root_proxy::_handle_session_request(Xml_node request)
 		_id_space.apply<Session>(id, [&] (Session &session) {
 
 			Ram_quota const ram_quota { request.attribute_value("ram_quota", 0UL) };
+			Cap_quota const cap_quota { request.attribute_value("cap_quota", 0UL) };
 
-			String<80> const args("ram_quota=", ram_quota);
+			String<80> const args("ram_quota=", ram_quota, ", cap_quota=", cap_quota);
 
 			Root_client(session.service.root).upgrade(session.cap, args.string());
 

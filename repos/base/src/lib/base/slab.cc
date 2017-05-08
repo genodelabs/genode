@@ -319,7 +319,6 @@ void Slab::insert_sb(void *ptr)
 
 bool Slab::alloc(size_t size, void **out_addr)
 {
-
 	/* too large for us ? */
 	if (size > _slab_size) {
 		error("requested size ", size, " is larger then slab size ",

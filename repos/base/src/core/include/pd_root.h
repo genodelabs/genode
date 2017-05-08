@@ -29,27 +29,29 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 {
 	private:
 
-		Rpc_entrypoint   &_thread_ep;
+		Rpc_entrypoint   &_ep;
 		Pager_entrypoint &_pager_ep;
-		Allocator        &_md_alloc;
+		Ram_allocator    &_ram_alloc;
+		Region_map       &_local_rm;
 
 	protected:
 
 		Pd_session_component *_create_session(const char *args)
 		{
-			/* XXX use separate entrypoint for PD sessions */
-			return new (md_alloc()) Pd_session_component(_thread_ep,
-			                                             _thread_ep,
-			                                             _thread_ep,
-			                                             _md_alloc,
-			                                             _pager_ep, args);
+			Pd_session_component *result = new (md_alloc())
+				Pd_session_component(_ep,
+				                     session_resources_from_args(args),
+				                     session_label_from_args(args),
+				                     session_diag_from_args(args),
+				                     _ram_alloc, _local_rm, _pager_ep, args);
+			return result;
 		}
 
-		void _upgrade_session(Pd_session_component *p, const char *args)
+		void _upgrade_session(Pd_session_component *pd, const char *args)
 		{
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			p->upgrade_ram_quota(ram_quota);
+			pd->Ram_quota_guard::upgrade(ram_quota_from_args(args));
+			pd->Cap_quota_guard::upgrade(cap_quota_from_args(args));
+			pd->session_quota_upgraded();
 		}
 
 	public:
@@ -57,16 +59,20 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		/**
 		 * Constructor
 		 *
-		 * \param session_ep  entry point for managing pd session objects
-		 * \param thread_ep   entry point for managing threads
-		 * \param md_alloc    meta-data allocator to be used by root component
+		 * \param ep        entry point for managing pd session objects,
+		 *                  threads, and signal contexts
+		 * \param ram_alloc allocator used for session-local allocations
+		 * \param md_alloc  meta-data allocator to be used by root component
 		 */
-		Pd_root(Rpc_entrypoint   *session_ep,
-		        Rpc_entrypoint   *thread_ep,
+		Pd_root(Rpc_entrypoint   &ep,
 		        Pager_entrypoint &pager_ep,
-		        Allocator        *md_alloc)
-		: Root_component<Pd_session_component>(session_ep, md_alloc),
-		  _thread_ep(*thread_ep), _pager_ep(pager_ep), _md_alloc(*md_alloc) { }
+		        Ram_allocator    &ram_alloc,
+		        Region_map       &local_rm,
+		        Allocator        &md_alloc)
+		:
+			Root_component<Pd_session_component>(&ep, &md_alloc),
+			_ep(ep), _pager_ep(pager_ep), _ram_alloc(ram_alloc), _local_rm(local_rm)
+		{ }
 };
 
 #endif /* _CORE__INCLUDE__PD_ROOT_H_ */

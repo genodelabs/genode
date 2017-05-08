@@ -52,10 +52,17 @@ class Genode::Connection_base : public Noncopyable
 		 */
 		Connection_base();
 
+
+		void upgrade(Session::Resources resources)
+		{
+			String<80> const args("ram_quota=", resources.ram_quota, ", "
+			                      "cap_quota=", resources.cap_quota);
+			_env.upgrade(_id_space_element.id(), args.string());
+		}
+
 		void upgrade_ram(size_t bytes)
 		{
-			String<64> const args("ram_quota=", Ram_quota{bytes});
-			_env.upgrade(_id_space_element.id(), args.string());
+			upgrade(Session::Resources { Ram_quota{bytes}, Cap_quota{0} });
 		}
 };
 

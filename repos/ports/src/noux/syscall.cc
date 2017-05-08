@@ -498,6 +498,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                          _args,
 					                          _sysio_env.env(),
 					                          _heap,
+					                          _ref_pd,  _ref_pd_cap,
 					                          _ref_ram, _ref_ram_cap,
 					                          _parent_services,
 					                          true,

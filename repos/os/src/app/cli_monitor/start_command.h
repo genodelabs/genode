@@ -34,7 +34,8 @@ class Cli_monitor::Start_command : public Command
 		Ram                           &_ram;
 		Genode::Allocator             &_alloc;
 		Child_registry                &_children;
-		Genode::Pd_session            &_pd;
+		Genode::Pd_session            &_ref_pd;
+		Genode::Pd_session_capability  _ref_pd_cap;
 		Genode::Ram_session           &_ref_ram;
 		Genode::Ram_session_capability _ref_ram_cap;
 		Genode::Region_map            &_local_rm;
@@ -50,6 +51,7 @@ class Cli_monitor::Start_command : public Command
 			size_t count = 1;
 			Genode::Number_of_bytes ram = 0;
 			Genode::Number_of_bytes ram_limit = 0;
+			size_t caps = subsystem_node.attribute_value("caps", 0UL);
 
 			/* read default RAM quota from config */
 			try {
@@ -113,8 +115,10 @@ class Cli_monitor::Start_command : public Command
 				Child *child = 0;
 				try {
 					child = new (_alloc)
-						Child(_ram, _alloc, label, binary_name, _pd, _ref_ram,
-						      _ref_ram_cap, _local_rm, ram, ram_limit,
+						Child(_ram, _alloc, label, binary_name,
+						      _ref_pd, _ref_pd_cap, _ref_ram,
+						      _ref_ram_cap, _local_rm,
+						      Genode::Cap_quota{caps}, ram, ram_limit,
 						      _yield_response_sigh_cap, _exit_sig_cap);
 				}
 				catch (Genode::Parent::Service_denied) {
@@ -160,7 +164,8 @@ class Cli_monitor::Start_command : public Command
 
 		Start_command(Ram                           &ram,
 		              Genode::Allocator             &alloc,
-		              Genode::Pd_session            &pd,
+		              Genode::Pd_session            &ref_pd,
+		              Genode::Pd_session_capability  ref_pd_cap,
 		              Genode::Ram_session           &ref_ram,
 		              Genode::Ram_session_capability ref_ram_cap,
 		              Genode::Region_map            &local_rm,
@@ -170,8 +175,10 @@ class Cli_monitor::Start_command : public Command
 		              Signal_context_capability      exit_sig_cap)
 		:
 			Command("start", "create new subsystem"),
-			_ram(ram), _alloc(alloc), _children(children), _pd(pd),
-			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap), _local_rm(local_rm),
+			_ram(ram), _alloc(alloc), _children(children),
+			_ref_pd(ref_pd), _ref_pd_cap(ref_pd_cap),
+			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
+			_local_rm(local_rm),
 			_subsystem_configs(subsustem_configs),
 			_yield_response_sigh_cap(yield_response_sigh_cap),
 			_exit_sig_cap(exit_sig_cap)

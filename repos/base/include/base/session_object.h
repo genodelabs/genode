@@ -65,12 +65,14 @@ class Genode::Session_object : public Ram_quota_guard,
 			Cap_quota_guard(resources.cap_quota),
 			_ep(ep), _diag(diag), _label(label)
 		{
+			Cap_quota_guard::withdraw(Cap_quota{1});
 			_ep.manage(this);
 		}
 
 		~Session_object()
 		{
 			_ep.dissolve(this);
+			Cap_quota_guard::replenish(Cap_quota{1});
 		}
 
 		/**

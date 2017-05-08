@@ -71,6 +71,9 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 * \param ram  RAM session used to allocate the backing store
 		 *             for buffering ROM module data
 		 *
+		 * \throw Out_of_ram
+		 * \throw Out_of_caps
+		 *
 		 * If 'ram' is 0, the child policy is ineffective.
 		 */
 		Child_policy_dynamic_rom_file(Region_map     &rm,
@@ -195,6 +198,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 
 			case Session_state::INVALID_ARGS:
 			case Session_state::INSUFFICIENT_RAM_QUOTA:
+			case Session_state::INSUFFICIENT_CAP_QUOTA:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:

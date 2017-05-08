@@ -70,6 +70,7 @@ struct Test::Monitor
 
 			xml.node("start", [&] () {
 				xml.attribute("name", "test-resource_request");
+				xml.attribute("caps", 3000);
 				xml.node("resource", [&] () {
 					xml.attribute("name", "RAM");
 					xml.attribute("quantum", _ram_quota);

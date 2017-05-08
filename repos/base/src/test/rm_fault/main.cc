@@ -98,8 +98,10 @@ class Test_child_policy : public Child_policy
 
 		Binary_name binary_name() const override { return "test-rm_fault"; }
 
-		Ram_session &ref_ram() override { return _env.ram(); }
+		Pd_session           &ref_pd()           override { return _env.pd(); }
+		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
+		Ram_session           &ref_ram()           override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
 
 		void init(Ram_session &session, Ram_session_capability cap) override
@@ -111,6 +113,9 @@ class Test_child_policy : public Child_policy
 
 		void init(Pd_session &session, Pd_session_capability cap) override
 		{
+			session.ref_account(_env.pd_session_cap());
+			_env.pd().transfer_quota(cap, Cap_quota{20});
+
 			Region_map_client address_space(session.address_space());
 			address_space.fault_handler(_fault_handler_sigh);
 		}

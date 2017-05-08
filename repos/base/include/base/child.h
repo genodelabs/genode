@@ -135,6 +135,15 @@ struct Genode::Child_policy
 	}
 
 	/**
+	 * Reference PD session
+	 *
+	 * The PD session returned by this method is used for session cap-quota
+	 * transfers.
+	 */
+	virtual Pd_session           &ref_pd() = 0;
+	virtual Pd_session_capability ref_pd_cap() const = 0;
+
+	/**
 	 * Reference RAM session
 	 *
 	 * The RAM session returned by this method is used for session-quota
@@ -393,6 +402,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 			 * \throw Invalid_executable
 			 * \throw Region_map::Attach_failed
 			 * \throw Out_of_ram
+			 * \throw Out_of_caps
 			 *
 			 * The other arguments correspond to those of 'Child::Child'.
 			 *
@@ -487,6 +497,25 @@ class Genode::Child : protected Rpc_object<Parent>,
 					Ram_transfer::Account &to = _service;
 					return to.cap(Ram_quota());
 				}
+
+				/**
+				 * Service (Cap_transfer::Account) interface
+				 */
+				void transfer(Pd_session_capability to, Cap_quota amount) override
+				{
+					Cap_transfer::Account &from = _service;
+					from.transfer(to, amount);
+				}
+
+				/**
+				 * Service (Cap_transfer::Account) interface
+				 */
+				Pd_session_capability cap(Cap_quota) const override
+				{
+					Cap_transfer::Account &to = _service;
+					return to.cap(Cap_quota());
+				}
+
 				void wakeup() override { _service.wakeup(); }
 
 				bool operator == (Service const &other) const override
@@ -662,6 +691,13 @@ class Genode::Child : protected Rpc_object<Parent>,
 			         2*Rom_connection::RAM_QUOTA };
 		}
 
+		static Cap_quota env_cap_quota()
+		{
+			return { Cpu_connection::CAP_QUOTA + Ram_connection::CAP_QUOTA +
+			         Pd_connection::CAP_QUOTA + Log_connection::CAP_QUOTA +
+			         2*Rom_connection::CAP_QUOTA + 1 /* parent cap */ };
+		}
+
 		template <typename FN>
 		void for_each_session(FN const &fn) const
 		{
@@ -676,7 +712,16 @@ class Genode::Child : protected Rpc_object<Parent>,
 			return _effective_quota(quota, env_ram_quota());
 		}
 
+		/**
+		 * Deduce env session costs from usable cap quota
+		 */
+		static Cap_quota effective_quota(Cap_quota quota)
+		{
+			return _effective_quota(quota, env_cap_quota());
+		}
+
 		Ram_session_capability ram_session_cap() const { return _ram.cap(); }
+		Pd_session_capability  pd_session_cap()  const { return _pd.cap();  }
 
 		Parent_capability parent_cap() const { return cap(); }
 
@@ -684,6 +729,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Ram_session const &ram() const { return _ram.session(); }
 		Cpu_session       &cpu()       { return _cpu.session(); }
 		Pd_session        &pd()        { return _pd .session(); }
+		Pd_session  const &pd()  const { return _pd .session(); }
 
 		/**
 		 * Request factory for creating session-state objects

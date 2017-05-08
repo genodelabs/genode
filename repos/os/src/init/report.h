@@ -33,7 +33,9 @@ class Init::Report_detail : Genode::Noncopyable
 		bool _provided     = false;
 		bool _session_args = false;
 		bool _child_ram    = false;
+		bool _child_caps   = false;
 		bool _init_ram     = false;
+		bool _init_caps    = false;
 
 	public:
 
@@ -47,7 +49,9 @@ class Init::Report_detail : Genode::Noncopyable
 			_provided     = report.attribute_value("provided",     false);
 			_session_args = report.attribute_value("session_args", false);
 			_child_ram    = report.attribute_value("child_ram",    false);
+			_child_caps   = report.attribute_value("child_caps",   false);
 			_init_ram     = report.attribute_value("init_ram",     false);
+			_init_caps    = report.attribute_value("init_caps",    false);
 		}
 
 		bool children()     const { return _children;     }
@@ -56,7 +60,9 @@ class Init::Report_detail : Genode::Noncopyable
 		bool provided()     const { return _provided;     }
 		bool session_args() const { return _session_args; }
 		bool child_ram()    const { return _child_ram;    }
+		bool child_caps()   const { return _child_caps;   }
 		bool init_ram()     const { return _init_ram;     }
+		bool init_caps()    const { return _init_caps;    }
 };
 
 

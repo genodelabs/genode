@@ -227,12 +227,13 @@ class Scout::Launcher : public Anchor
 
 	private:
 
-		Name             _prg_name;
-		int              _active;
-		int              _exec_once;
-		Launchpad       *_launchpad;
-		unsigned long    _quota;
-		Launcher_config *_config;
+		Name                _prg_name;
+		int                 _active;
+		int                 _exec_once;
+		Launchpad          *_launchpad;
+		unsigned long const _caps;
+		unsigned long       _quota;
+		Launcher_config    *_config;
 
 	public:
 
@@ -242,22 +243,30 @@ class Scout::Launcher : public Anchor
 		 * Constructors
 		 */
 		Launcher(Name const &prg_name, int exec_once = 0,
-		         unsigned long quota = 0, Launcher_config *config = 0) :
+		         unsigned long caps = 0, unsigned long quota = 0,
+		         Launcher_config *config = 0)
+		:
 			_prg_name(prg_name), _active(1),
-			_exec_once(exec_once), _quota(quota), _config(config) { }
+			_exec_once(exec_once), _caps(caps), _quota(quota), _config(config)
+		{ }
 
 		Launcher(Name const &prg_name, Launchpad *launchpad,
-		         unsigned long quota, Launcher_config *config = 0) :
-			_prg_name(prg_name), _launchpad(launchpad), _quota(quota),
-			_config(config) { }
+		         unsigned long caps, unsigned long quota,
+		         Launcher_config *config = 0)
+		:
+			_prg_name(prg_name), _launchpad(launchpad),
+			_caps(caps), _quota(quota), _config(config)
+		{ }
 
-		int active() { return _active; }
+		int active() const { return _active; }
 
-		Name prg_name() { return _prg_name; }
+		Name prg_name() const { return _prg_name; }
 
 		void quota(unsigned long quota) { _quota = quota; }
 
-		unsigned long quota() { return _quota; }
+		unsigned long quota() const { return _quota; }
+
+		unsigned long caps() const { return _caps; }
 
 		Launcher_config *config() { return _config; }
 

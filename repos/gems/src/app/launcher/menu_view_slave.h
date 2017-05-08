@@ -75,11 +75,14 @@ class Launcher::Menu_view_slave
 
 				static Name              _name()  { return "menu_view"; }
 				static Genode::Ram_quota _quota() { return { 6*1024*1024 }; }
+				static Genode::Cap_quota _caps()  { return { 25 }; }
 
 			public:
 
 				Policy(Genode::Rpc_entrypoint        &ep,
 				       Genode::Region_map            &rm,
+				       Genode::Pd_session            &ref_pd,
+				       Genode::Pd_session_capability  ref_pd_cap,
 				       Genode::Ram_session           &ref_ram,
 				       Genode::Ram_session_capability ref_ram_cap,
 				       Capability<Nitpicker::Session> nitpicker_session,
@@ -88,6 +91,7 @@ class Launcher::Menu_view_slave
 				       Position                       position)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
+					                      ref_pd,  ref_pd_cap,  _caps(),
 					                      ref_ram, ref_ram_cap, _quota()),
 					_nitpicker(rm, nitpicker_session),
 					_dialog_rom(dialog_rom_session),
@@ -127,8 +131,9 @@ class Launcher::Menu_view_slave
 		/**
 		 * Constructor
 		 */
-		Menu_view_slave(Genode::Pd_session            &pd,
-		                Genode::Region_map            &rm,
+		Menu_view_slave(Genode::Region_map            &rm,
+		                Genode::Pd_session            &ref_pd,
+		                Genode::Pd_session_capability  ref_pd_cap,
 		                Genode::Ram_session           &ref_ram,
 		                Genode::Ram_session_capability ref_ram_cap,
 		                Capability<Nitpicker::Session> nitpicker_session,
@@ -136,8 +141,8 @@ class Launcher::Menu_view_slave
 		                Capability<Report::Session>    hover_report_session,
 		                Position                       initial_position)
 		:
-			_ep(&pd, _ep_stack_size, "nit_fader"),
-			_policy(_ep, rm, ref_ram, ref_ram_cap,
+			_ep(&ref_pd, _ep_stack_size, "nit_fader"),
+			_policy(_ep, rm, ref_pd, ref_pd_cap, ref_ram, ref_ram_cap,
 			        nitpicker_session, dialog_rom_session,
 			        hover_report_session, initial_position),
 			_child(rm, _ep, _policy)

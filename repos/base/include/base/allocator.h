@@ -75,6 +75,7 @@ struct Genode::Allocator : Deallocator
 	 *                  undefined in the error case
 	 *
 	 * \throw           Out_of_ram
+	 * \throw           Out_of_caps
 	 *
 	 * \return          true on success
 	 */
@@ -89,6 +90,7 @@ struct Genode::Allocator : Deallocator
 	 * pointer will break strict-aliasing rules".
 	 *
 	 * \throw Out_of_ram
+	 * \throw Out_of_caps
 	 */
 	template <typename T> bool alloc(size_t size, T **out_addr)
 	{
@@ -114,6 +116,7 @@ struct Genode::Allocator : Deallocator
 	 * \param size  block size to allocate
 	 *
 	 * \throw       Out_of_ram
+	 * \throw       Out_of_caps
 	 *
 	 * \return      pointer to the new block
 	 */

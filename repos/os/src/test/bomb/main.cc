@@ -32,6 +32,7 @@ class Bomb_child : public Child_policy
 		Env              &_env;
 		Binary_name const _binary_name;
 		Name        const _label;
+		Cap_quota   const _cap_quota;
 		Ram_quota   const _ram_quota;
 
 		Registry<Registered<Parent_service> > &_parent_services;
@@ -45,11 +46,13 @@ class Bomb_child : public Child_policy
 		Bomb_child(Env                                   &env,
 		           Name                            const &binary_name,
 		           Name                            const &label,
+		           Cap_quota                       const  cap_quota,
 		           Ram_quota                       const  ram_quota,
 		           Registry<Registered<Parent_service> > &parent_services,
 		           unsigned                               generation)
 		:
 			_env(env), _binary_name(binary_name), _label(label),
+			_cap_quota(Child::effective_quota(cap_quota)),
 			_ram_quota(Child::effective_quota(ram_quota)),
 			_parent_services(parent_services)
 		{
@@ -68,11 +71,20 @@ class Bomb_child : public Child_policy
 
 		Binary_name binary_name() const override { return _binary_name; }
 
+		void init(Pd_session &pd, Pd_session_capability pd_cap) override
+		{
+			pd.ref_account(_env.pd_session_cap());
+			_env.pd().transfer_quota(pd_cap, _cap_quota);
+		}
+
 		void init(Ram_session &ram, Ram_session_capability ram_cap) override
 		{
 			ram.ref_account(_env.ram_session_cap());
 			_env.ram().transfer_quota(ram_cap, _ram_quota);
 		}
+
+		Pd_session               &ref_pd()       override { return _env.pd(); }
+		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
 		Ram_session               &ref_ram()       override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
@@ -154,10 +166,10 @@ struct Bomb
 	Attached_rom_dataspace config { env, "config" };
 
 	unsigned round = 0;
-	unsigned const rounds      = config.xml().attribute_value("rounds", 1U);
-	unsigned const generation  = config.xml().attribute_value("generations", 1U);
-	unsigned const children    = config.xml().attribute_value("children", 2U);
-	unsigned const sleeptime   = config.xml().attribute_value("sleep", 2000U);
+	unsigned const rounds     = config.xml().attribute_value("rounds", 1U);
+	unsigned const generation = config.xml().attribute_value("generations", 1U);
+	unsigned const children   = config.xml().attribute_value("children", 2U);
+	unsigned const sleeptime  = config.xml().attribute_value("sleep", 2000U);
 	size_t   const ram_demand = config.xml().attribute_value("demand", 1024UL * 1024);
 
 	Heap heap { env.ram(), env.rm() };
@@ -177,6 +189,17 @@ struct Bomb
 			    " - not enough memory.");
 			return;
 		}
+
+		size_t const avail_caps     = env.pd().avail_caps().value;
+		size_t const preserved_caps = children*5;
+
+		if (avail_caps < preserved_caps) {
+			log("I ran out of capabilities.");
+			return;
+		}
+
+		Cap_quota const cap_quota { (avail_caps - preserved_caps) / children };
+
 		if (generation == 0) {
 			log("I'm a leaf node - generation 0");
 			return;
@@ -192,7 +215,7 @@ struct Bomb
 				                       unique_child_name(child_registry,
 				                                         binary_name,
 				                                         generation - 1),
-				                       ram_amount,
+				                       cap_quota, ram_amount,
 				                       parent_services, generation - 1);
 		}
 

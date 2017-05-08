@@ -43,6 +43,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		class Quota_exceeded : public Genode::Exception { };
 
 		typedef Genode::size_t size_t;
+		typedef Genode::Cap_quota Cap_quota;
 
 		typedef Genode::Registered<Genode::Parent_service> Parent_service;
 
@@ -55,8 +56,13 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		Genode::Session_label const _label;
 		Binary_name           const _binary_name;
 
+		Genode::Pd_session_capability  _ref_pd_cap;
+		Genode::Pd_session            &_ref_pd;
+
 		Genode::Ram_session_capability _ref_ram_cap;
 		Genode::Ram_session           &_ref_ram;
+
+		Cap_quota _cap_quota;
 
 		size_t _ram_quota;
 		size_t _ram_limit;
@@ -110,10 +116,12 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		           Genode::Allocator                &alloc,
 		           Name                       const &label,
 		           Binary_name                const &binary_name,
-		           Genode::Pd_session               &pd_session,
+		           Genode::Pd_session               &ref_pd,
+		           Genode::Pd_session_capability     ref_pd_cap,
 		           Genode::Ram_session              &ref_ram,
 		           Genode::Ram_session_capability    ref_ram_cap,
 		           Genode::Region_map               &local_rm,
+		           Cap_quota                         cap_quota,
 		           Genode::size_t                    ram_quota,
 		           Genode::size_t                    ram_limit,
 		           Genode::Signal_context_capability yield_response_sig_cap,
@@ -121,9 +129,10 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		:
 			_ram(ram), _alloc(alloc),
 			_label(label), _binary_name(binary_name),
+			_ref_pd_cap (ref_pd_cap),  _ref_pd (ref_pd),
 			_ref_ram_cap(ref_ram_cap), _ref_ram(ref_ram),
-			_ram_quota(ram_quota), _ram_limit(ram_limit),
-			_entrypoint(&pd_session, ENTRYPOINT_STACK_SIZE, _label.string(), false),
+			_cap_quota(cap_quota), _ram_quota(ram_quota), _ram_limit(ram_limit),
+			_entrypoint(&ref_pd, ENTRYPOINT_STACK_SIZE, _label.string(), false),
 			_config_policy(local_rm, "config", _entrypoint, &ref_ram),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap),
@@ -275,8 +284,17 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		Name        name()        const override { return _label; }
 		Binary_name binary_name() const override { return _binary_name; }
 
+		Genode::Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
+		Genode::Pd_session           &ref_pd()           override { return _ref_pd; }
+
 		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
 		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }
+
+		void init(Genode::Pd_session &session, Genode::Pd_session_capability cap) override
+		{
+			session.ref_account(_ref_pd_cap);
+			_ref_pd.transfer_quota(cap, _cap_quota);
+		}
 
 		void init(Genode::Ram_session &session, Genode::Ram_session_capability cap) override
 		{

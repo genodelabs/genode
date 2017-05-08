@@ -109,7 +109,8 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 			}
 
 		},
-		[&] () { upgrade_pd_quota_non_blocking(3 * 1024 * sizeof(addr_t)); });
+		[&] () { upgrade_pd_quota_non_blocking(Ram_quota{3 * 1024 * sizeof(addr_t)},
+		                                       Cap_quota{0}); });
 
 	return Rpc_exception_code(utcb.exception_code());
 }
@@ -154,7 +155,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 			default: break;
 			}
 		},
-		[&] () { upgrade_pd_quota_non_blocking(3 * 1024 * sizeof(addr_t)); });
+		[&] () { upgrade_pd_quota_non_blocking(Ram_quota{3 * 1024 * sizeof(addr_t)},
+		                                       Cap_quota{0}); });
 
 	copy_utcb_to_msg(utcb, request_msg);
 

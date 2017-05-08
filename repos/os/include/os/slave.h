@@ -52,16 +52,19 @@ class Genode::Slave::Policy : public Child_policy
 
 	private:
 
-		Label                    const _label;
-		Binary_name              const _binary_name;
+		Label                   const _label;
+		Binary_name             const _binary_name;
+		Pd_session                   &_ref_pd;
+		Pd_session_capability         _ref_pd_cap;
 		Ram_session                  &_ref_ram;
 		Ram_session_capability        _ref_ram_cap;
-		Genode::Parent_service         _binary_service;
-		Ram_quota                const _ram_quota;
-		Parent_services               &_parent_services;
-		Rpc_entrypoint                &_ep;
-		Child_policy_dynamic_rom_file  _config_policy;
-		Session_requester              _session_requester;
+		Genode::Parent_service        _binary_service;
+		Cap_quota               const _cap_quota;
+		Ram_quota               const _ram_quota;
+		Parent_services              &_parent_services;
+		Rpc_entrypoint               &_ep;
+		Child_policy_dynamic_rom_file _config_policy;
+		Session_requester             _session_requester;
 
 	public:
 
@@ -83,14 +86,18 @@ class Genode::Slave::Policy : public Child_policy
 		       Parent_services           &parent_services,
 		       Rpc_entrypoint            &ep,
 		       Region_map                &rm,
+		       Pd_session                &ref_pd,
+		       Pd_session_capability      ref_pd_cap,
+		       Cap_quota                  cap_quota,
 		       Ram_session               &ref_ram,
 		       Ram_session_capability     ref_ram_cap,
 		       Ram_quota                  ram_quota)
 		:
 			_label(label), _binary_name(binary_name),
+			_ref_pd(ref_pd), _ref_pd_cap(ref_pd_cap),
 			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
 			_binary_service(Rom_session::service_name()),
-			_ram_quota(ram_quota),
+			_cap_quota(cap_quota), _ram_quota(ram_quota),
 			_parent_services(parent_services), _ep(ep),
 			_config_policy(rm, "config", _ep, &_ref_ram),
 			_session_requester(ep, _ref_ram, rm)
@@ -127,8 +134,17 @@ class Genode::Slave::Policy : public Child_policy
 
 		Binary_name binary_name() const override { return _binary_name; }
 
+		Pd_session           &ref_pd()           override { return _ref_pd; }
+		Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
+
 		Ram_session           &ref_ram()           override { return _ref_ram; }
 		Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
+
+		void init(Pd_session &session, Pd_session_capability cap) override
+		{
+			session.ref_account(_ref_pd_cap);
+			_ref_pd.transfer_quota(cap, _cap_quota);
+		}
 
 		void init(Ram_session &session, Ram_session_capability cap) override
 		{
@@ -217,6 +233,7 @@ class Genode::Slave::Connection_base
 
 				case Session_state::INVALID_ARGS:
 				case Session_state::INSUFFICIENT_RAM_QUOTA:
+				case Session_state::INSUFFICIENT_CAP_QUOTA:
 				case Session_state::AVAILABLE:
 				case Session_state::CAP_HANDED_OUT:
 				case Session_state::CLOSED:
@@ -254,6 +271,22 @@ class Genode::Slave::Connection_base
 			Ram_session_capability cap(Ram_quota) const override
 			{
 				return _policy.ref_ram_cap();
+			}
+
+			/**
+			 * Service ('Cap_transfer::Account') interface
+			 */
+			void transfer(Pd_session_capability to, Cap_quota amount) override
+			{
+				if (to.valid()) _policy.ref_pd().transfer_quota(to, amount);
+			}
+
+			/**
+			 * Service ('Cap_transfer::Account') interface
+			 */
+			Pd_session_capability cap(Cap_quota) const override
+			{
+				return _policy.ref_pd_cap();
 			}
 
 		} _service;

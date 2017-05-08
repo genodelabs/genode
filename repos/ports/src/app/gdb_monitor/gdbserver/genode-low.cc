@@ -469,6 +469,17 @@ extern "C" int fork()
 
 	Number_of_bytes ram_quota = genode_env->ram().avail_ram().value - preserved_ram_quota;
 
+	Cap_quota const avail_cap_quota = genode_env->pd().avail_caps();
+
+	Genode::size_t const preserved_caps = 100;
+
+	if (avail_cap_quota.value < preserved_caps) {
+		error("not enough available caps for preservation of ", preserved_caps);
+		return -1;
+	}
+
+	Cap_quota const cap_quota { avail_cap_quota.value - preserved_caps };
+
 	/* start the application */
 
 	static Heap alloc(genode_env->ram(), genode_env->rm());
@@ -483,6 +494,7 @@ extern "C" int fork()
 	                                         alloc,
 	                                         filename,
 	                                         Ram_quota{ram_quota},
+	                                         cap_quota,
 	                                         signal_receiver,
 	                                         target_node);
 

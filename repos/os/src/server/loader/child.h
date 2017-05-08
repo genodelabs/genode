@@ -45,6 +45,7 @@ class Loader::Child : public Child_policy
 		Session_label const _label;
 		Name          const _binary_name;
 
+		Cap_quota const _cap_quota;
 		Ram_quota const _ram_quota;
 
 		Parent_services &_parent_services;
@@ -62,6 +63,7 @@ class Loader::Child : public Child_policy
 		      Allocator                 &alloc,
 		      Name                const &binary_name,
 		      Session_label       const &label,
+		      Cap_quota                  cap_quota,
 		      Ram_quota                  ram_quota,
 		      Parent_services           &parent_services,
 		      Service                   &local_rom_service,
@@ -74,6 +76,7 @@ class Loader::Child : public Child_policy
 			_alloc(alloc),
 			_label(label),
 			_binary_name(binary_name),
+			_cap_quota(Genode::Child::effective_quota(cap_quota)),
 			_ram_quota(Genode::Child::effective_quota(ram_quota)),
 			_parent_services(parent_services),
 			_local_nitpicker_service(local_nitpicker_service),
@@ -94,8 +97,17 @@ class Loader::Child : public Child_policy
 
 		Binary_name binary_name() const override { return _binary_name; }
 
+		Pd_session           &ref_pd()           override { return _env.pd(); }
+		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+
 		Ram_session           &ref_ram()           override { return _env.ram(); }
 		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
+
+		void init(Pd_session &pd, Pd_session_capability pd_cap) override
+		{
+			pd.ref_account(ref_pd_cap());
+			ref_pd().transfer_quota(pd_cap, _cap_quota);
+		}
 
 		void init(Ram_session &ram, Ram_session_capability ram_cap) override
 		{

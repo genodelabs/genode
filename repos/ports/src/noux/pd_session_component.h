@@ -33,9 +33,22 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 
 		Pd_connection _pd;
 
+		Pd_session &_ref_pd;
+
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
 		Region_map_component _linker_area;
+
+		template <typename FUNC>
+		auto _with_automatic_cap_upgrade(FUNC func) -> decltype(func())
+		{
+			Cap_quota upgrade { 10 };
+			enum { NUM_ATTEMPTS = 3 };
+			return retry<Out_of_caps>(
+				[&] () { return func(); },
+				[&] () { _ref_pd.transfer_quota(_pd, upgrade); },
+				NUM_ATTEMPTS);
+		}
 
 	public:
 
@@ -46,12 +59,20 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 		                     Child_policy::Name const &name,
 		                     Dataspace_registry &ds_registry)
 		:
-			_ep(ep), _pd(env, name.string()),
+			_ep(ep), _pd(env, name.string()), _ref_pd(env.pd()),
 			_address_space(alloc, _ep, ds_registry, _pd, _pd.address_space()),
 			_stack_area   (alloc, _ep, ds_registry, _pd, _pd.stack_area()),
 			_linker_area  (alloc, _ep, ds_registry, _pd, _pd.linker_area())
 		{
 			_ep.manage(this);
+
+			/*
+			 * Equip the PD with an initial cap quota that suffices in the
+			 * common case. Further capabilities are provisioned on demand
+			 * via '_with_automatic_cap_upgrade'.
+			 */
+			_pd.ref_account(env.pd_session_cap());
+			_ref_pd.transfer_quota(_pd, Cap_quota{10});
 		}
 
 		~Pd_session_component()
@@ -115,15 +136,21 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 		bool assign_pci(addr_t addr, uint16_t bdf) override {
 			return _pd.assign_pci(addr, bdf); }
 
-		Signal_source_capability alloc_signal_source() override {
-			return _pd.alloc_signal_source(); }
+		Signal_source_capability alloc_signal_source() override
+		{
+			return _with_automatic_cap_upgrade([&] () {
+				return _pd.alloc_signal_source(); });
+		}
 
 		void free_signal_source(Signal_source_capability cap) override {
 			_pd.free_signal_source(cap); }
 
 		Capability<Signal_context> alloc_context(Signal_source_capability source,
-		                                         unsigned long imprint) override {
-			return _pd.alloc_context(source, imprint); }
+		                                         unsigned long imprint) override
+		{
+			return _with_automatic_cap_upgrade([&] () {
+				return _pd.alloc_context(source, imprint); });
+		}
 
 		void free_context(Capability<Signal_context> cap) override {
 			_pd.free_context(cap); }
@@ -131,8 +158,11 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 		void submit(Capability<Signal_context> context, unsigned cnt) override {
 			_pd.submit(context, cnt); }
 
-		Native_capability alloc_rpc_cap(Native_capability ep) override {
-			return _pd.alloc_rpc_cap(ep); }
+		Native_capability alloc_rpc_cap(Native_capability ep) override
+		{
+			return _with_automatic_cap_upgrade([&] () {
+				return _pd.alloc_rpc_cap(ep); });
+		}
 
 		void free_rpc_cap(Native_capability cap) override {
 			_pd.free_rpc_cap(cap); }
@@ -145,6 +175,13 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 
 		Capability<Region_map> linker_area() override {
 			return _linker_area.Rpc_object<Region_map>::cap(); }
+
+		void ref_account(Capability<Pd_session> pd) override { }
+
+		void transfer_quota(Capability<Pd_session> pd, Cap_quota amount) override { }
+
+		Cap_quota cap_quota() const { return _pd.cap_quota(); }
+		Cap_quota used_caps() const { return _pd.used_caps(); }
 
 		Capability<Native_pd> native_pd() override {
 			return _pd.native_pd(); }

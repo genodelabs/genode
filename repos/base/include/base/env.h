@@ -93,8 +93,12 @@ struct Genode::Env
 	 * \param affinity         preferred CPU affinity for the session
 	 *
 	 * \throw Service_denied
+	 * \throw Insufficient_cap_quota
 	 * \throw Insufficient_ram_quota
-	 * \throw Unavailable
+	 * \throw Out_of_caps
+	 * \throw Out_of_ram
+	 *
+	 * See the documentation of 'Parent::session'.
 	 *
 	 * This method blocks until the session is available or an error
 	 * occurred.
@@ -116,6 +120,9 @@ struct Genode::Env
 	 * \param args  description of the amount of quota to transfer
 	 *
 	 * \throw Out_of_ram
+	 * \throw Out_of_caps
+	 *
+	 * See the documentation of 'Parent::upgrade'.
 	 *
 	 * The 'args' argument has the same principle format as the 'args'
 	 * argument of the 'session' operation.

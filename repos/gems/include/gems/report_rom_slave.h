@@ -45,16 +45,20 @@ class Report_rom_slave : public Genode::Noncopyable
 
 				static Name              _name()  { return "report_rom"; }
 				static Genode::Ram_quota _quota() { return { 1024*1024 }; }
+				static Genode::Cap_quota _caps()  { return { 25 }; }
 
 			public:
 
 				Policy(Genode::Rpc_entrypoint        &ep,
 				       Genode::Region_map            &rm,
+				       Genode::Pd_session            &ref_pd,
+				       Genode::Pd_session_capability  ref_pd_cap,
 				       Genode::Ram_session           &ref_ram,
 				       Genode::Ram_session_capability ref_ram_cap,
 				       const char                    *config)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
+					                      ref_pd,  ref_pd_cap,   _caps(),
 					                      ref_ram, ref_ram_cap,  _quota())
 				{
 					if (config)
@@ -76,14 +80,15 @@ class Report_rom_slave : public Genode::Noncopyable
 		 * \param ram  RAM session used to allocate the configuration
 		 *             dataspace
 		 */
-		Report_rom_slave(Genode::Pd_session             &pd,
-		                 Genode::Region_map             &rm,
+		Report_rom_slave(Genode::Region_map             &rm,
+		                 Genode::Pd_session             &pd,
+		                 Genode::Pd_session_capability   pd_cap,
 		                 Genode::Ram_session            &ram,
 		                 Genode::Ram_session_capability  ram_cap,
 		                 char                     const *config)
 		:
 			_ep(&pd, _ep_stack_size, "report_rom"),
-			_policy(_ep, rm, ram, ram_cap, config),
+			_policy(_ep, rm, pd, pd_cap, ram, ram_cap, config),
 			_child(rm, _ep, _policy)
 		{ }
 

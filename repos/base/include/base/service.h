@@ -16,6 +16,7 @@
 
 #include <util/list.h>
 #include <ram_session/client.h>
+#include <pd_session/client.h>
 #include <base/env.h>
 #include <base/session_state.h>
 #include <base/log.h>
@@ -33,7 +34,8 @@ namespace Genode {
 }
 
 
-class Genode::Service : public Ram_transfer::Account
+class Genode::Service : public Ram_transfer::Account,
+                        public Cap_transfer::Account
 {
 	public:
 
@@ -126,6 +128,7 @@ class Genode::Local_service : public Service
 			 *
 			 * \throw Denied
 			 * \throw Insufficient_ram_quota
+			 * \throw Insufficient_cap_quota
 			 */
 			virtual SESSION &create(Args const &, Affinity)  = 0;
 
@@ -192,6 +195,8 @@ class Genode::Local_service : public Service
 				}
 				catch (typename Factory::Denied) {
 					session.phase = Session_state::INVALID_ARGS; }
+				catch (Insufficient_cap_quota) {
+					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
 				catch (Insufficient_ram_quota) {
 					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
 
@@ -199,7 +204,8 @@ class Genode::Local_service : public Service
 
 			case Session_state::UPGRADE_REQUESTED:
 				{
-					String<64> const args("ram_quota=", session.ram_upgrade);
+					String<100> const args("ram_quota=", session.ram_upgrade, ", "
+					                       "cap_quota=", session.cap_upgrade);
 
 					_apply_to_rpc_obj(session, [&] (SESSION &rpc_obj) {
 						_factory.upgrade(rpc_obj, args.string()); });
@@ -220,6 +226,7 @@ class Genode::Local_service : public Service
 
 			case Session_state::INVALID_ARGS:
 			case Session_state::INSUFFICIENT_RAM_QUOTA:
+			case Session_state::INSUFFICIENT_CAP_QUOTA:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:
@@ -279,9 +286,18 @@ class Genode::Parent_service : public Service
 				catch (Out_of_ram) {
 					session.id_at_parent.destruct();
 					session.phase = Session_state::INVALID_ARGS; }
+
+				catch (Out_of_caps) {
+					session.id_at_parent.destruct();
+					session.phase = Session_state::INVALID_ARGS; }
+
 				catch (Insufficient_ram_quota) {
 					session.id_at_parent.destruct();
 					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
+
+				catch (Insufficient_cap_quota) {
+					session.id_at_parent.destruct();
+					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
 
 				catch (Parent::Service_denied) {
 					session.id_at_parent.destruct();
@@ -291,7 +307,8 @@ class Genode::Parent_service : public Service
 
 			case Session_state::UPGRADE_REQUESTED:
 				{
-					String<64> const args("ram_quota=", session.ram_upgrade);
+					String<100> const args("ram_quota=", session.ram_upgrade, ", "
+					                       "cap_quota=", session.cap_upgrade);
 
 					if (!session.id_at_parent.constructed())
 						error("invalid parent-session state: ", session);
@@ -300,6 +317,8 @@ class Genode::Parent_service : public Service
 						_env.upgrade(session.id_at_parent->id(), args.string()); }
 					catch (Out_of_ram) {
 						warning("RAM quota exceeded while upgrading parent session"); }
+					catch (Out_of_caps) {
+						warning("cap quota exceeded while upgrading parent session"); }
 
 					session.confirm_ram_upgrade();
 					session.phase = Session_state::CAP_HANDED_OUT;
@@ -317,6 +336,7 @@ class Genode::Parent_service : public Service
 
 			case Session_state::INVALID_ARGS:
 			case Session_state::INSUFFICIENT_RAM_QUOTA:
+			case Session_state::INSUFFICIENT_CAP_QUOTA:
 			case Session_state::AVAILABLE:
 			case Session_state::CAP_HANDED_OUT:
 			case Session_state::CLOSED:
@@ -398,6 +418,7 @@ class Genode::Child_service : public Async_service
 	private:
 
 		Ram_session_client _ram;
+		Pd_session_client  _pd;
 
 	public:
 
@@ -408,10 +429,11 @@ class Genode::Child_service : public Async_service
 		              Id_space<Parent::Server> &server_id_space,
 		              Session_state::Factory   &factory,
 		              Wakeup                   &wakeup,
-		              Ram_session_capability    ram)
+		              Ram_session_capability    ram,
+		              Pd_session_capability     pd)
 		:
 			Async_service(name, server_id_space, factory, wakeup),
-			_ram(ram)
+			_ram(ram), _pd(pd)
 		{ }
 
 		/**
@@ -426,6 +448,19 @@ class Genode::Child_service : public Async_service
 		 * Ram_transfer::Account interface
 		 */
 		Ram_session_capability cap(Ram_quota) const override { return _ram; }
+
+		/**
+		 * Cap_transfer::Account interface
+		 */
+		void transfer(Pd_session_capability to, Cap_quota amount) override
+		{
+			if (to.valid()) _pd.transfer_quota(to, amount);
+		}
+
+		/**
+		 * Cap_transfer::Account interface
+		 */
+		Pd_session_capability cap(Cap_quota) const override { return _pd; }
 };
 
 #endif /* _INCLUDE__BASE__SERVICE_H_ */

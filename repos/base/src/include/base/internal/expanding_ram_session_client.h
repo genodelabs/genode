@@ -31,8 +31,17 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 		Parent &parent = *env_deprecated()->parent();
 		parent.resource_request(String<128>("ram_quota=", amount).string());
 	}
+
+	void _request_caps_from_parent(size_t amount)
+	{
+		Parent &parent = *env_deprecated()->parent();
+		parent.resource_request(String<128>("cap_quota=", amount).string());
+	}
+
 	Expanding_ram_session_client(Ram_session_capability cap, Parent::Client::Id id)
-	: Upgradeable_client<Genode::Ram_session_client>(cap, id) { }
+	:
+		Upgradeable_client<Genode::Ram_session_client>(cap, id)
+	{ }
 
 	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED) override
 	{
@@ -41,8 +50,20 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 		 * to the parent and retry.
 		 */
 		enum { NUM_ATTEMPTS = 2 };
+		enum { UPGRADE_CAPS = 4 };
 		return retry<Out_of_ram>(
-			[&] () { return Ram_session_client::alloc(size, cached); },
+			[&] () {
+				return retry<Out_of_caps>(
+					[&] () { return Ram_session_client::alloc(size, cached); },
+					[&] () {
+						try { upgrade_caps(UPGRADE_CAPS); }
+						catch (Out_of_caps) {
+							warning("cap quota exhausted, issuing resource request to parent");
+							_request_caps_from_parent(UPGRADE_CAPS);
+						}
+					},
+					NUM_ATTEMPTS);
+			},
 			[&] () {
 				/*
 				 * The RAM service withdraws the meta data for the allocator

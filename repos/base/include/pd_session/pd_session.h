@@ -71,7 +71,8 @@ struct Genode::Pd_session : Session
 
 	typedef Capability<Signal_source> Signal_source_capability;
 
-	class Out_of_metadata       : public Exception { };
+	class Invalid_session       : public Exception { };
+	class Undefined_ref_account : public Exception { };
 	class Invalid_signal_source : public Exception { };
 
 	/**
@@ -81,7 +82,8 @@ struct Genode::Pd_session : Session
 	 *
 	 * The signal source provides an interface to wait for incoming signals.
 	 *
-	 * \throw Out_of_metadata
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
 	 */
 	virtual Signal_source_capability alloc_signal_source() = 0;
 
@@ -102,7 +104,8 @@ struct Genode::Pd_session : Session
 	 *                 originating from the allocated signal-context capability
 	 * \return new signal-context capability
 	 *
-	 * \throw Out_of_metadata
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
 	 * \throw Invalid_signal_source
 	 */
 	virtual Capability<Signal_context>
@@ -141,7 +144,8 @@ struct Genode::Pd_session : Session
 	 *
 	 * \param ep  entry point that will use this capability
 	 *
-	 * \throw Out_of_metadata  if meta-data backing store is exhausted
+	 * \throw Out_of_ram   if meta-data backing store is exhausted
+	 * \throw Out_of_caps  if 'cap_quota' is exceeded
 	 *
 	 * \return new RPC capability
 	 */
@@ -177,6 +181,49 @@ struct Genode::Pd_session : Session
 	virtual Capability<Region_map> linker_area() = 0;
 
 
+	/*******************************************
+	 ** Accounting for capability allocations **
+	 *******************************************/
+
+	/**
+	 * Define reference account for the PD session
+	 *
+	 * \throw Invalid_session
+	 */
+	virtual void ref_account(Capability<Pd_session>) = 0;
+
+	/**
+	 * Transfer capability quota to another PD session
+	 *
+	 * \param pd_session   receiver of quota donation
+	 * \param amount       amount of quota to donate
+	 *
+	 * \throw Out_of_caps
+	 * \throw Invalid_session
+	 * \throw Undefined_ref_account
+	 *
+	 * Quota can only be transfered if the specified PD session is either the
+	 * reference account for this session or vice versa.
+	 */
+	virtual void transfer_quota(Capability<Pd_session> pd_session,
+	                            Cap_quota amount) = 0;
+
+	/**
+	 * Return current capability-quota limit
+	 */
+	virtual Cap_quota cap_quota() const = 0;
+
+	/**
+	 * Return number of capabilities allocated from the session
+	 */
+	virtual Cap_quota used_caps() const = 0;
+
+	Cap_quota avail_caps() const
+	{
+		return Cap_quota { cap_quota().value - used_caps().value };
+	}
+
+
 	/*****************************************
 	 ** Access to kernel-specific interface **
 	 *****************************************/
@@ -200,22 +247,31 @@ struct Genode::Pd_session : Session
 	GENODE_RPC(Rpc_assign_pci,    bool, assign_pci,    addr_t, uint16_t);
 
 	GENODE_RPC_THROW(Rpc_alloc_signal_source, Signal_source_capability,
-	                 alloc_signal_source, GENODE_TYPE_LIST(Out_of_metadata));
+	                 alloc_signal_source,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
 	GENODE_RPC(Rpc_free_signal_source, void, free_signal_source, Signal_source_capability);
 	GENODE_RPC_THROW(Rpc_alloc_context, Capability<Signal_context>, alloc_context,
-	                 GENODE_TYPE_LIST(Out_of_metadata, Invalid_signal_source),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Invalid_signal_source),
 	                 Signal_source_capability, unsigned long);
 	GENODE_RPC(Rpc_free_context, void, free_context,
 	           Capability<Signal_context>);
 	GENODE_RPC(Rpc_submit, void, submit, Capability<Signal_context>, unsigned);
 
 	GENODE_RPC_THROW(Rpc_alloc_rpc_cap, Native_capability, alloc_rpc_cap,
-	                 GENODE_TYPE_LIST(Out_of_metadata), Native_capability);
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), Native_capability);
 	GENODE_RPC(Rpc_free_rpc_cap, void, free_rpc_cap, Native_capability);
 
 	GENODE_RPC(Rpc_address_space, Capability<Region_map>, address_space);
 	GENODE_RPC(Rpc_stack_area,    Capability<Region_map>, stack_area);
 	GENODE_RPC(Rpc_linker_area,   Capability<Region_map>, linker_area);
+
+	GENODE_RPC_THROW(Rpc_ref_account, void, ref_account,
+	                 GENODE_TYPE_LIST(Invalid_session), Capability<Pd_session>);
+	GENODE_RPC_THROW(Rpc_transfer_cap_quota, void, transfer_quota,
+	                 GENODE_TYPE_LIST(Out_of_caps, Invalid_session, Undefined_ref_account),
+	                 Capability<Pd_session>, Cap_quota);
+	GENODE_RPC(Rpc_cap_quota, Cap_quota, cap_quota);
+	GENODE_RPC(Rpc_used_caps, Cap_quota, used_caps);
 
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
 
@@ -223,7 +279,9 @@ struct Genode::Pd_session : Session
 	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
 	                     Rpc_alloc_context, Rpc_free_context, Rpc_submit,
 	                     Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
-	                     Rpc_stack_area, Rpc_linker_area, Rpc_native_pd);
+	                     Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,
+	                     Rpc_transfer_cap_quota, Rpc_cap_quota, Rpc_used_caps,
+	                     Rpc_native_pd);
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

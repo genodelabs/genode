@@ -152,6 +152,24 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			Ram_quota const remaining_ram_quota { ram_quota.value - needed };
 
 			/*
+			 * Validate that the client provided the amount of caps as mandated
+			 * for the session interface.
+			 */
+			Cap_quota const cap_quota = cap_quota_from_args(args.string());
+
+			if (cap_quota.value < SESSION_TYPE::CAP_QUOTA)
+				throw Insufficient_cap_quota();
+
+			/*
+			 * Account for the dataspace capability needed for allocating the
+			 * session object from the sliced heap.
+			 */
+			if (cap_quota.value < 1)
+				throw Insufficient_cap_quota();
+
+			Cap_quota const remaining_cap_quota { cap_quota.value - 1 };
+
+			/*
 			 * Deduce ram quota needed for allocating the session object from the
 			 * donated ram quota.
 			 */
@@ -162,9 +180,13 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
 			                    "ram_quota", String<64>(remaining_ram_quota).string());
 
+			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
+			                    "cap_quota", String<64>(remaining_cap_quota).string());
+
 			SESSION_TYPE *s = 0;
 			try { s = _create_session(adjusted_args, affinity); }
 			catch (Out_of_ram)  { throw Insufficient_ram_quota(); }
+			catch (Out_of_caps) { throw Insufficient_cap_quota(); }
 
 			/*
 			 * Consider that the session-object constructor may already have
@@ -281,7 +303,9 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		{
 			try {
 				return _create(args, affinity); }
+
 			catch (Insufficient_ram_quota) { throw; }
+			catch (Insufficient_cap_quota) { throw; }
 			catch (...) {
 				throw typename Local_service<SESSION_TYPE>::Factory::Denied(); }
 		}

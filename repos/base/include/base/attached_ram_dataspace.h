@@ -91,6 +91,7 @@ class Genode::Attached_ram_dataspace
 		 * Constructor
 		 *
 		 * \throw Out_of_ram
+		 * \throw Out_of_caps
 		 * \throw Rm_session::Attach_failed
 		 */
 		Attached_ram_dataspace(Ram_session &ram, Region_map &rm,

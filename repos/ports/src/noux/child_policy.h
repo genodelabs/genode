@@ -58,6 +58,8 @@ class Noux::Child_policy : public Genode::Child_policy
 		Parent_exit                        *_parent_exit;
 		File_descriptor_registry           &_file_descriptor_registry;
 		Signal_context_capability           _destruct_context_cap;
+		Pd_session                         &_ref_pd;
+		Pd_session_capability               _ref_pd_cap;
 		Ram_session                        &_ref_ram;
 		Ram_session_capability              _ref_ram_cap;
 		int                                 _exit_value;
@@ -93,6 +95,8 @@ class Noux::Child_policy : public Genode::Child_policy
 		             Parent_exit              *parent_exit,
 		             File_descriptor_registry &file_descriptor_registry,
 		             Signal_context_capability destruct_context_cap,
+		             Pd_session               &ref_pd,
+		             Pd_session_capability     ref_pd_cap,
 		             Ram_session              &ref_ram,
 		             Ram_session_capability    ref_ram_cap,
 		             bool                      verbose)
@@ -109,6 +113,7 @@ class Noux::Child_policy : public Genode::Child_policy
 			_parent_exit(parent_exit),
 			_file_descriptor_registry(file_descriptor_registry),
 			_destruct_context_cap(destruct_context_cap),
+			_ref_pd (ref_pd),  _ref_pd_cap (ref_pd_cap),
 			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
 			_exit_value(~0),
 			_verbose(verbose)
@@ -122,8 +127,10 @@ class Noux::Child_policy : public Genode::Child_policy
 
 		Name name() const override { return _name; }
 
-		Ram_session &ref_ram() override { return _ref_ram; }
+		Pd_session           &ref_pd()           override { return _ref_pd; }
+		Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
 
+		Ram_session           &ref_ram()           override { return _ref_ram; }
 		Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
 
 		void init(Ram_session &session, Ram_session_capability cap) override

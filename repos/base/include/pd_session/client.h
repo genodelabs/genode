@@ -62,6 +62,15 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	Capability<Region_map> linker_area() override {
 		return call<Rpc_linker_area>(); }
 
+	void ref_account(Capability<Pd_session> pd) override {
+		call<Rpc_ref_account>(pd); }
+
+	void transfer_quota(Capability<Pd_session> pd, Cap_quota amount) override {
+		call<Rpc_transfer_cap_quota>(pd, amount); }
+
+	Cap_quota cap_quota() const { return call<Rpc_cap_quota>(); }
+	Cap_quota used_caps() const { return call<Rpc_used_caps>(); }
+
 	Capability<Native_pd> native_pd() override { return call<Rpc_native_pd>(); }
 };
 

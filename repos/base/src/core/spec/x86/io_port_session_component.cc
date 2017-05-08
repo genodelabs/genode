@@ -43,11 +43,6 @@ Io_port_session_component::Io_port_session_component(Range_allocator *io_port_al
 
 	case Range_allocator::Alloc_return::OUT_OF_METADATA:
 		error("I/O port allocator ran out of meta data");
-
-		/*
-		 * Do not throw 'Quota_exceeded' because the client cannot do
-		 * anything about the meta data allocator of I/O ports.
-		 */
 		throw Root::Invalid_args();
 
 	case Range_allocator::Alloc_return::OK: break;
