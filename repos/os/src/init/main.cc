@@ -276,11 +276,11 @@ void Init::Main::_handle_config()
 
 	_destroy_abandoned_parent_services();
 
-	/* initial RAM limit before starting new children */
-	Ram_quota const avail_ram = _avail_ram();
+	/* initial RAM and caps limit before starting new children */
+	Ram_quota const avail_ram  = _avail_ram();
 
-	/* variable used to track the RAM taken by new started children */
-	Ram_quota used_ram { 0 };
+	/* variable used to track the RAM and caps taken by new started children */
+	Ram_quota used_ram  { 0 };
 
 	/* create new children */
 	try {
@@ -324,8 +324,8 @@ void Init::Main::_handle_config()
 				 * by the Rom_connection constructor.
 				 */
 			}
-			catch (Allocator::Out_of_memory) {
-				warning("local memory exhausted during child creation"); }
+			catch (Out_of_ram) {
+				warning("memory exhausted during child creation"); }
 			catch (Ram_session::Alloc_failed) {
 				warning("failed to allocate memory during child construction"); }
 			catch (Child::Missing_name_attribute) {

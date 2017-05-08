@@ -12,82 +12,9 @@
  */
 
 #include <base/child.h>
+#include <base/quota_transfer.h>
 
 using namespace Genode;
-
-
-/***************
- ** Utilities **
- ***************/
-
-namespace {
-
-		/**
-		 * Guard for transferring quota donation
-		 *
-		 * This class is used to provide transactional semantics of quota
-		 * transfers. Establishing a new session involves several steps, in
-		 * particular subsequent quota transfers. If one intermediate step
-		 * fails, we need to revert all quota transfers that already took
-		 * place. When instantated at a local scope, a 'Transfer' object guards
-		 * a quota transfer. If the scope is left without prior an explicit
-		 * acknowledgement of the transfer (for example via an exception), the
-		 * destructor the 'Transfer' object reverts the transfer in flight.
-		 */
-		class Transfer {
-
-			bool                   _ack;
-			Ram_quota              _quantum;
-			Ram_session_capability _from;
-			Ram_session_capability _to;
-
-			public:
-
-				class Quota_exceeded : Exception { };
-
-				/**
-				 * Constructor
-				 *
-				 * \param quantim  number of bytes to transfer
-				 * \param from     donator RAM session
-				 * \param to       receiver RAM session
-				 *
-				 * \throw Quota_exceeded
-				 */
-				Transfer(Ram_quota quantum,
-				         Ram_session_capability from,
-				         Ram_session_capability to)
-				: _ack(false), _quantum(quantum), _from(from), _to(to)
-				{
-					if (!_from.valid() || !_to.valid())
-						return;
-
-					try { Ram_session_client(_from).transfer_quota(_to, quantum); }
-					catch (...) {
-						warning("not enough quota for a donation of ", quantum, " bytes");
-						throw Quota_exceeded();
-					}
-				}
-
-				/**
-				 * Destructor
-				 *
-				 * The destructor will be called when leaving the scope of the
-				 * 'session' function. If the scope is left because of an error
-				 * (e.g., an exception), the donation will be reverted.
-				 */
-				~Transfer()
-				{
-					if (!_ack && _from.valid() && _to.valid())
-						Ram_session_client(_to).transfer_quota(_from, _quantum);
-				}
-
-				/**
-				 * Acknowledge quota donation
-				 */
-				void acknowledge() { _ack = true; }
-		};
-}
 
 
 /***********
@@ -270,12 +197,14 @@ Session_capability Child::session(Parent::Client::Id id,
 	session.closed_callback = this;
 
 	try {
+		Ram_transfer::Remote_account ref_ram_account { _policy.ref_ram(), _policy.ref_ram_cap() };
+		Ram_transfer::Remote_account ram_account { ram(), ram_session_cap() };
+
 		/* transfer the quota donation from the child's account to ourself */
-		Transfer donation_from_child(ram_quota, _ram.cap(), _policy.ref_ram_cap());
+		Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
 
 		/* transfer session quota from ourself to the service provider */
-		Transfer donation_to_service(forward_ram_quota, _policy.ref_ram_cap(),
-		                             service.ram());
+		Ram_transfer ram_donation_to_service(forward_ram_quota, ref_ram_account, service);
 
 		/* try to dispatch session request synchronously */
 		service.initiate_request(session);
@@ -291,13 +220,13 @@ Session_capability Child::session(Parent::Client::Id id,
 		}
 
 		/* finish transaction */
-		donation_from_child.acknowledge();
-		donation_to_service.acknowledge();
+		ram_donation_from_child.acknowledge();
+		ram_donation_to_service.acknowledge();
 	}
-	catch (Transfer::Quota_exceeded) {
-		/*
-		 * Release session meta data if one of the quota transfers went wrong.
-		 */
+	/*
+	 * Release session meta data if one of the quota transfers went wrong.
+	 */
+	catch (Ram_transfer::Quota_exceeded) {
 		session.destroy();
 		throw Out_of_ram();
 	}
@@ -386,12 +315,14 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0) };
 
 		try {
+			Ram_transfer::Remote_account ref_ram_account { _policy.ref_ram(), _policy.ref_ram_cap() };
+			Ram_transfer::Remote_account ram_account { ram(), ram_session_cap() };
+
 			/* transfer quota from client to ourself */
-			Transfer donation_from_child(ram_quota, _ram.cap(), _policy.ref_ram_cap());
+			Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
 
 			/* transfer session quota from ourself to the service provider */
-			Transfer donation_to_service(ram_quota, _policy.ref_ram_cap(),
-			                             session.service().ram());
+			Ram_transfer ram_donation_to_service(ram_quota, ref_ram_account, session.service());
 
 			session.increase_donated_quota(ram_quota);
 			session.phase = Session_state::UPGRADE_REQUESTED;
@@ -399,11 +330,11 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			session.service().initiate_request(session);
 
 			/* finish transaction */
-			donation_from_child.acknowledge();
-			donation_to_service.acknowledge();
+			ram_donation_from_child.acknowledge();
+			ram_donation_to_service.acknowledge();
 		}
-		catch (Transfer::Quota_exceeded) {
-			warning(_policy.name(), ": upgrade of ", session.service().name(), " failed");
+		catch (Ram_transfer::Quota_exceeded) {
+			warning(_policy.name(), ": RAM upgrade of ", session.service().name(), " failed");
 			throw Out_of_ram();
 		}
 
@@ -422,10 +353,14 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 
 void Child::_revert_quota_and_destroy(Session_state &session)
 {
+	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_ram(), _policy.ref_ram_cap());
+	Ram_transfer::Account     &service_ram_account = session.service();
+	Ram_transfer::Remote_account child_ram_account(ram(), ram_session_cap());
+
 	try {
 		/* transfer session quota from the service to ourself */
-		Transfer donation_from_service(session.donated_ram_quota(),
-		                               session.service().ram(), _policy.ref_ram_cap());
+		Ram_transfer ram_donation_from_service(session.donated_ram_quota(),
+		                                       service_ram_account, ref_ram_account);
 
 		/*
 		 * Transfer session quota from ourself to the client (our child). In
@@ -433,15 +368,19 @@ void Child::_revert_quota_and_destroy(Session_state &session)
 		 * quota that we preserved for locally storing the session meta data
 		 * ('session_costs').
 		 */
-		Transfer donation_to_client(Ram_quota{session.donated_ram_quota().value +
-		                                      _session_factory.session_costs()},
-		                            _policy.ref_ram_cap(), ram_session_cap());
+		Ram_quota const returned_ram { session.donated_ram_quota().value +
+		                               _session_factory.session_costs() };
+
+		Ram_transfer ram_donation_to_client(returned_ram,
+		                                    ref_ram_account, child_ram_account);
 		/* finish transaction */
-		donation_from_service.acknowledge();
-		donation_to_client.acknowledge();
+		ram_donation_from_service.acknowledge();
+		ram_donation_to_client.acknowledge();
 	}
-	catch (Transfer::Quota_exceeded) {
-		warning(_policy.name(), ": could not revert session quota (", session, ")"); }
+	catch (Ram_transfer::Quota_exceeded) {
+		warning(_policy.name(), ": could not revert session RAM quota (", session, ")"); }
+	catch (Cap_transfer::Quota_exceeded) {
+		warning(_policy.name(), ": could not revert session cap quota (", session, ")"); }
 
 	session.destroy();
 	_policy.session_state_changed();

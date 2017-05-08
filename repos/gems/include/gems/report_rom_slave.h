@@ -50,10 +50,12 @@ class Report_rom_slave : public Genode::Noncopyable
 
 				Policy(Genode::Rpc_entrypoint        &ep,
 				       Genode::Region_map            &rm,
-				       Genode::Ram_session_capability ram,
+				       Genode::Ram_session           &ref_ram,
+				       Genode::Ram_session_capability ref_ram_cap,
 				       const char                    *config)
 				:
-					Genode::Slave::Policy(_name(), _name(), *this, ep, rm, ram, _quota())
+					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
+					                      ref_ram, ref_ram_cap,  _quota())
 				{
 					if (config)
 						configure(config);
@@ -76,11 +78,12 @@ class Report_rom_slave : public Genode::Noncopyable
 		 */
 		Report_rom_slave(Genode::Pd_session             &pd,
 		                 Genode::Region_map             &rm,
-		                 Genode::Ram_session_capability  ram,
+		                 Genode::Ram_session            &ram,
+		                 Genode::Ram_session_capability  ram_cap,
 		                 char                     const *config)
 		:
 			_ep(&pd, _ep_stack_size, "report_rom"),
-			_policy(_ep, rm, ram, config),
+			_policy(_ep, rm, ram, ram_cap, config),
 			_child(rm, _ep, _policy)
 		{ }
 

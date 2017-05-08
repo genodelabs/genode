@@ -78,7 +78,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		                              Rpc_entrypoint &ep,
 		                              Ram_session    *ram)
 		:
-			Service("ROM", Ram_session_capability()),
+			Service("ROM"),
 			_ram(ram), _rm(rm),
 			_fg(*_ram, _rm, 0), _bg(*_ram, _rm, 0),
 			_bg_has_pending_data(false),
@@ -101,7 +101,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		                              Rpc_entrypoint &ep,
 		                              Ram_session    *ram) __attribute__((deprecated))
 		:
-			Service("ROM", Ram_session_capability()),
+			Service("ROM"),
 			_ram(ram), _rm(*env_deprecated()->rm_session()),
 			_fg(*_ram, _rm, 0), _bg(*_ram, _rm, 0),
 			_bg_has_pending_data(false),

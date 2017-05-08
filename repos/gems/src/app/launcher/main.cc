@@ -43,7 +43,8 @@ struct Launcher::Main
 		"</config>";
 
 	Report_rom_slave _report_rom_slave {
-		_env.pd(), _env.rm(), _env.ram_session_cap(), _report_rom_config };
+		_env.pd(), _env.rm(), _env.ram(), _env.ram_session_cap(),
+		_report_rom_config };
 
 	/**
 	 * Nitpicker session used to perform session-control operations on the

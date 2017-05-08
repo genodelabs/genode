@@ -317,12 +317,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				 */
 				Device_pd(Genode::Region_map            &local_rm,
 				          Genode::Rpc_entrypoint        &ep,
-				          Genode::Ram_session_guard     &guard,
-				          Genode::Ram_session_capability ref_ram,
+				          Genode::Ram_session_guard     &ref_ram,
+				          Genode::Ram_session_capability ref_ram_cap,
 				          Genode::Session_label   const &label)
 				try :
-					_reservation(guard, RAM_QUOTA),
-					_policy(ep, local_rm, ref_ram, Genode::Ram_quota{RAM_QUOTA}, label),
+					_reservation(ref_ram, RAM_QUOTA),
+					_policy(ep, local_rm,
+					        ref_ram, ref_ram_cap, Genode::Ram_quota{RAM_QUOTA}, label),
 					_child(local_rm, ep, _policy),
 					_connection(_policy, Genode::Slave::Args())
 				{ }

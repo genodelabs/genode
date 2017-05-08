@@ -445,7 +445,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				Env_service(Child &child, Service &service)
 				:
-					Genode::Service(CONNECTION::service_name(), service.ram()),
+					Genode::Service(CONNECTION::service_name()),
 					_child(child), _service(service)
 				{ }
 
@@ -469,6 +469,23 @@ class Genode::Child : protected Rpc_object<Parent>,
 					_child._try_construct_env_dependent_members();
 				}
 
+				/**
+				 * Service (Ram_transfer::Account) interface
+				 */
+				void transfer(Ram_session_capability to, Ram_quota amount) override
+				{
+					Ram_transfer::Account &from = _service;
+					from.transfer(to, amount);
+				}
+
+				/**
+				 * Service (Ram_transfer::Account) interface
+				 */
+				Ram_session_capability cap(Ram_quota) const override
+				{
+					Ram_transfer::Account &to = _service;
+					return to.cap(Ram_quota());
+				}
 				void wakeup() override { _service.wakeup(); }
 
 				bool operator == (Service const &other) const override

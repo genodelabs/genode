@@ -31,8 +31,7 @@
 
 namespace Init { class Child; }
 
-
-class Init::Child : Child_policy, Child_service::Wakeup
+class Init::Child : Child_policy, Routed_service::Wakeup
 {
 	public:
 
@@ -170,7 +169,7 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		void _check_ram_constraints(Ram_quota ram_limit)
 		{
 			if (_resources.effective_ram_quota().value == 0)
-				warning("no valid RAM RESOURCE for child \"", _unique_name, "\"");
+				warning(name(), ": no valid RAM quota defined");
 
 			/*
 			 * If the configured RAM quota exceeds our own quota, we donate
@@ -256,10 +255,10 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		struct Requested_resources
 		{
 			Ram_quota const ram;
+
 			Requested_resources(Parent::Resource_args const &args)
 			:
-				ram(Ram_quota { Arg_string::find_arg(args.string(), "ram_quota")
-				                                    .ulong_value(0) })
+				ram (ram_quota_from_args(args.string()))
 			{ }
 		};
 
@@ -270,15 +269,18 @@ class Init::Child : Child_policy, Child_service::Wakeup
 		struct Ram_accessor : Routed_service::Ram_accessor
 		{
 			Genode::Child &_child;
+
 			Ram_accessor(Genode::Child &child) : _child(child) { }
-			Ram_session_capability ram() const override {
-				return _child.ram_session_cap(); }
+
+			Ram_session           &ram()           override { return _child.ram(); }
+			Ram_session_capability ram_cap() const override { return _child.ram_session_cap(); }
+
 		} _ram_accessor { _child };
 
 		/**
-		 * Child_service::Wakeup callback
+		 * Async_service::Wakeup callback
 		 */
-		void wakeup_child_service() override
+		void wakeup_async_service() override
 		{
 			_session_requester.trigger_update();
 		}
@@ -340,7 +342,8 @@ class Init::Child : Child_policy, Child_service::Wakeup
 				log("  provides service ", name);
 
 			new (_alloc)
-				Routed_service(_child_services, this->name(), _ram_accessor,
+				Routed_service(_child_services, this->name(),
+				               _ram_accessor,
 				               _session_requester.id_space(),
 				               _child.session_factory(),
 				               name, *this);

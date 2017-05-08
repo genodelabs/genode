@@ -52,10 +52,12 @@ class Launcher::Nit_fader_slave
 
 				Policy(Rpc_entrypoint         &ep,
 				       Region_map             &rm,
-				       Ram_session_capability  ram,
+				       Ram_session            &ref_ram,
+				       Ram_session_capability  ref_ram_cap,
 				       Genode::Service        &nitpicker_service)
 				:
-					Genode::Slave::Policy(_name(), _name(), *this, ep, rm, ram, _quota()),
+					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
+					                      ref_ram, ref_ram_cap, _quota()),
 					_nitpicker_service(nitpicker_service)
 				{
 					visible(false);
@@ -87,16 +89,17 @@ class Launcher::Nit_fader_slave
 		/**
 		 * Constructor
 		 *
-		 * \param ep   entrypoint used for nitpicker child thread
-		 * \param ram  RAM session used to allocate the configuration
-		 *             dataspace
+		 * \param ep       entrypoint used for nitpicker child thread
+		 * \param ref_ram  RAM session used to allocate the configuration
+		 *                 dataspace and child memory
 		 */
 		Nit_fader_slave(Rpc_entrypoint        &ep,
 		                Genode::Region_map    &rm,
-		                Ram_session_capability ram,
+		                Ram_session           &ref_ram,
+		                Ram_session_capability ref_ram_cap,
 		                Genode::Service       &nitpicker_service)
 		:
-			_policy(ep, rm, ram, nitpicker_service),
+			_policy(ep, rm, ref_ram, ref_ram_cap, nitpicker_service),
 			_child(rm, ep, _policy)
 		{
 			visible(false);
