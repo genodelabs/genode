@@ -287,12 +287,7 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 				xml.attribute("assigned", String<32> {
 					Number_of_bytes(_resources.assigned_ram_quota.value) });
 
-				/*
-				 * The const cast is needed because there is no const
-				 * accessor for the RAM session of the child.
-				 */
-				auto &nonconst_child = const_cast<Genode::Child &>(_child);
-				generate_ram_info(xml, nonconst_child.ram());
+				generate_ram_info(xml, _child.ram());
 
 				if (_requested_resources.constructed())
 					xml.attribute("requested", String<32> {
