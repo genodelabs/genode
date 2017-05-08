@@ -3,9 +3,6 @@
  * \author Norman Feske
  * \author Christian Helmuth
  * \date   2006-07-28
- *
- * The Core-specific environment ensures that all sessions of Core's
- * environment a local.
  */
 
 /*
@@ -18,13 +15,15 @@
 #ifndef _CORE__INCLUDE__CORE_ENV_H_
 #define _CORE__INCLUDE__CORE_ENV_H_
 
+/* Genode includes */
+#include <base/service.h>
+
 /* core includes */
 #include <platform.h>
 #include <core_parent.h>
 #include <core_pd_session.h>
 #include <ram_session_component.h>
 #include <core_pd_session.h>
-#include <base/service.h>
 
 /* base-internal includes */
 #include <base/internal/platform_env.h>
@@ -34,36 +33,21 @@ namespace Genode { void init_stack_area(); }
 namespace Genode {
 
 	/**
-	 * Lock-guarded version of a RAM-session implementation
+	 * Lock-guarded wrapper for a RAM session
 	 *
-	 * \param RAM_SESSION_IMPL  non-thread-safe RAM-session class
-	 *
-	 * In contrast to normal processes, core's 'env()->ram_session()' is not
-	 * synchronized by an RPC interface. However, it is accessed by different
-	 * threads using the 'env()->heap()' and the sliced heap used for
-	 * allocating sessions to core's services.
+	 * In contrast to regular components, core's RAM session is not
+	 * synchronized via the RPC entrypoint.
 	 */
-	template <typename RAM_SESSION_IMPL>
-	class Synchronized_ram_session : public RAM_SESSION_IMPL
+	class Synced_ram_session : public Ram_session
 	{
 		private:
 
 			Lock mutable _lock;
+			Ram_session &_ram_session;
 
 		public:
 
-			/**
-			 * Constructor
-			 */
-			Synchronized_ram_session(Rpc_entrypoint  *ds_ep,
-			                         Rpc_entrypoint  *ram_session_ep,
-			                         Range_allocator *ram_alloc,
-			                         Allocator       *md_alloc,
-			                         const char      *args,
-			                         size_t           quota_limit = 0)
-			:
-				RAM_SESSION_IMPL(ds_ep, ram_session_ep, ram_alloc, md_alloc, args, quota_limit)
-			{ }
+			Synced_ram_session(Ram_session &ram_session) : _ram_session(ram_session) { }
 
 
 			/***************************
@@ -73,77 +57,52 @@ namespace Genode {
 			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::alloc(size, cached);
+				return _ram_session.alloc(size, cached);
 			}
 
 			void free(Ram_dataspace_capability ds) override
 			{
 				Lock::Guard lock_guard(_lock);
-				RAM_SESSION_IMPL::free(ds);
+				_ram_session.free(ds);
 			}
 
 			size_t dataspace_size(Ram_dataspace_capability ds) const override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::dataspace_size(ds);
+				return _ram_session.dataspace_size(ds);
 			}
 
 			void ref_account(Ram_session_capability session) override
 			{
 				Lock::Guard lock_guard(_lock);
-				RAM_SESSION_IMPL::ref_account(session);
+				_ram_session.ref_account(session);
 			}
 
 			void transfer_quota(Ram_session_capability session, Ram_quota amount) override
 			{
 				Lock::Guard lock_guard(_lock);
-				RAM_SESSION_IMPL::transfer_quota(session, amount);
+				_ram_session.transfer_quota(session, amount);
 			}
 
 			Ram_quota ram_quota() const override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::ram_quota();
+				return _ram_session.ram_quota();
 			}
 
 			Ram_quota used_ram() const override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::used_ram();
+				return _ram_session.used_ram();
 			}
 	};
 
 
 	class Core_env : public Platform_env_base
 	{
-		public:
-
-			/**
-			 * Entrypoint with support for local object access
-			 *
-			 * Within core, there are a few cases where the RPC objects must
-			 * be invoked by direct function calls instead of using RPC.
-			 * I.e., when an entrypoint dispatch function performs a memory
-			 * allocation via the 'Sliced_heap', the 'attach' function of
-			 * 'Rm_session_mmap' tries to obtain the dataspace's size and fd.
-			 * Normally, this would be done by calling the entrypoint but the
-			 * entrypoint cannot call itself. To support this special case,
-			 * the 'Entrypoint' extends the 'Rpc_entrypoint' with the
-			 * functionality needed to lookup an RPC object by its capability.
-			 */
-			struct Entrypoint : Rpc_entrypoint
-			{
-				enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
-
-				Entrypoint()
-				:
-					Rpc_entrypoint(nullptr, STACK_SIZE, "entrypoint")
-				{ }
-			};
-
 		private:
 
-			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
+			enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
 			/*
 			 * Initialize the stack area before creating the first thread,
@@ -152,8 +111,11 @@ namespace Genode {
 			bool _init_stack_area() { init_stack_area(); return true; }
 			bool _stack_area_initialized = _init_stack_area();
 
-			Entrypoint                   _entrypoint;
-			Core_ram_session             _ram_session;
+			Rpc_entrypoint        _entrypoint { nullptr, STACK_SIZE, "entrypoint" };
+			Ram_session_component _ram_session;
+			Synced_ram_session    _synced_ram_session { _ram_session };
+
+			Ram_session_capability const _ram_session_cap;
 
 			/*
 			 * The core-local PD session is provided by a real RPC object
@@ -165,10 +127,9 @@ namespace Genode {
 			Core_pd_session_component _pd_session_component;
 			Pd_session_client         _pd_session_client;
 
-			Heap                         _heap;
-			Ram_session_capability const _ram_session_cap;
-
 			Registry<Service> _services;
+
+			Heap _heap { _synced_ram_session, *Platform_env_base::rm_session() };
 
 			Core_parent _core_parent { _heap, _services };
 
@@ -185,10 +146,9 @@ namespace Genode {
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),
 				             "ram_quota=4M", platform()->ram_alloc()->avail()),
-				_pd_session_component(_entrypoint /* XXX use a different entrypoint */),
-				_pd_session_client(_entrypoint.manage(&_pd_session_component)),
-				_heap(&_ram_session, Platform_env_base::rm_session()),
-				_ram_session_cap(_entrypoint.manage(&_ram_session))
+				_ram_session_cap(_entrypoint.manage(&_ram_session)),
+				_pd_session_component(_entrypoint),
+				_pd_session_client(_entrypoint.manage(&_pd_session_component))
 			{ }
 
 			/**
@@ -197,11 +157,7 @@ namespace Genode {
 			~Core_env() { parent()->exit(0); }
 
 
-			/**************************************
-			 ** Core-specific accessor functions **
-			 **************************************/
-
-			Entrypoint  *entrypoint()  { return &_entrypoint; }
+			Rpc_entrypoint *entrypoint() { return &_entrypoint; }
 
 
 			/******************************
@@ -209,10 +165,10 @@ namespace Genode {
 			 ******************************/
 
 			Parent                 *parent()          override { return &_core_parent; }
-			Ram_session            *ram_session()     override { return &_ram_session; }
-			Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
+			Ram_session            *ram_session()     override { return &_synced_ram_session; }
+			Ram_session_capability  ram_session_cap() override { return  _ram_session.cap(); }
 			Pd_session             *pd_session()      override { return &_pd_session_client; }
-			Allocator              *heap()            override { return &_heap; }
+			Allocator              *heap()            override { log(__func__, ": not implemented"); return nullptr; }
 
 			Cpu_session_capability cpu_session_cap() override
 			{
