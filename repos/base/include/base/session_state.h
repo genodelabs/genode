@@ -79,7 +79,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 		enum Phase { CREATE_REQUESTED,
 		             INVALID_ARGS,
-		             QUOTA_EXCEEDED,
+		             INSUFFICIENT_RAM_QUOTA,
 		             AVAILABLE,
 		             CAP_HANDED_OUT,
 		             UPGRADE_REQUESTED,
@@ -185,7 +185,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 
 			case CREATE_REQUESTED:
 			case INVALID_ARGS:
-			case QUOTA_EXCEEDED:
+			case INSUFFICIENT_RAM_QUOTA:
 			case CLOSED:
 				return false;
 

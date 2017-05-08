@@ -253,7 +253,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			enum { OVERHEAD = 4096 };
 			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{OVERHEAD}); }
-			catch (...) { throw Genode::Root::Quota_exceeded(); }
+			catch (...) { throw Genode::Insufficient_ram_quota(); }
 		}
 
 		bool const _ram_initialized = (_init_ram(), true);
@@ -331,7 +331,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				/* thrown by 'Device_pd_policy' or 'Child' */
 				catch (Genode::Ram_session::Alloc_failed) { throw Out_of_metadata(); }
 				/* throw by 'Slave::Connection' */
-				catch (Genode::Parent::Quota_exceeded) { throw Out_of_metadata(); }
+				catch (Genode::Insufficient_ram_quota) { throw Out_of_metadata(); }
 
 				Device_pd_client &session() { return _connection; }
 

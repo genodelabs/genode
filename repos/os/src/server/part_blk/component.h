@@ -266,7 +266,7 @@ class Block::Root :
 			                          sizeof(Session_component)
 			                          + sizeof(Allocator_avl));
 			if (ram_quota < session_size)
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 
 			/*
 			 * Check if donated ram quota suffices for both
@@ -276,7 +276,7 @@ class Block::Root :
 			if (tx_buf_size > ram_quota - session_size) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
 				     tx_buf_size + session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			Ram_dataspace_capability ds_cap;

@@ -822,12 +822,12 @@ class Usb::Root : public Genode::Root_component<Session_component>
 				/* check session quota */
 				size_t session_size = max<size_t>(4096, sizeof(Session_component));
 				if (ram_quota < session_size)
-					throw Root::Quota_exceeded();
+					throw Insufficient_ram_quota();
 
 				if (tx_buf_size > ram_quota - session_size) {
 					error("Insufficient 'ram_quota',got ", ram_quota, " need ",
-						    tx_buf_size + session_size);
-					throw Root::Quota_exceeded();
+					      tx_buf_size + session_size);
+					throw Insufficient_ram_quota();
 				}
 
 				Ram_dataspace_capability tx_ds = _env.ram().alloc(tx_buf_size);

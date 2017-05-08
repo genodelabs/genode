@@ -68,13 +68,13 @@ struct Genode::Local_connection_base : Noncopyable
 
 				_session_state->service().initiate_request(*_session_state);
 
-				if (_session_state->phase == Session_state::QUOTA_EXCEEDED)
+				if (_session_state->phase == Session_state::INSUFFICIENT_RAM_QUOTA)
 					ram_quota += 4096;
 				else
 					break;
 			}
 
-			if (_session_state->phase == Session_state::QUOTA_EXCEEDED)
+			if (_session_state->phase == Session_state::INSUFFICIENT_RAM_QUOTA)
 				warning("giving up to increase session quota for ", service.name(), " session "
 				        "after ", (int)NUM_ATTEMPTS, " attempts");
 		}

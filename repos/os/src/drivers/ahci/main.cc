@@ -113,7 +113,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 			if (max((size_t)4096, session_size) > ram_quota) {
 				error("insufficient 'ram_quota' from '", label, "',"
 				      " got ", ram_quota, ", need ", session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			/* Search for configured device */

@@ -1039,7 +1039,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			if (ram_quota < required_quota) {
 				Genode::warning("Insufficient dontated ram_quota (", ram_quota,
 				                " bytes), require ", required_quota, " bytes");
-				throw Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 			}
 
 			size_t const unused_quota = ram_quota - required_quota;

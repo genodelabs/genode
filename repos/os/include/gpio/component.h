@@ -133,7 +133,7 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 				Genode::warning("insufficient dontated ram_quota "
 				                "(", ram_quota, " bytes), "
 				                "require ", sizeof(Session_component), " bytes");
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 			}
 
 			return new (md_alloc()) Session_component(_ep, _driver, pin);

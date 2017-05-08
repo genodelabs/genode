@@ -142,7 +142,7 @@ class Iso::Root : public Iso::Root_component
 				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			size_t session_size =  sizeof(Rom_component) + sizeof(File_info);
 			if (ram_quota < session_size)
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 
 			Session_label const label = label_from_args(args);
 			strncpy(_path, label.last_element().string(), sizeof(_path));

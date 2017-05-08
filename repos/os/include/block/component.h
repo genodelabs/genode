@@ -270,7 +270,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 			                          sizeof(Session_component)
 			                          + sizeof(Allocator_avl));
 			if (ram_quota < session_size)
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 
 			/*
 			 * Check if donated ram quota suffices for both
@@ -280,7 +280,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 			if (tx_buf_size > ram_quota - session_size) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
 				     tx_buf_size + session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			return new (md_alloc()) Session_component(_driver_factory,

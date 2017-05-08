@@ -397,7 +397,7 @@ class File_system::Root : public Root_component<Session_component>
 			if (session_size > ram_quota) {
 				Genode::error("insufficient 'ram_quota' from ", label.string(),
 				              " got ", ram_quota, "need ", session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 			ram_quota -= session_size;
 

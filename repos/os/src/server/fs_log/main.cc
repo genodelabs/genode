@@ -70,7 +70,7 @@ class Fs_log::Root_component :
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota").aligned_size();
 			if (ram_quota < sizeof(Session_component))
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 
 			Path dir_path;
 			char file_name[MAX_NAME_LEN];

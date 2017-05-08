@@ -112,7 +112,7 @@ class Genode::Expanding_parent_client : public Parent_client
 			 * caller to issue (and respond to) a resource request.
 			 */
 			enum { NUM_ATTEMPTS = 2 };
-			return retry<Parent::Quota_exceeded>(
+			return retry<Out_of_ram>(
 				[&] () { return Parent_client::upgrade(id, args); },
 				[&] () { resource_request(Resource_args(args.string())); },
 				NUM_ATTEMPTS);

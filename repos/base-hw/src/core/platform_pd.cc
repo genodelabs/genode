@@ -38,7 +38,7 @@ void * Hw::Address_space::_table_alloc()
 	void * ret;
 	if (!_cma()->alloc_aligned(sizeof(Page_table), (void**)&ret,
 	                           Page_table::ALIGNM_LOG2).ok())
-		throw Root::Quota_exceeded();
+		throw Insufficient_ram_quota();
 	return ret;
 }
 

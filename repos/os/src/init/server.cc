@@ -184,7 +184,7 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		size_t const keep_quota = route.service.factory().session_costs();
 
 		if (ram_quota.value < keep_quota)
-			throw Genode::Service::Quota_exceeded();
+			throw Genode::Insufficient_ram_quota();
 
 		Ram_quota const forward_ram_quota { ram_quota.value - keep_quota };
 
@@ -223,13 +223,13 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		if (session.phase == Session_state::INVALID_ARGS)
 			throw Parent::Service_denied();
 
-		if (session.phase == Session_state::QUOTA_EXCEEDED)
-			throw Genode::Service::Quota_exceeded();
+		if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA)
+			throw Genode::Insufficient_ram_quota();
 	}
 	catch (Parent::Service_denied) {
 		_env.parent().session_response(Parent::Server::Id { id.value }, Parent::INVALID_ARGS); }
-	catch (Genode::Service::Quota_exceeded) {
-		_env.parent().session_response(Parent::Server::Id { id.value }, Parent::QUOTA_EXCEEDED); }
+	catch (Genode::Insufficient_ram_quota) {
+		_env.parent().session_response(Parent::Server::Id { id.value }, Parent::INSUFFICIENT_RAM_QUOTA); }
 }
 
 

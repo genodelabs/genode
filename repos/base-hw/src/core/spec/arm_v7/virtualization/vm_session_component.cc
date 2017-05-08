@@ -83,7 +83,7 @@ void * Vm_session_component::_alloc_table()
 	if (!cma()->alloc_aligned(sizeof(Table), (void**)&table,
 	                          Table::ALIGNM_LOG2).ok()) {
 		error("failed to allocate kernel object");
-		throw Root::Quota_exceeded();
+		throw Insufficient_ram_quota();
 	}
 	return table;
 }

@@ -219,7 +219,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			/* deplete ram quota by the memory needed for the session structure */
 			size_t session_size = max(4096UL, (unsigned long)sizeof(Openvpn_component));
 			if (ram_quota < session_size)
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 
 			/*
 			 * Check if donated ram quota suffices for both communication
@@ -229,7 +229,7 @@ class Root : public Genode::Root_component<Openvpn_component, Genode::Single_cli
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
 				Genode::error("insufficient 'ram_quota', got %ld, need %ld",
 				              ram_quota, tx_buf_size + rx_buf_size + session_size);
-				throw Genode::Root::Quota_exceeded();
+				throw Genode::Insufficient_ram_quota();
 			}
 
 			Openvpn_component *component = new (Root::md_alloc())

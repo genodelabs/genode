@@ -156,7 +156,7 @@ class Nic_loopback::Root : public Root_component<Session_component>
 			/* deplete ram quota by the memory needed for the session structure */
 			size_t session_size = max(4096UL, (size_t)sizeof(Session_component));
 			if (ram_quota < session_size)
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 
 			/*
 			 * Check if donated ram quota suffices for both communication
@@ -166,7 +166,7 @@ class Nic_loopback::Root : public Root_component<Session_component>
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", "
 				      "need ", tx_buf_size + rx_buf_size + session_size);
-				throw Root::Quota_exceeded();
+				throw Insufficient_ram_quota();
 			}
 
 			return new (md_alloc()) Session_component(tx_buf_size, rx_buf_size,
