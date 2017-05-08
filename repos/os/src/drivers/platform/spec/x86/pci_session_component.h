@@ -252,8 +252,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_ram.ref_account(_env_ram_cap);
 
 			enum { OVERHEAD = 4096 };
-			if (_env_ram.transfer_quota(_ram, Genode::Ram_quota{OVERHEAD}) != 0)
-				throw Genode::Root::Quota_exceeded();
+			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{OVERHEAD}); }
+			catch (...) { throw Genode::Root::Quota_exceeded(); }
 		}
 
 		bool const _ram_initialized = (_init_ram(), true);
@@ -942,8 +942,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_try_init_device_pd();
 
 			/* transfer ram quota to session specific ram session */
-			if (_env_ram.transfer_quota<Out_of_metadata>(_ram, size))
-				throw Fatal();
+			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{size}); }
+			catch (...) { throw Fatal(); }
 
 			enum { UPGRADE_QUOTA = 4096 };
 
@@ -971,7 +971,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					 * It is therefore enough to increase the quota in
 					 * UPGRADE_QUOTA steps.
 					 */
-					_env_ram.transfer_quota<Out_of_metadata>(_ram, UPGRADE_QUOTA);
+					try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{UPGRADE_QUOTA}); }
+					catch (...) { throw Out_of_metadata(); }
 				});
 
 			if (!ram_cap.valid())
@@ -984,12 +985,14 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						if (!_env_ram.withdraw(UPGRADE_QUOTA))
 							_rollback(size, ram_cap);
 
-						if (_env_ram.transfer_quota(_ram, Genode::Ram_quota{UPGRADE_QUOTA}))
-							throw Fatal();
+						using namespace Genode;
 
-						if (_ram.transfer_quota(_device_pd->ram_session_cap(),
-						                        Genode::Ram_quota{UPGRADE_QUOTA}))
-							throw Fatal();
+						try { _env_ram.transfer_quota(_ram, Ram_quota{UPGRADE_QUOTA}); }
+						catch (...) { throw Fatal(); }
+
+						try { _ram.transfer_quota(_device_pd->ram_session_cap(),
+						                          Ram_quota{UPGRADE_QUOTA}); }
+						catch (...) { throw Fatal(); }
 					});
 			}
 

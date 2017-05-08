@@ -3,9 +3,6 @@
  * \author Norman Feske
  * \author Christian Helmuth
  * \date   2006-07-28
- *
- * The Core-specific environment ensures that all sessions of Core's
- * environment a local (_component) not remote (_client).
  */
 
 /*
@@ -73,14 +70,15 @@ namespace Genode {
 			 ** RAM-session interface **
 			 ***************************/
 
-			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached)
+			Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
 			{
 				Lock::Guard lock_guard(_lock);
 				return RAM_SESSION_IMPL::alloc(size, cached);
 			}
 
-			void free(Ram_dataspace_capability ds)
+			void free(Ram_dataspace_capability ds) override
 			{
+				Lock::Guard lock_guard(_lock);
 				RAM_SESSION_IMPL::free(ds);
 			}
 
@@ -90,16 +88,16 @@ namespace Genode {
 				return RAM_SESSION_IMPL::dataspace_size(ds);
 			}
 
-			int ref_account(Ram_session_capability session)
+			void ref_account(Ram_session_capability session) override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::ref_account(session);
+				RAM_SESSION_IMPL::ref_account(session);
 			}
 
-			int transfer_quota(Ram_session_capability session, Ram_quota size)
+			void transfer_quota(Ram_session_capability session, Ram_quota amount) override
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::transfer_quota(session, size);
+				RAM_SESSION_IMPL::transfer_quota(session, amount);
 			}
 
 			Ram_quota ram_quota() const override

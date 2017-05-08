@@ -59,8 +59,11 @@ namespace {
 				         Ram_session_capability to)
 				: _ack(false), _quantum(quantum), _from(from), _to(to)
 				{
-					if (_from.valid() && _to.valid() &&
-					    Ram_session_client(_from).transfer_quota(_to, quantum)) {
+					if (!_from.valid() || !_to.valid())
+						return;
+
+					try { Ram_session_client(_from).transfer_quota(_to, quantum); }
+					catch (...) {
 						warning("not enough quota for a donation of ", quantum, " bytes");
 						throw Quota_exceeded();
 					}

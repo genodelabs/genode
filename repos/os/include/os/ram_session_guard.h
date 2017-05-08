@@ -32,29 +32,11 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 		size_t       _used = 0;
 		size_t       _withdraw = 0;
 
-		/* XXX should be either a exception or a enum in rm_session */
-		enum { RM_SESSION_INSUFFICIENT_QUOTA = -3 };
-
 	public:
 
 		Ram_session_guard(Ram_session &session, Ram_session_capability cap,
 		                  size_t quota)
 		: _session(session), _session_cap(cap), _quota(quota) { }
-
-		/**
-		 * Convenient transfer_quota method throwing a exception iif the
-		 * quota is insufficient.
-		 */
-		template <typename T>
-		int transfer_quota(Ram_session_capability ram_session, size_t amount)
-		{
-			int const error = transfer_quota(ram_session, Ram_quota{amount});
-
-			if (error == RM_SESSION_INSUFFICIENT_QUOTA)
-				throw T();
-
-			return error;
-		}
 
 		/**
 		 * Extend allocation limit
@@ -98,11 +80,11 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			if (amount > _used)
 				return -4;
 
-			int error = ram_session.transfer_quota(_session_cap, Ram_quota{amount});
-			if (!error)
+			try {
+				ram_session.transfer_quota(_session_cap, Ram_quota{amount});
 				_used -= amount;
-
-			return error;
+				return 0;
+			} catch (...) { return -1; }
 		}
 
 		/***************************
@@ -136,21 +118,17 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			return _session.dataspace_size(ds);
 		}
 
-		int ref_account(Ram_session_capability ram_session) override {
-			return _session.ref_account(ram_session); }
+		void ref_account(Ram_session_capability ram_session) override {
+			_session.ref_account(ram_session); }
 
-		int transfer_quota(Ram_session_capability ram_session,
-		                   Ram_quota amount) override
+		void transfer_quota(Ram_session_capability ram_session,
+		                    Ram_quota amount) override
 		{
 			if (_used + amount.value <= _used || _used + amount.value > _quota)
-				return RM_SESSION_INSUFFICIENT_QUOTA;
+				throw Out_of_ram();
 
-			int const error = _session.transfer_quota(ram_session, amount);
-
-			if (!error)
-				_used += amount.value;
-
-			return error;
+			_session.transfer_quota(ram_session, amount);
+			_used += amount.value;
 		}
 
 		Ram_quota ram_quota() const override { return Ram_quota{_quota}; }

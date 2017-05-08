@@ -66,7 +66,7 @@ namespace Genode {
 				return Ram_session_client::dataspace_size(ds);
 			}
 
-			int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override
+			void transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
@@ -74,15 +74,11 @@ namespace Genode {
 					warning("Quota exceeded! amount=", _amount, ", "
 					        "size=", amount.value, ", "
 					        "consumed=", _consumed);
-					return -1;
+					throw Out_of_ram();
 				}
 
-				int result = Ram_session_client::transfer_quota(ram_session, amount);
-
-				if (result == 0)
-					_consumed += amount.value;
-
-				return result;
+				Ram_session_client::transfer_quota(ram_session, amount);
+				_consumed += amount.value;
 			}
 
 			Ram_quota ram_quota() const override

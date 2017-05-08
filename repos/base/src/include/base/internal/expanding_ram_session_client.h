@@ -68,22 +68,17 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 			NUM_ATTEMPTS);
 	}
 
-	int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override
+	void transfer_quota(Ram_session_capability ram_session, Ram_quota amount) override
 	{
 		/*
 		 * Should the transfer fail because we don't have enough quota, request
 		 * the needed amount from the parent.
 		 */
 		enum { NUM_ATTEMPTS = 2 };
-		int ret = -1;
-		for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
-
-			ret = Ram_session_client::transfer_quota(ram_session, amount);
-			if (ret != -3) break;
-
-			_request_ram_from_parent(amount.value);
-		}
-		return ret;
+		retry<Out_of_ram>(
+			[&] () { Ram_session_client::transfer_quota(ram_session, amount); },
+			[&] () { _request_ram_from_parent(amount.value); },
+			NUM_ATTEMPTS);
 	}
 };
 

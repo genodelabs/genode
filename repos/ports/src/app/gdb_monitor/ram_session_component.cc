@@ -49,16 +49,16 @@ size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) co
 }
 
 
-int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
+void Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 {
-	return _parent_ram_session.ref_account(ram_session_cap);
+	_parent_ram_session.ref_account(ram_session_cap);
 }
 
 
-int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
-                                          Ram_quota amount)
+void Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
+                                           Ram_quota amount)
 {
-	return _parent_ram_session.transfer_quota(ram_session_cap, amount);
+	_parent_ram_session.transfer_quota(ram_session_cap, amount);
 }
 
 

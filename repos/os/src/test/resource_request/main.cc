@@ -199,11 +199,7 @@ void Component::construct(Genode::Env &env)
 	 * requests, too.
 	 */
 	log("\n-- out-of-memory during transfer-quota --");
-	int ret = env.ram().transfer_quota(ram.cap(), Ram_quota{512*1024});
-	if (ret != 0) {
-		error("transfer quota failed (ret = ", ret, ")");
-		throw Error();
-	}
+	env.ram().transfer_quota(ram.cap(), Ram_quota{512*1024});
 	print_quota_stats(env.ram());
 	size_t const used_quota_after_transfer = env.ram().used_ram().value;
 

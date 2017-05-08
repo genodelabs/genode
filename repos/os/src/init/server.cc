@@ -196,7 +196,8 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 		                                 route.label, argbuf, Affinity());
 
 		/* transfer session quota */
-		if (_env.ram().transfer_quota(route.service.ram(), ram_quota)) {
+		try { _env.ram().transfer_quota(route.service.ram(), forward_ram_quota); }
+		catch (...) {
 
 			/*
 			 * This should never happen unless our parent missed to
@@ -241,7 +242,10 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 
 		session.phase = Session_state::UPGRADE_REQUESTED;
 
-		if (_env.ram().transfer_quota(session.service().ram(), ram_quota)) {
+		try {
+			_env.ram().transfer_quota(session.service().ram(), ram_quota);
+		}
+		catch (...) {
 			warning("unable to upgrade session quota (", ram_quota, " bytes) "
 			        "of forwarded ", session.service().name(), " session");
 			return;

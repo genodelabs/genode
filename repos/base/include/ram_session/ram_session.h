@@ -38,6 +38,14 @@ struct Genode::Ram_session : Session, Ram_allocator
 	typedef Ram_session_client Client;
 
 
+	/*********************
+	 ** Exception types **
+	 *********************/
+
+	class Invalid_session       : public Exception { };
+	class Undefined_ref_account : public Exception { };
+
+
 	/**
 	 * Destructor
 	 */
@@ -48,25 +56,28 @@ struct Genode::Ram_session : Session, Ram_allocator
 	 *
 	 * \param   ram_session    reference account
 	 *
-	 * \return  0 on success
+	 * \throw Invalid_session
 	 *
 	 * Each RAM session requires another RAM session as reference
 	 * account to transfer quota to and from. The reference account can
 	 * be defined only once.
 	 */
-	virtual int ref_account(Ram_session_capability ram_session) = 0;
+	virtual void ref_account(Ram_session_capability ram_session) = 0;
 
 	/**
 	 * Transfer quota to another RAM session
 	 *
 	 * \param ram_session  receiver of quota donation
 	 * \param amount       amount of quota to donate
-	 * \return             0 on success
+	 *
+	 * \throw Out_of_ram
+	 * \throw Invalid_session
+	 * \throw Undefined_ref_account
 	 *
 	 * Quota can only be transfered if the specified RAM session is
 	 * either the reference account for this session or vice versa.
 	 */
-	virtual int transfer_quota(Ram_session_capability ram_session, Ram_quota amount) = 0;
+	virtual void transfer_quota(Ram_session_capability ram_session, Ram_quota amount) = 0;
 
 	/**
 	 * Return current quota limit
@@ -89,11 +100,13 @@ struct Genode::Ram_session : Session, Ram_allocator
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_alloc, Ram_dataspace_capability, alloc,
-	                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata),
+	                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata, Undefined_ref_account),
 	                 size_t, Cache_attribute);
 	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
-	GENODE_RPC(Rpc_ref_account, int, ref_account, Ram_session_capability);
-	GENODE_RPC(Rpc_transfer_ram_quota, int, transfer_quota, Ram_session_capability, Ram_quota);
+	GENODE_RPC(Rpc_ref_account, void, ref_account, Capability<Ram_session>);
+	GENODE_RPC_THROW(Rpc_transfer_ram_quota, void, transfer_quota,
+	                 GENODE_TYPE_LIST(Out_of_ram, Invalid_session, Undefined_ref_account),
+	                 Capability<Ram_session>, Ram_quota);
 	GENODE_RPC(Rpc_ram_quota, Ram_quota, ram_quota);
 	GENODE_RPC(Rpc_used_ram, Ram_quota, used_ram);
 
