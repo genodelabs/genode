@@ -169,7 +169,12 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 				throw Root::Unavailable();
 			}
 
-			_ep->manage(s);
+			/*
+			 * Consider that the session-object constructor may already have
+			 * called 'manage'.
+			 */
+			if (!s->cap().valid())
+				_ep->manage(s);
 
 			aquire_guard.ack = true;
 			return *s;

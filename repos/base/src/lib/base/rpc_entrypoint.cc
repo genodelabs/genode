@@ -26,6 +26,10 @@ using namespace Genode;
 
 void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 {
+	/* don't dissolve RPC object twice */
+	if (!obj->cap().valid())
+		return;
+
 	/* make sure nobody is able to find this object */
 	remove(obj);
 
