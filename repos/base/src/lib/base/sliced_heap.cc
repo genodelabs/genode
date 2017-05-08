@@ -49,11 +49,13 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 	try {
 		ds_cap = _ram_alloc.alloc(size);
 		block  = _region_map.attach(ds_cap);
-	} catch (Region_map::Attach_failed) {
+	}
+	catch (Region_map::Attach_failed) {
 		error("could not attach dataspace to local address space");
 		_ram_alloc.free(ds_cap);
 		return false;
-	} catch (Ram_allocator::Alloc_failed) {
+	}
+	catch (Out_of_ram) {
 		error("could not allocate dataspace with size ", size);
 		return false;
 	}

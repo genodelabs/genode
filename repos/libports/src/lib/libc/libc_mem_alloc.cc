@@ -55,9 +55,10 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	try {
 		new_ds_cap = _ram_session->alloc(size);
 		local_addr = _region_map->attach(new_ds_cap);
-	} catch (Ram_session::Alloc_failed) {
-		return -2;
-	} catch (Region_map::Attach_failed) {
+	}
+	catch (Out_of_ram) { return -2; }
+	catch (Out_of_caps) { return -4; }
+	catch (Region_map::Attach_failed) {
 		_ram_session->free(new_ds_cap);
 		return -3;
 	}

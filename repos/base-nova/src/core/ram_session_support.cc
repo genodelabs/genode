@@ -81,7 +81,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds) {
 	/* allocate the virtual region contiguous for the dataspace */
 	void * virt_ptr = alloc_region(ds, page_rounded_size);
 	if (!virt_ptr)
-		throw Out_of_metadata();
+		throw Core_virtual_memory_exhausted();
 
 	/* map it writeable for _clear_ds */
 	Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
@@ -90,7 +90,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds) {
 	if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
 	              page_rounded_size >> get_page_size_log2(), rights_rw, true)) {
 		platform()->region_alloc()->free(virt_ptr, page_rounded_size);
-		throw Out_of_metadata();
+		throw Core_virtual_memory_exhausted();
 	}
 
 	/* assign virtual address to the dataspace to be used by clear_ds */

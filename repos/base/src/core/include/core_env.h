@@ -134,6 +134,14 @@ namespace Genode {
 
 			Core_parent _core_parent { _heap, _services };
 
+			typedef String<100> Ram_args;
+
+			static Session::Resources _ram_resources()
+			{
+				return { Ram_quota { platform()->ram_alloc()->avail() },
+				         Cap_quota { platform()->max_caps() } };
+			}
+
 		public:
 
 			/**
@@ -143,13 +151,18 @@ namespace Genode {
 			:
 				_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint"),
 				_region_map(_entrypoint),
-				_ram_session(&_entrypoint, &_entrypoint,
-				             platform()->ram_alloc(), platform()->core_mem_alloc(),
-				             "ram_quota=4M", platform()->ram_alloc()->avail()),
-				_ram_session_cap(_entrypoint.manage(&_ram_session)),
+				_ram_session(_entrypoint,
+				             _ram_resources(),
+				             Session::Label("core"),
+				             Session::Diag{false},
+				             *platform()->ram_alloc(),
+				             _region_map,
+				             Ram_session_component::any_phys_range()),
 				_pd_session_component(_entrypoint),
 				_pd_session_client(_entrypoint.manage(&_pd_session_component))
-			{ }
+			{
+				_ram_session.init_ram_account();
+			}
 
 			/**
 			 * Destructor

@@ -102,7 +102,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability elf_ds
 			/* alloc dataspace */
 			Dataspace_capability ds_cap;
 			try { ds_cap = ram.alloc(size); }
-			catch (Ram_session::Alloc_failed) {
+			catch (Out_of_ram) {
 				error("allocation of read-write segment failed"); throw; };
 
 			/* attach dataspace */

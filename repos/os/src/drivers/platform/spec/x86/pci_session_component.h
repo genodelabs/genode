@@ -330,7 +330,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				/* thrown by 'Quota_reservation' */
 				catch (Out_of_metadata) { throw; }
 				/* thrown by 'Device_pd_policy' or 'Child' */
-				catch (Genode::Ram_session::Alloc_failed) { throw Out_of_metadata(); }
+				catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
 				/* throw by 'Slave::Connection' */
 				catch (Genode::Insufficient_ram_quota) { throw Out_of_metadata(); }
 
@@ -373,7 +373,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			}
 
 			/* thrown by '_md_alloc' */
-			catch (Genode::Allocator::Out_of_memory) { throw Out_of_metadata(); }
+			catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
 
 			/* thrown by 'Device_pd' */
 			catch (Out_of_metadata) { throw; }
@@ -944,25 +944,25 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			/* transfer ram quota to session specific ram session */
 			try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{size}); }
+			catch (Genode::Out_of_ram) { throw Out_of_metadata(); }
 			catch (...) { throw Fatal(); }
 
 			enum { UPGRADE_QUOTA = 4096 };
 
 			/* allocate dataspace from session specific ram session */
-			Ram_capability ram_cap = Genode::retry<Genode::Ram_session::Quota_exceeded>(
+			Ram_capability ram_cap = Genode::retry<Genode::Out_of_ram>(
 				[&] () {
-					Ram_capability ram = Genode::retry<Genode::Ram_session::Out_of_metadata>(
-						[&] () { return _ram.alloc(size, Genode::UNCACHED); },
-						[&] () {
-							if (!_env_ram.withdraw(UPGRADE_QUOTA)) {
-								_rollback(size);
-							}
+					try {
+						return _ram.alloc(size, Genode::UNCACHED);
+					}
+					catch (Genode::Out_of_ram) {
 
-							/* upgrade meta-data quota */
-							_ram.upgrade_ram(UPGRADE_QUOTA);
-						});
+						if (!_env_ram.withdraw(UPGRADE_QUOTA))
+							_rollback(size);
 
-					return ram;
+						throw;
+					}
+
 				},
 				[&] () {
 					/*
@@ -973,7 +973,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					 * UPGRADE_QUOTA steps.
 					 */
 					try { _env_ram.transfer_quota(_ram, Genode::Ram_quota{UPGRADE_QUOTA}); }
-					catch (...) { throw Out_of_metadata(); }
+					catch (...) { throw Genode::Out_of_ram(); }
 				});
 
 			if (!ram_cap.valid())

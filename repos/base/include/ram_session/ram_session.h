@@ -45,6 +45,8 @@ struct Genode::Ram_session : Session, Ram_allocator
 	class Invalid_session       : public Exception { };
 	class Undefined_ref_account : public Exception { };
 
+	/* deprecated */
+	typedef Out_of_ram Quota_exceeded;
 
 	/**
 	 * Destructor
@@ -100,7 +102,7 @@ struct Genode::Ram_session : Session, Ram_allocator
 	 *********************/
 
 	GENODE_RPC_THROW(Rpc_alloc, Ram_dataspace_capability, alloc,
-	                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata, Undefined_ref_account),
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Undefined_ref_account),
 	                 size_t, Cache_attribute);
 	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_ref_account, void, ref_account, Capability<Ram_session>);

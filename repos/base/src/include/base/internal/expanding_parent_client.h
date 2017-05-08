@@ -108,8 +108,8 @@ class Genode::Expanding_parent_client : public Parent_client
 			 * immediately. The second upgrade attempt may fail too if the
 			 * parent handles the resource request asynchronously. In this
 			 * case, we escalate the problem to caller by propagating the
-			 * 'Parent::Quota_exceeded' exception. Now, it is the job of the
-			 * caller to issue (and respond to) a resource request.
+			 * 'Out_of_ram' exception. Now, it is the job of the caller to
+			 * issue (and respond to) a resource request.
 			 */
 			enum { NUM_ATTEMPTS = 2 };
 			return retry<Out_of_ram>(

@@ -33,11 +33,6 @@ namespace Genode {
 
 struct Genode::Ram_allocator
 {
-	class Alloc_failed    : public Exception    { };
-	class Quota_exceeded  : public Alloc_failed { };
-	class Out_of_metadata : public Alloc_failed { };
-
-
 	/**
 	 * Allocate RAM dataspace
 	 *
@@ -45,8 +40,8 @@ struct Genode::Ram_allocator
 	 * \param  cached  selects cacheability attributes of the memory,
 	 *                 uncached memory, i.e., for DMA buffers
 	 *
-	 * \throw Quota_exceeded
-	 * \throw Out_of_metadata
+	 * \throw  Out_of_ram
+	 * \throw  Out_of_caps
 	 *
 	 * \return capability to new RAM dataspace
 	 */
