@@ -441,12 +441,15 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 				Label const target_label =
 					target.attribute_value("label", Label(label.string()));
 
+				Session::Diag const
+					target_diag { target.attribute_value("diag", false) };
+
 				if (target.has_type("parent")) {
 
 					Parent_service *service = nullptr;
 
 					if ((service = find_service(_parent_services, service_name)))
-						return Route { *service, target_label };
+						return Route { *service, target_label, target_diag };
 
 					if (service && service->abandoned())
 						throw Parent::Service_denied();
@@ -475,7 +478,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 						throw Parent::Service_denied();
 
 					if (service)
-						return Route { *service, target_label };
+						return Route { *service, target_label, target_diag };
 
 					if (!service_wildcard) {
 						warning(name(), ": lookup to child "
@@ -495,7 +498,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 					Routed_service *service = nullptr;
 
 					if ((service = find_service(_child_services, service_name)))
-						return Route { *service, target_label };
+						return Route { *service, target_label, target_diag };
 
 					if (!service_wildcard) {
 						warning(name(), ": lookup for service "

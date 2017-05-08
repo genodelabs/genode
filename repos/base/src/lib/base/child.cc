@@ -138,8 +138,8 @@ Child_policy::Route Child::_resolve_session_request(Child_policy &policy,
 	try {
 
 		Session_state::Args args(argbuf);
-		return Child_policy::Route {
-			policy.resolve_session_request(name, args), label };
+		return { policy.resolve_session_request(name, args), label,
+		         session_diag_from_args(argbuf) };
 	}
 	catch (Parent::Service_denied) { }
 
@@ -186,6 +186,9 @@ Session_capability Child::session(Parent::Client::Id id,
 	/* may throw a 'Parent::Service_denied' exception */
 	Child_policy::Route route = _resolve_session_request(_policy, name.string(), argbuf);
 	Service &service = route.service;
+
+	/* propagate diag flag */
+	Arg_string::set_arg(argbuf, sizeof(argbuf), "diag", route.diag.enabled);
 
 	Session_state &session =
 		create_session(_policy.name(), service, route.label,
