@@ -27,6 +27,12 @@ using namespace Genode;
 
 Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
+	/* don't manage RPC object twice */
+	if (obj->cap().valid()) {
+		warning("attempt to manage RPC object twice");
+		return obj->cap();
+	}
+
 	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, _cap);
 
 	/* add server object to object pool */
