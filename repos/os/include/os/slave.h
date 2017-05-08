@@ -54,7 +54,8 @@ class Genode::Slave::Policy : public Child_policy
 
 		Label                    const _label;
 		Binary_name              const _binary_name;
-		Ram_session_client             _ram;
+		Ram_session                  &_ref_ram;
+		Ram_session_capability        _ref_ram_cap;
 		Genode::Parent_service         _binary_service;
 		Ram_quota                const _ram_quota;
 		Parent_services               &_parent_services;
@@ -77,19 +78,22 @@ class Genode::Slave::Policy : public Child_policy
 		 * \throw Ram_session::Alloc_failed by 'Child_policy_dynamic_rom_file'
 		 * \throw Rm_session::Attach_failed by 'Child_policy_dynamic_rom_file'
 		 */
-		Policy(Label            const &label,
-		       Name             const &binary_name,
-		       Parent_services        &parent_services,
-		       Rpc_entrypoint         &ep,
-		       Region_map             &rm,
-		       Ram_session_capability  ram_cap,
-		       Ram_quota               ram_quota)
+		Policy(Label               const &label,
+		       Name                const &binary_name,
+		       Parent_services           &parent_services,
+		       Rpc_entrypoint            &ep,
+		       Region_map                &rm,
+		       Ram_session               &ref_ram,
+		       Ram_session_capability     ref_ram_cap,
+		       Ram_quota                  ram_quota)
 		:
-			_label(label), _binary_name(binary_name), _ram(ram_cap),
+			_label(label), _binary_name(binary_name),
+			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
 			_binary_service(Rom_session::service_name()),
-			_ram_quota(ram_quota), _parent_services(parent_services), _ep(ep),
-			_config_policy(rm, "config", _ep, &_ram),
-			_session_requester(ep, _ram, rm)
+			_ram_quota(ram_quota),
+			_parent_services(parent_services), _ep(ep),
+			_config_policy(rm, "config", _ep, &_ref_ram),
+			_session_requester(ep, _ref_ram, rm)
 		{
 			configure("<config/>");
 		}
@@ -123,13 +127,13 @@ class Genode::Slave::Policy : public Child_policy
 
 		Binary_name binary_name() const override { return _binary_name; }
 
-		Ram_session           &ref_ram()           override { return _ram; }
-		Ram_session_capability ref_ram_cap() const override { return _ram; }
+		Ram_session           &ref_ram()           override { return _ref_ram; }
+		Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
 
 		void init(Ram_session &session, Ram_session_capability cap) override
 		{
-			session.ref_account(_ram);
-			_ram.transfer_quota(cap, _ram_quota);
+			session.ref_account(_ref_ram_cap);
+			_ref_ram.transfer_quota(cap, _ram_quota);
 		}
 
 		Service &resolve_session_request(Service::Name       const &service_name,
@@ -178,15 +182,13 @@ class Genode::Slave::Connection_base
 		struct Service : Genode::Service, Session_state::Ready_callback,
 		                                  Session_state::Closed_callback
 		{
-			Id_space<Parent::Server> &_id_space;
-
-			Lock _lock { Lock::LOCKED };
-			bool _alive = false;
+			Policy &_policy;
+			Lock    _lock { Lock::LOCKED };
+			bool    _alive = false;
 
 			Service(Policy &policy)
 			:
-				Genode::Service(CONNECTION::service_name(), policy.ref_ram_cap()),
-				_id_space(policy.server_id_space())
+				Genode::Service(CONNECTION::service_name()), _policy(policy)
 			{ }
 
 			void initiate_request(Session_state &session) override
@@ -196,7 +198,8 @@ class Genode::Slave::Connection_base
 				case Session_state::CREATE_REQUESTED:
 
 					if (!session.id_at_server.constructed())
-						session.id_at_server.construct(session, _id_space);
+						session.id_at_server.construct(session,
+						                               _policy.server_id_space());
 
 					session.ready_callback = this;
 					session.async_client_notify = true;
@@ -236,6 +239,22 @@ class Genode::Slave::Connection_base
 			 * Session_state::Closed_callback
 			 */
 			void session_closed(Session_state &s) override { _lock.unlock(); }
+
+			/**
+			 * Service ('Ram_transfer::Account') interface
+			 */
+			void transfer(Ram_session_capability to, Ram_quota amount) override
+			{
+				if (to.valid()) _policy.ref_ram().transfer_quota(to, amount);
+			}
+
+			/**
+			 * Service ('Ram_transfer::Account') interface
+			 */
+			Ram_session_capability cap(Ram_quota) const override
+			{
+				return _policy.ref_ram_cap();
+			}
 
 		} _service;
 

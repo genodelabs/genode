@@ -34,7 +34,7 @@ class Launchpad;
 
 class Launchpad_child : public Genode::Child_policy,
                         public Genode::List<Launchpad_child>::Element,
-                        public Genode::Child_service::Wakeup
+                        public Genode::Async_service::Wakeup
 {
 	public:
 
@@ -75,7 +75,7 @@ class Launchpad_child : public Genode::Child_policy,
 		/**
 		 * Child_service::Wakeup callback
 		 */
-		void wakeup_child_service() override
+		void wakeup_async_service() override
 		{
 			_session_requester.trigger_update();
 		}
@@ -133,8 +133,7 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Binary_name binary_name() const override { return _elf_name; }
 
-		Genode::Ram_session &ref_ram() override { return _ref_ram; }
-
+		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }
 		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
 
 		void init(Genode::Ram_session &session,
@@ -198,9 +197,10 @@ class Launchpad_child : public Genode::Child_policy,
 			}
 
 			new (_alloc)
-				Child_service(_child_services, _session_requester.id_space(),
-				              _child.session_factory(), service_name,
-				              _child.ram_session_cap(), *this);
+				Child_service(_child_services, service_name,
+				              _session_requester.id_space(),
+				              _child.session_factory(), *this,
+				              _child.ram_session_cap());
 		}
 };
 

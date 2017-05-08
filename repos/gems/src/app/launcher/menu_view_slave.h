@@ -80,13 +80,15 @@ class Launcher::Menu_view_slave
 
 				Policy(Genode::Rpc_entrypoint        &ep,
 				       Genode::Region_map            &rm,
-				       Genode::Ram_session_capability ram,
+				       Genode::Ram_session           &ref_ram,
+				       Genode::Ram_session_capability ref_ram_cap,
 				       Capability<Nitpicker::Session> nitpicker_session,
 				       Capability<Rom_session>        dialog_rom_session,
 				       Capability<Report::Session>    hover_report_session,
 				       Position                       position)
 				:
-					Genode::Slave::Policy(_name(), _name(), *this, ep, rm, ram, _quota()),
+					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
+					                      ref_ram, ref_ram_cap, _quota()),
 					_nitpicker(rm, nitpicker_session),
 					_dialog_rom(dialog_rom_session),
 					_hover_report(hover_report_session),
@@ -127,14 +129,16 @@ class Launcher::Menu_view_slave
 		 */
 		Menu_view_slave(Genode::Pd_session            &pd,
 		                Genode::Region_map            &rm,
-		                Genode::Ram_session_capability ram,
+		                Genode::Ram_session           &ref_ram,
+		                Genode::Ram_session_capability ref_ram_cap,
 		                Capability<Nitpicker::Session> nitpicker_session,
 		                Capability<Rom_session>        dialog_rom_session,
 		                Capability<Report::Session>    hover_report_session,
 		                Position                       initial_position)
 		:
 			_ep(&pd, _ep_stack_size, "nit_fader"),
-			_policy(_ep, rm, ram, nitpicker_session, dialog_rom_session,
+			_policy(_ep, rm, ref_ram, ref_ram_cap,
+			        nitpicker_session, dialog_rom_session,
 			        hover_report_session, initial_position),
 			_child(rm, _ep, _policy)
 		{ }

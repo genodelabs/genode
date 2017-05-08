@@ -148,13 +148,16 @@ void Init::Server::session_closed(Session_state &session)
 {
 	_report_update_trigger.trigger_report_update();
 
-	Parent::Server::Id id { session.id_at_client().value };
-	_env.parent().session_response(id, Parent::SESSION_CLOSED);
+	Ram_transfer::Account &service_ram_account = session.service();
 
-	Ram_session_client(session.service().ram())
-		.transfer_quota(_env.ram_session_cap(), session.donated_ram_quota());
+	service_ram_account.try_transfer(_env.ram_session_cap(),
+	                                 session.donated_ram_quota());
+
+	Parent::Server::Id id { session.id_at_client().value };
 
 	session.destroy();
+
+	_env.parent().session_response(id, Parent::SESSION_CLOSED);
 }
 
 
@@ -192,13 +195,18 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 
 		Session_state &session =
 			route.service.create_session(route.service.factory(),
-		                                 _client_id_space, id,
-		                                 route.label, argbuf, Affinity());
+		                                 _client_id_space, id, route.label,
+		                                 argbuf, Affinity());
 
 		/* transfer session quota */
-		try { _env.ram().transfer_quota(route.service.ram(), forward_ram_quota); }
-		catch (...) {
+		try {
+			Ram_transfer::Remote_account env_ram_account(_env.ram(), _env.ram_session_cap());
 
+			Ram_transfer ram_transfer(forward_ram_quota, env_ram_account, route.service);
+
+			ram_transfer.acknowledge();
+		}
+		catch (...) {
 			/*
 			 * This should never happen unless our parent missed to
 			 * transfor the session quota to us prior issuing the session
@@ -227,9 +235,11 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 			throw Genode::Insufficient_ram_quota();
 	}
 	catch (Parent::Service_denied) {
-		_env.parent().session_response(Parent::Server::Id { id.value }, Parent::INVALID_ARGS); }
+		_env.parent().session_response(Parent::Server::Id { id.value },
+		                               Parent::INVALID_ARGS); }
 	catch (Genode::Insufficient_ram_quota) {
-		_env.parent().session_response(Parent::Server::Id { id.value }, Parent::INSUFFICIENT_RAM_QUOTA); }
+		_env.parent().session_response(Parent::Server::Id { id.value },
+		                               Parent::INSUFFICIENT_RAM_QUOTA); }
 }
 
 
@@ -243,7 +253,11 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 		session.phase = Session_state::UPGRADE_REQUESTED;
 
 		try {
-			_env.ram().transfer_quota(session.service().ram(), ram_quota);
+			Ram_transfer::Remote_account env_ram_account(_env.ram(), _env.ram_session_cap());
+
+			Ram_transfer ram_transfer(ram_quota, env_ram_account, session.service());
+
+			ram_transfer.acknowledge();
 		}
 		catch (...) {
 			warning("unable to upgrade session quota (", ram_quota, " bytes) "

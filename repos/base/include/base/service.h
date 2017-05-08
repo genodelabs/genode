@@ -20,6 +20,7 @@
 #include <base/session_state.h>
 #include <base/log.h>
 #include <base/registry.h>
+#include <base/quota_transfer.h>
 
 namespace Genode {
 
@@ -27,11 +28,12 @@ namespace Genode {
 	template <typename> class Session_factory;
 	template <typename> class Local_service;
 	class Parent_service;
+	class Async_service;
 	class Child_service;
 }
 
 
-class Genode::Service : Noncopyable
+class Genode::Service : public Ram_transfer::Account
 {
 	public:
 
@@ -39,8 +41,7 @@ class Genode::Service : Noncopyable
 
 	private:
 
-		Name                   const _name;
-		Ram_session_capability const _ram;
+		Name const _name;
 
 	protected:
 
@@ -64,10 +65,8 @@ class Genode::Service : Noncopyable
 		 * Constructor
 		 *
 		 * \param name  service name
-		 * \param ram   RAM session to receive/withdraw session quota
 		 */
-		Service(Name const &name, Ram_session_capability ram)
-		: _name(name), _ram(ram) { }
+		Service(Name const &name) : _name(name) { }
 
 		virtual ~Service() { }
 
@@ -103,11 +102,6 @@ class Genode::Service : Noncopyable
 		 * Wake up service to query session requests
 		 */
 		virtual void wakeup() { }
-
-		/**
-		 * Return the RAM session to be used for trading resources
-		 */
-		virtual Ram_session_capability ram() const { return _ram; }
 
 		virtual bool operator == (Service const &other) const { return this == &other; }
 };
@@ -181,10 +175,7 @@ class Genode::Local_service : public Service
 		 * Constructor
 		 */
 		Local_service(Factory &factory)
-		:
-			Service(SESSION::service_name(), Ram_session_capability()),
-			_factory(factory)
-		{ }
+		: Service(SESSION::service_name()), _factory(factory) { }
 
 		void initiate_request(Session_state &session) override
 		{
@@ -235,6 +226,7 @@ class Genode::Local_service : public Service
 				break;
 			}
 		}
+
 };
 
 
@@ -257,7 +249,7 @@ class Genode::Parent_service : public Service
 		 * Constructor
 		 */
 		Parent_service(Env &env, Service::Name const &name)
-		: Service(name, Ram_session_capability()), _env(env) { }
+		: Service(name), _env(env) { }
 
 		/**
 		 * Constructor
@@ -265,7 +257,7 @@ class Genode::Parent_service : public Service
 		 * \deprecated
 		 */
 		Parent_service(Service::Name const &name)
-		: Service(name, Ram_session_capability()), _env(_env_deprecated()) { }
+		: Service(name), _env(_env_deprecated()) { }
 
 		void initiate_request(Session_state &session) override
 		{
@@ -284,6 +276,9 @@ class Genode::Parent_service : public Service
 
 					session.phase = Session_state::AVAILABLE;
 				}
+				catch (Out_of_ram) {
+					session.id_at_parent.destruct();
+					session.phase = Session_state::INVALID_ARGS; }
 				catch (Insufficient_ram_quota) {
 					session.id_at_parent.destruct();
 					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
@@ -304,7 +299,7 @@ class Genode::Parent_service : public Service
 					try {
 						_env.upgrade(session.id_at_parent->id(), args.string()); }
 					catch (Out_of_ram) {
-						warning("quota exceeded while upgrading parent session"); }
+						warning("RAM quota exceeded while upgrading parent session"); }
 
 					session.confirm_ram_upgrade();
 					session.phase = Session_state::CAP_HANDED_OUT;
@@ -332,13 +327,13 @@ class Genode::Parent_service : public Service
 
 
 /**
- * Representation of a service that is implemented in a child
+ * Representation of a service that asynchronously responds to session request
  */
-class Genode::Child_service : public Service
+class Genode::Async_service : public Service
 {
 	public:
 
-		struct Wakeup { virtual void wakeup_child_service() = 0; };
+		struct Wakeup { virtual void wakeup_async_service() = 0; };
 
 	private:
 
@@ -360,24 +355,20 @@ class Genode::Child_service : public Service
 
 	public:
 
-
 		/**
 		 * Constructor
 		 *
 		 * \param factory  server-side session-state factory
 		 * \param name     name of service
-		 * \param ram      recipient of session quota
 		 * \param wakeup   callback to be notified on the arrival of new
 		 *                 session requests
-		 *
 		 */
-		Child_service(Id_space<Parent::Server> &server_id_space,
+		Async_service(Service::Name      const &name,
+		              Id_space<Parent::Server> &server_id_space,
 		              Session_state::Factory   &factory,
-		              Service::Name      const &name,
-		              Ram_session_capability    ram,
 		              Wakeup                   &wakeup)
 		:
-			Service(name, ram),
+			Service(name),
 			_server_id_space(server_id_space),
 			_server_factory(factory), _wakeup(wakeup)
 		{ }
@@ -395,7 +386,46 @@ class Genode::Child_service : public Service
 			return &_server_id_space == &id_space;
 		}
 
-		void wakeup() override { _wakeup.wakeup_child_service(); }
+		void wakeup() override { _wakeup.wakeup_async_service(); }
+};
+
+
+/**
+ * Representation of a service that is implemented in a child
+ */
+class Genode::Child_service : public Async_service
+{
+	private:
+
+		Ram_session_client _ram;
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Child_service(Service::Name      const &name,
+		              Id_space<Parent::Server> &server_id_space,
+		              Session_state::Factory   &factory,
+		              Wakeup                   &wakeup,
+		              Ram_session_capability    ram)
+		:
+			Async_service(name, server_id_space, factory, wakeup),
+			_ram(ram)
+		{ }
+
+		/**
+		 * Ram_transfer::Account interface
+		 */
+		void transfer(Ram_session_capability to, Ram_quota amount) override
+		{
+			if (to.valid()) _ram.transfer_quota(to, amount);
+		}
+
+		/**
+		 * Ram_transfer::Account interface
+		 */
+		Ram_session_capability cap(Ram_quota) const override { return _ram; }
 };
 
 #endif /* _INCLUDE__BASE__SERVICE_H_ */

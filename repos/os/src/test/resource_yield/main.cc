@@ -296,7 +296,7 @@ class Test::Parent
 			:
 				Slave::Policy(Label("child"), "test-resource_yield",
 				              *this, env.ep().rpc_ep(), env.rm(),
-				              env.ram_session_cap(), Ram_quota{SLAVE_QUOTA}),
+				              env.ram(), env.ram_session_cap(), Ram_quota{SLAVE_QUOTA}),
 				_parent(parent)
 			{
 				configure("<config child=\"yes\" />");
