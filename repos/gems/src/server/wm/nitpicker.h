@@ -434,9 +434,9 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 		Genode::Env &_env;
 
-		Session_label         _session_label;
-		Ram_session_client    _ram;
-		Nitpicker::Connection _session { _env, _session_label.string() };
+		Session_label          _session_label;
+		Genode::Ram_session   &_ram;
+		Nitpicker::Connection  _session { _env, _session_label.string() };
 
 		Window_registry             &_window_registry;
 		Session_control_fn          &_session_control_fn;
@@ -710,7 +710,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		 * \param ep  entrypoint used for managing the views
 		 */
 		Session_component(Genode::Env &env,
-		                  Ram_session_capability ram,
+		                  Genode::Ram_session   &ram,
 		                  Window_registry       &window_registry,
 		                  Allocator             &session_alloc,
 		                  Session_label   const &session_label,
@@ -991,7 +991,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		Allocator &_md_alloc;
 
-		Ram_session_capability _ram;
+		Genode::Ram_session &_ram;
 
 		enum { STACK_SIZE = 1024*sizeof(long) };
 
@@ -1086,7 +1086,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		 */
 		Root(Genode::Env &env,
 		     Window_registry &window_registry, Allocator &md_alloc,
-		     Ram_session_capability ram,
+		     Genode::Ram_session &ram,
 		     Reporter &pointer_reporter, Reporter &focus_request_reporter,
 		     Nitpicker::Session &focus_nitpicker_session)
 		:
