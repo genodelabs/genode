@@ -784,7 +784,7 @@ proc build_core_image { modules } {
 	copy_genode_binaries_to_run_dir $modules
 
 	# create core binary without modules for debugging
-	build_core [run_dir]/genode/$core_obj {} [run_dir].core [core_link_address]
+	build_core debug/$core_obj {} [run_dir].core [core_link_address]
 
 	# determine modules to be incorporated into the core image
 	set modules [glob -nocomplain -tails -directory [run_dir]/genode/ *]
