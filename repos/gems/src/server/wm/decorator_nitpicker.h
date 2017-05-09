@@ -161,7 +161,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	Genode::Heap _heap { _env.ram(), _env.rm() };
 
-	Ram_session_client _ram;
+	Genode::Ram_session &_ram;
 
 	Nitpicker::Connection _nitpicker_session { _env, "decorator" };
 
@@ -200,7 +200,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 	 * \param ep  entrypoint used for dispatching signals
 	 */
 	Decorator_nitpicker_session(Genode::Env &env,
-	                            Ram_session_capability ram,
+	                            Genode::Ram_session &ram,
 	                            Allocator &md_alloc,
 	                            Reporter &pointer_reporter,
 	                            Last_motion &last_motion,
