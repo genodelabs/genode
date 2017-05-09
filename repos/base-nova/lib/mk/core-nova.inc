@@ -22,7 +22,6 @@ SRC_CC      += stack_area.cc \
                irq_session_component.cc \
                main.cc \
                pager.cc \
-               pd_session_component.cc \
                native_cpu_component.cc \
                native_pd_component.cc \
                pd_upgrade_ram_quota.cc \
@@ -57,7 +56,6 @@ vpath rom_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_support.cc       $(GEN_CORE_DIR)
 vpath cpu_thread_component.cc      $(GEN_CORE_DIR)
-vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath region_map_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)

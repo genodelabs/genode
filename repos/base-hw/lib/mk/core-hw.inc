@@ -29,7 +29,6 @@ SRC_CC += io_mem_session_component.cc
 SRC_CC += io_mem_session_support.cc
 SRC_CC += irq_session_component.cc
 SRC_CC += main.cc
-SRC_CC += pd_session_component.cc
 SRC_CC += pd_upgrade_ram_quota.cc
 SRC_CC += pd_assign_pci.cc
 SRC_CC += platform.cc

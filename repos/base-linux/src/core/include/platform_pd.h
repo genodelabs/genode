@@ -17,6 +17,7 @@
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
 #include <base/allocator.h>
+#include <parent/parent.h>
 
 namespace Genode {
 	struct Platform_pd;
@@ -28,6 +29,8 @@ struct Genode::Platform_pd
 	Platform_pd(Allocator *, char const *) { }
 
 	bool bind_thread(Platform_thread *) { return true; }
+
+	void assign_parent(Capability<Parent>) { }
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

@@ -165,7 +165,12 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 ** PD session interface **
 		 **************************/
 
-		void assign_parent(Capability<Parent>) override;
+		void assign_parent(Capability<Parent> parent) override
+		{
+			_parent = parent;
+			_pd.assign_parent(parent);
+		}
+
 		bool assign_pci(addr_t, uint16_t) override;
 
 		Signal_source_capability alloc_signal_source() override
