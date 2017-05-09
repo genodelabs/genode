@@ -572,9 +572,28 @@ void Init::Child::filter_session_args(Service::Name const &service,
 	 * Remove phys_start and phys_size RAM-session arguments unless
 	 * explicitly permitted by the child configuration.
 	 */
-	if (service == "RAM" && !_constrain_phys) {
-		Arg_string::remove_arg(args, "phys_start");
-		Arg_string::remove_arg(args, "phys_size");
+	if (service == "RAM") {
+
+		/*
+		 * If the child is allowed to constrain physical memory allocations,
+		 * pass the child-provided constraints as session arguments to core.
+		 * If no constraints are specified, we apply the constraints for
+		 * allocating DMA memory (as the only use case for the constrain-phys
+		 * mechanism).
+		 */
+		if (_constrain_phys) {
+			addr_t start = 0;
+			addr_t size  = (sizeof(long) == 4) ? 0xc0000000UL : 0x100000000UL;
+
+			Arg_string::find_arg(args, "phys_start").ulong_value(start);
+			Arg_string::find_arg(args, "phys_size") .ulong_value(size);
+
+			Arg_string::set_arg(args, args_len, "phys_start", String<32>(Hex(start)).string());
+			Arg_string::set_arg(args, args_len, "phys_size",  String<32>(Hex(size)) .string());
+		} else {
+			Arg_string::remove_arg(args, "phys_start");
+			Arg_string::remove_arg(args, "phys_size");
+		}
 	}
 }
 
