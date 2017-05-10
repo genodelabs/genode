@@ -512,5 +512,3 @@ Affinity::Space Platform::affinity_space() const
 	return Affinity::Space(cpus_online, 1);
 }
 
-
-void Core_parent::exit(int exit_value) { }

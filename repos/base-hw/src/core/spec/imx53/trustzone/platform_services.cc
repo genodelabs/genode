@@ -18,7 +18,7 @@
 /* Core includes */
 #include <platform.h>
 #include <platform_services.h>
-#include <core_parent.h>
+#include <core_service.h>
 #include <vm_root.h>
 #include <map_local.h>
 

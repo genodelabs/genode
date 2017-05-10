@@ -143,17 +143,6 @@ Platform::Platform()
 }
 
 
-/*****************
- ** Core_parent **
- *****************/
-
-void Core_parent::exit(int exit_value)
-{
-	warning(__PRETTY_FUNCTION__, "not implemented");
-	while (1);
-}
-
-
 /****************************************
  ** Support for core memory management **
  ****************************************/

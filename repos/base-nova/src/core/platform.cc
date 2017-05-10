@@ -21,7 +21,6 @@
 
 /* core includes */
 #include <boot_modules.h>
-#include <core_parent.h>
 #include <platform.h>
 #include <nova_util.h>
 #include <util.h>
@@ -745,5 +744,3 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
 
 void Platform::wait_for_exit() { sleep_forever(); }
 
-
-void Core_parent::exit(int exit_value) { }

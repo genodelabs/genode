@@ -14,7 +14,7 @@
 #ifndef _CORE__INCLUDE__PLATFORM_SERVICES_H_
 #define _CORE__INCLUDE__PLATFORM_SERVICES_H_
 
-#include <base/service.h>
+#include <core_service.h>
 
 namespace Genode {
 

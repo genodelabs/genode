@@ -23,6 +23,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/globals.h>
 
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
@@ -98,7 +99,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	}
 	/* adjust initial object state for main threads */
 	native_thread().futex_counter = main_thread_futex_counter;
-	_thread_cap = env_deprecated()->parent()->main_thread_cap();
+	_thread_cap = main_thread_cap();
 }
 
 

@@ -24,6 +24,7 @@
 /* base-internal includes */
 #include <base/internal/stack.h>
 #include <base/internal/cap_map.h>
+#include <base/internal/globals.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -66,7 +67,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	}
 	/* adjust values whose computation differs for a main thread */
 	native_thread().kcap = Fiasco::MAIN_THREAD_CAP;
-	_thread_cap = env_deprecated()->parent()->main_thread_cap();
+	_thread_cap = main_thread_cap();
 
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
