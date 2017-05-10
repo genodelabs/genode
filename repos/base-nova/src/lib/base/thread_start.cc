@@ -25,6 +25,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/globals.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -80,7 +81,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 	/* for main threads the member initialization differs */
 	if (type == MAIN || type == REINITIALIZED_MAIN) {
-		_thread_cap = env_deprecated()->parent()->main_thread_cap();
+		_thread_cap = main_thread_cap();
 
 		native_thread().exc_pt_sel = 0;
 		native_thread().ec_sel     = Nova::PT_SEL_MAIN_EC;

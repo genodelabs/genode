@@ -128,7 +128,7 @@ void Platform::wait_for_exit()
 		 * '_exit' condition will be set.
 		 */
 		if (_do_exit)
-			return;
+			break;
 
 		/*
 		 * Reflect SIGCHLD as exception signal to the signal context of the CPU
@@ -145,12 +145,7 @@ void Platform::wait_for_exit()
 			Platform_thread::submit_exception(pid);
 		}
 	}
-}
-
-
-void Core_parent::exit(int exit_value)
-{
-	lx_exit_group(exit_value);
+	lx_exit_group(0);
 }
 
 

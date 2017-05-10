@@ -28,6 +28,7 @@
 /* core includes */
 #include <platform.h>
 #include <core_env.h>
+#include <core_service.h>
 #include <signal_transmitter.h>
 #include <ram_root.h>
 #include <rom_root.h>
@@ -89,36 +90,7 @@ Platform *Genode::platform_specific()
 Platform_generic *Genode::platform() { return platform_specific(); }
 
 
-/*************************
- ** Core parent support **
- *************************/
-
-Session_capability Core_parent::session(Parent::Client::Id          id,
-                                        Parent::Service_name const &name,
-                                        Parent::Session_args const &args,
-                                        Affinity             const &affinity)
-{
-	Session_capability cap;
-
-	_services.for_each([&] (Service &service) {
-
-		if ((service.name() != name.string()) || cap.valid())
-			return;
-
-		Session_state &session = *new (_alloc)
-			Session_state(service, _id_space, id, label_from_args(args.string()),
-			              args.string(), affinity);
-
-		service.initiate_request(session);
-
-		cap = session.cap;
-	});
-
-	if (!cap.valid())
-		error("unexpected core-parent ", name.string(), " session request");
-
-	return cap;
-}
+Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
 
 
 /****************
@@ -277,7 +249,7 @@ int main()
 	 */
 	Rpc_entrypoint *e = core_env()->entrypoint();
 
-	Registry<Service> &services = core_env()->services();
+	static Registry<Service> services;
 
 	static Ram_allocator &core_ram_alloc = *core_env()->ram_session();
 	static Region_map    &local_rm       = *core_env()->rm_session();

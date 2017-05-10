@@ -25,7 +25,6 @@
 #include <base/internal/globals.h>
 
 /* core includes */
-#include <core_parent.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
@@ -485,5 +484,3 @@ void Platform::wait_for_exit()
 	sleep_forever();
 }
 
-
-void Core_parent::exit(int exit_value) { }

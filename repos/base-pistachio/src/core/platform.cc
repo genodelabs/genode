@@ -26,7 +26,6 @@
 
 /* core includes */
 #include <boot_modules.h>
-#include <core_parent.h>
 #include <map_local.h>
 #include <platform.h>
 #include <platform_thread.h>
@@ -660,5 +659,3 @@ void Platform::wait_for_exit()
 	sleep_forever();
 }
 
-
-void Core_parent::exit(int exit_value) { }

@@ -63,7 +63,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	}
 	/* adjust initial object state in case of a main thread */
 	native_thread().cap = Hw::_main_thread_cap;
-	_thread_cap = env_deprecated()->parent()->main_thread_cap();
+	_thread_cap = main_thread_cap();
 }
 
 

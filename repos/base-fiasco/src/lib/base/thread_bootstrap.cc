@@ -15,6 +15,9 @@
 #include <base/thread.h>
 #include <base/env.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 using namespace Genode;
 
 
@@ -22,8 +25,7 @@ using namespace Genode;
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread() { }
-
+void prepare_init_main_thread()   { }
 void prepare_reinit_main_thread() { }
 
 
@@ -36,6 +38,7 @@ void Thread::_thread_bootstrap() { }
 
 void Thread::_init_platform_thread(size_t, Type type)
 {
-	if (type == NORMAL) { return; }
-	_thread_cap = Genode::env_deprecated()->parent()->main_thread_cap();
+	if (type == NORMAL) return;
+
+	_thread_cap = main_thread_cap();
 }

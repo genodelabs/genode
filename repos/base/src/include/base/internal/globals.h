@@ -26,6 +26,9 @@ namespace Genode {
 	extern Region_map  *env_stack_area_region_map;
 	extern Ram_session *env_stack_area_ram_session;
 
+	Thread_capability main_thread_cap();
+
+	void init_stack_area();
 	void init_exception_handling(Env &);
 	void init_signal_transmitter(Env &);
 	void init_cxx_heap(Env &);

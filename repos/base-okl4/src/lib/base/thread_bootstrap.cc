@@ -19,6 +19,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/native_utcb.h>
+#include <base/internal/globals.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
@@ -84,5 +85,5 @@ void Genode::Thread::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) { return; }
 	native_thread().l4id.raw = main_thread_tid.raw;
-	_thread_cap   = env_deprecated()->parent()->main_thread_cap();
+	_thread_cap = main_thread_cap();
 }
