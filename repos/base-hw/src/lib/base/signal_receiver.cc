@@ -28,41 +28,24 @@
 
 using namespace Genode;
 
-
-namespace Genode {
-
-	/*
-	 * On base-hw, no signal thread is needed.
-	 */
-	void init_signal_thread(Env &) __attribute__((weak));
-	void init_signal_thread(Env &) { }
-	void destroy_signal_thread() { }
-}
-
-
-/********************
- ** Signal context **
- ********************/
-
-void Signal_context::submit(unsigned) { Genode::error("not implemented"); }
-
-
-/************************
- ** Signal transmitter **
- ************************/
-
-void Signal_transmitter::submit(unsigned cnt)
+static Pd_session *_pd_ptr;
+static Pd_session &pd()
 {
-	{
-		Trace::Signal_submit trace_event(cnt);
-	}
-	Kernel::submit_signal(Capability_space::capid(_context), cnt);
+	if (_pd_ptr)
+		return *_pd_ptr;
+
+	class Missing_init_signal_thread { };
+	throw Missing_init_signal_thread();
 }
 
 
-/*********************
- ** Signal_receiver **
- *********************/
+/*
+ * On base-hw, we don't use a signal thread. We mereely save the PD session
+ * pointer of the passed 'env' argument.
+ */
+void Genode::init_signal_thread(Env &env) { _pd_ptr = &env.pd(); }
+void Genode::destroy_signal_thread() { }
+
 
 Signal_receiver::Signal_receiver()
 {
@@ -72,7 +55,7 @@ Signal_receiver::Signal_receiver()
 		Cap_quota cap_upgrade { 0 };
 
 		try {
-			_cap = internal_env().pd().alloc_signal_source();
+			_cap = pd().alloc_signal_source();
 			break;
 		}
 		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
@@ -88,7 +71,7 @@ Signal_receiver::Signal_receiver()
 void Signal_receiver::_platform_destructor()
 {
 	/* release server resources of receiver */
-	env_deprecated()->pd_session()->free_signal_source(_cap);
+	pd().free_signal_source(_cap);
 }
 
 
@@ -114,7 +97,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 
 		try {
 			/* use signal context as imprint */
-			c->_cap = env_deprecated()->pd_session()->alloc_context(_cap, (unsigned long)c);
+			c->_cap = pd().alloc_context(_cap, (unsigned long)c);
 			c->_receiver = this;
 			_contexts.insert(&c->_receiver_le);
 			return c->_cap;

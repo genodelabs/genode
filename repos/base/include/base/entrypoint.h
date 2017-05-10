@@ -74,6 +74,8 @@ class Genode::Entrypoint : Genode::Noncopyable
 		Signal_proxy_component   _signal_proxy {*this};
 		Capability<Signal_proxy> _signal_proxy_cap = _rpc_ep->manage(&_signal_proxy);
 
+		bool const _signalling_initialized;
+
 		Reconstructible<Signal_receiver> _sig_rec;
 
 		Lock                               _deferred_signals_mutex;

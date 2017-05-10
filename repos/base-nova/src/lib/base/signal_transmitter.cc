@@ -11,16 +11,21 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-
 /* Genode includes */
 #include <base/signal.h>
 #include <base/log.h>
 #include <base/trace/events.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
 
 using namespace Genode;
+
+
+void Genode::init_signal_transmitter(Env &) { }
 
 
 void Signal_transmitter::submit(unsigned cnt)

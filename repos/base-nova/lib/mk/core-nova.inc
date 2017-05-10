@@ -39,7 +39,9 @@ SRC_CC      += stack_area.cc \
                rom_session_component.cc \
                thread_start.cc \
                bios_data_area.cc \
-               trace_session_component.cc
+               trace_session_component.cc \
+               signal_transmitter_noinit.cc \
+               signal_receiver.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
                $(REP_DIR)/src/include \
@@ -58,6 +60,8 @@ vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath region_map_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
+vpath signal_transmitter_noinit.cc $(GEN_CORE_DIR)
+vpath signal_receiver.cc           $(GEN_CORE_DIR)
 vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
 vpath io_port_session_support.cc   $(GEN_CORE_DIR)/spec/x86
 vpath io_mem_session_component.cc  $(GEN_CORE_DIR)
