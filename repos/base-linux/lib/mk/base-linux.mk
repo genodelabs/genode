@@ -6,7 +6,8 @@
 
 include $(REP_DIR)/lib/mk/base-linux.inc
 
-LIBS   += startup-linux base-linux-common
+LIBS   += startup-linux base-linux-common cxx
 SRC_CC += thread.cc thread_myself.cc thread_linux.cc
 SRC_CC += capability_space.cc capability_raw.cc
 SRC_CC += attach_stack_area.cc
+SRC_CC += signal_transmitter.cc signal.cc

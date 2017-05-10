@@ -8,8 +8,8 @@ include $(BASE_DIR)/lib/mk/base-common.inc
 
 LIBS += startup-nova
 
-SRC_CC += signal_submit.cc
 SRC_CC += thread.cc thread_myself.cc
 SRC_CC += stack.cc
 SRC_CC += cap_map.cc
 SRC_CC += capability.cc
+SRC_CC += signal_transmitter.cc

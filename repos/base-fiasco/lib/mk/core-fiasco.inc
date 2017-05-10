@@ -35,6 +35,8 @@ SRC_CC      += stack_area.cc \
                region_map_support.cc \
                rom_session_component.cc \
                signal_source_component.cc \
+               signal_transmitter_proxy.cc \
+               signal_receiver.cc \
                thread_start.cc \
                trace_session_component.cc
 
@@ -65,6 +67,8 @@ vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
+vpath signal_transmitter_proxy.cc $(GEN_CORE_DIR)
+vpath signal_receiver.cc          $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath default_log.cc              $(GEN_CORE_DIR)

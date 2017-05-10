@@ -272,6 +272,7 @@ namespace {
 			Genode::inhibit_tracing = false;
 
 			Genode::call_global_static_constructors();
+			Genode::init_signal_transmitter(env);
 
 			Component::construct(env);
 		}
@@ -282,11 +283,11 @@ namespace {
 Entrypoint::Entrypoint(Env &env)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), Component::stack_size(), initial_ep_name())
-{
-	/* initialize signalling after initializing but before calling the entrypoint */
-	init_signal_thread(_env);
+	_rpc_ep(&env.pd(), Component::stack_size(), initial_ep_name()),
 
+	/* initialize signalling before creating the first signal receiver */
+	_signalling_initialized((init_signal_thread(env), true))
+{
 	/* initialize emulation of the original synchronous root interface */
 	init_root_proxy(_env);
 
@@ -317,7 +318,7 @@ Entrypoint::Entrypoint(Env &env)
 Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), stack_size, name)
+	_rpc_ep(&env.pd(), stack_size, name), _signalling_initialized(true)
 {
 	_signal_proxy_thread.construct(env, *this);
 }

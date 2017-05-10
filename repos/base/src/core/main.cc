@@ -28,6 +28,7 @@
 /* core includes */
 #include <platform.h>
 #include <core_env.h>
+#include <signal_transmitter.h>
 #include <ram_root.h>
 #include <rom_root.h>
 #include <rm_root.h>
@@ -59,6 +60,17 @@ Core_env * Genode::core_env()
 	 * constructor gets called when this function is used the first time.
 	 */
 	static Core_env _env;
+
+	/*
+	 * Register signal-source entrypoint at core-local signal-transmitter back
+	 * end
+	 */
+	static bool signal_transmitter_initialized;
+
+	if (!signal_transmitter_initialized)
+		signal_transmitter_initialized =
+			(init_core_signal_transmitter(*_env.entrypoint()), true);
+
 	return &_env;
 }
 
@@ -224,7 +236,8 @@ class Core_child : public Child_policy
  * the creation of regular threads within core is unsupported.
  */
 
-namespace Genode { void init_signal_thread(Env &) { } }
+void Genode::init_signal_thread(Env &) { }
+void Genode::destroy_signal_thread()   { }
 
 
 /*******************

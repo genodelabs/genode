@@ -26,6 +26,8 @@ SRC_CC      += \
                region_map_support.cc \
                irq_session_component.cc \
                signal_source_component.cc \
+               signal_transmitter_proxy.cc \
+               signal_receiver.cc \
                trace_session_component.cc \
                core_region_map.cc \
                core_mem_alloc.cc \
@@ -58,6 +60,8 @@ vpath io_mem_session_support.cc    $(GEN_CORE_DIR)
 vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
 vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
+vpath signal_transmitter_proxy.cc  $(GEN_CORE_DIR)
+vpath signal_receiver.cc           $(GEN_CORE_DIR)
 vpath dataspace_component.cc       $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc        $(GEN_CORE_DIR)

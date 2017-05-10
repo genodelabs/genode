@@ -9,6 +9,5 @@ include $(BASE_DIR)/lib/mk/base-common.inc
 LIBS += startup-okl4 syscall-okl4
 
 SRC_CC += capability.cc capability_raw.cc
-SRC_CC += signal_submit.cc
 SRC_CC += rpc_dispatch_loop.cc
 SRC_CC += thread.cc thread_bootstrap.cc thread_myself.cc

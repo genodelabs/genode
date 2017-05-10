@@ -1,4 +1,5 @@
 SRC_CC += lx_hybrid.cc new_delete.cc capability_space.cc
+SRC_CC += signal_transmitter.cc signal.cc
 
 vpath new_delete.cc $(BASE_DIR)/src/lib/cxx
 vpath lx_hybrid.cc   $(REP_DIR)/src/lib/lx_hybrid

@@ -2,9 +2,6 @@
  * \brief  Interfaces to library-global objects
  * \author Norman Feske
  * \date   2016-04-29
- *
- * \deprecated  This header should be removed once we have completed the
- *              transition to the modernized API.
  */
 
 /*
@@ -30,12 +27,15 @@ namespace Genode {
 	extern Ram_session *env_stack_area_ram_session;
 
 	void init_exception_handling(Env &);
+	void init_signal_transmitter(Env &);
 	void init_cxx_heap(Env &);
 	void init_ldso_phdr(Env &);
 	void init_signal_thread(Env &);
 	void init_root_proxy(Env &);
 	void init_log();
 	void exec_static_constructors();
+
+	void destroy_signal_thread();
 
 	Id_space<Parent::Client> &env_session_id_space();
 	Env &internal_env();
