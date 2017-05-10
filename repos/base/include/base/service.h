@@ -190,6 +190,9 @@ class Genode::Local_service : public Service
 					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
 				catch (Insufficient_ram_quota) {
 					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
+				catch (...) {
+					warning("unexpected exception during ",
+					        SESSION::service_name(), " session construction"); }
 
 				break;
 
