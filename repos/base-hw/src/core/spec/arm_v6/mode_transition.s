@@ -202,7 +202,7 @@
 
 	/* buffer user psr */
 	ldr r0, [lr, #PSR_OFFSET]
-	msr spsr, r0
+	msr spsr_cxsf, r0
 
 	/* load user r0 ... r12 */
 	ldm lr, {r0-r12}
