@@ -49,6 +49,18 @@ int PGMMapSetPage(PVM pVM, RTGCPTR GCPtr, uint64_t cb, uint64_t fFlags)
 }
 
 
+int PGMR3MapPT(PVM, RTGCPTR GCPtr, uint32_t cb, uint32_t fFlags,
+               PFNPGMRELOCATE pfnRelocate, void *pvUser, const char *pszDesc)
+{
+	if (verbose)
+		Genode::log(__func__, " GCPtr=", Genode::Hex(GCPtr), "+", Genode::Hex(cb),
+		            " flags=", Genode::Hex(fFlags), " pvUser=", pvUser,
+		            " desc=", pszDesc);
+
+	return VINF_SUCCESS;
+}
+
+
 int PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
 {
 	Genode::log(__func__, ": not implemented ", __builtin_return_address(0));
@@ -57,6 +69,7 @@ int PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
 
 	return 0;
 }
+
 
 
 int pgmMapActivateCR3(PVM, PPGMPOOLPAGE)
