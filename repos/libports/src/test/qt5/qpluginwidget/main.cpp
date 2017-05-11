@@ -12,19 +12,28 @@
 /* Qoost includes */
 #include <qoost/compound_widget.h>
 
-int main(int argc, char *argv[])
+void Libc::Component::construct(Libc::Env &env)
 {
-	static QApplication app(argc, argv);
+	Libc::with_libc([&] {
 
-	static Compound_widget<QWidget, QHBoxLayout> w;
+		QPluginWidget::set_env(&env);
 
-	static QString plugin_args("ram_quota=4M");
-	static QPluginWidget plugin_widget(&w, QUrl("rom:///test-plugin.tar"), plugin_args, 100, 100);
+		int argc = 1;
+		char *argv[] = { "test-qpluginwidget", 0 };
 
-	w.layout()->addWidget(&plugin_widget);
-	w.resize(150, 150);
+		QApplication app(argc, argv);
 
-	w.show();
+		Compound_widget<QWidget, QHBoxLayout> w;
 
-	return app.exec();
+		QString plugin_args("ram_quota=4M, caps=500");
+		QPluginWidget plugin_widget(&w, QUrl("rom:///test-plugin.tar"),
+		                            plugin_args, 100, 100);
+
+		w.layout()->addWidget(&plugin_widget);
+		w.resize(150, 150);
+
+		w.show();
+
+		return app.exec();
+	});
 }

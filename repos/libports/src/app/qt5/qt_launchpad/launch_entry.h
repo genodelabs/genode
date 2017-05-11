@@ -31,6 +31,7 @@ class Launch_entry : public QWidget
 		Launchpad_child::Name const  &_prg_name;
 		Launchpad                    *_launchpad;
 		Genode::Dataspace_capability  _config_ds;
+		Launchpad::Cap_quota          _caps;
 
 	private slots:
 
@@ -39,6 +40,7 @@ class Launch_entry : public QWidget
 	public:
 
 		Launch_entry(Launchpad_child::Name const &prg_name,
+		             Launchpad::Cap_quota caps,
 		             unsigned long default_quota,
 		             unsigned long max_quota,
 		             Launchpad *launchpad,

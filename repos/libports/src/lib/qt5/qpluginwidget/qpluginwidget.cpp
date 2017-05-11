@@ -19,6 +19,7 @@
 
 #include <qpluginwidget/qpluginwidget.h>
 
+Libc::Env     *QPluginWidget::_env = 0;
 QPluginWidget *QPluginWidget::_last = 0;
 
 using namespace Genode;
@@ -39,14 +40,14 @@ const char *config = " \
     <default-route> \
         <any-service> <parent/> <any-child/> </any-service> \
     </default-route> \
-    <start name=\"tar_rom\"> \
+    <start name=\"tar_rom\" caps=\"100\"> \
         <resource name=\"RAM\" quantum=\"1M\"/> \
         <provides> <service name=\"ROM\"/> </provides> \
         <config> \
             <archive name=\"plugin.tar\"/> \
         </config> \
     </start> \
-    <start name=\"init\"> \
+    <start name=\"init\" caps=\"200\"> \
         <resource name=\"RAM\" quantum=\"2G\"/> \
         <configfile name=\"config.plugin\"/> \
         <route> \
@@ -83,10 +84,12 @@ class Signal_wait_thread : public QThread
 };
 
 
-PluginStarter::PluginStarter(QUrl plugin_url, QString &args,
+PluginStarter::PluginStarter(Libc::Env *env,
+                             QUrl plugin_url, QString &args,
                              int max_width, int max_height,
                              Nitpicker::View_capability parent_view)
 :
+	_env(env),
 	_plugin_url(plugin_url),
 	_args(args.toLatin1()),
 	_max_width(max_width),
@@ -101,22 +104,36 @@ PluginStarter::PluginStarter(QUrl plugin_url, QString &args,
 
 void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf)
 {
+	Genode::size_t caps = Arg_string::find_arg(_args.constData(), "caps").ulong_value(0);
+
+	if ((long)_env->pd().avail_caps().value - (long)caps < QPluginWidget::PRESERVED_CAPS) {
+		Genode::error("Cannot donate ", caps, " capabilities to the plugin (quota exceeded).");
+		_plugin_loading_state = CAP_QUOTA_EXCEEDED_ERROR;
+		return;
+	}
+
 	if (file_name.endsWith(".gz")) {
 		file_name.remove(".gz");
 
-		uint32_t file_size = *(uint32_t*)(file_buf.constData() + file_buf.size() - sizeof(uint32_t));
+		uint32_t file_size = *(uint32_t*)(file_buf.constData() +
+		                     file_buf.size() - sizeof(uint32_t));
 
 		Genode::log(__func__, ": file_size_uncompressed=", file_size);
 
-		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0) + file_size;
+		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(),
+		                                                "ram_quota").ulong_value(0) +
+		                                                file_size;
 
-		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
-			Genode::error("quota exceeded");
-			_plugin_loading_state = QUOTA_EXCEEDED_ERROR;
+		if (((long)_env->ram().avail_ram().value - (long)ram_quota) <
+		    QPluginWidget::PRESERVED_RAM_QUOTA) {
+			Genode::error("Cannot donate ", ram_quota, " bytes of RAM to the plugin (quota exceeded).");
+			_plugin_loading_state = RAM_QUOTA_EXCEEDED_ERROR;
 			return;
 		}
 
-		_pc = new Loader::Connection(ram_quota);
+		_pc = new Loader::Connection(*_env,
+		                             Genode::Ram_quota{ram_quota},
+		                             Genode::Cap_quota{caps});
 
 		Dataspace_capability ds = _pc->alloc_rom_module(file_name.toUtf8().constData(), file_size);
 		if (ds.valid()) {
@@ -160,12 +177,15 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 	} else {
 		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0);
 
-		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
-			_plugin_loading_state = QUOTA_EXCEEDED_ERROR;
+		if (((long)env()->ram_session()->avail_ram().value - (long)ram_quota) <
+		    QPluginWidget::PRESERVED_RAM_QUOTA) {
+			_plugin_loading_state = RAM_QUOTA_EXCEEDED_ERROR;
 			return;
 		}
 
-		_pc = new Loader::Connection(ram_quota);
+		_pc = new Loader::Connection(*_env,
+		                             Genode::Ram_quota{ram_quota},
+		                             Genode::Cap_quota{caps});
 
 		Dataspace_capability plugin_ds = _pc->alloc_rom_module("plugin.tar", file_buf.size());
 		if (plugin_ds.valid()) {
@@ -386,7 +406,11 @@ void QPluginWidget::paintEvent(QPaintEvent *event)
 				painter.drawText(rect(), Qt::AlignCenter,
 						         tr("Could not load plugin: error decompressing gzipped file."));
 				break;
-			case QUOTA_EXCEEDED_ERROR:
+			case CAP_QUOTA_EXCEEDED_ERROR:
+				painter.drawText(rect(), Qt::AlignCenter,
+						         tr("Could not load plugin: not enough capabilities."));
+				break;
+			case RAM_QUOTA_EXCEEDED_ERROR:
 				painter.drawText(rect(), Qt::AlignCenter,
 						         tr("Could not load plugin: not enough memory."));
 				break;
@@ -412,7 +436,8 @@ void QPluginWidget::showEvent(QShowEvent *event)
 		QNitpickerPlatformWindow *platform_window =
 			dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
 
-		_plugin_starter = new PluginStarter(_plugin_url, _plugin_args,
+		_plugin_starter = new PluginStarter(_env,
+		                                    _plugin_url, _plugin_args,
 		                                    _max_width, _max_height,
 		                                    platform_window->view_cap());
 		_plugin_starter->moveToThread(_plugin_starter);
