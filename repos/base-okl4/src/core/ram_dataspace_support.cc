@@ -20,7 +20,7 @@
 /* core includes */
 #include <platform.h>
 #include <map_local.h>
-#include <ram_session_component.h>
+#include <ram_dataspace_factory.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
@@ -29,10 +29,10 @@ namespace Okl4 { extern "C" {
 
 using namespace Genode;
 
-void Ram_session_component::_export_ram_ds(Dataspace_component *ds) { }
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds) { }
 
-void Ram_session_component::_clear_ds (Dataspace_component *ds)
+void Ram_dataspace_factory::_clear_ds (Dataspace_component *ds)
 {
 	size_t page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
 

@@ -21,6 +21,7 @@ SRC_CC       = stack_area.cc \
                main.cc \
                pd_session_component.cc \
                rpc_cap_factory_l4.cc \
+               ram_dataspace_factory.cc \
                pd_assign_pci.cc \
                pd_upgrade_ram_quota.cc \
                pager.cc \
@@ -31,7 +32,7 @@ SRC_CC       = stack_area.cc \
                platform_services.cc \
                platform_thread.cc \
                ram_session_component.cc \
-               ram_session_support.cc \
+               ram_dataspace_support.cc \
                region_map_component.cc \
                region_map_support.cc \
                rom_session_component.cc \
@@ -57,6 +58,7 @@ vpath pd_assign_pci.cc            $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath region_map_component.cc     $(GEN_CORE_DIR)
 vpath rpc_cap_factory_l4.cc       $(GEN_CORE_DIR)
+vpath ram_dataspace_factory.cc    $(GEN_CORE_DIR)
 vpath capability_space.cc         $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)

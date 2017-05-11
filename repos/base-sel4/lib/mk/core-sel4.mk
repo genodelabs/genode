@@ -3,13 +3,14 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 SRC_CC      += \
                main.cc \
                ram_session_component.cc \
-               ram_session_support.cc \
+               ram_dataspace_support.cc \
                rom_session_component.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
                cpu_thread_component.cc \
                pd_session_component.cc \
                rpc_cap_factory.cc \
+               ram_dataspace_factory.cc \
                pd_assign_pci.cc \
                pd_upgrade_ram_quota.cc \
                io_mem_session_component.cc \
@@ -62,6 +63,7 @@ vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc  $(GEN_CORE_DIR)
 vpath signal_receiver.cc           $(GEN_CORE_DIR)
+vpath ram_dataspace_factory.cc     $(GEN_CORE_DIR)
 vpath dataspace_component.cc       $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc        $(GEN_CORE_DIR)

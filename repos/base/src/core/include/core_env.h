@@ -66,7 +66,7 @@ class Genode::Core_env : public Env_deprecated
 			             Session::Diag{false},
 			             *platform()->ram_alloc(),
 			             _region_map,
-			             Ram_session_component::any_phys_range())
+			             Ram_dataspace_factory::any_phys_range())
 		{
 			_ram_session.init_ram_account();
 		}

@@ -18,7 +18,6 @@
 /* core includes */
 #include <boot_modules.h>
 #include <hw/memory_region.h>
-#include <core_parent.h>
 #include <map_local.h>
 #include <platform.h>
 #include <platform_pd.h>

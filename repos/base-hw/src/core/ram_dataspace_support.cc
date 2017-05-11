@@ -5,7 +5,7 @@
  * \date   2012-02-12
  *
  * TODO: this file is almost identical to
- *       base-okl4/src/core/ram_session_support.cc, we should merge them
+ *       base-okl4/src/core/ram_dataspace_support.cc, we should merge them
  */
 
 /*
@@ -19,16 +19,16 @@
 #include <base/log.h>
 
 /* core includes */
-#include <ram_session_component.h>
+#include <ram_dataspace_factory.h>
 #include <platform.h>
 #include <map_local.h>
 
 using namespace Genode;
 
-void Ram_session_component::_export_ram_ds(Dataspace_component *ds) { }
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds) { }
 
-void Ram_session_component::_clear_ds (Dataspace_component * ds)
+void Ram_dataspace_factory::_clear_ds (Dataspace_component * ds)
 {
 	size_t page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
 

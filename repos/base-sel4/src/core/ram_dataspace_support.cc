@@ -12,7 +12,7 @@
  */
 
 /* core includes */
-#include <ram_session_component.h>
+#include <ram_dataspace_factory.h>
 #include <platform.h>
 #include <map_local.h>
 #include <untyped_memory.h>
@@ -20,7 +20,7 @@
 using namespace Genode;
 
 
-void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds)
 {
 	size_t const page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
 	size_t const num_pages = page_rounded_size >> get_page_size_log2();
@@ -29,7 +29,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
 }
 
 
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds)
 {
 	size_t const page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
 
@@ -37,7 +37,7 @@ void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 }
 
 
-void Ram_session_component::_clear_ds (Dataspace_component *ds)
+void Ram_dataspace_factory::_clear_ds (Dataspace_component *ds)
 {
 	size_t const page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
 

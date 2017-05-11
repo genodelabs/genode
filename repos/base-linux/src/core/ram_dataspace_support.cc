@@ -18,7 +18,7 @@
 #include <base/snprintf.h>
 
 /* local includes */
-#include <ram_session_component.h>
+#include <ram_dataspace_factory.h>
 #include <resource_path.h>
 
 /* base-internal includes */
@@ -33,7 +33,7 @@ using namespace Genode;
 
 static int ram_ds_cnt = 0;  /* counter for creating unique dataspace IDs */
 
-void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds)
 {
 	char fname[Linux_dataspace::FNAME_LEN];
 
@@ -56,7 +56,7 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
 }
 
 
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds)
 {
 	int const fd = Capability_space::ipc_cap_data(ds->fd()).dst.socket;
 	if (fd != -1)
@@ -64,4 +64,4 @@ void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 }
 
 
-void Ram_session_component::_clear_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_clear_ds(Dataspace_component *ds) { }
