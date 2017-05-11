@@ -78,7 +78,7 @@ class Stack_area_region_map : public Genode::Region_map
 };
 
 
-struct Stack_area_ram_session : Genode::Ram_session
+struct Stack_area_ram_allocator : Genode::Ram_allocator
 {
 	Genode::Ram_dataspace_capability alloc(Genode::size_t size,
 	                                       Genode::Cache_attribute) override {
@@ -87,14 +87,6 @@ struct Stack_area_ram_session : Genode::Ram_session
 	void free(Genode::Ram_dataspace_capability) override { }
 
 	Genode::size_t dataspace_size(Genode::Ram_dataspace_capability) const override { return 0; }
-
-	void ref_account(Genode::Ram_session_capability) override { }
-
-	void transfer_quota(Genode::Ram_session_capability, Genode::Ram_quota) override { }
-
-	Genode::Ram_quota ram_quota() const override { return { 0 }; }
-
-	Genode::Ram_quota used_ram() const override { return { 0 }; }
 };
 
 
@@ -103,16 +95,16 @@ struct Stack_area_ram_session : Genode::Ram_session
  */
 namespace Genode {
 
-	Region_map  *env_stack_area_region_map;
-	Ram_session *env_stack_area_ram_session;
+	Region_map    *env_stack_area_region_map;
+	Ram_allocator *env_stack_area_ram_allocator;
 
 	void init_stack_area()
 	{
 		static Stack_area_region_map rm_inst;
 		env_stack_area_region_map = &rm_inst;
 
-		static Stack_area_ram_session ram_inst;
-		env_stack_area_ram_session = &ram_inst;
+		static Stack_area_ram_allocator ram_inst;
+		env_stack_area_ram_allocator = &ram_inst;
 	}
 }
 

@@ -163,8 +163,8 @@ Platform_env::Platform_env()
 {
 	_attach_stack_area();
 
-	env_stack_area_region_map  = &_local_pd_session._stack_area;
-	env_stack_area_ram_session = ram_session();
+	env_stack_area_region_map    = &_local_pd_session._stack_area;
+	env_stack_area_ram_allocator = ram_session();
 
 	/* register TID and PID of the main thread at core */
 	Linux_native_cpu_client native_cpu(cpu_session()->native_cpu());

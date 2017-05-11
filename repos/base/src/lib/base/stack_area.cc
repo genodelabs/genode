@@ -13,13 +13,13 @@
 
 /* Genode includes */
 #include <region_map/region_map.h>
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
 
 namespace Genode {
-	Region_map  *env_stack_area_region_map;
-	Ram_session *env_stack_area_ram_session;
+	Region_map    *env_stack_area_region_map;
+	Ram_allocator *env_stack_area_ram_allocator;
 }
 

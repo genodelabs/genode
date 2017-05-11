@@ -23,8 +23,8 @@ namespace Genode {
 	class Env;
 	class Local_session_id_space;
 
-	extern Region_map  *env_stack_area_region_map;
-	extern Ram_session *env_stack_area_ram_session;
+	extern Region_map    *env_stack_area_region_map;
+	extern Ram_allocator *env_stack_area_ram_allocator;
 
 	Thread_capability main_thread_cap();
 
