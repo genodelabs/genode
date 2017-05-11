@@ -29,6 +29,8 @@ namespace Genode {
 	class Signal_source_component;
 
 	typedef Fifo<Signal_context_component> Signal_queue;
+
+	struct Signal_context_slab;
 }
 
 

@@ -16,6 +16,7 @@
 
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
+#include <signal_context_slab.h>
 
 namespace Genode { class Signal_broker; }
 
@@ -23,13 +24,12 @@ class Genode::Signal_broker
 {
 	private:
 
-		Allocator                        &_md_alloc;
-		Rpc_entrypoint                   &_source_ep;
-		Rpc_entrypoint                   &_context_ep;
-		Signal_source_component           _source;
-		Signal_source_capability          _source_cap;
-		Tslab<Signal_context_component,
-		      960*sizeof(long)>           _contexts_slab { &_md_alloc };
+		Allocator               &_md_alloc;
+		Rpc_entrypoint          &_source_ep;
+		Rpc_entrypoint          &_context_ep;
+		Signal_source_component  _source;
+		Signal_source_capability _source_cap;
+		Signal_context_slab      _contexts_slab { _md_alloc };
 
 	public:
 
@@ -52,7 +52,7 @@ class Genode::Signal_broker
 			_source_ep.dissolve(&_source);
 
 			/* free all signal contexts */
-			while (Signal_context_component *r = _contexts_slab.first_object())
+			while (Signal_context_component *r = _contexts_slab.any_signal_context())
 				free_context(r->cap());
 		}
 

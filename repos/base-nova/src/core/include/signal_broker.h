@@ -24,6 +24,7 @@
 #include <platform.h>
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
+#include <signal_context_slab.h>
 
 namespace Genode { class Signal_broker; }
 
@@ -38,8 +39,7 @@ class Genode::Signal_broker
 		Rpc_entrypoint                       &_context_ep;
 		Signal_source_component               _source;
 		Signal_source_capability              _source_cap;
-		Tslab<Signal_context_component,
-		      960*sizeof(long)>               _contexts_slab { &_md_alloc };
+		Signal_context_slab                   _context_slab { _md_alloc };
 
 	public:
 
@@ -62,7 +62,7 @@ class Genode::Signal_broker
 			_source_ep.dissolve(&_source);
 
 			/* free all signal contexts */
-			while (Signal_context_component *r = _contexts_slab.first_object())
+			while (Signal_context_component *r = _context_slab.any_signal_context())
 				free_context(reinterpret_cap_cast<Signal_context>(r->cap()));
 		}
 
@@ -101,7 +101,7 @@ class Genode::Signal_broker
 			}
 
 			/* the _contexts_slab may throw Allocator::Out_of_memory */
-			_obj_pool.insert(new (&_contexts_slab) Signal_context_component(cap));
+			_obj_pool.insert(new (&_context_slab) Signal_context_component(cap));
 
 			/* return unique capability for the signal context */
 			return cap;
@@ -121,7 +121,7 @@ class Genode::Signal_broker
 				        Hex(context_cap.local_name()));
 				return;
 			}
-			destroy(&_contexts_slab, context);
+			destroy(&_context_slab, context);
 
 			Nova::revoke(Nova::Obj_crd(context_cap.local_name(), 0));
 			cap_map()->remove(context_cap.local_name(), 0);
