@@ -321,8 +321,8 @@ struct Main
 
 	Main(Env &env)
 	{
-		test_1.construct(env);
-		test_1.destruct();
+//		test_1.construct(env);
+//		test_1.destruct();
 		test_2.construct(env);
 		test_2.destruct();
 
