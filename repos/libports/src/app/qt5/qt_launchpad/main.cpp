@@ -66,7 +66,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 		QApplication a(genode_argc, genode_argv);
 
-		Qt_launchpad launchpad(local_env, env.ram().avail());
+		Qt_launchpad launchpad(local_env, env.ram().avail_ram().value);
 
 		Genode::Attached_rom_dataspace config(env, "config");
 

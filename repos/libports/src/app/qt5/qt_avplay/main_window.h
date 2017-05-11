@@ -25,7 +25,6 @@
 
 /* Genode includes */
 #include <base/service.h>
-#include <cap_session/connection.h>
 #include <input/root.h>
 #include <os/config.h>
 #include <rom_session/connection.h>

@@ -7,6 +7,7 @@
 #include "launch_entry.h"
 
 Launch_entry::Launch_entry(Launchpad_child::Name const &prg_name,
+                           Launchpad::Cap_quota caps,
                            unsigned long default_quota,
                            unsigned long max_quota,
                            Launchpad *launchpad,
@@ -15,7 +16,8 @@ Launch_entry::Launch_entry(Launchpad_child::Name const &prg_name,
 : QWidget(parent),
   _prg_name(prg_name),
   _launchpad(launchpad),
-  _config_ds(config_ds)
+  _config_ds(config_ds),
+  _caps(caps)
 {
 	ui.setupUi(this);
 
@@ -29,7 +31,6 @@ Launch_entry::Launch_entry(Launchpad_child::Name const &prg_name,
 
 void Launch_entry::on_launchButton_clicked()
 {
-	_launchpad->start_child(_prg_name,
-	                        1024 * ui.quotaDial->value(),
-	                        _config_ds);
+	Launchpad::Ram_quota ram_quota = { 1024UL * ui.quotaDial->value() };
+	_launchpad->start_child(_prg_name, _caps, ram_quota, _config_ds);
 }

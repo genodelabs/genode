@@ -103,20 +103,25 @@ class Avplay_slave : public QObject
 					return _config_byte_array.constData();
 				}
 
-				static Genode::size_t _quota() { return 32*1024*1024; }
-				static Name           _name()  { return "avplay"; }
+				static Genode::Cap_quota _caps()      { return { 150 }; }
+				static Genode::Ram_quota _ram_quota() { return { 32*1024*1024 }; }
+				static Name              _name()      { return "avplay"; }
 
 			public:
 
 				Policy(Genode::Rpc_entrypoint         &entrypoint,
 				       Genode::Region_map             &rm,
-				       Genode::Ram_session_capability  ram,
+				       Genode::Pd_session             &ref_pd,
+				       Genode::Pd_session_capability   ref_pd_cap,
+				       Genode::Ram_session            &ref_ram,
+				       Genode::Ram_session_capability  ref_ram_cap,
 				       Input_service                  &input_service,
 				       Framebuffer_service_factory    &framebuffer_service_factory,
 				       char const                     *mediafile)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, entrypoint,
-					                      rm, ram, _quota()),
+					                      rm, ref_pd, ref_pd_cap, _caps(),
+					                      ref_ram, ref_ram_cap, _ram_quota()),
 					_input_service(input_service),
 					_framebuffer_service_factory(framebuffer_service_factory),
 					_mediafile(mediafile),
@@ -155,15 +160,18 @@ class Avplay_slave : public QObject
 		/**
 		 * Constructor
 		 */
-		Avplay_slave(Genode::Pd_session             &pd,
-		             Genode::Region_map             &rm,
-		             Genode::Ram_session_capability  ram,
+		Avplay_slave(Genode::Region_map             &rm,
+		             Genode::Pd_session             &ref_pd,
+		             Genode::Pd_session_capability   ref_pd_cap,
+		             Genode::Ram_session            &ref_ram,
+		             Genode::Ram_session_capability  ref_ram_cap,
 		             Input_service                  &input_service,
 		             Framebuffer_service_factory    &framebuffer_service_factory,
 		             char const                     *mediafile)
 		:
-			_ep(&pd, _ep_stack_size, "avplay_ep"),
-			_policy(_ep, rm, ram, input_service, framebuffer_service_factory, mediafile),
+			_ep(&ref_pd, _ep_stack_size, "avplay_ep"),
+			_policy(_ep, rm, ref_pd, ref_pd_cap, ref_ram, ref_ram_cap,
+			        input_service, framebuffer_service_factory, mediafile),
 			_child(rm, _ep, _policy)
 		{ }
 

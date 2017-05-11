@@ -23,6 +23,7 @@ struct Framebuffer_filter
 {
 	enum { MAX_FILTER_NAME_SIZE = 32 };
 	char                      name[MAX_FILTER_NAME_SIZE];
+	size_t                    caps;
 	Genode::Number_of_bytes   ram_quota;
 	Filter_framebuffer_slave *slave;
 };
@@ -59,6 +60,7 @@ Main_window::Main_window(Genode::Env &env)
 		for (; ; node = node.next("framebuffer_filter")) {
 			Framebuffer_filter *framebuffer_filter = new Framebuffer_filter;
 			node.attribute("name").value(framebuffer_filter->name, sizeof(framebuffer_filter->name));
+			node.attribute("caps").value(&framebuffer_filter->caps);
 			node.attribute("ram_quota").value(&framebuffer_filter->ram_quota);
 			qDebug() << "filter:" << framebuffer_filter->name << "," << framebuffer_filter->ram_quota;
 			framebuffer_filters.prepend(framebuffer_filter);
@@ -71,9 +73,13 @@ Main_window::Main_window(Genode::Env &env)
 	/* start the filtering framebuffer services */
 
 	Q_FOREACH(Framebuffer_filter *framebuffer_filter, framebuffer_filters) {
-		framebuffer_filter->slave = new Filter_framebuffer_slave(_env.pd(), _env.rm(),
+		framebuffer_filter->slave = new Filter_framebuffer_slave(_env.rm(),
+		                                                         _env.pd(),
+		                                                         _env.pd_session_cap(),
+		                                                         _env.ram(),
 		                                                         _env.ram_session_cap(),
 		                                                         framebuffer_filter->name,
+		                                                         framebuffer_filter->caps,
 		                                                         framebuffer_filter->ram_quota,
 		                                                         *framebuffer_service_factory);
 		framebuffer_service_factory =
@@ -82,8 +88,9 @@ Main_window::Main_window(Genode::Env &env)
 
 	/* start avplay */
 
-	Avplay_slave *avplay_slave = new Avplay_slave(_env.pd(), _env.rm(),
-	                                              _env.ram_session_cap(),
+	Avplay_slave *avplay_slave = new Avplay_slave(_env.rm(),
+	                                              _env.pd(), _env.pd_session_cap(),
+	                                              _env.ram(), _env.ram_session_cap(),
 	                                              _input_service,
 	                                              *framebuffer_service_factory,
 	                                              _mediafile_name.buf);

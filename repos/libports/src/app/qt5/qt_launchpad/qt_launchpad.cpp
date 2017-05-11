@@ -59,7 +59,7 @@ void Qt_launchpad::_avail_quota_update()
 {
 	static Genode::size_t _avail = 0;
 
-	Genode::size_t new_avail = Genode::env()->ram_session()->avail();
+	Genode::size_t new_avail = Genode::env()->ram_session()->avail_ram().value;
 
 	if (new_avail != _avail)
 		quota(new_avail);
@@ -76,10 +76,11 @@ void Qt_launchpad::quota(unsigned long quota)
 
 
 void Qt_launchpad::add_launcher(Launchpad_child::Name const &binary_name,
-                                unsigned long default_quota,
+                                Cap_quota caps, unsigned long default_quota,
                                 Genode::Dataspace_capability config_ds)
 {
 	Launch_entry *launch_entry = new Launch_entry(binary_name,
+	                                              caps,
 	                                              default_quota / 1024,
                                               	  initial_quota() / 1024,
                                               	  this,
