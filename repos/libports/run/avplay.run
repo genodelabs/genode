@@ -81,9 +81,6 @@ append config {
 	<start name="audio_drv">
 		<binary name="} [audio_drv_binary] {"/>
 		<resource name="RAM" quantum="8M"/>
-		<route>
-			<any-service> <any-child /> <parent /></any-service>
-		</route>
 		<provides>
 			<service name="Audio_out"/>
 		</provides>
