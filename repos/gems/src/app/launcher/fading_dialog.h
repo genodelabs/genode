@@ -197,10 +197,9 @@ class Launcher::Fading_dialog : private Input_event_handler
 			_nitpicker_connection(env, "menu"),
 			_nitpicker_session(env, _nitpicker_connection, env.ep(), _fader_slave_ep, *this),
 			_nit_fader_slave(_fader_slave_ep, env.rm(), env.pd(), env.pd_session_cap(),
-			                 env.ram(), env.ram_session_cap(), _nitpicker_service),
+			                 _nitpicker_service),
 			_nit_fader_connection(env.rm(), _nit_fader_slave.policy(), Slave::Args("label=menu")),
 			_menu_view_slave(env.rm(), env.pd(), env.pd_session_cap(),
-			                 env.ram(), env.ram_session_cap(),
 			                 _nit_fader_connection,
 			                 _dialog_rom, _hover_report, initial_position)
 		{

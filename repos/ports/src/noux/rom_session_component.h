@@ -31,7 +31,7 @@ struct Noux::Rom_dataspace_info : Dataspace_info
 
 	~Rom_dataspace_info() { }
 
-	Dataspace_capability fork(Ram_session        &,
+	Dataspace_capability fork(Ram_allocator      &,
 	                          Region_map         &,
 	                          Allocator          &alloc,
 	                          Dataspace_registry &ds_registry,

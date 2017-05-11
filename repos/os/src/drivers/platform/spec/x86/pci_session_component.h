@@ -18,7 +18,7 @@
 #include <base/rpc_server.h>
 #include <base/tslab.h>
 #include <base/attached_rom_dataspace.h>
-#include <ram_session/connection.h>
+#include <ram_session/capability.h>
 #include <root/component.h>
 
 #include <util/mmio.h>
@@ -302,9 +302,9 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				          Genode::Session_label   const &label)
 				try :
 					_reservation(ref_ram, RAM_QUOTA),
-					_policy(ep, local_rm,
-					        ref_pd,  ref_pd_cap,  Genode::Cap_quota{CAP_QUOTA},
-					        ref_ram, ref_ram_cap, Genode::Ram_quota{RAM_QUOTA},
+					_policy(ep, local_rm, ref_pd,  ref_pd_cap,
+					        Genode::Cap_quota{CAP_QUOTA},
+					        Genode::Ram_quota{RAM_QUOTA},
 					        label),
 					_child(local_rm, ep, _policy),
 					_connection(_policy, Genode::Slave::Args())
@@ -597,8 +597,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		:
 			_env(env), _device_pd_ep(device_pd_ep),
 			_config(config),
-			_env_ram(env.ram(), env.ram_session_cap(),
-			         Genode::Arg_string::find_arg(args, "ram_quota").long_value(0)),
+			_env_ram(env.ram(), Genode::ram_quota_from_args(args).value),
 			_env_ram_cap(env.ram_session_cap()),
 			_env_pd(env.pd()),
 			_env_pd_cap(env.pd_session_cap()),
@@ -1149,7 +1148,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		Session_component *_create_session(const char *args)
 		{
 			try {
-				return new (md_alloc())
+				return  new (md_alloc())
 					Session_component(_env, _config, _device_pd_ep, _buses, _heap, args);
 			}
 			catch (Genode::Session_policy::No_policy_defined) {

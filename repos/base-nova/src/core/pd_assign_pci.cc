@@ -21,10 +21,10 @@ bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 {
 	uint8_t res = Nova::NOVA_PD_OOM;
 	do {
-		res = Nova::assign_pci(_pd.pd_sel(), pci_config_memory, bdf);
+		res = Nova::assign_pci(_pd->pd_sel(), pci_config_memory, bdf);
 	} while (res == Nova::NOVA_PD_OOM &&
 	         Nova::NOVA_OK == Pager_object::handle_oom(Pager_object::SRC_CORE_PD,
-	                                                   _pd.pd_sel(),
+	                                                   _pd->pd_sel(),
 	                                                   "core", "ep",
 	                                                   Pager_object::Policy::UPGRADE_CORE_TO_DST));
 

@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <ram_session/connection.h>
+#include <pd_session/connection.h>
 #include <base/log.h>
 #include <base/component.h>
 
@@ -24,16 +24,16 @@ void Component::construct(Genode::Env &env)
 
 	log("--- dataspace ownership test ---");
 
-	static Ram_connection ram_1 { env };
-	static Ram_connection ram_2 { env };
+	static Pd_connection pd_1 { env };
+	static Pd_connection pd_2 { env };
 
 	log("allocate dataspace from one RAM session");
-	ram_1.ref_account(env.ram_session_cap());
-	env.ram().transfer_quota(ram_1.cap(), Ram_quota{8*1024});
-	Ram_dataspace_capability ds = ram_1.alloc(sizeof(unsigned));
+	pd_1.ref_account(env.pd_session_cap());
+	env.pd().transfer_quota(pd_1.cap(), Ram_quota{8*1024});
+	Ram_dataspace_capability ds = pd_1.alloc(sizeof(unsigned));
 
 	log("attempt to free dataspace from foreign RAM session");
-	ram_2.free(ds);
+	pd_2.free(ds);
 
 	log("try to attach dataspace to see if it still exists");
 	env.rm().attach(ds);
@@ -41,9 +41,9 @@ void Component::construct(Genode::Env &env)
 	log("attach operation succeeded");
 
 	log("free dataspace from legitimate RAM session");
-	Ram_quota const quota_before_free { ram_1.avail_ram() };
-	ram_1.free(ds);
-	Ram_quota const quota_after_free { ram_1.avail_ram() };
+	Ram_quota const quota_before_free { pd_1.avail_ram() };
+	pd_1.free(ds);
+	Ram_quota const quota_after_free { pd_1.avail_ram() };
 
 	if (quota_after_free.value > quota_before_free.value)
 		log("test succeeded");

@@ -19,6 +19,6 @@ using namespace Genode;
 
 void Pd_session_component::session_quota_upgraded()
 {
-	_pd.upgrade_slab(_sliced_heap);
+	_pd->upgrade_slab(_sliced_heap);
 }
 

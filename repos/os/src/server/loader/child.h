@@ -19,7 +19,6 @@
 #include <base/child.h>
 #include <util/arg_string.h>
 #include <init/child_policy.h>
-#include <ram_session/connection.h>
 #include <cpu_session/connection.h>
 #include <pd_session/connection.h>
 #include <region_map/client.h>
@@ -100,19 +99,11 @@ class Loader::Child : public Child_policy
 		Pd_session           &ref_pd()           override { return _env.pd(); }
 		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
-		Ram_session           &ref_ram()           override { return _env.ram(); }
-		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
-
 		void init(Pd_session &pd, Pd_session_capability pd_cap) override
 		{
 			pd.ref_account(ref_pd_cap());
 			ref_pd().transfer_quota(pd_cap, _cap_quota);
-		}
-
-		void init(Ram_session &ram, Ram_session_capability ram_cap) override
-		{
-			ram.ref_account(ref_ram_cap());
-			ref_ram().transfer_quota(ram_cap, _ram_quota);
+			ref_pd().transfer_quota(pd_cap, _ram_quota);
 		}
 
 		Service &resolve_session_request(Service::Name const &name,

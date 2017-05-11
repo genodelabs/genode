@@ -202,6 +202,8 @@ class Genode::Platform : public Platform_generic
 		{
 			return 1UL << Core_cspace::NUM_CORE_SEL_LOG2;
 		}
+
+		bool core_needs_platform_pd() const override { return false; }
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_H_ */

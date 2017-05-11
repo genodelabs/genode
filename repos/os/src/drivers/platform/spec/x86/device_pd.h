@@ -22,8 +22,7 @@ namespace Platform { class Device_pd_policy; }
 
 class Platform::Device_pd_policy
 :
-	private Genode::Static_parent_services<Genode::Ram_session,
-	                                       Genode::Pd_session,
+	private Genode::Static_parent_services<Genode::Pd_session,
 	                                       Genode::Cpu_session,
 	                                       Genode::Log_session,
 	                                       Genode::Rom_session>,
@@ -36,14 +35,11 @@ class Platform::Device_pd_policy
 		                 Genode::Pd_session            &pd_ref,
 		                 Genode::Pd_session_capability  pd_ref_cap,
 		                 Genode::Cap_quota              cap_quota,
-		                 Genode::Ram_session           &ram_ref,
-		                 Genode::Ram_session_capability ram_ref_cap,
 		                 Genode::Ram_quota              ram_quota,
 		                 Genode::Session_label   const &label)
 		:
 			Genode::Slave::Policy(label, "device_pd", *this, slave_ep, local_rm,
-			                      pd_ref,  pd_ref_cap,  cap_quota,
-			                      ram_ref, ram_ref_cap, ram_quota)
+			                      pd_ref, pd_ref_cap, cap_quota, ram_quota)
 		{ }
 };
 

@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <util/string.h>
-#include <ram_session/client.h>
 #include <base/attached_dataspace.h>
 #include <os/reporter.h>
 #include <nitpicker_session/connection.h>
@@ -31,8 +30,6 @@
 namespace Wm { class Main;
 	using Genode::size_t;
 	using Genode::Allocator;
-	using Genode::Ram_session_client;
-	using Genode::Ram_session_capability;
 	using Genode::Arg_string;
 	using Genode::Object_pool;
 	using Genode::Attached_dataspace;

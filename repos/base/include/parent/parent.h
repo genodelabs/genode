@@ -66,18 +66,18 @@ class Genode::Parent
 		 */
 		struct Env
 		{
-			static Client::Id ram()     { return { 1 }; }
+			static Client::Id pd()      { return { 1 }; }
 			static Client::Id cpu()     { return { 2 }; }
-			static Client::Id pd()      { return { 3 }; }
-			static Client::Id log()     { return { 4 }; }
-			static Client::Id binary()  { return { 5 }; }
-			static Client::Id linker()  { return { 6 }; }
+			static Client::Id log()     { return { 3 }; }
+			static Client::Id binary()  { return { 4 }; }
+			static Client::Id linker()  { return { 5 }; }
+			static Client::Id last()    { return { 5 }; }
 
 			/**
 			 * True if session ID refers to an environment session
 			 */
 			static bool session_id(Client::Id id) {
-				return id.value >= 1 && id.value <= 6; }
+				return id.value >= 1 && id.value <= last().value; }
 		};
 
 		/**

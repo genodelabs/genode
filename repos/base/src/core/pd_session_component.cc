@@ -1,5 +1,5 @@
 /*
- * \brief  Core implementation of the RAM session interface
+ * \brief  Core implementation of the PD session interface
  * \author Norman Feske
  * \date   2006-05-19
  */
@@ -15,13 +15,13 @@
 #include <base/log.h>
 
 /* core includes */
-#include <ram_session_component.h>
+#include <pd_session_component.h>
 
 using namespace Genode;
 
 
 Ram_dataspace_capability
-Ram_session_component::alloc(size_t ds_size, Cache_attribute cached)
+Pd_session_component::alloc(size_t ds_size, Cache_attribute cached)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size) return Ram_dataspace_capability();
@@ -72,7 +72,7 @@ Ram_session_component::alloc(size_t ds_size, Cache_attribute cached)
 }
 
 
-void Ram_session_component::free(Ram_dataspace_capability ds_cap)
+void Pd_session_component::free(Ram_dataspace_capability ds_cap)
 {
 	if (this->cap() == ds_cap)
 		return;
@@ -87,11 +87,11 @@ void Ram_session_component::free(Ram_dataspace_capability ds_cap)
 	_ram_account->replenish(Ram_quota{size});
 
 	/* capability of the dataspace RPC object */
-	Cap_quota_guard::replenish(Cap_quota{1});
+	_released_cap(DS_CAP);
 }
 
 
-size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) const
+size_t Pd_session_component::dataspace_size(Ram_dataspace_capability ds_cap) const
 {
 	if (this->cap() == ds_cap)
 		return 0;
@@ -100,46 +100,76 @@ size_t Ram_session_component::dataspace_size(Ram_dataspace_capability ds_cap) co
 }
 
 
-void Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
+void Pd_session_component::ref_account(Capability<Pd_session> pd_cap)
 {
 	/* the reference account can be defined only once */
-	if (_ram_account.constructed())
+	if (_cap_account.constructed())
 		return;
 
-	if (this->cap() == ram_session_cap)
+	if (this->cap() == pd_cap)
 		return;
 
-	_ep.apply(ram_session_cap, [&] (Ram_session_component *ram) {
+	_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
 
-		if (!ram || !ram->_ram_account.constructed()) {
-			error("invalid RAM session specified as ref account");
+		if (!pd || !pd->_ram_account.constructed()) {
+			error("invalid PD session specified as ref account");
 			throw Invalid_session();
 		}
 
-		_ram_account.construct(*this, _label, *ram->_ram_account);
+		_cap_account.construct(*this, _label, *pd->_cap_account);
+		_ram_account.construct(*this, _label, *pd->_ram_account);
 	});
 }
 
 
-void Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
-                                           Ram_quota amount)
+void Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap,
+                                          Cap_quota amount)
 {
-	/* the reference account can be defined only once */
-	if (!_ram_account.constructed())
+	if (!_cap_account.constructed())
 		throw Undefined_ref_account();
 
-	if (this->cap() == ram_session_cap)
+	if (this->cap() == pd_cap)
 		return;
 
-	_ep.apply(ram_session_cap, [&] (Ram_session_component *ram) {
+	_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
 
-		if (!ram || !ram->_ram_account.constructed())
+		if (!pd || !pd->_cap_account.constructed())
 			throw Invalid_session();
 
 		try {
-			_ram_account->transfer_quota(*ram->_ram_account, amount); }
+			_cap_account->transfer_quota(*pd->_cap_account, amount);
+			diag("transferred ", amount, " caps "
+			     "to '", pd->_cap_account->label(), "' (", _cap_account, ")");
+		}
+		catch (Account<Cap_quota>::Unrelated_account) {
+			warning("attempt to transfer cap quota to unrelated PD session");
+			throw Invalid_session(); }
+		catch (Account<Cap_quota>::Limit_exceeded) {
+			warning("cap limit (", *_cap_account, ") exceeded "
+			        "during transfer_quota(", amount, ")");
+			throw Out_of_caps(); }
+	});
+}
+
+
+void Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap,
+                                          Ram_quota amount)
+{
+	if (!_ram_account.constructed())
+		throw Undefined_ref_account();
+
+	if (this->cap() == pd_cap)
+		return;
+
+	_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
+
+		if (!pd || !pd->_ram_account.constructed())
+			throw Invalid_session();
+
+		try {
+			_ram_account->transfer_quota(*pd->_ram_account, amount); }
 		catch (Account<Ram_quota>::Unrelated_account) {
-			warning("attempt to transfer RAM quota to unrelated RAM session");
+			warning("attempt to transfer RAM quota to unrelated PD session");
 			throw Invalid_session(); }
 		catch (Account<Ram_quota>::Limit_exceeded) {
 			warning("RAM limit (", *_ram_account, ") exceeded "
@@ -148,18 +178,3 @@ void Ram_session_component::transfer_quota(Ram_session_capability ram_session_ca
 	});
 }
 
-
-Ram_session_component::Ram_session_component(Rpc_entrypoint  &ep,
-                                             Resources        resources,
-                                             Label     const &label,
-                                             Diag             diag,
-                                             Range_allocator &phys_alloc,
-                                             Region_map      &local_rm,
-                                             Phys_range       phys_range)
-:
-	Session_object(ep, resources, label, diag),
-	_ep(ep),
-	_constrained_md_ram_alloc(*this, *this, *this),
-	_sliced_heap(_constrained_md_ram_alloc, local_rm),
-	_ram_ds_factory(ep, phys_alloc, phys_range, local_rm, _sliced_heap)
-{ }

@@ -21,7 +21,7 @@
 /* base-internal includes */
 #include <base/internal/expanding_cpu_session_client.h>
 #include <base/internal/expanding_region_map_client.h>
-#include <base/internal/expanding_ram_session_client.h>
+#include <base/internal/expanding_pd_session_client.h>
 #include <base/internal/expanding_parent_client.h>
 #include <base/internal/region_map_mmap.h>
 #include <base/internal/local_rm_session.h>
@@ -42,8 +42,6 @@ class Genode::Platform_env_base : public Env_deprecated
 {
 	private:
 
-		Ram_session_capability       _ram_session_cap;
-		Expanding_ram_session_client _ram_session_client;
 		Cpu_session_capability       _cpu_session_cap;
 		Expanding_cpu_session_client _cpu_session_client;
 		Region_map_mmap              _region_map_mmap;
@@ -64,12 +62,9 @@ class Genode::Platform_env_base : public Env_deprecated
 		/**
 		 * Constructor
 		 */
-		Platform_env_base(Ram_session_capability ram_cap,
-		                  Cpu_session_capability cpu_cap,
+		Platform_env_base(Cpu_session_capability cpu_cap,
 		                  Pd_session_capability  pd_cap)
 		:
-			_ram_session_cap(ram_cap),
-			_ram_session_client(_ram_session_cap, Parent::Env::ram()),
 			_cpu_session_cap(cpu_cap),
 			_cpu_session_client(cpu_cap, Parent::Env::cpu()),
 			_region_map_mmap(false),
@@ -77,13 +72,21 @@ class Genode::Platform_env_base : public Env_deprecated
 			_local_pd_session(_pd_session_cap)
 		{ }
 
+		/**
+		 * Constructor used by 'Core_env'
+		 */
+		Platform_env_base()
+		:
+			Platform_env_base(Cpu_session_capability(), Pd_session_capability())
+		{ }
+
 
 		/******************************
 		 ** Env_deprecated interface **
 		 ******************************/
 
-		Ram_session            *ram_session()     override { return &_ram_session_client; }
-		Ram_session_capability  ram_session_cap() override { return  _ram_session_cap; }
+		Ram_session            *ram_session()     override { return &_local_pd_session; }
+		Ram_session_capability  ram_session_cap() override { return  _pd_session_cap; }
 		Region_map             *rm_session()      override { return &_region_map_mmap; }
 		Cpu_session            *cpu_session()     override { return &_cpu_session_client; }
 		Cpu_session_capability  cpu_session_cap() override { return  _cpu_session_cap; }

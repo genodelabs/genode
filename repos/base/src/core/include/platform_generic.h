@@ -104,6 +104,11 @@ namespace Genode {
 			 * Return system-wide maximum number of capabilities
 			 */
 			virtual size_t max_caps() const = 0;
+
+			/**
+			 * Return true if the core component relies on a 'Platform_pd' object
+			 */
+			virtual bool core_needs_platform_pd() const { return true; }
 	};
 
 

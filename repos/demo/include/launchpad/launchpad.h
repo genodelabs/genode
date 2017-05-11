@@ -56,9 +56,6 @@ class Launchpad_child : public Genode::Child_policy,
 
 		Genode::Allocator &_alloc;
 
-		Genode::Ram_session_capability _ref_ram_cap;
-		Genode::Ram_session_client     _ref_ram { _ref_ram_cap };
-
 		Genode::Cap_quota const _cap_quota;
 		Genode::Ram_quota const _ram_quota;
 
@@ -106,7 +103,6 @@ class Launchpad_child : public Genode::Child_policy,
 		:
 			_name(label), _elf_name(elf_name),
 			_env(env), _alloc(alloc),
-			_ref_ram_cap(env.ram_session_cap()),
 			_cap_quota(Genode::Child::effective_quota(cap_quota)),
 			_ram_quota(Genode::Child::effective_quota(ram_quota)),
 			_parent_services(parent_services),
@@ -139,21 +135,12 @@ class Launchpad_child : public Genode::Child_policy,
 		Genode::Pd_session           &ref_pd()           override { return _env.pd(); }
 		Genode::Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
-		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }
-		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
-
 		void init(Genode::Pd_session &session,
 		          Genode::Pd_session_capability cap) override
 		{
 			session.ref_account(_env.pd_session_cap());
 			_env.pd().transfer_quota(cap, _cap_quota);
-		}
-
-		void init(Genode::Ram_session &session,
-		          Genode::Ram_session_capability cap) override
-		{
-			session.ref_account(_ref_ram_cap);
-			_ref_ram.transfer_quota(cap, _ram_quota);
+			_env.pd().transfer_quota(cap, _ram_quota);
 		}
 
 		Genode::Id_space<Genode::Parent::Server> &server_id_space() override {

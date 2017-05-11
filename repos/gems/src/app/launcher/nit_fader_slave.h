@@ -51,17 +51,14 @@ class Launcher::Nit_fader_slave
 
 			public:
 
-				Policy(Rpc_entrypoint         &ep,
-				       Region_map             &rm,
-				       Pd_session             &ref_pd,
-				       Pd_session_capability   ref_pd_cap,
-				       Ram_session            &ref_ram,
-				       Ram_session_capability  ref_ram_cap,
-				       Genode::Service        &nitpicker_service)
+				Policy(Rpc_entrypoint        &ep,
+				       Region_map            &rm,
+				       Pd_session            &ref_pd,
+				       Pd_session_capability  ref_pd_cap,
+				       Genode::Service       &nitpicker_service)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
-					                      ref_pd,  ref_pd_cap,  _caps(),
-					                      ref_ram, ref_ram_cap, _quota()),
+					                      ref_pd,  ref_pd_cap,  _caps(), _quota()),
 					_nitpicker_service(nitpicker_service)
 				{
 					visible(false);
@@ -101,11 +98,9 @@ class Launcher::Nit_fader_slave
 		                Genode::Region_map    &rm,
 		                Pd_session            &ref_pd,
 		                Pd_session_capability  ref_pd_cap,
-		                Ram_session           &ref_ram,
-		                Ram_session_capability ref_ram_cap,
 		                Genode::Service       &nitpicker_service)
 		:
-			_policy(ep, rm, ref_pd, ref_pd_cap, ref_ram, ref_ram_cap, nitpicker_service),
+			_policy(ep, rm, ref_pd, ref_pd_cap, nitpicker_service),
 			_child(rm, ep, _policy)
 		{
 			visible(false);

@@ -31,20 +31,31 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 
 		Rpc_entrypoint   &_ep;
 		Pager_entrypoint &_pager_ep;
-		Ram_allocator    &_ram_alloc;
+		Range_allocator  &_phys_alloc;
 		Region_map       &_local_rm;
+
+		static Ram_dataspace_factory::Phys_range _phys_range_from_args(char const *args)
+		{
+			addr_t const start = Arg_string::find_arg(args, "phys_start").ulong_value(0);
+			addr_t const size  = Arg_string::find_arg(args, "phys_size").ulong_value(0);
+			addr_t const end   = start + size - 1;
+
+			return (start <= end) ? Ram_dataspace_factory::Phys_range { start, end }
+			                      : Ram_dataspace_factory::any_phys_range();
+		}
 
 	protected:
 
 		Pd_session_component *_create_session(const char *args)
 		{
-			Pd_session_component *result = new (md_alloc())
+			return new (md_alloc())
 				Pd_session_component(_ep,
 				                     session_resources_from_args(args),
 				                     session_label_from_args(args),
 				                     session_diag_from_args(args),
-				                     _ram_alloc, _local_rm, _pager_ep, args);
-			return result;
+				                     _phys_alloc,
+				                     _phys_range_from_args(args),
+				                     _local_rm, _pager_ep, args);
 		}
 
 		void _upgrade_session(Pd_session_component *pd, const char *args)
@@ -58,20 +69,15 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 
 		/**
 		 * Constructor
-		 *
-		 * \param ep        entry point for managing pd session objects,
-		 *                  threads, and signal contexts
-		 * \param ram_alloc allocator used for session-local allocations
-		 * \param md_alloc  meta-data allocator to be used by root component
 		 */
 		Pd_root(Rpc_entrypoint   &ep,
 		        Pager_entrypoint &pager_ep,
-		        Ram_allocator    &ram_alloc,
+		        Range_allocator  &phys_alloc,
 		        Region_map       &local_rm,
 		        Allocator        &md_alloc)
 		:
 			Root_component<Pd_session_component>(&ep, &md_alloc),
-			_ep(ep), _pager_ep(pager_ep), _ram_alloc(ram_alloc), _local_rm(local_rm)
+			_ep(ep), _pager_ep(pager_ep), _phys_alloc(phys_alloc), _local_rm(local_rm)
 		{ }
 };
 

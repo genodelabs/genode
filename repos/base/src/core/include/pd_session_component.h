@@ -32,6 +32,7 @@
 #include <platform_pd.h>
 #include <signal_broker.h>
 #include <rpc_cap_factory.h>
+#include <ram_dataspace_factory.h>
 #include <native_pd_component.h>
 #include <region_map_component.h>
 #include <platform_generic.h>
@@ -44,30 +45,37 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 {
 	private:
 
-		Constrained_ram_allocator _constrained_md_ram_alloc;
-		Sliced_heap               _sliced_heap;
-		Platform_pd               _pd { &_sliced_heap, _label.string() };
-		Capability<Parent>        _parent;
-		Rpc_entrypoint           &_ep;
-		Pager_entrypoint         &_pager_ep;
-		Signal_broker             _signal_broker { _sliced_heap, _ep, _ep };
-		Rpc_cap_factory           _rpc_cap_factory { _sliced_heap };
-		Native_pd_component       _native_pd;
+		Rpc_entrypoint            &_ep;
+		Constrained_ram_allocator  _constrained_md_ram_alloc;
+		Sliced_heap                _sliced_heap;
+		Constructible<Platform_pd> _pd { &_sliced_heap, _label.string() };
+		Capability<Parent>         _parent;
+		Signal_broker              _signal_broker;
+		Ram_dataspace_factory      _ram_ds_factory;
+		Rpc_cap_factory            _rpc_cap_factory;
+		Native_pd_component        _native_pd;
 
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
 		Region_map_component _linker_area;
 
 		Constructible<Account<Cap_quota> > _cap_account;
+		Constructible<Account<Ram_quota> > _ram_account;
 
 		friend class Native_pd_component;
 
-		enum Cap_type { RPC_CAP, SIG_SOURCE_CAP, SIG_CONTEXT_CAP, IGN_CAP };
+
+		/*****************************************
+		 ** Utilities for capability accounting **
+		 *****************************************/
+
+		enum Cap_type { RPC_CAP, DS_CAP, SIG_SOURCE_CAP, SIG_CONTEXT_CAP, IGN_CAP };
 
 		char const *_name(Cap_type type)
 		{
 			switch (type) {
 			case RPC_CAP:         return "RPC";
+			case DS_CAP:          return "dataspace";
 			case SIG_SOURCE_CAP:  return "signal-source";
 			case SIG_CONTEXT_CAP: return "signal-context";
 			default:              return "";
@@ -98,43 +106,49 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 	public:
 
+		typedef Ram_dataspace_factory::Phys_range Phys_range;
+
 		/**
 		 * Constructor
-		 *
-		 * \param ep          entrypoint holding signal-receiver component
-		 *                    objects, signal contexts, thread objects
-		 * \param ram_alloc   backing store for dynamically allocated
-		 *                    session meta data
 		 */
 		Pd_session_component(Rpc_entrypoint   &ep,
 		                     Resources         resources,
 		                     Label      const &label,
 		                     Diag              diag,
-		                     Ram_allocator    &ram_alloc,
+		                     Range_allocator  &phys_alloc,
+		                     Phys_range        phys_range,
 		                     Region_map       &local_rm,
 		                     Pager_entrypoint &pager_ep,
 		                     char const       *args)
 		:
 			Session_object(ep, resources, label, diag),
-			_constrained_md_ram_alloc(ram_alloc, *this, *this),
+			_ep(ep),
+			_constrained_md_ram_alloc(*this, *this, *this),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
-			_ep(ep), _pager_ep(pager_ep),
+			_signal_broker(_sliced_heap, ep, ep),
+			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm, _sliced_heap),
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_address_space(ep, _sliced_heap, pager_ep,
 			               platform()->vm_start(), platform()->vm_size()),
-			_stack_area (_ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size()),
-			_linker_area(_ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE)
-		{ }
+			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size()),
+			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE)
+		{
+			if (platform()->core_needs_platform_pd() || label != "core")
+				_pd.construct(&_sliced_heap, _label.string());
+		}
 
 		/**
-		 * Initialize cap account without providing a reference account
+		 * Initialize cap and RAM accounts without providing a reference account
 		 *
-		 * This method is solely used to set up the initial PD session within
-		 * core. The cap accounts of regular PD session are initialized via
-		 * 'ref_account'.
+		 * This method is solely used to set up the initial PD within core. The
+		 * accounts of regular PD sessions are initialized via 'ref_account'.
 		 */
-		void init_cap_account() { _cap_account.construct(*this, _label); }
+		void init_cap_and_ram_accounts()
+		{
+			_cap_account.construct(*this, _label);
+			_ram_account.construct(*this, _label);
+		}
 
 		/**
 		 * Session_object interface
@@ -152,7 +166,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 */
 		bool bind_thread(Platform_thread &thread)
 		{
-			return _pd.bind_thread(&thread);
+			return _pd->bind_thread(&thread);
 		}
 
 		Region_map_component &address_space_region_map()
@@ -160,18 +174,18 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			return _address_space;
 		}
 
-
-		/**************************
-		 ** PD session interface **
-		 **************************/
-
 		void assign_parent(Capability<Parent> parent) override
 		{
 			_parent = parent;
-			_pd.assign_parent(parent);
+			_pd->assign_parent(parent);
 		}
 
 		bool assign_pci(addr_t, uint16_t) override;
+
+
+		/****************
+		 ** Signalling **
+		 ****************/
 
 		Signal_source_capability alloc_signal_source() override
 		{
@@ -185,8 +199,10 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 		void free_signal_source(Signal_source_capability sig_rec_cap) override
 		{
-			_signal_broker.free_signal_source(sig_rec_cap);
-			_released_cap(SIG_SOURCE_CAP);
+			if (sig_rec_cap.valid()) {
+				_signal_broker.free_signal_source(sig_rec_cap);
+				_released_cap(SIG_SOURCE_CAP);
+			}
 		}
 
 		Signal_context_capability
@@ -194,6 +210,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		{
 			Cap_quota_guard::Reservation cap_costs(*this, Cap_quota{1});
 			try {
+				/* may throw 'Out_of_ram' or 'Invalid_signal_source' */
 				Signal_context_capability cap =
 					_signal_broker.alloc_context(sig_rec_cap, imprint);
 
@@ -201,8 +218,6 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 				diag("consumed signal-context cap (", _cap_account, ")");
 				return cap;
 			}
-			catch (Genode::Allocator::Out_of_memory) {
-				throw Out_of_ram(); }
 			catch (Signal_broker::Invalid_signal_source) {
 				throw Pd_session::Invalid_signal_source(); }
 		}
@@ -216,14 +231,19 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		void submit(Signal_context_capability cap, unsigned n) override {
 			_signal_broker.submit(cap, n); }
 
-		/*
-		 * \throw Out_of_caps  by '_consume_cap'
-		 * \throw Out_of_ram   by '_rpc_cap_factory.alloc'
-		 */
+
+		/*******************************
+		 ** RPC capability allocation **
+		 *******************************/
+
 		Native_capability alloc_rpc_cap(Native_capability ep) override
 		{
+			/* may throw 'Out_of_caps' */
 			_consume_cap(RPC_CAP);
-			return _rpc_cap_factory.alloc(ep);
+
+			/* may throw 'Out_of_ram' */
+			try {  return _rpc_cap_factory.alloc(ep); }
+			catch (...) { _released_cap_silent(); throw; }
 		}
 
 		void free_rpc_cap(Native_capability cap) override
@@ -232,63 +252,29 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_released_cap(RPC_CAP);
 		}
 
-		Capability<Region_map> address_space() {
+
+		/******************************
+		 ** Address-space management **
+		 ******************************/
+
+		Capability<Region_map> address_space() override {
 			return _address_space.cap(); }
 
-		Capability<Region_map> stack_area() {
+		Capability<Region_map> stack_area() override {
 			return _stack_area.cap(); }
 
-		Capability<Region_map> linker_area() {
+		Capability<Region_map> linker_area() override {
 			return _linker_area.cap(); }
 
-		void ref_account(Capability<Pd_session> pd_cap) override
-		{
-			/* the reference account can be defined only once */
-			if (_cap_account.constructed())
-				return;
 
-			if (this->cap() == pd_cap)
-				return;
+		/***********************************************
+		 ** Capability and RAM trading and accounting **
+		 ***********************************************/
 
-			_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
+		void ref_account(Capability<Pd_session>) override;
 
-				if (!pd || !pd->_cap_account.constructed()) {
-					error("invalid PD session specified as ref account");
-					throw Invalid_session();
-				}
-
-				_cap_account.construct(*this, _label, *pd->_cap_account);
-			});
-		}
-
-		void transfer_quota(Capability<Pd_session> pd_cap, Cap_quota amount) override
-		{
-			/* the reference account can be defined only once */
-			if (!_cap_account.constructed())
-				throw Undefined_ref_account();
-
-			if (this->cap() == pd_cap)
-				return;
-
-			_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
-
-				if (!pd || !pd->_cap_account.constructed())
-					throw Invalid_session();
-
-				try {
-					_cap_account->transfer_quota(*pd->_cap_account, amount);
-					diag("transferred ", amount, " caps "
-					     "to '", pd->_cap_account->label(), "' (", _cap_account, ")");
-				}
-				catch (Account<Cap_quota>::Unrelated_account) {
-					warning("attempt to transfer cap quota to unrelated PD session");
-					throw Invalid_session(); }
-				catch (Account<Cap_quota>::Limit_exceeded) {
-					warning("cap limit (", *_cap_account, ") exceeded "
-					        "during transfer_quota(", amount, ")");
-					throw Out_of_caps(); }
-			});
-		}
+		void transfer_quota(Capability<Pd_session>, Cap_quota) override;
+		void transfer_quota(Capability<Pd_session>, Ram_quota) override;
 
 		Cap_quota cap_quota() const
 		{
@@ -299,6 +285,32 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		{
 			return _cap_account.constructed() ? _cap_account->used() : Cap_quota { 0 };
 		}
+
+		Ram_quota ram_quota() const override
+		{
+			return _ram_account.constructed() ? _ram_account->limit() : Ram_quota { 0 };
+		}
+
+		Ram_quota used_ram() const override
+		{
+			return _ram_account.constructed() ? _ram_account->used() : Ram_quota { 0 };
+		}
+
+
+		/***********************************
+		 ** RAM allocation and accounting **
+		 ***********************************/
+
+		Ram_dataspace_capability alloc(size_t, Cache_attribute) override;
+
+		void free(Ram_dataspace_capability) override;
+
+		size_t dataspace_size(Ram_dataspace_capability) const override;
+
+
+		/*******************************************
+		 ** Platform-specific interface extension **
+		 *******************************************/
 
 		Capability<Native_pd> native_pd() { return _native_pd.cap(); }
 };

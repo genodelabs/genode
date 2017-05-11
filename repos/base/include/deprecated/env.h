@@ -21,7 +21,7 @@
 #include <parent/parent.h>
 #include <region_map/region_map.h>
 #include <rm_session/rm_session.h>  /* deprecated, kept for API compatibility only */
-#include <ram_session/ram_session.h>
+#include <ram_session/capability.h>
 #include <cpu_session/cpu_session.h>
 #include <cpu_session/capability.h>
 #include <pd_session/capability.h>

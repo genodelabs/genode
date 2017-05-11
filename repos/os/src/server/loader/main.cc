@@ -158,10 +158,10 @@ class Loader::Session_component : public Rpc_object<Session>
 
 		struct Local_nitpicker_factory : Local_service<Nitpicker::Session_component>::Factory
 		{
-			Entrypoint  &_ep;
-			Env         &_env;
-			Region_map  &_rm;
-			Ram_session &_ram;
+			Entrypoint    &_ep;
+			Env           &_env;
+			Region_map    &_rm;
+			Ram_allocator &_ram;
 
 			Area                       _max_size;
 			Nitpicker::View_capability _parent_view;
@@ -170,7 +170,8 @@ class Loader::Session_component : public Rpc_object<Session>
 
 			Constructible<Nitpicker::Session_component> session;
 
-			Local_nitpicker_factory(Entrypoint &ep, Env &env, Region_map &rm, Ram_session &ram)
+			Local_nitpicker_factory(Entrypoint &ep, Env &env,
+			                        Region_map &rm, Ram_allocator &ram)
 			: _ep(ep), _env(env), _rm(rm), _ram(ram) { }
 
 			void constrain_geometry(Area size) { _max_size = size; }

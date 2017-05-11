@@ -19,6 +19,7 @@
 #include <linux_native_cpu/client.h>
 
 /* base-internal includes */
+#include <base/internal/expanding_pd_session_client.h>
 #include <base/internal/local_capability.h>
 #include <base/internal/region_map_mmap.h>
 #include <base/internal/stack_area.h>
@@ -26,13 +27,13 @@
 namespace Genode { struct Local_pd_session; }
 
 
-struct Genode::Local_pd_session : Pd_session_client
+struct Genode::Local_pd_session : Expanding_pd_session_client
 {
 	Region_map_mmap _address_space { false };
 	Region_map_mmap _stack_area    { true,  stack_area_virtual_size() };
 	Region_map_mmap _linker_area   { true, Pd_session::LINKER_AREA_SIZE };
 
-	Local_pd_session(Pd_session_capability pd) : Pd_session_client(pd) { }
+	Local_pd_session(Pd_session_capability pd) : Expanding_pd_session_client(pd) { }
 
 	Capability<Region_map> address_space()
 	{

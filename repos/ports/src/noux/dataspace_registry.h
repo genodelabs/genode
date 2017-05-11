@@ -102,7 +102,7 @@ class Noux::Dataspace_info : public Object_pool<Dataspace_info>::Entry
 		 *                     RM session)
 		 * \return             capability for the new dataspace
 		 */
-		virtual Dataspace_capability fork(Ram_session        &ram,
+		virtual Dataspace_capability fork(Ram_allocator      &ram,
 		                                  Region_map         &local_rm,
 		                                  Allocator          &alloc,
 		                                  Dataspace_registry &ds_registry,
@@ -186,7 +186,7 @@ struct Noux::Static_dataspace_info : Dataspace_info
 		_ds_registry.apply(ds_cap(), lambda);
 	}
 
-	Dataspace_capability fork(Ram_session        &,
+	Dataspace_capability fork(Ram_allocator      &,
 	                          Region_map         &,
 	                          Allocator          &,
 	                          Dataspace_registry &,

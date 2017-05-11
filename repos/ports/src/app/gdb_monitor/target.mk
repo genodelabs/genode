@@ -35,7 +35,6 @@ CC_OPT_linux-low += -Wno-unused-function
 SRC_CC  =  genode-low.cc \
            cpu_session_component.cc \
            cpu_thread_component.cc \
-           ram_session_component.cc \
            region_map_component.cc \
            signal_handler_thread.cc \
            main.cc

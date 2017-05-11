@@ -31,7 +31,7 @@ namespace Genode {
 
 			Name const _name;
 
-			Ram_session           &_ram;
+			Ram_allocator         &_ram;
 			Attached_ram_dataspace _fg;
 			Attached_ram_dataspace _bg;
 
@@ -48,9 +48,9 @@ namespace Genode {
 			enum Origin { PARENT_PROVIDED, SESSION_LOCAL };
 
 			Rom_module(Env &env, Xml_node config, Name const &name,
-			           Ram_session &ram_session, Origin origin)
+			           Ram_allocator &ram_allocator, Origin origin)
 			:
-				_name(name), _ram(ram_session),
+				_name(name), _ram(ram_allocator),
 				_fg(_ram, env.rm(), 0), _bg(_ram, env.rm(), 0),
 				_bg_has_pending_data(false),
 				_lock(Lock::LOCKED)
@@ -158,7 +158,7 @@ namespace Genode {
 			Env             &_env;
 			Xml_node   const _config;
 			Lock             _lock;
-			Ram_session     &_ram_session;
+			Ram_allocator   &_ram_allocator;
 			Allocator       &_md_alloc;
 			List<Rom_module> _list;
 
@@ -172,14 +172,15 @@ namespace Genode {
 			/**
 			 * Constructor
 			 *
-			 * \param ram_session  RAM session used as backing store for
-			 *                     module data
-			 * \param md_alloc     backing store for ROM module meta data
+			 * \param ram_allocator  RAM allocator used as backing store for
+			 *                       module data
+			 * \param md_alloc       backing store for ROM module meta data
 			 */
-			Rom_module_registry(Env &env, Xml_node config, Ram_session &ram_session,
+			Rom_module_registry(Env &env, Xml_node config,
+			                    Ram_allocator &ram_allocator,
 			                    Allocator &md_alloc)
 			:
-				_env(env), _config(config), _ram_session(ram_session),
+				_env(env), _config(config), _ram_allocator(ram_allocator),
 				_md_alloc(md_alloc)
 			{ }
 
@@ -226,7 +227,7 @@ namespace Genode {
 					Lock::Guard guard(_lock);
 
 					Rom_module *module = new (&_md_alloc)
-						Rom_module(_env, _config, name, _ram_session,
+						Rom_module(_env, _config, name, _ram_allocator,
 						           Rom_module::SESSION_LOCAL);
 
 					Rom_module_lock_guard module_guard(*module);
@@ -247,7 +248,7 @@ namespace Genode {
 					Lock::Guard guard(_lock);
 
 					Rom_module *module = new (&_md_alloc)
-						Rom_module(_env, _config, name, _ram_session,
+						Rom_module(_env, _config, name, _ram_allocator,
 						           Rom_module::PARENT_PROVIDED);
 
 					Rom_module_lock_guard module_guard(*module);

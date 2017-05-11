@@ -24,7 +24,6 @@
 #include <noux_session/capability.h>
 #include <args.h>
 #include <environment.h>
-#include <ram_session_component.h>
 #include <cpu_session_component.h>
 #include <pd_session_component.h>
 #include <child_policy.h>
@@ -90,7 +89,7 @@ struct Noux::Child_config : Attached_ram_dataspace
 {
 	enum { CONFIG_DS_SIZE = 4096 };
 
-	Child_config(Ram_session &ram, Region_map &local_rm, Verbose const &verbose)
+	Child_config(Ram_allocator &ram, Region_map &local_rm, Verbose const &verbose)
 	:
 		Attached_ram_dataspace(ram, local_rm, CONFIG_DS_SIZE)
 	{
@@ -146,9 +145,6 @@ class Noux::Child : public Rpc_object<Session>,
 		Pd_session                  &_ref_pd;
 		Pd_session_capability  const _ref_pd_cap;
 
-		Ram_session                 &_ref_ram;
-		Ram_session_capability const _ref_ram_cap;
-
 		/**
 		 * Registry of dataspaces owned by the Noux process
 		 */
@@ -163,14 +159,6 @@ class Noux::Child : public Rpc_object<Session>,
 		Pd_service                         _pd_service { _pd_factory };
 
 		/**
-		 * Locally-provided RAM service
-		 */
-		typedef Local_service<Ram_session_component> Ram_service;
-		Ram_session_component _ram { _ref_ram, _heap, _ep, _ds_registry };
-		Ram_service::Single_session_factory _ram_factory { _ram };
-		Ram_service                         _ram_service { _ram_factory };
-
-		/**
 		 * Locally-provided CPU service
 		 */
 		typedef Local_service<Cpu_session_component> Cpu_service;
@@ -181,8 +169,7 @@ class Noux::Child : public Rpc_object<Session>,
 		/*
 		 * Locally-provided Noux service
 		 */
-		Session_capability const _noux_session_cap = 
-			Session_capability(_ep.manage(this));
+		Capability_guard _cap_guard { _ep, *this };
 
 		typedef Local_service<Rpc_object<Session> > Noux_service;
 		Noux_service::Single_session_factory _noux_factory { *this };
@@ -209,12 +196,12 @@ class Noux::Child : public Rpc_object<Session>,
 		/*
 		 * Child configuration
 		 */
-		Child_config _config { _ref_ram, _env.rm(), _verbose };
+		Child_config _config { _ref_pd, _env.rm(), _verbose };
 
 		enum { PAGE_SIZE = 4096, PAGE_MASK = ~(PAGE_SIZE - 1) };
 		enum { SYSIO_DS_SIZE = PAGE_MASK & (sizeof(Sysio) + PAGE_SIZE - 1) };
 
-		Attached_ram_dataspace _sysio_ds { _ref_ram, _env.rm(), SYSIO_DS_SIZE };
+		Attached_ram_dataspace _sysio_ds { _ref_pd, _env.rm(), SYSIO_DS_SIZE };
 		Sysio &_sysio = *_sysio_ds.local_addr<Sysio>();
 
 		typedef Ring_buffer<enum Sysio::Signal, Sysio::SIGNAL_QUEUE_SIZE>
@@ -339,8 +326,6 @@ class Noux::Child : public Rpc_object<Session>,
 		      Allocator                &heap,
 		      Pd_session               &ref_pd,
 		      Pd_session_capability     ref_pd_cap,
-		      Ram_session              &ref_ram,
-		      Ram_session_capability    ref_ram_cap,
 		      Parent_services          &parent_services,
 		      bool                      forked,
 		      Destruct_queue           &destruct_queue)
@@ -359,10 +344,9 @@ class Noux::Child : public Rpc_object<Session>,
 			_root_dir(root_dir),
 			_destruct_queue(destruct_queue),
 			_heap(heap),
-			_ref_pd (ref_pd),  _ref_pd_cap (ref_pd_cap),
-			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
-			_args(ref_ram, _env.rm(), ARGS_DS_SIZE, args),
-			_sysio_env(_ref_ram, _env.rm(), sysio_env),
+			_ref_pd (ref_pd), _ref_pd_cap (ref_pd_cap),
+			_args(ref_pd, _env.rm(), ARGS_DS_SIZE, args),
+			_sysio_env(_ref_pd, _env.rm(), sysio_env),
 			_parent_services(parent_services),
 			_sysio_ds_info(_ds_registry, _sysio_ds.cap()),
 			_args_ds_info(_ds_registry, _args.cap()),
@@ -370,11 +354,11 @@ class Noux::Child : public Rpc_object<Session>,
 			_config_ds_info(_ds_registry, _config.cap()),
 			_child_policy(name, forked,
 			              _args.cap(), _sysio_env.cap(), _config.cap(),
-			              _ep, _pd_service, _ram_service, _cpu_service,
+			              _ep, _pd_service, _cpu_service,
 			              _noux_service, _empty_rom_service,
 			              _rom_service, _parent_services,
 			              *this, parent_exit, *this, _destruct_handler,
-			              ref_pd, ref_pd_cap, ref_ram, ref_ram_cap,
+			              ref_pd, ref_pd_cap,
 			              _verbose.enabled()),
 			_child(_env.rm(), _ep, _child_policy)
 		{
@@ -414,8 +398,7 @@ class Noux::Child : public Rpc_object<Session>,
 			}
 		}
 
-		Ram_session_component &ram() { return _ram; }
-		Pd_session_component  &pd()  { return _pd;  }
+		Pd_session_component &pd() { return _pd;  }
 
 		Dataspace_registry &ds_registry()  { return _ds_registry; }
 
@@ -541,8 +524,7 @@ class Noux::Child : public Rpc_object<Session>,
 			                                 args,
 			                                 env,
 			                                 _heap,
-			                                 _ref_pd,  _ref_pd_cap,
-			                                 _ref_ram, _ref_ram_cap,
+			                                 _ref_pd, _ref_pd_cap,
 			                                 _parent_services,
 			                                 false,
 			                                 _destruct_queue);

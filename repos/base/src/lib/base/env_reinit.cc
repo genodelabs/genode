@@ -69,7 +69,7 @@ void Genode::Platform_env::reinit(Native_capability::Raw raw)
 	 * no problem because they are used by the 'Heap' destructor only, which is
 	 * never called for heap instance of 'Platform_env'.
 	 */
-	_heap.reassign_resources(&_resources.ram, &_resources.rm);
+	_heap.reassign_resources(&_resources.pd, &_resources.rm);
 }
 
 

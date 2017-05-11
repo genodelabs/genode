@@ -101,7 +101,7 @@ class Noux::Args
 
 struct Noux::Args_dataspace : private Attached_ram_dataspace, Args
 {
-	Args_dataspace(Ram_session &ram, Region_map &rm,
+	Args_dataspace(Ram_allocator &ram, Region_map &rm,
 	               size_t size, Args const &from = Args())
 	:
 		Attached_ram_dataspace(ram, rm, size),

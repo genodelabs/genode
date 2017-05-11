@@ -152,7 +152,7 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 		Session_component(Entrypoint                &ep,
 		                  Env                       &env,
 		                  Region_map                &rm,
-		                  Ram_session               &ram,
+		                  Ram_allocator             &ram,
 		                  Area                       max_size,
 		                  Nitpicker::View_capability parent_view,
 		                  Signal_context_capability  view_ready_sigh,

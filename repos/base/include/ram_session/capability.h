@@ -22,8 +22,8 @@ namespace Genode {
 	 * We cannot include 'ram_session/ram_session.h' because this file relies
 	 * on the the 'Ram_session_capability' type.
 	 */
-	class Ram_session;
-	typedef Capability<Ram_session> Ram_session_capability;
+	class Pd_session;
+	typedef Capability<Pd_session> Ram_session_capability;
 }
 
 #endif /* _INCLUDE__RAM_SESSION__CAPABILITY_H_ */

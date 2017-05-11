@@ -15,7 +15,6 @@
 #define _INCLUDE__BASE__SERVICE_H_
 
 #include <util/list.h>
-#include <ram_session/client.h>
 #include <pd_session/client.h>
 #include <base/env.h>
 #include <base/session_state.h>
@@ -411,8 +410,7 @@ class Genode::Child_service : public Async_service
 {
 	private:
 
-		Ram_session_client _ram;
-		Pd_session_client  _pd;
+		Pd_session_client _pd;
 
 	public:
 
@@ -423,11 +421,10 @@ class Genode::Child_service : public Async_service
 		              Id_space<Parent::Server> &server_id_space,
 		              Session_state::Factory   &factory,
 		              Wakeup                   &wakeup,
-		              Ram_session_capability    ram,
+		              Pd_session_capability     ram,
 		              Pd_session_capability     pd)
 		:
-			Async_service(name, server_id_space, factory, wakeup),
-			_ram(ram), _pd(pd)
+			Async_service(name, server_id_space, factory, wakeup), _pd(pd)
 		{ }
 
 		/**
@@ -435,13 +432,13 @@ class Genode::Child_service : public Async_service
 		 */
 		void transfer(Ram_session_capability to, Ram_quota amount) override
 		{
-			if (to.valid()) _ram.transfer_quota(to, amount);
+			if (to.valid()) _pd.transfer_quota(to, amount);
 		}
 
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		Ram_session_capability cap(Ram_quota) const override { return _ram; }
+		Pd_session_capability cap(Ram_quota) const override { return _pd; }
 
 		/**
 		 * Cap_transfer::Account interface

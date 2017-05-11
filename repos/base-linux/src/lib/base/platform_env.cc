@@ -155,8 +155,7 @@ Local_parent &Platform_env::_parent()
 
 Platform_env::Platform_env()
 :
-	Platform_env_base(static_cap_cast<Ram_session>(_parent().session_cap(Parent::Env::ram())),
-	                  static_cap_cast<Cpu_session>(_parent().session_cap(Parent::Env::cpu())),
+	Platform_env_base(static_cap_cast<Cpu_session>(_parent().session_cap(Parent::Env::cpu())),
 	                  static_cap_cast<Pd_session> (_parent().session_cap(Parent::Env::pd()))),
 	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session()),
 	_emergency_ram_ds(ram_session()->alloc(_emergency_ram_size()))

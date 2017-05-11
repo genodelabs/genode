@@ -344,7 +344,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		                  bool                  writable)
 		:
 			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
-			_ram(env.ram(), env.ram_session_cap(), ram_quota),
+			_ram(env.ram(), ram_quota),
 			_alloc(_ram, env.rm()),
 			_process_packet_handler(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),

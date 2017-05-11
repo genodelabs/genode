@@ -509,12 +509,11 @@ extern "C" int fork()
 
 	_memory_model = &memory_model;
 
-	try {
-		child->start();
-	} catch (...) {
-		Genode::error("Could not start child process");
-		return -1;
-	}
+	try { child->start(); }
+	catch (Out_of_caps)    { error("out of caps during child startup");    return -1; }
+	catch (Out_of_ram)     { error("out of RAM during child startup");     return -1; }
+	catch (Service_denied) { error("service denied during child startup"); return -1; }
+	catch (...)            { error("could not start child process");       return -1; }
 
 	return GENODE_MAIN_LWPID;
 }

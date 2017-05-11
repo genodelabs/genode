@@ -32,7 +32,7 @@ SRC_CC      += stack_area.cc \
                platform_pd.cc \
                platform_services.cc \
                platform_thread.cc \
-               ram_session_component.cc \
+               pd_session_component.cc \
                ram_dataspace_support.cc \
                region_map_component.cc \
                region_map_support.cc \
@@ -51,7 +51,7 @@ INC_DIR      = $(REP_DIR)/src/core/include \
 include $(GEN_CORE_DIR)/version.inc
 
 vpath main.cc                      $(GEN_CORE_DIR)
-vpath ram_session_component.cc     $(GEN_CORE_DIR)
+vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath rom_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_support.cc       $(GEN_CORE_DIR)

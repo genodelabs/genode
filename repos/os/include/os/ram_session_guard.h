@@ -14,19 +14,17 @@
 #ifndef _INCLUDE__OS__RAM_SESSION_GUARD_H_
 #define _INCLUDE__OS__RAM_SESSION_GUARD_H_
 
-#include <dataspace/client.h>
-#include <ram_session/ram_session.h>
-#include <ram_session/capability.h>
+#include <base/ram_allocator.h>
+#include <pd_session/capability.h>
 
 namespace Genode { struct Ram_session_guard; }
 
 
-class Genode::Ram_session_guard : public Genode::Ram_session
+class Genode::Ram_session_guard : public Genode::Ram_allocator
 {
 	private:
 
-		Ram_session            &_session;
-		Ram_session_capability  _session_cap;
+		Ram_allocator &_ram_alloc;
 
 		size_t       _quota;
 		size_t       _used = 0;
@@ -34,9 +32,8 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 
 	public:
 
-		Ram_session_guard(Ram_session &session, Ram_session_capability cap,
-		                  size_t quota)
-		: _session(session), _session_cap(cap), _quota(quota) { }
+		Ram_session_guard(Ram_allocator &ram_alloc, size_t quota)
+		: _ram_alloc(ram_alloc), _quota(quota) { }
 
 		/**
 		 * Extend allocation limit
@@ -71,26 +68,10 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			return true;
 		}
 
-		/**
-		 * Revert transfer quota
-		 */
-		int revert_transfer_quota(Ram_session &ram_session,
-		                          size_t amount)
-		{
-			if (amount > _used)
-				return -4;
 
-			try {
-				ram_session.transfer_quota(_session_cap, Ram_quota{amount});
-				_used -= amount;
-				return 0;
-			} catch (...) { return -1; }
-		}
-
-		/***************************
-		 ** Ram_session interface **
-		 ***************************/
-
+		/*****************************
+		 ** Ram_allocator interface **
+		 *****************************/
 
 		Ram_dataspace_capability alloc(size_t size,
 		                               Cache_attribute cached = CACHED) override
@@ -98,7 +79,7 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 			if (_used + size <= _used || _used + size > _quota)
 				throw Out_of_ram();
 
-			Ram_dataspace_capability cap = _session.alloc(size, cached);
+			Ram_dataspace_capability cap = _ram_alloc.alloc(size, cached);
 
 			if (cap.valid())
 				_used += size;
@@ -109,30 +90,14 @@ class Genode::Ram_session_guard : public Genode::Ram_session
 		void free(Ram_dataspace_capability ds) override
 		{
 			size_t size = Dataspace_client(ds).size();
-			_session.free(ds);
+			_ram_alloc.free(ds);
 			_used -= size;
 		}
 
 		size_t dataspace_size(Ram_dataspace_capability ds) const override
 		{
-			return _session.dataspace_size(ds);
+			return _ram_alloc.dataspace_size(ds);
 		}
-
-		void ref_account(Ram_session_capability ram_session) override {
-			_session.ref_account(ram_session); }
-
-		void transfer_quota(Ram_session_capability ram_session,
-		                    Ram_quota amount) override
-		{
-			if (_used + amount.value <= _used || _used + amount.value > _quota)
-				throw Out_of_ram();
-
-			_session.transfer_quota(ram_session, amount);
-			_used += amount.value;
-		}
-
-		Ram_quota ram_quota() const override { return Ram_quota{_quota}; }
-		Ram_quota used_ram()  const override { return Ram_quota{_used}; }
 };
 
 #endif /* _INCLUDE__OS__RAM_SESSION_GUARD_H_ */

@@ -15,7 +15,7 @@
 #define _INCLUDE__CLI_MONITOR__RAM_H_
 
 /* Genode includes */
-#include <ram_session/connection.h>
+#include <pd_session/client.h>
 
 namespace Cli_monitor { class Ram; }
 
@@ -26,8 +26,8 @@ class Cli_monitor::Ram
 
 		typedef Genode::size_t size_t;
 
-		Genode::Ram_session           &_ram;
-		Genode::Ram_session_capability _ram_cap;
+		Genode::Pd_session           &_pd;
+		Genode::Pd_session_capability _pd_cap;
 
 		Genode::Lock mutable _lock;
 		Genode::Signal_context_capability _yield_sigh;
@@ -37,11 +37,11 @@ class Cli_monitor::Ram
 
 		void _validate_preservation()
 		{
-			if (_ram.avail_ram().value < _preserve)
+			if (_pd.avail_ram().value < _preserve)
 				Genode::Signal_transmitter(_yield_sigh).submit();
 
 			/* verify to answer outstanding resource requests too */
-			if (_ram.avail_ram().value > _preserve)
+			if (_pd.avail_ram().value > _preserve)
 				Genode::Signal_transmitter(_resource_avail_sigh).submit();
 		}
 
@@ -54,13 +54,13 @@ class Cli_monitor::Ram
 			: quota(quota), used(used), avail(avail), preserve(preserve) { }
 		};
 
-		Ram(Genode::Ram_session              &ram,
-		    Genode::Ram_session_capability    ram_cap,
+		Ram(Genode::Pd_session               &pd,
+		    Genode::Pd_session_capability     pd_cap,
 		    size_t                            preserve,
 		    Genode::Signal_context_capability yield_sigh,
 		    Genode::Signal_context_capability resource_avail_sigh)
 		:
-			_ram(ram), _ram_cap(ram_cap),
+			_pd(pd), _pd_cap(pd_cap),
 			_yield_sigh(yield_sigh),
 			_resource_avail_sigh(resource_avail_sigh),
 			_preserve(preserve)
@@ -86,8 +86,8 @@ class Cli_monitor::Ram
 		{
 			Genode::Lock::Guard guard(_lock);
 
-			return Status(_ram.ram_quota().value, _ram.used_ram().value,
-			              _ram.avail_ram().value, _preserve);
+			return Status(_pd.ram_quota().value, _pd.used_ram().value,
+			              _pd.avail_ram().value, _preserve);
 		}
 
 		void validate_preservation()
@@ -111,7 +111,7 @@ class Cli_monitor::Ram
 
 			Lock::Guard guard(_lock);
 
-			try { Ram_session_client(from).transfer_quota(_ram_cap, Ram_quota{amount}); }
+			try { Pd_session_client(from).transfer_quota(_pd_cap, Ram_quota{amount}); }
 			catch (...) { throw Transfer_quota_failed(); }
 
 			Signal_transmitter(_resource_avail_sigh).submit();
@@ -124,16 +124,16 @@ class Cli_monitor::Ram
 		{
 			Genode::Lock::Guard guard(_lock);
 
-			if (_ram.avail_ram().value < (_preserve + amount)) {
+			if (_pd.avail_ram().value < (_preserve + amount)) {
 				Genode::Signal_transmitter(_yield_sigh).submit();
 				throw Transfer_quota_failed();
 			}
 
-			try { _ram.transfer_quota(to, Genode::Ram_quota{amount}); }
+			try { _pd.transfer_quota(to, Genode::Ram_quota{amount}); }
 			catch (...) { throw Transfer_quota_failed(); }
 		}
 
-		size_t avail() const { return _ram.avail_ram().value; }
+		size_t avail() const { return _pd.avail_ram().value; }
 };
 
 #endif /* _INCLUDE__CLI_MONITOR__RAM_H_ */
