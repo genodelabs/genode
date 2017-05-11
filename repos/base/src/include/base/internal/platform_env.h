@@ -100,8 +100,8 @@ class Genode::Platform_env : public Env_deprecated,
 			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED),
 			_emergency_ram_ds(_resources.ram.alloc(_emergency_ram_size()))
 		{
-			env_stack_area_ram_session = &_resources.ram;
-			env_stack_area_region_map  = &_stack_area;
+			env_stack_area_ram_allocator = &_resources.ram;
+			env_stack_area_region_map    = &_stack_area;
 		}
 
 		/*

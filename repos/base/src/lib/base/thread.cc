@@ -22,19 +22,9 @@
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
-
-
-/**
- * Return the managed dataspace holding the stack area
- *
- * This function is provided by the process environment.
- */
-namespace Genode {
-	extern Region_map  * const env_stack_area_region_map;
-	extern Ram_session * const env_stack_area_ram_session;
-}
 
 
 void Stack::size(size_t const size)
@@ -57,7 +47,7 @@ void Stack::size(size_t const size)
 	/* allocate and attach backing store for the stack enhancement */
 	addr_t const ds_addr = _base - ds_size - stack_area_virtual_base();
 	try {
-		Ram_session * const ram = env_stack_area_ram_session;
+		Ram_allocator * const ram = env_stack_area_ram_allocator;
 		Ram_dataspace_capability const ds_cap = ram->alloc(ds_size);
 		Region_map * const rm = env_stack_area_region_map;
 		void * const attach_addr = rm->attach_at(ds_cap, ds_addr, ds_size);
@@ -103,7 +93,7 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	/* allocate and attach backing store for the stack */
 	Ram_dataspace_capability ds_cap;
 	try {
-		ds_cap = env_stack_area_ram_session->alloc(ds_size);
+		ds_cap = env_stack_area_ram_allocator->alloc(ds_size);
 		addr_t attach_addr = ds_addr - stack_area_virtual_base();
 		if (attach_addr != (addr_t)env_stack_area_region_map->attach_at(ds_cap, attach_addr, ds_size))
 			throw Stack_alloc_failed();
@@ -133,7 +123,7 @@ void Thread::_free_stack(Stack *stack)
 	stack->~Stack();
 
 	Genode::env_stack_area_region_map->detach((void *)ds_addr);
-	Genode::env_stack_area_ram_session->free(ds_cap);
+	Genode::env_stack_area_ram_allocator->free(ds_cap);
 
 	/* stack ready for reuse */
 	Stack_allocator::stack_allocator().free(stack);
