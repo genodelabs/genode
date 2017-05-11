@@ -1,0 +1,46 @@
++++ a/kernel/Mk/Makeconf
+@@ -172,14 +172,11 @@ CCFLAGS += -fno-rtti -fno-builtin  -fomit-frame-pointer -fno-exceptions \
+ 	  -Wall -Wno-non-virtual-dtor -Wno-format   \
+ 	  $(CFLAGS_$(ARCH)) $(CFLAGS_$(CPU)) $(CFLAGS_$(PLATFORM)) 
+ 
+-ifeq ("$(CC_VERSION)", "4")
+ CCFLAGS += -Wno-conversion
+-ifneq ("$(CC_SUBVERSION)", "0")
++CCFLAGS += -Wno-nonnull-compare
++CCFLAGS += -Wno-c++11-compat
+ CCFLAGS += -fno-stack-protector
+-endif
+-else
+-CCFLAGS += -Wconversion
+-endif
++CCFLAGS += -std=gnu++03
+ 
+ ifeq ("$(CONFIG_DEBUG_SYMBOLS)","y")
+ CCFLAGS  += -g
++++ a/user/Mk/l4.base.mk
+@@ -44,11 +44,9 @@ CFLAGS+=	-O2 -g -Wall -Wshadow \
+ 		$(CFLAGS_$(ARCH))
+ LDFLAGS+=	$(LDFLAGS_$(ARCH))
+ 
+-ifeq ("$(CC_VERSION)", "4")
+-CFLAGS += -Wno-conversion
+-else
+-CFLAGS += -Wconversion
+-endif
++CFLAGS   += -Wno-conversion
++CPPFLAGS += -Wno-c++11-compat
++CPPFLAGS += -std=gnu++03
+ 
+ 
+ # Create early targets so that a make without args (implicit all) does
++++ a/user/configure.in
+@@ -261,9 +261,7 @@ CXXFLAGS="-fno-exceptions $CXXFLAGS"
+ 
+ CC_VERSION=`echo __GNUC__ | $CC -E  - | grep -v "\#"`
+ CC_SUBVERSION=`echo __GNUC_MINOR__ | $CC -E  - | grep -v "\#"`
+-if test "$CC_VERSION" = "4" -a "$CC_SUBVERSION" -ge "1"; then
+ CFLAGS="-fno-stack-protector $CFLAGS"
+-fi
+ 
+ 
+ dnl Architecture dependent settings.
