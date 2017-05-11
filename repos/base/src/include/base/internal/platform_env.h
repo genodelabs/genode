@@ -30,15 +30,19 @@
 #include <base/internal/parent_cap.h>
 #include <base/internal/attached_stack_area.h>
 #include <base/internal/expanding_cpu_session_client.h>
+#include <base/internal/expanding_pd_session_client.h>
 #include <base/internal/expanding_region_map_client.h>
-#include <base/internal/expanding_ram_session_client.h>
 #include <base/internal/expanding_parent_client.h>
 
 
-namespace Genode { class Platform_env; }
+namespace Genode {
+
+	class Platform_env_base : public Env_deprecated { };
+	class Platform_env;
+}
 
 
-class Genode::Platform_env : public Env_deprecated,
+class Genode::Platform_env : public Platform_env_base,
                              public Expanding_parent_client::Emergency_ram_reserve
 {
 	private:
@@ -53,19 +57,16 @@ class Genode::Platform_env : public Env_deprecated,
 				return static_cap_cast<T>(parent.session_cap(id));
 			}
 
-			Expanding_ram_session_client ram;
+			Expanding_pd_session_client  pd;
 			Expanding_cpu_session_client cpu;
-			Pd_session_client            pd;
 			Expanding_region_map_client  rm;
 
 			Resources(Parent &parent)
 			:
-				ram(request<Ram_session>(parent, Parent::Env::ram()),
-				                         Parent::Env::ram()),
+				pd (request<Pd_session> (parent, Parent::Env::pd())),
 				cpu(request<Cpu_session>(parent, Parent::Env::cpu()),
 				                         Parent::Env::cpu()),
-				pd (request<Pd_session> (parent, Parent::Env::pd())),
-				rm (pd, pd.address_space(), Parent::Env::pd())
+				rm(pd, pd.address_space(), Parent::Env::pd())
 			{ }
 		};
 
@@ -97,10 +98,10 @@ class Genode::Platform_env : public Env_deprecated,
 		:
 			_parent_client(Genode::parent_cap(), *this),
 			_resources(_parent_client),
-			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED),
-			_emergency_ram_ds(_resources.ram.alloc(_emergency_ram_size()))
+			_heap(&_resources.pd, &_resources.rm, Heap::UNLIMITED),
+			_emergency_ram_ds(_resources.pd.alloc(_emergency_ram_size()))
 		{
-			env_stack_area_ram_allocator = &_resources.ram;
+			env_stack_area_ram_allocator = &_resources.pd;
 			env_stack_area_region_map    = &_stack_area;
 		}
 
@@ -117,9 +118,9 @@ class Genode::Platform_env : public Env_deprecated,
 
 		void release()
 		{
-			log("used before freeing emergency=", _resources.ram.used_ram());
-			_resources.ram.free(_emergency_ram_ds);
-			log("used after freeing emergency=", _resources.ram.used_ram());
+			log("used before freeing emergency=", _resources.pd.used_ram());
+			_resources.pd.free(_emergency_ram_ds);
+			log("used after freeing emergency=", _resources.pd.used_ram());
 		}
 
 
@@ -128,8 +129,8 @@ class Genode::Platform_env : public Env_deprecated,
 		 ******************************/
 
 		Parent                 *parent()          override { return &_parent_client; }
-		Ram_session            *ram_session()     override { return &_resources.ram; }
-		Ram_session_capability  ram_session_cap() override { return  _resources.ram; }
+		Ram_session            *ram_session()     override { return &_resources.pd; }
+		Ram_session_capability  ram_session_cap() override { return  _resources.pd; }
 		Cpu_session            *cpu_session()     override { return &_resources.cpu; }
 		Cpu_session_capability  cpu_session_cap() override { return  _resources.cpu; }
 		Region_map             *rm_session()      override { return &_resources.rm; }

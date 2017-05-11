@@ -25,6 +25,9 @@
 #include <util/retry.h>
 #include <pd_session/capability.h>
 
+/* Noux includes */
+#include <dataspace_registry.h>
+
 namespace Noux { class Region_map_component; }
 
 
@@ -159,7 +162,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 * \param ep           entrypoint used to serve the RPC interface
 		 *                     of forked managed dataspaces
 		 */
-		void replay(Ram_session        &dst_ram,
+		void replay(Ram_allocator      &dst_ram,
 		            Region_map         &dst_rm,
 		            Region_map         &local_rm,
 		            Allocator          &alloc,
@@ -325,7 +328,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 ** Dataspace_info interface **
 		 ******************************/
 
-		Dataspace_capability fork(Ram_session        &,
+		Dataspace_capability fork(Ram_allocator      &,
 		                          Region_map         &,
 		                          Allocator          &,
 		                          Dataspace_registry &,

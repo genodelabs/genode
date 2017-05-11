@@ -19,7 +19,7 @@
 namespace Genode {
 
 	class Region_map;
-	class Ram_session;
+	class Ram_allocator;
 	class Env;
 	class Local_session_id_space;
 

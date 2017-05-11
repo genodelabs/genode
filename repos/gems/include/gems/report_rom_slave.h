@@ -58,8 +58,7 @@ class Report_rom_slave : public Genode::Noncopyable
 				       const char                    *config)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
-					                      ref_pd,  ref_pd_cap,   _caps(),
-					                      ref_ram, ref_ram_cap,  _quota())
+					                      ref_pd, ref_pd_cap, _caps(), _quota())
 				{
 					if (config)
 						configure(config);

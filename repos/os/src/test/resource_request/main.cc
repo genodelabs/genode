@@ -17,7 +17,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
-#include <ram_session/connection.h>
+#include <pd_session/connection.h>
 #include <os/reporter.h>
 
 namespace Test {
@@ -26,9 +26,9 @@ namespace Test {
 }
 
 
-static void print_quota_stats(Genode::Ram_session &ram)
+static void print_quota_stats(Genode::Pd_session &pd)
 {
-	Genode::log("quota: avail=", ram.avail_ram().value, " used=", ram.used_ram().value);
+	Genode::log("quota: avail=", pd.avail_ram().value, " used=", pd.used_ram().value);
 }
 
 
@@ -152,25 +152,17 @@ void Component::construct(Genode::Env &env)
 	print_quota_stats(env.ram());
 
 	/*
-	 * Out of memory while upgrading session quotas.
-	 *
-	 * This test provokes the signal session to consume more resources than
-	 * donated via the initial session creation. Once drained, we need to
-	 * successively upgrade the session. At one point, we will run out of our
-	 * initial quota. Now, before we can issue another upgrade, we first need
-	 * to request additional resources.
-	 *
-	 * Note that the construction of the signal receiver will consume a part
-	 * of the quota we preserved as 'KEEP_QUOTA'.
+	 * Drain PD session by allocating a lot of signal-context capabilities.
+	 * This step will ultimately trigger resource requests to the parent.
 	 */
-	log("\n-- draining signal session --");
+	log("\n-- draining PD session --");
 	{
 		struct Dummy_signal_handler : Signal_handler<Dummy_signal_handler>
 		{
 			Dummy_signal_handler(Entrypoint &ep)
 			: Signal_handler<Dummy_signal_handler>(ep, *this, nullptr) { }
 		};
-		enum { NUM_SIGH = 2000U };
+		enum { NUM_SIGH = 1000U };
 		static Constructible<Dummy_signal_handler> dummy_handlers[NUM_SIGH];
 
 		for (unsigned i = 0; i < NUM_SIGH; i++)
@@ -190,8 +182,8 @@ void Component::construct(Genode::Env &env)
 	 * resource request to the parent.
 	 */
 	log("\n-- out-of-memory during session request --");
-	static Ram_connection ram(env);
-	ram.ref_account(env.ram_session_cap());
+	static Pd_connection pd(env);
+	pd.ref_account(env.pd_session_cap());
 	print_quota_stats(env.ram());
 	size_t const used_quota_after_session_request = env.ram().used_ram().value;
 
@@ -200,7 +192,7 @@ void Component::construct(Genode::Env &env)
 	 * requests, too.
 	 */
 	log("\n-- out-of-memory during transfer-quota --");
-	env.ram().transfer_quota(ram.cap(), Ram_quota{512*1024});
+	env.ram().transfer_quota(pd.cap(), Ram_quota{512*1024});
 	print_quota_stats(env.ram());
 	size_t const used_quota_after_transfer = env.ram().used_ram().value;
 

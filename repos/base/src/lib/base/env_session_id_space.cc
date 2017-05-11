@@ -30,9 +30,8 @@ Id_space<Parent::Client> &Genode::env_session_id_space()
 	/* pre-allocate env session IDs */
 	static Parent::Client dummy;
 	static Id_space<Parent::Client>::Element
-		ram    { dummy, id_space, Parent::Env::ram()    },
-		cpu    { dummy, id_space, Parent::Env::cpu()    },
 		pd     { dummy, id_space, Parent::Env::pd()     },
+		cpu    { dummy, id_space, Parent::Env::cpu()    },
 		log    { dummy, id_space, Parent::Env::log()    },
 		binary { dummy, id_space, Parent::Env::binary() },
 		linker { dummy, id_space, Parent::Env::linker() };

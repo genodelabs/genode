@@ -33,7 +33,6 @@ class Filter_framebuffer_slave
 			private Genode::Static_parent_services<Genode::Cpu_session,
 			                                       Genode::Log_session,
 			                                       Genode::Pd_session,
-			                                       Genode::Ram_session,
 			                                       Genode::Rom_session,
 			                                       Timer::Session>,
 			public Genode::Slave::Policy
@@ -48,8 +47,6 @@ class Filter_framebuffer_slave
 				       Genode::Region_map             &rm,
 				       Genode::Pd_session             &ref_pd,
 				       Genode::Pd_session_capability   ref_pd_cap,
-				       Genode::Ram_session            &ref_ram,
-				       Genode::Ram_session_capability  ref_ram_cap,
 				       Name const                     &name,
 				       size_t                          caps,
 				       size_t                          ram_quota,
@@ -58,7 +55,6 @@ class Filter_framebuffer_slave
 					Genode::Slave::Policy(name, name, *this, entrypoint, rm,
 					                      ref_pd, ref_pd_cap,
 					                      Genode::Cap_quota{caps},
-					                      ref_ram, ref_ram_cap,
 					                      Genode::Ram_quota{ram_quota}),
 					_framebuffer_service_factory(framebuffer_service_factory)
 				{ }
@@ -86,16 +82,14 @@ class Filter_framebuffer_slave
 		Filter_framebuffer_slave(Genode::Region_map                &rm,
 		                         Genode::Pd_session                &ref_pd,
 		                         Genode::Pd_session_capability      ref_pd_cap,
-		                         Genode::Ram_session               &ref_ram,
-		                         Genode::Ram_session_capability     ref_ram_cap,
 		                         Genode::Slave::Policy::Name const &name,
 		                         size_t                             caps,
 		                         size_t                             ram_quota,
 		                         Framebuffer_service_factory       &framebuffer_service_factory)
 		:
 			_ep(&ref_pd, _ep_stack_size, "filter_framebuffer_ep"),
-			_policy(_ep, rm, ref_pd, ref_pd_cap, ref_ram, ref_ram_cap, name,
-			        caps, ram_quota, framebuffer_service_factory),
+			_policy(_ep, rm, ref_pd, ref_pd_cap, name, caps, ram_quota,
+			        framebuffer_service_factory),
 			_child(rm, _ep, _policy)
 		{ }
 

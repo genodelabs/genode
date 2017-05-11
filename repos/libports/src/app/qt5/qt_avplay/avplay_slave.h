@@ -44,7 +44,6 @@ class Avplay_slave : public QObject
 			private Genode::Static_parent_services<Genode::Cpu_session,
 			                                       Genode::Log_session,
 			                                       Genode::Pd_session,
-			                                       Genode::Ram_session,
 			                                       Genode::Rom_session,
 			                                       Timer::Session,
 			                                       Audio_out::Session>,
@@ -113,15 +112,13 @@ class Avplay_slave : public QObject
 				       Genode::Region_map             &rm,
 				       Genode::Pd_session             &ref_pd,
 				       Genode::Pd_session_capability   ref_pd_cap,
-				       Genode::Ram_session            &ref_ram,
-				       Genode::Ram_session_capability  ref_ram_cap,
 				       Input_service                  &input_service,
 				       Framebuffer_service_factory    &framebuffer_service_factory,
 				       char const                     *mediafile)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, entrypoint,
 					                      rm, ref_pd, ref_pd_cap, _caps(),
-					                      ref_ram, ref_ram_cap, _ram_quota()),
+					                      _ram_quota()),
 					_input_service(input_service),
 					_framebuffer_service_factory(framebuffer_service_factory),
 					_mediafile(mediafile),
@@ -163,15 +160,13 @@ class Avplay_slave : public QObject
 		Avplay_slave(Genode::Region_map             &rm,
 		             Genode::Pd_session             &ref_pd,
 		             Genode::Pd_session_capability   ref_pd_cap,
-		             Genode::Ram_session            &ref_ram,
-		             Genode::Ram_session_capability  ref_ram_cap,
 		             Input_service                  &input_service,
 		             Framebuffer_service_factory    &framebuffer_service_factory,
 		             char const                     *mediafile)
 		:
 			_ep(&ref_pd, _ep_stack_size, "avplay_ep"),
-			_policy(_ep, rm, ref_pd, ref_pd_cap, ref_ram, ref_ram_cap,
-			        input_service, framebuffer_service_factory, mediafile),
+			_policy(_ep, rm, ref_pd, ref_pd_cap, input_service,
+			        framebuffer_service_factory, mediafile),
 			_child(rm, _ep, _policy)
 		{ }
 

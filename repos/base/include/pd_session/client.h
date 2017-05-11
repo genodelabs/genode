@@ -15,7 +15,7 @@
 #define _INCLUDE__PD_SESSION__CLIENT_H_
 
 #include <pd_session/capability.h>
-#include <base/rpc_client.h>
+#include <dataspace/client.h>
 
 namespace Genode { struct Pd_session_client; }
 
@@ -70,6 +70,25 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 
 	Cap_quota cap_quota() const { return call<Rpc_cap_quota>(); }
 	Cap_quota used_caps() const { return call<Rpc_used_caps>(); }
+
+	Ram_dataspace_capability alloc(size_t size,
+	                               Cache_attribute cached = CACHED) override
+	{
+		return call<Rpc_alloc>(size, cached);
+	}
+
+	void free(Ram_dataspace_capability ds) override { call<Rpc_free>(ds); }
+
+	size_t dataspace_size(Ram_dataspace_capability ds) const override
+	{
+		return ds.valid() ? Dataspace_client(ds).size() : 0;
+	}
+
+	void transfer_quota(Pd_session_capability ram_session, Ram_quota amount) override {
+		call<Rpc_transfer_ram_quota>(ram_session, amount); }
+
+	Ram_quota ram_quota() const override { return call<Rpc_ram_quota>(); }
+	Ram_quota used_ram()  const override { return call<Rpc_used_ram>(); }
 
 	Capability<Native_pd> native_pd() override { return call<Rpc_native_pd>(); }
 };

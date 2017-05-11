@@ -255,9 +255,6 @@ struct Noux::Main
 
 	} _kill_broadcaster;
 
-	Dataspace_registry    _ref_ram_ds_registry { _heap };
-	Ram_session_component _ref_ram { _env.ram(), _heap, _env.ep().rpc_ep(), _ref_ram_ds_registry };
-
 	Noux::Child _init_child { _name_of_init_process(),
 	                          _verbose,
 	                          _user_info,
@@ -274,8 +271,6 @@ struct Noux::Main
 	                          _heap,
 	                          _env.pd(),
 	                          _env.pd_session_cap(),
-	                          _ref_ram,
-	                          Ram_session_capability(),
 	                          _parent_services,
 	                          false,
 	                          _destruct_queue };

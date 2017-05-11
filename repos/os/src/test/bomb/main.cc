@@ -75,19 +75,11 @@ class Bomb_child : public Child_policy
 		{
 			pd.ref_account(_env.pd_session_cap());
 			_env.pd().transfer_quota(pd_cap, _cap_quota);
+			_env.pd().transfer_quota(pd_cap, _ram_quota);
 		}
 
-		void init(Ram_session &ram, Ram_session_capability ram_cap) override
-		{
-			ram.ref_account(_env.ram_session_cap());
-			_env.ram().transfer_quota(ram_cap, _ram_quota);
-		}
-
-		Pd_session               &ref_pd()       override { return _env.pd(); }
+		Pd_session           &ref_pd()           override { return _env.pd(); }
 		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
-
-		Ram_session               &ref_ram()       override { return _env.ram(); }
-		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
 
 		Service &resolve_session_request(Service::Name const &service_name,
 		                                 Session_state::Args const &args) override

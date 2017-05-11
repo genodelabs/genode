@@ -14,8 +14,8 @@
 #ifndef _INCLUDE__BASE__ATTACHED_RAM_DATASPACE_H_
 #define _INCLUDE__BASE__ATTACHED_RAM_DATASPACE_H_
 
-#include <ram_session/ram_session.h>
 #include <util/touch.h>
+#include <base/ram_allocator.h>
 #include <base/env.h>
 
 namespace Genode { class Attached_ram_dataspace; }
@@ -35,7 +35,7 @@ class Genode::Attached_ram_dataspace
 	private:
 
 		size_t                    _size;
-		Ram_session              *_ram;
+		Ram_allocator            *_ram;
 		Region_map               *_rm;
 		Ram_dataspace_capability  _ds;
 		void                     *_local_addr = nullptr;
@@ -93,7 +93,7 @@ class Genode::Attached_ram_dataspace
 		 * \throw Region_map::Region_conflict
 		 * \throw Region_map::Invalid_dataspace
 		 */
-		Attached_ram_dataspace(Ram_session &ram, Region_map &rm,
+		Attached_ram_dataspace(Ram_allocator &ram, Region_map &rm,
 		                       size_t size, Cache_attribute cached = CACHED)
 		:
 			_size(size), _ram(&ram), _rm(&rm), _cached(cached)
@@ -105,10 +105,10 @@ class Genode::Attached_ram_dataspace
 		 * Constructor
 		 *
 		 * \noapi
-		 * \deprecated  Use the constructor with the 'Ram_session &' and
+		 * \deprecated  Use the constructor with the 'Ram_allocator &' and
 		 *              'Region_map &' arguments instead.
 		 */
-		Attached_ram_dataspace(Ram_session *ram, size_t size,
+		Attached_ram_dataspace(Ram_allocator *ram, size_t size,
 		                       Cache_attribute cached = CACHED) __attribute__((deprecated))
 		:
 			_size(size), _ram(ram), _rm(env_deprecated()->rm_session()), _cached(cached)
@@ -154,14 +154,14 @@ class Genode::Attached_ram_dataspace
 		 *
 		 * The content of the original dataspace is not retained.
 		 */
-		void realloc(Ram_session *ram_session, size_t new_size)
+		void realloc(Ram_allocator *ram_allocator, size_t new_size)
 		{
 			if (new_size < _size) return;
 
 			_detach_and_free_dataspace();
 
 			_size = new_size;
-			_ram  = ram_session;
+			_ram  = ram_allocator;
 
 			_alloc_and_attach();
 		}

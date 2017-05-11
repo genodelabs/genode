@@ -98,6 +98,16 @@ class Genode::Expanding_parent_client : public Parent_client
 		Upgrade_result upgrade(Client::Id id, Upgrade_args const &args) override
 		{
 			/*
+			 * Upgrades from our PD to our own PD session are futile. The only
+			 * thing we can do when our PD is drained is requesting further
+			 * resources from our parent.
+			 */
+			if (id == Env::pd()) {
+				resource_request(Resource_args(args.string()));
+				return UPGRADE_DONE;
+			}
+
+			/*
 			 * If the upgrade fails, attempt to issue a resource request twice.
 			 *
 			 * If the default fallback for resource-available signals is used,

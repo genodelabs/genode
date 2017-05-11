@@ -76,8 +76,6 @@ Main_window::Main_window(Genode::Env &env)
 		framebuffer_filter->slave = new Filter_framebuffer_slave(_env.rm(),
 		                                                         _env.pd(),
 		                                                         _env.pd_session_cap(),
-		                                                         _env.ram(),
-		                                                         _env.ram_session_cap(),
 		                                                         framebuffer_filter->name,
 		                                                         framebuffer_filter->caps,
 		                                                         framebuffer_filter->ram_quota,
@@ -90,7 +88,6 @@ Main_window::Main_window(Genode::Env &env)
 
 	Avplay_slave *avplay_slave = new Avplay_slave(_env.rm(),
 	                                              _env.pd(), _env.pd_session_cap(),
-	                                              _env.ram(), _env.ram_session_cap(),
 	                                              _input_service,
 	                                              *framebuffer_service_factory,
 	                                              _mediafile_name.buf);

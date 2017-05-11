@@ -2,7 +2,7 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 SRC_CC      += \
                main.cc \
-               ram_session_component.cc \
+               pd_session_component.cc \
                ram_dataspace_support.cc \
                rom_session_component.cc \
                cpu_session_component.cc \
@@ -46,7 +46,7 @@ INC_DIR     += $(REP_DIR)/src/core/include $(GEN_CORE_DIR)/include \
 include $(GEN_CORE_DIR)/version.inc
 
 vpath main.cc                      $(GEN_CORE_DIR)
-vpath ram_session_component.cc     $(GEN_CORE_DIR)
+vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath rom_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_support.cc       $(GEN_CORE_DIR)

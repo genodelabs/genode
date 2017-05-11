@@ -244,7 +244,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			Child &_child;
 
 			Dynamic_rom_session _session { _child._env.ep().rpc_ep(),
-			                               _child.ref_ram(), _child._env.rm(),
+			                               _child.ref_pd(), _child._env.rm(),
 			                               *this };
 
 			Service::Single_session_factory _factory { _session };
@@ -512,11 +512,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		Pd_session           &ref_pd()           override { return _env.pd(); }
 		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
-		Ram_session           &ref_ram()           override { return _env.ram(); }
-		Ram_session_capability ref_ram_cap() const override { return _env.ram_session_cap(); }
-
 		void init(Pd_session  &, Pd_session_capability)  override;
-		void init(Ram_session &, Ram_session_capability) override;
 		void init(Cpu_session &, Cpu_session_capability) override;
 
 		Id_space<Parent::Server> &server_id_space() override {

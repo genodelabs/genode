@@ -83,16 +83,13 @@ class Launcher::Menu_view_slave
 				       Genode::Region_map            &rm,
 				       Genode::Pd_session            &ref_pd,
 				       Genode::Pd_session_capability  ref_pd_cap,
-				       Genode::Ram_session           &ref_ram,
-				       Genode::Ram_session_capability ref_ram_cap,
 				       Capability<Nitpicker::Session> nitpicker_session,
 				       Capability<Rom_session>        dialog_rom_session,
 				       Capability<Report::Session>    hover_report_session,
 				       Position                       position)
 				:
 					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
-					                      ref_pd,  ref_pd_cap,  _caps(),
-					                      ref_ram, ref_ram_cap, _quota()),
+					                      ref_pd, ref_pd_cap, _caps(), _quota()),
 					_nitpicker(rm, nitpicker_session),
 					_dialog_rom(dialog_rom_session),
 					_hover_report(hover_report_session),
@@ -134,15 +131,13 @@ class Launcher::Menu_view_slave
 		Menu_view_slave(Genode::Region_map            &rm,
 		                Genode::Pd_session            &ref_pd,
 		                Genode::Pd_session_capability  ref_pd_cap,
-		                Genode::Ram_session           &ref_ram,
-		                Genode::Ram_session_capability ref_ram_cap,
 		                Capability<Nitpicker::Session> nitpicker_session,
 		                Capability<Rom_session>        dialog_rom_session,
 		                Capability<Report::Session>    hover_report_session,
 		                Position                       initial_position)
 		:
 			_ep(&ref_pd, _ep_stack_size, "nit_fader"),
-			_policy(_ep, rm, ref_pd, ref_pd_cap, ref_ram, ref_ram_cap,
+			_policy(_ep, rm, ref_pd, ref_pd_cap,
 			        nitpicker_session, dialog_rom_session,
 			        hover_report_session, initial_position),
 			_child(rm, _ep, _policy)

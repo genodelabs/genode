@@ -211,8 +211,8 @@ Session_capability Child::session(Parent::Client::Id id,
 	session.closed_callback = this;
 
 	try {
-		Ram_transfer::Remote_account ref_ram_account { _policy.ref_ram(), _policy.ref_ram_cap() };
-		Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(),  _policy.ref_pd_cap()  };
+		Ram_transfer::Remote_account ref_ram_account { _policy.ref_pd(), _policy.ref_pd_cap() };
+		Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(), _policy.ref_pd_cap()  };
 
 		Ram_transfer::Remote_account ram_account { ram(), ram_session_cap() };
 		Cap_transfer::Remote_account cap_account { pd(),  pd_session_cap() };
@@ -350,10 +350,10 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			Arg_string::find_arg(args.string(), "cap_quota").ulong_value(0) };
 
 		try {
-			Ram_transfer::Remote_account ref_ram_account { _policy.ref_ram(), _policy.ref_ram_cap() };
-			Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(),  _policy.ref_pd_cap()  };
+			Ram_transfer::Remote_account ref_ram_account { _policy.ref_pd(), _policy.ref_pd_cap() };
+			Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(), _policy.ref_pd_cap()  };
 
-			Ram_transfer::Remote_account ram_account { ram(), ram_session_cap() };
+			Ram_transfer::Remote_account ram_account { ram(), pd_session_cap() };
 			Cap_transfer::Remote_account cap_account { pd(),  pd_session_cap() };
 
 			/* transfer quota from client to ourself */
@@ -399,9 +399,9 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 
 void Child::_revert_quota_and_destroy(Session_state &session)
 {
-	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_ram(), _policy.ref_ram_cap());
+	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
 	Ram_transfer::Account     &service_ram_account = session.service();
-	Ram_transfer::Remote_account child_ram_account(ram(), ram_session_cap());
+	Ram_transfer::Remote_account child_ram_account(ram(), pd_session_cap());
 
 	Cap_transfer::Remote_account   ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
 	Cap_transfer::Account     &service_cap_account = session.service();
@@ -675,8 +675,8 @@ namespace {
 void Child::_try_construct_env_dependent_members()
 {
 	/* check if the environment sessions are complete */
-	if (!_ram.cap().valid() || !_pd .cap().valid() ||
-	    !_cpu.cap().valid() || !_log.cap().valid() || !_binary.cap().valid())
+	if (!_pd.cap().valid() || !_cpu.cap().valid() || !_log.cap().valid()
+	 || !_binary.cap().valid())
 		return;
 
 	/*
@@ -697,14 +697,13 @@ void Child::_try_construct_env_dependent_members()
 			session.phase =  Session_state::CAP_HANDED_OUT; });
 
 	/* call 'Child_policy::init' methods for the environment sessions */
-	_policy.init(_ram.session(), _ram.cap());
-	_policy.init(_cpu.session(), _cpu.cap());
 	_policy.init(_pd.session(),  _pd.cap());
+	_policy.init(_cpu.session(), _cpu.cap());
 
 	try {
 		_initial_thread.construct(_cpu.session(), _pd.cap(), "initial");
 		_process.construct(_binary.session().dataspace(), _linker_dataspace(),
-		                   _pd.cap(), _pd.session(), _ram.session(),
+		                   _pd.cap(), _pd.session(), _pd.session(),
 		                   *_initial_thread, _local_rm,
 		                   Child_address_space(_pd.session(), _policy).region_map(),
 		                   cap());
@@ -728,12 +727,11 @@ void Child::_discard_env_session(Id_space<Parent::Client>::Id id)
 }
 
 
-void Child::initiate_env_ram_session() { _ram.initiate(); }
+void Child::initiate_env_ram_session() { _pd.initiate(); }
 
 
 void Child::initiate_env_sessions()
 {
-	_pd    .initiate();
 	_cpu   .initiate();
 	_log   .initiate();
 	_binary.initiate();
@@ -793,7 +791,6 @@ Child::~Child()
 	/*
 	 * Remove statically created env sessions from the child's ID space.
 	 */
-	_discard_env_session(Env::ram());
 	_discard_env_session(Env::cpu());
 	_discard_env_session(Env::pd());
 	_discard_env_session(Env::log());

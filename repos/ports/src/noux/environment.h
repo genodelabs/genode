@@ -40,7 +40,7 @@ class Noux::Environment : private Attached_ram_dataspace
 		 *
 		 * \param env  comma-separated list of environment variables
 		 */
-		Environment(Ram_session &ram, Region_map &local_rm, Sysio::Env const &env)
+		Environment(Ram_allocator &ram, Region_map &local_rm, Sysio::Env const &env)
 		:
 			Attached_ram_dataspace(ram, local_rm, sizeof(Sysio::Env)),
 			_env(local_addr<Sysio::Env>())

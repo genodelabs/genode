@@ -287,19 +287,11 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		Genode::Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
 		Genode::Pd_session           &ref_pd()           override { return _ref_pd; }
 
-		Genode::Ram_session_capability ref_ram_cap() const override { return _ref_ram_cap; }
-		Genode::Ram_session           &ref_ram()           override { return _ref_ram; }
-
 		void init(Genode::Pd_session &session, Genode::Pd_session_capability cap) override
 		{
 			session.ref_account(_ref_pd_cap);
 			_ref_pd.transfer_quota(cap, _cap_quota);
-		}
-
-		void init(Genode::Ram_session &session, Genode::Ram_session_capability cap) override
-		{
-			session.ref_account(_ref_ram_cap);
-			_ref_ram.transfer_quota(cap, Genode::Ram_quota{_ram_quota});
+			_ref_pd.transfer_quota(cap, Genode::Ram_quota{_ram_quota});
 		}
 
 		Genode::Service &resolve_session_request(Genode::Service::Name const &name,

@@ -200,7 +200,7 @@ void Init::Child::apply_ram_upgrade()
 
 		_check_ram_constraints(_ram_limit_accessor.ram_limit());
 
-		ref_ram().transfer_quota(_child.ram_session_cap(), Ram_quota{transfer});
+		ref_pd().transfer_quota(_child.pd_session_cap(), Ram_quota{transfer});
 
 		/* wake up child that blocks on a resource request */
 		if (_requested_resources.constructed()) {
@@ -239,7 +239,7 @@ void Init::Child::apply_ram_downgrade()
 		size_t const transfer = min(avail - preserved, decrease);
 
 		try {
-			_child.ram().transfer_quota(ref_ram_cap(), Ram_quota{transfer});
+			_child.pd().transfer_quota(ref_pd_cap(), Ram_quota{transfer});
 			_resources.assigned_ram_quota =
 				Ram_quota { _resources.assigned_ram_quota.value - transfer };
 			break;
@@ -335,26 +335,22 @@ void Init::Child::init(Pd_session &session, Pd_session_capability cap)
 {
 	session.ref_account(_env.pd_session_cap());
 
-	Cap_quota const quota { _resources.effective_cap_quota().value };
-
-	try { _env.pd().transfer_quota(cap, quota); }
-	catch (Out_of_caps) {
-		error(name(), ": unable to initialize cap quota of PD"); }
-}
-
-
-void Init::Child::init(Ram_session &session, Ram_session_capability cap)
-{
-	session.ref_account(_env.ram_session_cap());
-
 	size_t const initial_session_costs =
 		session_alloc_batch_size()*_child.session_factory().session_costs();
 
-	size_t const transfer_ram = _resources.effective_ram_quota().value > initial_session_costs
+	Ram_quota const ram_quota { _resources.effective_ram_quota().value > initial_session_costs
 	                          ? _resources.effective_ram_quota().value - initial_session_costs
-	                          : 0;
-	if (transfer_ram)
-		_env.ram().transfer_quota(cap, Ram_quota{transfer_ram});
+	                          : 0 };
+
+	Cap_quota const cap_quota { _resources.effective_cap_quota().value };
+
+	try { _env.pd().transfer_quota(cap, cap_quota); }
+	catch (Out_of_caps) {
+		error(name(), ": unable to initialize cap quota of PD"); }
+
+	try { _env.ram().transfer_quota(cap, ram_quota); }
+	catch (Out_of_ram) {
+		error(name(), ": unable to initialize RAM quota of PD"); }
 }
 
 

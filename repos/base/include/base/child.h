@@ -21,12 +21,12 @@
 #include <base/local_connection.h>
 #include <base/quota_guard.h>
 #include <util/arg_string.h>
-#include <ram_session/connection.h>
 #include <region_map/client.h>
 #include <pd_session/connection.h>
 #include <cpu_session/connection.h>
 #include <log_session/connection.h>
 #include <rom_session/connection.h>
+#include <ram_session/capability.h>
 #include <parent/capability.h>
 
 namespace Genode {
@@ -138,20 +138,10 @@ struct Genode::Child_policy
 	 * Reference PD session
 	 *
 	 * The PD session returned by this method is used for session cap-quota
-	 * transfers.
+	 * and RAM-quota transfers.
 	 */
 	virtual Pd_session           &ref_pd() = 0;
 	virtual Pd_session_capability ref_pd_cap() const = 0;
-
-	/**
-	 * Reference RAM session
-	 *
-	 * The RAM session returned by this method is used for session-quota
-	 * transfers.
-	 */
-	virtual Ram_session           &ref_ram() = 0;
-	virtual Ram_session_capability ref_ram_cap() const = 0;
-
 
 	/**
 	 * Respond to the release of resources by the child
@@ -167,14 +157,6 @@ struct Genode::Child_policy
 	virtual void resource_request(Parent::Resource_args const &) { }
 
 	/**
-	 * Initialize the child's RAM session
-	 *
-	 * The function must define the child's reference account and transfer
-	 * the child's initial RAM quota.
-	 */
-	virtual void init(Ram_session &, Capability<Ram_session>) = 0;
-
-	/**
 	 * Initialize the child's CPU session
 	 *
 	 * The function may install an exception signal handler or assign CPU quota
@@ -185,8 +167,10 @@ struct Genode::Child_policy
 	/**
 	 * Initialize the child's PD session
 	 *
-	 * The function may install a region-map fault handler for the child's
-	 * address space ('Pd_session::address_space');.
+	 * The function must define the child's reference account and transfer
+	 * the child's initial RAM and capability quotas. It may also install a
+	 * region-map fault handler for the child's address space
+	 * ('Pd_session::address_space');.
 	 */
 	virtual void init(Pd_session &, Capability<Pd_session>) { }
 
@@ -207,7 +191,7 @@ struct Genode::Child_policy
 	/**
 	 * Granularity of allocating the backing store for session meta data
 	 *
-	 * Session meta data is allocated from 'ref_ram'. The first batch of
+	 * Session meta data is allocated from 'ref_pd'. The first batch of
 	 * session-state objects is allocated at child-construction time.
 	 */
 	virtual size_t session_alloc_batch_size() const { return 16; }
@@ -332,7 +316,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Id_space<Client> _id_space;
 
 		/* allocator used for dynamically created session state objects */
-		Sliced_heap _session_md_alloc { _policy.ref_ram(), _local_rm };
+		Sliced_heap _session_md_alloc { _policy.ref_pd(), _local_rm };
 
 		Session_state::Factory::Batch_size const
 			_session_batch_size { _policy.session_alloc_batch_size() };
@@ -593,7 +577,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 				                                 : Capability<SESSION>(); }
 		};
 
-		Env_connection<Ram_connection> _ram    { *this, Env::ram(),    _policy.name() };
 		Env_connection<Pd_connection>  _pd     { *this, Env::pd(),     _policy.name() };
 		Env_connection<Cpu_connection> _cpu    { *this, Env::cpu(),    _policy.name() };
 		Env_connection<Log_connection> _log    { *this, Env::log(),    _policy.name() };
@@ -688,16 +671,15 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 */
 		static Ram_quota env_ram_quota()
 		{
-			return { Cpu_connection::RAM_QUOTA + Ram_connection::RAM_QUOTA +
-			         Pd_connection::RAM_QUOTA + Log_connection::RAM_QUOTA +
-			         2*Rom_connection::RAM_QUOTA };
+			return { Cpu_connection::RAM_QUOTA + Pd_connection::RAM_QUOTA +
+			         Log_connection::RAM_QUOTA + 2*Rom_connection::RAM_QUOTA };
 		}
 
 		static Cap_quota env_cap_quota()
 		{
-			return { Cpu_connection::CAP_QUOTA + Ram_connection::CAP_QUOTA +
-			         Pd_connection::CAP_QUOTA + Log_connection::CAP_QUOTA +
-			         2*Rom_connection::CAP_QUOTA + 1 /* parent cap */ };
+			return { Cpu_connection::CAP_QUOTA + Pd_connection::CAP_QUOTA +
+			         Log_connection::CAP_QUOTA + 2*Rom_connection::CAP_QUOTA +
+			         1 /* parent cap */ };
 		}
 
 		template <typename FN>
@@ -722,13 +704,13 @@ class Genode::Child : protected Rpc_object<Parent>,
 			return _effective_quota(quota, env_cap_quota());
 		}
 
-		Ram_session_capability ram_session_cap() const { return _ram.cap(); }
+		Ram_session_capability ram_session_cap() const { return _pd.cap(); }
 		Pd_session_capability  pd_session_cap()  const { return _pd.cap();  }
 
 		Parent_capability parent_cap() const { return cap(); }
 
-		Ram_session       &ram()       { return _ram.session(); }
-		Ram_session const &ram() const { return _ram.session(); }
+		Ram_session       &ram()       { return _pd.session(); }
+		Ram_session const &ram() const { return _pd.session(); }
 		Cpu_session       &cpu()       { return _cpu.session(); }
 		Pd_session        &pd()        { return _pd .session(); }
 		Pd_session  const &pd()  const { return _pd .session(); }

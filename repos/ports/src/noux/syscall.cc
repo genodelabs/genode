@@ -498,8 +498,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                          _args,
 					                          _sysio_env.env(),
 					                          _heap,
-					                          _ref_pd,  _ref_pd_cap,
-					                          _ref_ram, _ref_ram_cap,
+					                          _ref_pd, _ref_pd_cap,
 					                          _parent_services,
 					                          true,
 					                          _destruct_queue);
@@ -514,7 +513,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 				/* copy our address space into the new child */
 				try {
-					_pd.replay(child->ram(), child->pd(), _env.rm(), _heap,
+					_pd.replay(child->pd(), _env.rm(), _heap,
 					           child->ds_registry(), _ep);
 
 					/* start executing the main thread of the new process */
