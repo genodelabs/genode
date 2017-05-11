@@ -182,7 +182,7 @@
 	orr r8, #0b1000000
 
 	/* apply PSR of previous mode */
-	msr spsr, r8
+	msr spsr_cxsf, r8
 
 	/*
 	 * Resume excecution of previous exception entry leaving the fast
@@ -255,7 +255,7 @@
 
 	/* load user psr in spsr */
 	ldr r0, [lr, #PSR_OFFSET]
-	msr spsr, r0
+	msr spsr_cxsf, r0
 
 	/* apply banked user sp, banked user lr, and user r0-r12 */
 	add r0, lr, #SP_OFFSET
