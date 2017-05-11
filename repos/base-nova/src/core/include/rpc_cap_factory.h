@@ -35,7 +35,10 @@ class Genode::Rpc_cap_factory
 			Cap_object(addr_t cap_sel) : _cap_sel(cap_sel) {}
 		};
 
-		Tslab<Cap_object, 128> _slab;
+		enum { SBS = 960*sizeof(long) };
+		uint8_t _initial_sb[SBS];
+
+		Tslab<Cap_object, SBS> _slab;
 		List<Cap_object>       _list;
 		Lock                   _lock;
 

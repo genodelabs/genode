@@ -80,7 +80,8 @@ void Rpc_cap_factory::free(Native_capability cap)
 }
 
 
-Rpc_cap_factory::Rpc_cap_factory(Allocator &md_alloc) : _slab(&md_alloc) { }
+Rpc_cap_factory::Rpc_cap_factory(Allocator &md_alloc)
+: _slab(md_alloc, _initial_sb) { }
 
 
 Rpc_cap_factory::~Rpc_cap_factory()
