@@ -25,7 +25,6 @@
 
 /* core includes */
 #include <boot_modules.h>
-#include <core_parent.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <platform_pd.h>

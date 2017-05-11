@@ -15,7 +15,7 @@
 #include <base/thread.h>
 
 /* core includes */
-#include <ram_session_component.h>
+#include <ram_dataspace_factory.h>
 #include <platform.h>
 #include <util.h>
 #include <nova_util.h>
@@ -26,7 +26,7 @@
 using namespace Genode;
 
 
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds) { }
 
 
 static inline void * alloc_region(Dataspace_component *ds, const size_t size)
@@ -49,7 +49,7 @@ static inline void * alloc_region(Dataspace_component *ds, const size_t size)
 }
 
 
-void Ram_session_component::_clear_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_clear_ds(Dataspace_component *ds)
 {
 	size_t page_rounded_size = align_addr(ds->size(), get_page_size_log2());
 
@@ -74,7 +74,7 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 }
 
 
-void Ram_session_component::_export_ram_ds(Dataspace_component *ds) {
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds) {
 
 	size_t page_rounded_size = align_addr(ds->size(), get_page_size_log2());
 

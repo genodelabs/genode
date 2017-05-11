@@ -34,8 +34,8 @@ namespace Genode {
 				addr_t const size  = Arg_string::find_arg(args, "phys_size").ulong_value(0);
 				addr_t const end   = start + size - 1;
 
-				return (start <= end) ? Ram_session_component::Phys_range { start, end }
-				                      : Ram_session_component::any_phys_range();
+				return (start <= end) ? Ram_dataspace_factory::Phys_range { start, end }
+				                      : Ram_dataspace_factory::any_phys_range();
 			}
 
 		protected:

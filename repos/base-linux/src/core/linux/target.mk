@@ -9,7 +9,7 @@ SRC_CC        = main.cc \
                 platform_thread.cc \
                 platform_services.cc \
                 ram_session_component.cc \
-                ram_session_support.cc \
+                ram_dataspace_support.cc \
                 rom_session_component.cc \
                 cpu_session_component.cc \
                 cpu_session_support.cc \
@@ -21,6 +21,7 @@ SRC_CC        = main.cc \
                 native_cpu_component.cc \
                 capability_space.cc \
                 rpc_cap_factory_l4.cc \
+                ram_dataspace_factory.cc \
                 core_rpc_cap_alloc.cc \
                 io_mem_session_component.cc \
                 signal_source_component.cc \
@@ -54,6 +55,7 @@ vpath cpu_thread_component.cc     $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath capability_space.cc         $(GEN_CORE_DIR)
 vpath rpc_cap_factory_l4.cc       $(GEN_CORE_DIR)
+vpath ram_dataspace_factory.cc    $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc $(GEN_CORE_DIR)
