@@ -104,7 +104,7 @@ static void _core_pager_loop()
 			/* NULL pointer access */
 			error("possible null pointer ", rw ? "WRITE" : "READ", " "
 			      "in ", (int)t.id.task, ".", (int)t.id.lthread, " "
-			      "at ", Hex(pfa), " IP ", dw1);
+			      "at ", Hex(pfa), " IP ", Hex(dw1));
 			/* do not unblock faulter */
 			send_reply = false;
 			continue;
@@ -113,7 +113,7 @@ static void _core_pager_loop()
 			/* page-fault address is not in RAM */
 			error(rw ? "WRITE" : "READ", " access outside of RAM "
 			      "in ", (int)t.id.task, ".", (int)t.id.lthread, " "
-			      "at ", Hex(pfa), " IP ", dw1);
+			      "at ", Hex(pfa), " IP ", Hex(dw1));
 			/* do not unblock faulter */
 			send_reply = false;
 			continue;
