@@ -1,0 +1,65 @@
++++ a/kernel/src/arch/x86/pgent.h
+@@ -320,11 +320,11 @@ public:
+ 
+     void update_rights (space_t * s, pgsize_e pgsize, word_t rwx)
+ 	{ 
+-	    if (rwx & 2) raw |= X86_PAGE_WRITABLE; sync(s, pgsize); 
++	    if (rwx & 2) raw |= X86_PAGE_WRITABLE;
+ #if defined(CONFIG_X86_NX)
+ 	    if (rwx & 1) raw &= ~X86_PAGE_NX; 
+ #endif
+-	
++	    sync(s, pgsize);
+ 	}
+     
+     void set_rights (space_t * s, pgsize_e pgsize, word_t rwx)
++++ a/kernel/src/generic/mdb.h
+@@ -217,7 +217,7 @@ class mdb_node_t
+ 
+ public:
+ 
+-    void * operator new (word_t size);
++    void * operator new (size_t size);
+     void operator delete (void * n);
+     mdb_node_t (void);
+ 
++++ a/kernel/src/generic/types.h
+@@ -47,7 +47,7 @@
+ /**
+  * Size type.  For use in new operator, etc.
+  */
+-typedef SIZE_T		size_t;
++typedef __SIZE_TYPE__		size_t;
+ 
+ 
+ /**
++++ a/kernel/src/glue/v4-x86/vrt_io.cc
+@@ -60,7 +60,7 @@ MDB_INIT_FUNCTION (1, init_vrt_io_sizes)
+  *
+  * @return new VRT for thread space
+  */
+-void * vrt_io_t::operator new (word_t size)
++void * vrt_io_t::operator new (size_t size)
+ {
+     vrt_io_t * vrt = (vrt_io_t *) mdb_alloc_buffer (size);
+ 
++++ a/kernel/src/glue/v4-x86/vrt_io.h
+@@ -57,7 +57,7 @@ public:
+ 
+     // Space management methods
+ 
+-    void * operator new (word_t size);
++    void * operator new (size_t size);
+     void operator delete (void * v);
+     void init (void);
+     void populate_sigma0 (void);
++++ a/user/include/l4/ia32/types.h
+@@ -51,7 +51,7 @@ typedef signed char		L4_SignedWord8_t;
+ 
+ typedef signed long		L4_SignedWord_t;
+ 
+-typedef unsigned int		L4_Size_t;
++typedef __SIZE_TYPE__		L4_Size_t;
+ typedef L4_Word64_t		L4_Paddr_t;
+ 
+ #endif /* !__L4__X86__TYPES_H__ */
