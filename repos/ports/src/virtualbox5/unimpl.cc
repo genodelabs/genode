@@ -83,7 +83,6 @@ DUMMY(PGMR3DbgR3Ptr2GCPhys)
 DUMMY(PGMR3MappingsUnfix)
 DUMMY(PGMR3MappingsFix)
 DUMMY(PGMR3MappingsDisable)
-DUMMY(PGMR3MapPT)
 
 DUMMY(PGMR3SharedModuleCheckAll)
 DUMMY(PGMR3SharedModuleUnregister)
