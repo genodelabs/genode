@@ -317,8 +317,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		Region_map &_local_rm;
 
-		Rpc_entrypoint    &_entrypoint;
-		Parent_capability  _parent_cap;
+		Capability_guard _parent_cap_guard;
 
 		/* signal handlers registered by the child */
 		Signal_context_capability _resource_avail_sigh;

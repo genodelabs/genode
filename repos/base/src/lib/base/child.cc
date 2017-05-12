@@ -707,7 +707,7 @@ void Child::_try_construct_env_dependent_members()
 		                   _pd.cap(), _pd.session(), _ram.session(),
 		                   *_initial_thread, _local_rm,
 		                   Child_address_space(_pd.session(), _policy).region_map(),
-		                   _parent_cap);
+		                   cap());
 	}
 	catch (Out_of_ram)                          { _error("out of RAM during ELF loading"); }
 	catch (Out_of_caps)                         { _error("out of caps during ELF loading"); }
@@ -757,8 +757,7 @@ Child::Child(Region_map      &local_rm,
              Rpc_entrypoint  &entrypoint,
              Child_policy    &policy)
 :
-	_policy(policy), _local_rm(local_rm), _entrypoint(entrypoint),
-	_parent_cap(_entrypoint.manage(this))
+	_policy(policy), _local_rm(local_rm), _parent_cap_guard(entrypoint, *this)
 {
 	if (_policy.initiate_env_sessions()) {
 		initiate_env_ram_session();
@@ -769,8 +768,6 @@ Child::Child(Region_map      &local_rm,
 
 Child::~Child()
 {
-	_entrypoint.dissolve(this);
-
 	/*
 	 * Purge the meta data about any dangling sessions provided by the child to
 	 * other children.
