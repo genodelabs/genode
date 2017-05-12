@@ -39,6 +39,11 @@ namespace Libc {
 	 * Set libc config node
 	 */
 	void libc_config_init(Genode::Xml_node node);
+
+	/**
+	 * Malloc allocator
+         */
+	void init_malloc(Genode::Allocator &heap);
 }
 
 #endif /* _LIBC_INIT_H_ */

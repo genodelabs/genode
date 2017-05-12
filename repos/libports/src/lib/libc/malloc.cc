@@ -26,6 +26,11 @@ extern "C" {
 #include <stdlib.h>
 }
 
+/* libc-internal includes */
+#include "libc_init.h"
+#include <base/internal/unmanaged_singleton.h>
+
+
 typedef unsigned long Block_header;
 
 namespace Genode {
@@ -76,7 +81,7 @@ class Malloc : public Genode::Allocator
 			NUM_SLABS = (SLAB_STOP - SLAB_START) + 1
 		};
 
-		Genode::Allocator  *_backing_store;        /* back-end allocator */
+		Genode::Allocator  &_backing_store;        /* back-end allocator */
 		Genode::Slab_alloc *_allocator[NUM_SLABS]; /* slab allocators */
 		Genode::Lock        _lock;
 
@@ -96,11 +101,11 @@ class Malloc : public Genode::Allocator
 
 	public:
 
-		Malloc(Genode::Allocator *backing_store) : _backing_store(backing_store)
+		Malloc(Genode::Allocator &backing_store) : _backing_store(backing_store)
 		{
 			for (unsigned i = SLAB_START; i <= SLAB_STOP; i++) {
 				_allocator[i - SLAB_START] = new (backing_store)
-				                                 Genode::Slab_alloc(1U << i, backing_store);
+				                                 Genode::Slab_alloc(1U << i, &backing_store);
 			}
 		}
 
@@ -130,7 +135,7 @@ class Malloc : public Genode::Allocator
 			/* use backing store if requested memory is larger than largest slab */
 			if (msb > SLAB_STOP) {
 
-				if (!(_backing_store->alloc(real_size, &addr)))
+				if (!(_backing_store.alloc(real_size, &addr)))
 					return false;
 			}
 			else
@@ -150,7 +155,7 @@ class Malloc : public Genode::Allocator
 			unsigned long  real_size = *addr;
 
 			if (real_size > (1U << SLAB_STOP))
-				_backing_store->free(addr, real_size);
+				_backing_store.free(addr, real_size);
 			else {
 				unsigned long msb = _slab_log2(real_size);
 				_allocator[msb - SLAB_START]->free(addr);
@@ -162,7 +167,7 @@ class Malloc : public Genode::Allocator
 			size += sizeof(Block_header);
 
 			if (size > (1U << SLAB_STOP))
-				return _backing_store->overhead(size);
+				return _backing_store.overhead(size);
 
 			return _allocator[_slab_log2(size) - SLAB_START]->overhead(size);
 		}
@@ -171,23 +176,13 @@ class Malloc : public Genode::Allocator
 };
 
 
-static Genode::Allocator *allocator()
-{
-	static bool constructed = 0;
-	static char placeholder[sizeof(Malloc)];
-	if (!constructed) {
-		Genode::construct_at<Malloc>(placeholder, Genode::env()->heap());
-		constructed = 1;
-	}
-
-	return reinterpret_cast<Malloc *>(placeholder);
-}
+static Malloc *mallocator;
 
 
 extern "C" void *malloc(size_t size)
 {
 	void *addr;
-	return allocator()->alloc(size, &addr) ? addr : 0;
+	return mallocator->alloc(size, &addr) ? addr : 0;
 }
 
 
@@ -204,7 +199,7 @@ extern "C" void free(void *ptr)
 {
 	if (!ptr) return;
 
-	allocator()->free(ptr, 0);
+	mallocator->free(ptr, 0);
 }
 
 
@@ -237,4 +232,10 @@ extern "C" void *realloc(void *ptr, size_t size)
 	free(ptr);
 
 	return new_addr;
+}
+
+
+void Libc::init_malloc(Genode::Allocator &heap)
+{
+	mallocator = unmanaged_singleton<Malloc>(heap);
 }

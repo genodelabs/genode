@@ -361,7 +361,7 @@ struct Libc::Kernel
 	private:
 
 		Genode::Env         &_env;
-		Genode::Heap         _heap { _env.ram(), _env.rm() };
+		Genode::Allocator   &_heap;
 		Io_response_handler  _io_response_handler;
 		Env_implementation   _libc_env { _env, _heap, _io_response_handler };
 		Vfs_plugin           _vfs { _libc_env, _heap };
@@ -571,7 +571,8 @@ struct Libc::Kernel
 
 	public:
 
-		Kernel(Genode::Env &env) : _env(env) { }
+		Kernel(Genode::Env &env, Genode::Allocator &heap)
+		: _env(env), _heap(heap) { }
 
 		~Kernel() { Genode::error(__PRETTY_FUNCTION__, " should not be executed!"); }
 
@@ -862,12 +863,16 @@ void Component::construct(Genode::Env &env)
 	static char *null_env = nullptr;
 	if (!environ) environ = &null_env;
 
+	Genode::Allocator &heap =
+		*unmanaged_singleton<Genode::Heap>(env.ram(), env.rm());
+
 	/* pass Genode::Env to libc subsystems that depend on it */
+	Libc::init_malloc(heap);
 	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
 	Libc::sysctl_init(env);
 
-	kernel = unmanaged_singleton<Libc::Kernel>(env);
+	kernel = unmanaged_singleton<Libc::Kernel>(env, heap);
 
 	Libc::libc_config_init(kernel->libc_env().libc_config());
 
