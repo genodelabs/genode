@@ -18,14 +18,13 @@
 
 .set CALL_PUT_CHAR,      0x100
 .set CALL_SET_SYS_TIMER, 0x101
-.set CALL_IS_USER_MODE,  0x102
+.set CALL_GET_SYS_TIMER, 0x102
 
 .set CPU_IP,        0
 .set CPU_EXCEPTION, 8
 .set CPU_X1,        2*8
 .set CPU_SP,        3*8
-.set CPU_SASID,     33*8
-.set CPU_SPTBR,     34*8
+.set CPU_SPTBR,     33*8
 
 
 # From encoding.h (riscv-opcode)
@@ -120,21 +119,20 @@
 	# If irq from supervisor and MSTATUS.IE1 is not set,
 	# then bail out using 'eret'
 	#
-        .if \mode == SUPERVISOR_MODE
+	.if \mode == SUPERVISOR_MODE
 		csrr t1, mstatus
 		and t0, t1, MSTATUS_IE1
 		bne zero, t0, 1f
 
 		# So, IE1 is not set.
 		_restore_scratch_registers \mode
-		eret
-
-        .endif
+		mret
+	.endif
 
 1:
 	# should cause a interrupt trap in supervisor mode
 	_restore_scratch_registers \mode
-	mrts
+#	mrts
 2:
 	# If interrupt source is IRQ HOST .... 
 	li t1, IRQ_HOST * 2
@@ -143,7 +141,7 @@
 3:
 	# Empty mfromhost
 	li t0, 0
-	csrrw t0, mfromhost, t0
+	#csrrw t0, mfromhost, t0
 	bne zero,t0, 3b
 	j 9f
 
@@ -153,7 +151,7 @@
 9:
 	#********  IRQ OUT *********
 	_restore_scratch_registers \mode
-	eret
+	mret
 
 11:
 	# Handle trap
@@ -179,7 +177,7 @@
 	li t1, CALL_SET_SYS_TIMER
 	beq t1, a0, 13f
 
-	li t1, CALL_IS_USER_MODE
+	li t1, CALL_GET_SYS_TIMER
 	beq t1, a0, 14f
 
 	# else, unknown ecall number
@@ -187,17 +185,17 @@
 		# Assume that Genode (supervisor trap handler)
 		# knows what to do then.
 		_restore_scratch_registers \mode
-		mrts
+		# mrts
 	.endif
 	j 15f
 
 12:
 	# output character but first wait until mtohost reads 0 atomically
 	# to make sure any previous character is gone..
-	csrr t1, mtohost
+	#csrr t1, mtohost
 	bne zero, t1, 12b
 
-	csrw mtohost, a1
+	#csrw mtohost, a1
 	j 15f
 
 13:
@@ -208,7 +206,7 @@
 		csrc mip, t0
 
 		# Set system timer
-		csrw mtimecmp, a1
+		#csrw mtimecmp, a1
 
 		# enable timer interrupt in M-mode
 		li t0, MIP_MTIP
@@ -217,17 +215,16 @@
 	j 15f
 
 14:
-	mv a0, x0
-	.if \mode == USER_MODE
-		li a0, 1
+	.if \mode == SUPERVISOR_MODE
+		#csrr a0, mtime
 	.endif
 	j 15f
 
 15:
 	#*******  ECALL OUT *********
-	# Empty mfromhost 
+	# Empty mfromhost
 	li t0, 0
-	csrrw t0, mfromhost, t0
+	#csrrw t0, mfromhost, t0
 	bne zero,t0, 14b
 
 	# advance epc
@@ -236,7 +233,7 @@
 	csrw mepc, t0
 
 	_restore_scratch_registers \mode
-	eret
+	mret
 19:
 .endm
 
@@ -278,7 +275,7 @@ user_trap:
 	_save_scratch_registers USER_MODE
 	_handle_trap USER_MODE
 	_restore_scratch_registers USER_MODE
-	mrts
+#	mrts
 
 supervisor_trap:
 
@@ -340,15 +337,11 @@ _mt_kernel_entry_pic:
 	csrrw x31, sscratch, x31
 	addi  x31, x31, 8
 
-	# save x29, x30 in master
-	sd x29, CPU_X1 + 8 * 28(x31)
-	sd x30, CPU_X1 + 8 * 29(x31)
+	# save x30 in master
+	sd x30, CPU_X1 + 8 * 28(x31)
 
 	# load kernel page table
-	ld x29, CPU_SASID(x31)
 	ld x30, CPU_SPTBR(x31)
-
-	csrw sasid, x29
 	csrw sptbr, x30
 
 	#
@@ -421,11 +414,9 @@ _mt_user_entry_pic:
 	.endr
 
 	# switch page table
-	ld x31, CPU_SASID(x30)
-	ld x30, CPU_SPTBR(x30)
+	ld x31, CPU_SPTBR(x30)
 
-	csrw sasid, x31
-	csrw sptbr, x30
+	csrw sptbr, x31
 
 	#
 	# FIXME
@@ -440,7 +431,7 @@ _mt_user_entry_pic:
 		ld x\reg, CPU_X1 + 8 * (\reg - 1)(x29)
 	.endr
 
-	eret
+	sret
 
 # end of the mode transition code
 .global _mt_end

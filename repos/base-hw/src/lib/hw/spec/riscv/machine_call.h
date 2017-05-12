@@ -30,7 +30,7 @@ namespace Hw {
 	 */
 	constexpr Call_arg call_id_put_char()      { return 0x100; }
 	constexpr Call_arg call_id_set_sys_timer() { return 0x101; }
-	constexpr Call_arg call_id_is_user_mode()  { return 0x102; }
+	constexpr Call_arg call_id_get_sys_timer()  { return 0x102; }
 
 	inline void put_char(uint64_t c) {
 		Kernel::call(call_id_put_char(), (Call_arg)c); }
@@ -38,8 +38,8 @@ namespace Hw {
 	inline void set_sys_timer(addr_t t) {
 		Kernel::call(call_id_set_sys_timer(), (Call_arg)t); }
 
-	inline bool is_user_mode() {
-		return Kernel::call(call_id_is_user_mode()); }
+	inline addr_t get_sys_timer() {
+		return Kernel::call(call_id_get_sys_timer()); }
 }
 
 #endif /* _SRC__LIB__HW__SPEC__RISCV__MACHINE_CALL_H_ */

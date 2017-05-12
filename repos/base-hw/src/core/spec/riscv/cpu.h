@@ -17,6 +17,8 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <cpu/cpu_state.h>
+#include <util/register.h>
+
 
 namespace Genode
 {
@@ -42,23 +44,28 @@ class Genode::Cpu
 		 */
 		struct Context : Cpu_state
 		{
-			addr_t sasid = 0;
-			addr_t sptbr = 0; /* supervisor page table register */
+			struct Sptbr : Register<64>
+			{
+				struct Ppn  : Bitfield<0, 38> { };
+				struct Asid : Bitfield<38, 26> { };
+			};
+
+			Sptbr::access_t sptbr;
 
 			/**
 			 * Return base of assigned translation table
 			 */
-			addr_t translation_table() const { return sptbr; }
+			addr_t translation_table() const { return Sptbr::Ppn::get(sptbr) << 12; }
 
 			/**
 			 * Assign translation-table base 'table'
 			 */
-			void translation_table(addr_t const table) { sptbr = table; }
+			void translation_table(addr_t const table) { Sptbr::Ppn::set(sptbr, table >> 12); }
 
 			/**
 			 * Assign protection domain
 			 */
-			void protection_domain(Genode::uint8_t const id) { sasid = id; }
+			void protection_domain(Genode::uint8_t const id) { Sptbr::Asid::set(sptbr, id); }
 		};
 
 		struct Pd
@@ -120,10 +127,10 @@ class Genode::Cpu
 		 */
 		static void sfence()
 		{
-			asm volatile ("csrrw t0, sasid, x0\n"
-			              "sfence.vm\n"
-			              "csrw sasid, t0\n"
-			              : : : "t0");
+			/*
+			 * Note: In core the address space id must be zero
+			 */
+			asm volatile ("sfence.vm\n");
 		}
 
 		/**

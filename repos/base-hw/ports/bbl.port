@@ -1,0 +1,8 @@
+LICENSE   := BSD-3-Clause
+VERSION   := git
+DOWNLOADS := bbl.git
+
+URL(bbl) = https://github.com/ssumpf/bbl-lite.git
+REV(bbl) = b24944dde265016ff9b3c8608fe5cc24994e360a
+DIR(bbl) = src/lib/bbl
+

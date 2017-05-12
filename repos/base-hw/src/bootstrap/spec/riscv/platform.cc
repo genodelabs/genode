@@ -29,32 +29,40 @@ void Bootstrap::Platform::enable_mmu()
 			SUPERVISOR = 1,
 			Sv39       = 9,
 		};
-		struct Ie    : Bitfield<0, 1> { };
-		struct Priv  : Bitfield<1, 2> { };
-		struct Ie1   : Bitfield<3, 1> { };
-		struct Priv1 : Bitfield<4, 2> { };
-		struct Fs    : Bitfield<12, 2> { enum { INITIAL = 1 }; };
-		struct Vm    : Bitfield<17, 5> { };
+		struct Uie    : Bitfield<0, 1> { };
+		struct Sie    : Bitfield<1, 1> { };
+		struct Upie   : Bitfield<4, 1> { };
+		struct Spie   : Bitfield<5, 1> { };
+		struct Spp    : Bitfield<8, 1> { };
+		struct Mpp    : Bitfield<11, 2> { };
+
+
+		struct Fs    : Bitfield<13, 2> { enum { INITIAL = 1 }; };
+		struct Vm    : Bitfield<24, 5> { };
 	};
 
 	/* read status register */
 	Mstatus::access_t mstatus = 0;
 
-	Mstatus::Vm::set(mstatus, Mstatus::Sv39);         /* enable Sv39 paging  */
-	Mstatus::Fs::set(mstatus, Mstatus::Fs::INITIAL);  /* enable FPU          */
-	Mstatus::Ie1::set(mstatus, 1);                    /* user mode interrupt */
-	Mstatus::Priv1::set(mstatus, Mstatus::USER);      /* set user mode       */
-	Mstatus::Ie::set(mstatus, 0);                     /* disable interrupts  */
-	Mstatus::Priv::set(mstatus, Mstatus::SUPERVISOR); /* set supervisor mode */
+	Mstatus::Vm::set(mstatus, Mstatus::Sv39);        /* enable Sv39 paging  */
+	Mstatus::Fs::set(mstatus, Mstatus::Fs::INITIAL); /* enable FPU          */
+	Mstatus::Upie::set(mstatus, 1);                  /* user mode interrupt */
+	Mstatus::Spp::set(mstatus, Mstatus::USER);       /* set user mode       */
+	Mstatus::Spie::set(mstatus, 0);                  /* disable interrupts  */
+	Mstatus::Mpp::set(mstatus, Mstatus::SUPERVISOR); /* set supervisor mode */
 
-	asm volatile ("csrw sasid,   %0\n" /* address space id  */
-	              "csrw sptbr,   %1\n" /* set page table    */
-	              "csrw mstatus, %2\n" /* change mode       */
+	asm volatile (
+	              "la  t0,       1f\n"
+	              "csrw sepc,    t0\n"
+	              "csrw sptbr,   %0\n" /* set asid | page table */
+	              "csrw mstatus, %1\n" /* change mode           */
+	              "mret            \n" /* supverisor mode, jump to 1f */
+	              "rdtime t0     \n"
+	              "1:              \n"
 	              :
-	              : "r" (0/*core_pd.asid*/),
-	                "r" (core_pd->table_base),
+	              : "r" ((addr_t)core_pd->table_base >> 12),
 	                "r" (mstatus)
-	              : "memory");
+	              :  "memory");
 }
 
 

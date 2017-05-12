@@ -34,7 +34,7 @@ addi a0, a0, 8
 bne  a0, a1, 1b
 
 la   sp, _stack_area_start
-la   a0, STACK_SIZE
+li   a0, STACK_SIZE
 ld   a0, (a0)
 add  sp, sp, a0
 
