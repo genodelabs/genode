@@ -57,13 +57,13 @@ class Linux_session_component : public Nic::Session_component
 {
 	private:
 
-		struct Rx_signal_thread : Genode::Thread_deprecated<0x1000>
+		struct Rx_signal_thread : Genode::Thread
 		{
 			int                               fd;
 			Genode::Signal_context_capability sigh;
 
-			Rx_signal_thread(int fd, Genode::Signal_context_capability sigh)
-			: Genode::Thread_deprecated<0x1000>("rx_signal"), fd(fd), sigh(sigh) { }
+			Rx_signal_thread(Genode::Env &env, int fd, Genode::Signal_context_capability sigh)
+			: Genode::Thread(env, "rx_signal", 0x1000), fd(fd), sigh(sigh) { }
 
 			void entry()
 			{
@@ -210,7 +210,7 @@ class Linux_session_component : public Nic::Session_component
 		:
 			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
 			_config_rom(env, "config"),
-			_tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, _packet_stream_dispatcher)
+			_tap_fd(_setup_tap_fd()), _rx_thread(env, _tap_fd, _packet_stream_dispatcher)
 		{
 			/* try using configured MAC address */
 			try {
