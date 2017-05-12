@@ -265,9 +265,7 @@ class Genode::Rpc_object_base : public Object_pool<Rpc_object_base>::Entry
 template <typename RPC_INTERFACE, typename SERVER = RPC_INTERFACE>
 struct Genode::Rpc_object : Rpc_object_base, Rpc_dispatcher<RPC_INTERFACE, SERVER>
 {
-	/*****************************
-	 ** Server-object interface **
-	 *****************************/
+	struct Capability_guard;
 
 	Rpc_exception_code dispatch(Rpc_opcode opcode, Ipc_unmarshaller &in, Msgbuf_base &out)
 	{
@@ -501,6 +499,19 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * is not up yet.
 		 */
 		void cancel_blocking() { Thread::cancel_blocking(); }
+};
+
+
+template <typename IF, typename SERVER>
+struct Genode::Rpc_object<IF, SERVER>::Capability_guard
+{
+	Rpc_entrypoint &_ep;
+	Rpc_object     &_obj;
+
+	Capability_guard(Rpc_entrypoint &ep, Rpc_object &obj)
+	: _ep(ep), _obj(obj) { _ep.manage(&_obj); }
+
+	~Capability_guard() { _ep.dissolve(&_obj); }
 };
 
 #endif /* _INCLUDE__BASE__RPC_SERVER_H_ */
