@@ -89,7 +89,14 @@ class Cell_array
 				_array[i] = new (alloc) CELL[num_cols];
 		}
 
-		/* XXX destructor is missing */
+		~Cell_array()
+		{
+			for (unsigned i = 0; i < _num_lines; i++)
+				Genode::destroy(_alloc, _array[i]);
+
+			Genode::destroy(_alloc, _line_dirty);
+			Genode::destroy(_alloc, _array);
+		}
 
 		void set_cell(int column, int line, CELL cell)
 		{
