@@ -38,7 +38,10 @@ struct Mbr_partition_table : public Block::Partition_table
 		 */
 		struct Partition_record
 		{
-			enum { INVALID = 0, EXTENTED = 0x5, PROTECTIVE = 0xee, };
+			enum {
+				INVALID = 0,
+				EXTENTED_CHS = 0x5, EXTENTED_LBA = 0xf, PROTECTIVE = 0xee
+			};
 			Genode::uint8_t  _unused[4];
 			Genode::uint8_t  _type;       /* partition type */
 			Genode::uint8_t  _unused2[3];
@@ -46,7 +49,8 @@ struct Mbr_partition_table : public Block::Partition_table
 			Genode::uint32_t _sectors;    /* number of sectors */
 
 			bool valid()      { return _type != INVALID; }
-			bool extented()   { return _type == EXTENTED; }
+			bool extented()   { return _type == EXTENTED_CHS
+			                        || _type == EXTENTED_LBA; }
 			bool protective() { return _type == PROTECTIVE; }
 		} __attribute__((packed));
 
