@@ -41,6 +41,7 @@ resource_request
 resource_yield
 gdb_monitor
 part_blk
+part_blk_gpt
 xml_generator
 blk_cache
 rump_ext2
