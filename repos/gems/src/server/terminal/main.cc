@@ -285,9 +285,7 @@ namespace Terminal {
 
 			Flush_callback_registry       &_flush_callback_registry;
 			Trigger_flush_callback        &_trigger_flush_callback;
-
 			Genode::Attached_ram_dataspace _io_buffer;
-
 			Framebuffer::Mode              _fb_mode;
 			Genode::Dataspace_capability   _fb_ds_cap;
 			unsigned                       _char_width;
@@ -490,15 +488,14 @@ namespace Terminal {
 				 */
 				Genode::size_t io_buffer_size = 4096;
 
-				Session_component *session =
-					new (md_alloc()) Session_component(_env, *md_alloc(),
-					                                   _read_buffer,
-					                                   _framebuffer,
-					                                   io_buffer_size,
-					                                   _flush_callback_registry,
-					                                   _trigger_flush_callback,
-					                                   _font_family);
-				return session;
+				return new (md_alloc())
+					Session_component(_env, *md_alloc(),
+					                  _read_buffer,
+					                  _framebuffer,
+					                  io_buffer_size,
+					                  _flush_callback_registry,
+					                  _trigger_flush_callback,
+					                  _font_family);
 			}
 
 		public:
@@ -534,7 +531,7 @@ struct Terminal::Main
 	Timer::Connection       _timer_conection { _env };
 	Genode::Timer           _timer { _env.ep(), _timer_conection };
 
-	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
+	Heap _heap { _env.ram(), _env.rm() };
 
 	/* input read buffer */
 	Read_buffer _read_buffer;
@@ -601,7 +598,7 @@ struct Terminal::Main
 	     unsigned char const *control)
 	:
 		_env(env),
-		_root(_env, _sliced_heap,
+		_root(_env, _heap,
 		      _read_buffer, _framebuffer,
 		      _flush_callback_registry,
 		      _trigger_flush_callback,
