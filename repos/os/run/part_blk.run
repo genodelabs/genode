@@ -2,12 +2,7 @@
 # \brief  Test of Block session interface provided by server/part_blk
 #
 
-set block_count 20480
-
-if [catch { set sfdisk [ exec which sfdisk ] }] {
-   puts "sfdisk needs to be installed!"
-   exit 1
-}
+requires_installation_of parted
 
 #
 # Build
@@ -21,13 +16,24 @@ build {
 	test/blk/cli
 }
 
-if { [file exists bin/ata.raw] == 0 } then {
+set img_file ata.raw
+set img_path "bin/$img_file"
+
+if { [file exists $img_path] == 0 } then {
+	set block_count 20480
+
 	# create empty block device file
-	catch { exec dd if=/dev/zero of=bin/ata.raw bs=512 count=$block_count }
+	catch { exec dd if=/dev/zero of=$img_path bs=512 count=$block_count }
 
 	# create two primary partitions (one is extented) and two logical paritions
-	puts "using sfdisk to partition disk image, requires root privileges"
-	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | $sfdisk -uS -f bin/ata.raw }
+	puts "using parted to partition disk image"
+	catch {
+		exec parted -s $img_path mklabel msdos
+		exec parted -s $img_path mkpart primary fat32  2048s 4095s
+		exec parted -s $img_path mkpart extended       4096s 20479s
+		exec parted -s $img_path mkpart logical fat32  6144s 10239s
+		exec parted -s $img_path mkpart logical fat32 12288s 20479s
+	}
 }
 
 create_boot_directory
@@ -36,7 +42,7 @@ create_boot_directory
 # Generate config
 #
 
-install_config {
+append config {
 <config prio_levels="1" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -60,7 +66,7 @@ install_config {
 	<start name="rom_blk">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Block"/></provides>
-		<config file="ata.raw" block_size="512"/>
+		<config file="} $img_file {" block_size="512"/>
 	</start>
 	<start name="part_blk">
 		<resource name="RAM" quantum="10M" />
@@ -68,7 +74,7 @@ install_config {
 		<route>
 			<any-service><child name="rom_blk"/> <parent/><any-child/></any-service>
 		</route>
-		<config>
+		<config use_gpt="yes">
 			<policy label_prefix="test-part1" partition="6"/>
 			<policy label_prefix="test-part2" partition="1"/>
 		</config>
@@ -89,11 +95,16 @@ install_config {
 	</start>
 </config> }
 
+install_config $config
+
 #
 # Boot modules
 #
 
-build_boot_image { core ld.lib.so init timer rom_blk part_blk test-blk-cli ata.raw }
+append boot_modules { core ld.lib.so init timer rom_blk part_blk test-blk-cli }
+append boot_modules $img_file
+
+build_boot_image $boot_modules
 
 #
 # Qemu
@@ -102,4 +113,4 @@ build_boot_image { core ld.lib.so init timer rom_blk part_blk test-blk-cli ata.r
 append qemu_args " -nographic -m 128 "
 
 run_genode_until "Tests finished successfully.*\n.*Tests finished successfully.*\n" 100
-exec rm bin/ata.raw
+exec rm $img_path
