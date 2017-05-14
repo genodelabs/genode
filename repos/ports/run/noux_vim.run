@@ -17,8 +17,6 @@ append_platform_drv_build_components
 
 build $build_components
 
-exec tar cfv bin/vim.tar -h -C bin/vim .
-
 create_boot_directory
 
 append config {
@@ -131,5 +129,3 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 run_genode_until forever
-
-exec rm bin/vim.tar

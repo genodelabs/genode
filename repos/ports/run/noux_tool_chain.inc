@@ -67,7 +67,7 @@ foreach pkg $noux_pkgs {
 build $build_components
 
 # write default vimrc file
-set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+set vimrc_fd [open "bin/vimrc" w]
 puts $vimrc_fd {
 set noloadplugins
 set hls
@@ -76,16 +76,6 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
-
-# strip all binaries prior archiving
-set find_args ""
-foreach pkg $noux_pkgs { append find_args " bin/$pkg" }
-exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip -g || true) 2>/dev/null"
-
-exec ln -sf bash bin/bash/bin/sh
-
-foreach pkg $noux_pkgs {
-	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
 
 exec tar cvf bin/genode.tar -C $genode_dir tool repos/base repos/$platform_base_dir repos/os repos/demo
 
@@ -216,6 +206,10 @@ append config {			</dir>
 				<dir name="genode">
 					<tar name="genode.tar" />
 				</dir>
+
+				<dir name="bin"> <symlink name="sh" target="bash"/> </dir>
+
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 
 				<dir name="dev">
 					<null />

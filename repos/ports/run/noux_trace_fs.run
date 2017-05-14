@@ -46,8 +46,10 @@ append_platform_drv_build_components
 
 build $build_components
 
+create_boot_directory
+
 # write default vimrc file
-set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+set vimrc_fd [open "bin/vimrc" w]
 puts $vimrc_fd {
 set noloadplugins
 set hls
@@ -56,13 +58,6 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
-
-# strip all binaries prior archiving
-foreach pkg $noux_pkgs {
-	exec sh -c "find bin/$pkg -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
-
-create_boot_directory
 
 append config {
 <config verbose="yes">
@@ -177,6 +172,8 @@ append config {
 				<dir name="dev">
 					<null /> <zero />
 				</dir>
+
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 			</fstab>
 			<start name="/bin/bash">
 				<env name="TERM" value="linux" />
