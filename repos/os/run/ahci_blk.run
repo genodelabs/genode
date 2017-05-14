@@ -9,6 +9,7 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/ahci
+	server/report_rom
 	test/blk/cli
 }
 
@@ -44,6 +45,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -52,12 +54,23 @@ set config {
 append_platform_drv_config
 
 append config {
+	<start name="ahci_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
 	<start name="ahci_drv">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
-		<config>
+		<config atapi="yes">
+			<report ports="yes"/>
 			<policy label_prefix="test-ahci" device="0" />
 		</config>
+		<route>
+			<service name="Report"> <child name="ahci_report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 	<start name="test-ahci">
 		<binary name="test-blk-cli" />
@@ -75,15 +88,16 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core ld.lib.so init timer ahci_drv test-blk-cli }
+set boot_modules { core ld.lib.so init timer ahci_drv report_rom test-blk-cli }
 
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic  "
-append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -boot d"
-append qemu_args " -drive id=cd,file=[run_dir]/../ahci_blk.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1"
+append qemu_args " -nographic -device ahci,id=ahci -boot d "
+append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "
+append qemu_args " -drive id=cd,file=[run_dir]/../ahci_blk.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1 "
+append qemu_args " -drive id=disk2,file=bin/ext2.raw,format=raw,if=none            -device ide-hd,drive=disk2,bus=ahci.2 "
 
 run_genode_until "Tests finished successfully!" 100
 

@@ -19,6 +19,7 @@
 #include <block/component.h>
 #include <os/session_policy.h>
 #include <util/xml_node.h>
+#include <os/reporter.h>
 
 /* local includes */
 #include <ahci.h>
@@ -175,23 +176,39 @@ struct Block::Main
 
 	Genode::Attached_rom_dataspace config { env, "config" };
 
+	Genode::Constructible<Genode::Reporter> reporter;
+
 	Block::Root_multiple_clients root;
+
+	Signal_handler<Main> device_identified {
+		env.ep(), *this, &Main::handle_device_identified };
 
 	Main(Genode::Env &env)
 	: env(env), root(env, heap, config.xml())
 	{
 		Genode::log("--- Starting AHCI driver ---");
-		bool support_atapi = config.xml().attribute_value("atapi", false);
-		try { Ahci_driver::init(env, heap, root, support_atapi); }
-
-		catch (Ahci_driver::Missing_controller) {
+		bool support_atapi  = config.xml().attribute_value("atapi", false);
+		try {
+			Ahci_driver::init(env, heap, root, support_atapi, device_identified);
+		} catch (Ahci_driver::Missing_controller) {
 			Genode::error("no AHCI controller found");
 			env.parent().exit(~0);
-		}
-		catch (Genode::Service_denied) {
+		} catch (Genode::Service_denied) {
 			Genode::error("hardware access denied");
 			env.parent().exit(~0);
 		}
+	}
+
+	void handle_device_identified()
+	{
+		try {
+			Xml_node report = config.xml().sub_node("report");
+			if (report.attribute_value("ports", false)) {
+				reporter.construct(env, "ports");
+				reporter->enabled(true);
+				Ahci_driver::report_ports(*reporter);
+			}
+		} catch (Genode::Xml_node::Nonexistent_sub_node) { }
 	}
 };
 

@@ -29,3 +29,18 @@ In the example above, a session request labeled with "test-ahci" gains access to
 a device with certain model and serial numbers, while "bench" gains access to
 device at port 1. ATAPI support is by default disabled and can be enabled by
 setting the config attribute "atapi" to "yes".
+
+ahci_drv supports reporting of active ports, which can be enabled via
+configuration sub-node like follows.
+
+!<report ports="yes"/>
+
+The report structure is depicted by the following example.
+
+! <ports>
+!   <port num="0" type="ATA" block_count="32768" block_size="512"
+!     model="QEMU HARDDISK" serial="QM00005"/>
+!   <port num="1" type="ATAPI"/>
+!   <port num="2" type="ATA" block_count="32768" block_size="512"
+!     model="QEMU HARDDISK" serial="QM00009"/>
+! </ports>
