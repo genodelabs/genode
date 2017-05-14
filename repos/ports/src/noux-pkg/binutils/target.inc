@@ -12,4 +12,4 @@ MAKE_ENV = $(ENV)
 
 PKG_DIR = $(call select_from_ports,binutils)/src/noux-pkg/binutils
 
-include $(REP_DIR)/mk/noux.mk
+include $(call select_from_repositories,mk/noux.mk)

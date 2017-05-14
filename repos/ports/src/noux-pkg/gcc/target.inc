@@ -53,7 +53,7 @@ Makefile: dummy_libs
 
 LIBS  += libc libm posix libc_noux stdcxx
 
-include $(REP_DIR)/mk/noux.mk
+include $(call select_from_repositories,mk/noux.mk)
 
 #
 # We have to specify 'LINK_ITEMS' twice to resolve inter-library dependencies.
