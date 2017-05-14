@@ -16,6 +16,7 @@
 
 #include <block/component.h>
 #include <os/attached_mmio.h>
+#include <os/reporter.h>
 #include <util/retry.h>
 #include <util/reconstructible.h>
 
@@ -36,13 +37,15 @@ struct Ahci_root
 
 namespace Ahci_driver {
 
-	void init(Genode::Env &env, Genode::Allocator &alloc, Ahci_root &ep, bool support_atapi);
+	void init(Genode::Env &env, Genode::Allocator &alloc, Ahci_root &ep,
+	          bool support_atapi, Genode::Signal_context_capability device_identified);
 
 	bool avail(long device_num);
 	long device_number(char const *model_num, char const *serial_num);
 
 	Block::Driver *claim_port(long device_num);
 	void           free_port(long device_num);
+	void           report_ports(Genode::Reporter &reporter);
 
 	struct Missing_controller { };
 }
