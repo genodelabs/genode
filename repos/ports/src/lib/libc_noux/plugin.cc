@@ -87,11 +87,15 @@ class Noux_connection
 {
 	private:
 
+		Genode::Env &_env;
+
 		Noux::Connection _connection;
 
-		Genode::Attached_dataspace _sysio_ds { _connection.sysio_dataspace() };
+		Genode::Attached_dataspace _sysio_ds { _env.rm(), _connection.sysio_dataspace() };
 
 	public:
+
+		Noux_connection(Genode::Env &env) : _env(env), _connection(env) { }
 
 		/**
 		 * Return the capability of the local stack-area region map
@@ -122,14 +126,24 @@ class Noux_connection
 			 * to destruct the session capability in the just-cleared
 			 * capability space.
 			 */
-			construct_at<Noux_connection>(this);
+			construct_at<Noux_connection>(this, _env);
 		}
 };
 
 
+/*
+ * Defined by Libc::Plugin::init
+ */
+static Genode::Env *_env_ptr = nullptr;
+
 Noux_connection *noux_connection()
 {
-	static Noux_connection inst;
+	if (!_env_ptr) {
+		Genode::error("missing call of 'Libc::Plugin::init'");
+		return nullptr;
+	}
+
+	static Noux_connection inst(*_env_ptr);
 	return &inst;
 }
 
@@ -341,7 +355,7 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 			#endif
 			return 0;
 		case RLIMIT_RSS:
-			rlim->rlim_cur = rlim->rlim_max = Genode::env()->ram_session()->ram_quota().value;
+			rlim->rlim_cur = rlim->rlim_max = _env_ptr->pd().ram_quota().value;
 			return 0;
 		case RLIMIT_NPROC:
 		case RLIMIT_NOFILE:
@@ -548,7 +562,7 @@ extern "C" void fork_trampoline()
 {
 	/* reinitialize environment */
 	using namespace Genode;
-	env()->reinit(new_parent);
+	_env_ptr->reinit(new_parent);
 
 	/* reinitialize standard-output connection */
 	stdout_reconnect();
@@ -558,7 +572,7 @@ extern "C" void fork_trampoline()
 
 	/* reinitialize main-thread object which implies reinit of stack area */
 	auto stack_area_rm = noux_connection()->stack_area_region_map(in_stack_area);
-	Genode::env()->reinit_main_thread(stack_area_rm);
+	_env_ptr->reinit_main_thread(stack_area_rm);
 
 	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
@@ -938,15 +952,9 @@ namespace {
 			/**
 			 * Constructor
 			 */
-			Plugin() : Libc::Plugin(PLUGIN_PRIORITY)
-			{
-				/* register inherited open file descriptors */
-				int fd = 0;
-				while ((fd = noux()->next_open_fd(fd)) != -1) {
-					Libc::file_descriptor_allocator()->alloc(this, noux_context(fd), fd);
-					fd++;
-				}
-			}
+			Plugin() : Libc::Plugin(PLUGIN_PRIORITY) { }
+
+			void init(Genode::Env &);
 
 			bool supports_access(const char *, int)                { return true; }
 			bool supports_execve(char const *, char *const[],
@@ -2240,9 +2248,22 @@ extern char **genode_envp;
 extern char **environ;
 
 
-__attribute__((constructor))
-void init_libc_noux(void)
+/* register noux libc plugin at libc */
+static Plugin noux_plugin;
+
+
+void Plugin::init(Genode::Env &env)
 {
+	_env_ptr = &env;
+	noux_connection();
+
+	/* register inherited open file descriptors */
+	int fd = 0;
+	while ((fd = noux()->next_open_fd(fd)) != -1) {
+		Libc::file_descriptor_allocator()->alloc(this, noux_context(fd), fd);
+		fd++;
+	}
+
 	sigemptyset(&signal_mask);
 
 	/* copy command-line arguments from 'args' ROM dataspace */
@@ -2250,7 +2271,7 @@ void init_libc_noux(void)
 	static char *argv[MAX_ARGS];
 	static char  arg_buf[ARG_BUF_SIZE];
 	{
-		Genode::Attached_rom_dataspace ds("args");
+		Genode::Attached_rom_dataspace ds(env, "args");
 		Genode::memcpy(arg_buf, ds.local_addr<char>(),
 		               Genode::min((size_t)ARG_BUF_SIZE, ds.size()));
 	}
@@ -2285,7 +2306,7 @@ void init_libc_noux(void)
 	static char *env_array[ENV_MAX_ENTRIES];
 	static char  env_buf[ENV_BUF_SIZE];
 	{
-		Genode::Attached_rom_dataspace ds("env");
+		Genode::Attached_rom_dataspace ds(env, "env");
 		Genode::memcpy(env_buf, ds.local_addr<char>(),
 		               Genode::min((size_t)ENV_BUF_SIZE, ds.size()));
 	}
@@ -2311,9 +2332,6 @@ void init_libc_noux(void)
 
 	/* define env pointer to be passed to main function (in '_main.cc') */
 	genode_envp = environ;
-
-	/* initialize noux libc plugin */
-	static Plugin noux_plugin;
 
 	chdir(noux_cwd.base());
 
