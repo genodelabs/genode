@@ -162,6 +162,12 @@ class Libc::Env_implementation : public Libc::Env
 
 		/* already done by the libc */
 		void exec_static_constructors() override { }
+
+		void reinit(Native_capability::Raw raw) override {
+			_env.reinit(raw); }
+
+		void reinit_main_thread(Capability<Region_map> &stack_area_rm) override {
+			_env.reinit_main_thread(stack_area_rm); }
 };
 
 

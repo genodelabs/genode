@@ -99,6 +99,16 @@ namespace {
 			return Genode::env_session_id_space();
 		}
 
+		void reinit(Native_capability::Raw raw) override
+		{
+			Genode::env_deprecated()->reinit(raw);
+		}
+
+		void reinit_main_thread(Capability<Region_map> &stack_area_rm) override
+		{
+			Genode::env_deprecated()->reinit_main_thread(stack_area_rm);
+		}
+
 		void _block_for_session()
 		{
 			/*

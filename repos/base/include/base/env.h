@@ -145,6 +145,33 @@ struct Genode::Env
 	 * executes this function before constructing libc components.
 	 */
 	virtual void exec_static_constructors() = 0;
+
+	/**
+	 * Reload parent capability and reinitialize environment resources
+	 *
+	 * This method is solely used for implementing fork in Noux. After forking
+	 * a process, the new child process is executed within a copy of the
+	 * address space of the forking process. Thereby, the new process inherits
+	 * the original 'env' object of the forking process, which is meaningless
+	 * in the context of the new process. By calling this function, the new
+	 * process is able to reinitialize its 'env' with meaningful capabilities
+	 * obtained via its updated parent capability.
+	 *
+	 * \noapi
+	 */
+	virtual void reinit(Native_capability::Raw) = 0;
+
+	/**
+	 * Reinitialize main-thread object
+	 *
+	 * \param stack_area_rm  new region map of the stack area
+	 *
+	 * This function is solely used for implementing fork as provided by the
+	 * Noux environment.
+	 *
+	 * \noapi
+	 */
+	virtual void reinit_main_thread(Capability<Region_map> &stack_area_rm) = 0;
 };
 
 #endif /* _INCLUDE__BASE__ENV_H_ */
