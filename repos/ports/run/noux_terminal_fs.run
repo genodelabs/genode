@@ -31,12 +31,6 @@ append_platform_drv_build_components
 
 build $build_components
 
-# strip all binaries prior archiving
-exec sh -c "find bin/bash/ bin/coreutils/ -type f | (xargs strip || true) 2>/dev/null"
-
-exec tar cfv bin/bash.tar      -h -C bin/bash .
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
-
 create_boot_directory
 
 append config {
@@ -208,11 +202,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-if {[have_spec x86_64]} {
-	# bash.tar is really huge when built for x86_64
-	append qemu_args " -m 300 "
-}
+# bash.tar is really huge when built for x86_64
+if {[have_spec x86_64]} { append qemu_args " -m 300 " }
 
 run_genode_until forever
-
-exec rm bin/bash.tar

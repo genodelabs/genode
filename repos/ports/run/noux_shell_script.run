@@ -21,17 +21,6 @@ append_platform_drv_build_components
 
 build $build_components
 
-# strip all binaries prior archiving
-set find_args ""
-foreach pkg $noux_pkgs { append find_args " bin/$pkg/" }
-exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-
-# create '/bin/sh' symlink
-exec sh -c "ln -sf bash bin/bash/bin/sh"
-
-foreach pkg $noux_pkgs {
-	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
-
 create_boot_directory
 
 append config {
@@ -134,6 +123,7 @@ foreach pkg $noux_pkgs {
 	append config "				<tar name=\"$pkg.tar\" />" }
 
 append config {
+				<dir name="bin"> <symlink name="sh" target="bash"/> </dir>
 				<dir name="home"> <fs label="home" /> </dir>
 				<dir name="ram">  <fs label="root" /> </dir>
 
@@ -160,8 +150,7 @@ set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs posix.lib.so
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so }
 
-foreach pkg $noux_pkgs {
-	lappend boot_modules "$pkg.tar" }
+foreach pkg $noux_pkgs { lappend boot_modules "$pkg.tar" }
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
@@ -176,5 +165,3 @@ build_boot_image $boot_modules
 append qemu_args " -m 300 "
 
 run_genode_until forever
-
-exec rm bin/bash.tar

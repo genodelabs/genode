@@ -29,7 +29,7 @@ append_platform_drv_build_components
 
 build $build_components
 
-set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+set vimrc_fd [open "bin/vimrc" w]
 puts $vimrc_fd {
 set noloadplugins
 set hls
@@ -38,17 +38,6 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
-
-# strip all binaries prior archiving
-set find_args ""
-foreach pkg $noux_pkgs { append find_args " bin/$pkg/" }
-exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-
-# add bash as sh
-exec cp bin/bash/bin/bash bin/bash/bin/sh
-
-foreach pkg $noux_pkgs {
-	exec tar cf bin/$pkg.tar -h -C bin/$pkg . }
 
 # generate configuration for lighttpd
 proc lighttpd_config_path { } {
@@ -169,10 +158,12 @@ foreach pkg $noux_pkgs {
 append config {
 				<dir name="bin">
 					<tar name="lighttpd.tar" />
+					<symlink name="sh" target="bash"/>
 				</dir>
 				<dir name="home">
 					<fs label="home" />
 				</dir>
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 				<dir name="ram"> <fs label="root" /> </dir>
 				<dir name="tmp"> <fs label="tmp" /> </dir>
 				<dir name="srv">
@@ -207,7 +198,7 @@ set boot_modules {
 	libc.lib.so libm.lib.so libc_noux.lib.so posix.lib.so
 	lwip.lib.so ncurses.lib.so
 	readline.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
-	lighttpd.tar
+	lighttpd.tar vimrc
 }
 
 foreach pkg $noux_pkgs {
@@ -222,10 +213,8 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-if {[have_spec x86_64]} {
-	# bash.tar is really huge when built for x86_64
-	append qemu_args " -m 320 "
-}
+# bash.tar is really huge when built for x86_64
+if {[have_spec x86_64]} { append qemu_args " -m 320 " }
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
@@ -234,5 +223,4 @@ append qemu_args " -net user -redir tcp:5555::80 "
 
 run_genode_until forever
 
-#exec rm bin/bash.tar
 exec rm -rf bin/aux

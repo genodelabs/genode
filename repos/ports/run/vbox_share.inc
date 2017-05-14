@@ -268,8 +268,6 @@ append config_of_app {
 
 source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 
-exec tar cfv bin/bash.tar      -h -C bin/bash .
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
 exec cp ${genode_dir}/repos/ports/run/$vbox_file bin/.
 
 build_boot_image $boot_modules
@@ -333,9 +331,7 @@ puts $noux_id "sha1sum to/test.bin"
 # Wait for output of bash shell until last SHA1 sum is calculated
 run_genode_until {[[:xdigit:]]+  to/test\.bin} 50 $spawn_id_list
 
-
 # cleanup created files
-foreach pkg {bash coreutils} { exec rm -f bin/$pkg.tar }
 exec rm -f bin/test.bin
 exec rm -f bin/template.bat
 exec rm -f bin/$vbox_file

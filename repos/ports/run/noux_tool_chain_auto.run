@@ -69,7 +69,6 @@ run_genode_until {child /bin/bash exited with exit value 234} $tool_chain_timeou
 set time_end [ clock seconds ]
 
 # cleanup created tars
-foreach pkg $noux_pkgs { exec rm -f bin/$pkg.tar }
 exec rm -f bin/genode.tar
 
 # print infos about run

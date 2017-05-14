@@ -17,8 +17,6 @@ set build_components {
 
 build $build_components
 
-exec tar cfv bin/vim.tar -h -C bin/vim .
-
 create_boot_directory
 
 append config {
@@ -161,5 +159,3 @@ append qemu_args " -serial file:kdb.log "
 append qemu_args " -serial mon:stdio"
 
 run_genode_until forever
-
-exec rm bin/vim.tar

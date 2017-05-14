@@ -66,7 +66,6 @@ set gdb_target_binaries {
 }
 lappend gdb_target_binaries ${gdb_target_binary_name}
 
-create_gdb_tar
 create_binary_and_source_tars ${gdb_target_binary_name} ${gdb_target_binaries}
 
 create_boot_directory
@@ -250,4 +249,3 @@ append qemu_args " -m 256 "
 
 run_genode_until forever
 
-exec rm bin/gdb.tar

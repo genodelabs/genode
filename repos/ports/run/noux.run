@@ -1,10 +1,6 @@
 build { core init drivers/timer noux/minimal server/log_terminal
         lib/libc_noux noux-pkg/coreutils }
 
-# strip coreutils binaries and create tar archive
-exec sh -c "[cross_dev_prefix]strip bin/coreutils/bin/*"
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
-
 create_boot_directory
 
 install_config {
@@ -56,5 +52,3 @@ if {[have_spec x86_64]} {
 }
 
 run_genode_until {child "noux" exited with exit value 0.*\n} 30
-
-exec rm bin/coreutils.tar

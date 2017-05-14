@@ -16,15 +16,6 @@ proc noux_gdb_pkg_name { } {
 
 
 #
-# Create a tar archive for GDB (stripped)
-#
-proc create_gdb_tar { } {
-	exec sh -c "find bin/[noux_gdb_pkg_name]/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-	exec tar cfhv bin/gdb.tar -C bin/[noux_gdb_pkg_name] .
-}
-
-
-#
 # Create a tar archive for a Noux application and its shared libraries (unstripped)
 #
 proc create_binary_tar { application_name application_binaries } {

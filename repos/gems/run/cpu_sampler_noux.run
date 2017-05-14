@@ -37,7 +37,7 @@ append_platform_drv_build_components
 build $build_components
 
 # write default vimrc file
-set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+set vimrc_fd [open "bin/vimrc" w]
 puts $vimrc_fd {
 set noloadplugins
 set hls
@@ -46,14 +46,6 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
-
-# strip all binaries prior archiving
-exec sh -c "find bin/bash/ bin/vim/ bin/coreutils/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-
-exec tar cfv bin/bash.tar      -h -C bin/bash .
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
-exec tar cfv bin/vim.tar       -h -C bin/vim .
-exec tar cfv bin/diffutils.tar -h -C bin/diffutils .
 
 create_boot_directory
 
@@ -199,6 +191,7 @@ append config {
 				<dir name="home"> <fs label="home" /> </dir>
 				<dir name="samples"> <fs label="samples" /> </dir>
 				<dir name="tmp"> <fs label="tmp" /> </dir>
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 			</fstab>
 			<start name="/bin/bash">
 				<env name="TERM" value="linux" />
@@ -233,7 +226,7 @@ proc binary_name_cpu_sampler_platform_lib_so { } {
 set boot_modules {
 	core ld.lib.so init timer noux terminal ram_fs log_terminal
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so posix.lib.so
-	bash.tar coreutils.tar diffutils.tar vim.tar
+	bash.tar coreutils.tar diffutils.tar vim.tar vimrc
 	fs_log cpu_sampler cpu_sampler_platform.lib.so test-cpu_sampler
 }
 
@@ -268,7 +261,3 @@ regexp $match_string $output all func
 
 run_genode_until "\\\[init -> terminal] \[0\]*$func" 90 [output_spawn_id]
 
-exec rm bin/bash.tar
-exec rm bin/coreutils.tar
-exec rm bin/diffutils.tar
-exec rm bin/vim.tar

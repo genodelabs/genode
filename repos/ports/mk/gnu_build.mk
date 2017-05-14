@@ -30,6 +30,15 @@
 TARGET ?= $(lastword $(subst /, ,$(PRG_DIR)))
 PKG    ?= $(TARGET)
 
+#
+# Select how to make the build result available at Genode's 'INSTALL_DIR'.
+# By default, a single tar archive containing the results of the package's
+# 'make install' rule is created. By setting the 'INSTALL_TREE' variable
+# to a non-empty value, a symlink to the actual file tree is created.
+#
+INSTALL_TREE        ?=
+INSTALL_TAR_ARCHIVE ?= yes
+
 LIBS += posix
 
 PWD = $(shell pwd)
@@ -158,15 +167,44 @@ built.tag: env.sh Makefile
 
 INSTALL_TARGET ?= install-strip
 
+#
+# Install result of the build in an 'install/' directory local to the target's
+# build directory
+#
 installed.tag: built.tag
 	@$(MSG_INST)$(TARGET)
 	$(VERBOSE)source env.sh && $(MAKE) $(MAKE_ENV) $(MAKE_VERBOSE) $(INSTALL_TARGET) DESTDIR=$(PWD)/install MAN= >> stdout.log 2>> stderr.log
-	$(VERBOSE)rm -f $(INSTALL_DIR)/$(TARGET)
-	$(VERBOSE)ln -sf $(PWD)/install $(INSTALL_DIR)/$(TARGET)
 	@touch $@
 
 $(TARGET): installed.tag
 	@touch $@
+
+#
+# Trigger creation of symlinks to the build results at '<build-dir>/bin/'
+#
+ifneq ($(INSTALL_TAR_ARCHIVE),)
+$(TARGET): installed_tar.tag
+endif
+
+ifneq ($(INSTALL_TREE),)
+$(TARGET): installed_tree.tag
+endif
+
+#
+# Install symlink to the install directory
+#
+installed_tree.tag: installed.tag
+	$(VERBOSE)rm -f $(INSTALL_DIR)/$(TARGET)
+	$(VERBOSE)ln -sf $(PWD)/install $(INSTALL_DIR)/$(TARGET)
+
+#
+# Install symlink to the archived install directory, ready to by mounted
+# via the VFS tar file system
+#
+installed_tar.tag: installed.tag
+	$(VERBOSE)tar cf $(TARGET).tar -h -C $(PWD)/install .
+	$(VERBOSE)rm -f $(INSTALL_DIR)/$(TARGET)
+	$(VERBOSE)ln -sf $(PWD)/$(TARGET).tar $(INSTALL_DIR)/$(TARGET).tar
 
 #
 # The clean rule is expected to be executed within the 3rd-party build
@@ -175,7 +213,7 @@ $(TARGET): installed.tag
 #
 ifeq ($(notdir $(PWD)),$(notdir $(PRG_DIR)))
 clean_dir:
-	$(VERBOSE)rm -rf $(PWD)/* $(PWD)/.*
+	$(VERBOSE)find $(PWD) -mindepth 1 -delete
 
 clean_prg_objects: clean_dir
 endif

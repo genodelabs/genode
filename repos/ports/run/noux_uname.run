@@ -1,10 +1,6 @@
 build { core init drivers/timer noux/minimal
         lib/libc_noux noux-pkg/coreutils }
 
-# strip coreutils binaries and create tar archive
-exec sh -c "[cross_dev_prefix]strip bin/coreutils/bin/*"
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
-
 create_boot_directory
 
 install_config {
@@ -64,11 +60,7 @@ build_boot_image {
 
 append qemu_args " -nographic -serial mon:stdio "
 
-if {[have_spec x86_64]} {
-	# coreutils.tar is really huge when built for x86_64
-	append qemu_args " -m 300 "
-}
+# coreutils.tar is really huge when built for x86_64
+if {[have_spec x86_64]} { append qemu_args " -m 300 " }
 
 run_genode_until {child "noux" exited with exit value 0.*\n} 30
-
-exec rm bin/coreutils.tar

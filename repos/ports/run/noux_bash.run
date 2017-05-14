@@ -1,9 +1,3 @@
-#
-# Uncomment the following line when working on the VIM source code. Otherwise,
-# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
-#
-#exec rm -rf noux-pkg/bash bin/bash
-
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
 	drivers/framebuffer drivers/input
@@ -31,8 +25,10 @@ append_platform_drv_build_components
 
 build $build_components
 
+create_boot_directory
+
 # write default vimrc file
-set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+set vimrc_fd [open bin/vimrc w]
 puts $vimrc_fd {
 set noloadplugins
 set hls
@@ -41,17 +37,6 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
-
-# strip all binaries prior archiving
-exec sh -c "find bin/bash/ bin/vim/ bin/coreutils/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-
-exec tar cfv bin/bash.tar      -h -C bin/bash .
-exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
-exec tar cfv bin/vim.tar       -h -C bin/vim .
-exec tar cfv bin/diffutils.tar -h -C bin/diffutils .
-exec tar cfv bin/less.tar      -h -C bin/less .
-
-create_boot_directory
 
 append config {
 	<config verbose="yes">
@@ -88,6 +73,7 @@ append_if [have_spec sdl] config {
 			<service name="Input"/>
 			<service name="Framebuffer"/>
 		</provides>
+		<config width="640" height="480"/>
 	</start>}
 
 append_platform_drv_config
@@ -96,6 +82,7 @@ append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
+		<config width="640" height="480"/>
 	</start>}
 
 append_if [have_spec ps2] config {
@@ -170,6 +157,7 @@ Hello world !!
 				     as a key to select the policy of 'ram_fs' -->
 
 				<dir name="home"> <fs label="home" /> </dir>
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 
 				<!-- The entirety of ram_fs is mounted within the '/ram'
 				     directory. -->
@@ -204,7 +192,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so posix.lib.so
-	bash.tar coreutils.tar diffutils.tar less.tar vim.tar
+	bash.tar coreutils.tar diffutils.tar less.tar vim.tar vimrc
 }
 
 # platform-specific modules
@@ -225,9 +213,3 @@ if {[have_spec x86_64]} {
 }
 
 run_genode_until forever
-
-exec rm bin/bash.tar
-exec rm bin/coreutils.tar
-exec rm bin/diffutils.tar
-exec rm bin/less.tar
-exec rm bin/vim.tar
