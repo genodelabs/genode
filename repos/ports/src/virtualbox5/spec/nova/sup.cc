@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <util/bit_allocator.h>
 #include <base/log.h>
 #include <base/semaphore.h>
 #include <util/flex_iterator.h>
@@ -23,6 +22,8 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <trace/timestamp.h>
+#include <util/bit_allocator.h>
+#include <util/retry.h>
 
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
@@ -74,6 +75,48 @@ static Sub_rm_connection &vm_memory(Genode::addr_t vm_size = 0)
 {
 	/* memory used by the VM in any order as the VMM asks for allocations */
 	static Sub_rm_connection vm_memory(genode_env(), vm_size);
+
+	if (!vm_size)
+		return vm_memory;
+
+	using namespace Genode;
+
+	/* first super page range is not used */
+	addr_t const excluded_range = CHUNKID_PAGE_START << GMM_CHUNK_SHIFT;
+	vm_size -= excluded_range;
+	addr_t const vmm_local = vm_memory.local_addr(excluded_range);
+
+	/* create iterator for aligned allocation and attachment of memory */
+	Flexpage_iterator fli(vmm_local, vm_size, excluded_range, ~0UL, 0);
+
+	/* start iteration */
+	Flexpage memory = fli.page();
+	while (memory.valid()) {
+		addr_t const memory_size = 1UL << memory.log2_order;
+		addr_t allocated  = 0;
+
+		addr_t alloc_size = 128 * 1024 * 1024;
+		if (alloc_size > memory_size)
+			alloc_size = memory_size;
+
+		while (allocated < memory_size) {
+			Ram_dataspace_capability ds = genode_env().ram().alloc(alloc_size);
+			enum { OFFSET_DS = 0, USE_LOCAL_ADDR = true };
+			addr_t to = vm_memory.attach(ds, alloc_size, OFFSET_DS,
+			                             USE_LOCAL_ADDR,
+			                             memory.addr + allocated - vmm_local);
+
+			Assert(to == vm_memory.local_addr(memory.addr + allocated - vmm_local));
+			allocated += alloc_size;
+
+			if (memory_size - allocated < alloc_size)
+				alloc_size = memory_size - allocated;
+		}
+
+		/* request next aligned memory range to be allocated and attached */
+		memory = fli.page();
+	}
+
 	return vm_memory;
 }
 
@@ -114,8 +157,12 @@ HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
 	 * - second chunkid (1..2) is reserved for handy pages allocation
 	 * - another chunkid is used additional for handy pages but as large page
 	 */
-	vm_memory(memory_vbox * 1024 * 1024 + (CHUNKID_START + 1) * GMM_CHUNK_SIZE);
-	return genode_check_memory_config(machine);
+	HRESULT ret = genode_check_memory_config(machine);
+
+	if (ret == VINF_SUCCESS)
+		vm_memory(memory_vbox * 1024 * 1024 + (CHUNKID_START + 1) * GMM_CHUNK_SIZE);
+
+	return ret;
 };
 
 
@@ -167,9 +214,6 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	Assert(ppvPages);
 	Assert(!fFlags);
 
-	Genode::log(__func__, " cPages ", cPages, " flags=", Genode::Hex(fFlags),
-	            " r3=", ppvPages, " r0=", pR0Ptr);
-
 	using Genode::Attached_ram_dataspace;
 	Attached_ram_dataspace * ds = new Attached_ram_dataspace(genode_env().ram(),
 	                                                         genode_env().rm(),
@@ -180,8 +224,6 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	*ppvPages = ds->local_addr<void>();
 	if (pR0Ptr)
 		*pR0Ptr = vmm_local;
-
-	Genode::log(__func__, " cPages ", cPages, " alloc=", *ppvPages, " done");
 
 	if (!paPages)
 		return VINF_SUCCESS;
@@ -402,13 +444,8 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		Assert(req->idChunkUnmap == NIL_GMM_CHUNKID);
 		Assert(req->idChunkMap   != NIL_GMM_CHUNKID);
 
-		Genode::Ram_dataspace_capability ds = genode_env().ram().alloc(GMM_CHUNK_SIZE);
 		Genode::addr_t local_addr_offset = req->idChunkMap << GMM_CHUNK_SHIFT;
-
-		enum { OFFSET_DS = 0, USE_LOCAL_ADDR = true };
-		Genode::addr_t to = vm_memory().attach(ds, GMM_CHUNK_SIZE, OFFSET_DS,
-		                                       USE_LOCAL_ADDR, local_addr_offset);
-		Assert(to == vm_memory().local_addr(local_addr_offset));
+		Genode::addr_t to = vm_memory().local_addr(local_addr_offset);
 
 		req->pvR3 = reinterpret_cast<RTR3PTR>(to);
 
@@ -628,10 +665,8 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		return VINF_SUCCESS;
 	}
 	case VMMR0_DO_GMM_INITIAL_RESERVATION:
-		Genode::log("VMMR0_DO_GMM_INITIAL_RESERVATION called");
 		return VINF_SUCCESS;
 	case VMMR0_DO_GMM_UPDATE_RESERVATION:
-		Genode::log("VMMR0_DO_GMM_UPDATE_RESERVATION called");
 		return VINF_SUCCESS;
 	default:
 		Genode::error("SUPR3CallVMMR0Ex: unhandled uOperation ", uOperation,
