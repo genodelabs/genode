@@ -11,4 +11,4 @@ CFLAGS += -DNO_MAIN_ENV_ARG=1
 # Prevent interactions with nonexisting tty driver
 CFLAGS += -DNO_TTY_DRIVER
 
-include $(REP_DIR)/mk/noux.mk
+include $(call select_from_repositories,mk/noux.mk)

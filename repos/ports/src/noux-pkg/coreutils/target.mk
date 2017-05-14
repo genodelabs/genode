@@ -8,4 +8,4 @@ CONFIGURE_ARGS = --disable-acl --disable-largefile --disable-xattr \
 CPPFLAGS += -U__ELF__
 MAKE_ENV += "MAKEINFO=true"
 
-include $(REP_DIR)/mk/noux.mk
+include $(call select_from_repositories,mk/noux.mk)

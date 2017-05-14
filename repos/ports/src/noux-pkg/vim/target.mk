@@ -29,7 +29,7 @@ INSTALL_TARGET = install
 
 LIBS += ncurses
 
-include $(REP_DIR)/mk/noux.mk
+include $(call select_from_repositories,mk/noux.mk)
 
 env.sh: mirror_vim_src.tag flush_config_cache.tag
 
