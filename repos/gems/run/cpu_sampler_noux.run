@@ -232,7 +232,7 @@ proc binary_name_cpu_sampler_platform_lib_so { } {
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer noux terminal ram_fs log_terminal
-	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so posix.lib.so
 	bash.tar coreutils.tar diffutils.tar vim.tar
 	fs_log cpu_sampler cpu_sampler_platform.lib.so test-cpu_sampler
 }

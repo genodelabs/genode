@@ -160,7 +160,7 @@ exec tar cfv bin/genode_org.tar -h -C bin/genode_org .
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so
-	libc.lib.so libm.lib.so
+	libc.lib.so libm.lib.so posix.lib.so
 	lwip.lib.so zlib.lib.so
 	lighttpd genode_org.tar
 }

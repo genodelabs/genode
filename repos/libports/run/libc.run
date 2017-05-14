@@ -31,7 +31,7 @@ install_config {
 
 build_boot_image {
 	core init test-libc
-	ld.lib.so libc.lib.so libm.lib.so
+	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
 }
 
 append qemu_args " -nographic -m 64 "

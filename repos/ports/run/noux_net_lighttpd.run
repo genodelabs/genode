@@ -204,7 +204,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so noux_net nic_drv terminal ram_fs
-	libc.lib.so libm.lib.so libc_noux.lib.so
+	libc.lib.so libm.lib.so libc_noux.lib.so posix.lib.so
 	lwip.lib.so ncurses.lib.so
 	readline.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
 	lighttpd.tar

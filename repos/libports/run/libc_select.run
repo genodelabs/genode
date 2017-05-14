@@ -70,7 +70,7 @@ set boot_modules {
 	core init timer terminal_crosslink
 	test-libc_counter-source test-libc_select
 	ld.lib.so libc.lib.so libm.lib.so stdcxx.lib.so pthread.lib.so
-	libc_pipe.lib.so
+	libc_pipe.lib.so posix.lib.so
 }
 
 build_boot_image $boot_modules
