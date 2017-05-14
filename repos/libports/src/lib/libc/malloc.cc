@@ -31,8 +31,6 @@ extern "C" {
 #include <base/internal/unmanaged_singleton.h>
 
 
-typedef unsigned long Block_header;
-
 namespace Genode {
 
 	class Slab_alloc : public Slab
@@ -69,25 +67,59 @@ namespace Genode {
 /**
  * Allocator that uses slabs for small objects sizes
  */
-class Malloc : public Genode::Allocator
+class Malloc
 {
 	private:
 
 		typedef Genode::size_t size_t;
+		typedef Genode::addr_t addr_t;
 
 		enum {
-			SLAB_START = 2,  /* 4 Byte (log2) */
-			SLAB_STOP  = 11, /* 2048 Byte (log2) */
-			NUM_SLABS = (SLAB_STOP - SLAB_START) + 1
+			SLAB_START = 5,  /* 32 bytes (log2) */
+			SLAB_STOP  = 11, /* 2048 bytes (log2) */
+			NUM_SLABS  = (SLAB_STOP - SLAB_START) + 1
 		};
+
+		struct Metadata
+		{
+			unsigned long long value; /* bits 63..5 size and 4..0 offset */
+
+			/**
+			 * Allocation metadata
+			 *
+			 * \param size    allocation size
+			 * \param offset  offset of pointer from allocation
+			 */
+			Metadata(size_t size, unsigned offset)
+			: value(((unsigned long long)size << 5) | (offset & 0x1f)) { }
+
+			size_t   size()   const { return value >> 5; }
+			unsigned offset() const { return value & 0x1f; }
+		};
+
+		/**
+		 * Allocation overhead due to alignment and metadata storage
+		 *
+		 * We store the metadata of the allocation right before the pointer
+		 * returned to the caller and can then retrieve the information when
+		 * freeing the block. Therefore, we add room for metadata and 16-byte
+		 * alignment.
+		 *
+		 * Note, the worst case is an allocation that starts at
+		 * 16 byte - sizeof(Metadata) + 1 because it misses one byte of space
+		 * for the metadata and therefore increases the worst-case allocation
+		 * by 15 bytes additionally to the metadata space.
+		 */
+		static constexpr size_t _room() { return sizeof(Metadata) + 15; }
 
 		Genode::Allocator  &_backing_store;        /* back-end allocator */
 		Genode::Slab_alloc *_allocator[NUM_SLABS]; /* slab allocators */
 		Genode::Lock        _lock;
 
-		unsigned long _slab_log2(unsigned long size) const
+		unsigned _slab_log2(size_t size) const
 		{
 			unsigned msb = Genode::log2(size);
+
 			/* size is greater than msb */
 			if (size > (1U << msb))
 				msb++;
@@ -104,8 +136,8 @@ class Malloc : public Genode::Allocator
 		Malloc(Genode::Allocator &backing_store) : _backing_store(backing_store)
 		{
 			for (unsigned i = SLAB_START; i <= SLAB_STOP; i++) {
-				_allocator[i - SLAB_START] = new (backing_store)
-				                                 Genode::Slab_alloc(1U << i, &backing_store);
+				_allocator[i - SLAB_START] =
+					new (backing_store) Genode::Slab_alloc(1U << i, &backing_store);
 			}
 		}
 
@@ -115,64 +147,74 @@ class Malloc : public Genode::Allocator
 		 * Allocator interface
 		 */
 
-		bool alloc(size_t size, void **out_addr) override
+		void * alloc(size_t size)
 		{
 			Genode::Lock::Guard lock_guard(_lock);
 
-			/* enforce size to be a multiple of 4 bytes */
-			size = (size + 3) & ~3;
+			size_t   const real_size = size + _room();
+			unsigned const msb       = _slab_log2(real_size);
 
-			/*
-			 * We store the size of the allocation at the very
-			 * beginning of the allocated block and return
-			 * the subsequent address. This way, we can retrieve
-			 * the size information when freeing the block.
-			 */
-			unsigned long real_size = size + sizeof(Block_header);
-			unsigned long msb = _slab_log2(real_size);
-			void *addr = 0;
+			void *alloc_addr = nullptr;
 
 			/* use backing store if requested memory is larger than largest slab */
-			if (msb > SLAB_STOP) {
-
-				if (!(_backing_store.alloc(real_size, &addr)))
-					return false;
-			}
+			if (msb > SLAB_STOP)
+				_backing_store.alloc(real_size, &alloc_addr);
 			else
-				if (!(addr = _allocator[msb - SLAB_START]->alloc()))
-					return false;
+				alloc_addr = _allocator[msb - SLAB_START]->alloc();
 
-			*(Block_header *)addr = real_size;
-			*out_addr = (Block_header *)addr + 1;
-			return true;
+			if (!alloc_addr) return nullptr;
+
+			/* correctly align the allocation address */
+			Metadata * const aligned_addr =
+				(Metadata *)(((addr_t)alloc_addr + _room()) & ~15UL);
+
+			unsigned const offset = (addr_t)aligned_addr - (addr_t)alloc_addr;
+
+			*(aligned_addr - 1) = Metadata(real_size, offset);
+
+			return aligned_addr;
 		}
 
-		void free(void *ptr, size_t /* size */) override
+		void *realloc(void *ptr, size_t size)
+		{
+			size_t const real_size     = size + _room();
+			size_t const old_real_size = ((Metadata *)ptr - 1)->size();
+
+			/* do not reallocate if new size is less than the current size */
+			if (real_size <= old_real_size)
+				return ptr;
+
+			/* allocate new block */
+			void *new_addr = alloc(size);
+
+			if (new_addr) {
+				/* copy content from old block into new block */
+				memcpy(new_addr, ptr, old_real_size - _room());
+
+				/* free old block */
+				free(ptr);
+			}
+
+			return new_addr;
+		}
+
+		void free(void *ptr)
 		{
 			Genode::Lock::Guard lock_guard(_lock);
 
-			unsigned long *addr = ((unsigned long *)ptr) - 1;
-			unsigned long  real_size = *addr;
+			Metadata *md = (Metadata *)ptr - 1;
 
-			if (real_size > (1U << SLAB_STOP))
-				_backing_store.free(addr, real_size);
-			else {
-				unsigned long msb = _slab_log2(real_size);
-				_allocator[msb - SLAB_START]->free(addr);
+			size_t   const  real_size  = md->size();
+			unsigned const  msb        = _slab_log2(real_size);
+
+			void *alloc_addr = (void *)((addr_t)ptr - md->offset());
+
+			if (msb > SLAB_STOP) {
+				_backing_store.free(alloc_addr, real_size);
+			} else {
+				_allocator[msb - SLAB_START]->free(alloc_addr);
 			}
 		}
-
-		size_t overhead(size_t size) const override
-		{
-			size += sizeof(Block_header);
-
-			if (size > (1U << SLAB_STOP))
-				return _backing_store.overhead(size);
-
-			return _allocator[_slab_log2(size) - SLAB_START]->overhead(size);
-		}
-
-		bool need_size_for_free() const override { return false; }
 };
 
 
@@ -181,8 +223,7 @@ static Malloc *mallocator;
 
 extern "C" void *malloc(size_t size)
 {
-	void *addr;
-	return mallocator->alloc(size, &addr) ? addr : 0;
+	return mallocator->alloc(size);
 }
 
 
@@ -197,41 +238,20 @@ extern "C" void *calloc(size_t nmemb, size_t size)
 
 extern "C" void free(void *ptr)
 {
-	if (!ptr) return;
-
-	mallocator->free(ptr, 0);
+	if (ptr) mallocator->free(ptr);
 }
 
 
 extern "C" void *realloc(void *ptr, size_t size)
 {
-	if (!ptr)
-		return malloc(size);
+	if (!ptr) return malloc(size);
 
 	if (!size) {
 		free(ptr);
-		return 0;
+		return nullptr;
 	}
 
-	/* determine size of old block content (without header) */
-	unsigned long old_size = *((Block_header *)ptr - 1)
-	                         - sizeof(Block_header);
-
-	/* do not reallocate if new size is less than the current size */
-	if (size <= old_size)
-		return ptr;
-
-	/* allocate new block */
-	void *new_addr = malloc(size);
-
-	/* copy content from old block into new block */
-	if (new_addr)
-		memcpy(new_addr, ptr, Genode::min(old_size, (unsigned long)size));
-
-	/* free old block */
-	free(ptr);
-
-	return new_addr;
+	return mallocator->realloc(ptr, size);
 }
 
 
