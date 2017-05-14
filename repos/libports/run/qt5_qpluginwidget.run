@@ -85,6 +85,7 @@ append boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
+	posix.lib.so
 	libc_pipe.lib.so
 	libcrypto.lib.so
 	libm.lib.so

@@ -112,7 +112,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ffat_fs
-	ld.lib.so libc.lib.so libm.lib.so
+	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
 	test-libc_vfs
 }
 

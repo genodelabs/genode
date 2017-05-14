@@ -62,6 +62,7 @@ set gdb_target_binaries {
 	ld.lib.so
 	libc.lib.so
 	libm.lib.so
+	posix.lib.so
 }
 lappend gdb_target_binaries ${gdb_target_binary_name}
 
