@@ -53,8 +53,8 @@
 /* Enable thread support */
 #define SDL_THREAD_PTHREAD 1
 
-/* Enable dummy timer support */
-#define SDL_TIMER_DUMMY 1
+/* Enable timer support */
+#define SDL_TIMER_UNIX 1
 
 /* Enable video drivers */
 #define SDL_VIDEO_DRIVER_GENODE_FB 1

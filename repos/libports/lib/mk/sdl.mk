@@ -14,7 +14,6 @@ INC_DIR += $(SDL_PORT_DIR)/include/SDL
 SRC_CC   = video/SDL_genode_fb_video.cc \
            video/SDL_genode_fb_events.cc \
            audio/SDL_genodeaudio.cc \
-           timer/SDL_systimer.cc \
            loadso/SDL_loadso.cc
 
 INC_DIR += $(REP_DIR)/include/SDL \
@@ -45,7 +44,8 @@ INC_DIR += $(SDL_DIR)/src/thread
 SRC_C   += cpuinfo/SDL_cpuinfo.c
 
 # timer subsystem
-SRC_C   += timer/SDL_timer.c
+SRC_C   += timer/SDL_timer.c \
+           timer/unix/SDL_systimer.c
 INC_DIR += $(SDL_DIR)/src/timer
 
 # video subsystem
