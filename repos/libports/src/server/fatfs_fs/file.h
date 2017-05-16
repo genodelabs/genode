@@ -1,5 +1,5 @@
 /*
- * \brief  FFAT file-system file node
+ * \brief  FATFS file-system file node
  * \author Christian Prochaska
  * \date   2012-07-04
  */
@@ -14,24 +14,24 @@
 #ifndef _FILE_H_
 #define _FILE_H_
 
-/* ffat includes */
-namespace Ffat { extern "C" {
-#include <ffat/ff.h>
+/* fatfs includes */
+namespace Fatfs { extern "C" {
+#include <fatfs/ff.h>
 } }
 
 /* local includes */
 #include <node.h>
 
 
-namespace Ffat_fs {
+namespace Fatfs_fs {
 	class File;
 }
 
-class Ffat_fs::File : public Node
+class Fatfs_fs::File : public Node
 {
 	private:
 
-		Ffat::FIL _ffat_fil;
+		Fatfs::FIL _fatfs_fil;
 
 	public:
 
@@ -39,9 +39,9 @@ class Ffat_fs::File : public Node
 
 		~File()
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
-			FRESULT res = f_close(&_ffat_fil);
+			FRESULT res = f_close(&_fatfs_fil);
 
 			switch(res) {
 				case FR_OK:
@@ -59,25 +59,29 @@ class Ffat_fs::File : public Node
 					error("f_close() failed with error code FR_NOT_READY");
 					return;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					error("f_close() returned an unexpected error code");
 					return;
 			}
 		}
 
-		void ffat_fil(Ffat::FIL ffat_fil) { _ffat_fil = ffat_fil; }
-		Ffat::FIL *ffat_fil() { return &_ffat_fil; }
+		void fatfs_fil(Fatfs::FIL fatfs_fil) { _fatfs_fil = fatfs_fil; }
+		Fatfs::FIL *fatfs_fil() { return &_fatfs_fil; }
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			UINT result;
 
-			if (seek_offset == (seek_off_t)(~0))
-				seek_offset = _ffat_fil.fsize;
+			if (seek_offset == (seek_off_t)(~0)) {
+				FILINFO file_info;
+				f_stat(name(), &file_info);
 
-			FRESULT res = f_lseek(&_ffat_fil, seek_offset);
+				seek_offset = file_info.fsize;
+			}
+
+			FRESULT res = f_lseek(&_fatfs_fil, seek_offset);
 
 			switch(res) {
 				case FR_OK:
@@ -95,12 +99,12 @@ class Ffat_fs::File : public Node
 					Genode::error("f_lseek() failed with error code FR_NOT_READY");
 					return 0;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_lseek() returned an unexpected error code");
 					return 0;
 			}
 
-			res = f_read(&_ffat_fil, dst, len, &result);
+			res = f_read(&_fatfs_fil, dst, len, &result);
 
 			switch(res) {
 				case FR_OK:
@@ -121,7 +125,7 @@ class Ffat_fs::File : public Node
 					Genode::error("f_read() failed with error code FR_NOT_READY");
 					return 0;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_read() returned an unexpected error code");
 					return 0;
 			}
@@ -129,14 +133,18 @@ class Ffat_fs::File : public Node
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			UINT result;
 
-			if (seek_offset == (seek_off_t)(~0))
-				seek_offset = _ffat_fil.fsize;
+			if (seek_offset == (seek_off_t)(~0)) {
+				FILINFO file_info;
+				f_stat(name(), &file_info);
 
-			FRESULT res = f_lseek(&_ffat_fil, seek_offset);
+				seek_offset = file_info.fsize;
+			}
+
+			FRESULT res = f_lseek(&_fatfs_fil, seek_offset);
 
 			switch(res) {
 				case FR_OK:
@@ -154,12 +162,12 @@ class Ffat_fs::File : public Node
 					Genode::error("f_lseek() failed with error code FR_NOT_READY");
 					return 0;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_lseek() returned an unexpected error code");
 					return 0;
 			}
 
-			res = f_write(&_ffat_fil, src, len, &result);
+			res = f_write(&_fatfs_fil, src, len, &result);
 
 			switch(res) {
 				case FR_OK:
@@ -180,7 +188,7 @@ class Ffat_fs::File : public Node
 					Genode::error("f_write() failed with error code FR_NOT_READY");
 					return 0;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_write() returned an unexpected error code");
 					return 0;
 			}
@@ -188,7 +196,7 @@ class Ffat_fs::File : public Node
 
 		void truncate(file_size_t size) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			/*
  	 	 	 * This macro is defined in later versions of the FatFs lib, but not in the
@@ -198,12 +206,12 @@ class Ffat_fs::File : public Node
 
 			/* 'f_truncate()' truncates to the current seek pointer */
 
-			FRESULT res = f_lseek(&_ffat_fil, size);
+			FRESULT res = f_lseek(&_fatfs_fil, size);
 
 			switch(res) {
 				case FR_OK:
 					/* according to the FatFs documentation this can happen */
-					if (f_tell(&_ffat_fil) != size) {
+					if (f_tell(&_fatfs_fil) != size) {
 						error("f_lseek() could not seek to offset ", size);
 						return;
 					}
@@ -221,12 +229,12 @@ class Ffat_fs::File : public Node
 					error("f_lseek() failed with error code FR_INVALID_OBJECT");
 					throw Invalid_handle();
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					error("f_lseek() returned an unexpected error code");
 					return;
 			}
 
-			res = f_truncate(&_ffat_fil);
+			res = f_truncate(&_fatfs_fil);
 
 			switch(res) {
 				case FR_OK:
@@ -247,7 +255,7 @@ class Ffat_fs::File : public Node
 					error("f_truncate() failed with error code FR_TIMEOUT");
 					return;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					error("f_truncate() returned an unexpected error code");
 					return;
 			}

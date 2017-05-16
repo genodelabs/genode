@@ -1,5 +1,5 @@
 /*
- * \brief  FFAT file system
+ * \brief  FATFS file system
  * \author Christian Prochaska
  * \date   2012-07-03
  */
@@ -28,11 +28,11 @@
 #include <util.h>
 
 /* Genode block backend */
-#include <ffat/block.h>
+#include <fatfs/block.h>
 
-/* ffat includes */
-namespace Ffat { extern "C" {
-#include <ffat/ff.h>
+/* fatfs includes */
+namespace Fatfs { extern "C" {
+#include <fatfs/ff.h>
 } }
 
 
@@ -40,7 +40,7 @@ namespace Ffat { extern "C" {
  ** File-system service **
  *************************/
 
-namespace Ffat_fs {
+namespace Fatfs_fs {
 
 	using namespace Genode;
 	using File_system::Exception;
@@ -52,7 +52,7 @@ namespace Ffat_fs {
 	struct Main;
 }
 
-class Ffat_fs::Session_component : public Session_rpc_object
+class Fatfs_fs::Session_component : public Session_rpc_object
 {
 	private:
 
@@ -222,23 +222,23 @@ class Ffat_fs::Session_component : public Session_rpc_object
 
 			auto file_fn = [&] (Open_node &open_node) {
 
-				using namespace Ffat;
+				using namespace Fatfs;
 
-				FIL ffat_fil;
-				BYTE ffat_flags = 0;
+				FIL fatfs_fil;
+				BYTE fatfs_flags = 0;
 
 				if (!_writable)
 					if (create || (mode != STAT_ONLY && mode != READ_ONLY))
 						throw Permission_denied();
 
 				if (create)
-					ffat_flags |= FA_CREATE_NEW;
+					fatfs_flags |= FA_CREATE_NEW;
 
 				if ((mode == READ_ONLY) || (mode == READ_WRITE))
-					ffat_flags |= FA_READ;
+					fatfs_flags |= FA_READ;
 
 				if ((mode == WRITE_ONLY) || (mode == READ_WRITE))
-					ffat_flags |= FA_WRITE;
+					fatfs_flags |= FA_WRITE;
 
 				Absolute_path absolute_path(_root.name());
 
@@ -250,12 +250,12 @@ class Ffat_fs::Session_component : public Session_rpc_object
 					throw Invalid_name();
 				}
 
-				FRESULT res = f_open(&ffat_fil, absolute_path.base(), ffat_flags);
+				FRESULT res = f_open(&fatfs_fil, absolute_path.base(), fatfs_flags);
 
 				switch(res) {
 					case FR_OK: {
 						File *file_node = new (&_heap) File(absolute_path.base());
-						file_node->ffat_fil(ffat_fil);
+						file_node->fatfs_fil(fatfs_fil);
 
 						Open_node *open_file =
 							new (_heap) Open_node(*file_node, _open_node_registry);
@@ -289,7 +289,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 						error("f_open() failed with error code FR_NO_FILESYSTEM");
 						throw Lookup_failed();
 					default:
-						/* not supposed to occur according to the libffat documentation */
+						/* not supposed to occur according to the fatfs documentation */
 						error("f_open() returned an unexpected error code");
 						throw Lookup_failed();
 				}
@@ -323,7 +323,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 			 */
 			Directory *dir_node = new (&_heap) Directory(path.string());
 
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			Absolute_path absolute_path(_root.name());
 
@@ -372,7 +372,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 							error("f_mkdir() failed with error code FR_NO_FILESYSTEM");
 							throw Lookup_failed();
 						default:
-							/* not supposed to occur according to the libffat documentation */
+							/* not supposed to occur according to the fatfs documentation */
 							error("f_mkdir() returned an unexpected error code");
 							throw Lookup_failed();
 					}
@@ -382,13 +382,13 @@ class Ffat_fs::Session_component : public Session_rpc_object
 				}
 			}
 
-			Ffat::DIR ffat_dir;
-			FRESULT f_opendir_res = f_opendir(&ffat_dir, absolute_path.base());
+			Fatfs::DIR fatfs_dir;
+			FRESULT f_opendir_res = f_opendir(&fatfs_dir, absolute_path.base());
 
 			try {
 				switch(f_opendir_res) {
 					case FR_OK: {
-						dir_node->ffat_dir(ffat_dir);
+						dir_node->fatfs_dir(fatfs_dir);
 
 						Open_node *open_dir =
 							new (_heap) Open_node(*dir_node, _open_node_registry);
@@ -417,7 +417,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 						error("f_opendir() failed with error code FR_NO_FILESYSTEM");
 						throw Lookup_failed();
 					default:
-						/* not supposed to occur according to the libffat documentation */
+						/* not supposed to occur according to the fatfs documentation */
 						error("f_opendir() returned an unexpected error code");
 						throw Lookup_failed();
 				}
@@ -446,12 +446,9 @@ class Ffat_fs::Session_component : public Session_rpc_object
 			/* f_stat() does not work for "/" */
 			if (!is_root(node->name())) {
 
-				using namespace Ffat;
+				using namespace Fatfs;
 
 				FILINFO file_info;
-				/* the long file name is not used in this function */
-				file_info.lfname = 0;
-				file_info.lfsize = 0;
 
 				FRESULT res = f_stat(node->name(), &file_info);
 
@@ -481,7 +478,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 							error("f_stat() failed with error code FR_NO_FILESYSTEM");
 							throw Lookup_failed();
 						default:
-							/* not supposed to occur according to the libffat documentation */
+							/* not supposed to occur according to the fatfs documentation */
 							error("f_stat() returned an unexpected error code");
 							throw Lookup_failed();
 					}
@@ -523,17 +520,14 @@ class Ffat_fs::Session_component : public Session_rpc_object
 
 				Node &node = open_node.node();
 
-				using namespace Ffat;
+				using namespace Fatfs;
 
 				/* f_stat() does not work for the '/' directory */
 				if (!is_root(node.name())) {
 
-					FILINFO ffat_file_info;
-					/* the long file name is not used in this function */
-					ffat_file_info.lfname = 0;
-					ffat_file_info.lfsize = 0;
+					FILINFO fatfs_file_info;
 
-					FRESULT res = f_stat(node.name(), &ffat_file_info);
+					FRESULT res = f_stat(node.name(), &fatfs_file_info);
 
 					switch(res) {
 						case FR_OK:
@@ -566,16 +560,16 @@ class Ffat_fs::Session_component : public Session_rpc_object
 							error("f_stat() failed with error code FR_NO_FILESYSTEM");
 							return status;
 						default:
-							/* not supposed to occur according to the libffat documentation */
+							/* not supposed to occur according to the fatfs documentation */
 							error("f_stat() returned an unexpected error code");
 							return status;
 					}
 
-					if ((ffat_file_info.fattrib & AM_DIR) == AM_DIR) {
+					if ((fatfs_file_info.fattrib & AM_DIR) == AM_DIR) {
 						status.mode = File_system::Status::MODE_DIRECTORY; }
 					else {
 						status.mode = File_system::Status::MODE_FILE;
-						status.size = ffat_file_info.fsize;
+						status.size = fatfs_file_info.fsize;
 					}
 
 				} else {
@@ -586,24 +580,21 @@ class Ffat_fs::Session_component : public Session_rpc_object
 
 					/* determine the number of directory entries */
 
-					Ffat::DIR ffat_dir;
-					FRESULT f_opendir_res = f_opendir(&ffat_dir, node.name());
+					Fatfs::DIR fatfs_dir;
+					FRESULT f_opendir_res = f_opendir(&fatfs_dir, node.name());
 
 					if (f_opendir_res != FR_OK)
 						return status;
 
-					FILINFO ffat_file_info;
-					/* the long file name is not used in this function */
-					ffat_file_info.lfname = 0;
-					ffat_file_info.lfsize = 0;
+					FILINFO fatfs_file_info;
 
 					int num_direntries = -1;
 					do {
 						++num_direntries;
-						FRESULT res = f_readdir(&ffat_dir, &ffat_file_info);
+						FRESULT res = f_readdir(&fatfs_dir, &fatfs_file_info);
 						if (res != FR_OK)
 							return status;
-					} while (ffat_file_info.fname[0] != 0);
+					} while (fatfs_file_info.fname[0] != 0);
 
 					status.size = num_direntries * sizeof(Directory_entry);
 				}
@@ -630,7 +621,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 
 			auto unlink_fn = [&] (Open_node &open_node) {
 
-				using namespace Ffat;
+				using namespace Fatfs;
 
 				Absolute_path absolute_path(_root.name());
 
@@ -672,7 +663,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 						error("f_unlink() failed with error code FR_NO_FILESYSTEM");
 						return;
 					default:
-						/* not supposed to occur according to the libffat documentation */
+						/* not supposed to occur according to the fatfs documentation */
 						error("f_unlink() returned an unexpected error code");
 						return;
 				}
@@ -731,9 +722,15 @@ class Ffat_fs::Session_component : public Session_rpc_object
 						throw Invalid_name();
 					}
 
-					using namespace Ffat;
+					using namespace Fatfs;
 
 					FRESULT res = f_rename(absolute_from_path.base(), absolute_to_path.base());
+
+					/* if newpath already exists - try to unlink it once */
+					if (res == FR_EXIST) {
+						f_unlink(absolute_to_path.base());
+						res = f_rename(absolute_from_path.base(), absolute_to_path.base());
+					}
 
 					switch(res) {
 						case FR_OK:
@@ -766,7 +763,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 							error("f_rename() failed with error code FR_NO_FILESYSTEM");
 							throw Lookup_failed();
 						default:
-							/* not supposed to occur according to the libffat documentation */
+							/* not supposed to occur according to the fatfs documentation */
 							error("f_rename() returned an unexpected error code");
 							throw Lookup_failed();
 					}
@@ -793,7 +790,7 @@ class Ffat_fs::Session_component : public Session_rpc_object
 };
 
 
-class Ffat_fs::Root : public Root_component<Session_component>
+class Fatfs_fs::Root : public Root_component<Session_component>
 {
 	private:
 
@@ -841,7 +838,7 @@ class Ffat_fs::Root : public Root_component<Session_component>
 
 						/* Check if the root path exists */
 
-						using namespace Ffat;
+						using namespace Fatfs;
 
 						FRESULT res = f_chdir(root);
 
@@ -869,7 +866,7 @@ class Ffat_fs::Root : public Root_component<Session_component>
 								error("f_chdir() failed with error code FR_NO_FILESYSTEM");
 								throw Service_denied();
 							default:
-								/* not supposed to occur according to the libffat documentation */
+								/* not supposed to occur according to the fatfs documentation */
 								error("f_chdir() returned an unexpected error code");
 								throw Service_denied();
 						}
@@ -940,7 +937,7 @@ class Ffat_fs::Root : public Root_component<Session_component>
 };
 
 
-struct Ffat_fs::Main
+struct Fatfs_fs::Main
 {
 	Genode::Env         &_env;
 	Genode::Heap         _heap        { _env.ram(), _env.rm() };
@@ -949,24 +946,24 @@ struct Ffat_fs::Main
 	Directory _root_dir { "/" };
 	Root      _root { _env, _sliced_heap, _heap, _root_dir };
 
-	Ffat::FATFS _fatfs;
+	Fatfs::FATFS _fatfs;
 
 	Main(Genode::Env &env) : _env(env)
 	{
-		Ffat::block_init(_env, _heap);
+		Fatfs::block_init(_env, _heap);
 
 		using namespace File_system;
-		using namespace Ffat;
+		using namespace Fatfs;
 
 		/* mount the file system */
-		if (f_mount(0, &_fatfs) != Ffat::FR_OK) {
+		if (f_mount(&_fatfs, "", 0) != Fatfs::FR_OK) {
 			error("mount failed");
 
 			struct Mount_failed : Genode::Exception { };
 			throw Mount_failed();
 		}
 
-		Genode::log("--- Starting Ffat_fs ---");
+		Genode::log("--- Starting Fatfs_fs ---");
 
 		_env.parent().announce(_env.ep().manage(_root));
 	}
@@ -978,5 +975,5 @@ void Component::construct(Genode::Env &env)
 	/* XXX execute constructors of global statics */
 	env.exec_static_constructors();
 
-	static Ffat_fs::Main main(env);
+	static Fatfs_fs::Main main(env);
 }

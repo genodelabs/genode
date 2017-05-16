@@ -1,5 +1,5 @@
-set build_component server/ffat_fs
-set binary          ffat_fs
+set build_component server/fatfs_fs
+set binary          fatfs_fs
 set mkfs_cmd        mkfs.vfat
 set mkfs_opts       "-F32"
 set vfs_dev_blkdev  ""

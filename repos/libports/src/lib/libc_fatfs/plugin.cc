@@ -1,5 +1,5 @@
 /*
- * \brief   FFAT libc plugin
+ * \brief   FATFS libc plugin
  * \author  Christian Prochaska
  * \date    2011-05-27
  */
@@ -29,20 +29,11 @@
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
 
-/* Genode block backend */
-#include <ffat/block.h>
+#include <fatfs/block.h>
 
-/* ffat includes */
-namespace Ffat { extern "C" {
-#include <ffat/ff.h>
+namespace Fatfs { extern "C" {
+#include <fatfs/ff.h>
 } }
-
-/*
- * These macros are defined in later versions of the FatFs lib, but not in the
- * one currently used for Genode.
- */
-#define f_size(fp) ((fp)->fsize)
-#define f_tell(fp) ((fp)->fptr)
 
 static bool const verbose = false;
 
@@ -98,7 +89,7 @@ class File_plugin_context : public Plugin_context
 {
 	private:
 
-		Ffat::FIL _ffat_file;
+		Fatfs::FIL _fatfs_file;
 
 	public:
 
@@ -106,13 +97,13 @@ class File_plugin_context : public Plugin_context
 		 * Constructor
 		 *
 		 * \param filename
-		 * \param ffat_file file object used for interacting with the
-		 *                  file API of ffat
+		 * \param fatfs_file file object used for interacting with the
+		 *                   file API of fatfs
 		 */
-		File_plugin_context(const char *filename, Ffat::FIL ffat_file) :
-			Plugin_context(filename), _ffat_file(ffat_file) { }
+		File_plugin_context(const char *filename, Fatfs::FIL fatfs_file) :
+			Plugin_context(filename), _fatfs_file(fatfs_file) { }
 
-		Ffat::FIL *ffat_file() { return &_ffat_file; }
+		Fatfs::FIL *fatfs_file() { return &_fatfs_file; }
 };
 
 
@@ -120,7 +111,7 @@ class Directory_plugin_context : public Plugin_context
 {
 	private:
 
-		Ffat::DIR _ffat_dir;
+		Fatfs::DIR _fatfs_dir;
 
 	public:
 
@@ -128,13 +119,13 @@ class Directory_plugin_context : public Plugin_context
 		 * Constructor
 		 *
 		 * \param filename
-		 * \param ffat_dir dir object used for interacting with the
-		 *                 file API of ffat
+		 * \param fatfs_dir dir object used for interacting with the
+		 *                  file API of fatfs
 		 */
-		Directory_plugin_context(const char *filename, Ffat::DIR ffat_dir) :
-			Plugin_context(filename), _ffat_dir(ffat_dir) { }
+		Directory_plugin_context(const char *filename, Fatfs::DIR fatfs_dir) :
+			Plugin_context(filename), _fatfs_dir(fatfs_dir) { }
 
-		Ffat::DIR *ffat_dir() { return &_ffat_dir; }
+		Fatfs::DIR *fatfs_dir() { return &_fatfs_dir; }
 };
 
 
@@ -144,26 +135,26 @@ class Plugin : public Libc::Plugin
 
 		Genode::Constructible<Genode::Heap> _heap;
 
-		Ffat::FATFS _fatfs;
+		Fatfs::FATFS _fatfs;
 
-		Ffat::FIL *_get_ffat_file(Libc::File_descriptor *fd)
+		Fatfs::FIL *_get_fatfs_file(Libc::File_descriptor *fd)
 		{
 			File_plugin_context *file_plugin_context =
 				dynamic_cast<File_plugin_context*>(context(fd));
 			if (!file_plugin_context) {
 				return 0;
 			}
-			return file_plugin_context->ffat_file();
+			return file_plugin_context->fatfs_file();
 		}
 
-		Ffat::DIR *_get_ffat_dir(Libc::File_descriptor *fd)
+		Fatfs::DIR *_get_fatfs_dir(Libc::File_descriptor *fd)
 		{
 			Directory_plugin_context *directory_plugin_context =
 				dynamic_cast<Directory_plugin_context*>(context(fd));
 			if (!directory_plugin_context) {
 				return 0;
 			}
-			return directory_plugin_context->ffat_dir();
+			return directory_plugin_context->fatfs_dir();
 		}
 
 		/*
@@ -181,20 +172,20 @@ class Plugin : public Libc::Plugin
 		~Plugin()
 		{
 			/* unmount the file system */
-			Ffat::f_mount(0, NULL);
+			Fatfs::f_unmount("");
 		}
 
 		void init(Genode::Env &env) override
 		{
 			_heap.construct(env.ram(), env.rm());
 
-			Ffat::block_init(env, *_heap);
+			Fatfs::block_init(env, *_heap);
 
 			/* mount the file system */
 			if (verbose)
 				Genode::log(__func__, ": mounting device ...");
 
-			if (f_mount(0, &_fatfs) != Ffat::FR_OK) {
+			if (f_mount(&_fatfs, "", 0) != Fatfs::FR_OK) {
 				Genode::error("mount failed");
 			}
 		}
@@ -248,7 +239,7 @@ class Plugin : public Libc::Plugin
 		bool supports_symlink(const char *, const char *) override
 		{
 			/*
-			 * Even though FFAT does not support symlinks, we still want
+			 * Even though FATFS does not support symlinks, we still want
 			 * to capture calls of 'symlink' to return ENOSYS, which is
 			 * checked in the file-system test.
 			 */
@@ -257,18 +248,18 @@ class Plugin : public Libc::Plugin
 
 		int close(Libc::File_descriptor *fd) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
-			FIL *ffat_file = _get_ffat_file(fd);
+			FIL *fatfs_file = _get_fatfs_file(fd);
 
-			if (!ffat_file){
+			if (!fatfs_file){
 				/* directory */
 				Genode::destroy(&*_heap, context(fd));
 				Libc::file_descriptor_allocator()->free(fd);
 				return 0;
 			}
 
-			FRESULT res = f_close(ffat_file);
+			FRESULT res = f_close(fatfs_file);
 
 			Genode::destroy(&*_heap, context(fd));
 			Libc::file_descriptor_allocator()->free(fd);
@@ -283,7 +274,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_close() returned an unexpected error code");
 					return -1;
 			}
@@ -314,9 +305,9 @@ class Plugin : public Libc::Plugin
 
 		int fsync(Libc::File_descriptor *fd) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
-			FRESULT res = f_sync(_get_ffat_file(fd));
+			FRESULT res = f_sync(_get_fatfs_file(fd));
 
 			switch(res) {
 				case FR_OK:
@@ -328,7 +319,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_sync() returned an unexpected error code");
 					return -1;
 			}
@@ -336,14 +327,14 @@ class Plugin : public Libc::Plugin
 
 		int ftruncate(Libc::File_descriptor *fd, ::off_t length) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			/* 'f_truncate()' truncates to the current seek pointer */
 
 			if (lseek(fd, length, SEEK_SET) == -1)
 				return -1;
 
-			FRESULT res = f_truncate(_get_ffat_file(fd));
+			FRESULT res = f_truncate(_get_fatfs_file(fd));
 
 			switch(res) {
 				case FR_OK:
@@ -355,7 +346,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_truncate() returned an unexpected error code");
 					return -1;
 			}
@@ -364,7 +355,7 @@ class Plugin : public Libc::Plugin
 		ssize_t getdirentries(Libc::File_descriptor *fd, char *buf,
 		                      ::size_t nbytes, ::off_t *basep) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			if (nbytes < sizeof(struct dirent)) {
 				Genode::error(__func__, ": buf too small");
@@ -375,11 +366,9 @@ class Plugin : public Libc::Plugin
 			struct dirent *dirent = (struct dirent *)buf;
 			::memset(dirent, 0, sizeof(struct dirent));
 
-			FILINFO ffat_file_info;
-			ffat_file_info.lfname = dirent->d_name;
-			ffat_file_info.lfsize = sizeof(dirent->d_name);
+			FILINFO fatfs_file_info;
 
-			FRESULT res = f_readdir(_get_ffat_dir(fd), &ffat_file_info);
+			FRESULT res = f_readdir(_get_fatfs_dir(fd), &fatfs_file_info);
 			switch(res) {
 				case FR_OK:
 					break;
@@ -390,12 +379,12 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_readdir() returned an unexpected error code");
 					return -1;
 			}
 
-			if (ffat_file_info.fname[0] == 0) { /* no (more) entries */
+			if (fatfs_file_info.fname[0] == 0) { /* no (more) entries */
 				if (verbose)
 					Genode::log(__func__, ": no more dir entries");
 				/* TODO: reset the f_readdir() index? */
@@ -404,16 +393,14 @@ class Plugin : public Libc::Plugin
 
 			dirent->d_ino = 1; /* libc's readdir() wants an inode number */
 
-			if ((ffat_file_info.fattrib & AM_DIR) == AM_DIR)
+			if ((fatfs_file_info.fattrib & AM_DIR) == AM_DIR)
 				dirent->d_type = DT_DIR;
 			else
 				dirent->d_type = DT_REG;
 
 			dirent->d_reclen = sizeof(struct dirent);
 
-			if (dirent->d_name[0] == 0) /* use short file name */
-				::strncpy(dirent->d_name, ffat_file_info.fname,
-						  sizeof(dirent->d_name));
+			::strncpy(dirent->d_name, fatfs_file_info.fname, sizeof(dirent->d_name));
 
 			dirent->d_namlen = ::strlen(dirent->d_name);
 
@@ -426,25 +413,25 @@ class Plugin : public Libc::Plugin
 
 		::off_t lseek(Libc::File_descriptor *fd, ::off_t offset, int whence) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			switch(whence) {
 				case SEEK_CUR:
-					offset += f_tell(_get_ffat_file(fd));
+					offset += f_tell(_get_fatfs_file(fd));
 					break;
 				case SEEK_END:
-					offset += f_size(_get_ffat_file(fd));
+					offset += f_size(_get_fatfs_file(fd));
 					break;
 				default:
 					break;
 			}
 
-			FRESULT res = f_lseek(_get_ffat_file(fd), offset);
+			FRESULT res = f_lseek(_get_fatfs_file(fd), offset);
 
 			switch(res) {
 				case FR_OK:
 					/* according to the FatFs documentation this can happen */
-					if ((off_t)f_tell(_get_ffat_file(fd)) != offset) {
+					if ((off_t)f_tell(_get_fatfs_file(fd)) != offset) {
 						errno = EINVAL;
 						return -1;
 					}
@@ -456,7 +443,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_lseek() returned an unexpected error code");
 					return -1;
 			}
@@ -464,7 +451,7 @@ class Plugin : public Libc::Plugin
 
 		int mkdir(const char *path, mode_t mode) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			FRESULT res = f_mkdir(path);
 
@@ -491,7 +478,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_mkdir() returned an unexpected error code");
 					return -1;
 			}
@@ -499,34 +486,34 @@ class Plugin : public Libc::Plugin
 
 		Libc::File_descriptor *open(const char *pathname, int flags) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			if (verbose)
 				Genode::log(__func__, ": pathname=", pathname);
 
-			FIL ffat_file;
-			BYTE ffat_flags = 0;
+			FIL fatfs_file;
+			BYTE fatfs_flags = 0;
 
-			/* convert libc flags to libffat flags */
+			/* convert libc flags to fatfs flags */
 			if (((flags & O_RDONLY) == O_RDONLY) || ((flags & O_RDWR) == O_RDWR))
-				ffat_flags |= FA_READ;
+				fatfs_flags |= FA_READ;
 
 			if (((flags & O_WRONLY) == O_WRONLY)  || ((flags & O_RDWR) == O_RDWR))
-				ffat_flags |= FA_WRITE;
+				fatfs_flags |= FA_WRITE;
 
 			if ((flags & O_CREAT) == O_CREAT) {
 				if ((flags & O_EXCL) == O_EXCL)
-					ffat_flags |= FA_CREATE_NEW;
+					fatfs_flags |= FA_CREATE_NEW;
 				else
-					ffat_flags |= FA_OPEN_ALWAYS;
+					fatfs_flags |= FA_OPEN_ALWAYS;
 			}
 
-			FRESULT res = f_open(&ffat_file, pathname, ffat_flags);
+			FRESULT res = f_open(&fatfs_file, pathname, fatfs_flags);
 
 			switch(res) {
 				case FR_OK: {
 					Plugin_context *context = new (&*_heap)
-						File_plugin_context(pathname, ffat_file);
+						File_plugin_context(pathname, fatfs_file);
 					context->status_flags(flags);
 					Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
 					if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))
@@ -539,14 +526,14 @@ class Plugin : public Libc::Plugin
 					 * that's not supported by f_open(). So we call
 					 * f_opendir() in case the file is a directory.
 					 */
-					Ffat::DIR ffat_dir;
-					FRESULT f_opendir_res = f_opendir(&ffat_dir, pathname);
+					Fatfs::DIR fatfs_dir;
+					FRESULT f_opendir_res = f_opendir(&fatfs_dir, pathname);
 					if (verbose)
 						Genode::log(__func__, ": opendir res=", (int)f_opendir_res);
 					switch(f_opendir_res) {
 						case FR_OK: {
 							Plugin_context *context = new (&*_heap)
-								Directory_plugin_context(pathname, ffat_dir);
+								Directory_plugin_context(pathname, fatfs_dir);
 							context->status_flags(flags);
 							Libc::File_descriptor *f =
 								Libc::file_descriptor_allocator()->alloc(this, context);
@@ -568,7 +555,7 @@ class Plugin : public Libc::Plugin
 							errno = EIO;
 							return 0;
 						default:
-							/* not supposed to occur according to the libffat documentation */
+							/* not supposed to occur according to the fatfs documentation */
 							Genode::error("f_opendir() returned an unexpected error code");
 							return 0;
 					}
@@ -593,7 +580,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return 0;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_open() returned an unexpected error code");
 					return 0;
 			}
@@ -601,9 +588,15 @@ class Plugin : public Libc::Plugin
 
 		int rename(const char *oldpath, const char *newpath) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			FRESULT res = f_rename(oldpath, newpath);
+
+			/* if newpath already exists - try to unlink it once */
+			if (res == FR_EXIST) {
+				f_unlink(newpath);
+				res = f_rename(oldpath, newpath);
+			}
 
 			switch(res) {
 				case FR_OK:
@@ -616,7 +609,7 @@ class Plugin : public Libc::Plugin
 					return 0;
 				case FR_EXIST:
 					errno = EEXIST;
-					return 0;
+					return -1;
 				case FR_DENIED:
 				case FR_WRITE_PROTECTED:
 					errno = EACCES;
@@ -629,7 +622,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_rename() returned an unexpected error code");
 					return -1;
 			}
@@ -637,10 +630,10 @@ class Plugin : public Libc::Plugin
 
 		ssize_t read(Libc::File_descriptor *fd, void *buf, ::size_t count) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			UINT result;
-			FRESULT res = f_read(_get_ffat_file(fd), buf, count, &result);
+			FRESULT res = f_read(_get_fatfs_file(fd), buf, count, &result);
 
 			switch(res) {
 				case FR_OK:
@@ -655,7 +648,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_read() returned an unexpected error code");
 					return -1;
 			}
@@ -663,12 +656,9 @@ class Plugin : public Libc::Plugin
 
 		int stat(const char *path, struct stat *buf) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			FILINFO file_info;
-			/* the long file name is not used in this function */
-			file_info.lfname = 0;
-			file_info.lfsize = 0;
 
 			::memset(buf, 0, sizeof(struct stat));
 
@@ -697,7 +687,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_stat() returned an unexpected error code");
 					return -1;
 			}
@@ -741,7 +731,7 @@ class Plugin : public Libc::Plugin
 
 		int unlink(const char *path) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			FRESULT res = f_unlink(path);
 
@@ -766,7 +756,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_unlink() returned an unexpected error code");
 					return -1;
 			}
@@ -779,10 +769,10 @@ class Plugin : public Libc::Plugin
 
 		ssize_t write(Libc::File_descriptor *fd, const void *buf, ::size_t count) override
 		{
-			using namespace Ffat;
+			using namespace Fatfs;
 
 			UINT result;
-			FRESULT res = f_write(_get_ffat_file(fd), buf, count, &result);
+			FRESULT res = f_write(_get_fatfs_file(fd), buf, count, &result);
 
 			switch(res) {
 				case FR_OK:
@@ -797,7 +787,7 @@ class Plugin : public Libc::Plugin
 					errno = EIO;
 					return -1;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the fatfs documentation */
 					Genode::error("f_write() returned an unexpected error code");
 					return -1;
 			}
@@ -814,7 +804,7 @@ class Plugin : public Libc::Plugin
 } /* unnamed namespace */
 
 
-void __attribute__((constructor)) init_libc_ffat(void)
+void __attribute__((constructor)) init_libc_fatfs(void)
 {
 	static Plugin plugin;
 }

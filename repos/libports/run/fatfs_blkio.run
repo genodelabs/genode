@@ -1,7 +1,7 @@
 #
-# \brief  Test for using file systems in the libc
-# \author Christian Prochaska
-# \date   2011-05-27
+# \brief  Test of FatFS blkio implementation
+# \author Emery Hemingway
+# \date   2017-07-31
 #
 
 if {[have_spec odroid_xu] || [have_spec zynq]} {
@@ -18,9 +18,6 @@ set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 # use ram_blk on Linux
 set use_ram_blk     [have_spec linux]
 
-if {[catch { exec which $mkfs_cmd } ]} {
-	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
-
 if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
@@ -30,18 +27,11 @@ if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
 #
 # Build
 #
-
 set build_components {
-	core init
-	drivers/timer
-	test/libc_block
+	test/fatfs_blkio
 }
 
-lappend build_components test/libc_$filesystem
-
-lappend_if $use_ahci        build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
-lappend_if $use_ram_blk     build_components server/ram_blk
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -50,47 +40,42 @@ build $build_components
 
 create_boot_directory
 
+set depot_pkgs "genodelabs/src/[base_src] genodelabs/src/init"
+
+lappend_if $use_ahci    depot_pkgs genodelabs/src/ahci_drv
+lappend_if $use_ram_blk depot_pkgs genodelabs/src/ram_blk
+
+import_from_depot {*}$depot_pkgs
+
 #
 # Generate config
 #
-
-set config {
-<config verbose="yes">
+append config {
+<config>
 	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
+		<service name="CPU"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
+		<service name="IRQ"/>
 		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="128"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Timer"/> </provides>
-	</start>}
-append config "
-	<start name=\"test-libc_$filesystem\">"
-append config {
-		<resource name="RAM" quantum="8M"/>
-		<config>
-			<iterations value="1"/>}
-append_if [have_include "power_on/qemu"] config {
-			<write-read size="1M" buffer_size="8K"/>}
-append config {
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">}
-append config $libc_dev_blkdev
-append config {
-					<log/>
-				</dir>
-			</vfs>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="test-fatfs_blkio">
+		<resource name="RAM" quantum="10M"/>
+		<config ld_verbose="true">
+			<libc stdout="/log" stderr="/log"/>
+			<vfs> <log/> </vfs>
 		</config>
 	</start>}
 
@@ -103,10 +88,8 @@ append_if $use_ahci config {
 		<route>
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
-		<config>}
-append_if $use_ahci config "
-			<policy label_prefix=\"test-libc_$filesystem\" device=\"0\" />"
-append_if $use_ahci config {
+		<config>
+			<policy label_prefix="test-fatfs_blkio" device="0"/>
 		</config>
 	</start>}
 
@@ -119,9 +102,9 @@ append_if $use_sd_card_drv config {
 
 append_if $use_ram_blk config {
 	<start name="ram_blk">
-		<resource name="RAM" quantum="128M" />
+		<resource name="RAM" quantum="4M" />
 		<provides><service name="Block"/></provides>
-		<config file="test.hda" block_size="512"/>
+		<config size="1M" block_size="512"/>
 	</start>}
 
 append config {
@@ -134,37 +117,24 @@ install_config $config
 # Boot modules
 #
 
+set disk_image "bin/test.hda"
+set cmd "dd if=/dev/zero of=$disk_image bs=512 count=4096"
+puts "creating disk image: $cmd"
+catch { exec sh -c $cmd }
+
 # generic modules
 set boot_modules {
-	core init timer
-	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
+	libc.lib.so
+	libm.lib.so
+	test-fatfs_blkio
 }
 
-append boot_modules test-libc_$filesystem
-append boot_modules " "
-append boot_modules libc_$filesystem.lib.so
-
-lappend_if $use_ahci         boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
-lappend_if $use_ram_blk      boot_modules ram_blk
 lappend_if $use_ram_blk      boot_modules test.hda
 
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
-
-#
-# Execute test case
-#
-
-set disk_image "bin/test.hda"
-set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
-puts "creating disk image: $cmd"
-catch { exec sh -c $cmd }
-
-set cmd "$mkfs_cmd $mkfs_opts $disk_image"
-puts "formating disk: $cmd"
-catch { exec sh -c $cmd }
 
 #
 # Qemu
@@ -173,8 +143,6 @@ append qemu_args "  -nographic "
 append_if $use_ahci        qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,format=raw,if=sd,cache=writeback "
 
-run_genode_until ".*child \"test-libc_$filesystem\" exited with exit value 0.*" 90
+run_genode_until {.*child "test-fatfs_blkio" exited with exit value 0.*} 60
 
 exec rm -f $disk_image
-
-# vi: set ft=tcl :

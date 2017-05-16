@@ -1,0 +1,72 @@
+--- src/lib/fatfs/source/ffconf.h
++++ src/lib/fatfs/source/ffconf.h
+@@ -55,7 +55,7 @@
+ /  (0:Disable or 1:Enable) Also FF_FS_READONLY needs to be 0 to enable this option. */
+ 
+ 
+-#define FF_USE_LABEL	0
++#define FF_USE_LABEL	1
+ /* This option switches volume label functions, f_getlabel() and f_setlabel().
+ /  (0:Disable or 1:Enable) */
+ 
+@@ -68,7 +68,7 @@
+ / Locale and Namespace Configurations
+ /---------------------------------------------------------------------------*/
+ 
+-#define FF_CODE_PAGE	932
++#define FF_CODE_PAGE	0
+ /* This option specifies the OEM code page to be used on the target system.
+ /  Incorrect code page setting can cause a file open failure.
+ /
+@@ -97,7 +97,7 @@
+ */
+ 
+ 
+-#define FF_USE_LFN		0
++#define FF_USE_LFN		2
+ #define FF_MAX_LFN		255
+ /* The FF_USE_LFN switches the support for LFN (long file name).
+ /
+@@ -135,7 +135,7 @@
+ */
+ 
+ 
+-#define FF_FS_RPATH		0
++#define FF_FS_RPATH		1
+ /* This option configures support for relative path.
+ /
+ /   0: Disable relative path and remove related functions.
+@@ -148,7 +148,7 @@
+ / Drive/Volume Configurations
+ /---------------------------------------------------------------------------*/
+ 
+-#define FF_VOLUMES		1
++#define FF_VOLUMES		10
+ /* Number of volumes (logical drives) to be used. (1-10) */
+ 
+ 
+@@ -171,7 +171,7 @@
+ 
+ 
+ #define FF_MIN_SS		512
+-#define FF_MAX_SS		512
++#define FF_MAX_SS		4096
+ /* This set of options configures the range of sector size to be supported. (512,
+ /  1024, 2048 or 4096) Always set both 512 for most systems, generic memory card and
+ /  harddisk. But a larger value may be required for on-board flash memory and some
+@@ -210,13 +210,13 @@
+ /  buffer in the filesystem object (FATFS) is used for the file data transfer. */
+ 
+ 
+-#define FF_FS_EXFAT		0
++#define FF_FS_EXFAT		1
+ /* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
+ /  When enable exFAT, also LFN needs to be enabled.
+ /  Note that enabling exFAT discards ANSI C (C89) compatibility. */
+ 
+ 
+-#define FF_FS_NORTC		0
++#define FF_FS_NORTC		1
+ #define FF_NORTC_MON	5
+ #define FF_NORTC_MDAY	1
+ #define FF_NORTC_YEAR	2017

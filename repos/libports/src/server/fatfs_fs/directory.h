@@ -1,5 +1,5 @@
 /*
- * \brief  FFAT file-system directory node
+ * \brief  FATFS file-system directory node
  * \author Christian Prochaska
  * \date   2012-07-04
  */
@@ -14,25 +14,25 @@
 #ifndef _DIRECTORY_H_
 #define _DIRECTORY_H_
 
-/* ffat includes */
-namespace Ffat { extern "C" {
-#include <ffat/ff.h>
+/* fatfs includes */
+namespace Fatfs { extern "C" {
+#include <fatfs/ff.h>
 } }
 
 /* local includes */
 #include <node.h>
 
 
-namespace Ffat_fs {
+namespace Fatfs_fs {
 	using namespace Genode;
 	class Directory;
 }
 
-class Ffat_fs::Directory : public Node
+class Fatfs_fs::Directory : public Node
 {
 	private:
 
-		Ffat::DIR _ffat_dir;
+		Fatfs::DIR _fatfs_dir;
 		int64_t   _prev_index;
 
 	public:
@@ -41,8 +41,8 @@ class Ffat_fs::Directory : public Node
 		: Node(name),
 		  _prev_index(-1) { }
 
-		void ffat_dir(Ffat::DIR ffat_dir) { _ffat_dir = ffat_dir; }
-		Ffat::DIR *ffat_dir() { return &_ffat_dir; }
+		void fatfs_dir(Fatfs::DIR fatfs_dir) { _fatfs_dir = fatfs_dir; }
+		Fatfs::DIR *fatfs_dir() { return &_fatfs_dir; }
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset)
 		{
@@ -58,24 +58,22 @@ class Ffat_fs::Directory : public Node
 
 			Directory_entry *e = (Directory_entry *)(dst);
 
-			using namespace Ffat;
+			using namespace Fatfs;
 
-			FILINFO ffat_file_info;
-			ffat_file_info.lfname = e->name;
-			ffat_file_info.lfsize = sizeof(e->name);
+			FILINFO fatfs_file_info;
 
 			int64_t index = seek_offset / sizeof(Directory_entry);
 
 			if (index != (_prev_index + 1)) {
 				/* rewind and iterate from the beginning */
-				f_readdir(&_ffat_dir, 0);
+				f_readdir(&_fatfs_dir, 0);
 				for (int i = 0; i < index; i++)
-					f_readdir(&_ffat_dir, &ffat_file_info);
+					f_readdir(&_fatfs_dir, &fatfs_file_info);
 			}
 
 			_prev_index = index;
 
-			FRESULT res = f_readdir(&_ffat_dir, &ffat_file_info);
+			FRESULT res = f_readdir(&_fatfs_dir, &fatfs_file_info);
 			switch(res) {
 				case FR_OK:
 					break;
@@ -92,19 +90,18 @@ class Ffat_fs::Directory : public Node
 					error("f_readdir() failed with error code FR_NOT_READY");
 					return 0;
 				default:
-					/* not supposed to occur according to the libffat documentation */
+					/* not supposed to occur according to the libfatfs documentation */
 					error("f_readdir() returned an unexpected error code");
 					return 0;
 			}
 
-			if (ffat_file_info.fname[0] == 0) { /* no (more) entries */
+			if (fatfs_file_info.fname[0] == 0) { /* no (more) entries */
 				return 0;
 			}
 
-			if (e->name[0] == 0) /* use short file name */
-				strncpy(e->name, ffat_file_info.fname, sizeof(e->name));
+			strncpy(e->name, fatfs_file_info.fname, sizeof(e->name));
 
-			if ((ffat_file_info.fattrib & AM_DIR) == AM_DIR)
+			if ((fatfs_file_info.fattrib & AM_DIR) == AM_DIR)
 				e->type = Directory_entry::TYPE_DIRECTORY;
 			else
 				e->type = Directory_entry::TYPE_FILE;

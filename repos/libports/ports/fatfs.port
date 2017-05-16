@@ -1,0 +1,13 @@
+LICENSE   := BSD
+VERSION   := 0.13
+DOWNLOADS := fatfs.archive
+
+URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13.zip
+SHA(fatfs) := 8ce22f86e339b0fc59c8c69941fbaf86e5cf9364
+DIR(fatfs) := src/lib/fatfs
+
+PATCHES := src/lib/fatfs/ffconf.patch src/lib/fatfs/integer.patch
+
+DIRS := include/fatfs
+DIR_CONTENT(include/fatfs) := \
+	$(addprefix src/lib/fatfs/source/, ff.h ffconf.h diskio.h integer.h)

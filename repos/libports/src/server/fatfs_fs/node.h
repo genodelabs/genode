@@ -1,5 +1,5 @@
 /*
- * \brief  FFAT file-system node
+ * \brief  FATFS file-system node
  * \author Christian Prochaska
  * \date   2012-07-04
  */
@@ -19,21 +19,21 @@
 #include <base/log.h>
 #include <os/path.h>
 
-/* ffat includes */
-namespace Ffat { extern "C" {
-#include <ffat/ff.h>
+/* fatfs includes */
+namespace Fatfs { extern "C" {
+#include <fatfs/ff.h>
 } }
 
-namespace Ffat_fs {
+namespace Fatfs_fs {
 	using namespace File_system;
 
-	typedef Genode::Path<_MAX_LFN + 1> Absolute_path;
+	typedef Genode::Path<FF_MAX_LFN + 1> Absolute_path;
 
 	class Node;
 }
 
 
-class Ffat_fs::Node : public Node_base
+class Fatfs_fs::Node : public Node_base
 {
 	protected:
 

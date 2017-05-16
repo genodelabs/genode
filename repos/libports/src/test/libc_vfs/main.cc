@@ -162,10 +162,12 @@ static void test(Genode::Xml_node node)
 		/* move file (target does not exist) */
 		CALL_AND_CHECK(fd, open(file_name5, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name5);
 		CALL_AND_CHECK(ret, rename(file_name5, "x"), ret == 0, "file_name=%s", file_name5);
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
 		/* move file (target already exists) */
 		CALL_AND_CHECK(fd, open(file_name5, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name5);
 		CALL_AND_CHECK(ret, rename(file_name5, "x"), ret == 0, "file_name=%s", file_name5);
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
 		/* test 'pread()' and 'pwrite()' */
 		CALL_AND_CHECK(fd, open(file_name2, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name2);

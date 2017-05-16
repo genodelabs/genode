@@ -11,16 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__FFAT__BLOCK_H_
-#define _INCLUDE__FFAT__BLOCK_H_
+#ifndef _INCLUDE__FATFS__BLOCK_H_
+#define _INCLUDE__FATFS__BLOCK_H_
 
 namespace Genode {
 	struct Env;
 	struct Allocator;
 }
 
-namespace Ffat {
+namespace Fatfs {
 	void block_init(Genode::Env &, Genode::Allocator &heap);
 }
 
-#endif /* _INCLUDE__FFAT__BLOCK_H_ */
+#endif /* _INCLUDE__FATFS__BLOCK_H_ */
