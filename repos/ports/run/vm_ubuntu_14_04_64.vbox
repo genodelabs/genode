@@ -9,8 +9,8 @@
   <Machine uuid="{37ab43a5-38d8-4491-93f5-5b0b077f5c32}" name="Win7" OSType="Windows7" snapshotFolder="Snapshots" lastStateChange="2014-11-14T11:58:35Z">
     <MediaRegistry>
       <HardDisks>
-        <HardDisk uuid="{64866074-88c8-43d4-8dce-886921a350d5}" location="/ubuntu_64.vdi" format="VDI" type="Immutable">
-          <HardDisk uuid="{3d9a9193-0fe7-4f8c-8e1b-065dbf514c82}" location="/ram/overlay_ubuntu_64.vdi" format="VDI" autoReset="true"/>
+        <HardDisk uuid="{58c7c166-9df5-45cf-b12c-a3132ac90078}" location="/ubuntu_14_04_64.vdi" format="VDI" type="Immutable">
+          <HardDisk uuid="{78a3a6a1-ade6-41bf-8b29-ec7cf16de4bb}" location="/ram/overlay_ubuntu_14_04_64.vdi" format="VDI" autoReset="true"/>
         </HardDisk>
       </HardDisks>
       <DVDImages/>
@@ -25,7 +25,7 @@
         <HardwareVirtEx enabled="true"/>
         <HardwareVirtExNestedPaging enabled="true"/>
         <HardwareVirtExVPID enabled="true"/>
-        <HardwareVirtExUX enabled="true"/>
+        <HardwareVirtExUX enabled="false"/>
         <PAE enabled="true"/>
         <LongMode enabled="true"/>
         <HardwareVirtExLargePages enabled="false"/>
@@ -93,7 +93,7 @@
     <StorageControllers>
       <StorageController name="SATA" type="AHCI" PortCount="2" useHostIOCache="true" Bootable="true">
         <AttachedDevice type="HardDisk" port="0" device="0">
-          <Image uuid="{3d9a9193-0fe7-4f8c-8e1b-065dbf514c82}"/>
+          <Image uuid="{78a3a6a1-ade6-41bf-8b29-ec7cf16de4bb}"/>
         </AttachedDevice>
         <AttachedDevice passthrough="false" type="DVD" port="1" device="0"/>
       </StorageController>
