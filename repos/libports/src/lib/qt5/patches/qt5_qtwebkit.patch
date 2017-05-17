@@ -6,16 +6,16 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 ---
  .../Source/JavaScriptCore/dfg/DFGOperations.cpp    |    1 +
  .../JavaScriptCore/jit/ExecutableAllocator.h       |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Assertions.h               |   11 +++++++++++
+ qtwebkit/Source/WTF/wtf/Assertions.h               |   11 ++++++++++
  qtwebkit/Source/WTF/wtf/FastMalloc.cpp             |    2 +-
  qtwebkit/Source/WTF/wtf/InlineASM.h                |    4 ++--
- qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 +++++++++++++
+ qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 ++++++++++++
  qtwebkit/Source/WTF/wtf/OSRandomSource.cpp         |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Platform.h                 |   19 ++++++++++++++++---
- qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 +++++++++++++
- qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   20 ++++++++++++++++++++
+ qtwebkit/Source/WTF/wtf/Platform.h                 |   21 ++++++++++++++++----
+ qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 ++++++++++++
+ qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   20 +++++++++++++++++++
  .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
- 11 files changed, 96 insertions(+), 6 deletions(-)
+ 11 files changed, 97 insertions(+), 7 deletions(-)
 
 diff --git a/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp b/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp
 index bb9ccc3..077cbed 100644
@@ -178,7 +178,7 @@ index 0c1416a..921ea54 100644
      int fd = open("/dev/urandom", O_RDONLY, 0);
      if (fd < 0)
 diff --git a/qtwebkit/Source/WTF/wtf/Platform.h b/qtwebkit/Source/WTF/wtf/Platform.h
-index 35fa7e3..89e6205 100644
+index 35fa7e3..44343cf 100644
 --- a/qtwebkit/Source/WTF/wtf/Platform.h
 +++ b/qtwebkit/Source/WTF/wtf/Platform.h
 @@ -426,6 +426,12 @@
@@ -225,6 +225,15 @@ index 35fa7e3..89e6205 100644
  #define USE_SYSTEM_MALLOC 1
  #endif
  #endif
+@@ -935,7 +947,7 @@
+ #define ENABLE_DFG_JIT 1
+ #endif
+ /* Enable the DFG JIT on ARM. */
+-#if CPU(ARM_TRADITIONAL)
++#if CPU(ARM_TRADITIONAL) && !OS(GENODE)
+ #define ENABLE_DFG_JIT 1
+ #endif
+ /* Enable the DFG JIT on MIPS. */
 @@ -1005,7 +1017,8 @@
  #define ENABLE_REGEXP_TRACING 0
  
