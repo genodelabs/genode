@@ -451,14 +451,16 @@ proc kernel_location_from_config_file { config_file default_location } {
 # case for regular binaries that appear in the boot directory under their
 # original name.
 #
-proc kernel_specific_binary { binary } {
+proc kernel_specific_binary { binary {silent ""} } {
 
 	regsub -all {\.} $binary "_" function_suffix
 	set function_name "binary_name_$function_suffix"
 
 	if {[info procs $function_name] == $function_name} {
 		set binary_name [$function_name]
-		puts "using '$binary_name' as '$binary'"
+		if {$silent != "silent"} {
+			puts "using '$binary_name' as '$binary'"
+		}
 		return [$function_name]
 	}
 
