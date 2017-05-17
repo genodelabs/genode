@@ -485,11 +485,11 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 		void close(Node_handle handle) override
 		{
-			_apply(handle, [&] (Node &node) {
+			try { _apply(handle, [&] (Node &node) {
 				/* root directory should not be freed */
 				if (!(node.id() == _root->id()))
 					_close(node);
-			});
+			}); } catch (File_system::Invalid_handle) { }
 		}
 
 		Status status(Node_handle node_handle) override
@@ -710,6 +710,7 @@ class Vfs_server::Root :
 			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
 				session_root.append("/");
 				session_root.append(tmp);
+				session_root.remove_trailing('/');
 			}
 
 			/* check if the session root exists */
