@@ -180,7 +180,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 *     receiver belongs to the calling entrypoint. Alternatively,
 		 *     remove it.
 		 */
-		void wait_and_dispatch_one_io_signal();
+		bool wait_and_dispatch_one_io_signal(bool dont_block = false);
 
 		/**
 		 * Return RPC entrypoint

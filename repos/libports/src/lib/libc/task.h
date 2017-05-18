@@ -46,6 +46,8 @@ namespace Libc {
 	struct Suspend_functor { virtual bool suspend() = 0; };
 	unsigned long suspend(Suspend_functor &, unsigned long timeout_ms = 0UL);
 
+	void dispatch_pending_io_signals();
+
 	/**
 	 * Get time since startup in ms
 	 */

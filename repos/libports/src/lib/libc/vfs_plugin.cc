@@ -446,6 +446,8 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
                                ::size_t count)
 {
+	Libc::dispatch_pending_io_signals();
+
 	typedef Vfs::File_io_service::Read_result Result;
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
