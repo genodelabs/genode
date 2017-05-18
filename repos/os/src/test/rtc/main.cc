@@ -16,6 +16,7 @@
 #include <rtc_session/connection.h>
 #include <timer_session/connection.h>
 
+
 using namespace Genode;
 
 struct Main
@@ -25,14 +26,16 @@ struct Main
 		Genode::log("--- RTC test started ---");
 
 		/* open sessions */
-		Rtc::Connection   rtc(env);
+		Rtc::Connection   rtc[] = { { env }, { env, "with_label" } };
 		Timer::Connection timer(env);
 
 		for (unsigned i = 0; i < 4; ++i) {
-			Rtc::Timestamp now = rtc.current_time();
+			Rtc::Timestamp now[] = { rtc[0].current_time(), rtc[1].current_time() };
 
-			log("RTC: ", now.year, "-", now.month,  "-", now.day, " ",
-			             now.hour, ":", now.minute, ":", now.second);
+			for (unsigned j = 0; j < sizeof(rtc)/sizeof(*rtc); ++j)
+				log("RTC[", j, "]: ",
+				    now[j].year, "-", now[j].month,  "-", now[j].day, " ",
+				    now[j].hour, ":", now[j].minute, ":", now[j].second);
 
 			timer.msleep(1000);
 		}
