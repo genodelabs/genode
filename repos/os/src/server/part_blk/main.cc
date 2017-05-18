@@ -33,11 +33,12 @@ class Main
 		Block::Partition_table & _table();
 
 		Genode::Env &       _env;
-		Genode::Heap        _heap   { _env.ram(), _env.rm() };
-		Block::Driver       _driver { _env, _heap      };
-		Mbr_partition_table _mbr    { _heap, _driver        };
-		Gpt                 _gpt    { _heap, _driver        };
-		Block::Root         _root   { _env, _heap, _driver, _table() };
+		Genode::Heap        _heap     { _env.ram(), _env.rm() };
+		Block::Driver       _driver   { _env, _heap      };
+		Genode::Reporter    _reporter { _env, "partitions" };
+		Mbr_partition_table _mbr      { _heap, _driver, _reporter };
+		Gpt                 _gpt      { _heap, _driver, _reporter };
+		Block::Root         _root     { _env, _heap, _driver, _table() };
 
 	public:
 
@@ -62,10 +63,19 @@ Block::Partition_table & Main::_table()
 	bool valid_mbr = false;
 	bool valid_gpt = false;
 	bool use_gpt   = false;
+	bool report    = false;
+
+	Genode::Attached_rom_dataspace config(_env, "config");
 
 	try {
-		Genode::Attached_rom_dataspace config(_env, "config");
 		use_gpt = config.xml().attribute_value("use_gpt", false);
+	} catch(...) {}
+
+	try {
+		report = config.xml().sub_node("report").attribute_value
+                         ("partitions", false);
+		if (report)
+			_reporter.enabled(true);
 	} catch(...) {}
 
 	if (use_gpt)

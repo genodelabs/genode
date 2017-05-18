@@ -24,6 +24,24 @@ configuration section looking for 'policy' tags.
 XML Syntax:
 ! <policy labal="<program name>" parition="<partition number>" />
 
+part_blk supports partition reporting, which can be enabled via the
+<report> configuration node. See below for an example. The report
+looks like follows (for MBR resp. GPT).
+
+! <partitions type="mbr">
+!   <partition number="1" type="12" start="2048" length="2048"/>
+!   <partition number="2" type="15" start="4096" length="16384"/>
+!   <partition number="5" type="12" start="6144" length="4096"/>
+!   <partition number="6" type="12" start="12288" length="8192"/>
+! </partitions>
+! <partitions type="gpt">
+!   <partition number="1" name="one" type="ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"
+!     guid="5f4061cc-8d4a-4e6f-ad15-10b881b79aee" start="2048" length="2048"/>
+!   <partition number="2" name="two" type="ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"
+!     guid="87199a83-d0f4-4a01-b9e3-6516a8579d61" start="4096" length="16351"/>
+! </partitions>
+
+
 Usage
 -----
 
@@ -46,6 +64,7 @@ Configuration snippet with two clients and an (hypothetical) IDE driver:
 !  <!-- allow program 'test-part1' to access logical partition '6', while program
 !      'test-part2' receives access to primary partition 1 -->
 !  <config>
+!    <report partitions="yes"/>
 !    <policy label_prefix="test-part1" partition="6"/>
 !    <policy label_prefix="test-part2" partition="1"/>
 !  </config>
