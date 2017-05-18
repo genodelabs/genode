@@ -77,13 +77,13 @@ struct Linker::Elf_file : File
 {
 	Env                          &env;
 	Constructible<Rom_connection> rom_connection;
-	Rom_session_client            rom;
+	Rom_dataspace_capability      rom_cap;
 	Ram_dataspace_capability      ram_cap[Phdr::MAX_PHDR];
 	bool                    const loaded;
 
 	typedef String<64> Name;
 
-	Rom_session_capability _rom_cap(Name const &name)
+	Rom_dataspace_capability _rom_dataspace(Name const &name)
 	{
 		/* request the linker and binary from the component environment */
 		Session_capability cap;
@@ -91,16 +91,18 @@ struct Linker::Elf_file : File
 			cap = env.parent().session_cap(Parent::Env::binary());
 		if (name == linker_name())
 			cap = env.parent().session_cap(Parent::Env::linker());
-		if (cap.valid())
-			return reinterpret_cap_cast<Rom_session>(cap);
+		if (cap.valid()) {
+			Rom_session_client client(reinterpret_cap_cast<Rom_session>(cap));
+			return client.dataspace();
+		}
 
 		rom_connection.construct(env, name.string());
-		return *rom_connection;
+		return rom_connection->dataspace();
 	}
 
 	Elf_file(Env &env, Allocator &md_alloc, char const *name, bool load)
 	:
-		env(env), rom(_rom_cap(name)), loaded(load)
+		env(env), rom_cap(_rom_dataspace(name)), loaded(load)
 	{
 		load_phdr();
 
@@ -150,7 +152,7 @@ struct Linker::Elf_file : File
 	{
 		{
 			/* temporary map the binary to read the program header */
-			Attached_dataspace ds(env.rm(), rom.dataspace());
+			Attached_dataspace ds(env.rm(), rom_cap);
 
 			Elf::Ehdr const &ehdr = *ds.local_addr<Elf::Ehdr>();
 
@@ -242,7 +244,7 @@ struct Linker::Elf_file : File
 	 */
 	void load_segment_rx(Elf::Phdr const &p)
 	{
-		Region_map::r()->attach_executable(rom.dataspace(),
+		Region_map::r()->attach_executable(rom_cap,
 		                                   trunc_page(p.p_vaddr) + reloc_base,
 		                                   round_page(p.p_memsz),
 		                                   trunc_page(p.p_offset));
@@ -253,7 +255,7 @@ struct Linker::Elf_file : File
 	 */
 	void load_segment_rw(Elf::Phdr const &p, int nr)
 	{
-		void  *src = env.rm().attach(rom.dataspace(), 0, p.p_offset);
+		void  *src = env.rm().attach(rom_cap, 0, p.p_offset);
 		addr_t dst = p.p_vaddr + reloc_base;
 
 		ram_cap[nr] = env.ram().alloc(p.p_memsz);
