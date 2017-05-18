@@ -18,6 +18,7 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <block_session/client.h>
+#include <os/reporter.h>
 
 #include "driver.h"
 
@@ -72,9 +73,10 @@ struct Block::Partition_table
 
 		Genode::Heap & heap;
 		Driver       & driver;
+		Genode::Reporter & reporter;
 
-		Partition_table(Genode::Heap & h, Driver & d)
-		: heap(h), driver(d) {}
+		Partition_table(Genode::Heap & h, Driver & d, Genode::Reporter & r)
+		: heap(h), driver(d), reporter(r) {}
 
 		virtual Partition *partition(int num) = 0;
 
