@@ -889,7 +889,7 @@ int Socket_fs::Plugin::select(int nfds,
 		}
 
 		if (FD_ISSET(fd, &in_writefds)) {
-			if (false /* XXX ask if "data" is writeable */) {
+			if (true /* XXX ask if "data" is writeable */) {
 				FD_SET(fd, writefds);
 				++nready;
 			}
