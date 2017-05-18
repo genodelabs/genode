@@ -118,6 +118,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 		void _defer_signal(Signal &sig);
 		void _process_deferred_signals();
 		void _process_incoming_signals();
+		bool _wait_and_dispatch_one_io_signal(bool dont_block);
 
 		Constructible<Signal_proxy_thread> _signal_proxy_thread;
 
@@ -180,7 +181,21 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 *     receiver belongs to the calling entrypoint. Alternatively,
 		 *     remove it.
 		 */
-		void wait_and_dispatch_one_io_signal();
+		void wait_and_dispatch_one_io_signal()
+		{
+			_wait_and_dispatch_one_io_signal(false);
+		}
+
+		/**
+		 * Dispatch single pending I/O-level signal (non-blocking)
+		 *
+		 * \return true if a pending signal was dispatched, false if no signal
+		 *         was pending
+		 */
+		bool dispatch_pending_io_signal()
+		{
+			return _wait_and_dispatch_one_io_signal(true);
+		}
 
 		/**
 		 * Return RPC entrypoint
