@@ -687,6 +687,7 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 					msg.msg_namelen         = sizeof(addr_storage);
 					msg.msg_iter.type       = 0;
 					msg.msg_iter.iov_offset = 0;
+					msg.msg_iter.count      = sizeof(_content_buffer);
 					msg.msg_iter.iov        = &iov;
 					msg.msg_iter.nr_segs    = 1;
 					msg.msg_control         = nullptr;
