@@ -673,6 +673,10 @@ extern "C" int socket_fs_getsockopt(int libc_fd, int level, int optname,
 			Genode::log("getsockopt: SO_REUSEADDR not yet implemented - return true");
 			*(int *)optval = 1;
 			return 0;
+		case SO_ERROR:
+			Genode::log("getsockopt: SO_ERROR not yet implemented - return true");
+			*(int *)optval = 0;
+			return 0;
 		default: return Errno(ENOPROTOOPT);
 		}
 
