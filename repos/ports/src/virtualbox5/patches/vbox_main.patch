@@ -493,15 +493,6 @@ index a717aff..3d52b9f 100644
  
  #include <algorithm>
  #include <set>
-@@ -76,7 +76,7 @@
- #include "AutoCaller.h"
- #include "Logging.h"
- 
--#include <QMTranslator.h>
-+//#include <QMTranslator.h>
- 
- #ifdef RT_OS_WINDOWS
- # include "win/svchlp.h"
 @@ -4069,6 +4069,9 @@
   */
  HRESULT VirtualBox::i_saveSettings()
@@ -577,18 +568,14 @@ index a717aff..3d52b9f 100644
      Assert(   *aParavirtProvider == ParavirtProvider_None
             || *aParavirtProvider == ParavirtProvider_Minimal
             || *aParavirtProvider == ParavirtProvider_HyperV
-@@ -8227,8 +8227,14 @@
+@@ -8338,8 +8338,8 @@
  {
      AutoCaller autoCaller(this);
      AssertComRCReturnRC(autoCaller.rc());
-+#if 0
-     AssertComRCReturn(   getObjectState().getState() == ObjectState::InInit
-                       || getObjectState().getState() == ObjectState::Limited, E_FAIL);
-+#else
-+    if (getObjectState().getState() == ObjectState::InInit ||
-+        getObjectState().getState() == ObjectState::Limited, E_FAIL)
-+        Genode::log(__func__, " skip assertion");
-+#endif
+-    AssertComRCReturn(   getObjectState().getState() == ObjectState::InInit
+-                      || getObjectState().getState() == ObjectState::Limited, E_FAIL);
++    AssertReturn(   getObjectState().getState() == ObjectState::InInit
++                 || getObjectState().getState() == ObjectState::Limited, E_FAIL);
  
      AssertReturn(!mData->mAccessible, E_FAIL);
  
