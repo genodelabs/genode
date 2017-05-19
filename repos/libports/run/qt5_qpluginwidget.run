@@ -72,7 +72,7 @@ install_config $config
 # Boot modules
 #
 
-exec sh -c "ln -sf ../test/qt5/qpluginwidget/test-plugin.tar bin/"
+exec sh -c "ln -sf [pwd]/test/qt5/qpluginwidget/test-plugin.tar bin/"
 
 append boot_modules [qt5_boot_modules feature]
 
