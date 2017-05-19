@@ -76,7 +76,8 @@ class Usb::Packet_handler
 
 		void wait_for_packet()
 		{
-			packet_avail() ? _packet_handler() : _ep.wait_and_dispatch_one_io_signal();
+			if (packet_avail()) { _packet_handler(); }
+			else                { _ep.wait_and_dispatch_one_io_signal(); }
 		}
 
 		Packet_descriptor alloc(size_t size)
