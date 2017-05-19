@@ -93,7 +93,7 @@ append boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256"
+append qemu_args " -m 300"
 
 run_genode_until forever
 
