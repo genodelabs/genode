@@ -4,15 +4,19 @@
  * \date   2010-08-26
  */
 
+/* Genode includes */
 #include <base/env.h>
 #include <dataspace/client.h>
 #include <os/timed_semaphore.h>
 #include <rom_session/connection.h>
 #include <util/arg_string.h>
 
+/* libc includes */
+#include <assert.h>
 #include <string.h>
 #include <zlib.h>
 
+/* Qt includes */
 #include <QtGui>
 
 #include <qnitpickerplatformwindow.h>
@@ -47,7 +51,7 @@ const char *config = " \
             <archive name=\"plugin.tar\"/> \
         </config> \
     </start> \
-    <start name=\"init\" caps=\"200\"> \
+    <start name=\"init\" caps=\"2000\"> \
         <resource name=\"RAM\" quantum=\"2G\"/> \
         <configfile name=\"config.plugin\"/> \
         <route> \
@@ -435,6 +439,8 @@ void QPluginWidget::showEvent(QShowEvent *event)
 
 		QNitpickerPlatformWindow *platform_window =
 			dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
+
+		assert(_env != nullptr);
 
 		_plugin_starter = new PluginStarter(_env,
 		                                    _plugin_url, _plugin_args,

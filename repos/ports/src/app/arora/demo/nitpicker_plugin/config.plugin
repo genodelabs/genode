@@ -10,7 +10,7 @@
 		<service name="Nitpicker"/>
 	</parent-provides>
 	<default-route> <any-service> <any-child/> <parent/> </any-service> </default-route>
-	<start name="framebuffer">
+	<start name="framebuffer" caps="100">
 		<binary name="nit_fb"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides>
@@ -20,7 +20,7 @@
 		<route> <any-service> <parent/> </any-service> </route>
 		<config xpos="0" ypos="0" width="640" height="480"/>
 	</start>
-	<start name="nitpicker">
+	<start name="nitpicker" caps="100">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
@@ -30,16 +30,16 @@
 			<default-policy domain="default"/>
 		</config>
 	</start>
-	<start name="pointer">
+	<start name="pointer" caps="100">
 		<resource name="RAM" quantum="1M"/>
 	</start>
-	<start name="launchpad">
+	<start name="launchpad" caps="400">
 		<resource name="RAM" quantum="2G"/>
 		<config xpos="50" ypos="10" width="400" height="400">
-			<launcher name="testnit" ram_quota="1M" />
-			<launcher name="launchpad" ram_quota="6M">
+			<launcher name="testnit" ram_quota="1M" caps="100" />
+			<launcher name="launchpad" ram_quota="6M" caps="200">
 				<config xpos="90" ypos="50" width="400" height="400">
-					<launcher name="testnit" ram_quota="512K" />
+					<launcher name="testnit" ram_quota="512K" caps="100" />
 				</config>
 			</launcher>
 		</config>
