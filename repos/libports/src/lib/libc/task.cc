@@ -258,7 +258,10 @@ struct Libc::Timeout
 	{
 		unsigned long const now = _timer_accessor.timer().curr_time();
 
-		return _expired ? 0 : _absolute_timeout_ms - now;
+		if (_expired || _absolute_timeout_ms < now)
+			return 0;
+
+		return _absolute_timeout_ms - now;
 	}
 };
 
