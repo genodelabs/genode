@@ -74,7 +74,7 @@ div.annotation p { font-style:italic; }
    there is no need for a browser-specific solution. We can just run an arbitrary
    fully-featured Genode subsystem as browser plugin:
   </p>
-<embed src="rom:///nitpicker_plugin.tar" args="ram_quota=32M" type="application/x-genode-plugin" width="640px" height="480px"><br>
+<embed src="rom:///nitpicker_plugin.tar" args="ram_quota=32M, caps=1000" type="application/x-genode-plugin" width="640px" height="480px"><br>
   <p>
    The plugin above consists of multiple processes and uses the same
    binaries as the Genode system you are running. The most significant advantage of this

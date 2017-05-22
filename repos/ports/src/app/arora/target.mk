@@ -33,6 +33,8 @@ HEADERS_FILTER_OUT = \
 
 QT_MAIN_STACK_SIZE = 768*1024
 
+SRC_CC += arora_component.cc
+
 LIBS += libm libc_lwip libc_lwip_nic_dhcp
 
 RESOURCES += demo_html.qrc
@@ -84,5 +86,3 @@ vpath % $(ARORA_PORT_DIR)/src/app/arora/src/useragent
 vpath % $(ARORA_PORT_DIR)/src/app/arora/src/utils
 
 -include $(QT_TMPL_DIR)/target_final.inc
-
-LIBS += posix
