@@ -12,15 +12,13 @@ QT_SOURCES += qthread_genode.cpp
 
 # remove unsupported UNIX-specific files
 QT_SOURCES_FILTER_OUT = \
+  forkfd_qt.cpp \
   qprocess_unix.cpp \
-  qthread_unix.cpp \
-  qfilesystemwatcher_inotify.cpp \
-  moc_qfilesystemwatcher_inotify_p.cpp \
+  qthread_unix.cpp
 
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
-  moc_qsharedmemory.cpp \
-  moc_qfilesystemwatcher_inotify_p.cpp \
+  moc_qsharedmemory.cpp
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
@@ -34,4 +32,4 @@ INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtCore/private \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore/private
 
-LIBS += qt5_host_tools zlib icu libc libm alarm libc_pipe pthread
+LIBS += qt5_host_tools pcre16 zlib icu libc libm alarm libc_pipe pthread

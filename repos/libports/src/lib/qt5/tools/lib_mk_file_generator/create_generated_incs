@@ -1,22 +1,23 @@
 #!/bin/sh
 
+QT_VERSION=5.6.2
+
 ./genode_qt5_configure
+
+qtbase/bin/qmake -r ../qt-everywhere-opensource-src-${QT_VERSION}
 
 # qtbase
 
 cd qtbase/src/corelib                        && ../../../create_generated_inc qt5_core              && cp qt5_core_generated.inc ../../..              && cd ../../..
 cd qtbase/src/gui                            && ../../../create_generated_inc qt5_gui               && cp qt5_gui_generated.inc ../../..               && cd ../../..
 cd qtbase/src/network                        && ../../../create_generated_inc qt5_network           && cp qt5_network_generated.inc ../../..           && cd ../../..
+cd qtbase/src/opengl                         && ../../../create_generated_inc qt5_opengl            && cp qt5_opengl_generated.inc ../../..            && cd ../../..
 cd qtbase/src/printsupport                   && ../../../create_generated_inc qt5_printsupport      && cp qt5_printsupport_generated.inc ../../..      && cd ../../..
 cd qtbase/src/sql                            && ../../../create_generated_inc qt5_sql               && cp qt5_sql_generated.inc ../../..               && cd ../../..
 cd qtbase/src/widgets                        && ../../../create_generated_inc qt5_widgets           && cp qt5_widgets_generated.inc ../../..           && cd ../../..
 cd qtbase/src/xml                            && ../../../create_generated_inc qt5_xml               && cp qt5_xml_generated.inc ../../..               && cd ../../..
 
-cd qtscript/src/script                       && ../../../create_generated_inc qt5_script            && cp qt5_script_generated.inc ../../..            && cd ../../..
-
 cd qttools/src/designer/src/uitools          && ../../../../../create_generated_inc qt5_ui_tools    && cp qt5_ui_tools_generated.inc ../../../../..    && cd ../../../../..
-
-cd qtjsbackend/src/v8                        && ../../../create_generated_inc qt5_v8                && cp qt5_v8_generated.inc ../../..                && cd ../../..
 
 cd qtdeclarative/src/qml                     && ../../../create_generated_inc qt5_qml               && cp qt5_qml_generated.inc ../../..               && cd ../../..
 cd qtdeclarative/src/quick                   && ../../../create_generated_inc qt5_quick             && cp qt5_quick_generated.inc ../../..             && cd ../../..
@@ -27,25 +28,24 @@ cd qtdeclarative/src/imports/qtquick2        && ../../../../create_generated_inc
 make -C qtbase/src/tools/bootstrap
 make -C qtbase/src/tools/moc
 
-make -C qtwebkit/Source/JavaScriptCore -f Makefile.JavaScriptCore sub-DerivedSources-pri
+make -C qtwebkit/Source/JavaScriptCore -f Makefile.JavaScriptCore sub-DerivedSources-pri > JavaScriptCore.log
 cd qtwebkit/Source/JavaScriptCore
-../../../qtbase/bin/qmake ../../../../qt-everywhere-opensource-src-5.1.0/qtwebkit/Source/JavaScriptCore/Target.pri -o Makefile
+../../../qtbase/bin/qmake ../../../../qt-everywhere-opensource-src-${QT_VERSION}/qtwebkit/Source/JavaScriptCore/Target.pri -o Makefile
                                                 ../../../create_generated_inc qt5_jscore            && cp qt5_jscore_generated.inc ../../..            && cd ../../..
-
 cd qtwebkit/Source/WTF
-ln -sf Makefile.WTF Makefile                  && ../../../create_generated_inc qt5_wtf              && cp qt5_wtf_generated.inc ../../..               && cd ../../..
+ln -sf Makefile.WTF Makefile                 && ../../../create_generated_inc qt5_wtf               && cp qt5_wtf_generated.inc ../../..               && cd ../../..
 
-make -C qtwebkit/Source/WebCore -f Makefile.WebCore sub-DerivedSources-pri
+make -C qtwebkit/Source/ThirdParty/ANGLE -f Makefile.ANGLE sub-DerivedSources-pri > ANGLE.log
+cd qtwebkit/Source/ThirdParty/ANGLE
+../../../../qtbase/bin/qmake ../../../../../qt-everywhere-opensource-src-${QT_VERSION}/qtwebkit/Source/ThirdParty/ANGLE/Target.pri -o Makefile
+                                                ../../../../create_generated_inc qt5_angle          && cp qt5_angle_generated.inc ../../../..          && cd ../../../..
+
+make -C qtwebkit/Source/WebCore -f Makefile.WebCore sub-DerivedSources-pri > WebCore.log
 cd qtwebkit/Source/WebCore
-../../../qtbase/bin/qmake ../../../../qt-everywhere-opensource-src-5.1.0/qtwebkit/Source/WebCore/Target.pri -o Makefile
+../../../qtbase/bin/qmake ../../../../qt-everywhere-opensource-src-${QT_VERSION}/qtwebkit/Source/WebCore/Target.pri -o Makefile
                                                 ../../../create_generated_inc qt5_webcore           && cp qt5_webcore_generated.inc ../../..           && cd ../../..
 cd qtwebkit/Source/WebKit
-ln -sf Makefile.WebKit1 Makefile              && ../../../create_generated_inc qt5_webkit           && cp qt5_webkit_generated.inc ../../..            && cd ../../..
+ln -sf Makefile.WebKit1 Makefile             && ../../../create_generated_inc qt5_webkit            && cp qt5_webkit_generated.inc ../../..            && cd ../../..
 
 cd qtwebkit/Source
-ln -sf Makefile.widgetsapi Makefile           && ../../create_generated_inc qt5_webkitwidgets       && cp qt5_webkitwidgets_generated.inc ../..        && cd ../..
-
-#make -C qtwebkit/Source/WebKit2 -f Makefile.WebKit2 sub-DerivedSources-pri
-#cd qtwebkit/Source/WebKit2
-#../../../qtbase/bin/qmake ../../../../qt-everywhere-opensource-src-5.1.0/qtwebkit/Source/WebKit2/Target.pri -o Makefile
-#                                                ../../../create_generated_inc qt5_webkit            && cp qt5_webkit_generated.inc ../../..            && cd ../../..
+ln -sf Makefile.widgetsapi Makefile          && ../../create_generated_inc qt5_webkitwidgets        && cp qt5_webkitwidgets_generated.inc ../..        && cd ../..

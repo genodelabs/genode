@@ -10,6 +10,7 @@ append build_components [qt5_build_components feature]
 
 append build_components {
 	server/clipboard server/loader server/tar_rom server/nit_fb app/launchpad test/nitpicker
+	lib/vfs/jitterentropy
 	app/arora
 }
 
@@ -88,7 +89,10 @@ append config {
 		<config clipboard="yes">
 			<libc stdout="/dev/log" stderr="/dev/log">
 				<vfs>
-					<dir name="dev"> <log/> </dir>
+					<dir name="dev">
+						<log/>
+						<jitterentropy name="random"/>
+					</dir>
 					<tar name="qt5_fs_arora.tar"/>
 				</vfs>
 			</libc>
@@ -124,6 +128,7 @@ append boot_modules {
 	freetype.lib.so
 	libc_pipe.lib.so
 	stdcxx.lib.so
+	vfs_jitterentropy.lib.so
 	nitpicker_plugin.tar
 }
 
@@ -133,11 +138,14 @@ append boot_modules {
 append boot_modules {
 	gallium.lib.so
 	icu.lib.so
+	pcre16.lib.so
 	pthread.lib.so
+	qt5_angle.lib.so
 	qt5_core.lib.so
 	qt5_gui.lib.so
 	qt5_jscore.lib.so
 	qt5_network.lib.so
+	qt5_opengl.lib.so
 	qt5_qnitpickerviewwidget.lib.so
 	qt5_qpluginwidget.lib.so
 	qt5_ui_tools.lib.so

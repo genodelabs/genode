@@ -19,8 +19,9 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  src/modelmenu.cpp                                  |    5 ++
  src/modeltoolbar.cpp                               |    3 +
  src/network/cookiejar/cookieexceptionsmodel.cpp    |    5 ++
- src/network/cookiejar/cookiejar.cpp                |    2 +
+ src/network/cookiejar/cookiejar.cpp                |    3 +
  src/network/cookiejar/cookiemodel.cpp              |    5 ++
+ .../networkcookiejar/networkcookiejar.cpp          |    2 +
  .../cookiejar/networkcookiejar/networkcookiejar.h  |    2 +
  .../networkcookiejar/networkcookiejar_p.h          |    2 +
  src/network/networkaccessmanager.cpp               |   16 +++++++
@@ -35,7 +36,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  src/webview.cpp                                    |   14 ++++--
  tools/cacheinfo/main.cpp                           |    5 ++
  tools/htmlToXBel/main.cpp                          |    5 ++
- 31 files changed, 222 insertions(+), 14 deletions(-)
+ 32 files changed, 225 insertions(+), 14 deletions(-)
 
 diff --git a/src/aboutdialog.cpp b/src/aboutdialog.cpp
 index 42e1c81..ce70df2 100644
@@ -523,13 +524,14 @@ index 6e45d2a..93abbca 100644
  }
  
 diff --git a/src/network/cookiejar/cookiejar.cpp b/src/network/cookiejar/cookiejar.cpp
-index 532600a..97b6b36 100644
+index 532600a..f95dfb2 100644
 --- a/src/network/cookiejar/cookiejar.cpp
 +++ b/src/network/cookiejar/cookiejar.cpp
-@@ -71,6 +71,8 @@
+@@ -71,6 +71,9 @@
  #include <qsettings.h>
  #include <qurl.h>
  
++#include <QDataStream>
 +#include <QNetworkCookie>
 +
  #include <qdebug.h>
@@ -550,6 +552,19 @@ index 391e2cc..318af47 100644
      reset();
 +#endif
  }
+diff --git a/src/network/cookiejar/networkcookiejar/networkcookiejar.cpp b/src/network/cookiejar/networkcookiejar/networkcookiejar.cpp
+index 940269d..e542d79 100644
+--- a/src/network/cookiejar/networkcookiejar/networkcookiejar.cpp
++++ b/src/network/cookiejar/networkcookiejar/networkcookiejar.cpp
+@@ -47,6 +47,8 @@
+ #include <qdebug.h>
+ #endif
+ 
++#include <QDataStream>
++
+ #include <qurl.h>
+ #include <qdatetime.h>
+ 
 diff --git a/src/network/cookiejar/networkcookiejar/networkcookiejar.h b/src/network/cookiejar/networkcookiejar/networkcookiejar.h
 index 365b4a3..52d9c6e 100644
 --- a/src/network/cookiejar/networkcookiejar/networkcookiejar.h

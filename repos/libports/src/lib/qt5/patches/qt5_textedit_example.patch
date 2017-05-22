@@ -4,16 +4,15 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- qtbase/examples/widgets/richtext/textedit/main.cpp |   17 ++++++++++++++++-
- .../widgets/richtext/textedit/textedit.cpp         |   11 +++++------
+ qtbase/examples/widgets/richtext/textedit/main.cpp |   20 ++++++++++++++++----
  .../widgets/richtext/textedit/textedit.pro         |    4 ----
- 3 files changed, 21 insertions(+), 11 deletions(-)
+ 2 files changed, 16 insertions(+), 8 deletions(-)
 
 diff --git a/qtbase/examples/widgets/richtext/textedit/main.cpp b/qtbase/examples/widgets/richtext/textedit/main.cpp
-index 196dbfc..ff8d024 100644
+index 1de6d99..b802866 100644
 --- a/qtbase/examples/widgets/richtext/textedit/main.cpp
 +++ b/qtbase/examples/widgets/richtext/textedit/main.cpp
-@@ -39,6 +39,10 @@
+@@ -31,6 +31,10 @@
  **
  ****************************************************************************/
  
@@ -22,9 +21,9 @@ index 196dbfc..ff8d024 100644
 +
 +/* Qt includes */
  #include "textedit.h"
- #include <QApplication>
  
-@@ -46,9 +50,20 @@ int main(int argc, char *argv[])
+ #include <QApplication>
+@@ -42,6 +46,16 @@ int main(int argc, char *argv[])
  {
      Q_INIT_RESOURCE(textedit);
  
@@ -39,46 +38,21 @@ index 196dbfc..ff8d024 100644
 +    try { Genode::config()->xml_node().attribute("height").value(&h); } catch (...) { }
 +
      QApplication a(argc, argv);
+     QCoreApplication::setOrganizationName("QtProject");
+     QCoreApplication::setApplicationName("Rich Text");
+@@ -55,10 +69,8 @@ int main(int argc, char *argv[])
+ 
      TextEdit mw;
--    mw.resize(700, 800);
+ 
+-    const QRect availableGeometry = QApplication::desktop()->availableGeometry(&mw);
+-    mw.resize(availableGeometry.width() / 2, (availableGeometry.height() * 2) / 3);
+-    mw.move((availableGeometry.width() - mw.width()) / 2,
+-            (availableGeometry.height() - mw.height()) / 2);
 +    mw.move(x, y);
 +    mw.resize(w, h);
-     mw.show();
-     return a.exec();
- }
-diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.cpp b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
-index ae2bded..be98558 100644
---- a/qtbase/examples/widgets/richtext/textedit/textedit.cpp
-+++ b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
-@@ -476,7 +476,7 @@ void TextEdit::fileNew()
- void TextEdit::fileOpen()
- {
-     QString fn = QFileDialog::getOpenFileName(this, tr("Open File..."),
--                                              QString(), tr("HTML-Files (*.htm *.html);;All Files (*)"));
-+                                              QString("/"), tr("HTML-Files (*.htm *.html);;All Files (*)"));
-     if (!fn.isEmpty())
-         load(fn);
- }
-@@ -495,15 +495,14 @@ bool TextEdit::fileSave()
  
- bool TextEdit::fileSaveAs()
- {
--    QString fn = QFileDialog::getSaveFileName(this, tr("Save as..."), QString(),
--                                              tr("ODF files (*.odt);;HTML-Files "
-+    QString fn = QFileDialog::getSaveFileName(this, tr("Save as..."), QString("/"),
-+                                              tr("HTML-Files "
-                                                  "(*.htm *.html);;All Files (*)"));
-     if (fn.isEmpty())
-         return false;
--    if (!(fn.endsWith(".odt", Qt::CaseInsensitive)
--          || fn.endsWith(".htm", Qt::CaseInsensitive)
-+    if (!(fn.endsWith(".htm", Qt::CaseInsensitive)
-           || fn.endsWith(".html", Qt::CaseInsensitive))) {
--        fn += ".odt"; // default
-+        fn += ".html"; // default
-     }
-     setCurrentFileName(fn);
-     return fileSave();
+     if (!mw.load(parser.positionalArguments().value(0, QLatin1String(":/example.html"))))
+         mw.fileNew();
 diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.pro b/qtbase/examples/widgets/richtext/textedit/textedit.pro
 index c32bf68..704f738 100644
 --- a/qtbase/examples/widgets/richtext/textedit/textedit.pro

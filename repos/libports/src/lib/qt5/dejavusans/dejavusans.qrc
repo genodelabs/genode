@@ -1,6 +1,0 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
-<qresource prefix="/qt/lib/fonts">
-<file alias="DejaVuSans.ttf">../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtbase/lib/fonts/DejaVuSans.ttf</file>
-</qresource>
-</RCC>

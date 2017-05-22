@@ -39,7 +39,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="calculatorform" caps="150">
+	<start name="calculatorform" caps="200">
 		<resource name="RAM" quantum="80M"/>
 		<config>
 			<vfs>
@@ -72,6 +72,7 @@ append boot_modules {
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
+	pcre16.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
 	qt5_gui.lib.so

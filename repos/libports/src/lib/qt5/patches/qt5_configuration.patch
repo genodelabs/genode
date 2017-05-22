@@ -4,98 +4,23 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- configure                                          |    2 
- qt.pro                                             |   42 +-
- qtbase/configure                                   |    8 
- qtbase/mkspecs/genode-g++/qmake.conf               |   12 
- qtbase/mkspecs/genode-g++/qplatformdefs.h          |  112 ++++
- qtbase/src/corelib/global/qconfig-genode.h         |  546 ++++++++++++++++++++
- qtdeclarative/examples/quick/quick.pro             |    6 
- qtdeclarative/src/imports/imports.pro              |    2 
- qtdeclarative/tests/tests.pro                      |    4 
- qtquick1/examples/declarative/declarative.pro      |    1 
- qtwebkit/Tools/qmake/mkspecs/features/features.prf |    6 
- 11 files changed, 707 insertions(+), 34 deletions(-)
+ qtbase/configure                           |   98 +++---
+ qtbase/mkspecs/genode-g++/qmake.conf       |   10 +
+ qtbase/mkspecs/genode-g++/qplatformdefs.h  |   82 +++++
+ qtbase/src/corelib/global/qconfig-genode.h |  426 ++++++++++++++++++++++++++++
+ qtdeclarative/tools/tools.pro              |    5 
+ 5 files changed, 568 insertions(+), 53 deletions(-)
  create mode 100644 qtbase/mkspecs/genode-g++/qmake.conf
  create mode 100644 qtbase/mkspecs/genode-g++/qplatformdefs.h
  create mode 100644 qtbase/src/corelib/global/qconfig-genode.h
 
-diff --git a/configure b/configure
-index 9ba24b5..d0f1357 100755
---- a/configure
-+++ b/configure
-@@ -60,4 +60,4 @@ echo "+ cd .."
- cd ..
- 
- echo "+ qtbase/bin/qmake $srcpath"
--exec qtbase/bin/qmake "$srcpath"
-+exec qtbase/bin/qmake -r "$srcpath"
-diff --git a/qt.pro b/qt.pro
-index 218701a..bb4c037 100644
---- a/qt.pro
-+++ b/qt.pro
-@@ -54,33 +54,33 @@ defineTest(addModule) {
- # it may not build.
- 
- addModule(qtbase)
--addModule(qtx11extras, qtbase)
--addModule(qlalr, qtbase)
-+#addModule(qtx11extras, qtbase)
-+#addModule(qlalr, qtbase)
- addModule(qtsvg, qtbase)
- addModule(qtxmlpatterns, qtbase)
- addModule(qtjsbackend, qtbase)
- addModule(qtdeclarative, qtjsbackend, qtsvg qtxmlpatterns)
--addModule(qtquickcontrols, qtdeclarative)
--addModule(qtmultimedia, qtdeclarative)
--addModule(qtactiveqt, qtbase)
--addModule(qt3d, qtdeclarative)
--addModule(qtjsondb, qtdeclarative)
--addModule(qtsystems, qtbase, qtdeclarative qtjsondb)
--addModule(qtlocation, qtbase, qt3d qtjsondb qtsystems qtmultimedia)
--addModule(qtsensors, qtbase, qtdeclarative)
--addModule(qtconnectivity, qtsystems)
--addModule(qtfeedback, qtdeclarative, qtmultimedia)
--addModule(qtpim, qtdeclarative, qtjsondb)
-+#addModule(qtquickcontrols, qtdeclarative)
-+#addModule(qtmultimedia, qtdeclarative)
-+#addModule(qtactiveqt, qtbase)
-+#addModule(qt3d, qtdeclarative)
-+#addModule(qtjsondb, qtdeclarative)
-+#addModule(qtsystems, qtbase, qtdeclarative qtjsondb)
-+#addModule(qtlocation, qtbase, qt3d qtjsondb qtsystems qtmultimedia)
-+#addModule(qtsensors, qtbase, qtdeclarative)
-+#addModule(qtconnectivity, qtsystems)
-+#addModule(qtfeedback, qtdeclarative, qtmultimedia)
-+#addModule(qtpim, qtdeclarative, qtjsondb)
- addModule(qtwebkit, qtdeclarative, qtlocation qtsensors, WebKit.pro)
- addModule(qttools, qtbase, qtdeclarative qtactiveqt qtwebkit)
- addModule(qtwebkit-examples, qtwebkit qttools)
- addModule(qtimageformats, qtbase)
--addModule(qtgraphicaleffects, qtdeclarative)
-+#addModule(qtgraphicaleffects, qtdeclarative)
- addModule(qtscript, qtbase)
--addModule(qtquick1, qtscript, qtsvg qtxmlpatterns qtwebkit qttools)
--addModule(qtdocgallery, qtdeclarative, qtjsondb)
--!win32:!mac:addModule(qtwayland, qtbase, qtdeclarative)
--addModule(qtserialport, qtbase)
--addModule(qttranslations, qttools)
--addModule(qtdoc, qtdeclarative)
--addModule(qtqa, qtbase)
-+#addModule(qtquick1, qtscript, qtsvg qtxmlpatterns qtwebkit qttools)
-+#addModule(qtdocgallery, qtdeclarative, qtjsondb)
-+#!win32:!mac:addModule(qtwayland, qtbase, qtdeclarative)
-+#addModule(qtserialport, qtbase)
-+#addModule(qttranslations, qttools)
-+#addModule(qtdoc, qtdeclarative)
-+#addModule(qtqa, qtbase)
 diff --git a/qtbase/configure b/qtbase/configure
-index d7c9674..956c3e1 100755
+index 0b8b417..1d8bd6b 100755
 --- a/qtbase/configure
 +++ b/qtbase/configure
-@@ -857,10 +857,10 @@ CFG_XINERAMA=runtime
- CFG_XFIXES=runtime
- CFG_ZLIB=auto
+@@ -633,10 +633,10 @@ CFG_MTDEV=auto
+ CFG_JOURNALD=no
+ CFG_SYSLOG=no
  CFG_SQLITE=qt
 -CFG_GIF=auto
 +CFG_GIF=yes
@@ -106,84 +31,178 @@ index d7c9674..956c3e1 100755
  CFG_LIBJPEG=auto
  CFG_XCURSOR=runtime
  CFG_XRANDR=runtime
-@@ -883,7 +883,7 @@ CFG_SKIP_MODULES=""
- CFG_COMPILE_EXAMPLES=auto
- CFG_RELEASE_QMAKE=no
- CFG_AUDIO_BACKEND=auto
--CFG_V8SNAPSHOT=auto
-+CFG_V8SNAPSHOT=no
- CFG_QML_DEBUG=yes
- CFG_JAVASCRIPTCORE_JIT=auto
- CFG_PKGCONFIG=auto
-@@ -949,7 +949,7 @@ CFG_GETADDRINFO=auto
+@@ -743,7 +743,7 @@ CFG_GETADDRINFO=auto
  CFG_IPV6IFNAME=auto
  CFG_GETIFADDRS=auto
  CFG_INOTIFY=auto
 -CFG_EVENTFD=auto
 +CFG_EVENTFD=no
+ CFG_CLOEXEC=no
  CFG_RPATH=yes
  CFG_FRAMEWORK=auto
- CFG_MAC_HARFBUZZ=no
+@@ -5337,16 +5337,16 @@ elif [ "$CFG_OPENGL" = "es2" ]; then
+         echo " ${XQMAKESPEC}."
+         exit 1
+     fi
+-elif [ "$CFG_OPENGL" = "desktop" ]; then
+-    # Desktop OpenGL support
+-    compileTestWithPkgConfig gl unix/opengldesktop "OpenGL" OPENGL
+-    if [ $? != "0" ]; then
+-        echo "The OpenGL functionality test failed!"
+-        echo " You might need to modify the include and library search paths by editing"
+-        echo " QMAKE_INCDIR_OPENGL, QMAKE_LIBDIR_OPENGL and QMAKE_LIBS_OPENGL in"
+-        echo " ${XQMAKESPEC}."
+-        exit 1
+-    fi
++#elif [ "$CFG_OPENGL" = "desktop" ]; then
++#    # Desktop OpenGL support
++#    compileTestWithPkgConfig gl unix/opengldesktop "OpenGL" OPENGL
++#    if [ $? != "0" ]; then
++#        echo "The OpenGL functionality test failed!"
++#        echo " You might need to modify the include and library search paths by editing"
++#        echo " QMAKE_INCDIR_OPENGL, QMAKE_LIBDIR_OPENGL and QMAKE_LIBS_OPENGL in"
++#        echo " ${XQMAKESPEC}."
++#        exit 1
++#    fi
+ fi
+ 
+ # If OpenGL ES 2.0 is enabled, check for 3.0 and higher. This is used to allow
+@@ -5760,39 +5760,39 @@ else
+ fi
+ 
+ # EGL Support
+-if [ "$CFG_EGL" != "no" ]; then
+-    if [ "$CFG_EGL" = "yes" ] && [ "$CFG_OPENGL" = "no" ]; then
+-        echo "EGL support was requested but OpenGL support is disabled."
+-        echo "Either disable EGL support or enable OpenGL support."
+-        exit 101
+-    fi
+-
+-    if [ -n "$PKG_CONFIG" ] && $PKG_CONFIG --exists egl 2>/dev/null; then
+-        QMAKE_INCDIR_EGL=`$PKG_CONFIG --cflags-only-I egl 2>/dev/null | sed -e 's,^-I,,g' -e 's, -I, ,g'`
+-        QMAKE_LIBS_EGL=`$PKG_CONFIG --libs egl 2>/dev/null`
+-        QMAKE_CFLAGS_EGL=`$PKG_CONFIG --cflags egl 2>/dev/null`
+-        QMakeVar set QMAKE_INCDIR_EGL "$QMAKE_INCDIR_EGL"
+-        QMakeVar set QMAKE_LIBS_EGL "$QMAKE_LIBS_EGL"
+-        QMakeVar set QMAKE_CFLAGS_EGL "`echo " $QMAKE_CFLAGS_EGL " | sed -e 's, -I[^ ]* , ,g;s,^ ,,;s, $,,'`"
+-    fi       # detect EGL support
+-    if compileTest qpa/egl "EGL" $QMAKE_CFLAGS_EGL $QMAKE_LIBS_EGL; then
+-        CFG_EGL=yes
+-        if compileTest qpa/egl-x11 "EGL-X11" $QMAKE_CFLAGS_EGL $QMAKE_LIBS_EGL; then
+-            CFG_EGL_X=yes
+-        else
+-            CFG_EGL_X=no
+-        fi
+-    elif [ "$CFG_EGL" = "yes" ]; then
+-        echo " The EGL functionality test failed; EGL is required by some QPA plugins to manage contexts & surfaces."
+-        [ -z "$PKG_CONFIG" ] && echo " Use of pkg-config is not enabled, maybe you want to pass -pkg-config?"
+-        echo " You might need to modify the include and library search paths by editing"
+-        echo " QMAKE_INCDIR_EGL, QMAKE_LIBDIR_EGL and QMAKE_LIBS_EGL in ${XQMAKESPEC}."
+-        exit 1
+-    else
+-        CFG_EGL=no
+-        CFG_EGL_X=no
+-    fi
+-fi
++#if [ "$CFG_EGL" != "no" ]; then
++#    if [ "$CFG_EGL" = "yes" ] && [ "$CFG_OPENGL" = "no" ]; then
++#        echo "EGL support was requested but OpenGL support is disabled."
++#        echo "Either disable EGL support or enable OpenGL support."
++#        exit 101
++#    fi
++#
++#    if [ -n "$PKG_CONFIG" ] && $PKG_CONFIG --exists egl 2>/dev/null; then
++#        QMAKE_INCDIR_EGL=`$PKG_CONFIG --cflags-only-I egl 2>/dev/null | sed -e 's,^-I,,g' -e 's, -I, ,g'`
++#        QMAKE_LIBS_EGL=`$PKG_CONFIG --libs egl 2>/dev/null`
++#        QMAKE_CFLAGS_EGL=`$PKG_CONFIG --cflags egl 2>/dev/null`
++#        QMakeVar set QMAKE_INCDIR_EGL "$QMAKE_INCDIR_EGL"
++#        QMakeVar set QMAKE_LIBS_EGL "$QMAKE_LIBS_EGL"
++#        QMakeVar set QMAKE_CFLAGS_EGL "`echo " $QMAKE_CFLAGS_EGL " | sed -e 's, -I[^ ]* , ,g;s,^ ,,;s, $,,'`"
++#    fi       # detect EGL support
++#    if compileTest qpa/egl "EGL" $QMAKE_CFLAGS_EGL $QMAKE_LIBS_EGL; then
++#        CFG_EGL=yes
++#        if compileTest qpa/egl-x11 "EGL-X11" $QMAKE_CFLAGS_EGL $QMAKE_LIBS_EGL; then
++#            CFG_EGL_X=yes
++#        else
++#            CFG_EGL_X=no
++#        fi
++#    elif [ "$CFG_EGL" = "yes" ]; then
++#        echo " The EGL functionality test failed; EGL is required by some QPA plugins to manage contexts & surfaces."
++#        [ -z "$PKG_CONFIG" ] && echo " Use of pkg-config is not enabled, maybe you want to pass -pkg-config?"
++#        echo " You might need to modify the include and library search paths by editing"
++#        echo " QMAKE_INCDIR_EGL, QMAKE_LIBDIR_EGL and QMAKE_LIBS_EGL in ${XQMAKESPEC}."
++#        exit 1
++#    else
++#        CFG_EGL=no
++#        CFG_EGL_X=no
++#    fi
++#fi
+ 
+ if [ "$CFG_EGLFS" != "no" ]; then
+     if [ "$XPLATFORM_QNX" = "no" ] && [ "$CFG_OPENGL" != "no" ]; then
+@@ -6064,9 +6064,9 @@ if [ "$CFG_GETIFADDRS" != "no" ]; then
+ fi
+ 
+ # find if the platform provides thread-safe CLOEXEC support
+-if compileTest unix/cloexec "cloexec"; then
+-    CFG_CLOEXEC=yes
+-fi
++#if compileTest unix/cloexec "cloexec"; then
++#    CFG_CLOEXEC=yes
++#fi
+ 
+ if [ "$XPLATFORM_MAC" = "yes" ] && [ "$CFG_SECURETRANSPORT" != "no" ] && ([ "$CFG_OPENSSL" = "no" ] || [ "$CFG_OPENSSL" = "auto" ]); then
+     CFG_SECURETRANSPORT=yes
 diff --git a/qtbase/mkspecs/genode-g++/qmake.conf b/qtbase/mkspecs/genode-g++/qmake.conf
 new file mode 100644
-index 0000000..f99671f
+index 0000000..734ae5c
 --- /dev/null
 +++ b/qtbase/mkspecs/genode-g++/qmake.conf
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,10 @@
 +#
 +# qmake configuration for genode-g++
 +#
 +
 +MAKEFILE_GENERATOR	= UNIX
-+CONFIG += incremental gdb_dwarf_index
-+QMAKE_INCREMENTAL_STYLE = sublib
 +
-+include(../common/linux.conf)
++include(../common/unix.conf)
 +include(../common/gcc-base-unix.conf)
 +include(../common/g++-unix.conf)
 +load(qt_config)
 diff --git a/qtbase/mkspecs/genode-g++/qplatformdefs.h b/qtbase/mkspecs/genode-g++/qplatformdefs.h
 new file mode 100644
-index 0000000..4d2c580
+index 0000000..d4d67b0
 --- /dev/null
 +++ b/qtbase/mkspecs/genode-g++/qplatformdefs.h
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,82 @@
 +/****************************************************************************
 +**
-+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-+** Contact: http://www.qt-project.org/legal
++** Copyright (C) 2015 The Qt Company Ltd.
++** Contact: http://www.qt.io/licensing/
 +**
 +** This file is part of the qmake spec of the Qt Toolkit.
 +**
-+** $QT_BEGIN_LICENSE:LGPL$
++** $QT_BEGIN_LICENSE:LGPL21$
 +** Commercial License Usage
 +** Licensees holding valid commercial Qt licenses may use this file in
 +** accordance with the commercial license agreement provided with the
 +** Software or, alternatively, in accordance with the terms contained in
-+** a written agreement between you and Digia.  For licensing terms and
-+** conditions see http://qt.digia.com/licensing.  For further information
-+** use the contact form at http://qt.digia.com/contact-us.
++** a written agreement between you and The Qt Company. For licensing terms
++** and conditions see http://www.qt.io/terms-conditions. For further
++** information use the contact form at http://www.qt.io/contact-us.
 +**
 +** GNU Lesser General Public License Usage
 +** Alternatively, this file may be used under the terms of the GNU Lesser
-+** General Public License version 2.1 as published by the Free Software
-+** Foundation and appearing in the file LICENSE.LGPL included in the
-+** packaging of this file.  Please review the following information to
-+** ensure the GNU Lesser General Public License version 2.1 requirements
-+** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++** General Public License version 2.1 or version 3 as published by the Free
++** Software Foundation and appearing in the file LICENSE.LGPLv21 and
++** LICENSE.LGPLv3 included in the packaging of this file. Please review the
++** following information to ensure the GNU Lesser General Public License
++** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
++** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 +**
-+** In addition, as a special exception, Digia gives you certain additional
-+** rights.  These rights are described in the Digia Qt LGPL Exception
++** As a special exception, The Qt Company gives you certain additional
++** rights. These rights are described in The Qt Company LGPL Exception
 +** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
-+**
-+** GNU General Public License Usage
-+** Alternatively, this file may be used under the terms of the GNU
-+** General Public License version 3.0 as published by the Free Software
-+** Foundation and appearing in the file LICENSE.GPL included in the
-+** packaging of this file.  Please review the following information to
-+** ensure the GNU General Public License version 3.0 requirements will be
-+** met: http://www.gnu.org/copyleft/gpl.html.
-+**
 +**
 +** $QT_END_LICENSE$
 +**
@@ -198,28 +217,21 @@ index 0000000..4d2c580
 +
 +// Set any POSIX/XOPEN defines at the top of this file to turn on specific APIs
 +
-+// 1) need to reset default environment if _BSD_SOURCE is defined
-+// 2) need to specify POSIX thread interfaces explicitly in glibc 2.0
-+// 3) it seems older glibc need this to include the X/Open stuff
-+#ifndef _GNU_SOURCE
-+#  define _GNU_SOURCE
-+#endif
-+
 +#include <unistd.h>
 +
 +
 +// We are hot - unistd.h should have turned on the specific APIs we requested
 +
-+#ifndef Q_OS_GENODE
-+#include <features.h>
-+#endif
++
 +#include <pthread.h>
 +#include <dirent.h>
 +#include <fcntl.h>
 +#include <grp.h>
 +#include <pwd.h>
 +#include <signal.h>
++#include <dlfcn.h>
 +
++#include <sys/param.h>
 +#include <sys/types.h>
 +#include <sys/ioctl.h>
 +#include <sys/ipc.h>
@@ -231,45 +243,27 @@ index 0000000..4d2c580
 +#include <sys/stat.h>
 +#include <sys/wait.h>
 +#include <netinet/in.h>
-+#ifdef Q_OS_GENODE
-+#define QT_NO_IPV6IFNAME
-+#endif
 +#ifndef QT_NO_IPV6IFNAME
 +#include <net/if.h>
 +#endif
 +
-+#define QT_USE_XOPEN_LFS_EXTENSIONS
 +#include "../common/posix/qplatformdefs.h"
 +
-+#ifdef Q_OS_GENODE
 +#undef QT_OPEN_LARGEFILE
++
 +#define QT_OPEN_LARGEFILE 0
-+#endif
 +
-+#undef QT_SOCKLEN_T
-+
-+#if (defined(__GLIBC__) && (__GLIBC__ >= 2)) || defined(Q_OS_GENODE)
-+#define QT_SOCKLEN_T            socklen_t
-+#else
-+#define QT_SOCKLEN_T            int
-+#endif
-+
-+#if defined(_XOPEN_SOURCE) && (_XOPEN_SOURCE >= 500)
 +#define QT_SNPRINTF		::snprintf
 +#define QT_VSNPRINTF		::vsnprintf
-+#endif
 +
 +#endif // QPLATFORMDEFS_H
 diff --git a/qtbase/src/corelib/global/qconfig-genode.h b/qtbase/src/corelib/global/qconfig-genode.h
 new file mode 100644
-index 0000000..681af14
+index 0000000..56a0b73
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig-genode.h
-@@ -0,0 +1,546 @@
+@@ -0,0 +1,426 @@
 +/* Data structures */
-+#ifndef QT_NO_STL
-+#  define QT_NO_STL
-+#endif
 +//#ifndef QT_NO_TEXTDATE
 +//#  define QT_NO_TEXTDATE
 +//#endif
@@ -305,9 +299,6 @@ index 0000000..681af14
 +//#ifndef QT_NO_PROGRESSDIALOG
 +//#  define QT_NO_PROGRESSDIALOG
 +//#endif
-+//#ifndef QT_NO_TABDIALOG
-+//#  define QT_NO_TABDIALOG
-+//#endif
 +//#ifndef QT_NO_WIZARD
 +//#  define QT_NO_WIZARD
 +//#endif
@@ -339,9 +330,6 @@ index 0000000..681af14
 +//#ifndef QT_NO_FREETYPE
 +//#  define QT_NO_FREETYPE
 +//#endif
-+#ifndef QT_NO_QWS_QPF2
-+#  define QT_NO_QWS_QPF2
-+#endif
 +
 +/* Images */
 +//#ifndef QT_NO_IMAGEFORMATPLUGIN
@@ -376,9 +364,6 @@ index 0000000..681af14
 +//#ifndef QT_NO_BIG_CODECS
 +//#  define QT_NO_BIG_CODECS
 +//#endif
-+//#ifndef QT_NO_QWS_INPUTMETHODS
-+//#  define QT_NO_QWS_INPUTMETHODS
-+//#endif
 +//#ifndef QT_NO_TEXTCODEC
 +//#  define QT_NO_TEXTCODEC
 +//#endif
@@ -387,9 +372,6 @@ index 0000000..681af14
 +//#endif
 +//#ifndef QT_NO_TRANSLATION
 +//#  define QT_NO_TRANSLATION
-+//#endif
-+//#ifndef QT_NO_TRANSLATION_UTF8
-+//#  define QT_NO_TRANSLATION_UTF8
 +//#endif
 +
 +/* ItemViews */
@@ -458,12 +440,6 @@ index 0000000..681af14
 +//#ifndef QT_NO_SHORTCUT
 +//#  define QT_NO_SHORTCUT
 +//#endif
-+#ifndef QT_NO_SOUND
-+#  define QT_NO_SOUND
-+#endif
-+#ifndef QT_NO_SYSTEMLOCALE
-+#  define QT_NO_SYSTEMLOCALE
-+#endif
 +#ifndef QT_NO_SYSTEMSEMAPHORE
 +#  define QT_NO_SYSTEMSEMAPHORE
 +#endif
@@ -490,12 +466,6 @@ index 0000000..681af14
 +//#endif
 +
 +/* Networking */
-+#ifndef QT_NO_COP
-+#  define QT_NO_COP
-+#endif
-+//#ifndef QT_NO_HOSTINFO
-+//#  define QT_NO_HOSTINFO
-+//#endif
 +//#ifndef QT_NO_HTTP
 +//#  define QT_NO_HTTP
 +//#endif
@@ -505,36 +475,21 @@ index 0000000..681af14
 +//#ifndef QT_NO_SOCKS5
 +//#  define QT_NO_SOCKS5
 +//#endif
-+#ifndef QT_NO_UDPSOCKET
-+#  define QT_NO_UDPSOCKET
-+#endif
-+#ifndef QT_NO_URLINFO
-+#  define QT_NO_URLINFO
-+#endif
++//#ifndef QT_NO_UDPSOCKET
++//#  define QT_NO_UDPSOCKET
++//#endif
 +#ifndef QT_NO_FTP
 +#  define QT_NO_FTP
 +#endif
-+/* found in source files */
-+//#ifndef QT_NO_LOCALSOCKET
-+//#  define QT_NO_LOCALSOCKET
-+//#endif
-+//#ifndef QT_NO_LOCALSERVER
-+//#  define QT_NO_LOCALSERVER
-+//#endif
++
++/* Added for Genode */
 +#ifndef QT_NO_NETWORKINTERFACE
 +#  define QT_NO_NETWORKINTERFACE
 +#endif
 +
-+
 +/* Painting */
 +//#ifndef QT_NO_COLORNAMES
 +//#  define QT_NO_COLORNAMES
-+//#endif
-+//#ifndef QT_NO_DIRECTPAINTER
-+//#  define QT_NO_DIRECTPAINTER
-+//#endif
-+//#ifndef QT_NO_PAINTONSCREEN
-+//#  define QT_NO_PAINTONSCREEN
 +//#endif
 +//#ifndef QT_NO_PAINT_DEBUG
 +//#  define QT_NO_PAINT_DEBUG
@@ -548,73 +503,6 @@ index 0000000..681af14
 +#ifndef QT_NO_CUPS
 +#  define QT_NO_CUPS
 +#endif
-+
-+/* Qt for Embedded Linux */
-+//#ifndef QT_NO_QWSEMBEDWIDGET
-+//#  define QT_NO_QWSEMBEDWIDGET
-+//#endif
-+//#ifndef QT_NO_QWS_ALPHA_CURSOR
-+//#  define QT_NO_QWS_ALPHA_CURSOR
-+//#endif
-+#ifndef QT_NO_QWS_CURSOR
-+#  define QT_NO_QWS_CURSOR
-+#endif
-+//#ifndef QT_NO_QWS_DECORATION_DEFAULT
-+//#  define QT_NO_QWS_DECORATION_DEFAULT
-+//#endif
-+//#ifndef QT_NO_QWS_DECORATION_STYLED
-+//#  define QT_NO_QWS_DECORATION_STYLED
-+//#endif
-+//#ifndef QT_NO_QWS_DECORATION_WINDOWS
-+//#  define QT_NO_QWS_DECORATION_WINDOWS
-+//#endif
-+//#ifndef QT_NO_QWS_MANAGER
-+//#  define QT_NO_QWS_MANAGER
-+//#endif
-+//#ifndef QT_NO_QWS_KEYBOARD
-+//#  define QT_NO_QWS_KEYBOARD
-+//#endif
-+//#ifndef QT_NO_QWS_MOUSE
-+//#  define QT_NO_QWS_MOUSE
-+//#endif
-+//#ifndef QT_NO_QWS_MOUSE_AUTO
-+//#  define QT_NO_QWS_MOUSE_AUTO
-+//#endif
-+//#ifndef QT_NO_QWS_MOUSE_MANUAL
-+//#  define QT_NO_QWS_MOUSE_MANUAL
-+//#endif
-+#ifndef QT_NO_QWS_MULTIPROCESS
-+#  define QT_NO_QWS_MULTIPROCESS
-+#endif
-+#ifndef QT_NO_QWS_SOUNDSERVER
-+#  define QT_NO_QWS_SOUNDSERVER
-+#endif
-+//#ifndef QT_NO_QWS_PROPERTIES
-+//#  define QT_NO_QWS_PROPERTIES
-+//#endif
-+//#ifndef QT_NO_QWS_PROXYSCREEN
-+//#  define QT_NO_QWS_PROXYSCREEN
-+//#endif
-+//#ifndef QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
-+//#  define QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
-+//#endif
-+
-+/* SVG */
-+//#ifndef QT_NO_SVG
-+//#  define QT_NO_SVG
-+//#endif
-+//#ifndef QT_NO_GRAPHICSSVGITEM
-+//#  define QT_NO_GRAPHICSSVGITEM
-+//#endif
-+//#ifndef QT_NO_SVGGENERATOR
-+//#  define QT_NO_SVGGENERATOR
-+//#endif
-+//#ifndef QT_NO_SVGRENDERER
-+//#  define QT_NO_SVGRENDERER
-+//#endif
-+//#ifndef QT_NO_SVGWIDGET
-+//#  define QT_NO_SVGWIDGET
-+//#endif
 +
 +/* Styles */
 +//#ifndef QT_NO_STYLE_FUSION
@@ -645,9 +533,6 @@ index 0000000..681af14
 +//#endif
 +//#ifndef QT_NO_DESKTOPSERVICES
 +//#  define QT_NO_DESKTOPSERVICES
-+//#endif
-+//#ifndef QT_NO_SCRIPT
-+//#  define QT_NO_SCRIPT
 +//#endif
 +//#ifndef QT_NO_SYSTEMTRAYICON
 +//#  define QT_NO_SYSTEMTRAYICON
@@ -729,9 +614,6 @@ index 0000000..681af14
 +//#ifndef QT_NO_SPLITTER
 +//#  define QT_NO_SPLITTER
 +//#endif
-+//#ifndef QT_NO_SIGNALMAPPER
-+//#  define QT_NO_SIGNALMAPPER
-+//#endif
 +//#ifndef QT_NO_SIZEGRIP
 +//#  define QT_NO_SIZEGRIP
 +//#endif
@@ -807,87 +689,23 @@ index 0000000..681af14
 +//#ifndef QT_NO_VALIDATOR
 +//#  define QT_NO_VALIDATOR
 +//#endif
-+
-+/* Windows */
-+//#ifndef QT_NO_WIN_ACTIVEQT
-+//#  define QT_NO_WIN_ACTIVEQT
-+//#endif
-diff --git a/qtdeclarative/examples/quick/quick.pro b/qtdeclarative/examples/quick/quick.pro
-index 311e264..b356a56 100644
---- a/qtdeclarative/examples/quick/quick.pro
-+++ b/qtdeclarative/examples/quick/quick.pro
-@@ -12,7 +12,6 @@ SUBDIRS = accessibility \
-             positioners \
-             righttoleft \
-             scenegraph \
--            shadereffects \
-             text \
-             threading \
-             touchinteraction \
-@@ -29,6 +28,11 @@ qtHaveModule(widgets) {
-     SUBDIRS += embeddedinwidgets
- }
- 
-+# OpenGL dependent examples
-+qtHaveModule(opengl) {
-+	SUBDIRS += shadereffects
-+}
-+
- EXAMPLE_FILES = \
-     ui-components \
-     shared
-diff --git a/qtdeclarative/src/imports/imports.pro b/qtdeclarative/src/imports/imports.pro
-index 733c7c4..fb1a413 100644
---- a/qtdeclarative/src/imports/imports.pro
-+++ b/qtdeclarative/src/imports/imports.pro
-@@ -16,4 +16,4 @@ qtHaveModule(quick) {
- 
- qtHaveModule(xmlpatterns) : SUBDIRS += xmllistmodel
- 
--qtHaveModule(widgets) : SUBDIRS += widgets
-+qtHaveModule(widgets),qtHaveModule(quick): SUBDIRS += widgets
-diff --git a/qtdeclarative/tests/tests.pro b/qtdeclarative/tests/tests.pro
-index 85e4f3a..9aa752b 100644
---- a/qtdeclarative/tests/tests.pro
-+++ b/qtdeclarative/tests/tests.pro
-@@ -1,2 +1,2 @@
--TEMPLATE = subdirs
--SUBDIRS +=  auto
-+#TEMPLATE = subdirs
-+#SUBDIRS +=  auto
-diff --git a/qtquick1/examples/declarative/declarative.pro b/qtquick1/examples/declarative/declarative.pro
-index 91378da..123539f 100644
---- a/qtquick1/examples/declarative/declarative.pro
-+++ b/qtquick1/examples/declarative/declarative.pro
-@@ -16,7 +16,6 @@ SUBDIRS = \
-     righttoleft \
-     rssnews \
-     samegame \
--    shadereffects \
-     snake \
-     sqllocalstorage \
-     text \
-diff --git a/qtwebkit/Tools/qmake/mkspecs/features/features.prf b/qtwebkit/Tools/qmake/mkspecs/features/features.prf
-index ddbccf9..e4d3999 100644
---- a/qtwebkit/Tools/qmake/mkspecs/features/features.prf
-+++ b/qtwebkit/Tools/qmake/mkspecs/features/features.prf
-@@ -39,8 +39,8 @@ defineTest(detectFeatures) {
- 
-     config_libxml2: WEBKIT_CONFIG += use_libxml2
-     config_libxslt: WEBKIT_CONFIG += xslt
--    config_libzlib: WEBKIT_CONFIG += use_zlib
--    config_libwebp: WEBKIT_CONFIG += use_webp
-+    #config_libzlib: WEBKIT_CONFIG += use_zlib
-+    #config_libwebp: WEBKIT_CONFIG += use_webp
- 
-     # We can't use Qt's 3rdparty sources for libjpeg and libpng outside of qtbase, but if Qt
-     # is using the system libraries, use them to take advantage of the WebCore image decoders as well.
-@@ -81,7 +81,7 @@ defineTest(detectFeatures) {
- 
-     # Enable the USE(3D_GRAPHICS) flag when QtOpenGL is enabled.
-     # Disable on Windows CE for now, as ANGLE won't compile.
--    !wince*:contains(QT_CONFIG, opengl): WEBKIT_CONFIG += use_3d_graphics
-+    #!wince*:contains(QT_CONFIG, opengl): WEBKIT_CONFIG += use_3d_graphics
- 
-     # Temporarily disable FTPDIR on Windows CE (missing functions from time.h)
-     wince* {
+diff --git a/qtdeclarative/tools/tools.pro b/qtdeclarative/tools/tools.pro
+index 96cf804..24432b3 100644
+--- a/qtdeclarative/tools/tools.pro
++++ b/qtdeclarative/tools/tools.pro
+@@ -9,14 +9,11 @@ qmlimportscanner.CONFIG = host_build
+ !android|android_app {
+     SUBDIRS += \
+         qml \
+-        qmlprofiler \
+         qmllint
+     qtHaveModule(quick) {
+         !static: {
+             SUBDIRS += \
+-                qmlscene \
+-                qmlplugindump \
+-                qmltime
++                qmlscene
+         }
+         qtHaveModule(widgets): SUBDIRS += qmleasing
+     }

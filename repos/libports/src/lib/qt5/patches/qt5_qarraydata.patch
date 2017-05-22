@@ -8,10 +8,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/qtbase/src/corelib/tools/qarraydata.cpp b/qtbase/src/corelib/tools/qarraydata.cpp
-index a61147a..ee9cde3 100644
+index eb6ce21..ba93eec 100644
 --- a/qtbase/src/corelib/tools/qarraydata.cpp
 +++ b/qtbase/src/corelib/tools/qarraydata.cpp
-@@ -97,8 +97,8 @@ QArrayData *QArrayData::allocate(size_t objectSize, size_t alignment,
+@@ -107,8 +107,8 @@ QArrayData *QArrayData::allocate(size_t objectSize, size_t alignment,
  
      QArrayData *header = static_cast<QArrayData *>(::malloc(allocSize));
      if (header) {
@@ -20,5 +20,5 @@ index a61147a..ee9cde3 100644
 +        quintptr data = (quintptr(header) + sizeof(QArrayData) + /*alignment*/4 - 1)
 +                & ~(/*alignment*/4 - 1);
  
+ #if !defined(QT_NO_UNSHARABLE_CONTAINERS)
          header->ref.atomic.store(bool(!(options & Unsharable)));
-         header->size = 0;

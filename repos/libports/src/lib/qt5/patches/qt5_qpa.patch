@@ -5,75 +5,102 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  .../fontdatabases/basic/qbasicfontdatabase.cpp     |    9 +++++++++
- .../input/evdevkeyboard/qevdevkeyboardhandler.cpp  |   18 +++++++++++++++---
+ .../evdevkeyboard/qevdevkeyboard_defaultmap_p.h    |    4 ++++
+ .../input/evdevkeyboard/qevdevkeyboardhandler.cpp  |   17 +++++++++++++++++
  .../input/evdevkeyboard/qevdevkeyboardhandler_p.h  |    2 ++
- qtbase/src/widgets/kernel/qwidget_qpa.cpp          |    2 +-
- 4 files changed, 27 insertions(+), 4 deletions(-)
+ 4 files changed, 32 insertions(+)
 
 diff --git a/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp b/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
-index 9b87418..aa25c6b 100644
+index 728b166..af957f7 100644
 --- a/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
 +++ b/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
-@@ -114,7 +114,16 @@ void QBasicFontDatabase::populateFontDatabase()
-     for (int i = 0; i < int(dir.count()); ++i) {
-         const QByteArray file = QFile::encodeName(dir.absoluteFilePath(dir[i]));
- //        qDebug() << "looking at" << file;
+@@ -72,7 +72,16 @@ void QBasicFontDatabase::populateFontDatabase()
+ 
+     foreach (const QFileInfo &fi, dir.entryInfoList(nameFilters, QDir::Files)) {
+         const QByteArray file = QFile::encodeName(fi.absoluteFilePath());
 +#ifdef Q_OS_GENODE
 +        QByteArray data;
 +        QFile f(file);
 +        if (!f.open(QIODevice::ReadOnly))
 +            continue;
 +        data = f.readAll();
-+        addTTFile(data, file);
++        QBasicFontDatabase::addTTFile(data, file);
 +#else
-         addTTFile(QByteArray(), file);
+         QBasicFontDatabase::addTTFile(QByteArray(), file);
 +#endif
      }
  }
  
+diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboard_defaultmap_p.h b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboard_defaultmap_p.h
+index 34f20f4..6e8bcbd 100644
+--- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboard_defaultmap_p.h
++++ b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboard_defaultmap_p.h
+@@ -46,7 +46,9 @@
+ //
+ 
+ #include "qnamespace.h"
++#ifndef Q_OS_GENODE
+ #include "linux/input.h"
++#endif /* Q_OS_GENODE */
+ 
+ // no QT_BEGIN_NAMESPACE, since we include it internally...
+ 
+@@ -638,6 +640,7 @@ const QEvdevKeyboardMap::Mapping QEvdevKeyboardHandler::s_keymap_default[] = {
+     { 111, 0xffff, 0x01000000, 0x06, 0x08, 0x0200 },
+     { 111, 0xffff, 0x01000000, 0x0c, 0x08, 0x0200 },
+ 
++#ifndef Q_OS_GENODE
+     // 113 -> 248
+     { KEY_MUTE,         0xffff, Qt::Key_VolumeMute,     0x00, 0x00, 0x0000 },
+     { KEY_VOLUMEDOWN,   0xffff, Qt::Key_VolumeDown,     0x00, 0x00, 0x0000 },
+@@ -666,6 +669,7 @@ const QEvdevKeyboardMap::Mapping QEvdevKeyboardHandler::s_keymap_default[] = {
+     { KEY_BLUE,         0xffff, Qt::Key_Blue,           0x00, 0x00, 0x0000 },
+     { KEY_CHANNELUP,    0xffff, Qt::Key_ChannelUp,      0x00, 0x00, 0x0000 },
+     { KEY_CHANNELDOWN,  0xffff, Qt::Key_ChannelDown,    0x00, 0x00, 0x0000 },
++#endif /* Q_OS_GENODE */
+ };
+ 
+ const QEvdevKeyboardMap::Composing QEvdevKeyboardHandler::s_keycompose_default[] = {
 diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
-index 26dc116..f0c104d 100644
+index 089cc13..c8fb47c 100644
 --- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
 +++ b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
-@@ -49,7 +49,9 @@
- #include <QCoreApplication>
+@@ -42,7 +42,9 @@
+ #include <qpa/qwindowsysteminterface.h>
  #include <private/qcore_unix_p.h>
  
 +#ifndef Q_OS_GENODE
  #include <linux/input.h>
 +#endif /* Q_OS_GENODE */
  
- //#define QT_QPA_KEYMAP_DEBUG
+ QT_BEGIN_NAMESPACE
  
-@@ -78,11 +80,12 @@ QEvdevKeyboardHandler::QEvdevKeyboardHandler(const QString &device, int fd, bool
- 
+@@ -67,9 +69,11 @@ QEvdevKeyboardHandler::QEvdevKeyboardHandler(const QString &device, int fd, bool
      if (keymapFile.isEmpty() || !loadKeymap(keymapFile))
          unloadKeymap();
--
+ 
 +#ifndef Q_OS_GENODE
      // socket notifier for events on the keyboard device
-     QSocketNotifier *notifier;
-     notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
-     connect(notifier, SIGNAL(activated(int)), this, SLOT(readKeycode()));
+     m_notify = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
+     connect(m_notify, SIGNAL(activated(int)), this, SLOT(readKeycode()));
 +#endif /* Q_OS_GENODE */
  }
  
  QEvdevKeyboardHandler::~QEvdevKeyboardHandler()
-@@ -92,7 +95,7 @@ QEvdevKeyboardHandler::~QEvdevKeyboardHandler()
-     if (m_fd >= 0)
+@@ -80,6 +84,7 @@ QEvdevKeyboardHandler::~QEvdevKeyboardHandler()
          qt_safe_close(m_fd);
  }
--
+ 
 +#ifndef Q_OS_GENODE
- QEvdevKeyboardHandler *QEvdevKeyboardHandler::create(const QString &device, const QString &specification)
- {
- #ifdef QT_QPA_KEYMAP_DEBUG
-@@ -218,10 +221,19 @@ void QEvdevKeyboardHandler::readKeycode()
+ QEvdevKeyboardHandler *QEvdevKeyboardHandler::create(const QString &device,
+                                                      const QString &specification,
+                                                      const QString &defaultKeymapFile)
+@@ -205,10 +210,20 @@ void QEvdevKeyboardHandler::readKeycode()
          }
      }
  }
--
 +#endif /* Q_OS_GENODE */
+ 
  void QEvdevKeyboardHandler::processKeyEvent(int nativecode, int unicode, int qtcode,
                                              Qt::KeyboardModifiers modifiers, bool isPress, bool autoRepeat)
  {
@@ -88,14 +115,30 @@ index 26dc116..f0c104d 100644
 +#endif
      QWindowSystemInterface::handleExtendedKeyEvent(0, (isPress ? QEvent::KeyPress : QEvent::KeyRelease),
                                                     qtcode, modifiers, nativecode + 8, 0, int(modifiers),
-                                                    QString(unicode), autoRepeat);
+                                                    (unicode != 0xffff ) ? QString(unicode) : QString(), autoRepeat);
+@@ -468,6 +483,7 @@ void QEvdevKeyboardHandler::unloadKeymap()
+     m_composing = 0;
+     m_dead_unicode = 0xffff;
+ 
++#ifndef Q_OS_GENODE
+     //Set locks according to keyboard leds
+     quint16 ledbits[1];
+     memset(ledbits, 0, sizeof(ledbits));
+@@ -488,6 +504,7 @@ void QEvdevKeyboardHandler::unloadKeymap()
+             m_locks[2] = 1;
+         qCDebug(qLcEvdevKey, "numlock=%d , capslock=%d, scrolllock=%d", m_locks[1], m_locks[0], m_locks[2]);
+     }
++#endif /* Q_OS_GENODE */
+ }
+ 
+ bool QEvdevKeyboardHandler::loadKeymap(const QString &file)
 diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
-index 1065b05..b395d46 100644
+index 84c251c..54c9cf3 100644
 --- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
 +++ b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
-@@ -161,8 +161,10 @@ public:
-         return qtmod;
-     }
+@@ -171,8 +171,10 @@ public:
+     bool loadKeymap(const QString &file);
+     void unloadKeymap();
  
 +#ifndef Q_OS_GENODE
  private slots:
@@ -104,16 +147,3 @@ index 1065b05..b395d46 100644
      KeycodeAction processKeycode(quint16 keycode, bool pressed, bool autorepeat);
  
  private:
-diff --git a/qtbase/src/widgets/kernel/qwidget_qpa.cpp b/qtbase/src/widgets/kernel/qwidget_qpa.cpp
-index dafe7dc..79bfd40 100644
---- a/qtbase/src/widgets/kernel/qwidget_qpa.cpp
-+++ b/qtbase/src/widgets/kernel/qwidget_qpa.cpp
-@@ -933,7 +933,7 @@ void QWidgetPrivate::registerDropSite(bool on)
- void QWidgetPrivate::setMask_sys(const QRegion &region)
- {
-     if (!QGuiApplicationPrivate::platformIntegration()->hasCapability(QPlatformIntegration::WindowMasks)) {
--        qWarning("%s: Not supported on %s.", Q_FUNC_INFO, qPrintable(QGuiApplication::platformName()));
-+        //qWarning("%s: Not supported on %s.", Q_FUNC_INFO, qPrintable(QGuiApplication::platformName()));
-         return;
-     }
-     Q_Q(QWidget);

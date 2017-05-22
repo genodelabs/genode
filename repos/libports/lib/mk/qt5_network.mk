@@ -7,6 +7,8 @@ CC_WARN =
 
 include $(REP_DIR)/lib/mk/qt5_network_generated.inc
 
+QT_DEFINES += -DQT_NO_IPV6IFNAME
+
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
   moc_qftp_p.cpp \
@@ -18,7 +20,6 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
   moc_qnetworksession_p.cpp \
   moc_qbearerengine_p.cpp \
   moc_qbearerplugin_p.cpp \
-  moc_qudpsocket.cpp \
   moc_qsslsocket_openssl_p.cpp \
   
 

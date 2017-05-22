@@ -1,17 +1,18 @@
-QT_DEFINES += -DQT_NO_LIBUDEV -DQT_NO_XCB -DQT_NO_XKBCOMMON -DQT_NO_USING_NAMESPACE -DQT_BUILD_CORE_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_USE_ICU -DPCRE_HAVE_CONFIG_H -DQT_CORE_LIB -DQT_NO_DEBUG
+QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_USE_ICU -DQT_BUILD_CORE_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_DEBUG
 
 QT_INCPATH += \
+  qtbase/src/corelib \
+  qtbase/src/3rdparty/pcre \
+  qtbase/src/3rdparty/harfbuzz/src \
+  qtbase/src/3rdparty/md5 \
+  qtbase/src/3rdparty/md4 \
+  qtbase/src/3rdparty/sha3 \
+  qtbase/src/3rdparty/forkfd \
   qtbase/include \
   qtbase/include/QtCore \
-  qtbase/include/QtCore/5.1.0 \
-  qtbase/include/QtCore/5.1.0/QtCore \
-  qtbase/mkspecs/genode-g++ \
-  qtbase/src/3rdparty/harfbuzz/src \
-  qtbase/src/3rdparty/md4 \
-  qtbase/src/3rdparty/md5 \
-  qtbase/src/3rdparty/pcre \
-  qtbase/src/3rdparty/sha3 \
-  qtbase/src/corelib \
+  qtbase/include/QtCore/5.6.2 \
+  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/mkspecs/genode-g++
 
 QT_SOURCES += \
   qabstractanimation.cpp \
@@ -28,6 +29,8 @@ QT_SOURCES += \
   qmalloc.cpp \
   qnumeric.cpp \
   qlogging.cpp \
+  qhooks.cpp \
+  qversiontagging.cpp \
   qatomic.cpp \
   qexception.cpp \
   qresultstore.cpp \
@@ -46,10 +49,14 @@ QT_SOURCES += \
   qarraydata.cpp \
   qbitarray.cpp \
   qbytearray.cpp \
+  qbytearraylist.cpp \
   qbytearraymatcher.cpp \
   qcollator.cpp \
+  qcommandlineoption.cpp \
+  qcommandlineparser.cpp \
   qcryptographichash.cpp \
   qdatetime.cpp \
+  qdatetimeparser.cpp \
   qeasingcurve.cpp \
   qelapsedtimer.cpp \
   qfreelist.cpp \
@@ -66,8 +73,8 @@ QT_SOURCES += \
   qcontiguouscache.cpp \
   qrect.cpp \
   qregexp.cpp \
-  qregularexpression.cpp \
   qrefcount.cpp \
+  qringbuffer.cpp \
   qshareddata.cpp \
   qsharedpointer.cpp \
   qsimd.cpp \
@@ -77,34 +84,19 @@ QT_SOURCES += \
   qstringlist.cpp \
   qtextboundaryfinder.cpp \
   qtimeline.cpp \
+  qtimezone.cpp \
+  qtimezoneprivate.cpp \
   qunicodetools.cpp \
   qvector.cpp \
   qvsnprintf.cpp \
+  qversionnumber.cpp \
   qelapsedtimer_unix.cpp \
   qlocale_unix.cpp \
+  qtimezoneprivate_tz.cpp \
   qlocale_icu.cpp \
-  pcre16_byte_order.c \
-  pcre16_chartables.c \
-  pcre16_compile.c \
-  pcre16_config.c \
-  pcre16_dfa_exec.c \
-  pcre16_exec.c \
-  pcre16_fullinfo.c \
-  pcre16_get.c \
-  pcre16_globals.c \
-  pcre16_jit_compile.c \
-  pcre16_maketables.c \
-  pcre16_newline.c \
-  pcre16_ord2utf16.c \
-  pcre16_refcount.c \
-  pcre16_string_utils.c \
-  pcre16_study.c \
-  pcre16_tables.c \
-  pcre16_ucd.c \
-  pcre16_utf16_utils.c \
-  pcre16_valid_utf16.c \
-  pcre16_version.c \
-  pcre16_xclass.c \
+  qcollator_icu.cpp \
+  qtimezoneprivate_icu.cpp \
+  qregularexpression.cpp \
   harfbuzz-buffer.c \
   harfbuzz-gdef.c \
   harfbuzz-gsub.c \
@@ -130,6 +122,7 @@ QT_SOURCES += \
   qlockfile.cpp \
   qnoncontiguousbytedevice.cpp \
   qprocess.cpp \
+  qstorageinfo.cpp \
   qtextstream.cpp \
   qtemporarydir.cpp \
   qtemporaryfile.cpp \
@@ -148,13 +141,17 @@ QT_SOURCES += \
   qfilesystemwatcher_polling.cpp \
   qfilesystementry.cpp \
   qfilesystemengine.cpp \
+  qfileselector.cpp \
+  qloggingcategory.cpp \
+  qloggingregistry.cpp \
   qfsfileengine_unix.cpp \
   qfilesystemengine_unix.cpp \
   qlockfile_unix.cpp \
   qprocess_unix.cpp \
   qfilesystemiterator_unix.cpp \
+  forkfd_qt.cpp \
   qstandardpaths_unix.cpp \
-  qfilesystemwatcher_inotify.cpp \
+  qstorageinfo_unix.cpp \
   qabstractitemmodel.cpp \
   qabstractproxymodel.cpp \
   qitemselectionmodel.cpp \
@@ -168,11 +165,13 @@ QT_SOURCES += \
   qjsonvalue.cpp \
   qjsonwriter.cpp \
   qjsonparser.cpp \
+  qfactoryinterface.cpp \
   qpluginloader.cpp \
   qfactoryloader.cpp \
   quuid.cpp \
   qlibrary.cpp \
   qelfparser_p.cpp \
+  qmachparser.cpp \
   qlibrary_unix.cpp \
   qabstracteventdispatcher.cpp \
   qabstractnativeeventfilter.cpp \
@@ -201,10 +200,15 @@ QT_SOURCES += \
   qcrashhandler.cpp \
   qeventdispatcher_unix.cpp \
   qtimerinfo_unix.cpp \
+  qsharedmemory_posix.cpp \
+  qsharedmemory_systemv.cpp \
   qsharedmemory_unix.cpp \
+  qsystemsemaphore_posix.cpp \
+  qsystemsemaphore_systemv.cpp \
   qsystemsemaphore_unix.cpp \
   qisciicodec.cpp \
   qlatincodec.cpp \
+  qsimplecodec.cpp \
   qtextcodec.cpp \
   qtsciicodec.cpp \
   qutfcodec.cpp \
@@ -245,7 +249,6 @@ QT_SOURCES += \
   moc_qsettings.cpp \
   moc_qfilesystemwatcher_p.cpp \
   moc_qfilesystemwatcher_polling_p.cpp \
-  moc_qfilesystemwatcher_inotify_p.cpp \
   moc_qabstractitemmodel.cpp \
   moc_qstringlistmodel.cpp \
   moc_qpluginloader.cpp \
@@ -266,13 +269,13 @@ QT_SOURCES += \
   moc_qstate.cpp \
   moc_qfinalstate.cpp \
   moc_qhistorystate.cpp \
+  moc_qhistorystate_p.cpp \
   moc_qabstracttransition.cpp \
   moc_qsignaltransition.cpp \
   moc_qeventtransition.cpp
 
 QT_VPATH += \
   qtbase/src/3rdparty/harfbuzz/src \
-  qtbase/src/3rdparty/pcre \
   qtbase/src/corelib/animation \
   qtbase/src/corelib/arch \
   qtbase/src/corelib/codecs \
@@ -323,7 +326,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qfilesystemwatcher.cpp \
   moc_qfilesystemwatcher_p.cpp \
   moc_qfilesystemwatcher_polling_p.cpp \
-  moc_qfilesystemwatcher_inotify_p.cpp \
+  moc_qfileselector.cpp \
   moc_qabstractitemmodel.cpp \
   moc_qabstractproxymodel.cpp \
   moc_qitemselectionmodel.cpp \
@@ -351,6 +354,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qstate.cpp \
   moc_qfinalstate.cpp \
   moc_qhistorystate.cpp \
+  moc_qhistorystate_p.cpp \
   moc_qabstracttransition.cpp \
   moc_qsignaltransition.cpp \
   moc_qeventtransition.cpp
@@ -359,7 +363,6 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
 # extracted from 'compiler_moc_source_make_all' rule
 
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
-  qprocess_unix.moc \
   qtimer.moc \
   qstatemachine.moc
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+LANG=C
+
 function extract_defines()
 {
   sed -e '/DEFINES       =/!d' \
@@ -13,7 +15,7 @@ function extract_incpath()
   sed -e '/INCPATH       =/!d' \
       -e 's/INCPATH       = //' \
       -e 's/ / \\\n/g' \
-      Makefile | sort -u > incpath.inc.tmp
+      Makefile > incpath.inc.tmp
 
   echo -e "QT_INCPATH += \\" > incpath.inc
 

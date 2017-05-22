@@ -252,6 +252,7 @@ set boot_modules {
 	zlib.lib.so
 	stdcxx.lib.so
 	pthread.lib.so
+	pcre16.lib.so
 	mixer_gui_qt
 	qt5_fs_mixer_gui_qt.tar
 	nitpicker
