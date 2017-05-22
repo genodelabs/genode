@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <os/ring_buffer.h>
 #include <util/misc_math.h>
@@ -48,9 +49,12 @@ namespace Libc_pipe {
 
 			Type _type;
 
+			Libc::File_descriptor *_partner;
+
+			Genode::Allocator &_alloc;
+
 			Pipe_buffer *_buffer;
 
-			Libc::File_descriptor *_partner;
 			Genode::Semaphore *_write_avail_sem;
 
 			bool _nonblock = false;
@@ -65,7 +69,8 @@ namespace Libc_pipe {
 			 *
 			 * \param partner  the other pipe end
 			 */
-			Plugin_context(Type type, Libc::File_descriptor *partner);
+			Plugin_context(Type type, Libc::File_descriptor *partner,
+			               Genode::Allocator &alloc);
 
 			~Plugin_context();
 
@@ -82,12 +87,18 @@ namespace Libc_pipe {
 
 	class Plugin : public Libc::Plugin
 	{
+		private:
+
+			Genode::Constructible<Genode::Heap> _heap;
+
 		public:
 
 			/**
 			 * Constructor
 			 */
 			Plugin();
+
+			void init(Genode::Env &env) override;
 
 			bool supports_pipe() override;
 			bool supports_select(int nfds,
@@ -134,15 +145,16 @@ namespace Libc_pipe {
 	 ** Plugin_context **
 	 ********************/
 
-	Plugin_context::Plugin_context(Type type, Libc::File_descriptor *partner)
-	: _type(type), _partner(partner)
+	Plugin_context::Plugin_context(Type type, Libc::File_descriptor *partner,
+	                               Genode::Allocator &alloc)
+	: _type(type), _partner(partner), _alloc(alloc)
 	{
 		if (!_partner) {
 
 			/* allocate shared resources */
 
-			_buffer = new (Genode::env()->heap()) Pipe_buffer;
-			_write_avail_sem = new (Genode::env()->heap()) Genode::Semaphore(PIPE_BUF_SIZE);
+			_buffer = new (_alloc) Pipe_buffer;
+			_write_avail_sem = new (_alloc) Genode::Semaphore(PIPE_BUF_SIZE);
 
 		} else {
 
@@ -164,8 +176,8 @@ namespace Libc_pipe {
 		} else {
 
 			/* partner fd is already destroyed -> free shared resources */
-			destroy(Genode::env()->heap(), _buffer);
-			destroy(Genode::env()->heap(), _write_avail_sem);
+			destroy(_alloc, _buffer);
+			destroy(_alloc, _write_avail_sem);
 		}
 	}
 
@@ -177,6 +189,12 @@ namespace Libc_pipe {
 	Plugin::Plugin()
 	{
 		Genode::log("using the pipe libc plugin");
+	}
+
+
+	void Plugin::init(Genode::Env &env)
+	{
+		_heap.construct(env.ram(), env.rm());
 	}
 
 
@@ -215,7 +233,7 @@ namespace Libc_pipe {
 
 	int Plugin::close(Libc::File_descriptor *pipefdo)
 	{
-		Genode::destroy(Genode::env()->heap(), context(pipefdo));
+		Genode::destroy(*_heap, context(pipefdo));
 		Libc::file_descriptor_allocator()->free(pipefdo);
 
 		return 0;
@@ -281,9 +299,9 @@ namespace Libc_pipe {
 	int Plugin::pipe(Libc::File_descriptor *pipefdo[2])
 	{
 		pipefdo[0] = Libc::file_descriptor_allocator()->alloc(this,
-		               new (Genode::env()->heap()) Plugin_context(READ_END, 0));
+		               new (*_heap) Plugin_context(READ_END, 0, *_heap));
 		pipefdo[1] = Libc::file_descriptor_allocator()->alloc(this,
-		               new (Genode::env()->heap()) Plugin_context(WRITE_END, pipefdo[0]));
+		               new (*_heap) Plugin_context(WRITE_END, pipefdo[0], *_heap));
 		static_cast<Plugin_context *>(pipefdo[0]->context)->set_partner(pipefdo[1]);
 
 		return 0;
