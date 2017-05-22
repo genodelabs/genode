@@ -322,7 +322,9 @@ them both to 0; an emulation function will be used. */
 /* #undef SUPPORT_LIBZ */
 
 /* Define to enable the 16 bit PCRE library. */
-/* #undef SUPPORT_PCRE16 */
+#ifndef SUPPORT_PCRE16
+#define SUPPORT_PCRE16 /**/
+#endif
 
 /* Define to enable the 8 bit PCRE library. */
 #ifndef SUPPORT_PCRE8
@@ -339,7 +341,9 @@ them both to 0; an emulation function will be used. */
    even in an EBCDIC environment, but it is incompatible with the EBCDIC
    macro. That is, PCRE can support *either* EBCDIC code *or* ASCII/UTF-8/16,
    but not both at once. */
-/* #undef SUPPORT_UTF */
+#ifndef SUPPORT_UTF
+#define SUPPORT_UTF /**/
+#endif
 
 /* Version number of package */
 #ifndef VERSION

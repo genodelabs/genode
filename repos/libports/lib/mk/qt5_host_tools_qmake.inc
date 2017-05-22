@@ -16,24 +16,33 @@
 CC = gcc
 CXX = g++
 QMAKE_CFLAGS = -pipe
+QMAKE_CFLAGS_SPLIT_SECTIONS = -ffunction-sections
 QMAKE_CXXFLAGS = -pipe
+QMAKE_CXXFLAGS_SPLIT_SECTIONS = -ffunction-sections
 QMAKE_LFLAGS =
+QMAKE_LFLAGS_GCSECTIONS = -Wl,--gc-sections
+QMAKE_CFLAGS_RELEASE = -O2
+QMAKE_CXXFLAGS_RELEASE = -O2
 
 BUILD_PATH = .
 SOURCE_PATH = $(QT5_CONTRIB_DIR)/qtbase
 INC_PATH = $(SOURCE_PATH)/include
 QMAKESPEC = $(SOURCE_PATH)/mkspecs/linux-g++
-QT_VERSION = 5.1.0
-EXTRA_CFLAGS = $(QMAKE_CFLAGS)
-EXTRA_CXXFLAGS = $(QMAKE_CXXFLAGS)
-QTOBJS = qfilesystemengine_unix.o                         qfilesystemiterator_unix.o                         qfsfileengine_unix.o                         qlocale_unix.o
-QTSRCS = "$(SOURCE_PATH)/src/corelib/io/qfilesystemengine_unix.cpp"                         "$(SOURCE_PATH)/src/corelib/io/qfilesystemiterator_unix.cpp"                         "$(SOURCE_PATH)/src/corelib/io/qfsfileengine_unix.cpp"                         "$(SOURCE_PATH)/src/corelib/tools/qlocal_unix.cpp"
-LFLAGS = $(QMAKE_LFLAGS)
-QT_INSTALL_BINS = $(INSTALL_ROOT)/usr/local/Qt-5.1.0/bin
-QT_INSTALL_DATA = $(INSTALL_ROOT)/usr/local/Qt-5.1.0
+QT_VERSION = 5.6.2
+QT_MAJOR_VERSION = 5
+QT_MINOR_VERSION = 6
+QT_PATCH_VERSION = 2
+EXTRA_CFLAGS = $(QMAKE_CFLAGS) $(QMAKE_CFLAGS_SPLIT_SECTIONS) $(QMAKE_CFLAGS_RELEASE)
+EXTRA_CXXFLAGS = $(QMAKE_CXXFLAGS) $(QMAKE_CXXFLAGS_SPLIT_SECTIONS) $(QMAKE_CXXFLAGS_RELEASE)
+QTOBJS = qfilesystemengine_unix.o qfilesystemiterator_unix.o qfsfileengine_unix.o qlocale_unix.o
+QTSRCS = "$(SOURCE_PATH)/src/corelib/io/qfilesystemengine_unix.cpp" "$(SOURCE_PATH)/src/corelib/io/qfilesystemiterator_unix.cpp" "$(SOURCE_PATH)/src/corelib/io/qfsfileengine_unix.cpp" "$(SOURCE_PATH)/src/corelib/tools/qlocale_unix.cpp"
+LFLAGS = $(QMAKE_LFLAGS) $(QMAKE_LFLAGS_GCSECTIONS)
 EXEEXT = 
 RM_F = rm -f
 RM_RF = rm -rf
+QMKSRC = $(SOURCE_PATH)/qmake
+QMKLIBSRC = $(QMKSRC)/library
+QMKGENSRC = $(QMKSRC)/generators
 EXTRA_CPPFLAGS = -DQMAKE_OPENSOURCE_EDITION
 
 include $(QT5_CONTRIB_DIR)/qtbase/qmake/Makefile.unix

@@ -32,7 +32,6 @@ class QNitpickerIntegration : public QPlatformIntegration
 		QSignalHandlerThread      _signal_handler_thread;
 
 		QNitpickerScreen         *_nitpicker_screen;
-	    QAbstractEventDispatcher *_event_dispatcher;
 
 		/*
 		 * A reference to the signal receiver gets passed to newly created
@@ -46,18 +45,20 @@ class QNitpickerIntegration : public QPlatformIntegration
 
 		QNitpickerIntegration();
 
-		bool hasCapability(QPlatformIntegration::Capability cap) const override;
+		void initialize() Q_DECL_OVERRIDE;
+		bool hasCapability(QPlatformIntegration::Capability cap) const Q_DECL_OVERRIDE;
 
-		QPlatformWindow *createPlatformWindow(QWindow *window) const override;
-		QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const override;
-		QAbstractEventDispatcher *guiThreadEventDispatcher() const override;
+		QPlatformWindow *createPlatformWindow(QWindow *window) const Q_DECL_OVERRIDE;
+		QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;
 
-		QPlatformFontDatabase *fontDatabase() const override;
+		QAbstractEventDispatcher *createEventDispatcher() const Q_DECL_OVERRIDE;
+
+		QPlatformFontDatabase *fontDatabase() const Q_DECL_OVERRIDE;
 
 #ifndef QT_NO_CLIPBOARD
-		QPlatformClipboard *clipboard() const override;
+		QPlatformClipboard *clipboard() const Q_DECL_OVERRIDE;
 #endif
-		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const override;
+		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const Q_DECL_OVERRIDE;
 };
 
 QT_END_NAMESPACE

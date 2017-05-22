@@ -1,39 +1,31 @@
 /****************************************************************************
 **
-** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
+** Copyright (C) 2015 The Qt Company Ltd.
+** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** $QT_BEGIN_LICENSE:LGPL$
+** $QT_BEGIN_LICENSE:LGPL21$
 ** Commercial License Usage
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and Digia.  For licensing terms and
-** conditions see http://qt.digia.com/licensing.  For further information
-** use the contact form at http://qt.digia.com/contact-us.
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see http://www.qt.io/terms-conditions. For further
+** information use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
 ** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU Lesser General Public License version 2.1 requirements
-** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** General Public License version 2.1 or version 3 as published by the Free
+** Software Foundation and appearing in the file LICENSE.LGPLv21 and
+** LICENSE.LGPLv3 included in the packaging of this file. Please review the
+** following information to ensure the GNU Lesser General Public License
+** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
+** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 **
-** In addition, as a special exception, Digia gives you certain additional
-** rights.  These rights are described in the Digia Qt LGPL Exception
+** As a special exception, The Qt Company gives you certain additional
+** rights. These rights are described in The Qt Company LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3.0 as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU General Public License version 3.0 requirements will be
-** met: http://www.gnu.org/copyleft/gpl.html.
-**
 **
 ** $QT_END_LICENSE$
 **
@@ -44,9 +36,13 @@
 #include "qplatformdefs.h"
 
 #include <private/qcoreapplication_p.h>
+#include <private/qcore_unix_p.h>
 
 #if defined(Q_OS_BLACKBERRY)
 #  include <private/qeventdispatcher_blackberry_p.h>
+#elif defined(Q_OS_OSX)
+#  include <private/qeventdispatcher_cf_p.h>
+#  include <private/qeventdispatcher_unix_p.h>
 #else
 #  if !defined(QT_NO_GLIB)
 #    include "../kernel/qeventdispatcher_glib_p.h"
@@ -84,9 +80,6 @@
 #   define old_qDebug qDebug
 #   undef qDebug
 # endif
-#ifndef Q_OS_IOS
-# include <CoreServices/CoreServices.h>
-#endif //Q_OS_IOS
 
 # ifdef old_qDebug
 #   undef qDebug
@@ -122,6 +115,8 @@ QT_BEGIN_NAMESPACE
 QHash<Qt::HANDLE, struct QThreadPrivate::tls_struct> QThreadPrivate::tls;
 
 #else
+
+Q_STATIC_ASSERT(sizeof(pthread_t) <= sizeof(Qt::HANDLE));
 
 enum { ThreadPriorityResetFlag = 0x80000000 };
 
@@ -183,6 +178,12 @@ static void destroy_current_thread_data_key()
 {
     pthread_once(&current_thread_data_once, create_current_thread_data_key);
     pthread_key_delete(current_thread_data_key);
+
+    // Reset current_thread_data_once in case we end up recreating
+    // the thread-data in the rare case of QObject construction
+    // after destroying the QThreadData.
+    pthread_once_t pthread_once_init = PTHREAD_ONCE_INIT;
+    current_thread_data_once = pthread_once_init;
 }
 Q_DESTRUCTOR_FUNCTION(destroy_current_thread_data_key)
 
@@ -236,15 +237,39 @@ static void clear_thread_data()
 #endif /* Q_OS_GENODE */
 }
 
+template <typename T>
+static typename QtPrivate::QEnableIf<QTypeInfo<T>::isIntegral, Qt::HANDLE>::Type to_HANDLE(T id)
+{
+    return reinterpret_cast<Qt::HANDLE>(static_cast<intptr_t>(id));
+}
+
+template <typename T>
+static typename QtPrivate::QEnableIf<QTypeInfo<T>::isIntegral, T>::Type from_HANDLE(Qt::HANDLE id)
+{
+    return static_cast<T>(reinterpret_cast<intptr_t>(id));
+}
+
+template <typename T>
+static typename QtPrivate::QEnableIf<QTypeInfo<T>::isPointer, Qt::HANDLE>::Type to_HANDLE(T id)
+{
+    return id;
+}
+
+template <typename T>
+static typename QtPrivate::QEnableIf<QTypeInfo<T>::isPointer, T>::Type from_HANDLE(Qt::HANDLE id)
+{
+    return static_cast<T>(id);
+}
+
 void QThreadData::clearCurrentThreadData()
 {
     clear_thread_data();
 }
 
-QThreadData *QThreadData::current()
+QThreadData *QThreadData::current(bool createIfNecessary)
 {
     QThreadData *data = get_thread_data();
-    if (!data) {
+    if (!data && createIfNecessary) {
         data = new QThreadData;
         QT_TRY {
             set_thread_data(data);
@@ -260,10 +285,10 @@ QThreadData *QThreadData::current()
 #ifdef Q_OS_GENODE
         data->threadId = QThread::currentThreadId();
 #else
-        data->threadId = (Qt::HANDLE)pthread_self();
+        data->threadId = to_HANDLE(pthread_self());
 #endif /* Q_OS_GENODE */
         if (!QCoreApplicationPrivate::theMainThread)
-            QCoreApplicationPrivate::theMainThread = data->thread;
+            QCoreApplicationPrivate::theMainThread = data->thread.load();
     }
     return data;
 }
@@ -273,9 +298,6 @@ void QAdoptedThread::init()
 {
 #ifdef Q_OS_GENODE
     d_func()->thread_id = QThread::currentThreadId();
-#else
-    Q_D(QThread);
-    d->thread_id = pthread_self();
 #endif /* Q_OS_GENODE */
 }
 
@@ -283,15 +305,9 @@ void QAdoptedThread::init()
    QThreadPrivate
 */
 
-#if defined(Q_C_CALLBACKS)
 extern "C" {
-#endif
-
 typedef void*(*QtThreadCallback)(void*);
-
-#if defined(Q_C_CALLBACKS)
 }
-#endif
 
 #endif // QT_NO_THREAD
 
@@ -299,14 +315,21 @@ void QThreadPrivate::createEventDispatcher(QThreadData *data)
 {
 #if defined(Q_OS_BLACKBERRY)
     data->eventDispatcher.storeRelease(new QEventDispatcherBlackberry);
-#else
-#if !defined(QT_NO_GLIB)
+#  elif defined(Q_OS_OSX)
+    bool ok = false;
+    int value = qEnvironmentVariableIntValue("QT_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
+    if (ok && value > 0)
+        data->eventDispatcher.storeRelease(new QEventDispatcherCoreFoundation);
+    else
+        data->eventDispatcher.storeRelease(new QEventDispatcherUNIX);
+#  elif !defined(QT_NO_GLIB)
     if (qEnvironmentVariableIsEmpty("QT_NO_GLIB")
         && qEnvironmentVariableIsEmpty("QT_NO_THREADED_GLIB")
         && QEventDispatcherGlib::versionSupported())
         data->eventDispatcher.storeRelease(new QEventDispatcherGlib);
     else
-#endif
+        data->eventDispatcher.storeRelease(new QEventDispatcherUNIX);
+#else
     data->eventDispatcher.storeRelease(new QEventDispatcherUNIX);
 #endif
 
@@ -357,7 +380,7 @@ void *QThreadPrivate::start(void *arg)
             thr->d_func()->setPriority(QThread::Priority(thr->d_func()->priority & ~ThreadPriorityResetFlag));
         }
 
-        data->threadId = (Qt::HANDLE)pthread_self();
+        data->threadId = to_HANDLE(pthread_self());
         set_thread_data(data);
 #endif /* Q_OS_GENODE */
 
@@ -374,14 +397,16 @@ void *QThreadPrivate::start(void *arg)
     QThread::setTerminationEnabled(true);
 #else
 #if (defined(Q_OS_LINUX) || defined(Q_OS_MAC) || defined(Q_OS_QNX))
-    // sets the name of the current thread.
-    QString objectName = thr->objectName();
+    {
+        // sets the name of the current thread.
+        QString objectName = thr->objectName();
 
-    if (Q_LIKELY(objectName.isEmpty()))
-        setCurrentThreadName(thr->d_func()->thread_id, thr->metaObject()->className());
-    else
-        setCurrentThreadName(thr->d_func()->thread_id, objectName.toLocal8Bit());
-
+        pthread_t thread_id = from_HANDLE<pthread_t>(data->threadId);
+        if (Q_LIKELY(objectName.isEmpty()))
+            setCurrentThreadName(thread_id, thr->metaObject()->className());
+        else
+            setCurrentThreadName(thread_id, objectName.toLocal8Bit());
+    }
 #endif
 
     emit thr->started(QThread::QPrivateSignal());
@@ -424,9 +449,9 @@ void QThreadPrivate::finish(void *arg)
         locker.relock();
     }
 
-    d->thread_id = 0;
     d->running = false;
     d->finished = true;
+    d->interruptionRequested = false;
 
 #ifdef Q_OS_GENODE
     QThreadPrivate::tls.remove(QThread::currentThreadId());
@@ -449,7 +474,7 @@ Qt::HANDLE QThread::currentThreadId() Q_DECL_NOTHROW
     return (Qt::HANDLE)QThreadPrivate::Genode_thread::myself();
 #else
     // requires a C cast here otherwise we run into trouble on AIX
-    return (Qt::HANDLE)pthread_self();
+    return to_HANDLE(pthread_self());
 #endif /* Q_OS_GENODE */
 }
 
@@ -462,31 +487,36 @@ Qt::HANDLE QThread::currentThreadId() Q_DECL_NOTHROW
 
 int QThread::idealThreadCount() Q_DECL_NOTHROW
 {
-    int cores = -1;
+    int cores = 1;
 
 #if defined(Q_OS_HPUX)
     // HP-UX
     struct pst_dynamic psd;
     if (pstat_getdynamic(&psd, sizeof(psd), 1, 0) == -1) {
         perror("pstat_getdynamic");
-        cores = -1;
     } else {
         cores = (int)psd.psd_proc_cnt;
     }
 #elif defined(Q_OS_BSD4)
-    // FreeBSD, OpenBSD, NetBSD, BSD/OS, Mac OS X
+    // FreeBSD, OpenBSD, NetBSD, BSD/OS, OS X, iOS
     size_t len = sizeof(cores);
     int mib[2];
     mib[0] = CTL_HW;
     mib[1] = HW_NCPU;
     if (sysctl(mib, 2, &cores, &len, NULL, 0) != 0) {
         perror("sysctl");
-        cores = -1;
     }
 #elif defined(Q_OS_IRIX)
     // IRIX
     cores = (int)sysconf(_SC_NPROC_ONLN);
 #elif defined(Q_OS_INTEGRITY)
+#if (__INTEGRITY_MAJOR_VERSION >= 10)
+    // Integrity V10+ does support multicore CPUs
+    Value processorCount;
+    if (GetProcessorCount(CurrentTask(), &processorCount) == 0)
+        cores = processorCount;
+    else
+#endif
     // as of aug 2008 Integrity only supports one single core CPU
     cores = 1;
 #elif defined(Q_OS_VXWORKS)
@@ -511,8 +541,9 @@ int QThread::idealThreadCount() Q_DECL_NOTHROW
 #else
     // the rest: Linux, Solaris, AIX, Tru64
     cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
+    if (cores == -1)
+        return 1;
 #endif
-
     return cores;
 }
 
@@ -623,6 +654,7 @@ void QThread::start(Priority priority)
     d->finished = false;
     d->returnCode = 0;
     d->exited = false;
+    d->interruptionRequested = false;
 
 #ifndef Q_OS_GENODE
     pthread_attr_t attr;
@@ -726,17 +758,17 @@ void QThread::start(Priority priority)
         }
     }
 
-    int code =
-        pthread_create(&d->thread_id, &attr, QThreadPrivate::start, this);
+    pthread_t threadId;
+    int code = pthread_create(&threadId, &attr, QThreadPrivate::start, this);
     if (code == EPERM) {
         // caller does not have permission to set the scheduling
         // parameters/policy
 #if defined(QT_HAS_THREAD_PRIORITY_SCHEDULING)
         pthread_attr_setinheritsched(&attr, PTHREAD_INHERIT_SCHED);
 #endif
-        code =
-            pthread_create(&d->thread_id, &attr, QThreadPrivate::start, this);
+        code = pthread_create(&threadId, &attr, QThreadPrivate::start, this);
     }
+    d->data->threadId = to_HANDLE(threadId);
 
     pthread_attr_destroy(&attr);
 
@@ -745,7 +777,7 @@ void QThread::start(Priority priority)
 
         d->running = false;
         d->finished = false;
-        d->thread_id = 0;
+        d->data->threadId = 0;
     }
 
 #endif /* Q_OS_GENODE */
@@ -770,10 +802,10 @@ void QThread::terminate()
         d->running = false;
     }
 #else
-    if (!d->thread_id)
+    if (!d->data->threadId)
         return;
 
-    int code = pthread_cancel(d->thread_id);
+    int code = pthread_cancel(from_HANDLE<pthread_t>(d->data->threadId));
     if (code) {
         qWarning("QThread::start: Thread termination error: %s",
                  qPrintable(qt_error_string((code))));
@@ -801,7 +833,7 @@ bool QThread::wait(unsigned long time)
 #ifdef Q_OS_GENODE
     if (d->thread_id == QThread::currentThreadId()) {
 #else
-    if (d->thread_id == pthread_self()) {
+    if (from_HANDLE<pthread_t>(d->data->threadId) == pthread_self()) {
 #endif /* Q_OS_GENODE */
         qWarning("QThread::wait: Thread tried to wait on itself");
         return false;
@@ -862,7 +894,7 @@ void QThreadPrivate::setPriority(QThread::Priority threadPriority)
     int sched_policy;
     sched_param param;
 
-    if (pthread_getschedparam(thread_id, &sched_policy, &param) != 0) {
+    if (pthread_getschedparam(from_HANDLE<pthread_t>(data->threadId), &sched_policy, &param) != 0) {
         // failed to get the scheduling policy, don't bother setting
         // the priority
         qWarning("QThread::setPriority: Cannot get scheduler parameters");
@@ -878,15 +910,15 @@ void QThreadPrivate::setPriority(QThread::Priority threadPriority)
     }
 
     param.sched_priority = prio;
-    int status = pthread_setschedparam(thread_id, sched_policy, &param);
+    int status = pthread_setschedparam(from_HANDLE<pthread_t>(data->threadId), sched_policy, &param);
 
 # ifdef SCHED_IDLE
     // were we trying to set to idle priority and failed?
     if (status == -1 && sched_policy == SCHED_IDLE && errno == EINVAL) {
         // reset to lowest priority possible
-        pthread_getschedparam(thread_id, &sched_policy, &param);
+        pthread_getschedparam(from_HANDLE<pthread_t>(data->threadId), &sched_policy, &param);
         param.sched_priority = sched_get_priority_min(sched_policy);
-        pthread_setschedparam(thread_id, sched_policy, &param);
+        pthread_setschedparam(from_HANDLE<pthread_t>(data->threadId), sched_policy, &param);
     }
 # else
     Q_UNUSED(status);

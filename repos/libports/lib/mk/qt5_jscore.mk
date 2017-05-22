@@ -14,8 +14,9 @@ CC_WARN =
 #
 # Generated files
 #
-# some of the following lines have been extracted from Makefiles (and modified afterwards),
-# that's why they can be quite long
+# some of the following lines have been extracted from the console output
+# of the 'configure' script (with modifications), that's why they can be
+# quite long
 #
 
 ifneq ($(call select_from_ports,qt5),)
@@ -42,19 +43,17 @@ $(QT5_PORT_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.t
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/NumberConstructor.cpp -i > $(dir $@)/NumberConstructor.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/NumberPrototype.cpp -i   > $(dir $@)/NumberPrototype.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/ObjectConstructor.cpp -i > $(dir $@)/ObjectConstructor.lut.h
-	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/ObjectPrototype.cpp -i   > $(dir $@)/ObjectPrototype.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/RegExpConstructor.cpp -i > $(dir $@)/RegExpConstructor.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/RegExpObject.cpp -i      > $(dir $@)/RegExpObject.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/RegExpPrototype.cpp -i   > $(dir $@)/RegExpPrototype.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/StringConstructor.cpp -i > $(dir $@)/StringConstructor.lut.h
-	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/runtime/StringPrototype.cpp -i   > $(dir $@)/StringPrototype.lut.h
 	$(VERBOSE)perl $(JAVASCRIPTCORE_DIR)/create_hash_table $(JAVASCRIPTCORE_DIR)/parser/Keywords.table -i         > $(dir $@)/Lexer.lut.h
-
-	@# KeywordLookupGenerator.py
-	$(VERBOSE)python $(JAVASCRIPTCORE_DIR)/KeywordLookupGenerator.py $(JAVASCRIPTCORE_DIR)/parser/Keywords.table  > $(dir $@)/KeywordLookup.h
 
 	@# create_regex_tables 
 	$(VERBOSE)python $(JAVASCRIPTCORE_DIR)/create_regex_tables > $(dir $@)/RegExpJitTables.h
+
+	@# KeywordLookupGenerator.py
+	$(VERBOSE)python $(JAVASCRIPTCORE_DIR)/KeywordLookupGenerator.py $(JAVASCRIPTCORE_DIR)/parser/Keywords.table  > $(dir $@)/KeywordLookup.h
 
 	$(VERBOSE)touch $@
 

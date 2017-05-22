@@ -4,24 +4,71 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
+ .../Source/JavaScriptCore/assembler/ARMAssembler.h |    7 +++++++
+ .../JavaScriptCore/assembler/MacroAssemblerARM.cpp |    3 ++-
  .../Source/JavaScriptCore/dfg/DFGOperations.cpp    |    1 +
  .../JavaScriptCore/jit/ExecutableAllocator.h       |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Assertions.h               |   11 ++++++++++
+ qtwebkit/Source/WTF/wtf/Assertions.cpp             |    9 +++++++++
  qtwebkit/Source/WTF/wtf/FastMalloc.cpp             |    2 +-
  qtwebkit/Source/WTF/wtf/InlineASM.h                |    4 ++--
- qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 ++++++++++++
+ qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 +++++++++++++
  qtwebkit/Source/WTF/wtf/OSRandomSource.cpp         |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Platform.h                 |   21 ++++++++++++++++----
- qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 ++++++++++++
- qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   20 +++++++++++++++++++
+ qtwebkit/Source/WTF/wtf/Platform.h                 |   19 +++++++++++++++----
+ qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 +++++++++++++
+ qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   20 ++++++++++++++++++++
+ .../front-end/InspectorBackendCommands.qrc         |    2 +-
  .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
- 11 files changed, 97 insertions(+), 7 deletions(-)
+ .../network/qt/SocketStreamHandlePrivate.h         |    1 +
+ .../platform/network/qt/SocketStreamHandleQt.cpp   |   14 ++++++++++++++
+ 16 files changed, 118 insertions(+), 9 deletions(-)
 
+diff --git a/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h b/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h
+index 19db71d..9cbe4e3 100644
+--- a/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h
++++ b/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h
+@@ -29,9 +29,14 @@
+ 
+ #if ENABLE(ASSEMBLER) && CPU(ARM_TRADITIONAL)
+ 
++#if OS(GENODE)
++#include <cpu/cache.h>
++#endif
++
+ #include "AssemblerBufferWithConstantPool.h"
+ #include "JITCompilationEffort.h"
+ #include <wtf/Assertions.h>
++
+ namespace JSC {
+ 
+     typedef uint32_t ARMWord;
+@@ -1069,6 +1074,8 @@ namespace JSC {
+             UNUSED_PARAM(size);
+ #elif OS(QNX)
+             msync(code, size, MS_INVALIDATE_ICACHE);
++#elif OS(GENODE)
++            Genode::cache_coherent((Genode::addr_t)code, size);
+ #else
+ #error "The cacheFlush support is missing on this platform."
+ #endif
+diff --git a/qtwebkit/Source/JavaScriptCore/assembler/MacroAssemblerARM.cpp b/qtwebkit/Source/JavaScriptCore/assembler/MacroAssemblerARM.cpp
+index ca0fa21..782aabf 100644
+--- a/qtwebkit/Source/JavaScriptCore/assembler/MacroAssemblerARM.cpp
++++ b/qtwebkit/Source/JavaScriptCore/assembler/MacroAssemblerARM.cpp
+@@ -65,7 +65,8 @@ static bool isVFPPresent()
+     }
+ #endif
+ 
+-#if (COMPILER(RVCT) && defined(__TARGET_FPU_VFP)) || (COMPILER(GCC) && defined(__VFP_FP__))
++#if (COMPILER(RVCT) && defined(__TARGET_FPU_VFP)) || \
++    (COMPILER(GCC) && defined(__VFP_FP__) && !defined(__SOFTFP__))
+     return true;
+ #else
+     return false;
 diff --git a/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp b/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp
-index bb9ccc3..077cbed 100644
+index 1305c0a..9af93c0 100644
 --- a/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp
 +++ b/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp
-@@ -1624,6 +1624,7 @@ namespace JSC {
+@@ -1796,6 +1796,7 @@ namespace JSC {
  
  #if COMPILER(GCC) && CPU(X86_64)
  asm (
@@ -30,13 +77,13 @@ index bb9ccc3..077cbed 100644
  HIDE_SYMBOL(getHostCallReturnValue) "\n"
  SYMBOL_STRING(getHostCallReturnValue) ":" "\n"
 diff --git a/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h b/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h
-index 85779e6..231ba3b 100644
+index 42e1f95..369f3a8 100644
 --- a/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h
 +++ b/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h
-@@ -107,7 +107,15 @@ class DemandExecutableAllocator;
- #if CPU(ARM)
+@@ -105,7 +105,15 @@ class DemandExecutableAllocator;
+ #if CPU(ARM) || CPU(MIPS)
  static const size_t fixedExecutableMemoryPoolSize = 16 * 1024 * 1024;
- #elif CPU(X86_64)
+ #elif CPU(X86_64) && !CPU(X32)
 +#if OS(GENODE)
 +/*
 + * Genode's 'mmap()' implementation currently does not support on-demand
@@ -49,40 +96,38 @@ index 85779e6..231ba3b 100644
  #else
  static const size_t fixedExecutableMemoryPoolSize = 32 * 1024 * 1024;
  #endif
-diff --git a/qtwebkit/Source/WTF/wtf/Assertions.h b/qtwebkit/Source/WTF/wtf/Assertions.h
-index 7e079ab..2a54393 100644
---- a/qtwebkit/Source/WTF/wtf/Assertions.h
-+++ b/qtwebkit/Source/WTF/wtf/Assertions.h
-@@ -50,6 +50,10 @@
- #include <inttypes.h>
+diff --git a/qtwebkit/Source/WTF/wtf/Assertions.cpp b/qtwebkit/Source/WTF/wtf/Assertions.cpp
+index 1b2091f..15d1d03 100644
+--- a/qtwebkit/Source/WTF/wtf/Assertions.cpp
++++ b/qtwebkit/Source/WTF/wtf/Assertions.cpp
+@@ -75,6 +75,10 @@
+ #include <BlackBerryPlatformLog.h>
  #endif
  
 +#if OS(GENODE)
 +#include <base/log.h>
 +#endif
 +
- #ifdef NDEBUG
- /* Disable ASSERT* macros in release mode. */
- #define ASSERTIONS_DISABLED_DEFAULT 1
-@@ -173,6 +177,13 @@ WTF_EXPORT_PRIVATE void WTFInstallReportBacktraceOnCrashHook();
-      WTFInvokeCrashHook(), \
-      (*(int *)(uintptr_t)0xbbadbeef = 0), \
-      __builtin_trap())
-+#elif OS(GENODE)
-+#define CRASH() ( \
-+	Genode::error("WebKit CRASH in '", WTF_PRETTY_FUNCTION, "'"), \
-+	Genode::error("  in ", __FILE__, ":", __LINE__), \
-+    *(int *)(uintptr_t)0xbbadbeef = 0, \
-+    ((void(*)())0)() /* More reliable, but doesn't say BBADBEEF */ \
-+)
- #else
- #define CRASH() \
-     (WTFReportBacktrace(), \
+ extern "C" {
+ 
+ WTF_ATTRIBUTE_PRINTF(1, 0)
+@@ -341,6 +345,11 @@ void WTFCrash()
+     if (globalHook)
+         globalHook();
+ 
++#if OS(GENODE)
++	Genode::error("WebKit CRASH in '", WTF_PRETTY_FUNCTION, "'");
++	Genode::error("  in ", __FILE__, ":", __LINE__);
++#endif /* OS(GENODE) */
++
+     WTFReportBacktrace();
+     *(int *)(uintptr_t)0xbbadbeef = 0;
+     // More reliable, but doesn't say BBADBEEF.
 diff --git a/qtwebkit/Source/WTF/wtf/FastMalloc.cpp b/qtwebkit/Source/WTF/wtf/FastMalloc.cpp
-index f2e34c7..f91c2fc 100644
+index 82fbd25..9791492 100644
 --- a/qtwebkit/Source/WTF/wtf/FastMalloc.cpp
 +++ b/qtwebkit/Source/WTF/wtf/FastMalloc.cpp
-@@ -101,7 +101,7 @@
+@@ -111,7 +111,7 @@
  #endif
  
  // Use a background thread to periodically scavenge memory to release back to the system
@@ -111,10 +156,10 @@ index 0a2fe78..d1fdd01 100644
  #define HIDE_SYMBOL(name) ".hidden " #name
  #else
 diff --git a/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp b/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp
-index a2f6a79..be8fff9 100644
+index fb24cd9..e289dc3 100644
 --- a/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp
 +++ b/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp
-@@ -120,6 +120,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
+@@ -158,6 +158,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
  #endif
              CRASH();
      }
@@ -122,7 +167,7 @@ index a2f6a79..be8fff9 100644
      if (result && includesGuardPages) {
          // We use mmap to remap the guardpages rather than using mprotect as
          // mprotect results in multiple references to the code region.  This
-@@ -128,6 +129,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
+@@ -166,6 +167,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
          mmap(result, pageSize(), PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANON, fd, 0);
          mmap(static_cast<char*>(result) + bytes - pageSize(), pageSize(), PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANON, fd, 0);
      }
@@ -130,7 +175,7 @@ index a2f6a79..be8fff9 100644
      return result;
  }
  
-@@ -179,9 +181,20 @@ void OSAllocator::decommit(void* address, size_t bytes)
+@@ -224,9 +226,20 @@ void OSAllocator::decommit(void* address, size_t bytes)
  
  void OSAllocator::releaseDecommitted(void* address, size_t bytes)
  {
@@ -152,7 +197,7 @@ index a2f6a79..be8fff9 100644
  
  } // namespace WTF
 diff --git a/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp b/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp
-index 0c1416a..921ea54 100644
+index 2495abf..7f05661 100644
 --- a/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp
 +++ b/qtwebkit/Source/WTF/wtf/OSRandomSource.cpp
 @@ -29,6 +29,10 @@
@@ -166,8 +211,8 @@ index 0c1416a..921ea54 100644
  #if OS(UNIX)
  #include <fcntl.h>
  #include <unistd.h>
-@@ -44,6 +48,10 @@ namespace WTF {
- #if USE(OS_RANDOMNESS)
+@@ -43,6 +47,10 @@ namespace WTF {
+ 
  void cryptographicallyRandomValuesFromOS(unsigned char* buffer, size_t length)
  {
 +#if OS(GENODE)
@@ -178,12 +223,12 @@ index 0c1416a..921ea54 100644
      int fd = open("/dev/urandom", O_RDONLY, 0);
      if (fd < 0)
 diff --git a/qtwebkit/Source/WTF/wtf/Platform.h b/qtwebkit/Source/WTF/wtf/Platform.h
-index 35fa7e3..44343cf 100644
+index 562840c..89a1919 100644
 --- a/qtwebkit/Source/WTF/wtf/Platform.h
 +++ b/qtwebkit/Source/WTF/wtf/Platform.h
-@@ -426,6 +426,12 @@
- #define WTF_OS_UNIX 1
+@@ -498,6 +498,12 @@
  #endif
+ 
  
 +/* OS(GENODE) */
 +#ifdef __GENODE__
@@ -194,29 +239,28 @@ index 35fa7e3..44343cf 100644
  /* Operating environments */
  
  /* FIXME: these are all mixes of OS, operating environment and policy choices. */
-@@ -699,7 +705,8 @@
+@@ -650,6 +656,11 @@
+ #define HAVE_SYS_PARAM_H 1
+ #define HAVE_SYS_TIME_H 1 
+ #define WTF_USE_PTHREADS 1
++
++#elif OS(GENODE)
++#define HAVE_ERRNO_H 1
++#define HAVE_SYS_TIME_H 1 
++
+ #endif /* OS(UNIX) */
  
- #if !OS(WINDOWS) && !OS(SOLARIS) \
-     && !OS(RVCT) \
--    && !OS(ANDROID)
-+    && !OS(ANDROID) \
-+    && !OS(GENODE)
+ #if OS(UNIX) && !OS(ANDROID) && !OS(QNX)
+@@ -672,7 +683,7 @@
+ #endif
+ #endif
+ 
+-#if !OS(WINDOWS) && !OS(SOLARIS) && !OS(ANDROID)
++#if !OS(WINDOWS) && !OS(SOLARIS) && !OS(ANDROID) && !OS(GENODE)
  #define HAVE_TM_GMTOFF 1
  #define HAVE_TM_ZONE 1
  #define HAVE_TIMEGM 1
-@@ -764,6 +771,11 @@
- #define HAVE_SYS_PARAM_H 1
- #define HAVE_SYS_TIME_H 1
- 
-+#elif OS(GENODE)
-+
-+#define HAVE_ERRNO_H 1
-+#define HAVE_SYS_TIME_H 1
-+
- #else
- 
- /* FIXME: is this actually used or do other platforms generate their own config.h? */
-@@ -782,7 +794,7 @@
+@@ -719,7 +730,7 @@
  #if PLATFORM(QT)
  /* We must not customize the global operator new and delete for the Qt port. */
  #define ENABLE_GLOBAL_FASTMALLOC_NEW 0
@@ -225,27 +269,26 @@ index 35fa7e3..44343cf 100644
  #define USE_SYSTEM_MALLOC 1
  #endif
  #endif
-@@ -935,7 +947,7 @@
+@@ -838,7 +849,7 @@
  #define ENABLE_DFG_JIT 1
  #endif
- /* Enable the DFG JIT on ARM. */
--#if CPU(ARM_TRADITIONAL)
-+#if CPU(ARM_TRADITIONAL) && !OS(GENODE)
+ /* Enable the DFG JIT on ARM, MIPS and SH4. */
+-#if CPU(ARM_TRADITIONAL) || CPU(MIPS) || CPU(SH4)
++#if (CPU(ARM_TRADITIONAL) || CPU(MIPS) || CPU(SH4))  && !OS(GENODE)
  #define ENABLE_DFG_JIT 1
  #endif
- /* Enable the DFG JIT on MIPS. */
-@@ -1005,7 +1017,8 @@
+ #endif
+@@ -914,7 +925,7 @@
  #define ENABLE_REGEXP_TRACING 0
  
  /* Yet Another Regex Runtime - turned on by default for JIT enabled ports. */
--#if !defined(ENABLE_YARR_JIT) && (ENABLE(JIT) || ENABLE(LLINT_C_LOOP)) && !PLATFORM(CHROMIUM)
-+/* When enabled for Genode, the 'exec()' function returns invalid string objects */
-+#if !defined(ENABLE_YARR_JIT) && (ENABLE(JIT) || ENABLE(LLINT_C_LOOP)) && !PLATFORM(CHROMIUM) && !OS(GENODE)
+-#if !defined(ENABLE_YARR_JIT) && !ENABLE(LLINT_C_LOOP) && !(OS(QNX) && PLATFORM(QT))
++#if !defined(ENABLE_YARR_JIT) && !ENABLE(LLINT_C_LOOP) && !(OS(QNX) && PLATFORM(QT)) && !OS(GENODE)
  #define ENABLE_YARR_JIT 1
  
  /* Setting this flag compares JIT results with interpreter results. */
 diff --git a/qtwebkit/Source/WTF/wtf/StackBounds.cpp b/qtwebkit/Source/WTF/wtf/StackBounds.cpp
-index a272ce3..65a5a1f 100644
+index 061cae7..04d012c 100644
 --- a/qtwebkit/Source/WTF/wtf/StackBounds.cpp
 +++ b/qtwebkit/Source/WTF/wtf/StackBounds.cpp
 @@ -44,6 +44,10 @@
@@ -259,8 +302,8 @@ index a272ce3..65a5a1f 100644
  #elif OS(UNIX)
  
  #include <pthread.h>
-@@ -128,6 +132,15 @@ void StackBounds::initialize()
-     m_bound = estimateStackBound(m_origin);
+@@ -124,6 +128,15 @@ void StackBounds::initialize()
+ #endif
  }
  
 +#elif OS(GENODE)
@@ -276,7 +319,7 @@ index a272ce3..65a5a1f 100644
  
  void StackBounds::initialize()
 diff --git a/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp b/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp
-index f547085..3263f04 100644
+index ae67918..6d7b69a 100644
 --- a/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp
 +++ b/qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp
 @@ -49,6 +49,11 @@
@@ -291,7 +334,7 @@ index f547085..3263f04 100644
  #ifndef MAP_ANONYMOUS
  #define MAP_ANONYMOUS MAP_ANON
  #endif
-@@ -367,6 +372,21 @@ void* TCMalloc_SystemAlloc(size_t size, size_t *actual_size, size_t alignment) {
+@@ -370,6 +375,21 @@ void* TCMalloc_SystemAlloc(size_t size, size_t *actual_size, size_t alignment) {
      }
  #endif
  
@@ -313,8 +356,20 @@ index f547085..3263f04 100644
      // nothing worked - reset failure flags and try again
      devmem_failure = false;
      sbrk_failure = false;
+diff --git a/qtwebkit/Source/WebCore/inspector/front-end/InspectorBackendCommands.qrc b/qtwebkit/Source/WebCore/inspector/front-end/InspectorBackendCommands.qrc
+index 5b1488b..22df481 100644
+--- a/qtwebkit/Source/WebCore/inspector/front-end/InspectorBackendCommands.qrc
++++ b/qtwebkit/Source/WebCore/inspector/front-end/InspectorBackendCommands.qrc
+@@ -1,6 +1,6 @@
+ <!DOCTYPE RCC><RCC version="1.0">
+ <qresource prefix="/webkit/inspector">
+-    <file>InspectorBackendCommands.js</file>
++    <file>../../../../../../qtwebkit/Source/WebCore/generated/InspectorBackendCommands.js</file>
+ </qresource>
+ </RCC>
+ 
 diff --git a/qtwebkit/Source/WebCore/platform/graphics/qt/MediaPlayerPrivateQt.cpp b/qtwebkit/Source/WebCore/platform/graphics/qt/MediaPlayerPrivateQt.cpp
-index e083e29..dc73aac 100644
+index b2c8d48..caeb3ec 100644
 --- a/qtwebkit/Source/WebCore/platform/graphics/qt/MediaPlayerPrivateQt.cpp
 +++ b/qtwebkit/Source/WebCore/platform/graphics/qt/MediaPlayerPrivateQt.cpp
 @@ -18,6 +18,8 @@
@@ -326,8 +381,52 @@ index e083e29..dc73aac 100644
  #include "MediaPlayerPrivateQt.h"
  
  #include "Frame.h"
-@@ -661,3 +663,4 @@ PlatformMedia MediaPlayerPrivateQt::platformMedia() const
+@@ -666,3 +668,4 @@ PlatformMedia MediaPlayerPrivateQt::platformMedia() const
  } // namespace WebCore
  
  #include "moc_MediaPlayerPrivateQt.cpp"
 +#endif /* ENABLE(VIDEO) */
+diff --git a/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandlePrivate.h b/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandlePrivate.h
+index 647c4ef..ec4a645 100644
+--- a/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandlePrivate.h
++++ b/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandlePrivate.h
+@@ -65,6 +65,7 @@ public Q_SLOTS:
+ #endif
+ public:
+     void initConnections();
++    void init(const KURL& url);
+     QTcpSocket* m_socket;
+     SocketStreamHandle* m_streamHandle;
+ };
+diff --git a/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandleQt.cpp b/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandleQt.cpp
+index cd71190..4f8a7b9 100644
+--- a/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandleQt.cpp
++++ b/qtwebkit/Source/WebCore/platform/network/qt/SocketStreamHandleQt.cpp
+@@ -58,6 +58,19 @@ SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandle* streamH
+         return;
+ 
+     initConnections();
++ }
++
++/*
++ * This code was factored out from the constructor, because its execution can
++ * end up in 'SocketStreamHandle::platformSend()', which needs the
++ * 'SocketStreamHandle::m_p' member, which gets initialized only after the
++ * constructor returned.
++ *
++ * Genode issue #1677
++ */
++void SocketStreamHandlePrivate::init(const KURL& url)
++{
++    bool isSecure = url.protocolIs("wss");
+ 
+     unsigned int port = url.hasPort() ? url.port() : (isSecure ? 443 : 80);
+ 
+@@ -188,6 +201,7 @@ SocketStreamHandle::SocketStreamHandle(const KURL& url, SocketStreamHandleClient
+ {
+     LOG(Network, "SocketStreamHandle %p new client %p", this, m_client);
+     m_p = new SocketStreamHandlePrivate(this, url);
++    m_p->init(url);
+ }
+ 
+ SocketStreamHandle::SocketStreamHandle(QTcpSocket* socket, SocketStreamHandleClient* client)

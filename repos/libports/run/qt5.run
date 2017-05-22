@@ -42,7 +42,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="qt_launchpad" caps="500">
+	<start name="qt_launchpad" caps="600">
 		<resource name="RAM" quantum="80M"/>
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
@@ -50,7 +50,7 @@ append config {
 				<dir name="dev"> <log/> </dir>
 				<tar name="qt5_fs_qt_launchpad.tar"/>
 			</vfs>
-			<launcher name="calculatorform" ram_quota="30M" caps="150">
+			<launcher name="calculatorform" ram_quota="30M" caps="200">
 				<config>
 					<libc stdout="/dev/log" stderr="/dev/log"/>
 					<vfs>
@@ -59,7 +59,7 @@ append config {
 					</vfs>
 				</config>
 			</launcher>
-			<launcher name="tetrix" ram_quota="40M" caps="150">
+			<launcher name="tetrix" ram_quota="40M" caps="200">
 				<config>
 					<libc stdout="/dev/log" stderr="/dev/log"/>
 					<vfs>
@@ -93,6 +93,7 @@ append boot_modules {
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
+	pcre16.lib.so
 	pthread.lib.so
 	qt5_core.lib.so
 	qt5_gui.lib.so

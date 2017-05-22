@@ -24,6 +24,7 @@ QStringList QNitpickerIntegrationPlugin::keys() const
 
 QPlatformIntegration *QNitpickerIntegrationPlugin::create(const QString& system, const QStringList& paramList)
 {
+qDebug() << "QNitpickerIntegrationPlugin::create()";
     Q_UNUSED(paramList);
     if (system.toLower() == "nitpicker")
         return new QNitpickerIntegration;

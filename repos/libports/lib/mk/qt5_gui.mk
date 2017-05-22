@@ -2,6 +2,10 @@ include $(REP_DIR)/lib/import/import-qt5_gui.mk
 
 SHARED_LIB = yes
 
+ifeq ($(filter-out $(SPECS),x86),)
+CC_OPT += -mno-sse2
+endif
+
 # use default warning level to avoid noise when compiling contrib code
 CC_WARN = -Wno-unused-but-set-variable -Wno-deprecated-declarations
 

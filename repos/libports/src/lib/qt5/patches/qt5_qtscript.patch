@@ -12,10 +12,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  5 files changed, 44 insertions(+), 1 deletion(-)
 
 diff --git a/qtbase/src/corelib/global/qglobal.h b/qtbase/src/corelib/global/qglobal.h
-index 79e32fe..324c168 100644
+index a7183cb..457ba65 100644
 --- a/qtbase/src/corelib/global/qglobal.h
 +++ b/qtbase/src/corelib/global/qglobal.h
-@@ -763,13 +763,17 @@ inline void qSwap(T &value1, T &value2)
+@@ -864,13 +864,17 @@ inline void qSwap(T &value1, T &value2)
      swap(value1, value2);
  }
  
@@ -35,10 +35,10 @@ index 79e32fe..324c168 100644
  Q_CORE_EXPORT void *qReallocAligned(void *ptr, size_t size, size_t oldsize, size_t alignment) Q_ALLOC_SIZE(2);
  Q_CORE_EXPORT void qFreeAligned(void *ptr);
 diff --git a/qtbase/src/corelib/kernel/qvariant_p.h b/qtbase/src/corelib/kernel/qvariant_p.h
-index 4ec049e..e5e8dc4 100644
+index 337e140..11f73ab 100644
 --- a/qtbase/src/corelib/kernel/qvariant_p.h
 +++ b/qtbase/src/corelib/kernel/qvariant_p.h
-@@ -401,7 +401,10 @@ public:
+@@ -383,7 +383,10 @@ public:
  
      void delegate(const void*)
      {
@@ -50,7 +50,7 @@ index 4ec049e..e5e8dc4 100644
          m_x->is_shared = false;
          m_x->is_null = !m_copy;
 diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
-index d5adbd7..d2a5ad9 100644
+index 1b2fd1d..d1b454a 100644
 --- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
 +++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
 @@ -64,6 +64,12 @@
@@ -102,7 +102,7 @@ index d5adbd7..d2a5ad9 100644
      AtomicallyInitializedStatic(Mutex&, mutex = *new Mutex);
      MutexLocker locker(mutex);
 diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
-index 352a74b..20ef8b4 100644
+index 74b0172..50121f6 100644
 --- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
 +++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
 @@ -44,6 +44,10 @@
@@ -131,10 +131,10 @@ index 352a74b..20ef8b4 100644
  #define CRASH() do { \
      *(int *)(uintptr_t)0xbbadbeef = 0; \
 diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
-index d483806..e956b49 100644
+index 00caa6d..67d0855 100644
 --- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
 +++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
-@@ -330,6 +330,11 @@
+@@ -400,6 +400,11 @@
  /* ==== OS() - underlying operating system; only to be used for mandated low-level services like 
     virtual memory, not to choose a GUI toolkit ==== */
  

@@ -34,11 +34,8 @@ Genode::Signal_receiver &QNitpickerIntegration::_signal_receiver()
 
 QNitpickerIntegration::QNitpickerIntegration()
 : _signal_handler_thread(_signal_receiver()),
-  _nitpicker_screen(new QNitpickerScreen()),
-  _event_dispatcher(createUnixEventDispatcher())
+  _nitpicker_screen(new QNitpickerScreen())
 {
-    QGuiApplicationPrivate::instance()->setEventDispatcher(_event_dispatcher);
-    screenAdded(_nitpicker_screen);
     _signal_handler_thread.start();
 }
 
@@ -73,11 +70,17 @@ QPlatformBackingStore *QNitpickerIntegration::createPlatformBackingStore(QWindow
 }
 
 
-QAbstractEventDispatcher *QNitpickerIntegration::guiThreadEventDispatcher() const
+QAbstractEventDispatcher *QNitpickerIntegration::createEventDispatcher() const
 {
 	if (verbose)
-		qDebug() << "QNitpickerIntegration::guiThreadEventDispatcher()";
-	return _event_dispatcher;
+		qDebug() << "QNitpickerIntegration::createEventDispatcher()";
+	return createUnixEventDispatcher();
+}
+
+
+void QNitpickerIntegration::initialize()
+{
+    screenAdded(_nitpicker_screen);
 }
 
 

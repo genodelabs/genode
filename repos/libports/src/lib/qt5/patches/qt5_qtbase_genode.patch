@@ -5,28 +5,29 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 Genode-specific adaptations
 ---
  qtbase/src/corelib/codecs/qtextcodec.cpp           |    4 +
- qtbase/src/corelib/global/qlogging.cpp             |    6 ++
+ qtbase/src/corelib/global/qcompilerdetection.h     |    4 +
  qtbase/src/corelib/global/qsystemdetection.h       |    5 +-
+ qtbase/src/corelib/global/qversiontagging.cpp      |    2 -
  qtbase/src/corelib/io/qresource.cpp                |    2 -
  qtbase/src/corelib/kernel/qcoreapplication.cpp     |    2 -
  .../src/corelib/kernel/qeventdispatcher_unix.cpp   |   14 +++++
  qtbase/src/corelib/kernel/qtranslator.cpp          |    2 -
- qtbase/src/corelib/thread/qthread.cpp              |    5 +-
+ qtbase/src/corelib/thread/qthread.cpp              |    4 +
  qtbase/src/corelib/thread/qthread_p.h              |   55 ++++++++++++++++++++
- qtbase/src/corelib/tools/qdatetime.cpp             |   15 +++++
+ qtbase/src/corelib/tools/qdatetime.cpp             |    3 +
  qtbase/src/gui/image/qxpmhandler.cpp               |    8 +++
  .../network/access/qnetworkaccessfilebackend.cpp   |    5 ++
  qtbase/src/network/kernel/qhostinfo.cpp            |    5 ++
  qtbase/src/network/kernel/qhostinfo_unix.cpp       |    7 ++-
  qtbase/src/widgets/dialogs/qfiledialog.cpp         |    2 -
  qtbase/src/widgets/styles/qstylefactory.cpp        |    7 +++
- 16 files changed, 137 insertions(+), 7 deletions(-)
+ 17 files changed, 123 insertions(+), 8 deletions(-)
 
 diff --git a/qtbase/src/corelib/codecs/qtextcodec.cpp b/qtbase/src/corelib/codecs/qtextcodec.cpp
-index 1cedd3a..646be07 100644
+index c55f93b..9d69f16 100644
 --- a/qtbase/src/corelib/codecs/qtextcodec.cpp
 +++ b/qtbase/src/corelib/codecs/qtextcodec.cpp
-@@ -203,7 +203,11 @@ static QTextCodec *setupLocaleMapper()
+@@ -198,7 +198,11 @@ static QTextCodec *setupLocaleMapper()
          // First part is getting that locale name.  First try setlocale() which
          // definitely knows it, but since we cannot fully trust it, get ready
          // to fall back to environment variables.
@@ -38,44 +39,35 @@ index 1cedd3a..646be07 100644
  
          // Get the first nonempty value from $LC_ALL, $LC_CTYPE, and $LANG
          // environment variables.
-diff --git a/qtbase/src/corelib/global/qlogging.cpp b/qtbase/src/corelib/global/qlogging.cpp
-index c8293be..02b7e40 100644
---- a/qtbase/src/corelib/global/qlogging.cpp
-+++ b/qtbase/src/corelib/global/qlogging.cpp
-@@ -61,6 +61,10 @@
- #include <android/log.h>
- #endif
- 
-+#ifdef Q_OS_GENODE
-+#include <base/log.h>
-+#endif
-+
- #include <stdio.h>
- 
- QT_BEGIN_NAMESPACE
-@@ -875,6 +879,8 @@ static void qDefaultMessageHandler(QtMsgType type, const QMessageLogContext &con
- 
- #if defined(QT_USE_SLOG2)
-     slog2_default_handler(type, logMessage.toLocal8Bit().constData());
-+#elif defined(Q_OS_GENODE)
-+    Genode::log(logMessage.toLocal8Bit().constData());
- #elif defined(Q_OS_ANDROID)
-     static bool logToAndroid = qEnvironmentVariableIsEmpty("QT_ANDROID_PLAIN_LOG");
-     if (logToAndroid) {
+diff --git a/qtbase/src/corelib/global/qcompilerdetection.h b/qtbase/src/corelib/global/qcompilerdetection.h
+index 2d9e046..aac1d7b 100644
+--- a/qtbase/src/corelib/global/qcompilerdetection.h
++++ b/qtbase/src/corelib/global/qcompilerdetection.h
+@@ -826,7 +826,9 @@
+ #      define Q_COMPILER_ALIGNAS
+ #      define Q_COMPILER_ALIGNOF
+ #      define Q_COMPILER_INHERITING_CONSTRUCTORS
+-#      define Q_COMPILER_THREAD_LOCAL
++#      ifndef __GENODE__
++#         define Q_COMPILER_THREAD_LOCAL
++#      endif
+ #      if Q_CC_GNU > 408 || __GNUC_PATCHLEVEL__ >= 1
+ #         define Q_COMPILER_REF_QUALIFIERS
+ #      endif
 diff --git a/qtbase/src/corelib/global/qsystemdetection.h b/qtbase/src/corelib/global/qsystemdetection.h
-index cb55fa8..7d5c507 100644
+index de95ae3..7b6aaa6 100644
 --- a/qtbase/src/corelib/global/qsystemdetection.h
 +++ b/qtbase/src/corelib/global/qsystemdetection.h
-@@ -49,6 +49,7 @@
+@@ -41,6 +41,7 @@
  /*
     The operating system, must be one of: (Q_OS_x)
  
 +     GENODE   - Genode
-      DARWIN   - Darwin OS (synonym for Q_OS_MAC)
-      MAC      - OS X or iOS (synonym for Q_OS_DARWIN)
-      MACX     - OS X
-@@ -84,7 +85,9 @@
-      ANDROID  - Android platform
+      DARWIN   - Any Darwin system
+      MACOS    - macOS
+      IOS      - iOS
+@@ -86,7 +87,9 @@
+               - Q_OS_FREEBSD_KERNEL is always defined on FreeBSD, even if the userland is from GNU
  */
  
 -#if defined(__APPLE__) && (defined(__GNUC__) || defined(__xlC__) || defined(__xlc__))
@@ -85,11 +77,24 @@ index cb55fa8..7d5c507 100644
  #  define Q_OS_DARWIN
  #  define Q_OS_BSD4
  #  ifdef __LP64__
+diff --git a/qtbase/src/corelib/global/qversiontagging.cpp b/qtbase/src/corelib/global/qversiontagging.cpp
+index e7524f3..e31f8b3 100644
+--- a/qtbase/src/corelib/global/qversiontagging.cpp
++++ b/qtbase/src/corelib/global/qversiontagging.cpp
+@@ -36,7 +36,7 @@
+ #define SYM QT_MANGLE_NAMESPACE(qt_version_tag)
+ //#define SSYM QT_STRINGIFY(SYM)
+ 
+-#if defined(Q_CC_GNU) && defined(Q_OF_ELF) && !defined(Q_OS_ANDROID)
++#if defined(Q_CC_GNU) && defined(Q_OF_ELF) && !defined(Q_OS_ANDROID) && !defined(Q_OS_GENODE)
+ #  define make_versioned_symbol2(sym, m, n, separator)     \
+     Q_CORE_EXPORT extern const char sym ## _ ## m ## _ ## n = 0; \
+     asm(".symver " QT_STRINGIFY(sym) "_" QT_STRINGIFY(m) "_" QT_STRINGIFY(n) ", " \
 diff --git a/qtbase/src/corelib/io/qresource.cpp b/qtbase/src/corelib/io/qresource.cpp
-index 04ec81e..2211125 100644
+index c584933..615a7d5 100644
 --- a/qtbase/src/corelib/io/qresource.cpp
 +++ b/qtbase/src/corelib/io/qresource.cpp
-@@ -920,7 +920,7 @@ public:
+@@ -922,7 +922,7 @@ public:
      }
  };
  
@@ -99,10 +104,10 @@ index 04ec81e..2211125 100644
  #endif
  
 diff --git a/qtbase/src/corelib/kernel/qcoreapplication.cpp b/qtbase/src/corelib/kernel/qcoreapplication.cpp
-index 100e014..00263a0 100644
+index f5b1520..5ae76c5 100644
 --- a/qtbase/src/corelib/kernel/qcoreapplication.cpp
 +++ b/qtbase/src/corelib/kernel/qcoreapplication.cpp
-@@ -525,7 +525,7 @@ void QCoreApplicationPrivate::initLocale()
+@@ -602,7 +602,7 @@ void QCoreApplicationPrivate::initLocale()
      if (qt_locale_initialized)
          return;
      qt_locale_initialized = true;
@@ -112,10 +117,10 @@ index 100e014..00263a0 100644
  #endif
  }
 diff --git a/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp b/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp
-index 69363bc..be1a7cf 100644
+index 155f7b7..2e32ddb 100644
 --- a/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp
 +++ b/qtbase/src/corelib/kernel/qeventdispatcher_unix.cpp
-@@ -74,6 +74,11 @@
+@@ -66,6 +66,11 @@
  #  include <sys/times.h>
  #endif
  
@@ -127,7 +132,7 @@ index 69363bc..be1a7cf 100644
  QT_BEGIN_NAMESPACE
  
  #if defined(Q_OS_INTEGRITY) || defined(Q_OS_VXWORKS)
-@@ -287,6 +292,9 @@ int QEventDispatcherUNIXPrivate::processThreadWakeUp(int nsel)
+@@ -279,6 +284,9 @@ int QEventDispatcherUNIXPrivate::processThreadWakeUp(int nsel)
          char c[16];
          ::read(thread_pipe[0], c, sizeof(c));
          ::ioctl(thread_pipe[0], FIOFLUSH, 0);
@@ -137,7 +142,7 @@ index 69363bc..be1a7cf 100644
  #else
  #  ifndef QT_NO_EVENTFD
          if (thread_pipe[1] == -1) {
-@@ -325,6 +333,12 @@ QEventDispatcherUNIX::~QEventDispatcherUNIX()
+@@ -317,6 +325,12 @@ QEventDispatcherUNIX::~QEventDispatcherUNIX()
  int QEventDispatcherUNIX::select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
                                   timespec *timeout)
  {
@@ -151,10 +156,10 @@ index 69363bc..be1a7cf 100644
  }
  
 diff --git a/qtbase/src/corelib/kernel/qtranslator.cpp b/qtbase/src/corelib/kernel/qtranslator.cpp
-index 9243d09..d953b20 100644
+index 794a4aa..953d63c 100644
 --- a/qtbase/src/corelib/kernel/qtranslator.cpp
 +++ b/qtbase/src/corelib/kernel/qtranslator.cpp
-@@ -60,7 +60,7 @@
+@@ -51,7 +51,7 @@
  #include "qendian.h"
  #include "qresource.h"
  
@@ -164,26 +169,25 @@ index 9243d09..d953b20 100644
  #include "private/qcore_unix_p.h"
  #endif
 diff --git a/qtbase/src/corelib/thread/qthread.cpp b/qtbase/src/corelib/thread/qthread.cpp
-index 4d5bee3..622056e 100644
+index 8ea487e..2a8ee31 100644
 --- a/qtbase/src/corelib/thread/qthread.cpp
 +++ b/qtbase/src/corelib/thread/qthread.cpp
-@@ -150,7 +150,10 @@ QThreadPrivate::QThreadPrivate(QThreadData *d)
+@@ -142,6 +142,10 @@ QThreadPrivate::QThreadPrivate(QThreadData *d)
+       exited(false), returnCode(-1),
        stackSize(0), priority(QThread::InheritPriority), data(d)
  {
- #if defined (Q_OS_UNIX)
--    thread_id = 0;
-+	thread_id = 0;
 +#ifdef Q_OS_GENODE
 +	genode_thread = 0;
 +#endif /* Q_OS_GENODE */
- #elif defined (Q_OS_WIN)
++
+ #if defined (Q_OS_WIN)
      handle = 0;
-     id = 0;
+ #  ifndef Q_OS_WINRT
 diff --git a/qtbase/src/corelib/thread/qthread_p.h b/qtbase/src/corelib/thread/qthread_p.h
-index 9d773b3..9beb7e6 100644
+index a56b879..c23862b 100644
 --- a/qtbase/src/corelib/thread/qthread_p.h
 +++ b/qtbase/src/corelib/thread/qthread_p.h
-@@ -54,6 +54,10 @@
+@@ -46,6 +46,10 @@
  //
  //
  
@@ -194,7 +198,7 @@ index 9d773b3..9beb7e6 100644
  #include "qplatformdefs.h"
  #include "QtCore/qthread.h"
  #include "QtCore/qmutex.h"
-@@ -160,12 +164,63 @@ public:
+@@ -169,11 +173,62 @@ public:
      static QThread *threadForId(int id);
  
  #ifdef Q_OS_UNIX
@@ -248,7 +252,6 @@ index 9d773b3..9beb7e6 100644
 +    static void finish(void *arg);
 +
 +#else // Q_OS_UNIX && !Q_OS_GENODE
-     pthread_t thread_id;
      QWaitCondition thread_done;
  
      static void *start(void *arg);
@@ -259,63 +262,24 @@ index 9d773b3..9beb7e6 100644
  
  #ifdef Q_OS_WIN
 diff --git a/qtbase/src/corelib/tools/qdatetime.cpp b/qtbase/src/corelib/tools/qdatetime.cpp
-index d8e3a78..78202c6 100644
+index e6d0b97..da15640 100644
 --- a/qtbase/src/corelib/tools/qdatetime.cpp
 +++ b/qtbase/src/corelib/tools/qdatetime.cpp
-@@ -3072,9 +3072,14 @@ QTime QTime::currentTime()
-     // posix compliant system
-     struct timeval tv;
-     gettimeofday(&tv, 0);
-+
-     time_t ltime = tv.tv_sec;
-     struct tm *t = 0;
- 
-+#ifdef Q_OS_GENODE
-+	struct tm res;
-+	t = gmtime_r(&ltime, &res);
-+#else /* Q_OS_GENODE */
- #if !defined(QT_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS)
-     // use the reentrant version of localtime() where available
-     tzset();
-@@ -3083,9 +3088,11 @@ QTime QTime::currentTime()
- #else
-     t = localtime(&ltime);
- #endif
-+#endif /* Q_OS_GENODE */
-     Q_CHECK_PTR(t);
- 
-     ct.mds = msecsFromDecomposed(t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec / 1000);
-+
-     return ct;
- }
- 
-@@ -3970,6 +3977,10 @@ static QDate adjustDate(QDate date)
- 
- static QDateTimePrivate::Spec utcToLocal(QDate &date, QTime &time)
- {
-+#ifdef Q_OS_GENODE
-+    /* no timezones in Genode */
-+    return QDateTimePrivate::LocalUnknown;
-+#endif
-     QDate fakeDate = adjustDate(date);
- 
-     // won't overflow because of fakeDate
-@@ -4023,6 +4034,10 @@ static QDateTimePrivate::Spec utcToLocal(QDate &date, QTime &time)
- 
- static void localToUtc(QDate &date, QTime &time, int isdst)
- {
-+#ifdef Q_OS_GENODE
-+    /* no timezones in Genode */
-+    return;
-+#endif
-     if (!date.isValid())
-         return;
- 
+@@ -2145,6 +2145,9 @@ static int qt_timezone()
+         long offset;
+         _get_timezone(&offset);
+         return offset;
++#elif defined(Q_OS_GENODE)
++		/* no timezone support on Genode */
++		return 0;
+ #elif defined(Q_OS_BSD4) && !defined(Q_OS_DARWIN)
+         time_t clock = time(NULL);
+         struct tm t;
 diff --git a/qtbase/src/gui/image/qxpmhandler.cpp b/qtbase/src/gui/image/qxpmhandler.cpp
-index a7936f9..eee3a87 100644
+index b673ae5..6df45c3 100644
 --- a/qtbase/src/gui/image/qxpmhandler.cpp
 +++ b/qtbase/src/gui/image/qxpmhandler.cpp
-@@ -848,8 +848,16 @@ static bool read_xpm_header(
+@@ -842,8 +842,16 @@ static bool read_xpm_header(
  #if defined(_MSC_VER) && _MSC_VER >= 1400 && !defined(Q_OS_WINCE)
          if (sscanf_s(buf, "%d %d %d %d", w, h, ncols, cpp) < 4)
  #else
@@ -333,10 +297,10 @@ index a7936f9..eee3a87 100644
  
      return true;
 diff --git a/qtbase/src/network/access/qnetworkaccessfilebackend.cpp b/qtbase/src/network/access/qnetworkaccessfilebackend.cpp
-index 13428cc..0713528 100644
+index bb97bae..38de88b 100644
 --- a/qtbase/src/network/access/qnetworkaccessfilebackend.cpp
 +++ b/qtbase/src/network/access/qnetworkaccessfilebackend.cpp
-@@ -115,6 +115,7 @@ void QNetworkAccessFileBackend::open()
+@@ -118,6 +118,7 @@ void QNetworkAccessFileBackend::open()
          url.setPath(QLatin1String("/"));
      setUrl(url);
  
@@ -344,7 +308,7 @@ index 13428cc..0713528 100644
      QString fileName = url.toLocalFile();
      if (fileName.isEmpty()) {
          if (url.scheme() == QLatin1String("qrc")) {
-@@ -128,6 +129,10 @@ void QNetworkAccessFileBackend::open()
+@@ -131,6 +132,10 @@ void QNetworkAccessFileBackend::open()
                  fileName = url.toString(QUrl::RemoveAuthority | QUrl::RemoveFragment | QUrl::RemoveQuery);
          }
      }
@@ -356,10 +320,10 @@ index 13428cc..0713528 100644
  
      if (operation() == QNetworkAccessManager::GetOperation) {
 diff --git a/qtbase/src/network/kernel/qhostinfo.cpp b/qtbase/src/network/kernel/qhostinfo.cpp
-index d25372e..131100e 100644
+index c6c0954..934ebc3 100644
 --- a/qtbase/src/network/kernel/qhostinfo.cpp
 +++ b/qtbase/src/network/kernel/qhostinfo.cpp
-@@ -508,7 +508,12 @@ QHostInfoLookupManager::QHostInfoLookupManager() : mutex(QMutex::Recursive), was
+@@ -512,7 +512,12 @@ QHostInfoLookupManager::QHostInfoLookupManager() : mutex(QMutex::Recursive), was
  {
      moveToThread(QCoreApplicationPrivate::mainThread());
      connect(QCoreApplication::instance(), SIGNAL(destroyed()), SLOT(waitForThreadPoolDone()), Qt::DirectConnection);
@@ -367,16 +331,16 @@ index d25372e..131100e 100644
 +    /* 'getaddrinfo()' is currently not thread-safe on Genode */
 +    threadPool.setMaxThreadCount(1);
 +#else
-     threadPool.setMaxThreadCount(5); // do 5 DNS lookups in parallel
+     threadPool.setMaxThreadCount(20); // do up to 20 DNS lookups in parallel
 +#endif
  }
  
  QHostInfoLookupManager::~QHostInfoLookupManager()
 diff --git a/qtbase/src/network/kernel/qhostinfo_unix.cpp b/qtbase/src/network/kernel/qhostinfo_unix.cpp
-index 04daf2e..001354c 100644
+index dabf191..ce3da10 100644
 --- a/qtbase/src/network/kernel/qhostinfo_unix.cpp
 +++ b/qtbase/src/network/kernel/qhostinfo_unix.cpp
-@@ -144,6 +144,11 @@ QHostInfo QHostInfoAgent::fromName(const QString &hostName)
+@@ -142,6 +142,11 @@ QHostInfo QHostInfoAgent::fromName(const QString &hostName)
      QHostAddress address;
      if (address.setAddress(hostName)) {
          // Reverse lookup
@@ -388,7 +352,7 @@ index 04daf2e..001354c 100644
  // Reverse lookups using getnameinfo are broken on darwin, use gethostbyaddr instead.
  #if !defined (QT_NO_GETADDRINFO) && !defined (Q_OS_DARWIN)
          sockaddr_in sa4;
-@@ -174,7 +179,7 @@ QHostInfo QHostInfoAgent::fromName(const QString &hostName)
+@@ -172,7 +177,7 @@ QHostInfo QHostInfoAgent::fromName(const QString &hostName)
          if (ent)
              results.setHostName(QString::fromLatin1(ent->h_name));
  #endif
@@ -398,10 +362,10 @@ index 04daf2e..001354c 100644
              results.setHostName(address.toString());
          results.setAddresses(QList<QHostAddress>() << address);
 diff --git a/qtbase/src/widgets/dialogs/qfiledialog.cpp b/qtbase/src/widgets/dialogs/qfiledialog.cpp
-index c427523..ed92116 100644
+index bc2de89..ce3a97e 100644
 --- a/qtbase/src/widgets/dialogs/qfiledialog.cpp
 +++ b/qtbase/src/widgets/dialogs/qfiledialog.cpp
-@@ -943,7 +943,7 @@ Q_AUTOTEST_EXPORT QString qt_tildeExpansion(const QString &path, bool *expanded
+@@ -1106,7 +1106,7 @@ Q_AUTOTEST_EXPORT QString qt_tildeExpansion(const QString &path, bool *expanded
          userName.remove(0, 1);
  #if defined(Q_OS_VXWORKS)
          const QString homePath = QDir::homePath();
@@ -411,10 +375,10 @@ index c427523..ed92116 100644
          passwd *tmpPw;
          char buf[200];
 diff --git a/qtbase/src/widgets/styles/qstylefactory.cpp b/qtbase/src/widgets/styles/qstylefactory.cpp
-index 2b81acf..eb3510a 100644
+index 520e303..8226dd2 100644
 --- a/qtbase/src/widgets/styles/qstylefactory.cpp
 +++ b/qtbase/src/widgets/styles/qstylefactory.cpp
-@@ -192,6 +192,13 @@ QStringList QStyleFactory::keys()
+@@ -184,6 +184,13 @@ QStringList QStyleFactory::keys()
      for (PluginKeyMap::const_iterator it = keyMap.constBegin(); it != cend; ++it)
          list.append(it.value());
  #endif

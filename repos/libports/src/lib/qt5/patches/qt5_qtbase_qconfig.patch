@@ -4,83 +4,101 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- qtbase/src/corelib/global/qconfig.cpp |   39 +++++++
- qtbase/src/corelib/global/qconfig.h   |  183 +++++++++++++++++++++++++++++++++
- 2 files changed, 222 insertions(+)
+ qtbase/src/corelib/global/qconfig.cpp |   59 +++++++
+ qtbase/src/corelib/global/qconfig.h   |  165 +++++++++++++++++++++
+ qtbase/src/corelib/global/qfeatures.h |  263 +++++++++++++++++++++++++++++++++
+ 3 files changed, 487 insertions(+)
  create mode 100644 qtbase/src/corelib/global/qconfig.cpp
  create mode 100644 qtbase/src/corelib/global/qconfig.h
+ create mode 100644 qtbase/src/corelib/global/qfeatures.h
 
 diff --git a/qtbase/src/corelib/global/qconfig.cpp b/qtbase/src/corelib/global/qconfig.cpp
 new file mode 100644
-index 0000000..15523a3
+index 0000000..5438a45
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig.cpp
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,59 @@
 +/* License Info */
 +static const char qt_configure_licensee_str          [256 + 12] = "qt_lcnsuser=Open Source";
 +static const char qt_configure_licensed_products_str [256 + 12] = "qt_lcnsprod=OpenSource";
 +
 +/* Installation date */
-+static const char qt_configure_installation          [12+11]    = "qt_instdate=2013-05-23";
++static const char qt_configure_installation          [12+11]    = "qt_instdate=2017-03-28";
 +
 +/* Installation Info */
-+static const char qt_configure_prefix_path_strs[][256 + 12] = {
-+    "qt_prfxpath=/qt",
-+    "qt_docspath=/qt/doc",
-+    "qt_hdrspath=/qt/include",
-+    "qt_libspath=/qt/lib",
-+    "qt_lbexpath=/qt/libexec",
-+    "qt_binspath=/qt/bin",
-+    "qt_plugpath=/qt/plugins",
-+    "qt_impspath=/qt/imports",
-+    "qt_qml2path=/qt/qml",
-+    "qt_adatpath=/qt",
-+    "qt_datapath=/qt",
-+    "qt_trnspath=/qt/translations",
-+    "qt_xmplpath=/qt/examples",
-+    "qt_tstspath=/qt/tests",
++static const char qt_configure_prefix_path_str       [256 + 12] = "qt_prfxpath=/qt";
 +#ifdef QT_BUILD_QMAKE
-+    "qt_ssrtpath=",
-+    "qt_hpfxpath=/qt",
-+    "qt_hbinpath=/qt/bin",
-+    "qt_hdatpath=/qt",
-+    "qt_targspec=genode-g++",
-+    "qt_hostspec=linux-g++",
++static const char qt_configure_ext_prefix_path_str   [256 + 12] = "qt_epfxpath=/qt";
++static const char qt_configure_host_prefix_path_str  [256 + 12] = "qt_hpfxpath=/qt";
++#endif
++
++static const short qt_configure_str_offsets[] = {
++     0, 4, 12, 16, 24, 28, 36, 44, 48, 50, 52, 65, 74,
++#ifdef QT_BUILD_QMAKE
++     80, 81, 85, 89, 91, 102,
 +#endif
 +};
-+static const char qt_configure_settings_path_str[256 + 12] = "qt_stngpath=/qt/etc/xdg";
++static const char qt_configure_strs[] =
++    "doc\0"
++    "include\0"
++    "lib\0"
++    "libexec\0"
++    "bin\0"
++    "plugins\0"
++    "imports\0"
++    "qml\0"
++    ".\0"
++    ".\0"
++    "translations\0"
++    "examples\0"
++    "tests\0"
++#ifdef QT_BUILD_QMAKE
++    "\0"
++    "bin\0"
++    "lib\0"
++    ".\0"
++    "genode-g++\0"
++    "linux-g++\0"
++#endif
++;
++
++#define QT_CONFIGURE_SETTINGS_PATH "etc/xdg"
++
++#ifdef QT_BUILD_QMAKE
++# define QT_CONFIGURE_SYSROOTIFY_PREFIX false
++#endif
 +
 +/* strlen( "qt_lcnsxxxx" ) == 12 */
-+#define QT_CONFIGURE_LICENSEE qt_configure_licensee_str + 12;
-+#define QT_CONFIGURE_LICENSED_PRODUCTS qt_configure_licensed_products_str + 12;
++#define QT_CONFIGURE_LICENSEE qt_configure_licensee_str + 12
++#define QT_CONFIGURE_LICENSED_PRODUCTS qt_configure_licensed_products_str + 12
 +
-+#define QT_CONFIGURE_SETTINGS_PATH qt_configure_settings_path_str + 12;
++#define QT_CONFIGURE_PREFIX_PATH qt_configure_prefix_path_str + 12
++#ifdef QT_BUILD_QMAKE
++# define QT_CONFIGURE_EXT_PREFIX_PATH qt_configure_ext_prefix_path_str + 12
++# define QT_CONFIGURE_HOST_PREFIX_PATH qt_configure_host_prefix_path_str + 12
++#endif
 diff --git a/qtbase/src/corelib/global/qconfig.h b/qtbase/src/corelib/global/qconfig.h
 new file mode 100644
-index 0000000..bcf7dc1
+index 0000000..27629e5
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig.h
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,165 @@
++#define QT_VERSION_MAJOR    5
++#define QT_VERSION_MINOR    6
++#define QT_VERSION_PATCH    2
++#define QT_VERSION_STR      "5.6.2"
++
 +#ifndef QT_BOOTSTRAPPED
 +#include "qconfig-genode.h"
 +#endif
 +
-+/* Qt Edition */
-+#ifndef QT_EDITION
-+#  define QT_EDITION QT_EDITION_OPENSOURCE
-+#endif
-+
 +/* Compile time features */
-+#ifdef QT_ARCH_X86_64
-+#  define QT_POINTER_SIZE 8
-+#endif
-+#ifdef QT_ARCH_I386
-+#  define QT_POINTER_SIZE 4
-+#endif
-+
 +//#define QT_REDUCE_RELOCATIONS
 +
 +// Compiler sub-arch support
++//#define QT_COMPILER_SUPPORTS_SSE2 1
++
++#ifndef QT_BOOTSTRAPPED
 +
 +#if defined(QT_BUILTIN_GIF_READER) && defined(QT_NO_BUILTIN_GIF_READER)
 +# undef QT_BUILTIN_GIF_READER
@@ -100,12 +118,6 @@ index 0000000..bcf7dc1
 +# define QT_NO_ACCESSIBILITY
 +#endif
 +
-+#if defined(QT_NO_CLOCK_MONOTONIC) && defined(QT_CLOCK_MONOTONIC)
-+# undef QT_NO_CLOCK_MONOTONIC
-+#elif !defined(QT_NO_CLOCK_MONOTONIC) && !defined(QT_CLOCK_MONOTONIC)
-+# define QT_NO_CLOCK_MONOTONIC
-+#endif
-+
 +#if defined(QT_NO_CUPS) && defined(QT_CUPS)
 +# undef QT_NO_CUPS
 +#elif !defined(QT_NO_CUPS) && !defined(QT_CUPS)
@@ -116,12 +128,6 @@ index 0000000..bcf7dc1
 +# undef QT_NO_DBUS
 +#elif !defined(QT_NO_DBUS) && !defined(QT_DBUS)
 +# define QT_NO_DBUS
-+#endif
-+
-+#if defined(QT_NO_EGLFS) && defined(QT_EGLFS)
-+# undef QT_NO_EGLFS
-+#elif !defined(QT_NO_EGLFS) && !defined(QT_EGLFS)
-+# define QT_NO_EGLFS
 +#endif
 +
 +#if defined(QT_NO_EVENTFD) && defined(QT_EVENTFD)
@@ -142,10 +148,10 @@ index 0000000..bcf7dc1
 +# define QT_NO_GLIB
 +#endif
 +
-+#if defined(QT_NO_GSTREAMER) && defined(QT_GSTREAMER)
-+# undef QT_NO_GSTREAMER
-+#elif !defined(QT_NO_GSTREAMER) && !defined(QT_GSTREAMER)
-+# define QT_NO_GSTREAMER
++#if defined(QT_NO_HARFBUZZ) && defined(QT_HARFBUZZ)
++# undef QT_NO_HARFBUZZ
++#elif !defined(QT_NO_HARFBUZZ) && !defined(QT_HARFBUZZ)
++# define QT_NO_HARFBUZZ
 +#endif
 +
 +#if defined(QT_NO_ICONV) && defined(QT_ICONV)
@@ -154,10 +160,10 @@ index 0000000..bcf7dc1
 +# define QT_NO_ICONV
 +#endif
 +
-+#if defined(QT_NO_NIS) && defined(QT_NIS)
-+# undef QT_NO_NIS
-+#elif !defined(QT_NO_NIS) && !defined(QT_NIS)
-+# define QT_NO_NIS
++#if defined(QT_NO_LIBPROXY) && defined(QT_LIBPROXY)
++# undef QT_NO_LIBPROXY
++#elif !defined(QT_NO_LIBPROXY) && !defined(QT_LIBPROXY)
++# define QT_NO_LIBPROXY
 +#endif
 +
 +#if defined(QT_NO_OPENVG) && defined(QT_OPENVG)
@@ -176,6 +182,12 @@ index 0000000..bcf7dc1
 +# undef QT_NO_STYLE_GTK
 +#elif !defined(QT_NO_STYLE_GTK) && !defined(QT_STYLE_GTK)
 +# define QT_NO_STYLE_GTK
++#endif
++
++#if defined(QT_NO_TSLIB) && defined(QT_TSLIB)
++# undef QT_NO_TSLIB
++#elif !defined(QT_NO_TSLIB) && !defined(QT_TSLIB)
++# define QT_NO_TSLIB
 +#endif
 +
 +#if defined(QT_NO_ZLIB) && defined(QT_ZLIB)
@@ -214,15 +226,7 @@ index 0000000..bcf7dc1
 +# define QT_RUNTIME_XRANDR
 +#endif
 +
-+#if defined(QT_USE_MATH_H_FLOATS) && defined(QT_NO_USE_MATH_H_FLOATS)
-+# undef QT_USE_MATH_H_FLOATS
-+#elif !defined(QT_USE_MATH_H_FLOATS) && !defined(QT_NO_USE_MATH_H_FLOATS)
-+# define QT_USE_MATH_H_FLOATS
-+#endif
-+
-+#ifndef Q_WS_QPA
-+# define Q_WS_QPA
-+#endif
++#endif // QT_BOOTSTRAPPED
 +
 +#define QT_VISIBILITY_AVAILABLE
 +
@@ -243,4 +247,273 @@ index 0000000..bcf7dc1
 +#else
 +#  define Q_SCRIPT_EXPORT
 +#  define Q_SCRIPTTOOLS_EXPORT
++#endif
+diff --git a/qtbase/src/corelib/global/qfeatures.h b/qtbase/src/corelib/global/qfeatures.h
+new file mode 100644
+index 0000000..20db0bf
+--- /dev/null
++++ b/qtbase/src/corelib/global/qfeatures.h
+@@ -0,0 +1,263 @@
++/*
++ * All feature dependencies.
++ *
++ * This list is generated by qmake from <qtbase>/src/corelib/global/qfeatures.txt
++ */
++#if !defined(QT_NO_DBUS) && (defined(QT_NO_PROPERTIES) || defined(QT_NO_XMLSTREAMREADER))
++#  define QT_NO_DBUS
++#endif
++#if !defined(QT_NO_ACCESSIBILITY) && (defined(QT_NO_PROPERTIES) || defined(QT_NO_MENUBAR))
++#  define QT_NO_ACCESSIBILITY
++#endif
++#if !defined(QT_NO_UNDOVIEW) && (defined(QT_NO_UNDOSTACK) || defined(QT_NO_LISTVIEW))
++#  define QT_NO_UNDOVIEW
++#endif
++#if !defined(QT_NO_UNDOSTACK) && (defined(QT_NO_UNDOCOMMAND))
++#  define QT_NO_UNDOSTACK
++#endif
++#if !defined(QT_NO_UNDOGROUP) && (defined(QT_NO_UNDOSTACK))
++#  define QT_NO_UNDOGROUP
++#endif
++#if !defined(QT_NO_FSCOMPLETER) && (defined(QT_NO_FILESYSTEMMODEL) || defined(QT_NO_COMPLETER))
++#  define QT_NO_FSCOMPLETER
++#endif
++#if !defined(QT_NO_BEARERMANAGEMENT) && (defined(QT_NO_LIBRARY) || defined(QT_NO_NETWORKINTERFACE) || defined(QT_NO_PROPERTIES))
++#  define QT_NO_BEARERMANAGEMENT
++#endif
++#if !defined(QT_NO_SOCKS5) && (defined(QT_NO_NETWORKPROXY))
++#  define QT_NO_SOCKS5
++#endif
++#if !defined(QT_NO_ICONV) && (defined(QT_NO_TEXTCODEC))
++#  define QT_NO_ICONV
++#endif
++#if !defined(QT_NO_BIG_CODECS) && (defined(QT_NO_TEXTCODEC))
++#  define QT_NO_BIG_CODECS
++#endif
++#if !defined(QT_NO_CODECS) && (defined(QT_NO_TEXTCODEC))
++#  define QT_NO_CODECS
++#endif
++#if !defined(QT_NO_CUPS) && (defined(QT_NO_PRINTER) || defined(QT_NO_LIBRARY))
++#  define QT_NO_CUPS
++#endif
++#if !defined(QT_NO_PRINTER) && (defined(QT_NO_PICTURE) || defined(QT_NO_TEMPORARYFILE) || defined(QT_NO_PDF))
++#  define QT_NO_PRINTER
++#endif
++#if !defined(QT_NO_STYLE_STYLESHEET) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_PROPERTIES) || defined(QT_NO_CSSPARSER))
++#  define QT_NO_STYLE_STYLESHEET
++#endif
++#if !defined(QT_NO_STYLE_WINDOWSMOBILE) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_IMAGEFORMAT_XPM))
++#  define QT_NO_STYLE_WINDOWSMOBILE
++#endif
++#if !defined(QT_NO_STYLE_WINDOWSCE) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_IMAGEFORMAT_XPM))
++#  define QT_NO_STYLE_WINDOWSCE
++#endif
++#if !defined(QT_NO_STYLE_WINDOWSXP) && (defined(QT_NO_STYLE_WINDOWS))
++#  define QT_NO_STYLE_WINDOWSXP
++#endif
++#if !defined(QT_NO_STYLE_WINDOWSVISTA) && (defined(QT_NO_STYLE_WINDOWSXP))
++#  define QT_NO_STYLE_WINDOWSVISTA
++#endif
++#if !defined(QT_NO_DATAWIDGETMAPPER) && (defined(QT_NO_ITEMVIEWS) || defined(QT_NO_PROPERTIES))
++#  define QT_NO_DATAWIDGETMAPPER
++#endif
++#if !defined(QT_NO_DIRMODEL) && (defined(QT_NO_ITEMVIEWS) || defined(QT_NO_FILESYSTEMMODEL))
++#  define QT_NO_DIRMODEL
++#endif
++#if !defined(QT_NO_INPUTDIALOG) && (defined(QT_NO_COMBOBOX) || defined(QT_NO_SPINBOX) || defined(QT_NO_STACKEDWIDGET))
++#  define QT_NO_INPUTDIALOG
++#endif
++#if !defined(QT_NO_PRINTPREVIEWDIALOG) && (defined(QT_NO_PRINTPREVIEWWIDGET) || defined(QT_NO_PRINTDIALOG) || defined(QT_NO_TOOLBAR))
++#  define QT_NO_PRINTPREVIEWDIALOG
++#endif
++#if !defined(QT_NO_PRINTDIALOG) && (defined(QT_NO_PRINTER) || defined(QT_NO_COMBOBOX) || defined(QT_NO_BUTTONGROUP) || defined(QT_NO_SPINBOX) || defined(QT_NO_TREEVIEW) || defined(QT_NO_TABWIDGET))
++#  define QT_NO_PRINTDIALOG
++#endif
++#if !defined(QT_NO_FONTDIALOG) && (defined(QT_NO_STRINGLISTMODEL) || defined(QT_NO_COMBOBOX) || defined(QT_NO_VALIDATOR) || defined(QT_NO_GROUPBOX))
++#  define QT_NO_FONTDIALOG
++#endif
++#if !defined(QT_NO_FILEDIALOG) && (defined(QT_NO_DIRMODEL) || defined(QT_NO_TREEVIEW) || defined(QT_NO_COMBOBOX) || defined(QT_NO_TOOLBUTTON) || defined(QT_NO_BUTTONGROUP) || defined(QT_NO_TOOLTIP) || defined(QT_NO_SPLITTER) || defined(QT_NO_STACKEDWIDGET) || defined(QT_NO_PROXYMODEL))
++#  define QT_NO_FILEDIALOG
++#endif
++#if !defined(QT_NO_KEYSEQUENCEEDIT) && (defined(QT_NO_LINEEDIT) || defined(QT_NO_SHORTCUT))
++#  define QT_NO_KEYSEQUENCEEDIT
++#endif
++#if !defined(QT_NO_PRINTPREVIEWWIDGET) && (defined(QT_NO_GRAPHICSVIEW) || defined(QT_NO_PRINTER) || defined(QT_NO_MAINWINDOW))
++#  define QT_NO_PRINTPREVIEWWIDGET
++#endif
++#if !defined(QT_NO_CALENDARWIDGET) && (defined(QT_NO_TABLEVIEW) || defined(QT_NO_MENU) || defined(QT_NO_TEXTDATE) || defined(QT_NO_SPINBOX) || defined(QT_NO_TOOLBUTTON))
++#  define QT_NO_CALENDARWIDGET
++#endif
++#if !defined(QT_NO_PROGRESSDIALOG) && (defined(QT_NO_PROGRESSBAR))
++#  define QT_NO_PROGRESSDIALOG
++#endif
++#if !defined(QT_NO_MENUBAR) && (defined(QT_NO_MENU) || defined(QT_NO_TOOLBUTTON))
++#  define QT_NO_MENUBAR
++#endif
++#if !defined(QT_NO_DIAL) && (defined(QT_NO_SLIDER))
++#  define QT_NO_DIAL
++#endif
++#if !defined(QT_NO_SCROLLBAR) && (defined(QT_NO_SLIDER))
++#  define QT_NO_SCROLLBAR
++#endif
++#if !defined(QT_NO_SCROLLAREA) && (defined(QT_NO_SCROLLBAR))
++#  define QT_NO_SCROLLAREA
++#endif
++#if !defined(QT_NO_GRAPHICSVIEW) && (defined(QT_NO_SCROLLAREA))
++#  define QT_NO_GRAPHICSVIEW
++#endif
++#if !defined(QT_NO_GRAPHICSEFFECT) && (defined(QT_NO_GRAPHICSVIEW))
++#  define QT_NO_GRAPHICSEFFECT
++#endif
++#if !defined(QT_NO_MDIAREA) && (defined(QT_NO_SCROLLAREA))
++#  define QT_NO_MDIAREA
++#endif
++#if !defined(QT_NO_DOCKWIDGET) && (defined(QT_NO_RUBBERBAND) || defined(QT_NO_MAINWINDOW))
++#  define QT_NO_DOCKWIDGET
++#endif
++#if !defined(QT_NO_BUTTONGROUP) && (defined(QT_NO_GROUPBOX))
++#  define QT_NO_BUTTONGROUP
++#endif
++#if !defined(QT_NO_TOOLBOX) && (defined(QT_NO_TOOLBUTTON) || defined(QT_NO_SCROLLAREA))
++#  define QT_NO_TOOLBOX
++#endif
++#if !defined(QT_NO_MAINWINDOW) && (defined(QT_NO_MENU) || defined(QT_NO_RESIZEHANDLER) || defined(QT_NO_TOOLBUTTON))
++#  define QT_NO_MAINWINDOW
++#endif
++#if !defined(QT_NO_TOOLBAR) && (defined(QT_NO_MAINWINDOW))
++#  define QT_NO_TOOLBAR
++#endif
++#if !defined(QT_NO_FONTCOMBOBOX) && (defined(QT_NO_COMBOBOX) || defined(QT_NO_STRINGLISTMODEL))
++#  define QT_NO_FONTCOMBOBOX
++#endif
++#if !defined(QT_NO_COMBOBOX) && (defined(QT_NO_LINEEDIT) || defined(QT_NO_STANDARDITEMMODEL) || defined(QT_NO_LISTVIEW))
++#  define QT_NO_COMBOBOX
++#endif
++#if !defined(QT_NO_TABWIDGET) && (defined(QT_NO_TABBAR) || defined(QT_NO_STACKEDWIDGET))
++#  define QT_NO_TABWIDGET
++#endif
++#if !defined(QT_NO_SPINBOX) && (defined(QT_NO_SPINWIDGET) || defined(QT_NO_LINEEDIT) || defined(QT_NO_VALIDATOR))
++#  define QT_NO_SPINBOX
++#endif
++#if !defined(QT_NO_COLORDIALOG) && (defined(QT_NO_SPINBOX))
++#  define QT_NO_COLORDIALOG
++#endif
++#if !defined(QT_NO_SPLITTER) && (defined(QT_NO_RUBBERBAND))
++#  define QT_NO_SPLITTER
++#endif
++#if !defined(QT_NO_TEXTEDIT) && (defined(QT_NO_SCROLLAREA) || defined(QT_NO_PROPERTIES))
++#  define QT_NO_TEXTEDIT
++#endif
++#if !defined(QT_NO_ERRORMESSAGE) && (defined(QT_NO_TEXTEDIT))
++#  define QT_NO_ERRORMESSAGE
++#endif
++#if !defined(QT_NO_SYNTAXHIGHLIGHTER) && (defined(QT_NO_TEXTEDIT))
++#  define QT_NO_SYNTAXHIGHLIGHTER
++#endif
++#if !defined(QT_NO_TEXTBROWSER) && (defined(QT_NO_TEXTEDIT))
++#  define QT_NO_TEXTBROWSER
++#endif
++#if !defined(QT_NO_DATETIMEEDIT) && (defined(QT_NO_CALENDARWIDGET) || defined(QT_NO_DATESTRING))
++#  define QT_NO_DATETIMEEDIT
++#endif
++#if !defined(QT_NO_ITEMVIEWS) && (defined(QT_NO_RUBBERBAND) || defined(QT_NO_SCROLLAREA))
++#  define QT_NO_ITEMVIEWS
++#endif
++#if !defined(QT_NO_STRINGLISTMODEL) && (defined(QT_NO_ITEMVIEWS))
++#  define QT_NO_STRINGLISTMODEL
++#endif
++#if !defined(QT_NO_PROXYMODEL) && (defined(QT_NO_ITEMVIEWS))
++#  define QT_NO_PROXYMODEL
++#endif
++#if !defined(QT_NO_COMPLETER) && (defined(QT_NO_PROXYMODEL))
++#  define QT_NO_COMPLETER
++#endif
++#if !defined(QT_NO_IDENTITYPROXYMODEL) && (defined(QT_NO_PROXYMODEL))
++#  define QT_NO_IDENTITYPROXYMODEL
++#endif
++#if !defined(QT_NO_SORTFILTERPROXYMODEL) && (defined(QT_NO_PROXYMODEL))
++#  define QT_NO_SORTFILTERPROXYMODEL
++#endif
++#if !defined(QT_NO_STANDARDITEMMODEL) && (defined(QT_NO_ITEMVIEWS))
++#  define QT_NO_STANDARDITEMMODEL
++#endif
++#if !defined(QT_NO_TABLEVIEW) && (defined(QT_NO_ITEMVIEWS))
++#  define QT_NO_TABLEVIEW
++#endif
++#if !defined(QT_NO_TABLEWIDGET) && (defined(QT_NO_TABLEVIEW))
++#  define QT_NO_TABLEWIDGET
++#endif
++#if !defined(QT_NO_LISTVIEW) && (defined(QT_NO_ITEMVIEWS))
++#  define QT_NO_LISTVIEW
++#endif
++#if !defined(QT_NO_COLUMNVIEW) && (defined(QT_NO_LISTVIEW))
++#  define QT_NO_COLUMNVIEW
++#endif
++#if !defined(QT_NO_LISTWIDGET) && (defined(QT_NO_LISTVIEW))
++#  define QT_NO_LISTWIDGET
++#endif
++#if !defined(QT_NO_TREEVIEW) && (defined(QT_NO_ITEMVIEWS))
++#  define QT_NO_TREEVIEW
++#endif
++#if !defined(QT_NO_TREEWIDGET) && (defined(QT_NO_TREEVIEW))
++#  define QT_NO_TREEWIDGET
++#endif
++#if !defined(QT_NO_LOCALSERVER) && (defined(QT_NO_TEMPORARYFILE))
++#  define QT_NO_LOCALSERVER
++#endif
++#if !defined(QT_NO_NETWORKDISKCACHE) && (defined(QT_NO_TEMPORARYFILE))
++#  define QT_NO_NETWORKDISKCACHE
++#endif
++#if !defined(QT_NO_PDF) && (defined(QT_NO_TEMPORARYFILE))
++#  define QT_NO_PDF
++#endif
++#if !defined(QT_NO_FTP) && (defined(QT_NO_TEXTDATE))
++#  define QT_NO_FTP
++#endif
++#if !defined(QT_NO_DATESTRING) && (defined(QT_NO_TEXTDATE))
++#  define QT_NO_DATESTRING
++#endif
++#if !defined(QT_NO_IMAGEFORMATPLUGIN) && (defined(QT_NO_LIBRARY))
++#  define QT_NO_IMAGEFORMATPLUGIN
++#endif
++#if !defined(QT_NO_IM) && (defined(QT_NO_LIBRARY))
++#  define QT_NO_IM
++#endif
++#if !defined(QT_NO_TOOLBUTTON) && (defined(QT_NO_ACTION))
++#  define QT_NO_TOOLBUTTON
++#endif
++#if !defined(QT_NO_WHATSTHIS) && (defined(QT_NO_TOOLBUTTON))
++#  define QT_NO_WHATSTHIS
++#endif
++#if !defined(QT_NO_TABBAR) && (defined(QT_NO_TOOLBUTTON))
++#  define QT_NO_TABBAR
++#endif
++#if !defined(QT_NO_MENU) && (defined(QT_NO_ACTION))
++#  define QT_NO_MENU
++#endif
++#if !defined(QT_NO_CONTEXTMENU) && (defined(QT_NO_MENU))
++#  define QT_NO_CONTEXTMENU
++#endif
++#if !defined(QT_NO_STYLE_FUSION) && (defined(QT_NO_IMAGEFORMAT_XPM))
++#  define QT_NO_STYLE_FUSION
++#endif
++#if !defined(QT_NO_DRAGANDDROP) && (defined(QT_NO_IMAGEFORMAT_XPM))
++#  define QT_NO_DRAGANDDROP
++#endif
++#if !defined(QT_NO_XMLSTREAMREADER) && (defined(QT_NO_XMLSTREAM))
++#  define QT_NO_XMLSTREAMREADER
++#endif
++#if !defined(QT_NO_XMLSTREAMWRITER) && (defined(QT_NO_XMLSTREAM))
++#  define QT_NO_XMLSTREAMWRITER
++#endif
++#if !defined(QT_NO_TEXTODFWRITER) && (defined(QT_NO_XMLSTREAMWRITER))
++#  define QT_NO_TEXTODFWRITER
++#endif
++#if !defined(QT_NO_STATEMACHINE) && (defined(QT_NO_PROPERTIES))
++#  define QT_NO_STATEMACHINE
++#endif
++#if !defined(QT_NO_ANIMATION) && (defined(QT_NO_PROPERTIES))
++#  define QT_NO_ANIMATION
++#endif
++#if !defined(QT_NO_WIZARD) && (defined(QT_NO_PROPERTIES))
++#  define QT_NO_WIZARD
 +#endif

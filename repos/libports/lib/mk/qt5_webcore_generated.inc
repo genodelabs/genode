@@ -1,47 +1,22 @@
-QT_DEFINES += -DQT_NO_LIBUDEV -DQT_NO_XCB -DQT_NO_XKBCOMMON -DSQLITE_CORE -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_COMPLETE -DBUILDING_QT__=1 -DNDEBUG -DENABLE_3D_RENDERING=1 -DENABLE_BLOB=1 -DENABLE_CHANNEL_MESSAGING=1 -DENABLE_CSS_BOX_DECORATION_BREAK=1 -DENABLE_CSS_COMPOSITING=1 -DENABLE_CSS_EXCLUSIONS=1 -DENABLE_CSS_FILTERS=1 -DENABLE_CSS_IMAGE_SET=1 -DENABLE_CSS_REGIONS=1 -DENABLE_CSS_STICKY_POSITION=1 -DENABLE_DATALIST_ELEMENT=1 -DENABLE_DETAILS_ELEMENT=1 -DENABLE_FAST_MOBILE_SCROLLING=1 -DENABLE_FILTERS=1 -DENABLE_FTPDIR=1 -DENABLE_GESTURE_EVENTS=1 -DENABLE_ICONDATABASE=1 -DENABLE_IFRAME_SEAMLESS=1 -DENABLE_INPUT_TYPE_COLOR=1 -DENABLE_INSPECTOR=1 -DENABLE_INSPECTOR_SERVER=1 -DENABLE_JAVASCRIPT_DEBUGGER=1 -DENABLE_LEGACY_NOTIFICATIONS=1 -DENABLE_LEGACY_VIEWPORT_ADAPTION=1 -DENABLE_LEGACY_VENDOR_PREFIXES=1 -DENABLE_LINK_PREFETCH=1 -DENABLE_METER_ELEMENT=1 -DENABLE_MHTML=1 -DENABLE_MUTATION_OBSERVERS=1 -DENABLE_NOTIFICATIONS=1 -DENABLE_PAGE_VISIBILITY_API=1 -DENABLE_PROGRESS_ELEMENT=1 -DENABLE_RESOLUTION_MEDIA_QUERY=1 -DENABLE_REQUEST_ANIMATION_FRAME=1 -DENABLE_SHARED_WORKERS=1 -DENABLE_SMOOTH_SCROLLING=1 -DENABLE_SQL_DATABASE=1 -DENABLE_SVG=1 -DENABLE_SVG_FONTS=1 -DENABLE_TOUCH_ADJUSTMENT=1 -DENABLE_TOUCH_EVENTS=1 -DENABLE_WEB_SOCKETS=1 -DENABLE_WEB_TIMING=1 -DENABLE_WORKERS=1 -DENABLE_XHR_TIMEOUT=1 -DWTF_USE_TILED_BACKING_STORE=1 -DHAVE_QTQUICK=1 -DHAVE_QTPRINTSUPPORT=1 -DHAVE_QSTYLE=1 -DHAVE_QTTESTLIB=1 -DWTF_USE_LIBJPEG=1 -DWTF_USE_LIBPNG=1 -DPLUGIN_ARCHITECTURE_UNSUPPORTED=1 -DENABLE_TOUCH_SLIDER=1 -DENABLE_ACCELERATED_2D_CANVAS=0 -DENABLE_ANIMATION_API=0 -DENABLE_BATTERY_STATUS=0 -DENABLE_CSP_NEXT=0 -DENABLE_CSS_GRID_LAYOUT=0 -DENABLE_CSS_HIERARCHIES=0 -DENABLE_CSS_IMAGE_ORIENTATION=0 -DENABLE_CSS_IMAGE_RESOLUTION=0 -DENABLE_CSS_SHADERS=0 -DENABLE_CSS_VARIABLES=0 -DENABLE_CSS3_BACKGROUND=0 -DENABLE_CSS3_CONDITIONAL_RULES=0 -DENABLE_CSS3_TEXT=0 -DENABLE_DASHBOARD_SUPPORT=0 -DENABLE_DATAGRID=0 -DENABLE_DATA_TRANSFER_ITEMS=0 -DENABLE_DEVICE_ORIENTATION=0 -DENABLE_DIRECTORY_UPLOAD=0 -DENABLE_DOWNLOAD_ATTRIBUTE=0 -DENABLE_FILE_SYSTEM=0 -DENABLE_FULLSCREEN_API=0 -DENABLE_GAMEPAD=0 -DENABLE_GEOLOCATION=0 -DENABLE_HIGH_DPI_CANVAS=0 -DENABLE_INDEXED_DATABASE=0 -DENABLE_INPUT_SPEECH=0 -DENABLE_INPUT_TYPE_DATE=0 -DENABLE_INPUT_TYPE_DATETIME=0 -DENABLE_INPUT_TYPE_DATETIMELOCAL=0 -DENABLE_INPUT_TYPE_MONTH=0 -DENABLE_INPUT_TYPE_TIME=0 -DENABLE_INPUT_TYPE_WEEK=0 -DENABLE_LEGACY_CSS_VENDOR_PREFIXES=0 -DENABLE_LINK_PRERENDER=0 -DENABLE_MATHML=0 -DENABLE_MEDIA_SOURCE=0 -DENABLE_MEDIA_STATISTICS=0 -DENABLE_MEDIA_STREAM=0 -DENABLE_MICRODATA=0 -DENABLE_NAVIGATOR_CONTENT_UTILS=0 -DENABLE_NETSCAPE_PLUGIN_API=0 -DENABLE_NETWORK_INFO=0 -DENABLE_ORIENTATION_EVENTS=0 -DENABLE_PROXIMITY_EVENTS=0 -DENABLE_QUOTA=0 -DENABLE_SCRIPTED_SPEECH=0 -DENABLE_SHADOW_DOM=0 -DENABLE_STYLE_SCOPED=0 -DENABLE_SVG_DOM_OBJC_BINDINGS=0 -DENABLE_TEXT_AUTOSIZING=0 -DENABLE_TEXT_NOTIFICATIONS_ONLY=0 -DENABLE_TOUCH_ICON_LOADING=0 -DENABLE_VIBRATION=0 -DENABLE_VIDEO=0 -DENABLE_VIDEO_TRACK=0 -DENABLE_WEBGL=0 -DENABLE_WEB_AUDIO=0 -DENABLE_XSLT=0 -DBUILDING_WebCore -DBUILDING_WEBKIT -DQT_ASCII_CAST_WARNINGS -DSTATICALLY_LINKED_WITH_JavaScriptCore -DSTATICALLY_LINKED_WITH_WTF -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_SQL_LIB -DQT_NETWORK_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DSQLITE_CORE -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_COMPLETE -DBUILDING_QT__=1 -DNDEBUG -DENABLE_3D_RENDERING=1 -DENABLE_ACCELERATED_2D_CANVAS=1 -DENABLE_BLOB=1 -DENABLE_CANVAS_PATH=1 -DENABLE_CHANNEL_MESSAGING=1 -DENABLE_CSS_BOX_DECORATION_BREAK=1 -DENABLE_CSS_COMPOSITING=1 -DENABLE_CSS_EXCLUSIONS=1 -DENABLE_CSS_FILTERS=1 -DENABLE_CSS_IMAGE_SET=1 -DENABLE_CSS_REGIONS=1 -DENABLE_CSS_SHAPES=1 -DENABLE_CSS_STICKY_POSITION=1 -DENABLE_CSS_TRANSFORMS_ANIMATIONS_UNPREFIXED=1 -DENABLE_DATALIST_ELEMENT=1 -DENABLE_DETAILS_ELEMENT=1 -DENABLE_DOWNLOAD_ATTRIBUTE=1 -DENABLE_FAST_MOBILE_SCROLLING=1 -DENABLE_FILTERS=1 -DENABLE_FTPDIR=1 -DENABLE_FULLSCREEN_API=1 -DENABLE_GESTURE_EVENTS=1 -DENABLE_ICONDATABASE=1 -DENABLE_IFRAME_SEAMLESS=1 -DENABLE_INPUT_TYPE_COLOR=1 -DENABLE_INSPECTOR=1 -DENABLE_INSPECTOR_SERVER=1 -DENABLE_JAVASCRIPT_DEBUGGER=1 -DENABLE_LEGACY_NOTIFICATIONS=1 -DENABLE_LEGACY_VIEWPORT_ADAPTION=1 -DENABLE_LEGACY_VENDOR_PREFIXES=1 -DENABLE_LEGACY_WEB_AUDIO=1 -DENABLE_LINK_PREFETCH=1 -DENABLE_METER_ELEMENT=1 -DENABLE_MHTML=1 -DENABLE_NOTIFICATIONS=1 -DENABLE_PAGE_VISIBILITY_API=1 -DENABLE_PROGRESS_ELEMENT=1 -DENABLE_RESOLUTION_MEDIA_QUERY=1 -DENABLE_REQUEST_ANIMATION_FRAME=1 -DENABLE_SHARED_WORKERS=1 -DENABLE_SMOOTH_SCROLLING=1 -DENABLE_SQL_DATABASE=1 -DENABLE_SUBPIXEL_LAYOUT=1 -DENABLE_SVG=1 -DENABLE_SVG_FONTS=1 -DENABLE_TOUCH_ADJUSTMENT=1 -DENABLE_TOUCH_EVENTS=1 -DENABLE_TOUCH_SLIDER=1 -DENABLE_VIEW_MODE_CSS_MEDIA=1 -DENABLE_WEB_SOCKETS=1 -DENABLE_WEB_TIMING=1 -DENABLE_WORKERS=1 -DENABLE_XHR_TIMEOUT=1 -DWTF_USE_TILED_BACKING_STORE=1 -DWTF_USE_CROSS_PLATFORM_CONTEXT_MENUS=1 -DHAVE_QTQUICK=1 -DHAVE_QTPRINTSUPPORT=1 -DHAVE_QSTYLE=1 -DHAVE_QTTESTLIB=1 -DWTF_USE_LIBJPEG=1 -DWTF_USE_LIBPNG=1 -DPLUGIN_ARCHITECTURE_UNSUPPORTED=1 -DWTF_USE_3D_GRAPHICS=1 -DENABLE_WEBGL=1 -DENABLE_BATTERY_STATUS=0 -DENABLE_CANVAS_PROXY=0 -DENABLE_CSP_NEXT=0 -DENABLE_CSS_GRID_LAYOUT=0 -DENABLE_CSS_HIERARCHIES=0 -DENABLE_CSS_IMAGE_ORIENTATION=0 -DENABLE_CSS_IMAGE_RESOLUTION=0 -DENABLE_CSS_SHADERS=0 -DENABLE_CSS_VARIABLES=0 -DENABLE_CSS3_CONDITIONAL_RULES=0 -DENABLE_CSS3_TEXT=0 -DENABLE_CSS3_TEXT_LINE_BREAK=0 -DENABLE_DASHBOARD_SUPPORT=0 -DENABLE_DATAGRID=0 -DENABLE_DATA_TRANSFER_ITEMS=0 -DENABLE_DEVICE_ORIENTATION=0 -DENABLE_DIRECTORY_UPLOAD=0 -DENABLE_FILE_SYSTEM=0 -DENABLE_FONT_LOAD_EVENTS=0 -DENABLE_GAMEPAD=0 -DENABLE_GEOLOCATION=0 -DENABLE_HIGH_DPI_CANVAS=0 -DENABLE_INDEXED_DATABASE=0 -DENABLE_INPUT_SPEECH=0 -DENABLE_INPUT_TYPE_DATE=0 -DENABLE_INPUT_TYPE_DATETIME_INCOMPLETE=0 -DENABLE_INPUT_TYPE_DATETIMELOCAL=0 -DENABLE_INPUT_TYPE_MONTH=0 -DENABLE_INPUT_TYPE_TIME=0 -DENABLE_INPUT_TYPE_WEEK=0 -DENABLE_LEGACY_CSS_VENDOR_PREFIXES=0 -DENABLE_MATHML=0 -DENABLE_MEDIA_SOURCE=0 -DENABLE_MEDIA_STATISTICS=0 -DENABLE_MEDIA_STREAM=0 -DENABLE_MICRODATA=0 -DENABLE_MOUSE_CURSOR_SCALE=0 -DENABLE_NAVIGATOR_CONTENT_UTILS=0 -DENABLE_NETSCAPE_PLUGIN_API=0 -DENABLE_NETWORK_INFO=0 -DENABLE_NOSNIFF=0 -DENABLE_ORIENTATION_EVENTS=0 -DENABLE_PROXIMITY_EVENTS=0 -DENABLE_QUOTA=0 -DENABLE_RESOURCE_TIMING=0 -DENABLE_SCRIPTED_SPEECH=0 -DENABLE_SECCOMP_FILTERS=0 -DENABLE_SHADOW_DOM=0 -DENABLE_STYLE_SCOPED=0 -DENABLE_TEMPLATE_ELEMENT=0 -DENABLE_TEXT_AUTOSIZING=0 -DENABLE_THREADED_HTML_PARSER=0 -DENABLE_TOUCH_ICON_LOADING=0 -DENABLE_USER_TIMING=0 -DENABLE_VIBRATION=0 -DENABLE_VIDEO=0 -DENABLE_VIDEO_TRACK=0 -DENABLE_WEB_AUDIO=0 -DENABLE_XSLT=0 -DSTATICALLY_LINKED_WITH_ANGLE -DSTATICALLY_LINKED_WITH_JavaScriptCore -DSTATICALLY_LINKED_WITH_WTF -DBUILDING_WebCore -DBUILDING_WEBKIT -DQT_ASCII_CAST_WARNINGS -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_SQL_LIB -DQT_CORE_LIB
 
 QT_INCPATH += \
-  qtbase/include \
-  qtbase/include/QtCore \
-  qtbase/include/QtCore/5.1.0 \
-  qtbase/include/QtCore/5.1.0/QtCore \
-  qtbase/include/QtGui \
-  qtbase/include/QtGui/5.1.0 \
-  qtbase/include/QtGui/5.1.0/QtGui \
-  qtbase/include/QtNetwork \
-  qtbase/include/QtSql \
-  qtbase/mkspecs/genode-g++ \
-  qtbase/src/3rdparty/sqlite \
-  qtscript/include \
-  qtscript/include/QtScript \
-  qtwebkit/Source \
-  qtwebkit/Source/JavaScriptCore \
-  qtwebkit/Source/JavaScriptCore/API \
-  qtwebkit/Source/JavaScriptCore/assembler \
-  qtwebkit/Source/JavaScriptCore/bytecode \
-  qtwebkit/Source/JavaScriptCore/bytecompiler \
-  qtwebkit/Source/JavaScriptCore/debugger \
-  qtwebkit/Source/JavaScriptCore/dfg \
-  qtwebkit/Source/JavaScriptCore/disassembler \
-  qtwebkit/Source/JavaScriptCore/ForwardingHeaders \
-  qtwebkit/Source/JavaScriptCore/heap \
-  qtwebkit/Source/JavaScriptCore/interpreter \
-  qtwebkit/Source/JavaScriptCore/jit \
-  qtwebkit/Source/JavaScriptCore/llint \
-  qtwebkit/Source/JavaScriptCore/parser \
-  qtwebkit/Source/JavaScriptCore/profiler \
-  qtwebkit/Source/JavaScriptCore/runtime \
-  qtwebkit/Source/JavaScriptCore/tools \
-  qtwebkit/Source/JavaScriptCore/yarr \
-  qtwebkit/Source/ThirdParty \
   qtwebkit/Source/WebCore \
+  qtwebkit/Source/WebCore \
+  qtwebkit/Source/WebCore/Modules/filesystem \
+  qtwebkit/Source/WebCore/Modules/geolocation \
+  qtwebkit/Source/WebCore/Modules/indexeddb \
+  qtwebkit/Source/WebCore/Modules/navigatorcontentutils \
+  qtwebkit/Source/WebCore/Modules/notifications \
+  qtwebkit/Source/WebCore/Modules/proximity \
+  qtwebkit/Source/WebCore/Modules/quota \
+  qtwebkit/Source/WebCore/Modules/webaudio \
+  qtwebkit/Source/WebCore/Modules/webdatabase \
+  qtwebkit/Source/WebCore/Modules/websockets \
   qtwebkit/Source/WebCore/accessibility \
   qtwebkit/Source/WebCore/bindings \
   qtwebkit/Source/WebCore/bindings/generic \
-  qtwebkit/Source/WebCore/bindings/js \
   qtwebkit/Source/WebCore/bridge \
-  qtwebkit/Source/WebCore/bridge/c \
-  qtwebkit/Source/WebCore/bridge/jsc \
   qtwebkit/Source/WebCore/bridge/qt \
   qtwebkit/Source/WebCore/css \
   qtwebkit/Source/WebCore/dom \
@@ -51,6 +26,7 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/history \
   qtwebkit/Source/WebCore/html \
   qtwebkit/Source/WebCore/html/canvas \
+  qtwebkit/Source/WebCore/html/forms \
   qtwebkit/Source/WebCore/html/parser \
   qtwebkit/Source/WebCore/html/shadow \
   qtwebkit/Source/WebCore/html/track \
@@ -58,23 +34,14 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/loader \
   qtwebkit/Source/WebCore/loader/appcache \
   qtwebkit/Source/WebCore/loader/archive \
-  qtwebkit/Source/WebCore/loader/archive/mhtml \
   qtwebkit/Source/WebCore/loader/cache \
   qtwebkit/Source/WebCore/loader/icon \
   qtwebkit/Source/WebCore/mathml \
-  qtwebkit/Source/WebCore/Modules/filesystem \
-  qtwebkit/Source/WebCore/Modules/geolocation \
-  qtwebkit/Source/WebCore/Modules/indexeddb \
-  qtwebkit/Source/WebCore/Modules/navigatorcontentutils \
-  qtwebkit/Source/WebCore/Modules/notifications \
-  qtwebkit/Source/WebCore/Modules/quota \
-  qtwebkit/Source/WebCore/Modules/webaudio \
-  qtwebkit/Source/WebCore/Modules/webdatabase \
-  qtwebkit/Source/WebCore/Modules/websockets \
   qtwebkit/Source/WebCore/page \
   qtwebkit/Source/WebCore/page/animation \
   qtwebkit/Source/WebCore/page/qt \
   qtwebkit/Source/WebCore/page/scrolling \
+  qtwebkit/Source/WebCore/page/scrolling/coordinatedgraphics \
   qtwebkit/Source/WebCore/platform \
   qtwebkit/Source/WebCore/platform/animation \
   qtwebkit/Source/WebCore/platform/audio \
@@ -88,11 +55,12 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/platform/graphics/qt \
   qtwebkit/Source/WebCore/platform/graphics/surfaces \
   qtwebkit/Source/WebCore/platform/graphics/texmap \
+  qtwebkit/Source/WebCore/platform/graphics/texmap/coordinated \
   qtwebkit/Source/WebCore/platform/graphics/transforms \
   qtwebkit/Source/WebCore/platform/image-decoders \
   qtwebkit/Source/WebCore/platform/image-decoders/bmp \
-  qtwebkit/Source/WebCore/platform/image-decoders/gif \
   qtwebkit/Source/WebCore/platform/image-decoders/ico \
+  qtwebkit/Source/WebCore/platform/image-decoders/gif \
   qtwebkit/Source/WebCore/platform/image-decoders/jpeg \
   qtwebkit/Source/WebCore/platform/image-decoders/png \
   qtwebkit/Source/WebCore/platform/image-decoders/webp \
@@ -107,6 +75,7 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/plugins \
   qtwebkit/Source/WebCore/rendering \
   qtwebkit/Source/WebCore/rendering/mathml \
+  qtwebkit/Source/WebCore/rendering/shapes \
   qtwebkit/Source/WebCore/rendering/style \
   qtwebkit/Source/WebCore/rendering/svg \
   qtwebkit/Source/WebCore/storage \
@@ -116,168 +85,87 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/svg/graphics/filters \
   qtwebkit/Source/WebCore/svg/properties \
   qtwebkit/Source/WebCore/testing \
-  qtwebkit/Source/WebCore/testing/js \
   qtwebkit/Source/WebCore/websockets \
   qtwebkit/Source/WebCore/workers \
   qtwebkit/Source/WebCore/xml \
   qtwebkit/Source/WebCore/xml/parser \
+  qtwebkit/Source/ThirdParty \
+  qtwebkit/Source/WebCore/bridge/jsc \
+  qtwebkit/Source/WebCore/bindings/js \
+  qtwebkit/Source/WebCore/bridge/c \
+  qtwebkit/Source/WebCore/testing/js \
+  qtbase/src/3rdparty/sqlite \
+  qtwebkit/Source/WebCore/platform/graphics/gpu \
+  qtwebkit/Source/WebCore/platform/graphics/gpu \
+  qtwebkit/Source/WebCore/loader/archive/mhtml \
+  qtwebkit/Source \
+  qtwebkit/Source/ThirdParty/ANGLE/include/GLSLANG \
+  qtwebkit/Source/ThirdParty/ANGLE/include/KHR \
+  qtwebkit/Source/JavaScriptCore \
+  qtwebkit/Source \
   qtwebkit/Source/WTF \
+  qtwebkit/Source/JavaScriptCore/assembler \
+  qtwebkit/Source/JavaScriptCore/bytecode \
+  qtwebkit/Source/JavaScriptCore/bytecompiler \
+  qtwebkit/Source/JavaScriptCore/heap \
+  qtwebkit/Source/JavaScriptCore/dfg \
+  qtwebkit/Source/JavaScriptCore/debugger \
+  qtwebkit/Source/JavaScriptCore/disassembler \
+  qtwebkit/Source/JavaScriptCore/interpreter \
+  qtwebkit/Source/JavaScriptCore/jit \
+  qtwebkit/Source/JavaScriptCore/llint \
+  qtwebkit/Source/JavaScriptCore/parser \
+  qtwebkit/Source/JavaScriptCore/profiler \
+  qtwebkit/Source/JavaScriptCore/runtime \
+  qtwebkit/Source/JavaScriptCore/tools \
+  qtwebkit/Source/JavaScriptCore/yarr \
+  qtwebkit/Source/JavaScriptCore/API \
+  qtwebkit/Source/JavaScriptCore/ForwardingHeaders \
+  qtwebkit/Source/WTF \
+  qtbase/include/QtGui/5.6.2 \
+  qtbase/include/QtGui/5.6.2/QtGui \
+  qtbase/include \
+  qtbase/include/QtGui \
+  qtbase/include/QtNetwork \
+  qtbase/include/QtSql \
+  qtbase/include/QtCore/5.6.2 \
+  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtCore \
+  qtbase/mkspecs/genode-g++
 
 QT_SOURCES += \
+  Coordinates.cpp \
   Geolocation.cpp \
   GeolocationController.cpp \
   NavigatorGeolocation.cpp \
-  AbstractDatabase.cpp \
   DOMWindowWebDatabase.cpp \
   Database.cpp \
   DatabaseAuthorizer.cpp \
+  DatabaseBackendBase.cpp \
   DatabaseContext.cpp \
+  DatabaseServer.cpp \
   DatabaseSync.cpp \
-  WorkerContextWebDatabase.cpp \
+  WorkerGlobalScopeWebDatabase.cpp \
   AccessibilityMenuList.cpp \
   AccessibilityMenuListOption.cpp \
   AccessibilityMenuListPopup.cpp \
   AccessibilityMockObject.cpp \
-  AccessibilityProgressIndicator.cpp \
   AccessibilitySpinButton.cpp \
   ActiveDOMCallback.cpp \
   BindingSecurity.cpp \
   RuntimeEnabledFeatures.cpp \
   ScriptControllerBase.cpp \
-  ArrayValue.cpp \
-  BindingState.cpp \
-  CallbackFunction.cpp \
-  DOMObjectHashTableMap.cpp \
-  DOMWrapperWorld.cpp \
-  Dictionary.cpp \
-  GCController.cpp \
-  JSArrayBufferCustom.cpp \
-  JSAttrCustom.cpp \
-  JSBlobCustom.cpp \
-  JSCDATASectionCustom.cpp \
-  JSCSSFontFaceRuleCustom.cpp \
-  JSCSSImportRuleCustom.cpp \
-  JSCSSMediaRuleCustom.cpp \
-  JSCSSPageRuleCustom.cpp \
-  JSCSSRuleCustom.cpp \
-  JSCSSRuleListCustom.cpp \
-  JSCSSStyleDeclarationCustom.cpp \
-  JSCSSStyleRuleCustom.cpp \
-  JSCSSValueCustom.cpp \
-  JSCallbackData.cpp \
-  JSCanvasRenderingContext2DCustom.cpp \
-  JSCanvasRenderingContextCustom.cpp \
-  JSClipboardCustom.cpp \
-  JSConsoleCustom.cpp \
-  JSCoordinatesCustom.cpp \
-  JSCustomXPathNSResolver.cpp \
-  JSDictionary.cpp \
-  JSDOMBinding.cpp \
-  JSDOMFormDataCustom.cpp \
-  JSDOMGlobalObject.cpp \
-  JSDOMImplementationCustom.cpp \
-  JSDOMMimeTypeArrayCustom.cpp \
-  JSDOMPluginArrayCustom.cpp \
-  JSDOMPluginCustom.cpp \
-  JSDOMStringListCustom.cpp \
-  JSDOMStringMapCustom.cpp \
-  JSDOMTokenListCustom.cpp \
-  JSDOMWindowBase.cpp \
-  JSDOMWindowCustom.cpp \
-  JSDOMWindowShell.cpp \
-  JSDOMWindowWebAudioCustom.cpp \
-  JSDOMWindowWebSocketCustom.cpp \
-  JSDOMWrapper.cpp \
-  JSDataViewCustom.cpp \
-  JSDesktopNotificationsCustom.cpp \
+  JSAudioBufferCustom.cpp \
   JSDeviceMotionEventCustom.cpp \
-  JSDeviceOrientationEventCustom.cpp \
-  JSDocumentCustom.cpp \
-  JSElementCustom.cpp \
-  JSErrorHandler.cpp \
-  JSEventCustom.cpp \
-  JSEventListener.cpp \
-  JSEventTargetCustom.cpp \
-  JSExceptionBase.cpp \
   JSFileReaderCustom.cpp \
-  JSGeolocationCustom.cpp \
-  JSHTMLAllCollectionCustom.cpp \
-  JSHTMLAppletElementCustom.cpp \
-  JSHTMLCanvasElementCustom.cpp \
-  JSHTMLCollectionCustom.cpp \
-  JSHTMLDocumentCustom.cpp \
-  JSHTMLElementCustom.cpp \
-  JSHTMLEmbedElementCustom.cpp \
-  JSHTMLFormControlsCollectionCustom.cpp \
-  JSHTMLFormElementCustom.cpp \
-  JSHTMLFrameElementCustom.cpp \
-  JSHTMLFrameSetElementCustom.cpp \
-  JSHTMLInputElementCustom.cpp \
-  JSHTMLLinkElementCustom.cpp \
-  JSHTMLMediaElementCustom.cpp \
-  JSHTMLObjectElementCustom.cpp \
-  JSHTMLOptionsCollectionCustom.cpp \
-  JSHTMLOutputElementCustom.cpp \
-  JSHTMLSelectElementCustom.cpp \
-  JSHTMLStyleElementCustom.cpp \
-  JSHistoryCustom.cpp \
-  JSImageConstructor.cpp \
-  JSImageDataCustom.cpp \
-  JSInjectedScriptHostCustom.cpp \
-  JSInjectedScriptManager.cpp \
-  JSInspectorFrontendHostCustom.cpp \
-  JSLazyEventListener.cpp \
-  JSLocationCustom.cpp \
-  JSMainThreadExecState.cpp \
-  JSMediaListCustom.cpp \
-  JSMemoryInfoCustom.cpp \
-  JSMessageChannelCustom.cpp \
-  JSMessageEventCustom.cpp \
   JSMessagePortCustom.cpp \
-  JSMicroDataItemValueCustom.cpp \
-  JSMutationCallbackCustom.cpp \
-  JSMutationObserverCustom.cpp \
-  JSNamedNodeMapCustom.cpp \
-  JSNodeCustom.cpp \
-  JSNodeFilterCondition.cpp \
-  JSNodeFilterCustom.cpp \
-  JSNodeIteratorCustom.cpp \
-  JSNodeListCustom.cpp \
-  JSNotificationCustom.cpp \
-  JSPluginElementFunctions.cpp \
-  JSPopStateEventCustom.cpp \
-  JSProcessingInstructionCustom.cpp \
-  JSRequestAnimationFrameCallbackCustom.cpp \
-  JSStorageCustom.cpp \
-  JSStyleSheetCustom.cpp \
-  JSStyleSheetListCustom.cpp \
-  JSTextCustom.cpp \
-  JSTouchCustom.cpp \
-  JSTouchListCustom.cpp \
-  JSTreeWalkerCustom.cpp \
-  JSWebKitAnimationCustom.cpp \
-  JSWebKitAnimationListCustom.cpp \
-  JSWebKitCSSKeyframeRuleCustom.cpp \
-  JSWebKitCSSKeyframesRuleCustom.cpp \
-  JSWebKitPointCustom.cpp \
-  JSXMLHttpRequestCustom.cpp \
-  JSXMLHttpRequestUploadCustom.cpp \
-  JSXPathResultCustom.cpp \
+  JSRTCStatsResponseCustom.cpp \
   PageScriptDebugServer.cpp \
-  ScheduledAction.cpp \
-  ScriptCachedFrameData.cpp \
-  ScriptCallStackFactory.cpp \
   ScriptController.cpp \
   ScriptControllerQt.cpp \
-  ScriptDebugServer.cpp \
-  ScriptEventListener.cpp \
-  ScriptFunctionCall.cpp \
-  ScriptGCEvent.cpp \
   ScriptObject.cpp \
   ScriptProfile.cpp \
-  ScriptState.cpp \
   ScriptValue.cpp \
-  SerializedScriptValue.cpp \
   IdentifierRep.cpp \
   NP_jsobject.cpp \
   CRuntimeObject.cpp \
@@ -316,239 +204,67 @@ QT_SOURCES += \
   FileWriterBase.cpp \
   FileWriterSync.cpp \
   LocalFileSystem.cpp \
-  WorkerContextFileSystem.cpp \
+  WorkerGlobalScopeFileSystem.cpp \
   NavigatorContentUtils.cpp \
   DOMWindowNotifications.cpp \
   Notification.cpp \
   NotificationCenter.cpp \
   NotificationController.cpp \
-  WorkerContextNotifications.cpp \
+  WorkerGlobalScopeNotifications.cpp \
+  DeviceProximityController.cpp \
+  DeviceProximityEvent.cpp \
   BasicShapeFunctions.cpp \
-  CSSAspectRatioValue.cpp \
-  CSSBasicShapes.cpp \
-  CSSBorderImageSliceValue.cpp \
-  CSSBorderImage.cpp \
   CSSCalculationValue.cpp \
-  CSSCanvasValue.cpp \
-  CSSCharsetRule.cpp \
-  CSSComputedStyleDeclaration.cpp \
-  CSSCrossfadeValue.cpp \
-  CSSCursorImageValue.cpp \
-  CSSFontFace.cpp \
-  CSSFontFaceRule.cpp \
-  CSSFontFaceSrcValue.cpp \
-  CSSFontSelector.cpp \
-  CSSFontFaceSource.cpp \
-  CSSFunctionValue.cpp \
-  CSSGradientValue.cpp \
-  CSSImageValue.cpp \
-  CSSImageGeneratorValue.cpp \
+  CSSFontFaceLoadEvent.cpp \
   CSSImageSetValue.cpp \
-  CSSImportRule.cpp \
-  CSSInheritedValue.cpp \
-  CSSInitialValue.cpp \
-  CSSLineBoxContainValue.cpp \
-  CSSMediaRule.cpp \
-  CSSOMUtils.cpp \
-  CSSPageRule.cpp \
-  CSSParser.cpp \
-  CSSParserValues.cpp \
   CSSPrimitiveValue.cpp \
   CSSProperty.cpp \
-  CSSPropertySourceData.cpp \
-  CSSReflectValue.cpp \
-  CSSRule.cpp \
-  CSSRuleList.cpp \
-  CSSSelector.cpp \
-  CSSSelectorList.cpp \
-  CSSSegmentedFontFace.cpp \
-  CSSStyleRule.cpp \
-  CSSStyleSheet.cpp \
-  CSSTimingFunctionValue.cpp \
+  CSSSupportsRule.cpp \
   CSSToStyleMap.cpp \
-  CSSUnicodeRangeValue.cpp \
-  CSSValue.cpp \
-  CSSValueList.cpp \
-  CSSValuePool.cpp \
   FontFeatureValue.cpp \
+  FontLoader.cpp \
   FontValue.cpp \
   LengthFunctions.cpp \
   MediaFeatureNames.cpp \
-  MediaList.cpp \
-  MediaQuery.cpp \
-  MediaQueryEvaluator.cpp \
-  MediaQueryExp.cpp \
-  MediaQueryList.cpp \
-  MediaQueryListListener.cpp \
-  MediaQueryMatcher.cpp \
   PropertySetCSSStyleDeclaration.cpp \
   RGBColor.cpp \
-  RuleFeature.cpp \
-  RuleSet.cpp \
   SelectorChecker.cpp \
   ShadowValue.cpp \
-  StyleBuilder.cpp \
   StyleInvalidationAnalysis.cpp \
   StyleMedia.cpp \
-  StylePropertySet.cpp \
-  StylePropertyShorthand.cpp \
-  StyleResolver.cpp \
   StyleRule.cpp \
   StyleRuleImport.cpp \
-  StyleScopeResolver.cpp \
   StyleSheet.cpp \
   StyleSheetContents.cpp \
   StyleSheetList.cpp \
-  ViewportStyleResolver.cpp \
+  TransformFunctions.cpp \
   WebKitCSSArrayFunctionValue.cpp \
+  WebKitCSSFilterRule.cpp \
   WebKitCSSFilterValue.cpp \
   WebKitCSSKeyframeRule.cpp \
   WebKitCSSKeyframesRule.cpp \
   WebKitCSSMatrix.cpp \
+  WebKitCSSMatFunctionValue.cpp \
   WebKitCSSMixFunctionValue.cpp \
   WebKitCSSRegionRule.cpp \
   WebKitCSSSVGDocumentValue.cpp \
   WebKitCSSShaderValue.cpp \
   WebKitCSSTransformValue.cpp \
   WebKitCSSViewportRule.cpp \
-  ActiveDOMObject.cpp \
-  Attr.cpp \
-  BeforeTextInsertedEvent.cpp \
-  BeforeUnloadEvent.cpp \
-  CDATASection.cpp \
-  CharacterData.cpp \
-  CheckedRadioButtons.cpp \
-  ChildListMutationScope.cpp \
-  ChildNodeList.cpp \
-  ClassNodeList.cpp \
-  ClientRect.cpp \
-  ClientRectList.cpp \
-  Clipboard.cpp \
-  ClipboardEvent.cpp \
-  Comment.cpp \
   ComposedShadowTreeWalker.cpp \
-  CompositionEvent.cpp \
-  ContainerNode.cpp \
-  ContainerNodeAlgorithms.cpp \
-  ContextDestructionObserver.cpp \
-  ContextFeatures.cpp \
-  CustomEvent.cpp \
-  DecodedDataDocumentParser.cpp \
-  DeviceMotionController.cpp \
-  DeviceMotionData.cpp \
-  DeviceMotionEvent.cpp \
-  DeviceOrientationController.cpp \
-  DeviceOrientationData.cpp \
-  DeviceOrientationEvent.cpp \
-  Document.cpp \
-  DocumentEventQueue.cpp \
-  DocumentFragment.cpp \
-  DocumentMarkerController.cpp \
-  DocumentMarker.cpp \
-  DocumentOrderedMap.cpp \
-  DocumentParser.cpp \
   DocumentStyleSheetCollection.cpp \
-  DocumentType.cpp \
-  DOMCoreException.cpp \
   DOMError.cpp \
-  DOMImplementation.cpp \
-  DOMNamedFlowCollection.cpp \
-  DOMStringList.cpp \
-  DOMStringMap.cpp \
-  DatasetDOMStringMap.cpp \
-  Element.cpp \
-  ElementAttributeData.cpp \
   ElementRareData.cpp \
-  ElementShadow.cpp \
-  EntityReference.cpp \
-  ErrorEvent.cpp \
-  Event.cpp \
-  EventContext.cpp \
-  EventDispatchMediator.cpp \
-  EventDispatcher.cpp \
-  EventException.cpp \
-  EventListenerMap.cpp \
-  EventNames.cpp \
-  EventTarget.cpp \
-  ExceptionBase.cpp \
-  ExceptionCodePlaceholder.cpp \
   GenericEventQueue.cpp \
   GestureEvent.cpp \
-  IconURL.cpp \
-  IdTargetObserver.cpp \
-  IdTargetObserverRegistry.cpp \
-  LiveNodeList.cpp \
-  KeyboardEvent.cpp \
-  MessageChannel.cpp \
-  MessageEvent.cpp \
-  MessagePort.cpp \
-  MessagePortChannel.cpp \
   MicroDataItemList.cpp \
-  MouseEvent.cpp \
-  MouseRelatedEvent.cpp \
-  MutationEvent.cpp \
-  MutationObserver.cpp \
-  MutationObserverInterestGroup.cpp \
-  MutationObserverRegistration.cpp \
-  MutationRecord.cpp \
-  WebKitNamedFlow.cpp \
-  NamedFlowCollection.cpp \
   NamedNodeMap.cpp \
-  NameNodeList.cpp \
   Node.cpp \
-  NodeFilterCondition.cpp \
-  NodeFilter.cpp \
-  NodeIterator.cpp \
   NodeRareData.cpp \
-  NodeRenderingContext.cpp \
-  Notation.cpp \
-  StaticHashSetNodeList.cpp \
-  OverflowEvent.cpp \
-  PageTransitionEvent.cpp \
-  PendingScript.cpp \
-  PopStateEvent.cpp \
-  Position.cpp \
-  PositionIterator.cpp \
-  ProcessingInstruction.cpp \
-  ProgressEvent.cpp \
+  NodeTraversal.cpp \
   PropertyNodeList.cpp \
   QualifiedName.cpp \
-  Range.cpp \
-  RangeException.cpp \
-  RegisteredEventListener.cpp \
-  ScopedEventQueue.cpp \
   ScriptedAnimationController.cpp \
-  ScriptableDocumentParser.cpp \
-  ScriptElement.cpp \
-  ScriptExecutionContext.cpp \
-  ScriptRunner.cpp \
-  SecurityContext.cpp \
-  SelectorQuery.cpp \
-  ShadowRoot.cpp \
-  SpaceSplitString.cpp \
-  StaticNodeList.cpp \
-  StyledElement.cpp \
-  StyleElement.cpp \
-  TagNodeList.cpp \
-  Text.cpp \
-  TextEvent.cpp \
-  Touch.cpp \
-  TouchEvent.cpp \
-  TouchList.cpp \
-  Traversal.cpp \
-  TreeScope.cpp \
-  TreeScopeAdopter.cpp \
-  TreeWalker.cpp \
-  UIEvent.cpp \
-  UIEventWithKeyState.cpp \
-  UserGestureIndicator.cpp \
-  UserTypingGestureIndicator.cpp \
-  ViewportArguments.cpp \
-  WebCoreMemoryInstrumentation.cpp \
-  WebKitAnimationEvent.cpp \
-  WebKitTransitionEvent.cpp \
-  WheelEvent.cpp \
-  WindowEventContext.cpp \
   PlatformMessagePortChannel.cpp \
   AsyncFileStream.cpp \
   Blob.cpp \
@@ -574,7 +290,6 @@ QT_SOURCES += \
   BaseChooserOnlyDateAndTimeInputType.cpp \
   BaseClickableWithKeyInputType.cpp \
   BaseDateAndTimeInputType.cpp \
-  BaseMultipleFieldsDateAndTimeInputType.cpp \
   BaseTextInputType.cpp \
   ButtonInputType.cpp \
   CheckboxInputType.cpp \
@@ -615,6 +330,7 @@ QT_SOURCES += \
   LabelsNodeList.cpp \
   LinkRelAttribute.cpp \
   MediaDocument.cpp \
+  MicroDataAttributeTokenList.cpp \
   MicroDataItemValue.cpp \
   MonthInputType.cpp \
   NumberInputType.cpp \
@@ -638,45 +354,49 @@ QT_SOURCES += \
   ValidityState.cpp \
   WeekInputType.cpp \
   CanvasGradient.cpp \
+  CanvasPathMethods.cpp \
   CanvasPattern.cpp \
+  CanvasProxy.cpp \
   CanvasRenderingContext.cpp \
   CanvasRenderingContext2D.cpp \
   CanvasStyle.cpp \
   DataView.cpp \
+  FileIconLoader.cpp \
+  BackgroundHTMLInputStream.cpp \
+  BackgroundHTMLParser.cpp \
   CSSPreloadScanner.cpp \
+  CompactHTMLToken.cpp \
   HTMLConstructionSite.cpp \
   HTMLDocumentParser.cpp \
   HTMLElementStack.cpp \
   HTMLEntityParser.cpp \
   HTMLEntitySearch.cpp \
   HTMLFormattingElementList.cpp \
+  HTMLIdentifier.cpp \
   HTMLMetaCharsetParser.cpp \
   HTMLParserIdioms.cpp \
+  HTMLParserOptions.cpp \
   HTMLParserScheduler.cpp \
+  HTMLParserThread.cpp \
   HTMLPreloadScanner.cpp \
+  HTMLResourcePreloader.cpp \
   HTMLScriptRunner.cpp \
   HTMLSourceTracker.cpp \
   HTMLTokenizer.cpp \
   HTMLTreeBuilder.cpp \
+  HTMLTreeBuilderSimulator.cpp \
   HTMLViewSourceParser.cpp \
   TextDocumentParser.cpp \
   TextViewSourceParser.cpp \
   XSSAuditor.cpp \
+  XSSAuditorDelegate.cpp \
   ContentDistributor.cpp \
-  ContentSelectorQuery.cpp \
-  DateTimeEditElement.cpp \
-  DateTimeFieldElement.cpp \
-  DateTimeFieldElements.cpp \
-  DateTimeNumericFieldElement.cpp \
-  DateTimeSymbolicFieldElement.cpp \
   DetailsMarkerControl.cpp \
   InsertionPoint.cpp \
-  ImageInnerElement.cpp \
   MediaControls.cpp \
   MediaControlsApple.cpp \
   MeterShadowElement.cpp \
   ProgressShadowElement.cpp \
-  SelectRuleFeatureSet.cpp \
   SliderThumbElement.cpp \
   SpinButtonElement.cpp \
   TextControlInnerElements.cpp \
@@ -684,7 +404,6 @@ QT_SOURCES += \
   ManifestParser.cpp \
   ArchiveResource.cpp \
   ArchiveResourceCollection.cpp \
-  CachedMetadata.cpp \
   MemoryCache.cpp \
   CachedCSSStyleSheet.cpp \
   CachedFont.cpp \
@@ -695,6 +414,7 @@ QT_SOURCES += \
   CachedScript.cpp \
   CachedShader.cpp \
   CachedSVGDocument.cpp \
+  CachedSVGDocumentReference.cpp \
   CachedXSLStyleSheet.cpp \
   CookieJar.cpp \
   CrossOriginAccessControl.cpp \
@@ -720,7 +440,6 @@ QT_SOURCES += \
   ImageLoader.cpp \
   LinkLoader.cpp \
   LoaderStrategy.cpp \
-  MainResourceLoader.cpp \
   MixedContentChecker.cpp \
   NavigationAction.cpp \
   NetscapePlugInStreamLoader.cpp \
@@ -729,8 +448,6 @@ QT_SOURCES += \
   PolicyCallback.cpp \
   PolicyChecker.cpp \
   ProgressTracker.cpp \
-  Prerenderer.cpp \
-  PrerendererClient.cpp \
   NavigationScheduler.cpp \
   ResourceBuffer.cpp \
   ResourceLoader.cpp \
@@ -739,7 +456,6 @@ QT_SOURCES += \
   SinkDocument.cpp \
   SubframeLoader.cpp \
   SubresourceLoader.cpp \
-  SubstituteData.cpp \
   TextResourceDecoder.cpp \
   ThreadableLoader.cpp \
   AnimationBase.cpp \
@@ -748,9 +464,9 @@ QT_SOURCES += \
   CSSPropertyAnimation.cpp \
   ImplicitAnimation.cpp \
   KeyframeAnimation.cpp \
-  WebKitAnimation.cpp \
-  WebKitAnimationList.cpp \
-  BarInfo.cpp \
+  AutoscrollController.cpp \
+  BarProp.cpp \
+  CaptionUserPreferences.cpp \
   Chrome.cpp \
   Console.cpp \
   ContentSecurityPolicy.cpp \
@@ -777,14 +493,16 @@ QT_SOURCES += \
   GroupSettings.cpp \
   History.cpp \
   Location.cpp \
-  MemoryInfo.cpp \
   MouseEventWithHitTestResults.cpp \
   Navigator.cpp \
   NavigatorBase.cpp \
   OriginAccessEntry.cpp \
   Page.cpp \
+  PageActivityAssertionToken.cpp \
+  PageConsole.cpp \
   PageGroup.cpp \
   PageGroupLoadDeferrer.cpp \
+  PageThrottler.cpp \
   PageVisibilityState.cpp \
   Performance.cpp \
   PerformanceEntry.cpp \
@@ -826,25 +544,25 @@ QT_SOURCES += \
   ClockGeneric.cpp \
   ContentType.cpp \
   CrossThreadCopier.cpp \
+  DatabaseStrategy.cpp \
   DateComponents.cpp \
   Decimal.cpp \
   DragData.cpp \
   DragImage.cpp \
-  EventTracer.cpp \
   FileChooser.cpp \
-  FileIconLoader.cpp \
   FileStream.cpp \
   FileSystem.cpp \
   HistogramSupport.cpp \
   FontDescription.cpp \
-  FontFallbackList.cpp \
-  FontFamily.cpp \
+  FontGenericFamilies.cpp \
+  FontGlyphs.cpp \
   FontFeatureSettings.cpp \
   BitmapImage.cpp \
   Color.cpp \
   CrossfadeGeneratedImage.cpp \
   FloatPoint3D.cpp \
   FloatPoint.cpp \
+  FloatPolygon.cpp \
   FloatQuad.cpp \
   FloatRect.cpp \
   FloatSize.cpp \
@@ -905,7 +623,6 @@ QT_SOURCES += \
   KillRingNone.cpp \
   KURL.cpp \
   Language.cpp \
-  LayoutTestSupport.cpp \
   Length.cpp \
   LengthBox.cpp \
   LineEnding.cpp \
@@ -915,14 +632,15 @@ QT_SOURCES += \
   LinkHash.cpp \
   Logging.cpp \
   MemoryPressureHandler.cpp \
-  MemoryUsageSupportQt.cpp \
   MIMETypeRegistry.cpp \
   DeviceMotionClientMock.cpp \
   DeviceOrientationClientMock.cpp \
   GeolocationClientMock.cpp \
+  PlatformSpeechSynthesizerMock.cpp \
   ScrollbarThemeMock.cpp \
   AuthenticationChallengeBase.cpp \
   BlobData.cpp \
+  BlobRegistry.cpp \
   BlobRegistryImpl.cpp \
   BlobResourceHandle.cpp \
   Credential.cpp \
@@ -931,22 +649,22 @@ QT_SOURCES += \
   FormDataBuilder.cpp \
   HTTPHeaderMap.cpp \
   HTTPParsers.cpp \
-  HTTPRequest.cpp \
-  HTTPValidation.cpp \
   MIMEHeader.cpp \
   NetworkStateNotifier.cpp \
+  NetworkStorageSessionStub.cpp \
   ParsedContentType.cpp \
   ProtectionSpace.cpp \
   ProxyServer.cpp \
   ResourceErrorBase.cpp \
   ResourceHandle.cpp \
+  ResourceHandleClient.cpp \
   ResourceLoadTiming.cpp \
   ResourceRequestBase.cpp \
   ResourceResponseBase.cpp \
+  NotImplemented.cpp \
   RegularExpression.cpp \
   PlatformEvent.cpp \
   PlatformInstrumentation.cpp \
-  PlatformMemoryInstrumentation.cpp \
   RuntimeApplicationChecks.cpp \
   RunLoop.cpp \
   SchemeRegistry.cpp \
@@ -958,7 +676,6 @@ QT_SOURCES += \
   ScrollView.cpp \
   SharedBuffer.cpp \
   SharedBufferChunkReader.cpp \
-  StatsCounter.cpp \
   SQLiteAuthorizer.cpp \
   SQLiteDatabase.cpp \
   SQLiteFileSystem.cpp \
@@ -972,7 +689,6 @@ QT_SOURCES += \
   UnicodeRange.cpp \
   FontTranscoder.cpp \
   UUID.cpp \
-  VisitedLinks.cpp \
   Widget.cpp \
   PlatformStrategies.cpp \
   IFrameShimSupport.cpp \
@@ -981,11 +697,6 @@ QT_SOURCES += \
   PluginPackage.cpp \
   PluginStream.cpp \
   PluginView.cpp \
-  ExclusionInterval.cpp \
-  ExclusionPolygon.cpp \
-  ExclusionRectangle.cpp \
-  ExclusionShape.cpp \
-  ExclusionShapeInsideInfo.cpp \
   FlowThreadController.cpp \
   RenderFlexibleBox.cpp \
   RenderFlowThread.cpp \
@@ -996,11 +707,18 @@ QT_SOURCES += \
   RenderNamedFlowThread.cpp \
   RenderRegion.cpp \
   RenderRegionSet.cpp \
-  RenderTextTrackCue.cpp \
+  PolygonShape.cpp \
+  RectangleShape.cpp \
+  Shape.cpp \
+  ShapeInfo.cpp \
+  ShapeInsideInfo.cpp \
+  ShapeInterval.cpp \
+  ShapeOutsideInfo.cpp \
   BasicShapes.cpp \
   StyleCachedImageSet.cpp \
   StyleCachedShader.cpp \
-  StorageTask.cpp \
+  StyleCustomFilterProgram.cpp \
+  StyleCustomFilterProgramCache.cpp \
   StorageThread.cpp \
   Storage.cpp \
   StorageAreaImpl.cpp \
@@ -1011,6 +729,7 @@ QT_SOURCES += \
   StorageNamespace.cpp \
   StorageNamespaceImpl.cpp \
   StorageSyncManager.cpp \
+  StorageStrategy.cpp \
   StorageTracker.cpp \
   Internals.cpp \
   InternalSettings.cpp \
@@ -1037,11 +756,6 @@ QT_SOURCES += \
   XPathUtil.cpp \
   XPathValue.cpp \
   XPathVariableReference.cpp \
-  NewXMLDocumentParser.cpp \
-  XMLCharacterReferenceParser.cpp \
-  XMLDocumentParser.cpp \
-  XMLTokenizer.cpp \
-  XMLTreeBuilder.cpp \
   AccessibilityObjectQt.cpp \
   DragControllerQt.cpp \
   EventHandlerQt.cpp \
@@ -1051,13 +765,11 @@ QT_SOURCES += \
   FloatPointQt.cpp \
   FloatRectQt.cpp \
   FloatSizeQt.cpp \
-  LayoutPointQt.cpp \
-  LayoutRectQt.cpp \
-  LayoutSizeQt.cpp \
   GradientQt.cpp \
   GraphicsContextQt.cpp \
   IconQt.cpp \
   ImageBufferQt.cpp \
+  ImageBufferDataQt.cpp \
   ImageDecoderQt.cpp \
   ImageQt.cpp \
   IntPointQt.cpp \
@@ -1069,8 +781,12 @@ QT_SOURCES += \
   GraphicsLayerTextureMapper.cpp \
   TextureMapper.cpp \
   TextureMapperBackingStore.cpp \
+  TextureMapperFPSCounter.cpp \
   TextureMapperImageBuffer.cpp \
   TextureMapperLayer.cpp \
+  TextureMapperSurfaceBackingStore.cpp \
+  TextureMapperTile.cpp \
+  TextureMapperTiledBackingStore.cpp \
   DNSResolveQueue.cpp \
   MIMESniffing.cpp \
   CookieJarQt.cpp \
@@ -1082,11 +798,12 @@ QT_SOURCES += \
   ProxyServerQt.cpp \
   QtMIMETypeSniffer.cpp \
   QNetworkReplyHandler.cpp \
-  EditorQt.cpp \
   Cursor.cpp \
+  ContextMenu.cpp \
+  ContextMenuItem.cpp \
   ClipboardQt.cpp \
-  ContextMenuItemQt.cpp \
-  ContextMenuQt.cpp \
+  ContextMenuItemNone.cpp \
+  ContextMenuNone.cpp \
   CursorQt.cpp \
   DragDataQt.cpp \
   DragImageQt.cpp \
@@ -1120,7 +837,6 @@ QT_SOURCES += \
   TemporaryLinkStubsQt.cpp \
   TextBoundariesQt.cpp \
   TextBreakIteratorInternalICUQt.cpp \
-  TextCodecQt.cpp \
   WidgetQt.cpp \
   XMLDocumentParserQt.cpp \
   ScrollAnimatorNone.cpp \
@@ -1128,51 +844,50 @@ QT_SOURCES += \
   PluginPackageNone.cpp \
   PluginViewNone.cpp \
   ChangeVersionWrapper.cpp \
+  DatabaseBackend.cpp \
+  DatabaseBackendContext.cpp \
+  DatabaseBackendSync.cpp \
+  DatabaseBase.cpp \
+  DatabaseManager.cpp \
   DatabaseTask.cpp \
   DatabaseThread.cpp \
   DatabaseTracker.cpp \
-  OriginQuotaManager.cpp \
-  OriginUsageRecord.cpp \
+  OriginLock.cpp \
   SQLException.cpp \
   SQLResultSet.cpp \
   SQLResultSetRowList.cpp \
   SQLStatement.cpp \
+  SQLStatementBackend.cpp \
   SQLStatementSync.cpp \
   SQLTransaction.cpp \
+  SQLTransactionBackend.cpp \
+  SQLTransactionBackendSync.cpp \
   SQLTransactionClient.cpp \
   SQLTransactionCoordinator.cpp \
+  SQLTransactionStateMachine.cpp \
   SQLTransactionSync.cpp \
-  JSCustomSQLStatementErrorCallback.cpp \
-  JSSQLResultSetRowListCustom.cpp \
-  JSSQLTransactionCustom.cpp \
-  JSSQLTransactionSyncCustom.cpp \
   IconDatabase.cpp \
   IconRecord.cpp \
   PageURLRecord.cpp \
-  JSDedicatedWorkerContextCustom.cpp \
-  JSWorkerContextBase.cpp \
-  JSWorkerContextCustom.cpp \
-  JSWorkerCustom.cpp \
-  WorkerScriptController.cpp \
-  WorkerScriptDebugServer.cpp \
   WorkerThreadableLoader.cpp \
   WorkerNavigator.cpp \
   AbstractWorker.cpp \
-  DedicatedWorkerContext.cpp \
+  DedicatedWorkerGlobalScope.cpp \
   DedicatedWorkerThread.cpp \
   Worker.cpp \
-  WorkerContext.cpp \
+  WorkerGlobalScope.cpp \
   WorkerEventQueue.cpp \
   WorkerLocation.cpp \
   WorkerMessagingProxy.cpp \
   WorkerRunLoop.cpp \
   WorkerThread.cpp \
   WorkerScriptLoader.cpp \
-  JSSharedWorkerCustom.cpp \
   DefaultSharedWorkerRepository.cpp \
   SharedWorker.cpp \
-  SharedWorkerContext.cpp \
+  SharedWorkerGlobalScope.cpp \
+  SharedWorkerRepository.cpp \
   SharedWorkerThread.cpp \
+  RenderFullScreen.cpp \
   FELightingNEON.cpp \
   CustomFilterValidatedProgramTextureMapper.cpp \
   CustomFilterGlobalContext.cpp \
@@ -1208,14 +923,10 @@ QT_SOURCES += \
   FilterOperations.cpp \
   FilterOperation.cpp \
   FilterEffect.cpp \
-  LightSource.cpp \
   PointLightSource.cpp \
   SpotLightSource.cpp \
   SourceAlpha.cpp \
   SourceGraphic.cpp \
-  JSSVGElementInstanceCustom.cpp \
-  JSSVGLengthCustom.cpp \
-  JSSVGPathSegCustom.cpp \
   SVGCSSComputedStyleDeclaration.cpp \
   SVGCSSParser.cpp \
   SVGCSSStyleSelector.cpp \
@@ -1227,11 +938,10 @@ QT_SOURCES += \
   SVGFilterBuilder.cpp \
   SVGImage.cpp \
   SVGImageCache.cpp \
+  SVGImageForContainer.cpp \
+  SVGAnimatedProperty.cpp \
   SVGAttributeToPropertyMap.cpp \
   SVGPathSegListPropertyTearOff.cpp \
-  JSJavaScriptCallFrameCustom.cpp \
-  ScriptProfiler.cpp \
-  JavaScriptCallFrame.cpp \
   WebSocket.cpp \
   WebSocketChannel.cpp \
   WebSocketDeflateFramer.cpp \
@@ -1240,15 +950,77 @@ QT_SOURCES += \
   WebSocketExtensionParser.cpp \
   WebSocketFrame.cpp \
   WebSocketHandshake.cpp \
-  WebSocketHandshakeRequest.cpp \
-  WebSocketHandshakeResponse.cpp \
   WorkerThreadableWebSocketChannel.cpp \
   ThreadableWebSocketChannel.cpp \
   ThreadableWebSocketChannelClientWrapper.cpp \
   SocketStreamErrorBase.cpp \
   SocketStreamHandleBase.cpp \
   SocketStreamHandleQt.cpp \
-  JSWebSocketCustom.cpp \
+  JSWebGLRenderingContextCustom.cpp \
+  CanvasContextAttributes.cpp \
+  WebGLObject.cpp \
+  WebGLBuffer.cpp \
+  WebGLCompressedTextureATC.cpp \
+  WebGLCompressedTexturePVRTC.cpp \
+  WebGLCompressedTextureS3TC.cpp \
+  WebGLContextAttributes.cpp \
+  WebGLContextEvent.cpp \
+  WebGLContextGroup.cpp \
+  WebGLContextObject.cpp \
+  WebGLDebugRendererInfo.cpp \
+  WebGLDebugShaders.cpp \
+  WebGLDepthTexture.cpp \
+  WebGLExtension.cpp \
+  WebGLFramebuffer.cpp \
+  WebGLGetInfo.cpp \
+  WebGLLoseContext.cpp \
+  WebGLProgram.cpp \
+  WebGLRenderbuffer.cpp \
+  WebGLRenderingContext.cpp \
+  WebGLShader.cpp \
+  WebGLShaderPrecisionFormat.cpp \
+  WebGLSharedObject.cpp \
+  EXTDrawBuffers.cpp \
+  EXTTextureFilterAnisotropic.cpp \
+  OESStandardDerivatives.cpp \
+  OESTextureFloat.cpp \
+  OESTextureHalfFloat.cpp \
+  OESVertexArrayObject.cpp \
+  OESElementIndexUint.cpp \
+  WebGLTexture.cpp \
+  WebGLUniformLocation.cpp \
+  WebGLVertexArrayObjectOES.cpp \
+  ScrollingStateFixedNode.cpp \
+  ScrollingStateNode.cpp \
+  ScrollingStateScrollingNode.cpp \
+  ScrollingStateStickyNode.cpp \
+  ScrollingStateTree.cpp \
+  ScrollingCoordinatorCoordinatedGraphics.cpp \
+  ScrollingStateNodeCoordinatedGraphics.cpp \
+  ScrollingStateScrollingNodeCoordinatedGraphics.cpp \
+  ANGLEWebKitBridge.cpp \
+  GraphicsContext3D.cpp \
+  DrawingBuffer.cpp \
+  DrawingBufferQt.cpp \
+  Texture.cpp \
+  TilingData.cpp \
+  GraphicsContext3DOpenGLCommon.cpp \
+  Extensions3DOpenGLCommon.cpp \
+  GraphicsContext3DQt.cpp \
+  QFramebufferPaintDevice.cpp \
+  TextureMapperGL.cpp \
+  TextureMapperShaderProgram.cpp \
+  AreaAllocator.cpp \
+  CompositingCoordinator.cpp \
+  CoordinatedBackingStore.cpp \
+  CoordinatedGraphicsLayer.cpp \
+  CoordinatedGraphicsScene.cpp \
+  CoordinatedImageBacking.cpp \
+  CoordinatedSurface.cpp \
+  CoordinatedTile.cpp \
+  UpdateAtlas.cpp \
+  GraphicsContext3DOpenGL.cpp \
+  Extensions3DOpenGL.cpp \
   Archive.cpp \
   ArchiveFactory.cpp \
   MHTMLArchive.cpp \
@@ -1258,14 +1030,15 @@ QT_SOURCES += \
   PNGImageDecoder.cpp \
   JPEGImageDecoder.cpp \
   sqlite3.c \
-  MathMLNames.cpp \
   MathMLElementFactory.cpp \
-  SVGNames.cpp \
+  MathMLNames.cpp \
   SVGElementFactory.cpp \
   JSSVGElementWrapperFactory.cpp \
+  SVGNames.cpp \
   XLinkNames.cpp \
   CSSPropertyNames.cpp \
   CSSValueKeywords.cpp \
+  InternalSettingsGenerated.cpp \
   JSDOMFileSystem.cpp \
   JSDOMFileSystemSync.cpp \
   JSDOMWindowFileSystem.cpp \
@@ -1288,7 +1061,8 @@ QT_SOURCES += \
   JSFileWriterCallback.cpp \
   JSMetadata.cpp \
   JSMetadataCallback.cpp \
-  JSWorkerContextFileSystem.cpp \
+  JSWorkerGlobalScopeFileSystem.cpp \
+  JSCoordinates.cpp \
   JSGeolocation.cpp \
   JSGeoposition.cpp \
   JSNavigatorGeolocation.cpp \
@@ -1298,26 +1072,30 @@ QT_SOURCES += \
   JSDOMWindowIndexedDatabase.cpp \
   JSIDBAny.cpp \
   JSIDBCursor.cpp \
-  JSIDBDatabaseException.cpp \
+  JSIDBCursorWithValue.cpp \
   JSIDBDatabase.cpp \
   JSIDBFactory.cpp \
   JSIDBIndex.cpp \
-  JSIDBKey.cpp \
   JSIDBKeyRange.cpp \
   JSIDBObjectStore.cpp \
+  JSIDBOpenDBRequest.cpp \
   JSIDBRequest.cpp \
   JSIDBTransaction.cpp \
-  JSWorkerContextIndexedDatabase.cpp \
+  JSIDBVersionChangeEvent.cpp \
+  JSWorkerGlobalScopeIndexedDatabase.cpp \
   JSDOMWindowNotifications.cpp \
   JSNotification.cpp \
   JSNotificationCenter.cpp \
   JSNotificationPermissionCallback.cpp \
-  JSWorkerContextNotifications.cpp \
+  JSWorkerGlobalScopeNotifications.cpp \
   JSDOMWindowQuota.cpp \
+  JSNavigatorStorageQuota.cpp \
   JSStorageInfo.cpp \
-  JSStorageInfoErrorCallback.cpp \
-  JSStorageInfoQuotaCallback.cpp \
-  JSStorageInfoUsageCallback.cpp \
+  JSStorageErrorCallback.cpp \
+  JSStorageQuota.cpp \
+  JSStorageQuotaCallback.cpp \
+  JSStorageUsageCallback.cpp \
+  JSWorkerNavigatorStorageQuota.cpp \
   JSAudioBuffer.cpp \
   JSAudioBufferCallback.cpp \
   JSAudioBufferSourceNode.cpp \
@@ -1325,27 +1103,25 @@ QT_SOURCES += \
   JSChannelSplitterNode.cpp \
   JSAudioContext.cpp \
   JSAudioDestinationNode.cpp \
-  JSAudioGain.cpp \
   JSGainNode.cpp \
   JSAudioListener.cpp \
   JSAudioNode.cpp \
   JSPannerNode.cpp \
   JSAudioParam.cpp \
   JSAudioProcessingEvent.cpp \
-  JSAudioSourceNode.cpp \
   JSBiquadFilterNode.cpp \
   JSConvolverNode.cpp \
   JSDelayNode.cpp \
-  JSDOMWindowWebAudio.cpp \
   JSDynamicsCompressorNode.cpp \
   JSScriptProcessorNode.cpp \
   JSMediaElementAudioSourceNode.cpp \
   JSMediaStreamAudioSourceNode.cpp \
+  JSOfflineAudioContext.cpp \
   JSOfflineAudioCompletionEvent.cpp \
   JSOscillatorNode.cpp \
   JSAnalyserNode.cpp \
   JSWaveShaperNode.cpp \
-  JSWaveTable.cpp \
+  JSPeriodicWave.cpp \
   JSDOMWindowWebDatabase.cpp \
   JSDatabase.cpp \
   JSDatabaseCallback.cpp \
@@ -1361,14 +1137,14 @@ QT_SOURCES += \
   JSSQLTransactionErrorCallback.cpp \
   JSSQLTransactionSync.cpp \
   JSSQLTransactionSyncCallback.cpp \
-  JSWorkerContextWebDatabase.cpp \
+  JSWorkerGlobalScopeWebDatabase.cpp \
   JSCloseEvent.cpp \
-  JSDOMWindowWebSocket.cpp \
   JSWebSocket.cpp \
-  JSWorkerContextWebSocket.cpp \
   JSCounter.cpp \
   JSCSSCharsetRule.cpp \
+  JSCSSFontFaceLoadEvent.cpp \
   JSCSSFontFaceRule.cpp \
+  JSCSSHostRule.cpp \
   JSCSSImportRule.cpp \
   JSCSSMediaRule.cpp \
   JSCSSPageRule.cpp \
@@ -1378,8 +1154,11 @@ QT_SOURCES += \
   JSCSSStyleDeclaration.cpp \
   JSCSSStyleRule.cpp \
   JSCSSStyleSheet.cpp \
+  JSCSSSupportsRule.cpp \
   JSCSSValue.cpp \
   JSCSSValueList.cpp \
+  JSDOMWindowCSS.cpp \
+  JSFontLoader.cpp \
   JSMediaList.cpp \
   JSMediaQueryList.cpp \
   JSRect.cpp \
@@ -1387,6 +1166,7 @@ QT_SOURCES += \
   JSStyleMedia.cpp \
   JSStyleSheet.cpp \
   JSStyleSheetList.cpp \
+  JSWebKitCSSFilterRule.cpp \
   JSWebKitCSSFilterValue.cpp \
   JSWebKitCSSKeyframeRule.cpp \
   JSWebKitCSSKeyframesRule.cpp \
@@ -1398,6 +1178,7 @@ QT_SOURCES += \
   JSAttr.cpp \
   JSBeforeLoadEvent.cpp \
   JSCharacterData.cpp \
+  JSChildNode.cpp \
   JSClientRect.cpp \
   JSClientRectList.cpp \
   JSClipboard.cpp \
@@ -1424,13 +1205,13 @@ QT_SOURCES += \
   JSEvent.cpp \
   JSEventException.cpp \
   JSEventTarget.cpp \
+  JSFocusEvent.cpp \
   JSHashChangeEvent.cpp \
   JSKeyboardEvent.cpp \
   JSMouseEvent.cpp \
   JSMessageChannel.cpp \
   JSMessageEvent.cpp \
   JSMessagePort.cpp \
-  JSMutationCallback.cpp \
   JSMutationEvent.cpp \
   JSMutationObserver.cpp \
   JSMutationRecord.cpp \
@@ -1456,6 +1237,7 @@ QT_SOURCES += \
   JSTouch.cpp \
   JSTouchEvent.cpp \
   JSTouchList.cpp \
+  JSTransitionEvent.cpp \
   JSTreeWalker.cpp \
   JSUIEvent.cpp \
   JSWebKitAnimationEvent.cpp \
@@ -1479,15 +1261,21 @@ QT_SOURCES += \
   JSCanvasGradient.cpp \
   JSInt32Array.cpp \
   JSCanvasPattern.cpp \
+  JSCanvasProxy.cpp \
   JSCanvasRenderingContext.cpp \
   JSCanvasRenderingContext2D.cpp \
+  JSDOMPath.cpp \
+  JSEXTDrawBuffers.cpp \
   JSEXTTextureFilterAnisotropic.cpp \
   JSOESStandardDerivatives.cpp \
   JSOESTextureFloat.cpp \
+  JSOESTextureHalfFloat.cpp \
   JSOESVertexArrayObject.cpp \
   JSOESElementIndexUint.cpp \
   JSWebGLActiveInfo.cpp \
   JSWebGLBuffer.cpp \
+  JSWebGLCompressedTextureATC.cpp \
+  JSWebGLCompressedTexturePVRTC.cpp \
   JSWebGLCompressedTextureS3TC.cpp \
   JSWebGLContextAttributes.cpp \
   JSWebGLContextEvent.cpp \
@@ -1598,16 +1386,14 @@ QT_SOURCES += \
   JSValidityState.cpp \
   JSVoidCallback.cpp \
   JSHTMLContentElement.cpp \
-  JSHTMLShadowElement.cpp \
   JSInjectedScriptHost.cpp \
   JSInspectorFrontendHost.cpp \
   JSJavaScriptCallFrame.cpp \
   JSScriptProfile.cpp \
   JSScriptProfileNode.cpp \
   JSDOMApplicationCache.cpp \
-  JSBarInfo.cpp \
+  JSBarProp.cpp \
   JSConsole.cpp \
-  JSCoordinates.cpp \
   JSCrypto.cpp \
   JSDOMSecurityPolicy.cpp \
   JSDOMSelection.cpp \
@@ -1615,7 +1401,6 @@ QT_SOURCES += \
   JSEventSource.cpp \
   JSHistory.cpp \
   JSLocation.cpp \
-  JSMemoryInfo.cpp \
   JSNavigator.cpp \
   JSPerformance.cpp \
   JSPerformanceEntry.cpp \
@@ -1627,9 +1412,9 @@ QT_SOURCES += \
   JSSpeechInputEvent.cpp \
   JSSpeechInputResult.cpp \
   JSSpeechInputResultList.cpp \
-  JSWebKitAnimation.cpp \
-  JSWebKitAnimationList.cpp \
   JSWebKitPoint.cpp \
+  JSWindowBase64.cpp \
+  JSWindowTimers.cpp \
   JSWorkerNavigator.cpp \
   JSDOMPlugin.cpp \
   JSDOMMimeType.cpp \
@@ -1640,12 +1425,14 @@ QT_SOURCES += \
   JSInternals.cpp \
   JSInternalSettings.cpp \
   JSMallocStatistics.cpp \
+  JSMemoryInfo.cpp \
+  JSTypeConversions.cpp \
   JSAbstractWorker.cpp \
-  JSDedicatedWorkerContext.cpp \
+  JSDedicatedWorkerGlobalScope.cpp \
   JSSharedWorker.cpp \
-  JSSharedWorkerContext.cpp \
+  JSSharedWorkerGlobalScope.cpp \
   JSWorker.cpp \
-  JSWorkerContext.cpp \
+  JSWorkerGlobalScope.cpp \
   JSWorkerLocation.cpp \
   JSDOMParser.cpp \
   JSXMLHttpRequest.cpp \
@@ -1694,6 +1481,7 @@ QT_SOURCES += \
   JSSVGElementInstanceList.cpp \
   JSSVGEllipseElement.cpp \
   JSSVGException.cpp \
+  JSSVGExternalResourcesRequired.cpp \
   JSSVGFEBlendElement.cpp \
   JSSVGFEColorMatrixElement.cpp \
   JSSVGFEComponentTransferElement.cpp \
@@ -1720,6 +1508,8 @@ QT_SOURCES += \
   JSSVGFETileElement.cpp \
   JSSVGFETurbulenceElement.cpp \
   JSSVGFilterElement.cpp \
+  JSSVGFilterPrimitiveStandardAttributes.cpp \
+  JSSVGFitToViewBox.cpp \
   JSSVGFontElement.cpp \
   JSSVGFontFaceElement.cpp \
   JSSVGFontFaceFormatElement.cpp \
@@ -1731,6 +1521,7 @@ QT_SOURCES += \
   JSSVGGlyphElement.cpp \
   JSSVGGlyphRefElement.cpp \
   JSSVGGradientElement.cpp \
+  JSSVGGraphicsElement.cpp \
   JSSVGHKernElement.cpp \
   JSSVGImageElement.cpp \
   JSSVGLength.cpp \
@@ -1783,9 +1574,11 @@ QT_SOURCES += \
   JSSVGStopElement.cpp \
   JSSVGStringList.cpp \
   JSSVGStyleElement.cpp \
+  JSSVGStyledElement.cpp \
   JSSVGSVGElement.cpp \
   JSSVGSwitchElement.cpp \
   JSSVGSymbolElement.cpp \
+  JSSVGTests.cpp \
   JSSVGTextContentElement.cpp \
   JSSVGTextElement.cpp \
   JSSVGTextPathElement.cpp \
@@ -1795,6 +1588,7 @@ QT_SOURCES += \
   JSSVGTransformList.cpp \
   JSSVGTRefElement.cpp \
   JSSVGTSpanElement.cpp \
+  JSSVGURIReference.cpp \
   JSSVGUnitTypes.cpp \
   JSSVGUseElement.cpp \
   JSSVGViewElement.cpp \
@@ -1802,13 +1596,14 @@ QT_SOURCES += \
   JSSVGViewSpec.cpp \
   JSSVGZoomAndPan.cpp \
   JSSVGZoomEvent.cpp \
+  JSInternalSettingsGenerated.cpp \
   InspectorFrontend.cpp \
   InspectorBackendDispatcher.cpp \
   InspectorTypeBuilder.cpp \
   CSSGrammar.cpp \
-  HTMLNames.cpp \
   HTMLElementFactory.cpp \
   JSHTMLElementWrapperFactory.cpp \
+  HTMLNames.cpp \
   XMLNSNames.cpp \
   XMLNames.cpp \
   WebKitFontFamilyNames.cpp \
@@ -1817,6 +1612,7 @@ QT_SOURCES += \
   HTMLEntityTable.cpp \
   ColorData.cpp \
   UserAgentStyleSheetsData.cpp \
+  PlugInsResourcesData.cpp \
   XPathGrammar.cpp \
   RenderSVGAllInOne.cpp \
   SVGAllInOne.cpp \
@@ -1828,10 +1624,24 @@ QT_SOURCES += \
   HTMLElementsAllInOne.cpp \
   EditingAllInOne.cpp \
   RenderingAllInOne.cpp \
+  CSSAllInOne.cpp \
+  MediaAllInOne.cpp \
+  DOMAllInOne.cpp \
+  JSBindingsAllInOne.cpp \
+  qrc_WebCore.cpp \
+  qrc_WebKit.cpp \
+  qrc_InspectorBackendCommands.cpp \
   moc_QtMIMETypeSniffer.cpp
 
 QT_VPATH += \
   qtbase/src/3rdparty/sqlite \
+  qtwebkit/Source/WebCore/Modules/filesystem \
+  qtwebkit/Source/WebCore/Modules/geolocation \
+  qtwebkit/Source/WebCore/Modules/navigatorcontentutils \
+  qtwebkit/Source/WebCore/Modules/notifications \
+  qtwebkit/Source/WebCore/Modules/proximity \
+  qtwebkit/Source/WebCore/Modules/webdatabase \
+  qtwebkit/Source/WebCore/Modules/websockets \
   qtwebkit/Source/WebCore/accessibility \
   qtwebkit/Source/WebCore/accessibility/qt \
   qtwebkit/Source/WebCore/bindings \
@@ -1845,12 +1655,12 @@ QT_VPATH += \
   qtwebkit/Source/WebCore/dom \
   qtwebkit/Source/WebCore/dom/default \
   qtwebkit/Source/WebCore/editing \
-  qtwebkit/Source/WebCore/editing/qt \
   qtwebkit/Source/WebCore/fileapi \
   qtwebkit/Source/WebCore/history \
   qtwebkit/Source/WebCore/history/qt \
   qtwebkit/Source/WebCore/html \
   qtwebkit/Source/WebCore/html/canvas \
+  qtwebkit/Source/WebCore/html/forms \
   qtwebkit/Source/WebCore/html/parser \
   qtwebkit/Source/WebCore/html/shadow \
   qtwebkit/Source/WebCore/inspector \
@@ -1860,26 +1670,25 @@ QT_VPATH += \
   qtwebkit/Source/WebCore/loader/archive/mhtml \
   qtwebkit/Source/WebCore/loader/cache \
   qtwebkit/Source/WebCore/loader/icon \
-  qtwebkit/Source/WebCore/Modules/filesystem \
-  qtwebkit/Source/WebCore/Modules/geolocation \
-  qtwebkit/Source/WebCore/Modules/navigatorcontentutils \
-  qtwebkit/Source/WebCore/Modules/notifications \
-  qtwebkit/Source/WebCore/Modules/webdatabase \
-  qtwebkit/Source/WebCore/Modules/websockets \
   qtwebkit/Source/WebCore/page \
   qtwebkit/Source/WebCore/page/animation \
   qtwebkit/Source/WebCore/page/qt \
   qtwebkit/Source/WebCore/page/scrolling \
+  qtwebkit/Source/WebCore/page/scrolling/coordinatedgraphics \
   qtwebkit/Source/WebCore/platform \
   qtwebkit/Source/WebCore/platform/animation \
   qtwebkit/Source/WebCore/platform/graphics \
   qtwebkit/Source/WebCore/platform/graphics/cpu/arm/filters \
   qtwebkit/Source/WebCore/platform/graphics/filters \
   qtwebkit/Source/WebCore/platform/graphics/filters/texmap \
+  qtwebkit/Source/WebCore/platform/graphics/gpu \
+  qtwebkit/Source/WebCore/platform/graphics/gpu/qt \
+  qtwebkit/Source/WebCore/platform/graphics/opengl \
   qtwebkit/Source/WebCore/platform/graphics/qt \
   qtwebkit/Source/WebCore/platform/graphics/surfaces \
   qtwebkit/Source/WebCore/platform/graphics/surfaces/qt \
   qtwebkit/Source/WebCore/platform/graphics/texmap \
+  qtwebkit/Source/WebCore/platform/graphics/texmap/coordinated \
   qtwebkit/Source/WebCore/platform/graphics/transforms \
   qtwebkit/Source/WebCore/platform/image-decoders \
   qtwebkit/Source/WebCore/platform/image-decoders/bmp \
@@ -1898,6 +1707,7 @@ QT_VPATH += \
   qtwebkit/Source/WebCore/platform/text/transcoder \
   qtwebkit/Source/WebCore/plugins \
   qtwebkit/Source/WebCore/rendering \
+  qtwebkit/Source/WebCore/rendering/shapes \
   qtwebkit/Source/WebCore/rendering/style \
   qtwebkit/Source/WebCore/rendering/svg \
   qtwebkit/Source/WebCore/storage \
