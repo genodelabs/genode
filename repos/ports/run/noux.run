@@ -48,7 +48,6 @@ append qemu_args " -nographic -serial mon:stdio "
 
 if {[have_spec x86_64]} {
 	# coreutils.tar is really huge when built for x86_64
-	append qemu_args " -m 300 "
 }
 
 run_genode_until {child "noux" exited with exit value 0.*\n} 30

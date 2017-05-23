@@ -42,7 +42,7 @@ install_config $config
 
 build_boot_image "core ld.lib.so init test-thread"
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic "
 
 run_genode_until {.*test completed successfully.*\n} 60
 

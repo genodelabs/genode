@@ -72,6 +72,9 @@ proc run_power_on { } {
 
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_spec x86]} {
+		if {![regexp -- {-m} $qemu_args dummy]} {
+			append qemu_args " -m 512 "
+		}
 		if {[have_include "load/tftp"]} {
 			append qemu_args " -boot n -tftp [run_dir] -bootp boot/pulsar -no-reboot -no-shutdown "
 		} else {

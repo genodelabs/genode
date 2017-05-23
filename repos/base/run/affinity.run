@@ -65,7 +65,7 @@ if {[have_include "power_on/qemu"]} {
 	set want_cpus_y 1
 	set want_cpus_total [expr $want_cpus_x*$want_cpus_y]
 	set rounds "03"
-	append qemu_args "-nographic -m 64 -smp $want_cpus_total,cores=$want_cpus_total "
+	append qemu_args "-nographic  -smp $want_cpus_total,cores=$want_cpus_total "
 } else {
 	set rounds "10"
 	if {[have_spec x86]} { set rounds "40" }

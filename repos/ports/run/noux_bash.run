@@ -209,7 +209,6 @@ build_boot_image $boot_modules
 
 if {[have_spec x86_64]} {
 	# bash.tar is really huge when built for x86_64
-	append qemu_args " -m 320 "
 }
 
 run_genode_until forever

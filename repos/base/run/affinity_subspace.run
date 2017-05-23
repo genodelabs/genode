@@ -50,7 +50,7 @@ install_config {
 	</config>
 }
 
-append qemu_args " -nographic -m 64 -smp 8,cores=8 "
+append qemu_args " -nographic  -smp 8,cores=8 "
 
 build_boot_image "core init test-affinity"
 

@@ -106,7 +106,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -nographic -usb  -usbdevice host:$usb_raw_device -nographic"
+append qemu_args "  -nographic -usb  -usbdevice host:$usb_raw_device -nographic"
 
 
 run_genode_until forever

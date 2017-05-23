@@ -203,6 +203,5 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 # bash.tar is really huge when built for x86_64
-if {[have_spec x86_64]} { append qemu_args " -m 300 " }
 
 run_genode_until forever

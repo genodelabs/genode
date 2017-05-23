@@ -53,6 +53,6 @@ set boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 64 -nographic "
+append qemu_args "  -nographic "
 
 run_genode_until {.*--- Timed semaphore test finished ---.*\n} 10

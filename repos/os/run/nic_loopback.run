@@ -57,6 +57,6 @@ set boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -serial mon:stdio -m 256 "
+append qemu_args " -nographic -serial mon:stdio  "
 
 run_genode_until {child .* exited with exit value 0.*} 60

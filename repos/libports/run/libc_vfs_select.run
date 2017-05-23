@@ -85,7 +85,7 @@ set boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 128 -nographic "
+append qemu_args "  -nographic "
 
 run_genode_until "child \"test-libc_select\" exited with exit value 0.*\n" 120
 

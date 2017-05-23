@@ -160,7 +160,7 @@ if {$use_qemu} {
 #
 # Qemu opts for EHCI
 #
-append qemu_args " -m 256 -nographic -M pc -boot order=d "
+append qemu_args "  -nographic -M pc -boot order=d "
 append qemu_args " -drive if=none,id=disk,file=$disk_image,format=raw "
 append qemu_args " -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=disk "
 

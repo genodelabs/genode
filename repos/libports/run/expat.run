@@ -65,7 +65,7 @@ build_boot_image {
 # Execute test case
 #
 
-append qemu_args " -nographic -m 64"
+append qemu_args " -nographic "
 
 run_genode_until {.*child "test-expat" exited with exit value 0.*} 5
 

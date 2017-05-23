@@ -35,7 +35,7 @@ build_boot_image {
 	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
 }
 
-append qemu_args " -nographic -m 512 "
+append qemu_args " -nographic  "
 
 run_genode_until "child .* exited with exit value 0.*\n" 10
 

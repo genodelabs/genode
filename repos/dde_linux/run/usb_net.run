@@ -102,7 +102,7 @@ lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -nographic"
+append qemu_args "  -nographic"
 
 run_genode_until forever
 # vi: set ft=tcl :

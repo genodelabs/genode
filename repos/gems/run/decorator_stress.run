@@ -98,6 +98,5 @@ build { test/decorator_stress }
 
 build_boot_image { test-decorator_stress }
 
-append qemu_args " -m 256 "
 
 run_genode_until forever

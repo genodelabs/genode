@@ -148,7 +148,6 @@ set fiasco_serial_esc_arg ""
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 "
 append qemu_args " -nographic "
 
 #

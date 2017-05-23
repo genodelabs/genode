@@ -8,7 +8,7 @@ install_config "[exec cat [genode_dir]/repos/os/src/init/config.priority]"
 
 build_boot_image "core ld.lib.so init"
 
-append qemu_args "-nographic -m 256"
+append qemu_args "-nographic "
 
 # run genode until the init->init.2 process gives us a life sign
 run_genode_until "init.2.*No children to start.*\n" 100

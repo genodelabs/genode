@@ -83,6 +83,6 @@ build_boot_image {
 # Execute test case
 #
 
-append qemu_args " -m 128 -nographic "
+append qemu_args "  -nographic "
 run_genode_until {.*child "test-libc_vfs_block" exited with exit value 0.*} 60
 

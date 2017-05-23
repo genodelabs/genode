@@ -60,7 +60,7 @@ build_boot_image {
 	test-terminal_crosslink
 }
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic "
 
 #
 # Execute test case
