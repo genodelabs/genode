@@ -6,19 +6,19 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 ---
  qtbase/configure                           |   98 +++---
  qtbase/mkspecs/genode-g++/qmake.conf       |   10 +
- qtbase/mkspecs/genode-g++/qplatformdefs.h  |   82 +++++
+ qtbase/mkspecs/genode-g++/qplatformdefs.h  |   87 ++++++
  qtbase/src/corelib/global/qconfig-genode.h |  426 ++++++++++++++++++++++++++++
- qtdeclarative/tools/tools.pro              |    5 
- 5 files changed, 568 insertions(+), 53 deletions(-)
+ qtdeclarative/tools/tools.pro              |    4 
+ 5 files changed, 573 insertions(+), 52 deletions(-)
  create mode 100644 qtbase/mkspecs/genode-g++/qmake.conf
  create mode 100644 qtbase/mkspecs/genode-g++/qplatformdefs.h
  create mode 100644 qtbase/src/corelib/global/qconfig-genode.h
 
 diff --git a/qtbase/configure b/qtbase/configure
-index 0b8b417..1d8bd6b 100755
+index ba94d08..b11fb4c 100755
 --- a/qtbase/configure
 +++ b/qtbase/configure
-@@ -633,10 +633,10 @@ CFG_MTDEV=auto
+@@ -636,10 +636,10 @@ CFG_MTDEV=auto
  CFG_JOURNALD=no
  CFG_SYSLOG=no
  CFG_SQLITE=qt
@@ -31,16 +31,16 @@ index 0b8b417..1d8bd6b 100755
  CFG_LIBJPEG=auto
  CFG_XCURSOR=runtime
  CFG_XRANDR=runtime
-@@ -743,7 +743,7 @@ CFG_GETADDRINFO=auto
+@@ -748,7 +748,7 @@ CFG_GETADDRINFO=auto
  CFG_IPV6IFNAME=auto
  CFG_GETIFADDRS=auto
  CFG_INOTIFY=auto
 -CFG_EVENTFD=auto
 +CFG_EVENTFD=no
  CFG_CLOEXEC=no
+ CFG_POLL=auto
  CFG_RPATH=yes
- CFG_FRAMEWORK=auto
-@@ -5337,16 +5337,16 @@ elif [ "$CFG_OPENGL" = "es2" ]; then
+@@ -5418,16 +5418,16 @@ elif [ "$CFG_OPENGL" = "es2" ]; then
          echo " ${XQMAKESPEC}."
          exit 1
      fi
@@ -67,7 +67,7 @@ index 0b8b417..1d8bd6b 100755
  fi
  
  # If OpenGL ES 2.0 is enabled, check for 3.0 and higher. This is used to allow
-@@ -5760,39 +5760,39 @@ else
+@@ -5840,39 +5840,39 @@ else
  fi
  
  # EGL Support
@@ -140,7 +140,7 @@ index 0b8b417..1d8bd6b 100755
  
  if [ "$CFG_EGLFS" != "no" ]; then
      if [ "$XPLATFORM_QNX" = "no" ] && [ "$CFG_OPENGL" != "no" ]; then
-@@ -6064,9 +6064,9 @@ if [ "$CFG_GETIFADDRS" != "no" ]; then
+@@ -6170,9 +6170,9 @@ if [ "$CFG_GETIFADDRS" != "no" ]; then
  fi
  
  # find if the platform provides thread-safe CLOEXEC support
@@ -151,8 +151,8 @@ index 0b8b417..1d8bd6b 100755
 +#    CFG_CLOEXEC=yes
 +#fi
  
- if [ "$XPLATFORM_MAC" = "yes" ] && [ "$CFG_SECURETRANSPORT" != "no" ] && ([ "$CFG_OPENSSL" = "no" ] || [ "$CFG_OPENSSL" = "auto" ]); then
-     CFG_SECURETRANSPORT=yes
+ if compileTest unix/ppoll "ppoll"; then
+     CFG_POLL="ppoll"
 diff --git a/qtbase/mkspecs/genode-g++/qmake.conf b/qtbase/mkspecs/genode-g++/qmake.conf
 new file mode 100644
 index 0000000..734ae5c
@@ -171,38 +171,44 @@ index 0000000..734ae5c
 +load(qt_config)
 diff --git a/qtbase/mkspecs/genode-g++/qplatformdefs.h b/qtbase/mkspecs/genode-g++/qplatformdefs.h
 new file mode 100644
-index 0000000..d4d67b0
+index 0000000..5e5c341
 --- /dev/null
 +++ b/qtbase/mkspecs/genode-g++/qplatformdefs.h
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,87 @@
 +/****************************************************************************
 +**
-+** Copyright (C) 2015 The Qt Company Ltd.
-+** Contact: http://www.qt.io/licensing/
++** Copyright (C) 2016 The Qt Company Ltd.
++** Contact: https://www.qt.io/licensing/
 +**
 +** This file is part of the qmake spec of the Qt Toolkit.
 +**
-+** $QT_BEGIN_LICENSE:LGPL21$
++** $QT_BEGIN_LICENSE:LGPL$
 +** Commercial License Usage
 +** Licensees holding valid commercial Qt licenses may use this file in
 +** accordance with the commercial license agreement provided with the
 +** Software or, alternatively, in accordance with the terms contained in
 +** a written agreement between you and The Qt Company. For licensing terms
-+** and conditions see http://www.qt.io/terms-conditions. For further
-+** information use the contact form at http://www.qt.io/contact-us.
++** and conditions see https://www.qt.io/terms-conditions. For further
++** information use the contact form at https://www.qt.io/contact-us.
 +**
 +** GNU Lesser General Public License Usage
 +** Alternatively, this file may be used under the terms of the GNU Lesser
-+** General Public License version 2.1 or version 3 as published by the Free
-+** Software Foundation and appearing in the file LICENSE.LGPLv21 and
-+** LICENSE.LGPLv3 included in the packaging of this file. Please review the
-+** following information to ensure the GNU Lesser General Public License
-+** requirements will be met: https://www.gnu.org/licenses/lgpl.html and
-+** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++** General Public License version 3 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL3 included in the
++** packaging of this file. Please review the following information to
++** ensure the GNU Lesser General Public License version 3 requirements
++** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
 +**
-+** As a special exception, The Qt Company gives you certain additional
-+** rights. These rights are described in The Qt Company LGPL Exception
-+** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 2.0 or (at your option) the GNU General
++** Public license version 3 or any later version approved by the KDE Free
++** Qt Foundation. The licenses are as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
++** included in the packaging of this file. Please review the following
++** information to ensure the GNU General Public License requirements will
++** be met: https://www.gnu.org/licenses/gpl-2.0.html and
++** https://www.gnu.org/licenses/gpl-3.0.html.
 +**
 +** $QT_END_LICENSE$
 +**
@@ -250,7 +256,6 @@ index 0000000..d4d67b0
 +#include "../common/posix/qplatformdefs.h"
 +
 +#undef QT_OPEN_LARGEFILE
-+
 +#define QT_OPEN_LARGEFILE 0
 +
 +#define QT_SNPRINTF		::snprintf
@@ -690,15 +695,10 @@ index 0000000..56a0b73
 +//#  define QT_NO_VALIDATOR
 +//#endif
 diff --git a/qtdeclarative/tools/tools.pro b/qtdeclarative/tools/tools.pro
-index 96cf804..24432b3 100644
+index 18bfe28..ba3e5d4 100644
 --- a/qtdeclarative/tools/tools.pro
 +++ b/qtdeclarative/tools/tools.pro
-@@ -9,14 +9,11 @@ qmlimportscanner.CONFIG = host_build
- !android|android_app {
-     SUBDIRS += \
-         qml \
--        qmlprofiler \
-         qmllint
+@@ -16,9 +16,7 @@ qmlimportscanner.CONFIG = host_build
      qtHaveModule(quick) {
          !static: {
              SUBDIRS += \

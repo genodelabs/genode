@@ -338,7 +338,7 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
   _view_handle(_create_view()),
   _input_session(env.rm(), _nitpicker_session.input_session()),
   _ev_buf(env.rm(), _input_session.dataspace()),
-  _keyboard_handler("", -1, false, false, ""),
+  _keyboard_handler("", _evdevkeyboard_fd, false, false, ""),
   _resize_handle(!window->flags().testFlag(Qt::Popup)),
   _decoration(!window->flags().testFlag(Qt::Popup)),
   _egl_surface(EGL_NO_SURFACE),

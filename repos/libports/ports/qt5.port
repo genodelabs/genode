@@ -1,5 +1,5 @@
 LICENSE := GPL
-VERSION := 5.6.2
+VERSION := 5.7.1
 
 QT5 := qt-everywhere-opensource-src-${VERSION}
 QT5_WEBKIT := qtwebkit-opensource-src-$(VERSION)
@@ -7,12 +7,12 @@ QTSCRIPTCLASSIC := qtscriptclassic-1.0_1-opensource
 
 DOWNLOADS := ${QT5}.archive ${QT5_WEBKIT}.archive ${QTSCRIPTCLASSIC}.archive
 
-URL(${QT5}) := http://download.qt.io/archive/qt/5.6/$(VERSION)/single/$(QT5).tar.xz
-SHA(${QT5}) := 42af05f2086c38a10ba1c707bbff7eca5fe55a22
+URL(${QT5}) := http://download.qt.io/archive/qt/5.7/$(VERSION)/single/$(QT5).tar.xz
+SHA(${QT5}) := bedd61b2767239bad01fa9ce3d1e2e63ecf721bd
 DIR(${QT5}) := src/lib/qt5/${QT5}
 
-URL(${QT5_WEBKIT}) := http://download.qt.io/community_releases/5.6/$(VERSION)/${QT5_WEBKIT}.tar.xz
-SHA(${QT5_WEBKIT}) := 3dba4ec72c784f03ef4bf62a199cf4e7e49a6562
+URL(${QT5_WEBKIT}) := http://download.qt.io/community_releases/5.7/$(VERSION)/${QT5_WEBKIT}.tar.xz
+SHA(${QT5_WEBKIT}) := cd44a529cf24cf6f9eda93ac88c7d65dc2de3359
 DIR(${QT5_WEBKIT}) := src/lib/qt5/${QT5}/qtwebkit
 
 URL(${QTSCRIPTCLASSIC}) := ftp://ftp.informatik.hu-berlin.de/pub/Mirrors/ftp.troll.no/QT/qt/solutions/lgpl/${QTSCRIPTCLASSIC}.tar.gz
@@ -23,12 +23,13 @@ DIR(${QTSCRIPTCLASSIC}) := src/lib/qt5/${QTSCRIPTCLASSIC}
 PATCHES_DIR             := $(REP_DIR)/src/lib/qt5/patches
 QT5_PATCHES             := $(shell cat $(PATCHES_DIR)/series)
 QT5_WEBKIT_PATCHES      := qt5_qtwebkit_configuration.patch qt5_qtwebkit_generated_headers.patch qt5_qtwebkit.patch
-QTSCRIPTCLASSIC_PATCHES := qtscriptclassic_qt5.patch
+QTSCRIPTCLASSIC_PATCHES := qtscriptclassic_qt5.patch qtscriptclassic_qt5_7.patch
 
 PATCHES := $(addprefix src/lib/qt5/patches/, ${QT5_PATCHES} ${QT5_WEBKIT_PATCHES} ${QTSCRIPTCLASSIC_PATCHES})
 
-PATCH_OPT                                                := -p1 -d ${DIR(${QT5})}
-PATCH_OPT(src/lib/qt5/patches/qtscriptclassic_qt5.patch) := -p1 -d ${DIR(${QTSCRIPTCLASSIC})}
+PATCH_OPT                                                  := -p1 -d ${DIR(${QT5})}
+PATCH_OPT(src/lib/qt5/patches/qtscriptclassic_qt5.patch)   := -p1 -d ${DIR(${QTSCRIPTCLASSIC})}
+PATCH_OPT(src/lib/qt5/patches/qtscriptclassic_qt5_7.patch) := -p1 -d ${DIR(${QTSCRIPTCLASSIC})}
 
 $(call check_tool,bison)
 $(call check_tool,perl)

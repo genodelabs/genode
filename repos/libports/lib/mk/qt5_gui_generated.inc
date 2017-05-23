@@ -4,10 +4,10 @@ QT_INCPATH += \
   qtbase/src/gui \
   qtbase/include \
   qtbase/include/QtGui \
-  qtbase/include/QtGui/5.6.2 \
-  qtbase/include/QtGui/5.6.2/QtGui \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtGui/5.7.1 \
+  qtbase/include/QtGui/5.7.1/QtGui \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include/QtCore \
   qtbase/mkspecs/genode-g++
 
@@ -281,6 +281,7 @@ QT_SOURCES += \
   moc_qvalidator.cpp \
   moc_qopenglshaderprogram.cpp \
   moc_qopenglengineshadermanager_p.cpp \
+  moc_qopengltexture.cpp \
   moc_qopengltimerquery.cpp
 
 QT_VPATH += \
@@ -357,6 +358,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qopenglengineshadermanager_p.cpp \
   moc_qopenglvertexarrayobject.cpp \
   moc_qopengldebug.cpp \
+  moc_qopengltexture.cpp \
   moc_qopengltimerquery.cpp \
   moc_qstandarditemmodel.cpp
 

@@ -1,4 +1,4 @@
-QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_USE_ICU -DQT_BUILD_CORE_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_DEBUG
+QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DQT_USE_ICU -DQT_HAVE_POLL -DQT_BUILD_CORE_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_DEBUG
 
 QT_INCPATH += \
   qtbase/src/corelib \
@@ -7,11 +7,13 @@ QT_INCPATH += \
   qtbase/src/3rdparty/md5 \
   qtbase/src/3rdparty/md4 \
   qtbase/src/3rdparty/sha3 \
+  qtbase/src/3rdparty/double-conversion/include \
+  qtbase/src/3rdparty/double-conversion/include/double-conversion \
   qtbase/src/3rdparty/forkfd \
   qtbase/include \
   qtbase/include/QtCore \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/mkspecs/genode-g++
 
 QT_SOURCES += \
@@ -22,7 +24,6 @@ QT_SOURCES += \
   qsequentialanimationgroup.cpp \
   qparallelanimationgroup.cpp \
   qpauseanimation.cpp \
-  qatomic_unix.cpp \
   qglobal.cpp \
   qglobalstatic.cpp \
   qlibraryinfo.cpp \
@@ -106,6 +107,14 @@ QT_SOURCES += \
   harfbuzz-stream.c \
   harfbuzz-shaper-all.cpp \
   qharfbuzz.cpp \
+  bignum.cc \
+  bignum-dtoa.cc \
+  cached-powers.cc \
+  diy-fp.cc \
+  double-conversion.cc \
+  fast-dtoa.cc \
+  fixed-dtoa.cc \
+  strtod.cc \
   qabstractfileengine.cpp \
   qbuffer.cpp \
   qdatastream.cpp \
@@ -275,9 +284,9 @@ QT_SOURCES += \
   moc_qeventtransition.cpp
 
 QT_VPATH += \
+  qtbase/src/3rdparty/double-conversion \
   qtbase/src/3rdparty/harfbuzz/src \
   qtbase/src/corelib/animation \
-  qtbase/src/corelib/arch \
   qtbase/src/corelib/codecs \
   qtbase/src/corelib/global \
   qtbase/src/corelib/io \

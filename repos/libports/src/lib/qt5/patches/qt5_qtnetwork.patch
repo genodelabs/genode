@@ -4,17 +4,19 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- qtbase/src/network/access/qhttpnetworkreply.cpp |    8 ++++++++
- qtbase/src/network/socket/qnet_unix_p.h         |   10 ++++++++++
- qtbase/src/network/ssl/qsslconfiguration_p.h    |    9 +++++++++
- qtbase/src/network/ssl/qsslsocket_openssl.cpp   |    3 +++
- 4 files changed, 30 insertions(+)
+ qtbase/src/network/access/qhttpnetworkreply.cpp    |    8 ++++++++
+ qtbase/src/network/socket/qnativesocketengine_p.h  |    4 ++++
+ .../network/socket/qnativesocketengine_unix.cpp    |    2 ++
+ qtbase/src/network/socket/qnet_unix_p.h            |   10 ++++++++++
+ qtbase/src/network/ssl/qsslconfiguration_p.h       |    9 +++++++++
+ qtbase/src/network/ssl/qsslsocket_openssl.cpp      |    3 +++
+ 6 files changed, 36 insertions(+)
 
 diff --git a/qtbase/src/network/access/qhttpnetworkreply.cpp b/qtbase/src/network/access/qhttpnetworkreply.cpp
-index f1b0a84..eae866e 100644
+index 3601c36..00b1632 100644
 --- a/qtbase/src/network/access/qhttpnetworkreply.cpp
 +++ b/qtbase/src/network/access/qhttpnetworkreply.cpp
-@@ -247,8 +247,16 @@ void QHttpNetworkReply::setReadBufferSize(qint64 size)
+@@ -251,8 +251,16 @@ void QHttpNetworkReply::setReadBufferSize(qint64 size)
  
  bool QHttpNetworkReply::supportsUserProvidedDownloadBuffer()
  {
@@ -31,11 +33,51 @@ index f1b0a84..eae866e 100644
  }
  
  void QHttpNetworkReply::setUserProvidedDownloadBuffer(char* b)
+diff --git a/qtbase/src/network/socket/qnativesocketengine_p.h b/qtbase/src/network/socket/qnativesocketengine_p.h
+index 19e9e1d..b972ff0 100644
+--- a/qtbase/src/network/socket/qnativesocketengine_p.h
++++ b/qtbase/src/network/socket/qnativesocketengine_p.h
+@@ -286,8 +286,10 @@ public:
+     bool checkProxy(const QHostAddress &address);
+     bool fetchConnectionParameters();
+ 
++#ifndef QT_NO_NETWORKINTERFACE
+     static uint scopeIdFromString(const QString &scopeid)
+     { return QNetworkInterface::interfaceIndexFromName(scopeid); }
++#endif
+ 
+     /*! \internal
+         Sets \a address and \a port in the \a aa sockaddr structure and the size in \a sockAddrSize.
+@@ -301,7 +303,9 @@ public:
+             || socketProtocol == QAbstractSocket::AnyIPProtocol) {
+             memset(&aa->a6, 0, sizeof(sockaddr_in6));
+             aa->a6.sin6_family = AF_INET6;
++#ifndef QT_NO_NETWORKINTERFACE
+             aa->a6.sin6_scope_id = scopeIdFromString(address.scopeId());
++#endif
+             aa->a6.sin6_port = htons(port);
+             Q_IPV6ADDR tmp = address.toIPv6Address();
+             memcpy(&aa->a6.sin6_addr, &tmp, sizeof(tmp));
+diff --git a/qtbase/src/network/socket/qnativesocketengine_unix.cpp b/qtbase/src/network/socket/qnativesocketengine_unix.cpp
+index 7825be5..3270415 100644
+--- a/qtbase/src/network/socket/qnativesocketengine_unix.cpp
++++ b/qtbase/src/network/socket/qnativesocketengine_unix.cpp
+@@ -116,8 +116,10 @@ static inline void qt_socket_getPortAndAddress(const qt_sockaddr *s, quint16 *po
+             QHostAddress tmpAddress;
+             tmpAddress.setAddress(tmp);
+             *addr = tmpAddress;
++#ifndef QT_NO_NETWORKINTERFACE
+             if (s->a6.sin6_scope_id)
+                 addr->setScopeId(QNetworkInterface::interfaceNameFromIndex(s->a6.sin6_scope_id));
++#endif
+         }
+         if (port)
+             *port = ntohs(s->a6.sin6_port);
 diff --git a/qtbase/src/network/socket/qnet_unix_p.h b/qtbase/src/network/socket/qnet_unix_p.h
-index 1481f56..63ca9a8 100644
+index 8d2a4ae..c73f2db 100644
 --- a/qtbase/src/network/socket/qnet_unix_p.h
 +++ b/qtbase/src/network/socket/qnet_unix_p.h
-@@ -179,6 +179,10 @@ static inline in_addr_t qt_safe_inet_addr(const char *cp)
+@@ -185,6 +185,10 @@ static inline in_addr_t qt_safe_inet_addr(const char *cp)
  
  static inline int qt_safe_sendmsg(int sockfd, const struct msghdr *msg, int flags)
  {
@@ -46,7 +88,7 @@ index 1481f56..63ca9a8 100644
  #ifdef MSG_NOSIGNAL
      flags |= MSG_NOSIGNAL;
  #else
-@@ -188,14 +192,20 @@ static inline int qt_safe_sendmsg(int sockfd, const struct msghdr *msg, int flag
+@@ -194,14 +198,20 @@ static inline int qt_safe_sendmsg(int sockfd, const struct msghdr *msg, int flag
      int ret;
      EINTR_LOOP(ret, ::sendmsg(sockfd, msg, flags));
      return ret;
@@ -68,10 +110,10 @@ index 1481f56..63ca9a8 100644
  
  QT_END_NAMESPACE
 diff --git a/qtbase/src/network/ssl/qsslconfiguration_p.h b/qtbase/src/network/ssl/qsslconfiguration_p.h
-index 3fd1252..56251ca 100644
+index 364bba9..b45a8cc 100644
 --- a/qtbase/src/network/ssl/qsslconfiguration_p.h
 +++ b/qtbase/src/network/ssl/qsslconfiguration_p.h
-@@ -76,7 +76,16 @@ public:
+@@ -82,7 +82,16 @@ public:
      QSslConfigurationPrivate()
          : sessionProtocol(QSsl::UnknownProtocol),
            protocol(QSsl::SecureProtocols),
@@ -89,10 +131,10 @@ index 3fd1252..56251ca 100644
            allowRootCertOnDemandLoading(true),
            peerSessionShared(false),
 diff --git a/qtbase/src/network/ssl/qsslsocket_openssl.cpp b/qtbase/src/network/ssl/qsslsocket_openssl.cpp
-index 82644c1..1701cf4 100644
+index b3820ae..141f57b 100644
 --- a/qtbase/src/network/ssl/qsslsocket_openssl.cpp
 +++ b/qtbase/src/network/ssl/qsslsocket_openssl.cpp
-@@ -481,7 +481,10 @@ bool QSslSocketPrivate::ensureLibraryLoaded()
+@@ -491,7 +491,10 @@ bool QSslSocketPrivate::ensureLibraryLoaded()
          if (q_SSL_library_init() != 1)
              return false;
          q_SSL_load_error_strings();

@@ -1,2 +1,2 @@
-QT_VERSION := 5.6.2
+QT_VERSION := 5.7.1
 QT5 := qt-everywhere-opensource-src-$(QT_VERSION)

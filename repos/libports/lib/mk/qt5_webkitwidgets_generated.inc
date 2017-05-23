@@ -16,6 +16,7 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/Modules/filesystem \
   qtwebkit/Source/WebCore/Modules/geolocation \
   qtwebkit/Source/WebCore/Modules/indexeddb \
+  qtwebkit/Source/WebCore/Modules/mediasource \
   qtwebkit/Source/WebCore/Modules/navigatorcontentutils \
   qtwebkit/Source/WebCore/Modules/notifications \
   qtwebkit/Source/WebCore/Modules/proximity \
@@ -127,8 +128,8 @@ QT_INCPATH += \
   qtwebkit/Source/WTF \
   qtwebkit/include \
   qtwebkit/include/QtWebKitWidgets \
-  qtwebkit/include/QtWebKitWidgets/5.6.2 \
-  qtwebkit/include/QtWebKitWidgets/5.6.2/QtWebKitWidgets \
+  qtwebkit/include/QtWebKitWidgets/5.7.1 \
+  qtwebkit/include/QtWebKitWidgets/5.7.1/QtWebKitWidgets \
   qtwebkit/Source/qt/Api \
   qtwebkit/Source/qt/WebCoreSupport \
   qtwebkit/Source \
@@ -138,12 +139,12 @@ QT_INCPATH += \
   qtbase/include/QtGui \
   qtbase/include/QtNetwork \
   qtbase/include/QtCore \
-  qtbase/include/QtWidgets/5.6.2 \
-  qtbase/include/QtWidgets/5.6.2/QtWidgets \
-  qtbase/include/QtGui/5.6.2 \
-  qtbase/include/QtGui/5.6.2/QtGui \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtWidgets/5.7.1 \
+  qtbase/include/QtWidgets/5.7.1/QtWidgets \
+  qtbase/include/QtGui/5.7.1 \
+  qtbase/include/QtGui/5.7.1/QtGui \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include/QtPrintSupport \
   qtbase/include/QtOpenGL \
   qtbase/include/QtSql \

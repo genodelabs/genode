@@ -38,15 +38,15 @@ class QNitpickerGLContext : public QPlatformOpenGLContext
 
 		QNitpickerGLContext(QOpenGLContext *context);
 
-		QSurfaceFormat format() const;
+		QSurfaceFormat format() const Q_DECL_OVERRIDE;
 
-		void swapBuffers(QPlatformSurface *surface);
+		void swapBuffers(QPlatformSurface *surface) Q_DECL_OVERRIDE;
 
-		bool makeCurrent(QPlatformSurface *surface);
+		bool makeCurrent(QPlatformSurface *surface) Q_DECL_OVERRIDE;
 	    
-		void doneCurrent();
+		void doneCurrent() Q_DECL_OVERRIDE;
 
-		void (*getProcAddress(const QByteArray &procName)) ();
+		QFunctionPointer getProcAddress(const char *procName) Q_DECL_OVERRIDE;
 };
 
 QT_END_NAMESPACE

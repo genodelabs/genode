@@ -1,0 +1,44 @@
+qtscriptclassic_qt5_7.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/qscriptengine_p.cpp |    9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/src/qscriptengine_p.cpp b/src/qscriptengine_p.cpp
+index 4e9076d..65ffcf0 100644
+--- a/src/qscriptengine_p.cpp
++++ b/src/qscriptengine_p.cpp
+@@ -91,7 +91,7 @@ Q_DECLARE_METATYPE(QList<int>)
+ 
+ QT_BEGIN_NAMESPACE
+ 
+-extern char *qdtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve, char **digits_str);
++extern QString qdtoa(qreal d, int *decpt, int *sign);
+ extern double qstrtod(const char *s00, char const **se, bool *ok);
+ 
+ namespace QScript {
+@@ -112,10 +112,9 @@ QString numberToString(qsreal value)
+ 
+     int decpt;
+     int sign;
+-    char *result = 0;
+-    (void) qdtoa(value, 0, 0, &decpt, &sign, 0, &result);
++    QString result = qdtoa(value, &decpt, &sign);
+ 
+-    if (! result)
++    if (result.isEmpty())
+         return QString();
+ 
+     else if (decpt <= 0 && decpt > -6) {
+@@ -165,8 +164,6 @@ QString numberToString(qsreal value)
+         }
+     }
+ 
+-    free(result);
+-
+     return QString::fromLatin1(buf);
+ }
+ 

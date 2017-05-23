@@ -1,4 +1,4 @@
-QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_BUILD_PRINTSUPPORT_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DQT_BUILD_PRINTSUPPORT_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtbase/src/printsupport \
@@ -6,14 +6,14 @@ QT_INCPATH += \
   qtbase/src/printsupport/dialogs \
   qtbase/include \
   qtbase/include/QtPrintSupport \
-  qtbase/include/QtPrintSupport/5.6.2 \
-  qtbase/include/QtPrintSupport/5.6.2/QtPrintSupport \
-  qtbase/include/QtWidgets/5.6.2 \
-  qtbase/include/QtWidgets/5.6.2/QtWidgets \
-  qtbase/include/QtGui/5.6.2 \
-  qtbase/include/QtGui/5.6.2/QtGui \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtPrintSupport/5.7.1 \
+  qtbase/include/QtPrintSupport/5.7.1/QtPrintSupport \
+  qtbase/include/QtWidgets/5.7.1 \
+  qtbase/include/QtWidgets/5.7.1/QtWidgets \
+  qtbase/include/QtGui/5.7.1 \
+  qtbase/include/QtGui/5.7.1/QtGui \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include/QtWidgets \
   qtbase/include/QtGui \
   qtbase/include/QtCore \

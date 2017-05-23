@@ -8,10 +8,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/qtbase/src/widgets/kernel/qwidgetwindow.cpp b/qtbase/src/widgets/kernel/qwidgetwindow.cpp
-index 872572a..ea6314d 100644
+index f3fbe13..c990b33 100644
 --- a/qtbase/src/widgets/kernel/qwidgetwindow.cpp
 +++ b/qtbase/src/widgets/kernel/qwidgetwindow.cpp
-@@ -318,6 +318,9 @@ bool QWidgetWindow::event(QEvent *event)
+@@ -324,6 +324,9 @@ bool QWidgetWindow::event(QEvent *event)
          m_widget->repaint();
          return true;
  

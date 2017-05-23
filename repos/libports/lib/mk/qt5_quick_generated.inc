@@ -5,14 +5,14 @@ QT_INCPATH += \
   qtdeclarative/src/quick \
   qtdeclarative/include \
   qtdeclarative/include/QtQuick \
-  qtdeclarative/include/QtQuick/5.6.2 \
-  qtdeclarative/include/QtQuick/5.6.2/QtQuick \
-  qtbase/include/QtGui/5.6.2 \
-  qtbase/include/QtGui/5.6.2/QtGui \
-  qtdeclarative/include/QtQml/5.6.2 \
-  qtdeclarative/include/QtQml/5.6.2/QtQml \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtdeclarative/include/QtQuick/5.7.1 \
+  qtdeclarative/include/QtQuick/5.7.1/QtQuick \
+  qtbase/include/QtGui/5.7.1 \
+  qtbase/include/QtGui/5.7.1/QtGui \
+  qtdeclarative/include/QtQml/5.7.1 \
+  qtdeclarative/include/QtQml/5.7.1/QtQml \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include \
   qtbase/include/QtGui \
   qtdeclarative/include/QtQml \
