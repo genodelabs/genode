@@ -101,7 +101,7 @@ build_boot_image $boot_modules
 set local_port 5555
 
 # qemu config
-append qemu_args " -m 128 -nographic "
+append qemu_args "  -nographic "
 
 # connect comport 0 to stdio
 append qemu_args " -serial mon:stdio "

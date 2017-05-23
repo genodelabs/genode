@@ -271,6 +271,5 @@ build { app/launcher test/nitpicker app/status_bar app/xray_trigger }
 
 build_boot_image { testnit launcher xray_trigger status_bar }
 
-append qemu_args " -m 256 "
 
 run_genode_until forever

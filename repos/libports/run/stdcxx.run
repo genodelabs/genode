@@ -32,6 +32,6 @@ build_boot_image {
 	ld.lib.so libc.lib.so libm.lib.so stdcxx.lib.so posix.lib.so
 }
 
-append qemu_args " -nographic -m 64 "
+append qemu_args " -nographic  "
 
 run_genode_until ".*test-stdcxx finished.*\n" 10

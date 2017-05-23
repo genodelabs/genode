@@ -82,7 +82,7 @@ build_boot_image {
 	test-cpu_sampler
 }
 
-append qemu_args "-nographic -m 128"
+append qemu_args "-nographic "
 
 set match_string "Test started. func: 0x(\[0-9a-f\]+).*\n"
 

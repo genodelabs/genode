@@ -8,7 +8,7 @@ set sleep       1500
 set demand      [expr 1*1024*1024]
 
 if {[have_include "power_on/qemu"]} {
-	append qemu_args "-nographic -m 128"
+	append qemu_args "-nographic "
 } else {
 	# foc is really slow on native hardware executing this test - limit rounds
 	if {[have_spec foc]} {

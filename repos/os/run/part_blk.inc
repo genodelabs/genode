@@ -140,7 +140,7 @@ build_boot_image $boot_modules
 # Qemu
 #
 
-append qemu_args " -nographic -m 128 "
+append qemu_args " -nographic  "
 
 run_genode_until "Tests finished successfully.*\n.*Tests finished successfully.*\n" 100
 exec rm $img_path

@@ -237,7 +237,6 @@ lappend_if [have_spec imx53]            boot_modules input_drv
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 "
 append qemu_args " -smp 4,cores=4 "
 
 run_genode_until forever

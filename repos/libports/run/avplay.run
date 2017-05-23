@@ -128,7 +128,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 -soundhw es1370"
+append qemu_args "  -soundhw es1370"
 
 run_genode_until forever
 

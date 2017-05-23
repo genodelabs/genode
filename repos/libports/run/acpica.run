@@ -217,6 +217,6 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args "-nographic -m 128"
+append qemu_args "-nographic "
 
 run_genode_until {\[init -\> acpica\].*SCI IRQ:.*\n} 30

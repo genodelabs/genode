@@ -106,6 +106,6 @@ lappend_if [have_spec gpio]        boot_modules [gpio_drv]
 build_boot_image $boot_modules
 
 # disable QEMU graphic to enable testing on our machines without SDL and X
-append qemu_args "-nographic -m 128"
+append qemu_args "-nographic "
 
 run_genode_until {.*--- Framebuffer benchmark finished ---.*\n} 30

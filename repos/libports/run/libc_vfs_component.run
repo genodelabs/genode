@@ -103,7 +103,7 @@ set boot_modules {
 
 build_boot_image $boot_modules
 
-append qemu_args "-nographic -m 128"
+append qemu_args "-nographic "
 
 #
 # Execute test case

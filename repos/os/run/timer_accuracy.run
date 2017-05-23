@@ -35,7 +35,7 @@ install_config {
 build_boot_image { core ld.lib.so init timer test-timer_accuracy }
 
 # configure Qemu
-append qemu_args " -m 64 -nographic"
+append qemu_args "  -nographic"
 
 set err_cnt      0
 set test_timeout 20

@@ -54,7 +54,6 @@ foreach binary $guest_os_binaries {
 
 source ${genode_dir}/repos/ports/run/seoul.inc
 
-append qemu_args " -m 512 "
 append qemu_args " -cpu phenom "
 append qemu_args " -net nic,model=e1000 "
 append qemu_args " -nographic "

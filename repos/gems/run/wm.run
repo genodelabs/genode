@@ -143,6 +143,5 @@ install_config {
 
 build_boot_image { }
 
-append qemu_args " -m 256 "
 
 run_genode_until forever

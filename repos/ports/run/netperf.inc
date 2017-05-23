@@ -305,7 +305,7 @@ build_boot_image $boot_modules
 #
 
 # qemu config
-append qemu_args " -m 128 -nographic "
+append qemu_args "  -nographic "
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
@@ -338,7 +338,7 @@ sleep 3
 foreach netperf_test $netperf_tests {
 	puts "\n---------------------------- $netperf_test -----------------------"
 
-	spawn netperf-$version -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- -m $packet_size $force_ports
+	spawn netperf-$version -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- $packet_size $force_ports
 	set netperf_id $spawn_id
 
 	set spawn_id_list [list $netperf_id $serial_id]

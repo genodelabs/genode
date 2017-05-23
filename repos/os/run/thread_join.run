@@ -31,6 +31,6 @@ install_config {
 
 build_boot_image "core ld.lib.so init timer test-thread_join"
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic "
 
 run_genode_until {.*--- Thread join test finished ---.*\n} 10

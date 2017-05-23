@@ -82,6 +82,6 @@ build_boot_image $boot_modules
 #
 
 # qemu config
-append qemu_args " -m 128 -nographic "
+append qemu_args "  -nographic "
 
 run_genode_until forever

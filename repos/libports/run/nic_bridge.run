@@ -117,7 +117,7 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 512 -nographic "
+append qemu_args "  -nographic "
 
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
