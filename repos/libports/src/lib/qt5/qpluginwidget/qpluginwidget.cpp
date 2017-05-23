@@ -7,7 +7,6 @@
 /* Genode includes */
 #include <base/env.h>
 #include <dataspace/client.h>
-#include <os/timed_semaphore.h>
 #include <rom_session/connection.h>
 #include <util/arg_string.h>
 
@@ -70,21 +69,21 @@ class Signal_wait_thread : public QThread
 	private:
 
 		Signal_receiver &_signal_receiver;
-		Timed_semaphore &_timeout_semaphore;
+		QMutex &_timeout_mutex;
 
 	protected:
 
 		void run()
 		{
 			_signal_receiver.wait_for_signal();
-			_timeout_semaphore.up();
+			_timeout_mutex.unlock();
 		}
 
 	public:
 
-		Signal_wait_thread(Signal_receiver &signal_receiver, Timed_semaphore &timeout_semaphore)
+		Signal_wait_thread(Signal_receiver &signal_receiver, QMutex &timeout_mutex)
 		: _signal_receiver(signal_receiver),
-		  _timeout_semaphore(timeout_semaphore) { }
+		  _timeout_mutex(timeout_mutex) { }
 };
 
 
@@ -141,7 +140,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 
 		Dataspace_capability ds = _pc->alloc_rom_module(file_name.toUtf8().constData(), file_size);
 		if (ds.valid()) {
-			void *ds_addr = env()->rm_session()->attach(ds);
+			void *ds_addr = _env->rm().attach(ds);
 
 			z_stream zs;
 			zs.next_in = (Bytef*)(file_buf.data());
@@ -159,7 +158,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 				_plugin_loading_state = INFLATE_ERROR;
 
 				inflateEnd(&zs);
-				env()->rm_session()->detach(ds_addr);
+				_env->rm().detach(ds_addr);
 				return;
 			}
 
@@ -169,19 +168,19 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 				_plugin_loading_state = INFLATE_ERROR;
 
 				inflateEnd(&zs);
-				env()->rm_session()->detach(ds_addr);
+				_env->rm().detach(ds_addr);
 				return;
 			}
 
 			inflateEnd(&zs);
 
-			env()->rm_session()->detach(ds_addr);
+			_env->rm().detach(ds_addr);
 			_pc->commit_rom_module(file_name.toUtf8().constData());
 		}
 	} else {
 		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0);
 
-		if (((long)env()->ram_session()->avail_ram().value - (long)ram_quota) <
+		if (((long)_env->ram().avail_ram().value - (long)ram_quota) <
 		    QPluginWidget::PRESERVED_RAM_QUOTA) {
 			_plugin_loading_state = RAM_QUOTA_EXCEEDED_ERROR;
 			return;
@@ -193,18 +192,18 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 
 		Dataspace_capability plugin_ds = _pc->alloc_rom_module("plugin.tar", file_buf.size());
 		if (plugin_ds.valid()) {
-			void *plugin_ds_addr = env()->rm_session()->attach(plugin_ds);
+			void *plugin_ds_addr = _env->rm().attach(plugin_ds);
 			::memcpy(plugin_ds_addr, file_buf.constData(), file_buf.size());
-			env()->rm_session()->detach(plugin_ds_addr);
+			_env->rm().detach(plugin_ds_addr);
 			_pc->commit_rom_module("plugin.tar");
 		}
 	}
 
 	Dataspace_capability config_ds = _pc->alloc_rom_module("config", ::strlen(config) + 1);
 	if (config_ds.valid()) {
-		void *config_ds_addr = env()->rm_session()->attach(config_ds);
+		void *config_ds_addr = _env->rm().attach(config_ds);
 		::memcpy(config_ds_addr, config, ::strlen(config) + 1);
-		env()->rm_session()->detach(config_ds_addr);
+		_env->rm().detach(config_ds_addr);
 		_pc->commit_rom_module("config");
 	}
 
@@ -216,13 +215,12 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 	_pc->parent_view(_parent_view);
 	_pc->start("init", "init");
 
-	Timed_semaphore view_ready_semaphore;
-	Signal_wait_thread signal_wait_thread(sig_rec, view_ready_semaphore);
+	QMutex view_ready_mutex;
+	Signal_wait_thread signal_wait_thread(sig_rec, view_ready_mutex);
 	signal_wait_thread.start();
-	try {
-		view_ready_semaphore.down(10000);
+	if (view_ready_mutex.tryLock(10000)) {
 		_plugin_loading_state = LOADED;
-	} catch (Timeout_exception) {
+	} else {
 		_plugin_loading_state = TIMEOUT_EXCEPTION;
 		signal_wait_thread.terminate();
 	}
@@ -237,17 +235,17 @@ void PluginStarter::run()
 		QString file_name = _plugin_url.path().remove("/");
 
 		try {
-			Rom_connection rc(file_name.toLatin1().constData());
+			Rom_connection rc(_env, file_name.toLatin1().constData());
 
 			Dataspace_capability rom_ds = rc.dataspace();
 
-			char const *rom_ds_addr = (char const *)env()->rm_session()->attach(rom_ds);
+			char const *rom_ds_addr = (char const *)_env->rm().attach(rom_ds);
 
 			QByteArray file_buf = QByteArray::fromRawData(rom_ds_addr, Dataspace_client(rom_ds).size());
 
 			_start_plugin(file_name, file_buf);
 
-			env()->rm_session()->detach(rom_ds_addr);
+			_env->rm().detach(rom_ds_addr);
 
 		} catch (Rom_connection::Rom_connection_failed) {
 			_plugin_loading_state = ROM_CONNECTION_FAILED_EXCEPTION;

@@ -220,7 +220,9 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 				                                       Qt::ControlModifier);
 			} else {
 
-				char const utf8_string[] = { utf8.b0, utf8.b1, utf8.b2, utf8.b3, '\0' };
+				char const utf8_string[] = { (char)utf8.b0, (char)utf8.b1,
+				                             (char)utf8.b2, (char)utf8.b3,
+				                             '\0' };
 
 				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress, 0, 0,
 				                                       QString::fromUtf8(utf8_string));
@@ -322,17 +324,20 @@ void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
 	emit framebuffer_changed();
 }
 
-QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window,
+QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *window,
                                                    Genode::Signal_receiver &signal_receiver,
                                                    int screen_width, int screen_height)
 : QPlatformWindow(window),
+  _env(env),
+  _nitpicker_session(env),
   _framebuffer_session(_nitpicker_session.framebuffer_session()),
   _framebuffer(0),
   _framebuffer_changed(false),
   _geometry_changed(false),
   _signal_receiver(signal_receiver),
   _view_handle(_create_view()),
-  _input_session(_nitpicker_session.input_session()),
+  _input_session(env.rm(), _nitpicker_session.input_session()),
+  _ev_buf(env.rm(), _input_session.dataspace()),
   _keyboard_handler("", -1, false, false, ""),
   _resize_handle(!window->flags().testFlag(Qt::Popup)),
   _decoration(!window->flags().testFlag(Qt::Popup)),
@@ -354,9 +359,6 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window,
 	_nitpicker_session.mode_sigh(_mode_changed_signal_dispatcher);
 
 	_adjust_and_set_geometry(geometry());
-
-	_ev_buf = static_cast<Input::Event *>
-			  (Genode::env()->rm_session()->attach(_input_session.dataspace()));
 
 	if (_view_handle.valid()) {
 
@@ -690,9 +692,9 @@ unsigned char *QNitpickerPlatformWindow::framebuffer()
 	    _framebuffer_changed = false;
 
 		if (_framebuffer != 0)
-		    Genode::env()->rm_session()->detach(_framebuffer);
+		    _env.rm().detach(_framebuffer);
 
-		_framebuffer = Genode::env()->rm_session()->attach(_framebuffer_session.dataspace());
+		_framebuffer = _env.rm().attach(_framebuffer_session.dataspace());
 	}
 
 	return _framebuffer;

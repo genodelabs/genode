@@ -87,15 +87,14 @@ append config {
 	<start name="arora" caps="2000">
 		<resource name="RAM" quantum="2G"/>
 		<config clipboard="yes">
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev">
-						<log/>
-						<jitterentropy name="random"/>
-					</dir>
-					<tar name="qt5_fs_arora.tar"/>
-				</vfs>
-			</libc>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<jitterentropy name="random"/>
+				</dir>
+				<tar name="qt5_fs_arora.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>

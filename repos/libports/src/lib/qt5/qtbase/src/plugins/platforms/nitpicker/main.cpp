@@ -11,9 +11,20 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* libc includes */
+#include <assert.h>
+
+/* Qt includes */
 #include "qnitpickerintegrationplugin.h"
 
 QT_BEGIN_NAMESPACE
+
+Genode::Env *QNitpickerIntegrationPlugin::_env = nullptr;
+
+void initialize_qpa_plugin(Genode::Env &env)
+{
+	QNitpickerIntegrationPlugin::set_env(env);
+}
 
 QStringList QNitpickerIntegrationPlugin::keys() const
 {
@@ -24,10 +35,11 @@ QStringList QNitpickerIntegrationPlugin::keys() const
 
 QPlatformIntegration *QNitpickerIntegrationPlugin::create(const QString& system, const QStringList& paramList)
 {
-qDebug() << "QNitpickerIntegrationPlugin::create()";
     Q_UNUSED(paramList);
-    if (system.toLower() == "nitpicker")
-        return new QNitpickerIntegration;
+    if (system.toLower() == "nitpicker") {
+    	assert(_env != nullptr);
+        return new QNitpickerIntegration(*_env);
+    }
 
     return 0;
 }

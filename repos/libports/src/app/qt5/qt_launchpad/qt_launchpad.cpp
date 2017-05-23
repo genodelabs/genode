@@ -15,7 +15,7 @@
 
 Qt_launchpad::Qt_launchpad(Genode::Env &env, unsigned long initial_quota,
                            QWidget *parent)
-: QMainWindow(parent), Launchpad(env, initial_quota)
+: QMainWindow(parent), Launchpad(env, initial_quota), _env(env)
 {
 	setupUi(this);
 
@@ -59,7 +59,7 @@ void Qt_launchpad::_avail_quota_update()
 {
 	static Genode::size_t _avail = 0;
 
-	Genode::size_t new_avail = Genode::env()->ram_session()->avail_ram().value;
+	Genode::size_t new_avail = _env.ram().avail_ram().value;
 
 	if (new_avail != _avail)
 		quota(new_avail);

@@ -130,7 +130,7 @@ class QPluginWidget : public QEmbeddedViewWidget
 		              int max_width = -1, int max_height = -1);
 		~QPluginWidget();
 
-		static void set_env(Libc::Env *env) { _env = env; }
+		static void set_env(Libc::Env &env) { _env = &env; }
 };
 
 #endif // QPLUGINWIDGET_H

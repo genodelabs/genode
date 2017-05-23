@@ -15,9 +15,6 @@
 #include <libc/component.h>
 #include <base/attached_rom_dataspace.h>
 
-extern int genode_argc;
-extern char **genode_argv;
-
 namespace Qt_launchpad_namespace {
 	struct Local_env;
 	using namespace Genode;
@@ -66,13 +63,20 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	}
 };
 
+extern void initialize_qpa_plugin(Genode::Env &);
 
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
+
+		initialize_qpa_plugin(env);
+
 		Qt_launchpad_namespace::Local_env local_env(env);
 
-		QApplication a(genode_argc, genode_argv);
+		int argc = 1;
+		char const *argv[] = { "qt_launchpad", 0 };
+
+		QApplication a(argc, (char**)argv);
 
 		Qt_launchpad launchpad(local_env, env.ram().avail_ram().value);
 

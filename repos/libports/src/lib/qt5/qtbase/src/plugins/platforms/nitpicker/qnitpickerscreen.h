@@ -32,9 +32,9 @@ class QNitpickerScreen : public QPlatformScreen
 
 	public:
 
-		QNitpickerScreen()
+		QNitpickerScreen(Genode::Env &env)
 		{
-			Nitpicker::Connection _nitpicker;
+			Nitpicker::Connection _nitpicker(env);
 
 			Framebuffer::Mode const scr_mode = _nitpicker.mode();
 

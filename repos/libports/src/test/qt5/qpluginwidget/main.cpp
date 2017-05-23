@@ -12,16 +12,19 @@
 /* Qoost includes */
 #include <qoost/compound_widget.h>
 
+extern void initialize_qpa_plugin(Genode::Env &);
+
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
-		QPluginWidget::set_env(&env);
+		initialize_qpa_plugin(env);
+		QPluginWidget::set_env(env);
 
 		int argc = 1;
-		char *argv[] = { "test-qpluginwidget", 0 };
+		char const *argv[] = { "test-qpluginwidget", 0 };
 
-		QApplication app(argc, argv);
+		QApplication app(argc, (char**)argv);
 
 		Compound_widget<QWidget, QHBoxLayout> w;
 

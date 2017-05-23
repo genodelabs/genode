@@ -13,6 +13,7 @@
 
 /* Qt includes */
 #include <QApplication>
+#include <qnitpickerintegrationplugin.h>
 
 /* qt_avplay includes */
 #include "main_window.h"
@@ -33,14 +34,18 @@ static inline void load_stylesheet()
         qApp->setStyleSheet(QLatin1String(file.readAll()));
 }
 
-
-extern int genode_argc;
-extern char **genode_argv;
+extern void initialize_qpa_plugin(Genode::Env &);
 
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
-		QApplication app(genode_argc, genode_argv);
+
+		initialize_qpa_plugin(env);
+
+		int argc = 1;
+		char const *argv[] = { "qt_avplay", 0 };
+
+		QApplication app(argc, (char**)argv);
 
 		load_stylesheet();
 

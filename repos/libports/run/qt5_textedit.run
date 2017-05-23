@@ -128,13 +128,13 @@ append boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	posix.lib.so
 	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
 	pcre16.lib.so
 	pthread.lib.so
+	qt5_component.lib.so
 	qt5_core.lib.so
 	qt5_gui.lib.so
 	qt5_widgets.lib.so

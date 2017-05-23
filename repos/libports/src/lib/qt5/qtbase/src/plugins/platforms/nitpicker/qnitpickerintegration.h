@@ -29,6 +29,8 @@ class QNitpickerIntegration : public QPlatformIntegration
 {
 	private:
 
+		Genode::Env              &_env;
+
 		QSignalHandlerThread      _signal_handler_thread;
 
 		QNitpickerScreen         *_nitpicker_screen;
@@ -43,7 +45,7 @@ class QNitpickerIntegration : public QPlatformIntegration
 
 	public:
 
-		QNitpickerIntegration();
+		QNitpickerIntegration(Genode::Env &env);
 
 		void initialize() Q_DECL_OVERRIDE;
 		bool hasCapability(QPlatformIntegration::Capability cap) const Q_DECL_OVERRIDE;

@@ -1,5 +1,5 @@
 /*
- * \brief  Entry point for Arora
+ * \brief  Entry point for Qt applications with a main() function
  * \author Christian Prochaska
  * \date   2017-05-22
  */
@@ -17,24 +17,20 @@
 /* libc includes */
 #include <stdlib.h> /* 'exit'   */
 
-/* Qt includes */
-#include <qpluginwidget/qpluginwidget.h>
-
 /* provided by the application */
 extern "C" int main(int argc, char const **argv);
 
-/* provided by the QPA plugin */
-extern void initialize_qpa_plugin(Genode::Env &);
+void initialize_qpa_plugin(Genode::Env &env) __attribute__((weak));
+void initialize_qpa_plugin(Genode::Env &) { }
 
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
 		initialize_qpa_plugin(env);
-		QPluginWidget::set_env(env);
 
 		int argc = 1;
-		char const *argv[] = { "arora", 0 };
+		char const *argv[] = { "qt5_app", 0 };
 
 		exit(main(argc, argv));
 	});
