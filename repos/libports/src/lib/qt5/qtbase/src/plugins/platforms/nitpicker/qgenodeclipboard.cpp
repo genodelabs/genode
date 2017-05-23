@@ -31,7 +31,7 @@ QGenodeClipboard::QGenodeClipboard(Genode::Env &env, Genode::Signal_receiver &si
 : _clipboard_signal_dispatcher(sig_rcv, *this, &QGenodeClipboard::_handle_clipboard)
 {
 	try {
-	
+
 		Genode::Attached_rom_dataspace config(env, "config");
 
 		if (config.xml().attribute_value("clipboard", false)) {

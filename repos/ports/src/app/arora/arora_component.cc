@@ -31,7 +31,7 @@ void Libc::Component::construct(Libc::Env &env)
 	Libc::with_libc([&] {
 
 		initialize_qpa_plugin(env);
-		QPluginWidget::set_env(env);
+		QPluginWidget::env(env);
 
 		int argc = 1;
 		char const *argv[] = { "arora", 0 };

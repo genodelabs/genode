@@ -23,25 +23,27 @@ Genode::Env *QNitpickerIntegrationPlugin::_env = nullptr;
 
 void initialize_qpa_plugin(Genode::Env &env)
 {
-	QNitpickerIntegrationPlugin::set_env(env);
+	QNitpickerIntegrationPlugin::env(env);
 }
+
 
 QStringList QNitpickerIntegrationPlugin::keys() const
 {
-    QStringList list;
-    list << "Nitpicker";
-    return list;
+	QStringList list;
+	list << "Nitpicker";
+	return list;
 }
+
 
 QPlatformIntegration *QNitpickerIntegrationPlugin::create(const QString& system, const QStringList& paramList)
 {
-    Q_UNUSED(paramList);
-    if (system.toLower() == "nitpicker") {
-    	assert(_env != nullptr);
-        return new QNitpickerIntegration(*_env);
-    }
+	Q_UNUSED(paramList);
+	if (system.toLower() == "nitpicker") {
+		assert(_env != nullptr);
+		return new QNitpickerIntegration(*_env);
+	}
 
-    return 0;
+	return 0;
 }
 
 Q_IMPORT_PLUGIN(QNitpickerIntegrationPlugin)

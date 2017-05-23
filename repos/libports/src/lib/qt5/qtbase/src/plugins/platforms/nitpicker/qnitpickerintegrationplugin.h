@@ -35,7 +35,7 @@ public:
     QStringList keys() const;
     QPlatformIntegration *create(const QString&, const QStringList&);
 
-	static void set_env(Genode::Env &env) { _env = &env; }
+	static void env(Genode::Env &env) { _env = &env; }
 };
 
 QT_END_NAMESPACE
