@@ -211,6 +211,7 @@ class Block::Root :
 	private:
 
 		Genode::Env            &_env;
+		Genode::Xml_node        _config;
 		Block::Driver          &_driver;
 		Block::Partition_table &_table;
 
@@ -233,7 +234,7 @@ class Block::Root :
 			Session_label const label = label_from_args(args);
 			char const *label_str = label.string();
 			try {
-				Session_policy policy(label);
+				Session_policy policy(label, _config);
 
 				/* read partition attribute */
 				policy.attribute("partition").value(&num);
@@ -291,9 +292,9 @@ class Block::Root :
 
 	public:
 
-		Root(Genode::Env &env, Genode::Heap &heap,
+		Root(Genode::Env &env, Genode::Xml_node config, Genode::Heap &heap,
 		     Block::Driver &driver, Block::Partition_table &table)
-		: Root_component(env.ep(), heap), _env(env),
+		: Root_component(env.ep(), heap), _env(env), _config(config),
 		  _driver(driver), _table(table) { }
 };
 
