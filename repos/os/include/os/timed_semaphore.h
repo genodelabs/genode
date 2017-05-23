@@ -47,7 +47,9 @@ class Genode::Timeout_thread : public Thread_deprecated<2048*sizeof(long)>,
 
 		enum { JIFFIES_STEP_MS = 10 };
 
-		Timer::Connection   _timer;    /* timer session   */
+		static Genode::Env *_env;
+
+		Timer::Connection   _timer { *_env };    /* timer session   */
 		Signal_context      _context;
 		Signal_receiver     _receiver;
 
@@ -68,6 +70,8 @@ class Genode::Timeout_thread : public Thread_deprecated<2048*sizeof(long)>,
 		 * Returns the singleton timeout-thread used for all timeouts.
 		 */
 		static Timeout_thread *alarm_timer();
+
+		static void env(Genode::Env &env) { _env = &env; }
 };
 
 
