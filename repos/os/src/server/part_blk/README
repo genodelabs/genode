@@ -36,9 +36,9 @@ looks like follows (for MBR resp. GPT).
 ! </partitions>
 ! <partitions type="gpt">
 !   <partition number="1" name="one" type="ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"
-      guid="5f4061cc-8d4a-4e6f-ad15-10b881b79aee" start="2048" length="2048"/>
+!     guid="5f4061cc-8d4a-4e6f-ad15-10b881b79aee" start="2048" length="2048"/>
 !   <partition number="2" name="two" type="ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"
-      guid="87199a83-d0f4-4a01-b9e3-6516a8579d61" start="4096" length="16351"/>
+!     guid="87199a83-d0f4-4a01-b9e3-6516a8579d61" start="4096" length="16351"/>
 ! </partitions>
 
 
