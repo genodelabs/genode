@@ -681,7 +681,7 @@ void Component::construct(Genode::Env &env)
 	Link_map::dump();
 
 	/* FIXME: remove 'Timeout_thread' from the base library */
-	Timeout_thread::set_env(env);
+	Timeout_thread::env(env);
 
 	binary_ready_hook_for_gdb();
 

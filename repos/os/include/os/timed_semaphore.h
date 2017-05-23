@@ -71,7 +71,7 @@ class Genode::Timeout_thread : public Thread_deprecated<2048*sizeof(long)>,
 		 */
 		static Timeout_thread *alarm_timer();
 
-		static void set_env(Genode::Env &env) { _env = &env; }
+		static void env(Genode::Env &env) { _env = &env; }
 };
 
 
