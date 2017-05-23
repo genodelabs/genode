@@ -11,6 +11,7 @@ QT_INCPATH += \
   qtwebkit/Source/WebCore/Modules/filesystem \
   qtwebkit/Source/WebCore/Modules/geolocation \
   qtwebkit/Source/WebCore/Modules/indexeddb \
+  qtwebkit/Source/WebCore/Modules/mediasource \
   qtwebkit/Source/WebCore/Modules/navigatorcontentutils \
   qtwebkit/Source/WebCore/Modules/notifications \
   qtwebkit/Source/WebCore/Modules/proximity \
@@ -123,14 +124,14 @@ QT_INCPATH += \
   qtwebkit/Source/JavaScriptCore/API \
   qtwebkit/Source/JavaScriptCore/ForwardingHeaders \
   qtwebkit/Source/WTF \
-  qtbase/include/QtGui/5.6.2 \
-  qtbase/include/QtGui/5.6.2/QtGui \
+  qtbase/include/QtGui/5.7.1 \
+  qtbase/include/QtGui/5.7.1/QtGui \
   qtbase/include \
   qtbase/include/QtGui \
   qtbase/include/QtNetwork \
   qtbase/include/QtSql \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include/QtCore \
   qtbase/mkspecs/genode-g++
 

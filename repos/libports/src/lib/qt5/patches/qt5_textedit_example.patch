@@ -9,10 +9,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 16 insertions(+), 8 deletions(-)
 
 diff --git a/qtbase/examples/widgets/richtext/textedit/main.cpp b/qtbase/examples/widgets/richtext/textedit/main.cpp
-index 1de6d99..b802866 100644
+index aef186a..246f517 100644
 --- a/qtbase/examples/widgets/richtext/textedit/main.cpp
 +++ b/qtbase/examples/widgets/richtext/textedit/main.cpp
-@@ -31,6 +31,10 @@
+@@ -48,6 +48,10 @@
  **
  ****************************************************************************/
  
@@ -23,7 +23,7 @@ index 1de6d99..b802866 100644
  #include "textedit.h"
  
  #include <QApplication>
-@@ -42,6 +46,16 @@ int main(int argc, char *argv[])
+@@ -59,6 +63,16 @@ int main(int argc, char *argv[])
  {
      Q_INIT_RESOURCE(textedit);
  
@@ -40,7 +40,7 @@ index 1de6d99..b802866 100644
      QApplication a(argc, argv);
      QCoreApplication::setOrganizationName("QtProject");
      QCoreApplication::setApplicationName("Rich Text");
-@@ -55,10 +69,8 @@ int main(int argc, char *argv[])
+@@ -72,10 +86,8 @@ int main(int argc, char *argv[])
  
      TextEdit mw;
  

@@ -5,15 +5,15 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 Support out-of-tree build of Qt host tools.
 This patch should not be applied when running the Qt 'configure' script.
 ---
- qtbase/mkspecs/features/qt.prf              |    2 -
- qtbase/mkspecs/features/qt_build_config.prf |    2 -
- qtbase/mkspecs/features/qt_module.prf       |    4 +
- qtbase/mkspecs/features/qt_tool.prf         |   94 ++++++++++++++-------------
- qtbase/qmake/Makefile.unix                  |    2 -
- 5 files changed, 52 insertions(+), 52 deletions(-)
+ qtbase/mkspecs/features/qt.prf              |    2 
+ qtbase/mkspecs/features/qt_build_config.prf |    2 
+ qtbase/mkspecs/features/qt_module.prf       |    4 -
+ qtbase/mkspecs/features/qt_tool.prf         |  112 ++++++++++++++-------------
+ qtbase/qmake/Makefile.unix                  |    2 
+ 5 files changed, 61 insertions(+), 61 deletions(-)
 
 diff --git a/qtbase/mkspecs/features/qt.prf b/qtbase/mkspecs/features/qt.prf
-index be08a2a..ea41489 100644
+index bb52f23..78fc527 100644
 --- a/qtbase/mkspecs/features/qt.prf
 +++ b/qtbase/mkspecs/features/qt.prf
 @@ -151,7 +151,7 @@ for(ever) {
@@ -39,7 +39,7 @@ index 1e2d5c2..4f7e611 100644
          debug(1, "Loaded qmodule.pri from ($$QMAKE_QT_MODULE)")
      }
 diff --git a/qtbase/mkspecs/features/qt_module.prf b/qtbase/mkspecs/features/qt_module.prf
-index 22e2dd5..7141d22 100644
+index d9011f5..51c0900 100644
 --- a/qtbase/mkspecs/features/qt_module.prf
 +++ b/qtbase/mkspecs/features/qt_module.prf
 @@ -21,7 +21,7 @@ load(qt_build_config) # loads qmodule.pri if hasn't been loaded already
@@ -61,43 +61,52 @@ index 22e2dd5..7141d22 100644
  INCLUDEPATH *= $$eval(QT.$${MODULE}.includes) $$eval(QT.$${MODULE}_private.includes)
  
 diff --git a/qtbase/mkspecs/features/qt_tool.prf b/qtbase/mkspecs/features/qt_tool.prf
-index 839c3d6..6d88db7 100644
+index bdeb59c..bdf4b5f 100644
 --- a/qtbase/mkspecs/features/qt_tool.prf
 +++ b/qtbase/mkspecs/features/qt_tool.prf
-@@ -17,52 +17,52 @@ DEFINES *= QT_USE_QSTRINGBUILDER
+@@ -17,61 +17,61 @@ DEFINES *= QT_USE_QSTRINGBUILDER
  # If we are doing a prefix build, create a "module" pri which enables
  # qtPrepareTool() to work with the non-installed build.
  # Non-bootstrapped tools always need this because of the environment setup.
--!build_pass:if(!host_build|!force_bootstrap|force_independent) {
+-!build_pass:if(!host_build|!force_bootstrap|force_independent|!isEmpty(HOST_QT_TOOLS)) {
 -    isEmpty(MODULE):MODULE = $$TARGET
 -
--    !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, _private)
--
 -    load(qt_build_paths)
--
--    load(resolve_target)
 -
 -    TOOL_PRI = $$MODULE_QMAKE_OUTDIR/mkspecs/modules/qt_tool_$${MODULE}.pri
 -
 -    vars = binary depends
--    !isEmpty(QT_TOOL_ENV) {
--        vars += envvars
--        module_var_names =
--        module_var_sets =
--        for(var, QT_TOOL_ENV) {
--            vars += env.$${var}.name env.$${var}.value
--            module_var_names += QT_TOOL.$${MODULE}.env.$${var}
--            module_var_sets += \
--                "QT_TOOL.$${MODULE}.env.$${var}.name = $$val_escape($${var}.name)" \
--                "QT_TOOL.$${MODULE}.env.$${var}.value = $$val_escape($${var}.value)"
+-
+-    isEmpty(HOST_QT_TOOLS) {
+-        load(resolve_target)
+-
+-        !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, _private)
+-
+-        !isEmpty(QT_TOOL_ENV) {
+-            vars += envvars
+-            module_var_names =
+-            module_var_sets =
+-            for(var, QT_TOOL_ENV) {
+-                vars += env.$${var}.name env.$${var}.value
+-                module_var_names += QT_TOOL.$${MODULE}.env.$${var}
+-                module_var_sets += \
+-                    "QT_TOOL.$${MODULE}.env.$${var}.name = $$val_escape($${var}.name)" \
+-                    "QT_TOOL.$${MODULE}.env.$${var}.value = $$val_escape($${var}.value)"
+-            }
+-            module_envvars = \
+-                "QT_TOOL.$${MODULE}.envvars = $$module_var_names" \
+-                $$module_var_sets
+-        } else {
+-            module_envvars =
 -        }
--        module_envvars = \
--            "QT_TOOL.$${MODULE}.envvars = $$module_var_names" \
--            $$module_var_sets
+-
+-        bin = $$system_path($$QMAKE_RESOLVED_TARGET)
 -    } else {
--        module_envvars =
+-        bin = $${HOST_QT_TOOLS}/$${TARGET}
+-        equals(QMAKE_HOST.os, Windows): bin = $${bin}.exe
+-        bin = $$system_path($$bin)
 -    }
--    bin = $$system_path($$QMAKE_RESOLVED_TARGET)
+-
 -    TOOL_PRI_CONT = \
 -        "QT_TOOL.$${MODULE}.binary = $$val_escape(bin)" \
 -        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")" \
@@ -115,36 +124,45 @@ index 839c3d6..6d88db7 100644
 -        cache(QT_TOOL.$${MODULE}.$$var, transient)
 -
 -}
-+#!build_pass:if(!host_build|!force_bootstrap|force_independent) {
++#!build_pass:if(!host_build|!force_bootstrap|force_independent|!isEmpty(HOST_QT_TOOLS)) {
 +#    isEmpty(MODULE):MODULE = $$TARGET
 +#
-+#    !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, _private)
-+#
 +#    load(qt_build_paths)
-+#
-+#    load(resolve_target)
 +#
 +#    TOOL_PRI = $$MODULE_QMAKE_OUTDIR/mkspecs/modules/qt_tool_$${MODULE}.pri
 +#
 +#    vars = binary depends
-+#    !isEmpty(QT_TOOL_ENV) {
-+#        vars += envvars
-+#        module_var_names =
-+#        module_var_sets =
-+#        for(var, QT_TOOL_ENV) {
-+#            vars += env.$${var}.name env.$${var}.value
-+#            module_var_names += QT_TOOL.$${MODULE}.env.$${var}
-+#            module_var_sets += \
-+#                "QT_TOOL.$${MODULE}.env.$${var}.name = $$val_escape($${var}.name)" \
-+#                "QT_TOOL.$${MODULE}.env.$${var}.value = $$val_escape($${var}.value)"
++#
++#    isEmpty(HOST_QT_TOOLS) {
++#        load(resolve_target)
++#
++#        !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, _private)
++#
++#        !isEmpty(QT_TOOL_ENV) {
++#            vars += envvars
++#            module_var_names =
++#            module_var_sets =
++#            for(var, QT_TOOL_ENV) {
++#                vars += env.$${var}.name env.$${var}.value
++#                module_var_names += QT_TOOL.$${MODULE}.env.$${var}
++#                module_var_sets += \
++#                    "QT_TOOL.$${MODULE}.env.$${var}.name = $$val_escape($${var}.name)" \
++#                    "QT_TOOL.$${MODULE}.env.$${var}.value = $$val_escape($${var}.value)"
++#            }
++#            module_envvars = \
++#                "QT_TOOL.$${MODULE}.envvars = $$module_var_names" \
++#                $$module_var_sets
++#        } else {
++#            module_envvars =
 +#        }
-+#        module_envvars = \
-+#            "QT_TOOL.$${MODULE}.envvars = $$module_var_names" \
-+#            $$module_var_sets
++#
++#        bin = $$system_path($$QMAKE_RESOLVED_TARGET)
 +#    } else {
-+#        module_envvars =
++#        bin = $${HOST_QT_TOOLS}/$${TARGET}
++#        equals(QMAKE_HOST.os, Windows): bin = $${bin}.exe
++#        bin = $$system_path($$bin)
 +#    }
-+#    bin = $$system_path($$QMAKE_RESOLVED_TARGET)
++#
 +#    TOOL_PRI_CONT = \
 +#        "QT_TOOL.$${MODULE}.binary = $$val_escape(bin)" \
 +#        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")" \
@@ -165,10 +183,10 @@ index 839c3d6..6d88db7 100644
  # The variable is re-used by qtPrepareTool(), and we really don't want that.
  unset(QT_TOOL_ENV)
 diff --git a/qtbase/qmake/Makefile.unix b/qtbase/qmake/Makefile.unix
-index 405bbf9..cf5fa02 100644
+index 9d3ddab..a5875a5 100644
 --- a/qtbase/qmake/Makefile.unix
 +++ b/qtbase/qmake/Makefile.unix
-@@ -229,7 +229,7 @@ qsettings.o: $(SOURCE_PATH)/src/corelib/io/qsettings.cpp
+@@ -230,7 +230,7 @@ qsettings.o: $(SOURCE_PATH)/src/corelib/io/qsettings.cpp
  qsystemerror.o: $(SOURCE_PATH)/src/corelib/kernel/qsystemerror.cpp
  	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/kernel/qsystemerror.cpp
  

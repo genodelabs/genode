@@ -5,16 +5,16 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  qtbase/src/corelib/global/qconfig.cpp |   59 +++++++
- qtbase/src/corelib/global/qconfig.h   |  165 +++++++++++++++++++++
+ qtbase/src/corelib/global/qconfig.h   |  147 ++++++++++++++++++
  qtbase/src/corelib/global/qfeatures.h |  263 +++++++++++++++++++++++++++++++++
- 3 files changed, 487 insertions(+)
+ 3 files changed, 469 insertions(+)
  create mode 100644 qtbase/src/corelib/global/qconfig.cpp
  create mode 100644 qtbase/src/corelib/global/qconfig.h
  create mode 100644 qtbase/src/corelib/global/qfeatures.h
 
 diff --git a/qtbase/src/corelib/global/qconfig.cpp b/qtbase/src/corelib/global/qconfig.cpp
 new file mode 100644
-index 0000000..5438a45
+index 0000000..0c319a6
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig.cpp
 @@ -0,0 +1,59 @@
@@ -23,7 +23,7 @@ index 0000000..5438a45
 +static const char qt_configure_licensed_products_str [256 + 12] = "qt_lcnsprod=OpenSource";
 +
 +/* Installation date */
-+static const char qt_configure_installation          [12+11]    = "qt_instdate=2017-03-28";
++static const char qt_configure_installation          [12+11]    = "qt_instdate=2012-12-20";
 +
 +/* Installation Info */
 +static const char qt_configure_prefix_path_str       [256 + 12] = "qt_prfxpath=/qt";
@@ -79,14 +79,14 @@ index 0000000..5438a45
 +#endif
 diff --git a/qtbase/src/corelib/global/qconfig.h b/qtbase/src/corelib/global/qconfig.h
 new file mode 100644
-index 0000000..27629e5
+index 0000000..57d990f
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig.h
-@@ -0,0 +1,165 @@
+@@ -0,0 +1,147 @@
 +#define QT_VERSION_MAJOR    5
-+#define QT_VERSION_MINOR    6
-+#define QT_VERSION_PATCH    2
-+#define QT_VERSION_STR      "5.6.2"
++#define QT_VERSION_MINOR    7
++#define QT_VERSION_PATCH    1
++#define QT_VERSION_STR      "5.7.1"
 +
 +#ifndef QT_BOOTSTRAPPED
 +#include "qconfig-genode.h"
@@ -178,12 +178,6 @@ index 0000000..27629e5
 +# define QT_NO_PULSEAUDIO
 +#endif
 +
-+#if defined(QT_NO_STYLE_GTK) && defined(QT_STYLE_GTK)
-+# undef QT_NO_STYLE_GTK
-+#elif !defined(QT_NO_STYLE_GTK) && !defined(QT_STYLE_GTK)
-+# define QT_NO_STYLE_GTK
-+#endif
-+
 +#if defined(QT_NO_TSLIB) && defined(QT_TSLIB)
 +# undef QT_NO_TSLIB
 +#elif !defined(QT_NO_TSLIB) && !defined(QT_TSLIB)
@@ -206,18 +200,6 @@ index 0000000..27629e5
 +# undef QT_RUNTIME_XFIXES
 +#elif !defined(QT_RUNTIME_XFIXES) && !defined(QT_NO_RUNTIME_XFIXES)
 +# define QT_RUNTIME_XFIXES
-+#endif
-+
-+#if defined(QT_RUNTIME_XINERAMA) && defined(QT_NO_RUNTIME_XINERAMA)
-+# undef QT_RUNTIME_XINERAMA
-+#elif !defined(QT_RUNTIME_XINERAMA) && !defined(QT_NO_RUNTIME_XINERAMA)
-+# define QT_RUNTIME_XINERAMA
-+#endif
-+
-+#if defined(QT_RUNTIME_XINPUT) && defined(QT_NO_RUNTIME_XINPUT)
-+# undef QT_RUNTIME_XINPUT
-+#elif !defined(QT_RUNTIME_XINPUT) && !defined(QT_NO_RUNTIME_XINPUT)
-+# define QT_RUNTIME_XINPUT
 +#endif
 +
 +#if defined(QT_RUNTIME_XRANDR) && defined(QT_NO_RUNTIME_XRANDR)

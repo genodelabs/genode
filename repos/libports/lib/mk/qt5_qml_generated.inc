@@ -1,4 +1,4 @@
-QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_URL_CAST_FROM_STRING -DQT_NO_INTEGER_EVENT_COORDINATES -DWTF_EXPORT_PRIVATE= -DJS_EXPORT_PRIVATE= -DWTFReportAssertionFailure=qmlWTFReportAssertionFailure -DWTFReportBacktrace=qmlWTFReportBacktrace -DWTFInvokeCrashHook=qmlWTFInvokeCrashHook -DENABLE_LLINT=0 -DENABLE_DFG_JIT=0 -DENABLE_DFG_JIT_UTILITY_METHODS=1 -DENABLE_JIT_CONSTANT_BLINDING=0 -DBUILDING_QT__ -DWTF_USE_UDIS86=0 -DNDEBUG -DQT_BUILD_QML_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_NETWORK_LIB -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_URL_CAST_FROM_STRING -DQT_NO_INTEGER_EVENT_COORDINATES -DWTF_EXPORT_PRIVATE= -DJS_EXPORT_PRIVATE= -DENABLE_ASSEMBLER_WX_EXCLUSIVE=1 -DWTFReportAssertionFailure=qmlWTFReportAssertionFailure -DWTFReportBacktrace=qmlWTFReportBacktrace -DWTFInvokeCrashHook=qmlWTFInvokeCrashHook -DENABLE_LLINT=0 -DENABLE_DFG_JIT=0 -DENABLE_DFG_JIT_UTILITY_METHODS=1 -DENABLE_JIT_CONSTANT_BLINDING=0 -DBUILDING_QT__ -DWTF_USE_UDIS86=0 -DNDEBUG -DQT_BUILD_QML_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_NETWORK_LIB -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtdeclarative/src/qml \
@@ -15,15 +15,14 @@ QT_INCPATH += \
   qtdeclarative/src/3rdparty/masm/disassembler/udis86 \
   qtdeclarative/src/qml/jit \
   qtdeclarative/src/qml/jsruntime \
-  qtdeclarative/src/3rdparty/double-conversion \
   qtdeclarative/src/qml/debugger \
   qtdeclarative/src/qml/animations \
   qtdeclarative/include \
   qtdeclarative/include/QtQml \
-  qtdeclarative/include/QtQml/5.6.2 \
-  qtdeclarative/include/QtQml/5.6.2/QtQml \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtdeclarative/include/QtQml/5.7.1 \
+  qtdeclarative/include/QtQml/5.7.1/QtQml \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include \
   qtbase/include/QtNetwork \
   qtbase/include/QtCore \
@@ -75,6 +74,8 @@ QT_SOURCES += \
   ARMv7DOpcode.cpp \
   Mips32Disassembler.cpp \
   Mips32Opcode.cpp \
+  ARM64Disassembler.cpp \
+  A64DOpcode.cpp \
   YarrCanonicalizeUCS2.cpp \
   YarrInterpreter.cpp \
   YarrJIT.cpp \
@@ -124,14 +125,6 @@ QT_SOURCES += \
   qv4runtime.cpp \
   qv4string.cpp \
   qv4value.cpp \
-  bignum.cc \
-  bignum-dtoa.cc \
-  cached-powers.cc \
-  diy-fp.cc \
-  double-conversion.cc \
-  fast-dtoa.cc \
-  fixed-dtoa.cc \
-  strtod.cc \
   qqmlopenmetaobject.cpp \
   qqmlvmemetaobject.cpp \
   qqmlengine.cpp \
@@ -252,9 +245,9 @@ QT_SOURCES += \
   moc_qquickworkerscript_p.cpp
 
 QT_VPATH += \
-  qtdeclarative/src/3rdparty/double-conversion \
   qtdeclarative/src/3rdparty/masm/assembler \
   qtdeclarative/src/3rdparty/masm/disassembler \
+  qtdeclarative/src/3rdparty/masm/disassembler/ARM64 \
   qtdeclarative/src/3rdparty/masm/disassembler/ARMv7 \
   qtdeclarative/src/3rdparty/masm/disassembler/mips32 \
   qtdeclarative/src/3rdparty/masm/stubs \

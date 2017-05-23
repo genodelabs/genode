@@ -1,16 +1,16 @@
-QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_NO_STYLE_MAC -DQT_NO_STYLE_WINDOWSVISTA -DQT_NO_STYLE_WINDOWSXP -DQT_NO_STYLE_GTK -DQT_NO_STYLE_WINDOWSCE -DQT_NO_STYLE_WINDOWSMOBILE -DQT_NO_STYLE_ANDROID -DQT_BUILD_WIDGETS_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_NO_STYLE_MAC -DQT_NO_STYLE_WINDOWSVISTA -DQT_NO_STYLE_WINDOWSXP -DQT_NO_STYLE_WINDOWSCE -DQT_NO_STYLE_WINDOWSMOBILE -DQT_NO_STYLE_ANDROID -DQT_BUILD_WIDGETS_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtbase/src/widgets \
   qtbase/src/widgets/dialogs \
   qtbase/include \
   qtbase/include/QtWidgets \
-  qtbase/include/QtWidgets/5.6.2 \
-  qtbase/include/QtWidgets/5.6.2/QtWidgets \
-  qtbase/include/QtGui/5.6.2 \
-  qtbase/include/QtGui/5.6.2/QtGui \
-  qtbase/include/QtCore/5.6.2 \
-  qtbase/include/QtCore/5.6.2/QtCore \
+  qtbase/include/QtWidgets/5.7.1 \
+  qtbase/include/QtWidgets/5.7.1/QtWidgets \
+  qtbase/include/QtGui/5.7.1 \
+  qtbase/include/QtGui/5.7.1/QtGui \
+  qtbase/include/QtCore/5.7.1 \
+  qtbase/include/QtCore/5.7.1/QtCore \
   qtbase/include/QtGui \
   qtbase/include/QtCore \
   qtbase/mkspecs/genode-g++
@@ -54,6 +54,7 @@ QT_SOURCES += \
   qstylepainter.cpp \
   qstylesheetstyle.cpp \
   qstylesheetstyle_default.cpp \
+  qpixmapstyle.cpp \
   qwindowsstyle.cpp \
   qfusionstyle.cpp \
   qbuttongroup.cpp \
@@ -187,7 +188,8 @@ QT_SOURCES += \
   qgraphicseffect.cpp \
   qpixmapfilter.cpp \
   qrc_qstyle.cpp \
-  qrc_qmessagebox.cpp
+  qrc_qmessagebox.cpp \
+  moc_qpixmapstyle_p.cpp
 
 QT_VPATH += \
   qtbase/src/widgets/dialogs \
@@ -233,6 +235,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qcommonstyle.cpp \
   moc_qproxystyle.cpp \
   moc_qstylesheetstyle_p.cpp \
+  moc_qpixmapstyle_p.cpp \
   moc_qwindowsstyle_p.cpp \
   moc_qfusionstyle_p.cpp \
   moc_qbuttongroup.cpp \
