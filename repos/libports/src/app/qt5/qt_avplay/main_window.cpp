@@ -32,6 +32,7 @@ struct Framebuffer_filter
 Main_window::Main_window(Genode::Env &env)
 :
 	_env(env),
+	_mediafile_name(env),
 	_control_bar(_input_session_component)
 {
 	_input_session_component.event_queue().enabled(true);
@@ -56,7 +57,8 @@ Main_window::Main_window(Genode::Env &env)
 
 	static QList<Framebuffer_filter*> framebuffer_filters;
 	try {
-		Xml_node node = config()->xml_node().sub_node("framebuffer_filter");
+		Genode::Attached_rom_dataspace config(_env, "config");
+		Xml_node node = config.xml().sub_node("framebuffer_filter");
 		for (; ; node = node.next("framebuffer_filter")) {
 			Framebuffer_filter *framebuffer_filter = new Framebuffer_filter;
 			node.attribute("name").value(framebuffer_filter->name, sizeof(framebuffer_filter->name));

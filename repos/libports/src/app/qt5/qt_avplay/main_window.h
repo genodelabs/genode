@@ -24,9 +24,9 @@
 #include <qoost/qmember.h>
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/service.h>
 #include <input/root.h>
-#include <os/config.h>
 #include <rom_session/connection.h>
 
 /* local includes */
@@ -46,11 +46,12 @@ class Main_window : public Compound_widget<QWidget, QVBoxLayout>
 			enum { MAX_LEN_MEDIAFILE_NAME = 256 };
 			char buf[MAX_LEN_MEDIAFILE_NAME];
 
-			Mediafile_name()
+			Mediafile_name(Genode::Env &env)
 			{
 				Genode::strncpy(buf, "mediafile", sizeof(buf));
 				try {
-					Genode::config()->xml_node().sub_node("mediafile")
+					Genode::Attached_rom_dataspace config(env, "config");
+					config.xml().sub_node("mediafile")
 						.attribute("name").value(buf, sizeof(buf));
 				} catch(...) {
 					Genode::warning("no <mediafile> config node found, using \"mediafile\"");

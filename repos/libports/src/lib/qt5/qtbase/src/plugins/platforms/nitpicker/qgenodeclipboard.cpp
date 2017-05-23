@@ -16,7 +16,6 @@
 #ifndef QT_NO_CLIPBOARD
 
 /* Genode includes */
-#include <os/config.h>
 #include <util/xml_node.h>
 
 /* Qt includes */
@@ -28,36 +27,39 @@ QT_BEGIN_NAMESPACE
 static constexpr bool verbose = false;
 
 
-QGenodeClipboard::QGenodeClipboard(Genode::Signal_receiver &sig_rcv)
+QGenodeClipboard::QGenodeClipboard(Genode::Env &env, Genode::Signal_receiver &sig_rcv)
 : _clipboard_signal_dispatcher(sig_rcv, *this, &QGenodeClipboard::_handle_clipboard)
 {
-	if (Genode::config()->xml_node().attribute_value("clipboard", false)) {
+	try {
 
-		try {
+		Genode::Attached_rom_dataspace config(env, "config");
 
-			_clipboard_ds = new (Genode::env()->heap())
-				Genode::Attached_rom_dataspace("clipboard");
+		if (config.xml().attribute_value("clipboard", false)) {
 
-			_clipboard_ds->sigh(_clipboard_signal_dispatcher);
-			_clipboard_ds->update();
+			try {
 
-		} catch (...) { }
+				_clipboard_ds = new Genode::Attached_rom_dataspace(env, "clipboard");
 
-		try {
-			_clipboard_reporter = new (Genode::env()->heap())
-				Genode::Reporter("clipboard");
-			_clipboard_reporter->enabled(true);
-		} catch (...) {	}
+				_clipboard_ds->sigh(_clipboard_signal_dispatcher);
+				_clipboard_ds->update();
 
-	}
+			} catch (...) { }
+
+			try {
+				_clipboard_reporter = new Genode::Reporter(env, "clipboard");
+				_clipboard_reporter->enabled(true);
+			} catch (...) {	}
+
+		}
+	} catch (...) { }
 }
 
 
 QGenodeClipboard::~QGenodeClipboard()
 {
 	free(_decoded_clipboard_content);
-	destroy(Genode::env()->heap(), _clipboard_ds);
-	destroy(Genode::env()->heap(), _clipboard_reporter);
+	delete _clipboard_ds;
+	delete _clipboard_reporter;
 }
 
 

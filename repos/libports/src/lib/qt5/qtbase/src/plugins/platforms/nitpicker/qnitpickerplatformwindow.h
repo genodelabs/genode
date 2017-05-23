@@ -44,6 +44,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 			KEY_REPEAT_RATE_MS  =  50  /* 50 ms delay between repetitions */
 		};
 
+		Genode::Env                     &_env;
 		Nitpicker::Connection            _nitpicker_session;
 		Framebuffer::Session_client      _framebuffer_session;
 		unsigned char                   *_framebuffer;
@@ -53,7 +54,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Genode::Signal_receiver         &_signal_receiver;
 		Nitpicker::Session::View_handle  _view_handle;
 		Input::Session_client            _input_session;
-		Input::Event                    *_ev_buf;
+		Genode::Attached_dataspace       _ev_buf;
 		Qt::MouseButtons                 _mouse_button_state;
 		QEvdevKeyboardHandler            _keyboard_handler;
 		QByteArray                       _title;
@@ -90,7 +91,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 	public:
 
-		QNitpickerPlatformWindow(QWindow *window,
+		QNitpickerPlatformWindow(Genode::Env &env, QWindow *window,
 		                         Genode::Signal_receiver &signal_receiver,
 		                         int screen_width, int screen_height);
 

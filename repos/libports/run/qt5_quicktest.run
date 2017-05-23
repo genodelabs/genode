@@ -70,7 +70,6 @@ append boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	posix.lib.so
 	libc_pipe.lib.so
 	libcrypto.lib.so
 	libm.lib.so
@@ -79,6 +78,7 @@ append boot_modules {
 	jpeg.lib.so
 	pcre16.lib.so
 	pthread.lib.so
+	qt5_component.lib.so
 	qt5_core.lib.so
 	qt5_network.lib.so
 	qt5_qml.lib.so

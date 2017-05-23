@@ -23,6 +23,10 @@ class Qt_launchpad : public QMainWindow, public Launchpad, private Ui::Qt_launch
 {
 	Q_OBJECT
 
+	private:
+
+		Genode::Env &_env;
+
 	private slots:
 
 		void _avail_quota_update();

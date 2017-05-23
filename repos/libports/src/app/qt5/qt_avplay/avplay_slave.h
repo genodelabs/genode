@@ -78,19 +78,21 @@ class Avplay_slave : public QObject
 			 	 	 * Configure libc of avplay to direct output to LOG and to obtain
 			 	 	 * the mediafile from ROM.
 			 	 	 */
+
+					QDomElement vfs_node = config_doc.createElement("vfs");
+					QDomElement vfs_dev_node = config_doc.createElement("dir");
+					vfs_dev_node.setAttribute("name", "dev");
+					QDomElement vfs_dev_log_node = config_doc.createElement("log");
+					vfs_dev_node.appendChild(vfs_dev_log_node);
+					vfs_node.appendChild(vfs_dev_node);
+					QDomElement vfs_mediafile_node = config_doc.createElement("rom");
+					vfs_mediafile_node.setAttribute("name", "mediafile");
+					vfs_node.appendChild(vfs_mediafile_node);
+					config_node.appendChild(vfs_node);
+
 					QDomElement libc_node = config_doc.createElement("libc");
 					libc_node.setAttribute("stdout", "/dev/log");
 					libc_node.setAttribute("stderr", "/dev/log");
-					QDomElement libc_vfs_node = config_doc.createElement("vfs");
-					QDomElement libc_vfs_dev_node = config_doc.createElement("dir");
-					libc_vfs_dev_node.setAttribute("name", "dev");
-					QDomElement libc_vfs_dev_log_node = config_doc.createElement("log");
-					libc_vfs_dev_node.appendChild(libc_vfs_dev_log_node);
-					libc_vfs_node.appendChild(libc_vfs_dev_node);
-					QDomElement libc_vfs_mediafile_node = config_doc.createElement("rom");
-					libc_vfs_mediafile_node.setAttribute("name", "mediafile");
-					libc_vfs_node.appendChild(libc_vfs_mediafile_node);
-					libc_node.appendChild(libc_vfs_node);
 					config_node.appendChild(libc_node);
 
 					QDomElement sdl_audio_volume_node = config_doc.createElement("sdl_audio_volume");
