@@ -14,6 +14,9 @@
 #include <os/timed_semaphore.h>
 
 
+Genode::Env *Genode::Timeout_thread::_env = nullptr;
+
+
 void Genode::Timeout_thread::entry()
 {
 	while (true) {
