@@ -38,7 +38,8 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+	<default caps="100"/>}
 
 append_platform_drv_config
 
@@ -83,7 +84,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="intel_fb_drv">
+	<start name="intel_fb_drv" caps="200">
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<configfile name="fb_drv.config"/>

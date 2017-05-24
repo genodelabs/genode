@@ -34,13 +34,14 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
 		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 <!--
@@ -61,7 +62,7 @@ append config {
 	</start>
 -->
 	<!-- use telnet on the client to connect to the test component -->
-	<start name="test-vfs_lxip">
+	<start name="test-vfs_lxip" caps="200">
 		<resource name="RAM" quantum="48M"/>
 		<config>
 			<vfs>
