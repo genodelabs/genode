@@ -90,6 +90,10 @@ endif
 #
 ifneq ($(SRC_NIM),)
 
+ifeq ($(NIM_CPU),)
+$(error NIM_CPU not defined for any of the following SPECS: $(SPECS))
+endif
+
 NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
 
 # Generate the C++ sources and compilation info
@@ -102,6 +106,7 @@ NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
 	$(VERBOSE)$(NIM) compileToCpp \
 		--compileOnly \
 		--nimcache:. \
+		--cpu:$(NIM_CPU) \
 		--os:genode \
 		$(NIM_OPT) \
 		$<
