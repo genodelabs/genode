@@ -6,7 +6,7 @@
 ** Use VBoxManage or the VirtualBox Manager GUI to make changes.
 -->
 <VirtualBox xmlns="http://www.innotek.de/VirtualBox-settings" version="1.14-linux">
-  <Machine uuid="{37ab43a5-38d8-4491-93f5-5b0b077f5c32}" name="Win7" OSType="Windows7" snapshotFolder="Snapshots" lastStateChange="2014-11-14T11:58:35Z">
+  <Machine uuid="{37ab43a5-38d8-4491-93f5-5b0b077f5c32}" name="ubuntu_16_04_64" OSType="Ubuntu_64" snapshotFolder="Snapshots" lastStateChange="2014-11-14T11:58:35Z">
     <MediaRegistry>
       <HardDisks>
         <HardDisk uuid="{2a248ff9-7ac9-4862-98f9-14e31968f23d}" location="/ubuntu_16_04_64.vdi" format="VDI" type="Immutable">
@@ -16,10 +16,7 @@
       <DVDImages/>
       <FloppyImages/>
     </MediaRegistry>
-    <ExtraData>
-      <ExtraDataItem name="GUI/LastGuestSizeHint" value="1024,768"/>
-      <ExtraDataItem name="GUI/LastNormalWindowPosition" value="513,100,1024,790"/>
-    </ExtraData>
+    <ExtraData/>
     <Hardware version="2">
       <CPU count="2" hotplug="false">
         <HardwareVirtEx enabled="true"/>
@@ -32,7 +29,7 @@
         <HardwareVirtForce enabled="false"/>
       </CPU>
       <Memory RAMSize="1024" PageFusion="false"/>
-      <HID Pointing="PS2Mouse" Keyboard="PS2Keyboard"/>
+      <HID Pointing="USBTablet" Keyboard="PS2Keyboard"/>
       <HPET enabled="false"/>
       <Chipset type="PIIX3"/>
       <Boot>
