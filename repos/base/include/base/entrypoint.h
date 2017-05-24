@@ -190,8 +190,10 @@ class Genode::Entrypoint : Genode::Noncopyable
 		/**
 		 * Trigger a suspend-resume cycle in the entrypoint
 		 *
-		 * 'suspended' is called after the entrypoint entered the safe suspend
-		 * state, while 'resumed is called when the entrypoint is fully functional again.
+		 * The 'suspended' callback is called after the entrypoint entered the
+		 * safe suspend state.
+		 * The 'resumed' callback is called when the entrypoint is fully
+		 * functional again.
 		 */
 		void schedule_suspend(void (*suspended)(), void (*resumed)());
 

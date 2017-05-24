@@ -36,6 +36,9 @@ struct Platform::Session : Genode::Session
 		UNKNOWN,
 	};
 
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Platform"; }
 
 	enum { CAP_QUOTA = 2 };

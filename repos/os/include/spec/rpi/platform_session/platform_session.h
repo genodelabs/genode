@@ -27,6 +27,9 @@ namespace Platform {
 
 struct Platform::Session : Genode::Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Platform"; }
 
 	enum { CAP_QUOTA = 2 };

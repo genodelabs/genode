@@ -157,7 +157,7 @@ class Genode::Parent
 		 * \throw Out_of_caps             session CAP quota exceeds our resources
 		 * \throw Out_of_ram              session RAM quota exceeds our resources
 		 *
-		 * \return session capability of the new session is immediately
+		 * \return session capability if the new session is immediately
 		 *         available, or an invalid capability
 		 *
 		 * If the returned capability is invalid, the request is pending at the
@@ -241,7 +241,7 @@ class Genode::Parent
 		/**
 		 * Request additional resources
 		 *
-		 * By invoking this method, a process is able to inform its
+		 * By invoking this method, a component is able to inform its
 		 * parent about the need for additional resources. The argument
 		 * string contains a resource description in the same format as
 		 * used for session-construction arguments. In particular, for
@@ -250,7 +250,7 @@ class Genode::Parent
 		 * resources expected from the parent. If the parent complies with
 		 * the request, it submits a resource-available signal to the
 		 * handler registered via 'resource_avail_sigh()'. On the reception
-		 * of such a signal, the process can re-evaluate its resource quota
+		 * of such a signal, the component can re-evaluate its resource quota
 		 * and resume execution.
 		 */
 		virtual void resource_request(Resource_args const &args) = 0;
@@ -258,7 +258,7 @@ class Genode::Parent
 		/**
 		 * Register signal handler for resource yield notifications
 		 *
-		 * Using the yield signal, the parent is able to inform the process
+		 * Using the yield signal, the parent is able to inform the component
 		 * about its wish to regain resources.
 		 */
 		virtual void yield_sigh(Signal_context_capability sigh) = 0;
@@ -268,8 +268,8 @@ class Genode::Parent
 		 *
 		 * The amount of resources returned by this method is the
 		 * goal set by the parent. It is not commanded but merely meant
-		 * as a friendly beg to cooperate. The process is not obligated
-		 * to comply. If the process decides to take action to free
+		 * as a friendly beg to cooperate. The component is not obligated
+		 * to comply. If the component decides to take action to free
 		 * resources, it can inform its parent about the availability
 		 * of freed up resources by calling 'yield_response()'.
 		 */

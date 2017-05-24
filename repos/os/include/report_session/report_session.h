@@ -50,6 +50,9 @@ namespace Report {
 
 struct Report::Session : Genode::Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Report"; }
 
 	/*

@@ -57,6 +57,9 @@ struct Loader::Session : Genode::Session
 	typedef Genode::Rpc_in_buffer<64>  Name;
 	typedef Genode::Rpc_in_buffer<128> Path;
 
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Loader"; }
 
 	enum { CAP_QUOTA = 2 };

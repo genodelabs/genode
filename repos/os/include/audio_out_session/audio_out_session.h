@@ -305,6 +305,9 @@ class Audio_out::Session : public Genode::Session
 
 	public:
 
+		/**
+		 * \noapi
+		 */
 		static const char *service_name() { return "Audio_out"; }
 
 		enum { CAP_QUOTA = 4 };

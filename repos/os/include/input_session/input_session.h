@@ -24,6 +24,9 @@ namespace Input { struct Session; }
 
 struct Input::Session : Genode::Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Input"; }
 
 	/*

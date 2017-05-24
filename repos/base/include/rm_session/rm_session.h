@@ -22,6 +22,9 @@ namespace Genode { struct Rm_session; }
 
 struct Genode::Rm_session : Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "RM"; }
 
 	/*

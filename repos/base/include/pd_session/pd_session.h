@@ -31,6 +31,9 @@ namespace Genode {
 
 struct Genode::Pd_session : Session, Ram_allocator
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "PD"; }
 
 	/*
@@ -218,6 +221,9 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 */
 	virtual Cap_quota used_caps() const = 0;
 
+	/**
+	 * Return amount of available capabilities
+	 */
 	Cap_quota avail_caps() const
 	{
 		return Cap_quota { cap_quota().value - used_caps().value };

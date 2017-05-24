@@ -66,6 +66,9 @@ struct Nic::Session : Genode::Session
 	typedef Packet_stream_tx::Channel<Policy> Tx;
 	typedef Packet_stream_rx::Channel<Policy> Rx;
 
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Nic"; }
 
 	/*

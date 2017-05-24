@@ -28,6 +28,9 @@ namespace Genode {
 
 struct Genode::Log_session : Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "LOG"; }
 
 	/*

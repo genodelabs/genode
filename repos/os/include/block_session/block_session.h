@@ -127,6 +127,9 @@ struct Block::Session : public Genode::Session
 
 	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
 
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Block"; }
 
 	enum { CAP_QUOTA = 5 };

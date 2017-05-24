@@ -32,6 +32,9 @@ namespace Genode {
 
 struct Genode::Cpu_session : Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "CPU"; }
 
 	/*

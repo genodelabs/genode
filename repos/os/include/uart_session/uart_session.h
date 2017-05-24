@@ -29,6 +29,9 @@ namespace Uart {
 
 struct Uart::Session : Terminal::Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Uart"; }
 
 	/**

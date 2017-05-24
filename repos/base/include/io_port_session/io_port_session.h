@@ -33,6 +33,9 @@ namespace Genode { struct Io_port_session; }
 
 struct Genode::Io_port_session : Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "IO_PORT"; }
 
 	enum { CAP_QUOTA = 2 };

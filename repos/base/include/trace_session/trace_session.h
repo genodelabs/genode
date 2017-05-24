@@ -24,6 +24,9 @@ namespace Genode { namespace Trace { struct Session; } }
 
 struct Genode::Trace::Session : Genode::Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "TRACE"; }
 
 	enum { CAP_QUOTA = 4 };

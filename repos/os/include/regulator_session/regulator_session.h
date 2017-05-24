@@ -21,6 +21,9 @@ namespace Regulator { struct Session; }
 
 struct Regulator::Session : public Genode::Session
 {
+	/**
+	 * \noapi
+	 */
 	static const char *service_name() { return "Regulator"; }
 
 	enum { CAP_QUOTA = 2 };

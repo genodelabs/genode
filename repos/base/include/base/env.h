@@ -33,10 +33,10 @@ struct Genode::Env
 	virtual Parent &parent() = 0;
 
 	/**
-	 * RAM session of the component
+	 * RAM allocator of the component
 	 *
-	 * The RAM Session represents a budget of memory (quota) that is available
-	 * to the component. This budget can be used to allocate RAM dataspaces.
+	 * The RAM allocator is backed with the RAM budget of the component's PD
+	 * session. This budget can be used to allocate RAM dataspaces.
 	 */
 	virtual Ram_session &ram() = 0;
 
@@ -62,15 +62,21 @@ struct Genode::Env
 	 */
 	virtual Entrypoint &ep() = 0;
 
+	/**
+	 * Deprecated
+	 *
+	 * \deprecated  the RAM session has become part of the PD session
+	 * \noapi
+	 */
 	virtual Ram_session_capability ram_session_cap() = 0;
+
+	/**
+	 * Return the CPU-session capability of the component
+	 */
 	virtual Cpu_session_capability cpu_session_cap() = 0;
 
-	/*
-	 * XXX temporary
-	 *
-	 * The PD session capability is solely used for upgrading the PD session,
-	 * e.g., when the dynamic linker attaches dataspaces to the linker area.
-	 * Once we add 'Env::upgrade', we can remove this accessor.
+	/**
+	 * Return the PD-session capability of the component
 	 */
 	virtual Pd_session_capability pd_session_cap()  = 0;
 

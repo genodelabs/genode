@@ -1,19 +1,2 @@
-This is the example operating system based on the Genode OS framework:
-
-:_Init_: is the first real process in the system. The provided implementation
-  uses a very simple XML parser to read its configuration files.
-
-:_Drivers_: The example OS has basic drivers for frame buffer, mouse and
-  keyboard input, the PCI bus, the real-time clock, and system-specific timers.
-
-:_Server_: The only server in the example OS is Nitpicker, a
-  minimal-complexity GUI server.
-
-:_Test_: are also part of the example OS. You may have a look at the fork
-  bomb as a simple system stress test.
-
-:_Ldso_: is the dynamic linker used for loading executables that are linked
-  against shared libraries.
-
-:_Lib_: contains libraries used by the components of the OS repository,
-  for example, the alarm framework.
+This source-code repository contains genuine low-level OS components and
+interfaces of Genode. It solely depends on the framework's base API.
