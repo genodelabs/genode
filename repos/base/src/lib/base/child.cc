@@ -696,8 +696,6 @@ void Child::_try_construct_env_dependent_members()
 		if (session.phase == Session_state::AVAILABLE)
 			session.phase =  Session_state::CAP_HANDED_OUT; });
 
-	/* call 'Child_policy::init' methods for the environment sessions */
-	_policy.init(_pd.session(),  _pd.cap());
 	_policy.init(_cpu.session(), _cpu.cap());
 
 	try {
@@ -727,7 +725,11 @@ void Child::_discard_env_session(Id_space<Parent::Client>::Id id)
 }
 
 
-void Child::initiate_env_ram_session() { _pd.initiate(); }
+void Child::initiate_env_ram_session()
+{
+	_pd.initiate();
+	_policy.init(_pd.session(), _pd.cap());
+}
 
 
 void Child::initiate_env_sessions()
