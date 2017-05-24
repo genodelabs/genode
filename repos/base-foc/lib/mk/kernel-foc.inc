@@ -43,6 +43,13 @@ PKGS := l4re-core/crtn \
 
 L4_BUILD_DIR := $(LIB_CACHE_DIR)/syscall-foc/build
 
+#
+# Supress several warnings especially of the uclibc-minimal
+#
+WARNINGS += -Wno-cpp -Wno-nonnull-compare -Wno-shift-overflow \
+            -Wno-unused-but-set-variable -Wno-maybe-uninitialized \
+            -Wno-unused-value -Wno-deprecated-declarations -Wno-attributes
+
 include $(REP_DIR)/lib/mk/l4_pkg.inc
 
 #
