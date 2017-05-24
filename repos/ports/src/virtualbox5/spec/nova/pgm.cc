@@ -189,15 +189,16 @@ int Vcpu_handler::map_memory(RTGCPHYS GCPhys, size_t cbWrite,
 		    !(PGM_PAGE_GET_TYPE(page) == PGM_PAGE_GET_TYPE(pPage)) ||
 		    !(PGM_PAGE_GET_STATE(page) == PGM_PAGE_GET_STATE(pPage)))
 		{
-			Vmm::error(Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)), "->",
-			           Genode::Hex(GCPhys), " - iPage ", iPage, " i ", i, " [",
-			           i_s, ",", i_s + superpage_pages, ")", " "
-			           "range_size=", Genode::Hex(pRam->cb), " "
-			           "super_hcphys=", Genode::Hex(super_hcphys), "?=", Genode::Hex((PGM_PAGE_GET_HCPHYS(page) & ~mask)), " "
-			           "super_gcphys=", Genode::Hex(super_gcphys), "?=", Genode::Hex((gcpage & ~mask)), " ",
-			           (int)(PGM_PAGE_GET_PDE_TYPE(page)), "?=", (int)PGM_PAGE_PDE_TYPE_PDE, " ",
-			           (int)(PGM_PAGE_GET_TYPE(page)), "?=", (int)PGM_PAGE_GET_TYPE(pPage), " ",
-			           (int)(PGM_PAGE_GET_STATE(page)), "?=", PGM_PAGE_GET_STATE(pPage));
+			if (VERBOSE_PGM)
+				Vmm::error(Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)), "->",
+				           Genode::Hex(GCPhys), " - iPage ", iPage, " i ", i, " [",
+				           i_s, ",", i_s + superpage_pages, ")", " "
+				           "range_size=", Genode::Hex(pRam->cb), " "
+				           "super_hcphys=", Genode::Hex(super_hcphys), "?=", Genode::Hex((PGM_PAGE_GET_HCPHYS(page) & ~mask)), " "
+				           "super_gcphys=", Genode::Hex(super_gcphys), "?=", Genode::Hex((gcpage & ~mask)), " ",
+				           (int)(PGM_PAGE_GET_PDE_TYPE(page)), "?=", (int)PGM_PAGE_PDE_TYPE_PDE, " ",
+				           (int)(PGM_PAGE_GET_TYPE(page)), "?=", (int)PGM_PAGE_GET_TYPE(pPage), " ",
+				           (int)(PGM_PAGE_GET_STATE(page)), "?=", PGM_PAGE_GET_STATE(pPage));
 			return VINF_SUCCESS; /* one page mapping */
 		}
 	}
