@@ -125,7 +125,7 @@ set config {
 	</start> }
 
 append_if [have_spec gpio] config "
-	<start caps=\"120\" name=\"[gpio_drv]\">
+	<start name=\"[gpio_drv]\" caps=\"120\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Gpio\"/></provides>
 		<config/>
@@ -207,7 +207,7 @@ append_if $use_wifi_driver config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="wifi_drv">
+	<start name="wifi_drv" caps="200">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config>
