@@ -81,13 +81,9 @@ static Sub_rm_connection &vm_memory(Genode::addr_t vm_size = 0)
 
 	using namespace Genode;
 
-	/* first super page range is not used */
-	addr_t const excluded_range = CHUNKID_PAGE_START << GMM_CHUNK_SHIFT;
-	vm_size -= excluded_range;
-	addr_t const vmm_local = vm_memory.local_addr(excluded_range);
-
 	/* create iterator for aligned allocation and attachment of memory */
-	Flexpage_iterator fli(vmm_local, vm_size, excluded_range, ~0UL, 0);
+	addr_t const vmm_local = vm_memory.local_addr(0);
+	Flexpage_iterator fli(vmm_local, vm_size, 0, ~0UL, 0);
 
 	/* start iteration */
 	Flexpage memory = fli.page();
