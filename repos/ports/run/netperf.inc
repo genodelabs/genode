@@ -125,7 +125,7 @@ set config {
 	</start> }
 
 append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
+	<start caps=\"120\" name=\"[gpio_drv]\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Gpio\"/></provides>
 		<config/>
