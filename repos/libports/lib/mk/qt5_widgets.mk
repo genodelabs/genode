@@ -9,11 +9,10 @@ qfiledialog.o: ui_qfiledialog.h
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtWidgets/private \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtWidgets/$(QT_VERSION)/QtWidgets \
+INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtWidgets/$(QT_VERSION)/QtWidgets \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION)/QtGui \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
-LIBS += qt5_core libc
+LIBS += qt5_gui

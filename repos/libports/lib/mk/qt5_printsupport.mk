@@ -9,18 +9,14 @@ include $(REP_DIR)/lib/mk/qt5_printsupport_generated.inc
 
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
-  moc_qabstractprintdialog.cpp \
-  moc_qprintpreviewwidget.cpp \
-  moc_qpagesetupdialog.cpp \
-  moc_qprintdialog.cpp \
-  moc_qprintpreviewdialog.cpp \
-  moc_qpagesetupdialog_unix_p.cpp \
-  
 
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
-	qprintpreviewwidget.moc \
-	qprintdialog_unix.moc \
-	qprintpreviewdialog.moc \
+
+# UI headers
+moc_qpagesetupdialog_unix_p.o: ui_qpagesetupwidget.h
+qprintdialog_unix.o:           ui_qprintpropertieswidget.h
+qprintdialog_unix.o:           ui_qprintsettingsoutput.h
+qprintdialog_unix.o:           ui_qprintwidget.h
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
@@ -29,4 +25,4 @@ INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtPrintSupport/$(QT_VERSION)/QtPrin
            $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION)/QtGui \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
 
-LIBS += qt5_core
+LIBS += qt5_gui

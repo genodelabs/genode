@@ -23,14 +23,15 @@
 /* provided by the application */
 extern "C" int main(int argc, char const **argv);
 
-/* provided by the QPA plugin */
-extern void initialize_qpa_plugin(Genode::Env &);
+extern void initialize_qt_core(Genode::Env &);
+extern void initialize_qt_gui(Genode::Env &);
 
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
-		initialize_qpa_plugin(env);
+		initialize_qt_core(env);
+		initialize_qt_gui(env);
 		QPluginWidget::env(env);
 
 		int argc = 1;

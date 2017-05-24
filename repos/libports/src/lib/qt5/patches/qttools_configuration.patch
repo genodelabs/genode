@@ -1,0 +1,54 @@
+qttools_configuration.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qttools/src/designer/src/lib/lib.pro |    4 ++--
+ qttools/src/designer/src/src.pro     |    4 +---
+ qttools/src/src.pro                  |    2 +-
+ 3 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/qttools/src/designer/src/lib/lib.pro b/qttools/src/designer/src/lib/lib.pro
+index de0dc73..c294782 100644
+--- a/qttools/src/designer/src/lib/lib.pro
++++ b/qttools/src/designer/src/lib/lib.pro
+@@ -12,8 +12,8 @@ DEFINES += \
+ static:DEFINES += QT_DESIGNER_STATIC
+ 
+ include(extension/extension.pri)
+-include(sdk/sdk.pri)
+-include(shared/shared.pri)
++#include(sdk/sdk.pri)
++#include(shared/shared.pri)
+ include(uilib/uilib.pri)
+ PRECOMPILED_HEADER=lib_pch.h
+ 
+diff --git a/qttools/src/designer/src/src.pro b/qttools/src/designer/src/src.pro
+index 6915e34..8a3fcc2 100644
+--- a/qttools/src/designer/src/src.pro
++++ b/qttools/src/designer/src/src.pro
+@@ -3,9 +3,7 @@ TEMPLATE = subdirs
+ SUBDIRS = \
+     uiplugin \
+     uitools \
+-    lib \
+-    components \
+-    designer
++    lib
+ 
+ contains(QT_CONFIG, shared): SUBDIRS += plugins
+ 
+diff --git a/qttools/src/src.pro b/qttools/src/src.pro
+index db6fe0c..bc5c5dd 100644
+--- a/qttools/src/src.pro
++++ b/qttools/src/src.pro
+@@ -12,7 +12,7 @@ qtHaveModule(widgets) {
+     }
+ }
+ 
+-SUBDIRS += linguist \
++SUBDIRS += \
+     qdoc \
+     qtattributionsscanner
+ 

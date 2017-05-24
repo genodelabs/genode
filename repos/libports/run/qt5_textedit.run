@@ -89,7 +89,7 @@ append_if [expr ![have_spec linux]] config {
 append config {
 	<start name="textedit" caps="250">
 		<resource name="RAM" quantum="70M"/>
-		<config xpos="3" ypos="0" width="500" height="710">
+		<config>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -101,7 +101,7 @@ append config {
 	<start name="textedit2" caps="250">
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
-		<config xpos="512" ypos="0" width="500" height="710">
+		<config>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -125,7 +125,6 @@ append boot_modules {
 	textedit
 	freetype.lib.so
 	gallium.lib.so
-	icu.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_pipe.lib.so
@@ -137,6 +136,7 @@ append boot_modules {
 	qt5_component.lib.so
 	qt5_core.lib.so
 	qt5_gui.lib.so
+	qt5_printsupport.lib.so
 	qt5_widgets.lib.so
 	qt5_xml.lib.so
 	zlib.lib.so

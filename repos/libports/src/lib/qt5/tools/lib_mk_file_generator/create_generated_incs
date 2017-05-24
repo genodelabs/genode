@@ -1,10 +1,10 @@
 #!/bin/sh
 
-QT_VERSION=5.7.1
+QT_VERSION=5.8.0
 
 ./genode_qt5_configure
 
-qtbase/bin/qmake -r ../qt-everywhere-opensource-src-${QT_VERSION}
+make -j8
 
 # qtbase
 
@@ -24,9 +24,6 @@ cd qtdeclarative/src/quick                   && ../../../create_generated_inc qt
 cd qtdeclarative/src/imports/qtquick2        && ../../../../create_generated_inc qt5_qtquick2plugin && cp qt5_qtquick2plugin_generated.inc ../../../.. && cd ../../../..
 
 # qtwebkit
-
-make -C qtbase/src/tools/bootstrap
-make -C qtbase/src/tools/moc
 
 make -C qtwebkit/Source/JavaScriptCore -f Makefile.JavaScriptCore sub-DerivedSources-pri > JavaScriptCore.log
 cd qtwebkit/Source/JavaScriptCore

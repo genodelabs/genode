@@ -1,13 +1,13 @@
-QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DENABLE_PIXMAN_DRAWHELPERS -DQT_BUILD_GUI_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -DQT_NO_DEBUG -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_USING_NAMESPACE -DENABLE_PIXMAN_DRAWHELPERS -DQT_BUILD_GUI_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtbase/src/gui \
   qtbase/include \
   qtbase/include/QtGui \
-  qtbase/include/QtGui/5.7.1 \
-  qtbase/include/QtGui/5.7.1/QtGui \
-  qtbase/include/QtCore/5.7.1 \
-  qtbase/include/QtCore/5.7.1/QtCore \
+  qtbase/include/QtGui/5.8.0 \
+  qtbase/include/QtGui/5.8.0/QtGui \
+  qtbase/include/QtCore/5.8.0 \
+  qtbase/include/QtCore/5.8.0/QtCore \
   qtbase/include/QtCore \
   qtbase/mkspecs/genode-g++
 
@@ -85,7 +85,6 @@ QT_SOURCES += \
   qmovie.cpp \
   qpixmap_raster.cpp \
   qpixmap_blitter.cpp \
-  qnativeimage.cpp \
   qimagepixmapcleanuphooks.cpp \
   qicon.cpp \
   qiconloader.cpp \
@@ -96,8 +95,6 @@ QT_SOURCES += \
   qxbmhandler.cpp \
   qxpmhandler.cpp \
   qpnghandler.cpp \
-  qjpeghandler.cpp \
-  qgifhandler.cpp \
   qfont.cpp \
   qfontengine.cpp \
   qfontengineglyphcache.cpp \
@@ -122,25 +119,23 @@ QT_SOURCES += \
   qtextlist.cpp \
   qtextdocumentwriter.cpp \
   qsyntaxhighlighter.cpp \
-  qcssparser.cpp \
-  qzip.cpp \
-  qtextodfwriter.cpp \
   qstatictext.cpp \
   qrawfont.cpp \
   qglyphrun.cpp \
   qdistancefield.cpp \
   qfontengine_qpf2.cpp \
   qplatformfontdatabase.cpp \
+  qtextodfwriter.cpp \
+  qzip.cpp \
+  qcssparser.cpp \
   qbackingstore.cpp \
   qbezier.cpp \
   qblendfunctions.cpp \
   qblittable.cpp \
   qbrush.cpp \
   qcolor.cpp \
-  qcolor_p.cpp \
   qcompositionfunctions.cpp \
   qcosmeticstroker.cpp \
-  qcssutil.cpp \
   qdrawhelper.cpp \
   qemulationpaintengine.cpp \
   qgammatables.cpp \
@@ -169,8 +164,11 @@ QT_SOURCES += \
   qstroker.cpp \
   qtextureglyphcache.cpp \
   qtransform.cpp \
+  qtriangulatingstroker.cpp \
+  qtriangulator.cpp \
   qplatformbackingstore.cpp \
   qpathsimplifier.cpp \
+  qcssutil.cpp \
   qdesktopservices.cpp \
   qvalidator.cpp \
   qgridlayoutengine.cpp \
@@ -194,9 +192,7 @@ QT_SOURCES += \
   qopengl2pexvertexarray.cpp \
   qopenglpaintengine.cpp \
   qopenglcustomshaderstage.cpp \
-  qtriangulatingstroker.cpp \
   qopengltextureglyphcache.cpp \
-  qtriangulator.cpp \
   qopenglversionfunctions.cpp \
   qopenglversionfunctionsfactory.cpp \
   qopenglvertexarrayobject.cpp \
@@ -234,6 +230,7 @@ QT_SOURCES += \
   qopengltimerquery.cpp \
   qguivariantanimation.cpp \
   qstandarditemmodel.cpp \
+  qimage_compat.cpp \
   qimage_sse2.cpp \
   qdrawhelper_sse2.cpp \
   moc_qgenericplugin.cpp \
@@ -244,6 +241,7 @@ QT_SOURCES += \
   moc_qplatformnativeinterface.cpp \
   moc_qplatformmenu.cpp \
   moc_qshapedpixmapdndwindow_p.cpp \
+  moc_qsurfaceformat.cpp \
   moc_qoffscreensurface.cpp \
   moc_qclipboard.cpp \
   moc_qdrag.cpp \
@@ -310,6 +308,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qplatformnativeinterface.cpp \
   moc_qplatformmenu.cpp \
   moc_qshapedpixmapdndwindow_p.cpp \
+  moc_qsurfaceformat.cpp \
   moc_qguiapplication.cpp \
   moc_qwindow.cpp \
   moc_qoffscreensurface.cpp \

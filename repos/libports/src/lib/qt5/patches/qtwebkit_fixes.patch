@@ -1,0 +1,61 @@
+qtwebkit_fixes.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../platform/network/NetworkStateNotifier.h        |    4 ++--
+ .../platform/network/qt/NetworkStateNotifierQt.cpp |    3 +++
+ qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp     |    3 ++-
+ 3 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h b/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h
+index 6edc5b7..e09917b 100644
+--- a/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h
++++ b/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h
+@@ -116,7 +116,7 @@ private:
+ #endif
+ };
+ 
+-#if !PLATFORM(MAC) && !PLATFORM(WIN) && !(PLATFORM(QT) && !defined(QT_NO_BEARERMANAGEMENT)) && !PLATFORM(BLACKBERRY) && !PLATFORM(EFL)
++//#if !PLATFORM(MAC) && !PLATFORM(WIN) && !(PLATFORM(QT) && !defined(QT_NO_BEARERMANAGEMENT)) && !PLATFORM(BLACKBERRY) && !PLATFORM(EFL)
+ 
+ inline NetworkStateNotifier::NetworkStateNotifier()
+     : m_isOnLine(true)
+@@ -125,7 +125,7 @@ inline NetworkStateNotifier::NetworkStateNotifier()
+ 
+ inline void NetworkStateNotifier::updateState() { }
+ 
+-#endif
++//#endif
+ 
+ NetworkStateNotifier& networkStateNotifier();
+ 
+diff --git a/qtwebkit/Source/WebCore/platform/network/qt/NetworkStateNotifierQt.cpp b/qtwebkit/Source/WebCore/platform/network/qt/NetworkStateNotifierQt.cpp
+index 61e4e6e..5957df8 100644
+--- a/qtwebkit/Source/WebCore/platform/network/qt/NetworkStateNotifierQt.cpp
++++ b/qtwebkit/Source/WebCore/platform/network/qt/NetworkStateNotifierQt.cpp
+@@ -20,6 +20,9 @@
+ #include "config.h"
+ #include "NetworkStateNotifier.h"
+ 
++/* QtNetwork configuration macros */
++#include <QtNetwork/qtnetworkglobal.h>
++
+ #if (PLATFORM(QT) && !defined(QT_NO_BEARERMANAGEMENT))
+ 
+ #include "NetworkStateNotifierPrivate.h"
+diff --git a/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp b/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp
+index d3a8642..c4e4aa1 100644
+--- a/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp
++++ b/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp
+@@ -57,7 +57,8 @@
+ #include <wtf/FastMalloc.h>
+ #include <wtf/text/WTFString.h>
+ 
+-
++/* QtNetwork configuration macros */
++#include <QtNetwork/qtnetworkglobal.h>
+ 
+ QWEBKIT_EXPORT void qt_networkAccessAllowed(bool isAllowed)
+ {

@@ -21,6 +21,7 @@ function extract_incpath()
 
   sed -e '/\/qt-everywhere-opensource-src.*\//!d' \
       -e 's/.*\/qt-everywhere-opensource-src-[^\/]*\//  /' \
+      -e 's/linux-g++/genode-g++/' \
       incpath.inc.tmp >> incpath.inc
 
   echo -e "" >> incpath.inc

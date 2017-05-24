@@ -67,7 +67,6 @@ append boot_modules {
 	samegame
 	freetype.lib.so
 	gallium.lib.so
-	icu.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_pipe.lib.so

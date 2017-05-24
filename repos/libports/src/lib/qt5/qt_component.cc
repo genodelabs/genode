@@ -20,14 +20,17 @@
 /* provided by the application */
 extern "C" int main(int argc, char const **argv);
 
-void initialize_qpa_plugin(Genode::Env &env) __attribute__((weak));
-void initialize_qpa_plugin(Genode::Env &) { }
+void initialize_qt_core(Genode::Env &);
+
+void initialize_qt_gui(Genode::Env &env) __attribute__((weak));
+void initialize_qt_gui(Genode::Env &) { }
 
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
-		initialize_qpa_plugin(env);
+		initialize_qt_core(env);
+		initialize_qt_gui(env);
 
 		int argc = 1;
 		char const *argv[] = { "qt5_app", 0 };

@@ -1,4 +1,4 @@
-qt5_qtwebkit_generated_headers.patch
+qtwebkit_generated.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 

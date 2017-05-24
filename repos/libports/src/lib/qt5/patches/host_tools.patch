@@ -1,4 +1,4 @@
-qt5_tools.patch
+host_tools.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
@@ -13,10 +13,10 @@ This patch should not be applied when running the Qt 'configure' script.
  5 files changed, 61 insertions(+), 61 deletions(-)
 
 diff --git a/qtbase/mkspecs/features/qt.prf b/qtbase/mkspecs/features/qt.prf
-index bb52f23..78fc527 100644
+index 98f794c..f4ec688 100644
 --- a/qtbase/mkspecs/features/qt.prf
 +++ b/qtbase/mkspecs/features/qt.prf
-@@ -151,7 +151,7 @@ for(ever) {
+@@ -153,7 +153,7 @@ for(ever) {
                  WINRT_MANIFEST.capabilities_device_default += $$MODULE_WINRT_CAPABILITIES_DEVICE
          }
      }
@@ -26,32 +26,30 @@ index bb52f23..78fc527 100644
      !isEmpty(var_sfx): break()
      var_sfx = _PRIVATE
 diff --git a/qtbase/mkspecs/features/qt_build_config.prf b/qtbase/mkspecs/features/qt_build_config.prf
-index 1e2d5c2..4f7e611 100644
+index 3762c14..a19d0ce 100644
 --- a/qtbase/mkspecs/features/qt_build_config.prf
 +++ b/qtbase/mkspecs/features/qt_build_config.prf
-@@ -12,7 +12,7 @@
- !contains(QMAKE_INTERNAL_INCLUDED_FILES, .*qmodule\\.pri) {
-     QMAKE_QT_MODULE = $$[QT_HOST_DATA/get]/mkspecs/qmodule.pri
-     !exists($$QMAKE_QT_MODULE)|!include($$QMAKE_QT_MODULE, "", true) {
--        error("Cannot load qmodule.pri!")
-+        debug(1, "Cannot load qmodule.pri!")
-     } else {
-         debug(1, "Loaded qmodule.pri from ($$QMAKE_QT_MODULE)")
+@@ -132,5 +132,5 @@ defineTest(qtConfig) {
+         contains(QT.$${module}.disabled_features, $$1): \
+             return(false)
      }
+-    error("Could not find feature $${1}.")
++    debug(1, "Could not find feature $${1}.")
+ }
 diff --git a/qtbase/mkspecs/features/qt_module.prf b/qtbase/mkspecs/features/qt_module.prf
-index d9011f5..51c0900 100644
+index 31d6285..eec9850 100644
 --- a/qtbase/mkspecs/features/qt_module.prf
 +++ b/qtbase/mkspecs/features/qt_module.prf
-@@ -21,7 +21,7 @@ load(qt_build_config) # loads qmodule.pri if hasn't been loaded already
+@@ -11,7 +11,7 @@
  
  isEmpty(MODULE):MODULE = $$section($$list($$basename(_PRO_FILE_)), ., 0, 0)
  isEmpty(VERSION): VERSION = $$MODULE_VERSION
 -isEmpty(VERSION): error("Module does not define version.")
 +isEmpty(VERSION): debug(1, "Module does not define version.")
  
- # Compile as shared/DLL or static according to the option given to configure
- # unless overridden. Host builds are always static
-@@ -82,7 +82,7 @@ QMAKE_DOCS_TARGETDIR = qt$${MODULE}
+ exists($$OUT_PWD/qt$${MODULE}-config.pri) {
+     include($$OUT_PWD/qt$${MODULE}-config.pri)
+@@ -83,7 +83,7 @@ QMAKE_DOCS_TARGETDIR = qt$${MODULE}
  
  load(qt_common)
  !no_module_headers: load(qt_module_headers)
@@ -61,10 +59,10 @@ index d9011f5..51c0900 100644
  INCLUDEPATH *= $$eval(QT.$${MODULE}.includes) $$eval(QT.$${MODULE}_private.includes)
  
 diff --git a/qtbase/mkspecs/features/qt_tool.prf b/qtbase/mkspecs/features/qt_tool.prf
-index bdeb59c..bdf4b5f 100644
+index 4b73b4b..a4f4a12 100644
 --- a/qtbase/mkspecs/features/qt_tool.prf
 +++ b/qtbase/mkspecs/features/qt_tool.prf
-@@ -17,61 +17,61 @@ DEFINES *= QT_USE_QSTRINGBUILDER
+@@ -18,61 +18,61 @@ DEFINES *= QT_USE_QSTRINGBUILDER
  # If we are doing a prefix build, create a "module" pri which enables
  # qtPrepareTool() to work with the non-installed build.
  # Non-bootstrapped tools always need this because of the environment setup.
@@ -111,7 +109,7 @@ index bdeb59c..bdf4b5f 100644
 -        "QT_TOOL.$${MODULE}.binary = $$val_escape(bin)" \
 -        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")" \
 -        $$module_envvars
--    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error("Aborting.")
+-    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error()
 -
 -    # Then, inject the new tool into the current cache state
 -    !contains(QMAKE_INTERNAL_INCLUDED_FILES, $$TOOL_PRI) { # before the actual include()!
@@ -167,7 +165,7 @@ index bdeb59c..bdf4b5f 100644
 +#        "QT_TOOL.$${MODULE}.binary = $$val_escape(bin)" \
 +#        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")" \
 +#        $$module_envvars
-+#    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error("Aborting.")
++#    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error()
 +#
 +#    # Then, inject the new tool into the current cache state
 +#    !contains(QMAKE_INTERNAL_INCLUDED_FILES, $$TOOL_PRI) { # before the actual include()!
@@ -183,10 +181,10 @@ index bdeb59c..bdf4b5f 100644
  # The variable is re-used by qtPrepareTool(), and we really don't want that.
  unset(QT_TOOL_ENV)
 diff --git a/qtbase/qmake/Makefile.unix b/qtbase/qmake/Makefile.unix
-index 9d3ddab..a5875a5 100644
+index 808a6d8..720c82b 100644
 --- a/qtbase/qmake/Makefile.unix
 +++ b/qtbase/qmake/Makefile.unix
-@@ -230,7 +230,7 @@ qsettings.o: $(SOURCE_PATH)/src/corelib/io/qsettings.cpp
+@@ -225,7 +225,7 @@ qsettings.o: $(SOURCE_PATH)/src/corelib/io/qsettings.cpp
  qsystemerror.o: $(SOURCE_PATH)/src/corelib/kernel/qsystemerror.cpp
  	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/kernel/qsystemerror.cpp
  

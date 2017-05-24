@@ -1,0 +1,24 @@
+qtbase_genode_textedit_example.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../widgets/richtext/textedit/textedit.pro         |    4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.pro b/qtbase/examples/widgets/richtext/textedit/textedit.pro
+index c32bf68..704f738 100644
+--- a/qtbase/examples/widgets/richtext/textedit/textedit.pro
++++ b/qtbase/examples/widgets/richtext/textedit/textedit.pro
+@@ -9,10 +9,6 @@ SOURCES         = textedit.cpp \
+                   main.cpp
+ 
+ RESOURCES += textedit.qrc
+-build_all:!build_pass {
+-    CONFIG -= build_all
+-    CONFIG += release
+-}
+ 
+ EXAMPLE_FILES = textedit.qdoc
+ 

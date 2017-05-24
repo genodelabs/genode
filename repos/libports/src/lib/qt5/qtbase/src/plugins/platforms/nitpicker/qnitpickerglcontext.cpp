@@ -21,7 +21,7 @@
 #include <EGL/eglext.h>
 
 /* Qt includes */
-#include <QtPlatformSupport/private/qeglconvenience_p.h>
+#include <QtEglSupport/private/qeglconvenience_p.h>
 #include <QDebug>
 
 /* local includes */

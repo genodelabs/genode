@@ -77,7 +77,6 @@ append boot_modules {
 	qt_avplay
 	freetype.lib.so
 	gallium.lib.so
-	icu.lib.so
 	ld.lib.so
 	libc.lib.so
 	posix.lib.so

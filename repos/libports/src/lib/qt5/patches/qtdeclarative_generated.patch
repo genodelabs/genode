@@ -1,0 +1,92 @@
+qtdeclarative_generated.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../QtQml/5.8.0/QtQml/private/qtqml-config_p.h     |    1 +
+ qtdeclarative/include/QtQml/qtqml-config.h         |    1 +
+ .../5.8.0/QtQuick/private/qtquick-config_p.h       |    1 +
+ qtdeclarative/include/QtQuick/qtquick-config.h     |    1 +
+ qtdeclarative/src/qml/qtqml-config.h               |    1 +
+ qtdeclarative/src/qml/qtqml-config_p.h             |    1 +
+ qtdeclarative/src/quick/qtquick-config.h           |    1 +
+ qtdeclarative/src/quick/qtquick-config_p.h         |   13 +++++++++++++
+ 8 files changed, 20 insertions(+)
+ create mode 100644 qtdeclarative/include/QtQml/5.8.0/QtQml/private/qtqml-config_p.h
+ create mode 100644 qtdeclarative/include/QtQml/qtqml-config.h
+ create mode 100644 qtdeclarative/include/QtQuick/5.8.0/QtQuick/private/qtquick-config_p.h
+ create mode 100644 qtdeclarative/include/QtQuick/qtquick-config.h
+ create mode 100644 qtdeclarative/src/qml/qtqml-config.h
+ create mode 100644 qtdeclarative/src/qml/qtqml-config_p.h
+ create mode 100644 qtdeclarative/src/quick/qtquick-config.h
+ create mode 100644 qtdeclarative/src/quick/qtquick-config_p.h
+
+diff --git a/qtdeclarative/include/QtQml/5.8.0/QtQml/private/qtqml-config_p.h b/qtdeclarative/include/QtQml/5.8.0/QtQml/private/qtqml-config_p.h
+new file mode 100644
+index 0000000..1fdbd71
+--- /dev/null
++++ b/qtdeclarative/include/QtQml/5.8.0/QtQml/private/qtqml-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/qml/qtqml-config_p.h"
+diff --git a/qtdeclarative/include/QtQml/qtqml-config.h b/qtdeclarative/include/QtQml/qtqml-config.h
+new file mode 100644
+index 0000000..48fe1f2
+--- /dev/null
++++ b/qtdeclarative/include/QtQml/qtqml-config.h
+@@ -0,0 +1 @@
++#include "../../src/qml/qtqml-config.h"
+diff --git a/qtdeclarative/include/QtQuick/5.8.0/QtQuick/private/qtquick-config_p.h b/qtdeclarative/include/QtQuick/5.8.0/QtQuick/private/qtquick-config_p.h
+new file mode 100644
+index 0000000..fcdf423
+--- /dev/null
++++ b/qtdeclarative/include/QtQuick/5.8.0/QtQuick/private/qtquick-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/quick/qtquick-config_p.h"
+diff --git a/qtdeclarative/include/QtQuick/qtquick-config.h b/qtdeclarative/include/QtQuick/qtquick-config.h
+new file mode 100644
+index 0000000..2ab295b
+--- /dev/null
++++ b/qtdeclarative/include/QtQuick/qtquick-config.h
+@@ -0,0 +1 @@
++#include "../../src/quick/qtquick-config.h"
+diff --git a/qtdeclarative/src/qml/qtqml-config.h b/qtdeclarative/src/qml/qtqml-config.h
+new file mode 100644
+index 0000000..299465e
+--- /dev/null
++++ b/qtdeclarative/src/qml/qtqml-config.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_qml_network 1
+diff --git a/qtdeclarative/src/qml/qtqml-config_p.h b/qtdeclarative/src/qml/qtqml-config_p.h
+new file mode 100644
+index 0000000..d5578b9
+--- /dev/null
++++ b/qtdeclarative/src/qml/qtqml-config_p.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_qml_interpreter 1
+diff --git a/qtdeclarative/src/quick/qtquick-config.h b/qtdeclarative/src/quick/qtquick-config.h
+new file mode 100644
+index 0000000..a224374
+--- /dev/null
++++ b/qtdeclarative/src/quick/qtquick-config.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_d3d12 -1
+diff --git a/qtdeclarative/src/quick/qtquick-config_p.h b/qtdeclarative/src/quick/qtquick-config_p.h
+new file mode 100644
+index 0000000..6f3febe
+--- /dev/null
++++ b/qtdeclarative/src/quick/qtquick-config_p.h
+@@ -0,0 +1,13 @@
++#define QT_FEATURE_quick_animatedimage 1
++#define QT_FEATURE_quick_canvas 1
++#define QT_FEATURE_quick_designer 1
++#define QT_FEATURE_quick_flipable 1
++#define QT_FEATURE_quick_gridview 1
++#define QT_FEATURE_quick_itemview 1
++#define QT_FEATURE_quick_listview 1
++#define QT_FEATURE_quick_path 1
++#define QT_FEATURE_quick_pathview 1
++#define QT_FEATURE_quick_positioners 1
++#define QT_FEATURE_quick_shadereffect 1
++#define QT_FEATURE_quick_sprite 1
++#define QT_FEATURE_quick_viewtransitions 1

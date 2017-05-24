@@ -1,8 +1,7 @@
-QT_DEFINES += -DQT_NO_MTDEV -DQT_NO_LIBUDEV -DQT_NO_TSLIB -DQT_NO_LIBINPUT -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DQT_USE_ICU -DQT_HAVE_POLL -DQT_BUILD_CORE_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_DEBUG
+QT_DEFINES += -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DQT_HAVE_POLL -DQT_BUILD_CORE_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG
 
 QT_INCPATH += \
   qtbase/src/corelib \
-  qtbase/src/3rdparty/pcre \
   qtbase/src/3rdparty/harfbuzz/src \
   qtbase/src/3rdparty/md5 \
   qtbase/src/3rdparty/md4 \
@@ -12,8 +11,9 @@ QT_INCPATH += \
   qtbase/src/3rdparty/forkfd \
   qtbase/include \
   qtbase/include/QtCore \
-  qtbase/include/QtCore/5.7.1 \
-  qtbase/include/QtCore/5.7.1/QtCore \
+  qtbase/include/QtCore/5.8.0 \
+  qtbase/include/QtCore/5.8.0/QtCore \
+  qtbase/src/3rdparty/pcre \
   qtbase/mkspecs/genode-g++
 
 QT_SOURCES += \
@@ -53,13 +53,10 @@ QT_SOURCES += \
   qbytearraylist.cpp \
   qbytearraymatcher.cpp \
   qcollator.cpp \
-  qcommandlineoption.cpp \
-  qcommandlineparser.cpp \
   qcryptographichash.cpp \
   qdatetime.cpp \
   qdatetimeparser.cpp \
   qeasingcurve.cpp \
-  qelapsedtimer.cpp \
   qfreelist.cpp \
   qhash.cpp \
   qline.cpp \
@@ -85,19 +82,18 @@ QT_SOURCES += \
   qstringlist.cpp \
   qtextboundaryfinder.cpp \
   qtimeline.cpp \
-  qtimezone.cpp \
-  qtimezoneprivate.cpp \
   qunicodetools.cpp \
   qvector.cpp \
   qvsnprintf.cpp \
   qversionnumber.cpp \
-  qelapsedtimer_unix.cpp \
   qlocale_unix.cpp \
+  qcollator_posix.cpp \
+  qtimezone.cpp \
+  qtimezoneprivate.cpp \
   qtimezoneprivate_tz.cpp \
-  qlocale_icu.cpp \
-  qcollator_icu.cpp \
-  qtimezoneprivate_icu.cpp \
   qregularexpression.cpp \
+  qcommandlineoption.cpp \
+  qcommandlineparser.cpp \
   harfbuzz-buffer.c \
   harfbuzz-gdef.c \
   harfbuzz-gsub.c \
@@ -160,7 +156,8 @@ QT_SOURCES += \
   qfilesystemiterator_unix.cpp \
   forkfd_qt.cpp \
   qstandardpaths_unix.cpp \
-  qstorageinfo_unix.cpp \
+  qstorageinfo_stub.cpp \
+  qfilesystemwatcher_inotify.cpp \
   qabstractitemmodel.cpp \
   qabstractproxymodel.cpp \
   qitemselectionmodel.cpp \
@@ -185,6 +182,8 @@ QT_SOURCES += \
   qabstracteventdispatcher.cpp \
   qabstractnativeeventfilter.cpp \
   qbasictimer.cpp \
+  qdeadlinetimer.cpp \
+  qelapsedtimer.cpp \
   qeventloop.cpp \
   qcoreapplication.cpp \
   qcoreevent.cpp \
@@ -206,9 +205,9 @@ QT_SOURCES += \
   qmath.cpp \
   qsystemerror.cpp \
   qcore_unix.cpp \
-  qcrashhandler.cpp \
   qeventdispatcher_unix.cpp \
   qtimerinfo_unix.cpp \
+  qelapsedtimer_unix.cpp \
   qsharedmemory_posix.cpp \
   qsharedmemory_systemv.cpp \
   qsharedmemory_unix.cpp \
@@ -221,7 +220,13 @@ QT_SOURCES += \
   qtextcodec.cpp \
   qtsciicodec.cpp \
   qutfcodec.cpp \
-  qicucodec.cpp \
+  qgb18030codec.cpp \
+  qjpunicode.cpp \
+  qeucjpcodec.cpp \
+  qjiscodec.cpp \
+  qsjiscodec.cpp \
+  qeuckrcodec.cpp \
+  qbig5codec.cpp \
   qstatemachine.cpp \
   qabstractstate.cpp \
   qstate.cpp \
@@ -239,12 +244,14 @@ QT_SOURCES += \
   qmimeprovider.cpp \
   qxmlstream.cpp \
   qxmlutils.cpp \
+  qstring_compat.cpp \
   qrc_mimetypes.cpp \
   moc_qabstractanimation_p.cpp \
   moc_qnamespace.cpp \
   moc_qthread.cpp \
   moc_qthreadpool.cpp \
   moc_qfuturewatcher.cpp \
+  moc_qcryptographichash.cpp \
   moc_qeasingcurve.cpp \
   moc_qlocale.cpp \
   moc_qtimeline.cpp \
@@ -255,9 +262,11 @@ QT_SOURCES += \
   moc_qtextstream_p.cpp \
   moc_qtemporaryfile.cpp \
   moc_qsavefile.cpp \
+  moc_qstandardpaths.cpp \
   moc_qsettings.cpp \
   moc_qfilesystemwatcher_p.cpp \
   moc_qfilesystemwatcher_polling_p.cpp \
+  moc_qfilesystemwatcher_inotify_p.cpp \
   moc_qabstractitemmodel.cpp \
   moc_qstringlistmodel.cpp \
   moc_qpluginloader.cpp \
@@ -268,6 +277,7 @@ QT_SOURCES += \
   moc_qcoreapplication.cpp \
   moc_qcoreevent.cpp \
   moc_qmimedata.cpp \
+  moc_qobjectdefs.cpp \
   moc_qsocketnotifier.cpp \
   moc_qtimer.cpp \
   moc_qtranslator.cpp \
@@ -319,6 +329,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qthread.cpp \
   moc_qthreadpool.cpp \
   moc_qfuturewatcher.cpp \
+  moc_qcryptographichash.cpp \
   moc_qeasingcurve.cpp \
   moc_qlocale.cpp \
   moc_qtimeline.cpp \
@@ -331,11 +342,13 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qtextstream_p.cpp \
   moc_qtemporaryfile.cpp \
   moc_qsavefile.cpp \
+  moc_qstandardpaths.cpp \
   moc_qsettings.cpp \
   moc_qfilesystemwatcher.cpp \
   moc_qfilesystemwatcher_p.cpp \
   moc_qfilesystemwatcher_polling_p.cpp \
   moc_qfileselector.cpp \
+  moc_qfilesystemwatcher_inotify_p.cpp \
   moc_qabstractitemmodel.cpp \
   moc_qabstractproxymodel.cpp \
   moc_qitemselectionmodel.cpp \
@@ -351,6 +364,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qcoreevent.cpp \
   moc_qmimedata.cpp \
   moc_qobject.cpp \
+  moc_qobjectdefs.cpp \
   moc_qsignalmapper.cpp \
   moc_qsocketnotifier.cpp \
   moc_qtimer.cpp \

@@ -18,12 +18,9 @@ include $(QT5_REP_DIR)/lib/mk/qt5_version.inc
 QT5_PORT_DIR := $(call select_from_ports,qt5)
 QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/$(QT5)
 
-QT5_INC_DIR := $(QT5_REP_DIR)/src/lib/qt5/qtbase/src/corelib/global \
-               $(QT5_CONTRIB_DIR)/qtbase/src/corelib/global \
-               $(QT5_REP_DIR)/include/qt5 \
-               $(QT5_REP_DIR)/include/qt5/qtbase \
+QT5_INC_DIR := $(QT5_REP_DIR)/include/qt5 \
                $(QT5_CONTRIB_DIR)/qtbase/include \
-               $(QT5_CONTRIB_DIR)/qtbase/mkspecs/genode-g++ \
+               $(QT5_CONTRIB_DIR)/qtbase/mkspecs/genode-g++
 
 INC_DIR += $(QT5_INC_DIR)
 
@@ -31,21 +28,6 @@ INC_DIR += $(QT5_INC_DIR)
 QT_DEFINES += -DQT_STATICPLUGIN
 
 QT_DEFINES += -D__GENODE__
-
-#
-# Prevent inclusion of non-existent 'features.h' from 'bits/os_defines.h'
-# header that comes with the Codesourcery ARM tool chain.
-#
-QT_DEFINES += -D_GLIBCXX_OS_DEFINES
-
-#
-# When using the Codesourcery tool chain for ARM, the compiler provides a
-# built-in definition for '__linux__', which is obviously wrong when using the
-# compiler for Genode. Unfortunately, Webkit tests for this definition in
-# 'JavaScriptCore/wtf/Platform.h'. To prevent webkit from drawing wrong
-# conclusions, we explicitly undefine '__linux__'.
-#
-QT_DEFINES += -U__linux__
 
 CC_OPT += $(QT_DEFINES)
 
@@ -93,15 +75,15 @@ ui_%.h: %.ui $(UIC)
 # add include dirs for QT5-specific genode addons
 INC_DIR += $(QT5_REP_DIR)/include/qt5/genode
 
+#
 # add C++ include dirs and libs
 #
 # We cannot just extend the 'LIBS' variable here because 'import-*.mk' are
 # included (in 'base/mk/lib.mk') by iterating through the elements of the
-# 'LIBS' variable. Hence, we also need to manually import the stdlib snippet.
+# 'LIBS' variable. Hence, we also need to manually import the stdcxx snippet.
 #
-LIBS += stdcxx gallium
+LIBS += stdcxx
 include $(call select_from_repositories,lib/import/import-stdcxx.mk)
-include $(call select_from_repositories,lib/import/import-gallium.mk)
 
 # custom main() thread stack size support via main() wrapper
 ifeq ($(findstring -DQT_MAIN_STACK_SIZE, $(CC_CXX_OPT)), -DQT_MAIN_STACK_SIZE)

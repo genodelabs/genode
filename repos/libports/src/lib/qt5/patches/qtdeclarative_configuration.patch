@@ -1,0 +1,24 @@
+qtdeclarative_configuration.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtdeclarative/tools/tools.pro |    4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/qtdeclarative/tools/tools.pro b/qtdeclarative/tools/tools.pro
+index 3952ec4..86257a7 100644
+--- a/qtdeclarative/tools/tools.pro
++++ b/qtdeclarative/tools/tools.pro
+@@ -17,9 +17,7 @@ qmlimportscanner.CONFIG = host_build
+     qtHaveModule(quick) {
+         !static: {
+             SUBDIRS += \
+-                qmlscene \
+-                qmlplugindump \
+-                qmltime
++                qmlscene
+         }
+         qtHaveModule(widgets): SUBDIRS += qmleasing
+     }

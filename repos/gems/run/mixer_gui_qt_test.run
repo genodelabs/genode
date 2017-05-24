@@ -243,7 +243,6 @@ set boot_modules {
 	qt5_core.lib.so
 	freetype.lib.so
 	gallium.lib.so
-	icu.lib.so
 	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so

@@ -15,6 +15,7 @@
 #define _MAIN_WINDOW_H_
 
 /* Genode includes */
+#include <base/env.h>
 #include <base/printf.h>
 #include <base/lock.h>
 #include <util/xml_node.h>
@@ -68,7 +69,7 @@ class Main_window : public Compound_widget<QWidget, QHBoxLayout>
 
 	public:
 
-		Main_window();
+		Main_window(Genode::Env &);
 
 		~Main_window();
 };

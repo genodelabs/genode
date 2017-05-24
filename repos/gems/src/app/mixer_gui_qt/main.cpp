@@ -8,6 +8,7 @@
 #include <base/log.h>
 #include <base/thread.h>
 #include <base/attached_rom_dataspace.h>
+#include <libc/component.h>
 
 /* Qt includes */
 #include <QApplication>
@@ -21,11 +22,11 @@
 enum { THREAD_STACK_SIZE = 2 * 1024 * sizeof(long) };
 
 
-struct Report_thread : Genode::Thread_deprecated<THREAD_STACK_SIZE>
+struct Report_thread : Genode::Thread
 {
 	QMember<Report_proxy> proxy;
 
-	Genode::Attached_rom_dataspace channels_rom { "channel_list" };
+	Genode::Attached_rom_dataspace channels_rom;
 
 	Genode::Signal_receiver                  sig_rec;
 	Genode::Signal_dispatcher<Report_thread> channels_dispatcher;
@@ -49,9 +50,10 @@ struct Report_thread : Genode::Thread_deprecated<THREAD_STACK_SIZE>
 			_report(channels_rom.local_addr<char>(), channels_rom.size());
 	}
 
-	Report_thread()
+	Report_thread(Genode::Env &env)
 	:
-		Genode::Thread_deprecated<THREAD_STACK_SIZE>("report_thread"),
+		Genode::Thread(env, "report_thread", THREAD_STACK_SIZE),
+		channels_rom(env, "channel_list"),
 		channels_dispatcher(sig_rec, *this, &Report_thread::_handle_channels)
 	{
 		channels_rom.sigh(channels_dispatcher);
@@ -92,22 +94,27 @@ static inline void load_stylesheet()
 }
 
 
+extern void initialize_qt_core(Genode::Env &);
+extern void initialize_qt_gui(Genode::Env &);
+
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
-		initialize_qpa_plugin(env);
+
+		initialize_qt_core(env);
+		initialize_qt_gui(env);
 
 		int argc = 1;
 		char const *argv[] = { "mixer_gui_qt", 0 };
 
 		Report_thread *report_thread;
-		try { report_thread = new Report_thread(); }
+		try { report_thread = new Report_thread(env); }
 		catch (...) {
 		Genode::error("Could not create Report_thread");
 		return -1;
 		}
 
-		QApplication app(argc, argv);
+		QApplication app(argc, (char**)argv);
 
 		load_stylesheet();
 
@@ -120,5 +127,5 @@ void Libc::Component::construct(Libc::Env &env)
 		app.connect(&app, SIGNAL(lastWindowClosed()), SLOT(quit()));
 
 		exit(app.exec());
-	}
+	});
 }

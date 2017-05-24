@@ -148,7 +148,6 @@ class Client_widget : public Compound_widget<QFrame, QVBoxLayout>,
 	private:
 
 		Genode::List<Channel_widget>  _list;
-		Genode::Allocator            &_alloc;
 		Channel::Label                _label;
 
 		QLabel      _name;
@@ -170,9 +169,9 @@ class Client_widget : public Compound_widget<QFrame, QVBoxLayout>,
 
 	public:
 
-		Client_widget(Genode::Allocator &alloc, Channel::Label const &label)
+		Client_widget(Channel::Label const &label)
 		:
-			_alloc(alloc), _label(label),
+			_label(label),
 			_name(_strip_label(_label))
 		{
 			setFrameStyle(QFrame::Panel | QFrame::Raised);
@@ -193,7 +192,7 @@ class Client_widget : public Compound_widget<QFrame, QVBoxLayout>,
 				disconnect(ch, SIGNAL(channel_changed()));
 				_hlayout.removeWidget(ch);
 				_list.remove(ch);
-				Genode::destroy(&_alloc, ch);
+				delete ch;
 			}
 		}
 
@@ -210,7 +209,7 @@ class Client_widget : public Compound_widget<QFrame, QVBoxLayout>,
 		Channel_widget* add_channel(Channel::Type const   type,
 		                            Channel::Number const number)
 		{
-			Channel_widget *ch = new (&_alloc) Channel_widget(type, number);
+			Channel_widget *ch = new Channel_widget(type, number);
 			connect(ch,   SIGNAL(channel_changed()),
 			        this, SIGNAL(client_changed()));
 
@@ -247,13 +246,12 @@ class Client_widget_registry : public QObject
 	private:
 
 		Genode::List<Client_widget>  _list;
-		Genode::Allocator           &_alloc;
 
 		void _remove_destroy(Client_widget *c)
 		{
 			disconnect(c, SIGNAL(client_changed()));
 			_list.remove(c);
-			Genode::destroy(&_alloc, c);
+			delete c;
 		}
 
 	Q_SIGNALS:
@@ -262,7 +260,7 @@ class Client_widget_registry : public QObject
 
 	public:
 
-		Client_widget_registry(Genode::Allocator &alloc) : QObject(), _alloc(alloc) { }
+		Client_widget_registry() : QObject() { }
 
 		Client_widget* first() { return _list.first(); }
 
@@ -279,7 +277,7 @@ class Client_widget_registry : public QObject
 		{
 			Client_widget *c = lookup(label);
 			if (c == nullptr) {
-				c = new (&_alloc) Client_widget(_alloc, label);
+				c = new Client_widget(label);
 				connect(c,    SIGNAL(client_changed()),
 				        this, SIGNAL(registry_changed()));
 				_list.insert(c);
@@ -303,7 +301,7 @@ class Client_widget_registry : public QObject
 
 static Client_widget_registry *client_registry()
 {
-	static Client_widget_registry inst(*Genode::env()->heap());
+	static Client_widget_registry inst;
 	return &inst;
 }
 
@@ -433,7 +431,7 @@ void Main_window::report_changed(void *l, void const *p)
 }
 
 
-Main_window::Main_window(Libc::Env &env)
+Main_window::Main_window(Genode::Env &env)
 :
 	_default_out_volume(0),
 	_default_volume(0),

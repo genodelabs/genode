@@ -1,0 +1,675 @@
+qtbase_generated.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../QtCore/5.8.0/QtCore/private/qconfig_p.h        |    1 
+ .../QtCore/5.8.0/QtCore/private/qtcore-config_p.h  |    1 
+ qtbase/include/QtCore/QtConfig                     |    1 
+ qtbase/include/QtCore/QtCoreDepends                |    1 
+ qtbase/include/QtCore/qconfig.h                    |    1 
+ qtbase/include/QtCore/qfeatures.h                  |    1 
+ qtbase/include/QtCore/qtcore-config.h              |    1 
+ .../QtGui/5.8.0/QtGui/private/qtgui-config_p.h     |    1 
+ qtbase/include/QtGui/QtGuiDepends                  |    2 +
+ qtbase/include/QtGui/qtgui-config.h                |    1 
+ .../5.8.0/QtNetwork/private/qtnetwork-config_p.h   |    1 
+ qtbase/include/QtNetwork/QtNetworkDepends          |    2 +
+ qtbase/include/QtNetwork/qtnetwork-config.h        |    1 
+ qtbase/include/QtOpenGL/QtOpenGLDepends            |    4 +
+ .../private/qtprintsupport-config_p.h              |    1 
+ .../include/QtPrintSupport/QtPrintSupportDepends   |    4 +
+ .../include/QtPrintSupport/qtprintsupport-config.h |    1 
+ qtbase/include/QtSql/QtSqlDepends                  |    2 +
+ .../5.8.0/QtWidgets/private/qtwidgets-config_p.h   |    1 
+ qtbase/include/QtWidgets/QtWidgetsDepends          |    3 +
+ qtbase/include/QtWidgets/qtwidgets-config.h        |    1 
+ .../QtXml/5.8.0/QtXml/private/qtxml-config_p.h     |    1 
+ qtbase/include/QtXml/QtXmlDepends                  |    2 +
+ qtbase/include/QtXml/qtxml-config.h                |    1 
+ qtbase/src/corelib/global/qconfig.cpp              |   51 +++++++++++++++
+ qtbase/src/corelib/global/qconfig.h                |   24 +++++++
+ qtbase/src/corelib/global/qconfig_p.h              |   12 ++++
+ qtbase/src/corelib/qtcore-config.h                 |   39 +++++++++++
+ qtbase/src/corelib/qtcore-config_p.h               |   16 +++++
+ qtbase/src/gui/qtgui-config.h                      |   43 +++++++++++++
+ qtbase/src/gui/qtgui-config_p.h                    |   40 ++++++++++++
+ qtbase/src/network/qtnetwork-config.h              |   16 +++++
+ qtbase/src/network/qtnetwork-config_p.h            |    5 +
+ qtbase/src/printsupport/qtprintsupport-config.h    |    5 +
+ qtbase/src/printsupport/qtprintsupport-config_p.h  |    1 
+ qtbase/src/widgets/qtwidgets-config.h              |   68 ++++++++++++++++++++
+ qtbase/src/widgets/qtwidgets-config_p.h            |    1 
+ qtbase/src/xml/qtxml-config.h                      |    1 
+ qtbase/src/xml/qtxml-config_p.h                    |    0 
+ 39 files changed, 358 insertions(+)
+ create mode 100644 qtbase/include/QtCore/5.8.0/QtCore/private/qconfig_p.h
+ create mode 100644 qtbase/include/QtCore/5.8.0/QtCore/private/qtcore-config_p.h
+ create mode 100644 qtbase/include/QtCore/QtConfig
+ create mode 100644 qtbase/include/QtCore/QtCoreDepends
+ create mode 100644 qtbase/include/QtCore/qconfig.h
+ create mode 100644 qtbase/include/QtCore/qfeatures.h
+ create mode 100644 qtbase/include/QtCore/qtcore-config.h
+ create mode 100644 qtbase/include/QtGui/5.8.0/QtGui/private/qtgui-config_p.h
+ create mode 100644 qtbase/include/QtGui/QtGuiDepends
+ create mode 100644 qtbase/include/QtGui/qtgui-config.h
+ create mode 100644 qtbase/include/QtNetwork/5.8.0/QtNetwork/private/qtnetwork-config_p.h
+ create mode 100644 qtbase/include/QtNetwork/QtNetworkDepends
+ create mode 100644 qtbase/include/QtNetwork/qtnetwork-config.h
+ create mode 100644 qtbase/include/QtOpenGL/QtOpenGLDepends
+ create mode 100644 qtbase/include/QtPrintSupport/5.8.0/QtPrintSupport/private/qtprintsupport-config_p.h
+ create mode 100644 qtbase/include/QtPrintSupport/QtPrintSupportDepends
+ create mode 100644 qtbase/include/QtPrintSupport/qtprintsupport-config.h
+ create mode 100644 qtbase/include/QtSql/QtSqlDepends
+ create mode 100644 qtbase/include/QtWidgets/5.8.0/QtWidgets/private/qtwidgets-config_p.h
+ create mode 100644 qtbase/include/QtWidgets/QtWidgetsDepends
+ create mode 100644 qtbase/include/QtWidgets/qtwidgets-config.h
+ create mode 100644 qtbase/include/QtXml/5.8.0/QtXml/private/qtxml-config_p.h
+ create mode 100644 qtbase/include/QtXml/QtXmlDepends
+ create mode 100644 qtbase/include/QtXml/qtxml-config.h
+ create mode 100644 qtbase/src/corelib/global/qconfig.cpp
+ create mode 100644 qtbase/src/corelib/global/qconfig.h
+ create mode 100644 qtbase/src/corelib/global/qconfig_p.h
+ create mode 100644 qtbase/src/corelib/qtcore-config.h
+ create mode 100644 qtbase/src/corelib/qtcore-config_p.h
+ create mode 100644 qtbase/src/gui/qtgui-config.h
+ create mode 100644 qtbase/src/gui/qtgui-config_p.h
+ create mode 100644 qtbase/src/network/qtnetwork-config.h
+ create mode 100644 qtbase/src/network/qtnetwork-config_p.h
+ create mode 100644 qtbase/src/printsupport/qtprintsupport-config.h
+ create mode 100644 qtbase/src/printsupport/qtprintsupport-config_p.h
+ create mode 100644 qtbase/src/widgets/qtwidgets-config.h
+ create mode 100644 qtbase/src/widgets/qtwidgets-config_p.h
+ create mode 100644 qtbase/src/xml/qtxml-config.h
+ create mode 100644 qtbase/src/xml/qtxml-config_p.h
+
+diff --git a/qtbase/include/QtCore/5.8.0/QtCore/private/qconfig_p.h b/qtbase/include/QtCore/5.8.0/QtCore/private/qconfig_p.h
+new file mode 100644
+index 0000000..aedf7fa
+--- /dev/null
++++ b/qtbase/include/QtCore/5.8.0/QtCore/private/qconfig_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/corelib/global/qconfig_p.h"
+diff --git a/qtbase/include/QtCore/5.8.0/QtCore/private/qtcore-config_p.h b/qtbase/include/QtCore/5.8.0/QtCore/private/qtcore-config_p.h
+new file mode 100644
+index 0000000..53f2212
+--- /dev/null
++++ b/qtbase/include/QtCore/5.8.0/QtCore/private/qtcore-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/corelib/qtcore-config_p.h"
+diff --git a/qtbase/include/QtCore/QtConfig b/qtbase/include/QtCore/QtConfig
+new file mode 100644
+index 0000000..c734263
+--- /dev/null
++++ b/qtbase/include/QtCore/QtConfig
+@@ -0,0 +1 @@
++#include "qconfig.h"
+diff --git a/qtbase/include/QtCore/QtCoreDepends b/qtbase/include/QtCore/QtCoreDepends
+new file mode 100644
+index 0000000..f6a4430
+--- /dev/null
++++ b/qtbase/include/QtCore/QtCoreDepends
+@@ -0,0 +1 @@
++/* This file was generated by qmake with the info from <root>/src/corelib/corelib.pro. */
+diff --git a/qtbase/include/QtCore/qconfig.h b/qtbase/include/QtCore/qconfig.h
+new file mode 100644
+index 0000000..aa8a3d6
+--- /dev/null
++++ b/qtbase/include/QtCore/qconfig.h
+@@ -0,0 +1 @@
++#include "../../src/corelib/global/qconfig.h"
+diff --git a/qtbase/include/QtCore/qfeatures.h b/qtbase/include/QtCore/qfeatures.h
+new file mode 100644
+index 0000000..2501992
+--- /dev/null
++++ b/qtbase/include/QtCore/qfeatures.h
+@@ -0,0 +1 @@
++#include "../../src/corelib/global/qfeatures.h"
+diff --git a/qtbase/include/QtCore/qtcore-config.h b/qtbase/include/QtCore/qtcore-config.h
+new file mode 100644
+index 0000000..29ef59d
+--- /dev/null
++++ b/qtbase/include/QtCore/qtcore-config.h
+@@ -0,0 +1 @@
++#include "../../src/corelib/qtcore-config.h"
+diff --git a/qtbase/include/QtGui/5.8.0/QtGui/private/qtgui-config_p.h b/qtbase/include/QtGui/5.8.0/QtGui/private/qtgui-config_p.h
+new file mode 100644
+index 0000000..fa5bd06
+--- /dev/null
++++ b/qtbase/include/QtGui/5.8.0/QtGui/private/qtgui-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/gui/qtgui-config_p.h"
+diff --git a/qtbase/include/QtGui/QtGuiDepends b/qtbase/include/QtGui/QtGuiDepends
+new file mode 100644
+index 0000000..52697ae
+--- /dev/null
++++ b/qtbase/include/QtGui/QtGuiDepends
+@@ -0,0 +1,2 @@
++/* This file was generated by qmake with the info from <root>/src/gui/gui.pro. */
++#include <QtCore/QtCore>
+diff --git a/qtbase/include/QtGui/qtgui-config.h b/qtbase/include/QtGui/qtgui-config.h
+new file mode 100644
+index 0000000..81638f1
+--- /dev/null
++++ b/qtbase/include/QtGui/qtgui-config.h
+@@ -0,0 +1 @@
++#include "../../src/gui/qtgui-config.h"
+diff --git a/qtbase/include/QtNetwork/5.8.0/QtNetwork/private/qtnetwork-config_p.h b/qtbase/include/QtNetwork/5.8.0/QtNetwork/private/qtnetwork-config_p.h
+new file mode 100644
+index 0000000..cbf4749
+--- /dev/null
++++ b/qtbase/include/QtNetwork/5.8.0/QtNetwork/private/qtnetwork-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/network/qtnetwork-config_p.h"
+diff --git a/qtbase/include/QtNetwork/QtNetworkDepends b/qtbase/include/QtNetwork/QtNetworkDepends
+new file mode 100644
+index 0000000..cb2c29d
+--- /dev/null
++++ b/qtbase/include/QtNetwork/QtNetworkDepends
+@@ -0,0 +1,2 @@
++/* This file was generated by qmake with the info from <root>/src/network/network.pro. */
++#include <QtCore/QtCore>
+diff --git a/qtbase/include/QtNetwork/qtnetwork-config.h b/qtbase/include/QtNetwork/qtnetwork-config.h
+new file mode 100644
+index 0000000..c8cd7fb
+--- /dev/null
++++ b/qtbase/include/QtNetwork/qtnetwork-config.h
+@@ -0,0 +1 @@
++#include "../../src/network/qtnetwork-config.h"
+diff --git a/qtbase/include/QtOpenGL/QtOpenGLDepends b/qtbase/include/QtOpenGL/QtOpenGLDepends
+new file mode 100644
+index 0000000..e15843d
+--- /dev/null
++++ b/qtbase/include/QtOpenGL/QtOpenGLDepends
+@@ -0,0 +1,4 @@
++/* This file was generated by qmake with the info from <root>/src/opengl/opengl.pro. */
++#include <QtCore/QtCore>
++#include <QtGui/QtGui>
++#include <QtWidgets/QtWidgets>
+diff --git a/qtbase/include/QtPrintSupport/5.8.0/QtPrintSupport/private/qtprintsupport-config_p.h b/qtbase/include/QtPrintSupport/5.8.0/QtPrintSupport/private/qtprintsupport-config_p.h
+new file mode 100644
+index 0000000..7833b12
+--- /dev/null
++++ b/qtbase/include/QtPrintSupport/5.8.0/QtPrintSupport/private/qtprintsupport-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/printsupport/qtprintsupport-config_p.h"
+diff --git a/qtbase/include/QtPrintSupport/QtPrintSupportDepends b/qtbase/include/QtPrintSupport/QtPrintSupportDepends
+new file mode 100644
+index 0000000..520b700
+--- /dev/null
++++ b/qtbase/include/QtPrintSupport/QtPrintSupportDepends
+@@ -0,0 +1,4 @@
++/* This file was generated by qmake with the info from <root>/src/printsupport/printsupport.pro. */
++#include <QtCore/QtCore>
++#include <QtGui/QtGui>
++#include <QtWidgets/QtWidgets>
+diff --git a/qtbase/include/QtPrintSupport/qtprintsupport-config.h b/qtbase/include/QtPrintSupport/qtprintsupport-config.h
+new file mode 100644
+index 0000000..747e599
+--- /dev/null
++++ b/qtbase/include/QtPrintSupport/qtprintsupport-config.h
+@@ -0,0 +1 @@
++#include "../../src/printsupport/qtprintsupport-config.h"
+diff --git a/qtbase/include/QtSql/QtSqlDepends b/qtbase/include/QtSql/QtSqlDepends
+new file mode 100644
+index 0000000..42eb220
+--- /dev/null
++++ b/qtbase/include/QtSql/QtSqlDepends
+@@ -0,0 +1,2 @@
++/* This file was generated by qmake with the info from <root>/src/sql/sql.pro. */
++#include <QtCore/QtCore>
+diff --git a/qtbase/include/QtWidgets/5.8.0/QtWidgets/private/qtwidgets-config_p.h b/qtbase/include/QtWidgets/5.8.0/QtWidgets/private/qtwidgets-config_p.h
+new file mode 100644
+index 0000000..9a6332d
+--- /dev/null
++++ b/qtbase/include/QtWidgets/5.8.0/QtWidgets/private/qtwidgets-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/widgets/qtwidgets-config_p.h"
+diff --git a/qtbase/include/QtWidgets/QtWidgetsDepends b/qtbase/include/QtWidgets/QtWidgetsDepends
+new file mode 100644
+index 0000000..03776b6
+--- /dev/null
++++ b/qtbase/include/QtWidgets/QtWidgetsDepends
+@@ -0,0 +1,3 @@
++/* This file was generated by qmake with the info from <root>/src/widgets/widgets.pro. */
++#include <QtCore/QtCore>
++#include <QtGui/QtGui>
+diff --git a/qtbase/include/QtWidgets/qtwidgets-config.h b/qtbase/include/QtWidgets/qtwidgets-config.h
+new file mode 100644
+index 0000000..09179b0
+--- /dev/null
++++ b/qtbase/include/QtWidgets/qtwidgets-config.h
+@@ -0,0 +1 @@
++#include "../../src/widgets/qtwidgets-config.h"
+diff --git a/qtbase/include/QtXml/5.8.0/QtXml/private/qtxml-config_p.h b/qtbase/include/QtXml/5.8.0/QtXml/private/qtxml-config_p.h
+new file mode 100644
+index 0000000..d567490
+--- /dev/null
++++ b/qtbase/include/QtXml/5.8.0/QtXml/private/qtxml-config_p.h
+@@ -0,0 +1 @@
++#include "../../../../../src/xml/qtxml-config_p.h"
+diff --git a/qtbase/include/QtXml/QtXmlDepends b/qtbase/include/QtXml/QtXmlDepends
+new file mode 100644
+index 0000000..39dd8ec
+--- /dev/null
++++ b/qtbase/include/QtXml/QtXmlDepends
+@@ -0,0 +1,2 @@
++/* This file was generated by qmake with the info from <root>/src/xml/xml.pro. */
++#include <QtCore/QtCore>
+diff --git a/qtbase/include/QtXml/qtxml-config.h b/qtbase/include/QtXml/qtxml-config.h
+new file mode 100644
+index 0000000..602a176
+--- /dev/null
++++ b/qtbase/include/QtXml/qtxml-config.h
+@@ -0,0 +1 @@
++#include "../../src/xml/qtxml-config.h"
+diff --git a/qtbase/src/corelib/global/qconfig.cpp b/qtbase/src/corelib/global/qconfig.cpp
+new file mode 100644
+index 0000000..5dc56fe
+--- /dev/null
++++ b/qtbase/src/corelib/global/qconfig.cpp
+@@ -0,0 +1,51 @@
++/* Installation date */
++static const char qt_configure_installation          [12+11]    = "qt_instdate=2012-12-20";
++
++/* Installation Info */
++static const char qt_configure_prefix_path_str       [256 + 12] = "qt_prfxpath=/qt";
++#ifdef QT_BUILD_QMAKE
++static const char qt_configure_ext_prefix_path_str   [256 + 12] = "qt_epfxpath=/qt";
++static const char qt_configure_host_prefix_path_str  [256 + 12] = "qt_hpfxpath=/qt";
++#endif
++
++static const short qt_configure_str_offsets[] = {
++     0, 4, 12, 16, 24, 28, 36, 44, 48, 50, 52, 65, 74,
++#ifdef QT_BUILD_QMAKE
++     80, 81, 85, 89, 91, 101,
++#endif
++};
++static const char qt_configure_strs[] =
++    "doc\0"
++    "include\0"
++    "lib\0"
++    "libexec\0"
++    "bin\0"
++    "plugins\0"
++    "imports\0"
++    "qml\0"
++    ".\0"
++    ".\0"
++    "translations\0"
++    "examples\0"
++    "tests\0"
++#ifdef QT_BUILD_QMAKE
++    "\0"
++    "bin\0"
++    "lib\0"
++    ".\0"
++    "genode-g++\0"
++    "linux-g++\0"
++#endif
++;
++
++#define QT_CONFIGURE_SETTINGS_PATH "etc/xdg"
++
++#ifdef QT_BUILD_QMAKE
++# define QT_CONFIGURE_SYSROOTIFY_PREFIX false
++#endif
++
++#define QT_CONFIGURE_PREFIX_PATH qt_configure_prefix_path_str + 12
++#ifdef QT_BUILD_QMAKE
++# define QT_CONFIGURE_EXT_PREFIX_PATH qt_configure_ext_prefix_path_str + 12
++# define QT_CONFIGURE_HOST_PREFIX_PATH qt_configure_host_prefix_path_str + 12
++#endif
+diff --git a/qtbase/src/corelib/global/qconfig.h b/qtbase/src/corelib/global/qconfig.h
+new file mode 100644
+index 0000000..8a37dbf
+--- /dev/null
++++ b/qtbase/src/corelib/global/qconfig.h
+@@ -0,0 +1,24 @@
++#define QT_FEATURE_framework -1
++#define QT_FEATURE_shared 1
++#define QT_FEATURE_rpath 1
++#define QT_FEATURE_accessibility -1
++# define QT_NO_ACCESSIBILITY
++#define QT_FEATURE_debug_and_release -1
++#define QT_FEATURE_simulator_and_device -1
++#define QT_FEATURE_build_all -1
++#define QT_FEATURE_c__11 1
++#define QT_FEATURE_c__14 -1
++#define QT_FEATURE_c__1z -1
++#define QT_FEATURE_concurrent 1
++# define QT_NO_DBUS
++#define QT_FEATURE_force_asserts -1
++#define QT_FEATURE_pkg_config 1
++#define QT_LARGEFILE_SUPPORT 64
++#define QT_VISIBILITY_AVAILABLE true
++#define QT_FEATURE_separate_debug_info -1
++#define QT_COMPILER_SUPPORTS_SSE2 1
++#define QT_FEATURE_static -1
++#define QT_VERSION_STR "5.8.0"
++#define QT_VERSION_MAJOR 5
++#define QT_VERSION_MINOR 8
++#define QT_VERSION_PATCH 0
+diff --git a/qtbase/src/corelib/global/qconfig_p.h b/qtbase/src/corelib/global/qconfig_p.h
+new file mode 100644
+index 0000000..f5f76cf
+--- /dev/null
++++ b/qtbase/src/corelib/global/qconfig_p.h
+@@ -0,0 +1,12 @@
++#define QT_FEATURE_private_tests -1
++#define QT_FEATURE_dbus -1
++#define QT_FEATURE_dbus_linked -1
++#define QT_FEATURE_gui 1
++#define QT_FEATURE_libudev -1
++#define QT_FEATURE_posix_fallocate 1
++#define QT_FEATURE_reduce_exports 1
++#define QT_FEATURE_reduce_relocations -1
++#define QT_FEATURE_release_tools -1
++#define QT_FEATURE_sse2 1
++#define QT_FEATURE_system_zlib 1
++#define QT_FEATURE_widgets 1
+diff --git a/qtbase/src/corelib/qtcore-config.h b/qtbase/src/corelib/qtcore-config.h
+new file mode 100644
+index 0000000..9fda215
+--- /dev/null
++++ b/qtbase/src/corelib/qtcore-config.h
+@@ -0,0 +1,39 @@
++#define QT_FEATURE_properties 1
++#define QT_FEATURE_animation 1
++#define QT_FEATURE_textcodec 1
++#define QT_FEATURE_big_codecs 1
++#define QT_FEATURE_codecs 1
++#define QT_FEATURE_commandlineparser 1
++#define QT_FEATURE_textdate 1
++#define QT_FEATURE_datestring 1
++#define QT_NO_EVENTFD 
++#define QT_FEATURE_filesystemiterator 1
++#define QT_FEATURE_filesystemwatcher 1
++#define QT_FEATURE_gestures 1
++#define QT_NO_GLIB 
++#define QT_NO_ICONV 
++#define QT_FEATURE_itemmodel 1
++#define QT_FEATURE_proxymodel 1
++#define QT_FEATURE_identityproxymodel 1
++#define QT_NO_INOTIFY 
++#define QT_FEATURE_library 1
++#define QT_FEATURE_mimetype 1
++#define QT_FEATURE_process -1
++#define QT_NO_PROCESS 
++#define QT_FEATURE_statemachine 1
++#define QT_FEATURE_qeventtransition 1
++#define QT_FEATURE_regularexpression 1
++#define QT_FEATURE_settings 1
++#define QT_FEATURE_sharedmemory -1
++#define QT_NO_SHAREDMEMORY 
++#define QT_FEATURE_sortfilterproxymodel 1
++#define QT_FEATURE_stringlistmodel 1
++#define QT_FEATURE_systemsemaphore -1
++#define QT_NO_SYSTEMSEMAPHORE 
++#define QT_FEATURE_temporaryfile 1
++#define QT_FEATURE_timezone 1
++#define QT_FEATURE_topleveldomain 1
++#define QT_FEATURE_translation 1
++#define QT_FEATURE_xmlstream 1
++#define QT_FEATURE_xmlstreamreader 1
++#define QT_FEATURE_xmlstreamwriter 1
+diff --git a/qtbase/src/corelib/qtcore-config_p.h b/qtbase/src/corelib/qtcore-config_p.h
+new file mode 100644
+index 0000000..67468d2
+--- /dev/null
++++ b/qtbase/src/corelib/qtcore-config_p.h
+@@ -0,0 +1,16 @@
++#define QT_FEATURE_clock_gettime 1
++#define QT_FEATURE_doubleconversion 1
++#define QT_FEATURE_glib -1
++#define QT_FEATURE_gnu_libiconv -1
++#define QT_FEATURE_iconv -1
++#define QT_FEATURE_icu -1
++#define QT_FEATURE_inotify -1
++#define QT_FEATURE_libatomic -1
++#define QT_FEATURE_poll_ppoll -1
++#define QT_FEATURE_poll_pollts -1
++#define QT_FEATURE_poll_poll 1
++#define QT_FEATURE_poll_select -1
++#define QT_FEATURE_posix_libiconv -1
++#define QT_FEATURE_sha3_fast 1
++#define QT_FEATURE_system_doubleconversion -1
++#define QT_FEATURE_system_pcre -1
+diff --git a/qtbase/src/gui/qtgui-config.h b/qtbase/src/gui/qtgui-config.h
+new file mode 100644
+index 0000000..608c641
+--- /dev/null
++++ b/qtbase/src/gui/qtgui-config.h
+@@ -0,0 +1,43 @@
++#define QT_FEATURE_accessibility -1
++#define QT_NO_ACCESSIBILITY 
++#define QT_NO_ACCESSIBILITY_ATSPI_BRIDGE 
++#define QT_FEATURE_action 1
++#define QT_FEATURE_opengles2 -1
++#define QT_FEATURE_dynamicgl -1
++#define QT_FEATURE_angle -1
++#define QT_FEATURE_clipboard 1
++#define QT_FEATURE_colornames 1
++#define QT_FEATURE_cssparser 1
++#define QT_FEATURE_cursor 1
++#define QT_FEATURE_desktopservices 1
++#define QT_FEATURE_imageformat_xpm 1
++#define QT_FEATURE_draganddrop 1
++#define QT_FEATURE_opengl 1
++#define QT_NO_FONTCONFIG 
++#define QT_NO_HARFBUZZ 
++#define QT_FEATURE_highdpiscaling 1
++#define QT_FEATURE_im 1
++#define QT_FEATURE_image_heuristic_mask 1
++#define QT_FEATURE_image_text 1
++#define QT_FEATURE_imageformat_bmp 1
++#define QT_FEATURE_imageformat_jpeg 1
++#define QT_FEATURE_imageformat_png 1
++#define QT_FEATURE_imageformat_ppm 1
++#define QT_FEATURE_imageformat_xbm 1
++#define QT_FEATURE_imageformatplugin 1
++#define QT_FEATURE_movie 1
++#define QT_FEATURE_opengles3 -1
++#define QT_FEATURE_opengles31 -1
++#define QT_FEATURE_pdf 1
++#define QT_FEATURE_picture 1
++#define QT_QPA_DEFAULT_PLATFORM_NAME "nitpicker"
++#define QT_FEATURE_sessionmanager -1
++#define QT_NO_SESSIONMANAGER 
++#define QT_FEATURE_shortcut 1
++#define QT_FEATURE_standarditemmodel 1
++#define QT_FEATURE_systemtrayicon 1
++#define QT_FEATURE_tabletevent 1
++#define QT_FEATURE_texthtmlparser 1
++#define QT_FEATURE_textodfwriter 1
++#define QT_FEATURE_validator 1
++#define QT_FEATURE_wheelevent 1
+diff --git a/qtbase/src/gui/qtgui-config_p.h b/qtbase/src/gui/qtgui-config_p.h
+new file mode 100644
+index 0000000..937a626
+--- /dev/null
++++ b/qtbase/src/gui/qtgui-config_p.h
+@@ -0,0 +1,40 @@
++#define QT_FEATURE_accessibility_atspi_bridge -1
++#define QT_FEATURE_android_style_assets -1
++#define QT_FEATURE_direct2d -1
++#define QT_FEATURE_directfb -1
++#define QT_FEATURE_egl 1
++#define QT_FEATURE_egl_x11 1
++#define QT_FEATURE_eglfs 1
++#define QT_FEATURE_eglfs_brcm -1
++#define QT_FEATURE_eglfs_egldevice -1
++#define QT_FEATURE_eglfs_gbm -1
++#define QT_FEATURE_eglfs_mali -1
++#define QT_FEATURE_eglfs_viv -1
++#define QT_FEATURE_eglfs_viv_wl -1
++#define QT_FEATURE_evdev 1
++#define QT_FEATURE_fontconfig -1
++#define QT_FEATURE_freetype 1
++#define QT_FEATURE_gif 1
++#define QT_FEATURE_harfbuzz -1
++#define QT_FEATURE_ico 1
++#define QT_FEATURE_integrityfb -1
++#define QT_FEATURE_jpeg 1
++#define QT_FEATURE_libinput -1
++#define QT_FEATURE_libinput_axis_api -1
++#define QT_FEATURE_linuxfb 1
++#define QT_FEATURE_mirclient -1
++#define QT_FEATURE_mtdev -1
++#define QT_FEATURE_multiprocess 1
++#define QT_FEATURE_png 1
++#define QT_FEATURE_system_freetype 1
++#define QT_FEATURE_system_harfbuzz -1
++#define QT_FEATURE_system_jpeg 1
++#define QT_FEATURE_system_png 1
++#define QT_FEATURE_system_xcb -1
++#define QT_FEATURE_tslib -1
++#define QT_FEATURE_xcb -1
++#define QT_FEATURE_xinput2 -1
++#define QT_FEATURE_xkb -1
++#define QT_FEATURE_xkbcommon_evdev -1
++#define QT_FEATURE_xlib 1
++#define QT_FEATURE_xrender 1
+diff --git a/qtbase/src/network/qtnetwork-config.h b/qtbase/src/network/qtnetwork-config.h
+new file mode 100644
+index 0000000..347fdb2
+--- /dev/null
++++ b/qtbase/src/network/qtnetwork-config.h
+@@ -0,0 +1,16 @@
++#define QT_FEATURE_networkinterface -1
++#define QT_NO_NETWORKINTERFACE 
++#define QT_FEATURE_bearermanagement -1
++#define QT_NO_BEARERMANAGEMENT 
++#define QT_FEATURE_ftp 1
++#define QT_FEATURE_http 1
++#define QT_NO_IPV6IFNAME 
++#define QT_FEATURE_localserver 1
++#define QT_FEATURE_networkdiskcache 1
++#define QT_FEATURE_networkproxy 1
++#define QT_LINKED_OPENSSL true
++#define QT_FEATURE_sctp -1
++#define QT_NO_SCTP 
++#define QT_FEATURE_socks5 1
++#define QT_FEATURE_ssl 1
++#define QT_FEATURE_udpsocket 1
+diff --git a/qtbase/src/network/qtnetwork-config_p.h b/qtbase/src/network/qtnetwork-config_p.h
+new file mode 100644
+index 0000000..a0676fb
+--- /dev/null
++++ b/qtbase/src/network/qtnetwork-config_p.h
+@@ -0,0 +1,5 @@
++#define QT_FEATURE_libproxy -1
++#define QT_FEATURE_securetransport -1
++#define QT_FEATURE_openssl 1
++#define QT_FEATURE_openssl_linked 1
++#define QT_FEATURE_system_proxies -1
+diff --git a/qtbase/src/printsupport/qtprintsupport-config.h b/qtbase/src/printsupport/qtprintsupport-config.h
+new file mode 100644
+index 0000000..31472cc
+--- /dev/null
++++ b/qtbase/src/printsupport/qtprintsupport-config.h
+@@ -0,0 +1,5 @@
++#define QT_NO_CUPS 
++#define QT_FEATURE_printer 1
++#define QT_FEATURE_printdialog 1
++#define QT_FEATURE_printpreviewwidget 1
++#define QT_FEATURE_printpreviewdialog 1
+diff --git a/qtbase/src/printsupport/qtprintsupport-config_p.h b/qtbase/src/printsupport/qtprintsupport-config_p.h
+new file mode 100644
+index 0000000..ab4f4dd
+--- /dev/null
++++ b/qtbase/src/printsupport/qtprintsupport-config_p.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_cups -1
+diff --git a/qtbase/src/widgets/qtwidgets-config.h b/qtbase/src/widgets/qtwidgets-config.h
+new file mode 100644
+index 0000000..dd8ef6e
+--- /dev/null
++++ b/qtbase/src/widgets/qtwidgets-config.h
+@@ -0,0 +1,68 @@
++#define QT_FEATURE_groupbox 1
++#define QT_FEATURE_buttongroup 1
++#define QT_FEATURE_rubberband 1
++#define QT_FEATURE_slider 1
++#define QT_FEATURE_scrollbar 1
++#define QT_FEATURE_scrollarea 1
++#define QT_FEATURE_itemviews 1
++#define QT_FEATURE_tableview 1
++#define QT_FEATURE_menu 1
++#define QT_FEATURE_spinbox 1
++#define QT_FEATURE_toolbutton 1
++#define QT_FEATURE_calendarwidget 1
++#define QT_FEATURE_colordialog 1
++#define QT_FEATURE_listview 1
++#define QT_FEATURE_columnview 1
++#define QT_FEATURE_lineedit 1
++#define QT_FEATURE_combobox 1
++#define QT_FEATURE_completer 1
++#define QT_FEATURE_contextmenu 1
++#define QT_FEATURE_datawidgetmapper 1
++#define QT_FEATURE_datetimeedit 1
++#define QT_FEATURE_dial 1
++#define QT_FEATURE_filesystemmodel 1
++#define QT_FEATURE_dirmodel 1
++#define QT_FEATURE_resizehandler 1
++#define QT_FEATURE_mainwindow 1
++#define QT_FEATURE_dockwidget 1
++#define QT_FEATURE_textedit 1
++#define QT_FEATURE_errormessage 1
++#define QT_FEATURE_treeview 1
++#define QT_FEATURE_tooltip 1
++#define QT_FEATURE_splitter 1
++#define QT_FEATURE_stackedwidget 1
++#define QT_FEATURE_filedialog 1
++#define QT_FEATURE_fontcombobox 1
++#define QT_FEATURE_fontdialog 1
++#define QT_FEATURE_fscompleter 1
++#define QT_FEATURE_graphicsview 1
++#define QT_FEATURE_graphicseffect 1
++#define QT_FEATURE_inputdialog 1
++#define QT_FEATURE_keysequenceedit 1
++#define QT_FEATURE_lcdnumber 1
++#define QT_FEATURE_listwidget 1
++#define QT_FEATURE_mdiarea 1
++#define QT_FEATURE_menubar 1
++#define QT_FEATURE_messagebox 1
++#define QT_FEATURE_paint_debug 1
++#define QT_FEATURE_progressbar 1
++#define QT_FEATURE_progressdialog 1
++#define QT_FEATURE_sizegrip 1
++#define QT_FEATURE_splashscreen 1
++#define QT_FEATURE_statusbar 1
++#define QT_FEATURE_statustip 1
++#define QT_FEATURE_style_stylesheet 1
++#define QT_FEATURE_syntaxhighlighter 1
++#define QT_FEATURE_tabbar 1
++#define QT_FEATURE_tablewidget 1
++#define QT_FEATURE_tabwidget 1
++#define QT_FEATURE_textbrowser 1
++#define QT_FEATURE_toolbar 1
++#define QT_FEATURE_toolbox 1
++#define QT_FEATURE_treewidget 1
++#define QT_FEATURE_undocommand 1
++#define QT_FEATURE_undostack 1
++#define QT_FEATURE_undogroup 1
++#define QT_FEATURE_undoview 1
++#define QT_FEATURE_whatsthis 1
++#define QT_FEATURE_wizard 1
+diff --git a/qtbase/src/widgets/qtwidgets-config_p.h b/qtbase/src/widgets/qtwidgets-config_p.h
+new file mode 100644
+index 0000000..85a8761
+--- /dev/null
++++ b/qtbase/src/widgets/qtwidgets-config_p.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_gtk3 -1
+diff --git a/qtbase/src/xml/qtxml-config.h b/qtbase/src/xml/qtxml-config.h
+new file mode 100644
+index 0000000..163246e
+--- /dev/null
++++ b/qtbase/src/xml/qtxml-config.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_dom 1
+diff --git a/qtbase/src/xml/qtxml-config_p.h b/qtbase/src/xml/qtxml-config_p.h
+new file mode 100644
+index 0000000..e69de29

@@ -1,4 +1,4 @@
-qt5_qml.patch
+qtdeclarative_genode.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
@@ -7,9 +7,8 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtdeclarative/src/qml/jsruntime/qv4alloca_p.h |    4 ++++
  qtdeclarative/src/qml/jsruntime/qv4engine.cpp |    4 ++++
  qtdeclarative/src/qml/jsruntime/qv4global_p.h |    2 +-
- qtdeclarative/src/qml/qml/qqmlaccessors_p.h   |    2 +-
- qtdeclarative/src/qml/qml/qqmlimport.cpp      |    9 +++++++++
- 5 files changed, 19 insertions(+), 2 deletions(-)
+ qtdeclarative/src/qml/qml/qqmlimport.cpp      |    3 +++
+ 4 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/qtdeclarative/src/qml/jsruntime/qv4alloca_p.h b/qtdeclarative/src/qml/jsruntime/qv4alloca_p.h
 index 2f48698..5c153bd 100644
@@ -34,10 +33,10 @@ index 2f48698..5c153bd 100644
  
  #endif
 diff --git a/qtdeclarative/src/qml/jsruntime/qv4engine.cpp b/qtdeclarative/src/qml/jsruntime/qv4engine.cpp
-index 26f473a..d588abe 100644
+index a9284f2..6f8be87 100644
 --- a/qtdeclarative/src/qml/jsruntime/qv4engine.cpp
 +++ b/qtdeclarative/src/qml/jsruntime/qv4engine.cpp
-@@ -100,6 +100,10 @@
+@@ -102,6 +102,10 @@
  #include <valgrind/memcheck.h>
  #endif
  
@@ -61,43 +60,17 @@ index 184375a..597c680 100644
  #    undef V4_ENABLE_JIT
  #endif
  #endif
-diff --git a/qtdeclarative/src/qml/qml/qqmlaccessors_p.h b/qtdeclarative/src/qml/qml/qqmlaccessors_p.h
-index 55562a5..c831908 100644
---- a/qtdeclarative/src/qml/qml/qqmlaccessors_p.h
-+++ b/qtdeclarative/src/qml/qml/qqmlaccessors_p.h
-@@ -57,7 +57,7 @@
- #include <QtCore/qhash.h>
- #include <QtCore/QReadWriteLock>
- 
--#if defined(Q_OS_QNX) || defined(Q_OS_LINUX)
-+#if defined(Q_OS_QNX) || defined(Q_OS_LINUX) || defined(Q_OS_GENODE)
- #include <stdint.h>
- #endif
- 
 diff --git a/qtdeclarative/src/qml/qml/qqmlimport.cpp b/qtdeclarative/src/qml/qml/qqmlimport.cpp
-index c1f5e75..5476249 100644
+index 98e2f9e..89bd563 100644
 --- a/qtdeclarative/src/qml/qml/qqmlimport.cpp
 +++ b/qtdeclarative/src/qml/qml/qqmlimport.cpp
-@@ -1738,6 +1738,14 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
-                                                   const QString &qmldirPath, const QString &qmldirPluginPath,
-                                                   const QString &baseName)
- {
-+#if defined(Q_OS_GENODE)
-+
-+    return resolvePlugin(typeLoader, qmldirPath, qmldirPluginPath, baseName,
-+                         QStringList() << QLatin1String(".lib.so"),
-+                         QLatin1String("qt5_"));
-+
-+#else
-+
- #if defined(Q_OS_WIN)
-     return resolvePlugin(typeLoader, qmldirPath, qmldirPluginPath, baseName,
-                          QStringList()
-@@ -1762,6 +1770,7 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
+@@ -1747,6 +1747,9 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
+         QLatin1String(".so"),
+         QLatin1String(".bundle")
+     };
++#elif defined(Q_OS_GENODE)
++    static const QString prefix = QLatin1String("qt5_");
++    static const QStringList suffixes = { QLatin1String(".lib.so") };
  # else  // Unix
-     return resolvePlugin(typeLoader, qmldirPath, qmldirPluginPath, baseName, QStringList() << QLatin1String(".so"), QLatin1String("lib"));
- #endif
-+#endif
- }
- 
- /*!
+     static const QString prefix = QLatin1String("lib");
+     static const QStringList suffixes = { QLatin1String(".so") };

@@ -117,7 +117,12 @@ QT_BEGIN_NAMESPACE
 #include <base/env.h>
 #include <timer_session/connection.h>
 
+#include <assert.h>
+
+Genode::Env *QThreadPrivate::_env = nullptr;
 QHash<Qt::HANDLE, struct QThreadPrivate::tls_struct> QThreadPrivate::tls;
+
+void initialize_qt_core(Genode::Env &env) { QThreadPrivate::env(env); }
 
 #else
 
@@ -669,7 +674,9 @@ void QThread::start(Priority priority)
 
 #ifdef Q_OS_GENODE
 
-    d->genode_thread = new QThreadPrivate::Genode_thread(this);
+    assert(d->_env != nullptr);
+
+    d->genode_thread = new QThreadPrivate::Genode_thread(*d->_env, this);
 
     if (d->genode_thread) {
 

@@ -3,8 +3,8 @@ The scripts in this directory have been used to generate the
 
 Usage:
 
-- download and extract the Qt5 source archive
-- apply 'qt5_configuration.patch' from the 'src/lib/qt5/patches' directory
+- download and extract the Qt5 and qtwebkit source archives
+- apply all qtbase/qtdeclarative/qttools/qtwebkit patches from the 'src/lib/qt5/patches' directory
 - create a build directory next to the extracted Qt5 source directory
 - copy the scripts into this build directory
 - change into the build directory

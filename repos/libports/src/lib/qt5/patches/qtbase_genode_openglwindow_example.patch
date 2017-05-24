@@ -1,4 +1,4 @@
-qt5_openglwindow_example.patch
+qtbase_genode_openglwindow_example.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 

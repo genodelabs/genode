@@ -27,7 +27,7 @@ SRC_CC += main.cpp \
 INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eventdispatchers \
            $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/fontdatabases/basic \
            $(QT5_CONTRIB_DIR)/qtbase/src/3rdparty/harfbuzz/src \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtPlatformSupport/$(QT_VERSION) \
+           $(QT5_CONTRIB_DIR)/qtbase/include/QtEglSupport/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore

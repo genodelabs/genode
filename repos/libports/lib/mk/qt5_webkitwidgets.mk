@@ -19,4 +19,4 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-LIBS += qt5_webkit qt5_widgets qt5_printsupport qt5_core icu
+LIBS += qt5_webkit qt5_widgets qt5_printsupport qt5_gui qt5_core icu

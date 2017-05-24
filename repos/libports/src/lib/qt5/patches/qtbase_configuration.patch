@@ -1,0 +1,170 @@
+qtbase_configuration.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/configure                          |    1 
+ qtbase/mkspecs/genode-g++/qmake.conf      |   10 +++
+ qtbase/mkspecs/genode-g++/qplatformdefs.h |   87 +++++++++++++++++++++++++++++
+ qtbase/src/corelib/global/global.pri      |   10 ++-
+ qtbase/src/corelib/io/io.pri              |    2 -
+ 5 files changed, 104 insertions(+), 6 deletions(-)
+ create mode 100644 qtbase/mkspecs/genode-g++/qmake.conf
+ create mode 100644 qtbase/mkspecs/genode-g++/qplatformdefs.h
+
+diff --git a/qtbase/configure b/qtbase/configure
+index bc18e61..a901fa0 100755
+--- a/qtbase/configure
++++ b/qtbase/configure
+@@ -945,6 +945,7 @@ if [ -z "$PLATFORM" ]; then
+             - Also available for UnixWare: unixware-g++
+         "
+         ;;
++
+      SCO_SV:*)
+         #PLATFORM=sco-g++
+         PLATFORM=sco-cc
+diff --git a/qtbase/mkspecs/genode-g++/qmake.conf b/qtbase/mkspecs/genode-g++/qmake.conf
+new file mode 100644
+index 0000000..734ae5c
+--- /dev/null
++++ b/qtbase/mkspecs/genode-g++/qmake.conf
+@@ -0,0 +1,10 @@
++#
++# qmake configuration for genode-g++
++#
++
++MAKEFILE_GENERATOR	= UNIX
++
++include(../common/unix.conf)
++include(../common/gcc-base-unix.conf)
++include(../common/g++-unix.conf)
++load(qt_config)
+diff --git a/qtbase/mkspecs/genode-g++/qplatformdefs.h b/qtbase/mkspecs/genode-g++/qplatformdefs.h
+new file mode 100644
+index 0000000..5e5c341
+--- /dev/null
++++ b/qtbase/mkspecs/genode-g++/qplatformdefs.h
+@@ -0,0 +1,87 @@
++/****************************************************************************
++**
++** Copyright (C) 2016 The Qt Company Ltd.
++** Contact: https://www.qt.io/licensing/
++**
++** This file is part of the qmake spec of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and The Qt Company. For licensing terms
++** and conditions see https://www.qt.io/terms-conditions. For further
++** information use the contact form at https://www.qt.io/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 3 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL3 included in the
++** packaging of this file. Please review the following information to
++** ensure the GNU Lesser General Public License version 3 requirements
++** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 2.0 or (at your option) the GNU General
++** Public license version 3 or any later version approved by the KDE Free
++** Qt Foundation. The licenses are as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
++** included in the packaging of this file. Please review the following
++** information to ensure the GNU General Public License requirements will
++** be met: https://www.gnu.org/licenses/gpl-2.0.html and
++** https://www.gnu.org/licenses/gpl-3.0.html.
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef QPLATFORMDEFS_H
++#define QPLATFORMDEFS_H
++
++// Get Qt defines/settings
++
++#include "qglobal.h"
++
++// Set any POSIX/XOPEN defines at the top of this file to turn on specific APIs
++
++#include <unistd.h>
++
++
++// We are hot - unistd.h should have turned on the specific APIs we requested
++
++
++#include <pthread.h>
++#include <dirent.h>
++#include <fcntl.h>
++#include <grp.h>
++#include <pwd.h>
++#include <signal.h>
++#include <dlfcn.h>
++
++#include <sys/param.h>
++#include <sys/types.h>
++#include <sys/ioctl.h>
++#include <sys/ipc.h>
++#include <sys/time.h>
++#ifndef Q_OS_GENODE
++#include <sys/shm.h>
++#endif
++#include <sys/socket.h>
++#include <sys/stat.h>
++#include <sys/wait.h>
++#include <netinet/in.h>
++#ifndef QT_NO_IPV6IFNAME
++#include <net/if.h>
++#endif
++
++#include "../common/posix/qplatformdefs.h"
++
++#undef QT_OPEN_LARGEFILE
++#define QT_OPEN_LARGEFILE 0
++
++#define QT_SNPRINTF		::snprintf
++#define QT_VSNPRINTF		::vsnprintf
++
++#endif // QPLATFORMDEFS_H
+diff --git a/qtbase/src/corelib/global/global.pri b/qtbase/src/corelib/global/global.pri
+index f74662b..391df22 100644
+--- a/qtbase/src/corelib/global/global.pri
++++ b/qtbase/src/corelib/global/global.pri
+@@ -41,11 +41,11 @@ PRECOMPILED_HEADER = global/qt_pch.h
+ # qlogging.cpp uses backtrace(3), which is in a separate library on the BSDs.
+ LIBS_PRIVATE += $$QMAKE_LIBS_EXECINFO
+ 
+-if(linux*|hurd*):!cross_compile:!static:!*-armcc* {
+-   QMAKE_LFLAGS += -Wl,-e,qt_core_boilerplate
+-   prog=$$quote(if (/program interpreter: (.*)]/) { print $1; })
+-   DEFINES += ELF_INTERPRETER=\\\"$$system(LC_ALL=C readelf -l /bin/ls | perl -n -e \'$$prog\')\\\"
+-}
++#if(linux*|hurd*):!cross_compile:!static:!*-armcc* {
++#   QMAKE_LFLAGS += -Wl,-e,qt_core_boilerplate
++#   prog=$$quote(if (/program interpreter: (.*)]/) { print $1; })
++#   DEFINES += ELF_INTERPRETER=\\\"$$system(LC_ALL=C readelf -l /bin/ls | perl -n -e \'$$prog\')\\\"
++#}
+ 
+ slog2 {
+     LIBS_PRIVATE += -lslog2
+diff --git a/qtbase/src/corelib/io/io.pri b/qtbase/src/corelib/io/io.pri
+index 0414ae9..fdbd1af 100644
+--- a/qtbase/src/corelib/io/io.pri
++++ b/qtbase/src/corelib/io/io.pri
+@@ -166,7 +166,7 @@ win32 {
+         } else {
+             SOURCES += \
+                 io/qstandardpaths_unix.cpp \
+-                io/qstorageinfo_unix.cpp
++                io/qstorageinfo_stub.cpp
+         }
+ 
+         linux|if(qnx:qtConfig(inotify)) {
