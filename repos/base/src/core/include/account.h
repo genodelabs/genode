@@ -87,8 +87,6 @@ class Genode::Account
 
 			if (_quota_guard.used().value > _initial_used.value) {
 				UNIT const dangling { _quota_guard.used().value - _initial_used.value };
-				warning("destroying account with allocated (possibly leaking?) "
-				        "resources (", dangling, " ", UNIT::name(),")");
 				_quota_guard.replenish(dangling);
 			}
 
