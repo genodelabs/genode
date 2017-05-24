@@ -103,8 +103,17 @@ class Genode::Expanding_parent_client : public Parent_client
 			 * resources from our parent.
 			 */
 			if (id == Env::pd()) {
-				resource_request(Resource_args(args.string()));
-				return UPGRADE_DONE;
+				/*
+				 * Special case for base-hw: inform parent (finally core) about
+				 * kernel RAM shortage during IPC.
+				 */
+				Genode::Arg ram_arg = Genode::Arg_string::find_arg(args.string(), "ram_quota");
+				if (ram_arg.valid() && ram_arg.ulong_value(0) == 0) {
+					return Parent_client::upgrade(id, Upgrade_args("ram_quota=0"));
+				} else {
+					resource_request(Resource_args(args.string()));
+					return UPGRADE_DONE;
+				}
 			}
 
 			/*
