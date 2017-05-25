@@ -91,8 +91,8 @@ endif
 ifneq ($(SRC_NIM),)
 
 ifeq ($(NIM_CPU),)
-$(error NIM_CPU not defined for any of the following SPECS: $(SPECS))
-endif
+$(warning NIM_CPU not defined for any of the following SPECS: $(SPECS))
+else
 
 NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
 
@@ -115,11 +115,12 @@ NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
 NIM_CC := $(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -D__GENODE__
 
 # Parse the generated makefiles
-include $(NIM_MAKEFILES)
+-include $(NIM_MAKEFILES)
 
 # Append the new objects
 SRC_O += $(sort $(SRC_O_NIM))
 
+endif
 endif
 
 #
