@@ -543,7 +543,7 @@ void Init::Child::filter_session_args(Service::Name const &service,
 	/*
 	 * Intercept CPU session requests to scale priorities
 	 */
-	if (service == "CPU" && _prio_levels_log2 > 0) {
+	if (service == Cpu_session::service_name() && _prio_levels_log2 > 0) {
 
 		unsigned long priority = Arg_string::find_arg(args, "priority").ulong_value(0);
 
@@ -568,7 +568,7 @@ void Init::Child::filter_session_args(Service::Name const &service,
 	 * Remove phys_start and phys_size RAM-session arguments unless
 	 * explicitly permitted by the child configuration.
 	 */
-	if (service == "RAM") {
+	if (service == Pd_session::service_name()) {
 
 		/*
 		 * If the child is allowed to constrain physical memory allocations,
