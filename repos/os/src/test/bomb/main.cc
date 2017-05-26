@@ -183,7 +183,7 @@ struct Bomb
 		}
 
 		size_t const avail_caps     = env.pd().avail_caps().value;
-		size_t const preserved_caps = children*5;
+		size_t const preserved_caps = children*10;
 
 		if (avail_caps < preserved_caps) {
 			log("I ran out of capabilities.");
