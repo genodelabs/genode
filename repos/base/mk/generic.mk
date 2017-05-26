@@ -95,6 +95,9 @@ $(warning NIM_CPU not defined for any of the following SPECS: $(SPECS))
 else
 
 NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
+NIM_ARGS  = --compileOnly --os:genode --cpu:$(NIM_CPU)
+NIM_ARGS += --verbosity:0 --hint[Processing]:off --nimcache:.
+NIM_ARGS += $(NIM_OPT)
 
 # Generate the C++ sources and compilation info
 #
@@ -103,13 +106,7 @@ NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
 %.nim.mk: %.nim
 	$(MSG_BUILD)$(basename $@).cpp
 	$(VERBOSE) rm -f stdlib_*.cpp
-	$(VERBOSE)$(NIM) compileToCpp \
-		--compileOnly \
-		--nimcache:. \
-		--cpu:$(NIM_CPU) \
-		--os:genode \
-		$(NIM_OPT) \
-		$<
+	$(VERBOSE)$(NIM) compileToCpp $(NIM_ARGS) $<
 	$(VERBOSE)$(JQ) --raw-output '"SRC_O_NIM +=" + (.link | join(" ")) +"\n" + (.compile | map((.[0] | sub("cpp$$";"o: ")) + .[0] + "\n\t"+(.[1] | sub("^g\\++";"$$(MSG_COMP)$$@\n\t$$(VERBOSE)$$(NIM_CC)"))) | join("\n"))'  < $(basename $(basename $@)).json > $@
 
 NIM_CC := $(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -D__GENODE__
