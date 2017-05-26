@@ -56,7 +56,7 @@ class Genode::Guest_interrupts
 		 */
 		void set_pending_interrupt(uint8_t irq)
 		{
-			asm volatile ("lock bts %1, %0"
+			asm volatile ("bts %1, %0"
 					: "+m" (*(char *)_base)
 					: "Ir" ((uint32_t)irq)
 					: "memory");
@@ -67,7 +67,7 @@ class Genode::Guest_interrupts
 		 */
 		void clear_pending_interrupt(uint8_t irq)
 		{
-			asm volatile ("lock btr %1, %0"
+			asm volatile ("btr %1, %0"
 					: "+m" (*(char *)_base)
 					: "Ir" ((uint32_t)irq)
 					: "memory");

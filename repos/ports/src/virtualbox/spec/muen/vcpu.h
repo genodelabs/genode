@@ -49,7 +49,6 @@ struct Subject_state
 	struct Cpu_registers Regs;
 	Genode::uint32_t Exit_reason;
 	Genode::uint32_t Intr_state;
-	Genode::uint32_t Interrupt_info;
 	Genode::uint32_t Sysenter_cs;
 	Genode::uint64_t Exit_qualification;
 	Genode::uint64_t Guest_phys_addr;
@@ -75,6 +74,6 @@ struct Subject_state
 	Segment ldtr;
 	Segment gdtr;
 	Segment idtr;
-} __attribute__((packed));
+};
 
 #endif /* _VIRTUALBOX__SPEC__MUEN__VCPU_H_ */

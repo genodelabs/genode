@@ -3,7 +3,7 @@ VERSION   := git
 DOWNLOADS := muen.git
 
 URL(muen) := https://git.codelabs.ch/git/muen.git
-REV(muen) := 8592db3f6682387d4384120a0b13c347a84587e5
+REV(muen) := 5d3b56c261804f318fb5c91a93799315c740f1a2
 DIR(muen) := src/kernel/muen
 
 $(call check_tool,git)
