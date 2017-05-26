@@ -35,13 +35,10 @@ bne  a0, a1, 1b
 
 la   sp, _stack_area_start
 li   a0, STACK_SIZE
-ld   a0, (a0)
 add  sp, sp, a0
 
 /* save kernel stack pointer in mscratch */
-csrw mscratch, sp
-
-jal  setup_riscv_exception_vector
+csrw sscratch, sp
 jal  init
 
 1: j 1b

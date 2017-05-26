@@ -32,11 +32,10 @@ struct Kernel::Timer_driver
 
 	addr_t timeout = 0;
 
+	/* TODO: implement */
 	addr_t stime()
 	{
-		Genode::addr_t t;
-		asm volatile ("csrr %0, stime\n" : "=r"(t));
-		return t;
+		return 0;
 	}
 
 	Timer_driver(unsigned);

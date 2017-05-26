@@ -25,7 +25,6 @@ extern "C" void init() __attribute__ ((noreturn));
 
 extern "C" void init()
 {
-	Genode::init_log();
 	Bootstrap::platform().enable_mmu();
 	Bootstrap::platform().start_core();
 }

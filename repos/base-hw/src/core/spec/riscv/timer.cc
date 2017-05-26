@@ -13,7 +13,7 @@
 
 /* Core includes */
 #include <kernel/timer.h>
-#include <machine_call.h>
+#include <hw/spec/riscv/machine_call.h>
 
 using namespace Genode;
 using namespace Kernel;
@@ -27,10 +27,10 @@ Timer_driver::Timer_driver(unsigned)
 }
 
 
-void Timer::_start_one_shot(time_t const ticks, unsigned const)
+void Timer::_start_one_shot(time_t const ticks)
 {
 	_driver.timeout = _driver.stime() + ticks;
-	Machine::set_sys_timer(_driver.timeout);
+	Hw::set_sys_timer(_driver.timeout);
 }
 
 
@@ -42,11 +42,11 @@ time_t Timer::us_to_ticks(time_t const us) const {
 	return (us / 1000) * Driver::TICS_PER_MS; }
 
 
-time_t Timer::_max_value() {
+time_t Timer::_max_value() const {
 	return (addr_t)~0; }
 
 
-time_t Timer::_value(unsigned const)
+time_t Timer::_value()
 {
 	addr_t time = _driver.stime();
 	return time < _driver.timeout ? _driver.timeout - time : 0;

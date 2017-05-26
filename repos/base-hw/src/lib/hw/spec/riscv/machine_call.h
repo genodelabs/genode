@@ -28,12 +28,21 @@ namespace Hw {
 	 *
 	 * Keep in sync with mode_transition.s.
 	 */
-	constexpr Call_arg call_id_put_char()      { return 0x100; }
 	constexpr Call_arg call_id_set_sys_timer() { return 0x101; }
 	constexpr Call_arg call_id_get_sys_timer()  { return 0x102; }
 
-	inline void put_char(uint64_t c) {
-		Kernel::call(call_id_put_char(), (Call_arg)c); }
+	inline void ecall(addr_t call, addr_t arg)
+	{
+		asm volatile ("mv a0, %0\n"
+		              "mv a1, %1\n"
+		               "ecall   \n"
+		              : : "r"(call), "r"(arg)
+		              : "a0", "a1");
+	}
+
+	inline void put_char(addr_t c) {
+		ecall(Kernel::call_id_print_char(), c);
+	}
 
 	inline void set_sys_timer(addr_t t) {
 		Kernel::call(call_id_set_sys_timer(), (Call_arg)t); }

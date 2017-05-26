@@ -53,48 +53,47 @@ namespace Sv39
 struct Sv39::Descriptor : Register<64>
 {
 	enum Descriptor_type { INVALID, TABLE, BLOCK };
-	struct V    : Bitfield<0, 1>   { }; /* present */
-	struct Type : Bitfield<1, 4>        /* type and access rights */
+	struct V : Bitfield<0, 1> { }; /* present */
+	struct R : Bitfield<1, 1> { }; /* read */
+	struct W : Bitfield<2, 1> { }; /* write */
+	struct X : Bitfield<3, 1> { }; /* executable */
+	struct U : Bitfield<4, 1> { }; /* user */
+	struct G : Bitfield<5, 1> { }; /* global  */
+
+	struct Perm : Bitfield<0, 5> { };
+	struct Type : Bitfield<1, 3>
 	{
 		enum {
-			POINTER        = 0,
-			POINTER_GLOBAL = 1,
-			USER           = 4, /* R + 0, RW + 1, RX + 2, RWX + 3 */
-			KERNEL         = 8,
-			GLOBAL         = 12,
+			POINTER = 0
 		};
 	};
 	struct Ppn  : Bitfield<10, 38> { }; /* physical address 10 bit aligned */
 	struct Base : Bitfield<12, 38> { }; /* physical address page aligned */
 
-	template <access_t BASE>
-	static access_t rwx(Hw::Page_flags const &f)
-	{
-		if (f.writeable && f.executable)
-			return BASE + 3;
-		else if (f.writeable)
-			return BASE + 1;
-		else if (f.executable)
-			return BASE + 2;
-		else
-			return BASE;
-	}
-
 	static access_t permission_bits(Hw::Page_flags const &f)
 	{
+		access_t rights = 0;
+		R::set(rights, 1);
+
+		if (f.writeable)
+			W::set(rights, 1);
+
+		if (f.executable)
+			X::set(rights, 1);
+
+		if (!f.privileged)
+			U::set(rights, 1);
+
 		if (f.global)
-			return rwx<Type::GLOBAL>(f);
+			G::set(rights, 1);
 
-		if (f.privileged)
-			return rwx<Type::KERNEL>(f);
-
-		return rwx<Type::USER>(f);
+		return rights;
 	}
 
 	static Descriptor_type type(access_t const v)
 	{
 		if (!V::get(v)) return INVALID;
-		if (Type::get(v) == Type::POINTER || Type::get(v) == Type::POINTER_GLOBAL)
+		if (Type::get(v) == Type::POINTER)
 			return TABLE;
 
 		return BLOCK;
@@ -127,7 +126,7 @@ struct Sv39::Block_descriptor : Descriptor
 		access_t desc = 0;
 
 		Ppn::set(desc, base);
-		Type::set(desc, permission_bits(f));
+		Perm::set(desc, permission_bits(f));
 		V::set(desc, 1);
 
 		return desc;

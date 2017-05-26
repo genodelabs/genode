@@ -24,16 +24,7 @@ struct Hw::Riscv_uart
 {
 	void put_char(char const c)
 	{
-		struct Arg : Genode::Register<64>
-		{
-			struct Char      : Bitfield<0,  8> { };
-			struct Write_cmd : Bitfield<48, 1> { };
-			struct Stdout    : Bitfield<56, 1> { };
-		};
-
-		Hw::put_char(Arg::Char::bits(c) |
-		             Arg::Stdout::bits(1) |
-		             Arg::Write_cmd::bits(1));
+		Hw::put_char(c);
 	}
 };
 

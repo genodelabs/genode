@@ -56,5 +56,3 @@ struct Buffer
 Genode::Log &Genode::Log::log() {
 	return unmanaged_singleton<Buffer>()->log; }
 
-
-void Genode::init_log() { };

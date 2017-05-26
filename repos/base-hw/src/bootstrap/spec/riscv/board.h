@@ -16,6 +16,7 @@
 
 #include <hw/spec/riscv/page_table.h>
 #include <hw/spec/riscv/uart.h>
+#include <drivers/defs/riscv.h>
 
 namespace Bootstrap {
 	struct Cpu {};
@@ -23,6 +24,9 @@ namespace Bootstrap {
 }
 
 namespace Board {
+
+	using namespace Riscv;
+
 	enum { UART_BASE, UART_CLOCK };
 	struct Serial : Hw::Riscv_uart {
 		Serial(unsigned, unsigned, unsigned) {} };

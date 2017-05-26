@@ -10,9 +10,10 @@ SRC_CC += spec/riscv/kernel/thread.cc
 SRC_CC += spec/riscv/kernel/pd.cc
 SRC_CC += spec/riscv/kernel/cpu.cc
 SRC_CC += spec/riscv/platform_support.cc
+SRC_CC += spec/riscv/timer.cc
 
 #add assembly sources
-SRC_S += $(REP_DIR)/src/bootstrap/spec/riscv/exception_vector.s
+SRC_S += spec/riscv/exception_vector.s
 SRC_S += spec/riscv/crt0.s
 
 # include less specific configuration
