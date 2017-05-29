@@ -48,12 +48,12 @@ append_platform_drv_build_components
 
 build $build_components
 
-# GDB loads symbols from 'bin/ld.lib.so'
+# GDB loads symbols from 'debug/ld.lib.so'
 if { [have_spec nova] } {
-	exec ln -sf ld-nova.lib.so bin/ld.lib.so
+	exec ln -sf ld-nova.lib.so debug/ld.lib.so
 }
 if { [have_spec foc] } {
-	exec ln -sf ld-foc.lib.so bin/ld.lib.so
+	exec ln -sf ld-foc.lib.so debug/ld.lib.so
 }
 
 # names of the binaries needed for the GDB monitor test
@@ -143,29 +143,27 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Terminal"/> </provides>
 		</start>
-		<start name="gdb_monitor">
+		<start name="gdb_monitor" caps="200">
 			<resource name="RAM" quantum="16M"/>
 			<route>
 				<service name="Terminal"><child name="terminal_gdb"/></service>
 				<any-service><parent/><any-child/></any-service>
 			</route>
 			<config>
-				<libc stdout="/dev/log" stderr="/dev/log">
-					<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				</libc> }
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log" stderr="/dev/log"/> }
 append config "
 				<target name=\"${gdb_target_binary_name}\"> "
 append config {
 					<config>
-						<libc stdout="/dev/log" stderr="/dev/log">
-							<vfs> <dir name="dev"> <log/> </dir> </vfs>
-						</libc>
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+						<libc stdout="/dev/log" stderr="/dev/log"/>
 					</config>
 				</target>
 				<preserve name="RAM" quantum="5M"/>
 			</config>
 		</start>
-		<start name="noux">
+		<start name="noux" caps="300">
 			<resource name="RAM" quantum="1G"/>
 			<route>
 				<service name="Terminal" label="">
@@ -177,8 +175,10 @@ append config {
 				<any-service><parent/><any-child/></any-service>
 			</route>
 			<config>
-				<fstab>
-					<tar name="gdb.tar" at="/"/>
+				<fstab> }
+append config "
+					<tar name=\"[noux_gdb_pkg_name].tar\" at=\"/\"/>"
+append config {
 					<dir name="dev"><terminal name="gdb" label="/dev/gdb"/></dir>
 					<dir name="gdb"> }
 append config "
@@ -225,13 +225,13 @@ proc binary_name_gdbserver_platform_lib_so { } {
 }
 
 # generic modules
-set boot_modules {
+append boot_modules {
 	core init timer ld.lib.so noux terminal terminal_crosslink
-	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
-	libc_pipe.lib.so libc_terminal.lib.so
+	posix.lib.so libc.lib.so libm.lib.so ncurses.lib.so expat.lib.so
+	libc_noux.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
-	gdb.tar test-gdb_monitor.tar test-gdb_monitor-src.tar
-}
+	test-gdb_monitor.tar test-gdb_monitor-src.tar
+} [noux_gdb_pkg_name].tar
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
@@ -244,6 +244,4 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-
 run_genode_until forever
-

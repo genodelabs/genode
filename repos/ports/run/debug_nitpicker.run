@@ -53,6 +53,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
@@ -64,7 +65,7 @@ set config {
 			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
-	<start name="gdb_monitor">
+	<start name="gdb_monitor" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
@@ -77,9 +78,8 @@ set config {
 				</config>
 			</target>
 			<preserve name="RAM" quantum="2M"/>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 	<start name="pointer">
@@ -156,12 +156,12 @@ puts "GDB monitor is up, starting GDB in a new terminal"
 
 source ${genode_dir}/repos/ports/run/gdb_monitor.inc
 
-# GDB loads symbols from 'bin/ld.lib.so'
+# GDB loads symbols from 'debug/ld.lib.so'
 if { [have_spec nova] } {
-	exec ln -sf ld-nova.lib.so bin/ld.lib.so
+	exec ln -sf ld-nova.lib.so debug/ld.lib.so
 }
 if { [have_spec foc] } {
-	exec ln -sf ld-foc.lib.so bin/ld.lib.so
+	exec ln -sf ld-foc.lib.so debug/ld.lib.so
 }
 
 set gdb_target_binary "nitpicker"
@@ -175,9 +175,9 @@ append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 # ask the user for confirmations again
 append gdb_cmds {-ex "set interactive-mode auto" }
 
-puts "command: [gdb] bin/ld.lib.so $gdb_cmds"
+puts "command: [gdb] debug/ld.lib.so $gdb_cmds"
 
-exec [terminal] -e "[gdb] bin/ld.lib.so $gdb_cmds" &
+exec [terminal] -e "[gdb] debug/ld.lib.so $gdb_cmds" &
 
 interact -i [output_spawn_id]
 

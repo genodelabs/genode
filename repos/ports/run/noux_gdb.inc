@@ -20,7 +20,7 @@ proc noux_gdb_pkg_name { } {
 #
 proc create_binary_tar { application_name application_binaries } {
 	foreach application_binary ${application_binaries} { 
-		exec tar ufv bin/${application_name}.tar -h -C bin ${application_binary}
+		exec tar ufv bin/${application_name}.tar -h -C debug ${application_binary}
 	}
 }
 

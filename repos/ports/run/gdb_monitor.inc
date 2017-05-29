@@ -27,10 +27,10 @@ proc gdb_initial_breakpoint_cmds { target_binary_name } {
 	append gdb_cmds {-ex "delete 1" }
 
 	# load the symbols of the test application
-	append gdb_cmds "-ex \"file bin/$target_binary_name\" "
+	append gdb_cmds "-ex \"file debug/$target_binary_name\" "
 
-	# set search path for "sharedlibrary" to bin
-	append gdb_cmds {-ex "set solib-search-path bin" }
+	# set search path for "sharedlibrary" to debug
+	append gdb_cmds {-ex "set solib-search-path debug" }
 
 	# load the symbols of loaded shared libraries
 	append gdb_cmds {-ex "sharedlibrary" }

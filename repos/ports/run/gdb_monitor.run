@@ -65,20 +65,18 @@ set config {
 			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
-	<start name="gdb_monitor" caps="1000">
+	<start name="gdb_monitor" caps="200">
 		<resource name="RAM" quantum="7M"/>
 		<config>
 			<target name="test-gdb_monitor">
 				<config>
-					<libc stdout="/dev/log" stderr="/dev/log">
-						<vfs> <dir name="dev"> <log/> </dir> </vfs>
-					</libc>
+					<vfs> <dir name="dev"> <log/> </dir> </vfs>
+					<libc stdout="/dev/log" stderr="/dev/log"/>
 				</config>
 			</target>
 			<preserve name="RAM" quantum="3M"/>
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>
@@ -128,12 +126,9 @@ puts "GDB monitor is up, starting GDB"
 
 source ${genode_dir}/repos/ports/run/gdb_monitor.inc
 
-# GDB loads symbols from 'bin/ld.lib.so'
+# GDB loads symbols from 'debug/ld.lib.so'
 if { [have_spec nova] } {
-	exec ln -sf ld-nova.lib.so bin/ld.lib.so
-}
-if { [have_spec foc] } {
-	exec ln -sf ld-foc.lib.so bin/ld.lib.so
+	exec ln -sf ld-nova.lib.so debug/ld.lib.so
 }
 
 set gdb_target_binary "test-gdb_monitor"
@@ -144,7 +139,7 @@ append gdb_cmds {-ex "target remote localhost:$local_port" }
 append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 
 # run GDB and redirect stderr to stdio to get the relevant output into the expect buffer
-eval spawn [gdb] bin/ld.lib.so -n $gdb_cmds 2&>1
+eval spawn [gdb] debug/ld.lib.so -n $gdb_cmds 2&>1
 set gdb_id [list $spawn_id $genode_id]
 
 puts ""
