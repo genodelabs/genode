@@ -46,7 +46,6 @@ append config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="LOG"/>
-		<service name="RAM"/>
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="PD"/>

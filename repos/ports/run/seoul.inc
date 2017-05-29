@@ -146,7 +146,6 @@ append config {
 <config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -343,7 +342,6 @@ if {$use_fancy_stuff} {
 		<config>
 			<parent-provides>
 				<service name="ROM"/>
-				<service name="RAM"/>
 				<service name="IRQ"/>
 				<service name="IO_MEM"/>
 				<service name="IO_PORT"/>

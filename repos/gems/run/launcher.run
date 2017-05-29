@@ -19,7 +19,6 @@ install_config {
 		<service name="ROM"/>
 		<service name="CPU"/>
 		<service name="PD"/>
-		<service name="RAM"/>
 		<service name="RM"/>
 		<service name="LOG"/>
 		<service name="IRQ"/>

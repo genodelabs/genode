@@ -127,7 +127,6 @@ proc drivers_parent_provides { feature_arg } {
 
 	append parent_provides {
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -228,7 +227,6 @@ proc drivers_start_nodes { feature_arg } {
 				</config>
 				<route>
 					<service name="LOG"> <parent/> </service>
-					<service name="RAM"> <parent/> </service>
 					<service name="CPU"> <parent/> </service>
 					<service name="ROM"> <parent/> </service>
 					<service name="PD">  <parent/> </service>

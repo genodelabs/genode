@@ -8,7 +8,6 @@ install_config {
 			<service name="ROM"/>
 			<service name="LOG"/>
 			<service name="CPU"/>
-			<service name="RAM"/>
 			<service name="RM"/>
 			<service name="PD"/>
 			<service name="IRQ"/>

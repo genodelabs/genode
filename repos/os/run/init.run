@@ -16,7 +16,6 @@ append config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="CPU"/>
 		<service name="PD"/>
 		<service name="LOG"/>
@@ -60,7 +59,6 @@ append config {
 				<report init_ram="yes" ids="yes" child_ram="yes" requested="yes"/>
 				<parent-provides>
 					<service name="ROM"/>
-					<service name="RAM"/>
 					<service name="CPU"/>
 					<service name="PD"/>
 					<service name="LOG"/>
@@ -105,7 +103,6 @@ append config {
 				<report ids="yes" requested="yes" provided="yes"/>
 				<parent-provides>
 					<service name="ROM"/>
-					<service name="RAM"/>
 					<service name="CPU"/>
 					<service name="PD"/>
 					<service name="LOG"/>
@@ -168,7 +165,6 @@ append config {
 				<report ids="yes" requested="yes" provided="yes"/>
 				<parent-provides>
 					<service name="ROM"/>
-					<service name="RAM"/>
 					<service name="CPU"/>
 					<service name="PD"/>
 					<service name="LOG"/>
@@ -222,7 +218,6 @@ append config {
 				<report ids="yes" requested="yes" provided="yes"/>
 				<parent-provides>
 					<service name="ROM"/>
-					<service name="RAM"/>
 					<service name="CPU"/>
 					<service name="PD"/>
 					<service name="LOG"/>
@@ -266,8 +261,9 @@ append config {
 			<init_config version="incomplete">
 				<report requested="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -302,8 +298,9 @@ append config {
 
 			<init_config>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -335,8 +332,9 @@ append config {
 			<init_config>
 				<report requested="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -368,8 +366,9 @@ append config {
 
 			<init_config>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -383,8 +382,9 @@ append config {
 			<expect_log string="[init -> application] config 1: Version A"/>
 			<init_config>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -405,8 +405,9 @@ append config {
 			<init_config>
 				<report/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -429,8 +430,9 @@ append config {
 
 			<init_config>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -454,8 +456,9 @@ append config {
 			<init_config>
 				<report/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -479,8 +482,9 @@ append config {
 
 			<init_config>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -504,8 +508,9 @@ append config {
 				<report init_ram="yes"/>
 				<resource name="RAM" preserve="2M"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -539,8 +544,9 @@ append config {
 			<init_config>
 				<report child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -566,8 +572,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -593,8 +600,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -621,8 +629,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -653,8 +662,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -680,8 +690,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -707,8 +718,9 @@ append config {
 			<init_config version="consumed">
 				<report init_ram="yes" child_ram="yes" delay_ms="1500"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -737,8 +749,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -765,8 +778,9 @@ append config {
 			<init_config version="resources requested">
 				<report init_ram="yes" child_ram="yes" delay_ms="2000"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -794,8 +808,9 @@ append config {
 			<init_config>
 				<report init_ram="yes" child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -824,8 +839,9 @@ append config {
 			<init_config>
 				<report child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -835,8 +851,9 @@ append config {
 					<provides> <service name="LOG"/> </provides>
 					<config>
 						<parent-provides>
-							<service name="ROM"/> <service name="RAM"/>
-							<service name="CPU"/> <service name="PD"/>
+							<service name="ROM"/>
+							<service name="CPU"/>
+							<service name="PD"/>
 							<service name="LOG"/>
 						</parent-provides>
 						<default caps="60"/>
@@ -892,8 +909,9 @@ append config {
 			<init_config>
 				<report child_ram="yes"/>
 				<parent-provides>
-					<service name="ROM"/> <service name="RAM"/>
-					<service name="CPU"/> <service name="PD"/>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
 					<service name="LOG"/>
 				</parent-provides>
 				<default caps="100"/>
@@ -903,8 +921,9 @@ append config {
 					<provides> <service name="LOG"/> </provides>
 					<config>
 						<parent-provides>
-							<service name="ROM"/> <service name="RAM"/>
-							<service name="CPU"/> <service name="PD"/>
+							<service name="ROM"/>
+							<service name="CPU"/>
+							<service name="PD"/>
 							<service name="LOG"/>
 						</parent-provides>
 						<default caps="60"/>

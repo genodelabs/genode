@@ -13,7 +13,6 @@ install_config {
 		<parent-provides>
 			<service name="PD"/>
 			<service name="ROM"/>
-			<service name="RAM"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
 		</parent-provides>

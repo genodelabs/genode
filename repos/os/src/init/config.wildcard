@@ -1,11 +1,9 @@
 <config prio_levels="4" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>

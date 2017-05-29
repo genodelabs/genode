@@ -17,7 +17,6 @@ install_config {
 		<service name="PD"/>
 		<service name="CPU"/>
 		<service name="ROM"/>
-		<service name="RAM"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

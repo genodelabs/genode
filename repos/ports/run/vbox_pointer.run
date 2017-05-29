@@ -30,7 +30,6 @@ set config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -43,7 +42,6 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 		<route>
-			<service name="RAM"> <parent/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 			<service name="PD">  <parent/> </service>
@@ -59,7 +57,6 @@ set config {
 		<config buffered="yes" width="1280" height="720" depth="16"/>
 		<!--<config buffered="yes" width="1440" height="900" depth="16"/>-->
 		<route>
-			<service name="RAM">   <parent/>             </service>
 			<service name="ROM">   <parent/>             </service>
 			<service name="CPU">   <parent/>             </service>
 			<service name="PD">    <parent/>             </service>
@@ -80,7 +77,6 @@ set config {
 			<policy label="pointer -> focus" report="nitpicker -> focus"/>
 		</config>
 		<route>
-			<service name="RAM"> <parent/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 			<service name="PD">  <parent/> </service>
@@ -104,7 +100,6 @@ set config {
 			<background color="#00426f"/> <!-- indigo -->
 		</config>
 		<route>
-			<service name="RAM">         <parent/>                        </service>
 			<service name="ROM">         <parent/>                        </service>
 			<service name="CPU">         <parent/>                        </service>
 			<service name="PD">          <parent/>                        </service>
@@ -128,7 +123,6 @@ set config {
 		</config>
 		<route>
 			<service name="PD">  <parent/> </service>
-			<service name="RAM"> <parent/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 			<service name="LOG"> <parent/> </service>
@@ -140,7 +134,6 @@ set config {
 		<config shape="arrow"/>
 		<route>
 			<service name="PD">     <parent/> </service>
-			<service name="RAM">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 			<service name="CPU">    <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -153,7 +146,6 @@ set config {
 		<config shape="blade"/>
 		<route>
 			<service name="PD">     <parent/> </service>
-			<service name="RAM">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 			<service name="CPU">    <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -166,7 +158,6 @@ set config {
 		<config shape="bladex"/>
 		<route>
 			<service name="PD">     <parent/> </service>
-			<service name="RAM">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 			<service name="CPU">    <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -190,7 +181,6 @@ set config {
 			</rom>
 		</config>
 		<route>
-			<service name="RAM">   <parent/> </service>
 			<service name="ROM">   <parent/> </service>
 			<service name="CPU">   <parent/> </service>
 			<service name="PD">    <parent/> </service>
@@ -206,7 +196,6 @@ set config {
 			<service name="ROM" label="smiley.config">
 				<child name="shape-smiley-config"/> </service>
 			<service name="Report"> <child name="report_rom_shapes"/> </service>
-			<service name="RAM"> <parent/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 			<service name="PD">  <parent/> </service>
@@ -233,7 +222,6 @@ set config {
 			<service name="ROM" label="blade">  <child name="report_rom_shapes"/>    </service>
 			<service name="ROM" label="bladex"> <child name="report_rom_shapes"/>    </service>
 			<service name="ROM" label="smiley"> <child name="report_rom_shapes"/>    </service>
-			<service name="RAM"> <parent/> </service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>
 		</route>
@@ -246,7 +234,6 @@ set config {
 			<service name="LOG">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
-			<service name="RAM">       <parent/>                 </service>
 			<service name="ROM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -259,7 +246,6 @@ set config {
 			<service name="LOG">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
-			<service name="RAM">       <parent/>                 </service>
 			<service name="ROM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -272,7 +258,6 @@ set config {
 			<service name="LOG">       <parent/>                 </service>
 			<service name="PD">        <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
-			<service name="RAM">       <parent/>                 </service>
 			<service name="ROM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -285,7 +270,6 @@ set config {
 			<service name="PD">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
-			<service name="RAM">       <parent/>                 </service>
 			<service name="ROM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -298,7 +282,6 @@ set config {
 			<service name="PD">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
-			<service name="RAM">       <parent/>                 </service>
 			<service name="ROM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -311,7 +294,6 @@ set config {
 			<service name="PD">        <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
 			<service name="CPU">       <parent/>                 </service>
-			<service name="RAM">       <parent/>                 </service>
 			<service name="ROM">       <parent/>                 </service>
 			<service name="Timer">     <child name="timer"/>     </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>

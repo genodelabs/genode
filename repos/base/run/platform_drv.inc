@@ -138,7 +138,6 @@ proc platform_drv_config {} {
 			<service name="PD">     <parent/> </service>
 			<service name="RM">     <parent/> </service>
 			<service name="CPU">    <parent/> </service>
-			<service name="RAM">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 			<service name="Report"> <child name="acpi_report_rom"/> </service>
 		</route>
@@ -161,7 +160,6 @@ proc platform_drv_config {} {
 			<service name="LOG"> <parent/> </service>
 			<service name="PD">     <parent/> </service>
 			<service name="CPU">    <parent/> </service>
-			<service name="RAM">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>
 		</route>
 	</start>}

@@ -38,7 +38,6 @@ set config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
 		<service name="IRQ"/>

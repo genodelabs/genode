@@ -35,7 +35,6 @@ append config "
 append config {
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
@@ -62,7 +61,6 @@ for { set i 0} { $i < ${cpus} } { incr i} {
 				<config verbose="yes">
 					<parent-provides>
 						<service name="ROM"/>
-						<service name="RAM"/>
 						<service name="PD"/>
 						<service name="RM"/>
 						<service name="CPU"/>

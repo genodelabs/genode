@@ -28,7 +28,6 @@ append config {
 <config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="CPU"/>
 		<service name="PD"/>
 		<service name="LOG"/>

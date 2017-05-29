@@ -83,7 +83,6 @@ destination, the wildcard '<any-service>' becomes handy. For example, instead
 of specifying
 ! <route>
 !   <service name="ROM">    <parent/> </service>
-!   <service name="RAM">    <parent/> </service>
 !   <service name="RM">     <parent/> </service>
 !   <service name="PD">     <parent/> </service>
 !   <service name="CPU">    <parent/> </service>
@@ -181,7 +180,6 @@ child is routed to the timer service started at the first-level init instance.
 !   <parent-provides>
 !     <service name="LOG"/>
 !     <service name="ROM"/>
-!     <service name="RAM"/>
 !     <service name="CPU"/>
 !     <service name="RM"/>
 !     <service name="PD"/>
@@ -209,7 +207,6 @@ child is routed to the timer service started at the first-level init instance.
 !       <service name="Timer">  <child name="timer"/> </service>
 !       <service name="LOG">    <parent/>             </service>
 !       <service name="ROM">    <parent/>             </service>
-!       <service name="RAM">    <parent/>             </service>
 !       <service name="CPU">    <parent/>             </service>
 !       <service name="RM">     <parent/>             </service>
 !       <service name="PD">     <parent/>             </service>

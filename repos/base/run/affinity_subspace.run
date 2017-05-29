@@ -19,7 +19,6 @@ install_config {
 			<service name="CPU"/>
 			<service name="RM"/>
 			<service name="ROM"/>
-			<service name="RAM"/>
 			<service name="PD"/>
 		</parent-provides>
 		<affinity-space width="2" />

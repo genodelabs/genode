@@ -1,11 +1,9 @@
 <config>
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
@@ -16,7 +14,6 @@
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route>
-			<service name="CAP">     <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
 			<service name="IRQ">     <parent/> </service>
 		</route>
@@ -29,7 +26,6 @@
 			<service name="Input"/>
 		</provides>
 		<route>
-			<service name="CAP"><parent/></service>
 			<service name="LOG"><parent/></service>
 		</route>
 	</start>
@@ -38,7 +34,6 @@
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<route>
-			<service name="CAP">         <parent/>              </service>
 			<service name="LOG">         <parent/>              </service>
 			<service name="Framebuffer"> <child name="fb_sdl"/> </service>
 			<service name="Input">       <child name="fb_sdl"/> </service>
@@ -53,7 +48,6 @@
 			<service name="Input"/>
 		</provides>
 		<route>
-			<service name="CAP">       <parent/>                 </service>
 			<service name="LOG">       <parent/>                 </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer">     <child name="timer"/>     </service>
@@ -64,7 +58,6 @@
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<route>
-			<service name="CAP">         <parent/>                 </service>
 			<service name="LOG">         <parent/>                 </service>
 			<service name="Framebuffer"> <child name="liquid_fb"/> </service>
 			<service name="Input">       <child name="liquid_fb"/> </service>
@@ -75,12 +68,10 @@
 		<binary name="launchpad"/>
 		<resource name="RAM" quantum="32M"/>
 		<route>
-			<service name="CAP">       <parent/>                        </service>
 			<service name="LOG">       <parent/>                        </service>
 			<service name="Nitpicker"> <child name="nested_nitpicker"/> </service>
 			<service name="Timer">     <child name="timer"/>            </service>
 			<service name="ROM">       <parent/>                        </service>
-			<service name="RAM">       <parent/>                        </service>
 			<service name="RM">        <parent/>                        </service>
 			<service name="PD">        <parent/>                        </service>
 			<service name="CPU">       <parent/>                        </service>

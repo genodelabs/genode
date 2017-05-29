@@ -16,7 +16,6 @@ set config {
 		<service name="LOG"/>
 		<service name="IO_PORT"/>
 		<service name="PD"/>
-		<service name="RAM"/>
 		<service name="RM"/>
 		<service name="ROM"/>
 		<service name="SIGNAL"/>

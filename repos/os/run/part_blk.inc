@@ -52,7 +52,6 @@ append config {
 <config prio_levels="1" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>

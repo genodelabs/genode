@@ -26,7 +26,6 @@ nodes:
 <config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
@@ -48,7 +47,6 @@ nodes:
 		<config prio_levels="4">
 			<parent-provides>
 				<service name="ROM"/>
-				<service name="RAM"/>
 				<service name="PD"/>
 				<service name="RM"/>
 				<service name="CPU"/>

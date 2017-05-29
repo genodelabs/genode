@@ -26,7 +26,6 @@ install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -57,7 +56,6 @@ install_config {
 				<service name="ROM"/>
 				<service name="CPU"/>
 				<service name="PD"/>
-				<service name="RAM"/>
 				<service name="LOG"/>
 				<service name="Timer"/>
 			</parent-provides>

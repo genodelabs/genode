@@ -6,7 +6,6 @@ install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="LOG"/>
 		<service name="RM"/>
 	</parent-provides>

@@ -6,8 +6,6 @@ install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
-		<service name="RAM"/>
-		<service name="CAP"/>
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
@@ -19,8 +17,6 @@ install_config {
 		<config verbose="yes">
 			<parent-provides>
 				<service name="ROM"/>
-				<service name="RAM"/>
-				<service name="CAP"/>
 				<service name="PD"/>
 				<service name="RM"/>
 				<service name="CPU"/>

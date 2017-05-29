@@ -145,7 +145,7 @@ struct Main_parent
 		Parent_services(Allocator &alloc) : alloc(alloc)
 		{
 			static const char *names[] = {
-				"RAM", "PD", "CPU", "ROM", "LOG", 0 };
+				"PD", "CPU", "ROM", "LOG", 0 };
 			for (unsigned i = 0; names[i]; i++)
 				new (alloc) Test_child_policy::Parent_service(*this, names[i]);
 		}

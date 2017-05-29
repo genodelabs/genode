@@ -63,7 +63,6 @@ struct Test::Monitor
 				_gen_service_xml(xml, "ROM");
 				_gen_service_xml(xml, "CPU");
 				_gen_service_xml(xml, "PD");
-				_gen_service_xml(xml, "RAM");
 				_gen_service_xml(xml, "LOG");
 				_gen_service_xml(xml, "Timer");
 			});
