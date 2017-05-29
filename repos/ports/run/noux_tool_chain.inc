@@ -180,7 +180,7 @@ append config {
 }
 
 append config {
-	<start name="noux">
+	<start name="noux" caps="1000">
 		<resource name="RAM" quantum="1G" />
 }
 
@@ -248,7 +248,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so stdcxx.lib.so
-	pcre.lib.so posix.lib.so
+	pcre.lib.so posix.lib.so vimrc
 }
 
 append boot_modules { gmp.lib.so mpfr.lib.so mpc.lib.so }
