@@ -34,26 +34,27 @@
 
 
 namespace Linux {
-		#include <lx_emul.h>
+	#include <lx_emul.h>
+	#include <msghdr.h>
 
-		#include <lx_emul/extern_c_begin.h>
-		#include <linux/socket.h>
-		#include <uapi/linux/in.h>
-		#include <uapi/linux/if.h>
-		extern int sock_setsockopt(socket *sock, int level,
-		                           int op, char __user *optval,
-		                           unsigned int optlen);
-		extern int sock_getsockopt(socket *sock, int level,
-		                           int op, char __user *optval,
-		                           int __user *optlen);
-		socket *sock_alloc(void);
-		#include <lx_emul/extern_c_end.h>
+	#include <lx_emul/extern_c_begin.h>
+	#include <linux/socket.h>
+	#include <uapi/linux/in.h>
+	#include <uapi/linux/if.h>
+	extern int sock_setsockopt(socket *sock, int level,
+	                           int op, char __user *optval,
+	                           unsigned int optlen);
+	extern int sock_getsockopt(socket *sock, int level,
+	                           int op, char __user *optval,
+	                           int __user *optlen);
+	socket *sock_alloc(void);
+	#include <lx_emul/extern_c_end.h>
 
-		enum {
-			POLLIN_SET  = (POLLRDNORM | POLLRDBAND | POLLIN | POLLHUP | POLLERR),
-			POLLOUT_SET = (POLLWRBAND | POLLWRNORM | POLLOUT | POLLERR),
-			POLLEX_SET  = (POLLPRI)
-		};
+	enum {
+		POLLIN_SET  = (POLLRDNORM | POLLRDBAND | POLLIN | POLLHUP | POLLERR),
+		POLLOUT_SET = (POLLWRBAND | POLLWRNORM | POLLOUT | POLLERR),
+		POLLEX_SET  = (POLLPRI)
+	};
 }
 
 
@@ -347,22 +348,10 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 		{
 			using namespace Linux;
 
-			msghdr msg;
-			iovec  iov;
+			iovec iov { const_cast<char *>(src), len };
 
-			msg.msg_name            = &_parent.remote_addr();
-			msg.msg_namelen         = sizeof(sockaddr_in);
-			msg.msg_iter.iov_offset = 0;
-			msg.msg_iter.count      = len;
-			msg.msg_iter.iov        = &iov;
-			msg.msg_iter.nr_segs    = 1;
-			msg.msg_control         = nullptr;
-			msg.msg_controllen      = 0;
-			msg.msg_flags           = 0;
-			msg.msg_iocb            = nullptr;
-
-			iov.iov_base = const_cast<char *>(src);
-			iov.iov_len  = len;
+			msghdr msg = create_msghdr(&_parent.remote_addr(),
+			                           sizeof(sockaddr_in), len, &iov);
 
 			return _sock.ops->sendmsg(&_sock, &msg, len);
 		}
@@ -372,22 +361,9 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 		{
 			using namespace Linux;
 
-			msghdr msg;
-			iovec  iov;
+			iovec iov { dst, len };
 
-			msg.msg_name            = nullptr;
-			msg.msg_namelen         = 0;
-			msg.msg_iter.iov_offset = 0;
-			msg.msg_iter.count      = len;
-			msg.msg_iter.iov        = &iov;
-			msg.msg_iter.nr_segs    = 1;
-			msg.msg_control         = nullptr;
-			msg.msg_controllen      = 0;
-			msg.msg_flags           = 0;
-			msg.msg_iocb            = nullptr;
-
-			iov.iov_base = dst;
-			iov.iov_len  = len;
+			msghdr msg = create_msghdr(nullptr, 0, len, &iov);
 
 			Lxip::ssize_t ret = _sock.ops->recvmsg(&_sock, &msg, len, MSG_DONTWAIT);
 			if (ret == -EAGAIN)
@@ -682,23 +658,12 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 			case Lxip::Protocol_dir::TYPE_DGRAM:
 				{
 					/* peek the sender address of the next packet */
-					msghdr msg;
-					iovec  iov;
-
-					msg.msg_name            = addr;
-					msg.msg_namelen         = sizeof(addr_storage);
-					msg.msg_iter.type       = 0;
-					msg.msg_iter.iov_offset = 0;
-					msg.msg_iter.count      = sizeof(_content_buffer);
-					msg.msg_iter.iov        = &iov;
-					msg.msg_iter.nr_segs    = 1;
-					msg.msg_control         = nullptr;
-					msg.msg_controllen      = 0;
-					msg.msg_iocb            = nullptr;
 
 					/* buffer not used */
-					iov.iov_base = _content_buffer;
-					iov.iov_len  = sizeof(_content_buffer);
+					iovec iov { _content_buffer, sizeof(_content_buffer) };
+
+					msghdr msg = create_msghdr(addr, sizeof(addr_storage),
+					                           sizeof(_content_buffer), &iov);
 
 					int const res = _sock.ops->recvmsg(&_sock, &msg, 0, MSG_DONTWAIT|MSG_PEEK);
 					if (res == -EAGAIN) throw Would_block();

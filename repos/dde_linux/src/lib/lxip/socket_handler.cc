@@ -30,19 +30,20 @@ static const bool verbose = false;
 
 
 namespace Linux {
-		#include <lx_emul.h>
+	#include <lx_emul.h>
+	#include <msghdr.h>
 
-		#include <lx_emul/extern_c_begin.h>
-		#include <linux/socket.h>
-		#include <uapi/linux/in.h>
-		extern int sock_setsockopt(struct socket *sock, int level,
-		                           int op, char __user *optval,
-		                           unsigned int optlen);
-		extern int sock_getsockopt(struct socket *sock, int level,
-		                           int op, char __user *optval,
-		                           int __user *optlen);
-		struct socket *sock_alloc(void);
-		#include <lx_emul/extern_c_end.h>
+	#include <lx_emul/extern_c_begin.h>
+	#include <linux/socket.h>
+	#include <uapi/linux/in.h>
+	extern int sock_setsockopt(struct socket *sock, int level,
+	                           int op, char __user *optval,
+	                           unsigned int optlen);
+	extern int sock_getsockopt(struct socket *sock, int level,
+	                           int op, char __user *optval,
+	                           int __user *optlen);
+	struct socket *sock_alloc(void);
+	#include <lx_emul/extern_c_end.h>
 }
 
 namespace Net
@@ -299,20 +300,11 @@ class Net::Socketcall : public Lxip::Socketcall,
 		void _do_recv()
 		{
 			using namespace Linux;
-			struct msghdr msg;
-			struct iovec  iov;
 
-			msg.msg_control      = nullptr;
-			msg.msg_controllen   = 0;
-			msg.msg_iter.iov     = &iov;
-			msg.msg_iter.nr_segs = 1;
-			msg.msg_iter.count   = _call.msg.len;
+			iovec iov { _call.msg.buf, _call.msg.len };
 
-			iov.iov_len        = _call.msg.len;
-			iov.iov_base       = _call.msg.buf;
-			msg.msg_name       = _call.addr_len ? &_call.addr : 0;
-			msg.msg_namelen    = _call.addr_len;
-			msg.msg_flags      = 0;
+			msghdr msg = create_msghdr(_call.addr_len ? &_call.addr : nullptr,
+			                           _call.addr_len, _call.msg.len, &iov);
 
 			if (_call.handle.non_block)
 				msg.msg_flags |= MSG_DONTWAIT;
@@ -331,25 +323,17 @@ class Net::Socketcall : public Lxip::Socketcall,
 		void _do_send()
 		{
 			using namespace Linux;
-			struct msghdr msg;
-			struct iovec  iov;
 
 			_result.len = socket_check_state(call_socket());
 			if (_result.len < 0)
 				return;
 
-			msg.msg_control      = nullptr;
-			msg.msg_controllen   = 0;
-			msg.msg_iter.iov     = &iov;
-			msg.msg_iter.nr_segs = 1;
-			msg.msg_iter.count   = _call.msg.len;
+			iovec iov { _call.msg.buf, _call.msg.len };
 
-			iov.iov_len        = _call.msg.len;
-			iov.iov_base       = _call.msg.buf;
-			msg.msg_name       = _call.addr_len ? &_call.addr : 0;
-			msg.msg_namelen    = _call.addr_len;
-			msg.msg_flags      = _call.msg.flags;
+			msghdr msg = create_msghdr(_call.addr_len ? &_call.addr : nullptr,
+			                           _call.addr_len, _call.msg.len, &iov);
 
+			msg.msg_flags = _call.msg.flags;
 			if (_call.handle.non_block)
 				msg.msg_flags |= MSG_DONTWAIT;
 
