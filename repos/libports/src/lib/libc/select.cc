@@ -262,7 +262,8 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	{
 		timeval const *_tv;
 		bool    const  valid    { _tv != nullptr };
-		unsigned long  duration { valid ? _tv->tv_sec*1000 + _tv->tv_usec/1000 : 0UL };
+		unsigned long  duration {
+			valid ? (unsigned long)_tv->tv_sec*1000 + _tv->tv_usec/1000 : 0UL };
 
 		bool expired() const { return valid && duration == 0; };
 
