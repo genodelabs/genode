@@ -1,0 +1,1033 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 17.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+According to the feedback we received for our this year's
+[https:/about/road-map - road map], version 17.05 is a highly anticipated
+release as it strives to be a suitable basis for being supported over a longer
+time frame. Guided by this theme, the release updates important parts
+of the framework's infrastructure with the expectation to stay stable
+over the next year or longer. In particular, the official tool chain has
+been updated to GCC 6.3 (Section [Tool chain]), Qt to version 5.8 (Section
+[Qt5 updated to version 5.8]), and VirtualBox to version 5.1.22
+([Feature-completeness of VirtualBox 5 on NOVA]). The latter is not just an
+update. VirtualBox 5 on NOVA has now reached feature parity with the previous
+VirtualBox version 4, including the support for guest additions and USB
+pass-through.
+
+As another aspect of being supportable over a longer time, the framework's
+architecture and API should not undergo significant changes in the foreseeable
+future. For this reason, all pending architectural changes had to be realized
+in this release cycle. Fortunately, there are not as many - compared to the
+sweeping changes of the previous releases. However, as explained in Section
+[Base framework], changes like the accounting and trading of capability
+resources or the consolidation of core services are user-visible.
+
+Since the previous edition of the "Genode Foundations" book was written prior
+to our great overhaul that started one year ago, it does no longer accurately
+represent the current state of Genode. Therefore, the current release is
+accompanied with a new edition of the book
+(Section [New revision of the Genode Foundations book]).
+
+Even though the overall theme of Genode 17.05 is long-term maintainability,
+we do not yet publicly commit to providing it as an "LTS" release. Our plan
+is to first gain the experience with the challenges that come with long-term
+support as an in-house experiment. Those uncertainties include the effort
+needed for upholding Genode's continuous test and integration infrastructure
+for multiple branches of development instead of just one as well as the
+selective back-porting of bug fixes. In short, we don't want to over-promise.
+
+In anticipation of architectural and API stability, however, now seems to be
+the perfect time to enter the next level of Genode's scalability by
+introducing a form of package management. We worked on this topic one-and-off
+for multiple years now, trying to find an approach that fits well with
+Genode's unusual architecture. We eventually ended up following an entirely
+new direction presented in Section [Package management].
+
+Further highlights of the current release are a new user-level timing facility
+that greatly improves the precision of time as observed by components
+[New API for user-level timing], added support for the Nim programming
+language (Section [Nim programming language]), and new components for
+monitoring network traffic and CPU load.
+
+
+Package management
+##################
+
+Genode's established work flows facilitate the framework's run tool for
+automated building, configuration, integration, and testing of Genode system
+scenarios. Thereby, the subject of work is usually the system scenario as a
+whole. The system may be composed of an arbitrary number of components or even
+host dynamic subsystems, but whenever a change of the system is desired, a new
+work-flow iteration is required. This procedure works well for appliance-like
+scenarios with a well-defined scope of features. But as indicated by our
+experience with using Genode as a general-purpose OS with the so-dubbed
+"Turmvilla" scenario, it does not scale well to scenarios where the shape of
+the system changes over time. In practice, modeling a general-purpose OS as
+one single piece becomes inconvenient.
+
+The natural solution is a package manager that relieves the system integrator
+from compiling all components from source and "abstracts away" low-level
+details into digestible packages. After reviewing several package-management
+approaches, we grew very fond of the [https://nixos.org/nix/ - Nix] package
+manager, which opened our eyes to package management done right. However, in
+the process of our intensive experimentation of combining Nix with Genode,
+we also learned that Nix solves a number problems that do not exist in the
+clean-slate Genode world. This realization prompted us to explore a custom
+approach. The current release bears the fruit of this line of work in the form
+of a new tool set called "depot":
+
+:New documentation of Genode's package management:
+
+  [https://genode.org/documentation/developer-resources/package_management]
+
+In short, the new depot tools provide the following features:
+
+* Packaged content is categorized into different types of "archives" with
+  each type being modeled after a specific purpose. We distinguish API,
+  source, raw-data, binary, and package archives.
+
+* Flat build-time dependencies: Source archives can merely depend on API
+  archives but not on other source archives. API archives cannot have any
+  dependencies. Consequently, the sequence of building binary archives
+  can be completely arbitrary, which benefits parallelization.
+
+* Loose coupling between source archives. Applications do not directly
+  depend of libraries but merely on the library's API archives. Unless a
+  bug fix of a library affects its API, the fixed library version is
+  transparent to library-using applications.
+
+* Archives are organized in a hierarchic name space that includes its
+  origin, type, and version.
+
+* Different versions of software can be installed side by side.
+
+That said, the new depot tools may not be the end of all means. In order to
+fully promote them, we first need to extensively use them and locate their
+weak spots. The current implementation should therefore be regarded as
+experimental. During the development, we stressed the tools intensively by
+realizing reasonably complex scenarios - in particular interactive scenarios
+that include the window manager. The immediate results of this playful process
+are more than 80 easily reusable archives, in particular archives for all of
+the framework's supported kernels.
+
+The new depot does not exist isolated from the run tool. The current release
+rather enhances the existing run tool with the ability to incorporate
+ready-to-use depot content into scenarios. This is best illustrated with the
+_gems/run/wm.run_ script, which creates a system image out of depot content
+only. Most of the other run scripts of the _gems_ repository leverage the
+depot in an even more interesting way: The majority of content is taken from
+the depot but a few components of particular interest are handled by the build
+system. The combination of the depot with the established work flow has three
+immediate benefits. First, once the depot is populated with binary archives,
+the start time of the scenarios decreases dramatically because most dependency
+checks and build steps are side-stepped. Second, the run scripts become more
+versatile. In particular, run scripts that were formerly supported on
+base-linux only (nit_fader, decorator, menu_view) have become usable on all
+base platforms that have a 'drivers_interactive' package defined. Finally, the
+run scripts have become much shorter.
+
+Right now, the depot tools are still focused on Genode's traditional work
+flows as they  provide an immediate benefit for our everyday development.
+But they also represent the groundwork for the next step, which is on-target
+package management and system updates.
+
+
+Base framework
+##############
+
+New revision of the Genode Foundations book
+===========================================
+
+Genode underwent substantial changes over the course of the past year. This
+prompted us to update the "Genode Foundations" book to reflect the most current
+state of the framework. Specifically, the changes since the last year's
+edition are:
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="http://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* The consolidation of the PD and RAM services of core,
+* The assignment and trading of capability quota,
+* An extension of the getting-starting section with an example of a typical
+  component skeleton and the handling of external events,
+* New init-configuration features including the use of unscoped labels,
+  state report, service forwarding, and label rewriting,
+* The use of kernel-agnostic build directories,
+* A new under-the-hood description of the asynchronous parent-child interplay,
+* An updated API reference
+
+: <div class="visualClear"><!-- --></div>
+
+To examine the changes in detail, please refer to the book's
+[https://github.com/nfeske/genode-manual/commits/master - revision history].
+
+
+Completed component transition to the modern API
+================================================
+
+One year ago, we profoundly
+[https:/documentation/release-notes/16.05#The_great_API_renovation - overhauled Genode's API].
+The modernized framework interface promotes a safe programming style that
+greatly reduces the chances of memory-safety bugs, eases the assessment of
+code by shunning the use of global side effects, and models the internal
+state of components in an explicit way. We are happy to report that we have
+updated almost all of Genode's over 400 components to the new API, so that
+we can fade out the deprecated legacies from our past.
+
+Originally, we planned to drop the deprecated API altogether with the current
+release. But we will hold on for one release cycle as we identified a few
+components that are better replaced by new implementations rather than updating
+them, e.g., our old Mesa EGL back end that will be replaced in August, or a
+few libc plugins that are superseded by the recently introduced VFS
+infrastructure. By keeping the compatibility with the old API intact for a bit
+longer, we are not forced to drop those components before their replacements
+are in place.
+
+
+Streamlining exception types
+============================
+
+During the organic evolution of the Genode API, we introduced exception types
+as needed without a global convention. In particular the exception types as
+thrown by RPC functions were usually defined in the scope of the RPC
+interface. This approach ultimately led to a proliferation of ambiguously
+named exception types such as 'Root::Quota_exceeded' and
+'Ram_session::Quota_exceeded'.
+
+With the current release, we replace the organically grown exception landscape
+by a framework-wide convention. The following changes ease the error handling
+(there are fewer exceptions to handle), alleviate the need to convert
+exceptions along the session-creation call chain, and avoid possible aliasing
+problems (catching the wrong type with the same name but living in a different
+scope):
+
+* RPC functions that demand a session-resource upgrade no longer reflect this
+  condition via a session-specific exception but via the new 'Out_of_ram'
+  or 'Out_of_caps' exception types, declared in _base/quota_quard.h_.
+
+* The former 'Parent::Service_denied', 'Parent::Unavailable',
+  'Root::Invalid_args', 'Root::Unavailable', 'Service::Invalid_args',
+  'Service::Unavailable', and 'Local_service::Factory::Denied' types have
+  been replaced by a single 'Service_denied' exception type defined in
+  'session/session.h'.
+
+* The former 'Parent::Quota_exceeded', 'Service::Quota_exceeded', and
+  'Root::Quota_exceeded' exceptions are covered by a single
+  'Insufficient_ram_quota' exception type now.
+
+* The 'Parent' interface has become able to distinguish between 'Out_of_ram'
+  (the child's RAM is exhausted) and 'Insufficient_ram_quota' (the child's
+  RAM donation does not suffice to establish the session).
+
+* The 'Allocator::Out_of_memory' exception has become an alias for 'Out_of_ram'.
+
+
+Assignment and trading of capability quota
+==========================================
+
+Genode employs a resource-trading scheme for memory management. Under this
+regime, parent components explicitly assign memory to child components, and
+client components are able to "lend" memory to servers. (the details are
+described in the "Genode Foundations" book).
+
+Even though capabilities are data structures (residing in the kernel), their
+costs cannot be accounted via Genode's regular memory-trading scheme because
+those data structures are - generally speaking - not easily extensible by the
+user land on top of the kernel. E.g., on Linux where we use file descriptors
+to represent capabilities, we are bound by the fd-limit of the kernel. On
+base-hw, the maximum number of capabilities is fixed at kernel-build time
+and used to dimension statically allocated data structures. Even on
+seL4 (which in principle allows user memory to be turned into kernel memory),
+the maximum number of capabilities is somehow limited by the ID namespace
+within core. For this reason, capabilities should be regarded as a limited
+physical resource from the component's point of view, very similar to how
+physical memory is modeled as a limited physical resource.
+
+On Genode, any regular component implicitly triggers the allocation of
+capabilities whenever a RPC object or a signal context is created. As previous
+versions of Genode did not impose a limit on how many capabilities a component
+could allocate, a misbehaving component could have exhausted the system-global
+capability space and thereby posed a denial-of-service threat. The current
+version solves this problem by mirroring the accounting and trading scheme
+that Genode employs for physical memory for the accounting of capability
+allocations.
+
+Capability quota must now be explicitly assigned to subsystems by specifying
+a 'caps=<amount>' attribute to init's start nodes. Analogously to RAM quota,
+cap quota can be traded between clients and servers as part of the session
+protocol. The capability budget of each component is maintained by the
+component's corresponding PD session at core.
+
+At the current stage, the accounting is applied to RPC capabilities,
+signal-context capabilities, dataspace capabilities, and static per-session
+capability costs. Capabilities that are dynamically allocated via core's CPU
+and TRACE services are not yet covered. Also, the capabilities allocated by
+resource multiplexers outside of core (like nitpicker) must be accounted by
+the respective servers, which is not covered yet. The static per-session
+capability costs are declared via the new 'CAP_QUOTA' enum value in the scope
+of the respective session type. The value is used by clients to dimension a
+session's initial quota donation. At the server side, the session-construction
+argument is validated against the 'CAP_QUOTA' value as written in the
+"contract" (the session interface).
+
+If a component runs out of capabilities, core's PD service issues a warning.
+To observe the consumption of capabilities per component in detail, the PD
+service is equipped with a diagnostic mode, which can be enabled via the
+'diag' attribute in the target node of init's routing rules. E.g., the
+following route enables the diagnostic mode for the PD session of the "timer"
+component:
+
+! <default-route>
+!   <service name="PD" unscoped_label="timer">
+!     <parent diag="yes"/>
+!   </service>
+!   ...
+! </default-route>
+
+For subsystems based on a sub-init instance, init can be configured to report
+the capability-quota information of its subsystems by adding the attribute
+'child_caps="yes"' to init's '<report>' configuration node. Init's own
+capability quota can be reported by adding the attribute 'init_caps="yes"'.
+
+
+Merged RAM and PD services of the core component
+================================================
+
+Genode's core component used to decouple the management of RAM from the notion
+of protection domains (PD). Both concerns were addressed by separate core
+services. While nice from an academic point of view, in practice, this
+separation did not provide any tangible benefit. As a matter of fact, there is
+a one-to-one relationship between PD sessions and RAM sessions in all current
+Genode systems. As this superficial flexibility is needless complexity, we
+identified the potential to simplify core as well as the framework libraries
+by merging the RAM session functionality into the PD session interface.
+
+With the implementation of capability-quota accounting - as explained in
+Section [Assignment and trading of capability quota] - PD sessions already
+serve the role of an accountant for physical resources, which was previously a
+distinctive feature of RAM sessions. That includes the support for trading
+resource quota between sessions and the definition of a reference account.
+The only unique functionality provided by the RAM service is the actual
+allocation and deallocation of RAM. So the consolidation appeared as a natural
+step to take.
+
+From the framework's API perspective, this change mainly affects the use case
+of the 'Ram_session' interface as a physical-memory allocation back end. This
+use case is covered by the new 'Ram_allocator' interface, which is implemented
+by the 'Pd_session' and contains the subset of the former RAM session
+interface needed to satisfy the 'Heap' and 'Sliced_heap'. Its narrow scope
+makes it ideal for intercepting memory allocations as done by the new
+'Constrained_ram_allocator' wrapper class, which is meant to replace the
+existing _base/allocator_guard.h_ and _os/ram_session_guard.h_.
+
+From a system integrator's point of view, the change makes the routing of
+environment sessions to core's RAM service superfluous. Routes to core's RAM
+service along with the corresponding '<parent-provides>' declarations can
+safely be removed from run scripts.
+
+
+Explicit execution of static constructors
+=========================================
+
+Static constructors and constructor functions marked by
+'__attribute__(constructor)__' enable the compiler and developer to specify
+code that should be executed before any other application code is running.
+That sounds innocent but comes with a couple of implications. First, there is
+no chance to explicitly pass parameters to these functions. Therefore,
+additional context must be globally accessible, which contradicts to the
+capability-based programming model at heart. Also, beside some weird static
+priority scheme there is no approach to specify an inter-dependency of
+constructor functions, which results in an arbitrary execution order and
+limits the practical applicability.
+
+On that account, we have been shunning static constructors since the early
+times of Genode. For existing applications and libraries that's not an option
+and we also implemented the required mechanisms in our startup code. With this
+release, we took the next step to banish static constructors from native
+Genode components by making the execution of those constructors optional. Our
+dynamic linker does no longer automatically execute static constructors of the
+binary and shared libraries the binary depends on. If static construction is
+required (e.g., if a shared library with constructors is used or a compilation
+unit contains global statics) the component needs to execute the constructors
+explicitly in 'Component::construct()' via 'Genode::Env::exec_static_constructors()'.
+In case of C library components, this is done automatically by the libc
+startup code, i.e., the 'Component::construct()' implementation within the
+libc. The loading of shared objects at runtime is not affected by this change
+and constructors of those objects are executed immediately.
+
+
+Separation of I/O signals from application-level signals
+========================================================
+
+The use of signals and signal handlers can be found across the entire Genode
+code base in a diverse range of contexts. IRQs, timeouts, and completion of
+requests in block-device or file-system sessions apply signals just like
+notifications of configuration ROM updates. As a consequence, components must
+handle different types of signals at any given time. This sounds tricky but is
+quite challenging when it comes to ported software with inherent requirements
+for the execution model.
+
+The most prominent example of ported software is our C library in combination
+with any POSIX program using I/O facilities like files or sockets. In this
+case, our adaption layer that maps the library back end to Genode services has
+to support synchronous calls to classical POSIX API functions, which require
+that the operation has completed to a certain degree before the function call
+returns. While a function blocks for external I/O signals (e.g., file-system
+session), application-level signal handlers are not expected to be triggered.
+Instead, they must be deferred until the component enters its idle state.
+
+From this background, we decided to classify signal handlers and so signal
+contexts. For application-level signals, the existing 'Signal_handler' class
+is used, but for I/O signals we introduced the 'Io_signal_handler' class
+template. In regular Genode components, both classes of signals are handled
+equally by the entrypoint. The difference is that components (or libraries)
+that use 'wait_and_dispatch_one_io_signal()' to complete I/O operations in
+place defer application-level signals and dispatch only I/O-level signals. An
+illustrative example of I/O-signal declaration in combination with
+'wait_and_dispatch_one_io_signal()' can be found in the USB-raw session
+utility in _os/include/usb/packet_handler.h_ to provide synchronous semantics
+for packet submission and reception.
+
+
+OS-level libraries and components
+#################################
+
+Dynamic resource management and service forwarding via init
+===========================================================
+
+The
+[https:/documentation/release-notes/17.02#Dynamically_reconfigurable_init_component - previous release]
+equipped Genode's init component with the ability to be used as dynamic
+component-composition engine. The current release extends this approach by
+dynamically balancing of memory assignments and introduces the forwarding of
+session requests from init's parent to init's children.
+
+
+Responding to binary-name changes
+---------------------------------
+
+By subjecting the ROM-module request for an ELF binary to init's regular
+routing and label-rewriting mechanism instead of handling it as a special case,
+init's '<binary>' node has become merely syntactic sugar for a route like the
+following:
+
+!<start name="test"/>
+!  <route>
+!    <service name="ROM" unscoped_label="test">
+!      <parent label="test-binary-name"/> </service>
+!      ...
+!  </route>
+!  ...
+!</start>
+
+A change of the binary name has an effect on the child's ROM route to the
+binary and thereby implicitly triggers a child restart due to the existing
+re-validation of the routing.
+
+
+Optional version attribute for start nodes
+------------------------------------------
+
+The new 'version' attribute allows a forced restart of a child with an
+otherwise unmodified start node. The specified value is also reflected in
+init's state report such that a subsystem-management component is able to
+validate the effects of an init configuration change.
+
+
+Applying changes of '<provides>' nodes
+--------------------------------------
+
+The new version of init is able to apply changes of any server's '<provides>'
+declarations in a differential way. Servers can in principle be extended by
+new services without re-starting them. Of course, changes of the '<provides>'
+declarations may affect clients or would-be clients as this information is
+taken into account for session routing.
+
+
+Responding to RAM-quota changes
+-------------------------------
+
+If the RAM quota is decreased, init withdraws as much quota from the child's
+RAM session as possible. If the child's RAM session does not have enough
+available quota, a resource-yield request is issued to the child. Cooperative
+children may respond to such a request by releasing memory.
+
+If the RAM quota is increased, the child's RAM session is upgraded. If the
+configuration exceeds init's available RAM, init re-attempts the upgrade
+whenever new slack memory becomes available (e.g., by disappearing children).
+
+The formerly built-in policy of responding to resource requests with handing
+out slack quota does not exist anymore. Instead, resource requests have to be
+answered by an update of the init configuration with adjusted quota values.
+
+Note that this change may break run scripts that depend on init's original
+policy. Those run scripts may be adjusted by increasing the quota for the
+components that inflate their RAM usage during runtime such that the specified
+quota suffices for the entire lifetime of the component.
+
+
+Service forwarding
+------------------
+
+Init has become able to act as a server that forwards session requests to its
+children. Session requests can be routed depending on the requested service
+type and the session label originating from init's parent.
+
+The feature is configured by one or multiple '<service>' nodes hosted in
+init's '<config>' node. The routing policy is selected via the regular
+server-side policy-selection mechanism, for example:
+
+! <config>
+!   ...
+!   <service name="LOG">
+!     <policy label="noux">
+!       <child name="terminal_log" label="important"/>
+!     </policy>
+!     <default-policy> <child name="nitlog"/> </default-policy>
+!   </service>
+!   ...
+! </config>
+
+Each policy node must have a '<child>' sub node, which denotes the name of the
+server via the 'name' attribute. The optional 'label' attribute defines the
+session label presented to the server, analogous to how the rewriting of
+session labels works in session routes. If not specified, the client-provided
+label is presented to the server as is.
+
+
+New API for user-level timing
+=============================
+
+In the past, application-level timing was almost directly built upon the bare
+'Timer' session interface. Thus, developers had to manually deal with the
+deficiencies of the cross-component protocol:
+
+* A timer session can not manage multiple timeouts at once,
+
+* Binding timeout signals to handler methods must be done manually,
+
+* The precision is limited to milliseconds, and
+
+* The session interface leaves a lot to be desired which leads to individual
+  front end implementations making maintenance of timing aspects harder
+  in general.
+
+The new timeout API is a wrapper for the timer session. It raises the
+abstraction level and narrows the interface according to our experiences with
+previous solutions. The API design is guided by the broadly used 'Signal_handler'
+class and in that is a clear step away from blocking timeouts (e.g., usleep,
+msleep). Furthermore, it offers scheduling of multiple timeouts at one timer
+session, local time-interpolation for higher precision, and integrated
+dispatching to individual handler methods.
+
+The timing API is composed of three classes 'Timer::Connection',
+'Timer::Periodic_timeout', and 'Timer::One_shot_timeout' that can be found
+in the _timer_session/connection.h_ header. Let's visualize their application
+with small examples. Assume you have two object members that you'd like to
+sample every 1.5 seconds respectively every 2 seconds. You can achieve this as
+follows:
+
+! #include <timer_session/connection.h>
+!
+! using namespace Genode;
+!
+! struct Data
+! {
+!   unsigned value_1, value_2;
+!
+!   void handle_timeout_1(Duration elapsed) { log("Value 1: ", value_1); }
+!   void handle_timeout_2(Duration elapsed) { log("Value 2: ", value_2); }
+!
+!   Timer::Periodic_timeout<Data> timeout_1, timeout_2;
+!
+!   Data(Timer::Connection &timer)
+!   : timeout_1(timer, *this, &Data::handle_timeout_1, Microseconds(1500000)),
+!     timeout_2(timer, *this, &Data::handle_timeout_2, Microseconds(2000000))
+!   { }
+! };
+
+The periodic timeouts take a timer connection as construction argument. One
+can use the same timer connection for multiple timeouts. Additionally, you
+have to tell the timeout constructor what handler method to call on which
+object. A handler method has no return value and one parameter 'elapsed',
+which contains the time since the creation of the underlying timer connection.
+As its last argument the timeout constructor takes the period duration.
+Periodic timeouts automatically call the registered handler methods of the
+given objects.
+
+If you now would like to sample the members only once, adapt the example as
+follows:
+
+! struct Data
+! {
+!   ...
+!
+!   Timer::One_shot_timeout<Data> timeout_1, timeout_2;
+!
+!   Data(Timer::Connection &timer)
+!   : timeout_1(timer, *this, &Data::handle_timeout_1),
+!     timeout_2(timer, *this, &Data::handle_timeout_2)
+!   {
+!     timeout_1.schedule(Microseconds(1500000));
+!     timeout_2.schedule(Microseconds(2000000));
+!   }
+! };
+
+In contrast to a periodic timeout, a one-shot timeout is started manually with
+the 'schedule' method. It can be started multiple times with different timeout
+lengths. One can also restart the timeout inside the handler method itself:
+
+! struct Data
+! {
+!   Timer::One_shot_timeout<Data> timeout;
+!
+!   void handle(Duration elapsed) { timeout.schedule(Microseconds(1000)); }
+!
+!   Data(Timer::Connection &timer) : timeout(timer, *this, &Data::handle)
+!   {
+!     timeout.schedule(Microseconds(2000));
+!   }
+! };
+
+Furthermore, you can discard a one-shot timeout and check whether it is active
+or not:
+
+! struct Data
+! {
+!   Timer::One_shot_timeout<Data> timeout;
+!
+!   ...
+!
+!   void abort_sampling()
+!   {
+!     if (timeout.scheduled()) {
+!         timeout.discard();
+!     }
+!   }
+! };
+
+The lifetime of a timer connection can be read independent of any timeout via
+the 'Timer::Connection::curr_time' method. In general, the timer session's
+lifetime returned by 'curr_time' or the timeout-handler parameter is
+transparently calculated using the remote time as well as local interpolation.
+This raises the precision up to the level of microseconds. The only thing to
+remember is that a timer connection always needs some time (approximately 1
+second) after construction to reach this precision because the interpolation
+parameters are determined empirically.
+
+Although having this improved new timeout interface, the timer connection
+stays backwards-compatible as of now. However, the modern and the legacy
+interface cannot be used in parallel. Thus, a timer connection now has two
+modes. Initially it is in legacy mode with the raw session interface and
+blocking calls like 'usleep' and 'msleep' are available. But as soon as the
+new timeout interface is used for the first time, the connection is
+permanently switched to modern mode. Attempts to use the legacy interface in
+modern mode cause an exception.
+
+The timeout API is part of the base library, which means that it is
+automatically available in each Genode component.
+
+For technical reasons, the lifetime precision up to microseconds cannot be
+provided when using Fiasco.OC or Linux on ARM platforms.
+
+For a comprehensive example of how to use the timeout API, see the run
+script 'os/run/timeout.run' respectively the corresponding test component
+'os/src/test/timeout'.
+
+
+In-band notifications in the file-system session
+================================================
+
+With capability accounting in place, we are compelled to examine the framework
+for any wasteful allocation of capabilities. Prior to this release, it was
+convenient to allocate signal contexts for any number of application contexts.
+It is now apparent that signals should instead drive a fixed number of state
+machine transitions that monitor application state by other means. A good
+example of this is the 'File_system' session.
+
+Previously, a component would observe changes to a file by associating a
+signal context at the client with an open file context at the server. As
+signals carry no payload or metadata, the client would be encouraged to
+allocate a new signal context for each file it monitored. In practice, this
+rarely caused problems but nevertheless there lurked a limit to scalability.
+
+This release eliminates the allocation of additional signal contexts over the
+lifetime of a 'File_system' session by incorporating notifications into the
+existing asynchronous I/O channel. I/O at the 'File_system' session operates
+via a circular packet buffer. Each packet contains metadata associating an
+operation with an open file handle. In this release, we define the new packet
+type 'CONTENT_CHANGED' to request and to receive notifications of changes to
+an open file. This limits the signal capabilities allocated to those of the
+packet handlers and consolidates I/O and notification handling to no less than
+a single per-session signal handler at client and server side.
+
+
+Log-based CPU-load display
+==========================
+
+The new component 'top' obtains information about the existing trace subjects
+from core's "TRACE" service, like the cpu_load_monitor does, and shows the
+highest CPU consumers per CPU in percentage via the LOG session. The tool is
+especially handy if no graphical setup is available, in contrast to the
+existing cpu_load_monitor. Additionally, the actual thread and component name
+can be obtained from the logs. By the attribute 'period_ms' the time frame for
+requesting, processing, and presenting the CPU load can be configured:
+
+!<config>
+! <parent-provides>
+!  <service name="TRACE"/>
+! </parent-provides>
+! ...
+! <start name="top">
+!  <resource name="RAM" quantum="2M"/>
+!  <config period_ms="2000"/>
+! </start>
+!</config>
+
+An example output looks like:
+
+! [init -> top] cpu=0.0  98.16% thread='idle0' label='kernel'
+! [init -> top] cpu=0.0   0.74% thread='test-thread' label='init -> test-trace'
+! [init -> top] cpu=0.0   0.55% thread='initial' label='init -> test-trace'
+! [init -> top] cpu=0.0   0.23% thread='threaded_time_source' label='init -> timer'
+! [init -> top] cpu=0.0   0.23% thread='initial' label='init -> top'
+! [init -> top] cpu=0.0   0.04% thread='signal handler' label='init -> test-trace'
+! [init -> top] cpu=1.0 100.00% thread='idle1' label='kernel'
+
+
+Network-traffic monitoring
+==========================
+
+The new 'nic_dump' server at _os/src/server/nic_dump_ is a bump-in-the-wire
+component for NIC service. It performs deep packet inspection for each passing
+packet and dumps the gathered information to its LOG session. This includes
+information about Ethernet, ARP, IPv4, TCP, UDP, and DHCP by now. The
+monitored information can also be stored to a file by using the 'fs_log'
+server or printed to a terminal session using the 'terminal_log' server.
+
+Here is an exemplary  snippet of an init configuration that integrates the NIC
+dump into a scenario between a NIC bridge and a NIC router.
+
+! <start name="nic_dump">
+!   <resource name="RAM" quantum="6M"/>
+!   <provides> <service name="Nic"/> </provides>
+!   <config uplink="bridge" downlink="router" time="yes"/>
+!   <route>
+!     <service name="Nic"> <child name="nic_bridge"/> </service>
+!     ...
+!   </route>
+! </start>
+
+NIC dump accepts three config parameters. The parameters 'uplink' and
+'downlink' determine how the two NIC sessions are named in the output. The
+'time' parameter decides whether to print a time stamp in front of each packet
+dump or not. Should further protocol information be required, the 'print'
+methods of the corresponding protocol classes provide a suitable hook. You can
+find them in the 'net' library under 'os/src/lib/net' respectively
+'os/include/net'.
+
+For a comprehensive example of how to use the NIC dump, see the
+run script 'libports/run/nic_dump.run'.
+
+
+POSIX libc profile as shared library
+====================================
+
+As described in the
+[https:/documentation/release-notes/17.02#New_execution_model_of_the_C_runtime - previous release notes],
+the 'posix' library supplements Genode's libc with an implementation of a
+'Libc::Component::construct' function that calls a traditional 'main'
+function. It is primarily being used for ported 3rd-party software. As the
+library is just a small supplement to the libc, we used to provide it as a
+static library. However, by providing it as shared object with an ABI, we
+effectively decouple the posix-library-using programs from the library
+implementation, which happens to depend on several OS-level APIs such as the
+VFS. We thereby eliminate the dependency of pure POSIX applications from
+Genode-API details.
+
+This change requires all run scripts that depend on POSIX components to extend
+the argument list of 'build_boot_image' with 'posix.lib.so'.
+
+
+State reporting of block-device-level components
+================================================
+
+Before this release, it was impossible to gain detailed information about
+available block devices in Genode at runtime. The information was generated
+offline and used as quite static configuration policies for the AHCI driver
+and partition manager. As this is a top requirement for a Genode installer, we
+addressed this issue in the relaxing atmosphere of this years Hack'n'Hike.
+
+Our AHCI driver now supports a configuration node to enable reporting of port
+states.
+
+! <report ports="yes"/>
+
+The resulting report contains information about active ports and types of
+attached devices in '<port>' nodes. In case of ATA disks, the node also
+contains the block count and size as well as model and serial information.
+
+! <ports>
+!   <port num="0" type="ATA" block_count="32768" block_size="512"
+!     model="QEMU HARDDISK" serial="QM00005"/>
+!   <port num="1" type="ATAPI"/>
+!   <port num="2" type="ATA" block_count="32768" block_size="512"
+!     model="QEMU HARDDISK" serial="QM00009"/>
+! </ports>
+
+In a similar fashion, 'part_blk' now supports partition reporting, which can
+be enabled via the <report> configuration node.
+
+! <report partitions="yes"/>
+
+The partition report contains information about the partition table type and
+available partitions with number, type, first block, and the length of the
+partition. In case of GPT tables, the report also contains name and GUID per
+partition.
+
+! <partitions type="mbr">
+!   <partition number="1" type="12" start="2048" length="2048"/>
+!   <partition number="2" type="15" start="4096" length="16384"/>
+!   <partition number="5" type="12" start="6144" length="4096"/>
+!   <partition number="6" type="12" start="12288" length="8192"/>
+! </partitions>
+! <partitions type="gpt">
+!   <partition number="1" name="one" type="ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"
+!     guid="5f4061cc-8d4a-4e6f-ad15-10b881b79aee" start="2048" length="2048"/>
+!   <partition number="2" name="two" type="ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"
+!     guid="87199a83-d0f4-4a01-b9e3-6516a8579d61" start="4096" length="16351"/>
+! </partitions>
+
+We would like to thank Boris Mulder for contributing the 'part_blk' reporting
+facility.
+
+
+Runtimes and applications
+#########################
+
+Feature-completeness of VirtualBox 5 on NOVA
+============================================
+
+We updated our Virtualbox 5 port to version 5.1.22 and enabled missing
+features like SMP support, USB pass-through, audio, and guest additions
+features like shared folders, clipboard, and dynamic desktop resizing.
+
+The configuration of VBox 5 remains the same as for VBox 4 on Genode - so the
+existing run scripts must only be adjusted with respect to the build and
+binary names only.
+
+
+Nim programming language
+========================
+
+In the previous release, we were proud to debut a
+[http://genode.org/documentation/release-notes/17.02#Linux_TCP_IP_stack_as_VFS_plugin - pluggable TCP/IP stack]
+for the VFS library. This required an overhaul of the Berkley sockets and
+'select' implementation within the POSIX runtime, but scrutiny of the POSIX
+standard leaves us reluctant to endorse it as a network API.
+
+We have committed to maintaining our own low-level "socket_fs" API but we
+would not recommend using it directly in applications, nor would we commit to
+creating a high-level, native API. An economic approach would be to support
+existing network libraries, or one step further, support existing high-level
+languages with well integrated standard libraries.
+
+One such language would be [https://nim-lang.org/ - Nim]. This release adds
+supports for Nim targets to the build-system and the Nim 0.17 release adds
+Genode support to the Nim runtime. Nim supports compilation to C++, which
+yields high integration at a low maintenance cost, and a full-featured
+standard library that supports high-level application programming. Nim
+features an intuitive asynchronous socket API for single-threaded applications
+that abstracts the POSIX interface offered by the Genode C runtime. This has
+the benefit of easing high-level application development while supplying
+additional test coverage of the low-level runtime.
+
+Thanks to the portable design of the language and compiler it only took a few
+relatively simple steps to incorporate Genode platform support:
+
+* Platform declarations were added to the compiler to standardize
+  compile-time conditional code for Genode.
+
+* An additional template for generating C++ code was defined to wrap application
+  entry into 'Libc::component' rather than the conventional 'main' function.
+
+* Nim procedures were defined for mapping pages into heaps managed by Nim's garbage
+  collector.
+
+* Some of the standard library procedures for missing platform facilities
+  such as command line arguments were stubbed out.
+
+* Threading, synchronization, and TLS support was defined in C++ classes and
+  wrapped into the Nim standard platform procedures.
+
+To build Nim targets, the Genode toolchain invokes the Nim compiler to produce
+C++ code and a JSON formatted build recipe. These recipes are then processed
+into conventional makefiles for the generated C++ files and imported to
+complete the dependency chain.
+
+To get started with Nim, a local installation of the 0.17 Nim compiler is
+required along with the 'jq' JSON parsing utility. Defining components in pure
+Nim is uncomplicated and unchanged from normal targets, however defining
+libraries is unsupported at the moment. A sample networked server is provided
+at _repos/libports/src/test/nim_echo_server_. For a comprehensive introduction
+to the language, please refer to [https://nim-lang.org/documentation.html].
+
+If Nim proves to be well suited to Genode then further topics of development
+will be support for the Nimble package manager, including Genode signals in
+Nim event dispatching, and replacing POSIX abstractions with a fully native
+OS layer.
+
+
+Qt5 updated to version 5.8
+==========================
+
+We updated our Qt5 port to version 5.8. In the process, we removed the use of
+deprecated Genode APIs, which has some implications for Qt5 application
+developers, as some parts of Qt5 now need to be initialized with the Genode
+environment:
+
+* Qt5 applications with a 'main()' function need to link with the new
+  'qt5_component' library instead of the 'posix' library.
+
+* Qt5 applications implementing 'Libc::Component::construct()' must
+  initialize the QtCore and QtGui libraries by calling the
+  'initialize_qt_core(Genode::Env &)' and 'initialize_qt_gui(Genode::Env &)'
+  functions.
+
+* Qt5 applications using the 'QPluginWidget' class must implement
+  'Libc::Component::construct()' and call 'QPluginWidget::env(Genode::Env &)'
+  in addition to the QtCore and QtGui initialization functions.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Under the hood, the Genode variant for running on bare hardware is under heavy
+maintenance. Originally started as an experiment, this kernel - written from
+scratch - has evolved to a serious kernel component of the Genode building
+blocks. While more and more hardware architectures and boards got supported,
+the internal structure got too complicated recently. We started to reduce the
+code parts that are included implicitly via so called SPEC values, and
+describe the code structure more explicitly now to aid reviewers and
+developers that are new to Genode. This progress has not been entirely
+finished.
+
+Another important change of the base-hw internals is the introduction of a
+component that bootstraps the kernel resp. core. Instead of combining the
+hardware initialization and kernel run-time in one component, those functions
+are now split into separate ones. Thereby, complex procedures and custom-built
+assembler code that is needed during initialization only, is not accessible by
+the kernel at run-time anymore. It is discarded once the kernel initialization
+is finished. Genode's core component now starts in an environment where the
+MMU is already enabled, while the kernel is not necessarily mapped one-to-one
+anymore.
+
+The introduction of the bootstrap component for base-hw is the last
+preparation step to execute Genode's core as privileged kernel-code inside the
+protection domain of every component. Nowadays, each kernel entry on base-hw
+implies an address-space switch. With the next Genode release 17.08, this will
+finally change to a solution with better performance and low-complexity kernel
+entry/exit paths.
+
+Additionally, our port of the RISC-V platform has been updated from privileged
+ISA version 1.7 to 1.9.1. This step became necessary because of the tool-chain
+update described below. With this update, we now take advantage of the
+Supervisor Binary Interface (SBI) of RISC-V and where able to drop
+machine-mode handling altogether. Machine mode is implemented by the Berkeley
+Boot Loader (BBL) which now bootstraps core. Through the SBI interface core is
+able to communicate with BBL and transparently take advantage of features like
+serial output, timer programming, inter-processor interrupts, or CPU
+information. Note that the ISA update is still work in progress. While we are
+able to execute statically linked scenarios, support for dynamically linked
+binaries remains an open issue.
+
+
+Muen separation kernel update
+=============================
+
+The Muen Separation Kernel port has been brought up to date. Most relevant to
+Genode are the build-system adaptations, which enable smoother integration
+with the Genode's autopilot testing infrastructure.
+
+Aside from this change, other features include support for xHCI debug,
+addition of Lenovo x260 and Intel NUC 6i7KYK hardware configurations, support
+for Linux 4.10 and many other improvements.
+
+
+Fiasco.OC kernel update
+=======================
+
+Four years have elapsed since the Fiasco.OC kernel used by the Genode OS
+framework was updated last. Due to the tool-chain update of the current
+release, we took the opportunity to replace this kernel with the most recent
+open-source version (r72) that is publicly available.
+
+Upgrading to a newer kernel version after such a long period of time always
+means to invest some effort. To lower the hurdle, some kernel-specific
+features got dropped. On the one hand, they would have needed additional
+patches of the original kernel code, but primarily they were not used by
+anyone actively. Those features are:
+
+* GDB debugging extensions for Genode/Fiasco.OC
+* i.MX53 support for Fiasco.OC
+* A terminal driver to access the Fiasco.OC kernel debugger
+
+Apart from the features that got omitted, the new Fiasco.OC version comprises
+support of new architectures and boards, as well as several bugfixes. Thereby,
+it serves as a more sustainable base for the integrator looking for an
+appropriate kernel component.
+
+
+Tool chain
+##########
+
+GNU compiler collection (GCC) 6.3 including Ada support
+=======================================================
+
+Genode's official tool chain has received a major update to GCC version 6.3
+and binutils version 2.28. The new tool-chain build script facilitates
+Genode's ports mechanism for downloading the tool-chain's source code. This
+way, the tool-chain build for the host system is created from the exact same
+source code as the version that runs inside Genode's Noux runtime.
+
+Furthermore, the new version includes support for the Ada programming
+language. This addition was motivated by several members of the Genode
+community. In particular, it paves the ground for new components jointly
+developed with Codelabs (the developers of the Muen separation kernel), or the
+potential reuse of recent coreboot device drivers on Genode.
+
+
+Separated debug versions of built executables
+=============================================
+
+The _<build-dir>/bin/_ directory used to contain symbolic links to the
+unstripped build results. However, since the new depot tool introduced with
+Genode's package management extracts the content of binary archives from
+_bin/_, the resulting archives would contain overly large unstripped binaries,
+which is undesired. On the other hand, unconditionally stripping the build
+results is not a good option either because we rely on symbol information
+during debugging.
+
+For this reason, build results are now installed at a new 'debug/' directory
+located aside the existing 'bin/' directory. The debug directory contains
+symbolic links to the unstripped build results whereas the bin directory
+contains stripped binaries that are palatable for packaging (depot tool) and
+for assembling boot images (run tool).
+
+
