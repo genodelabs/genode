@@ -1,6 +1,6 @@
 TARGET = nic_router
 
-LIBS += base net config
+LIBS += base net
 
 SRC_CC += arp_waiter.cc ip_rule.cc
 SRC_CC += component.cc port_allocator.cc forward_rule.cc

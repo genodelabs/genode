@@ -1,4 +1,4 @@
 TARGET   = linux_nic_drv
 REQUIRES = linux
-LIBS     = lx_hybrid config
+LIBS     = lx_hybrid
 SRC_CC   = main.cc

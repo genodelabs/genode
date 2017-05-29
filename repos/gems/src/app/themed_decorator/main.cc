@@ -101,7 +101,7 @@ struct Decorator::Main : Window_factory_base
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	Config _decorator_config;
+	Config _decorator_config { _config.xml() };
 
 	void _handle_config();
 

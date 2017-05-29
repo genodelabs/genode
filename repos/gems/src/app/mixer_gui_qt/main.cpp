@@ -92,26 +92,33 @@ static inline void load_stylesheet()
 }
 
 
-int main(int argc, char *argv[])
+void Libc::Component::construct(Libc::Env &env)
 {
-	Report_thread *report_thread;
-	try { report_thread = new Report_thread(); }
-	catch (...) {
+	Libc::with_libc([&] {
+		initialize_qpa_plugin(env);
+
+		int argc = 1;
+		char const *argv[] = { "mixer_gui_qt", 0 };
+
+		Report_thread *report_thread;
+		try { report_thread = new Report_thread(); }
+		catch (...) {
 		Genode::error("Could not create Report_thread");
 		return -1;
+		}
+
+		QApplication app(argc, argv);
+
+		load_stylesheet();
+
+		QMember<Main_window> main_window(env);
+		main_window->show();
+
+		report_thread->connect_window(main_window);
+		report_thread->start();
+
+		app.connect(&app, SIGNAL(lastWindowClosed()), SLOT(quit()));
+
+		exit(app.exec());
 	}
-
-	QApplication app(argc, argv);
-
-	load_stylesheet();
-
-	QMember<Main_window> main_window;
-	main_window->show();
-
-	report_thread->connect_window(main_window);
-	report_thread->start();
-
-	app.connect(&app, SIGNAL(lastWindowClosed()), SLOT(quit()));
-
-	return app.exec();
 }

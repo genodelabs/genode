@@ -33,8 +33,33 @@
 #include <string.h>
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/env.h>
+#include <base/heap.h>
 #include <util/misc_math.h>
+
+#include <base/log.h>
+#include <parent/parent.h>
+
+#include <nic/packet_allocator.h>
+#include <util/string.h>
+
+#include <lwip/genode.h>
+
+#undef AF_INET6
+#undef MSG_PEEK
+#undef MSG_WAITALL
+#undef MSG_OOB
+#undef MSG_DONTWAIT
+
+namespace Lwip {
+extern "C" {
+#include <lwip/sockets.h>
+#include <lwip/api.h>
+}
+}
+
+extern void create_lwip_plugin();
 
 
 namespace {
@@ -92,6 +117,8 @@ namespace {
 	{
 		private:
 
+			Genode::Constructible<Genode::Heap> _heap;
+
 			/**
 			 * File name this plugin feels responsible for
 			 */
@@ -134,14 +161,14 @@ namespace {
 
 			Libc::File_descriptor *open(const char *pathname, int flags)
 			{
-				Plugin_context *context = new (Genode::env()->heap()) Plugin_context;
+				Plugin_context *context = new (*_heap) Plugin_context;
 				context->status_flags(flags);
 				return Libc::file_descriptor_allocator()->alloc(this, context);
 			}
 
 			int close(Libc::File_descriptor *fd)
 			{
-				Genode::destroy(Genode::env()->heap(), context(fd));
+				Genode::destroy(*_heap, context(fd));
 				Libc::file_descriptor_allocator()->free(fd);
 				return 0;
 			}
@@ -223,12 +250,104 @@ namespace {
 					default: Genode::error("fcntl(): command ", cmd, " not supported", cmd); return -1;
 				}
 			}
-	};
 
+			void init(Libc::Env &env) override
+			{
+				_heap.construct(env.ram(), env.rm());
+
+				enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
+				Genode::log(__func__);
+
+				char ip_addr_str[16] = {0};
+				char netmask_str[16] = {0};
+				char gateway_str[16] = {0};
+
+				genode_int32_t ip_addr = 0;
+				genode_int32_t netmask = 0;
+				genode_int32_t gateway = 0;
+				Genode::Number_of_bytes tx_buf_size(BUF_SIZE);
+				Genode::Number_of_bytes rx_buf_size(BUF_SIZE);
+
+				try {
+					Genode::Attached_rom_dataspace config(env, "config");
+					Genode::Xml_node libc_node = config.xml().sub_node("libc");
+
+					try {
+						libc_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));
+					} catch(...) { }
+
+					try {
+						libc_node.attribute("netmask").value(netmask_str, sizeof(netmask_str));
+					} catch(...) { }
+
+					try {
+						libc_node.attribute("gateway").value(gateway_str, sizeof(gateway_str));
+					} catch(...) { }
+
+					try {
+						libc_node.attribute("tx_buf_size").value(&tx_buf_size);
+					} catch(...) { }
+
+					try {
+						libc_node.attribute("rx_buf_size").value(&rx_buf_size);
+					} catch(...) { }
+
+					/* either none or all 3 interface attributes must exist */
+					if ((strlen(ip_addr_str) != 0) ||
+						(strlen(netmask_str) != 0) ||
+						(strlen(gateway_str) != 0)) {
+						if (strlen(ip_addr_str) == 0) {
+							Genode::error("missing \"ip_addr\" attribute. Ignoring network interface config.");
+							throw Genode::Xml_node::Nonexistent_attribute();
+						} else if (strlen(netmask_str) == 0) {
+							Genode::error("missing \"netmask\" attribute. Ignoring network interface config.");
+							throw Genode::Xml_node::Nonexistent_attribute();
+						} else if (strlen(gateway_str) == 0) {
+							Genode::error("missing \"gateway\" attribute. Ignoring network interface config.");
+							throw Genode::Xml_node::Nonexistent_attribute();
+						}
+					} else
+						throw -1;
+
+					Genode::log("static network interface: "
+								"ip_addr=", Genode::Cstring(ip_addr_str), " "
+								"netmask=", Genode::Cstring(netmask_str), " "
+								"gateway=", Genode::Cstring(gateway_str));
+
+					genode_uint32_t ip, nm, gw;
+
+					ip = inet_addr(ip_addr_str);
+					nm = inet_addr(netmask_str);
+					gw = inet_addr(gateway_str);
+
+					if (ip == INADDR_NONE || nm == INADDR_NONE || gw == INADDR_NONE) {
+						Genode::error("invalid network interface config");
+						throw -1;
+					} else {
+						ip_addr = ip;
+						netmask = nm;
+						gateway = gw;
+					}
+				}
+				catch (...) {
+					Genode::log("Using DHCP for interface configuration.");
+				}
+
+				/* make sure the libc_lwip plugin has been created */
+				create_lwip_plugin();
+
+				try {
+					lwip_nic_init(ip_addr, netmask, gateway,
+								  (Genode::size_t)tx_buf_size, (Genode::size_t)rx_buf_size);
+				}
+				catch (Genode::Service_denied) { /* ignore for now */ }
+			}
+	};
 } /* unnamed namespace */
 
 
-void create_etc_resolv_conf_plugin()
+void __attribute__((constructor)) init_libc_lwip_dhcp(void)
 {
 	static Plugin plugin;
 }

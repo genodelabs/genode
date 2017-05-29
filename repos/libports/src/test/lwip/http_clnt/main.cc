@@ -13,15 +13,12 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
-#include <base/thread.h>
-#include <util/string.h>
-#include <timer_session/connection.h>
-#include <nic/packet_allocator.h>
-#include <os/config.h>
-#include <base/sleep.h>
-
 #include <libc/component.h>
+#include <nic/packet_allocator.h>
+#include <timer_session/connection.h>
+#include <util/string.h>
 
 extern "C" {
 #include <lwip/sockets.h>
@@ -32,89 +29,45 @@ extern "C" {
 #include <lwip/genode.h>
 
 
-static const char *http_get_request =
-"GET / HTTP/1.0\r\nHost: localhost:80\r\n\r\n"; /* simple HTTP request header */
-
-using namespace Genode;
-
-
-template <Genode::size_t N>
-static Genode::String<N> read_string_attribute(Genode::Xml_node node, char const *attr,
-                                               Genode::String<N> default_value)
-{
-	try {
-		char buf[N];
-		node.attribute(attr).value(buf, sizeof(buf));
-		return Genode::String<N>(Genode::Cstring(buf));
-	}
-	catch (...) {
-		return default_value; }
-}
-
-
-bool static_ip_config(uint32_t & ip, uint32_t & nm, uint32_t & gw)
-{
-	enum { ADDR_STR_SZ = 16 };
-	Xml_node libc_node = config()->xml_node().sub_node("libc");
-	String<ADDR_STR_SZ> ip_str =
-		read_string_attribute<ADDR_STR_SZ>(libc_node, "ip_addr", String<ADDR_STR_SZ>());
-	String<ADDR_STR_SZ> nm_str =
-		read_string_attribute<ADDR_STR_SZ>(libc_node, "netmask", String<ADDR_STR_SZ>());
-	String<ADDR_STR_SZ> gw_str =
-		read_string_attribute<ADDR_STR_SZ>(libc_node, "gateway", String<ADDR_STR_SZ>());
-
-	ip = inet_addr(ip_str.string());
-	nm = inet_addr(nm_str.string());
-	gw = inet_addr(gw_str.string());
-	if (ip == INADDR_NONE || nm == INADDR_NONE || gw == INADDR_NONE) { return false; }
-	log("static ip config: ip=", ip_str, " nm=",  nm_str, " gw=", gw_str);
-	return true;
-}
-
-
 /**
- * The client thread simply loops endless,
+ * The client simply loops endless,
  * and sends as much 'http get' requests as possible,
  * printing out the response.
  */
 void Libc::Component::construct(Libc::Env &env)
 {
+	using namespace Genode;
+	using Address = Genode::String<16>;
+
 	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
 	static Timer::Connection _timer(env);
 	_timer.msleep(2000);
 	lwip_tcpip_init();
 
-	uint32_t ip = 0;
-	uint32_t nm = 0;
-	uint32_t gw = 0;
-	bool static_ip = static_ip_config(ip, nm, gw);
+	uint32_t ip = 0, nm = 0, gw = 0;
+	Address serv_addr, ip_addr, netmask, gateway;
 
-	enum { ADDR_STR_SZ = 16 };
-	char serv_addr[ADDR_STR_SZ] = { 0 };
-	Xml_node config_node = config()->xml_node();
-	try { config_node.attribute("server_ip").value(serv_addr, ADDR_STR_SZ); }
-	catch(...) {
-		error("Missing \"server_ip\" attribute.");
-		throw Xml_node::Nonexistent_attribute();
-	}
+	Attached_rom_dataspace config(env, "config");
+	Xml_node config_node = config.xml();
+	Xml_node libc_node   = env.libc_config();
+	try {
+		libc_node.attribute("ip_addr").value(&ip_addr);
+		libc_node.attribute("netmask").value(&netmask);
+		libc_node.attribute("gateway").value(&gateway);
+		ip = inet_addr(ip_addr.string());
+		nm = inet_addr(netmask.string());
+		gw = inet_addr(gateway.string());
+	} catch (...) {}
+	config_node.attribute("server_ip").value(&serv_addr);
 
-	if (static_ip) {
-		if (lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE)) {
-			error("We got no IP address!");
-			exit(1);
-		}
-	} else {
-		if( lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE))
-		{
-			error("got no IP address!");
-			exit(1);
-		}
+	if (lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE)) {
+		error("We got no IP address!");
+		exit(1);
 	}
 
 	for(int j = 0; j != 5; ++j) {
 		_timer.msleep(2000);
-
 
 		log("Create new socket ...");
 		int s = lwip_socket(AF_INET, SOCK_STREAM, 0 );
@@ -135,7 +88,7 @@ void Libc::Component::construct(Libc::Env &env)
 		struct sockaddr_in addr;
 		addr.sin_port = htons(port);
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(serv_addr);
+		addr.sin_addr.s_addr = inet_addr(serv_addr.string());
 
 		if((lwip_connect(s, (struct sockaddr *)&addr, sizeof(addr))) < 0) {
 			error("Could not connect!");
@@ -144,6 +97,11 @@ void Libc::Component::construct(Libc::Env &env)
 		}
 
 		log("Send request...");
+
+		/* simple HTTP request header */
+		static const char *http_get_request =
+			"GET / HTTP/1.0\r\nHost: localhost:80\r\n\r\n";
+
 		unsigned long bytes = lwip_send(s, (char*)http_get_request,
 		                                Genode::strlen(http_get_request), 0);
 		if ( bytes < 0 ) {

@@ -16,7 +16,6 @@
 #include <file_system/node_handle_registry.h>
 #include <file_system_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/config.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <util/xml_node.h>
@@ -41,7 +40,7 @@ class File_system::Session_component : public Session_rpc_object
 {
 	private:
 
-		Genode::Entrypoint   &_ep;
+		Genode::Env          &_env;
 		Allocator            &_md_alloc;
 		Directory            &_root;
 		Node_handle_registry  _handle_registry;
@@ -155,19 +154,18 @@ class File_system::Session_component : public Session_rpc_object
 		/**
 		 * Constructor
 		 */
-		Session_component(size_t              tx_buf_size,
-		                  Genode::Entrypoint &ep,
-		                  Genode::Region_map &rm,
-		                  char const         *root_dir,
-		                  bool                writeable,
-		                  Allocator          &md_alloc)
+		Session_component(size_t      tx_buf_size,
+		                  Genode::Env &env,
+		                  char const *root_dir,
+		                  bool        writeable,
+		                  Allocator  &md_alloc)
 		:
-			Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), rm, ep.rpc_ep()),
-			_ep(ep),
+			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
+			_env(env),
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
 			_writeable(writeable),
-			_process_packet_handler(_ep, *this, &Session_component::_process_packets)
+			_process_packet_handler(_env.ep(), *this, &Session_component::_process_packets)
 		{
 			_tx.sigh_packet_avail(_process_packet_handler);
 			_tx.sigh_ready_to_ack(_process_packet_handler);
@@ -181,7 +179,7 @@ class File_system::Session_component : public Session_rpc_object
 			Fuse::sync_fs();
 
 			Dataspace_capability ds = tx_sink()->dataspace();
-			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
+			_env.ram().free(static_cap_cast<Ram_dataspace>(ds));
 			destroy(&_md_alloc, &_root);
 		}
 
@@ -402,8 +400,8 @@ class File_system::Root : public Root_component<Session_component>
 {
 	private:
 
-		Genode::Entrypoint &_ep;
-		Genode::Region_map &_rm;
+		Genode::Env                   &_env;
+		Genode::Attached_rom_dataspace _config { _env, "config" };
 
 	protected:
 
@@ -423,7 +421,7 @@ class File_system::Root : public Root_component<Session_component>
 
 			Session_label const label = label_from_args(args);
 			try {
-				Session_policy policy(label);
+				Session_policy policy(label, _config.xml());
 
 				/*
 				 * Determine directory that is used as root directory of
@@ -485,7 +483,7 @@ class File_system::Root : public Root_component<Session_component>
 				throw Insufficient_ram_quota();
 			}
 			return new (md_alloc())
-				Session_component(tx_buf_size, _ep, _rm, root_dir, writeable, *md_alloc());
+				Session_component(tx_buf_size, _env, root_dir, writeable, *md_alloc());
 		}
 
 	public:
@@ -493,39 +491,29 @@ class File_system::Root : public Root_component<Session_component>
 		/**
 		 * Constructor
 		 *
-		 * \param ep          entrypoint
-		 * \param sig_rec     signal receiver used for handling the
-		 *                    data-flow signals of packet streams
+		 * \param env         environment
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Genode::Entrypoint &ep, Allocator &md_alloc, Genode::Region_map &rm)
-		:
-			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
-			_ep(ep), _rm(rm)
-		{ }
+		Root(Genode::Env & env, Allocator &md_alloc)
+		: Root_component<Session_component>(env.ep(), md_alloc),
+		  _env(env) { }
 };
 
 
 struct File_system::Main
 {
-	Genode::Entrypoint &ep;
-	Genode::Region_map &rm;
+	Genode::Env & env;
+	Sliced_heap   sliced_heap { env.ram(), env.rm() };
+	Root          fs_root     { env, sliced_heap    };
 
-	/*
-	 * Initialize root interface
-	 */
-	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
-
-	Root fs_root = { ep, sliced_heap, rm };
-
-	Main(Genode::Entrypoint &ep, Genode::Region_map &rm) : ep(ep), rm(rm)
+	Main(Genode::Env & env) : env(env)
 	{
 		if (!Fuse::init_fs()) {
 			Genode::error("FUSE fs initialization failed");
 			return;
 		}
 
-		env()->parent()->announce(ep.manage(fs_root));
+		env.parent().announce(env.ep().manage(fs_root));
 	}
 
 	~Main()
@@ -543,6 +531,6 @@ struct File_system::Main
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	static File_system::Main inst(env.ep(), env.rm());
+	static File_system::Main inst(env);
 }
 

@@ -15,10 +15,10 @@
  */
 
 #include <base/allocator_avl.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 #include <base/thread.h>
 #include <audio_out_session/connection.h>
-#include <os/config.h>
 
 
 enum {
@@ -75,13 +75,17 @@ static Signal_receiver *signal_receiver()
 }
 
 
-static void read_config()
+static void read_config(Genode::Signal_context_capability sigh =
+                        Genode::Signal_context_capability())
 {
 	/* read volume from config file */
 	try {
 		unsigned int config_volume;
 
-		Genode::config()->xml_node().sub_node("sdl_audio_volume")
+		Genode::Attached_rom_dataspace config("config");
+		if (sigh.valid()) config.sigh(sigh);
+		else              config.update();
+		config.xml().sub_node("sdl_audio_volume")
 			.attribute("value").value(&config_volume);
 
 		volume = (float)config_volume / 100;
@@ -163,8 +167,7 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 		}
 	}
 
-	Genode::config()->sigh(signal_receiver()->manage(&config_signal_context));
-	read_config();
+	read_config(signal_receiver()->manage(&config_signal_context));
 
 	return _this;
 }
@@ -221,7 +224,6 @@ static void GENODEAUD_PlayAudio(_THIS)
 
 	if (signal_receiver()->pending()) {
 		signal_receiver()->wait_for_signal();
-		Genode::config()->reload();
 		read_config();
 	}
 

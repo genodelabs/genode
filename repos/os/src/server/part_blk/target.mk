@@ -1,3 +1,3 @@
 TARGET = part_blk
-LIBS   = base config
+LIBS   = base
 SRC_CC = main.cc

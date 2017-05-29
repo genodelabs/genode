@@ -27,20 +27,19 @@ struct Main
 
 	struct Factory : Block::Driver_factory
 	{
-		Genode::Entrypoint  &ep;
-		Genode::Ram_session &ram;
-		Genode::Heap        &heap;
+		Genode::Env  &env;
+		Genode::Heap &heap;
 
-		Factory(Genode::Entrypoint &ep, Genode::Ram_session &ram, Genode::Heap &heap)
-		: ep(ep), ram(ram), heap(heap) { }
+		Factory(Genode::Env &env, Genode::Heap &heap)
+		: env(env), heap(heap) { }
 
 		Block::Driver *create() {
-			return new (&heap) Driver(ep, ram); }
+			return new (&heap) Driver(env, heap); }
 
 		void destroy(Block::Driver *driver) {
 			Genode::destroy(&heap, driver); }
 
-	} factory { env.ep(), env.ram(), heap };
+	} factory { env, heap };
 
 	Block::Root root { env.ep(), heap, env.rm(), factory };
 

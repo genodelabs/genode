@@ -18,12 +18,11 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
-#include <base/thread.h>
-#include <util/string.h>
+#include <libc/component.h>
 #include <nic/packet_allocator.h>
-#include <os/config.h>
-#include <base/snprintf.h>
+#include <util/string.h>
 
 /* LwIP includes */
 extern "C" {
@@ -33,15 +32,7 @@ extern "C" {
 
 #include <lwip/genode.h>
 
-
-const static char http_html_hdr[] =
-	"HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n"; /* HTTP response header */
-
-enum { HTTP_INDEX_HTML_SZ = 1024 };
-
-static char http_index_html[HTTP_INDEX_HTML_SZ]; /* HTML page */
-
-using namespace Genode;
+using Response = Genode::String<1024>;
 
 
 /**
@@ -49,7 +40,7 @@ using namespace Genode;
  *
  * \param conn  socket connected to the client
  */
-void http_server_serve(int conn)
+void http_server_serve(int conn, Response & response)
 {
 	char    buf[1024];
 	ssize_t buflen;
@@ -57,7 +48,7 @@ void http_server_serve(int conn)
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = lwip_recv(conn, buf, 1024, 0);
-	log("Packet received!");
+	Genode::log("Packet received!");
 
 	/* Ignore all receive errors */
 	if (buflen > 0) {
@@ -71,63 +62,46 @@ void http_server_serve(int conn)
 			buf[3] == ' ' &&
 			buf[4] == '/' ) {
 
-			log("Will send response");
-
-			/* Send http header */
-			lwip_send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
+			Genode::log("Will send response");
 
 			/* Send our HTML page */
-			lwip_send(conn, http_index_html, Genode::strlen(http_index_html), 0);
+			lwip_send(conn, response.string(), response.length(), 0);
 		}
 	}
 }
 
-
-template <Genode::size_t N>
-static Genode::String<N> read_string_attribute(Genode::Xml_node node, char const *attr,
-                                               Genode::String<N> default_value)
-{
-	try {
-		char buf[N];
-		node.attribute(attr).value(buf, sizeof(buf));
-		return Genode::String<N>(Genode::Cstring(buf));
+struct Initialization_failed {};
+#define ASSERT(cond, err) \
+	if (!cond) { \
+		Genode::error(err); \
+		throw Initialization_failed(); \
 	}
-	catch (...) {
-		return default_value; }
-}
 
-
-int main()
+void Libc::Component::construct(Libc::Env & env)
 {
 	using namespace Genode;
+	using Address  = Genode::String<16>;
 
 	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
 
-	int s;
 
 	lwip_tcpip_init();
-
-	enum { ADDR_STR_SZ = 16 };
 
 	uint32_t ip = 0;
 	uint32_t nm = 0;
 	uint32_t gw = 0;
 	unsigned port = 0;
 
-	Xml_node config_node = config()->xml_node();
-	Xml_node libc_node   = config_node.sub_node("libc");
-	String<ADDR_STR_SZ> ip_addr_str =
-		read_string_attribute<ADDR_STR_SZ>(libc_node, "ip_addr", String<ADDR_STR_SZ>());
-	String<ADDR_STR_SZ> netmask_str =
-		read_string_attribute<ADDR_STR_SZ>(libc_node, "netmask", String<ADDR_STR_SZ>());
-	String<ADDR_STR_SZ> gateway_str =
-		read_string_attribute<ADDR_STR_SZ>(libc_node, "gateway", String<ADDR_STR_SZ>());
+	Address ip_addr_str;
+	Address netmask_str;
+	Address gateway_str;
 
-	try { config_node.attribute("port").value(&port); }
-	catch(...) {
-		error("Missing \"port\" attribute.");
-		throw Xml_node::Nonexistent_attribute();
-	}
+	Attached_rom_dataspace config(env, "config");
+	Xml_node libc_node = env.libc_config();
+	libc_node.attribute("ip_addr").value(&ip_addr_str);
+	libc_node.attribute("netmask").value(&netmask_str);
+	libc_node.attribute("gateway").value(&gateway_str);
+	config.xml().attribute("port").value(&port);
 
 	log("static network interface: ip=", ip_addr_str, " nm=", netmask_str, " gw=", gateway_str);
 
@@ -135,48 +109,41 @@ int main()
 	nm = inet_addr(netmask_str.string());
 	gw = inet_addr(gateway_str.string());
 
-	if (ip == INADDR_NONE || nm == INADDR_NONE || gw == INADDR_NONE) {
-		error("Invalid network interface config.");
-		throw -1;
-	}
+	ASSERT((ip != INADDR_NONE && nm != INADDR_NONE && gw != INADDR_NONE),
+	       "Invalid network interface config.");
 
 	/* Initialize network stack  */
-	if (lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE)) {
-		error("got no IP address!");
-		return -1;
-	}
+	ASSERT(!lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE),
+	       "got no IP address!");
 
 	log("Create new socket ...");
-	if((s = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		error("no socket available!");
-		return -1;
-	}
 
-	Genode::snprintf(
-		http_index_html, HTTP_INDEX_HTML_SZ,
+	int s;
+	ASSERT(((s = lwip_socket(AF_INET, SOCK_STREAM, 0)) >= 0),
+	       "no socket available!");
+
+	static Response response(
+		"HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n"
 		"<html><head></head><body>"
 		"<h1>HTTP server at %s:%u</h1>"
 		"<p>This is a small test page.</body></html>",
 		ip_addr_str.string(), port);
 
 	log("Now, I will bind ...");
+
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_port = htons(port);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
-	if(lwip_bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		error("bind failed!");
-		return -1;
-	}
+	ASSERT(!lwip_bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr)),
+	       "bind failed!");
 
 	log("Now, I will listen ...");
-	if(lwip_listen(s, 5)) {
-		error("listen failed!");
-		return -1;
-	}
+	ASSERT(!lwip_listen(s, 5),
+	       "listen failed!");
 
 	log("Start the server loop ...");
-	while(true) {
+	while (true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
 		int client = lwip_accept(s, &addr, &len);
@@ -184,8 +151,7 @@ int main()
 			warning("invalid socket from accept!");
 			continue;
 		}
-		http_server_serve(client);
+		http_server_serve(client, response);
 		lwip_close(client);
 	}
-	return 0;
 }

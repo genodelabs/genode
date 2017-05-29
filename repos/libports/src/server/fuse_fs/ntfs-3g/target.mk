@@ -6,7 +6,7 @@ SRC_C   := ntfs-3g.c ntfs-3g_common.c
 SRC_CC  := fuse_fs_main.cc \
            init.cc
 
-LIBS    := config libc libfuse libntfs-3g
+LIBS    := libc libfuse libntfs-3g
 
 CC_OPT  := -DHAVE_TIMESPEC -DHAVE_CONFIG_H -DRECORD_LOCKING_NOT_IMPLEMENTED
 

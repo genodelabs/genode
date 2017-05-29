@@ -31,7 +31,13 @@ namespace Decorator {
 
 class Decorator::Config
 {
+	private:
+
+		Genode::Xml_node _config;
+
 	public:
+
+		Config(Genode::Xml_node node) : _config(node) {}
 
 		/**
 		 * Return the base color of the window with the specified title
@@ -41,7 +47,7 @@ class Decorator::Config
 			Color result(0, 0, 0);
 
 			try {
-				Genode::Session_policy policy(title);
+				Genode::Session_policy policy(title, _config);
 				result = policy.attribute_value("color", result);
 
 			} catch (Genode::Session_policy::No_policy_defined) { }

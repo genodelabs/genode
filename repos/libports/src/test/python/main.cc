@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <os/config.h>
 
 /* libc includes */
 #include <fcntl.h>
@@ -24,39 +23,18 @@
 
 extern "C"  int __sread(void *, char *, int);
 
-static bool process_config(char **file)
-{
-	using namespace Genode;
-	static char file_name[64];
 
-	try {
-		Xml_node config_node = config()->xml_node();
-		Xml_node script_node = config_node.sub_node("script");
-		script_node.attribute("name").value(file_name, sizeof(file_name));
-		*file = file_name;
-		return true;
-	}
-	catch (Xml_node::Nonexistent_sub_node) {
-		Genode::error("no 'config/script' sub node in config found"); }
-	catch (Xml_node::Nonexistent_attribute) {
-		Genode::error("no 'name' attribute in 'script' node found"); }
-
-	return false;
-}
-
-
-int main()
+int main(int argc, char const ** args)
 {
 	using namespace Genode;
 
-	char *name;
-	if (!process_config(&name)) {
-		Genode::error("no script found");
-		return 1;
+	if (argc < 1) {
+		Genode::error("Need <scriptname>.py as argument!");
+		return -1;
 	}
 
-	Genode::log("Found script: ", Genode::Cstring(name));
-	FILE* fp = fopen(name, "r");
+	char * name = const_cast<char*>(args[0]);
+	FILE * fp = fopen(name, "r");
 	//fp._flags = __SRD;
 	Py_SetProgramName(name);
 	//don't need the 'site' module

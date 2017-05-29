@@ -51,8 +51,8 @@ namespace Cgd {
 	};
 
 
-	Device *init(Genode::Allocator *alloc, Genode::Entrypoint &ep);
-	void    deinit(Genode::Allocator *alloc, Device *dev);
+	Device *init(Genode::Allocator &alloc, Genode::Env &env);
+	void    deinit(Genode::Allocator &alloc, Device *dev);
 }
 
 #endif /* _CGD_H_ */

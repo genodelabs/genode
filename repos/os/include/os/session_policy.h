@@ -14,13 +14,10 @@
 #ifndef _INCLUDE__OS__SESSION_POLICY_H_
 #define _INCLUDE__OS__SESSION_POLICY_H_
 
-#include <util/arg_string.h>
 #include <base/session_label.h>
-
-/* to be removed along with the \deprecated API */
-#define INCLUDED_FROM_OS_SESSION_POLICY_H
-#include <os/config.h>
-#undef INCLUDED_FROM_OS_SESSION_POLICY_H
+#include <session/session.h>
+#include <util/arg_string.h>
+#include <util/xml_node.h>
 
 namespace Genode {
 
@@ -229,20 +226,6 @@ class Genode::Session_policy : public Xml_node
 		:
 			Xml_node(_query_policy(label, config))
 		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \param label   label used as the selector of a policy
-		 *
-		 * \deprecated  use constructor with explicit 'config' argument
-		 */
-		template <size_t N> explicit Session_policy(String<N> const &label) __attribute__((deprecated));
 };
-
-template <Genode::size_t N> Genode::Session_policy::Session_policy(String<N> const &label)
-:
-	Xml_node(_query_policy(label, Genode::config()->xml_node()))
-{ }
 
 #endif /* _INCLUDE__OS__SESSION_POLICY_H_ */

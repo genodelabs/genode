@@ -28,6 +28,7 @@ class Driver : public Block::Driver
 {
 	private:
 
+		Genode::Heap                      &_heap;
 		Block::Session::Operations         _ops;
 		Genode::size_t                     _blk_sz;
 		Block::sector_t                    _blk_cnt;
@@ -37,13 +38,13 @@ class Driver : public Block::Driver
 
 	public:
 
-		Driver(Genode::Entrypoint &ep, Genode::Ram_session &ram)
+		Driver(Genode::Env &env, Genode::Heap &heap)
 		:
-			Block::Driver(ram),
+			Block::Driver(env.ram()), _heap(heap),
 			_blk_sz(0), _blk_cnt(0), _cgd_device(0)
 		{
 			try {
-				_cgd_device = Cgd::init(Genode::env()->heap(), ep);
+				_cgd_device = Cgd::init(_heap, env);
 			} catch (...) {
 				Genode::error("could not initialize cgd device.");
 				throw Genode::Service_denied();
@@ -62,7 +63,7 @@ class Driver : public Block::Driver
 
 		~Driver()
 		{
-			Cgd::deinit(Genode::env()->heap(), _cgd_device);
+			Cgd::deinit(_heap, _cgd_device);
 		}
 
 		bool _range_valid(Block::sector_t num, Genode::size_t count)

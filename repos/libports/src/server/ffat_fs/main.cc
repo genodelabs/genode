@@ -829,11 +829,11 @@ namespace File_system {
 	{
 		private:
 
-			Genode::Env       &_env;
-			Genode::Allocator &_md_alloc;
-			Genode::Allocator &_heap;
-
-			Directory         &_root_dir;
+			Genode::Env                   &_env;
+			Genode::Allocator             &_md_alloc;
+			Genode::Allocator             &_heap;
+			Genode::Attached_rom_dataspace _config { _env, "config" };
+			Directory                     &_root_dir;
 
 		protected:
 
@@ -852,7 +852,7 @@ namespace File_system {
 
 				Session_label const label = label_from_args(args);
 				try {
-					Session_policy policy(label);
+					Session_policy policy(label, _config.xml());
 
 					/*
 					 * Determine directory that is used as root directory of

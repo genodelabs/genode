@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 
 /* GDB monitor includes */
 #include "app_child.h"
@@ -443,8 +443,9 @@ extern "C" int fork()
 
 	static char filename[32] = "";
 
+	Genode::Attached_rom_dataspace config { *genode_env, "config" };
 	try {
-		config()->xml_node().sub_node("target").attribute("name").value(filename, sizeof(filename));
+		config.xml().sub_node("target").attribute("name").value(filename, sizeof(filename));
 	} catch (Xml_node::Nonexistent_sub_node) {
 		error("missing '<target>' sub node");
 		return -1;
@@ -454,7 +455,7 @@ extern "C" int fork()
 	}
 
 	/* extract target node from config file */
-	Xml_node target_node = config()->xml_node().sub_node("target");
+	Xml_node target_node = config.xml().sub_node("target");
 
 	/*
 	 * preserve the configured amount of memory for gdb_monitor and give the
@@ -462,7 +463,7 @@ extern "C" int fork()
 	 */
 	Number_of_bytes preserved_ram_quota = 0;
 	try {
-		Xml_node preserve_node = config()->xml_node().sub_node("preserve");
+		Xml_node preserve_node = config.xml().sub_node("preserve");
 		if (preserve_node.attribute("name").has_value("RAM"))
 			preserve_node.attribute("quantum").value(&preserved_ram_quota);
 		else

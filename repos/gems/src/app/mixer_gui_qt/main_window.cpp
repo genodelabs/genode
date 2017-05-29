@@ -15,7 +15,6 @@
 #include <base/log.h>
 #include <mixer/channel.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/config.h>
 #include <os/reporter.h>
 #include <rom_session/connection.h>
 
@@ -434,7 +433,7 @@ void Main_window::report_changed(void *l, void const *p)
 }
 
 
-Main_window::Main_window()
+Main_window::Main_window(Libc::Env &env)
 :
 	_default_out_volume(0),
 	_default_volume(0),
@@ -445,13 +444,14 @@ Main_window::Main_window()
 
 	using namespace Genode;
 
+	Attached_rom_dataspace config(env, "config");
 	try {
-		Xml_node config_node = config()->xml_node();
+		Xml_node config_node = config.xml();
 		_verbose = config_node.attribute("verbose").has_value("yes");
 	} catch (...) { _verbose = false; }
 
 	try {
-		Xml_node node = config()->xml_node().sub_node("default");
+		Xml_node node = config.xml().sub_node("default");
 		_default_out_volume = node.attribute_value<long>("out_volume", 0);
 		_default_volume     = node.attribute_value<long>("volume", 0);
 		_default_muted      = node.attribute_value<long>("muted", 1);

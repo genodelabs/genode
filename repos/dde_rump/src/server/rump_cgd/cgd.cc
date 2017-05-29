@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
+#include <base/attached_rom_dataspace.h>
 
 /* repo includes */
 #include <rump_cgd/cgd.h>
@@ -164,9 +164,9 @@ namespace Cgd {
 			       VALID_ENCODED_KEY_LEN = 48,  /* length of 256Bit key */
 			};
 
-			Genode::Config &_cfg;
-			Action          _action;
-			Params         *_params;
+			Genode::Attached_rom_dataspace  _cfg;
+			Action                          _action;
+			Params                         *_params;
 
 			/**
 			 * Get action from config attribute
@@ -177,8 +177,8 @@ namespace Cgd {
 			{
 				char action_val[ACTION_VALUE_LEN];
 
-				if (_cfg.xml_node().has_attribute("action"))
-					_cfg.xml_node().attribute("action").value(action_val, sizeof (action_val));
+				if (_cfg.xml().has_attribute("action"))
+					_cfg.xml().attribute("action").value(action_val, sizeof (action_val));
 				else
 					return ACTION_INVALID;
 
@@ -224,8 +224,8 @@ namespace Cgd {
 			 */
 			void _parse_config()
 			{
-				if (_cfg.xml_node().has_sub_node("params")) {
-					Genode::Xml_node pnode = _cfg.xml_node().sub_node("params");
+				if (_cfg.xml().has_sub_node("params")) {
+					Genode::Xml_node pnode = _cfg.xml().sub_node("params");
 
 					char method_val[4];
 					pnode.sub_node("method").value(method_val, sizeof (method_val));
@@ -270,9 +270,9 @@ namespace Cgd {
 
 		public:
 
-			Config()
+			Config(Genode::Env &env)
 			:
-				_cfg(*Genode::config()),
+				_cfg(env, "config"),
 				_action(_get_action()),
 				_params(0)
 			{
@@ -444,7 +444,7 @@ Cgd::Device *Cgd::Device::configure(Genode::Allocator *alloc, Cgd::Params const 
 /**
  * Initialize a new Cgd::Device
  */
-Cgd::Device *Cgd::init(Genode::Allocator *alloc, Genode::Entrypoint &ep)
+Cgd::Device *Cgd::init(Genode::Allocator &alloc, Genode::Env &env)
 {
 	/* start rumpkernel */
 	rump_init();
@@ -456,7 +456,7 @@ Cgd::Device *Cgd::init(Genode::Allocator *alloc, Genode::Entrypoint &ep)
 		throw Genode::Exception();
 	}
 
-	Cgd::Config cfg;
+	Cgd::Config cfg(env);
 
 	Cgd::Config::Action action = cfg.action();
 
@@ -469,7 +469,7 @@ Cgd::Device *Cgd::init(Genode::Allocator *alloc, Genode::Entrypoint &ep)
 			if (!p)
 				throw Genode::Exception();
 
-			cgd_dev = Cgd::Device::configure(alloc, p, GENODE_DEVICE);
+			cgd_dev = Cgd::Device::configure(&alloc, p, GENODE_DEVICE);
 
 			break;
 		}
@@ -495,7 +495,7 @@ Cgd::Device *Cgd::init(Genode::Allocator *alloc, Genode::Entrypoint &ep)
 /**
  * Deinitialize a Cgd::Device
  */
-void Cgd::deinit(Genode::Allocator *alloc, Cgd::Device *dev)
+void Cgd::deinit(Genode::Allocator &alloc, Cgd::Device *dev)
 {
 	destroy(alloc, dev);
 
