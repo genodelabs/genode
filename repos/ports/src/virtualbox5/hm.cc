@@ -37,6 +37,12 @@ VMMR3DECL(int) HMR3Init(PVM pVM)
 	                            &pVM->hm.s.vmx.fAllowUnrestricted, true);
 	AssertRCReturn(rc, rc);
 
+	/* XXX fix Ubuntu and unrestricted guest support, disable by default atm */
+	if (pVM->hm.s.vmx.fAllowUnrestricted) {
+		pVM->hm.s.vmx.fAllowUnrestricted = false;
+		Genode::warning("unrestricted guest support disabled");
+	}
+
 	/* check whether to enable pae and nx bit - in 64bit host mode */
 	rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "EnablePAE", &enable_pae_nx,
 	                        false);
