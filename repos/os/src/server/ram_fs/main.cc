@@ -107,7 +107,10 @@ class File_system::Session_component : public Session_rpc_object
 
 				_process_packet_op(packet, *node);
 			}
-			catch (Invalid_handle)     { Genode::error("Invalid_handle");     }
+			catch (Invalid_handle) {
+				Genode::error("Invalid_handle");
+				tx_sink()->acknowledge_packet(packet);
+			}
 		}
 
 		void _process_packets()
