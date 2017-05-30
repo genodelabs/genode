@@ -65,13 +65,13 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(DEPOT_DIR)/$(call pubkey_filename,$A))))
 
-TARGETS := $(addsuffix .tgz.gpg,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
+TARGETS := $(addsuffix .tgz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
 
-$(PUBLIC_DIR)/%.tgz.gpg : $(PUBLIC_DIR)/%.tgz
+$(PUBLIC_DIR)/%.tgz.sig : $(PUBLIC_DIR)/%.tgz
 	$(VERBOSE)rm -f $@;
-	$(VERBOSE)gpg --sign --no-tty --use-agent --local-user $(call pubkey_id,$*) $<
+	$(VERBOSE)gpg --detach-sign --no-tty --use-agent --local-user $(call pubkey_id,$*) $<
 
-.PRECIOUS: $(TARGETS:.tgz.gpg=.tgz)
+.PRECIOUS: $(TARGETS:.tgz.sig=.tgz)
 
 $(PUBLIC_DIR)/%.tgz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"

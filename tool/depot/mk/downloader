@@ -39,12 +39,12 @@ ARCHIVES := $(MAKECMDGOALS)
 
 include $(GENODE_DIR)/tool/depot/mk/gpg.inc
 
-$(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tgz $(PUBLIC_DIR)/%.tgz.gpg
+$(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tgz $(PUBLIC_DIR)/%.tgz.sig
 	$(VERBOSE)pubkey_file=$(DEPOT_DIR)/$(call archive_user,$*)/pubkey; \
 	          gpg --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
 	          ( gpg --no-tty --no-default-keyring \
 	                --keyring $$pubkey_file.dearmored \
-	                --verify $(PUBLIC_DIR)/$*.tgz.gpg 2> /dev/null; retval=$$?; \
+	                --verify $(PUBLIC_DIR)/$*.tgz.sig 2> /dev/null; retval=$$?; \
 	            rm -f $$pubkey_file.dearmored; \
 	            exit $$retval \
 	          ) || ( echo -e "Error: could not verify '$*', signature does not match\n" \
@@ -54,7 +54,7 @@ $(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tgz $(PUBLIC_DIR)/%.tgz.gpg
 	$(VERBOSE)tar xfz $(PUBLIC_DIR)/$*.tgz -C $(dir $@)
 
 DOWNLOADED_FILES := $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz)) \
-                    $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz.gpg))
+                    $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz.sig))
 
 .PRECIOUS: $(DOWNLOADED_FILES)
 
@@ -62,10 +62,49 @@ ifneq ($(MISSING_PUBKEY_FILES),)
 $(DOWNLOADED_FILES): missing_pubkey_files
 endif
 
+
+#
+# Determine download URLs of all origins of the specified archives
+#
+# The 'ORIGINS' variable contains all users found in the arguments. The
+# URL information is obtained from the despective depot/<user>/download
+# file and cached in the 'URL(<user>)' variable. The 'file_url' function
+# assesses the 'URL' variables to return the complete URL for a given
+# relative archive (or signature file) path.
+#
+
+ORIGINS := $(sort $(foreach A,$(ARCHIVES),$(call archive_user,$A)))
+
+quotation_sanitized = $(subst ',,$(strip $1))
+
+$(foreach O,$(ORIGINS),\
+   $(eval URL($O) := \
+      $(call quotation_sanitized,\
+         $(call file_content,$(DEPOT_DIR)/$O/download))))
+
+MISSING_DOWNLOAD_LOCATIONS := $(sort $(foreach O,$(ORIGINS),\
+                                        $(if ${URL($O)},,$(DEPOT_DIR)/$O/download)))
+
+ifneq ($(MISSING_DOWNLOAD_LOCATIONS),)
+$(DOWNLOADED_FILES): missing_download_locations
+endif
+
+missing_download_locations:
+	@echo "Error: missing or invalid download location:";\
+	 for i in $(MISSING_DOWNLOAD_LOCATIONS); do echo "       $$i"; done; false
+
+file_url = '${URL($(call archive_user,$1))}/$1'
+
+
+#
+# Download rule that is invoked per file
+#
+
 $(PUBLIC_DIR)/%:
 	@$(ECHO) "$(DARK_COL)download$(DEFAULT_COL) $*"
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)cp $(REMOTE_DIR)/$* $@
+	$(VERBOSE)wget --quiet --no-check-certificate $(call file_url,$*) -O $@ ||\
+		(echo "Error: failed to download $(call file_url,$*)"; rm -f $@; false)
 
 $(MAKECMDGOALS): $(TARGETS)
 	@true

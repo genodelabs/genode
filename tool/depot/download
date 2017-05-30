@@ -26,7 +26,7 @@ include $(GENODE_DIR)/tool/depot/mk/front_end.inc
 ARGS := $(subst ..,__,$(MAKECMDGOALS))
 
 DEPENDENCIES_CMD = $(GENODE_DIR)/tool/depot/dependencies $(ARGS)
-DOWNLOAD_CMD     = $(GENODE_DIR)/tool/depot/mk/cp_downloader VERBOSE=$(VERBOSE)
+DOWNLOAD_CMD     = $(GENODE_DIR)/tool/depot/mk/downloader VERBOSE=$(VERBOSE)
 
 .PHONY: download
 download:
