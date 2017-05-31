@@ -1,12 +1,11 @@
 /*
- * \brief  Timestamp implementation for the Genode Timer
+ * \brief  Connection to timer service and timeout scheduler
  * \author Martin Stein
  * \date   2016-11-04
  *
  * On ARM, we do not have a component-local hardware time-source. The ARM
  * performance counter has no reliable frequency as the ARM idle command
- * halts the counter. However, on the HW kernel, we use a syscall that reads
- * out the kernel time instead.
+ * halts the counter. Thus, we do not do local time interpolation.
  */
 
 /*
@@ -17,13 +16,17 @@
  */
 
 /* Genode includes */
-#include <kernel/interface.h>
 #include <timer_session/connection.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
+using namespace Genode::Trace;
 
+Timestamp Timer::Connection::_timestamp() { return 0ULL; }
 
-Trace::Timestamp Timer::Connection::_timestamp()
+void Timer::Connection::_update_real_time() { }
+
+Duration Timer::Connection::curr_time()
 {
-	return Kernel::time();
+	return Duration(Milliseconds(elapsed_ms()));
 }

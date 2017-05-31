@@ -6,4 +6,6 @@
 
 SRC_CC += cpu/arm/cache.cc
 
+LIBS += timeout-arm
+
 include $(REP_DIR)/lib/mk/base.mk

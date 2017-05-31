@@ -1,5 +1,6 @@
 SRC_CC += timeout.cc
 SRC_CC += timer_connection.cc
+SRC_CC += timer_connection_time.cc
 SRC_CC += hw/timer_connection_timestamp.cc
 SRC_CC += duration.cc
 
