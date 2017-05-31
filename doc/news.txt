@@ -4,6 +4,32 @@
                                ===========
 
 
+Genode OS Framework release 17.05 | 2017-05-31
+##############################################
+
+| With a profoundly updated framework infrastructure such as GCC 6.3,
+| Qt 5.8, and VirtualBox 5.1.22 for NOVA, the just released version 17.05
+| promises to be a suitable basis for longer-term maintenance and is
+| accompanied with a new edition of the "Genode Foundations" book.
+
+With the mid-year release of Genode, we hope to provide a solid basis for
+long-living projects built on top of the framework. For this reason, we
+updated the official tool chain as well as our ports of Qt and VirtualBox
+to current versions, which are there to stay in the foreseeable future.
+We also finalized the series of architectural and API-related changes that
+we started one year ago. The release is accompanied with a new edition of
+the "Genode Foundations" book that reflects the current state of the framework.
+
+Feature-wise, the most visible improvement is a new approach and the
+corresponding tooling for package management. While still officially declared
+as experimental, it already becomes apparent that it will bring Genode to a
+new level of scalability. Among the many further improvements are the support
+for the Ada and Nim programming languages, a new timing API, and new tools for
+monitoring network traffic and CPU load. All changes are covered in full
+detail in the
+[https:/documentation/release-notes/17.05 - release documentation of version 17.05...]
+
+
 Google Summer of Code | 2017-03-01
 ##################################
 
