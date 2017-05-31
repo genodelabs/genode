@@ -182,13 +182,13 @@ Package archive
 A package archive contains an 'archives' file with a list of archive names
 that belong together at runtime. Each listed archive appears on a separate line.
 For example, the 'archives' file of the package archive for the window
-manager 'wm-2017-05-15' may look as follows:
+manager 'wm-2017-05-31' looks as follows:
 
-! genodelabs/raw/wm-2017-05-13
-! genodelabs/src/wm-2017-05-15
-! genodelabs/src/report_rom-2017-05-14
-! genodelabs/src/decorator-2017-05-15
-! genodelabs/src/floating_window_layouter-2017-05-15
+! genodelabs/raw/wm-2017-05-31
+! genodelabs/src/wm-2017-05-31
+! genodelabs/src/report_rom-2017-05-31
+! genodelabs/src/decorator-2017-05-31
+! genodelabs/src/floating_window_layouter-2017-05-31
 
 In contrast to the list of 'used_apis' of a source archive, the content of
 the 'archives' file denotes the origin of the respective archives
@@ -286,7 +286,7 @@ corresponding user subdirectory must contain two files:
 If both the public key and the download locations are defined, the download
 tool can be used as follows:
 
-! ./tool/depot/download nfeske/src/zlib-2017-05-30
+! ./tool/depot/download genodelabs/src/zlib-2017-05-31
 
 The tool automatically downloads the specified archives and their
 dependencies. For example, as the zlib depends on the libc API, the libc API
@@ -298,7 +298,7 @@ all binary archives for the 32-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
-! ./tool/depot/download nfeske/pkg/x86_32/wm-2017-05-30
+! ./tool/depot/download genodelabs/pkg/x86_32/wm-2017-05-31
 
 Archive content is not downloaded directly to the depot. Instead, the
 individual archives and signature files are downloaded to a quarantine area in
@@ -325,7 +325,7 @@ CPU architecture. For example, the following command builds the 'zlib'
 library for the 64-bit x86 architecture. It executes four concurrent jobs
 during the build process.
 
-! ./tool/depot/build nfeske/bin/x86_64/zlib-2017-05-30 -j4
+! ./tool/depot/build genodelabs/bin/x86_64/zlib-2017-05-31 -j4
 
 Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
@@ -364,7 +364,7 @@ be present in the key ring of your GNU privacy guard.
 To publish archives, one needs to specify the specific version to publish.
 For example:
 
-! ./tool/depot/publish <you>/pkg/wm-2017-05-30
+! ./tool/depot/publish <you>/pkg/wm-2017-05-31
 
 The command checks that the specified archive and all dependencies are present
 in the depot. It then proceeds with the archiving and signing operations. For
