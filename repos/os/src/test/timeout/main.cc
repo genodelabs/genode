@@ -17,18 +17,20 @@
 #include <timer_session/connection.h>
 #include <util/fifo.h>
 #include <util/misc_math.h>
+#include <base/attached_rom_dataspace.h>
 
 using namespace Genode;
 
 
 struct Test
 {
-	Env               &env;
-	unsigned          &error_cnt;
-	Signal_transmitter done;
-	unsigned           id;
-	Timer::Connection  timer_connection { env };
-	Timer::Connection  timer            { env };
+	Env                    &env;
+	unsigned               &error_cnt;
+	Signal_transmitter      done;
+	unsigned                id;
+	Timer::Connection       timer_connection { env };
+	Timer::Connection       timer            { env };
+	Attached_rom_dataspace  config           { env, "config" };
 
 	Test(Env                       &env,
 	     unsigned                  &error_cnt,
@@ -525,7 +527,12 @@ struct Fast_polling : Test
 		main_ep(env, STACK_SIZE, "fast_polling_ep"),
 		main_handler(main_ep, *this, &Fast_polling::main)
 	{
-		Signal_transmitter(main_handler).submit();
+		if (config.xml().attribute_value("high_precision_time", true)) {
+			Signal_transmitter(main_handler).submit();
+		} else {
+			log("... skip test because it requires high precision time");
+			Test::done.submit();
+		}
 	}
 };
 
