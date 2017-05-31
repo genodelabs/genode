@@ -123,6 +123,16 @@ namespace Nova {
 		uint32_t const tsc_freq;    /* time-stamp counter frequency in kHz     */
 		uint32_t const bus_freq;    /* bus frequency in kHz                    */
 
+                struct fb_desc_t {
+                    uint64_t addr;
+                    uint32_t pitch;
+                    uint32_t width;
+                    uint32_t height;
+                    uint8_t bpp;
+                    uint8_t type;
+                    uint8_t reserved[2];
+                } __attribute__((packed)) fb_desc;
+
 		bool has_feature_vmx() const { return feature_flags & (1 << 1); }
 		bool has_feature_svm() const { return feature_flags & (1 << 2); }
 
