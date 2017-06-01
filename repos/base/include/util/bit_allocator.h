@@ -55,6 +55,7 @@ class Genode::Bit_allocator
 
 		Bit_allocator() : _next(0) {
 			_reserve(BITS, BITS_ALIGNED - BITS); }
+		Bit_allocator(const Bit_allocator & o) : _next(0), _array(o._array) { }
 
 		addr_t alloc(size_t const num_log2 = 0)
 		{

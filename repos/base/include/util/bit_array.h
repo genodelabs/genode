@@ -149,6 +149,8 @@ class Genode::Bit_array : public Bit_array_base
 	public:
 
 		Bit_array() : Bit_array_base(BITS, _array, true) { }
+		Bit_array(const Bit_array & o) : Bit_array_base(BITS, _array, false) {
+			memcpy(&_array, &o._array, sizeof(_array)); }
 };
 
 #endif /* _INCLUDE__UTIL__BIT_ARRAY_H_ */
