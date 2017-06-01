@@ -37,12 +37,6 @@ VMMR3DECL(int) HMR3Init(PVM pVM)
 	                            &pVM->hm.s.vmx.fAllowUnrestricted, true);
 	AssertRCReturn(rc, rc);
 
-	/* XXX fix Ubuntu and unrestricted guest support, disable by default atm */
-	if (pVM->hm.s.vmx.fAllowUnrestricted) {
-		pVM->hm.s.vmx.fAllowUnrestricted = false;
-		Genode::warning("unrestricted guest support disabled");
-	}
-
 	/* check whether to enable pae and nx bit - in 64bit host mode */
 	rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "EnablePAE", &enable_pae_nx,
 	                        false);
@@ -72,6 +66,8 @@ VMMR3DECL(int) HMR3Init(PVM pVM)
 		pVM->hm.s.vmx.fUnrestrictedGuest = true;
 
 	pVM->fHMEnabledFixed = true;
+	pVM->hm.s.fNestedPaging = true;
+
 	return VINF_SUCCESS;
 }
 
@@ -105,8 +101,6 @@ VMMR3_INT_DECL(int) HMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 	        CPUMR3SetGuestCpuIdFeature(pVM, CPUMCPUIDFEATURE_LAHF);
 		}
 	}
-
-	pVM->hm.s.fNestedPaging = true;
 
 	return rc;
 }
@@ -170,8 +164,13 @@ VMMR3_INT_DECL(void) HMR3PagingModeChanged(PVM pVM, PVMCPU pVCpu, PGMMODE enmSha
 /**
  * Restarting I/O instruction refused in ring-0 - no mean for us
  */
-VBOXSTRICTRC HMR3RestartPendingIOInstr(PVM, PVMCPU, PCPUMCTX) {
-	return VERR_NOT_FOUND; }
+VBOXSTRICTRC HMR3RestartPendingIOInstr(PVM, PVMCPU pVCpu, PCPUMCTX)
+{
+	HMPENDINGIO enmType = pVCpu->hm.s.PendingIO.enmType;
+	if (enmType != HMPENDINGIO_INVALID)
+		Genode::error("unimplemented: restart pending I/O");
+	return VERR_NOT_FOUND;
+}
 
 
 VMMR3DECL(bool) HMR3IsPostedIntrsEnabled(PUVM pUVM)

@@ -301,7 +301,11 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 	switch (uOperation) {
 
 	case VMMR0_DO_GVMM_CREATE_VM:
+	{
 		genode_VMMR0_DO_GVMM_CREATE_VM(pReqHdr);
+
+		GVMMCREATEVMREQ &req = reinterpret_cast<GVMMCREATEVMREQ &>(*pReqHdr);
+		SUPR3QueryHWACCLonGenodeSupport(reinterpret_cast<VM *>(req.pVMR3));
 
 		/* reserve lower chunk ids */
 		try {
@@ -315,7 +319,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		}
 
 		return VINF_SUCCESS;
-
+	}
 	case VMMR0_DO_GVMM_REGISTER_VMCPU:
 		genode_VMMR0_DO_GVMM_REGISTER_VMCPU(pVMR0, idCpu);
 		return VINF_SUCCESS;
@@ -361,7 +365,6 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		return VINF_SUCCESS;
 
 	case VMMR0_DO_VMMR0_INIT:
-		SUPR3QueryHWACCLonGenodeSupport(reinterpret_cast<VM *>(pVMR0));
 		return VINF_SUCCESS;
 
 	case VMMR0_DO_GVMM_DESTROY_VM:

@@ -24,9 +24,6 @@ static bool verbose = false;
 int PGMMap(PVM pVM, RTGCUINTPTR GCPtr, RTHCPHYS HCPhys, uint32_t cbPages,
            unsigned fFlags)
 {
-	/* GCPtr steams from the #unimplemented# MMR3HyperReserve call, which
-	 * returns a value - seems to be used solely in RC mode */
-
 	if (verbose)
 		Genode::log(__func__, ": GCPtr=", Genode::Hex(GCPtr), " "
 		            "HCPHys=", Genode::Hex(HCPhys), " "

@@ -22,7 +22,7 @@
         <HardwareVirtEx enabled="true"/>
         <HardwareVirtExNestedPaging enabled="true"/>
         <HardwareVirtExVPID enabled="true"/>
-        <HardwareVirtExUX enabled="false"/>
+        <HardwareVirtExUX enabled="true"/>
         <PAE enabled="true"/>
         <LongMode enabled="false"/>
         <HardwareVirtExLargePages enabled="false"/>

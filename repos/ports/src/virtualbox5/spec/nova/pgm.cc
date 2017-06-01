@@ -230,8 +230,11 @@ Genode::uint64_t * Vcpu_handler::pdpte_map(VM *pVM, RTGCPHYS cr3)
 	PPGMPAGE pPage = &pRam->aPages[iPage];
 
 /*
-	Vmm::printf("%u gcphys=0x%lx host=0x%lx type=%lx state=0x%lx\n", __LINE__,
-	            cr3, PGM_PAGE_GET_HCPHYS(pPage), PGM_PAGE_GET_TYPE(pPage), PGM_PAGE_GET_STATE(pPage));
+	if (VERBOSE_PGM)
+		Vmm::log(__LINE__, " gcphys=", Vmm::Hex(cr3),
+		         " host=", Vmm::Hex(PGM_PAGE_GET_HCPHYS(pPage)),
+		         " type=", Vmm::Hex(PGM_PAGE_GET_TYPE(pPage)),
+		         " state=",Vmm::Hex(PGM_PAGE_GET_STATE(pPage)));
 */
 
 	Genode::uint64_t *pdpte = reinterpret_cast<Genode::uint64_t*>(PGM_PAGE_GET_HCPHYS(pPage) + (cr3 & PAGE_OFFSET_MASK));
