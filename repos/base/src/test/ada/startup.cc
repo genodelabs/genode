@@ -6,6 +6,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/component.h>
 
 /**
  * Declaration of the Ada main procedure
@@ -21,14 +22,15 @@ extern "C" void __gnat_eh_personality()
 }
 
 /**
- * C wrapper for the Ada main program
+ * Wrapper for the Ada main program
  *
- * This function is called by the '_main' startup code. It may be used to
+ * This function is called on Genode component startup. It may be used to
  * initialize memory objects at fixed virtual addresses prior calling the Ada
  * main program.
  */
-extern "C" int main(int argc, char **argv)
+void Component::construct(Genode::Env &env)
 {
 	_ada_main();
-	return 0;
+
+	env.parent().exit(0);
 }

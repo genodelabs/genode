@@ -13,8 +13,6 @@ procedure main is
 
 	result : Integer;
 
-	r : test_package.some_range_t;
-
 	--
 	-- Declarations of external C functions
 	--

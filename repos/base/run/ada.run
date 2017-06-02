@@ -30,7 +30,6 @@ grep_output {init -> test-ada}
 unify_output {0x[0-9a-f]+} "UNIFIED"
 
 compare_output_to {
-	[init -> test-ada] Warning: using legacy main function, please convert to 'Component::construct'
 	[init -> test-ada] add called with a=13, b=14, result at address UNIFIED
 	[init -> test-ada] print_int called with argument 27
 }
