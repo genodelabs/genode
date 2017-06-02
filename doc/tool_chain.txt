@@ -32,7 +32,7 @@ compiled:
   Our pre-compiled tool chain is runnable on Linux x86_32 and x86_64. The
   archives for both versions will be extracted to '/usr/local/genode-gcc'. To
   extract the archive, use the following command:
-  ! sudo tar xPfj genode-toolchain-<version>-<arch>.tar.bz2
+  ! sudo tar xPf genode-toolchain-<version>-<arch>.tar.xz
   The use of the 'P' option ensures that the tool chain will be installed at
   the correct absolute path '/usr/local/genode-gcc' where the build system
   expects it to reside by default. Please note, Genode OS Framework releases
