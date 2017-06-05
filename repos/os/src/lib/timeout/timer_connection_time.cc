@@ -96,7 +96,7 @@ Duration Timer::Connection::curr_time()
 	if (_interpolation_quality == MAX_INTERPOLATION_QUALITY)
 	{
 		/* locally buffer real-time related members */
-		unsigned long const ts              = _ts;
+		Timestamp     const ts              = _ts;
 		unsigned long const us_to_ts_factor = _us_to_ts_factor;
 
 		lock_guard.destruct();
