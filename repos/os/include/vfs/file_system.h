@@ -30,13 +30,6 @@ struct Vfs::File_system : Directory_service, File_io_service
 	File_system() : next(0) { }
 
 	/**
-	 * Synchronize file system
-	 *
-	 * This method flushes any delayed operations from the file system.
-	 */
-	virtual void sync(char const *path) { }
-
-	/**
 	 * Adjust to configuration changes
 	 */
 	virtual void apply_config(Genode::Xml_node const &node) { }

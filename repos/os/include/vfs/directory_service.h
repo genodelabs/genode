@@ -188,6 +188,13 @@ struct Vfs::Directory_service
 	virtual bool directory(char const *path) = 0;
 
 	virtual char const *leaf_path(char const *path) = 0;
+
+	/**
+	 * Synchronize file system
+	 *
+	 * This method flushes any delayed operations from the file system.
+	 */
+	virtual void sync(char const *path) { }
 };
 
 #endif /* _INCLUDE__VFS__DIRECTORY_SERVICE_H_ */
