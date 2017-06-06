@@ -677,6 +677,12 @@ extern "C" int socket_fs_getsockopt(int libc_fd, int level, int optname,
 			Genode::log("getsockopt: SO_ERROR not yet implemented - return true");
 			*(int *)optval = 0;
 			return 0;
+		case SO_TYPE:
+			switch (context->proto()) {
+			case Socket_fs::Context::Proto::UDP: *(int *)optval = SOCK_DGRAM;  break;
+			case Socket_fs::Context::Proto::TCP: *(int *)optval = SOCK_STREAM; break;
+			}
+			return 0;
 		default: return Errno(ENOPROTOOPT);
 		}
 
