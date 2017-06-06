@@ -1,9 +1,9 @@
 LICENSE   := netperf
 VERSION   := 2.6.0
-DOWNLOADS := netperf.svn
+DOWNLOADS := netperf.archive
 
-URL(netperf) := http://www.netperf.org/svn/netperf2/tags/netperf-$(VERSION)
-REV(netperf) := HEAD
+URL(netperf) := http://archive.ubuntu.com/ubuntu/pool/multiverse/n/netperf/netperf_$(VERSION).orig.tar.gz
+SHA(netperf) := c25362801dfdf8c40e0e6cab538be757b9de28fc
 DIR(netperf) := src/app/netperf
 
 PATCHES := src/app/netperf/*.patch
