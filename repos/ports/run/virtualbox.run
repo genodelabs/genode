@@ -198,7 +198,7 @@ append_if [expr $use_gui] config {
 			<service name="Input" />
 		</provides>
 
-		<config xpos="10" ypos="10" width="800" height="600"/>
+		<config xpos="10" ypos="10" width="1024" height="768"/>
 
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -213,14 +213,14 @@ append_if [expr $use_gui] config {
 			<service name="Framebuffer" />
 			<service name="Input" />
 		</provides>
-		<config xpos="410" ypos="310" width="800" height="600"/>
+		<config xpos="410" ypos="310" width="1024" height="768"/>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="vbox2" priority="-2" caps="200">}
+	<start name="vbox2" priority="-2" caps="500">}
 append_if [expr $use_gui] config "
 		<binary name=\"$virtualbox_binary\"/>"
 append_if [expr $use_gui] config {
@@ -242,7 +242,7 @@ append_if [expr $use_gui] config {
 	</start>}
 
 append config {
-	<start name="vbox1" priority="-2" caps="200">}
+	<start name="vbox1" priority="-2" caps="500">}
 append config "
 		<binary name=\"$virtualbox_binary\"/>"
 append config {
