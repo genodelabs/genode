@@ -117,9 +117,18 @@ void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread
 
 void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 {
+	if (!thread_cap.valid())
+		return;
+
 	Lock::Guard lock_guard(_thread_list_lock);
 
-	_unsynchronized_kill_thread(thread_cap);
+	/* check that cap belongs to this session */
+	for (Cpu_thread_component *t = _thread_list.first(); t; t = t->next()) {
+		if (t->cap() == thread_cap) {
+			_unsynchronized_kill_thread(thread_cap);
+			break;
+		}
+	}
 }
 
 
