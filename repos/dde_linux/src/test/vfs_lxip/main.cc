@@ -262,6 +262,39 @@ static void test_proto(char const *sock_root, char const *proto)
 }
 
 
+static void cat_info_file(char const *sock_root, char const *info_file)
+{
+	char path[96];
+	snprintf(path, sizeof(path), "%s/%s", sock_root, info_file);
+
+	int fd = open(path, O_RDONLY);
+	if (fd == -1) {
+		perror("open");
+		abort();
+	}
+
+	char buf[128];
+	int n = read(fd, buf, sizeof(buf));
+	if (n < 1) {
+		perror("read");
+		abort();
+	}
+	buf[n - 1] = 0;
+	close(fd);
+
+	printf("%-12s \"%s\"\n", info_file, buf);
+}
+
+
+static void cat_stack_info(char const *sock_root)
+{
+	cat_info_file(sock_root, "address");
+	cat_info_file(sock_root, "netmask");
+	cat_info_file(sock_root, "gateway");
+	cat_info_file(sock_root, "nameserver");
+	cat_info_file(sock_root, "link_state");
+}
+
 int main()
 {
 	char const *socket_fs = "/socket";
@@ -270,4 +303,5 @@ int main()
 	test_proto(socket_fs, "tcp");
 	test_proto(socket_fs, "udp");
 	ls_socket_fs(socket_fs);
+	cat_stack_info(socket_fs);
 }
