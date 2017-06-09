@@ -63,7 +63,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 
 	if (!alloc_ok) {
 		error("could not allocate libc_fd ", libc_fd,
-		      libc_fd == ANY_FD ? " (any)" : "");
+		      libc_fd <= ANY_FD ? " (any)" : "");
 		return 0;
 	}
 

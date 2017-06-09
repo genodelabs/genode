@@ -218,11 +218,18 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
 
+	/* FIXME error cleanup code leaks resources! */
+
+	if (!fd) {
+		errno = EMFILE;
+		return nullptr;
+	}
+
 	fd->flags = flags & (O_NONBLOCK|O_APPEND);
 
 	if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1)) {
-		/* XXX leaking fd, missing errno */
-		return 0;
+		errno = EINVAL; /* XXX which error code fits best ? */
+		return nullptr;
 	}
 
 	return fd;
@@ -649,6 +656,8 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 			 */
 			Libc::File_descriptor *new_fd =
 				Libc::file_descriptor_allocator()->alloc(this, 0);
+			if (!new_fd) return Errno(EMFILE);
+
 			new_fd->path(fd->fd_path);
 
 			/*
@@ -657,8 +666,7 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 			 */
 			if (dup2(fd, new_fd) == -1) {
 				Genode::error("Plugin::fcntl: dup2 unexpectedly failed");
-				errno = EINVAL;
-				return -1;
+				return Errno(EINVAL);
 			}
 
 			return new_fd->libc_fd;
@@ -674,8 +682,7 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 	}
 
 	Genode::error("fcntl(): command ", cmd, " not supported - vfs");
-	errno = EINVAL;
-	return -1;
+	return Errno(EINVAL);
 }
 
 
