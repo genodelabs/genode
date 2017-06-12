@@ -37,7 +37,7 @@ struct Fault_info
 	:
 		ip(seL4_GetMR(0)),
 		pf(seL4_GetMR(1)),
-		write(seL4_Fault_isWriteFault(seL4_GetMR(3)))
+		write(seL4_GetMR(3) & 0x2)
 	{ }
 };
 

@@ -54,7 +54,7 @@ namespace Genode {
 
 void Genode::Thread_info::init(addr_t const utcb_virt_addr)
 {
-	Platform &platform = *platform_specific();
+	Platform        &platform   = *platform_specific();
 	Range_allocator &phys_alloc = *platform.ram_alloc();
 
 	/* create IPC buffer of one page */
@@ -62,16 +62,31 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr)
 	Untyped_memory::convert_to_page_frames(ipc_buffer_phys, 1);
 
 	/* allocate TCB within core's CNode */
-	tcb_sel = platform.core_sel_alloc().alloc();
-	create<Tcb_kobj>(phys_alloc, platform.core_cnode().sel(), tcb_sel);
+	{
+		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
+		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+
+		tcb_sel = platform.core_sel_alloc().alloc();
+		create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
+	}
 
 	/* allocate synchronous endpoint within core's CNode */
-	ep_sel = platform.core_sel_alloc().alloc();
-	create<Endpoint_kobj>(phys_alloc, platform.core_cnode().sel(), ep_sel);
+	{
+		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
+		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+
+		ep_sel = platform.core_sel_alloc().alloc();
+		create<Endpoint_kobj>(service, platform.core_cnode().sel(), ep_sel);
+	}
 
 	/* allocate asynchronous object within core's CSpace */
-	lock_sel = platform.core_sel_alloc().alloc();
-	create<Notification_kobj>(phys_alloc, platform.core_cnode().sel(), lock_sel);
+	{
+		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
+		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+
+		lock_sel = platform.core_sel_alloc().alloc();
+		create<Notification_kobj>(service, platform.core_cnode().sel(), lock_sel);
+	}
 
 	/* assign IPC buffer to thread */
 	{
@@ -85,6 +100,7 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr)
 
 	/* set scheduling priority */
 	enum { PRIORITY_MAX = 0xff };
+	seL4_TCB_SetMCPriority(tcb_sel.value(), PRIORITY_MAX);
 	seL4_TCB_SetPriority(tcb_sel.value(), PRIORITY_MAX);
 }
 
@@ -122,7 +138,7 @@ void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp)
 
 	regs.eip = ip;
 	regs.esp = sp;
-	regs.gs  = IPCBUF_GDT_SELECTOR;
+	regs.fs  = IPCBUF_GDT_SELECTOR;
 
 	int const ret = seL4_TCB_WriteRegisters(tcb_sel.value(), false, 0, num_regs, &regs);
 	ASSERT(ret == 0);

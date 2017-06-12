@@ -191,7 +191,7 @@ class Genode::Vm_space
 				seL4_X86_Page          const service = _idx_to_sel(pte_idx);
 				seL4_X86_PageDirectory const pd      = _pd_sel.value();
 				seL4_Word              const vaddr   = to_virt;
-				seL4_CapRights         const rights  = seL4_AllRights;
+				seL4_CapRights_t       const rights  = seL4_AllRights;
 				seL4_X86_VMAttributes  const attr    = seL4_X86_Default_VMAttributes;
 
 				int const ret = seL4_X86_Page_Map(service, pd, vaddr, rights, attr);
@@ -209,6 +209,11 @@ class Genode::Vm_space
 		{
 			/* delete copy of the mapping's page-frame selector */
 			_page_table_registry.apply(virt, [&] (unsigned idx) {
+
+				seL4_X86_Page const service = _idx_to_sel(idx);
+				long err = seL4_X86_Page_Unmap(service);
+				if (err)
+					error("unmap ", Hex(virt), " failed, idx=", idx, " res=", err);
 
 			 	_leaf_cnode(idx).remove(_leaf_cnode_entry(idx));
 
@@ -238,27 +243,18 @@ class Genode::Vm_space
 		 *
 		 * \throw Alloc_page_table_failed
 		 */
-		void _alloc_and_map_page_table(addr_t to_virt, bool core_vm)
+		void _alloc_and_map_page_table(addr_t to_virt)
 		{
 			/* allocate page-table selector */
 			unsigned const pt_idx = _sel_alloc.alloc();
 
-			/* XXX account the consumed backing store */
-
 			try {
-				/* XXX evil manual unlock/lock pattern */
-				if (core_vm)
-					_lock.unlock();
-
-				create<Page_table_kobj>(_phys_alloc,
+				addr_t const phys_addr     = Untyped_memory::alloc_page(_phys_alloc);
+				seL4_Untyped const service = Untyped_memory::untyped_sel(phys_addr).value();
+				create<Page_table_kobj>(service,
 				                        _leaf_cnode(pt_idx).sel(),
 				                        _leaf_cnode_entry(pt_idx));
-
-				if (core_vm)
-					_lock.lock();
 			} catch (...) {
-				if (core_vm)
-					_lock.lock();
 				 throw Alloc_page_table_failed();
 			}
 
@@ -357,22 +353,11 @@ class Genode::Vm_space
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
 
-				/* check if we need to add a page table to core's VM space */
-				if (!_page_table_registry.has_page_table_at(to_virt + offset))
-					_alloc_and_map_page_table(to_virt + offset, !flush_support);
-
 				if (_map_page(from_phys + offset, to_virt + offset, flush_support))
 					continue;
 
-				/* XXX - Why this quirk is necessary - shouldn't happen ?!? */
-
-				error("mapping failed - retry once ", Hex(from_phys + offset),
+				error("mapping failed ", Hex(from_phys + offset),
 				      " -> ", Hex(to_virt + offset));
-
-				_page_table_registry.forget_page_table_entry(to_virt + offset);
-				_alloc_and_map_page_table(to_virt + offset, !flush_support);
-
-				_map_page(from_phys + offset, to_virt + offset, flush_support);
 			}
 		}
 
@@ -383,6 +368,18 @@ class Genode::Vm_space
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
 				_unmap_page(virt + offset);
+			}
+		}
+
+		void alloc_page_tables(addr_t const start, addr_t const size)
+		{
+			Lock::Guard guard(_lock);
+
+			addr_t virt = trunc_page(start);
+			for (; virt < start + size; virt += get_page_size()) {
+				if (!_page_table_registry.has_page_table_at(virt)) {
+					_alloc_and_map_page_table(virt);
+				}
 			}
 		}
 };

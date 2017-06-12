@@ -2,7 +2,8 @@ assert_spec acpi
 
 if {
 	![have_spec hw] &&
-	![have_spec nova]
+	![have_spec nova] &&
+	![have_spec sel4]
 } {
 	puts "Platform is unsupported."
 	exit 0

@@ -80,17 +80,14 @@ namespace Genode {
 
 
 	/**
-	 * Create kernel object from untyped memory
+	 * Create kernel object
 	 *
 	 * \param KOBJ           kernel-object description
-	 * \param phys_alloc     allocator for untyped memory
+	 * \param service        cap to untyped memory
 	 * \param dst_cnode_sel  CNode selector where to store the cap pointing to
 	 *                       the new kernel object
 	 * \param dst_idx        designated index of cap selector within 'dst_cnode'
-	 * \param size_log2      size of kernel object in bits, only needed for
-	 *                       variable-sized objects like CNodes
-	 *
-	 * \return physical address of created kernel object
+	 * \param size_log2      size of kernel object in bits
 	 *
 	 * \throw Phys_alloc_failed
 	 * \throw Retype_untyped_failed
@@ -98,19 +95,13 @@ namespace Genode {
 	 * The kernel-object description is a policy type that contains enum
 	 * definitions for 'SEL4_TYPE' and 'SIZE_LOG2', and a static function
 	 * 'name' that returns the type name as a char const pointer.
-	 *
-	 * XXX to be removed
 	 */
 	template <typename KOBJ>
-	static addr_t create(Range_allocator &phys_alloc,
-	                     Cap_sel          dst_cnode_sel,
-	                     Cnode_index      dst_idx,
-	                     size_t           size_log2 = 0)
+	static void create(seL4_Untyped const service,
+	                   Cap_sel      const dst_cnode_sel,
+	                   Cnode_index      dst_idx,
+	                   size_t           size_log2 = 0)
 	{
-		/* allocate physical page */
-		addr_t phys_addr = Untyped_memory::alloc_page(phys_alloc);
-
-		seL4_Untyped const service     = Untyped_memory::untyped_sel(phys_addr).value();
 		int          const type        = KOBJ::SEL4_TYPE;
 		int          const size_bits   = size_log2;
 		seL4_CNode   const root        = dst_cnode_sel.value();
@@ -131,59 +122,6 @@ namespace Genode {
 		if (ret != 0) {
 			error("seL4_Untyped_RetypeAtOffset (", KOBJ::name(), ") "
 			      "returned ", ret);
-			throw Retype_untyped_failed();
-		}
-
-		return phys_addr;
-	}
-
-
-	/**
-	 * Create kernel object from initial untyped memory pool
-	 *
-	 * \param KOBJ           kernel-object description
-	 * \param untyped_pool   initial untyped memory pool
-	 * \param dst_cnode_sel  CNode selector where to store the cap pointing to
-	 *                       the new kernel object
-	 * \param dst_idx        designated index of cap selector within 'dst_cnode'
-	 * \param size_log2      size of kernel object in bits, only needed for
-	 *                       variable-sized objects like CNodes
-	 *
-	 * \throw Initial_untyped_pool::Initial_untyped_pool_exhausted
-	 * \throw Retype_untyped_failed
-	 *
-	 * The kernel-object description is a policy type that contains enum
-	 * definitions for 'SEL4_TYPE' and 'SIZE_LOG2', and a static function
-	 * 'name' that returns the type name as a char const pointer.
-	 */
-	template <typename KOBJ>
-	static void create(Initial_untyped_pool &untyped_pool,
-	                   Cap_sel               dst_cnode_sel,
-	                   Cnode_index           dst_idx,
-	                   size_t                size_log2 = 0)
-	{
-		unsigned const sel = untyped_pool.alloc(KOBJ::SIZE_LOG2 + size_log2);
-
-		seL4_Untyped const service     = sel;
-		int          const type        = KOBJ::SEL4_TYPE;
-		int          const size_bits   = size_log2;
-		seL4_CNode   const root        = dst_cnode_sel.value();
-		int          const node_index  = 0;
-		int          const node_depth  = 0;
-		int          const node_offset = dst_idx.value();
-		int          const num_objects = 1;
-
-		int const ret = seL4_Untyped_Retype(service,
-		                                    type,
-		                                    size_bits,
-		                                    root,
-		                                    node_index,
-		                                    node_depth,
-		                                    node_offset,
-		                                    num_objects);
-
-		if (ret != 0) {
-			error("seL4_Untyped_Retype (", KOBJ::name(), ") returned ", ret);
 			throw Retype_untyped_failed();
 		}
 	}

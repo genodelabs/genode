@@ -73,12 +73,15 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 	_entrypoint(ep), _finalizer(*this),
 	_finalizer_cap(_entrypoint->manage(&_finalizer))
 {
-	Platform &platform = *platform_specific();
+	Platform        &platform   = *platform_specific();
 	Range_allocator &phys_alloc = *platform.ram_alloc();
+
+	addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
+	seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
 
 	/* allocate notification object within core's CNode */
 	Cap_sel ny_sel = platform.core_sel_alloc().alloc();
-	create<Notification_kobj>(phys_alloc, platform.core_cnode().sel(), ny_sel);
+	create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
 
 	_notify = Capability_space::create_notification_cap(ny_sel);
 }

@@ -80,7 +80,7 @@ void Platform::_init_unused_phys_alloc()
 
 static inline void init_sel4_ipc_buffer()
 {
-	asm volatile ("movl %0, %%gs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
+	asm volatile ("movl %0, %%fs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
 }
 
 
@@ -93,8 +93,17 @@ void Platform::_init_allocators()
 	 * XXX allocate intermediate CNodes for organizing the untyped pages here
 	 */
 
-	/* register remaining untyped memory to physical memory allocator */
+	/* register remaining untyped memory to physical or iomem memory allocator */
 	auto add_phys_range = [&] (Initial_untyped_pool::Range const &range) {
+
+		if (range.device) {
+			addr_t const phys_addr = trunc_page(range.phys);
+			size_t const phys_size = round_page((range.phys - phys_addr) + range.size);
+
+			_io_mem_alloc.add_range(phys_addr, phys_size);
+			_unused_phys_alloc.remove_range(phys_addr, phys_size);
+			return;
+		}
 
 		addr_t const page_aligned_offset =
 			align_addr(range.free_offset, get_page_size_log2());
@@ -118,66 +127,43 @@ void Platform::_init_allocators()
 	 * '_initial_untyped_pool' because the pool is empty.
 	 */
 
-	/* move device memory regions to phys cnode */
-	seL4_BootInfo const &bi = sel4_boot_info();
-	Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
-
-	for (unsigned region = 0; region < bi.numDeviceRegions; region++) {
-		size_t const frame_size = 1UL << bi.deviceRegions[region].frameSizeBits;
-		if (frame_size != 4096) {
-			error("unsupported device memory frame size of ", Hex(frame_size));
-			class Unsupported_dev_memory_framesize{};
-			throw Unsupported_dev_memory_framesize();
-		}
-
-		for (uint64_t sel = bi.deviceRegions[region].frames.start,
-		     phys_addr = bi.deviceRegions[region].basePaddr;
-		     sel < bi.deviceRegions[region].frames.end;
-		     sel++, phys_addr += frame_size) {
-
-			_io_mem_alloc.add_range(phys_addr, frame_size);
-			_unused_phys_alloc.remove_range(phys_addr, frame_size);
-
-			addr_t const dst_frame = phys_addr >> get_page_size_log2();
-			_phys_cnode.move(initial_cspace, Cnode_index(sel),
-			                 Cnode_index(dst_frame));
-		}
-	}
-
-	/* core's virtual memory */
-	_core_mem_alloc.virt_alloc()->add_range(_vm_base, _vm_size);
+	/* core's maximum virtual memory area */
+	_unused_virt_alloc.add_range(_vm_base, _vm_size);
 
 	/* remove core image from core's virtual address allocator */
+	addr_t const modules_start  = reinterpret_cast<addr_t>(&_boot_modules_binaries_begin);
+	addr_t const core_virt_beg  = trunc_page((addr_t)&_prog_img_beg),
+	             core_virt_end  = round_page((addr_t)&_prog_img_end);
+	addr_t const image_elf_size = core_virt_end - core_virt_beg;
 
-	/*
-	 * XXX Why do we need to skip a page after the end of core?
-	 *     When allocating a PTE immediately after _prog_img_end, the
-	 *     kernel would complain "Mapping already present" on the
-	 *     attempt to map a page frame.
-	 */
-	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
-	             core_virt_end = round_page((addr_t)&_prog_img_end)
-	                           + 4096;
-	size_t const core_size     = core_virt_end - core_virt_beg;
+	_unused_virt_alloc.remove_range(core_virt_beg, image_elf_size);
+	_core_mem_alloc.virt_alloc()->add_range(modules_start, core_virt_end - modules_start);
 
-	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
+	/* remove initial IPC buffer from core's virtual address allocator */
+	seL4_BootInfo const &bi = sel4_boot_info();
+	addr_t const core_ipc_buffer = reinterpret_cast<addr_t>(bi.ipcBuffer);
+	addr_t const core_ipc_bsize  = 4096;
+	_unused_virt_alloc.remove_range(core_ipc_buffer, core_ipc_bsize);
 
-	if (verbose_boot_info) {
-		log("core image:");
-		log("  virtual address range ",
-		    Hex_range<addr_t>(core_virt_beg, core_virt_end - core_virt_beg), " "
-		    "size=", Hex(core_size));
-	}
-
-	/* preserve sel4 boot info page in core's virtual address space */
-	addr_t const sel4_boot_info_page = reinterpret_cast<addr_t>(&bi);
-	_core_mem_alloc.virt_alloc()->remove_range(sel4_boot_info_page, 0x1000);
-	if (sel4_boot_info_page != core_virt_end)
-		warning("unexpected core binary layout");
+	/* remove sel4_boot_info page from core's virtual address allocator */
+	addr_t const boot_info_page = reinterpret_cast<addr_t>(&bi);
+	addr_t const boot_info_size = 4096 + bi.extraLen;
+	_unused_virt_alloc.remove_range(boot_info_page, boot_info_size);
 
 	/* preserve stack area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
-	                                           stack_area_virtual_size());
+	_unused_virt_alloc.remove_range(stack_area_virtual_base(),
+	                                stack_area_virtual_size());
+
+	if (verbose_boot_info) {
+		typedef Hex_range<addr_t> Hex_range;
+		log("virtual adress layout of core:");
+		log(" overall    ", Hex_range(_vm_base, _vm_size));
+		log(" core image ", Hex_range(core_virt_beg, image_elf_size));
+		log(" ipc buffer ", Hex_range(core_ipc_buffer, core_ipc_bsize));
+		log(" boot_info  ", Hex_range(boot_info_page, boot_info_size));
+		log(" stack area ", Hex_range(stack_area_virtual_base(),
+		                              stack_area_virtual_size()));
+	}
 }
 
 
@@ -214,15 +200,26 @@ void Platform::_switch_to_core_cspace()
 	for (unsigned sel = bi.untyped.start; sel < bi.untyped.end; sel++)
 		_core_cnode.move(initial_cspace, Cnode_index(sel));
 
-	/* move the device memory selectors to core's CNode */
-	for (unsigned region = 0; region < bi.numDeviceRegions; region++) {
-		for (unsigned sel = bi.deviceRegions[region].frames.start;
-		     sel < bi.deviceRegions[region].frames.end; sel++)
-			_core_cnode.move(initial_cspace, Cnode_index(sel));
-	}
+	/* move selectors of core image */
+	addr_t const modules_start = reinterpret_cast<addr_t>(&_boot_modules_binaries_begin);
+	addr_t const modules_end   = reinterpret_cast<addr_t>(&_boot_modules_binaries_end);
+	addr_t virt_addr = (addr_t)(&_prog_img_beg);
 
-	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++)
-		_core_cnode.copy(initial_cspace, Cnode_index(sel));
+	for (unsigned sel = bi.userImageFrames.start;
+	     sel < bi.userImageFrames.end;
+	     sel++, virt_addr += get_page_size()) {
+
+		/* remove mapping to boot modules, no access required within core */
+		if (modules_start <= virt_addr && virt_addr < modules_end) {
+			seL4_X86_Page const service = sel;
+			long err = seL4_X86_Page_Unmap(service);
+			if (err)
+				error("unmapping boot modules ", Hex(virt_addr));
+		}
+
+		/* insert cap for core image */
+		_core_cnode.move(initial_cspace, Cnode_index(sel));
+	}
 
 	/* copy statically created CNode selectors to core's CNode */
 	_core_cnode.copy(initial_cspace, Cnode_index(Core_cspace::top_cnode_sel()));
@@ -294,15 +291,14 @@ void Platform::_init_core_page_table_registry()
 	 * Register initial page frames
 	 */
 	virt_addr = (addr_t)(&_prog_img_beg);
-	for (unsigned sel = bi.userImageFrames.start; sel < bi.userImageFrames.end; sel++) {
-
+	for (unsigned sel = bi.userImageFrames.start;
+	     sel < bi.userImageFrames.end;
+	     sel++, virt_addr += get_page_size()) {
 		/* skip boot modules */
 		if (modules_start <= virt_addr && virt_addr <= modules_end)
 			continue;
 
 		_core_page_table_registry.insert_page_table_entry(virt_addr, sel);
-
-		virt_addr += get_page_size();
 	}
 }
 
@@ -367,7 +363,7 @@ void Platform::_init_rom_modules()
 		 */
 		Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
 		for (unsigned i = 0; i < module_num_frames; i++)
-			_phys_cnode.copy(initial_cspace, Cnode_index(module_frame_sel + i),
+			_phys_cnode.move(initial_cspace, Cnode_index(module_frame_sel + i),
 			                                 Cnode_index(dst_frame + i));
 
 		log("boot module '", (char const *)header->name, "' "
@@ -392,6 +388,7 @@ Platform::Platform()
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
 	_unused_phys_alloc(core_mem_alloc()),
+	_unused_virt_alloc(core_mem_alloc()),
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
 	_vm_size(3*1024*1024*1024UL - _vm_base), /* use the lower 3GiB */
@@ -414,7 +411,11 @@ Platform::Platform()
 	Cap_sel lock_sel (INITIAL_SEL_LOCK);
 	Cap_sel core_sel = _core_sel_alloc.alloc();
 
-	create<Notification_kobj>(*ram_alloc(), core_cnode().sel(), core_sel);
+	{
+		addr_t       const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
+		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+		create<Notification_kobj>(service, core_cnode().sel(), core_sel);
+	}
 
 	/* mint a copy of the notification object with badge of lock_sel */
 	_core_cnode.mint(_core_cnode, core_sel, lock_sel);
@@ -426,17 +427,35 @@ Platform::Platform()
 
 	ASSERT(sender == INITIAL_SEL_LOCK);
 
+	/* back stack area with page tables */
+	enum { MAX_CORE_THREADS = 32 };
+	_core_vm_space.alloc_page_tables(stack_area_virtual_base(),
+	                                 stack_virtual_size() * MAX_CORE_THREADS);
+
+	/* add some minor virtual region for dynamic usage by core */
+	addr_t const virt_size = 32 * 1024 * 1024;
+	void * virt_ptr = nullptr;
+	if (_unused_virt_alloc.alloc(virt_size, &virt_ptr)) {
+
+		addr_t const virt_addr = (addr_t)virt_ptr;
+
+		/* add to available virtual region of core */
+		_core_mem_alloc.virt_alloc()->add_range(virt_addr, virt_size);
+
+		/* back region by page tables */
+		_core_vm_space.alloc_page_tables(virt_addr, virt_size);
+	}
+
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
 
 	/*
 	 * Log statistics about allocator initialization
 	 */
-	log("VM area at ", Hex_range<addr_t>(_vm_base, _vm_size));
-
 	if (verbose_boot_info) {
 		log(":phys_alloc:       ", *_core_mem_alloc.phys_alloc());
 		log(":unused_phys_alloc:",  _unused_phys_alloc);
+		log(":unused_virt_alloc:",  _unused_virt_alloc);
 		log(":virt_alloc:       ", *_core_mem_alloc.virt_alloc());
 		log(":io_mem_alloc:     ",  _io_mem_alloc);
 	}

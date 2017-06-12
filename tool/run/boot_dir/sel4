@@ -2,6 +2,8 @@ proc binary_name_ld_lib_so { } { return "ld-sel4.lib.so" }
 proc binary_name_core_o    { } { return "core-sel4.o" }
 proc binary_name_timer     { } { return "pit_timer_drv" }
 
+proc kernel_files          { } { return sel4 }
+
 
 proc run_boot_string   { } { return "\n\rStarting node #0" }
 proc core_link_address { } { return "0x02000000" }

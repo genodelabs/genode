@@ -10,7 +10,7 @@
 # port, if missing, is added to the missing-ports list of this stage.
 #
 LIBSEL4_DIR := $(call select_from_ports,sel4)/src/kernel/sel4/libsel4
-LIBSEL4_AUTO:= $(call select_from_ports,sel4)/src/kernel/sel4/include/plat/pc99
+LIBSEL4_AUTO:= $(call select_from_ports,sel4)/src/kernel/sel4/configs/pc99
 
 #
 # Execute the rules in this file only at the second build stage when we know
@@ -26,19 +26,23 @@ ifeq ($(called_from_lib_mk),yes)
 #
 
 SEL4_ARCH_INCLUDES := simple_types.h types.h constants.h objecttype.h \
-                      functions.h syscalls.h invocation.h deprecated.h
+                      functions.h syscalls.h invocation.h deprecated.h \
+                      types_gen.h faults.h
 
 ARCH_INCLUDES := objecttype.h types.h constants.h functions.h deprecated.h \
                  pfIPC.h syscalls.h exIPC.h invocation.h simple_types.h
 
-INCLUDES := objecttype.h types.h bootinfo.h bootinfo_types.h errors.h constants.h \
-            messages.h sel4.h macros.h simple_types.h types_gen.h syscall.h \
-            invocation.h shared_types_gen.h debug_assert.h shared_types.h \
-            sel4.h deprecated.h autoconf.h
+INCLUDES := objecttype.h types.h bootinfo.h bootinfo_types.h errors.h \
+            constants.h messages.h sel4.h macros.h simple_types.h types_gen.h \
+            syscall.h invocation.h shared_types_gen.h debug_assert.h \
+            shared_types.h sel4.h deprecated.h autoconf.h syscalls.h faults.h
+
+PLAT_API_INCLUDES := constants.h
 
 INCLUDE_SYMLINKS += $(addprefix include/sel4/,          $(INCLUDES))
 INCLUDE_SYMLINKS += $(addprefix include/sel4/arch/,     $(ARCH_INCLUDES))
 INCLUDE_SYMLINKS += $(addprefix include/sel4/sel4_arch/,$(SEL4_ARCH_INCLUDES))
+INCLUDE_SYMLINKS += $(addprefix include/sel4/plat/api/, $(PLAT_API_INCLUDES))
 INCLUDE_SYMLINKS += include/interfaces/sel4_client.h
 
 all: $(INCLUDE_SYMLINKS)
@@ -62,22 +66,42 @@ include/sel4/%.h: $(LIBSEL4_DIR)/include/sel4/%.h
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)ln -sf $< $@
 
+include/sel4/plat/api/%.h: $(LIBSEL4_DIR)/sel4_plat_include/pc99/sel4/plat/api/%.h
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)ln -sf $< $@
+
 #
 # Generated headers
 #
-include/sel4/types_gen.h: $(LIBSEL4_DIR)/include/sel4/types_32.bf
+include/sel4/%.pbf: $(LIBSEL4_DIR)/include/sel4/%.bf include/sel4/autoconf.h
+	$(MSG_CONVERT)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)$(CPP) -P $< >$@
+
+include/sel4/sel4_arch/types.pbf: $(LIBSEL4_DIR)/sel4_arch_include/ia32/sel4/sel4_arch/types.bf include/sel4/autoconf.h
+	$(MSG_CONVERT)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)$(CPP) -Iinclude/sel4 -I$(LIBSEL4_DIR)/arch_include/x86 -P $< >$@
+
+include/sel4/types_gen.h: include/sel4/types_32.pbf
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
 	                 --environment libsel4 "$<" $@
 
-include/sel4/shared_types_gen.h: $(LIBSEL4_DIR)/include/sel4/shared_types_32.bf
+include/sel4/shared_types_gen.h: include/sel4/shared_types_32.pbf
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
 	                 --environment libsel4 "$<" $@
 
-include/sel4/syscall.h: $(LIBSEL4_DIR)/include/api/syscall.xml
+include/sel4/sel4_arch/types_gen.h: include/sel4/sel4_arch/types.pbf
+	$(MSG_CONVERT)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
+	                 --environment libsel4 "$<" $@
+
+include/sel4/syscall.h: $(LIBSEL4_DIR)/include/api/syscall.xml $(LIBSEL4_DIR)/include/api/syscall.xsd
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)python $(LIBSEL4_DIR)/tools/syscall_header_gen.py \

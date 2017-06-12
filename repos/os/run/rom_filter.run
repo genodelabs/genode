@@ -119,7 +119,7 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*finished.*\n} 20
+run_genode_until {.*xray: change \(finished\).*\n} 20
 
 # pay only attention to the output of the rom_logger
 grep_output {^\[init -> rom_logger\] .+}

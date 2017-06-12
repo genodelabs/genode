@@ -51,10 +51,12 @@ class Genode::Initial_untyped_pool
 			unsigned const index = sel - sel4_boot_info().untyped.start;
 
 			/* original size of untyped memory range */
-			size_t const size = 1UL << sel4_boot_info().untypedSizeBitsList[index];
+			size_t const size = 1UL << sel4_boot_info().untypedList[index].sizeBits;
 
 			/* physical address of the begin of the untyped memory range */
-			addr_t const phys = sel4_boot_info().untypedPaddrList[index];
+			addr_t const phys = sel4_boot_info().untypedList[index].paddr;
+
+			bool const device = sel4_boot_info().untypedList[index].isDevice;
 
 			/* offset to the unused part of the untyped memory range */
 			addr_t &free_offset;
@@ -124,6 +126,9 @@ class Genode::Initial_untyped_pool
 			 * a range that is able to host a kernel object of 'size'.
 			 */
 			for_each_range([&] (Range &range) {
+				/* ignore device memory */
+				if (range.device)
+					return;
 
 				/* calculate free index after allocation */
 				addr_t const new_free_offset = _align_offset(range, size_log2);
@@ -222,6 +227,12 @@ class Genode::Initial_untyped_pool
 						error(__func__, ": seL4_Untyped_Retype (untyped) "
 						      "returned ", ret);
 						return;
+					}
+
+					/* convert device memory directly into page frames */
+					if (range.device) {
+						size_t const num_pages = batch_size >> get_page_size_log2();
+						Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
 					}
 				}
 			});

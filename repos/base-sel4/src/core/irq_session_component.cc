@@ -31,8 +31,13 @@ bool Irq_object::associate(Irq_session::Trigger const irq_trigger,
 	Platform &platform = *platform_specific();
 	Range_allocator &phys_alloc = *platform.ram_alloc();
 
-	create<Notification_kobj>(phys_alloc, platform.core_cnode().sel(),
-	                          _kernel_notify_sel);
+	{
+		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
+		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+
+		create<Notification_kobj>(service, platform.core_cnode().sel(),
+		                          _kernel_notify_sel);
+	}
 
 	enum { IRQ_EDGE = 0, IRQ_LEVEL = 1 };
 	enum { IRQ_HIGH = 0, IRQ_LOW = 1 };

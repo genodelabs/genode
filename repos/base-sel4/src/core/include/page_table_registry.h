@@ -200,7 +200,7 @@ class Genode::Page_table_registry
 				if (_page_table_base(pt->addr) == _page_table_base(addr))
 					return *pt;
 			}
-			warning(__func__, ": page-table lookup failed");
+			warning(__func__, ": page-table lookup failed ", Hex(addr));
 			throw Lookup_failed();
 		}
 
