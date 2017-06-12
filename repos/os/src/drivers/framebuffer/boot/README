@@ -1,0 +1,18 @@
+This directory contains the implementation of a framebuffer driver which
+relies on a pre-intialised graphic device, e.g. by BIOS/UEFI or bootloader.
+
+Behavior
+--------
+
+The driver looks for a ROM named 'platform_info' with the following XML
+nodes and attributes:
+
+<platform_info>
+	<boot>
+		<framebuffer phys="0x7300000" width="1024" height="768" bpp="32"/>
+	</boot>
+</platform_info>
+
+If the framebuffer node exists and all attributes, the driver opens up a
+IO_MEM session with the given physical addres as framebuffer memory and
+renders the framebuffer content into the given area.
