@@ -31,7 +31,8 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="lx_fs">
+	<default caps="100"/>
+	<start name="lx_fs" caps="200">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config> <policy label_prefix="test-libc_vfs" root="/libc_vfs" writeable="yes" /> </config>
@@ -39,12 +40,11 @@ install_config {
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="2M"/>
 		<config>
-			<libc stdout="/dev/log">
-				<vfs>
-					<fs />
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-			</libc>
+			<vfs>
+				<fs />
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log"/>
 		</config>
 	</start>
 </config>
