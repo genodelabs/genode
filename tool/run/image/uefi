@@ -1,0 +1,43 @@
+##
+# Create GPT disk image with UEFI boot loaders and content of the run directory
+#
+# \param --image-uefi-size   disk size in MiB
+#
+
+proc image_uefi_size { } { return [get_cmd_arg --image-uefi_size 0] }
+
+
+##
+# Create uefi image
+#
+proc run_image { {unused ""} } {
+
+	requires_installation_of parted
+	requires_installation_of mkfs.vfat
+	requires_installation_of mcopy
+
+	set run_size [expr [regsub {\s.*} [exec du -sm [run_dir]] {}]]
+
+	if {[image_uefi_size] > 0} {
+		set disk_size  [image_uefi_size]
+	} else {
+		set disk_size [expr $run_size + 1]
+	}
+
+	# generate head space designated for the partition table
+	exec dd if=/dev/zero of=[run_dir].header count=34 bs=512 2>/dev/null
+
+	exec dd if=/dev/zero of=[run_dir].partition bs=1M count=$disk_size 2>/dev/null
+	exec mkfs.vfat -n GENODE [run_dir].partition
+
+	# copy content to disk image
+	foreach file [exec ls [run_dir]] {
+		exec mcopy -i [run_dir].partition -s [run_dir]/$file ::
+	}
+
+	exec cat [run_dir].header [run_dir].partition > [run_dir].img
+
+	exec parted -a none -s [run_dir].img -- mklabel gpt mkpart ESP fat32 34s [expr $disk_size * 1024 * 1024 / 512]s set 1 boot on
+
+	exec rm -f [run_dir].header [run_dir].partition
+}
