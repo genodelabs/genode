@@ -43,7 +43,7 @@ create_boot_directory
 proc gpio_drv_config { } {
 	if {[have_spec gpio]} {
 		append result {
-			<start name="} [gpio_drv] {">
+			<start name="} [gpio_drv] {" caps="140">
 				<resource name="RAM" quantum="4M"/>
 				<provides><service name="Gpio"/></provides>
 			</start>}
