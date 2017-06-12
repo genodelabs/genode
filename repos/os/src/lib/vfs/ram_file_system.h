@@ -117,7 +117,7 @@ class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
 
 			Node *c =
 				Avl_node<Node>::child(strcmp(name, _name) > 0);
-			return c ? c->sibling(name) : 0;
+			return c ? c->sibling(name) : nullptr;
 		}
 
 		struct Guard
@@ -294,7 +294,7 @@ class Vfs_ram::Directory : public Vfs_ram::Node
 		Node *child(char const *name)
 		{
 			Node *node = _entries.first();
-			return node ? node->sibling(name) : 0;
+			return node ? node->sibling(name) : nullptr;
 		}
 
 		void release(Node *node)
@@ -377,10 +377,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 					buf[i] = '\0';
 
 					Node *node = dir->child(name);
-					if (!node) return 0;
+					if (!node) return nullptr;
 
 					dir = dynamic_cast<Directory *>(node);
-					if (!dir) return 0;
+					if (!dir) return nullptr;
 
 					/* set the current name aside */
 					name = &buf[i+1];
@@ -391,7 +391,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 						return dir->child(name);
 				}
 			}
-			return 0;
+			return nullptr;
 		}
 
 		Vfs_ram::Directory *lookup_parent(char const *path)
@@ -401,7 +401,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Node *node = lookup(path, true);
 			if (node)
 				return dynamic_cast<Directory *>(node);
-			return 0;
+			return nullptr;
 		}
 
 		void remove(Vfs_ram::Node *node)
@@ -451,11 +451,13 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			using namespace Vfs_ram;
 
 			Node *node = lookup(path);
-			return node ? dynamic_cast<Directory *>(node) : 0;
+			return node
+				? (dynamic_cast<Directory *>(node) != nullptr)
+				: false;
 		}
 
 		char const *leaf_path(char const *path) {
-			return lookup(path) ? path : 0; }
+			return lookup(path) ? path : nullptr; }
 
 		Mkdir_result mkdir(char const *path, unsigned mode) override
 		{
@@ -489,9 +491,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			if (mode & OPEN_MODE_CREATE) {
 				Directory *parent = lookup_parent(path);
+				if (!parent) return OPEN_ERR_UNACCESSIBLE;
 				Node::Guard guard(parent);
 
-				if (!parent) return OPEN_ERR_UNACCESSIBLE;
 				if (parent->child(name)) return OPEN_ERR_EXISTS;
 
 				if (strlen(name) >= MAX_NAME_LEN)
