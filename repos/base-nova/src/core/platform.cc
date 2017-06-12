@@ -16,7 +16,8 @@
 /* Genode includes */
 #include <base/sleep.h>
 #include <base/thread.h>
-#include <base/snprintf.h>
+#include <util/string.h>
+#include <util/xml_generator.h>
 #include <trace/source_registry.h>
 
 /* core includes */
@@ -564,10 +565,14 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+		if (mem_desc->type == Hip::Mem_desc::ACPI_RSDT) continue;
+		if (mem_desc->type == Hip::Mem_desc::ACPI_XSDT) continue;
 
 		Hip::Mem_desc * mem_d = (Hip::Mem_desc *)mem_desc_base;
 		for (unsigned j = 0; j < num_mem_desc; j++, mem_d++) {
 			if (mem_d->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
+			if (mem_d->type == Hip::Mem_desc::ACPI_RSDT) continue;
+			if (mem_d->type == Hip::Mem_desc::ACPI_XSDT) continue;
 			if (mem_d == mem_desc) continue;
 
 			/* if regions are disjunct all is fine */
@@ -588,11 +593,16 @@ Platform::Platform() :
 	 * From now on, it is save to use the core allocators...
 	 */
 
+	uint64_t rsdt = 0UL;
+	uint64_t xsdt = 0UL;
+
 	/* build ROM file system */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
+		if (mem_desc->type == Hip::Mem_desc::ACPI_RSDT) rsdt = mem_desc->addr;
+		if (mem_desc->type == Hip::Mem_desc::ACPI_XSDT) xsdt = mem_desc->addr;
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
-		if (!mem_desc->addr || !mem_desc->size || !mem_desc->aux) continue;
+		if (!mem_desc->addr || !mem_desc->size) continue;
 
 		/* assume core's ELF image has one-page header */
 		addr_t const core_phys_start = trunc_page(mem_desc->addr + get_page_size());
@@ -606,6 +616,40 @@ Platform::Platform() :
 				           header->size, (const char*)header->name);
 			_rom_fs.insert(rom_module);
 		}
+	}
+
+	{
+		/* export x86 platform specific infos */
+
+		unsigned const pages = 1;
+		void * phys_ptr = 0;
+		ram_alloc()->alloc(get_page_size(), &phys_ptr);
+		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		addr_t const core_local_addr = _map_pages(phys_addr >> get_page_size_log2(),
+		                                          pages);
+
+		Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
+		                          pages << get_page_size_log2(),
+		                          "platform_info", [&] ()
+		{
+			xml.node("acpi", [&] () {
+
+				xml.attribute("revision", 2); /* XXX */
+
+				if (rsdt)
+					xml.attribute("rsdt", String<32>(Hex(rsdt)));
+
+				if (xsdt)
+					xml.attribute("xsdt", String<32>(Hex(xsdt)));
+			});
+		});
+
+		unmap_local(__main_thread_utcb, core_local_addr, pages);
+		region_alloc()->free(reinterpret_cast<void *>(core_local_addr), pages * get_page_size());
+
+		_rom_fs.insert(new (core_mem_alloc())
+		               Rom_module(phys_addr, pages * get_page_size(),
+		               "platform_info"));
 	}
 
 	/* export hypervisor info page as ROM module */
@@ -679,8 +723,7 @@ Platform::Platform() :
 			 */
 			Info trace_source_info() const override
 			{
-				char name[32];
-				snprintf(name, sizeof(name), "idle%d", affinity.xpos());
+				Genode::String<8> name("idle", affinity.xpos());
 
 				uint64_t execution_time = 0;
 				Nova::sc_ctrl(sc_sel, execution_time);
