@@ -160,6 +160,7 @@ namespace Vfs {
 
 	class Lxip_new_socket_file;
 
+	class Lxip_link_state_file;
 	class Lxip_address_file;
 
 	class Lxip_vfs_handle;
@@ -1243,10 +1244,46 @@ class Vfs::Lxip_address_file : public Vfs::File
 };
 
 
+class Vfs::Lxip_link_state_file : public Vfs::File
+{
+	private:
+
+		bool &_numeric_link_state;
+
+	public:
+
+		Lxip_link_state_file(char const *name, bool &numeric_link_state)
+		: Vfs::File(name), _numeric_link_state(numeric_link_state) { }
+
+		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
+
+		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		                   file_size /* ignored */) override
+		{
+			enum {
+				MAX_LINK_STATE_STRING_SIZE = sizeof("down\n")
+			};
+
+			Genode::String<MAX_LINK_STATE_STRING_SIZE> link_state {
+				_numeric_link_state ? "up" : "down"
+			};
+
+			Lxip::size_t n = min(len, strlen(link_state.string()));
+			memcpy(dst, link_state.string(), n);
+			if (n < len)
+				dst[n++] = '\n';
+
+			return n;
+		}
+};
+
+
 extern "C" unsigned int ic_myaddr;
 extern "C" unsigned int ic_netmask;
 extern "C" unsigned int ic_gateway;
 extern "C" unsigned int ic_nameservers[1];
+
+extern bool ic_link_state;
 
 
 /*******************************
@@ -1267,10 +1304,11 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		Lxip::Protocol_dir_impl _udp_dir {
 			_alloc, *this, _io_response_handler, "udp", Lxip::Protocol_dir::TYPE_DGRAM  };
 
-		Lxip_address_file   _address    { "address",    ic_myaddr };
-		Lxip_address_file   _netmask    { "netmask",    ic_netmask };
-		Lxip_address_file   _gateway    { "gateway",    ic_gateway };
-		Lxip_address_file   _nameserver { "nameserver", ic_nameservers[0] };
+		Lxip_address_file    _address    { "address",    ic_myaddr };
+		Lxip_address_file    _netmask    { "netmask",    ic_netmask };
+		Lxip_address_file    _gateway    { "gateway",    ic_gateway };
+		Lxip_address_file    _nameserver { "nameserver", ic_nameservers[0] };
+		Lxip_link_state_file _link_state { "link_state", ic_link_state };
 
 		Vfs::Node *_lookup(char const *path)
 		{
@@ -1298,6 +1336,10 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			if (Genode::strcmp(path, _nameserver.name(),
 			                   strlen(_nameserver.name()) + 1) == 0)
 				return &_nameserver;
+
+			if (Genode::strcmp(path, _link_state.name(),
+			                   strlen(_link_state.name()) + 1) == 0)
+				return &_link_state;
 
 			return nullptr;
 		}
@@ -1392,7 +1434,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		 ** Directory interface **
 		 *************************/
 
-		file_size num_dirent() override { return 6; }
+		file_size num_dirent() override { return 7; }
 
 		Lxip::ssize_t read(char *dst, Genode::size_t len,
 		                   file_size seek_offset) override
@@ -1428,6 +1470,10 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 				out->fileno  = (Genode::addr_t)&_nameserver;
 				out->type    = Directory_service::DIRENT_TYPE_FILE;
 				Genode::strncpy(out->name, "nameserver", sizeof(out->name));
+			} else if (index == 6) {
+				out->fileno  = (Genode::addr_t)&_link_state;
+				out->type    = Directory_service::DIRENT_TYPE_FILE;
+				Genode::strncpy(out->name, "link_state", sizeof(out->name));
 			} else {
 				out->fileno  = 0;
 				out->type    = Directory_service::DIRENT_TYPE_END;

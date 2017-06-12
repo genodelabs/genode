@@ -22,6 +22,8 @@
 #include <lx.h>
 #include <nic.h>
 
+bool ic_link_state = false;
+
 
 class Nic_client
 {
@@ -44,7 +46,10 @@ class Nic_client
 
 		void _link_state()
 		{
-			if (_nic.link_state() == false || lxip_do_dhcp() == false)
+			bool const link_state = _nic.link_state();
+			ic_link_state = link_state;
+
+			if (link_state == false || lxip_do_dhcp() == false)
 				return;
 
 			Lx::timer_update_jiffies();
@@ -117,6 +122,8 @@ class Nic_client
 			_link_state_change(ep, *this, &Nic_client::_link_state),
 			_tick(ticker)
 		{
+			ic_link_state = _nic.link_state();
+
 			_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
 			_nic.rx_channel()->sigh_packet_avail(_sink_submit);
 			_nic.tx_channel()->sigh_ack_avail(_source_ack);
