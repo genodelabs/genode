@@ -91,6 +91,7 @@ namespace Nova {
 		struct Mem_desc
 		{
 			enum Type {
+				FRAMEBUFFER         = -5,
 				ACPI_XSDT           = -4,
 				ACPI_RSDT           = -3,
 				MULTIBOOT_MODULE    = -2,

@@ -567,12 +567,14 @@ Platform::Platform() :
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RSDT) continue;
 		if (mem_desc->type == Hip::Mem_desc::ACPI_XSDT) continue;
+		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) continue;
 
 		Hip::Mem_desc * mem_d = (Hip::Mem_desc *)mem_desc_base;
 		for (unsigned j = 0; j < num_mem_desc; j++, mem_d++) {
 			if (mem_d->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 			if (mem_d->type == Hip::Mem_desc::ACPI_RSDT) continue;
 			if (mem_d->type == Hip::Mem_desc::ACPI_XSDT) continue;
+			if (mem_d->type == Hip::Mem_desc::FRAMEBUFFER) continue;
 			if (mem_d == mem_desc) continue;
 
 			/* if regions are disjunct all is fine */
@@ -596,11 +598,35 @@ Platform::Platform() :
 	uint64_t rsdt = 0UL;
 	uint64_t xsdt = 0UL;
 
+	struct mbfb_t {
+		uint64_t addr = 0;
+		union {
+			uint64_t size;
+			struct {
+				uint32_t height;
+				uint32_t width;
+			};
+		};
+		union {
+			uint32_t aux;
+			struct {
+				uint8_t bpp;
+				uint8_t type;
+				uint8_t reserved[2];
+			};
+		};
+	} mbi_fb;
+
 	/* build ROM file system */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RSDT) rsdt = mem_desc->addr;
 		if (mem_desc->type == Hip::Mem_desc::ACPI_XSDT) xsdt = mem_desc->addr;
+		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
+			mbi_fb.addr = mem_desc->addr;
+			mbi_fb.size = mem_desc->size;
+			mbi_fb.aux = mem_desc->aux;
+		}
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
 		if (!mem_desc->addr || !mem_desc->size) continue;
 
@@ -641,6 +667,16 @@ Platform::Platform() :
 
 				if (xsdt)
 					xml.attribute("xsdt", String<32>(Hex(xsdt)));
+			});
+			xml.node("boot", [&] () {
+				if (mbi_fb.addr) {
+					xml.node("framebuffer", [&] () {
+						xml.attribute("phys", String<32>(Hex(mbi_fb.addr)));
+						xml.attribute("width", mbi_fb.width);
+						xml.attribute("height", mbi_fb.height);
+						xml.attribute("bpp", mbi_fb.bpp);
+					});
+				}
 			});
 		});
 
