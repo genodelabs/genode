@@ -170,13 +170,6 @@ namespace Platform {
 			bool pci_bridge() { return _header_type == HEADER_PCI_TO_PCI; }
 
 			/**
-			 * Return true if device is a PCI bridge
-			 *
-			 * \deprecated  use 'pci_bridge instead
-			 */
-			bool is_pci_bridge() { return pci_bridge(); }
-
-			/**
 			 * Return true if device is valid
 			 */
 			bool valid() { return _vendor_id != INVALID_VENDOR; }

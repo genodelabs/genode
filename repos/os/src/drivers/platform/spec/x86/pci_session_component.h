@@ -28,6 +28,7 @@
 /* os */
 #include <io_mem_session/connection.h>
 #include <os/ram_session_guard.h>
+#include <os/reporter.h>
 #include <os/session_policy.h>
 #include <platform_session/platform_session.h>
 
@@ -1011,6 +1012,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		Genode::Env                    &_env;
 		Genode::Attached_rom_dataspace &_config;
 
+		Genode::Reporter _pci_reporter { _env, "pci" };
+
 		Genode::Rpc_entrypoint  _device_pd_ep;
 		Genode::Heap            _heap  { _env.ram(), _env.rm() };
 		Platform::Pci_buses     _buses { _env, _heap };
@@ -1190,6 +1193,42 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				} catch (...) {
 					Genode::error("PCI config space data could not be parsed.");
 				}
+			}
+
+			_pci_reporter.enabled(config.xml().has_sub_node("report") &&
+			                      config.xml().sub_node("report")
+			                                  .attribute_value("pci", true));
+
+			if (_pci_reporter.enabled()) {
+
+				Config_access config_access(env);
+				Device_config config;
+				int bus = 0, device = 0, function = -1;
+
+				Genode::Reporter::Xml_generator xml(_pci_reporter, [&] () {
+					/* iterate over pci devices */
+					while (true) {
+						function += 1;
+						if (!_buses.find_next(bus, device, function, &config,
+						                      &config_access))
+							return;
+
+						bus      = config.bus_number();
+						device   = config.device_number();
+						function = config.function_number();
+
+						using Genode::String;
+						using Genode::Hex;
+
+						xml.node("device", [&] () {
+							xml.attribute("bdf"       , String<8>(Hex(bus, Hex::Prefix::OMIT_PREFIX), ":", Hex(device, Hex::Prefix::OMIT_PREFIX), ".", function));
+							xml.attribute("vendor_id" , String<8>(Hex(config.vendor_id())));
+							xml.attribute("device_id" , String<8>(Hex(config.device_id())));
+							xml.attribute("class_code", String<12>(Hex(config.class_code())));
+							xml.attribute("bridge"    , config.pci_bridge() ? "yes" : "no");
+						});
+					}
+				});
 			}
 		}
 
