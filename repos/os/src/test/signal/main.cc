@@ -185,69 +185,6 @@ struct Fast_sender_test : Signal_test
 	}
 };
 
-struct Multiple_handlers_test : Signal_test
-{
-	static constexpr char const *brief =
-		"get multiple handlers at one sender activated in a fair manner";
-
-	enum { HANDLER_INTERVAL_MS = 8  * SPEED,
-	       SENDER_INTERVAL_MS  = 1  * SPEED,
-	       FINISH_IDLE_MS      = 2  * HANDLER_INTERVAL_MS,
-	       DURATION_MS         = 50 * SPEED,
-	       NR_OF_HANDLERS      = 4 };
-
-	struct Unequal_sent_and_received_signals : Exception { };
-	struct Unequal_activation_of_handlers    : Exception { };
-
-	Env                            &env;
-	Heap                            heap   { env.ram(), env.rm() };
-	Timer::Connection               timer  { env };
-	Signal_context                  context;
-	Signal_receiver                 receiver;
-	Registry<Registered<Handler> >  handlers;
-	Sender                          sender { env, receiver.manage(&context),
-	                                         SENDER_INTERVAL_MS, true};
-
-	Multiple_handlers_test(Env &env, int id) : Signal_test(id, brief), env(env)
-	{
-		for (unsigned i = 0; i < NR_OF_HANDLERS; i++)
-			new (heap) Registered<Handler>(handlers, env, receiver,
-			                               HANDLER_INTERVAL_MS, true, i);
-		timer.msleep(DURATION_MS);
-
-		/* stop emitting signals */
-		log("stop generating new signals");
-		sender.idle(true);
-		timer.msleep(FINISH_IDLE_MS);
-
-		/* let handlers settle down */
-		handlers.for_each([&] (Handler &handler) { handler.idle(true); });
-		timer.msleep(FINISH_IDLE_MS);
-
-		/* print statistics and clean up */
-		unsigned total_rcv = 0, max_act = 0, min_act = ~0;;
-		handlers.for_each([&] (Handler &handler) {
-			unsigned const rcv = handler.receive_cnt();
-			unsigned const act = handler.activation_cnt();
-			log(handler, " received ", rcv, " signals, was activated ", act, " times");
-			total_rcv += rcv;
-			if (act > max_act) { max_act = act; }
-			if (act < min_act) { min_act = act; }
-			destroy(heap, &handler);
-		});
-		log("sender submitted a total of ", sender.submit_cnt(), " signals");
-		log("handlers received a total of ", total_rcv, " signals");
-
-		/* check if number of sent signals match the received ones */
-		if (sender.submit_cnt() != total_rcv) {
-			throw Unequal_sent_and_received_signals(); }
-
-		/* check if handlers had been activated equally (tolerance of one) */
-		if (max_act - min_act > 1) {
-			throw Unequal_activation_of_handlers(); }
-	}
-};
-
 struct Stress_test : Signal_test
 {
 	static constexpr char const *brief =
@@ -702,21 +639,20 @@ struct Nested_stress_test : Signal_test
 struct Main
 {
 	Env                  &env;
-	Signal_handler<Main>  test_9_done { env.ep(), *this, &Main::handle_test_9_done };
+	Signal_handler<Main>  test_8_done { env.ep(), *this, &Main::handle_test_8_done };
 
 	Constructible<Fast_sender_test>              test_1;
-	Constructible<Multiple_handlers_test>        test_2;
-	Constructible<Stress_test>                   test_3;
-	Constructible<Lazy_receivers_test>           test_4;
-	Constructible<Context_management_test>       test_5;
-	Constructible<Synchronized_destruction_test> test_6;
-	Constructible<Many_contexts_test>            test_7;
-	Constructible<Nested_test>                   test_8;
-	Constructible<Nested_stress_test>            test_9;
+	Constructible<Stress_test>                   test_2;
+	Constructible<Lazy_receivers_test>           test_3;
+	Constructible<Context_management_test>       test_4;
+	Constructible<Synchronized_destruction_test> test_5;
+	Constructible<Many_contexts_test>            test_6;
+	Constructible<Nested_test>                   test_7;
+	Constructible<Nested_stress_test>            test_8;
 
-	void handle_test_9_done()
+	void handle_test_8_done()
 	{
-		test_9.destruct();
+		test_8.destruct();
 		log("--- Signalling test finished ---");
 	}
 
@@ -730,8 +666,7 @@ struct Main
 		test_5.construct(env, 5); test_5.destruct();
 		test_6.construct(env, 6); test_6.destruct();
 		test_7.construct(env, 7); test_7.destruct();
-		test_8.construct(env, 8); test_8.destruct();
-		test_9.construct(env, 9, test_9_done);
+		test_8.construct(env, 8, test_8_done);
 	}
 };
 
