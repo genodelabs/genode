@@ -1,13 +1,13 @@
 #
-# \brief  Test for using the libc_vfs plugin with the FFAT file system
+# \brief  Test for using the libc_vfs plugin with a file system server
 # \author Christian Prochaska
-# \date   2012-07-03
+# \date   2017-06-13
 #
 
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
 set use_ahci_drv   [expr [have_spec x86] && ![have_spec linux]]
 set use_ram_blk    [have_spec linux]
-set mkfs [check_installed mkfs.vfat]
+set mkfs [check_installed $mkfs_cmd]
 
 if {[have_spec odroid_xu]} {
         puts "Run script does not support this platform"; exit }
@@ -19,9 +19,10 @@ if {[have_spec odroid_xu]} {
 set build_components {
 	core init
 	drivers/timer
-	server/ffat_fs
 	test/libc_vfs
 }
+
+lappend build_components $build_component
 
 lappend_if $use_ahci_drv    build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
@@ -57,10 +58,23 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="ffat_fs">
+	<start name="fs">}
+append config "
+		<binary name=\"$binary\"/>"
+append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
-		<config> <default-policy root="/" writeable="yes" /> </config>
+		<config>
+			<default-policy root="/" writeable="yes" />
+			<vfs>
+				<dir name="dev">
+					<log/>}
+append config "     $vfs_dev_blkdev"
+append config {
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" />
+		</config>
 	</start>
 	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="2M"/>
@@ -80,7 +94,7 @@ append_if $use_ahci_drv config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
-			<policy label_prefix="ffat_fs" device="0" />
+			<policy label_prefix="fs" device="0" />
 		</config>
 	</start>
 }
@@ -111,10 +125,12 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ffat_fs
+	core init timer
 	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
 	test-libc_vfs
 }
+
+lappend boot_modules $binary
 
 lappend_if $use_ahci_drv     boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
@@ -134,8 +150,8 @@ set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
 puts "creating disk image: $cmd"
 catch { exec sh -c $cmd }
 
-set cmd "$mkfs -F32 $disk_image"
-puts "formating disk image with vfat file system: $cmd"
+set cmd "$mkfs $mkfs_opts $disk_image"
+puts "formating disk image: $cmd"
 catch { exec sh -c $cmd }
 
 #

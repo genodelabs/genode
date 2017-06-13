@@ -1,0 +1,7 @@
+set build_component server/fuse_fs/exfat
+set binary          exfat_fuse_fs
+set mkfs_cmd        mkfs.exfat
+set mkfs_opts       ""
+set vfs_dev_blkdev  {<block name="blkdev"/>}
+
+source ${genode_dir}/repos/libports/run/libc_vfs_fs_test.inc
