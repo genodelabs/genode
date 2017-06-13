@@ -10,3 +10,21 @@ This is generic part of the Genode implementation. It consists of two parts:
   to interact with other components. This is the glue that holds everything
   together.
 
+_Core_ may export information about the hardware platform by an ROM
+called 'platform_info'. Depending on the platform, e.g. ARM or x86 or riscv,
+and depending on the boot mode and boot loader and kernel, some nodes may not
+be populated.
+
+!<platform_info>
+! <acpi revision="2" rsdt="0x1fe93074" xsdt="0x1fe930e8"/>
+! <boot>
+!   <framebuffer phys="0x7300000" width="1024" height="768" bpp="32"/>
+! </boot>
+!</platform_info>
+
+If the ACPI RSDT and XSDT physical pointer is reported by the used kernel
+and/or bootloader, _Core_ may provide this information by the ROM.
+
+If the graphic device is initialised and can be directly used by a framebuffer
+driver, _Core_ may provide the physical pointer to the framebuffer, the
+resolution and color depth in bits.
