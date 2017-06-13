@@ -60,26 +60,10 @@ class File_system::Directory : public Node
 		void _open_path(char const *path, bool create)
 		{
 			int res;
-			int tries = 0;
-			do {
-				/* first try to open path */
-				res = Fuse::fuse()->op.opendir(path, &_file_info);
-				if (res == 0) {
-					break;
-				}
 
-				if (create && !tries) {
-					res = Fuse::fuse()->op.mkdir(path, 0755);
-					switch (res) {
-					case 0: break;
-					default:
-							Genode::error("could not create '", path, "'");
-						throw Lookup_failed();
-					}
+			if (create) {
 
-					tries++;
-					continue;
-				}
+				res = Fuse::fuse()->op.mkdir(path, 0755);
 
 				if (res < 0) {
 					int err = -res;
@@ -106,7 +90,33 @@ class File_system::Directory : public Node
 							throw Lookup_failed();
 					}
 				}
-			} while (true);
+			}
+
+			res = Fuse::fuse()->op.opendir(path, &_file_info);
+
+			if (res < 0) {
+				int err = -res;
+				switch (err) {
+					case EACCES:
+						Genode::error("op.opendir() permission denied");
+						throw Permission_denied();
+					case EIO:
+						Genode::error("op.opendir() I/O error occurred");
+						throw Lookup_failed();
+					case ENOENT:
+						throw Lookup_failed();
+					case ENOTDIR:
+						throw Lookup_failed();
+					case ENOSPC:
+						Genode::error("op.opendir() error while expanding directory");
+						throw Lookup_failed();
+					case EROFS:
+						throw Permission_denied();
+					default:
+						Genode::error("op.opendir() returned unexpected error code: ", res);
+						throw Lookup_failed();
+				}
+			}
 		}
 
 		size_t _num_entries()
