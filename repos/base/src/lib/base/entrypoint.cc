@@ -274,6 +274,12 @@ namespace {
 			Genode::call_global_static_constructors();
 			Genode::init_signal_transmitter(env);
 
+			/*
+			 * Now, as signaling is available, initialize the asynchronous
+			 * parent resource mechanism
+			 */
+			init_parent_resource_requests(env);
+
 			Component::construct(env);
 		}
 	};

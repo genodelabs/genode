@@ -28,13 +28,6 @@ namespace Genode { class Expanding_parent_client; }
 
 class Genode::Expanding_parent_client : public Parent_client
 {
-	public:
-
-		struct Emergency_ram_reserve
-		{
-			virtual void release() = 0;
-		};
-
 	private:
 
 		/**
@@ -58,29 +51,43 @@ class Genode::Expanding_parent_client : public Parent_client
 		Lock _lock;
 
 		/**
-		 * Return signal context capability for the fallback signal handler
+		 * Signal context for the fallback signal handler
 		 */
-		Signal_context_capability _fallback_sig_cap();
+		Signal_context _fallback_sig_ctx;
+
+		/**
+		 * Signal context capability for the fallback signal handler
+		 */
+		Signal_context_capability _fallback_sig_cap;
+
+		/**
+		 * Signal receiver for the fallback signal handler
+		 */
+		Constructible<Signal_receiver> _fallback_sig_rcv;
 
 		/**
 		 * Block for resource response arriving at the fallback signal handler
 		 */
-		static void _wait_for_resource_response();
-
-		/**
-		 * Emergency RAM reserve for constructing the fallback signal handler
-		 *
-		 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
-		 */
-		Emergency_ram_reserve &_emergency_ram_reserve;
+		void _wait_for_resource_response() {
+			_fallback_sig_rcv->wait_for_signal(); }
 
 	public:
 
-		Expanding_parent_client(Parent_capability cap,
-		                        Emergency_ram_reserve &emergency_ram_reserve)
-		:
-			Parent_client(cap), _emergency_ram_reserve(emergency_ram_reserve)
-		{ }
+		Expanding_parent_client(Parent_capability cap)
+		: Parent_client(cap) { }
+
+
+		/**
+		 * Downstreamed construction of the fallback signaling, used
+		 * when the environment is ready to construct a signal receiver
+		 */
+		void init_fallback_signal_handling()
+		{
+			if (!_fallback_sig_cap.valid()) {
+				_fallback_sig_rcv.construct();
+				_fallback_sig_cap = _fallback_sig_rcv->manage(&_fallback_sig_ctx);
+			}
+		}
 
 
 		/**********************
@@ -168,7 +175,7 @@ class Genode::Expanding_parent_client : public Parent_client
 			 * Install fallback signal handler not yet installed.
 			 */
 			if (_state == UNDEFINED) {
-				Parent_client::resource_avail_sigh(_fallback_sig_cap());
+				Parent_client::resource_avail_sigh(_fallback_sig_cap);
 				_state = BLOCKING_DEFAULT;
 			}
 

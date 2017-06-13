@@ -59,7 +59,7 @@ void Genode::Platform_env::reinit(Native_capability::Raw raw)
 	 * Re-initialize 'Platform_env' members
 	 */
 	Expanding_parent_client * const p = &_parent_client;
-	construct_at<Expanding_parent_client>(p, parent_cap(), *this);
+	construct_at<Expanding_parent_client>(p, parent_cap());
 	construct_at<Resources>(&_resources, _parent_client);
 
 	/*

@@ -92,6 +92,12 @@ Platform_generic *Genode::platform() { return platform_specific(); }
 Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
 
 
+/**
+ * Dummy implementation for core that has no parent to ask for resources
+ */
+void Genode::init_parent_resource_requests(Genode::Env & env) {};
+
+
 /****************
  ** Core child **
  ****************/

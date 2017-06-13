@@ -42,8 +42,7 @@ namespace Genode {
 }
 
 
-class Genode::Platform_env : public Platform_env_base,
-                             public Expanding_parent_client::Emergency_ram_reserve
+class Genode::Platform_env : public Platform_env_base
 {
 	private:
 
@@ -81,14 +80,6 @@ class Genode::Platform_env : public Platform_env_base,
 		 */
 		Attached_stack_area _stack_area { _parent_client, _resources.pd };
 
-		/*
-		 * Emergency RAM reserve
-		 *
-		 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
-		 */
-		constexpr static size_t  _emergency_ram_size() { return 16*1024; }
-		Ram_dataspace_capability _emergency_ram_ds;
-
 	public:
 
 		/**
@@ -96,10 +87,9 @@ class Genode::Platform_env : public Platform_env_base,
 		 */
 		Platform_env()
 		:
-			_parent_client(Genode::parent_cap(), *this),
+			_parent_client(Genode::parent_cap()),
 			_resources(_parent_client),
-			_heap(&_resources.pd, &_resources.rm, Heap::UNLIMITED),
-			_emergency_ram_ds(_resources.pd.alloc(_emergency_ram_size()))
+			_heap(&_resources.pd, &_resources.rm, Heap::UNLIMITED)
 		{
 			env_stack_area_ram_allocator = &_resources.pd;
 			env_stack_area_region_map    = &_stack_area;
@@ -110,18 +100,6 @@ class Genode::Platform_env : public Platform_env_base,
 		 */
 		void reinit(Native_capability::Raw) override;
 		void reinit_main_thread(Capability<Region_map> &) override;
-
-
-		/*************************************
-		 ** Emergency_ram_reserve interface **
-		 *************************************/
-
-		void release()
-		{
-			log("used before freeing emergency=", _resources.pd.used_ram());
-			_resources.pd.free(_emergency_ram_ds);
-			log("used after freeing emergency=", _resources.pd.used_ram());
-		}
 
 
 		/******************************

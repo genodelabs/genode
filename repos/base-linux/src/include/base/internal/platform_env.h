@@ -101,8 +101,7 @@ class Genode::Platform_env_base : public Env_deprecated
 /**
  * 'Platform_env' used by all processes except for core
  */
-class Genode::Platform_env : public Platform_env_base,
-                             public Expanding_parent_client::Emergency_ram_reserve
+class Genode::Platform_env : public Platform_env_base
 {
 	private:
 
@@ -112,14 +111,6 @@ class Genode::Platform_env : public Platform_env_base,
 		Local_parent &_parent();
 
 		Heap _heap;
-
-		/*
-		 * Emergency RAM reserve
-		 *
-		 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
-		 */
-		constexpr static size_t  _emergency_ram_size() { return 8*1024; }
-		Ram_dataspace_capability _emergency_ram_ds;
 
 		/**
 		 * Attach stack area to local address space (for non-hybrid components)
@@ -137,13 +128,6 @@ class Genode::Platform_env : public Platform_env_base,
 		 * Destructor
 		 */
 		~Platform_env() { _parent().exit(0); }
-
-
-		/*************************************
-		 ** Emergency_ram_reserve interface **
-		 *************************************/
-
-		void release() { ram_session()->free(_emergency_ram_ds); }
 
 
 		/******************************

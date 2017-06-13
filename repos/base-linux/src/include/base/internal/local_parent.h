@@ -65,9 +65,7 @@ class Genode::Local_parent : public Expanding_parent_client
 		 *                    promote requests to non-local
 		 *                    services
 		 */
-		Local_parent(Parent_capability parent_cap,
-		             Emergency_ram_reserve &,
-		             Allocator &);
+		Local_parent(Parent_capability parent_cap, Allocator &);
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCAL_PARENT_H_ */

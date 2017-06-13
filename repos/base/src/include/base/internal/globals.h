@@ -36,6 +36,7 @@ namespace Genode {
 	void init_signal_thread(Env &);
 	void init_root_proxy(Env &);
 	void init_log();
+	void init_parent_resource_requests(Env &);
 	void exec_static_constructors();
 
 	void destroy_signal_thread();
