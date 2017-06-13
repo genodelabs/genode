@@ -16,4 +16,4 @@
 
 using namespace Genode;
 
-void Genode::upgrade_pd_quota_non_blocking(Ram_quota, Cap_quota) { ASSERT_NEVER_CALLED; }
+void Genode::upgrade_capability_slab() { ASSERT_NEVER_CALLED; }

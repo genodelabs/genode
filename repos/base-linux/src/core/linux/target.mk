@@ -14,7 +14,6 @@ SRC_CC        = main.cc \
                 cpu_session_component.cc \
                 cpu_session_support.cc \
                 cpu_thread_component.cc \
-                pd_upgrade_ram_quota.cc \
                 pd_assign_pci.cc \
                 dataspace_component.cc \
                 native_pd_component.cc \

@@ -115,14 +115,10 @@ Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 void Cap_space::upgrade_slab(Allocator &alloc)
 {
-	enum { NEEDED_AVAIL_ENTRIES_FOR_SUCCESSFUL_SYSCALL = 8 };
-
-	if (_slab.avail_entries() > NEEDED_AVAIL_ENTRIES_FOR_SUCCESSFUL_SYSCALL)
-		return;
-
-	void *block = nullptr;
-	if (alloc.alloc(SLAB_SIZE, &block))
-		_slab.insert_sb(block);
+	void * block = nullptr;
+	if (!alloc.alloc(SLAB_SIZE, &block))
+		throw Out_of_ram();
+	_slab.insert_sb(block);
 }
 
 

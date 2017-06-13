@@ -151,11 +151,6 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		}
 
 		/**
-		 * Session_object interface
-		 */
-		void session_quota_upgraded() override;
-
-		/**
 		 * Associate thread with PD
 		 *
 		 * \return true on success

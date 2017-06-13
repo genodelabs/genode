@@ -14,20 +14,12 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 
-/* Genode includes */
-#include <base/stdint.h>
-#include <base/quota_guard.h>
-
 namespace Genode
 {
 	/**
-	 * Upgrade quota of the PD session within my Genode environment non-blocking
-	 *
-	 * This function doesn't lock the environment when upgrading. This is
-	 * needed when doing upgrades in situations where the environment is
-	 * already locked due to the operation that triggered the upgrade.
+	 * Upgrade quota of the PD session's capability slab allocator
 	 */
-	void upgrade_pd_quota_non_blocking(Ram_quota, Cap_quota);
+	void upgrade_capability_slab();
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_ */

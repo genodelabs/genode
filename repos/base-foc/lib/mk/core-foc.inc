@@ -20,7 +20,6 @@ SRC_CC      += stack_area.cc \
                pager.cc \
                pager_object.cc \
                pd_assign_pci.cc \
-               pd_upgrade_ram_quota.cc \
                native_cpu_component.cc \
                rpc_cap_factory.cc \
                platform.cc \

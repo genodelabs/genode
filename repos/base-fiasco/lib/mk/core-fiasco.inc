@@ -24,7 +24,6 @@ SRC_CC      += stack_area.cc \
                rpc_cap_factory_l4.cc \
                ram_dataspace_factory.cc \
                pd_assign_pci.cc \
-               pd_upgrade_ram_quota.cc \
                platform.cc \
                platform_pd.cc \
                platform_services.cc \

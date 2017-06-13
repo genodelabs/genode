@@ -105,7 +105,9 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
 		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
-		upgrade_pd_quota_non_blocking(ram_upgrade, cap_upgrade);
+		internal_env().upgrade(Parent::Env::pd(),
+		                       String<100>("ram_quota=", ram_upgrade, ", "
+		                                   "cap_quota=", cap_upgrade).string());
 	}
 }
 

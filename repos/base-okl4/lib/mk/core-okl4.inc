@@ -24,7 +24,6 @@ SRC_CC += stack_area.cc \
           pager.cc \
           pager_ep.cc \
           pager_object.cc \
-          pd_upgrade_ram_quota.cc \
           pd_assign_pci.cc \
           rpc_cap_factory_l4.cc \
           ram_dataspace_factory.cc \

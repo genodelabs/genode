@@ -11,7 +11,6 @@ SRC_CC      += \
                rpc_cap_factory.cc \
                ram_dataspace_factory.cc \
                pd_assign_pci.cc \
-               pd_upgrade_ram_quota.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                io_port_session_component.cc \
