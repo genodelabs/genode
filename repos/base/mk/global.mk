@@ -13,6 +13,7 @@
 #
 CUSTOM_CC       ?= $(CROSS_DEV_PREFIX)gcc
 CUSTOM_CXX      ?= $(CROSS_DEV_PREFIX)g++
+CUSTOM_CPP      ?= $(CROSS_DEV_PREFIX)cpp
 CUSTOM_CXX_LIB  ?= $(CUSTOM_CXX)
 CUSTOM_LD       ?= $(CROSS_DEV_PREFIX)ld
 CUSTOM_AS       ?= $(CROSS_DEV_PREFIX)as
@@ -40,6 +41,7 @@ ECHO      ?= echo -e
 #
 CC       = $(CUSTOM_CC)
 CXX      = $(CUSTOM_CXX)
+CPP      = $(CUSTOM_CPP)
 LD       = $(CUSTOM_LD)
 AS       = $(CUSTOM_AS)
 AR       = $(CUSTOM_AR)
