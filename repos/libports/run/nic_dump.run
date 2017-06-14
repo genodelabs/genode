@@ -175,7 +175,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router">
+	<start name="nic_router" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config rtt_sec="3" verbose="no">
