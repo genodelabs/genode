@@ -28,16 +28,9 @@ $(TARGET): $(MUEN_DST_DIR)
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/kernel $(BUILD_OPTS) >> $(MUEN_LOG) 2>&1
 	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_DST_DIR)/components $(BUILD_OPTS) install-tau0 >> $(MUEN_LOG) 2>&1
 
-$(MUEN_DST_DIR): download_contrib
+$(MUEN_DST_DIR): $(MUEN_SRC_DIR)
 	$(VERBOSE)mkdir -p $(MUEN_DST_DIR)
-	$(VERBOSE)tar c -C $(MUEN_SRC_DIR) . | tar x -C $(MUEN_DST_DIR)
-
-download_contrib: $(MUEN_SRC_DIR)
-	$(MSG_BUILD)Muen contrib
-	$(VERBOSE)cd $(MUEN_SRC_DIR) && git submodule update --init tools/mugenschedcfg > $(MUEN_LOG) 2>&1
-	$(VERBOSE)cd $(MUEN_SRC_DIR) && git submodule update --init components/libxhcidbg > $(MUEN_LOG) 2>&1
-	$(VERBOSE)$(BUILD_ENV) $(MAKE) -C $(MUEN_SRC_DIR)/contrib \
-		QUIET=true download >> $(MUEN_LOG) 2>&1
+	$(VERBOSE)tar c -C $(MUEN_SRC_DIR) . | tar x -m -C $(MUEN_DST_DIR)
 
 clean cleanall: clean_muen
 

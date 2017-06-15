@@ -3,10 +3,16 @@ VERSION   := git
 DOWNLOADS := muen.git
 
 URL(muen) := https://git.codelabs.ch/git/muen.git
-REV(muen) := 5d3b56c261804f318fb5c91a93799315c740f1a2
+REV(muen) := 4ffd2c94b1b7de268c0a428855be2e7e8b8f288e
 DIR(muen) := src/kernel/muen
 
 $(call check_tool,git)
 $(call check_tool,iasl)
 $(call check_tool,tidy)
 $(call check_tool,xsltproc)
+
+default : additional_steps
+additional_steps : $(DOWNLOADS)
+	$(VERBOSE)git -C src/kernel/muen submodule update --init tools/mugenschedcfg > /dev/null
+	$(VERBOSE)git -C src/kernel/muen submodule update --init components/libxhcidbg > /dev/null
+	$(VERBOSE)$(MAKE) -C src/kernel/muen/contrib QUIET=true download

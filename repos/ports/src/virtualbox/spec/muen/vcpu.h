@@ -74,6 +74,6 @@ struct Subject_state
 	Segment ldtr;
 	Segment gdtr;
 	Segment idtr;
-};
+} __attribute__((packed));
 
 #endif /* _VIRTUALBOX__SPEC__MUEN__VCPU_H_ */
