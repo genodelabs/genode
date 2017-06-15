@@ -79,7 +79,13 @@ Duration Timer::Time_source::curr_time()
 	static Fiasco::l4_kernel_info_t * const kip =
 		kip_ds.local_addr<Fiasco::l4_kernel_info_t>();
 
-	return Duration(Microseconds(kip->clock));
+#ifdef L4_SYS_KIP_H__
+	Fiasco::l4_cpu_time_t const clock = kip->clock;
+#else
+	Fiasco::l4_cpu_time_t const clock = Fiasco::l4_kip_clock(kip);
+#endif
+
+	return Duration(Microseconds(clock));
 }
 
 
