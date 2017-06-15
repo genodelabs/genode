@@ -1,5 +1,5 @@
 /*
- * \brief  Test for timeout library
+ * \brief  Test for the timeout library
  * \author Martin Stein
  * \date   2016-11-24
  */
@@ -80,12 +80,15 @@ struct Mixed_timeouts : Test
 		Microseconds const        us;
 	};
 
-	struct Event
+	struct Timeout_event
 	{
 		Timeout  const *const timeout;
 		Duration const        time;
 	};
 
+	/*
+	 * Which timeouts we do install and with which configuration
+	 */
 	Timeout const timeouts[NR_OF_TIMEOUTS] {
 		{ "Periodic  700 ms", Microseconds( 700000) },
 		{ "Periodic 1000 ms", Microseconds(1000000) },
@@ -94,11 +97,13 @@ struct Mixed_timeouts : Test
 	};
 
 	/*
+	 * Our expectations which timeout should trigger at which point in time
+	 *
 	 * We want to check only timeouts that have a distance of at least
 	 * 200ms to each other timeout. Thus, the items in this array that
 	 * have an empty name are treated as wildcards and match any timeout.
 	 */
-	Event const events[NR_OF_EVENTS] {
+	Timeout_event const events[NR_OF_EVENTS] {
 		{ nullptr,      Duration(Milliseconds(0))    },
 		{ nullptr,      Duration(Milliseconds(0))    },
 		{ &timeouts[0], Duration(Milliseconds(700))  },
@@ -136,15 +141,17 @@ struct Mixed_timeouts : Test
 
 	void handle(Duration time, Timeout const &timeout)
 	{
+		/* stop if we have received the expected number of events */
 		if (event_id == NR_OF_EVENTS) {
 			return; }
 
+		/* remember the time of the first event as offset for the others */
 		if (!event_id) {
 			init_time = time; }
 
-		Event const &event = events[event_id++];
-		unsigned long time_us = time.trunc_to_plain_us().value -
-		                        init_time.trunc_to_plain_us().value;
+		Timeout_event const &event   = events[event_id++];
+		unsigned long        time_us = time.trunc_to_plain_us().value -
+		                               init_time.trunc_to_plain_us().value;
 
 		unsigned long event_time_us = event.time.trunc_to_plain_us().value;
 		unsigned long error_us      = max(time_us, event_time_us) -
@@ -216,10 +223,10 @@ struct Fast_polling : Test
 	unsigned long volatile *local_us_2     { local_us_buf_2.local_addr<unsigned long>() };
 	unsigned long volatile *remote_ms      { remote_ms_buf.local_addr<unsigned long>() };
 
-	unsigned const delay_loops_per_poll[NR_OF_ROUNDS] { 1,
-	                                                    1000,
-	                                                    10000,
-	                                                    100000 };
+	unsigned const delay_loops_per_poll[NR_OF_ROUNDS] {      1,
+	                                                      1000,
+	                                                     10000,
+	                                                    100000  };
 
 	/*
 	 * Accumulates great amounts of integer values to one average value
@@ -308,8 +315,8 @@ struct Fast_polling : Test
 		 *
 		 * The test delays must be done through busy spinning. If we would
 		 * use a timer session instead, we could not produce delays of only a
-		 * few microseconds. Thus, to get similar delays on each platform we
-		 * have to do this estimation.
+		 * few microseconds. Thus, to get nearly similar delays on each
+		 * platform we have to do this estimation.
 		 */
 		unsigned long volatile delay_loops_per_remote_poll =
 			estimate_delay_loops_per_ms() / 100;
@@ -354,12 +361,12 @@ struct Fast_polling : Test
 				/*
 				 * Limit frequency of remote-time reading
 				 *
-				 * If we would stress the timer connection to much, the
-				 * back-end functionality of the timeout framework would
-				 * remarkably slow down which causes a phase of adaption with
-				 * bigger errors. But the goal of the framework is to spare
-				 * calls to timer connections anyway. So, its fine to limit
-				 * the polling frequency here.
+				 * If we would stress the timer driver to much with the
+				 * 'elapsed_ms' method, the back-end functionality of the
+				 * timeout framework would slow down too which causes a phase
+				 * of adaption with bigger errors. But the goal of the
+				 * framework is to spare calls to the timer driver anyway. So,
+				 * its fine to limit the polling frequency here.
 				 */
 				if (delay_loops > delay_loops_per_remote_poll) {
 
