@@ -144,7 +144,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 	 * so this is not an issue.
 	 */
 	if (cap.valid())
-		_pool.insert(new (_md_alloc) Entry(cap));
+		_pool.insert(new (_entry_slab) Entry(cap));
 	return cap;
 }
 
@@ -167,7 +167,7 @@ void Rpc_cap_factory::free(Native_capability cap)
 		} else
 			warning("Could not find capability to be deleted");
 	});
-	if (entry) destroy(_md_alloc, entry);
+	if (entry) destroy(_entry_slab, entry);
 }
 
 
@@ -175,7 +175,7 @@ Rpc_cap_factory::~Rpc_cap_factory()
 {
 	_pool.remove_all([this] (Entry *e) {
 		if (!e) return;
-		destroy(_md_alloc, e);
+		destroy(_entry_slab, e);
 	});
 }
 

@@ -26,12 +26,11 @@ install_config {
 	<default-route>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
-	<default caps="1000"/>
-	<start name="timer">
+	<start name="timer" caps="60">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="client">
+	<start name="client" caps="300">
 		<binary name="test-timer"/>
 		<resource name="RAM" quantum="10M"/>
 	</start>

@@ -16,8 +16,13 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
-#include <base/allocator.h>
+#include <base/heap.h>
+#include <base/tslab.h>
 #include <base/object_pool.h>
+
+/* base-internal includes */
+#include <base/internal/page_size.h>
+
 
 namespace Genode { class Rpc_cap_factory; }
 
@@ -31,11 +36,22 @@ class Genode::Rpc_cap_factory
 		};
 
 		Object_pool<Entry> _pool;
-		Allocator         &_md_alloc;
+
+		/*
+		 * Dimension '_entry_slab' such that slab blocks (including the
+		 * meta-data overhead of the sliced-heap blocks) are page sized.
+		 */
+		static constexpr size_t SLAB_BLOCK_SIZE =
+			get_page_size() - Sliced_heap::meta_data_size();
+
+		uint8_t _initial_sb[SLAB_BLOCK_SIZE];
+
+		Tslab<Entry, SLAB_BLOCK_SIZE> _entry_slab;
 
 	public:
 
-		Rpc_cap_factory(Allocator &md_alloc) : _md_alloc(md_alloc) { }
+		Rpc_cap_factory(Allocator &md_alloc)
+		: _entry_slab(md_alloc, _initial_sb) { }
 
 		~Rpc_cap_factory();
 
