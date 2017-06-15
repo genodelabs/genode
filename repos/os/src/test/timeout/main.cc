@@ -28,9 +28,8 @@ struct Test
 	unsigned               &error_cnt;
 	Signal_transmitter      done;
 	unsigned                id;
-	Timer::Connection       timer_connection { env };
-	Timer::Connection       timer            { env };
-	Attached_rom_dataspace  config           { env, "config" };
+	Attached_rom_dataspace  config { env, "config" };
+	Timer::Connection       timer  { env };
 
 	Test(Env                       &env,
 	     unsigned                  &error_cnt,
@@ -203,12 +202,19 @@ struct Fast_polling : Test
 	Entrypoint                   main_ep;
 	Signal_handler<Fast_polling> main_handler;
 
-	Attached_ram_dataspace local_us_buf_1 { env.ram(), env.rm(), BUF_SIZE };
-	Attached_ram_dataspace local_us_buf_2 { env.ram(), env.rm(), BUF_SIZE };
-	Attached_ram_dataspace remote_ms_buf  { env.ram(), env.rm(), BUF_SIZE };
-	unsigned long volatile *local_us_1    { local_us_buf_1.local_addr<unsigned long>() };
-	unsigned long volatile *local_us_2    { local_us_buf_2.local_addr<unsigned long>() };
-	unsigned long volatile *remote_ms     { remote_ms_buf.local_addr<unsigned long>() };
+	Timer::Connection      timer_2         { env };
+	unsigned long const    timer_ms        { timer.elapsed_ms() };
+	unsigned long const    timer_2_ms      { timer_2.elapsed_ms() };
+	bool          const    timer_2_delayed { timer_ms > timer_2_ms };
+	unsigned long const    timer_diff_ms   { timer_2_delayed ?
+	                                         timer_2_ms - timer_ms :
+	                                         timer_ms - timer_2_ms };
+	Attached_ram_dataspace local_us_buf_1  { env.ram(), env.rm(), BUF_SIZE };
+	Attached_ram_dataspace local_us_buf_2  { env.ram(), env.rm(), BUF_SIZE };
+	Attached_ram_dataspace remote_ms_buf   { env.ram(), env.rm(), BUF_SIZE };
+	unsigned long volatile *local_us_1     { local_us_buf_1.local_addr<unsigned long>() };
+	unsigned long volatile *local_us_2     { local_us_buf_2.local_addr<unsigned long>() };
+	unsigned long volatile *remote_ms      { remote_ms_buf.local_addr<unsigned long>() };
 
 	unsigned const delay_loops_per_poll[NR_OF_ROUNDS] { 1,
 	                                                    1000,
@@ -280,9 +286,9 @@ struct Fast_polling : Test
 		for (unsigned long max_cnt = 1000UL * 1000UL; ; max_cnt *= 2) {
 
 			/* measure consumed time of a limited busy loop */
-			unsigned long volatile start_ms = timer_connection.elapsed_ms();
+			unsigned long volatile start_ms = timer_2.elapsed_ms();
 			for (unsigned long volatile cnt = 0; cnt < max_cnt; cnt++) { }
-			unsigned long volatile end_ms = timer_connection.elapsed_ms();
+			unsigned long volatile end_ms = timer_2.elapsed_ms();
 
 			/*
 			 * We only return the result if the loop was time intensive enough
@@ -321,7 +327,7 @@ struct Fast_polling : Test
 
 			unsigned long nr_of_polls           = MAX_NR_OF_POLLS;
 			unsigned long delay_loops_per_poll_ = delay_loops_per_poll[round];
-			unsigned long end_remote_ms         = timer_connection.elapsed_ms() +
+			unsigned long end_remote_ms         = timer_2.elapsed_ms() +
 			                                      MIN_ROUND_DURATION_MS;
 
 			/* limit polling to our buffer capacity */
@@ -358,7 +364,7 @@ struct Fast_polling : Test
 				if (delay_loops > delay_loops_per_remote_poll) {
 
 					/* read remote time and second local time */
-					remote_ms_  = timer_connection.elapsed_ms();
+					remote_ms_  = timer_2.elapsed_ms();
 					local_us_2_ = timer.curr_time().trunc_to_plain_us().value;
 
 					/* reset delay counter for remote-time reading */
@@ -402,6 +408,12 @@ struct Fast_polling : Test
 
 				} else {
 
+					if (timer_2_delayed) {
+						local_us_1[poll] += timer_diff_ms * 1000UL;
+						local_us_2[poll] += timer_diff_ms * 1000UL;
+					} else {
+						remote_ms[poll] += timer_diff_ms;
+					}
 					nr_of_good_polls++; }
 			}
 
