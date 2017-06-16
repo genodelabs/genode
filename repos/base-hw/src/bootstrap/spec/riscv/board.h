@@ -29,7 +29,7 @@ namespace Board {
 
 	enum { UART_BASE, UART_CLOCK };
 	struct Serial : Hw::Riscv_uart {
-		Serial(unsigned, unsigned, unsigned) {} };
+		Serial(Genode::addr_t, Genode::size_t, unsigned) {} };
 }
 
 template <typename E, unsigned B, unsigned S>

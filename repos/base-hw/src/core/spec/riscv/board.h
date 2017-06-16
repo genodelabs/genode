@@ -19,7 +19,7 @@
 namespace Board {
 	enum { UART_BASE, UART_CLOCK };
 	struct Serial : Hw::Riscv_uart {
-		Serial(unsigned, unsigned, unsigned) {} };
+		Serial(Genode::addr_t, Genode::size_t, unsigned) {} };
 }
 
 #endif /* _CORE__SPEC__RISCV__BOARD_H_ */
