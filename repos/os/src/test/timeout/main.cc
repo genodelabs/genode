@@ -72,7 +72,6 @@ struct Mixed_timeouts : Test
 
 	enum { NR_OF_EVENTS   = 20 };
 	enum { NR_OF_TIMEOUTS = 4 };
-	enum { MAX_ERROR_PC   = 10 };
 
 	struct Timeout
 	{
@@ -126,8 +125,10 @@ struct Mixed_timeouts : Test
 		{ &timeouts[2], Duration(Milliseconds(6500)) }
 	};
 
-	Duration init_time { Microseconds(0) };
-	unsigned event_id  { 0 };
+	Duration      init_time    { Microseconds(0) };
+	unsigned      event_id     { 0 };
+	unsigned long max_error_us { config.xml().attribute_value("precise_timeouts", true) ?
+	                             50000UL : 200000UL };
 
 	Timer::Periodic_timeout<Mixed_timeouts> pt1 { timer, *this, &Mixed_timeouts::handle_pt1, timeouts[0].us };
 	Timer::Periodic_timeout<Mixed_timeouts> pt2 { timer, *this, &Mixed_timeouts::handle_pt2, timeouts[1].us };
@@ -157,14 +158,12 @@ struct Mixed_timeouts : Test
 		unsigned long error_us      = max(time_us, event_time_us) -
 		                              min(time_us, event_time_us);
 
-		float const error_pc = percentage(error_us, timeout.us.value);
-
 		log(time_us / 1000UL, " ms: ", timeout.name, " timeout triggered,"
-		    " error ", error_us, " us (", error_pc, " %)");
+		    " error ", error_us, " us (max ", max_error_us, " us)");
 
-		if (error_pc > MAX_ERROR_PC) {
+		if (error_us > max_error_us) {
 
-			error("absolute timeout error greater than ", (unsigned)MAX_ERROR_PC, " %");
+			error("absolute timeout error greater than ", (unsigned long)max_error_us, " us");
 			error_cnt++;
 		}
 		if (event.timeout && event.timeout != &timeout) {
@@ -546,10 +545,10 @@ struct Fast_polling : Test
 		main_ep(env, STACK_SIZE, "fast_polling_ep"),
 		main_handler(main_ep, *this, &Fast_polling::main)
 	{
-		if (config.xml().attribute_value("high_precision_time", true)) {
+		if (config.xml().attribute_value("precise_time", true)) {
 			Signal_transmitter(main_handler).submit();
 		} else {
-			log("... skip test because it requires high precision time");
+			log("... skip test, requires the platform to support precise time");
 			Test::done.submit();
 		}
 	}

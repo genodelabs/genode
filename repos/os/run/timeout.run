@@ -3,17 +3,35 @@
 #
 
 #
-# Do not high precision time on ARM with kernels other than HW and on QEMU
+# Wether the platform allows for timeouts that trigger with a precision < 50 milliseconds
 #
-# On ARM, we do not have a component-local hardware time-source. The ARM
-# performance counter has no reliable frequency as the ARM idle command
-# halts the counter. Thus, we do not do local time interpolation on ARM.
-# Except we're on the HW kernel. In this case we can read out the kernel
-# time instead. On QEMU, the time emulation is not precise enough.
+proc precise_timeouts { } {
+
+	#
+	# On QEMU, NOVA uses the pretty unstable TSC emulation as primary time source.
+	#
+	if {[have_include "power_on/qemu"] && [have_spec nova]} { return false }
+	return true
+}
+
 #
-proc high_precision_time { } {
-	if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} { return false }
-	if {[expr [have_spec arm] && ![have_spec hw]]}                      { return false }
+# Wether the platform allows for a timestamp that has a precision < 1 millisecond
+#
+proc precise_time { } {
+
+	#
+	# On QEMU, timing is not stable enough for microseconds precision
+	#
+	if {[have_include "power_on/qemu"]} { return false }
+
+	#
+	# On ARM, we do not have a component-local time source in hardware. The ARM
+	# performance counter has no reliable frequency as the ARM idle command
+	# halts the counter. Thus, we do not use local time interpolation on ARM.
+	# Except we're on the HW kernel. In this case we can read out the kernel
+	# time instead.
+	#
+	if {[expr [have_spec arm] && ![have_spec hw]]} { return false }
 	return true
 }
 
@@ -48,7 +66,8 @@ append config {
 		<start name="test">
 			<binary name="test-timeout"/>
 			<resource name="RAM" quantum="250M"/>
-			<config high_precision_time="} [high_precision_time] {"/>
+			<config precise_time="} [precise_time] {"
+			        precise_timeouts="} [precise_timeouts] {"/>
 		</start>
 	</config>
 }
