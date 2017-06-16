@@ -21,6 +21,7 @@
 #include <util/reconstructible.h>
 #include <cpu_session/connection.h>
 #include <cpu_thread/client.h>
+#include <cpu/memory_barrier.h>
 
 using namespace Genode;
 
@@ -407,6 +408,12 @@ static void test_locks(Genode::Env &env)
 	Lock_helper l5(env, "lock_low5", cpu_l, lock, lock_is_free, SYNC_STARTUP);
 	l5.start();
 
+	log(" spin for some time");
+	for (unsigned volatile i = 0; i < 8000000; ++i) memory_barrier();
+	log(" still spinning");
+	for (unsigned volatile i = 0; i < 8000000; ++i) memory_barrier();
+	log(" spinning done");
+
 	lock.lock();
 	log(" I'm the lock holder - still alive");
 	lock_is_free = true;
@@ -648,10 +655,11 @@ void Component::construct(Env &env)
 		test_stack_alignment(env);
 		test_main_thread();
 		test_cpu_session(env);
-		test_locks(env);
-		test_cxa_guards(env);
-
-		if (config.xml().has_sub_node("pause_resume"))
+		if (config.xml().attribute_value("prio", false)) {
+			test_locks(env);
+			test_cxa_guards(env);
+		}
+		if (config.xml().attribute_value("pause_resume", false))
 			test_pause_resume(env);
 
 		test_create_as_many_threads(env);
