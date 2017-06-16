@@ -40,6 +40,8 @@ static bool create_parent_dir(Vfs::Directory_service &vfs, Path const &child)
 
 	Path parent = child;
 	parent.strip_last_element();
+	if (parent == "/")
+		return true;
 
 	Mkdir_result res = vfs.mkdir(parent.base(), 0);
 	if (res == Mkdir_result::MKDIR_ERR_NO_ENTRY) {
@@ -83,7 +85,6 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 			typedef Vfs::Directory_service::Open_result Open_result;
 
 			Path path = path_from_label<Path>(label.string());
-			path.append(".report");
 
 			create_parent_dir(vfs, path);
 
@@ -135,7 +136,7 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 				_handle->seek(offset);
 				Write_result res = _handle->fs().write(
-					_handle, _ds.local_addr<char const>(),
+					_handle, _ds.local_addr<char const>()+offset,
 					length - offset, n);
 
 				if (res != Write_result::WRITE_OK) {

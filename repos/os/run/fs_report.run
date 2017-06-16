@@ -40,7 +40,7 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<vfs> <dir name="init"> <log name="state.report"/> <ram/> </dir> </vfs>
+			<vfs> <dir name="init"> <log name="state"/> <ram/> </dir> </vfs>
 			<policy label_prefix="fs_report" writeable="yes"/>
 		</config>
 	</start>
