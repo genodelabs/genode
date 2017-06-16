@@ -42,7 +42,7 @@ proc run_boot_dir {binaries} {
 	if {[llength $targets]} { build $targets }
 
 	if {$kernel_arg != ""} { file copy -force bin/hypervisor     [run_dir]/genode/hypervisor }
-	if {$core_arg   != ""} { file copy -force bin/core-nova.o    [run_dir]/genode/core.o }
+	if {$core_arg   != ""} { file copy -force bin/core-nova.o    [run_dir]/genode/core-nova.o }
 	if {$ld_arg     != ""} { file copy -force bin/ld-nova.lib.so [run_dir]/genode/ld.lib.so }
 
 	#
