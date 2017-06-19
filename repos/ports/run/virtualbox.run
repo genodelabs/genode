@@ -6,7 +6,10 @@ set use_serial 1
 set use_vbox4 1
 set use_vbox5 [expr !$use_vbox4]
 
+# use_gui starts two VMs
 set use_gui 0
+# need a nic bridge for 2 VMs
+set use_bridge [expr $use_net && $use_gui]
 
 set build_components {
 	core init
@@ -35,6 +38,7 @@ lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [have_spec x86]    build_components drivers/rtc
 
 lappend_if [expr $use_net]    build_components drivers/nic
+lappend_if [expr $use_bridge] build_components server/nic_bridge
 
 lappend_if [expr $use_gui]    build_components server/report_rom
 lappend_if [expr $use_gui]    build_components server/nitpicker
@@ -136,6 +140,18 @@ append_if [expr $use_serial] config {
 	</start>
 }
 
+append_if [expr $use_bridge] config {
+	<start name="nic_bridge" priority="-1">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Nic"/></provides>
+		<config/>
+		<route>
+			<service name="Nic"><child name="nic_drv"/></service>
+			<any-service><parent/></any-service>
+		</route>
+	</start>
+}
+
 append_if [expr $use_gui] config {
 	<start name="report_rom" priority="-1">
 		<resource name="RAM" quantum="2M"/>
@@ -234,6 +250,7 @@ append_if [expr $use_gui] config {
 			</vfs>
 		</config>
 		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb2" /> </service>
 			<service name="Input"> <child name="nit_fb2" /> </service>
@@ -261,6 +278,9 @@ append config {
 			</vfs>
 		</config>
 		<route>}
+
+append_if [expr $use_bridge] config {
+			<service name="Nic"> <child name="nic_bridge"/> </service>}
 
 append_if [expr $use_gui] config {
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -301,6 +321,7 @@ append boot_modules {
 }
 
 append_if [expr $use_net]          boot_modules { nic_drv }
+append_if [expr $use_bridge]       boot_modules { nic_bridge }
 append_if [expr $use_serial]       boot_modules { log_terminal }
 
 append_platform_drv_boot_modules

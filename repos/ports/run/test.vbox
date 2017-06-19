@@ -57,71 +57,9 @@
         <DeviceFilters/>
       </USB>
       <Network>
-        <Adapter slot="0" enabled="false" MACAddress="08002785385E" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <InternalNetwork name="intnet"/>
-            <NATNetwork name="NatNetwork"/>
-          </DisabledModes>
-          <NAT>
-            <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-            <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-          </NAT>
-        </Adapter>
-        <Adapter slot="1" enabled="false" MACAddress="0800273AD0BB" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
-        </Adapter>
-        <Adapter slot="2" enabled="false" MACAddress="0800270786C1" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
-        </Adapter>
-        <Adapter slot="3" enabled="false" MACAddress="0800279B9C1E" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
-        </Adapter>
-        <Adapter slot="4" enabled="false" MACAddress="080027B94C18" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
-        </Adapter>
-        <Adapter slot="5" enabled="false" MACAddress="080027E38E65" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
-        </Adapter>
-        <Adapter slot="6" enabled="false" MACAddress="0800275A8627" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
-        </Adapter>
-        <Adapter slot="7" enabled="false" MACAddress="0800271CE60A" cable="true" speed="0" type="82540EM">
-          <DisabledModes>
-            <NAT>
-              <DNS pass-domain="true" use-proxy="false" use-host-resolver="false"/>
-              <Alias logging="false" proxy-only="false" use-same-ports="false"/>
-            </NAT>
-          </DisabledModes>
+        <Adapter slot="0" enabled="false" MACAddress="0800271D7901" cable="true" speed="0" type="82540EM">
+          <HostInterface/>
+          <DisabledModes/>
         </Adapter>
       </Network>
       <UART>
