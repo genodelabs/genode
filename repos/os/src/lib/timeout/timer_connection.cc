@@ -25,8 +25,6 @@ void Timer::Connection::_update_interpolation_quality(unsigned long min_factor,
 	/*
 	 * If the factor gets adapted less than 12.5%, we raise the
 	 * interpolation-quality value. Otherwise, we reset it to zero.
-	 * We can safely do the shift on the factor as it should be
-	 * at least of value 1 << TS_TO_US_RATIO_SHIFT.
 	 */
 	if ((max_factor - min_factor) < (max_factor >> 3)) {
 		if (_interpolation_quality < MAX_INTERPOLATION_QUALITY) {
@@ -38,7 +36,8 @@ void Timer::Connection::_update_interpolation_quality(unsigned long min_factor,
 
 
 unsigned long Timer::Connection::_ts_to_us_ratio(Timestamp     ts,
-                                                 unsigned long us)
+                                                 unsigned long us,
+                                                 unsigned      shift)
 {
 	/*
 	 * If the timestamp difference is to big to do the following
@@ -46,7 +45,8 @@ unsigned long Timer::Connection::_ts_to_us_ratio(Timestamp     ts,
 	 * and time difference down equally. This should neither happen
 	 * often nor have much effect on the resulting factor.
 	 */
-	while (ts > MAX_TS) {
+	Timestamp const max_ts = ~(Timestamp)0ULL >> shift;
+	while (ts > max_ts) {
 		warning("timestamp value too big");
 		ts >>= 1;
 		us >>= 1;
@@ -59,13 +59,13 @@ unsigned long Timer::Connection::_ts_to_us_ratio(Timestamp     ts,
 	 * the calculation. This upscaling must be considered when using
 	 * the result.
 	 */
-	Timestamp     const result    = (ts << TS_TO_US_RATIO_SHIFT) / us;
+	Timestamp     const result    = (ts << shift) / us;
 	unsigned long const result_ul = (unsigned long)result;
-	if (result == result_ul) {
-		return result_ul; }
-
-	warning("Timestamp-to-time ratio too big");
-	return ~0UL;
+	if (result != result_ul) {
+		warning("Timestamp-to-time ratio too big");
+		return ~0UL;
+	}
+	return result_ul;
 }
 
 
