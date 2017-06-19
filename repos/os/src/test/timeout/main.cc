@@ -205,6 +205,15 @@ struct Fast_polling : Test
 	enum { MAX_POLL_LATENCY_US   = 1000 };
 	enum { BUF_SIZE              = MAX_NR_OF_POLLS * sizeof(unsigned long) };
 
+	struct Result_buffer
+	{
+		Env                    &env;
+		Attached_ram_dataspace  ram   { env.ram(), env.rm(), BUF_SIZE };
+		unsigned long volatile *value { ram.local_addr<unsigned long>() };
+
+		Result_buffer(Env &env) : env(env) { }
+	};
+
 	Entrypoint                   main_ep;
 	Signal_handler<Fast_polling> main_handler;
 
@@ -215,12 +224,9 @@ struct Fast_polling : Test
 	unsigned long const    timer_diff_ms   { timer_2_delayed ?
 	                                         timer_2_ms - timer_ms :
 	                                         timer_ms - timer_2_ms };
-	Attached_ram_dataspace local_us_buf_1  { env.ram(), env.rm(), BUF_SIZE };
-	Attached_ram_dataspace local_us_buf_2  { env.ram(), env.rm(), BUF_SIZE };
-	Attached_ram_dataspace remote_ms_buf   { env.ram(), env.rm(), BUF_SIZE };
-	unsigned long volatile *local_us_1     { local_us_buf_1.local_addr<unsigned long>() };
-	unsigned long volatile *local_us_2     { local_us_buf_2.local_addr<unsigned long>() };
-	unsigned long volatile *remote_ms      { remote_ms_buf.local_addr<unsigned long>() };
+	Result_buffer          local_us_1      { env };
+	Result_buffer          local_us_2      { env };
+	Result_buffer          remote_ms       { env };
 
 	unsigned const delay_loops_per_poll[NR_OF_ROUNDS] {      1,
 	                                                      1000,
@@ -281,9 +287,9 @@ struct Fast_polling : Test
 
 	unsigned long delay_us(unsigned poll)
 	{
-		return local_us_1[poll - 1] > local_us_1[poll] ?
-		       local_us_1[poll - 1] - local_us_1[poll] :
-		       local_us_1[poll]     - local_us_1[poll - 1];
+		return local_us_1.value[poll - 1] > local_us_1.value[poll] ?
+		       local_us_1.value[poll - 1] - local_us_1.value[poll] :
+		       local_us_1.value[poll]     - local_us_1.value[poll - 1];
 	}
 
 	unsigned long estimate_delay_loops_per_ms()
@@ -383,9 +389,9 @@ struct Fast_polling : Test
 					local_us_2_ = 0;
 				}
 				/* store results to the buffers */
-				remote_ms[poll]  = remote_ms_;
-				local_us_1[poll] = local_us_1_;
-				local_us_2[poll] = local_us_2_;
+				remote_ms.value[poll]  = remote_ms_;
+				local_us_1.value[poll] = local_us_1_;
+				local_us_2.value[poll] = local_us_2_;
 
 				/* if the minimum round duration is reached, end polling */
 				if (remote_ms_ > end_remote_ms) {
@@ -406,21 +412,22 @@ struct Fast_polling : Test
 			unsigned nr_of_bad_polls = 0;
 			for (unsigned poll = 0; poll < nr_of_polls; poll++) {
 
-				if (remote_ms[poll] &&
-				    local_us_2[poll] - local_us_1[poll] > MAX_POLL_LATENCY_US)
+				if (remote_ms.value[poll] &&
+				    local_us_2.value[poll] - local_us_1.value[poll] > MAX_POLL_LATENCY_US)
 				{
-					local_us_1[poll] = 0;
+					local_us_1.value[poll] = 0;
 					nr_of_bad_polls++;
 
 				} else {
 
 					if (timer_2_delayed) {
-						local_us_1[poll] += timer_diff_ms * 1000UL;
-						local_us_2[poll] += timer_diff_ms * 1000UL;
+						local_us_1.value[poll] += timer_diff_ms * 1000UL;
+						local_us_2.value[poll] += timer_diff_ms * 1000UL;
 					} else {
-						remote_ms[poll] += timer_diff_ms;
+						remote_ms.value[poll] += timer_diff_ms;
 					}
-					nr_of_good_polls++; }
+					nr_of_good_polls++;
+				}
 			}
 
 			/*
@@ -431,12 +438,12 @@ struct Fast_polling : Test
 			for (unsigned poll = 1; poll < nr_of_polls; poll++) {
 
 				/* skip if this result was dismissed */
-				if (!local_us_1[poll]) {
+				if (!local_us_1.value[poll]) {
 					poll++;
 					continue;
 				}
 				/* check if local time is monotone */
-				if (local_us_1[poll - 1] > local_us_1[poll]) {
+				if (local_us_1.value[poll - 1] > local_us_1.value[poll]) {
 
 					error("time is not monotone at poll #", poll);
 					error_cnt++;
@@ -456,22 +463,22 @@ struct Fast_polling : Test
 			for (unsigned poll = 0; poll < nr_of_polls; poll++) {
 
 				/* skip if this result was dismissed */
-				if (!local_us_1[poll]) {
+				if (!local_us_1.value[poll]) {
 					continue; }
 
 				/* skip if this poll contains no remote time */
-				if (!remote_ms[poll]) {
+				if (!remote_ms.value[poll]) {
 					continue; }
 
 				/* scale-up remote time to microseconds and calculate error */
-				if (remote_ms[poll] > ~0UL / 1000UL) {
+				if (remote_ms.value[poll] > ~0UL / 1000UL) {
 					error("can not translate remote time to microseconds");
 					error_cnt++;
 				}
-				unsigned long const remote_us   = remote_ms[poll] * 1000UL;
-				unsigned long const time_err_us = remote_us > local_us_1[poll] ?
-				                                  remote_us - local_us_1[poll] :
-				                                  local_us_1[poll] - remote_us;
+				unsigned long const remote_us   = remote_ms.value[poll] * 1000UL;
+				unsigned long const time_err_us = remote_us > local_us_1.value[poll] ?
+				                                  remote_us - local_us_1.value[poll] :
+				                                  local_us_1.value[poll] - remote_us;
 
 				/* update max time error */
 				if (time_err_us > max_time_err_us) {
@@ -492,7 +499,7 @@ struct Fast_polling : Test
 			for (unsigned poll = 1; poll < nr_of_polls; poll++) {
 
 				/* skip if this result was dismissed */
-				if (!local_us_1[poll]) {
+				if (!local_us_1.value[poll]) {
 					poll++;
 					continue;
 				}
