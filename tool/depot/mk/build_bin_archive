@@ -171,6 +171,7 @@ $(TOOLS_CONF):
 	$(VERBOSE)cp $(GENODE_DIR)/repos/base/etc/tools.conf $@
 
 $(BUILD_MK):
+	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)ln -sf $(GENODE_DIR)/tool/builddir/build.mk $@
 
 $(BUILD_CONF) $(SPECS_CONF) $(TOOLS_CONF) $(BUILD_MK): wiped_build_dir
