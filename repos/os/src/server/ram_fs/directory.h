@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2017 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,32 +18,32 @@
 #include <file_system/util.h>
 
 /* local includes */
-#include <ram_fs/node.h>
-#include <ram_fs/file.h>
-#include <ram_fs/symlink.h>
+#include "node.h"
+#include "file.h"
+#include "symlink.h"
 
-namespace File_system { class Directory; }
+namespace Ram_fs { class Directory; }
 
 
-class File_system::Directory : public Node
+class Ram_fs::Directory : public Node
 {
 	private:
 
 		List<Node> _entries;
 		size_t     _num_entries;
 
-	public:
-
-		Directory(char const *name) : _num_entries(0) { Node::name(name); }
-
-		Node *entry_unsynchronized(size_t index)
+		Node *_entry_unsynchronized(size_t index)
 		{
 			Node *node = _entries.first();
 			for (unsigned i = 0; i < index && node; node = node->next(), i++);
 			return node;
 		}
 
-		bool has_sub_node_unsynchronized(char const *name) const
+	public:
+
+		Directory(char const *name) : _num_entries(0) { Node::name(name); }
+
+		bool has_sub_node_unsynchronized(char const *name) const override
 		{
 			Node const *sub_node = _entries.first();
 			for (; sub_node; sub_node = sub_node->next())
@@ -53,7 +53,7 @@ class File_system::Directory : public Node
 			return false;
 		}
 
-		void adopt_unsynchronized(Node *node)
+		void adopt_unsynchronized(Node *node) override
 		{
 			/*
 			 * XXX inc ref counter
@@ -64,7 +64,7 @@ class File_system::Directory : public Node
 			mark_as_updated();
 		}
 
-		void discard_unsynchronized(Node *node)
+		void discard(Node *node) override
 		{
 			_entries.remove(node);
 			_num_entries--;
@@ -72,15 +72,14 @@ class File_system::Directory : public Node
 			mark_as_updated();
 		}
 
-		Node *lookup_and_lock(char const *path, bool return_parent = false)
+		Node *lookup(char const *path, bool return_parent = false) override
 		{
 			if (strcmp(path, "") == 0) {
-				lock();
 				return this;
 			}
 
 			if (!path || path[0] == '/')
-				throw Lookup_failed();
+				throw File_system::Lookup_failed();
 
 			/* find first path delimiter */
 			unsigned i = 0;
@@ -91,7 +90,6 @@ class File_system::Directory : public Node
 			 * specified path.
 			 */
 			if (path[i] == 0 && return_parent) {
-				lock();
 				return this;
 			}
 
@@ -109,16 +107,15 @@ class File_system::Directory : public Node
 					break;
 
 			if (!sub_node)
-				throw Lookup_failed();
+				throw File_system::Lookup_failed();
 
-			if (!contains_path_delimiter(path)) {
+			if (!File_system::contains_path_delimiter(path)) {
 
 				/*
 				 * Because 'path' is a basename that corresponds to an
 				 * existing sub_node, we have found what we were looking
 				 * for.
 				 */
-				sub_node->lock();
 				return sub_node;
 			}
 
@@ -134,59 +131,58 @@ class File_system::Directory : public Node
 			 */
 			Directory *sub_dir = dynamic_cast<Directory *>(sub_node);
 			if (!sub_dir)
-				throw Lookup_failed();
+				throw File_system::Lookup_failed();
 
-			return sub_dir->lookup_and_lock(path + i + 1, return_parent);
+			return sub_dir->lookup(path + i + 1, return_parent);
 		}
 
-		Directory *lookup_and_lock_dir(char const *path)
+		Directory *lookup_dir(char const *path)
 		{
-			Node *node = lookup_and_lock(path);
+			Node *node = lookup(path);
 
 			Directory *dir = dynamic_cast<Directory *>(node);
 			if (dir)
 				return dir;
 
-			node->unlock();
-			throw Lookup_failed();
+			throw File_system::Lookup_failed();
 		}
 
-		File *lookup_and_lock_file(char const *path)
+		File *lookup_file(char const *path) override
 		{
-			Node *node = lookup_and_lock(path);
+			Node *node = lookup(path);
 
 			File *file = dynamic_cast<File *>(node);
 			if (file)
 				return file;
 
-			node->unlock();
-			throw Lookup_failed();
+			throw File_system::Lookup_failed();
 		}
 
-		Symlink *lookup_and_lock_symlink(char const *path)
+		Symlink *lookup_symlink(char const *path)
 		{
-			Node *node = lookup_and_lock(path);
+			Node *node = lookup(path);
 
 			Symlink *symlink = dynamic_cast<Symlink *>(node);
 			if (symlink)
 				return symlink;
 
-			node->unlock();
-			throw Lookup_failed();
+			throw File_system::Lookup_failed();
 		}
 
 		/**
 		 * Lookup parent directory of the specified path
 		 *
-		 * \throw Lookup_failed
+		 * \throw File_system::Lookup_failed
 		 */
-		Directory *lookup_and_lock_parent(char const *path)
+		Directory *lookup_parent(char const *path)
 		{
-			return static_cast<Directory *>(lookup_and_lock(path, true));
+			return static_cast<Directory *>(lookup(path, true));
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
+			using File_system::Directory_entry;
+
 			if (len < sizeof(Directory_entry)) {
 				Genode::error("read buffer too small for directory entry");
 				return 0;
@@ -199,7 +195,7 @@ class File_system::Directory : public Node
 				return 0;
 			}
 
-			Node *node = entry_unsynchronized(index);
+			Node *node = _entry_unsynchronized(index);
 
 			/* index out of range */
 			if (!node)
@@ -218,13 +214,20 @@ class File_system::Directory : public Node
 			return sizeof(Directory_entry);
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* writing to directory nodes is not supported */
 			return 0;
 		}
 
-		size_t num_entries() const { return _num_entries; }
+		Status status() override
+		{
+			Status s;
+			s.inode = inode();
+			s.size = _num_entries * sizeof(File_system::Directory_entry);
+			s.mode = File_system::Status::MODE_DIRECTORY;
+			return s;
+		}
 };
 
 #endif /* _INCLUDE__RAM_FS__DIRECTORY_H_ */

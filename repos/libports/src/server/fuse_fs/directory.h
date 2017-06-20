@@ -6,6 +6,13 @@
  * \date   2013-11-11
  */
 
+/*
+ * Copyright (C) 2013-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #ifndef _DIRECTORY_H_
 #define _DIRECTORY_H_
 
@@ -30,12 +37,12 @@
 #include <fuse_private.h>
 
 
-namespace File_system {
+namespace Fuse_fs {
 	class Directory;
 }
 
 
-class File_system::Directory : public Node
+class Fuse_fs::Directory : public Node
 {
 	private:
 
@@ -181,13 +188,12 @@ class File_system::Directory : public Node
 			else
 				throw Lookup_failed();
 
-			node->lock();
 			return node;
 		}
 
 		struct fuse_file_info *file_info() { return &_file_info; }
 
-		Status status()
+		Status status() override
 		{
 			struct stat s;
 			int res = Fuse::fuse()->op.getattr(_path.base(), &s);
@@ -202,7 +208,7 @@ class File_system::Directory : public Node
 			return status;
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			if (len < sizeof(Directory_entry)) {
 				Genode::error("read buffer too small for directory entry");
@@ -277,7 +283,7 @@ class File_system::Directory : public Node
 			return sizeof(Directory_entry);
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* writing to directory nodes is not supported */
 			return 0;

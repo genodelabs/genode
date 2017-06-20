@@ -19,13 +19,20 @@
 #include <base/allocator.h>
 
 /* local includes */
-#include <ram_fs/node.h>
 #include <ram_fs/chunk.h>
+#include "node.h"
 
-namespace File_system { class File; }
+namespace Ram_fs
+{
+	using File_system::Chunk;
+	using File_system::Chunk_index;
+	using File_system::file_size_t;
+	using File_system::SEEK_TAIL;
+	class File;
+}
 
 
-class File_system::File : public Node
+class Ram_fs::File : public Node
 {
 	private:
 
@@ -43,7 +50,7 @@ class File_system::File : public Node
 		File(Allocator &alloc, char const *name)
 		: _chunk(alloc, 0), _length(0) { Node::name(name); }
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			file_size_t const chunk_used_size = _chunk.used_size();
 
@@ -79,7 +86,7 @@ class File_system::File : public Node
 			return len;
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			if (seek_offset == SEEK_TAIL)
 				seek_offset = _length;
@@ -102,9 +109,16 @@ class File_system::File : public Node
 			return len;
 		}
 
-		file_size_t length() const { return _length; }
+		Status status() override
+		{
+			Status s;
+			s.inode = inode();
+			s.size = _length;
+			s.mode = File_system::Status::MODE_FILE;
+			return s;
+		}
 
-		void truncate(file_size_t size)
+		void truncate(file_size_t size) override
 		{
 			if (size < _chunk.used_size())
 				_chunk.truncate(size);

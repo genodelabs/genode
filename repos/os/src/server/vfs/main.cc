@@ -94,16 +94,17 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 * \throw Invalid_handle
 		 */
 		template <typename HANDLE_TYPE, typename FUNC>
-		void _apply(HANDLE_TYPE handle, FUNC const &fn)
+		auto _apply(HANDLE_TYPE handle, FUNC const &fn)
+		-> typename Genode::Trait::Functor<decltype(&FUNC::operator())>::Return_type
 		{
 			Node_space::Id id { handle.value };
 
-			try { _node_space.apply<Node>(id, [&] (Node &node) {
+			try { return _node_space.apply<Node>(id, [&] (Node &node) {
 				typedef typename Node_type<HANDLE_TYPE>::Type Typed_node;
 				Typed_node *n = dynamic_cast<Typed_node *>(&node);
 				if (!n)
 					throw Invalid_handle();
-				fn(*n);
+				return fn(*n);
 			}); } catch (Node_space::Unknown_id) { throw Invalid_handle(); }
 		}
 
@@ -385,7 +386,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			if (file.notify_read_ready() && file.read_ready()
 			 && tx_sink()->ready_to_ack()) {
 				Packet_descriptor packet(Packet_descriptor(),
-				                         Node_handle(file.id().value),
+				                         Node_handle { file.id().value },
 				                         Packet_descriptor::READ_READY,
 				                         0, 0);
 				tx_sink()->acknowledge_packet(packet);
@@ -431,33 +432,29 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			if ((create || (fs_mode & WRITE_ONLY)) && (!_writable))
 				throw Permission_denied();
 
-			File_handle new_handle;
-
-			_apply(dir_handle, [&] (Directory &dir) {
+			return _apply(dir_handle, [&] (Directory &dir) {
 				char const *name_str = name.string();
 				_assert_valid_name(name_str);
 
-				new_handle = dir.file(
-					_node_space, _vfs, _alloc, *this, name_str, fs_mode, create).value;
+				return File_handle {
+					dir.file(_node_space, _vfs, _alloc, *this, name_str, fs_mode, create).value
+				};
 			});
-			return new_handle;
 		}
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create) override
 		{
 			if (create && !_writable) throw Permission_denied();
 
-			Symlink_handle new_handle;
-
-			_apply(dir_handle, [&] (Directory &dir) {
+			return _apply(dir_handle, [&] (Directory &dir) {
 				char const *name_str = name.string();
 				_assert_valid_name(name_str);
 
-				new_handle = dir.symlink(
+				return Symlink_handle {dir.symlink(
 					_node_space, _vfs, _alloc, name_str,
-					_writable ? READ_WRITE : READ_ONLY, create).value;
+					_writable ? READ_WRITE : READ_ONLY, create).value
+				};
 			});
-			return new_handle;
 		}
 
 		Node_handle node(File_system::Path const &path) override
@@ -465,7 +462,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			char const *path_str = path.string();
 			/* '/' is bound to '0' */
 			if (!strcmp(path_str, "/"))
-				return Node_handle(0);
+				return Node_handle { 0 };
 
 			_assert_valid_path(path_str);
 
@@ -480,7 +477,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			try { node  = new (_alloc) Node(_node_space, path_str, STAT_ONLY); }
 			catch (Out_of_memory) { throw Out_of_ram(); }
 
-			return Node_handle(node->id().value);
+			return Node_handle { node->id().value };
 		}
 
 		void close(Node_handle handle) override

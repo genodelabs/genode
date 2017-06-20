@@ -6,6 +6,13 @@
  * \date   2013-11-26
  */
 
+/*
+ * Copyright (C) 2013-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #ifndef _FILE_H_
 #define _FILE_H_
 
@@ -16,12 +23,12 @@
 #include <fuse.h>
 #include <fuse_private.h>
 
-namespace File_system {
+namespace Fuse_fs {
 	class File;
 }
 
 
-class File_system::File : public Node
+class Fuse_fs::File : public Node
 {
 	private:
 
@@ -104,7 +111,7 @@ class File_system::File : public Node
 
 		struct fuse_file_info *file_info() { return &_file_info; }
 
-		Status status()
+		Status status() override
 		{
 			struct stat s;
 			int res = Fuse::fuse()->op.getattr(_path.base(), &s);
@@ -118,7 +125,7 @@ class File_system::File : public Node
 			return status;
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			/* append mode, use actual length as offset */
 			if (seek_offset == ~0ULL)
@@ -129,7 +136,7 @@ class File_system::File : public Node
 			return ret < 0 ? 0 : ret;
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* append mode, use actual length as offset */
 			if (seek_offset == ~0ULL)
@@ -140,7 +147,7 @@ class File_system::File : public Node
 			return ret < 0 ? 0 : ret;
 		}
 
-		void truncate(file_size_t size)
+		void truncate(file_size_t size) override
 		{
 			int res = Fuse::fuse()->op.ftruncate(_path.base(), size,
 			                                     &_file_info);

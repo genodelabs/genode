@@ -5,6 +5,13 @@
  * \date   2013-11-11
  */
 
+/*
+ * Copyright (C) 2013-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #ifndef _FILE_H_
 #define _FILE_H_
 
@@ -13,12 +20,13 @@
 #include <lx_util.h>
 
 
-namespace File_system {
+namespace Lx_fs {
+	using namespace File_system;
 	class File;
 }
 
 
-class File_system::File : public Node
+class Lx_fs::File : public Node
 {
 	private:
 
@@ -74,6 +82,16 @@ class File_system::File : public Node
 			return fd;
 		}
 
+		file_size_t _length() const
+		{
+			struct stat s;
+
+			if (fstat(_fd, &s) < 0)
+				return 0;
+
+			return s.st_size;
+		}
+
 	public:
 
 		File(int         dir,
@@ -95,14 +113,14 @@ class File_system::File : public Node
 			Node::name(basename(path));
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			int ret = pread(_fd, dst, len, seek_offset);
 
 			return ret == -1 ? 0 : ret;
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* should we append? */
 			if (seek_offset == ~0ULL) {
@@ -117,17 +135,16 @@ class File_system::File : public Node
 			return ret == -1 ? 0 : ret;
 		}
 
-		file_size_t length() const
+		Status status() override
 		{
-			struct stat s;
-
-			if (fstat(_fd, &s) < 0)
-				return 0;
-
-			return s.st_size;
+			Status s;
+			s.inode = inode();
+			s.size = _length();
+			s.mode = File_system::Status::MODE_FILE;
+			return s;
 		}
 
-		void truncate(file_size_t size)
+		void truncate(file_size_t size) override
 		{
 			if (ftruncate(_fd, size)) /* nothing */;
 

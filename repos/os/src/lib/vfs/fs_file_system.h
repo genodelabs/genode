@@ -51,16 +51,7 @@ class Vfs::Fs_file_system : public File_system
 
 		::File_system::Connection _fs;
 
-		struct Fs_vfs_handle;
-
-		struct Handle_space : Genode::Id_space<Fs_vfs_handle>
-		{
-			struct Id : Genode::Id_space<Fs_vfs_handle>::Id
-			{
-				Id(unsigned long v)              { value = v; }
-				Id(::File_system::Node_handle h) { value = h.value; }
-			};
-		};
+		typedef Genode::Id_space<::File_system::Node> Handle_space;
 
 		Handle_space _handle_space;
 
@@ -77,19 +68,17 @@ class Vfs::Fs_file_system : public File_system
 			::File_system::Packet_descriptor queued_write_packet;
 		};
 
-		struct Fs_vfs_handle : Vfs_handle, Handle_space::Element, Handle_state
+		struct Fs_vfs_handle : Vfs_handle, ::File_system::Node, Handle_space::Element, Handle_state
 		{
-			Handle_space::Id const id;
-
 			Fs_vfs_handle(File_system &fs, Allocator &alloc, int status_flags,
 			              Handle_space &space, Handle_space::Id id)
 			:
 				Vfs_handle(fs, fs, alloc, status_flags),
-				Handle_space::Element(*this, space, id),
-				id(id)
+				Handle_space::Element(*this, space, id)
 			{ }
 
-			::File_system::File_handle file_handle() const { return id.value; }
+			::File_system::File_handle file_handle() const
+			{ return ::File_system::File_handle { id().value }; }
 		};
 
 		/**
@@ -400,13 +389,13 @@ class Vfs::Fs_file_system : public File_system
 			if (strcmp(path, "") == 0)
 				path = "/";
 
-			::File_system::Dir_handle dir_handle;
-			try { dir_handle = _fs.dir(path, false); }
+			Genode::Constructible<::File_system::Dir_handle> dir_handle;
+			try { dir_handle.construct(_fs.dir(path, false)); }
 			catch (::File_system::Lookup_failed) { return DIRENT_ERR_INVALID_PATH; }
 			catch (::File_system::Name_too_long) { return DIRENT_ERR_INVALID_PATH; }
 			catch (...) { return DIRENT_ERR_NO_PERM; }
 
-			Fs_handle_guard dir_guard(*this, _fs, dir_handle, _handle_space);
+			Fs_handle_guard dir_guard(*this, _fs, *dir_handle, _handle_space);
 			Directory_entry entry;
 
 			enum { DIRENT_SIZE = sizeof(Directory_entry) };

@@ -21,11 +21,11 @@
 
 #include "node.h"
 
-namespace File_system {
+namespace Rump_fs {
 	class File;
 }
 
-class File_system::File : public Node
+class Rump_fs::File : public Node
 {
 	private:
 
@@ -114,7 +114,7 @@ class File_system::File : public Node
 
 		virtual ~File() { rump_sys_close(_fd); }
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			ssize_t ret;
 
@@ -127,7 +127,7 @@ class File_system::File : public Node
 			return ret == -1 ? 0 : ret;
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			ssize_t ret;
 
@@ -140,6 +140,17 @@ class File_system::File : public Node
 			return ret == -1 ? 0 : ret;
 		}
 
+		virtual Status status() override
+		{
+			Status s;
+
+			s.inode = inode();
+			s.size  = length();
+			s.mode  = File_system::Status::MODE_FILE;
+
+			return s;
+		}
+
 		file_size_t length() const
 		{
 			struct stat s;
@@ -150,7 +161,7 @@ class File_system::File : public Node
 			return s.st_size;
 		}
 
-		void truncate(file_size_t size)
+		void truncate(file_size_t size) override
 		{
 			rump_sys_ftruncate(_fd, size);
 

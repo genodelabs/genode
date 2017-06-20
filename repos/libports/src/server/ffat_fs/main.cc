@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <file_system/node_handle_registry.h>
+#include <file_system/open_node.h>
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
 #include <base/attached_rom_dataspace.h>
@@ -35,186 +35,192 @@ namespace Ffat { extern "C" {
 #include <ffat/ff.h>
 } }
 
-/*
- * This macro is defined in later versions of the FatFs lib, but not in the
- * one currently used for Genode.
- */
-#define f_tell(fp) ((fp)->fptr)
-
-
-using namespace Genode;
-
-
-static Lock _ffat_lock;
-typedef Lock_guard<Lock> Ffat_lock_guard;
-
 
 /*************************
  ** File-system service **
  *************************/
 
-namespace File_system {
+namespace Ffat_fs {
 
-	class Session_component : public Session_rpc_object
-	{
-		private:
+	using namespace Genode;
+	using File_system::Exception;
+	using File_system::Packet_descriptor;
+	using File_system::Path;
 
-			Genode::Env          &_env;
-			Genode::Allocator    &_heap;
+	class Session_component;
+	class Root;
+	struct Main;
+}
 
-			Directory            &_root;
-			Node_handle_registry  _handle_registry;
-			bool                  _writable;
+class Ffat_fs::Session_component : public Session_rpc_object
+{
+	private:
 
-			Signal_handler<Session_component> _process_packet_dispatcher;
+		typedef File_system::Open_node<Node> Open_node;
 
-			/******************************
-			 ** Packet-stream processing **
-			 ******************************/
+		Genode::Env          &_env;
+		Genode::Allocator    &_heap;
 
-			/**
-			 * Perform packet operation
-			 *
-			 * \return true on success, false on failure
-			 */
-			void _process_packet_op(Packet_descriptor &packet, Node &node)
-			{
-				void     * const content = tx_sink()->packet_content(packet);
-				size_t     const length  = packet.length();
-				seek_off_t const offset  = packet.position();
+		Directory                   &_root;
+		Id_space<File_system::Node>  _open_node_registry;
+		bool                         _writable;
 
-				if (!content || (packet.length() > packet.size())) {
-					packet.succeeded(false);
-					return;
-				}
+		Signal_handler<Session_component> _process_packet_dispatcher;
 
-				/* resulting length */
-				size_t res_length = 0;
+		/******************************
+		 ** Packet-stream processing **
+		 ******************************/
 
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+		/**
+		 * Perform packet operation
+		 *
+		 * \return true on success, false on failure
+		 */
+		void _process_packet_op(Packet_descriptor &packet, Open_node &open_node)
+		{
+			void     * const content = tx_sink()->packet_content(packet);
+			size_t     const length  = packet.length();
+			seek_off_t const offset  = packet.position();
 
-				switch (packet.operation()) {
-
-					case Packet_descriptor::READ:
-						res_length = node.read((char *)content, length, offset);
-						break;
-
-					case Packet_descriptor::WRITE:
-						res_length = node.write((char const *)content, length, offset);
-						break;
-
-					case Packet_descriptor::READ_READY:
-						/* not supported */
-						break;
-				}
-
-				packet.length(res_length);
-				packet.succeeded(res_length > 0);
-			}
-
-			void _process_packet()
-			{
-				Packet_descriptor packet = tx_sink()->get_packet();
-
-				/* assume failure by default */
+			if (!content || (packet.length() > packet.size())) {
 				packet.succeeded(false);
+				return;
+			}
 
-				try {
-					Node *node = _handle_registry.lookup(packet.handle());
-					_process_packet_op(packet, *node);
-				}
-				catch (Invalid_handle)     { error("Invalid_handle");     }
+			/* resulting length */
+			size_t res_length = 0;
+
+			switch (packet.operation()) {
+
+				case Packet_descriptor::READ:
+					res_length = open_node.node().read((char *)content, length, offset);
+					break;
+
+				case Packet_descriptor::WRITE:
+					res_length = open_node.node().write((char const *)content, length, offset);
+					break;
+
+				case Packet_descriptor::CONTENT_CHANGED:
+					open_node.register_notify(*tx_sink());
+					open_node.node().notify_listeners();
+					return;
+
+				case Packet_descriptor::READ_READY:
+					/* not supported */
+					break;
+			}
+
+			packet.length(res_length);
+			packet.succeeded(res_length > 0);
+		}
+
+		void _process_packet()
+		{
+			Packet_descriptor packet = tx_sink()->get_packet();
+
+			/* assume failure by default */
+			packet.succeeded(false);
+
+			auto process_packet_fn = [&] (Open_node &open_node) {
+				_process_packet_op(packet, open_node);
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(packet.handle(), process_packet_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				Genode::error("Invalid_handle");
+			}
+
+			/*
+			 * The 'acknowledge_packet' function cannot block because we
+			 * checked for 'ready_to_ack' in '_process_packets'.
+			 */
+			tx_sink()->acknowledge_packet(packet);
+		}
+
+		/**
+		 * Called by signal dispatcher, executed in the context of the main
+		 * thread (not serialized with the RPC functions)
+		 */
+		void _process_packets()
+		{
+			while (tx_sink()->packet_avail()) {
 
 				/*
-				 * The 'acknowledge_packet' function cannot block because we
-				 * checked for 'ready_to_ack' in '_process_packets'.
+				 * Make sure that the '_process_packet' function does not
+				 * block.
+				 *
+				 * If the acknowledgement queue is full, we defer packet
+				 * processing until the client processed pending
+				 * acknowledgements and thereby emitted a ready-to-ack
+				 * signal. Otherwise, the call of 'acknowledge_packet()'
+				 * in '_process_packet' would infinitely block the context
+				 * of the main thread. The main thread is however needed
+				 * for receiving any subsequent 'ready-to-ack' signals.
 				 */
-				tx_sink()->acknowledge_packet(packet);
-			}
+				if (!tx_sink()->ready_to_ack())
+					return;
 
-			/**
-			 * Called by signal dispatcher, executed in the context of the main
-			 * thread (not serialized with the RPC functions)
+				_process_packet();
+			}
+		}
+
+		/**
+		 * Check if string represents a valid path (most start with '/')
+		 */
+		static void _assert_valid_path(char const *path)
+		{
+			if (!valid_path(path)) {
+				warning("malformed path '", path, "'");
+				throw Lookup_failed();
+			}
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Session_component(Genode::Env       &env,
+			              Genode::Allocator &heap,
+			              size_t             tx_buf_size,
+			              Directory         &root,
+			              bool               writable)
+		:
+			Session_rpc_object(env.ram().alloc(tx_buf_size),
+				               env.rm(), env.ep().rpc_ep()),
+			_env(env), _heap(heap), _root(root), _writable(writable),
+			_process_packet_dispatcher(env.ep(), *this,
+				                       &Session_component::_process_packets)
+		{
+			/*
+			 * Register '_process_packets' dispatch function as signal
+			 * handler for packet-avail and ready-to-ack signals.
 			 */
-			void _process_packets()
-			{
-				while (tx_sink()->packet_avail()) {
+			_tx.sigh_packet_avail(_process_packet_dispatcher);
+			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+		}
 
-					/*
-					 * Make sure that the '_process_packet' function does not
-					 * block.
-					 *
-					 * If the acknowledgement queue is full, we defer packet
-					 * processing until the client processed pending
-					 * acknowledgements and thereby emitted a ready-to-ack
-					 * signal. Otherwise, the call of 'acknowledge_packet()'
-					 * in '_process_packet' would infinitely block the context
-					 * of the main thread. The main thread is however needed
-					 * for receiving any subsequent 'ready-to-ack' signals.
-					 */
-					if (!tx_sink()->ready_to_ack())
-						return;
+		/**
+		 * Destructor
+		 */
+		~Session_component()
+		{
+			Dataspace_capability ds = tx_sink()->dataspace();
+			_env.ram().free(static_cap_cast<Ram_dataspace>(ds));
+		}
 
-					_process_packet();
-				}
-			}
+		/***************************
+		 ** File_system interface **
+		 ***************************/
 
-			/**
-			 * Check if string represents a valid path (most start with '/')
-			 */
-			static void _assert_valid_path(char const *path)
-			{
-				if (!valid_path(path)) {
-					warning("malformed path '", path, "'");
-					throw Lookup_failed();
-				}
-			}
+		File_handle file(Dir_handle dir_handle, Name const &name,
+			             Mode mode, bool create)
+		{
+			if (!valid_filename(name.string()))
+				throw Invalid_name();
 
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Session_component(Genode::Env       &env,
-			                  Genode::Allocator &heap,
-			                  size_t             tx_buf_size,
-			                  Directory         &root,
-			                  bool               writable)
-			:
-				Session_rpc_object(env.ram().alloc(tx_buf_size),
-				                   env.rm(), env.ep().rpc_ep()),
-				_env(env), _heap(heap), _root(root), _writable(writable),
-				_process_packet_dispatcher(env.ep(), *this,
-				                           &Session_component::_process_packets)
-			{
-				/*
-				 * Register '_process_packets' dispatch function as signal
-				 * handler for packet-avail and ready-to-ack signals.
-				 */
-				_tx.sigh_packet_avail(_process_packet_dispatcher);
-				_tx.sigh_ready_to_ack(_process_packet_dispatcher);
-			}
-
-			/**
-			 * Destructor
-			 */
-			~Session_component()
-			{
-				Dataspace_capability ds = tx_sink()->dataspace();
-				_env.ram().free(static_cap_cast<Ram_dataspace>(ds));
-			}
-
-			/***************************
-			 ** File_system interface **
-			 ***************************/
-
-			File_handle file(Dir_handle dir_handle, Name const &name,
-			                 Mode mode, bool create)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
-
-				if (!valid_filename(name.string()))
-					throw Invalid_name();
+			auto file_fn = [&] (Open_node &open_node) {
 
 				using namespace Ffat;
 
@@ -237,7 +243,7 @@ namespace File_system {
 				Absolute_path absolute_path(_root.name());
 
 				try {
-					absolute_path.append(_handle_registry.lookup(dir_handle)->name());
+					absolute_path.append(open_node.node().name());
 					absolute_path.append("/");
 					absolute_path.append(name.string());
 				} catch (Path_base::Path_too_long) {
@@ -250,7 +256,11 @@ namespace File_system {
 					case FR_OK: {
 						File *file_node = new (&_heap) File(absolute_path.base());
 						file_node->ffat_fil(ffat_fil);
-						return _handle_registry.alloc(file_node);
+
+						Open_node *open_file =
+							new (_heap) Open_node(*file_node, _open_node_registry);
+
+						return open_file->id();
 					}
 					case FR_NO_FILE:
 					case FR_NO_PATH:
@@ -283,120 +293,87 @@ namespace File_system {
 						error("f_open() returned an unexpected error code");
 						throw Lookup_failed();
 				}
-			}
+			};
 
-			Symlink_handle symlink(Dir_handle, Name const &name, bool create)
-			{
-				/* not supported */
+			try {
+				return File_handle {
+					_open_node_registry.apply<Open_node>(dir_handle, file_fn).value
+				};
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
+		}
+
+		Symlink_handle symlink(Dir_handle, Name const &name, bool create)
+		{
+			/* not supported */
+			throw Permission_denied();
+		}
+
+		Dir_handle dir(Path const &path, bool create)
+		{
+			if (create && !_writable)
 				throw Permission_denied();
+
+			_assert_valid_path(path.string());
+
+			/*
+			 *  The 'Directory' constructor removes trailing slashes,
+			 *  except for "/"
+			 */
+			Directory *dir_node = new (&_heap) Directory(path.string());
+
+			using namespace Ffat;
+
+			Absolute_path absolute_path(_root.name());
+
+			try {
+				absolute_path.append(dir_node->name());
+				absolute_path.remove_trailing('/');
+			} catch (Path_base::Path_too_long) {
+				throw Name_too_long();
 			}
 
-			Dir_handle dir(Path const &path, bool create)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+			if (create) {
 
-				if (create && !_writable)
-					throw Permission_denied();
+				if (is_root(dir_node->name()))
+					throw Node_already_exists();
 
-				_assert_valid_path(path.string());
-
-				/*
-				 *  The 'Directory' constructor removes trailing slashes,
-				 *  except for "/"
-				 */
-				Directory *dir_node = new (&_heap) Directory(path.string());
-
-				using namespace Ffat;
-
-				Absolute_path absolute_path(_root.name());
+				FRESULT res = f_mkdir(absolute_path.base());
 
 				try {
-					absolute_path.append(dir_node->name());
-					absolute_path.remove_trailing('/');
-				} catch (Path_base::Path_too_long) {
-					throw Name_too_long();
-				}
-
-				if (create) {
-
-					if (is_root(dir_node->name()))
-						throw Node_already_exists();
-
-					FRESULT res = f_mkdir(absolute_path.base());
-
-					try {
-						switch(res) {
-							case FR_OK:
-								break;
-							case FR_NO_PATH:
-								throw Lookup_failed();
-							case FR_INVALID_NAME:
-								throw Name_too_long();
-							case FR_INVALID_DRIVE:
-								throw Name_too_long();
-							case FR_DENIED:
-							case FR_WRITE_PROTECTED:
-								throw Permission_denied();
-							case FR_EXIST:
-								throw Node_already_exists();
-							case FR_NOT_READY:
-								error("f_mkdir() failed with error code FR_NOT_READY");
-								throw Lookup_failed();
-							case FR_DISK_ERR:
-								error("f_mkdir() failed with error code FR_DISK_ERR");
-								throw Lookup_failed();
-							case FR_INT_ERR:
-								error("f_mkdir() failed with error code FR_INT_ERR");
-								throw Lookup_failed();
-							case FR_NOT_ENABLED:
-								error("f_mkdir() failed with error code FR_NOT_ENABLED");
-								throw Lookup_failed();
-							case FR_NO_FILESYSTEM:
-								error("f_mkdir() failed with error code FR_NO_FILESYSTEM");
-								throw Lookup_failed();
-							default:
-								/* not supposed to occur according to the libffat documentation */
-								error("f_mkdir() returned an unexpected error code");
-								throw Lookup_failed();
-						}
-					} catch (Exception e) {
-						destroy(&_heap, dir_node);
-						throw e;
-					}
-				}
-
-				Ffat::DIR ffat_dir;
-				FRESULT f_opendir_res = f_opendir(&ffat_dir, absolute_path.base());
-
-				try {
-					switch(f_opendir_res) {
+					switch(res) {
 						case FR_OK:
-							dir_node->ffat_dir(ffat_dir);
-							return _handle_registry.alloc(dir_node);
+							break;
 						case FR_NO_PATH:
 							throw Lookup_failed();
 						case FR_INVALID_NAME:
 							throw Name_too_long();
 						case FR_INVALID_DRIVE:
 							throw Name_too_long();
+						case FR_DENIED:
+						case FR_WRITE_PROTECTED:
+							throw Permission_denied();
+						case FR_EXIST:
+							throw Node_already_exists();
 						case FR_NOT_READY:
-							error("f_opendir() failed with error code FR_NOT_READY");
+							error("f_mkdir() failed with error code FR_NOT_READY");
 							throw Lookup_failed();
 						case FR_DISK_ERR:
-							error("f_opendir() failed with error code FR_DISK_ERR");
+							error("f_mkdir() failed with error code FR_DISK_ERR");
 							throw Lookup_failed();
 						case FR_INT_ERR:
-							error("f_opendir() failed with error code FR_INT_ERR");
+							error("f_mkdir() failed with error code FR_INT_ERR");
 							throw Lookup_failed();
 						case FR_NOT_ENABLED:
-							error("f_opendir() failed with error code FR_NOT_ENABLED");
+							error("f_mkdir() failed with error code FR_NOT_ENABLED");
 							throw Lookup_failed();
 						case FR_NO_FILESYSTEM:
-							error("f_opendir() failed with error code FR_NO_FILESYSTEM");
+							error("f_mkdir() failed with error code FR_NO_FILESYSTEM");
 							throw Lookup_failed();
 						default:
 							/* not supposed to occur according to the libffat documentation */
-							error("f_opendir() returned an unexpected error code");
+							error("f_mkdir() returned an unexpected error code");
 							throw Lookup_failed();
 					}
 				} catch (Exception e) {
@@ -405,145 +382,158 @@ namespace File_system {
 				}
 			}
 
-			Node_handle node(Path const &path)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+			Ffat::DIR ffat_dir;
+			FRESULT f_opendir_res = f_opendir(&ffat_dir, absolute_path.base());
 
-				if (!valid_path(path.string()))
-					throw Lookup_failed();
+			try {
+				switch(f_opendir_res) {
+					case FR_OK: {
+						dir_node->ffat_dir(ffat_dir);
 
-				Absolute_path absolute_path(_root.name());
+						Open_node *open_dir =
+							new (_heap) Open_node(*dir_node, _open_node_registry);
 
-				try {
-					absolute_path.append(path.string());
-					absolute_path.remove_trailing('/');
-				} catch (Path_base::Path_too_long) {
-					throw Lookup_failed();
-				}
-
-				Node *node = new (&_heap) Node(absolute_path.base());
-
-				/* f_stat() does not work for "/" */
-				if (!is_root(node->name())) {
-
-					using namespace Ffat;
-
-					FILINFO file_info;
-					/* the long file name is not used in this function */
-					file_info.lfname = 0;
-					file_info.lfsize = 0;
-
-					FRESULT res = f_stat(node->name(), &file_info);
-
-					try {
-						switch(res) {
-							case FR_OK:
-								break;
-							case FR_NO_FILE:
-							case FR_NO_PATH:
-								throw Lookup_failed();
-							case FR_INVALID_NAME:
-							case FR_INVALID_DRIVE:
-								throw Lookup_failed();
-							case FR_DISK_ERR:
-								error("f_stat() failed with error code FR_DISK_ERR");
-								throw Lookup_failed();
-							case FR_INT_ERR:
-								error("f_stat() failed with error code FR_INT_ERR");
-								throw Lookup_failed();
-							case FR_NOT_READY:
-								error("f_stat() failed with error code FR_NOT_READY");
-								throw Lookup_failed();
-							case FR_NOT_ENABLED:
-								error("f_stat() failed with error code FR_NOT_ENABLED");
-								throw Lookup_failed();
-							case FR_NO_FILESYSTEM:
-								error("f_stat() failed with error code FR_NO_FILESYSTEM");
-								throw Lookup_failed();
-							default:
-								/* not supposed to occur according to the libffat documentation */
-								error("f_stat() returned an unexpected error code");
-								throw Lookup_failed();
-						}
-					} catch (Exception e) {
-						destroy(&_heap, node);
-						throw e;
+						return Dir_handle { open_dir->id().value };
 					}
+					case FR_NO_PATH:
+						throw Lookup_failed();
+					case FR_INVALID_NAME:
+						throw Name_too_long();
+					case FR_INVALID_DRIVE:
+						throw Name_too_long();
+					case FR_NOT_READY:
+						error("f_opendir() failed with error code FR_NOT_READY");
+						throw Lookup_failed();
+					case FR_DISK_ERR:
+						error("f_opendir() failed with error code FR_DISK_ERR");
+						throw Lookup_failed();
+					case FR_INT_ERR:
+						error("f_opendir() failed with error code FR_INT_ERR");
+						throw Lookup_failed();
+					case FR_NOT_ENABLED:
+						error("f_opendir() failed with error code FR_NOT_ENABLED");
+						throw Lookup_failed();
+					case FR_NO_FILESYSTEM:
+						error("f_opendir() failed with error code FR_NO_FILESYSTEM");
+						throw Lookup_failed();
+					default:
+						/* not supposed to occur according to the libffat documentation */
+						error("f_opendir() returned an unexpected error code");
+						throw Lookup_failed();
 				}
+			} catch (Exception e) {
+				destroy(&_heap, dir_node);
+				throw e;
+			}
+		}
 
-				return _handle_registry.alloc(node);
+		Node_handle node(Path const &path)
+		{
+			if (!valid_path(path.string()))
+				throw Lookup_failed();
+
+			Absolute_path absolute_path(_root.name());
+
+			try {
+				absolute_path.append(path.string());
+				absolute_path.remove_trailing('/');
+			} catch (Path_base::Path_too_long) {
+				throw Lookup_failed();
 			}
 
-			void close(Node_handle handle)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+			Node *node = new (&_heap) Node(absolute_path.base());
 
-				Node *node;
+			/* f_stat() does not work for "/" */
+			if (!is_root(node->name())) {
+
+				using namespace Ffat;
+
+				FILINFO file_info;
+				/* the long file name is not used in this function */
+				file_info.lfname = 0;
+				file_info.lfsize = 0;
+
+				FRESULT res = f_stat(node->name(), &file_info);
 
 				try {
-					node = _handle_registry.lookup(handle);
-				} catch(Invalid_handle) {
-					error("close() called with invalid handle");
-					return;
-				}
-
-				/* free the handle */
-				_handle_registry.free(handle);
-
-				File *file = dynamic_cast<File *>(node);
-				if (file) {
-					using namespace Ffat;
-
-					FRESULT res = f_close(file->ffat_fil());
-
-					/* free the node */
-					destroy(&_heap, file);
-
 					switch(res) {
 						case FR_OK:
-							return;
-						case FR_INVALID_OBJECT:
-							error("f_close() failed with error code FR_INVALID_OBJECT");
-							return;
+							break;
+						case FR_NO_FILE:
+						case FR_NO_PATH:
+							throw Lookup_failed();
+						case FR_INVALID_NAME:
+						case FR_INVALID_DRIVE:
+							throw Lookup_failed();
 						case FR_DISK_ERR:
-							error("f_close() failed with error code FR_DISK_ERR");
-							return;
+							error("f_stat() failed with error code FR_DISK_ERR");
+							throw Lookup_failed();
 						case FR_INT_ERR:
-							error("f_close() failed with error code FR_INT_ERR");
-							return;
+							error("f_stat() failed with error code FR_INT_ERR");
+							throw Lookup_failed();
 						case FR_NOT_READY:
-							error("f_close() failed with error code FR_NOT_READY");
-							return;
+							error("f_stat() failed with error code FR_NOT_READY");
+							throw Lookup_failed();
+						case FR_NOT_ENABLED:
+							error("f_stat() failed with error code FR_NOT_ENABLED");
+							throw Lookup_failed();
+						case FR_NO_FILESYSTEM:
+							error("f_stat() failed with error code FR_NO_FILESYSTEM");
+							throw Lookup_failed();
 						default:
 							/* not supposed to occur according to the libffat documentation */
-							error("f_close() returned an unexpected error code");
-							return;
+							error("f_stat() returned an unexpected error code");
+							throw Lookup_failed();
 					}
+				} catch (Exception e) {
+					destroy(&_heap, node);
+					throw e;
 				}
 			}
 
-			Status status(Node_handle node_handle)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+			Open_node *open_node =
+				new (_heap) Open_node(*node, _open_node_registry);
+
+			return open_node->id();
+		}
+
+		void close(Node_handle handle)
+		{
+			auto close_fn = [&] (Open_node &open_node) {
+				Node &node = open_node.node();
+				destroy(_heap, &open_node);
+				destroy(_heap, &node);
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(handle, close_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
+		}
+
+		Status status(Node_handle node_handle)
+		{
+			auto status_fn = [&] (Open_node &open_node) {
 
 				Status status;
 				status.inode = 1;
 				status.size  = 0;
 				status.mode  = 0;
 
-				Node *node = _handle_registry.lookup(node_handle);
+				Node &node = open_node.node();
 
 				using namespace Ffat;
 
 				/* f_stat() does not work for the '/' directory */
-				if (!is_root(node->name())) {
+				if (!is_root(node.name())) {
 
 					FILINFO ffat_file_info;
 					/* the long file name is not used in this function */
 					ffat_file_info.lfname = 0;
 					ffat_file_info.lfsize = 0;
 
-					FRESULT res = f_stat(node->name(), &ffat_file_info);
+					FRESULT res = f_stat(node.name(), &ffat_file_info);
 
 					switch(res) {
 						case FR_OK:
@@ -597,7 +587,7 @@ namespace File_system {
 					/* determine the number of directory entries */
 
 					Ffat::DIR ffat_dir;
-					FRESULT f_opendir_res = f_opendir(&ffat_dir, node->name());
+					FRESULT f_opendir_res = f_opendir(&ffat_dir, node.name());
 
 					if (f_opendir_res != FR_OK)
 						return status;
@@ -619,26 +609,33 @@ namespace File_system {
 				}
 
 				return status;
+			};
+
+			try {
+				return _open_node_registry.apply<Open_node>(node_handle, status_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
 			}
+		}
 
-			void control(Node_handle, Control) { }
+		void control(Node_handle, Control) { }
 
-			void unlink(Dir_handle dir_handle, Name const &name)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+		void unlink(Dir_handle dir_handle, Name const &name)
+		{
+			if (!valid_filename(name.string()))
+				throw Invalid_name();
 
-				if (!valid_filename(name.string()))
-					throw Invalid_name();
+			if (!_writable)
+				throw Permission_denied();
 
-				if (!_writable)
-					throw Permission_denied();
+			auto unlink_fn = [&] (Open_node &open_node) {
 
 				using namespace Ffat;
 
 				Absolute_path absolute_path(_root.name());
 
 				try {
-					absolute_path.append(_handle_registry.lookup(dir_handle)->name());
+					absolute_path.append(open_node.node().name());
 					absolute_path.append("/");
 					absolute_path.append(name.string());
 				} catch (Path_base::Path_too_long) {
@@ -679,308 +676,278 @@ namespace File_system {
 						error("f_unlink() returned an unexpected error code");
 						return;
 				}
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(dir_handle, unlink_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
 			}
+		}
 
-			void truncate(File_handle file_handle, file_size_t size)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+		void truncate(File_handle file_handle, file_size_t size)
+		{
+			if (!_writable)
+				throw Permission_denied();
 
-				if (!_writable)
-					throw Permission_denied();
+			auto truncate_fn = [&] (Open_node &open_node) {
+				open_node.node().truncate(size);
+			};
 
-				File *file = _handle_registry.lookup(file_handle);
-
-				using namespace Ffat;
-
-				/* 'f_truncate()' truncates to the current seek pointer */
-
-				FRESULT res = f_lseek(file->ffat_fil(), size);
-
-				switch(res) {
-					case FR_OK:
-						/* according to the FatFs documentation this can happen */
-						if (f_tell(file->ffat_fil()) != size) {
-							error("f_lseek() could not seek to offset ", size);
-							return;
-						}
-						break;
-					case FR_DISK_ERR:
-						error("f_lseek() failed with error code FR_DISK_ERR");
-						return;
-					case FR_INT_ERR:
-						error("f_lseek() failed with error code FR_INT_ERR");
-						return;
-					case FR_NOT_READY:
-						error("f_lseek() failed with error code FR_NOT_READY");
-						return;
-					case FR_INVALID_OBJECT:
-						error("f_lseek() failed with error code FR_INVALID_OBJECT");
-						throw Invalid_handle();
-					default:
-						/* not supposed to occur according to the libffat documentation */
-						error("f_lseek() returned an unexpected error code");
-						return;
-				}
-
-				res = f_truncate(file->ffat_fil());
-
-				switch(res) {
-					case FR_OK:
-						return;
-					case FR_INVALID_OBJECT:
-						error("f_truncate() failed with error code FR_INVALID_OBJECT");
-						throw Invalid_handle();
-					case FR_DISK_ERR:
-						error("f_truncate() failed with error code FR_DISK_ERR");
-						return;
-					case FR_INT_ERR:
-						error("f_truncate() failed with error code FR_INT_ERR");
-						return;
-					case FR_NOT_READY:
-						error("f_truncate() failed with error code FR_NOT_READY");
-						return;
-					case FR_TIMEOUT:
-						error("f_truncate() failed with error code FR_TIMEOUT");
-						return;
-					default:
-						/* not supposed to occur according to the libffat documentation */
-						error("f_truncate() returned an unexpected error code");
-						return;
-				}
+			try {
+				_open_node_registry.apply<Open_node>(file_handle, truncate_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
 			}
+		}
 
-			void move(Dir_handle from_dir_handle, Name const &from_name,
-			          Dir_handle to_dir_handle,   Name const &to_name)
-			{
-				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
+		void move(Dir_handle from_dir_handle, Name const &from_name,
+			      Dir_handle to_dir_handle,   Name const &to_name)
+		{
+			if (!_writable)
+				throw Permission_denied();
 
-				if (!_writable)
-					throw Permission_denied();
+			if (!valid_filename(from_name.string()))
+				throw Lookup_failed();
 
-				if (!valid_filename(from_name.string()))
-					throw Lookup_failed();
+			if (!valid_filename(to_name.string()))
+				throw Invalid_name();
 
-				if (!valid_filename(to_name.string()))
-					throw Invalid_name();
+			auto move_fn = [&] (Open_node &open_from_dir_node) {
 
-				Absolute_path absolute_from_path(_root.name());
-				Absolute_path absolute_to_path(_root.name());
+				auto inner_move_fn = [&] (Open_node &open_to_dir_node) {
 
-				try {
-					absolute_from_path.append(_handle_registry.lookup(from_dir_handle)->name());
-					absolute_from_path.append("/");
-					absolute_from_path.append(from_name.string());
-					absolute_to_path.append(_handle_registry.lookup(to_dir_handle)->name());
-					absolute_to_path.append("/");
-					absolute_to_path.append(to_name.string());
-				} catch (Path_base::Path_too_long) {
-					throw Invalid_name();
-				}
+					Absolute_path absolute_from_path(_root.name());
+					Absolute_path absolute_to_path(_root.name());
 
-				using namespace Ffat;
-
-				FRESULT res = f_rename(absolute_from_path.base(), absolute_to_path.base());
-
-				switch(res) {
-					case FR_OK:
-						break;
-					case FR_NO_FILE:
-					case FR_NO_PATH:
-						throw Lookup_failed();
-					case FR_INVALID_NAME:
-					case FR_INVALID_DRIVE:
-						throw Invalid_name();
-					case FR_EXIST:
-						error("f_rename() failed with error code FR_EXIST");
-						throw Invalid_name();
-					case FR_DENIED:
-					case FR_WRITE_PROTECTED:
-						throw Permission_denied();
-					case FR_DISK_ERR:
-						error("f_rename() failed with error code FR_DISK_ERR");
-						throw Lookup_failed();
-					case FR_INT_ERR:
-						error("f_rename() failed with error code FR_INT_ERR");
-						throw Lookup_failed();
-					case FR_NOT_READY:
-						error("f_rename() failed with error code FR_NOT_READY");
-						throw Lookup_failed();
-					case FR_NOT_ENABLED:
-						error("f_rename() failed with error code FR_NOT_ENABLED");
-						throw Lookup_failed();
-					case FR_NO_FILESYSTEM:
-						error("f_rename() failed with error code FR_NO_FILESYSTEM");
-						throw Lookup_failed();
-					default:
-						/* not supposed to occur according to the libffat documentation */
-						error("f_rename() returned an unexpected error code");
-						throw Lookup_failed();
-				}
-			}
-
-			void sigh(Node_handle, Genode::Signal_context_capability)
-			{
-				error("File_system::Session::sigh not supported");
-			}
-	};
-
-
-	class Root : public Root_component<Session_component>
-	{
-		private:
-
-			Genode::Env                   &_env;
-			Genode::Allocator             &_md_alloc;
-			Genode::Allocator             &_heap;
-			Genode::Attached_rom_dataspace _config { _env, "config" };
-			Directory                     &_root_dir;
-
-		protected:
-
-			Session_component *_create_session(const char *args)
-			{
-				/*
-				 * Determine client-specific policy defined implicitly by
-				 * the client's label.
-				 */
-				Directory *session_root_dir = 0;
-				bool writeable = false;
-
-				enum { ROOT_MAX_LEN = 256 };
-				char root[ROOT_MAX_LEN];
-				root[0] = 0;
-
-				Session_label const label = label_from_args(args);
-				try {
-					Session_policy policy(label, _config.xml());
-
-					/*
-					 * Determine directory that is used as root directory of
-					 * the session.
-					 */
 					try {
-						policy.attribute("root").value(root, sizeof(root));
-						if (is_root(root)) {
-							session_root_dir = &_root_dir;
-						} else {
-							/*
-							 * Make sure the root path is specified with a
-							 * leading path delimiter. For performing the
-							 * lookup, we skip the first character.
-							 */
-							if (root[0] != '/')
-								throw Lookup_failed();
-
-							/* Check if the root path exists */
-
-							using namespace Ffat;
-
-							FRESULT res = f_chdir(root);
-
-							switch(res) {
-								case FR_OK:
-									break;
-								case FR_NO_PATH:
-									throw Lookup_failed();
-								case FR_INVALID_NAME:
-								case FR_INVALID_DRIVE:
-									throw Lookup_failed();
-								case FR_NOT_READY:
-									error("f_chdir() failed with error code FR_NOT_READY");
-									throw Service_denied();
-								case FR_DISK_ERR:
-									error("f_chdir() failed with error code FR_DISK_ERR");
-									throw Service_denied();
-								case FR_INT_ERR:
-									error("f_chdir() failed with error code FR_INT_ERR");
-									throw Service_denied();
-								case FR_NOT_ENABLED:
-									error("f_chdir() failed with error code FR_NOT_ENABLED");
-									throw Service_denied();
-								case FR_NO_FILESYSTEM:
-									error("f_chdir() failed with error code FR_NO_FILESYSTEM");
-									throw Service_denied();
-								default:
-									/* not supposed to occur according to the libffat documentation */
-									error("f_chdir() returned an unexpected error code");
-									throw Service_denied();
-							}
-
-							session_root_dir = new (&_md_alloc) Directory(root);
-						}
-					}
-					catch (Xml_node::Nonexistent_attribute) {
-						error("missing \"root\" attribute in policy definition");
-						throw Service_denied();
-					}
-					catch (Lookup_failed) {
-						error("session root directory \"", Cstring(root), "\" does not exist");
-						throw Service_denied();
+						absolute_from_path.append(open_from_dir_node.node().name());
+						absolute_from_path.append("/");
+						absolute_from_path.append(from_name.string());
+						absolute_to_path.append(open_to_dir_node.node().name());
+						absolute_to_path.append("/");
+						absolute_to_path.append(to_name.string());
+					} catch (Path_base::Path_too_long) {
+						throw Invalid_name();
 					}
 
-					/*
-					 * Determine if write access is permitted for the session.
-					 */
-					writeable = policy.attribute_value("writeable", false);
-				}
-				catch (Session_policy::No_policy_defined) {
-					error("Invalid session request, no matching policy");
-					throw Service_denied();
-				}
+					using namespace Ffat;
 
-				size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-				size_t tx_buf_size =
-					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+					FRESULT res = f_rename(absolute_from_path.base(), absolute_to_path.base());
 
-				if (!tx_buf_size) {
-					error(label, " requested a session with a zero length transmission buffer");
-					throw Service_denied();
-				}
+					switch(res) {
+						case FR_OK:
+							break;
+						case FR_NO_FILE:
+						case FR_NO_PATH:
+							throw Lookup_failed();
+						case FR_INVALID_NAME:
+						case FR_INVALID_DRIVE:
+							throw Invalid_name();
+						case FR_EXIST:
+							error("f_rename() failed with error code FR_EXIST");
+							throw Invalid_name();
+						case FR_DENIED:
+						case FR_WRITE_PROTECTED:
+							throw Permission_denied();
+						case FR_DISK_ERR:
+							error("f_rename() failed with error code FR_DISK_ERR");
+							throw Lookup_failed();
+						case FR_INT_ERR:
+							error("f_rename() failed with error code FR_INT_ERR");
+							throw Lookup_failed();
+						case FR_NOT_READY:
+							error("f_rename() failed with error code FR_NOT_READY");
+							throw Lookup_failed();
+						case FR_NOT_ENABLED:
+							error("f_rename() failed with error code FR_NOT_ENABLED");
+							throw Lookup_failed();
+						case FR_NO_FILESYSTEM:
+							error("f_rename() failed with error code FR_NO_FILESYSTEM");
+							throw Lookup_failed();
+						default:
+							/* not supposed to occur according to the libffat documentation */
+							error("f_rename() returned an unexpected error code");
+							throw Lookup_failed();
+					}
+				};
 
-				/*
-				 * Check if donated ram quota suffices for session data,
-				 * and communication buffer.
-				 */
-				size_t session_size = sizeof(Session_component) + tx_buf_size;
-				if (max((size_t)4096, session_size) > ram_quota) {
-					error("insufficient 'ram_quota', got ", ram_quota, ", "
-					      "need ", session_size);
-					throw Insufficient_ram_quota();
+				try {
+					_open_node_registry.apply<Open_node>(to_dir_handle, inner_move_fn);
+				} catch (Id_space<File_system::Node>::Unknown_id const &) {
+					throw Invalid_handle();
 				}
-				return new (md_alloc())
-					Session_component(_env, _heap, tx_buf_size,
-					                  *session_root_dir, writeable);
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(from_dir_handle, move_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
 			}
+		}
 
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param env   reference to Genode environment
-			 * \param heap  meta-data allocator
-			 * \param root  normal root directory if root in policy starts
-			 *              at root
-			 */
-			Root(Genode::Env &env, Allocator &md_alloc, Genode::Allocator &heap,
-			     Directory &root)
-			:
-				Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
-				_env(env), _md_alloc(md_alloc), _heap(heap), _root_dir(root)
-			{ }
-	};
+		void sigh(Node_handle, Genode::Signal_context_capability)
+		{
+			error("File_system::Session::sigh not supported");
+		}
 };
 
 
-struct Main
+class Ffat_fs::Root : public Root_component<Session_component>
+{
+	private:
+
+		Genode::Env                   &_env;
+		Genode::Allocator             &_md_alloc;
+		Genode::Allocator             &_heap;
+		Genode::Attached_rom_dataspace _config { _env, "config" };
+		Directory                     &_root_dir;
+
+	protected:
+
+		Session_component *_create_session(const char *args)
+		{
+			/*
+			 * Determine client-specific policy defined implicitly by
+			 * the client's label.
+			 */
+			Directory *session_root_dir = 0;
+			bool writeable = false;
+
+			enum { ROOT_MAX_LEN = 256 };
+			char root[ROOT_MAX_LEN];
+			root[0] = 0;
+
+			Session_label const label = label_from_args(args);
+			try {
+				Session_policy policy(label, _config.xml());
+
+				/*
+				 * Determine directory that is used as root directory of
+				 * the session.
+				 */
+				try {
+					policy.attribute("root").value(root, sizeof(root));
+					if (is_root(root)) {
+						session_root_dir = &_root_dir;
+					} else {
+						/*
+						 * Make sure the root path is specified with a
+						 * leading path delimiter. For performing the
+						 * lookup, we skip the first character.
+						 */
+						if (root[0] != '/')
+							throw Lookup_failed();
+
+						/* Check if the root path exists */
+
+						using namespace Ffat;
+
+						FRESULT res = f_chdir(root);
+
+						switch(res) {
+							case FR_OK:
+								break;
+							case FR_NO_PATH:
+								throw Lookup_failed();
+							case FR_INVALID_NAME:
+							case FR_INVALID_DRIVE:
+								throw Lookup_failed();
+							case FR_NOT_READY:
+								error("f_chdir() failed with error code FR_NOT_READY");
+								throw Service_denied();
+							case FR_DISK_ERR:
+								error("f_chdir() failed with error code FR_DISK_ERR");
+								throw Service_denied();
+							case FR_INT_ERR:
+								error("f_chdir() failed with error code FR_INT_ERR");
+								throw Service_denied();
+							case FR_NOT_ENABLED:
+								error("f_chdir() failed with error code FR_NOT_ENABLED");
+								throw Service_denied();
+							case FR_NO_FILESYSTEM:
+								error("f_chdir() failed with error code FR_NO_FILESYSTEM");
+								throw Service_denied();
+							default:
+								/* not supposed to occur according to the libffat documentation */
+								error("f_chdir() returned an unexpected error code");
+								throw Service_denied();
+						}
+
+						session_root_dir = new (&_md_alloc) Directory(root);
+					}
+				}
+				catch (Xml_node::Nonexistent_attribute) {
+					error("missing \"root\" attribute in policy definition");
+					throw Service_denied();
+				}
+				catch (Lookup_failed) {
+					error("session root directory \"", Cstring(root), "\" does not exist");
+					throw Service_denied();
+				}
+
+				/*
+				 * Determine if write access is permitted for the session.
+				 */
+				writeable = policy.attribute_value("writeable", false);
+			}
+			catch (Session_policy::No_policy_defined) {
+				error("Invalid session request, no matching policy");
+				throw Service_denied();
+			}
+
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+			size_t tx_buf_size =
+				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+
+			if (!tx_buf_size) {
+				error(label, " requested a session with a zero length transmission buffer");
+				throw Service_denied();
+			}
+
+			/*
+			 * Check if donated ram quota suffices for session data,
+			 * and communication buffer.
+			 */
+			size_t session_size = sizeof(Session_component) + tx_buf_size;
+			if (max((size_t)4096, session_size) > ram_quota) {
+				error("insufficient 'ram_quota', got ", ram_quota, ", "
+					  "need ", session_size);
+				throw Insufficient_ram_quota();
+			}
+			return new (md_alloc())
+				Session_component(_env, _heap, tx_buf_size,
+					              *session_root_dir, writeable);
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param env   reference to Genode environment
+		 * \param heap  meta-data allocator
+		 * \param root  normal root directory if root in policy starts
+		 *              at root
+		 */
+		Root(Genode::Env &env, Allocator &md_alloc, Genode::Allocator &heap,
+			 Directory &root)
+		:
+			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
+			_env(env), _md_alloc(md_alloc), _heap(heap), _root_dir(root)
+		{ }
+};
+
+
+struct Ffat_fs::Main
 {
 	Genode::Env         &_env;
 	Genode::Heap         _heap        { _env.ram(), _env.rm() };
 	Genode::Sliced_heap  _sliced_heap { _env.ram(), _env.rm() };
 
-	File_system::Directory _root_dir { "/" };
-	File_system::Root      _root { _env, _sliced_heap, _heap, _root_dir };
+	Directory _root_dir { "/" };
+	Root      _root { _env, _sliced_heap, _heap, _root_dir };
 
 	Ffat::FATFS _fatfs;
 
@@ -1011,5 +978,5 @@ void Component::construct(Genode::Env &env)
 	/* XXX execute constructors of global statics */
 	env.exec_static_constructors();
 
-	static Main main(env);
+	static Ffat_fs::Main main(env);
 }

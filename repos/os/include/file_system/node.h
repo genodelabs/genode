@@ -4,6 +4,13 @@
  * \date   2012-04-11
  */
 
+/*
+ * Copyright (C) 2012-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #ifndef _FILE_SYSTEM__NODE_H_
 #define _FILE_SYSTEM__NODE_H_
 
@@ -19,7 +26,6 @@ namespace File_system {
 	{
 		private:
 
-			Genode::Lock           _lock;
 			Genode::List<Listener> _listeners;
 
 		public:
@@ -33,9 +39,6 @@ namespace File_system {
 				while (_listeners.first())
 					_listeners.remove(_listeners.first());
 			}
-
-			void lock()   { _lock.lock(); }
-			void unlock() { _lock.unlock(); }
 
 			void add_listener(Listener *listener)
 			{
@@ -58,19 +61,6 @@ namespace File_system {
 				for (Listener *curr = _listeners.first(); curr; curr = curr->next())
 					curr->mark_as_updated();
 			}
-	};
-
-
-	/**
-	 * Guard used for properly releasing node locks
-	 */
-	struct Node_lock_guard
-	{
-		Node_base *node;
-
-		Node_lock_guard(Node_base *node) : node(node) { node = node; }
-
-		~Node_lock_guard() { node->unlock(); }
 	};
 }
 

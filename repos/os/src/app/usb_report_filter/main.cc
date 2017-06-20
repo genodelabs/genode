@@ -58,7 +58,6 @@ class Usb_filter::Device_registry
 
 		Genode::Allocator_avl    _fs_packet_alloc { &_alloc };
 		File_system::Connection  _fs              { _env, _fs_packet_alloc, "usb_drv.config" };
-		File_system::File_handle _file;
 
 		struct Entry : public Genode::List<Entry>::Element
 		{
@@ -154,16 +153,18 @@ class Usb_filter::Device_registry
 		{
 			using namespace Genode;
 
+			Constructible<File_system::File_handle> file;
+
 			try {
 				File_system::Dir_handle root_dir = _fs.dir("/", false);
-				_file = _fs.file(root_dir, config_file, File_system::READ_WRITE, false);
+				file.construct(_fs.file(root_dir, config_file, File_system::READ_WRITE, false));
 			} catch (...) {
 				error("could not open '", config_file, "'");
 				return;
 			}
 
 			char old_file[1024];
-			size_t n = File_system::read(_fs, _file, old_file,
+			size_t n = File_system::read(_fs, *file, old_file,
 			                                   sizeof(old_file));
 			if (n == 0) {
 				error("could not read '", config_file, "'");
@@ -216,11 +217,11 @@ class Usb_filter::Device_registry
 			if (verbose)
 				log("new usb_drv configuration:\n", Cstring(new_file));
 
-			n = File_system::write(_fs, _file, new_file, xml.used());
+			n = File_system::write(_fs, *file, new_file, xml.used());
 			if (n == 0)
 				error("could not write '", config_file, "'");
 
-			_fs.close(_file);
+			_fs.close(*file);
 		}
 
 		Genode::Signal_handler<Device_registry> _devices_handler =

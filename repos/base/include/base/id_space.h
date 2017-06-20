@@ -188,7 +188,8 @@ class Genode::Id_space : public Noncopyable
 		 * \throw Unknown_id
 		 */
 		template <typename ARG, typename FUNC>
-		void apply(Id id, FUNC const &fn)
+		auto apply(Id id, FUNC const &fn)
+		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
 		{
 			T *obj = nullptr;
 			{
@@ -201,7 +202,7 @@ class Genode::Id_space : public Noncopyable
 					obj = &e->_obj;
 			}
 			if (obj)
-				fn(static_cast<ARG &>(*obj));
+				return fn(static_cast<ARG &>(*obj));
 			else
 				throw Unknown_id();
 		}

@@ -26,11 +26,11 @@
 #include "file.h"
 #include "symlink.h"
 
-namespace File_system {
+namespace Rump_fs {
 	class Directory;
 }
 
-class File_system::Directory : public Node
+class Rump_fs::Directory : public Node
 {
 	private:
 
@@ -106,14 +106,14 @@ class File_system::Directory : public Node
 			rump_sys_close(_fd);
 		}
 
-		int fd() const { return _fd; }
+		int fd() const override { return _fd; }
 
-		File * file(char const *name, Mode mode, bool create)
+		File * file(char const *name, Mode mode, bool create) override
 		{
 			return new (&_alloc) File(_fd, name, mode, create);
 		}
 
-		Symlink * symlink(char const *name, bool create)
+		Symlink * symlink(char const *name, bool create) override
 		{
 			return new (&_alloc) Symlink(_path.base(), name, create);
 		}
@@ -148,7 +148,7 @@ class File_system::Directory : public Node
 			return node;
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			if (len < sizeof(Directory_entry)) {
 				Genode::error("read buffer too small for directory entry");
@@ -222,10 +222,20 @@ class File_system::Directory : public Node
 			return sizeof(Directory_entry);
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* writing to directory nodes is not supported */
 			return 0;
+		}
+
+		Status status() override
+		{
+			Status s;
+			s.inode = inode();
+			s.size  = num_entries() * sizeof (Directory_entry);
+			s.mode  = File_system::Status::MODE_DIRECTORY;
+
+			return s;
 		}
 
 		size_t num_entries() const
@@ -247,7 +257,7 @@ class File_system::Directory : public Node
 			return count;
 		}
 
-		void unlink(char const *path)
+		void unlink(char const *path) override
 		{
 			Path node_path(path, _path.base());
 

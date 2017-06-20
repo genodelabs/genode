@@ -133,22 +133,22 @@ class Fs_log::Root_component :
 
 				Dir_handle   dir_handle = ensure_dir(_fs, dir_path.base());
 				Handle_guard dir_guard(_fs, dir_handle);
-				File_handle  handle;
 
+				Genode::Constructible<File_handle> handle;
 				try {
-					handle = _fs.file(dir_handle, file_name,
-					                  File_system::WRITE_ONLY, false);
+					handle.construct(_fs.file(dir_handle, file_name,
+					                 File_system::WRITE_ONLY, false));
 
 					/* don't truncate at every new child session */
 					if (truncate && (strcmp(label_prefix, "") == 0))
-						_fs.truncate(handle, 0);
+						_fs.truncate(*handle, 0);
 				}
 				catch (File_system::Lookup_failed) {
-					handle = _fs.file(dir_handle, file_name,
-					                  File_system::WRITE_ONLY, true);
+					handle.construct(_fs.file(dir_handle, file_name,
+					                 File_system::WRITE_ONLY, true));
 				}
 
-				return new (md_alloc()) Session_component(_fs, handle, label_prefix);
+				return new (md_alloc()) Session_component(_fs, *handle, label_prefix);
 			}
 			catch (Permission_denied) {
 				errstr = "permission denied"; }

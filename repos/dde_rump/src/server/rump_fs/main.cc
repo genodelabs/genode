@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <file_system/node_handle_registry.h>
+#include <file_system/open_node.h>
 #include <file_system_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
 #include <timer_session/connection.h>
@@ -30,20 +30,26 @@
 #include "file_system.h"
 #include "directory.h"
 
-namespace File_system {
+namespace Rump_fs {
+
+	using File_system::Packet_descriptor;
+	using File_system::Path;
+
 	struct Main;
 	struct Root;
 	struct Session_component;
 }
 
-class File_system::Session_component : public Session_rpc_object
+class Rump_fs::Session_component : public Session_rpc_object
 {
 	private:
 
-		Allocator            &_md_alloc;
-		Directory            &_root;
-		Node_handle_registry  _handle_registry;
-		bool                  _writable;
+		typedef File_system::Open_node<Node> Open_node;
+
+		Allocator                   &_md_alloc;
+		Directory                   &_root;
+		Id_space<File_system::Node>  _open_node_registry;
+		bool                         _writable;
 
 		Signal_handler<Session_component> _process_packet_handler;
 
@@ -57,7 +63,7 @@ class File_system::Session_component : public Session_rpc_object
 		 *
 		 * \return true on success, false on failure
 		 */
-		void _process_packet_op(Packet_descriptor &packet, Node &node)
+		void _process_packet_op(Packet_descriptor &packet, Open_node &open_node)
 		{
 			void     * const content = tx_sink()->packet_content(packet);
 			size_t     const length  = packet.length();
@@ -69,18 +75,18 @@ class File_system::Session_component : public Session_rpc_object
 
 			case Packet_descriptor::READ:
 				if (content && (packet.length() <= packet.size()))
-					res_length = node.read((char *)content, length, packet.position());
+					res_length = open_node.node().read((char *)content, length, packet.position());
 				break;
 
 			case Packet_descriptor::WRITE:
 				if (content && (packet.length() <= packet.size()))
-					res_length = node.write((char const *)content, length, packet.position());
+					res_length = open_node.node().write((char const *)content, length, packet.position());
 				break;
 
 			case Packet_descriptor::CONTENT_CHANGED:
-				_handle_registry.register_notify(*tx_sink(), packet.handle());
+				open_node.register_notify(*tx_sink());
 				/* notify_listeners may bounce the packet back*/
-				node.notify_listeners();
+				open_node.node().notify_listeners();
 				/* otherwise defer acknowledgement of this packet */
 				return;
 
@@ -101,12 +107,16 @@ class File_system::Session_component : public Session_rpc_object
 			/* assume failure by default */
 			packet.succeeded(false);
 
-			try {
-				Node *node = _handle_registry.lookup(packet.handle());
+			auto process_packet_fn = [&] (Open_node &open_node) {
+				_process_packet_op(packet, open_node);
+			};
 
-				_process_packet_op(packet, *node);
+			try {
+				_open_node_registry.apply<Open_node>(packet.handle(), process_packet_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				Genode::error("Invalid_handle");
+				tx_sink()->acknowledge_packet(packet);
 			}
-			catch (Invalid_handle) { Genode::error("Invalid_handle"); }
 		}
 
 		/**
@@ -189,14 +199,29 @@ class File_system::Session_component : public Session_rpc_object
 			if (!valid_name(name.string()))
 				throw Invalid_name();
 
-			Directory *dir = _handle_registry.lookup(dir_handle);
+			auto file_fn = [&] (Open_node &open_node) {
 
-			if (!_writable)
-				if (create || (mode != STAT_ONLY && mode != READ_ONLY))
-					throw Permission_denied();
+				Node &dir = open_node.node();
 
-			File *file = dir->file(name.string(), mode, create);
-			return _handle_registry.alloc(file);
+				if (!_writable)
+					if (create || (mode != STAT_ONLY && mode != READ_ONLY))
+						throw Permission_denied();
+
+				File *file = dir.file(name.string(), mode, create);
+
+				Open_node *open_file =
+					new (_md_alloc) Open_node(*file, _open_node_registry);
+
+				return open_file->id();
+			};
+
+			try {
+				return File_handle {
+					_open_node_registry.apply<Open_node>(dir_handle, file_fn).value
+				};
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
@@ -207,13 +232,28 @@ class File_system::Session_component : public Session_rpc_object
 			if (!valid_name(name.string()))
 				throw Invalid_name();
 
-			Directory *dir = _handle_registry.lookup(dir_handle);
+			auto symlink_fn = [&] (Open_node &open_node) {
 
-			if (create && !_writable)
-				throw Permission_denied();
+				Node &dir = open_node.node();
 
-			Symlink *link = dir->symlink(name.string(), create);
-			return  _handle_registry.alloc(link);
+				if (create && !_writable)
+					throw Permission_denied();
+
+				Symlink *link = dir.symlink(name.string(), create);
+
+				Open_node *open_symlink =
+					new (_md_alloc) Open_node(*link, _open_node_registry);
+
+				return open_symlink->id();
+			};
+
+			try {
+				return Symlink_handle {
+					_open_node_registry.apply<Open_node>(dir_handle, symlink_fn).value
+				};
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 
 		Dir_handle dir(Path const &path, bool create)
@@ -231,7 +271,11 @@ class File_system::Session_component : public Session_rpc_object
 				throw Name_too_long();
 
 			Directory *dir = _root.subdir(path_str, create);
-			return _handle_registry.alloc(dir);
+
+			Open_node *open_dir =
+				new (_md_alloc) Open_node(*dir, _open_node_registry);
+
+			return Dir_handle { open_dir->id().value };
 		}
 
 		Node_handle node(Path const &path)
@@ -240,55 +284,39 @@ class File_system::Session_component : public Session_rpc_object
 
 			_assert_valid_path(path_str);
 			Node *node = _root.node(path_str + 1);
-			Node_handle h =  _handle_registry.alloc(node);
-			return h;
+
+			Open_node *open_node =
+				new (_md_alloc) Open_node(*node, _open_node_registry);
+
+			return open_node->id();
 		}
 
 		void close(Node_handle handle)
 		{
-			Node *node = 0;
-			
-			try {
-				node = _handle_registry.lookup(handle);
-			} catch (Invalid_handle)  { return; }
+			auto close_fn = [&] (Open_node &open_node) {
+				Node &node = open_node.node();
+				destroy(_md_alloc, &open_node);
+				destroy(_md_alloc, &node);
+			};
 
-			_handle_registry.free(handle);
-			/* destruct node */
-			if (node)
-				destroy(&_md_alloc, node);
+			try {
+				_open_node_registry.apply<Open_node>(handle, close_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 
 		Status status(Node_handle node_handle)
 		{
-			Node *node = _handle_registry.lookup(node_handle);
-			Status s;
-			s.inode = node->inode();
-			s.size  = 0;
-			s.mode  = 0;
+			auto status_fn = [&] (Open_node &open_node) {
+				return open_node.node().status();
+			};
 
-
-			File *file = dynamic_cast<File *>(node);
-			if (file) {
-				s.size = file->length();
-				s.mode = File_system::Status::MODE_FILE;
-				return s;
+			try {
+				return _open_node_registry.apply<Open_node>(node_handle, status_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
 			}
-
-			Directory *dir = dynamic_cast<Directory *>(node);
-			if (dir) {
-				s.size = dir->num_entries()*sizeof(Directory_entry);
-				s.mode = File_system::Status::MODE_DIRECTORY;
-				return s;
-			}
-
-			Symlink *link = dynamic_cast<Symlink *>(node);
-			if (link) {
-				s.size = link->length();
-				s.mode = File_system::Status::MODE_SYMLINK;
-				return s;
-			}
-
-			return Status();
 		}
 
 		void control(Node_handle, Control) override { }
@@ -301,8 +329,16 @@ class File_system::Session_component : public Session_rpc_object
 			if (!_writable)
 				throw Permission_denied();
 
-			Directory *dir = _handle_registry.lookup(dir_handle);
-			dir->unlink(name.string());
+			auto unlink_fn = [&] (Open_node &open_node) {
+				Node &dir = open_node.node();
+				dir.unlink(name.string());
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(dir_handle, unlink_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 
 		void truncate(File_handle file_handle, file_size_t size)
@@ -310,8 +346,15 @@ class File_system::Session_component : public Session_rpc_object
 			if (!_writable)
 				throw Permission_denied();
 
-			File *file = _handle_registry.lookup(file_handle);
-			file->truncate(size);
+			auto truncate_fn = [&] (Open_node &open_node) {
+				open_node.node().truncate(size);
+			};
+
+			try {
+				_open_node_registry.apply<Open_node>(file_handle, truncate_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 
 		void move(Dir_handle from_dir_handle, Name const &from_name,
@@ -320,41 +363,59 @@ class File_system::Session_component : public Session_rpc_object
 			if (!_writable)
 				throw Permission_denied();
 
-			char const *from_str = from_name.string();
-			char const   *to_str =   to_name.string();
+			auto move_fn = [&] (Open_node &open_from_dir_node) {
 
-			if (!(valid_name(from_str) && valid_name(to_str)))
-				throw Lookup_failed();
+				auto inner_move_fn = [&] (Open_node &open_to_dir_node) {
 
-			Directory *from_dir = _handle_registry.lookup(from_dir_handle);
-			Directory   *to_dir = _handle_registry.lookup(  to_dir_handle);
+					Node &from_dir = open_from_dir_node.node();
+					Node &to_dir = open_to_dir_node.node();
 
-			if (rump_sys_renameat(from_dir->fd(), from_str,
-			                        to_dir->fd(),   to_str) == 0) {
-				from_dir->mark_as_updated();
-				from_dir->notify_listeners();
-				if (!_handle_registry.refer_to_same_node(from_dir_handle,
-				                                         to_dir_handle)) {
-					to_dir->mark_as_updated();
-					to_dir->notify_listeners();
+					char const *from_str = from_name.string();
+					char const   *to_str =   to_name.string();
+
+					if (!(valid_name(from_str) && valid_name(to_str)))
+						throw Lookup_failed();
+
+					if (rump_sys_renameat(from_dir.fd(), from_str,
+			                        		to_dir.fd(),   to_str) == 0) {
+						from_dir.mark_as_updated();
+						from_dir.notify_listeners();
+						if (&from_dir != &to_dir) {
+							to_dir.mark_as_updated();
+							to_dir.notify_listeners();
+						}
+
+						return;
+					}
+
+					switch (errno) {
+					case ENOTEMPTY: throw Node_already_exists();
+					case ENOENT: throw Lookup_failed();
+					}
+
+					Genode::warning("renameat produced unhandled error ", errno, ", ", from_str, " -> ", to_str);
+					throw Permission_denied();
+
+				};
+
+				try {
+					_open_node_registry.apply<Open_node>(to_dir_handle, inner_move_fn);
+				} catch (Id_space<File_system::Node>::Unknown_id const &) {
+					throw Invalid_handle();
 				}
+			};
 
-				return;
+			try {
+				_open_node_registry.apply<Open_node>(from_dir_handle, move_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
 			}
-
-			switch (errno) {
-			case ENOTEMPTY: throw Node_already_exists();
-			case ENOENT: throw Lookup_failed();
-			}
-
-			Genode::warning("renameat produced unhandled error ", errno, ", ", from_str, " -> ", to_str);
-			throw Permission_denied();
 		}
 
 		void sync(Node_handle) override { rump_sys_sync(); }
 };
 
-class File_system::Root : public Root_component<Session_component>
+class Rump_fs::Root : public Root_component<Session_component>
 {
 	private:
 
@@ -453,7 +514,7 @@ class File_system::Root : public Root_component<Session_component>
 };
 
 
-struct File_system::Main
+struct Rump_fs::Main
 {
 	Genode::Env &env;
 
@@ -516,5 +577,5 @@ void Component::construct(Genode::Env &env)
 	/* XXX execute constructors of global statics (uses shared objects) */
 	env.exec_static_constructors();
 
-	static File_system::Main inst(env);
+	static Rump_fs::Main inst(env);
 }

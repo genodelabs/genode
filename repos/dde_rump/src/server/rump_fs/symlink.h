@@ -20,11 +20,11 @@
 
 #include "node.h"
 
-namespace File_system {
+namespace Rump_fs {
 	class Symlink;
 }
 
-class File_system::Symlink : public Node
+class Rump_fs::Symlink : public Node
 {
 	private:
 
@@ -47,7 +47,7 @@ class File_system::Symlink : public Node
 			Node::name(basename(path));
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* Ideal symlink operations are atomic. */
 			if (!_create || seek_offset)
@@ -60,10 +60,20 @@ class File_system::Symlink : public Node
 			return ret == -1 ? 0 : ret;
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			int ret = rump_sys_readlink(_path.base(), dst, len);
 			return ret == -1 ? 0 : ret;
+		}
+
+		Status status() override
+		{
+			Status s;
+			s.inode = inode();
+			s.size  = length();
+			s.mode  = File_system::Status::MODE_SYMLINK;
+
+			return s;
 		}
 
 		file_size_t length()

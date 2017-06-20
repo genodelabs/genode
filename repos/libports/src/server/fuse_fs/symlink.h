@@ -6,6 +6,13 @@
  * \date   2013-11-26
  */
 
+/*
+ * Copyright (C) 2013-2017 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #ifndef _SYMLINK_H_
 #define _SYMLINK_H_
 
@@ -13,12 +20,12 @@
 #include <node.h>
 
 
-namespace File_system {
+namespace Fuse_fs {
 	class Symlink;
 }
 
 
-class File_system::Symlink : public Node
+class Fuse_fs::Symlink : public Node
 {
 	private:
 
@@ -45,7 +52,7 @@ class File_system::Symlink : public Node
 			_path(name, parent->name())
 		{ }
 
-		Status status()
+		Status status() override
 		{
 			struct stat s;
 			int res = Fuse::fuse()->op.getattr(_path.base(), &s);
@@ -59,7 +66,7 @@ class File_system::Symlink : public Node
 			return status;
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			int res = Fuse::fuse()->op.readlink(_path.base(), dst, len);
 			if (res != 0)
@@ -68,7 +75,7 @@ class File_system::Symlink : public Node
 			return Genode::strlen(dst);
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset)
+		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
 			/* Ideal symlink operations are atomic. */
 			if (seek_offset) return 0;

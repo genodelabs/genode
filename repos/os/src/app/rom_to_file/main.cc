@@ -122,24 +122,24 @@ void Rom_to_file::Main::_handle_update()
 			try {
 				Dir_handle   dir_handle = ensure_dir(_fs, dir_path);
 				Handle_guard dir_guard(_fs, dir_handle);
-				File_handle handle;
+				Constructible<File_handle> handle;
 
 				try {
-					handle = _fs.file(dir_handle, file_name, File_system::WRITE_ONLY, true);
+					handle.construct(_fs.file(dir_handle, file_name, File_system::WRITE_ONLY, true));
 				} catch (Node_already_exists) {
-					handle = _fs.file(dir_handle, file_name, File_system::WRITE_ONLY, false);
+					handle.construct(_fs.file(dir_handle, file_name, File_system::WRITE_ONLY, false));
 				}
 
-				_fs.truncate(handle, 0);
+				_fs.truncate(*handle, 0);
 
 				size_t len     = max(strlen(_rom_ds->local_addr<char>()), _rom_ds->size());
-				size_t written = write(_fs, handle, _rom_ds->local_addr<void>(), len, 0);
+				size_t written = write(_fs, *handle, _rom_ds->local_addr<void>(), len, 0);
 
 				if (written < len) {
 					warning(written, " of ", len, " bytes have been written");
 				}
 
-				_fs.close(handle);
+				_fs.close(*handle);
 
 			} catch (Permission_denied) {
 				error(Cstring(dir_path), file_name, ": permission denied");

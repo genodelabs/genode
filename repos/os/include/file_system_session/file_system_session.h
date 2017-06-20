@@ -23,10 +23,39 @@
 
 namespace File_system {
 
-	struct Node_handle;
-	struct File_handle;
-	struct Dir_handle;
-	struct Symlink_handle;
+	struct Node
+	{
+		typedef Genode::Id_space<Node>::Id Id;
+	};
+
+	struct File : Node
+	{
+		struct Id : Node::Id
+		{
+			explicit Id(unsigned long value) : Node::Id { value } { };
+		};
+	};
+
+	struct Directory : Node
+	{
+		struct Id : Node::Id
+		{
+			explicit Id(unsigned long value) : Node::Id { value } { };
+		};
+	};
+
+	struct Symlink : Node
+	{
+		struct Id : Node::Id
+		{
+			explicit Id(unsigned long value) : Node::Id { value } { };
+		};
+	};
+
+	typedef Node::Id      Node_handle;
+	typedef File::Id      File_handle;
+	typedef Directory::Id Dir_handle;
+	typedef Symlink::Id   Symlink_handle;
 
 	using Genode::size_t;
 
@@ -81,42 +110,6 @@ namespace File_system {
 }
 
 
-struct File_system::Node_handle
-{
-	unsigned long value;
-
-	Node_handle() : value(~0UL) { }
-	Node_handle(int v) : value(v) { }
-
-	bool valid() const { return value != ~0UL; }
-
-	bool operator == (Node_handle const &other) const { return other.value == value; }
-	bool operator != (Node_handle const &other) const { return other.value != value; }
-
-};
-
-
-struct File_system::File_handle : Node_handle
-{
-	File_handle() { }
-	File_handle(unsigned long v) : Node_handle(v) { }
-};
-
-
-struct File_system::Dir_handle : Node_handle
-{
-	Dir_handle() { }
-	Dir_handle(unsigned long v) : Node_handle(v) { }
-};
-
-
-struct File_system::Symlink_handle : Node_handle
-{
-	Symlink_handle() { }
-	Symlink_handle(unsigned long v) : Node_handle(v) { }
-};
-
-
 class File_system::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
@@ -125,11 +118,11 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 
 	private:
 
-		Node_handle _handle;   /* node handle */
-		Opcode      _op;       /* requested operation */
-		seek_off_t  _position; /* file seek offset in bytes */
-		size_t      _length;   /* transaction length in bytes */
-		bool        _success;  /* indicates success of operation */
+		Node_handle _handle { 0 };   /* node handle */
+		Opcode      _op;             /* requested operation */
+		seek_off_t  _position;       /* file seek offset in bytes */
+		size_t      _length;         /* transaction length in bytes */
+		bool        _success;        /* indicates success of operation */
 
 	public:
 
@@ -139,7 +132,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		Packet_descriptor(Genode::off_t  buf_offset = 0,
 		                  Genode::size_t buf_size   = 0)
 		:
-			Genode::Packet_descriptor(buf_offset, buf_size), _handle(-1),
+			Genode::Packet_descriptor(buf_offset, buf_size),
 			_op(READ), _position(0), _length(0), _success(false) { }
 
 		/**
@@ -330,16 +323,22 @@ struct File_system::Session : public Genode::Session
 
 	/**
 	 * Close file
+	 *
+	 * \throw Invalid_handle   node handle is invalid
 	 */
 	virtual void close(Node_handle) = 0;
 
 	/**
 	 * Request information about an open file or directory
+	 *
+	 * \throw Invalid_handle   node handle is invalid
 	 */
 	virtual Status status(Node_handle) = 0;
 
 	/**
 	 * Set information about an open file or directory
+	 *
+	 * \throw Invalid_handle   node handle is invalid
 	 */
 	virtual void control(Node_handle, Control) = 0;
 
@@ -380,6 +379,9 @@ struct File_system::Session : public Genode::Session
 	 *
 	 * This is only needed by file systems that maintain an internal
 	 * cache, which needs to be flushed on certain occasions.
+	 *
+	 * \throw Invalid_handle   node handle is invalid
+     *
 	 */
 	virtual void sync(Node_handle) { }
 
@@ -409,9 +411,15 @@ struct File_system::Session : public Genode::Session
 	GENODE_RPC_THROW(Rpc_node, Node_handle, node,
 	                 GENODE_TYPE_LIST(Lookup_failed, Out_of_ram, Out_of_caps),
 	                 Path const &);
-	GENODE_RPC(Rpc_close, void, close, Node_handle);
-	GENODE_RPC(Rpc_status, Status, status, Node_handle);
-	GENODE_RPC(Rpc_control, void, control, Node_handle, Control);
+	GENODE_RPC_THROW(Rpc_close, void, close,
+	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 Node_handle);
+	GENODE_RPC_THROW(Rpc_status, Status, status,
+	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 Node_handle);
+	GENODE_RPC_THROW(Rpc_control, void, control,
+	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 Node_handle, Control);
 	GENODE_RPC_THROW(Rpc_unlink, void, unlink,
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Not_empty,
@@ -425,7 +433,9 @@ struct File_system::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Permission_denied),
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
-	GENODE_RPC(Rpc_sync, void, sync, Node_handle);
+	GENODE_RPC_THROW(Rpc_sync, void, sync,
+	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 Node_handle);
 
 	GENODE_RPC_INTERFACE(Rpc_tx_cap, Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node,
 	                     Rpc_close, Rpc_status, Rpc_control, Rpc_unlink,
