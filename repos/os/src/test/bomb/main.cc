@@ -173,8 +173,15 @@ struct Bomb
 
 	void construct_children()
 	{
-		unsigned long avail_ram = env.ram().avail_ram().value;
-		Ram_quota const ram_amount { (avail_ram - ram_demand) / children };
+		size_t const preserved_ram = Pd_connection::RAM_QUOTA;
+		size_t const avail_ram     = env.ram().avail_ram().value;
+
+		if (avail_ram < preserved_ram + ram_demand) {
+			error("RAM demand exceeds available RAM");
+			return;
+		}
+
+		Ram_quota const ram_amount { (avail_ram - preserved_ram - ram_demand) / children };
 
 		if (ram_amount.value < (ram_demand * children)) {
 			log("I'm a leaf node - generation ", generation,
@@ -183,7 +190,7 @@ struct Bomb
 		}
 
 		size_t const avail_caps     = env.pd().avail_caps().value;
-		size_t const preserved_caps = children*10;
+		size_t const preserved_caps = children*30;
 
 		if (avail_caps < preserved_caps) {
 			log("I ran out of capabilities.");
