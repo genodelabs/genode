@@ -82,10 +82,13 @@
 	movl %eax, %cr0
 
 	/* Set up GDT */
+	movl $_mt_gdt_ptr+2, %eax
+	movl $_mt_gdt_start, (%eax)
 	lgdt _mt_gdt_ptr
 
 	/* Indirect long jump to 64-bit code */
 	ljmp $8, $_start64
+
 
 .code64
 	_start64:
@@ -118,7 +121,6 @@
 	1: jmp 1b
 
 	_define_gdt 0
-
 
 /*********************************
  ** .bss (non-initialized data) **

@@ -1,5 +1,5 @@
 /*
- * \brief  Representation of MMIO space
+ * \brief  Memory map of core
  * \author Stefan Kalkowski
  * \date   2016-11-24
  */
@@ -11,14 +11,27 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__LIB__HW__MMIO_SPACE_H_
-#define _SRC__LIB__HW__MMIO_SPACE_H_
+#ifndef _SRC__LIB__HW__MEMORY_MAP_H_
+#define _SRC__LIB__HW__MEMORY_MAP_H_
 
 #include <hw/mapping.h>
 #include <hw/memory_region.h>
 #include <hw/util.h>
 
-namespace Hw { struct Mmio_space; }
+namespace Hw {
+	struct Mmio_space;
+
+	namespace Mm {
+		Memory_region const user();
+		Memory_region const core_utcb_main_thread();
+		Memory_region const core_stack_area();
+		Memory_region const core_page_tables();
+		Memory_region const core_mmio();
+		Memory_region const core_heap();
+		Memory_region const exception_vector();
+		Memory_region const boot_info();
+	}
+}
 
 struct Hw::Mmio_space : Hw::Memory_region_array
 {
@@ -27,7 +40,7 @@ struct Hw::Mmio_space : Hw::Memory_region_array
 	template <typename FUNC>
 	void for_each_mapping(FUNC f) const
 	{
-		addr_t virt_base = 0xf0000000UL; /* FIXME */
+		addr_t virt_base = Mm::core_mmio().base;
 		auto lambda = [&] (Memory_region const & r) {
 			f(Mapping { r.base, virt_base, r.size, PAGE_FLAGS_KERN_IO });
 			virt_base += r.size + get_page_size();
@@ -52,4 +65,4 @@ struct Hw::Mmio_space : Hw::Memory_region_array
 	}
 };
 
-#endif /* _SRC__LIB__HW__MMIO_SPACE_H_ */
+#endif /* _SRC__LIB__HW__MEMORY_MAP_H_ */

@@ -770,7 +770,7 @@ proc build_core {lib modules target link_address} {
 
 	# architecture dependent definitions
 	set arch {}
-	if {[have_spec "x86_64"]} { set arch -m64 }
+	if {[have_spec "x86_64"]} { set arch { -m64 -mcmodel=large } }
 	if {[have_spec "x86_32"]} { set arch -m32 }
 
 	# determine the libgcc

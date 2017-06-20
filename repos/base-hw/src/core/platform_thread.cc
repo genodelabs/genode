@@ -142,7 +142,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 				error("invalid RM client");
 				return -1;
 			};
-			_utcb_pd_addr           = utcb_main_thread();
+			_utcb_pd_addr = (Native_utcb *)user_utcb_main_thread();
 			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
 			if (!as->insert_translation((addr_t)_utcb_pd_addr, dsc->phys_addr(),
 			                            sizeof(Native_utcb), Hw::PAGE_FLAGS_UTCB)) {

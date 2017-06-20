@@ -1,7 +1,7 @@
 /*
- * \brief  Component-local stack area base address for HW core
+ * \brief  Core-local main thread's UTCB address
  * \author Stefan Kalkowski
- * \date   2017-06-02
+ * \date   2017-06-21
  */
 
 /*
@@ -12,9 +12,10 @@
  */
 
 /* base-internal includes */
-#include <base/internal/stack_area.h>
+#include <base/internal/native_utcb.h>
 
 #include <hw/memory_map.h>
 
-Genode::addr_t Genode::stack_area_virtual_base() {
-	return Hw::Mm::core_stack_area().base; }
+Genode::Native_utcb * Genode::utcb_main_thread() {
+	return (Genode::Native_utcb*) Hw::Mm::core_utcb_main_thread().base; }
+

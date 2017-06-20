@@ -6,6 +6,7 @@ SRC_CC  += bootstrap/spec/arm/cortex_a8_mmu.cc
 SRC_CC  += bootstrap/spec/arm/cpu.cc
 SRC_CC  += bootstrap/spec/arm/imx_tzic.cc
 SRC_CC  += hw/spec/arm/arm_v7_cpu.cc
+SRC_CC  += hw/spec/32bit/memory_map.cc
 
 ifneq ($(filter-out $(SPECS),trustzone),)
 SRC_CC  += bootstrap/spec/imx53_qsb/platform.cc

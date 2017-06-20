@@ -80,7 +80,7 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 
 Hw::Address_space::Address_space(Kernel::Pd & pd, Page_table & tt,
                                  Page_table::Allocator & tt_alloc)
-: _tt(tt), _tt_phys(Platform::core_phys_addr((addr_t)&tt)),
+: _tt(tt), _tt_phys(Platform::core_page_table()),
   _tt_alloc(tt_alloc), _kernel_pd(pd) {
 	Kernel::mtc()->map(_tt, _tt_alloc); }
 
@@ -179,7 +179,7 @@ Platform_pd::~Platform_pd()
 extern int _mt_master_context_begin;
 
 Core_platform_pd::Core_platform_pd()
-: Platform_pd(Platform::core_page_table(),
+: Platform_pd(*(Hw::Page_table*)Hw::Mm::core_page_tables().base,
               Platform::core_page_table_allocator())
 {
 	Genode::construct_at<Kernel::Cpu_context>(&_mt_master_context_begin,

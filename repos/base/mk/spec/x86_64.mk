@@ -9,7 +9,7 @@ SPECS += x86 64bit
 REP_INC_DIR += include/spec/x86
 REP_INC_DIR += include/spec/x86_64
 
-CC_MARCH ?= -m64
+CC_MARCH ?= -m64 -mcmodel=large
 
 #
 # Avoid wasting almost 4 MiB by telling the linker that the max page size is

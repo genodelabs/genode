@@ -129,7 +129,7 @@ class Bootstrap::Platform
 		addr_t                    core_elf_addr;
 		Elf                       core_elf;
 
-		addr_t _load_elf();
+		Mapping _load_elf();
 
 	public:
 

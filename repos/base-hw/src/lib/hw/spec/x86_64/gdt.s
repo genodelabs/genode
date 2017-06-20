@@ -21,15 +21,15 @@
 	.align 4
 	.space 2
 	.global _mt_gdt_ptr
-	.global _mt_gdt_start
 	_mt_gdt_ptr:
-	.word _mt_gdt_end - _mt_gdt_start - 1 /* limit        */
-	.long _mt_gdt_start                   /* base address */
+	.word 55 /* limit        */
+	.long 0  /* base address */
 
 	.set TSS_LIMIT, 0x68
 	.set TSS_TYPE, 0x8900
 
 	.align 8
+	.global _mt_gdt_start
 	_mt_gdt_start:
 	/* Null descriptor */
 	.quad 0

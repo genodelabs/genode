@@ -31,17 +31,20 @@ namespace Genode {
 	
 	struct Native_utcb;
 
-	static constexpr addr_t VIRT_ADDR_SPACE_START = 0x1000;
-	static constexpr size_t VIRT_ADDR_SPACE_SIZE  = 0xfffee000;
-
 	/**
 	 * The main thread's UTCB, used during bootstrap of the main thread before it
 	 * allocates its stack area, needs to be outside the virtual memory area
 	 * controlled by the RM session, because it is needed before the main
 	 * thread can access its RM session.
+	 * We set it architectural independent to the start of the address space,
+	 * but leave out page zero for * null-pointer dereference detection.
 	 */
-	static constexpr Native_utcb * utcb_main_thread() {
-		return (Native_utcb *) (VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE); }
+	static constexpr addr_t user_utcb_main_thread() { return get_page_size(); }
+
+	/**
+	 * Core and user-land components have different main thread's UTCB locations.
+	 */
+	Native_utcb * utcb_main_thread();
 }
 
 

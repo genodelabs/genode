@@ -40,19 +40,21 @@ using namespace Genode;
  **************/
 
 Hw::Boot_info const & Platform::_boot_info() {
-	return *reinterpret_cast<Hw::Boot_info*>(round_page((addr_t)&_prog_img_end)); }
+	return *reinterpret_cast<Hw::Boot_info*>(Hw::Mm::boot_info().base); }
 
 addr_t Platform::mmio_to_virt(addr_t mmio) {
 	return _boot_info().mmio_space.virt_addr(mmio); }
 
-Hw::Page_table & Platform::core_page_table() {
-	return *(Hw::Page_table*)_boot_info().table; }
+addr_t Platform::core_page_table() {
+	return (addr_t)_boot_info().table; }
 
 Hw::Page_table::Allocator & Platform::core_page_table_allocator()
 {
-	using Allocator = Hw::Page_table::Allocator;
-	using Array     = Allocator::Array<Hw::Page_table::CORE_TRANS_TABLE_COUNT>;
-	return unmanaged_singleton<Array>(*((Array*)_boot_info().table_allocator))->alloc();
+	using Allocator  = Hw::Page_table::Allocator;
+	using Array      = Allocator::Array<Hw::Page_table::CORE_TRANS_TABLE_COUNT>;
+	addr_t virt_addr = Hw::Mm::core_page_tables().base + sizeof(Hw::Page_table);
+	return *unmanaged_singleton<Array::Allocator>(_boot_info().table_allocator,
+	                                              virt_addr);
 }
 
 void Platform::_init_io_mem_alloc()
@@ -83,6 +85,15 @@ addr_t Platform::core_phys_addr(addr_t virt)
 }
 
 
+addr_t Platform::_rom_module_phys(addr_t virt)
+{
+	Hw::Mapping m = _boot_info().boot_modules;
+	if (virt >= m.virt() && virt < (m.virt() + m.size()))
+		return (virt - m.virt()) + m.phys();
+	return 0;
+}
+
+
 Platform::Platform()
 :
 	_io_mem_alloc(core_mem_alloc()),
@@ -91,8 +102,8 @@ Platform::Platform()
 {
 	struct Kernel_resource : Exception { };
 
-	_core_mem_alloc.virt_alloc()->add_range(VIRT_ADDR_SPACE_START,
-	                                        VIRT_ADDR_SPACE_SIZE);
+	_core_mem_alloc.virt_alloc()->add_range(Hw::Mm::core_heap().base,
+	                                        Hw::Mm::core_heap().size);
 	_core_virt_regions().for_each([this] (Hw::Memory_region const & r) {
 		_core_mem_alloc.virt_alloc()->remove_range(r.base, r.size); });
 	_boot_info().elf_mappings.for_each([this] (Hw::Mapping const & m) {

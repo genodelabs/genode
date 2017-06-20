@@ -46,7 +46,7 @@ class Hw::Page_table_allocator
 		template <unsigned COUNT> class Array;
 
 		Page_table_allocator(addr_t virt_addr, addr_t phys_addr)
-		: _virt_addr(virt_addr), _phys_addr(phys_addr) {}
+		: _virt_addr(virt_addr), _phys_addr(phys_addr) { }
 
 		template <typename TABLE> addr_t phys_addr(TABLE & table) {
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
@@ -104,6 +104,7 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 	private:
 
 		using Bit_allocator = Genode::Bit_allocator<COUNT>;
+		using Array = Page_table_allocator<TABLE_SIZE>::Array<COUNT>;
 
 		Bit_allocator _free_tables;
 
@@ -122,9 +123,9 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 		Allocator(Table * tables, addr_t phys_addr)
 		: Page_table_allocator((addr_t)tables, phys_addr) {}
 
-		explicit Allocator(Allocator & o)
-		: Page_table_allocator(o._virt_addr, o._phys_addr),
-		  _free_tables(o._free_tables)
+		Allocator(addr_t phys_addr, addr_t virt_addr)
+		: Page_table_allocator(virt_addr, phys_addr),
+		  _free_tables(static_cast<Allocator*>(&reinterpret_cast<Array*>(virt_addr)->alloc())->_free_tables)
 		{
 			static_assert(!__is_polymorphic(Bit_allocator),
 			              "base class needs to be non-virtual");

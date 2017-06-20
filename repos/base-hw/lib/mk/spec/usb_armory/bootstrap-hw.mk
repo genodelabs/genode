@@ -7,5 +7,6 @@ SRC_CC  += bootstrap/spec/arm/cpu.cc
 SRC_CC  += bootstrap/spec/arm/imx_tzic.cc
 SRC_CC  += bootstrap/spec/usb_armory/platform.cc
 SRC_CC  += hw/spec/arm/arm_v7_cpu.cc
+SRC_CC  += hw/spec/32bit/memory_map.cc
 
 include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc

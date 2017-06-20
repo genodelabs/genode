@@ -34,7 +34,7 @@ Pd * Kernel::core_pd() {
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
-extern "C" void _start() __attribute__((section(".text.crt0")));
+extern "C" void _start();
 
 /**
  * Setup kernel environment

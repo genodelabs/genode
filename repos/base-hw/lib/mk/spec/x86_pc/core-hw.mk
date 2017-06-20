@@ -34,5 +34,9 @@ SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/platform_support_common.cc
 
+SRC_CC += spec/64bit/memory_map.cc
+
+vpath spec/64bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
+
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/core-hw.inc

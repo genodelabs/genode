@@ -36,7 +36,7 @@
 .set TSS_TYPE, 0x8900
 
 /* mtc virt addresses */
-.set MT_BASE, 0xffff0000
+.set MT_BASE, 0xffffffc000000000
 .set MT_TSS,       MT_BASE + (_mt_tss - _mt_begin)
 .set MT_ISR,       MT_BASE
 .set MT_IRQ_STACK, MT_BASE + (_mt_kernel_interrupt_stack - _mt_begin)
@@ -77,7 +77,7 @@
 	mov \label@GOTPCREL(%rip), %\reg
 .endm
 
-.section .text
+.section ".text.crt0"
 
 	/*
 	 * Page aligned base of mode transition code.

@@ -30,6 +30,7 @@ SRC_CC += io_mem_session_support.cc
 SRC_CC += irq_session_component.cc
 SRC_CC += main.cc
 SRC_CC += native_pd_component.cc
+SRC_CC += native_utcb.cc
 SRC_CC += pd_session_support.cc
 SRC_CC += platform.cc
 SRC_CC += platform_rom_modules.cc

@@ -62,9 +62,10 @@ Platform::Pd::Pd(Platform::Ram_allocator & alloc)
   array(*Genode::construct_at<Table_array>(array_base))
 {
 	using namespace Genode;
-	map_insert(Mapping((addr_t)table_base, (addr_t)table_base,
+	addr_t const table_virt_base = Hw::Mm::core_page_tables().base;
+	map_insert(Mapping((addr_t)table_base, table_virt_base,
 	                   sizeof(Table),       Hw::PAGE_FLAGS_KERN_DATA));
-	map_insert(Mapping((addr_t)array_base, (addr_t)array_base,
+	map_insert(Mapping((addr_t)array_base, table_virt_base + sizeof(Table),
 	                   sizeof(Table_array), Hw::PAGE_FLAGS_KERN_DATA));
 }
 
@@ -93,16 +94,14 @@ void Platform::Pd::map_insert(Mapping m)
  ** Platform **
  **************/
 
-addr_t Platform::_load_elf()
+Mapping Platform::_load_elf()
 {
 	using namespace Genode;
 	using namespace Hw;
 
-	addr_t start = ~0UL;
-	addr_t end   = 0;
+	Mapping ret;
 	auto lambda = [&] (Genode::Elf_segment & segment) {
 		void * phys       = (void*)(core_elf_addr + segment.file_offset());
-		start             = min(start, (addr_t) phys);
 		size_t const size = round_page(segment.mem_size());
 
 		if (segment.flags().w) {
@@ -123,13 +122,22 @@ addr_t Platform::_load_elf()
 
 		//FIXME: set read-only, privileged and global accordingly
 		Page_flags flags{RW, segment.flags().x ? EXEC : NO_EXEC,
-		                 USER, NO_GLOBAL, RAM, CACHED};
+		                 USER, GLOBAL, RAM, CACHED};
 		Mapping m((addr_t)phys, (addr_t)segment.start(), size, flags);
-		core_pd->map_insert(m);
-		end = max(end, (addr_t)segment.start() + size);
+
+		/*
+		 * Do not map the read-only, non-executable segment containing
+		 * the boot modules, although it is a loadable segment, which we
+		 * define so that the modules are loaded as ELF image
+		 * via the bootloader
+		 */
+		if (segment.flags().x || segment.flags().w)
+			core_pd->map_insert(m);
+		else
+			ret = m;
 	};
 	core_elf.for_each_segment(lambda);
-	return end;
+	return ret;
 }
 
 
@@ -173,17 +181,17 @@ Platform::Platform()
 		core_pd->map_insert(m); });
 
 	/* load ELF */
-	addr_t const elf_end = _load_elf();
+	Mapping boot_modules = _load_elf();
 
 	/* setup boot info page */
 	void * bi_base = ram_alloc.alloc(sizeof(Boot_info));
-	core_pd->map_insert(Mapping((addr_t)bi_base, elf_end, sizeof(Boot_info),
-								Hw::PAGE_FLAGS_KERN_TEXT));
+	core_pd->map_insert(Mapping((addr_t)bi_base, Hw::Mm::boot_info().base,
+	                            sizeof(Boot_info), Hw::PAGE_FLAGS_KERN_TEXT));
 	Boot_info & bootinfo =
 		*construct_at<Boot_info>(bi_base, (addr_t)&core_pd->table,
 		                         (addr_t)&core_pd->array,
-		                         core_pd->mappings, board.core_mmio,
-		                         board.acpi_rsdp);
+		                         core_pd->mappings, boot_modules,
+		                         board.core_mmio, board.acpi_rsdp);
 
 	/* add all left RAM to bootinfo */
 	ram_alloc.for_each_free_region([&] (Memory_region const & r) {

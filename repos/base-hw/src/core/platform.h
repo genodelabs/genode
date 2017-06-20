@@ -70,7 +70,7 @@ class Genode::Platform : public Genode::Platform_generic
 
 		void _init_rom_modules();
 
-		addr_t _rom_module_phys(addr_t virt) { return core_phys_addr(virt); }
+		addr_t _rom_module_phys(addr_t virt);
 
 	public:
 
@@ -109,7 +109,7 @@ class Genode::Platform : public Genode::Platform_generic
 
 		static addr_t core_phys_addr(addr_t virt);
 
-		static Hw::Page_table            & core_page_table();
+		static addr_t                      core_page_table();
 		static Hw::Page_table::Allocator & core_page_table_allocator();
 
 
@@ -132,9 +132,9 @@ class Genode::Platform : public Genode::Platform_generic
 
 		Range_allocator * irq_alloc() { return &_irq_alloc; }
 
-		addr_t vm_start() const { return VIRT_ADDR_SPACE_START; }
+		addr_t vm_start() const { return Hw::Mm::user().base; }
 
-		size_t vm_size() const { return VIRT_ADDR_SPACE_SIZE; }
+		size_t vm_size() const { return Hw::Mm::user().size; }
 
 		Rom_fs *rom_fs() { return &_rom_fs; }
 

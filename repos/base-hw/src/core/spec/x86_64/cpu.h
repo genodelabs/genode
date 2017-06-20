@@ -124,7 +124,7 @@ class Genode::Cpu
 
 		Fpu & fpu() { return _fpu; }
 
-		static constexpr addr_t exception_entry = 0xffff0000;
+		static constexpr addr_t exception_entry = 0xffffffc000000000;
 		static constexpr addr_t mtc_size        = 1 << 13;
 
 		static addr_t virt_mtc_addr(addr_t virt_base, addr_t label);
