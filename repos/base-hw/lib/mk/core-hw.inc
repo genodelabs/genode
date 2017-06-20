@@ -62,6 +62,7 @@ SRC_CC += kernel/timer.cc
 SRC_CC += kernel/object.cc
 SRC_CC += init_main_thread.cc
 SRC_CC += capability.cc
+SRC_CC += stack_area_addr.cc
 
 # provide Genode version information
 include $(BASE_DIR)/src/core/version.inc
