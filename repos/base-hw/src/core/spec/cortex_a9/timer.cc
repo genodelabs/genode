@@ -63,11 +63,11 @@ time_t Timer::_ticks_to_us(time_t const ticks) const
 		MSB_RSHIFT = 10,
 		LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
 	};
-	time_t const msb = (((ticks >> MSB_RSHIFT)
+	time_t const msb = ((((ticks & MSB_MASK) >> MSB_RSHIFT)
 	                     * 1000) / Driver::TICS_PER_MS) << MSB_RSHIFT;
 	time_t const lsb = ((((ticks & LSB_MASK) << LSB_LSHIFT)
-	                     * 1000) / Driver::TICS_PER_MS) >> LSB_LSHIFT;
-	return (msb & MSB_MASK) | lsb;
+                         * 1000) / Driver::TICS_PER_MS) >> LSB_LSHIFT;
+	return msb + lsb;
 }
 
 
