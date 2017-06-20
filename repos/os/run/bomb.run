@@ -35,6 +35,8 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<resource name="RAM" preserve="2M"/>
+	<resource name="CAP" preserve="100"/>
 	<start name="timer" caps="100">
 		<resource name="CPU" quantum="10"/>
 		<resource name="RAM" quantum="1M"/>
