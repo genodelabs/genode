@@ -225,24 +225,6 @@ Session_capability Child::session(Parent::Client::Id id,
 		Ram_transfer ram_donation_to_service(forward_ram_quota, ref_ram_account, service);
 		Cap_transfer cap_donation_to_service(cap_quota,         ref_cap_account, service);
 
-		/* try to dispatch session request synchronously */
-		service.initiate_request(session);
-
-		if (session.phase == Session_state::SERVICE_DENIED) {
-			_revert_quota_and_destroy(session);
-			throw Service_denied();
-		}
-
-		if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA) {
-			_revert_quota_and_destroy(session);
-			throw Insufficient_ram_quota();
-		}
-
-		if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
-			_revert_quota_and_destroy(session);
-			throw Insufficient_cap_quota();
-		}
-
 		/* finish transaction */
 		ram_donation_from_child.acknowledge();
 		cap_donation_from_child.acknowledge();
@@ -259,6 +241,24 @@ Session_capability Child::session(Parent::Client::Id id,
 	catch (Cap_transfer::Quota_exceeded) {
 		session.destroy();
 		throw Out_of_caps();
+	}
+
+	/* try to dispatch session request synchronously */
+	service.initiate_request(session);
+
+	if (session.phase == Session_state::SERVICE_DENIED) {
+		_revert_quota_and_destroy(session);
+		throw Service_denied();
+	}
+
+	if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA) {
+		_revert_quota_and_destroy(session);
+		throw Insufficient_ram_quota();
+	}
+
+	if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
+		_revert_quota_and_destroy(session);
+		throw Insufficient_cap_quota();
 	}
 
 	/*
