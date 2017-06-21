@@ -4,7 +4,7 @@ doc include lib src:
 	$(mirror_from_rep_dir)
 
 include/init/child_policy.h:
-	mkdir $(dir $@)
+	mkdir -p $(dir $@)
 	cp $(GENODE_DIR)/repos/os/$@ $@
 
 LICENSE:
