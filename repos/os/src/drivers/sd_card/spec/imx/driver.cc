@@ -234,17 +234,6 @@ void Driver::write_dma(Block::sector_t           blk_nr,
 }
 
 
-Driver::Driver(Env &env)
-:
-	Driver_base(env.ram()),
-	Attached_mmio(env, Imx53::SDHC_MMIO_BASE, Imx53::SDHC_MMIO_SIZE),
-	_env(env)
-{
-	log("SD card detected");
-	log("capacity: ", card_info().capacity_mb(), " MiB");
-}
-
-
 int Driver::_prepare_dma_mb(Block::Packet_descriptor packet,
                           bool                     reading,
                           size_t                   blk_cnt,

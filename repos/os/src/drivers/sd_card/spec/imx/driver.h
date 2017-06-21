@@ -15,7 +15,6 @@
 #define _DRIVER_H_
 
 /* Genode includes */
-#include <drivers/defs/imx53.h>
 #include <timer_session/connection.h>
 #include <irq_session/connection.h>
 #include <os/attached_mmio.h>
@@ -216,7 +215,7 @@ class Sd_card::Driver : public  Driver_base,
 		Timer_delayer           _delayer;
 		Signal_handler<Driver>  _irq_handler { _env.ep(), *this,
 		                                       &Driver::_handle_irq };
-		Irq_connection          _irq         { Imx53::SDHC_IRQ };
+		Irq_connection          _irq;
 		Card_info               _card_info   { _init() };
 		Adma2::Table            _adma2_table { _env.ram() };
 

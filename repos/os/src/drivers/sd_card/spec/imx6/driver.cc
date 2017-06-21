@@ -13,6 +13,7 @@
 
 /* local includes */
 #include <driver.h>
+#include <drivers/defs/imx6.h>
 
 using namespace Sd_card;
 using namespace Genode;
@@ -115,3 +116,14 @@ void Driver::_disable_clock_preparation() {
 	Mmio::write<Vendspec::Frc_sdclk_on>(0); }
 
 void Driver::_enable_clock_finish() { Mmio::write<Vendspec::Frc_sdclk_on>(0); }
+
+
+Driver::Driver(Env &env)
+:
+	Driver_base(env.ram()),
+	Attached_mmio(env, Imx6::SDHC_MMIO_BASE, Imx6::SDHC_MMIO_SIZE),
+	_env(env), _irq(Imx6::SDHC_IRQ)
+{
+	log("SD card detected");
+	log("capacity: ", card_info().capacity_mb(), " MiB");
+}

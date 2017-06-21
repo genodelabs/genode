@@ -13,6 +13,7 @@
 
 /* local includes */
 #include <driver.h>
+#include <drivers/defs/imx53.h>
 
 using namespace Sd_card;
 using namespace Genode;
@@ -117,3 +118,14 @@ void Driver::_clock_finish(Clock clock)
 
 void Driver::_disable_clock_preparation() { }
 void Driver::_enable_clock_finish() { }
+
+
+Driver::Driver(Env &env)
+:
+	Driver_base(env.ram()),
+	Attached_mmio(env, Imx53::SDHC_MMIO_BASE, Imx53::SDHC_MMIO_SIZE),
+	_env(env), _irq(Imx53::SDHC_IRQ)
+{
+	log("SD card detected");
+	log("capacity: ", card_info().capacity_mb(), " MiB");
+}
