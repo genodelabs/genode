@@ -1,6 +1,6 @@
-INC_DIR += $(REP_DIR)/src/drivers/sd_card/spec/imx
-SRC_CC  += adma2.cc
-SRC_CC  += spec/imx/driver.cc
-SRC_CC  += spec/imx53/driver.cc
+SRC_CC  += adma2.cc spec/imx53/driver.cc spec/imx/driver.cc
+LIBS    += base
 
-include $(REP_DIR)/lib/mk/sd_card.inc
+vpath %.cc $(REP_DIR)/src/drivers/sd_card
+
+include $(REP_DIR)/lib/import/import-sd_card_drv.mk

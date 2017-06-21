@@ -1,4 +1,6 @@
-INC_DIR += $(REP_DIR)/src/drivers/sd_card/spec/omap4
 SRC_CC  += spec/omap4/driver.cc
+LIBS    += base
 
-include $(REP_DIR)/lib/mk/sd_card.inc
+vpath %.cc $(REP_DIR)/src/drivers/sd_card
+
+include $(REP_DIR)/lib/import/import-sd_card_drv.mk
