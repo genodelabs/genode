@@ -17,7 +17,13 @@
 #ifndef _INCLUDE__DRIVERS__DEFS__WAND_QUAD_H_
 #define _INCLUDE__DRIVERS__DEFS__WAND_QUAD_H_
 
+/* Genode includes */
+#include <drivers/defs/imx6.h>
+
 namespace Wand_quad {
+
+	using namespace Imx6;
+
 	enum {
 		/* normal RAM */
 		RAM0_BASE = 0x10000000,
@@ -30,11 +36,6 @@ namespace Wand_quad {
 		UART_1_IRQ       = 58,
 		UART_1_MMIO_BASE = 0x02020000,
 		UART_1_MMIO_SIZE = 0x00004000,
-
-		/* SD host controller */
-		SDHC_IRQ       = 54,
-		SDHC_MMIO_BASE = 0x02190000,
-		SDHC_MMIO_SIZE = 0x00004000,
 
 		/* timer */
 		EPIT_2_IRQ       = 89,
