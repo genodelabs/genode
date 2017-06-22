@@ -143,7 +143,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 
 	/* bind thread to PD and CSpace */
 	seL4_CapData_t const guard_cap_data =
-		seL4_CapData_Guard_new(0, 32 - _pd->cspace_size_log2());
+		seL4_CapData_Guard_new(0, CONFIG_WORD_SIZE - _pd->cspace_size_log2());
 
 	seL4_CapData_t const no_cap_data = { { 0 } };
 
@@ -177,41 +177,6 @@ void Platform_thread::state(Thread_state s)
 {
 	warning(__PRETTY_FUNCTION__, " not implemented");
 	throw Cpu_thread::State_access_failed();
-}
-
-
-Thread_state Platform_thread::state()
-{
-	seL4_TCB   const thread         = _info.tcb_sel.value();
-	seL4_Bool  const suspend_source = false;
-	seL4_Uint8 const arch_flags     = 0;
-	seL4_UserContext registers;
-	seL4_Word  const register_count = sizeof(registers) / sizeof(registers.eip);
-
-	int const ret = seL4_TCB_ReadRegisters(thread, suspend_source, arch_flags,
-	                                       register_count, &registers);
-	if (ret != seL4_NoError) {
-		error("reading thread state ", ret);
-		throw Cpu_thread::State_access_failed();
-	}
-
-	Thread_state state;
-	state.ip     = registers.eip;
-	state.sp     = registers.esp;
-	state.edi    = registers.edi;
-	state.esi    = registers.esi;
-	state.ebp    = registers.ebp;
-	state.ebx    = registers.ebx;
-	state.edx    = registers.edx;
-	state.ecx    = registers.ecx;
-	state.eax    = registers.eax;
-	state.gs     = registers.gs;
-	state.fs     = registers.fs;
-	state.eflags = registers.eflags;
-	state.trapno = 0; /* XXX detect/track if in exception and report here */
-	/* registers.tls_base unused */
-
-	return state;
 }
 
 

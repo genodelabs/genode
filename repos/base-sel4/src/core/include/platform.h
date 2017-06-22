@@ -21,8 +21,62 @@
 #include <core_cspace.h>
 #include <initial_untyped_pool.h>
 
-namespace Genode { class Platform; }
+namespace Genode {
+	class Platform;
+	template <Genode::size_t> class Static_allocator;
+}
 
+
+/**
+ * Allocator operating on a static memory pool
+ *
+ * \param MAX   maximum number of 4096 blocks
+ *
+ * The size of a single ELEM must be a multiple of sizeof(long).
+ */
+template <Genode::size_t MAX>
+class Genode::Static_allocator : public Allocator
+{
+	private:
+
+		Bit_allocator<MAX> _used;
+
+		struct Elem_space { uint8_t space[4096]; };
+
+		Elem_space _elements[MAX];
+
+	public:
+
+		class Alloc_failed { };
+
+		bool alloc(size_t size, void **out_addr) override
+		{
+			*out_addr = nullptr;
+
+			if (size > sizeof(Elem_space)) {
+				error("unexpected allocation size of ", size);
+				return false;
+			}
+
+			try {
+				*out_addr = &_elements[_used.alloc()]; }
+			catch (typename Bit_allocator<MAX>::Out_of_indices) {
+				return false; }
+
+			return true;
+		}
+
+		size_t overhead(size_t) const override { return 0; }
+
+		void free(void *ptr, size_t) override
+		{
+			Elem_space *elem = reinterpret_cast<Elem_space *>(ptr);
+			unsigned const index = elem - &_elements[0];
+			_used.free(index);
+		}
+
+		bool need_size_for_free() const { return false; }
+};
 
 class Genode::Platform : public Platform_generic
 {
@@ -65,6 +119,7 @@ class Genode::Platform : public Platform_generic
 		 * need to initialize the TLS mechanism that is used to find the IPC
 		 * buffer for the calling thread.
 		 */
+		void init_sel4_ipc_buffer();
 		bool const _init_sel4_ipc_buffer_done;
 
 		/* allocate 1st-level CNode */
@@ -131,6 +186,7 @@ class Genode::Platform : public Platform_generic
 		void       _switch_to_core_cspace();
 		bool const _switch_to_core_cspace_done;
 
+		Static_allocator<sizeof(void *) * 6> _core_page_table_registry_alloc;
 		Page_table_registry _core_page_table_registry;
 
 		/**
@@ -158,6 +214,11 @@ class Genode::Platform : public Platform_generic
 		Vm_space _core_vm_space;
 
 		void _init_rom_modules();
+
+		/**
+		 * Unmap page frame provided by kernel during early bootup.
+		 */
+		long _unmap_page_frame(Cap_sel const &);
 
 	public:
 

@@ -31,6 +31,13 @@ using namespace Genode;
 
 static bool const verbose_boot_info = true;
 
+/**
+ * Platform object is set if object is currently in construction.
+ * Avoids deadlocks due to nested calls of Platform() constructor caused by
+ * platform_specific(). May happen if meta data allocator of phys_alloc runs
+ * out of memory.
+ */
+static Platform * platform_in_construction = nullptr;
 
 /*
  * Memory-layout information provided by the linker script
@@ -47,11 +54,14 @@ extern unsigned _prog_img_beg, _prog_img_end;
 bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
                                       unsigned size)
 {
+	if (platform_in_construction)
+		Genode::warning("need physical memory, but Platform object not constructed yet");
+
 	size_t const num_pages = size / get_page_size();
 
 	Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
 
-	return map_local(phys_addr, virt_addr, num_pages);
+	return map_local(phys_addr, virt_addr, num_pages, platform_in_construction);
 }
 
 
@@ -78,12 +88,6 @@ void Platform::_init_unused_phys_alloc()
 }
 
 
-static inline void init_sel4_ipc_buffer()
-{
-	asm volatile ("movl %0, %%fs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
-}
-
-
 void Platform::_init_allocators()
 {
 	/* interrupt allocator */
@@ -93,34 +97,21 @@ void Platform::_init_allocators()
 	 * XXX allocate intermediate CNodes for organizing the untyped pages here
 	 */
 
-	/* register remaining untyped memory to physical or iomem memory allocator */
-	auto add_phys_range = [&] (Initial_untyped_pool::Range const &range) {
-
-		if (range.device) {
-			addr_t const phys_addr = trunc_page(range.phys);
-			size_t const phys_size = round_page((range.phys - phys_addr) + range.size);
-
-			_io_mem_alloc.add_range(phys_addr, phys_size);
-			_unused_phys_alloc.remove_range(phys_addr, phys_size);
-			return;
-		}
-
-		addr_t const page_aligned_offset =
-			align_addr(range.free_offset, get_page_size_log2());
-
-		if (page_aligned_offset >= range.size)
-			return;
-
-		addr_t const base = range.phys + page_aligned_offset;
-		size_t const size = range.size - page_aligned_offset;
-
-		_core_mem_alloc.phys_alloc()->add_range(base, size);
-		_unused_phys_alloc.remove_range(base, size);
-	};
-	_initial_untyped_pool.for_each_range(add_phys_range);
-
 	/* turn remaining untyped memory ranges into untyped pages */
-	_initial_untyped_pool.turn_remainder_into_untyped_pages();
+	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_IDX,
+		[&] (addr_t const phys, addr_t const size, bool const device) {
+			/* register to physical or iomem memory allocator */
+
+			addr_t const phys_addr = trunc_page(phys);
+			size_t const phys_size = round_page(phys - phys_addr + size);
+
+			if (device)
+				_io_mem_alloc.add_range(phys_addr, phys_size);
+			else
+				_core_mem_alloc.phys_alloc()->add_range(phys_addr, phys_size);
+
+			_unused_phys_alloc.remove_range(phys_addr, phys_size);
+		});
 
 	/*
 	 * From this point on, we can no longer create kernel objects from the
@@ -156,7 +147,7 @@ void Platform::_init_allocators()
 
 	if (verbose_boot_info) {
 		typedef Hex_range<addr_t> Hex_range;
-		log("virtual adress layout of core:");
+		log("virtual address layout of core:");
 		log(" overall    ", Hex_range(_vm_base, _vm_size));
 		log(" core image ", Hex_range(core_virt_beg, image_elf_size));
 		log(" ipc buffer ", Hex_range(core_ipc_buffer, core_ipc_bsize));
@@ -169,7 +160,8 @@ void Platform::_init_allocators()
 
 void Platform::_switch_to_core_cspace()
 {
-	Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
+	Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode),
+	                                CONFIG_WORD_SIZE);
 
 	/* copy initial selectors to core's CNode */
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadTCB));
@@ -211,10 +203,9 @@ void Platform::_switch_to_core_cspace()
 
 		/* remove mapping to boot modules, no access required within core */
 		if (modules_start <= virt_addr && virt_addr < modules_end) {
-			seL4_X86_Page const service = sel;
-			long err = seL4_X86_Page_Unmap(service);
-			if (err)
-				error("unmapping boot modules ", Hex(virt_addr));
+			long err = _unmap_page_frame(Cap_sel(sel));
+			if (err != seL4_NoError)
+				error("unmapping boot modules ", Hex(virt_addr), " error=", err);
 		}
 
 		/* insert cap for core image */
@@ -250,10 +241,12 @@ void Platform::_switch_to_core_cspace()
 	/* activate core's CSpace */
 	{
 		seL4_CapData_t null_data = { { 0 } };
+		seL4_CapData_t const guard = seL4_CapData_Guard_new(0, CONFIG_WORD_SIZE - 32);
 
 		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
 		                                  seL4_CapNull, /* fault_ep */
-		                                  Core_cspace::top_cnode_sel(), null_data,
+		                                  Core_cspace::top_cnode_sel(),
+		                                  guard,
 		                                  seL4_CapInitThreadPD, null_data);
 
 		if (ret != seL4_NoError)
@@ -265,41 +258,6 @@ void Platform::_switch_to_core_cspace()
 Cap_sel Platform::_init_asid_pool()
 {
 	return Cap_sel(seL4_CapInitThreadASIDPool);
-}
-
-
-void Platform::_init_core_page_table_registry()
-{
-	seL4_BootInfo const &bi = sel4_boot_info();
-
-	addr_t const modules_start = reinterpret_cast<addr_t>(&_boot_modules_binaries_begin);
-	addr_t const modules_end   = reinterpret_cast<addr_t>(&_boot_modules_binaries_end);
-
-	/*
-	 * Register initial page tables
-	 */
-	addr_t virt_addr = (addr_t)(&_prog_img_beg);
-	for (unsigned sel = bi.userImagePaging.start; sel < bi.userImagePaging.end; sel++) {
-
-		_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel));
-
-		/* one page table has 1024 entries */
-		virt_addr += 1024*get_page_size();
-	}
-
-	/*
-	 * Register initial page frames
-	 */
-	virt_addr = (addr_t)(&_prog_img_beg);
-	for (unsigned sel = bi.userImageFrames.start;
-	     sel < bi.userImageFrames.end;
-	     sel++, virt_addr += get_page_size()) {
-		/* skip boot modules */
-		if (modules_start <= virt_addr && virt_addr <= modules_end)
-			continue;
-
-		_core_page_table_registry.insert_page_table_entry(virt_addr, sel);
-	}
 }
 
 
@@ -394,7 +352,7 @@ Platform::Platform()
 	_vm_size(3*1024*1024*1024UL - _vm_base), /* use the lower 3GiB */
 	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
 	_switch_to_core_cspace_done((_switch_to_core_cspace(), true)),
-	_core_page_table_registry(*core_mem_alloc()),
+	_core_page_table_registry(_core_page_table_registry_alloc),
 	_init_core_page_table_registry_done((_init_core_page_table_registry(), true)),
 	_init_allocators_done((_init_allocators(), true)),
 	_core_vm_space(Cap_sel(seL4_CapInitThreadPD),
@@ -407,6 +365,8 @@ Platform::Platform()
 	               _core_page_table_registry,
 	               "core")
 {
+	platform_in_construction = this;
+
 	/* create notification object for Genode::Lock used by this first thread */
 	Cap_sel lock_sel (INITIAL_SEL_LOCK);
 	Cap_sel core_sel = _core_sel_alloc.alloc();
@@ -429,8 +389,9 @@ Platform::Platform()
 
 	/* back stack area with page tables */
 	enum { MAX_CORE_THREADS = 32 };
-	_core_vm_space.alloc_page_tables(stack_area_virtual_base(),
-	                                 stack_virtual_size() * MAX_CORE_THREADS);
+	_core_vm_space.unsynchronized_alloc_page_tables(stack_area_virtual_base(),
+	                                                stack_virtual_size() *
+	                                                MAX_CORE_THREADS);
 
 	/* add some minor virtual region for dynamic usage by core */
 	addr_t const virt_size = 32 * 1024 * 1024;
@@ -443,7 +404,7 @@ Platform::Platform()
 		_core_mem_alloc.virt_alloc()->add_range(virt_addr, virt_size);
 
 		/* back region by page tables */
-		_core_vm_space.alloc_page_tables(virt_addr, virt_size);
+		_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
 	}
 
 	/* I/O port allocator (only meaningful for x86) */
@@ -461,6 +422,8 @@ Platform::Platform()
 	}
 
 	_init_rom_modules();
+
+	platform_in_construction = nullptr;
 }
 
 

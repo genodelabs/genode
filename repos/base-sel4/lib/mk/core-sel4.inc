@@ -13,8 +13,6 @@ SRC_CC      += \
                pd_assign_pci.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
-               io_port_session_component.cc \
-               io_port_session_support.cc \
                thread_start.cc \
                platform_thread.cc \
                platform_pd.cc \
@@ -55,8 +53,6 @@ vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath region_map_component.cc      $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc  $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc    $(GEN_CORE_DIR)
-vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
-vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc  $(GEN_CORE_DIR)
 vpath signal_receiver.cc           $(GEN_CORE_DIR)

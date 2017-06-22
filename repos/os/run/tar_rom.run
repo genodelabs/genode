@@ -50,7 +50,7 @@ install_config {
 		</config>
 	</start>
 	<start name="init" caps="1000">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="3M"/>
 		<config verbose="yes">
 			<parent-provides>
 				<service name="ROM"/>

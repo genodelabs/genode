@@ -57,24 +57,9 @@ namespace Genode {
 
 	struct Cnode_kobj
 	{
-		enum { SEL4_TYPE = seL4_CapTableObject, SIZE_LOG2 = 4 };
+		enum { SEL4_TYPE = seL4_CapTableObject, SIZE_LOG2 = (CONFIG_WORD_SIZE == 32) ? 4 : 5 };
 		static char const *name() { return "cnode"; }
 	};
-
-
-	struct Page_table_kobj
-	{
-		enum { SEL4_TYPE = seL4_X86_PageTableObject, SIZE_LOG2 = 12 };
-		static char const *name() { return "page table"; }
-	};
-
-
-	struct Page_directory_kobj
-	{
-		enum { SEL4_TYPE = seL4_X86_PageDirectoryObject, SIZE_LOG2 = 12 };
-		static char const *name() { return "page directory"; }
-	};
-
 
 	struct Retype_untyped_failed : Genode::Exception { };
 

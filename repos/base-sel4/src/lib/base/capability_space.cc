@@ -40,7 +40,7 @@ namespace {
 
 	struct Local_capability_space
 	:
-		Capability_space_sel4<15*1024, 1UL << NUM_CORE_MANAGED_SEL_LOG2,
+		Capability_space_sel4<8*1024, 1UL << NUM_CORE_MANAGED_SEL_LOG2,
 		                      Native_capability::Data>
 	{ };
 

@@ -1,0 +1,24 @@
+--- src/kernel/sel4/Makefile
++++ src/kernel/sel4/Makefile
+@@ -287,8 +287,8 @@
+ # Only set CFLAGS if we're building standalone.
+ # common/Makefile.Flags sets NK_CFLAGS  in Kbuild environments.
+ ifndef NK_CFLAGS
+-STATICHEADERS += ${SOURCE_ROOT}/configs/$(PLAT)/autoconf.h
+-INCLUDES += "-I${SOURCE_ROOT}/configs/$(PLAT)"
++STATICHEADERS += ${SOURCE_ROOT}/configs/$(PLAT)/$(BOARD)/autoconf.h
++INCLUDES += "-I${SOURCE_ROOT}/configs/$(PLAT)/$(BOARD)"
+ DEFINES += -DHAVE_AUTOCONF
+ ifdef DEBUG
+ DEFINES += -DCONFIG_DEBUG_BUILD
+--- src/kernel/sel4/src/plat/pc99/linker.lds
++++ src/kernel/sel4/src/plat/pc99/linker.lds
+@@ -22,7 +22,7 @@
+ OUTPUT_FORMAT(elf32-i386)
+ #elif defined(CONFIG_ARCH_X86_64)
+ PADDR_BASE = 0x00000000;
+-PADDR_LOAD = 0x00100000;
++PADDR_LOAD = 0x00200000;
+ KERNEL_BASE = 0xffffffff80000000;
+ OUTPUT_FORMAT(elf64-x86-64)
+ #endif

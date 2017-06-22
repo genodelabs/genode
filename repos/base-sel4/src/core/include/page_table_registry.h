@@ -15,9 +15,11 @@
 #define _CORE__INCLUDE__PAGE_TABLE_REGISTRY_H_
 
 /* Genode includes */
-#include <util/list.h>
 #include <base/exception.h>
+#include <base/heap.h>
 #include <base/log.h>
+#include <base/tslab.h>
+#include <util/avl_tree.h>
 
 /* core includes */
 #include <util.h>
@@ -25,183 +27,170 @@
 
 namespace Genode { class Page_table_registry; }
 
-
 class Genode::Page_table_registry
 {
 	public:
 
-		class Lookup_failed : Exception { };
 		class Mapping_cache_full : Exception { };
 
 	private:
 
-		/*
-		 * XXX use AVL tree (with virtual address as key) instead of list
-		 */
+		enum Level { FRAME, PAGE_TABLE, LEVEL2, LEVEL3 };
 
-		class Page_table : public List<Page_table>::Element
-		{
-			public:
-
-				struct Entry : List<Entry>::Element
-				{
-					addr_t   const addr;
-					unsigned const sel;
-
-					Entry(addr_t addr, unsigned sel) : addr(addr), sel(sel) { }
-				};
-
-				addr_t const addr;
-
-			private:
-
-				List<Entry> _entries;
-
-				static addr_t _page_frame_base(addr_t addr)
-				{
-					return addr & get_page_mask();
-				}
-
-				bool _entry_exists(addr_t addr) const
-				{
-					for (Entry const *e = _entries.first(); e; e = e->next()) {
-						if (_page_frame_base(e->addr) == _page_frame_base(addr))
-							return true;
-					}
-					return false;
-				}
-
-			public:
-
-				class Lookup_failed : Exception { };
-
-				Page_table(addr_t addr) : addr(addr) { }
-
-				Entry *first() { return _entries.first(); }
-
-				Entry &lookup(addr_t addr)
-				{
-					for (Entry *e = _entries.first(); e; e = e->next()) {
-						if (_page_frame_base(e->addr) == _page_frame_base(addr))
-							return *e;
-					}
-					throw Lookup_failed();
-				}
-
-				void insert_entry(Allocator &entry_alloc, addr_t addr, unsigned sel)
-				{
-					if (_entry_exists(addr)) {
-						warning("trying to insert page frame for ", Hex(addr), " twice");
-						return;
-					}
-
-					try {
-						_entries.insert(new (entry_alloc) Entry(addr, sel));
-					} catch (Genode::Allocator::Out_of_memory) {
-						throw Mapping_cache_full();
-					}
-				}
-
-				void remove_entry(Allocator &entry_alloc, addr_t addr)
-				{
-					try {
-						Entry &entry = lookup(addr);
-						_entries.remove(&entry);
-						destroy(entry_alloc, &entry);
-					} catch (Lookup_failed) { }
-				}
-
-				void flush_all(Allocator &entry_alloc)
-				{
-					for (; Entry *entry = _entries.first();) {
-						_entries.remove(entry);
-						destroy(entry_alloc, entry);
-					}
-				}
-		};
-
-		/**
-		 * Allocator operating on a static memory pool
-		 *
-		 * \param ELEM  element type
-		 * \param MAX   maximum number of elements
-		 *
-		 * The size of a single ELEM must be a multiple of sizeof(long).
-		 */
-		template <typename ELEM, size_t MAX>
-		class Static_allocator : public Allocator
+		class Frame : public Avl_node<Frame>
 		{
 			private:
 
-				Bit_allocator<MAX> _used;
+				addr_t  const _vaddr;
+				Cap_sel const _sel;
 
-				struct Elem_space
+				Frame *_lookup(addr_t vaddr)
 				{
-					long space[sizeof(ELEM)/sizeof(long)];
-				};
+					if (vaddr == _vaddr) return this;
 
-				Elem_space _elements[MAX];
+					Frame *e = Avl_node<Frame>::child(vaddr > _vaddr);
+
+					return e ? e->_lookup(vaddr) : 0;
+				}
+
+				static addr_t _base(addr_t const vaddr, unsigned const log2base)
+				{
+					addr_t const size = 1UL << log2base;
+					return vaddr & ~(size - 1);
+				}
 
 			public:
 
-				class Alloc_failed { };
+				Frame(addr_t const vaddr, Cap_sel const sel, unsigned log2base)
+				:
+					_vaddr(_base(vaddr, log2base)), _sel(sel)
+				{ }
 
-				bool alloc(size_t size, void **out_addr) override
+				Cap_sel const sel() const { return _sel; }
+				addr_t  const vaddr() const { return _vaddr; }
+
+				static Frame * lookup(Avl_tree<Frame> &tree,
+				                      addr_t const vaddr,
+				                      unsigned const log2base)
 				{
-					*out_addr = nullptr;
+					Frame * element = tree.first();
+					if (!element)
+						return nullptr;
 
-					if (size > sizeof(Elem_space)) {
-						error("unexpected allocation size of ", size);
-						return false;
-					}
-
-					try {
-						*out_addr = &_elements[_used.alloc()]; }
-					catch (typename Bit_allocator<MAX>::Out_of_indices) {
-						return false; }
-
-					return true;
+					addr_t const align_addr = _base(vaddr, log2base);
+					return element->_lookup(align_addr);
 				}
 
-				size_t overhead(size_t) const override { return 0; }
-
-				void free(void *ptr, size_t) override
-				{
-					Elem_space *elem = reinterpret_cast<Elem_space *>(ptr);
-					unsigned const index = elem - &_elements[0];
-					_used.free(index);
-				}
-
-				bool need_size_for_free() const { return false; }
+				bool higher(Frame const *other) const {
+					return other->_vaddr > _vaddr; }
 		};
 
-		Static_allocator<Page_table, 128>         _page_table_alloc;
-		Static_allocator<Page_table::Entry, 3 * 1024> _page_table_entry_alloc;
-
-		List<Page_table> _page_tables;
-
-		static addr_t _page_table_base(addr_t addr)
+		class Table : public Avl_node<Table>
 		{
-			return addr & ~(4*1024*1024 - 1);
+			private:
+
+				addr_t  const _vaddr;
+				addr_t  const _paddr;
+				Cap_sel const _sel;
+
+				Table *_lookup(addr_t vaddr)
+				{
+					if (vaddr == _vaddr) return this;
+
+					Table *e = Avl_node<Table>::child(vaddr > _vaddr);
+
+					return e ? e->_lookup(vaddr) : 0;
+				}
+
+				static addr_t _base(addr_t const vaddr, unsigned const log2base)
+				{
+					addr_t const size = 1UL << log2base;
+					return vaddr & ~(size - 1);
+				}
+
+			public:
+
+				Table(addr_t const vaddr, addr_t const paddr,
+				     Cap_sel const sel, unsigned log2base)
+				:
+					_vaddr(_base(vaddr, log2base)), _paddr(paddr), _sel(sel)
+				{ }
+
+				Cap_sel const sel()   const { return _sel; }
+				addr_t  const vaddr() const { return _vaddr; }
+				addr_t  const paddr() const { return _paddr; }
+
+				static Table * lookup(Avl_tree<Table> &tree,
+				                     addr_t const vaddr,
+				                     unsigned const log2base)
+				{
+					Table * element = tree.first();
+					if (!element)
+						return nullptr;
+
+					addr_t const align_addr = _base(vaddr, log2base);
+					return element->_lookup(align_addr);
+				}
+
+				bool higher(Table const *other) const {
+					return other->_vaddr > _vaddr; }
+		};
+
+		enum {
+			LEVEL_0 = 12, /* 4K Page */
+		};
+
+		static constexpr size_t SLAB_BLOCK_SIZE = get_page_size() - Sliced_heap::meta_data_size();
+		Tslab<Frame, SLAB_BLOCK_SIZE> _alloc_frames;
+		uint8_t _initial_sb_frame[SLAB_BLOCK_SIZE];
+
+		Tslab<Table, SLAB_BLOCK_SIZE> _alloc_high;
+		uint8_t _initial_sb_high[SLAB_BLOCK_SIZE];
+
+		Avl_tree<Frame> _frames;
+		Avl_tree<Table> _level1;
+		Avl_tree<Table> _level2;
+		Avl_tree<Table> _level3;
+
+		void _insert(addr_t const vaddr, Cap_sel const sel, Level const level,
+		             addr_t const paddr, unsigned const level_log2_size)
+		{
+			try {
+				switch (level) {
+				case FRAME:
+					_frames.insert(new (_alloc_frames) Frame(vaddr, sel,
+					                                         level_log2_size));
+					break;
+				case PAGE_TABLE:
+					_level1.insert(new (_alloc_high) Table(vaddr, paddr, sel,
+					                                         level_log2_size));
+					break;
+				case LEVEL2:
+					_level2.insert(new (_alloc_high) Table(vaddr, paddr, sel,
+					                                      level_log2_size));
+					break;
+				case LEVEL3:
+					_level3.insert(new (_alloc_high) Table(vaddr, paddr, sel,
+					                                      level_log2_size));
+					break;
+				}
+			} catch (Genode::Allocator::Out_of_memory) {
+				throw Mapping_cache_full();
+			} catch (Genode::Out_of_caps) {
+				throw Mapping_cache_full();
+			}
 		}
 
-		bool _page_table_exists(addr_t addr) const
+		template <typename FN, typename T>
+		void _flush_high(FN const &fn, Avl_tree<T> &tree, Allocator &alloc)
 		{
-			for (Page_table const *pt = _page_tables.first(); pt; pt = pt->next()) {
-				if (_page_table_base(pt->addr) == _page_table_base(addr))
-					return true;
-			}
-			return false;
-		}
+			for (T *element; (element = tree.first());) {
 
-		Page_table &_lookup(addr_t addr)
-		{
-			for (Page_table *pt = _page_tables.first(); pt; pt = pt->next()) {
-				if (_page_table_base(pt->addr) == _page_table_base(addr))
-					return *pt;
+				fn(element->sel(), element->paddr());
+
+				tree.remove(element);
+				destroy(alloc, element);
 			}
-			warning(__func__, ": page-table lookup failed ", Hex(addr));
-			throw Lookup_failed();
 		}
 
 	public:
@@ -210,105 +199,89 @@ class Genode::Page_table_registry
 		 * Constructor
 		 *
 		 * \param md_alloc  backing store allocator for metadata
-		 *
-		 * XXX The md_alloc argument is currently unused as we dimension
-		 *     MAX_PAGE_TABLES and MAX_PAGE_TABLE_ENTRIES statically.
 		 */
-		Page_table_registry(Allocator &md_alloc) { }
+		Page_table_registry(Allocator &md_alloc)
+		:
+			_alloc_frames(md_alloc, _initial_sb_frame),
+			_alloc_high(md_alloc, _initial_sb_high)
+		{ }
 
 		~Page_table_registry()
 		{
-			if (_page_tables.first())
+			if (_frames.first() || _level1.first() || _level2.first() ||
+			    _level3.first())
 				error("still entries in page table registry in destruction");
 		}
 
-		/**
-		 * Register page table
-		 *
-		 * \param addr  virtual address
-		 * \param sel   page-table selector
-		 */
-		void insert_page_table(addr_t addr, Cap_sel sel)
-		{
-			/* XXX sel is unused */
+		bool page_table_at(addr_t const vaddr, addr_t const level_log2) {
+			return Table::lookup(_level1, vaddr, level_log2); }
+		bool page_directory_at(addr_t const vaddr, addr_t const level_log2) {
+			return Table::lookup(_level2, vaddr, level_log2); }
+		bool page_level3_at(addr_t const vaddr, addr_t const level_log2) {
+			return Table::lookup(_level3, vaddr, level_log2); }
 
-			if (_page_table_exists(addr)) {
-				warning("attempt to insert page table for ", Hex(addr), " twice");
-				return;
-			}
-
-			_page_tables.insert(new (_page_table_alloc) Page_table(addr));
-		}
-
-		bool has_page_table_at(addr_t addr) const
-		{
-			return _page_table_exists(addr);
-		}
+		void insert_page_frame(addr_t const vaddr, Cap_sel const sel) {
+			_insert(vaddr, sel, Level::FRAME, 0, LEVEL_0); }
+		void insert_page_table(addr_t const vaddr, Cap_sel const sel,
+		                       addr_t const paddr, addr_t const level_log2) {
+			_insert(vaddr, sel, Level::PAGE_TABLE, paddr, level_log2); }
+		void insert_page_directory(addr_t const vaddr, Cap_sel const sel,
+		                           addr_t const paddr, addr_t const level_log2) {
+			_insert(vaddr, sel, Level::LEVEL2, paddr, level_log2); }
+		void insert_page_level3(addr_t const vaddr, Cap_sel const sel,
+		                        addr_t const paddr, addr_t const level_log2) {
+			_insert(vaddr, sel, Level::LEVEL3, paddr, level_log2); }
 
 		/**
-		 * Register page table entry
+		 * Apply functor 'fn' to selector of specified virtual address and
+		 * flush the page frame from the this cache.
 		 *
-		 * \param addr  virtual address
-		 * \param sel   page frame selector
-		 *
-		 * \throw  Lookup_failed  no page table for given address
-		 */
-		void insert_page_table_entry(addr_t addr, unsigned sel)
-		{
-			_lookup(addr).insert_entry(_page_table_entry_alloc, addr, sel);
-		}
-
-		/**
-		 * Discard the information about the given virtual address
-		 */
-		void forget_page_table_entry(addr_t addr)
-		{
-			try {
-				Page_table &page_table = _lookup(addr);
-				page_table.remove_entry(_page_table_entry_alloc, addr);
-			} catch (...) { }
-		}
-
-
-		void flush_cache()
-		{
-			for (Page_table *pt = _page_tables.first(); pt; pt = pt->next())
-				pt->flush_all(_page_table_entry_alloc);
-		}
-
-		/**
-		 * Apply functor 'fn' to selector of specified virtual address
-		 *
-		 * \param addr  virtual address
+		 * \param vaddr  virtual address
 		 *
 		 * The functor is called with the selector of the page table entry
 		 * (the copy of the phys frame selector) as argument.
 		 */
 		template <typename FN>
-		void apply(addr_t addr, FN const &fn)
+		void flush_page(addr_t vaddr, FN const &fn)
 		{
-			try {
-				Page_table        &page_table = _lookup(addr);
-				Page_table::Entry &entry      = page_table.lookup(addr);
+			Frame * frame = Frame::lookup(_frames, vaddr, LEVEL_0);
+			if (!frame)
+				return;
 
-				fn(entry.sel);
-			} catch (...) { }
+			fn(frame->sel(), frame->vaddr());
+			_frames.remove(frame);
+			destroy(_alloc_frames, frame);
 		}
 
 		template <typename FN>
-		void apply_to_and_destruct_all(FN const &fn)
+		void flush_pages(FN const &fn)
 		{
-			for (Page_table *pt; (pt = _page_tables.first());) {
+			Avl_tree<Frame> tmp;
 
-				Page_table::Entry *entry = pt->first();
-				for (; entry; entry = entry->next())
-					fn(entry->sel);
+			for (Frame *frame; (frame = _frames.first());) {
 
-				pt->flush_all(_page_table_entry_alloc);
-
-				_page_tables.remove(pt);
-				destroy(_page_table_alloc, pt);
+				if (fn(frame->sel(), frame->vaddr())) {
+					_frames.remove(frame);
+					destroy(_alloc_frames, frame);
+				} else {
+					_frames.remove(frame);
+					tmp.insert(frame);
+				}
 			}
+
+			for (Frame *frame; (frame = tmp.first());) {
+				tmp.remove(frame);
+				_frames.insert(frame);
+			}
+		}
+
+		template <typename PG, typename LV>
+		void flush_all(PG const &pages, LV const &level)
+		{
+			flush_pages(pages);
+			_flush_high(level, _level1, _alloc_high);
+			_flush_high(level, _level2, _alloc_high);
+			_flush_high(level, _level3, _alloc_high);
 		}
 };
 

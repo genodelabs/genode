@@ -10,3 +10,12 @@ DIR(sel4) := src/kernel/sel4
 $(call check_tool,python)
 
 PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)
+
+# adjust kernel config usable on qemu and on native hw, and add a 32bit version
+default: $(DOWNLOADS)
+	$(VERBOSE)mkdir -p src/kernel/sel4/configs/pc99/x86_64
+	$(VERBOSE)mkdir -p src/kernel/sel4/configs/pc99/ia32
+	$(VERBOSE)cp src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/x86_64/autoconf.h
+	$(VERBOSE)mv src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/ia32/autoconf.h
+	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/autoconf_32.config
+	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/autoconf_64.config

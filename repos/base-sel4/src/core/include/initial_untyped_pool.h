@@ -85,8 +85,6 @@ class Genode::Initial_untyped_pool
 			return aligned_free_offset + (1 << size_log2);
 		}
 
-	public:
-
 		/**
 		 * Apply functor to each untyped memory range
 		 *
@@ -102,6 +100,7 @@ class Genode::Initial_untyped_pool
 			}
 		}
 
+	public:
 
 		/**
 		 * Return selector of untyped memory range where the allocation of
@@ -174,9 +173,14 @@ class Genode::Initial_untyped_pool
 		}
 
 		/**
-		 * Convert remainder of the initial untyped memory into untyped pages
+		 * Convert (remainder) of the initial untyped memory into untyped
+		 * objects of size_log2 and up to a maximum as specified by max_memory
 		 */
-		void turn_remainder_into_untyped_pages()
+		template <typename FUNC>
+		void turn_into_untyped_object(addr_t const node_index,
+		                              FUNC   const & func,
+		                              addr_t const size_log2 = get_page_size_log2(),
+		                              addr_t max_memory = 0UL - 0x1000UL)
 		{
 			for_each_range([&] (Range &range) {
 
@@ -189,39 +193,47 @@ class Genode::Initial_untyped_pool
 				for (;;) {
 
 					addr_t const page_aligned_free_offset =
-						align_addr(range.free_offset, get_page_size_log2());
+						align_addr(range.free_offset, size_log2);
 
 					/* back out if no further page can be allocated */
-					if (page_aligned_free_offset + get_page_size() > range.size)
+					if (page_aligned_free_offset + (1UL << size_log2) > range.size)
+						return;
+
+					if (!max_memory)
 						return;
 
 					size_t const remaining_size    = range.size - page_aligned_free_offset;
 					size_t const retype_size_limit = get_page_size()*256;
-					size_t const batch_size        = min(remaining_size, retype_size_limit);
+					size_t const batch_size        = min(min(remaining_size, retype_size_limit), max_memory);
 
 					/* mark consumed untyped memory range as allocated */
 					range.free_offset += batch_size;
 
 					addr_t const phys_addr = range.phys + page_aligned_free_offset;
-					size_t const num_pages = batch_size / get_page_size();
+					size_t const num_pages = batch_size / (1UL << size_log2);
 
 					seL4_Untyped const service     = range.sel;
-					int          const type        = seL4_UntypedObject;
-					int          const size_bits   = get_page_size_log2();
+					addr_t       const type        = seL4_UntypedObject;
+					addr_t       const size_bits   = size_log2;
 					seL4_CNode   const root        = Core_cspace::top_cnode_sel();
-					int          const node_index  = Core_cspace::TOP_CNODE_UNTYPED_IDX;
-					int          const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
-					int          const node_offset = phys_addr >> get_page_size_log2();
-					int          const num_objects = num_pages;
+					addr_t       const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
+					addr_t       const node_offset = phys_addr >> size_log2;
+					addr_t       const num_objects = num_pages;
 
-					int const ret = seL4_Untyped_Retype(service,
-					                                    type,
-					                                    size_bits,
-					                                    root,
-					                                    node_index,
-					                                    node_depth,
-					                                    node_offset,
-					                                    num_objects);
+					/* XXX skip memory because of limited untyped cnode range */
+					if (node_offset >= (1UL << (32 - get_page_size_log2()))) {
+						Genode::warning(range.device ? "device" : "      ", " memory in range ", Hex_range<addr_t>(range.phys, range.size), " is unavailable (due to limited untyped cnode range)");
+						return;
+					}
+
+					long const ret = seL4_Untyped_Retype(service,
+					                                     type,
+					                                     size_bits,
+					                                     root,
+					                                     node_index,
+					                                     node_depth,
+					                                     node_offset,
+					                                     num_objects);
 
 					if (ret != 0) {
 						error(__func__, ": seL4_Untyped_Retype (untyped) "
@@ -229,11 +241,17 @@ class Genode::Initial_untyped_pool
 						return;
 					}
 
+					/* track memory left to be converted */
+					max_memory -= batch_size;
+
 					/* convert device memory directly into page frames */
 					if (range.device) {
 						size_t const num_pages = batch_size >> get_page_size_log2();
 						Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
 					}
+
+					/* invoke callback about the range */
+					func(phys_addr, num_pages << size_log2, range.device);
 				}
 			});
 		}

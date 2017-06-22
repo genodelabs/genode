@@ -90,6 +90,9 @@ struct Genode::Untyped_memory
 	}
 
 
+	static seL4_Word smallest_page_type();
+
+
 	/**
 	 * Create page frames from untyped memory
 	 */
@@ -99,22 +102,22 @@ struct Genode::Untyped_memory
 		for (size_t i = 0; i < num_pages; i++, phys_addr += get_page_size()) {
 
 			seL4_Untyped const service     = untyped_sel(phys_addr).value();
-			int          const type        = seL4_X86_4K;
-			int          const size_bits   = 0;
+			seL4_Word    const type        = smallest_page_type();
+			seL4_Word    const size_bits   = 0;
 			seL4_CNode   const root        = Core_cspace::top_cnode_sel();
-			int          const node_index  = Core_cspace::TOP_CNODE_PHYS_IDX;
-			int          const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
-			int          const node_offset = phys_addr >> get_page_size_log2();
-			int          const num_objects = 1;
+			seL4_Word    const node_index  = Core_cspace::TOP_CNODE_PHYS_IDX;
+			seL4_Word    const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
+			seL4_Word    const node_offset = phys_addr >> get_page_size_log2();
+			seL4_Word    const num_objects = 1;
 
-			int const ret = seL4_Untyped_Retype(service,
-			                                    type,
-			                                    size_bits,
-			                                    root,
-			                                    node_index,
-			                                    node_depth,
-			                                    node_offset,
-			                                    num_objects);
+			long const ret = seL4_Untyped_Retype(service,
+			                                     type,
+			                                     size_bits,
+			                                     root,
+			                                     node_index,
+			                                     node_depth,
+			                                     node_offset,
+			                                     num_objects);
 
 			if (ret != seL4_NoError) {
 				error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset (IA32_4K) "

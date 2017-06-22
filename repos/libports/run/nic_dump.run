@@ -85,7 +85,7 @@ proc server_bin { prot } {
 	if {$prot == "http"} { return "test-lwip_httpsrv_static" } }
 
 proc ram_quota { prot } {
-	if {$prot == "udp"}  { return 28M }
+	if {$prot == "udp"}  { return 29M }
 	if {$prot == "http"} { return 12M }
 }
 

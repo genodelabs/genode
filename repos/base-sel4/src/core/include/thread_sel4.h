@@ -1,5 +1,5 @@
 /*
- * \brief  Utilities fo thread creation on seL4
+ * \brief  Utilities for thread creation on seL4
  * \author Norman Feske
  * \date   2015-05-12
  *
@@ -48,7 +48,7 @@ namespace Genode {
 	 * Set register values for the instruction pointer and stack pointer and
 	 * start the seL4 thread
 	 */
-	static inline void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp);
+	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp);
 };
 
 
@@ -129,21 +129,6 @@ void Genode::Thread_info::destruct()
 }
 
 
-void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp)
-{
-	/* set register values for the instruction pointer and stack pointer */
-	seL4_UserContext regs;
-	Genode::memset(&regs, 0, sizeof(regs));
-	size_t const num_regs = sizeof(regs)/sizeof(seL4_Word);
-
-	regs.eip = ip;
-	regs.esp = sp;
-	regs.fs  = IPCBUF_GDT_SELECTOR;
-
-	int const ret = seL4_TCB_WriteRegisters(tcb_sel.value(), false, 0, num_regs, &regs);
-	ASSERT(ret == 0);
-
-	seL4_TCB_Resume(tcb_sel.value());
-}
+void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp);
 
 #endif /* _CORE__INCLUDE__THREAD_SEL4_H_ */

@@ -41,7 +41,7 @@ install_config {
 		<provides><service name="Block"/></provides>
 	</start>
 	<start name="blk_cache">
-		<resource name="RAM" quantum="2304K" />
+		<resource name="RAM" quantum="2704K" />
 		<provides><service name="Block" /></provides>
 		<route>
 			<service name="Block"><child name="test-blk-srv" /></service>

@@ -26,7 +26,7 @@ install_config {
 	<default-route>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
-	<start name="timer" caps="60">
+	<start name="timer" caps="64">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>

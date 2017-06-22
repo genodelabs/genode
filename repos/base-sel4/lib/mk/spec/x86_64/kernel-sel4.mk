@@ -14,6 +14,6 @@ endif
 build_kernel:
 	$(VERBOSE)$(MAKE) \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
-	          BOARD=ia32 ARCH=x86 SEL4_ARCH=ia32 PLAT=pc99 DEBUG=1 \
+	          BOARD=x86_64 ARCH=x86 SEL4_ARCH=x86_64 PLAT=pc99 DEBUG=1 \
 	          SOURCE_ROOT=$(SEL4_DIR) -f$(SEL4_DIR)/Makefile
 

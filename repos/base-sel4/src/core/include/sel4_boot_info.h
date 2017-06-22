@@ -14,26 +14,9 @@
 #ifndef _CORE__INCLUDE__SEL4_BOOT_INFO_H_
 #define _CORE__INCLUDE__SEL4_BOOT_INFO_H_
 
-/* Genode includes */
-#include <base/stdint.h>
-
 /* seL4 includes */
 #include <sel4/bootinfo.h>
 
-
-/* provided by the assembly startup code */
-extern Genode::addr_t __initial_bx;
-
-
-namespace Genode {
-
-	/**
-	 * Obtain seL4 boot info structure
-	 */
-	static inline seL4_BootInfo const &sel4_boot_info()
-	{
-		return *(seL4_BootInfo const *)__initial_bx;
-	}
-}
+namespace Genode { seL4_BootInfo const &sel4_boot_info(); }
 
 #endif /* _CORE__INCLUDE__SEL4_BOOT_INFO_H_ */

@@ -52,9 +52,11 @@ void Thread::_init_platform_thread(size_t, Type type)
 
 	Platform &platform = *platform_specific();
 
+	seL4_CapData_t guard = seL4_CapData_Guard_new(0, CONFIG_WORD_SIZE - 32);
 	seL4_CapData_t no_cap_data = { { 0 } };
 	int const ret = seL4_TCB_SetSpace(native_thread().tcb_sel, 0,
-	                                  platform.top_cnode().sel().value(), no_cap_data,
+	                                  platform.top_cnode().sel().value(),
+	                                  guard,
 	                                  seL4_CapInitThreadPD, no_cap_data);
 	ASSERT(ret == seL4_NoError);
 
