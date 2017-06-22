@@ -5,7 +5,7 @@
 assert_spec 64bit
 
 set flavor   "ubuntu_16_04_64"
-set vm_ram   "1280M"
+set vm_ram   "9460M"
 
 set use_vbox4 1
 set use_vbox5 0

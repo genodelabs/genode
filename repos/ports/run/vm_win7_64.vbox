@@ -31,7 +31,7 @@
         <HardwareVirtExLargePages enabled="false"/>
         <HardwareVirtForce enabled="false"/>
       </CPU>
-      <Memory RAMSize="1024" PageFusion="false"/>
+      <Memory RAMSize="9216" PageFusion="false"/>
       <HID Pointing="PS2Mouse" Keyboard="PS2Keyboard"/>
       <HPET enabled="false"/>
       <Chipset type="PIIX3"/>
