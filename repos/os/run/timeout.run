@@ -61,7 +61,7 @@ build "core init drivers/platform drivers/timer test/timeout test/cpufreq"
 create_boot_directory
 
 append config {
-	<config>
+	<config prio_levels="2">
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="IRQ"/>
@@ -80,7 +80,7 @@ append config {
 			<resource name="RAM" quantum="10M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="test">
+		<start name="test" priority="-1">
 			<binary name="test-timeout"/>
 			<resource name="RAM" quantum="250M"/>
 			<config precise_time="} [precise_time] {"
