@@ -20,10 +20,12 @@ using namespace Board;
 
 bool Board::secure_irq(unsigned i)
 {
-	if (i == EPIT_1_IRQ)                           return true;
-	if (i == EPIT_2_IRQ)                           return true;
-	if (i == I2C_2_IRQ)                            return true;
-	if (i == I2C_3_IRQ)                            return true;
+	if (i == EPIT_1_IRQ) return true;
+	if (i == EPIT_2_IRQ) return true;
+	if (i == I2C_2_IRQ)  return true;
+	if (i == I2C_3_IRQ)  return true;
+	if (i == SDHC_IRQ)   return true;
+
 	if (i >= GPIO1_IRQL && i <= GPIO4_IRQH) return true;
 	if (i >= GPIO5_IRQL && i <= GPIO7_IRQH) return true;
 	return false;
