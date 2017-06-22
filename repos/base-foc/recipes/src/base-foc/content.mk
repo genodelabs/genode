@@ -1,6 +1,6 @@
 include $(GENODE_DIR)/repos/base/recipes/src/base_content.inc
 
-FROM_BASE_FOC := include/foc include/foc_native_cpu include/foc_native_pd
+FROM_BASE_FOC := include/foc include/foc_native_cpu
 
 content: $(FROM_BASE_FOC)
 
