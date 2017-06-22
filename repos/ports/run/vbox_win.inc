@@ -254,7 +254,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		<binary name=\"$virtualbox5_binary\" />"
 
 	append config_of_app {
-		<resource name="RAM" quantum="1280M"/>}
+		<resource name="RAM" quantum="} $vm_ram {"/>}
 	if { $use_vms eq 1 } {
 		append config_of_app "
 		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"yes\">"

@@ -3,6 +3,7 @@
 #
 
 set flavor   "ubuntu_16_04_32"
+set vm_ram   "1280M"
 
 set use_vbox4 0
 set use_vbox5 1

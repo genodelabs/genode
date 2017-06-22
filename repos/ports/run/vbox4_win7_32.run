@@ -3,6 +3,7 @@
 #
 
 set flavor   "win7"
+set vm_ram   "1280M"
 
 set use_vbox4 1
 set use_vbox5 0

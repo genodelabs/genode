@@ -5,6 +5,7 @@
 assert_spec nova
 
 set flavor   "win7"
+set vm_ram   "1280M"
 
 set use_vbox4 0
 set use_vbox5 1
