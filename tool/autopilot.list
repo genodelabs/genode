@@ -64,6 +64,7 @@ vbox5_ubuntu_16_04_32
 vbox5_ubuntu_16_04_64
 vbox5_win7_32
 vbox5_win7_64
+vbox5_win7_64_raw
 vbox5_win7_64_share
 vbox5_win7_64_multiple
 vbox5_win10_64
