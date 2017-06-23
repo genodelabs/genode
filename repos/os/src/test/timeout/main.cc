@@ -199,7 +199,6 @@ struct Fast_polling : Test
 	enum { STACK_SIZE            = 4 * 1024 * sizeof(addr_t) };
 	enum { MIN_TIME_COMPARISONS  = 100 };
 	enum { MAX_TIME_ERR_US       = 10000 };
-	enum { MAX_AVG_TIME_ERR_US   = 1000 };
 	enum { MAX_DELAY_ERR_US      = 2000 };
 	enum { MAX_AVG_DELAY_ERR_US  = 20 };
 	enum { MAX_POLL_LATENCY_US   = 1000 };
@@ -227,6 +226,9 @@ struct Fast_polling : Test
 	Result_buffer          local_us_1      { env };
 	Result_buffer          local_us_2      { env };
 	Result_buffer          remote_ms       { env };
+
+	unsigned long max_avg_time_err_us { config.xml().attribute_value("precise_ref_time", true) ?
+	                                    1000UL : 2000UL };
 
 	unsigned const delay_loops_per_poll[NR_OF_ROUNDS] {      1,
 	                                                      1000,
@@ -520,7 +522,7 @@ struct Fast_polling : Test
 
 			bool const error_nr_of_good_polls = (nr_of_good_polls          < MIN_NR_OF_POLLS);
 			bool const error_nr_of_time_cmprs = (avg_time_err_us.avg_cnt() < MIN_TIME_COMPARISONS);
-			bool const error_avg_time_err     = (avg_time_err_us.avg()     > MAX_AVG_TIME_ERR_US);
+			bool const error_avg_time_err     = (avg_time_err_us.avg()     > max_avg_time_err_us);
 			bool const error_max_time_err     = (max_time_err_us           > MAX_TIME_ERR_US);
 			bool const error_avg_delay_err    = (avg_delay_err_us.avg()    > max_avg_delay_err_us);
 
@@ -533,7 +535,7 @@ struct Fast_polling : Test
 			log(error_nr_of_good_polls ? "\033[31mbad:  " : "good: ", "nr of good polls       ", nr_of_good_polls,            " (min ", (unsigned)MIN_NR_OF_POLLS,              ")\033[0m");
 			log(                                            "      ", "nr of bad polls        ", nr_of_bad_polls                                                                          );
 			log(error_nr_of_time_cmprs ? "\033[31mbad:  " : "good: ", "nr of time comparisons ", avg_time_err_us.avg_cnt(),   " (min ", (unsigned)MIN_TIME_COMPARISONS,         ")\033[0m");
-			log(error_avg_time_err     ? "\033[31mbad:  " : "good: ", "average time error     ", avg_time_err_us.avg(),    " us (max ", (unsigned long)MAX_AVG_TIME_ERR_US,  " us)\033[0m");
+			log(error_avg_time_err     ? "\033[31mbad:  " : "good: ", "average time error     ", avg_time_err_us.avg(),    " us (max ", (unsigned long)max_avg_time_err_us,  " us)\033[0m");
 			log(error_max_time_err     ? "\033[31mbad:  " : "good: ", "maximum time error     ", max_time_err_us,          " us (max ", (unsigned long)MAX_TIME_ERR_US,      " us)\033[0m");
 			log(                                            "      ", "average delay          ", avg_delay_us.avg(),       " us"                                                          );
 			log(error_avg_delay_err    ? "\033[31mbad:  " : "good: ", "average delay error    ", avg_delay_err_us.avg(),   " us (max ", max_avg_delay_err_us,                " us)\033[0m");

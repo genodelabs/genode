@@ -35,6 +35,23 @@ proc precise_time { } {
 	return true
 }
 
+#
+# Wether the platform allows for a 'Timer::Connection::elapsed_ms'
+# implementation that has a precision < 2 ms
+#
+proc precise_ref_time { } {
+
+	#
+	# On platforms that use the PIT timer driver, 'elapsed_ms' is pretty
+	# inprecise/unsteady (up to 3 ms deviation) for a reason that is not
+	# clearly determined yet. On Fiasco and Fiasco.OC, that use kernel timing,
+	# it is the same. So, on these platforms, our locally interpolated time
+	# seems to be fine but the reference time is bad.
+	#
+	if {[have_spec sel4] || [have_spec pistachio] || [have_spec okl4] || [have_spec foc] || [have_spec fiasco]} { return false }
+	return true
+}
+
 build "core init drivers/platform drivers/timer test/timeout test/cpufreq"
 
 #
@@ -67,6 +84,7 @@ append config {
 			<binary name="test-timeout"/>
 			<resource name="RAM" quantum="250M"/>
 			<config precise_time="} [precise_time] {"
+			        precise_ref_time="} [precise_ref_time] {"/>
 			        precise_timeouts="} [precise_timeouts] {"/>
 		</start>
 	</config>
