@@ -70,16 +70,9 @@ Duration Timer::Time_source::curr_time()
 {
 	uint32_t passed_ticks;
 
-	/*
-	 * Read PIT count and status
-	 *
-	 * Reading the PIT registers via port I/O is a non-const operation.
-	 * Since 'curr_time' is declared as const, however, we need to
-	 * explicitly override the const-ness of the 'this' pointer.
-	 */
+	/* read PIT count and status */
 	bool wrapped;
-	uint16_t const curr_counter =
-		const_cast<Time_source *>(this)->_read_counter(&wrapped);
+	uint16_t const curr_counter = _read_counter(&wrapped);
 
 	/* determine the time since we looked at the counter */
 	if (wrapped && !_handled_wrap) {
