@@ -230,7 +230,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 		return nullptr;
 	}
 
-	fd->flags = flags & (O_NONBLOCK|O_APPEND);
+	fd->flags = flags & (O_ACCMODE|O_NONBLOCK|O_APPEND);
 
 	if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1)) {
 		errno = EINVAL; /* XXX which error code fits best ? */
