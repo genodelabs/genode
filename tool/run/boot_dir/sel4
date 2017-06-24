@@ -52,7 +52,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "timeout 0"
 		puts $fh "default 0"
 		puts $fh "\ntitle Genode on seL4"
-		puts $fh " kernel /boot/bender norelocate"
+		puts $fh " kernel /boot/bender phys_max=256M"
 		puts $fh " module /sel4 disable_iommu"
 		puts $fh " module /image.elf"
 
@@ -71,7 +71,7 @@ proc run_boot_dir {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		puts $fh " exec /boot/bender norelocate"
+		puts $fh " exec /boot/bender phys_max=256M"
 		puts $fh " load /sel4 disable_iommu"
 		puts $fh " load /image.elf"
 		close $fh
