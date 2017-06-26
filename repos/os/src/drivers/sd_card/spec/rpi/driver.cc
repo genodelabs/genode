@@ -25,7 +25,7 @@ Driver::Driver(Env &env)
 :
 	Driver_base(env.ram()),
 	Attached_mmio(env, Rpi::SDHCI_BASE, Rpi::SDHCI_SIZE),
-	_ram(env.ram())
+	_env(env)
 {
 	log("SD card detected");
 	log("capacity: ", _card_info.capacity_mb(), " MiB");
@@ -40,7 +40,9 @@ void Driver::_set_and_enable_clock(unsigned divider)
 	Control1::Clk_internal_en::set(ctl1, 1);
 	Mmio::write<Control1>(ctl1);
 
-	if (!wait_for<Control1::Clk_internal_stable>(1, _delayer)) {
+	try {
+		wait_for(_delayer, Control1::Clk_internal_stable::Equal(1));
+	} catch (Polling_timeout) {
 		error("could not set internal clock");
 		throw Detection_failed();
 	}
@@ -60,7 +62,9 @@ Card_info Driver::_init()
 	Control1::Srst_data::set(v);
 	Mmio::write<Control1>(v);
 
-	if (!wait_for<Control1::Srst_hc>(0, _delayer)) {
+	try {
+		wait_for(_delayer, Control1::Srst_hc::Equal(0));
+	} catch (Polling_timeout) {
 		error("host-controller soft reset timed out");
 		throw Detection_failed();
 	}

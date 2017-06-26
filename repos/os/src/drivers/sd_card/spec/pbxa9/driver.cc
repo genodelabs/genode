@@ -31,7 +31,7 @@ void Driver::_write_command(unsigned cmd_index, bool resp)
 
 	_write_reg(Command, cmd_index);
 
-	while (!_read_reg(Status) & (CmdRespEnd | CmdSent)) ;
+	while (!(_read_reg(Status) & (CmdRespEnd | CmdSent))) ;
 }
 
 

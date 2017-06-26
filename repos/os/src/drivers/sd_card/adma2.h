@@ -66,7 +66,7 @@ class Adma2::Table
 
 	public:
 
-		Table(Ram_session &ram);
+		Table(Ram_session &ram, Region_map &rm);
 
 		/**
 		 * Marshal descriptors according to block request

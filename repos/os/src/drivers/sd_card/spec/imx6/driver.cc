@@ -122,7 +122,7 @@ Driver::Driver(Env &env)
 :
 	Driver_base(env.ram()),
 	Attached_mmio(env, Imx6::SDHC_MMIO_BASE, Imx6::SDHC_MMIO_SIZE),
-	_env(env), _irq(Imx6::SDHC_IRQ)
+	_env(env), _irq(env, Imx6::SDHC_IRQ)
 {
 	log("SD card detected");
 	log("capacity: ", card_info().capacity_mb(), " MiB");

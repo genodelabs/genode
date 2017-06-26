@@ -160,14 +160,16 @@ class Sd_card::Driver : public  Driver_base,
 
 		struct Timer_delayer : Timer::Connection, Mmio::Delayer
 		{
+			Timer_delayer(Genode::Env &env) : Timer::Connection(env) { }
+
 			void usleep(unsigned us) { Timer::Connection::usleep(us); }
 		};
 
-		Entrypoint             &_ep;
+		Env                    &_env;
 		Block_transfer          _block_transfer;
-		Timer_delayer           _delayer;
-		Signal_handler<Driver>  _irq_handler { _ep, *this, &Driver::_handle_irq };
-		Irq_connection          _irq         { Panda::HSMMC_IRQ };
+		Timer_delayer           _delayer     { _env };
+		Signal_handler<Driver>  _irq_handler { _env.ep(), *this, &Driver::_handle_irq };
+		Irq_connection          _irq         { _env, Panda::HSMMC_IRQ };
 		Card_info               _card_info   { _init() };
 
 		Card_info _init();

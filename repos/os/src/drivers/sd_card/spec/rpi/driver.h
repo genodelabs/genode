@@ -150,12 +150,14 @@ class Sd_card::Driver : public  Driver_base,
 
 		struct Timer_delayer : Timer::Connection, Mmio::Delayer
 		{
+			Timer_delayer(Genode::Env &env) : Timer::Connection(env) { }
+
 			void usleep(unsigned us) { Timer::Connection::usleep(us); }
 		};
 
-		Ram_session    &_ram;
-		Timer_delayer   _delayer;
-		Irq_connection  _irq       { Rpi::SDHCI_IRQ };
+		Env            &_env;
+		Timer_delayer   _delayer   { _env };
+		Irq_connection  _irq       { _env, Rpi::SDHCI_IRQ };
 		Card_info       _card_info { _init() };
 
 		template <typename REG>
@@ -212,7 +214,7 @@ class Sd_card::Driver : public  Driver_base,
 		           Block::Packet_descriptor &packet) override;
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) override {
-			return _ram.alloc(size, UNCACHED); }
+			return _env.ram().alloc(size, UNCACHED); }
 };
 
 #endif /* _DRIVER_H_ */

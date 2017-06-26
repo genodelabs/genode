@@ -393,7 +393,7 @@ Csd Driver::_read_csd()
 
 size_t Driver::_read_ext_csd()
 {
-	Attached_ram_dataspace ds(&_env.ram(), 0x1000, UNCACHED);
+	Attached_ram_dataspace ds(_env.ram(), _env.rm(), 0x1000, UNCACHED);
 
 	addr_t phys = Dataspace_client(ds.cap()).phys_addr();
 	_setup_idmac_descriptor_table(1, phys);

@@ -60,7 +60,7 @@ struct Main
 	                                       .xml().attribute_value("buffer_size_kib",
 	                                                              (size_t)0) };
 	size_t const            buf_size     { buf_size_kib * 1024 };
-	Attached_ram_dataspace  buf          { &env.ram(), buf_size, UNCACHED };
+	Attached_ram_dataspace  buf          { env.ram(), env.rm(), buf_size, UNCACHED };
 	char                   *buf_virt     { buf.local_addr<char>() };
 	addr_t                  buf_phys     { Dataspace_client(buf.cap())
 	                                       .phys_addr() };

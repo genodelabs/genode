@@ -160,8 +160,9 @@ class Sd_card::Driver : public  Driver_base,
 
 		struct Timer_delayer : Timer::Connection, Mmio::Delayer
 		{
-			void usleep(unsigned us) {
-				Timer::Connection::usleep(us); }
+			Timer_delayer(Genode::Env &env) : Timer::Connection(env) { }
+
+			void usleep(unsigned us) { Timer::Connection::usleep(us); }
 		};
 
 		struct Block_transfer
@@ -171,12 +172,12 @@ class Sd_card::Driver : public  Driver_base,
 		};
 
 		Env                    &_env;
-		Timer_delayer           _delayer;
+		Timer_delayer           _delayer          { _env };
 		Block_transfer          _block_transfer;
 		Clock_regulator         _clock_regulator  { _env };
 		Signal_handler<Driver>  _irq_handler      { _env.ep(), *this, &Driver::_handle_irq };
-		Irq_connection          _irq              { Exynos5::SDMMC0_IRQ };
-		Attached_ram_dataspace  _idmac_desc_ds    { &_env.ram(),
+		Irq_connection          _irq              { _env,  Exynos5::SDMMC0_IRQ };
+		Attached_ram_dataspace  _idmac_desc_ds    { _env.ram(), _env.rm(),
 		                                            IDMAC_DESC_MAX_ENTRIES * sizeof(Idmac_desc),
 		                                            UNCACHED };
 		Idmac_desc *const       _idmac_desc       { _idmac_desc_ds.local_addr<Idmac_desc>() };
