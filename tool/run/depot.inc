@@ -11,9 +11,9 @@ proc depot_dir { } { return [genode_dir]/depot }
 # Return spec value to be used to access binary archives
 #
 proc depot_spec { } {
-	if {[have_spec x86_32]} { return "x86_32" }
-	if {[have_spec x86_64]} { return "x86_64" }
-	if {[have_spec arm_v7]} { return "arm_v7" }
+	if {[have_spec x86_32]}  { return "x86_32" }
+	if {[have_spec x86_64]}  { return "x86_64" }
+	if {[have_spec arm_v7a]} { return "arm_v7a" }
 }
 
 
