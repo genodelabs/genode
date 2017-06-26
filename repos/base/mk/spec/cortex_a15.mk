@@ -1,14 +1,8 @@
-#
-# \brief  Build-system configurations for ARM Cortex A15
-# \author Martin Stein
-# \date   2013-01-09
-#
-
-# denote wich specs are also fullfilled by this spec
 SPECS += arm_v7a
 
-# add repository relative include paths
 REP_INC_DIR += include/spec/cortex_a15
+
+include $(BASE_DIR)/mk/spec/arm_v7a.mk
 
 # configure compiler
 #
@@ -16,11 +10,8 @@ REP_INC_DIR += include/spec/cortex_a15
 #
 #   warning: switch -mcpu=cortex-a15 conflicts with -march=armv7-a switch [enabled by default]
 #
-# Therefore, do not specify the actual CPU and the architecture together.
+# Therefore, we override the 'CC_MARCH' of the included 'arm_v7a.mk'.
 #
 # Reference: https://github.com/genodelabs/genode/issues/810
 #
-CC_MARCH += -mcpu=cortex-a15
-
-# include implied specs
-include $(BASE_DIR)/mk/spec/arm_v7a.mk
+CC_MARCH := -march=armv7ve -mcpu=cortex-a15
