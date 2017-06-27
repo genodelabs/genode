@@ -269,6 +269,10 @@ class Fs_rom::Rom_session_component :
 				return;
 			}
 
+			/* omit read if file is empty */
+			if (_file_size == 0)
+				return;
+
 			/* read content from file */
 			Tx_source &source = *_fs.tx();
 			while (_file_seek < _file_size) {
@@ -285,8 +289,14 @@ class Fs_rom::Rom_session_component :
 					source.submit_packet(packet);
 				}
 
-				/* process ack at the global signal handler */
-				_env.ep().wait_and_dispatch_one_io_signal();
+				/*
+				 * Process the global signal handler until we got a response
+				 * for the read request (indicated by a change of the seek
+				 * position).
+				 */
+				size_t const orig_file_seek = _file_seek;
+				while (_file_seek == orig_file_seek)
+					_env.ep().wait_and_dispatch_one_io_signal();
 			}
 		}
 
@@ -366,9 +376,9 @@ class Fs_rom::Rom_session_component :
 					return false;
 
 				if (packet.position() > _file_seek || _file_seek >= _file_size) {
-						error("bad packet seek position");
-						_file_ds.realloc(&_env.ram(), 0);
-						return true;
+					error("bad packet seek position");
+					_file_ds.realloc(&_env.ram(), 0);
+					return true;
 				}
 
 				size_t const n = min(packet.length(), _file_size - _file_seek);
@@ -398,7 +408,7 @@ struct Fs_rom::Packet_handler : Genode::Io_signal_handler<Packet_handler>
 		while (source.ack_avail()) {
 			File_system::Packet_descriptor pack = source.get_acked_packet();
 			for (Rom_session_component *session = sessions.first();
-	   		     session; session = session->next())
+			     session; session = session->next())
 			{
 				if (session->process_packet(pack))
 					break;
