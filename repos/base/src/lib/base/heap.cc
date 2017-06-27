@@ -118,7 +118,7 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 		_alloc->add_range((addr_t)ds_addr, size);
 
 		/* allocate the Dataspace structure */
-		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(sizeof(addr_t))).error()) {
+		if (_alloc->alloc_aligned(sizeof(Heap::Dataspace), &ds_meta_data_addr, log2(16)).error()) {
 			warning("could not allocate dataspace meta data - this should never happen");
 			return 0;
 		}
