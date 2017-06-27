@@ -716,7 +716,6 @@ append config {
 
 			<!-- let child consume quota -->
 			<init_config version="consumed">
-				<report init_ram="yes" child_ram="yes" delay_ms="1500"/>
 				<parent-provides>
 					<service name="ROM"/>
 					<service name="CPU"/>
@@ -736,7 +735,28 @@ append config {
 			</init_config>
 			<expect_log string="[init -> test] config 7: consume 2 MiB"/>
 			<expect_log string="[init -> test] consume 2M bytes of memory"/>
-			<sleep ms="1600"/>
+			<sleep ms="1000"/>
+			<!-- activate child_ram report -->
+			<init_config version="report consumed">
+				<report child_ram="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="test">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="consume 2 MiB">
+						<handle_yield_requests/>
+						<consume_ram amount="2M"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="200"/>
 			<expect_init_state>
 				<node name="child"> <attribute name="name" value="test"/>
 					<node name="ram">
