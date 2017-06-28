@@ -100,6 +100,13 @@ class Fs_rom::Rom_session_component :
 		 */
 		struct Open_compound_dir_failed { };
 
+		/*
+		 * Version number used to track the need for ROM update notifications
+		 */
+		struct Version { unsigned value; };
+		Version _curr_version       { 0 };
+		Version _handed_out_version { ~0U };
+
 		/**
 		 * Open compound directory of specified file
 		 *
@@ -300,6 +307,12 @@ class Fs_rom::Rom_session_component :
 			}
 		}
 
+		void _notify_client_about_new_version()
+		{
+			if (_sigh.valid() && _curr_version.value != _handed_out_version.value)
+				Genode::Signal_transmitter(_sigh).submit();
+		}
+
 	public:
 
 		/**
@@ -346,11 +359,15 @@ class Fs_rom::Rom_session_component :
 		{
 			_update_dataspace();
 			Genode::Dataspace_capability ds = _file_ds.cap();
+			_handed_out_version = _curr_version;
 			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds);
 		}
 
-		void sigh(Genode::Signal_context_capability sigh) {
-			_sigh = sigh; }
+		void sigh(Genode::Signal_context_capability sigh)
+		{
+			_sigh = sigh;
+			_notify_client_about_new_version();
+		}
 
 		/**
 		 * If packet corresponds to this session then process and return true.
@@ -362,16 +379,19 @@ class Fs_rom::Rom_session_component :
 			switch (packet.operation()) {
 
 			case File_system::Packet_descriptor::CONTENT_CHANGED:
+
+				_curr_version = Version { _curr_version.value + 1 };
+
 				if ((_file_handle.constructed() && (*_file_handle == packet.handle())) ||
 				    (_compound_dir_handle.constructed() && (*_compound_dir_handle == packet.handle())))
 				{
-					if (_sigh.valid())
-						Genode::Signal_transmitter(_sigh).submit();
+					_notify_client_about_new_version();
 					return true;
 				}
 				return false;
 
 			case File_system::Packet_descriptor::READ: {
+
 				if (!(_file_handle.constructed() && (*_file_handle == packet.handle())))
 					return false;
 
@@ -389,6 +409,7 @@ class Fs_rom::Rom_session_component :
 			}
 
 			default:
+
 				Genode::error("discarding strange packet acknowledgement");
 				return true;
 			}
