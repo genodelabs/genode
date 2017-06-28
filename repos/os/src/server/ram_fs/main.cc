@@ -83,6 +83,8 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			case Packet_descriptor::WRITE:
 				if (content && (packet.length() <= packet.size()))
 					res_length = open_node.node().write((char const *)content, length, packet.position());
+
+				open_node.mark_as_written();
 				break;
 
 			case Packet_descriptor::CONTENT_CHANGED:
@@ -217,9 +219,10 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 					try {
 						File * const file = new (_alloc)
-					                    	File(_alloc, name.string());
+							File(_alloc, name.string());
 
 						dir.adopt_unsynchronized(file);
+						open_node.mark_as_written();
 					}
 					catch (Allocator::Out_of_memory) { throw No_space(); }
 				}
@@ -338,19 +341,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		void close(Node_handle handle)
 		{
 			auto close_fn = [&] (Open_node &open_node) {
-
-				Node &node = open_node.node();
-
-				/*
-				 * Notify listeners about the changed file.
-				 */
-				node.notify_listeners();
-
-				/*
-				 * De-allocate handle
-				 */
-				destroy(_alloc, &open_node);
-			};
+				destroy(_alloc, &open_node); };
 
 			try {
 				_open_node_registry.apply<Open_node>(handle, close_fn);
@@ -362,8 +353,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		Status status(Node_handle node_handle)
 		{
 			auto status_fn = [&] (Open_node &open_node) {
-				return open_node.node().status();
-			};
+				return open_node.node().status(); };
 
 			try {
 				return _open_node_registry.apply<Open_node>(node_handle, status_fn);
@@ -394,6 +384,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				//     is still referenced by a node handle
 
 				destroy(_alloc, node);
+				open_node.mark_as_written();
 			};
 
 			try {
@@ -410,6 +401,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 			auto truncate_fn = [&] (Open_node &open_node) {
 				open_node.node().truncate(size);
+				open_node.mark_as_written();
 			};
 
 			try {
@@ -448,15 +440,17 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 						to_dir.adopt_unsynchronized(node);
 
 						/*
-				 	 	 * If the file was moved from one directory to another we
-				 	 	 * need to inform the new directory 'to_dir'. The original
-				 	 	 * directory 'from_dir' will always get notified (i.e.,
-				 	 	 * when just the file name was changed) below.
-				 	 	 */
+						 * If the file was moved from one directory to another we
+						 * need to inform the new directory 'to_dir'. The original
+						 * directory 'from_dir' will always get notified (i.e.,
+						 * when just the file name was changed) below.
+						 */
 						to_dir.mark_as_updated();
+						open_to_dir_node.mark_as_written();
 						to_dir.notify_listeners();
 
 						from_dir.mark_as_updated();
+						open_from_dir_node.mark_as_written();
 						from_dir.notify_listeners();
 
 						node->mark_as_updated();

@@ -35,11 +35,19 @@ class File_system::Open_node : public File_system::Node
 		NODE                                         &_node;
 		Genode::Constructible<File_system::Listener>  _listener;
 
+		Listener::Version const _version_when_opened = _node.curr_version();
+
+		/*
+		 * Flag to track whether the underlying file-system node was
+		 * modified via this 'Open_node'. That is, if closing the 'Open_node'
+		 * should notify listeners of the file.
+		 */
+		bool _was_written = false;
+
 	public:
 
 		Open_node(NODE &node, Genode::Id_space<File_system::Node> &id_space)
-		: _element(*this, id_space),
-		  _node(node) { }
+		: _element(*this, id_space), _node(node) { }
 
 		~Open_node()
 		{
@@ -47,6 +55,12 @@ class File_system::Open_node : public File_system::Node
 				_node.remove_listener(&*_listener);
 				_listener.destruct();
 			}
+
+			/*
+			 * Notify remaining listeners about the changed file
+			 */
+			if (_was_written)
+				_node.notify_listeners();
 		}
 
 		NODE                  &node()     { return _node; }
@@ -71,9 +85,11 @@ class File_system::Open_node : public File_system::Node
 			/*
 			 * Register new handler
 			 */
-			_listener.construct(sink, id());
+			_listener.construct(sink, id(), _version_when_opened);
 			_node.add_listener(&*_listener);
 		}
+
+		void mark_as_written() { _was_written = true; }
 };
 
 #endif /* _OPEN_NODE_H_ */

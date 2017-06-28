@@ -28,6 +28,10 @@ namespace File_system {
 
 			Genode::List<Listener> _listeners;
 
+			typedef Listener::Version Version;
+
+			Version _curr_version { 0 };
+
 		public:
 
 			virtual ~Node_base()
@@ -53,14 +57,15 @@ namespace File_system {
 			void notify_listeners()
 			{
 				for (Listener *curr = _listeners.first(); curr; curr = curr->next())
-					curr->notify();
+					curr->notify(_curr_version);
 			}
 
 			void mark_as_updated()
 			{
-				for (Listener *curr = _listeners.first(); curr; curr = curr->next())
-					curr->mark_as_updated();
+				_curr_version = Version { _curr_version.value + 1 };
 			}
+
+			Version curr_version() const { return _curr_version; }
 	};
 }
 
