@@ -52,6 +52,11 @@ class Init::Server : Session_state::Ready_callback,
 		Id_space<Parent::Client> _client_id_space;
 
 		/**
+		 * Exception type
+		 */
+		class Service_not_present : Exception { };
+
+		/**
 		 * Meta data of service provided to our parent
 		 */
 		struct Service;
