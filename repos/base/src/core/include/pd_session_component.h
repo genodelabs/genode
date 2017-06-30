@@ -48,12 +48,13 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		Rpc_entrypoint            &_ep;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
 		Sliced_heap                _sliced_heap;
-		Constructible<Platform_pd> _pd { &_sliced_heap, _label.string() };
 		Capability<Parent>         _parent;
 		Signal_broker              _signal_broker;
 		Ram_dataspace_factory      _ram_ds_factory;
 		Rpc_cap_factory            _rpc_cap_factory;
 		Native_pd_component        _native_pd;
+
+		Constructible<Platform_pd> _pd;
 
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
