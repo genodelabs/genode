@@ -20,29 +20,30 @@ using namespace Kernel;
 
 void Thread::exception(unsigned const cpu)
 {
-	switch (trapno) {
-	case PAGE_FAULT:
+	switch (regs->trapno) {
+	case Cpu::Context::PAGE_FAULT:
 		_mmu_exception();
 		return;
-	case NO_MATH_COPROC:
-		if (_cpu->fpu().fault(*this)) { return; }
+	case Cpu::Context::NO_MATH_COPROC:
+		if (_cpu->fpu().fault(fpu_regs)) { return; }
 		Genode::warning(*this, ": FPU error");
 		_die();
 		return;
-	case UNDEFINED_INSTRUCTION:
-		Genode::warning(*this, ": undefined instruction at ip=", (void*)ip);
+	case Cpu::Context::UNDEFINED_INSTRUCTION:
+		Genode::warning(*this, ": undefined instruction at ip=", (void*)regs->ip);
 		_die();
 		return;
-	case SUPERVISOR_CALL:
+	case Cpu::Context::SUPERVISOR_CALL:
 		_call();
 		return;
 	}
-	if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
-		pic()->irq_occurred(trapno);
+	if (regs->trapno >= Cpu::Context::INTERRUPTS_START &&
+	    regs->trapno <= Cpu::Context::INTERRUPTS_END) {
+		pic()->irq_occurred(regs->trapno);
 		_interrupt(cpu);
 		return;
 	}
-	Genode::warning(*this, ": triggered unknown exception ", trapno,
-	                " with error code ", errcode, " at ip=", (void*)ip);
+	Genode::warning(*this, ": triggered unknown exception ", regs->trapno,
+	                " with error code ", regs->errcode, " at ip=", (void*)regs->ip);
 	_die();
 }

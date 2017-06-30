@@ -48,8 +48,8 @@ Kernel::Pd::~Pd() {
 }
 
 
-void Kernel::Pd::admit(Kernel::Cpu::Context * const c)
+void Kernel::Pd::admit(Kernel::Cpu::Context & c)
 {
-	c->protection_domain(asid);
-	c->translation_table((addr_t)translation_table());
+	c.protection_domain(asid);
+	c.translation_table((addr_t)translation_table());
 }

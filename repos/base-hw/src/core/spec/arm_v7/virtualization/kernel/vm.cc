@@ -37,9 +37,20 @@ namespace Kernel
 
 using namespace Kernel;
 
-extern void *         _vt_vm_entry;
-extern void *         _vt_host_entry;
-extern Genode::addr_t _vt_vm_context_ptr;
+extern "C" void   kernel();
+extern     void * kernel_stack;
+extern "C" void   hypervisor_enter_vm(Cpu::Context*);
+
+struct Host_context {
+	addr_t                    sp;
+	addr_t                    ip;
+	Cpu::Ttbr_64bit::access_t ttbr0;
+	Cpu::Ttbr_64bit::access_t ttbr1;
+	Cpu::Sctlr::access_t      sctlr;
+	Cpu::Ttbcr::access_t      ttbcr;
+	Cpu::Mair0::access_t      mair0;
+	Cpu::Dacr::access_t       dacr;
+} vt_host_context;
 
 
 struct Kernel::Vm_irq : Kernel::Irq
@@ -200,6 +211,15 @@ Kernel::Vm::Vm(void                   * const state,
 {
 	affinity(cpu_pool()->primary_cpu());
 	Virtual_pic::pic().irq.enable();
+
+	vt_host_context.sp    = (addr_t)&kernel_stack + Cpu::KERNEL_STACK_SIZE;
+	vt_host_context.ttbr0 = Cpu::Ttbr0_64bit::read();
+	vt_host_context.ttbr1 = Cpu::Ttbr1_64bit::read();
+	vt_host_context.sctlr = Cpu::Sctlr::read();
+	vt_host_context.ttbcr = Cpu::Ttbcr::read();
+	vt_host_context.mair0 = Cpu::Mair0::read();
+	vt_host_context.dacr  = Cpu::Dacr::read();
+	vt_host_context.ip    = (addr_t) &kernel;
 }
 
 
@@ -244,8 +264,7 @@ void Kernel::Vm::proceed(unsigned const cpu_id)
 	Virtual_pic::load(_state);
 	Virtual_timer::load(_state, cpu_id);
 
-	mtc()->switch_to(reinterpret_cast<Cpu::Context*>(_state), cpu_id,
-	                 (addr_t) &_vt_vm_entry, (addr_t)&_vt_vm_context_ptr);
+	hypervisor_enter_vm(reinterpret_cast<Cpu::Context*>(_state));
 }
 
 

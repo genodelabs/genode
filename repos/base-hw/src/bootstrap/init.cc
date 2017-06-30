@@ -25,6 +25,6 @@ extern "C" void init() __attribute__ ((noreturn));
 
 extern "C" void init()
 {
-	Bootstrap::platform().enable_mmu();
-	Bootstrap::platform().start_core();
+	Bootstrap::Platform & p = Bootstrap::platform();
+	p.start_core(p.enable_mmu());
 }

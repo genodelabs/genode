@@ -20,8 +20,10 @@ Bootstrap::Platform::Board::Board()
 : early_ram_regions(Memory_region { RAM_0_BASE, RAM_0_SIZE } ) {}
 
 
-void Bootstrap::Platform::enable_mmu()
+unsigned Bootstrap::Platform::enable_mmu()
 {
 	using Sptbr = Hw::Riscv_cpu::Sptbr;
 	Sptbr::write(Sptbr::Ppn::masked((addr_t)core_pd->table_base >> 12));
+
+	return 0;
 }

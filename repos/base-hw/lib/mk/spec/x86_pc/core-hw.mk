@@ -9,8 +9,8 @@
 INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/x86_64
 
 # add assembly sources
-SRC_S += spec/x86_64/mode_transition.s
 SRC_S += spec/x86_64/crt0.s
+SRC_S += spec/x86_64/exception_vector.s
 
 # add C++ sources
 SRC_CC += kernel/vm_thread_off.cc

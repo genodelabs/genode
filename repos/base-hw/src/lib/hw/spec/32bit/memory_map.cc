@@ -36,14 +36,20 @@ Memory_region const Hw::Mm::core_stack_area() {
 Memory_region const Hw::Mm::core_page_tables() {
 	return Memory_region(0xc0000000UL, 0x10000000UL); }
 
-Memory_region const Hw::Mm::core_utcb_main_thread() {
-	return Memory_region(0xfffef000, sizeof(Native_utcb)); }
-
 Memory_region const Hw::Mm::core_mmio() {
 	return Memory_region(0xd0000000UL, 0x10000000UL); }
+
+Memory_region const Hw::Mm::system_exception_vector() {
+	return Memory_region(0xfff00000UL, 0x1000UL); }
+
+Memory_region const Hw::Mm::hypervisor_exception_vector() {
+	return Memory_region(0xfff10000UL, 0x1000UL); }
 
 Memory_region const Hw::Mm::boot_info() {
 	return Memory_region(0xfffe0000UL, 0x1000UL); }
 
-Memory_region const Hw::Mm::exception_vector() {
+Memory_region const Hw::Mm::core_utcb_main_thread() {
+	return Memory_region(0xfffef000, sizeof(Native_utcb)); }
+
+Memory_region const Hw::Mm::supervisor_exception_vector() {
 	return Memory_region(0xffff0000UL, 0x1000UL); }

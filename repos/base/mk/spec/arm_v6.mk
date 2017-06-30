@@ -1,6 +1,6 @@
 SPECS += arm
 
-CC_MARCH += -march=armv6
+CC_MARCH += -march=armv6k
 
 REP_INC_DIR += include/spec/arm_v6
 

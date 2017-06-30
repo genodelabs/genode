@@ -66,7 +66,7 @@ void Pager_object::unresolved_page_fault_occurred()
 	if (pt && pt->pd())
 		warning("page fault, pager_object: pd='", pt->pd()->label(),
 		        "' thread='", pt->label(),
-		        "' ip=", Hex(pt->kernel_object()->ip),
+		        "' ip=", Hex(pt->kernel_object()->regs->ip),
 		        " pf-addr=", Hex(pt->kernel_object()->fault_addr()));
 }
 

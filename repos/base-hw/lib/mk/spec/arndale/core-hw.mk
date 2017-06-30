@@ -18,7 +18,7 @@ SRC_CC += spec/arm_v7/vm_session_component.cc
 SRC_CC += spec/arm_v7/virtualization/vm_session_component.cc
 
 # add assembly sources
-SRC_S += spec/arm_v7/virtualization/mode_transition.s
+SRC_S += spec/arm_v7/virtualization/exception_vector.s
 
 NR_OF_CPUS = 2
 

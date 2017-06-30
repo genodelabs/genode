@@ -15,5 +15,13 @@
 #define _CORE__SPEC__X86_64__TRANSLATION_TABLE_H_
 
 #include <hw/spec/x86_64/page_table.h>
+#include <cpu.h>
+
+void Hw::Pml4_table::_invalidate_range(addr_t vo, size_t size)
+{
+	/* FIXME: do not necessarily flush the whole TLB */
+	Genode::Cpu::Cr3::write(Genode::Cpu::Cr3::read());
+
+}
 
 #endif /* _CORE__SPEC__X86_64__TRANSLATION_TABLE_H_ */

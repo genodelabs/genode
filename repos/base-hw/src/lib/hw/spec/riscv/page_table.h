@@ -222,7 +222,7 @@ class Sv39::Level_x_translation_table
 					typename Descriptor::access_t blk_desc =
 						Block_descriptor::create(flags, pa);
 
-					if (Descriptor::valid(desc) && desc == blk_desc)
+					if (Descriptor::valid(desc) && desc != blk_desc)
 						throw Double_insertion();
 
 					desc = blk_desc;
@@ -362,7 +362,7 @@ namespace Sv39 {
 			Descriptor::access_t blk_desc =
 				Block_descriptor::create(flags, pa);
 
-			if (Descriptor::valid(desc) && desc == blk_desc)
+			if (Descriptor::valid(desc) && desc != blk_desc)
 				throw Double_insertion();
 
 			desc = blk_desc;
@@ -394,6 +394,13 @@ namespace Hw {
 				_count(CORE_VM_AREA_SIZE, Sv39::SIZE_LOG2_2M),
 		};
 
+		Page_table() : Sv39::Level_1_translation_table() {}
+
+		Page_table(Page_table & kernel_table)
+		: Sv39::Level_1_translation_table() {
+			static unsigned first = (0xffffffc000000000UL & VM_MASK) >> Sv39::SIZE_LOG2_1G;
+			for (unsigned i = first; i < MAX_ENTRIES; i++)
+				_entries[i] = kernel_table._entries[i]; }
 	};
 }
 

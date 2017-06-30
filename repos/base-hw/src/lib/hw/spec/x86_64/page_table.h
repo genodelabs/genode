@@ -622,6 +622,8 @@ class Hw::Pml4_table
 			       / (1UL << alignment);
 		}
 
+		inline void _invalidate_range(addr_t vo, size_t size);
+
 	public:
 
 		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
@@ -631,6 +633,13 @@ class Hw::Pml4_table
 		{
 			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
+		}
+
+		explicit Pml4_table(Pml4_table & kernel_table) : Pml4_table()
+		{
+			static size_t first = (0xffffffc000000000 & SIZE_MASK) >> PAGE_SIZE_LOG2;
+			for (size_t i = first; i < MAX_ENTRIES; i++)
+				_entries[i] = kernel_table._entries[i];
 		}
 
 		/**
@@ -668,14 +677,19 @@ class Hw::Pml4_table
 		 * \param size  region size
 		 * \param alloc second level translation table allocator
 		 */
-		void remove_translation(addr_t vo, size_t size, Allocator & alloc) {
-			_range_op(vo, 0, size, Remove_func(alloc)); }
+		void remove_translation(addr_t vo, size_t size, Allocator & alloc)
+		{
+			_range_op(vo, 0, size, Remove_func(alloc));
+			_invalidate_range(vo, size);
+		}
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 
 class Hw::Page_table : public Pml4_table
 {
 	public:
+
+		using Pml4_table::Pml4_table;
 
 		enum {
 			TABLE_LEVEL_X_SIZE_LOG2 = SIZE_LOG2_4KB,

@@ -530,5 +530,13 @@ struct Hw::Page_table : Level_1_stage_1_translation_table
 		                          CORE_LEVEL_2_TT_COUNT *
 		                          TABLE_LEVEL_X_ENTRIES,
 	};
+
+	Page_table() : Level_1_stage_1_translation_table() { }
+
+	/**
+	 * On ARM we do not need to copy top-level kernel entries
+	 * because the virtual-memory kernel part is hold in a separate table
+	 */
+	explicit Page_table(Page_table &o) : Level_1_stage_1_translation_table() { }
 };
 #endif /* _SRC__LIB__HW__SPEC__ARM__LPAE_H_ */

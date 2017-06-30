@@ -23,11 +23,12 @@ Bootstrap::Platform::Board::Board()
             Memory_region { UART_2_MMIO_BASE, UART_2_MMIO_SIZE }) { }
 
 
-void Bootstrap::Platform::enable_mmu()
+unsigned Bootstrap::Platform::enable_mmu()
 {
 	pic.init_cpu_local();
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
 	cpu.invalidate_data_cache();
 	cpu.enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
+	return 0;
 }

@@ -17,15 +17,16 @@
 
 void Kernel::Cpu_idle::exception(unsigned const cpu)
 {
-	if (trapno == RESET) return;
+	if (regs->trapno == Cpu::Context::RESET) return;
 
-	if (trapno >= INTERRUPTS_START && trapno <= INTERRUPTS_END) {
+	if (regs->trapno >= Cpu::Context::INTERRUPTS_START &&
+	    regs->trapno <= Cpu::Context::INTERRUPTS_END) {
 		_interrupt(cpu);
 		return;
 	}
 
-	Genode::warning("Unknown exception ", trapno, " with error code ",
-	                errcode, " at ip=", (void *)ip);
+	Genode::warning("Unknown exception ", regs->trapno, " with error code ",
+	                regs->errcode, " at ip=", (void *)regs->ip);
 
 	ASSERT_NEVER_CALLED;
 }

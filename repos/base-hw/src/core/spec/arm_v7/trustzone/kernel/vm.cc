@@ -15,11 +15,6 @@
 /* core includes */
 #include <kernel/vm.h>
 
-extern void *         _mt_nonsecure_entry_pic;
-extern Genode::addr_t _tz_client_context;
-extern Genode::addr_t _mt_master_context_begin;
-extern Genode::addr_t _tz_master_context;
-
 using namespace Kernel;
 
 
@@ -28,13 +23,8 @@ Kernel::Vm::Vm(void                   * const state,
                void                   * const table)
 :  Cpu_job(Cpu_priority::MIN, 0),
   _state((Genode::Vm_state * const)state),
-  _context(context), _table(0)
-{
-	affinity(cpu_pool()->primary_cpu());
-
-	Genode::memcpy(&_tz_master_context, &_mt_master_context_begin,
-	               sizeof(Cpu_context));
-}
+  _context(context), _table(0) {
+	affinity(cpu_pool()->primary_cpu()); }
 
 
 Kernel::Vm::~Vm() {}
@@ -58,6 +48,11 @@ void Vm::exception(unsigned const cpu)
 
 bool secure_irq(unsigned const i);
 
+
+extern "C" void monitor_mode_enter_normal_world(Cpu::Context*, void*);
+extern void * kernel_stack;
+
+
 void Vm::proceed(unsigned const cpu)
 {
 	unsigned const irq = _state->irq_injection;
@@ -69,7 +64,7 @@ void Vm::proceed(unsigned const cpu)
 			_state->irq_injection = 0;
 		}
 	}
-	mtc()->switch_to(reinterpret_cast<Cpu::Context*>(_state), cpu,
-	                 (addr_t)&_mt_nonsecure_entry_pic,
-	                 (addr_t)&_tz_client_context);
+
+	void * stack = (void*)((addr_t)&kernel_stack + Cpu::KERNEL_STACK_SIZE * (cpu+1));
+	monitor_mode_enter_normal_world(reinterpret_cast<Cpu::Context*>(_state), stack);
 }

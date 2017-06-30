@@ -71,7 +71,7 @@ static inline void prepare_hypervisor(Genode::addr_t table)
 	using Cpu = Hw::Arm_cpu;
 
 	/* set hypervisor exception vector */
-	Cpu::Hvbar::write(0xfff00000); /* FIXME */
+	Cpu::Hvbar::write(Hw::Mm::hypervisor_exception_vector().base);
 
 	/* set hypervisor's translation table */
 	Cpu::Httbr_64bit::write(table);
@@ -152,7 +152,7 @@ static inline void switch_to_supervisor_mode()
 }
 
 
-void Bootstrap::Platform::enable_mmu()
+unsigned Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
 	pic.init_cpu_local();
@@ -173,6 +173,8 @@ void Bootstrap::Platform::enable_mmu()
 	}
 
 	cpu.enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
+
+	return Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 }
 
 

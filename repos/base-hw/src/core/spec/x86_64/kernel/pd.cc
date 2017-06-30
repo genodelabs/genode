@@ -32,5 +32,5 @@ Kernel::Pd::~Pd()
 }
 
 
-void Kernel::Pd::admit(Kernel::Cpu::Context * const c) {
-	c->init((addr_t)translation_table(), this == Kernel::core_pd()); }
+void Kernel::Pd::admit(Kernel::Cpu::Context & c) {
+	c.init((addr_t)translation_table(), this == Kernel::core_pd()); }

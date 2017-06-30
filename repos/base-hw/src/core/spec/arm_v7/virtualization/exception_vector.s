@@ -11,8 +11,25 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
-.include "macros.s"
+.set USR_MODE, 16
+.set FIQ_MODE, 17
+.set IRQ_MODE, 18
+.set SVC_MODE, 19
+.set ABT_MODE, 23
+.set UND_MODE, 27
+.set SYS_MODE, 31
+
+.macro _save_bank mode
+	cps   #\mode          /* switch to given mode                  */
+	mrs   r1, spsr        /* store mode-specific spsr              */
+	stmia r0!, {r1,sp,lr} /* store mode-specific sp and lr         */
+.endm /* _save_bank mode */
+
+.macro _restore_bank mode
+	cps   #\mode          /* switch to given mode                        */
+	ldmia r0!, {r1,sp,lr} /* load mode-specific sp, lr, and spsr into r1 */
+	msr   spsr_cxfs, r1   /* load mode-specific spsr                     */
+.endm
 
 .macro _vm_exit exception_type
 	str   r0, [sp]
@@ -33,8 +50,8 @@
  * 7 entry vectors to switch to a kernel context.
  */
 .p2align 12
-.global _vt_host_entry
-_vt_host_entry:
+.global hypervisor_exception_vector
+hypervisor_exception_vector:
 	b _vt_rst_entry
 	b _vt_und_entry    /* undefined instruction  */
 	b _vt_svc_entry    /* hypervisor call        */
@@ -42,7 +59,7 @@ _vt_host_entry:
 	b _vt_dab_entry    /* data abort             */
 	b _vt_trp_entry    /* hypervisor trap        */
 	b _vt_irq_entry    /* interrupt request      */
-	_vm_exit 7          /* fast interrupt request */
+	_vm_exit 7         /* fast interrupt request */
 
 _vt_rst_entry: _vm_exit 1
 _vt_und_entry: _vm_exit 2
@@ -51,20 +68,6 @@ _vt_pab_entry: _vm_exit 4
 _vt_dab_entry: _vm_exit 5
 _vt_irq_entry: _vm_exit 6
 _vt_trp_entry: _vm_exit 8
-
-/* space for a copy of the host context */
-.p2align 2
-.global _vt_host_context_ptr
-_vt_host_context_ptr:
-	.space CONTEXT_PTR_SIZE
-
-/* space for a vm context-pointer per CPU */
-.p2align 2
-.global _vt_vm_context_ptr
-_vt_vm_context_ptr:
-.rept NR_OF_CPUS
-	.space CONTEXT_PTR_SIZE
-.endr
 
 _host_to_vm:
 	msr   elr_hyp,   r2
@@ -130,14 +133,15 @@ _vm_to_host:
 	stm r0, {r3-r12}
 	add r0, sp, #13*4
 	ldr r3, _vt_host_context_ptr
-	_restore_kernel_sp r3, r4, r5
-	add r3, r3, #CIDR_OFFSET
-	ldmia r3, {r4-r9}
-	_switch_protection_domain r0, r4, r5
-	mcr p15, 0, r6, c1, c0, 0     /* write SCTRL            */
-	mcr p15, 0, r7, c2, c0, 2     /* write TTBRC            */
-	mcr p15, 0, r8, c10, c2, 0    /* write MAIR0            */
-	mcr p15, 0, r9, c3, c0, 0     /* write DACR             */
+	ldr sp, [r3]
+	add r3, r3, #2*4
+	ldm r3, {r4-r11}
+	mcrr p15, 0, r6,  r7,  c2
+	mcrr p15, 1, r6,  r7,  c2
+	mcr  p15, 0, r8,  c1,  c0, 0  /* write SCTRL            */
+	mcr  p15, 0, r9,  c2,  c0, 2  /* write TTBRC            */
+	mcr  p15, 0, r10, c10, c2, 0  /* write MAIR0            */
+	mcr  p15, 0, r11, c3,  c0, 0  /* write DACR             */
 	cps #SVC_MODE
 	stmia r0, {r13-r14}^          /* save user regs sp,lr   */
 	add r0, r0, #2*4
@@ -151,15 +155,12 @@ _vm_to_host:
 	stmia r0!, {r8-r12}           /* save fiq r8-r12        */
 	cps #SVC_MODE
 	ldr r0, _vt_host_context_ptr
-	_restore_kernel_sp r0, r1, r2 /* apply host kernel sp   */
-	add r1, r0, #LR_OFFSET        /* apply host kernel lr   */
-	ldm r1, {lr, pc}
+	ldm r0, {sp,pc}
 
 /* host kernel must jump to this point to switch to a vm */
-.global _vt_vm_entry
-_vt_vm_entry:
-	_get_client_context_ptr r0, lr, _vt_vm_context_ptr
-	add   r0, r0, #SP_OFFSET
+.global hypervisor_enter_vm
+hypervisor_enter_vm:
+	add   r0, r0, #13*4
 	ldm   r0, {r13 - r14}^
 	add   r0, r0, #2*4
 	ldmia r0!, {r2 - r4}
@@ -172,3 +173,5 @@ _vt_vm_entry:
 	cps   #SVC_MODE
 	ldm   r0!, {r5 - r12}
 	hvc   #0
+
+_vt_host_context_ptr: .long vt_host_context

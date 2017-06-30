@@ -19,9 +19,6 @@
 #include <cpu/cpu_state.h>
 #include <pic.h>
 
-extern void * _vt_vm_entry;
-extern void * _mt_client_context_ptr;
-
 Kernel::Vm::Vm(void * const state, Kernel::Signal_context * const context,
                void * const)
 : Cpu_job(Cpu_priority::MIN, 0),
@@ -30,6 +27,12 @@ Kernel::Vm::Vm(void * const state, Kernel::Signal_context * const context,
   _table(nullptr)
 {
 	affinity(cpu_pool()->primary_cpu());
+
+	/*
+	 * Initialize VM context as a core/kernel context to prevent
+	 * page-table switching before doing the world switch
+	 */
+	regs->init((addr_t)core_pd()->translation_table(), true);
 }
 
 
@@ -39,29 +42,35 @@ Kernel::Vm::~Vm() { }
 void Kernel::Vm::exception(unsigned const cpu_id)
 {
 	pause();
-	if (_state->trapno == 200) {
+	if (regs->trapno == 200) {
 		_context->submit(1);
 		return;
 	}
 
-	if (_state->trapno >= Genode::Cpu_state::INTERRUPTS_START &&
-		_state->trapno <= Genode::Cpu_state::INTERRUPTS_END) {
-		pic()->irq_occurred(_state->trapno);
+	if (regs->trapno >= Genode::Cpu_state::INTERRUPTS_START &&
+		regs->trapno <= Genode::Cpu_state::INTERRUPTS_END) {
+		pic()->irq_occurred(regs->trapno);
 		_interrupt(cpu_id);
 		_context->submit(1);
 		return;
 	}
-	Genode::warning("VM: triggered unknown exception ", _state->trapno,
-	                " with error code ", _state->errcode);
+	Genode::warning("VM: triggered unknown exception ", regs->trapno,
+	                " with error code ", regs->errcode);
 
 	ASSERT_NEVER_CALLED;
 }
 
 
+extern void * __tss_client_context_ptr;
+
 void Kernel::Vm::proceed(unsigned const cpu_id)
 {
-	mtc()->switch_to(reinterpret_cast<Cpu::Context*>(_state), cpu_id,
-	                 (addr_t) &_vt_vm_entry, (addr_t) &_mt_client_context_ptr);
+	void * * tss_stack_ptr = (&__tss_client_context_ptr);
+	*tss_stack_ptr = &regs->cr3;
+
+	asm volatile("sti          \n"
+	             "mov $1, %rax \n"
+	             "vmcall");
 }
 
 

@@ -82,9 +82,9 @@
 	movl %eax, %cr0
 
 	/* Set up GDT */
-	movl $_mt_gdt_ptr+2, %eax
-	movl $_mt_gdt_start, (%eax)
-	lgdt _mt_gdt_ptr
+	movl $__gdt_ptr+2, %eax
+	movl $__gdt_start, (%eax)
+	lgdt __gdt_ptr
 
 	/* Indirect long jump to 64-bit code */
 	ljmp $8, $_start64

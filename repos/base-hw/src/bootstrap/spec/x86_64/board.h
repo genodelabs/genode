@@ -20,6 +20,8 @@
 #include <hw/spec/x86_64/cpu.h>
 #include <hw/spec/x86_64/x86_64.h>
 
+void Hw::Pml4_table::_invalidate_range(addr_t vo, size_t size) {}
+
 namespace Bootstrap {
 	struct Pic {};
 	using Cpu = Hw::X86_64_cpu;

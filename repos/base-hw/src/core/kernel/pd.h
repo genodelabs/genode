@@ -27,62 +27,10 @@ namespace Genode {
 namespace Kernel
 {
 	/**
-	 * Controls the mode-transition page
-	 *
-	 * The mode transition page is a small memory region that is mapped by
-	 * every PD to the same virtual address. It contains code that acts as a
-	 * link between high privileged CPU mode (often called kernel) and low
-	 * privileged CPU mode (often called userland). The mode transition
-	 * control provides a simple interface to access the code from within
-	 * the kernel.
-	 */
-	struct Mode_transition_control;
-
-	/**
-	 * Return the system wide mode-transition control
-	 */
-	Mode_transition_control * mtc();
-
-	/**
 	 * Kernel backend of protection domains
 	 */
 	class Pd;
 }
-
-
-struct Kernel::Mode_transition_control
-{
-	/**
-	 * Map the mode transition page to a virtual address space
-	 *
-	 * \param tt     translation buffer of the address space
-	 * \param alloc  translation table allocator used for the mapping
-	 */
-	void map(Hw::Page_table & tt,
-	         Hw::Page_table::Allocator & alloc);
-
-	/**
-	 * Continue execution of client context
-	 *
-	 * \param context           targeted CPU context
-	 * \param cpu               kernel name of targeted CPU
-	 * \param entry_raw         raw pointer to assembly entry-code
-	 * \param context_ptr_base  base address of client-context pointer region
-	 */
-	void switch_to(Cpu::Context * const context,
-	               unsigned const cpu,
-	               addr_t const entry_raw,
-	               addr_t const context_ptr_base);
-
-	/**
-	 * Continue execution of user context
-	 *
-	 * \param context           targeted CPU context
-	 * \param cpu               kernel name of targeted CPU
-	 */
-	 void switch_to_user(Cpu::Context * const context,
-	                     unsigned const cpu);
-};
 
 
 class Kernel::Pd : public Cpu::Pd,
@@ -117,7 +65,7 @@ class Kernel::Pd : public Cpu::Pd,
 		/**
 		 * Let the CPU context 'c' join the PD
 		 */
-		void admit(Cpu::Context * const c);
+		void admit(Cpu::Context & c);
 
 
 		static capid_t syscall_create(void * const dst,

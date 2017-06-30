@@ -15,10 +15,10 @@
 #include <cpu.h>
 #include <kernel/pd.h>
 
-extern int _mt_tss;
-extern int _mt_idt;
-extern int _mt_gdt_start;
-extern int _mt_gdt_end;
+extern int __tss;
+extern int __idt;
+extern int __gdt_start;
+extern int __gdt_end;
 
 
 void Genode::Cpu::Context::init(addr_t const table, bool core)
@@ -48,16 +48,16 @@ void Genode::Cpu::Tss::init()
 void Genode::Cpu::Idt::init()
 {
 	Pseudo_descriptor descriptor {
-		(uint16_t)((addr_t)&_mt_tss - (addr_t)&_mt_idt),
-		(uint64_t)(&_mt_idt) };
+		(uint16_t)((addr_t)&__tss - (addr_t)&__idt),
+		(uint64_t)(&__idt) };
 	asm volatile ("lidt %0" : : "m" (descriptor));
 }
 
 
 void Genode::Cpu::Gdt::init()
 {
-	addr_t const   start = (addr_t)&_mt_gdt_start;
-	uint16_t const limit = _mt_gdt_end - _mt_gdt_start - 1;
+	addr_t const   start = (addr_t)&__gdt_start;
+	uint16_t const limit = __gdt_end - __gdt_start - 1;
 	uint64_t const base  = start;
 	asm volatile ("lgdt %0" :: "m" (Pseudo_descriptor(limit, base)));
 }

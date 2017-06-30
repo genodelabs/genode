@@ -37,13 +37,20 @@ void Bootstrap::Cpu::enable_mmu_and_caches(Genode::addr_t table)
 	Dacr::write(Dacr::D0::bits(1));
 
 	Ttbr_64bit::access_t ttbr0 = Ttbr_64bit::Ba::masked(table);
+	Ttbr_64bit::access_t ttbr1 = Ttbr_64bit::Ba::masked(table);
 	Ttbr_64bit::Asid::set(ttbr0, 0);
 	Ttbr0_64bit::write(ttbr0);
+	Ttbr1_64bit::write(ttbr1);
 
 	Ttbcr::access_t ttbcr = 0;
+	Ttbcr::T0sz::set(ttbcr, 1);
+	Ttbcr::T1sz::set(ttbcr, 0);
 	Ttbcr::Irgn0::set(ttbcr, 1);
+	Ttbcr::Irgn1::set(ttbcr, 1);
 	Ttbcr::Orgn0::set(ttbcr, 1);
+	Ttbcr::Orgn1::set(ttbcr, 1);
 	Ttbcr::Sh0::set(ttbcr, 0b10);
+	Ttbcr::Sh1::set(ttbcr, 0b10);
 	Ttbcr::Eae::set(ttbcr, 1);
 	Ttbcr::write(ttbcr);
 

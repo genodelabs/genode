@@ -12,13 +12,29 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/**************************
- ** .text (program code) **
- **************************/
-
 .section ".text"
 
-	/* program entry-point */
+	/***********************
+	 ** kernel entry code **
+	 ***********************/
+
+	.global _start
+	_start:
+
+	/* switch to kernel stack */
+	mov kernel_stack@GOTPCREL(%rip), %rax
+	mov kernel_stack_size@GOTPCREL(%rip), %rbx
+	add (%rbx), %rax
+	mov  %rax,  %rsp
+
+	/* jump to C entry code */
+	jmp kernel_init
+
+
+	/*********************************
+	 ** core main thread entry code **
+	 *********************************/
+
 	.global _core_start
 	_core_start:
 

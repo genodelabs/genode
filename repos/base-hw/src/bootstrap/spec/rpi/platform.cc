@@ -35,7 +35,7 @@ Bootstrap::Platform::Board::Board()
                             USB_DWC_OTG_SIZE }) {}
 
 
-void Bootstrap::Platform::enable_mmu()
+unsigned Bootstrap::Platform::enable_mmu()
 {
 	struct Sctlr : Cpu::Sctlr
 	{
@@ -73,13 +73,14 @@ void Bootstrap::Platform::enable_mmu()
 	/* do not use domains, but permission bits in table */
 	Cpu::Dacr::write(Cpu::Dacr::D0::bits(1));
 
-	Cpu::Ttbcr::write(0);
+	Cpu::Ttbcr::write(1);
 
 	Genode::addr_t table = (Genode::addr_t)core_pd->table_base;
-	Cpu::Ttbr::access_t ttbr0 = Cpu::Ttbr::Ba::masked(table);
-	Cpu::Ttbr::Rgn::set(ttbr0, Cpu::Ttbr::CACHEABLE);
-	Cpu::Ttbr::C::set(ttbr0, 1);
-	Cpu::Ttbr0::write(ttbr0);
+	Cpu::Ttbr::access_t ttbr = Cpu::Ttbr::Ba::masked(table);
+	Cpu::Ttbr::Rgn::set(ttbr, Cpu::Ttbr::CACHEABLE);
+	Cpu::Ttbr::C::set(ttbr, 1);
+	Cpu::Ttbr0::write(ttbr);
+	Cpu::Ttbr1::write(ttbr);
 
 	sctlr = Cpu::Sctlr::read();
 	Cpu::Sctlr::C::set(sctlr, 1);
@@ -89,4 +90,6 @@ void Bootstrap::Platform::enable_mmu()
 
 	/* invalidate branch predictor */
 	Cpu::Bpiall::write(0);
+
+	return 0;
 }

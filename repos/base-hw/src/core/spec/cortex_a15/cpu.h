@@ -137,7 +137,7 @@ class Genode::Cpu : public Arm_v7_cpu
 			 * Assign translation-table base 'table'
 			 */
 			void translation_table(addr_t const table) {
-				Ttbr_64bit::Ba::set(ttbr0, (Ttbr_64bit::access_t)(table >> 5)); }
+				Ttbr_64bit::Ba::set(ttbr0, Ttbr_64bit::Ba::get(table)); }
 
 			/**
 			 * Assign protection domain
@@ -152,30 +152,32 @@ class Genode::Cpu : public Arm_v7_cpu
 		 *
 		 * FIXME: this class largely overlaps with Genode::Arm::User_context
 		 */
-		struct User_context : Context
+		struct User_context
 		{
+			Align_at<Context, 8> regs;
+
 			void init(bool privileged)
 			{
 				Psr::access_t v = 0;
 				Psr::M::set(v, privileged ? Psr::M::SYS : Psr::M::USR);
 				Psr::F::set(v, 1);
 				Psr::A::set(v, 1);
-				cpsr = v;
+				regs->cpsr = v;
 			}
 
 			/**
 			 * Support for kernel calls
 			 */
-			void user_arg_0(Kernel::Call_arg const arg) { r0 = arg; }
-			void user_arg_1(Kernel::Call_arg const arg) { r1 = arg; }
-			void user_arg_2(Kernel::Call_arg const arg) { r2 = arg; }
-			void user_arg_3(Kernel::Call_arg const arg) { r3 = arg; }
-			void user_arg_4(Kernel::Call_arg const arg) { r4 = arg; }
-			Kernel::Call_arg user_arg_0() const { return r0; }
-			Kernel::Call_arg user_arg_1() const { return r1; }
-			Kernel::Call_arg user_arg_2() const { return r2; }
-			Kernel::Call_arg user_arg_3() const { return r3; }
-			Kernel::Call_arg user_arg_4() const { return r4; }
+			void user_arg_0(Kernel::Call_arg const arg) { regs->r0 = arg; }
+			void user_arg_1(Kernel::Call_arg const arg) { regs->r1 = arg; }
+			void user_arg_2(Kernel::Call_arg const arg) { regs->r2 = arg; }
+			void user_arg_3(Kernel::Call_arg const arg) { regs->r3 = arg; }
+			void user_arg_4(Kernel::Call_arg const arg) { regs->r4 = arg; }
+			Kernel::Call_arg user_arg_0() const { return regs->r0; }
+			Kernel::Call_arg user_arg_1() const { return regs->r1; }
+			Kernel::Call_arg user_arg_2() const { return regs->r2; }
+			Kernel::Call_arg user_arg_3() const { return regs->r3; }
+			Kernel::Call_arg user_arg_4() const { return regs->r4; }
 
 			/**
 			 * Initialize thread context
@@ -185,8 +187,8 @@ class Genode::Cpu : public Arm_v7_cpu
 			 */
 			void init_thread(addr_t const table, unsigned const pd_id)
 			{
-				protection_domain(pd_id);
-				translation_table(table);
+				regs->protection_domain(pd_id);
+				regs->translation_table(table);
 			}
 
 			/**
@@ -200,9 +202,9 @@ class Genode::Cpu : public Arm_v7_cpu
 				/* permission fault on page, 2nd level */
 				static constexpr Fsr::access_t permission = 0b1111;
 
-				switch (cpu_exception) {
+				switch (regs->cpu_exception) {
 
-				case PREFETCH_ABORT:
+				case Context::PREFETCH_ABORT:
 					{
 						/* check if fault was caused by a translation miss */
 						Fsr::access_t const fs = Fsr::Fs::get(Ifsr::read());
@@ -210,11 +212,11 @@ class Genode::Cpu : public Arm_v7_cpu
 
 						/* fetch fault data */
 						w = 0;
-						va = ip;
+						va = regs->ip;
 						return true;
 					}
 
-				case DATA_ABORT:
+				case Context::DATA_ABORT:
 					{
 						/* check if fault was caused by translation miss */
 						Fsr::access_t const fs = Fsr::Fs::get(Dfsr::read());
@@ -257,13 +259,19 @@ class Genode::Cpu : public Arm_v7_cpu
 		void invalidate_data_cache() {
 			invalidate_inner_data_cache(); }
 
+		void switch_to(User_context& o)
+		{
+			if (Ttbr_64bit::Asid::get(o.regs->ttbr0) &&
+			    (Ttbr0_64bit::read() != o.regs->ttbr0))
+				Ttbr0_64bit::write(o.regs->ttbr0);
+		}
+
 
 		/*************
 		 ** Dummies **
 		 *************/
 
-		void switch_to(User_context&) { }
-		bool retry_undefined_instr(Context&) { return false; }
+		bool retry_undefined_instr(User_context&) { return false; }
 };
 
 #endif /* _CORE__SPEC__CORTEX_A15__CPU_H_ */

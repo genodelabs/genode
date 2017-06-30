@@ -34,12 +34,12 @@ Pd * Kernel::core_pd() {
 
 Pic * Kernel::pic() { return unmanaged_singleton<Pic>(); }
 
-extern "C" void _start();
+extern "C" void kernel_init();
 
 /**
  * Setup kernel environment
  */
-extern "C" void _start()
+extern "C" void kernel_init()
 {
 	static volatile bool initialized = false;
 	if (Cpu::executing_id()) while (!initialized) ;

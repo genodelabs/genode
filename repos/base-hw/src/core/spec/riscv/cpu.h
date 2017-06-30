@@ -19,6 +19,8 @@
 #include <cpu/cpu_state.h>
 #include <util/register.h>
 
+#include <base/internal/align_at.h>
+
 #include <kernel/interface.h>
 #include <hw/spec/riscv/cpu.h>
 
@@ -37,9 +39,6 @@ namespace Kernel { class Pd; }
 class Genode::Cpu : public Hw::Riscv_cpu
 {
 	public:
-
-		static constexpr addr_t mtc_size = 0x1000;
-		static constexpr addr_t exception_entry = 0xffffffc000000000;
 
 		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
@@ -77,8 +76,10 @@ class Genode::Cpu : public Hw::Riscv_cpu
 		/**
 		 * A usermode execution state
 		 */
-		struct User_context : Context
+		struct User_context
 		{
+			Align_at<Context, 8> regs;
+
 			/**
 			 * Constructor
 			 */
@@ -87,16 +88,16 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			/**
 			 * Support for kernel calls
 			 */
-			void user_arg_0(Kernel::Call_arg const arg) { a0  = arg; }
-			void user_arg_1(Kernel::Call_arg const arg) { a1  = arg; }
-			void user_arg_2(Kernel::Call_arg const arg) { a2  = arg; }
-			void user_arg_3(Kernel::Call_arg const arg) { a3  = arg; }
-			void user_arg_4(Kernel::Call_arg const arg) { a4  = arg; }
-			Kernel::Call_arg user_arg_0() const { return a0; }
-			Kernel::Call_arg user_arg_1() const { return a1; }
-			Kernel::Call_arg user_arg_2() const { return a2; }
-			Kernel::Call_arg user_arg_3() const { return a3; }
-			Kernel::Call_arg user_arg_4() const { return a4; }
+			void user_arg_0(Kernel::Call_arg const arg) { regs->a0  = arg; }
+			void user_arg_1(Kernel::Call_arg const arg) { regs->a1  = arg; }
+			void user_arg_2(Kernel::Call_arg const arg) { regs->a2  = arg; }
+			void user_arg_3(Kernel::Call_arg const arg) { regs->a3  = arg; }
+			void user_arg_4(Kernel::Call_arg const arg) { regs->a4  = arg; }
+			Kernel::Call_arg user_arg_0() const { return regs->a0; }
+			Kernel::Call_arg user_arg_1() const { return regs->a1; }
+			Kernel::Call_arg user_arg_2() const { return regs->a2; }
+			Kernel::Call_arg user_arg_3() const { return regs->a3; }
+			Kernel::Call_arg user_arg_4() const { return regs->a4; }
 
 			/**
 			 * Initialize thread context
@@ -106,8 +107,8 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			 */
 			void init_thread(addr_t const table, unsigned const pd_id)
 			{
-				protection_domain(pd_id);
-				translation_table(table);
+				regs->protection_domain(pd_id);
+				regs->translation_table(table);
 			}
 		};
 
@@ -158,10 +159,11 @@ class Genode::Cpu : public Hw::Riscv_cpu
 
 		void switch_to(User_context& context)
 		{
-			bool user = Sptbr::Asid::get(context.sptbr);
+			bool user = Sptbr::Asid::get(context.regs->sptbr);
 			Sstatus::access_t v = Sstatus::read();
 			Sstatus::Spp::set(v, user ? 0 : 1);
 			Sstatus::write(v);
+			if (user) Sptbr::write(context.regs->sptbr);
 		}
 };
 

@@ -38,8 +38,8 @@ Bootstrap::Platform::Board::Board()
 	Aipstz aipstz_1(AIPS_1_MMIO_BASE);
 	Aipstz aipstz_2(AIPS_2_MMIO_BASE);
 
-	/* set exception vector entry */
-	Cpu::Mvbar::write(0xfff00000); //FIXME
+	/* set monitor mode exception vector entry */
+	Cpu::Mvbar::write(Hw::Mm::system_exception_vector().base);
 
 	/* enable coprocessor 10 + 11 access for TZ VMs */
 	Cpu::Nsacr::access_t v = 0;

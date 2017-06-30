@@ -124,9 +124,6 @@ Cpu_job::~Cpu_job()
  ** Cpu_idle **
  **************/
 
-void Cpu_idle::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
-
-
 void Cpu_idle::_main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
 
 
@@ -239,9 +236,8 @@ Cpu_domain_update::Cpu_domain_update() {
  * 3) The alignment that originates from 1) and 2) is assumed to be always
  *    less or equal to the minimum page size.
  */
-enum { KERNEL_STACK_SIZE = 16 * 1024 * sizeof(Genode::addr_t) };
-Genode::size_t  kernel_stack_size = KERNEL_STACK_SIZE;
-Genode::uint8_t kernel_stack[NR_OF_CPUS][KERNEL_STACK_SIZE]
+Genode::size_t  kernel_stack_size = Cpu::KERNEL_STACK_SIZE;
+Genode::uint8_t kernel_stack[NR_OF_CPUS][Cpu::KERNEL_STACK_SIZE]
 __attribute__((aligned(Genode::get_page_size())));
 
 Cpu_context::Cpu_context(Hw::Page_table * const table)
@@ -253,5 +249,5 @@ Cpu_context::Cpu_context(Hw::Page_table * const table)
 	 * platform specific initialization, has to be done after
 	 * setting the registers by now
 	 */
-	_init(KERNEL_STACK_SIZE, (addr_t)table);
+	_init(Cpu::KERNEL_STACK_SIZE, (addr_t)table);
 }

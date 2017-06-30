@@ -64,7 +64,11 @@ class Genode::Cpu : public Arm_v7_cpu
 		 *
 		 * \param context  context to switch to
 		 */
-		void switch_to(User_context & context) { _fpu.switch_to(context); }
+		void switch_to(User_context & context)
+		{
+			Arm_cpu::switch_to(context);
+			_fpu.switch_to(context);
+		}
 
 		/**
 		 * Return wether to retry an undefined user instruction after this call

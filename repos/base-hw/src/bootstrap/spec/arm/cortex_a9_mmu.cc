@@ -95,7 +95,7 @@ struct Scu : Genode::Mmio
  *
  * See ARM's Cortex-A9 MPCore TRM r2p0 in section 5.3.5 for more details
  */
-void Bootstrap::Platform::enable_mmu()
+unsigned Bootstrap::Platform::enable_mmu()
 {
 	using namespace Bootstrap;
 
@@ -162,4 +162,6 @@ void Bootstrap::Platform::enable_mmu()
 
 	/* wait for other cores' coherency activation */
 	smp_coherency_enabled.wait_for(NR_OF_CPUS);
+
+	return Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 }

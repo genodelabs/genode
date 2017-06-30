@@ -26,7 +26,7 @@ namespace Hw {
 	/**
 	 * SBI calls to machine mode.
 	 *
-	 * Keep in sync with mode_transition.s.
+	 * Keep in sync with exception_vector.s.
 	 */
 	constexpr Call_arg call_id_set_sys_timer() { return 200; }
 	constexpr Call_arg call_id_get_sys_timer() { return 201; }

@@ -50,7 +50,7 @@ void Pager_entrypoint::entry()
 			continue;
 		}
 
-		_fault.ip     = pt->kernel_object()->ip;
+		_fault.ip     = pt->kernel_object()->regs->ip;
 		_fault.addr   = pt->kernel_object()->fault_addr();
 		_fault.writes = pt->kernel_object()->fault_writes();
 

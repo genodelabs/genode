@@ -11,14 +11,36 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-
-/**************************
- ** .text (program code) **
- **************************/
-
 .section ".text"
 
-	/* program entry-point */
+	/***********************
+	 ** kernel entry code **
+	 ***********************/
+
+	.global _start
+	_start:
+
+	/* switch to cpu-specific kernel stack */
+	adr   r1, _kernel_stack
+	adr   r2, _kernel_stack_size
+	ldr   r1, [r1]
+	ldr   r2, [r2]
+	ldr   r2, [r2]
+	add   r0, #1
+	mul   r0, r0, r2
+	add   sp, r1, r0
+
+	/* jump into init C code */
+	b kernel_init
+
+	_kernel_stack:      .long kernel_stack
+	_kernel_stack_size: .long kernel_stack_size
+
+
+	/*********************************
+	 ** core main thread entry code **
+	 *********************************/
+
 	.global _core_start
 	_core_start:
 

@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <util/register.h>
 #include <cpu/cpu_state.h>
+#include <base/internal/align_at.h>
 
 #include <hw/spec/arm/cpu.h>
 
@@ -34,9 +35,6 @@ namespace Genode {
 
 struct Genode::Arm_cpu : public Hw::Arm_cpu
 {
-	static constexpr addr_t exception_entry   = 0xffff0000;
-	static constexpr addr_t mtc_size          = get_page_size();
-
 	/**
 	 * Translation table base register 0
 	 */
@@ -105,23 +103,25 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	/**
 	 * An usermode execution state
 	 */
-	struct User_context : Context
+	struct User_context
 	{
+		Align_at<Context, 4> regs;
+
 		void init(bool privileged);
 
 		/**
 		 * Support for kernel calls
 		 */
-		void user_arg_0(Kernel::Call_arg const arg) { r0 = arg; }
-		void user_arg_1(Kernel::Call_arg const arg) { r1 = arg; }
-		void user_arg_2(Kernel::Call_arg const arg) { r2 = arg; }
-		void user_arg_3(Kernel::Call_arg const arg) { r3 = arg; }
-		void user_arg_4(Kernel::Call_arg const arg) { r4 = arg; }
-		Kernel::Call_arg user_arg_0() const { return r0; }
-		Kernel::Call_arg user_arg_1() const { return r1; }
-		Kernel::Call_arg user_arg_2() const { return r2; }
-		Kernel::Call_arg user_arg_3() const { return r3; }
-		Kernel::Call_arg user_arg_4() const { return r4; }
+		void user_arg_0(Kernel::Call_arg const arg) { regs->r0 = arg; }
+		void user_arg_1(Kernel::Call_arg const arg) { regs->r1 = arg; }
+		void user_arg_2(Kernel::Call_arg const arg) { regs->r2 = arg; }
+		void user_arg_3(Kernel::Call_arg const arg) { regs->r3 = arg; }
+		void user_arg_4(Kernel::Call_arg const arg) { regs->r4 = arg; }
+		Kernel::Call_arg user_arg_0() const { return regs->r0; }
+		Kernel::Call_arg user_arg_1() const { return regs->r1; }
+		Kernel::Call_arg user_arg_2() const { return regs->r2; }
+		Kernel::Call_arg user_arg_3() const { return regs->r3; }
+		Kernel::Call_arg user_arg_4() const { return regs->r4; }
 
 		/**
 		 * Initialize thread context
@@ -131,8 +131,8 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		 */
 		void init_thread(addr_t const table, unsigned const pd_id)
 		{
-			protection_domain(pd_id);
-			translation_table(table);
+			regs->protection_domain(pd_id);
+			regs->translation_table(table);
 		}
 
 		/**
@@ -150,9 +150,9 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 			/* permission fault on page */
 			static constexpr Fsr::access_t permission = 0xf;
 
-			switch (cpu_exception) {
+			switch (regs->cpu_exception) {
 
-			case PREFETCH_ABORT:
+			case Context::PREFETCH_ABORT:
 				{
 					/* check if fault was caused by a translation miss */
 					Ifsr::access_t const fs = Fsr::Fs::get(Ifsr::read());
@@ -161,10 +161,10 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 
 					/* fetch fault data */
 					w = 0;
-					va = ip;
+					va = regs->ip;
 					return true;
 				}
-			case DATA_ABORT:
+			case Context::DATA_ABORT:
 				{
 					/* check if fault is of known type */
 					Dfsr::access_t const fs = Fsr::Fs::get(Dfsr::read());
@@ -241,8 +241,18 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	 ** Dummies **
 	 *************/
 
-	void switch_to(User_context&) { }
-	bool retry_undefined_instr(Context&) { return false; }
+	void switch_to(User_context & o)
+	{
+		if (o.regs->cidr == 0) return;
+
+		Cidr::access_t cidr = Cidr::read();
+		if (cidr != o.regs->cidr) {
+			Cidr::write(o.regs->cidr);
+			Ttbr0::write(o.regs->ttbr0);
+		}
+	}
+
+	bool retry_undefined_instr(User_context&) { return false; }
 
 	/**
 	 * Return kernel name of the executing CPU

@@ -20,8 +20,7 @@
 .macro _define_gdt tss_address
 	.align 4
 	.space 2
-	.global _mt_gdt_ptr
-	_mt_gdt_ptr:
+	__gdt_ptr:
 	.word 55 /* limit        */
 	.long 0  /* base address */
 
@@ -29,8 +28,8 @@
 	.set TSS_TYPE, 0x8900
 
 	.align 8
-	.global _mt_gdt_start
-	_mt_gdt_start:
+	.global __gdt_start
+	__gdt_start:
 	/* Null descriptor */
 	.quad 0
 	/* 64-bit code segment descriptor */
@@ -55,6 +54,6 @@
 	.long ((\tss_address >> 24) & 0xff) << 24 | ((\tss_address >> 16) & 0xff) | TSS_TYPE
 	.long \tss_address >> 32
 	.long 0
-	.global _mt_gdt_end
-	_mt_gdt_end:
+	.global __gdt_end
+	__gdt_end:
 .endm

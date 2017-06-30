@@ -135,8 +135,8 @@ class Bootstrap::Platform
 
 		Platform();
 
-		void enable_mmu();
-		void start_core() __attribute__((noreturn));
+		unsigned enable_mmu();
+		void start_core(unsigned) __attribute__((noreturn));
 };
 
 #endif /* _SRC__BOOTSTRAP__PLATFORM_H_ */

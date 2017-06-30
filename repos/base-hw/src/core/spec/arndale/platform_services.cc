@@ -23,9 +23,7 @@
 #include <vm_root.h>
 #include <platform.h>
 
-extern Genode::addr_t _vt_host_context_ptr;
-extern Genode::addr_t _vt_host_entry;
-extern Genode::addr_t _mt_master_context_begin;
+extern Genode::addr_t hypervisor_exception_vector;
 
 /*
  * Add ARM virtualization specific vm service
@@ -36,11 +34,9 @@ void Genode::platform_add_local_services(Rpc_entrypoint *ep,
 {
 	using namespace Genode;
 
-	/* initialize host context used in virtualization world switch */
-	*((void**)&_vt_host_context_ptr) = &_mt_master_context_begin;
-
-	map_local(Platform::core_phys_addr((addr_t)&_vt_host_entry),
-	          0xfff00000, 1, Hw::PAGE_FLAGS_KERN_TEXT);
+	map_local(Platform::core_phys_addr((addr_t)&hypervisor_exception_vector),
+	          Hw::Mm::hypervisor_exception_vector().base, 1,
+	          Hw::PAGE_FLAGS_KERN_TEXT);
 
 	static Vm_root vm_root(ep, sh);
 	static Core_service<Vm_session_component> vm_service(*services, vm_root);

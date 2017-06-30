@@ -144,9 +144,6 @@ Cpu_job * Thread::helping_sink() {
 	return static_cast<Thread *>(Ipc_node::helping_sink()); }
 
 
-void Thread::proceed(unsigned const cpu) { mtc()->switch_to_user(this, cpu); }
-
-
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
 {
 	using Genode::Cpu_session;
@@ -203,7 +200,7 @@ void Thread::_call_start_thread()
 
 	/* join protection domain */
 	thread->_pd = (Pd *) user_arg_3();
-	thread->_pd->admit(thread);
+	thread->_pd->admit(*thread->regs);
 	thread->Ipc_node::_init((Native_utcb *)user_arg_4(), this);
 	thread->_become_active();
 }
@@ -666,13 +663,13 @@ Core_thread::Core_thread()
 	utcb->cap_add(cap_id_invalid());
 
 	/* start thread with stack pointer at the top of stack */
-	sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
-	ip = (addr_t)&_core_start;
+	regs->sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
+	regs->ip = (addr_t)&_core_start;
 
 	affinity(cpu_pool()->primary_cpu());
 	_utcb       = utcb;
 	Thread::_pd = core_pd();
-	Thread::_pd->admit(this);
+	Thread::_pd->admit(*regs);
 	_become_active();
 }
 

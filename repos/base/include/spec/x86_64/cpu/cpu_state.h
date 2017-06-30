@@ -35,8 +35,6 @@ struct Genode::Cpu_state
 		INTERRUPTS_END        = 0xff,
 	};
 
-	addr_t ip      = 0;
-	addr_t sp      = 0;
 	addr_t r8      = 0;
 	addr_t r9      = 0;
 	addr_t r10     = 0;
@@ -52,11 +50,12 @@ struct Genode::Cpu_state
 	addr_t rdi     = 0;
 	addr_t rsi     = 0;
 	addr_t rbp     = 0;
-	addr_t errcode = 0;
-	addr_t eflags  = 0;
 	addr_t trapno  = RESET;
+	addr_t errcode = 0;
+	addr_t ip      = 0;
 	addr_t cs      = 0;
-	addr_t ds      = 0;
+	addr_t eflags  = 0;
+	addr_t sp      = 0;
 	addr_t ss      = 0;
 };
 

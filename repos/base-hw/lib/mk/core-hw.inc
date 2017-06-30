@@ -57,7 +57,6 @@ SRC_CC += kernel/thread.cc
 SRC_CC += kernel/signal_receiver.cc
 SRC_CC += kernel/ipc_node.cc
 SRC_CC += kernel/irq.cc
-SRC_CC += kernel/pd.cc
 SRC_CC += kernel/cpu.cc
 SRC_CC += kernel/timer.cc
 SRC_CC += kernel/object.cc

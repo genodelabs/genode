@@ -45,5 +45,5 @@ Memory_region const Hw::Mm::core_mmio() {
 Memory_region const Hw::Mm::boot_info() {
 	return Memory_region(0xffffffe040000000UL, 0x1000UL); }
 
-Memory_region const Hw::Mm::exception_vector() {
-	return Memory_region(0xfffffff000000000UL, 0x1000UL); }
+Memory_region const Hw::Mm::supervisor_exception_vector() {
+	return Memory_region(KERNEL_START, 0x1000UL); }

@@ -23,6 +23,7 @@
 #include <cpu/cpu_state.h>
 
 /* base includes */
+#include <base/internal/align_at.h>
 #include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
@@ -74,7 +75,7 @@ class Genode::Cpu
 		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
 		 */
-		struct Context : Cpu_state
+		struct alignas(16) Context : Cpu_state
 		{
 			/**
 			 * Address of top-level paging structure.
@@ -99,21 +100,24 @@ class Genode::Cpu
 		/**
 		 * An usermode execution state
 		 */
-		struct User_context : Context, Fpu::Context
+		struct User_context
 		{
+			Align_at<Context, 16> regs;
+			Fpu::Context fpu_regs;
+
 			/**
 			 * Support for kernel calls
 			 */
-			void user_arg_0(Kernel::Call_arg const arg) { rdi = arg; }
-			void user_arg_1(Kernel::Call_arg const arg) { rsi = arg; }
-			void user_arg_2(Kernel::Call_arg const arg) { rdx = arg; }
-			void user_arg_3(Kernel::Call_arg const arg) { rcx = arg; }
-			void user_arg_4(Kernel::Call_arg const arg) { r8 = arg; }
-			Kernel::Call_arg user_arg_0() const { return rdi; }
-			Kernel::Call_arg user_arg_1() const { return rsi; }
-			Kernel::Call_arg user_arg_2() const { return rdx; }
-			Kernel::Call_arg user_arg_3() const { return rcx; }
-			Kernel::Call_arg user_arg_4() const { return r8; }
+			void user_arg_0(Kernel::Call_arg const arg) { regs->rdi = arg; }
+			void user_arg_1(Kernel::Call_arg const arg) { regs->rsi = arg; }
+			void user_arg_2(Kernel::Call_arg const arg) { regs->rdx = arg; }
+			void user_arg_3(Kernel::Call_arg const arg) { regs->rcx = arg; }
+			void user_arg_4(Kernel::Call_arg const arg) { regs->r8 = arg; }
+			Kernel::Call_arg user_arg_0() const { return regs->rdi; }
+			Kernel::Call_arg user_arg_1() const { return regs->rsi; }
+			Kernel::Call_arg user_arg_2() const { return regs->rdx; }
+			Kernel::Call_arg user_arg_3() const { return regs->rcx; }
+			Kernel::Call_arg user_arg_4() const { return regs->r8; }
 		};
 
 	protected:
@@ -123,11 +127,6 @@ class Genode::Cpu
 	public:
 
 		Fpu & fpu() { return _fpu; }
-
-		static constexpr addr_t exception_entry = 0xffffffc000000000;
-		static constexpr addr_t mtc_size        = 1 << 13;
-
-		static addr_t virt_mtc_addr(addr_t virt_base, addr_t label);
 
 		/**
 		 * Wait for the next interrupt as cheap as possible
@@ -155,7 +154,7 @@ class Genode::Cpu
 		 *
 		 * \param context  next CPU context
 		 */
-		void switch_to(User_context &context) { _fpu.switch_to(context); }
+		inline void switch_to(User_context &context);
 };
 
 
@@ -282,6 +281,15 @@ struct Genode::Cpu::Cr4 : Register<64>
 		asm volatile ("mov %%cr4, %0" : "=r" (v) :: );
 		return v;
 	}
+};
+
+
+void Genode::Cpu::switch_to(User_context &context)
+{
+	_fpu.switch_to(context.fpu_regs);
+
+	if ((context.regs->cs != 0x8) && (context.regs->cr3 != Cr3::read()))
+		Cr3::write(context.regs->cr3);
 };
 
 #endif /* _CORE__SPEC__X86_64__CPU_H_ */

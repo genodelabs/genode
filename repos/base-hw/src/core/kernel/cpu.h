@@ -282,6 +282,8 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 
 	public:
 
+		enum { KERNEL_STACK_SIZE = 16 * 1024 * sizeof(Genode::addr_t) };
+
 		/**
 		 * Construct object for CPU 'id'
 		 */

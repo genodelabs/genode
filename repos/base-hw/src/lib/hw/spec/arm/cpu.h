@@ -110,7 +110,7 @@ struct Hw::Arm_cpu
 
 	struct Ttbr_64bit : Genode::Register<64>
 	{
-		struct Ba   : Bitfield<5, 34> { }; /* translation table base */
+		struct Ba   : Bitfield<4, 35> { }; /* translation table base */
 		struct Asid : Bitfield<48,8> { };
 	};
 
@@ -121,9 +121,14 @@ struct Hw::Arm_cpu
 		 ** Large Physical Address Extensions **
 		 ***************************************/
 
+		struct T0sz  : Bitfield<0,  3> { };
 		struct Irgn0 : Bitfield<8,  2> { };
 		struct Orgn0 : Bitfield<10, 2> { };
 		struct Sh0   : Bitfield<12, 2> { };
+		struct T1sz  : Bitfield<16, 3> { };
+		struct Irgn1 : Bitfield<24, 2> { };
+		struct Orgn1 : Bitfield<26, 2> { };
+		struct Sh1   : Bitfield<28, 2> { };
 		struct Eae   : Bitfield<31, 1> { }; /* extended address enable */
 	);
 

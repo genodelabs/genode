@@ -21,5 +21,5 @@ void Genode::Arm_cpu::User_context::init(bool privileged)
 	Psr::M::set(v, privileged ? Psr::M::SYS : Psr::M::USR);
 	Psr::I::set(v, 1);
 	Psr::A::set(v, 1);
-	cpsr = v;
+	regs->cpsr = v;
 }

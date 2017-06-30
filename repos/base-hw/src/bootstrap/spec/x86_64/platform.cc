@@ -100,8 +100,11 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-void Bootstrap::Platform::enable_mmu() {
-	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base)); }
+unsigned Bootstrap::Platform::enable_mmu()
+{
+	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
+	return 0;
+}
 
 
 addr_t Bios_data_area::_mmio_base_virt() { return 0x1ff000; }

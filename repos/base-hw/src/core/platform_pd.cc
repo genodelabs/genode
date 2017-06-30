@@ -85,16 +85,12 @@ Hw::Address_space::Address_space(Kernel::Pd & pd, Page_table & tt,
 
 
 Hw::Address_space::Address_space(Kernel::Pd & pd)
-: _tt(*construct_at<Page_table>(_table_alloc())),
+: _tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
   _tt_phys((addr_t)_cma()->phys_addr(&_tt)),
   _tt_array(new (_cma()) Array([this] (void * virt) {
     return (addr_t)_cma()->phys_addr(virt);})),
   _tt_alloc(_tt_array->alloc()),
-  _kernel_pd(pd)
-{
-	Lock::Guard guard(_lock);
-	Kernel::mtc()->map(_tt, _tt_alloc);
-}
+  _kernel_pd(pd) { }
 
 
 Hw::Address_space::~Address_space()
@@ -175,12 +171,6 @@ Platform_pd::~Platform_pd()
  ** Core_platform_pd implementation **
  *************************************/
 
-extern int _mt_master_context_begin;
-
 Core_platform_pd::Core_platform_pd()
 : Platform_pd(*(Hw::Page_table*)Hw::Mm::core_page_tables().base,
-              Platform::core_page_table_allocator())
-{
-	Genode::construct_at<Kernel::Cpu_context>(&_mt_master_context_begin,
-	                                          (Page_table*)translation_table_phys());
-}
+              Platform::core_page_table_allocator()) { }

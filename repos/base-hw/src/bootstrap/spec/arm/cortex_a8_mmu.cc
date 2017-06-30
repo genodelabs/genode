@@ -13,8 +13,10 @@
 
 #include <platform.h>
 
-void Bootstrap::Platform::enable_mmu()
+unsigned Bootstrap::Platform::enable_mmu()
 {
 	Cpu::Sctlr::init();
 	Cpu::enable_mmu_and_caches((addr_t)core_pd->table_base);
+
+	return 0;
 }

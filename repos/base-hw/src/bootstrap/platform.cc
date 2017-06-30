@@ -135,18 +135,24 @@ Mapping Platform::_load_elf()
 			core_pd->map_insert(m);
 		else
 			ret = m;
+
+		/* map start of the text segment as exception vector */
+		if (segment.flags().x && !segment.flags().w) {
+			Memory_region e = Hw::Mm::supervisor_exception_vector();
+			core_pd->map_insert(Mapping((addr_t)phys, e.base, e.size, flags));
+		}
 	};
 	core_elf.for_each_segment(lambda);
 	return ret;
 }
 
 
-void Platform::start_core()
+void Platform::start_core(unsigned cpu_id)
 {
-	typedef void (* Entry)();
+	typedef void (* Entry)(unsigned);
 	Entry __attribute__((noreturn)) const entry
 		= reinterpret_cast<Entry>(core_elf.entry());
-	entry();
+	entry(cpu_id);
 }
 
 

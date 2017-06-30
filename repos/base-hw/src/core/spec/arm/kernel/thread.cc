@@ -21,35 +21,35 @@ using namespace Kernel;
 void Kernel::Thread::_init()
 {
 	init(_core);
-	cpu_exception = RESET;
+	regs->cpu_exception = Cpu::Context::RESET;
 }
 
 
 void Thread::exception(unsigned const cpu)
 {
-	switch (cpu_exception) {
-	case SUPERVISOR_CALL:
+	switch (regs->cpu_exception) {
+	case Cpu::Context::SUPERVISOR_CALL:
 		_call();
 		return;
-	case PREFETCH_ABORT:
-	case DATA_ABORT:
+	case Cpu::Context::PREFETCH_ABORT:
+	case Cpu::Context::DATA_ABORT:
 		_mmu_exception();
 		return;
-	case INTERRUPT_REQUEST:
-	case FAST_INTERRUPT_REQUEST:
+	case Cpu::Context::INTERRUPT_REQUEST:
+	case Cpu::Context::FAST_INTERRUPT_REQUEST:
 		_interrupt(cpu);
 		return;
-	case UNDEFINED_INSTRUCTION:
+	case Cpu::Context::UNDEFINED_INSTRUCTION:
 		if (_cpu->retry_undefined_instr(*this)) { return; }
 		Genode::warning(*this, ": undefined instruction at ip=",
-		                Genode::Hex(ip));
+		                Genode::Hex(regs->ip));
 		_die();
 		return;
-	case RESET:
+	case Cpu::Context::RESET:
 		return;
 	default:
 		Genode::warning(*this, ": triggered an unknown exception ",
-		                cpu_exception);
+		                regs->cpu_exception);
 		_die();
 		return;
 	}
@@ -68,18 +68,19 @@ void Thread::_mmu_exception()
 		 */
 		if (_pd == Kernel::core_pd())
 			Genode::error("page fault in core thread (", label(), "): "
-			              "ip=", Genode::Hex(ip), " fault=", Genode::Hex(_fault_addr));
+			              "ip=", Genode::Hex(regs->ip), " fault=", Genode::Hex(_fault_addr));
 
 		if (_pager) _pager->submit(1);
 		return;
 	}
+	bool da = regs->cpu_exception == Cpu::Context::DATA_ABORT;
 	Genode::error(*this, ": raised unhandled ",
-	              cpu_exception == DATA_ABORT ? "data abort" : "prefetch abort", " "
+	              da ? "data abort" : "prefetch abort", " "
 	              "DFSR=", Genode::Hex(Cpu::Dfsr::read()), " "
 	              "ISFR=", Genode::Hex(Cpu::Ifsr::read()), " "
 	              "DFAR=", Genode::Hex(Cpu::Dfar::read()), " "
-	              "ip=",   Genode::Hex(ip),                " "
-	              "sp=",   Genode::Hex(sp));
+	              "ip=",   Genode::Hex(regs->ip),          " "
+	              "sp=",   Genode::Hex(regs->sp));
 }
 
 
@@ -129,4 +130,20 @@ void Kernel::Thread::_call_update_instr_region()
 	auto const size = (size_t)user_arg_2();
 	cpu->clean_invalidate_data_cache_by_virt_region(base, size);
 	cpu->invalidate_instr_cache_by_virt_region(base, size);
+}
+
+
+extern void * kernel_stack;
+
+void Thread::proceed(unsigned const cpu)
+{
+	regs->cpu_exception = (addr_t)&kernel_stack + Cpu::KERNEL_STACK_SIZE * (cpu+1);
+
+	asm volatile("mov  sp, %0        \n"
+	             "msr  spsr_cxsf, %1 \n"
+	             "mov  lr, %2        \n"
+	             "ldm  sp, {r0-r14}^ \n"
+	             "subs pc, lr, #0    \n"
+	             :: "r" (static_cast<Cpu::Context*>(&*regs)),
+	                "r" (regs->cpsr), "r" (regs->ip));
 }
