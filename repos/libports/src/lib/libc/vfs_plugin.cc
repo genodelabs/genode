@@ -196,7 +196,12 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 				case Result::OPEN_ERR_EXISTS:
 
 					/* file has been created by someone else in the meantime */
-					break;
+					if (flags & O_NOFOLLOW) {
+					        errno = ELOOP;
+					        return 0;
+					}
+					errno = EEXIST;
+					return 0;
 
 				case Result::OPEN_ERR_NO_PERM:       errno = EPERM;        return 0;
 				case Result::OPEN_ERR_UNACCESSIBLE:  errno = ENOENT;       return 0;
