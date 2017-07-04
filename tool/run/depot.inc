@@ -34,34 +34,37 @@ proc _depot_archive_path_pattern { } { return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)$}
 # Pattern to parse an binary archive path into <user>, <spec>, <name>.
 #
 proc _depot_bin_archive_path_pattern { } { return {^([\w\d]+)/bin/([\w\d]+)/([\w\d\-_]+)$} }
-proc _depot_lib_archive_path_pattern { } { return {^([\w\d]+)/bin/([\w\d]+)/[\w\d\-_]+/([\w\d\-_]+)$} }
 
 
 ##
-# Import a pkg archive and its dependencies
+# Determine content of a pkg archive and its dependencies
 #
-proc _import_pkg_archive_from_depot { user name } {
+proc _collect_pkg_archive_from_depot { user name } {
 
 	global _missing_depot_archives
 
-	set archive_dir "[depot_dir]/$user/pkg/$name"
+	set archive_dir "$user/pkg/$name"
+	set archives_file "[depot_dir]/$archive_dir/archives"
 
-	if {![file exists $archive_dir/archives]} {
-		puts "Error: missing file $archive_dir/archives"
+	if {![file exists $archives_file]} {
+		puts "Error: missing file $archives_file"
 		exit 1
 	}
 
-	set fh [open "$archive_dir/archives" "RDONLY"]
+	set fh [open $archives_file "RDONLY"]
 	set archives [read $fh]
 	close $fh
 
+	set content "$archive_dir"
 	foreach archive $archives {
 		if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
 			if {($type == "pkg") || ($type == "src") || ($type == "raw")} {
-				import_from_depot $archive
+				set content [concat $content [_collect_from_depot $archive]]
 			}
 		}
 	}
+
+	return $content
 }
 
 
@@ -76,26 +79,26 @@ proc _copy_directory_content_to_run_dir { dir } {
 }
 
 
-proc _import_raw_archive_from_depot { user name } {
-
-	_copy_directory_content_to_run_dir "[depot_dir]/$user/raw/$name"
-}
+proc _collect_raw_archive_from_depot { user name } { return "$user/raw/$name" }
 
 
 ##
-# Copy the binary content for a given source archive into the run directory
+# Determine binary content for a given source archive
 #
-proc _import_src_archive_from_depot { user name } {
+proc _collect_src_archive_from_depot { user name } {
 
 	global _missing_depot_archives;
 
-	set bin_archive "$user/bin/[depot_spec]/$name"
+	set src_archive_dir "$user/src/$name"
+	set bin_archive_dir "$user/bin/[depot_spec]/$name"
 
-	if {[file exists [depot_dir]/$bin_archive]} {
-		_copy_directory_content_to_run_dir "[depot_dir]/$bin_archive"
+	if {[file exists [depot_dir]/$bin_archive_dir]} {
+		return [list $src_archive_dir $bin_archive_dir]
 	} else {
-		lappend _missing_depot_archives $bin_archive
+		lappend _missing_depot_archives $bin_archive_dir
 	}
+
+	return {}
 }
 
 
@@ -132,11 +135,13 @@ proc _versioned_depot_archive_name { user type name } {
 }
 
 
-proc import_from_depot { args } {
+proc _collect_from_depot { archives } {
 
 	global _missing_depot_archives
 
-	foreach archive $args {
+	set all_content {}
+
+	foreach archive $archives {
 
 		if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
 
@@ -146,17 +151,21 @@ proc import_from_depot { args } {
 
 			} else {
 
+				set content {}
+
 				switch $type {
 
-					"pkg" { _import_pkg_archive_from_depot $user $versioned_name }
-					"src" { _import_src_archive_from_depot $user $versioned_name }
-					"raw" { _import_raw_archive_from_depot $user $versioned_name }
+					"pkg" { set content [_collect_pkg_archive_from_depot $user $versioned_name] }
+					"src" { set content [_collect_src_archive_from_depot $user $versioned_name] }
+					"raw" { set content [_collect_raw_archive_from_depot $user $versioned_name] }
 
 					default {
 						puts stderr "Error: unknown depot-archive type '$type'"
 						exit 1
 					}
 				}
+
+				set all_content [concat $all_content $content]
 			}
 		} else {
 			puts stderr "Error: malformed depot-archive path '$archive',"
@@ -164,6 +173,49 @@ proc import_from_depot { args } {
 			exit 1
 		}
 	}
+
+	return $all_content
+}
+
+
+##
+# Import binary and raw content of the specified depot archives into the run
+# directory of the scenario
+#
+proc import_from_depot { args } {
+
+	foreach subdir [_collect_from_depot $args] {
+
+		# prevent src, api, and pkg archives from inflating the boot image
+		if {[regexp [_depot_archive_path_pattern] $subdir dummy user type]} {
+			if {$type == "src"} continue;
+			if {$type == "api"} continue;
+			if {$type == "pkg"} continue;
+		}
+
+		_copy_directory_content_to_run_dir "[depot_dir]/$subdir"
+	}
+}
+
+
+##
+# Assemble tar archive from binary content of the depot
+#
+proc create_tar_from_depot_binaries { archive_path args } {
+
+	# filter out api and src archives from requested depot content
+	set content {}
+	foreach subdir [_collect_from_depot $args] {
+		if {[regexp [_depot_archive_path_pattern] $subdir dummy user type]} {
+			if {$type == "src"} continue;
+			if {$type == "api"} continue;
+		}
+		lappend content $subdir
+	}
+
+	check_for_missing_depot_archives
+
+	eval "exec tar cf $archive_path -C [depot_dir] $content"
 }
 
 
