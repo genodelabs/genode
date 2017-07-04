@@ -8,6 +8,6 @@ an 'archive' tag, for example:
 ! </config>
 
 The backing store for the dataspaces exported via ROM sessions is accounted
-on the 'rom_tar' service (not on its clients) to make the use of 'rom_tar'
+on the 'tar_rom' service (not on its clients) to make the use of 'tar_rom'
 transparent to the regular users of core's ROM service. Hence, this service
 must not be used by multiple clients that do not trust each other.
