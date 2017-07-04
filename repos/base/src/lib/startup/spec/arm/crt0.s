@@ -28,6 +28,8 @@
 	/* make initial value of some registers available to higher-level code */
 	ldr r4, =__initial_sp
 	str sp, [r4]
+	ldr r4, =__initial_r0
+	str r0, [r4]
 
 	/*
 	 * Install initial temporary environment that is replaced later by the
@@ -65,4 +67,8 @@
 	/* initial value of the SP register */
 	.global __initial_sp
 	__initial_sp:
+	.space 4
+	/* initial value of the R0 register */
+	.global __initial_r0
+	__initial_r0:
 	.space 4
