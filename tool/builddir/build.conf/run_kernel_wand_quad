@@ -1,0 +1,3 @@
+# kernel to use (hw, sel4)
+# KERNEL ?= hw
+

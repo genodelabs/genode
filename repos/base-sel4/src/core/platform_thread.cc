@@ -51,14 +51,29 @@ class Platform_thread_registry : Noncopyable
 			_threads.remove(&thread);
 		}
 
-		void install_mapping(Mapping const &mapping, unsigned long pager_object_badge)
+		bool install_mapping(Mapping const &mapping, unsigned long pager_object_badge)
 		{
+			unsigned installed = 0;
+			bool     result    = true;
+
 			Lock::Guard guard(_lock);
 
 			for (Platform_thread *t = _threads.first(); t; t = t->next()) {
-				if (t->pager_object_badge() == pager_object_badge)
-					t->install_mapping(mapping);
+				if (t->pager_object_badge() == pager_object_badge) {
+					bool ok = t->install_mapping(mapping);
+					if (!ok)
+						result = false;
+					installed ++;
+				}
 			}
+
+			if (installed != 1) {
+				Genode::error("install mapping is wrong ", installed,
+				              " result=", result);
+				result = false;
+			}
+
+			return result;
 		}
 };
 
@@ -70,9 +85,9 @@ Platform_thread_registry &platform_thread_registry()
 }
 
 
-void Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_badge)
+bool Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_badge)
 {
-	platform_thread_registry().install_mapping(mapping, pager_object_badge);
+	return platform_thread_registry().install_mapping(mapping, pager_object_badge);
 }
 
 
@@ -193,9 +208,9 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-void Platform_thread::install_mapping(Mapping const &mapping)
+bool Platform_thread::install_mapping(Mapping const &mapping)
 {
-	_pd->install_mapping(mapping);
+	return _pd->install_mapping(mapping, name());
 }
 
 

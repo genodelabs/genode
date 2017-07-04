@@ -98,7 +98,7 @@ void Platform::_init_allocators()
 	 */
 
 	/* turn remaining untyped memory ranges into untyped pages */
-	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_IDX,
+	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_4K,
 		[&] (addr_t const phys, addr_t const size, bool const device) {
 			/* register to physical or iomem memory allocator */
 
@@ -169,6 +169,7 @@ void Platform::_switch_to_core_cspace()
 	_core_cnode.move(initial_cspace, Cnode_index(seL4_CapIRQControl)); /* cannot be copied */
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapASIDControl));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadASIDPool));
+	/* XXX io port not available on ARM, causes just a kernel warning XXX */
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapIOPort));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapBootInfoFrame));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadIPCBuffer));
@@ -235,8 +236,12 @@ void Platform::_switch_to_core_cspace()
 	                                Cnode_index(Core_cspace::TOP_CNODE_PHYS_IDX));
 
 	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
-	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_sel()),
-	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_IDX));
+	_top_cnode.copy(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_4k()),
+	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_4K));
+
+	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
+	_top_cnode.move(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_16k()),
+	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_16K));
 
 	/* activate core's CSpace */
 	{

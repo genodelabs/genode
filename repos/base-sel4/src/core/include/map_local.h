@@ -36,11 +36,12 @@ namespace Genode {
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 	                      Platform * platform = nullptr)
 	{
-		enum { DONT_FLUSH = false };
+		enum { DONT_FLUSH = false, WRITEABLE = true };
 		try {
 			platform = platform ? platform : platform_specific();
 			platform->core_vm_space().map(from_phys, to_virt, num_pages,
-			                              DONT_FLUSH);
+			                              Cache_attribute::CACHED,
+			                              WRITEABLE, DONT_FLUSH);
 		} catch (Page_table_registry::Mapping_cache_full) {
 			return false;
 		}

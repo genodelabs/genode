@@ -18,16 +18,22 @@
 #include <base/ipc.h>
 #include <base/stdint.h>
 
+namespace Genode { class Ipc_pager; }
+
 namespace Genode {
 
 	class Mapping
 	{
+		friend class Ipc_pager;
+
 		private:
 
-			addr_t _from_phys_addr;
-			addr_t _to_virt_addr;
-			size_t _num_pages;
-			bool   _writeable;
+			addr_t          _from_phys_addr;
+			addr_t          _to_virt_addr;
+			Cache_attribute _attr;
+			size_t          _num_pages;
+			bool            _writeable;
+			addr_t          _fault_type = { 0 };
 
 			enum { PAGE_SIZE_LOG2 = 12 };
 
@@ -43,6 +49,7 @@ namespace Genode {
 			:
 				_from_phys_addr(src_addr),
 				_to_virt_addr(dst_addr),
+				_attr(cacheability),
 				_num_pages(1 << (l2size - PAGE_SIZE_LOG2)),
 				_writeable(rw)
 			{ }
@@ -64,6 +71,8 @@ namespace Genode {
 			addr_t to_virt()   const { return _to_virt_addr; }
 			size_t num_pages() const { return _num_pages; }
 			bool   writeable() const { return _writeable; }
+			Cache_attribute cacheability() const { return _attr; }
+			addr_t fault_type() const { return _fault_type; }
 	};
 
 
@@ -74,11 +83,12 @@ namespace Genode {
 	{
 		private:
 
-			addr_t           _last;      /* faulted thread ID              */
+			addr_t           _badge;     /* faulted badge of thread        */
 			addr_t           _reply_sel; /* selector to save reply cap     */
 			addr_t           _pf_addr;   /* page-fault address             */
 			addr_t           _pf_ip;     /* instruction pointer of faulter */
 			bool             _pf_write;  /* true on write fault            */
+			addr_t           _fault_type; /* type of fault */
 
 			Mapping _reply_mapping;
 
@@ -112,7 +122,11 @@ namespace Genode {
 			/**
 			 * Set parameters for next reply
 			 */
-			void set_reply_mapping(Mapping m) { _reply_mapping = m; }
+			void set_reply_mapping(Mapping m)
+			{
+				_reply_mapping = m;
+				_reply_mapping._fault_type = _fault_type;
+			}
 
 			/**
 			 * Set destination for next reply
@@ -122,7 +136,7 @@ namespace Genode {
 			/**
 			 * Return badge for faulting thread
 			 */
-			unsigned long badge() const { return _last; }
+			unsigned long badge() const { return _badge; }
 
 			/**
 			 * Return true if page fault was a write fault

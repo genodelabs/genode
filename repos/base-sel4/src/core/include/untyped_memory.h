@@ -63,10 +63,11 @@ struct Genode::Untyped_memory
 	 * Local utility solely used by 'untyped_sel' and 'frame_sel'
 	 */
 	static inline Cap_sel _core_local_sel(Core_cspace::Top_cnode_idx top_idx,
-	                                      addr_t phys_addr)
+	                                      addr_t phys_addr,
+	                                      addr_t size_log2 = get_page_size_log2())
 	{
 		unsigned const upper_bits = top_idx << Core_cspace::NUM_PHYS_SEL_LOG2;
-		unsigned const lower_bits = phys_addr >> get_page_size_log2();
+		unsigned const lower_bits = phys_addr >> size_log2;
 
 		return Cap_sel(upper_bits | lower_bits);
 	}
@@ -77,7 +78,7 @@ struct Genode::Untyped_memory
 	 */
 	static inline Cap_sel untyped_sel(addr_t phys_addr)
 	{
-		return _core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_IDX, phys_addr);
+		return _core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_4K, phys_addr);
 	}
 
 

@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__IRQ_OBJECT_H_
 
 #include <base/thread.h>
+#include <base/internal/capability_space_sel4.h>
 #include <irq_session/irq_session.h>
 
 namespace Genode { class Irq_object; }
@@ -32,6 +33,9 @@ class Genode::Irq_object : public Thread_deprecated<4096> {
 		void _wait_for_irq();
 
 		void entry() override;
+
+		long _associate(Irq_session::Trigger const &irq_trigger,
+		                Irq_session::Polarity const &irq_polarity);
 
 	public:
 

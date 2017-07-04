@@ -39,27 +39,8 @@ bool Irq_object::associate(Irq_session::Trigger const irq_trigger,
 		                          _kernel_notify_sel);
 	}
 
-	enum { IRQ_EDGE = 0, IRQ_LEVEL = 1 };
-	enum { IRQ_HIGH = 0, IRQ_LOW = 1 };
-
-	seL4_Word level    = (_irq < 16) ? IRQ_EDGE : IRQ_LEVEL;
-	seL4_Word polarity = (_irq < 16) ? IRQ_HIGH : IRQ_LOW;
-
-	if (irq_trigger != Irq_session::TRIGGER_UNCHANGED)
-		level = (irq_trigger == Irq_session::TRIGGER_LEVEL) ? IRQ_LEVEL : IRQ_EDGE;
-
-	if (irq_polarity != Irq_session::POLARITY_UNCHANGED)
-		polarity = (irq_polarity == Irq_session::POLARITY_HIGH) ? IRQ_HIGH : IRQ_LOW;
-
-	/* setup irq */
-	seL4_CNode root    = seL4_CapInitThreadCNode;
-	seL4_Word index    = _kernel_irq_sel.value();
-	seL4_Uint8 depth   = 32;
-	seL4_Word ioapic   = 0;
-	seL4_Word pin      = _irq ? _irq : 2;
-	seL4_Word vector   = _irq;
-	int res = seL4_IRQControl_GetIOAPIC(seL4_CapIRQControl, root, index, depth,
-	                                    ioapic, pin, level, polarity, vector);
+	/* setup IRQ platform specific */
+	long res = _associate(irq_trigger, irq_polarity);
 	if (res != seL4_NoError)
 		return false;
 

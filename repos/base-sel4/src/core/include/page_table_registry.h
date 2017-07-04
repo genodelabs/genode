@@ -213,6 +213,8 @@ class Genode::Page_table_registry
 				error("still entries in page table registry in destruction");
 		}
 
+		bool page_frame_at(addr_t const vaddr) {
+			return Frame::lookup(_frames, vaddr, LEVEL_0); }
 		bool page_table_at(addr_t const vaddr, addr_t const level_log2) {
 			return Table::lookup(_level1, vaddr, level_log2); }
 		bool page_directory_at(addr_t const vaddr, addr_t const level_log2) {

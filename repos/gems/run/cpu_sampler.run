@@ -27,6 +27,7 @@ install_config {
 		<parent-provides>
 			<service name="CPU"/>
 			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
 			<service name="IRQ"/>
 			<service name="LOG"/>
 			<service name="PD"/>

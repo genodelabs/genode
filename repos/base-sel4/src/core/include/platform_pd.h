@@ -121,7 +121,7 @@ class Genode::Platform_pd : public Address_space
 
 		size_t cspace_size_log2() { return CSPACE_SIZE_LOG2; }
 
-		void install_mapping(Mapping const &mapping);
+		bool install_mapping(Mapping const &mapping, const char * thread_name);
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

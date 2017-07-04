@@ -180,7 +180,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 
 		Cap_sel tcb_sel() const { return _info.tcb_sel; }
 
-		void install_mapping(Mapping const &mapping);
+		bool install_mapping(Mapping const &mapping);
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

@@ -30,7 +30,7 @@ SEL4_ARCH_INCLUDES += simple_types.h types.h constants.h objecttype.h \
                       types_gen.h faults.h
 
 ARCH_INCLUDES += objecttype.h types.h constants.h functions.h deprecated.h \
-                 pfIPC.h syscalls.h invocation.h simple_types.h
+                 syscalls.h invocation.h simple_types.h
 
 INCLUDES := objecttype.h types.h bootinfo.h bootinfo_types.h errors.h \
             constants.h messages.h sel4.h macros.h simple_types.h types_gen.h \

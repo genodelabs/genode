@@ -20,7 +20,7 @@
 
 namespace Genode {
 
-	void install_mapping(Mapping const &mapping, unsigned long pager_object_badge);
+	bool install_mapping(Mapping const &mapping, unsigned long pager_object_badge);
 }
 
 #endif /* _CORE__INCLUDE__INSTALL_MAPPING_H_ */

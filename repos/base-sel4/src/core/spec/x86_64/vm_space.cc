@@ -40,23 +40,6 @@ static long map_directory(Genode::Cap_sel const pd,
 	                                  seL4_X86_Default_VMAttributes);
 }
 
-long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
-                                 Genode::addr_t const virt)
-{
-	seL4_X86_Page          const service = _idx_to_sel(idx.value());
-	seL4_X86_PageDirectory const pd      = _pd_sel.value();
-	seL4_CapRights_t       const rights  = seL4_AllRights;
-	seL4_X86_VMAttributes  const attr    = seL4_X86_Default_VMAttributes;
-
-	return seL4_X86_Page_Map(service, pd, virt, rights, attr);
-}
-
-long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
-{
-	seL4_X86_Page const service = _idx_to_sel(idx.value());
-	return seL4_X86_Page_Unmap(service);
-}
-
 void Genode::Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
                                                         addr_t const size)
 {

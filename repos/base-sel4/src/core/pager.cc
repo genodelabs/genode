@@ -20,27 +20,12 @@
 /* base-internal includes */
 #include <base/internal/capability_space_sel4.h>
 
+#include "fault_info.h"
+
 /* seL4 includes */
 #include <sel4/sel4.h>
-#include <sel4/arch/pfIPC.h>
 
 using namespace Genode;
-
-
-struct Fault_info
-{
-	addr_t ip    = 0;
-	addr_t pf    = 0;
-	bool   write = 0;
-
-	Fault_info(seL4_MessageInfo_t msg_info)
-	:
-		ip(seL4_GetMR(0)),
-		pf(seL4_GetMR(1)),
-		write(seL4_GetMR(3) & 0x2)
-	{ }
-};
-
 
 /***************
  ** IPC pager **
@@ -49,7 +34,7 @@ struct Fault_info
 
 void Ipc_pager::wait_for_fault()
 {
-	if (_last && _reply_sel) {
+	if (_badge && _reply_sel) {
 		seL4_CNode const service = seL4_CapInitThreadCNode;
 		seL4_Word  const index   = _reply_sel;
 		uint8_t    const depth   = 32;
@@ -58,21 +43,21 @@ void Ipc_pager::wait_for_fault()
 			Genode::error("saving reply cap failed with ", ret);
 	}
 	_reply_sel = 0;
-	_last = 0;
+	_badge = 0;
 	reply_and_wait_for_fault();
 }
 
 
 void Ipc_pager::reply_and_wait_for_fault()
 {
-	if (_last)
-		install_mapping(_reply_mapping, _last);
+	if (_badge)
+		_badge = install_mapping(_reply_mapping, _badge);
 
 	seL4_Word badge = Rpc_obj_key::INVALID;
 
 	seL4_MessageInfo_t page_fault_msg_info;
 
-	if (_last) {
+	if (_badge) {
 
 		seL4_MessageInfo_t const reply_msg = seL4_MessageInfo_new(0, 0, 0, 0);
 
@@ -86,15 +71,16 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 	Fault_info const fault_info(page_fault_msg_info);
 
-	_pf_ip    = fault_info.ip;
-	_pf_addr  = fault_info.pf;
-	_pf_write = fault_info.write;
+	_pf_ip      = fault_info.ip;
+	_pf_addr    = fault_info.pf;
+	_pf_write   = fault_info.write;
+	_fault_type = seL4_MessageInfo_get_label(page_fault_msg_info);
 
-	_last = badge;
+	_badge = badge;
 }
 
 
-Ipc_pager::Ipc_pager() : _last(0), _reply_sel(0) { }
+Ipc_pager::Ipc_pager() : _badge(0), _reply_sel(0) { }
 
 
 /******************

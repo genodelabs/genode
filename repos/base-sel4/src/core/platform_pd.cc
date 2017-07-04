@@ -89,8 +89,10 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	 */
 	addr_t const utcb = (thread->_utcb) ? thread->_utcb : thread->INITIAL_IPC_BUFFER_VIRT;
 
+	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true };
 	_vm_space.alloc_page_tables(utcb, get_page_size());
-	_vm_space.map(thread->_info.ipc_buffer_phys, utcb, 1);
+	_vm_space.map(thread->_info.ipc_buffer_phys, utcb, ONE_PAGE,
+	              Cache_attribute::CACHED, WRITABLE, FLUSHABLE);
 	return true;
 }
 
@@ -145,14 +147,48 @@ void Platform_pd::free_sel(Cap_sel sel)
 }
 
 
-void Platform_pd::install_mapping(Mapping const &mapping)
+bool Platform_pd::install_mapping(Mapping const &mapping,
+                                  const char *thread_name)
 {
+	enum { FLUSHABLE = true };
+
 	try {
-		_vm_space.alloc_page_tables(mapping.to_virt(), mapping.num_pages() * get_page_size());
-		_vm_space.map(mapping.from_phys(), mapping.to_virt(), mapping.num_pages());
+		if (mapping.fault_type() != seL4_Fault_VMFault)
+			throw 1;
+
+		_vm_space.alloc_page_tables(mapping.to_virt(),
+		                            mapping.num_pages() * get_page_size());
+
+		_vm_space.map(mapping.from_phys(), mapping.to_virt(),
+		              mapping.num_pages(), mapping.cacheability(),
+		              mapping.writeable(), FLUSHABLE);
+		return true;
 	} catch (...) {
+		char const * fault_name = "unknown";
+
+		switch (mapping.fault_type()) {
+		case seL4_Fault_NullFault:
+			fault_name = "seL4_Fault_NullFault";
+			break;
+		case seL4_Fault_CapFault:
+			fault_name = "seL4_Fault_CapFault";
+			break;
+		case seL4_Fault_UnknownSyscall:
+			fault_name = "seL4_Fault_UnknownSyscall";
+			break;
+		case seL4_Fault_UserException:
+			fault_name = "seL4_Fault_UserException";
+			break;
+		case seL4_Fault_VMFault:
+			fault_name = "seL4_Fault_VMFault";
+			break;
+		}
+
 		/* pager ep would die when we re-throw - let core survive */
-		Genode::error("unexpected exception during page fault handling");
+		Genode::error("unexpected exception during fault '", fault_name, "'",
+		              " - thread '", thread_name, "' in pd '",
+		              _vm_space.pd_label(),"' stopped");
+		return false;
 	}
 }
 

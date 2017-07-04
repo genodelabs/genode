@@ -78,3 +78,32 @@
  
  #endif /* __ASSEMBLER__ */
  #define seL4_FastMessageRegisters 4
+--- src/kernel/sel4/libsel4/sel4_arch_include/aarch32/sel4/sel4_arch/constants.h
++++ src/kernel/sel4/libsel4/sel4_arch_include/aarch32/sel4/sel4_arch/constants.h
+@@ -40,7 +40,7 @@
+     /* length of an unknown syscall message */
+     seL4_UnknownSyscall_Length,
+     SEL4_FORCE_LONG_ENUM(seL4_UnknownSyscall_Msg),
+-} seL4_UnknownSyscall_Msg;
++}; // seL4_UnknownSyscall_Msg;
+ 
+ /* format of a user exception message */
+ enum {
+@@ -52,7 +52,7 @@
+     /* length of a user exception */
+     seL4_UserException_Length,
+     SEL4_FORCE_LONG_ENUM(seL4_UserException_Msg),
+-} seL4_UserException_Msg;
++}; // seL4_UserException_Msg;
+ 
+ /* format of a vm fault message */
+ enum {
+@@ -62,7 +62,7 @@
+     seL4_VMFault_FSR,
+     seL4_VMFault_Length,
+     SEL4_FORCE_LONG_ENUM(seL4_VMFault_Msg),
+-} seL4_VMFault_Msg;
++}; // seL4_VMFault_Msg;
+ 
+ #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
+ enum {

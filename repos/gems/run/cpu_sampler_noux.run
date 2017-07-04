@@ -6,7 +6,7 @@ if { ![have_spec foc] && ![have_spec nova] &&
 
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/input
+	drivers/input
 	server/terminal server/ram_fs
 	server/log_terminal
 	test/libports/ncurses
@@ -14,6 +14,8 @@ set build_components {
 	server/cpu_sampler
 	test/cpu_sampler
 }
+
+lappend_if [have_spec framebuffer] build_components drivers/framebuffer
 
 if {[have_spec foc] || [have_spec nova]} {
 	lappend build_components lib/cpu_sampler_platform-$::env(KERNEL)

@@ -20,6 +20,7 @@ set config {
 		<service name="RM"/>
 		<service name="ROM"/>
 		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
 		<service name="IRQ"/>
 	</parent-provides>
 	<default-route>

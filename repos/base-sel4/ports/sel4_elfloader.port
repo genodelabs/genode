@@ -1,0 +1,12 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := sel4_elfloader.git
+
+URL(sel4_elfloader) := https://github.com/alex-ab/elfloader-tool.git
+# genode branch
+REV(sel4_elfloader) := 5a12b40ef6be2e71a005e822d17a0b3af8c309bd
+DIR(sel4_elfloader) := src/tool/elfloader
+
+$(call check_tool,python)
+
+PATCHES   := $(wildcard $(REP_DIR)/patches/elfloader/*.patch)

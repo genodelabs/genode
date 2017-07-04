@@ -38,8 +38,9 @@ class Genode::Core_cspace
 		static inline unsigned long core_pad_cnode_sel() { return top_cnode_sel() + 1; }
 		static inline unsigned long core_cnode_sel()     { return core_pad_cnode_sel() + 1; }
 		static inline unsigned long phys_cnode_sel()     { return core_cnode_sel() + 1; }
-		static inline unsigned long untyped_cnode_sel()  { return phys_cnode_sel() + 1; }
-		static unsigned long core_static_sel_end()       { return untyped_cnode_sel() + 1; }
+		static inline unsigned long untyped_cnode_4k()   { return phys_cnode_sel() + 1; }
+		static inline unsigned long untyped_cnode_16k()  { return untyped_cnode_4k() + 1; }
+		static unsigned long core_static_sel_end()       { return untyped_cnode_16k() + 1; }
 
 		/* indices within top-level CNode */
 		enum Top_cnode_idx {
@@ -47,8 +48,9 @@ class Genode::Core_cspace
 
 			/* XXX mark last index usable for PDs */
 
-			TOP_CNODE_UNTYPED_IDX = 0xffe, /* untyped memory pages */
-			TOP_CNODE_PHYS_IDX    = 0xfff  /* phyical page frames */
+			TOP_CNODE_UNTYPED_16K = 0xffd, /* untyped objects 16K  */
+			TOP_CNODE_UNTYPED_4K  = 0xffe, /* untyped objects  4K  */
+			TOP_CNODE_PHYS_IDX    = 0xfff  /* physical page frames */
 		};
 
 		enum { CORE_VM_ID = 1 };

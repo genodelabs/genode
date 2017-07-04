@@ -84,7 +84,7 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init timer test-libc_vfs ram_blk
 	rump.lib.so rump_fs.lib.so rump_fs
-	ext2.raw libc.lib.so libm.lib.so
+	ext2.raw libc.lib.so
 }
 
 build_boot_image $boot_modules

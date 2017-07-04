@@ -155,8 +155,22 @@ class Genode::Vm_space
 		 */
 		addr_t _idx_to_sel(addr_t idx) const { return (_id << 20) | idx; }
 
-		bool _map_frame(addr_t from_phys, addr_t to_virt, bool flush_support)
+		bool _map_frame(addr_t const from_phys, addr_t const to_virt,
+		                Cache_attribute const cacheability,
+		                bool const writable, bool const flush_support)
 		{
+			if (_page_table_registry.page_frame_at(to_virt)) {
+				/*
+				 * Valid behaviour if multiple threads concurrently
+				 * causing the same page-fault. For the first thread the
+				 * fault will be resolved, and the next thread will/would do
+				 * it again. We just skip this attempt in order to avoid
+				 * wasting of resources (idx selectors, creating kernel
+				 * capabilities, causing kernel warning ...).
+				 */
+				return false;
+			}
+
 			/* allocate page-table entry selector */
 			addr_t pte_idx = _sel_alloc.alloc();
 
@@ -213,7 +227,8 @@ class Genode::Vm_space
 			/*
 			 * Insert copy of page-frame selector into page table
 			 */
-			long ret = _map_page(Cap_sel(pte_idx), to_virt);
+			long ret = _map_page(Cap_sel(pte_idx), to_virt, cacheability,
+			                     writable);
 			if (ret != seL4_NoError) {
 				error("seL4_*_Page_Map ", Hex(from_phys), "->",
 				      Hex(to_virt), " returned ", ret);
@@ -225,7 +240,8 @@ class Genode::Vm_space
 		/**
 		 * Platform specific map/unmap of a page frame
 		 */
-		long _map_page(Genode::Cap_sel const &idx, Genode::addr_t const virt);
+		long _map_page(Genode::Cap_sel const &idx, Genode::addr_t const virt,
+		               Cache_attribute const cacheability, bool const write);
 		long _unmap_page(Genode::Cap_sel const &idx);
 
 		class Alloc_page_table_failed : Exception { };
@@ -356,8 +372,9 @@ class Genode::Vm_space
 			_cap_sel_alloc.free(_vm_pad_cnode.sel());
 		}
 
-		void map(addr_t from_phys, addr_t to_virt, size_t num_pages,
-		         bool flush_support = true)
+		void map(addr_t const from_phys, addr_t const to_virt,
+		         size_t const num_pages, Cache_attribute const cacheability,
+		         bool const writable, bool flush_support)
 		{
 			Lock::Guard guard(_lock);
 
@@ -365,7 +382,7 @@ class Genode::Vm_space
 				off_t const offset = i << get_page_size_log2();
 
 				if (!_map_frame(from_phys + offset, to_virt + offset,
-				                flush_support))
+				                cacheability, writable, flush_support))
 					error("mapping failed ", Hex(from_phys + offset),
 					      " -> ", Hex(to_virt + offset));
 			}
@@ -402,6 +419,8 @@ class Genode::Vm_space
 			Lock::Guard guard(_lock);
 			unsynchronized_alloc_page_tables(start, size);
 		}
+
+		Session_label const & pd_label() const { return _pd_label; }
 };
 
 #endif /* _CORE__INCLUDE__VM_SPACE_H_ */
