@@ -222,6 +222,10 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 		case Result::OPEN_ERR_UNACCESSIBLE:
 			{
 				if (!(flags & O_CREAT)) {
+					if (flags & O_NOFOLLOW) {
+					        errno = ELOOP;
+					        return 0;
+					}
 					errno = ENOENT;
 					return 0;
 				}
