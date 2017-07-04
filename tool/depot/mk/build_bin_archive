@@ -102,20 +102,10 @@ endif
 
 
 #
-# Look for src/api to determine whether to build a library or a target.
-# If building a library, concatenate archive dir as <apihash>/<srchash>.
-# Otherwise use <srchash> has archive dir.
+# Define build-directory location
 #
 
-API_FILE := $(wildcard $(addsuffix /api,$(SRC_DIR)))
-
-ifneq ($(API_FILE),)
-API := $(call file_content,$(API_FILE))
-DEPOT_ARCHIVE_DIR := $(DEPOT_BIN_DIR)/$(SPEC)/$(API)/$(VERSIONED_ARCHIVE)
-else
-DEPOT_ARCHIVE_DIR := $(DEPOT_BIN_DIR)/$(SPEC)/$(VERSIONED_ARCHIVE)
-endif
-
+DEPOT_ARCHIVE_DIR       := $(DEPOT_BIN_DIR)/$(SPEC)/$(VERSIONED_ARCHIVE)
 DEPOT_ARCHIVE_BUILD_DIR := $(addsuffix .build,$(DEPOT_ARCHIVE_DIR))
 
 
@@ -128,7 +118,10 @@ DEPOT_ARCHIVE_BUILD_DIR := $(addsuffix .build,$(DEPOT_ARCHIVE_DIR))
 #
 
 # if building a library, always incorporate the API implemented by the library
-USED_APIS += $(API)
+API_FILE := $(wildcard $(addsuffix /api,$(SRC_DIR)))
+ifneq ($(API_FILE),)
+USED_APIS += $(call file_content,$(API_FILE))
+endif
 
 # incorporate all APIs used by the source archive
 USED_APIS_FILE := $(SRC_DIR)/used_apis

@@ -60,18 +60,13 @@ ARCHIVES(pkg) := $(sort ${ARCHIVES(pkg)} $(foreach P,${ARCHIVES(binpkg)},\
 # Extend ARCHIVES(bin) with binary-package dependencies
 #
 
-_lib_api = $(call file_content,$(call api_file,$1))
-
-# return binary-archive path for user ($1), architecture ($2), api ($3), and recipe ($4)
-_bin_for_src_api = $(if $3,$1/bin/$2/$3/$4,$1/bin/$2/$4)
-
 # return non-empty result if source archive exists
 _src_exists = $(wildcard $(dir $(call used_apis_file,$1)))
 
 # return binary-archive path for architecture $1 and source archive $2
 _bin_for_src = $(strip \
                   $(if $(call _src_exists,$2),\
-                     $(call _bin_for_src_api,$(call archive_user,$2),$1,$(call _lib_api,$2),$(call archive_recipe,$2))))
+                     $(call archive_user,$2)/bin/$1/$(call archive_recipe,$2)))
 
 # return list of binary archives contained in a binary package
 _binpkg_bin_archives = $(foreach S,$(call _binpkg_src_archives,$1),\
@@ -117,6 +112,8 @@ ARCHIVES(api) := $(sort ${ARCHIVES(api)} $(foreach A,${ARCHIVES(src)},\
 #
 # Extend ARCHIVES(api) with the APIs implemented by library ARCHIVES(src)
 #
+
+_lib_api = $(call file_content,$(call api_file,$1))
 
 _lib_api_archive = $(addprefix $(call archive_user,$1)/api/,$(call _lib_api,$1))
 

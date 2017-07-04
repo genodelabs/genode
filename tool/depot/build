@@ -94,9 +94,8 @@ endif
 #
 
 # determine binary-archive path within the depot
-_api_subdir = $(addsuffix /,$(call file_content,$(call api_file,$(call src_of_bin,$1))))
 _dst_bin_spec_path = $(call archive_user,$1)/bin/$(call bin_archive_spec,$1)/
-dst_archive_path = $(call _dst_bin_spec_path,$1)$(call _api_subdir,$1)$(call bin_archive_recipe,$1)
+dst_archive_path = $(call _dst_bin_spec_path,$1)$(call bin_archive_recipe,$1)
 
 BUILD_MK_FILE := $(DEPOT_DIR)/var/build.mk
 

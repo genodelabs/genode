@@ -221,7 +221,6 @@ is structured as follows:
 ! <user>/raw/<name>-<version>/
 ! <user>/pkg/<name>-<version>/
 ! <user>/bin/<arch>/<src-name>-<src-version>/
-! <user>/bin/<arch>/<api-name>-<api-version>/<src-name>-<src-version>/
 
 The <user> stands for the origin of the contained archives. For example, the
 official archives provided by Genode Labs reside in a _genodelabs/_
@@ -243,10 +242,7 @@ easily combined.
 The actual archives are stored in the subdirectories named after the archive
 types ('raw', 'api', 'src', 'bin', 'pkg'). Archives contained in the _bin/_
 subdirectories are further subdivided in the various architectures (like
-'x86_64', or 'arm_v7'). Note that for binaries created for source archives
-that implement an API (libraries), there exists a further nesting level with
-API version. Therefore, multiple library implementations (or versions) that
-implement the same API are located in the same API subdirectory.
+'x86_64', or 'arm_v7').
 
 
 Depot management
@@ -331,12 +327,10 @@ Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
 which one to build.
 
-After the tool is finished, the freshly built binary archive can be found in the
-depot within the _genodelabs/bin/_ subdirectory. If the source archive
-implements an API (if it is a library), the result is stored at
-_bin/<arch>/<api>-<version>/<src>-<version>/_. Otherwise, the result is stored
-at _bin/<arch>/<src>-<version>/_. Only the final result of the built process
-is preserved. In the example above, that would be the _zlib.lib.so_ library.
+After the tool is finished, the freshly built binary archive can be found in
+the depot within the _genodelabs/bin/<arch>/<src>-<version>/_ subdirectory.
+Only the final result of the built process is preserved. In the example above,
+that would be the _zlib.lib.so_ library.
 
 For debugging purposes, it might be interesting to inspect the intermediate
 state of the build. This is possible by adding 'KEEP_BUILD_DIR=1' as argument

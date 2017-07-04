@@ -91,20 +91,6 @@ proc _import_src_archive_from_depot { user name } {
 
 	set bin_archive "$user/bin/[depot_spec]/$name"
 
-	#
-	# If the binary archive contains a library, direct 'bin_archive' to the
-	# correct API sub directory.
-	#
-	set api_file_path "[depot_dir]/$user/src/$name/api"
-	if {[file exists $api_file_path]} {
-		set fh [open "$api_file_path" "RDONLY"]
-		set api [read $fh]
-		close $fh
-		regsub -all {\s} $api {} api
-		if {$api != ""} {
-			set bin_archive "$user/bin/[depot_spec]/$api/$name" }
-	}
-
 	if {[file exists [depot_dir]/$bin_archive]} {
 		_copy_directory_content_to_run_dir "[depot_dir]/$bin_archive"
 	} else {
@@ -261,8 +247,7 @@ proc check_for_missing_depot_archives { } {
 			} else {
 				lappend foreign_archives $archive
 			}
-		} elseif {[regexp [_depot_lib_archive_path_pattern] $archive dummy user spec name]
-		       || [regexp [_depot_bin_archive_path_pattern] $archive dummy user spec name]} {
+		} elseif {[regexp [_depot_bin_archive_path_pattern] $archive dummy user spec name]} {
 
 			# source code is present in the current source tree
 			set recipe [_locally_available_recipe $user src $name]
