@@ -1,0 +1,69 @@
+<runtime ram="32M" caps="1000">
+
+	<timer/>
+
+	<binary name="init"/>
+
+	<rom name="ld.lib.so"/>
+	<rom name="ram_fs"/>
+	<rom name="fs_report"/>
+	<rom name="fs_rom"/>
+	<rom name="test-fs_report"/>
+
+	<config>
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="ROM"/>
+			<service name="Timer"/
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="ram_fs">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<content>
+					<dir name="test-fs_report">
+						<inline name="devices">
+							<devices version="initial"/>
+						</inline>
+					</dir>
+				</content>
+				<policy label_prefix="fs_report -> " root="/" writeable="yes"/>
+				<policy label_prefix="fs_rom -> "    root="/test-fs_report"/>
+			</config>
+		</start>
+		<!--
+		  All reports sent by 'test-fs_report' are prefixed with the label of the
+		  component. Hence, they are written to the 'test-fs_report/' subdirectory.
+		  -->
+		<start name="fs_report">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="Report"/> </provides>
+			<config> <vfs> <fs/> </vfs> </config>
+		</start>
+		<start name="fs_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+		</start>
+		<start name="test-fs_report">
+			<resource name="RAM" quantum="4M"/>
+			<config/>
+			<route>
+				<service name="ROM"    label="devices"> <child name="fs_rom"/> </service>
+				<service name="ROM"    label="focus">   <child name="fs_rom"/> </service>
+				<service name="Report" label="devices"> <child name="fs_report"/> </service>
+				<service name="Report" label="focus">   <child name="fs_report"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>

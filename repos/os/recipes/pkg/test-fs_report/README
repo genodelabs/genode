@@ -1,0 +1,2 @@
+Scenario that emulates the report_rom server by combining the ram_fs, fs_rom,
+and fs_report servers
