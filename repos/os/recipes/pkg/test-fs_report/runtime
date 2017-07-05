@@ -4,11 +4,11 @@
 
 	<binary name="init"/>
 
-	<rom name="ld.lib.so"/>
-	<rom name="ram_fs"/>
-	<rom name="fs_report"/>
-	<rom name="fs_rom"/>
-	<rom name="test-fs_report"/>
+	<rom label="ld.lib.so"/>
+	<rom label="ram_fs"/>
+	<rom label="fs_report"/>
+	<rom label="fs_rom"/>
+	<rom label="test-fs_report"/>
 
 	<config>
 		<parent-provides>
@@ -16,7 +16,7 @@
 			<service name="LOG"/>
 			<service name="PD"/>
 			<service name="ROM"/>
-			<service name="Timer"/
+			<service name="Timer"/>
 		</parent-provides>
 
 		<default-route>
