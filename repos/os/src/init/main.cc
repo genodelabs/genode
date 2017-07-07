@@ -38,7 +38,9 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	Reconstructible<Verbose> _verbose { _config.xml() };
+	Xml_node _config_xml = _config.xml();
+
+	Reconstructible<Verbose> _verbose { _config_xml };
 
 	Constructible<Buffered_xml> _default_route;
 
@@ -59,7 +61,7 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 
 	Ram_quota _avail_ram()
 	{
-		Ram_quota const preserved_ram = _preserved_ram_from_config(_config.xml());
+		Ram_quota const preserved_ram = _preserved_ram_from_config(_config_xml);
 
 		Ram_quota avail_ram = _env.ram().avail_ram();
 
@@ -85,7 +87,7 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 
 	Cap_quota _avail_caps()
 	{
-		Cap_quota const preserved_caps = _preserved_caps_from_config(_config.xml());
+		Cap_quota const preserved_caps = _preserved_caps_from_config(_config_xml);
 
 		Cap_quota avail_caps { _env.pd().avail_caps().value };
 
@@ -162,8 +164,8 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 
 void Init::Main::_update_parent_services_from_config()
 {
-	Xml_node const node = _config.xml().has_sub_node("parent-provides")
-	                    ? _config.xml().sub_node("parent-provides")
+	Xml_node const node = _config_xml.has_sub_node("parent-provides")
+	                    ? _config_xml.sub_node("parent-provides")
 	                    : Xml_node("<empty/>");
 
 	/* remove services that are no longer present in config */
@@ -220,7 +222,7 @@ void Init::Main::_update_aliases_from_config()
 	}
 
 	/* create aliases */
-	_config.xml().for_each_sub_node("alias", [&] (Xml_node alias_node) {
+	_config_xml.for_each_sub_node("alias", [&] (Xml_node alias_node) {
 
 		try {
 			_children.insert_alias(new (_heap) Alias(alias_node)); }
@@ -239,7 +241,7 @@ void Init::Main::_abandon_obsolete_children()
 		Child_policy::Name const name = child.name();
 
 		bool obsolete = true;
-		_config.xml().for_each_sub_node("start", [&] (Xml_node node) {
+		_config_xml.for_each_sub_node("start", [&] (Xml_node node) {
 			if (node.attribute_value("name", Child_policy::Name()) == name)
 				obsolete = false; });
 
@@ -261,7 +263,7 @@ void Init::Main::_update_children_config()
 		 */
 		bool side_effects = false;
 
-		_config.xml().for_each_sub_node("start", [&] (Xml_node node) {
+		_config_xml.for_each_sub_node("start", [&] (Xml_node node) {
 
 			Child_policy::Name const start_node_name =
 				node.attribute_value("name", Child_policy::Name());
@@ -286,22 +288,24 @@ void Init::Main::_handle_config()
 {
 	_config.update();
 
-	_verbose.construct(_config.xml());
-	_state_reporter.apply_config(_config.xml());
+	_config_xml = _config.xml();
+
+	_verbose.construct(_config_xml);
+	_state_reporter.apply_config(_config_xml);
 
 	/* determine default route for resolving service requests */
 	try {
-		_default_route.construct(_heap, _config.xml().sub_node("default-route")); }
+		_default_route.construct(_heap, _config_xml.sub_node("default-route")); }
 	catch (...) { }
 
 	_default_caps = Cap_quota { 0 };
 	try {
-		_default_caps = Cap_quota { _config.xml().sub_node("default")
+		_default_caps = Cap_quota { _config_xml.sub_node("default")
 		                                   .attribute_value("caps", 0UL) }; }
 	catch (...) { }
 
-	Prio_levels     const prio_levels    = prio_levels_from_xml(_config.xml());
-	Affinity::Space const affinity_space = affinity_space_from_xml(_config.xml());
+	Prio_levels     const prio_levels    = prio_levels_from_xml(_config_xml);
+	Affinity::Space const affinity_space = affinity_space_from_xml(_config_xml);
 
 	_update_aliases_from_config();
 	_update_parent_services_from_config();
@@ -328,7 +332,7 @@ void Init::Main::_handle_config()
 
 	/* create new children */
 	try {
-		_config.xml().for_each_sub_node("start", [&] (Xml_node start_node) {
+		_config_xml.for_each_sub_node("start", [&] (Xml_node start_node) {
 
 			/* skip start node if corresponding child already exists */
 			bool exists = false;
@@ -418,7 +422,7 @@ void Init::Main::_handle_config()
 	_children.for_each_child([&] (Child &child) { child.apply_ram_downgrade(); });
 	_children.for_each_child([&] (Child &child) { child.apply_ram_upgrade(); });
 
-	_server.apply_config(_config.xml());
+	_server.apply_config(_config_xml);
 }
 
 
