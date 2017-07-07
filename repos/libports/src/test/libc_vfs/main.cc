@@ -1,5 +1,5 @@
 /*
- * \brief  libc_ffat test
+ * \brief  Libc file-system test
  * \author Christian Prochaska
  * \author Norman Feske
  * \date   2011-05-27

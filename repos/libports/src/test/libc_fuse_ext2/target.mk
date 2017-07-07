@@ -2,4 +2,4 @@ TARGET   = test-libc_fuse_ext2
 LIBS     = libc libc_fuse_ext2
 SRC_CC   = main.cc
 
-vpath %.cc $(PRG_DIR)/../libc_ffat
+vpath %.cc $(REP_DIR)/src/test/libc_vfs
