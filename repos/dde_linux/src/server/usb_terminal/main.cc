@@ -47,8 +47,6 @@ struct pl2303_config
 
 struct Usb::Pl2303_driver : Completion
 {
-	enum { VENDOR = 0x67b, PRODUCT = 0x2303 /* Prolific 2303 seriral port */ };
-
 	enum {
 		PACKET_BUFFER   = 2,    /* number of read packets */
 		RING_SIZE       = 4096, /* size of ring buffer    */
