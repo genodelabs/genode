@@ -43,9 +43,18 @@ class Ram_fs::Symlink : public Node
 			/* Ideal symlink operations are atomic. */
 			if (seek_offset) return 0;
 
-			_len = min(len, sizeof(_link_to));
-			Genode::memcpy(_link_to, src, _len);
-			return _len;
+			len = min(len, sizeof(_link_to));
+
+			for (size_t i = 0; i < len; ++i) {
+				if (src[i] == '\0') {
+					len = i;
+					break;
+				}
+			}
+
+			Genode::memcpy(_link_to, src, len);
+			_len = len;
+			return len;
 		}
 
 		Status status() override
