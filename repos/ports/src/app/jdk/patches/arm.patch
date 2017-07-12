@@ -1,0 +1,36 @@
+diff --git a/hotspot/src/os_cpu/bsd_zero/vm/atomic_bsd_zero.hpp b/hotspot/src/os_cpu/bsd_zero/vm/atomic_bsd_zero.hpp
+index e808340..560a8d3 100644
+--- a/hotspot/src/os_cpu/bsd_zero/vm/atomic_bsd_zero.hpp
++++ b/hotspot/src/os_cpu/bsd_zero/vm/atomic_bsd_zero.hpp
+@@ -111,8 +111,12 @@ static inline int m68k_lock_test_and_set(volatile int *ptr, int newval) {
+  */
+ 
+ typedef int (__kernel_cmpxchg_t)(int oldval, int newval, volatile int *ptr);
+-#define __kernel_cmpxchg (*(__kernel_cmpxchg_t *) 0xffff0fc0)
+ 
++#ifdef __GENODE__
++#define __kernel_cmpxchg os::cmpxchg
++#else
++#define __kernel_cmpxchg (*(__kernel_cmpxchg_t *) 0xffff0fc0)
++#endif
+ 
+ 
+ /* Perform an atomic compare and swap: if the current value of `*PTR'
+diff --git a/hotspot/src/os_cpu/bsd_zero/vm/orderAccess_bsd_zero.inline.hpp b/hotspot/src/os_cpu/bsd_zero/vm/orderAccess_bsd_zero.inline.hpp
+index fb3017c..f5c2d37 100644
+--- a/hotspot/src/os_cpu/bsd_zero/vm/orderAccess_bsd_zero.inline.hpp
++++ b/hotspot/src/os_cpu/bsd_zero/vm/orderAccess_bsd_zero.inline.hpp
+@@ -37,7 +37,13 @@
+  * helper for all gcc versions so it is unreliable to use as well.
+  */
+ typedef void (__kernel_dmb_t) (void);
++
++#ifdef __GENODE__
++static inline void __kernel_dmb(void) { asm volatile ("dmb ish": : :"memory"); }
++#else
+ #define __kernel_dmb (*(__kernel_dmb_t *) 0xffff0fa0)
++#endif
++
+ 
+ #define FULL_MEM_BARRIER __kernel_dmb()
+ #define LIGHT_MEM_BARRIER __kernel_dmb()

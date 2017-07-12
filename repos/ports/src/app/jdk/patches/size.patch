@@ -1,0 +1,85 @@
+commit 7a6a25557a0b21e0d3202f04a4172b3fa5e9a4e9
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Mon Apr 16 11:08:15 2018 +0200
+
+    jdk: size_t patch
+
+diff --git a/hotspot/src/share/vm/gc/g1/g1PageBasedVirtualSpace.cpp b/hotspot/src/share/vm/gc/g1/g1PageBasedVirtualSpace.cpp
+index 0a2a462..7bc5011 100644
+--- a/hotspot/src/share/vm/gc/g1/g1PageBasedVirtualSpace.cpp
++++ b/hotspot/src/share/vm/gc/g1/g1PageBasedVirtualSpace.cpp
+@@ -99,7 +99,7 @@ size_t G1PageBasedVirtualSpace::uncommitted_size()  const {
+   return reserved_size() - committed_size();
+ }
+ 
+-size_t G1PageBasedVirtualSpace::addr_to_page_index(char* addr) const {
++uintptr_t G1PageBasedVirtualSpace::addr_to_page_index(char* addr) const {
+   return (addr - _low_boundary) / _page_size;
+ }
+ 
+diff --git a/hotspot/src/share/vm/prims/whitebox.cpp b/hotspot/src/share/vm/prims/whitebox.cpp
+index 952aa5f..ab3c3b8 100644
+--- a/hotspot/src/share/vm/prims/whitebox.cpp
++++ b/hotspot/src/share/vm/prims/whitebox.cpp
+@@ -1022,7 +1022,7 @@ WB_ENTRY(jobject, WB_GetUint64VMFlag(JNIEnv* env, jobject o, jstring name))
+ WB_END
+ 
+ WB_ENTRY(jobject, WB_GetSizeTVMFlag(JNIEnv* env, jobject o, jstring name))
+-  uintx result;
++  size_t result;
+   if (GetVMFlag <size_t> (thread, env, name, &result, &CommandLineFlags::size_tAt)) {
+     ThreadToNativeFromVM ttnfv(thread);   // can't be in VM when we call JNI
+     return longBox(thread, env, result);
+diff --git a/hotspot/src/share/vm/runtime/arguments.cpp b/hotspot/src/share/vm/runtime/arguments.cpp
+index 92f18dd..9164cbf 100644
+--- a/hotspot/src/share/vm/runtime/arguments.cpp
++++ b/hotspot/src/share/vm/runtime/arguments.cpp
+@@ -78,7 +78,7 @@ SystemProperty* Arguments::_system_properties   = NULL;
+ const char*  Arguments::_gc_log_filename        = NULL;
+ bool   Arguments::_has_profile                  = false;
+ size_t Arguments::_conservative_max_heap_alignment = 0;
+-size_t Arguments::_min_heap_size                = 0;
++uintx  Arguments::_min_heap_size                = 0;
+ Arguments::Mode Arguments::_mode                = _mixed;
+ bool   Arguments::_java_compiler                = false;
+ bool   Arguments::_xdebug_mode                  = false;
+diff --git a/hotspot/src/share/vm/utilities/globalDefinitions.hpp b/hotspot/src/share/vm/utilities/globalDefinitions.hpp
+index dbb080e..11c3278 100644
+--- a/hotspot/src/share/vm/utilities/globalDefinitions.hpp
++++ b/hotspot/src/share/vm/utilities/globalDefinitions.hpp
+@@ -284,8 +284,7 @@ inline size_t byte_size_in_exact_unit(size_t s) {
+ 
+ // intx and uintx are the 'extended' int and 'extended' unsigned int types;
+ // they are 32bit wide on a 32-bit platform, and 64bit wide on a 64bit platform.
+-
+-typedef intptr_t  intx;
++typedef intptr_t intx;
+ typedef uintptr_t uintx;
+ 
+ const intx  min_intx  = (intx)1 << (sizeof(intx)*BitsPerByte-1);
+@@ -1106,10 +1105,10 @@ inline intptr_t bitfield(intptr_t x, int start_bit_no, int field_length) {
+ // and 64-bit overloaded functions, which does not work, and having
+ // explicitly-typed versions of these routines (i.e., MAX2I, MAX2L)
+ // will be even more error-prone than macros.
+-template<class T> inline T MAX2(T a, T b)           { return (a > b) ? a : b; }
+-template<class T> inline T MIN2(T a, T b)           { return (a < b) ? a : b; }
++template<class T, class U> inline T MAX2(T a, U b)           { return (a > b) ? a : b; }
++template<class T, class U> inline T MIN2(T a, U b)           { return (a < b) ? a : b; }
+ template<class T> inline T MAX3(T a, T b, T c)      { return MAX2(MAX2(a, b), c); }
+-template<class T> inline T MIN3(T a, T b, T c)      { return MIN2(MIN2(a, b), c); }
++template<class T, class U, class V> inline T MIN3(T a, U b, V c)      { return MIN2(MIN2(a, b), c); }
+ template<class T> inline T MAX4(T a, T b, T c, T d) { return MAX2(MAX3(a, b, c), d); }
+ template<class T> inline T MIN4(T a, T b, T c, T d) { return MIN2(MIN3(a, b, c), d); }
+ 
+diff --git a/hotspot/src/share/vm/utilities/macros.hpp b/hotspot/src/share/vm/utilities/macros.hpp
+index f24e4ff..534cb29 100644
+--- a/hotspot/src/share/vm/utilities/macros.hpp
++++ b/hotspot/src/share/vm/utilities/macros.hpp
+@@ -334,7 +334,6 @@
+ #endif
+ 
+ #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
+-#define BSD
+ #define BSD_ONLY(code) code
+ #define NOT_BSD(code)
+ #else

@@ -1,0 +1,9 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := jdk_generated.git
+
+URL(jdk_generated) := https://github.com/ssumpf/jdk_generated.git
+REV(jdk_generated) := cede347a20501628db7feb43e4beacefdb6761b2
+DIR(jdk_generated) := src/app/jdk
+
+# vi: set ft=make :

@@ -1,0 +1,22 @@
+LICENSE   := GPLv2
+VERSION   := 64892f1c9874938dfcdc235b5c051dd761cdd833
+DOWNLOADS := jdk.archive
+
+NAME(jdk) := jdk.tgz
+URL(jdk)  := https://api.github.com/repos/dmlloyd/openjdk/tarball/$(VERSION)
+SHA(jdk)  := 46a6bfab37216a8726bb55ab11743536678810ae
+DIR(jdk)  := src/app/jdk
+
+PATCHES   := $(addprefix src/app/jdk/patches/,jdk.patch arm.patch size.patch \
+                                              pollselectorprovider.patch os_bsd.patch \
+                                              os_bsd_zero.patch)
+PATCH_OPT := -p1 -d src/app/jdk
+
+gen_file := src/app/jdk/hotspot/src/share/vm/interpreter/bytecodeInterpreterWithChecks.cpp
+
+default: $(gen_file)
+
+$(gen_file): _patch
+	$(VERBOSE)cp $(@D)/bytecodeInterpreter.cpp $(gen_file)
+
+# vi: set ft=make :
