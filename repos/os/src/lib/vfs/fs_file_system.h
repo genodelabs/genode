@@ -530,6 +530,8 @@ class Vfs::Fs_file_system : public File_system
 
 		Symlink_result symlink(char const *from, char const *to) override
 		{
+			auto const from_len = strlen(from);
+
 			/*
 			 * We write to the symlink via the packet stream. Hence we need
 			 * to serialize with other packet-stream operations.
@@ -550,10 +552,18 @@ class Vfs::Fs_file_system : public File_system
 				Fs_handle_guard from_dir_guard(*this, _fs, dir_handle, _handle_space);
 
 				::File_system::Symlink_handle symlink_handle =
-				    _fs.symlink(dir_handle, symlink_name.base() + 1, true);
+					_fs.symlink(dir_handle, symlink_name.base() + 1, true);
 				Fs_handle_guard symlink_guard(*this, _fs, symlink_handle, _handle_space);
 
-				_write(symlink_guard, from, strlen(from) + 1, 0);
+				auto const n = _write(symlink_guard, from, from_len, 0);
+
+				/*
+				 * a convention at the VFS server is to return an invalid
+				 * result length when the target is too long
+				 */
+				if (n != from_len) {
+					return n ? SYMLINK_ERR_NAME_TOO_LONG : SYMLINK_ERR_NO_PERM;
+				}
 			}
 			catch (::File_system::Invalid_handle)      { return SYMLINK_ERR_NO_ENTRY; }
 			catch (::File_system::Node_already_exists) { return SYMLINK_ERR_EXISTS;   }

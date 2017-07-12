@@ -132,15 +132,30 @@ struct Vfs_server::Symlink : Node
 
 	size_t write(Vfs::File_system &vfs, char const *src, size_t len, seek_off_t seek_offset)
 	{
-		/* ensure symlink gets something null-terminated */
-		Genode::String<MAX_PATH_LEN> target(Genode::Cstring(src, len));
+		/*
+		 * if the symlink target is too long return a short result
+		 * because a competent File_system client will error on a
+		 * length mismatch
+		 */
 
-		if (vfs.symlink(target.string(), path()) == Directory_service::SYMLINK_OK)
-			return 0;
+		if (len > MAX_PATH_LEN) {
+			return len >> 1;
+		}
+
+		/* ensure symlink gets something null-terminated */
+		Genode::String<MAX_PATH_LEN+1> target(Genode::Cstring(src, len));
+		size_t const target_len = target.length()-1;
+
+		switch (vfs.symlink(target.string(), path())) {
+		case Directory_service::SYMLINK_OK: break;
+		case Directory_service::SYMLINK_ERR_NAME_TOO_LONG:
+			return target_len >> 1;
+		default: return 0;
+		}
 
 		mark_as_updated();
 		notify_listeners();
-		return target.length();
+		return target_len;
 	}
 
 	bool read_ready() override { return true; }

@@ -246,7 +246,7 @@ class Vfs_ram::Symlink : public Vfs_ram::Node
 
 		void set(char const *target, size_t len)
 		{
-			_len = min(len, MAX_PATH_LEN);
+			_len = len;
 			memcpy(_target, target, _len);
 		}
 
@@ -579,6 +579,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		{
 			using namespace Vfs_ram;
 
+			auto const target_len = strlen(target);
+			if (target_len > MAX_PATH_LEN)
+				return SYMLINK_ERR_NAME_TOO_LONG;
+
 			Symlink *link;
 			Directory *parent = lookup_parent(path);
 			if (!parent) return SYMLINK_ERR_NO_ENTRY;
@@ -606,7 +610,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			}
 
 			if (*target)
-				link->set(target, strlen(target));
+				link->set(target, target_len);
 			link->unlock();
 			return SYMLINK_OK;
 		}
