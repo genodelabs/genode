@@ -22,6 +22,7 @@
 #include <base/child.h>
 #include <rm_session/connection.h>
 #include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 
 using namespace Genode;
 
@@ -30,7 +31,12 @@ using namespace Genode;
  ** Child **
  ***********/
 
-enum { MANAGED_ADDR = 0x10000000 };
+enum {
+	 MANAGED_ADDR = 0x10000000,
+	 STOP_TEST    = 0xdead,
+	 READ_TEST    = 0x12345,
+	 WRITE_TEST   = READ_TEST - 1
+};
 
 
 void read_at(addr_t addr)
@@ -40,9 +46,24 @@ void read_at(addr_t addr)
 	log("read value ", Hex(value));
 }
 
-void modify(addr_t addr)
+bool modify(addr_t addr)
 {
-	log("modify memory at ", Hex(addr), " to ", Hex(++(*(int *)addr)));
+	addr_t const value = *(addr_t volatile *)addr;
+
+	if (value == STOP_TEST)
+		return false;
+
+	if (value != READ_TEST + 1)
+		log("modify memory at ", Hex(addr), " to ",
+		    Hex(++(*(addr_t volatile *)addr)), " ", Hex(value));
+
+	if (value != READ_TEST && value != READ_TEST + 1)
+	{
+		Genode::error("could modify ROM !!! ", Hex(value));
+		return false;
+	}
+
+	return true;
 }
 
 void main_child()
@@ -52,8 +73,7 @@ void main_child()
 	/* perform illegal access */
 	read_at(MANAGED_ADDR);
 
-	while (true)
-		modify(MANAGED_ADDR);
+	while (modify(MANAGED_ADDR));
 
 	log("--- child role of region-manager fault test finished ---");
 }
@@ -137,6 +157,8 @@ struct Main_parent
 
 	Heap _heap { _env.ram(), _env.rm() };
 
+	Genode::Rom_connection _rom { _env, "config"};
+
 	/* parent services */
 	struct Parent_services : Test_child_policy::Parent_services
 	{
@@ -170,12 +192,25 @@ struct Main_parent
 
 	long volatile &_child_value() { return *_ds.local_addr<long volatile>(); }
 
+	void _check_for_write_fault(addr_t const child_virt_addr)
+	{
+		if (_child_value() == WRITE_TEST) {
+			_child_value() = STOP_TEST;
+			Genode::log("got fault on ROM");
+			_env.parent().exit(0);
+			return;
+		}
+
+		Genode::log("test WRITE fault on ROM (config)");
+
+		_child_value() = WRITE_TEST;
+
+		_address_space.attach_at(_rom.dataspace(), child_virt_addr);
+	}
+
 	void _handle_fault()
 	{
-		if (_fault_cnt++ == 4) {
-			log("--- parent role of region-manager fault test finished ---");
-			_env.parent().exit(0);
-		}
+		enum { FAULT_CNT = 4 };
 
 		log("received region-map fault signal, request fault state");
 
@@ -188,7 +223,7 @@ struct Main_parent
 
 		log("rm session state is ", state_name, ", pf_addr=", Hex(state.addr));
 
-		/* ignore spuriuous fault signal */
+		/* ignore spurious fault signal */
 		if (state.type == Region_map::State::READY) {
 			log("ignoring spurious fault signal");
 			return;
@@ -196,14 +231,23 @@ struct Main_parent
 
 		addr_t child_virt_addr = state.addr & ~(4096 - 1);
 
+		if (_fault_cnt++ >= FAULT_CNT) {
+			if (_fault_cnt == FAULT_CNT)
+				log("--- parent role of region-manager fault test finished ---");
+
+			_check_for_write_fault(child_virt_addr);
+			return;
+		}
+
 		/* allocate dataspace to resolve the fault */
 		log("attach dataspace to the child at ", Hex(child_virt_addr));
-		_child_value() = 0x1234;
+
+		_child_value() = READ_TEST;
 
 		_address_space.attach_at(_ds.cap(), child_virt_addr);
 
 		/* poll until our child modifies the dataspace content */
-		while (_child_value() == 0x1234);
+		while (_child_value() == READ_TEST);
 
 		log("child modified dataspace content, new value is ",
 		    Hex(_child_value()));
