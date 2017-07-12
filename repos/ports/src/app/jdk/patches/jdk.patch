@@ -1,0 +1,101 @@
+commit 9521d3210cb2979888d3c9ed5a7c8e0e4dd548da
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Wed Sep 27 09:58:20 2017 +0200
+
+    hotspot: Genode patches
+
+diff --git a/hotspot/src/cpu/x86/vm/vm_version_x86.cpp b/hotspot/src/cpu/x86/vm/vm_version_x86.cpp
+index 197079ba1..b1972ca31 100644
+--- a/hotspot/src/cpu/x86/vm/vm_version_x86.cpp
++++ b/hotspot/src/cpu/x86/vm/vm_version_x86.cpp
+@@ -426,7 +426,7 @@ class VM_Version_StubGenerator: public StubCodeGenerator {
+     __ xorl(rsi, rsi);
+     VM_Version::set_cpuinfo_segv_addr(__ pc());
+     // Generate SEGV
+-    __ movl(rax, Address(rsi, 0));
++    //__ movl(rax, Address(rsi, 0));
+ 
+     VM_Version::set_cpuinfo_cont_addr(__ pc());
+     // Returns here after signal. Save xmm0 to check it later.
+diff --git a/hotspot/src/os/bsd/vm/jvm_bsd.h b/hotspot/src/os/bsd/vm/jvm_bsd.h
+index f099198d1..5fa636a7d 100644
+--- a/hotspot/src/os/bsd/vm/jvm_bsd.h
++++ b/hotspot/src/os/bsd/vm/jvm_bsd.h
+@@ -68,7 +68,7 @@
+ #define AGENT_ONUNLOAD_SYMBOLS  {"Agent_OnUnload"}
+ #define AGENT_ONATTACH_SYMBOLS  {"Agent_OnAttach"}
+ 
+-#define JNI_LIB_PREFIX "lib"
++#define JNI_LIB_PREFIX ""
+ #ifdef __APPLE__
+ #define JNI_LIB_SUFFIX ".dylib"
+ #else
+diff --git a/hotspot/src/os/bsd/vm/os_bsd.inline.hpp b/hotspot/src/os/bsd/vm/os_bsd.inline.hpp
+index 3a405dec2..e5963f3fc 100644
+--- a/hotspot/src/os/bsd/vm/os_bsd.inline.hpp
++++ b/hotspot/src/os/bsd/vm/os_bsd.inline.hpp
+@@ -44,7 +44,7 @@ inline bool os::obsolete_option(const JavaVMOption *option) {
+ }
+ 
+ inline bool os::uses_stack_guard_pages() {
+-  return true;
++  return false;
+ }
+ 
+ inline bool os::must_commit_stack_guard_pages() {
+diff --git a/hotspot/src/os/posix/vm/os_posix.cpp b/hotspot/src/os/posix/vm/os_posix.cpp
+index 5885906f6..e482a405a 100644
+--- a/hotspot/src/os/posix/vm/os_posix.cpp
++++ b/hotspot/src/os/posix/vm/os_posix.cpp
+@@ -185,7 +185,7 @@ int os::log_vsnprintf(char* buf, size_t len, const char* fmt, va_list args) {
+ }
+ 
+ int os::get_fileno(FILE* fp) {
+-  return NOT_AIX(::)fileno(fp);
++  return fileno(fp);
+ }
+ 
+ struct tm* os::gmtime_pd(const time_t* clock, struct tm*  res) {
+diff --git a/jdk/src/java.base/unix/native/include/jvm_md.h b/jdk/src/java.base/unix/native/include/jvm_md.h
+index 818ab732a..23692e9ac 100644
+--- a/jdk/src/java.base/unix/native/include/jvm_md.h
++++ b/jdk/src/java.base/unix/native/include/jvm_md.h
+@@ -40,10 +40,18 @@
+ #define JNI_ONLOAD_SYMBOLS   {"JNI_OnLoad"}
+ #define JNI_ONUNLOAD_SYMBOLS {"JNI_OnUnload"}
+ 
++#ifdef __GENODE__
++#define JNI_LIB_PREFIX ""
++#else
+ #define JNI_LIB_PREFIX "lib"
++#endif
++
+ #ifdef __APPLE__
+ #define JNI_LIB_SUFFIX ".dylib"
+ #define VERSIONED_JNI_LIB_NAME(NAME, VERSION) JNI_LIB_PREFIX NAME "." VERSION JNI_LIB_SUFFIX
++#elif defined(__GENODE__)
++#define JNI_LIB_SUFFIX ".lib.so"
++#define VERSIONED_JNI_LIB_NAME(NAME, VERSION) JNI_LIB_PREFIX NAME JNI_LIB_SUFFIX "." VERSION
+ #else
+ #define JNI_LIB_SUFFIX ".so"
+ #define VERSIONED_JNI_LIB_NAME(NAME, VERSION) JNI_LIB_PREFIX NAME JNI_LIB_SUFFIX "." VERSION
+diff --git a/jdk/src/java.base/unix/native/libjli/java_md_solinux.c b/jdk/src/java.base/unix/native/libjli/java_md_solinux.c
+index cb9afc098..2d5af9fc6 100644
+--- a/jdk/src/java.base/unix/native/libjli/java_md_solinux.c
++++ b/jdk/src/java.base/unix/native/libjli/java_md_solinux.c
+@@ -37,9 +37,14 @@
+ #include <sys/types.h>
+ #include "manifest_info.h"
+ 
+-
++#ifdef __GENODE__
++#define JVM_DLL "jvm.lib.so"
++#define JAVA_DLL "java.lib.so"
++#else
+ #define JVM_DLL "libjvm.so"
+ #define JAVA_DLL "libjava.so"
++#endif
++
+ #ifdef AIX
+ #define LD_LIBRARY_PATH "LIBPATH"
+ #else

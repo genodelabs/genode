@@ -1,0 +1,28 @@
+Use PollSelectorProvider instead of EPollSelectorProvider
+
+diff --git a/jdk/src/java.base/linux/classes/sun/nio/ch/DefaultSelectorProvider.java b/jdk/src/java.base/linux/classes/sun/nio/ch/DefaultSelectorProvider.java
+index 1278f15..3f23cc4 100644
+--- a/jdk/src/java.base/linux/classes/sun/nio/ch/DefaultSelectorProvider.java
++++ b/jdk/src/java.base/linux/classes/sun/nio/ch/DefaultSelectorProvider.java
+@@ -42,7 +42,7 @@ public class DefaultSelectorProvider {
+      * Returns the default SelectorProvider.
+      */
+     public static SelectorProvider create() {
+-        return new sun.nio.ch.EPollSelectorProvider();
++        return new sun.nio.ch.PollSelectorProvider();
+     }
+ 
+ }
+diff --git a/make/CompileJavaModules.gmk b/make/CompileJavaModules.gmk
+index 090434a..507dd10 100644
+--- a/make/CompileJavaModules.gmk
++++ b/make/CompileJavaModules.gmk
+@@ -55,7 +55,7 @@ java.base_EXCLUDES += java/lang/doc-files
+ # data files and shouldn't go in the product
+ java.base_EXCLUDE_FILES += sun/text/resources/BreakIteratorRules.java
+ 
+-ifneq ($(filter solaris macosx linux windows,$(OPENJDK_TARGET_OS)), )
++ifneq ($(filter solaris macosx windows,$(OPENJDK_TARGET_OS)), )
+   java.base_EXCLUDE_FILES += \
+       sun/nio/ch/AbstractPollSelectorImpl.java \
+       sun/nio/ch/PollSelectorImpl.java \

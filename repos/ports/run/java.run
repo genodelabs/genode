@@ -1,0 +1,106 @@
+set build_components {
+	core init
+	drivers/timer
+	app/jdk/java
+}
+
+build $build_components
+create_boot_directory
+
+proc copy_test_data { } {
+	set ::env(MAKEFLAGS) s
+	set jdk_data [exec [genode_dir]/tool/ports/current jdk_generated]/src/app/jdk/bin
+	exec cp $jdk_data/classes.tar bin/.
+	exec cp $jdk_data/hello.tar bin/.
+	exec cp $jdk_data/tzdb.dat bin/.
+}
+
+copy_test_data
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100" />
+	<start name="timer">
+		<resource name="RAM" quantum="2M" />
+		<provides> <service name="Timer" /> </provides>
+	</start>
+	<start name="java" caps="300">
+		<resource name="RAM" quantum="96M" />
+		<route>
+			<service name="ROM" label="zip.lib.so">
+				<parent label="jzip.lib.so" />
+			</service>
+			<service name="ROM" label="net.lib.so">
+				<parent label="jnet.lib.so" />
+			</service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config ld_verbose="no">
+			<arg value="/bin/java" />
+			<arg value="-jar" />
+			<arg value="hello.jar" />
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
+			<vfs rtc="/dev/rtc">
+				<dir name="dev">
+					<log/><null/>
+					<inline name="rtc">2000-01-01 00:00</inline>
+				</dir>
+				<dir name="bin">
+					<rom name="java" />
+				</dir>
+				<dir name="lib">
+					<rom name="java.lib.so" />
+					<inline name="jvm.cfg">-server KNOWN
+-client IGNORE
+</inline>
+					<dir name="server">
+						<rom name="jvm.lib.so" />
+					</dir>
+				</dir>
+				<dir name="modules">
+					<tar name="classes.tar" />
+				</dir>
+				<tar name="hello.tar" />
+				<rom name="zip.lib.so" />
+				<rom name="nio.lib.so" />
+				<rom name="net.lib.so" />
+			</vfs>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init ld.lib.so timer
+	java jli.lib.so
+	java.lib.so jvm.lib.so jzip.lib.so jimage.lib.so
+	libc.lib.so libm.lib.so libc_pipe.lib.so
+	zlib.lib.so nio.lib.so jnet.lib.so
+	posix.lib.so pthread.lib.so stdcxx.lib.so ffi.lib.so
+	vfs.lib.so
+	classes.tar hello.tar
+}
+
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic"
+
+run_genode_until {.*Hello, Genode.*} 180
+
+exec rm bin/classes.tar bin/hello.tar bin/tzdb.dat

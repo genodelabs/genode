@@ -1,0 +1,13 @@
+diff --git a/hotspot/src/os_cpu/bsd_zero/vm/os_bsd_zero.cpp b/hotspot/src/os_cpu/bsd_zero/vm/os_bsd_zero.cpp
+index 15a5b7d..e4d30f7 100644
+--- a/hotspot/src/os_cpu/bsd_zero/vm/os_bsd_zero.cpp
++++ b/hotspot/src/os_cpu/bsd_zero/vm/os_bsd_zero.cpp
+@@ -63,7 +63,7 @@
+ extern sigjmp_buf* get_jmp_buf_for_continuation();
+ 
+ address os::current_stack_pointer() {
+-  address dummy = (address) &dummy;
++  volatile address dummy = (address) &dummy;
+   return dummy;
+ }
+ 
