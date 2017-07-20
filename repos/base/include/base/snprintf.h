@@ -32,6 +32,8 @@ namespace Genode {
 	 */
 	inline int snprintf(char *dst, size_t dst_size, const char *format, ...)
 	           __attribute__((format(printf, 3, 4)));
+	inline int vsnprintf(char *dst, size_t dst_size, const char *format, va_list list)
+	           __attribute__((format(printf, 3, 0)));
 }
 
 
@@ -77,16 +79,23 @@ class Genode::String_console : public Console
 };
 
 
-inline int Genode::snprintf(char *dst, size_t dst_len, const char *format, ...)
+inline int Genode::vsnprintf(char *dst, size_t dst_len, const char *format, va_list list)
 {
-	va_list list;
-	va_start(list, format);
-
 	String_console sc(dst, dst_len);
 	sc.vprintf(format, list);
 
-	va_end(list);
 	return sc.len();
+}
+
+inline int Genode::snprintf(char *dst, size_t dst_len, const char *format, ...)
+{
+        va_list list;
+        va_start(list, format);
+
+        int ret = Genode::vsnprintf(dst, dst_len, format, list);
+
+        va_end(list);
+        return ret;
 }
 
 #endif /* _INCLUDE__BASE__SNPRINTF_H_ */
