@@ -39,6 +39,7 @@ namespace Usb {
 	class  Session_component;
 	class  Root;
 	class  Worker;
+	class  Cleaner;
 }
 
 /**
@@ -517,6 +518,51 @@ class Usb::Worker
 };
 
 
+struct Interface : List<Interface>::Element
+{
+	usb_interface *iface;
+
+	Interface(usb_interface *iface) : iface(iface) { }
+};
+
+
+/**
+ * Asynchronous USB-interface release
+ */
+class Usb::Cleaner : List<Interface>
+{
+	private:
+
+		static void _run(void *c)
+		{
+			Cleaner *cleaner = (Cleaner *)c;
+
+			while (true) {
+				cleaner->_task.block_and_schedule();
+
+				while (Interface *interface = cleaner->first()) {
+					usb_driver_release_interface(&raw_intf_driver, interface->iface);
+					cleaner->remove(interface);
+					destroy(Lx::Malloc::mem(), interface);
+				}
+			}
+		}
+
+		Lx::Task _task { _run, this, "raw_cleaner", Lx::Task::PRIORITY_2,
+		                 Lx::scheduler() };
+
+	public:
+
+		void schedule_release(usb_interface *iface)
+		{
+			Interface *interface = new(Lx::Malloc::mem()) Interface(iface);
+			insert(interface);
+			_task.unblock();
+			Lx::scheduler().schedule();
+		}
+};
+
+
 /*****************
  ** USB session **
  *****************/
@@ -537,6 +583,7 @@ class Usb::Session_component : public Session_rpc_object,
 		Io_signal_handler<Session_component> _ready_ack;
 		Worker                             _worker;
 		Ram_dataspace_capability           _tx_ds;
+		Usb::Cleaner                      &_cleaner;
 
 
 		void _signal_state_change()
@@ -562,13 +609,12 @@ class Usb::Session_component : public Session_rpc_object,
 		                  Genode::Entrypoint &ep,
 		                  Genode::Region_map &rm,
 		                  unsigned long vendor, unsigned long product,
-		                  long bus, long dev)
+		                  long bus, long dev, Usb::Cleaner &cleaner)
 		: Session_rpc_object(tx_ds, ep.rpc_ep(), rm),
-		  _ep(ep),
-		  _vendor(vendor), _product(product), _bus(bus), _dev(dev),
+		  _ep(ep), _vendor(vendor), _product(product), _bus(bus), _dev(dev),
 		  _packet_avail(ep, *this, &Session_component::_receive),
 		  _ready_ack(ep, *this, &Session_component::_receive),
-		  _worker(sink()), _tx_ds(tx_ds)
+		  _worker(sink()), _tx_ds(tx_ds), _cleaner(cleaner)
 		{
 			Device *device;
 			if (bus && dev)
@@ -623,7 +669,7 @@ class Usb::Session_component : public Session_rpc_object,
 			if (!iface)
 				throw Interface_not_found();
 
-			usb_driver_release_interface(&raw_intf_driver, iface);
+			_cleaner.schedule_release(iface);
 		}
 
 		void config_descriptor(Device_descriptor *device_descr,
@@ -639,7 +685,6 @@ class Usb::Session_component : public Session_rpc_object,
 			else
 				Genode::memset(config_descr, 0, sizeof(usb_config_descriptor));
 
-			device_descr->bus   = _device->udev->bus->busnum;
 			device_descr->num   = _device->udev->devnum;
 			device_descr->speed = _device->udev->speed;
 		}
@@ -774,6 +819,8 @@ class Usb::Root : public Genode::Root_component<Session_component>
 		Genode::Reporter _device_list_reporter {
 			_env, "devices", "devices", 512*1024 };
 
+		Usb::Cleaner     _cleaner;
+
 		void _handle_config()
 		{
 			Lx_kit::env().config_rom().update();
@@ -832,7 +879,7 @@ class Usb::Root : public Genode::Root_component<Session_component>
 
 				Ram_dataspace_capability tx_ds = _env.ram().alloc(tx_buf_size);
 				Session_component *session = new (md_alloc())
-					Session_component(tx_ds, _env.ep(), _env.rm(), vendor, product, bus, dev);
+					Session_component(tx_ds, _env.ep(), _env.rm(), vendor, product, bus, dev, _cleaner);
 				::Session::list()->insert(session);
 				return session;
 			}
