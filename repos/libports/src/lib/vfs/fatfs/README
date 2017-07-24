@@ -1,0 +1,46 @@
+This plugin provides resource-optimized FAT and exFAT support to the VFS library.
+
+Usage
+~~~~~
+
+The plugin takes two configuration options as XML attributes, 'codepage' and 'drive'.
+A codepage number is required only for non-ASCII filename support. The 'drive' option
+takes an integer value between 1 and 10 and is simply a symbolic identifier passed
+thru the Block session request. In this manner multiple drives are supported.
+
+Codepages
+~~~~~~~~~
+
+Support for non-ACII filenames is experimental and only one codepage
+may be in use for any number of drives.
+
+Supported codepages
+--------------------------------
+437	| U.S.
+720	| Arabic
+737	| Greek
+771	| KBL
+775	| Baltic
+850	| Latin 1
+852	| Latin 2
+855	| Cyrillic
+857	| Turkish
+860	| Portuguese
+861	| Icelandic
+862	| Hebrew
+863	| Canadian French
+864	| Arabic
+865	| Nordic
+866	| Russian
+869	| Greek 2
+932	| Japanese (DBCS)
+936	| Simplified Chinese (DBCS)
+949	| Korean (DBCS)
+950	| Traditional Chinese (DBCS)
+
+Caching
+~~~~~~~~
+
+This plugin may cache some file data but schedules a full write cache flush a few
+seconds after any write operation. If a read caching is desired, please use the
+'blk_cache' component to cache at the block device.
