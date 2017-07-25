@@ -472,6 +472,30 @@ extern "C" int munmap(void *start, ::size_t length)
 }
 
 
+extern "C" int msync(void *start, ::size_t len, int flags)
+{
+	if (!mmap_registry()->registered(start)) {
+		Genode::warning("munmap: could not lookup plugin for address ", start);
+		errno = EINVAL;
+		return -1;
+	}
+
+	/*
+	 * Lookup plugin that was used for mmap
+	 *
+	 * If the pointer is NULL, 'start' refers to an anonymous mmap.
+	 */
+	Plugin *plugin = mmap_registry()->lookup_plugin_by_addr(start);
+
+	int ret = 0;
+	if (plugin)
+		ret = plugin->msync(start, len, flags);
+
+	return ret;
+}
+
+
+
 extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
 {
 	Absolute_path resolved_path;

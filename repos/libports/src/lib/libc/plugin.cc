@@ -203,6 +203,7 @@ DUMMY(int, -1, mkdir,        (const char*, mode_t));
 DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int flags,
                                    File_descriptor *, ::off_t offset));
 DUMMY(int, -1, munmap,       (void *, ::size_t));
+DUMMY(int, -1, msync,        (void *addr, ::size_t len, int flags));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
 DUMMY(ssize_t, -1, readlink, (const char *, char *, ::size_t));
 DUMMY(int, -1, rename,       (const char *, const char *));

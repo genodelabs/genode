@@ -120,6 +120,7 @@ namespace Libc {
 			virtual void *mmap(void *addr, ::size_t length, int prot, int flags,
 			                   File_descriptor *, ::off_t offset);
 			virtual int munmap(void *addr, ::size_t length);
+			virtual int msync(void *addr, ::size_t len, int flags);
 			virtual File_descriptor *open(const char *pathname, int flags);
 			virtual int pipe(File_descriptor *pipefd[2]);
 			virtual ssize_t read(File_descriptor *, void *buf, ::size_t count);

@@ -428,6 +428,7 @@ mktime T
 mmap T
 mprotect W
 mrand48 T
+msync T
 munmap T
 nanosleep W
 nextwctype T
@@ -594,6 +595,8 @@ seekdir T
 select W
 semctl T
 semctl T
+semget W
+semop W
 send T
 sendto T
 setbuf T
@@ -1002,6 +1005,7 @@ _ZN4Libc6Plugin5ioctlEPNS_15File_descriptorEiPc T
 _ZN4Libc6Plugin5lseekEPNS_15File_descriptorEli T
 _ZN4Libc6Plugin5lseekEPNS_15File_descriptorExi T
 _ZN4Libc6Plugin5mkdirEPKct T
+_ZN4Libc6Plugin5msyncEPvmi T
 _ZN4Libc6Plugin5rmdirEPKc T
 _ZN4Libc6Plugin5writeEPNS_15File_descriptorEPKvj T
 _ZN4Libc6Plugin5writeEPNS_15File_descriptorEPKvm T
