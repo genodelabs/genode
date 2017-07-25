@@ -56,6 +56,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -89,7 +90,7 @@ append_if $use_nic_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="lighttpd">
+	<start name="lighttpd" caps="1000">
 		<resource name="RAM" quantum="1G" />
 		<config>
 			<arg value="lighttpd" />
