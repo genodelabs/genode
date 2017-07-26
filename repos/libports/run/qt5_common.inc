@@ -204,5 +204,10 @@ proc create_qt5_fs_tar_archive { app_name qt_modules } {
 		exec ln -sf [pwd]/bin/qt5_fs/qt/qml bin/qt5_fs/${app_name}/qt/qml
 	}
 
+        if { [lsearch ${qt_modules} "plugins"] != -1 } {
+                exec mkdir -p bin/qt5_fs/${app_name}/qt
+                exec ln -sf [pwd]/bin/qt5_fs/qt/plugins bin/qt5_fs/${app_name}/qt/plugins
+        }
+
 	exec tar chf bin/qt5_fs_${app_name}.tar -C bin/qt5_fs/${app_name} .
 }

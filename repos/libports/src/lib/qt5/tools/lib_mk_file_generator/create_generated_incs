@@ -23,6 +23,10 @@ cd qtdeclarative/src/qml                     && ../../../create_generated_inc qt
 cd qtdeclarative/src/quick                   && ../../../create_generated_inc qt5_quick             && cp qt5_quick_generated.inc ../../..             && cd ../../..
 cd qtdeclarative/src/imports/qtquick2        && ../../../../create_generated_inc qt5_qtquick2plugin && cp qt5_qtquick2plugin_generated.inc ../../../.. && cd ../../../..
 
+cd qtsvg/src/svg                             && ../../../create_generated_inc qt5_svg               && cp qt5_svg_generated.inc ../../..               && cd ../../..
+
+cd qtvirtualkeyboard/src/virtualkeyboard     && ../../../create_generated_inc qt5_qtvirtualkeyboardplugin && cp qt5_qtvirtualkeyboardplugin_generated.inc ../../.. && cd ../../..
+
 # qtwebkit
 
 make -C qtwebkit/Source/JavaScriptCore -f Makefile.JavaScriptCore sub-DerivedSources-pri > JavaScriptCore.log
