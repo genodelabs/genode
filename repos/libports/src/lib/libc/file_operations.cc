@@ -36,6 +36,7 @@
 #include "libc_file.h"
 #include "libc_mem_alloc.h"
 #include "libc_mmap_registry.h"
+#include "libc_errno.h"
 
 using namespace Libc;
 
@@ -218,9 +219,16 @@ extern "C" int chdir(const char *path)
 }
 
 
+/**
+ * Close is called incorrectly enough to justify a silent failure
+ */
 extern "C" int _close(int libc_fd)
 {
-	FD_FUNC_WRAPPER(close, libc_fd);
+	Libc::File_descriptor *fd =
+		Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	return (!fd || !fd->plugin)
+		? Libc::Errno(EBADF)
+		: fd->plugin->close(fd);
 }
 
 
