@@ -47,6 +47,11 @@ ifeq ($(findstring xml, $(QT)), xml)
 LIBS += qt5_xml
 endif
 
+# Qml
+ifeq ($(findstring qml, $(QT)), qml)
+LIBS += qt5_qml
+endif
+
 # QtUiTools
 # Qt documentation says: CONFIG += uitools
 ifeq ($(findstring uitools, $(CONFIG)), uitools)

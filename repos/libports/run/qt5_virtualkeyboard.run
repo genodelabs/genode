@@ -1,0 +1,103 @@
+source ${genode_dir}/repos/libports/run/qt5_common.inc
+
+#
+# Build
+#
+
+append build_components [qt5_build_components feature]
+
+append build_components {
+	app/qt5/examples/virtualkeyboard
+	lib/qt5/qtdeclarative/src/imports/qtquick2
+	lib/qt5/qtvirtualkeyboard/src/imports/qtvirtualkeyboard
+}
+
+build $build_components
+
+create_boot_directory
+
+
+#
+# Create Qt tar archive
+#
+
+create_qt5_fs_tar_archive "basic" "gui quick plugins"
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>}
+append config [qt5_parent_provides feature]
+append config {
+	</parent-provides>
+	<default caps="300"/>
+	<default-route>
+		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
+	</default-route>}
+
+append config [qt5_start_nodes feature]
+
+append config {
+	<start name="basic" caps="300">
+		<resource name="RAM" quantum="100M"/>
+		<config>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<tar name="qt5_fs_basic.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+append boot_modules [qt5_boot_modules feature]
+
+append boot_modules {
+	basic
+	freetype.lib.so
+	gallium.lib.so
+	ld.lib.so
+	libc.lib.so
+	libc_pipe.lib.so
+	libm.lib.so
+	libpng.lib.so
+	jpeg.lib.so
+	pcre16.lib.so
+	pthread.lib.so
+	qt5_component.lib.so
+	qt5_core.lib.so
+	qt5_gui.lib.so
+        qt5_network.lib.so
+        qt5_svg.lib.so
+        qt5_qml.lib.so
+        qt5_quick.lib.so
+	qt5_qtquick2plugin.lib.so
+        qt5_qquicklayoutsplugin.lib.so
+        qt5_qmlfolderlistmodelplugin.lib.so
+	qt5_qtvirtualkeyboardplugin.lib.so
+	qt5_qtvirtualkeyboardstylesplugin.lib.so
+	qt5_widgets.lib.so
+	qt5_xml.lib.so
+	zlib.lib.so
+	stdcxx.lib.so
+        libcrypto.lib.so
+        libssl.lib.so
+        gallium.lib.so
+	qt5_fs_basic.tar
+}
+
+build_boot_image $boot_modules
+
+
+run_genode_until forever
+
