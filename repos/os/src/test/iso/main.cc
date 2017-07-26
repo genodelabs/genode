@@ -42,8 +42,6 @@ struct Hexdump
 			off += j * sizeof(unsigned long);
 			print(out, "\n");
 		}
-
-		print(out, "\n");
 	}
 };
 
