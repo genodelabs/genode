@@ -1,5 +1,5 @@
 /*
- * \brief  Menu view
+ * \brief  Common types
  * \author Norman Feske
  * \date   2009-09-11
  */

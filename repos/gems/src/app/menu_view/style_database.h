@@ -1,5 +1,5 @@
 /*
- * \brief  Menu view
+ * \brief  Interface for obtaining widget style information
  * \author Norman Feske
  * \date   2009-09-11
  */
