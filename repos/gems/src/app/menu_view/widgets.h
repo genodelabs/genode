@@ -150,7 +150,7 @@ class Menu_view::Widget : public List<Widget>::Element
 			node.for_each_sub_node([&] (Xml_node sub_node) {
 				if (sub_node.attribute_value("name", Name()) == name)
 					result = true; });
-			
+
 			return result;
 		}
 
@@ -167,13 +167,22 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		void _update_child(Xml_node node)
 		{
-			Widget *w = _children.first();
-
 			unsigned const num_sub_nodes = node.num_sub_nodes();
 
-			/* remove widget of vanished child */
-			if (w && num_sub_nodes == 0)
-				_remove_child(w);
+			if (Widget *w = _children.first()) {
+
+				/* remove widget of vanished child */
+				if (num_sub_nodes == 0)
+					_remove_child(w);
+
+				/* remove child widget if type or name changed */
+				if (num_sub_nodes > 0) {
+					Xml_node const child_node = node.sub_node();
+					if (child_node.type() != w->_type_name
+					 || child_node.attribute_value("name", Name()) != w->_name)
+						_remove_child(w);
+				}
+			}
 
 			if (num_sub_nodes == 0)
 				return;
@@ -263,8 +272,6 @@ class Menu_view::Widget : public List<Widget>::Element
 				previous = w;
 				w        = w->next();
 			});
-
-
 		}
 
 		void _draw_children(Surface<Pixel_rgb888> &pixel_surface,
