@@ -56,7 +56,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	{
 		/* create thread at core */
 		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
-		                                          name(), Location(),
+		                                          name(), _affinity,
 		                                          Weight(weight));
 
 		/* assign thread to protection domain */
