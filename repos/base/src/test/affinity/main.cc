@@ -58,7 +58,7 @@ struct Spinning_thread : Genode::Thread
 
 	Spinning_thread(Genode::Env &env, Location location)
 	:
-		Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, Location(),
+		Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, location,
 		               Weight(), env.cpu()),
 		_location(location), cnt(0ULL), barrier(Genode::Lock::LOCKED)
 	{
