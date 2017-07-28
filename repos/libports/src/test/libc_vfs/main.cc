@@ -272,7 +272,7 @@ static void test(Genode::Xml_node node)
 		CALL_AND_CHECK(ret, stat(dir_name2, &stat_buf), (ret == -1), "dir_name=%s", dir_name2);
 
 		/* test symbolic links */
-		if ((symlink("/", "symlinks_supported") == 0) || (errno != ENOSYS)) {
+		if ((symlink("/", "symlinks_supported") == 0) || (errno != EPERM)) {
 			CALL_AND_CHECK(ret, mkdir("a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "a");
 			CALL_AND_CHECK(ret, mkdir("c", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "c");
 			CALL_AND_CHECK(ret, symlink("../a", "c/d"),

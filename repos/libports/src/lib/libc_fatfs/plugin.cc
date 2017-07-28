@@ -238,11 +238,6 @@ class Plugin : public Libc::Plugin
 
 		bool supports_symlink(const char *, const char *) override
 		{
-			/*
-			 * Even though FATFS does not support symlinks, we still want
-			 * to capture calls of 'symlink' to return ENOSYS, which is
-			 * checked in the file-system test.
-			 */
 			return true;
 		}
 
@@ -795,7 +790,7 @@ class Plugin : public Libc::Plugin
 
 		int symlink(const char *, const char *) override
 		{
-			errno = ENOSYS;
+			errno = EPERM;
 			return -1;
 		}
 };
