@@ -34,6 +34,12 @@ namespace Genode {
 		res.pixel = p1.pixel + (((255 - p1.pixel)*alpha) >> 8);
 		return res;
 	}
+
+	template <>
+	inline Pixel_alpha8 Pixel_alpha8::mix(Pixel_alpha8 p1, Pixel_alpha8 p2, int alpha)
+	{
+		return mix<Pixel_alpha8>(p1, p2, alpha);
+	}
 }
 
 #endif /* _INCLUDE__OS__PIXEL_ALPHA8_H_ */
