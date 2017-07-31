@@ -1,107 +1,16 @@
-if {[have_spec arm]} {
-   assert_spec arm_v7
-}
+set mkfs_cmd  [check_installed mke2fs]
+set mkfs_opts "-F"
 
-#
-# Check used commands
-#
-set mke2fs [check_installed mke2fs]
-set dd     [check_installed dd]
+set test_build_components "lib/vfs/rump"
 
-#
-# Build
-#
-set build_components {
-	core init
-	drivers/timer
-	server/ram_blk
-	lib/vfs/rump
-	server/vfs
-	test/libc_vfs
-}
+set test_vfs_config "<rump fs=\"ext2fs\" writeable=\"yes\"/>"
 
-build $build_components
-
-#
-# Build EXT2-file-system image
-#
-catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
-catch { exec $mke2fs -F bin/ext2.raw }
-
-create_boot_directory
-
-#
-# Generate config
-#
-append config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="ram_blk">
-		<resource name="RAM" quantum="20M"/>
-		<provides><service name="Block"/></provides>
-		<config file="ext2.raw" block_size="512"/>
-	</start>
-	<start name="vfs">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<vfs> <rump fs="ext2fs"/> </vfs>
-			<policy label_prefix="test-libc_vfs" root="/" writeable="yes"/>
-		</config>
-	</start>
-	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="10M"/>
-		<config>
-			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<fs/>
-			</vfs>
-			<libc stdout="/dev/log"/>
-		</config>
-	</start>
-</config>}
-
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	libc.lib.so
-	libm.lib.so
-	ram_blk
+set test_boot_modules {
 	rump_fs.lib.so
 	rump.lib.so
-	test-libc_vfs
-	timer
-	vfs
 	vfs_rump.lib.so
-	ext2.raw
 }
 
-build_boot_image $boot_modules
+set use_vfs_server 1
 
-append qemu_args "  -nographic"
-
-run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
-
-exec rm -f bin/ext2.raw
+source ${genode_dir}/repos/libports/run/libc_vfs_filesystem_test.inc
