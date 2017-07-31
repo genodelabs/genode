@@ -203,6 +203,9 @@ class Genode::Cpu : public Arm_v7_cpu
 			 */
 			bool in_fault(addr_t & va, addr_t & w) const
 			{
+				/* permission fault on page, 2nd level */
+				static constexpr Fsr::access_t permission = 0b1111;
+
 				switch (cpu_exception) {
 
 				case PREFETCH_ABORT:
@@ -221,7 +224,8 @@ class Genode::Cpu : public Arm_v7_cpu
 					{
 						/* check if fault was caused by translation miss */
 						Fsr::access_t const fs = Fsr::Fs::get(Dfsr::read());
-						if ((fs & 0b11100) != 0b100) return false;
+						if ((fs != permission) && (fs & 0b11100) != 0b100)
+							return false;
 
 						/* fetch fault data */
 						Dfsr::access_t const dfsr = Dfsr::read();

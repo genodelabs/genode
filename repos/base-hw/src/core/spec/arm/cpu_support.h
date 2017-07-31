@@ -148,8 +148,12 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		 */
 		bool in_fault(addr_t & va, addr_t & w) const
 		{
-			static constexpr Fsr::access_t section = 5;
-			static constexpr Fsr::access_t page    = 7;
+			/* translation fault on section */
+			static constexpr Fsr::access_t section    = 5;
+			/* translation fault on page */
+			static constexpr Fsr::access_t page       = 7;
+			/* permission fault on page */
+			static constexpr Fsr::access_t permission = 0xf;
 
 			switch (cpu_exception) {
 
@@ -167,9 +171,9 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 				}
 			case DATA_ABORT:
 				{
-					/* check if fault was caused by translation miss */
+					/* check if fault is of known type */
 					Dfsr::access_t const fs = Fsr::Fs::get(Dfsr::read());
-					if (fs != section && fs != page)
+					if (fs != permission && fs != section && fs != page)
 						return false;
 
 					/* fetch fault data */
