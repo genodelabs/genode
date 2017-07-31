@@ -70,7 +70,7 @@ struct Main
 	Genode::Env                 &env;
 	Genode::Heap                 heap    { env.ram(), env.rm()     };
 	Factory<Lru_policy>          factory { env, heap               };
-	Block::Root                  root    { env.ep(), heap, env.rm(), factory };
+	Block::Root                  root    { env.ep(), heap, env.rm(), factory, true };
 	Genode::Signal_handler<Main> resource_dispatcher {
 		env.ep(), *this, &Main::resource_handler };
 

@@ -222,9 +222,11 @@ void scsi_add_device(struct scsi_device *sdev)
 	 * XXX  move to 'main'
 	 */
 	if (!announce) {
+		enum { WRITEABLE = true };
+
 		PREPARE_WORK(&delayed, ack_packet);
 		static Block::Root root(_signal->ep(), Lx::Malloc::mem(),
-		                        _signal->rm(), factory);
+		                        _signal->rm(), factory, WRITEABLE);
 		_signal->parent().announce(_signal->ep().rpc_ep().manage(&root));
 		announce = true;
 	}

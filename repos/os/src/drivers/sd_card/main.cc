@@ -43,7 +43,7 @@ struct Main
 
 	} factory { env, heap };
 
-	Block::Root root { env.ep(), heap, env.rm(), factory };
+	Block::Root root { env.ep(), heap, env.rm(), factory, true };
 
 	Main(Genode::Env &env) : env(env)
 	{

@@ -181,7 +181,7 @@ append_if $use_block_sata config {
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 		<config>
-			<policy label="seoul -> VirtualDisk 0" device="0" />
+			<policy label="seoul -> VirtualDisk 0" device="0" writeable="yes"/>
 		</config>
 	</start>}
 

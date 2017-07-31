@@ -22,7 +22,7 @@ In order to route a client to the right partition, the server parses its
 configuration section looking for 'policy' tags.
 
 XML Syntax:
-! <policy labal="<program name>" parition="<partition number>" />
+! <policy label="<program name>" partition="<partition number>"  writeable="<boolean>"/>
 
 part_blk supports partition reporting, which can be enabled via the
 <report> configuration node. See below for an example. The report
@@ -41,6 +41,8 @@ looks like follows (for MBR resp. GPT).
 !     guid="87199a83-d0f4-4a01-b9e3-6516a8579d61" start="4096" length="16351"/>
 ! </partitions>
 
+Clients have read-only access to partitions unless overriden by a 'writeable'
+policy attribute.
 
 Usage
 -----
@@ -65,8 +67,8 @@ Configuration snippet with two clients and an (hypothetical) IDE driver:
 !      'test-part2' receives access to primary partition 1 -->
 !  <config>
 !    <report partitions="yes"/>
-!    <policy label_prefix="test-part1" partition="6"/>
-!    <policy label_prefix="test-part2" partition="1"/>
+!    <policy label_prefix="test-part1" partition="6" writeable="yes"/>
+!    <policy label_prefix="test-part2" partition="1" writeable="yes"/>
 !  </config>
 !</start>
 !

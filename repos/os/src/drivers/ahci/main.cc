@@ -57,8 +57,9 @@ class Session_component : public Block::Session_component
 		Session_component(Block::Driver_factory &driver_factory,
 		                  Genode::Entrypoint    &ep,
 		                  Genode::Region_map    &rm,
-		                  Genode::size_t         buf_size)
-		: Block::Session_component(driver_factory, ep, rm, buf_size) { }
+		                  Genode::size_t         buf_size,
+		                  bool                   writeable)
+		: Block::Session_component(driver_factory, ep, rm, buf_size, writeable) { }
 
 		Block::Driver_factory &factory() { return _driver_factory; }
 };
@@ -73,32 +74,12 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 		Genode::Allocator &_alloc;
 		Genode::Xml_node   _config;
 
-		long _device_num(Session_label const &label, char *model, char *sn, size_t bufs_len)
-		{
-			long num = -1;
-
-			try {
-				Session_policy policy(label, _config);
-
-				/* try read device port number attribute */
-				try { policy.attribute("device").value(&num); }
-				catch (...) { }
-
-				/* try read device model and serial number attributes */
-				model[0] = sn[0] = 0;
-				policy.attribute("model").value(model, bufs_len);
-				policy.attribute("serial").value(sn, bufs_len);
-
-			} catch (...) { }
-
-			return num;
-		}
-
 	protected:
 
 		::Session_component *_create_session(const char *args)
 		{
 			Session_label const label = label_from_args(args);
+			Session_policy const policy(label, _config);
 
 			size_t ram_quota =
 					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
@@ -117,18 +98,24 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 				throw Insufficient_ram_quota();
 			}
 
-			/* Search for configured device */
-			char model_buf[64], sn_buf[64];
+			/* try read device port number attribute */
+			long num = policy.attribute_value("device", -1L);
 
-			long num = _device_num(label, model_buf, sn_buf, sizeof(model_buf));
+			/* try read device model and serial number attributes */
+			auto const model  = policy.attribute_value("model",  String<64>());
+			auto const serial = policy.attribute_value("serial", String<64>());
+
+			/* sessions are not writeable by default */
+			bool writeable = policy.attribute_value("writeable", false);
+
 			/* prefer model/serial routing */
-			if ((model_buf[0] != 0) && (sn_buf[0] != 0))
-				num = Ahci_driver::device_number(model_buf, sn_buf);
+			if ((model != "") && (serial != ""))
+				num = Ahci_driver::device_number(model.string(), serial.string());
 
 			if (num < 0) {
 				error("rejecting session request, no matching policy for '", label, "'",
-				      model_buf[0] == 0 ? ""
-				      : " (model=", Cstring(model_buf), " serial=", Cstring(sn_buf), ")");
+				      model == "" ? ""
+				      : " (model=", model, " serial=", serial, ")");
 				throw Service_denied();
 			}
 
@@ -137,10 +124,15 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 				throw Service_denied();
 			}
 
+			if (writeable)
+				writeable = Arg_string::find_arg(args, "writeable").bool_value(true);
+
 			Block::Factory *factory = new (&_alloc) Block::Factory(num);
 			::Session_component *session = new (&_alloc)
-				::Session_component(*factory, _env.ep(), _env.rm(), tx_buf_size);
-			log("session opened at device ", num, " for '", label, "'");
+				::Session_component(*factory, _env.ep(), _env.rm(), tx_buf_size, writeable);
+			log(
+				writeable ? "writeable " : "read-only ",
+				"session opened at device ", num, " for '", label, "'");
 			return session;
 		}
 

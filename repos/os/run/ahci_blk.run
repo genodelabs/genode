@@ -64,7 +64,7 @@ append config {
 		<provides><service name="Block" /></provides>
 		<config atapi="yes">
 			<report ports="yes"/>
-			<policy label_prefix="test-ahci" device="0" />
+			<policy label_prefix="test-ahci" device="0" writeable="yes" />
 		</config>
 		<route>
 			<service name="Report"> <child name="ahci_report_rom"/> </service>

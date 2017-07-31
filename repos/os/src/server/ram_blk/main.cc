@@ -194,7 +194,9 @@ struct Main
 			Genode::destroy(&alloc, driver); }
 	} factory { env, heap, config_rom.xml() };
 
-	Block::Root root { env.ep(), heap, env.rm(), factory };
+	enum { WRITEABLE = true };
+
+	Block::Root root { env.ep(), heap, env.rm(), factory, WRITEABLE };
 
 	Main(Env &env) : env(env)
 	{

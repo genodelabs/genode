@@ -117,7 +117,9 @@ struct Main
 			Genode::destroy(&heap, driver); }
 	} factory { env, heap };
 
-	Block::Root root { env.ep(), heap, env.rm(), factory };
+	enum { WRITEABLE = false };
+
+	Block::Root root { env.ep(), heap, env.rm(), factory, WRITEABLE };
 
 	Main(Env &env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

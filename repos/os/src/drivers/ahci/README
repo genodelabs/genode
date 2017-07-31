@@ -19,15 +19,18 @@ which client can access a certain device:
 !  </route>
 !  <config atapi="no">
 !    <!-- use model and serial number -->
-!    <policy label_prefix="test-ahci" model="QEMU HARDDISK" serial="QM00005" />
+!    <policy label_prefix="test-ahci" model="QEMU HARDDISK" serial="QM00005" writeable="yes" />
 !    <!-- use controller port number -->
-!    <policy label_prefix="bench" device="1" />
+!    <policy label_prefix="bench" device="1" writeable="yes" />
+!    <!-- read-only access -->
+!    <policy label_prefix="boot_fs" device="2"/>
 !  </config>
 !</start>
 
 In the example above, a session request labeled with "test-ahci" gains access to
-a device with certain model and serial numbers, while "bench" gains access to
-device at port 1. ATAPI support is by default disabled and can be enabled by
+a device with certain model and serial numbers, "bench" gains access to
+device at port 1, and finally the session "boot_fs" gains read-only access to
+port 2. ATAPI support is by default disabled and can be enabled by
 setting the config attribute "atapi" to "yes".
 
 ahci_drv supports reporting of active ports, which can be enabled via

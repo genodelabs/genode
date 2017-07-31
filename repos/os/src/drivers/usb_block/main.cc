@@ -818,7 +818,7 @@ struct Usb::Main
 	};
 
 	Factory     factory { env, heap, announce_dispatcher };
-	Block::Root root    { env.ep(), heap, env.rm(), factory };
+	Block::Root root    { env.ep(), heap, env.rm(), factory, true };
 
 	Main(Env &env) : env(env) { }
 };

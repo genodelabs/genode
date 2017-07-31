@@ -76,6 +76,7 @@ class Block::Session_component : public Block::Session_component_base,
 		bool                              _ack_queue_full;
 		Packet_descriptor                 _p_to_handle;
 		unsigned                          _p_in_fly;
+		bool                              _writeable;
 
 		/**
 		 * Acknowledge a packet already handled
@@ -127,6 +128,10 @@ class Block::Session_component : public Block::Session_component_base,
 					break;
 
 				case Block::Packet_descriptor::WRITE:
+					if (!_writeable) {
+						_ack_packet(_p_to_handle);
+						break;
+					}
 					if (_driver.dma_enabled())
 						_driver.write_dma(packet.block_number(),
 						                  packet.block_count(),
@@ -178,14 +183,16 @@ class Block::Session_component : public Block::Session_component_base,
 		Session_component(Driver_factory     &driver_factory,
 		                  Genode::Entrypoint &ep,
 		                  Genode::Region_map &rm,
-		                  size_t              buf_size)
+		                  size_t              buf_size,
+		                  bool                writeable)
 		: Session_component_base(driver_factory, buf_size),
 		  Driver_session(rm, _rq_ds, ep.rpc_ep()),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
 		  _sink_ack(ep, *this, &Session_component::_signal),
 		  _sink_submit(ep, *this, &Session_component::_signal),
 		  _req_queue_full(false),
-		  _p_in_fly(0)
+		  _p_in_fly(0),
+		  _writeable(writeable)
 		{
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
@@ -232,9 +239,19 @@ class Block::Session_component : public Block::Session_component_base,
 		void info(sector_t *blk_count, size_t *blk_size,
 		          Operations *ops)
 		{
+			Operations driver_ops = _driver.ops();
+
 			*blk_count = _driver.block_count();
 			*blk_size  = _driver.block_size();
-			*ops       = _driver.ops();
+			*ops       = Operations();
+
+			typedef Block::Packet_descriptor::Opcode Opcode;
+
+			if (driver_ops.supported(Opcode::READ))
+				ops->set_operation(Opcode::READ);
+			if (_writeable && driver_ops.supported(Opcode::WRITE))
+				ops->set_operation(Opcode::WRITE);
+
 		}
 
 		void sync() { _driver.sync(); }
@@ -252,6 +269,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		Driver_factory     &_driver_factory;
 		Genode::Entrypoint &_ep;
 		Genode::Region_map &_rm;
+		bool const          _writeable;
 
 	protected:
 
@@ -283,8 +301,13 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 				throw Insufficient_ram_quota();
 			}
 
+			bool writeable = _writeable
+				? Arg_string::find_arg(args, "writeable").bool_value(true)
+				: false;
+
 			return new (md_alloc()) Session_component(_driver_factory,
-			                                          _ep, _rm, tx_buf_size);
+			                                          _ep, _rm, tx_buf_size,
+			                                          writeable);
 		}
 
 	public:
@@ -300,10 +323,11 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		Root(Genode::Entrypoint &ep,
 		     Allocator          &md_alloc,
 		     Genode::Region_map &rm,
-		     Driver_factory     &driver_factory)
+		     Driver_factory     &driver_factory,
+		     bool                writeable)
 		:
 			Root_component(ep, md_alloc),
-			_driver_factory(driver_factory), _ep(ep), _rm(rm)
+			_driver_factory(driver_factory), _ep(ep), _rm(rm), _writeable(writeable)
 		{ }
 };
 

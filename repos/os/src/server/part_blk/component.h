@@ -47,6 +47,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 		Packet_descriptor                 _p_to_handle;
 		unsigned                          _p_in_fly;
 		Block::Driver                    &_driver;
+		bool                              _writeable;
 
 		/**
 		 * Acknowledge a packet already handled
@@ -84,6 +85,12 @@ class Block::Session_component : public Block::Session_rpc_object,
 			sector_t off = _p_to_handle.block_number() + _partition->lba;
 			size_t cnt   = _p_to_handle.block_count();
 			void* addr   = tx_sink()->packet_content(_p_to_handle);
+
+			if (write && !_writeable) {
+				_ack_packet(_p_to_handle);
+				return;
+			}
+
 			try {
 				_driver.io(write, off, cnt, addr, *this, _p_to_handle);
 			} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
@@ -126,7 +133,8 @@ class Block::Session_component : public Block::Session_rpc_object,
 		                  Partition                *partition,
 		                  Genode::Entrypoint       &ep,
 		                  Genode::Region_map       &rm,
-		                  Block::Driver            &driver)
+		                  Block::Driver            &driver,
+		                  bool                      writeable)
 		: Session_rpc_object(rm, rq_ds, ep.rpc_ep()),
 		  _rq_ds(rq_ds),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
@@ -136,7 +144,8 @@ class Block::Session_component : public Block::Session_rpc_object,
 		  _req_queue_full(false),
 		  _ack_queue_full(false),
 		  _p_in_fly(0),
-		  _driver(driver)
+		  _driver(driver),
+		  _writeable(writeable)
 		{
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
@@ -193,9 +202,18 @@ class Block::Session_component : public Block::Session_rpc_object,
 		void info(sector_t *blk_count, size_t *blk_size,
 		          Operations *ops)
 		{
+			Operations driver_ops = _driver.ops();
+
 			*blk_count = _partition->sectors;
 			*blk_size  = _driver.blk_size();
-			*ops = _driver.ops();
+			*ops       = Operations();
+
+			typedef Block::Packet_descriptor::Opcode Opcode;
+
+			if (driver_ops.supported(Opcode::READ))
+				ops->set_operation(Opcode::READ);
+			if (_writeable && driver_ops.supported(Opcode::WRITE))
+				ops->set_operation(Opcode::WRITE);
 		}
 
 		void sync() { _driver.session().sync(); }
@@ -230,6 +248,7 @@ class Block::Root :
 		Session_component *_create_session(const char *args) override
 		{
 			long num = -1;
+			bool writeable = false;
 
 			Session_label const label = label_from_args(args);
 			char const *label_str = label.string();
@@ -238,6 +257,9 @@ class Block::Root :
 
 				/* read partition attribute */
 				policy.attribute("partition").value(&num);
+
+				/* sessions are not writeable by default */
+				writeable = policy.attribute_value("writeable", false);
 
 			} catch (Xml_node::Nonexistent_attribute) {
 				error("policy does not define partition number for for '",
@@ -280,11 +302,15 @@ class Block::Root :
 				throw Insufficient_ram_quota();
 			}
 
+			if (writeable)
+				writeable = Arg_string::find_arg(args, "writeable").bool_value(true);
+
 			Ram_dataspace_capability ds_cap;
 			ds_cap = _env.ram().alloc(tx_buf_size);
 			Session_component *session = new (md_alloc())
 				Session_component(ds_cap, _table.partition(num),
-				                  _env.ep(), _env.rm(), _driver);
+				                  _env.ep(), _env.rm(), _driver,
+				                  writeable);
 
 			log("session opened at partition ", num, " for '", label_str, "'");
 			return session;

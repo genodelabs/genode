@@ -102,7 +102,7 @@ struct Main
 	Env        &env;
 	Heap        heap { env.ram(), env.rm() };
 	Factory     factory { env, heap };
-	Block::Root root { env.ep(), heap, env.rm(), factory };
+	Block::Root root { env.ep(), heap, env.rm(), factory, true };
 
 	Main(Env &env) : env(env) {
 		env.parent().announce(env.ep().manage(root)); }

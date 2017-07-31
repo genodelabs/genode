@@ -124,7 +124,7 @@ struct Main
 		void destroy(Block::Driver *driver) { }
 	} factory { env, heap };
 
-	Block::Root                    root { env.ep(), heap, env.rm(), factory };
+	Block::Root                    root { env.ep(), heap, env.rm(), factory, true };
 	Timer::Connection              timer { env };
 	Genode::Signal_handler<Driver> dispatcher { env.ep(), *factory.driver,
 	                                            &Driver::handler };
