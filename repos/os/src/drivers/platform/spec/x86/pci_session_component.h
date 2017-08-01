@@ -15,9 +15,10 @@
 
 /* base */
 #include <base/allocator_guard.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
 #include <base/rpc_server.h>
 #include <base/tslab.h>
-#include <base/attached_rom_dataspace.h>
 #include <ram_session/capability.h>
 #include <root/component.h>
 
@@ -35,7 +36,6 @@
 /* local */
 #include "pci_device_component.h"
 #include "pci_config_access.h"
-#include "pci_device_pd_ipc.h"
 #include "device_pd.h"
 
 namespace Platform {
@@ -199,13 +199,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 	private:
 
 		Genode::Env                    &_env;
-		Genode::Rpc_entrypoint         &_device_pd_ep;
 		Genode::Attached_rom_dataspace &_config;
 		Genode::Ram_session_guard       _env_ram;
-		Genode::Ram_session_capability  _env_ram_cap;
-		Genode::Pd_session             &_env_pd;
-		Genode::Pd_session_capability   _env_pd_cap;
-		Genode::Region_map             &_local_rm;
 		Genode::Heap                    _md_alloc;
 		Genode::Session_label    const  _label;
 		Genode::Session_policy   const  _policy { _label, _config.xml() };
@@ -237,145 +232,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			return false;
 		}
 
-		/**
-		 * Deduce specified amount of quota from an allocator guard, or throw
-		 * an 'Out_of_ram' exception if the guard's quota is depleted.
-		 */
-		struct Quota_reservation
-		{
-			Genode::Ram_session_guard &guard;
-
-			Genode::size_t const amount;
-
-			Quota_reservation(Genode::Ram_session_guard &guard,
-			                  Genode::size_t amount)
-			: guard(guard), amount(amount)
-			{
-				if (!guard.withdraw(amount))
-					throw Out_of_ram();
-			}
-
-			~Quota_reservation() noexcept(false)
-			{
-				if (!guard.revert_withdraw(amount))
-					throw Fatal();
-			}
-		};
-
-		class Device_pd
-		{
-			public:
-
-				class Startup_failed : Genode::Exception { };
-
-			private:
-
-				enum { CAP_QUOTA = 60, RAM_QUOTA = 190 * 4096 };
-
-				Quota_reservation const _reservation;
-				Device_pd_policy        _policy;
-				Genode::Child           _child;
-
-				void _check_child_started_up() const {
-					if (!_child.active())
-						throw Startup_failed(); }
-
-				bool const _active = (_check_child_started_up(), true);
-
-				Genode::Slave::Connection<Device_pd_connection> _connection;
-
-			public:
-
-				/**
-				 * Constructor
-				 *
-				 * \throw Out_of_ram
-				 * \throw Out_of_caps
-				 * \throw Startup_failed  child could not be started
-				 * \throw Service_denied  by 'Slave::Connection'
-				 */
-				Device_pd(Genode::Region_map            &local_rm,
-				          Genode::Rpc_entrypoint        &ep,
-				          Genode::Ram_session_guard     &ref_ram,
-				          Genode::Ram_session_capability ref_ram_cap,
-				          Genode::Pd_session            &ref_pd,
-				          Genode::Pd_session_capability  ref_pd_cap,
-				          Genode::Session_label   const &label)
-				try :
-					_reservation(ref_ram, RAM_QUOTA),
-					_policy(ep, local_rm, ref_pd,  ref_pd_cap,
-					        Genode::Cap_quota{CAP_QUOTA},
-					        Genode::Ram_quota{RAM_QUOTA},
-					        label),
-					_child(local_rm, ep, _policy),
-					_connection(_policy, Genode::Slave::Args())
-				{ }
-				/* thrown by 'Quota_reservation', 'Device_pd_policy' or 'Child' */
-				catch (Genode::Out_of_ram) {
-					throw; }
-
-				catch (Genode::Out_of_caps) {
-					Genode::warning("Out_of_caps during device-pd creation");
-					throw; }
-
-				/* thrown by 'Slave::Connection' */
-				catch (Genode::Insufficient_ram_quota) {
-					throw Genode::Out_of_ram(); }
-
-				/* thrown by 'Slave::Connection' */
-				catch (Genode::Insufficient_cap_quota) {
-					Genode::warning("Insufficient_cap_quota during device-pd creation");
-					throw Genode::Out_of_caps(); }
-
-				Device_pd_client &session() { return _connection; }
-
-				Genode::Ram_session_capability ram_session_cap() {
-					return _child.ram_session_cap(); }
-		};
-
-		Device_pd *_device_pd = nullptr;
-
-		/**
-		 * Free device PD at session destruction
-		 */
-		struct Device_pd_guard
-		{
-			Session_component &session;
-
-			~Device_pd_guard() {
-				if (session._device_pd)
-					Genode::destroy(session._md_alloc, session._device_pd); }
-
-		} _device_pd_guard { *this };
-
-		/**
-		 * Attempt to initialize device PD
-		 *
-		 * \throw Out_of_ram   session quota does not suffice to spawn the
-		 *                     device PD
-		 * \throw Out_of_caps
-		 */
-		void _try_init_device_pd()
-		{
-			if (_device_pd || _no_device_pd)
-				return;
-
-			try {
-				_device_pd = new (_md_alloc)
-					Device_pd(_local_rm, _device_pd_ep, _env_ram, _env_ram_cap,
-					          _env_pd, _env_pd_cap, _label);
-			}
-			catch (Genode::Out_of_ram) { /* thrown by '_md_alloc', 'Device_pd' */
-				throw; }
-			catch (Genode::Out_of_caps) {
-				Genode::warning("Out_of_caps during Device_pd construction");
-				throw; } 
-			catch (...) {
-				Genode::warning("PCI device protection domain for IOMMU support "
-				                "is not available");
-				_no_device_pd = true;
-			}
-		}
+		Platform::Device_pd _device_pd { _env, _label };
 
 		enum { MAX_PCI_DEVICES = Device_config::MAX_BUSES *
 		                         Device_config::MAX_DEVICES *
@@ -383,12 +240,11 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 		static Genode::Bit_array<MAX_PCI_DEVICES> bdf_in_use;
 
-
-
 		/**
 		 * List containing extended PCI config space information
 		 */
-		static Genode::List<Config_space> &config_space_list() {
+		static Genode::List<Config_space> &config_space_list()
+		{
 			static Genode::List<Config_space> config_space;
 			return config_space;
 		}
@@ -398,8 +254,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		 * the corresponding extended 4K PCI config space address.
 		 * A io mem dataspace is created and returned.
 		 */
-		Genode::addr_t
-		lookup_config_space(Genode::uint16_t const bdf)
+		Genode::addr_t lookup_config_space(Genode::uint16_t const bdf)
 		{
 			using namespace Genode;
 
@@ -416,7 +271,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		 * List of aliases for PCI Class/Subclas/Prog I/F triple used
 		 * by xml config for this platform driver
 		 */
-		unsigned class_subclass_prog(const char * name) {
+		unsigned class_subclass_prog(const char * name)
+		{
 			using namespace Genode;
 
 			static struct {
@@ -591,18 +447,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		 */
 		Session_component(Genode::Env                    &env,
 		                  Genode::Attached_rom_dataspace &config,
-		                  Genode::Rpc_entrypoint         &device_pd_ep,
 		                  Platform::Pci_buses            &buses,
 		                  Genode::Heap                   &global_heap,
 		                  char                     const *args)
 		:
-			_env(env), _device_pd_ep(device_pd_ep),
+			_env(env),
 			_config(config),
 			_env_ram(env.ram(), Genode::ram_quota_from_args(args).value),
-			_env_ram_cap(env.ram_session_cap()),
-			_env_pd(env.pd()),
-			_env_pd_cap(env.pd_session_cap()),
-			_local_rm(env.rm()),
 			_md_alloc(_env_ram, env.rm()),
 			_label(Genode::label_from_args(args)),
 			_pci_bus(buses), _global_heap(global_heap)
@@ -900,17 +751,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			Io_mem_dataspace_capability io_mem = device->get_config_space();
 
-			_try_init_device_pd();
-			if (!_device_pd)
-				return;
-
 			try {
-				_device_pd->session().assign_pci(io_mem, device->config().bdf());
+				_device_pd.assign_pci(io_mem, device->config().bdf());
 
 				for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
 					Io_mem_dataspace_capability rmrr_cap = r->match(_env, device->config());
 					if (rmrr_cap.valid())
-						_device_pd->session().attach_dma_mem(rmrr_cap);
+						_device_pd.attach_dma_mem(rmrr_cap);
 				}
 			} catch (...) {
 				Genode::error("assignment to device pd or of RMRR region failed");
@@ -938,13 +785,6 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t const size) override
 		{
-			/*
-			 * We always try to create the device PD first because
-			 * otherwise we might consume the requested size multiple
-			 * times which breaks our accounting.
-			 */
-			_try_init_device_pd();
-
 			Ram_capability ram_cap;
 
 			try { ram_cap = _env_ram.alloc(size, Genode::UNCACHED); }
@@ -953,13 +793,11 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			if (!ram_cap.valid())
 				return ram_cap;
 
-			if (_device_pd) {
-				try { _device_pd->session().attach_dma_mem(ram_cap); }
-				catch (Out_of_ram)  { _rollback(size, ram_cap);; }
-				catch (Out_of_caps) {
-					Genode::warning("Out_of_caps while attaching DMA memory");
-					_rollback(size, ram_cap);;
-				}
+			try { _device_pd.attach_dma_mem(ram_cap); }
+			catch (Out_of_ram)  { _rollback(size, ram_cap);; }
+			catch (Out_of_caps) {
+				Genode::warning("Out_of_caps while attaching DMA memory");
+				_rollback(size, ram_cap);;
 			}
 
 			try { _insert(ram_cap); }
@@ -1014,7 +852,6 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 		Genode::Reporter _pci_reporter { _env, "pci" };
 
-		Genode::Rpc_entrypoint  _device_pd_ep;
 		Genode::Heap            _heap  { _env.ram(), _env.rm() };
 		Platform::Pci_buses     _buses { _env, _heap };
 
@@ -1061,7 +898,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				}
 
 				if (node.has_type("rmrr")) {
-					uint64_t mem_start, mem_end;
+					uint64_t mem_start = 0, mem_end = 0;
 					node.attribute("start").value(&mem_start);
 					node.attribute("end").value(&mem_end);
 
@@ -1076,7 +913,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 						if (!scope.num_sub_nodes() || !scope.has_type("scope"))
 							throw 3;
 
-						unsigned bus, dev, func;
+						unsigned bus = 0, dev = 0, func = 0;
 						scope.attribute("bus_start").value(&bus);
 
 						for (unsigned p = 0; p < scope.num_sub_nodes(); p++) {
@@ -1152,7 +989,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		{
 			try {
 				return  new (md_alloc())
-					Session_component(_env, _config, _device_pd_ep, _buses, _heap, args);
+					Session_component(_env, _config, _buses, _heap, args);
 			}
 			catch (Genode::Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy for ",
@@ -1184,8 +1021,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		:
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(),
 			                                          &md_alloc),
-			_env(env), _config(config),
-			_device_pd_ep(&env.pd(), STACK_SIZE, "device_pd_slave")
+			_env(env), _config(config)
 		{
 			if (acpi_rom) {
 				try {

@@ -15,16 +15,6 @@ include/spec/%/trace/timestamp.h:
 	cp $(GENODE_DIR)/repos/os/$@ $@
 
 
-DEVICE_PD_SRC := src/drivers/platform/spec/x86/pci_device_pd_ipc.h \
-                 src/drivers/platform/spec/x86/device_pd \
-                 include/os/static_root.h
-
-content: $(DEVICE_PD_SRC)
-$(DEVICE_PD_SRC):
-	mkdir -p $(dir $@)
-	cp -r $(GENODE_DIR)/repos/os/$@ $@
-
-
 content: README
 README:
 	cp $(REP_DIR)/recipes/src/base-nova/README $@

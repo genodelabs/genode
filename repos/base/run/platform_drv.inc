@@ -54,7 +54,6 @@ proc platform_drv_build_components {} {
 	lappend_if [have_platform_drv] drv_build_components drivers/platform
 	lappend_if [have_spec acpi]    drv_build_components drivers/acpi
 	lappend_if [have_spec acpi]    drv_build_components server/report_rom
-	lappend_if [have_spec nova]    drv_build_components drivers/platform/spec/x86/device_pd
 	return $drv_build_components
 }
 
@@ -69,7 +68,6 @@ proc platform_drv_boot_modules {} {
 	lappend_if [have_platform_drv] drv_boot_modules platform_drv
 	lappend_if [have_spec acpi]    drv_boot_modules acpi_drv
 	lappend_if [have_spec acpi]    drv_boot_modules report_rom
-	lappend_if [have_spec nova]    drv_boot_modules device_pd
 	lappend_if [have_spec muen]    drv_boot_modules acpi
 	return $drv_boot_modules
 }
