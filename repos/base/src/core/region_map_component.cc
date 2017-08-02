@@ -171,8 +171,6 @@ static void print_page_fault(char const *msg,
 
 int Rm_client::pager(Ipc_pager &pager)
 {
-	using Fault_area = Region_map_component::Fault_area;
-
 	Region_map::State::Fault_type pf_type = pager.write_fault() ? Region_map::State::WRITE_FAULT
 	                                                            : Region_map::State::READ_FAULT;
 	addr_t pf_addr = pager.fault_addr();
@@ -208,25 +206,6 @@ int Rm_client::pager(Ipc_pager &pager)
 			return 1;
 		}
 
-		addr_t ds_base = dsc->map_src_addr();
-		Fault_area src_fault_area(ds_base + ds_offset);
-		Fault_area dst_fault_area(pf_addr);
-		src_fault_area.constrain(ds_base, dsc->size());
-		dst_fault_area.constrain(region_offset + region->base(), region->size());
-
-		/*
-		 * Determine mapping size compatible with source and destination,
-		 * and apply platform-specific constraint of mapping sizes.
-		 */
-		size_t map_size_log2 = dst_fault_area.common_size_log2(dst_fault_area,
-		                                                       src_fault_area);
-		map_size_log2 = constrain_map_size_log2(map_size_log2);
-
-		src_fault_area.constrain(map_size_log2);
-		dst_fault_area.constrain(map_size_log2);
-		if (!src_fault_area.valid() || !dst_fault_area.valid())
-			error("invalid mapping");
-
 		/*
 		 * Check if dataspace is compatible with page-fault type
 		 */
@@ -237,13 +216,15 @@ int Rm_client::pager(Ipc_pager &pager)
 			                 pf_addr, pf_ip, pf_type, *this);
 
 			/* register fault at responsible region map */
-			region_map->fault(this, src_fault_area.fault_addr(), pf_type);
+			region_map->fault(this, dsc->map_src_addr() + ds_offset, pf_type);
 			return 2;
 		}
 
-		Mapping mapping(dst_fault_area.base(), src_fault_area.base(),
-		                dsc->cacheability(), dsc->io_mem(),
-		                map_size_log2, dsc->writable());
+		Mapping mapping = Region_map_component::create_map_item(region_map,
+		                                                        region,
+		                                                        ds_offset,
+		                                                        region_offset,
+		                                                        dsc, pf_addr);
 
 		/*
 		 * On kernels with a mapping database, the 'dsc' dataspace is a leaf
@@ -312,6 +293,38 @@ void Rm_faulter::continue_after_resolved_fault()
 /**************************
  ** Region-map component **
  **************************/
+
+Mapping Region_map_component::create_map_item(Region_map_component *region_map,
+                                              Rm_region            *region,
+                                              addr_t                ds_offset,
+                                              addr_t                region_offset,
+                                              Dataspace_component  *dsc,
+                                              addr_t                page_addr)
+{
+	addr_t ds_base = dsc->map_src_addr();
+	Fault_area src_fault_area(ds_base + ds_offset);
+	Fault_area dst_fault_area(page_addr);
+	src_fault_area.constrain(ds_base, dsc->size());
+	dst_fault_area.constrain(region_offset + region->base(), region->size());
+
+	/*
+	 * Determine mapping size compatible with source and destination,
+	 * and apply platform-specific constraint of mapping sizes.
+	 */
+	size_t map_size_log2 = dst_fault_area.common_size_log2(dst_fault_area,
+	                                                       src_fault_area);
+	map_size_log2 = constrain_map_size_log2(map_size_log2);
+
+	src_fault_area.constrain(map_size_log2);
+	dst_fault_area.constrain(map_size_log2);
+	if (!src_fault_area.valid() || !dst_fault_area.valid())
+		error("invalid mapping");
+
+	return Mapping(dst_fault_area.base(), src_fault_area.base(),
+	               dsc->cacheability(), dsc->io_mem(),
+	               map_size_log2, dsc->writable());
+};
+
 
 Region_map::Local_addr
 Region_map_component::attach(Dataspace_capability ds_cap, size_t size,

@@ -32,4 +32,64 @@ bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 }
 
 
-void Pd_session_component::map(addr_t, addr_t) { }
+void Pd_session_component::map(addr_t virt, addr_t size)
+{
+	Genode::addr_t const  pd_core   = platform_specific()->core_pd_sel();
+	Platform_pd          &target_pd = *_pd;
+	Genode::addr_t const  pd_dst    = target_pd.pd_sel();
+	Nova::Utcb            *utcb     = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
+
+	auto lambda = [&] (Region_map_component *region_map,
+	                   Rm_region            *region,
+	                   addr_t                ds_offset,
+	                   addr_t                region_offset) -> addr_t
+	{
+		Dataspace_component * dsc = region ? region->dataspace() : nullptr;
+		if (!dsc)
+			return ~0UL;
+
+		Mapping mapping = Region_map_component::create_map_item(region_map,
+		                                                        region,
+		                                                        ds_offset,
+		                                                        region_offset,
+		                                                        dsc, virt);
+
+		/* asynchronously map memory */
+		uint8_t err = Nova::NOVA_PD_OOM;
+		do {
+			utcb->set_msg_word(0);
+			bool res = utcb->append_item(mapping.mem_crd(), 0, true, false,
+			                             false, mapping.dma(),
+			                             mapping.write_combined());
+			/* one item ever fits on the UTCB */
+			(void)res;
+
+			/* receive window in destination pd */
+			Nova::Mem_crd crd_mem(mapping.dst_addr() >> 12,
+			                      mapping.mem_crd().order(),
+			                      Nova::Rights(true, dsc->writable(), true));
+
+			err = Nova::delegate(pd_core, pd_dst, crd_mem);
+		} while (err == Nova::NOVA_PD_OOM &&
+		         Nova::NOVA_OK == Pager_object::handle_oom(Pager_object::SRC_CORE_PD,
+		                                                   _pd->pd_sel(),
+		                                                   "core", "ep",
+		                                                   Pager_object::Policy::UPGRADE_CORE_TO_DST));
+
+		addr_t const map_crd_size = 1UL << (mapping.mem_crd().order() + 12);
+		addr_t const mapped   = mapping.dst_addr() + map_crd_size - virt;
+
+		if (err != Nova::NOVA_OK)
+			error("could not map memory ",
+			      Hex_range<addr_t>(mapping.dst_addr(), map_crd_size) , " "
+			      "eagerly error=", err);
+
+		return mapped;
+	};
+
+	while (size) {
+		addr_t mapped = _address_space.apply_to_dataspace(virt, lambda);
+		virt         += mapped;
+		size          = size < mapped ? size - mapped : 0;
+	}
+}

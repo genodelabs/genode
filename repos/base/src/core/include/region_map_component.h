@@ -399,6 +399,15 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 		void add_client(Rm_client &);
 		void remove_client(Rm_client &);
 
+		/**
+		 * Create mapping item to be placed into the page table
+		 */
+		static Mapping create_map_item(Region_map_component *region_map,
+		                               Rm_region            *region,
+		                               addr_t                ds_offset,
+		                               addr_t                region_offset,
+		                               Dataspace_component  *dsc,
+		                               addr_t);
 
 		/**************************
 		 ** Region map interface **
