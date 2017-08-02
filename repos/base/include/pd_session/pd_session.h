@@ -68,6 +68,20 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 */
 	virtual bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) = 0;
 
+	/**
+	 * Trigger eager insertion of page frames to page table within
+	 * specified virtual range.
+	 *
+	 * If the used kernel don't support this feature, the operation will
+	 * silently ignore the request.
+	 *
+	 * \param virt virtual address within the address space to start
+	 * \param size the virtual size of the region
+	 *
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
+	 */
+	virtual void map(addr_t virt, addr_t size) = 0;
 
 	/********************************
 	 ** Support for the signal API **
@@ -291,6 +305,9 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	GENODE_RPC(Rpc_assign_parent, void, assign_parent, Capability<Parent>);
 	GENODE_RPC(Rpc_assign_pci,    bool, assign_pci,    addr_t, uint16_t);
+	GENODE_RPC_THROW(Rpc_map,     void, map,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
+	                 addr_t, addr_t);
 
 	GENODE_RPC_THROW(Rpc_alloc_signal_source, Signal_source_capability,
 	                 alloc_signal_source,
@@ -331,7 +348,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
 
-	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci,
+	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci, Rpc_map,
 	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
 	                     Rpc_alloc_context, Rpc_free_context, Rpc_submit,
 	                     Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,

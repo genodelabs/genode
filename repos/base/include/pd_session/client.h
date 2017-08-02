@@ -31,6 +31,8 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) override {
 		return call<Rpc_assign_pci>(pci_config_memory_address, bdf); }
 
+	void map(addr_t virt, addr_t size) override { call<Rpc_map>(virt, size); }
+
 	Signal_source_capability alloc_signal_source() override {
 		return call<Rpc_alloc_signal_source>(); }
 

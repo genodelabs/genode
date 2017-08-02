@@ -18,5 +18,7 @@
 
 using namespace Genode;
 
-bool Pd_session_component::assign_pci(addr_t, uint16_t) { return false; }
+bool Pd_session_component::assign_pci(addr_t, uint16_t) { return true; }
+
+void Pd_session_component::map(addr_t, addr_t) { }
 

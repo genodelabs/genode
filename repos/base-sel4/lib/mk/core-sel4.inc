@@ -10,7 +10,7 @@ SRC_CC      += \
                cpu_thread_component.cc \
                rpc_cap_factory.cc \
                ram_dataspace_factory.cc \
-               pd_assign_pci.cc \
+               pd_session_support.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                thread_start.cc \
@@ -48,7 +48,7 @@ vpath rom_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_support.cc       $(GEN_CORE_DIR)
 vpath cpu_thread_component.cc      $(GEN_CORE_DIR)
-vpath pd_assign_pci.cc             $(GEN_CORE_DIR)
+vpath pd_session_support.cc        $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath region_map_component.cc      $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc  $(GEN_CORE_DIR)

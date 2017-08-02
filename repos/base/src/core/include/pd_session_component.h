@@ -178,6 +178,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 		bool assign_pci(addr_t, uint16_t) override;
 
+		void map(addr_t, addr_t) override;
 
 		/****************
 		 ** Signalling **

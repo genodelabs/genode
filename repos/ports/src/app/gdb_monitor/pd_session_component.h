@@ -85,6 +85,9 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 		bool assign_pci(addr_t addr, uint16_t bdf) override {
 			return _pd.assign_pci(addr, bdf); }
 
+		void map(addr_t virt, addr_t size) override {
+			return _pd.map(virt, size); }
+
 		Signal_source_capability alloc_signal_source() override {
 			return _pd.alloc_signal_source(); }
 

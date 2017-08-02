@@ -30,3 +30,6 @@ bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 
 	return res == Nova::NOVA_OK;
 }
+
+
+void Pd_session_component::map(addr_t, addr_t) { }
