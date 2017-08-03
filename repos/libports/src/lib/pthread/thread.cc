@@ -537,7 +537,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = 0;
+		*attr = nullptr;
 
 		return 0;
 	}
@@ -545,10 +545,9 @@ extern "C" {
 
 	int pthread_condattr_destroy(pthread_condattr_t *attr)
 	{
-		if (!attr || !*attr)
+		/* assert that the attr was produced by the init no-op */
+		if (!attr || *attr != nullptr)
 			return EINVAL;
-
-		warning(__func__, " not implemented yet");
 
 		return 0;
 	}
@@ -557,7 +556,8 @@ extern "C" {
 	int pthread_condattr_setclock(pthread_condattr_t *attr,
 	                              clockid_t clock_id)
 	{
-		if (!attr || !*attr)
+		/* assert that the attr was produced by the init no-op */
+		if (!attr || *attr != nullptr)
 			return EINVAL;
 
 		warning(__func__, " not implemented yet");
