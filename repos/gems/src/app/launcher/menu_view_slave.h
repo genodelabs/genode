@@ -75,7 +75,7 @@ class Launcher::Menu_view_slave
 
 				static Name              _name()  { return "menu_view"; }
 				static Genode::Ram_quota _quota() { return { 6*1024*1024 }; }
-				static Genode::Cap_quota _caps()  { return { 25 }; }
+				static Genode::Cap_quota _caps()  { return { 100 }; }
 
 			public:
 

@@ -47,7 +47,7 @@ class Launcher::Nit_fader_slave
 
 				static Name              _name()  { return "nit_fader"; }
 				static Genode::Ram_quota _quota() { return { 2*1024*1024 }; }
-				static Genode::Cap_quota _caps()  { return { 25 }; }
+				static Genode::Cap_quota _caps()  { return { 50 }; }
 
 			public:
 

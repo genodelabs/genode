@@ -30,14 +30,14 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="50"/>
+	<default caps="100"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="300">
+	<start name="drivers" caps="1000">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
@@ -115,24 +115,22 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
-			<rom>
-				<policy label="decorator_config -> xray"      report="xray_trigger -> xray"/>
-				<policy label="layouter -> window_list"       report="wm -> window_list"/>
-				<policy label="layouter -> focus_request"     report="wm -> focus_request" />
-				<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
-				<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
-				<policy label="decorator -> pointer"          report="wm -> pointer"/>
-				<policy label="layouter -> hover"             report="decorator -> hover"/>
-				<policy label="wm -> focus"                   report="layouter -> focus"/>
-				<policy label="status_bar -> focus"           report="nitpicker -> focus"/>
-				<policy label="launcher -> focus"             report="nitpicker -> focus"/>
-				<policy label="xray_trigger -> hover"         report="nitpicker -> hover"/>
-				<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
-			</rom>
+			<policy label="decorator_config -> xray"      report="xray_trigger -> xray"/>
+			<policy label="layouter -> window_list"       report="wm -> window_list"/>
+			<policy label="layouter -> focus_request"     report="wm -> focus_request" />
+			<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
+			<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
+			<policy label="decorator -> pointer"          report="wm -> pointer"/>
+			<policy label="layouter -> hover"             report="decorator -> hover"/>
+			<policy label="wm -> focus"                   report="layouter -> focus"/>
+			<policy label="status_bar -> focus"           report="nitpicker -> focus"/>
+			<policy label="launcher -> focus"             report="nitpicker -> focus"/>
+			<policy label="xray_trigger -> hover"         report="nitpicker -> hover"/>
+			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
 		</config>
 	</start>
 
-	<start name="wm">
+	<start name="wm" caps="200">
 		<resource name="RAM" quantum="6M"/>
 		<provides>
 			<service name="Nitpicker"/>
