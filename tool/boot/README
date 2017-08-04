@@ -8,8 +8,10 @@ code respectively the download source of binaries are described below.
   The toolchain was obtained from https://github.com/TUD-OS/morbo.
   For Genode the bender was modified so that binaries are only relocated up
   to 2G physical. Additional, relocation can be limited to 256M for sel4.
-  The changes are available on the genode_bender branch of
+  The changes are available from
   https://github.com/alex-ab/morbo.git.
+
+  branch genode_bender, git commit 19134018ed2792c078ec63bdd814564295880954
 
 :'pulsar':
 
