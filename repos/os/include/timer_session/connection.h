@@ -197,9 +197,9 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		Timeout_handler *_handler               { nullptr };
 		Lock             _real_time_lock        { Lock::UNLOCKED };
-		unsigned long    _ms                    { elapsed_ms() };
+		unsigned long    _us                    { elapsed_us() };
 		Timestamp        _ts                    { _timestamp() };
-		Duration         _real_time             { Milliseconds(_ms) };
+		Duration         _real_time             { Microseconds(_us) };
 		Duration         _interpolated_time     { _real_time };
 		unsigned         _interpolation_quality { 0 };
 		unsigned long    _us_to_ts_factor       { 1UL };

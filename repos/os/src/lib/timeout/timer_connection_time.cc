@@ -29,7 +29,7 @@ void Timer::Connection::_update_real_time()
 	 */
 
 	Timestamp     ts         = 0UL;
-	unsigned long ms         = 0UL;
+	unsigned long us         = 0UL;
 	unsigned long latency_us = ~0UL;
 
 	/*
@@ -43,14 +43,14 @@ void Timer::Connection::_update_real_time()
 	{
 		/* read out the two time values close in succession */
 		Timestamp     volatile new_ts = _timestamp();
-		unsigned long volatile new_ms = elapsed_ms();
+		unsigned long volatile new_us = elapsed_us();
 
 		/*
 		 * If interpolation is not ready, yet we cannot determine a latency
 		 * and take the values as they are.
 		 */
 		if (_interpolation_quality < MAX_INTERPOLATION_QUALITY) {
-			ms = new_ms;
+			us = new_us;
 			ts = new_ts;
 			break;
 		}
@@ -61,7 +61,7 @@ void Timer::Connection::_update_real_time()
 
 		/* remember results if the latency was better than on the last trial */
 		if (new_latency_us < latency_us) {
-			ms = new_ms;
+			us = new_us;
 			ts = new_ts;
 
 			/* take the results if the latency fulfills the given maximum */
@@ -72,13 +72,13 @@ void Timer::Connection::_update_real_time()
 	}
 
 	/* determine timestamp and time difference */
-	unsigned long const ms_diff = ms - _ms;
+	unsigned long const us_diff = us - _us;
 	Timestamp           ts_diff = ts - _ts;
 
 	/* overwrite timestamp, time, and real time member */
-	_ms         = ms;
+	_us         = us;
 	_ts         = ts;
-	_real_time += Milliseconds(ms_diff);
+	_real_time += Microseconds(us_diff);
 
 
 	/*
@@ -87,11 +87,10 @@ void Timer::Connection::_update_real_time()
 
 	enum { MAX_FACTOR_SHIFT = sizeof(unsigned long) * 8 };
 
-	unsigned            factor_shift        = _us_to_ts_factor_shift;
-	unsigned long       old_factor          = _us_to_ts_factor;
-	unsigned long const us_diff             = ms_diff * 1000UL;
-	Timestamp           max_ts_diff         = ~(Timestamp)0ULL >> factor_shift;
-	Timestamp           min_ts_diff_shifted = ~(Timestamp)0ULL >> 1;
+	unsigned      factor_shift        = _us_to_ts_factor_shift;
+	unsigned long old_factor          = _us_to_ts_factor;
+	Timestamp     max_ts_diff         = ~(Timestamp)0ULL >> factor_shift;
+	Timestamp     min_ts_diff_shifted = ~(Timestamp)0ULL >> 1;
 
 	/*
 	 * If the calculation type is bigger than the resulting factor type,
@@ -204,7 +203,7 @@ Duration Timer::Connection::curr_time()
 	} else {
 
 		/* use remote timer instead of timestamps */
-		interpolated_time += Milliseconds(elapsed_ms() - _ms);
+		interpolated_time += Microseconds(elapsed_us() - _us);
 
 		lock_guard.destruct();
 	}

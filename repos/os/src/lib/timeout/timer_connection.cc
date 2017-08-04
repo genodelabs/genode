@@ -87,12 +87,12 @@ Duration Timer::Connection::_update_interpolated_time(Duration &interpolated_tim
 
 void Timer::Connection::_handle_timeout()
 {
-	unsigned long const ms = elapsed_ms();
-	if (ms - _ms > REAL_TIME_UPDATE_PERIOD_US / 1000UL) {
+	unsigned long const us = elapsed_us();
+	if (us - _us > REAL_TIME_UPDATE_PERIOD_US) {
 		_update_real_time();
 	}
 	if (_handler) {
-		_handler->handle_timeout(Duration(Milliseconds(ms)));
+		_handler->handle_timeout(Duration(Microseconds(us)));
 	}
 }
 
