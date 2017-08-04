@@ -71,8 +71,11 @@ class Timer::Session_component : public Genode::Rpc_object<Session>,
 		}
 
 		unsigned long elapsed_ms() const override {
-			return (_timeout_scheduler.curr_time().trunc_to_plain_us().value -
-			        _init_time_us) / 1000; }
+			return elapsed_us() / 1000; }
+
+		unsigned long elapsed_us() const override {
+			return _timeout_scheduler.curr_time().trunc_to_plain_us().value -
+			       _init_time_us; }
 
 		void msleep(unsigned) override { /* never called at the server side */ }
 		void usleep(unsigned) override { /* never called at the server side */ }
