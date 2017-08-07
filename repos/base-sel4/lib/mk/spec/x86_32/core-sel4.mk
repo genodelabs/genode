@@ -1,6 +1,6 @@
 SRC_CC += $(addprefix spec/x86_32/, boot_info.cc thread.cc platform.cc \
                                     platform_pd.cc vm_space.cc)
-SRC_CC += $(addprefix spec/x86/, irq.cc vm_space.cc)
+SRC_CC += $(addprefix spec/x86/, irq.cc vm_space.cc platform_thread.cc)
 
 SRC_CC += io_port_session_component.cc
 SRC_CC += io_port_session_support.cc

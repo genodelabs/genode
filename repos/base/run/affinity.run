@@ -10,7 +10,8 @@ if {
 	![have_spec panda]                             &&
 	![expr [have_spec x86_32] && [have_spec foc] ] &&
 	![expr [have_spec x86_64] && [have_spec foc] ] &&
-	![have_spec nova]
+	![have_spec nova] &&
+	![have_spec sel4]
 } {
 	puts "Platform is unsupported."
 	exit 0

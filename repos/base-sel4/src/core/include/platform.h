@@ -247,6 +247,13 @@ class Genode::Platform : public Platform_generic
 		size_t           vm_size()  const { return _vm_size;  }
 		Rom_fs          *rom_fs()         { return &_rom_fs; }
 
+		Affinity::Space affinity_space() const override {
+			return sel4_boot_info().numNodes; }
+
+		/*******************
+		 ** seL4 specific **
+		 *******************/
+
 		Cnode &phys_cnode() { return _phys_cnode; }
 		Cnode &top_cnode()  { return _top_cnode; }
 		Cnode &core_cnode() { return _core_cnode; }

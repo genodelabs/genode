@@ -42,7 +42,6 @@ if {[have_include "power_on/qemu"]} {
 	if {[have_spec fiasco]}                     { set want_cpus 1 }
 	if {([have_spec x86_64] && [have_spec hw])} { set want_cpus 1 }
 	if {[have_spec zynq]}                       { set want_cpus 1 }
-	if {[have_spec sel4]}                       { set want_cpus 1 }
 
 	append qemu_args " -nographic  -smp $want_cpus,cores=$want_cpus "
 }

@@ -48,7 +48,7 @@ namespace Genode {
 	 * Set register values for the instruction pointer and stack pointer and
 	 * start the seL4 thread
 	 */
-	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp);
+	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu);
 };
 
 
@@ -129,6 +129,7 @@ void Genode::Thread_info::destruct()
 }
 
 
-void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp);
+void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
+                               unsigned cpu);
 
 #endif /* _CORE__INCLUDE__THREAD_SEL4_H_ */

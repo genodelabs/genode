@@ -67,6 +67,8 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 
 		enum { INITIAL_IPC_BUFFER_VIRT = 0x1000 };
 
+		Affinity::Location _location;
+
 	public:
 
 		/**
@@ -156,12 +158,12 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Set the executing CPU for this thread
 		 */
-		void affinity(Affinity::Location) { }
+		void affinity(Affinity::Location location);
 
 		/**
 		 * Get the executing CPU for this thread
 		 */
-		Affinity::Location affinity() const { return Affinity::Location(); }
+		Affinity::Location affinity() const { return _location; }
 
 		/**
 		 * Set CPU quota of the thread

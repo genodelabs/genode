@@ -167,7 +167,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	                                  _pd->page_directory_sel().value(), no_cap_data);
 	ASSERT(ret == 0);
 
-	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp));
+	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos());
 	return 0;
 }
 
@@ -215,11 +215,12 @@ bool Platform_thread::install_mapping(Mapping const &mapping)
 
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
-                                 Affinity::Location, addr_t utcb)
+                                 Affinity::Location location, addr_t utcb)
 :
 	_name(name),
 	_utcb(utcb),
-	_pager_obj_sel(platform_specific()->core_sel_alloc().alloc())
+	_pager_obj_sel(platform_specific()->core_sel_alloc().alloc()),
+	_location(location)
 
 {
 	_info.init(_utcb ? _utcb : INITIAL_IPC_BUFFER_VIRT);

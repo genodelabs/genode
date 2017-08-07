@@ -21,7 +21,8 @@
 #include <thread_sel4.h>
 #include <platform_thread.h>
 
-void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp)
+void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
+                               unsigned cpu)
 {
 	/* set register values for the instruction pointer and stack pointer */
 	seL4_UserContext regs;
@@ -35,6 +36,8 @@ void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp)
 	long const ret = seL4_TCB_WriteRegisters(tcb_sel.value(), false, 0,
 	                                         num_regs, &regs);
 	ASSERT(ret == 0);
+
+	seL4_TCB_SetAffinity(tcb_sel.value(), cpu);
 
 	seL4_TCB_Resume(tcb_sel.value());
 }

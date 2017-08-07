@@ -100,7 +100,7 @@ void Thread::_thread_start()
 void Thread::start()
 {
 	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
-	                  (addr_t)stack_top());
+	                  (addr_t)stack_top(), _affinity.xpos());
 }
 
 

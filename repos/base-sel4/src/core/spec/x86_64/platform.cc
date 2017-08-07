@@ -79,5 +79,3 @@ void Genode::Platform::_init_core_page_table_registry()
 	}
 #endif
 }
-
-
