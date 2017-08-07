@@ -1,0 +1,36 @@
+##
+# Reset the target machine or rather run the scenario as Xen DomU
+#
+
+source [genode_dir]/tool/run/xen.inc
+
+
+##
+# Execute scenario using xl
+#
+proc run_power_on { } {
+	global xen_args
+	global xen_spawn_id
+
+	#
+	# Back out on platforms w/o Xen support
+	#
+	if {![is_xen_available]} { return 0 }
+
+	set xen_base_args { \
+		builder="hvm"\; \
+		name="genode-hvm"\; \
+		cpus="1"\; \
+		memory="512"\; \
+		serial="pty"\; \
+		sdl="1"\; \
+		vnc="0"\; \
+		disk=\["file:[run_dir].iso,hdc:cdrom,r"\]\; \
+		boot="d"\; \
+	}
+
+	eval spawn sudo xl create -c /dev/null $xen_base_args $xen_args
+	set xen_spawn_id $spawn_id
+
+	return true
+}

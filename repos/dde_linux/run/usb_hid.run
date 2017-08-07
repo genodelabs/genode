@@ -143,6 +143,7 @@ build_boot_image $boot_modules
 
 append qemu_args "  -usb  -usbdevice mouse -usbdevice keyboard"
 append qemu_args " -device usb-ehci,id=ehci"
+append xen_args  { usbdevice=\["mouse","keyboard"\] }
 
 if { [have_include "power_on/qemu"] || ![get_cmd_switch --autopilot] } { run_genode_until forever }
 

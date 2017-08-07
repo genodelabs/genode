@@ -1,0 +1,38 @@
+##
+# Capture the output of a scenario executed via Xen
+#
+
+source [genode_dir]/tool/run/log.inc
+source [genode_dir]/tool/run/xen.inc
+
+
+proc run_log { wait_for_re timeout_value } {
+	global xen_spawn_id
+	global output_spawn_id
+
+	set output_spawn_id $xen_spawn_id
+
+	set kernel_msg [run_boot_string]
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+	} else {
+		set timeout $timeout_value
+	}
+
+	expect {
+		-i $output_spawn_id $kernel_msg { }
+		eof         {
+			puts stderr "Aborting, received EOF"
+			return false
+		}
+		timeout     {
+			puts stderr "Boot process timed out"
+			close
+			return false
+		}
+	}
+
+	wait_for_output $wait_for_re $timeout_value $xen_spawn_id
+	return true
+}

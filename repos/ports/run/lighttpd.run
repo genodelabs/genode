@@ -47,7 +47,7 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
-	<start name="lighttpd">
+	<start name="lighttpd" caps="200">
 		<resource name="RAM" quantum="1G" />
 		<config>
 			<arg value="lighttpd" />
@@ -123,5 +123,6 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -redir tcp:5555::80 "
 append qemu_args " -nographic -serial mon:stdio "
+append xen_args  { sdl=0\; vif=\["model=e1000,mac=02:00:00:00:01:01,bridge=xenbr0"\] }
 
 run_genode_until forever
