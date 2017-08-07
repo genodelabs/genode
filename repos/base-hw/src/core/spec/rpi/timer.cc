@@ -35,11 +35,11 @@ void Timer::_start_one_shot(time_t const ticks)
 
 
 time_t Timer::_ticks_to_us(time_t const ticks) const {
-	return (ticks / Driver::TICS_PER_MS) * 1000; }
+	return ticks / Driver::TICS_PER_US; }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000) * Driver::TICS_PER_MS; }
+	return us * Driver::TICS_PER_US; }
 
 
 time_t Timer::_max_value() const {

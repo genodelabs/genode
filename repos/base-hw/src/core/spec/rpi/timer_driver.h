@@ -29,7 +29,7 @@ namespace Kernel { class Timer_driver; }
  */
 struct Kernel::Timer_driver : Genode::Mmio
 {
-	enum { TICS_PER_MS = Board::SYSTEM_TIMER_CLOCK / 1000 };
+	enum { TICS_PER_US = Board::SYSTEM_TIMER_CLOCK / 1000 / 1000 };
 
 	struct Cs  : Register<0x0, 32> { struct M1 : Bitfield<1, 1> { }; };
 	struct Clo : Register<0x4,  32> { };
