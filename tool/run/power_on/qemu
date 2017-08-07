@@ -97,4 +97,6 @@ proc run_power_on { } {
 
 	eval spawn $qemu $qemu_args
 	set qemu_spawn_id $spawn_id
+
+	return true
 }

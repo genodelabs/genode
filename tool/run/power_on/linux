@@ -10,6 +10,8 @@ proc run_power_on { } {
 	eval spawn ./core
 	set linux_spawn_id $spawn_id
 	cd $linux_orig_pwd
+
+	return true
 }
 
 

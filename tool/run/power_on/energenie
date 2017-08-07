@@ -33,4 +33,6 @@ proc run_power_on { } {
 	exec curl -s -o /dev/null -d pw=$password     http://$host/login.html
 	exec curl -s -o /dev/null -d ctl$power_port=1 http://$host/status.html
 	exec curl -s -o /dev/null                     http://$host/login.html
+
+	return true
 }

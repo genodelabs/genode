@@ -158,7 +158,12 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 	set retry 3
 	while { $retry != 0 } {
 
-		run_power_on
+		if {[expr [run_power_on] == false]} {
+			puts "Power on step failed, retry."
+			sleep 3
+			incr retry -1;
+			continue
+		}
 
 		if {![run_load]} {
 			puts "Load step failed, retry."

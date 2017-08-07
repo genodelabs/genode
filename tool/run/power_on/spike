@@ -23,4 +23,6 @@ proc run_power_on { } {
 	set spike "spike"
 	eval spawn $spike $spike_args
 	set spike_spawn_id $spawn_id
+
+	return true
 }

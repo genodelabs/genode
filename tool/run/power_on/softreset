@@ -57,4 +57,13 @@ proc run_power_on { } {
 	send -i $connection_id "$relay_on\n"
 	sleep 1
 	send -i $connection_id "$relay_off\n"
+	sleep 1
+	close -i $connection_id
+	lassign [wait] pid spawnid os_error_flag value
+
+	if {$value} {
+		return false
+	}
+
+	return true
 }

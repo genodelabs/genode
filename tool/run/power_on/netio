@@ -51,4 +51,6 @@ proc run_power_on { } {
 		send -i $connection_id "port $power_port int\n"
 		expect -i $connection_id "250 OK"
 	}
+
+	return true
 }
