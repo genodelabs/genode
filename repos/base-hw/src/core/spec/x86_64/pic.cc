@@ -170,6 +170,9 @@ Irte::access_t Ioapic::_create_irt_entry(unsigned const irq)
 
 Ioapic::Ioapic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_IOAPIC_BASE))
 {
+	write<Ioregsel>(IOAPICVER);
+	_irte_count = read<Iowin::Maximum_redirection_entry>() + 1;
+
 	for (unsigned i = 0; i < IRQ_COUNT; i++)
 	{
 		/* set legacy/ISA IRQs to edge, high */
@@ -182,7 +185,7 @@ Ioapic::Ioapic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_IOAPIC_B
 		}
 
 		/* remap all IRQs managed by I/O APIC */
-		if (i < IRTE_COUNT) {
+		if (i < _irte_count) {
 			Irte::access_t irte = _create_irt_entry(i);
 			write<Ioregsel>(IOREDTBL + 2 * i + 1);
 			write<Iowin>(irte >> Iowin::ACCESS_WIDTH);
@@ -198,7 +201,7 @@ void Ioapic::toggle_mask(unsigned const vector, bool const set)
 	/*
 	 * Ignore toggle requests for vectors not handled by the I/O APIC.
 	 */
-	if (vector < REMAP_BASE || vector >= REMAP_BASE + IRTE_COUNT) {
+	if (vector < REMAP_BASE || vector >= REMAP_BASE + _irte_count) {
 		return;
 	}
 

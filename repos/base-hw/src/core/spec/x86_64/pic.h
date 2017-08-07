@@ -53,12 +53,10 @@ class Genode::Ioapic : public Mmio
 
 		enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
 
-		uint8_t _irt_count;
+		/* Number of Redirection Table entries */
+		unsigned _irte_count;
 
 		enum {
-			/* Number of Redirection Table entries */
-			IRTE_COUNT = 24,
-
 			/* Register selectors */
 			IOAPICVER = 0x01,
 			IOREDTBL  = 0x10,
@@ -130,7 +128,10 @@ class Genode::Ioapic : public Mmio
 		 */
 
 		struct Ioregsel : Register<0x00, 32> { };
-		struct Iowin    : Register<0x10, 32> { };
+		struct Iowin    : Register<0x10, 32>
+		{
+		    struct Maximum_redirection_entry : Bitfield<16, 8> { };
+		};
 };
 
 class Genode::Pic : public Mmio
