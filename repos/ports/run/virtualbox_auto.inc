@@ -8,6 +8,11 @@ if {[have_include "power_on/qemu"]} {
 	exit
 }
 
+if {([have_spec muen] && [expr $use_vbox5])} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
 append build_components {
 	core init
 	server/part_blk
