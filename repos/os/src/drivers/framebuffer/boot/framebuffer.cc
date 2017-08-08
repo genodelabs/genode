@@ -35,10 +35,13 @@ Session_component::Session_component(Genode::Env &env,
 	Genode::log("Framebuffer with ", _core_fb.width, "x", _core_fb.height,
 	            "x", _core_fb.bpp, " @ ", (void*)_core_fb.addr);
 
+	/* calculate required padding to align framebuffer to 16 pixels */
+	_pad = (16 - (_core_fb.width % 16)) & 0x0f;
+
 	_fb_mem.construct(
 		_env,
 		_core_fb.addr,
-		_core_fb.width * _core_fb.height * _core_fb.bpp / 4,
+		(_core_fb.width + _pad) * _core_fb.height * _core_fb.bpp / 4,
 		true);
 
 	_fb_mode = Mode(_core_fb.width, _core_fb.height, Mode::RGB565);
@@ -67,11 +70,12 @@ void Session_component::refresh(int x, int y, int w, int h)
 	Genode::Pixel_rgb565 *pixel_16 = _fb_ram->local_addr<Genode::Pixel_rgb565>();
 	for (Genode::uint32_t r = u_y; r < u_h; ++r){
 		for (Genode::uint32_t c = u_x; c < u_w; ++c){
-			Genode::uint32_t i = c + r * _core_fb.width;
-			pixel_32[i].rgba(
-				pixel_16[i].r(),
-				pixel_16[i].g(),
-				pixel_16[i].b(),
+			Genode::uint32_t s = c + r * _core_fb.width;
+			Genode::uint32_t d = c + r * (_core_fb.width + _pad);
+			pixel_32[d].rgba(
+				pixel_16[s].r(),
+				pixel_16[s].g(),
+				pixel_16[s].b(),
 				0);
 		}
 	}

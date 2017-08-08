@@ -50,6 +50,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		Timer::Connection timer { _env };
 
+		Genode::uint8_t _pad;
+
 	public:
 		Session_component(Genode::Env &, Genode::Xml_node);
 		Mode mode() const override;
