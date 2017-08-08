@@ -1,4 +1,7 @@
-if {(![have_spec nova] && ![have_spec muen])} {
+if {(![have_spec nova])} {
+	if {[have_spec muen]} {
+		puts "vbox on muen is not functional until issue #2399 gets fixed"
+	}
 	puts "Platform is unsupported."
 	exit 0
 }
