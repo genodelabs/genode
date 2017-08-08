@@ -111,6 +111,26 @@ extern "C" {
 
 	/* Thread */
 
+	int pthread_join(pthread_t thread, void **retval)
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool suspend() override {
+				return true;
+			}
+		} check;
+
+		while (!thread->exiting()) {
+			Libc::suspend(check);
+		}
+
+
+		thread->join();
+		*((int **)retval) = 0;
+
+		return 0;
+	}
+
 
 	int pthread_attr_init(pthread_attr_t *attr)
 	{
