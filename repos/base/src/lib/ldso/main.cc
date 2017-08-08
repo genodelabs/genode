@@ -291,8 +291,11 @@ Elf::Addr Ld::jmp_slot(Dependency const &dep, Elf::Size index)
 		Reloc_jmpslot slot(dep, dep.obj().dynamic().pltrel_type(), 
 		                   dep.obj().dynamic().pltrel(), index);
 		return slot.target_addr();
+	} catch (Linker::Not_found &symbol) {
+		error("LD: jump slot relocation failed for symbol: '", symbol, "'");
+		throw;
 	} catch (...) {
-		error("LD: jump slot relocation failed. FATAL!");
+		error("LD: jump slot relocation failed:: '", Current_exception(), "'");
 		throw;
 	}
 
@@ -564,7 +567,7 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const &dep,
 		if (binary_ptr && &dep != binary_ptr->first_dep()) {
 			return lookup_symbol(name, *binary_ptr->first_dep(), base, undef, other);
 		} else {
-			throw Not_found();
+			throw Not_found(name);
 		}
 	}
 
@@ -572,7 +575,7 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const &dep,
 		log("LD: return ", weak_symbol);
 
 	if (!weak_symbol)
-		throw Not_found();
+		throw Not_found(name);
 
 	*base = weak_base;
 	return weak_symbol;
@@ -661,8 +664,11 @@ void Component::construct(Genode::Env &env)
 	/* load binary and all dependencies */
 	try {
 		binary_ptr = unmanaged_singleton<Binary>(env, *heap(), config.bind());
+	} catch(Linker::Not_found &symbol) {
+		error("LD: symbol not found: '", symbol, "'");
+		throw;
 	} catch (...) {
-		error("LD: failed to load program");
+		error("LD: exception during program load: '", Current_exception(), "'");
 		throw;
 	}
 

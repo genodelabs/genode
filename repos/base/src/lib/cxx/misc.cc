@@ -11,6 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* libsupc++ includes */
+#include <cxxabi.h>
+
+/* Genode includes */
 #include <base/env.h>
 #include <base/log.h>
 #include <base/stdint.h>
@@ -18,7 +22,8 @@
 #include <base/thread.h>
 #include <util/string.h>
 
-#include <cxxabi.h>
+/* base-internal includes */
+#include <base/internal/globals.h>
 
 
 extern "C" void __cxa_pure_virtual()
@@ -225,4 +230,33 @@ extern "C" int sprintf(char *str, const char *format, ...)
 extern "C" __attribute__((weak)) void __stack_chk_fail_local(void)
 {
 	Genode::error("Violated stack boundary");
+}
+
+
+/*******************************
+ ** Demangling of C++ symbols **
+ *******************************/
+
+extern "C" void free(void *);
+
+void Genode::cxx_demangle(char const *symbol, char *out, size_t size)
+{
+	char *demangled_name = __cxxabiv1::__cxa_demangle(symbol, nullptr, nullptr, nullptr);
+	if (demangled_name) {
+		Genode::strncpy(out, demangled_name, size);
+		free(demangled_name);
+	} else {
+		Genode::strncpy(out, symbol, size);
+	}
+}
+
+
+void Genode::cxx_current_exception(char *out, size_t size)
+{
+	std::type_info *t = __cxxabiv1::__cxa_current_exception_type();
+
+	if (!t)
+		return;
+
+	cxx_demangle(t->name(), out, size);
 }

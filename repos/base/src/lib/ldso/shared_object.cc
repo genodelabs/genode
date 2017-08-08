@@ -74,7 +74,17 @@ Genode::Shared_object::Shared_object(Env &env, Allocator &md_alloc,
 				Linker::dump_link_map(to_root(_handle).first_dep()->obj());
 		} catch (...) {  }
 
-	} catch (...) { throw Invalid_file(); }
+	} catch(Linker::Not_found &symbol) {
+		warning("LD: symbol not found: '", symbol, "'");
+		throw Invalid_file();
+
+	} catch (...) {
+		if (Linker::verbose)
+			warning("LD: exception during Shared_object open: "
+			        "'", Current_exception(), "'");
+
+		throw Invalid_file();
+	}
 }
 
 

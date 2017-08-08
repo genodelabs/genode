@@ -41,6 +41,9 @@ namespace Genode {
 
 	void destroy_signal_thread();
 
+	void cxx_demangle(char const*, char*, size_t);
+	void cxx_current_exception(char *out, size_t size);
+
 	Id_space<Parent::Client> &env_session_id_space();
 	Env &internal_env();
 }
