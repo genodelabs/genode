@@ -20,6 +20,7 @@
 #include <util/reconstructible.h>
 
 #include <pthread.h>
+#include <libc/task.h>
 
 /*
  * Used by 'pthread_self()' to find out if the current thread is an alien
@@ -105,6 +106,7 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		{
 			start_routine_t _start_routine;
 			void           *_arg;
+			bool            _exiting = false;
 
 			enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
@@ -120,6 +122,8 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 			void entry() override
 			{
 				void *exit_status = _start_routine(_arg);
+				_exiting = true;
+				Libc::resume_all();
 				pthread_exit(exit_status);
 			}
 		};
@@ -187,6 +191,12 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		}
 
 		void start() { _thread.start(); }
+		bool exiting() const
+		{
+			return _thread_object->_exiting;
+		}
+
+		void join() { _thread.join(); }
 
 		void *stack_top()  const { return _thread.stack_top();  }
 		void *stack_base() const { return _thread.stack_base(); }
