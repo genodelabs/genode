@@ -85,8 +85,6 @@ void Timer::Connection::_update_real_time()
 	 * Update timestamp-to-time factor and its shift
 	 */
 
-	enum { MAX_FACTOR_SHIFT = sizeof(unsigned long) * 8 };
-
 	unsigned      factor_shift        = _us_to_ts_factor_shift;
 	unsigned long old_factor          = _us_to_ts_factor;
 	Timestamp     max_ts_diff         = ~(Timestamp)0ULL >> factor_shift;
@@ -138,8 +136,7 @@ void Timer::Connection::_update_real_time()
 		 * raise the shift successively to get as much precision as possible.
 		 */
 		Timestamp ts_diff_shifted = ts_diff << factor_shift;
-		while (ts_diff_shifted <= min_ts_diff_shifted &&
-		       factor_shift < MAX_FACTOR_SHIFT)
+		while (ts_diff_shifted < us_diff << MIN_FACTOR_LOG2)
 		{
 			factor_shift++;
 			ts_diff_shifted <<= 1;
