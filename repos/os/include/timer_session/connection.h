@@ -192,6 +192,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		enum { MAX_INTERPOLATION_QUALITY  = 3 };
 		enum { MAX_REMOTE_TIME_LATENCY_US = 500 };
 		enum { MAX_REMOTE_TIME_TRIALS     = 5 };
+		enum { NR_OF_INITIAL_CALIBRATIONS = 3 * MAX_INTERPOLATION_QUALITY };
 		enum { MIN_FACTOR_LOG2            = 8 };
 
 		Genode::Io_signal_handler<Connection> _signal_handler;

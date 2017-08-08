@@ -119,6 +119,11 @@ void Timer::Connection::_enable_modern_mode()
 	_mode = MODERN;
 	_sigh(_signal_handler);
 	_scheduler._enable();
+
+	/* do initial calibration burst to make interpolation available earlier */
+	for (unsigned i = 0; i < NR_OF_INITIAL_CALIBRATIONS; i++) {
+		_update_real_time();
+	}
 }
 
 
