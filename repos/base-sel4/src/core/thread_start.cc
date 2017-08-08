@@ -38,7 +38,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 	}
 
 	Thread_info thread_info;
-	thread_info.init(utcb_virt_addr);
+	thread_info.init(utcb_virt_addr, CONFIG_NUM_PRIORITIES - 1);
 
 	if (!map_local(thread_info.ipc_buffer_phys, utcb_virt_addr, 1)) {
 		error(__func__, ": could not map IPC buffer "

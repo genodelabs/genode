@@ -220,10 +220,16 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 	_name(name),
 	_utcb(utcb),
 	_pager_obj_sel(platform_specific()->core_sel_alloc().alloc()),
-	_location(location)
+	_location(location),
+	_priority(Cpu_session::scale_priority(CONFIG_NUM_PRIORITIES, priority))
 
 {
-	_info.init(_utcb ? _utcb : INITIAL_IPC_BUFFER_VIRT);
+	static_assert(CONFIG_NUM_PRIORITIES == 256, " unknown priority configuration");
+
+	if (_priority > 0)
+		_priority -= 1;
+
+	_info.init(_utcb ? _utcb : INITIAL_IPC_BUFFER_VIRT, _priority);
 	platform_thread_registry().insert(*this);
 }
 

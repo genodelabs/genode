@@ -39,7 +39,7 @@ namespace Genode {
 
 		Thread_info() { }
 
-		inline void init(addr_t const utcb_virt_addr);
+		inline void init(addr_t const utcb_virt_addr, unsigned const prio);
 		inline void destruct();
 
 	};
@@ -52,7 +52,7 @@ namespace Genode {
 };
 
 
-void Genode::Thread_info::init(addr_t const utcb_virt_addr)
+void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 {
 	Platform        &platform   = *platform_specific();
 	Range_allocator &phys_alloc = *platform.ram_alloc();
@@ -99,9 +99,8 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr)
 	}
 
 	/* set scheduling priority */
-	enum { PRIORITY_MAX = 0xff };
-	seL4_TCB_SetMCPriority(tcb_sel.value(), PRIORITY_MAX);
-	seL4_TCB_SetPriority(tcb_sel.value(), PRIORITY_MAX);
+	seL4_TCB_SetMCPriority(tcb_sel.value(), prio);
+	seL4_TCB_SetPriority(tcb_sel.value(), prio);
 }
 
 

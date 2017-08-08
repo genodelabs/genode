@@ -68,6 +68,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		enum { INITIAL_IPC_BUFFER_VIRT = 0x1000 };
 
 		Affinity::Location _location;
+		uint16_t           _priority;
 
 	public:
 

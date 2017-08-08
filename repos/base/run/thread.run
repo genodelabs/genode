@@ -19,7 +19,6 @@ proc pause_resume_supported { } {
 #
 proc prio_supported { } {
 	if {[have_spec hw]}        { return false }
-	if {[have_spec sel4]}      { return false }
 	if {[have_spec linux]}     { return false }
 	if {[have_spec fiasco]}    { return false }
 	return true
