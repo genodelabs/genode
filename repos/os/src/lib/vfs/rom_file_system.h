@@ -156,6 +156,7 @@ class Vfs::Rom_file_system : public Single_file_system
 			if (out.mode == STAT_MODE_FILE) {
 				_rom.update();
 				out.size = _rom.valid() ? _rom.size() : 0;
+				out.mode |= 0555;
 			}
 
 			return result;
