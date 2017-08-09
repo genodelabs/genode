@@ -41,7 +41,7 @@ struct Menu_view::Root_widget : Widget
 			return;
 		}
 
-		_update_child(node);
+		_update_children(node);
 	}
 
 	Area min_size() const override

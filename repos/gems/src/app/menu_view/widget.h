@@ -19,6 +19,7 @@
 
 /* local includes */
 #include <widget_factory.h>
+#include <list_model_from_xml.h>
 
 namespace Menu_view {
 
@@ -73,6 +74,19 @@ class Menu_view::Widget : public List<Widget>::Element
 			bool valid() const { return value != 0; }
 		};
 
+		static Type_name node_type_name(Xml_node node)
+		{
+			char type[NAME_MAX_LEN];
+			node.type_name(type, sizeof(type));
+
+			return Type_name(Cstring(type));
+		}
+
+		static Name node_name(Xml_node node)
+		{
+			return Decorator::string_attribute(node, "name", node_type_name(node));
+		}
+
 	private:
 
 		Type_name const _type_name;
@@ -86,152 +100,35 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		List<Widget> _children;
 
-		Widget *_lookup_child(Name const &name)
+		struct Model_update_policy : List_model_update_policy<Widget>
 		{
-			for (Widget *w = _children.first(); w; w = w->next())
-				if (w->_name == name)
-					return w;
+			Widget_factory &_factory;
 
-			return nullptr;
-		}
+			Model_update_policy(Widget_factory &factory) : _factory(factory) { }
 
-		static Type_name _node_type_name(Xml_node node)
-		{
-			char type[NAME_MAX_LEN];
-			node.type_name(type, sizeof(type));
+			void destroy_element(Widget &w) { _factory.destroy(&w); }
 
-			return Type_name(Cstring(type));
-		}
-
-		static bool _named_sub_node_exists(Xml_node node, Name const &name)
-		{
-			bool result = false;
-
-			node.for_each_sub_node([&] (Xml_node sub_node) {
-				if (sub_node.attribute_value("name", Name()) == name)
-					result = true; });
-
-			return result;
-		}
-
-		static Name _node_name(Xml_node node)
-		{
-			return Decorator::string_attribute(node, "name", _node_type_name(node));
-		}
-
-		void _remove_child(Widget *w)
-		{
-			_children.remove(w);
-			_factory.destroy(w);
-		}
-
-		void _update_child(Xml_node node)
-		{
-			unsigned const num_sub_nodes = node.num_sub_nodes();
-
-			if (Widget *w = _children.first()) {
-
-				/* remove widget of vanished child */
-				if (num_sub_nodes == 0)
-					_remove_child(w);
-
-				/* remove child widget if type or name changed */
-				if (num_sub_nodes > 0) {
-					Xml_node const child_node = node.sub_node();
-					if (child_node.type() != w->_type_name
-					 || child_node.attribute_value("name", Name()) != w->_name)
-						_remove_child(w);
-				}
-			}
-
-			if (num_sub_nodes == 0)
-				return;
-
-			/* update exiting widgets and create new ones */
+			Widget &create_element(Xml_node elem_node)
 			{
-				Xml_node const child_node = node.sub_node();
-				Name const name = _node_name(child_node);
-				Widget *w = _lookup_child(name);
-				if (!w) {
-					w = _factory.create(child_node);
+				if (Widget *w = _factory.create(elem_node))
+					return *w;
 
-					/* append after previously inserted widget */
-					if (w)
-						_children.insert(w);
-				}
-
-				if (w)
-					w->update(child_node);
+				throw Unknown_element_type();
 			}
-		}
 
-		void _update_children(Xml_node node)
+			void update_element(Widget &w, Xml_node node) { w.update(node); }
+
+			static bool element_matches_xml_node(Widget const &w, Xml_node node)
+			{
+				return node.has_type(w._type_name.string())
+				    && Widget::node_name(node) == w._name;
+			}
+
+		} _model_update_policy { _factory };
+
+		inline void _update_children(Xml_node node)
 		{
-			/*
-			 * Remove no-longer present widgets
-			 */
-			Widget *next = nullptr;
-			for (Widget *w = _children.first(); w; w = next) {
-				next = w->next();
-
-				if (!_named_sub_node_exists(node, w->_name))
-					_remove_child(w);
-			}
-
-			/*
-			 * Create and update widgets
-			 */
-			for (unsigned i = 0; i < node.num_sub_nodes(); i++) {
-
-				Xml_node const child_node = node.sub_node(i);
-
-				Name const name = _node_name(child_node);
-
-				Widget *w = _lookup_child(name);
-
-				if (!w) {
-					w = _factory.create(child_node);
-
-					/* ignore unknown widget types */
-					if (!w) continue;
-
-					/* append after previously inserted widget */
-					_children.insert(w);
-				}
-
-				if (w)
-					w->update(child_node);
-			}
-
-			/*
-			 * Sort widgets according to the order of sub nodes
-			 */
-			Widget *previous = 0;
-			Widget *w        = _children.first();
-
-			node.for_each_sub_node([&] (Xml_node node) {
-
-				if (!w) {
-				Genode::error("unexpected end of widget list during re-ordering");
-					return;
-				}
-
-				Name const name = node.attribute_value("name", Name());
-
-				if (w->_name != name) {
-					w = _lookup_child(name);
-					if (!w) {
-					Genode::error("widget lookup unexpectedly failed during re-ordering");
-						return;
-					}
-
-					_children.remove(w);
-					_children.insert(w, previous);
-				}
-
-				previous = w;
-				w        = w->next();
-			});
+			update_list_model_from_xml(_model_update_policy, _children, node);
 		}
 
 		void _draw_children(Surface<Pixel_rgb888> &pixel_surface,
@@ -251,7 +148,6 @@ class Menu_view::Widget : public List<Widget>::Element
 			                 geometry.h() - margin.vertical()));
 		}
 
-
 	public:
 
 		Margin margin { 0, 0, 0, 0 };
@@ -264,8 +160,8 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		Widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 		:
-			_type_name(_node_type_name(node)),
-			_name(_node_name(node)),
+			_type_name(node_type_name(node)),
+			_name(node_name(node)),
 			_unique_id(unique_id),
 			_factory(factory)
 		{ }
@@ -274,9 +170,11 @@ class Menu_view::Widget : public List<Widget>::Element
 		{
 			while (Widget *w = _children.first()) {
 				_children.remove(w);
-				_factory.destroy(w);
+				_model_update_policy.destroy_element(*w);
 			}
 		}
+
+		bool has_name(Name const &name) const { return name == _name; }
 
 		virtual void update(Xml_node node) = 0;
 
@@ -315,6 +213,11 @@ class Menu_view::Widget : public List<Widget>::Element
 			}
 
 			return _unique_id;
+		}
+
+		void print(Output &out) const
+		{
+			Genode::print(out, _name);
 		}
 
 		virtual void gen_hover_model(Xml_generator &xml, Point at) const

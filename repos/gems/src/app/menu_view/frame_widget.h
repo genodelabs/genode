@@ -42,7 +42,7 @@ struct Menu_view::Frame_widget : Widget
 	{
 		texture = _factory.styles.texture(node, "background");
 
-		_update_child(node);
+		_update_children(node);
 
 		/*
 		 * layout

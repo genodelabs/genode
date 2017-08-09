@@ -48,7 +48,7 @@ struct Menu_view::Float_widget : Widget
 
 	void update(Xml_node node) override
 	{
-		_update_child(node);
+		_update_children(node);
 
 		_north = node.attribute_value("north", false),
 		_south = node.attribute_value("south", false),

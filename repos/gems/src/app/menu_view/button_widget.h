@@ -81,7 +81,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		hovered  = new_hovered;
 		selected = new_selected;
 
-		_update_child(node);
+		_update_children(node);
 
 		bool const dy = selected ? 1 : 0;
 
