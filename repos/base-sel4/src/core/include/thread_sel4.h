@@ -39,6 +39,8 @@ namespace Genode {
 
 		Thread_info() { }
 
+		inline void init_tcb(Platform &, Range_allocator &,
+		                     unsigned const prio, unsigned const cpu);
 		inline void init(addr_t const utcb_virt_addr, unsigned const prio);
 		inline void destruct();
 
@@ -49,8 +51,27 @@ namespace Genode {
 	 * start the seL4 thread
 	 */
 	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu);
+	void affinity_sel4_thread(Cap_sel const &tcb_sel, unsigned cpu);
 };
 
+void Genode::Thread_info::init_tcb(Platform &platform,
+                                   Range_allocator &phys_alloc,
+                                   unsigned const prio, unsigned const cpu)
+{
+	/* allocate TCB within core's CNode */
+	addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
+	seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+
+	tcb_sel = platform.core_sel_alloc().alloc();
+	create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
+
+	/* set scheduling priority */
+	seL4_TCB_SetMCPriority(tcb_sel.value(), prio);
+	seL4_TCB_SetPriority(tcb_sel.value(), prio);
+
+	/* place at cpu */
+	affinity_sel4_thread(tcb_sel, cpu);
+}
 
 void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 {
@@ -62,13 +83,7 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 	Untyped_memory::convert_to_page_frames(ipc_buffer_phys, 1);
 
 	/* allocate TCB within core's CNode */
-	{
-		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
-		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
-
-		tcb_sel = platform.core_sel_alloc().alloc();
-		create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
-	}
+	init_tcb(platform, phys_alloc, prio, 0);
 
 	/* allocate synchronous endpoint within core's CNode */
 	{
@@ -97,10 +112,6 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 		                                      ipc_buffer_sel.value());
 		ASSERT(ret == 0);
 	}
-
-	/* set scheduling priority */
-	seL4_TCB_SetMCPriority(tcb_sel.value(), prio);
-	seL4_TCB_SetPriority(tcb_sel.value(), prio);
 }
 
 

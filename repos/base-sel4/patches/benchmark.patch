@@ -1,0 +1,49 @@
+--- src/kernel/sel4/src/benchmark/benchmark_utilisation.c
++++ src/kernel/sel4/src/benchmark/benchmark_utilisation.c
+@@ -36,6 +36,11 @@
+ 
+     tcb = TCB_PTR(cap_thread_cap_get_capTCBPtr(lu_ret.cap));
+     buffer[BENCHMARK_TCB_UTILISATION] = tcb->benchmark.utilisation; /* Requested thread utilisation */
++#if CONFIG_MAX_NUM_NODES > 1
++    if (tcb->tcbAffinity < ksNumCPUs)
++        buffer[BENCHMARK_IDLE_UTILISATION] = NODE_STATE_ON_CORE(ksIdleThread, tcb->tcbAffinity)->benchmark.utilisation; /* Idle thread utilisation */
++    else
++#endif
+     buffer[BENCHMARK_IDLE_UTILISATION] = NODE_STATE(ksIdleThread)->benchmark.utilisation; /* Idle thread utilisation */
+ 
+ #ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+--- src/kernel/sel4/include/arch/arm/arch/benchmark_overflowHandler.h
++++ src/kernel/sel4/include/arch/arm/arch/benchmark_overflowHandler.h
+@@ -21,6 +21,7 @@
+ 
+ extern bool_t benchmark_log_utilisation_enabled;
+ 
++#ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+ static inline void handleOverflowIRQ(void)
+ {
+     if (likely(benchmark_log_utilisation_enabled)) {
+@@ -31,6 +32,7 @@
+         armv_handleOverflowIRQ();
+     }
+ }
++#endif /* CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT */
+ #endif /* CONFIG_BENCHMARK_TRACK_UTILISATION */
+ #endif /* CONFIG_ENABLE_BENCHMARKS */
+ #endif /* ARCH_BENCHMARK_OV_H */
+--- src/kernel/sel4/include/arch/arm/armv/armv7-a/armv/benchmark.h
++++ src/kernel/sel4/include/arch/arm/armv/armv7-a/armv/benchmark.h
+@@ -14,10 +14,14 @@
+ #ifdef CONFIG_ENABLE_BENCHMARKS
+ 
+ #ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
++#ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+ extern uint64_t ccnt_num_overflows;
++#endif /* CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT */
+ static inline void benchmark_arch_utilisation_reset(void)
+ {
++#ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+     ccnt_num_overflows = 0;
++#endif /* CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT */
+ }
+ #endif /* CONFIG_BENCHMARK_TRACK_UTILISATION */
+ 

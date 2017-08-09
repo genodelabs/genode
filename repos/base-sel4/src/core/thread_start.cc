@@ -109,3 +109,11 @@ void Thread::cancel_blocking()
 	warning(__func__, " not implemented");
 }
 
+
+Native_utcb *Thread::utcb()
+{
+	if (!_stack)
+		return nullptr;
+
+	return &_stack->utcb();
+}

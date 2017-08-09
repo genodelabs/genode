@@ -35,7 +35,8 @@ ARCH_INCLUDES += objecttype.h types.h constants.h functions.h deprecated.h \
 INCLUDES := objecttype.h types.h bootinfo.h bootinfo_types.h errors.h \
             constants.h messages.h sel4.h macros.h simple_types.h types_gen.h \
             syscall.h invocation.h shared_types_gen.h debug_assert.h \
-            shared_types.h sel4.h deprecated.h autoconf.h syscalls.h faults.h
+            shared_types.h sel4.h deprecated.h autoconf.h syscalls.h faults.h \
+            benchmark_utilisation_types.h
 
 PLAT_API_INCLUDES := constants.h
 

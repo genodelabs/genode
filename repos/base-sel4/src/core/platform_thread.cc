@@ -23,6 +23,9 @@
 #include <base/internal/capability_space_sel4.h>
 #include <base/internal/native_utcb.h>
 
+/* seL4 includes */
+#include <sel4/benchmark_utilisation_types.h>
+
 using namespace Genode;
 
 
@@ -255,4 +258,21 @@ Platform_thread::~Platform_thread()
 	platform_specific()->core_sel_alloc().free(_pager_obj_sel);
 }
 
+unsigned long long Platform_thread::execution_time() const
+{
+	Genode::Thread * me = Genode::Thread::myself();
 
+	if (!me || !me->utcb()) {
+		Genode::error("don't know myself");
+		return 0;
+	}
+
+	seL4_IPCBuffer * ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(me->utcb());
+	uint64_t const * values = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
+
+	/* kernel puts execution time on ipc buffer of calling thread */
+	seL4_BenchmarkGetThreadUtilisation(_info.tcb_sel.value());
+
+	uint64_t const execution_time = values[BENCHMARK_TCB_UTILISATION];
+	return execution_time;
+}

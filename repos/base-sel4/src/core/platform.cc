@@ -15,6 +15,7 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <base/log.h>
+#include <trace/source_registry.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -22,10 +23,14 @@
 #include <map_local.h>
 #include <cnode.h>
 #include <untyped_memory.h>
+#include <thread_sel4.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
 #include <base/internal/stack_area.h>
+
+/* seL4 includes */
+#include <sel4/benchmark_utilisation_types.h>
 
 using namespace Genode;
 
@@ -372,6 +377,9 @@ Platform::Platform()
 {
 	platform_in_construction = this;
 
+	/* start benchmarking for CPU utilization in Genode TRACE service */
+	seL4_BenchmarkResetLog();
+
 	/* create notification object for Genode::Lock used by this first thread */
 	Cap_sel lock_sel (INITIAL_SEL_LOCK);
 	Cap_sel core_sel = _core_sel_alloc.alloc();
@@ -410,6 +418,51 @@ Platform::Platform()
 
 		/* back region by page tables */
 		_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
+	}
+
+	/* add idle thread trace subjects */
+	for (unsigned cpu_id = 0; cpu_id < affinity_space().width(); cpu_id ++) {
+
+		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
+		                           Trace::Source, Genode::Thread_info
+		{
+			Affinity::Location const affinity;
+
+			/**
+			 * Trace::Source::Info_accessor interface
+			 */
+			Info trace_source_info() const override
+			{
+				Genode::String<8> name("idle", affinity.xpos());
+
+				Genode::Thread * me = Genode::Thread::myself();
+				addr_t const ipc_buffer = reinterpret_cast<addr_t>(me->utcb());
+				seL4_IPCBuffer * ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(ipc_buffer);
+				uint64_t const * buf = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
+
+				seL4_BenchmarkGetThreadUtilisation(tcb_sel.value());
+				uint64_t execution_time = buf[BENCHMARK_IDLE_UTILISATION];
+
+				return { Session_label("kernel"), Trace::Thread_name(name),
+				         Trace::Execution_time(execution_time), affinity };
+			}
+
+			Idle_trace_source(Platform &platform, Range_allocator &phys_alloc,
+			                  Affinity::Location affinity)
+			:
+				Trace::Source(*this, *this), affinity(affinity)
+			{
+				Thread_info::init_tcb(platform, phys_alloc, 0, affinity.xpos());
+			}
+		};
+
+		Idle_trace_source *source = new (core_mem_alloc())
+			Idle_trace_source(*this, *_core_mem_alloc.phys_alloc(),
+			                  Affinity::Location(cpu_id, 0,
+			                                     affinity_space().width(),
+			                                     affinity_space().height()));
+
+		Trace::sources().insert(source);
 	}
 
 	/* I/O port allocator (only meaningful for x86) */

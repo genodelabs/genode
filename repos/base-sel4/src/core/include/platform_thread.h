@@ -137,7 +137,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Return execution time consumed by the thread
 		 */
-		unsigned long long execution_time() const { return 0; }
+		unsigned long long execution_time() const;
 
 
 		/************************
