@@ -1,0 +1,26 @@
+This directory contains a simple utility to serialize the execution of
+multiple components. It is configured with "start" XML nodes much like
+_init_ however this component relies on its parent to manage all routing
+and resources, with the exception of a "config" ROM. No services are
+propagated from children to the parent.
+
+A sample configuration to start a consumer after a producer has exited:
+
+! <start name="sequence" caps="100">
+!   <resource name="RAM" quantum="128M"/>
+!   <route>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </route>
+!   <config>
+!     <start name="producer">
+!       <config>
+!         ...
+!       </config>
+!     </start>
+!     <start name="consumer">
+!       <config>
+!         ...
+!       </config>
+!     </start>
+!   </config>
+! </start>

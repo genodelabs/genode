@@ -1,0 +1,118 @@
+#
+# \brief  Test of sequence utility
+# \author Emery Hemingway
+# \date   2017-08-09
+#
+
+#
+# Build
+#
+
+build { app/sequence test/libc }
+
+create_boot_directory
+
+import_from_depot \
+	genodelabs/src/[base_src] \
+	genodelabs/src/init \
+	genodelabs/src/vfs \
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route> <any-service> <parent/> </any-service> </default-route>
+	<start name="log-1" caps="64">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <log/> </vfs>
+			<default-policy writeable="yes"/>
+		</config>
+	</start>
+	<start name="log-2" caps="64">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <log/> </vfs>
+			<default-policy writeable="yes"/>
+		</config>
+	</start>
+	<start name="log-3" caps="64">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <log/> </vfs>
+			<default-policy writeable="yes"/>
+		</config>
+	</start>
+	<start name="sequence" caps="200">
+		<resource name="RAM" quantum="512M"/>
+		<route>
+			<service name="File_system" label_prefix="test-libc-1">
+				<child name="log-1"/> </service>
+			<service name="File_system" label_prefix="test-libc-2">
+				<child name="log-2"/> </service>
+			<service name="File_system" label_prefix="test-libc-3">
+				<child name="log-3"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<config>
+			<start name="test-libc-1">
+				<binary name="test-libc"/>
+				<config>
+					<vfs> <dir name="dev"> <fs/> </dir> </vfs>
+					<libc stdout="/dev/log"/>
+				</config>
+			</start>
+			<start name="test-libc-2">
+				<binary name="test-libc"/>
+				<config>
+					<vfs> <dir name="dev"> <fs/> </dir> </vfs>
+					<libc stdout="/dev/log"/>
+				</config>
+			</start>
+			<start name="test-libc-3">
+				<binary name="test-libc"/>
+				<config>
+					<vfs> <dir name="dev"> <fs/> </dir> </vfs>
+					<libc stdout="/dev/log"/>
+				</config>
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	sequence
+	libc.lib.so libm.lib.so posix.lib.so
+	test-libc
+}
+
+#
+# Execute test case
+#
+
+append qemu_args "  -nographic "
+run_genode_until {.*child "sequence" exited with exit value 0.*} 30
+
+# vi: set ft=tcl :
