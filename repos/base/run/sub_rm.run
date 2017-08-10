@@ -2,7 +2,7 @@ build "core init test/sub_rm"
 
 create_boot_directory
 
-install_config {
+set config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
@@ -15,11 +15,18 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-sub_rm">
+		<start name="test-sub_rm">}
+
+append_if [have_spec linux] config {
+			<config attach_twice_forbidden="true" support_attach_sub_any="false"/>}
+
+append config {
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 }
+
+install_config $config
 
 build_boot_image "core ld.lib.so init test-sub_rm"
 

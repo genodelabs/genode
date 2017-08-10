@@ -14,12 +14,10 @@
 #include <util/string.h>
 #include <base/log.h>
 #include <base/component.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/sleep.h>
 #include <rm_session/connection.h>
 #include <region_map/client.h>
-
-/* platform-specific test policy */
-#include <config.h>
 
 using namespace Genode;
 
@@ -59,6 +57,8 @@ static void validate_pattern_at(char const *pattern, char const *ptr)
 
 void Component::construct(Env &env)
 {
+	Attached_rom_dataspace config(env, "config");
+
 	log("--- sub-rm test ---");
 
 	log("create RM connection");
@@ -89,7 +89,7 @@ void Component::construct(Env &env)
 	fill_ds_with_test_pattern(env, test_pattern(), ds, 0);
 	fill_ds_with_test_pattern(env, test_pattern_2(), ds, 4096);
 
-	if (!support_attach_sub_any) {
+	if (!config.xml().attribute_value("support_attach_sub_any", true)) {
 		log("attach RAM ds to any position at sub rm - this should fail");
 		try {
 			sub_rm.attach(ds, 0, 0, false, (addr_t)0);
@@ -157,7 +157,7 @@ void Component::construct(Env &env)
 	catch (Region_map::Region_conflict) {
 		log("attaching conflicting region failed as expected"); }
 
-	if (attach_twice_forbidden) {
+	if (config.xml().attribute_value("attach_twice_forbidden", false)) {
 		/*
 		 * Try to double-attach the same sub RM session. This should fail
 		 */
