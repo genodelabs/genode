@@ -11,7 +11,7 @@ proc run_boot_dir {binaries} {
 	if {![file exists [run_dir]/genode/ld.lib.so]} { build { lib/ld/linux } }
 
 	foreach binary $binaries {
-		set src_binary_path "../../../../bin/[kernel_specific_binary $binary]"
+		set src_binary_path "[pwd]/bin/[kernel_specific_binary $binary]"
 		exec ln -sf $src_binary_path [run_dir]/genode/$binary }
 
 	# check syntax of all boot modules named *.config
