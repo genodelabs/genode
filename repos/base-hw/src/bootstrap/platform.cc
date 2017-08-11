@@ -181,8 +181,9 @@ Platform::Platform()
 								Hw::PAGE_FLAGS_KERN_TEXT));
 	Boot_info & bootinfo =
 		*construct_at<Boot_info>(bi_base, (addr_t)&core_pd->table,
-		                        (addr_t)&core_pd->array,
-		                        core_pd->mappings, board.core_mmio);
+		                         (addr_t)&core_pd->array,
+		                         core_pd->mappings, board.core_mmio,
+		                         board.acpi_rsdp);
 
 	/* add all left RAM to bootinfo */
 	ram_alloc.for_each_free_region([&] (Memory_region const & r) {

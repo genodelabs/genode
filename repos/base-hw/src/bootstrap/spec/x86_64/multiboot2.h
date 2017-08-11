@@ -28,7 +28,10 @@ class Genode::Multiboot2_info : Mmio
 		struct Tag : Genode::Mmio {
 			enum { LOG2_SIZE = 3 };
 
-			struct Type : Register <0x00, 32> { enum { END = 0, MEMORY = 6 }; };
+			struct Type : Register <0x00, 32>
+			{
+				enum { END = 0, MEMORY = 6, ACPI_RSDP = 15 };
+			};
 			struct Size : Register <0x04, 32> { };
 
 			Tag(addr_t addr) : Mmio(addr) { }
@@ -50,8 +53,8 @@ class Genode::Multiboot2_info : Mmio
 
 		Multiboot2_info(addr_t mbi) : Mmio(mbi) { }
 
-        template <typename FUNC>
-		void for_each_mem(FUNC functor)
+        template <typename FUNC_MEM, typename FUNC_ACPI>
+		void for_each_tag(FUNC_MEM mem_fn, FUNC_ACPI acpi_fn)
 		{
 			addr_t const size = read<Multiboot2_info::Size>();
 
@@ -69,8 +72,18 @@ class Genode::Multiboot2_info : Mmio
 
 					for (; mem_start < mem_end; mem_start += Memory::SIZE) {
 						Memory mem(mem_start);
-						functor(mem);
+						mem_fn(mem);
 					}
+				}
+
+				if (tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP) {
+					size_t const sizeof_tag = 1UL << Tag::LOG2_SIZE;
+					addr_t const rsdp_addr  = tag_addr + sizeof_tag;
+
+					Hw::Acpi_rsdp * rsdp = reinterpret_cast<Hw::Acpi_rsdp *>(rsdp_addr);
+					if (rsdp->valid() &&
+					    sizeof(*rsdp) >= tag.read<Tag::Size>() - sizeof_tag)
+						acpi_fn(*rsdp);
 				}
 
 				tag_addr += align_addr(tag.read<Tag::Size>(), Tag::LOG2_SIZE);

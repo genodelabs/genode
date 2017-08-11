@@ -65,7 +65,7 @@ Bootstrap::Platform::Board::Board()
 	if (__initial_ax == Multiboot2_info::MAGIC) {
 		Multiboot2_info mbi2(__initial_bx);
 
-		mbi2.for_each_mem([&] (Multiboot2_info::Memory const & m) {
+		mbi2.for_each_tag([&] (Multiboot2_info::Memory const & m) {
 			uint32_t const type = m.read<Multiboot2_info::Memory::Type>();
 
 			if (type != Multiboot2_info::Memory::Type::MEMORY)
@@ -75,7 +75,8 @@ Bootstrap::Platform::Board::Board()
 			uint64_t const size = m.read<Multiboot2_info::Memory::Size>();
 
 			lambda(base, size);
-		});
+		},
+		[&] (Hw::Acpi_rsdp const &rsdp) { acpi_rsdp = rsdp; });
 
 		return;
 	}
