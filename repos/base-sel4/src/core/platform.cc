@@ -16,6 +16,7 @@
 #include <base/thread.h>
 #include <base/log.h>
 #include <trace/source_registry.h>
+#include <util/xml_generator.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -347,6 +348,58 @@ void Platform::_init_rom_modules()
 
 		_rom_fs.insert(rom_module);
 	}
+
+	/* export x86 platform specific infos via 'platform_info' ROM */
+
+	unsigned const  pages    = 1;
+	addr_t   const  rom_size = pages << get_page_size_log2();
+	void           *virt_ptr = nullptr;
+	const char     *rom_name = "platform_info";
+
+	addr_t   const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
+	Untyped_memory::convert_to_page_frames(phys_addr, pages);
+
+	if (!region_alloc()->alloc(rom_size, &virt_ptr)) {
+		error("could not setup platform_info ROM - region allocation error");
+		Untyped_memory::free_page(*ram_alloc(), phys_addr);
+		return;
+	}
+	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
+
+	if (!map_local(phys_addr, virt_addr, pages, this)) {
+		error("could not setup platform_info ROM - map error");
+		region_alloc()->free(virt_ptr);
+		Untyped_memory::free_page(*ram_alloc(), phys_addr);
+		return;
+	}
+
+	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
+	                          rom_size, rom_name, [&] ()
+	{
+		xml.node("acpi", [&] () {
+			uint32_t const revision = bi.archInfo.revision;
+			uint32_t const rsdt     = bi.archInfo.rsdt;
+			uint64_t const xsdt     = bi.archInfo.xsdt;
+
+			if (revision && (rsdt || xsdt)) {
+				xml.attribute("revision", revision);
+				if (rsdt)
+					xml.attribute("rsdt", String<32>(Hex(rsdt)));
+
+				if (xsdt)
+					xml.attribute("xsdt", String<32>(Hex(xsdt)));
+			}
+		});
+	});
+
+	if (!unmap_local(virt_addr, pages, this)) {
+		error("could not setup platform_info ROM - unmap error");
+		return;
+	}
+	region_alloc()->free(virt_ptr);
+
+	_rom_fs.insert(
+		new (core_mem_alloc()) Rom_module(phys_addr, rom_size, rom_name));
 }
 
 
