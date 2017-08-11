@@ -1,0 +1,146 @@
+--- src/kernel/sel4/libsel4/include/sel4/bootinfo_types.h
++++ src/kernel/sel4/libsel4/include/sel4/bootinfo_types.h
+@@ -65,7 +65,12 @@
+     seL4_SlotRegion   extraBIPages;    /* caps for any pages used to back the additional bootinfo information */
+     seL4_Uint8        initThreadCNodeSizeBits; /* initial thread's root CNode size (2^n slots) */
+     seL4_Domain       initThreadDomain; /* Initial thread's domain ID */
+-    seL4_Word         archInfo;        /* tsc freq on x86, unused on arm */
++    struct {
++        seL4_Word     tsc;             /* tsc freq on x86, unused on arm */
++        seL4_Word     revision;
++        seL4_Word     rsdt;
++        unsigned long long xsdt;
++    }                 archInfo;
+     seL4_SlotRegion   untyped;         /* untyped-object caps (untyped caps) */
+     seL4_UntypedDesc  untypedList[CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS]; /* information about each untyped */
+     /* the untypedList should be the last entry in this struct, in order
+--- src/kernel/sel4/include/arch/x86/arch/kernel/boot.h
++++ src/kernel/sel4/include/arch/x86/arch/kernel/boot.h
+@@ -41,7 +41,8 @@
+     paddr_t*      drhu_list,
+     acpi_rmrr_list_t *rmrr_list,
+     seL4_X86_BootInfo_VBE *vbe,
+-    seL4_X86_BootInfo_mmap_t *mb_mmap
++    seL4_X86_BootInfo_mmap_t *mb_mmap,
++    acpi_info_t*  acpi_info
+ );
+ 
+ bool_t init_cpu(
+--- src/kernel/sel4/src/plat/pc99/machine/acpi.c
++++ src/kernel/sel4/src/plat/pc99/machine/acpi.c
+@@ -30,10 +30,10 @@
+     uint8_t      revision;
+     uint32_t     rsdt_address;
+     uint32_t     length;
+-    uint32_t     xsdt_address[2];
++    uint64_t     xsdt_address;
+     uint8_t      extended_checksum;
+     char         reserved[3];
+-} acpi_rsdp_t;
++} PACKED acpi_rsdp_t;
+ compile_assert(acpi_rsdp_packed, sizeof(acpi_rsdp_t) == 36)
+ 
+ /* DMA Remapping Reporting Table */
+@@ -245,7 +245,7 @@
+ }
+ 
+ BOOT_CODE acpi_rsdt_t*
+-acpi_init(void)
++acpi_init(acpi_info_t *acpi_info)
+ {
+     acpi_rsdp_t* acpi_rsdp = acpi_get_rsdp();
+     acpi_rsdt_t* acpi_rsdt;
+@@ -259,6 +259,12 @@
+     acpi_rsdp = acpi_table_init(acpi_rsdp, ACPI_RSDP);
+     printf("ACPI: RSDP vaddr=%p\n", acpi_rsdp);
+ 
++    if (acpi_info) {
++        acpi_info->revision  = acpi_rsdp->revision;
++        acpi_info->phys_rsdt = acpi_rsdp->rsdt_address;
++        acpi_info->phys_xsdt = acpi_rsdp->xsdt_address;
++    }
++
+     acpi_rsdt = (acpi_rsdt_t*)(word_t)acpi_rsdp->rsdt_address;
+     printf("ACPI: RSDT paddr=%p\n", acpi_rsdt);
+     acpi_rsdt_mapped = (acpi_rsdt_t*)acpi_table_init(acpi_rsdt, ACPI_RSDT);
+--- src/kernel/sel4/include/plat/pc99/plat/machine/acpi.h
++++ src/kernel/sel4/include/plat/pc99/plat/machine/acpi.h
+@@ -34,7 +34,13 @@
+     uint32_t entry[1];
+ } PACKED acpi_rsdt_t;
+ 
+-acpi_rsdt_t* acpi_init(void);
++typedef struct acpi_info_t {
++    uint32_t revision;
++    uint32_t phys_rsdt;
++    uint64_t phys_xsdt;
++} acpi_info_t; 
++
++acpi_rsdt_t * acpi_init(acpi_info_t *);
+ 
+ uint32_t acpi_madt_scan(
+     acpi_rsdt_t* acpi_rsdt,
+--- src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
+@@ -187,7 +187,7 @@
+ }
+ 
+ static BOOT_CODE bool_t
+-try_boot_sys_node(cpu_id_t cpu_id)
++try_boot_sys_node(cpu_id_t cpu_id, acpi_info_t* acpi_info)
+ {
+     p_region_t boot_mem_reuse_p_reg;
+ 
+@@ -224,7 +224,8 @@
+                 boot_state.drhu_list,
+                 &boot_state.rmrr_list,
+                 &boot_state.vbe_info,
+-                &boot_state.mb_mmap_info
++                &boot_state.mb_mmap_info,
++                acpi_info
+             )) {
+         return false;
+     }
+@@ -487,7 +488,8 @@
+     }
+ 
+     /* get ACPI root table */
+-    acpi_rsdt = acpi_init();
++    acpi_info_t acpi_info = { 0, 0, 0 };
++    acpi_rsdt = acpi_init(&acpi_info);
+     if (!acpi_rsdt) {
+         return false;
+     }
+@@ -597,7 +599,7 @@
+     ksNumCPUs = boot_state.num_cpus;
+ 
+     printf("Starting node #0 with APIC ID %lu\n", boot_state.cpus[0]);
+-    if (!try_boot_sys_node(boot_state.cpus[0])) {
++    if (!try_boot_sys_node(boot_state.cpus[0], &acpi_info)) {
+         return false;
+     }
+ 
+--- src/kernel/sel4/src/arch/x86/kernel/boot.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot.c
+@@ -250,7 +250,8 @@
+     paddr_t*      drhu_list,
+     acpi_rmrr_list_t *rmrr_list,
+     seL4_X86_BootInfo_VBE *vbe,
+-    seL4_X86_BootInfo_mmap_t *mb_mmap
++    seL4_X86_BootInfo_mmap_t *mb_mmap,
++    acpi_info_t*  acpi_info
+ )
+ {
+     cap_t         root_cnode_cap;
+@@ -405,7 +406,10 @@
+     }
+     write_it_asid_pool(it_ap_cap, it_vspace_cap);
+ 
+-    ndks_boot.bi_frame->archInfo = tsc_init();
++    ndks_boot.bi_frame->archInfo.tsc = tsc_init();
++    ndks_boot.bi_frame->archInfo.revision = acpi_info->revision;
++    ndks_boot.bi_frame->archInfo.rsdt = acpi_info->phys_rsdt;
++    ndks_boot.bi_frame->archInfo.xsdt = acpi_info->phys_xsdt;
+ 
+     /* create the idle thread */
+     if (!create_idle_thread()) {
