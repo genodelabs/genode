@@ -35,6 +35,12 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 {
 	Session_label const label = label_from_args(args);
 	Linux_dataspace::Filename fname;
+
+	if (label.last_element().length() > sizeof(fname.buf)) {
+		Genode::error("file name too long: ", label.last_element());
+		throw Service_denied();
+	}
+
 	strncpy(fname.buf, label.last_element().string(), sizeof(fname.buf));
 
 	/* only files inside the current working directory are allowed */
