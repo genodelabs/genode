@@ -230,6 +230,22 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 }
 
 
+void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
+{
+	/*
+	 * Fiasco's 'unmap' syscall unmaps the specified flexpage from all address
+	 * spaces to which we mapped the pages. We cannot target this operation to
+	 * a specific L4 task. Hence, we unmap the dataspace from all tasks.
+	 */
+
+	using namespace Fiasco;
+
+	addr_t addr = core_local_base.value;
+	for (; addr < core_local_base.value + size; addr += L4_PAGESIZE)
+		l4_fpage_unmap(l4_fpage(addr, L4_LOG2_PAGESIZE, 0, 0),
+		               L4_FP_FLUSH_PAGE);
+}
+
 Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
                          signed pd_id, bool create)
 {
@@ -251,9 +267,6 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 
 Platform_pd::~Platform_pd()
 {
-	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
-
 	/* unbind all threads */
 	while (Platform_thread *t = _next_thread()) unbind_thread(t);
 

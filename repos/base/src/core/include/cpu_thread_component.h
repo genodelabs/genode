@@ -96,8 +96,6 @@ class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 
 		Trace::Source_registry &_trace_sources;
 
-		Weak_ptr<Address_space> _address_space = _platform_thread.address_space();
-
 		Rm_client _rm_client;
 
 		/**
@@ -148,7 +146,7 @@ class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 			_rm_client(cpu_session_cap, _ep.manage(this),
 			           &_address_space_region_map,
 			           _platform_thread.pager_object_badge(),
-			           _address_space, _platform_thread.affinity(),
+			           _platform_thread.affinity(),
 			           pd.label(), name)
 		{
 			_address_space_region_map.add_client(_rm_client);

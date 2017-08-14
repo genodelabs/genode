@@ -63,6 +63,8 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 		Dataspace_capability dataspace() { return Dataspace_capability(); }
 
 		Rm_dataspace_component *dataspace_component() { return 0; }
+
+		void address_space(Platform_pd *) { }
 };
 
 
@@ -73,7 +75,6 @@ struct Genode::Rm_client : Pager_object, Rm_member
 {
 	Rm_client(Cpu_session_capability, Thread_capability, 
 	          Region_map_component *rm, unsigned long badge,
-	          Weak_ptr<Address_space> &address_space,
 	          Affinity::Location location, Cpu_session::Name const&,
 	          Session_label const&)
 	{ }

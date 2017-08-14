@@ -99,7 +99,7 @@ class Genode::Platform_pd : public Address_space
 		 ** Address-space interface **
 		 *****************************/
 
-		void flush(addr_t, size_t);
+		void flush(addr_t, size_t, Core_local_addr) override;
 
 
 		/*****************************

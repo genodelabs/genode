@@ -274,12 +274,6 @@ void Platform_thread::_finalize_construction(const char *name)
 }
 
 
-Weak_ptr<Address_space> Platform_thread::address_space()
-{
-	return _platform_pd->Address_space::weak_ptr();
-}
-
-
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location location, addr_t)
 : _state(DEAD),

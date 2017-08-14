@@ -23,7 +23,6 @@
 #include <pager.h>
 #include <platform_pd.h>
 #include <cap_mapping.h>
-#include <address_space.h>
 
 namespace Genode {
 
@@ -149,12 +148,6 @@ namespace Genode {
 			 * Get the executing CPU for this thread
 			 */
 			Affinity::Location affinity() const;
-
-			/**
-			 * Return the address space to which the thread is bound
-			 */
-			Weak_ptr<Address_space> address_space();
-
 
 			/************************
 			 ** Accessor functions **

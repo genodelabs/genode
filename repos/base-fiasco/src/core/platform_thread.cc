@@ -153,12 +153,6 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Weak_ptr<Address_space> Platform_thread::address_space()
-{
-	return _platform_pd->Address_space::weak_ptr();
-}
-
-
 Platform_thread::Platform_thread(size_t, const char *name, unsigned,
                                  Affinity::Location, addr_t,
                                  int thread_id)

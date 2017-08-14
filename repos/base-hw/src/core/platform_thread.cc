@@ -42,7 +42,8 @@ Platform_thread::~Platform_thread()
 	if (_main_thread) {
 		Locked_ptr<Address_space> locked_ptr(_address_space);
 		if (locked_ptr.valid())
-			locked_ptr->flush((addr_t)_utcb_pd_addr, sizeof(Native_utcb));
+			locked_ptr->flush((addr_t)_utcb_pd_addr, sizeof(Native_utcb),
+			                  Address_space::Core_local_addr{0});
 	}
 
 	/* free UTCB */

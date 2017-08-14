@@ -193,7 +193,7 @@ bool Platform_pd::install_mapping(Mapping const &mapping,
 }
 
 
-void Platform_pd::flush(addr_t virt_addr, size_t size)
+void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 {
 	_vm_space.unmap(virt_addr, round_page(size) >> get_page_size_log2());
 }
@@ -251,7 +251,4 @@ Platform_pd::~Platform_pd()
 
 	_cspace_cnode_1st.destruct(*platform()->ram_alloc(), true);
 	platform_specific()->core_sel_alloc().free(_cspace_cnode_1st.sel());
-
-	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
 }

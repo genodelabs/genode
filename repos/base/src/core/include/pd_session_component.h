@@ -135,8 +135,10 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size()),
 			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE)
 		{
-			if (platform()->core_needs_platform_pd() || label != "core")
+			if (platform()->core_needs_platform_pd() || label != "core") {
 				_pd.construct(&_sliced_heap, _label.string());
+				_address_space.address_space(&*_pd);
+			}
 		}
 
 		/**

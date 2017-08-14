@@ -21,7 +21,6 @@
 /* core includes */
 #include <pager.h>
 #include <platform_pd.h>
-#include <address_space.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -133,12 +132,6 @@ namespace Genode {
 			 * Request the affinity of this thread
 			 */
 			Affinity::Location affinity() const { return Affinity::Location(); }
-
-			/**
-			 * Return the address space to which the thread is bound
-			 */
-			Weak_ptr<Address_space> address_space();
-
 
 			/************************
 			 ** Accessor functions **

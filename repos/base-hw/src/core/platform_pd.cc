@@ -63,7 +63,7 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 }
 
 
-void Hw::Address_space::flush(addr_t virt, size_t size)
+void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 {
 	Lock::Guard guard(_lock);
 

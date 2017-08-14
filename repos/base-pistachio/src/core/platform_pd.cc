@@ -22,6 +22,8 @@ namespace Pistachio {
 #include <l4/thread.h>
 #include <l4/sigma0.h>
 #include <l4/schedule.h>
+#include <l4/space.h>
+#include <l4/types.h>
 }
 
 using namespace Pistachio;
@@ -280,6 +282,27 @@ L4_Word_t Platform_pd::_utcb_location(unsigned int thread_id)
 }
 
 
+void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
+{
+	/*
+	 * Pistachio's 'unmap' syscall unmaps the specified flexpage from all
+	 * address spaces to which we mapped the pages. We cannot target this
+	 * operation to a specific L4 task. Hence, we unmap the dataspace from
+	 * all tasks, not only for this RM client.
+	 */
+
+	using namespace Pistachio;
+
+	L4_Word_t page_size = get_page_size();
+
+	addr_t addr = core_local_base.value;
+	for (; addr < core_local_base.value + size; addr += page_size) {
+		L4_Fpage_t fp = L4_Fpage(addr, page_size);
+		L4_Unmap(L4_FpageAddRightsTo(&fp, L4_FullyAccessible));
+	}
+}
+
+
 Platform_pd::Platform_pd(bool core) :
 	_l4_task_id(L4_MyGlobalId())
 {
@@ -325,9 +348,6 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
 
 Platform_pd::~Platform_pd()
 {
-	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
-
 	/* unbind all threads */
 	while (Platform_thread *t = _next_thread()) unbind_thread(t);
 

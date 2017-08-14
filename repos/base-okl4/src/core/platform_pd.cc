@@ -252,7 +252,7 @@ static void unmap_log2_range(unsigned pd_id, addr_t base, size_t size_log2)
 }
 
 
-void Platform_pd::flush(addr_t addr, size_t size)
+void Platform_pd::flush(addr_t addr, size_t size, Core_local_addr)
 {
 	using namespace Okl4;
 
@@ -327,9 +327,6 @@ Platform_pd::Platform_pd(Allocator *, char const *label)
 
 Platform_pd::~Platform_pd()
 {
-	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
-
 	/* unbind all threads */
 	while (Platform_thread *t = _next_thread()) unbind_thread(t);
 

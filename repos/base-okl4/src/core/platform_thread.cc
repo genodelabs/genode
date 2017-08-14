@@ -178,12 +178,6 @@ unsigned long Platform_thread::pager_object_badge() const
 }
 
 
-Weak_ptr<Address_space> Platform_thread::address_space()
-{
-	return _platform_pd->Address_space::weak_ptr();
-}
-
-
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location, addr_t, int thread_id)
 : _thread_id(thread_id), _l4_thread_id(L4_nilthread), _platform_pd(0),

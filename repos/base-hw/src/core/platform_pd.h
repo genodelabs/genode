@@ -116,7 +116,9 @@ class Hw::Address_space : public Genode::Address_space
 		 ** Address-space interface **
 		 *****************************/
 
-		void flush(Genode::addr_t, Genode::size_t);
+		void flush(addr_t, size_t, Core_local_addr) override;
+		void flush(addr_t addr, size_t size) {
+			flush(addr, size, Core_local_addr{0}); }
 
 
 		/***************

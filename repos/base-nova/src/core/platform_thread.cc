@@ -295,15 +295,6 @@ void Platform_thread::single_step(bool on)
 const char * Platform_thread::pd_name() const {
 	return _pd ? _pd->name() : "unknown"; }
 
-Weak_ptr<Address_space> Platform_thread::address_space()
-{
-	if (!_pd) {
-		error(__PRETTY_FUNCTION__, ": protection domain undefined");
-		return Weak_ptr<Address_space>();
-	}
-	return _pd->Address_space::weak_ptr();
-}
-
 
 unsigned long long Platform_thread::execution_time() const
 {

@@ -21,7 +21,6 @@
 /* core includes */
 #include <pager.h>
 #include <ipc_pager.h>
-#include <address_space.h>
 #include <thread_sel4.h>
 #include <install_mapping.h>
 
@@ -128,11 +127,6 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 * \throw Cpu_session::State_access_failed
 		 */
 		Thread_state state();
-
-		/**
-		 * Return the address space to which the thread is bound
-		 */
-		Weak_ptr<Address_space> address_space();
 
 		/**
 		 * Return execution time consumed by the thread

@@ -175,7 +175,6 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 	private:
 
 		Region_map_component   *_region_map;
-		Weak_ptr<Address_space> _address_space;
 
 	public:
 
@@ -190,26 +189,15 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 		Rm_client(Cpu_session_capability cpu_session,
 		          Thread_capability thread,
 		          Region_map_component *rm, unsigned long badge,
-		          Weak_ptr<Address_space> &address_space,
 		          Affinity::Location location,
 		          Session_label     const &pd_label,
 		          Cpu_session::Name const &name)
 		:
 			Pager_object(cpu_session, thread, badge, location, pd_label, name),
-			Rm_faulter(this), _region_map(rm), _address_space(address_space)
+			Rm_faulter(this), _region_map(rm)
 		{ }
 
 		int pager(Ipc_pager &pager);
-
-		/**
-		 * Flush memory mappings for the specified virtual address range
-		 */
-		void unmap(addr_t core_local_base, addr_t virt_base, size_t size);
-
-		bool has_same_address_space(Rm_client const &other)
-		{
-			return other._address_space == _address_space;
-		}
 
 		/**
 		 * Return region map that the RM client is member of
@@ -232,6 +220,8 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 
 		Signal_transmitter _fault_notifier;  /* notification mechanism for
 		                                        region-manager faults */
+
+		Address_space  *_address_space { nullptr };
 
 		/*********************
 		 ** Paging facility **
@@ -349,6 +339,9 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 
 		~Region_map_component();
 
+		void address_space(Address_space *space) { _address_space = space; }
+		Address_space *address_space() { return _address_space; }
+
 		class Fault_area;
 
 		/**
@@ -368,8 +361,6 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 		 * Dissolve faulter from region map
 		 */
 		void discard_faulter(Rm_faulter *faulter, bool do_lock);
-
-		List<Rm_client> *clients() { return &_clients; }
 
 		/**
 		 * Return the dataspace representation of this region map

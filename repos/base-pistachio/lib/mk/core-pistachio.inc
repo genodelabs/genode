@@ -33,7 +33,6 @@ SRC_CC       = stack_area.cc \
                pd_session_component.cc \
                ram_dataspace_support.cc \
                region_map_component.cc \
-               region_map_support.cc \
                rom_session_component.cc \
                signal_source_component.cc \
                signal_transmitter_proxy.cc \

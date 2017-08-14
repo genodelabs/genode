@@ -26,7 +26,6 @@
 
 /* core includes */
 #include <pager.h>
-#include <address_space.h>
 
 namespace Genode {
 
@@ -135,12 +134,6 @@ namespace Genode {
 			 * \throw Cpu_session::State_access_failed
 			 */
 			Thread_state state();
-
-			/**
-			 * Return the address space to which the thread is bound
-			 */
-			Weak_ptr<Address_space> address_space();
-
 
 			/************************
 			 ** Accessor functions **

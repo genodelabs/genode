@@ -457,12 +457,16 @@ static void unmap_managed(Region_map_component *rm, Rm_region *region, int level
 		       <= region->base() - region->offset() + region->size())
 			unmap_managed(managed->rm(), managed, level + 1);
 
+		if (!managed->rm()->address_space())
+			continue;
+
 		/* found a leaf node (here a leaf is an Region_map whose dataspace has no regions) */
-		if (!managed->rm()->dataspace_component()->regions()->first())
-			for (Rm_client *rc = managed->rm()->clients()->first();
-			     rc; rc = rc->List<Rm_client>::Element::next())
-				rc->unmap(region->dataspace()->core_local_addr() + region->offset(),
-				          managed->base() + region->base() - managed->offset(), region->size());
+
+		Address_space::Core_local_addr core_local
+			= { region->dataspace()->core_local_addr() + region->offset() };
+		managed->rm()->address_space()->flush(managed->base() + region->base() -
+		                                      managed->offset(),
+		                                      region->size(), core_local);
 	}
 }
 
@@ -526,49 +530,15 @@ void Region_map_component::detach(Local_addr local_addr)
 	 * function 'managed'.
 	 */
 
-	/*
-	 * Go through all RM clients using the region map. For each RM client, we
-	 * need to unmap the referred region from its virtual address space.
-	 */
-	Rm_client *prev_rc = 0;
-	Rm_client *rc = _clients.first();
-	for (; rc; rc = rc->List<Rm_client>::Element::next(), prev_rc = rc) {
-
-		/*
-		 * XXX Unmapping managed dataspaces on kernels, which take a core-
-		 *     local virtual address as unmap argument is not supported yet.
-		 *     This is the case for Fiasco and Pistachio. On those
-		 *     kernels, the unmap operation must be issued for each leaf
-		 *     dataspace the managed dataspace is composed of. For kernels with
-		 *     support for directed unmap (OKL4), unmap can be
-		 *     simply applied for the contiguous virtual address region in the
-		 *     client.
-		 */
-		if (!platform()->supports_direct_unmap()
-		 && dsc->managed() && dsc->core_local_addr() == 0) {
+	if (_address_space) {
+		if (!platform()->supports_direct_unmap() && dsc->managed() &&
+		    dsc->core_local_addr() == 0) {
 			warning("unmapping of managed dataspaces not yet supported");
-			break;
+		} else {
+			Address_space::Core_local_addr core_local
+				= { dsc->core_local_addr() + region.offset() };
+			_address_space->flush(region.base(), region.size(), core_local);
 		}
-
-		/*
-		 * Don't unmap from the same address space twice. If multiple threads
-		 * reside in one PD, each thread will have a corresponding 'Rm_client'
-		 * object. Consequenlty, an unmap operation referring to the PD is
-		 * issued multiple times, one time for each thread. By comparing the
-		 * membership to the thread's respective address spaces, we reduce
-		 * superfluous unmap operations.
-		 *
-		 * Note that the list of 'Rm_client' object may contain threads of
-		 * different address spaces in any order. So superfluous unmap
-		 * operations can still happen if 'Rm_client' objects of one PD are
-		 * interleaved with 'Rm_client' objects of another PD. In practice,
-		 * however, this corner case is rare.
-		 */
-		if (prev_rc && prev_rc->has_same_address_space(*rc))
-			continue;
-
-		rc->unmap(dsc->core_local_addr() + region.offset(),
-		          region.base(), region.size());
 	}
 
 	/*

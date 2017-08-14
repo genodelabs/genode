@@ -204,13 +204,6 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Weak_ptr<Address_space> Platform_thread::address_space()
-{
-	ASSERT(_pd);
-	return _pd->weak_ptr();
-}
-
-
 bool Platform_thread::install_mapping(Mapping const &mapping)
 {
 	return _pd->install_mapping(mapping, name());

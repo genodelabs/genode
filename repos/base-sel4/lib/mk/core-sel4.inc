@@ -20,7 +20,6 @@ SRC_CC      += \
                platform.cc \
                dataspace_component.cc \
                region_map_component.cc \
-               region_map_support.cc \
                irq_session_component.cc \
                signal_source_component.cc \
                signal_transmitter_proxy.cc \

@@ -20,6 +20,7 @@
 #include <util.h>
 #include <platform.h>
 #include <platform_pd.h>
+#include <map_local.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -107,6 +108,12 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
+void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local)
+{
+	unmap_local(core_local.value, size >> get_page_size_log2());
+}
+
+
 static Core_cap_index & debug_cap()
 {
 	unsigned long id = platform_specific()->cap_id_alloc()->alloc();
@@ -139,9 +146,6 @@ Platform_pd::Platform_pd(Allocator *, char const *)
 
 Platform_pd::~Platform_pd()
 {
-	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
-
 	for (unsigned i = 0; i < THREAD_MAX; i++) {
 		if (_threads[i])
 			_threads[i]->unbind();

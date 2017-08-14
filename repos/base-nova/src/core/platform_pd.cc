@@ -70,9 +70,6 @@ Platform_pd::Platform_pd(Allocator * md_alloc, char const *label,
 
 Platform_pd::~Platform_pd()
 {
-	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
-
 	if (_pd_sel == Native_thread::INVALID_INDEX)
 		return;
 
@@ -82,7 +79,7 @@ Platform_pd::~Platform_pd()
 }
 
 
-void Platform_pd::flush(addr_t remote_virt, size_t size)
+void Platform_pd::flush(addr_t remote_virt, size_t size, Core_local_addr)
 {
 	Nova::Rights const revoke_rwx(true, true, true);
 

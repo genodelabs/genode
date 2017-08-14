@@ -31,8 +31,6 @@ namespace Genode {
 
 	class Platform_thread;
 
-	class Address_space;
-
 	/*
 	 * We hold all Platform_thread objects in a list in order to be able to
 	 * reflect SIGCHLD as exception signals. When a SIGCHILD occurs, we
@@ -178,8 +176,6 @@ namespace Genode {
 			 * Return execution time consumed by the thread
 			 */
 			unsigned long long execution_time() const { return 0; }
-
-			Weak_ptr<Address_space> address_space() { return Weak_ptr<Address_space>(); }
 
 			unsigned long pager_object_badge() const { return 0; }
 	};

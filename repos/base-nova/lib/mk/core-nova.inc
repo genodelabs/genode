@@ -35,7 +35,6 @@ SRC_CC      += stack_area.cc \
                pd_session_component.cc \
                ram_dataspace_support.cc \
                region_map_component.cc \
-               region_map_support.cc \
                rom_session_component.cc \
                thread_start.cc \
                bios_data_area.cc \
