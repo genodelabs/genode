@@ -19,6 +19,7 @@
 
 #include <qpa/qplatformintegration.h>
 #include <qpa/qplatformscreen.h>
+#include <qpa/qplatforminputcontext.h>
 
 #include "qnitpickerscreen.h"
 #include "qsignalhandlerthread.h"
@@ -42,6 +43,7 @@ class QNitpickerIntegration : public QPlatformIntegration
 		 * variable of QNitpickerIntegration.
 		 */
 		static Genode::Signal_receiver &_signal_receiver();
+                QScopedPointer<QPlatformInputContext> m_inputContext;
 
 	public:
 
@@ -61,6 +63,8 @@ class QNitpickerIntegration : public QPlatformIntegration
 		QPlatformClipboard *clipboard() const Q_DECL_OVERRIDE;
 #endif
 		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const Q_DECL_OVERRIDE;
+
+                QPlatformInputContext *inputContext() const Q_DECL_OVERRIDE;
 };
 
 QT_END_NAMESPACE
