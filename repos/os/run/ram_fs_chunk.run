@@ -30,7 +30,7 @@ build_boot_image "core ld.lib.so init test-ram_fs_chunk"
 
 append qemu_args "-nographic "
 
-run_genode_until {.*--- RAM filesystem chunk test finished ---.*\n} 10
+run_genode_until {.*--- RAM filesystem chunk test finished ---.*\n} 20
 
 grep_output {^\[init -> test-ram_fs_chunk\]}
 unify_output { sizeof=[0-9]+} {}

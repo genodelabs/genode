@@ -31,5 +31,5 @@ build_boot_image "core ld.lib.so init test-ds_ownership"
 
 append qemu_args "-nographic "
 
-run_genode_until {.*test succeeded.*\n} 10
+run_genode_until {.*test succeeded.*\n} 20
 

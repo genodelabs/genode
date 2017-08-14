@@ -1,4 +1,4 @@
-build "core init drivers/timer test/libc_getenv"
+build "core init test/libc_getenv"
 
 create_boot_directory
 
@@ -15,10 +15,6 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="timer">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Timer"/> </provides>
-	</start>
 	<start name="test-libc_getenv">
 		<resource name="RAM" quantum="4M"/>
 		<config>
@@ -36,13 +32,13 @@ install_config {
 }
 
 build_boot_image {
-	core init timer test-libc_getenv
+	core init test-libc_getenv
 	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
 }
 
 append qemu_args " -nographic  "
 
-run_genode_until "child .* exited with exit value 0.*\n" 10
+run_genode_until "child .* exited with exit value 0.*\n" 20
 
 grep_output {\[init -\> test-libc_getenv\]}
 

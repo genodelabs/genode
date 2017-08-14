@@ -86,7 +86,7 @@ append qemu_args "-nographic "
 
 set match_string "Test started. func: 0x(\[0-9a-f\]+).*\n"
 
-run_genode_until "$match_string" 10
+run_genode_until "$match_string" 20
 
 regexp $match_string $output all func
 

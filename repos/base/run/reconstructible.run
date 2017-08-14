@@ -25,7 +25,7 @@ build_boot_image "core ld.lib.so init test-reconstructible"
 
 append qemu_args "-nographic "
 
-run_genode_until {.*--- Reconstructible utility test finished ---.*\n} 10
+run_genode_until {.*--- Reconstructible utility test finished ---.*\n} 20
 
 grep_output {-> test-reconstructible}
 

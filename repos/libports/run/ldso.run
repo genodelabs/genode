@@ -36,7 +36,7 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic "
 
-run_genode_until {child ".*" exited with exit value 123.*\n} 10
+run_genode_until {child ".*" exited with exit value 123.*\n} 20
 
 # pay only attention to the output of init and its children
 grep_output {^\[init }

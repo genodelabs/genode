@@ -24,7 +24,7 @@ build_boot_image "core ld.lib.so init test-xml_node"
 
 append qemu_args "-nographic "
 
-run_genode_until {.*child "test-xml_node" exited with exit value 0.*\n} 10
+run_genode_until {.*child "test-xml_node" exited with exit value 0.*\n} 20
 
 # pay only attention to the output of init and its children
 grep_output {^\[init \-\> test\-xml_node\]}

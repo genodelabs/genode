@@ -32,4 +32,4 @@ build_boot_image "core ld.lib.so init timer test-thread_join"
 
 append qemu_args "-nographic "
 
-run_genode_until {.*--- Thread join test finished ---.*\n} 10
+run_genode_until {.*--- Thread join test finished ---.*\n} 20

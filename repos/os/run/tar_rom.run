@@ -79,6 +79,6 @@ build_boot_image "core ld.lib.so init timer tar_rom archive.tar"
 
 append qemu_args "-nographic "
 
-run_genode_until "--- timer test ---" 10
+run_genode_until "--- timer test ---" 20
 
 exec rm bin/archive.tar

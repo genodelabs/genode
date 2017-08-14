@@ -32,7 +32,7 @@ build_boot_image "core ld.lib.so init test-sub_rm"
 
 append qemu_args "-nographic "
 
-run_genode_until {.*--- end of sub-rm test ---.*} 10
+run_genode_until {.*--- end of sub-rm test ---.*} 20
 
 if {([have_spec linux] && [have_spec x86_32])} {
 	set maps [exec cat /proc/[exec pidof test-sub_rm]/maps]

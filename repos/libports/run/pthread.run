@@ -17,7 +17,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="120"/>
+	<default caps="130"/>
 	<start name="test-pthread">
 		<resource name="RAM" quantum="64M"/>
 		<config>
@@ -35,4 +35,4 @@ build_boot_image {
 
 append qemu_args " -nographic  "
 
-run_genode_until {--- returning from main ---.*\n} 10
+run_genode_until {--- returning from main ---.*\n} 20

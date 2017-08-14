@@ -24,6 +24,6 @@ build_boot_image "core init test-rust ld.lib.so libc.lib.so libm.lib.so posix.li
 
 append qemu_args "-nographic "
 
-run_genode_until { 42 } 10
+run_genode_until { 42 } 20
 
 puts "Test succeeded"

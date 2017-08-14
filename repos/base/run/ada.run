@@ -24,7 +24,7 @@ build_boot_image "core ld.lib.so init test-ada"
 
 append qemu_args "-nographic "
 
-run_genode_until {child "test-ada" exited with exit value 0.*} 10
+run_genode_until {child "test-ada" exited with exit value 0.*} 20
 
 grep_output {init -> test-ada}
 unify_output {0x[0-9a-f]+} "UNIFIED"

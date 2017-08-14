@@ -24,7 +24,7 @@ build_boot_image "core ld.lib.so init test-new_delete"
 
 append qemu_args "-nographic "
 
-run_genode_until "Test done.*\n" 15
+run_genode_until "Test done.*\n" 20
 
 grep_output  {^\[init -> test-new_delete\]}
 
@@ -80,5 +80,3 @@ compare_output_to {
 	[init -> test-new_delete] Allocator::free()
 	[init -> test-new_delete] exception caught
 }
-
-#puts "Test succeeded"
