@@ -13,6 +13,8 @@
 
 /* Qt includes */
 #include <QtGui/private/qguiapplication_p.h>
+#include <qpa/qplatforminputcontextfactory_p.h>
+
 #include "qgenodeclipboard.h"
 #include "qnitpickerglcontext.h"
 #include "qnitpickerintegration.h"
@@ -82,6 +84,11 @@ QAbstractEventDispatcher *QNitpickerIntegration::createEventDispatcher() const
 void QNitpickerIntegration::initialize()
 {
     screenAdded(_nitpicker_screen);
+
+    QString icStr = QPlatformInputContextFactory::requested();
+    if (icStr.isNull())
+        icStr = QLatin1String("compose");
+    m_inputContext.reset(QPlatformInputContextFactory::create(icStr));
 }
 
 
@@ -104,6 +111,11 @@ QPlatformClipboard *QNitpickerIntegration::clipboard() const
 QPlatformOpenGLContext *QNitpickerIntegration::createPlatformOpenGLContext(QOpenGLContext *context) const
 {
     return new QNitpickerGLContext(context);
+}
+
+QPlatformInputContext *QNitpickerIntegration::inputContext() const
+{
+    return m_inputContext.data();
 }
 
 QT_END_NAMESPACE
