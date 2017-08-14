@@ -9,6 +9,11 @@
 
 assert_spec nova
 
+if { [get_cmd_switch --autopilot] && ![have_include "power_on/qemu"] && [have_spec x86_32] } {
+	puts "Run script does not support autopilot mode on 32 bit"
+	exit 0
+}
+
 set use_multiboot     1
 set use_genode_iso    0
 set use_model_ahci    0

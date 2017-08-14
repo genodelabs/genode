@@ -11,6 +11,11 @@ if {[have_include "power_on/qemu"] || [have_include "power_on/linux"]} {
 	exit 0
 }
 
+if { [have_spec muen] } {
+	puts "Run script does not support Muen."
+	exit 0
+}
+
 # network configuration
 set use_nic_bridge      0
 set use_wifi_driver     1

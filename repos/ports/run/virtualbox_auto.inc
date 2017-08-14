@@ -16,6 +16,11 @@ if {([have_spec muen] && [expr $use_vbox5])} {
 	exit 0
 }
 
+if { [get_cmd_switch --autopilot] && [have_spec x86_32] } {
+	puts "Run script does not support autopilot mode on 32 bit"
+	exit 0
+}
+
 append build_components {
 	core init
 	server/part_blk
