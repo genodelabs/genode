@@ -463,21 +463,14 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 				Session::Diag const
 					target_diag { target.attribute_value("diag", false) };
 
+				auto no_filter = [] (Service &) -> bool { return false; };
+
 				if (target.has_type("parent")) {
 
-					Parent_service *service = nullptr;
-
-					if ((service = find_service(_parent_services, service_name)))
-						return Route { *service, target_label, target_diag };
-
-					if (service && service->abandoned())
-						throw Service_denied();
-
-					if (!service_wildcard) {
-						warning(name(), ": service lookup for "
-						        "\"", service_name, "\" at parent failed");
-						throw Service_denied();
-					}
+					try {
+						return Route { find_service(_parent_services, service_name, no_filter),
+						               target_label, target_diag };
+					} catch (Service_denied) { }
 				}
 
 				if (target.has_type("child")) {
@@ -486,24 +479,14 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 					Name server_name = target.attribute_value("name", Name());
 					server_name = _name_registry.deref_alias(server_name);
 
-					Routed_service *service = nullptr;
+					auto filter_server_name = [&] (Routed_service &s) -> bool {
+						return s.child_name() != server_name; };
 
-					_child_services.for_each([&] (Routed_service &s) {
-						if (s.name()       == Service::Name(service_name)
-						 && s.child_name() == server_name)
-							service = &s; });
+					try {
+						return Route { find_service(_child_services, service_name, filter_server_name),
+						               target_label, target_diag };
 
-					if (service && service->abandoned())
-						throw Service_denied();
-
-					if (service)
-						return Route { *service, target_label, target_diag };
-
-					if (!service_wildcard) {
-						warning(name(), ": lookup to child "
-						        "server \"", server_name, "\" failed");
-						throw Service_denied();
-					}
+					} catch (Service_denied) { }
 				}
 
 				if (target.has_type("any-child")) {
@@ -513,17 +496,16 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 						      "service \"", service_name, "\"");
 						throw Service_denied();
 					}
+					try {
+						return Route { find_service(_child_services, service_name, no_filter),
+						               target_label, target_diag };
 
-					Routed_service *service = nullptr;
+					} catch (Service_denied) { }
+				}
 
-					if ((service = find_service(_child_services, service_name)))
-						return Route { *service, target_label, target_diag };
-
-					if (!service_wildcard) {
-						warning(name(), ": lookup for service "
-						        "\"", service_name, "\" failed");
-						throw Service_denied();
-					}
+				if (!service_wildcard) {
+					warning(name(), ": lookup for service \"", service_name, "\" failed");
+					throw Service_denied();
 				}
 
 				if (target.last())

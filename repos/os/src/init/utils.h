@@ -122,15 +122,36 @@ namespace Init {
 		return cnt > 1;
 	}
 
-
-	template <typename T>
-	inline T *find_service(Registry<T> &services, Service::Name const &name)
+	/**
+	 * Find service with certain values in given registry
+	 *
+	 * \param services   service registry
+	 * \param name       name of wanted service
+	 * \param filter_fn  function that applies additional filters
+	 *
+	 * \throw Service_denied
+	 */
+	template <typename T, typename FILTER_FN>
+	inline T &find_service(Registry<T> &services,
+	                       Service::Name const &name,
+	                       FILTER_FN const &filter_fn)
 	{
 		T *service = nullptr;
 		services.for_each([&] (T &s) {
-			if (!service && (s.name() == name))
-				service = &s; });
-		return service;
+
+			if (service || s.name() != name || filter_fn(s))
+				return;
+
+			service = &s;
+		});
+
+		if (!service)
+			throw Service_denied();
+
+		if (service->abandoned())
+			throw Service_denied();
+
+		return *service;
 	}
 
 
