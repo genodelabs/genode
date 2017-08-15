@@ -22,20 +22,6 @@ namespace File_system {
 
 	using namespace Vfs;
 
-	static inline void assert_mkdir(Directory_service::Mkdir_result r)
-	{
-		typedef Directory_service::Mkdir_result Result;
-
-		switch (r) {
-		case Result::MKDIR_ERR_NAME_TOO_LONG: throw Name_too_long();
-		case Result::MKDIR_ERR_NO_ENTRY:      throw Lookup_failed();
-		case Result::MKDIR_ERR_NO_SPACE:      throw No_space();
-		case Result::MKDIR_ERR_NO_PERM:       throw Permission_denied();
-		case Result::MKDIR_ERR_EXISTS:        throw Node_already_exists();
-		case Result::MKDIR_OK: break;
-		}
-	}
-
 	static inline void assert_open(Directory_service::Open_result r)
 	{
 		typedef Directory_service::Open_result Result;
@@ -46,32 +32,41 @@ namespace File_system {
 		case Result::OPEN_ERR_NO_SPACE:      throw No_space();
 		case Result::OPEN_ERR_NO_PERM:       throw Permission_denied();
 		case Result::OPEN_ERR_EXISTS:        throw Node_already_exists();
+		case Result::OPEN_ERR_OUT_OF_RAM:    throw Out_of_ram();
+		case Result::OPEN_ERR_OUT_OF_CAPS:   throw Out_of_caps();
 		case Result::OPEN_OK: break;
 		}
 	}
 
-	static inline void assert_symlink(Directory_service::Symlink_result r)
+	static inline void assert_opendir(Directory_service::Opendir_result r)
 	{
-		typedef Directory_service::Symlink_result Result;
+		typedef Directory_service::Opendir_result Result;
 
 		switch (r) {
-		case Result::SYMLINK_ERR_NAME_TOO_LONG: throw Invalid_name();
-		case Result::SYMLINK_ERR_NO_ENTRY:      throw Lookup_failed();
-		case Result::SYMLINK_ERR_NO_SPACE:      throw No_space();
-		case Result::SYMLINK_ERR_NO_PERM:       throw Permission_denied();
-		case Result::SYMLINK_ERR_EXISTS:        throw Node_already_exists();
-		case Result::SYMLINK_OK: break;
+		case Result::OPENDIR_ERR_LOOKUP_FAILED:       throw Lookup_failed();
+		case Result::OPENDIR_ERR_NAME_TOO_LONG:       throw Invalid_name();
+		case Result::OPENDIR_ERR_NODE_ALREADY_EXISTS: throw Node_already_exists();
+		case Result::OPENDIR_ERR_NO_SPACE:            throw No_space();
+		case Result::OPENDIR_ERR_OUT_OF_RAM:          throw Out_of_ram();
+		case Result::OPENDIR_ERR_OUT_OF_CAPS:         throw Out_of_caps();
+		case Result::OPENDIR_ERR_PERMISSION_DENIED:   throw Permission_denied();
+		case Result::OPENDIR_OK: break;
 		}
 	}
 
-	static inline void assert_readlink(Directory_service::Readlink_result r)
+	static inline void assert_openlink(Directory_service::Openlink_result r)
 	{
-		typedef Directory_service::Readlink_result Result;
+		typedef Directory_service::Openlink_result Result;
 
 		switch (r) {
-		case Result::READLINK_ERR_NO_ENTRY: throw Lookup_failed();
-		case Result::READLINK_ERR_NO_PERM:  throw Permission_denied();
-		case Result::READLINK_OK: break;
+		case Result::OPENLINK_ERR_LOOKUP_FAILED:       throw Lookup_failed();
+		case Result::OPENLINK_ERR_NAME_TOO_LONG:       throw Invalid_name();
+		case Result::OPENLINK_ERR_NODE_ALREADY_EXISTS: throw Node_already_exists();
+		case Result::OPENLINK_ERR_NO_SPACE:            throw No_space();
+		case Result::OPENLINK_ERR_OUT_OF_RAM:          throw Out_of_ram();
+		case Result::OPENLINK_ERR_OUT_OF_CAPS:         throw Out_of_caps();
+		case Result::OPENLINK_ERR_PERMISSION_DENIED:   throw Permission_denied();
+		case Result::OPENLINK_OK: break;
 		}
 	}
 

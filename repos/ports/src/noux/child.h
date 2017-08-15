@@ -126,6 +126,8 @@ class Noux::Child : public Rpc_object<Session>,
 
 		Vfs::Dir_file_system &_root_dir;
 
+		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
+
 		Destruct_queue &_destruct_queue;
 
 		void _handle_destruct() { _destruct_queue.insert(this); }
@@ -180,7 +182,8 @@ class Noux::Child : public Rpc_object<Session>,
 		 */
 		Empty_rom_factory _empty_rom_factory { _heap, _ep };
 		Empty_rom_service _empty_rom_service { _empty_rom_factory };
-		Local_rom_factory _rom_factory { _heap, _env, _ep, _root_dir, _ds_registry };
+		Local_rom_factory _rom_factory { _heap, _env, _ep, _root_dir,
+		                                 _vfs_io_waiter_registry, _ds_registry };
 		Local_rom_service _rom_service { _rom_factory };
 
 		/**
@@ -321,6 +324,7 @@ class Noux::Child : public Rpc_object<Session>,
 		      int                       pid,
 		      Env                      &env,
 		      Vfs::Dir_file_system     &root_dir,
+		      Vfs_io_waiter_registry   &vfs_io_waiter_registry,
 		      Args               const &args,
 		      Sysio::Env         const &sysio_env,
 		      Allocator                &heap,
@@ -342,6 +346,7 @@ class Noux::Child : public Rpc_object<Session>,
 			_pid_allocator(pid_allocator),
 			_env(env),
 			_root_dir(root_dir),
+			_vfs_io_waiter_registry(vfs_io_waiter_registry),
 			_destruct_queue(destruct_queue),
 			_heap(heap),
 			_ref_pd (ref_pd), _ref_pd_cap (ref_pd_cap),
@@ -521,6 +526,7 @@ class Noux::Child : public Rpc_object<Session>,
 			                                 pid(),
 			                                 _env,
 			                                 _root_dir,
+			                                 _vfs_io_waiter_registry,
 			                                 args,
 			                                 env,
 			                                 _heap,

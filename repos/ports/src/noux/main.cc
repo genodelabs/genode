@@ -97,6 +97,7 @@ connect_stdio(Genode::Env                                 &env,
               Genode::Constructible<Terminal::Connection> &terminal,
               Genode::Xml_node                             config,
               Vfs::Dir_file_system                        &root,
+              Noux::Vfs_io_waiter_registry                &vfs_io_waiter_registry,
               Noux::Terminal_io_channel::Type              type,
               Genode::Allocator                           &alloc)
 {
@@ -142,7 +143,7 @@ connect_stdio(Genode::Env                                 &env,
 
 	return *new (alloc)
 		Vfs_io_channel(path.string(), root.leaf_path(path.string()), &root,
-		               vfs_handle, env.ep());
+		               vfs_handle, vfs_io_waiter_registry, env.ep());
 }
 
 
@@ -215,7 +216,21 @@ struct Noux::Main
 
 	struct Io_response_handler : Vfs::Io_response_handler
 	{
-		void handle_io_response(Vfs::Vfs_handle::Context *) override { }
+		Vfs_io_waiter_registry io_waiter_registry;
+
+		void handle_io_response(Vfs::Vfs_handle::Context *context) override
+		{
+			if (context) {
+				Vfs_handle_context *vfs_handle_context = static_cast<Vfs_handle_context*>(context);
+				vfs_handle_context->vfs_io_waiter.wakeup();
+				return;
+			}
+
+			io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+				r.wakeup();
+			});
+		}
+
 	} _io_response_handler;
 
 	Vfs::Dir_file_system _root_dir { _env, _heap, _config.xml().sub_node("fstab"),
@@ -266,6 +281,7 @@ struct Noux::Main
 	                          _pid_allocator.alloc(),
 	                          _env,
 	                          _root_dir,
+	                          _io_response_handler.io_waiter_registry,
 	                          _args_of_init_process(),
 	                          env_string_of_init_process(_config.xml()),
 	                          _heap,
@@ -284,9 +300,15 @@ struct Noux::Main
 	typedef Terminal_io_channel Tio; /* just a local abbreviation */
 
 	Shared_pointer<Io_channel>
-		_channel_0 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir, Tio::STDIN,  _heap), _heap },
-		_channel_1 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir, Tio::STDOUT, _heap), _heap },
-		_channel_2 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir, Tio::STDERR, _heap), _heap };
+		_channel_0 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
+		             _io_response_handler.io_waiter_registry,
+		             Tio::STDIN,  _heap), _heap },
+		_channel_1 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
+		            _io_response_handler.io_waiter_registry,
+		             Tio::STDOUT, _heap), _heap },
+		_channel_2 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
+		             _io_response_handler.io_waiter_registry,
+		             Tio::STDERR, _heap), _heap };
 
 	Main(Env &env) : _env(env)
 	{

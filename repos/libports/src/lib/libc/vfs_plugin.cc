@@ -169,6 +169,45 @@ int Libc::Vfs_plugin::access(const char *path, int amode)
 Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
                                               int libc_fd)
 {
+	if (_root_dir.directory(path)) {
+
+		if (((flags & O_ACCMODE) != O_RDONLY)) {
+			errno = EINVAL;
+			return nullptr;
+		}
+
+		Vfs::Vfs_handle *handle = 0;
+
+		typedef Vfs::Directory_service::Opendir_result Opendir_result;
+
+		switch (_root_dir.opendir(path, false, &handle, _alloc)) {
+		case Opendir_result::OPENDIR_OK:                      break;
+		case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:       errno = ENOENT;       return nullptr;
+		case Opendir_result::OPENDIR_ERR_NAME_TOO_LONG:       errno = ENAMETOOLONG; return nullptr;
+		case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS: errno = EEXIST;       return nullptr;
+		case Opendir_result::OPENDIR_ERR_NO_SPACE:            errno = ENOSPC;       return nullptr;
+		case Opendir_result::OPENDIR_ERR_OUT_OF_RAM:
+		case Opendir_result::OPENDIR_ERR_OUT_OF_CAPS:
+		case Opendir_result::OPENDIR_ERR_PERMISSION_DENIED:   errno = EPERM;        return nullptr;
+		}
+
+		/* the directory was successfully opened */
+
+		Libc::File_descriptor *fd =
+			Libc::file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
+
+		/* FIXME error cleanup code leaks resources! */
+
+		if (!fd) {
+			errno = EMFILE;
+			return nullptr;
+		}
+
+		fd->flags = flags & O_ACCMODE;
+
+		return fd;
+	}
+
 	typedef Vfs::Directory_service::Open_result Result;
 
 	Vfs::Vfs_handle *handle = 0;
@@ -207,6 +246,8 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 				case Result::OPEN_ERR_UNACCESSIBLE:  errno = ENOENT;       return 0;
 				case Result::OPEN_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return 0;
 				case Result::OPEN_ERR_NO_SPACE:      errno = ENOSPC;       return 0;
+				case Result::OPEN_ERR_OUT_OF_RAM:    errno = ENOSPC;       return 0;
+				case Result::OPEN_ERR_OUT_OF_CAPS:   errno = ENOSPC;       return 0;
 				}
 			}
 			break;
@@ -215,6 +256,8 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 		case Result::OPEN_ERR_EXISTS:        errno = EEXIST;       return 0;
 		case Result::OPEN_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return 0;
 		case Result::OPEN_ERR_NO_SPACE:      errno = ENOSPC;       return 0;
+		case Result::OPEN_ERR_OUT_OF_RAM:    errno = ENOSPC;       return 0;
+		case Result::OPEN_ERR_OUT_OF_CAPS:   errno = ENOSPC;       return 0;
 		}
 	}
 
@@ -244,6 +287,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 int Libc::Vfs_plugin::close(Libc::File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	_vfs_sync(handle);
 	handle->ds().close(handle);
 	Libc::file_descriptor_allocator()->free(fd);
 	return 0;
@@ -278,16 +322,28 @@ int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *fd, struct statfs *buf)
 
 int Libc::Vfs_plugin::mkdir(const char *path, mode_t mode)
 {
-	typedef Vfs::Directory_service::Mkdir_result Result;
+	Vfs::Vfs_handle *dir_handle { 0 };
 
-	switch (_root_dir.mkdir(path, mode)) {
-	case Result::MKDIR_ERR_EXISTS:        errno = EEXIST;       return -1;
-	case Result::MKDIR_ERR_NO_ENTRY:      errno = ENOENT;       return -1;
-	case Result::MKDIR_ERR_NO_SPACE:      errno = ENOSPC;       return -1;
-	case Result::MKDIR_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return -1;
-	case Result::MKDIR_ERR_NO_PERM:       errno = EPERM;        return -1;
-	case Result::MKDIR_OK:                                      break;
+	typedef Vfs::Directory_service::Opendir_result Opendir_result;
+
+	switch (_root_dir.opendir(path, true, &dir_handle, _alloc)) {
+	case Opendir_result::OPENDIR_OK:
+		dir_handle->ds().close(dir_handle);
+		break;
+	case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:
+		return Errno(ENOENT);
+	case Opendir_result::OPENDIR_ERR_NAME_TOO_LONG:
+		return Errno(ENAMETOOLONG);
+	case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
+		return Errno(EEXIST);
+	case Opendir_result::OPENDIR_ERR_NO_SPACE:
+		return Errno(ENOSPC);
+	case Opendir_result::OPENDIR_ERR_OUT_OF_RAM:
+	case Opendir_result::OPENDIR_ERR_OUT_OF_CAPS:
+	case Opendir_result::OPENDIR_ERR_PERMISSION_DENIED:
+		return Errno(EPERM);
 	}
+
 	return 0;
 }
 
@@ -321,15 +377,60 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Vfs::file_size out_count = 0;
+	Vfs::file_size out_count  = 0;
+	Result         out_result = Result::WRITE_OK;
 
-	switch (handle->fs().write(handle, (char const *)buf, count, out_count)) {
-	case Result::WRITE_ERR_AGAIN:       errno = EAGAIN;      return -1;
-	case Result::WRITE_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; return -1;
-	case Result::WRITE_ERR_INVALID:     errno = EINVAL;      return -1;
-	case Result::WRITE_ERR_IO:          errno = EIO;         return -1;
-	case Result::WRITE_ERR_INTERRUPT:   errno = EINTR;       return -1;
-	case Result::WRITE_OK:                                   break;
+	if (fd->flags & O_NONBLOCK) {
+
+		try {
+			out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
+		} catch (Vfs::File_io_service::Insufficient_buffer) { }
+
+	} else {
+
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
+
+			Vfs::Vfs_handle *handle;
+			void const      *buf;
+			::size_t         count;
+			Vfs::file_size  &out_count;
+			Result          &out_result;
+
+			Check(Vfs::Vfs_handle *handle, void const *buf,
+			      ::size_t count, Vfs::file_size &out_count,
+			      Result &out_result)
+			: handle(handle), buf(buf), count(count), out_count(out_count),
+			  out_result(out_result)
+			{ }
+
+			bool suspend() override
+			{
+				try {
+					out_result = handle->fs().write(handle, (char const *)buf,
+						                            count, out_count);
+					retry = false;
+				} catch (Vfs::File_io_service::Insufficient_buffer) {
+					retry = true;
+				}
+
+				return retry;
+			}
+		} check(handle, buf, count, out_count, out_result);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
+	}
+
+	switch (out_result) {
+	case Result::WRITE_ERR_AGAIN:       return Errno(EAGAIN);
+	case Result::WRITE_ERR_WOULD_BLOCK: return Errno(EWOULDBLOCK);
+	case Result::WRITE_ERR_INVALID:     return Errno(EINVAL);
+	case Result::WRITE_ERR_IO:          return Errno(EIO);
+	case Result::WRITE_ERR_INTERRUPT:   return Errno(EINTR);
+	case Result::WRITE_OK:              break;
 	}
 
 	handle->advance_seek(out_count);
@@ -338,64 +439,74 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 }
 
 
-typedef Vfs::File_io_service::Read_result Result;
-
-struct Read_check : Libc::Suspend_functor {
-	Vfs::Vfs_handle * handle;
-	void            * buf;
-	::size_t        * count;
-	Vfs::file_size  * out_count;
-	Result          * out_result;
-
-	Read_check(Vfs::Vfs_handle * handle, void * buf, ::size_t * count,
-	           Vfs::file_size  * out_count, Result * out_result)
-	: handle(handle), buf(buf), count(count), out_count(out_count),
-	  out_result(out_result)
-	{ }
-};
-
 ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
                                ::size_t count)
 {
-	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	typedef Vfs::File_io_service::Read_result Result;
 
-	Vfs::file_size out_count  = 0;
-	Result         out_result = Result::READ_OK;
+	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
 	if (fd->flags & O_NONBLOCK && !Libc::read_ready(fd))
 		return Errno(EAGAIN);
 
-	while (!handle->fs().queue_read(handle, (char *)buf, count,
-	                                out_result, out_count)) {
-		struct Check : Read_check {
-			Check(Vfs::Vfs_handle * handle, void * buf, ::size_t * count,
-			      Vfs::file_size * out_count, Result * out_result)
-			: Read_check (handle, buf, count, out_count, out_result) { }
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
 
-			bool suspend() override {
-				return !handle->fs().queue_read(handle, (char *)buf, *count,
-				                                *out_result, *out_count); }
-		} check ( handle, buf, &count, &out_count, &out_result);
+			Vfs::Vfs_handle *handle;
+			::size_t         count;
 
-		Libc::suspend(check);
+			Check(Vfs::Vfs_handle *handle, ::size_t count)
+			: handle(handle), count(count) { }
+
+			bool suspend() override
+			{
+				retry = !handle->fs().queue_read(handle, count);
+				return retry;
+			}
+		} check ( handle, count);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
 	}
 
-	while (out_result == Result::READ_QUEUED) {
+	Vfs::file_size out_count = 0;
+	Result         out_result;
 
-		struct Check : Read_check {
-			Check(Vfs::Vfs_handle * handle, void * buf, ::size_t * count,
-			      Vfs::file_size * out_count, Result * out_result)
-			: Read_check (handle, buf, count, out_count, out_result) { }
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
 
-			bool suspend() override {
-				*out_result = handle->fs().complete_read(handle, (char *)buf,
-				                                         *count, *out_count);
+			Vfs::Vfs_handle *handle;
+			void            *buf;
+			::size_t         count;
+			Vfs::file_size  &out_count;
+			Result          &out_result;
+
+			Check(Vfs::Vfs_handle *handle, void *buf, ::size_t count,
+			      Vfs::file_size &out_count, Result &out_result)
+			: handle(handle), buf(buf), count(count), out_count(out_count),
+			  out_result(out_result)
+			{ }
+
+			bool suspend() override
+			{
+				out_result = handle->fs().complete_read(handle, (char *)buf,
+				                                        count, out_count);
 				/* suspend me if read is still queued */
-				return *out_result == Result::READ_QUEUED;
-			}
-		} check ( handle, buf, &count, &out_count, &out_result);
 
-		Libc::suspend(check);
+				retry = (out_result == Result::READ_QUEUED);
+
+				return retry;
+			}
+		} check ( handle, buf, count, out_count, out_result);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
 	}
 
 	switch (out_result) {
@@ -423,19 +534,77 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 		return -1;
 	}
 
-	typedef Vfs::Directory_service::Dirent_result Result;
+	typedef Vfs::File_io_service::Read_result Result;
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Vfs::Directory_service::Dirent dirent_out;
-	Genode::memset(&dirent_out, 0, sizeof(dirent_out));
+	typedef Vfs::Directory_service::Dirent Dirent;
 
-	unsigned const index = handle->seek() / sizeof(Vfs::Directory_service::Dirent);
+	Dirent dirent_out;
 
-	switch (handle->ds().dirent(fd->fd_path, index, dirent_out)) {
-	case Result::DIRENT_ERR_INVALID_PATH: errno = ENOENT; return -1;
-	case Result::DIRENT_ERR_NO_PERM:      errno = EACCES; return -1;
-	case Result::DIRENT_OK:                               break;
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
+
+			Vfs::Vfs_handle *handle;
+
+			Check(Vfs::Vfs_handle *handle)
+			: handle(handle) { }
+
+			bool suspend() override
+			{
+				retry = !handle->fs().queue_read(handle, sizeof(Dirent));
+				return retry;
+			}
+		} check(handle);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
+	}
+
+	Result         out_result;
+	Vfs::file_size out_count;
+
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
+
+			Vfs::Vfs_handle *handle;
+			Dirent          &dirent_out;
+			Vfs::file_size  &out_count;
+			Result          &out_result;
+
+			Check(Vfs::Vfs_handle *handle, Dirent &dirent_out,
+			      Vfs::file_size &out_count, Result &out_result)
+			: handle(handle), dirent_out(dirent_out), out_count(out_count),
+			  out_result(out_result) { }
+
+			bool suspend() override
+			{
+				out_result = handle->fs().complete_read(handle,
+				                                        (char*)&dirent_out,
+				                                        sizeof(Dirent),
+				                                        out_count);
+
+				/* suspend me if read is still queued */
+
+				retry = (out_result == Result::READ_QUEUED);
+
+				return retry;
+			}
+		} check(handle, dirent_out, out_count, out_result);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
+	}
+
+	if ((out_result != Result::READ_OK) ||
+	    (out_count < sizeof(Dirent))) {
+		return 0;
 	}
 
 	/*
@@ -693,38 +862,186 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 
 int Libc::Vfs_plugin::fsync(Libc::File_descriptor *fd)
 {
-	_root_dir.sync(fd->fd_path);
+	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	_vfs_sync(handle);
 	return 0;
 }
 
 
 int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 {
-	typedef Vfs::Directory_service::Symlink_result Result;
+	typedef Vfs::Directory_service::Openlink_result Openlink_result;
 
-	switch (_root_dir.symlink(oldpath, newpath)) {
-	case Result::SYMLINK_ERR_EXISTS:        errno = EEXIST;       return -1;
-	case Result::SYMLINK_ERR_NO_ENTRY:      errno = ENOENT;       return -1;
-	case Result::SYMLINK_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; return -1;
-	case Result::SYMLINK_ERR_NO_PERM:       errno = EPERM;        return -1;
-	case Result::SYMLINK_ERR_NO_SPACE:      errno = ENOSPC;       return -1;
-	case Result::SYMLINK_OK:                                      break;
+	Vfs::Vfs_handle *handle { 0 };
+
+	Openlink_result openlink_result =
+		_root_dir.openlink(newpath, true, &handle, _alloc);
+
+	switch (openlink_result) {
+	case Openlink_result::OPENLINK_OK:
+		break;
+	case Openlink_result::OPENLINK_ERR_LOOKUP_FAILED:
+		return Errno(ENOENT);
+	case Openlink_result::OPENLINK_ERR_NAME_TOO_LONG:
+		return Errno(ENAMETOOLONG);
+	case Openlink_result::OPENLINK_ERR_NODE_ALREADY_EXISTS:
+		return Errno(EEXIST);
+	case Openlink_result::OPENLINK_ERR_NO_SPACE:
+		return Errno(ENOSPC);
+	case Openlink_result::OPENLINK_ERR_OUT_OF_RAM:
+		return Errno(ENOSPC);
+	case Openlink_result::OPENLINK_ERR_OUT_OF_CAPS:
+		return Errno(ENOSPC);
+	case Vfs::Directory_service::OPENLINK_ERR_PERMISSION_DENIED:
+		return Errno(EPERM);
 	}
+
+	Vfs::file_size count = ::strlen(oldpath) + 1;
+	Vfs::file_size out_count  = 0;
+
+	struct Check : Libc::Suspend_functor
+	{
+		bool             retry { false };
+
+		Vfs::Vfs_handle *handle;
+		void const      *buf;
+		::size_t         count;
+		Vfs::file_size  &out_count;
+
+		Check(Vfs::Vfs_handle *handle, void const *buf,
+		      ::size_t count, Vfs::file_size &out_count)
+		: handle(handle), buf(buf), count(count), out_count(out_count)
+		{ }
+
+		bool suspend() override
+		{
+			try {
+				handle->fs().write(handle, (char const *)buf,
+					               count, out_count);
+				retry = false;
+			} catch (Vfs::File_io_service::Insufficient_buffer) {
+				retry = true;
+			}
+
+			return retry;
+		}
+	} check ( handle, oldpath, count, out_count);
+
+	do {
+		Libc::suspend(check);
+	} while (check.retry);
+
+	_vfs_sync(handle);
+	handle->ds().close(handle);
+
+	if (out_count != count)
+		return Errno(ENAMETOOLONG);
+
 	return 0;
 }
 
 
 ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_size)
 {
-	typedef Vfs::Directory_service::Readlink_result Result;
+	Vfs::Vfs_handle *symlink_handle { 0 };
 
+	Vfs::Directory_service::Openlink_result openlink_result =
+		_root_dir.openlink(path, false, &symlink_handle, _alloc);
+
+	switch (openlink_result) {
+	case Vfs::Directory_service::OPENLINK_OK:
+		break;
+	case Vfs::Directory_service::OPENLINK_ERR_LOOKUP_FAILED:
+		return Errno(ENOENT);
+	case Vfs::Directory_service::OPENLINK_ERR_NAME_TOO_LONG:
+		/* should not happen */
+		return Errno(ENAMETOOLONG);
+	case Vfs::Directory_service::OPENLINK_ERR_NODE_ALREADY_EXISTS:
+	case Vfs::Directory_service::OPENLINK_ERR_NO_SPACE:
+	case Vfs::Directory_service::OPENLINK_ERR_OUT_OF_RAM:
+	case Vfs::Directory_service::OPENLINK_ERR_OUT_OF_CAPS:
+	case Vfs::Directory_service::OPENLINK_ERR_PERMISSION_DENIED:
+		return Errno(EACCES);
+	}
+
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
+
+			Vfs::Vfs_handle *symlink_handle;
+			::size_t const   buf_size;
+
+			Check(Vfs::Vfs_handle *symlink_handle,
+			      ::size_t const buf_size)
+			: symlink_handle(symlink_handle), buf_size(buf_size) { }
+
+			bool suspend() override
+			{
+				retry =
+					!symlink_handle->fs().queue_read(symlink_handle, buf_size);
+				return retry;
+			}
+		} check(symlink_handle, buf_size);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
+	}
+
+	typedef Vfs::File_io_service::Read_result Result;
+
+	Result out_result;
 	Vfs::file_size out_len = 0;
 
-	switch (_root_dir.readlink(path, buf, buf_size, out_len)) {
-	case Result::READLINK_ERR_NO_ENTRY: errno = ENOENT; return -1;
-	case Result::READLINK_ERR_NO_PERM:  errno = EACCES; return -1;
-	case Result::READLINK_OK:                           break;
+	{
+		struct Check : Libc::Suspend_functor
+		{
+			bool             retry { false };
+
+			Vfs::Vfs_handle *symlink_handle;
+			char            *buf;
+			::size_t const   buf_size;
+			Vfs::file_size  &out_len;
+			Result          &out_result;
+
+			Check(Vfs::Vfs_handle *symlink_handle,
+			      char *buf,
+			      ::size_t const buf_size,
+			      Vfs::file_size &out_len,
+			      Result &out_result)
+			: symlink_handle(symlink_handle), buf(buf), buf_size(buf_size),
+			  out_len(out_len), out_result(out_result) { }
+
+			bool suspend() override
+			{
+				out_result = symlink_handle->fs().complete_read(symlink_handle, buf, buf_size, out_len);
+
+				/* suspend me if read is still queued */
+
+				retry = (out_result == Result::READ_QUEUED);
+
+				return retry;
+			}
+		} check(symlink_handle, buf, buf_size, out_len, out_result);
+
+		do {
+			Libc::suspend(check);
+		} while (check.retry);
+	}
+
+	switch (out_result) {
+	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);
+	case Result::READ_ERR_WOULD_BLOCK: return Errno(EWOULDBLOCK);
+	case Result::READ_ERR_INVALID:     return Errno(EINVAL);
+	case Result::READ_ERR_IO:          return Errno(EIO);
+	case Result::READ_ERR_INTERRUPT:   return Errno(EINTR);
+	case Result::READ_OK:              break;
+
+	case Result::READ_QUEUED: /* handled above, so never reached */ break;
 	};
+
+	symlink_handle->ds().close(symlink_handle);
 
 	return out_len;
 }

@@ -91,6 +91,16 @@ class Lx_fs::Session_component : public Session_rpc_object
 			case Packet_descriptor::READ_READY:
 				/* not supported */
 				break;
+
+			case Packet_descriptor::SYNC:
+
+				/**
+				 * We could call sync(2) here but for now we forward just the
+				 * reminder because besides testing, there is currently no
+				 * use-case.
+				 */
+				Genode::warning("SYNC not implemented!");
+				break;
 			}
 
 			packet.length(res_length);
@@ -327,13 +337,6 @@ class Lx_fs::Session_component : public Session_rpc_object
 		{
 			Genode::error(__func__, " not implemented");
 		}
-
-		/**
-		 * We could call sync(2) here but for now we forward just the
-		 * reminder because besides testing, there is currently no
-		 * use-case.
-		 */
-		void sync(Node_handle) override { Genode::warning("sync() not implemented!"); }
 };
 
 

@@ -59,7 +59,29 @@ class Vfs::Rump_file_system : public File_system
 
 		typedef Genode::Path<MAX_PATH_LEN> Path;
 
-		class Rump_vfs_handle : public Vfs_handle
+		Genode::Env &_env;
+
+		struct Rump_vfs_handle : public Vfs_handle
+		{
+			using Vfs_handle::Vfs_handle;
+
+			virtual Read_result read(char *buf, file_size buf_size,
+			                         file_size seek_offset, file_size &out_count)
+			{
+				Genode::error("Rump_vfs_handle::read() called");
+				return READ_ERR_INVALID;
+			}
+
+			virtual Write_result write(char const *buf, file_size buf_size,
+			                           file_size seek_offset,
+			                           file_size &out_count)
+			{
+				Genode::error("Rump_vfs_handle::write() called");
+				return WRITE_ERR_INVALID;
+			}
+		};
+
+		class Rump_vfs_file_handle : public Rump_vfs_handle
 		{
 			private:
 
@@ -67,13 +89,197 @@ class Vfs::Rump_file_system : public File_system
 
 			public:
 
-				Rump_vfs_handle(File_system &fs, Allocator &alloc,
-				                int status_flags, int fd)
-				: Vfs_handle(fs, fs, alloc, status_flags), _fd(fd) { }
+				Rump_vfs_file_handle(File_system &fs, Allocator &alloc,
+				                     int status_flags, int fd)
+				: Rump_vfs_handle(fs, fs, alloc, status_flags), _fd(fd) { }
 
-				~Rump_vfs_handle() { rump_sys_close(_fd); }
+				~Rump_vfs_file_handle() { rump_sys_close(_fd); }
 
-				int fd() const { return _fd; }
+				Ftruncate_result ftruncate(file_size len)
+				{
+					if (rump_sys_ftruncate(_fd, len) != 0) switch (errno) {
+					case EACCES: return FTRUNCATE_ERR_NO_PERM;
+					case EINTR:  return FTRUNCATE_ERR_INTERRUPT;
+					case ENOSPC: return FTRUNCATE_ERR_NO_SPACE;
+					default:
+						return FTRUNCATE_ERR_NO_PERM;
+					}
+					return FTRUNCATE_OK;
+				}
+
+				Read_result read(char *buf, file_size buf_size,
+				                 file_size seek_offset, file_size &out_count) override
+				{
+					ssize_t n = rump_sys_pread(_fd, buf, buf_size, seek_offset);
+					if (n == -1) switch (errno) {
+					case EWOULDBLOCK: return READ_ERR_WOULD_BLOCK;
+					case EINVAL:      return READ_ERR_INVALID;
+					case EIO:         return READ_ERR_IO;
+					case EINTR:       return READ_ERR_INTERRUPT;
+					default:
+						return READ_ERR_IO;
+					}
+					out_count = n;
+					return READ_OK;
+				}
+
+				Write_result write(char const *buf, file_size buf_size,
+				                   file_size seek_offset,
+				                   file_size &out_count) override
+				{
+					out_count = 0;
+
+					ssize_t n = rump_sys_pwrite(_fd, buf, buf_size, seek_offset);
+					if (n == -1) switch (errno) {
+					case EWOULDBLOCK: return WRITE_ERR_WOULD_BLOCK;
+					case EINVAL:      return WRITE_ERR_INVALID;
+					case EIO:         return WRITE_ERR_IO;
+					case EINTR:       return WRITE_ERR_INTERRUPT;
+					default:
+						return WRITE_ERR_IO;
+					}
+					out_count = n;
+					return WRITE_OK;
+				}
+		};
+
+		class Rump_vfs_dir_handle : public Rump_vfs_handle
+		{
+			private:
+
+				int  _fd;
+				Path _path;
+
+				Read_result _finish_read(char const *path,
+				                         struct ::dirent *dent, Dirent &vfs_dir)
+				{
+					/*
+					 * We cannot use 'd_type' member of 'dirent' here since the EXT2
+					 * implementation sets the type to unkown. Hence we use stat.
+					 */
+					struct stat s;
+					rump_sys_lstat(path, &s);
+
+					if (S_ISREG(s.st_mode))
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
+					else if (S_ISDIR(s.st_mode))
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_DIRECTORY;
+					else if (S_ISLNK(s.st_mode))
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_SYMLINK;
+					else if (S_ISBLK(s.st_mode))
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_BLOCKDEV;
+					else if (S_ISCHR(s.st_mode))
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_CHARDEV;
+					else if (S_ISFIFO(s.st_mode))
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_FIFO;
+					else
+						vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
+
+					strncpy(vfs_dir.name, dent->d_name, sizeof(Dirent::name));
+
+					return READ_OK;
+				}
+
+			public:
+
+				Rump_vfs_dir_handle(File_system &fs, Allocator &alloc,
+				                    int status_flags, int fd, char const *path)
+				: Rump_vfs_handle(fs, fs, alloc, status_flags),
+				  _fd(fd),
+				  _path(path) { }
+
+				~Rump_vfs_dir_handle() { rump_sys_close(_fd); }
+
+				Read_result read(char *dst, file_size count,
+				                 file_size seek_offset,
+				                 file_size &out_count) override
+				{
+					out_count = 0;
+
+					if (count < sizeof(Dirent))
+						return READ_ERR_INVALID;
+
+					file_size index = seek_offset / sizeof(Dirent);
+
+					Dirent *vfs_dir = (Dirent*)dst;
+
+					out_count = sizeof(Dirent);
+
+					rump_sys_lseek(_fd, 0, SEEK_SET);
+
+					int bytes;
+					vfs_dir->fileno = 0;
+					char *buf      = _buffer();
+					struct ::dirent *dent = nullptr;
+					do {
+						bytes = rump_sys_getdents(_fd, buf, BUFFER_SIZE);
+						void *current, *end;
+						for (current = buf, end = &buf[bytes];
+						     current < end;
+						     current = _DIRENT_NEXT((::dirent *)current))
+						{
+							dent = (::dirent *)current;
+							if (strcmp(".", dent->d_name) && strcmp("..", dent->d_name)) {
+								if (vfs_dir->fileno++ == index) {
+									Path newpath(dent->d_name, _path.base());
+									return _finish_read(newpath.base(), dent, *vfs_dir);
+								}
+							}
+						}
+					} while (bytes > 0);
+
+					vfs_dir->type = DIRENT_TYPE_END;
+					vfs_dir->name[0] = '\0';
+					return READ_OK;
+				}
+		};
+
+		class Rump_vfs_symlink_handle : public Rump_vfs_handle
+		{
+			private:
+
+				Path _path;
+
+			public:
+
+				Rump_vfs_symlink_handle(File_system &fs, Allocator &alloc,
+				                        int status_flags, char const *path)
+				: Rump_vfs_handle(fs, fs, alloc, status_flags), _path(path) { }
+
+				Read_result read(char *buf, file_size buf_size,
+				                 file_size seek_offset,
+				                 file_size &out_count) override
+				{
+					out_count = 0;
+
+					if (seek_offset != 0) {
+						/* partial read is not supported */
+						return READ_ERR_INVALID;
+					}
+
+					ssize_t n = rump_sys_readlink(_path.base(), buf, buf_size);
+					if (n == -1)
+						return READ_ERR_IO;
+
+					out_count = n;
+
+					return READ_OK;
+				}
+
+				Write_result write(char const *buf, file_size buf_size,
+				                   file_size seek_offset,
+				                   file_size &out_count) override
+				{
+					rump_sys_unlink(_path.base());
+
+					if (rump_sys_symlink(buf, _path.base()) != 0) {
+						out_count = 0;
+						return WRITE_OK;
+					}
+
+					out_count = buf_size;
+					return WRITE_OK;
+				}
 		};
 
 		/**
@@ -110,39 +316,10 @@ class Vfs::Rump_file_system : public File_system
 			return buf;
 		}
 
-		Dirent_result _dirent(char const *path,
-		                      struct ::dirent *dent, Dirent &vfs_dir)
-		{
-			/*
-			 * We cannot use 'd_type' member of 'dirent' here since the EXT2
-			 * implementation sets the type to unkown. Hence we use stat.
-			 */
-			struct stat s;
-			rump_sys_lstat(path, &s);
-
-			if (S_ISREG(s.st_mode))
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
-			else if (S_ISDIR(s.st_mode))
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_DIRECTORY;
-			else if (S_ISLNK(s.st_mode))
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_SYMLINK;
-			else if (S_ISBLK(s.st_mode))
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_BLOCKDEV;
-			else if (S_ISCHR(s.st_mode))
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_CHARDEV;
-			else if (S_ISFIFO(s.st_mode))
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_FIFO;
-			else
-				vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
-
-			strncpy(vfs_dir.name, dent->d_name, sizeof(Dirent::name));
-
-			return DIRENT_OK;
-		}
-
 	public:
 
-		Rump_file_system(Xml_node const &config)
+		Rump_file_system(Genode::Env &env, Xml_node const &config)
+		: _env(env)
 		{
 			typedef Genode::String<16> Fs_type;
 
@@ -180,9 +357,6 @@ class Vfs::Rump_file_system : public File_system
 		 ** Directory service interface **
 		 *********************************/
 
-		void sync(char const *path) override {
-			_rump_sync(); }
-
 		Genode::Dataspace_capability dataspace(char const *path) override
 		{
 			int fd = rump_sys_open(path, O_RDONLY);
@@ -195,9 +369,9 @@ class Vfs::Rump_file_system : public File_system
 			char *local_addr = nullptr;
 			Ram_dataspace_capability ds_cap;
 			try {
-				ds_cap = env()->ram_session()->alloc(ds_size);
+				ds_cap = _env.ram().alloc(ds_size);
 
-				local_addr = env()->rm_session()->attach(ds_cap);
+				local_addr = _env.rm().attach(ds_cap);
 
 				enum { CHUNK_SIZE = 16U << 10 };
 
@@ -208,11 +382,11 @@ class Vfs::Rump_file_system : public File_system
 					i += n;
 				}
 
-				env()->rm_session()->detach(local_addr);
+				_env.rm().detach(local_addr);
 			} catch(...) {
 				if (local_addr)
-					env()->rm_session()->detach(local_addr);
-				env()->ram_session()->free(ds_cap);
+					_env.rm().detach(local_addr);
+				_env.ram().free(ds_cap);
 			}
 			rump_sys_close(fd);
 			return ds_cap;
@@ -222,7 +396,7 @@ class Vfs::Rump_file_system : public File_system
 		             Genode::Dataspace_capability ds_cap) override
 		{
 			if (ds_cap.valid())
-				env()->ram_session()->free(
+				_env.ram().free(
 					static_cap_cast<Genode::Ram_dataspace>(ds_cap));
 		}
 
@@ -267,20 +441,6 @@ class Vfs::Rump_file_system : public File_system
 			return (rump_sys_lstat(path, &s) == 0) ? path : 0;
 		}
 
-		Mkdir_result mkdir(char const *path, unsigned mode) override
-		{
-			if (rump_sys_mkdir(path, mode|0777) != 0) switch (::errno) {
-			case ENAMETOOLONG: return MKDIR_ERR_NAME_TOO_LONG;
-			case EACCES:       return MKDIR_ERR_NO_PERM;
-			case ENOENT:       return MKDIR_ERR_NO_ENTRY;
-			case EEXIST:       return MKDIR_ERR_EXISTS;
-			case ENOSPC:       return MKDIR_ERR_NO_SPACE;
-			default:
-				return MKDIR_ERR_NO_PERM;
-			}
-			return MKDIR_OK;
-		}
-
 		Open_result open(char const *path, unsigned mode,
 		                 Vfs_handle **handle,
 		                 Allocator  &alloc) override
@@ -300,14 +460,74 @@ class Vfs::Rump_file_system : public File_system
 				return OPEN_ERR_NO_PERM;
 			}
 
-			*handle = new (alloc) Rump_vfs_handle(*this, alloc, mode, fd);
+			*handle = new (alloc) Rump_vfs_file_handle(*this, alloc, mode, fd);
 			return OPEN_OK;
 		}
 
+		Opendir_result opendir(char const *path, bool create,
+		                       Vfs_handle **handle, Allocator &alloc) override
+		{
+			if (strlen(path) == 0)
+				path = "/";
+
+			if (create) {
+				if (rump_sys_mkdir(path, 0777) != 0) switch (::errno) {
+				case ENAMETOOLONG: return OPENDIR_ERR_NAME_TOO_LONG;
+				case EACCES:       return OPENDIR_ERR_PERMISSION_DENIED;
+				case ENOENT:       return OPENDIR_ERR_LOOKUP_FAILED;
+				case EEXIST:       return OPENDIR_ERR_NODE_ALREADY_EXISTS;
+				case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
+				default:
+					return OPENDIR_ERR_PERMISSION_DENIED;
+				}
+			}
+
+			int fd = rump_sys_open(path, O_RDONLY | O_DIRECTORY);
+			if (fd == -1) switch (errno) {
+			case ENAMETOOLONG: return OPENDIR_ERR_NAME_TOO_LONG;
+			case EACCES:       return OPENDIR_ERR_PERMISSION_DENIED;
+			case ENOENT:       return OPENDIR_ERR_LOOKUP_FAILED;
+			case EEXIST:       return OPENDIR_ERR_NODE_ALREADY_EXISTS;
+			case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
+			default:
+				return OPENDIR_ERR_PERMISSION_DENIED;
+			}
+
+			*handle = new (alloc) Rump_vfs_dir_handle(*this, alloc, 0777, fd, path);
+			return OPENDIR_OK;
+
+		}
+
+		Openlink_result openlink(char const *path, bool create,
+	                             Vfs_handle **handle, Allocator &alloc) override
+	    {
+			if (create) {
+				if (rump_sys_symlink("", path) != 0) switch (errno) {
+				case EEXIST:       return OPENLINK_ERR_NODE_ALREADY_EXISTS;
+				case ENOENT:       return OPENLINK_ERR_LOOKUP_FAILED;
+				case ENOSPC:       return OPENLINK_ERR_NO_SPACE;
+				case EACCES:       return OPENLINK_ERR_PERMISSION_DENIED;
+				case ENAMETOOLONG: return OPENLINK_ERR_NAME_TOO_LONG;
+				default:
+					return OPENLINK_ERR_PERMISSION_DENIED;
+				}
+			}
+
+			char dummy;
+			if (rump_sys_readlink(path, &dummy, sizeof(dummy)) == -1) switch(errno) {
+				case ENOENT: return OPENLINK_ERR_LOOKUP_FAILED;
+				default:
+					return OPENLINK_ERR_PERMISSION_DENIED;
+			}
+
+			*handle = new (alloc) Rump_vfs_symlink_handle(*this, alloc, 0777, path);
+			return OPENLINK_OK;
+	    }
+
 		void close(Vfs_handle *vfs_handle) override
 		{
-			Rump_vfs_handle *rump_handle =
-				static_cast<Rump_vfs_handle *>(vfs_handle);
+			Rump_vfs_file_handle *rump_handle =
+				static_cast<Rump_vfs_file_handle *>(vfs_handle);
 
 			if (rump_handle)
 				destroy(vfs_handle->alloc(), rump_handle);
@@ -328,44 +548,6 @@ class Vfs::Rump_file_system : public File_system
 			return STAT_OK;
 		}
 
-		Dirent_result dirent(char const *path, file_offset index_,
-		                     Dirent &vfs_dir) override
-		{
-			int fd = rump_sys_open(*path ? path : "/", O_RDONLY | O_DIRECTORY);
-			if (fd == -1)
-				return DIRENT_ERR_INVALID_PATH;
-
-			rump_sys_lseek(fd, 0, SEEK_SET);
-
-			int bytes;
-			unsigned const index = index_;
-			vfs_dir.fileno = 0;
-			char *buf      = _buffer();
-			struct ::dirent *dent = nullptr;
-			do {
-				bytes = rump_sys_getdents(fd, buf, BUFFER_SIZE);
-				void *current, *end;
-				for (current = buf, end = &buf[bytes];
-				     current < end;
-				     current = _DIRENT_NEXT((::dirent *)current))
-				{
-					dent = (::dirent *)current;
-					if (strcmp(".", dent->d_name) && strcmp("..", dent->d_name)) {
-						if (vfs_dir.fileno++ == index) {
-							Path newpath(dent->d_name, path);
-							rump_sys_close(fd);
-							return _dirent(newpath.base(), dent, vfs_dir);
-						}
-					}
-				}
-			} while (bytes > 0);
-			rump_sys_close(fd);
-
-			vfs_dir.type = DIRENT_TYPE_END;
-			vfs_dir.name[0] = '\0';
-			return DIRENT_OK;
-		}
-
 		Unlink_result unlink(char const *path) override
 		{
 			struct stat s;
@@ -382,39 +564,6 @@ class Vfs::Rump_file_system : public File_system
 			case ENOTEMPTY: return UNLINK_ERR_NOT_EMPTY;
 			}
 			return UNLINK_ERR_NO_PERM;
-		}
-
-		Readlink_result readlink(char const *path, char *buf,
-		                         file_size buf_size, file_size &out_len) override
-		{
-			ssize_t n = rump_sys_readlink(path, buf, buf_size);
-			if (n == -1) {
-				out_len = 0;
-				return READLINK_ERR_NO_ENTRY;
-			}
-
-			out_len = n;
-			return READLINK_OK;
-		}
-
-		Symlink_result symlink(char const *from, char const *to) override
-		{
-			if (rump_sys_symlink(from, to) != 0) switch (errno) {
-			case EEXIST: {
-				if (rump_sys_readlink(to, NULL, 0) == -1)
-					return SYMLINK_ERR_EXISTS;
-				rump_sys_unlink(to);
-				return rump_sys_symlink(from, to) == 0 ?
-					SYMLINK_OK : SYMLINK_ERR_EXISTS;
-			}
-			case ENOENT:       return SYMLINK_ERR_NO_ENTRY;
-			case ENOSPC:       return SYMLINK_ERR_NO_SPACE;
-			case EACCES:       return SYMLINK_ERR_NO_PERM;
-			case ENAMETOOLONG: return SYMLINK_ERR_NAME_TOO_LONG;
-			default:
-				return SYMLINK_ERR_NO_PERM;
-			}
-			return SYMLINK_OK;
 		}
 
 		Rename_result rename(char const *from, char const *to) override
@@ -439,53 +588,42 @@ class Vfs::Rump_file_system : public File_system
 			Rump_vfs_handle *handle =
 				static_cast<Rump_vfs_handle *>(vfs_handle);
 
-			ssize_t n = rump_sys_pwrite(handle->fd(), buf, buf_size, handle->seek());
-			if (n == -1) switch (errno) {
-			case EWOULDBLOCK: return WRITE_ERR_WOULD_BLOCK;
-			case EINVAL:      return WRITE_ERR_INVALID;
-			case EIO:         return WRITE_ERR_IO;
-			case EINTR:       return WRITE_ERR_INTERRUPT;
-			default:
-				return WRITE_ERR_IO;
-			}
-			out_count = n;
-			return WRITE_OK;
+			if (handle)
+				return handle->write(buf, buf_size, handle->seek(), out_count);
+
+			return WRITE_ERR_INVALID;
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *buf, file_size buf_size,
-		                 file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, char *buf,
+		                          file_size buf_size,
+		                          file_size &out_count) override
 		{
 			Rump_vfs_handle *handle =
 				static_cast<Rump_vfs_handle *>(vfs_handle);
 
-			ssize_t n = rump_sys_pread(handle->fd(), buf, buf_size, handle->seek());
-			if (n == -1) switch (errno) {
-			case EWOULDBLOCK: return READ_ERR_WOULD_BLOCK;
-			case EINVAL:      return READ_ERR_INVALID;
-			case EIO:         return READ_ERR_IO;
-			case EINTR:       return READ_ERR_INTERRUPT;
-			default:
-				return READ_ERR_IO;
-			}
-			out_count = n;
-			return READ_OK;
+			if (handle)
+				return handle->read(buf, buf_size, handle->seek(), out_count);
+
+			return READ_ERR_INVALID;
 		}
 
 		bool read_ready(Vfs_handle *) override { return true; }
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
 		{
-			Rump_vfs_handle *handle =
-				static_cast<Rump_vfs_handle *>(vfs_handle);
+			Rump_vfs_file_handle *handle =
+				dynamic_cast<Rump_vfs_file_handle *>(vfs_handle);
 
-			if (rump_sys_ftruncate(handle->fd(), len) != 0) switch (errno) {
-			case EACCES: return FTRUNCATE_ERR_NO_PERM;
-			case EINTR:  return FTRUNCATE_ERR_INTERRUPT;
-			case ENOSPC: return FTRUNCATE_ERR_NO_SPACE;
-			default:
-				return FTRUNCATE_ERR_NO_PERM;
-			}
-			return FTRUNCATE_OK;
+			if (handle)
+				return handle->ftruncate(len);
+
+			return FTRUNCATE_ERR_NO_PERM;
+		}
+
+		Sync_result complete_sync(Vfs_handle *) override
+		{
+			_rump_sync();
+			return SYNC_OK;
 		}
 };
 
@@ -531,7 +669,7 @@ class Rump_factory : public Vfs::File_system_factory
 		                         Genode::Xml_node   config,
 		                         Vfs::Io_response_handler &) override
 		{
-			return new (alloc) Vfs::Rump_file_system(config);
+			return new (alloc) Vfs::Rump_file_system(env, config);
 		}
 };
 

@@ -29,6 +29,64 @@ class Vfs::Inline_file_system : public Single_file_system
 		char const * const _base;
 		file_size    const _size;
 
+		class Inline_vfs_handle : public Single_vfs_handle
+		{
+			private:
+
+				char const * const _base;
+				file_size    const _size;
+
+			public:
+
+				Inline_vfs_handle(Directory_service &ds,
+				               File_io_service      &fs,
+				               Genode::Allocator    &alloc,
+				               char const * const    base,
+				               file_size    const    size)
+				: Single_vfs_handle(ds, fs, alloc, 0),
+				  _base(base), _size(size)
+				{ }
+
+				Read_result read(char *dst, file_size count,
+				                 file_size &out_count) override
+				{
+					/* file read limit is the size of the dataspace */
+					file_size const max_size = _size;
+
+					/* current read offset */
+					file_size const read_offset = seek();
+
+					/* maximum read offset, clamped to dataspace size */
+					file_size const end_offset = min(count + read_offset, max_size);
+
+					/* source address within the dataspace */
+					char const *src = _base + read_offset;
+
+					/* check if end of file is reached */
+					if (read_offset >= end_offset) {
+						out_count = 0;
+						return READ_OK;
+					}
+
+					/* copy-out bytes from ROM dataspace */
+					file_size const num_bytes = end_offset - read_offset;
+
+					memcpy(dst, src, num_bytes);
+
+					out_count = num_bytes;
+					return READ_OK;
+				}
+
+				Write_result write(char const *src, file_size count,
+				                   file_size &out_count) override
+				{
+					out_count = 0;
+					return WRITE_ERR_INVALID;
+				}
+
+				bool read_ready() { return true; }
+		};
+
 	public:
 
 		Inline_file_system(Genode::Env&,
@@ -48,56 +106,24 @@ class Vfs::Inline_file_system : public Single_file_system
 		 ** Directory service interface **
 		 ********************************/
 
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
+		{
+			if (!_single_file(path))
+				return OPEN_ERR_UNACCESSIBLE;
+
+			*out_handle = new (alloc) Inline_vfs_handle(*this, *this, alloc,
+			                                            _base, _size);
+			return OPEN_OK;
+		}
+
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
 			out.size = _size;
 			return result;
 		}
-
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Write_result write(Vfs_handle *, char const *, file_size,
-		                   file_size &count_out) override
-		{
-			count_out = 0;
-			return WRITE_ERR_INVALID;
-		}
-
-		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                 file_size &out_count) override
-		{
-			/* file read limit is the size of the dataspace */
-			file_size const max_size = _size;
-
-			/* current read offset */
-			file_size const read_offset = vfs_handle->seek();
-
-			/* maximum read offset, clamped to dataspace size */
-			file_size const end_offset = min(count + read_offset, max_size);
-
-			/* source address within the dataspace */
-			char const *src = _base + read_offset;
-
-			/* check if end of file is reached */
-			if (read_offset >= end_offset) {
-				out_count = 0;
-				return READ_OK;
-			}
-
-			/* copy-out bytes from ROM dataspace */
-			file_size const num_bytes = end_offset - read_offset;
-
-			memcpy(dst, src, num_bytes);
-
-			out_count = num_bytes;
-			return READ_OK;
-		}
-
-		bool read_ready(Vfs_handle *) override { return true; }
 };
 
 #endif /* _INCLUDE__VFS__INLINE_FILE_SYSTEM_H_ */

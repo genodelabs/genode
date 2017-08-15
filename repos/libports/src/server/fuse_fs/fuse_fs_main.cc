@@ -95,6 +95,10 @@ class Fuse_fs::Session_component : public Session_rpc_object
 			case Packet_descriptor::READ_READY:
 				/* not supported */
 				break;
+
+			case Packet_descriptor::SYNC:
+				Fuse::sync_fs();
+				break;
 			}
 
 			packet.length(res_length);
@@ -430,11 +434,6 @@ class Fuse_fs::Session_component : public Session_rpc_object
 			} catch (Id_space<File_system::Node>::Unknown_id const &) {
 				throw Invalid_handle();
 			}
-		}
-
-		void sync(Node_handle) override
-		{
-			Fuse::sync_fs();
 		}
 };
 

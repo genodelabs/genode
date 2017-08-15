@@ -117,6 +117,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				size_t   path_len  = strlen(_sysio.stat_in.path);
 				uint32_t path_hash = hash_path(_sysio.stat_in.path, path_len);
 
+				/* XXX: remove sync */
+
+				Registered_no_delete<Vfs_io_waiter>
+					vfs_io_waiter(_vfs_io_waiter_registry);
+
 				Vfs::Directory_service::Stat stat_out;
 				_sysio.error.stat = _root_dir.stat(_sysio.stat_in.path, stat_out);
 
@@ -178,9 +183,46 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_OPEN:
 			{
 				Vfs::Vfs_handle *vfs_handle = 0;
-				_sysio.error.open = _root_dir.open(_sysio.open_in.path,
-				                                   _sysio.open_in.mode,
-				                                   &vfs_handle, _heap);
+
+				if (_root_dir.directory(_sysio.open_in.path)) {
+
+					typedef Vfs::Directory_service::Opendir_result Opendir_result;
+					typedef Vfs::Directory_service::Open_result Open_result;
+
+					Opendir_result opendir_result =
+						_root_dir.opendir(_sysio.open_in.path, false,
+					                      &vfs_handle, _heap);
+
+					switch (opendir_result) {
+					case Opendir_result::OPENDIR_OK:
+						_sysio.error.open = Open_result::OPEN_OK;
+						break;
+					case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:
+						_sysio.error.open = Open_result::OPEN_ERR_UNACCESSIBLE;
+						break;
+					case Opendir_result::OPENDIR_ERR_NAME_TOO_LONG:
+						_sysio.error.open = Open_result::OPEN_ERR_NAME_TOO_LONG;
+						break;
+					case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
+						_sysio.error.open = Open_result::OPEN_ERR_EXISTS;
+						break;
+					case Opendir_result::OPENDIR_ERR_NO_SPACE:
+						_sysio.error.open = Open_result::OPEN_ERR_NO_SPACE;
+						break;
+					case Opendir_result::OPENDIR_ERR_OUT_OF_RAM:
+					case Opendir_result::OPENDIR_ERR_OUT_OF_CAPS:
+					case Opendir_result::OPENDIR_ERR_PERMISSION_DENIED:
+						_sysio.error.open = Open_result::OPEN_ERR_NO_PERM;
+						break;
+					}
+
+				} else {
+
+					_sysio.error.open = _root_dir.open(_sysio.open_in.path,
+					                                   _sysio.open_in.mode,
+					                                   &vfs_handle, _heap);
+				}
+
 				if (!vfs_handle)
 					break;
 
@@ -198,8 +240,10 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Shared_pointer<Io_channel>
 					channel(new (_heap) Vfs_io_channel(_sysio.open_in.path,
 					                                   leaf_path, &_root_dir,
-					                                   vfs_handle, _env.ep()),
-					_heap);
+					                                   vfs_handle,
+					                                   _vfs_io_waiter_registry,
+					                                   _env.ep()),
+					                                   _heap);
 
 				_sysio.open_out.fd = add_io_channel(channel);
 				result = true;
@@ -235,29 +279,31 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * could be a script that uses an interpreter which maybe
 				 * does not exist.
 				 */
-				Dataspace_capability binary_ds =
-					_root_dir.dataspace(_sysio.execve_in.filename);
+				Genode::Reconstructible<Vfs_dataspace> binary_ds {
+					_root_dir, _vfs_io_waiter_registry,
+					_sysio.execve_in.filename, _env.ram(), _env.rm(), _heap
+				};
 
-				if (!binary_ds.valid()) {
+				if (!binary_ds->ds.valid()) {
 					_sysio.error.execve = Sysio::EXECVE_NONEXISTENT;
 					break;
 				}
 
 				Child_env<sizeof(_sysio.execve_in.args)>
 					child_env(_env.rm(),
-					          _sysio.execve_in.filename, binary_ds,
+					          _sysio.execve_in.filename, binary_ds->ds,
 					          _sysio.execve_in.args, _sysio.execve_in.env);
 
-				_root_dir.release(_sysio.execve_in.filename, binary_ds);
+				binary_ds.construct(_root_dir, _vfs_io_waiter_registry,
+				                    child_env.binary_name(), _env.ram(),
+				                    _env.rm(), _heap);
 
-				binary_ds = _root_dir.dataspace(child_env.binary_name());
-
-				if (!binary_ds.valid()) {
+				if (!binary_ds->ds.valid()) {
 					_sysio.error.execve = Sysio::EXECVE_NONEXISTENT;
 					break;
 				}
 
-				_root_dir.release(child_env.binary_name(), binary_ds);
+				binary_ds.destruct();
 
 				try {
 					_parent_execve.execve_child(*this,
@@ -495,6 +541,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                          new_pid,
 					                          _env,
 					                          _root_dir,
+					                          _vfs_io_waiter_registry,
 					                          _args,
 					                          _sysio_env.env(),
 					                          _heap,
@@ -595,18 +642,62 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_READLINK:
 		{
-			Vfs::file_size out_count = 0;
+			Vfs::Vfs_handle *symlink_handle { 0 };
 
-			_sysio.error.readlink =
-				_root_dir.readlink(_sysio.readlink_in.path,
-			                       _sysio.readlink_out.chunk,
-			                       min(_sysio.readlink_in.bufsiz,
-			                           sizeof(_sysio.readlink_out.chunk)),
-			                       out_count);
+			Vfs::Directory_service::Openlink_result openlink_result =
+				_root_dir.openlink(_sysio.readlink_in.path, false, &symlink_handle, _heap);
+
+			switch (openlink_result) {
+			case Vfs::Directory_service::OPENLINK_OK:
+				result = true;
+				break;
+			case Vfs::Directory_service::OPENLINK_ERR_LOOKUP_FAILED:
+				_sysio.error.readlink = Sysio::READLINK_ERR_NO_ENTRY;
+				break;
+			case Vfs::Directory_service::OPENLINK_ERR_NAME_TOO_LONG:
+			case Vfs::Directory_service::OPENLINK_ERR_NODE_ALREADY_EXISTS:
+			case Vfs::Directory_service::OPENLINK_ERR_NO_SPACE:
+			case Vfs::Directory_service::OPENLINK_ERR_OUT_OF_RAM:
+			case Vfs::Directory_service::OPENLINK_ERR_OUT_OF_CAPS:
+			case Vfs::Directory_service::OPENLINK_ERR_PERMISSION_DENIED:
+				_sysio.error.readlink = Sysio::READLINK_ERR_NO_PERM;
+			}
+
+			if (openlink_result != Vfs::Directory_service::OPENLINK_OK)
+				break;
+
+			Vfs::file_size count = min(_sysio.readlink_in.bufsiz,
+			                           sizeof(_sysio.readlink_out.chunk));
+
+			Registered_no_delete<Vfs_io_waiter>
+				vfs_io_waiter(_vfs_io_waiter_registry);
+
+			while (!symlink_handle->fs().queue_read(symlink_handle, count))
+				vfs_io_waiter.wait_for_io();
+
+			Vfs_handle_context read_context;
+
+			symlink_handle->context = &read_context;
+
+			Vfs::file_size out_count = 0;
+			Vfs::File_io_service::Read_result read_result;
+
+			for (;;) {
+				read_result = symlink_handle->fs().complete_read(symlink_handle,
+				                                                 _sysio.readlink_out.chunk,
+				                                                 count,
+				                                                 out_count);
+
+				if (read_result != Vfs::File_io_service::READ_QUEUED)
+					break;
+
+				read_context.vfs_io_waiter.wait_for_io();
+			}
+
+			symlink_handle->ds().close(symlink_handle);
 
 			_sysio.readlink_out.count = out_count;
 
-			result = (_sysio.error.readlink == Vfs::Directory_service::READLINK_OK);
 			break;
 		}
 
@@ -619,19 +710,108 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			break;
 
 		case SYSCALL_MKDIR:
+		{
+			Vfs::Vfs_handle *dir_handle { 0 };
 
-			_sysio.error.mkdir = _root_dir.mkdir(_sysio.mkdir_in.path, 0);
+			typedef Vfs::Directory_service::Opendir_result Opendir_result;
 
-			result = (_sysio.error.mkdir == Vfs::Directory_service::MKDIR_OK);
+			Opendir_result opendir_result =
+				_root_dir.opendir(_sysio.mkdir_in.path, true, &dir_handle, _heap);
+
+			switch (opendir_result) {
+			case Opendir_result::OPENDIR_OK:
+				dir_handle->ds().close(dir_handle);
+				result = true;
+				break;
+			case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:
+				_sysio.error.mkdir = Sysio::MKDIR_ERR_NO_ENTRY;
+				break;
+			case Opendir_result::OPENDIR_ERR_NAME_TOO_LONG:
+				_sysio.error.mkdir = Sysio::MKDIR_ERR_NAME_TOO_LONG;
+				break;
+			case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
+				_sysio.error.mkdir = Sysio::MKDIR_ERR_EXISTS;
+				break;
+			case Opendir_result::OPENDIR_ERR_NO_SPACE:
+				_sysio.error.mkdir = Sysio::MKDIR_ERR_NO_SPACE;
+				break;
+			case Opendir_result::OPENDIR_ERR_OUT_OF_RAM:
+			case Opendir_result::OPENDIR_ERR_OUT_OF_CAPS:
+			case Opendir_result::OPENDIR_ERR_PERMISSION_DENIED:
+				_sysio.error.mkdir = Sysio::MKDIR_ERR_NO_PERM;
+				break;
+			}
+
 			break;
+		}
 
 		case SYSCALL_SYMLINK:
+		{
 
-			_sysio.error.symlink = _root_dir.symlink(_sysio.symlink_in.oldpath,
-			                                         _sysio.symlink_in.newpath);
+			Vfs::Vfs_handle *symlink_handle { 0 };
 
-			result = (_sysio.error.symlink == Vfs::Directory_service::SYMLINK_OK);
+			typedef Vfs::Directory_service::Openlink_result Openlink_result;
+
+			Openlink_result openlink_result =
+				_root_dir.openlink(_sysio.symlink_in.newpath, true,
+				                   &symlink_handle, _heap);
+
+			switch (openlink_result) {
+			case Openlink_result::OPENLINK_OK:
+				result = true;
+				break;
+			case Openlink_result::OPENLINK_ERR_LOOKUP_FAILED:
+				_sysio.error.symlink = Sysio::SYMLINK_ERR_NO_ENTRY;
+				break;
+			case Openlink_result::OPENLINK_ERR_NAME_TOO_LONG:
+			case Openlink_result::OPENLINK_ERR_NODE_ALREADY_EXISTS:
+			case Openlink_result::OPENLINK_ERR_NO_SPACE:
+			case Openlink_result::OPENLINK_ERR_OUT_OF_RAM:
+			case Openlink_result::OPENLINK_ERR_OUT_OF_CAPS:
+			case Openlink_result::OPENLINK_ERR_PERMISSION_DENIED:
+				_sysio.error.symlink = Sysio::SYMLINK_ERR_NO_PERM;
+			}
+
+			if (openlink_result != Openlink_result::OPENLINK_OK)
+				break;
+
+			Vfs::file_size count = strlen(_sysio.symlink_in.oldpath) + 1;
+			Vfs::file_size out_count;
+
+			Registered_no_delete<Vfs_io_waiter>
+				vfs_io_waiter(_vfs_io_waiter_registry);
+
+			for (;;) {
+				try {
+					symlink_handle->fs().write(symlink_handle, _sysio.symlink_in.oldpath,
+					                           strlen(_sysio.symlink_in.oldpath) + 1,
+					                           out_count);
+					break;
+				} catch (Vfs::File_io_service::Insufficient_buffer) {
+					vfs_io_waiter.wait_for_io();
+				}
+			}
+
+			if (out_count != count) {
+				_sysio.error.symlink = Sysio::SYMLINK_ERR_NAME_TOO_LONG;
+				result = false;
+			}
+
+			while (!symlink_handle->fs().queue_sync(symlink_handle))
+				vfs_io_waiter.wait_for_io();
+
+			Vfs_handle_context sync_context;
+
+			symlink_handle->context = &sync_context;
+
+			while (symlink_handle->fs().complete_sync(symlink_handle) ==
+				   Vfs::File_io_service::SYNC_QUEUED)
+				sync_context.vfs_io_waiter.wait_for_io();
+
+			symlink_handle->ds().close(symlink_handle);
+
 			break;
+		}
 
 		case SYSCALL_USERINFO:
 			{
@@ -737,8 +917,33 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_SYNC:
 			{
-				_root_dir.sync("/");
+				/* no errors supported at this time */
 				result = true;
+
+				Vfs::Vfs_handle *sync_handle;
+
+				Vfs::Directory_service::Opendir_result opendir_result =
+					_root_dir.opendir("/", false, &sync_handle, _heap);
+
+				if (opendir_result != Vfs::Directory_service::OPENDIR_OK)
+					break;
+
+				Registered_no_delete<Vfs_io_waiter>
+					vfs_io_waiter(_vfs_io_waiter_registry);
+
+				while (!sync_handle->fs().queue_sync(sync_handle))
+					vfs_io_waiter.wait_for_io();
+
+				Vfs_handle_context sync_context;
+
+				sync_handle->context = &sync_context;
+
+				while (sync_handle->fs().complete_sync(sync_handle) ==
+				   Vfs::File_io_service::SYNC_QUEUED)
+					sync_context.vfs_io_waiter.wait_for_io();
+
+				sync_handle->ds().close(sync_handle);
+
 				break;
 			}
 

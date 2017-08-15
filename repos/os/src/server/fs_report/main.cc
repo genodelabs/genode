@@ -34,25 +34,29 @@ namespace Fs_report {
 
 	typedef Genode::Path<Session_label::capacity()> Path;
 
-static bool create_parent_dir(Vfs::Directory_service &vfs, Path const &child)
+static bool create_parent_dir(Vfs::Directory_service &vfs, Path const &child,
+                              Genode::Allocator &alloc)
 {
-	typedef Vfs::Directory_service::Mkdir_result Mkdir_result;
+	typedef Vfs::Directory_service::Opendir_result Opendir_result;
 
 	Path parent = child;
 	parent.strip_last_element();
 	if (parent == "/")
 		return true;
 
-	Mkdir_result res = vfs.mkdir(parent.base(), 0);
-	if (res == Mkdir_result::MKDIR_ERR_NO_ENTRY) {
-		if (!create_parent_dir(vfs, parent))
+	Vfs_handle *dir_handle;
+	Opendir_result res = vfs.opendir(parent.base(), true, &dir_handle, alloc);
+	if (res == Opendir_result::OPENDIR_ERR_LOOKUP_FAILED) {
+		if (!create_parent_dir(vfs, parent, alloc))
 			return false;
-		res = vfs.mkdir(parent.base(), 0);
+		res = vfs.opendir(parent.base(), true, &dir_handle, alloc);
 	}
 
 	switch (res) {
-	case Mkdir_result::MKDIR_OK:
-	case Mkdir_result::MKDIR_ERR_EXISTS:
+	case Opendir_result::OPENDIR_OK:
+		vfs.close(dir_handle);
+		return true;
+	case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
 		 return true;
 	default:
 		return false;
@@ -67,7 +71,8 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 		Path _leaf_path;
 
-		Attached_ram_dataspace _ds;
+		Attached_ram_dataspace  _ds;
+		Genode::Entrypoint     &_ep;
 
 		Vfs_handle *_handle;
 		file_size   _file_size = 0;
@@ -80,13 +85,13 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 		                  Vfs::File_system            &vfs,
 		                  Genode::Session_label const &label,
 		                  size_t                       buffer_size)
-		: _ds(env.ram(), env.rm(), buffer_size)
+		: _ds(env.ram(), env.rm(), buffer_size), _ep(env.ep())
 		{
 			typedef Vfs::Directory_service::Open_result Open_result;
 
 			Path path = path_from_label<Path>(label.string());
 
-			create_parent_dir(vfs, path);
+			create_parent_dir(vfs, path, alloc);
 
 			Open_result res = vfs.open(
 				path.base(),
@@ -155,7 +160,12 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 			_success = true;
 
 			/* flush to notify watchers */
-			_handle->ds().sync(_leaf_path.base());
+			while (!_handle->fs().queue_sync(_handle))
+				_ep.wait_and_dispatch_one_io_signal();
+
+			while (_handle->fs().complete_sync(_handle) ==
+			       Vfs::File_io_service::SYNC_QUEUED)
+				_ep.wait_and_dispatch_one_io_signal();
 		}
 
 		void response_sigh(Genode::Signal_context_capability) override { }

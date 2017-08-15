@@ -114,7 +114,20 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
 
-		enum Opcode { READ, WRITE, CONTENT_CHANGED, READ_READY };
+		enum Opcode {
+			READ,
+			WRITE,
+			CONTENT_CHANGED,
+			READ_READY,
+
+			/**
+			 * Synchronize file system
+			 *
+			 * This is only needed by file systems that maintain an internal
+			 * cache, which needs to be flushed on certain occasions.
+			 */
+			SYNC
+		};
 
 	private:
 
@@ -374,17 +387,6 @@ struct File_system::Session : public Genode::Session
 	virtual void move(Dir_handle, Name const &from,
 	                  Dir_handle, Name const &to) = 0;
 
-	/**
-	 * Synchronize file system
-	 *
-	 * This is only needed by file systems that maintain an internal
-	 * cache, which needs to be flushed on certain occasions.
-	 *
-	 * \throw Invalid_handle   node handle is invalid
-     *
-	 */
-	virtual void sync(Node_handle) { }
-
 
 	/*******************
 	 ** RPC interface **
@@ -433,13 +435,10 @@ struct File_system::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Permission_denied),
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
-	GENODE_RPC_THROW(Rpc_sync, void, sync,
-	                 GENODE_TYPE_LIST(Invalid_handle),
-	                 Node_handle);
 
 	GENODE_RPC_INTERFACE(Rpc_tx_cap, Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node,
 	                     Rpc_close, Rpc_status, Rpc_control, Rpc_unlink,
-	                     Rpc_truncate, Rpc_move, Rpc_sync);
+	                     Rpc_truncate, Rpc_move);
 };
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__FILE_SYSTEM_SESSION_H_ */

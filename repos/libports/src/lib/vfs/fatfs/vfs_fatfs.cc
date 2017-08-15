@@ -43,8 +43,8 @@ class Fatfs::File_system : public Vfs::File_system
 
 		typedef Genode::Path<FF_MAX_LFN> Path;
 
-		struct Fatfs_handle;
-		typedef Genode::List<Fatfs_handle> Fatfs_handles;
+		struct Fatfs_file_handle;
+		typedef Genode::List<Fatfs_file_handle> Fatfs_file_handles;
 
 		/**
 		 * The FatFS library does not support opening a file
@@ -54,9 +54,9 @@ class Fatfs::File_system : public Vfs::File_system
 
 		struct File : Genode::Avl_node<File>
 		{
-			Path         path;
-			Fatfs::FIL   fil;
-			Fatfs_handles handles;
+			Path               path;
+			Fatfs::FIL         fil;
+			Fatfs_file_handles handles;
 
 			/************************
 			 ** Avl node interface **
@@ -91,12 +91,99 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		};
 
-		struct Fatfs_handle : Vfs_handle, Fatfs_handles::Element
+		struct Fatfs_handle : Vfs_handle
+		{
+			using Vfs_handle::Vfs_handle;
+
+			virtual Read_result complete_read(char *buf,
+			                                  file_size buf_size,
+			                                  file_size &out_count) = 0;
+		};
+
+		struct Fatfs_file_handle : Fatfs_handle, Fatfs_file_handles::Element
 		{
 			File *file = nullptr;
 
-			Fatfs_handle(File_system &fs, Allocator &alloc, int status_flags)
-			: Vfs_handle(fs, fs, alloc, status_flags) { }
+			Fatfs_file_handle(File_system &fs, Allocator &alloc, int status_flags)
+			: Fatfs_handle(fs, fs, alloc, status_flags) { }
+
+			Read_result complete_read(char *buf,
+			                          file_size buf_size,
+			                          file_size &out_count) override
+			{
+				if (!file) {
+					Genode::error("READ_ERR_INVALID");
+					return READ_ERR_INVALID;
+				}
+				if ((status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_WRONLY)
+					return READ_ERR_INVALID;
+
+				FRESULT fres;
+				FIL *fil = &file->fil;
+
+				fres = f_lseek(fil, seek());
+				if (fres == FR_OK) {
+					UINT bw = 0;
+					fres = f_read(fil, buf, buf_size, &bw);
+					out_count = bw;
+				}
+
+				switch (fres) {
+				case FR_OK:             return READ_OK;
+				case FR_INVALID_OBJECT: return READ_ERR_INVALID;
+				case FR_TIMEOUT:        return READ_ERR_WOULD_BLOCK;
+				case FR_DISK_ERR:       return READ_ERR_IO;
+				case FR_INT_ERR:        return READ_ERR_IO;
+				case FR_DENIED:         return READ_ERR_IO;
+				default:                return READ_ERR_IO;
+				}
+			}
+		};
+
+		struct Fatfs_dir_handle : Fatfs_handle
+		{
+			DIR dir;
+
+			Fatfs_dir_handle(File_system &fs, Allocator &alloc)
+			: Fatfs_handle(fs, fs, alloc, 0) { }
+
+			Read_result complete_read(char *buf,
+			                          file_size buf_size,
+			                          file_size &out_count) override
+			{
+				/* not very efficient, just N calls to f_readdir */
+
+				out_count = 0;
+
+				if (buf_size < sizeof(Dirent))
+					return READ_ERR_INVALID;
+
+				file_size dir_index = seek() / sizeof(Dirent);
+
+				Dirent *vfs_dir = (Dirent*)buf;
+
+				FILINFO info;
+				FRESULT res;
+				vfs_dir->fileno = 1; /* inode 0 is a pending unlink */
+
+				do {
+					res = f_readdir (&dir, &info);
+					if ((res != FR_OK) || (!info.fname[0])) {
+						vfs_dir->type    = DIRENT_TYPE_END;
+						vfs_dir->name[0] = '\0';
+						out_count = sizeof(Dirent);
+						return READ_OK;
+					}
+				} while (dir_index-- > 0);
+
+				vfs_dir->type = (info.fattrib & AM_DIR) ?
+					DIRENT_TYPE_DIRECTORY : DIRENT_TYPE_FILE;
+				Genode::strncpy(vfs_dir->name, (const char*)info.fname,
+				                sizeof(vfs_dir->name));
+
+				out_count = sizeof(Dirent);
+				return READ_OK;
+			}
 		};
 
 		Genode::Env &_env;
@@ -161,7 +248,7 @@ class Fatfs::File_system : public Vfs::File_system
 		void _close_all(File &file)
 		{
 			/* invalidate handles */
-			for (Fatfs_handle *handle = file.handles.first();
+			for (Fatfs_file_handle *handle = file.handles.first();
 			     handle; handle = file.handles.first())
 			{
 				handle->file = nullptr;
@@ -245,7 +332,7 @@ class Fatfs::File_system : public Vfs::File_system
 		                 Vfs_handle **vfs_handle,
 		                 Allocator  &alloc) override
 		{
-			Fatfs_handle *handle;
+			Fatfs_file_handle *handle;
 			File *file = _opened_file(path);
 			bool create = vfs_mode & OPEN_MODE_CREATE;
 
@@ -257,7 +344,7 @@ class Fatfs::File_system : public Vfs::File_system
 			/* attempt allocation before modifying blocks */
 			if (!_next_file)
 				_next_file = new (_alloc) File();
-			handle = new (alloc) Fatfs_handle(*this, alloc, vfs_mode);
+			handle = new (alloc) Fatfs_file_handle(*this, alloc, vfs_mode);
 
 			if (!file) {
 				file = _next_file;
@@ -286,30 +373,84 @@ class Fatfs::File_system : public Vfs::File_system
 			return OPEN_OK;
 		}
 
-		void close(Vfs_handle *vfs_handle) override
+		Opendir_result opendir(char const *path, bool create,
+		                       Vfs_handle **vfs_handle,
+		                       Allocator &alloc) override
 		{
-			Fatfs_handle *handle = static_cast<Fatfs_handle *>(vfs_handle);
+			Fatfs_dir_handle *handle;
 
-			File *file = handle->file;
-			if (file) {
-				file->handles.remove(handle);
-				if (!file->handles.first())
-					_close(*file);
-				else
-					f_sync(&file->fil);
+			/* attempt allocation before modifying blocks */
+			handle = new (alloc) Fatfs_dir_handle(*this, alloc);
+
+			if (create) {
+				FRESULT res = f_mkdir((const TCHAR*)path);
+				if (res != FR_OK) {
+					destroy(alloc, handle);
+					switch (res) {
+					case FR_EXIST:        return OPENDIR_ERR_NODE_ALREADY_EXISTS;
+					case FR_NO_PATH:      return OPENDIR_ERR_LOOKUP_FAILED;
+					case FR_INVALID_NAME: return OPENDIR_ERR_NAME_TOO_LONG;
+					default:              return OPENDIR_ERR_PERMISSION_DENIED;
+					}
+				}
 			}
 
-			destroy(handle->alloc(), handle);
+			FRESULT res = f_opendir(&handle->dir, (const TCHAR*)path);
+			if (res != FR_OK) {
+				destroy(alloc, handle);
+				switch (res) {
+				case FR_NO_PATH: return OPENDIR_ERR_LOOKUP_FAILED;
+				default:         return OPENDIR_ERR_PERMISSION_DENIED;
+				}
+			}
+
+			*vfs_handle = handle;
+
+			return OPENDIR_OK;
 		}
 
-		void sync(char const *path) override
+		void close(Vfs_handle *vfs_handle) override
 		{
-			/**
-			 * Files are flushed when they are closed so
-			 * only open files need to be synced.
-			 */
-			if (File *file = _opened_file(path))
+			{
+				Fatfs_file_handle *handle;
+
+				handle = dynamic_cast<Fatfs_file_handle *>(vfs_handle);
+
+				if (handle) {
+					File *file = handle->file;
+					if (file) {
+						file->handles.remove(handle);
+						if (!file->handles.first())
+							_close(*file);
+						else
+							f_sync(&file->fil);
+					}
+					destroy(handle->alloc(), handle);
+					return;
+				}
+			}
+
+			{
+				Fatfs_dir_handle *handle;
+
+				handle = dynamic_cast<Fatfs_dir_handle *>(vfs_handle);
+
+				if (handle) {
+					f_closedir(&handle->dir);
+					destroy(handle->alloc(), handle);
+				}
+			}
+		}
+
+		Sync_result complete_sync(Vfs_handle *vfs_handle) override
+		{
+			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
+
+			File *file = handle->file;
+			if (file)
 				f_sync(&file->fil);
+
+			return SYNC_OK;
 		}
 
 		Genode::Dataspace_capability dataspace(char const *path) override
@@ -355,18 +496,6 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		}
 
-		Mkdir_result mkdir(char const *path, unsigned mode) override
-		{
-			FRESULT res = f_mkdir((const TCHAR*)path);
-			switch (res) {
-			case FR_OK:           return MKDIR_OK;
-			case FR_EXIST:        return MKDIR_ERR_EXISTS;
-			case FR_NO_PATH:      return MKDIR_ERR_NO_ENTRY;
-			case FR_INVALID_NAME: return MKDIR_ERR_NAME_TOO_LONG;
-			default:              return MKDIR_ERR_NO_PERM;
-			}
-		}
-
 		Stat_result stat(char const *path, Stat &stat)
 		{
 			stat = Stat();
@@ -408,40 +537,6 @@ class Fatfs::File_system : public Vfs::File_system
 			return STAT_ERR_NO_PERM;
 		}
 
-		Dirent_result dirent(char const *path, file_offset dir_index,
-		                     Dirent &vfs_dir) override
-		{
-			/* not very efficient, just N calls to f_readdir */
-
-			DIR     dir;
-			FILINFO info;
-			FRESULT res;
-			vfs_dir.fileno = 1; /* inode 0 is a pending unlink */
-
-			switch (f_opendir(&dir, (const TCHAR*)path)) {
-			case FR_OK:      break;
-			case FR_NO_PATH: return DIRENT_ERR_INVALID_PATH;
-			default:         return DIRENT_ERR_NO_PERM;
-			}
-
-			do {
-				res = f_readdir (&dir, &info);
-				if ((res != FR_OK) || (!info.fname[0])) {
-					vfs_dir.type    = DIRENT_TYPE_END;
-					vfs_dir.name[0] = '\0';
-					f_closedir(&dir);
-					return DIRENT_OK;
-				}
-			} while (--dir_index >= 0);
-
-			vfs_dir.type = (info.fattrib & AM_DIR) ?
-				DIRENT_TYPE_DIRECTORY : DIRENT_TYPE_FILE;
-			Genode::strncpy(vfs_dir.name, (const char*)info.fname,
-			                sizeof(vfs_dir.name));
-			f_closedir(&dir);
-			return DIRENT_OK;
-		}
-
 		Unlink_result unlink(char const *path) override
 		{
 			/* close the file if it is open */
@@ -455,12 +550,6 @@ class Fatfs::File_system : public Vfs::File_system
 			default:         return UNLINK_ERR_NO_PERM;
 			}
 		}
-
-		Readlink_result readlink(char const*, char*, file_size, file_size&) override {
-			return READLINK_ERR_NO_PERM; }
-
-		Symlink_result symlink(char const*, char const*) override {
-			return SYMLINK_ERR_NO_PERM; }
 
 		Rename_result rename(char const *from, char const *to) override
 		{
@@ -498,7 +587,7 @@ class Fatfs::File_system : public Vfs::File_system
 		                   char const *buf, file_size buf_size,
 		                   file_size &out_count) override
 		{
-			Fatfs_handle *handle = static_cast<Fatfs_handle *>(vfs_handle);
+			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
 			if (!handle->file)
 				return WRITE_ERR_INVALID;
 			if ((handle->status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)
@@ -525,42 +614,19 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *buf, file_size buf_size,
-		                 file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, char *buf,
+		                          file_size buf_size,
+		                          file_size &out_count) override
 		{
-			Fatfs_handle *handle = static_cast<Fatfs_handle *>(vfs_handle);
-			if (!handle->file) {
-				Genode::error("READ_ERR_INVALID");
-				return READ_ERR_INVALID;
-			}
-			if ((handle->status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_WRONLY)
-				return READ_ERR_INVALID;
+			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
 
-			FRESULT fres;
-			FIL *fil = &handle->file->fil;
-
-			fres = f_lseek(fil, handle->seek());
-			if (fres == FR_OK) {
-				UINT bw = 0;
-				fres = f_read(fil, buf, buf_size, &bw);
-				out_count = bw;
-			}
-
-			switch (fres) {
-			case FR_OK:             return READ_OK;
-			case FR_INVALID_OBJECT: return READ_ERR_INVALID;
-			case FR_TIMEOUT:        return READ_ERR_WOULD_BLOCK;
-			case FR_DISK_ERR:       return READ_ERR_IO;
-			case FR_INT_ERR:        return READ_ERR_IO;
-			case FR_DENIED:         return READ_ERR_IO;
-			default:                return READ_ERR_IO;
-			}
+			return handle->complete_read(buf, buf_size, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
 		{
 			FRESULT res;
-			Fatfs_handle *handle = static_cast<Fatfs_handle *>(vfs_handle);
+			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
 			if (!handle->file)
 				return FTRUNCATE_ERR_NO_PERM;
 			if ((handle->status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)

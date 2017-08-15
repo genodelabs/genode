@@ -76,7 +76,11 @@ struct Genode::Directory : Noncopyable
 
 		Vfs::File_system &_fs;
 
+		Entrypoint &_ep;
+
 		Allocator &_alloc;
+
+		Vfs::Vfs_handle *_handle = nullptr;
 
 		friend class Readonly_file;
 		friend class Root_directory;
@@ -86,8 +90,8 @@ struct Genode::Directory : Noncopyable
 		 *
 		 * \throw Open_failed
 		 */
-		Directory(Vfs::File_system &fs, Allocator &alloc, Path const &path)
-		: _path(""), _fs(fs), _alloc(alloc)
+		Directory(Vfs::File_system &fs, Entrypoint &ep, Allocator &alloc)
+		: _path(""), _fs(fs), _ep(ep), _alloc(alloc)
 		{ }
 
 		/*
@@ -124,11 +128,15 @@ struct Genode::Directory : Noncopyable
 		 * \throw Nonexistent_directory
 		 */
 		Directory(Directory &other, Path const &rel_path)
-		: _path(other._path, "/", rel_path), _fs(other._fs), _alloc(other._alloc)
+		: _path(other._path, "/", rel_path), _fs(other._fs), _ep(other._ep),
+		  _alloc(other._alloc)
 		{
-			if (!(other._stat(rel_path).mode & Vfs::Directory_service::STAT_MODE_DIRECTORY))
+			if (_fs.opendir(_path.string(), false, &_handle, _alloc) !=
+			    Vfs::Directory_service::OPENDIR_OK)
 				throw Nonexistent_directory();
 		}
+
+		~Directory() { _handle->ds().close(_handle); }
 
 		template <typename FN>
 		void for_each_entry(FN const &fn)
@@ -137,10 +145,29 @@ struct Genode::Directory : Noncopyable
 
 				Entry entry;
 
-				Vfs::Directory_service::Dirent_result dirent_result =
-					_fs.dirent(_path.string(), i, entry._dirent);
+				_handle->seek(i * sizeof(entry._dirent));
 
-				if (dirent_result != Vfs::Directory_service::DIRENT_OK) {
+				while (!_handle->fs().queue_read(_handle, sizeof(entry._dirent)))
+					_ep.wait_and_dispatch_one_io_signal();
+
+				Vfs::File_io_service::Read_result read_result;
+				Vfs::file_size                    out_count = 0;
+
+				for (;;) {
+
+					read_result = _handle->fs().complete_read(_handle,
+					                                          (char*)&entry._dirent,
+					                                          sizeof(entry._dirent),
+					                                          out_count);
+
+					if (read_result != Vfs::File_io_service::READ_QUEUED)
+						break;
+
+					_ep.wait_and_dispatch_one_io_signal();
+				}
+
+				if ((read_result != Vfs::File_io_service::READ_OK) ||
+				    (out_count < sizeof(entry._dirent))) {
 					error("could not access directory '", _path, "'");
 					throw Read_dir_failed();
 				}
@@ -186,7 +213,7 @@ struct Genode::Root_directory : public  Vfs::Io_response_handler,
 	:
 		Vfs::Global_file_system_factory(alloc),
 		Vfs::Dir_file_system(env, alloc, config, *this, *this),
-		Directory(*this, alloc, "/")
+		Directory(*this, env.ep(), alloc)
 	{ }
 
 	void apply_config(Xml_node config) { Vfs::Dir_file_system::apply_config(config); }
@@ -207,7 +234,8 @@ class Genode::Readonly_file : public File
 {
 	private:
 
-		Vfs::Vfs_handle *_handle = nullptr;
+		Vfs::Vfs_handle    *_handle = nullptr;
+		Genode::Entrypoint &_ep;
 
 		void _open(Vfs::File_system &fs, Allocator &alloc, Path const path)
 		{
@@ -229,6 +257,7 @@ class Genode::Readonly_file : public File
 		 * \throw File::Open_failed
 		 */
 		Readonly_file(Directory &dir, Path const &rel_path)
+		: _ep(dir._ep)
 		{
 			_open(dir._fs, dir._alloc, Path(dir._path, "/", rel_path));
 		}
@@ -243,8 +272,21 @@ class Genode::Readonly_file : public File
 		size_t read(char *dst, size_t bytes)
 		{
 			Vfs::file_size out_count = 0;
-			Vfs::File_io_service::Read_result const result =
-				_handle->fs().read(_handle, dst, bytes, out_count);
+
+			while (!_handle->fs().queue_read(_handle, bytes))
+				_ep.wait_and_dispatch_one_io_signal();
+
+			Vfs::File_io_service::Read_result result;
+
+			for (;;) {
+				result = _handle->fs().complete_read(_handle, dst, bytes,
+				                                     out_count);
+
+				if (result != Vfs::File_io_service::READ_QUEUED)
+					break;
+
+				_ep.wait_and_dispatch_one_io_signal();
+			};
 
 			/*
 			 * XXX handle READ_ERR_AGAIN, READ_ERR_WOULD_BLOCK, READ_QUEUED

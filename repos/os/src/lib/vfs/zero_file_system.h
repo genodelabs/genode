@@ -33,28 +33,48 @@ struct Vfs::Zero_file_system : Single_file_system
 	static char const *name()   { return "zero"; }
 	char const *type() override { return "zero"; }
 
-	/********************************
-	 ** File I/O service interface **
-	 ********************************/
-
-	Write_result write(Vfs_handle *, char const *, file_size count,
-	                   file_size &count_out) override
+	struct Zero_vfs_handle : Single_vfs_handle
 	{
-		count_out = count;
+		Zero_vfs_handle(Directory_service &ds,
+				        File_io_service   &fs,
+				        Genode::Allocator &alloc)
+		: Single_vfs_handle(ds, fs, alloc, 0) { }
 
-		return WRITE_OK;
+		Read_result read(char *dst, file_size count,
+			             file_size &out_count) override
+		{
+			memset(dst, 0, count);
+			out_count = count;
+
+			return READ_OK;
+		}
+
+		Write_result write(char const *src, file_size count,
+			               file_size &out_count) override
+		{
+			out_count = count;
+
+			return WRITE_OK;
+		}
+
+		bool read_ready() { return true; }
+	};
+
+	/*********************************
+	 ** Directory service interface **
+	 *********************************/
+
+	Open_result open(char const  *path, unsigned,
+		             Vfs_handle **out_handle,
+		             Allocator   &alloc) override
+	{
+		if (!_single_file(path))
+			return OPEN_ERR_UNACCESSIBLE;
+
+		*out_handle = new (alloc) Zero_vfs_handle(*this, *this, alloc);
+		return OPEN_OK;
 	}
 
-	Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
-	                 file_size &out_count) override
-	{
-		memset(dst, 0, count);
-		out_count = count;
-
-		return READ_OK;
-	}
-
-	bool read_ready(Vfs_handle *) override { return true; }
 };
 
 #endif /* _INCLUDE__VFS__ZERO_FILE_SYSTEM_H_ */

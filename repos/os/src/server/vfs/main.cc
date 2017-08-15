@@ -43,7 +43,7 @@ namespace Vfs_server {
 
 
 class Vfs_server::Session_component : public File_system::Session_rpc_object,
-                                      public File_io_handler
+                                      public Node_io_handler
 {
 	private:
 
@@ -113,13 +113,13 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 ** Packet-stream processing **
 		 ******************************/
 
-		struct Not_read_ready { };
+		struct Not_ready { };
 		struct Dont_ack { };
 
 		/**
 		 * Perform packet operation
 		 *
-		 * \throw Not_read_ready
+		 * \throw Not_ready
 		 * \throw Dont_ack
 		 */
 		void _process_packet_op(Packet_descriptor &packet)
@@ -142,46 +142,36 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			case Packet_descriptor::READ:
 
 				try {
-					_apply(static_cast<File_handle>(packet.handle().value), [&] (File &node) {
+					_apply(packet.handle(), [&] (Node &node) {
 						if (!node.read_ready()) {
 							node.notify_read_ready(true);
-							throw Not_read_ready();
+							throw Not_ready();
 						}
 
-						if (node.mode&READ_ONLY)
-							res_length = node.read(_vfs, (char *)content, length, seek);
+						if (node.mode() & READ_ONLY)
+							res_length = node.read((char *)content, length, seek);
 					});
 				}
-				catch (Not_read_ready) { throw; }
-				catch (Operation_incomplete) { throw Not_read_ready(); }
-				catch (...) {
-
-					try {
-						_apply(packet.handle(), [&] (Node &node) {
-							if (!node.read_ready())
-								throw Not_read_ready();
-							
-							if (node.mode&READ_ONLY)
-								res_length = node.read(_vfs, (char *)content, length, seek);
-						});
-					}
-					catch (Not_read_ready) { throw; }
-					catch (Operation_incomplete) { throw Not_read_ready(); }
-					catch (...) { }
-				}
+				catch (Not_ready) { throw; }
+				catch (Operation_incomplete) { throw Not_ready(); }
+				catch (...) { }
 
 				break;
 
 			case Packet_descriptor::WRITE:
+
 				try {
 					_apply(packet.handle(), [&] (Node &node) {
-						if (node.mode&WRITE_ONLY)
-							res_length = node.write(_vfs, (char const *)content, length, seek);
+						if (node.mode() & WRITE_ONLY)
+							res_length = node.write((char const *)content, length, seek);
 					});
+				} catch (Operation_incomplete) {
+					throw Not_ready();
 				} catch (...) { }
 				break;
 
 			case Packet_descriptor::READ_READY:
+
 				try {
 					_apply(static_cast<File_handle>(packet.handle().value), [] (File &node) {
 						if (!node.read_ready()) {
@@ -197,6 +187,20 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			case Packet_descriptor::CONTENT_CHANGED:
 				/* The VFS does not track file changes yet */
 				throw Dont_ack();
+
+			case Packet_descriptor::SYNC:
+
+				/**
+				 * Sync the VFS and send any pending signals on the node.
+				 */
+				try {
+					_apply(packet.handle(), [&] (Node &node) {
+						node.sync();
+					});
+				} catch (Operation_incomplete) {
+					throw Not_ready();
+				} catch (...) { Genode::error("SYNC: unhandled exception"); }
+				break;
 			}
 
 			packet.length(res_length);
@@ -208,7 +212,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			try {
 				_process_packet_op(packet);
 				return true;
-			} catch (Not_read_ready) {
+			} catch (Not_ready) {
 				_backlog_packet = packet;
 			}
 
@@ -218,8 +222,10 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		bool _process_backlog()
 		{
 			/* indicate success if there's no backlog */
-			if (!_backlog_packet.size())
+			if (!_backlog_packet.size() &&
+			    (_backlog_packet.operation() != Packet_descriptor::SYNC)) {
 				return true;
+			}
 
 			/* only start processing if acknowledgement is possible */
 			if (!tx_sink()->ready_to_ack())
@@ -358,7 +364,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			_tx.sigh_packet_avail(_process_packet_handler);
 			_tx.sigh_ready_to_ack(_process_packet_handler);
 
-			_root.construct(_node_space, vfs, root_path, false);
+			_root.construct(_node_space, vfs, _alloc, *this, root_path, false);
 		}
 
 		/**
@@ -380,17 +386,27 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			_ram.upgrade(new_quota);
 		}
 
-		/* File_io_handler interface */
-		void handle_file_io(File &file) override
+		/*
+		 * Called by the IO response handler for events which are not
+		 * node-specific, for example after 'release_packet()' to signal
+		 * that a previously failed 'alloc_packet()' may succeed now.
+		 */
+		void handle_general_io()
 		{
-			if (file.notify_read_ready() && file.read_ready()
+			_process_packets();
+		}
+
+		/* Node_io_handler interface */
+		void handle_node_io(Node &node) override
+		{
+			if (node.notify_read_ready() && node.read_ready()
 			 && tx_sink()->ready_to_ack()) {
 				Packet_descriptor packet(Packet_descriptor(),
-				                         Node_handle { file.id().value },
+				                         Node_handle { node.id().value },
 				                         Packet_descriptor::READ_READY,
 				                         0, 0);
 				tx_sink()->acknowledge_packet(packet);
-				file.notify_read_ready(false);
+				node.notify_read_ready(false);
 			}
 			_process_packets();
 		}
@@ -420,7 +436,8 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				throw Lookup_failed();
 
 			Directory *dir;
-			try { dir = new (_alloc) Directory(_node_space, _vfs, path_str, create); }
+			try { dir = new (_alloc) Directory(_node_space, _vfs, _alloc,
+			                                   *this, path_str, create); }
 			catch (Out_of_memory) { throw Out_of_ram(); }
 
 			return Dir_handle(dir->id().value);
@@ -474,7 +491,8 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 			Node *node;
 
-			try { node  = new (_alloc) Node(_node_space, path_str, STAT_ONLY); }
+			try { node  = new (_alloc) Node(_node_space, path_str, STAT_ONLY,
+			                                *this); }
 			catch (Out_of_memory) { throw Out_of_ram(); }
 
 			return Node_handle { node->id().value };
@@ -571,16 +589,6 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			});
 		}
 
-		/**
-		 * Sync the VFS and send any pending signals on the node.
-		 */
-		void sync(Node_handle handle) override
-		{
-			_apply(handle, [&] (Node &node) {
-				_vfs.sync(node.path());
-			});
-		}
-
 		void control(Node_handle, Control) override { }
 };
 
@@ -589,13 +597,35 @@ struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
 {
 	Session_registry &_session_registry;
 
+	bool _in_progress  { false };
+	bool _handle_general_io { false };
+
 	Io_response_handler(Session_registry &session_registry)
 	: _session_registry(session_registry) { }
 
 	void handle_io_response(Vfs::Vfs_handle::Context *context) override
 	{
+		if (_in_progress) {
+			/* called recursively, context is nullptr in this case */
+			_handle_general_io = true;
+			return;
+		}
+
+		_in_progress = true;
+
 		if (Vfs_server::Node *node = static_cast<Vfs_server::Node *>(context))
 			node->handle_io_response();
+		else
+			_handle_general_io = true;
+
+		while (_handle_general_io) {
+			_handle_general_io = false;
+			_session_registry.for_each([ ] (Registered_session &r) {
+				r.handle_general_io();
+			});
+		}
+
+		_in_progress = false;
 	}
 };
 

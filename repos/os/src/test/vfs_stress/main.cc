@@ -45,26 +45,6 @@
 
 using namespace Genode;
 
-inline void assert_mkdir(Vfs::Directory_service::Mkdir_result r)
-{
-	typedef Vfs::Directory_service::Mkdir_result Result;
-
-	switch (r) {
-	case Result::MKDIR_OK: return;
-	case Result::MKDIR_ERR_EXISTS:
-		error("MKDIR_ERR_EXISTS"); break;
-	case Result::MKDIR_ERR_NO_ENTRY:
-		error("MKDIR_ERR_NO_ENTRY"); break;
-	case Result::MKDIR_ERR_NO_SPACE:
-		error("MKDIR_ERR_NO_SPACE"); break;
-	case Result::MKDIR_ERR_NO_PERM:
-		error("MKDIR_ERR_NO_PERM"); break;
-	case Result::MKDIR_ERR_NAME_TOO_LONG:
-		error("MKDIR_ERR_NAME_TOO_LONG"); break;
-	}
-	throw Exception();
-}
-
 inline void assert_open(Vfs::Directory_service::Open_result r)
 {
 	typedef Vfs::Directory_service::Open_result Result;
@@ -80,6 +60,33 @@ inline void assert_open(Vfs::Directory_service::Open_result r)
 		error("OPEN_ERR_NO_PERM"); break;
 	case Result::OPEN_ERR_EXISTS:
 		error("OPEN_ERR_EXISTS"); break;
+	case Result::OPEN_ERR_OUT_OF_RAM:
+		error("OPEN_ERR_OUT_OF_RAM"); break;
+	case Result::OPEN_ERR_OUT_OF_CAPS:
+		error("OPEN_ERR_OUT_OF_CAPS"); break;
+	}
+	throw Exception();
+}
+
+inline void assert_opendir(Vfs::Directory_service::Opendir_result r)
+{
+	typedef Vfs::Directory_service::Opendir_result Result;
+	switch (r) {
+	case Result::OPENDIR_OK: return;
+	case Result::OPENDIR_ERR_LOOKUP_FAILED:
+		error("OPENDIR_ERR_LOOKUP_FAILED"); break;
+	case Result::OPENDIR_ERR_NAME_TOO_LONG:
+		error("OPENDIR_ERR_NAME_TOO_LONG"); break;
+	case Result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
+		error("OPENDIR_ERR_NODE_ALREADY_EXISTS"); break;
+	case Result::OPENDIR_ERR_NO_SPACE:
+		error("OPENDIR_ERR_NO_SPACE"); break;
+	case Result::OPENDIR_ERR_OUT_OF_RAM:
+		error("OPENDIR_ERR_OUT_OF_RAM"); break;
+	case Result::OPENDIR_ERR_OUT_OF_CAPS:
+		error("OPENDIR_ERR_OUT_OF_CAPS"); break;
+	case Result::OPENDIR_ERR_PERMISSION_DENIED:
+		error("OPENDIR_ERR_PERMISSION_DENIED"); break;
 	}
 	throw Exception();
 }
@@ -163,7 +170,9 @@ struct Mkdir_test : public Stress_test
 		if (++depth > MAX_DEPTH) return;
 
 		path.append("/b");
-		assert_mkdir(vfs.mkdir(path.base(), 0));
+		Vfs::Vfs_handle *dir_handle;
+		assert_opendir(vfs.opendir(path.base(), true, &dir_handle, alloc));
+		vfs.close(dir_handle);
 		++count;
 		mkdir_b(depth);
 	}
@@ -174,15 +183,19 @@ struct Mkdir_test : public Stress_test
 
 		size_t path_len = strlen(path.base());
 
+		Vfs::Vfs_handle *dir_handle;
+
 		path.append("/b");
-		assert_mkdir(vfs.mkdir(path.base(), 0));
+		assert_opendir(vfs.opendir(path.base(), true, &dir_handle, alloc));
+		vfs.close(dir_handle);
 		++count;
 		mkdir_b(depth);
 
 		path.base()[path_len] = '\0';
 
 		path.append("/a");
-		assert_mkdir(vfs.mkdir(path.base(), 0));
+		assert_opendir(vfs.opendir(path.base(), true, &dir_handle, alloc));
+		vfs.close(dir_handle);
 		++count;
 		mkdir_a(depth);
 	}
@@ -266,6 +279,8 @@ struct Populate_test : public Stress_test
 
 struct Write_test : public Stress_test
 {
+	Genode::Entrypoint &_ep;
+
 	void write(int depth)
 	{
 		if (++depth > MAX_DEPTH) return;
@@ -285,6 +300,10 @@ struct Write_test : public Stress_test
 			file_size n;
 			assert_write(handle->fs().write(
 				handle, path.base(), path_len, n));
+			handle->fs().queue_sync(handle);
+			while (handle->fs().complete_sync(handle) ==
+			       Vfs::File_io_service::SYNC_QUEUED)
+				_ep.wait_and_dispatch_one_io_signal();
 			count += n;
 		}
 
@@ -307,8 +326,9 @@ struct Write_test : public Stress_test
 		}
 	}
 
-	Write_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
-	: Stress_test(vfs, alloc, parent)
+	Write_test(Vfs::File_system &vfs, Genode::Allocator &alloc,
+	           char const *parent, Genode::Entrypoint &ep)
+	: Stress_test(vfs, alloc, parent), _ep(ep)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -332,6 +352,8 @@ struct Write_test : public Stress_test
 
 struct Read_test : public Stress_test
 {
+	Genode::Entrypoint &_ep;
+
 	void read(int depth)
 	{
 		if (++depth > MAX_DEPTH) return;
@@ -350,7 +372,17 @@ struct Read_test : public Stress_test
 
 			char tmp[MAX_PATH_LEN];
 			file_size n;
-			assert_read(handle->fs().read(handle, tmp, sizeof(tmp), n));
+			handle->fs().queue_read(handle, sizeof(tmp));
+
+			Vfs::File_io_service::Read_result read_result;
+
+			while ((read_result =
+			        handle->fs().complete_read(handle, tmp, sizeof(tmp), n)) ==
+			       Vfs::File_io_service::READ_QUEUED)
+				_ep.wait_and_dispatch_one_io_signal();
+
+			assert_read(read_result);
+
 			if (strcmp(path.base(), tmp, n))
 				error("read returned bad data");
 			count += n;
@@ -375,8 +407,9 @@ struct Read_test : public Stress_test
 		}
 	}
 
-	Read_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
-	: Stress_test(vfs, alloc, parent)
+	Read_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent,
+	          Genode::Entrypoint &ep)
+	: Stress_test(vfs, alloc, parent), _ep(ep)
 	{
 		size_t path_len = strlen(path.base());
 		try {
@@ -400,14 +433,27 @@ struct Read_test : public Stress_test
 
 struct Unlink_test : public Stress_test
 {
+	Genode::Entrypoint &_ep;
+
 	void empty_dir(char const *path)
 	{
 		::Path subpath(path);
 		subpath.append("/");
 
+		Vfs::Vfs_handle *dir_handle;
+		assert_opendir(vfs.opendir(path, false, &dir_handle, alloc));
+
 		Vfs::Directory_service::Dirent dirent;
 		for (Vfs::file_size i = vfs.num_dirent(path); i;) {
-			vfs.dirent(path, --i, dirent);
+			dir_handle->seek(--i * sizeof(dirent));
+			dir_handle->fs().queue_read(dir_handle, sizeof(dirent));
+			Vfs::file_size out_count;
+
+			while (dir_handle->fs().complete_read(dir_handle, (char*)&dirent,
+			                                      sizeof(dirent), out_count) ==
+			       Vfs::File_io_service::READ_QUEUED)
+				_ep.wait_and_dispatch_one_io_signal();
+
 			subpath.append(dirent.name);
 			switch (dirent.type) {
 			case Vfs::Directory_service::DIRENT_TYPE_END:
@@ -428,10 +474,13 @@ struct Unlink_test : public Stress_test
 				subpath.strip_last_element();
 			}
 		}
+
+		vfs.close(dir_handle);
 	}
 
-	Unlink_test(Vfs::File_system &vfs, Genode::Allocator &alloc, char const *parent)
-	: Stress_test(vfs, alloc, parent)
+	Unlink_test(Vfs::File_system &vfs, Genode::Allocator &alloc,
+	            char const *parent, Genode::Entrypoint &ep)
+	: Stress_test(vfs, alloc, parent), _ep(ep)
 	{
 		typedef Vfs::Directory_service::Unlink_result Result;
 		try {
@@ -485,6 +534,20 @@ void Component::construct(Genode::Env &env)
 	Vfs::Dir_file_system vfs_root(env, heap, config_xml.sub_node("vfs"),
 	                              io_response_handler,
 	                              global_file_system_factory);
+
+	Vfs::Vfs_handle *vfs_root_handle;
+	vfs_root.opendir("/", false, &vfs_root_handle, heap);
+
+	auto vfs_root_sync = [&] ()
+	{
+		while (!vfs_root_handle->fs().queue_sync(vfs_root_handle))
+			env.ep().wait_and_dispatch_one_io_signal();
+
+		while (vfs_root_handle->fs().complete_sync(vfs_root_handle) ==
+		       Vfs::File_io_service::SYNC_QUEUED)
+			env.ep().wait_and_dispatch_one_io_signal();
+	};
+
 	char path[Vfs::MAX_PATH_LEN];
 
 	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
@@ -507,13 +570,15 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			vfs_root.mkdir(path, 0);
+			Vfs::Vfs_handle *dir_handle;
+			vfs_root.opendir(path, true, &dir_handle, heap);
+			vfs_root.close(dir_handle);
 			Mkdir_test test(vfs_root, heap, path);
 			count += test.wait();
 		}
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
-		vfs_root.sync("/");
+		vfs_root_sync();
 
 		log("created ",count," empty directories, ",
 		    (elapsed_ms*1000)/count,"μs/op , ",
@@ -537,7 +602,7 @@ void Component::construct(Genode::Env &env)
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
-		vfs_root.sync("/");
+		vfs_root_sync();
 
 		log("created ",count," empty files, ",
 		    (elapsed_ms*1000)/count,"μs/op, ",
@@ -561,14 +626,14 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Write_test test(vfs_root, heap, path);
+			Write_test test(vfs_root, heap, path, env.ep());
 			count += test.wait();
 
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
-		vfs_root.sync("/");
+		vfs_root_sync();
 
 		log("wrote ",count," bytes ",
 		    count/elapsed_ms,"kB/s, ",
@@ -593,13 +658,13 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Read_test test(vfs_root, heap, path);
+			Read_test test(vfs_root, heap, path, env.ep());
 			count += test.wait();
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
-		vfs_root.sync("/");
+		vfs_root_sync();
 
 		log("read ",count," bytes, ",
 		    count/elapsed_ms,"kB/s, ",
@@ -625,14 +690,14 @@ void Component::construct(Genode::Env &env)
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
 			snprintf(path, 3, "/%d", i);
-			Unlink_test test(vfs_root, heap, path);
+			Unlink_test test(vfs_root, heap, path, env.ep());
 			count += test.wait();
 
 		}
 
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
 
-		vfs_root.sync("/");
+		vfs_root_sync();
 
 		log("unlinked ",count," files in ",elapsed_ms,"ms, ",
 		    env.ram().used_ram().value/1024,"KiB consumed");

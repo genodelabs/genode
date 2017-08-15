@@ -95,6 +95,10 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			case Packet_descriptor::READ_READY:
 				/* not supported */
 				break;
+
+			case Packet_descriptor::SYNC:
+				open_node.node().notify_listeners();
+				break;
 			}
 
 			packet.length(res_length);
@@ -150,7 +154,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		static void _assert_valid_path(char const *path)
 		{
 			if (!path || path[0] != '/') {
-				Genode::warning("malformed path ''", path, "'");
+				Genode::warning("malformed path '", Genode::Cstring(path), "'");
 				throw Lookup_failed();
 			}
 		}
@@ -467,19 +471,6 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 			try {
 				_open_node_registry.apply<Open_node>(from_dir_handle, move_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
-		}
-
-		void sync(Node_handle handle) override
-		{
-			auto sync_fn = [&] (Open_node &open_node) {
-				open_node.node().notify_listeners();
-			};
-
-			try {
-				_open_node_registry.apply<Open_node>(handle, sync_fn);
 			} catch (Id_space<File_system::Node>::Unknown_id const &) {
 				throw Invalid_handle();
 			}

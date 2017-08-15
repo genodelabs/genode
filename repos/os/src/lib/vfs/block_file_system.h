@@ -53,62 +53,272 @@ class Vfs::Block_file_system : public Single_file_system
 		Genode::Signal_context            _signal_context;
 		Genode::Signal_context_capability _source_submit_cap;
 
-		file_size _block_io(file_size nr, void *buf, file_size sz,
-		                    bool write, bool bulk = false)
+		class Block_vfs_handle : public Single_vfs_handle
 		{
-			Block::Packet_descriptor::Opcode op;
-			op = write ? Block::Packet_descriptor::WRITE : Block::Packet_descriptor::READ;
+			private:
 
-			file_size packet_size  = bulk ? sz : _block_size;
-			file_size packet_count = bulk ? (sz / _block_size) : 1;
+				Genode::Allocator                 &_alloc;
+				Label                             &_label;
+				Lock                              &_lock;
+				char                              *_block_buffer;
+				unsigned                          &_block_buffer_count;
+				Genode::Allocator_avl             &_tx_block_alloc;
+				Block::Connection                 &_block;
+				Genode::size_t                    &_block_size;
+				Block::sector_t                   &_block_count;
+				Block::Session::Operations        &_block_ops;
+				Block::Session::Tx::Source        *_tx_source;
+				bool                              &_readable;
+				bool                              &_writeable;
+				Genode::Signal_receiver           &_signal_receiver;
+				Genode::Signal_context            &_signal_context;
+				Genode::Signal_context_capability &_source_submit_cap;
 
-			Block::Packet_descriptor packet;
+				file_size _block_io(file_size nr, void *buf, file_size sz,
+				                    bool write, bool bulk = false)
+				{
+					Block::Packet_descriptor::Opcode op;
+					op = write ? Block::Packet_descriptor::WRITE : Block::Packet_descriptor::READ;
 
-			/* sanity check */
-			if (packet_count > _block_buffer_count) {
-				packet_size  = _block_buffer_count * _block_size;
-				packet_count = _block_buffer_count;
-			}
+					file_size packet_size  = bulk ? sz : _block_size;
+					file_size packet_count = bulk ? (sz / _block_size) : 1;
 
-			while (true) {
-				try {
-					Lock::Guard guard(_lock);
+					Block::Packet_descriptor packet;
 
-					packet = _tx_source->alloc_packet(packet_size);
-					break;
-				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-					if (!_tx_source->ready_to_submit())
-						_signal_receiver.wait_for_signal();
-					else {
-						if (packet_count > 1) {
-							packet_size  /= 2;
-							packet_count /= 2;
+					/* sanity check */
+					if (packet_count > _block_buffer_count) {
+						packet_size  = _block_buffer_count * _block_size;
+						packet_count = _block_buffer_count;
+					}
+
+					while (true) {
+						try {
+							Lock::Guard guard(_lock);
+
+							packet = _tx_source->alloc_packet(packet_size);
+							break;
+						} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
+							if (!_tx_source->ready_to_submit())
+								_signal_receiver.wait_for_signal();
+							else {
+								if (packet_count > 1) {
+									packet_size  /= 2;
+									packet_count /= 2;
+								}
+							}
 						}
 					}
+					Lock::Guard guard(_lock);
+
+					Block::Packet_descriptor p(packet, op, nr, packet_count);
+
+					if (write)
+						Genode::memcpy(_tx_source->packet_content(p), buf, packet_size);
+
+					_tx_source->submit_packet(p);
+					p = _tx_source->get_acked_packet();
+
+					if (!p.succeeded()) {
+						Genode::error("Could not read block(s)");
+						_tx_source->release_packet(p);
+						return 0;
+					}
+
+					if (!write)
+						Genode::memcpy(buf, _tx_source->packet_content(p), packet_size);
+
+					_tx_source->release_packet(p);
+					return packet_size;
 				}
-			}
-			Lock::Guard guard(_lock);
 
-			Block::Packet_descriptor p(packet, op, nr, packet_count);
+			public:
 
-			if (write)
-				Genode::memcpy(_tx_source->packet_content(p), buf, packet_size);
+				Block_vfs_handle(Directory_service                 &ds,
+				                 File_io_service                   &fs,
+				                 Genode::Allocator                 &alloc,
+				                 Label                             &label,
+				                 Lock                              &lock,
+				                 char                              *block_buffer,
+				                 unsigned                          &block_buffer_count,
+				                 Genode::Allocator_avl             &tx_block_alloc,
+				                 Block::Connection                 &block,
+				                 Genode::size_t                    &block_size,
+				                 Block::sector_t                   &block_count,
+				                 Block::Session::Operations        &block_ops,
+				                 Block::Session::Tx::Source        *tx_source,
+				                 bool                              &readable,
+				                 bool                              &writeable,
+				                 Genode::Signal_receiver           &signal_receiver,
+				                 Genode::Signal_context            &signal_context,
+				                 Genode::Signal_context_capability &source_submit_cap)
+				: Single_vfs_handle(ds, fs, alloc, 0),
+				  _alloc(alloc),
+				  _label(label),
+				  _lock(lock),
+				  _block_buffer(block_buffer),
+				  _block_buffer_count(block_buffer_count),
+				  _tx_block_alloc(tx_block_alloc),
+				  _block(block),
+				  _block_size(block_size),
+				  _block_count(block_count),
+				  _block_ops(block_ops),
+				  _tx_source(tx_source),
+				  _readable(readable),
+				  _writeable(writeable),
+				  _signal_receiver(signal_receiver),
+				  _signal_context(signal_context),
+				  _source_submit_cap(source_submit_cap)
+				{ }
 
-			_tx_source->submit_packet(p);
-			p = _tx_source->get_acked_packet();
+				Read_result read(char *dst, file_size count,
+			                     file_size &out_count) override
+				{
+					if (!_readable) {
+						Genode::error("block device is not readable");
+						return READ_ERR_INVALID;
+					}
 
-			if (!p.succeeded()) {
-				Genode::error("Could not read block(s)");
-				_tx_source->release_packet(p);
-				return 0;
-			}
+					file_size seek_offset = seek();
 
-			if (!write)
-				Genode::memcpy(buf, _tx_source->packet_content(p), packet_size);
+					file_size read = 0;
+					while (count > 0) {
+						file_size displ   = 0;
+						file_size length  = 0;
+						file_size nbytes  = 0;
+						file_size blk_nr  = seek_offset / _block_size;
 
-			_tx_source->release_packet(p);
-			return packet_size;
-		}
+						displ = seek_offset % _block_size;
+
+						if ((displ + count) > _block_size)
+							length = (_block_size - displ);
+						else
+							length = count;
+
+						/*
+						 * We take a shortcut and read the blocks all at once if the
+						 * offset is aligned on a block boundary and we the count is a
+						 * multiple of the block size, e.g. 4K reads will be read at
+						 * once.
+						 *
+						 * XXX this is quite hackish because we have to omit partial
+						 * blocks at the end.
+						 */
+						if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
+							file_size bytes_left = count - (count % _block_size);
+
+							nbytes = _block_io(blk_nr, dst + read, bytes_left, false, true);
+							if (nbytes == 0) {
+								Genode::error("error while reading block:", blk_nr, " from block device");
+								return READ_ERR_INVALID;
+							}
+
+							read  += nbytes;
+							count -= nbytes;
+							seek_offset += nbytes;
+
+							continue;
+						}
+
+						nbytes = _block_io(blk_nr, _block_buffer, _block_size, false);
+						if ((unsigned)nbytes != _block_size) {
+							Genode::error("error while reading block:", blk_nr, " from block device");
+							return READ_ERR_INVALID;
+						}
+
+						Genode::memcpy(dst + read, _block_buffer + displ, length);
+
+						read  += length;
+						count -= length;
+						seek_offset += length;
+					}
+
+					out_count = read;
+
+					return READ_OK;
+
+				}
+
+				Write_result write(char const *buf, file_size count,
+				                   file_size &out_count) override
+				{
+					if (!_writeable) {
+						Genode::error("block device is not writeable");
+						return WRITE_ERR_INVALID;
+					}
+
+					file_size seek_offset = seek();
+
+					file_size written = 0;
+					while (count > 0) {
+						file_size displ   = 0;
+						file_size length  = 0;
+						file_size nbytes  = 0;
+						file_size blk_nr  = seek_offset / _block_size;
+
+						displ = seek_offset % _block_size;
+
+						if ((displ + count) > _block_size)
+							length = (_block_size - displ);
+						else
+							length = count;
+
+						/*
+						 * We take a shortcut and write as much as possible without
+						 * using the block buffer if the offset is aligned on a block
+						 * boundary and the count is a multiple of the block size,
+						 * e.g. 4K writes will be written at once.
+						 *
+						 * XXX this is quite hackish because we have to omit partial
+						 * blocks at the end.
+						 */
+						if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
+							file_size bytes_left = count - (count % _block_size);
+
+							nbytes = _block_io(blk_nr, (void*)(buf + written),
+							                   bytes_left, true, true);
+							if (nbytes == 0) {
+								Genode::error("error while write block:", blk_nr, " to block device");
+								return WRITE_ERR_INVALID;
+							}
+
+							written     += nbytes;
+							count       -= nbytes;
+							seek_offset += nbytes;
+
+							continue;
+						}
+
+						/*
+						 * The offset is not aligned on a block boundary. Therefore
+						 * we need to read the block to the block buffer first and
+						 * put the buffer content at the right offset before we can
+						 * write the whole block back. In addition if length is less
+						 * than block size, we also have to read the block first.
+						 */
+						if (displ > 0 || length < _block_size)
+							_block_io(blk_nr, _block_buffer, _block_size, false);
+
+						Genode::memcpy(_block_buffer + displ, buf + written, length);
+
+						nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
+						if ((unsigned)nbytes != _block_size) {
+							Genode::error("error while writing block:", blk_nr, " to block_device");
+							return WRITE_ERR_INVALID;
+						}
+
+						written     += length;
+						count       -= length;
+						seek_offset += length;
+					}
+
+					out_count = written;
+
+					return WRITE_OK;
+
+				}
+
+				bool read_ready() { return true; }
+		};
 
 	public:
 
@@ -155,6 +365,31 @@ class Vfs::Block_file_system : public Single_file_system
 		 ** Directory service interface **
 		 *********************************/
 
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
+		{
+			if (!_single_file(path))
+				return OPEN_ERR_UNACCESSIBLE;
+
+			*out_handle = new (alloc) Block_vfs_handle(*this, *this, alloc,
+			                                           _label, _lock,
+			                                           _block_buffer,
+			                                           _block_buffer_count,
+			                                           _tx_block_alloc,
+			                                           _block,
+			                                           _block_size,
+			                                           _block_count,
+			                                           _block_ops,
+			                                           _tx_source,
+			                                           _readable,
+			                                           _writeable,
+			                                           _signal_receiver,
+			                                           _signal_context,
+			                                           _source_submit_cap);
+			return OPEN_OK;
+		}
+
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
@@ -166,153 +401,6 @@ class Vfs::Block_file_system : public Single_file_system
 		/********************************
 		 ** File I/O service interface **
 		 ********************************/
-
-		Write_result write(Vfs_handle *vfs_handle, char const *buf,
-		                   file_size count, file_size &out_count) override
-		{
-			if (!_writeable) {
-				Genode::error("block device is not writeable");
-				return WRITE_ERR_INVALID;
-			}
-
-			file_size seek_offset = vfs_handle->seek();
-
-			file_size written = 0;
-			while (count > 0) {
-				file_size displ   = 0;
-				file_size length  = 0;
-				file_size nbytes  = 0;
-				file_size blk_nr  = seek_offset / _block_size;
-
-				displ = seek_offset % _block_size;
-
-				if ((displ + count) > _block_size)
-					length = (_block_size - displ);
-				else
-					length = count;
-
-				/*
-				 * We take a shortcut and write as much as possible without
-				 * using the block buffer if the offset is aligned on a block
-				 * boundary and the count is a multiple of the block size,
-				 * e.g. 4K writes will be written at once.
-				 *
-				 * XXX this is quite hackish because we have to omit partial
-				 * blocks at the end.
-				 */
-				if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
-					file_size bytes_left = count - (count % _block_size);
-
-					nbytes = _block_io(blk_nr, (void*)(buf + written),
-					                   bytes_left, true, true);
-					if (nbytes == 0) {
-						Genode::error("error while write block:", blk_nr, " to block device");
-						return WRITE_ERR_INVALID;
-					}
-
-					written     += nbytes;
-					count       -= nbytes;
-					seek_offset += nbytes;
-
-					continue;
-				}
-
-				/*
-				 * The offset is not aligned on a block boundary. Therefore
-				 * we need to read the block to the block buffer first and
-				 * put the buffer content at the right offset before we can
-				 * write the whole block back. In addition if length is less
-				 * than block size, we also have to read the block first.
-				 */
-				if (displ > 0 || length < _block_size)
-					_block_io(blk_nr, _block_buffer, _block_size, false);
-
-				Genode::memcpy(_block_buffer + displ, buf + written, length);
-
-				nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
-				if ((unsigned)nbytes != _block_size) {
-					Genode::error("error while writing block:", blk_nr, " to block_device");
-					return WRITE_ERR_INVALID;
-				}
-
-				written     += length;
-				count       -= length;
-				seek_offset += length;
-			}
-
-			out_count = written;
-
-			return WRITE_OK;
-		}
-
-		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                 file_size &out_count) override
-		{
-			if (!_readable) {
-				Genode::error("block device is not readable");
-				return READ_ERR_INVALID;
-			}
-
-			file_size seek_offset = vfs_handle->seek();
-
-			file_size read = 0;
-			while (count > 0) {
-				file_size displ   = 0;
-				file_size length  = 0;
-				file_size nbytes  = 0;
-				file_size blk_nr  = seek_offset / _block_size;
-
-				displ = seek_offset % _block_size;
-
-				if ((displ + count) > _block_size)
-					length = (_block_size - displ);
-				else
-					length = count;
-
-				/*
-				 * We take a shortcut and read the blocks all at once if the
-				 * offset is aligned on a block boundary and we the count is a
-				 * multiple of the block size, e.g. 4K reads will be read at
-				 * once.
-				 *
-				 * XXX this is quite hackish because we have to omit partial
-				 * blocks at the end.
-				 */
-				if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
-					file_size bytes_left = count - (count % _block_size);
-
-					nbytes = _block_io(blk_nr, dst + read, bytes_left, false, true);
-					if (nbytes == 0) {
-						Genode::error("error while reading block:", blk_nr, " from block device");
-						return READ_ERR_INVALID;
-					}
-
-					read  += nbytes;
-					count -= nbytes;
-					seek_offset += nbytes;
-
-					continue;
-				}
-
-				nbytes = _block_io(blk_nr, _block_buffer, _block_size, false);
-				if ((unsigned)nbytes != _block_size) {
-					Genode::error("error while reading block:", blk_nr, " from block device");
-					return READ_ERR_INVALID;
-				}
-
-				Genode::memcpy(dst + read, _block_buffer + displ, length);
-
-				read  += length;
-				count -= length;
-				seek_offset += length;
-			}
-
-			out_count = read;
-
-			return READ_OK;
-		}
-
-		bool read_ready(Vfs_handle *) override { return true; }
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
 		{

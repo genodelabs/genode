@@ -49,6 +49,54 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 			return true;
 		}
 
+		class Jitterentropy_vfs_handle : public Single_vfs_handle
+		{
+			private:
+
+				struct rand_data *_ec_stir;
+				bool             &_initialized;
+
+			public:
+
+				Jitterentropy_vfs_handle(Directory_service &ds,
+				                         File_io_service   &fs,
+				                         Genode::Allocator &alloc,
+				                         struct rand_data  *ec_stir,
+				                         bool              &initialized)
+				: Single_vfs_handle(ds, fs, alloc, 0),
+				  _ec_stir(ec_stir),
+				  _initialized(initialized) { }
+
+				Read_result read(char *dst, Vfs::file_size count,
+				                 Vfs::file_size &out_count) override
+				{
+					if (!_initialized)
+						return READ_ERR_IO;
+
+					enum { MAX_BUF_LEN = 256 };
+					char buf[MAX_BUF_LEN];
+
+					size_t len = count > MAX_BUF_LEN ? MAX_BUF_LEN : count;
+
+					if (jent_read_entropy(_ec_stir, buf, len) < 0)
+						return READ_ERR_IO;
+
+					Genode::memcpy(dst, buf, len);
+
+					out_count = len;
+
+					return READ_OK;
+				}
+
+				Write_result write(char const *src, Vfs::file_size count,
+				                   Vfs::file_size &out_count) override
+				{
+					return WRITE_ERR_IO;
+				}
+
+				bool read_ready() { return true; }
+		};
+
 	public:
 
 		Jitterentropy_file_system(Genode::Allocator &alloc,
@@ -68,41 +116,23 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 		static char const *name()   { return "jitterentropy"; }
 		char const *type() override { return "jitterentropy"; }
 
+		/*********************************
+		 ** Directory service interface **
+		 *********************************/
 
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Write_result write(Vfs::Vfs_handle *, char const *,
-		                   Vfs::file_size count,
-		                   Vfs::file_size &count_out) override
+		Open_result open(char const         *path, unsigned,
+		                 Vfs::Vfs_handle   **out_handle,
+		                 Genode::Allocator  &alloc) override
 		{
-			return WRITE_ERR_IO;
+			if (!_single_file(path))
+				return OPEN_ERR_UNACCESSIBLE;
+
+			*out_handle = new (alloc)
+				Jitterentropy_vfs_handle(*this, *this, alloc, _ec_stir,
+				                         _initialized);
+			return OPEN_OK;
 		}
 
-		Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst,
-		                 Vfs::file_size count,
-		                 Vfs::file_size &out_count) override
-		{
-			if (!_initialized)
-				return READ_ERR_IO;
-
-			enum { MAX_BUF_LEN = 256 };
-			char buf[MAX_BUF_LEN];
-
-			size_t len = count > MAX_BUF_LEN ? MAX_BUF_LEN : count;
-
-			if (jent_read_entropy(_ec_stir, buf, len) < 0)
-				return READ_ERR_IO;
-
-			Genode::memcpy(dst, buf, len);
-
-			out_count = len;
-
-			return READ_OK;
-		}
-
-		bool read_ready(Vfs::Vfs_handle *) override { return true; }
 };
 
 #endif /* _JITTERENTROPY_FILE_SYSTEM_H_ */

@@ -47,28 +47,30 @@ class Vfs::Symlink_file_system : public Single_file_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Symlink_result symlink(char const *from, char const *to) override {
-			return SYMLINK_ERR_EXISTS; }
-
-		Readlink_result readlink(char const *path,
-		                         char       *buf,
-		                         file_size   buf_len,
-		                         file_size  &out_len) override
-		{
-			if (!_single_file(path))
-				return READLINK_ERR_NO_ENTRY;
-			out_len = min(buf_len, (file_size)_target.length()-1);
-			memcpy(buf, _target.string(), out_len);
-			if (out_len < buf_len)
-				buf[out_len] = '\0';
-			return READLINK_OK;
-		}
-
 		Open_result open(char const *, unsigned, Vfs_handle **out_handle,
 		                 Allocator&) override {
 			return OPEN_ERR_UNACCESSIBLE; }
 
-		void close(Vfs_handle *) override { }
+		Openlink_result openlink(char const *path, bool create,
+		                         Vfs_handle **out_handle, Allocator &alloc) override
+		{
+			if (!_single_file(path))
+				return OPENLINK_ERR_LOOKUP_FAILED;
+
+			if (create)
+				return OPENLINK_ERR_NODE_ALREADY_EXISTS;
+
+			*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
+			return OPENLINK_OK;
+		}
+
+		void close(Vfs_handle *vfs_handle) override
+		{
+			if (!vfs_handle)
+				return;
+
+			destroy(vfs_handle->alloc(), vfs_handle);
+		}
 
 
 		/********************************
@@ -79,8 +81,15 @@ class Vfs::Symlink_file_system : public Single_file_system
 		                   file_size &) override {
 			return WRITE_ERR_INVALID; }
 
-		Read_result read(Vfs_handle *, char *, file_size, file_size &) override {
-			return READ_ERR_INVALID; }
+		Read_result complete_read(Vfs_handle *, char *buf, file_size buf_len,
+		                          file_size &out_len) override
+		{
+			out_len = min(buf_len, (file_size)_target.length()-1);
+			memcpy(buf, _target.string(), out_len);
+			if (out_len < buf_len)
+				buf[out_len] = '\0';
+			return READ_OK;
+		}
 
 		bool read_ready(Vfs_handle *) override { return false; }
 

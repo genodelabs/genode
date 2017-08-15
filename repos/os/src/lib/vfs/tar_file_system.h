@@ -86,22 +86,125 @@ class Vfs::Tar_file_system : public File_system
 			void *data() const { return (char *)this + BLOCK_LEN; }
 	};
 
+	class Node;
 
 	class Tar_vfs_handle : public Vfs_handle
 	{
-		private:
+		protected:
 
-			Record const *_record;
+			Node const *_node;
 
 		public:
 
-			Tar_vfs_handle(File_system &fs, Allocator &alloc, int status_flags, Record const *record)
-			: Vfs_handle(fs, fs, alloc, status_flags), _record(record)
+			Tar_vfs_handle(File_system &fs, Allocator &alloc, int status_flags,
+			               Node const *node)
+			: Vfs_handle(fs, fs, alloc, status_flags), _node(node)
 			{ }
 
-			Record const *record() const { return _record; }
+			virtual Read_result read(char *dst, file_size count,
+			                         file_size &out_count) = 0;
 	};
 
+
+	struct Tar_vfs_file_handle : Tar_vfs_handle
+	{
+		using Tar_vfs_handle::Tar_vfs_handle;
+
+		Read_result read(char *dst, file_size count,
+		                 file_size &out_count) override
+		{
+			file_size const record_size = _node->record->size();
+
+			file_size const record_bytes_left = record_size >= seek()
+			                                  ? record_size  - seek() : 0;
+
+			count = min(record_bytes_left, count);
+
+			char const *data = (char *)_node->record->data() + seek();
+
+			memcpy(dst, data, count);
+
+			out_count = count;
+			return READ_OK;
+		}
+	};
+
+	struct Tar_vfs_dir_handle : Tar_vfs_handle
+	{
+		using Tar_vfs_handle::Tar_vfs_handle;
+
+		Read_result read(char *dst, file_size count,
+		                 file_size &out_count) override
+		{
+			if (count < sizeof(Dirent))
+				return READ_ERR_INVALID;
+
+			Dirent *dirent = (Dirent*)dst;
+
+			/* initialize */
+			*dirent = Dirent();
+
+			file_offset index = seek() / sizeof(Dirent);
+
+			Node const *node = _node->lookup_child(index);
+
+			if (!node)
+				return READ_OK;
+
+			dirent->fileno = (Genode::addr_t)node;
+
+			Record const *record = node->record;
+
+			while (record && (record->type() == Record::TYPE_HARDLINK)) {
+				Tar_file_system &tar_fs = static_cast<Tar_file_system&>(fs());
+				Node const *target = tar_fs.dereference(record->linked_name());
+				record = target ? target->record : 0;
+			}
+
+			if (record) {
+				switch (record->type()) {
+				case Record::TYPE_FILE:
+					dirent->type = DIRENT_TYPE_FILE;      break;
+				case Record::TYPE_SYMLINK:
+					dirent->type = DIRENT_TYPE_SYMLINK;   break;
+				case Record::TYPE_DIR:
+					dirent->type = DIRENT_TYPE_DIRECTORY; break;
+
+				default:
+					Genode::error("unhandled record type ", record->type(), " "
+					              "for ", node->name);
+				}
+			} else {
+				/* If no record exists, assume it is a directory */
+				dirent->type = DIRENT_TYPE_DIRECTORY;
+			}
+
+			strncpy(dirent->name, node->name, sizeof(dirent->name));
+
+			out_count = sizeof(Dirent);
+
+			return READ_OK;
+		}
+	};
+
+	struct Tar_vfs_symlink_handle : Tar_vfs_handle
+	{
+		using Tar_vfs_handle::Tar_vfs_handle;
+
+		Read_result read(char *buf, file_size buf_size,
+		                 file_size &out_count) override
+		{
+			Record const *record = _node->record;
+
+			file_size const count = min(buf_size, 100ULL);
+
+			memcpy(buf, record->linked_name(), count);
+
+			out_count = count;
+
+			return READ_OK;
+		}
+	};
 
 	struct Scanner_policy_path_element
 	{
@@ -430,52 +533,6 @@ class Vfs::Tar_file_system : public File_system
 			return STAT_OK;
 		}
 
-		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
-		{
-			Node const *node = dereference(path);
-
-			if (!node)
-				return DIRENT_ERR_INVALID_PATH;
-
-			node = node->lookup_child(index);
-
-			if (!node) {
-				out.type = DIRENT_TYPE_END;
-				return DIRENT_OK;
-			}
-
-			out.fileno = (Genode::addr_t)node;
-
-			Record const *record = node->record;
-
-			while (record && (record->type() == Record::TYPE_HARDLINK)) {
-				Node const *target = dereference(record->linked_name());
-				record = target ? target->record : 0;
-			}
-
-			if (record) {
-				switch (record->type()) {
-				case Record::TYPE_FILE:
-					out.type = DIRENT_TYPE_FILE;      break;
-				case Record::TYPE_SYMLINK:
-					out.type = DIRENT_TYPE_SYMLINK;   break;
-				case Record::TYPE_DIR:
-					out.type = DIRENT_TYPE_DIRECTORY; break;
-
-				default:
-					Genode::error("unhandled record type ", record->type(), " "
-					              "for ", node->name);
-				}
-			} else {
-				/* If no record exists, assume it is a directory */
-				out.type = DIRENT_TYPE_DIRECTORY;
-			}
-
-			strncpy(out.name, node->name, sizeof(out.name));
-
-			return DIRENT_OK;
-		}
-
 		Unlink_result unlink(char const *path) override
 		{
 			Node const *node = dereference(path);
@@ -485,39 +542,11 @@ class Vfs::Tar_file_system : public File_system
 				return UNLINK_ERR_NO_PERM;
 		}
 
-		Readlink_result readlink(char const *path, char *buf, file_size buf_size,
-		                         file_size &out_len) override
-		{
-			Node const *node = dereference(path);
-			Record const *record = node ? node->record : 0;
-
-			if (!record || (record->type() != Record::TYPE_SYMLINK))
-				return READLINK_ERR_NO_ENTRY;
-
-			file_size const count = min(buf_size, 100ULL);
-
-			memcpy(buf, record->linked_name(), count);
-
-			out_len = count;
-
-			return READLINK_OK;
-		}
-
 		Rename_result rename(char const *from, char const *to) override
 		{
 			if (_root_node.lookup(from) || _root_node.lookup(to))
 				return RENAME_ERR_NO_PERM;
 			return RENAME_ERR_NO_ENTRY;
-		}
-
-		Mkdir_result mkdir(char const *, unsigned) override
-		{
-			return MKDIR_ERR_NO_PERM;
-		}
-
-		Symlink_result symlink(char const *, char const *) override
-		{
-			return SYMLINK_ERR_NO_ENTRY;
 		}
 
 		file_size num_dirent(char const *path) override
@@ -548,16 +577,45 @@ class Vfs::Tar_file_system : public File_system
 			return node ? path : 0;
 		}
 
-		Open_result open(char const *path, unsigned, Vfs_handle **out_handle, Genode::Allocator& alloc) override
+		Open_result open(char const *path, unsigned, Vfs_handle **out_handle,
+		                 Genode::Allocator& alloc) override
 		{
 			Node const *node = dereference(path);
 			if (!node || !node->record || node->record->type() != Record::TYPE_FILE)
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (alloc) Tar_vfs_handle(*this, alloc, 0, node->record);
+			*out_handle = new (alloc) Tar_vfs_file_handle(*this, alloc, 0, node);
 
 			return OPEN_OK;
 		}
+
+		Opendir_result opendir(char const *path, bool create,
+		                       Vfs_handle **out_handle,
+		                       Genode::Allocator& alloc) override
+		{
+			Node const *node = dereference(path);
+
+			if (!node ||
+			    (node->record && (node->record->type() != Record::TYPE_DIR)))
+				return OPENDIR_ERR_LOOKUP_FAILED;
+
+			*out_handle = new (alloc) Tar_vfs_dir_handle(*this, alloc, 0, node);
+
+			return OPENDIR_OK;
+		}
+
+		Openlink_result openlink(char const *path, bool create,
+	                             Vfs_handle **out_handle, Allocator &alloc)
+	    {
+			Node const *node = dereference(path);
+			if (!node || !node->record ||
+			    node->record->type() != Record::TYPE_SYMLINK)
+				return OPENLINK_ERR_LOOKUP_FAILED;
+
+			*out_handle = new (alloc) Tar_vfs_symlink_handle(*this, alloc, 0, node);
+
+			return OPENLINK_OK;
+	    }
 
 		void close(Vfs_handle *vfs_handle) override
 		{
@@ -587,24 +645,17 @@ class Vfs::Tar_file_system : public File_system
 			return WRITE_ERR_INVALID;
 		}
 
-		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                 file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, char *dst,
+		                          file_size count, file_size &out_count) override
 		{
-			Tar_vfs_handle const *handle = static_cast<Tar_vfs_handle *>(vfs_handle);
+			out_count = 0;
 
-			file_size const record_size = handle->record()->size();
+			Tar_vfs_handle *handle = static_cast<Tar_vfs_handle *>(vfs_handle);
 
-			file_size const record_bytes_left = record_size >= handle->seek()
-			                                  ? record_size  - handle->seek() : 0;
+			if (!handle)
+				return READ_ERR_INVALID;
 
-			count = min(record_bytes_left, count);
-
-			char const *data = (char *)handle->record()->data() + handle->seek();
-
-			memcpy(dst, data, count);
-
-			out_count = count;
-			return READ_OK;
+			return handle->read(dst, count, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *handle, file_size) override

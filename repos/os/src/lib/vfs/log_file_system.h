@@ -46,6 +46,50 @@ class Vfs::Log_file_system : public Single_file_system
 
 		Genode::Log_session &_log;
 
+		class Log_vfs_handle : public Single_vfs_handle
+		{
+			private:
+
+				Genode::Log_session &_log;
+
+			public:
+
+				Log_vfs_handle(Directory_service &ds,
+				               File_io_service   &fs,
+				               Genode::Allocator &alloc,
+				               Genode::Log_session &log)
+				: Single_vfs_handle(ds, fs, alloc, 0),
+				  _log(log) { }
+
+				Read_result read(char *dst, file_size count,
+				                 file_size &out_count) override
+				{
+					out_count = 0;
+					return READ_OK;
+				}
+
+				Write_result write(char const *src, file_size count,
+				                   file_size &out_count) override
+				{
+					out_count = count;
+
+					/* count does not include the trailing '\0' */
+					while (count > 0) {
+						char tmp[Genode::Log_session::MAX_STRING_LEN];
+						int const curr_count = min(count, sizeof(tmp) - 1);
+						memcpy(tmp, src, curr_count);
+						tmp[curr_count > 0 ? curr_count : 0] = 0;
+						_log.write(tmp);
+						count -= curr_count;
+						src   += curr_count;
+					}
+
+					return WRITE_OK;
+				}
+
+				bool read_ready() { return false; }
+		};
+
 	public:
 
 		Log_file_system(Genode::Env &env,
@@ -61,37 +105,21 @@ class Vfs::Log_file_system : public Single_file_system
 		static const char *name()   { return "log"; }
 		char const *type() override { return "log"; }
 
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
+		/*********************************
+		 ** Directory service interface **
+		 *********************************/
 
-		Write_result write(Vfs_handle *, char const *src, file_size count,
-		                   file_size &out_count) override
+		Open_result open(char const  *path, unsigned,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
-			out_count = count;
+			if (!_single_file(path))
+				return OPEN_ERR_UNACCESSIBLE;
 
-			/* count does not include the trailing '\0' */
-			while (count > 0) {
-				char tmp[Genode::Log_session::MAX_STRING_LEN];
-				int const curr_count = min(count, sizeof(tmp) - 1);
-				memcpy(tmp, src, curr_count);
-				tmp[curr_count > 0 ? curr_count : 0] = 0;
-				_log.write(tmp);
-				count -= curr_count;
-				src   += curr_count;
-			}
-
-			return WRITE_OK;
+			*out_handle = new (alloc) Log_vfs_handle(*this, *this, alloc,
+			                                         _log);
+			return OPEN_OK;
 		}
-
-		Read_result read(Vfs_handle *, char *, file_size,
-		                file_size &out_count) override
-		{
-			out_count = 0;
-			return READ_OK;
-		}
-
-		bool read_ready(Vfs_handle *) override { return false; }
 };
 
 #endif /* _INCLUDE__VFS__LOG_FILE_SYSTEM_H_ */

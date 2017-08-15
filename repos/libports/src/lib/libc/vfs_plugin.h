@@ -18,6 +18,7 @@
 
 /* Genode includes */
 #include <libc/component.h>
+#include "task.h"
 
 /* libc includes */
 #include <fcntl.h>
@@ -70,6 +71,67 @@ class Libc::Vfs_plugin : public Libc::Plugin
 				fd->fd_path = strdup(path.string());
 
 			} catch (Xml_node::Nonexistent_attribute) { }
+		}
+
+		void _vfs_sync(Vfs::Vfs_handle *vfs_handle)
+		{
+			{
+				struct Check : Libc::Suspend_functor
+				{
+					bool retry { false };
+
+					Vfs::Vfs_handle *vfs_handle;
+
+					Check(Vfs::Vfs_handle *vfs_handle)
+					: vfs_handle(vfs_handle) { }
+
+					bool suspend() override
+					{
+						retry = !vfs_handle->fs().queue_sync(vfs_handle);
+						return retry;
+					}
+				} check(vfs_handle);
+
+				/*
+				 * Cannot call Libc::suspend() immediately, because the Libc kernel
+				 * might not be running yet.
+				 */
+				if (!vfs_handle->fs().queue_sync(vfs_handle)) {
+					do {
+						Libc::suspend(check);
+					} while (check.retry);
+				}
+			}
+
+			{
+				struct Check : Libc::Suspend_functor
+				{
+					bool retry { false };
+
+					Vfs::Vfs_handle *vfs_handle;
+
+					Check(Vfs::Vfs_handle *vfs_handle)
+					: vfs_handle(vfs_handle) { }
+
+					bool suspend() override
+					{
+						retry = (vfs_handle->fs().complete_sync(vfs_handle) ==
+						         Vfs::File_io_service::SYNC_QUEUED);
+						return retry;
+					}
+				} check(vfs_handle);
+
+				/*
+				 * Cannot call Libc::suspend() immediately, because the Libc kernel
+				 * might not be running yet.
+				 */
+				if (vfs_handle->fs().complete_sync(vfs_handle) ==
+				    Vfs::File_io_service::SYNC_QUEUED) {
+					do {
+						Libc::suspend(check);
+					} while (check.retry);
+				}
+			}
 		}
 
 	public:

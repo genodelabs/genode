@@ -36,19 +36,23 @@ class Noux::Local_rom_factory : public Local_rom_service::Factory
 {
 	private:
 
-		Allocator            &_alloc;
-		Env                  &_env;
-		Rpc_entrypoint       &_ep;
-		Vfs::Dir_file_system &_root_dir;
-		Dataspace_registry   &_registry;
+		Allocator              &_alloc;
+		Env                    &_env;
+		Rpc_entrypoint         &_ep;
+		Vfs::Dir_file_system   &_root_dir;
+		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
+		Dataspace_registry     &_registry;
 
 	public:
 
 		Local_rom_factory(Allocator &alloc, Env &env, Rpc_entrypoint &ep,
 		                  Vfs::Dir_file_system &root_dir,
+		                  Vfs_io_waiter_registry &vfs_io_waiter_registry,
 		                  Dataspace_registry &registry)
 		:
-			_alloc(alloc), _env(env), _ep(ep), _root_dir(root_dir), _registry(registry)
+			_alloc(alloc), _env(env), _ep(ep), _root_dir(root_dir),
+			_vfs_io_waiter_registry(vfs_io_waiter_registry),
+			_registry(registry)
 		{ }
 
 		Rom_session_component &create(Args const &args, Affinity) override
@@ -58,7 +62,9 @@ class Noux::Local_rom_factory : public Local_rom_service::Factory
 					label_from_args(args.string()).last_element();
 
 				return *new (_alloc)
-					Rom_session_component(_alloc, _env, _ep, _root_dir, _registry, rom_name);
+					Rom_session_component(_alloc, _env, _ep, _root_dir,
+					                      _vfs_io_waiter_registry, _registry,
+					                      rom_name);
 			}
 			catch (Rom_connection::Rom_connection_failed) {
 				throw Service_denied(); }

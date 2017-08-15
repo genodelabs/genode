@@ -163,29 +163,17 @@ namespace Vfs {
 	class Lxip_address_file;
 
 	class Lxip_vfs_handle;
+	class Lxip_vfs_file_handle;
+	class Lxip_vfs_dir_handle;
 	class Lxip_file_system;
 
-	typedef Genode::List<List_element<Lxip_vfs_handle> > Lxip_vfs_handles;
+	typedef Genode::List<List_element<Lxip_vfs_file_handle> > Lxip_vfs_file_handles;
 }
 
 
 /***************
  ** Vfs nodes **
  ***************/
-
-struct Vfs::Lxip_vfs_handle final : Vfs::Vfs_handle
-{
-	Vfs::File &file;
-
-	List_element<Lxip_vfs_handle> file_le    { this };
-	List_element<Lxip_vfs_handle> polling_le { this };
-
-	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
-	                Vfs::File &file);
-
-	~Lxip_vfs_handle();
-};
-
 
 struct Vfs::Node
 {
@@ -196,21 +184,8 @@ struct Vfs::Node
 	virtual ~Node() { }
 
 	virtual char const *name() { return _name; }
-};
 
-
-struct Vfs::File : Vfs::Node
-{
-	Lxip_vfs_handles handles;
-
-	File(char const *name) : Node(name) { }
-
-	virtual ~File() { }
-
-	/**
-	 * Read or write operation would block exception
-	 */
-	struct Would_block { };
+	virtual void close() { }
 
 	/**
 	 * Pass len data to handle read callback
@@ -229,49 +204,27 @@ struct Vfs::File : Vfs::Node
 		Genode::error("lxip: write to read-only handle");
 		return -1;
 	}
+};
+
+
+struct Vfs::File : Vfs::Node
+{
+	Lxip_vfs_file_handles handles;
+
+	File(char const *name) : Node(name) { }
+
+	virtual ~File() { }
+
+	/**
+	 * Read or write operation would block exception
+	 */
+	struct Would_block { };
 
 	/**
 	 * Check for data to read or write
 	 */
 	virtual bool poll(bool trigger_io_response, Vfs::Vfs_handle::Context *context) = 0;
 };
-
-
-Vfs::Lxip_vfs_handle::Lxip_vfs_handle(Vfs::File_system &fs,
-                                      Allocator        &alloc,
-                                      int               status_flags,
-                                      Vfs::File        &file)
-:
-	Vfs_handle(fs, fs, alloc, status_flags), file(file)
-{
-	file.handles.insert(&file_le);
-}
-
-
-Vfs::Lxip_vfs_handle::~Lxip_vfs_handle()
-{
-	file.handles.remove(&file_le);
-}
-
-
-/**
- * List of open handles to potentially poll
- *
- * Could be a dynamic queue, but this works for now.
- */
-static Vfs::Lxip_vfs_handles _polling_handles;
-
-static void poll_all()
-{
-	using namespace Linux;
-
-	for (Genode::List_element<Vfs::Lxip_vfs_handle> *le = _polling_handles.first();
-	     le; le = le->next())
-	{
-		Vfs::Lxip_vfs_handle *handle = le->object();
-		handle->file.poll(true, handle->context);
-	}
-}
 
 
 struct Vfs::Directory : Vfs::Node
@@ -281,9 +234,70 @@ struct Vfs::Directory : Vfs::Node
 	virtual ~Directory() { };
 
 	virtual Vfs::Node *child(char const *)                        = 0;
-	virtual void dirent(file_offset, Directory_service::Dirent &) = 0;
 	virtual file_size num_dirent()                                = 0;
 };
+
+
+struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
+{
+	Node &node;
+
+	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	                Vfs::Node &node)
+	: Vfs::Vfs_handle(fs, fs, alloc, status_flags),	node(node) { }
+};
+
+
+struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
+{
+	Vfs::File &file;
+
+	List_element<Lxip_vfs_file_handle> file_le    { this };
+	List_element<Lxip_vfs_file_handle> polling_le { this };
+
+	Lxip_vfs_file_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	                     Vfs::File &file)
+	: Lxip_vfs_handle(fs, alloc, status_flags, file), file(file)
+	{
+		file.handles.insert(&file_le);
+	}
+
+	~Lxip_vfs_file_handle()
+	{
+		file.handles.remove(&file_le);
+	}
+};
+
+
+struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
+{
+	Vfs::Directory &dir;
+
+	Lxip_vfs_dir_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	                    Vfs::Directory &dir)
+	: Vfs::Lxip_vfs_handle(fs, alloc, status_flags, dir),
+	  dir(dir) { }
+};
+
+
+/**
+ * List of open handles to potentially poll
+ *
+ * Could be a dynamic queue, but this works for now.
+ */
+static Vfs::Lxip_vfs_file_handles _polling_handles;
+
+static void poll_all()
+{
+	using namespace Linux;
+
+	for (Genode::List_element<Vfs::Lxip_vfs_file_handle> *le = _polling_handles.first();
+	     le; le = le->next())
+	{
+		Vfs::Lxip_vfs_file_handle *handle = le->object();
+		handle->file.poll(true, handle->context);
+	}
+}
 
 
 /*****************************
@@ -308,7 +322,7 @@ class Vfs::Lxip_file : public Vfs::File
 
 		void dissolve_handles()
 		{
-			for (Genode::List_element<Vfs::Lxip_vfs_handle> *le = handles.first();
+			for (Genode::List_element<Vfs::Lxip_vfs_file_handle> *le = handles.first();
 			     le; le = le->next())
 			{
 				_polling_handles.remove(&le->object()->polling_le);
@@ -914,11 +928,23 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 			return nullptr;
 		}
 
-		void dirent(file_offset index, Directory_service::Dirent &out) override
+		file_size num_dirent() override { return _num_nodes(); }
+
+		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		                   file_size seek_offset) override
 		{
-			out.fileno  = index+1;
-			out.type    = Directory_service::DIRENT_TYPE_END;
-			out.name[0] = '\0';
+			typedef Vfs::Directory_service::Dirent Dirent;
+
+			if (len < sizeof(Dirent))
+				return -1;
+
+			Vfs::file_size index = seek_offset / sizeof(Dirent);
+
+			Dirent *out = (Dirent*)dst;
+
+			out->fileno  = index+1;
+			out->type    = Directory_service::DIRENT_TYPE_END;
+			out->name[0] = '\0';
 
 			Vfs::Node *node = nullptr;
 			for (Vfs::Node *n : _nodes) {
@@ -930,14 +956,14 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 					--index;
 				}
 			}
-			if (!node) return;
+			if (!node) return -1;
 
-			out.type = Directory_service::DIRENT_TYPE_FILE;
+			out->type = Directory_service::DIRENT_TYPE_FILE;
 
-			strncpy(out.name, node->name(), sizeof(out.name));
+			strncpy(out->name, node->name(), sizeof(out->name));
+
+			return sizeof(Dirent);
 		}
-
-		file_size num_dirent() override { return _num_nodes(); }
 };
 
 
@@ -1138,11 +1164,23 @@ class Lxip::Protocol_dir_impl : public Protocol_dir,
 		 ** Directory interface **
 		 *************************/
 
-		void dirent(Vfs::file_offset index, Vfs::Directory_service::Dirent &out) override
+		Vfs::file_size num_dirent() override { return _num_nodes(); }
+
+		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		                   Vfs::file_size seek_offset) override
 		{
-			out.fileno  = index+1;
-			out.type    = Vfs::Directory_service::DIRENT_TYPE_END;
-			out.name[0] = '\0';
+			typedef Vfs::Directory_service::Dirent Dirent;
+
+			if (len < sizeof(Dirent))
+				return -1;
+
+			Vfs::file_size index = seek_offset / sizeof(Dirent);
+
+			Dirent *out = (Dirent*)dst;
+
+			out->fileno  = index+1;
+			out->type    = Vfs::Directory_service::DIRENT_TYPE_END;
+			out->name[0] = '\0';
 
 			Vfs::Node *node = nullptr;
 			for (Vfs::Node *n : _nodes) {
@@ -1154,18 +1192,18 @@ class Lxip::Protocol_dir_impl : public Protocol_dir,
 					--index;
 				}
 			}
-			if (!node) return;
+			if (!node) return -1;
 
 			if (dynamic_cast<Vfs::Directory*>(node))
-				out.type = Vfs::Directory_service::DIRENT_TYPE_DIRECTORY;
+				out->type = Vfs::Directory_service::DIRENT_TYPE_DIRECTORY;
 
 			if (dynamic_cast<Vfs::File*>(node))
-				out.type = Vfs::Directory_service::DIRENT_TYPE_FILE;
+				out->type = Vfs::Directory_service::DIRENT_TYPE_FILE;
 
-			Genode::strncpy(out.name, node->name(), sizeof(out.name));
+			Genode::strncpy(out->name, node->name(), sizeof(out->name));
+
+			return sizeof(Dirent);
 		}
-
-		Vfs::file_size num_dirent() override { return _num_nodes(); }
 
 		Vfs::Node *child(char const *name) override { return nullptr; }
 };
@@ -1273,14 +1311,14 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		                  Vfs::file_size count,
 		                  Vfs::file_size &out_count)
 		{
-			Vfs::File &file =
-				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->file;
+			Vfs::Node &node =
+				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->node;
 
 			if (!count)
-				Genode::error("zero read of ", file.name());
+				Genode::error("zero read of ", node.name());
 
 			if (count) {
-				Lxip::ssize_t res = file.read(dst, count, vfs_handle->seek());
+				Lxip::ssize_t res = node.read(dst, count, vfs_handle->seek());
 				if (res < 0) return READ_ERR_IO;
 
 				out_count = res;
@@ -1357,40 +1395,50 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		 ** Directory interface **
 		 *************************/
 
-		void dirent(file_offset index, Directory_service::Dirent &out) override
-		{
-			if (index == 0) {
-				out.fileno  = (Genode::addr_t)&_tcp_dir;
-				out.type    = Directory_service::DIRENT_TYPE_DIRECTORY;
-				Genode::strncpy(out.name, "tcp", sizeof(out.name));
-			} else if (index == 1) {
-				out.fileno  = (Genode::addr_t)&_udp_dir;
-				out.type    = Directory_service::DIRENT_TYPE_DIRECTORY;
-				Genode::strncpy(out.name, "udp", sizeof(out.name));
-			} else if (index == 2) {
-				out.fileno  = (Genode::addr_t)&_address;
-				out.type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out.name, "address", sizeof(out.name));
-			} else if (index == 3) {
-				out.fileno  = (Genode::addr_t)&_netmask;
-				out.type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out.name, "netmask", sizeof(out.name));
-			} else if (index == 4) {
-				out.fileno  = (Genode::addr_t)&_gateway;
-				out.type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out.name, "gateway", sizeof(out.name));
-			} else if (index == 5) {
-				out.fileno  = (Genode::addr_t)&_nameserver;
-				out.type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out.name, "nameserver", sizeof(out.name));
-			} else {
-				out.fileno  = 0;
-				out.type    = Directory_service::DIRENT_TYPE_END;
-				out.name[0] = '\0';
-			}
-		}
-
 		file_size num_dirent() override { return 6; }
+
+		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		                   file_size seek_offset) override
+		{
+			if (len < sizeof(Dirent))
+				return -1;
+
+			file_size index = seek_offset / sizeof(Dirent);
+
+			Dirent *out = (Dirent*)dst;
+
+			if (index == 0) {
+				out->fileno  = (Genode::addr_t)&_tcp_dir;
+				out->type    = Directory_service::DIRENT_TYPE_DIRECTORY;
+				Genode::strncpy(out->name, "tcp", sizeof(out->name));
+			} else if (index == 1) {
+				out->fileno  = (Genode::addr_t)&_udp_dir;
+				out->type    = Directory_service::DIRENT_TYPE_DIRECTORY;
+				Genode::strncpy(out->name, "udp", sizeof(out->name));
+			} else if (index == 2) {
+				out->fileno  = (Genode::addr_t)&_address;
+				out->type    = Directory_service::DIRENT_TYPE_FILE;
+				Genode::strncpy(out->name, "address", sizeof(out->name));
+			} else if (index == 3) {
+				out->fileno  = (Genode::addr_t)&_netmask;
+				out->type    = Directory_service::DIRENT_TYPE_FILE;
+				Genode::strncpy(out->name, "netmask", sizeof(out->name));
+			} else if (index == 4) {
+				out->fileno  = (Genode::addr_t)&_gateway;
+				out->type    = Directory_service::DIRENT_TYPE_FILE;
+				Genode::strncpy(out->name, "gateway", sizeof(out->name));
+			} else if (index == 5) {
+				out->fileno  = (Genode::addr_t)&_nameserver;
+				out->type    = Directory_service::DIRENT_TYPE_FILE;
+				Genode::strncpy(out->name, "nameserver", sizeof(out->name));
+			} else {
+				out->fileno  = 0;
+				out->type    = Directory_service::DIRENT_TYPE_END;
+				out->name[0] = '\0';
+			}
+
+			return sizeof(Dirent);
+		}
 
 		Vfs::Node *child(char const *name) override { return nullptr; }
 
@@ -1429,20 +1477,6 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return STAT_ERR_NO_ENTRY;
 		}
 
-		Dirent_result dirent(char const *path, file_offset index, Dirent &out) override
-		{
-			Vfs::Node *node = _lookup(path);
-			if (!node) return DIRENT_ERR_INVALID_PATH;
-
-			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
-			if (dir) {
-				dir->dirent(index, out);
-				return DIRENT_OK;
-			}
-
-			return DIRENT_ERR_INVALID_PATH;
-		}
-
 		file_size num_dirent(char const *path) override
 		{
 			if (_is_root(path)) return num_dirent();
@@ -1478,8 +1512,8 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 			Vfs::File *file = dynamic_cast<Vfs::File*>(node);
 			if (file) {
-				Lxip_vfs_handle *handle =
-					new (alloc) Vfs::Lxip_vfs_handle(*this, alloc, 0, *file);
+				Lxip_vfs_file_handle *handle =
+					new (alloc) Vfs::Lxip_vfs_file_handle(*this, alloc, 0, *file);
 				*out_handle = handle;
 
 				return OPEN_OK;
@@ -1488,14 +1522,40 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return OPEN_ERR_UNACCESSIBLE;
 		}
 
+		Opendir_result opendir(char const *path, bool create,
+		                       Vfs_handle **out_handle, Allocator &alloc) override
+		{
+			Vfs::Node *node = _lookup(path);
+
+			if (!node) return OPENDIR_ERR_LOOKUP_FAILED;
+
+			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
+			if (dir) {
+				Lxip_vfs_dir_handle *handle =
+					new (alloc) Vfs::Lxip_vfs_dir_handle(*this, alloc, 0, *dir);
+				*out_handle = handle;
+
+				return OPENDIR_OK;
+			}
+
+			return OPENDIR_ERR_LOOKUP_FAILED;
+		}
+
 		void close(Vfs_handle *vfs_handle) override
 		{
 			Lxip_vfs_handle *handle =
 				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
-			if (handle) {
-				_polling_handles.remove(&handle->polling_le);
-				Genode::destroy(handle->alloc(), handle);
-			}
+
+			if (!handle)
+				return;
+
+			Lxip_vfs_file_handle *file_handle =
+				dynamic_cast<Vfs::Lxip_vfs_file_handle*>(handle);
+
+			if (file_handle)
+				_polling_handles.remove(&file_handle->polling_le);
+
+			Genode::destroy(handle->alloc(), handle);
 		}
 
 		Unlink_result unlink(char const *path) override
@@ -1509,18 +1569,8 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return UNLINK_ERR_NO_ENTRY;
 		}
 
-		Readlink_result readlink(char const *, char *, file_size,
-		                         file_size &) override {
-			return READLINK_ERR_NO_ENTRY; }
-
 		Rename_result rename(char const *, char const *) override {
 			return RENAME_ERR_NO_PERM; }
-
-		Mkdir_result mkdir(char const *, unsigned) override {
-			return MKDIR_ERR_NO_PERM; }
-
-		Symlink_result symlink(char const *, char const *) override {
-			return SYMLINK_ERR_NO_ENTRY; }
 
 		/*************************************
 		 ** Lxip_file I/O service interface **
@@ -1531,7 +1581,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		                   file_size &out_count) override
 		{
 			Vfs::File &file =
-				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->file;
+				static_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle)->file;
 
 			if (!count)
 				Genode::error("zero write of ",file.name());
@@ -1546,25 +1596,9 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return WRITE_OK;
 		}
 
-		Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst,
-		                 Vfs::file_size count,
-		                 Vfs::file_size &out_count) override
-		{
-			try { return _read(vfs_handle, dst, count, out_count); }
-			catch (File::Would_block) { return READ_ERR_WOULD_BLOCK; }
-		}
-
-		bool queue_read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                        Read_result &out_result, file_size &out_count)
-		{
-			try { out_result = _read(vfs_handle, dst, count, out_count); }
-			catch (File::Would_block) { out_result = READ_QUEUED; }
-			return true;
-		}
-
 		Read_result complete_read(Vfs_handle *vfs_handle,
-		                                  char *dst, file_size count,
-		                                  file_size &out_count)
+		                          char *dst, file_size count,
+		                          file_size &out_count) override
 		{
 			try { return _read(vfs_handle, dst, count, out_count); }
 			catch (File::Would_block) { return READ_QUEUED; }
@@ -1578,8 +1612,8 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
-			Lxip_vfs_handle *handle =
-				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle);
+			Lxip_vfs_file_handle *handle =
+				static_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle);
 
 			if (dynamic_cast<Lxip_file*>(&handle->file)) {
 				_polling_handles.remove(&handle->polling_le);
@@ -1591,8 +1625,8 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 		bool read_ready(Vfs_handle *vfs_handle) override
 		{
-			Lxip_vfs_handle *handle =
-				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle);
+			Lxip_vfs_file_handle *handle =
+				static_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle);
 
 			return handle->file.poll(false, nullptr);
 		}

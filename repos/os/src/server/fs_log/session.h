@@ -56,8 +56,19 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 
 		~Session_component()
 		{
-			_fs.sync(_handle);
-			_fs.close(_handle);
+			/* sync */
+
+			File_system::Session::Tx::Source &source = *_fs.tx();
+
+			File_system::Packet_descriptor packet = source.get_acked_packet();
+
+			if (packet.operation() == File_system::Packet_descriptor::SYNC)
+				_fs.close(packet.handle());
+
+			packet = File_system::Packet_descriptor(
+				packet, _handle, File_system::Packet_descriptor::SYNC, 0, 0);
+
+			source.submit_packet(packet);
 		}
 
 
@@ -78,9 +89,13 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 
 			File_system::Session::Tx::Source &source = *_fs.tx();
 
-			File_system::Packet_descriptor packet(
-				source.get_acked_packet(),
-				_handle, File_system::Packet_descriptor::WRITE,
+			File_system::Packet_descriptor packet = source.get_acked_packet();
+
+			if (packet.operation() == File_system::Packet_descriptor::SYNC)
+				_fs.close(packet.handle());
+
+			packet = File_system::Packet_descriptor(
+				packet, _handle, File_system::Packet_descriptor::WRITE,
 				msg_len, File_system::SEEK_TAIL);
 
 			char *buf = source.packet_content(packet);

@@ -309,6 +309,14 @@ struct Noux::Sysio
 	enum Clock_Id        { CLOCK_ID_SECOND };
 
 	enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = Vfs::Directory_service::NUM_GENERAL_ERRORS };
+	enum Mkdir_error     { MKDIR_ERR_EXISTS,   MKDIR_ERR_NO_ENTRY,
+	                       MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
+	                       MKDIR_ERR_NAME_TOO_LONG };
+	enum Readlink_error  { READLINK_ERR_NO_ENTRY, READLINK_ERR_NO_PERM };
+	enum Symlink_error   { SYMLINK_ERR_EXISTS,   SYMLINK_ERR_NO_ENTRY,
+	                       SYMLINK_ERR_NO_SPACE, SYMLINK_ERR_NO_PERM,
+	                       SYMLINK_ERR_NAME_TOO_LONG };
+
 	enum Execve_error    { EXECVE_NONEXISTENT    = Vfs::Directory_service::NUM_GENERAL_ERRORS, EXECVE_NOMEM };
 	enum Fork_error      { FORK_NOMEM = Vfs::Directory_service::NUM_GENERAL_ERRORS };
 	enum Select_error    { SELECT_ERR_INTERRUPT };
@@ -362,15 +370,15 @@ struct Noux::Sysio
 		Vfs::File_io_service::Ftruncate_result  ftruncate;
 		Vfs::Directory_service::Open_result     open;
 		Vfs::Directory_service::Unlink_result   unlink;
-		Vfs::Directory_service::Readlink_result readlink;
 		Vfs::Directory_service::Rename_result   rename;
-		Vfs::Directory_service::Mkdir_result    mkdir;
-		Vfs::Directory_service::Symlink_result  symlink;
 		Vfs::File_io_service::Read_result       read;
 		Vfs::File_io_service::Write_result      write;
 		Vfs::File_io_service::Ioctl_result      ioctl;
 
 		Fcntl_error    fcntl;
+		Mkdir_error    mkdir;
+		Readlink_error readlink;
+		Symlink_error  symlink;
 		Execve_error   execve;
 		Select_error   select;
 		Accept_error   accept;

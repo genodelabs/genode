@@ -32,8 +32,9 @@ class Cli_monitor::Subsystem_config_registry
 
 	private:
 
-		Vfs::File_system  &_fs;
-		Genode::Allocator &_alloc;
+		Vfs::File_system   &_fs;
+		Genode::Allocator  &_alloc;
+		Genode::Entrypoint &_ep;
 
 		enum { CONFIG_BUF_SIZE = 32*1024 };
 		char _config_buf[CONFIG_BUF_SIZE];
@@ -62,9 +63,10 @@ class Cli_monitor::Subsystem_config_registry
 		/**
 		 * Constructor
 		 */
-		Subsystem_config_registry(Vfs::File_system &fs, Genode::Allocator &alloc)
+		Subsystem_config_registry(Vfs::File_system &fs, Genode::Allocator &alloc,
+		                          Genode::Entrypoint &ep)
 		:
-			_fs(fs), _alloc(alloc)
+			_fs(fs), _alloc(alloc), _ep(ep)
 		{ }
 
 		/**
@@ -103,8 +105,17 @@ class Cli_monitor::Subsystem_config_registry
 			}
 
 			Vfs::file_size out_count = 0;
-			Vfs::File_io_service::Read_result read_result =
-				handle->fs().read(handle, _config_buf, sizeof(_config_buf), out_count);
+
+			handle->fs().queue_read(handle, sizeof(_config_buf));
+
+			Vfs::File_io_service::Read_result read_result;
+
+			while ((read_result =
+			        handle->fs().complete_read(handle, _config_buf,
+			                                   sizeof(_config_buf),
+			                                   out_count)) ==
+			       Vfs::File_io_service::READ_QUEUED)
+				_ep.wait_and_dispatch_one_io_signal();
 
 			if (read_result != Vfs::File_io_service::READ_OK) {
 				error("could not read '", path, "', err=", (int)read_result);
@@ -133,21 +144,34 @@ class Cli_monitor::Subsystem_config_registry
 		{
 			using Genode::error;
 
+			Vfs::Vfs_handle *dir_handle;
+
+			if (_fs.opendir(_subsystems_path(), false, &dir_handle, _alloc) !=
+			    Vfs::Directory_service::OPENDIR_OK) {
+				error("could not access directory '", _subsystems_path(), "'");
+				return;
+			}
+
 			/* iterate over the directory entries */
 			for (unsigned i = 0;; i++) {
 
 				Vfs::Directory_service::Dirent dirent;
 
-				Vfs::Directory_service::Dirent_result dirent_result =
-					_fs.dirent(_subsystems_path(), i, dirent);
+				dir_handle->seek(i * sizeof(dirent));
+				dir_handle->fs().queue_read(dir_handle, sizeof(dirent));
 
-				if (dirent_result != Vfs::Directory_service::DIRENT_OK) {
-					error("could not access directory '", _subsystems_path(), "'");
+				Vfs::file_size out_count;
+				while (dir_handle->fs().complete_read(dir_handle,
+				                                      (char*)&dirent,
+				                                      sizeof(dirent),
+				                                      out_count) ==
+				       Vfs::File_io_service::READ_QUEUED)
+					_ep.wait_and_dispatch_one_io_signal();
+
+				if (dirent.type == Vfs::Directory_service::DIRENT_TYPE_END) {
+					_fs.close(dir_handle);
 					return;
 				}
-
-				if (dirent.type == Vfs::Directory_service::DIRENT_TYPE_END)
-					return;
 
 				unsigned const subsystem_suffix = _subsystem_suffix(dirent);
 
@@ -163,6 +187,8 @@ class Cli_monitor::Subsystem_config_registry
 					} catch (Nonexistent_subsystem_config) { }
 				}
 			}
+
+			_fs.close(dir_handle);
 		}
 };
 

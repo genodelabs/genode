@@ -46,6 +46,60 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		Genode::Attached_rom_dataspace _rom;
 
+		class Rom_vfs_handle : public Single_vfs_handle
+		{
+			private:
+
+				Genode::Attached_rom_dataspace &_rom;
+
+			public:
+
+				Rom_vfs_handle(Directory_service              &ds,
+				               File_io_service                &fs,
+				               Genode::Allocator              &alloc,
+				               Genode::Attached_rom_dataspace &rom)
+				: Single_vfs_handle(ds, fs, alloc, 0), _rom(rom) { }
+
+				Read_result read(char *dst, file_size count,
+				                 file_size &out_count) override
+				{
+					/* file read limit is the size of the dataspace */
+					file_size const max_size = _rom.size();
+
+					/* current read offset */
+					file_size const read_offset = seek();
+
+					/* maximum read offset, clamped to dataspace size */
+					file_size const end_offset = min(count + read_offset, max_size);
+
+					/* source address within the dataspace */
+					char const *src = _rom.local_addr<char>() + read_offset;
+
+					/* check if end of file is reached */
+					if (read_offset >= end_offset) {
+						out_count = 0;
+						return READ_OK;
+					}
+
+					/* copy-out bytes from ROM dataspace */
+					file_size const num_bytes = end_offset - read_offset;
+
+					memcpy(dst, src, num_bytes);
+
+					out_count = num_bytes;
+					return READ_OK;
+				}
+
+				Write_result write(char const *src, file_size count,
+				                   file_size &out_count) override
+				{
+					out_count = 0;
+					return WRITE_ERR_INVALID;
+				}
+
+				bool read_ready() { return true; }
+		};
+
 	public:
 
 		Rom_file_system(Genode::Env &env,
@@ -65,27 +119,23 @@ class Vfs::Rom_file_system : public Single_file_system
 		 ** Directory-service interface **
 		 ********************************/
 
-		Dataspace_capability dataspace(char const *path) override
-		{
-			return _rom.cap();
-		}
-
-		/*
-		 * Overwrite the default open function to update the ROM dataspace
-		 * each time when opening the corresponding file.
-		 */
 		Open_result open(char const  *path, unsigned,
 		                 Vfs_handle **out_handle,
 		                 Allocator   &alloc) override
 		{
-			Open_result const result =
-				Single_file_system::open(path, 0, out_handle, alloc);
+			if (!_single_file(path))
+				return OPEN_ERR_UNACCESSIBLE;
 
 			_rom.update();
 
-			return result;
+			*out_handle = new (alloc) Rom_vfs_handle(*this, *this, alloc, _rom);
+			return OPEN_OK;
 		}
 
+		Dataspace_capability dataspace(char const *path) override
+		{
+			return _rom.cap();
+		}
 
 		/********************************
 		 ** File I/O service interface **
@@ -100,50 +150,6 @@ class Vfs::Rom_file_system : public Single_file_system
 
 			return result;
 		}
-
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Write_result write(Vfs_handle *, char const *, file_size,
-		                   file_size &count_out) override
-		{
-			count_out = 0;
-			return WRITE_ERR_INVALID;
-		}
-
-		Read_result read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                 file_size &out_count) override
-		{
-			/* file read limit is the size of the dataspace */
-			file_size const max_size = _rom.size();
-
-			/* current read offset */
-			file_size const read_offset = vfs_handle->seek();
-
-			/* maximum read offset, clamped to dataspace size */
-			file_size const end_offset = min(count + read_offset, max_size);
-
-			/* source address within the dataspace */
-			char const *src = _rom.local_addr<char>() + read_offset;
-
-			/* check if end of file is reached */
-			if (read_offset >= end_offset) {
-				out_count = 0;
-				return READ_OK;
-			}
-
-			/* copy-out bytes from ROM dataspace */
-			file_size const num_bytes = end_offset - read_offset;
-
-			memcpy(dst, src, num_bytes);
-
-			out_count = num_bytes;
-			return READ_OK;
-		}
-
-		bool read_ready(Vfs_handle *) override { return true; }
 };
 
 #endif /* _INCLUDE__VFS__ROM_FILE_SYSTEM_H_ */

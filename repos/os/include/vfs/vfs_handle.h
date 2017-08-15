@@ -37,7 +37,7 @@ class Vfs::Vfs_handle
 		/**
 		 * Opaque handle context
 		 */
-		struct Context { };
+		struct Context : List<Context>::Element { };
 
 		Context *context = nullptr;
 
