@@ -971,8 +971,85 @@ append config {
 				</start>
 			</init_config>
 			<expect_log string="[init -> service_init -> server] closing session with label test"/>
-			<sleep ms="100"/>
+			<sleep ms="150"/>
 
+
+			<message string="test abandoned any-child routes"/>
+
+			<init_config version="abandoned any-child 1">
+				<report ids="yes" requested="yes" provided="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+				<start name="client">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config>
+						<log string="client started"/>
+						<create_log_connections count="1"/>
+					</config>
+					<route>
+						<any-service> <any-child/> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> server] [client] client started"/>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<node name="child">
+					<attribute name="name" value="server"/>
+					<attribute name="id"   value="21"/>
+				</node>
+				<node name="child">
+					<attribute name="name" value="client"/>
+					<attribute name="id"   value="22"/>
+				</node>
+			</expect_init_state>
+			<sleep ms="150"/>
+
+			<init_config version="abandoned any-child 2">
+				<report ids="yes" requested="yes" provided="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="client">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config>
+						<log string="client started"/>
+						<create_log_connections count="1"/>
+					</config>
+					<route>
+						<any-service> <any-child/> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> client] client started"/>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<node name="child">
+					<attribute name="name" value="client"/>
+					<attribute name="id"   value="23"/>
+				</node>
+			</expect_init_state>
+			<sleep ms="150"/>
 
 			<message string="test complete"/>
 
@@ -1017,5 +1094,5 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-init" exited with exit value 0.*} 120
+run_genode_until {.*child "test-init" exited with exit value 0.*} 130
 
