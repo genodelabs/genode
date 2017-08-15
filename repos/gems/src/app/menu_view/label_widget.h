@@ -63,6 +63,9 @@ struct Menu_view::Label_widget : Widget
 
 		Text_painter::paint(pixel_surface, at + centered, *font,
 		                    Color(0, 0, 0), text.string());
+
+		Text_painter::paint(alpha_surface, at + centered, *font,
+		                    Color(255, 255, 255), text.string());
 	}
 };
 
