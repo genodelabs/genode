@@ -51,6 +51,8 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
                                                   Plugin_context *context,
                                                   int libc_fd)
 {
+	Lock::Guard guard(_lock);
+
 	/* we use addresses returned by the allocator as file descriptors */
 	addr_t addr = (libc_fd <= ANY_FD ? ANY_FD : libc_fd);
 
@@ -79,6 +81,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 
 void File_descriptor_allocator::free(File_descriptor *fdo)
 {
+	Lock::Guard guard(_lock);
 	::free((void *)fdo->fd_path);
 	Allocator_avl_base::free(reinterpret_cast<void*>(fdo->libc_fd));
 }
@@ -86,6 +89,7 @@ void File_descriptor_allocator::free(File_descriptor *fdo)
 
 File_descriptor *File_descriptor_allocator::find_by_libc_fd(int libc_fd)
 {
+	Lock::Guard guard(_lock);
 	return metadata(reinterpret_cast<void*>(libc_fd));
 }
 

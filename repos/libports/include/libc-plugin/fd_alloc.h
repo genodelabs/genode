@@ -68,6 +68,10 @@ namespace Libc {
 
 	class File_descriptor_allocator : Allocator_avl_tpl<File_descriptor>
 	{
+		private:
+
+			Genode::Lock _lock;
+
 		public:
 
 			/**
