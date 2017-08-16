@@ -82,6 +82,26 @@ proc run_boot_dir {binaries} {
 		exec [sel4_elfloader_dir]/gen_boot_image.sh [run_dir]/sel4 [run_dir]/genode.elf [run_dir]/image.elf
 	}
 
+	if {[have_spec x86] && [have_include image/uefi]} {
+		exec mkdir -p [run_dir]/efi/boot
+		exec cp [genode_dir]/tool/boot/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+		exec cp [genode_dir]/tool/boot/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+		exec mkdir -p [run_dir]/boot/grub
+		exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+
+		#
+		# Generate GRUB2 config file
+		#
+		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
+		puts $fh "set timeout=0"
+		puts $fh "menuentry 'Genode on seL4' {"
+		puts $fh " multiboot2 /boot/bender phys_max=256M serial_fallback"
+		puts $fh " module2 /sel4 sel4 disable_iommu"
+		puts $fh " module2 /image.elf image.elf"
+		puts $fh "}"
+		close $fh
+	}
+
 	run_image [run_dir]/image.elf
 
 	# set symbolic link to image.elf file in TFTP directory for PXE boot

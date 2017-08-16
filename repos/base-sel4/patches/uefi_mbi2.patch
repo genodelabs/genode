@@ -1,0 +1,435 @@
+--- src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
+@@ -113,11 +113,11 @@
+ }
+ 
+ BOOT_CODE static paddr_t
+-load_boot_module(multiboot_module_t* boot_module, paddr_t load_paddr)
++load_boot_module(word_t boot_module_start, paddr_t load_paddr)
+ {
+     v_region_t v_reg;
+     word_t entry;
+-    Elf_Header_t* elf_file = (Elf_Header_t*)(word_t)boot_module->start;
++    Elf_Header_t* elf_file = (Elf_Header_t*)boot_module_start;
+ 
+     if (!elf_checkFile(elf_file)) {
+         printf("Boot module does not contain a valid ELF image\n");
+@@ -378,8 +378,13 @@
+ }
+ 
+ static BOOT_CODE bool_t
+-try_boot_sys(
+-    unsigned long multiboot_magic,
++try_load_boot_module(
++    paddr_t mods_end_paddr,   /* physical address where boot modules end */
++    paddr_t boot_module_start, /* physical address of first boot module */
++    acpi_info_t *acpi_info);
++
++static BOOT_CODE bool_t
++try_boot_sys_mbi1(
+     multiboot_info_t* mbi
+ )
+ {
+@@ -387,15 +392,9 @@
+ 
+     acpi_rsdt_t* acpi_rsdt; /* physical address of ACPI root */
+     paddr_t mods_end_paddr; /* physical address where boot modules end */
+-    paddr_t load_paddr;
+     word_t i;
+-    p_region_t ui_p_regs;
+     multiboot_module_t *modules = (multiboot_module_t*)(word_t)mbi->part1.mod_list;
+ 
+-    if (multiboot_magic != MULTIBOOT_MAGIC) {
+-        printf("Boot loader not multiboot compliant\n");
+-        return false;
+-    }
+     cmdline_parse((const char *)(word_t)mbi->part1.cmdline, &cmdline_opt);
+ 
+     if ((mbi->part1.flags & MULTIBOOT_INFO_MEM_FLAG) == 0) {
+@@ -489,7 +488,7 @@
+ 
+     /* get ACPI root table */
+     acpi_info_t acpi_info = { 0, 0, 0 };
+-    acpi_rsdt = acpi_init(&acpi_info);
++    acpi_rsdt = acpi_init(&acpi_info, 0);
+     if (!acpi_rsdt) {
+         return false;
+     }
+@@ -561,13 +560,27 @@
+             mods_end_paddr = modules[i].end;
+         }
+     }
++
++    return try_load_boot_module(mods_end_paddr, modules->start, &acpi_info);
++}
++
++static BOOT_CODE bool_t
++try_load_boot_module(
++    paddr_t mods_end_paddr,   /* physical address where boot modules end */
++    paddr_t boot_module_start, /* physical address of first boot module */
++    acpi_info_t *acpi_info
++)
++{
++    p_region_t ui_p_regs;
++    paddr_t load_paddr;
++
+     mods_end_paddr = ROUND_UP(mods_end_paddr, PAGE_BITS);
+     assert(mods_end_paddr > boot_state.ki_p_reg.end);
+ 
+     printf("ELF-loading userland images from boot modules:\n");
+     load_paddr = mods_end_paddr;
+ 
+-    load_paddr = load_boot_module(modules, load_paddr);
++    load_paddr = load_boot_module(boot_module_start, load_paddr);
+     if (!load_paddr) {
+         return false;
+     }
+@@ -599,7 +612,7 @@
+     ksNumCPUs = boot_state.num_cpus;
+ 
+     printf("Starting node #0 with APIC ID %lu\n", boot_state.cpus[0]);
+-    if (!try_boot_sys_node(boot_state.cpus[0], &acpi_info)) {
++    if (!try_boot_sys_node(boot_state.cpus[0], acpi_info)) {
+         return false;
+     }
+ 
+@@ -619,13 +632,208 @@
+     return true;
+ }
+ 
++inline word_t align_up(word_t base, word_t align)
++{
++    base += align - 1;
++    base &= ~(align - 1);
++    return base;
++}
++
++static BOOT_CODE bool_t
++try_boot_sys_mbi2(
++    multiboot2_header_t* mbi2
++)
++{
++    uint32_t mem_lower             = 0;
++    acpi_rsdt_t* acpi_rsdt         = 0; /* physical address of ACPI root */
++    paddr_t mods_end_paddr         = 0; /* physical address where boot modules end */
++    char * acpi_rsdp               = 0;
++    int mod_count                  = 0;
++    word_t boot_module_start       = 0;
++    word_t boot_module_size        = 0;
++    multiboot2_tag_t const * tag   = (multiboot2_tag_t *)(mbi2 + 1);
++    multiboot2_tag_t const * tag_e = (multiboot2_tag_t *)((word_t)mbi2 + mbi2->total_size);
++
++    /* initialize the memory. We track two kinds of memory regions. Physical memory
++     * that we will use for the kernel, and physical memory regions that we must
++     * not give to the user. Memory regions that must not be given to the user
++     * include all the physical memory in the kernel window, but also includes any
++     * important or kernel devices. */
++    boot_state.mem_p_regs.count = 0;
++    init_allocated_p_regions();
++    boot_state.mb_mmap_info.mmap_length = 0;
++
++    while (tag < tag_e && tag->type != MULTIBOOT2_TAG_END) {
++        word_t const behind_tag = (word_t)tag + sizeof(*tag);
++
++        if (tag->type == MULTIBOOT2_TAG_CMDLINE) {
++            char const * const cmdline = (char const * const)(behind_tag);
++            cmdline_parse(cmdline, &cmdline_opt);
++        } else
++        if (tag->type == MULTIBOOT2_TAG_ACPI) {
++            acpi_rsdp = (char *)behind_tag;
++        } else
++        if (tag->type == MULTIBOOT2_TAG_MODULE) {
++            multiboot2_module_t const * module = (multiboot2_module_t const *)behind_tag;
++            printf(
++                "  module #%d: start=0x%x end=0x%x size=0x%x name='%s'\n",
++                mod_count,
++                module->start,
++                module->end,
++                module->end - module->start,
++                module->string
++            );
++
++            if (mod_count == 0) {
++                boot_module_start = module->start;
++                boot_module_size  = module->end - module->start;
++            }
++
++            mod_count ++;
++            if ((sword_t)(module->end - module->start) <= 0) {
++                printf("Invalid boot module size! Possible cause: boot module file not found\n");
++                return false;
++            }
++            if (mods_end_paddr < module->end)
++                mods_end_paddr = module->end;
++        } else
++        if (tag->type == MULTIBOOT2_TAG_MEMORY) {
++            multiboot2_memory_t const * s = (multiboot2_memory_t *)(behind_tag + 8);
++            multiboot2_memory_t const * e = (multiboot2_memory_t *)((word_t)tag + tag->size);
++
++            for (multiboot2_memory_t const * m = s; m < e; m++) {
++                if (!m->addr)
++                    mem_lower = m->size;
++
++                printf("\tPhysical Memory Region from %llx size %llx type %u\n", m->addr, m->size, m->type);
++                if (m->addr != (uint64_t)(word_t)m->addr)
++                    printf("\t\tPhysical memory region not addressable\n");
++
++                if (m->type == MULTIBOOT_MMAP_USEABLE_TYPE && m->addr >= HIGHMEM_PADDR) {
++                    if (!add_mem_p_regs((p_region_t) { m->addr, m->addr + m->size }))
++                         return false;
++                }
++            }
++        }
++
++        tag = (multiboot2_tag_t const *)((word_t)tag + align_up(tag->size, sizeof(*tag)));
++    }
++
++    if (!x86_cpuid_initialize()) {
++        printf("Warning: Your x86 CPU has an unsupported vendor, '%s'.\n"
++               "\tYour setup may not be able to competently run seL4 as "
++               "intended.\n"
++               "\tCurrently supported x86 vendors are AMD and Intel.\n",
++               x86_cpuid_get_identity()->vendor_string);
++    }
++
++    if (!is_compiled_for_microarchitecture()) {
++        printf("Warning: Your kernel was not compiled for the current microarchitecture.\n");
++    }
++
++#ifdef ENABLE_SMP_SUPPORT
++    /* copy boot code for APs to lower memory to run in real mode */
++    if (!copy_boot_code_aps(mem_lower)) {
++        return false;
++    }
++    /* Initialize any kernel TLS */
++    mode_init_tls(0);
++#endif /* ENABLE_SMP_SUPPORT */
++
++    boot_state.ki_p_reg.start = PADDR_LOAD;
++    boot_state.ki_p_reg.end = kpptr_to_paddr(ki_end);
++    boot_state.vbe_info.vbeMode = -1;
++
++    printf("Kernel loaded to: start=0x%lx end=0x%lx size=0x%lx entry=0x%lx\n",
++           boot_state.ki_p_reg.start,
++           boot_state.ki_p_reg.end,
++           boot_state.ki_p_reg.end - boot_state.ki_p_reg.start,
++           (paddr_t)_start
++          );
++
++    /* remapping legacy IRQs to their correct vectors */
++    pic_remap_irqs(IRQ_INT_OFFSET);
++    if (config_set(CONFIG_IRQ_IOAPIC)) {
++        /* Disable the PIC so that it does not generate any interrupts. We need to
++         * do this *before* we initialize the apic */
++        pic_disable();
++    }
++
++    acpi_info_t acpi_info = { 0, 0, 0 };
++    acpi_rsdt = acpi_init(&acpi_info, acpi_rsdp);
++    if (!acpi_rsdt) {
++        return false;
++    }
++
++    /* check if kernel configuration matches platform requirments */
++    if (!acpi_fadt_scan(acpi_rsdt)) {
++        return false;
++    }
++
++    if (!config_set(CONFIG_IOMMU) || cmdline_opt.disable_iommu) {
++        boot_state.num_drhu = 0;
++    } else {
++        /* query available IOMMUs from ACPI */
++        acpi_dmar_scan(
++            acpi_rsdt,
++            boot_state.drhu_list,
++            &boot_state.num_drhu,
++            MAX_NUM_DRHU,
++            &boot_state.rmrr_list
++        );
++    }
++
++    /* query available CPUs from ACPI */
++    boot_state.num_cpus = acpi_madt_scan(acpi_rsdt, boot_state.cpus, &boot_state.num_ioapic, boot_state.ioapic_paddr);
++    if (boot_state.num_cpus == 0) {
++        printf("No CPUs detected\n");
++        return false;
++    }
++
++    if (config_set(CONFIG_IRQ_IOAPIC)) {
++        if (boot_state.num_ioapic == 0) {
++            printf("No IOAPICs detected\n");
++            return false;
++        }
++    } else {
++        if (boot_state.num_ioapic > 0) {
++            printf("Detected %d IOAPICs, but configured to use PIC instead\n", boot_state.num_ioapic);
++        }
++    }
++
++    printf("Detected %d boot module(s):\n", mod_count);
++
++    if (mod_count < 1) {
++        printf("Expect at least one boot module (containing a userland image)\n");
++        return false;
++    }
++
++    mods_end_paddr = ROUND_UP(mods_end_paddr, PAGE_BITS);
++    if (mods_end_paddr <= boot_state.ki_p_reg.start) {
++       mods_end_paddr = boot_state.ki_p_reg.end + boot_module_size;
++       mods_end_paddr = ROUND_UP(mods_end_paddr, PAGE_BITS);
++    }
++
++    return try_load_boot_module(mods_end_paddr, boot_module_start, &acpi_info);
++}
++
+ BOOT_CODE VISIBLE void
+ boot_sys(
+     unsigned long multiboot_magic,
+-    multiboot_info_t* mbi)
++    void* mbi)
+ {
+-    bool_t result;
+-    result = try_boot_sys(multiboot_magic, mbi);
++    bool_t result = false;
++
++    /* call cmdline_parse early to enable serial output for error messages */
++    cmdline_parse("", &cmdline_opt);
++
++    if (multiboot_magic == MULTIBOOT_MAGIC)
++        result = try_boot_sys_mbi1(mbi);
++    else
++    if (multiboot_magic == MULTIBOOT2_MAGIC)
++        result = try_boot_sys_mbi2(mbi);
++    else
++        printf("Boot loader is not multiboot 1 or 2 compliant %lx\n", multiboot_magic);
+ 
+     if (!result) {
+         fail("boot_sys failed for some reason :(\n");
+--- src/kernel/sel4/include/arch/x86/arch/kernel/boot_sys.h
++++ src/kernel/sel4/include/arch/x86/arch/kernel/boot_sys.h
+@@ -12,10 +12,11 @@
+ #define __ARCH_KERNEL_BOOT_SYS_H
+ 
+ #include <arch/kernel/multiboot.h>
++#include <arch/kernel/multiboot2.h>
+ 
+ void boot_sys(
+     unsigned long multiboot_magic,
+-    multiboot_info_t* mbi
++    void * multiboot
+ );
+ 
+ #endif
+--- src/kernel/sel4/src/plat/pc99/machine/acpi.c
++++ src/kernel/sel4/src/plat/pc99/machine/acpi.c
+@@ -190,8 +190,13 @@
+ }
+ 
+ BOOT_CODE static acpi_rsdp_t*
+-acpi_get_rsdp(void)
++acpi_get_rsdp(char *rsdp_by_bootloader)
+ {
++    if (rsdp_by_bootloader) {
++        if (acpi_calc_checksum(rsdp_by_bootloader, 20) == 0)
++            return (acpi_rsdp_t*)rsdp_by_bootloader;
++    }
++
+     char* addr;
+ 
+     for (addr = (char*)BIOS_PADDR_START; addr < (char*)BIOS_PADDR_END; addr += 16) {
+@@ -245,9 +250,9 @@
+ }
+ 
+ BOOT_CODE acpi_rsdt_t*
+-acpi_init(acpi_info_t *acpi_info)
++acpi_init(acpi_info_t *acpi_info, char * rsdp_ptr)
+ {
+-    acpi_rsdp_t* acpi_rsdp = acpi_get_rsdp();
++    acpi_rsdp_t* acpi_rsdp = acpi_get_rsdp(rsdp_ptr);
+     acpi_rsdt_t* acpi_rsdt;
+     acpi_rsdt_t* acpi_rsdt_mapped;
+ 
+--- src/kernel/sel4/include/plat/pc99/plat/machine/acpi.h
++++ src/kernel/sel4/include/plat/pc99/plat/machine/acpi.h
+@@ -40,7 +40,7 @@
+     uint64_t phys_xsdt;
+ } acpi_info_t; 
+ 
+-acpi_rsdt_t * acpi_init(acpi_info_t *);
++acpi_rsdt_t * acpi_init(acpi_info_t *, char * rsdp_ptr);
+ 
+ uint32_t acpi_madt_scan(
+     acpi_rsdt_t* acpi_rsdt,
+--- src/kernel/sel4/src/arch/x86/multiboot.S
++++ src/kernel/sel4/src/arch/x86/multiboot.S
+@@ -62,3 +62,15 @@
+     .long   CONFIG_MULTIBOOT_GRAPHICS_MODE_WIDTH /*width*/
+     .long   CONFIG_MULTIBOOT_GRAPHICS_MODE_HEIGHT /*height*/
+     .long   CONFIG_MULTIBOOT_GRAPHICS_MODE_DEPTH /*depth*/
++    .align  8
++    __mbi2_start:
++    /* magic multi-boot 2 header */
++    .long   0xe85250d6
++    .long   0x0
++    .long   (__mbi2_end - __mbi2_start)
++    .long  -(0xe85250d6 + (__mbi2_end - __mbi2_start))
++    /* end tag - type, flags, size */
++    .word   0x0
++    .word   0x0
++    .long   0x8
++    __mbi2_end:
+--- src/kernel/sel4/include/arch/x86/arch/kernel/multiboot2.h
++++ src/kernel/sel4/include/arch/x86/arch/kernel/multiboot2.h
+@@ -0,0 +1,52 @@
++/*
++ * Copyright 2017, Genode Labs GmbH
++ *
++ * This software may be distributed and modified according to the terms of
++ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
++ * See "LICENSE_GPLv2.txt" for details.
++ *
++ */
++
++#ifndef __ARCH_KERNEL_MULTIBOOT2_H
++#define __ARCH_KERNEL_MULTIBOOT2_H
++
++#define MULTIBOOT2_MAGIC 0x36d76289
++
++#include <types.h>
++
++typedef struct multiboot2_header
++{
++    uint32_t total_size;
++    uint32_t unknown;
++} PACKED multiboot2_header_t;
++
++typedef struct multiboot2_tag
++{
++    uint32_t type;
++    uint32_t size;
++} PACKED multiboot2_tag_t;
++
++typedef struct multiboot2_memory
++{
++    uint64_t addr;
++    uint64_t size;
++    uint32_t type;
++    uint32_t reserved;
++} PACKED multiboot2_memory_t;
++
++typedef struct multiboot2_module
++{
++    uint32_t start;
++    uint32_t end;
++    char     string [0];
++} PACKED multiboot2_module_t;
++
++enum multiboot2_tags {
++    MULTIBOOT2_TAG_END     = 0,
++    MULTIBOOT2_TAG_CMDLINE = 1,
++    MULTIBOOT2_TAG_MODULE  = 3,
++    MULTIBOOT2_TAG_MEMORY  = 6,
++    MULTIBOOT2_TAG_ACPI    = 15,
++};
++
++#endif
