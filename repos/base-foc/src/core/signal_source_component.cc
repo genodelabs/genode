@@ -71,8 +71,7 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 :
 	Signal_source_rpc_object(*cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
-	_entrypoint(ep), _finalizer(*this),
-	_finalizer_cap(_entrypoint->manage(&_finalizer))
+	_entrypoint(ep)
 {
 	using namespace Fiasco;
 
@@ -84,13 +83,6 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 
 
 Signal_source_component::~Signal_source_component()
-{
-	_finalizer_cap.call<Finalizer::Rpc_exit>();
-	_entrypoint->dissolve(&_finalizer);
-}
-
-
-void Signal_source_component::Finalizer_component::exit()
 {
 	/*
 	 * On Fiasco.OC, the signal-source client does not use a blocking call

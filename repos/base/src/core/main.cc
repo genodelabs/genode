@@ -106,12 +106,6 @@ class Core_child : public Child_policy
 {
 	private:
 
-		/*
-		 * Entry point used for serving the parent interface
-		 */
-		Rpc_entrypoint _entrypoint;
-		enum { STACK_SIZE = 4 * 1024 * sizeof(Genode::addr_t)};
-
 		Registry<Service> &_services;
 
 		Capability<Pd_session>  _core_pd_cap;
@@ -133,18 +127,16 @@ class Core_child : public Child_policy
 		Core_child(Registry<Service> &services, Region_map &local_rm,
 		           Pd_session  &core_pd,  Capability<Pd_session>  core_pd_cap,
 		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap,
-		           Cap_quota cap_quota, Ram_quota ram_quota)
+		           Cap_quota cap_quota, Ram_quota ram_quota,
+		           Rpc_entrypoint &ep)
 		:
-			_entrypoint(nullptr, STACK_SIZE, "init_child", false),
 			_services(services),
 			_core_pd_cap (core_pd_cap),  _core_pd (core_pd),
 			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
 			_cap_quota(Child::effective_quota(cap_quota)),
 			_ram_quota(Child::effective_quota(ram_quota)),
-			_child(local_rm, _entrypoint, *this)
-		{
-			_entrypoint.activate();
-		}
+			_child(local_rm, ep, *this)
+		{ }
 
 
 		/****************************
@@ -314,7 +306,7 @@ int main()
 
 	static Reconstructible<Core_child>
 		init(services, local_rm,  core_pd,  core_pd_cap, core_cpu, core_cpu_cap,
-		     init_cap_quota, init_ram_quota);
+		     init_cap_quota, init_ram_quota, ep);
 
 	platform()->wait_for_exit();
 

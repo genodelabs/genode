@@ -75,44 +75,11 @@ class Genode::Signal_context_component : public Rpc_object<Signal_context>,
 
 class Genode::Signal_source_component : public Signal_source_rpc_object
 {
-	/**
-	 * Helper for clean destruction of signal-receiver component
-	 *
-	 * Normally, reply capabilities are implicitly destroyed when answering
-	 * an RPC call. But when destructing a signal session while a signal-
-	 * receiver client is blocking on a 'wait_for_signal' call, this
-	 * blocking call will never return via the normal control flow
-	 * (signal submission). In this case, the reply capability would
-	 * outlive the signal session. To avoid the leakage of such reply
-	 * capabilities, we let the signal-session destructor perform a
-	 * core-local RPC call to the so-called 'Finalizer' object, which has
-	 * the sole purpose of replying to the last outstanding
-	 * 'wait_for_signal' call and thereby releasing the corresponding
-	 * reply capability.
-	 */
-	struct Finalizer
-	{
-		GENODE_RPC(Rpc_exit, void, exit);
-		GENODE_RPC_INTERFACE(Rpc_exit);
-	};
-
-	struct Finalizer_component : Rpc_object<Finalizer, Finalizer_component>
-	{
-		Signal_source_component &source;
-
-		Finalizer_component(Signal_source_component &source)
-		: source(source) { }
-
-		void exit();
-	};
-
 	private:
 
 		Signal_queue          _signal_queue;
 		Rpc_entrypoint       *_entrypoint;
 		Native_capability     _reply_cap;
-		Finalizer_component   _finalizer;
-		Capability<Finalizer> _finalizer_cap;
 
 	public:
 

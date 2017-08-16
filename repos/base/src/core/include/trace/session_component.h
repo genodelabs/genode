@@ -58,7 +58,7 @@ class Genode::Trace::Session_component
 				ram(ram),
 				ds(ram.alloc(size)),
 				base(env_deprecated()->rm_session()->attach(ds)),
-				size(ds.call<Dataspace::Rpc_size>())
+				size(ram.dataspace_size(ds))
 			{ }
 
 			~Argument_buffer()
