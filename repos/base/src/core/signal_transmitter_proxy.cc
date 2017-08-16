@@ -30,13 +30,7 @@ namespace {
 
 	struct Signal_delivery_proxy
 	{
-		/*
-		 * Wrap pointer into struct to transmit it (core-locally) as plain-old
-		 * data.
-		 */
-		struct Context_ptr { Signal_context_component *ptr; };
-
-		GENODE_RPC(Rpc_deliver, void, _deliver_from_ep, Context_ptr, unsigned);
+		GENODE_RPC(Rpc_deliver, void, _deliver_from_ep, Signal_context_capability, unsigned);
 		GENODE_RPC_INTERFACE(Rpc_deliver);
 	};
 
@@ -63,10 +57,14 @@ namespace {
 		 * can produce legitimate IPC reply messages to 'Signal_source'
 		 * clients.
 		 */
-		void _deliver_from_ep(Context_ptr context_ptr, unsigned cnt)
+		void _deliver_from_ep(Signal_context_capability cap, unsigned cnt)
 		{
-			Signal_context_component *context = context_ptr.ptr;
-			context->source()->submit(context, cnt);
+			_ep.apply(cap, [&] (Signal_context_component *context) {
+				if (context)
+					context->source()->submit(context, cnt);
+				else
+					warning("invalid signal-context capability");
+			});
 		}
 
 		/**
@@ -77,17 +75,8 @@ namespace {
 		 *
 		 * Called from threads other than 'ep'.
 		 */
-		void submit(Signal_context_capability cap, unsigned cnt)
-		{
-			_ep.apply(cap, [&] (Signal_context_component *context) {
-
-				if (context) {
-					_proxy_cap.call<Rpc_deliver>(Context_ptr{context}, cnt);
-				} else {
-					warning("invalid signal-context capability");
-				}
-			});
-		}
+		void submit(Signal_context_capability cap, unsigned cnt) {
+			_proxy_cap.call<Rpc_deliver>(cap, cnt); }
 	};
 }
 
