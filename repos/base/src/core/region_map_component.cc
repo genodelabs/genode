@@ -354,7 +354,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			throw Region_conflict();
 
 		/* allocate region for attachment */
-		void *r = 0;
+		void *attach_at = 0;
 		if (use_local_addr) {
 			switch (_map.alloc_addr(size, local_addr).value) {
 
@@ -365,7 +365,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 				throw Region_conflict();
 
 			case Range_allocator::Alloc_return::OK:
-				r = local_addr;
+				attach_at = local_addr;
 				break;
 			}
 		} else {
@@ -388,10 +388,10 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 
 				/* try allocating the align region */
 				Range_allocator::Alloc_return alloc_return =
-					_map.alloc_aligned(size, &r, align_log2);
+					_map.alloc_aligned(size, &attach_at, align_log2);
 
 				if (!alloc_return.ok())
-					_map.free(r);
+					_map.free(attach_at);
 
 				typedef Range_allocator::Alloc_return Alloc_return;
 
@@ -405,14 +405,14 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			}
 
 			if (align_log2 < get_page_size_log2()) {
-				_map.free(r);
+				_map.free(attach_at);
 				throw Region_conflict();
 			}
 		}
 
 		/* store attachment info in meta data */
-		_map.metadata(r, Rm_region((addr_t)r, size, true, dsc, offset, this));
-		Rm_region *region = _map.metadata(r);
+		_map.metadata(attach_at, Rm_region((addr_t)attach_at, size, true, dsc, offset, this));
+		Rm_region *region = _map.metadata(attach_at);
 
 		/* inform dataspace about attachment */
 		dsc->attached_to(region);
@@ -423,7 +423,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			/* remember next pointer before possibly removing current list element */
 			Rm_faulter *next = faulter->next();
 
-			if (faulter->fault_in_addr_range((addr_t)r, size)) {
+			if (faulter->fault_in_addr_range((addr_t)attach_at, size)) {
 				_faulters.remove(faulter);
 				faulter->continue_after_resolved_fault();
 			}
@@ -431,7 +431,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			faulter = next;
 		}
 
-		return r;
+		return attach_at;
 	};
 
 	return _ds_ep->apply(ds_cap, lambda);
