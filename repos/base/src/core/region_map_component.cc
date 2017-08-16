@@ -411,7 +411,15 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		}
 
 		/* store attachment info in meta data */
-		_map.metadata(attach_at, Rm_region((addr_t)attach_at, size, true, dsc, offset, this));
+		try {
+			_map.metadata(attach_at, Rm_region((addr_t)attach_at, size, true,
+			                                   dsc, offset, this));
+
+		} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
+
+			error("failed to store attachment info");
+			throw Invalid_dataspace();
+		}
 		Rm_region *region = _map.metadata(attach_at);
 
 		/* inform dataspace about attachment */
