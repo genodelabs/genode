@@ -74,21 +74,6 @@ class Fatfs::File_system : public Vfs::File_system
 				File *f = Genode::Avl_node<File>::child(cmp);
 				return f ? f->lookup(path_str) : nullptr;
 			}
-
-			/**
-			 * Recursive flush to block device
-			 */
-			void flush()
-			{
-				/* flush the cache for this open file */
-				f_sync(&fil);
-
-				/* flush child nodes */
-				if (File *f = Genode::Avl_node<File>::child(-1))
-					f->flush();
-				if (File *f = Genode::Avl_node<File>::child( 1))
-					f->flush();
-			}
 		};
 
 		struct Fatfs_handle : Vfs_handle
@@ -196,23 +181,6 @@ class Fatfs::File_system : public Vfs::File_system
 
 		/* Pre-allocated FIL */
 		File *_next_file = nullptr;
-
-		/**
-		 * Flush pending writes on open files to blocks
-		 */
-		void _flush_open(Genode::Duration time)
-		{
-			if (_open_files.first())
-				_open_files.first()->flush();
-		}
-
-		/**
-		 * Timeout to schedule after writes
-		 */
-		Timer::Connection _timer { _env, "vfs_fatfs" };
-
-		Timer::One_shot_timeout<Fatfs::File_system> _flush_timeout {
-			_timer, *this, &File_system::_flush_open };
 
 		/**
 		 * Return an open FatFS file matching path or null.
@@ -333,6 +301,7 @@ class Fatfs::File_system : public Vfs::File_system
 		                 Allocator  &alloc) override
 		{
 			Fatfs_file_handle *handle;
+
 			File *file = _opened_file(path);
 			bool create = vfs_mode & OPEN_MODE_CREATE;
 
@@ -340,6 +309,11 @@ class Fatfs::File_system : public Vfs::File_system
 				Genode::error("OPEN_ERR_EXISTS");
 				return OPEN_ERR_EXISTS;
 			}
+
+			if (file && f_error(&file->fil)) {
+				Genode::error("FatFS: hard error on file '", path, "'");
+				return OPEN_ERR_NO_PERM;
+			};
 
 			/* attempt allocation before modifying blocks */
 			if (!_next_file)
@@ -442,17 +416,6 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		}
 
-		Sync_result complete_sync(Vfs_handle *vfs_handle) override
-		{
-			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
-
-			File *file = handle->file;
-			if (file)
-				f_sync(&file->fil);
-
-			return SYNC_OK;
-		}
-
 		Genode::Dataspace_capability dataspace(char const *path) override
 		{
 			Genode::warning(__func__, " not implemented in FAT plugin");
@@ -496,7 +459,7 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		}
 
-		Stat_result stat(char const *path, Stat &stat)
+		Stat_result stat(char const *path, Stat &stat) override
 		{
 			stat = Stat();
 
@@ -593,21 +556,34 @@ class Fatfs::File_system : public Vfs::File_system
 			if ((handle->status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)
 				return WRITE_ERR_INVALID;
 
-			FRESULT fres;
+			FRESULT fres = FR_OK;
 			FIL *fil = &handle->file->fil;
+			FSIZE_t const wpos = handle->seek();
 
-			fres = f_lseek(fil, handle->seek());
+			/* seek file pointer */
+			if (f_tell(fil) != wpos) {
+				/*
+				 * seeking beyond the EOF will expand the file size
+				 * and is not the expected behavior
+				 */
+				if (f_size(fil) < wpos)
+					return WRITE_ERR_INVALID;
+
+				fres = f_lseek(fil, wpos);
+				/* check the seek again */
+				if (f_tell(fil) != handle->seek())
+					return WRITE_ERR_IO;
+			}
+
 			if (fres == FR_OK) {
 				UINT bw = 0;
 				fres = f_write(fil, buf, buf_size, &bw);
+				f_sync(fil);
 				out_count = bw;
 			}
 
 			switch (fres) {
-			case FR_OK:
-				/* flush to blocks after ~1 seconds of inactivity */
-				_flush_timeout.schedule(Genode::Microseconds(1 << 20));
-				return WRITE_OK;
+			case FR_OK:             return WRITE_OK;
 			case FR_INVALID_OBJECT: return WRITE_ERR_INVALID;
 			case FR_TIMEOUT:        return WRITE_ERR_WOULD_BLOCK;
 			default:                return WRITE_ERR_IO;
@@ -619,25 +595,28 @@ class Fatfs::File_system : public Vfs::File_system
 		                          file_size &out_count) override
 		{
 			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
-
 			return handle->complete_read(buf, buf_size, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override
 		{
-			FRESULT res;
 			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
+
 			if (!handle->file)
 				return FTRUNCATE_ERR_NO_PERM;
 			if ((handle->status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)
 				return FTRUNCATE_ERR_NO_PERM;
 
 			FIL *fil = &handle->file->fil;
+			FRESULT res = FR_OK;
 
-			/* f_lseek will exapand a file */
+			/* f_lseek will expand a file... */
 			res = f_lseek(fil, len);
+			if (f_tell(fil) != len)
+				return f_size(fil) < len ?
+					FTRUNCATE_ERR_NO_SPACE : FTRUNCATE_ERR_NO_PERM;
 
-			/* otherwise truncate will shorten the file to its seek position */
+			/* ... otherwise truncate will shorten to the seek position */
 			if ((res == FR_OK) && (len < f_size(fil))) {
 				res = f_truncate(fil);
 				if (res == FR_OK && len < handle->seek())
