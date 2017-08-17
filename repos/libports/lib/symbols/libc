@@ -5,6 +5,7 @@ __assert T
 __error T
 __flt_rounds T
 __fpclassifyd T
+__fpclassifyf T
 __inet_addr T
 __inet_aton T
 __inet_nsap_ntoa T
