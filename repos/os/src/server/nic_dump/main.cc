@@ -19,7 +19,6 @@
 
 /* local includes */
 #include <component.h>
-#include <uplink.h>
 
 using namespace Net;
 using namespace Genode;
@@ -33,7 +32,6 @@ class Main
 		Timer::Connection              _timer;
 		unsigned                       _curr_time { 0 };
 		Genode::Heap                   _heap;
-		Uplink                         _uplink;
 		Net::Root                      _root;
 
 	public:
@@ -45,9 +43,7 @@ class Main
 Main::Main(Env &env)
 :
 	_config(env, "config"), _timer(env), _heap(&env.ram(), &env.rm()),
-	_uplink(env, _config.xml(), _timer, _curr_time, _heap),
-	_root(env.ep(), _heap, _uplink, env.ram(), _config.xml(), _timer,
-	      _curr_time, env.rm())
+	_root(env, _heap, _config.xml(), _timer, _curr_time)
 {
 	env.parent().announce(env.ep().manage(_root));
 }

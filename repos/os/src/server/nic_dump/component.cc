@@ -56,29 +56,28 @@ Session_component_base(Allocator    &guarded_alloc_backing,
 
 Net::Session_component::Session_component(Allocator         &alloc,
                                           size_t const       amount,
-                                          Ram_session       &buf_ram,
                                           size_t const       tx_buf_size,
                                           size_t const       rx_buf_size,
-                                          Region_map        &region_map,
-                                          Uplink            &uplink,
                                           Xml_node           config,
                                           Timer::Connection &timer,
                                           unsigned          &curr_time,
-                                          Entrypoint        &ep)
+                                          Env               &env)
 :
-	Session_component_base(alloc, amount, buf_ram, tx_buf_size, rx_buf_size),
-	Session_rpc_object(region_map, _tx_buf, _rx_buf, &_range_alloc, ep.rpc_ep()),
-	Interface(ep, config.attribute_value("downlink", Interface_label()),
+	Session_component_base(alloc, amount, env.ram(), tx_buf_size, rx_buf_size),
+	Session_rpc_object(env.rm(), _tx_buf, _rx_buf, &_range_alloc,
+	                   env.ep().rpc_ep()),
+	Interface(env.ep(), config.attribute_value("downlink", Interface_label()),
 	          timer, curr_time, config.attribute_value("time", false),
 	          _guarded_alloc),
-	_mac(uplink.mac_address())
+	_uplink(env, config, timer, curr_time, alloc),
+	_mac(_uplink.mac_address())
 {
 	_tx.sigh_ready_to_ack(_sink_ack);
 	_tx.sigh_packet_avail(_sink_submit);
 	_rx.sigh_ack_avail(_source_ack);
 	_rx.sigh_ready_to_submit(_source_submit);
-	Interface::remote(uplink);
-	uplink.Interface::remote(*this);
+	Interface::remote(_uplink);
+	_uplink.Interface::remote(*this);
 }
 
 
@@ -99,20 +98,15 @@ void Session_component::link_state_sigh(Signal_context_capability sigh)
  ** Root **
  **********/
 
-Net::Root::Root(Entrypoint        &ep,
+Net::Root::Root(Env               &env,
                 Allocator         &alloc,
-                Uplink            &uplink,
-                Ram_session       &buf_ram,
                 Xml_node           config,
                 Timer::Connection &timer,
-                unsigned          &curr_time,
-                Region_map        &region_map)
+                unsigned          &curr_time)
 :
-	Root_component<Session_component, Genode::Single_client>(&ep.rpc_ep(),
+	Root_component<Session_component, Genode::Single_client>(&env.ep().rpc_ep(),
 	                                                         &alloc),
-	_ep(ep), _uplink(uplink), _buf_ram(buf_ram),
-	_region_map(region_map), _config(config), _timer(timer),
-	_curr_time(curr_time)
+	_env(env), _config(config), _timer(timer), _curr_time(curr_time)
 { }
 
 
@@ -143,8 +137,8 @@ Session_component *Net::Root::_create_session(char const *args)
 		}
 		return new (md_alloc())
 			Session_component(*md_alloc(), ram_quota - session_size,
-			                  _buf_ram, tx_buf_size, rx_buf_size, _region_map,
-			                  _uplink, _config, _timer, _curr_time, _ep);
+			                  tx_buf_size, rx_buf_size, _config, _timer,
+			                  _curr_time, _env);
 	}
 	catch (...) { throw Service_denied(); }
 }

@@ -22,6 +22,7 @@
 
 /* local includes */
 #include <interface.h>
+#include <uplink.h>
 
 namespace Net {
 
@@ -29,7 +30,6 @@ namespace Net {
 	class Session_component_base;
 	class Session_component;
 	class Root;
-	class Uplink;
 }
 
 
@@ -73,6 +73,7 @@ class Net::Session_component : public Session_component_base,
 {
 	private:
 
+		Uplink      _uplink;
 		Mac_address _mac;
 
 
@@ -87,15 +88,12 @@ class Net::Session_component : public Session_component_base,
 
 		Session_component(Genode::Allocator    &alloc,
 		                  Genode::size_t const  amount,
-		                  Genode::Ram_session  &buf_ram,
 		                  Genode::size_t const  tx_buf_size,
 		                  Genode::size_t const  rx_buf_size,
-		                  Genode::Region_map   &region_map,
-		                  Uplink               &uplink,
 		                  Genode::Xml_node      config,
 		                  Timer::Connection    &timer,
 		                  unsigned             &curr_time,
-		                  Genode::Entrypoint   &ep);
+		                  Genode::Env          &env);
 
 
 		/******************
@@ -113,13 +111,10 @@ class Net::Root : public Genode::Root_component<Session_component,
 {
 	private:
 
-		Genode::Entrypoint  &_ep;
-		Uplink              &_uplink;
-		Genode::Ram_session &_buf_ram;
-		Genode::Region_map  &_region_map;
-		Genode::Xml_node     _config;
-		Timer::Connection   &_timer;
-		unsigned            &_curr_time;
+		Genode::Env       &_env;
+		Genode::Xml_node    _config;
+		Timer::Connection &_timer;
+		unsigned          &_curr_time;
 
 
 		/********************
@@ -130,14 +125,11 @@ class Net::Root : public Genode::Root_component<Session_component,
 
 	public:
 
-		Root(Genode::Entrypoint  &ep,
-		     Genode::Allocator   &alloc,
-		     Uplink              &uplink,
-		     Genode::Ram_session &buf_ram,
-		     Genode::Xml_node     config,
-		     Timer::Connection   &timer,
-		     unsigned            &curr_time,
-		     Genode::Region_map  &region_map);
+		Root(Genode::Env       &env,
+		     Genode::Allocator &alloc,
+		     Genode::Xml_node   config,
+		     Timer::Connection &timer,
+		     unsigned          &curr_time);
 };
 
 #endif /* _COMPONENT_H_ */
