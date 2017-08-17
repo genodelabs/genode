@@ -140,7 +140,7 @@ append config {
 			<keyboard layout="de"/>
 		</config>
 	</start>
-	<start name="ram_fs">
+	<start name="ram_fs" caps="200">
 		<resource name="RAM" quantum="124M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
@@ -180,7 +180,7 @@ append config {
 }
 
 append config {
-	<start name="noux" caps="1000">
+	<start name="noux" caps="2000">
 		<resource name="RAM" quantum="1G" />
 }
 
