@@ -8,6 +8,9 @@ REV(sel4) := 8564ace4dfb622ec69e0f7d762ebfbc8552ec918
 DIR(sel4) := src/kernel/sel4
 
 $(call check_tool,python)
+$(call check_python_module,future)
+$(call check_python_module,tempita)
+$(call check_python_module,ply)
 
 PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)
 

@@ -25,6 +25,11 @@ STRICT_HASH ?= no
 #
 check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
+#
+# Utility to check if a python module is installed
+#
+check_python_module = $(if $(shell python -c "import $(1)" 2>&1),$(error Need to have python module '$(1)' installed.),)
+
 default:
 
 .NOTPARALLEL: default
