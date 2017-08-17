@@ -28,6 +28,8 @@
 
 #include <base/heap.h>
 #include <base/printf.h>
+#include <base/debug.h>
+#include <framebuffer_session/connection.h>
 #include <libc/component.h>
 
 extern "C" {
@@ -35,65 +37,82 @@ extern "C" {
 #include <sys/select.h>
 }
 
-#include <window.h>
 
-static bool initialized = false;
 Genode::Env *genode_env;
 
+static Genode::Constructible<Genode::Entrypoint> signal_ep;
 
-struct Eglut_env
+Genode::Entrypoint &genode_entrypoint()
 {
-	Libc::Env &env;
-	Genode::Heap heap { env.ram(), env.rm() };
+	return *signal_ep;
+}
 
-	Eglut_env(Libc::Env &env) : env(env) { }
+
+struct Window : Genode_egl_window
+{
+	Genode::Env                                   &env;
+	Genode::Constructible<Framebuffer::Connection> framebuffer;
+	Genode::Io_signal_handler<Window>              mode_dispatcher;
+	bool                                           mode_change_pending = false;
+
+	Window(Genode::Env &env, int w, int h)
+	:
+		env(env),
+	  mode_dispatcher(*signal_ep, *this, &Window::mode_handler)
+	{
+		width  = w;
+		height = h;
+
+		framebuffer.construct(env, Framebuffer::Mode(width, height, Framebuffer::Mode::RGB565));
+		addr = env.rm().attach(framebuffer->dataspace());
+
+		framebuffer->mode_sigh(mode_dispatcher);
+
+		mode_change();
+	}
+
+	void mode_handler()
+	{
+		mode_change_pending = true;
+	}
+
+	void update()
+	{
+		env.rm().detach(addr);
+		addr = env.rm().attach(framebuffer->dataspace());
+	}
+
+	void mode_change()
+	{
+		Framebuffer::Mode mode = framebuffer->mode();
+
+		eglut_window *win  = _eglut->current;
+		if (win) {
+			win->native.width  = mode.width();
+			win->native.height = mode.height();
+			width  = mode.width();
+			height = mode.height();
+
+			if (win->reshape_cb)
+				win->reshape_cb(win->native.width, win->native.height);
+		}
+	
+		update();
+		mode_change_pending = false;
+	}
+
+	void refresh()
+	{
+		framebuffer->refresh(0, 0, width, height);
+	}
 };
 
-Genode::Constructible<Eglut_env> eglut_env;
+Genode::Constructible<Window> eglut_win;
+
 
 void _eglutNativeInitDisplay()
 {
 	_eglut->surface_type = EGL_WINDOW_BIT;
-}
-
-void Window::sync_handler()
-{
-	struct eglut_window *win =_eglut->current;
-
-	if (_eglut->idle_cb)
-		_eglut->idle_cb();
-
-
-	if (win->display_cb)
-		win->display_cb();
-
-	if (initialized) {
-		eglSwapBuffers(_eglut->dpy, win->surface);
-
-		//XXX: required till vsync interrupt
-		eglWaitClient();
-	}
-}
-
-
-void Window::mode_handler()
-{
-	if (!framebuffer.is_constructed())
-		return;
-
-	initialized = true;
-	Framebuffer::Mode mode = framebuffer->mode();
-
-	eglut_window *win  = _eglut->current;
-	if (win) {
-		win->native.width  = mode.width();
-		win->native.height = mode.height();
-
-		if (win->reshape_cb)
-			win->reshape_cb(win->native.width, win->native.height);
-	}
-
-	update();
 }
 
 
@@ -106,7 +125,8 @@ void _eglutNativeFiniDisplay(void)
 void _eglutNativeInitWindow(struct eglut_window *win, const char *title,
                             int x, int y, int w, int h)
 {
-	Genode_egl_window *native = new (eglut_env->heap) Window(eglut_env->env, w, h);
+	eglut_win.construct(*genode_env, w, h);
+	Genode_egl_window *native = &*eglut_win;
 	win->native.u.window = native;
 	win->native.width = w;
 	win->native.height = h;
@@ -122,7 +142,24 @@ void _eglutNativeFiniWindow(struct eglut_window *win)
 void _eglutNativeEventLoop()
 {
 	while (true) {
-		select(0, nullptr, nullptr, nullptr, nullptr);
+		struct eglut_window *win =_eglut->current;
+
+		if (eglut_win->mode_change_pending) {
+			eglut_win->mode_change();
+		}
+
+		if (_eglut->idle_cb)
+			_eglut->idle_cb();
+
+
+		if (win->display_cb)
+			win->display_cb();
+
+		if (eglut_win.is_constructed()) {
+			eglWaitClient();
+			eglSwapBuffers(_eglut->dpy, win->surface);
+			eglut_win->refresh();
+		}
 	}
 }
 
@@ -135,9 +172,7 @@ extern "C" int eglut_main(int argc, char *argv[]);
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	eglut_env.construct(env);
-
 	genode_env = &env;
-
+	signal_ep.construct(env, 1024*sizeof(long), "eglut_signal_ep");
 	Libc::with_libc([] () { eglut_main(1, nullptr); });
 }

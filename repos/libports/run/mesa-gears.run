@@ -1,0 +1,2 @@
+set use_i965 0
+source ${genode_dir}/repos/libports/run/mesa-gears.inc
