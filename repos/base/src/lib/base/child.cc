@@ -699,7 +699,7 @@ void Child::_try_construct_env_dependent_members()
 	_policy.init(_cpu.session(), _cpu.cap());
 
 	try {
-		_initial_thread.construct(_cpu.session(), _pd.cap(), "initial");
+		_initial_thread.construct(_cpu.session(), _pd.cap(), _policy.name());
 		_process.construct(_binary.session().dataspace(), _linker_dataspace(),
 		                   _pd.cap(), _pd.session(), _pd.session(),
 		                   *_initial_thread, _local_rm,
