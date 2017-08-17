@@ -64,7 +64,9 @@ namespace Genode {
 			 */
 			addr_t             _utcb_base;
 
-			void _setup_rom();
+			void _init_rom_modules();
+
+			addr_t _rom_module_phys(addr_t virt) { return virt; }
 
 		public:
 

@@ -26,6 +26,7 @@ SRC_CC       = stack_area.cc \
                pager_ep.cc \
                pager_object.cc \
                platform.cc \
+               platform_rom_modules.cc \
                platform_pd.cc \
                platform_services.cc \
                platform_thread.cc \
@@ -70,3 +71,4 @@ vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath core_region_map.cc          $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
+vpath platform_rom_modules.cc     $(GEN_CORE_DIR)

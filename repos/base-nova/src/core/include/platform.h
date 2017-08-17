@@ -36,6 +36,7 @@ namespace Genode {
 			Rom_fs             _rom_fs;         /* ROM file system         */
 			unsigned           _gsi_base_sel;   /* cap selector of 1st IRQ */
 			unsigned           _core_pd_sel;    /* cap selector of root PD */
+			addr_t             _core_phys_start { 0ULL };
 
 			/**
 			 * Virtual address range usable by non-core processes
@@ -52,6 +53,10 @@ namespace Genode {
 			addr_t _map_pages(addr_t phys_page, addr_t pages);
 
 			size_t _max_caps = 0;
+
+			void _init_rom_modules();
+
+			addr_t _rom_module_phys(addr_t virt);
 
 		public:
 

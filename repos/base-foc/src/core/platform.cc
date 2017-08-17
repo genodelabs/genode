@@ -410,18 +410,6 @@ void Platform::_setup_basics()
 }
 
 
-void Platform::_setup_rom()
-{
-	/* add boot modules to ROM FS */
-	Boot_modules_header * header = &_boot_modules_headers_begin;
-	for (; header < &_boot_modules_headers_end; header++) {
-		Rom_module * rom = new (core_mem_alloc())
-			Rom_module(header->base, header->size, (const char*)header->name);
-		_rom_fs.insert(rom);
-	}
-}
-
-
 Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
@@ -440,7 +428,7 @@ Platform::Platform() :
 	_setup_mem_alloc();
 	_setup_io_port_alloc();
 	_setup_irq_alloc();
-	_setup_rom();
+	_init_rom_modules();
 
 	log(":ram_alloc: ",    _ram_alloc);
 	log(":region_alloc: ", _region_alloc);

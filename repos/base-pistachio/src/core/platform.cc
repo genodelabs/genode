@@ -575,18 +575,6 @@ void Platform::_setup_basics()
 }
 
 
-void Platform::_setup_rom()
-{
-	/* add boot modules to ROM FS */
-	Boot_modules_header * header = &_boot_modules_headers_begin;
-	for (; header < &_boot_modules_headers_end; header++) {
-		Rom_module * rom = new (core_mem_alloc())
-			Rom_module(header->base, header->size, (const char*)header->name);
-		_rom_fs.insert(rom);
-	}
-}
-
-
 Platform_pd *Platform::core_pd()
 {
 	/* on first call, setup task object for core task */
@@ -614,12 +602,13 @@ Platform::Platform() :
 	_setup_mem_alloc();
 	_setup_io_port_alloc();
 	_setup_irq_alloc();
-	_setup_rom();
+	_init_rom_modules();
 
 	/*
 	 * When dumping 'ram_alloc', there are several small blocks in addition
 	 * to the available free memory visible. These small blocks are used to
-	 * hold the meta data for the ROM modules as initialized by '_setup_rom'.
+	 * hold the meta data for the ROM modules as initialized by
+	 * '_init_rom_modules'.
 	 */
 	if (verbose) {
 		log(":ram_alloc: ",     _ram_alloc);

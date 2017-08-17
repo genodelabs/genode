@@ -51,7 +51,7 @@ class Genode::Platform : public Genode::Platform_generic
 		/**
 		 * Initialize I/O port allocator
 		 */
-		 void _init_io_port_alloc();
+		void _init_io_port_alloc();
 
 		/**
 		 * Initialize IO memory allocator
@@ -61,12 +61,16 @@ class Genode::Platform : public Genode::Platform_generic
 		 * driven outside of core. Using byte granularity allows handing
 		 * out the MMIO page to trusted user-level device drivers.
 		 */
-		 void _init_io_mem_alloc();
+		void _init_io_mem_alloc();
 
 		 /**
 		  * Perform additional platform-specific initialization.
 		  */
-		 void _init_additional();
+		void _init_additional();
+
+		void _init_rom_modules();
+
+		addr_t _rom_module_phys(addr_t virt) { return core_phys_addr(virt); }
 
 	public:
 

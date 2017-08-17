@@ -32,6 +32,7 @@ SRC_CC += main.cc
 SRC_CC += native_pd_component.cc
 SRC_CC += pd_session_support.cc
 SRC_CC += platform.cc
+SRC_CC += platform_rom_modules.cc
 SRC_CC += platform_pd.cc
 SRC_CC += platform_thread.cc
 SRC_CC += stack_area.cc

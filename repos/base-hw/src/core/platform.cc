@@ -120,16 +120,7 @@ Platform::Platform()
 	}
 
 	_init_io_mem_alloc();
-
-	/* add boot modules to ROM FS */
-	Boot_modules_header * header = &_boot_modules_headers_begin;
-	for (; header < &_boot_modules_headers_end; header++) {
-		Rom_module * rom_module = new (core_mem_alloc())
-			Rom_module(Platform::core_phys_addr(header->base), header->size,
-			           (const char*)header->name);
-		_rom_fs.insert(rom_module);
-	}
-
+	_init_rom_modules();
 	_init_additional();
 
 	/* print ressource summary */

@@ -80,12 +80,14 @@ namespace Genode {
 			/**
 			 * Parse multi-boot information and update ROM database
 			 */
-			void _setup_rom();
+			void _init_rom_modules();
 
 			/**
 			 * Setup pager for core-internal threads
 			 */
 			void _setup_core_pager();
+
+			addr_t _rom_module_phys(addr_t virt) { return virt; }
 
 		public:
 

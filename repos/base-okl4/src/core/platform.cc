@@ -92,18 +92,6 @@ int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 }
 
 
-void Platform::_setup_rom()
-{
-	/* add boot modules to ROM FS */
-	Boot_modules_header * header = &_boot_modules_headers_begin;
-	for (; header < &_boot_modules_headers_end; header++) {
-		Rom_module * rom = new (core_mem_alloc())
-			Rom_module(header->base, header->size, (const char*)header->name);
-		_rom_fs.insert(rom);
-	}
-}
-
-
 static char init_slab_block_rom[get_page_size()];
 static char init_slab_block_thread[get_page_size()];
 
@@ -173,7 +161,7 @@ Platform::Platform() :
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
 
-	_setup_rom();
+	_init_rom_modules();
 
 	/* preserve stack area in core's virtual address space */
 	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),

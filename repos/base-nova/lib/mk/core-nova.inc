@@ -28,6 +28,7 @@ SRC_CC      += stack_area.cc \
                rpc_cap_factory.cc \
                ram_dataspace_factory.cc \
                platform.cc \
+               platform_rom_modules.cc \
                platform_pd.cc \
                platform_services.cc \
                platform_thread.cc \
@@ -69,6 +70,7 @@ vpath dataspace_component.cc       $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath default_log.cc               $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
+vpath platform_rom_modules.cc      $(GEN_CORE_DIR)
 vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath stack_area.cc                $(GEN_CORE_DIR)
 vpath core_printf.cc               $(BASE_DIR)/src/lib/base

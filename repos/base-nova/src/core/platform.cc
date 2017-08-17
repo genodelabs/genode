@@ -617,7 +617,6 @@ Platform::Platform() :
 		};
 	} mbi_fb;
 
-	/* build ROM file system */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RSDT) rsdt = mem_desc->addr;
@@ -631,18 +630,10 @@ Platform::Platform() :
 		if (!mem_desc->addr || !mem_desc->size) continue;
 
 		/* assume core's ELF image has one-page header */
-		addr_t const core_phys_start = trunc_page(mem_desc->addr + get_page_size());
-		addr_t const core_virt_start = (addr_t) &_prog_img_beg;
-
-		/* add boot modules to ROM FS */
-		Boot_modules_header * header = &_boot_modules_headers_begin;
-		for (; header < &_boot_modules_headers_end; header++) {
-			Rom_module * rom_module = new (core_mem_alloc())
-				Rom_module(header->base - core_virt_start + core_phys_start,
-				           header->size, (const char*)header->name);
-			_rom_fs.insert(rom_module);
-		}
+		_core_phys_start = trunc_page(mem_desc->addr + get_page_size());
 	}
+
+	_init_rom_modules();
 
 	{
 		/* export x86 platform specific infos */
@@ -781,6 +772,12 @@ Platform::Platform() :
 
 		Trace::sources().insert(source);
 	}
+}
+
+
+addr_t Platform::_rom_module_phys(addr_t virt)
+{
+	return virt - (addr_t)&_prog_img_beg + _core_phys_start;
 }
 
 

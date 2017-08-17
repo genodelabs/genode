@@ -23,6 +23,7 @@ SRC_CC      += stack_area.cc \
                native_cpu_component.cc \
                rpc_cap_factory.cc \
                platform.cc \
+               platform_rom_modules.cc \
                platform_pd.cc \
                platform_services.cc \
                platform_thread.cc \
@@ -66,5 +67,6 @@ vpath signal_transmitter_proxy.cc $(GEN_CORE_DIR)
 vpath signal_receiver.cc          $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath core_region_map.cc          $(GEN_CORE_DIR)
+vpath platform_rom_modules.cc     $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/lib/base
