@@ -124,9 +124,6 @@ dri2_genode_swrast_put_image(__DRIdrawable * draw, int op,
 
 	/* copy to frame buffer and refresh */
 	genode_blit(data, src_stride, dst, dst_stride, copy_width, h);
-
-	if (window->type == WINDOW)
-		genode_framebuffer_refresh(window, x, y, w, h);
 }
 
 
@@ -138,10 +135,16 @@ dri2_genode_swrast_get_drawable_info(__DRIdrawable * draw,
 	struct dri2_egl_surface *dri2_surf = loaderPrivate;
 
 	//XXX: (void) swrast_update_buffers(dri2_surf);
+	struct Genode_egl_window  *window   = dri2_surf->g_win;
+
 	*x = 0;
 	*y = 0;
-	*w = dri2_surf->base.Width;
-	*h = dri2_surf->base.Height;
+	*w = window->width;
+	*h = window->height;
+
+	dri2_surf->base.Width  = window->width;
+	dri2_surf->base.Height = window->height;
+
 }
 
 

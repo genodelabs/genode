@@ -1,5 +1,5 @@
 SHARED_LIB = yes
-LIBS       = libc egl i965
+LIBS       = libc egl i965 pthread
 
 include $(REP_DIR)/lib/mk/mesa-common.inc
 

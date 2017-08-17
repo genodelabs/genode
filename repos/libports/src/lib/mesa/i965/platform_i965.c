@@ -67,8 +67,6 @@ dri2_genode_put_image(__DRIdrawable * draw, int op,
 	                (char *)dst, data,
 	                dst_stride, src_stride,
 	                false, 1, memcpy);
-
-	genode_framebuffer_refresh(window, x, y, w, h);
 }
 
 
@@ -77,13 +75,14 @@ dri2_genode_swap_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw)
 {
 	struct dri2_egl_surface *dri2_surf = dri2_egl_surface(draw);
 
+	genode_drm_complete();
+
 	void *data = genode_map_image(dri2_surf->back_image);
 	dri2_genode_put_image(dri2_surf->dri_drawable, 0, 0, 0,
 	                      dri2_surf->base.Width, dri2_surf->base.Height,
 	                      (char *)data, (void *)dri2_surf);
 
 	genode_unmap_image(dri2_surf->back_image);
-
 
 	return EGL_TRUE;
 }
@@ -254,4 +253,3 @@ cleanup_dpy:
 
 	return EGL_FALSE;
 }
-

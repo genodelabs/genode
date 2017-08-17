@@ -80,7 +80,6 @@ _create_surface(_EGLDriver *drv, _EGLDisplay *disp,
 	dri2_surf->base.Width  = window->width;;
 	dri2_surf->base.Height = window->height;
 
-
 	config = dri2_get_dri_config(dri2_conf, EGL_WINDOW_BIT,
 	                             dri2_surf->base.GLColorspace);
 

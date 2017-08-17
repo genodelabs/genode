@@ -15,15 +15,16 @@
 #define _PLATFORM_H_
 
 #ifdef __cplusplus
+namespace Genode { class Env; }
 extern Genode::Env *genode_env;
 #endif
 
 #include <EGL/egl.h>
 
 struct Genode_egl_window;
-void genode_framebuffer_refresh(struct Genode_egl_window *win, int x, int y, int w, int h);
 void genode_blit(void const *src, unsigned src_w, void *dst, unsigned dst_w, int w, int h);
 void genode_drm_init();
+void genode_drm_complete();
 
 struct _EGLSurface;
 struct _EGLDriver;
