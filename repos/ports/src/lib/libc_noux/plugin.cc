@@ -29,6 +29,9 @@
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
 
+/* libc component includes */
+#include <libc/component.h>
+
 /* libc includes */
 #include <errno.h>
 #include <sys/disk.h>
@@ -79,6 +82,15 @@ namespace Libc {
 	 */
 	Genode::Xml_node config()     { return Xml_node("<libc/>"); }
 	Genode::Xml_node vfs_config() { return Xml_node("<vfs/>");  }
+
+	/*
+	 * Enhance main-thread stack
+	 *
+	 * This is done because we ran into a stack overflow while compiling
+	 * Genodes core with GCC in Noux.
+	 */
+	enum { STACK_SIZE = 64UL * 1024 * sizeof(Genode::addr_t) };
+	Genode::size_t Component::stack_size() { return STACK_SIZE; }
 }
 
 
@@ -2334,15 +2346,6 @@ void Plugin::init(Genode::Env &env)
 	genode_envp = environ;
 
 	chdir(noux_cwd.base());
-
-	/*
-	 * Enhance main-thread stack
-	 *
-	 * This is done because we ran into a stack overflow while compiling
-	 * Genodes core/main.cc with GCC in Noux.
-	 */
-	enum { STACK_SIZE = 32UL * 1024 * sizeof(Genode::addr_t) };
-	Genode::Thread::myself()->stack_size(STACK_SIZE);
 }
 
 
