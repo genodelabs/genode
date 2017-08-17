@@ -32,7 +32,7 @@ INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eventdispatchers \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
-LIBS += qt5_xml qt5_gui qt5_core libm freetype gallium qoost
+LIBS += qt5_xml qt5_gui qt5_core libm freetype mesa egl qoost
 
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eventdispatchers
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/input/evdevkeyboard

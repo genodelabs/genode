@@ -1,7 +1,0 @@
-This directory contains pseudo targets for building Gallium drivers.  These
-drivers are not directly linked against applications. Instead, they are loaded
-as needed by using 'dlopen'. Because no application directly depends on any
-driver library, none of these libraries is built by default. To enforce
-building a driver library, we introduce a dummy program, which depends on the
-respective library. The program itself is worthless, but as a side effect,
-the driver library gets built.

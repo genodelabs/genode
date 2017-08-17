@@ -25,14 +25,21 @@
 #endif
 #define EGLAPIENTRYP EGLAPIENTRY*
 
-typedef int   EGLNativeDisplayType;
+typedef long  EGLNativeDisplayType;
 typedef void *EGLNativePixmapType;
+
+
+enum Surface_type {
+	WINDOW,
+	PIXMAP
+};
 
 struct Genode_egl_window
 {
 	int width;
 	int height;
 	unsigned char *addr;
+	enum Surface_type  type;
 };
 
 typedef struct Genode_egl_window *EGLNativeWindowType;

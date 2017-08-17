@@ -1,0 +1,99 @@
+diff --git a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c
+index 8f50f0c..b4a7bc1 100644
+--- a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c
++++ b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.c
+@@ -450,7 +450,7 @@ dri2_open_driver(_EGLDisplay *disp)
+ #endif
+       if (dri2_dpy->driver == NULL) {
+ 	 snprintf(path, sizeof path,
+-		  "%.*s/%s_dri.so", len, p, dri2_dpy->driver_name);
++		  "egl_%s.lib.so",dri2_dpy->driver_name);
+ 	 dri2_dpy->driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+ 	 if (dri2_dpy->driver == NULL)
+ 	    _eglLog(_EGL_DEBUG, "failed to open %s: %s\n", path, dlerror());
+@@ -791,6 +791,12 @@ dri2_initialize(_EGLDriver *drv, _EGLDisplay *disp)
+          return EGL_TRUE;
+       return dri2_initialize_android(drv, disp);
+ #endif
++#ifdef HAVE_GENODE_PLATFORM
++   case _EGL_PLATFORM_GENODE:
++      if (disp->Options.TestOnly)
++         return EGL_TRUE;
++      return dri2_initialize_genode(drv, disp);
++#endif
+ 
+    default:
+       _eglLog(_EGL_WARNING, "No EGL platform enabled.");
+@@ -2530,6 +2536,8 @@ dri2_load(_EGLDriver *drv)
+    const char *libname = "libglapi.so";
+ #elif defined(__APPLE__)
+    const char *libname = "libglapi.0.dylib";
++#elif defined(HAVE_GENODE_PLATFORM)
++   const char *libname = "glapi.lib.so";
+ #else
+    const char *libname = "libglapi.so.0";
+ #endif
+diff --git a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h
+index 52ad92b..bb4a1c1 100644
+--- a/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h
++++ b/src/lib/mesa/src/egl/drivers/dri2/egl_dri2.h
+@@ -258,6 +258,12 @@ struct dri2_egl_surface
+    int			  format;
+ #endif
+ 
++#ifdef HAVE_GENODE_PLATFORM
++   struct Genode_egl_window *g_win;
++   __DRIbuffer           *dri_buffers[__DRI_BUFFER_COUNT];
++    __DRIimage              *back_image;
++#endif
++
+ #ifdef HAVE_DRM_PLATFORM
+    struct gbm_dri_surface *gbm_surf;
+ #endif
+@@ -372,6 +378,9 @@ dri2_initialize_android(_EGLDriver *drv, _EGLDisplay *disp);
+ EGLBoolean
+ dri2_initialize_surfaceless(_EGLDriver *drv, _EGLDisplay *disp);
+ 
++EGLBoolean
++dri2_initialize_genode(_EGLDriver *drv, _EGLDisplay *disp);
++
+ void
+ dri2_flush_drawable_for_swapbuffers(_EGLDisplay *disp, _EGLSurface *draw);
+ 
+diff --git a/src/lib/mesa/src/egl/main/egldisplay.c b/src/lib/mesa/src/egl/main/egldisplay.c
+index f6db03a..36bfad4 100644
+--- a/src/lib/mesa/src/egl/main/egldisplay.c
++++ b/src/lib/mesa/src/egl/main/egldisplay.c
+@@ -71,6 +71,7 @@ static const struct {
+    { _EGL_PLATFORM_ANDROID, "android" },
+    { _EGL_PLATFORM_HAIKU, "haiku" },
+    { _EGL_PLATFORM_SURFACELESS, "surfaceless" },
++   { _EGL_PLATFORM_GENODE, "genode" },
+ };
+ 
+ 
+diff --git a/src/lib/mesa/src/egl/main/egldisplay.h b/src/lib/mesa/src/egl/main/egldisplay.h
+index 008c467..dbdbf4e 100644
+--- a/src/lib/mesa/src/egl/main/egldisplay.h
++++ b/src/lib/mesa/src/egl/main/egldisplay.h
+@@ -50,6 +50,7 @@ enum _egl_platform_type {
+    _EGL_PLATFORM_ANDROID,
+    _EGL_PLATFORM_HAIKU,
+    _EGL_PLATFORM_SURFACELESS,
++   _EGL_PLATFORM_GENODE,
+ 
+    _EGL_NUM_PLATFORMS,
+    _EGL_INVALID_PLATFORM = -1
+diff --git a/src/lib/mesa/src/egl/main/egllog.c b/src/lib/mesa/src/egl/main/egllog.c
+index 9569465..be0bdbb 100644
+--- a/src/lib/mesa/src/egl/main/egllog.c
++++ b/src/lib/mesa/src/egl/main/egllog.c
+@@ -45,7 +45,7 @@
+ #include "egllog.h"
+ 
+ #define MAXSTRING 1000
+-#define FALLBACK_LOG_LEVEL _EGL_WARNING
++#define FALLBACK_LOG_LEVEL _EGL_DEBUG
+ 
+ 
+ static struct {

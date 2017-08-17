@@ -1,15 +1,70 @@
 LICENSE   := GPLv2
-VERSION   := 7.8.1
+VERSION   := 11.2.2
 DOWNLOADS := mesa.archive
 
-URL(mesa) := ftp://ftp.freedesktop.org/pub/mesa/older-versions/7.x/$(VERSION)/MesaLib-$(VERSION).tar.gz
-SHA(mesa) := 74e72b56c7ae779649c18867fe9e0865f3bfc057
-DIR(mesa) := src/lib/mesa
+URL_BASE      := https://mesa.freedesktop.org/archive/older-versions
+URL(mesa)     := $(URL_BASE)/11.x/$(VERSION)/mesa-$(VERSION).tar.gz
+SHA(mesa)     := af95222c289615638b3ab2c35564877a57c0c5db
 
-PATCHES := src/lib/gallium/p_state_config.patch \
-           src/lib/egl/opengl_precision.patch
+DIR(mesa)     := src/lib/mesa
+TAR_OPT(mesa) := --strip-components=1 --files-from $(REP_DIR)/src/lib/mesa/files.list
+HASH_INPUT    += $(REP_DIR)/src/lib/mesa/files.list
 
-DIRS := include include/EGL
-DIR_CONTENT(include)     := $(addprefix src/lib/mesa/include/,GL KHR)
-DIR_CONTENT(include/EGL) := $(addprefix src/lib/mesa/include/EGL/,egl.h eglext.h)
 
+PATCHES := src/lib/mesa/patches/egl.patch
+PATCH_OPT := -p1
+
+#
+# Check for tools
+#
+$(call check_tool,bison)
+$(call check_tool,flex)
+$(call check_tool,python)
+
+#
+# Generate files
+#
+generated_files = src/lib/mesa/src/compiler/glsl/glsl_parser.cpp \
+                  src/lib/mesa/src/compiler/glsl/glsl_lexer.cpp \
+                  src/lib/mesa/src/compiler/glsl/glcpp/glcpp-parse.c \
+                  src/lib/mesa/src/compiler/glsl/glcpp/glcpp-lex.c \
+                  src/lib/mesa/src/mesa/program/program_parse.tab.c \
+                  src/lib/mesa/src/mesa/program/lex.yy.c \
+                  src/lib/mesa/src/mapi/shared-glapi/glapi_mapi_tmp.h \
+
+src/lib/mesa/src/compiler/glsl/glsl_parser.cpp:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)bison  -o $@ -p "_mesa_glsl_" \
+		--defines=$(@D)/glsl_parser.h $(@D)/glsl_parser.yy
+
+src/lib/mesa/src/compiler/glsl/glsl_lexer.cpp:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)flex -o $@ $(@D)/glsl_lexer.ll
+
+src/lib/mesa/src/compiler/glsl/glcpp/glcpp-parse.c:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)bison  -o $@ -p "glcpp_parser_" --defines=$(@D)/glcpp-parse.h \
+		$(@D)/glcpp-parse.y
+
+src/lib/mesa/src/compiler/glsl/glcpp/glcpp-lex.c:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)flex  -o $@ $(@D)/glcpp-lex.l
+
+src/lib/mesa/src/mesa/program/program_parse.tab.c:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)bison -o $@ -p "_mesa_program_" --defines=$(@D)/program_parse.tab.h \
+		$(@D)/program_parse.y
+
+src/lib/mesa/src/mesa/program/lex.yy.c:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)flex -o $@ $(@D)/program_lexer.l
+
+src/lib/mesa/src/mapi/shared-glapi/glapi_mapi_tmp.h:
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)mkdir -p $(@D)
+	$(VERBOSE)python $(@D)/../mapi_abi.py --mode lib --printer shared-glapi \
+		$(@D)/../glapi/gen/gl_and_es_API.xml > $@
+
+default: $(DOWNLOADS) $(generated_files)
+
+# vi: set ft=make :
