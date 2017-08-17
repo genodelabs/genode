@@ -9,6 +9,7 @@ set feature(Audio_out) 1
 append build_components [qt5_build_components feature]
 
 append build_components {
+	lib/mesa/swrast
 	app/avplay
 	app/qt5/qt_avplay
 }
@@ -45,7 +46,7 @@ append config {
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
-		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
 append config [qt5_start_nodes feature]
@@ -61,6 +62,11 @@ append config {
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<mediafile name="mediafile"/>
 		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -75,10 +81,14 @@ append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	qt_avplay
+	egl.lib.so
+	egl_swrast.lib.so
+	expat.lib.so
 	freetype.lib.so
-	gallium.lib.so
+	glapi.lib.so
 	ld.lib.so
 	libc.lib.so
+	mesa.lib.so
 	posix.lib.so
 	libc_pipe.lib.so
 	libm.lib.so

@@ -7,6 +7,7 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 append build_components [qt5_build_components feature]
 
 append build_components {
+	lib/mesa/swrast
 	app/qt5/examples/openglwindow
 }
 
@@ -40,6 +41,10 @@ append config [qt5_start_nodes feature]
 append config {
 	<start name="openglwindow" caps="200">
 		<resource name="RAM" quantum="80M"/>
+		<route>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<any-service> <parent /> <child name="wm" /> <any-child/> </any-service>
+		</route>
 		<config>
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -61,14 +66,18 @@ append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	openglwindow
+	expat.lib.so
 	freetype.lib.so
-	gallium.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
+	mesa.lib.so
+	egl.lib.so
+	egl_swrast.lib.so
+	glapi.lib.so
 	pcre16.lib.so
 	pthread.lib.so
 	qt5_component.lib.so

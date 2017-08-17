@@ -86,7 +86,7 @@ bool QNitpickerGLContext::makeCurrent(QPlatformSurface *surface)
 			qFatal("eglDestroySurface() failed");
 
 	EGLSurface egl_surface =
-		eglCreateWindowSurface(_egl_display, _egl_config, &egl_window, 0);
+		eglCreatePixmapSurface(_egl_display, _egl_config, &egl_window, 0);
 
 	if (egl_surface == EGL_NO_SURFACE)
 		qFatal("eglCreateiWindowSurface() failed");

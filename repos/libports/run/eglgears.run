@@ -1,11 +1,14 @@
 set build_components {
 	core init
 	drivers/timer
-	server/nitpicker server/nit_fb
-	app/launchpad app/pointer
-	app/eglgears
-	drivers/framebuffer drivers/input
-	lib/gallium
+	drivers/input
+	drivers/framebuffer
+	lib/mesa/swrast
+	server/nitpicker
+	server/nit_fb
+	app/launchpad
+	app/pointer
+	test/mesa_demo/eglgears
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -16,25 +19,24 @@ build $build_components
 create_boot_directory
 
 set config {
-<config>
+<config prio_levels="2">
 	<parent-provides>
-		<service name="ROM"/>
+		<service name="CPU"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
+		<service name="LOG"/>
 		<service name="PD"/>
 		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
+		<service name="ROM"/>
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
 }
 
-append_if [have_spec sdl] config {
+append_if [have_spec linux] config {
 	<start name="fb_sdl" caps="200">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
@@ -45,16 +47,19 @@ append_if [have_spec sdl] config {
 
 append_platform_drv_config
 
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="200">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
+append_if [expr ![have_spec linux]] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Framebuffer"/>
+		</provides>
+		<route><any-service> <parent /> <any-child/> </any-service> </route>
 	</start>}
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Input"/> </provides>
 	</start> }
 
 append config {
@@ -77,7 +82,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 	</start>
 	<start name="launchpad" caps="400">
-		<resource name="RAM" quantum="1G"/>
+		<resource name="RAM" quantum="128M"/>
 		<config>
 			<launcher name="init" ram_quota="100M" caps="300">
 				<config>
@@ -93,19 +98,25 @@ append config {
 						<service name="Platform"/>
 						<service name="Nitpicker"/>
 						<service name="Timer"/>
+						<service name="Drm" />
 					</parent-provides>
 					<default caps="100"/>
 					<start name="nit_fb">
 						<resource name="RAM" quantum="2M"/>
 						<provides><service name="Input"/><service name="Framebuffer"/></provides>
 						<route><any-service><parent/></any-service></route>
-						<config xpos="300" ypos="100" width="576" height="408" />
+						<config xpos="300" ypos="100" width="600" height="600" />
 					</start>
-					<start name="eglgears">
+					<start name="gears" caps="128">
 						<resource name="RAM" quantum="1G"/>
-						<route><any-service> <parent /> <any-child/> </any-service></route>
+						<route>
+							<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+							<any-service> <parent /> <any-child/> </any-service>
+						</route>
 						<config>
-							<vfs> <dir name="dev"> <log/> </dir> </vfs>
+							<vfs>
+								<dir name="dev"> <log/> </dir>
+							</vfs>
 							<libc stdout="/dev/log"/>
 						</config>
 					</start>
@@ -120,14 +131,16 @@ install_config $config
 
 set boot_modules {
 	core init ld.lib.so timer nitpicker nit_fb
-	launchpad eglgears pointer
-	gallium.lib.so libc.lib.so libm.lib.so pthread.lib.so posix.lib.so
+	launchpad gears pointer
+	libc.lib.so libm.lib.so pthread.lib.so
+	egl.lib.so mesa.lib.so stdcxx.lib.so
+	expat.lib.so glapi.lib.so
+	egl_swrast.lib.so
 }
 
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-lappend_if [have_spec        i915] boot_modules gallium-i915.lib.so
+lappend_if [have_spec         linux]  boot_modules fb_sdl
+lappend_if [expr ![have_spec  linux]] boot_modules fb_drv
+lappend_if [have_spec           ps2]  boot_modules ps2_drv
 
 append_platform_drv_boot_modules
 

@@ -9,7 +9,7 @@ include $(IMPORT_QT5_INC)
 # included (in 'base/mk/lib.mk') by iterating through the elements of the
 # 'LIBS' variable. Hence, we also need to manually import the stdcxx snippet.
 #
-LIBS += gallium
-include $(call select_from_repositories,lib/import/import-gallium.mk)
+LIBS += mesa
+include $(call select_from_repositories,lib/import/import-mesa.mk)
 
 QT5_INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtGui

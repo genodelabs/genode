@@ -10,6 +10,7 @@ append build_components [qt5_build_components feature]
 
 append build_components {
 	server/clipboard server/loader server/tar_rom server/nit_fb app/launchpad test/nitpicker
+	lib/mesa/swrast
 	lib/vfs/jitterentropy
 	app/arora
 }
@@ -100,6 +101,7 @@ append config {
 			<service name="Nitpicker"> <child name="wm"/> </service>
 			<service name="Report"> <child name="clipboard"/> </service>
 			<service name="ROM" label="clipboard"> <child name="clipboard"/> </service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -135,8 +137,12 @@ append boot_modules {
 # Qt5-specific boot modules
 #
 append boot_modules {
-	gallium.lib.so
+	egl.lib.so
+	egl_swrast.lib.so
+	expat.lib.so
+	glapi.lib.so
 	icu.lib.so
+	mesa.lib.so
 	pcre16.lib.so
 	pthread.lib.so
 	qt5_angle.lib.so

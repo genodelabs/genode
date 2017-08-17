@@ -17,6 +17,7 @@ set build_components {
 	server/nitpicker
 	server/fs_rom
 	server/wm
+	lib/mesa/swrast
 	app/pointer
 	app/floating_window_layouter
 	app/decorator
@@ -203,6 +204,7 @@ append config {
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
 			<service name="ROM" label="channel_list"> <child name="dynamic_rom" /> </service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -241,12 +243,16 @@ set boot_modules {
 	qt5_widgets.lib.so
 	qt5_xml.lib.so
 	qt5_core.lib.so
+	egl.lib.so
+	egl_swrast.lib.so
+	expat.lib.so
 	freetype.lib.so
-	gallium.lib.so
+	glapi.lib.so
 	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
+	mesa.lib.so
 	zlib.lib.so
 	stdcxx.lib.so
 	pthread.lib.so

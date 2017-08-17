@@ -7,6 +7,7 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 append build_components [qt5_build_components feature]
 
 append build_components {
+	lib/mesa/swrast
 	app/qt5/qt_launchpad
 	app/qt5/examples/calculatorform
 	app/qt5/examples/tetrix
@@ -36,7 +37,7 @@ append config {
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
-		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
 append config [qt5_start_nodes feature]
@@ -69,6 +70,11 @@ append config {
 				</config>
 			</launcher>
 		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -83,14 +89,18 @@ append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	qt_launchpad
+	egl.lib.so
+	egl_swrast.lib.so
+	expat.lib.so
 	freetype.lib.so
-	gallium.lib.so
+	glapi.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
+	mesa.lib.so
 	pcre16.lib.so
 	pthread.lib.so
 	qt5_component.lib.so
