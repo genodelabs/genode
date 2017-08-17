@@ -28,7 +28,7 @@ class Animator
 
 		friend class Item;
 
-		Genode::List<Item> _items;
+		Genode::List<Genode::List_element<Item> > _items;
 
 	public:
 
@@ -41,9 +41,11 @@ class Animator
 /**
  * Interface to be implemented by animated objects
  */
-class Animator::Item : public Genode::List<Item>::Element
+class Animator::Item
 {
 	private:
+
+		Genode::List_element<Item> _element { this };
 
 		Animator &_animator;
 		bool      _animated = false;
@@ -62,9 +64,9 @@ class Animator::Item : public Genode::List<Item>::Element
 				return;
 
 			if (animated)
-				_animator._items.insert(this);
+				_animator._items.insert(&_element);
 			else
-				_animator._items.remove(this);
+				_animator._items.remove(&_element);
 
 			_animated = animated;
 		}
@@ -75,9 +77,9 @@ class Animator::Item : public Genode::List<Item>::Element
 
 inline void Animator::animate()
 {
-	for (Item *item = _items.first(); item; ) {
-		Item *next = item->next();
-		item->animate();
+	for (Genode::List_element<Item> *item = _items.first(); item; ) {
+		Genode::List_element<Item> *next = item->next();
+		item->object()->animate();
 		item = next;
 	}
 }
