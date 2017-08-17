@@ -289,18 +289,18 @@ struct Menu_view::Depgraph_widget : Widget
 
 		int centered_breadth_pos(Depth_direction dir) const
 		{
-			return dir.horizontal() ? (_widget.geometry.y1() + _widget.geometry.y2()) / 2
-			                        : (_widget.geometry.x1() + _widget.geometry.x2()) / 2;
+			return dir.horizontal() ? (_widget.geometry().y1() + _widget.geometry().y2()) / 2
+			                        : (_widget.geometry().x1() + _widget.geometry().x2()) / 2;
 		}
 
 		unsigned _edge_size(Depth_direction dir) const
 		{
 			if (dir.horizontal())
-				return max(0, (int)_widget.geometry.h() - (int)_widget.margin.top
-				                                        - (int)_widget.margin.bottom);
+				return max(0, (int)_widget.geometry().h() - (int)_widget.margin.top
+				                                          - (int)_widget.margin.bottom);
 			else
-				return max(0, (int)_widget.geometry.w() - (int)_widget.margin.left
-				                                        - (int)_widget.margin.right);
+				return max(0, (int)_widget.geometry().w() - (int)_widget.margin.left
+				                                          - (int)_widget.margin.right);
 		}
 
 		/**
@@ -496,7 +496,7 @@ struct Menu_view::Depgraph_widget : Widget
 			if (client && !server) {
 				warning("node '", client_name, "' depends on "
 				        "non-existing node '", server_name, "'");
-				client->_widget.geometry = Rect(Point(0, 0), Area(0, 0));
+				client->_widget.geometry(Rect(Point(0, 0), Area(0, 0)));
 			}
 		});
 
@@ -548,9 +548,9 @@ struct Menu_view::Depgraph_widget : Widget
 				                     : Rect(Point(breadth_pos, depth_pos),
 				                            Area(breadth_size, depth_size));
 
-				w->geometry = Rect(node_rect.center(w->min_size()), w->min_size());
+				w->geometry(Rect(node_rect.center(w->min_size()), w->min_size()));
 
-				bounding_box = Rect::compound(bounding_box, w->geometry);
+				bounding_box = Rect::compound(bounding_box, w->geometry());
 			});
 		}
 
@@ -562,15 +562,15 @@ struct Menu_view::Depgraph_widget : Widget
 
 			for (Widget *w = _children.first(); w; w = w->next()) {
 
-				int x = w->geometry.x1(), y = w->geometry.y1();
+				int x = w->geometry().x1(), y = w->geometry().y1();
 
 				if (_depth_direction.value == Depth_direction::NORTH)
-					y = (int)bounding_box.h() - y - w->geometry.h();
+					y = (int)bounding_box.h() - y - w->geometry().h();
 
 				if (_depth_direction.value == Depth_direction::WEST)
-					x = (int)bounding_box.w() - x - w->geometry.w();
+					x = (int)bounding_box.w() - x - w->geometry().w();
 
-				w->geometry = Rect(Point(x, y), w->geometry.area());
+				w->geometry(Rect(Point(x, y), w->geometry().area()));
 			}
 		}
 		_min_size = bounding_box.area();
@@ -658,7 +658,7 @@ struct Menu_view::Depgraph_widget : Widget
 	void _layout() override
 	{
 		for (Widget *w = _children.first(); w; w = w->next())
-			w->size(w->geometry.area());
+			w->size(w->geometry().area());
 	}
 };
 

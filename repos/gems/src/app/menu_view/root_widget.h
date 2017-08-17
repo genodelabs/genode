@@ -27,6 +27,14 @@ struct Menu_view::Root_widget : Widget
 		Widget(factory, node, unique_id)
 	{ }
 
+	Area animated_size() const
+	{
+		if (Widget const * const child = _children.first())
+			return child->animated_geometry().area();
+
+		return Area(1, 1);
+	}
+
 	void update(Xml_node node) override
 	{
 		char const *dialog_tag = "dialog";
@@ -42,6 +50,9 @@ struct Menu_view::Root_widget : Widget
 		}
 
 		_update_children(node);
+
+		if (Widget *child = _children.first())
+			child->geometry(Rect(Point(0, 0), child->min_size()));
 	}
 
 	Area min_size() const override
@@ -62,7 +73,7 @@ struct Menu_view::Root_widget : Widget
 	void _layout() override
 	{
 		if (Widget *child = _children.first())  {
-			child->size(geometry.area());
+			child->size(geometry().area());
 			child->position(Point(0, 0));
 		}
 	}

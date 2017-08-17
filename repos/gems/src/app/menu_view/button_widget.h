@@ -86,9 +86,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		bool const dy = selected ? 1 : 0;
 
 		if (Widget *child = _children.first())
-			child->geometry = Rect(Point(margin.left + padding.left,
-			                             margin.top  + padding.top + dy),
-			                       child->min_size());
+			child->geometry(Rect(Point(margin.left + padding.left,
+			                           margin.top  + padding.top + dy),
+			                     child->min_size()));
 	}
 
 	Area min_size() const override
@@ -130,10 +130,10 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		/*
 		 * Apply blended texture to target surface
 		 */
-		Icon_painter::paint(pixel_surface, Rect(at, geometry.area()),
+		Icon_painter::paint(pixel_surface, Rect(at, _animated_geometry.area()),
 		                    scratch.texture(), 255);
 
-		Icon_painter::paint(alpha_surface, Rect(at, geometry.area()),
+		Icon_painter::paint(alpha_surface, Rect(at, _animated_geometry.area()),
 		                    scratch.texture(), 255);
 
 		_draw_children(pixel_surface, alpha_surface, at);
@@ -142,8 +142,8 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 	void _layout() override
 	{
 		for (Widget *w = _children.first(); w; w = w->next())
-			w->size(Area(geometry.w() - _space().w(),
-			             geometry.h() - _space().h()));
+			w->size(Area(geometry().w() - _space().w(),
+			             geometry().h() - _space().h()));
 	}
 
 

@@ -48,9 +48,9 @@ struct Menu_view::Frame_widget : Widget
 		 * layout
 		 */
 		if (Widget *child = _children.first())
-			child->geometry = Rect(Point(margin.left + padding.left,
-			                             margin.top  + padding.top),
-			                       child->min_size());
+			child->geometry(Rect(Point(margin.left + padding.left,
+			                           margin.top  + padding.top),
+			                     child->min_size()));
 	}
 
 	Area min_size() const override
@@ -70,10 +70,10 @@ struct Menu_view::Frame_widget : Widget
 	          Surface<Pixel_alpha8> &alpha_surface,
 	          Point at) const
 	{
-		Icon_painter::paint(pixel_surface, Rect(at, geometry.area()),
+		Icon_painter::paint(pixel_surface, Rect(at, _animated_geometry.area()),
 		                    *texture, 255);
 
-		Icon_painter::paint(alpha_surface, Rect(at, geometry.area()),
+		Icon_painter::paint(alpha_surface, Rect(at, _animated_geometry.area()),
 		                    *texture, 255);
 
 		_draw_children(pixel_surface, alpha_surface, at);
@@ -82,8 +82,8 @@ struct Menu_view::Frame_widget : Widget
 	void _layout() override
 	{
 		if (Widget *child = _children.first())
-			child->size(Area(geometry.w() - _space().w(),
-			                 geometry.h() - _space().h()));
+			child->size(Area(geometry().w() - _space().w(),
+			                 geometry().h() - _space().h()));
 	}
 };
 

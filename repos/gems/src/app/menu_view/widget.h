@@ -20,6 +20,7 @@
 /* local includes */
 #include <widget_factory.h>
 #include <list_model_from_xml.h>
+#include <animated_geometry.h>
 
 namespace Menu_view {
 
@@ -136,7 +137,7 @@ class Menu_view::Widget : public List<Widget>::Element
 		                    Point at) const
 		{
 			for (Widget const *w = _children.first(); w; w = w->next())
-				w->draw(pixel_surface, alpha_surface, at + w->geometry.p1());
+				w->draw(pixel_surface, alpha_surface, at + w->_animated_geometry.p1());
 		}
 
 		virtual void _layout() { }
@@ -144,28 +145,42 @@ class Menu_view::Widget : public List<Widget>::Element
 		Rect _inner_geometry() const
 		{
 			return Rect(Point(margin.left, margin.top),
-			            Area(geometry.w() - margin.horizontal(),
-			                 geometry.h() - margin.vertical()));
+			            Area(geometry().w() - margin.horizontal(),
+			                 geometry().h() - margin.vertical()));
 		}
-
-	public:
-
-		Margin margin { 0, 0, 0, 0 };
 
 		/*
 		 * Position relative to the parent widget and actual size, defined by
 		 * the parent
 		 */
-		Rect geometry;
+		Rect _geometry;
+
+		Animated_rect _animated_geometry { _factory.animator };
+
+	public:
+
+		Margin margin { 0, 0, 0, 0 };
+
+		void geometry(Rect geometry)
+		{
+			_geometry = geometry;
+			_animated_geometry.move_to(_geometry, Animated_rect::Steps{60});
+		}
+
+		Rect geometry() const { return _geometry; }
+
+		Rect animated_geometry() const { return _animated_geometry; }
 
 		/*
 		 * Return x/y positions of the edges of the widget with the margin
 		 * applied
 		 */
-		Rect edges() const { return Rect(Point(geometry.x1() + margin.left,
-		                                       geometry.y1() + margin.top),
-		                                 Point(geometry.x2() - margin.right,
-		                                       geometry.y2() - margin.bottom)); }
+		Rect edges() const
+		{
+			Rect const r = _animated_geometry;
+			return Rect(Point(r.x1() + margin.left,  r.y1() + margin.top),
+		                Point(r.x2() - margin.right, r.y2() - margin.bottom));
+		}
 
 		Widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 		:
@@ -195,14 +210,14 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		void size(Area size)
 		{
-			geometry = Rect(geometry.p1(), size);
+			_geometry = Rect(_geometry.p1(), size);
 
 			_layout();
 		}
 
 		void position(Point position)
 		{
-			geometry = Rect(position, geometry.area());
+			_geometry = Rect(position, _geometry.area());
 		}
 
 		/**
@@ -216,7 +231,7 @@ class Menu_view::Widget : public List<Widget>::Element
 				return Unique_id();
 
 			for (Widget const *w = _children.first(); w; w = w->next()) {
-				Unique_id res = w->hovered(at - w->geometry.p1());
+				Unique_id res = w->hovered(at - w->geometry().p1());
 				if (res.valid())
 					return res;
 			}
@@ -236,13 +251,13 @@ class Menu_view::Widget : public List<Widget>::Element
 				xml.node(_type_name.string(), [&]() {
 
 					xml.attribute("name",   _name.string());
-					xml.attribute("xpos",   geometry.x1());
-					xml.attribute("ypos",   geometry.y1());
-					xml.attribute("width",  geometry.w());
-					xml.attribute("height", geometry.h());
+					xml.attribute("xpos",   geometry().x1());
+					xml.attribute("ypos",   geometry().y1());
+					xml.attribute("width",  geometry().w());
+					xml.attribute("height", geometry().h());
 
 					for (Widget const *w = _children.first(); w; w = w->next()) {
-						w->gen_hover_model(xml, at - w->geometry.p1());
+						w->gen_hover_model(xml, at - w->geometry().p1());
 					}
 				});
 			}

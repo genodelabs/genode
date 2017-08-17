@@ -56,8 +56,8 @@ struct Menu_view::Label_widget : Widget
 
 		Area text_size = min_size();
 
-		int const dx = (int)geometry.w() - text_size.w(),
-		          dy = (int)geometry.h() - text_size.h();
+		int const dx = (int)geometry().w() - text_size.w(),
+		          dy = (int)geometry().h() - text_size.h();
 
 		Point const centered = Point(dx/2, dy/2);
 
