@@ -65,4 +65,13 @@ static void Genode_Fb_FreeHWSurface(SDL_VideoDevice *t, SDL_Surface *surface);
  */
 static void Genode_Fb_UpdateRects(SDL_VideoDevice *t, int numrects,
                                   SDL_Rect *rects);
+
+/**
+ * OpenGL functions
+ */
+static int   Genode_Fb_GL_MakeCurrent(SDL_VideoDevice *t);
+static void  Genode_Fb_GL_SwapBuffers(SDL_VideoDevice *t);
+static int   Genode_Fb_GL_LoadLibrary(SDL_VideoDevice *t, const char *path);
+static void* Genode_Fb_GL_GetProcAddress(SDL_VideoDevice *t, const char *proc);
+
 #endif // _SDL_genode_fb_video_h

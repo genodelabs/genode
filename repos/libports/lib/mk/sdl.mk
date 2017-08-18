@@ -74,7 +74,7 @@ SRC_C   += cdrom/SDL_cdrom.c \
 INC_DIR += $(SDL_DIR)/src/cdrom
 
 # we need libc
-LIBS = libc pthread
+LIBS = libc pthread mesa_api
 
 # backend path
 vpath % $(REP_DIR)/src/lib/sdl

@@ -48,7 +48,7 @@
 #define SDL_JOYSTICK_DISABLED 1
 
 /* Enable the stub shared object loader (src/loadso/dummy/\*.c) */
-#define SDL_LOADSO_DISABLED 1
+#define SDL_LOADSO_DISABLED 0
 
 /* Enable thread support */
 #define SDL_THREAD_PTHREAD 1
@@ -58,6 +58,8 @@
 
 /* Enable video drivers */
 #define SDL_VIDEO_DRIVER_GENODE_FB 1
+
+#define SDL_VIDEO_OPENGL 1
 
 /* #define HAVE_MREMAP 0 */
 #define HAVE_MALLOC

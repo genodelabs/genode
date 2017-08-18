@@ -31,3 +31,13 @@
  #if SDL_VIDEO_DRIVER_DUMMY
  extern VideoBootStrap DUMMY_bootstrap;
  #endif
++++ src/lib/sdl/include/SDL_opengl.h
+@@ -42,7 +42,7 @@
+ #include <glu.h>	/* Header File For The GLU Library */
+ #else
+ #include <GL/gl.h>	/* Header File For The OpenGL Library */
+-#include <GL/glu.h>	/* Header File For The GLU Library */
++//#include <GL/glu.h>	/* Header File For The GLU Library */
+ #endif
+ #ifndef NO_SDL_GLEXT
+ #undef __glext_h_
