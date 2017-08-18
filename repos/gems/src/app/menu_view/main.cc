@@ -129,7 +129,7 @@ struct Menu_view::Main
 	/**
 	 * Number of frames between two redraws
 	 */
-	enum { REDRAW_PERIOD = 4 };
+	enum { REDRAW_PERIOD = 2 };
 
 	/**
 	 * Counter used for triggering redraws. Incremented in each frame-timer
@@ -177,10 +177,16 @@ void Menu_view::Main::_handle_dialog_update()
 	 * processing immediately. This way, we avoid latencies when the dialog
 	 * model is updated sporadically.
 	 */
-	if (_timer.curr_frame() != _last_frame)
+	unsigned const curr_frame = _timer.curr_frame();
+	if (curr_frame != _last_frame) {
+
+		if (curr_frame - _last_frame > 10)
+			_last_frame = curr_frame;
+
 		_handle_frame_timer();
-	else
+	} else {
 		_timer.schedule();
+	}
 }
 
 
@@ -243,7 +249,7 @@ void Menu_view::Main::_handle_frame_timer()
 
 	if (_animator.active()) {
 
-		unsigned const passed_frames = curr_frame - _last_frame;
+		unsigned const passed_frames = max(curr_frame - _last_frame, 4U);
 
 		if (passed_frames > 0) {
 
@@ -263,7 +269,7 @@ void Menu_view::Main::_handle_frame_timer()
 		Area const old_size = _buffer.constructed() ? _buffer->size() : Area();
 		Area const size     = _root_widget.min_size();
 
-		if (!_buffer.constructed() || size != old_size)
+		if (!_buffer.constructed() || size.w() > old_size.w() || size.h() > old_size.h())
 			_buffer.construct(_nitpicker, size, _env.ram(), _env.rm());
 		else
 			_buffer->reset_surface();
