@@ -466,7 +466,7 @@ class Vfs::Fs_file_system : public File_system
 				    _fs.symlink(dir_handle, symlink_name.base() + 1, false);
 				Fs_handle_guard symlink_guard(*this, _fs, symlink_handle, _handle_space);
 
-				out_len = _read(symlink_guard, buf, buf_size, 0);
+				out_len = _read(symlink_guard, buf, buf_size, 0) - 1;
 
 				return READLINK_OK;
 			}
