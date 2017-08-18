@@ -90,7 +90,9 @@ struct Nitpicker_buffer
 		ram(ram), rm(rm), nitpicker(nitpicker),
 		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
 		     nitpicker.mode().format())
-	{ }
+	{
+		reset_surface();
+	}
 
 	/**
 	 * Constructor
@@ -131,7 +133,20 @@ struct Nitpicker_buffer
 	{
 		Genode::size_t const num_pixels = pixel_surface().size().count();
 		Genode::memset(alpha_surface().addr(), 0, num_pixels);
-		Genode::memset(pixel_surface().addr(), 0, num_pixels*sizeof(Pixel_rgb888));
+
+		/*
+		 * Initialize color buffer with 50% gray
+		 *
+		 * We do not use black to limit the bleeding of black into antialiased
+		 * drawing operations applied onto an initially transparent background.
+		 */
+		Pixel_surface pixels = pixel_surface();
+		Pixel_rgb888 *dst    = pixels.addr();
+
+		Pixel_rgb888 const gray(127, 127, 127, 255);
+
+		for (unsigned n = pixels.size().count(); n; n--)
+			*dst++ = gray;
 	}
 
 	template <typename DST_PT, typename SRC_PT>
