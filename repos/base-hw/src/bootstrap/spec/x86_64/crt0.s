@@ -91,12 +91,10 @@
 	_start64:
 
 	/*
-	 * Set up kernel segment selectors
+	 * Set up segment selectors fs and gs to zero
+	 * ignore ss, cs and ds because they are ignored by hardware in long mode
 	 */
-	mov $0x10, %eax
-	mov %eax, %ss
-	mov %eax, %ds
-	mov %eax, %es
+	mov $0x0, %eax
 	mov %eax, %fs
 	mov %eax, %gs
 

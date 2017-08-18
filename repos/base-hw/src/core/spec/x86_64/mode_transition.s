@@ -181,14 +181,6 @@
 	pushq %r9
 	pushq %r8
 
-	/* Restore kernel segment registers */
-	mov $0x10, %rbx
-	mov %rbx, %ss
-	mov %rbx, %ds
-	mov %rbx, %es
-	mov %rbx, %fs
-	mov %rbx, %gs
-
 	/* Restore register values from kernel context */
 	mov $_mt_master_context_begin+R8_OFFSET, %rsp
 	popq %r8
@@ -223,13 +215,6 @@
 
 	pushq $0x1b
 	pushq (%rax)
-
-	/* Restore segment registers */
-	mov $0x23, %rbx
-	mov %rbx, %ds
-	mov %rbx, %es
-	mov %rbx, %fs
-	mov %rbx, %gs
 
 	/* Restore register values from client context */
 	lea R8_OFFSET(%rax), %rsp
