@@ -19,6 +19,7 @@
 #include "root_widget.h"
 #include "float_widget.h"
 #include "frame_widget.h"
+#include "depgraph_widget.h"
 
 /* Genode includes */
 #include <input/event.h>
@@ -302,12 +303,13 @@ Menu_view::Widget_factory::create(Xml_node node)
 
 	Widget::Unique_id const unique_id(++_unique_id_cnt);
 
-	if (node.has_type("label"))  w = new (alloc) Label_widget      (*this, node, unique_id);
-	if (node.has_type("button")) w = new (alloc) Button_widget     (*this, node, unique_id);
-	if (node.has_type("vbox"))   w = new (alloc) Box_layout_widget (*this, node, unique_id);
-	if (node.has_type("hbox"))   w = new (alloc) Box_layout_widget (*this, node, unique_id);
-	if (node.has_type("frame"))  w = new (alloc) Frame_widget      (*this, node, unique_id);
-	if (node.has_type("float"))  w = new (alloc) Float_widget      (*this, node, unique_id);
+	if (node.has_type("label"))    w = new (alloc) Label_widget      (*this, node, unique_id);
+	if (node.has_type("button"))   w = new (alloc) Button_widget     (*this, node, unique_id);
+	if (node.has_type("vbox"))     w = new (alloc) Box_layout_widget (*this, node, unique_id);
+	if (node.has_type("hbox"))     w = new (alloc) Box_layout_widget (*this, node, unique_id);
+	if (node.has_type("frame"))    w = new (alloc) Frame_widget      (*this, node, unique_id);
+	if (node.has_type("float"))    w = new (alloc) Float_widget      (*this, node, unique_id);
+	if (node.has_type("depgraph")) w = new (alloc) Depgraph_widget   (*this, node, unique_id);
 
 	if (!w) {
 		Genode::error("unknown widget type '", node.type(), "'");

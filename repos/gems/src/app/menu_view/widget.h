@@ -158,6 +158,15 @@ class Menu_view::Widget : public List<Widget>::Element
 		 */
 		Rect geometry;
 
+		/*
+		 * Return x/y positions of the edges of the widget with the margin
+		 * applied
+		 */
+		Rect edges() const { return Rect(Point(geometry.x1() + margin.left,
+		                                       geometry.y1() + margin.top),
+		                                 Point(geometry.x2() - margin.right,
+		                                       geometry.y2() - margin.bottom)); }
+
 		Widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 		:
 			_type_name(node_type_name(node)),
