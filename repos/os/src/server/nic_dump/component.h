@@ -73,8 +73,12 @@ class Net::Session_component : public Session_component_base,
 {
 	private:
 
-		Uplink      _uplink;
-		Mac_address _mac;
+		Uplink                                    _uplink;
+		Genode::Signal_context_capability         _link_state_sigh;
+		Genode::Signal_handler<Session_component> _link_state_handler;
+
+		void _handle_link_state();
+		void _print_state();
 
 
 		/********************
@@ -100,9 +104,9 @@ class Net::Session_component : public Session_component_base,
 		 ** Nic::Session **
 		 ******************/
 
-		Mac_address mac_address() { return _mac; }
-		bool link_state();
-		void link_state_sigh(Genode::Signal_context_capability sigh);
+		Mac_address mac_address() { return _uplink.mac_address(); }
+		bool link_state() { return _uplink.link_state(); }
+		void link_state_sigh(Genode::Signal_context_capability sigh) { _link_state_sigh = sigh; }
 };
 
 

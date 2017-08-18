@@ -70,7 +70,7 @@ Net::Session_component::Session_component(Allocator         &alloc,
 	          timer, curr_time, config.attribute_value("time", false),
 	          _guarded_alloc),
 	_uplink(env, config, timer, curr_time, alloc),
-	_mac(_uplink.mac_address())
+	_link_state_handler(env.ep(), *this, &Session_component::_handle_link_state)
 {
 	_tx.sigh_ready_to_ack(_sink_ack);
 	_tx.sigh_packet_avail(_sink_submit);
@@ -78,19 +78,26 @@ Net::Session_component::Session_component(Allocator         &alloc,
 	_rx.sigh_ready_to_submit(_source_submit);
 	Interface::remote(_uplink);
 	_uplink.Interface::remote(*this);
+	_uplink.link_state_sigh(_link_state_handler);
+	_print_state();
 }
 
 
-bool Session_component::link_state()
+void Session_component::_print_state()
 {
-	warning("Session_component::link_state not implemented");
-	return false;
+	log("\033[33m(new state)\033[0m \033[32mMAC address\033[0m ", mac_address(),
+	                              " \033[32mlink state\033[0m ",  link_state());
 }
 
 
-void Session_component::link_state_sigh(Signal_context_capability sigh)
+void Session_component::_handle_link_state()
 {
-	warning("Session_component::link_state_sigh not implemented");
+	_print_state();
+	if (!_link_state_sigh.valid()) {
+		warning("failed to forward signal");
+		return;
+	}
+	Signal_transmitter(_link_state_sigh).submit();
 }
 
 
