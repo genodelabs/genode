@@ -4,8 +4,8 @@ import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/[drivers_interactive_pkg] \
                   genodelabs/src/init \
                   genodelabs/src/dynamic_rom \
+                  genodelabs/src/report_rom \
                   genodelabs/src/nitpicker \
-                  genodelabs/src/demo \
                   genodelabs/src/libc \
                   genodelabs/src/libpng \
                   genodelabs/src/zlib
@@ -23,6 +23,8 @@ install_config {
 		<service name="IO_PORT"/>
 	</parent-provides>
 
+	<default caps="100"/>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
@@ -32,7 +34,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers">
+	<start name="drivers" caps="1000">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
@@ -46,9 +48,10 @@ install_config {
 	</start>
 
 	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
+			<background color="#123456"/>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="3" content="client" label="no" hover="always" />
 
@@ -67,9 +70,90 @@ install_config {
 
 	<start name="dynamic_rom">
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="ROM"/></provides>
+		<provides> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="dialog">
+
+				<inline description="dependency graph">
+					<dialog>
+						<depgraph>
+							<frame name="storage"> <label text="Storage"/>     </frame>
+							<frame name="gui">     <label text="GUI"/>         </frame>
+							<frame name="usbdev">  <label text="USB Devices"/> </frame>
+
+							<button name="s.ahci1" dep="storage"> <label text="ahci1"/> </button>
+							<button name="s.usb1"  dep="storage"> <label text="usb1"/>  </button>
+							<button name="s.usb2"  dep="storage"> <label text="usb2"/>  </button>
+							<button name="s.usb3"  dep="storage"> <label text="usb3"/>  </button>
+
+							<frame  name="s.usb2.part"     dep="s.usb2">      <label text="Partition"/> </frame>
+							<button name="s.usb2.1"        dep="s.usb2.part"> <label text="1"/>         </button>
+							<frame  name="s.usb2.1.ext2fs" dep="s.usb2.1">    <label text="Ext2 FS"/>   </frame>
+							<button name="s.usb2.2"        dep="s.usb2.part"> <label text="2"/>         </button>
+
+							<frame name="s.usb2.1.ext2fs.subfs" dep="s.usb2.1.ext2fs"> <label text="Sub FS"/> </frame>
+
+							<button name="g.pointer"    dep="gui"> <label text="pointer"/>    </button>
+							<button name="g.overlay"    dep="gui"> <label text="overlay"/>    </button>
+							<button name="g.primary"    dep="gui"> <label text="primary"/>    </button>
+							<button name="g.background" dep="gui"> <label text="background"/> </button>
+
+							<button name="g.pointer.new"    dep="g.pointer">    <label text="+"/> </button>
+							<button name="g.overlay.new"    dep="g.overlay">    <label text="+"/> </button>
+							<button name="g.background.new" dep="g.background"> <label text="+"/> </button>
+
+							<button name="u.1-2" dep="usbdev"> <label text="1-2"/> </button>
+							<button name="u.1-3" dep="usbdev"> <label text="1-3"/> </button>
+
+							<frame name="vbox" dep="s.usb2.1.ext2fs.subfs">
+								<label text="VBox5"/>
+							</frame>
+
+							<dep node="vbox" on="g.primary"/>
+							<dep node="vbox" on="s.ahci1"/>
+							<dep node="vbox" on="u.1-3"/>
+
+							<frame name="fs_view" dep="s.usb2.1.ext2fs.subfs">
+								<label text="FS View"/>
+							</frame>
+
+							<dep node="fs_view" from="g.primary"/>
+
+						</depgraph>
+					</dialog>
+				</inline>
+
+				<sleep milliseconds="1000" />
+
+				<inline description="dependency graph">
+					<dialog>
+						<depgraph>
+							<frame name="storage"> <label text="Storage"/>     </frame>
+							<frame name="gui">     <label text="GUI"/>         </frame>
+							<frame name="usbdev">  <label text="USB"/> </frame>
+
+							<button name="s.ahci1" dep="storage"> <label text="ahci1"/> </button>
+							<button name="s.usb1"  dep="storage"> <label text="usb1"/>  </button>
+							<button name="s.usb2"  dep="storage"> <label text="usb2"/>  </button>
+							<button name="s.usb3"  dep="storage"> <label text="usb3"/>  </button>
+
+							<frame  name="s.usb2.part" dep="s.usb2">      <label text="Partition"/> </frame>
+							<button name="s.usb2.2"    dep="s.usb2.part"> <label text="2"/>         </button>
+
+							<button name="g.pointer"    dep="gui"> <label text="pointer"/>    </button>
+							<button name="g.overlay"    dep="gui"> <label text="overlay"/>    </button>
+							<button name="g.primary"    dep="gui"> <label text="primary"/>    </button>
+							<button name="g.background" dep="gui"> <label text="background"/> </button>
+
+							<button name="u.1-2" dep="usbdev"> <label text="1-2"/> </button>
+							<button name="u.1-3" dep="usbdev"> <label text="1-3"/> </button>
+
+						</depgraph>
+					</dialog>
+				</inline>
+
+				<sleep milliseconds="1000" />
+
 				<inline description="example menu">
 					<dialog>
 						<frame>
@@ -90,19 +174,15 @@ install_config {
 						</frame>
 					</dialog>
 				</inline>
-				<sleep milliseconds="2000" />
+
+				<sleep milliseconds="1000" />
+
 				<inline description="example menu">
 					<dialog>
 						<frame>
 							<vbox>
 								<button name="virtualbox" hovered="yes">
 									<label text="VirtualBox"/>
-								</button>
-								<button name="toolchain">
-									<label text="Tool chain"/>
-								</button>
-								<button name="log" selected="yes">
-									<label text="Log window"/>
 								</button>
 								<button name="config" selected="yes" hovered="yes">
 									<label text="Configuration"/>
@@ -111,14 +191,23 @@ install_config {
 						</frame>
 					</dialog>
 				</inline>
-				<sleep milliseconds="2000" />
+
+				<sleep milliseconds="1000" />
+
 			</rom>
 		</config>
 	</start>
 
-	<start name="menu_view">
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="menu_view" caps="200">
 		<resource name="RAM" quantum="5M"/>
 		<config xpos="200" ypos="100">
+			<report hover="yes"/>
 			<libc stderr="/dev/log"/>
 			<vfs>
 				<tar name="menu_view_styles.tar" />
@@ -127,13 +216,11 @@ install_config {
 		</config>
 		<route>
 			<service name="ROM" label="dialog"> <child name="dynamic_rom" /> </service>
+			<service name="Report" label="hover"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="scout">
-		<resource name="RAM" quantum="64M" />
-	</start>
 </config>}
 
 build { app/menu_view }
