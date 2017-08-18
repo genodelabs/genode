@@ -24,6 +24,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 
 	<start name="drivers">
 		<resource name="RAM" quantum="32M"/>
