@@ -90,6 +90,6 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 	while (size) {
 		addr_t mapped = _address_space.apply_to_dataspace(virt, lambda);
 		virt         += mapped;
-		size          = size < mapped ? size - mapped : 0;
+		size          = size < mapped ? size : size - mapped;
 	}
 }
