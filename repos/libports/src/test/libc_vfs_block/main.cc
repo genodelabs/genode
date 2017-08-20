@@ -227,7 +227,7 @@ struct Test::Main
 	 */
 	Main(Genode::Env &env) : _env(env)
 	{
-		_exec_sequences(_config.xml());
+		Libc::with_libc([&] () { _exec_sequences(_config.xml()); });
 		_env.parent().exit(0);
 	}
 };
