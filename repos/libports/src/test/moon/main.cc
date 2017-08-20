@@ -130,20 +130,22 @@ struct Moon::Main
 
 	Main(Libc::Env &env) : _env(env)
 	{
-		Moon::env = &_moon_env;
+		Libc::with_libc([&] () {
+			Moon::env = &_moon_env;
 
-		lua_State *lua = lua_open();
+			lua_State *lua = lua_open();
 
-		/* initialize libs */
-		luaopen_base(lua);
+			/* initialize libs */
+			luaopen_base(lua);
 
-		/* register Genode Lua library */
-		luaL_register(lua, "Genode", l_genode);
+			/* register Genode Lua library */
+			luaL_register(lua, "Genode", l_genode);
 
-		if (luaL_dostring(lua, exec_string) != 0)
-			Genode::log(lua_tostring(lua, -1));
+			if (luaL_dostring(lua, exec_string) != 0)
+				Genode::log(lua_tostring(lua, -1));
 
-		lua_close(lua);
+			lua_close(lua);
+		});
 	}
 };
 
