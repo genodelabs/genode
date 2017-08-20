@@ -267,13 +267,28 @@ struct Libc::Pthreads
 		Genode::Lock  lock { Genode::Lock::LOCKED };
 		Pthread      *next { nullptr };
 
-		Timeout _timeout;
+		Timer_accessor         &_timer_accessor;
+		Constructible<Timeout>  _timeout;
+
+		void _construct_timeout_once()
+		{
+			if (!_timeout.constructed())
+				_timeout.construct(_timer_accessor, *this);
+		}
 
 		Pthread(Timer_accessor &timer_accessor, unsigned long timeout_ms)
-		: _timeout(timer_accessor, *this)
+		: _timer_accessor(timer_accessor)
 		{
-			if (timeout_ms > 0)
-				_timeout.start(timeout_ms);
+			if (timeout_ms > 0) {
+				_construct_timeout_once();
+				_timeout->start(timeout_ms);
+			}
+		}
+
+		unsigned long duration_left()
+		{
+			_construct_timeout_once();
+			return _timeout->duration_left();
 		}
 
 		void handle_timeout() override
@@ -323,7 +338,7 @@ struct Libc::Pthreads
 			}
 		}
 
-		return timeout_ms > 0 ? myself._timeout.duration_left() : 0;
+		return timeout_ms > 0 ? myself.duration_left() : 0;
 	}
 };
 
