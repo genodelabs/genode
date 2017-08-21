@@ -77,19 +77,6 @@ Net::Session_component::Session_component(Allocator         &alloc,
 }
 
 
-bool Session_component::link_state()
-{
-	warning("Session_component::link_state not implemented");
-	return false;
-}
-
-
-void Session_component::link_state_sigh(Signal_context_capability sigh)
-{
-	warning("Session_component::link_state_sigh not implemented");
-}
-
-
 /**********
  ** Root **
  **********/

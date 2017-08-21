@@ -101,8 +101,8 @@ class Net::Session_component : public Session_component_base,
 		 ******************/
 
 		Mac_address mac_address() { return _mac; }
-		bool link_state();
-		void link_state_sigh(Genode::Signal_context_capability sigh);
+		bool link_state() { return true; }
+		void link_state_sigh(Genode::Signal_context_capability) { }
 };
 
 
