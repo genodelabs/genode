@@ -69,5 +69,12 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 void Core_region_map::detach(Local_addr core_local_addr)
 {
 	size_t size = platform_specific()->region_alloc_size_at(core_local_addr);
-	unmap_local(core_local_addr, size >> get_page_size_log2());
+
+	if (!unmap_local(core_local_addr, size >> get_page_size_log2())) {
+		Genode::error("could not unmap core virtual address ",
+		              Hex(core_local_addr), " in ", __PRETTY_FUNCTION__);
+		return;
+	}
+
+	platform()->region_alloc()->free(core_local_addr);
 }
