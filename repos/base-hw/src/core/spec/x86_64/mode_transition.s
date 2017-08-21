@@ -37,8 +37,6 @@
 
 /* mtc virt addresses */
 .set MT_BASE, 0xffff0000
-.set MT_BUFFER,    MT_BASE + (_mt_buffer - _mt_begin)
-.set MT_MASTER,    MT_BASE + (_mt_master_context_begin - _mt_begin)
 .set MT_TSS,       MT_BASE + (_mt_tss - _mt_begin)
 .set MT_ISR,       MT_BASE
 .set MT_IRQ_STACK, MT_BASE + (_mt_kernel_interrupt_stack - _mt_begin)
@@ -70,9 +68,13 @@
 	.word \addr & 0xffff
 	.word 0x0008
 	.word \flags
-	.word \addr >> 16
+	.word (\addr >> 16) & 0xffff
 	.long \addr >> 32
 	.long 0
+.endm
+
+.macro _load_address label reg
+	mov \label@GOTPCREL(%rip), %\reg
 .endm
 
 .section .text
@@ -148,14 +150,17 @@
 	_mt_kernel_entry_pic:
 
 	/* Copy client context RAX to buffer */
-	movabs %rax, MT_BUFFER
+	pushq %rax
 
 	/* Switch to kernel page tables */
-	movabs MT_MASTER+CR3_OFFSET, %rax
+	_load_address _mt_master_context_begin rax
+	mov CR3_OFFSET(%rax), %rax
 	mov %rax, %cr3
 
 	/* Save information on interrupt stack frame in client context */
-	mov _mt_client_context_ptr, %rax
+	_load_address _mt_client_context_ptr rax
+	mov (%rax), %rax
+	popq RAX_OFFSET(%rax)
 	popq TRAPNO_OFFSET(%rax)
 	popq ERRCODE_OFFSET(%rax)
 	popq (%rax)
@@ -171,7 +176,7 @@
 	pushq %rdx
 	pushq %rcx
 	pushq %rbx
-	pushq _mt_buffer
+	sub $8, %rsp
 	pushq %r15
 	pushq %r14
 	pushq %r13
@@ -181,34 +186,20 @@
 	pushq %r9
 	pushq %r8
 
-	/* Restore register values from kernel context */
-	mov $_mt_master_context_begin+R8_OFFSET, %rsp
-	popq %r8
-	popq %r9
-	popq %r10
-	popq %r11
-	popq %r12
-	popq %r13
-	popq %r14
-	popq %r15
-	popq %rax
-	popq %rbx
-	popq %rcx
-	popq %rdx
-	popq %rdi
-	popq %rsi
-	popq %rbp
-
 	/* Restore kernel stack and continue kernel execution */
-	mov _mt_master_context_begin+SP_OFFSET, %rsp
-	jmp *_mt_master_context_begin
+	_load_address _mt_master_context_begin rsp
+	mov (%rsp), %rax
+	mov SP_OFFSET(%rsp), %rsp
+	jmp *%rax
 
 	.global _mt_user_entry_pic
 	_mt_user_entry_pic:
 
 	/* Prepare stack frame in mt buffer (Intel SDM Vol. 3A, figure 6-8) */
-	mov _mt_client_context_ptr, %rax
-	mov $_mt_buffer+BUFFER_SIZE, %rsp
+	_load_address _mt_client_context_ptr rax
+	mov (%rax), %rax
+	_load_address _mt_buffer rsp
+	add $BUFFER_SIZE, %rsp
 	pushq $0x23
 	pushq SP_OFFSET(%rax)
 	pushq FLAGS_OFFSET(%rax)
@@ -218,6 +209,7 @@
 
 	/* Restore register values from client context */
 	lea R8_OFFSET(%rax), %rsp
+	_load_address _mt_buffer rbx
 	popq %r8
 	popq %r9
 	popq %r10
@@ -226,7 +218,7 @@
 	popq %r13
 	popq %r14
 	popq %r15
-	popq _mt_buffer
+	popq (%rbx)
 	popq %rbx
 	popq %rcx
 	popq %rdx
@@ -239,7 +231,7 @@
 	mov %rax, %cr3
 
 	/* Set stack back to mt buffer and restore client RAX */
-	movabs $MT_BUFFER, %rsp
+	_load_address _mt_buffer rsp
 	popq %rax
 
 	iretq
