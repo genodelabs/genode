@@ -14,4 +14,4 @@
 /* Genode includes */
 #include <nic_bridge/mac_allocator.h>
 
-Net::Mac_address Net::Mac_allocator::mac_addr_base(0x03);
+Net::Mac_address Net::Mac_allocator::mac_addr_base(0x02);
