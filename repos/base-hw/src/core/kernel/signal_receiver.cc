@@ -126,7 +126,7 @@ Signal_context::~Signal_context()
 }
 
 
-Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint)
+Signal_context::Signal_context(Signal_receiver * const r, addr_t const imprint)
 :
 	_deliver_fe(this),
 	_contexts_fe(this),
@@ -164,7 +164,7 @@ void Signal_receiver::_listen()
 		/* create a signal data-object */
 		typedef Genode::Signal_context * Signal_imprint;
 		auto const context = _deliver.dequeue()->object();
-		auto const imprint =
+		Signal_imprint const imprint =
 			reinterpret_cast<Signal_imprint>(context->_imprint);
 		Signal::Data data(imprint, context->_submits);
 

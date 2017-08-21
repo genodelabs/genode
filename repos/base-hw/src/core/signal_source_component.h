@@ -36,7 +36,7 @@ struct Genode::Signal_context_component : Kernel_object<Kernel::Signal_context>,
                                           Signal_context_pool::Entry
 {
 	inline Signal_context_component(Signal_source_component &s,
-	                                unsigned long const imprint);
+	                                addr_t const imprint);
 
 	Signal_source_component *source() { ASSERT_NEVER_CALLED; }
 };
@@ -56,7 +56,7 @@ struct Genode::Signal_source_component : Kernel_object<Kernel::Signal_receiver>,
 
 
 Genode::Signal_context_component::Signal_context_component(Signal_source_component &s,
-                                                           unsigned long const imprint)
+                                                           addr_t const imprint)
 :
 	Kernel_object<Kernel::Signal_context>(true, s.kernel_object(), imprint),
 	Signal_context_pool::Entry(Kernel_object<Kernel::Signal_context>::_cap)

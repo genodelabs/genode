@@ -79,7 +79,7 @@ void Pager_object::print(Output &out) const
 }
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
-                           Thread_capability thread_cap, unsigned const badge,
+                           Thread_capability thread_cap, addr_t const badge,
                            Affinity::Location, Session_label const &,
                            Cpu_session::Name const &)
 :

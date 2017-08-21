@@ -143,7 +143,7 @@ class Kernel::Signal_context : public Kernel::Object
 		Fifo_element            _deliver_fe;
 		Fifo_element            _contexts_fe;
 		Signal_receiver * const _receiver;
-		unsigned const          _imprint;
+		addr_t const            _imprint;
 		unsigned                _submits;
 		bool                    _ack;
 		bool                    _killed;
@@ -179,7 +179,7 @@ class Kernel::Signal_context : public Kernel::Object
 		 *
 		 * \throw  Assign_to_receiver_failed
 		 */
-		Signal_context(Signal_receiver * const r, unsigned const imprint);
+		Signal_context(Signal_receiver * const r, addr_t const imprint);
 
 		/**
 		 * Submit the signal

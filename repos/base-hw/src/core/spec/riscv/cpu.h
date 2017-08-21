@@ -88,16 +88,16 @@ class Genode::Cpu
 			/**
 			 * Support for kernel calls
 			 */
-			void user_arg_0(unsigned const arg) { a0  = arg; }
-			void user_arg_1(unsigned const arg) { a1  = arg; }
-			void user_arg_2(unsigned const arg) { a2  = arg; }
-			void user_arg_3(unsigned const arg) { a3  = arg; }
-			void user_arg_4(unsigned const arg) { a4  = arg; }
-			addr_t user_arg_0() const { return a0; }
-			addr_t user_arg_1() const { return a1; }
-			addr_t user_arg_2() const { return a2; }
-			addr_t user_arg_3() const { return a3; }
-			addr_t user_arg_4() const { return a4; }
+			void user_arg_0(Kernel::Call_arg const arg) { a0  = arg; }
+			void user_arg_1(Kernel::Call_arg const arg) { a1  = arg; }
+			void user_arg_2(Kernel::Call_arg const arg) { a2  = arg; }
+			void user_arg_3(Kernel::Call_arg const arg) { a3  = arg; }
+			void user_arg_4(Kernel::Call_arg const arg) { a4  = arg; }
+			Kernel::Call_arg user_arg_0() const { return a0; }
+			Kernel::Call_arg user_arg_1() const { return a1; }
+			Kernel::Call_arg user_arg_2() const { return a2; }
+			Kernel::Call_arg user_arg_3() const { return a3; }
+			Kernel::Call_arg user_arg_4() const { return a4; }
 
 			/**
 			 * Initialize thread context

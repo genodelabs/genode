@@ -166,22 +166,16 @@ class Genode::Cpu : public Arm_v7_cpu
 			/**
 			 * Support for kernel calls
 			 */
-			void user_arg_0(unsigned const arg) { r0 = arg; }
-			void user_arg_1(unsigned const arg) { r1 = arg; }
-			void user_arg_2(unsigned const arg) { r2 = arg; }
-			void user_arg_3(unsigned const arg) { r3 = arg; }
-			void user_arg_4(unsigned const arg) { r4 = arg; }
-			void user_arg_5(unsigned const arg) { r5 = arg; }
-			void user_arg_6(unsigned const arg) { r6 = arg; }
-			void user_arg_7(unsigned const arg) { r7 = arg; }
-			unsigned user_arg_0() const { return r0; }
-			unsigned user_arg_1() const { return r1; }
-			unsigned user_arg_2() const { return r2; }
-			unsigned user_arg_3() const { return r3; }
-			unsigned user_arg_4() const { return r4; }
-			unsigned user_arg_5() const { return r5; }
-			unsigned user_arg_6() const { return r6; }
-			unsigned user_arg_7() const { return r7; }
+			void user_arg_0(Kernel::Call_arg const arg) { r0 = arg; }
+			void user_arg_1(Kernel::Call_arg const arg) { r1 = arg; }
+			void user_arg_2(Kernel::Call_arg const arg) { r2 = arg; }
+			void user_arg_3(Kernel::Call_arg const arg) { r3 = arg; }
+			void user_arg_4(Kernel::Call_arg const arg) { r4 = arg; }
+			Kernel::Call_arg user_arg_0() const { return r0; }
+			Kernel::Call_arg user_arg_1() const { return r1; }
+			Kernel::Call_arg user_arg_2() const { return r2; }
+			Kernel::Call_arg user_arg_3() const { return r3; }
+			Kernel::Call_arg user_arg_4() const { return r4; }
 
 			/**
 			 * Initialize thread context

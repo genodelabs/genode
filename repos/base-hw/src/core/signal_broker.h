@@ -99,7 +99,7 @@ class Genode::Signal_broker
 		 * \throw Invalid_signal_source
 		 */
 		Signal_context_capability
-		alloc_context(Capability<Signal_source> source, unsigned long imprint)
+		alloc_context(Capability<Signal_source> source, addr_t imprint)
 		{
 			auto lambda = [&] (Signal_source_component *s) {
 				if (!s) {

@@ -590,8 +590,7 @@ void Thread::_call()
 	case call_id_delete_pd():              _call_delete<Pd>(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
 	case call_id_new_signal_context():
-		_call_new<Signal_context>((Signal_receiver*) user_arg_2(),
-		                          (unsigned)         user_arg_3());
+		_call_new<Signal_context>((Signal_receiver*) user_arg_2(), user_arg_3());
 		return;
 	case call_id_delete_signal_context():  _call_delete<Signal_context>(); return;
 	case call_id_delete_signal_receiver(): _call_delete<Signal_receiver>(); return;
