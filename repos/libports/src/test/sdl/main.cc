@@ -37,30 +37,28 @@
 #include <base/printf.h>
 #include <timer_session/connection.h>
 
-/* the attributes of the screen */
-const int SCREEN_WIDTH = 1024;
-const int SCREEN_HEIGHT = 768;
-const int SCREEN_BPP = 16;
-
 int main( int argc, char* args[] )
 {
 	/* start SDL */
-	if(SDL_Init(SDL_INIT_VIDEO) == -1)
-	{
-		PWRN("SDL_Init returned evil! ...");
+	if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+		printf("Error: could not initialize SDL: %s\n", SDL_GetError());
 		return 1;
 	}
 
 	/* set up the screen */
-	SDL_Surface *screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_SWSURFACE);
-	if(screen == 0)
-		return 1;
+	SDL_Surface *screen = SDL_SetVideoMode(0, 0, 16, SDL_SWSURFACE);
+	if(screen == nullptr) { return 1; }
+
+	int const scr_width = screen->w;
+	int const scr_height = screen->h;
 
 	/* paint something into pixel buffer */
-	short* pixels = (short*) screen->pixels;
-	for (int i = 0; i < SCREEN_HEIGHT; i++)
-		for (int j = 0; j < SCREEN_WIDTH; j++)
-			pixels[i*SCREEN_WIDTH+j] = (i/32)*32*64 + (j/32)*32 + i*j/1024;
+	short* const pixels = (short* const) screen->pixels;
+	for (int i = 0; i < scr_height; i++) {
+		for (int j = 0; j < scr_width; j++) {
+			pixels[i*scr_width+j] = (i/32)*32*64 + (j/32)*32 + i*j/1024;
+		}
+	}
 	SDL_UpdateRect(screen, 0, 0, 0, 0);
 
 	bool done = false;
