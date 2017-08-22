@@ -243,8 +243,12 @@ Slab::~Slab()
 		return;
 
 	/* free backing store */
-	while (_num_blocks > 1)
+	while (_num_blocks > 1) {
+		/* never free the initial block */
+		if (_curr_sb == _initial_sb)
+			_curr_sb = _curr_sb->next;
 		_free_curr_sb();
+	}
 
 	/* release last block */
 	_release_backing_store(_curr_sb);
