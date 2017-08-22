@@ -255,4 +255,7 @@ struct Main
 };
 
 
-void Libc::Component::construct(Libc::Env &env) { static Main server(env); }
+void Libc::Component::construct(Libc::Env &env)
+{
+	Libc::with_libc([&] () { static Main server(env); });
+}
