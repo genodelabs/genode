@@ -12,6 +12,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
+#include <drivers/timer/util.h>
+
 /* local includes */
 #include <time_source.h>
 
@@ -89,29 +92,8 @@ Duration Timer::Time_source::curr_time()
 			ticks = PIT_MAX_COUNT + 1 - curr_counter;
 	}
 
-	/*
-	 * If we would do the translation with one division and
-	 * multiplication over the whole argument, we would loose
-	 * microseconds granularity although the timer frequency would
-	 * allow for such granularity. Thus, we treat the most significant
-	 * half and the least significant half of the argument separate.
-	 * Each half is shifted to the best bit position for the
-	 * translation, then translated, and then shifted back.
-	 */
-	using time_t = unsigned long;
 	static_assert(PIT_TICKS_PER_MSEC >= 1000, "Bad TICS_PER_MS value");
-	enum {
-		HALF_WIDTH = (sizeof(time_t) << 2),
-		MSB_MASK  = ~0UL << HALF_WIDTH,
-		LSB_MASK  = ~0UL >> HALF_WIDTH,
-		MSB_RSHIFT = 10,
-		LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
-	};
-	time_t const msb = ((((ticks & MSB_MASK) >> MSB_RSHIFT)
-	                     * 1000) / PIT_TICKS_PER_MSEC) << MSB_RSHIFT;
-	time_t const lsb = ((((ticks & LSB_MASK) << LSB_LSHIFT)
-                         * 1000) / PIT_TICKS_PER_MSEC) >> LSB_LSHIFT;
-	_curr_time_us += (msb + lsb);
+	_curr_time_us += timer_ticks_to_us(ticks, PIT_TICKS_PER_MSEC);
 
 	/* use current counter as the reference for the next update */
 	_counter_init_value = curr_counter;
