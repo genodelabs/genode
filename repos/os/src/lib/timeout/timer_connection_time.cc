@@ -38,12 +38,15 @@ void Timer::Connection::_update_real_time()
 	 * reached, we take the results that has the lowest latency.
 	 */
 	for (unsigned remote_time_trials = 0;
-	     remote_time_trials < MAX_REMOTE_TIME_TRIALS;
-	     remote_time_trials++)
+	     remote_time_trials < MAX_REMOTE_TIME_TRIALS; )
 	{
 		/* read out the two time values close in succession */
 		Timestamp     volatile new_ts = _timestamp();
 		unsigned long volatile new_us = elapsed_us();
+
+		/* do not proceed until the time difference is at least 1 us */
+		if (new_us == _us) { continue; }
+		remote_time_trials++;
 
 		/*
 		 * If interpolation is not ready, yet we cannot determine a latency
@@ -144,9 +147,9 @@ void Timer::Connection::_update_real_time()
 		}
 		/*
 		 * The cast to unsigned long does not cause a loss because of the
-		 * limitations we applied to the timestamp difference.
+		 * limitations we applied to the timestamp difference. We also took
+		 * care that the time difference cannot become null.
 		 */
-
 		unsigned long const new_factor =
 			(unsigned long)((Timestamp)ts_diff_shifted / us_diff);
 
