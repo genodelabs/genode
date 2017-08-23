@@ -64,6 +64,7 @@ Timer_driver::Timer_driver(unsigned)
 
 	/* Calculate timer frequency */
 	ticks_per_ms = pit_calc_timer_freq();
+	assert(ticks_per_ms >= 1000);
 }
 
 
@@ -84,7 +85,29 @@ void Timer::_start_one_shot(time_t const ticks) {
 
 
 time_t Timer::_ticks_to_us(time_t const ticks) const {
-	return (ticks / _driver.ticks_per_ms) * 1000; }
+
+	/*
+	 * If we would do the translation with one division and
+	 * multiplication over the whole argument, we would loose
+	 * microseconds granularity although the timer frequency would
+	 * allow for such granularity. Thus, we treat the most significant
+	 * half and the least significant half of the argument separate.
+	 * Each half is shifted to the best bit position for the
+	 * translation, then translated, and then shifted back.
+	 */
+	enum {
+		HALF_WIDTH = (sizeof(time_t) << 2),
+		MSB_MASK  = ~0UL << HALF_WIDTH,
+		LSB_MASK  = ~0UL >> HALF_WIDTH,
+		MSB_RSHIFT = 10,
+		LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
+	};
+	time_t const msb = ((((ticks & MSB_MASK) >> MSB_RSHIFT)
+	                     * 1000) / _driver.ticks_per_ms) << MSB_RSHIFT;
+	time_t const lsb = ((((ticks & LSB_MASK) << LSB_LSHIFT)
+                         * 1000) / _driver.ticks_per_ms) >> LSB_LSHIFT;
+	return msb + lsb;
+}
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
