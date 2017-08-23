@@ -127,7 +127,7 @@ append_if [expr $use_rumpfs] config {
 	</start>}
 
 append_if [expr $use_ram_fs] config {
-	<start name="ram_fs" priority="-1" caps="400">}
+	<start name="ram_fs" priority="-1" caps="1800">}
 append_if [expr $use_ram_fs] config "
 		<resource name=\"RAM\" quantum=\"[expr $use_vms * 8 * 128]M\"/>"
 append_if [expr $use_ram_fs] config {
@@ -304,7 +304,7 @@ append_if [expr $use_usb] config {
 	</start>
 
 	<start name="usb_drv" priority="-1">
-		<resource name="RAM" quantum="16M"/>
+		<resource name="RAM" quantum="20M"/>
 		<provides>
 			<service name="Input"/>
 			<service name="Usb"/>

@@ -19,6 +19,10 @@ set raw_image "${flavor}.vmdk"
 set vbox_file "vm_${flavor}.vbox"
 set overlay_image "overlay_${flavor}.vdi"
 
+if {[info exists flavor_extension]} {
+	set vbox_file "vm_${flavor}${flavor_extension}.vbox"
+}
+
 set build_components {
 	server/input_merger
 	drivers/nic
@@ -247,7 +251,7 @@ append config_of_app {
 
 for { set i 1} { $i <= $use_vms } { incr i} {
 	append config_of_app "
-	<start name=\"vbox${i}\" priority=\"-2\" caps=\"600\">"
+	<start name=\"vbox${i}\" priority=\"-2\" caps=\"800\">"
 	append_if [expr $use_vbox4] config_of_app "
 		<binary name=\"$virtualbox_binary\" />"
 	append_if [expr $use_vbox5] config_of_app "
@@ -328,7 +332,7 @@ run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamle
 if {$use_rumpfs} {
 	set wait_timeout 170
 	for { set i 1 } { $i <= $use_vms } { incr i } {
-		if { [string match "ubuntu*" $flavor] } {
+		if { [string match "ubuntu*" $flavor] || [string match "win81*" $flavor] } {
 			run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: no} $wait_timeout [output_spawn_id]
 		} else {
 			run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} $wait_timeout [output_spawn_id]
