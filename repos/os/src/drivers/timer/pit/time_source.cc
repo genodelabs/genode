@@ -68,7 +68,7 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 
 Duration Timer::Time_source::curr_time()
 {
-	uint32_t passed_ticks;
+	uint32_t ticks;
 
 	/* read PIT count and status */
 	bool wrapped;
@@ -76,19 +76,42 @@ Duration Timer::Time_source::curr_time()
 
 	/* determine the time since we looked at the counter */
 	if (wrapped && !_handled_wrap) {
-		passed_ticks = _counter_init_value;
+		ticks = _counter_init_value;
 		/* the counter really wrapped around */
 		if (curr_counter)
-			passed_ticks += PIT_MAX_COUNT + 1 - curr_counter;
+			ticks += PIT_MAX_COUNT + 1 - curr_counter;
 
 		_handled_wrap = true;
 	} else {
 		if (_counter_init_value)
-			passed_ticks = _counter_init_value - curr_counter;
+			ticks = _counter_init_value - curr_counter;
 		else
-			passed_ticks = PIT_MAX_COUNT + 1 - curr_counter;
+			ticks = PIT_MAX_COUNT + 1 - curr_counter;
 	}
-	_curr_time_us += (passed_ticks*1000)/PIT_TICKS_PER_MSEC;
+
+	/*
+	 * If we would do the translation with one division and
+	 * multiplication over the whole argument, we would loose
+	 * microseconds granularity although the timer frequency would
+	 * allow for such granularity. Thus, we treat the most significant
+	 * half and the least significant half of the argument separate.
+	 * Each half is shifted to the best bit position for the
+	 * translation, then translated, and then shifted back.
+	 */
+	using time_t = unsigned long;
+	static_assert(PIT_TICKS_PER_MSEC >= 1000, "Bad TICS_PER_MS value");
+	enum {
+		HALF_WIDTH = (sizeof(time_t) << 2),
+		MSB_MASK  = ~0UL << HALF_WIDTH,
+		LSB_MASK  = ~0UL >> HALF_WIDTH,
+		MSB_RSHIFT = 10,
+		LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
+	};
+	time_t const msb = ((((ticks & MSB_MASK) >> MSB_RSHIFT)
+	                     * 1000) / PIT_TICKS_PER_MSEC) << MSB_RSHIFT;
+	time_t const lsb = ((((ticks & LSB_MASK) << LSB_LSHIFT)
+                         * 1000) / PIT_TICKS_PER_MSEC) >> LSB_LSHIFT;
+	_curr_time_us += (msb + lsb);
 
 	/* use current counter as the reference for the next update */
 	_counter_init_value = curr_counter;
