@@ -17,8 +17,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="130"/>
-	<start name="test-pthread">
+	<start name="test-pthread" caps="200">
 		<resource name="RAM" quantum="64M"/>
 		<config>
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
