@@ -1,0 +1,38 @@
+##
+# Power on the target machine via magic Wake On Lan packets
+#
+# \param --power-on-wol-mac        MAC address of target machine
+#
+# \param --power-on-wol-dev        Outgoing network interface
+#
+
+source [genode_dir]/tool/run/amt.inc
+
+
+proc power_on_wol_mac { } {
+	return [get_cmd_arg_first --power-on-wol-mac ""]
+}
+
+
+proc power_on_wol_dev { } {
+	return [get_cmd_arg_first --power-on-wol-dev "eth0"]
+}
+
+
+proc run_power_on { } {
+	if {[power_on_wol_mac] == ""} {
+		puts stderr {wake-on-lan MAC address not specified}
+		exit -1
+	}
+
+	if {![have_installed etherwake]} {
+		puts stderr {'etherwake' utitity for using wake-on-lan is not installed}
+		exit -1
+	}
+
+	puts "sending magic WOL packet..."
+	exec sudo ip link set [power_on_wol_dev] up
+	exec sudo etherwake -i [power_on_wol_dev] [power_on_wol_mac]
+
+	return true
+}
