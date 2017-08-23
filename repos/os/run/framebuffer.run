@@ -5,6 +5,12 @@
 if {[have_spec odroid_xu]} {
 	puts "Run script not supported for this platform."; exit 0 }
 
+set fb_drv "fb_drv"
+
+if {[have_include "image/uefi"]} {
+	set fb_drv "fb_boot_drv"
+}
+
 set build_components { core init test/framebuffer drivers/framebuffer drivers/timer }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -51,8 +57,8 @@ append_if [have_spec sdl] config {
 append_platform_drv_config
 
 append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="200">
-		<resource name="RAM" quantum="4M"/>
+	<start name="} $fb_drv {" caps="200">
+		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
@@ -78,7 +84,7 @@ set boot_modules {
 append_platform_drv_boot_modules
 
 lappend_if [have_spec sdl]              boot_modules fb_sdl
-lappend_if [have_spec framebuffer]      boot_modules fb_drv
+lappend_if [have_spec framebuffer]      boot_modules $fb_drv
 
 build_boot_image $boot_modules
 
