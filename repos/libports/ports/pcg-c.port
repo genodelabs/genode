@@ -1,0 +1,16 @@
+LICENSE   = Apache
+VERSION   = 0.94
+DOWNLOADS = pcg-c.archive
+
+OWNER = imneme
+REPO  = pcg-c
+REV   = 03a84f9db5782a3f5a66185836f3db73c832251a
+URL(pcg-c) := https://github.com/$(OWNER)/$(REPO)/archive/$(REV).tar.gz
+SHA(pcg-c) := 4137d821a99fb8b4b5b0ca2285d14ec071305bd2
+DIR(pcg-c) := src/lib/pcg-c
+
+_dirs: include/pcg-c/pcg_variants.h
+
+include/pcg-c/pcg_variants.h: src/lib/pcg-c/include/pcg_variants.h
+	$(VERBOSE)mkdir -p include/pcg-c
+	$(VERBOSE)sed 's/<inttypes.h>/<genode_inttypes.h>/' $< > $@

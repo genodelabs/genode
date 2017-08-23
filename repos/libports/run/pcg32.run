@@ -1,0 +1,59 @@
+#
+# \brief  Test of the PCG32 library
+# \author Emery Hemingway
+# \date   2017-08-23
+#
+
+
+build "core init test/pcg32"
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="200"/>
+	<start name="test-pcg32">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log"/>
+		</config>
+	</start>
+</config>
+}
+
+build_boot_image {
+	core init test-pcg32
+	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
+}
+
+append qemu_args " -nographic  "
+
+run_genode_until "child .* exited with exit value 0.*\n" 10
+
+set fd [open "bin/test-pcg32.out"]
+set expected [read $fd]
+close $fd
+
+grep_output {init -> test-pcg32}
+
+unify_output {\[init -> test-pcg32\] } {}
+
+compare_output_to $expected
+
+puts "\nGlobal PCG32 output verified."
