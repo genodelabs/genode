@@ -217,15 +217,15 @@ struct Fast_polling : Test
 	Signal_handler<Fast_polling> main_handler;
 
 	Timer::Connection      timer_2         { env };
-	unsigned long const    timer_ms        { timer.elapsed_ms() };
-	unsigned long const    timer_2_ms      { timer_2.elapsed_ms() };
-	bool          const    timer_2_delayed { timer_ms > timer_2_ms };
-	unsigned long const    timer_diff_ms   { timer_2_delayed ?
-	                                         timer_2_ms - timer_ms :
-	                                         timer_ms - timer_2_ms };
-	Result_buffer          local_us_1      { env };
-	Result_buffer          local_us_2      { env };
-	Result_buffer          remote_ms       { env };
+	unsigned long const    timer_us        { timer.elapsed_us() };
+	unsigned long const    timer_2_us      { timer_2.elapsed_us() };
+	bool          const    timer_2_delayed { timer_us > timer_2_us };
+	unsigned long const    timer_diff_us   { timer_2_delayed ?
+	                                         timer_2_us - timer_us :
+	                                         timer_us - timer_2_us };
+	Result_buffer          local_us_1_buf  { env };
+	Result_buffer          local_us_2_buf  { env };
+	Result_buffer          remote_us_buf   { env };
 
 	unsigned long max_avg_time_err_us { config.xml().attribute_value("precise_ref_time", true) ?
 	                                    1000UL : 2000UL };
@@ -289,9 +289,9 @@ struct Fast_polling : Test
 
 	unsigned long delay_us(unsigned poll)
 	{
-		return local_us_1.value[poll - 1] > local_us_1.value[poll] ?
-		       local_us_1.value[poll - 1] - local_us_1.value[poll] :
-		       local_us_1.value[poll]     - local_us_1.value[poll - 1];
+		return local_us_1_buf.value[poll - 1] > local_us_1_buf.value[poll] ?
+		       local_us_1_buf.value[poll - 1] - local_us_1_buf.value[poll] :
+		       local_us_1_buf.value[poll]     - local_us_1_buf.value[poll - 1];
 	}
 
 	unsigned long estimate_delay_loops_per_ms()
@@ -341,8 +341,8 @@ struct Fast_polling : Test
 
 			unsigned long nr_of_polls           = MAX_NR_OF_POLLS;
 			unsigned long delay_loops_per_poll_ = delay_loops_per_poll[round];
-			unsigned long end_remote_ms         = timer_2.elapsed_ms() +
-			                                      MIN_ROUND_DURATION_MS;
+			unsigned long end_remote_us         = timer_2.elapsed_us() +
+			                                      MIN_ROUND_DURATION_MS * 1000UL;
 
 			/* limit polling to our buffer capacity */
 			for (unsigned poll = 0; poll < nr_of_polls; poll++) {
@@ -358,18 +358,18 @@ struct Fast_polling : Test
 				 * access wont raise the delay between the reading of the
 				 * different time values.
 				 */
-				unsigned long volatile local_us_1_;
-				unsigned long volatile local_us_2_;
-				unsigned long volatile remote_ms_;
+				unsigned long volatile local_us_1;
+				unsigned long volatile local_us_2;
+				unsigned long volatile remote_us;
 
 				/* read local time before the remote time reading */
-				local_us_1_ = timer.curr_time().trunc_to_plain_us().value;
+				local_us_1 = timer.curr_time().trunc_to_plain_us().value;
 
 				/*
 				 * Limit frequency of remote-time reading
 				 *
 				 * If we would stress the timer driver to much with the
-				 * 'elapsed_ms' method, the back-end functionality of the
+				 * 'elapsed_us' method, the back-end functionality of the
 				 * timeout framework would slow down too which causes a phase
 				 * of adaption with bigger errors. But the goal of the
 				 * framework is to spare calls to the timer driver anyway. So,
@@ -378,8 +378,8 @@ struct Fast_polling : Test
 				if (delay_loops > delay_loops_per_remote_poll) {
 
 					/* read remote time and second local time */
-					remote_ms_  = timer_2.elapsed_ms();
-					local_us_2_ = timer.curr_time().trunc_to_plain_us().value;
+					remote_us  = timer_2.elapsed_us();
+					local_us_2 = timer.curr_time().trunc_to_plain_us().value;
 
 					/* reset delay counter for remote-time reading */
 					delay_loops = 0;
@@ -387,16 +387,16 @@ struct Fast_polling : Test
 				} else {
 
 					/* mark remote-time and second local-time value invalid */
-					remote_ms_  = 0;
-					local_us_2_ = 0;
+					remote_us  = 0;
+					local_us_2 = 0;
 				}
 				/* store results to the buffers */
-				remote_ms.value[poll]  = remote_ms_;
-				local_us_1.value[poll] = local_us_1_;
-				local_us_2.value[poll] = local_us_2_;
+				remote_us_buf.value[poll]  = remote_us;
+				local_us_1_buf.value[poll] = local_us_1;
+				local_us_2_buf.value[poll] = local_us_2;
 
 				/* if the minimum round duration is reached, end polling */
-				if (remote_ms_ > end_remote_ms) {
+				if (remote_us > end_remote_us) {
 					nr_of_polls = poll + 1;
 					break;
 				}
@@ -414,19 +414,22 @@ struct Fast_polling : Test
 			unsigned nr_of_bad_polls = 0;
 			for (unsigned poll = 0; poll < nr_of_polls; poll++) {
 
-				if (remote_ms.value[poll] &&
-				    local_us_2.value[poll] - local_us_1.value[poll] > MAX_POLL_LATENCY_US)
+				unsigned long const poll_latency_us =
+					local_us_2_buf.value[poll] - local_us_1_buf.value[poll];
+
+				if (remote_us_buf.value[poll] &&
+				    poll_latency_us > MAX_POLL_LATENCY_US)
 				{
-					local_us_1.value[poll] = 0;
+					local_us_1_buf.value[poll] = 0;
 					nr_of_bad_polls++;
 
 				} else {
 
 					if (timer_2_delayed) {
-						local_us_1.value[poll] += timer_diff_ms * 1000UL;
-						local_us_2.value[poll] += timer_diff_ms * 1000UL;
+						local_us_1_buf.value[poll] += timer_diff_us;
+						local_us_2_buf.value[poll] += timer_diff_us;
 					} else {
-						remote_ms.value[poll] += timer_diff_ms;
+						remote_us_buf.value[poll] += timer_diff_us;
 					}
 					nr_of_good_polls++;
 				}
@@ -440,12 +443,12 @@ struct Fast_polling : Test
 			for (unsigned poll = 1; poll < nr_of_polls; poll++) {
 
 				/* skip if this result was dismissed */
-				if (!local_us_1.value[poll]) {
+				if (!local_us_1_buf.value[poll]) {
 					poll++;
 					continue;
 				}
 				/* check if local time is monotone */
-				if (local_us_1.value[poll - 1] > local_us_1.value[poll]) {
+				if (local_us_1_buf.value[poll - 1] > local_us_1_buf.value[poll]) {
 
 					error("time is not monotone at poll #", poll);
 					error_cnt++;
@@ -465,22 +468,18 @@ struct Fast_polling : Test
 			for (unsigned poll = 0; poll < nr_of_polls; poll++) {
 
 				/* skip if this result was dismissed */
-				if (!local_us_1.value[poll]) {
+				if (!local_us_1_buf.value[poll]) {
 					continue; }
 
 				/* skip if this poll contains no remote time */
-				if (!remote_ms.value[poll]) {
+				if (!remote_us_buf.value[poll]) {
 					continue; }
 
-				/* scale-up remote time to microseconds and calculate error */
-				if (remote_ms.value[poll] > ~0UL / 1000UL) {
-					error("can not translate remote time to microseconds");
-					error_cnt++;
-				}
-				unsigned long const remote_us   = remote_ms.value[poll] * 1000UL;
-				unsigned long const time_err_us = remote_us > local_us_1.value[poll] ?
-				                                  remote_us - local_us_1.value[poll] :
-				                                  local_us_1.value[poll] - remote_us;
+				unsigned long const remote_us   = remote_us_buf.value[poll];
+				unsigned long const local_us    = local_us_1_buf.value[poll];
+				unsigned long const time_err_us = remote_us > local_us ?
+				                                  remote_us - local_us :
+				                                  local_us - remote_us;
 
 				/* update max time error */
 				if (time_err_us > max_time_err_us) {
@@ -501,7 +500,7 @@ struct Fast_polling : Test
 			for (unsigned poll = 1; poll < nr_of_polls; poll++) {
 
 				/* skip if this result was dismissed */
-				if (!local_us_1.value[poll]) {
+				if (!local_us_1_buf.value[poll]) {
 					poll++;
 					continue;
 				}
