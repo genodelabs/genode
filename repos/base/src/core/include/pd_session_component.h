@@ -108,6 +108,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 	public:
 
 		typedef Ram_dataspace_factory::Phys_range Phys_range;
+		typedef Ram_dataspace_factory::Virt_range Virt_range;
 
 		/**
 		 * Constructor
@@ -118,6 +119,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		                     Diag              diag,
 		                     Range_allocator  &phys_alloc,
 		                     Phys_range        phys_range,
+		                     Virt_range        virt_range,
 		                     Region_map       &local_rm,
 		                     Pager_entrypoint &pager_ep,
 		                     char const       *args)
@@ -131,7 +133,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_address_space(ep, _sliced_heap, pager_ep,
-			               platform()->vm_start(), platform()->vm_size()),
+			               virt_range.start, virt_range.size),
 			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size()),
 			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE)
 		{

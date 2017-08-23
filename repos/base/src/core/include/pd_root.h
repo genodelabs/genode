@@ -44,6 +44,17 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 			                      : Ram_dataspace_factory::any_phys_range();
 		}
 
+		static Ram_dataspace_factory::Virt_range _virt_range_from_args(char const *args)
+		{
+			addr_t const constrained = Arg_string::find_arg(args, "virt_space").ulong_value(Genode::Pd_connection::Virt_space::CONSTRAIN);
+
+			if (!constrained)
+				return Ram_dataspace_factory::Virt_range { 0x1000, 0UL - 0x2000 };
+
+			return Ram_dataspace_factory::Virt_range { platform()->vm_start(),
+			                                           platform()->vm_size() };
+		}
+
 	protected:
 
 		Pd_session_component *_create_session(const char *args)
@@ -55,6 +66,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 				                     session_diag_from_args(args),
 				                     _phys_alloc,
 				                     _phys_range_from_args(args),
+				                     _virt_range_from_args(args),
 				                     _local_rm, _pager_ep, args);
 		}
 

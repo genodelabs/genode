@@ -89,7 +89,7 @@ class Platform::Device_pd
 		Device_pd(Genode::Env &env,
 		          Genode::Session_label const &label)
 		:
-			_pd(env, label.string()),
+			_pd(env, label.string(), Genode::Pd_connection::Virt_space::UNCONSTRAIN),
 			_label(label),
 			_address_space(env, _pd.address_space())
 		{ }

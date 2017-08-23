@@ -64,9 +64,8 @@ void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability io_mem_
 	using namespace Genode;
 
 	Dataspace_client ds_client(io_mem_cap);
-	addr_t const phys = ds_client.phys_addr();
 
-	addr_t page = _address_space.attach_at(io_mem_cap, phys);
+	addr_t page = _address_space.attach(io_mem_cap);
 
 	/* sanity check */
 	if (!page)

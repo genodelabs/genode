@@ -67,6 +67,7 @@ class Genode::Core_env : public Env_deprecated
 			            Session::Diag{false},
 			            *platform()->ram_alloc(),
 			            Ram_dataspace_factory::any_phys_range(),
+			            Ram_dataspace_factory::Virt_range { platform()->vm_start(), platform()->vm_size() },
 			            _region_map,
 			            *((Pager_entrypoint *)nullptr),
 			            "" /* args to native PD */)
