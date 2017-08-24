@@ -261,6 +261,6 @@ proc nic_qemu_args { } {
 	if {[have_spec x86]}     { return "-net nic,model=e1000" }
 	if {[have_spec lan9118]} { return "-net nic,model=lan9118" } }
 
-append qemu_args "-nographic -net user -redir udp:5555::1337 [nic_qemu_args]"
+append qemu_args "-nographic -net user [nic_qemu_args]"
 
 run_genode_until {.*Test done.*\n.*Test done.*\n} 60
