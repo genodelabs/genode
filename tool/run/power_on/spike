@@ -18,7 +18,7 @@ proc run_power_on { } {
 
 	if {![is_spike_available]} { return 0 }
 
-	append spike_args " [run_dir]/image.elf "
+	append spike_args "-m128 [pwd]/debug/bbl "
 
 	set spike "spike"
 	eval spawn $spike $spike_args

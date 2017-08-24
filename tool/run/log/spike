@@ -7,9 +7,14 @@ proc run_log { wait_for_re timeout_value } {
 	global spike_spawn_id
 	global output_spawn_id
 
-	set timeout 210
 	set kernel_msg [run_boot_string]
 	set output_spawn_id $spike_spawn_id
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+	} else {
+		set timeout $timeout_value
+	}
 
 	expect {
 		-i $output_spawn_id $kernel_msg { }
