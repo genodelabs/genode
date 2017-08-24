@@ -35,8 +35,8 @@ void Thread::exception(unsigned const cpu)
 		_mmu_exception();
 		break;
 	default:
-		Genode::warning(*this, ": unhandled exception ", cpu_exception,
-		                " at ip=", (void*)ip, " addr=", Cpu::sbadaddr());
+		Genode::error(*this, ": unhandled exception ", cpu_exception,
+		              " at ip=", (void*)ip, " addr=", Genode::Hex(Cpu::sbadaddr()));
 		_die();
 	}
 }

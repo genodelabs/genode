@@ -61,7 +61,8 @@ _mt_kernel_entry_pic:
 	addi  x31, x31, 8
 
 	# save x30 in master
-	sd x30, CPU_X1 + 8 * 28(x31)
+	sd x29, CPU_X1 + 8 * 28(x31)
+	sd x30, CPU_X1 + 8 * 29(x31)
 
 	# load kernel page table
 	ld x30, CPU_SPTBR(x31)
@@ -149,7 +150,7 @@ _mt_user_entry_pic:
 
 	sfence.vm x0
 
-	# restore x29 - x31 from master context 
+	# restore x29 - x31 from master context
 	.irp reg,31,30,29
 		ld x\reg, CPU_X1 + 8 * (\reg - 1)(x29)
 	.endr
