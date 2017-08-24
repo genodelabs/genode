@@ -77,7 +77,13 @@ void Mapped_mem_allocator::free(void *addr, size_t size)
 	Block *b = static_cast<Block *>(_virt_alloc->_find_by_address((addr_t)addr));
 	if (!b) return;
 
-	_unmap_local((addr_t)addr, (addr_t)b->map_addr, b->size());
+	if (!_unmap_local((addr_t)addr, (addr_t)b->map_addr, b->size())) {
+		Genode::error("error on unmap virt=", addr, " phys=",
+		              Hex_range<addr_t>((addr_t)b->map_addr, b->size()));
+		/* leak physical and virtual region because of unknown usage state */
+		return;
+	}
+
 	_phys_alloc->free(b->map_addr, b->size());
 	_virt_alloc->free(addr, b->size());
 }
