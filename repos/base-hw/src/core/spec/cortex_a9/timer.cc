@@ -26,7 +26,8 @@ using namespace Kernel;
 Timer_driver::Timer_driver(unsigned)
 : Mmio(Platform::mmio_to_virt(Board::Cpu_mmio::PRIVATE_TIMER_MMIO_BASE))
 {
-	static_assert(TICS_PER_MS >= 1000, "Bad TICS_PER_MS value");
+	static_assert(TICS_PER_MS >= (unsigned)TIMER_MIN_TICKS_PER_MS,
+	              "Bad TICS_PER_MS value");
 	write<Control::Timer_enable>(0);
 }
 

@@ -16,6 +16,8 @@
 
 namespace Genode {
 
+	enum { TIMER_MIN_TICKS_PER_MS = 1000ULL };
+
 	/*
 	 * Translate timer ticks to microseconds without losing precicision
 	 *
@@ -28,8 +30,9 @@ namespace Genode {
 	 * shifting the values to their optimal bit position. Afterwards, the
 	 * results are shifted back and merged together again.
 	 *
-	 * Please ensure that the assertion "ticks_per_ms >= 1000" is true
-	 * when calling this method!
+	 * Please ensure that the assertion
+	 * "ticks_per_ms >= TIMER_MIN_TICKS_PER_MS" is true when calling this
+	 * method!
 	 */
 	template <typename RESULT_T, typename TICS_PER_MS_T>
 	RESULT_T timer_ticks_to_us(RESULT_T      const ticks,

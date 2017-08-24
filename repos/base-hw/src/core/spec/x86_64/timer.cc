@@ -67,7 +67,7 @@ Timer_driver::Timer_driver(unsigned)
 
 	/* Calculate timer frequency */
 	ticks_per_ms = pit_calc_timer_freq();
-	assert(ticks_per_ms >= 1000);
+	assert(ticks_per_ms >= TIMER_MIN_TICKS_PER_MS);
 }
 
 

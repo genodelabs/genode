@@ -92,7 +92,8 @@ Duration Timer::Time_source::curr_time()
 			ticks = PIT_MAX_COUNT + 1 - curr_counter;
 	}
 
-	static_assert(PIT_TICKS_PER_MSEC >= 1000, "Bad TICS_PER_MS value");
+	static_assert(PIT_TICKS_PER_MSEC >= (unsigned)TIMER_MIN_TICKS_PER_MS,
+	              "Bad TICS_PER_MS value");
 	_curr_time_us += timer_ticks_to_us(ticks, PIT_TICKS_PER_MSEC);
 
 	/* use current counter as the reference for the next update */
