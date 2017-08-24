@@ -289,7 +289,8 @@ class Genode::Register_set : Noncopyable
 				ITEM_WIDTH      = _ITEM_WIDTH,
 				ITEM_WIDTH_LOG2 = Item::WIDTH_LOG2,
 				MAX_INDEX       = ITEMS - 1,
-				ITEM_MASK       = (1ULL << ITEM_WIDTH) - 1,
+				/* prevent shifting more than bit width by setting all bits explicitly */
+				ITEM_MASK       = (ITEM_WIDTH == 64) ? ~0ULL : (1ULL << ITEM_WIDTH) - 1,
 			};
 
 			/* analogous to 'Register_set::Register::Register_base' */
