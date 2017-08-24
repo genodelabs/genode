@@ -121,7 +121,11 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
 	utcb.lock_sel = lock_sel.value();
 
 	/* unmap IPC buffer from core */
-	unmap_local((addr_t)virt_addr, 1);
+	if (!unmap_local((addr_t)virt_addr, 1)) {
+		Genode::error("could not unmap core virtual address ",
+		              virt_addr, " in ", __PRETTY_FUNCTION__);
+		return;
+	}
 
 	/* free core's virtual address space */
 	platform()->region_alloc()->free(virt_addr, page_rounded_size);

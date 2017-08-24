@@ -56,8 +56,7 @@ namespace Genode {
 	                        Platform * platform = nullptr)
 	{
 		platform = platform ? platform : platform_specific();
-		platform->core_vm_space().unmap(virt_addr, num_pages);
-		return true;
+		return platform->core_vm_space().unmap(virt_addr, num_pages);
 	}
 }
 

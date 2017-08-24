@@ -388,11 +388,13 @@ class Genode::Vm_space
 			}
 		}
 
-		void unmap(addr_t virt, size_t num_pages)
+		bool unmap(addr_t virt, size_t num_pages)
 		{
+			bool unmap_success = true;
+
 			Lock::Guard guard(_lock);
 
-			for (size_t i = 0; i < num_pages; i++) {
+			for (size_t i = 0; unmap_success && i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
 
 				_page_table_registry.flush_page(virt + offset, [&] (Cap_sel const &idx, addr_t) {
@@ -401,7 +403,7 @@ class Genode::Vm_space
 					if (result != seL4_NoError) {
 						error("unmap ", Hex(virt + offset), " failed, idx=",
 						      idx, " result=", result);
-						return;
+						unmap_success = false;
 					}
 
 					_leaf_cnode(idx.value()).remove(_leaf_cnode_entry(idx.value()));
@@ -409,6 +411,7 @@ class Genode::Vm_space
 					_sel_alloc.free(idx.value());
 				});
 			}
+			return unmap_success;
 		}
 
 		void unsynchronized_alloc_page_tables(addr_t const start,
