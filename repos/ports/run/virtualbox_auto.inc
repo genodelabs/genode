@@ -9,7 +9,12 @@ if {[have_include "power_on/qemu"]} {
 }
 
 if {([have_spec muen] && [expr $use_vbox5])} {
-	puts "Platform is unsupported."
+	puts "Run script does not support vbox5 on Muen."
+	exit 0
+}
+
+if {([have_spec muen] && $flavor != "win7")} {
+	puts "Run script does not support $flavor on Muen."
 	exit 0
 }
 
