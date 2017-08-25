@@ -26,17 +26,13 @@ namespace Kernel { class Timer_driver; }
 struct Kernel::Timer_driver
 {
 	enum {
-		SPIKE_TIMER_HZ = 500000,
+		SPIKE_TIMER_HZ = 1000000,
 		TICS_PER_MS    = SPIKE_TIMER_HZ / 1000,
 	};
 
 	addr_t timeout = 0;
 
-	/* TODO: implement */
-	addr_t stime()
-	{
-		return 0;
-	}
+	addr_t stime();
 
 	Timer_driver(unsigned);
 };

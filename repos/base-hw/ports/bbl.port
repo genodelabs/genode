@@ -3,6 +3,6 @@ VERSION   := git
 DOWNLOADS := bbl.git
 
 URL(bbl) = https://github.com/ssumpf/bbl-lite.git
-REV(bbl) = 89f92ff01f675f907755b055c58c2142739d5bd8
+REV(bbl) = 0f86d104c470cfad70a9bc049865edb2ab0c4710
 DIR(bbl) = src/lib/bbl
 

@@ -26,6 +26,7 @@ Timer_driver::Timer_driver(unsigned)
 	asm volatile ("csrs sie, %0" : : "r"(STIE));
 }
 
+addr_t Timer_driver::stime() { return Hw::get_sys_timer(); }
 
 void Timer::_start_one_shot(time_t const ticks)
 {
@@ -54,4 +55,4 @@ time_t Timer::_value()
 
 
 unsigned Timer::interrupt_id() const {
-	return 1; }
+	return 5; }

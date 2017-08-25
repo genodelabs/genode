@@ -28,16 +28,18 @@ namespace Hw {
 	 *
 	 * Keep in sync with mode_transition.s.
 	 */
-	constexpr Call_arg call_id_set_sys_timer() { return 0x101; }
-	constexpr Call_arg call_id_get_sys_timer()  { return 0x102; }
+	constexpr Call_arg call_id_set_sys_timer() { return 200; }
+	constexpr Call_arg call_id_get_sys_timer() { return 201; }
 
-	inline void ecall(addr_t call, addr_t arg)
+	inline addr_t ecall(addr_t call, addr_t arg)
 	{
 		asm volatile ("mv a0, %0\n"
 		              "mv a1, %1\n"
-		               "ecall   \n"
-		              : : "r"(call), "r"(arg)
+		              "ecall    \n"
+		              "mv %0, a0\n"
+		              :  "+r"(call) : "r"(arg)
 		              : "a0", "a1");
+		return call;
 	}
 
 	inline void put_char(addr_t c) {
