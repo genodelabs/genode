@@ -74,7 +74,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Usb"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes" bios_handoff="no">

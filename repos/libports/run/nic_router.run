@@ -67,7 +67,7 @@ proc nic_drv_config { } {
 	}
 	if {[nic_drv] == "usb_drv"} {
 		append result {
-			<start name="usb_drv">
+			<start name="usb_drv" caps="120">
 				<resource name="RAM" quantum="14M"/>
 				<provides>
 					<service name="Nic"/>

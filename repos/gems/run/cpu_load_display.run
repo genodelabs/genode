@@ -94,7 +94,7 @@ append_if [have_spec ps2] config {
 	</start>}
 
 append_if [need_usb_hid] config {
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config ehci="yes" uhci="yes" xhci="no"> <hid/> </config>

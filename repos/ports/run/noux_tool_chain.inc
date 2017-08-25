@@ -126,7 +126,7 @@ append_if [have_spec ps2] config {
 	</start> }
 
 append_if $use_usb_input config {
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config uhci="yes" ehci="no" xhci="no"> <hid/> </config>

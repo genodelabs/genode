@@ -300,7 +300,7 @@ append_if [expr $use_usb] config {
 		</route>
 	</start>
 
-	<start name="usb_drv" priority="-1">
+	<start name="usb_drv" priority="-1" caps="120">
 		<resource name="RAM" quantum="20M"/>
 		<provides>
 			<service name="Input"/>

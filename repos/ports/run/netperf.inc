@@ -155,7 +155,7 @@ proc usb_drv_ram_quota {} {
 }
 
 append_if $use_usb_driver config {
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="} [usb_drv_ram_quota] {"/>
 		<provides>
 			<service name="Nic"/>

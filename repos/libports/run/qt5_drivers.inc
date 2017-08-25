@@ -267,7 +267,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	if { [use_usb_drv feature] } {
 		append start_nodes {
-			<start name="usb_drv">
+			<start name="usb_drv" caps="120">
 				<resource name="RAM" quantum="12M"/>
 				<provides>}
 		append_if [use_usb_input feature] start_nodes {

@@ -71,7 +71,7 @@ append_if [have_spec gpio] config "
 	</start>"
 
 append_if $use_usb_driver config {
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
 			<service name="Nic"/>

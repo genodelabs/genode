@@ -68,7 +68,7 @@ append config {
 			<default-policy report="usb_drv -> devices"/>
 		</config>
 	</start>
-	<start name="usb_drv">
+	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
