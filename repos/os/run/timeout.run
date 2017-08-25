@@ -32,6 +32,12 @@ proc precise_time { } {
 	# time instead.
 	#
 	if {[expr [have_spec arm] && ![have_spec hw]]} { return false }
+
+	#
+	# Older x86 machines do not have an invariant timestamp
+	#
+	if {[have_spec x86] && ![have_spec hw]} { return dynamic }
+
 	return true
 }
 

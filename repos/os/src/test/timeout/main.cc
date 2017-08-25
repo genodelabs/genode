@@ -22,6 +22,35 @@
 using namespace Genode;
 
 
+/**
+ * FIXME
+ * This function and its use are a quickfix that avoid refactorization of the
+ * timeout framework respectively the timeout test for now. It should be
+ * replaced in the near future by a solution that is part of the base lib and
+ * thus can be implemented the clean way in platform specific files.
+ */
+static bool precise_time(Xml_node config)
+{
+	String<32> attr = config.attribute_value("precise_time", String<32>("false"));
+	if (attr == "true") { return true; }
+	if (attr == "false") { return false; }
+	if (attr == "dynamic") {
+#ifdef __x86_64__
+		unsigned long cpuid = 0x80000007, edx = 0;
+		asm volatile ("cpuid" : "+a" (cpuid), "=d" (edx) : : "rbx", "rcx");
+		return edx & 0x100;
+#elif __i386__
+		unsigned long cpuid = 0x80000007, edx = 0;
+		asm volatile ("push %%ebx  \n"
+		              "cpuid       \n"
+		              "pop  %%ebx" : "+a" (cpuid), "=d" (edx) : : "ecx");
+		return edx & 0x100;
+#endif
+	}
+	return false;
+}
+
+
 struct Test
 {
 	Env                    &env;
@@ -553,7 +582,7 @@ struct Fast_polling : Test
 		main_ep(env, STACK_SIZE, "fast_polling_ep"),
 		main_handler(main_ep, *this, &Fast_polling::main)
 	{
-		if (config.xml().attribute_value("precise_time", true)) {
+		if (precise_time(config.xml())) {
 			Signal_transmitter(main_handler).submit();
 		} else {
 			log("... skip test, requires the platform to support precise time");
