@@ -193,7 +193,7 @@ struct Faulting_loader_grand_child_test
 			"    <any-service> <parent/> <any-child/> </any-service>\n"
 			"  </default-route>\n"
 			"  <start name=\"test-segfault\" caps=\"50\">\n"
-			"    <resource name=\"RAM\" quantum=\"10M\"/>\n"
+			"    <resource name=\"RAM\" quantum=\"2M\"/>\n"
 			"  </start>\n"
 			"</config>";
 	}
@@ -204,7 +204,7 @@ struct Faulting_loader_grand_child_test
 
 	void start_iteration(Env &env, Signal_context_capability fault_sigh)
 	{
-		loader.construct(env, Ram_quota{2*1024*1024}, Cap_quota{100});
+		loader.construct(env, Ram_quota{4*1024*1024}, Cap_quota{110});
 
 		/* import config into loader session */
 		{
