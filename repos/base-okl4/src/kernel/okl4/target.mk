@@ -16,3 +16,6 @@ LD_SCRIPT_STATIC = $(REP_DIR)/contrib/generated/x86/linker.ld
 $(TARGET): dummy.c
 dummy.c:
 	@touch $@
+
+clean:
+	$(VERBOSE)rm -rf $(BUILD_BASE_DIR)/tool/okl4
