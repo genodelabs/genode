@@ -83,7 +83,7 @@ append config {
 			</raw>
 		</config>
 	</start>
-	<start name="test-smartcard" caps="120">
+	<start name="test-smartcard" caps="130">
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<vfs>
