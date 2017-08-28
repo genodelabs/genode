@@ -4,6 +4,15 @@ set use_nic_driver   [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec
 if {[expr !$use_usb_driver && !$use_nic_driver || [expr [have_include "power_on/qemu"] && [have_spec zynq]]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
+
+set bridge_mac "02:02:02:02:02:00"
+
+# autopilot: configure disjoint mac-address ranges for x86_32, x86_64, and others
+if {[get_cmd_switch --autopilot]} {
+       if {[have_spec x86_32]} { set bridge_mac "02:02:02:02:32:00" }
+       if {[have_spec x86_64]} { set bridge_mac "02:02:02:02:64:00" }
+}
+
 set build_components {
 	core init
 	drivers/timer
@@ -92,7 +101,7 @@ append config {
 	<start name="nic_bridge" caps="200">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
-		<config/>
+		<config mac="} $bridge_mac {"/>
 		<route>}
 append_if $use_nic_driver config {
 			<service name="Nic"> <child name="nic_drv"/></service>}
