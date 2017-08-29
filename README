@@ -86,6 +86,14 @@ The source tree is composed of the following subdirectories:
   Source-code management tools and scripts. Please refer to the README file
   contained in the directory.
 
+:'depot' and 'public':
+
+  Local depot and public archive of Genode packages. Please refer to
+
+  ! doc/depot.txt
+
+  for more details.
+
 
 Additional community-maintained components
 ##########################################
