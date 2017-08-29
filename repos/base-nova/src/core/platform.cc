@@ -474,11 +474,36 @@ Platform::Platform() :
 	_io_mem_alloc.add_range(0, ~0xfffUL);
 	Hip::Mem_desc *mem_desc = (Hip::Mem_desc *)mem_desc_base;
 
+	struct mbfb_t {
+		uint64_t addr = 0;
+		union {
+			uint64_t size;
+			struct {
+				uint32_t height;
+				uint32_t width;
+			};
+		};
+		union {
+			uint32_t aux;
+			struct {
+				uint8_t bpp;
+				uint8_t type;
+				uint8_t reserved[2];
+			};
+		};
+	} mbi_fb;
+	memset(&mbi_fb, 0, sizeof(mbi_fb));
+
 	/*
 	 * All "available" ram must be added to our physical allocator before all
 	 * non "available" regions that overlaps with ram get removed.
 	 */
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
+		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
+			mbi_fb.addr = mem_desc->addr;
+			mbi_fb.size = mem_desc->size;
+			mbi_fb.aux  = mem_desc->aux;
+		}
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
 		if (verbose_boot_info) {
@@ -523,6 +548,14 @@ Platform::Platform() :
 
 		addr_t base = trunc_page(mem_desc->addr);
 		size_t size = mem_desc->size;
+
+		/* remove framebuffer from available memory */
+		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
+			/* align width to 16 byte size */
+			addr_t const width = (mbi_fb.width + 16 - 1) & ~0xful;
+			/* calculate size of framebuffer */
+			size = width * mbi_fb.height * mbi_fb.bpp / 4;
+		}
 
 		/* truncate size if base+size larger then natural 32/64 bit boundary */
 		if (mem_desc->addr + size < mem_desc->addr)
@@ -597,25 +630,6 @@ Platform::Platform() :
 
 	uint64_t rsdt = 0UL;
 	uint64_t xsdt = 0UL;
-
-	struct mbfb_t {
-		uint64_t addr = 0;
-		union {
-			uint64_t size;
-			struct {
-				uint32_t height;
-				uint32_t width;
-			};
-		};
-		union {
-			uint32_t aux;
-			struct {
-				uint8_t bpp;
-				uint8_t type;
-				uint8_t reserved[2];
-			};
-		};
-	} mbi_fb;
 
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
