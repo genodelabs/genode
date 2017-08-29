@@ -137,6 +137,10 @@ input-session interfaces respectively.
   Driver using VESA mode setting on x86 PCs. For more information, please refer
   to the README file in the driver directory.
 
+:'libports/src/drivers/framebuffer/boot':
+  Driver for boot-time initialized framebuffers (e.g., UEFI GOP)
+  discovered from the 'platform_info' ROM
+
 :'os/src/drivers/framebuffer/spec/pl11x':
   Driver for the PL110/PL111 LCD display.
 
@@ -155,6 +159,9 @@ input-session interfaces respectively.
 :'os/src/drivers/framebuffer/spec/sdl':
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
+
+:'os/src/drivers/gpu/intel':
+  Intel Graphics GPU multiplexer for Broadwell and newer.
 
 :'dde_linux/src/drivers/framebuffer/intel':
   Framebuffer driver for Intel i915 compatible graphic cards based on
@@ -181,9 +188,10 @@ provided by the kernel, or a pseudo time source (busy):
 :'okl4_x86':  Programmable Interval Timer (PIT) device
 :'foc':       IPC timeout
 :'fiasco':    IPC timeout
-:'pistachio': IPC timeout
+:'pistachio': Programmable Interval Timer (PIT) device
 :'linux':     nanosleep()
 :'hw':        kernel timer
+:'sel4':      PIT on x86, EPIT on Wandboard
 
 
 Audio drivers
@@ -313,9 +321,9 @@ subdirectory of a source repository.
   separate block session. For using this server, please refer to the run
   script at 'os/run/part_blk'.
 
-:File system: The FFAT file-system service allows multiple clients to
-  concurrently access the same FFAT-formatted block device. It is located
-  at 'libports/src/server/ffat_fs'.
+:File system: The FAT file-system service allows multiple clients to
+  concurrently access the same FAT-formatted block device. It is located
+  at 'libports/src/server/fatfs_fs' and supports FAT, FAT32, and exFAT.
 
 :Terminal: The terminal_mux service located at gems/src/server/terminal_mux
   is able to provide multiple terminal sessions over one terminal-client
@@ -441,6 +449,9 @@ Separate components:
   A service that implements both the report session interface and the ROM
   session interface. It reflects incoming reports as ROM modules.
 
+:'os/src/server/fs_report':
+  Report server that writes reports to file-systems
+
 :'os/src/server/clipboard':
   This component is both a report service and a ROM service. The
   clients of the report service can issue new clipboard content, which
@@ -490,9 +501,9 @@ Libraries:
 :'libports/lib/mk/stdcxx':
   Standard C++ library
 
-:'libports/lib/mk/gallium':
-  Translates the OpenGL API to a framebuffer session using the MESA OpenGL
-  stack
+:'libports/lib/mk/mesa_api':
+  Mesa OpenGL API with backends for software rasterization (egl_swrast)
+  and Intel Graphics (egl_i965)
 
 :'libports/lib/mk/pthread':
   Subset of the POSIX thread and semaphore API.
@@ -546,8 +557,8 @@ located in their respective directory.
 :'demo/src/app/scout':
   Graphical hypertext browser used for Genode's default demonstration scenario.
 
-:'libports/src/app/eglgears':
-  Example program for using OpenGL via the Gallium3D graphics stack.
+:'libports/src/test/mesa_demo':
+  Example programs for using the Mesa OpenGL graphics stack.
 
 :'ports/src/app/arora':
   Arora is a Qt-based web browser using the Webkit engine.
@@ -562,9 +573,8 @@ located in their respective directory.
 :'libports/src/app/qt5/examples/':
   Several example applications that come with Qt.
 
-:'os/src/app/xvfb':
-  Is a proxy application that enables the integration of a virtual X server
-  into a Nitpicker session on the Linux base platform.
+:'os/src/app/sequence':
+  Simple utility to serialize the execution of multiple components
 
 :'ports/src/noux-pkg':
   Ports of popular commandline-based Unix software such as VIM, bash,
