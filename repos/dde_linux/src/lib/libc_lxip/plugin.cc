@@ -164,6 +164,26 @@ struct Plugin : Libc::Plugin
 	int  retrieve_and_clear_fds(int nfds, struct fd_set *fds, struct fd_set *in);
 	int  translate_msg_flags(int bsd_flags);
 	int  translate_ops_linux(int optname);
+
+	::ssize_t getdirentries(Libc::File_descriptor *fd, char *buf, ::size_t nbytes,
+	                        ::off_t *basep)
+	{
+		Genode::error(__FILE__, ":", __LINE__, " ", __func__, "not implemented");
+		return 0UL;
+	}
+
+	void *mmap(void *addr, ::size_t length, int prot, int flags,
+	           Libc::File_descriptor *, ::off_t offset)
+	{
+		Genode::error(__FILE__, ":", __LINE__, " ", __func__, "not implemented");
+		return nullptr;
+	}
+
+	int msync(void *addr, ::size_t len, int flags)
+	{
+		Genode::error(__FILE__, ":", __LINE__, " ", __func__, "not implemented");
+		return 0;
+	}
 };
 
 

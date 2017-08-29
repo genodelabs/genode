@@ -79,6 +79,25 @@ namespace {
 				return ::libc_freeaddrinfo(res);
 			}
 
+			::ssize_t getdirentries(Libc::File_descriptor *fd, char *buf, ::size_t nbytes,
+			                        ::off_t *basep)
+			{
+				Genode::error(__FILE__, ":", __LINE__, " ", __func__, "not implemented");
+				return 0UL;
+			}
+
+			void *mmap(void *addr, ::size_t length, int prot, int flags,
+			           Libc::File_descriptor *, ::off_t offset)
+			{
+				Genode::error(__FILE__, ":", __LINE__, " ", __func__, "not implemented");
+				return nullptr;
+			}
+
+			int msync(void *addr, ::size_t len, int flags)
+			{
+				Genode::error(__FILE__, ":", __LINE__, " ", __func__, "not implemented");
+				return 0;
+			}
 	};
 
 } /* unnamed namespace */
