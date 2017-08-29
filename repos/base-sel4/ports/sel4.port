@@ -12,7 +12,7 @@ $(call check_python_module,future)
 $(call check_python_module,tempita)
 $(call check_python_module,ply)
 
-PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)
+PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
 
 # adjust kernel config usable on qemu and on native hw, and add a 32bit version
 default: $(DOWNLOADS)
