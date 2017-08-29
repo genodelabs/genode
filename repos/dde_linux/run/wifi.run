@@ -82,7 +82,7 @@ append config {
 			</rom>
 		</config>
 	</start>
-	<start name="wifi_drv" caps="200">
+	<start name="wifi_drv" caps="220">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config ld_verbose="yes" verbose="yes" connected_scan_interval="30">
