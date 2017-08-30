@@ -47,7 +47,7 @@ create_boot_directory
 proc gpio_drv_config { } {
 	if {[have_spec gpio]} {
 		append result {
-			<start name="} [gpio_drv] {" caps="140">
+			<start name="} [gpio_drv] {" caps="140" priority="-1">
 				<resource name="RAM" quantum="4M"/>
 				<provides><service name="Gpio"/></provides>
 			</start>}
@@ -58,7 +58,7 @@ proc gpio_drv_config { } {
 proc nic_drv_config { } {
 	if {[nic_drv] == "nic_drv"} {
 		append result {
-			<start name="nic_drv">
+			<start name="nic_drv" priority="-1">
 				<binary name="} [nic_drv_binary] {"/>
 				<resource name="RAM" quantum="6M"/>
 				<provides><service name="Nic"/></provides>
@@ -67,7 +67,7 @@ proc nic_drv_config { } {
 	}
 	if {[nic_drv] == "usb_drv"} {
 		append result {
-			<start name="usb_drv" caps="120">
+			<start name="usb_drv" caps="120" priority="-1">
 				<resource name="RAM" quantum="14M"/>
 				<provides>
 					<service name="Nic"/>
@@ -95,7 +95,7 @@ proc ram_quota { prot } {
 
 proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 	append result {
-		<start name="} $prot {_client_} $index {" caps="200">
+		<start name="} $prot {_client_} $index {" caps="200" priority="-1">
 			<binary  name="} [client_bin $prot] {" />
 			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
 			<route>
@@ -113,7 +113,7 @@ proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 
 proc server_config { prot index ip_addr gateway netmask nic port } {
 	append result {
-		<start name="} $prot {_server_} $index {" caps="200">
+		<start name="} $prot {_server_} $index {" caps="200" priority="-1">
 			<binary  name="} [server_bin $prot] {" />
 			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
 			<route>
@@ -166,7 +166,7 @@ proc test_6_config { } {
 }
 
 append config {
-<config>
+<config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -188,12 +188,13 @@ append config {
 	} [nic_drv_config] {
 	} [platform_drv_config] {
 
-	<start name="timer">
+	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_router" caps="200">
+	<start name="nic_router" caps="200" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config rtt_sec="3" verbose="no">
@@ -240,7 +241,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_bridge" caps="200">
+	<start name="nic_bridge" caps="200" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config>
@@ -285,4 +286,4 @@ proc nic_qemu_args { } {
 
 append qemu_args "-nographic -net user [nic_qemu_args]"
 
-run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 60
+run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 80

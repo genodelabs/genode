@@ -6,7 +6,7 @@ create_boot_directory
 
 # define XML configuration for init
 install_config {
-<config>
+<config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -21,11 +21,12 @@ install_config {
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="timer">
+	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="test-timer_accuracy">
+	<start name="test-timer_accuracy" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 	</start>
 </config>
