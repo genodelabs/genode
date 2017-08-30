@@ -6,5 +6,5 @@ URL(okl4) := https://genode.org/files/okl4_2.1.1-patch.9.tar.gz
 SHA(okl4) := ff3062344fd6b0a3bd69d99583aa271d3bb13911
 DIR(okl4) := src/kernel/okl4
 
-PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)
+PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
 PATCH_OPT := -p1 -d src/kernel/okl4
