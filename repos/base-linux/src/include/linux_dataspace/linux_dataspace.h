@@ -23,7 +23,7 @@ namespace Genode {
 
 	struct Linux_dataspace : Dataspace
 	{
-		enum { FNAME_LEN = 40 };
+		enum { FNAME_LEN = 64 };
 		struct Filename { char buf[FNAME_LEN]; };
 
 		virtual ~Linux_dataspace() { }
