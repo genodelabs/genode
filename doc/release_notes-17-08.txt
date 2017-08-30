@@ -1,0 +1,651 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 17.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The flagship feature of Genode 17.08 has been in the works for more than a
+year: The support for hardware-accelerated graphics on Intel Gen-8 GPUs. This
+is an especially challenging topic because it is riddled with terminology,
+involves highly complex software stacks, carries a twisted history with it,
+and remains to be a moving target. It took up a lot of patience to build up a
+profound understanding of the existing driver architectures and the mechanisms
+offered by modern graphics hardware. On the other hand, with the proliferation
+of hardware-based sandboxing features like virtual GPU memory and hardware
+contexts, we found that now is the perfect time for a clean-slate design of a
+microkernelized GPU driver.
+Section [Hardware-accelerated graphics for Intel Gen-8 GPUs] introduces this
+work, which includes our new GPU multiplexer as well as the integration with
+the client-side Mesa protocol stack.
+
+The second focus of the current release is the extension of Genode's supported
+base platforms. Most prominently, we upgrade the seL4 kernel to version 6.0
+while extending the architecture support from 32-bit x86 to ARM and 64-bit
+x86 (Section [The seL4 kernel on ARM and 64-bit x86 hardware]). To bring
+Genode closer to cloud-computing scenarios, we added basic support for
+executing Genode scenarios as Xen DomU domains (Section [Genode as Xen DomU]).
+Furthermore, the Muen separation kernel has been updated to a current version.
+As a cross-kernel effort, there is work under way to boot Genode-based
+systems via UEFI, currently addressing the NOVA, base-hw, and seL4 kernels.
+
+Among the many other functional additions are a new VFS plugin for accessing
+FAT file systems, new components like _sequence_ and _fs_report_ that aid new
+system compositions, and our evolving custom package-management
+infrastructure.
+
+
+Hardware-accelerated graphics for Intel Gen-8 GPUs
+##################################################
+
+The ability to leverage hardware-accelerated graphics is generally taken for
+granted in modern commodity operating systems. The user experience of
+modern desktop environments, web-browser performance, and obviously games
+depend on it. On the other hand, the benefit of hardware-accelerated graphics
+comes at the expense of tremendous added complexity in the lower software
+stack, in particular in system components that need to be ultimately trusted.
+For example, with circa 100 thousand lines of code, the Intel GPU driver in
+the Linux kernel is an order of magnitude more complex than a complete modern
+microkernel. In a monolithic-kernel-based system, this complexity is
+generally neglected because the kernel is complex anyway. But in
+microkernel-based scenarios optimized for a trusted computing base in the
+order of a few ten thousand lines of code, it becomes unacceptable.
+Fortunately, recent generations of graphics hardware provide a number of
+hardware features that promise to solve this conflict, which prompted us to
+investigate the use of these features for Genode.
+
+During this year's Hack'n'Hike event, we ported the ioquake3 engine to Genode.
+As preliminary requirement, we had to resurrect OpenGL support in our aging
+graphics stack and enable support for current Intel HD Graphics devices (IGD).
+We started by updating Mesa from the old 7.8.x to a more recent 11.2.2 release.
+Since we focused mainly on supporting Intel devices, we dropped support for the
+Gallium back end as Intel still uses the old DRI infrastructure. This decision,
+however, also influenced the choice of the software rendering back end. Rather
+than retaining the softpipe implementation, we now use swrast. In addition, we
+changed the available OpenGL implementation from OpenGL ES 2.x to the fully
+fledged OpenGL 4.5 profile, including the corresponding shader language
+version. As with the previous Mesa port, EGL serves as front end API for
+system integration and loads a DRI back-end driver (i965 or swrast). EGL
+always requests the back-end driver 'egl_drv.lib.so' in form of a shared
+object. Genode's relabeling features are used to select the proper back end
+via a route configuration. The following snippet illustrates such a
+configuration for software rendering:
+
+! <start name="gears" caps="200">
+!   <resource name="RAM" quantum="32M"/>"
+!   <route>
+!     <service name="ROM" label="egl_drv.lib.so">
+!       <parent label="egl_swrast.lib.so"/>
+!     </service>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </route>
+! </start>
+
+With the graphics-stack front end in place, it was time to take care of the
+GPU driver. In our case this meant implementing the DRM interface in our
+ported version of the Intel i915 DRM driver. Up to now, this driver was solely
+used for mode setting while we completely omitted supporting the render
+engine.
+
+[image mesa_genode]
+
+With this new and adapted software stack, we successfully could play ioquake3
+on top of Genode with a reasonable performance in 1080p on a Thinkpad X250.
+
+During this work, we gathered valuable insights into the architecture of a
+modern 3D-graphics software stack as well as into recent Intel HD Graphics
+hardware. We found that the Intel-specific Mesa driver itself is far more
+complex than its kernel counter part. The DRM driver is mainly concerned with
+resource and execution management whereas the Mesa driver programs the GPU.
+For example, amongst others, Mesa compiles the OpenGL shaders into a
+GPU-specific machine code that is passed on to the kernel for execution.
+
+While inspecting the DRM driver, it became obvious that one of the reasons for
+its complexity is the need to support a variety of different HD Graphics
+generations as well as different features driven by software-usage patterns.
+For our security related use cases, it is important to offer a clear isolation
+and separation mechanism per client. Hardware features provided by modern
+Intel GPUs like per-process graphics translation tables (PPGTT) and hardware
+contexts that are unique for each client make it possible to fulfill these
+requirements.
+
+By focusing on this particular feature set and thus limiting the supported
+hardware generations, the development of a maintainable GPU multiplexer for
+Genode became feasible. After all, we strive to keep all Genode components as
+low complex as possible, especially resource multiplexers like such a GPU
+multiplexer.
+
+[image intel_gpu_drv]
+  This image shows multiple GPU-session clients and the resources they are
+  using. The fence registers as well as the aperture is partitioned between
+  them, the PPGTT is backed by the system memory, and the contexts are located
+  in disjoint GGTT regions.
+
+Within four months, we implemented an experimental GPU multiplexer for Intel
+HD Graphics Gen8 (Broadwell class) devices. We started out defining a GPU
+session interface that is sufficient to implement the API used by the DRM
+library. For each session, the driver creates a context consisting of a
+hardware context, a set of page tables (PPGTT), and a part of the aperture.
+The client may use the session to allocate and map memory buffers used by the
+GPU. Each buffer is always eagerly mapped 1:1 into the PPGTT by using the
+local virtual address of the client. Special memory buffers like an image
+buffer are additionally mapped through the aperture to make use of the
+hardware-provided de-tiling mechanism. As is essential in Genode components,
+the client must donate all resources that the driver might need to fulfill the
+request, i.e., quota for memory and capability allocations. Clients may
+request the execution of their workload by submitting an execution buffer. The
+GPU multiplexer will then enqueue the request and schedule all pending
+requests sequentially. Once the request is completed, the client is notified
+via a completion signal.
+
+[image multi_gl]
+  Example scenario of multiple OpenGL programs that use the new GPU multiplexer
+  for hardware-accelerated rendering.
+
+We consider this first version of the GPU driver as experimental. As of now,
+it only manages the render engine of the GPU. Mode-setting or rather display
+handling must be performed by another component. Currently, the VESA driver is
+used for this purpose. It also lacks any power-management functionality and
+permanently keeps the GPU awake. Both limitations will be addressed in future
+releases and support for Gen9+ (Skylake) and newer devices might be added.
+
+In its current incarnation, the GPU multiplexer component consists of about
+4,200 lines of code whereas the Mesa DRI i965 driver complements the driver at
+the client side with about 78,000 lines of code.
+
+
+The seL4 kernel on ARM and 64-bit x86 hardware
+##############################################
+
+With the 16.08 release, we brought the seL4 support to a level to be
+considered being on par with the other supported kernels. At the time,
+Genode's use of seL4 was limited to 32-bit x86 platforms.
+
+In the current release, we extend the platform support to ARM and 64-bit x86.
+We started this line of work with an incremental kernel upgrade from version
+3.2.0 to 5.2.0 and finally to seL4 6.0. Through these upgrades, we were able
+to drop several Genode-specific seL4 patches, which were required in the 16.08
+release. One major improvement of version 6.0 compared to earlier versions is
+the handling of device-memory announcements by the kernel to Genode's roottask
+_core_.
+
+With the kernel update in place, we inspected the x86-specific part thoroughly
+while splitting and separating it properly into architecture-agnostic and
+architecture-dependent parts. Upon this work, we added the
+architecture-specific counterparts for x86_64 and ARM. One major work item was
+to make the page-table handling in Genode's core aware and generic enough to
+handle the different page-table sizes of the three architectures.
+
+For the ARM support, we decided to enable the i.MX6 FreeScale based SoC,
+namely the Wandboard Quad board. Since the seL4 kernel interface provides no
+timeout support, we revived a user-level timer driver that we originally
+developed for our custom base-hw kernel: The so-called EPIT timer, which is
+part of most i.MX SoCs.
+
+We finished the essential work for the mentioned three platforms in
+less time than expected and, thereby, had spare time to address additional
+features.
+
+First, we enabled multiprocessor support for Genode/seL4 on x86 and
+thread-priority support for all seL4 platforms. Additionally, we were able to
+utilize the seL4 benchmark interface for Genode's trace infrastructure in
+order to obtain utilization information about threads and CPUs. The Genode
+components _top_ (text-based) and _cpu_load_monitor_ (graphical) are now
+usable on Genode/seL4.
+Finally, as we are currently exploring the support for booting various kernels
+via UEFI on x86, we took the chance to investigate the steps needed to boot
+seL4 via UEFI. UEFI firmware does not always provide a compatibility support
+module (CSM) for legacy BIOS boot support. Hence, we extended the seL4 kernel
+for Genode according to the Multiboot2 specification, which enables us to
+start Genode/seL4 together with GRUB2 - as an UEFI capable bootloader - on
+machines missing CSM support.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Simplified IOMMU handling
+=========================
+
+When IOMMUs are used on x86, all host memory targeted via direct memory
+accesses (DMA) by devices must eagerly be registered in the respective I/O
+page table of the device. Up to now, Genode supports IOMMUs on NOVA only. On
+this kernel, a device protection domain is represented as a regular protection
+domain with its virtual memory layout being used for both the CPU's MMU and
+the device. Traditionally, mappings into such virtual memory spaces are
+inserted on demand as responses to page faults. However, as there are no page
+faults for DMA transactions, DMA buffers must always be eagerly mapped. The
+so-called device PD hid this gap for NOVA. In anticipation of adding IOMMU
+support for more kernels, we desired to generalize the device-PD mechanism by
+introducing an explicit way to trigger the insertion of DMA memory into the
+proper page tables.
+
+We extended the PD-session interface by a 'map' function, which takes a
+virtual memory region of the PD's virtual address space as argument. The page
+frames of the previously attached dataspaces are added eagerly by core to the
+IOMMU page-tables. With this explicit 'map' support, we were able to replace
+the Genode/NOVA-specific device-PD implementation with a generic one, which
+will easily accommodate other kernels in the future.
+
+
+New report server for capturing reports to files
+================================================
+
+The report session is a simple mechanism for components to publish structured
+data without the complexity of a file-system layer. In the simplest case, a
+client component will produce a report and communicate it directly to a
+component acting as a server. The disadvantage is that the report client
+becomes reliant on the liveliness and presence of the consumer component. So
+in the more robust case, the _report_rom_ component acts as the server hosting
+the report service as well as a ROM service for components consuming reports.
+
+The _report_rom_ server permits ROM access only to clients matching an
+explicit configuration policy. This is good for security but opaque to a user.
+Reports can only be read where an explicit policy is in place and only a
+single report session can report to an active ROM session.
+
+The new _fs_report_ component is a friendlier and more flexible report server.
+Reports are written to a file system using a file and directory hierarchy that
+expresses session routing. This allows for intuitive report inspection and
+injection via a file system. When used with the _ram_fs_ and _fs_rom_ servers,
+it can also replicate the functionality of _report_rom_.
+
+
+New runtime environment for starting components sequentially
+============================================================
+
+The _init_ component is a prime example of software with an emphasis on
+function over features. It is the fundamental building block for combining
+components yet its behavior is simple and without heuristics. Like other
+contemporary init managers, it starts components in parallel, but to a more
+extreme degree in that it has no concept of "runlevels" or "targets", all
+components are started as soon as possible. The concrete sequence of execution
+is instead determined by when server components make service announcements and
+how quickly they respond to client requests.
+
+In some cases, the execution of one component must not occur until the
+execution of another component ends, be it that the first produces output that
+is consumed by the second, or that the two contend for a service that cannot
+be multiplexed. Init contains no provisions to enforce ordering. But we are
+free to define new behaviors in other management components.
+
+The solution to the problem of ordering is the _sequence_ component. Sequence
+walks a list of children and executes them in order, one at a time. With only
+one child active, there is no need for any local resource or routing
+management. By applying the same session label transformations as init,
+external routing and policy handling are unchanged.
+
+An example of ordering a producer and consumer within an init configuration
+follows:
+! <start name="sequence">
+!   <resource name="RAM" quantum="128M"/>
+!   <config>
+!     <start name="producer">
+!       <config .. />
+!     </start>
+!     <start name="consumer">
+!       <config .. />
+!     </start>
+!   </config>
+!   <route>
+!     <service name="LOG" label_prefix="producer">
+!       <child name="log_a"/> </service>
+!     <service name="LOG" label_prefix="consumer">
+!       <child name="log_b"/> </service>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </route>
+! </start>
+
+
+Support for boot-time initialized frame buffer
+==============================================
+
+UEFI-based systems do not carry along legacy BIOS infrastructure, on which
+our generic VESA driver depends. Hence, when booting via UEFI, one has to use
+either a hardware-specific driver like our Intel-FB driver or - alternatively -
+facilitate generic UEFI mechanisms.
+
+Instead of booting in VGA text mode and leaving the switch to a graphics mode
+(via real-mode SVGA BIOS subroutines) to the booted OS, UEFI employs the
+so-called graphics output protocol as a means to setup a reasonable default
+graphics mode prior booting the operating system. In order to produce
+graphical output, the operating system merely has to know the physical address
+and layout of the frame buffer. Genode's core exposes this information as the
+_platform_info_ ROM module. The new _fb_boot_drv_ driver picks up this
+information to provide a Genode framebuffer session interface. Hence, on
+UEFI-based systems, it can be used as a drop-in replacement for the VESA
+driver. In contrast to the VESA driver, however, it is not able to switch
+graphics modes at runtime.
+
+The new component is located at _os/src/drivers/framebuffer/boot/_. Thanks
+to Johannes Kliemann for this contribution.
+
+
+Extended non-blocking operation of the VFS
+==========================================
+
+In
+[https://genode.org/documentation/release-notes/17.02#VFS_support_for_asynchronous_I_O_and_reconfiguration - version 17.02],
+we added support for non-blocking reads from the VFS in the form of the
+'read_ready()', 'queue_read()', and 'complete_read()' functions. Since then,
+it has become obvious that blocking within the VFS is not only problematic in
+the VFS server itself when multiple clients are connected, but also when the
+VFS is deployed in a multi-threaded environment and a VFS plugin needs to
+reliably wait for I/O-completion signals.
+
+For this reason, we reworked the interface of the VFS even more towards
+non-blocking operation and adapted the existing users of the VFS accordingly.
+
+The most important changes are:
+
+* Directories are now created and opened with the 'opendir()' function and
+  the directory entries are read with the 'queue_read()' and 'complete_read()'
+  functions.
+
+* Symbolic links are now created and opened with the 'openlink()' function and
+  the link target is read with the 'queue_read()' and 'complete_read()'
+  functions and written with the 'write()' function.
+
+* The 'write()' function does not wait for signals anymore. This can have the
+  effect that data written by a VFS library user has not been processed by a
+  file-system server when the library user asks for the size of the file or
+  closes it (both done with RPC functions at the file-system server). For this
+  reason, a user of the VFS library should request synchronization before
+  calling 'stat()' or 'close()'. To make sure that a file-system server has
+  processed all write request packets that a client submitted prior the
+  synchronization request, synchronization is now requested at the file-system
+  server with a synchronization packet instead of an RPC function. Because of
+  this change, the synchronization interface of the VFS library has been split
+  into the 'queue_sync()' and 'complete_sync()' functions.
+
+
+Making block sessions read-only by default
+==========================================
+
+Genode server components are expected to apply the safest and strictest
+behavior when exposing cross-component state or persistent data. In practice
+block and file-system servers only allow access to clients with explicitly
+configured local policies. The file-system servers enforce an additional
+provision that sessions are implicitly read-only unless overridden by policy.
+This release introduces a similar restriction to the AHCI driver and partition
+multiplexer. Clients of these servers require an affirmative 'writeable'
+attribute on policies to permit the writing of blocks. Write permission at
+these servers may also be revoked by components that forward block-session
+requests by placing 'writeable="no"' into session-request arguments.
+
+All users of _ahci_drv_ and _part_blk_ are advised that this change may break
+existing configurations without explicit 'writeable' policies.
+
+
+Refined time handling
+=====================
+
+Release 17.05 introduced a
+[https://genode.org/documentation/release-notes/17.05#New_API_for_user-level_timing - new API for user-level timing]
+named _timeout framework_. Together with this new framework came a
+comprehensive test that stresses all aspects of the interface. During the past
+few months, this test has turned out to be an enrichment for Genode far beyond
+its original scope. As the test significantly raised the standards in
+user-level timing, it also sharpened our view on the measurement precision of
+various timer drivers and timestamps, which act as input for the framework.
+This revealed several problems previously unidentified. For instance, we
+improved the accuracy and stability of the time values provided by the drivers
+for the Raspberry-Pi timer, the Cortex-A9 timer, the PIT, and the LAPIC. We
+also were able to further optimize the calibration of the TSC in the NOVA
+kernel.
+
+Additionally, the test also helped us to refine the timeout framework itself.
+The initial calibration of the framework - that previously took about 1.5
+seconds - is now performed much quicker. This makes microseconds-precise time
+available immediately after the timer connection switched to the modern
+fine-grained mode of operation, which is a prerequisite for hardware drivers
+that need such precision during their early initialization phase. The
+calculations inside the framework also became more flexible to better fit the
+characteristics of all the hardware and kernels Genode supports.
+
+Finally, we were able to extend the application of the timeout framework. Most
+notably, our C runtime uses it as timing source to the benefit of all
+libc-using components. Another noteworthy case is the USB driver on the
+Raspberry Pi. It previously couldn't rely on the default Genode timing but
+required a local hardware timer to reach the precision that the host
+controller expected from software. With the timeout framework, this workaround
+could be removed from the driver.
+
+
+FatFS-based VFS plugin
+======================
+
+Genode has supported VFAT file-systems since the 9.11 release when the
+[http://elm-chan.org/fsw/ff/00index_e.html - FatFS] library was first ported.
+The 11.08 release fit the library into the libc plugin architecture and
+in 12.08 FatFS was used in the _ffat_fs_ file-system server. Now, the 17.08
+release revisits FatFS to mold the library into the newer and more flexible
+VFS plugin system. The _vfs_fatfs_ plugin may be fitted into the VFS server or
+used directly by arbitrary components linked to the VFS library. As the
+collection of VFS plugins in combination with the VFS file-system server has a
+lower net maintenance cost than multiple file-system servers, the _ffat_fs_
+server will be retired in a future release.
+
+
+Enhanced GUI primitives
+=======================
+
+Even though we consider Qt5 as the go-to solution for creating advanced
+graphical user interfaces on top of Genode, we also continue to explore an
+alternative approach that facilitates Genode's component architecture to an
+extreme degree. The so-called menu-view component takes an XML description of
+a dialog as input and produces rendered pixels as output. It also gives
+feedback to user input such as the hovered widget at a given pointer position.
+The menu view does not implement any application logic but is meant to be
+embedded as a child component into the actual application. This approach
+relieves the application from the complexity (and potential bugs) of widget
+rendering. It also reinforces a rigid separation of a view and its underlying
+data model.
+
+The menu view was first introduced in
+[https://genode.org/documentation/release-notes/14.11#New_menu_view_application - version 14.11].
+The current release improves it in the following ways:
+
+* The new '<float>' widget aligns a child widget within a
+  larger parent widget by specifying the boolean attributes 'north', 'south',
+  'east', and 'west'. If none is specified, the child is centered. If opposite
+  attributes are specified, the child is stretched.
+
+* A new '<depgraph>' widget arranges child widgets in the form of a
+  dependency graph, which will be the cornerstone for Genode's upcoming
+  interactive component-composition feature. As a prerequisite for
+  implementing the depgraph widget, Genode's set of basic graphical primitives
+  received new operations for drawing sub-pixel-accurate anti-aliased lines
+  and bezier curves.
+
+* All geometric changes of the widget layout are animated now. This includes
+  structural changes of the new '<depgraph>' widget.
+
+[image depgraph]
+
+The menu-view component is illustrated by the run script at
+_gems/run/menu_view.run_.
+
+
+C runtime
+=========
+
+The growing number of ported applications used on Genode is accompanied by the
+requirement of extensive POSIX compatibility of our C runtime. Therefore, we
+enhanced our implementation by half a dozen features (e.g., O_ACCMODE
+tracking) during the past release cycle. We thank the contributors of patches
+and test cases and will continue our efforts to accommodate more ported
+open-source components in the future.
+
+
+Libraries and applications
+##########################
+
+Mesa adjustments
+================
+
+The Mesa update required the adaption of all components that use OpenGL.
+In particular that means the Qt5 framework. Furthermore, we also enabled
+OpenGL support in our SDL1 port.
+
+As playground, there are a few OpenGL examples. The demos are located under
+_repos/libports/src/test/mesa_demos_, which use the EGLUT bindings. There
+are also some SDL based examples in the world repository under
+_repos/world/src/test/sdl_opengl_.
+
+
+Package management
+==================
+
+The previous release featured the initial version of Genode's
+[https://genode.org/documentation/release-notes/17.05#Package_management - custom package-management tools].
+Since then, we continued this line of work in three directions.
+
+First, we refined the depot tools and the integration of the depot with our
+custom work-flow ("run") tool. One important refinement is a simplification of
+the depot's directory layout for library binaries. We found that the initial
+version implied unwelcome complexities down the road. Instead of placing
+library binaries in a directory named after their API, they are now placed
+directly in the architecture directory along with regular binaries.
+
+Second, driven by the proliferated use of the depot by more and more run
+scripts, we enhanced the depot with new depot recipes as needed.
+
+Third, we took the first steps to use the depot on-target. The experimentation
+with on-target depots is eased by the new 'create_tar_from_depot_binaries'
+function of the run tool, which allows one to assemble a new depot in the form
+of a tar archive out of a subset of packages. Furthermore, the new
+_depot_query_ component is able to scan an on-target depot for runtime
+descriptions and returns all the information needed to start a subsystem based
+on the depot content. The concept is exemplified by the new
+_gems/run/depot_deploy.run_ script, which executes the "fs_report" test case
+supplied via a depot package.
+
+
+Platforms
+#########
+
+Genode as Xen DomU
+==================
+
+We want to widen the application scope of Genode by enabling users to easily
+deploy Genode scenarios on Xen-based cloud platforms.
+
+As a first step towards this goal, we enhanced our run tool to support running
+Genode scenarios as a local Xen DomU, managed from within the Genode build
+system on Linux running as Xen Dom0.
+
+The Xen DomU runs in HVM mode (full virtualization) and loads Genode from an
+ISO image. Serial log output is printed to the text console and graphical
+output is shown in an SDL window.
+
+To use this new target platform, the following run options should be defined in
+the 'build/x86_*/etc/build.conf' file:
+
+! RUN_OPT  = --include boot_dir/$(KERNEL)
+! RUN_OPT += --include image/iso
+! RUN_OPT += --include power_on/xen
+! RUN_OPT += --include log/xen
+! RUN_OPT += --include power_off/xen
+
+The Xen DomU is managed using the 'xl' command line tool and it is possible to
+add configuration options in the 'xen_args' variable of a run script. Common
+options are:
+
+* Disabling the graphical output:
+
+  ! append xen_args { sdl="0" }
+
+* Configuring a network device:
+
+  ! append xen_args { vif=\["model=e1000,mac=02:00:00:00:01:01,bridge=xenbr0"\] }
+
+* Configuring USB input devices:
+
+  ! append xen_args { usbdevice=\["mouse","keyboard"\] }
+
+Note that the 'xl' tool requires super-user permissions. Interactive
+password input can be complicated in combination with 'expect' and is not
+practical for automated tests. For this reason, the current implementation
+assumes that no password input is needed when running 'sudo xl', which can
+be achieved by creating a file '/etc/sudoers.d/xl' with the content
+
+! user ALL=(root) NOPASSWD: /usr/sbin/xl
+
+where 'user' is the Linux user name.
+
+
+Execution on bare hardware (base-hw)
+====================================
+
+UEFI support
+------------
+
+Analogously to our work on the seL4 and NOVA kernels in this release, we
+extended our base-hw kernel to become a Multiboot2 compliant kernel. When used
+together with GRUB2, it can be started on x86 UEFI machines missing legacy
+BIOS support (i.e., CSM).
+
+
+RISC-V
+------
+
+With Genode version 17.05, we updated base-hw's RISC-V support to privileged
+ISA revision 1.9.1. Unfortunately, this implied that dynamic linking was not
+supported on the RISC-V architecture anymore. Since dynamic linking is now
+required for almost all Genode applications by default, this became a severe
+limitation. Therefore, we revisited our RISC-V implementation - in particular
+the kernel entry code - to lift the limitation of being able to execute only
+statically linked binaries.
+
+Additionally, we integrated the Berkeley Boot Loader (BBL), which bootstraps
+the system and implements the machine mode, more closely into our build
+infrastructure. We also added a new timer implementation to base-hw by using
+the _set timeout SBI_ call of BBL.
+
+What still remains missing is proper FPU support. While we are building the
+Genode tool chain with soft float support, we still encounter occasions where
+FPU code is generated, which in turn triggers compile time errors. We will
+have to investigate this behavior more thoroughly, but ultimately we want to
+add FPU support for RISC-V to our kernel and enable hardware floating point in
+the tool chain.
+
+
+Muen separation kernel
+======================
+
+Besides updating the Muen port to the latest kernel version as of end of June,
+Muen has been added to Genode's automated testing infrastructure. This
+includes the revived support for VirtualBox 4 on top of this kernel.
+
+
+NOVA microhypervisor
+====================
+
+The current release extends NOVA to become a Multiboot2 compliant kernel. Used
+together with GRUB2, NOVA can now be started on x86 UEFI machines missing
+legacy BIOS support (called CSM).
+
+GRUB2 provides the initial ACPI RSDP (Root System Description Pointer) to a
+Multiboot2 kernel. The RSDP contains vital information required to bootstrap
+the kernel and the operating system in general on today's x86 machines. To
+make this information available to the user-level ACPI and ACPICA drivers, the
+kernel propagates the RSDP to Genode's core, which - in turn - exposes it to
+the user land as part of the _platform_info_ ROM module.
+
+In order to ease the setup of an UEFI bootable image, we added a new image
+module to our run-tool infrastructure. The run option 'image/uefi' can be used
+instead of 'image/iso' in order to create a raw image that contains a EFI
+system partition in a GUID partition table (GPT). The image is equipped by the
+new 'image/uefi' module with the GRUB2 boot loader, a GRUB2 configuration, and
+the corresponding Genode run scenario. The final image can be copied with 'dd'
+to a bootable USB stick. Additionally, we added support to boot such an image
+on Qemu leveraging [http://www.tianocore.org - TianoCore's] UEFI firmware.
+
+As a side project, minor virtualization support for AMD has been added to
+Virtualbox 4 and to the NOVA kernel on Genode. This enables us to run a 32-bit
+Windows 7 VM on a 32-bit Genode/NOVA host on an (oldish) AMD Phenom II X4 test
+machine.
