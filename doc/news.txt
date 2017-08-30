@@ -4,6 +4,40 @@
                                ===========
 
 
+Genode OS Framework release 17.08 | 2017-08-30
+##############################################
+
+| Version 17.08 enables hardware-accelerated graphics on Intel-Gen8 GPUs
+| and expands Genode's seL4-kernel support to the ARM and 64-bit x86
+| architectures. Further topics are UEFI boot, VFS enhancements such as a
+| new FatFS plugin, and the use of Genode as Xen DomU.
+
+The new release bears the fruit of our long-term investigation of
+hardware-accelerated graphics on modern Intel platforms that we conducted over
+the past year. The result is a brand new low-complexity GPU multiplexer that
+is designed after microkernel principles. With far less than 10K lines of
+code, it paves the ground for leveraging the power of GPUs at an extremely
+tiny footprint on the trusted computing base. The GPU multiplexer is
+accompanied with the matching application-side library infrastructure such as
+Mesa, libdrm, Qt5 bindings, SDL bindings. This allows Genode components to use
+the GPU with standard APIs like OpenGL.
+
+The seL4 microkernel is becoming more and more popular. Since about one year,
+most Genode scenarios are able to use this kernel on the 32-bit x86
+architecture. The growing interest in the combination of seL4 with Genode
+prompted us to expand the architecture support to ARM and 64-bit x86 now.
+Additionally, we enabled SMP on x86, priority support, and Genode's CPU-time
+monitoring facility on this kernel.
+
+Speaking of Genode's underlying kernels, the current release equips NOVA,
+seL4, and our custom base-hw kernel with UEFI-boot support. It updates the
+Muen separation kernel to a current version, and adds the ability to run
+Genode as Xen DomU domains.
+
+These and the many more topics of the new version are covered by the
+[https:/documentation/release-notes/17.08 - release documentation of version 17.08...]
+
+
 Genode OS Framework release 17.05 | 2017-05-31
 ##############################################
 
