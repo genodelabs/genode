@@ -42,8 +42,8 @@
 .set MT_IRQ_STACK, MT_BASE + (_mt_kernel_interrupt_stack - _mt_begin)
 .set MT_ISR_ENTRY_SIZE, 12
 
-.set IDT_FLAGS_PRIVILEGED,   0x8e00
-.set IDT_FLAGS_UNPRIVILEGED, 0xee00
+.set IDT_FLAGS_PRIVILEGED,   0x8e01
+.set IDT_FLAGS_UNPRIVILEGED, 0xee01
 
 .macro _isr_entry
 	.align 4, 0x90
@@ -140,11 +140,21 @@
 	_mt_client_context_ptr:
 	.space CONTEXT_PTR_SIZE
 
+	/************************************************
+	 ** Temporary interrupt stack                  **
+	 ** Set as RSP for privilege levels 0-2 and as **
+	 ** IST1 in TSS, used by all IDT entries       **
+	 ** See Intel SDM Vol. 3A, section 7.7         **
+	 ************************************************/
+
 	/* a globally mapped buffer per CPU */
-	.p2align 2
+	.p2align 4
 	.global _mt_buffer
 	_mt_buffer:
-	.space BUFFER_SIZE
+	.space 6 * BUFFER_SIZE
+	.global _mt_kernel_interrupt_stack
+	_mt_kernel_interrupt_stack:
+
 
 	.global _mt_kernel_entry_pic
 	_mt_kernel_entry_pic:
@@ -282,22 +292,12 @@
 	.quad MT_IRQ_STACK
 	.quad MT_IRQ_STACK
 	.quad MT_IRQ_STACK
-	.space 76
+	.space 8
+	.quad MT_IRQ_STACK
+	.space 48
 
 	_define_gdt MT_TSS
-
-	/************************************************
-	 ** Temporary interrupt stack                  **
-	 ** Set as RSP for privilege levels 0-2 in TSS **
-	 ** See Intel SDM Vol. 3A, section 7.7         **
-	 ************************************************/
-
-	.p2align 8
-	.space 7 * 8
-	.global _mt_kernel_interrupt_stack
-	_mt_kernel_interrupt_stack:
 
 	/* end of the mode transition code */
 	.global _mt_end
 	_mt_end:
-	1: jmp 1b
