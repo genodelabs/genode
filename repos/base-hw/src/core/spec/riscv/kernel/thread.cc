@@ -26,6 +26,7 @@ void Thread::exception(unsigned const cpu)
 
 	switch(cpu_exception) {
 	case ECALL_FROM_USER:
+	case ECALL_FROM_SUPERVISOR:
 		_call();
 		ip += 4; /* set to next instruction */
 		break;
@@ -36,7 +37,7 @@ void Thread::exception(unsigned const cpu)
 		break;
 	default:
 		Genode::error(*this, ": unhandled exception ", cpu_exception,
-		              " at ip=", (void*)ip, " addr=", Genode::Hex(Cpu::sbadaddr()));
+		              " at ip=", (void*)ip, " addr=", Genode::Hex(Cpu::Sbadaddr::read()));
 		_die();
 	}
 }
@@ -46,7 +47,7 @@ void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
 	_fault_pd   = (addr_t)_pd->platform_pd();
-	_fault_addr = Cpu::sbadaddr();
+	_fault_addr = Cpu::Sbadaddr::read();
 
 	if (_pager) _pager->submit(1);
 }

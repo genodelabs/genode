@@ -58,15 +58,15 @@ struct Hw::Page_flags
 
 namespace Hw {
 	static constexpr Page_flags PAGE_FLAGS_KERN_IO
-		{ RW, NO_EXEC, USER, NO_GLOBAL, DEVICE, Genode::UNCACHED };
+		{ RW, NO_EXEC, KERN, GLOBAL, DEVICE, Genode::UNCACHED };
 	static constexpr Page_flags PAGE_FLAGS_KERN_DATA
-		{ RW, EXEC,    USER, NO_GLOBAL, RAM,    Genode::CACHED   };
+		{ RW, EXEC,    KERN, GLOBAL, RAM,    Genode::CACHED   };
 	static constexpr Page_flags PAGE_FLAGS_KERN_TEXT
-		{ RW, EXEC,    USER, NO_GLOBAL, RAM,    Genode::CACHED   };
+		{ RW, EXEC,    KERN, GLOBAL, RAM,    Genode::CACHED   };
 	static constexpr Page_flags PAGE_FLAGS_KERN_EXCEP
-		{ RW, EXEC,    USER, GLOBAL,    RAM,    Genode::CACHED   };
+		{ RW, EXEC,    KERN, GLOBAL, RAM,    Genode::CACHED   };
 	static constexpr Page_flags PAGE_FLAGS_UTCB
-		{ RW, NO_EXEC, USER, NO_GLOBAL, RAM,    Genode::CACHED   };
+		{ RW, NO_EXEC, USER, NO_GLOBAL, RAM, Genode::CACHED   };
 }
 
 #endif /* _SRC__LIB__HW__PAGE_FLAGS_H_ */

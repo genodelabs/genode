@@ -107,7 +107,7 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	 */
 	struct User_context : Context
 	{
-		User_context();
+		void init(bool privileged);
 
 		/**
 		 * Support for kernel calls

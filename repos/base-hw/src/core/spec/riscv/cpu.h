@@ -19,6 +19,8 @@
 #include <cpu/cpu_state.h>
 #include <util/register.h>
 
+#include <kernel/interface.h>
+#include <hw/spec/riscv/cpu.h>
 
 namespace Genode
 {
@@ -32,40 +34,37 @@ namespace Genode
 
 namespace Kernel { class Pd; }
 
-class Genode::Cpu
+class Genode::Cpu : public Hw::Riscv_cpu
 {
 	public:
 
 		static constexpr addr_t mtc_size = 0x1000;
-		static constexpr addr_t exception_entry = (~0ULL) & ~(0xfff);
+		static constexpr addr_t exception_entry = 0xffffffc000000000;
 
 		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
 		 */
 		struct Context : Cpu_state
 		{
-			struct Sptbr : Register<64>
-			{
-				struct Ppn  : Bitfield<0, 38> { };
-				struct Asid : Bitfield<38, 26> { };
-			};
-
 			Sptbr::access_t sptbr;
 
 			/**
 			 * Return base of assigned translation table
 			 */
-			addr_t translation_table() const { return Sptbr::Ppn::get(sptbr) << 12; }
+			addr_t translation_table() const {
+				return Sptbr::Ppn::get(sptbr) << 12; }
 
 			/**
 			 * Assign translation-table base 'table'
 			 */
-			void translation_table(addr_t const table) { Sptbr::Ppn::set(sptbr, table >> 12); }
+			void translation_table(addr_t const table) {
+				Sptbr::Ppn::set(sptbr, table >> 12); }
 
 			/**
 			 * Assign protection domain
 			 */
-			void protection_domain(Genode::uint8_t const id) { Sptbr::Asid::set(sptbr, id); }
+			void protection_domain(Genode::uint8_t const id) {
+				Sptbr::Asid::set(sptbr, id); }
 		};
 
 		struct Pd
@@ -153,18 +152,17 @@ class Genode::Cpu
 		 */
 		static unsigned primary_id() { return 0; }
 
-		static addr_t sbadaddr()
-		{
-			addr_t addr;
-			asm volatile ("csrr %0, sbadaddr\n" : "=r"(addr));
-			return addr;
-		}
-
 		/*************
 		 ** Dummies **
 		 *************/
 
-		void switch_to(User_context&) { }
+		void switch_to(User_context& context)
+		{
+			bool user = Sptbr::Asid::get(context.sptbr);
+			Sstatus::access_t v = Sstatus::read();
+			Sstatus::Spp::set(v, user ? 0 : 1);
+			Sstatus::write(v);
+		}
 };
 
 #endif /* _CORE__SPEC__RISCV__CPU_H_ */

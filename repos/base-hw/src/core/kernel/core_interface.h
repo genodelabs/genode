@@ -59,6 +59,7 @@ namespace Kernel
 	constexpr Call_arg call_id_new_obj()                { return 121; }
 	constexpr Call_arg call_id_delete_obj()             { return 122; }
 	constexpr Call_arg call_id_cancel_thread_blocking() { return 123; }
+	constexpr Call_arg call_id_new_core_thread()        { return 124; }
 
 	/**
 	 * Update locally effective domain configuration to in-memory state

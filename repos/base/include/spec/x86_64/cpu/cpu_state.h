@@ -55,6 +55,8 @@ struct Genode::Cpu_state
 	addr_t errcode = 0;
 	addr_t eflags  = 0;
 	addr_t trapno  = RESET;
+	addr_t cs      = 0;
+	addr_t ds      = 0;
 	addr_t ss      = 0;
 };
 

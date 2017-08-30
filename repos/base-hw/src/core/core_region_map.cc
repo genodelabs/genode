@@ -61,8 +61,8 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 
 		/* map the dataspace's physical pages to corresponding virtual addresses */
 		unsigned num_pages = page_rounded_size >> get_page_size_log2();
-		Page_flags const flags { ds->writable() ? RW : RO, NO_EXEC, USER,
-		                         NO_GLOBAL, ds->io_mem() ? DEVICE : RAM,
+		Page_flags const flags { ds->writable() ? RW : RO, NO_EXEC, KERN,
+		                         GLOBAL, ds->io_mem() ? DEVICE : RAM,
 		                         ds->cacheability() };
 		if (!map_local(ds->phys_addr(), (addr_t)virt_addr, num_pages, flags))
 			return nullptr;

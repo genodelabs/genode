@@ -31,12 +31,10 @@ void Genode::Cpu::Context::init(addr_t const table, bool core)
 
 	cr3 = Cr3::init(table);
 
-	/*
-	 * Enable interrupts for all threads, set I/O privilege level
-	 * (IOPL) to 3 for core threads to allow UART access.
-	 */
+	/* enable interrupts for all threads */
 	eflags = EFLAGS_IF_SET;
-	if (core) eflags |= EFLAGS_IOPL_3;
+	cs = core ? 0x8 : 0x1b;
+	ss = core ? 0x10 : 0x23;
 }
 
 

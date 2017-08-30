@@ -29,7 +29,9 @@
 .set ERRCODE_OFFSET, 17 * 8
 .set FLAGS_OFFSET,   18 * 8
 .set TRAPNO_OFFSET,  19 * 8
-.set CR3_OFFSET,     21 * 8
+.set CS_OFFSET,      20 * 8
+.set SS_OFFSET,      22 * 8
+.set CR3_OFFSET,     23 * 8
 
 /* tss segment constants */
 .set TSS_LIMIT, 0x68
@@ -210,11 +212,11 @@
 	mov (%rax), %rax
 	_load_address _mt_buffer rsp
 	add $BUFFER_SIZE, %rsp
-	pushq $0x23
+	pushq SS_OFFSET(%rax)
 	pushq SP_OFFSET(%rax)
 	pushq FLAGS_OFFSET(%rax)
 
-	pushq $0x1b
+	pushq CS_OFFSET(%rax)
 	pushq (%rax)
 
 	/* Restore register values from client context */

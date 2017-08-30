@@ -230,6 +230,7 @@ struct Hw::Arm_cpu
 				SVC = 19,
 				MON = 22,
 				HYP = 26,
+				SYS = 31,
 			};
 		};
 

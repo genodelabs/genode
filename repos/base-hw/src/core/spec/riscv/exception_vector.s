@@ -18,6 +18,8 @@
 .set CPU_SP,        3*8
 .set CPU_SPTBR,     33*8
 
+.section ".text.crt0"
+
 .p2align 12
 .global _mt_begin
 _mt_begin:

@@ -25,12 +25,9 @@ void Kernel::Cpu::init(Kernel::Pic &pic/*, Kernel::Pd & core_pd,
 {
 	addr_t client_context_ptr_off = (addr_t)&_mt_client_context_ptr & 0xfff;
 	addr_t client_context_ptr     = exception_entry | client_context_ptr_off;
-	asm volatile ("csrw stvec,   %0\n" /* exception vector  */
-	              "csrw sscratch,%1\n" /* master conext ptr */
-	              :
-	              : "r" (exception_entry),
-	                "r" (client_context_ptr)
-	              : "memory");
+	asm volatile ( "csrw sscratch,%0\n" /* master conext ptr */
+	              :: "r" (client_context_ptr) : "memory");
+	Stvec::write(exception_entry);
 }
 
 

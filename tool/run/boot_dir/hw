@@ -6,14 +6,14 @@ proc binary_name_timer     { } { return "hw_timer_drv" }
 proc run_boot_string { } { return "\nkernel initialized" }
 
 proc bootstrap_link_address { } {
-	if {[have_spec "odroid_xu"]}  { return "0x81000000" }
+	if {[have_spec "odroid_xu"]}  { return "0x88000000" }
 	if {[have_spec "pbxa9"]}      { return "0x70000000" }
 	if {[have_spec "usb_armory"]} { return "0x72000000" }
 	if {[have_spec "x86_64"]}     { return "0x00200000" }
 	if {[have_spec "wand_quad"]}  { return "0x10001000" }
 	if {[have_spec "imx53_qsb"]}  { return "0x70010000" }
-	if {[have_spec "arndale"]}    { return "0x81000000" }
-	if {[have_spec "panda"]}      { return "0x81000000" }
+	if {[have_spec "arndale"]}    { return "0x88000000" }
+	if {[have_spec "panda"]}      { return "0x88000000" }
 	if {[have_spec "zynq"]}       { return "0x00100000" }
 	if {[have_spec "riscv"]}      { return "0x81000000" }
 	if {[have_spec "rpi"]}        { return "0x00800000" }

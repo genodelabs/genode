@@ -154,10 +154,10 @@ class Genode::Cpu : public Arm_v7_cpu
 		 */
 		struct User_context : Context
 		{
-			User_context()
+			void init(bool privileged)
 			{
 				Psr::access_t v = 0;
-				Psr::M::set(v, Psr::M::USR);
+				Psr::M::set(v, privileged ? Psr::M::SYS : Psr::M::USR);
 				Psr::F::set(v, 1);
 				Psr::A::set(v, 1);
 				cpsr = v;

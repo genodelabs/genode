@@ -28,5 +28,8 @@ Kernel::Lock & Kernel::data_lock() {
 void Kernel::Cpu_domain_update::_domain_update()
 {
 	/* flush TLB by ASID */
-	Cpu::Tlbiasid::write(_domain_id);
+	if (_domain_id)
+		Cpu::Tlbiasid::write(_domain_id);
+	else
+		Cpu::Tlbiall::write(0);
 }

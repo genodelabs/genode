@@ -25,7 +25,7 @@ static constexpr addr_t USER_START = Genode::user_utcb_main_thread()
 static constexpr addr_t KERNEL_START = 0xffffffc000000000UL;
 
 Memory_region const Hw::Mm::user() {
-	return Memory_region(USER_START, KERNEL_START - USER_START); }
+	return Memory_region(USER_START, 0x800000000000 - USER_START); }
 
 Memory_region const Hw::Mm::core_heap() {
 	return Memory_region(0xffffffd000000000UL, 0x1000000000UL); }

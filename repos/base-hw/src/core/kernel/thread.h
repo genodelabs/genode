@@ -63,6 +63,7 @@ class Kernel::Thread
 		capid_t            _timeout_sigid = 0;
 		bool               _paused = false;
 		bool               _cancel_next_await_signal = false;
+		bool const         _core = false;
 
 		void _init();
 
@@ -82,11 +83,6 @@ class Kernel::Thread
 		 */
 		int _route_event(unsigned         const event_id,
 		                 Signal_context * const signal_context_id);
-
-		/**
-		 * Return wether this is a core thread
-		 */
-		bool _core() const;
 
 		/**
 		 * Switch from an inactive state to the active state
@@ -138,6 +134,7 @@ class Kernel::Thread
 		 *********************************************************/
 
 		void _call_new_thread();
+		void _call_new_core_thread();
 		void _call_thread_quota();
 		void _call_start_thread();
 		void _call_stop_thread();
@@ -232,9 +229,18 @@ class Kernel::Thread
 		 * \param priority  scheduling priority
 		 * \param quota     CPU-time quota
 		 * \param label     debugging label
+		 * \param core      whether it is a core thread or not
 		 */
 		Thread(unsigned const priority, unsigned const quota,
-		       char const * const label);
+		       char const * const label, bool core = false);
+
+		/**
+		 * Constructor for core/kernel thread
+		 *
+		 * \param label  debugging label
+		 */
+		Thread(char const * const label)
+		: Thread(Cpu_priority::MAX, 0, label, true) { }
 
 		/**
 		 * Syscall to create a thread
@@ -252,6 +258,20 @@ class Kernel::Thread
 		{
 			return call(call_id_new_thread(), (Call_arg)p, (Call_arg)priority,
 			            (Call_arg)quota, (Call_arg)label);
+		}
+
+		/**
+		 * Syscall to create a core thread
+		 *
+		 * \param p         memory donation for the new kernel thread object
+		 * \param label     debugging label of the new thread
+		 *
+		 * \retval capability id of the new kernel object
+		 */
+		static capid_t syscall_create(void * const p, char const * const label)
+		{
+			return call(call_id_new_core_thread(), (Call_arg)p,
+			            (Call_arg)label);
 		}
 
 		/**

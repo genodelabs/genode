@@ -18,7 +18,11 @@
 
 using namespace Kernel;
 
-void Kernel::Thread::_init() { cpu_exception = RESET; }
+void Kernel::Thread::_init()
+{
+	init(_core);
+	cpu_exception = RESET;
+}
 
 
 void Thread::exception(unsigned const cpu)
@@ -92,7 +96,7 @@ void Kernel::Thread::_call_update_data_region()
 	 *        address space so we can use virtual addresses of the caller. Up
 	 *        until then we apply operations to caches as a whole instead.
 	 */
-	if (!_core()) {
+	if (!_core) {
 		cpu->clean_invalidate_data_cache();
 		return;
 	}
@@ -116,7 +120,7 @@ void Kernel::Thread::_call_update_instr_region()
 	 *        address space so we can use virtual addresses of the caller. Up
 	 *        until then we apply operations to caches as a whole instead.
 	 */
-	if (!_core()) {
+	if (!_core) {
 		cpu->clean_invalidate_data_cache();
 		cpu->invalidate_instr_cache();
 		return;

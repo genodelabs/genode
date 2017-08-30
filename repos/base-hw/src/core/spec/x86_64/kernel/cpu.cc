@@ -29,6 +29,8 @@ Cpu_idle::Cpu_idle(Cpu * const cpu) : Cpu_job(Cpu_priority::MIN, 0)
 	Cpu_job::cpu(cpu);
 	ip = (addr_t)&_main;
 	sp = (addr_t)&_stack[stack_size];
+	cs = 0x8;
+	ss = 0x10;
 	init((addr_t)core_pd()->translation_table(), true);
 }
 

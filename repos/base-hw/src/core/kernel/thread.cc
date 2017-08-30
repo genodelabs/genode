@@ -37,8 +37,6 @@ extern "C" void _core_start(void);
 using namespace Kernel;
 
 
-bool Thread::_core() const { return pd() == core_pd(); }
-
 void Thread::_signal_context_kill_pending()
 {
 	assert(_state == ACTIVE);
@@ -170,6 +168,16 @@ void Thread::_call_new_thread()
 }
 
 
+void Thread::_call_new_core_thread()
+{
+	void *       const p        = (void *)user_arg_1();
+	char const * const label    = (char *)user_arg_2();
+	Core_object<Thread> * co =
+		Genode::construct_at<Core_object<Thread> >(p, label);
+	user_arg_0(co->core_capid());
+}
+
+
 void Thread::_call_thread_quota()
 {
 	Thread * const thread = (Thread *)user_arg_1();
@@ -234,7 +242,7 @@ void Thread::_call_restart_thread()
 		return; }
 
 	Thread * const thread = pd()->cap_tree().find<Thread>(user_arg_1());
-	if (!thread || (!_core() && (pd() != thread->pd()))) {
+	if (!thread || (!_core && (pd() != thread->pd()))) {
 		warning(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
 		        " to restart it");
 		_die();
@@ -567,7 +575,7 @@ void Thread::_call()
 	case call_id_time():                     user_arg_0(Cpu_job::time()); return;
 	default:
 		/* check wether this is a core thread */
-		if (!_core()) {
+		if (!_core) {
 			Genode::warning(*this, ": not entitled to do kernel call");
 			_die();
 			return;
@@ -576,6 +584,7 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():             _call_new_thread(); return;
+	case call_id_new_core_thread():        _call_new_core_thread(); return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete<Thread>(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
@@ -614,11 +623,11 @@ void Thread::_call()
 
 
 Thread::Thread(unsigned const priority, unsigned const quota,
-                       char const * const label)
+               char const * const label, bool core)
 :
 	Cpu_job(priority, quota), _fault_pd(0), _fault_addr(0),
 	_fault_writes(0), _state(AWAITS_START),
-	_signal_receiver(0), _label(label)
+	_signal_receiver(0), _label(label), _core(core)
 {
 	_init();
 }
@@ -640,7 +649,7 @@ Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
  *****************/
 
 Core_thread::Core_thread()
-: Core_object<Thread>(Cpu_priority::MAX, 0, "core")
+: Core_object<Thread>("core")
 {
 	using namespace Genode;
 

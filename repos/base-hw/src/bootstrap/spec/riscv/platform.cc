@@ -12,6 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 #include <platform.h>
+#include <hw/spec/riscv/cpu.h>
 
 using namespace Board;
 
@@ -21,8 +22,6 @@ Bootstrap::Platform::Board::Board()
 
 void Bootstrap::Platform::enable_mmu()
 {
-	asm volatile ("csrw sptbr, %0\n" /* set asid | page table */
-	              :
-	              : "r" ((addr_t)core_pd->table_base >> 12)
-	              :  "memory");
+	using Sptbr = Hw::Riscv_cpu::Sptbr;
+	Sptbr::write(Sptbr::Ppn::masked((addr_t)core_pd->table_base >> 12));
 }
