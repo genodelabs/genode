@@ -78,6 +78,10 @@ class Timer::Time_source : public Genode::Signalled_time_source
 
 		Genode::uint16_t _read_counter(bool *wrapped);
 
+		Genode::uint32_t _ticks_since_update_one_wrap(Genode::uint16_t curr_counter);
+
+		Genode::uint32_t _ticks_since_update_no_wrap(Genode::uint16_t curr_counter);
+
 	public:
 
 		Time_source(Genode::Env &env);

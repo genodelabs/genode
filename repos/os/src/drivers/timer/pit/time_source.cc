@@ -69,35 +69,111 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 }
 
 
+uint32_t Timer::Time_source::_ticks_since_update_no_wrap(uint16_t curr_counter)
+{
+	/*
+	 * The counter did not wrap since the last update of _counter_init_value.
+	 * This means that _counter_init_value is equal to or greater than
+	 * curr_counter and that the time that passed is simply the difference
+	 * between the two.
+	 */
+	return _counter_init_value - curr_counter;
+}
+
+
+uint32_t Timer::Time_source::_ticks_since_update_one_wrap(uint16_t curr_counter)
+{
+	/*
+	 * The counter wrapped since the last update of _counter_init_value.
+	 * This means that the time that passed is the whole _counter_init_value
+	 * plus the time that passed since the counter wrapped.
+	 */
+	return _counter_init_value + PIT_MAX_COUNT - curr_counter;
+}
+
+
 Duration Timer::Time_source::curr_time()
 {
+	/* read PIT counter and wrapped status */
 	uint32_t ticks;
-
-	/* read PIT count and status */
 	bool wrapped;
 	uint16_t const curr_counter = _read_counter(&wrapped);
 
-	/* determine the time since we looked at the counter */
-	if (wrapped && !_handled_wrap) {
-		ticks = _counter_init_value;
-		/* the counter really wrapped around */
-		if (curr_counter)
-			ticks += PIT_MAX_COUNT + 1 - curr_counter;
+	if (!wrapped) {
 
+		/*
+		 * The counter did not wrap since the last call to scheduled_timeout
+		 * which means that it did not wrap since the last update of
+		 * _counter_init_time.
+		 */
+		ticks = _ticks_since_update_no_wrap(curr_counter);
+	}
+	else if (wrapped && !_handled_wrap) {
+
+		/*
+		 * The counter wrapped at least once since the last call to
+		 * schedule_timeout (wrapped) and curr_time (!_handled_wrap) which
+		 * means that it definitely did wrap since the last update of
+		 * _counter_init_time. We cannot determine whether it wrapped only
+		 * once but we have to assume it. Even if it wrapped multiple times,
+		 * the error that results from the assumption that it did not is pretty
+		 * innocuous ((nr_of_wraps - 1) * 53 ms at a max).
+		 */
+		ticks = _ticks_since_update_one_wrap(curr_counter);
 		_handled_wrap = true;
-	} else {
-		if (_counter_init_value)
-			ticks = _counter_init_value - curr_counter;
-		else
-			ticks = PIT_MAX_COUNT + 1 - curr_counter;
+	}
+	else { /* wrapped && _handled_wrap */
+
+		/*
+		 * The counter wrapped at least once since the last call to
+		 * schedule_timeout (wrapped) but may not have wrapped since the last
+		 * call to curr_time (_handled_wrap).
+		 */
+
+		if (_counter_init_value >= curr_counter) {
+
+			/*
+			 * We cannot determine whether the counter wrapped since the last
+			 * call to curr_time but we have to assume that it did not. Even if
+			 * it wrapped, the error that results from the assumption that it
+			 * did not is pretty innocuous as long as _counter_init_value is
+			 * not greater than curr_counter (nr_of_wraps * 53 ms at a max).
+			 */
+			ticks = _ticks_since_update_no_wrap(curr_counter);
+
+		} else {
+
+			/*
+			 * The counter definitely wrapped multiple times since the last
+			 * call to schedule_timeout and at least once since the last call
+			 * to curr_time. It is the only explanation for the fact that
+			 * curr_counter became greater than _counter_init_value again
+			 * after _counter_init_value was updated with a wrapped counter
+			 * by curr_time (_handled_wrap). This means two things:
+			 *
+			 * First, the counter wrapped at least once since the last update
+			 * of _counter_init_value. We cannot determine whether it wrapped
+			 * only once but we have to assume it. Even if it wrapped multiple
+			 * times, the error that results from the assumption that it
+			 * did not is pretty innocuous ((nr_of_wraps - 1) * 53 ms at a max).
+			 *
+			 * Second, we have to warn the user as it is a sure indication of
+			 * insufficient activation latency if the counter wraps multiple
+			 * times between two schedule_timeout calls.
+			 */
+			warning("PIT wrapped multiple times, timer-driver latency too big");
+			ticks = _ticks_since_update_one_wrap(curr_counter);
+		}
 	}
 
+	/* use current counter as the reference for the next update */
+	_counter_init_value = curr_counter;
+
+	/* translate counter to microseconds and update time value */
 	static_assert(PIT_TICKS_PER_MSEC >= (unsigned)TIMER_MIN_TICKS_PER_MS,
 	              "Bad TICS_PER_MS value");
 	_curr_time_us += timer_ticks_to_us(ticks, PIT_TICKS_PER_MSEC);
 
-	/* use current counter as the reference for the next update */
-	_counter_init_value = curr_counter;
 	return Duration(Microseconds(_curr_time_us));
 }
 
