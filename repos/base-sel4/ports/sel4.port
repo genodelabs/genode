@@ -3,8 +3,8 @@ VERSION   := git
 DOWNLOADS := sel4.git
 
 URL(sel4) := https://github.com/seL4/seL4.git
-# master branch, version 6.0
-REV(sel4) := 8564ace4dfb622ec69e0f7d762ebfbc8552ec918
+# master branch, version 7.0 + already merged multiboot2 and uefi support
+REV(sel4) := a66feddb8c5044ecafe472c4ce249ae3adebd01b
 DIR(sel4) := src/kernel/sel4
 
 $(call check_tool,python)
@@ -21,8 +21,7 @@ default: $(DOWNLOADS)
 	$(VERBOSE)mkdir -p src/kernel/sel4/configs/pc99/ia32
 	$(VERBOSE)cp src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/x86_64/autoconf.h
 	$(VERBOSE)mv src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/ia32/autoconf.h
-	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/autoconf_32.config
-	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/autoconf_64.config
+	$(VERBOSE)sed -i "s.^ \*/. \*/\n#ifndef ARCH_IA32\n#define ARCH_IA32\n#endif\n." src/kernel/sel4/configs/pc99/ia32/autoconf.h
 	$(VERBOSE)mkdir -p src/kernel/sel4/configs/imx6/wand_quad
 	$(VERBOSE)mv src/kernel/sel4/configs/imx6/autoconf.h src/kernel/sel4/configs/imx6/wand_quad/autoconf.h
 	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/wand_quad.config

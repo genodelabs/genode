@@ -377,17 +377,51 @@ void Platform::_init_rom_modules()
 	                          rom_size, rom_name, [&] ()
 	{
 		xml.node("acpi", [&] () {
-			uint32_t const revision = bi.archInfo.revision;
-			uint32_t const rsdt     = bi.archInfo.rsdt;
-			uint64_t const xsdt     = bi.archInfo.xsdt;
 
-			if (revision && (rsdt || xsdt)) {
-				xml.attribute("revision", revision);
-				if (rsdt)
-					xml.attribute("rsdt", String<32>(Hex(rsdt)));
+			if (!bi.extraLen)
+				return;
 
-				if (xsdt)
-					xml.attribute("xsdt", String<32>(Hex(xsdt)));
+			addr_t const boot_info_page = reinterpret_cast<addr_t>(&bi);
+			addr_t const boot_info_extra = boot_info_page + 4096;
+
+			seL4_BootInfoHeader const * element   = reinterpret_cast<seL4_BootInfoHeader *>(boot_info_extra);
+			seL4_BootInfoHeader const * const last = reinterpret_cast<seL4_BootInfoHeader const * const>(boot_info_extra + bi.extraLen);
+
+			for (seL4_BootInfoHeader const *next = nullptr;
+			     (next = reinterpret_cast<seL4_BootInfoHeader const *>(reinterpret_cast<addr_t>(element) + element->len)) &&
+			     next <= last && element->id != SEL4_BOOTINFO_HEADER_PADDING;
+				 element = next)
+			{
+				if (element->id != SEL4_BOOTINFO_HEADER_X86_ACPI_RSDP)
+					continue;
+
+				struct Acpi_rsdp
+				{
+					uint64_t signature;
+					uint8_t  checksum;
+					char     oem[6];
+					uint8_t  revision;
+					uint32_t rsdt;
+					uint32_t length;
+					uint64_t xsdt;
+					uint32_t reserved;
+
+					bool valid() const {
+						const char sign[] = "RSD PTR ";
+						return signature == *(Genode::uint64_t *)sign;
+					}
+				} __attribute__((packed));
+
+				Acpi_rsdp const * rsdp = reinterpret_cast<Acpi_rsdp const *>(reinterpret_cast<addr_t>(element) + sizeof(*element));
+
+				if (rsdp->valid() && (rsdp->rsdt || rsdp->xsdt)) {
+					xml.attribute("revision", rsdp->revision);
+					if (rsdp->rsdt)
+						xml.attribute("rsdt", String<32>(Hex(rsdp->rsdt)));
+
+					if (rsdp->xsdt)
+						xml.attribute("xsdt", String<32>(Hex(rsdp->xsdt)));
+				}
 			}
 		});
 	});
@@ -494,7 +528,7 @@ Platform::Platform()
 				uint64_t const * buf = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
 
 				seL4_BenchmarkGetThreadUtilisation(tcb_sel.value());
-				uint64_t execution_time = buf[BENCHMARK_IDLE_UTILISATION];
+				uint64_t execution_time = buf[BENCHMARK_IDLE_TCBCPU_UTILISATION];
 
 				return { Session_label("kernel"), Trace::Thread_name(name),
 				         Trace::Execution_time(execution_time), affinity };
