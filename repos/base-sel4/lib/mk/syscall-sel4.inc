@@ -87,43 +87,43 @@ include/sel4/sel4_arch/types.pbf: $(LIBSEL4_DIR)/sel4_arch_include/$(SEL4_ARCH)/
 include/sel4/types_gen.h: include/sel4/types_$(SEL4_WORDBITS).pbf
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/bitfield_gen.py \
 	                 --environment libsel4 "$<" $@
 
 include/sel4/shared_types_gen.h: include/sel4/shared_types_$(SEL4_WORDBITS).pbf
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/bitfield_gen.py \
 	                 --environment libsel4 "$<" $@
 
 include/sel4/sel4_arch/types_gen.h: include/sel4/sel4_arch/types.pbf
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/bitfield_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/bitfield_gen.py \
 	                 --environment libsel4 "$<" $@
 
 include/sel4/syscall.h: $(LIBSEL4_DIR)/include/api/syscall.xml $(LIBSEL4_DIR)/include/api/syscall.xsd
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/syscall_header_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/syscall_header_gen.py \
 	                 --xml $< --libsel4_header $@
 
 include/sel4/invocation.h: $(LIBSEL4_DIR)/include/interfaces/sel4.xml
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
 	                 --xml $< --libsel4 --dest $@
 
 include/sel4/sel4_arch/invocation.h: $(LIBSEL4_DIR)/sel4_arch_include/$(SEL4_ARCH)/interfaces/sel4arch.xml
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
 	                 --xml $< --libsel4 --sel4_arch --dest $@
 
 include/sel4/arch/invocation.h: $(LIBSEL4_DIR)/arch_include/$(ARCH)/interfaces/sel4arch.xml
 	$(MSG_CONVERT)arch/$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/invocation_header_gen.py \
 	                 --xml $< --libsel4 --arch --dest $@
 
 SEL4_CLIENT_H_SRC := $(LIBSEL4_DIR)/sel4_arch_include/$(SEL4_ARCH)/interfaces/sel4arch.xml \
@@ -133,7 +133,7 @@ SEL4_CLIENT_H_SRC := $(LIBSEL4_DIR)/sel4_arch_include/$(SEL4_ARCH)/interfaces/se
 include/interfaces/sel4_client.h: $(SEL4_CLIENT_H_SRC)
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python $(LIBSEL4_DIR)/tools/syscall_stub_gen.py \
+	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/syscall_stub_gen.py \
 	                 --buffer -a $(SEL4_ARCH) --word-size $(SEL4_WORDBITS) -o $@ $(SEL4_CLIENT_H_SRC)
 
 endif
