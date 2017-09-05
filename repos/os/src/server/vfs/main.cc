@@ -515,7 +515,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				Directory_service::Stat vfs_stat;
 
 				if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK)
-					return;
+					throw Invalid_handle();
 
 				fs_stat.inode = vfs_stat.inode;
 
