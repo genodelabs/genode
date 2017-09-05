@@ -106,14 +106,34 @@ proc check_xml_syntax {xml_file} {
 
 
 ##
-# Install content of specfied variable as init config file
+# Validate file to match Genode's XML schema using xmllint
+#
+proc check_xml_with_schema {xml_file} {
+
+	if {![have_installed xmllint]} {
+		puts "Warning: Cannot validate config syntax (please install xmllint)"
+		return;
+	}
+
+	if {[catch {exec xmllint --noout -schema [genode_dir]/tool/run/genode.xsd $xml_file} result]} {
+		if {$result != "$xml_file validates"} {
+			puts stderr "$result"
+			puts stderr "Error: Invalid XML syntax in $xml_file"
+			exit 1
+		}
+	}
+}
+
+
+##
+# Install content of specified variable as init config file
 #
 proc install_config { args } {
 	set fh [open "[run_dir]/genode/config" "WRONLY CREAT TRUNC"]
 	puts $fh [join $args {}]
 	close $fh
 
-	check_xml_syntax [run_dir]/genode/config
+	check_xml_with_schema [run_dir]/genode/config
 }
 
 

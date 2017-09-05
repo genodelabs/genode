@@ -142,7 +142,7 @@ set config_of_app {
 	</start>
 
 	<start name="noux" priority="-1" caps="600">
-		<resource name="RAM" quantum="32M" caps="200"/>
+		<resource name="RAM" quantum="32M"/>
 		<config>
 			<fstab>
 				<tar name="coreutils.tar"/>

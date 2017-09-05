@@ -32,7 +32,7 @@ set build_components {
 # specified using an '<inline>' node but it is no valid XML. I.e., xmllint
 # complains about the sequence '&&'.
 #
-proc check_xml_syntax {xml_file} { }
+proc check_xml_with_schema {xml_file} { }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components

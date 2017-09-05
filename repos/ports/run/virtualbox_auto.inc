@@ -209,7 +209,7 @@ append_if [expr $use_cpu_load] config {
 		</route>
 	</start>
 
-	<start name="top" priorirty="-1">
+	<start name="top" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<config period_ms="10000"/>
 		<route>

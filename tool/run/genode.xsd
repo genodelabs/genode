@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+ <xs:complexType name="template_service">
+  <xs:choice minOccurs="1" maxOccurs="3">
+   <xs:element name="parent"/>
+   <xs:element name="any-child"/>
+   <xs:element name="child">
+    <xs:complexType>
+     <xs:attribute name="name" type="xs:string" />
+     <xs:attribute name="label" type="xs:string" />
+    </xs:complexType>
+   </xs:element>
+  </xs:choice>
+  <xs:attribute name="name" type="xs:string" />
+  <xs:attribute name="label" type="xs:string" />
+  <xs:attribute name="label_prefix" type="xs:string" />
+  <xs:attribute name="label_suffix" type="xs:string" />
+ </xs:complexType>
+
+ <xs:complexType name="template_route">
+  <xs:choice minOccurs="0" maxOccurs="unbounded">
+   <xs:element name="service" type="template_service"/>
+   <xs:element name="any-service" type="template_service"/>
+  </xs:choice>
+ </xs:complexType>
+
+ <xs:element name="config">
+  <xs:complexType>
+   <xs:choice minOccurs="0" maxOccurs="unbounded">
+
+    <xs:element name="affinity-space">
+     <xs:complexType>
+      <xs:attribute name="width" type="xs:int" />
+      <xs:attribute name="height" type="xs:int" />
+     </xs:complexType>
+    </xs:element> <!-- "affinity-space" -->
+
+    <xs:element name="parent-provides">
+     <xs:complexType>
+      <xs:sequence>
+       <xs:element name="service" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+         <xs:attribute name="name" type="xs:string" />
+        </xs:complexType>
+       </xs:element>
+      </xs:sequence>
+     </xs:complexType>
+    </xs:element> <!-- "parent-provides" -->
+
+    <xs:element name="alias">
+     <xs:complexType>
+      <xs:attribute name="name" type="xs:string" />
+      <xs:attribute name="child" type="xs:string" />
+     </xs:complexType>
+    </xs:element> <!-- "alias" -->
+
+    <xs:element name="default-route" type="template_route"/>
+
+    <xs:element name="default">
+     <xs:complexType>
+      <xs:attribute name="caps" type="xs:int" />
+     </xs:complexType>
+    </xs:element> <!-- "default" -->
+
+    <xs:element name="resource">
+     <xs:complexType>
+      <xs:attribute name="name" type="xs:string" />
+      <xs:attribute name="preserve" type="xs:string" />
+     </xs:complexType>
+    </xs:element> <!-- "resource" -->
+
+    <xs:element name="start" minOccurs="1" maxOccurs="unbounded">
+     <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+
+       <xs:element name="binary">
+        <xs:complexType>
+         <xs:attribute name="name" type="xs:string" />
+        </xs:complexType>
+       </xs:element> <!-- "binary" -->
+
+       <xs:element name="affinity">
+        <xs:complexType>
+         <xs:attribute name="xpos" type="xs:int" />
+         <xs:attribute name="ypos" type="xs:int" />
+         <xs:attribute name="width" type="xs:int" />
+         <xs:attribute name="height" type="xs:int" />
+        </xs:complexType>
+       </xs:element> <!-- "affinity" -->
+
+       <xs:element name="resource">
+        <xs:complexType>
+         <xs:attribute name="name" type="xs:string" />
+         <xs:attribute name="quantum" type="xs:string" />
+         <xs:attribute name="constrain_phys" type="xs:string" />
+        </xs:complexType>
+       </xs:element> <!-- "resource" -->
+
+       <xs:element name="configfile">
+        <xs:complexType>
+         <xs:attribute name="name" type="xs:string" />
+        </xs:complexType>
+       </xs:element> <!-- "configfile" -->
+
+       <xs:element name="provides">
+        <xs:complexType>
+         <xs:choice maxOccurs="unbounded">
+          <xs:element name="service">
+           <xs:complexType>
+            <xs:attribute name="name" type="xs:string" />
+           </xs:complexType>
+          </xs:element>
+         </xs:choice>
+        </xs:complexType>
+       </xs:element> <!-- "provides" -->
+
+       <xs:element name="route" type="template_route"/>
+
+       <xs:element name="config">
+        <xs:complexType>
+         <xs:sequence>
+          <xs:any minOccurs="0" maxOccurs="unbounded" processContents="skip" />
+         </xs:sequence>
+         <xs:anyAttribute processContents="skip"/>
+        </xs:complexType>
+       </xs:element> <!-- "config" -->
+
+      </xs:choice>
+      <xs:attribute name="name" type="xs:string" />
+      <xs:attribute name="caps" type="xs:int" />
+      <xs:attribute name="priority" type="xs:int" />
+     </xs:complexType>
+    </xs:element> <!-- "start" -->
+
+   </xs:choice>
+   <xs:attribute name="prio_levels" type="xs:int" />
+   <xs:attribute name="verbose" type="xs:string" />
+  </xs:complexType>
+ </xs:element> <!-- "config" -->
+</xs:schema>
