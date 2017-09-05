@@ -59,5 +59,6 @@ HOST_TOOLS += $(BUILD_BASE_DIR)/tool/okl4/elfweaver
 
 $(BUILD_BASE_DIR)/tool/okl4/elfweaver:
 	mkdir -p $(dir $@)
-	ln -sf $(OKL4_DIR)/tools/pyelf/elfweaver $@
+	cp -a $(OKL4_DIR)/tools/pyelf $(dir $@)/
+	ln -sf pyelf/elfweaver $@
 
