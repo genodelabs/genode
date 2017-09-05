@@ -4,7 +4,7 @@
 -- \date   2009-09-23
 --
 
-with test_package;
+with add_package;
 
 --
 -- Main program
@@ -16,13 +16,10 @@ procedure main is
 	--
 	-- Declarations of external C functions
 	--
-	procedure ext_c_add(a, b : Integer; result : out Integer);
-	pragma import(C, ext_c_add, "add");
-
 	procedure ext_c_print_int(a : Integer);
 	pragma import(C, ext_c_print_int, "print_int");
 
 begin
-	ext_c_add(13, 14, result);
+        add_package.Add(13, 14, result);
 	ext_c_print_int(result);
 end main;
