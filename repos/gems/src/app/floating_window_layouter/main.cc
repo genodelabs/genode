@@ -384,7 +384,7 @@ void Floating_window_layouter::Main::import_window_list(Xml_node window_list_xml
 					Session_policy const policy(label, config.xml());
 
 					if (policy.has_attribute("xpos") && policy.has_attribute("ypos"))
-						initial_position = point_attribute(node);
+						initial_position = point_attribute(policy);
 
 					win->maximized(policy.attribute_value("maximized", false));
 
