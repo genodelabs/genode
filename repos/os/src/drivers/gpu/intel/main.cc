@@ -1493,12 +1493,16 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		Genode::Dataspace_capability alloc_buffer(Genode::size_t size) override
 		{
 			/*
-			 * XXX size might not be page aligned, allocator overhead is not
+			 * XXX allocator overhead is not
 			 *     included, mapping costs are not included and we throw at
 			 *     different locations...
 			 *
 			 *     => better construct Buffer object as whole
 			 */
+
+			/* roundup to next page size and add guarding page */
+			size = ((size + 0xffful) & ~0xffful) + 0x1000;
+
 			Genode::size_t const need = size + sizeof(Genode::Registered<Buffer>);
 			Genode::size_t const avail = _guard.quota() - _guard.consumed();
 			if (need > avail) { throw Gpu::Session_component::Out_of_ram(); }
