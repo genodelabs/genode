@@ -12,6 +12,7 @@
  * Declaration of the Ada main procedure
  */
 extern "C" void _ada_main(void);
+extern "C" void add_package__add(int, int, int*);
 
 /**
  * Make the linker happy
@@ -19,6 +20,11 @@ extern "C" void _ada_main(void);
 extern "C" void __gnat_eh_personality()
 {
 	Genode::warning(__func__, " not implemented");
+}
+
+extern "C" void __gnat_rcheck_CE_Overflow_Check()
+{
+    Genode::warning(__func__, " not implemented");
 }
 
 /**
