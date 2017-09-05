@@ -4,7 +4,7 @@ DOWNLOADS      := pistachio.git
 URL(pistachio) := https://github.com/l4ka/pistachio.git
 REV(pistachio) := 76bac3d926dc707c6a3243b38c1505d2b5b6537b
 DIR(pistachio) := src/kernel/pistachio
-PATCHES        := $(shell find $(REP_DIR)/patches -name *.patch)
+PATCHES        := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
 PATCH_OPT      := -p1 -d src/kernel/pistachio
 
 $(call check_tool,git)
@@ -31,4 +31,4 @@ additional_steps : $(DOWNLOADS)
 	$(VERBOSE)sed -i "s/-melf_/-Wl,-melf_/" `grep -rl melf_ src/kernel/pistachio/user`
 	$(VERBOSE)for i in cmlcompile.py cmlconfigure.py configtrans.py; do \
 	        sed -i "s/env python/env $(PYTHON2)/" src/kernel/pistachio/contrib/cml2/$$i; done
-	$(VERBOSE)cd src/kernel/pistachio/user; autoheader; autoconf;
+	$(VERBOSE)cd src/kernel/pistachio/user; autoheader; autoconf; rm -rf autom4te.cache
