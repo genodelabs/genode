@@ -65,6 +65,7 @@ struct Gpu::Session : public Genode::Session
 	struct Out_of_ram    : Genode::Exception { };
 	struct Out_of_caps   : Genode::Exception { };
 	struct Invalid_state : Genode::Exception { };
+	struct Mapping_buffer_failed  : Genode::Exception { };
 
 	enum { REQUIRED_QUOTA = 1024 * 1024, CAP_QUOTA = 8, };
 
@@ -124,6 +125,8 @@ struct Gpu::Session : public Genode::Session
 	 * \param ds        dataspace capability for buffer
 	 * \param aperture  if true create CPU accessible mapping through
 	 *                  GGTT window, otherwise create PPGTT mapping
+	 *
+	 * \throw Mapping_buffer_failed
 	 */
 	virtual Genode::Dataspace_capability map_buffer(Genode::Dataspace_capability ds,
 	                                                bool aperture) = 0;
@@ -140,6 +143,9 @@ struct Gpu::Session : public Genode::Session
 	 *
 	 * \param ds  dataspace capability for buffer
 	 * \param va  virtual address
+	 *
+	 * \throw Mapping_buffer_failed
+	 * \throw Out_of_ram
 	 */
 	virtual bool map_buffer_ppgtt(Genode::Dataspace_capability ds,
 	                              Gpu::addr_t va) = 0;
@@ -174,12 +180,12 @@ struct Gpu::Session : public Genode::Session
 	                 Genode::size_t);
 	GENODE_RPC(Rpc_free_buffer, void, free_buffer, Genode::Dataspace_capability);
 	GENODE_RPC_THROW(Rpc_map_buffer, Genode::Dataspace_capability, map_buffer,
-	                 GENODE_TYPE_LIST(Out_of_ram),
+	                 GENODE_TYPE_LIST(Mapping_buffer_failed, Out_of_ram),
 	                 Genode::Dataspace_capability, bool);
 	GENODE_RPC(Rpc_unmap_buffer, void, unmap_buffer,
 	           Genode::Dataspace_capability);
 	GENODE_RPC_THROW(Rpc_map_buffer_ppgtt, bool, map_buffer_ppgtt,
-	                 GENODE_TYPE_LIST(Out_of_ram),
+	                 GENODE_TYPE_LIST(Mapping_buffer_failed, Out_of_ram),
 	                 Genode::Dataspace_capability, Gpu::addr_t);
 	GENODE_RPC(Rpc_unmap_buffer_ppgtt, void, unmap_buffer_ppgtt,
 	           Genode::Dataspace_capability, Gpu::addr_t);

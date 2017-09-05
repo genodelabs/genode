@@ -30,7 +30,8 @@ struct Gpu::Connection : Genode::Connection<Session>, Session_client
 	Genode::Capability<Gpu::Session> _session(Genode::Parent &parent,
 	                                          char const *label, Genode::size_t quota)
 	{
-		return session(parent, "ram_quota=%ld, label=\"%s\"", quota, label);
+		return session(parent, "ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
+		               quota, CAP_QUOTA, label);
 	}
 
 	/**
