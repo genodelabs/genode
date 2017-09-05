@@ -182,7 +182,7 @@ class Pdf_view
 
 		void handle_key(int ascii)
 		{
-			pdfapp_onkey(&_pdfapp, ascii);
+			Libc::with_libc([&] () { pdfapp_onkey(&_pdfapp, ascii); });
 		}
 };
 
@@ -329,4 +329,7 @@ struct Main
 };
 
 
-void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
+void Libc::Component::construct(Libc::Env &env)
+{
+	Libc::with_libc([&] () { static Main main(env); });
+}
