@@ -109,7 +109,7 @@ NIM_ARGS += $(NIM_OPT)
 	$(MSG_BUILD)$(basename $@).cpp
 	$(VERBOSE) rm -f stdlib_*.cpp
 	$(VERBOSE)$(NIM) compileToCpp $(NIM_ARGS) $<
-	$(VERBOSE)$(JQ) --raw-output '"SRC_O_NIM +=" + (.link | join(" ")) +"\n" + (.compile | map((.[0] | sub("cpp$$";"o: ")) + .[0] + "\n\t"+(.[1] | sub("^g\\++";"$$(MSG_COMP)$$@\n\t$$(VERBOSE)$$(NIM_CC)"))) | join("\n"))'  < $(basename $(basename $@)).json > $@
+	$(VERBOSE)$(JQ) --raw-output '"SRC_O_NIM +=" + (.link | join(" ")) +"\n" + (.compile | map((.[0] | sub("cpp$$";"o: ") | sub("c$$";"o: ")) + .[0] + "\n\t"+(.[1] | sub("^g\\++";"$$(MSG_COMP)$$@\n\t$$(VERBOSE)$$(NIM_CC)"))) | join("\n"))'  < $(basename $(basename $@)).json > $@
 
 NIM_CC := $(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -D__GENODE__
 
