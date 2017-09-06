@@ -9,8 +9,15 @@ ifeq ($(called_from_lib_mk),yes)
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/framebuffer/intel
 LX_EMUL_H      := $(REP_DIR)/src/drivers/framebuffer/intel/include/lx_emul.h
 
-GEN_INCLUDES := $(shell grep -rIh "^\#include .*" $(LX_CONTRIB_DIR) |\
-                        sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | sort | uniq)
+#
+# Determine the header files included by the contrib code. For each
+# of these header files we create a symlink to 'lx_emul.h'.
+#
+SCAN_DIRS := $(addprefix $(LX_CONTRIB_DIR)/include/, drm uapi asm-generic video linux) \
+             $(addprefix $(LX_CONTRIB_DIR)/, drivers lib arch/x86)
+GEN_INCLUDES := $(shell grep -rIh "^\#include .*" $(SCAN_DIRS) |\
+                        sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" |\
+                        sort | uniq)
 
 #
 # Put Linux headers in 'GEN_INC' dir, since some include use "../../" paths use
