@@ -1,130 +1,90 @@
-#
-# Uncomment the following line when working on the VIM source code. Otherwise,
-# VIM may get recompiled, yet it does not get reinstalled into 'bin/vim'.
-#
-#exec rm -rf noux-pkg/vim bin/vim
-
-set build_components {
-	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/input
-	server/terminal
-}
-lappend build_components noux-pkg/vim
-lappend build_components test/libports/ncurses
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
 
-append config {
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="50"/>
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start> }
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/src/init \
+                  genodelabs/src/libc \
+                  genodelabs/src/noux \
+                  genodelabs/src/terminal \
+                  genodelabs/src/posix \
+                  genodelabs/src/ncurses \
+                  genodelabs/src/vim
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
- 
-append_platform_drv_config
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
 
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
 
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
+	<default caps="100"/>
+
+	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start> }
+		<provides><service name="Timer"/></provides>
+	</start>
 
-append config {
-		<start name="terminal">
-			<resource name="RAM" quantum="2M"/>
-			<provides><service name="Terminal"/></provides>
-			<config>
-				<keyboard layout="de"/>
-			</config>
-		</start>
-		<start name="noux">
-			<resource name="RAM" quantum="1G"/>
-			<config>
-				<fstab> <tar name="vim.tar" /> </fstab>
-				<start name="/bin/vim">
-					<env name="TERM" value="linux" />
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
 
-					<!-- Deactivate the loading of plugins. Otherwise, vim will
-					     attempt to use a sub shell for pattern matching -->
-					<arg value="--noplugin" />
+	<start name="terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<config> <keyboard layout="none"/> </config>
+	</start>
 
-					<!-- Do not use swap file. Any attempt to create of would
-					     fail because we are on a read-only file system -->
-					<arg value="-n" />
+	<start name="noux" caps="1000">
+		<resource name="RAM" quantum="1G"/>
+		<config>
+			<fstab> <tar name="vim.tar" /> </fstab>
+			<start name="/bin/vim">
+				<env name="TERM" value="linux" />
 
-					<!-- Use the nocompatible mode, which is much nicer than
-					     the plain vi mode -->
-					<arg value="-N" />
+				<!-- Deactivate the loading of plugins. Otherwise, vim will
+				     attempt to use a sub shell for pattern matching -->
+				<arg value="--noplugin" />
 
-					<!-- Permanently display status bar -->
-					<arg value="--cmd" />
-					<arg value="set laststatus=2" />
+				<!-- Do not use swap file. Any attempt to create of would
+				     fail because we are on a read-only file system -->
+				<arg value="-n" />
 
-					<!-- Enable highlighted search results -->
-					<arg value="--cmd" />
-					<arg value="set hls" />
+				<!-- Use the nocompatible mode, which is much nicer than
+				     the plain vi mode -->
+				<arg value="-N" />
 
-				</start>
-			</config>
-		</start>
-	</config>
-}
+				<!-- Permanently display status bar -->
+				<arg value="--cmd" />
+				<arg value="set laststatus=2" />
 
-install_config $config
+				<!-- Enable highlighted search results -->
+				<arg value="--cmd" />
+				<arg value="set hls" />
 
+			</start>
+		</config>
+	</start>
+</config>}
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core init timer ld.lib.so noux terminal
-	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so posix.lib.so
-	vim.tar
-}
-
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { }
 
 run_genode_until forever
