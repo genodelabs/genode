@@ -795,21 +795,11 @@ class Igd::Mmio : public Genode::Mmio
 		 * IHD-OS-BDW-Vol 6-11.15 p. 19 ff.
 		 */
 		enum {
-			CTXT_ST_BUF_QW_NUM = 8,
 			CTXT_ST_BUF_NUM    = 6,
+			CTXT_ST_BUF_DWORDS = 12,
 		};
 		template <long int BASE>
-		struct CTXT_ST_BUF_BASE : Register_array<BASE + 0x370, 64, CTXT_ST_BUF_NUM, 64>
-		{
-			using B = Register_array<BASE + 0x370, 64, CTXT_ST_BUF_NUM, 64>;
-
-			/*
-			 * Judging by the documentation it seems that one context status
-			 * buffer in fact contains the same DWORD twice.
-			 */
-			struct Context_status_udw : B::template Bitfield<32, 32> { };
-			struct Context_status_ldw : B::template Bitfield< 0, 32> { };
-		};
+		struct CTXT_ST_BUF_BASE : Register_array<BASE + 0x370, 32, CTXT_ST_BUF_DWORDS, 32> { };
 
 		struct CTXT_ST_BUF_RCSUNIT : CTXT_ST_BUF_BASE<0x2000> { };
 
@@ -1232,15 +1222,6 @@ class Igd::Mmio : public Genode::Mmio
 			RCS_RING_CONTEXT_STATUS_PTR::Read_pointer::set(v, wp);
 			write<RCS_RING_CONTEXT_STATUS_PTR>(v);
 		}
-
-		bool csb_unread()
-		{
-			RCS_RING_CONTEXT_STATUS_PTR::access_t const r = read<RCS_RING_CONTEXT_STATUS_PTR::Read_pointer>();
-			RCS_RING_CONTEXT_STATUS_PTR::access_t const w = read<RCS_RING_CONTEXT_STATUS_PTR::Write_pointer>();
-
-			return (r != w) && (r + 1) % CTXT_ST_BUF_NUM <= w; /* XXX */
-		}
-
 
 		uint32_t find_free_fence()
 		{

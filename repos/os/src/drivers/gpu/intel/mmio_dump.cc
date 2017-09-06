@@ -305,16 +305,20 @@ void Igd::Mmio::context_status_pointer_dump()
 
 	uint32_t r = rp;
 	uint32_t w = wp;
-	if (r > w) { w += CTXT_ST_BUF_NUM; }
-	while (r < w) {
-		uint32_t const i = ++r % CTXT_ST_BUF_NUM;
 
-		uint64_t const cs  = read<CTXT_ST_BUF_RCSUNIT>(i);
-		uint32_t const csu = read<CTXT_ST_BUF_RCSUNIT::Context_status_udw>(i);
-		uint32_t const csl = read<CTXT_ST_BUF_RCSUNIT::Context_status_ldw>(i);
+	while (r != w) {
+
+		if (++r == CTXT_ST_BUF_NUM) { r = 0; }
+
+		uint32_t const i = r;
+
+		uint32_t const csu = read<CTXT_ST_BUF_RCSUNIT>(i*2+1);
+		uint32_t const csl = read<CTXT_ST_BUF_RCSUNIT>(i*2);
+		uint64_t const cs  = ((uint64_t)csu << 32) | csl;
+
 		log(i, "  Context_status:     ", Hex(cs));
 
-		Igd::Context_status_qword::access_t const v = csl;
+		Igd::Context_status_qword::access_t const v = cs;
 		log(i, "    Context_complete:  ", Igd::Context_status_qword::Context_complete::get(v));
 		log(i, "    Active_to_idle:    ", Igd::Context_status_qword::Active_to_idle::get(v));
 		log(i, "    Element_switch:    ", Igd::Context_status_qword::Element_switch::get(v));

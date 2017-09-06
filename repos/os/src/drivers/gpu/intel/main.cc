@@ -662,6 +662,12 @@ struct Igd::Device
 			/* save old tail */
 			Ring_buffer::Index const tail = el.ring_tail();
 
+			/*
+			 * IHD-OS-BDW-Vol 7-11.15 p. 18 ff.
+			 *
+			 * Pipeline synchronization
+			 */
+
 			/* prolog */
 			if (1)
 			{
@@ -768,7 +774,8 @@ struct Igd::Device
 			/* w/a */
 			if (1)
 			{
-				for (size_t i = 0; i < 2; i++) {
+				enum { CMD_NUM = 2, };
+				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(0);
 				}
 			}
@@ -918,16 +925,13 @@ struct Igd::Device
 		(void)ctx_switch;
 		bool const user_complete = Mmio::GT_0_INTERRUPT_IIR::Cs_mi_user_interrupt::get(v);
 
+		if (v) { _clear_rcs_iir(v); }
+
 		Vgpu *notify_gpu = nullptr;
 		if (user_complete) { notify_gpu = _current_vgpu(); }
 
-		if (v) { _clear_rcs_iir(v); }
-
 		bool const fault_valid = _mmio->fault_regs_valid();
 		if (fault_valid) { Genode::error("FAULT_REG valid"); }
-
-		bool const csb = _mmio->csb_unread();
-		(void)csb;
 
 		_mmio->update_context_status_pointer();
 
@@ -1089,6 +1093,7 @@ struct Igd::Device
 		_irq->ack_irq();
 
 		_mmio->dump();
+		_mmio->context_status_pointer_dump();
 
 		_timer.sigh(_watchdog_timeout_sigh);
 	}
@@ -1535,7 +1540,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		{
 			if (!cap.valid()) { return false; }
 
-			bool result = false;
+			enum { ALLOC_FAILED, MAP_FAILED, OK } result = ALLOC_FAILED;
+
 			auto lookup_and_map = [&] (Buffer &buffer) {
 				if (!(buffer.cap == cap)) { return; }
 
@@ -1552,10 +1558,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					_vgpu.rcs_map_ppgtt(va, phys_addr, actual_size);
 					buffer.ppgtt_va = va;
 					buffer.ppgtt_va_valid = true;
-					result = true;
+					result = OK;
 				} catch (Igd::Device::Could_not_map_buffer) {
 					/* FIXME do not result in Out_of_ram */
 					Genode::error("could not map buffer object into PPGTT");
+					result = MAP_FAILED;
 					return;
 				}
 				/* will throw below */
@@ -1563,9 +1570,14 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			};
 			_buffer_registry.for_each(lookup_and_map);
 
-			if (!result) { throw Gpu::Session::Out_of_ram(); }
-
-			return result;
+			switch (result) {
+			case ALLOC_FAILED:
+				throw Gpu::Session::Out_of_ram();
+			case OK:
+				return true;
+			default:
+				return false;
+			}
 		}
 
 		void unmap_buffer_ppgtt(Genode::Dataspace_capability cap,

@@ -35,7 +35,7 @@ namespace Utils {
 
 	template <unsigned int ELEMENTS> class Address_map;
 
-	void clflush(volatile void *addr)
+	inline void clflush(volatile void *addr)
 	{
 		asm volatile("clflush %0" : "+m" (*(volatile char *)addr));
 	}
