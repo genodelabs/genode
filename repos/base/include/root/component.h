@@ -142,12 +142,8 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 
 			size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
 
-			if (needed > ram_quota.value) {
-				warning("insufficient ram quota "
-				        "for ", SESSION_TYPE::service_name(), " session, "
-				        "provided=", ram_quota, ", required=", needed);
+			if (needed > ram_quota.value)
 				throw Insufficient_ram_quota();
-			}
 
 			Ram_quota const remaining_ram_quota { ram_quota.value - needed };
 
