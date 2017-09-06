@@ -1,0 +1,386 @@
+BC B 8
+COLORS B 4
+COLOR_PAIRS B 4
+COLS B 4
+ESCDELAY D 4
+LINES B 4
+PC B 1
+SP B 8
+TABSIZE D 4
+UP B 8
+_nc_access T
+_nc_add_to_try T
+_nc_align_termtype T
+_nc_basename T
+_nc_baudrate T
+_nc_capcmp T
+_nc_captoinfo T
+_nc_check_termtype D 8
+_nc_check_termtype2 D 8
+_nc_comment_end B 8
+_nc_comment_start B 8
+_nc_copy_entry T
+_nc_copy_termtype T
+_nc_curr_col B 4
+_nc_curr_file_pos B 8
+_nc_curr_line B 4
+_nc_curr_token B 24
+_nc_delink_entry T
+_nc_disable_period B 1
+_nc_do_color T
+_nc_doalloc T
+_nc_entry_match T
+_nc_err_abort T
+_nc_expand_try T
+_nc_fallback T
+_nc_find_entry T
+_nc_find_type_entry T
+_nc_first_db T
+_nc_first_name T
+_nc_flush T
+_nc_format_slks T
+_nc_free_and_exit T
+_nc_free_entries T
+_nc_free_entry T
+_nc_free_termtype T
+_nc_freeall T
+_nc_freewin T
+_nc_get_alias_table T
+_nc_get_hash_info T
+_nc_get_hash_table T
+_nc_get_locale T
+_nc_get_screensize T
+_nc_get_source T
+_nc_get_table T
+_nc_get_token T
+_nc_get_tty_mode T
+_nc_get_type T
+_nc_getenv_num T
+_nc_globals D 312
+_nc_handle_sigwinch T
+_nc_has_mouse T
+_nc_hash_map T
+_nc_hashed_db T
+_nc_head B 8
+_nc_home_terminfo T
+_nc_infotocap T
+_nc_init_acs T
+_nc_init_entry T
+_nc_init_keytry T
+_nc_insert_ch T
+_nc_is_abs_path T
+_nc_is_dir_path T
+_nc_is_file_path T
+_nc_keep_tic_dir T
+_nc_keypad T
+_nc_last_db T
+_nc_leaks_tinfo T
+_nc_locale_breaks_acs T
+_nc_make_oldhash T
+_nc_makenew T
+_nc_memmove T
+_nc_merge_entry T
+_nc_msec_cost T
+_nc_mvcur_init T
+_nc_mvcur_resume T
+_nc_mvcur_wrap T
+_nc_name_match T
+_nc_next_db T
+_nc_nulls_sent B 4
+_nc_oldnums B 8
+_nc_ospeed T
+_nc_outch T
+_nc_panelhook T
+_nc_panic_mode T
+_nc_parse_entry T
+_nc_pathlast T
+_nc_prescreen D 752
+_nc_printf_string T
+_nc_push_token T
+_nc_putp T
+_nc_putp_flush T
+_nc_read_entry T
+_nc_read_entry_source T
+_nc_read_file_entry T
+_nc_read_termcap T
+_nc_read_termtype T
+_nc_remove_key T
+_nc_remove_string T
+_nc_render T
+_nc_reset_colors T
+_nc_reset_input T
+_nc_resolve_uses T
+_nc_resolve_uses2 T
+_nc_ripoffline T
+_nc_rootname T
+_nc_safe_strcat T
+_nc_safe_strcpy T
+_nc_save_str T
+_nc_screen_chain B 8
+_nc_screen_init T
+_nc_screen_of T
+_nc_screen_resume T
+_nc_screen_wrap T
+_nc_scroll_oldhash T
+_nc_scroll_optimize T
+_nc_scroll_window T
+_nc_scrolln T
+_nc_set_buffer T
+_nc_set_no_padding T
+_nc_set_source T
+_nc_set_tty_mode T
+_nc_set_type T
+_nc_set_writedir T
+_nc_setup_tinfo T
+_nc_setupscreen T
+_nc_setupterm T
+_nc_signal_handler T
+_nc_slk_initialize T
+_nc_start_line B 8
+_nc_str_copy T
+_nc_str_init T
+_nc_str_null T
+_nc_suppress_warnings B 1
+_nc_synchook T
+_nc_syntax B 4
+_nc_syserr_abort T
+_nc_tail B 8
+_nc_tic_dir T
+_nc_tic_expand T
+_nc_tic_written T
+_nc_timed_wait T
+_nc_tinfo_cmdch T
+_nc_tinfo_fkeys R
+_nc_tparm_analyze T
+_nc_tparm_err B 4
+_nc_tracing B 4
+_nc_trans_string T
+_nc_trim_sgr0 T
+_nc_unctrl T
+_nc_ungetch T
+_nc_unicode_locale T
+_nc_update_screensize T
+_nc_user_definable D 1
+_nc_varargs T
+_nc_visbuf T
+_nc_visbuf2 T
+_nc_visbufn T
+_nc_vsscanf T
+_nc_waddch_nosync T
+_nc_warning T
+_nc_wgetch T
+_nc_wrap_entry T
+_nc_write_entry T
+_parent_cap D 0
+_parent_cap_local_name D 0
+_parent_cap_thread_id D 0
+acs_map B 1024
+assume_default_colors T
+baudrate T
+beep T
+boolcodes D 360
+boolfnames D 360
+boolnames D 360
+can_change_color T
+cbreak T
+clearok T
+color_content T
+copywin T
+cur_term B 8
+curs_set T
+curscr B 8
+curses_version T
+def_prog_mode T
+def_shell_mode T
+define_key T
+del_curterm T
+delay_output T
+delscreen T
+delwin T
+derwin T
+doupdate T
+dupwin T
+echo T
+endwin T
+erasechar T
+filter T
+flash T
+flushinp T
+get_escdelay T
+getmouse T
+getwin T
+halfdelay T
+has_colors T
+has_ic T
+has_il T
+has_key T
+has_mouse T
+idcok T
+idlok T
+immedok T
+init_color T
+init_pair T
+initscr T
+intrflush T
+is_linetouched T
+is_term_resized T
+is_wintouched T
+isendwin T
+key_defined T
+keybound T
+keyok T
+keypad T
+killchar T
+leaveok T
+longname T
+mcprint T
+meta T
+mouseinterval T
+mousemask T
+mvcur T
+mvderwin T
+mvprintw T
+mvscanw T
+mvwin T
+mvwprintw T
+mvwscanw T
+napms T
+newpad T
+newscr B 8
+newterm T
+newwin T
+nl T
+nocbreak T
+nodelay T
+noecho T
+nofilter T
+nonl T
+noqiflush T
+noraw T
+notimeout T
+numcodes D 320
+numfnames D 320
+numnames D 320
+ospeed B 2
+overlay T
+overwrite T
+pair_content T
+pechochar T
+pnoutrefresh T
+prefresh T
+printw T
+putp T
+putwin T
+qiflush T
+raw T
+reset_prog_mode T
+reset_shell_mode T
+resetty T
+resize_term T
+resizeterm T
+restartterm T
+ripoffline T
+savetty T
+scanw T
+scr_dump T
+scr_init T
+scr_restore T
+scr_set T
+scrollok T
+set_curterm T
+set_escdelay T
+set_tabsize T
+set_term T
+setupterm T
+slk_attr T
+slk_attr_set T
+slk_attroff T
+slk_attron T
+slk_attrset T
+slk_clear T
+slk_color T
+slk_init T
+slk_label T
+slk_noutrefresh T
+slk_refresh T
+slk_restore T
+slk_set T
+slk_touch T
+start_color T
+stdscr B 8
+strcodes D 3320
+strfnames D 3320
+strnames D 3320
+subpad T
+subwin T
+syncok T
+termattrs T
+termname T
+tgetent T
+tgetflag T
+tgetnum T
+tgetstr T
+tgoto T
+tigetflag T
+tigetnum T
+tigetstr T
+tiparm T
+tparm T
+tputs T
+ttytype B 256
+typeahead T
+unctrl T
+ungetch T
+ungetmouse T
+use_default_colors T
+use_env T
+use_extended_names T
+use_legacy_coding T
+use_screen T
+use_window T
+vidattr T
+vidputs T
+vwprintw T
+vwscanw T
+waddch T
+waddchnstr T
+waddnstr T
+wattr_off T
+wattr_on T
+wbkgd T
+wbkgdset T
+wborder T
+wchgat T
+wclear T
+wclrtobot T
+wclrtoeol T
+wcolor_set T
+wcursyncup T
+wdelch T
+wechochar T
+wenclose T
+werase T
+wgetch T
+wgetnstr T
+whline T
+winch T
+winchnstr T
+winnstr T
+winsch T
+winsdelln T
+winsnstr T
+wmouse_trafo T
+wmove T
+wnoutrefresh T
+wprintw T
+wredrawln T
+wrefresh T
+wresize T
+wscanw T
+wscrl T
+wsetscrreg T
+wsyncdown T
+wsyncup T
+wtimeout T
+wtouchln T
+wvline T
