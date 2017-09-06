@@ -39,7 +39,7 @@ class Genode::Core_env : public Env_deprecated
 {
 	private:
 
-		enum { ENTRYPOINT_STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
+		enum { ENTRYPOINT_STACK_SIZE = 20 * 1024 };
 
 		/*
 		 * Initialize the stack area before creating the first thread,
