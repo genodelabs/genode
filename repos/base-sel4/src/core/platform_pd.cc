@@ -251,4 +251,7 @@ Platform_pd::~Platform_pd()
 
 	_cspace_cnode_1st.destruct(*platform()->ram_alloc(), true);
 	platform_specific()->core_sel_alloc().free(_cspace_cnode_1st.sel());
+
+	_deinit_page_directory(_page_directory);
+	platform_specific()->core_sel_alloc().free(_page_directory_sel);
 }

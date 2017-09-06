@@ -37,8 +37,7 @@ class Genode::Platform_pd : public Address_space
 		Page_table_registry _page_table_registry;
 
 		Cap_sel const _page_directory_sel;
-		addr_t        _init_page_directory();
-		addr_t  const _page_directory = _init_page_directory();
+		addr_t  const _page_directory;
 
 		Vm_space _vm_space;
 
@@ -63,6 +62,9 @@ class Genode::Platform_pd : public Address_space
 
 		Cap_sel alloc_sel();
 		void free_sel(Cap_sel sel);
+
+		addr_t _init_page_directory() const;
+		void   _deinit_page_directory(addr_t) const;
 
 	public:
 
