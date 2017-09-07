@@ -395,10 +395,10 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t sc_ctrl(unsigned sc, unsigned long long &time)
+	inline uint8_t sc_ctrl(unsigned sc, unsigned long long &time, uint8_t op = 0)
 	{
 		mword_t time_h = 0, time_l = 0;
-		uint8_t res = syscall_5(NOVA_SC_CTRL, 0, sc, time_h, time_l);
+		uint8_t res = syscall_5(NOVA_SC_CTRL, op, sc, time_h, time_l);
 		time = time_h;
 		time = (time << 32ULL) | time_l;
 		return res;

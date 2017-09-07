@@ -756,12 +756,13 @@ Platform::Platform() :
 		if (!hip->is_cpu_enabled(kernel_cpu_id))
 			continue;
 
-		struct Idle_trace_source : public  Trace::Source::Info_accessor,
-		                           private Trace::Control,
-		                           private Trace::Source
+		struct Trace_source : public  Trace::Source::Info_accessor,
+		                      private Trace::Control,
+		                      private Trace::Source
 		{
 			Affinity::Location const affinity;
 			unsigned           const sc_sel;
+			Genode::String<8>  const name;
 
 			/**
 			 * Trace::Source::Info_accessor interface
@@ -770,29 +771,42 @@ Platform::Platform() :
 			{
 				uint64_t sc_time = 0;
 
-				uint8_t res = Nova::sc_ctrl(sc_sel, sc_time);
-				if (res != Nova::NOVA_OK)
-					warning("sc_ctrl on idle SC cap, res=", res);
+				enum SYSCALL_OP { IDLE_SC = 0, CROSS_SC = 1 };
+				uint8_t syscall_op = (name == "cross") ? CROSS_SC : IDLE_SC;
 
-				return { Session_label("kernel"), Trace::Thread_name("idle"),
+				uint8_t res = Nova::sc_ctrl(sc_sel, sc_time, syscall_op);
+				if (res != Nova::NOVA_OK)
+					warning("sc_ctrl on idle SC cap, op=", syscall_op,
+				            ", res=", res);
+
+				return { Session_label("kernel"), Trace::Thread_name(name),
 				         Trace::Execution_time(sc_time), affinity };
 			}
 
-			Idle_trace_source(Trace::Source_registry &registry,
-			                  Affinity::Location affinity, unsigned sc_sel)
+			Trace_source(Trace::Source_registry &registry,
+			             Affinity::Location const affinity,
+			             unsigned const sc_sel,
+			             char const * type_name)
 			:
 				Trace::Control(),
-				Trace::Source(*this, *this), affinity(affinity), sc_sel(sc_sel)
+				Trace::Source(*this, *this), affinity(affinity),
+				sc_sel(sc_sel), name(type_name)
 			{
 				registry.insert(this);
 			}
 		};
 
-		new (core_mem_alloc())
-			Idle_trace_source(Trace::sources(),
-			                  Affinity::Location(genode_cpu_id, 0,
-			                                     _cpus.width(), 1),
-			                  sc_idle_base + kernel_cpu_id);
+		new (core_mem_alloc()) Trace_source(Trace::sources(),
+		                                    Affinity::Location(genode_cpu_id, 0,
+		                                                       _cpus.width(), 1),
+		                                    sc_idle_base + kernel_cpu_id,
+		                                    "idle");
+
+		new (core_mem_alloc()) Trace_source(Trace::sources(),
+		                                    Affinity::Location(genode_cpu_id, 0,
+		                                                       _cpus.width(), 1),
+		                                    sc_idle_base + kernel_cpu_id,
+		                                    "cross");
 	}
 
 	/* add echo thread and EC root thread to trace sources */
