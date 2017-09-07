@@ -67,7 +67,7 @@ class Open_file
 
 		Open_file(const char *filename) : _fd(-1)
 		{
-			_fd = ::open(filename, O_CREAT|O_RDWR);
+			Libc::with_libc([&] () { _fd = ::open(filename, O_CREAT|O_RDWR); });
 			if (_fd == -1)
 				::perror("open");
 		}
@@ -188,10 +188,13 @@ namespace Terminal {
 				/* sanitize argument */
 				num_bytes = Genode::min(num_bytes, _io_buffer.size());
 
-				/* write data to descriptor */
-				ssize_t written_bytes = ::write(fd(),
-				                                _io_buffer.local_addr<char>(),
-				                                num_bytes);
+				ssize_t written_bytes = 0;
+				Libc::with_libc([&] () {
+					/* write data to descriptor */
+					written_bytes = ::write(fd(),
+					                        _io_buffer.local_addr<char>(),
+					                        num_bytes);
+				});
 
 				if (written_bytes < 0) {
 					Genode::error("write error, dropping data");
@@ -297,4 +300,7 @@ struct Main
 };
 
 
-void Libc::Component::construct(Libc::Env &env) { static Main main(env); }
+void Libc::Component::construct(Libc::Env &env)
+{
+	Libc::with_libc([&] () { static Main main(env); });
+}
