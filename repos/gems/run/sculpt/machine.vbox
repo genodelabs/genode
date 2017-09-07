@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<VirtualBox xmlns="http://www.virtualbox.org/" version="1.14-freebsd">
+  <Machine uuid="{37ab43a5-38d8-4491-93f5-5b0b077f5c32}" name="ubuntu_16_04_64" OSType="Ubuntu_64" snapshotFolder="Snapshots" lastStateChange="2018-01-23T18:40:00Z">
+    <MediaRegistry>
+      <HardDisks>
+        <HardDisk uuid="{a90a16bf-f724-4321-99df-5498d6e4b796}" location="machine.vdi" format="VDI" type="Normal"/>
+      </HardDisks>
+      <DVDImages>
+        <Image uuid="{81763434-9a51-49e8-9444-528a5a28c4bc}" location="installer.iso"/>
+      </DVDImages>
+    </MediaRegistry>
+    <Hardware>
+      <CPU count="2">
+        <PAE enabled="true"/>
+        <LongMode enabled="true"/>
+        <HardwareVirtExLargePages enabled="false"/>
+      </CPU>
+      <Memory RAMSize="4096"/>
+      <HID Pointing="USBTablet"/>
+      <Display VRAMSize="20"/>
+      <RemoteDisplay enabled="false"/>
+      <BIOS>
+        <IOAPIC enabled="true"/>
+      </BIOS>
+      <USB>
+        <Controllers>
+          <Controller name="OHCI" type="OHCI"/>
+        </Controllers>
+      </USB>
+      <Network>
+        <Adapter slot="0" enabled="true" MACAddress="0800271D7901" cable="true" type="82540EM">
+          <BridgedInterface/>
+        </Adapter>
+      </Network>
+      <UART>
+        <Port slot="0" enabled="false" IOBase="0x3f8" IRQ="4" hostMode="Disconnected"/>
+        <Port slot="1" enabled="false" IOBase="0x2f8" IRQ="3" hostMode="Disconnected"/>
+      </UART>
+      <LPT>
+        <Port slot="0" enabled="false" IOBase="0x378" IRQ="7"/>
+        <Port slot="1" enabled="false" IOBase="0x378" IRQ="7"/>
+      </LPT>
+      <AudioAdapter controller="HDA" driver="OSS" enabled="false"/>
+      <RTC localOrUTC="UTC"/>
+      <SharedFolders>
+        <SharedFolder name="shared" hostPath="/shared" writable="true" autoMount="true"/>
+      </SharedFolders>
+    </Hardware>
+    <StorageControllers>
+      <StorageController name="SATA" type="AHCI" PortCount="4" useHostIOCache="true" Bootable="true" IDE0MasterEmulationPort="0" IDE0SlaveEmulationPort="1" IDE1MasterEmulationPort="2" IDE1SlaveEmulationPort="3">
+        <AttachedDevice type="HardDisk" port="0" device="0">
+          <Image uuid="{a90a16bf-f724-4321-99df-5498d6e4b796}"/>
+        </AttachedDevice>
+        <AttachedDevice passthrough="false" type="DVD" port="3" device="0">
+          <Image uuid="{81763434-9a51-49e8-9444-528a5a28c4bc}"/>
+        </AttachedDevice>
+      </StorageController>
+    </StorageControllers>
+  </Machine>
+</VirtualBox>

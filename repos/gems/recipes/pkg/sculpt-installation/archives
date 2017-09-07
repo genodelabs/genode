@@ -1,0 +1,8 @@
+_/pkg/noux-system
+_/pkg/wifi
+_/pkg/ipxe_nic_drv
+_/pkg/chroot
+_/pkg/nit_focus
+_/pkg/rom_filter
+_/pkg/nic_router-nat
+_/pkg/vbox5-nova-sculpt

@@ -1,0 +1,666 @@
+if {![have_spec x86] || [have_spec linux]} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/sculpt
+
+proc config_system_content {} { return {\
+<!-- set 'state' value to "reset" to reboot the machine -->
+<system state=""/>} }
+
+
+proc config_trace_subject_reporter_content {} { return {\
+<config period_ms="2000">
+	<report activity="yes" affinity="yes"/>
+</config>} }
+
+
+install_config {
+<config prio_levels="4"> <!-- set prio_levels to 4 -->
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="TRACE"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<resource name="RAM" preserve="2M"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="top">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="60000"/>
+	</start>
+
+	<start name="trace_subject_reporter" >
+		<resource name="RAM" quantum="24M"/>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_rom" label="trace_subject_reporter.config"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<policy label="leitzentrale_config -> leitzentrale"
+			        report="global_keys_handler -> leitzentrale"/>
+			<policy label="leitzentrale_config -> reset"
+			        report="global_keys_handler -> reset"/>
+			<policy label="leitzentrale -> trace_subjects"
+			        report="trace_subject_reporter -> trace_subjects"/>
+			<policy label="pointer -> hover" report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"
+			        report="global_keys_handler -> leitzentrale"/>
+			<policy label="pointer -> shape" report="shape"/>
+			<policy label="drivers -> capslock" report="global_keys_handler -> capslock"/>
+			<policy label="runtime -> capslock" report="global_keys_handler -> capslock"/>
+			<policy label="drivers -> numlock"  report="global_keys_handler -> numlock"/>
+			<policy label="runtime -> clicked" report="nitpicker -> clicked"/>
+			<policy label="nit_focus -> focus" report="runtime -> focus"/>
+			<policy label="nit_focus -> leitzentrale"
+			        report="global_keys_handler -> leitzentrale"/>
+			<policy label="nit_focus -> slides"
+			        report="global_keys_handler -> slides"/>
+			<policy label="slides_nit_fb_config -> slides"
+			        report="global_keys_handler -> slides"/>
+		</config>
+	</start>
+
+	<start name="report_logger" priority="-3">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="config_fs" caps="200">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<content>
+				<rom name="fb_drv.config"/>
+				<rom name="nitpicker.config"/>
+				<rom name="input_filter.config"/>
+				<rom name="en_us.chargen"/>
+				<rom name="de.chargen"/>
+				<rom name="numlock_remap.config"/>
+				<rom name="vimrc"/>
+				<rom name="wlan.config"/>
+				<rom name="installation"/>
+				<dir name="leitzentrale">
+					<rom name="leitzentrale.config" as="config"/>
+				</dir>
+				<dir name="examples">
+					<dir name="vm">
+						<dir name="debian">
+							<rom name="machine.vbox"/>
+							<rom name="machine.vdi"/>
+						</dir>
+					</dir>
+					<dir name="depot">
+						<dir name="} [depot_user ] {">
+							<rom name="} [depot_user] {_pubkey"   as="pubkey"/>
+							<rom name="} [depot_user] {_download" as="download"/>
+						</dir>
+					</dir>
+				</dir>
+				<dir name="drivers">
+					<rom name="drivers.config" as="config"/>
+				</dir>
+				<dir name="runtime">
+					<rom name="empty_runtime.config"    as="config"/>
+					<rom name="empty_runtime.config"    as="empty.config" />
+					<rom name="block_runtime.config"    as="block.config" />
+					<rom name="load_runtime.config"     as="load.config" />
+					<rom name="fs_runtime.config"       as="fs.config" />
+					<rom name="download_runtime.config" as="download.config" />
+					<rom name="update_runtime.config"   as="update.config" />
+					<rom name="deploy_runtime.config"   as="deploy.config" />
+				</dir>
+				<dir name="subinit">
+					<rom name="default_fs_subinit.config"   as="default_fs.config" />
+					<rom name="default_nic_subinit.config"  as="default_nic.config" />
+					<rom name="default_noux_subinit.config" as="default_noux.config" />
+					<rom name="depot_download.config"/>
+				</dir>
+				<dir name="deploy">
+					<rom name="deploy.config" as="config"/>
+				</dir>
+				<inline name="trace_subject_reporter.config">} [config_trace_subject_reporter_content] {
+				</inline>
+				<inline name="system">} [config_system_content] {
+				</inline>
+			</content>
+			<policy label="config_rom -> " root="/" />
+			<policy label="rw" root="/" writeable="yes" />
+		</config>
+	</start>
+
+	<start name="config_rom">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="File_system"> <child name="config_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_fs">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="16M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<content>
+				<inline name="log">### start ###</inline>
+			</content>
+			<policy label="fs_report -> "    root="/" writeable="yes" />
+			<policy label="log_terminal -> " root="/" writeable="yes" />
+			<policy label="ro" root="/" />
+		</config>
+	</start>
+
+	<start name="log_terminal">
+		<binary name="file_terminal"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<default-policy filename="log" />
+			<vfs> <dir name="dev"> <log/> </dir> <fs/> </vfs>
+			<libc stdout="/dev/log"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="report_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="log">
+		<binary name="terminal_log"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="LOG"/> </provides>
+		<config/>
+		<route>
+			<service name="Terminal"> <child name="log_terminal"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="log_core">
+		<resource name="RAM" quantum="1M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" label="log"> <parent label="core_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="LOG" label="log"> <child name="log" label="core"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="fs_report">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> </provides>
+		<config> <vfs> <fs/> </vfs> </config>
+		<route>
+			<service name="File_system"> <child name="report_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="drivers" caps="3000" priority="-1">
+		<resource name="RAM" quantum="66M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="LOG"> <child name="log"/> </service>
+			<service name="ROM" label="config">
+				<child name="config_rom" label="drivers/config"/> </service>
+			<service name="ROM" label="input_filter.config">  <child name="config_rom"/> </service>
+			<service name="ROM" label="numlock_remap.config"> <child name="config_rom"/> </service>
+			<service name="ROM" label_suffix=".chargen">      <child name="config_rom"/> </service>
+			<service name="ROM" label_suffix=".remap">        <child name="config_rom"/> </service>
+			<service name="ROM" label="capslock"> <child name="report_rom"/> </service>
+			<service name="ROM" label="numlock">  <child name="report_rom"/> </service>
+			<service name="ROM" label="system">   <child name="config_rom"/> </service>
+			<service name="ROM" label_suffix="fb_drv.config"> <child name="config_rom"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Report"> <child name="fs_report"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+			<service name="Block"/>
+			<service name="Usb"/>
+			<service name="Platform"/>
+		</provides>
+	</start>
+
+	<start name="nitpicker" caps="1000">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_rom" label="nitpicker.config"/> </service>
+			<service name="ROM" label="focus">
+				<child name="nit_focus"/> </service>
+			<service name="Report" label="keystate">
+				<child name="report_logger"/> </service>
+			<service name="Report">      <child name="report_rom"/> </service>
+			<service name="Framebuffer"> <child name="drivers"/>    </service>
+			<service name="Input">       <child name="drivers"/>    </service>
+			<service name="Timer">       <child name="timer"/>      </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<!-- override user focus when leitzentrale is active -->
+	<start name="nit_focus" priority="-1">
+		<binary name="rom_filter"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config>
+			<input name="leitzentrale_enabled" rom="leitzentrale" node="leitzentrale">
+				<attribute name="enabled" /> </input>
+			<input name="slides_enabled" rom="slides" node="slides">
+				<attribute name="enabled" /> </input>
+			<input name="runtime_focus" rom="focus" node="focus">
+				<attribute name="label"/> </input>
+			<output node="focus">
+				<if>
+					<has_value input="leitzentrale_enabled" value="yes" />
+					<then>
+						<attribute name="label" value="leitzentrale -> control_fader -> "/>
+					</then>
+					<else>
+						<if>
+							<has_value input="slides_enabled" value="yes" />
+							<then>
+								<attribute name="label" value="slides"/>
+							</then>
+							<else>
+								<attribute name="label" input="runtime_focus"/>
+							</else>
+						</if>
+					</else>
+				</if>
+			</output>
+		</config>
+		<route>
+			<service name="ROM" label="leitzentrale"> <child name="report_rom"/> </service>
+			<service name="ROM" label="focus">        <child name="report_rom"/> </service>
+			<service name="ROM" label="slides">       <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="pointer" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> </provides>
+		<config shapes="yes"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray">  <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="global_keys_handler" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<config>
+			<bool name="leitzentrale" initial="yes"/>
+			<bool name="reset"        initial="no"/>
+			<bool name="capslock"     initial="no"/>
+			<bool name="numlock"      initial="no"/>
+			<bool name="slides"       initial="no"/>
+
+			<press   name="KEY_PRESENTATION" bool="slides"       change="toggle"/>
+			<press   name="KEY_RESTART"      bool="reset"        change="on"/>
+			<release name="KEY_RESTART"      bool="reset"        change="off"/>
+			<press   name="KEY_DASHBOARD"    bool="leitzentrale" change="toggle"/>
+			<press   name="KEY_CAPSLOCK"     bool="capslock"     change="toggle"/>
+			<press   name="KEY_NUMLOCK"      bool="numlock"      change="toggle"/>
+
+			<report name="leitzentrale"> <bool name="leitzentrale"/> </report>
+			<report name="reset">        <bool name="reset"/>        </report>
+			<report name="capslock">     <bool name="capslock"/>     </report>
+			<report name="numlock">      <bool name="numlock"/>      </report>
+			<report name="slides">       <bool name="slides"/>       </report>
+		</config>
+		<route>
+			<service name="Report">    <child name="report_rom"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="Timer">     <child name="timer"/>      </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="leitzentrale_config" priority="-2">
+		<binary name="rom_filter"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="ROM" label="leitzentrale"> <child name="report_rom"/> </service>
+			<service name="ROM" label="reset">        <child name="report_rom"/> </service>
+			<service name="ROM" label="config">
+				<child name="config_rom" label="leitzentrale/config"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="leitzentrale" caps="2000" priority="-2">
+		<binary name="init"/>
+		<resource name="RAM" quantum="128M"/>
+		<route>
+			<service name="LOG"> <child name="log"/> </service>
+			<service name="ROM" label="config">
+				<child name="leitzentrale_config"/> </service>
+			<service name="ROM" label="control_noux -> vimrc">
+				<child name="config_rom"/> </service>
+			<service name="ROM" label="trace_subjects">
+				<child name="report_rom"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="File_system" label="control_noux -> config">
+				<child name="config_fs" label="rw"/> </service>
+			<service name="File_system" label="control_noux -> report">
+				<child name="report_fs" label="ro"/> </service>
+			<service name="File_system" label="log_noux -> report">
+				<child name="report_fs" label="ro"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="rtc_drv" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Rtc"/> </provides>
+	</start>
+
+	<start name="runtime" caps="50000" priority="-3">
+		<binary name="init"/>
+		<resource name="RAM" quantum="12G"/>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_rom" label="runtime/config"/> </service>
+			<service name="ROM" label_prefix="config -> ">
+				<child name="config_rom"/> </service>
+			<service name="ROM" label_suffix="-> vimrc">
+				<child name="config_rom" label="vimrc"/> </service>
+			<service name="ROM" label="system">
+				<child name="config_rom"/> </service>
+			<service name="ROM" label="capslock">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="clicked">
+				<child name="report_rom"/> </service>
+			<service name="File_system" label="config">
+				<child name="config_fs" label="rw"/> </service>
+			<service name="File_system" label="report">
+				<child name="report_fs" label="ro"/> </service>
+			<service name="Block"> <child name="drivers"/> </service>
+			<service name="Usb"> <child name="drivers"/> </service>
+			<service name="Platform" label_prefix="acpica">
+				<child name="drivers" label="acpica"/> </service>
+			<service name="Platform"> <child name="drivers"/> </service>
+			<service name="Nitpicker" label="backdrop">
+				<child name="nitpicker" label="backdrop"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
+			<service name="Report" label="focus"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="fs_report"/> </service>
+			<service name="LOG" label="unlogged"> <parent/> </service>
+			<service name="LOG"> <child name="log"/> </service>
+			<service name="Rtc"> <child name="rtc_drv"/> </service>
+			<service name="IO_MEM"  label_prefix="acpica"> <parent/> </service>
+			<service name="IO_PORT" label_prefix="acpica"> <parent/> </service>
+			<service name="IRQ"     label_prefix="acpica"> <parent/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+foreach file [glob "[genode_dir]/repos/gems/run/sculpt/*.config"] {
+	file copy -force $file [run_dir]/genode/ }
+
+
+#
+# Override files normally obtained from depot archive with the most current
+# version found in the Genode source tree. This way, we don't need to
+# rebuild the corresponding depot archives each time we tweak one of the
+# files. This is just a hack to accelerate the work flow.
+#
+
+file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc [run_dir]/genode/
+
+file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
+
+file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
+                 [run_dir]/genode/drivers.config
+
+file copy -force [genode_dir]/repos/os/src/server/input_filter/en_us.chargen \
+                 [run_dir]/genode/en_us.chargen
+
+file copy -force [genode_dir]/repos/os/src/server/input_filter/de.chargen \
+                 [run_dir]/genode/de.chargen
+
+file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/input_filter.config \
+                 [run_dir]/genode/input_filter.config
+
+file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
+                 [run_dir]/genode/depot_download.config
+
+file copy -force [genode_dir]/depot/[depot_user]/pubkey   [run_dir]/genode/[depot_user]_pubkey
+file copy -force [genode_dir]/depot/[depot_user]/download [run_dir]/genode/[depot_user]_download
+
+exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi
+
+
+#
+# Package-management support
+#
+# The package management has two aspects, installation and deployment.
+# Packages are installed via the 'install' runtime, which takes the
+# information about the packages to install from 'config/installation'.
+# Once installed, packages can be deployed via the 'deploy' runtime.
+# This runtime can be tailored by modifying 'config/deploy/config'.
+#
+
+proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
+
+#
+# Depot packages to be included in the default installation
+#
+set pkgs_to_install { sculpt-installation }
+
+set fd [open [run_dir]/genode/installation w]
+puts $fd "<installation arch=\"[depot_spec]\">"
+foreach pkg $pkgs_to_install {
+	puts $fd " <archive path=\"[depot_user]/pkg/[current_pkg $pkg]\" source=\"false\"/>" }
+puts $fd "</installation>"
+close $fd
+
+#
+# Configuration of deploy runtime
+#
+# This configuration is not provided as a file at run/sculpt/ because some
+# parts need to be filled in at run-script execution time, in particular the
+# current versions of the packages to deploy.
+#
+append depot_deploy_config {
+<config arch="} [depot_spec] {">
+	<static>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+			<service name="Nitpicker"/>
+			<service name="File_system"/>
+			<service name="Rtc"/>
+			<service name="Usb"/>
+			<service name="Report"/>
+			<service name="Block"/>
+			<service name="Platform"/>
+		</parent-provides>
+	</static>
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="ROM" label_last="init">      <parent/> </service>
+		<service name="CPU">   <parent/> </service>
+		<service name="PD">    <parent/> </service>
+		<service name="LOG">   <parent/> </service>
+		<service name="Timer"> <parent/> </service>
+	</common_routes>
+
+	<start name="nit_focus" pkg="} [depot_user]/pkg/[current_pkg nit_focus] {">
+		<route>
+			<service name="ROM"  label="clicked"> <parent label="clicked"/> </service>
+			<service name="Report" label="focus"> <parent label="focus"/> </service>
+		</route>
+	</start>
+
+	<start name="noux" pkg="} [depot_user]/pkg/[current_pkg noux-system] {">
+		<route>
+			<service name="Nitpicker"> <parent/> </service>
+			<service name="File_system" label="config">
+				<parent label="config"/> </service>
+			<service name="File_system" label="report">
+				<parent label="report"/> </service>
+			<service name="File_system" label="target">
+				<parent label="rw"/> </service>
+			<service name="ROM" label="vimrc"> <parent/> </service>
+		</route>
+	</start>
+
+<!--
+	<start name="nic_drv" pkg="} [depot_user]/pkg/[current_pkg wifi] {">
+		<route>
+			<service name="Platform"> <parent label="wifi"/> </service>
+			<service name="Rtc">      <parent/> </service>
+			<service name="Report">   <parent/> </service>
+			<service name="RM">       <parent/> </service>
+			<service name="ROM" label="wlan_configuration">
+				<parent label="wlan.config"/> </service>
+		</route>
+	</start>
+-->
+
+<!--
+	<start name="nic_drv" pkg="} [depot_user]/pkg/[current_pkg ipxe_nic_drv] {">
+		<route>
+			<service name="Platform"> <parent label="nic"/> </service>
+			<service name="Report">   <parent/> </service>
+			<service name="RM">       <parent/> </service>
+		</route>
+	</start>
+-->
+
+<!--
+	<start name="nic_router" pkg="} [depot_user]/pkg/[current_pkg nic_router-nat] {">
+		<route>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+		</route>
+	</start>
+-->
+
+<!--
+	<start name="vm_fs" pkg="} [depot_user]/pkg/[current_pkg chroot] {">
+		<route>
+			<service name="File_system"> <parent label="rw"/> </service>
+		</route>
+		<config> <default-policy path="/vm/debian"/> </config>
+	</start>
+
+	<start name="shared_fs" pkg="} [depot_user]/pkg/[current_pkg chroot] {">
+		<route>
+			<service name="File_system"> <parent label="rw"/> </service>
+		</route>
+		<config> <default-policy path="/shared"/> </config>
+	</start>
+
+	<start name="usb_devices_rom" pkg="} [depot_user]/pkg/[current_pkg rom_filter] {">
+		<config>
+			<output node="devices">
+				<inline>
+				</inline>
+			</output>
+		</config>
+	</start>
+
+	<start name="vm" pkg="} [depot_user]/pkg/[current_pkg vbox5-nova-sculpt] {">
+		<route>
+			<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
+			<service name="ROM"    label="hypervisor_info_page"> <parent/> </service>
+			<service name="ROM"    label="usb_devices"> <child name="usb_devices_rom"/> </service>
+			<service name="Report" label="shape"> <parent label="vm -> shape"/> </service>
+			<service name="Nitpicker"> <parent/> </service>
+			<service name="Nic">       <child name="nic_router"/> </service>
+			<service name="Report"> <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="Rtc">    <parent/> </service>
+			<service name="Usb">    <parent/> </service>
+			<service name="File_system" label="vm">     <child name="vm_fs"/>     </service>
+			<service name="File_system" label="shared"> <child name="shared_fs"/> </service>
+		</route>
+	</start>
+-->
+
+</config>}
+
+set fd [open [run_dir]/genode/deploy.config w]
+puts $fd $depot_deploy_config
+close $fd
+
+
+#
+# Create and run boot image
+#
+
+append boot_modules { }
+
+build_boot_image $boot_modules
+
+# enable Qemu networking, usable via the nic_drv
+append qemu_args " -m 768 -net nic,model=e1000 -net user "
+
+# attach small SATA disk to Qemu to experiment with file-system access
+set disk_image "bin/sculpt-ahci.raw"
+if {![file exists bin/sculpt-ahci.raw]} {
+	puts stderr "creating toy disk image $disk_image for use in Qemu"
+	catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 }
+}
+append qemu_args " -device ahci,id=ahci "
+append qemu_args " -drive id=hdd,file=$disk_image,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.0 "
+
+run_genode_until forever
+

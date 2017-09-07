@@ -1,0 +1,10 @@
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=
+set backspace=indent,eol,start
+set nowrap
+set ruler
+set ts=2
