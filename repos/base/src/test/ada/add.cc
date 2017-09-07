@@ -10,11 +10,10 @@
 using Genode::log;
 
 
-extern "C" void add(int a, int b, int *result)
+extern "C" void print_add(int a, int b, int *result)
 {
 	log("add called with a=", a, ", b=", b, ", result at address ",
 	     (void*)result);
-	*result = a + b;
 }
 
 
