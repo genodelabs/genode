@@ -72,6 +72,8 @@ struct Xray_trigger::Main
 	 */
 	bool _key_xray = false;
 
+	bool _key_xray_initialized = false;
+
 	/**
 	 * X-Ray criterion depending on hovered domain
 	 */
@@ -208,6 +210,14 @@ bool Xray_trigger::Main::_evaluate_hover(Xml_node nitpicker_hover) const
 void Xray_trigger::Main::_handle_update()
 {
 	_config.update();
+
+	/* define initial state once */
+	if (!_key_xray_initialized) {
+		_key_xray = _config.xml().attribute_value("initial", false);
+
+		_key_xray_initialized = true;
+		_timer.trigger_once(10000);
+	}
 
 	/* remember X-Ray mode prior applying the changes */
 	bool const orig_xray = _xray();
