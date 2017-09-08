@@ -858,8 +858,10 @@ Platform::Platform()
 			{
 				uint64_t sc_time = 0;
 
-				enum SYSCALL_OP { IDLE_SC = 0, CROSS_SC = 1 };
-				uint8_t syscall_op = (name == "cross") ? CROSS_SC : IDLE_SC;
+				enum SYSCALL_OP { IDLE_SC = 0, CROSS_SC = 1,
+				                  KILLED_SC = 2 };
+				uint8_t syscall_op =  (name == "cross")  ? CROSS_SC :
+				                     ((name == "killed") ? KILLED_SC : IDLE_SC);
 
 				uint8_t res = Nova::sc_ctrl(sc_sel, sc_time, syscall_op);
 				if (res != Nova::NOVA_OK)
@@ -894,6 +896,12 @@ Platform::Platform()
 		                                                       _cpus.width(), 1),
 		                                    sc_idle_base + kernel_cpu_id,
 		                                    "cross");
+
+		new (core_mem_alloc()) Trace_source(Trace::sources(),
+		                                    Affinity::Location(genode_cpu_id, 0,
+		                                                       _cpus.width(), 1),
+		                                    sc_idle_base + kernel_cpu_id,
+		                                    "killed");
 	}
 
 	/* add exception handler EC for core and EC root thread to trace sources */
