@@ -148,7 +148,8 @@ class Terminal::Scancode_tracker
 			if (!press) return;
 
 			/* convert key codes to ASCII */
-			_last_character = _keycode_to_latin1(keycode);
+			if (_keymap)
+				_last_character = _keycode_to_latin1(keycode);
 
 			/* handle special key to be represented by an escape sequence */
 			if (!_last_character) {
