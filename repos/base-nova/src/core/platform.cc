@@ -780,7 +780,7 @@ Platform::Platform() :
 		};
 
 		Idle_trace_source *source = new (core_mem_alloc())
-			Idle_trace_source(Affinity::Location(kernel_cpu_id, 0,
+			Idle_trace_source(Affinity::Location(genode_cpu_id, 0,
 			                                     _cpus.width(), 1),
 			                  sc_idle_base + kernel_cpu_id);
 
