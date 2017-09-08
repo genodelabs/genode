@@ -62,20 +62,22 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	Vfs::Vfs_handle *_fh;
 
+	Vfs_handle_context &_context;
+
 	Vfs_io_waiter_registry &_vfs_io_waiter_registry;
 
 	Absolute_path _path;
 	Absolute_path _leaf_path;
 
-	Vfs_handle_context _context;
-
 	Vfs_io_channel(char const *path, char const *leaf_path,
 	               Vfs::Dir_file_system *root_dir, Vfs::Vfs_handle *vfs_handle,
+	               Vfs_handle_context &vfs_handle_context,
 	               Vfs_io_waiter_registry &vfs_io_waiter_registry,
 	               Entrypoint &ep)
 	:
 		_read_avail_handler(ep, *this, &Vfs_io_channel::_handle_read_avail),
-		_fh(vfs_handle), _vfs_io_waiter_registry(vfs_io_waiter_registry),
+		_fh(vfs_handle), _context(vfs_handle_context),
+		_vfs_io_waiter_registry(vfs_io_waiter_registry),
 		_path(path), _leaf_path(leaf_path)
 	{
 		_fh->context = &_context;

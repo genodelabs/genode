@@ -127,6 +127,7 @@ class Noux::Child : public Rpc_object<Session>,
 		Vfs::Dir_file_system &_root_dir;
 
 		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
+		Vfs_handle_context      _vfs_handle_context;
 
 		Destruct_queue &_destruct_queue;
 

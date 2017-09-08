@@ -97,6 +97,7 @@ connect_stdio(Genode::Env                                 &env,
               Genode::Constructible<Terminal::Connection> &terminal,
               Genode::Xml_node                             config,
               Vfs::Dir_file_system                        &root,
+              Noux::Vfs_handle_context                    &vfs_handle_context,
               Noux::Vfs_io_waiter_registry                &vfs_io_waiter_registry,
               Noux::Terminal_io_channel::Type              type,
               Genode::Allocator                           &alloc)
@@ -143,7 +144,8 @@ connect_stdio(Genode::Env                                 &env,
 
 	return *new (alloc)
 		Vfs_io_channel(path.string(), root.leaf_path(path.string()), &root,
-		               vfs_handle, vfs_io_waiter_registry, env.ep());
+		               vfs_handle, vfs_handle_context,
+		               vfs_io_waiter_registry, env.ep());
 }
 
 
@@ -237,6 +239,8 @@ struct Noux::Main
 	                                 _io_response_handler,
 	                                 _global_file_system_factory };
 
+	Vfs_handle_context _vfs_handle_context;
+
 	Pid_allocator _pid_allocator;
 
 	Timeout_scheduler _timeout_scheduler { _env };
@@ -301,13 +305,13 @@ struct Noux::Main
 
 	Shared_pointer<Io_channel>
 		_channel_0 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
-		             _io_response_handler.io_waiter_registry,
+		             _vfs_handle_context, _io_response_handler.io_waiter_registry,
 		             Tio::STDIN,  _heap), _heap },
 		_channel_1 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
-		            _io_response_handler.io_waiter_registry,
+		            _vfs_handle_context, _io_response_handler.io_waiter_registry,
 		             Tio::STDOUT, _heap), _heap },
 		_channel_2 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
-		             _io_response_handler.io_waiter_registry,
+		             _vfs_handle_context, _io_response_handler.io_waiter_registry,
 		             Tio::STDERR, _heap), _heap };
 
 	Main(Env &env) : _env(env)

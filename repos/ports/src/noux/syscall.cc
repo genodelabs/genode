@@ -240,7 +240,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Shared_pointer<Io_channel>
 					channel(new (_heap) Vfs_io_channel(_sysio.open_in.path,
 					                                   leaf_path, &_root_dir,
-					                                   vfs_handle,
+					                                   vfs_handle, _vfs_handle_context,
 					                                   _vfs_io_waiter_registry,
 					                                   _env.ep()),
 					                                   _heap);
