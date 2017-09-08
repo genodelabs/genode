@@ -104,6 +104,7 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 
 			unsigned long width  = 0;
 			unsigned long height = 0;
+			long hz = xn.attribute_value("hz", 0L);
 			xn.attribute("width").value(&width);
 			xn.attribute("height").value(&height);
 
@@ -111,7 +112,8 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 			list_for_each_entry(mode, &connector->modes, head) {
 			if (mode->hdisplay == (int) width &&
 				mode->vdisplay == (int) height)
-				return mode;
+				if (!hz || hz == mode->vrefresh)
+					return mode;
 		};
 		}
 	} catch (...) {
