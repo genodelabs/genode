@@ -56,8 +56,13 @@ proc run_boot_dir {binaries} {
 	exec rm -rf [run_dir]/genode
 
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
+		#
+		# Compress Genode image, to be uncompressed by GRUB
+		#
+		exec gzip [run_dir]/image.elf
+
 		if {[have_include "image/iso"] || [have_include "image/disk"]} {
-			#
+
 			# Install isolinux/GRUB files and bender
 			#
 			install_iso_bootloader_to_run_dir
@@ -71,7 +76,7 @@ proc run_boot_dir {binaries} {
 			puts $fh "\ntitle Genode on NOVA"
 			puts $fh " kernel /boot/bender"
 			puts $fh " module /hypervisor iommu serial novpid novga"
-			puts $fh " module /image.elf"
+			puts $fh " module /image.elf.gz"
 			close $fh
 		}
 
@@ -91,7 +96,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "menuentry 'Genode on NOVA' {"
 		puts $fh " multiboot2 /boot/bender serial_fallback"
 		puts $fh " module2 /hypervisor hypervisor iommu serial novpid novga"
-		puts $fh " module2 /image.elf image.elf"
+		puts $fh " module2 /image.elf.gz image.elf"
 		puts $fh "}"
 		close $fh
 	}

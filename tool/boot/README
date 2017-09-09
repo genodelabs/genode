@@ -45,7 +45,7 @@ code respectively the download source of binaries are described below.
   Source code was obtained from git://git.savannah.gnu.org/grub.git, git
   commit 972765fe8245cdf44d465329f33b5aa9ac6c2f47.
 
-  The following modules were included: part_msdos iso9660 part_gpt ext2 multiboot multiboot2 fat normal configfile setpci serial efi_uga efi_gop
+  The following modules were included: part_msdos iso9660 part_gpt ext2 multiboot multiboot2 fat normal configfile setpci serial efi_uga efi_gop gzio
 
 :'tianocore.bin'
 
