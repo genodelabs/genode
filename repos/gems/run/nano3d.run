@@ -26,7 +26,7 @@ append config {
 	</default-route>
 	<default caps="100"/>
 
-	<start name="drivers">
+	<start name="drivers" caps="1000">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
