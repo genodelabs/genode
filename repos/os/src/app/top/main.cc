@@ -40,11 +40,11 @@ struct Trace_subject_registry
 
 			void update(Genode::Trace::Subject_info const &new_info)
 			{
-				if (new_info.execution_time().value < info.execution_time().value)
+				if (new_info.execution_time().thread_context < info.execution_time().thread_context)
 					recent_execution_time = 0;
 				else
-					recent_execution_time = new_info.execution_time().value -
-				                            info.execution_time().value;
+					recent_execution_time = new_info.execution_time().thread_context -
+				                            info.execution_time().thread_context;
 
 				info = new_info;
 			}

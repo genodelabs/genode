@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/native_capability.h>
 #include <base/thread_state.h>
+#include <base/trace/types.h>
 
 /* core includes */
 #include <pager.h>
@@ -178,7 +179,7 @@ namespace Genode {
 			/**
 			 * Return execution time consumed by the thread
 			 */
-			unsigned long long execution_time() const { return 0; }
+			Trace::Execution_time execution_time() const { return { 0, 0 }; }
 
 
 			/*******************************

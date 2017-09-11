@@ -51,8 +51,11 @@ Platform_thread::~Platform_thread()
 }
 
 
-void Platform_thread::quota(size_t const quota) {
-	Kernel::thread_quota(_kobj.kernel_object(), quota); }
+void Platform_thread::quota(size_t const quota)
+{
+	_quota = quota;
+	Kernel::thread_quota(_kobj.kernel_object(), quota);
+}
 
 
 Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
@@ -86,8 +89,10 @@ Platform_thread::Platform_thread(size_t             const  quota,
 	_pd(nullptr),
 	_pager(nullptr),
 	_utcb_pd_addr((Native_utcb *)utcb),
+	_priority(_scale_priority(virt_prio)),
+	_quota(quota),
 	_main_thread(false),
-	_kobj(true, _priority(virt_prio), quota, _label.string())
+	_kobj(true, _priority, _quota, _label.string())
 {
 	try {
 		_utcb = core_env().pd_session()->alloc(sizeof(Native_utcb), CACHED);

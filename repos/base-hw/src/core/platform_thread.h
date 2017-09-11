@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <base/ram_allocator.h>
 #include <base/thread.h>
+#include <base/trace/types.h>
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
@@ -58,6 +59,8 @@ namespace Genode {
 		Native_utcb *            _utcb_core_addr { }; /* UTCB addr in core */
 		Native_utcb *            _utcb_pd_addr;       /* UTCB addr in pd   */
 		Ram_dataspace_capability _utcb           { }; /* UTCB dataspace    */
+		unsigned                 _priority       {0};
+		unsigned                 _quota          {0};
 
 		/*
 		 * Wether this thread is the main thread of a program.
@@ -83,7 +86,7 @@ namespace Genode {
 		 */
 		bool _attaches_utcb_by_itself();
 
-		unsigned _priority(unsigned virt_prio)
+		unsigned _scale_priority(unsigned virt_prio)
 		{
 			return Cpu_session::scale_priority(Kernel::Cpu_priority::MAX,
 			                                   virt_prio);
@@ -205,7 +208,8 @@ namespace Genode {
 			/**
 			 * Return execution time consumed by the thread
 			 */
-			unsigned long long execution_time() const { return 0; }
+			Trace::Execution_time execution_time() const {
+				return { 0, 0, _quota, _priority }; }
 
 
 			/***************

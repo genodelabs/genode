@@ -125,7 +125,7 @@ void Thread::start()
 			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
 
 			return { Session_label("core"), _thread.name(),
-			         Trace::Execution_time(thread_time), _thread._affinity };
+			         Trace::Execution_time(thread_time, 0), _thread._affinity };
 		}
 
 

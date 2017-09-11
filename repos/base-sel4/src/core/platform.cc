@@ -586,9 +586,10 @@ Platform::Platform()
 
 				seL4_BenchmarkGetThreadUtilisation(tcb_sel.value());
 				uint64_t execution_time = buf[BENCHMARK_IDLE_TCBCPU_UTILISATION];
+				uint64_t sc_time = 0; /* not supported */
 
 				return { Session_label("kernel"), Trace::Thread_name("idle"),
-				         Trace::Execution_time(execution_time), affinity };
+				         Trace::Execution_time(execution_time, sc_time), affinity };
 			}
 
 			Idle_trace_source(Trace::Source_registry &registry,

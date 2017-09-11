@@ -135,7 +135,7 @@ void Thread::start()
 			uint64_t sc_time = 0;
 
 			return { Session_label("core"), thread.name(),
-			         Trace::Execution_time(sc_time), thread._affinity };
+			         Trace::Execution_time(sc_time, sc_time), thread._affinity };
 		}
 
 		Core_trace_source(Trace::Source_registry &registry, Thread &t)

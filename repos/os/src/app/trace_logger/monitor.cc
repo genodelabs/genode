@@ -75,12 +75,12 @@ void Monitor::_update_info()
 		Trace::Subject_info const &info =
 			_trace.subject_info(_subject_id);
 
-		unsigned long long const last_execution_time =
-			_info.execution_time().value;
+		uint64_t const last_execution_time =
+			_info.execution_time().thread_context;
 
 		_info = info;
 		_recent_exec_time =
-			_info.execution_time().value - last_execution_time;
+			_info.execution_time().thread_context - last_execution_time;
 	}
 	catch (Trace::Nonexistent_subject) { warning("Cannot update subject info: Nonexistent_subject"); }
 }
@@ -101,7 +101,7 @@ void Monitor::print(bool activity, bool affinity)
 
 	/* print subjects activity if desired */
 	if (activity)
-		log("   <activity total=\"",  _info.execution_time().value,
+		log("   <activity total=\"",  _info.execution_time().thread_context,
 		              "\" recent=\"", _recent_exec_time,
 		              "\">");
 

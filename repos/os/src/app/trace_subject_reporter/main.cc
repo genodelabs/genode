@@ -41,9 +41,9 @@ struct Trace_subject_registry
 
 			void update(Genode::Trace::Subject_info const &new_info)
 			{
-				unsigned long long const last_execution_time = info.execution_time().value;
+				unsigned long long const last_execution_time = info.execution_time().thread_context;
 				info = new_info;
-				recent_execution_time = info.execution_time().value - last_execution_time;
+				recent_execution_time = info.execution_time().thread_context - last_execution_time;
 			}
 		};
 
@@ -134,7 +134,7 @@ struct Trace_subject_registry
 
 					if (report_activity)
 						xml.node("activity", [&] () {
-							xml.attribute("total", e->info.execution_time().value);
+							xml.attribute("total", e->info.execution_time().thread_context);
 							xml.attribute("recent", e->recent_execution_time);
 						});
 

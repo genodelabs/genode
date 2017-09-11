@@ -258,11 +258,11 @@ Platform_thread::~Platform_thread()
 	platform_specific().core_sel_alloc().free(_pager_obj_sel);
 }
 
-unsigned long long Platform_thread::execution_time() const
+Trace::Execution_time Platform_thread::execution_time() const
 {
 	if (!Thread::myself() || !Thread::myself()->utcb()) {
 		error("don't know myself");
-		return 0;
+		return { 0, 0, 10000, _priority };
 	}
 	Thread &myself = *Thread::myself();
 
@@ -272,8 +272,9 @@ unsigned long long Platform_thread::execution_time() const
 	/* kernel puts execution time on ipc buffer of calling thread */
 	seL4_BenchmarkGetThreadUtilisation(_info.tcb_sel.value());
 
-	uint64_t const execution_time = values[BENCHMARK_TCB_UTILISATION];
-	return execution_time;
+	uint64_t const ec_time = values[BENCHMARK_TCB_UTILISATION];
+	uint64_t const sc_time = 0; /* not supported */
+	return { ec_time, sc_time, 10000, _priority};
 }
 
 void Platform_thread::setup_vcpu(Cap_sel ept, Cap_sel notification)

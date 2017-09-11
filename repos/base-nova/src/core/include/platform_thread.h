@@ -19,6 +19,7 @@
 #include <base/thread_state.h>
 #include <base/thread.h>
 #include <nova_native_cpu/nova_native_cpu.h>
+#include <base/trace/types.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -210,7 +211,7 @@ namespace Genode {
 			/**
 			 * Return execution time consumed by the thread
 			 */
-			unsigned long long execution_time() const;
+			Trace::Execution_time execution_time() const;
 	};
 }
 

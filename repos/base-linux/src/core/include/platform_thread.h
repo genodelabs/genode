@@ -18,8 +18,9 @@
 
 /* Genode includes */
 #include <base/thread_state.h>
-#include <cpu_session/cpu_session.h>
+#include <base/trace/types.h>
 #include <base/weak_ptr.h>
+#include <cpu_session/cpu_session.h>
 
 /* base-internal includes */
 #include <base/internal/server_socket_pair.h>
@@ -175,7 +176,7 @@ namespace Genode {
 			/**
 			 * Return execution time consumed by the thread
 			 */
-			unsigned long long execution_time() const { return 0; }
+			Trace::Execution_time execution_time() const { return { 0, 0 }; }
 
 			unsigned long pager_object_badge() const { return 0; }
 	};

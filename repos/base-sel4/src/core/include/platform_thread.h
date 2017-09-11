@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/thread_state.h>
 #include <util/string.h>
+#include <base/trace/types.h>
 
 /* core includes */
 #include <pager.h>
@@ -140,7 +141,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Return execution time consumed by the thread
 		 */
-		unsigned long long execution_time() const;
+		Trace::Execution_time execution_time() const;
 
 
 		/************************

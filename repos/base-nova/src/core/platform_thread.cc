@@ -297,19 +297,19 @@ const char * Platform_thread::pd_name() const {
 	return _pd ? _pd->name() : "unknown"; }
 
 
-unsigned long long Platform_thread::execution_time() const
+Trace::Execution_time Platform_thread::execution_time() const
 {
 	unsigned long long time = 0;
 
 	/* for ECs without a SC we simply return 0 */
 	if (!sc_created())
-		return time;
+		return { time, time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
 
 	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);
 	if (res != Nova::NOVA_OK)
 		warning("sc_ctrl failed res=", res);
 
-	return time;
+	return { time, time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
 }
 
 
