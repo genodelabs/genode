@@ -7,7 +7,10 @@ Configuration
 
 The interval of output generation can be defined via the 'period_ms' attribute
 of the '<config>' node. The value is specified in milliseconds.
+The threads with the top most execution time are shown per CPU. The sorting
+of the execution time can be shown per thread ('ec' - execution context) or,
+if supported by the kernel, per scheduling context of a thread ('sc').
 
 The following example shows the default values.
 
-! <config period_ms="5000"/>
+! <config period_ms="5000" sort_time="ec"/>

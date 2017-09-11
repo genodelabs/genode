@@ -20,6 +20,7 @@
 #include <base/heap.h>
 #include <os/reporter.h>
 
+enum SORT_TIME { EC_TIME = 0, SC_TIME = 1};
 
 struct Trace_subject_registry
 {
@@ -34,17 +35,23 @@ struct Trace_subject_registry
 			/**
 			 * Execution time during the last period
 			 */
-			unsigned long long recent_execution_time = 0;
+			Genode::uint64_t recent_time[2] = { 0, 0 };
 
 			Entry(Genode::Trace::Subject_id id) : id(id) { }
 
 			void update(Genode::Trace::Subject_info const &new_info)
 			{
 				if (new_info.execution_time().thread_context < info.execution_time().thread_context)
-					recent_execution_time = 0;
+					recent_time[EC_TIME] = 0;
 				else
-					recent_execution_time = new_info.execution_time().thread_context -
-				                            info.execution_time().thread_context;
+					recent_time[EC_TIME] = new_info.execution_time().thread_context -
+				                           info.execution_time().thread_context;
+
+				if (new_info.execution_time().scheduling_context < info.execution_time().scheduling_context)
+					recent_time[SC_TIME] = 0;
+				else
+					recent_time[SC_TIME] = new_info.execution_time().scheduling_context -
+				                           info.execution_time().scheduling_context;
 
 				info = new_info;
 			}
@@ -67,7 +74,8 @@ struct Trace_subject_registry
 		enum { MAX_CPUS_X = 16, MAX_CPUS_Y = 1, MAX_ELEMENTS_PER_CPU = 6};
 
 		/* accumulated execution time on all CPUs */
-		unsigned long long total [MAX_CPUS_X][MAX_CPUS_Y];
+		unsigned long long total_first [MAX_CPUS_X][MAX_CPUS_Y];
+		unsigned long long total_second [MAX_CPUS_X][MAX_CPUS_Y];
 
 		/* most significant consumer per CPU */
 		Entry const * load[MAX_CPUS_X][MAX_CPUS_Y][MAX_ELEMENTS_PER_CPU];
@@ -121,7 +129,7 @@ struct Trace_subject_registry
 
 				/* remove dead threads which did not run in the last period */
 				if (e->info.state() == Genode::Trace::Subject_info::DEAD &&
-				    !e->recent_execution_time) {
+				    !e->recent_time[EC_TIME] && !e->recent_time[SC_TIME]) {
 
 					trace.free(e->id);
 					_entries.remove(e);
@@ -144,11 +152,15 @@ struct Trace_subject_registry
 			}
 		}
 
-		void top()
+		void top(enum SORT_TIME sorting)
 		{
 			/* clear old calculations */
-			Genode::memset(total, 0, sizeof(total));
+			Genode::memset(total_first, 0, sizeof(total_first));
+			Genode::memset(total_second, 0, sizeof(total_second));
 			Genode::memset(load, 0, sizeof(load));
+
+			unsigned const first  = sorting == EC_TIME ? EC_TIME : SC_TIME;
+			unsigned const second = sorting == EC_TIME ? SC_TIME : EC_TIME;
 
 			for (Entry const *e = _entries.first(); e; e = e->next()) {
 
@@ -163,7 +175,8 @@ struct Trace_subject_registry
 					continue;
 				}
 
-				total[x][y] += e->recent_execution_time;
+				total_first[x][y] += e->recent_time[first];
+				total_second[x][y] += e->recent_time[second];
 
 				enum { NONE = ~0U };
 				unsigned replace = NONE;
@@ -182,16 +195,16 @@ struct Trace_subject_registry
 				}
 
 				for (unsigned i = 0; i < MAX_ELEMENTS_PER_CPU; i++) {
-					if (e->recent_execution_time
-					    <= load[x][y][i]->recent_execution_time)
+					if (e->recent_time[first]
+					    <= load[x][y][i]->recent_time[first])
 						continue;
 
 					if (replace == NONE) {
 						replace = i;
 						continue;
 					}
-					if (load[x][y][replace]->recent_execution_time
-					    > load[x][y][i]->recent_execution_time)
+					if (load[x][y][replace]->recent_time[first]
+					    > load[x][y][i]->recent_time[first])
 						replace = i;
 				}
 
@@ -211,8 +224,8 @@ struct Trace_subject_registry
 							if (!load[x][y][j])
 								break;
 
-							if (load[x][y][i]->recent_execution_time
-							    < load[x][y][j]->recent_execution_time) {
+							if (load[x][y][i]->recent_time[first]
+							    < load[x][y][j]->recent_time[first]) {
 
 								Entry const * tmp = load[x][y][j];
 								load[x][y][j] = load[x][y][i];
@@ -232,23 +245,47 @@ struct Trace_subject_registry
 			for (unsigned x = 0; x < MAX_CPUS_X; x++) {
 				for (unsigned y = 0; y < MAX_CPUS_Y; y++) {
 					for (unsigned i = 0; i < MAX_ELEMENTS_PER_CPU; i++) {
-						if (!load[x][y][i] || !total[x][y])
+						if (!load[x][y][i] || !total_first[x][y])
 							continue;
 
-						unsigned percent = load[x][y][i]->recent_execution_time * 100   / total[x][y];
-						unsigned rest    = load[x][y][i]->recent_execution_time * 10000 / total[x][y] - (percent * 100);
+						unsigned ec_percent = load[x][y][i]->recent_time[first] * 100   / total_first[x][y];
+						unsigned ec_rest    = load[x][y][i]->recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100);
+
+						unsigned sc_percent = 0;
+						unsigned sc_rest    = 0;
+						if (total_second[x][y]) {
+							sc_percent = load[x][y][i]->recent_time[second] * 100   / total_second[x][y];
+							sc_rest    = load[x][y][i]->recent_time[second] * 10000 / total_second[x][y] - (sc_percent * 100);
+						}
+
+						enum { NAME_SPACE = 24 };
+						static char space[NAME_SPACE];
+						Genode::memset(space, ' ', NAME_SPACE - 1);
+
+						unsigned thread_name_len = load[x][y][i]->info.thread_name().length();
+						if (!thread_name_len)
+							space[NAME_SPACE - 1] = 0;
+						else
+						if (thread_name_len >= NAME_SPACE)
+							space[0] = 0;
+						else
+							space[NAME_SPACE - thread_name_len] = 0;
+
+						Genode::String<NAME_SPACE> space_string(space);
 
 						using Genode::log;
 						log("cpu=", load[x][y][i]->info.affinity().xpos(), ".",
 						    load[x][y][i]->info.affinity().ypos(), " ",
-						    percent < 10 ? "  " : (percent < 100 ? " " : ""),
-						    percent, ".", rest < 10 ? "0" : "", rest, "% "
-						    "thread='", load[x][y][i]->info.thread_name(), "' "
+						    ec_percent < 10 ? "  " : (ec_percent < 100 ? " " : ""),
+						    ec_percent, ".", ec_rest < 10 ? "0" : "", ec_rest, "% ",
+						    sc_percent < 10 ? "  " : (sc_percent < 100 ? " " : ""),
+						    sc_percent, ".", sc_rest < 10 ? "0" : "", sc_rest, "% "
+						    "thread='", load[x][y][i]->info.thread_name(), "' ", space_string,
 						    "label='", load[x][y][i]->info.session_label(), "'");
 					}
 				}
 			}
-			if (load[0][0][0] && load[0][0][0]->recent_execution_time)
+			if (load[0][0][0] && load[0][0][0]->recent_time[first])
 				Genode::log("");
 		}
 };
@@ -277,6 +314,8 @@ struct App::Main
 	static unsigned long _default_period_ms() { return 5000; }
 
 	unsigned long _period_ms = _default_period_ms();
+
+	SORT_TIME _sort { EC_TIME };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -312,6 +351,16 @@ void App::Main::_handle_config()
 
 	_period_ms = _config.xml().attribute_value("period_ms", _default_period_ms());
 
+	String<8> ec_sc(_config.xml().attribute_value("sort_time", String<8>("ec")));
+	if (ec_sc == "ec")
+		_sort = EC_TIME;
+	else
+		_sort = SC_TIME;
+
+	log("sorting based on ",
+	    _sort == EC_TIME ? "execution context (ec) [other option is scheduling context (sc)]"
+	                     : "scheduling context (sc) [other option is execution context (ec)]");
+
 	_timer.trigger_periodic(1000*_period_ms);
 }
 
@@ -328,7 +377,7 @@ void App::Main::_handle_period()
 	}
 
 	/* show most significant consumers */
-	_trace_subject_registry.top();
+	_trace_subject_registry.top(_sort);
 
 	/* by destructing the session we free up the allocated memory in core */
 	if (reconstruct) {
