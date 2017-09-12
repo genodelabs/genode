@@ -553,8 +553,6 @@ Platform::Platform()
 			 */
 			Info trace_source_info() const override
 			{
-				Genode::String<8> name("idle", affinity.xpos());
-
 				Genode::Thread * me = Genode::Thread::myself();
 				addr_t const ipc_buffer = reinterpret_cast<addr_t>(me->utcb());
 				seL4_IPCBuffer * ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(ipc_buffer);
@@ -563,29 +561,28 @@ Platform::Platform()
 				seL4_BenchmarkGetThreadUtilisation(tcb_sel.value());
 				uint64_t execution_time = buf[BENCHMARK_IDLE_TCBCPU_UTILISATION];
 
-				return { Session_label("kernel"), Trace::Thread_name(name),
+				return { Session_label("kernel"), Trace::Thread_name("idle"),
 				         Trace::Execution_time(execution_time), affinity };
 			}
 
-			Idle_trace_source(Platform &platform, Range_allocator &phys_alloc,
+			Idle_trace_source(Trace::Source_registry &registry,
+			                  Platform &platform, Range_allocator &phys_alloc,
 			                  Affinity::Location affinity)
 			:
 				Trace::Control(),
 				Trace::Source(*this, *this), affinity(affinity)
 			{
 				Thread_info::init_tcb(platform, phys_alloc, 0, affinity.xpos());
+				registry.insert(this);
 			}
-
-			Trace::Source &source() { return *this; }
 		};
 
-		Idle_trace_source *source = new (core_mem_alloc())
-			Idle_trace_source(*this, *_core_mem_alloc.phys_alloc(),
+		new (core_mem_alloc())
+			Idle_trace_source(Trace::sources(), *this,
+			                  *_core_mem_alloc.phys_alloc(),
 			                  Affinity::Location(cpu_id, 0,
 			                                     affinity_space().width(),
 			                                     affinity_space().height()));
-
-		Trace::sources().insert(&source->source());
 	}
 
 	/* I/O port allocator (only meaningful for x86) */

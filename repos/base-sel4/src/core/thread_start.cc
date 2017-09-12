@@ -23,6 +23,10 @@
 #include <platform.h>
 #include <platform_thread.h>
 #include <thread_sel4.h>
+#include <trace/source_registry.h>
+
+/* seL4 includes */
+#include <sel4/benchmark_utilisation_types.h>
 
 using namespace Genode;
 
@@ -101,6 +105,41 @@ void Thread::start()
 {
 	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
 	                  (addr_t)stack_top(), _affinity.xpos());
+
+	struct Core_trace_source : public  Trace::Source::Info_accessor,
+	                           private Trace::Control,
+	                           private Trace::Source
+	{
+		Thread        &_thread;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			Thread         * const me = Thread::myself();
+			seL4_IPCBuffer * const ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(me->utcb());
+			uint64_t       const * const buf = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
+
+			seL4_BenchmarkGetThreadUtilisation(_thread.native_thread().tcb_sel);
+			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
+
+			return { Session_label("core"), _thread.name(),
+			         Trace::Execution_time(thread_time), _thread._affinity };
+		}
+
+
+		Core_trace_source(Trace::Source_registry &registry, Thread &t)
+		:
+			Trace::Control(),
+			Trace::Source(*this, *this), _thread(t)
+		{
+			registry.insert(this);
+		}
+	};
+
+	new (*platform()->core_mem_alloc())
+		Core_trace_source(Trace::sources(), *this);
 }
 
 
