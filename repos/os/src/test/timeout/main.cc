@@ -99,8 +99,8 @@ struct Mixed_timeouts : Test
 {
 	static constexpr char const *brief = "schedule multiple timeouts simultaneously";
 
-	enum { NR_OF_EVENTS   = 20 };
-	enum { NR_OF_TIMEOUTS = 4 };
+	enum { NR_OF_EVENTS   = 21 };
+	enum { NR_OF_TIMEOUTS = 6 };
 
 	struct Timeout
 	{
@@ -116,12 +116,18 @@ struct Mixed_timeouts : Test
 
 	/*
 	 * Which timeouts we do install and with which configuration
+	 *
+	 * We mix in timeouts with the maximum duration to see if they trigger any
+	 * corner-case bugs. These timeouts are expected to be so big that they
+	 * do not trigger during the lifetime of the test.
 	 */
 	Timeout const timeouts[NR_OF_TIMEOUTS] {
-		{ "Periodic  700 ms", Microseconds( 700000) },
-		{ "Periodic 1000 ms", Microseconds(1000000) },
-		{ "One-shot 3250 ms", Microseconds(3250000) },
-		{ "One-shot 5200 ms", Microseconds(5200000) }
+		/* 0 */ { "Periodic  700 ms", Microseconds( 700000UL) },
+		/* 1 */ { "Periodic 1000 ms", Microseconds(1000000UL) },
+		/* 2 */ { "Periodic  max ms", Microseconds(     ~0UL) },
+		/* 3 */ { "One-shot 3250 ms", Microseconds(3250000UL) },
+		/* 4 */ { "One-shot 5200 ms", Microseconds(5200000UL) },
+		/* 5 */ { "One-shot  max ms", Microseconds(     ~0UL) },
 	};
 
 	/*
@@ -132,26 +138,27 @@ struct Mixed_timeouts : Test
 	 * have an empty name are treated as wildcards and match any timeout.
 	 */
 	Timeout_event const events[NR_OF_EVENTS] {
-		{ nullptr,      Duration(Milliseconds(0))    },
-		{ nullptr,      Duration(Milliseconds(0))    },
-		{ &timeouts[0], Duration(Milliseconds(700))  },
-		{ &timeouts[1], Duration(Milliseconds(1000)) },
-		{ &timeouts[0], Duration(Milliseconds(1400)) },
-		{ nullptr,      Duration(Milliseconds(2000)) },
-		{ nullptr,      Duration(Milliseconds(2100)) },
-		{ &timeouts[0], Duration(Milliseconds(2800)) },
-		{ &timeouts[1], Duration(Milliseconds(3000)) },
-		{ &timeouts[2], Duration(Milliseconds(3250)) },
-		{ &timeouts[0], Duration(Milliseconds(3500)) },
-		{ &timeouts[1], Duration(Milliseconds(4000)) },
-		{ &timeouts[0], Duration(Milliseconds(4200)) },
-		{ nullptr,      Duration(Milliseconds(4900)) },
-		{ nullptr,      Duration(Milliseconds(5000)) },
-		{ &timeouts[3], Duration(Milliseconds(5200)) },
-		{ &timeouts[0], Duration(Milliseconds(5600)) },
-		{ &timeouts[1], Duration(Milliseconds(6000)) },
-		{ &timeouts[0], Duration(Milliseconds(6300)) },
-		{ &timeouts[2], Duration(Milliseconds(6500)) }
+		/*  0 */ { nullptr,      Duration(Milliseconds(   0UL)) },
+		/*  1 */ { nullptr,      Duration(Milliseconds(   0UL)) },
+		/*  2 */ { nullptr,      Duration(Milliseconds(   0UL)) },
+		/*  3 */ { &timeouts[0], Duration(Milliseconds( 700UL)) },
+		/*  4 */ { &timeouts[1], Duration(Milliseconds(1000UL)) },
+		/*  5 */ { &timeouts[0], Duration(Milliseconds(1400UL)) },
+		/*  6 */ { nullptr,      Duration(Milliseconds(2000UL)) },
+		/*  7 */ { nullptr,      Duration(Milliseconds(2100UL)) },
+		/*  8 */ { &timeouts[0], Duration(Milliseconds(2800UL)) },
+		/*  9 */ { &timeouts[1], Duration(Milliseconds(3000UL)) },
+		/* 10 */ { &timeouts[3], Duration(Milliseconds(3250UL)) },
+		/* 11 */ { &timeouts[0], Duration(Milliseconds(3500UL)) },
+		/* 12 */ { &timeouts[1], Duration(Milliseconds(4000UL)) },
+		/* 13 */ { &timeouts[0], Duration(Milliseconds(4200UL)) },
+		/* 14 */ { nullptr,      Duration(Milliseconds(4900UL)) },
+		/* 15 */ { nullptr,      Duration(Milliseconds(5000UL)) },
+		/* 16 */ { &timeouts[4], Duration(Milliseconds(5200UL)) },
+		/* 17 */ { &timeouts[0], Duration(Milliseconds(5600UL)) },
+		/* 18 */ { &timeouts[1], Duration(Milliseconds(6000UL)) },
+		/* 19 */ { &timeouts[0], Duration(Milliseconds(6300UL)) },
+		/* 20 */ { &timeouts[3], Duration(Milliseconds(6500UL)) }
 	};
 
 	Duration      init_time    { Microseconds(0) };
@@ -161,13 +168,17 @@ struct Mixed_timeouts : Test
 
 	Timer::Periodic_timeout<Mixed_timeouts> pt1 { timer, *this, &Mixed_timeouts::handle_pt1, timeouts[0].us };
 	Timer::Periodic_timeout<Mixed_timeouts> pt2 { timer, *this, &Mixed_timeouts::handle_pt2, timeouts[1].us };
+	Timer::Periodic_timeout<Mixed_timeouts> pt3 { timer, *this, &Mixed_timeouts::handle_pt3, timeouts[2].us };
 	Timer::One_shot_timeout<Mixed_timeouts> ot1 { timer, *this, &Mixed_timeouts::handle_ot1 };
 	Timer::One_shot_timeout<Mixed_timeouts> ot2 { timer, *this, &Mixed_timeouts::handle_ot2 };
+	Timer::One_shot_timeout<Mixed_timeouts> ot3 { timer, *this, &Mixed_timeouts::handle_ot3 };
 
 	void handle_pt1(Duration time) { handle(time, timeouts[0]); }
 	void handle_pt2(Duration time) { handle(time, timeouts[1]); }
-	void handle_ot1(Duration time) { handle(time, timeouts[2]); ot1.schedule(timeouts[2].us); }
-	void handle_ot2(Duration time) { handle(time, timeouts[3]); }
+	void handle_pt3(Duration time) { handle(time, timeouts[2]); }
+	void handle_ot1(Duration time) { handle(time, timeouts[3]); ot1.schedule(timeouts[3].us); }
+	void handle_ot2(Duration time) { handle(time, timeouts[4]); }
+	void handle_ot3(Duration time) { handle(time, timeouts[5]); }
 
 	void handle(Duration time, Timeout const &timeout)
 	{
@@ -190,14 +201,14 @@ struct Mixed_timeouts : Test
 		log(time_us / 1000UL, " ms: ", timeout.name, " timeout triggered,"
 		    " error ", error_us, " us (max ", max_error_us, " us)");
 
-		if (error_us > max_error_us) {
-
-			error("absolute timeout error greater than ", (unsigned long)max_error_us, " us");
-			error_cnt++;
-		}
 		if (event.timeout && event.timeout != &timeout) {
 
-			error("expected timeout ", timeout.name);
+			error("expected timeout ", event.timeout->name);
+			error_cnt++;
+
+		} else if (error_us > max_error_us) {
+
+			error("absolute timeout error greater than ", (unsigned long)max_error_us, " us");
 			error_cnt++;
 		}
 		if (event_id == NR_OF_EVENTS) {
@@ -211,8 +222,9 @@ struct Mixed_timeouts : Test
 	:
 		Test(env, error_cnt, done, id, brief)
 	{
-		ot1.schedule(timeouts[2].us);
-		ot2.schedule(timeouts[3].us);
+		ot1.schedule(timeouts[3].us);
+		ot2.schedule(timeouts[4].us);
+		ot3.schedule(timeouts[5].us);
 	}
 };
 
