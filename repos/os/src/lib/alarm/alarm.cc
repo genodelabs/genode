@@ -34,7 +34,7 @@ void Alarm_scheduler::_unsynchronized_enqueue(Alarm *alarm)
 	}
 
 	/* if deadline is smaller than any other deadline, put it on the head */
-	if ((int)alarm->_deadline - (int)_now < (int)_head->_deadline - (int)_now) {
+	if (alarm->_is_pending_at(_head->_deadline, _head->_deadline_period)) {
 		alarm->_next = _head;
 		_head = alarm;
 		return;
@@ -43,8 +43,10 @@ void Alarm_scheduler::_unsynchronized_enqueue(Alarm *alarm)
 	/* find list element with a higher deadline */
 	Alarm *curr = _head;
 	while (curr->_next &&
-	       (int)curr->_next->_deadline - (int)_now < (int)alarm->_deadline - (int)_now)
+	       curr->_next->_is_pending_at(alarm->_deadline, alarm->_deadline_period))
+	{
 		curr = curr->_next;
+	}
 
 	/* if end of list is reached, append new element */
 	if (curr->_next == 0) {
@@ -81,12 +83,21 @@ void Alarm_scheduler::_unsynchronized_dequeue(Alarm *alarm)
 }
 
 
+bool Alarm::_is_pending_at(unsigned long time, bool time_period) const
+{
+	return (time_period == _deadline_period &&
+	        time        >= _deadline) ||
+	       (time_period != _deadline_period &&
+	        time        <  _deadline);
+}
+
+
 Alarm *Alarm_scheduler::_get_pending_alarm()
 {
 	Lock::Guard lock_guard(_lock);
 
-	if (!_head || ((int)_head->_deadline - (int)_now >= 0))
-		return 0;
+	if (!_head || !_head->_is_pending_at(_now, _now_period)) {
+		return nullptr; }
 
 	/* remove alarm from head of the list */
 	Alarm *pending_alarm = _head;
@@ -99,7 +110,7 @@ Alarm *Alarm_scheduler::_get_pending_alarm()
 	pending_alarm->_dispatch_lock.lock();
 
 	/* reset alarm object */
-	pending_alarm->_next = 0;
+	pending_alarm->_next = nullptr;
 	pending_alarm->_active--;
 
 	return pending_alarm;
@@ -108,9 +119,16 @@ Alarm *Alarm_scheduler::_get_pending_alarm()
 
 void Alarm_scheduler::handle(Alarm::Time curr_time)
 {
-	Alarm *curr;
+	/*
+	 * Raise the time counter and if it wraps, update also in which
+	 * period of the time counter we are.
+	 */
+	if (_now > curr_time) {
+		_now_period = !_now_period;
+	}
 	_now = curr_time;
 
+	Alarm *curr;
 	while ((curr = _get_pending_alarm())) {
 
 		unsigned long triggered = 1;
@@ -130,11 +148,26 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 
 		if (reschedule) {
 
-			/* schedule next event */
-			if (curr->_deadline == 0)
-				curr->_deadline = _now;
-
-			curr->_deadline += triggered * curr->_period;
+			/*
+			 * At this point, the alarm deadline normally is somewhere near
+			 * the current time but If the alarm had no deadline by now,
+			 * initialize it with the current time.
+			 */
+			if (curr->_deadline == 0) {
+				curr->_deadline        = _now;
+				curr->_deadline_period = _now_period;
+			}
+			/*
+			 * Raise the deadline value by one period of the alarm and
+			 * if the deadline value wraps thereby, update also in which
+			 * period it is located.
+			 */
+			Alarm::Time const deadline = curr->_deadline +
+			                             triggered * curr->_period;
+			if (curr->_deadline > deadline) {
+				curr->_deadline_period = !curr->_deadline_period;
+			}
+			curr->_deadline = deadline;
 
 			/* synchronize enqueue operation */
 			Lock::Guard lock_guard(_lock);
@@ -157,7 +190,7 @@ void Alarm_scheduler::_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time
 	if (alarm._active)
 		_unsynchronized_dequeue(&alarm);
 
-	alarm._assign(period, deadline, this);
+	alarm._assign(period, deadline, _now > deadline, this);
 
 	_unsynchronized_enqueue(&alarm);
 }

@@ -34,16 +34,27 @@ class Genode::Alarm
 
 		Lock             _dispatch_lock;  /* taken during handle method   */
 		Time             _deadline;       /* next deadline                */
+		bool             _deadline_period;
 		Time             _period;         /* duration between alarms      */
 		int              _active;         /* set to one when active       */
 		Alarm           *_next;           /* next alarm in alarm list     */
 		Alarm_scheduler *_scheduler;      /* currently assigned scheduler */
 
-		void _assign(Time period, Time deadline, Alarm_scheduler *scheduler) {
-			_period = period, _deadline = deadline, _scheduler = scheduler; }
+		void _assign(Time             period,
+		             Time             deadline,
+		             bool             deadline_period,
+		             Alarm_scheduler *scheduler)
+		{
+			_period          = period;
+			_deadline_period = deadline_period;
+			_deadline        = deadline;
+			_scheduler       = scheduler;
+		}
 
 		void _reset() {
-			_assign(0, 0, 0), _active = 0, _next = 0; }
+			_assign(0, 0, false, 0), _active = 0, _next = 0; }
+
+		bool _is_pending_at(unsigned long time, bool time_period) const;
 
 	protected:
 
@@ -71,6 +82,7 @@ class Genode::Alarm_scheduler
 		Lock         _lock;   /* protect alarm list                     */
 		Alarm       *_head;   /* head of alarm list                     */
 		Alarm::Time  _now;    /* recent time (updated by handle method) */
+		bool         _now_period { false };
 
 		/**
 		 * Enqueue alarm into alarm queue
