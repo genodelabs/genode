@@ -299,7 +299,7 @@ class Net::Arp_packet
 		 */
 		bool ethernet_ipv4() const {
 			return (   host_to_big_endian(_hw_addr_type)   == ETHERNET
-			        && host_to_big_endian(_prot_addr_type) == Ethernet_frame::IPV4
+			        && host_to_big_endian(_prot_addr_type) == (Genode::uint16_t)Ethernet_frame::Type::IPV4
 			        && _hw_addr_sz   == Ethernet_frame::ADDR_LEN
 			        && _prot_addr_sz == Ipv4_packet::ADDR_LEN);
 		}

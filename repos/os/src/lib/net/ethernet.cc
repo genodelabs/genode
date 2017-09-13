@@ -24,11 +24,11 @@ void Net::Ethernet_frame::print(Genode::Output &output) const
 {
 	Genode::print(output, "\033[32mETH\033[0m ", src(), " > ", dst(), " ");
 	switch (type()) {
-	case Ethernet_frame::ARP:
+	case Ethernet_frame::Type::ARP:
 		Genode::print(output,
 		              *reinterpret_cast<Arp_packet const *>(data<void>()));
 		break;
-	case Ethernet_frame::IPV4:
+	case Ethernet_frame::Type::IPV4:
 		Genode::print(output,
 		              *reinterpret_cast<Ipv4_packet const *>(data<void>()));
 		break;

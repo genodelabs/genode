@@ -81,10 +81,10 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 		/* parse ethernet frame header */
 		Ethernet_frame *eth = new (src) Ethernet_frame(size);
 		switch (eth->type()) {
-		case Ethernet_frame::ARP:
+		case Ethernet_frame::Type::ARP:
 			if (!handle_arp(eth, size)) return;
 			break;
-		case Ethernet_frame::IPV4:
+		case Ethernet_frame::Type::IPV4:
 			if(!handle_ip(eth, size)) return;
 			break;
 		default:

@@ -68,45 +68,9 @@ class Net::Ethernet_frame
 		/**
 		 * Id representing encapsulated protocol.
 		 */
-		enum Ether_type {
-			IPV4              = 0x0800,
-			ARP               = 0x0806,
-			WAKE_ON_LAN       = 0x0842,
-			SYN3              = 0x1337,
-			RARP              = 0x8035,
-			APPLETALK         = 0x809B,
-			AARP              = 0x80F3,
-			VLAN_TAGGED       = 0x8100,
-			IPX               = 0x8137,
-			NOVELL            = 0x8138,
-			IPV6              = 0x86DD,
-			MAC_CONTROL       = 0x8808,
-			SLOW              = 0x8809,
-			COBRANET          = 0x8819,
-			MPLS_UNICAST      = 0x8847,
-			MPLS_MULTICAST    = 0x8848,
-			PPPOE_DISCOVERY   = 0x8863,
-			PPPOE_STAGE       = 0x8864,
-			NLB               = 0x886F,
-			JUMBO_FRAMES      = 0x8870,
-			EAP               = 0x888E,
-			PROFINET          = 0x8892,
-			HYPERSCSI         = 0x889A,
-			ATAOE             = 0x88A2,
-			ETHERCAT          = 0x88A4,
-			PROVIDER_BRIDGING = 0x88A8,
-			POWERLINK         = 0x88AB,
-			LLDP              = 0x88CC,
-			SERCOS_III        = 0x88CD,
-			CESOE             = 0x88D8,
-			HOMEPLUG          = 0x88E1,
-			MAC_SEC           = 0x88E5,
-			PRECISION_TIME    = 0x88F7,
-			CFM               = 0x8902,
-			FCOE              = 0x8906,
-			FCOE_Init         = 0x8914,
-			Q_IN_Q            = 0x9100,
-			LLT               = 0xCAFE
+		enum class Type : Genode::uint16_t {
+			IPV4 = 0x0800,
+			ARP  = 0x0806,
 		};
 
 
@@ -138,7 +102,7 @@ class Net::Ethernet_frame
 		/**
 		 * \return EtherType - type of encapsulated protocol.
 		 */
-		Genode::uint16_t type() const { return host_to_big_endian(_type); }
+		Type type() const { return (Type)host_to_big_endian(_type); }
 
 		/**
 		 * \return payload data.
@@ -170,7 +134,7 @@ class Net::Ethernet_frame
 		 *
 		 * \param type  the EtherType to be set.
 		 */
-		void type(Genode::uint16_t type) { _type = host_to_big_endian(type); }
+		void type(Type type) { _type = host_to_big_endian((Genode::uint16_t)type); }
 
 
 		/***************
@@ -208,7 +172,7 @@ class Net::Ethernet_frame_sized : public Ethernet_frame
 	public:
 
 		Ethernet_frame_sized(Mac_address dst_in, Mac_address src_in,
-		                     Ether_type type_in)
+		                     Type type_in)
 		:
 			Ethernet_frame(sizeof(Ethernet_frame))
 		{

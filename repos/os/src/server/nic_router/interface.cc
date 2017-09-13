@@ -406,7 +406,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 void Interface::_broadcast_arp_request(Ipv4_address const &ip)
 {
 	using Ethernet_arp = Ethernet_frame_sized<sizeof(Arp_packet)>;
-	Ethernet_arp eth_arp(Mac_address(0xff), _router_mac, Ethernet_frame::ARP);
+	Ethernet_arp eth_arp(Mac_address(0xff), _router_mac, Ethernet_frame::Type::ARP);
 	void *const eth_data = eth_arp.data<void>();
 	size_t const arp_size = sizeof(eth_arp) - sizeof(Ethernet_frame);
 	Arp_packet &arp = *new (eth_data) Arp_packet(arp_size);
@@ -536,8 +536,8 @@ void Interface::_handle_eth(void              *const  eth_base,
 			log("at ", _domain, " handle ", *eth); }
 
 		switch (eth->type()) {
-		case Ethernet_frame::ARP:  _handle_arp(*eth, eth_size);     break;
-		case Ethernet_frame::IPV4: _handle_ip(*eth, eth_size, pkt); break;
+		case Ethernet_frame::Type::ARP:  _handle_arp(*eth, eth_size);     break;
+		case Ethernet_frame::Type::IPV4: _handle_ip(*eth, eth_size, pkt); break;
 		default: throw Bad_network_protocol(); }
 	}
 	catch (Ethernet_frame::No_ethernet_frame) {
