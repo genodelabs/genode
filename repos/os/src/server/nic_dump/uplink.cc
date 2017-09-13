@@ -25,7 +25,7 @@ using namespace Genode;
 Net::Uplink::Uplink(Env               &env,
                     Xml_node           config,
                     Timer::Connection &timer,
-                    unsigned          &curr_time,
+                    Duration          &curr_time,
                     Allocator         &alloc)
 :
 	Nic::Packet_allocator(&alloc),

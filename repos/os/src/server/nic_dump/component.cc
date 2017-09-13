@@ -60,7 +60,7 @@ Net::Session_component::Session_component(Allocator         &alloc,
                                           size_t const       rx_buf_size,
                                           Xml_node           config,
                                           Timer::Connection &timer,
-                                          unsigned          &curr_time,
+                                          Duration          &curr_time,
                                           Env               &env)
 :
 	Session_component_base(alloc, amount, env.ram(), tx_buf_size, rx_buf_size),
@@ -109,7 +109,7 @@ Net::Root::Root(Env               &env,
                 Allocator         &alloc,
                 Xml_node           config,
                 Timer::Connection &timer,
-                unsigned          &curr_time)
+                Duration          &curr_time)
 :
 	Root_component<Session_component, Genode::Single_client>(&env.ep().rpc_ep(),
 	                                                         &alloc),

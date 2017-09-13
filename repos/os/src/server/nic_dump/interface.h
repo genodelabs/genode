@@ -50,7 +50,7 @@ class Net::Interface
 		Pointer<Interface>  _remote;
 		Interface_label     _label;
 		Timer::Connection  &_timer;
-		unsigned           &_curr_time;
+		Genode::Duration   &_curr_time;
 		bool                _log_time;
 
 		void _send(Ethernet_frame &eth, Genode::size_t const eth_size);
@@ -78,7 +78,7 @@ class Net::Interface
 		Interface(Genode::Entrypoint &ep,
 		          Interface_label     label,
 		          Timer::Connection  &timer,
-		          unsigned           &curr_time,
+		          Genode::Duration   &curr_time,
 		          bool                log_time,
 		          Genode::Allocator  &alloc);
 

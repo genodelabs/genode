@@ -28,11 +28,11 @@ class Main
 {
 	private:
 
-		Genode::Attached_rom_dataspace _config;
-		Timer::Connection              _timer;
-		unsigned                       _curr_time { 0 };
-		Genode::Heap                   _heap;
-		Net::Root                      _root;
+		Attached_rom_dataspace _config;
+		Timer::Connection      _timer;
+		Duration               _curr_time { Microseconds(0UL) };
+		Heap                   _heap;
+		Net::Root              _root;
 
 	public:
 

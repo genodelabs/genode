@@ -96,7 +96,7 @@ class Net::Session_component : public Session_component_base,
 		                  Genode::size_t const  rx_buf_size,
 		                  Genode::Xml_node      config,
 		                  Timer::Connection    &timer,
-		                  unsigned             &curr_time,
+		                  Genode::Duration     &curr_time,
 		                  Genode::Env          &env);
 
 
@@ -106,7 +106,8 @@ class Net::Session_component : public Session_component_base,
 
 		Mac_address mac_address() { return _uplink.mac_address(); }
 		bool link_state() { return _uplink.link_state(); }
-		void link_state_sigh(Genode::Signal_context_capability sigh) { _link_state_sigh = sigh; }
+		void link_state_sigh(Genode::Signal_context_capability sigh) {
+			_link_state_sigh = sigh; }
 };
 
 
@@ -116,9 +117,9 @@ class Net::Root : public Genode::Root_component<Session_component,
 	private:
 
 		Genode::Env       &_env;
-		Genode::Xml_node    _config;
+		Genode::Xml_node   _config;
 		Timer::Connection &_timer;
-		unsigned          &_curr_time;
+		Genode::Duration  &_curr_time;
 
 
 		/********************
@@ -133,7 +134,7 @@ class Net::Root : public Genode::Root_component<Session_component,
 		     Genode::Allocator &alloc,
 		     Genode::Xml_node   config,
 		     Timer::Connection &timer,
-		     unsigned          &curr_time);
+		     Genode::Duration  &curr_time);
 };
 
 #endif /* _COMPONENT_H_ */
