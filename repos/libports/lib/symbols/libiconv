@@ -1,0 +1,13 @@
+_libiconv_version D 4
+aliases_lookup T
+iconv T
+iconv_canonicalize T
+iconv_close T
+iconv_open T
+libiconv T
+libiconv_close T
+libiconv_open T
+libiconv_open_into T
+libiconvctl T
+libiconvlist T
+locale_charset T
