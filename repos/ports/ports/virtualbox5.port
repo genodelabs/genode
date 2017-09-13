@@ -109,6 +109,7 @@ VBOX_CONTENT += include/VBox/HostServices/
 
 VBOX_CONTENT += src/libs/zlib-1.2.8 src/libs/liblzf-3.4 src/libs/libxml2-2.9.4
 VBOX_CONTENT += src/recompiler include/VBox/vmm include/iprt Config.kmk
+VBOX_CONTENT += COPYING
 
 
 TAR_OPT(virtualbox) := \
