@@ -28,15 +28,15 @@ void Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame &eth = *new (eth_base) Ethernet_frame(eth_size);
 		Interface &remote = _remote.deref();
-		unsigned new_time = _timer.curr_time().trunc_to_plain_us().value / 1000;
 		if (_log_time) {
+			unsigned new_time = _timer.curr_time().trunc_to_plain_us().value / 1000;
 			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ", eth,
 			    " \033[33mtime ", new_time, " (", new_time - _curr_time,
 			    ")\033[0m");
+			_curr_time = new_time;
 		} else {
 			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ", eth);
 		}
-		_curr_time = new_time;
 		remote._send(eth, eth_size);
 	}
 	catch (Ethernet_frame::No_ethernet_frame) {
