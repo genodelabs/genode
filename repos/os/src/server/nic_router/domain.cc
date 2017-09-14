@@ -13,7 +13,7 @@
 
 /* local includes */
 #include <configuration.h>
-#include <protocol_name.h>
+#include <l3_protocol.h>
 
 /* Genode includes */
 #include <util/xml_node.h>

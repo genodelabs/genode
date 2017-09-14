@@ -57,19 +57,15 @@ class Net::Arp_packet
 {
 	private:
 
-		/***********************
-		 ** ARP header fields **
-		 ***********************/
-
-		Genode::uint16_t _hw_addr_type;
-		Genode::uint16_t _prot_addr_type;
-		Genode::uint8_t  _hw_addr_sz;
-		Genode::uint8_t  _prot_addr_sz;
+		Genode::uint16_t _hardware_address_type;
+		Genode::uint16_t _protocol_address_type;
+		Genode::uint8_t  _hardware_address_size;
+		Genode::uint8_t  _protocol_address_size;
 		Genode::uint16_t _opcode;
-		Genode::uint8_t  _src_mac_addr[Ethernet_frame::ADDR_LEN];
-		Genode::uint8_t  _src_ip_addr[Ipv4_packet::ADDR_LEN];
-		Genode::uint8_t  _dst_mac_addr[Ethernet_frame::ADDR_LEN];
-		Genode::uint8_t  _dst_ip_addr[Ipv4_packet::ADDR_LEN];
+		Genode::uint8_t  _src_mac[Ethernet_frame::ADDR_LEN];
+		Genode::uint8_t  _src_ip[Ipv4_packet::ADDR_LEN];
+		Genode::uint8_t  _dst_mac[Ethernet_frame::ADDR_LEN];
+		Genode::uint8_t  _dst_ip[Ipv4_packet::ADDR_LEN];
 
 	public:
 
@@ -166,127 +162,29 @@ class Net::Arp_packet
 		}
 
 
-		/******************************
-		 ** ARP field read-accessors **
-		 ******************************/
+		/***************
+		 ** Accessors **
+		 ***************/
 
-		/**
-		 * \return link layer type (Arp_packet::Hardware_type).
-		 */
-		Genode::uint16_t hardware_address_type() {
-			return host_to_big_endian(_hw_addr_type); }
+		Genode::uint16_t hardware_address_type() const { return host_to_big_endian(_hardware_address_type); }
+		Genode::uint16_t protocol_address_type() const { return host_to_big_endian(_protocol_address_type); }
+		Genode::uint8_t  hardware_address_size() const { return _hardware_address_size; }
+		Genode::uint8_t  protocol_address_size() const { return _protocol_address_size; }
+		Genode::uint16_t opcode()                const { return host_to_big_endian(_opcode); }
+		Mac_address      src_mac()               const { return Mac_address((void *)&_src_mac); }
+		Ipv4_address     src_ip()                const { return Ipv4_address((void *)&_src_ip); }
+		Mac_address      dst_mac()               const { return Mac_address((void *)&_dst_mac); }
+		Ipv4_address     dst_ip()                const { return Ipv4_address((void *)&_dst_ip); }
 
-		/**
-		 * \return network/internet layer type (Ether_frame::EtherType).
-		 */
-		Genode::uint16_t protocol_address_type() {
-			return host_to_big_endian(_prot_addr_type); }
-
-		/**
-		 * \return size in bytes of hardware address.
-		 */
-		Genode::uint8_t hardware_address_size() { return _hw_addr_sz; }
-
-		/**
-		 * \return size in bytes of protocol address.
-		 */
-		Genode::uint8_t protocol_address_size() { return _prot_addr_sz; }
-
-		/**
-		 * \return operation code (Arp_packet::Opcode).
-		 */
-		Genode::uint16_t opcode() const { return host_to_big_endian(_opcode); }
-
-		/**
-		 * \return source MAC address.
-		 */
-		Mac_address src_mac() const {
-			return Mac_address((void *)&_src_mac_addr); }
-
-		/**
-		 * \return source IP address.
-		 */
-		Ipv4_address src_ip() const {
-			return Ipv4_address((void *)&_src_ip_addr); }
-
-		/**
-		 * \return destination MAC address.
-		 */
-		Mac_address dst_mac() const {
-			return Mac_address((void *)&_dst_mac_addr); }
-
-		/**
-		 * \return destination IP address.
-		 */
-		Ipv4_address dst_ip() const {
-			return Ipv4_address((void *)&_dst_ip_addr); }
-
-
-		/******************************
-		 ** ARP field write-accessors **
-		 ******************************/
-
-		/**
-		 * \return link layer type (Arp_packet::Hardware_type).
-		 */
-		void hardware_address_type(Genode::uint16_t v) {
-			_hw_addr_type = host_to_big_endian(v); }
-
-		/**
-		 * \return network/internet layer type (Ether_frame::EtherType).
-		 */
-		void protocol_address_type(Genode::uint16_t v) {
-			_prot_addr_type = host_to_big_endian(v); }
-
-		/**
-		 * \return size in bytes of hardware address.
-		 */
-		void hardware_address_size(Genode::uint8_t v) { _hw_addr_sz = v; }
-
-		/**
-		 * \return size in bytes of protocol address.
-		 */
-		void protocol_address_size(Genode::uint8_t v) { _prot_addr_sz = v; }
-
-		/**
-		 * Set Operation code.
-		 *
-		 * \param opcode  Arp_packet::Opcode to set.
-		 */
-		void opcode(Genode::uint16_t opcode) {
-			_opcode = host_to_big_endian(opcode); }
-
-		/**
-		 * Set source MAC address.
-		 *
-		 * \param src_mac_addr  MAC address to set.
-		 */
-		void src_mac(Mac_address src_mac_addr) {
-			src_mac_addr.copy(&_src_mac_addr); }
-
-		/**
-		 * Set source IP address.
-		 *
-		 * \param src_ip_addr  IP address to set.
-		 */
-		void src_ip(Ipv4_address src_ip_addr) {
-			src_ip_addr.copy(&_src_ip_addr); }
-
-		/**
-		 * Set destination MAC address.
-		 *
-		 * \param src_mac_addr  MAC address to set.
-		 */
-		void dst_mac(Mac_address dst_mac_addr) {
-			dst_mac_addr.copy(&_dst_mac_addr); }
-
-		/**
-		 * Set destination IP address.
-		 *
-		 * \param src_ip_addr  IP address to set.
-		 */
-		void dst_ip(Ipv4_address dst_ip_addr) {
-			dst_ip_addr.copy(&_dst_ip_addr); }
+		void hardware_address_type(Genode::uint16_t v) { _hardware_address_type = host_to_big_endian(v); }
+		void protocol_address_type(Genode::uint16_t v) { _protocol_address_type = host_to_big_endian(v); }
+		void hardware_address_size(Genode::uint8_t v)  { _hardware_address_size = v; }
+		void protocol_address_size(Genode::uint8_t v)  { _protocol_address_size = v; }
+		void opcode(Genode::uint16_t v)                { _opcode = host_to_big_endian(v); }
+		void src_mac(Mac_address v)                    { v.copy(&_src_mac); }
+		void src_ip(Ipv4_address v)                    { v.copy(&_src_ip); }
+		void dst_mac(Mac_address v)                    { v.copy(&_dst_mac); }
+		void dst_ip(Ipv4_address v)                    { v.copy(&_dst_ip); }
 
 
 		/***************************
@@ -298,10 +196,10 @@ class Net::Arp_packet
 		 *         address resolution with respect to IPv4 addresses.
 		 */
 		bool ethernet_ipv4() const {
-			return (   host_to_big_endian(_hw_addr_type)   == ETHERNET
-			        && host_to_big_endian(_prot_addr_type) == (Genode::uint16_t)Ethernet_frame::Type::IPV4
-			        && _hw_addr_sz   == Ethernet_frame::ADDR_LEN
-			        && _prot_addr_sz == Ipv4_packet::ADDR_LEN);
+			return (   host_to_big_endian(_hardware_address_type) == ETHERNET
+			        && host_to_big_endian(_protocol_address_type) == (Genode::uint16_t)Ethernet_frame::Type::IPV4
+			        && _hardware_address_size == Ethernet_frame::ADDR_LEN
+			        && _protocol_address_size == Ipv4_packet::ADDR_LEN);
 		}
 
 

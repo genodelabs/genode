@@ -26,11 +26,11 @@ void Net::Ipv4_packet::print(Genode::Output &output) const
 {
 	Genode::print(output, "\033[32mIPV4\033[0m ", src(), " > ", dst(), " ");
 	switch (protocol()) {
-	case Tcp_packet::IP_ID:
+	case Protocol::TCP:
 		Genode::print(output,
 		              *reinterpret_cast<Tcp_packet const *>(data<void>()));
 		break;
-	case Udp_packet::IP_ID:
+	case Protocol::UDP:
 		Genode::print(output,
 		              *reinterpret_cast<Udp_packet const *>(data<void>()));
 		break;
@@ -84,7 +84,7 @@ Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 
 Genode::uint16_t Ipv4_packet::calculate_checksum(Ipv4_packet const &packet)
 {
-	Genode::uint16_t const *data = packet.header<Genode::uint16_t>();
+	Genode::uint16_t const *data = (Genode::uint16_t *)&packet;
 	Genode::uint32_t const sum = host_to_big_endian(data[0])
 	                           + host_to_big_endian(data[1])
 	                           + host_to_big_endian(data[2])

@@ -18,6 +18,7 @@
 #include <link.h>
 #include <arp_cache.h>
 #include <arp_waiter.h>
+#include <l3_protocol.h>
 
 /* Genode includes */
 #include <nic_session/nic_session.h>
@@ -63,15 +64,15 @@ class Net::Interface
 		Link_list           _closed_tcp_links;
 		Link_list           _closed_udp_links;
 
-		void _new_link(Genode::uint8_t               const  protocol,
+		void _new_link(L3_protocol                   const  protocol,
 		               Link_side_id                  const &local_id,
 		               Pointer<Port_allocator_guard> const  remote_port_alloc,
 		               Interface                           &remote_interface,
 		               Link_side_id                  const &remote_id);
 
-		Forward_rule_tree &_forward_rules(Genode::uint8_t const prot) const;
+		Forward_rule_tree &_forward_rules(L3_protocol const prot) const;
 
-		Transport_rule_list &_transport_rules(Genode::uint8_t const prot) const;
+		Transport_rule_list &_transport_rules(L3_protocol const prot) const;
 
 		void _handle_arp(Ethernet_frame &eth, Genode::size_t const eth_size);
 
@@ -94,7 +95,7 @@ class Net::Interface
 		void _nat_link_and_pass(Ethernet_frame         &eth,
 		                        Genode::size_t   const  eth_size,
 		                        Ipv4_packet            &ip,
-		                        Genode::uint8_t  const  prot,
+		                        L3_protocol      const  prot,
 		                        void            *const  prot_base,
 		                        Genode::size_t   const  prot_size,
 		                        Link_side_id     const &local_id,
@@ -107,7 +108,7 @@ class Net::Interface
 		void _pass_prot(Ethernet_frame         &eth,
 		                Genode::size_t   const  eth_size,
 		                Ipv4_packet            &ip,
-		                Genode::uint8_t  const  prot,
+		                L3_protocol      const  prot,
 		                void            *const  prot_base,
 		                Genode::size_t   const  prot_size);
 
@@ -117,9 +118,9 @@ class Net::Interface
 
 		void _continue_handle_eth(Packet_descriptor const &pkt);
 
-		Link_list &_closed_links(Genode::uint8_t const protocol);
+		Link_list &_closed_links(L3_protocol const protocol);
 
-		Link_side_tree &_links(Genode::uint8_t const protocol);
+		Link_side_tree &_links(L3_protocol const protocol);
 
 		Configuration &_config() const;
 
@@ -162,9 +163,9 @@ class Net::Interface
 
 		~Interface();
 
-		void link_closed(Link &link, Genode::uint8_t const prot);
+		void link_closed(Link &link, L3_protocol const prot);
 
-		void dissolve_link(Link_side &link_side, Genode::uint8_t const prot);
+		void dissolve_link(Link_side &link_side, L3_protocol const prot);
 
 
 		/*********

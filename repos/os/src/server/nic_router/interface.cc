@@ -19,7 +19,7 @@
 /* local includes */
 #include <interface.h>
 #include <configuration.h>
-#include <protocol_name.h>
+#include <l3_protocol.h>
 
 using namespace Net;
 using namespace Genode;
@@ -54,13 +54,13 @@ static void _destroy_links(Link_side_tree &links,
 }
 
 
-static void _link_packet(uint8_t  const  prot,
-                         void    *const  prot_base,
-                         Link           &link,
-                         bool     const  client)
+static void _link_packet(L3_protocol  const  prot,
+                         void        *const  prot_base,
+                         Link               &link,
+                         bool         const  client)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID:
+	case L3_protocol::TCP:
 		if (client) {
 			static_cast<Tcp_link *>(&link)->client_packet(*(Tcp_packet *)(prot_base));
 			return;
@@ -68,77 +68,77 @@ static void _link_packet(uint8_t  const  prot,
 			static_cast<Tcp_link *>(&link)->server_packet(*(Tcp_packet *)(prot_base));
 			return;
 		}
-	case Udp_packet::IP_ID:
+	case L3_protocol::UDP:
 		static_cast<Udp_link *>(&link)->packet();
 		return;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
 
-static void _update_checksum(uint8_t       const prot,
+static void _update_checksum(L3_protocol   const prot,
                              void         *const prot_base,
                              size_t        const prot_size,
                              Ipv4_address  const src,
                              Ipv4_address  const dst)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID:
+	case L3_protocol::TCP:
 		((Tcp_packet *)prot_base)->update_checksum(src, dst, prot_size);
 		return;
-	case Udp_packet::IP_ID:
+	case L3_protocol::UDP:
 		((Udp_packet *)prot_base)->update_checksum(src, dst);
 		return;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
 
-static Port _dst_port(uint8_t const prot, void *const prot_base)
+static Port _dst_port(L3_protocol const prot, void *const prot_base)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: return (*(Tcp_packet *)prot_base).dst_port();
-	case Udp_packet::IP_ID: return (*(Udp_packet *)prot_base).dst_port();
+	case L3_protocol::TCP: return (*(Tcp_packet *)prot_base).dst_port();
+	case L3_protocol::UDP: return (*(Udp_packet *)prot_base).dst_port();
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
 
-static void _dst_port(uint8_t  const prot,
-                      void    *const prot_base,
-                      Port     const port)
+static void _dst_port(L3_protocol  const prot,
+                      void        *const prot_base,
+                      Port         const port)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: (*(Tcp_packet *)prot_base).dst_port(port); return;
-	case Udp_packet::IP_ID: (*(Udp_packet *)prot_base).dst_port(port); return;
+	case L3_protocol::TCP: (*(Tcp_packet *)prot_base).dst_port(port); return;
+	case L3_protocol::UDP: (*(Udp_packet *)prot_base).dst_port(port); return;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
 
-static Port _src_port(uint8_t const prot, void *const prot_base)
+static Port _src_port(L3_protocol const prot, void *const prot_base)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: return (*(Tcp_packet *)prot_base).src_port();
-	case Udp_packet::IP_ID: return (*(Udp_packet *)prot_base).src_port();
+	case L3_protocol::TCP: return (*(Tcp_packet *)prot_base).src_port();
+	case L3_protocol::UDP: return (*(Udp_packet *)prot_base).src_port();
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
 
-static void _src_port(uint8_t  const prot,
-                      void    *const prot_base,
-                      Port     const port)
+static void _src_port(L3_protocol  const prot,
+                      void        *const prot_base,
+                      Port         const port)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: ((Tcp_packet *)prot_base)->src_port(port); return;
-	case Udp_packet::IP_ID: ((Udp_packet *)prot_base)->src_port(port); return;
+	case L3_protocol::TCP: ((Tcp_packet *)prot_base)->src_port(port); return;
+	case L3_protocol::UDP: ((Udp_packet *)prot_base)->src_port(port); return;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
 
-static void *_prot_base(uint8_t const  prot,
-                        size_t  const  prot_size,
-                        Ipv4_packet   &ip)
+static void *_prot_base(L3_protocol const  prot,
+                        size_t      const  prot_size,
+                        Ipv4_packet       &ip)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: return new (ip.data<void>()) Tcp_packet(prot_size);
-	case Udp_packet::IP_ID: return new (ip.data<void>()) Udp_packet(prot_size);
+	case L3_protocol::TCP: return new (ip.data<void>()) Tcp_packet(prot_size);
+	case L3_protocol::UDP: return new (ip.data<void>()) Udp_packet(prot_size);
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -147,12 +147,12 @@ static void *_prot_base(uint8_t const  prot,
  ** Interface **
  ***************/
 
-void Interface::_pass_prot(Ethernet_frame &eth,
-                           size_t   const  eth_size,
-                           Ipv4_packet    &ip,
-                           uint8_t  const  prot,
-                           void    *const  prot_base,
-                           size_t   const  prot_size)
+void Interface::_pass_prot(Ethernet_frame       &eth,
+                           size_t         const  eth_size,
+                           Ipv4_packet          &ip,
+                           L3_protocol    const  prot,
+                           void          *const  prot_base,
+                           size_t         const  prot_size)
 {
 	_update_checksum(prot, prot_base, prot_size, ip.src(), ip.dst());
 	_pass_ip(eth, eth_size, ip);
@@ -168,33 +168,35 @@ void Interface::_pass_ip(Ethernet_frame &eth,
 }
 
 
-Forward_rule_tree &Interface::_forward_rules(uint8_t const prot) const
+Forward_rule_tree &
+Interface::_forward_rules(L3_protocol const prot) const
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: return _domain.tcp_forward_rules();
-	case Udp_packet::IP_ID: return _domain.udp_forward_rules();
+	case L3_protocol::TCP: return _domain.tcp_forward_rules();
+	case L3_protocol::UDP: return _domain.udp_forward_rules();
 	default: throw Bad_transport_protocol(); }
 }
 
 
-Transport_rule_list &Interface::_transport_rules(uint8_t const prot) const
+Transport_rule_list &
+Interface::_transport_rules(L3_protocol const prot) const
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: return _domain.tcp_rules();
-	case Udp_packet::IP_ID: return _domain.udp_rules();
+	case L3_protocol::TCP: return _domain.tcp_rules();
+	case L3_protocol::UDP: return _domain.udp_rules();
 	default: throw Bad_transport_protocol(); }
 }
 
 
 void
-Interface::_new_link(uint8_t                       const  protocol,
+Interface::_new_link(L3_protocol                   const  protocol,
                      Link_side_id                  const &local,
                      Pointer<Port_allocator_guard> const  remote_port_alloc,
                      Interface                           &remote_interface,
                      Link_side_id                  const &remote)
 {
 	switch (protocol) {
-	case Tcp_packet::IP_ID:
+	case L3_protocol::TCP:
 		{
 			Tcp_link &link = *new (_alloc)
 				Tcp_link(*this, local, remote_port_alloc, remote_interface,
@@ -208,7 +210,7 @@ Interface::_new_link(uint8_t                       const  protocol,
 			}
 			return;
 		}
-	case Udp_packet::IP_ID:
+	case L3_protocol::UDP:
 		{
 			Udp_link &link = *new (_alloc)
 				Udp_link(*this, local, remote_port_alloc, remote_interface,
@@ -226,32 +228,32 @@ Interface::_new_link(uint8_t                       const  protocol,
 }
 
 
-Link_side_tree &Interface::_links(uint8_t const protocol)
+Link_side_tree &Interface::_links(L3_protocol const protocol)
 {
 	switch (protocol) {
-	case Tcp_packet::IP_ID: return _tcp_links;
-	case Udp_packet::IP_ID: return _udp_links;
+	case L3_protocol::TCP: return _tcp_links;
+	case L3_protocol::UDP: return _udp_links;
 	default: throw Bad_transport_protocol(); }
 }
 
 
-void Interface::link_closed(Link &link, uint8_t const prot)
+void Interface::link_closed(Link &link, L3_protocol const prot)
 {
 	_closed_links(prot).insert(&link);
 }
 
 
-void Interface::dissolve_link(Link_side &link_side, uint8_t const prot)
+void Interface::dissolve_link(Link_side &link_side, L3_protocol const prot)
 {
 	_links(prot).remove(&link_side);
 }
 
 
-Link_list &Interface::_closed_links(uint8_t const protocol)
+Link_list &Interface::_closed_links(L3_protocol const protocol)
 {
 	switch (protocol) {
-	case Tcp_packet::IP_ID: return _closed_tcp_links;
-	case Udp_packet::IP_ID: return _closed_udp_links;
+	case L3_protocol::TCP: return _closed_tcp_links;
+	case L3_protocol::UDP: return _closed_udp_links;
 	default: throw Bad_transport_protocol(); }
 }
 
@@ -273,14 +275,14 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 }
 
 
-void Interface::_nat_link_and_pass(Ethernet_frame      &eth,
-                                   size_t        const  eth_size,
-                                   Ipv4_packet         &ip,
-                                   uint8_t       const  prot,
-                                   void         *const  prot_base,
-                                   size_t        const  prot_size,
-                                   Link_side_id  const &local,
-                                   Interface           &interface)
+void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
+                                   size_t          const  eth_size,
+                                   Ipv4_packet           &ip,
+                                   L3_protocol     const  prot,
+                                   void           *const  prot_base,
+                                   size_t          const  prot_size,
+                                   Link_side_id    const &local,
+                                   Interface             &interface)
 {
 	Pointer<Port_allocator_guard> remote_port_alloc;
 	try {
@@ -313,7 +315,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 	/* try to route via transport layer rules */
 	try {
-		uint8_t       const prot      = ip.protocol();
+		L3_protocol   const prot      = ip.protocol();
 		size_t        const prot_size = ip.total_length() - ip.header_length() * 4;
 		void         *const prot_base = _prot_base(prot, prot_size, ip);
 		Link_side_id  const local     = { ip.src(), _src_port(prot, prot_base),
@@ -327,7 +329,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			Link_side &remote_side = client ? link.server() : link.client();
 			Interface &interface = remote_side.interface();
 			if(_config().verbose()) {
-				log("Using ", protocol_name(prot), " link: ", link); }
+				log("Using ", l3_protocol_name(prot), " link: ", link); }
 
 			_adapt_eth(eth, eth_size, remote_side.src_ip(), pkt, interface);
 			ip.src(remote_side.dst_ip());
@@ -349,7 +351,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 				Interface &interface = rule.domain().interface().deref();
 				if(_config().verbose()) {
-					log("Using forward rule: ", protocol_name(prot), " ", rule); }
+					log("Using forward rule: ", l3_protocol_name(prot), " ", rule); }
 
 				_adapt_eth(eth, eth_size, rule.to(), pkt, interface);
 				ip.dst(rule.to());
@@ -369,7 +371,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 			Interface &interface = permit_rule.domain().interface().deref();
 			if(_config().verbose()) {
-				log("Using ", protocol_name(prot), " rule: ", transport_rule,
+				log("Using ", l3_protocol_name(prot), " rule: ", transport_rule,
 				    " ", permit_rule); }
 
 			_adapt_eth(eth, eth_size, local.dst_ip, pkt, interface);

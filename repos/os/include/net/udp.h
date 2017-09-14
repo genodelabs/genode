@@ -51,9 +51,6 @@ class Net::Udp_packet
 
 	public:
 
-		enum Protocol_id { IP_ID = 0x11 };
-
-
 		/**
 		 * Exception used to indicate protocol violation.
 		 */
@@ -71,20 +68,20 @@ class Net::Udp_packet
 		}
 
 
-		/******************************
-		 ** UDP field read-accessors **
-		 ******************************/
+		/***************
+		 ** Accessors **
+		 ***************/
 
-		Port             src_port() const { return Port(host_to_big_endian(_src_port)); }
-		Port             dst_port() const { return Port(host_to_big_endian(_dst_port)); }
-		Genode::uint16_t length()   const { return host_to_big_endian(_length);   }
-		Genode::uint16_t checksum() const { return host_to_big_endian(_checksum); }
+		Port                            src_port() const { return Port(host_to_big_endian(_src_port)); }
+		Port                            dst_port() const { return Port(host_to_big_endian(_dst_port)); }
+		Genode::uint16_t                length()   const { return host_to_big_endian(_length);   }
+		Genode::uint16_t                checksum() const { return host_to_big_endian(_checksum); }
+		template <typename T> T const * data()     const { return (T const *)(_data); }
+		template <typename T> T *       data()           { return (T *)(_data); }
 
-		void src_port(Port p) { _src_port = host_to_big_endian(p.value); }
-		void dst_port(Port p) { _dst_port = host_to_big_endian(p.value); }
-
-		template <typename T> T *       data()       { return (T *)(_data); }
-		template <typename T> T const * data() const { return (T const *)(_data); }
+		void length(Genode::uint16_t v) { _length = host_to_big_endian(v); }
+		void src_port(Port p)           { _src_port = host_to_big_endian(p.value); }
+		void dst_port(Port p)           { _dst_port = host_to_big_endian(p.value); }
 
 
 		/***************
@@ -127,7 +124,7 @@ class Net::Udp_packet
 				Genode::uint16_t d = dst.addr[i] << 8 | dst.addr[i + 1];
 				sum += s + d;
 			}
-			Genode::uint8_t prot[] = { 0, IP_ID };
+			Genode::uint8_t prot[] = { 0, (Genode::uint8_t)Ipv4_packet::Protocol::UDP };
 			sum += host_to_big_endian(*(Genode::uint16_t*)&prot) + length();
 
 			/*

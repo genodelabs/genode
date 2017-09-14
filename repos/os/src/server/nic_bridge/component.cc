@@ -54,7 +54,7 @@ bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 	Ipv4_packet *ip =
 		new (eth->data<void>()) Ipv4_packet(size - sizeof(Ethernet_frame));
 
-	if (ip->protocol() == Udp_packet::IP_ID)
+	if (ip->protocol() == Ipv4_packet::Protocol::UDP)
 	{
 		Udp_packet *udp = new (ip->data<void>())
 			Udp_packet(size - sizeof(Ipv4_packet));

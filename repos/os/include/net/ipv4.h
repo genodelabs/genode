@@ -91,16 +91,17 @@ class Net::Ipv4_packet
 
 		unsigned         _header_length   : 4;
 		unsigned         _version         : 4;
-		Genode::uint8_t  _diff_service;
+		unsigned         _diff_service    : 6;
+		unsigned         _ecn             : 2;
 		Genode::uint16_t _total_length;
 		Genode::uint16_t _identification;
 		unsigned         _flags           : 3;
 		unsigned         _fragment_offset : 13;
 		Genode::uint8_t  _time_to_live;
 		Genode::uint8_t  _protocol;
-		Genode::uint16_t _header_checksum;
-		Genode::uint8_t  _src_addr[ADDR_LEN];
-		Genode::uint8_t  _dst_addr[ADDR_LEN];
+		Genode::uint16_t _checksum;
+		Genode::uint8_t  _src[ADDR_LEN];
+		Genode::uint8_t  _dst[ADDR_LEN];
 		unsigned         _data[0];
 
 		/**
@@ -115,6 +116,12 @@ class Net::Ipv4_packet
 		};
 
 	public:
+
+		enum class Protocol : Genode::uint8_t
+		{
+			TCP = 6,
+			UDP = 17,
+		};
 
 		enum Precedence {
 			NETWORK_CONTROL      = 7,
@@ -150,54 +157,40 @@ class Net::Ipv4_packet
 		}
 
 
-		/*******************************
-		 ** IPv4 field read-accessors **
-		 *******************************/
+		/***************
+		 ** Accessors **
+		 ***************/
 
-		Genode::uint8_t version() { return _version; }
+		Genode::size_t                  header_length()          const { return _header_length; }
+		Genode::uint8_t                 version()                const { return _version; }
+		Genode::uint8_t                 diff_service()           const { return _diff_service; }
+		Genode::uint8_t                 ecn()                    const { return _ecn; }
+		Genode::size_t                  total_length()           const { return host_to_big_endian(_total_length); }
+		Genode::uint16_t                identification()         const { return host_to_big_endian(_identification); }
+		Genode::uint8_t                 flags()                  const { return _flags; }
+		Genode::size_t                  fragment_offset()        const { return _fragment_offset; }
+		Genode::uint8_t                 time_to_live()           const { return _time_to_live; }
+		Protocol                        protocol()               const { return (Protocol)_protocol; }
+		Genode::uint16_t                checksum()               const { return host_to_big_endian(_checksum); }
+		Ipv4_address                    src()                    const { return Ipv4_address((void *)&_src); }
+		Ipv4_address                    dst()                    const { return Ipv4_address((void *)&_dst); }
+		template <typename T> T const * data()                   const { return (T const *)(_data); }
+		template <typename T> T *       data()                         { return (T *)(_data); }
 
-		/* returns the number of 32-bit words the header occupies */
-		Genode::uint8_t header_length() { return _header_length; }
-		Genode::uint8_t precedence()    { return _diff_service & PRECEDENCE; }
+		void header_length(Genode::size_t v)     { _header_length = v; }
+		void version(Genode::uint8_t v)          { _version = v; }
+		void diff_service(Genode::uint8_t v)     { _diff_service = v; ; }
+		void ecn(Genode::uint8_t v)              { _ecn = v; ; }
+		void total_length(Genode::size_t v)      { _total_length = host_to_big_endian((Genode::uint16_t)v); }
+		void identification(Genode::uint16_t v)  { _identification = host_to_big_endian(v); }
+		void flags(Genode::uint8_t v)            { _flags = v; ; }
+		void fragment_offset(Genode::size_t v)   { _fragment_offset = v; ; }
+		void time_to_live(Genode::uint8_t v)     { _time_to_live = v; }
+		void protocol(Protocol v)                { _protocol = (Genode::uint8_t)v; }
+		void checksum(Genode::uint16_t checksum) { _checksum = host_to_big_endian(checksum); }
+		void src(Ipv4_address v)                 { v.copy(&_src); }
+		void dst(Ipv4_address v)                 { v.copy(&_dst); }
 
-		bool low_delay()              { return _diff_service & DELAY;      }
-		bool high_throughput()        { return _diff_service & THROUGHPUT; }
-		bool high_reliability()       { return _diff_service & RELIABILITY;}
-		bool minimize_monetary_cost() { return _diff_service & COST;       }
-
-		Genode::uint16_t total_length()   { return host_to_big_endian(_total_length);   }
-		Genode::uint16_t identification() { return host_to_big_endian(_identification); }
-
-		bool no_fragmentation() { return _flags & NO_FRAGMENT;             }
-		bool more_fragments()   { return _flags & MORE_FRAGMENTS;          }
-
-		Genode::size_t   fragment_offset() { return _fragment_offset;      }
-		Genode::uint8_t  time_to_live()    { return _time_to_live;         }
-		Genode::uint8_t  protocol() const  { return _protocol;             }
-
-		Genode::uint16_t checksum() { return host_to_big_endian(_header_checksum); }
-
-		Ipv4_address dst() const { return Ipv4_address((void *)&_dst_addr); }
-		Ipv4_address src() const { return Ipv4_address((void *)&_src_addr); }
-
-		template <typename T> T const * header() const { return (T const *)(this); }
-		template <typename T> T *       data()         { return (T *)(_data); }
-		template <typename T> T const * data()   const { return (T const *)(_data); }
-
-		/********************************
-		 ** IPv4 field write-accessors **
-		 ********************************/
-
-		void version(Genode::size_t version)    { _version = version; }
-		void header_length(Genode::size_t len)  { _header_length = len; }
-
-		void total_length(Genode::uint16_t len) { _total_length = host_to_big_endian(len); }
-		void time_to_live(Genode::uint8_t ttl)  { _time_to_live = ttl; }
-
-		void checksum(Genode::uint16_t checksum) { _header_checksum = host_to_big_endian(checksum); }
-
-		void dst(Ipv4_address ip) { ip.copy(&_dst_addr); }
-		void src(Ipv4_address ip) { ip.copy(&_src_addr); }
 
 		/***************
 		 ** Operators **

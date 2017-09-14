@@ -17,6 +17,7 @@
 /* local includes */
 #include <port_allocator.h>
 #include <leaf_rule.h>
+#include <l3_protocol.h>
 
 /* Genode includes */
 #include <util/avl_string.h>
@@ -47,7 +48,7 @@ class Net::Nat_rule : public Leaf_rule,
 
 		Nat_rule &find_by_domain(Domain &domain);
 
-		Port_allocator_guard &port_alloc(Genode::uint8_t const prot);
+		Port_allocator_guard &port_alloc(L3_protocol const prot);
 
 
 		/*********

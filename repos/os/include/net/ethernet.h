@@ -54,10 +54,10 @@ class Net::Ethernet_frame
 
 	private:
 
-		Genode::uint8_t  _dst_mac[ADDR_LEN]; /* destination mac address */
-		Genode::uint8_t  _src_mac[ADDR_LEN]; /* source mac address */
-		Genode::uint16_t _type;              /* encapsulated protocol */
-		unsigned         _data[0];           /* encapsulated data */
+		Genode::uint8_t  _dst[ADDR_LEN]; /* destination mac address */
+		Genode::uint8_t  _src[ADDR_LEN]; /* source mac address */
+		Genode::uint16_t _type;          /* encapsulated protocol */
+		unsigned         _data[0];       /* encapsulated data */
 
 	public:
 
@@ -85,56 +85,19 @@ class Net::Ethernet_frame
 		}
 
 
-		/***********************************
-		 ** Ethernet field read-accessors **
-		 ***********************************/
+		/***************
+		 ** Accessors **
+		 ***************/
 
-		/**
-		 * \return destination MAC address of frame.
-		 */
-		Mac_address dst() const { return Mac_address((void *)&_dst_mac); }
+		Mac_address                    dst()  const { return Mac_address((void *)_dst); }
+		Mac_address                    src()  const { return Mac_address((void *)_src); }
+		Type                           type() const { return (Type)host_to_big_endian(_type); }
+		template <typename T> T const *data() const { return (T const *)(_data); }
+		template <typename T> T       *data()       { return (T *)(_data); }
 
-		/**
-		 * \return source MAC address of frame.
-		 */
-		Mac_address src() const { return Mac_address((void *)&_src_mac); }
-
-		/**
-		 * \return EtherType - type of encapsulated protocol.
-		 */
-		Type type() const { return (Type)host_to_big_endian(_type); }
-
-		/**
-		 * \return payload data.
-		 */
-		template <typename T> T *       data()       { return (T *)(_data); }
-		template <typename T> T const * data() const { return (T const *)(_data); }
-
-
-		/***********************************
-		 ** Ethernet field write-accessors **
-		 ***********************************/
-
-		/**
-		 * Set the destination MAC address of this frame.
-		 *
-		 * \param mac  MAC address to be set.
-		 */
-		void dst(Mac_address mac) { mac.copy(&_dst_mac); }
-
-		/**
-		 * Set the source MAC address of this frame.
-		 *
-		 * \param mac  MAC address to be set.
-		 */
-		void src(Mac_address mac) { mac.copy(&_src_mac); }
-
-		/**
-		 * Set type of encapsulated protocol.
-		 *
-		 * \param type  the EtherType to be set.
-		 */
-		void type(Type type) { _type = host_to_big_endian((Genode::uint16_t)type); }
+		void dst(Mac_address v) { v.copy(&_dst); }
+		void src(Mac_address v) { v.copy(&_src); }
+		void type(Type type)    { _type = host_to_big_endian((Genode::uint16_t)type); }
 
 
 		/***************

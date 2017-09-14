@@ -46,14 +46,16 @@ class Net::Tcp_packet
 		uint16_t _dst_port;
 		uint32_t _seq_nr;
 		uint32_t _ack_nr;
-		uint8_t  _data_offset;
-		uint8_t  _flags;
+		unsigned _data_offset : 4;
+		unsigned _reserved    : 3;
+		unsigned _flags_msb   : 1;
+		uint8_t  _flags_lsb;
 		uint16_t _window_size;
 		uint16_t _checksum;
 		uint16_t _urgent_ptr;
 		uint32_t _data[0];
 
-		struct Flags : Genode::Register<8>
+		struct Flags : Genode::Register<16>
 		{
 			struct Fin : Bitfield<0, 1> { };
 			struct Syn : Bitfield<1, 1> { };
@@ -61,30 +63,46 @@ class Net::Tcp_packet
 			struct Psh : Bitfield<3, 1> { };
 			struct Ack : Bitfield<4, 1> { };
 			struct Urg : Bitfield<5, 1> { };
+			struct Ece : Bitfield<6, 1> { };
+			struct Crw : Bitfield<7, 1> { };
+			struct Ns  : Bitfield<8, 1> { };
 		};
 
 	public:
 
-		bool fin() const { return Flags::Fin::get(_flags); };
-		bool syn() const { return Flags::Syn::get(_flags); };
-		bool rst() const { return Flags::Rst::get(_flags); };
-		bool psh() const { return Flags::Psh::get(_flags); };
-		bool ack() const { return Flags::Ack::get(_flags); };
-		bool urg() const { return Flags::Urg::get(_flags); };
-
-		enum Protocol_id { IP_ID = 6 };
-
 		class No_tcp_packet : Exception {};
+
+
+		Tcp_packet(size_t size) {
+			if (size < sizeof(Tcp_packet)) { throw No_tcp_packet(); } }
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Port     src_port()    const { return Port(host_to_big_endian(_src_port)); }
+		Port     dst_port()    const { return Port(host_to_big_endian(_dst_port)); }
+		uint32_t seq_nr()      const { return host_to_big_endian(_seq_nr); }
+		uint32_t ack_nr()      const { return host_to_big_endian(_ack_nr); }
+		uint8_t  data_offset() const { return _data_offset; }
+		uint16_t flags()       const { return _flags_lsb | _flags_msb << 8; }
+		uint16_t window_size() const { return host_to_big_endian(_window_size); }
+		uint16_t checksum()    const { return host_to_big_endian(_checksum); }
+		uint16_t urgent_ptr()  const { return host_to_big_endian(_urgent_ptr); }
+		bool     ns()          const { return Flags::Ns::get(flags()); };
+		bool     ece()         const { return Flags::Ece::get(flags()); };
+		bool     crw()         const { return Flags::Crw::get(flags()); };
+		bool     fin()         const { return Flags::Fin::get(flags()); };
+		bool     syn()         const { return Flags::Syn::get(flags()); };
+		bool     rst()         const { return Flags::Rst::get(flags()); };
+		bool     psh()         const { return Flags::Psh::get(flags()); };
+		bool     ack()         const { return Flags::Ack::get(flags()); };
+		bool     urg()         const { return Flags::Urg::get(flags()); };
 
 		void src_port(Port p) { _src_port = host_to_big_endian(p.value); }
 		void dst_port(Port p) { _dst_port = host_to_big_endian(p.value); }
 
-		Port src_port()  const { return Port(host_to_big_endian(_src_port)); }
-		Port dst_port()  const { return Port(host_to_big_endian(_dst_port)); }
-		uint16_t flags() const { return host_to_big_endian(_flags); }
-
-		Tcp_packet(size_t size) {
-			if (size < sizeof(Tcp_packet)) { throw No_tcp_packet(); } }
 
 		/**
 		 * TCP checksum is calculated over the tcp datagram + an IPv4
@@ -111,7 +129,7 @@ class Net::Tcp_packet
 				uint16_t d = ip_dst.addr[i] << 8 | ip_dst.addr[i + 1];
 				sum += s + d;
 			}
-			uint8_t prot[] = { 0, IP_ID };
+			uint8_t prot[] = { 0, (uint8_t)Ipv4_packet::Protocol::TCP };
 			sum += host_to_big_endian(*(uint16_t *)&prot) + tcp_size;
 
 			/* sum up TCP packet itself */

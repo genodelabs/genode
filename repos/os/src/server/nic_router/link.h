@@ -23,6 +23,7 @@
 
 /* local includes */
 #include <pointer.h>
+#include <l3_protocol.h>
 
 namespace Net {
 
@@ -131,7 +132,7 @@ class Net::Link : public Link_list::Element
 		Link_side                            _server;
 		Timer::One_shot_timeout<Link>        _close_timeout;
 		Genode::Microseconds          const  _close_timeout_us;
-		Genode::uint8_t               const  _protocol;
+		L3_protocol                   const  _protocol;
 
 		void _handle_close_timeout(Genode::Duration);
 
@@ -148,7 +149,7 @@ class Net::Link : public Link_list::Element
 		     Link_side_id                  const &srv_id,
 		     Timer::Connection                   &timer,
 		     Configuration                       &config,
-		     Genode::uint8_t               const  protocol);
+		     L3_protocol                   const  protocol);
 
 		void dissolve();
 
@@ -190,7 +191,7 @@ class Net::Tcp_link : public Link
 		         Link_side_id                  const &srv_id,
 		         Timer::Connection                   &timer,
 		         Configuration                       &config,
-		         Genode::uint8_t               const  protocol);
+		         L3_protocol                   const  protocol);
 
 		void client_packet(Tcp_packet &tcp);
 
@@ -207,7 +208,7 @@ struct Net::Udp_link : Link
 	         Link_side_id                  const &srv_id,
 	         Timer::Connection                   &timer,
 	         Configuration                       &config,
-	         Genode::uint8_t               const  protocol);
+	         L3_protocol                   const  protocol);
 
 	void packet() { _packet(); }
 };

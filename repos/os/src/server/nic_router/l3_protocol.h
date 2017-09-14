@@ -1,5 +1,5 @@
 /*
- * \brief  Provide protocol names as Genode Cstring objects
+ * \brief  Utilities regarding layer 3 protocols in general
  * \author Martin Stein
  * \date   2016-08-19
  */
@@ -11,19 +11,22 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _PROTOCOL_NAME_H_
-#define _PROTOCOL_NAME_H_
+#ifndef _L3_PROTOCOL_H_
+#define _L3_PROTOCOL_H_
 
 /* Genode includes */
+#include <net/ipv4.h>
 #include <base/stdint.h>
 
 namespace Genode { class Cstring; }
 
 namespace Net {
 
+	using L3_protocol = Ipv4_packet::Protocol;
+
 	Genode::Cstring const &tcp_name();
 	Genode::Cstring const &udp_name();
-	Genode::Cstring const &protocol_name(Genode::uint8_t protocol);
+	Genode::Cstring const &l3_protocol_name(L3_protocol protocol);
 }
 
-#endif /* _PROTOCOL_NAME_H_ */
+#endif /* _L3_PROTOCOL_H_ */

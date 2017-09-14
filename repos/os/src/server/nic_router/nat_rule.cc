@@ -75,10 +75,10 @@ void Nat_rule::print(Output &output) const
 }
 
 
-Port_allocator_guard &Nat_rule::port_alloc(uint8_t const prot)
+Port_allocator_guard &Nat_rule::port_alloc(L3_protocol const prot)
 {
 	switch (prot) {
-	case Tcp_packet::IP_ID: return _tcp_port_alloc;
-	case Udp_packet::IP_ID: return _udp_port_alloc;
+	case L3_protocol::TCP: return _tcp_port_alloc;
+	case L3_protocol::UDP: return _udp_port_alloc;
 	default: throw Interface::Bad_transport_protocol(); }
 }

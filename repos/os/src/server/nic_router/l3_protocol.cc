@@ -1,5 +1,5 @@
 /*
- * \brief  Provide protocol names as Genode Cstring objects
+ * \brief  Utilities regarding layer 3 protocols in general
  * \author Martin Stein
  * \date   2016-08-19
  */
@@ -12,7 +12,7 @@
  */
 
 /* local includes */
-#include <protocol_name.h>
+#include <l3_protocol.h>
 #include <interface.h>
 
 /* Genode includes */
@@ -30,10 +30,10 @@ Cstring const &Net::udp_name() { return _udp_name; }
 Cstring const &Net::tcp_name() { return _tcp_name; }
 
 
-Cstring const &Net::protocol_name(uint8_t protocol)
+Cstring const &Net::l3_protocol_name(L3_protocol protocol)
 {
 	switch (protocol) {
-	case Tcp_packet::IP_ID: return tcp_name();
-	case Udp_packet::IP_ID: return udp_name();
+	case L3_protocol::TCP: return tcp_name();
+	case L3_protocol::UDP: return udp_name();
 	default: throw Interface::Bad_transport_protocol(); }
 }

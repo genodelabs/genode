@@ -67,18 +67,7 @@ class Net::Dhcp_packet
 
 		class No_dhcp_packet : Genode::Exception {};
 
-
-		class Client_hw_address
-		{
-			public:
-				Genode::uint8_t addr[16];
-		};
-
 	private:
-
-		/************************
-		 ** DHCP packet fields **
-		 ************************/
 
 		Genode::uint8_t   _op;
 		Genode::uint8_t   _htype;
@@ -91,17 +80,17 @@ class Net::Dhcp_packet
 		Genode::uint8_t   _yiaddr[Ipv4_packet::ADDR_LEN];
 		Genode::uint8_t   _siaddr[Ipv4_packet::ADDR_LEN];
 		Genode::uint8_t   _giaddr[Ipv4_packet::ADDR_LEN];
-		Client_hw_address _chaddr;
+		Genode::uint8_t   _chaddr[16];
 		Genode::uint8_t   _sname[64];
 		Genode::uint8_t   _file[128];
 		Genode::uint32_t  _magic_cookie;
 		Genode::uint8_t   _opts[0];
 
-		enum Flag {
-			BROADCAST = 0x80
-		};
+		enum Flag { BROADCAST = 0x80 };
 
 	public:
+
+		enum class Htype : Genode::uint8_t { ETH = 1 };
 
 		/**
 		 * This class represents the data layout of an DHCP option.
@@ -181,33 +170,47 @@ class Net::Dhcp_packet
 		}
 
 
-		/*******************************
-		 ** DHCP field read-accessors **
-		 *******************************/
+		/***************
+		 ** Accessors **
+		 ***************/
 
-		Genode::uint8_t  op()    const { return _op;                       }
-		Genode::uint8_t  htype() const { return _htype;                    }
-		Genode::uint8_t  hlen()  const { return _hlen;                     }
-		Genode::uint8_t  hops()  const { return _hops;                     }
-		Genode::uint32_t xid()   const { return host_to_big_endian(_xid);  }
-		Genode::uint16_t secs()  const { return host_to_big_endian(_secs); }
+		Genode::uint8_t   op()           const { return _op; }
+		Htype             htype()        const { return (Htype)_htype; }
+		Genode::uint8_t   hlen()         const { return _hlen; }
+		Genode::uint8_t   hops()         const { return _hops; }
+		Genode::uint32_t  xid()          const { return host_to_big_endian(_xid); }
+		Genode::uint16_t  secs()         const { return host_to_big_endian(_secs); }
+		bool              broadcast()    const { return _flags & BROADCAST; }
+		Ipv4_address      ciaddr()       const { return Ipv4_address((void *)_ciaddr);  }
+		Ipv4_address      yiaddr()       const { return Ipv4_address((void *)_yiaddr);  }
+		Ipv4_address      siaddr()       const { return Ipv4_address((void *)_siaddr);  }
+		Ipv4_address      giaddr()       const { return Ipv4_address((void *)_giaddr);  }
+		Mac_address       client_mac()   const { return Mac_address((void *)&_chaddr); }
+		char const       *server_name()  const { return (char const *)&_sname; }
+		char const       *file()         const { return (char const *)&_file;  }
+		Genode::uint32_t  magic_cookie() const { return host_to_big_endian(_magic_cookie); }
+		Genode::uint16_t  flags()        const { return host_to_big_endian(_flags); }
+		void             *opts()         const { return (void *)_opts; }
 
-		bool broadcast() { return _flags & BROADCAST;    }
+		void flags(Genode::uint16_t v) { _flags = host_to_big_endian(v); }
+		void file(const char* v)       { Genode::memcpy(_file, v, sizeof(_file));  }
+		void op(Genode::uint8_t v)     { _op = v; }
+		void htype(Htype v)            { _htype = (Genode::uint8_t)v; }
+		void hlen(Genode::uint8_t v)   { _hlen = v; }
+		void hops(Genode::uint8_t v)   { _hops = v; }
+		void xid(Genode::uint32_t v)   { _xid  = host_to_big_endian(v);  }
+		void secs(Genode::uint16_t v)  { _secs = host_to_big_endian(v); }
+		void broadcast(bool v)         { _flags = v ? BROADCAST : 0; }
+		void ciaddr(Ipv4_address v)    { v.copy(&_ciaddr); }
+		void yiaddr(Ipv4_address v)    { v.copy(&_yiaddr); }
+		void siaddr(Ipv4_address v)    { v.copy(&_siaddr); }
+		void giaddr(Ipv4_address v)    { v.copy(&_giaddr); }
+		void client_mac(Mac_address v) { v.copy(&_chaddr); }
 
-		Ipv4_address ciaddr() {
-			return Ipv4_address(&_ciaddr);  }
-		Ipv4_address yiaddr() {
-			return Ipv4_address(&_yiaddr);  }
-		Ipv4_address siaddr() const {
-			return Ipv4_address((void *)&_siaddr);  }
-		Ipv4_address giaddr() {
-			return Ipv4_address(&_giaddr);  }
 
-		Mac_address client_mac() const {
-			return Mac_address((void *)&_chaddr); }
-
-		const char* server_name()  { return (const char*) &_sname; }
-		const char* file()         { return (const char*) &_file;  }
+		/**********************
+		 ** Option utilities **
+		 **********************/
 
 		Option *option(Option_type op)
 		{
@@ -222,33 +225,6 @@ class Net::Dhcp_packet
 			}
 			return 0;
 		}
-
-
-		/*******************************
-		 ** DHCP field write-accessors **
-		 *******************************/
-
-		void op(Genode::uint8_t op)       { _op = op;             }
-		void htype(Genode::uint8_t htype) { _htype = htype;       }
-		void hlen(Genode::uint8_t hlen)   { _hlen = hlen;         }
-		void hops(Genode::uint8_t hops)   { _hops = hops;         }
-		void xid(Genode::uint32_t xid)    { _xid = host_to_big_endian(_xid);   }
-		void secs(Genode::uint16_t secs)  { _secs = host_to_big_endian(_secs); }
-
-		void broadcast(bool broadcast) {
-			_flags = broadcast ? BROADCAST : 0;       }
-
-		void ciaddr(Ipv4_address ciaddr) {
-			ciaddr.copy(&_ciaddr); }
-		void yiaddr(Ipv4_address yiaddr) {
-			yiaddr.copy(&_yiaddr); }
-		void siaddr(Ipv4_address siaddr) {
-			siaddr.copy(&_siaddr); }
-		void giaddr(Ipv4_address giaddr) {
-			giaddr.copy(&_giaddr); }
-
-		void client_mac(Mac_address mac) {
-			mac.copy(&_chaddr); }
 
 
 		/*************************
