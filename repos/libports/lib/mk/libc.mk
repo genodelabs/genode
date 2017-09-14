@@ -2,7 +2,8 @@
 # C Library including string, locale
 #
 LIBS   = libc-string libc-locale libc-stdlib libc-stdio libc-gen libc-gdtoa \
-         libc-inet libc-stdtime libc-regex libc-compat libc-setjmp libc-mem
+         libc-inet libc-stdtime libc-regex libc-compat libc-setjmp libc-mem \
+         libc-resolv libc-isc libc-nameser libc-net libc-rpc \
 
 LIBS  += base vfs
 
@@ -15,7 +16,7 @@ SRC_CC = atexit.cc dummies.cc rlimit.cc sysctl.cc \
          plugin.cc plugin_registry.cc select.cc exit.cc environ.cc nanosleep.cc \
          pread_pwrite.cc readv_writev.cc poll.cc \
          libc_pdbg.cc vfs_plugin.cc rtc.cc dynamic_linker.cc signal.cc \
-         socket_operations.cc task.cc addrinfo.cc socket_fs_plugin.cc
+         socket_operations.cc task.cc socket_fs_plugin.cc
 
 CC_OPT_sysctl += -Wno-write-strings
 

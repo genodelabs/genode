@@ -45,16 +45,6 @@ Plugin *Plugin_registry::get_plugin_for_execve(char const *filename, char *const
 	GET_PLUGIN_FOR(execve, filename, argv, envp) }
 
 
-Plugin *Plugin_registry::get_plugin_for_freeaddrinfo(struct addrinfo *res) {
-	GET_PLUGIN_FOR(freeaddrinfo, res) }
-
-
-Plugin *Plugin_registry::get_plugin_for_getaddrinfo(const char *node, const char *service,
-                                                    const struct addrinfo *hints,
-                                                    struct addrinfo **res) {
-	GET_PLUGIN_FOR(getaddrinfo, node, service, hints, res) }
-
-
 Plugin *Plugin_registry::get_plugin_for_mkdir(const char *path, mode_t mode) {
 	GET_PLUGIN_FOR(mkdir, path, mode) }
 

@@ -60,7 +60,6 @@ append config {
 append boot_modules {
 	core init timer } [nic_drv_binary] { ram_fs vfs
 	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
-	libc_resolv.lib.so stdcxx.lib.so libc_pipe.lib.so
 	vfs_lxip.lib.so lxip.lib.so
 }
 

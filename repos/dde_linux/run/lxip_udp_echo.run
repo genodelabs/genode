@@ -100,7 +100,6 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init timer
 	libc.lib.so libm.lib.so lxip.lib.so test-lxip_udp_echo
-	libc_resolv.lib.so
 }
 
 # platform-specific modules

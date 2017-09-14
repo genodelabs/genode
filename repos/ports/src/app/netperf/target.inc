@@ -1,7 +1,7 @@
 
 NETPERF_DIR := $(call select_from_ports,netperf)/src/app/netperf
 
-LIBS   += posix libc-resolv libc-net libc-nameser libc-isc
+LIBS   += posix
 
 SRC_C   = netserver.c netlib.c netsh.c nettest_bsd.c dscp.c
 # omni test

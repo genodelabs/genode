@@ -162,60 +162,52 @@ struct Plugin : Libc::Plugin
 	 */
 	Plugin();
 
-	bool supports_freeaddrinfo(struct ::addrinfo *res);
-	bool supports_getaddrinfo(const char *node, const char *service,
-	                          const struct ::addrinfo *hints,
-	                          struct ::addrinfo **res);
 	bool supports_select(int nfds,
 	                     fd_set *readfds,
 	                     fd_set *writefds,
 	                     fd_set *exceptfds,
-	                     struct timeval *timeout);
-	bool supports_socket(int domain, int type, int protocol);
+	                     struct timeval *timeout) override;
+	bool supports_socket(int domain, int type, int protocol) override;
 
 	Libc::File_descriptor *accept(Libc::File_descriptor *sockfdo,
 	                              struct sockaddr *addr,
-	                              socklen_t *addrlen);
+	                              socklen_t *addrlen) override;
 	int bind(Libc::File_descriptor *sockfdo,
 	         const struct sockaddr *addr,
-	         socklen_t addrlen);
-	int close(Libc::File_descriptor *fdo);
+	         socklen_t addrlen) override;
+	int close(Libc::File_descriptor *fdo) override;
 	int connect(Libc::File_descriptor *sockfdo,
 	            const struct sockaddr *addr,
-	            socklen_t addrlen);
-	int fcntl(Libc::File_descriptor *sockfdo, int cmd, long val);
-	void freeaddrinfo(struct ::addrinfo *res);
-	int getaddrinfo(const char *node, const char *service,
-	                const struct ::addrinfo *hints,
-	                struct ::addrinfo **res);
+	            socklen_t addrlen) override;
+	int fcntl(Libc::File_descriptor *sockfdo, int cmd, long val) override;
 	int getpeername(Libc::File_descriptor *sockfdo,
 	                struct sockaddr *addr,
-	                socklen_t *addrlen);
+	                socklen_t *addrlen) override;
 	int getsockname(Libc::File_descriptor *sockfdo,
 	                struct sockaddr *addr,
-	                socklen_t *addrlen);
+	                socklen_t *addrlen) override;
 	int getsockopt(Libc::File_descriptor *sockfdo, int level,
 	               int optname, void *optval,
-	               socklen_t *optlen);
-	int ioctl(Libc::File_descriptor *sockfdo, int request, char *argp);
-	int listen(Libc::File_descriptor *sockfdo, int backlog);
-	ssize_t read(Libc::File_descriptor *fdo, void *buf, ::size_t count);
-	int shutdown(Libc::File_descriptor *fdo, int);
+	               socklen_t *optlen) override;
+	int ioctl(Libc::File_descriptor *sockfdo, int request, char *argp) override;
+	int listen(Libc::File_descriptor *sockfdo, int backlog) override;
+	ssize_t read(Libc::File_descriptor *fdo, void *buf, ::size_t count) override;
+	int shutdown(Libc::File_descriptor *fdo, int) override;
 	int select(int nfds, fd_set *readfds, fd_set *writefds,
-	           fd_set *exceptfds, struct timeval *timeout);
-	ssize_t send(Libc::File_descriptor *, const void *buf, ::size_t len, int flags);
+	           fd_set *exceptfds, struct timeval *timeout) override;
+	ssize_t send(Libc::File_descriptor *, const void *buf, ::size_t len, int flags) override;
 	ssize_t sendto(Libc::File_descriptor *, const void *buf,
 	               ::size_t len, int flags,
 	               const struct sockaddr *dest_addr,
-	               socklen_t addrlen);
-	ssize_t recv(Libc::File_descriptor *, void *buf, ::size_t len, int flags);
+	               socklen_t addrlen) override;
+	ssize_t recv(Libc::File_descriptor *, void *buf, ::size_t len, int flags) override;
 	ssize_t recvfrom(Libc::File_descriptor *, void *buf, ::size_t len, int flags,
-	                 struct sockaddr *src_addr, socklen_t *addrlen);
+	                 struct sockaddr *src_addr, socklen_t *addrlen) override;
 	int setsockopt(Libc::File_descriptor *sockfdo, int level,
 	               int optname, const void *optval,
-	               socklen_t optlen);
-	Libc::File_descriptor *socket(int domain, int type, int protocol);
-	ssize_t write(Libc::File_descriptor *fdo, const void *buf, ::size_t count);
+	               socklen_t optlen) override;
+	Libc::File_descriptor *socket(int domain, int type, int protocol) override;
+	ssize_t write(Libc::File_descriptor *fdo, const void *buf, ::size_t count) override;
 };
 
 
@@ -224,20 +216,6 @@ Plugin::Plugin()
 	Genode::log("using the lwIP libc plugin");
 
 	lwip_tcpip_init();
-}
-
-
-bool Plugin::supports_freeaddrinfo(struct ::addrinfo *)
-{
-	return true;
-}
-
-
-bool Plugin::supports_getaddrinfo(const char *, const char *,
-                                       const struct ::addrinfo *,
-                                       struct ::addrinfo **)
-{
-	return true;
 }
 
 
@@ -343,26 +321,6 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 	}
 
 	return result;
-}
-
-
-extern "C" void libc_freeaddrinfo(struct ::addrinfo *);
-
-void Plugin::freeaddrinfo(struct ::addrinfo *res)
-{
-	return ::libc_freeaddrinfo(res);
-}
-
-
-extern "C" int libc_getaddrinfo(const char *, const char *,
-                                const struct ::addrinfo *,
-                                struct ::addrinfo **);
-
-int Plugin::getaddrinfo(const char *node, const char *service,
-                             const struct ::addrinfo *hints,
-                             struct ::addrinfo **res)
-{
-	return ::libc_getaddrinfo(node, service, hints, res);
 }
 
 

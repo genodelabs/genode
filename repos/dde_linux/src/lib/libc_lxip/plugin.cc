@@ -368,7 +368,6 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 }
 
 
-/* XXX freeaddrinfo / getaddrinfo from libc_resolv.conf */
 int Plugin::getpeername(Libc::File_descriptor *sockfdo,
                              struct sockaddr *addr,
                              socklen_t *addrlen)

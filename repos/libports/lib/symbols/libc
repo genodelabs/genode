@@ -2,10 +2,14 @@ ___runetype T
 ___tolower T
 ___toupper T
 __assert T
+__dn_expand T
+__dn_expand T
 __error T
 __flt_rounds T
 __fpclassifyd T
 __fpclassifyf T
+__h_errno T
+__h_errno_set T
 __inet_addr T
 __inet_aton T
 __inet_nsap_ntoa T
@@ -14,6 +18,9 @@ __inet_ntop T
 __inet_pton T
 __isthreaded B 4
 __mb_cur_max D 8
+__res_init T
+__res_query T
+__res_state T
 __srget T
 __stderrp D 8
 __stdinp D 8
@@ -21,6 +28,8 @@ __stdoutp D 8
 __swbuf T
 __xuname T
 _exit T
+_getlong T
+_getshort T
 a64l T
 abort T
 abs T
@@ -248,6 +257,8 @@ getgrnam T
 getgrnam_r T
 getgrouplist T
 getgroups W
+gethostbyaddr T
+gethostbyaddr_r T
 gethostbyname W
 gethostid T
 gethostname T
@@ -271,6 +282,8 @@ getpid W
 getppid W
 getpriority W
 getprogname W
+getprotobyname T
+getprotobyname_r T
 getpwent W
 getpwnam W
 getpwuid W
@@ -279,6 +292,8 @@ getrlimit W
 getrusage W
 gets T
 getservbyname W
+getservbyport T
+getservbyport_r T
 getsid W
 getsockname T
 getsockopt T
@@ -304,6 +319,10 @@ heapsort T
 hsearch T
 imaxabs T
 imaxdiv T
+in6addr_any R 16
+in6addr_linklocal_allnodes R 16
+in6addr_loopback R 16
+in6addr_nodelocal_allnodes R 16
 index T
 inet_addr W
 inet_aton W
@@ -741,8 +760,8 @@ swscanf T
 symlink T
 sync W
 sys_errlist D 752
-sys_nerr R
-sys_nsig R
+sys_nerr R 4
+sys_nsig R 4
 sys_siglist D 256
 sys_signame D 256
 sysconf T
@@ -902,42 +921,6 @@ __isinfl T
 
 
 #
-# Symbols needed by libc-resolv
-#
-__inet_nsap_addr T
-_accept T
-_bind T
-_close T
-_connect T
-_fcntl T
-_fstat T
-_getpeername T
-_getsockname T
-_getsockopt T
-_listen T
-_nanosleep W
-_pthread_getspecific W
-_pthread_key_create W
-_pthread_main_np W
-_pthread_mutex_trylock W
-_pthread_mutex_unlock W
-_pthread_once W
-_pthread_rwlock_rdlock W
-_pthread_rwlock_unlock W
-_pthread_rwlock_wrlock W
-_pthread_setspecific W
-_read T
-_recvfrom T
-_select W
-_sendto T
-_setsockopt T
-_sigprocmask W
-_socket T
-_write T
-_writev T
-
-
-#
 # Public interface between Genode-component code and the libc runtime
 #
 _ZN4Libc9Component9constructERNS_3EnvE U
@@ -960,10 +943,8 @@ _ZN4Libc25File_descriptor_allocator5allocEPNS_6PluginEPNS_14Plugin_contextEi T
 _ZN4Libc25file_descriptor_allocatorEv T
 _ZN4Libc6Plugin10getsockoptEPNS_15File_descriptorEiiPvPj T
 _ZN4Libc6Plugin10setsockoptEPNS_15File_descriptorEiiPKvj T
-_ZN4Libc6Plugin11getaddrinfoEPKcS2_PK8addrinfoPPS3_ T
 _ZN4Libc6Plugin11getpeernameEPNS_15File_descriptorEP8sockaddrPj T
 _ZN4Libc6Plugin11getsocknameEPNS_15File_descriptorEP8sockaddrPj T
-_ZN4Libc6Plugin12freeaddrinfoEP8addrinfo T
 _ZN4Libc6Plugin13getdirentriesEPNS_15File_descriptorEPcmPx T
 _ZN4Libc6Plugin13getdirentriesEPNS_15File_descriptorEPcmPl T
 _ZN4Libc6Plugin13supports_mmapEv T
@@ -981,8 +962,6 @@ _ZN4Libc6Plugin15supports_unlinkEPKc T
 _ZN4Libc6Plugin16supports_symlinkEPKcS2_ T
 _ZN4Libc6Plugin17supports_readlinkEPKcPcj T
 _ZN4Libc6Plugin17supports_readlinkEPKcPcm T
-_ZN4Libc6Plugin20supports_getaddrinfoEPKcS2_PK8addrinfoPPS3_ T
-_ZN4Libc6Plugin21supports_freeaddrinfoEP8addrinfo T
 _ZN4Libc6Plugin3dupEPNS_15File_descriptorE T
 _ZN4Libc6Plugin4bindEPNS_15File_descriptorEPK8sockaddrj T
 _ZN4Libc6Plugin4dup2EPNS_15File_descriptorES2_ T

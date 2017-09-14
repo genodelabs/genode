@@ -1,5 +1,5 @@
 TARGET   = test-nim_echo_server
-LIBS = libc libc_resolv
+LIBS = libc
 SRC_NIM = main.nim
 
 # Enable extra system assertions

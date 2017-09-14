@@ -1,6 +1,6 @@
 TARGET = test-netty_tcp
 SRC_CC = main.cc netty.cc
-LIBS   = libc libc_resolv
+LIBS   = libc
 
 INC_DIR += $(PRG_DIR)/..
 

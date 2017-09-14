@@ -17,7 +17,7 @@ CFLAGS += -DUSE_OPENSSL_INCL
 #
 CFLAGS += -D__BSD_VISIBLE
 
-LIBS += ncurses zlib libssl libcrypto libc_resolv
+LIBS += ncurses zlib libssl libcrypto
 
 #
 # Make the zlib linking test succeed

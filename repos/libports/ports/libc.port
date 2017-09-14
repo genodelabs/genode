@@ -43,7 +43,7 @@ $(foreach svn_export,$(svn_exports),\
 $(foreach svn_export,$(svn_exports),\
           $(eval REV($(svn_export)) := HEAD))
 
-PATCHES := src/lib/libc/patches/*.patch
+PATCHES := $(sort $(wildcard $(REP_DIR)/src/lib/libc/patches/*.patch))
 
 
 #

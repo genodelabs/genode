@@ -100,7 +100,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer posix.lib.so
-	libc.lib.so libm.lib.so lxip.lib.so test-lxip_http_srv libc_resolv.lib.so
+	libc.lib.so libm.lib.so lxip.lib.so test-lxip_http_srv
 }
 
 # platform-specific modules

@@ -53,10 +53,6 @@ namespace Libc {
 			virtual bool supports_execve(char const *filename, char *const argv[],
 			                             char *const envp[]);
 			virtual bool supports_mkdir(const char *path, mode_t mode);
-			virtual bool supports_freeaddrinfo(struct ::addrinfo *res);
-			virtual bool supports_getaddrinfo(const char *node, const char *service,
-			                                  const struct ::addrinfo *hints,
-			                                  struct ::addrinfo **res);
 			virtual bool supports_open(const char *pathname, int flags);
 			virtual bool supports_pipe();
 			virtual bool supports_readlink(const char *path, char *buf, ::size_t bufsiz);
@@ -95,13 +91,9 @@ namespace Libc {
 			                   char *const envp[]);
 			virtual int fstatfs(File_descriptor *, struct statfs *buf);
 			virtual int fcntl(File_descriptor *, int cmd, long arg);
-			virtual void freeaddrinfo(struct ::addrinfo *res);
 			virtual int fstat(File_descriptor *, struct stat *buf);
 			virtual int fsync(File_descriptor *);
 			virtual int ftruncate(File_descriptor *, ::off_t length);
-			virtual int getaddrinfo(const char *node, const char *service,
-			                        const struct ::addrinfo *hints,
-			                        struct ::addrinfo **res);
 			virtual ssize_t getdirentries(File_descriptor *, char *buf,
 			                              ::size_t nbytes, ::off_t *basep);
 			virtual int getpeername(File_descriptor *,
