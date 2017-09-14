@@ -82,14 +82,16 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 
 			/* check for DHCP ACKs containing new client ips */
 			if (dhcp->op() == Dhcp_packet::REPLY) {
-				Dhcp_packet::Option *ext = dhcp->option(Dhcp_packet::MSG_TYPE);
-				if (ext) {
+
+				try {
+					Dhcp_packet::Message_type const msg_type =
+						dhcp->option<Dhcp_packet::Message_type_option>().value();
+
 					/*
-					 * extract the IP address and set it in the
-					 * client's session-component
+					 * Extract the IP address and set it in the client's
+					 * session-component
 					 */
-					Genode::uint8_t *msg_type =	(Genode::uint8_t*) ext->value();
-					if (*msg_type == Dhcp_packet::DHCP_ACK) {
+					if (msg_type == Dhcp_packet::Message_type::ACK) {
 						Mac_address_node *node =
 							vlan().mac_tree.first();
 						if (node)
@@ -98,6 +100,7 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 							node->component().set_ipv4_address(dhcp->yiaddr());
 					}
 				}
+				catch (Dhcp_packet::Option_not_found) { }
 			}
 		}
 	}

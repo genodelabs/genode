@@ -17,6 +17,7 @@
 /* Genode */
 #include <base/exception.h>
 #include <base/stdint.h>
+#include <util/construct_at.h>
 
 #include <util/endian.h>
 #include <net/ethernet.h>
@@ -65,7 +66,8 @@ class Net::Dhcp_packet
 {
 	public:
 
-		class No_dhcp_packet : Genode::Exception {};
+		struct No_dhcp_packet   : Genode::Exception { };
+		struct Option_not_found : Genode::Exception { };
 
 	private:
 
@@ -92,32 +94,6 @@ class Net::Dhcp_packet
 
 		enum class Htype : Genode::uint8_t { ETH = 1 };
 
-		/**
-		 * This class represents the data layout of an DHCP option.
-		 */
-		class Option
-		{
-			private:
-
-				Genode::uint8_t _code;
-				Genode::uint8_t _len;
-				Genode::uint8_t _value[0];
-
-			public:
-
-				Option() {}
-
-				Genode::uint8_t code()   { return _code;  }
-				Genode::size_t  length() { return _len;   }
-				void*           value()  { return _value; }
-
-				/**
-				 * Placement new.
-				 */
-				void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
-		} __attribute__((packed));
-
-
 		enum Opcode {
 			REQUEST = 1,
 			REPLY   = 2,
@@ -129,44 +105,233 @@ class Net::Dhcp_packet
 			BOOTPC = 68
 		};
 
-		enum Option_type {
-			REQ_IP_ADDR    = 50,
-			IP_LEASE_TIME  = 51,
-			OPT_OVERLOAD   = 52,
-			MSG_TYPE       = 53,
-			SRV_ID         = 54,
-			REQ_PARAMETER  = 55,
-			MESSAGE        = 56,
-			MAX_MSG_SZ     = 57,
-			RENEWAL        = 58,
-			REBINDING      = 59,
-			VENDOR         = 60,
-			CLI_ID         = 61,
-			TFTP_SRV_NAME  = 66,
-			BOOT_FILE      = 67,
-			END            = 255
-		};
-
-		enum Message_type {
-			DHCP_DISCOVER  = 1,
-			DHCP_OFFER     = 2,
-			DHCP_REQUEST   = 3,
-			DHCP_DECLINE   = 4,
-			DHCP_ACK       = 5,
-			DHCP_NAK       = 6,
-			DHCP_RELEASE   = 7,
-			DHCP_INFORM    = 8
-		};
-
-
-		/*****************
-		 ** Constructor **
-		 *****************/
 
 		Dhcp_packet(Genode::size_t size) {
 			/* dhcp packet needs to fit in */
 			if (size < sizeof(Dhcp_packet))
 				throw No_dhcp_packet();
+		}
+
+
+		/*******************************
+		 ** Utilities for the options **
+		 *******************************/
+
+		/**
+		 * Header of a DHCP option or DHCP option without a payload
+		 */
+		class Option
+		{
+			private:
+
+				Genode::uint8_t _code;
+				Genode::uint8_t _len;
+				Genode::uint8_t _value[0];
+
+			public:
+
+				enum class Code : Genode::uint8_t {
+					INVALID        = 0,
+					SUBNET_MASK    = 1,
+					ROUTER         = 3,
+					DNS_SERVER     = 6,
+					BROADCAST_ADDR = 28,
+					REQ_IP_ADDR    = 50,
+					IP_LEASE_TIME  = 51,
+					OPT_OVERLOAD   = 52,
+					MSG_TYPE       = 53,
+					SERVER         = 54,
+					REQ_PARAMETER  = 55,
+					MESSAGE        = 56,
+					MAX_MSG_SZ     = 57,
+					RENEWAL        = 58,
+					REBINDING      = 59,
+					VENDOR         = 60,
+					CLI_ID         = 61,
+					TFTP_SRV_NAME  = 66,
+					BOOT_FILE      = 67,
+					END            = 255,
+				};
+
+				Option(Code code, Genode::uint8_t len)
+				: _code((Genode::uint8_t)code), _len(len) { }
+
+				Option() { }
+
+				Code             code() const { return (Code)_code; }
+				Genode::uint8_t len()   const { return _len; }
+
+
+				/*********
+				 ** log **
+				 *********/
+
+				void print(Genode::Output &output) const;
+
+		} __attribute__((packed));
+
+
+		/**
+		 * DHCP option that contains a payload of type T
+		 */
+		template <typename T>
+		class Option_tpl : public Option
+		{
+			protected:
+
+				T _value;
+
+			public:
+
+				Option_tpl(Code code, T value)
+				: Option(code, sizeof(T)), _value(value) { }
+
+		} __attribute__((packed));
+
+
+		/**
+		 * DHCP option that specifies the IP packet lease time in seconds
+		 */
+		struct Ip_lease_time : Option_tpl<Genode::uint32_t>
+		{
+			static constexpr Code CODE = Code::IP_LEASE_TIME;
+
+			Ip_lease_time(Genode::uint32_t time)
+			: Option_tpl(CODE, host_to_big_endian(time)) { }
+		};
+
+		enum class Message_type : Genode::uint8_t {
+			DISCOVER  = 1,
+			OFFER     = 2,
+			REQUEST   = 3,
+			DECLINE   = 4,
+			ACK       = 5,
+			NAK       = 6,
+			RELEASE   = 7,
+			INFORM    = 8
+		};
+
+		/**
+		 * DHCP option that specifies the DHCP message type
+		 */
+		struct Message_type_option : Option_tpl<Genode::uint8_t>
+		{
+			static constexpr Code CODE = Code::MSG_TYPE;
+
+			Message_type_option(Message_type value)
+			: Option_tpl(CODE, (Genode::uint8_t)value) { }
+
+			Message_type value() const { return (Message_type)_value; }
+		};
+
+
+		/**
+		 * DHCP options that have only one IPv4 address as payload
+		 */
+		template <Option::Code _CODE>
+		struct Ipv4_option : Option_tpl<Genode::uint32_t>
+		{
+			static constexpr Code CODE = _CODE;
+
+			Ipv4_option(Ipv4_address value)
+			: Option_tpl(CODE, value.to_uint32_big_endian()) { }
+
+			Ipv4_address value() const {
+				return Ipv4_address::from_uint32_big_endian(_value); }
+		};
+
+		using Dns_server_ipv4 = Ipv4_option<Option::Code::DNS_SERVER>;
+		using Subnet_mask     = Ipv4_option<Option::Code::SUBNET_MASK>;
+		using Broadcast_addr  = Ipv4_option<Option::Code::BROADCAST_ADDR>;
+		using Router_ipv4     = Ipv4_option<Option::Code::ROUTER>;
+		using Server_ipv4     = Ipv4_option<Option::Code::SERVER>;
+
+		/**
+		 * DHCP option that marks the end of an options field
+		 */
+		struct Options_end : Option
+		{
+			static constexpr Code CODE = Code::END;
+
+			Options_end() : Option(CODE, 0) { }
+		};
+
+
+		/**
+		 * Utility to append individual options to an existing DHCP packet
+		 *
+		 * \param SIZE_GUARD  guard that may limit the options list size
+		 *
+		 * Overwrites existing options if any!
+		 */
+		template <typename SIZE_GUARD>
+		class Options_aggregator
+		{
+			private:
+
+				Genode::addr_t  _base;
+				SIZE_GUARD     &_size_guard;
+
+			public:
+
+				Options_aggregator(Dhcp_packet &packet,
+				                   SIZE_GUARD  &size_guard)
+				:
+					_base((Genode::addr_t)packet.opts()),
+					_size_guard(size_guard)
+				{ }
+
+				template <typename OPTION, typename... ARGS>
+				void append_option(ARGS &&... args)
+				{
+					_size_guard.add(sizeof(OPTION));
+					Genode::construct_at<OPTION>((void *)_base,
+					                             static_cast<ARGS &&>(args)...);
+					_base += sizeof(OPTION);
+				}
+		};
+
+
+		/*
+		 * Call 'functor' of type 'FUNC' for each option (except END options)
+		 */
+		template <typename FUNC>
+		void for_each_option(FUNC && functor) const
+		{
+			for (unsigned i = 0; ; ) {
+				Option &opt = *(Option*)&_opts[i];
+				if (opt.code() == Option::Code::INVALID ||
+				    opt.code() == Option::Code::END)
+				{
+					return;
+				}
+				functor(opt);
+				i += 2 + opt.len();
+			}
+		}
+
+
+		/*
+		 * Find and return option of given type 'T'
+		 *
+		 * \throw Option_not_found
+		 */
+		template <typename T>
+		T &option()
+		{
+			void *ptr = &_opts;
+			while (true) {
+				Option &opt = *Genode::construct_at<Option>(ptr);
+				if (opt.code() == Option::Code::INVALID ||
+				    opt.code() == Option::Code::END)
+				{
+					throw Option_not_found();
+				}
+				if (opt.code() == T::CODE) {
+					return *reinterpret_cast<T *>(ptr);
+				}
+				ptr = (void *)((Genode::addr_t)ptr + sizeof(opt) + opt.len());
+			}
 		}
 
 
@@ -206,25 +371,6 @@ class Net::Dhcp_packet
 		void siaddr(Ipv4_address v)    { v.copy(&_siaddr); }
 		void giaddr(Ipv4_address v)    { v.copy(&_giaddr); }
 		void client_mac(Mac_address v) { v.copy(&_chaddr); }
-
-
-		/**********************
-		 ** Option utilities **
-		 **********************/
-
-		Option *option(Option_type op)
-		{
-			void *ptr = &_opts;
-			while (true) {
-				Option *ext = new (ptr) Option();
-				if (ext->code() == op)
-					return ext;
-				if (ext->code() == END || ext->code() == 0)
-					break;
-				ptr = ext + ext->length();
-			}
-			return 0;
-		}
 
 
 		/*************************
