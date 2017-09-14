@@ -38,6 +38,8 @@ set config {
 		<service name="LOG"/>
 	</parent-provides>
 
+	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
@@ -73,7 +75,7 @@ set config {
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"  report="nitpicker -> xray"/>
+			<policy label="pointer -> xray"  report="null"/>
 			<policy label="pointer -> focus" report="nitpicker -> focus"/>
 		</config>
 		<route>
