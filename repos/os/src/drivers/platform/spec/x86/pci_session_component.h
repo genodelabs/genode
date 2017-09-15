@@ -232,7 +232,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			return false;
 		}
 
-		Platform::Device_pd _device_pd { _env, _label };
+		Platform::Device_pd _device_pd { _env, _label, _env_ram };
 
 		enum { MAX_PCI_DEVICES = Device_config::MAX_BUSES *
 		                         Device_config::MAX_DEVICES *
@@ -684,10 +684,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
 					    Device_config::MAX_DEVICES * device +
 					    function, 1))
-						Genode::error("Device ",
-						              Genode::Hex(bus), ":",
-						              Genode::Hex(device), ".", function, " "
-						              "is used by more than one driver - "
+						Genode::error("Device ", config,
+						              " is used by more than one driver - "
 						              "session '", _label, "'.");
 					else
 						bdf_in_use.set(Device_config::MAX_BUSES * bus +
@@ -794,16 +792,15 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				return ram_cap;
 
 			try { _device_pd.attach_dma_mem(ram_cap); }
-			catch (Out_of_ram)  { _rollback(size, ram_cap);; }
+			catch (Out_of_ram)  { _rollback(size, ram_cap); }
 			catch (Out_of_caps) {
 				Genode::warning("Out_of_caps while attaching DMA memory");
-				_rollback(size, ram_cap);;
+				_rollback(size, ram_cap);
 			}
 
 			try { _insert(ram_cap); }
 			catch (Genode::Out_of_ram) {
 				_rollback(size, ram_cap);
-				throw;
 			}
 
 			return ram_cap;

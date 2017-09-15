@@ -15,6 +15,7 @@
 
 /* base */
 #include <base/env.h>
+#include <os/ram_session_guard.h>
 #include <region_map/client.h>
 #include <pd_session/connection.h>
 
@@ -40,12 +41,16 @@ class Platform::Device_pd
 		 */
 		struct Expanding_region_map_client : Genode::Region_map_client
 		{
-			Genode::Env &_env;
+			Genode::Env           &_env;
+			Genode::Pd_connection &_pd;
+			Genode::Ram_session_guard &ram_guard;
 
 			Expanding_region_map_client(Genode::Env &env,
-			                            Genode::Capability<Genode::Region_map> address_space)
+			                            Genode::Pd_connection &pd,
+			                            Genode::Ram_session_guard &ram_guard)
 			:
-				Region_map_client(address_space), _env(env)
+				Region_map_client(pd.address_space()), _env(env), _pd(pd),
+				ram_guard(ram_guard)
 			{ }
 
 			Local_addr attach(Genode::Dataspace_capability ds,
@@ -64,35 +69,46 @@ class Platform::Device_pd
 								                                 executable); },
 							[&] () {
 								enum { UPGRADE_CAP_QUOTA = 2 };
+								/* XXX actually we would need here a ram_cap
+								 * guard per session, not the process global
+								 * cap env to check for enough caps */
 								if (_env.pd().avail_caps().value < UPGRADE_CAP_QUOTA)
 									throw;
 
-								Genode::String<32> arg("cap_quota=", (unsigned)UPGRADE_CAP_QUOTA);
-								_env.upgrade(Genode::Parent::Env::pd(), arg.string());
+								_env.pd().transfer_quota(_pd, Genode::Cap_quota{UPGRADE_CAP_QUOTA});
 							}
 						);
 					},
 					[&] () {
 						enum { UPGRADE_RAM_QUOTA = 4096 };
-						if (_env.ram().avail_ram().value < UPGRADE_RAM_QUOTA)
+						if (!ram_guard.withdraw(UPGRADE_RAM_QUOTA))
 							throw;
 
-						Genode::String<32> arg("ram_quota=", (unsigned)UPGRADE_RAM_QUOTA);
-						_env.upgrade(Genode::Parent::Env::pd(), arg.string());
+						_env.pd().transfer_quota(_pd, Genode::Ram_quota{UPGRADE_RAM_QUOTA});
 					}
 				);
 			}
+
+			Local_addr attach_at(Genode::Dataspace_capability ds,
+			                     Genode::addr_t local_addr,
+			                     Genode::size_t size = 0,
+			                     Genode::off_t offset = 0) {
+				return attach(ds, size, offset, true, local_addr); };
+
 		} _address_space;
 
 	public:
 
 		Device_pd(Genode::Env &env,
-		          Genode::Session_label const &label)
+		          Genode::Session_label const &label,
+		          Genode::Ram_session_guard &ram_guard)
 		:
 			_pd(env, label.string(), Genode::Pd_connection::Virt_space::UNCONSTRAIN),
 			_label(label),
-			_address_space(env, _pd.address_space())
-		{ }
+			_address_space(env, _pd, ram_guard)
+		{
+			_pd.ref_account(env.pd_session_cap());
+		}
 
 		void attach_dma_mem(Genode::Dataspace_capability);
 		void assign_pci(Genode::Io_mem_dataspace_capability, Genode::uint16_t);
