@@ -175,6 +175,26 @@ class Genode::Signal_receiver : Noncopyable
 	private:
 
 		/**
+		 * A list where the head can be moved
+		 */
+		class Context_list
+		{
+			private:
+
+				Signal_context *_head { nullptr };
+
+			public:
+
+				Signal_context *head() const { return _head; }
+
+				void head(Signal_context *re);
+
+				void insert(Signal_context *re);
+
+				void remove(Signal_context const *re);
+		};
+
+		/**
 		 * Semaphore used to indicate that signal(s) are ready to be picked
 		 * up. This is needed for platforms other than 'base-hw' only.
 		 */
@@ -189,8 +209,8 @@ class Genode::Signal_receiver : Noncopyable
 		/**
 		 * List of associated contexts
 		 */
-		Lock                                _contexts_lock;
-		List<List_element<Signal_context> > _contexts;
+		Lock         _contexts_lock;
+		Context_list _contexts;
 
 		/**
 		 * Helper to dissolve given context
@@ -324,7 +344,8 @@ class Genode::Signal_context
 		/**
 		 * List element in 'Signal_receiver'
 		 */
-		List_element<Signal_context> _receiver_le;
+		Signal_context mutable *_next { nullptr };
+		Signal_context mutable *_prev { nullptr };
 
 		/**
 		 * List element in process-global registry
@@ -373,8 +394,8 @@ class Genode::Signal_context
 		 * Constructor
 		 */
 		Signal_context()
-		: _receiver_le(this), _registry_le(this), _deferred_le(this),
-		  _receiver(0), _pending(0), _ref_cnt(0) { }
+		: _registry_le(this), _deferred_le(this), _receiver(0), _pending(0),
+		  _ref_cnt(0) { }
 
 		/**
 		 * Destructor

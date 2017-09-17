@@ -163,9 +163,7 @@ Signal Signal_receiver::pending_signal()
 	Lock::Guard list_lock_guard(_contexts_lock);
 
 	/* look up the contexts for the pending signal */
-	for (List_element<Signal_context> *le = _contexts.first(); le; le = le->next()) {
-
-		Signal_context *context = le->object();
+	for (Signal_context *context = _contexts.head(); context; context = context->_next) {
 
 		Lock::Guard lock_guard(context->_lock);
 
@@ -173,6 +171,7 @@ Signal Signal_receiver::pending_signal()
 		if (!context->_pending)
 			continue;
 
+		_contexts.head(context);
 		context->_pending = false;
 		Signal::Data result = context->_curr_signal;
 
@@ -206,8 +205,8 @@ Signal_receiver::~Signal_receiver()
 	Lock::Guard list_lock_guard(_contexts_lock);
 
 	/* disassociate contexts from the receiver */
-	for (List_element<Signal_context> *le; (le = _contexts.first()); )
-		_unsynchronized_dissolve(le->object());
+	while (_contexts.head())
+		_unsynchronized_dissolve(_contexts.head());
 
 	_platform_destructor();
 }
@@ -225,7 +224,7 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 	context->_cap      = Signal_context_capability();
 
 	/* remove context from context list */
-	_contexts.remove(&context->_receiver_le);
+	_contexts.remove(context);
 
 	_platform_finish_dissolve(context);
 }
@@ -250,9 +249,7 @@ bool Signal_receiver::pending()
 	Lock::Guard list_lock_guard(_contexts_lock);
 
 	/* look up the contexts for the pending signal */
-	for (List_element<Signal_context> *le = _contexts.first(); le; le = le->next()) {
-
-		Signal_context *context = le->object();
+	for (Signal_context *context = _contexts.head(); context; context = context->_next) {
 
 		Lock::Guard lock_guard(context->_lock);
 
@@ -260,4 +257,45 @@ bool Signal_receiver::pending()
 			return true;
 	}
 	return false;
+}
+
+
+void Signal_receiver::Context_list::insert(Signal_context *re)
+{
+	if (_head) {
+		re->_prev           = _head->_prev;
+		re->_next           = nullptr;
+		_head->_prev->_next = re;
+		_head->_prev        = re;
+	} else {
+		re->_prev = re;
+		re->_next = nullptr;
+		_head     = re;
+	}
+}
+
+
+void Signal_receiver::Context_list::remove(Signal_context const *re)
+{
+	if (re->_prev == re) {
+		_head = nullptr;
+	} else {
+		if (_head == re) {
+			_head =  re->_next;
+		}
+		re->_prev->_next = re->_next;
+		if (re->_next) {
+			re->_next->_prev = re->_prev;
+		} else {
+			_head->_prev = re->_prev;
+		}
+	}
+}
+
+
+void Signal_receiver::Context_list::head(Signal_context *re)
+{
+	_head->_prev->_next = _head;
+	_head = re;
+	_head->_prev->_next = nullptr;
 }
