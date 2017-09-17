@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <net/ethernet.h>
+#include <packet_log.h>
 
 using namespace Net;
 using namespace Genode;
@@ -28,18 +29,20 @@ void Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame &eth = *new (eth_base) Ethernet_frame(eth_size);
 		Interface &remote = _remote.deref();
+		Packet_log_config log_cfg;
+
 		if (_log_time) {
 			Genode::Duration const new_time    = _timer.curr_time();
 			unsigned long    const new_time_ms = new_time.trunc_to_plain_us().value / 1000;
 			unsigned long    const old_time_ms = _curr_time.trunc_to_plain_us().value / 1000;
 
-			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ", eth,
-			    " \033[33mtime ", new_time_ms, " ms (Δ ",
-			    new_time_ms - old_time_ms, " ms)\033[0m");
+			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ",
+			    packet_log(eth, log_cfg), " \033[33mtime ", new_time_ms,
+			    " ms (Δ ", new_time_ms - old_time_ms, " ms)\033[0m");
 
 			_curr_time = new_time;
 		} else {
-			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ", eth);
+			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ",  packet_log(eth, log_cfg));
 		}
 		remote._send(eth, eth_size);
 	}
