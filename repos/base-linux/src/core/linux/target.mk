@@ -42,7 +42,7 @@ INC_DIR      += $(REP_DIR)/src/core/include \
 
 LD_TEXT_ADDR     ?= 0x01000000
 LD_SCRIPT_STATIC  = $(BASE_DIR)/src/ld/genode.ld \
-                    $(call select_from_repositories,src/ld/stack_area.nostdlib.ld)
+                    $(call select_from_repositories,src/ld/stack_area.ld)
 
 include $(GEN_CORE_DIR)/version.inc
 

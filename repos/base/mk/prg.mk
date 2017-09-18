@@ -63,7 +63,12 @@ CXX_LINK_OPT += $(CC_MARCH)
 #
 # Generic linker script for statically linked binaries
 #
+ifneq ($(filter linux, $(SPECS)),)
+LD_SCRIPT_STATIC ?= $(BASE_DIR)/src/ld/genode.ld \
+                    $(call select_from_repositories,src/ld/stack_area.ld)
+else
 LD_SCRIPT_STATIC ?= $(BASE_DIR)/src/ld/genode.ld
+endif
 
 include $(BASE_DIR)/mk/generic.mk
 include $(BASE_DIR)/mk/base-libs.mk

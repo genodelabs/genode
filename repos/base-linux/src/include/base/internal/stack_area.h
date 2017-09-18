@@ -31,7 +31,7 @@ namespace Genode {
 	 * Stack area base address
 	 *
 	 * Please update platform-specific files after changing these
-	 * functions, e.g., 'base-linux/src/ld/stack_area.*.ld'.
+	 * functions, e.g., 'base-linux/src/ld/stack_area.ld'.
 	 */
 	static addr_t stack_area_virtual_base() {
 		return align_addr((addr_t)&_stack_area_start, 20); }

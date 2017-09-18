@@ -27,7 +27,8 @@ symbol.map: $(BASE_DIR)/lib/symbols/ld
 ifneq ($(filter linux, $(SPECS)),)
 
 ENTRY_POINT = _start_initial_stack
-LD_OPT     += -T$(call select_from_repositories,src/ld/stack_area.nostdlib.ld) \
+LD_SCRIPT_SO = $(BASE_DIR)/src/ld/genode_rel.ld \
+              -T$(call select_from_repositories,src/ld/stack_area.ld) \
 
 ifneq ($(filter x86_32, $(SPECS)),)
 LD_OPT     += -T$(DIR)/linux-32.ld
