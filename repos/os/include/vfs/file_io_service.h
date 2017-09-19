@@ -132,7 +132,7 @@ struct Vfs::File_io_service
 			/* if request was 'IOCTL_OP_DIOCGMEDIASIZE' */
 			struct {
 				/* disk size rounded up to sector size in bytes*/
-				int size;
+				file_size size;
 
 			} diocgmediasize;
 		};
