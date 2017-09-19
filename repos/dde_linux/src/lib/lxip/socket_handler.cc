@@ -378,6 +378,8 @@ class Net::Socketcall : public Lxip::Socketcall,
 
 		void _dispatch()
 		{
+			Lx::timer_update_jiffies();
+
 			switch (_call.opcode) {
 
 				case OP_ACCEPT   : _do_accept();   break;

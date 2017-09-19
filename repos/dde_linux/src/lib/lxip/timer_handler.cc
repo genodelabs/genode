@@ -178,8 +178,11 @@ class Lx::Timer
 				if (ctx->timeout > jiffies)
 					break;
 
+				ctx->pending = false;
 				ctx->function();
-				del(ctx->timer);
+
+				if (!ctx->pending)
+					del(ctx->timer);
 			}
 
 			/* tick the higher layer of the component */
@@ -360,3 +363,6 @@ int del_timer(struct timer_list *timer)
 
 	return rv;
 }
+
+
+void Lx::timer_update_jiffies() { update_jiffies(); }

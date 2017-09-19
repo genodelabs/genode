@@ -47,6 +47,8 @@ class Nic_client
 			if (_nic.link_state() == false || lxip_do_dhcp() == false)
 				return;
 
+			Lx::timer_update_jiffies();
+
 			/* reconnect dhcp client */
 			lxip_configure_dhcp();
 		}
@@ -56,6 +58,8 @@ class Nic_client
 		 */
 		void _packet_avail()
 		{
+			Lx::timer_update_jiffies();
+
 			/* process a batch of only MAX_PACKETS in one run */
 			enum { MAX_PACKETS = 20 };
 
