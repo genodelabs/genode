@@ -3,17 +3,14 @@ content: include mk/spec lib LICENSE
 # architectures, for which a 'trace/timestamp.h' header is available
 ARCHS := riscv arm_v6 arm_v7 x86_32 x86_64
 
-MIRRORED_FROM_OS := $(foreach A,$(ARCHS),include/spec/$A/trace/timestamp.h)
-
 include:
 	mkdir -p include
 	cp -r $(REP_DIR)/include/* $@/
-
-content: $(MIRRORED_FROM_OS)
-
-$(MIRRORED_FROM_OS):
-	mkdir -p $(dir $@)
-	cp $(GENODE_DIR)/repos/os/$@ $@
+	for a in ${ARCHS}; do \
+	  mkdir -p include/spec/$$a/trace; \
+	  cp $(GENODE_DIR)/repos/os/include/spec/$$a/trace/timestamp.h \
+	     include/spec/$$a/trace; \
+	done
 
 LIB_MK_FILES := base.mk ld.mk ldso-startup.mk
 
