@@ -260,7 +260,7 @@ static void test(Genode::Xml_node node)
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
 		/* test 'O_TRUNC' flag */
-		CALL_AND_CHECK(fd, open(file_name4, O_WRONLY | O_TRUNC), fd >= 0, "file_name=%s", file_name4);
+		CALL_AND_CHECK(fd, open(file_name4, O_CREAT | O_WRONLY | O_TRUNC), fd >= 0, "file_name=%s", file_name4);
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		CALL_AND_CHECK(ret, stat(file_name4, &stat_buf),
 					   (ret == 0) && (stat_buf.st_size == 0),
