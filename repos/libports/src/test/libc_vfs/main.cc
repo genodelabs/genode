@@ -251,6 +251,14 @@ static void test(Genode::Xml_node node)
 					   (ret == 0) && (stat_buf.st_size == 10),
 					   "file_name=%s", file_name4);
 
+		CALL_AND_CHECK(fd, open(file_name4, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name4);
+		CALL_AND_CHECK(ret, unlink(file_name4), ret == 0, "");
+		CALL_AND_CHECK(ret, ftruncate(fd, 42), ret == 0, ""); /* on unlinked file */
+		CALL_AND_CHECK(ret, fstat(fd, &stat_buf),
+					   (ret == 0) && (stat_buf.st_size == 42),
+					   "file_name=%s", file_name4);
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+
 		/* test 'O_TRUNC' flag */
 		CALL_AND_CHECK(fd, open(file_name4, O_WRONLY | O_TRUNC), fd >= 0, "file_name=%s", file_name4);
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
