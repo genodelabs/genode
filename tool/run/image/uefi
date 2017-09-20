@@ -1,3 +1,5 @@
+source [genode_dir]/tool/run/grub2.inc
+
 ##
 # Create GPT disk image with UEFI boot loaders and content of the run directory
 #

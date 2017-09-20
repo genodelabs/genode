@@ -88,10 +88,14 @@ proc run_boot_dir_x86 {binaries} {
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
-		#
-		# Install isolinux/GRUB files and bender
-		#
-		install_iso_bootloader_to_run_dir
+		if {[have_include "image/disk"]} {
+			exec mkdir -p [run_dir]/boot/grub
+			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+		}
+
+		if {[have_include "image/iso"]} {
+			install_iso_bootloader_to_run_dir
+		}
 
 		#
 		# Generate grub config file
@@ -99,15 +103,16 @@ proc run_boot_dir_x86 {binaries} {
 		# The core binary is part of the 'binaries' list but it must
 		# appear right after 'sigma0' as boot module. Hence the special case.
 		#
-		set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
-		puts $fh "timeout 0"
-		puts $fh "default 0"
-		puts $fh "\ntitle Genode on Fiasco.OC"
-		puts $fh " kernel /boot/bender"
+		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
+		puts $fh "set timeout=0"
+		puts $fh "menuentry 'Genode on Fiasco.OC' {"
+		puts $fh " insmod multiboot"
+		puts $fh " multiboot /boot/bender"
 		puts $fh " module /bootstrap"
 		puts $fh " module /kernel [fiasco_serial_esc_arg]"
 		puts $fh " module /sigma0"
 		puts $fh " module /image.elf"
+		puts $fh "}"
 		close $fh
 	}
 

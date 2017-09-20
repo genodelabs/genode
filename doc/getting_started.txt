@@ -25,7 +25,7 @@ that your system satisfies the following requirements:
 * 'libSDL-dev'
 * 'tclsh' and 'expect'
 * 'byacc' (only needed for the L4/Fiasco kernel)
-* 'qemu' and 'genisoimage' (for testing non-Linux platforms via Qemu)
+* 'qemu' and 'xorriso' (for testing non-Linux platforms via Qemu)
 
 For using the entire collection of ported 3rd-party software, the following
 packages should be installed additionally: 'autoconf2.64', 'autogen', 'bison',
@@ -84,6 +84,11 @@ downloaded and prepared by again invoking the 3rd-party sources preparation
 tool:
 
 ! ./tool/ports/prepare_port x86emu
+
+On x86 base platforms the GRUB2 boot loader is required and can be
+downloaded and prepared by invoking:
+
+! ./tool/ports/prepare_port grub2
 
 Now that the base platform is prepared, the 'create_builddir' tool can be used
 to create a build directory for your platform of choice by giving the platform

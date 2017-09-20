@@ -1,0 +1,10 @@
+LICENSE   := GPLv3
+VERSION   := git
+DOWNLOADS := g2fg.git
+
+URL(g2fg) := https://github.com/alex-ab/g2fg.git
+REV(g2fg) := ed4811471d3b7f5acdd409870e35d63de037003d
+DIR(g2fg) := boot
+
+default: $(DOWNLOADS)
+	$(VERBOSE)tar -C boot -xjf boot/grub2.tar.bz2

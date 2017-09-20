@@ -61,31 +61,27 @@ proc run_boot_dir {binaries} {
 		#
 		exec gzip [run_dir]/image.elf
 
-		if {[have_include "image/iso"] || [have_include "image/disk"]} {
+		set serial_bender_opt ""
 
-			# Install isolinux/GRUB files and bender
-			#
+		if {[have_include "image/disk"]} {
+			exec mkdir -p [run_dir]/boot/grub
+			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+		}
+
+		if {[have_include "image/iso"]} {
 			install_iso_bootloader_to_run_dir
-
-			#
-			# Generate GRUB config file
-			#
-			set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
-			puts $fh "timeout 0"
-			puts $fh "default 0"
-			puts $fh "\ntitle Genode on NOVA"
-			puts $fh " kernel /boot/bender"
-			puts $fh " module /hypervisor iommu serial novpid novga"
-			puts $fh " module /image.elf.gz"
-			close $fh
 		}
 
 		if {[have_include image/uefi]} {
+			set grub2_path [get_grub2_dir]
+
 			exec mkdir -p [run_dir]/efi/boot
-			exec cp [genode_dir]/tool/boot/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
-			exec cp [genode_dir]/tool/boot/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+			exec cp $grub2_path/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+			exec cp $grub2_path/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
 			exec mkdir -p [run_dir]/boot/grub
 			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+
+			set serial_bender_opt "serial_fallback"
 		}
 
 		#
@@ -96,7 +92,9 @@ proc run_boot_dir {binaries} {
 		# tell grub2 to prefer 32bit framebuffer resolution
 		puts $fh "set gfxpayload=\"0x0x32\""
 		puts $fh "menuentry 'Genode on NOVA' {"
-		puts $fh " multiboot2 /boot/bender serial_fallback"
+		puts $fh " insmod multiboot2"
+		puts $fh " insmod gzio"
+		puts $fh " multiboot2 /boot/bender $serial_bender_opt"
 		puts $fh " module2 /hypervisor hypervisor iommu serial novpid novga"
 		puts $fh " module2 /image.elf.gz image.elf"
 		puts $fh "}"
