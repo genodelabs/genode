@@ -6,14 +6,18 @@ source [genode_dir]/tool/run/iso.inc
 #
 proc run_image { {unused ""} } {
 
+	requires_installation_of xorriso
+
 	puts "creating ISO image..."
 	exec rm -f "[run_dir].iso"
 
+	set grub2_path [get_grub2_dir]
+
 	#
-	# The 'create_iso' writes diagnostics to stderr, which are interpreted as
+	# 'xorriso' writes diagnostics to stderr, which are interpreted as
 	# execution failure by expect unless '-ignorestderr' is set on 'exec'.
 	#
-	if {[catch {exec -ignorestderr [genode_dir]/tool/create_iso iso ISO=[run_dir]} ]} {
+	if {[catch {exec -ignorestderr xorriso -out_charset utf-8 -report_about HINT -as mkisofs -f -l -R -hide-rr-moved -graft-points --modification-date=2017101816570300 -b boot/grub/i386-pc/eltorito.img -no-emul-boot -boot-load-size 4 -boot-info-table --embedded-boot $grub2_path/boot/grub2/embedded.img --protective-msdos-label -o [run_dir].iso -r [run_dir] --sort-weight 0 / --sort-weight 1 /boot} ]} {
 		puts stderr "Error: ISO image creation failed"
 		exit -5
 	}

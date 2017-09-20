@@ -57,13 +57,11 @@ cat > $cfg <<EOF
 set prefix=(hd0,msdos1)/boot/grub
 
 insmod normal
-insmod legacycfg
 
 terminal_input console
 terminal_output console
 
-## just legacy load Genode
-legacy_configfile /boot/grub/menu.lst
+configfile /boot/grub/grub.cfg
 EOF
 
 sudo cp $cfg $mnt/boot/grub/grub.cfg

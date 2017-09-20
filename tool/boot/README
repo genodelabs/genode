@@ -18,17 +18,6 @@ code respectively the download source of binaries are described below.
   The 'pulsar' tool was obtained in binary form from 
   http://os.inf.tu-dresden.de/~us15/pulsar.
 
-:'chain.c32', 'isolinux.bin'
-
-  These files are part of the 'Syslinux Project' hosting several bootloaders.
-  The sources has been obtained from http://www.syslinux.org.
-
-:'stage2_eltorito':
-
-  This file is part of a modified Grub 0.97 available under GPL. The sources
-  of the modified Grub 0.97 were obtained from
-  http://os.inf.tu-dresden.de/~adam/grub.
-
 :'unzip'
 
   The 'unzip' tool is part of the 'morbo' toolchain available under GPL.
@@ -37,15 +26,6 @@ code respectively the download source of binaries are described below.
   OS header can be loaded.
   The changes are available on the genode_bender branch of
   https://github.com/skalk/morbo.git.
-
-:'grub2_32.efi', 'grub2_64.efi'
-
-  GRUB 2 UEFI bootloader for x86
-
-  Source code was obtained from git://git.savannah.gnu.org/grub.git, git
-  commit 972765fe8245cdf44d465329f33b5aa9ac6c2f47.
-
-  The following modules were included: part_msdos iso9660 part_gpt ext2 multiboot multiboot2 fat normal configfile setpci serial efi_uga efi_gop gzio
 
 :'tianocore.bin'
 

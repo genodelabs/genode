@@ -116,7 +116,7 @@ proc run_power_on { } {
 			append qemu_args " -cdrom [run_dir].iso "
 		} else {
 		if {[have_include "image/disk"]} {
-			append qemu_args " -hda [run_dir].img "
+			append qemu_args " -drive format=raw,file=[run_dir].img "
 		} else {
 		if {[have_include "image/uefi"]} {
 			append qemu_args " --bios [genode_dir]/tool/boot/tianocore.bin -net none -drive format=raw,file=[run_dir].img "

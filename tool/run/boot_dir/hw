@@ -95,36 +95,26 @@ proc run_boot_dir {binaries} {
 	exec rm -fr [run_dir]/genode
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
-	if {[have_include "image/iso"] || [have_include "image/disk"]} {
-		#
-		# Install isolinux/GRUB files and bender
-		#
-		install_iso_bootloader_to_run_dir
+	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 
-		#
-		# Generate GRUB config file
-		#
-		set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
-		puts $fh "timeout 0"
-		puts $fh "default 0"
-
-		if {[have_spec "muen"]} {
-			puts $fh "\ntitle Genode on base-hw/Muen SK"
-			puts $fh " kernel /image.bin"
-		} else {
-			puts $fh "\ntitle Genode on base-hw"
-			puts $fh " kernel /boot/bender"
-			puts $fh " module /image.elf"
+		if {[have_include "image/disk"]} {
+			exec mkdir -p [run_dir]/boot/grub
+			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
 		}
-		close $fh
-	}
 
-	if {[have_include image/uefi]} {
-		exec mkdir -p [run_dir]/efi/boot
-		exec cp [genode_dir]/tool/boot/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
-		exec cp [genode_dir]/tool/boot/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
-		exec mkdir -p [run_dir]/boot/grub
-		exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+		if {[have_include "image/iso"]} {
+			install_iso_bootloader_to_run_dir
+		}
+
+		if {[have_include image/uefi]} {
+			set grub2_path [get_grub2_dir]
+
+			exec mkdir -p [run_dir]/efi/boot
+			exec cp $grub2_path/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+			exec cp $grub2_path/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+			exec mkdir -p [run_dir]/boot/grub
+			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+		}
 
 		#
 		# Generate GRUB2 config file
@@ -132,8 +122,9 @@ proc run_boot_dir {binaries} {
 		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
 		puts $fh "set timeout=0"
 		puts $fh "menuentry 'Genode on base-hw' {"
-		puts $fh " multiboot2 /boot/bender serial_fallback"
-		puts $fh " module2 /image.elf"
+		puts $fh " insmod multiboot"
+		puts $fh " multiboot /boot/bender"
+		puts $fh " module /image.elf image.elf"
 		puts $fh "}"
 		close $fh
 	}
