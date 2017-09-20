@@ -61,8 +61,8 @@ append config {
 
 append_if [have_spec gpio] config {
 	<start name="} [gpio_drv] {">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
 		<config/>
 	</start>}
 
