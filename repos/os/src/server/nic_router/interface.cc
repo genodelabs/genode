@@ -147,14 +147,22 @@ static void *_prot_base(uint8_t const  prot,
  ** Interface **
  ***************/
 
-void Interface::_pass_ip(Ethernet_frame &eth,
-                         size_t   const  eth_size,
-                         Ipv4_packet    &ip,
-                         uint8_t  const  prot,
-                         void    *const  prot_base,
-                         size_t   const  prot_size)
+void Interface::_pass_prot(Ethernet_frame &eth,
+                           size_t   const  eth_size,
+                           Ipv4_packet    &ip,
+                           uint8_t  const  prot,
+                           void    *const  prot_base,
+                           size_t   const  prot_size)
 {
 	_update_checksum(prot, prot_base, prot_size, ip.src(), ip.dst());
+	_pass_ip(eth, eth_size, ip);
+}
+
+
+void Interface::_pass_ip(Ethernet_frame &eth,
+                         size_t   const  eth_size,
+                         Ipv4_packet    &ip)
+{
 	ip.checksum(Ipv4_packet::calculate_checksum(ip));
 	_send(eth, eth_size);
 }
@@ -288,7 +296,7 @@ void Interface::_nat_link_and_pass(Ethernet_frame      &eth,
 	Link_side_id const remote = { ip.dst(), _dst_port(prot, prot_base),
 	                              ip.src(), _src_port(prot, prot_base) };
 	_new_link(prot, local, remote_port_alloc, interface, remote);
-	interface._pass_ip(eth, eth_size, ip, prot, prot_base, prot_size);
+	interface._pass_prot(eth, eth_size, ip, prot, prot_base, prot_size);
 }
 
 
@@ -303,84 +311,88 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	Ipv4_packet &ip = *new (eth.data<void>())
 		Ipv4_packet(eth_size - sizeof(Ethernet_frame));
 
-	uint8_t       const prot      = ip.protocol();
-	size_t        const prot_size = ip.total_length() - ip.header_length() * 4;
-	void         *const prot_base = _prot_base(prot, prot_size, ip);
-	Link_side_id  const local     = { ip.src(), _src_port(prot, prot_base),
-	                                  ip.dst(), _dst_port(prot, prot_base) };
-
-	/* try to route via existing UDP/TCP links */
+	/* try to route via transport layer rules */
 	try {
-		Link_side const &local_side = _links(prot).find_by_id(local);
-		Link &link = local_side.link();
-		bool const client = local_side.is_client();
-		Link_side &remote_side = client ? link.server() : link.client();
-		Interface &interface = remote_side.interface();
-		if(_config().verbose()) {
-			log("Using ", protocol_name(prot), " link: ", link); }
+		uint8_t       const prot      = ip.protocol();
+		size_t        const prot_size = ip.total_length() - ip.header_length() * 4;
+		void         *const prot_base = _prot_base(prot, prot_size, ip);
+		Link_side_id  const local     = { ip.src(), _src_port(prot, prot_base),
+		                                  ip.dst(), _dst_port(prot, prot_base) };
 
-		_adapt_eth(eth, eth_size, remote_side.src_ip(), pkt, interface);
-		ip.src(remote_side.dst_ip());
-		ip.dst(remote_side.src_ip());
-		_src_port(prot, prot_base, remote_side.dst_port());
-		_dst_port(prot, prot_base, remote_side.src_port());
-
-		interface._pass_ip(eth, eth_size, ip, prot, prot_base, prot_size);
-		_link_packet(prot, prot_base, link, client);
-		return;
-	}
-	catch (Link_side_tree::No_match) { }
-
-	/* try to route via forward rules */
-	if (local.dst_ip == _router_ip()) {
+		/* try to route via existing UDP/TCP links */
 		try {
-			Forward_rule const &rule =
-				_forward_rules(prot).find_by_port(local.dst_port);
-
-			Interface &interface = rule.domain().interface().deref();
+			Link_side const &local_side = _links(prot).find_by_id(local);
+			Link &link = local_side.link();
+			bool const client = local_side.is_client();
+			Link_side &remote_side = client ? link.server() : link.client();
+			Interface &interface = remote_side.interface();
 			if(_config().verbose()) {
-				log("Using forward rule: ", protocol_name(prot), " ", rule); }
+				log("Using ", protocol_name(prot), " link: ", link); }
 
-			_adapt_eth(eth, eth_size, rule.to(), pkt, interface);
-			ip.dst(rule.to());
+			_adapt_eth(eth, eth_size, remote_side.src_ip(), pkt, interface);
+			ip.src(remote_side.dst_ip());
+			ip.dst(remote_side.src_ip());
+			_src_port(prot, prot_base, remote_side.dst_port());
+			_dst_port(prot, prot_base, remote_side.src_port());
+
+			interface._pass_prot(eth, eth_size, ip, prot, prot_base, prot_size);
+			_link_packet(prot, prot_base, link, client);
+			return;
+		}
+		catch (Link_side_tree::No_match) { }
+
+		/* try to route via forward rules */
+		if (local.dst_ip == _router_ip()) {
+			try {
+				Forward_rule const &rule =
+					_forward_rules(prot).find_by_port(local.dst_port);
+
+				Interface &interface = rule.domain().interface().deref();
+				if(_config().verbose()) {
+					log("Using forward rule: ", protocol_name(prot), " ", rule); }
+
+				_adapt_eth(eth, eth_size, rule.to(), pkt, interface);
+				ip.dst(rule.to());
+				_nat_link_and_pass(eth, eth_size, ip, prot, prot_base, prot_size,
+				                   local, interface);
+				return;
+			}
+			catch (Forward_rule_tree::No_match) { }
+		}
+		/* try to route via transport and permit rules */
+		try {
+			Transport_rule const &transport_rule =
+				_transport_rules(prot).longest_prefix_match(local.dst_ip);
+
+			Permit_rule const &permit_rule =
+				transport_rule.permit_rule(local.dst_port);
+
+			Interface &interface = permit_rule.domain().interface().deref();
+			if(_config().verbose()) {
+				log("Using ", protocol_name(prot), " rule: ", transport_rule,
+				    " ", permit_rule); }
+
+			_adapt_eth(eth, eth_size, local.dst_ip, pkt, interface);
 			_nat_link_and_pass(eth, eth_size, ip, prot, prot_base, prot_size,
 			                   local, interface);
 			return;
 		}
-		catch (Forward_rule_tree::No_match) { }
+		catch (Transport_rule_list::No_match) { }
+		catch (Permit_single_rule_tree::No_match) { }
 	}
-	/* try to route via transport and permit rules */
-	try {
-		Transport_rule const &transport_rule =
-			_transport_rules(prot).longest_prefix_match(local.dst_ip);
-
-		Permit_rule const &permit_rule =
-			transport_rule.permit_rule(local.dst_port);
-
-		Interface &interface = permit_rule.domain().interface().deref();
-		if(_config().verbose()) {
-			log("Using ", protocol_name(prot), " rule: ", transport_rule,
-			    " ", permit_rule); }
-
-		_adapt_eth(eth, eth_size, local.dst_ip, pkt, interface);
-		_nat_link_and_pass(eth, eth_size, ip, prot, prot_base, prot_size,
-		                   local, interface);
-		return;
-	}
-	catch (Transport_rule_list::No_match) { }
-	catch (Permit_single_rule_tree::No_match) { }
+	catch (Interface::Bad_transport_protocol) { }
 
 	/* try to route via IP rules */
 	try {
 		Ip_rule const &rule =
-			_domain.ip_rules().longest_prefix_match(local.dst_ip);
+			_domain.ip_rules().longest_prefix_match(ip.dst());
 
 		Interface &interface = rule.domain().interface().deref();
 		if(_config().verbose()) {
 			log("Using IP rule: ", rule); }
 
-		_adapt_eth(eth, eth_size, local.dst_ip, pkt, interface);
-		interface._pass_ip(eth, eth_size, ip, prot, prot_base, prot_size);
+		_adapt_eth(eth, eth_size, ip.dst(), pkt, interface);
+		interface._pass_ip(eth, eth_size, ip);
 		return;
 	}
 	catch (Ip_rule_list::No_match) { }
@@ -530,9 +542,6 @@ void Interface::_handle_eth(void              *const  eth_base,
 	}
 	catch (Ethernet_frame::No_ethernet_frame) {
 		error("invalid ethernet frame"); }
-
-	catch (Interface::Bad_transport_protocol) {
-		error("unknown transport layer protocol"); }
 
 	catch (Interface::Bad_network_protocol) {
 		error("unknown network layer protocol"); }

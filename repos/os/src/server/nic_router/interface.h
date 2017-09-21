@@ -104,12 +104,16 @@ class Net::Interface
 
 		void _send(Ethernet_frame &eth, Genode::size_t const eth_size);
 
-		void _pass_ip(Ethernet_frame         &eth,
-		              Genode::size_t   const  eth_size,
-		              Ipv4_packet            &ip,
-		              Genode::uint8_t  const  prot,
-		              void            *const  prot_base,
-		              Genode::size_t   const  prot_size);
+		void _pass_prot(Ethernet_frame         &eth,
+		                Genode::size_t   const  eth_size,
+		                Ipv4_packet            &ip,
+		                Genode::uint8_t  const  prot,
+		                void            *const  prot_base,
+		                Genode::size_t   const  prot_size);
+
+		void _pass_ip(Ethernet_frame       &eth,
+		              Genode::size_t const  eth_size,
+		              Ipv4_packet          &ip);
 
 		void _continue_handle_eth(Packet_descriptor const &pkt);
 
