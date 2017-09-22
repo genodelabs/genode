@@ -61,7 +61,7 @@ class Input::Root_component : public Genode::Static_root<Input::Session>
 			return Static_root<Input::Session>::session(args, affinity);
 		}
 
-		void close(Genode::Capability<Session>)
+		void close(Genode::Capability<Genode::Session>) override
 		{
 			_session.event_queue().enabled(false);
 		}
