@@ -241,7 +241,7 @@ class Lx_kit::Timer : public Lx::Timer
 			if (!ctx)
 				return 0;
 
-			int rv = ctx->timeout != Context::INVALID_TIMEOUT ? 1 : 0;
+			int rv = ctx->pending ? 1 : 0;
 
 			_list.remove(ctx);
 			destroy(&_timer_alloc, ctx);
@@ -261,7 +261,7 @@ class Lx_kit::Timer : public Lx::Timer
 			 * If timer was already active return 1, otherwise 0. The return
 			 * value is needed by mod_timer().
 			 */
-			int rv = ctx->timeout != Context::INVALID_TIMEOUT ? 1 : 0;
+			int rv = ctx->pending ? 1 : 0;
 
 			_schedule_timer(ctx, expires);
 
