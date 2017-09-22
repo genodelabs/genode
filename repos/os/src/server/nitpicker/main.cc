@@ -430,6 +430,8 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		View &_pointer_origin;
 
+		View &_builtin_background;
+
 		List<Session_view_list_elem> _view_list;
 
 		Genode::Tslab<View, 4000> _view_alloc { &_session_alloc };
@@ -655,6 +657,10 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		void _destroy_view(View &view)
 		{
+			/* reset background if view was used as default background */
+			if (_view_stack.is_default_background(view))
+				_view_stack.default_background(_builtin_background);
+
 			_view_stack.remove_view(view);
 			_env.ep().dissolve(view);
 			_view_list.remove(&view);
@@ -671,6 +677,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  View_stack           &view_stack,
 		                  Mode                 &mode,
 		                  View                 &pointer_origin,
+		                  View                 &builtin_background,
 		                  Framebuffer::Session &framebuffer,
 		                  bool                  provides_default_bg,
 		                  Allocator            &session_alloc,
@@ -684,6 +691,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
 			_view_stack(view_stack), _mode(mode),
 			_pointer_origin(pointer_origin),
+			_builtin_background(builtin_background),
 			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),
 			_input_session_cap(_env.ep().manage(_input_session_component)),
 			_provides_default_bg(provides_default_bg),
@@ -1023,6 +1031,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		View_stack                   &_view_stack;
 		Mode                         &_mode;
 		::View                       &_pointer_origin;
+		::View                       &_builtin_background;
 		Framebuffer::Session         &_framebuffer;
 		Genode::Reporter             &_focus_reporter;
 
@@ -1048,7 +1057,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 			Session_component *session = new (md_alloc())
 				Session_component(_env, label, _view_stack, _mode,
-				                  _pointer_origin, _framebuffer,
+				                  _pointer_origin, _builtin_background, _framebuffer,
 				                  provides_default_bg, *md_alloc(), unused_quota,
 				                  _focus_reporter);
 
@@ -1084,14 +1093,15 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		Root(Env &env, Attached_rom_dataspace const &config,
 		     Session_list &session_list, Domain_registry const &domain_registry,
 		     Global_keys &global_keys, View_stack &view_stack, Mode &mode,
-		     ::View &pointer_origin, Allocator &md_alloc,
+		     ::View &pointer_origin, ::View &builtin_background, Allocator &md_alloc,
 		     Framebuffer::Session &framebuffer, Genode::Reporter &focus_reporter)
 		:
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env), _config(config),
 			_session_list(session_list), _domain_registry(domain_registry),
 			_global_keys(global_keys), _view_stack(view_stack), _mode(mode),
-			_pointer_origin(pointer_origin), _framebuffer(framebuffer),
+			_pointer_origin(pointer_origin), _builtin_background(builtin_background),
+			_framebuffer(framebuffer),
 			_focus_reporter(focus_reporter)
 		{ }
 };
@@ -1162,7 +1172,7 @@ struct Nitpicker::Main
 	 */
 	Pointer_origin pointer_origin;
 
-	Background background = { Area(99999, 99999) };
+	Background builtin_background = { Area(99999, 99999) };
 
 	/*
 	 * Initialize Nitpicker root interface
@@ -1177,7 +1187,7 @@ struct Nitpicker::Main
 
 	Root<PT> np_root = { env, config, session_list, *domain_registry,
 	                     global_keys, user_state, user_state, pointer_origin,
-	                     sliced_heap, framebuffer, focus_reporter };
+	                     builtin_background, sliced_heap, framebuffer, focus_reporter };
 
 	/*
 	 * Configuration-update handler, executed in the context of the RPC
@@ -1238,9 +1248,9 @@ struct Nitpicker::Main
 
 	Main(Env &env) : env(env)
 	{
-		user_state.default_background(background);
+		user_state.default_background(builtin_background);
 		user_state.stack(pointer_origin);
-		user_state.stack(background);
+		user_state.stack(builtin_background);
 
 		config.sigh(config_handler);
 		handle_config();
@@ -1343,7 +1353,7 @@ void Nitpicker::Main::handle_config()
 	/* update background color */
 	try {
 		config.xml().sub_node("background")
-		.attribute("color").value(&background.color);
+		.attribute("color").value(&builtin_background.color);
 	} catch (...) { }
 
 	/* enable or disable redraw debug mode */
