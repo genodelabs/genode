@@ -732,6 +732,7 @@ proc generate_boot_modules_asm {path modules} {
 		append asm_src "\n"
 	}
 
+	append asm_src ".p2align MIN_PAGE_SIZE_LOG2\n"
 	append asm_src ".global _boot_modules_binaries_end\n"
 	append asm_src "_boot_modules_binaries_end:\n"
 
