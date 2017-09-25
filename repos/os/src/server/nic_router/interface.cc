@@ -535,7 +535,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame * const eth = new (eth_base) Ethernet_frame(eth_size);
 		if (_config().verbose()) {
-			log("at ", _domain, " handle ", *eth); }
+			log("\033[33m(router <- ", _domain, ")\033[0m ", *eth); }
 
 		switch (eth->type()) {
 		case Ethernet_frame::Type::ARP:  _handle_arp(*eth, eth_size);     break;
@@ -565,7 +565,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 void Interface::_send(Ethernet_frame &eth, Genode::size_t const size)
 {
 	if (_config().verbose()) {
-		log("at ", _domain, " send ", eth); }
+		log("\033[33m(", _domain, " <- router)\033[0m ", eth); }
 	try {
 		/* copy and submit packet */
 		Packet_descriptor const pkt = _source().alloc_packet(size);

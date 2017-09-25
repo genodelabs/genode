@@ -83,7 +83,7 @@ void Domain::_read_transport_rules(Cstring  const      &protocol,
 
 void Domain::print(Output &output) const
 {
-	Genode::print(output, "\"", _name, "\"");
+	Genode::print(output, _name);
 }
 
 
