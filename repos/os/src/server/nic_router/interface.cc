@@ -306,9 +306,6 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
                            Genode::size_t    const  eth_size,
                            Packet_descriptor const &pkt)
 {
-	_destroy_closed_links<Udp_link>(_closed_udp_links, _alloc);
-	_destroy_closed_links<Tcp_link>(_closed_tcp_links, _alloc);
-
 	/* read packet information */
 	Ipv4_packet &ip = *new (eth.data<void>())
 		Ipv4_packet(eth_size - sizeof(Ethernet_frame));
@@ -542,6 +539,11 @@ void Interface::_handle_eth(void              *const  eth_base,
                             size_t             const  eth_size,
                             Packet_descriptor  const &pkt)
 {
+	/* do garbage collection over transport-layer links */
+	_destroy_closed_links<Udp_link>(_closed_udp_links, _alloc);
+	_destroy_closed_links<Tcp_link>(_closed_tcp_links, _alloc);
+
+	/* inspect and handle ethernet frame */
 	try {
 		Ethernet_frame * const eth = new (eth_base) Ethernet_frame(eth_size);
 		if (_config().verbose()) {
