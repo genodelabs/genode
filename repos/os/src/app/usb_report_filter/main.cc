@@ -299,6 +299,8 @@ class Usb_filter::Device_registry
 		{
 			using namespace Genode;
 
+			if (!_devices_rom.valid()) return;
+
 			/*
 			 * XXX it might happen that the device list has changed after we are
 			 *     waiting for the usb_drv_config update
