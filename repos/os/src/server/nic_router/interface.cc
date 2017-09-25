@@ -462,18 +462,28 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
                                     size_t const    eth_size,
                                     Arp_packet     &arp)
 {
-	/* ignore packets that do not target the router */
-	if (arp.dst_ip() != _router_ip()) {
+	/*
+	 * We handle ARP only if it asks for the routers IP or if the router
+	 * shall forward an ARP to a foreign address as gateway. The second
+	 * is the case if no gateway attribute is specified (so we're the
+	 * gateway) and the address is not of the same subnet like the interface
+	 * attribute.
+	 */
+	if (arp.dst_ip() != _router_ip() &&
+	    (_domain.gateway_valid() ||
+	     _domain.interface_attr().prefix_matches(arp.dst_ip())))
+	{
 		if (_config().verbose()) {
-			log("ARP request for unknown IP"); }
+			log("Ignore ARP request"); }
 
 		return;
 	}
 	/* interchange source and destination MAC and IP addresses */
+	Ipv4_address dst_ip = arp.dst_ip();
 	arp.dst_ip(arp.src_ip());
 	arp.dst_mac(arp.src_mac());
 	eth.dst(eth.src());
-	arp.src_ip(_router_ip());
+	arp.src_ip(dst_ip);
 	arp.src_mac(_router_mac);
 	eth.src(_router_mac);
 
