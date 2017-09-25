@@ -17,6 +17,9 @@
 /* local includes */
 #include <domain.h>
 
+/* Genode includes */
+#include <os/duration.h>
+
 namespace Genode { class Allocator; }
 
 namespace Net { class Configuration; }
@@ -26,13 +29,17 @@ class Net::Configuration
 {
 	private:
 
-		Genode::Allocator      &_alloc;
-		bool             const  _verbose;
-		unsigned         const  _rtt_sec;
-		Domain_tree             _domains;
-		Genode::Xml_node const  _node;
+		Genode::Allocator          &_alloc;
+		bool                 const  _verbose;
+		Genode::Microseconds const  _rtt;
+		Domain_tree                 _domains;
+		Genode::Xml_node     const  _node;
+
+		Genode::Microseconds _init_rtt(Genode::Xml_node const node);
 
 	public:
+
+		enum { DEFAULT_RTT_SEC = 6 };
 
 		Configuration(Genode::Xml_node const node, Genode::Allocator &alloc);
 
@@ -41,10 +48,10 @@ class Net::Configuration
 		 ** Accessors **
 		 ***************/
 
-		bool              verbose() const { return _verbose; }
-		unsigned          rtt_sec() const { return _rtt_sec; }
-		Domain_tree      &domains()       { return _domains; }
-		Genode::Xml_node  node()    const { return _node; }
+		bool                  verbose() const { return _verbose; }
+		Genode::Microseconds  rtt()     const { return _rtt; }
+		Domain_tree          &domains()       { return _domains; }
+		Genode::Xml_node      node()    const { return _node; }
 };
 
 #endif /* _CONFIGURATION_H_ */

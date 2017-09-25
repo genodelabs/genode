@@ -124,7 +124,7 @@ Link::Link(Interface                           &cln_interface,
 	_server_port_alloc(srv_port_alloc),
 	_server(srv_interface, srv_id, *this),
 	_close_timeout(timer, *this, &Link::_handle_close_timeout),
-	_close_timeout_us(_config.rtt_sec() * 2 * 1000 * 1000),
+	_close_timeout_us(_config.rtt()),
 	_protocol(protocol)
 {
 	_close_timeout.schedule(_close_timeout_us);

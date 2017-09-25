@@ -23,29 +23,23 @@ using namespace Net;
 using namespace Genode;
 
 
-/***************
- ** Utilities **
- ***************/
-
-static unsigned read_rtt_sec(Xml_node const node)
+Microseconds Configuration::_init_rtt(Xml_node const node)
 {
-	unsigned const rtt_sec = node.attribute_value("rtt_sec", 0UL);
+	unsigned rtt_sec = node.attribute_value("rtt_sec", 0UL);
 	if (!rtt_sec) {
-		warning("fall back to default rtt_sec=\"3\"");
-		return 3;
+		warning("fall back to default rtt_sec=\"",
+		        (unsigned)DEFAULT_RTT_SEC, "\"");
+		rtt_sec = DEFAULT_RTT_SEC;
 	}
-	return rtt_sec;
+	return Microseconds(rtt_sec * 1000 * 1000);
 }
 
 
-/*******************
- ** Configuration **
- *******************/
-
-Configuration::Configuration(Xml_node const node, Allocator &alloc)
+Configuration::Configuration(Xml_node const  node,
+                             Allocator      &alloc)
 :
 	_alloc(alloc), _verbose(node.attribute_value("verbose", false)),
-	_rtt_sec(read_rtt_sec(node)), _node(node)
+	_rtt(_init_rtt(node)), _node(node)
 {
 	/* read domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {

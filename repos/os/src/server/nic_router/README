@@ -220,18 +220,18 @@ link states so you should choose it with care. If it is too low, replies that
 normally need no routing rule may get lost. If it is too high, link states are
 held longer than necessary.
 
-In general, each link state is discarded after a duration of two times the
-round-trip time without a matching packet. For UDP link states, this is the
-only rule and better known as hole punching. It allows peers to keep alive a
-UDP pseudo-connection through the router by frequently sending empty packets.
-The need for such a pseudo-connection arises from the router's demand to
-support NAT for UDP transfers and the consequence of keeping the corresponding
-mapping information.
+In general, each link state is discarded after a duration of the round-trip
+time without a matching packet. For UDP link states, this is the only rule and
+better known as hole punching. It allows peers to keep alive a UDP
+pseudo-connection through the router by frequently sending empty packets.  The
+need for such a pseudo-connection arises from the router's demand to support
+NAT for UDP transfers and the consequence of keeping the corresponding mapping
+information.
 
 The lifetime management of TCP link states, in contrast, is more complex. In
 addition to the common timeout, they may be discarded even if they still
 receive packets. This is the case when the router observed the four-way
-termination handshake of TCP and two times the round-trip time has passed.
+termination handshake of TCP and the round-trip time has passed.
 
 
 Configuring NAT

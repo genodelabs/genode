@@ -124,8 +124,6 @@ class Net::Link : public Link_list::Element
 {
 	protected:
 
-		using Signal_handler = Genode::Signal_handler<Link>;
-
 		Configuration                       &_config;
 		Link_side                            _client;
 		Pointer<Port_allocator_guard> const  _server_port_alloc;
