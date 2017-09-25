@@ -159,7 +159,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	                unsigned bus, unsigned dev)
 	:
 		label(label), _alloc(&alloc),
-		usb_raw(env, &_alloc, label, 1024*1024, state_dispatcher),
+		usb_raw(env, &_alloc, label, 6*1024*1024, state_dispatcher),
 		bus(bus), dev(dev), sig_rec(sig_rec)
 	{
 		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
@@ -420,23 +420,29 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 
 	bool const in = p->pid == USB_TOKEN_IN;
 
-	Usb::Packet_descriptor packet = dev->alloc_packet(size);
-	packet.type                      = type;
-	packet.transfer.ep               = p->ep->nr | (in ? USB_DIR_IN : 0);
-	packet.transfer.polling_interval = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
+	try {
+		Usb::Packet_descriptor packet = dev->alloc_packet(size);
+		packet.type                      = type;
+		packet.transfer.ep               = p->ep->nr | (in ? USB_DIR_IN : 0);
+		packet.transfer.polling_interval = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
 
-	if (!in) {
-		char * const content = dev->usb_raw.source()->packet_content(packet);
-		usb_packet_copy(p, content, size);
+		if (!in) {
+			char * const content = dev->usb_raw.source()->packet_content(packet);
+			usb_packet_copy(p, content, size);
+		}
+
+		Completion *c = dynamic_cast<Completion *>(packet.completion);
+		c->p          = p;
+		c->dev        = udev;
+		c->data       = nullptr;
+
+		dev->submit(packet);
+		p->status = USB_RET_ASYNC;
+	} catch (...) {
+		/* submit queue full or packet larger than packet stream */
+		Genode::warning("xHCI: packet allocation failed (size ", Genode::Hex(size), ")");
+		p->status = USB_RET_NAK;
 	}
-
-	Completion *c = dynamic_cast<Completion *>(packet.completion);
-	c->p          = p;
-	c->dev        = udev;
-	c->data       = nullptr;
-
-	dev->submit(packet);
-	p->status = USB_RET_ASYNC;
 }
 
 
