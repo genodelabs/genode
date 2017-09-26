@@ -76,6 +76,9 @@ void Netty::Udp::server(int const sd, bool const nonblock, bool const read_write
 		}
 
 		count = sendto(sd, data, count, 0, pcaddr, scaddr);
+		if (count == -1)
+			Genode::error("sendto: errno=", errno,
+			              " (", Genode::Cstring(strerror(errno)), ")");
 
 		Genode::log("echoed ", count, " bytes");
 	}
