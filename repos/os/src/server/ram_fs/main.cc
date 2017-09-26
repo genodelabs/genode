@@ -76,29 +76,46 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
-				if (content && (packet.length() <= packet.size()))
-					res_length = open_node.node().read((char *)content, length, packet.position());
+				if (content && (packet.length() <= packet.size())) {
+					Locked_ptr<Node> node { open_node.node() };
+					if (!node.valid())
+						break; 
+					res_length = node->read((char *)content, length,
+					                        packet.position());
+				}
 				break;
 
 			case Packet_descriptor::WRITE:
-				if (content && (packet.length() <= packet.size()))
-					res_length = open_node.node().write((char const *)content, length, packet.position());
-
+				if (content && (packet.length() <= packet.size())) {
+					Locked_ptr<Node> node { open_node.node() };
+					if (!node.valid())
+						break; 
+					res_length = node->write((char const *)content, length,
+					                         packet.position());
+				}
 				open_node.mark_as_written();
 				break;
 
-			case Packet_descriptor::CONTENT_CHANGED:
+			case Packet_descriptor::CONTENT_CHANGED: {
 				open_node.register_notify(*tx_sink());
-				open_node.node().notify_listeners();
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					return; 
+				node->notify_listeners();
 				return;
+			}
 
 			case Packet_descriptor::READ_READY:
 				/* not supported */
 				break;
 
-			case Packet_descriptor::SYNC:
-				open_node.node().notify_listeners();
+			case Packet_descriptor::SYNC: {
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					break; 
+				node->notify_listeners();
 				break;
+			}
 			}
 
 			packet.length(res_length);
@@ -207,7 +224,10 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 			auto file_fn = [&] (Open_node &open_node) {
 
-				Node &dir = open_node.node();
+				Locked_ptr<Node> dir { open_node.node() };
+
+				if (!dir.valid())
+					throw Unavailable();
 
 				if (!_writable)
 					if (mode != STAT_ONLY && mode != READ_ONLY)
@@ -218,23 +238,23 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 					if (!_writable)
 						throw Permission_denied();
 
-					if (dir.has_sub_node_unsynchronized(name.string()))
+					if (dir->has_sub_node_unsynchronized(name.string()))
 						throw Node_already_exists();
 
 					try {
 						File * const file = new (_alloc)
 							File(_alloc, name.string());
 
-						dir.adopt_unsynchronized(file);
+						dir->adopt_unsynchronized(file);
 						open_node.mark_as_written();
 					}
 					catch (Allocator::Out_of_memory) { throw No_space(); }
 				}
 
-				File *file = dir.lookup_file(name.string());
+				File *file = dir->lookup_file(name.string());
 
 				Open_node *open_file =
-					new (_alloc) Open_node(*file, _open_node_registry);
+					new (_alloc) Open_node(file->weak_ptr(), _open_node_registry);
 
 				return open_file->id();
 			};
@@ -255,29 +275,32 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 			auto symlink_fn = [&] (Open_node &open_node) {
 
-				Node &dir = open_node.node();
+				Locked_ptr<Node> dir { open_node.node() };
+
+				if (!dir.valid())
+					throw Unavailable();
 
 				if (create) {
 
 					if (!_writable)
 						throw Permission_denied();
 
-					if (dir.has_sub_node_unsynchronized(name.string()))
+					if (dir->has_sub_node_unsynchronized(name.string()))
 						throw Node_already_exists();
 
 					try {
 						Symlink * const symlink = new (_alloc)
 					                    	Symlink(name.string());
 
-						dir.adopt_unsynchronized(symlink);
+						dir->adopt_unsynchronized(symlink);
 					}
 					catch (Allocator::Out_of_memory) { throw No_space(); }
 				}
 
-				Symlink *symlink = dir.lookup_symlink(name.string());
+				Symlink *symlink = dir->lookup_symlink(name.string());
 
 				Open_node *open_symlink =
-					new (_alloc) Open_node(*symlink, _open_node_registry);
+					new (_alloc) Open_node(symlink->weak_ptr(), _open_node_registry);
 
 				return open_symlink->id();
 			};
@@ -325,7 +348,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			Directory *dir = _root.lookup_dir(path_str);
 
 			Open_node *open_dir =
-				new (_alloc) Open_node(*dir, _open_node_registry);
+				new (_alloc) Open_node(dir->weak_ptr(), _open_node_registry);
 
 			return Dir_handle { open_dir->id().value };
 		}
@@ -337,7 +360,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			Node *node = _root.lookup(path.string() + 1);
 
 			Open_node *open_node =
-				new (_alloc) Open_node(*node, _open_node_registry);
+				new (_alloc) Open_node(node->weak_ptr(), _open_node_registry);
 
 			return open_node->id();
 		}
@@ -345,7 +368,8 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		void close(Node_handle handle)
 		{
 			auto close_fn = [&] (Open_node &open_node) {
-				destroy(_alloc, &open_node); };
+				destroy(_alloc, &open_node);
+			};
 
 			try {
 				_open_node_registry.apply<Open_node>(handle, close_fn);
@@ -357,7 +381,11 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		Status status(Node_handle node_handle)
 		{
 			auto status_fn = [&] (Open_node &open_node) {
-				return open_node.node().status(); };
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					throw Unavailable();	
+				return node->status();
+			};
 
 			try {
 				return _open_node_registry.apply<Open_node>(node_handle, status_fn);
@@ -378,14 +406,14 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 			auto unlink_fn = [&] (Open_node &open_node) {
 
-				Node &dir = open_node.node();
+				Locked_ptr<Node> dir { open_node.node() };
 
-				Node *node = dir.lookup(name.string());
+				if (!dir.valid())
+					throw Unavailable();
 
-				dir.discard(node);
+				Node *node = dir->lookup(name.string());
 
-				// XXX implement ref counting, do not destroy node that is
-				//     is still referenced by a node handle
+				dir->discard(node);
 
 				destroy(_alloc, node);
 				open_node.mark_as_written();
@@ -404,7 +432,10 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				throw Permission_denied();
 
 			auto truncate_fn = [&] (Open_node &open_node) {
-				open_node.node().truncate(size);
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					throw Unavailable();
+				node->truncate(size);
 				open_node.mark_as_written();
 			};
 
@@ -431,17 +462,23 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 				auto inner_move_fn = [&] (Open_node &open_to_dir_node) {
 
-					Node &from_dir = open_from_dir_node.node();
+					Locked_ptr<Node> from_dir { open_from_dir_node.node() };
 
-					Node *node = from_dir.lookup(from_name.string());
+					if (!from_dir.valid())
+						throw Unavailable();
+
+					Node *node = from_dir->lookup(from_name.string());
 					node->name(to_name.string());
 
-					Node &to_dir = open_to_dir_node.node();
+					if (!(open_to_dir_node.node() == open_from_dir_node.node())) {
 
-					if (&to_dir != &from_dir) {
+						Locked_ptr<Node> to_dir { open_to_dir_node.node() };
 
-						from_dir.discard(node);
-						to_dir.adopt_unsynchronized(node);
+						if (!to_dir.valid())
+							throw Unavailable();
+
+						from_dir->discard(node);
+						to_dir->adopt_unsynchronized(node);
 
 						/*
 						 * If the file was moved from one directory to another we
@@ -449,13 +486,13 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 						 * directory 'from_dir' will always get notified (i.e.,
 						 * when just the file name was changed) below.
 						 */
-						to_dir.mark_as_updated();
+						to_dir->mark_as_updated();
 						open_to_dir_node.mark_as_written();
-						to_dir.notify_listeners();
+						to_dir->notify_listeners();
 
-						from_dir.mark_as_updated();
+						from_dir->mark_as_updated();
 						open_from_dir_node.mark_as_written();
-						from_dir.notify_listeners();
+						from_dir->notify_listeners();
 
 						node->mark_as_updated();
 						node->notify_listeners();

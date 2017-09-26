@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/heap.h>
-#include <file_system/open_node.h>
 #include <file_system_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/session_policy.h>
@@ -26,6 +25,7 @@
 
 /* local includes */
 #include <directory.h>
+#include <open_node.h>
 #include <util.h>
 
 

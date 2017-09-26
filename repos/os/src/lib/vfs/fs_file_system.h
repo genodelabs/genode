@@ -638,6 +638,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Lookup_failed)     { return UNLINK_ERR_NO_ENTRY;  }
 			catch (::File_system::Not_empty)         { return UNLINK_ERR_NOT_EMPTY; }
 			catch (::File_system::Permission_denied) { return UNLINK_ERR_NO_PERM;   }
+			catch (::File_system::Unavailable)       { return UNLINK_ERR_NO_ENTRY;  }
 
 			return UNLINK_OK;
 		}
@@ -765,6 +766,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::No_space)            { return OPEN_ERR_NO_SPACE;      }
 			catch (::File_system::Out_of_ram)          { return OPEN_ERR_OUT_OF_RAM;    }
 			catch (::File_system::Out_of_caps)         { return OPEN_ERR_OUT_OF_CAPS;   }
+			catch (::File_system::Unavailable)         { return OPEN_ERR_UNACCESSIBLE;  }
 
 			return OPEN_OK;
 		}
@@ -834,6 +836,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Out_of_ram)          { return OPENLINK_ERR_OUT_OF_RAM; }
 			catch (::File_system::Out_of_caps)         { return OPENLINK_ERR_OUT_OF_CAPS; }
 			catch (::File_system::Permission_denied)   { return OPENLINK_ERR_PERMISSION_DENIED; }
+			catch (::File_system::Unavailable)         { return OPENLINK_ERR_LOOKUP_FAILED; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override
@@ -940,6 +943,7 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Invalid_handle)    { return FTRUNCATE_ERR_NO_PERM; }
 			catch (::File_system::Permission_denied) { return FTRUNCATE_ERR_NO_PERM; }
 			catch (::File_system::No_space)          { return FTRUNCATE_ERR_NO_SPACE; }
+			catch (::File_system::Unavailable)       { return FTRUNCATE_ERR_NO_PERM; }
 
 			return FTRUNCATE_OK;
 		}

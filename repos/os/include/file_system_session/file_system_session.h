@@ -105,6 +105,7 @@ namespace File_system {
 	class No_space            : Exception { };
 	class Not_empty           : Exception { };
 	class Permission_denied   : Exception { };
+	class Unavailable         : Exception { };
 
 	struct Session;
 }
@@ -288,6 +289,7 @@ struct File_system::Session : public Genode::Session
 	 * \throw Out_of_ram           server cannot allocate metadata
 	 * \throw Out_of_caps
 	 * \throw Permission_denied
+	 * \throw Unavailable          directory vanished
 	 */
 	virtual File_handle file(Dir_handle, Name const &name, Mode, bool create) = 0;
 
@@ -303,6 +305,7 @@ struct File_system::Session : public Genode::Session
 	 * \throw Out_of_ram           server cannot allocate metadata
 	 * \throw Out_of_caps
 	 * \throw Permission_denied
+	 * \throw Unavailable          directory vanished
 	 */
 	virtual Symlink_handle symlink(Dir_handle, Name const &name, bool create) = 0;
 
@@ -345,6 +348,7 @@ struct File_system::Session : public Genode::Session
 	 * Request information about an open file or directory
 	 *
 	 * \throw Invalid_handle   node handle is invalid
+	 * \throw Unavailable      node vanished
 	 */
 	virtual Status status(Node_handle) = 0;
 
@@ -352,6 +356,7 @@ struct File_system::Session : public Genode::Session
 	 * Set information about an open file or directory
 	 *
 	 * \throw Invalid_handle   node handle is invalid
+	 * \throw Unavailable      node vanished
 	 */
 	virtual void control(Node_handle, Control) = 0;
 
@@ -364,6 +369,7 @@ struct File_system::Session : public Genode::Session
 	 * \throw Not_empty          argument is a non-empty directory and
 	 *                           the backend does not support recursion
 	 * \throw Permission_denied
+	 * \throw Unavailable        directory vanished
 	 */
 	virtual void unlink(Dir_handle dir, Name const &name) = 0;
 
@@ -373,6 +379,7 @@ struct File_system::Session : public Genode::Session
 	 * \throw Invalid_handle     node handle is invalid
 	 * \throw No_space           new size exceeds free space
 	 * \throw Permission_denied  node modification not allowed
+	 * \throw Unavailable        node vanished
 	 */
 	virtual void truncate(File_handle, file_size_t size) = 0;
 
@@ -383,6 +390,7 @@ struct File_system::Session : public Genode::Session
 	 * \throw Invalid_name       'to' contains invalid characters
 	 * \throw Lookup_failed      'from' not found
 	 * \throw Permission_denied  node modification not allowed
+	 * \throw Unavailable        a directory vanished
 	 */
 	virtual void move(Dir_handle, Name const &from,
 	                  Dir_handle, Name const &to) = 0;
@@ -397,13 +405,13 @@ struct File_system::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Node_already_exists,
 	                                  No_space, Out_of_ram, Out_of_caps,
-	                                  Permission_denied),
+	                                  Permission_denied, Unavailable),
 	                 Dir_handle, Name const &, Mode, bool);
 	GENODE_RPC_THROW(Rpc_symlink, Symlink_handle, symlink,
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed,  Node_already_exists,
 	                                  No_space, Out_of_ram, Out_of_caps,
-	                                  Permission_denied),
+	                                  Permission_denied, Unavailable),
 	                 Dir_handle, Name const &, bool);
 	GENODE_RPC_THROW(Rpc_dir, Dir_handle, dir,
 	                 GENODE_TYPE_LIST(Lookup_failed, Name_too_long,
@@ -417,23 +425,23 @@ struct File_system::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_handle),
 	                 Node_handle);
 	GENODE_RPC_THROW(Rpc_status, Status, status,
-	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 GENODE_TYPE_LIST(Invalid_handle, Unavailable),
 	                 Node_handle);
 	GENODE_RPC_THROW(Rpc_control, void, control,
-	                 GENODE_TYPE_LIST(Invalid_handle),
+	                 GENODE_TYPE_LIST(Invalid_handle, Unavailable),
 	                 Node_handle, Control);
 	GENODE_RPC_THROW(Rpc_unlink, void, unlink,
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
 	                                  Lookup_failed, Not_empty,
-	                                  Permission_denied),
+	                                  Permission_denied, Unavailable),
 	                 Dir_handle, Name const &);
 	GENODE_RPC_THROW(Rpc_truncate, void, truncate,
 	                 GENODE_TYPE_LIST(Invalid_handle, No_space,
-	                                  Permission_denied),
+	                                  Permission_denied, Unavailable),
 	                 File_handle, file_size_t);
 	GENODE_RPC_THROW(Rpc_move, void, move,
 	                 GENODE_TYPE_LIST(Invalid_handle, Invalid_name,
-	                                  Lookup_failed, Permission_denied),
+	                                  Lookup_failed, Permission_denied, Unavailable),
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
 
 	GENODE_RPC_INTERFACE(Rpc_tx_cap, Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node,

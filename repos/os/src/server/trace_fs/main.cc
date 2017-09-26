@@ -658,22 +658,36 @@ class Trace_fs::Session_component : public Session_rpc_object
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
-				if (content && (packet.length() <= packet.size()))
-					res_length = open_node.node().read((char *)content, length, packet.position());
+				if (content && (packet.length() <= packet.size())) {
+					Locked_ptr<Node> node { open_node.node() };
+					if (!node.valid())
+						break; 
+					res_length = node->read((char *)content, length, packet.position());
+				}
 				break;
 
 			case Packet_descriptor::WRITE:
-				if (content && (packet.length() <= packet.size()))
-					res_length = open_node.node().write((char const *)content, length, packet.position());
+				if (content && (packet.length() <= packet.size())) {
+					Locked_ptr<Node> node { open_node.node() };
+					if (!node.valid())
+						break; 
+					res_length = node->write((char const *)content, length, packet.position());
+				}
 				break;
 
-			case Packet_descriptor::CONTENT_CHANGED:
+			case Packet_descriptor::CONTENT_CHANGED: {
 				open_node.register_notify(*tx_sink());
+
 				/* notify_listeners may bounce the packet back*/
-				open_node.node().notify_listeners();
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					return; 
+				node->notify_listeners();
+
 				/* otherwise defer acknowledgement of this packet */
 				return;
-
+			}
+			
 			case Packet_descriptor::READ_READY:
 				/* not supported */
 				break;
@@ -824,17 +838,20 @@ class Trace_fs::Session_component : public Session_rpc_object
 
 			auto file_fn = [&] (Open_node &open_node) {
 
-				Node &dir = open_node.node();
+				Locked_ptr<Node> dir { open_node.node() };
+
+				if (!dir.valid())
+					throw Invalid_handle();	
 
 				if (create)
 					throw Permission_denied();
 
-				File *file = dynamic_cast<File*>(dir.lookup(name.string()));
+				File *file = dynamic_cast<File*>(dir->lookup(name.string()));
 				if (!file)
 					throw Invalid_name();
 
 				Open_node *open_file =
-					new (_md_alloc) Open_node(*file, _open_node_registry);
+					new (_md_alloc) Open_node(file->weak_ptr(), _open_node_registry);
 
 				return open_file->id();
 			};
@@ -871,7 +888,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 				throw Invalid_name();
 
 			Open_node *open_dir =
-				new (_md_alloc) Open_node(*dir, _open_node_registry);
+				new (_md_alloc) Open_node(dir->weak_ptr(), _open_node_registry);
 
 			return Dir_handle { open_dir->id().value };
 		}
@@ -885,7 +902,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 			Node *node = _root_dir.lookup(path_str + 1);
 
 			Open_node *open_node =
-				new (_md_alloc) Open_node(*node, _open_node_registry);
+				new (_md_alloc) Open_node(node->weak_ptr(), _open_node_registry);
 
 			return open_node->id();
 		}
@@ -894,26 +911,29 @@ class Trace_fs::Session_component : public Session_rpc_object
 		{
 			auto close_fn = [&] (Open_node &open_node) {
 
-				Node &node = open_node.node();
+				Locked_ptr<Node> node { open_node.node() };
+
+				if (!node.valid())
+					throw Invalid_handle();
 
 				/**
 			 	 * Acknowledge the change of the content of files which may be
 			 	 * modified by the user of the file system.
 			 	 */
-				Changeable_content *changeable = dynamic_cast<Changeable_content*>(&node);
+				Changeable_content *changeable = dynamic_cast<Changeable_content*>(&*node);
 				if (changeable) {
 					if (changeable->changed()) {
 						changeable->acknowledge_change();
 
 						/* let the trace fs perform the provoked actions */
-						_trace_fs->handle_changed_node(&node);
+						_trace_fs->handle_changed_node(&*node);
 					}
 				}
 
 				/*
 				 * Notify listeners about the changed file.
 				 */
-				node.notify_listeners();
+				node->notify_listeners();
 
 				/*
 				 * De-allocate handle
@@ -931,7 +951,10 @@ class Trace_fs::Session_component : public Session_rpc_object
 		Status status(Node_handle node_handle)
 		{
 			auto status_fn = [&] (Open_node &open_node) {
-				return open_node.node().status();
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					throw Invalid_handle();
+				return node->status();
 			};
 
 			try {
@@ -947,7 +970,10 @@ class Trace_fs::Session_component : public Session_rpc_object
 		void truncate(File_handle handle, file_size_t size)
 		{
 			auto truncate_fn = [&] (Open_node &open_node) {
-				open_node.node().truncate(size);
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					throw Invalid_handle();
+				node->truncate(size);
 			};
 
 			try {

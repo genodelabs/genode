@@ -26,7 +26,8 @@ namespace Trace_fs {
 	class Node;
 }
 
-class Trace_fs::Node : public Node_base, public List<Node>::Element
+class Trace_fs::Node : public Node_base, public Weak_object<Node>,
+                       public List<Node>::Element
 {
 	public:
 
@@ -51,6 +52,8 @@ class Trace_fs::Node : public Node_base, public List<Node>::Element
 		Node()
 		: _inode(_unique_inode())
 		{ _name[0] = 0; }
+
+		virtual ~Node() { lock_for_destruction(); }
 
 		unsigned long inode() const { return _inode; }
 		char   const *name()  const { return _name; }
