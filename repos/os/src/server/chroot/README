@@ -1,0 +1,33 @@
+This component intercepts File_system requests and changes
+the root directory of the request using the session label.
+
+In this example if cli_monitor had a child named "X", every
+file system session from "X" would be rooted to the directory
+"/cli_monitor/X" at "fs_server".
+
+! <start name="fs_server">
+!   <provides> <service name="File_system"/> </provides>
+!   ...
+! </start>
+!
+! <start name="chroot">
+!   <provides> <service name="File_system"/> </provides>
+!   <config>
+!     <policy label_prefix="cli_monitor ->" merge="yes"/>
+!   </config>
+!   <route>
+!     <any-service>
+!       <child name="fs_server"/> <parent/>
+!     </any-service>
+!   </route>
+!   ...
+! </start>
+!
+! <start name="cli_monitior">
+!   <route>
+!     <any-service>
+!       <child name="chroot"/> <parent/>
+!     </any-service>
+!   </route>
+!   ...
+! </start>
