@@ -116,8 +116,8 @@ append_if $use_ahci config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 		<config>
-			<policy label_prefix="test-libc_vfs" device="0" />
-			<policy label_prefix="vfs" device="0" />
+			<policy label_prefix="test-libc_vfs" device="0" writeable="yes"/>
+			<policy label_prefix="vfs" device="0" writeable="yes"/>
 		</config>
 	</start>}
 
