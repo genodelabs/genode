@@ -87,13 +87,20 @@ void *dlopen(const char *name, int mode)
 
 void *dlsym(void *handle, const char *name)
 {
-	if (handle == nullptr || handle == RTLD_NEXT || handle == RTLD_DEFAULT ||
-	    handle == RTLD_SELF) {
+	if (handle == nullptr || handle == RTLD_NEXT || handle == RTLD_SELF) {
 		snprintf(err_str, MAX_ERR, "Unsupported handle %p\n", handle);
 		return nullptr;
 	}
 
 	try {
+		if (handle == RTLD_DEFAULT) {
+			static Libc::Allocator global_alloc;
+
+			return Shared_object(*genode_env, global_alloc, nullptr,
+			                     Shared_object::BIND_LAZY,
+			                     Shared_object::KEEP).lookup(name);
+		}
+
 		return to_object(handle)->lookup(name);
 	} catch (...) {
 		snprintf(err_str, MAX_ERR, "Symbol '%s' not found\n", name);
