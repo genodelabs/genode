@@ -43,6 +43,14 @@ struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
 	Ipv4_address(void *src) : Network_address(src) { }
 
 	bool valid() const { return *this != Ipv4_address(); }
+
+	Genode::uint32_t to_uint32_big_endian() const;
+
+	static Ipv4_address from_uint32_big_endian(Genode::uint32_t ip_raw);
+
+	Genode::uint32_t to_uint32_little_endian() const;
+
+	static Ipv4_address from_uint32_little_endian(Genode::uint32_t ip_raw);
 }
 __attribute__((packed));
 
