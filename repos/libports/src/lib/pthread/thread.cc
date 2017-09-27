@@ -237,9 +237,14 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		if (stacksize > (Thread::stack_virtual_size() - 4 * 4096) ||
-		    stacksize < 4096)
+		if (stacksize < 4096)
 			return EINVAL;
+
+		size_t max_stack = Thread::stack_virtual_size() - 4 * 4096;
+		if (stacksize > max_stack) {
+			warning(__func__, ": requested stack size is ", stacksize, " limiting to ", max_stack);
+			stacksize = max_stack;
+		}
 
 		(*attr)->stack_size = Genode::align_addr(stacksize, 12);
 
