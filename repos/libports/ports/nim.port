@@ -1,0 +1,11 @@
+LICENSE   := MIT
+VERSION   := 0.17.2
+DOWNLOADS := nim.archive
+
+OWNER := ehmry
+REPO  := nim
+REV := c129528e8eff8ec8b84664d0b64e8ca89745df2a
+
+URL(nim) := https://github.com/$(OWNER)/$(REPO)/archive/$(REV).tar.gz
+SHA(nim) := 5350686dfb42a871f6bdbbd634e30b68b39b9d46
+DIR(nim) := .

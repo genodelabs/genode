@@ -55,7 +55,7 @@ HOST_CC  = $(CUSTOM_HOST_CC)
 #
 # Nim toolchain
 #
-NIM ?= nim
+NIM ?= /usr/local/genode-nim/bin/nim
 
 #
 # JSON parsing utility

@@ -110,3 +110,4 @@ suite "garbage collector":
   echo GC_getStatistics()
 
 echo "done"
+quit 0

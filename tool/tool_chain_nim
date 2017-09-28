@@ -1,0 +1,73 @@
+#!/usr/bin/make -f
+#
+# \brief  Tool for preparing the Nim tool-chain for the Genode OS Framework
+# \author Emery Hemingway
+# \date   2017-07-04
+#
+
+help:
+	@$(ECHO)
+	@$(ECHO) "Build Nim compiler for the Genode OS Framework tool chain"
+	@$(ECHO)
+	@$(ECHO) "--- available commands ---"
+	@$(ECHO) "build         - build Nim compiler"
+	@$(ECHO) "clean         - clean everything except contrib sources"
+	@$(ECHO) "install       - copy Nim compiler and standard library to '$(INSTALL_LOCATION)'"
+	@$(ECHO)
+
+.PHONY: build help install
+
+GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
+include $(GENODE_DIR)/tool/ports/mk/common.inc
+
+LOCAL_INSTALL_LOCATION ?= /usr/local
+INSTALL_LOCATION := $(LOCAL_INSTALL_LOCATION)/genode-nim
+
+NIM_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current nim)
+NIM_CSOURCES_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current nim-csources)
+
+BUILD_DIR = build/nim
+
+build: $(BUILD_DIR)/bin/nim $(BUILD_DIR)/koch
+
+$(BUILD_DIR)/bin/nim: $(BUILD_DIR)/koch
+	@$(ECHO) "$(BRIGHT_COL)building Nim compiler...$(DEFAULT_COL)"
+	$(VERBOSE)cd $(BUILD_DIR) && ./koch boot -d:release --verbosity:0 --hint[Processing]:off
+
+$(BUILD_DIR)/koch: $(BUILD_DIR)/koch.nim $(BUILD_DIR)/.bootstrap.tag
+	@$(ECHO) "$(BRIGHT_COL)building Koch...$(DEFAULT_COL)"
+	$(VERBOSE)cd $(BUILD_DIR) && ./bin/nim c koch
+
+$(BUILD_DIR)/.bootstrap.tag: $(BUILD_DIR)/csources
+	@$(ECHO) "$(BRIGHT_COL)building bootstrap compiler...$(DEFAULT_COL)"
+	$(VERBOSE)cd $(BUILD_DIR)/csources && sh build.sh
+	@touch $@
+
+$(BUILD_DIR)/csources: $(NIM_CSOURCES_CONTRIB_DIR) $(BUILD_DIR)/koch.nim
+	@$(ECHO) "$(BRIGHT_COL)copying Nim C sources...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $@
+	$(VERBOSE)cp -a $</* $@
+
+$(BUILD_DIR)/koch.nim: $(NIM_CONTRIB_DIR)
+	@$(ECHO) "$(BRIGHT_COL)copying Nim sources...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(BUILD_DIR)
+	$(VERBOSE)cp -a $</* $(BUILD_DIR)
+
+$(NIM_CONTRIB_DIR):
+	@$(ECHO) "$(BRIGHT_COL)preparing Nim...$(DEFAULT_COL)"
+	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port nim
+
+$(NIM_CSOURCES_CONTRIB_DIR):
+	@$(ECHO) "$(BRIGHT_COL)preparing Nim C sources...$(DEFAULT_COL)"
+	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port nim-csources
+
+copy: build
+	@$(ECHO) "$(BRIGHT_COL)installing Nim to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
+	$(VERBOSE)rm -r $(BUILD_DIR)/csources
+	$(VERBOSE)sudo mkdir -p $(INSTALL_LOCATION)
+	$(VERBOSE)sudo cp -a $(BUILD_DIR)/* $(INSTALL_LOCATION)
+
+install: copy
+
+clean:
+	$(VERBOSE)rm -rf $(BUILD_DIR)

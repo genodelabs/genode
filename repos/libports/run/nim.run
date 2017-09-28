@@ -32,7 +32,7 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Rtc"/> </provides>
 	</start>
-	<start name="test-nim">
+	<start name="test-nim" caps="128">
 		<resource name="RAM" quantum="10M"/>
 		<config>
 			<vfs>
