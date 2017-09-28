@@ -502,42 +502,42 @@ _ZTIs D 8
 _ZTIt D 8
 _ZTIx D 8
 _ZTIy D 8
-_ZTSN10__cxxabiv115__forced_unwindE R
-_ZTSN10__cxxabiv116__enum_type_infoE R
-_ZTSN10__cxxabiv117__class_type_infoE R
-_ZTSN10__cxxabiv117__pbase_type_infoE R
-_ZTSN10__cxxabiv119__foreign_exceptionE R
-_ZTSN10__cxxabiv119__pointer_type_infoE R
-_ZTSN10__cxxabiv120__function_type_infoE R
-_ZTSN10__cxxabiv120__si_class_type_infoE R
-_ZTSN10__cxxabiv121__vmi_class_type_infoE R
-_ZTSN10__cxxabiv123__fundamental_type_infoE R
-_ZTSN5Timer10ConnectionE R
-_ZTSN6Genode11Sliced_heapE R
-_ZTSN6Genode14Rpc_entrypointE R
-_ZTSN6Genode14Signal_contextE R
-_ZTSN6Genode14Timeout_threadE R
-_ZTSN6Genode17Region_map_clientE R
-_ZTSN6Genode17Rm_session_clientE R
-_ZTSN6Genode18Allocator_avl_baseE R
-_ZTSN6Genode23Alarm_timeout_schedulerE R
-_ZTSN6Genode4HeapE R
-_ZTSN6Genode4SlabE R
-_ZTSN6Genode5AlarmE R
-_ZTSN6Genode5Child14Initial_threadE R
-_ZTSN6Genode5ChildE R
-_ZTSN6Genode6OutputE R
-_ZTSN6Genode6ThreadE R
-_ZTSN6Genode7ConsoleE R
-_ZTSN6Genode7Timeout5AlarmE R
-_ZTSSt10bad_typeid R
-_ZTSSt13bad_exception R
-_ZTSSt16bad_array_length R
-_ZTSSt20bad_array_new_length R
-_ZTSSt8bad_cast R
-_ZTSSt9bad_alloc R
-_ZTSSt9exception R
-_ZTSSt9type_info R
+_ZTSN10__cxxabiv115__forced_unwindE R 32
+_ZTSN10__cxxabiv116__enum_type_infoE R 33
+_ZTSN10__cxxabiv117__class_type_infoE R 34
+_ZTSN10__cxxabiv117__pbase_type_infoE R 34
+_ZTSN10__cxxabiv119__foreign_exceptionE R 36
+_ZTSN10__cxxabiv119__pointer_type_infoE R 36
+_ZTSN10__cxxabiv120__function_type_infoE R 37
+_ZTSN10__cxxabiv120__si_class_type_infoE R 37
+_ZTSN10__cxxabiv121__vmi_class_type_infoE R 38
+_ZTSN10__cxxabiv123__fundamental_type_infoE R 40
+_ZTSN5Timer10ConnectionE R 232
+_ZTSN6Genode11Sliced_heapE R 23
+_ZTSN6Genode14Rpc_entrypointE R 26
+_ZTSN6Genode14Signal_contextE R 26
+_ZTSN6Genode14Timeout_threadE R 26
+_ZTSN6Genode17Region_map_clientE R 29
+_ZTSN6Genode17Rm_session_clientE R 29
+_ZTSN6Genode18Allocator_avl_baseE R 30
+_ZTSN6Genode23Alarm_timeout_schedulerE R 35
+_ZTSN6Genode4HeapE R 15
+_ZTSN6Genode4SlabE R 15
+_ZTSN6Genode5AlarmE R 16
+_ZTSN6Genode5Child14Initial_threadE R 32
+_ZTSN6Genode5ChildE R 16
+_ZTSN6Genode6OutputE R 17
+_ZTSN6Genode6ThreadE R 17
+_ZTSN6Genode7ConsoleE R 18
+_ZTSN6Genode7Timeout5AlarmE R 24
+_ZTSSt10bad_typeid R 15
+_ZTSSt13bad_exception R 18
+_ZTSSt16bad_array_length R 21
+_ZTSSt20bad_array_new_length R 25
+_ZTSSt8bad_cast R 12
+_ZTSSt9bad_alloc R 13
+_ZTSSt9exception R 13
+_ZTSSt9type_info R 13
 _ZTVN10__cxxabiv115__forced_unwindE D 1
 _ZTVN10__cxxabiv115__forced_unwindE D 20
 _ZTVN10__cxxabiv116__enum_type_infoE D 2

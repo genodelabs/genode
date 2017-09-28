@@ -1,21 +1,21 @@
-_ItL_aT R
-_ItL_atanhi R
-_ItL_atanlo R
-_ItL_pS0 R
-_ItL_pS1 R
-_ItL_pS2 R
-_ItL_pS3 R
-_ItL_pS4 R
-_ItL_pS5 R
-_ItL_pS6 R
-_ItL_pi_lo R
-_ItL_qS1 R
-_ItL_qS2 R
-_ItL_qS3 R
-_ItL_qS4 R
-_ItL_qS5 R
+_ItL_aT R 208
+_ItL_atanhi R 64
+_ItL_atanlo R 64
+_ItL_pS0 R 16
+_ItL_pS1 R 16
+_ItL_pS2 R 16
+_ItL_pS3 R 16
+_ItL_pS4 R 16
+_ItL_pS5 R 16
+_ItL_pS6 R 16
+_ItL_pi_lo R 16
+_ItL_qS1 R 16
+_ItL_qS2 R 16
+_ItL_qS3 R 16
+_ItL_qS4 R 16
+_ItL_qS5 R 16
 __exp__D T
-__fe_dfl_env R
+__fe_dfl_env R 32
 __fedisableexcept T
 __feenableexcept T
 __has_sse D 4

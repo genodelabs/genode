@@ -150,7 +150,7 @@ _nc_tic_expand T
 _nc_tic_written T
 _nc_timed_wait T
 _nc_tinfo_cmdch T
-_nc_tinfo_fkeys R
+_nc_tinfo_fkeys R 2416
 _nc_tparm_analyze T
 _nc_tparm_err B 4
 _nc_tracing B 4

@@ -4,14 +4,11 @@ _Z4nouxv T
 _Z5sysiov T
 _ZN4Libc10vfs_configEv T
 _ZN4Libc6configEv T
-__bss_start R
-__eh_frame_start__ R
 __exidx_end D 0
 __exidx_start D 0
 __l4sys_invoke_indirect D 0
 _ctors_end D 0
 _ctors_start D 0
-_edata R
 _end B 0
 _init T
 _parent_cap D 0

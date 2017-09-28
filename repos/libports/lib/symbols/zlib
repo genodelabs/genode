@@ -21,7 +21,7 @@ deflateResetKeep T
 deflateSetDictionary T
 deflateSetHeader T
 deflateTune T
-deflate_copyright R
+deflate_copyright R 68
 get_crc_table T
 gz_error T
 gzbuffer T
@@ -73,7 +73,7 @@ inflateSetDictionary T
 inflateSync T
 inflateSyncPoint T
 inflateUndermine T
-inflate_copyright R
+inflate_copyright R 47
 inflate_fast T
 inflate_table T
 uncompress T
