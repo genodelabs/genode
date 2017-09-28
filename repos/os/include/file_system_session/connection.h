@@ -117,7 +117,7 @@ struct File_system::Connection : File_system::Connection_base
 	template <typename FUNC>
 	auto _retry(FUNC func) -> decltype(func())
 	{
-		enum { UPGRADE_ATTEMPTS = 2 };
+		enum { UPGRADE_ATTEMPTS = ~0U };
 		return Genode::retry<Out_of_ram>(
 			[&] () {
 				return Genode::retry<Out_of_caps>(
