@@ -421,11 +421,9 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				throw Permission_denied();
 
 			char const *path_str = path.string();
-			/* '/' is bound to '0' */
-			if (!strcmp(path_str, "/")) {
-				if (create) throw Node_already_exists();
-				return Dir_handle(0);
-			}
+
+			if (!strcmp(path_str, "/") && create)
+				throw Node_already_exists();
 
 			_assert_valid_path(path_str);
 			Vfs_server::Path fullpath(_root->path());
@@ -477,9 +475,6 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		Node_handle node(File_system::Path const &path) override
 		{
 			char const *path_str = path.string();
-			/* '/' is bound to '0' */
-			if (!strcmp(path_str, "/"))
-				return Node_handle { 0 };
 
 			_assert_valid_path(path_str);
 
@@ -501,9 +496,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		void close(Node_handle handle) override
 		{
 			try { _apply(handle, [&] (Node &node) {
-				/* root directory should not be freed */
-				if (!(node.id() == _root->id()))
-					_close(node);
+				_close(node);
 			}); } catch (File_system::Invalid_handle) { }
 		}
 
