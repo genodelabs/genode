@@ -26,3 +26,7 @@ Manual modifications
 :'src/lib/libc/resolv/res_send.c':
 
   Disable usage of kqueue and fix building libresolv when kqueue is disabled.
+
+:'src/lib/libc/include/unistd.h':
+
+  Remove definitions for remote network commands over unencrypted streams.
