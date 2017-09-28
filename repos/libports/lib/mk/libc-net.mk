@@ -23,8 +23,8 @@ SRC_C += base64.c
 
 include $(REP_DIR)/lib/mk/libc-common.inc
 
-INC_DIR += $(REP_DIR)/include/libc
-INC_DIR += $(REP_DIR)/include/libc/sys
+INC_DIR += $(LIBC_REP_DIR)/include/libc
+INC_DIR += $(LIBC_REP_DIR)/include/libc/sys
 INC_DIR += $(LIBC_PORT_DIR)/include/libc/sys
 
 # needed for name6.c, contains res_private.h
