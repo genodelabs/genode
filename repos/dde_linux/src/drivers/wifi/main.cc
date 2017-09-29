@@ -206,7 +206,10 @@ struct Wlan_configration
 			_activate_configuration();
 	}
 
-	void _handle_update() { _update_configuration(); }
+	void _handle_update()
+	{
+		Libc::with_libc([&] () { _update_configuration(); });
+	}
 
 	Wlan_configration(Genode::Env &env)
 	:
