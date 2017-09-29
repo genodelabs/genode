@@ -847,8 +847,10 @@ void Interface::_handle_eth(void              *const  eth_base,
 		error("invalid ethernet frame"); }
 
 	catch (Interface::Bad_network_protocol) {
-		error("unknown network layer protocol"); }
-
+		if (_config().verbose()) {
+			log("unknown network layer protocol");
+		}
+	}
 	catch (Ipv4_packet::No_ip_packet) {
 		error("invalid IP packet"); }
 
