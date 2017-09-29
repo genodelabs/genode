@@ -72,6 +72,7 @@ void Alarm_timeout_scheduler::handle_timeout(Duration)
 
 	_alarm_scheduler.handle(curr_time_us);
 
+	/* sleep time is either until the next deadline or the maximum timout */
 	unsigned long sleep_time_us;
 	Alarm::Time deadline_us;
 	if (_alarm_scheduler.next_deadline(&deadline_us)) {
@@ -89,9 +90,10 @@ void Alarm_timeout_scheduler::handle_timeout(Duration)
 }
 
 
-Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source &time_source)
+Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source  &time_source,
+                                                 Microseconds  min_handle_period)
 :
-	_time_source(time_source)
+	_time_source(time_source), _alarm_scheduler(min_handle_period.value)
 { }
 
 

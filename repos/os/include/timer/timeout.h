@@ -224,7 +224,8 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 
 	public:
 
-		Alarm_timeout_scheduler(Time_source &time_source);
+		Alarm_timeout_scheduler(Time_source  &time_source,
+		                        Microseconds  min_handle_period = Microseconds(1));
 
 
 		/***********************

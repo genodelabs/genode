@@ -29,6 +29,8 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 {
 	private:
 
+		enum { MIN_TIMEOUT_US = 1000 };
+
 		Time_source                     _time_source;
 		Genode::Alarm_timeout_scheduler _timeout_scheduler;
 
@@ -55,7 +57,8 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 		Root_component(Genode::Env &env, Genode::Allocator &md_alloc)
 		:
 			Genode::Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
-			_time_source(env), _timeout_scheduler(_time_source)
+			_time_source(env),
+			_timeout_scheduler(_time_source, Microseconds(MIN_TIMEOUT_US))
 		{
 			_timeout_scheduler._enable();
 		}
