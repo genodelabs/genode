@@ -198,7 +198,7 @@ void Alarm_scheduler::_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time
 	if (alarm._active)
 		_unsynchronized_dequeue(&alarm);
 
-	alarm._assign(period, deadline, _now > deadline, this);
+	alarm._assign(period, deadline, _now > deadline ? !_now_period : _now_period, this);
 
 	_unsynchronized_enqueue(&alarm);
 }
