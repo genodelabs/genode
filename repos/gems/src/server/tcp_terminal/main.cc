@@ -441,39 +441,46 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 
 		bool avail()
 		{
-			return !read_buffer_empty();
+			bool ret = false;
+			Libc::with_libc([&] () { ret = !read_buffer_empty(); });
+			return ret;
 		}
 
 		Genode::size_t _read(Genode::size_t dst_len)
 		{
-			Genode::size_t num_bytes =
-				read_buffer(_io_buffer.local_addr<char>(),
-				            Genode::min(_io_buffer.size(), dst_len));
+			Genode::size_t num_bytes = 0;
+			Libc::with_libc([&] () {
+				num_bytes = read_buffer(_io_buffer.local_addr<char>(),
+				                        Genode::min(_io_buffer.size(), dst_len));
 
-			/*
-			 * If read buffer was in use, look if more data is buffered in
-			 * the TCP/IP stack.
-			 */
-			if (num_bytes)
-				open_socket_pool()->update_sockets_to_watch();
-
+				/*
+				 * If read buffer was in use, look if more data is buffered in
+				 * the TCP/IP stack.
+				 */
+				if (num_bytes)
+					open_socket_pool()->update_sockets_to_watch();
+			});
 			return num_bytes;
 		}
 
 		Genode::size_t _write(Genode::size_t num_bytes)
 		{
-			/* sanitize argument */
-			num_bytes = Genode::min(num_bytes, _io_buffer.size());
+			ssize_t written_bytes = 0;
 
-			/* write data to socket, assuming that it won't block */
-			ssize_t written_bytes = ::write(sd(),
-			                                _io_buffer.local_addr<char>(),
-			                                num_bytes);
+			Libc::with_libc([&] () {
+				/* sanitize argument */
+				num_bytes = Genode::min(num_bytes, _io_buffer.size());
 
-			if (written_bytes < 0) {
-				Genode::error("write error, dropping data");
-				return 0;
-			}
+				/* write data to socket, assuming that it won't block */
+				written_bytes = ::write(sd(),
+				                        _io_buffer.local_addr<char>(),
+				                        num_bytes);
+
+				if (written_bytes < 0) {
+					Genode::error("write error, dropping data");
+					written_bytes = 0;
+				}
+			});
 
 			return written_bytes;
 		}
@@ -522,8 +529,12 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 				unsigned tcp_port = 0;
 				policy.attribute("port").value(&tcp_port);
-				return new (md_alloc())
-				       Session_component(_env, io_buffer_size, tcp_port);
+				Session_component *session = nullptr;
+				Libc::with_libc([&] () {
+					session = new (md_alloc())
+						Session_component(_env, io_buffer_size, tcp_port);
+				});
+				return session;
 			}
 			catch (Xml_node::Nonexistent_attribute) {
 				error("Missing \"port\" attribute in policy definition");
@@ -566,13 +577,13 @@ struct Main
 	Main(Genode::Env &env) : _env(env)
 	{
 		Genode::log("--- TCP terminal started ---");
-
-		/* start thread blocking in select */
-		open_socket_pool(&_env);
+		Libc::with_libc([&] () {
+			/* start thread blocking in select */
+			open_socket_pool(&_env);
+		});
 
 		/* announce service at our parent */
 		_env.parent().announce(env.ep().manage(_root));
-
 	}
 };
 
