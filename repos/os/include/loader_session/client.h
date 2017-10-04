@@ -17,7 +17,7 @@
 #include <loader_session/loader_session.h>
 #include <loader_session/capability.h>
 #include <base/rpc_client.h>
-#include <os/alarm.h>
+
 
 namespace Loader { struct Session_client; }
 
