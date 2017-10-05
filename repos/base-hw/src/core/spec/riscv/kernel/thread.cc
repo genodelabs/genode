@@ -21,24 +21,26 @@ void Kernel::Thread::_init() { }
 
 void Thread::exception(unsigned const cpu)
 {
+	using Context = Genode::Cpu::Context;
+
 	if (regs->is_irq())
 		return;
 
 	switch(regs->cpu_exception) {
-	case Cpu::Context::ECALL_FROM_USER:
-	case Cpu::Context::ECALL_FROM_SUPERVISOR:
+	case Context::ECALL_FROM_USER:
+	case Context::ECALL_FROM_SUPERVISOR:
 		_call();
 		regs->ip += 4; /* set to next instruction */
 		break;
-	case Cpu::Context::INSTRUCTION_PAGE_FAULT:
-	case Cpu::Context::STORE_PAGE_FAULT:
-	case Cpu::Context::LOAD_PAGE_FAULT:
+	case Context::INSTRUCTION_PAGE_FAULT:
+	case Context::STORE_PAGE_FAULT:
+	case Context::LOAD_PAGE_FAULT:
 		_mmu_exception();
 		break;
 	default:
 		Genode::error(*this, ": unhandled exception ", regs->cpu_exception,
 		              " at ip=", (void*)regs->ip,
-		              " addr=", Genode::Hex(Cpu::Sbadaddr::read()));
+		              " addr=", Genode::Hex(Genode::Cpu::Sbadaddr::read()));
 		_die();
 	}
 }
@@ -48,7 +50,7 @@ void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
 	_fault_pd   = (addr_t)_pd->platform_pd();
-	_fault_addr = Cpu::Sbadaddr::read();
+	_fault_addr = Genode::Cpu::Sbadaddr::read();
 
 	if (_pager) _pager->submit(1);
 }
@@ -56,13 +58,13 @@ void Thread::_mmu_exception()
 
 void Thread::_call_update_pd()
 {
-	Cpu::sfence();
+	Genode::Cpu::sfence();
 }
 
 
 void Thread::_call_update_data_region()
 {
-	Cpu::sfence();
+	Genode::Cpu::sfence();
 }
 
 

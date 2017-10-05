@@ -12,6 +12,7 @@
  */
 /* core includes */
 #include <kernel/pd.h>
+#include <kernel/cpu.h>
 #include <kernel/thread.h>
 
 void Kernel::Thread::_call_update_pd()

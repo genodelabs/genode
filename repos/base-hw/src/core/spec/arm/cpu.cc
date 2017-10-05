@@ -22,4 +22,5 @@ void Genode::Arm_cpu::User_context::init(bool privileged)
 	Psr::F::set(v, 1);
 	Psr::A::set(v, 1);
 	regs->cpsr = v;
+	regs->cpu_exception = Genode::Arm_cpu::Context::RESET;
 }

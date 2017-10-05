@@ -24,6 +24,7 @@
 
 /* core includes */
 #include <hw/assert.h>
+#include <kernel/cpu.h>
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>

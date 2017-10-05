@@ -163,6 +163,7 @@ class Genode::Cpu : public Arm_v7_cpu
 				Psr::F::set(v, 1);
 				Psr::A::set(v, 1);
 				regs->cpsr = v;
+				regs->cpu_exception = Cpu::Context::RESET;
 			}
 
 			/**
@@ -178,18 +179,6 @@ class Genode::Cpu : public Arm_v7_cpu
 			Kernel::Call_arg user_arg_2() const { return regs->r2; }
 			Kernel::Call_arg user_arg_3() const { return regs->r3; }
 			Kernel::Call_arg user_arg_4() const { return regs->r4; }
-
-			/**
-			 * Initialize thread context
-			 *
-			 * \param table  physical base of appropriate translation table
-			 * \param pd_id  kernel name of appropriate protection domain
-			 */
-			void init_thread(addr_t const table, unsigned const pd_id)
-			{
-				regs->protection_domain(pd_id);
-				regs->translation_table(table);
-			}
 
 			/**
 			 * Return if the context is in a page fault due to translation miss

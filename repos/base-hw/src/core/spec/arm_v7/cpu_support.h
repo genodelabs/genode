@@ -23,11 +23,6 @@ namespace Genode { struct Arm_v7_cpu; }
 struct Genode::Arm_v7_cpu : Arm_cpu
 {
 	/**
-	 * Wait for the next interrupt as cheap as possible
-	 */
-	static void wait_for_interrupt() { asm volatile ("wfi"); }
-
-	/**
 	 * Write back dirty lines of inner data cache and invalidate all
 	 */
 	static void clean_invalidate_inner_data_cache();

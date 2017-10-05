@@ -129,11 +129,6 @@ class Genode::Cpu
 		Fpu & fpu() { return _fpu; }
 
 		/**
-		 * Wait for the next interrupt as cheap as possible
-		 */
-		static void wait_for_interrupt() { asm volatile ("pause"); }
-
-		/**
 		 * Return wether to retry an undefined user instruction after this call
 		 */
 		bool retry_undefined_instr(Context&) { return false; }

@@ -41,7 +41,7 @@ void Kernel::Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
 	_fault_pd     = (addr_t)_pd->platform_pd();
-	_fault_addr   = Cpu::Cr2::read();
+	_fault_addr   = Genode::Cpu::Cr2::read();
 	_fault_writes = (regs->errcode & ERR_P) && (regs->errcode & ERR_W);
 	_fault_exec   = (regs->errcode & ERR_P) && (regs->errcode & ERR_I);
 

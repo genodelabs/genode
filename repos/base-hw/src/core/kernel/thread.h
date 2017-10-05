@@ -17,7 +17,7 @@
 /* core includes */
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
-#include <kernel/cpu.h>
+#include <kernel/cpu_context.h>
 #include <kernel/object.h>
 #include <base/signal.h>
 
@@ -36,8 +36,6 @@ class Kernel::Thread
 	public Ipc_node, public Signal_context_killer, public Signal_handler,
 	private Timeout
 {
-	friend class Core_thread;
-
 	private:
 
 		enum { START_VERBOSE = 0 };
@@ -85,10 +83,14 @@ class Kernel::Thread
 		int _route_event(unsigned         const event_id,
 		                 Signal_context * const signal_context_id);
 
+	protected:
+
 		/**
 		 * Switch from an inactive state to the active state
 		 */
 		void _become_active();
+
+	private:
 
 		/**
 		 * Switch from the active state to the inactive state 's'
@@ -241,7 +243,7 @@ class Kernel::Thread
 		 * \param label  debugging label
 		 */
 		Thread(char const * const label)
-		: Thread(Cpu_priority::MAX, 0, label, true) { }
+		: Thread(Cpu_priority::MIN, 0, label, true) { }
 
 		/**
 		 * Syscall to create a thread

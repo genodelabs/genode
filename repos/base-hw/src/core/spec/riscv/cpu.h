@@ -80,10 +80,14 @@ class Genode::Cpu : public Hw::Riscv_cpu
 		{
 			Align_at<Context, 8> regs;
 
-			/**
-			 * Constructor
-			 */
-			User_context();
+			User_context()
+			{
+				/*
+				 * initialize cpu_exception with something that gets ignored in
+				 * Thread::exception
+				 */
+				regs->cpu_exception = IRQ_FLAG;
+			}
 
 			/**
 			 * Support for kernel calls
@@ -98,21 +102,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			Kernel::Call_arg user_arg_2() const { return regs->a2; }
 			Kernel::Call_arg user_arg_3() const { return regs->a3; }
 			Kernel::Call_arg user_arg_4() const { return regs->a4; }
-
-			/**
-			 * Initialize thread context
-			 *
-			 * \param table  physical base of appropriate translation table
-			 * \param pd_id  kernel name of appropriate protection domain
-			 */
-			void init_thread(addr_t const table, unsigned const pd_id)
-			{
-				regs->protection_domain(pd_id);
-				regs->translation_table(table);
-			}
 		};
-
-		static void wait_for_interrupt() { asm volatile ("wfi"); };
 
 		/**
 		 * From the manual

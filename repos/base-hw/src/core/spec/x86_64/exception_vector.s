@@ -167,3 +167,15 @@
 	.space 64
 
 	_define_gdt TSS
+
+
+.section .text
+
+	/*******************************
+	 ** idle loop for idle thread **
+	 *******************************/
+
+	.global idle_thread_main
+	idle_thread_main:
+	pause
+	jmp idle_thread_main

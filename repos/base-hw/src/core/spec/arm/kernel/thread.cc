@@ -12,16 +12,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <kernel/thread.h>
-#include <kernel/pd.h>
+#include <kernel/cpu.h>
 #include <kernel/kernel.h>
+#include <kernel/pd.h>
+#include <kernel/thread.h>
 
 using namespace Kernel;
 
 void Kernel::Thread::_init()
 {
 	init(_core);
-	regs->cpu_exception = Cpu::Context::RESET;
 }
 
 

@@ -14,6 +14,7 @@
 
 /* core includes */
 #include <kernel/pd.h>
+#include <kernel/cpu.h>
 #include <kernel/kernel.h>
 #include <platform_pd.h>
 #include <pic.h>

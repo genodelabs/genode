@@ -17,6 +17,3 @@
 
 void Genode::Arm_cpu::clean_invalidate_data_cache() {
 	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : ); }
-
-
-void Genode::Arm_cpu::wait_for_interrupt() { /* FIXME */ }

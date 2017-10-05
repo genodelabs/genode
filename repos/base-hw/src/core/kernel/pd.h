@@ -16,7 +16,8 @@
 #define _CORE__KERNEL__PD_H_
 
 /* core includes */
-#include <kernel/cpu.h>
+#include <cpu.h>
+#include <kernel/core_interface.h>
 #include <kernel/object.h>
 #include <translation_table.h>
 
@@ -33,7 +34,7 @@ namespace Kernel
 }
 
 
-class Kernel::Pd : public Cpu::Pd,
+class Kernel::Pd : public Genode::Cpu::Pd,
                    public Kernel::Object
 {
 	public:
@@ -65,7 +66,7 @@ class Kernel::Pd : public Cpu::Pd,
 		/**
 		 * Let the CPU context 'c' join the PD
 		 */
-		void admit(Cpu::Context & c);
+		void admit(Genode::Cpu::Context & c);
 
 
 		static capid_t syscall_create(void * const dst,

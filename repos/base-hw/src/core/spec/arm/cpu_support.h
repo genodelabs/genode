@@ -124,18 +124,6 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		Kernel::Call_arg user_arg_4() const { return regs->r4; }
 
 		/**
-		 * Initialize thread context
-		 *
-		 * \param table  physical base of appropriate translation table
-		 * \param pd_id  kernel name of appropriate protection domain
-		 */
-		void init_thread(addr_t const table, unsigned const pd_id)
-		{
-			regs->protection_domain(pd_id);
-			regs->translation_table(table);
-		}
-
-		/**
 		 * Return if the context is in a page fault due to translation miss
 		 *
 		 * \param va  holds the virtual fault-address if call returns 1
@@ -244,8 +232,6 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		base &= line_align_mask;
 		for (; base < top; base += line_size) { Icimvau::write(base); }
 	}
-
-	static void wait_for_interrupt();
 
 
 	/*************

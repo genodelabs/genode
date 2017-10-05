@@ -12,6 +12,7 @@
  */
 
 /* core includes */
+#include <kernel/cpu.h>
 #include <kernel/lock.h>
 #include <kernel/pd.h>
 #include <pic.h>
@@ -29,7 +30,7 @@ extern "C" void * _start_secondary_cpus;
 static volatile bool primary_cpu = true;
 
 
-void Kernel::Cpu::init(Kernel::Pic &pic/*, Kernel::Pd & core_pd, Genode::Board & board*/)
+void Kernel::Cpu::init(Kernel::Pic &pic)
 {
 	{
 		Lock::Guard guard(data_lock());

@@ -121,3 +121,15 @@
 
 	_kernel_entry:
 	.long kernel
+
+
+.section .text
+
+	/*******************************
+	 ** idle loop for idle thread **
+	 *******************************/
+
+	.global idle_thread_main
+	idle_thread_main:
+	wfi
+	b idle_thread_main

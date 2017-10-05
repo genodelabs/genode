@@ -11,9 +11,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <hw/assert.h>
+#include <base/internal/unmanaged_singleton.h>
 
+#include <hw/assert.h>
 #include <platform_pd.h>
+#include <kernel/cpu.h>
 #include <kernel/pd.h>
 
 using Asid_allocator = Genode::Bit_allocator<256>;

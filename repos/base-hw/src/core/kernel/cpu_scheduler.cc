@@ -160,6 +160,7 @@ bool Cpu_scheduler::ready_check(Share * const s1)
 void Cpu_scheduler::ready(Share * const s)
 {
 	assert(!s->_ready && s != _idle);
+
 	s->_ready = 1;
 	s->_fill = _fill;
 	_fills.insert_tail(s);

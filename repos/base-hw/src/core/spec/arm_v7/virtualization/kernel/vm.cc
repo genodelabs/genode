@@ -15,6 +15,7 @@
 #include <hw/assert.h>
 
 #include <platform_pd.h>
+#include <kernel/cpu.h>
 #include <kernel/vm.h>
 
 namespace Kernel

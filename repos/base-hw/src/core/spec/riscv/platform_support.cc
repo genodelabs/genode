@@ -21,8 +21,6 @@
 using namespace Genode;
 
 
-Cpu::User_context::User_context() { }
-
 void Platform::_init_io_port_alloc() { }
 
 void Platform::_init_additional() { }

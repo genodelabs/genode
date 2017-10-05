@@ -14,6 +14,7 @@
 /* core includes */
 #include <kernel/perf_counter.h>
 #include <kernel/lock.h>
+#include <kernel/cpu.h>
 #include <kernel/pd.h>
 #include <pic.h>
 #include <platform_pd.h>

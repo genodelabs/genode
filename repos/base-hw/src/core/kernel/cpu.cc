@@ -120,16 +120,22 @@ Cpu_job::~Cpu_job()
 }
 
 
-/**************
- ** Cpu_idle **
- **************/
-
-void Cpu_idle::_main() { while (1) { Genode::Cpu::wait_for_interrupt(); } }
-
-
 /*********
  ** Cpu **
  *********/
+
+extern "C" void idle_thread_main(void);
+
+Cpu::Idle_thread::Idle_thread(Cpu * const cpu)
+: Thread("idle")
+{
+	regs->ip = (addr_t)&idle_thread_main;
+
+	affinity(cpu);
+	Thread::_pd = core_pd();
+	Thread::_pd->admit(*regs);
+}
+
 
 void Cpu::set_timeout(Timeout * const timeout, time_t const duration_us) {
 	_timer.set_timeout(timeout, _timer.us_to_ticks(duration_us)); }
@@ -185,8 +191,8 @@ Cpu_job & Cpu::schedule()
 
 Cpu::Cpu(unsigned const id)
 :
-	_id(id), _timer(_id), _idle(this),
-	_scheduler(&_idle, _quota(), _fill()),
+	_id(id), _timer(_id),
+	_scheduler(&_idle, _quota(), _fill()), _idle(this),
 	_ipi_irq(*this), _timer_irq(_timer.interrupt_id(), *this)
 { }
 

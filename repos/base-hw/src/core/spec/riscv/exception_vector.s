@@ -52,3 +52,15 @@ _kernel_entry:
 	la x30, kernel
 
 	jalr x30
+
+
+.section .text
+
+	/*******************************
+	 ** idle loop for idle thread **
+	 *******************************/
+
+	.global idle_thread_main
+	idle_thread_main:
+	wfi
+	j idle_thread_main
