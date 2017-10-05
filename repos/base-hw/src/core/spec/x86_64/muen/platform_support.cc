@@ -72,6 +72,10 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 		error("error retrieving Muen info for device with SID ", Hex(sid));
 		return false;
 	}
+	if (!dev_info.ir_count) {
+		error("device ", Hex(sid), " has no IRQ assigned");
+		return false;
+	}
 	if (!dev_info.msi_capable) {
 		error("device ", Hex(sid), " not configured for MSI");
 		return false;
