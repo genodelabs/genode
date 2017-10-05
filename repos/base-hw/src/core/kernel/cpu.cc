@@ -218,10 +218,6 @@ Cpu_domain_update::Cpu_domain_update() {
 	for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; } }
 
 
-/*****************
- ** Cpu_context **
- *****************/
-
 /**
  * FIXME THIS IS ONLY USED BY IDLE THREAD
  * Enable kernel-entry assembly to get an exclusive stack for every CPU
@@ -239,15 +235,3 @@ Cpu_domain_update::Cpu_domain_update() {
 Genode::size_t  kernel_stack_size = Cpu::KERNEL_STACK_SIZE;
 Genode::uint8_t kernel_stack[NR_OF_CPUS][Cpu::KERNEL_STACK_SIZE]
 __attribute__((aligned(Genode::get_page_size())));
-
-Cpu_context::Cpu_context(Hw::Page_table * const table)
-{
-	sp = (addr_t)kernel_stack;
-	ip = (addr_t)kernel;
-
-	/*
-	 * platform specific initialization, has to be done after
-	 * setting the registers by now
-	 */
-	_init(Cpu::KERNEL_STACK_SIZE, (addr_t)table);
-}

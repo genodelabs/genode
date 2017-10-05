@@ -26,11 +26,6 @@ namespace Hw { class Page_table; }
 namespace Kernel
 {
 	/**
-	 * CPU context of a kernel stack
-	 */
-	class Cpu_context;
-
-	/**
 	 * Context of a job (thread, VM, idle) that shall be executed by a CPU
 	 */
 	class Cpu_job;
@@ -60,28 +55,6 @@ namespace Kernel
 	 */
 	Cpu_pool * cpu_pool();
 }
-
-class Kernel::Cpu_context : public Genode::Cpu::Context
-{
-	private:
-
-		/**
-		 * Hook for environment specific initializations
-		 *
-		 * \param stack_size  size of kernel stack
-		 * \param table       base of transit translation table
-		 */
-		void _init(size_t const stack_size, addr_t const table);
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param table  mode-transition table
-		 */
-		Cpu_context(Hw::Page_table * const table);
-};
 
 class Kernel::Cpu_domain_update : public Double_list_item
 {

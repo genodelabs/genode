@@ -9,7 +9,6 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/cortex_a8
 
 # add C++ sources
 SRC_CC += spec/cortex_a8/cpu.cc
-SRC_CC += spec/arm/kernel/cpu_context.cc
 SRC_CC += spec/arm/kernel/cpu.cc
 SRC_CC += spec/arm/kernel/thread_update_pd.cc
 SRC_CC += kernel/kernel.cc

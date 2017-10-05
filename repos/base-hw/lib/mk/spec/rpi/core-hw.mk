@@ -9,7 +9,7 @@ INC_DIR += $(REP_DIR)/src/core/spec/rpi
 
 # add C++ sources
 SRC_CC += platform_services.cc
-SRC_CC += spec/arm/cpu_context.cc
+SRC_CC += spec/arm/cpu.cc
 SRC_CC += spec/rpi/timer.cc
 SRC_CC += spec/rpi/pic.cc
 
