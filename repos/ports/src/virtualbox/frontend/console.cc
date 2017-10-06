@@ -31,6 +31,7 @@
 #include "../vmm.h"
 
 static const bool debug = false;
+static bool vm_down = false;
 
 static Genode::Attached_rom_dataspace *clipboard_rom = nullptr;
 static Genode::Reporter               *clipboard_reporter = nullptr;
@@ -135,6 +136,8 @@ void fireStateChangedEvent(IEventSource* aSource,
 	if (a_state != MachineState_PoweredOff)
 		return;
 
+	vm_down = true;
+
 	genode_env().parent().exit(0);
 }
 
@@ -178,6 +181,13 @@ void GenodeConsole::update_video_mode()
 
 void GenodeConsole::handle_input()
 {
+	/* disable input processing if vm is powered down */
+	if (vm_down && (_vbox_mouse || _vbox_keyboard)) {
+		_vbox_mouse    = nullptr;
+		_vbox_keyboard = nullptr;
+		_input.sigh(Genode::Signal_context_capability());
+	}
+
 	static LONG64 mt_events [64];
 	unsigned      mt_number = 0;
 
