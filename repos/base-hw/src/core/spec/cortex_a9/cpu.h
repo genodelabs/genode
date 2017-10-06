@@ -30,43 +30,20 @@ class Genode::Cpu : public Arm_v7_cpu
 
 	public:
 
-		/**
-		 * Coprocessor Access Control Register
-		 */
-		struct Cpacr : Register<32>
+		struct Context : Arm_cpu::Context, Fpu::Context
 		{
-			struct Cp10 : Bitfield<20, 2> { };
-			struct Cp11 : Bitfield<22, 2> { };
-
-			/**
-			 * Read register value
-			 */
-			static access_t read()
-			{
-				access_t v;
-				asm volatile ("mrc p15, 0, %[v], c1, c0, 2" : [v]"=r"(v) ::);
-				return v;
-			}
-
-			/**
-			 * Override register value
-			 *
-			 * \param v  write value
-			 */
-			static void write(access_t const v) {
-				asm volatile ("mcr p15, 0, %[v], c1, c0, 2" :: [v]"r"(v) :); }
+			Context(bool privileged)
+			: Arm_cpu::Context(privileged) {}
 		};
-
-		struct User_context : Arm_cpu::User_context, Fpu::Context { };
 
 		/**
 		 * Next cpu context to switch to
 		 *
 		 * \param context  context to switch to
 		 */
-		void switch_to(User_context & context)
+		void switch_to(Context & context, Mmu_context & mmu_context)
 		{
-			Arm_cpu::switch_to(context);
+			Arm_cpu::switch_to(context, mmu_context);
 			_fpu.switch_to(context);
 		}
 
@@ -75,7 +52,7 @@ class Genode::Cpu : public Arm_v7_cpu
 		 *
 		 * \param state  CPU state of the user
 		 */
-		bool retry_undefined_instr(User_context & context) {
+		bool retry_undefined_instr(Context & context) {
 			return _fpu.fault(context); }
 
 		/**

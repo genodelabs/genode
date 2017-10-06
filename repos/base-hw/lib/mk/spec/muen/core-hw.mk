@@ -18,7 +18,6 @@ SRC_S += spec/x86_64/crt0.s
 SRC_S += spec/x86_64/exception_vector.s
 
 # add C++ sources
-SRC_CC += spec/x86_64/muen/kernel/cpu_exception.cc
 SRC_CC += spec/x86_64/muen/kernel/thread_exception.cc
 SRC_CC += spec/x86_64/muen/platform_support.cc
 SRC_CC += spec/x86_64/muen/kernel/vm.cc
@@ -34,7 +33,6 @@ SRC_CC += spec/x86_64/bios_data_area.cc
 SRC_CC += spec/x86_64/cpu.cc
 SRC_CC += spec/x86_64/fpu.cc
 SRC_CC += spec/x86_64/kernel/cpu.cc
-SRC_CC += spec/x86_64/kernel/pd.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/platform_support_common.cc

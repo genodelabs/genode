@@ -127,6 +127,8 @@ class Genode::Pic : Mmio
 		void mask();
 		void unmask(unsigned const i, unsigned);
 		void mask(unsigned const i);
+
+		static constexpr bool fast_interrupts() { return false; }
 };
 
 namespace Kernel { using Genode::Pic; }

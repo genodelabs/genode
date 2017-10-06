@@ -21,21 +21,16 @@ extern int __gdt_start;
 extern int __gdt_end;
 
 
-void Genode::Cpu::Context::init(addr_t const table, bool core)
+Genode::Cpu::Context::Context(bool core)
 {
-	/* Constants to handle IF, IOPL values */
-	enum {
-		EFLAGS_IF_SET = 1 << 9,
-		EFLAGS_IOPL_3 = 3 << 12,
-	};
-
-	cr3 = Cr3::init(table);
-
-	/* enable interrupts for all threads */
 	eflags = EFLAGS_IF_SET;
-	cs = core ? 0x8 : 0x1b;
-	ss = core ? 0x10 : 0x23;
+	cs     = core ? 0x8 : 0x1b;
+	ss     = core ? 0x10 : 0x23;
 }
+
+
+Genode::Cpu::Mmu_context::Mmu_context(addr_t const table)
+: cr3(Cr3::Pdb::masked(table)) {}
 
 
 void Genode::Cpu::Tss::init()

@@ -142,9 +142,7 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 
 		time_t time() const { return _timer.time(); }
 
-		/***************
-		 ** Accessors **
-		 ***************/
+		addr_t stack_start();
 
 		/**
 		 * Returns the currently active job

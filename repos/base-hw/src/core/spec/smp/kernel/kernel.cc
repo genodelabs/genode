@@ -22,15 +22,14 @@ extern "C" void kernel()
 	using namespace Kernel;
 
 	Cpu_job * new_job;
-	unsigned cpu_id;
+	Cpu     * cpu;
 
 	{
 		Lock::Guard guard(data_lock());
 
-		cpu_id = Cpu::executing_id();
-		Cpu * const cpu  = cpu_pool()->cpu(cpu_id);
+		cpu = cpu_pool()->cpu(Cpu::executing_id());
 		new_job = &cpu->schedule();
 	}
 
-	new_job->proceed(cpu_id);
+	new_job->proceed(*cpu);
 }

@@ -41,6 +41,8 @@ class Genode::Pic : public Hw::Pic
 
 		bool secure(unsigned i) {
 			return !read<Intsec::Nonsecure>(i); }
+
+		static constexpr bool fast_interrupts() { return true; }
 };
 
 namespace Kernel { using Pic = Genode::Pic; }

@@ -16,6 +16,7 @@
 #define _CORE__KERNEL__PD_H_
 
 /* core includes */
+#include <hw/assert.h>
 #include <cpu.h>
 #include <kernel/core_interface.h>
 #include <kernel/object.h>
@@ -34,8 +35,7 @@ namespace Kernel
 }
 
 
-class Kernel::Pd : public Genode::Cpu::Pd,
-                   public Kernel::Object
+class Kernel::Pd : public Kernel::Object
 {
 	public:
 
@@ -52,6 +52,8 @@ class Kernel::Pd : public Genode::Cpu::Pd,
 
 	public:
 
+		Genode::Cpu::Mmu_context        mmu_regs;
+
 		/**
 		 * Constructor
 		 *
@@ -59,14 +61,19 @@ class Kernel::Pd : public Genode::Cpu::Pd,
 		 * \param platform_pd  core object of the PD
 		 */
 		Pd(Hw::Page_table * const table,
-		   Genode::Platform_pd * const platform_pd);
+		   Genode::Platform_pd * const platform_pd)
+		: _table(table), _platform_pd(platform_pd),
+		  mmu_regs((addr_t)table)
+		{
+			capid_t invalid = _capid_alloc.alloc();
+			assert(invalid == cap_id_invalid());
+		}
 
-		~Pd();
-
-		/**
-		 * Let the CPU context 'c' join the PD
-		 */
-		void admit(Genode::Cpu::Context & c);
+		~Pd()
+		{
+			while (Object_identity_reference *oir = _cap_tree.first())
+				oir->~Object_identity_reference();
+		}
 
 
 		static capid_t syscall_create(void * const dst,
@@ -79,6 +86,7 @@ class Kernel::Pd : public Genode::Cpu::Pd,
 
 		static void syscall_destroy(Pd * const pd) {
 			call(call_id_delete_pd(), (Call_arg)pd); }
+
 
 		/***************
 		 ** Accessors **

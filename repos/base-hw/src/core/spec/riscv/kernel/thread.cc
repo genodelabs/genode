@@ -12,14 +12,13 @@
  */
 
 /* core includes */
+#include <kernel/cpu.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>
 
 using namespace Kernel;
 
-void Kernel::Thread::_init() { }
-
-void Thread::exception(unsigned const cpu)
+void Thread::exception(Cpu&)
 {
 	using Context = Genode::Cpu::Context;
 
@@ -71,8 +70,10 @@ void Thread::_call_update_data_region()
 void Thread::_call_update_instr_region() { }
 
 
-void Kernel::Thread::proceed(unsigned const)
+void Kernel::Thread::proceed(Cpu & cpu)
 {
+	cpu.switch_to(_pd->mmu_regs);
+
 	asm volatile("csrw sscratch, %1                                \n"
 	             "mv   x31, %0                                     \n"
 	             "ld   x30, (x31)                                  \n"
@@ -85,3 +86,15 @@ void Kernel::Thread::proceed(unsigned const)
 	             "sret                                             \n"
 	             :: "r" (&*regs), "r" (regs->t6) : "x30", "x31");
 }
+
+
+void Thread::user_arg_0(Kernel::Call_arg const arg) { regs->a0  = arg; }
+void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->a1  = arg; }
+void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->a2  = arg; }
+void Thread::user_arg_3(Kernel::Call_arg const arg) { regs->a3  = arg; }
+void Thread::user_arg_4(Kernel::Call_arg const arg) { regs->a4  = arg; }
+Kernel::Call_arg Thread::user_arg_0() const { return regs->a0; }
+Kernel::Call_arg Thread::user_arg_1() const { return regs->a1; }
+Kernel::Call_arg Thread::user_arg_2() const { return regs->a2; }
+Kernel::Call_arg Thread::user_arg_3() const { return regs->a3; }
+Kernel::Call_arg Thread::user_arg_4() const { return regs->a4; }

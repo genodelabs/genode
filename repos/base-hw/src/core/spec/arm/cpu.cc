@@ -11,16 +11,39 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <util/bit_allocator.h>
+#include <base/internal/unmanaged_singleton.h>
+
+#include <kernel/cpu.h>
 #include <spec/arm/cpu_support.h>
 
-void Genode::Arm_cpu::User_context::init(bool privileged)
+Genode::Arm_cpu::Context::Context(bool privileged)
 {
 	using Psr = Arm_cpu::Psr;
 
 	Psr::access_t v = 0;
 	Psr::M::set(v, privileged ? Psr::M::SYS : Psr::M::USR);
-	Psr::F::set(v, 1);
+	if (Genode::Pic::fast_interrupts()) Psr::I::set(v, 1);
+	else                                Psr::F::set(v, 1);
 	Psr::A::set(v, 1);
-	regs->cpsr = v;
-	regs->cpu_exception = Genode::Arm_cpu::Context::RESET;
+	cpsr = v;
+	cpu_exception = RESET;
+}
+
+
+using Asid_allocator = Genode::Bit_allocator<256>;
+
+static Asid_allocator &alloc() {
+	return *unmanaged_singleton<Asid_allocator>(); }
+
+
+Genode::Arm_cpu::Mmu_context::Mmu_context(addr_t table)
+: cidr((Genode::uint8_t)alloc().alloc()), ttbr0(Ttbr0::init(table)) { }
+
+
+Genode::Arm_cpu::Mmu_context::~Mmu_context()
+{
+	/* flush TLB by ASID */
+	Cpu::Tlbiasid::write(id());
+	alloc().free(id());
 }

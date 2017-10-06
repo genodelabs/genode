@@ -133,7 +133,6 @@ Cpu::Idle_thread::Idle_thread(Cpu * const cpu)
 
 	affinity(cpu);
 	Thread::_pd = core_pd();
-	Thread::_pd->admit(*regs);
 }
 
 
@@ -169,7 +168,7 @@ Cpu_job & Cpu::schedule()
 	/* update scheduler */
 	time_t quota = _timer.update_time();
 	Job & old_job = scheduled_job();
-	old_job.exception(id());
+	old_job.exception(*this);
 	_timer.process_timeouts();
 	_scheduler.update(quota);
 
@@ -181,12 +180,18 @@ Cpu_job & Cpu::schedule()
 
 	_timer.schedule_timeout();
 
-	/* switch to new job */
-	switch_to(new_job);
-
 	/* return new job */
 	return new_job;
 }
+
+
+Genode::size_t  kernel_stack_size = Cpu::KERNEL_STACK_SIZE;
+Genode::uint8_t kernel_stack[NR_OF_CPUS][Cpu::KERNEL_STACK_SIZE]
+__attribute__((aligned(Genode::get_page_size())));
+
+
+addr_t Cpu::stack_start() {
+	return (addr_t)&kernel_stack + KERNEL_STACK_SIZE * (_id+1); }
 
 
 Cpu::Cpu(unsigned const id)
@@ -222,22 +227,3 @@ Cpu_pool::Cpu_pool()
 
 Cpu_domain_update::Cpu_domain_update() {
 	for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; } }
-
-
-/**
- * FIXME THIS IS ONLY USED BY IDLE THREAD
- * Enable kernel-entry assembly to get an exclusive stack for every CPU
- *
- * The stack alignment is determined as follows:
- *
- * 1) There is an architectural minimum alignment for stacks that originates
- *    from the assumptions that some instructions make.
- * 2) Shared cache lines between yet uncached and already cached
- *    CPUs during multiprocessor bring-up must be avoided. Thus, the alignment
- *    must be at least the maximum line size of global caches.
- * 3) The alignment that originates from 1) and 2) is assumed to be always
- *    less or equal to the minimum page size.
- */
-Genode::size_t  kernel_stack_size = Cpu::KERNEL_STACK_SIZE;
-Genode::uint8_t kernel_stack[NR_OF_CPUS][Cpu::KERNEL_STACK_SIZE]
-__attribute__((aligned(Genode::get_page_size())));

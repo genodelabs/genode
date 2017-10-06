@@ -27,7 +27,6 @@ SRC_CC += spec/x86_64/bios_data_area.cc
 SRC_CC += spec/x86_64/cpu.cc
 SRC_CC += spec/x86_64/fpu.cc
 SRC_CC += spec/x86_64/kernel/cpu.cc
-SRC_CC += spec/x86_64/kernel/pd.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/platform_support_common.cc

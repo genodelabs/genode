@@ -201,7 +201,6 @@ void Thread::_call_start_thread()
 
 	/* join protection domain */
 	thread->_pd = (Pd *) user_arg_3();
-	thread->_pd->admit(*thread->regs);
 	thread->Ipc_node::_init((Native_utcb *)user_arg_4(), this);
 	thread->_become_active();
 }
@@ -625,10 +624,7 @@ Thread::Thread(unsigned const priority, unsigned const quota,
 :
 	Cpu_job(priority, quota), _fault_pd(0), _fault_addr(0),
 	_fault_writes(0), _state(AWAITS_START),
-	_signal_receiver(0), _label(label), _core(core)
-{
-	_init();
-}
+	_signal_receiver(0), _label(label), _core(core), regs(core) { }
 
 
 void Thread::print(Genode::Output &out) const
@@ -670,7 +666,6 @@ Core_thread::Core_thread()
 	affinity(cpu_pool()->primary_cpu());
 	_utcb       = utcb;
 	Thread::_pd = core_pd();
-	Thread::_pd->admit(*regs);
 	_become_active();
 }
 

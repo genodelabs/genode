@@ -18,14 +18,16 @@
 #include <base/stdint.h>
 
 namespace Genode {
-	template<typename, size_t> class Align_at;
+	template<typename> class Align_at;
 }
 
 
-template <typename T, Genode::size_t ALIGN>
+template <typename T>
 class Genode::Align_at
 {
 	private:
+
+		static constexpr Genode::size_t ALIGN = alignof(T);
 
 		char _space[sizeof(T) + ALIGN - 1];
 		T &  _obj;

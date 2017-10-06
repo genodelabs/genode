@@ -14,31 +14,20 @@
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/lock.h>
-#include <kernel/pd.h>
 #include <pic.h>
-#include <board.h>
 
 /* base-hw includes */
 #include <kernel/perf_counter.h>
 
 using namespace Kernel;
 
-/* entrypoint for non-boot CPUs */
-extern "C" void * _start_secondary_cpus;
-
-/* indicates boot cpu status */
-static volatile bool primary_cpu = true;
-
-
 void Kernel::Cpu::init(Kernel::Pic &pic)
 {
-	{
-		Lock::Guard guard(data_lock());
+	Lock::Guard guard(data_lock());
 
-		/* enable performance counter */
-		perf_counter()->enable();
+	/* enable performance counter */
+	perf_counter()->enable();
 
-		/* enable timer interrupt */
-		pic.unmask(_timer.interrupt_id(), id());
-	}
+	/* enable timer interrupt */
+	pic.unmask(_timer.interrupt_id(), id());
 }

@@ -18,6 +18,6 @@
 void Kernel::Thread::_call_update_pd()
 {
 	Pd * const pd = (Pd *) user_arg_1();
-	if (Cpu_domain_update::_do_global(pd->asid)) {
+	if (Cpu_domain_update::_do_global(pd->mmu_regs.id())) {
 		_become_inactive(AWAITS_RESTART); }
 }

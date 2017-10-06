@@ -19,7 +19,7 @@
 
 using namespace Kernel;
 
-void Thread::exception(unsigned const cpu)
+void Thread::exception(Cpu & cpu)
 {
 	using Genode::Cpu_state;
 
@@ -28,7 +28,7 @@ void Thread::exception(unsigned const cpu)
 		_mmu_exception();
 		return;
 	case Cpu_state::NO_MATH_COPROC:
-		if (_cpu->fpu().fault(fpu_regs)) { return; }
+		if (_cpu->fpu().fault(*regs)) { return; }
 		Genode::warning(*this, ": FPU error");
 		_die();
 		return;
@@ -42,7 +42,7 @@ void Thread::exception(unsigned const cpu)
 	}
 	if (regs->trapno >= Cpu_state::INTERRUPTS_START &&
 	    regs->trapno <= Cpu_state::INTERRUPTS_END) {
-		_interrupt(cpu);
+		_interrupt(cpu.id());
 		return;
 	}
 	Genode::warning(*this, ": triggered unknown exception ", regs->trapno,

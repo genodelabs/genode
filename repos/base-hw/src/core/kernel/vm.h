@@ -118,8 +118,8 @@ class Kernel::Vm : public Cpu_job,
 		 ** Cpu_job **
 		 *************/
 
-		void exception(unsigned const cpu);
-		void proceed(unsigned const cpu);
+		void exception(Cpu & cpu);
+		void proceed(Cpu &  cpu);
 		Cpu_job * helping_sink() { return this; }
 };
 

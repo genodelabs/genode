@@ -40,69 +40,19 @@ class Genode::Cpu : public Hw::Riscv_cpu
 {
 	public:
 
-		/**
-		 * Extend basic CPU state by members relevant for 'base-hw' only
-		 */
-		struct Context : Cpu_state
+		struct alignas(8) Context : Cpu_state
+		{
+			Context(bool);
+		};
+
+		struct Mmu_context
 		{
 			Sptbr::access_t sptbr;
 
-			/**
-			 * Return base of assigned translation table
-			 */
-			addr_t translation_table() const {
-				return Sptbr::Ppn::get(sptbr) << 12; }
-
-			/**
-			 * Assign translation-table base 'table'
-			 */
-			void translation_table(addr_t const table) {
-				Sptbr::Ppn::set(sptbr, table >> 12); }
-
-			/**
-			 * Assign protection domain
-			 */
-			void protection_domain(Genode::uint8_t const id) {
-				Sptbr::Asid::set(sptbr, id); }
+			Mmu_context(addr_t page_table_base);
+			~Mmu_context();
 		};
 
-		struct Pd
-		{
-			Genode::uint8_t asid; /* address space id */
-
-			Pd(Genode::uint8_t id) : asid(id) {}
-		};
-
-		/**
-		 * A usermode execution state
-		 */
-		struct User_context
-		{
-			Align_at<Context, 8> regs;
-
-			User_context()
-			{
-				/*
-				 * initialize cpu_exception with something that gets ignored in
-				 * Thread::exception
-				 */
-				regs->cpu_exception = IRQ_FLAG;
-			}
-
-			/**
-			 * Support for kernel calls
-			 */
-			void user_arg_0(Kernel::Call_arg const arg) { regs->a0  = arg; }
-			void user_arg_1(Kernel::Call_arg const arg) { regs->a1  = arg; }
-			void user_arg_2(Kernel::Call_arg const arg) { regs->a2  = arg; }
-			void user_arg_3(Kernel::Call_arg const arg) { regs->a3  = arg; }
-			void user_arg_4(Kernel::Call_arg const arg) { regs->a4  = arg; }
-			Kernel::Call_arg user_arg_0() const { return regs->a0; }
-			Kernel::Call_arg user_arg_1() const { return regs->a1; }
-			Kernel::Call_arg user_arg_2() const { return regs->a2; }
-			Kernel::Call_arg user_arg_3() const { return regs->a3; }
-			Kernel::Call_arg user_arg_4() const { return regs->a4; }
-		};
 
 		/**
 		 * From the manual
@@ -123,38 +73,12 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			asm volatile ("sfence.vm\n");
 		}
 
-		/**
-		 * Post processing after a translation was added to a translation table
-		 *
-		 * \param addr  virtual address of the translation
-		 * \param size  size of the translation
-		 */
-		static void translation_added(addr_t const addr, size_t const size);
-
 		static void invalidate_tlb_by_pid(unsigned const pid) { sfence(); }
 
-		/**
-		 * Return kernel name of the executing CPU
-		 */
-		static unsigned executing_id() { return primary_id(); }
+		void switch_to(Mmu_context & context);
 
-		/**
-		 * Return kernel name of the primary CPU
-		 */
-		static unsigned primary_id() { return 0; }
-
-		/*************
-		 ** Dummies **
-		 *************/
-
-		void switch_to(User_context& context)
-		{
-			bool user = Sptbr::Asid::get(context.regs->sptbr);
-			Sstatus::access_t v = Sstatus::read();
-			Sstatus::Spp::set(v, user ? 0 : 1);
-			Sstatus::write(v);
-			if (user) Sptbr::write(context.regs->sptbr);
-		}
+		static unsigned executing_id() { return 0; }
+		static unsigned primary_id()   { return 0; }
 };
 
 #endif /* _CORE__SPEC__RISCV__CPU_H_ */

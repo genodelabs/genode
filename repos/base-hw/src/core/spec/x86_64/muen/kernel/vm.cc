@@ -15,6 +15,7 @@
 
 #include <assertion.h>
 #include <platform_pd.h>
+#include <kernel/cpu.h>
 #include <kernel/vm.h>
 #include <cpu/cpu_state.h>
 #include <pic.h>
@@ -27,35 +28,29 @@ Kernel::Vm::Vm(void * const state, Kernel::Signal_context * const context,
   _table(nullptr)
 {
 	affinity(cpu_pool()->primary_cpu());
-
-	/*
-	 * Initialize VM context as a core/kernel context to prevent
-	 * page-table switching before doing the world switch
-	 */
-	regs->init((addr_t)core_pd()->translation_table(), true);
 }
 
 
 Kernel::Vm::~Vm() { }
 
 
-void Kernel::Vm::exception(unsigned const cpu_id)
+void Kernel::Vm::exception(Cpu & cpu)
 {
 	pause();
-	if (regs->trapno == 200) {
+	if (_state->trapno == 200) {
 		_context->submit(1);
 		return;
 	}
 
-	if (regs->trapno >= Genode::Cpu_state::INTERRUPTS_START &&
-		regs->trapno <= Genode::Cpu_state::INTERRUPTS_END) {
-		pic()->irq_occurred(regs->trapno);
-		_interrupt(cpu_id);
+	if (_state->trapno >= Genode::Cpu_state::INTERRUPTS_START &&
+		_state->trapno <= Genode::Cpu_state::INTERRUPTS_END) {
+		pic()->irq_occurred(_state->trapno);
+		_interrupt(cpu.id());
 		_context->submit(1);
 		return;
 	}
-	Genode::warning("VM: triggered unknown exception ", regs->trapno,
-	                " with error code ", regs->errcode);
+	Genode::warning("VM: triggered unknown exception ", _state->trapno,
+	                " with error code ", _state->errcode);
 
 	ASSERT_NEVER_CALLED;
 }
@@ -63,10 +58,10 @@ void Kernel::Vm::exception(unsigned const cpu_id)
 
 extern void * __tss_client_context_ptr;
 
-void Kernel::Vm::proceed(unsigned const cpu_id)
+void Kernel::Vm::proceed(Cpu &)
 {
 	void * * tss_stack_ptr = (&__tss_client_context_ptr);
-	*tss_stack_ptr = &regs->cr3;
+	*tss_stack_ptr = (void*)((addr_t)_state + sizeof(Genode::Cpu_state));
 
 	asm volatile("sti          \n"
 	             "mov $1, %rax \n"

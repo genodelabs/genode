@@ -15,6 +15,7 @@
 #define _CORE__KERNEL__THREAD_H_
 
 /* core includes */
+#include <cpu.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <kernel/cpu_context.h>
@@ -36,7 +37,7 @@ class Kernel::Thread
 	public Ipc_node, public Signal_context_killer, public Signal_handler,
 	private Timeout
 {
-	private:
+	protected:
 
 		enum { START_VERBOSE = 0 };
 
@@ -64,8 +65,6 @@ class Kernel::Thread
 		bool const         _core = false;
 		bool               _fault_exec = false;
 
-		void _init();
-
 		/**
 		 * Notice that another thread yielded the CPU to this thread
 		 */
@@ -83,14 +82,10 @@ class Kernel::Thread
 		int _route_event(unsigned         const event_id,
 		                 Signal_context * const signal_context_id);
 
-	protected:
-
 		/**
 		 * Switch from an inactive state to the active state
 		 */
 		void _become_active();
-
-	private:
 
 		/**
 		 * Switch from the active state to the inactive state 's'
@@ -226,6 +221,8 @@ class Kernel::Thread
 
 	public:
 
+		Genode::Align_at<Genode::Cpu::Context> regs;
+
 		/**
 		 * Constructor
 		 *
@@ -244,6 +241,23 @@ class Kernel::Thread
 		 */
 		Thread(char const * const label)
 		: Thread(Cpu_priority::MIN, 0, label, true) { }
+
+
+		/**************************
+		 ** Support for syscalls **
+		 **************************/
+
+		void user_arg_0(Kernel::Call_arg const arg);
+		void user_arg_1(Kernel::Call_arg const arg);
+		void user_arg_2(Kernel::Call_arg const arg);
+		void user_arg_3(Kernel::Call_arg const arg);
+		void user_arg_4(Kernel::Call_arg const arg);
+
+		Kernel::Call_arg user_arg_0() const;
+		Kernel::Call_arg user_arg_1() const;
+		Kernel::Call_arg user_arg_2() const;
+		Kernel::Call_arg user_arg_3() const;
+		Kernel::Call_arg user_arg_4() const;
 
 		/**
 		 * Syscall to create a thread
@@ -292,8 +306,8 @@ class Kernel::Thread
 		 ** Cpu_job **
 		 *************/
 
-		void exception(unsigned const cpu);
-		void proceed(unsigned const cpu);
+		void exception(Cpu & cpu);
+		void proceed(Cpu & cpu);
 		Cpu_job * helping_sink();
 
 
@@ -319,15 +333,11 @@ class Kernel::Thread
 /**
  * The first core thread in the system bootstrapped by the Kernel
  */
-class Kernel::Core_thread : public Core_object<Kernel::Thread>
+struct Kernel::Core_thread : Core_object<Kernel::Thread>
 {
-	private:
+	Core_thread();
 
-		Core_thread();
-
-	public:
-
-		static Thread & singleton();
+	static Thread & singleton();
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */

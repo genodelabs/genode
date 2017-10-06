@@ -13,6 +13,7 @@
  */
 
 /* core includes */
+#include <kernel/cpu.h>
 #include <kernel/vm.h>
 
 using namespace Kernel;
@@ -30,12 +31,12 @@ Kernel::Vm::Vm(void                   * const state,
 Kernel::Vm::~Vm() {}
 
 
-void Vm::exception(unsigned const cpu)
+void Vm::exception(Cpu & cpu)
 {
 	switch(_state->cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST:
 	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_interrupt(cpu);
+		_interrupt(cpu.id());
 		return;
 	case Genode::Cpu_state::DATA_ABORT:
 		_state->dfar = Cpu::Dfar::read();
@@ -53,7 +54,7 @@ extern "C" void monitor_mode_enter_normal_world(Cpu::Context*, void*);
 extern void * kernel_stack;
 
 
-void Vm::proceed(unsigned const cpu)
+void Vm::proceed(Cpu & cpu)
 {
 	unsigned const irq = _state->irq_injection;
 	if (irq) {
@@ -65,6 +66,6 @@ void Vm::proceed(unsigned const cpu)
 		}
 	}
 
-	void * stack = (void*)((addr_t)&kernel_stack + Cpu::KERNEL_STACK_SIZE * (cpu+1));
-	monitor_mode_enter_normal_world(reinterpret_cast<Cpu::Context*>(_state), stack);
+	monitor_mode_enter_normal_world(reinterpret_cast<Cpu::Context*>(_state),
+	                                (void*) cpu.stack_start());
 }

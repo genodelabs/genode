@@ -167,7 +167,9 @@ struct Hw::Arm_cpu
 	};
 
 	/* Data Fault Status Register */
-	ARM_CP15_REGISTER_32BIT(Dfsr, c5, c0, 0, 0);
+	ARM_CP15_REGISTER_32BIT(Dfsr, c5, c0, 0, 0,
+		struct Wnr : Bitfield<11, 1> { }; /* write not read bit */
+	);
 
 	/* Instruction Fault Status Register */
 	ARM_CP15_REGISTER_32BIT(Ifsr, c5, c0, 0, 1);

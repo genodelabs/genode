@@ -9,8 +9,8 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm
 
 # add C++ sources
 SRC_CC += spec/32bit/memory_map.cc
+SRC_CC += spec/arm/cpu.cc
 SRC_CC += spec/arm/kernel/thread.cc
-SRC_CC += spec/arm/kernel/pd.cc
 SRC_CC += spec/arm/platform_support.cc
 
 # add assembly sources

@@ -13,19 +13,20 @@
  */
 
 /* core includes */
+#include <kernel/cpu.h>
 #include <kernel/thread.h>
 #include <pic.h>
 
 using namespace Kernel;
 
-void Thread::exception(unsigned const cpu)
+void Thread::exception(Cpu & cpu)
 {
 	switch (regs->trapno) {
 	case Cpu::Context::PAGE_FAULT:
 		_mmu_exception();
 		return;
 	case Cpu::Context::NO_MATH_COPROC:
-		if (_cpu->fpu().fault(fpu_regs)) { return; }
+		if (_cpu->fpu().fault(*regs)) { return; }
 		Genode::warning(*this, ": FPU error");
 		_die();
 		return;
@@ -40,7 +41,7 @@ void Thread::exception(unsigned const cpu)
 	if (regs->trapno >= Cpu::Context::INTERRUPTS_START &&
 	    regs->trapno <= Cpu::Context::INTERRUPTS_END) {
 		pic()->irq_occurred(regs->trapno);
-		_interrupt(cpu);
+		_interrupt(cpu.id());
 		return;
 	}
 	Genode::warning(*this, ": triggered unknown exception ", regs->trapno,

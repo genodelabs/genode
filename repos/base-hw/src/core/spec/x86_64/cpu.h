@@ -75,50 +75,24 @@ class Genode::Cpu
 		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
 		 */
-		struct alignas(16) Context : Cpu_state
+		struct alignas(16) Context : Cpu_state, Fpu::Context
 		{
-			/**
-			 * Address of top-level paging structure.
-			 */
+			enum Eflags {
+				EFLAGS_IF_SET = 1 << 9,
+				EFLAGS_IOPL_3 = 3 << 12,
+			};
+
+			Context(bool privileged);
+		};
+
+
+		struct Mmu_context
+		{
 			addr_t cr3;
 
-			/**
-			 * Return base of assigned translation table
-			 */
-			addr_t translation_table() const { return cr3; }
-
-			/**
-			 * Initialize context
-			 *
-			 * \param table  physical base of appropriate translation table
-			 * \param core   whether it is a core thread or not
-			 */
-			void init(addr_t const table, bool core);
+			Mmu_context(addr_t page_table_base);
 		};
 
-
-		/**
-		 * An usermode execution state
-		 */
-		struct User_context
-		{
-			Align_at<Context, 16> regs;
-			Fpu::Context fpu_regs;
-
-			/**
-			 * Support for kernel calls
-			 */
-			void user_arg_0(Kernel::Call_arg const arg) { regs->rdi = arg; }
-			void user_arg_1(Kernel::Call_arg const arg) { regs->rsi = arg; }
-			void user_arg_2(Kernel::Call_arg const arg) { regs->rdx = arg; }
-			void user_arg_3(Kernel::Call_arg const arg) { regs->rcx = arg; }
-			void user_arg_4(Kernel::Call_arg const arg) { regs->r8 = arg; }
-			Kernel::Call_arg user_arg_0() const { return regs->rdi; }
-			Kernel::Call_arg user_arg_1() const { return regs->rsi; }
-			Kernel::Call_arg user_arg_2() const { return regs->rdx; }
-			Kernel::Call_arg user_arg_3() const { return regs->rcx; }
-			Kernel::Call_arg user_arg_4() const { return regs->r8; }
-		};
 
 	protected:
 
@@ -149,7 +123,7 @@ class Genode::Cpu
 		 *
 		 * \param context  next CPU context
 		 */
-		inline void switch_to(User_context &context);
+		inline void switch_to(Context & context, Mmu_context &);
 };
 
 
@@ -279,12 +253,12 @@ struct Genode::Cpu::Cr4 : Register<64>
 };
 
 
-void Genode::Cpu::switch_to(User_context &context)
+void Genode::Cpu::switch_to(Context & context, Mmu_context & mmu_context)
 {
-	_fpu.switch_to(context.fpu_regs);
+	_fpu.switch_to(context);
 
-	if ((context.regs->cs != 0x8) && (context.regs->cr3 != Cr3::read()))
-		Cr3::write(context.regs->cr3);
+	if ((context.cs != 0x8) && (mmu_context.cr3 != Cr3::read()))
+		Cr3::write(mmu_context.cr3);
 };
 
 #endif /* _CORE__SPEC__X86_64__CPU_H_ */

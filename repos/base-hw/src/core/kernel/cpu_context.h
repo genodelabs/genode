@@ -16,7 +16,6 @@
 #define _CORE__KERNEL__CPU_CONTEXT_H_
 
 /* core includes */
-#include <cpu.h>
 #include <kernel/cpu_scheduler.h>
 #include <kernel/timer.h>
 
@@ -69,7 +68,7 @@ class Kernel::Cpu_domain_update : public Double_list_item
 		virtual void _cpu_domain_update_unblocks() = 0;
 };
 
-class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
+class Kernel::Cpu_job : public Cpu_share
 {
 	protected:
 
@@ -105,12 +104,12 @@ class Kernel::Cpu_job : public Genode::Cpu::User_context, public Cpu_share
 		/**
 		 * Handle exception that occured during execution on CPU 'id'
 		 */
-		virtual void exception(unsigned const id) = 0;
+		virtual void exception(Cpu & cpu) = 0;
 
 		/**
 		 * Continue execution on CPU 'id'
 		 */
-		virtual void proceed(unsigned const id) = 0;
+		virtual void proceed(Cpu & cpu) = 0;
 
 		/**
 		 * Return which job currently uses our CPU-share

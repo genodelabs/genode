@@ -19,13 +19,7 @@
 
 using namespace Kernel;
 
-void Kernel::Thread::_init()
-{
-	init(_core);
-}
-
-
-void Thread::exception(unsigned const cpu)
+void Thread::exception(Cpu & cpu)
 {
 	switch (regs->cpu_exception) {
 	case Cpu::Context::SUPERVISOR_CALL:
@@ -37,10 +31,10 @@ void Thread::exception(unsigned const cpu)
 		return;
 	case Cpu::Context::INTERRUPT_REQUEST:
 	case Cpu::Context::FAST_INTERRUPT_REQUEST:
-		_interrupt(cpu);
+		_interrupt(cpu.id());
 		return;
 	case Cpu::Context::UNDEFINED_INSTRUCTION:
-		if (_cpu->retry_undefined_instr(*this)) { return; }
+		if (_cpu->retry_undefined_instr(*regs)) { return; }
 		Genode::warning(*this, ": undefined instruction at ip=",
 		                Genode::Hex(regs->ip));
 		_die();
@@ -59,14 +53,14 @@ void Thread::exception(unsigned const cpu)
 void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
-	if (in_fault(_fault_addr, _fault_writes, _fault_exec)) {
+	if (Cpu::in_fault(*regs, _fault_addr, _fault_writes, _fault_exec)) {
 		_fault_pd = (addr_t)_pd->platform_pd();
 
 		/*
 		 * Core should never raise a page-fault. If this happens, print out an
 		 * error message with debug information.
 		 */
-		if (_pd == Kernel::core_pd())
+		if (_core)
 			Genode::error("page fault in core thread (", label(), "): "
 			              "ip=", Genode::Hex(regs->ip), " fault=", Genode::Hex(_fault_addr));
 
@@ -142,9 +136,11 @@ void Kernel::Thread::_call_update_instr_region()
 
 extern void * kernel_stack;
 
-void Thread::proceed(unsigned const cpu)
+void Thread::proceed(Cpu & cpu)
 {
-	regs->cpu_exception = (addr_t)&kernel_stack + Cpu::KERNEL_STACK_SIZE * (cpu+1);
+	cpu.switch_to(*regs, pd()->mmu_regs);
+
+	regs->cpu_exception = cpu.stack_start();
 
 	asm volatile("mov  sp, %0        \n"
 	             "msr  spsr_cxsf, %1 \n"
@@ -154,3 +150,16 @@ void Thread::proceed(unsigned const cpu)
 	             :: "r" (static_cast<Cpu::Context*>(&*regs)),
 	                "r" (regs->cpsr), "r" (regs->ip));
 }
+
+
+void Thread::user_arg_0(Kernel::Call_arg const arg) { regs->r0 = arg; }
+void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->r1 = arg; }
+void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->r2 = arg; }
+void Thread::user_arg_3(Kernel::Call_arg const arg) { regs->r3 = arg; }
+void Thread::user_arg_4(Kernel::Call_arg const arg) { regs->r4 = arg; }
+
+Kernel::Call_arg Thread::user_arg_0() const { return regs->r0; }
+Kernel::Call_arg Thread::user_arg_1() const { return regs->r1; }
+Kernel::Call_arg Thread::user_arg_2() const { return regs->r2; }
+Kernel::Call_arg Thread::user_arg_3() const { return regs->r3; }
+Kernel::Call_arg Thread::user_arg_4() const { return regs->r4; }

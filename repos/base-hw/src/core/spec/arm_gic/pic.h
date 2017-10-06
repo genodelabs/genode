@@ -50,6 +50,8 @@ class Genode::Pic : public Hw::Pic
 			                              Sgir::Target_list_filter::ALL_OTHER);
 			_distr.write<Sgir>(sgir);
 		}
+
+		static constexpr bool fast_interrupts() { return false; }
 };
 
 #endif /* _CORE__SPEC__ARM_GIC__PIC_H_ */
