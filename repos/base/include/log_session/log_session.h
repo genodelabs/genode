@@ -44,7 +44,7 @@ struct Genode::Log_session : Session
 	virtual ~Log_session() { }
 
 	/* the lowest platform-specific maximum IPC payload size (OKL4) */
-	enum { MAX_STRING_LEN = 236};
+	enum { MAX_STRING_LEN = 232 };
 
 	typedef Rpc_in_buffer<MAX_STRING_LEN> String;
 
