@@ -16,8 +16,10 @@
 #define _PORT_ALLOCATOR_H_
 
 /* Genode includes */
-#include <util/bit_allocator.h>
 #include <net/port.h>
+
+/* local includes */
+#include <util/bit_allocator.h>
 
 namespace Net {
 

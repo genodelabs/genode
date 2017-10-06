@@ -10,7 +10,8 @@ Brief
 The 'nic_router' component can be used to individually route IPv4 packets
 between multiple NIC sessions. Thereby, it can translate between different
 subnets. The component supports IP routing, TCP and UDP routing, the
-partitioning of the TCP and UDP port spaces, port forwarding, and NAT.
+partitioning of the TCP and UDP port spaces, port forwarding, NAT, and can
+also act as DHCP server.
 
 
 Basics
@@ -272,12 +273,42 @@ usage is necessary to avoid that a client can run Denial-of-Service attacks
 against the destination domain by occupying all of its ports.
 
 
+Configuring DHCP server functionality
+#####################################
+
+One can configure the NIC router to act as DHCP server at interfaces of a
+domain by adding the <dhcp> tag to the configuration of the domain like
+this:
+
+<domain name="vbox" interface="10.0.1.1/24">
+    <dhcp-server ip_first="10.0.1.80"
+                 ip_last="10.0.1.100"
+                 ip_lease_time_sec="3600"
+                 dns_server="10.0.0.2"/>
+    ...
+</domain>
+
+The attributes ip_first and ip_last define the available IPv4 address
+range while ip_lease_time_sec defines the lifetime of an IPv4 address
+assignment in seconds. The IPv4 address range must be in the subnet
+defined by the interface attribute of the domain tag and must not cover
+the IPv4 address in this attribute. The dns_server attribute gives the
+IPv4 address of the DNS server that might also be in another subnet.
+The lifetime of an offered assignment is the configured round-trip time of
+the router while ip_lease_time_sec is applied only when the offer is
+acknowledged by the client in time.
+
+
 Examples
 ########
 
 This section will list and explain some interesting configuration snippets. A
-comprehensive example of how to use the router can be found in the test script
-'libports/run/nic_router.run'. The environment for the examples shall be as
+comprehensive example of how to use the router (except DHCP server
+functionality) can be found in the test script 'libports/run/nic_router.run'.
+For an example of how to use the DHCP server functionality see the
+'ports/run/virtualbox_nic_router.run' script.
+
+The environment for the examples shall be as
 follows. There are two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 that
 connect as Virtnet A and B to the router. The standard gateway of the virtual
 networks is the NIC router with IP 192.168.*.1 . The router's uplink leads to

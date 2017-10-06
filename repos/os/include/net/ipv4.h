@@ -51,6 +51,9 @@ struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
 	Genode::uint32_t to_uint32_little_endian() const;
 
 	static Ipv4_address from_uint32_little_endian(Genode::uint32_t ip_raw);
+
+	bool is_in_range(Ipv4_address const &first,
+	                 Ipv4_address const &last) const;
 }
 __attribute__((packed));
 
@@ -229,6 +232,43 @@ struct Net::Ipv4_address_prefix
 	void print(Genode::Output &output) const;
 
 	bool prefix_matches(Ipv4_address const &ip) const;
+
+	Ipv4_address subnet_mask() const
+	{
+		Ipv4_address result;
+		if (prefix >= 8) {
+
+			result.addr[0] = 0xff;
+
+			if (prefix >= 16) {
+
+				result.addr[1] = 0xff;
+
+				if (prefix >= 24) {
+
+					result.addr[2] = 0xff;
+					result.addr[3] = 0xff << (32 - prefix);
+				} else {
+					result.addr[2] = 0xff << (24 - prefix);
+				}
+			} else {
+				result.addr[1] = 0xff << (16 - prefix);
+			}
+		} else {
+			result.addr[0] = 0xff << (8 - prefix);
+		}
+		return result;
+	}
+
+	Ipv4_address broadcast_address() const
+	{
+		Ipv4_address result = address;
+		Ipv4_address const mask = subnet_mask();
+		for (unsigned i = 0; i < 4; i++) {
+			result.addr[i] |= ~mask.addr[i];
+		}
+		return result;
+	}
 };
 
 

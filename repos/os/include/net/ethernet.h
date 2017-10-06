@@ -84,6 +84,11 @@ class Net::Ethernet_frame
 				throw No_ethernet_frame();
 		}
 
+		/**
+		 * Constructor for composing a new Ethernet frame
+		 */
+		Ethernet_frame() { }
+
 
 		/***************
 		 ** Accessors **

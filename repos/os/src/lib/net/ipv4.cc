@@ -38,6 +38,15 @@ void Net::Ipv4_packet::print(Genode::Output &output) const
 }
 
 
+bool Ipv4_address::is_in_range(Ipv4_address const &first,
+                               Ipv4_address const &last) const
+{
+	uint32_t const ip_raw = to_uint32_little_endian();
+	return ip_raw >= first.to_uint32_little_endian() &&
+	       ip_raw <= last.to_uint32_little_endian();
+}
+
+
 uint32_t Ipv4_address::to_uint32_big_endian() const
 {
 	return addr[0] |

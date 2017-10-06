@@ -24,6 +24,28 @@
 using namespace Net;
 using namespace Genode;
 
+/**
+ * Utility to ensure that a size value doesn't exceed a limit
+ */
+template <size_t MAX, typename EXCEPTION>
+class Size_guard
+{
+	private:
+
+		size_t _curr { 0 };
+
+	public:
+
+		void add(size_t size)
+		{
+			size_t const new_size = _curr + size;
+			if (new_size > MAX) { throw EXCEPTION(); }
+			_curr = new_size;
+		}
+
+		size_t curr() const { return _curr; }
+};
+
 
 /***************
  ** Utilities **
@@ -243,6 +265,13 @@ void Interface::link_closed(Link &link, L3_protocol const prot)
 }
 
 
+void Interface::ip_allocation_expired(Ip_allocation &allocation)
+{
+	_release_ip_allocation(allocation);
+	_released_ip_allocations.insert(&allocation);
+}
+
+
 void Interface::dissolve_link(Link_side &link_side, L3_protocol const prot)
 {
 	_links(prot).remove(&link_side);
@@ -302,6 +331,227 @@ void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
 }
 
 
+void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
+                                 Mac_address               const &client_mac,
+                                 Ipv4_address              const &client_ip,
+                                 Dhcp_packet::Message_type        msg_type,
+                                 uint32_t                         xid)
+{
+	/* allocate buffer for the reply */
+	enum { BUF_SIZE = 512 };
+	void *buf;
+	try { _alloc.alloc(BUF_SIZE, &buf); }
+	catch (...) { throw Alloc_dhcp_reply_buffer_failed(); }
+
+	/* create ETH header of the reply */
+	Size_guard<BUF_SIZE, Dhcp_reply_buffer_too_small> reply_size;
+	reply_size.add(sizeof(Ethernet_frame));
+	Ethernet_frame &reply_eth = *reinterpret_cast<Ethernet_frame *>(buf);
+	reply_eth.dst(client_mac);
+	reply_eth.src(_router_mac);
+	reply_eth.type(Ethernet_frame::Type::IPV4);
+
+	/* create IP header of the reply */
+	enum { IPV4_TIME_TO_LIVE = 64 };
+	size_t const reply_ip_off = reply_size.curr();
+	reply_size.add(sizeof(Ipv4_packet));
+	Ipv4_packet &reply_ip = *reply_eth.data<Ipv4_packet>();
+	reply_ip.header_length(sizeof(Ipv4_packet) / 4);
+	reply_ip.version(4);
+	reply_ip.diff_service(0);
+	reply_ip.identification(0);
+	reply_ip.flags(0);
+	reply_ip.fragment_offset(0);
+	reply_ip.time_to_live(IPV4_TIME_TO_LIVE);
+	reply_ip.protocol(Ipv4_packet::Protocol::UDP);
+	reply_ip.src(_router_ip());
+	reply_ip.dst(client_ip);
+
+	/* create UDP header of the reply */
+	size_t const reply_udp_off = reply_size.curr();
+	reply_size.add(sizeof(Udp_packet));
+	Udp_packet &reply_udp = *reply_ip.data<Udp_packet>();
+	reply_udp.src_port(Port(Dhcp_packet::BOOTPS));
+	reply_udp.dst_port(Port(Dhcp_packet::BOOTPC));
+
+	/* create mandatory DHCP fields of the reply  */
+	reply_size.add(sizeof(Dhcp_packet));
+	Dhcp_packet &reply_dhcp = *reply_udp.data<Dhcp_packet>();
+	reply_dhcp.op(Dhcp_packet::REPLY);
+	reply_dhcp.htype(Dhcp_packet::Htype::ETH);
+	reply_dhcp.hlen(sizeof(Mac_address));
+	reply_dhcp.hops(0);
+	reply_dhcp.xid(xid);
+	reply_dhcp.secs(0);
+	reply_dhcp.flags(0);
+	reply_dhcp.ciaddr(msg_type == Dhcp_packet::Message_type::INFORM ? client_ip : Ipv4_address());
+	reply_dhcp.yiaddr(msg_type == Dhcp_packet::Message_type::INFORM ? Ipv4_address() : client_ip);
+	reply_dhcp.siaddr(_router_ip());
+	reply_dhcp.giaddr(Ipv4_address());
+	reply_dhcp.client_mac(client_mac);
+	reply_dhcp.zero_fill_sname();
+	reply_dhcp.zero_fill_file();
+	reply_dhcp.default_magic_cookie();
+
+	/* append DHCP option fields to the reply */
+	Dhcp_packet::Options_aggregator<Size_guard<BUF_SIZE, Dhcp_reply_buffer_too_small> >
+		reply_dhcp_opts(reply_dhcp, reply_size);
+	reply_dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
+	reply_dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(_router_ip());
+	reply_dhcp_opts.append_option<Dhcp_packet::Ip_lease_time>(dhcp_srv.ip_lease_time().value / 1000 / 1000);
+	reply_dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(_domain.interface_attr().subnet_mask());
+	reply_dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(_router_ip());
+	if (dhcp_srv.dns_server().valid()) {
+		reply_dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dhcp_srv.dns_server()); }
+	reply_dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(_domain.interface_attr().broadcast_address());
+	reply_dhcp_opts.append_option<Dhcp_packet::Options_end>();
+
+	/* fill in header values that need the packet to be complete already */
+	reply_udp.length(reply_size.curr() - reply_udp_off);
+	reply_udp.update_checksum(reply_ip.src(), reply_ip.dst());
+	reply_ip.total_length(reply_size.curr() - reply_ip_off);
+	reply_ip.checksum(Ipv4_packet::calculate_checksum(reply_ip));
+
+	/* send reply to sender of request and free reply buffer */
+	_send(reply_eth, reply_size.curr());
+	_alloc.free(buf, BUF_SIZE);
+}
+
+
+void Interface::_release_ip_allocation(Ip_allocation &allocation)
+{
+	if (_config().verbose()) {
+		log("Release IP allocation: ", allocation, " at ", *this);
+	}
+	_ip_allocations.remove(&allocation);
+}
+
+
+void Interface::_handle_dhcp_request(Ethernet_frame &eth,
+                                     Genode::size_t  eth_size,
+                                     Dhcp_packet    &dhcp)
+{
+	try {
+		/* try to get the DHCP server config of this interface */
+		Dhcp_server &dhcp_srv = _domain.dhcp_server();
+
+		/* determine type of DHCP request */
+		Dhcp_packet::Message_type const msg_type =
+			dhcp.option<Dhcp_packet::Message_type_option>().value();
+
+		try {
+			/* look up existing DHCP configuration for client */
+			Ip_allocation &allocation =
+				_ip_allocations.find_by_mac(dhcp.client_mac());
+
+			switch (msg_type) {
+			case Dhcp_packet::Message_type::DISCOVER:
+
+				if (allocation.bound()) {
+					throw Bad_dhcp_request();
+
+				} else {
+					allocation.lifetime(_config().rtt());
+					_send_dhcp_reply(dhcp_srv, eth.src(),
+					                 allocation.ip(),
+					                 Dhcp_packet::Message_type::OFFER,
+					                 dhcp.xid());
+					return;
+				}
+			case Dhcp_packet::Message_type::REQUEST:
+
+				if (allocation.bound()) {
+					allocation.lifetime(dhcp_srv.ip_lease_time());
+					_send_dhcp_reply(dhcp_srv, eth.src(),
+					                 allocation.ip(),
+					                 Dhcp_packet::Message_type::ACK,
+					                 dhcp.xid());
+					return;
+
+				} else {
+					Dhcp_packet::Server_ipv4 &dhcp_srv_ip =
+						dhcp.option<Dhcp_packet::Server_ipv4>();
+
+					if (dhcp_srv_ip.value() == _router_ip()) {
+
+						allocation.set_bound();
+						allocation.lifetime(dhcp_srv.ip_lease_time());
+						if (_config().verbose()) {
+							log("Bind IP allocation: ", allocation,
+							                    " at ", *this);
+						}
+						_send_dhcp_reply(dhcp_srv, eth.src(),
+						                 allocation.ip(),
+						                 Dhcp_packet::Message_type::ACK,
+						                 dhcp.xid());
+						return;
+
+					} else {
+
+						_release_ip_allocation(allocation);
+						_destroy_ip_allocation(allocation);
+						return;
+					}
+				}
+			case Dhcp_packet::Message_type::INFORM:
+
+				_send_dhcp_reply(dhcp_srv, eth.src(),
+				                 allocation.ip(),
+				                 Dhcp_packet::Message_type::ACK,
+				                 dhcp.xid());
+				return;
+
+			case Dhcp_packet::Message_type::DECLINE:
+			case Dhcp_packet::Message_type::RELEASE:
+
+				_release_ip_allocation(allocation);
+				_destroy_ip_allocation(allocation);
+				return;
+
+			case Dhcp_packet::Message_type::NAK:
+			case Dhcp_packet::Message_type::OFFER:
+			case Dhcp_packet::Message_type::ACK:
+			default: throw Bad_dhcp_request();
+			}
+		}
+		catch (Ip_allocation_tree::No_match) {
+
+			switch (msg_type) {
+			case Dhcp_packet::Message_type::DISCOVER:
+				{
+					Ip_allocation &allocation = *new (_alloc)
+						Ip_allocation(*this, _config(),
+						              dhcp_srv.alloc_ip(),
+						              dhcp.client_mac(), _timer,
+						              _config().rtt());
+
+					_ip_allocations.insert(&allocation);
+					if (_config().verbose()) {
+						log("Offer IP allocation: ", allocation,
+						                     " at ", *this);
+					}
+					_send_dhcp_reply(dhcp_srv, eth.src(),
+					                 allocation.ip(),
+					                 Dhcp_packet::Message_type::OFFER,
+					                 dhcp.xid());
+					return;
+				}
+			case Dhcp_packet::Message_type::REQUEST:
+			case Dhcp_packet::Message_type::DECLINE:
+			case Dhcp_packet::Message_type::RELEASE:
+			case Dhcp_packet::Message_type::NAK:
+			case Dhcp_packet::Message_type::OFFER:
+			case Dhcp_packet::Message_type::ACK:
+			default: throw Bad_dhcp_request();
+			}
+		}
+	}
+	catch (Dhcp_packet::Option_not_found) {
+		throw Bad_dhcp_request();
+	}
+}
+
+
 void Interface::_handle_ip(Ethernet_frame          &eth,
                            Genode::size_t    const  eth_size,
                            Packet_descriptor const &pkt)
@@ -315,8 +565,30 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		L3_protocol   const prot      = ip.protocol();
 		size_t        const prot_size = ip.total_length() - ip.header_length() * 4;
 		void         *const prot_base = _prot_base(prot, prot_size, ip);
-		Link_side_id  const local     = { ip.src(), _src_port(prot, prot_base),
-		                                  ip.dst(), _dst_port(prot, prot_base) };
+
+		/* try handling DHCP requests before trying any routing */
+		if (prot == L3_protocol::UDP) {
+			Udp_packet &udp = *new (ip.data<void>())
+				Udp_packet(eth_size - sizeof(Ipv4_packet));
+
+			if (Dhcp_packet::is_dhcp(&udp)) {
+
+				/* get DHCP packet */
+				Dhcp_packet &dhcp = *new (udp.data<void>())
+					Dhcp_packet(eth_size - sizeof(Ipv4_packet)
+					                     - sizeof(Udp_packet));
+
+				if (dhcp.op() == Dhcp_packet::REQUEST) {
+					try {
+						_handle_dhcp_request(eth, eth_size, dhcp);
+						return;
+					}
+					catch (Pointer<Dhcp_server>::Invalid) { }
+				}
+			}
+		}
+		Link_side_id  const local = { ip.src(), _src_port(prot, prot_base),
+		                              ip.dst(), _dst_port(prot, prot_base) };
 
 		/* try to route via existing UDP/TCP links */
 		try {
@@ -325,7 +597,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			bool const client = local_side.is_client();
 			Link_side &remote_side = client ? link.server() : link.client();
 			Interface &interface = remote_side.interface();
-			if(_config().verbose()) {
+			if (_config().verbose()) {
 				log("Using ", l3_protocol_name(prot), " link: ", link); }
 
 			_adapt_eth(eth, eth_size, remote_side.src_ip(), pkt, interface);
@@ -535,13 +807,30 @@ void Interface::_ready_to_ack()
 }
 
 
+void Interface::_destroy_ip_allocation(Ip_allocation &allocation)
+{
+	_domain.dhcp_server().free_ip(allocation.ip());
+	destroy(_alloc, &allocation);
+}
+
+
+void Interface::_destroy_released_ip_allocations()
+{
+	while (Ip_allocation *allocation = _released_ip_allocations.first()) {
+		_released_ip_allocations.remove(allocation);
+		_destroy_ip_allocation(*allocation);
+	}
+}
+
+
 void Interface::_handle_eth(void              *const  eth_base,
                             size_t             const  eth_size,
                             Packet_descriptor  const &pkt)
 {
-	/* do garbage collection over transport-layer links */
+	/* do garbage collection over transport-layer links and IP allocations */
 	_destroy_closed_links<Udp_link>(_closed_udp_links, _alloc);
 	_destroy_closed_links<Tcp_link>(_closed_tcp_links, _alloc);
+	_destroy_released_ip_allocations();
 
 	/* inspect and handle ethernet frame */
 	try {
@@ -571,6 +860,18 @@ void Interface::_handle_eth(void              *const  eth_base,
 
 	catch (Pointer<Interface>::Invalid) {
 		error("no interface connected to domain"); }
+
+	catch (Bad_dhcp_request) {
+		error("bad DHCP request"); }
+
+	catch (Alloc_dhcp_reply_buffer_failed) {
+		error("failed to allocate buffer for DHCP reply"); }
+
+	catch (Dhcp_reply_buffer_too_small) {
+		error("DHCP reply buffer too small"); }
+
+	catch (Dhcp_server::Alloc_ip_failed) {
+		error("failed to allocate IP for DHCP client"); }
 }
 
 
@@ -651,6 +952,13 @@ Interface::~Interface()
 	/* destroy links */
 	_destroy_links<Tcp_link>(_tcp_links, _closed_tcp_links, _alloc);
 	_destroy_links<Udp_link>(_udp_links, _closed_udp_links, _alloc);
+
+	/* destroy IP allocations */
+	_destroy_released_ip_allocations();
+	while (Ip_allocation *allocation = _ip_allocations.first()) {
+		_ip_allocations.remove(allocation);
+		_destroy_ip_allocation(*allocation);
+	}
 }
 
 
@@ -660,4 +968,76 @@ Configuration &Interface::_config() const { return _domain.config(); }
 void Interface::print(Output &output) const
 {
 	Genode::print(output, "\"", _domain.name(), "\"");
+}
+
+
+/*******************
+ ** Ip_allocation **
+ *******************/
+
+Ip_allocation::Ip_allocation(Interface          &interface,
+                             Configuration      &config,
+                             Ipv4_address const &ip,
+                             Mac_address  const &mac,
+                             Timer::Connection  &timer,
+                             Microseconds        lifetime)
+:
+	_interface(interface),
+	_config(config),
+	_ip(ip),
+	_mac(mac),
+	_release_timeout(timer, *this, &Ip_allocation::_handle_release_timeout)
+{
+	_release_timeout.schedule(lifetime);
+}
+
+
+void Ip_allocation::lifetime(Microseconds lifetime)
+{
+	_release_timeout.schedule(lifetime);
+}
+
+
+bool Ip_allocation::_higher(Mac_address const &mac) const
+{
+	return memcmp(mac.addr, _mac.addr, sizeof(_mac.addr)) > 0;
+}
+
+
+Ip_allocation &Ip_allocation::find_by_mac(Mac_address const &mac)
+{
+	if (mac == _mac) {
+		return *this; }
+
+	Ip_allocation *const allocation = child(_higher(mac));
+	if (!allocation) {
+		throw Ip_allocation_tree::No_match(); }
+
+	return allocation->find_by_mac(mac);
+}
+
+
+void Ip_allocation::print(Output &output) const
+{
+	Genode::print(output, "MAC ", _mac, " IP ", _ip);
+}
+
+
+void Ip_allocation::_handle_release_timeout(Duration)
+{
+	_interface.ip_allocation_expired(*this);
+}
+
+
+/************************
+ ** Ip_allocation_tree **
+ ************************/
+
+Ip_allocation &
+Ip_allocation_tree::find_by_mac(Mac_address const &mac) const
+{
+	if (!first()) {
+		throw No_match(); }
+
+	return first()->find_by_mac(mac);
 }

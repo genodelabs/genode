@@ -1,0 +1,194 @@
+set use_net 1
+set use_ps2 [have_spec ps2]
+set use_serial 1
+
+set build_components {
+	core init
+	drivers/framebuffer
+	drivers/timer
+	server/nic_dump
+	server/nic_router
+}
+
+append build_components virtualbox
+set virtualbox_binary "virtualbox-rem"
+if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
+if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+# override defaults of platform_drv.inc
+proc platform_drv_priority {} { return { priority="-1"} }
+
+lappend_if [expr $use_ps2]    build_components drivers/input
+lappend_if [expr $use_serial] build_components server/log_terminal
+lappend_if [have_spec x86]    build_components drivers/rtc
+
+lappend_if [expr $use_net]    build_components drivers/nic
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config prio_levels="4">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>}
+
+append_if [have_spec muen] config {
+		<service name="VM"/>}
+
+append config {
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_platform_drv_config
+
+append_if [expr $use_ps2] config {
+	<start name="ps2_drv" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>}
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv" priority="-1" caps="150">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec x86] config {
+	<start name="rtc_drv" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+	</start>}
+
+append_if [expr $use_net] config {
+	<start name="nic_drv" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config rtt_sec="6" verbose="yes">
+
+			<policy label_prefix="vbox1" domain="vbox"/>
+
+			<domain name="vbox" interface="10.0.1.79/24">
+				<dhcp-server ip_first="10.0.1.80"
+				             ip_last="10.0.1.100"
+				             ip_lease_time_sec="20"
+				             dns_server="10.0.0.2"/>
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+			</domain>
+
+			<domain name="uplink" interface="10.0.0.72/24" gateway="10.0.0.1">
+				<nat domain="vbox" tcp-ports="999" udp-ports="999"/>
+			</domain>
+
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+}
+
+append_if [expr $use_serial] config {
+	<start name="log_terminal" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
+	</start>
+}
+
+append config {
+	<start name="vbox1" priority="-2" caps="500">}
+append config "
+		<binary name=\"$virtualbox_binary\"/>"
+append config {
+		<resource name="RAM" quantum="2G"/>
+		<config vbox_file="virtualbox_nic_router.vbox" vm_name="TestVM">
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev"> <log/> <rtc/> </dir>}
+
+append_if [expr $use_serial] config {
+				<dir name="dev"> <terminal/> </dir>}
+
+append config {
+				<rom name="virtualbox_nic_router.vbox" />
+				<rom name="test.iso" />
+			</vfs>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent /> <any-child /> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+exec cp ${genode_dir}/repos/ports/run/virtualbox_nic_router.vbox bin/.
+
+set boot_modules { core nic_dump nic_router ld.lib.so init timer test.iso virtualbox_nic_router.vbox }
+
+append boot_modules $virtualbox_binary
+
+# platform-specific modules
+lappend_if [expr         $use_ps2] boot_modules ps2_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         x86] boot_modules rtc_drv
+
+append boot_modules {
+	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
+	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
+	qemu-usb.lib.so
+}
+
+append_if [expr $use_net]          boot_modules { nic_drv }
+append_if [expr $use_serial]       boot_modules { log_terminal }
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+if {[have_include "power_on/qemu"]} {
+	append qemu_args " -m 768 "
+
+	append qemu_args " -cpu phenom "
+}
+
+run_genode_until forever

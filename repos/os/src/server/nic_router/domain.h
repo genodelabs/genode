@@ -21,10 +21,13 @@
 #include <ip_rule.h>
 #include <port_allocator.h>
 #include <pointer.h>
+#include <bit_allocator_dynamic.h>
 
 /* Genode includes */
 #include <util/avl_string.h>
 #include <util/xml_node.h>
+#include <util/noncopyable.h>
+#include <os/duration.h>
 
 namespace Genode { class Allocator; }
 
@@ -32,12 +35,59 @@ namespace Net {
 
 	class Interface;
 	class Configuration;
+	class Dhcp_server;
 	class Domain_avl_member;
 	class Domain_base;
 	class Domain;
 	class Domain_tree;
 	using Domain_name = Genode::String<160>;
 }
+
+
+class Net::Dhcp_server : Genode::Noncopyable
+{
+	private:
+
+		Ipv4_address         const    _dns_server;
+		Genode::Microseconds const    _ip_lease_time;
+		Ipv4_address         const    _ip_first;
+		Ipv4_address         const    _ip_last;
+		Genode::uint32_t     const    _ip_first_raw;
+		Genode::uint32_t     const    _ip_count;
+		Genode::Bit_allocator_dynamic _ip_alloc;
+
+		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
+
+	public:
+
+		enum { DEFAULT_IP_LEASE_TIME_SEC = 3600 };
+
+		struct Alloc_ip_failed : Genode::Exception { };
+		struct Invalid         : Genode::Exception { };
+
+		Dhcp_server(Genode::Xml_node    const  node,
+		            Genode::Allocator         &alloc,
+                    Ipv4_address_prefix const &interface);
+
+		Ipv4_address alloc_ip();
+
+		void free_ip(Ipv4_address const &ip);
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Ipv4_address   const &dns_server()    const { return _dns_server; }
+		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
+};
 
 
 class Net::Domain_avl_member : public Genode::Avl_string_base
@@ -74,22 +124,23 @@ class Net::Domain : public Domain_base
 {
 	private:
 
-		Domain_avl_member       _avl_member;
-		Configuration          &_config;
-		Genode::Xml_node        _node;
-		Genode::Allocator      &_alloc;
-		Ipv4_address_prefix     _interface_attr;
-		Ipv4_address const      _gateway;
-		bool         const      _gateway_valid;
-		Ip_rule_list            _ip_rules;
-		Forward_rule_tree       _tcp_forward_rules;
-		Forward_rule_tree       _udp_forward_rules;
-		Transport_rule_list     _tcp_rules;
-		Transport_rule_list     _udp_rules;
-		Port_allocator          _tcp_port_alloc;
-		Port_allocator          _udp_port_alloc;
-		Nat_rule_tree           _nat_rules;
-		Pointer<Interface>      _interface;
+		Domain_avl_member     _avl_member;
+		Configuration        &_config;
+		Genode::Xml_node      _node;
+		Genode::Allocator    &_alloc;
+		Ipv4_address_prefix   _interface_attr;
+		Ipv4_address const    _gateway;
+		bool         const    _gateway_valid;
+		Ip_rule_list          _ip_rules;
+		Forward_rule_tree     _tcp_forward_rules;
+		Forward_rule_tree     _udp_forward_rules;
+		Transport_rule_list   _tcp_rules;
+		Transport_rule_list   _udp_rules;
+		Port_allocator        _tcp_port_alloc;
+		Port_allocator        _udp_port_alloc;
+		Nat_rule_tree         _nat_rules;
+		Pointer<Interface>    _interface;
+		Pointer<Dhcp_server>  _dhcp_server;
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -111,6 +162,8 @@ class Net::Domain : public Domain_base
 		Domain(Configuration          &config,
 		       Genode::Xml_node const  node,
 		       Genode::Allocator      &alloc);
+
+		~Domain();
 
 		void create_rules(Domain_tree &domains);
 
@@ -138,8 +191,9 @@ class Net::Domain : public Domain_base
 		Nat_rule_tree       &nat_rules()           { return _nat_rules; }
 		Ipv4_address_prefix &interface_attr()      { return _interface_attr; }
 		Pointer<Interface>  &interface()           { return _interface; }
-		Configuration       &config() const        { return _config; }
+		Configuration       &config()        const { return _config; }
 		Domain_avl_member   &avl_member()          { return _avl_member; }
+		Dhcp_server         &dhcp_server()         { return _dhcp_server.deref(); }
 };
 
 
