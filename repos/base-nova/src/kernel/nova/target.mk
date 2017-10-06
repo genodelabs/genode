@@ -7,7 +7,7 @@ NOVA_SRC_DIR     = $(call select_from_ports,nova)/src/kernel/nova
 SRC_CC           = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.cpp)))
 SRC_S            = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.S)))
 INC_DIR          = $(NOVA_SRC_DIR)/include
-CC_OLEVEL        = -Os
+override CC_OLEVEL := -Os
 CC_WARN          = -Wall -Wextra -Waggregate-return -Wcast-align -Wcast-qual \
                    -Wconversion -Wdisabled-optimization -Wformat=2 \
                    -Wmissing-format-attribute -Wmissing-noreturn -Wpacked \
