@@ -1378,9 +1378,6 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 				} else if (gateway == "") {
 					warning("Missing \"gateway\" attribute. Ignoring network interface config.");
 					throw Genode::Xml_node::Nonexistent_attribute();
-				} else if (nameserver == "") {
-					warning("Missing \"nameserver\" attribute. Ignoring network interface config.");
-					throw Genode::Xml_node::Nonexistent_attribute();
 				}
 
 				log("static network interface: ip_addr=",ip_addr," netmask=",netmask," gateway=",gateway);
