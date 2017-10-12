@@ -30,8 +30,6 @@ namespace Net
 
 	class Ipv4_address;
 
-	class Ipv4_address_prefix;
-
 	class Ipv4_packet;
 }
 
@@ -222,61 +220,9 @@ class Net::Ipv4_packet
 } __attribute__((packed));
 
 
-struct Net::Ipv4_address_prefix
-{
-	Ipv4_address    address;
-	Genode::uint8_t prefix = 32;
-
-	bool valid() const { return address.valid() || !prefix; }
-
-	void print(Genode::Output &output) const;
-
-	bool prefix_matches(Ipv4_address const &ip) const;
-
-	Ipv4_address subnet_mask() const
-	{
-		Ipv4_address result;
-		if (prefix >= 8) {
-
-			result.addr[0] = 0xff;
-
-			if (prefix >= 16) {
-
-				result.addr[1] = 0xff;
-
-				if (prefix >= 24) {
-
-					result.addr[2] = 0xff;
-					result.addr[3] = 0xff << (32 - prefix);
-				} else {
-					result.addr[2] = 0xff << (24 - prefix);
-				}
-			} else {
-				result.addr[1] = 0xff << (16 - prefix);
-			}
-		} else {
-			result.addr[0] = 0xff << (8 - prefix);
-		}
-		return result;
-	}
-
-	Ipv4_address broadcast_address() const
-	{
-		Ipv4_address result = address;
-		Ipv4_address const mask = subnet_mask();
-		for (unsigned i = 0; i < 4; i++) {
-			result.addr[i] |= ~mask.addr[i];
-		}
-		return result;
-	}
-};
-
-
 namespace Genode {
 
 	inline size_t ascii_to(char const *s, Net::Ipv4_address &result);
-
-	inline size_t ascii_to(char const *s, Net::Ipv4_address_prefix &result);
 }
 
 
@@ -308,32 +254,6 @@ Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address &result)
 		read_len++;
 		s++;
 	}
-}
-
-
-Genode::size_t Genode::ascii_to(char const *s, Net::Ipv4_address_prefix &result)
-{
-	/* read the leading IPv4 address, fail if there's no address */
-	Net::Ipv4_address_prefix buf;
-	size_t read_len = ascii_to(s, buf.address);
-	if (!read_len) {
-		return 0; }
-
-	/* check for the following slash */
-	s += read_len;
-	if (*s != '/') {
-		return 0; }
-	read_len++;
-	s++;
-
-	/* read the prefix, fail if there's no prefix */
-	size_t prefix_len = ascii_to_unsigned(s, buf.prefix, 10);
-	if (!prefix_len) {
-		return 0; }
-
-	/* fill result and return read length */
-	result = buf;
-	return read_len + prefix_len;
 }
 
 #endif /* _IPV4_H_ */

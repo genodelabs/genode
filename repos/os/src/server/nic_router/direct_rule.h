@@ -14,13 +14,13 @@
 #ifndef _DIRECT_RULE_H_
 #define _DIRECT_RULE_H_
 
+/* local includes */
+#include <ipv4_address_prefix.h>
+#include <rule.h>
+
 /* Genode includes */
-#include <net/ipv4.h>
 #include <util/list.h>
 #include <util/xml_node.h>
-
-/* local includes */
-#include <rule.h>
 
 namespace Genode { class Xml_node; }
 

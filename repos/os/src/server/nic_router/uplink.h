@@ -20,6 +20,7 @@
 
 /* local includes */
 #include <interface.h>
+#include <ipv4_address_prefix.h>
 
 namespace Net { class Uplink; }
 
