@@ -1,6 +1,14 @@
 if {[have_spec linux]} {
 	puts "Platform does not support managed dataspaces"; exit }
 
+#
+# We skip the non-executable fault test on platforms where this functionality
+# is not supported.
+#
+proc non_executable_supported { } {
+	return false
+}
+
 build "core init test/rm_fault"
 
 create_boot_directory
@@ -17,8 +25,9 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-rm_fault" caps="100">
+		<start name="test-rm_fault" caps="110">
 			<resource name="RAM" quantum="10M"/>
+			<config executable_fault_test="} [non_executable_supported] {"/>
 		</start>
 	</config>
 }
