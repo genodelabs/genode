@@ -206,6 +206,8 @@ class Net::Dhcp_packet
 
 			Ip_lease_time(Genode::uint32_t time)
 			: Option_tpl(CODE, host_to_big_endian(time)) { }
+
+			unsigned long value() const { return host_to_big_endian(_value); }
 		};
 
 		enum class Message_type : Genode::uint8_t {
@@ -253,6 +255,44 @@ class Net::Dhcp_packet
 		using Broadcast_addr  = Ipv4_option<Option::Code::BROADCAST_ADDR>;
 		using Router_ipv4     = Ipv4_option<Option::Code::ROUTER>;
 		using Server_ipv4     = Ipv4_option<Option::Code::SERVER>;
+		using Requested_addr  = Ipv4_option<Option::Code::REQ_IP_ADDR>;
+
+
+		class Client_id
+		{
+			private:
+
+				Genode::uint8_t _code;
+				Genode::uint8_t _len;
+				Genode::uint8_t _value[7];
+
+			public:
+
+				Client_id(Mac_address value)
+				: _code((Genode::uint8_t)Option::Code::CLI_ID), _len(7)
+				{
+					_value[0] = 1;
+					_value[1] = value.addr[0];
+					_value[2] = value.addr[1];
+					_value[3] = value.addr[2];
+					_value[4] = value.addr[3];
+					_value[5] = value.addr[4];
+					_value[6] = value.addr[5];
+				}
+
+				Genode::uint8_t code() const { return _code; }
+				Genode::uint8_t len()  const { return _len; }
+		} __attribute__((packed));
+
+
+		struct Max_msg_size : Option_tpl<Genode::uint16_t>
+		{
+			static constexpr Code CODE = Code::MAX_MSG_SZ;
+
+			Max_msg_size(Genode::uint16_t size)
+			: Option_tpl(CODE, host_to_big_endian(size)) { }
+		};
+
 
 		/**
 		 * DHCP option that marks the end of an options field
