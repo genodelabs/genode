@@ -1,9 +1,41 @@
+#!/usr/bin/expect
+
 ##
 # Reset the target machine or rather run the scenario with Qemu
 #
 
 source [genode_dir]/tool/run/qemu.inc
 
+proc check_version {qemu_version qemu_min qemu_max} {
+	set version_min_list [split $qemu_min ".-"]
+	set version_min_list_len [llength $version_min_list]
+
+	set version_max_list [split $qemu_max ".-"]
+	set version_max_list_len [llength $version_max_list]
+
+	set version_list [split $qemu_version ".-"]
+	set version_list_len [llength $version_list]
+
+	set cmp 0
+	set cmp_min 0
+	set cmp_max 0
+	set i 0
+
+	foreach number $version_list {
+		set min 0
+		set max 0
+		if { $i < $version_min_list_len } { set min [lindex $version_min_list $i] }
+		if { $i < $version_max_list_len } { set max [lindex $version_max_list $i] }
+
+		set cmp     [expr {$cmp  + $number * pow(1000, $version_list_len - $i) }]
+		set cmp_min [expr {$cmp_min + $min * pow(1000, $version_list_len - $i) }]
+		set cmp_max [expr {$cmp_max + $max * pow(1000, $version_list_len - $i) }]
+
+		incr i
+	}
+
+	return [expr {($cmp_min < $cmp) && ($cmp < $cmp_max)}]
+}
 
 ##
 # Execute scenario using Qemu
@@ -38,18 +70,20 @@ proc run_power_on { } {
 	    ![regexp -- {-serial}    $qemu_args dummy]} {
 	    append qemu_args " -serial mon:stdio " }
 
-	# SVM virtualization is broken beginning with 2.5.0 until 2.8.*
+	# SVM virtualization is broken after $qemu_good_old and until before $qemu_good_new
 	# We use "-cpu phenom" when using VMs in Qemu
 	if {[regexp -- {-cpu phenom} $qemu_args dummy]} {
 		catch {exec $qemu --version} qemu_version
 		set qemu_version [regexp -inline {version[ ][0-9]+\.[0-9]+[\.0-9]*} $qemu_version]
 		set qemu_version [regexp -inline {[0-9]+\.[0-9]+[\.0-9]*} $qemu_version]
-		if {[string compare $qemu_version "2.5"] != -1} {
-			if {[string compare $qemu_version "2.9"] == -1} {
-				puts "\nYour Qemu version '$qemu_version' is not working with AMD SVM virtualization"
-				puts "Known good Qemu versions are until 2.4.1 and starting with 2.9.0\n"
-				exit
-			}
+
+		set qemu_good_old "2.4.1"
+		set qemu_good_new "2.8.1"
+
+		if {[check_version $qemu_version $qemu_good_old $qemu_good_new]} {
+			puts "\nYour Qemu version '$qemu_version' is not working with AMD SVM virtualisation"
+			puts "Known good Qemu versions are until $qemu_good_old and starting with $qemu_good_new\n"
+			exit
 		}
 	}
 
