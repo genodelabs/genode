@@ -15,7 +15,7 @@ set use_nic_bridge      0
 set use_wifi_driver     0
 
 # force usage of usb for nova, known to work with usb30 network adapter
-if {[have_spec nova]} { set use_usb_driver  1 }
+if {[have_spec nova] && [have_spec x86_64]} { set use_usb_driver 1 }
 
 set use_usb_11          "no"
 set use_usb_20          "no"
