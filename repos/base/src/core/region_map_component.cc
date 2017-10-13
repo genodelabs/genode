@@ -156,8 +156,9 @@ static void print_page_fault(char const *msg,
                              Pager_object const &obj)
 {
 	log(msg, " (",
-	    pf_type == Region_map::State::WRITE_FAULT ? "WRITE" : "READ",
-	    " pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " from ", obj, ")");
+	    pf_type == Region_map::State::WRITE_FAULT ? "WRITE" :
+	    pf_type == Region_map::State::READ_FAULT ? "READ" : "EXEC",
+	    " pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " from ", obj, ") ");
 }
 
 
@@ -173,6 +174,9 @@ int Rm_client::pager(Ipc_pager &pager)
 {
 	Region_map::State::Fault_type pf_type = pager.write_fault() ? Region_map::State::WRITE_FAULT
 	                                                            : Region_map::State::READ_FAULT;
+	if (pager.exec_fault())
+		pf_type = Region_map::State::EXEC_FAULT;
+
 	addr_t pf_addr = pager.fault_addr();
 	addr_t pf_ip   = pager.fault_ip();
 
@@ -211,7 +215,6 @@ int Rm_client::pager(Ipc_pager &pager)
 		 */
 		if (pf_type == Region_map::State::WRITE_FAULT && !dsc->writable()) {
 
-			/* attempted there is no attachment return an error condition */
 			print_page_fault("attempted write at read-only memory",
 			                 pf_addr, pf_ip, pf_type, *this);
 
@@ -219,6 +222,17 @@ int Rm_client::pager(Ipc_pager &pager)
 			if (region_map)
 				region_map->fault(this, pf_addr - region_offset, pf_type);
 			return 2;
+		}
+
+		if (pf_type == Region_map::State::EXEC_FAULT) {
+
+			print_page_fault("attempted exec at non-executable memory",
+			                 pf_addr, pf_ip, pf_type, *this);
+
+			/* register fault at responsible region map */
+			if (region_map)
+				region_map->fault(this, pf_addr - region_offset, pf_type);
+			return 3;
 		}
 
 		Mapping mapping = Region_map_component::create_map_item(region_map,
@@ -323,7 +337,7 @@ Mapping Region_map_component::create_map_item(Region_map_component *region_map,
 
 	return Mapping(dst_fault_area.base(), src_fault_area.base(),
 	               dsc->cacheability(), dsc->io_mem(),
-	               map_size_log2, dsc->writable());
+	               map_size_log2, dsc->writable(), region->executable());
 };
 
 
@@ -414,7 +428,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		/* store attachment info in meta data */
 		try {
 			_map.metadata(attach_at, Rm_region((addr_t)attach_at, size, true,
-			                                   dsc, offset, this));
+			                                   dsc, offset, this, executable));
 
 		} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 

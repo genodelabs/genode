@@ -46,8 +46,8 @@ namespace Genode {
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
 			        Cache_attribute, bool io_mem,
-			        unsigned l2size = Pistachio::get_page_size_log2(),
-			        bool rw = true, bool grant = false);
+			        unsigned l2size,
+			        bool rw, bool executable);
 
 			/**
 			 * Construct invalid mapping
@@ -168,6 +168,11 @@ namespace Genode {
 			 * Return true if last fault was a write fault
 			 */
 			bool write_fault() const { return (_flags & 2); }
+
+			/**
+			 * Return true if last fault was a executable fault
+			 */
+			bool exec_fault() const { return false; }
 
 			/**
 			 * Return true if last fault was an exception

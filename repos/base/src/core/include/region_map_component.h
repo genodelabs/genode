@@ -65,6 +65,7 @@ class Genode::Rm_region : public List<Rm_region>::Element
 		addr_t                _base  = 0;
 		size_t                _size  = 0;
 		bool                  _write = false;
+		bool                  _exec  = false;
 
 		Dataspace_component  *_dsc   = nullptr;
 		off_t                 _off   = 0;
@@ -80,8 +81,8 @@ class Genode::Rm_region : public List<Rm_region>::Element
 
 		Rm_region(addr_t base, size_t size, bool write,
 		          Dataspace_component *dsc, off_t offset,
-		          Region_map_component *rm)
-		: _base(base), _size(size), _write(write),
+		          Region_map_component *rm, bool exec)
+		: _base(base), _size(size), _write(write), _exec(exec),
 		  _dsc(dsc), _off(offset), _rm(rm) { }
 
 
@@ -89,12 +90,13 @@ class Genode::Rm_region : public List<Rm_region>::Element
 		 ** Accessors **
 		 ***************/
 
-		addr_t                    base() const { return _base;  }
-		size_t                    size() const { return _size;  }
-		bool                     write() const { return _write; }
-		Dataspace_component* dataspace() const { return _dsc;   }
-		off_t                   offset() const { return _off;   }
-		Region_map_component*       rm() const { return _rm;    }
+		addr_t                     base() const { return _base;  }
+		size_t                     size() const { return _size;  }
+		bool                      write() const { return _write; }
+		bool                 executable() const { return _exec;  }
+		Dataspace_component*  dataspace() const { return _dsc;   }
+		off_t                    offset() const { return _off;   }
+		Region_map_component*        rm() const { return _rm;    }
 };
 
 

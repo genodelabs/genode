@@ -44,8 +44,7 @@ namespace Genode {
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
 			        Cache_attribute const cacheability, bool io_mem,
-			        unsigned l2size = PAGE_SIZE_LOG2,
-			        bool rw = true)
+			        unsigned l2size, bool rw, bool executable)
 			:
 				_from_phys_addr(src_addr),
 				_to_virt_addr(dst_addr),
@@ -142,6 +141,11 @@ namespace Genode {
 			 * Return true if page fault was a write fault
 			 */
 			bool write_fault() const { return _pf_write; }
+
+			/**
+			 * Return true if page fault was on non-executable memory
+			 */
+			bool exec_fault() const { return false; }
 	};
 }
 

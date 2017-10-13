@@ -43,8 +43,8 @@ namespace Genode {
 			 */
 			Mapping(addr_t dst_addr, addr_t map_addr,
 			        Cache_attribute c, bool io_mem,
-			        unsigned size_log2 = PAGE_SIZE_LOG2,
-			        bool rw = true)
+			        unsigned size_log2,
+			        bool rw, bool executable)
 			:
 				_dst_addr(dst_addr), _core_local_addr(map_addr),
 				_attr(c), _size_log2(size_log2), _rw(rw)
@@ -124,6 +124,11 @@ namespace Genode {
 			 * Return true if fault was a write fault
 			 */
 			bool write_fault() const { return _fault_type & ERR_W; }
+
+			/**
+			 * Return true if fault was a non-executable fault
+			 */
+			bool exec_fault() const { return false; }
 
 			/**
 			 * Return true if last fault was an exception

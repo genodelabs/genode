@@ -45,7 +45,6 @@ namespace Genode {
 			bool            _iomem;
 			unsigned        _log2size;
 			bool            _rw;
-			bool            _grant;
 
 		public:
 
@@ -54,20 +53,20 @@ namespace Genode {
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
 			        Cache_attribute c, bool io_mem,
-			        unsigned l2size = L4_LOG2_PAGESIZE,
-			        bool rw = true, bool grant = false)
+			        unsigned l2size,
+			        bool rw, bool executable)
 			: _dst_addr(dst_addr), _src_addr(src_addr),
 				_cacheability(c), _iomem(io_mem), _log2size(l2size),
-			  _rw(rw), _grant(grant) { }
+			  _rw(rw) { }
 
 			/**
 			 * Construct invalid flexpage
 			 */
 			Mapping() : _dst_addr(0), _src_addr(0), _cacheability(UNCACHED),
-				_iomem(false), _log2size(0), _rw(false), _grant(false) { }
+				_iomem(false), _log2size(0), _rw(false) { }
 
 			Fiasco::l4_umword_t dst_addr() const { return _dst_addr; }
-			bool                grant()    const { return _grant;    }
+			bool                grant()    const { return false; }
 
 			Fiasco::l4_fpage_t  fpage()    const
 			{
@@ -175,6 +174,8 @@ namespace Genode {
 			unsigned long badge() { return _badge; }
 
 			bool write_fault() const { return (_pf_addr & 2); }
+
+			bool exec_fault()  const { return false; }
 
 			/**
 			 * Return true if last fault was an exception

@@ -41,7 +41,7 @@ namespace Genode {
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
 			        Cache_attribute cacheability, bool io_mem,
-			        unsigned l2size = 12, bool rw = true);
+			        unsigned l2size, bool rw, bool executable);
 
 			/**
 			 * Construct invalid mapping
@@ -161,6 +161,11 @@ namespace Genode {
 			 * Return true if last fault was a write fault
 			 */
 			bool write_fault() const { return L4_Label(_faulter_tag) & 2; }
+
+			/**
+			 * Return true if last fault was a executable fault
+			 */
+			bool exec_fault() const { return false; }
 
 			/**
 			 * Return true if last fault was an exception

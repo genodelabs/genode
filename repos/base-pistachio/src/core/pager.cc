@@ -41,8 +41,10 @@ using namespace Pistachio;
 
 Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
                  Cache_attribute, bool io_mem, unsigned l2size,
-                 bool rw, bool grant)
+                 bool rw, bool executable)
 {
+	bool const grant = false;
+
 	L4_Fpage_t fpage = L4_FpageLog2(src_addr, l2size);
 
 	fpage += rw ? L4_FullyAccessible : L4_Readable;

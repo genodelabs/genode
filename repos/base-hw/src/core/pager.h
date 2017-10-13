@@ -65,7 +65,8 @@ struct Genode::Mapping : Hw::Mapping
 	        Cache_attribute cacheable,
 	        bool io,
 	        unsigned size_log2,
-	        bool writeable)
+	        bool writeable,
+	        bool executable)
 	: Hw::Mapping(phys, virt, 1 << size_log2,
 	              { writeable ? Hw::RW : Hw::RO, Hw::EXEC, Hw::USER,
 	                Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable }) {}
@@ -107,6 +108,11 @@ class Genode::Ipc_pager
 		 * Access direction of current page fault
 		 */
 		bool write_fault() const;
+
+		/**
+		 * Executable permission fault
+		 */
+		bool exec_fault() const { return false; }
 
 		/**
 		 * Input mapping data as reply to current page fault

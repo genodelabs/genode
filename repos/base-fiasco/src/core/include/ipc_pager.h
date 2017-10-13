@@ -48,11 +48,10 @@ namespace Genode {
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
 			        Cache_attribute cacheability, bool io_mem,
-			        unsigned l2size = L4_LOG2_PAGESIZE,
-			        bool rw = true, bool grant = false)
+			        unsigned l2size, bool rw, bool executable)
 			:
 				_dst_addr(dst_addr),
-				_fpage(Fiasco::l4_fpage(src_addr, l2size, rw, grant))
+				_fpage(Fiasco::l4_fpage(src_addr, l2size, rw, false))
 			{
 				if (cacheability == WRITE_COMBINED)
 					_fpage.fp.cache = Fiasco::L4_FPAGE_BUFFERABLE;
@@ -162,6 +161,8 @@ namespace Genode {
 				return convert_native_thread_id_to_badge(_last); }
 
 			bool write_fault() const { return (_pf_addr & 2); }
+
+			bool exec_fault()  const { return false; }
 
 			/**
 			 * Return true if last fault was an exception
