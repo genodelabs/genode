@@ -28,3 +28,6 @@ void Genode::Ipc_pager::_parse_exception()
 	else
 		_type = EXCEPTION;
 }
+
+bool Genode::Ipc_pager::exec_fault() const {
+	return ((_pf_addr & 1) && !write_fault()); }

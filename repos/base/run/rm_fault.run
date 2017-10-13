@@ -7,6 +7,8 @@ if {[have_spec linux]} {
 #
 proc non_executable_supported { } {
 	if {[have_spec nova] && [have_spec x86_64]} { return true }
+	if {[have_spec foc]  && [have_spec x86_64]} { return true }
+	if {[have_spec foc]  && [have_spec arm]}    { return true }
 
 	return false
 }

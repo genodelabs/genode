@@ -75,3 +75,7 @@ void Genode::Ipc_pager::set_regs(Foc_thread_state state)
 	_regs.cpsr  = state.cpsr;
 }
 
+bool Genode::Ipc_pager::exec_fault() const
+{
+	return (_pf_addr & 4) && !(_pf_addr & 1);
+}
