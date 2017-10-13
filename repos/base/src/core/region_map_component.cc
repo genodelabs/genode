@@ -216,7 +216,8 @@ int Rm_client::pager(Ipc_pager &pager)
 			                 pf_addr, pf_ip, pf_type, *this);
 
 			/* register fault at responsible region map */
-			region_map->fault(this, dsc->map_src_addr() + ds_offset, pf_type);
+			if (region_map)
+				region_map->fault(this, pf_addr - region_offset, pf_type);
 			return 2;
 		}
 
