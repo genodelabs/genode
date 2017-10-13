@@ -83,7 +83,7 @@ addr_t Platform::_map_pages(addr_t phys_page, addr_t const pages)
 	addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
 	int res = map_local(__main_thread_utcb, phys_addr, core_local_addr, pages,
-	                    Nova::Rights(true, true, true), true);
+	                    Nova::Rights(true, true, false), true);
 
 	return res ? 0 : core_local_addr;
 }
@@ -814,7 +814,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 {
 	map_local((Utcb *)Thread::myself()->utcb(), phys_addr,
 	          virt_addr, size / get_page_size(),
-	          Rights(true, true, true), true);
+	          Rights(true, true, false), true);
 	return true;
 }
 

@@ -55,7 +55,9 @@ void Ipc_pager::set_reply_mapping(Mapping m)
 
 	/* receive window in destination pd */
 	Nova::Mem_crd crd_mem(m.dst_addr() >> 12, m.mem_crd().order(),
-	                      Nova::Rights(true, true, true));
+	                      Nova::Rights(m.mem_crd().rights().readable(),
+	                                   m.mem_crd().rights().writeable(),
+	                                   m.mem_crd().rights().executable()));
 	/* asynchronously map memory */
 	_syscall_res = Nova::delegate(_pd_core, _pd_dst, crd_mem);
 }

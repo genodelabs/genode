@@ -67,7 +67,7 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 			/* receive window in destination pd */
 			Nova::Mem_crd crd_mem(mapping.dst_addr() >> 12,
 			                      mapping.mem_crd().order(),
-			                      Nova::Rights(true, dsc->writable(), true));
+			                      Nova::Rights(true, dsc->writable(), region->executable()));
 
 			err = Nova::delegate(pd_core, pd_dst, crd_mem);
 		} while (err == Nova::NOVA_PD_OOM &&
