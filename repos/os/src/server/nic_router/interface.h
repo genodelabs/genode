@@ -29,6 +29,7 @@ namespace Net {
 	using Packet_descriptor    = ::Nic::Packet_descriptor;
 	using Packet_stream_sink   = ::Nic::Packet_stream_sink< ::Nic::Session::Policy>;
 	using Packet_stream_source = ::Nic::Packet_stream_source< ::Nic::Session::Policy>;
+	class Ipv4_config;
 	class Forward_rule_tree;
 	class Transport_rule_list;
 	class Ethernet_frame;
@@ -209,6 +210,8 @@ class Net::Interface
 		Link_side_tree &_links(L3_protocol const protocol);
 
 		Configuration &_config() const;
+
+		Ipv4_config const &_ip_config() const;
 
 		Ipv4_address const &_router_ip() const;
 

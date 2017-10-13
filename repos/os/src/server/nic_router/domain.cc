@@ -160,19 +160,17 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 :
 	Domain_base(node), _avl_member(_name, *this), _config(config),
 	_node(node), _alloc(alloc),
-	_interface_attr(node.attribute_value("interface", Ipv4_address_prefix())),
-	_gateway(node.attribute_value("gateway", Ipv4_address())),
-	_gateway_valid(_gateway.valid())
+	_ip_config(_node.attribute_value("interface", Ipv4_address_prefix()),
+	           _node.attribute_value("gateway",   Ipv4_address()))
 {
-	if (_name == Domain_name() || !_interface_attr.valid() ||
-	    (_gateway_valid && !_interface_attr.prefix_matches(_gateway)))
-	{
+	if (_name == Domain_name() || !_ip_config.interface_valid) {
 		throw Invalid();
 	}
 	/* try to find configuration for DHCP server role */
 	try {
 		_dhcp_server.set(*new (alloc)
-			Dhcp_server(node.sub_node("dhcp-server"), alloc, _interface_attr));
+			Dhcp_server(node.sub_node("dhcp-server"), alloc,
+			            _ip_config.interface));
 
 		if (_config.verbose()) {
 			log("  DHCP server: ", _dhcp_server.deref()); }
@@ -221,8 +219,8 @@ void Domain::create_rules(Domain_tree &domains)
 
 Ipv4_address const &Domain::next_hop(Ipv4_address const &ip) const
 {
-	if (_interface_attr.prefix_matches(ip)) { return ip; }
-	if (_gateway_valid) { return _gateway; }
+	if (_ip_config.interface.prefix_matches(ip)) { return ip; }
+	if (_ip_config.gateway_valid) { return _ip_config.gateway; }
 	throw No_next_hop();
 }
 

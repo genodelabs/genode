@@ -399,11 +399,11 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 	reply_dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
 	reply_dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(_router_ip());
 	reply_dhcp_opts.append_option<Dhcp_packet::Ip_lease_time>(dhcp_srv.ip_lease_time().value / 1000 / 1000);
-	reply_dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(_domain.interface_attr().subnet_mask());
+	reply_dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(_ip_config().interface.subnet_mask());
 	reply_dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(_router_ip());
 	if (dhcp_srv.dns_server().valid()) {
 		reply_dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dhcp_srv.dns_server()); }
-	reply_dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(_domain.interface_attr().broadcast_address());
+	reply_dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(_ip_config().interface.broadcast_address());
 	reply_dhcp_opts.append_option<Dhcp_packet::Options_end>();
 
 	/* fill in header values that need the packet to be complete already */
@@ -723,7 +723,7 @@ void Interface::_handle_arp_reply(Arp_packet &arp)
 
 Ipv4_address const &Interface::_router_ip() const
 {
-	return _domain.interface_attr().address;
+	return _ip_config().interface.address;
 }
 
 
@@ -739,8 +739,8 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 	 * attribute.
 	 */
 	if (arp.dst_ip() != _router_ip() &&
-	    (_domain.gateway_valid() ||
-	     _domain.interface_attr().prefix_matches(arp.dst_ip())))
+	    (_ip_config().gateway_valid ||
+	     _ip_config().interface.prefix_matches(arp.dst_ip())))
 	{
 		if (_config().verbose()) {
 			log("Ignore ARP request"); }
@@ -913,7 +913,7 @@ Interface::Interface(Entrypoint        &ep,
 		log("Interface connected ", *this);
 		log("  MAC ", _mac);
 		log("  Router identity: MAC ", _router_mac, " IP ",
-		    _router_ip(), "/", _domain.interface_attr().prefix);
+		    _router_ip(), "/", _ip_config().interface.prefix);
 	}
 	_domain.interface().set(*this);
 }
@@ -965,6 +965,9 @@ Interface::~Interface()
 
 
 Configuration &Interface::_config() const { return _domain.config(); }
+
+
+Ipv4_config const &Interface::_ip_config() const { return _domain.ip_config(); }
 
 
 void Interface::print(Output &output) const

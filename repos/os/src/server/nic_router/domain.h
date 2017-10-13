@@ -22,6 +22,7 @@
 #include <port_allocator.h>
 #include <pointer.h>
 #include <bit_allocator_dynamic.h>
+#include <ipv4_config.h>
 
 /* Genode includes */
 #include <util/avl_string.h>
@@ -128,9 +129,6 @@ class Net::Domain : public Domain_base
 		Configuration        &_config;
 		Genode::Xml_node      _node;
 		Genode::Allocator    &_alloc;
-		Ipv4_address_prefix   _interface_attr;
-		Ipv4_address const    _gateway;
-		bool         const    _gateway_valid;
 		Ip_rule_list          _ip_rules;
 		Forward_rule_tree     _tcp_forward_rules;
 		Forward_rule_tree     _udp_forward_rules;
@@ -141,6 +139,7 @@ class Net::Domain : public Domain_base
 		Nat_rule_tree         _nat_rules;
 		Pointer<Interface>    _interface;
 		Pointer<Dhcp_server>  _dhcp_server;
+		Ipv4_config           _ip_config;
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -181,15 +180,14 @@ class Net::Domain : public Domain_base
 		 ** Accessors **
 		 ***************/
 
-		bool                 gateway_valid() const { return _gateway_valid; }
-		Domain_name const   &name()                { return _name; }
+		Ipv4_config   const &ip_config()     const { return _ip_config; }
+		Domain_name   const &name()                { return _name; }
 		Ip_rule_list        &ip_rules()            { return _ip_rules; }
 		Forward_rule_tree   &tcp_forward_rules()   { return _tcp_forward_rules; }
 		Forward_rule_tree   &udp_forward_rules()   { return _udp_forward_rules; }
 		Transport_rule_list &tcp_rules()           { return _tcp_rules; }
 		Transport_rule_list &udp_rules()           { return _udp_rules; }
 		Nat_rule_tree       &nat_rules()           { return _nat_rules; }
-		Ipv4_address_prefix &interface_attr()      { return _interface_attr; }
 		Pointer<Interface>  &interface()           { return _interface; }
 		Configuration       &config()        const { return _config; }
 		Domain_avl_member   &avl_member()          { return _avl_member; }
