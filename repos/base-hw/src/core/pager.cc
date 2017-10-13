@@ -36,6 +36,8 @@ addr_t Ipc_pager::fault_addr() const { return _fault.addr; }
 
 bool Ipc_pager::write_fault() const { return _fault.writes; }
 
+bool Ipc_pager::exec_fault() const { return _fault.exec; }
+
 void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 
 

@@ -43,6 +43,7 @@ void Kernel::Thread::_mmu_exception()
 	_fault_pd     = (addr_t)_pd->platform_pd();
 	_fault_addr   = Cpu::Cr2::read();
 	_fault_writes = (regs->errcode & ERR_P) && (regs->errcode & ERR_W);
+	_fault_exec   = (regs->errcode & ERR_P) && (regs->errcode & ERR_I);
 
 	/*
 	 * Core should never raise a page-fault. If this happens, print out an

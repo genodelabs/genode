@@ -64,6 +64,7 @@ class Kernel::Thread
 		bool               _paused = false;
 		bool               _cancel_next_await_signal = false;
 		bool const         _core = false;
+		bool               _fault_exec = false;
 
 		void _init();
 
@@ -309,6 +310,7 @@ class Kernel::Thread
 		addr_t fault_pd()     const { return _fault_pd; }
 		addr_t fault_addr()   const { return _fault_addr; }
 		addr_t fault_writes() const { return _fault_writes; }
+		bool   fault_exec()   const { return _fault_exec; }
 };
 
 

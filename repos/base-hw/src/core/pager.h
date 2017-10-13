@@ -68,7 +68,8 @@ struct Genode::Mapping : Hw::Mapping
 	        bool writeable,
 	        bool executable)
 	: Hw::Mapping(phys, virt, 1 << size_log2,
-	              { writeable ? Hw::RW : Hw::RO, Hw::EXEC, Hw::USER,
+	              { writeable ? Hw::RW : Hw::RO,
+	                executable ? Hw::EXEC : Hw::NO_EXEC, Hw::USER,
 	                Hw::NO_GLOBAL, io ? Hw::DEVICE : Hw::RAM, cacheable }) {}
 
 	void prepare_map_operation() const {}
@@ -87,6 +88,7 @@ class Genode::Ipc_pager
 			addr_t ip;
 			addr_t addr;
 			addr_t writes;
+			addr_t exec;
 			addr_t signal;
 		} _fault;
 
@@ -112,7 +114,7 @@ class Genode::Ipc_pager
 		/**
 		 * Executable permission fault
 		 */
-		bool exec_fault() const { return false; }
+		bool exec_fault() const; 
 
 		/**
 		 * Input mapping data as reply to current page fault
