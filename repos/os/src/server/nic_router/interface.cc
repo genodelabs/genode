@@ -324,76 +324,75 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 	catch (...) { throw Alloc_dhcp_msg_buffer_failed(); }
 
 	/* create ETH header of the reply */
-	Size_guard reply_size;
-	reply_size.add(sizeof(Ethernet_frame));
-	Ethernet_frame &reply_eth = *reinterpret_cast<Ethernet_frame *>(buf);
-	reply_eth.dst(client_mac);
-	reply_eth.src(_router_mac);
-	reply_eth.type(Ethernet_frame::Type::IPV4);
+	Size_guard size;
+	size.add(sizeof(Ethernet_frame));
+	Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(buf);
+	eth.dst(client_mac);
+	eth.src(_router_mac);
+	eth.type(Ethernet_frame::Type::IPV4);
 
 	/* create IP header of the reply */
 	enum { IPV4_TIME_TO_LIVE = 64 };
-	size_t const reply_ip_off = reply_size.curr();
-	reply_size.add(sizeof(Ipv4_packet));
-	Ipv4_packet &reply_ip = *reply_eth.data<Ipv4_packet>();
-	reply_ip.header_length(sizeof(Ipv4_packet) / 4);
-	reply_ip.version(4);
-	reply_ip.diff_service(0);
-	reply_ip.identification(0);
-	reply_ip.flags(0);
-	reply_ip.fragment_offset(0);
-	reply_ip.time_to_live(IPV4_TIME_TO_LIVE);
-	reply_ip.protocol(Ipv4_packet::Protocol::UDP);
-	reply_ip.src(_router_ip());
-	reply_ip.dst(client_ip);
+	size_t const ip_off = size.curr();
+	size.add(sizeof(Ipv4_packet));
+	Ipv4_packet &ip = *eth.data<Ipv4_packet>();
+	ip.header_length(sizeof(Ipv4_packet) / 4);
+	ip.version(4);
+	ip.diff_service(0);
+	ip.identification(0);
+	ip.flags(0);
+	ip.fragment_offset(0);
+	ip.time_to_live(IPV4_TIME_TO_LIVE);
+	ip.protocol(Ipv4_packet::Protocol::UDP);
+	ip.src(_router_ip());
+	ip.dst(client_ip);
 
 	/* create UDP header of the reply */
-	size_t const reply_udp_off = reply_size.curr();
-	reply_size.add(sizeof(Udp_packet));
-	Udp_packet &reply_udp = *reply_ip.data<Udp_packet>();
-	reply_udp.src_port(Port(Dhcp_packet::BOOTPS));
-	reply_udp.dst_port(Port(Dhcp_packet::BOOTPC));
+	size_t const udp_off = size.curr();
+	size.add(sizeof(Udp_packet));
+	Udp_packet &udp = *ip.data<Udp_packet>();
+	udp.src_port(Port(Dhcp_packet::BOOTPS));
+	udp.dst_port(Port(Dhcp_packet::BOOTPC));
 
 	/* create mandatory DHCP fields of the reply  */
-	reply_size.add(sizeof(Dhcp_packet));
-	Dhcp_packet &reply_dhcp = *reply_udp.data<Dhcp_packet>();
-	reply_dhcp.op(Dhcp_packet::REPLY);
-	reply_dhcp.htype(Dhcp_packet::Htype::ETH);
-	reply_dhcp.hlen(sizeof(Mac_address));
-	reply_dhcp.hops(0);
-	reply_dhcp.xid(xid);
-	reply_dhcp.secs(0);
-	reply_dhcp.flags(0);
-	reply_dhcp.ciaddr(msg_type == Dhcp_packet::Message_type::INFORM ? client_ip : Ipv4_address());
-	reply_dhcp.yiaddr(msg_type == Dhcp_packet::Message_type::INFORM ? Ipv4_address() : client_ip);
-	reply_dhcp.siaddr(_router_ip());
-	reply_dhcp.giaddr(Ipv4_address());
-	reply_dhcp.client_mac(client_mac);
-	reply_dhcp.zero_fill_sname();
-	reply_dhcp.zero_fill_file();
-	reply_dhcp.default_magic_cookie();
+	size.add(sizeof(Dhcp_packet));
+	Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
+	dhcp.op(Dhcp_packet::REPLY);
+	dhcp.htype(Dhcp_packet::Htype::ETH);
+	dhcp.hlen(sizeof(Mac_address));
+	dhcp.hops(0);
+	dhcp.xid(xid);
+	dhcp.secs(0);
+	dhcp.flags(0);
+	dhcp.ciaddr(msg_type == Dhcp_packet::Message_type::INFORM ? client_ip : Ipv4_address());
+	dhcp.yiaddr(msg_type == Dhcp_packet::Message_type::INFORM ? Ipv4_address() : client_ip);
+	dhcp.siaddr(_router_ip());
+	dhcp.giaddr(Ipv4_address());
+	dhcp.client_mac(client_mac);
+	dhcp.zero_fill_sname();
+	dhcp.zero_fill_file();
+	dhcp.default_magic_cookie();
 
 	/* append DHCP option fields to the reply */
-	Dhcp_packet::Options_aggregator<Size_guard>
-		reply_dhcp_opts(reply_dhcp, reply_size);
-	reply_dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
-	reply_dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(_router_ip());
-	reply_dhcp_opts.append_option<Dhcp_packet::Ip_lease_time>(dhcp_srv.ip_lease_time().value / 1000 / 1000);
-	reply_dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(_ip_config().interface.subnet_mask());
-	reply_dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(_router_ip());
+	Dhcp_packet::Options_aggregator<Size_guard> dhcp_opts(dhcp, size);
+	dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
+	dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(_router_ip());
+	dhcp_opts.append_option<Dhcp_packet::Ip_lease_time>(dhcp_srv.ip_lease_time().value / 1000 / 1000);
+	dhcp_opts.append_option<Dhcp_packet::Subnet_mask>(_ip_config().interface.subnet_mask());
+	dhcp_opts.append_option<Dhcp_packet::Router_ipv4>(_router_ip());
 	if (dhcp_srv.dns_server().valid()) {
-		reply_dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dhcp_srv.dns_server()); }
-	reply_dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(_ip_config().interface.broadcast_address());
-	reply_dhcp_opts.append_option<Dhcp_packet::Options_end>();
+		dhcp_opts.append_option<Dhcp_packet::Dns_server_ipv4>(dhcp_srv.dns_server()); }
+	dhcp_opts.append_option<Dhcp_packet::Broadcast_addr>(_ip_config().interface.broadcast_address());
+	dhcp_opts.append_option<Dhcp_packet::Options_end>();
 
 	/* fill in header values that need the packet to be complete already */
-	reply_udp.length(reply_size.curr() - reply_udp_off);
-	reply_udp.update_checksum(reply_ip.src(), reply_ip.dst());
-	reply_ip.total_length(reply_size.curr() - reply_ip_off);
-	reply_ip.checksum(Ipv4_packet::calculate_checksum(reply_ip));
+	udp.length(size.curr() - udp_off);
+	udp.update_checksum(ip.src(), ip.dst());
+	ip.total_length(size.curr() - ip_off);
+	ip.checksum(Ipv4_packet::calculate_checksum(ip));
 
 	/* send reply to sender of request and free reply buffer */
-	send(reply_eth, reply_size.curr());
+	send(eth, size.curr());
 	_alloc.free(buf, BUF_SIZE);
 }
 
@@ -542,9 +541,9 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 	/* try to route via transport layer rules */
 	try {
-		L3_protocol   const prot      = ip.protocol();
-		size_t        const prot_size = ip.total_length() - ip.header_length() * 4;
-		void         *const prot_base = _prot_base(prot, prot_size, ip);
+		L3_protocol  const prot      = ip.protocol();
+		size_t       const prot_size = ip.total_length() - ip.header_length() * 4;
+		void        *const prot_base = _prot_base(prot, prot_size, ip);
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
@@ -570,8 +569,8 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 				}
 			}
 		}
-		Link_side_id  const local = { ip.src(), _src_port(prot, prot_base),
-		                              ip.dst(), _dst_port(prot, prot_base) };
+		Link_side_id const local = { ip.src(), _src_port(prot, prot_base),
+		                             ip.dst(), _dst_port(prot, prot_base) };
 
 		/* try to route via existing UDP/TCP links */
 		try {

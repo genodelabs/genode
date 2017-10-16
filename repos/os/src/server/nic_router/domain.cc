@@ -212,7 +212,7 @@ void Domain::_ip_config_changed()
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
 	catch (Dhcp_server::Invalid) {
-		error("Invalid DHCP server configuration at domain ", *this); }
+		error("Invalid DHCP server configuration at domain \"", *this, "\""); }
 }
 
 
