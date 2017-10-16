@@ -94,14 +94,15 @@ append_if [expr $use_net] config {
 		<provides><service name="Nic"/></provides>
 	</start>
 
-	<start name="nic_router" caps="200">
+	<start name="router1" caps="200">
+		<binary name="nic_router"/>
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config rtt_sec="6" verbose="yes">
 
-			<policy label_prefix="vbox1" domain="vbox"/>
+			<policy label_prefix="router2" domain="router2"/>
 
-			<domain name="vbox" interface="10.0.1.79/24">
+			<domain name="router2" interface="10.0.1.79/24">
 				<dhcp-server ip_first="10.0.1.80"
 				             ip_last="10.0.1.100"
 				             ip_lease_time_sec="20"
@@ -110,13 +111,41 @@ append_if [expr $use_net] config {
 				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
 			</domain>
 
-			<domain name="uplink" interface="10.0.0.72/24" gateway="10.0.0.1">
-				<nat domain="vbox" tcp-ports="999" udp-ports="999"/>
+			<domain name="uplink">
+				<nat domain="router2" tcp-ports="999" udp-ports="999"/>
 			</domain>
 
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="router2" caps="200">
+		<binary name="nic_router"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config rtt_sec="6" verbose="yes">
+
+			<policy label_prefix="vbox1" domain="vbox"/>
+
+			<domain name="vbox" interface="10.0.2.79/24">
+				<dhcp-server ip_first="10.0.2.80"
+				             ip_last="10.0.2.100"
+				             ip_lease_time_sec="20"
+				             dns_server="10.0.0.2"/>
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+			</domain>
+
+			<domain name="uplink">
+				<nat domain="vbox" tcp-ports="999" udp-ports="999"/>
+			</domain>
+
+		</config>
+		<route>
+			<service name="Nic"> <child name="router1"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -151,7 +180,7 @@ append config {
 			</vfs>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
+			<service name="Nic"> <child name="router2"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
