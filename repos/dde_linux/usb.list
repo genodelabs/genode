@@ -21,6 +21,7 @@ linux-x.x.x/drivers/net/usb/asix_devices.c
 linux-x.x.x/drivers/net/usb/asix.h
 linux-x.x.x/drivers/net/usb/ax88172a.c
 linux-x.x.x/drivers/net/usb/ax88179_178a.c
+linux-x.x.x/drivers/net/usb/cdc_ether.c
 linux-x.x.x/drivers/net/usb/smsc95xx.h
 linux-x.x.x/drivers/net/usb/smsc95xx.c
 linux-x.x.x/drivers/net/usb/usbnet.c
@@ -130,6 +131,7 @@ linux-x.x.x/include/asm-generic/bitops/__fls.h
 linux-x.x.x/include/asm-generic/bitops/fls64.h
 linux-x.x.x/include/asm-generic/bitops/non-atomic.h
 linux-x.x.x/include/asm-generic/ioctl.h
+linux-x.x.x/include/linux/ctype.h
 linux-x.x.x/include/linux/hiddev.h
 linux-x.x.x/include/linux/hid.h
 linux-x.x.x/include/linux/input.h
@@ -171,4 +173,5 @@ linux-x.x.x/include/uapi/linux/swab.h
 linux-x.x.x/include/uapi/linux/usb/ch11.h
 linux-x.x.x/include/uapi/linux/usb/ch9.h
 linux-x.x.x/include/uapi/linux/usb/cdc.h
+linux-x.x.x/lib/ctype.c
 linux-x.x.x/lib/int_sqrt.c
