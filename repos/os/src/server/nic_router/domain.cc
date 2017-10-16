@@ -116,6 +116,22 @@ Domain_base::Domain_base(Xml_node const node)
  ** Domain **
  ************/
 
+void Domain::ip_config(Ipv4_address ip,
+                       Ipv4_address subnet_mask,
+                       Ipv4_address gateway)
+{
+	_ip_config.construct(Ipv4_address_prefix(ip, subnet_mask), gateway);
+	_ip_config_changed();
+}
+
+
+void Domain::discard_ip_config()
+{
+	_ip_config.construct();
+	_ip_config_changed();
+}
+
+
 void Domain::_read_forward_rules(Cstring  const    &protocol,
                                  Domain_tree       &domains,
                                  Xml_node const     node,
@@ -163,17 +179,36 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	_ip_config(_node.attribute_value("interface", Ipv4_address_prefix()),
 	           _node.attribute_value("gateway",   Ipv4_address()))
 {
-	if (_name == Domain_name() || !_ip_config.interface_valid) {
+	if (_name == Domain_name()) {
+		error("Missing name attribute in domain node");
 		throw Invalid();
+	}
+	if (!ip_config().valid && _node.has_sub_node("dhcp-server")) {
+		error("Domain cannot act as DHCP client and server at once");
+		throw Invalid();
+	}
+	_ip_config_changed();
+}
+
+
+void Domain::_ip_config_changed()
+{
+	if (!ip_config().valid) {
+		return;
+	}
+	if (_config.verbose()) {
+		log("New IP config at domain \"", *this, "\":"
+		    " interface ", ip_config().interface,
+		      " gateway ", ip_config().gateway);
 	}
 	/* try to find configuration for DHCP server role */
 	try {
-		_dhcp_server.set(*new (alloc)
-			Dhcp_server(node.sub_node("dhcp-server"), alloc,
-			            _ip_config.interface));
+		_dhcp_server.set(*new (_alloc)
+			Dhcp_server(_node.sub_node("dhcp-server"), _alloc,
+			            ip_config().interface));
 
 		if (_config.verbose()) {
-			log("  DHCP server: ", _dhcp_server.deref()); }
+			log("DHCP server at domain \"", *this, "\": ", _dhcp_server.deref()); }
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
 	catch (Dhcp_server::Invalid) {
@@ -219,8 +254,8 @@ void Domain::create_rules(Domain_tree &domains)
 
 Ipv4_address const &Domain::next_hop(Ipv4_address const &ip) const
 {
-	if (_ip_config.interface.prefix_matches(ip)) { return ip; }
-	if (_ip_config.gateway_valid) { return _ip_config.gateway; }
+	if (ip_config().interface.prefix_matches(ip)) { return ip; }
+	if (ip_config().gateway_valid) { return ip_config().gateway; }
 	throw No_next_hop();
 }
 

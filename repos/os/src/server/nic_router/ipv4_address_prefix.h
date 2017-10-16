@@ -23,7 +23,12 @@ namespace Net { class Ipv4_address_prefix; }
 struct Net::Ipv4_address_prefix
 {
 	Ipv4_address    address;
-	Genode::uint8_t prefix { 32 };
+	Genode::uint8_t prefix;
+
+	Ipv4_address_prefix(Ipv4_address address,
+	                    Ipv4_address subnet_mask);
+
+	Ipv4_address_prefix() : prefix(32) { }
 
 	bool valid() const { return address.valid() || prefix == 0; }
 

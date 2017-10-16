@@ -19,6 +19,7 @@
 #include <arp_cache.h>
 #include <arp_waiter.h>
 #include <l3_protocol.h>
+#include <dhcp_client.h>
 
 /* Genode includes */
 #include <nic_session/nic_session.h>
@@ -120,6 +121,8 @@ class Net::Interface
 		Mac_address const _router_mac;
 		Mac_address const _mac;
 
+		void _init();
+
 	private:
 
 		Timer::Connection  &_timer;
@@ -134,6 +137,7 @@ class Net::Interface
 		Link_list           _closed_udp_links;
 		Ip_allocation_tree  _ip_allocations;
 		Ip_allocation_list  _released_ip_allocations;
+		Dhcp_client         _dhcp_client { _alloc, _timer, *this };
 
 		void _new_link(L3_protocol                   const  protocol,
 		               Link_side_id                  const &local_id,
@@ -190,8 +194,6 @@ class Net::Interface
 
 		void _broadcast_arp_request(Ipv4_address const &ip);
 
-		void _send(Ethernet_frame &eth, Genode::size_t const eth_size);
-
 		void _pass_prot(Ethernet_frame         &eth,
 		                Genode::size_t   const  eth_size,
 		                Ipv4_packet            &ip,
@@ -239,12 +241,20 @@ class Net::Interface
 
 	public:
 
-		struct Bad_transport_protocol         : Genode::Exception { };
-		struct Bad_network_protocol           : Genode::Exception { };
-		struct Packet_postponed               : Genode::Exception { };
-		struct Bad_dhcp_request               : Genode::Exception { };
-		struct Alloc_dhcp_reply_buffer_failed : Genode::Exception { };
-		struct Dhcp_reply_buffer_too_small    : Genode::Exception { };
+		struct Bad_send_dhcp_args           : Genode::Exception { };
+		struct Bad_transport_protocol       : Genode::Exception { };
+		struct Bad_network_protocol         : Genode::Exception { };
+		struct Packet_postponed             : Genode::Exception { };
+		struct Bad_dhcp_request             : Genode::Exception { };
+		struct Alloc_dhcp_msg_buffer_failed : Genode::Exception { };
+		struct Dhcp_msg_buffer_too_small    : Genode::Exception { };
+
+		struct Packet_ignored : Genode::Exception
+		{
+			char const *reason;
+
+			Packet_ignored(char const *reason) : reason(reason) { }
+		};
 
 		Interface(Genode::Entrypoint &ep,
 		          Timer::Connection  &timer,
@@ -261,6 +271,8 @@ class Net::Interface
 
 		void dissolve_link(Link_side &link_side, L3_protocol const prot);
 
+		void send(Ethernet_frame &eth, Genode::size_t const eth_size);
+
 
 		/*********
 		 ** log **
@@ -273,6 +285,8 @@ class Net::Interface
 		 ** Accessors **
 		 ***************/
 
+		Domain          &domain()              { return _domain; }
+		Mac_address      router_mac()    const { return _router_mac; }
 		Arp_waiter_list &own_arp_waiters()     { return _own_arp_waiters; }
 		Arp_waiter_list &foreign_arp_waiters() { return _foreign_arp_waiters; }
 };

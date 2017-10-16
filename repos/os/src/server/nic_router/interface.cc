@@ -20,31 +20,10 @@
 #include <interface.h>
 #include <configuration.h>
 #include <l3_protocol.h>
+#include <size_guard.h>
 
 using namespace Net;
 using namespace Genode;
-
-/**
- * Utility to ensure that a size value doesn't exceed a limit
- */
-template <size_t MAX, typename EXCEPTION>
-class Size_guard
-{
-	private:
-
-		size_t _curr { 0 };
-
-	public:
-
-		void add(size_t size)
-		{
-			size_t const new_size = _curr + size;
-			if (new_size > MAX) { throw EXCEPTION(); }
-			_curr = new_size;
-		}
-
-		size_t curr() const { return _curr; }
-};
 
 
 /***************
@@ -186,7 +165,7 @@ void Interface::_pass_ip(Ethernet_frame &eth,
                          Ipv4_packet    &ip)
 {
 	ip.checksum(Ipv4_packet::calculate_checksum(ip));
-	_send(eth, eth_size);
+	send(eth, eth_size);
 }
 
 
@@ -339,12 +318,13 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 {
 	/* allocate buffer for the reply */
 	enum { BUF_SIZE = 512 };
+	using Size_guard = Size_guard_tpl<BUF_SIZE, Dhcp_msg_buffer_too_small>;
 	void *buf;
 	try { _alloc.alloc(BUF_SIZE, &buf); }
-	catch (...) { throw Alloc_dhcp_reply_buffer_failed(); }
+	catch (...) { throw Alloc_dhcp_msg_buffer_failed(); }
 
 	/* create ETH header of the reply */
-	Size_guard<BUF_SIZE, Dhcp_reply_buffer_too_small> reply_size;
+	Size_guard reply_size;
 	reply_size.add(sizeof(Ethernet_frame));
 	Ethernet_frame &reply_eth = *reinterpret_cast<Ethernet_frame *>(buf);
 	reply_eth.dst(client_mac);
@@ -394,7 +374,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 	reply_dhcp.default_magic_cookie();
 
 	/* append DHCP option fields to the reply */
-	Dhcp_packet::Options_aggregator<Size_guard<BUF_SIZE, Dhcp_reply_buffer_too_small> >
+	Dhcp_packet::Options_aggregator<Size_guard>
 		reply_dhcp_opts(reply_dhcp, reply_size);
 	reply_dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
 	reply_dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(_router_ip());
@@ -413,7 +393,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 	reply_ip.checksum(Ipv4_packet::calculate_checksum(reply_ip));
 
 	/* send reply to sender of request and free reply buffer */
-	_send(reply_eth, reply_size.curr());
+	send(reply_eth, reply_size.curr());
 	_alloc.free(buf, BUF_SIZE);
 }
 
@@ -584,6 +564,9 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 						return;
 					}
 					catch (Pointer<Dhcp_server>::Invalid) { }
+				} else {
+					_dhcp_client.handle_ip(eth, eth_size);
+					return;
 				}
 			}
 		}
@@ -690,7 +673,7 @@ void Interface::_broadcast_arp_request(Ipv4_address const &ip)
 	arp.src_ip(_router_ip());
 	arp.dst_mac(Mac_address(0xff));
 	arp.dst_ip(ip);
-	_send(eth_arp, sizeof(eth_arp));
+	send(eth_arp, sizeof(eth_arp));
 }
 
 
@@ -758,7 +741,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 
 	/* mark packet as reply and send it back to its sender */
 	arp.opcode(Arp_packet::REPLY);
-	_send(eth, eth_size);
+	send(eth, eth_size);
 }
 
 
@@ -838,10 +821,19 @@ void Interface::_handle_eth(void              *const  eth_base,
 		if (_config().verbose()) {
 			log("\033[33m(router <- ", _domain, ")\033[0m ", *eth); }
 
-		switch (eth->type()) {
-		case Ethernet_frame::Type::ARP:  _handle_arp(*eth, eth_size);     break;
-		case Ethernet_frame::Type::IPV4: _handle_ip(*eth, eth_size, pkt); break;
-		default: throw Bad_network_protocol(); }
+		if (_domain.ip_config().valid) {
+
+			switch (eth->type()) {
+			case Ethernet_frame::Type::ARP:  _handle_arp(*eth, eth_size);     break;
+			case Ethernet_frame::Type::IPV4: _handle_ip(*eth, eth_size, pkt); break;
+			default: throw Bad_network_protocol(); }
+
+		} else {
+
+			switch (eth->type()) {
+			case Ethernet_frame::Type::IPV4: _dhcp_client.handle_ip(*eth, eth_size); break;
+			default: throw Bad_network_protocol(); }
+		}
 	}
 	catch (Ethernet_frame::No_ethernet_frame) {
 		error("invalid ethernet frame"); }
@@ -866,10 +858,10 @@ void Interface::_handle_eth(void              *const  eth_base,
 	catch (Bad_dhcp_request) {
 		error("bad DHCP request"); }
 
-	catch (Alloc_dhcp_reply_buffer_failed) {
+	catch (Alloc_dhcp_msg_buffer_failed) {
 		error("failed to allocate buffer for DHCP reply"); }
 
-	catch (Dhcp_reply_buffer_too_small) {
+	catch (Dhcp_msg_buffer_too_small) {
 		error("DHCP reply buffer too small"); }
 
 	catch (Dhcp_server::Alloc_ip_failed) {
@@ -877,7 +869,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 }
 
 
-void Interface::_send(Ethernet_frame &eth, Genode::size_t const size)
+void Interface::send(Ethernet_frame &eth, Genode::size_t const size)
 {
 	if (_config().verbose()) {
 		log("\033[33m(", _domain, " <- router)\033[0m ", eth); }
@@ -916,6 +908,14 @@ Interface::Interface(Entrypoint        &ep,
 		    _router_ip(), "/", _ip_config().interface.prefix);
 	}
 	_domain.interface().set(*this);
+}
+
+
+void Interface::_init()
+{
+	if (!_domain.ip_config().valid) {
+		_dhcp_client.discover();
+	}
 }
 
 

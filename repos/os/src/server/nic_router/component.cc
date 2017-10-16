@@ -74,6 +74,7 @@ Net::Session_component::Session_component(Allocator         &alloc,
 	_tx.sigh_packet_avail(_sink_submit);
 	_rx.sigh_ack_avail(_source_ack);
 	_rx.sigh_ready_to_submit(_source_submit);
+	Interface::_init();
 }
 
 

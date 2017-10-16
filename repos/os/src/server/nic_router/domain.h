@@ -29,6 +29,7 @@
 #include <util/xml_node.h>
 #include <util/noncopyable.h>
 #include <os/duration.h>
+#include <util/reconstructible.h>
 
 namespace Genode { class Allocator; }
 
@@ -125,21 +126,21 @@ class Net::Domain : public Domain_base
 {
 	private:
 
-		Domain_avl_member     _avl_member;
-		Configuration        &_config;
-		Genode::Xml_node      _node;
-		Genode::Allocator    &_alloc;
-		Ip_rule_list          _ip_rules;
-		Forward_rule_tree     _tcp_forward_rules;
-		Forward_rule_tree     _udp_forward_rules;
-		Transport_rule_list   _tcp_rules;
-		Transport_rule_list   _udp_rules;
-		Port_allocator        _tcp_port_alloc;
-		Port_allocator        _udp_port_alloc;
-		Nat_rule_tree         _nat_rules;
-		Pointer<Interface>    _interface;
-		Pointer<Dhcp_server>  _dhcp_server;
-		Ipv4_config           _ip_config;
+		Domain_avl_member                     _avl_member;
+		Configuration                        &_config;
+		Genode::Xml_node                      _node;
+		Genode::Allocator                    &_alloc;
+		Ip_rule_list                          _ip_rules;
+		Forward_rule_tree                     _tcp_forward_rules;
+		Forward_rule_tree                     _udp_forward_rules;
+		Transport_rule_list                   _tcp_rules;
+		Transport_rule_list                   _udp_rules;
+		Port_allocator                        _tcp_port_alloc;
+		Port_allocator                        _udp_port_alloc;
+		Nat_rule_tree                         _nat_rules;
+		Pointer<Interface>                    _interface;
+		Pointer<Dhcp_server>                  _dhcp_server;
+		Genode::Reconstructible<Ipv4_config>  _ip_config;
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -152,6 +153,8 @@ class Net::Domain : public Domain_base
 		                           Genode::Xml_node const  node,
 		                           char             const *type,
 		                           Transport_rule_list    &rules);
+
+		void _ip_config_changed();
 
 	public:
 
@@ -168,6 +171,12 @@ class Net::Domain : public Domain_base
 
 		Ipv4_address const &next_hop(Ipv4_address const &ip) const;
 
+		void ip_config(Ipv4_address ip,
+		               Ipv4_address subnet_mask,
+		               Ipv4_address gateway);
+
+		void discard_ip_config();
+
 
 		/*********
 		 ** log **
@@ -180,7 +189,7 @@ class Net::Domain : public Domain_base
 		 ** Accessors **
 		 ***************/
 
-		Ipv4_config   const &ip_config()     const { return _ip_config; }
+		Ipv4_config   const &ip_config()     const { return *_ip_config; }
 		Domain_name   const &name()                { return _name; }
 		Ip_rule_list        &ip_rules()            { return _ip_rules; }
 		Forward_rule_tree   &tcp_forward_rules()   { return _tcp_forward_rules; }

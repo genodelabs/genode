@@ -77,3 +77,27 @@ Ipv4_address Ipv4_address_prefix::broadcast_address() const
 	}
 	return result;
 }
+
+
+Ipv4_address_prefix::Ipv4_address_prefix(Ipv4_address address,
+                                         Ipv4_address subnet_mask)
+:
+	address(address)
+{
+	Genode::uint8_t rest;
+	if        (subnet_mask.addr[0] != 0xff) {
+		rest = subnet_mask.addr[0];
+		prefix = 0;
+	} else if (subnet_mask.addr[1] != 0xff) {
+		rest = subnet_mask.addr[1];
+		prefix = 8;
+	} else if (subnet_mask.addr[2] != 0xff) {
+		rest = subnet_mask.addr[2];
+		prefix = 16;
+	} else {
+		rest = subnet_mask.addr[3];
+		prefix = 24;
+	}
+	for (Genode::uint8_t mask = 1 << 7; rest & mask; mask >>= 1)
+		prefix++;
+}

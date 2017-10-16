@@ -11,7 +11,7 @@ The 'nic_router' component can be used to individually route IPv4 packets
 between multiple NIC sessions. Thereby, it can translate between different
 subnets. The component supports IP routing, TCP and UDP routing, the
 partitioning of the TCP and UDP port spaces, port forwarding, NAT, and can
-also act as DHCP server.
+also act as DHCP server and as DHCP client.
 
 
 Basics
@@ -41,7 +41,8 @@ named "uplink". For each domain there must be a domain tag:
 The 'interface' attribute defines two things at once. First, it tells the
 router which subnet can be found behind this domain, and second, which IP
 identity the router shall use in case it has to communicate as itself with
-the subnet.
+the subnet. If the 'interface' attribute is not set in a 'domain' tag, the
+router acts as DHCP client (Section [Configuring DHCP client functionality]).
 
 Additionaly, the optional 'gateway' attribute can be set for a domain:
 
@@ -50,7 +51,9 @@ Additionaly, the optional 'gateway' attribute can be set for a domain:
 It defines the standard gateway of the subnet behind this domain. If a packet
 shall be routed to this domain and its final IP destination does not match
 the subnet, its Ethernet destination is set to the MAC address of the gateway.
-If a gateway isn't given for a domain, such packets get dropped.
+If a gateway isn't given for a domain, such packets get dropped. If a gateway
+is given for a domain without an 'interface' attribute, this gateway
+configuration is not getting effective.
 
 For each domain, the routing of packets from this domain can be configured
 individually by adding subtags to the corresponding domain tag. There are
@@ -299,14 +302,32 @@ the router while ip_lease_time_sec is applied only when the offer is
 acknowledged by the client in time.
 
 
+Configuring DHCP client functionality
+#####################################
+
+If the attribute 'interface' is not set in a 'domain' tag, the router tries to
+dynamically receive and maintain an IP configuration for that domain by using
+DHCP in the client role at all interfaces that connect to the domain. In the
+DHCP discover phase, the router simply chooses the first DHCP offer that
+arrives. So, no comparison of different DHCP offers is done. In the DHCP
+request phase, the server is expected to provide an IP address, a gateway, a
+subnet mask, and an IP lease time to the router. If anything substantial goes
+wrong during a DHCP exchange, the router discards the outcome of the exchange
+and goes back to the DHCP discover phase. At any time where there is no valid
+IP configuration present at a domain, the domain does only act as DHCP client
+and all other router functionality is disabled for the domain. A domain cannot
+act as DHCP client and DHCP server at once. So, a 'domain' tag must either
+have an 'interface' attribute or must not contain a 'dhcp-server' tag.
+
+
 Examples
 ########
 
 This section will list and explain some interesting configuration snippets. A
 comprehensive example of how to use the router (except DHCP server
 functionality) can be found in the test script 'libports/run/nic_router.run'.
-For an example of how to use the DHCP server functionality see the
-'ports/run/virtualbox_nic_router.run' script.
+For an example of how to use the DHCP server and the DHCP client functionality
+see the 'ports/run/virtualbox_nic_router.run' script.
 
 The environment for the examples shall be as
 follows. There are two virtual subnets 192.168.1.0/24 and 192.168.2.0/24 that
