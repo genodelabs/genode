@@ -13,10 +13,15 @@
 
 /* local includes */
 #include <dhcp_server.h>
+#include <interface.h>
 
 using namespace Net;
 using namespace Genode;
 
+
+/*****************
+ ** Dhcp_server **
+ *****************/
 
 Dhcp_server::Dhcp_server(Xml_node            const  node,
                          Allocator                 &alloc,
@@ -80,4 +85,72 @@ Ipv4_address Dhcp_server::alloc_ip()
 void Dhcp_server::free_ip(Ipv4_address const &ip)
 {
 	_ip_alloc.free(ip.to_uint32_little_endian() - _ip_first_raw);
+}
+
+
+/*********************
+ ** Dhcp_allocation **
+ *********************/
+
+Dhcp_allocation::Dhcp_allocation(Interface      &interface,
+                             Ipv4_address const &ip,
+                             Mac_address  const &mac,
+                             Timer::Connection  &timer,
+                             Microseconds        lifetime)
+:
+	_interface(interface), _ip(ip), _mac(mac),
+	_timeout(timer, *this, &Dhcp_allocation::_handle_timeout)
+{
+	_timeout.schedule(lifetime);
+}
+
+
+void Dhcp_allocation::lifetime(Microseconds lifetime)
+{
+	_timeout.schedule(lifetime);
+}
+
+
+bool Dhcp_allocation::_higher(Mac_address const &mac) const
+{
+	return memcmp(mac.addr, _mac.addr, sizeof(_mac.addr)) > 0;
+}
+
+
+Dhcp_allocation &Dhcp_allocation::find_by_mac(Mac_address const &mac)
+{
+	if (mac == _mac) {
+		return *this; }
+
+	Dhcp_allocation *const allocation = child(_higher(mac));
+	if (!allocation) {
+		throw Dhcp_allocation_tree::No_match(); }
+
+	return allocation->find_by_mac(mac);
+}
+
+
+void Dhcp_allocation::print(Output &output) const
+{
+	Genode::print(output, "MAC ", _mac, " IP ", _ip);
+}
+
+
+void Dhcp_allocation::_handle_timeout(Duration)
+{
+	_interface.dhcp_allocation_expired(*this);
+}
+
+
+/**************************
+ ** Dhcp_allocation_tree **
+ **************************/
+
+Dhcp_allocation &
+Dhcp_allocation_tree::find_by_mac(Mac_address const &mac) const
+{
+	if (!first()) {
+		throw No_match(); }
+
+	return first()->find_by_mac(mac);
 }

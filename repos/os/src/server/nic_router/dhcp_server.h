@@ -19,11 +19,22 @@
 #include <bit_allocator_dynamic.h>
 
 /* Genode includes */
+#include <net/mac_address.h>
 #include <util/noncopyable.h>
 #include <util/xml_node.h>
-#include <os/duration.h>
+#include <timer_session/connection.h>
 
-namespace Net { class Dhcp_server; }
+namespace Net {
+
+	class Dhcp_server;
+	class Dhcp_allocation;
+	class Dhcp_allocation;
+	class Dhcp_allocation_tree;
+	using Dhcp_allocation_list = Genode::List<Dhcp_allocation>;
+
+	/* forward declarations */
+	class Interface;
+}
 
 
 class Net::Dhcp_server : private Genode::Noncopyable
@@ -69,6 +80,69 @@ class Net::Dhcp_server : private Genode::Noncopyable
 
 		Ipv4_address   const &dns_server()    const { return _dns_server; }
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
+};
+
+
+struct Net::Dhcp_allocation_tree : public  Genode::Avl_tree<Dhcp_allocation>,
+                                   private Genode::Noncopyable
+{
+	struct No_match : Genode::Exception { };
+
+	Dhcp_allocation &find_by_mac(Mac_address const &mac) const;
+};
+
+
+class Net::Dhcp_allocation : public  Genode::Avl_node<Dhcp_allocation>,
+                             public  Dhcp_allocation_list::Element,
+                             private Genode::Noncopyable
+{
+	protected:
+
+		Interface                                &_interface;
+		Ipv4_address                       const  _ip;
+		Mac_address                        const  _mac;
+		Timer::One_shot_timeout<Dhcp_allocation>  _timeout;
+		bool                                      _bound { false };
+
+		void _handle_timeout(Genode::Duration);
+
+		bool _higher(Mac_address const &mac) const;
+
+	public:
+
+		Dhcp_allocation(Interface            &interface,
+		                Ipv4_address   const &ip,
+		                Mac_address    const &mac,
+		                Timer::Connection    &timer,
+		                Genode::Microseconds  lifetime);
+
+		Dhcp_allocation &find_by_mac(Mac_address const &mac);
+
+		void lifetime(Genode::Microseconds lifetime);
+
+
+		/**************
+		 ** Avl_node **
+		 **************/
+
+		bool higher(Dhcp_allocation *alloc) { return _higher(alloc->_mac); }
+
+
+		/*********
+		 ** Log **
+		 *********/
+
+		void print(Genode::Output &output) const;
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Ipv4_address const &ip()    const { return _ip; }
+		bool                bound() const { return _bound; }
+
+		void set_bound() { _bound = true; }
 };
 
 #endif /* _DHCP_SERVER_H_ */

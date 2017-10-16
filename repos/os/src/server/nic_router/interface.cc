@@ -244,10 +244,10 @@ void Interface::link_closed(Link &link, L3_protocol const prot)
 }
 
 
-void Interface::ip_allocation_expired(Ip_allocation &allocation)
+void Interface::dhcp_allocation_expired(Dhcp_allocation &allocation)
 {
-	_release_ip_allocation(allocation);
-	_released_ip_allocations.insert(&allocation);
+	_release_dhcp_allocation(allocation);
+	_released_dhcp_allocations.insert(&allocation);
 }
 
 
@@ -397,12 +397,12 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 }
 
 
-void Interface::_release_ip_allocation(Ip_allocation &allocation)
+void Interface::_release_dhcp_allocation(Dhcp_allocation &allocation)
 {
 	if (_config().verbose()) {
 		log("Release IP allocation: ", allocation, " at ", *this);
 	}
-	_ip_allocations.remove(&allocation);
+	_dhcp_allocations.remove(&allocation);
 }
 
 
@@ -420,8 +420,8 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 
 		try {
 			/* look up existing DHCP configuration for client */
-			Ip_allocation &allocation =
-				_ip_allocations.find_by_mac(dhcp.client_mac());
+			Dhcp_allocation &allocation =
+				_dhcp_allocations.find_by_mac(dhcp.client_mac());
 
 			switch (msg_type) {
 			case Dhcp_packet::Message_type::DISCOVER:
@@ -467,8 +467,8 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 
 					} else {
 
-						_release_ip_allocation(allocation);
-						_destroy_ip_allocation(allocation);
+						_release_dhcp_allocation(allocation);
+						_destroy_dhcp_allocation(allocation);
 						return;
 					}
 				}
@@ -483,8 +483,8 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 			case Dhcp_packet::Message_type::DECLINE:
 			case Dhcp_packet::Message_type::RELEASE:
 
-				_release_ip_allocation(allocation);
-				_destroy_ip_allocation(allocation);
+				_release_dhcp_allocation(allocation);
+				_destroy_dhcp_allocation(allocation);
 				return;
 
 			case Dhcp_packet::Message_type::NAK:
@@ -493,18 +493,17 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 			default: throw Bad_dhcp_request();
 			}
 		}
-		catch (Ip_allocation_tree::No_match) {
+		catch (Dhcp_allocation_tree::No_match) {
 
 			switch (msg_type) {
 			case Dhcp_packet::Message_type::DISCOVER:
 				{
-					Ip_allocation &allocation = *new (_alloc)
-						Ip_allocation(*this, _config(),
-						              dhcp_srv.alloc_ip(),
-						              dhcp.client_mac(), _timer,
-						              _config().rtt());
+					Dhcp_allocation &allocation = *new (_alloc)
+						Dhcp_allocation(*this, dhcp_srv.alloc_ip(),
+						                dhcp.client_mac(), _timer,
+						                _config().rtt());
 
-					_ip_allocations.insert(&allocation);
+					_dhcp_allocations.insert(&allocation);
 					if (_config().verbose()) {
 						log("Offer IP allocation: ", allocation,
 						                     " at ", *this);
@@ -789,18 +788,18 @@ void Interface::_ready_to_ack()
 }
 
 
-void Interface::_destroy_ip_allocation(Ip_allocation &allocation)
+void Interface::_destroy_dhcp_allocation(Dhcp_allocation &allocation)
 {
 	_domain.dhcp_server().free_ip(allocation.ip());
 	destroy(_alloc, &allocation);
 }
 
 
-void Interface::_destroy_released_ip_allocations()
+void Interface::_destroy_released_dhcp_allocations()
 {
-	while (Ip_allocation *allocation = _released_ip_allocations.first()) {
-		_released_ip_allocations.remove(allocation);
-		_destroy_ip_allocation(*allocation);
+	while (Dhcp_allocation *allocation = _released_dhcp_allocations.first()) {
+		_released_dhcp_allocations.remove(allocation);
+		_destroy_dhcp_allocation(*allocation);
 	}
 }
 
@@ -812,7 +811,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	/* do garbage collection over transport-layer links and IP allocations */
 	_destroy_closed_links<Udp_link>(_closed_udp_links, _alloc);
 	_destroy_closed_links<Tcp_link>(_closed_tcp_links, _alloc);
-	_destroy_released_ip_allocations();
+	_destroy_released_dhcp_allocations();
 
 	/* inspect and handle ethernet frame */
 	try {
@@ -955,10 +954,10 @@ Interface::~Interface()
 	_destroy_links<Udp_link>(_udp_links, _closed_udp_links, _alloc);
 
 	/* destroy IP allocations */
-	_destroy_released_ip_allocations();
-	while (Ip_allocation *allocation = _ip_allocations.first()) {
-		_ip_allocations.remove(allocation);
-		_destroy_ip_allocation(*allocation);
+	_destroy_released_dhcp_allocations();
+	while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
+		_dhcp_allocations.remove(allocation);
+		_destroy_dhcp_allocation(*allocation);
 	}
 }
 
@@ -972,76 +971,4 @@ Ipv4_config const &Interface::_ip_config() const { return _domain.ip_config(); }
 void Interface::print(Output &output) const
 {
 	Genode::print(output, "\"", _domain.name(), "\"");
-}
-
-
-/*******************
- ** Ip_allocation **
- *******************/
-
-Ip_allocation::Ip_allocation(Interface          &interface,
-                             Configuration      &config,
-                             Ipv4_address const &ip,
-                             Mac_address  const &mac,
-                             Timer::Connection  &timer,
-                             Microseconds        lifetime)
-:
-	_interface(interface),
-	_config(config),
-	_ip(ip),
-	_mac(mac),
-	_release_timeout(timer, *this, &Ip_allocation::_handle_release_timeout)
-{
-	_release_timeout.schedule(lifetime);
-}
-
-
-void Ip_allocation::lifetime(Microseconds lifetime)
-{
-	_release_timeout.schedule(lifetime);
-}
-
-
-bool Ip_allocation::_higher(Mac_address const &mac) const
-{
-	return memcmp(mac.addr, _mac.addr, sizeof(_mac.addr)) > 0;
-}
-
-
-Ip_allocation &Ip_allocation::find_by_mac(Mac_address const &mac)
-{
-	if (mac == _mac) {
-		return *this; }
-
-	Ip_allocation *const allocation = child(_higher(mac));
-	if (!allocation) {
-		throw Ip_allocation_tree::No_match(); }
-
-	return allocation->find_by_mac(mac);
-}
-
-
-void Ip_allocation::print(Output &output) const
-{
-	Genode::print(output, "MAC ", _mac, " IP ", _ip);
-}
-
-
-void Ip_allocation::_handle_release_timeout(Duration)
-{
-	_interface.ip_allocation_expired(*this);
-}
-
-
-/************************
- ** Ip_allocation_tree **
- ************************/
-
-Ip_allocation &
-Ip_allocation_tree::find_by_mac(Mac_address const &mac) const
-{
-	if (!first()) {
-		throw No_match(); }
-
-	return first()->find_by_mac(mac);
 }

@@ -20,6 +20,7 @@
 #include <arp_waiter.h>
 #include <l3_protocol.h>
 #include <dhcp_client.h>
+#include <dhcp_server.h>
 
 /* Genode includes */
 #include <nic_session/nic_session.h>
@@ -35,77 +36,11 @@ namespace Net {
 	class Transport_rule_list;
 	class Ethernet_frame;
 	class Arp_packet;
-	class Ip_allocation;
-	class Ip_allocation_tree;
-	using Ip_allocation_list = Genode::List<Ip_allocation>;
 	class Interface;
 	class Dhcp_server;
 	class Configuration;
 	class Domain;
 }
-
-
-class Net::Ip_allocation : public Genode::Avl_node<Ip_allocation>,
-                           public Ip_allocation_list::Element
-{
-	protected:
-
-		Interface                              &_interface;
-		Configuration                          &_config;
-		Ipv4_address                    const   _ip;
-		Mac_address                     const   _mac;
-		Timer::One_shot_timeout<Ip_allocation>  _release_timeout;
-		bool                                    _bound { false };
-
-		void _handle_release_timeout(Genode::Duration);
-
-		bool _higher(Mac_address const &mac) const;
-
-	public:
-
-		Ip_allocation(Interface            &interface,
-		              Configuration        &config,
-		              Ipv4_address   const &ip,
-		              Mac_address    const &mac,
-		              Timer::Connection    &timer,
-		              Genode::Microseconds  lifetime);
-
-		Ip_allocation &find_by_mac(Mac_address const &mac);
-
-		void lifetime(Genode::Microseconds lifetime);
-
-
-		/**************
-		 ** Avl_node **
-		 **************/
-
-		bool higher(Ip_allocation *allocation) { return _higher(allocation->_mac); }
-
-
-		/*********
-		 ** Log **
-		 *********/
-
-		void print(Genode::Output &output) const;
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Ipv4_address const &ip()    const { return _ip; }
-		bool                bound() const { return _bound; }
-
-		void set_bound() { _bound = true; }
-};
-
-
-struct Net::Ip_allocation_tree : public Genode::Avl_tree<Ip_allocation>
-{
-	struct No_match : Genode::Exception { };
-
-	Ip_allocation &find_by_mac(Mac_address const &mac) const;
-};
 
 
 class Net::Interface
@@ -125,19 +60,19 @@ class Net::Interface
 
 	private:
 
-		Timer::Connection  &_timer;
-		Genode::Allocator  &_alloc;
-		Domain             &_domain;
-		Arp_cache           _arp_cache;
-		Arp_waiter_list     _own_arp_waiters;
-		Arp_waiter_list     _foreign_arp_waiters;
-		Link_side_tree      _tcp_links;
-		Link_side_tree      _udp_links;
-		Link_list           _closed_tcp_links;
-		Link_list           _closed_udp_links;
-		Ip_allocation_tree  _ip_allocations;
-		Ip_allocation_list  _released_ip_allocations;
-		Dhcp_client         _dhcp_client { _alloc, _timer, *this };
+		Timer::Connection    &_timer;
+		Genode::Allocator    &_alloc;
+		Domain               &_domain;
+		Arp_cache             _arp_cache;
+		Arp_waiter_list       _own_arp_waiters;
+		Arp_waiter_list       _foreign_arp_waiters;
+		Link_side_tree        _tcp_links;
+		Link_side_tree        _udp_links;
+		Link_list             _closed_tcp_links;
+		Link_list             _closed_udp_links;
+		Dhcp_allocation_tree  _dhcp_allocations;
+		Dhcp_allocation_list  _released_dhcp_allocations;
+		Dhcp_client           _dhcp_client { _alloc, _timer, *this };
 
 		void _new_link(L3_protocol                   const  protocol,
 		               Link_side_id                  const &local_id,
@@ -145,11 +80,11 @@ class Net::Interface
 		               Interface                           &remote_interface,
 		               Link_side_id                  const &remote_id);
 
-		void _destroy_released_ip_allocations();
+		void _destroy_released_dhcp_allocations();
 
-		void _destroy_ip_allocation(Ip_allocation &allocation);
+		void _destroy_dhcp_allocation(Dhcp_allocation &allocation);
 
-		void _release_ip_allocation(Ip_allocation &allocation);
+		void _release_dhcp_allocation(Dhcp_allocation &allocation);
 
 		void _send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		                      Mac_address               const &client_mac,
@@ -267,7 +202,7 @@ class Net::Interface
 
 		void link_closed(Link &link, L3_protocol const prot);
 
-		void ip_allocation_expired(Ip_allocation &allocation);
+		void dhcp_allocation_expired(Dhcp_allocation &allocation);
 
 		void dissolve_link(Link_side &link_side, L3_protocol const prot);
 
