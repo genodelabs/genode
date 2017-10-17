@@ -27,12 +27,13 @@ static long map_page_table(Genode::Cap_sel const pagetable,
 long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Genode::addr_t  const virt,
                                  Cache_attribute const cacheability,
-                                 bool            const writable)
+                                 bool            const writable,
+                                 bool            const executable)
 {
 	seL4_ARM_Page          const service = _idx_to_sel(idx.value());
 	seL4_ARM_PageDirectory const pd      = _pd_sel.value();
 	seL4_CapRights_t       const rights  = writable ? seL4_ReadWrite : seL4_CanRead;
-	seL4_ARM_VMAttributes        attr    = seL4_ARM_Default_VMAttributes;
+	seL4_ARM_VMAttributes        attr    = executable ? seL4_ARM_Default_VMAttributes : seL4_ARM_Default_VMAttributes_NoExecute;
 
 	if (cacheability == UNCACHED)
 		attr = seL4_ARM_Uncacheable;

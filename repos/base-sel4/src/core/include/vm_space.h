@@ -157,7 +157,8 @@ class Genode::Vm_space
 
 		bool _map_frame(addr_t const from_phys, addr_t const to_virt,
 		                Cache_attribute const cacheability,
-		                bool const writable, bool const flush_support)
+		                bool const writable, bool const executable,
+		                bool const flush_support)
 		{
 			if (_page_table_registry.page_frame_at(to_virt)) {
 				/*
@@ -228,7 +229,7 @@ class Genode::Vm_space
 			 * Insert copy of page-frame selector into page table
 			 */
 			long ret = _map_page(Cap_sel(pte_idx), to_virt, cacheability,
-			                     writable);
+			                     writable, executable);
 			if (ret != seL4_NoError) {
 				error("seL4_*_Page_Map ", Hex(from_phys), "->",
 				      Hex(to_virt), " returned ", ret);
@@ -241,7 +242,8 @@ class Genode::Vm_space
 		 * Platform specific map/unmap of a page frame
 		 */
 		long _map_page(Genode::Cap_sel const &idx, Genode::addr_t const virt,
-		               Cache_attribute const cacheability, bool const write);
+		               Cache_attribute const cacheability, bool const write,
+		               bool const writable);
 		long _unmap_page(Genode::Cap_sel const &idx);
 
 		class Alloc_page_table_failed : Exception { };
@@ -374,7 +376,7 @@ class Genode::Vm_space
 
 		void map(addr_t const from_phys, addr_t const to_virt,
 		         size_t const num_pages, Cache_attribute const cacheability,
-		         bool const writable, bool flush_support)
+		         bool const writable, bool const executable, bool flush_support)
 		{
 			Lock::Guard guard(_lock);
 
@@ -382,7 +384,8 @@ class Genode::Vm_space
 				off_t const offset = i << get_page_size_log2();
 
 				if (!_map_frame(from_phys + offset, to_virt + offset,
-				                cacheability, writable, flush_support))
+				                cacheability, writable, executable,
+				                flush_support))
 					error("mapping failed ", Hex(from_phys + offset),
 					      " -> ", Hex(to_virt + offset));
 			}

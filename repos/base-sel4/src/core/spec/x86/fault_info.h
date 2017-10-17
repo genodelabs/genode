@@ -35,4 +35,6 @@ struct Fault_info
 		pf(seL4_GetMR(1)),
 		write(seL4_GetMR(3) & ERR_W)
 	{ }
+
+	bool exec_fault() const { return false; }
 };

@@ -74,6 +74,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	_pf_ip      = fault_info.ip;
 	_pf_addr    = fault_info.pf;
 	_pf_write   = fault_info.write;
+	_pf_exec    = fault_info.exec_fault();
 	_fault_type = seL4_MessageInfo_get_label(page_fault_msg_info);
 
 	_badge = badge;

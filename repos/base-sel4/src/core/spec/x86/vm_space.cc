@@ -17,7 +17,8 @@
 long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
                                  Genode::addr_t const virt,
                                  Cache_attribute const cacheability,
-                                 bool            const writable)
+                                 bool            const writable,
+                                 bool            const executable)
 {
 	seL4_X86_Page          const service = _idx_to_sel(idx.value());
 	seL4_X86_PageDirectory const pd      = _pd_sel.value();

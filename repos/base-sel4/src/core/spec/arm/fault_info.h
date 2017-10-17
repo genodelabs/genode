@@ -18,12 +18,23 @@ struct Fault_info
 	bool           data_abort = 0;
 	bool           write      = 0;
 
+	enum {
+		IFSR_FAULT = 1,
+		IFSR_FAULT_PERMISSION = 0xf,
+		DFSR_WRITE_FAULT = 1UL << 11
+	};
+
 	Fault_info(seL4_MessageInfo_t msg_info)
 	:
 		ip(seL4_GetMR(0)),
 		pf(seL4_GetMR(1)),
-		data_abort(seL4_GetMR(2) != 1),
+		data_abort(seL4_GetMR(2) != IFSR_FAULT),
 		/* Instruction Fault Status Register (IFSR) resp. Data FSR (DFSR) */
-		write(data_abort && (seL4_GetMR(3) & (1 << 11)))
-	{ }
+		write(data_abort && (seL4_GetMR(3) & DFSR_WRITE_FAULT))
+	{
+		if (!data_abort && seL4_GetMR(3) != IFSR_FAULT_PERMISSION)
+			data_abort = true;
+	}
+
+	bool exec_fault() const { return !data_abort; }
 };

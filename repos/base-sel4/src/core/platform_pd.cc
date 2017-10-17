@@ -89,10 +89,10 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	 */
 	addr_t const utcb = (thread->_utcb) ? thread->_utcb : thread->INITIAL_IPC_BUFFER_VIRT;
 
-	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true };
+	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true, NON_EXECUTABLE = false };
 	_vm_space.alloc_page_tables(utcb, get_page_size());
 	_vm_space.map(thread->_info.ipc_buffer_phys, utcb, ONE_PAGE,
-	              Cache_attribute::CACHED, WRITABLE, FLUSHABLE);
+	              Cache_attribute::CACHED, WRITABLE, NON_EXECUTABLE, FLUSHABLE);
 	return true;
 }
 
@@ -161,7 +161,7 @@ bool Platform_pd::install_mapping(Mapping const &mapping,
 
 		_vm_space.map(mapping.from_phys(), mapping.to_virt(),
 		              mapping.num_pages(), mapping.cacheability(),
-		              mapping.writeable(), FLUSHABLE);
+		              mapping.writeable(), mapping.executable(), FLUSHABLE);
 		return true;
 	} catch (...) {
 		char const * fault_name = "unknown";
