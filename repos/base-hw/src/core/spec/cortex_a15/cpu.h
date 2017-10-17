@@ -195,9 +195,10 @@ class Genode::Cpu : public Arm_v7_cpu
 			 * Return if the context is in a page fault due to translation miss
 			 *
 			 * \param va  holds the virtual fault-address if call returns 1
-			 * \param w   holds wether it's a write fault if call returns 1
+			 * \param w   holds whether it's a write fault if call returns 1
+			 * \param p   holds whether it's a permission fault if call returns 1
 			 */
-			bool in_fault(addr_t & va, addr_t & w) const
+			bool in_fault(addr_t & va, addr_t & w, bool &p) const
 			{
 				/* permission fault on page, 2nd level */
 				static constexpr Fsr::access_t permission = 0b1111;
@@ -208,11 +209,19 @@ class Genode::Cpu : public Arm_v7_cpu
 					{
 						/* check if fault was caused by a translation miss */
 						Fsr::access_t const fs = Fsr::Fs::get(Ifsr::read());
+						if (fs == permission) {
+							w = 0;
+							va = regs->ip;
+							p = true;
+							return true;
+						}
+
 						if ((fs & 0b11100) != 0b100) return false;
 
 						/* fetch fault data */
 						w = 0;
 						va = regs->ip;
+						p = false;
 						return true;
 					}
 
@@ -227,6 +236,7 @@ class Genode::Cpu : public Arm_v7_cpu
 						Dfsr::access_t const dfsr = Dfsr::read();
 						w = Dfsr::Wnr::get(dfsr);
 						va = Dfar::read();
+						p = false;
 						return true;
 					}
 

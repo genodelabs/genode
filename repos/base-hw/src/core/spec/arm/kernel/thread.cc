@@ -59,7 +59,7 @@ void Thread::exception(unsigned const cpu)
 void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
-	if (in_fault(_fault_addr, _fault_writes)) {
+	if (in_fault(_fault_addr, _fault_writes, _fault_exec)) {
 		_fault_pd = (addr_t)_pd->platform_pd();
 
 		/*
@@ -73,14 +73,21 @@ void Thread::_mmu_exception()
 		if (_pager) _pager->submit(1);
 		return;
 	}
-	bool da = regs->cpu_exception == Cpu::Context::DATA_ABORT;
+
+	char const *abort_type = "unknown";
+	if (regs->cpu_exception == Cpu::Context::DATA_ABORT)
+		abort_type = "data";
+	if (regs->cpu_exception == Cpu::Context::PREFETCH_ABORT)
+		abort_type = "prefetch";
+
 	Genode::error(*this, ": raised unhandled ",
-	              da ? "data abort" : "prefetch abort", " "
+	              abort_type, " abort ",
 	              "DFSR=", Genode::Hex(Cpu::Dfsr::read()), " "
 	              "ISFR=", Genode::Hex(Cpu::Ifsr::read()), " "
 	              "DFAR=", Genode::Hex(Cpu::Dfar::read()), " "
 	              "ip=",   Genode::Hex(regs->ip),          " "
-	              "sp=",   Genode::Hex(regs->sp));
+	              "sp=",   Genode::Hex(regs->sp),          " "
+	              "exception=", Genode::Hex(regs->cpu_exception));
 }
 
 

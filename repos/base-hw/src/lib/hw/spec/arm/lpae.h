@@ -240,6 +240,8 @@ class Hw::Long_translation_table
 
 			struct Privileged_execute_never : Base::template Bitfield<53,1> { };
 
+			struct Execute_never : Base::template Bitfield<54,1> { };
+
 			static typename Descriptor::access_t create(Page_flags const &f,
 			                                            addr_t const pa)
 			{
@@ -250,7 +252,8 @@ class Hw::Long_translation_table
 						Base::Shareability::OUTER_SHAREABLE)
 					| Base::Output_address::masked(pa)
 					| Base::Access_flag::bits(1)
-					| Descriptor::Valid::bits(1);
+					| Descriptor::Valid::bits(1)
+					| Execute_never::bits(!f.executable);
 			}
 		};
 

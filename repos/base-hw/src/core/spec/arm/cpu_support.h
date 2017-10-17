@@ -139,9 +139,10 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		 * Return if the context is in a page fault due to translation miss
 		 *
 		 * \param va  holds the virtual fault-address if call returns 1
-		 * \param w   holds wether it's a write fault if call returns 1
+		 * \param w   holds whether it's a write fault if call returns 1
+		 * \param p   holds whether it's a permission fault if call returns 1
 		 */
-		bool in_fault(addr_t & va, addr_t & w) const
+		bool in_fault(addr_t & va, addr_t & w, bool & p) const
 		{
 			/* translation fault on section */
 			static constexpr Fsr::access_t section    = 5;
@@ -156,12 +157,21 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 				{
 					/* check if fault was caused by a translation miss */
 					Ifsr::access_t const fs = Fsr::Fs::get(Ifsr::read());
+
+					if (fs == permission) {
+						w = 0;
+						va = regs->ip;
+						p = true;
+						return true;
+					}
+
 					if (fs != section && fs != page)
 						return false;
 
 					/* fetch fault data */
 					w = 0;
 					va = regs->ip;
+					p = false;
 					return true;
 				}
 			case Context::DATA_ABORT:
@@ -175,6 +185,7 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 					Dfsr::access_t const dfsr = Dfsr::read();
 					w = Dfsr::Wnr::get(dfsr);
 					va = Dfar::read();
+					p = false;
 					return true;
 				}
 
