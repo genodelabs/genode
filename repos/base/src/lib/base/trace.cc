@@ -88,7 +88,14 @@ bool Trace::Logger::_evaluate_control()
 			max_event_size = 0;
 			policy_module  = 0;
 
-			policy_module = env_deprecated()->rm_session()->attach(policy_ds);
+			enum {
+				MAX_SIZE = 0, NO_OFFSET = 0, ANY_LOCAL_ADDR = false,
+				EXECUTABLE = true
+			};
+
+			Genode::Region_map * const rm = env_deprecated()->rm_session();
+			policy_module = rm->attach(policy_ds, MAX_SIZE, NO_OFFSET,
+			                           ANY_LOCAL_ADDR, nullptr, EXECUTABLE);
 
 			/* relocate function pointers of policy callback table */
 			for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
