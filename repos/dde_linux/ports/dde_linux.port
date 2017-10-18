@@ -190,6 +190,7 @@ PATCH_OPT(patches/usb_csum.patch)        := $(USB_OPT)
 PATCH_OPT(patches/usb_evdev.patch)       := $(USB_OPT)
 PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
 PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
+PATCH_OPT(patches/usb_rndis.patch)       := $(USB_OPT)
 
 # INTEL FB
 PATCH_OPT(patches/intel_fb_export_api.patch) := -p1 -d$(SRC_DIR_INTEL_FB)

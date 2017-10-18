@@ -1,0 +1,30 @@
+diff -Nur a/drivers/net/usb/rndis_host.c b/drivers/net/usb/rndis_host.c
+--- a/drivers/net/usb/rndis_host.c
++++ b/drivers/net/usb/rndis_host.c
+@@ -318,7 +318,7 @@
+ 	unsigned char		*bp;
+ 
+ 	/* we can't rely on i/o from stack working, or stack allocation */
+-	u.buf = kmalloc(CONTROL_BUFFER_SIZE, GFP_KERNEL);
++	u.buf = kzalloc(CONTROL_BUFFER_SIZE, GFP_KERNEL | GFP_LX_DMA);
+ 	if (!u.buf)
+ 		return -ENOMEM;
+ 	retval = usbnet_generic_cdc_bind(dev, intf);
+@@ -475,7 +475,7 @@
+ 	struct rndis_halt	*halt;
+ 
+ 	/* try to clear any rndis state/activity (no i/o from stack!) */
+-	halt = kzalloc(CONTROL_BUFFER_SIZE, GFP_KERNEL);
++	halt = kzalloc(CONTROL_BUFFER_SIZE, GFP_KERNEL | GFP_LX_DMA);
+ 	if (halt) {
+ 		halt->msg_type = cpu_to_le32(RNDIS_MSG_HALT);
+ 		halt->msg_len = cpu_to_le32(sizeof *halt);
+@@ -573,7 +573,7 @@
+ 	 * packets; Linux minimizes wasted bandwidth through tx queues.
+ 	 */
+ fill:
+-	hdr = (void *) __skb_push(skb, sizeof *hdr);
++	hdr = (void *) skb_push(skb, sizeof *hdr);
+ 	memset(hdr, 0, sizeof *hdr);
+ 	hdr->msg_type = cpu_to_le32(RNDIS_MSG_PACKET);
+ 	hdr->msg_len = cpu_to_le32(skb->len);
