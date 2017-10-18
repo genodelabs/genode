@@ -230,7 +230,7 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 }
 
 append_if $use_framebuffer config {
-	<start name="fb_drv" priority="-1">
+	<start name="fb_drv" priority="-1" caps="120">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<route>

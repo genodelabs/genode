@@ -225,7 +225,14 @@ class Guest_memory
 				/*
 				 * RAM used as backing store for guest-physical memory
 				 */
-				_local_addr = env.rm().attach(_ds);
+				enum {
+					MAX_SIZE = 0, OFFSET = 0, ANY_LOCAL_ADDRESS = false,
+					EXECUTABLE = true
+				};
+
+				_local_addr = env.rm().attach(_ds, MAX_SIZE, OFFSET,
+				                              ANY_LOCAL_ADDRESS, nullptr,
+				                              EXECUTABLE);
 				_fb_addr = env.rm().attach_at(_fb_ds,
 				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
 			}
