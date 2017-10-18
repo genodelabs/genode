@@ -34,9 +34,8 @@ proc nic_drv_build { } {
 proc gpio_drv_build { } { if {[gpio_drv] != ""} { return drivers/gpio } }
 
 build "core init drivers/timer server/nic_router server/nic_bridge
-       test/lwip/http_srv_static test/lwip/http_clnt test/lxip/udp_echo
-       test/lxip/udp_client [nic_drv_build] [gpio_drv_build]
-       [platform_drv_build_components]"
+       test/lwip/http_srv_static test/lwip/http_clnt test/lwip/udp
+       [nic_drv_build] [gpio_drv_build] [platform_drv_build_components]"
 
 create_boot_directory
 
@@ -81,23 +80,18 @@ proc nic_drv_config { } {
 }
 
 proc client_bin { prot } {
-	if {$prot == "udp"}  { return "test-lxip_udp_client" }
+	if {$prot == "udp"}  { return "test-lwip-udp-client" }
 	if {$prot == "http"} { return "test-http_clnt" } }
 
 proc server_bin { prot } {
-	if {$prot == "udp"}  { return "test-lxip_udp_echo" }
+	if {$prot == "udp"}  { return "test-lwip-udp-server" }
 	if {$prot == "http"} { return "test-lwip_httpsrv_static" } }
-
-proc ram_quota { prot } {
-	if {$prot == "udp"}  { return 29M }
-	if {$prot == "http"} { return 12M }
-}
 
 proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 	append result {
 		<start name="} $prot {_client_} $index {" caps="200" priority="-1">
 			<binary  name="} [client_bin $prot] {" />
-			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
+			<resource name="RAM" quantum="10M"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -115,7 +109,7 @@ proc server_config { prot index ip_addr gateway netmask nic port } {
 	append result {
 		<start name="} $prot {_server_} $index {" caps="200" priority="-1">
 			<binary  name="} [server_bin $prot] {" />
-			<resource name="RAM" quantum="} [ram_quota $prot] {"/>
+			<resource name="RAM" quantum="10M"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -276,9 +270,9 @@ install_config $config
 
 build_boot_image "
 	core init timer nic_router nic_bridge ld.lib.so libc.lib.so libm.lib.so
-	lwip.lib.so lxip.lib.so posix.lib.so test-http_clnt
-	test-lwip_httpsrv_static test-lxip_udp_echo test-lxip_udp_client
-	[nic_drv_binary] [gpio_drv] [platform_drv_boot_modules]"
+	lwip.lib.so posix.lib.so test-http_clnt test-lwip_httpsrv_static
+	test-lwip-udp-client test-lwip-udp-server [nic_drv_binary] [gpio_drv]
+	[platform_drv_boot_modules]"
 
 proc nic_qemu_args { } {
 	if {[have_spec x86]}     { return "-net nic,model=e1000" }
