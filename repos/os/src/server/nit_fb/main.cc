@@ -26,6 +26,7 @@ namespace Nit_fb {
 
 	using Genode::Static_root;
 	using Genode::Signal_handler;
+	using Genode::Xml_node;
 
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Area  Area;
@@ -258,18 +259,51 @@ struct Nit_fb::Main : View_updater
 		nitpicker.execute();
 	}
 
+	/**
+	 * Return screen-coordinate origin, depening on the config and screen mode
+	 */
+	static Point _coordinate_origin(Framebuffer::Mode mode, Xml_node config)
+	{
+		char const * const attr = "origin";
+
+		if (!config.has_attribute(attr))
+			return Point(0, 0);
+
+		typedef Genode::String<32> Value;
+		Value const value = config.attribute_value(attr, Value());
+
+		if (value == "top_left")     return Point(0, 0);
+		if (value == "top_right")    return Point(mode.width(), 0);
+		if (value == "bottom_left")  return Point(0, mode.height());
+		if (value == "bottom_right") return Point(mode.width(), mode.height());
+
+		warning("unsupported ", attr, " attribute value '", value, "'");
+		return Point(0, 0);
+	}
+
 	void handle_config_update()
 	{
 		config_rom.update();
 
+		Xml_node const config = config_rom.xml();
+
 		Framebuffer::Mode const nit_mode = nitpicker.mode();
 
-		position = Point(config_rom.xml().attribute_value("xpos", 0U),
-		                 config_rom.xml().attribute_value("ypos", 0U));
+		position = _coordinate_origin(nit_mode, config)
+		         + Point(config.attribute_value("xpos", 0L),
+		                 config.attribute_value("ypos", 0L));
 
-		fb_session.size(Area(
-			config_rom.xml().attribute_value("width",  (unsigned)nit_mode.width()),
-			config_rom.xml().attribute_value("height", (unsigned)nit_mode.height())));
+		long width  = config.attribute_value("width",  (long)nit_mode.width()),
+		     height = config.attribute_value("height", (long)nit_mode.height());
+
+		/*
+		 * If configured width / height values are negative, the effective
+		 * width / height is deduced from the screen size.
+		 */
+		if (width  < 0) width  = nit_mode.width()  + width;
+		if (height < 0) height = nit_mode.height() + height;
+
+		fb_session.size(Area(width, height));
 
 		/*
 		 * Simulate a client call Framebuffer::Session::mode to make the
@@ -277,7 +311,7 @@ struct Nit_fb::Main : View_updater
 		 */
 		fb_session.mode();
 
-		Genode::log("using xywh=(", position.x(), ",", position.x(),
+		Genode::log("using xywh=(", position.x(), ",", position.y(),
 		                         ",", fb_session.size().w(),
 		                         ",", fb_session.size().h(), ")");
 

@@ -5,5 +5,15 @@ virtual frame buffers on one physical screen. The size and screen position
 of each 'nit_fb' instance can be defined via Genode's configuration mechansim
 using the following attributes of the 'nit_fb' config node:
 
-! <config xpos="100" ypos="150" width="300" height="200" />
+! <config xpos="100" ypos="150" width="300" height="200" origin="top_left"/>
+
+The 'origin' attribute denotes the coordinate origin of the values specified
+in the 'xpos' and 'ypos' attributes. Supported origins are "top_left",
+"top_right", "bottom_left", and "bottom_right". This attribute allows one to
+align the nitpicker view at any of the four screen boundaries.
+
+The 'width' and 'height' attribute values can be negative. If so, they are
+relative to the physical screen size. E.g., when using a screen size of
+640x480, the effective width for a 'width' attribute value of "-100" would
+be 640 - 100 = 540.
 
