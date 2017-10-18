@@ -16,7 +16,6 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/allocator_avl.h>
-#include <base/sleep.h>
 
 /* local includes */
 #include "libc_mem_alloc.h"
@@ -143,13 +142,19 @@ Genode::size_t Libc::Mem_alloc_impl::size_at(void const *addr) const
 }
 
 
-static Libc::Mem_alloc *_libc_mem_alloc;
+static Libc::Mem_alloc *_libc_mem_alloc_rw  = nullptr;
+static Libc::Mem_alloc *_libc_mem_alloc_rwx = nullptr;
 
 
 static void _init_mem_alloc(Genode::Region_map &rm, Genode::Ram_session &ram)
 {
-	static Libc::Mem_alloc_impl inst(rm, ram);
-	_libc_mem_alloc = &inst;
+	enum { MEMORY_EXECUTABLE = true };
+
+	static Libc::Mem_alloc_impl inst_rw(rm, ram, !MEMORY_EXECUTABLE);
+	static Libc::Mem_alloc_impl inst_rwx(rm, ram, MEMORY_EXECUTABLE);
+
+	_libc_mem_alloc_rw  = &inst_rw;
+	_libc_mem_alloc_rwx = &inst_rwx;
 }
 
 
@@ -162,12 +167,10 @@ namespace Libc {
 }
 
 
-Libc::Mem_alloc *Libc::mem_alloc()
+Libc::Mem_alloc *Libc::mem_alloc(bool executable)
 {
-	if (!_libc_mem_alloc) {
+	if (!_libc_mem_alloc_rw || !_libc_mem_alloc_rwx)
 		error("attempt to use 'Libc::mem_alloc' before call of 'init_mem_alloc'");
-		_init_mem_alloc(*env_deprecated()->rm_session(), *env_deprecated()->ram_session());
-	}
-	return _libc_mem_alloc;
-}
 
+	return executable ? _libc_mem_alloc_rwx : _libc_mem_alloc_rw;
+}

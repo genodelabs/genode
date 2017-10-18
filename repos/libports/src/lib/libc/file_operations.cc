@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -427,7 +428,8 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 
 	/* handle requests for anonymous memory */
 	if (!addr && libc_fd == -1) {
-		void *start = Libc::mem_alloc()->alloc(length, PAGE_SHIFT);
+		bool const executable = prot & PROT_EXEC;
+		void *start = Libc::mem_alloc(executable)->alloc(length, PAGE_SHIFT);
 		mmap_registry()->insert(start, length, 0);
 		return start;
 	}
@@ -464,8 +466,12 @@ extern "C" int munmap(void *start, ::size_t length)
 	int ret = 0;
 	if (plugin)
 		ret = plugin->munmap(start, length);
-	else
-		Libc::mem_alloc()->free(start);
+	else {
+		bool const executable = true;
+		/* XXX another metadata handling required to track anonymous memory */
+		Libc::mem_alloc(!executable)->free(start);
+		Libc::mem_alloc(executable)->free(start);
+	}
 
 	mmap_registry()->remove(start);
 	return ret;

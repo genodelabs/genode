@@ -27,7 +27,7 @@ namespace Libc {
 	/**
 	 * Return singleton instance of the memory allocator
 	 */
-	Mem_alloc *mem_alloc();
+	Mem_alloc *mem_alloc(bool executable = false);
 
 	class Mem_alloc_impl : public Mem_alloc
 	{
