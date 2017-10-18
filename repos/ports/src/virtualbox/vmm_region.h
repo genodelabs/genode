@@ -58,7 +58,7 @@ struct Mem_region : public  Genode::List<Mem_region>::Element,
 
 		do {
 			Genode::Ram_dataspace_capability ds = env.ram().alloc(map_size);
-			attach_at(ds, _size - rest_size, map_size);
+			attach_executable(ds, _size - rest_size, map_size);
 
 			rest_size -= map_size;
 			map_size   = rest_size < sub_rm_max_ds ? rest_size : sub_rm_max_ds;
