@@ -37,10 +37,12 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 		 */
 
 		Ram_dataspace_capability ds_cap = ds->cap;
+		void const * const local_addr = ds->local_addr;
 
 		remove(ds);
 		delete ds;
-		_region_map->detach(ds->local_addr);
+
+		_region_map->detach(local_addr);
 		_ram_session->free(ds_cap);
 	}
 }
@@ -54,7 +56,10 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	/* make new ram dataspace available at our local address space */
 	try {
 		new_ds_cap = _ram_session->alloc(size);
-		local_addr = _region_map->attach(new_ds_cap);
+
+		enum { MAX_SIZE = 0, NO_OFFSET = 0, ANY_LOCAL_ADDR = false };
+		local_addr = _region_map->attach(new_ds_cap, MAX_SIZE, NO_OFFSET,
+		                                 ANY_LOCAL_ADDR, nullptr, _executable);
 	}
 	catch (Out_of_ram) { return -2; }
 	catch (Out_of_caps) { return -4; }

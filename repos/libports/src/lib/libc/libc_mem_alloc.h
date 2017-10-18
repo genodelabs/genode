@@ -60,14 +60,18 @@ namespace Libc {
 
 					Genode::Ram_session *_ram_session;  /* ram session for backing store */
 					Genode::Region_map  *_region_map;   /* region map of address space   */
+					bool const           _executable;   /* whether to allocate executable dataspaces */
 
 				public:
 
 					/**
 					 * Constructor
 					 */
-					Dataspace_pool(Genode::Ram_session *ram, Genode::Region_map *rm):
-						_ram_session(ram), _region_map(rm) { }
+					Dataspace_pool(Genode::Ram_session *ram,
+					               Genode::Region_map *rm, bool executable) :
+						_ram_session(ram), _region_map(rm),
+						_executable(executable)
+					{ }
 
 					/**
 					 * Destructor
@@ -108,9 +112,11 @@ namespace Libc {
 
 		public:
 
-			Mem_alloc_impl(Genode::Region_map &rm, Genode::Ram_session &ram)
+			Mem_alloc_impl(Genode::Region_map &rm,
+			               Genode::Ram_session &ram,
+			               bool executable = false)
 			:
-				_ds_pool(&ram, &rm),
+				_ds_pool(&ram, &rm, executable),
 				_alloc(0),
 				_chunk_size(MIN_CHUNK_SIZE)
 			{ }
