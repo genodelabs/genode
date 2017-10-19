@@ -57,8 +57,9 @@ struct Platform::Main
 			return;
 
 		const char * report_addr = acpi_rom->local_addr<const char>();
+		bool const acpi_platform = _config.xml().attribute_value("acpi", true);
 
-		root.construct(_env, sliced_heap, _config, report_addr);
+		root.construct(_env, sliced_heap, _config, report_addr, acpi_platform);
 
 		root_cap = _env.ep().manage(*root);
 
@@ -71,25 +72,11 @@ struct Platform::Main
 
 	void system_update()
 	{
-		if (system_state.is_constructed())
-			system_state->update();
-
 		if (acpi_ready.is_constructed())
 			acpi_ready->update();
 
 		if (!root.is_constructed())
 			return;
-
-		if (system_state.is_constructed() && system_state->is_valid()) {
-			Genode::Xml_node system(system_state->local_addr<char>(),
-			                        system_state->size());
-
-			typedef Genode::String<16> Value;
-			const Value state = system.attribute_value("state", Value("unknown"));
-
-			if (state == "reset")
-				root->system_reset();
-		}
 
 		if (acpi_ready.is_constructed() && acpi_ready->is_valid()) {
 			Genode::Xml_node system(acpi_ready->local_addr<char>(),
@@ -112,34 +99,20 @@ struct Platform::Main
 		_system_report(_env.ep(), *this, &Main::system_update)
 	{
 		const Genode::Xml_node config = _config.xml();
-		bool const system_rom = config.attribute_value("system", false);
-		bool const wait_for_acpi = config.attribute_value("acpi", true);
-		_acpi_ready = config.attribute_value("acpi_ready", false);
 
-		if (system_rom) {
-			/* wait for system state changes, e.g. reset and acpi_ready */
-			system_state.construct(env, "system");
-			system_state->sigh(_system_report);
-		}
+		_acpi_ready = config.attribute_value("acpi_ready", false);
 
 		if (_acpi_ready) {
 			acpi_ready.construct(env, "acpi_ready");
 			acpi_ready->sigh(_system_report);
 		}
 
-		if (wait_for_acpi) {
-			/* for ACPI support, wait for the first valid acpi report */
-			acpi_rom.construct(env, "acpi");
-			acpi_rom->sigh(_acpi_report);
-			/* check if already valid */
-			acpi_update();
-			system_update();
-			return;
-		}
-
-		/* non ACPI platform case */
-		root.construct(_env, sliced_heap, _config, nullptr);
-		_env.parent().announce(_env.ep().manage(*root));
+		/* wait for the first valid acpi report */
+		acpi_rom.construct(env, "acpi");
+		acpi_rom->sigh(_acpi_report);
+		/* check if already valid */
+		acpi_update();
+		system_update();
 	}
 };
 

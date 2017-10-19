@@ -36,10 +36,12 @@ class Nonpci::Ps2 : public Platform::Device_component
 
 	public:
 
-		Ps2(Genode::Env &env, Platform::Session_component &session,
+		Ps2(Genode::Env &env,
+		    Genode::Attached_io_mem_dataspace &pciconf,
+		    Platform::Session_component &session,
 		    Genode::Allocator &heap_for_irq)
 		:
-			Platform::Device_component(env, session, IRQ_KEYBOARD, heap_for_irq),
+			Platform::Device_component(env, pciconf, session, IRQ_KEYBOARD, heap_for_irq),
 			_ep(env.ep().rpc_ep()),
 			_irq_mouse(IRQ_MOUSE, ~0UL, env, heap_for_irq),
 			_data(env, REG_DATA, ACCESS_WIDTH),
@@ -99,10 +101,12 @@ class Nonpci::Pit : public Platform::Device_component
 
 	public:
 
-		Pit(Genode::Env &env, Platform::Session_component &session,
+		Pit(Genode::Env &env,
+		    Genode::Attached_io_mem_dataspace &pciconf,
+		    Platform::Session_component &session,
 		    Genode::Allocator &heap_for_irq)
 		:
-			Platform::Device_component(env, session, IRQ_PIT, heap_for_irq),
+			Platform::Device_component(env, pciconf, session, IRQ_PIT, heap_for_irq),
 			_ports(env, PIT_PORT, PORTS_WIDTH)
 		{ }
 
@@ -150,10 +154,10 @@ Platform::Device_capability Platform::Session_component::device(String const &na
 
 		switch(devices_i) {
 			case 0:
-				dev = new (_md_alloc) Nonpci::Ps2(_env, *this, _global_heap);
+				dev = new (_md_alloc) Nonpci::Ps2(_env, _pciconf, *this, _global_heap);
 				break;
 			case 1:
-				dev = new (_md_alloc) Nonpci::Pit(_env, *this, _global_heap);
+				dev = new (_md_alloc) Nonpci::Pit(_env, _pciconf, *this, _global_heap);
 				break;
 			default:
 				return Device_capability();

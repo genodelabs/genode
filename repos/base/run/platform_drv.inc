@@ -54,8 +54,8 @@ proc audio_drv_binary { } {
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform
-	lappend_if [have_spec acpi]    drv_build_components drivers/acpi
-	lappend_if [have_spec acpi]    drv_build_components server/report_rom
+	lappend_if [have_spec x86]     drv_build_components drivers/acpi
+	lappend_if [have_spec x86]     drv_build_components server/report_rom
 	return $drv_build_components
 }
 
@@ -68,9 +68,14 @@ proc append_platform_drv_build_components {} {
 proc platform_drv_boot_modules {} {
 	set drv_boot_modules ""
 	lappend_if [have_platform_drv] drv_boot_modules platform_drv
-	lappend_if [have_spec acpi]    drv_boot_modules acpi_drv
-	lappend_if [have_spec acpi]    drv_boot_modules report_rom
-	lappend_if [have_spec muen]    drv_boot_modules acpi
+	lappend_if [have_spec x86]     drv_boot_modules report_rom
+
+	if {[have_spec muen]} {
+		lappend drv_boot_modules acpi
+	} else {
+		lappend drv_boot_modules acpi_drv
+	}
+
 	return $drv_boot_modules
 }
 
@@ -104,7 +109,7 @@ proc platform_drv_policy {} {
 
 proc platform_drv_priority {} { return "" }
 proc platform_drv_add_routing {} {
-	if {[have_spec acpi]} {
+	if {[have_spec x86]} {
 		return {
 			<service name="ROM" label="system"> <child name="acpi_report_rom"/> </service>}
 	}
@@ -114,20 +119,15 @@ proc platform_drv_add_routing {} {
 
 
 proc platform_drv_config_config {} {
-	if {[have_spec acpi] || [have_spec arm] || [have_spec muen]} {
-		return {
-		<config>}
-	}
-
 	return {
-		<config acpi="no">}
+		<config>}
 }
 
 
 proc platform_drv_config {} {
 	set drv_config ""
 
-	if {[have_spec acpi]} {
+	if {[have_spec x86] && ![have_spec muen]} {
 
 		append drv_config {
 	<start name="acpi_drv" } [platform_drv_priority] { caps="400" >
@@ -175,7 +175,7 @@ proc platform_drv_config {} {
 		<provides>
 			<service name="Platform"/>}
 
-		append_if [have_spec acpi] drv_config {
+		append_if [have_spec x86] drv_config {
 			<service name="Acpi"/>}
 
 		append_if [have_spec arm] drv_config {
@@ -187,7 +187,7 @@ proc platform_drv_config {} {
 
 		append drv_config "[platform_drv_add_routing]"
 
-		append_if [have_spec acpi] drv_config {
+		append_if [expr [have_spec x86] && ![have_spec muen]] drv_config {
 			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>}
 
 		append_if [have_spec rpi] drv_config {

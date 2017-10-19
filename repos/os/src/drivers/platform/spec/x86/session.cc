@@ -55,9 +55,9 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 			/* scan behind bridge */
 			if (config.pci_bridge()) {
 				/* PCI bridge spec 3.2.5.3, 3.2.5.4 */
-				unsigned char sec_bus = config.read(&config_access, 0x19,
+				unsigned char sec_bus = config.read(config_access, 0x19,
 				                                    Device::ACCESS_8BIT);
-				unsigned char sub_bus = config.read(&config_access, 0x20,
+				unsigned char sub_bus = config.read(config_access, 0x20,
 				                                    Device::ACCESS_8BIT);
 
 				bridges()->insert(new (heap) Bridge(bus, dev, fun, sec_bus,
@@ -68,11 +68,11 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 					PCI_CMD_MASK   = 0x7 /* IOPORT, MEM, DMA */
 				};
 
-				unsigned short cmd = config.read(&config_access, PCI_CMD_REG,
+				unsigned short cmd = config.read(config_access, PCI_CMD_REG,
 			                                     Platform::Device::ACCESS_16BIT);
 
 				if ((cmd & PCI_CMD_MASK) != PCI_CMD_MASK) {
-					config.write(&config_access, PCI_CMD_REG,
+					config.write(config_access, PCI_CMD_REG,
 					             cmd | PCI_CMD_MASK,
 					             Platform::Device::ACCESS_16BIT);
 				}
