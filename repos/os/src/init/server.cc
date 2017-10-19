@@ -142,10 +142,14 @@ void Init::Server::session_ready(Session_state &session)
 		_env.parent().deliver_session_cap(id, session.cap);
 		session.phase = Session_state::CAP_HANDED_OUT;
 	}
+
+	if (session.phase == Session_state::SERVICE_DENIED)
+		_close_session(session, Parent::SERVICE_DENIED);
 }
 
 
-void Init::Server::session_closed(Session_state &session)
+void Init::Server::_close_session(Session_state &session,
+                                  Parent::Session_response response)
 {
 	_report_update_trigger.trigger_report_update();
 
@@ -162,7 +166,13 @@ void Init::Server::session_closed(Session_state &session)
 
 	session.destroy();
 
-	_env.parent().session_response(id, Parent::SESSION_CLOSED);
+	_env.parent().session_response(id, response);
+}
+
+
+void Init::Server::session_closed(Session_state &session)
+{
+	_close_session(session, Parent::SESSION_CLOSED);
 }
 
 
@@ -342,7 +352,7 @@ void Init::Server::_handle_session_requests()
 	Xml_node const requests = _session_requests->xml();
 
 	requests.for_each_sub_node([&] (Xml_node request) {
-	 _handle_session_request(request); });
+		_handle_session_request(request); });
 
 	_report_update_trigger.trigger_report_update();
 }

@@ -86,6 +86,8 @@ class Init::Server : Session_state::Ready_callback,
 		void _handle_session_request(Xml_node);
 		void _handle_session_requests();
 
+		void _close_session(Session_state &, Parent::Session_response response);
+
 		/**
 		 * Session_state::Closed_callback interface
 		 */
