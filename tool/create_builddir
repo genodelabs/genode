@@ -12,7 +12,7 @@ PLATFORM = $(MAKECMDGOALS)
 
 PLATFORMS = x86_32  x86_64  panda  pbxa9  rpi arndale imx53_qsb imx53_qsb_tz \
             usb_armory wand_quad odroid_xu odroid_x2 zynq_qemu muen \
-            imx6q_sabrelite riscv_spike linux
+            imx6q_sabrelite riscv_spike linux nit6_solox
 
 PLATFORMS_DEPR = linux_x86 linux_arm fiasco_x86 okl4_x86 pistachio_x86 \
                  nova_x86_32 nova_x86_64 hw_x86_64 foc_x86_32 foc_x86_64 \
@@ -150,6 +150,7 @@ BUILD_CONF(zynq_qemu)    := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_
 BUILD_CONF(muen)         := run_kernel_hw run_opt_muen        run_boot_dir repos repos_x86
 BUILD_CONF(riscv_spike)  := run_kernel_hw run_opt_spike       run_boot_dir repos
 BUILD_CONF(linux)        := run_kernel_linux repos
+BUILD_CONF(nit6_solox)   := run_kernel_hw     run_boot_dir repos
 
 # deprecated platforms, to be removed
 BUILD_CONF(linux_x86)       := run_kernel_linux repos
@@ -234,6 +235,7 @@ SPECS(zynq_qemu)       := zynq_qemu
 SPECS(muen)            := muen x86_64
 SPECS(riscv_spike)     := riscv
 SPECS(linux)           := $(HOST_SPEC_ARCH)
+SPECS(nit6_solox)      := nit6_solox
 
 # deprecated platforms
 SPECS(linux_x86)       := $(HOST_SPEC_ARCH)
