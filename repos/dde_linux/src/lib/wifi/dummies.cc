@@ -346,7 +346,6 @@ DUMMY(-1, ktime_sub)
 DUMMY(-1, sg_init_one)
 DUMMY(-1, vlan_hw_offload_capable)
 DUMMY(-1, vlan_tx_tag_get_id)
-DUMMY(-1, vzalloc)
 DUMMY(-1, tsk_restore_flags)
 DUMMY(-1, put_user)
 
