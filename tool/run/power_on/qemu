@@ -124,6 +124,8 @@ proc run_power_on { } {
 			puts "Aborting, cannot execute Qemu without a ISO or disk image"
 			exit -4
 		} } } }
+
+		append qemu_args " -machine q35 "
 	}
 
 	# on ARM, we supply the boot image as kernel

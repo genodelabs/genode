@@ -15,6 +15,7 @@
 
 /* base */
 #include <base/rpc_server.h>
+#include <io_port_session/connection.h>
 #include <io_mem_session/connection.h>
 #include <util/list.h>
 #include <util/mmio.h>
@@ -45,12 +46,10 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		Genode::Env                 &_env;
 		Device_config                _device_config { };
 		Genode::addr_t               _config_space;
-		Config_access                _config_access { _env };
+		Config_access                _config_access;
 		Platform::Session_component &_session;
 		unsigned short               _irq_line;
 		Irq_session_component       *_irq_session = nullptr;
-
-		Genode::Constructible<Genode::Io_mem_connection> _io_mem_config_extended { };
 
 		Genode::Allocator           &_global_heap;
 
@@ -108,18 +107,18 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		{
 			enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34, CAP_MSI = 0x5 };
 
-			Status::access_t status = Status::read(_device_config.read(&_config_access,
+			Status::access_t status = Status::read(_device_config.read(_config_access,
 			                                       PCI_STATUS,
 			                                       Platform::Device::ACCESS_16BIT));
 			if (!Status::Capabilities::get(status))
 				return 0;
 
-			Genode::uint8_t cap = _device_config.read(&_config_access,
+			Genode::uint8_t cap = _device_config.read(_config_access,
 			                                          PCI_CAP_OFFSET,
 			                                          Platform::Device::ACCESS_8BIT);
 
 			for (Genode::uint16_t val = 0; cap; cap = val >> 8) {
-				val = _device_config.read(&_config_access, cap,
+				val = _device_config.read(_config_access, cap,
 				                          Platform::Device::ACCESS_16BIT);
 				if ((val & 0xff) != CAP_MSI)
 					continue;
@@ -139,7 +138,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			using Genode::uint16_t;
 			using Genode::uint8_t;
 
-			uint8_t pin = _device_config.read(&_config_access, PCI_IRQ_PIN,
+			uint8_t pin = _device_config.read(_config_access, PCI_IRQ_PIN,
 			                                  Platform::Device::ACCESS_8BIT);
 			if (!pin)
 				return Irq_session_component::INVALID_IRQ;
@@ -160,12 +159,12 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			if (!cap)
 				return irq;
 
-			uint16_t msi = _device_config.read(&_config_access, cap + 2,
+			uint16_t msi = _device_config.read(_config_access, cap + 2,
 			                                   Platform::Device::ACCESS_16BIT);
 
 			if (msi & MSI_ENABLED)
 				/* disable MSI */
-				_device_config.write(&_config_access, cap + 2,
+				_device_config.write(_config_access, cap + 2,
 				                     msi ^ MSI_ENABLED,
 				                     Platform::Device::ACCESS_8BIT);
 
@@ -185,10 +184,10 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			if (_device_config.pci_bridge())
 				return;
 
-			unsigned cmd = _device_config.read(&_config_access, PCI_CMD_REG,
+			unsigned cmd = _device_config.read(_config_access, PCI_CMD_REG,
 			                                   Platform::Device::ACCESS_16BIT);
 			if (cmd & PCI_CMD_DMA)
-				_device_config.write(&_config_access, PCI_CMD_REG,
+				_device_config.write(_config_access, PCI_CMD_REG,
 				                     cmd ^ PCI_CMD_DMA,
 				                     Platform::Device::ACCESS_16BIT);
 		}
@@ -200,14 +199,16 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		 */
 		Device_component(Genode::Env &env,
 		                 Device_config device_config, Genode::addr_t addr,
+		                 Config_access &config_access,
 		                 Platform::Session_component &session,
 		                 Genode::Allocator &md_alloc,
 		                 Genode::Allocator &global_heap)
 		:
 			_env(env),
 			_device_config(device_config), _config_space(addr),
+			_config_access(config_access),
 			_session(session),
-			_irq_line(_device_config.read(&_config_access, PCI_IRQ_LINE,
+			_irq_line(_device_config.read(_config_access, PCI_IRQ_LINE,
 			                              Platform::Device::ACCESS_8BIT)),
 			_global_heap(global_heap),
 			_slab_ioport(&md_alloc, &_slab_ioport_block_data),
@@ -224,11 +225,13 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		 * Constructor for non PCI devices
 		 */
 		Device_component(Genode::Env &env,
+		                 Genode::Attached_io_mem_dataspace &pciconf,
 		                 Platform::Session_component &session, unsigned irq,
 		                 Genode::Allocator &global_heap)
 		:
 			_env(env),
 			_config_space(~0UL),
+			_config_access(pciconf),
 			_session(session),
 			_irq_line(irq),
 			_global_heap(global_heap),
@@ -238,6 +241,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++)
 				_io_port_conn[i] = nullptr;
 		}
+
 
 		/**
 		 * De-constructor
@@ -267,26 +271,8 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		 ** Methods used solely by pci session **
 		 ****************************************/
 
-		Device_config config() { return _device_config; }
-
-		Genode::Io_mem_dataspace_capability get_config_space()
-		{
-			if (_config_space == ~0UL)
-				return Genode::Io_mem_dataspace_capability();
-
-			if (!_io_mem_config_extended.constructed()) {
-				try {
-					_io_mem_config_extended.construct(_env, _config_space, 0x1000);
-				} catch (...) {
-					_config_space = ~0UL;
-				}
-			}
-
-			if (!_io_mem_config_extended.constructed())
-				return Genode::Io_mem_dataspace_capability();
-
-			return _io_mem_config_extended->dataspace();
-		}
+		Device_config config() const { return _device_config; }
+		Genode::addr_t config_space() const { return _config_space; }
 
 		/**************************
 		 ** PCI-device interface **
@@ -317,7 +303,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 		unsigned config_read(unsigned char address, Access_size size) override
 		{
-			return _device_config.read(&_config_access, address, size,
+			return _device_config.read(_config_access, address, size,
 			                           _device_config.DONT_TRACK_ACCESS);
 		}
 

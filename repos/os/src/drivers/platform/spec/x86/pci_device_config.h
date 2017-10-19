@@ -68,6 +68,13 @@ namespace Platform {
 			 */
 			Device_config() : _vendor_id(INVALID_VENDOR) { }
 
+			Device_config(unsigned bdf)
+			:
+				_bus((bdf >> 8) & 0xff),
+				_device((bdf >> 3) & 0x1f),
+				_function(bdf & 0x7)
+			{ }
+
 			Device_config(int bus, int device, int function,
 			              Config_access *pci_config):
 				_bus(bus), _device(device), _function(function)
@@ -190,27 +197,27 @@ namespace Platform {
 			 * Read configuration space
 			 */
 			enum { DONT_TRACK_ACCESS = false };
-			unsigned read(Config_access *pci_config, unsigned char address,
+			unsigned read(Config_access &pci_config, unsigned char address,
 			              Device::Access_size size, bool track = true)
 			{
-				return pci_config->read(_bus, _device, _function, address,
-				                        size, track);
+				return pci_config.read(_bus, _device, _function, address,
+				                       size, track);
 			}
 
 			/**
 			 * Write configuration space
 			 */
-			void write(Config_access *pci_config, unsigned char address,
+			void write(Config_access &pci_config, unsigned char address,
 			           unsigned long value, Device::Access_size size,
 			           bool track = true)
 			{
-				pci_config->write(_bus, _device, _function, address, value,
-				                  size, track);
+				pci_config.write(_bus, _device, _function, address, value,
+				                 size, track);
 			}
 
-			bool reg_in_use(Config_access *pci_config, unsigned char address,
+			bool reg_in_use(Config_access &pci_config, unsigned char address,
 			                Device::Access_size size) {
-				return pci_config->reg_in_use(address, size); }
+				return pci_config.reg_in_use(address, size); }
 	};
 
 	class Config_space : private Genode::List<Config_space>::Element

@@ -99,7 +99,7 @@ void Platform::Device_component::config_write(unsigned char address,
 	switch (address) {
 		case 0x40 ... 0xff:
 			/* allow access to device-specific registers if not used by us */
-			if (!_device_config.reg_in_use(&_config_access, address, size))
+			if (!_device_config.reg_in_use(_config_access, address, size))
 				break;
 
 			Genode::error(_device_config, " write access to "
@@ -134,7 +134,7 @@ void Platform::Device_component::config_write(unsigned char address,
 		}
 	}
 
-	_device_config.write(&_config_access, address, value, size,
+	_device_config.write(_config_access, address, value, size,
 	                     _device_config.DONT_TRACK_ACCESS);
 }
 
@@ -172,11 +172,11 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 		Genode::addr_t msi_address = _irq_session->msi_address();
 		Genode::uint32_t msi_value = _irq_session->msi_data();
 
-		Genode::uint16_t msi = _device_config.read(&_config_access,
+		Genode::uint16_t msi = _device_config.read(_config_access,
 		                                           msi_cap + 2,
 		                                           Platform::Device::ACCESS_16BIT);
 
-		_device_config.write(&_config_access, msi_cap + 0x4, msi_address,
+		_device_config.write(_config_access, msi_cap + 0x4, msi_address,
 		                     Platform::Device::ACCESS_32BIT);
 
 		if (msi & CAP_MSI_64) {
@@ -184,19 +184,19 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 			                               ? (Genode::uint64_t)msi_address >> 32
 			                               : 0UL;
 
-			_device_config.write(&_config_access, msi_cap + 0x8,
+			_device_config.write(_config_access, msi_cap + 0x8,
 			                     upper_address,
 			                     Platform::Device::ACCESS_32BIT);
-			_device_config.write(&_config_access, msi_cap + 0xc,
+			_device_config.write(_config_access, msi_cap + 0xc,
 			                     msi_value,
 			                     Platform::Device::ACCESS_16BIT);
 		}
 		else
-			_device_config.write(&_config_access, msi_cap + 0x8, msi_value,
+			_device_config.write(_config_access, msi_cap + 0x8, msi_value,
 			                     Platform::Device::ACCESS_16BIT);
 
 		/* enable MSI */
-		_device_config.write(&_config_access, msi_cap + 2,
+		_device_config.write(_config_access, msi_cap + 2,
 		                     msi ^ MSI_ENABLED,
 		                     Platform::Device::ACCESS_8BIT);
 	}
@@ -204,7 +204,7 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 	bool msi_64   = false;
 	bool msi_mask = false;
 	if (msi_cap) {
-		Genode::uint16_t msi = _device_config.read(&_config_access,
+		Genode::uint16_t msi = _device_config.read(_config_access,
 		                                           msi_cap + 2,
 		                                           Platform::Device::ACCESS_16BIT);
 		msi_64   = msi & CAP_MSI_64;

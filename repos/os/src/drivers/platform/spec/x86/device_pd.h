@@ -109,5 +109,6 @@ class Platform::Device_pd
 		}
 
 		void attach_dma_mem(Genode::Dataspace_capability);
-		void assign_pci(Genode::Io_mem_dataspace_capability, Genode::uint16_t);
+		void assign_pci(Genode::Io_mem_dataspace_capability const,
+		                Genode::addr_t const, Genode::uint16_t const);
 };
