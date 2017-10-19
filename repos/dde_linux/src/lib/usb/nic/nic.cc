@@ -87,6 +87,7 @@ class Skb
 
 					sk_buff *r = &_buf[(_idx * ENTRY_ELEMENT_SIZE) + msb];
 					r->data = r->start;
+					r->head = r->data;
 					r->phys   = 0;
 					r->cloned = 0;
 					r->clone  = 0;
