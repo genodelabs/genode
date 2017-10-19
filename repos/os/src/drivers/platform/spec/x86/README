@@ -87,10 +87,10 @@ physical memory address below 4G. Another example is that on 32bit hosts
 physical to virtual identical mappings of DMA memory for the device_pd
 (required when IOMMU is used) must be below the kernel memory boundary (3G).
 
-By default the platform driver waits on startup on a report of the acpi driver,
-which conatins further information about the platform the platform driver can
-not discover (e.g. IRQ re-routing information, pci config extended space
-information).
+The platform driver waits on startup on the first valid ACPI report, typically
+provided dynamically by the acpi driver.
+The report contains further information about the hardware the platform driver can
+not discover (e.g. IRQ re-routing information, PCI ECAM/MMCONF information).
 
 A specific route to a report_rom service named 'acpi_report_rom' looks as
 in the following:
@@ -105,17 +105,6 @@ in the following:
 !  </route>
 !  ...
 
-For platforms which don't support or require the ACPI information -
-e.g. base-okl4, base-pistachio, base-fiasco - the platform driver can be
-configured to not wait for the acpi report:
-
-!<start name="platform_drv">
-!  ...
-!  <config acpi="no" system="no">
-!    ...
-!  </config>
-!  ...
-
 Synchronize ACPI startup and platform driver
 --------------------------------------------
 
@@ -123,7 +112,7 @@ If the config attribute 'acpi_ready' is set to 'yes', the platform driver
 monitors a ROM in XML format named 'acpi_ready'.
 
 !<start name="platform_drv">
-!  <config acpi="yes" acpi_ready="yes">
+!  <config acpi_ready="yes">
 
 The platform driver will announce its service not as 'Platform', but instead
 as 'Acpi' first.
@@ -136,21 +125,6 @@ system state changes to "acpi_ready in the XML ROM 'acpi_ready':
 
 the platform driver will announce the platform session as 'Platform', so
 that drivers may start to operate with the platform driver.
-
-Hardware reset
---------------
-If the config attribute 'system' is set to 'yes', the platform driver monitors
-a ROM in XML format named 'system'.
-
-!<start name="platform_drv">
-!  <config acpi="yes" system="yes">
-
-If the attribute 'state' in the system XML ROM turns to 'reset'
-
-!<system state="reset"/>
-
-the platform driver will try to reset the machine, if the required I/O ports
-are owned by it.
 
 Supported PCI class aliases
 ---------------------------

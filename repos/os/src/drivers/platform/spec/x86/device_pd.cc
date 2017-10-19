@@ -58,21 +58,22 @@ void Platform::Device_pd::attach_dma_mem(Genode::Dataspace_capability ds_cap)
 	}
 }
 
-void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability io_mem_cap,
-                                     Genode::uint16_t rid)
+void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability const io_mem_cap,
+                                     Genode::addr_t const   offset,
+                                     Genode::uint16_t const rid)
 {
 	using namespace Genode;
 
 	Dataspace_client ds_client(io_mem_cap);
 
-	addr_t page = _address_space.attach(io_mem_cap);
+	addr_t page = _address_space.attach(io_mem_cap, 0x1000, offset);
 
 	/* sanity check */
 	if (!page)
 		throw Region_map::Region_conflict();
 
 	/* trigger eager mapping of memory */
-	_pd.map(page, ds_client.size());
+	_pd.map(page, 0x1000);
 
 	/* utility to print rid value */
 	struct Rid
@@ -92,7 +93,7 @@ void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability io_mem_
 	/* try to assign pci device to this protection domain */
 	if (!_pd.assign_pci(page, rid))
 		Genode::error(_label, ": assignment of PCI device ", Rid(rid), " failed ",
-		              "phys=", Genode::Hex(ds_client.phys_addr()), " "
+		              "phys=", Genode::Hex(ds_client.phys_addr() + offset), " "
 		              "virt=", Genode::Hex(page));
 	else
 		Genode::log(_label,": assignment of PCI device ", Rid(rid), " succeeded");
