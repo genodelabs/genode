@@ -21,7 +21,7 @@ proc qemu_args { } {
 # XXX should by removed in favor of [have_include "exec/qemu"]
 #
 proc is_qemu_available { } {
-	if {[have_spec linux]} { return false }
+	if {[expr [have_spec linux] && {"[board]"} == {"linux"}]} { return false }
 
 	if {[have_spec panda]
 	 || [have_spec arndale]

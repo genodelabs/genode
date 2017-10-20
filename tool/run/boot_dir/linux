@@ -30,6 +30,36 @@ proc run_boot_dir {binaries} {
 
 	# Save config part of the image.elf for easy inspection
 	exec cp -f [run_dir]/genode/config [run_dir].config
+
+        if {[board] == "pc"} {
+
+            build_initrd $binaries
+
+            file copy -force [genode_dir]/tool/boot/vmlinuz [run_dir]/vmlinuz
+
+            if {[have_include "image/iso"]} {
+                install_iso_bootloader_to_run_dir
+            }
+
+            if {[have_include "image/uefi"]} {
+
+                exec mkdir -p [run_dir]/efi/boot
+                exec cp [get_grub2_dir]/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+                exec cp [get_grub2_dir]/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+                exec mkdir -p [run_dir]/boot/grub
+            }
+
+            set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
+            puts $fh "set timeout=0"
+            puts $fh "menuentry 'Genode on Linux' {"
+            puts $fh " insmod linux"
+            puts $fh " linux /vmlinuz console=ttyS0,115200 amd_iommu=off intel_iommu=off"
+            puts $fh " initrd /initrd"
+            puts $fh "}"
+            close $fh
+
+            run_image
+        }
 }
 
 

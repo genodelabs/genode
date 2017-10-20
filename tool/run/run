@@ -987,6 +987,37 @@ proc build_core_image { modules } {
 	exec cp -f [run_dir]/genode/config [run_dir].config
 }
 
+proc build_initrd { modules } {
+
+    copy_genode_binaries_to_run_dir $modules
+
+    set modules [glob -nocomplain -tails -directory [run_dir]/genode/ *]
+    set excluded_modules [kernel_files]
+
+    foreach file [glob -nocomplain [run_dir]/genode/*.config] {
+		check_xml_syntax $file }
+
+    exec cp -f [run_dir]/genode/config [run_dir].config
+
+    set here [pwd]
+    cd [run_dir]
+    puts "generating initrd"
+    exec cp genode/initramfs init
+    exec mkdir tmp
+    exec mkdir dev
+    set files "init\ntmp\ndev\ngenode\n"
+    append files [exec find genode -type f,l -printf "genode/%f\n"]
+    exec -ignorestderr echo $files | [installed_command cpio] -o -L -H newc > initrd
+
+    #workaround because cpio fails to compress broken links sometimes
+    exec touch dev/platform_info
+    cd genode
+    exec ln -s ../dev/platform_info platform_info
+    cd ..
+    exec -ignorestderr echo "genode/platform_info" | [installed_command cpio] -o -A -H newc -O initrd
+    cd ${here}
+}
+
 source [genode_dir]/tool/run/depot.inc
 
 
