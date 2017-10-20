@@ -169,6 +169,11 @@ int platform_device_add_resources(struct platform_device *pdev,
 }
 
 
+struct bus_type platform_bus_type = {
+	.name = "platform"
+};
+
+
 struct platform_device *platform_device_register_simple(const char *name, int id,
                                                         const struct resource *res,
                                                         unsigned int num)
@@ -176,6 +181,8 @@ struct platform_device *platform_device_register_simple(const char *name, int id
 	struct platform_device *pdev = kzalloc(sizeof (struct platform_device), GFP_KERNEL);
 	if (!pdev)
 		return 0;
+
+	pdev->dev.bus = &platform_bus_type;
 
 	size_t len = strlen(name);
 	pdev->name = kzalloc(len + 1, GFP_KERNEL);
