@@ -124,7 +124,7 @@ struct Driver_manager::Intel_fb_driver : Device_driver
 	{
 		xml.node("start", [&] () {
 			_gen_common_start_node_content(xml, "intel_fb_drv", "intel_fb_drv",
-			                               Ram_quota{20*1024*1024}, Cap_quota{100},
+			                               Ram_quota{20*1024*1024}, Cap_quota{200},
 			                               Priority{0});
 			_gen_provides_node<Framebuffer::Session>(xml);
 			xml.node("route", [&] () {
