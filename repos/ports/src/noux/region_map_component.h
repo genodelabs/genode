@@ -53,13 +53,14 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 			size_t                size;
 			off_t                 offset;
 			addr_t                local_addr;
+			bool                  executable;
 
 			Region(Region_map_component &rm,
 			       Dataspace_capability ds, size_t size,
-			       off_t offset, addr_t local_addr)
+			       off_t offset, addr_t local_addr, bool exec)
 			:
 				rm(rm), ds(ds), size(size), offset(offset),
-				local_addr(local_addr)
+				local_addr(local_addr), executable(exec)
 			{ }
 
 			/**
@@ -217,7 +218,9 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 						return;
 					}
 
-					dst_rm.attach(ds, curr->size, curr->offset, true, curr->local_addr);
+					enum { USE_LOCAL_ADDR = true };
+					dst_rm.attach(ds, curr->size, curr->offset, USE_LOCAL_ADDR,
+					              curr->local_addr, curr->executable);
 				};
 				_ds_registry.apply(curr->ds, lambda);
 			};
@@ -249,8 +252,8 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 				catch (Out_of_caps) { _pd.upgrade_caps(2); }
 			}
 
-			Region * region = new (_alloc)
-			                  Region(*this, ds, size, offset, local_addr);
+			Region * region = new (_alloc) Region(*this, ds, size, offset,
+			                                      local_addr, executable);
 
 			/* register region as user of RAM dataspaces */
 			auto lambda = [&] (Dataspace_info *info)
