@@ -44,3 +44,11 @@ code respectively the download source of binaries are described below.
 
   https://github.com/tianocore/edk2.git
   git commit 6e5e544f227f031d0b45828b56cec5668dd1bf5b
+
+:'init'
+  
+  Loader for the initrd used to boot Genode on a bare Linux kernel.
+  It calls chdir on /genode and execve on core.
+
+  https://github.com/jklmnn/initramfs.git
+  git commit 220a7c9882004fa92edc5924d643e52ffcc8672c

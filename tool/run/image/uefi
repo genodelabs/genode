@@ -19,7 +19,7 @@ proc run_image { {unused ""} } {
 	if {[image_uefi_size] > 0} {
 		set disk_size  [image_uefi_size]
 	} else {
-		set disk_size [expr $run_size + 1]
+		set disk_size [expr $run_size + 20]
 	}
 
 	# generate head space designated for the partition table
