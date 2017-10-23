@@ -1,0 +1,26 @@
+pcre_callout B 8
+pcre_compile2 T
+pcre_compile T
+pcre_config T
+pcre_copy_named_substring T
+pcre_copy_substring T
+pcre_dfa_exec T
+pcre_exec T
+pcre_free D 8
+pcre_free_study T
+pcre_free_substring_list T
+pcre_free_substring T
+pcre_fullinfo T
+pcre_get_named_substring T
+pcre_get_stringnumber T
+pcre_get_stringtable_entries T
+pcre_get_substring_list T
+pcre_get_substring T
+pcre_maketables T
+pcre_malloc D 8
+pcre_pattern_to_host_byte_order T
+pcre_refcount T
+pcre_stack_free D 8
+pcre_stack_malloc D 8
+pcre_study T
+pcre_version T

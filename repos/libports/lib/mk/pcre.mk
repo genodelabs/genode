@@ -1,5 +1,3 @@
-include $(REP_DIR)/lib/import/import-pcre.mk
-
 PCRE_PORT_DIR := $(call select_from_ports,pcre)
 
 SRC_C = pcre_byte_order.c   \
@@ -23,7 +21,8 @@ SRC_C = pcre_byte_order.c   \
         pcre_version.c      \
         pcre_xclass.c
 
-INC_DIR += $(PCRE_PORT_DIR)/src/lib/pcre \
+INC_DIR += $(PCRE_PORT_DIR)/include/pcre \
+           $(PCRE_PORT_DIR)/src/lib/pcre \
            $(REP_DIR)/src/lib/pcre/include
 
 CC_OPT += -DHAVE_CONFIG_H
