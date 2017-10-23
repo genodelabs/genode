@@ -85,28 +85,85 @@ void File_system::init()
 		_print_types();
 		throw Genode::Exception();
 	}
+
 	Genode::log("Using ", fs_type, " as file system");
 
 	/* start rump kernel */
 	rump_init();
+
 	/* register block device */ 
 	rump_pub_etfs_register(GENODE_DEVICE, GENODE_BLOCK_SESSION, RUMP_ETFS_BLK);
 
-	/* mount into extra-terrestrial-file system */
-	struct fs_args args;
-	int            opts = check_read_only(fs_type) ? RUMP_MNT_RDONLY : 0;
-
-	/* disable access time updates */
-	opts |= RUMP_MNT_NOATIME;
-
-	args.fspec =  (char *)GENODE_DEVICE;
-	if (rump_sys_mount(fs_type.string(), "/", opts, &args, sizeof(args)) == -1) {
-		Genode::error("Mounting '", fs_type, "' file system failed (errno ", errno, " )");
-		throw Genode::Exception();
-	}
+	/* create mount directory */
+	rump_sys_mkdir(GENODE_MOUNT_DIR, 0777);
 
 	/* check support for symlinks */
 	_supports_symlinks = check_symlinks(fs_type);
+}
+
+
+static int root_fd = -42;
+
+
+void File_system::mount_fs()
+{
+	/* mount into extra-terrestrial-file system */
+	struct fs_args args;
+	args.fspec = (char *)GENODE_DEVICE;
+
+	Fs_type const fs_type = Rump::env().config_rom().xml().attribute_value("fs", Fs_type());
+
+	int opts  = check_read_only(fs_type) ? RUMP_MNT_RDONLY : 0;
+	    opts |= RUMP_MNT_NOATIME;
+
+	if (root_fd == -42) {
+		root_fd = open("/", O_DIRECTORY | O_RDONLY);
+		if (root_fd == -1) {
+			Genode::error("opening root directory failed");
+			throw Genode::Exception();
+		}
+	}
+
+	int err = rump_sys_mount(fs_type.string(), GENODE_MOUNT_DIR,
+	                         opts, &args, sizeof(args));
+	if (err == -1) {
+		Genode::error("mounting file system failed (errno ", errno, " )");
+		throw Genode::Exception();
+	}
+
+	int const mnt_fd = open(GENODE_MOUNT_DIR,  O_DIRECTORY | O_RDONLY);
+	if (mnt_fd == -1) {
+		Genode::error("opening mnt directory failed");
+		throw Genode::Exception();
+	}
+
+	err = rump_sys_fchroot(mnt_fd);
+	if (err == -1) {
+		Genode::error("fchroot to '", GENODE_MOUNT_DIR, "' failed ",
+		              "(errno ", errno, " )");
+		throw Genode::Exception();
+	}
+}
+
+
+void File_system::unmount_fs()
+{
+	/* try to flush all outstanding modifications */
+	rump_sys_sync();
+
+	int err = rump_sys_fchroot(root_fd);
+	if (err == -1) {
+		Genode::error("fchroot to '/' failed ", "(errno ", errno, " )");
+		throw Genode::Exception();
+	}
+
+	bool const force = true;
+
+	err = rump_sys_unmount(GENODE_MOUNT_DIR, force ? RUMP_MNT_FORCE : 0);
+	if (err == -1) {
+		Genode::error("unmounting file system failed (errno ", errno, " )");
+		throw Genode::Exception();
+	}
 }
 
 

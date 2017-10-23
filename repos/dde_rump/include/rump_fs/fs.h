@@ -23,6 +23,11 @@
  */
 #define GENODE_DEVICE        "/genode"
 
+/**
+ * Device where to mount the block device
+ */
+#define GENODE_MOUNT_DIR     "/mnt"
+
 
 void rump_io_backend_init();
 

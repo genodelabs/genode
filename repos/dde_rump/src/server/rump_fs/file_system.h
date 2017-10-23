@@ -32,6 +32,8 @@ extern "C" {
 
 namespace File_system {
 	void init();
+	void mount_fs();
+	void unmount_fs();
 	bool supports_symlinks();
 }
 

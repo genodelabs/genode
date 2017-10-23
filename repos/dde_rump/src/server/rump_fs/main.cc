@@ -423,6 +423,8 @@ class Rump_fs::Root : public Root_component<Session_component>
 
 		Genode::Env &_env;
 
+		int _sessions { 0 };
+
 		Genode::Attached_rom_dataspace _config { _env, "config" };
 
 	protected:
@@ -471,7 +473,7 @@ class Rump_fs::Root : public Root_component<Session_component>
 				/* determine policy root offset */
 				try {
 					policy.attribute("root").value(tmp, sizeof(tmp));
-					session_root.import(tmp, "/");
+					session_root.import(tmp, "/mnt");
 				} catch (Xml_node::Nonexistent_attribute) { }
 
 				/*
@@ -494,13 +496,29 @@ class Rump_fs::Root : public Root_component<Session_component>
 			char const *root_dir = session_root.base();
 
 			try {
+				if (++_sessions == 1) { File_system::mount_fs(); }
+			} catch (...) {
+				Genode::error("could not mount file system");
+				throw Service_denied();
+			}
+
+			try {
 				return new (md_alloc())
 					Session_component(_env, tx_buf_size, root_dir, writeable, *md_alloc());
-			}
-			catch (Lookup_failed) {
+
+			} catch (Lookup_failed) {
 				Genode::error("File system root directory \"", root_dir, "\" does not exist");
 				throw Service_denied();
 			}
+		}
+
+		void _destroy_session(Session_component *session)
+		{
+			Genode::destroy(md_alloc(), session);
+
+			try {
+				if (--_sessions == 0) { File_system::unmount_fs(); }
+			} catch (...) { }
 		}
 
 	public:
