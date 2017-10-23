@@ -44,4 +44,10 @@ build_boot_image { core ld.lib.so init timer test-timer }
 append qemu_args "  -nographic"
 
 # Execute test in Qemu
-run_genode_until "--- timer test finished ---" 60
+run_genode_until {\[init\] child \"client\" exited with exit value.*\n} 60
+
+grep_output {\[init\] child \"client\" exited with exit value}
+
+compare_output_to {
+	[init] child "client" exited with exit value 0
+}
