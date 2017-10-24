@@ -427,7 +427,8 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 			_assert_valid_path(path_str);
 			Vfs_server::Path fullpath(_root->path());
-			fullpath.append(path_str);
+			if (path_str[1] != '\0')
+				fullpath.append(path_str);
 			path_str = fullpath.base();
 
 			if (!create && !_vfs.directory(path_str))
