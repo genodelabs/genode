@@ -351,10 +351,32 @@ class Ps2::Keyboard : public Input_driver
 
 		} _scan_code_set_2_state_machine;
 
+		/* acknowledge code from keyboard */
+		enum { ACK = 0xfa };
+
 		/**
 		 * Used keyboard-packet state machine
 		 */
 		Scan_code_state_machine *_state_machine;
+
+		bool _capslock = false;
+		bool _numlock  = false;
+		bool _scrlock  = false;
+
+		void _update_leds()
+		{
+			_kbd.write(0xed);
+			if (_kbd.read() != ACK) {
+				Genode::warning("setting of mode indicators failed (0xed)");
+				return;
+			}
+
+			_kbd.write((_capslock ? 4:0) | (_numlock ? 2:0) | (_scrlock ? 1:0));
+			if (_kbd.read() != ACK) {
+				Genode::warning("setting of mode indicators failed");
+				return;
+			}
+		}
 
 	public:
 
@@ -387,11 +409,20 @@ class Ps2::Keyboard : public Input_driver
 			            : "2");
 		}
 
+		enum Led { CAPSLOCK_LED, NUMLOCK_LED, SCRLOCK_LED };
+
+		void led_enabled(Led led, bool enabled)
+		{
+			switch (led) {
+			case CAPSLOCK_LED: _capslock = enabled; break;
+			case NUMLOCK_LED:  _numlock  = enabled; break;
+			case SCRLOCK_LED:  _scrlock  = enabled; break;
+			}
+			_update_leds();
+		}
+
 		void reset()
 		{
-			/* acknowledge code from keyboard */
-			enum { ACK = 0xfa };
-
 			/* scan-code request/config commands */
 			enum { SCAN_CODE_REQUEST = 0, SCAN_CODE_SET_1 = 1, SCAN_CODE_SET_2 = 2 };
 

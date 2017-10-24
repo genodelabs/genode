@@ -1,0 +1,20 @@
+The PS/2 driver makes PS/2 mouse and keyboard input available as an input
+session. It accepts the following configuration attributes. The default
+values are shown as attribute values.
+
+! <config verbose_keyboard="no"
+!         verbose_mouse="no"
+!         verbose_scancodes="no"
+!         capslock_led="no"
+!         numlock_led="no"
+!         scrlock_led="no"/>
+
+The 'capslock_led', 'numlock_led', and 'scrlock_led' attributes can have the
+values "no" (LED is turned off), "yes" (LED is turned on), or "rom". In the
+latter case, the PS/2 driver reads the LED state from a dedicated ROM module
+called "capslock", "numlock", or "scrlock" respectively. The ROM module is
+expected to have a top-level XML node with the attribute 'enabled' set to
+"yes" or "no". The PS/2 driver supports dynamic updates of its configuration
+as well as the ROM modules for LED states. This mechanism enables other
+components to control the indicator states by the means of providing and
+updating those ROM modules.

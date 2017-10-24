@@ -27,6 +27,7 @@
 #include "ps2_mouse.h"
 #include "irq_handler.h"
 #include "verbose.h"
+#include "led_state.h"
 
 namespace Ps2 { struct Main; }
 
@@ -55,18 +56,44 @@ struct Ps2::Main
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	Verbose _verbose { _config.xml() };
+	Genode::Reconstructible<Verbose> _verbose { _config.xml() };
 
 	Keyboard _keyboard { _i8042.kbd_interface(), _session.event_queue(),
-	                     _i8042.kbd_xlate(), _verbose };
+	                     _i8042.kbd_xlate(), *_verbose };
 
-	Mouse _mouse { _i8042.aux_interface(), _session.event_queue(), _verbose };
+	Mouse _mouse { _i8042.aux_interface(), _session.event_queue(), *_verbose };
 
 	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _device_ps2.irq(0) };
 	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _device_ps2.irq(1) };
 
+	Led_state _capslock { _env, "capslock" },
+	          _numlock  { _env, "numlock"  },
+	          _scrlock  { _env, "scrlock"  };
+
+	void _handle_config()
+	{
+		_config.update();
+
+		Genode::Xml_node config = _config.xml();
+
+		_verbose.construct(config);
+
+		_capslock.update(config, _config_handler);
+		_numlock .update(config, _config_handler);
+		_scrlock .update(config, _config_handler);
+
+		_keyboard.led_enabled(Keyboard::CAPSLOCK_LED, _capslock.enabled());
+		_keyboard.led_enabled(Keyboard::NUMLOCK_LED,  _numlock .enabled());
+		_keyboard.led_enabled(Keyboard::SCRLOCK_LED,  _scrlock .enabled());
+	}
+
+	Genode::Signal_handler<Main> _config_handler {
+		_env.ep(), *this, &Main::_handle_config };
+
 	Main(Genode::Env &env) : _env(env)
 	{
+		_handle_config();
+
 		env.parent().announce(env.ep().manage(_root));
 	}
 };
