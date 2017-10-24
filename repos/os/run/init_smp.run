@@ -20,7 +20,9 @@ if { [get_cmd_switch --autopilot] } {
 	assert_spec nova
 
 	# set specifically for our nightly test hardware */
-	set cpus     8
+	if {[have_spec x86_64]} {
+		set cpus     8
+	}
 	set children 3
 }
 
@@ -42,6 +44,9 @@ append config {
 	</parent-provides>
 	<default-route><any-service><parent/><any-child/></any-service></default-route>
 	<default caps="100"/>
+
+	<resource name="RAM" preserve="2M"/>
+	<resource name="CAP" preserve="100"/>
 
 	<start name="timer">
 		<resource name="CPU" quantum="10"/>
@@ -72,6 +77,9 @@ for { set i 0} { $i < ${cpus} } { incr i} {
 					</default-route>
 					<default caps="1000"/>
 
+					<resource name="RAM" preserve="2M"/>
+					<resource name="CAP" preserve="100"/>
+
 					<start name="bomb-master">
 						<binary name="bomb"/>
 						<resource name="CPU" quantum="90"/>
@@ -94,7 +102,7 @@ install_config $config
 
 build_boot_image "core ld.lib.so init bomb timer"
 
-append qemu_args " [expr 128 + $init_ram*$cpus] -nographic -smp $cpus"
+append qemu_args " -m [expr 128 + $init_ram*$cpus]M -nographic -smp $cpus"
 
 
 if { [get_cmd_switch --autopilot] } {
