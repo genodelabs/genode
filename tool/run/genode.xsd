@@ -16,6 +16,7 @@
   <xs:attribute name="label" type="xs:string" />
   <xs:attribute name="label_prefix" type="xs:string" />
   <xs:attribute name="label_suffix" type="xs:string" />
+  <xs:attribute name="unscoped_label" type="xs:string" />
  </xs:complexType>
 
  <xs:complexType name="template_route">
