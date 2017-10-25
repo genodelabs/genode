@@ -15,9 +15,12 @@
 #include <base/internal/unmanaged_singleton.h>
 
 #include <kernel/cpu.h>
+#include <kernel/thread.h>
 #include <spec/arm/cpu_support.h>
 
-Genode::Arm_cpu::Context::Context(bool privileged)
+using namespace Genode;
+
+Arm_cpu::Context::Context(bool privileged)
 {
 	using Psr = Arm_cpu::Psr;
 
@@ -31,14 +34,14 @@ Genode::Arm_cpu::Context::Context(bool privileged)
 }
 
 
-using Asid_allocator = Genode::Bit_allocator<256>;
+using Asid_allocator = Bit_allocator<256>;
 
 static Asid_allocator &alloc() {
 	return *unmanaged_singleton<Asid_allocator>(); }
 
 
-Genode::Arm_cpu::Mmu_context::Mmu_context(addr_t table)
-: cidr((Genode::uint8_t)alloc().alloc()), ttbr0(Ttbr0::init(table)) { }
+Arm_cpu::Mmu_context::Mmu_context(addr_t table)
+: cidr((uint8_t)alloc().alloc()), ttbr0(Ttbr0::init(table)) { }
 
 
 Genode::Arm_cpu::Mmu_context::~Mmu_context()
@@ -46,4 +49,37 @@ Genode::Arm_cpu::Mmu_context::~Mmu_context()
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
 	alloc().free(id());
+}
+
+
+using Thread_fault = Kernel::Thread_fault;
+
+void Arm_cpu::mmu_fault(Context & c, Thread_fault & fault)
+{
+	bool prefetch     = c.cpu_exception == Context::PREFETCH_ABORT;
+	fault.addr        = prefetch ? Ifar::read() : Dfar::read();
+	Fsr::access_t fsr = prefetch ? Ifsr::read() : Dfsr::read();
+
+	if (!prefetch && Dfsr::Wnr::get(fsr)) {
+		fault.type = Thread_fault::WRITE;
+		return;
+	}
+
+	Cpu::mmu_fault_status(Fsr::Fs::get(fsr), fault);
+}
+
+
+void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault & fault)
+{
+	enum {
+		FAULT_MASK  = 0b11101,
+		TRANSLATION = 0b00101,
+		PERMISSION  = 0b01101,
+	};
+
+	switch(fsr & FAULT_MASK) {
+		case TRANSLATION: fault.type = Thread_fault::PAGE_MISSING; return;
+		case PERMISSION:  fault.type = Thread_fault::EXEC;         return;
+		default:          fault.type = Thread_fault::UNKNOWN;
+	};
 }

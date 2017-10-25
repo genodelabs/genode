@@ -38,6 +38,20 @@ extern "C" void _core_start(void);
 using namespace Kernel;
 
 
+void Thread_fault::print(Genode::Output &out) const
+{
+	Genode::print(out, "ip=",          Genode::Hex(ip));
+	Genode::print(out, " fault-addr=", Genode::Hex(addr));
+	Genode::print(out, " type=");
+	switch (type) {
+		case WRITE:        Genode::print(out, "write-fault"); return;
+		case EXEC:         Genode::print(out, "exec-fault"); return;
+		case PAGE_MISSING: Genode::print(out, "no-page"); return;
+		case UNKNOWN:      Genode::print(out, "unknown"); return;
+	};
+}
+
+
 void Thread::_signal_context_kill_pending()
 {
 	assert(_state == ACTIVE);
@@ -619,11 +633,29 @@ void Thread::_call()
 }
 
 
+void Thread::_mmu_exception()
+{
+	_become_inactive(AWAITS_RESTART);
+	Cpu::mmu_fault(*regs, _fault);
+	_fault.ip = regs->ip;
+
+	if (_fault.type == Thread_fault::UNKNOWN) {
+		Genode::error(*this, " raised unhandled MMU fault ", _fault);
+		return;
+	}
+
+	if (_core)
+		Genode::error(*this, " raised a fault, which should never happen ",
+	                  _fault);
+
+	if (_pager) _pager->submit(1);
+}
+
+
 Thread::Thread(unsigned const priority, unsigned const quota,
                char const * const label, bool core)
 :
-	Cpu_job(priority, quota), _fault_pd(0), _fault_addr(0),
-	_fault_writes(0), _state(AWAITS_START),
+	Cpu_job(priority, quota), _state(AWAITS_START),
 	_signal_receiver(0), _label(label), _core(core), regs(core) { }
 
 

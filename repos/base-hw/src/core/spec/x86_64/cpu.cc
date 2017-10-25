@@ -13,6 +13,7 @@
 
 /* core includes */
 #include <cpu.h>
+#include <kernel/thread.h>
 #include <kernel/pd.h>
 
 extern int __tss;
@@ -55,4 +56,32 @@ void Genode::Cpu::Gdt::init()
 	uint16_t const limit = __gdt_end - __gdt_start - 1;
 	uint64_t const base  = start;
 	asm volatile ("lgdt %0" :: "m" (Pseudo_descriptor(limit, base)));
+}
+
+
+void Genode::Cpu::mmu_fault(Context & regs, Kernel::Thread_fault & fault)
+{
+	using Fault = Kernel::Thread_fault::Type;
+
+	/*
+	 * Intel manual: 6.15 EXCEPTION AND INTERRUPT REFERENCE
+	 *                    Interrupt 14—Page-Fault Exception (#PF)
+	 */
+	enum {
+		ERR_I = 1UL << 4,
+		ERR_R = 1UL << 3,
+		ERR_U = 1UL << 2,
+		ERR_W = 1UL << 1,
+		ERR_P = 1UL << 0,
+	};
+
+	auto fault_lambda = [] (addr_t err) {
+		if ((err & ERR_P) && (err & ERR_W)) return Fault::WRITE;
+		if ((err & ERR_P) && (err & ERR_I)) return Fault::EXEC;
+		if (err & ERR_P)                    return Fault::UNKNOWN;
+		else                                return Fault::PAGE_MISSING;
+	};
+
+	fault.addr = Genode::Cpu::Cr2::read();
+	fault.type = fault_lambda(regs.errcode);
 }

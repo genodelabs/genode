@@ -28,6 +28,8 @@
 #include <board.h>
 #include <util.h>
 
+namespace Kernel { struct Thread_fault; }
+
 namespace Genode {
 	using sizet_arithm_t = Genode::uint64_t;
 	struct Arm_cpu;
@@ -137,48 +139,10 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		}
 	}
 
-	static bool in_fault(Context & c, addr_t & va, addr_t & w, bool & p)
-	{
-		/* translation fault on section */
-		static constexpr Fsr::access_t section    = 5;
-		/* translation fault on page */
-		static constexpr Fsr::access_t page       = 7;
-		/* permission fault on page */
-		static constexpr Fsr::access_t permission = 0xf;
+	static void mmu_fault(Context & c, Kernel::Thread_fault & fault);
+	static void mmu_fault_status(Fsr::access_t fsr,
+	                             Kernel::Thread_fault & fault);
 
-		if (c.cpu_exception == Context::PREFETCH_ABORT) {
-			/* check if fault was caused by a translation miss */
-			Ifsr::access_t const fs = Fsr::Fs::get(Ifsr::read());
-
-			if (fs == permission) {
-				w = 0;
-				va = Ifar::read();
-				p = true;
-				return true;
-			}
-
-			if (fs != section && fs != page)
-				return false;
-
-			/* fetch fault data */
-			w = 0;
-			va = Ifar::read();
-			p = false;
-			return true;
-		} else {
-			/* check if fault is of known type */
-			Dfsr::access_t const fs = Fsr::Fs::get(Dfsr::read());
-			if (fs != permission && fs != section && fs != page)
-				return false;
-
-			/* fetch fault data */
-			Dfsr::access_t const dfsr = Dfsr::read();
-			w = Dfsr::Wnr::get(dfsr);
-			va = Dfar::read();
-			p = false;
-			return true;
-		}
-	}
 
 	/*************
 	 ** Dummies **

@@ -14,6 +14,7 @@
 #include <util/bit_allocator.h>
 #include <base/internal/unmanaged_singleton.h>
 
+#include <kernel/thread.h>
 #include <spec/cortex_a15/cpu.h>
 
 using Asid_allocator = Genode::Bit_allocator<256>;
@@ -33,3 +34,22 @@ Genode::Cpu::Mmu_context::~Mmu_context()
 	Cpu::Tlbiasid::write(id());
 	alloc().free(id());
 }
+
+
+void Genode::Cpu::mmu_fault_status(Genode::Cpu::Fsr::access_t fsr,
+                                   Kernel::Thread_fault & fault)
+{
+	enum {
+		FAULT_MASK  = 0b111100,
+		TRANSLATION = 0b000100,
+		PERMISSION  = 0b001100,
+	};
+
+	using Fault = Kernel::Thread_fault;
+
+	switch(fsr & FAULT_MASK) {
+	case TRANSLATION: fault.type = Fault::PAGE_MISSING; return;
+	case PERMISSION:  fault.type = Fault::EXEC;         return;
+	default:          fault.type = Fault::UNKNOWN;
+	};
+};

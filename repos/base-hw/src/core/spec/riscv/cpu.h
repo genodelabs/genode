@@ -24,6 +24,8 @@
 #include <kernel/interface.h>
 #include <hw/spec/riscv/cpu.h>
 
+namespace Kernel { struct Thread_fault; }
+
 namespace Genode
 {
 	/**
@@ -76,6 +78,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 		static void invalidate_tlb_by_pid(unsigned const pid) { sfence(); }
 
 		void switch_to(Mmu_context & context);
+		static void mmu_fault(Context & c, Kernel::Thread_fault & f);
 
 		static unsigned executing_id() { return 0; }
 		static unsigned primary_id()   { return 0; }

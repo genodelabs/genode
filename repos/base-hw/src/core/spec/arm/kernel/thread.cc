@@ -50,41 +50,6 @@ void Thread::exception(Cpu & cpu)
 }
 
 
-void Thread::_mmu_exception()
-{
-	_become_inactive(AWAITS_RESTART);
-	if (Cpu::in_fault(*regs, _fault_addr, _fault_writes, _fault_exec)) {
-		_fault_pd = (addr_t)_pd->platform_pd();
-
-		/*
-		 * Core should never raise a page-fault. If this happens, print out an
-		 * error message with debug information.
-		 */
-		if (_core)
-			Genode::error("page fault in core thread (", label(), "): "
-			              "ip=", Genode::Hex(regs->ip), " fault=", Genode::Hex(_fault_addr));
-
-		if (_pager) _pager->submit(1);
-		return;
-	}
-
-	char const *abort_type = "unknown";
-	if (regs->cpu_exception == Cpu::Context::DATA_ABORT)
-		abort_type = "data";
-	if (regs->cpu_exception == Cpu::Context::PREFETCH_ABORT)
-		abort_type = "prefetch";
-
-	Genode::error(*this, ": raised unhandled ",
-	              abort_type, " abort ",
-	              "DFSR=", Genode::Hex(Cpu::Dfsr::read()), " "
-	              "ISFR=", Genode::Hex(Cpu::Ifsr::read()), " "
-	              "DFAR=", Genode::Hex(Cpu::Dfar::read()), " "
-	              "ip=",   Genode::Hex(regs->ip),          " "
-	              "sp=",   Genode::Hex(regs->sp),          " "
-	              "exception=", Genode::Hex(regs->cpu_exception));
-}
-
-
 void Kernel::Thread::_call_update_data_region()
 {
 	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());

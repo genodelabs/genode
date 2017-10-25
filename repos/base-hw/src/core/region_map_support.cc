@@ -50,10 +50,7 @@ void Pager_entrypoint::entry()
 			continue;
 		}
 
-		_fault.ip     = pt->kernel_object()->regs->ip;
-		_fault.addr   = pt->kernel_object()->fault_addr();
-		_fault.writes = pt->kernel_object()->fault_writes();
-		_fault.exec   = pt->kernel_object()->fault_exec();
+		_fault = pt->kernel_object()->fault();
 
 		/* try to resolve fault directly via local region managers */
 		if (po->pager(*this)) continue;

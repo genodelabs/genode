@@ -29,6 +29,8 @@
 /* core includes */
 #include <fpu.h>
 
+namespace Kernel { struct Thread_fault; }
+
 namespace Genode {
 	class Cpu;
 	using sizet_arithm_t = __uint128_t;
@@ -124,6 +126,8 @@ class Genode::Cpu
 		 * \param context  next CPU context
 		 */
 		inline void switch_to(Context & context, Mmu_context &);
+
+		static void mmu_fault(Context & regs, Kernel::Thread_fault & fault);
 };
 
 

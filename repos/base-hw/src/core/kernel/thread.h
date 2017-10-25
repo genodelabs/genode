@@ -24,9 +24,23 @@
 
 namespace Kernel
 {
+	struct Thread_fault;
 	class Thread;
 	class Core_thread;
 }
+
+
+struct Kernel::Thread_fault
+{
+	enum Type { WRITE, EXEC, PAGE_MISSING, UNKNOWN };
+
+	addr_t ip    = 0;
+	addr_t addr  = 0;
+	Type   type  = UNKNOWN;
+
+	void print(Genode::Output &out) const;
+};
+
 
 /**
  * Kernel back-end for userland execution-contexts
@@ -53,9 +67,7 @@ class Kernel::Thread
 		};
 
 		Signal_context *   _pager = nullptr;
-		addr_t             _fault_pd;
-		addr_t             _fault_addr;
-		addr_t             _fault_writes;
+		Thread_fault       _fault;
 		State              _state;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
@@ -63,7 +75,6 @@ class Kernel::Thread
 		bool               _paused = false;
 		bool               _cancel_next_await_signal = false;
 		bool const         _core = false;
-		bool               _fault_exec = false;
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread
@@ -322,11 +333,8 @@ class Kernel::Thread
 		 ** Accessors **
 		 ***************/
 
-		char const * label()  const { return _label; }
-		addr_t fault_pd()     const { return _fault_pd; }
-		addr_t fault_addr()   const { return _fault_addr; }
-		addr_t fault_writes() const { return _fault_writes; }
-		bool   fault_exec()   const { return _fault_exec; }
+		char const * label() const { return _label; }
+		Thread_fault fault() const { return _fault; }
 };
 
 

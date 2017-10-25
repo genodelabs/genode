@@ -80,19 +80,8 @@ class Genode::Ipc_pager
 {
 	protected:
 
-		/**
-		 * Page-fault data that is read from the faulters thread registers
-		 */
-		struct Fault_thread_regs
-		{
-			addr_t ip;
-			addr_t addr;
-			addr_t writes;
-			addr_t exec;
-			addr_t signal;
-		} _fault;
-
-		Mapping _mapping;
+		Kernel::Thread_fault _fault;
+		Mapping              _mapping;
 
 	public:
 

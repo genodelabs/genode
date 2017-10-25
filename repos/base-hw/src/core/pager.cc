@@ -34,9 +34,11 @@ addr_t Ipc_pager::fault_ip() const { return _fault.ip; }
 
 addr_t Ipc_pager::fault_addr() const { return _fault.addr; }
 
-bool Ipc_pager::write_fault() const { return _fault.writes; }
+bool Ipc_pager::write_fault() const {
+	return _fault.type == Kernel::Thread_fault::WRITE; }
 
-bool Ipc_pager::exec_fault() const { return _fault.exec; }
+bool Ipc_pager::exec_fault() const {
+	return _fault.type == Kernel::Thread_fault::EXEC; }
 
 void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
 
@@ -67,9 +69,7 @@ void Pager_object::unresolved_page_fault_occurred()
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
 		warning("page fault, pager_object: pd='", pt->pd()->label(),
-		        "' thread='", pt->label(),
-		        "' ip=", Hex(pt->kernel_object()->regs->ip),
-		        " pf-addr=", Hex(pt->kernel_object()->fault_addr()));
+		        "' thread='", pt->label(), " ", pt->kernel_object()->fault());
 }
 
 void Pager_object::print(Output &out) const
