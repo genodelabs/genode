@@ -235,9 +235,10 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	Input_to_filter _input_to_filter { _env };
 
-	Reporter _input_filter_config_reporter { _env, "config",  "input_filter.config" };
-	Reporter _chargen_include_reporter     { _env, "chargen", "chargen_include" };
-	Reporter _remap_include_reporter       { _env, "remap",   "remap_include" };
+	Reporter _input_filter_config_reporter { _env, "config",   "input_filter.config" };
+	Reporter _chargen_include_reporter     { _env, "chargen",  "chargen_include" };
+	Reporter _remap_include_reporter       { _env, "remap",    "remap_include" };
+	Reporter _capslock_reporter            { _env, "capslock", "capslock" };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -315,6 +316,13 @@ struct Test::Main : Input_from_filter::Event_handler
 
 			if (step.type() == "remap_include") {
 				_publish_report(_remap_include_reporter, step);
+				_advance_step();
+				continue;
+			}
+
+			if (step.type() == "capslock") {
+				Reporter::Xml_generator xml(_capslock_reporter, [&] () {
+					xml.attribute("enabled", step.attribute_value("enabled", false)); });
 				_advance_step();
 				continue;
 			}
@@ -428,6 +436,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		_input_filter_config_reporter.enabled(true);
 		_chargen_include_reporter.enabled(true);
 		_remap_include_reporter.enabled(true);
+		_capslock_reporter.enabled(true);
 		_execute_curr_step();
 	}
 };

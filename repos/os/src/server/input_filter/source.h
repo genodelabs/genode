@@ -57,7 +57,7 @@ class Input_filter::Source
 			if (result.type() != "none")
 				return result;
 
-			error("missing <remap>/<chargen>/<merge> sub node in ", node);
+			warning("missing input sub node in ", node);
 			throw Invalid_config { };
 		}
 

@@ -34,8 +34,6 @@ namespace Input_filter {
 			if (name == Input::key_name(code))
 				return code;
 		}
-
-		error("unknown key: ", name);
 		throw Unknown_key();
 	}
 }

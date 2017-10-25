@@ -71,6 +71,39 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 		Registry<Modifier> _modifiers;
 
+		struct Modifier_rom
+		{
+			typedef String<32> Name;
+
+			Registry<Modifier_rom>::Element _element;
+
+			Modifier::Id const _id;
+
+			bool _enabled = false;
+
+			Modifier_rom(Registry<Modifier_rom> &registry,
+			             Modifier::Id            id,
+			             Include_accessor       &include_accessor,
+			             Name             const &name)
+			:
+				_element(registry, *this), _id(id)
+			{
+				try {
+					include_accessor.apply_include(name, "capslock", [&] (Xml_node node) {
+						_enabled = node.attribute_value("enabled", false); }); }
+
+				catch (Include_accessor::Include_unavailable) {
+					warning("failed to obtain modifier state from "
+					        "\"", name, "\" ROM module"); }
+			}
+
+			Modifier::Id id() const { return _id; }
+
+			bool enabled() const { return _enabled; }
+		};
+
+		Registry<Modifier_rom> _modifier_roms;
+
 		/*
 		 * Key rules for generating characters
 		 */
@@ -322,6 +355,11 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			_modifiers.for_each([&] (Modifier const &mod) {
 				_mod_map.states[mod.id()].enabled |=
 					_key_map.key(mod.code()).state; });
+
+			/* supplement modifier state provided by ROM modules */
+			_modifier_roms.for_each([&] (Modifier_rom const &mod_rom) {
+				_mod_map.states[mod_rom.id()].enabled |=
+					mod_rom.enabled(); });
 		}
 
 		Owner _owner;
@@ -432,7 +470,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 		void _apply_sub_node(Xml_node const node, unsigned const max_recursion)
 		{
 			if (max_recursion == 0) {
-				error("too deeply nested includes");
+				warning("too deeply nested includes");
 				throw Invalid_config();
 			}
 
@@ -483,6 +521,16 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 				new (_alloc) Modifier(_modifiers, id, key);
 			});
+
+			node.for_each_sub_node("rom", [&] (Xml_node rom_node) {
+
+				typedef Modifier_rom::Name Rom_name;
+				Rom_name const rom_name = rom_node.attribute_value("name", Rom_name());
+
+				new (_alloc) Modifier_rom(_modifier_roms, id, _include_accessor, rom_name);
+			});
+
+			_update_modifier_state();
 		}
 
 	public:
@@ -515,7 +563,11 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 		~Chargen_source()
 		{
-			_modifiers.for_each([&] (Modifier &mod) { destroy(_alloc, &mod); });
+			_modifiers.for_each([&] (Modifier &mod) {
+				destroy(_alloc, &mod); });
+
+			_modifier_roms.for_each([&] (Modifier_rom &mod_rom) {
+				destroy(_alloc, &mod_rom); });
 		}
 
 		void generate() override { _source.generate(); }

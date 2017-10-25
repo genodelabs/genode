@@ -25,11 +25,7 @@ one of the following filters:
 
   It may contain any number of '<key>' nodes. Each of those key nodes has
   the key name as 'name' attribute, may feature an optional 'to' attribute
-  with the name of the key that should be reported instead of 'name', and
-  an optional 'sticky' attribute. If the latter is set to "yes", the key
-  behaves like a sticky key. That means, only press events are evaluated
-  and every second press event is reported as a release event. This is
-  useful for special keys like capslock.
+  with the name of the key that should be reported instead of 'name'.
 
 :<merge>:
 
@@ -57,7 +53,13 @@ sub nodes:
 
   ! <mod1>
   !   <key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
+  !   <rom name="capslock"/>
   ! </mod1>
+
+  The '<rom>' node incorporates the content of the ROM module of the
+  specified name into the modifier state. If the ROM module contains a
+  top-level node with the attribute 'enabled' set to "yes", the modifier
+  is enabled. This is useful for handling a system-global capslock state.
 
 :<map mod1="..." mod2="..." mod3="..." mod4="...">:
 

@@ -57,6 +57,8 @@ append config {
 			        report="test-input_filter -> chargen_include"/>
 			<policy label_prefix="input_filter -> remap_include"
 			        report="test-input_filter -> remap_include"/>
+			<policy label_prefix="input_filter -> capslock"
+			        report="test-input_filter -> capslock"/>
 		</config>
 	</start>
 
@@ -68,6 +70,7 @@ append config {
 			<service name="ROM" label="input_filter.config"> <child name="report_rom"/> </service>
 			<service name="ROM" label="chargen_include">     <child name="report_rom"/> </service>
 			<service name="ROM" label="remap_include">       <child name="report_rom"/> </service>
+			<service name="ROM" label="capslock">            <child name="report_rom"/> </service>
 			<service name="Input"> <child name="test-input_filter"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
@@ -228,6 +231,7 @@ append_if [test_char_repeat] config {
 			<expect_release code="KEY_B"/>}
 
 append config {
+
 			<message string="capslock handling"/>
 
 			<filter_config>
@@ -236,26 +240,31 @@ append config {
 					<chargen>
 						<remap>
 							<input name="usb"/>
-							<key name="KEY_CAPSLOCK" sticky="yes"/>
 						</remap>
-						<mod1> <key name="KEY_CAPSLOCK"/> </mod1>
+						<mod1> <rom name="capslock"/> </mod1>
 						<map>            <key name="KEY_A" char="a"/> </map>
 						<map mod1="yes"> <key name="KEY_A" char="A"/> </map>
 					</chargen>
 				</output>
 			</filter_config>
+			<!--
+			     Leave the 'capslock' ROM initially undefined, which prompts
+			     the input filter to complain about the modifier state being
+			     unavailable. However, as soon as 'capslock' becomes defined,
+			     the input filter is expected to re-processes its configuration.
+			 -->
 			<sleep ms="250"/>
-			<usb>
-				<press code="KEY_A"/>        <release code="KEY_A"/>
-				<press code="KEY_CAPSLOCK"/> <release code="KEY_CAPSLOCK"/>
-				<press code="KEY_A"/>        <release code="KEY_A"/>
-				<press code="KEY_CAPSLOCK"/> <release code="KEY_CAPSLOCK"/>
-				<press code="KEY_A"/>        <release code="KEY_A"/>
-			</usb>
+			<capslock enabled="no"/>
+			<sleep ms="250"/>
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
 			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
-			<expect_press code="KEY_CAPSLOCK"/>
+			<capslock enabled="yes"/>
+			<sleep ms="250"/>
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
 			<expect_press code="KEY_A"/> <expect_char char="A"/> <expect_release code="KEY_A"/>
-			<expect_release code="KEY_CAPSLOCK"/>
+			<capslock enabled="no"/>
+			<sleep ms="250"/>
+			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
 			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
 
 

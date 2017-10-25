@@ -31,14 +31,6 @@ class Input_filter::Remap_source : public Source, Source::Sink
 		struct Key
 		{
 			Input::Keycode code = Input::KEY_UNKNOWN;
-			bool sticky = false;
-
-			enum State { RELEASED, PRESSED } state = RELEASED;
-
-			void toggle()
-			{
-				state = (state == PRESSED) ? RELEASED : PRESSED;
-			}
 		};
 
 		Key _keys[Input::KEY_MAX];
@@ -68,27 +60,10 @@ class Input_filter::Remap_source : public Source, Source::Sink
 				return;
 			}
 
+			/* remap the key code */
 			Key &key = _keys[event.keycode()];
 
-			Key::State const old_state = key.state;
-
-			/* update key state, depending on the stickyness of the key */
-			if (key.sticky) {
-				if (event.type() == Event::PRESS)
-					key.toggle();
-			} else {
-				key.state = (event.type() == Event::PRESS) ? Key::PRESSED
-				                                           : Key::RELEASED;
-			}
-
-			/* drop release events of sticky keys */
-			if (key.state == old_state)
-				return;
-
-			Event::Type const type =
-				key.state == Key::PRESSED ? Event::PRESS : Event::RELEASE;
-
-			_destination.submit_event(Event(type, key.code, 0, 0, 0, 0));
+			_destination.submit_event(Event(event.type(), key.code, 0, 0, 0, 0));
 		}
 
 	public:
@@ -118,8 +93,6 @@ class Input_filter::Remap_source : public Source, Source::Sink
 						try { _keys[code].code = key_code_by_name(to); }
 						catch (Unknown_key) { warning("ignoring remap rule ", node); }
 					}
-
-					_keys[code].sticky = node.attribute_value("sticky", false);
 				}
 				catch (Unknown_key) {
 					warning("invalid key name ", key_name); }

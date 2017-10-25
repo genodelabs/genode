@@ -107,9 +107,6 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 				_dataspace(env, name.string()), _reconfig_sigh(reconfig_sigh),
 				_rom_update_handler(env.ep(), *this, &Rom::_handle_rom_update)
 			{
-				/* validate top-level node type */
-				xml(type);
-
 				/* respond to ROM updates */
 				_dataspace.sigh(_rom_update_handler);
 			}
@@ -127,8 +124,8 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 				if (node.type() == type)
 					return node;
 
-				error("unexpected <", node.type(), "> node " "in included "
-				      "ROM \"", _name, "\", expected, <", type, "> node");
+				warning("unexpected <", node.type(), "> node " "in included "
+				        "ROM \"", _name, "\", expected, <", type, "> node");
 				throw Include_unavailable();
 			}
 		};
@@ -170,11 +167,13 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		{
 			/* populate registry on demand */
 			if (!_exists(name)) {
-				try { new (_alloc) Rom(_registry, _env, name, type, _sigh); }
-				catch (...) {
-					error("include \"", name, "\" unavailable");
-					throw Include_unavailable();
+				try {
+					Rom &rom = *new (_alloc) Rom(_registry, _env, name, type, _sigh);
+
+					/* \throw Include_unavailable on mismatching top-level node type */
+					rom.xml(type);
 				}
+				catch (...) { throw Include_unavailable(); }
 			}
 
 			/* call 'fn' with the XML content of the named include */
@@ -214,7 +213,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 			Nesting_level_guard(unsigned &level) : level(level)
 			{
 				if (level == 0) {
-					error("too many nested input sources");
+					warning("too many nested input sources");
 					throw Source::Invalid_config();
 				}
 				level--;
@@ -236,7 +235,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 			if (match)
 				return *new (_heap) Input_source(owner, *match, sink);
 
-			error("input named '", label, "' does not exist");
+			warning("input named '", label, "' does not exist");
 			throw Source::Invalid_config();
 		}
 
@@ -251,7 +250,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 			return *new (_heap) Chargen_source(owner, node, sink, *this, _heap,
 			                                   _timer_accessor, _include_accessor);
 
-		error("unknown <", node.type(), "> input-source node type");
+		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();
 	}
 
@@ -384,23 +383,23 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 					new (_heap)
 						Registered<Input_connection>(_input_connections, _env,
 						                             label, *this, _heap);
-
-				} catch (Genode::Service_denied) {
-					error("parent denied input source '", label, "'");
 				}
-			} catch (Xml_node::Nonexistent_attribute) {
-				error("ignoring invalid input node '", input_node);
+				catch (Genode::Service_denied) {
+					warning("parent denied input source '", label, "'"); }
 			}
+			catch (Xml_node::Nonexistent_attribute) {
+				warning("ignoring invalid input node '", input_node); }
 		});
 
 		try {
 			if (_config.xml().has_sub_node("output"))
 				_output.construct(_config.xml().sub_node("output"),
 				                  _final_sink, *this);
+		}
+		catch (Source::Invalid_config) {
+			warning("invalid <output> configuration"); }
 
-		} catch (Source::Invalid_config) {
-			error("invalid <output> configuration");
-		} catch (Allocator::Out_of_memory) {
+		catch (Allocator::Out_of_memory) {
 			error("out of memory while constructing filter chain"); }
 
 		_config_update_pending = false;
