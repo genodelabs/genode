@@ -1,0 +1,12 @@
+base-nova
+base
+libc
+os
+blit
+nitpicker_gfx
+framebuffer_session
+input_session
+timer_session
+block_session
+nic_session
+rtc_session
