@@ -1,0 +1,22 @@
+This directory contains an Genode Block service that uses a file on
+a Linux system as backing store.
+
+Configuration
+~~~~~~~~~~~~~
+
+The backing store is specified by the 'file' attribute. The pretended
+block size is specified by the 'block_size' attribute. In case it is
+omitted, a default block size of 512 bytes is used. To allow write
+access, the 'writeable' attribute must be set to 'yes'. By default only
+read-only access it allowed.
+
+An example configuration is shown in the the following config snippet:
+
+!<config file="/foo/bar/block.img" block_size="512" writeable="yes"/>
+
+
+Notes
+~~~~~
+
+The backing file is opened with blocking semantics and thereby the block
+session is used synchronously.

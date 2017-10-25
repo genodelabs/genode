@@ -1,0 +1,59 @@
+#
+# Test runs only on Linux
+#
+assert_spec linux
+
+#
+# Build
+#
+build { core init drivers/timer server/lx_block test/blk/bench }
+
+create_boot_directory
+
+#
+# Generate config
+#
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="TRACE"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="lx_block">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Block"/> </provides>
+		<config file="lx_block.img" block_size="4K" writeable="yes"/>
+	</start>
+	<start name="test-blk-bench">
+		<resource name="RAM" quantum="24M"/>
+	</start>
+</config>}
+
+#
+# Create test file
+#
+catch { exec dd if=/dev/zero of=bin/lx_block.img bs=1M count=64 }
+
+#
+# Boot modules
+#
+build_boot_image { core ld.lib.so init timer lx_block lx_block.img test-blk-bench }
+
+run_genode_until "Done.*\n" 100
+
+exec rm -f bin/lx_block.img
