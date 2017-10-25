@@ -52,8 +52,12 @@ class Init::State_reporter : public Report_update_trigger
 		Version _version;
 
 		Constructible<Timer::Connection> _timer;
+		Constructible<Timer::Connection> _timer_periodic;
 
 		Signal_handler<State_reporter> _timer_handler {
+			_env.ep(), *this, &State_reporter::_handle_timer };
+
+		Signal_handler<State_reporter> _timer_periodic_handler {
 			_env.ep(), *this, &State_reporter::_handle_timer };
 
 		bool _scheduled = false;
@@ -134,6 +138,18 @@ class Init::State_reporter : public Report_update_trigger
 
 			if (trigger_update)
 				trigger_report_update();
+
+			if (_report_detail->child_ram() || _report_detail->child_caps()) {
+				if (!_timer_periodic.constructed()) {
+					_timer_periodic.construct(_env);
+					_timer_periodic->sigh(_timer_periodic_handler);
+				}
+				_timer_periodic->trigger_periodic(1000*1000);
+			} else {
+				if (_timer_periodic.constructed()) {
+					_timer_periodic.destruct();
+				}
+			}
 		}
 
 		void trigger_report_update() override
