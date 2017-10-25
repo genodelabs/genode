@@ -5,6 +5,7 @@ _/src/usb_drv
 _/src/usb_block_drv
 _/src/vesa_drv
 _/src/intel_fb_drv
+_/src/boot_fb_drv
 _/src/ahci_drv
 _/src/fs_report
 _/src/fs_rom
