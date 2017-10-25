@@ -108,6 +108,39 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 			_rx.sigh_ack_avail(_packet_stream_dispatcher);
 		}
 
+		/**
+		 * Constructor
+		 *
+		 * \param tx_buf_size        buffer size for tx channel
+		 * \param rx_buf_size        buffer size for rx channel
+		 * \param rx_block_md_alloc  backing store of the meta data of the
+		 *                           rx block allocator
+		 * \param env                Genode environment needed to access
+		 *                           resources and open connections from
+		 *                           within the Session_component
+		 * \param ep                 entrypoint for RPC
+		 */
+		Session_component(Genode::size_t const tx_buf_size,
+		                  Genode::size_t const rx_buf_size,
+		                  Genode::Allocator   &rx_block_md_alloc,
+		                  Genode::Env         &env,
+		                  Genode::Entrypoint  &ep)
+		:
+			Communication_buffers(rx_block_md_alloc, env.ram(), env.rm(),
+			                      tx_buf_size, rx_buf_size),
+			Session_rpc_object(env.rm(),
+			                   _tx_ds.cap(),
+			                   _rx_ds.cap(),
+			                  &_rx_packet_alloc, ep.rpc_ep()),
+			                  _ep(ep)
+		{
+			/* install data-flow signal handlers for both packet streams */
+			_tx.sigh_ready_to_ack(_packet_stream_dispatcher);
+			_tx.sigh_packet_avail(_packet_stream_dispatcher);
+			_rx.sigh_ready_to_submit(_packet_stream_dispatcher);
+			_rx.sigh_ack_avail(_packet_stream_dispatcher);
+		}
+
 		void link_state_sigh(Genode::Signal_context_capability sigh)
 		{
 			_link_state_sigh = sigh;
