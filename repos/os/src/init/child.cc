@@ -281,6 +281,9 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 		if (!_child.active())
 			xml.attribute("state", "incomplete");
 
+		if (_exited)
+			xml.attribute("exited", _exit_value);
+
 		if (detail.child_ram() && _child.ram_session_cap().valid()) {
 			xml.node("ram", [&] () {
 

@@ -404,6 +404,14 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 				               name, *this);
 		}
 
+		/*
+		 * Exit state of the child set when 'exit()' is executed
+		 * and reported afterwards through the state report.
+		 */
+
+		bool _exited     { false };
+		int  _exit_value { -1 };
+
 	public:
 
 		/**
@@ -534,6 +542,14 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 					return;
 				}
 			} catch (...) { }
+
+			/*
+			 * Trigger a new report for exited children so that any management
+			 * component may react upon it.
+			 */
+			_exited     = true;
+			_exit_value = exit_value;
+			_report_update_trigger.trigger_report_update();
 
 			/*
 			 * Print a message as the exit is not handled otherwise. There are
