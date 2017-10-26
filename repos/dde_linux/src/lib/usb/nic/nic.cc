@@ -327,7 +327,6 @@ int register_netdev(struct net_device *ndev)
 		announce = true;
 
 		ndev->state |= 1 << __LINK_STATE_START;
-		netif_carrier_off(ndev);
 
 		if ((err = ndev->netdev_ops->ndo_open(ndev)))
 			return err;
