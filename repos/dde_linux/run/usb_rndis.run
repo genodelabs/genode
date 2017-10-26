@@ -120,8 +120,11 @@ append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x04e8,productid=0x6864
 # ASIX Electronics Corp. AX88179 Gigabit Ethernet
 append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x0b95,productid=0x1790"
 
-# Motorola Moto E
+# Motorola Moto E, G4 Play
 append qemu_args "  -device usb-host,id=motoe,bus=ehci.0,vendorid=0x22b8,productid=0x2e25"
+
+# HTC A9
+append qemu_args "  -device usb-host,id=htc,bus=ehci.0,vendorid=0x0bb4,productid=0x0ffe"
 
 append qemu_args "  -nographic"
 
