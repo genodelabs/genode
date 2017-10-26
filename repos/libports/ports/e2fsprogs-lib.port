@@ -1,0 +1,90 @@
+LICENSE   := GPLv2
+VERSION   := 1.42.9
+DOWNLOADS := e2fsprogs.git
+
+E2FSPROGS_DIR := src/lib/e2fsprogs
+
+URL(e2fsprogs) := http://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
+REV(e2fsprogs) := v$(VERSION)
+DIR(e2fsprogs) := $(E2FSPROGS_DIR)
+
+PATCHES := src/lib/e2fsprogs/patches/*.patch
+
+INCLUDE_DIR := include/e2fsprogs
+
+DIRS := $(INCLUDE_DIR)
+# arbitrary dummy header to keep the ports tool happy
+DIR_CONTENT($(INCLUDE_DIR)) := \
+	$(addprefix $(E2FSPROGS_DIR)/lib/ext2fs/,ext2fs.h)
+
+
+#
+# Generate header files
+#
+
+BLKID_HEADER  := $(INCLUDE_DIR)/blkid/blkid.h
+EXT2FS_HEADER := $(INCLUDE_DIR)/ext2fs/ext2_types.h
+INTL_HEADER   := $(INCLUDE_DIR)/libgnuintl.h
+UUID_HEADER   := $(INCLUDE_DIR)/uuid/uuid.h
+
+_dirs: \
+	$(BLKID_HEADER)  \
+	$(EXT2FS_HEADER) \
+	$(INTL_HEADER)   \
+	$(UUID_HEADER)
+
+$(INTL_HEADER):
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)sed -e 's,@''HAVE_POSIX_PRINTF''@,1,g' \
+	              -e 's,@''HAVE_ASPRINTF''@,1,g' \
+	              -e 's,@''HAVE_SNPRINTF''@,1,g' \
+	              -e 's,@''HAVE_WPRINTF''@,0,g' \
+	              < $(E2FSPROGS_DIR)/intl/libgnuintl.h.in > $@
+	$(VERBOSE)ln -sf $(notdir $@) $(dir $@)/libintl.h
+
+$(BLKID_HEADER):
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp $(E2FSPROGS_DIR)/lib/blkid/blkid.h.in $@
+	$(VERBOSE)sed -e 's,@''SIZEOF_INT''@,__SIZEOF_INT__,g' \
+	              -e 's,@''SIZEOF_LONG''@,__SIZEOF_LONG__,g' \
+	              -e 's,@''SIZEOF_LONG_LONG''@,__SIZEOF_LONG_LONG__,g' \
+	              -e 's,@''SIZEOF_SHORT''@,__SIZEOF_SHORT__,g' \
+	              -e 's,@''ASM_TYPES_HEADER''@,,g' \
+	              < $(E2FSPROGS_DIR)/lib/blkid/blkid_types.h.in > $(dir $@)/blkid_types.h
+
+$(UUID_HEADER):
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp $(E2FSPROGS_DIR)/lib/uuid/uuid.h.in $@
+	$(VERBOSE)sed -e 's,@''SIZEOF_INT''@,__SIZEOF_INT__,g' \
+	              -e 's,@''SIZEOF_LONG''@,__SIZEOF_LONG__,g' \
+	              -e 's,@''SIZEOF_LONG_LONG''@,__SIZEOF_LONG_LONG__,g' \
+	              -e 's,@''SIZEOF_SHORT''@,__SIZEOF_SHORT__,g' \
+	              < $(E2FSPROGS_DIR)/lib/uuid/uuid_types.h.in > $(dir $@)/uuid_types.h
+
+$(EXT2FS_HEADER):
+	$(VERBOSE)sed -e 's,@''E2FSPROGS_VERSION''@,$(VERSION),g' \
+		      < $(E2FSPROGS_DIR)/lib/ext2fs/ext2_err.et.in \
+		      > $(E2FSPROGS_DIR)/lib/ext2fs/ext2_err.et && \
+	for file in lib/ext2fs/ext2_err e2fsck/prof_err; do \
+		$(MSG_GENERATE)$${file}.h && \
+		gawk -f $(E2FSPROGS_DIR)/lib/et/et_h.awk \
+		                  "outfile=$(E2FSPROGS_DIR)/$${file}.h" \
+		                  $(E2FSPROGS_DIR)/$${file}.et && \
+		$(MSG_GENERATE)$${file}.c && \
+		gawk -f $(E2FSPROGS_DIR)/lib/et/et_c.awk \
+		                  "outfile=$(E2FSPROGS_DIR)/$${file}.c" \
+		                  $(E2FSPROGS_DIR)/$${file}.et; \
+		done
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)sed -e 's,@''SIZEOF_INT''@,__SIZEOF_INT__,g' \
+	              -e 's,@''SIZEOF_LONG''@,__SIZEOF_LONG__,g' \
+	              -e 's,@''SIZEOF_LONG_LONG''@,__SIZEOF_LONG_LONG__,g' \
+	              -e 's,@''SIZEOF_SHORT''@,__SIZEOF_SHORT__,g' \
+	              -e 's,@''ASM_TYPES_HEADER''@,,g' \
+	              -e 's,@''PUBLIC_CONFIG_HEADER''@,,g' \
+	              < $(E2FSPROGS_DIR)/lib/ext2fs/ext2_types.h.in > $@
+	@echo '#define HAVE_SYS_TYPES_H 1' >> $@
+	@echo '#undef WORDS_BIGENDIAN' >> $@
