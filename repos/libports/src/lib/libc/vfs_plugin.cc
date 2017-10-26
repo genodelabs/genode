@@ -719,6 +719,11 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 
 	case DIOCGMEDIASIZE:
 		{
+			if (!argp) {
+				errno = EINVAL;
+				return -1;
+			}
+
 			opcode = Opcode::IOCTL_OP_DIOCGMEDIASIZE;
 			arg    = 0;
 			break;
@@ -771,7 +776,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 			/* resolve ambiguity with libc type */
 			using Genode::int64_t;
 
-			int64_t *disk_size = (int64_t*)arg;
+			int64_t *disk_size = (int64_t*)argp;
 			*disk_size = out.diocgmediasize.size;
 			return 0;
 		}
