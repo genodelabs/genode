@@ -551,7 +551,7 @@ unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
  */
 void skb_trim(struct sk_buff *skb, unsigned int len)
 {
-	if (skb->len <= len) {
+	if (skb->len < len) {
 		Genode::error("Error trimming to ", len, " bytes skb: ", skb, " data: ",
 		              skb->data, "  start: ", skb->start,  " len ", skb->len);
 		return;
