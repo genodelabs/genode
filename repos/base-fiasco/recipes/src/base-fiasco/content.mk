@@ -19,8 +19,8 @@ content: README
 README:
 	cp $(REP_DIR)/recipes/src/base-fiasco/README $@
 
-content: lib/import config etc
-lib/import config etc:
+content: lib/import config
+lib/import config:
 	$(mirror_from_rep_dir)
 
 content: src/kernel/fiasco
