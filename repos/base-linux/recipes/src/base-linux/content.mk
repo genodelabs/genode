@@ -8,7 +8,8 @@ lib/import src/ld:
 content:
 	for spec in x86_32 x86_64 arm; do \
 	  mv lib/mk/spec/$$spec/ld-linux.mk lib/mk/spec/$$spec/ld.mk; done;
-	sed -i "s/core-linux/core/"       src/core/linux/target.mk
-	sed -i "s/ld-linux/ld/"           src/lib/ld/linux/target.mk
-	sed -i "s/linux_timer_drv/timer/" src/timer/linux/target.mk
+	sed -i "s/core-linux/core/"               src/core/linux/target.mk
+	sed -i "s/BOARD.*unknown/BOARD := linux/" src/core/linux/target.mk
+	sed -i "s/ld-linux/ld/"                   src/lib/ld/linux/target.mk
+	sed -i "s/linux_timer_drv/timer/"         src/timer/linux/target.mk
 

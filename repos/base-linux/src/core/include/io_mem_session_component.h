@@ -26,6 +26,18 @@ namespace Genode {
 
 	class Io_mem_session_component : public Rpc_object<Io_mem_session>
 	{
+
+		private:
+
+			Range_allocator &_io_mem_alloc;
+			Dataspace_component _ds;
+			Rpc_entrypoint &_ds_ep;
+			Io_mem_dataspace_capability _ds_cap;
+
+			size_t get_arg_size(const char *);
+			addr_t get_arg_phys(const char *);
+			Cache_attribute get_arg_wc(const char *);
+
 		public:
 
 			/**
@@ -55,8 +67,7 @@ namespace Genode {
 			 ** Io-mem session interface **
 			 *****************************/
 
-			Io_mem_dataspace_capability dataspace() override {
-				return Io_mem_dataspace_capability(); }
+			Io_mem_dataspace_capability dataspace() override;
 	};
 }
 

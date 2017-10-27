@@ -188,6 +188,9 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 		throw Region_conflict();
 	}
 
+	if (!ds.valid())
+		throw Invalid_dataspace();
+
 	size_t const remaining_ds_size = _dataspace_size(ds) > (addr_t)offset
 	                               ? _dataspace_size(ds) - (addr_t)offset : 0;
 
