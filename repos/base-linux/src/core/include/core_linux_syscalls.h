@@ -22,6 +22,8 @@
 #include <fcntl.h>
 #undef size_t
 
+#include <sys/ioctl.h>
+
 
 /*******************************************************
  ** Functions used by core's ram-session support code **
@@ -70,6 +72,39 @@ inline int lx_stat(const char *path, struct stat64 *buf)
 #endif
 }
 
+/***********************************************************
+ ** Functions used by core's io port session support code **
+ ***********************************************************/
+
+inline int lx_ioperm(unsigned long from, unsigned long num, int turn_on)
+{
+	return lx_syscall(SYS_ioperm, from, num, turn_on);
+}
+
+inline int lx_iopl(int level)
+{
+	return lx_syscall(SYS_iopl, level);
+}
+
+/**************************************************
+ ** Functions used by core's io mem session code **
+ **************************************************/
+
+/* specific ioctl call for /dev/hwio since I don't want to handle variant args */
+inline int lx_ioctl_iomem(int fd, unsigned long phys, Genode::size_t offset)
+{
+	struct {
+		unsigned long phys;
+		Genode::size_t length;
+	} range = {phys, offset};
+
+	return lx_syscall(SYS_ioctl, fd, _IOW('g', 1, void *), &range);
+}
+
+inline int lx_ioctl_irq(int fd, int irq)
+{
+	return lx_syscall(SYS_ioctl, fd, _IOW('g', 2, int*), &irq);
+}
 
 /**************************************
  ** Process creation and destruction **

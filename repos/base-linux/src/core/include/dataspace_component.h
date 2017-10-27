@@ -79,14 +79,7 @@ namespace Genode {
 			 * reasons and should not be used.
 			 */
 			Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-			                    Cache_attribute, bool, Dataspace_owner *_owner)
-			:
-				_size(size), _addr(phys_addr), _fd(-1), _writable(false),
-				_owner(_owner)
-			{
-				warning("Should only be used for IOMEM and not within Linux.");
-				_fname.buf[0] = 0;
-			}
+			                    Cache_attribute, bool writable, Dataspace_owner *_owner);
 
 			/**
 			 * This constructor is especially used for ROM dataspaces

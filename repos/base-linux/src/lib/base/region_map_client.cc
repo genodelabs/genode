@@ -19,6 +19,7 @@
 
 using namespace Genode;
 
+class Invalid_capability : public Genode::Exception {};
 
 /**
  * Return pointer to locally implemented region map
@@ -27,6 +28,8 @@ using namespace Genode;
  */
 static Region_map *_local(Capability<Region_map> cap)
 {
+	if (!cap.valid())
+		throw Invalid_capability();
 	return Local_capability<Region_map>::deref(cap);
 }
 

@@ -67,3 +67,10 @@ Dataspace_component::Dataspace_component(const char *args)
   _fd(lx_open(_fname.buf, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR)),
   _writable(false),
   _owner(0) { }
+
+Dataspace_component::Dataspace_component(size_t size, addr_t, addr_t phys_addr,
+        Cache_attribute, bool writable, Dataspace_owner *_owner) :
+    _size(size), _addr(phys_addr), _fd(-1), _writable(writable), _owner(_owner)
+{
+    _fname.buf[0] = 0;
+}
