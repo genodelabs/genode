@@ -28,6 +28,8 @@
 
 /* Libc include */
 #include <pthread.h>
+#include <sched.h> /* sched_yield */
+
 
 /* VirtualBox SUPLib interface */
 
@@ -130,7 +132,11 @@ HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
 }
 
 
-extern "C" void pthread_yield() { Genode::warning(__func__, " unimplemented"); }
+extern "C" int sched_yield(void)
+{
+	Genode::warning(__func__, " unimplemented");
+	return -1;
+}
 
 int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
                      PRTR0PTR pR0Ptr, PSUPPAGE paPages)

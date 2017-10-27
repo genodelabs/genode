@@ -1057,21 +1057,6 @@ index a717aff..3d52b9f 100644
      int rc = RTLogGroupSettings(RTLogRelGetDefaultInstance(), useLoggingLevel.c_str());
      //  If failed and not the default logging level - try to use the default logging level.
      if (RT_FAILURE(rc))
---- a/src/app/virtualbox/src/VBox/Runtime/r3/posix/semevent-posix.cpp
-+++ b/src/app/virtualbox/src/VBox/Runtime/r3/posix/semevent-posix.cpp
-@@ -49,10 +49,12 @@
- # define pthread_yield() pthread_yield_np()
- #endif
- 
-+#if 0
- #if defined(RT_OS_SOLARIS) || defined(RT_OS_HAIKU) || defined(RT_OS_FREEBSD) || defined(RT_OS_NETBSD)
- # include <sched.h>
- # define pthread_yield() sched_yield()
- #endif
-+#endif
- 
- 
- /*********************************************************************************************************************************
 --- a/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/BusAssignmentManager.cpp
 @@ -71,6 +71,8 @@
