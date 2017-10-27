@@ -66,9 +66,9 @@ install_config {
 			<policy label_prefix="status_bar"             domain="panel"/>
 			<default-policy                               domain="default"/>
 
-			<global-key name="KEY_SCROLLLOCK" label="xray_trigger -> input" />
-			<global-key name="KEY_F1"         label="xray_trigger -> input" />
-			<global-key name="KEY_F2"         label="xray_trigger -> input" />
+			<global-key name="KEY_SCROLLLOCK" label="global_keys_handler -> input" />
+			<global-key name="KEY_F1"         label="global_keys_handler -> input" />
+			<global-key name="KEY_F2"         label="global_keys_handler -> input" />
 			<global-key name="KEY_LEFTMETA"   label="wm -> launcher" />
 			<global-key name="KEY_F3"         label="wm -> launcher" />
 		</config>
@@ -86,14 +86,21 @@ install_config {
 		</route>
 	</start>
 
-	<start name="xray_trigger">
+	<start name="global_keys_handler">
 		<resource name="RAM" quantum="1M"/>
 		<config>
-			<press   name="KEY_F1" xray="on"/>
-			<release name="KEY_F1" xray="off"/>
-			<press   name="KEY_F2" xray="toggle"/>
-			<hover domain="panel"/>
-			<hover domain="decorator"/>
+			<bool name="xray" initial="no"/>
+
+			<press   name="KEY_SCROLLLOCK" bool="xray" change="toggle"/>
+			<press   name="KEY_F1"         bool="xray" change="on"/>
+			<release name="KEY_F1"         bool="xray" change="off"/>
+			<press   name="KEY_F2"         bool="xray" change="toggle"/>
+
+			<report name="xray" delay_ms="125">
+				<hovered domain="panel"/>
+				<hovered domain="decorator"/>
+				<bool name="xray"/>
+			</report>
 		</config>
 		<route>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
@@ -115,7 +122,7 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
-			<policy label="decorator_config -> xray"      report="xray_trigger -> xray"/>
+			<policy label="decorator_config -> xray"      report="global_keys_handler -> xray"/>
 			<policy label="layouter -> window_list"       report="wm -> window_list"/>
 			<policy label="layouter -> focus_request"     report="wm -> focus_request" />
 			<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
@@ -125,7 +132,7 @@ install_config {
 			<policy label="wm -> focus"                   report="layouter -> focus"/>
 			<policy label="status_bar -> focus"           report="nitpicker -> focus"/>
 			<policy label="launcher -> focus"             report="nitpicker -> focus"/>
-			<policy label="xray_trigger -> hover"         report="nitpicker -> hover"/>
+			<policy label="global_keys_handler -> hover"  report="nitpicker -> hover"/>
 			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
 		</config>
 	</start>
@@ -264,9 +271,9 @@ install_config {
 	</start>
 </config>}
 
-build { app/launcher test/nitpicker app/status_bar app/xray_trigger }
+build { app/launcher test/nitpicker app/status_bar app/global_keys_handler }
 
-build_boot_image { testnit launcher xray_trigger status_bar }
+build_boot_image { testnit launcher global_keys_handler status_bar }
 
 
 run_genode_until forever

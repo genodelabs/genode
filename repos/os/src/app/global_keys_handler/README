@@ -1,0 +1,50 @@
+The "global-key-handler" component transforms a stream of nitpicker input
+events to state reports. The states and the ways of how the user input affects
+the states is configurable. Examples for such states are the system-global
+capslock and numlock states, or the nitpicker X-ray mode activated by a global
+secure-attention key. The configuration looks as follows:
+
+! <config>
+!   <bool name="xray" initial="no"/>
+! 
+!   <press   name="KEY_F1" bool="xray" change="on"/>
+!   <release name="KEY_F1" bool="xray" change="off"/>
+!   <press   name="KEY_F2" bool="xray" change="toggle"/>
+! 
+!   <report name="xray" delay_ms="125">
+!     <hovered domain="panel"/>
+!     <bool name="xray"/>
+!   </report>
+! </config>
+
+A '<bool>' node declares a boolean state variable with the given name and its
+initial value (default is "no"). There may by any number of such variables.
+
+The '<press>' and '<release>' nodes define how key events affect the state
+variables. Each of those nodes refers to a specific state variable via the
+'bool' attribute, and the operation as the 'change' attribute. Possible
+'change' attribute values are "on", "off", and "toggle".
+
+The '<report>' node defines a state-dependent report with the name as
+specified in the 'name' attribute. The report-generation rate can be
+artificially limited by the 'delay_ms' attribute. If specified, the report is
+not issued immediately on a state change but after the specified amount of
+milliseconds. The '<report>' node contains a number of conditions. Whenever
+one of those conditions is true, a report of the following form is generated:
+
+! <xray enabled="yes"/>
+
+Otherwise, the report's 'enabled' attribute has the value "no". Possible
+conditions are '<bool>' and '<hovered>'. The '<bool>' condition is true if the
+named boolean state variable has the value true. The '<hovered>' condition is
+true if the currently hovered nitpicker client belongs to the domain as
+specified in the 'domain' attribute. The latter information is obtained from a
+ROM module named "hover", which correponds to nitpicker's hover reports.
+
+To use the global-keys-handler in practice, one needs to configure the
+nitpicker GUI server such that the press/release events of the global keys of
+interest are routed to the global-keys-handler. This can be achieved by
+nitpicker's '<global-key>' configuration nodes. For example:
+
+! <global-key name="KEY_F1" label="global_keys_handler -> input" />
+! <global-key name="KEY_F2" label="global_keys_handler -> input" />

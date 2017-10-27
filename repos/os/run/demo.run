@@ -10,7 +10,7 @@ if {[have_spec odroid_xu]} {
 set build_components {
 	core init
 	drivers/timer
-	server/nitpicker app/pointer app/status_bar app/xray_trigger
+	server/nitpicker app/pointer app/status_bar app/global_keys_handler
 	server/liquid_framebuffer app/launchpad app/scout
 	test/nitpicker server/nitlog
 	drivers/framebuffer drivers/input
@@ -107,9 +107,9 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="status_bar -> focus"      report="nitpicker -> focus"/>
-			<policy label="nitpicker_config -> xray" report="xray_trigger -> xray"/>
-			<policy label="xray_trigger -> hover"    report="nitpicker -> hover"/>
+			<policy label="status_bar -> focus"          report="nitpicker -> focus"/>
+			<policy label="nitpicker_config -> xray"     report="global_keys_handler -> xray"/>
+			<policy label="global_keys_handler -> hover" report="nitpicker -> hover"/>
 		</config>
 	</start>
 
@@ -123,7 +123,7 @@ append config {
 
 			<output node="config">
 				<inline>
-					<report focus="yes" xray="yes" hover="yes" />
+					<report focus="yes" xray="yes" hover="yes" keystate="yes"/>
 					<domain name="pointer" layer="1" origin="pointer"
 					        content="client" label="no"/>
 					<domain name="panel" layer="2"
@@ -158,9 +158,9 @@ append config {
 					<policy label_prefix="scout -> launchpad" domain="launchpad"/>
 					<default-policy                           domain=""/>
 
-					<global-key name="KEY_SCROLLLOCK" label="xray_trigger -> input" />
-					<global-key name="KEY_F1"         label="xray_trigger -> input" />
-					<global-key name="KEY_F2"         label="xray_trigger -> input" />
+					<global-key name="KEY_SCROLLLOCK" label="global_keys_handler -> input" />
+					<global-key name="KEY_F1"         label="global_keys_handler -> input" />
+					<global-key name="KEY_F2"         label="global_keys_handler -> input" />
 				</inline>
 			</output>
 		</config>
@@ -170,13 +170,20 @@ append config {
 		</route>
 	</start>
 
-	<start name="xray_trigger">
+	<start name="global_keys_handler">
 		<resource name="RAM" quantum="1M"/>
 		<config>
-			<press   name="KEY_F1" xray="on"/>
-			<release name="KEY_F1" xray="off"/>
-			<press   name="KEY_F2" xray="toggle"/>
-			<hover domain="panel"/>
+			<bool name="xray" initial="no"/>
+
+			<press   name="KEY_SCROLLLOCK" bool="xray" change="toggle"/>
+			<press   name="KEY_F1"         bool="xray" change="on"/>
+			<release name="KEY_F1"         bool="xray" change="off"/>
+			<press   name="KEY_F2"         bool="xray" change="toggle"/>
+
+			<report name="xray" delay_ms="125">
+				<hovered domain="panel"/>
+				<bool name="xray"/>
+			</report>
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -249,7 +256,7 @@ close $launchpad_config_fd
 set boot_modules {
 	core ld.lib.so init
 	timer
-	nitpicker pointer status_bar report_rom rom_filter xray_trigger
+	nitpicker pointer status_bar report_rom rom_filter global_keys_handler
 	liquid_fb launchpad scout testnit nitlog
 	launchpad.config
 }
