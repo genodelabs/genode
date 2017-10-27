@@ -20,7 +20,7 @@
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
 #include <os/session_policy.h>
-#include <os/ram_session_guard.h>
+#include <base/allocator_guard.h>
 #include <vfs/dir_file_system.h>
 #include <vfs/file_system_factory.h>
 
@@ -39,6 +39,16 @@ namespace Vfs_server {
 
 	typedef Genode::Registered<Session_component> Registered_session;
 	typedef Genode::Registry<Registered_session>  Session_registry;
+
+	/**
+	 * Convenience utities for parsing quotas
+	 */
+	Genode::Ram_quota parse_ram_quota(char const *args) {
+		return Genode::Ram_quota{
+			Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0)}; }
+	Genode::Cap_quota parse_cap_quota(char const *args) {
+		return Genode::Cap_quota{
+			Genode::Arg_string::find_arg(args, "cap_quota").ulong_value(0)}; }
 };
 
 
@@ -49,8 +59,10 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 		Node_space _node_space;
 
-		Genode::Ram_session_guard _ram;
-		Genode::Heap              _alloc;
+		Genode::Ram_quota_guard           _ram_guard;
+		Genode::Cap_quota_guard           _cap_guard;
+		Genode::Constrained_ram_allocator _ram_alloc;
+		Genode::Heap                      _alloc;
 
 		Genode::Signal_handler<Session_component> _process_packet_handler;
 
@@ -60,9 +72,9 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 * The root node needs be allocated with the session struct
 		 * but removeable from the id space at session destruction.
 		 */
-		Genode::Constructible<Directory> _root;
+		Path const _root_path;
 
-		bool _writable;
+		bool const _writable;
 
 		/*
 		 * XXX Currently, we have only one packet in backlog, which must finish
@@ -344,17 +356,21 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 		Session_component(Genode::Env         &env,
 		                  char          const *label,
-		                  size_t               ram_quota,
+		                  Genode::Ram_quota    ram_quota,
+		                  Genode::Cap_quota    cap_quota,
 		                  size_t               tx_buf_size,
 		                  Vfs::Dir_file_system &vfs,
 		                  char           const *root_path,
 		                  bool                  writable)
 		:
 			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
-			_ram(env.ram(), ram_quota),
-			_alloc(_ram, env.rm()),
+			_ram_guard(ram_quota),
+			_cap_guard(cap_quota),
+			_ram_alloc(env.pd(), _ram_guard, _cap_guard),
+			_alloc(_ram_alloc, env.rm()),
 			_process_packet_handler(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),
+			_root_path(root_path),
 			_writable(writable)
 		{
 			/*
@@ -363,8 +379,6 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			 */
 			_tx.sigh_packet_avail(_process_packet_handler);
 			_tx.sigh_ready_to_ack(_process_packet_handler);
-
-			_root.construct(_node_space, vfs, _alloc, *this, root_path, false);
 		}
 
 		/**
@@ -372,19 +386,29 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 */
 		~Session_component()
 		{
-			/* remove the root from _node_space via destructor */
-			_root.destruct();
-
 			while (_node_space.apply_any<Node>([&] (Node &node) {
 				_close(node); })) { }
 		}
 
-		void upgrade(char const *args)
-		{
-			size_t new_quota =
-				Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			_ram.upgrade(new_quota);
-		}
+		/**
+		 * Clip quota limits
+		 */
+		void clip_ram(size_t clipped) {
+			auto avail = _ram_guard.avail().value;
+			if (avail > clipped)
+				_ram_guard.withdraw(Genode::Ram_quota{avail - clipped}); }
+		void clip_caps(size_t clipped) {
+			auto avail = _cap_guard.avail().value;
+			if (avail > clipped)
+				_cap_guard.withdraw(Genode::Cap_quota{avail - clipped}); }
+
+		/**
+		 * Increase quotas
+		 */
+		void upgrade(Genode::Ram_quota ram) {
+			_ram_guard.upgrade(ram); }
+		void upgrade(Genode::Cap_quota caps) {
+			_cap_guard.upgrade(caps); }
 
 		/*
 		 * Called by the IO response handler for events which are not
@@ -426,7 +450,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				throw Node_already_exists();
 
 			_assert_valid_path(path_str);
-			Vfs_server::Path fullpath(_root->path());
+			Vfs_server::Path fullpath(_root_path);
 			if (path_str[1] != '\0')
 				fullpath.append(path_str);
 			path_str = fullpath.base();
@@ -436,7 +460,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 			Directory *dir;
 			try { dir = new (_alloc) Directory(_node_space, _vfs, _alloc,
-			                                   *this, path_str, create); }
+			                                  *this, path_str, create); }
 			catch (Out_of_memory) { throw Out_of_ram(); }
 
 			return Dir_handle(dir->id().value);
@@ -480,7 +504,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			_assert_valid_path(path_str);
 
 			/* re-root the path */
-			Path sub_path(path_str+1, _root->path());
+			Path sub_path(path_str+1, _root_path.base());
 			path_str = sub_path.base();
 			if (!_vfs.leaf_path(path_str))
 				throw Lookup_failed();
@@ -488,7 +512,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			Node *node;
 
 			try { node  = new (_alloc) Node(_node_space, path_str, STAT_ONLY,
-			                                *this); }
+			                               *this); }
 			catch (Out_of_memory) { throw Out_of_ram(); }
 
 			return Node_handle { node->id().value };
@@ -630,7 +654,9 @@ class Vfs_server::Root :
 	private:
 
 		Genode::Env  &_env;
-		Genode::Heap  _heap { &_env.ram(), &_env.rm() };
+
+		/* heap for internal VFS allocation */
+		Genode::Heap  _vfs_heap { &_env.ram(), &_env.rm() };
 
 		Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
@@ -648,13 +674,13 @@ class Vfs_server::Root :
 
 		Io_response_handler _io_response_handler { _session_registry };
 
-		Vfs::Global_file_system_factory _global_file_system_factory { _heap };
+		Vfs::Global_file_system_factory _global_file_system_factory { _vfs_heap };
 
 		Vfs::Dir_file_system _vfs {
-			_env, _heap, vfs_config(), _io_response_handler,
+			_env, _vfs_heap, vfs_config(), _io_response_handler,
 			_global_file_system_factory };
 
-		Genode::Signal_handler<Root> _config_dispatcher {
+		Genode::Signal_handler<Root> _config_handler {
 			_env.ep(), *this, &Root::_config_update };
 
 		void _config_update()
@@ -677,8 +703,12 @@ class Vfs_server::Root :
 			 ** Quota check **
 			 *****************/
 
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota").aligned_size();
+			auto const initial_ram_usage = _env.pd().used_ram().value;
+			auto const initial_cap_usage = _env.pd().used_caps().value;
+
+			auto const ram_quota = parse_ram_quota(args).value;
+			auto const cap_quota = parse_cap_quota(args).value;
+
 			size_t tx_buf_size =
 				Arg_string::find_arg(args, "tx_buf_size").aligned_size();
 
@@ -694,7 +724,6 @@ class Vfs_server::Root :
 				      "got ", ram_quota, ", need ", session_size);
 				throw Insufficient_ram_quota();
 			}
-			ram_quota -= session_size;
 
 
 			/**************************
@@ -742,16 +771,46 @@ class Vfs_server::Root :
 
 			Session_component *session = new (md_alloc())
 				Registered_session(_session_registry, _env, label.string(),
-				                   ram_quota, tx_buf_size, _vfs,
+				                   Genode::Ram_quota{ram_quota},
+				                   Genode::Cap_quota{cap_quota},
+				                   tx_buf_size, _vfs,
 				                   session_root.base(), writeable);
+
+			auto ram_used = _env.pd().used_ram().value - initial_ram_usage;
+			auto cap_used = _env.pd().used_caps().value - initial_cap_usage;
+
+			if ((ram_used > ram_quota) || (cap_used > cap_quota)) {
+				if (ram_used > ram_quota)
+					Genode::error("ram donation is ", ram_quota,
+					              " but used RAM is ", ram_used, "B"
+					              ", denying '", label, "'");
+				if (cap_used > cap_quota)
+					Genode::error("cap donation is ", cap_quota,
+					              " but used caps is ", cap_used,
+					              ", denying '", label, "'");
+				destroy(*session);
+				throw Service_denied();
+			}
+
+			/* account allocations not caught by session guards */
+			session->clip_ram(ram_quota - ram_used);
+			session->clip_caps(cap_quota - cap_used);
 
 			Genode::log("session opened for '", label, "' at '", session_root, "'");
 			return session;
 		}
 
 		void _upgrade_session(Session_component *session,
-		                      char        const *args) override {
-			session->upgrade(args); }
+		                      char        const *args) override
+		{
+			Genode::Ram_quota more_ram = parse_ram_quota(args);
+			Genode::Cap_quota more_caps = parse_cap_quota(args);
+
+			if (more_ram.value > 0)
+				session->upgrade(more_ram);
+			if (more_caps.value > 0)
+				session->upgrade(more_caps);
+		}
 
 	public:
 
@@ -760,7 +819,7 @@ class Vfs_server::Root :
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env)
 		{
-			_config_rom.sigh(_config_dispatcher);
+			_config_rom.sigh(_config_handler);
 			env.parent().announce(env.ep().manage(*this));
 		}
 };
