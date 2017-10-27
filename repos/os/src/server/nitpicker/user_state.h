@@ -18,6 +18,8 @@
 #ifndef _USER_STATE_H_
 #define _USER_STATE_H_
 
+#include <util/xml_generator.h>
+
 #include "mode.h"
 #include "view_stack.h"
 #include "global_keys.h"
@@ -48,6 +50,36 @@ class User_state : public Mode, public View_stack
 
 		void _update_all();
 
+		/**
+		 * Array for tracking the state of each key
+		 */
+		struct Key_array
+		{
+			struct State { bool pressed = false; };
+
+			State _states[Input::KEY_MAX + 1];
+
+			void pressed(Input::Keycode key, bool pressed)
+			{
+				if (key <= Input::KEY_MAX)
+					_states[key].pressed = pressed;
+			}
+
+			bool pressed(Input::Keycode key) const
+			{
+				return (key <= Input::KEY_MAX) && _states[key].pressed;
+			}
+
+			void report_state(Genode::Xml_generator &xml) const
+			{
+				for (unsigned i = 0; i <= Input::KEY_MAX; i++)
+					if (_states[i].pressed)
+						xml.node("pressed", [&] () {
+							xml.attribute("key", Input::key_name((Input::Keycode)i)); });
+			}
+
+		} _key_array;
+
 	public:
 
 		/**
@@ -62,6 +94,8 @@ class User_state : public Mode, public View_stack
 		 * variables.
 		 */
 		void handle_event(Input::Event ev);
+
+		void report_keystate(Genode::Xml_generator &);
 
 		/**
 		 * Accessors

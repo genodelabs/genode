@@ -87,6 +87,19 @@ void User_state::handle_event(Input::Event ev)
 	if (type == Event::PRESS)                   Mode::inc_key_cnt();
 	if (type == Event::RELEASE && Mode::drag()) Mode::dec_key_cnt();
 
+	/* track key states */
+	if (type == Event::PRESS) {
+		if (_key_array.pressed(keycode))
+			Genode::warning("suspicious double press of ", Input::key_name(keycode));
+		_key_array.pressed(keycode, true);
+	}
+
+	if (type == Event::RELEASE) {
+		if (!_key_array.pressed(keycode))
+			Genode::warning("suspicious double release of ", Input::key_name(keycode));
+		_key_array.pressed(keycode, false);
+	}
+
 	View const * const pointed_view    = find_view(_pointer_pos);
 	::Session  * const pointed_session = pointed_view ? &pointed_view->session() : 0;
 
@@ -123,7 +136,7 @@ void User_state::handle_event(Input::Event ev)
 	/*
 	 * Handle start of a key sequence
 	 */
-	if (type == Event::PRESS && Mode::has_key_cnt(1)) {
+	if (type == Event::PRESS && (Mode::key_cnt() == 1)) {
 
 		::Session *global_receiver = nullptr;
 
@@ -188,7 +201,7 @@ void User_state::handle_event(Input::Event ev)
 	 */
 	if (type == Event::MOTION || type == Event::WHEEL || type == Event::TOUCH) {
 
-		if (Mode::has_key_cnt(0)) {
+		if (Mode::key_cnt() == 0) {
 
 			if (_pointed_session) {
 
@@ -232,7 +245,7 @@ void User_state::handle_event(Input::Event ev)
 	/*
 	 * Detect end of global key sequence
 	 */
-	if (ev.type() == Event::RELEASE && Mode::has_key_cnt(0) && _global_key_sequence) {
+	if (ev.type() == Event::RELEASE && (Mode::key_cnt() == 0) && _global_key_sequence) {
 
 		_input_receiver = Mode::focused_session();
 
@@ -240,6 +253,13 @@ void User_state::handle_event(Input::Event ev)
 
 		_global_key_sequence = false;
 	}
+}
+
+
+void User_state::report_keystate(Genode::Xml_generator &xml)
+{
+	xml.attribute("count", Mode::key_cnt());
+	_key_array.report_state(xml);
 }
 
 
