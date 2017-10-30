@@ -40,6 +40,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			Genode::uint64_t addr;
 			Genode::uint32_t width;
 			Genode::uint32_t height;
+			Genode::uint32_t pitch;
 			Genode::uint32_t bpp;
 		} _core_fb;
 
@@ -49,8 +50,6 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		Genode::Constructible<Genode::Attached_ram_dataspace> _fb_ram;
 
 		Timer::Connection timer { _env };
-
-		Genode::uint8_t _pad;
 
 	public:
 		Session_component(Genode::Env &, Genode::Xml_node);

@@ -20,6 +20,10 @@ Session_component::Session_component(Genode::Env &env,
                                      Genode::Xml_node pinfo)
 : _env(env)
 {
+	enum { RGB_COLOR = 1 };
+
+	unsigned fb_boot_type = 0;
+
 	try {
 		Genode::Xml_node fb = pinfo.sub_node("boot").sub_node("framebuffer");
 
@@ -27,27 +31,29 @@ Session_component::Session_component(Genode::Env &env,
 		fb.attribute("width").value(&_core_fb.width);
 		fb.attribute("height").value(&_core_fb.height);
 		fb.attribute("bpp").value(&_core_fb.bpp);
+		fb.attribute("pitch").value(&_core_fb.pitch);
+		fb_boot_type = fb.attribute_value("type", 0U);
 	} catch (...) {
 		Genode::error("No boot framebuffer information available.");
 		throw Genode::Service_denied();
 	}
 
 	Genode::log("Framebuffer with ", _core_fb.width, "x", _core_fb.height,
-	            "x", _core_fb.bpp, " @ ", (void*)_core_fb.addr);
+	            "x", _core_fb.bpp, " @ ", (void*)_core_fb.addr,
+	            " type=", fb_boot_type);
 
-	/* calculate required padding to align framebuffer to 16 pixels */
-	_pad = (16 - (_core_fb.width % 16)) & 0x0f;
+	if (_core_fb.bpp != 32 || fb_boot_type != RGB_COLOR ) {
+		Genode::error("unsupported resolution (bpp or/and type)");
+		throw Genode::Service_denied();
+	}
 
-	_fb_mem.construct(
-		_env,
-		_core_fb.addr,
-		(_core_fb.width + _pad) * _core_fb.height * _core_fb.bpp / 4,
-		true);
+	_fb_mem.construct(_env, _core_fb.addr, _core_fb.pitch * _core_fb.height,
+	                  true);
 
 	_fb_mode = Mode(_core_fb.width, _core_fb.height, Mode::RGB565);
 
-	_fb_ram.construct(_env.ram(), _env.rm(),
-	                  _core_fb.width * _core_fb.height * _fb_mode.bytes_per_pixel());
+	_fb_ram.construct(_env.ram(), _env.rm(), _core_fb.width * _core_fb.height *
+	                                         _fb_mode.bytes_per_pixel());
 }
 
 Mode Session_component::mode() const { return _fb_mode; }
@@ -60,23 +66,30 @@ void Session_component::sync_sigh(Genode::Signal_context_capability scc)
 	timer.trigger_periodic(10*1000);
 }
 
-void Session_component::refresh(int x, int y, int w, int h)
+void Session_component::refresh(int const x, int const y, int const w, int const h)
 {
-	Genode::uint32_t u_x = (Genode::uint32_t)Genode::min(_core_fb.width,  (Genode::uint32_t)Genode::max(x, 0));
-	Genode::uint32_t u_y = (Genode::uint32_t)Genode::min(_core_fb.height, (Genode::uint32_t)Genode::max(y, 0));
-	Genode::uint32_t u_w = (Genode::uint32_t)Genode::min(_core_fb.width,  (Genode::uint32_t)Genode::max(w, 0) + u_x);
-	Genode::uint32_t u_h = (Genode::uint32_t)Genode::min(_core_fb.height, (Genode::uint32_t)Genode::max(h, 0) + u_y);
-	Genode::Pixel_rgb888 *pixel_32 = _fb_mem->local_addr<Genode::Pixel_rgb888>();
-	Genode::Pixel_rgb565 *pixel_16 = _fb_ram->local_addr<Genode::Pixel_rgb565>();
-	for (Genode::uint32_t r = u_y; r < u_h; ++r){
-		for (Genode::uint32_t c = u_x; c < u_w; ++c){
-			Genode::uint32_t s = c + r * _core_fb.width;
-			Genode::uint32_t d = c + r * (_core_fb.width + _pad);
-			pixel_32[d].rgba(
-				pixel_16[s].r(),
-				pixel_16[s].g(),
-				pixel_16[s].b(),
-				0);
+	using namespace Genode;
+
+	uint32_t const c_x = x < 0 ? 0U : x;
+	uint32_t const c_y = y < 0 ? 0U : y;
+	uint32_t const c_w = w < 0 ? 0U : w;
+	uint32_t const c_h = h < 0 ? 0U : h;
+
+	uint32_t const u_x = min(_core_fb.width,  max(c_x, 0U));
+	uint32_t const u_y = min(_core_fb.height, max(c_y, 0U));
+	uint32_t const u_w = min(_core_fb.width,  max(c_w, 0U) + u_x);
+	uint32_t const u_h = min(_core_fb.height, max(c_h, 0U) + u_y);
+
+	Pixel_rgb888       * const pixel_32 = _fb_mem->local_addr<Pixel_rgb888>();
+	Pixel_rgb565 const * const pixel_16 = _fb_ram->local_addr<Pixel_rgb565>();
+
+	for (uint32_t r = u_y; r < u_h; ++r) {
+		for (uint32_t c = u_x; c < u_w; ++c) {
+			uint32_t const s = c + r * _core_fb.width;
+			uint32_t const d = c + r * (_core_fb.pitch / (_core_fb.bpp / 8));
+
+			pixel_32[d].rgba(pixel_16[s].r(), pixel_16[s].g(),
+			                 pixel_16[s].b(), 0);
 		}
 	}
 }
