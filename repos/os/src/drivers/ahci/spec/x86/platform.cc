@@ -54,9 +54,9 @@ struct X86_hba : Platform::Hba
 		/* construct pci client */
 		pci_device.construct(pci_device_cap);
 		Genode::log("AHCI found ("
-		            "vendor: ", pci_device->vendor_id(), " "
-		            "device: ", pci_device->device_id(), " "
-		            "class: ", pci_device->class_code(), ")");
+		            "vendor: ", Genode::Hex(pci_device->vendor_id()), " "
+		            "device: ", Genode::Hex(pci_device->device_id()), " "
+		            "class: ",  Genode::Hex(pci_device->class_code()), ")");
 
 		/* read base address of controller */
 		Platform::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
