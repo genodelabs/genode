@@ -1,5 +1,6 @@
-TARGET = nic_drv
-LIBS   = base dde_ipxe_nic
-SRC_CC = main.cc
+TARGET   = nic_drv
+REQUIRES = x86
+LIBS     = base dde_ipxe_nic
+SRC_CC   = main.cc
 
 CC_CXX_WARN_STRICT =
