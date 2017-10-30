@@ -16,6 +16,7 @@
 /* Genode includes */
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <util/mmio.h>
 #include <util/string.h>
 #include <util/xml_generator.h>
 #include <trace/source_registry.h>
@@ -256,6 +257,14 @@ static bool cpuid_invariant_tsc()
 	return edx & 0x100;
 }
 
+/* boot framebuffer resolution */
+struct Resolution : Register<64>
+{
+	struct Bpp    : Bitfield<0, 8> { };
+	struct Type   : Bitfield<8, 8> { };
+	struct Height : Bitfield<16, 24> { };
+	struct Width  : Bitfield<40, 24> { };
+};
 
 /**************
  ** Platform **
@@ -474,36 +483,15 @@ Platform::Platform() :
 	_io_mem_alloc.add_range(0, ~0xfffUL);
 	Hip::Mem_desc *mem_desc = (Hip::Mem_desc *)mem_desc_base;
 
-	struct mbfb_t {
-		uint64_t addr = 0;
-		union {
-			uint64_t size;
-			struct {
-				uint32_t height;
-				uint32_t width;
-			};
-		};
-		union {
-			uint32_t aux;
-			struct {
-				uint8_t bpp;
-				uint8_t type;
-				uint8_t reserved[2];
-			};
-		};
-	} mbi_fb;
-	memset(&mbi_fb, 0, sizeof(mbi_fb));
+	Hip::Mem_desc *boot_fb = nullptr;
 
 	/*
 	 * All "available" ram must be added to our physical allocator before all
 	 * non "available" regions that overlaps with ram get removed.
 	 */
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
-		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
-			mbi_fb.addr = mem_desc->addr;
-			mbi_fb.size = mem_desc->size;
-			mbi_fb.aux  = mem_desc->aux;
-		}
+		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER)
+			boot_fb = mem_desc;
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
 		if (verbose_boot_info) {
@@ -551,10 +539,10 @@ Platform::Platform() :
 
 		/* remove framebuffer from available memory */
 		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
-			/* align width to 16 byte size */
-			addr_t const width = (mbi_fb.width + 16 - 1) & ~0xful;
+			uint32_t const height = Resolution::Height::get(mem_desc->size);
+			uint32_t const pitch  = mem_desc->aux;
 			/* calculate size of framebuffer */
-			size = width * mbi_fb.height * mbi_fb.bpp / 4;
+			size = pitch * height;
 		}
 
 		/* truncate size if base+size larger then natural 32/64 bit boundary */
@@ -635,11 +623,6 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RSDT) rsdt = mem_desc->addr;
 		if (mem_desc->type == Hip::Mem_desc::ACPI_XSDT) xsdt = mem_desc->addr;
-		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER) {
-			mbi_fb.addr = mem_desc->addr;
-			mbi_fb.size = mem_desc->size;
-			mbi_fb.aux = mem_desc->aux;
-		}
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
 		if (!mem_desc->addr || !mem_desc->size) continue;
 
@@ -674,14 +657,17 @@ Platform::Platform() :
 					xml.attribute("xsdt", String<32>(Hex(xsdt)));
 			});
 			xml.node("boot", [&] () {
-				if (mbi_fb.addr) {
-					xml.node("framebuffer", [&] () {
-						xml.attribute("phys", String<32>(Hex(mbi_fb.addr)));
-						xml.attribute("width", mbi_fb.width);
-						xml.attribute("height", mbi_fb.height);
-						xml.attribute("bpp", mbi_fb.bpp);
-					});
-				}
+				if (!boot_fb)
+					return;
+
+				xml.node("framebuffer", [&] () {
+					xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
+					xml.attribute("width",  Resolution::Width::get(boot_fb->size));
+					xml.attribute("height", Resolution::Height::get(boot_fb->size));
+					xml.attribute("bpp",    Resolution::Bpp::get(boot_fb->size));
+					xml.attribute("type",   Resolution::Type::get(boot_fb->size));
+					xml.attribute("pitch",  boot_fb->aux);
+				});
 			});
 		});
 
