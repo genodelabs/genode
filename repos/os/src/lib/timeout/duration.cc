@@ -82,3 +82,9 @@ Microseconds Duration::trunc_to_plain_us() const
 {
 	return Microseconds(_microseconds + (_hours ? _hours * US_PER_HOUR : 0));
 }
+
+
+Milliseconds Duration::trunc_to_plain_ms() const
+{
+	return Milliseconds(trunc_to_plain_us().value / 1000);
+}
