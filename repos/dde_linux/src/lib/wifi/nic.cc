@@ -199,6 +199,13 @@ class Root : public Genode::Root_component<Wifi_session_component,
 			return session;
 		}
 
+		void _destroy_session(Wifi_session_component *session)
+		{
+			/* stop rx */
+			Root::instance->session = nullptr;
+			Genode::Root_component<Wifi_session_component, Genode::Single_client>::_destroy_session(session);
+		}
+
 	public:
 
 		net_device             *device  = nullptr;
