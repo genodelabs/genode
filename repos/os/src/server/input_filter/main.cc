@@ -24,6 +24,7 @@
 #include <remap_source.h>
 #include <merge_source.h>
 #include <chargen_source.h>
+#include <button_scroll_source.h>
 
 namespace Input_filter { struct Main; }
 
@@ -193,7 +194,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 	/**
 	 * Maximum nesting depth of input sources, for limiting the stack usage
 	 */
-	unsigned _create_source_max_nesting_level = 16;
+	unsigned _create_source_max_nesting_level = 12;
 
 	/**
 	 * Source::Factory interface
@@ -249,6 +250,9 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		if (node.type() == Chargen_source::name())
 			return *new (_heap) Chargen_source(owner, node, sink, *this, _heap,
 			                                   _timer_accessor, _include_accessor);
+
+		if (node.type() == Button_scroll_source::name())
+			return *new (_heap) Button_scroll_source(owner, node, sink, *this);
 
 		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();

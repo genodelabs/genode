@@ -41,7 +41,8 @@ class Input_filter::Source
 			return node.type() == "input"
 			    || node.type() == "remap"
 			    || node.type() == "chargen"
-			    || node.type() == "merge";
+			    || node.type() == "merge"
+			    || node.type() == "button-scroll";
 
 			return false;
 		}
@@ -57,7 +58,7 @@ class Input_filter::Source
 			if (result.type() != "none")
 				return result;
 
-			warning("missing input sub node in ", node);
+			warning("missing input-source sub node in ", node);
 			throw Invalid_config { };
 		}
 

@@ -37,6 +37,23 @@ one of the following filters:
   'CHARACTER' events by applying character mapping rules. The originating
   filter is defined as a child node.
 
+:<button-scroll>:
+
+  Turns relative motion events into wheel events while a special button
+  (i.e., the middle mouse button) is pressed. The button and rate of generated
+  wheel events can be configured per axis via the sub nodes '<vertical>' and
+  '<horizontal>'. The button of each axis can be specified via the 'button'
+  attribute. By default, "BTN_MIDDLE" is used. The rate of generated wheel
+  events can be defined by the 'speed_percent' attribute. A value of "100"
+  uses relative motion vectors directly as wheel motion vectors. In practice,
+  this is results in overly fast wheel motion. By lowering the value, the rate
+  can be reduced to practical levels. By specifying a negative value, the
+  direction of the generated wheel motion can be inverted.
+
+  The consumed relative motion events are filtered out from the event stream
+  such that pointer movements are inhibited while the wheel emulation is
+  active. All other events are passed along unmodified.
+
 
 Character generator rules
 -------------------------

@@ -268,6 +268,44 @@ append config {
 			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
 
 
+			<message string="button-scroll feature"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<button-scroll>
+						<input name="usb"/>
+						<vertical   button="BTN_MIDDLE"    speed_percent="-50"/>
+						<horizontal button="KEY_LEFTSHIFT" speed_percent="50"/>
+					</button-scroll>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<press code="BTN_MIDDLE"/> <release code="BTN_MIDDLE"/>
+				<motion rx="10" ry="10"/>
+				<press code="BTN_MIDDLE"/>
+				<motion rx="1" ry="1"/>
+				<motion rx="1" ry="1"/>
+				<press code="KEY_LEFTSHIFT"/>
+				<motion rx="1" ry="1"/>
+				<motion rx="1" ry="1"/>
+				<release code="KEY_LEFTSHIFT"/>
+				<release code="BTN_MIDDLE"/>
+				<motion rx="10" ry="10"/>
+				<press code="BTN_MIDDLE"/> <release code="BTN_MIDDLE"/>
+			</usb>
+			<!-- press-release w/o motion is reported at release time -->
+			<expect_press   code="BTN_MIDDLE"/>
+			<expect_release code="BTN_MIDDLE"/>
+			<expect_motion rx="10" ry="10"/>
+			<expect_wheel rx="0" ry="-1"/>
+			<expect_wheel rx="1" ry="-1"/>
+			<expect_motion rx="10" ry="10"/>
+			<expect_press   code="BTN_MIDDLE"/>
+			<expect_release code="BTN_MIDDLE"/>
+
+
 			<message string="survive deeply nested config"/>
 
 			<deep_filter_config depth="50"/>

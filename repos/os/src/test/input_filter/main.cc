@@ -212,13 +212,22 @@ class Test::Input_to_filter
 			step.for_each_sub_node([&] (Xml_node node) {
 
 				Input::Event::Type const type =
-					node.type() == "press"   ? Input::Event::PRESS :
+					node.type() == "press"   ? Input::Event::PRESS   :
 					node.type() == "release" ? Input::Event::RELEASE :
+					node.type() == "motion"  ? Input::Event::MOTION  :
 					                           Input::Event::INVALID;
 
 				if (type == Input::Event::PRESS || type == Input::Event::RELEASE) {
 					Key_name const key_name = node.attribute_value("code", Key_name());
 					dst.submit(Input::Event(type, _code(key_name), 0, 0, 0, 0));
+				}
+
+				if (type == Input::Event::MOTION) {
+					dst.submit(Input::Event(type, 0,
+					                        node.attribute_value("ax", 0L),
+					                        node.attribute_value("ay", 0L),
+					                        node.attribute_value("rx", 0L),
+					                        node.attribute_value("ry", 0L)));
 				}
 			});
 		}
@@ -294,7 +303,9 @@ struct Test::Main : Input_from_filter::Event_handler
 
 			_input_from_filter.input_expected(step.type() == "expect_press"   ||
 			                                  step.type() == "expect_release" ||
-			                                  step.type() == "expect_char");
+			                                  step.type() == "expect_char"    ||
+			                                  step.type() == "expect_motion"  ||
+			                                  step.type() == "expect_wheel");
 
 			if (step.type() == "filter_config") {
 				_publish_report(_input_filter_config_reporter, step);
@@ -347,7 +358,8 @@ struct Test::Main : Input_from_filter::Event_handler
 			}
 
 			if (step.type() == "expect_press" || step.type() == "expect_release"
-			 || step.type() == "expect_char")
+			 || step.type() == "expect_char"  || step.type() == "expect_motion"
+			 || step.type() == "expect_wheel")
 				return;
 
 			if (step.type() == "sleep") {
@@ -384,14 +396,26 @@ struct Test::Main : Input_from_filter::Event_handler
 			 && step.attribute_value("code", Value()) == Input::key_name(ev.keycode()))
 				break;
 
+		case Input::Event::WHEEL:
+			if (step.type() == "expect_wheel"
+			 && step.attribute_value("rx", 0L) == ev.rx()
+			 && step.attribute_value("ry", 0L) == ev.ry())
+				break;
+
+		case Input::Event::MOTION:
+			if (step.type() == "expect_motion"
+			 && (!step.has_attribute("rx") || step.attribute_value("rx", 0L) == ev.rx())
+			 && (!step.has_attribute("ry") || step.attribute_value("ry", 0L) == ev.ry())
+			 && (!step.has_attribute("ax") || step.attribute_value("ax", 0L) == ev.ax())
+			 && (!step.has_attribute("ay") || step.attribute_value("ay", 0L) == ev.ay()))
+				break;
+
 		case Input::Event::CHARACTER:
 			if (step.type() == "expect_char"
 			 && step.attribute_value("char", Value()) == Value(Char(ev.utf8().b0)))
 			 	break;
 
 		case Input::Event::INVALID:
-		case Input::Event::MOTION:
-		case Input::Event::WHEEL:
 		case Input::Event::FOCUS:
 		case Input::Event::LEAVE:
 		case Input::Event::TOUCH:
