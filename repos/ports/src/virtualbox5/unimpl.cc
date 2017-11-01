@@ -108,7 +108,6 @@ DUMMY(RTProcWait)
 DUMMY(RTLdrGetSuff)
 DUMMY(RTLdrLoadAppPriv)
 
-DUMMY(RTPathAppend)
 DUMMY(RTPathChangeToDosSlashes)
 DUMMY(RTSemEventWaitEx)
 DUMMY(RTSemPing)

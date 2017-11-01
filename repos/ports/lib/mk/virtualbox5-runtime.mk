@@ -74,6 +74,7 @@ SRC_CC += Runtime/common/net/netaddrstr2.cpp
 SRC_CC += Runtime/common/path/comparepaths.cpp
 SRC_CC += Runtime/common/path/RTPathAbsDup.cpp
 SRC_CC += Runtime/common/path/RTPathAbsEx.cpp
+SRC_CC += Runtime/common/path/RTPathAppend.cpp
 SRC_CC += Runtime/common/path/RTPathAppendEx.cpp
 SRC_CC += Runtime/common/path/RTPathCalcRelative.cpp
 SRC_CC += Runtime/common/path/RTPathEnsureTrailingSeparator.cpp
