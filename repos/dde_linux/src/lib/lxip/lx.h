@@ -15,6 +15,7 @@
 #ifndef _LX_H_
 #define _LX_H_
 
+#include <timer/timeout.h>
 #include <base/signal.h>
 
 namespace Lx_kit { class Env; }
@@ -25,13 +26,9 @@ namespace Lx {
 	                     Genode::Allocator &alloc,
 	                     void (*ticker)());
 
-	void timer_init(Genode::Env &env,
-	                Genode::Entrypoint &ep,
+	void timer_init(Genode::Entrypoint &ep,
+	                Genode::Timeout_scheduler &scheduler,
 	                Genode::Allocator &alloc,
-	                void (*ticker)());
-
-	void event_init(Genode::Env &env,
-	                Genode::Entrypoint &ep,
 	                void (*ticker)());
 
 	void timer_update_jiffies();

@@ -20,8 +20,8 @@
 #include <base/snprintf.h>
 #include <dataspace/client.h>
 #include <region_map/client.h>
-#include <timer_session/connection.h>
 #include <trace/timestamp.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include <lx_emul.h>
@@ -298,89 +298,6 @@ void *memcpy(void *d, const void *s, size_t n)
 void *memmove(void *d, const void *s, size_t n)
 {
 	return Genode::memmove(d, s, n);
-}
-
-
-/*******************
- ** linux/sched.h **
- *******************/
-
-struct Timeout : Genode::Io_signal_handler<Timeout>
-{
-	Genode::Entrypoint &ep;
-	Timer::Connection timer;
-	void (*tick)();
-
-	void handle()
-	{
-		update_jiffies();
-
-		/* tick the higher layer of the component */
-		tick();
-	}
-
-	Timeout(Genode::Env &env, Genode::Entrypoint &ep, void (*ticker)())
-	:
-		Io_signal_handler<Timeout>(ep, *this, &Timeout::handle),
-		ep(ep), timer(env), tick(ticker)
-	{
-		timer.sigh(*this);
-	}
-
-	void schedule(signed long msec)
-	{
-		timer.trigger_once(msec * 1000);
-	}
-
-	void wait()
-	{
-		ep.wait_and_dispatch_one_io_signal();
-	}
-};
-
-
-static Timeout *_timeout;
-static Genode::Signal_context_capability tick_sig_cap;
-
-void Lx::event_init(Genode::Env &env, Genode::Entrypoint &ep, void (*ticker)())
-{
-	static ::Timeout handler(env, ep, ticker);
-	_timeout = &handler;
-}
-
-signed long schedule_timeout(signed long timeout)
-{
-	long start = jiffies;
-	_timeout->schedule(timeout);
-	_timeout->wait();
-	timeout -= jiffies - start;
-	return timeout < 0 ? 0 : timeout;
-}
-
-
-long schedule_timeout_uninterruptible(signed long timeout)
-{
-	return schedule_timeout(timeout);
-}
-
-void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
-{
-	_timeout->wait();
-}
-
-bool poll_does_not_wait(const poll_table *p)
-{
-	return p == nullptr;
-}
-
-
-/******************
- ** linux/time.h **
- ******************/
-
-unsigned long get_seconds(void)
-{
-	return jiffies / HZ;
 }
 
 
@@ -710,50 +627,4 @@ bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
 int schedule_delayed_work(struct delayed_work *dwork, unsigned long delay)
 {
 	return mod_delayed_work(0, dwork, delay);
-}
-
-
-/*******************
- ** linux/timer.h **
- *******************/
-
-static unsigned long round_jiffies(unsigned long j, bool force_up)
-{
-	unsigned remainder = j % HZ;
-
-	/*
-	 * from timer.c
-	 *
-	 * If the target jiffie is just after a whole second (which can happen
-	 * due to delays of the timer irq, long irq off times etc etc) then
-	 * we should round down to the whole second, not up. Use 1/4th second
-	 * as cutoff for this rounding as an extreme upper bound for this.
-	 * But never round down if @force_up is set.
-	 */
-
-	/* per default round down */
-	j = j - remainder;
-
-	/* round up if remainder more than 1/4 second (or if we're forced to) */
-	if (remainder >= HZ/4 || force_up)
-		j += HZ;
-
-	return j;
-}
-
-unsigned long round_jiffies(unsigned long j)
-{
-	return round_jiffies(j, false);
-}
-
-
-unsigned long round_jiffies_up(unsigned long j)
-{
-	return round_jiffies(j, true);
-}
-
-
-unsigned long round_jiffies_relative(unsigned long j)
-{
-	return round_jiffies(j + jiffies, false) - jiffies;
 }

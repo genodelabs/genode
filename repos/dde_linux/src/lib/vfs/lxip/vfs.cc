@@ -23,6 +23,7 @@
 #include <vfs/file_io_service.h>
 #include <vfs/file_system_factory.h>
 #include <vfs/vfs_handle.h>
+#include <timer_session/connection.h>
 
 /* Lxip includes */
 #include <lxip/lxip.h>
@@ -1962,15 +1963,17 @@ struct Lxip_factory : Vfs::File_system_factory
 
 		char *_parse_config(Genode::Xml_node);
 
+		Timer::Connection timer;
+
 		Init(Genode::Env       &env,
 		     Genode::Allocator &alloc)
+		: timer(env, "vfs_lxip")
 		{
 			Lx_kit::Env &lx_env = Lx_kit::construct_env(env);
 
 			Lx::lxcc_emul_init(lx_env);
 			Lx::malloc_init(env, lx_env.heap());
-			Lx::timer_init(env, lx_env.env().ep(), lx_env.heap(), &poll_all);
-			Lx::event_init(env, lx_env.env().ep(), &poll_all);
+			Lx::timer_init(env.ep(), timer, lx_env.heap(), &poll_all);
 			Lx::nic_client_init(env, lx_env.heap(), &poll_all);
 
 			lxip_init();

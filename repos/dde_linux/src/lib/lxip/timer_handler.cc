@@ -83,9 +83,18 @@ class Lx::Timer
 
 	private:
 
-		::Timer::Connection                          _timer_conn;
+		Genode::Entrypoint                          &_ep;
+		Genode::Timeout_scheduler                   &_scheduler;
+
+		/* One-shot timeout for timer list */
+		::Timer::One_shot_timeout<Lx::Timer>         _timers_one_shot {
+			_scheduler, *this, &Lx::Timer::_handle_timers };
+
+		/* One-shot timeout for 'wait' */
+		::Timer::One_shot_timeout<Lx::Timer>         _wait_one_shot {
+			_scheduler, *this, &Lx::Timer::_handle_wait };
+
 		Lx_kit::List<Context>                        _list;
-		Genode::Io_signal_handler<Lx::Timer>         _handler;
 		Genode::Tslab<Context, 32 * sizeof(Context)> _timer_alloc;
 
 		void (*_tick)();
@@ -120,7 +129,7 @@ class Lx::Timer
 			/* calculate relative microseconds for trigger */
 			unsigned long us = ctx->timeout > jiffies ?
 			                   jiffies_to_msecs(ctx->timeout - jiffies) * 1000 : 0;
-			_timer_conn.trigger_once(us);
+			_timers_one_shot.schedule(Genode::Microseconds{us});
 		}
 
 		/**
@@ -152,12 +161,21 @@ class Lx::Timer
 			_program_first_timer();
 		}
 
-		/**
-		 * Handle trigger_once signal
-		 */
-		void _handle()
+		inline void _upate_jiffies(Genode::Duration dur)
 		{
-			update_jiffies();
+			auto new_jiffies = usecs_to_jiffies(dur.trunc_to_plain_us().value);
+			if (new_jiffies < jiffies)
+				jiffies = usecs_to_jiffies(_scheduler.curr_time().trunc_to_plain_us().value);
+			else
+				jiffies = new_jiffies;
+		}
+
+		/**
+		 * Check timers and wake application
+		 */
+		void _handle_timers(Genode::Duration dur)
+		{
+			_upate_jiffies(dur);
 
 			while (Lx::Timer::Context *ctx = _list.first()) {
 				if (ctx->timeout > jiffies)
@@ -174,20 +192,23 @@ class Lx::Timer
 			_tick();
 		}
 
+		void _handle_wait(Genode::Duration dur) { _upate_jiffies(dur); }
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Timer(Genode::Env &env, Genode::Entrypoint &ep, Genode::Allocator &alloc,
+		Timer(Genode::Entrypoint &ep,
+		      Genode::Timeout_scheduler &scheduler,
+		      Genode::Allocator &alloc,
 		      void (*tick)())
 		:
-			_timer_conn(env),
-			_handler(ep, *this, &Lx::Timer::_handle),
+			_ep(ep),
+			_scheduler(scheduler),
 			_timer_alloc(&alloc),
 			_tick(tick)
 		{
-			_timer_conn.sigh(_handler);
 			update_jiffies();
 		}
 
@@ -275,32 +296,48 @@ class Lx::Timer
 			 * Do not use lx_emul usecs_to_jiffies(unsigned int) because
 			 * of implicit truncation!
 			 */
-			jiffies = _timer_conn.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
+			jiffies = _scheduler.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
 		}
 
 		/**
 		 * Get first timer context
 		 */
 		Context* first() { return _list.first(); }
+
+		void wait(unsigned long timeo = 0)
+		{
+			if (timeo > 0)
+				_wait_one_shot.schedule(Genode::Microseconds(jiffies_to_usecs(timeo)));
+
+			_ep.wait_and_dispatch_one_io_signal();
+		}
+
+		void wait_uninterruptible(unsigned long timeo)
+		{
+			if (timeo > 0) {
+				_wait_one_shot.schedule(Genode::Microseconds(jiffies_to_usecs(timeo)));
+				while (_wait_one_shot.scheduled())
+					_ep.wait_and_dispatch_one_io_signal();
+			}
+		}
 };
 
 
 static Lx::Timer *_timer;
 
 
-void Lx::timer_init(Genode::Env &env, Genode::Entrypoint &ep,
+void Lx::timer_init(Genode::Entrypoint &ep,
+                    Genode::Timeout_scheduler &scheduler,
                     Genode::Allocator &alloc, void (*tick)())
 {
-	static Lx::Timer inst(env, ep, alloc, tick);
+	static Lx::Timer inst(ep, scheduler, alloc, tick);
 	_timer = &inst;
 }
 
 
-void update_jiffies()
-{
-	_timer->update_jiffies();
-}
+void update_jiffies() { _timer->update_jiffies(); }
 
+void Lx::timer_update_jiffies() { update_jiffies(); }
 
 /*******************
  ** linux/timer.h **
@@ -354,4 +391,88 @@ int del_timer(struct timer_list *timer)
 }
 
 
-void Lx::timer_update_jiffies() { update_jiffies(); }
+/*******************
+ ** linux/sched.h **
+ *******************/
+
+signed long schedule_timeout(signed long timeout)
+{
+	unsigned long expire = timeout + jiffies;
+
+	long start = jiffies;
+	_timer->wait(timeout);
+	timeout -= jiffies - start;
+	return timeout < 0 ? 0 : timeout;
+}
+
+long schedule_timeout_uninterruptible(signed long timeout)
+{
+	_timer->wait_uninterruptible(timeout);
+	return 0;
+}
+
+void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
+{
+	_timer->wait();
+}
+
+bool poll_does_not_wait(const poll_table *p)
+{
+	return p == nullptr;
+}
+
+
+/******************
+ ** linux/time.h **
+ ******************/
+
+unsigned long get_seconds(void)
+{
+	return jiffies / HZ;
+}
+
+
+/*******************
+ ** linux/timer.h **
+ *******************/
+
+static unsigned long round_jiffies(unsigned long j, bool force_up)
+{
+	unsigned remainder = j % HZ;
+
+	/*
+	 * from timer.c
+	 *
+	 * If the target jiffie is just after a whole second (which can happen
+	 * due to delays of the timer irq, long irq off times etc etc) then
+	 * we should round down to the whole second, not up. Use 1/4th second
+	 * as cutoff for this rounding as an extreme upper bound for this.
+	 * But never round down if @force_up is set.
+	 */
+
+	/* per default round down */
+	j = j - remainder;
+
+	/* round up if remainder more than 1/4 second (or if we're forced to) */
+	if (remainder >= HZ/4 || force_up)
+		j += HZ;
+
+	return j;
+}
+
+unsigned long round_jiffies(unsigned long j)
+{
+	return round_jiffies(j, false);
+}
+
+
+unsigned long round_jiffies_up(unsigned long j)
+{
+	return round_jiffies(j, true);
+}
+
+
+unsigned long round_jiffies_relative(unsigned long j)
+{
+	return round_jiffies(j + jiffies, false) - jiffies;
+}
