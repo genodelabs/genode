@@ -1,7 +1,7 @@
 LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
-               wifi.archive libnl.archive wpa_supplicant.archive \
+               wifi.archive fec.archive libnl.archive wpa_supplicant.archive \
                fw_3160.archive fw_6000.archive fw_6205a.archive fw_6205b.archive \
                fw_7260.archive fw_7265.archive fw_8260.archive fw_1000.archive
 
@@ -79,6 +79,16 @@ DIR(lxip)     := $(SRC_DIR_LXIP)
 TAR_OPT(lxip) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_LXIP)/g' $(REP_DIR)/lxip.list)
 HASH_INPUT    += $(REP_DIR)/lxip.list
 
+#
+# Freescale Ethernet controller
+#
+SRC_DIR_FEC  := src/drivers/nic/fec
+VERSION_FEC  := 4.4.3
+URL(fec)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_FEC).tar.xz
+SHA(fec)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
+DIR(fec)     := $(SRC_DIR_FEC)
+TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_FEC)/g'     $(REP_DIR)/fec.list)
+HASH_INPUT   += $(REP_DIR)/fec.list
 
 #
 # libnl sources
@@ -211,5 +221,8 @@ PATCH_OPT(patches/usb_rndis.patch)       := $(USB_OPT)
 PATCH_OPT(patches/intel_fb_export_api.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
 PATCH_OPT(patches/intel_fb_drm_remove.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
 PATCH_OPT(patches/intel_fb_backlight.patch)  := -p1 -d$(SRC_DIR_INTEL_FB)
+
+# Freescale NIC
+PATCH_OPT(patches/lxip_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)
 
 # vi: set ft=make :
