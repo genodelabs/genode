@@ -1404,6 +1404,9 @@ void Nitpicker::Main::handle_config()
 
 	/* redraw */
 	user_state.update_all_views();
+
+	/* update focus report since the domain colors might have changed */
+	report_session(focus_reporter, user_state.Mode::focused_session(), user_active);
 }
 
 
