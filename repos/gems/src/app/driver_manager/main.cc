@@ -491,14 +491,15 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 				Id    const product_id = device.attribute_value("product_id", Id());
 
 				/*
-				 * Limit USB sessions to storage in order to avoid conflicts with
-				 * the USB driver's built-in HID drivers.
+				 * Limit USB sessions to storage and vendor specific in order to avoid
+				 * conflicts with the USB driver's built-in HID drivers.
 				 */
 				unsigned long const class_code = device.attribute_value("class", 0UL);
 
-				enum { USB_CLASS_MASS_STORAGE = 8 };
+				enum { USB_CLASS_MASS_STORAGE = 8, USB_CLASS_VENDOR_SPECIFIC = 0xff };
 
-				bool const expose_as_usb_raw = (class_code == USB_CLASS_MASS_STORAGE);
+				bool const expose_as_usb_raw = (class_code == USB_CLASS_MASS_STORAGE) ||
+				                               (class_code == USB_CLASS_VENDOR_SPECIFIC);
 				if (!expose_as_usb_raw)
 					return;
 
