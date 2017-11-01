@@ -163,20 +163,25 @@ struct Driver_manager::Boot_fb_driver : Device_driver
 
 	struct Mode
 	{
-		unsigned _width = 0, _height = 0, _bpp = 0;
+		enum { TYPE_RGB_COLOR = 1 };
+
+		unsigned _pitch = 0, _height = 0;
 
 		Mode() { }
 
 		Mode(Xml_node node)
 		:
-			_width (node.attribute_value("width",  0U)),
-			_height(node.attribute_value("height", 0U)),
-			_bpp   (node.attribute_value("bpp",    0U))
-		{ }
+			_pitch(node.attribute_value("pitch", 0U)),
+			_height(node.attribute_value("height", 0U))
+		{
+			/* check for unsupported type */
+			if (node.attribute_value("type", 0U) != TYPE_RGB_COLOR)
+				_pitch = _height = 0;
+		}
 
-		size_t num_bytes() const { return _width * _height * _bpp/8 + 512*1024; }
+		size_t num_bytes() const { return _pitch * _height + 512*1024; }
 
-		bool valid() const { return _width*_height*_bpp != 0; }
+		bool valid() const { return _pitch * _height != 0; }
 	};
 
 	Boot_fb_driver(Mode const mode) : _ram_quota(Ram_quota{mode.num_bytes()}) { }
