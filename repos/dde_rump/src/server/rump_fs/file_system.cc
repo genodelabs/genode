@@ -99,6 +99,20 @@ void File_system::init()
 
 	/* check support for symlinks */
 	_supports_symlinks = check_symlinks(fs_type);
+
+	/*
+	 * Try to mount the file system just to check if it
+	 * is working as intended. In case it is not that gives
+	 * us a change to react upon before any client may
+	 * hang.
+	 */
+	try {
+		mount_fs();
+		unmount_fs();
+	} catch (...) {
+		Genode::error("dry mount attempt failed, aborting");
+		throw Genode::Exception();
+	}
 }
 
 
