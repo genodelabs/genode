@@ -48,21 +48,50 @@ class Wifi_session_component : public Nic::Session_component
 		net_device *_ndev;
 		bool        _has_link = !(_ndev->state & 1UL << __LINK_STATE_NOCARRIER);
 
+		struct Tx_data
+		{
+			net_device     *ndev;
+			struct sk_buff *skb;
+		} _tx_data;
+
+		static void _run_tx_task(void *args)
+		{
+			Tx_data *data = static_cast<Tx_data*>(args);
+
+			while (1) {
+				Lx::scheduler().current()->block_and_schedule();
+
+				net_device    *ndev = data->ndev;
+				struct sk_buff *skb = data->skb;
+
+				ndev->netdev_ops->ndo_start_xmit(skb, ndev);
+			}
+		}
+
+		Lx::Task _tx_task { _run_tx_task, &_tx_data, "tx_task",
+		                    Lx::Task::PRIORITY_1, Lx::scheduler() };
+
 	protected:
 
 		bool _send()
 		{
 			using namespace Genode;
 
-			if (!_tx.sink()->ready_to_ack())
+			/*
+			 * We must not be called from another task, just from the
+			 * packet stream dispatcher.
+			 */
+			if (Lx::scheduler().active()) {
+				warning("scheduler active");
 				return false;
+			}
 
-			if (!_tx.sink()->packet_avail())
-				return false;
+			if (!_tx.sink()->ready_to_ack()) { return false; }
+			if (!_tx.sink()->packet_avail()) { return false; }
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
 			if (!packet.size()) {
-				Genode::warning("invalid tx packet");
+				warning("invalid tx packet");
 				return true;
 			}
 
@@ -71,18 +100,29 @@ class Wifi_session_component : public Nic::Session_component
 			unsigned char *data = lxc_skb_put(skb, packet.size());
 			Genode::memcpy(data, _tx.sink()->packet_content(packet), packet.size());
 
-			_ndev->netdev_ops->ndo_start_xmit(skb, _ndev);
+			_tx_data.ndev = _ndev;
+			_tx_data.skb  = skb;
+
+			_tx_task.unblock();
+			Lx::scheduler().schedule();
+
 			_tx.sink()->acknowledge_packet(packet);
 
 			return true;
 		}
 
-		void _handle_packet_stream()
+		void _handle_rx()
 		{
-			while (_rx.source()->ack_avail())
+			while (_rx.source()->ack_avail()) {
 				_rx.source()->release_packet(_rx.source()->get_acked_packet());
+			}
+		}
 
-			while (_send()) ;
+		void _handle_packet_stream() override
+		{
+			_handle_rx();
+
+			while (_send()) { continue; }
 		}
 
 	public:
@@ -117,7 +157,7 @@ class Wifi_session_component : public Nic::Session_component
 
 		void receive(struct sk_buff *skb)
 		{
-			_handle_packet_stream();
+			_handle_rx();
 
 			if (!_rx.source()->ready_to_submit()) {
 				Genode::warning("not ready to receive packet");
