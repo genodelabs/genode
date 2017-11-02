@@ -25,12 +25,24 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/debug.h>
+#include <base/registry.h>
+#include <util/reconstructible.h>
+
+/* LX kit */
+#include <lx_kit/env.h>
+#include <lx_kit/scheduler.h>
+
+/* local */
+#include "led_state.h"
 
 /* Linux includes */
 #include <lx_emul.h>
 #include <lx_emul/extern_c_begin.h>
+#include <linux/hid.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
+#include <linux/usb.h>
 #include <lx_emul/extern_c_end.h>
 
 
@@ -300,3 +312,173 @@ void genode_input_register(genode_input_event_cb h, unsigned long res_x,
 	screen_y    = res_y;
 	multi_touch = multitouch;
 }
+
+
+/***************************
+ ** Keyboard LED handling **
+ ***************************/
+
+class Keyboard_led
+{
+	private:
+
+		Genode::Registry<Keyboard_led>::Element _reg_elem;
+		input_dev * const                       _input_dev;
+
+		usb_interface *_interface() {
+			return container_of(_input_dev->dev.parent->parent, usb_interface, dev); }
+
+		usb_device *_usb_device() {
+			return interface_to_usbdev(_interface()); }
+
+	public:
+
+		Keyboard_led(Genode::Registry<Keyboard_led> &registry, input_dev *dev)
+		: _reg_elem(registry, *this), _input_dev(dev) { }
+
+		bool match(input_dev const *other) const { return _input_dev == other; }
+
+		void update(unsigned leds)
+		{
+			unsigned *buf = (unsigned *)kmalloc(4, GFP_LX_DMA);
+			*buf = leds;
+			usb_control_msg(_usb_device(), usb_sndctrlpipe(_usb_device(), 0),
+			                0x9, USB_TYPE_CLASS  | USB_RECIP_INTERFACE, 0x200,
+			                _interface()->cur_altsetting->desc.bInterfaceNumber,
+			                buf, 1, 0);
+			kfree(buf);
+		}
+};
+
+
+static Genode::Registry<Keyboard_led> _registry;
+
+
+namespace Usb { class Led; }
+
+class Usb::Led
+{
+	private:
+
+		Lx::Task _task { _run, this, "led_worker", Lx::Task::PRIORITY_2,
+		                 Lx::scheduler() };
+
+		completion _config_update;
+
+		Led_state _capslock { Lx_kit::env().env(), "capslock" },
+		          _numlock  { Lx_kit::env().env(), "numlock"  },
+		          _scrlock  { Lx_kit::env().env(), "scrlock"  };
+
+		Genode::Signal_handler<Led> _config_handler {
+			Lx_kit::env().env().ep(), *this, &Led::_handle_config };
+
+		void _handle_config()
+		{
+			Lx_kit::env().config_rom().update();
+			Genode::Xml_node config = Lx_kit::env().config_rom().xml();
+
+			_capslock.update(config, _config_handler);
+			_numlock .update(config, _config_handler);
+			_scrlock .update(config, _config_handler);
+
+			complete(&_config_update);
+			Lx::scheduler().schedule();
+		}
+
+		static void _run(void *l)
+		{
+			Led *led = (Led *)l;
+
+			while (true) {
+				wait_for_completion(&led->_config_update);
+				_registry.for_each([&] (Keyboard_led &keyboard) {
+					led->update(keyboard); });
+			}
+		}
+
+	public:
+
+		Led()
+		{
+			init_completion(&_config_update);
+			Genode::Signal_transmitter(_config_handler).submit();
+		}
+
+		void update(Keyboard_led &keyboard)
+		{
+			unsigned leds = 0;
+
+			leds |= _capslock.enabled() ? 1u << LED_CAPSL   : 0;
+			leds |= _numlock.enabled()  ? 1u << LED_NUML    : 0;
+			leds |= _scrlock.enabled()  ? 1u << LED_SCROLLL : 0;
+
+			keyboard.update(leds);
+		}
+};
+
+
+static Genode::Constructible<Usb::Led> _led;
+
+
+static int led_connect(struct input_handler *handler, struct input_dev *dev,
+                       const struct input_device_id *id)
+{
+	Keyboard_led *keyboard = new (Lx_kit::env().heap()) Keyboard_led(_registry, dev);
+	_led->update(*keyboard);
+	return 0;
+}
+
+
+static void led_disconnect(struct input_handle *handle)
+{
+	input_dev *dev = handle->dev;
+
+	_registry.for_each([&] (Keyboard_led &keyboard) {
+		if (keyboard.match(dev))
+			destroy(Lx_kit::env().heap(), &keyboard);
+	});
+}
+
+
+static bool led_match(struct input_handler *handler, struct input_dev *dev)
+{
+	hid_device *hid = (hid_device *)input_get_drvdata(dev);
+	hid_report *report;
+
+	/* search report for keyboard entries */
+	list_for_each_entry(report, &hid->report_enum[0].report_list, list) {
+
+		for (unsigned i = 0; i < report->maxfield; i++)
+			for (unsigned j = 0; j < report->field[i]->maxusage; j++) {
+				hid_usage *usage = report->field[i]->usage + j;
+				if ((usage->hid & HID_USAGE_PAGE) == HID_UP_KEYBOARD) {
+					return true;
+				}
+			}
+	}
+
+	return false;
+}
+
+
+static struct input_handler   led_handler;
+static struct input_device_id led_ids[2];
+
+static int led_init(void)
+{
+	led_ids[0].driver_info = 1; /* match all */
+	led_ids[1] = {};
+
+	led_handler.name       = "led";
+	led_handler.connect    = led_connect;
+	led_handler.disconnect = led_disconnect;
+	led_handler.id_table   = led_ids;
+	led_handler.match      = led_match;
+
+	_led.construct();
+
+	return input_register_handler(&led_handler);
+}
+
+
+extern "C" { module_init(led_init); }

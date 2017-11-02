@@ -62,6 +62,7 @@ set build_components {
 	drivers/timer
 	drivers/usb
 	test/input
+	server/dynamic_rom
 }
 
 lappend_if [have_spec gpio] build_components drivers/gpio
@@ -112,13 +113,63 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
 	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Input"/></provides>
-		<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
+		<config uhci="yes" ohci="yes" ehci="yes" xhci="yes"
+		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"
+		        bios_handoff="no">
 			<hid/>
 		</config>
+		<route>
+			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
+			<service name="ROM">      <parent/>    </service>
+			<service name="CPU">      <parent/>    </service>
+			<service name="PD">       <parent/>    </service>
+			<service name="IO_PORT">  <parent/>    </service>
+			<service name="IO_MEM">   <parent/>    </service>
+			<service name="LOG">      <parent/>    </service>
+			<service name="RM">      <parent/>    </service>
+			<service name="Platform"> <any-child/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
 	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<rom name="capslock">
+				<inline> <capslock enabled="no"/> </inline>
+				<sleep milliseconds="250" />
+				<inline> <capslock enabled="yes"/> </inline>
+				<sleep milliseconds="250" />
+			</rom>
+			<rom name="numlock">
+				<inline> <numlock enabled="no"/> </inline>
+				<sleep milliseconds="500" />
+				<inline> <numlock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+			</rom>
+			<rom name="scrlock">
+				<inline> <scrlock enabled="no"/> </inline>
+				<sleep milliseconds="1000" />
+				<inline> <scrlock enabled="yes"/> </inline>
+				<sleep milliseconds="1000" />
+			</rom>
+		</config>
+		<route>
+			<service name="ROM">   <parent/>             </service>
+			<service name="CPU">   <parent/>             </service>
+			<service name="PD">    <parent/>             </service>
+			<service name="LOG">   <parent/>             </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+	</start>
+
 	<start name="test-input">
 		<resource name="RAM" quantum="1M"/>
 	</start>
@@ -132,7 +183,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer usb_drv test-input
+	core ld.lib.so init timer usb_drv test-input dynamic_rom
 }
 
 lappend_if [have_spec gpio] boot_modules [gpio_drv]

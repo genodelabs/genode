@@ -46,6 +46,7 @@ extern "C" void module_ch_driver_init();
 extern "C" void module_ms_driver_init();
 extern "C" void module_mt_driver_init();
 extern "C" void module_raw_driver_init();
+extern "C" void module_led_init();
 
 extern "C" void start_input_service(void *ep, void *services);
 
@@ -80,6 +81,7 @@ static void run_linux(void *s)
 	if (services->hid) {
 		subsys_input_init();
 		module_evdev_init();
+		module_led_init();
 
 		/* HID */
 		module_hid_init_core();
