@@ -35,7 +35,7 @@ set config {
 		<config> <default-policy root="/" writeable="yes"/> </config>
 	</start>
 	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<config>
 			<iterations value="1"/>}
 append_if [have_include "power_on/qemu"] config {
@@ -59,7 +59,7 @@ install_config $config
 
 build_boot_image {
 	core init
-	ld.lib.so libc.lib.so libm.lib.so
+	ld.lib.so libc.lib.so
 	ram_fs test-libc_vfs
 }
 

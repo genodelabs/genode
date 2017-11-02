@@ -110,12 +110,11 @@ set boot_modules {
 	ram_fs
 	rom_logger
 	rom_to_file
-	test-libc_vfs
 	timer
 }
 
 build_boot_image $boot_modules
 
-append qemu_args "  -nographic"
+append qemu_args " -nographic "
 
-run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
+run_genode_until forever

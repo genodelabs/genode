@@ -77,7 +77,7 @@ append config {
 		</config>
 	</start>
 	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<config>
 			<libc stdout="/dev/log"/>
 			<vfs>

@@ -38,7 +38,7 @@ set config {
 		</config>
 	</start>
 	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<config>
 			<iterations value="1"/>}
 append_if [have_include "power_on/qemu"] config {
@@ -62,7 +62,7 @@ install_config $config
 
 build_boot_image {
 	core init vfs
-	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
+	ld.lib.so libc.lib.so
 	test-libc_vfs
 }
 
@@ -70,7 +70,7 @@ build_boot_image {
 # Execute test case
 #
 
-append qemu_args "  -nographic "
+append qemu_args " -nographic "
 run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
 
 # vi: set ft=tcl :
