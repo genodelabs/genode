@@ -2767,11 +2767,8 @@ unsigned int skb_gro_len(const struct sk_buff *skb);
 __be16 skb_network_protocol(struct sk_buff *skb, int *depth);
 bool can_checksum_protocol(netdev_features_t features, __be16 protocol);
 
-/* XXX dev_kfree_skb_any */
 static inline void dev_kfree_skb_any(struct sk_buff *skb)
 {
-	dev_dbg(0, "%s called\n", __func__);
-	/* __dev_kfree_skb_any(skb, SKB_REASON_DROPPED); */
 	consume_skb(skb);
 }
 
