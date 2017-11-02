@@ -41,6 +41,6 @@ build_boot_image "core ld.lib.so init test-platform"
 
 append qemu_args "-nographic  -smp 2"
 
-run_genode_until {Test finished} 200
+run_genode_until {Test finished} 240
 
 puts "\nTest succeeded"

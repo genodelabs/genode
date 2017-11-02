@@ -286,4 +286,4 @@ proc nic_qemu_args { } {
 
 append qemu_args "-nographic -net user [nic_qemu_args]"
 
-run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 80
+run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 120
