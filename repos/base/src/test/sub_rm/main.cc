@@ -115,9 +115,10 @@ void Component::construct(Env &env)
 	 * Technically, this could let the test fail (if Linux decides to mmap the
 	 * vdso page to this location. reason ... keeping fingers crossed.
 	 */
-	enum { LOCAL_ATTACH_ADDR = 0x60000000 };
+	addr_t const local_attach_addr =
+		config.xml().attribute_value("local_attach_addr", (addr_t)0);
 	char *sub_rm_base = env.rm().attach_at(sub_rm.dataspace(),
-	                                       LOCAL_ATTACH_ADDR);
+	                                       local_attach_addr);
 
 	log("validate pattern in sub rm");
 	validate_pattern_at(test_pattern(), sub_rm_base + DS_SUB_OFFSET);

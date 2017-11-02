@@ -2,7 +2,11 @@ build "core init test/sub_rm"
 
 create_boot_directory
 
-set config {
+proc local_attach_addr      {} { return "0x70000000" }
+proc attach_twice_forbidden {} { if { [have_spec linux] } { return true } else { return false } }
+proc support_attach_sub_any {} { if { [have_spec linux] } { return false } else { return true } }
+
+append config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
@@ -15,13 +19,11 @@ set config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-sub_rm">}
-
-append_if [have_spec linux] config {
-			<config attach_twice_forbidden="true" support_attach_sub_any="false"/>}
-
-append config {
+		<start name="test-sub_rm">
 			<resource name="RAM" quantum="10M"/>
+			<config local_attach_addr="} [local_attach_addr] {"
+			        attach_twice_forbidden="} [attach_twice_forbidden] {"
+			        support_attach_sub_any="} [support_attach_sub_any] {"/>
 		</start>
 	</config>
 }
@@ -33,34 +35,3 @@ build_boot_image "core ld.lib.so init test-sub_rm"
 append qemu_args "-nographic "
 
 run_genode_until {.*--- end of sub-rm test ---.*} 20
-
-if {([have_spec linux] && [have_spec x86_32])} {
-	set maps [exec cat /proc/[exec pidof test-sub_rm]/maps]
-
-	puts "\nmemory map after test completion follows:\n"
-	puts "$maps\n"
-
-	#
-	# Validate some properties of the final mmap
-	#
-	if {![regexp {60000000-60040000 ---p} $maps]} {
-		puts "Error: detaching from sub RM session failed"
-		exit -1
-	}
-	if {![regexp {60040000-60044000 rw.s} $maps]} {
-		puts "Error: populating already attached sub RM session failed"
-		exit -1
-	}
-	if {![regexp {60080000-60083000 rw.s 00001000} $maps]} {
-		puts "Error: using offset parameter to sub RM attach did not work"
-		exit -1
-	}
-	if {![regexp {600c0000-600c2000 rw.s 00001000} $maps]} {
-		puts "Error: using offset and size parameters to sub RM attach did not work"
-		exit -1
-	}
-	if {![regexp -- {-60100000 ---p} $maps]} {
-		puts "Error: attached sub RM session exceeds region boundary"
-		exit -1
-	}
-}
