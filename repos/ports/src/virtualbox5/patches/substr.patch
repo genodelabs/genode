@@ -1,0 +1,39 @@
+substr.patch
+
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+index ef9811a..79ab5d6 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MachineImpl.cpp
+@@ -7347,7 +7347,11 @@ void Machine::i_copyPathRelativeToMachine(const Utf8Str &strSource,
+     if (RTPathStartsWith(strSource.c_str(), strTarget.c_str()))
+     {
+         // is relative: then append what's left
+-        strTarget = strSource.substr(strTarget.length() + 1); // skip '/'
++        if (RTPathIsSame(strTarget.c_str(), "/"))
++            strTarget = strSource.substr(strTarget.length()); // skip '/'
++        else
++            strTarget = strSource.substr(strTarget.length() + 1); // skip '/'
++
+         // for empty paths (only possible for subdirs) use "." to avoid
+         // triggering default settings for not present config attributes.
+         if (strTarget.isEmpty())
+diff --git a/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp b/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
+index 9e83858..51d578f 100644
+--- a/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/MediumImpl.cpp
+@@ -4507,9 +4507,12 @@ void Medium::i_saveSettingsOne(settings::Medium &data, const Utf8Str &strHardDis
+     // make path relative if needed
+     if (    !strHardDiskFolder.isEmpty()
+          && RTPathStartsWith(m->strLocationFull.c_str(), strHardDiskFolder.c_str())
+-       )
+-        data.strLocation = m->strLocationFull.substr(strHardDiskFolder.length() + 1);
+-    else
++       ) {
++        if (RTPathIsSame(strHardDiskFolder.c_str(), "/"))
++            data.strLocation = m->strLocationFull.substr(strHardDiskFolder.length());
++        else
++            data.strLocation = m->strLocationFull.substr(strHardDiskFolder.length() + 1);
++    } else
+         data.strLocation = m->strLocationFull;
+     data.strFormat = m->strFormat;
+ 
