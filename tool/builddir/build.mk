@@ -56,6 +56,9 @@ export LIB_DEP_FILE     ?= var/libdeps
 export ECHO             ?= echo -e
 export CONTRIB_DIR
 
+# Force stable sorting order
+export LC_COLLATE=C
+
 #
 # Convert user-defined directories to absolute directories
 #

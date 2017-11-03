@@ -198,7 +198,7 @@ _check_hash: $(DEPOT_ARCHIVE_DIR).hash checked_recipe_hash_value_exists
 # would otherwise prompt 'cat' to block for standard input.
 #
 HASH_CMD := cd $(DEPOT_ARCHIVE_DIR); \
-            echo | cat `find . -type f | LC_COLLATE=C sort` |  $(HASHSUM) | sed "s/ .*//" \
+            echo | cat `find . -type f | sort` |  $(HASHSUM) | sed "s/ .*//" \
 
 #
 # Generate the hash from the archive content

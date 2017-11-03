@@ -30,3 +30,6 @@ EMPTY :=
 # is not empty.
 #
 file_content = $(if $(wildcard $1),$(shell cat $1),)
+
+# Force stable sorting order
+export LC_COLLATE=C
