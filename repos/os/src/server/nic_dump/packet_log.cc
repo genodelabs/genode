@@ -51,7 +51,8 @@ void Packet_log<Dhcp_packet>::print(Output &output) const
 
 	case Packet_log_style::COMPACT:
 
-		print(output, _pkt);
+		print(output, "\033[32mDHCP\033[0m ", _pkt.client_mac(), " > ",
+		      _pkt.siaddr(), " cmd ", _pkt.op());
 		break;
 
 	case Packet_log_style::SHORT:
@@ -109,7 +110,9 @@ void Packet_log<Arp_packet>::print(Output &output) const
 
 	case Packet_log_style::COMPACT:
 
-		print(output, _pkt);
+		print(output, "\033[32mARP\033[0m ", _pkt.src_mac(), " ",
+		     _pkt.src_ip(), " > ", _pkt.dst_mac(), " ", _pkt.dst_ip(),
+		     " cmd ", _pkt.opcode());
 		break;
 
 	case Packet_log_style::SHORT:
@@ -139,7 +142,8 @@ void Packet_log<Ethernet_frame>::print(Output &output) const
 
 	case Packet_log_style::COMPACT:
 
-		print(output, _pkt);
+		print(output, "\033[32mETH\033[0m ", _pkt.src(), " > ", _pkt.dst(),
+		      " ");
 		break;
 
 	case Packet_log_style::SHORT:
@@ -193,7 +197,8 @@ void Packet_log<Ipv4_packet>::print(Output &output) const
 
 	case Packet_log_style::COMPACT:
 
-		print(output, _pkt);
+		print(output, "\033[32mIPV4\033[0m ", _pkt.src(), " > ", _pkt.dst(),
+		      " ");
 		break;
 
 	case Packet_log_style::SHORT:
@@ -242,7 +247,8 @@ void Packet_log<Tcp_packet>::print(Output &output) const
 
 	case Packet_log_style::COMPACT:
 
-		print(output, _pkt);
+		print(output, "\033[32mTCP\033[0m ", _pkt.src_port(), " > ",
+		      _pkt.dst_port(), " flags '");
 		break;
 
 	case Packet_log_style::SHORT:
@@ -273,7 +279,8 @@ void Packet_log<Udp_packet>::print(Output &output) const
 
 	case Packet_log_style::COMPACT:
 
-		print(output, _pkt);
+		print(output, "\033[32mUDP\033[0m ", _pkt.src_port(), " > ",
+		      _pkt.dst_port(), " ");
 		break;
 
 	case Packet_log_style::SHORT:
