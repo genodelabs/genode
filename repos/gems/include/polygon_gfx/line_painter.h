@@ -15,7 +15,7 @@
 #define _INCLUDE__POLYGON_GFX__LINE_PAINTER_H_
 
 #include <os/surface.h>
-#include <gems/bezier.h>
+#include <util/bezier.h>
 
 
 struct Line_painter
