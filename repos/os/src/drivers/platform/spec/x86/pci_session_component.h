@@ -38,6 +38,8 @@
 #include "pci_config_access.h"
 #include "device_pd.h"
 
+typedef Genode::Ram_dataspace_capability Ram_capability;
+
 namespace Platform {
 	unsigned short bridge_bdf(unsigned char bus);
 
@@ -51,13 +53,15 @@ namespace Platform {
 class Platform::Ram_dataspace : public Genode::List<Ram_dataspace>::Element {
 
 	private:
-		Genode::Ram_dataspace_capability _cap;
+		Ram_capability const _cap;
 
 	public:
-		Ram_dataspace(Genode::Ram_dataspace_capability c) : _cap(c) { }
+		Ram_dataspace(Ram_capability c) : _cap(c) { }
 
-		bool match(const Genode::Ram_dataspace_capability &cap) const {
+		bool match(const Ram_capability &cap) const {
 			return cap.local_name() == _cap.local_name(); }
+
+		Ram_capability cap() const { return _cap; }
 };
 
 class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
@@ -214,10 +218,10 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		 */
 		Genode::List<Platform::Ram_dataspace> _ram_caps;
 
-		void _insert(Genode::Ram_dataspace_capability cap) {
+		void _insert(Ram_capability cap) {
 			_ram_caps.insert(new (_md_alloc) Platform::Ram_dataspace(cap)); }
 
-		bool _remove(Genode::Ram_dataspace_capability cap)
+		bool _remove(Ram_capability cap)
 		{
 			for (Platform::Ram_dataspace *ds = _ram_caps.first(); ds;
 			     ds = ds->next()) {
@@ -568,6 +572,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			while (Platform::Ram_dataspace *ds = _ram_caps.first()) {
 				_ram_caps.remove(ds);
+				_env_ram.free(ds->cap());
 				destroy(_md_alloc, ds);
 			}
 		}
@@ -765,54 +770,34 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * De-/Allocation of dma capable dataspaces
 		 */
-		typedef Genode::Ram_dataspace_capability Ram_capability;
 
-		/**
-		 * Helper method for rollback
-		 */
-		void _rollback(Genode::size_t const size,
-		               Genode::Ram_dataspace_capability const ram_cap = Genode::Ram_dataspace_capability(),
-		               bool const throw_oom = true)
+		Ram_capability alloc_dma_buffer(Genode::size_t const size) override
 		{
-			if (ram_cap.valid())
-				_env_ram.free(ram_cap);
-
-			if (throw_oom)
-				throw Genode::Out_of_ram();
-		}
-
-		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t const size) override
-		{
-			Ram_capability ram_cap;
-
-			try { ram_cap = _env_ram.alloc(size, Genode::UNCACHED); }
-			catch (Genode::Out_of_ram) { _rollback(size); }
+			Ram_capability ram_cap = _env_ram.alloc(size, Genode::UNCACHED);
 
 			if (!ram_cap.valid())
 				return ram_cap;
 
-			try { _device_pd.attach_dma_mem(ram_cap); }
-			catch (Out_of_ram)  { _rollback(size, ram_cap); }
-			catch (Out_of_caps) {
-				Genode::warning("Out_of_caps while attaching DMA memory");
-				_rollback(size, ram_cap);
-			}
-
-			try { _insert(ram_cap); }
-			catch (Genode::Out_of_ram) {
-				_rollback(size, ram_cap);
+			try {
+				_device_pd.attach_dma_mem(ram_cap);
+				_insert(ram_cap);
+			} catch (Out_of_ram)  {
+				_env_ram.free(ram_cap);
+				throw Genode::Out_of_ram();
+			} catch (Out_of_caps) {
+				_env_ram.free(ram_cap);
+				throw Genode::Out_of_caps();
 			}
 
 			return ram_cap;
 		}
 
-		void free_dma_buffer(Genode::Ram_dataspace_capability ram_cap) override
+		void free_dma_buffer(Ram_capability ram_cap) override
 		{
 			if (!ram_cap.valid() || !_remove(ram_cap))
 				return;
 
-			Genode::size_t size = Genode::Dataspace_client(ram_cap).size();
-			_rollback(size, ram_cap, false);
+			_env_ram.free(ram_cap);
 		}
 
 		Device_capability device(String const &name) override;
