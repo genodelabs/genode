@@ -306,6 +306,51 @@ append config {
 			<expect_release code="BTN_MIDDLE"/>
 
 
+			<message string="accleration of relative motion events"/>
+
+			<!-- linear acceleration -->
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<accelerate max="100" curve="0" sensitivity_percent="200">
+						<input name="usb"/>
+					</accelerate>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<motion rx="1"/>
+				<motion rx="20"/>
+				<motion rx="100"/>
+				<motion rx="-100"/>
+			</usb>
+			<expect_motion rx="1"/>
+			<expect_motion rx="35"/>
+			<expect_motion rx="178"/>
+			<expect_motion rx="-178"/>
+
+			<!-- non-linear acceleration -->
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<accelerate max="100" curve="127" sensitivity_percent="200">
+						<input name="usb"/>
+					</accelerate>
+				</output>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<motion rx="1"/>
+				<motion rx="20"/>
+				<motion rx="100"/>
+				<motion rx="-100"/>
+			</usb>
+			<expect_motion rx="1"/>
+			<expect_motion rx="23"/>
+			<expect_motion rx="191"/>
+			<expect_motion rx="-191"/>
+
+
 			<message string="survive deeply nested config"/>
 
 			<deep_filter_config depth="50"/>

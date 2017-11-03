@@ -54,6 +54,16 @@ one of the following filters:
   such that pointer movements are inhibited while the wheel emulation is
   active. All other events are passed along unmodified.
 
+:<accelerate>:
+
+  Applies acceleration to relative motion values. The 'max' attribute
+  defines the maximum value added to the incoming motion values. The
+  'sensitivity_percent' attribute scales incoming motion values before
+  applying the (potentially non-linear) acceleration function. The 'curve'
+  attribute defines the degree of non-linearity of the acceleration. The value
+  "0" corresponds to a linear function whereas the maximum value "255" applies
+  a curved function. The default value is "127".
+
 
 Character generator rules
 -------------------------

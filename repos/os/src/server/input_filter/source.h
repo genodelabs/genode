@@ -42,7 +42,8 @@ class Input_filter::Source
 			    || node.type() == "remap"
 			    || node.type() == "chargen"
 			    || node.type() == "merge"
-			    || node.type() == "button-scroll";
+			    || node.type() == "button-scroll"
+			    || node.type() == "accelerate";
 
 			return false;
 		}

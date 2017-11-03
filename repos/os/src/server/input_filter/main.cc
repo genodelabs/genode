@@ -25,6 +25,7 @@
 #include <merge_source.h>
 #include <chargen_source.h>
 #include <button_scroll_source.h>
+#include <accelerate_source.h>
 
 namespace Input_filter { struct Main; }
 
@@ -253,6 +254,9 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 		if (node.type() == Button_scroll_source::name())
 			return *new (_heap) Button_scroll_source(owner, node, sink, *this);
+
+		if (node.type() == Accelerate_source::name())
+			return *new (_heap) Accelerate_source(owner, node, sink, *this);
 
 		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();
