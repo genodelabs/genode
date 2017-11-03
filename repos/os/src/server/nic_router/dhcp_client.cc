@@ -88,7 +88,9 @@ void Dhcp_client::_handle_timeout(Duration)
 
 void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
 {
-	if (eth.dst() != _interface.router_mac()) {
+	if (eth.dst() != _interface.router_mac() &&
+	    eth.dst() != Mac_address(0xff))
+	{
 		throw Packet_ignored("DHCP client expects Ethernet targeting the router");
 	}
 	Ipv4_packet &ip = *new (eth.data<void>())
@@ -108,6 +110,9 @@ void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
 
 	if (dhcp.op() != Dhcp_packet::REPLY) {
 		throw Packet_ignored("DHCP client expects DHCP reply");
+	}
+	if (dhcp.client_mac() != _interface.router_mac()) {
+		throw Packet_ignored("DHCP client expects DHCP targeting the router");
 	}
 	try { _handle_dhcp_reply(dhcp); }
 	catch (Dhcp_packet::Option_not_found) {

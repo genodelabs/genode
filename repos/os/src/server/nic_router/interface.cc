@@ -836,9 +836,14 @@ void Interface::_handle_eth(void              *const  eth_base,
 	catch (Ethernet_frame::No_ethernet_frame) {
 		error("invalid ethernet frame"); }
 
-	catch (Interface::Bad_network_protocol) {
+	catch (Bad_network_protocol) {
 		if (_config().verbose()) {
 			log("unknown network layer protocol");
+		}
+	}
+	catch (Packet_ignored exception) {
+		if (_config().verbose()) {
+			log("Packet ignored: ", exception.reason);
 		}
 	}
 	catch (Ipv4_packet::No_ip_packet) {
