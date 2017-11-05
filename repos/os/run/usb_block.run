@@ -45,7 +45,9 @@ set config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+
+	<default caps="100"/>}
 
 append_platform_drv_config
 

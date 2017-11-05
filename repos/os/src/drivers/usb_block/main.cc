@@ -187,7 +187,7 @@ struct Usb::Block_driver : Usb::Completion,
 			}
 
 			if (!p.succeded) {
-				Genode::error("init complete error: packet not succeded");
+				Genode::error("init complete error: packet not succeeded");
 				iface.release(p);
 				return;
 			}
@@ -720,6 +720,12 @@ struct Usb::Block_driver : Usb::Completion,
 		/* USB device gets initialized by handle_state_change() */
 	}
 
+	~Block_driver()
+	{
+		Interface &iface = device.interface(active_interface);
+		iface.release();
+	}
+
 	/**
 	 * Send CBW
 	 */
@@ -812,9 +818,13 @@ struct Usb::Main
 			driver = new (&alloc) Usb::Block_driver(env, alloc, sigh);
 		}
 
-		Block::Driver *create() { return driver; }
+		Block::Driver *create() override { return driver; }
 
-		void destroy(Block::Driver *driver) { }
+		void destroy(Block::Driver *driver) override
+		{
+			Genode::destroy(alloc, driver);
+			driver = nullptr;
+		}
 	};
 
 	Factory     factory { env, heap, announce_dispatcher };

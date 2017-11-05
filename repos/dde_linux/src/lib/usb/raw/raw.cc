@@ -114,7 +114,7 @@ struct Device : List<Device>::Element
  * Handle packet stream request, this way the entrypoint always returns to it's
  * server loop
  */
-class Usb::Worker
+class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 {
 	private:
 
@@ -205,9 +205,26 @@ class Usb::Worker
 		 */
 		struct Complete_data
 		{
-			Worker            *worker;
+			Weak_ptr<Worker>   worker;
 			Packet_descriptor  packet;
+
+			Complete_data(Weak_ptr<Worker> &w, Packet_descriptor &p)
+			: worker(w), packet(p) { }
 		};
+
+		Complete_data * alloc_complete_data(Packet_descriptor &p)
+		{
+			void * data = kmalloc(sizeof(Complete_data), GFP_KERNEL);
+			construct_at<Complete_data>(data, this->weak_ptr(), p);
+			return reinterpret_cast<Complete_data *>(data);
+		}
+
+		static void free_complete_data(Complete_data *data)
+		{
+			data->packet.~Packet_descriptor();
+			data->worker.~Weak_ptr<Worker>();
+			kfree (data);
+		}
 
 		void _async_finish(Packet_descriptor &p, urb *urb, bool read)
 		{
@@ -231,9 +248,15 @@ class Usb::Worker
 		{
 			Complete_data *data = (Complete_data *)urb->context;
 
-			data->worker->_async_finish(data->packet, urb,
-			                            !!(data->packet.transfer.ep & USB_DIR_IN));
-			kfree (data);
+			{
+				Locked_ptr<Worker> worker(data->worker);
+
+				if (worker.valid())
+					worker->_async_finish(data->packet, urb,
+					                      !!(data->packet.transfer.ep & USB_DIR_IN));
+			}
+
+			free_complete_data(data);
 			dma_free(urb->transfer_buffer);
 			usb_free_urb(urb);
 		}
@@ -261,9 +284,7 @@ class Usb::Worker
 				return false;
 			}
 
-			Complete_data *data = (Complete_data *)kmalloc(sizeof(Complete_data), GFP_KERNEL);
-			data->packet   = p;
-			data->worker   = this;
+			Complete_data *data = alloc_complete_data(p);
 
 			usb_fill_bulk_urb(bulk_urb, _device->udev, pipe, buf, p.size(),
 			                 _async_complete, data);
@@ -272,7 +293,8 @@ class Usb::Worker
 			if (ret != 0) {
 				error("Failed to submit URB, error: ", ret);
 				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
-				kfree(data);
+
+				free_complete_data(data);
 				usb_free_urb(bulk_urb);
 				dma_free(buf);
 				return false;
@@ -304,9 +326,7 @@ class Usb::Worker
 				return false;
 			}
 
-			Complete_data *data = (Complete_data *)kmalloc(sizeof(Complete_data), GFP_KERNEL);
-			data->packet   = p;
-			data->worker   = this;
+			Complete_data *data = alloc_complete_data(p);
 
 			int polling_interval;
 
@@ -326,7 +346,8 @@ class Usb::Worker
 			if (ret != 0) {
 				error("Failed to submit URB, error: ", ret);
 				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
-				kfree(data);
+
+				free_complete_data(data);
 				usb_free_urb(irq_urb);
 				dma_free(buf);
 				return false;
@@ -484,6 +505,11 @@ class Usb::Worker
 		Worker(Session::Tx::Sink *sink)
 		: _sink(sink)
 		{ }
+
+		~Worker()
+		{
+			Weak_object<Worker>::lock_for_destruction();
+		}
 
 		void start()
 		{
