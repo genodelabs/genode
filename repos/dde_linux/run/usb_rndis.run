@@ -1,0 +1,133 @@
+#
+# \brief  Test for using the TCP/IP terminal over USB (RNDIS, CDC_ETHER or USB NIC)
+# \author Alexander Senier
+# \date   2017-10-19
+#
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer drivers/usb
+	server/tcp_terminal
+	test/terminal_echo
+}
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+lappend_if [have_spec gpio]             build_components drivers/gpio
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="24M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config uhci="no" ohci="no" ehci="yes" xhci="yes">
+			<nic mac="02:00:00:00:01:01" />
+		</config>
+	</start>
+	<start name="tcp_terminal" caps="200">
+		<resource name="RAM" quantum="2560K"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<policy label_prefix="test-terminal_echo" port="8888"/>
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			<libc stdout="/dev/log"/>
+		</config>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-terminal_echo">
+		<resource name="RAM" quantum="2M"/>
+	</start>
+	}
+
+append_platform_drv_config
+
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init timer usb_drv
+	libc.lib.so libc_pipe.lib.so lwip.lib.so pthread.lib.so
+	tcp_terminal
+	test-terminal_echo
+}
+
+append_platform_drv_boot_modules
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
+
+build_boot_image $boot_modules
+
+append qemu_args "  -device usb-ehci,id=ehci"
+
+# Samsung RNDIS (tested with S5, Galaxy Tab S
+append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x04e8,productid=0x6860"
+append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x04e8,productid=0x6863"
+append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x04e8,productid=0x6864"
+
+# ASIX Electronics Corp. AX88179 Gigabit Ethernet
+append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x0b95,productid=0x1790"
+
+# Motorola Moto E, G4 Play
+append qemu_args "  -device usb-host,id=motoe,bus=ehci.0,vendorid=0x22b8,productid=0x2e25"
+
+# HTC A9
+append qemu_args "  -device usb-host,id=htc,bus=ehci.0,vendorid=0x0bb4,productid=0x0ffe"
+
+append qemu_args "  -nographic"
+
+run_genode_until forever
+
+# vi: set ft=tcl :

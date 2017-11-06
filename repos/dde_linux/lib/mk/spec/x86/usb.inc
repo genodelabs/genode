@@ -4,7 +4,7 @@ SRC_C   += usb/core/hcd-pci.c
 #
 # USB netwpork support
 #
-SRC_C   += $(addprefix net/usb/, usbnet.c ax88179_178a.c)
+SRC_C   += $(addprefix net/usb/, usbnet.c ax88179_178a.c cdc_ether.c rndis_host.c)
 
 # XHCI
 SRC_C += usb/host/xhci-pci.c

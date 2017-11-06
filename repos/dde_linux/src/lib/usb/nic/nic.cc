@@ -87,6 +87,7 @@ class Skb
 
 					sk_buff *r = &_buf[(_idx * ENTRY_ELEMENT_SIZE) + msb];
 					r->data = r->start;
+					r->head = r->data;
 					r->phys   = 0;
 					r->cloned = 0;
 					r->clone  = 0;
@@ -326,7 +327,6 @@ int register_netdev(struct net_device *ndev)
 		announce = true;
 
 		ndev->state |= 1 << __LINK_STATE_START;
-		netif_carrier_off(ndev);
 
 		if ((err = ndev->netdev_ops->ndo_open(ndev)))
 			return err;
@@ -551,7 +551,7 @@ unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
  */
 void skb_trim(struct sk_buff *skb, unsigned int len)
 {
-	if (skb->len <= len) {
+	if (skb->len < len) {
 		Genode::error("Error trimming to ", len, " bytes skb: ", skb, " data: ",
 		              skb->data, "  start: ", skb->start,  " len ", skb->len);
 		return;

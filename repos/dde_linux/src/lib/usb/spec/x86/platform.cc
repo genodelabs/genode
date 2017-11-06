@@ -15,6 +15,8 @@
 
 
 extern "C" void module_ax88179_178a_driver_init();
+extern "C" void module_cdc_driver_init();
+extern "C" void module_rndis_driver_init();
 extern "C" void module_usbnet_init();
 extern "C" void module_ehci_hcd_init();
 extern "C" void module_ehci_pci_init();
@@ -29,6 +31,8 @@ void platform_hcd_init(Services *s)
 	if (s->nic) {
 		module_usbnet_init();
 		module_ax88179_178a_driver_init();
+		module_cdc_driver_init();
+		module_rndis_driver_init();
 	}
 
 	if (s->xhci) {

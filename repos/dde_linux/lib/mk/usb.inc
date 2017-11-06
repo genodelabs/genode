@@ -20,12 +20,13 @@ INC_DIR += $(LX_CONTRIB_DIR)/include $(LX_CONTRIB_DIR)/include/uapi $(LX_CONTRIB
 CC_OPT += -U__linux__ -D__KERNEL__
 CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG -DCONFIG_USB_PHY=1 \
           -DCONFIG_GENERIC_PHY=0 -DCONFIG_USB_OTG_WHITELIST=0 \
-          -DCONFIG_USB_OTG=0
+          -DCONFIG_USB_OTG=0 -DCONFIG_USB_NET_RNDIS_HOST=1
 
 CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
           -Wno-unused-function -Wno-overflow
 
 CC_C_OPT += -std=gnu89 -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-unused-label
+CC_C_OPT += -include $(LIB_INC_DIR)/lx_emul.h
 
 CC_CXX_OPT = -fpermissive
 
@@ -39,6 +40,7 @@ CC_OPT += -DMOD_SUFFIX=$(MOD_SUFFIX)
 SRC_CC += printf.cc work.cc timer.cc scheduler.cc irq.cc malloc.cc env.cc
 
 # common lib
+SRC_C += lib/ctype.c
 SRC_C += lib/int_sqrt.c
 
 # USB core
@@ -86,6 +88,7 @@ vpath %.cc $(LIB_DIR)/nic
 vpath %.cc $(LIB_DIR)/raw
 vpath %.c  $(LIB_DIR)/raw
 vpath lib/int_sqrt.c $(LX_CONTRIB_DIR)
+vpath lib/ctype.c $(LX_CONTRIB_DIR)
 vpath %.cc $(REP_DIR)/src/lx_kit
 
 # vi: set ft=make :

@@ -102,6 +102,8 @@ enum {
 	ETIME           = 209,
 	EPROBE_DEFER    = 210,
 
+	EL3RST          = 211,
+
 	MAX_ERRNO       = 4095,
 };
 
