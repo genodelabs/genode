@@ -9,8 +9,11 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        include/rump include/rump_fs \
                        include/util
 
-MIRROR_FROM_PORT_DIR := $(addprefix src/lib/dde_rump/, brlib nblibs src) \
-                        $(shell cd $(PORT_DIR); find src/lib/dde_rump -maxdepth 1 -type f)
+MIRROR_FROM_PORT_DIR := $(shell cd $(PORT_DIR); find src/lib/dde_rump -maxdepth 1 -type f; \
+                          for d in src/lib/dde_rump/brlib src/lib/dde_rump/nblibs \
+                                   src/lib/dde_rump/src; do \
+                            find $$d  -mindepth 1 -maxdepth 1 -not -name .git; \
+                          done)
 
 content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR)
 
