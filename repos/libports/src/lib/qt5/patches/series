@@ -1,9 +1,11 @@
+example_virtualkeyboard.patch
 qtbase_fixes.patch
 qtbase_configuration.patch
 qtdeclarative_configuration.patch
 qttools_configuration.patch
 qtbase_generated.patch
 qtdeclarative_generated.patch
+qtsvg_generated.patch
 qttools_generated.patch
 qtbase_genode.patch
 qtbase_genode_qtscriptclassic.patch
