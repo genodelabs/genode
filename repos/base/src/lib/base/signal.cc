@@ -221,10 +221,10 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 
 	context->_receiver = this;
 
-	Lock::Guard list_lock_guard(_contexts_lock);
+	Lock::Guard contexts_lock_guard(_contexts_lock);
 
 	/* insert context into context list */
-	_contexts.insert(context);
+	_contexts.insert_as_tail(context);
 
 	/* register context at process-wide registry */
 	signal_context_registry()->insert(&context->_registry_le);

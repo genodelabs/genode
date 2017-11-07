@@ -168,159 +168,6 @@ class Genode::Signal_transmitter
 
 
 /**
- * Signal receiver
- */
-class Genode::Signal_receiver : Noncopyable
-{
-	private:
-
-		/**
-		 * A list where the head can be moved
-		 */
-		class Context_list
-		{
-			private:
-
-				Signal_context *_head { nullptr };
-
-			public:
-
-				Signal_context *head() const { return _head; }
-
-				void head(Signal_context *re);
-
-				void insert(Signal_context *re);
-
-				void remove(Signal_context const *re);
-		};
-
-		/**
-		 * Semaphore used to indicate that signal(s) are ready to be picked
-		 * up. This is needed for platforms other than 'base-hw' only.
-		 */
-		Semaphore _signal_available;
-
-		/**
-		 * Provides the kernel-object name via the 'dst' method. This is
-		 * needed for 'base-hw' only.
-		 */
-		Capability<Signal_source> _cap;
-
-		/**
-		 * List of associated contexts
-		 */
-		Lock         _contexts_lock;
-		Context_list _contexts;
-
-		/**
-		 * Helper to dissolve given context
-		 *
-		 * This method prevents duplicated code in '~Signal_receiver'
-		 * and 'dissolve'. Note that '_contexts_lock' must be held when
-		 * calling this method.
-		 */
-		void _unsynchronized_dissolve(Signal_context *context);
-
-		/**
-		 * Hook to platform specific destructor parts
-		 */
-		void _platform_destructor();
-
-		/**
-		 * Hooks to platform specific dissolve parts
-		 */
-		void _platform_begin_dissolve(Signal_context * const c);
-		void _platform_finish_dissolve(Signal_context * const c);
-
-	public:
-
-		/**
-		 * Exception class
-		 */
-		class Context_already_in_use { };
-		class Context_not_associated { };
-		class Signal_not_pending     { };
-
-		/**
-		 * Constructor
-		 */
-		Signal_receiver();
-
-		/**
-		 * Destructor
-		 */
-		~Signal_receiver();
-
-		/**
-		 * Manage signal context and return new signal-context capability
-		 *
-		 * \param context  context associated with signals delivered to the
-		 *                 receiver
-		 * \throw          'Context_already_in_use'
-		 * \return         new signal-context capability that can be
-		 *                 passed to a signal transmitter
-		 */
-		Signal_context_capability manage(Signal_context *context);
-
-		/**
-		 * Dissolve signal context from receiver
-		 *
-		 * \param context  context to remove from receiver
-		 * \throw          'Context_not_associated'
-		 */
-		void dissolve(Signal_context *context);
-
-		/**
-		 * Return true if signal was received
-		 */
-		bool pending();
-
-		/**
-		 * Block until a signal is received and return the signal
-		 *
-		 * \return received signal
-		 */
-		Signal wait_for_signal();
-
-		/**
-		 * Block until a signal is received
-		 */
-		void block_for_signal();
-
-		/**
-		 * Unblock signal waiter
-		 */
-		void unblock_signal_waiter(Rpc_entrypoint &rpc_ep);
-
-		/**
-		 * Retrieve  pending signal
-		 *
-		 * \throw   'Signal_not_pending' no pending signal found
-		 * \return  received signal
-		 */
-		Signal pending_signal();
-
-		/**
-		 * Locally submit signal to the receiver
-		 *
-		 * \noapi
-		 */
-		void local_submit(Signal::Data signal);
-
-		/**
-		 * Framework-internal signal-dispatcher
-		 *
-		 * \noapi
-		 *
-		 * This method is called from the thread that monitors the signal
-		 * source associated with the process. It must not be used for other
-		 * purposes.
-		 */
-		static void dispatch_signals(Signal_source *);
-};
-
-
-/**
  * Signal context
  *
  * A signal context is a destination for signals. One receiver can listen
@@ -428,6 +275,176 @@ class Genode::Signal_context
 		 * type for it but no real RPC interface.
 		 */
 		GENODE_RPC_INTERFACE();
+};
+
+
+/**
+ * Signal receiver
+ */
+class Genode::Signal_receiver : Noncopyable
+{
+	private:
+
+		/**
+		 * A list where the head can be moved
+		 */
+		class Context_ring
+		{
+			private:
+
+				Signal_context *_head { nullptr };
+
+			public:
+
+				struct Break_for_each : Exception { };
+
+				Signal_context *head() const { return _head; }
+
+				void head(Signal_context *re) { _head = re; }
+
+				void insert_as_tail(Signal_context *re);
+
+				void remove(Signal_context const *re);
+
+				template <typename FUNC>
+				void for_each_locked(FUNC && functor) const
+				{
+					Signal_context *context = _head;
+					if (!context) return;
+
+					do {
+						Lock::Guard lock_guard(context->_lock);
+						try {
+							functor(*context);
+						} catch (Break_for_each) { return; }
+						context = context->_next;
+					} while (context != _head);
+				}
+		};
+
+		/**
+		 * Semaphore used to indicate that signal(s) are ready to be picked
+		 * up. This is needed for platforms other than 'base-hw' only.
+		 */
+		Semaphore _signal_available;
+
+		/**
+		 * Provides the kernel-object name via the 'dst' method. This is
+		 * needed for 'base-hw' only.
+		 */
+		Capability<Signal_source> _cap;
+
+		/**
+		 * List of associated contexts
+		 */
+		Lock         _contexts_lock;
+		Context_ring _contexts;
+
+		/**
+		 * Helper to dissolve given context
+		 *
+		 * This method prevents duplicated code in '~Signal_receiver'
+		 * and 'dissolve'. Note that '_contexts_lock' must be held when
+		 * calling this method.
+		 */
+		void _unsynchronized_dissolve(Signal_context *context);
+
+		/**
+		 * Hook to platform specific destructor parts
+		 */
+		void _platform_destructor();
+
+		/**
+		 * Hooks to platform specific dissolve parts
+		 */
+		void _platform_begin_dissolve(Signal_context * const c);
+		void _platform_finish_dissolve(Signal_context * const c);
+
+	public:
+
+		/**
+		 * Exception class
+		 */
+		class Context_already_in_use { };
+		class Context_not_associated { };
+		class Signal_not_pending     { };
+
+		/**
+		 * Constructor
+		 */
+		Signal_receiver();
+
+		/**
+		 * Destructor
+		 */
+		~Signal_receiver();
+
+		/**
+		 * Manage signal context and return new signal-context capability
+		 *
+		 * \param context  context associated with signals delivered to the
+		 *                 receiver
+		 * \throw          'Context_already_in_use'
+		 * \return         new signal-context capability that can be
+		 *                 passed to a signal transmitter
+		 */
+		Signal_context_capability manage(Signal_context *context);
+
+		/**
+		 * Dissolve signal context from receiver
+		 *
+		 * \param context  context to remove from receiver
+		 * \throw          'Context_not_associated'
+		 */
+		void dissolve(Signal_context *context);
+
+		/**
+		 * Return true if signal was received
+		 */
+		bool pending();
+
+		/**
+		 * Block until a signal is received and return the signal
+		 *
+		 * \return received signal
+		 */
+		Signal wait_for_signal();
+
+		/**
+		 * Block until a signal is received
+		 */
+		void block_for_signal();
+
+		/**
+		 * Unblock signal waiter
+		 */
+		void unblock_signal_waiter(Rpc_entrypoint &rpc_ep);
+
+		/**
+		 * Retrieve  pending signal
+		 *
+		 * \throw   'Signal_not_pending' no pending signal found
+		 * \return  received signal
+		 */
+		Signal pending_signal();
+
+		/**
+		 * Locally submit signal to the receiver
+		 *
+		 * \noapi
+		 */
+		void local_submit(Signal::Data signal);
+
+		/**
+		 * Framework-internal signal-dispatcher
+		 *
+		 * \noapi
+		 *
+		 * This method is called from the thread that monitors the signal
+		 * source associated with the process. It must not be used for other
+		 * purposes.
+		 */
+		static void dispatch_signals(Signal_source *);
 };
 
 
