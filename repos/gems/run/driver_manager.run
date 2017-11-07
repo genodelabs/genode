@@ -44,7 +44,7 @@ install_config {
 	</start>
 
 	<start name="drivers" caps="2500">
-		<resource name="RAM" quantum="64M"/>
+		<resource name="RAM" quantum="64M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
