@@ -160,6 +160,8 @@ class Vfs::Rump_file_system : public File_system
 					struct stat s;
 					rump_sys_lstat(path, &s);
 
+					vfs_dir.fileno = s.st_ino;
+
 					if (S_ISREG(s.st_mode))
 						vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
 					else if (S_ISDIR(s.st_mode))
@@ -208,7 +210,7 @@ class Vfs::Rump_file_system : public File_system
 					rump_sys_lseek(_fd, 0, SEEK_SET);
 
 					int bytes;
-					vfs_dir->fileno = 0;
+					unsigned fileno = 0;
 					char *buf      = _buffer();
 					struct ::dirent *dent = nullptr;
 					do {
@@ -220,7 +222,7 @@ class Vfs::Rump_file_system : public File_system
 						{
 							dent = (::dirent *)current;
 							if (strcmp(".", dent->d_name) && strcmp("..", dent->d_name)) {
-								if (vfs_dir->fileno++ == index) {
+								if (fileno++ == index) {
 									Path newpath(dent->d_name, _path.base());
 									return _finish_read(newpath.base(), dent, *vfs_dir);
 								}
@@ -228,8 +230,7 @@ class Vfs::Rump_file_system : public File_system
 						}
 					} while (bytes > 0);
 
-					vfs_dir->type = DIRENT_TYPE_END;
-					vfs_dir->name[0] = '\0';
+					*vfs_dir = Dirent();
 					return READ_OK;
 				}
 		};
