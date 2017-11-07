@@ -242,6 +242,16 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 }
 
 append config_of_app {
+			<rom name="capslock">
+				<inline>
+					<capslock enabled="yes"/>
+				</inline>
+				<sleep milliseconds="5000"/>
+				<inline>
+					<capslock enabled="no"/>
+				</inline>
+				<sleep milliseconds="5000"/>
+			</rom>
 		</config>
 		<route>
 			<service name="Timer"> <child name="timer"/> </service>
@@ -261,11 +271,11 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		<resource name="RAM" quantum="} $vm_ram {"/>}
 	if { $use_vms eq 1 } {
 		append config_of_app "
-		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"yes\">"
+		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"yes\" capslock=\"NOROM\">"
 	} else {
 		append config_of_app "
 		<affinity xpos=\"[expr $i]\" width=\"2\" />
-		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"no\">"
+		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"no\" capslock=\"NOROM\">"
 	}
 	append config_of_app {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
@@ -307,6 +317,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 	append config_of_app {
 			<service name="Report"><child name="report_rom" /></service>
 			<service name="ROM" label="usb_devices"> <child name="report_rom" /> </service>
+			<service name="ROM" label="capslock"> <child name="nit_fb-config"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}

@@ -106,7 +106,6 @@ HRESULT Console::setDiskEncryptionKeys(const Utf8Str &strCfg)                   
 
 void    Console::onAdditionsOutdated()                                          DUMMY()
 
-void    Console::onKeyboardLedsChange(bool, bool, bool)                         TRACE()
 HRESULT Console::onVideoCaptureChange()                                         DUMMY(E_FAIL)
 HRESULT Console::onSharedFolderChange(BOOL aGlobal)                             DUMMY(E_FAIL)
 HRESULT Console::onUSBControllerChange()                                        DUMMY(E_FAIL)
@@ -566,4 +565,47 @@ int vboxClipboardSync (VBOXCLIPBOARDCLIENTDATA *pClient)
 	                           VBOX_SHARED_CLIPBOARD_FMT_UNICODETEXT);
 
 	return VINF_SUCCESS;
+}
+
+/**
+ * Sticky key handling
+ */
+static bool host_caps_lock = false;
+static bool guest_caps_lock = false;
+
+void Console::onKeyboardLedsChange(bool num_lock, bool caps_lock, bool scroll_lock)
+{
+	guest_caps_lock = caps_lock;
+}
+
+void GenodeConsole::handle_sticky_keys()
+{
+	/* no keyboard - no sticky key handling */
+	if (!_vbox_keyboard || !_caps_lock.constructed())
+		return;
+
+	_caps_lock->update();
+
+	if (!_caps_lock->valid())
+		return;
+
+	bool const caps_lock = _caps_lock->xml().attribute_value("enabled",
+	                                                         guest_caps_lock);
+	bool trigger_caps_lock = false;
+
+	/*
+	 * If guest didn't respond with led change last time, we have to
+	 * trigger caps_lock change - mainly assuming that guest don't use the
+	 * led to externalize its internal caps_lock state.
+	 */
+	if (caps_lock != host_caps_lock && host_caps_lock != guest_caps_lock)
+		trigger_caps_lock = true;
+
+	if (caps_lock != guest_caps_lock)
+		trigger_caps_lock = true;
+
+	if (trigger_caps_lock) {
+		_vbox_keyboard->PutScancode(Input::KEY_CAPSLOCK);
+		_vbox_keyboard->PutScancode(Input::KEY_CAPSLOCK | 0x80);
+	}
 }
