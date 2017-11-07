@@ -177,7 +177,7 @@ class Genode::Signal_receiver : Noncopyable
 		/**
 		 * A list where the head can be moved
 		 */
-		class Context_list
+		class Context_ring
 		{
 			private:
 
@@ -187,7 +187,7 @@ class Genode::Signal_receiver : Noncopyable
 
 				Signal_context *head() const { return _head; }
 
-				void head(Signal_context *re);
+				void head(Signal_context *re) { _head = re; }
 
 				void insert(Signal_context *re);
 
@@ -210,7 +210,7 @@ class Genode::Signal_receiver : Noncopyable
 		 * List of associated contexts
 		 */
 		Lock         _contexts_lock;
-		Context_list _contexts;
+		Context_ring _contexts;
 
 		/**
 		 * Helper to dissolve given context
