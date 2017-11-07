@@ -116,6 +116,7 @@ class GenodeConsole : public Console {
 		bool                                   _last_received_motion_event_was_absolute;
 		Report::Connection                     _shape_report_connection;
 		Genode::Attached_dataspace             _shape_report_ds;
+		Genode::Constructible<Genode::Attached_rom_dataspace> _caps_lock;
 		Vbox_pointer::Shape_report            *_shape_report;
 		Genode::Reporter                      *_clipboard_reporter;
 		Genode::Attached_rom_dataspace        *_clipboard_rom;
@@ -124,6 +125,7 @@ class GenodeConsole : public Console {
 		Genode::Signal_handler<GenodeConsole>  _input_signal_dispatcher;
 		Genode::Signal_handler<GenodeConsole>  _mode_change_signal_dispatcher;
 		Genode::Signal_handler<GenodeConsole>  _clipboard_signal_dispatcher;
+		Genode::Signal_handler<GenodeConsole>  _input_sticky_keys_dispatcher;
 
 		bool _key_status[Input::KEY_MAX + 1];
 
@@ -152,12 +154,22 @@ class GenodeConsole : public Console {
 			_vbox_mouse(0),
 			_input_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_input),
 			_mode_change_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_mode_change),
-			_clipboard_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_cb_rom_change)
+			_clipboard_signal_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_cb_rom_change),
+			_input_sticky_keys_dispatcher(genode_env().ep(), *this, &GenodeConsole::handle_sticky_keys)
 		{
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 				_key_status[i] = 0;
 
 			_input.sigh(_input_signal_dispatcher);
+
+			Genode::Attached_rom_dataspace config(genode_env(), "config");
+
+			/* by default we take the capslock key from the input stream */
+			Genode::String<10> capslock("input");
+			if (config.xml().attribute_value("capslock", capslock) == "ROM") {
+				_caps_lock.construct(genode_env(), "capslock");
+				_caps_lock->sigh(_input_sticky_keys_dispatcher);
+			}
 		}
 
 		void init_clipboard();
@@ -231,4 +243,5 @@ class GenodeConsole : public Console {
 		void handle_input();
 		void handle_mode_change();
 		void handle_cb_rom_change();
+		void handle_sticky_keys();
 };

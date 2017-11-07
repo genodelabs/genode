@@ -5,6 +5,9 @@ void fireStateChangedEvent(IEventSource* aSource, MachineState_T a_state);
 void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal, CBSTR a_id,
                            CBSTR a_message);
 
+void fireKeyboardLedsChangedEvent(IEventSource *aSource, bool fNumLock,
+                                  bool fCapsLock, bool fScrollLock);
+
 #define fireAdditionsStateChangedEvent(a)
 
 #define fireBandwidthGroupChangedEvent(a, b)
@@ -22,8 +25,6 @@ void fireRuntimeErrorEvent(IEventSource* aSource, BOOL a_fatal, CBSTR a_id,
 
 #define fireHostNameResolutionConfigurationChangeEvent(a)
 #define fireHostPCIDevicePlugEvent(a, b, c, d, e, f)
-
-#define fireKeyboardLedsChangedEvent(a, b, c, d)
 
 #define fireMediumChangedEvent(a, b)
 #define fireMousePointerShapeChangedEvent(a, b, c, d, e, f, g, h)
