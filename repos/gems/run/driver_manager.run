@@ -10,6 +10,7 @@ create_boot_directory
 import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/drivers_managed-pc \
                   genodelabs/src/report_rom \
+                  genodelabs/src/dynamic_rom \
                   genodelabs/src/init
 
 install_config {
@@ -48,6 +49,8 @@ install_config {
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label="block_devices"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
@@ -57,6 +60,25 @@ install_config {
 			<service name="Framebuffer"/>
 			<service name="Block"/>
 		</provides>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="capslock">
+				<inline> <capslock enabled="no"/> </inline>
+				<sleep milliseconds="500" />
+				<inline> <capslock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+			</rom>
+			<rom name="numlock">
+				<inline> <numlock enabled="no"/> </inline>
+				<sleep milliseconds="1000" />
+				<inline> <numlock enabled="yes"/> </inline>
+				<sleep milliseconds="1000" />
+			</rom>
+		</config>
 	</start>
 
 	<start name="test-driver_manager">

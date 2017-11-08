@@ -477,6 +477,8 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 		xml.attribute("uhci", true);
 		xml.attribute("ehci", true);
 		xml.attribute("xhci", true);
+		xml.attribute("capslock_led", "rom");
+		xml.attribute("numlock_led",  "rom");
 		xml.node("hid", [&] () { });
 		xml.node("raw", [&] () {
 			xml.node("report", [&] () { xml.attribute("devices", true); });
