@@ -36,6 +36,8 @@ class Input_filter::Source
 
 		Source(Registry<Source> &owner) : _owner_elem(owner, *this) { }
 
+		virtual ~Source() { }
+
 		static bool input_node(Xml_node node)
 		{
 			return node.type() == "input"
