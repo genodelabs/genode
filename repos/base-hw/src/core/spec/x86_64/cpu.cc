@@ -76,10 +76,10 @@ void Genode::Cpu::mmu_fault(Context & regs, Kernel::Thread_fault & fault)
 	};
 
 	auto fault_lambda = [] (addr_t err) {
-		if ((err & ERR_P) && (err & ERR_W)) return Fault::WRITE;
-		if ((err & ERR_P) && (err & ERR_I)) return Fault::EXEC;
-		if (err & ERR_P)                    return Fault::UNKNOWN;
-		else                                return Fault::PAGE_MISSING;
+		if (!(err & ERR_P)) return Fault::PAGE_MISSING;
+		if (err & ERR_W)    return Fault::WRITE;
+		if (err & ERR_I)    return Fault::EXEC;
+		else                return Fault::UNKNOWN;
 	};
 
 	fault.addr = Genode::Cpu::Cr2::read();

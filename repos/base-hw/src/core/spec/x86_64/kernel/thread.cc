@@ -25,7 +25,9 @@ void Kernel::Thread::_call_update_data_region() { }
 void Kernel::Thread::_call_update_instr_region() { }
 
 
-void Kernel::Thread::_call_update_pd() { }
+void Kernel::Thread::_call_update_pd() {
+	Genode::Cpu::Cr3::write(Genode::Cpu::Cr3::read());
+}
 
 
 extern void * __tss_client_context_ptr;
