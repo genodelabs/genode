@@ -11,6 +11,7 @@ $(call check_tool,python)
 $(call check_python_module,future)
 $(call check_python_module,tempita)
 $(call check_python_module,ply)
+$(call check_python_module,six)
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
 
