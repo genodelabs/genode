@@ -202,7 +202,7 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 			dst_address_space.attach(dst_linker_area.dataspace(),
 			                         Dataspace_client(dst_linker_area.dataspace()).size(),
 			                         0, true,
-			                         _address_space.lookup_region_base(_linker_area.dataspace()));
+			                         _address_space.lookup_region_base(_linker_area.dataspace()), true);
 		}
 
 
