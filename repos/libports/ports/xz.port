@@ -1,0 +1,11 @@
+LICENSE   := GPLv3
+VERSION   := 5.2.3
+DOWNLOADS := xz.archive
+
+URL(xz) := http://tukaani.org/xz/xz-$(VERSION).tar.xz
+SHA(xz) := a2975d12e0905daec48ec87c0098602e0669d195
+DIR(xz) := src/xz
+
+DIRS := include/liblzma
+DIR_CONTENT(include/liblzma) := src/xz/src/liblzma/api/lzma.h \
+                                src/xz/src/liblzma/api/lzma
