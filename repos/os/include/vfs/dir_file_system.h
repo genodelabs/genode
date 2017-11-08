@@ -34,23 +34,22 @@ class Vfs::Dir_file_system : public File_system
 
 		struct Dir_vfs_handle : Vfs_handle
 		{
-			struct Sync_dir_handle_element;
+			struct Subdir_handle_element;
 
-			typedef Genode::Registry<Sync_dir_handle_element> Sync_dir_handle_registry;
+			typedef Genode::Registry<Subdir_handle_element> Subdir_handle_registry;
 
-			struct Sync_dir_handle_element : Sync_dir_handle_registry::Element
+			struct Subdir_handle_element : Subdir_handle_registry::Element
 			{
 				Vfs_handle &vfs_handle;
-				Sync_dir_handle_element(Sync_dir_handle_registry &registry,
-				                        Vfs_handle &vfs_handle)
-				: Sync_dir_handle_registry::Element(registry, *this),
+				Subdir_handle_element(Subdir_handle_registry &registry,
+				                      Vfs_handle &vfs_handle)
+				: Subdir_handle_registry::Element(registry, *this),
 				  vfs_handle(vfs_handle) { }
 			};
 
 			Absolute_path             path;
-			File_system              *fs_for_complete_read { nullptr };
-			Vfs_handle               *fs_dir_handle { nullptr };
-			Sync_dir_handle_registry  sync_dir_handle_registry;
+			Vfs_handle               *queued_read_handle { nullptr };
+			Subdir_handle_registry    subdir_handle_registry;
 
 			Dir_vfs_handle(Directory_service &ds,
 			               File_io_service   &fs,
@@ -58,6 +57,16 @@ class Vfs::Dir_file_system : public File_system
 			               char const *path)
 			: Vfs_handle(ds, fs, alloc, 0),
 			  path(path) { }
+
+			~Dir_vfs_handle()
+			{
+				/* close all sub-handles */
+				auto f = [&] (Subdir_handle_element &e) {
+					e.vfs_handle.ds().close(&e.vfs_handle);
+					destroy(alloc(), &e);
+				};
+				subdir_handle_registry.for_each(f);
+			}
 		};
 
 		/* pointer to first child file system */
@@ -197,6 +206,10 @@ class Vfs::Dir_file_system : public File_system
 
 		bool _queue_read_of_file_systems(Dir_vfs_handle *dir_vfs_handle)
 		{
+			bool result = true;
+
+			dir_vfs_handle->queued_read_handle = nullptr;
+
 			file_offset index = dir_vfs_handle->seek() / sizeof(Dirent);
 
 			char const *sub_path = _sub_path(dir_vfs_handle->path.base());
@@ -204,60 +217,49 @@ class Vfs::Dir_file_system : public File_system
 			if (strlen(sub_path) == 0)
 				sub_path = "/";
 
+			/* base of composite directory index */
 			int base = 0;
-			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+
+			auto f = [&] (Dir_vfs_handle::Subdir_handle_element &handle_element) {
+				if (dir_vfs_handle->queued_read_handle) return; /* skip through */
+
+				Vfs_handle &vfs_handle = handle_element.vfs_handle;
 
 				/*
 				 * Determine number of matching directory entries within
 				 * the current file system.
 				 */
-				int const fs_num_dirent = fs->num_dirent(sub_path);
+				int const fs_num_dirent = vfs_handle.ds().num_dirent(sub_path);
 
 				/*
 				 * Query directory entry if index lies with the file
 				 * system.
 				 */
 				if (index - base < fs_num_dirent) {
+					/* set this handle to be used for read completion */
+					dir_vfs_handle->queued_read_handle = &vfs_handle;
 
-					dir_vfs_handle->fs_for_complete_read = fs;
-
-					Opendir_result opendir_result =
-						fs->opendir(sub_path, false,
-						            &dir_vfs_handle->fs_dir_handle,
-						            dir_vfs_handle->alloc());
-
-					/*
-					 * Errors of this kind can only be communicated by
-					 * 'complete_read()'
-					 */
-					if (opendir_result != OPENDIR_OK)
-						return true;
-
-					dir_vfs_handle->fs_dir_handle->context =
-						dir_vfs_handle->context;
-
+					/* seek to file-system local index */
 					index = index - base;
-					dir_vfs_handle->fs_dir_handle->seek(index * sizeof(Dirent));
+					vfs_handle.seek(index * sizeof(Dirent));
 
-					bool result = fs->queue_read(dir_vfs_handle->fs_dir_handle,
-					                             sizeof(Dirent));
+					/* forward the handle context */
+					vfs_handle.context = dir_vfs_handle->context;
 
-					return result;
+					result = vfs_handle.fs().queue_read(&vfs_handle, sizeof(Dirent));
 				}
+			};
 
-				/* adjust base index for next file system */
-				base += fs_num_dirent;
-			}
+			dir_vfs_handle->subdir_handle_registry.for_each(f);
 
-			return true;
+			return result;
 		}
 
 		Read_result _complete_read_of_file_systems(Dir_vfs_handle *dir_vfs_handle,
 		                                           char *dst, file_size count,
 		                                           file_size &out_count)
 		{
-			if (!dir_vfs_handle->fs_for_complete_read ||
-			    !dir_vfs_handle->fs_dir_handle) {
+			if (!dir_vfs_handle->queued_read_handle) {
 
 				/*
 				 * no fs was found for the given index or
@@ -275,16 +277,14 @@ class Vfs::Dir_file_system : public File_system
 				return READ_OK;
 			}
 
-			Read_result result = dir_vfs_handle->fs_for_complete_read->
-			                     complete_read(dir_vfs_handle->fs_dir_handle,
+			Read_result result = dir_vfs_handle->queued_read_handle->fs().
+			                     complete_read(dir_vfs_handle->queued_read_handle,
 			                                   dst, count, out_count);
 
-			if (result != READ_OK)
+			if (result == READ_QUEUED)
 				return result;
 
-			dir_vfs_handle->fs_for_complete_read->close(dir_vfs_handle->fs_dir_handle);
-			dir_vfs_handle->fs_dir_handle = nullptr;
-			dir_vfs_handle->fs_for_complete_read = nullptr;
+			dir_vfs_handle->queued_read_handle = nullptr;
 
 			return result;
 		}
@@ -537,16 +537,60 @@ class Vfs::Dir_file_system : public File_system
 			return OPEN_ERR_UNACCESSIBLE;
 		}
 
+		/**
+		 * Call 'opendir()' on each file system and store handles in
+		 * a registry.
+		 */
+		Opendir_result open_composite_dirs(char const *sub_path,
+		                                   Dir_vfs_handle &dir_vfs_handle)
+		{
+			Opendir_result result = OPENDIR_OK;
+			try {
+				for (File_system *fs = _first_file_system; (fs && result == OPENDIR_OK); fs = fs->next) {
+					Vfs_handle *sub_dir_handle = nullptr;
+
+					Opendir_result r = fs->opendir(
+						sub_path, false, &sub_dir_handle, dir_vfs_handle.alloc());
+
+					switch (r) {
+					case OPENDIR_OK:
+						break;
+					case OPENDIR_ERR_LOOKUP_FAILED:
+						continue;
+					default:
+						result = r; /* loop will break */
+						continue;
+					}
+
+					new (dir_vfs_handle.alloc())
+						Dir_vfs_handle::Subdir_handle_element(
+							dir_vfs_handle.subdir_handle_registry, *sub_dir_handle);
+				}
+			}
+			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
+			return result;
+		}
+
 		Opendir_result opendir(char const *path, bool create,
 		                       Vfs_handle **out_handle, Allocator &alloc) override
 		{
+			Opendir_result result = OPENDIR_OK;
+
 			/* path equals "/" (for reading the name of this directory) */
 			if (strcmp(path, "/") == 0) {
 				if (create)
 					return OPENDIR_ERR_PERMISSION_DENIED;
-				*out_handle = new (alloc) Dir_vfs_handle(*this, *this, alloc,
-				                                         path);
-				return OPENDIR_OK;
+				Dir_vfs_handle *root_handle = new (alloc)
+					Dir_vfs_handle(*this, *this, alloc, path);
+				result = open_composite_dirs("/", *root_handle);
+				if (result == OPENDIR_OK) {
+					*out_handle = root_handle;
+				} else {
+					/* close the root handle and the rest will follow */
+					close(root_handle);
+				}
+				return result;
 			}
 
 			char const *sub_path = _sub_path(path);
@@ -562,7 +606,7 @@ class Vfs::Dir_file_system : public File_system
 						fs.opendir(path, true, &tmp_handle, alloc);
 					if (opendir_result == OPENDIR_OK)
 						fs.close(tmp_handle);
-					return opendir_result;
+					return opendir_result; /* return from lambda */
 				};
 
 				Opendir_result opendir_result =
@@ -575,10 +619,17 @@ class Vfs::Dir_file_system : public File_system
 					return opendir_result;
 			}
 
-			*out_handle = new (alloc) Dir_vfs_handle(*this, *this, alloc,
-			                                         path);
+			Dir_vfs_handle *dir_vfs_handle = new (alloc)
+				Dir_vfs_handle(*this, *this, alloc, path);
 
-			return OPENDIR_OK;
+			result = open_composite_dirs(sub_path, *dir_vfs_handle);
+			if (result == OPENDIR_OK) {
+				*out_handle = dir_vfs_handle;
+			} else {
+				/* close the master handle and the rest will follow */
+				close(dir_vfs_handle);
+			}
+			return result;
 		}
 
 		Openlink_result openlink(char const *path, bool create,
@@ -757,54 +808,23 @@ class Vfs::Dir_file_system : public File_system
 
 		bool queue_sync(Vfs_handle *vfs_handle) override
 		{
+			bool result = true;
+
 			Dir_vfs_handle *dir_vfs_handle =
 				static_cast<Dir_vfs_handle*>(vfs_handle);
 
-			char const *sub_path = _sub_path(dir_vfs_handle->path.base());
+			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
+				/* forward the handle context */
+				e.vfs_handle.context = dir_vfs_handle->context;
 
-			if (strlen(sub_path) == 0)
-				sub_path = "/";
+				if (!e.vfs_handle.fs().queue_sync(&e.vfs_handle)) {
+					result = false;
+				}
+			};
 
-			/*
-			 * Call 'opendir()' on each file system and, if successful,
-			 * 'queue_sync()'. If one file system's 'queue_sync()' returns
-			 * false, this function returns false. Any VFS handles returned by
-			 * 'opendir()' are kept in a registry.
-			 */
-			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+			dir_vfs_handle->subdir_handle_registry.for_each(f);
 
-				bool fs_dir_already_open = false;
-
-				dir_vfs_handle->sync_dir_handle_registry.for_each(
-					[&] (Dir_vfs_handle::Sync_dir_handle_element &sync_dir_handle_element) {
-						if (&sync_dir_handle_element.vfs_handle.fs() == fs) {
-							fs_dir_already_open = true;
-							return;
-						}
-					}
-				);
-
-				if (fs_dir_already_open)
-					continue;
-
-				Vfs_handle *sync_dir_handle;
-
-				if (fs->opendir(sub_path, false, &sync_dir_handle,
-				                dir_vfs_handle->alloc()) != OPENDIR_OK)
-					continue;
-
-				sync_dir_handle->context = dir_vfs_handle->context;
-
-				new (dir_vfs_handle->alloc())
-					Dir_vfs_handle::Sync_dir_handle_element(
-						dir_vfs_handle->sync_dir_handle_registry,
-						*sync_dir_handle);
-
-				if (!sync_dir_handle->fs().queue_sync(sync_dir_handle))
-					return false;
-			}
-
-			return true;
+			return result;
 		}
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
@@ -814,21 +834,13 @@ class Vfs::Dir_file_system : public File_system
 			Dir_vfs_handle *dir_vfs_handle =
 				static_cast<Dir_vfs_handle*>(vfs_handle);
 
-			dir_vfs_handle->sync_dir_handle_registry.for_each(
-				[&] (Dir_vfs_handle::Sync_dir_handle_element &sync_dir_handle_element) {
+			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
+				Sync_result r = e.vfs_handle.fs().complete_sync(&e.vfs_handle);
+				if (r != SYNC_OK)
+					result = r;
+			};
 
-					Vfs_handle *vfs_handle = &sync_dir_handle_element.vfs_handle;
-
-					result =
-						vfs_handle->fs().complete_sync(vfs_handle);
-
-					if (result != SYNC_OK)
-						return;
-
-					vfs_handle->ds().close(vfs_handle);
-					destroy(vfs_handle->alloc(), &sync_dir_handle_element);
-				}
-			);
+			dir_vfs_handle->subdir_handle_registry.for_each(f);
 
 			return result;
 		}
