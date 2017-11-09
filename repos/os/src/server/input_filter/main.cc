@@ -378,14 +378,34 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 	void _apply_config()
 	{
-		_input_connections.for_each([&] (Registered<Input_connection> &conn) {
-			destroy(_heap, &conn); });
+		Xml_node const config = _config.xml();
 
-		_config.xml().for_each_sub_node("input", [&] (Xml_node input_node) {
+		/* close input sessions that are no longer needed */
+		_input_connections.for_each([&] (Registered<Input_connection> &conn) {
+
+			bool obsolete = true;
+			config.for_each_sub_node("input", [&] (Xml_node input_node) {
+				if (conn.label() == input_node.attribute_value("label", Label()))
+					obsolete = false; });
+
+			if (obsolete)
+				destroy(_heap, &conn);
+		});
+
+		/* open new input sessions */
+		config.for_each_sub_node("input", [&] (Xml_node input_node) {
 
 			try {
 				Label const label =
 					input_node.attribute_value("label", Label());
+
+				bool already_exists = false;
+				_input_connections.for_each([&] (Input_connection const &conn) {
+					if (conn.label() == label)
+						already_exists = true; });
+
+				if (already_exists)
+					return;
 
 				try {
 					new (_heap)
