@@ -37,12 +37,7 @@ class Genode::Ram_dataspace_factory : public Ram_allocator,
 
 		struct Virt_range { addr_t start, size; };
 
-		/*
-		 * Dimension '_ds_slab' such that slab blocks (including the
-		 * meta-data overhead of the sliced-heap blocks) are page sized.
-		 */
-		static constexpr size_t SLAB_BLOCK_SIZE =
-			get_page_size() - Sliced_heap::meta_data_size();
+		static constexpr size_t SLAB_BLOCK_SIZE = 4096;
 
 	private:
 
@@ -92,10 +87,10 @@ class Genode::Ram_dataspace_factory : public Ram_allocator,
 		                      Range_allocator &phys_alloc,
 		                      Phys_range       phys_range,
 		                      Region_map      &local_rm,
-		                      Sliced_heap     &sliced_heap)
+		                      Allocator       &allocator)
 		:
 			_ep(ep), _phys_alloc(phys_alloc), _phys_range(phys_range),
-			_ds_slab(sliced_heap, _initial_sb)
+			_ds_slab(allocator, _initial_sb)
 		{ }
 
 		~Ram_dataspace_factory()

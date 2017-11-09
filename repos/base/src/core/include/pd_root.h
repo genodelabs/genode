@@ -33,6 +33,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		Pager_entrypoint &_pager_ep;
 		Range_allocator  &_phys_alloc;
 		Region_map       &_local_rm;
+		Range_allocator  &_core_mem;
 
 		static Ram_dataspace_factory::Phys_range _phys_range_from_args(char const *args)
 		{
@@ -67,7 +68,8 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 				                     _phys_alloc,
 				                     _phys_range_from_args(args),
 				                     _virt_range_from_args(args),
-				                     _local_rm, _pager_ep, args);
+				                     _local_rm, _pager_ep, args,
+				                     _core_mem);
 		}
 
 		void _upgrade_session(Pd_session_component *pd, const char *args)
@@ -85,10 +87,12 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		        Pager_entrypoint &pager_ep,
 		        Range_allocator  &phys_alloc,
 		        Region_map       &local_rm,
-		        Allocator        &md_alloc)
+		        Allocator        &md_alloc,
+		        Range_allocator  &core_mem)
 		:
 			Root_component<Pd_session_component>(&ep, &md_alloc),
-			_ep(ep), _pager_ep(pager_ep), _phys_alloc(phys_alloc), _local_rm(local_rm)
+			_ep(ep), _pager_ep(pager_ep), _phys_alloc(phys_alloc),
+			_local_rm(local_rm), _core_mem(core_mem)
 		{ }
 };
 

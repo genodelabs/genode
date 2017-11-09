@@ -29,6 +29,7 @@
 #include <base/internal/stack_area.h>
 
 /* core includes */
+#include <constrained_core_ram.h>
 #include <platform_pd.h>
 #include <signal_broker.h>
 #include <rpc_cap_factory.h>
@@ -47,6 +48,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 		Rpc_entrypoint            &_ep;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
+		Constrained_core_ram       _constrained_core_ram_alloc;
 		Sliced_heap                _sliced_heap;
 		Capability<Parent>         _parent;
 		Signal_broker              _signal_broker;
@@ -122,14 +124,17 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		                     Virt_range        virt_range,
 		                     Region_map       &local_rm,
 		                     Pager_entrypoint &pager_ep,
-		                     char const       *args)
+		                     char const       *args,
+		                     Range_allocator  &core_mem)
 		:
 			Session_object(ep, resources, label, diag),
 			_ep(ep),
 			_constrained_md_ram_alloc(*this, *this, *this),
+			_constrained_core_ram_alloc(*this, *this, core_mem),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
 			_signal_broker(_sliced_heap, ep, ep),
-			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm, _sliced_heap),
+			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm,
+			                _constrained_core_ram_alloc),
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_address_space(ep, _sliced_heap, pager_ep,

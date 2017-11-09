@@ -256,7 +256,9 @@ int main()
 	static Rm_root     rm_root     (&ep, &sliced_heap, pager_ep);
 	static Cpu_root    cpu_root    (&ep, &ep, &pager_ep, &sliced_heap,
 	                                Trace::sources());
-	static Pd_root     pd_root     (ep, pager_ep, *platform()->ram_alloc(), local_rm, sliced_heap);
+	static Pd_root     pd_root     (ep, pager_ep, *platform()->ram_alloc(),
+	                                local_rm, sliced_heap,
+	                                *platform_specific()->core_mem_alloc());
 	static Log_root    log_root    (&ep, &sliced_heap);
 	static Io_mem_root io_mem_root (&ep, &ep, platform()->io_mem_alloc(),
 	                                platform()->ram_alloc(), &sliced_heap);

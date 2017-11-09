@@ -70,7 +70,8 @@ class Genode::Core_env : public Env_deprecated
 			            Ram_dataspace_factory::Virt_range { platform()->vm_start(), platform()->vm_size() },
 			            _region_map,
 			            *((Pager_entrypoint *)nullptr),
-			            "" /* args to native PD */)
+			            "" /* args to native PD */,
+			            *platform_specific()->core_mem_alloc())
 		{
 			_pd_session.init_cap_and_ram_accounts();
 		}
