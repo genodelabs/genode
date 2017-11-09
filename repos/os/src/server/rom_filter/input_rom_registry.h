@@ -54,6 +54,7 @@ class Rom_filter::Input_rom_registry
 		 * Exception type
 		 */
 		class Nonexistent_input_value { };
+		class Nonexistent_input_node  { };
 
 	private:
 
@@ -190,6 +191,15 @@ class Rom_filter::Input_rom_registry
 					} catch (...) { }
 
 					throw Nonexistent_input_value();
+				}
+
+				Xml_node node() const
+				{
+					try {
+						return Xml_node(_top_level);
+					} catch (...) { }
+
+					throw Nonexistent_input_node();
 				}
 		};
 
@@ -371,6 +381,21 @@ class Rom_filter::Input_rom_registry
 				throw Nonexistent_input_value();
 
 			return input_value;
+		}
+
+		/**
+		 * Lookup content of input with specified name
+		 *
+		 * \throw Nonexistent_input_value
+		 */
+		Xml_node xml(Input_name const &input_name) const
+		{
+			Entry const *e = _lookup_entry_by_name(input_name);
+
+			if (!e)
+				throw Nonexistent_input_node();
+
+			return e->node();
 		}
 };
 

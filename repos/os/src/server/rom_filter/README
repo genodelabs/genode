@@ -30,6 +30,10 @@ The '<output>' node can contain the following sub nodes:
   sub node is evaluated. Each of those sub nodes can contain the same
   nodes as the '<output>' node.
 
+:'<input>':
+  Copies all sub nodes named by the 'sub_node' attribute of the input ROM
+  specified by the 'name' attribute to the output node.
+
 
 Conditions
 ----------

@@ -310,6 +310,26 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 			for (; src_len > 0 && Genode::is_whitespace(src[src_len - 1]); src_len--);
 
 			xml.append(src, src_len);
+		} else
+
+		if (node.has_type("input")) {
+			typedef Genode::String<128> String;
+
+			Input_name const input_name =
+				node.attribute_value("name", Input_name());
+
+			String const sub_node =
+				node.attribute_value("sub_node", String());
+
+			if (!sub_node.valid())
+				return;
+
+			try {
+				Xml_node input_node = _input_rom_registry.xml(input_name);
+
+				input_node.for_each_sub_node(sub_node.string(),
+				[&] (Xml_node node) { xml.append(node.addr(), node.size()); });
+			} catch (...) { }
 		}
 	};
 
