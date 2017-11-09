@@ -188,7 +188,9 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			catch (Insufficient_ram_quota) { throw; }
 			catch (...) {
 				warning("unexpected exception during ",
-				        SESSION_TYPE::service_name(), "-session creation"); }
+				        SESSION_TYPE::service_name(), "-session creation");
+				throw Service_denied();
+			}
 
 			/*
 			 * Consider that the session-object constructor may already have
