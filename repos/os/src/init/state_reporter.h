@@ -47,6 +47,9 @@ class Init::State_reporter : public Report_update_trigger
 
 		unsigned _report_delay_ms = 0;
 
+		/* interval used when child-ram reporting is enabled */
+		unsigned _report_period_ms = 0;
+
 		/* version string from config, to be reflected in the report */
 		typedef String<64> Version;
 		Version _version;
@@ -139,16 +142,37 @@ class Init::State_reporter : public Report_update_trigger
 			if (trigger_update)
 				trigger_report_update();
 
-			if (_report_detail->child_ram() || _report_detail->child_caps()) {
-				if (!_timer_periodic.constructed()) {
-					_timer_periodic.construct(_env);
-					_timer_periodic->sigh(_timer_periodic_handler);
-				}
-				_timer_periodic->trigger_periodic(1000*1000);
-			} else {
-				if (_timer_periodic.constructed()) {
-					_timer_periodic.destruct();
-				}
+			/*
+			 * If the report features information about child-RAM quotas, we
+			 * update the report periodically. Even in the absence of any other
+			 * report-triggering event, a child may consume/free RAM from its
+			 * RAM session without any interplay with init. The periodic
+			 * reports ensure that such changes are reflected by init's state
+			 * report.
+			 *
+			 * By default, the interval is one second. However, when the
+			 * 'delay_ms' attribute is defined with a higher value than that,
+			 * the user intends to limit the rate of state reports. If so, we
+			 * use the value of 'delay_ms' as interval.
+			 */
+			unsigned const period_ms           = max(1000U, _report_delay_ms);
+			bool     const period_changed      = (_report_period_ms != period_ms);
+			bool     const report_periodically = _report_detail->child_ram()
+			                                  || _report_detail->child_caps();
+
+			if (report_periodically && !_timer_periodic.constructed()) {
+				_timer_periodic.construct(_env);
+				_timer_periodic->sigh(_timer_periodic_handler);
+			}
+
+			if (!report_periodically && _timer_periodic.constructed()) {
+				_report_period_ms = 0;
+				_timer_periodic.destruct();
+			}
+
+			if (period_changed && _timer_periodic.constructed()) {
+				_report_period_ms = period_ms;
+				_timer_periodic->trigger_periodic(1000*_report_period_ms);
 			}
 		}
 
