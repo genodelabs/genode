@@ -128,7 +128,7 @@ class Lx_kit::Timer : public Lx::Timer
 
 			/*
 			 * Also write the timeout value to the expires field in
-			 * struct timer_list because the wireless stack checks
+			 * struct timer_list because some code the checks
 			 * it directly.
 			 */
 			ctx->expires(expires);
