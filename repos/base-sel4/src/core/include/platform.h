@@ -250,6 +250,9 @@ class Genode::Platform : public Platform_generic
 		Affinity::Space affinity_space() const override {
 			return sel4_boot_info().numNodes; }
 
+		bool supports_unmap() override { return true; }
+		bool supports_direct_unmap() const override { return true; }
+
 		/*******************
 		 ** seL4 specific **
 		 *******************/
