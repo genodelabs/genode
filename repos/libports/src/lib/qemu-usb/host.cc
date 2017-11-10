@@ -101,14 +101,48 @@ struct Completion : Usb::Completion
 };
 
 
+/**
+ * Helper for the formatted output and device info
+ */
+struct Dev_info
+{
+	uint32_t const vendor, product;
+	uint16_t const bus, dev;
+
+	Dev_info(uint16_t bus, uint16_t dev, uint32_t vendor, uint32_t product)
+	:
+		vendor(vendor), product(product), bus(bus), dev(dev)
+	{ }
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+			               Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), " (",
+			               "vendor=",  Hex(vendor, Hex::OMIT_PREFIX), ", ",
+			               "product=", Hex(product, Hex::OMIT_PREFIX), ")");
+	}
+
+	bool operator != (Dev_info const &other) const
+	{
+		if (bus && dev)
+			return bus != other.bus && dev != other.dev;
+
+		if (vendor && product)
+			return vendor != other.vendor && product != other.product;
+
+		return true;
+	}
+};
+
+
 struct Usb_host_device : List<Usb_host_device>::Element
 {
 	struct Could_not_create_device : Genode::Exception { };
 
-	bool        deleted = false;
-	char const *label   = nullptr;
-	unsigned    bus     = 0;
-	unsigned    dev     = 0;
+	bool           deleted = false;
+	char const    *label   = nullptr;
+	Dev_info const info;
+
 
 	USBHostDevice  *qemu_dev;
 	Completion      completion[Usb::Session::TX_QUEUE_SIZE];
@@ -156,11 +190,11 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	Usb_host_device(Signal_receiver &sig_rec, Allocator &alloc,
 	                Genode::Env &env, char const *label,
-	                unsigned bus, unsigned dev)
+	                Dev_info info)
 	:
 		label(label), _alloc(&alloc),
 		usb_raw(env, &_alloc, label, 6*1024*1024, state_dispatcher),
-		bus(bus), dev(dev), sig_rec(sig_rec)
+		info(info), sig_rec(sig_rec)
 	{
 		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
 
@@ -556,36 +590,12 @@ struct Usb_devices : List<Usb_host_device>
 		}
 	}
 
-	Usb_host_device *_find_usb_device(unsigned bus, unsigned dev)
+	template <typename FUNC>
+	void for_each(FUNC  const &fn)
 	{
 		for (Usb_host_device *d = first(); d; d = d->next())
-			if (d->bus == bus && d->dev == dev)
-				return d;
-
-		return nullptr;
+			fn(*d);
 	}
-
-	/**
-	 * Helper for the formatted output of device info
-	 */
-	struct Formatted_dev_info
-	{
-		uint32_t const vendor, product;
-		uint16_t const bus, dev;
-
-		Formatted_dev_info(uint16_t bus, uint16_t dev, uint32_t vendor, uint32_t product)
-		:
-			vendor(vendor), product(product), bus(bus), dev(dev)
-		{ }
-
-		void print(Genode::Output &out) const
-		{
-			Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
-				               Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), " (",
-				               "vendor=",  Hex(vendor, Hex::OMIT_PREFIX), ", ",
-				               "product=", Hex(product, Hex::OMIT_PREFIX), ")");
-		}
-	};
 
 	void _devices_update(unsigned)
 	{
@@ -596,6 +606,10 @@ struct Usb_devices : List<Usb_host_device>
 		_devices_rom.update();
 		if (!_devices_rom.valid())
 			return;
+
+		for_each([] (Usb_host_device &device) {
+			device.deleted = true;
+		});
 
 		if (verbose_devices)
 			log(_devices_rom.local_addr<char const>());
@@ -608,32 +622,51 @@ struct Usb_devices : List<Usb_host_device>
 			unsigned bus     = node.attribute_value<unsigned>("bus", 0);
 			unsigned dev     = node.attribute_value<unsigned>("dev", 0);
 
-			Formatted_dev_info const formatted_dev_info(bus, dev, vendor, product);
+			Dev_info const dev_info(bus, dev, vendor, product);
 
 			Genode::String<128> label;
 			try {
 				node.attribute("label").value(&label);
 			} catch (Genode::Xml_attribute::Nonexistent_attribute) {
-				error("no label found for device ", formatted_dev_info);
+				error("no label found for device ", dev_info);
 				return;
 			}
 
 			/* ignore if already created */
-			if (_find_usb_device(bus, dev)) return;
+			bool exists = false;
+			for_each([&] (Usb_host_device &device) {
+				if (device.info != dev_info)
+					return;
+
+				exists         = true;
+				device.deleted = false;
+			});
+
+			if (exists)
+				return;
 
 			try {
 				Usb_host_device *new_device = new (_alloc)
 					Usb_host_device(_sig_rec, _alloc, _env, label.string(),
-					                bus, dev);
+					                dev_info);
 
 				insert(new_device);
 
-				log("Attach USB device ", formatted_dev_info);
+				log("Attach USB device ", dev_info);
 
 			} catch (...) {
-				error("could not attach USB device ", formatted_dev_info);
+				error("could not attach USB device ", dev_info);
 			}
 		});
+
+		/* remove devices deleted by update */
+		for_each([] (Usb_host_device &device) {
+			if (device.deleted == false) return;
+
+			device._release_interfaces();
+			device._destroy();
+		});
+		_garbage_collect();
 	}
 
 	Usb_devices(Signal_receiver *sig_rec, Allocator &alloc, Genode::Env &env)
