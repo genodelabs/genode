@@ -201,7 +201,7 @@ install_config $config
 
 set boot_modules {
 	core init
-	ld.lib.so libc.lib.so
+	ld.lib.so
 	timer
 	ps2_drv
 	input_merger
@@ -209,7 +209,6 @@ set boot_modules {
 	dynamic_rom
 	acpica
 	acpi_input
-	debug-acpica
 	test-input
 }
 

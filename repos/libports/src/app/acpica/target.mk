@@ -1,4 +1,4 @@
-TARGET = acpica
-SRC_CC = os.cc printf.cc
-
-include $(PRG_DIR)/target.inc
+TARGET   := acpica
+SRC_CC   := os.cc printf.cc
+REQUIRES := x86
+LIBS     += base acpica
