@@ -27,7 +27,10 @@ struct Acpica::Env
 	Genode::Env       &env;
 	Genode::Allocator &heap;
 
-	Genode::Parent::Service_name announce_for_acpica { "Acpi" };
+	Wait_acpi_ready const wait_acpi_ready;
+
+	Genode::Parent::Service_name announce_for_acpica {
+		wait_acpi_ready.enabled ? "Acpi" : Platform::Session::service_name() };
 
 	Genode::Parent::Client parent_client;
 
@@ -42,8 +45,8 @@ struct Acpica::Env
 
 	Platform::Client platform { cap };
 
-	Env(Genode::Env &env, Genode::Allocator &heap)
-	: env(env), heap(heap) { }
+	Env(Genode::Env &env, Genode::Allocator &heap, Wait_acpi_ready wait_acpi_ready)
+	: env(env), heap(heap), wait_acpi_ready(wait_acpi_ready) { }
 };
 
 static Genode::Constructible<Acpica::Env> instance;
@@ -54,7 +57,8 @@ Genode::Env       & Acpica::env()      { return instance->env; }
 Platform::Client  & Acpica::platform() { return instance->platform; }
 
 
-void Acpica::init(Genode::Env &env, Genode::Allocator &heap)
+void Acpica::init(Genode::Env &env, Genode::Allocator &heap,
+                  Wait_acpi_ready wait_acpi_ready)
 {
-	instance.construct(env, heap);
+	instance.construct(env, heap, wait_acpi_ready);
 }

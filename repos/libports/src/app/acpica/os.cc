@@ -117,7 +117,7 @@ struct Acpica::Main
 		void *context;
 	} irq_handler;
 
-	void init_acpica();
+	void init_acpica(Acpica::Wait_acpi_ready);
 
 	Main(Genode::Env &env)
 	:
@@ -132,7 +132,7 @@ struct Acpica::Main
 		if (enable_report)
 			report = new (heap) Acpica::Reportstate(env);
 
-		init_acpica();
+		init_acpica(Wait_acpi_ready{enable_ready});
 
 		if (enable_report)
 			report->enable();
@@ -188,9 +188,9 @@ struct Acpica::Main
 #include "sb.h"
 #include "ec.h"
 
-void Acpica::Main::init_acpica()
+void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready)
 {
-	Acpica::init(env, heap);
+	Acpica::init(env, heap, wait_acpi_ready);
 
 	/* enable debugging: */
 	/* AcpiDbgLevel |= ACPI_LV_IO | ACPI_LV_INTERRUPTS | ACPI_LV_INIT_NAMES; */

@@ -19,6 +19,11 @@ namespace Genode {
 	struct Allocator;
 }
 
-namespace Acpica { void init(Genode::Env &env, Genode::Allocator &heap); }
+namespace Acpica {
+
+	struct Wait_acpi_ready { bool enabled; };
+
+	void init(Genode::Env &, Genode::Allocator &, Wait_acpi_ready);
+}
 
 #endif /* _INCLUDE__ACPICA__ACPICA_H_ */
