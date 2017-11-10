@@ -18,6 +18,22 @@
 #
 _assert = $(if $1,$1,$(error Error: $2))
 
+#
+# Message that a port is missing or outdated and instructions how to fix it
+#
+# \param 1  name of the port
+#
+define _port_missing_msg
+
+
+Port not prepared or outdated:
+  $(1)
+
+You can prepare respectively update it as follows:
+  $(GENODE_DIR)/tool/ports/prepare_port $(1)
+
+
+endef
 
 #
 # Utility to query the port directory for a given path to a port description.
@@ -28,7 +44,7 @@ _assert = $(if $1,$1,$(error Error: $2))
 #
 _hash_of_port     = $(shell cat $(call _assert,$(wildcard $1.hash),$(notdir $1) port does not exist))
 _port_dir         = $(wildcard $(CONTRIB_DIR)/$(notdir $1)-$(call _hash_of_port,$1))
-_checked_port_dir = $(call _assert,$(call _port_dir,$1),$(notdir $1) port is not prepared or outdated)
+_checked_port_dir = $(call _assert,$(call _port_dir,$1),$(call _port_missing_msg,$(notdir $1)))
 
 port_dir = $(call _checked_port_dir,$1)
 
