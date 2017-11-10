@@ -145,6 +145,12 @@ void Init::Server::session_ready(Session_state &session)
 
 	if (session.phase == Session_state::SERVICE_DENIED)
 		_close_session(session, Parent::SERVICE_DENIED);
+
+	if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA)
+		_close_session(session, Parent::INSUFFICIENT_RAM_QUOTA);
+
+	if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA)
+		_close_session(session, Parent::INSUFFICIENT_CAP_QUOTA);
 }
 
 
