@@ -56,7 +56,16 @@ class Genode::Cpu
 		 *
 		 * See Intel SDM Vol. 3A, section 7.7
 		 */
-		struct Tss { static void init(); };
+		struct alignas(8) Tss
+		{
+			uint32_t reserved0;
+			uint64_t rsp[3];       /* pl0-3 stack pointer */
+			uint64_t reserved1;
+			uint64_t ist[7];       /* irq stack pointer   */
+			uint64_t reserved2;
+
+			static void init();
+		}  __attribute__((packed)) tss;
 
 
 		/**
@@ -71,7 +80,17 @@ class Genode::Cpu
 		 * Global Descriptor Table (GDT)
 		 * See Intel SDM Vol. 3A, section 3.5.1
 		 */
-		struct Gdt { static void init(); };
+		struct alignas(8) Gdt
+		{
+			uint64_t null_desc         = 0;
+			uint64_t sys_cs_64bit_desc = 0x20980000000000;
+			uint64_t sys_ds_64bit_desc = 0x20930000000000;
+			uint64_t usr_cs_64bit_desc = 0x20f80000000000;
+			uint64_t usr_ds_64bit_desc = 0x20f30000000000;
+			uint64_t tss_desc[2];
+
+			void init(addr_t tss_addr);
+		} __attribute__((packed)) gdt;
 
 
 		/**
@@ -263,6 +282,8 @@ void Genode::Cpu::switch_to(Context & context, Mmu_context & mmu_context)
 
 	if ((context.cs != 0x8) && (mmu_context.cr3 != Cr3::read()))
 		Cr3::write(mmu_context.cr3);
+
+	tss.ist[0] = (addr_t)&context + sizeof(Genode::Cpu_state);
 };
 
 #endif /* _CORE__SPEC__X86_64__CPU_H_ */

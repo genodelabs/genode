@@ -120,8 +120,8 @@ Mapping Platform::_load_elf()
 			phys = dst;
 		}
 
-		//FIXME: set read-only accordingly
-		Page_flags flags{RW, segment.flags().x ? EXEC : NO_EXEC,
+		Page_flags flags{segment.flags().w ? RW : RO,
+		                 segment.flags().x ? EXEC : NO_EXEC,
 		                 KERN, GLOBAL, RAM, CACHED};
 		Mapping m((addr_t)phys, (addr_t)segment.start(), size, flags);
 

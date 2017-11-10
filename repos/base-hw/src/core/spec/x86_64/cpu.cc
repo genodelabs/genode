@@ -16,11 +16,8 @@
 #include <kernel/thread.h>
 #include <kernel/pd.h>
 
-extern int __tss;
 extern int __idt;
-extern int __gdt_start;
-extern int __gdt_end;
-
+extern int __idt_end;
 
 Genode::Cpu::Context::Context(bool core)
 {
@@ -44,18 +41,24 @@ void Genode::Cpu::Tss::init()
 void Genode::Cpu::Idt::init()
 {
 	Pseudo_descriptor descriptor {
-		(uint16_t)((addr_t)&__tss - (addr_t)&__idt),
+		(uint16_t)((addr_t)&__idt_end - (addr_t)&__idt),
 		(uint64_t)(&__idt) };
 	asm volatile ("lidt %0" : : "m" (descriptor));
 }
 
 
-void Genode::Cpu::Gdt::init()
+void Genode::Cpu::Gdt::init(addr_t tss_addr)
 {
-	addr_t const   start = (addr_t)&__gdt_start;
-	uint16_t const limit = __gdt_end - __gdt_start - 1;
-	uint64_t const base  = start;
-	asm volatile ("lgdt %0" :: "m" (Pseudo_descriptor(limit, base)));
+	tss_desc[0] = ((((tss_addr >> 24) & 0xff) << 24 |
+	                ((tss_addr >> 16) & 0xff)       |
+	               0x8900) << 32)                   |
+	              ((tss_addr &  0xffff) << 16 | 0x68);
+	tss_desc[1] = tss_addr >> 32;
+
+	Pseudo_descriptor descriptor {
+		(uint16_t)(sizeof(Gdt)),
+		(uint64_t)(this) };
+	asm volatile ("lgdt %0" :: "m" (descriptor));
 }
 
 

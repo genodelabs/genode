@@ -14,8 +14,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-.include "hw/spec/x86_64/gdt.s"
-
 .section ".text.crt0"
 
 	/* magic multi-boot 1 header */
@@ -120,7 +118,51 @@
 	/* catch erroneous return of the kernel initialization */
 	1: jmp 1b
 
-	_define_gdt 0
+
+	/******************************************
+	 ** Global Descriptor Table (GDT)        **
+	 ** See Intel SDM Vol. 3A, section 3.5.1 **
+	 ******************************************/
+
+	.align 4
+	.space 2
+	__gdt_ptr:
+	.word 55 /* limit        */
+	.long 0  /* base address */
+
+	.set TSS_LIMIT, 0x68
+	.set TSS_TYPE, 0x8900
+
+	.align 8
+	.global __gdt_start
+	__gdt_start:
+	/* Null descriptor */
+	.quad 0
+	/* 64-bit code segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
+	.long 0x209800
+	/* 64-bit data segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
+	.long 0x209300
+	/* 64-bit user code segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_CODE | GDTE_NON_SYSTEM */
+	.long 0x20f800
+	/* 64-bit user data segment descriptor */
+	.long 0
+	/* GDTE_LONG | GDTE_PRESENT | GDTE_TYPE_DATA_A | GDTE_TYPE_DATA_W | GDTE_NON_SYSTEM */
+	.long 0x20f300
+	/* Task segment descriptor */
+	.long TSS_LIMIT
+	/* GDTE_PRESENT | GDTE_SYS_TSS */
+	.long TSS_TYPE
+	.long 0
+	.long 0
+	.global __gdt_end
+	__gdt_end:
+
 
 /*********************************
  ** .bss (non-initialized data) **

@@ -14,19 +14,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-.include "hw/spec/x86_64/gdt.s"
-
 /* offsets of member variables in a CPU context */
 .set IP_OFFSET, 17 * 8
 .set SP_OFFSET, 20 * 8
 
-/* tss segment constants */
-.set TSS_LIMIT, 0x68
-.set TSS_TYPE,  0x8900
-
 /* virtual addresses */
 .set BASE, 0xffffffc000000000
-.set TSS,  BASE + (__tss - _begin)
 .set ISR,  BASE
 .set ISR_ENTRY_SIZE, 12
 
@@ -153,20 +146,9 @@
 	.set isr_addr, isr_addr + ISR_ENTRY_SIZE
 	.endr
 
-	/****************************************
-	 ** Task State Segment (TSS)           **
-	 ** See Intel SDM Vol. 3A, section 7.7 **
-	 ****************************************/
-
-	.global __tss
+	.global __idt_end
 	.align 8
-	__tss:
-	.space 36
-	.global __tss_client_context_ptr
-	__tss_client_context_ptr:
-	.space 64
-
-	_define_gdt TSS
+	__idt_end:
 
 
 .section .text

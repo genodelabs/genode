@@ -30,13 +30,8 @@ void Kernel::Thread::_call_update_pd() {
 }
 
 
-extern void * __tss_client_context_ptr;
-
 void Kernel::Thread::proceed(Cpu & cpu)
 {
-	void * * tss_stack_ptr = (&__tss_client_context_ptr);
-	*tss_stack_ptr = (void*)((addr_t)&*regs + sizeof(Genode::Cpu_state));
-
 	cpu.switch_to(*regs, pd()->mmu_regs);
 
 	asm volatile("mov  %0, %%rsp  \n"

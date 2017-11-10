@@ -20,7 +20,7 @@
 
 void Kernel::Cpu::init(Pic &pic)
 {
-	Cpu::Gdt::init();
+	gdt.init((addr_t)&tss);
 	Idt::init();
 	Tss::init();
 
