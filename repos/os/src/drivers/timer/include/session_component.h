@@ -58,7 +58,19 @@ class Timer::Session_component : public Genode::Rpc_object<Session>,
 		 ********************/
 
 		void trigger_once(unsigned us) override {
-			_timeout.schedule_one_shot(Microseconds(us), *this); }
+
+			/*
+			 * FIXME Workaround for the problem that Alarm scheduler may
+			 *       categorize big timeouts into the wrong time counter
+			 *       period due to its outdated internal time. This is needed
+			 *       only because the Alarm framework solely takes absolute
+			 *       time values on one-shot timeouts. and thus As soon as the
+			 *       Alarm framework takes solely relative time values, please
+			 *       remove this.
+			 */
+			Microseconds typed_us(us > ~0UL >> 1 ? ~0UL >> 1 : us);
+			_timeout.schedule_one_shot(typed_us, *this);
+		}
 
 		void trigger_periodic(unsigned us) override {
 			_timeout.schedule_periodic(Microseconds(us), *this); }
