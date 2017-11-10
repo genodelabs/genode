@@ -19,6 +19,21 @@
 extern int __idt;
 extern int __idt_end;
 
+/**
+ * Pseudo Descriptor
+ *
+ * See Intel SDM Vol. 3A, section 3.5.1
+ */
+struct Pseudo_descriptor
+{
+	Genode::uint16_t const limit = 0;
+	Genode::uint64_t const base  = 0;
+
+	constexpr Pseudo_descriptor(Genode::uint16_t l, Genode::uint64_t b)
+	: limit(l), base(b) {}
+} __attribute__((packed));
+
+
 Genode::Cpu::Context::Context(bool core)
 {
 	eflags = EFLAGS_IF_SET;
@@ -87,4 +102,15 @@ void Genode::Cpu::mmu_fault(Context & regs, Kernel::Thread_fault & fault)
 
 	fault.addr = Genode::Cpu::Cr2::read();
 	fault.type = fault_lambda(regs.errcode);
+}
+
+
+void Genode::Cpu::switch_to(Context & context, Mmu_context &mmu_context)
+{
+	_fpu.switch_to(context);
+
+	if ((context.cs != 0x8) && (mmu_context.cr3 != Cr3::read()))
+		Cr3::write(mmu_context.cr3);
+
+	tss.ist[0] = (addr_t)&context + sizeof(Genode::Cpu_state);
 }
