@@ -2,8 +2,8 @@ LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                wifi.archive libnl.archive wpa_supplicant.archive \
-               fw_6000.archive fw_6205a.archive fw_6205b.archive fw_7260.archive  \
-               fw_7265.archive fw_8260.archive
+               fw_3160.archive fw_6000.archive fw_6205a.archive fw_6205b.archive \
+               fw_7260.archive fw_7265.archive fw_8260.archive
 
 #
 # Tools
@@ -108,6 +108,13 @@ generate_libnl_files: $(DOWNLOADS)
 URL(wpa_supplicant) := https://w1.fi/releases/wpa_supplicant-2.2.tar.gz
 SHA(wpa_supplicant) := 0c2ff4fd2e2f6325147cca0357d6c9f524efa26a
 DIR(wpa_supplicant) := src/app/wpa_supplicant
+
+#
+# Firmware images for iwlwifi Intel Wireless 3160
+#
+URL(fw_3160) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-3160-ucode-16.242414.0.tgz
+SHA(fw_3160) := 4777e85d75d3dc17ba40dd32f30cd9ebdcf9e533
+DIR(fw_3160) := firmware
 
 #
 # Firmware images for iwlwifi Ultimate-N 6300 and Advanced-N 6200
