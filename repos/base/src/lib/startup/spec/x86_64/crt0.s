@@ -91,7 +91,7 @@
 	.p2align 8
 	.global __initial_stack_base
 	__initial_stack_base:
-	.space 8*1024
+	.space 12*1024
 	_stack_high:
 
 	/* initial value of the RSP, RAX and RDI register */
