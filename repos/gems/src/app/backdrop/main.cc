@@ -135,8 +135,11 @@ struct Backdrop::Main
 	 */
 	void handle_config();
 
+	void handle_config_signal() {
+		Libc::with_libc([&] () { handle_config(); }); }
+
 	Signal_handler<Main> config_dispatcher = {
-		env.ep(), *this, &Main::handle_config };
+		env.ep(), *this, &Main::handle_config_signal };
 
 	void handle_sync();
 
@@ -352,8 +355,10 @@ void Backdrop::Main::handle_config()
 
 void Backdrop::Main::handle_sync()
 {
-	buffer->flush_surface();
-	_update_view();
+	Libc::with_libc([&] () {
+		buffer->flush_surface();
+		_update_view();
+	});
 
 	/* disable sync signal until the next call of 'handle_config' */
 	nitpicker.framebuffer()->sync_sigh(Signal_context_capability());
@@ -367,5 +372,5 @@ extern "C" void _sigprocmask() { }
 
 
 void Libc::Component::construct(Libc::Env &env) {
-	static Backdrop::Main application(env); }
+	with_libc([&env] () { static Backdrop::Main application(env); }); }
 
