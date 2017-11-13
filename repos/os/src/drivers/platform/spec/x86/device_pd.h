@@ -15,7 +15,7 @@
 
 /* base */
 #include <base/env.h>
-#include <os/ram_session_guard.h>
+#include <base/quota_guard.h>
 #include <region_map/client.h>
 #include <pd_session/connection.h>
 
@@ -41,16 +41,18 @@ class Platform::Device_pd
 		 */
 		struct Expanding_region_map_client : Genode::Region_map_client
 		{
-			Genode::Env           &_env;
-			Genode::Pd_connection &_pd;
-			Genode::Ram_session_guard &ram_guard;
+			Genode::Env             &_env;
+			Genode::Pd_connection   &_pd;
+			Genode::Ram_quota_guard &_ram_guard;
+			Genode::Cap_quota_guard &_cap_guard;
 
 			Expanding_region_map_client(Genode::Env &env,
 			                            Genode::Pd_connection &pd,
-			                            Genode::Ram_session_guard &ram_guard)
+			                            Genode::Ram_quota_guard &ram_guard,
+			                            Genode::Cap_quota_guard &cap_guard)
 			:
 				Region_map_client(pd.address_space()), _env(env), _pd(pd),
-				ram_guard(ram_guard)
+				_ram_guard(ram_guard), _cap_guard(cap_guard)
 			{ }
 
 			Local_addr attach(Genode::Dataspace_capability ds,
@@ -69,22 +71,17 @@ class Platform::Device_pd
 								                                 executable); },
 							[&] () {
 								enum { UPGRADE_CAP_QUOTA = 2 };
-								/* XXX actually we would need here a ram_cap
-								 * guard per session, not the process global
-								 * cap env to check for enough caps */
-								if (_env.pd().avail_caps().value < UPGRADE_CAP_QUOTA)
-									throw;
-
-								_env.pd().transfer_quota(_pd, Genode::Cap_quota{UPGRADE_CAP_QUOTA});
+								Genode::Cap_quota const caps { UPGRADE_CAP_QUOTA };
+								_cap_guard.withdraw(caps);
+								_env.pd().transfer_quota(_pd, caps);
 							}
 						);
 					},
 					[&] () {
 						enum { UPGRADE_RAM_QUOTA = 4096 };
-						if (!ram_guard.withdraw(UPGRADE_RAM_QUOTA))
-							throw;
-
-						_env.pd().transfer_quota(_pd, Genode::Ram_quota{UPGRADE_RAM_QUOTA});
+						Genode::Ram_quota const ram { UPGRADE_RAM_QUOTA };
+						_ram_guard.withdraw(ram);
+						_env.pd().transfer_quota(_pd, ram);
 					}
 				);
 			}
@@ -101,11 +98,12 @@ class Platform::Device_pd
 
 		Device_pd(Genode::Env &env,
 		          Genode::Session_label const &label,
-		          Genode::Ram_session_guard &ram_guard)
+		          Genode::Ram_quota_guard &ram_guard,
+		          Genode::Cap_quota_guard &cap_guard)
 		:
 			_pd(env, label.string(), Genode::Pd_connection::Virt_space::UNCONSTRAIN),
 			_label(label),
-			_address_space(env, _pd, ram_guard)
+			_address_space(env, _pd, ram_guard, cap_guard)
 		{
 			_pd.ref_account(env.pd_session_cap());
 		}

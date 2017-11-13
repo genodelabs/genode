@@ -28,10 +28,10 @@
 
 /* os */
 #include <io_mem_session/connection.h>
-#include <os/ram_session_guard.h>
 #include <os/reporter.h>
 #include <os/session_policy.h>
 #include <platform_session/platform_session.h>
+#include <base/allocator_guard.h>
 
 /* local */
 #include "pci_device_component.h"
@@ -202,16 +202,19 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 {
 	private:
 
-		Genode::Env                    &_env;
-		Genode::Attached_rom_dataspace &_config;
-		Genode::Ram_session_guard       _env_ram;
-		Genode::Heap                    _md_alloc;
-		Genode::Session_label    const  _label;
-		Genode::Session_policy   const  _policy { _label, _config.xml() };
-		Genode::List<Device_component>  _device_list;
-		Platform::Pci_buses            &_pci_bus;
-		Genode::Heap                   &_global_heap;
-		bool                            _no_device_pd = false;
+		Genode::Env                       &_env;
+		Genode::Attached_rom_dataspace    &_config;
+		Genode::Ram_quota_guard            _ram_guard;
+		Genode::Cap_quota_guard            _cap_guard;
+		Genode::Constrained_ram_allocator  _env_ram {
+			_env.pd(), _ram_guard, _cap_guard };
+		Genode::Heap                       _md_alloc;
+		Genode::Session_label       const  _label;
+		Genode::Session_policy      const  _policy { _label, _config.xml() };
+		Genode::List<Device_component>     _device_list;
+		Platform::Pci_buses               &_pci_bus;
+		Genode::Heap                      &_global_heap;
+		bool                               _no_device_pd = false;
 
 		/**
 		 * Registry of RAM dataspaces allocated by the session
@@ -236,7 +239,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			return false;
 		}
 
-		Platform::Device_pd _device_pd { _env, _label, _env_ram };
+		Platform::Device_pd _device_pd { _env, _label, _ram_guard, _cap_guard };
 
 		enum { MAX_PCI_DEVICES = Device_config::MAX_BUSES *
 		                         Device_config::MAX_DEVICES *
@@ -457,11 +460,15 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		:
 			_env(env),
 			_config(config),
-			_env_ram(env.ram(), Genode::ram_quota_from_args(args).value),
+			_ram_guard(Genode::ram_quota_from_args(args)),
+			_cap_guard(Genode::cap_quota_from_args(args)),
 			_md_alloc(_env_ram, env.rm()),
 			_label(Genode::label_from_args(args)),
 			_pci_bus(buses), _global_heap(global_heap)
 		{
+			/* subtract the RPC session and session dataspace capabilities */
+			_cap_guard.withdraw(Genode::Cap_quota{2});
+
 			/* non-pci devices */
 			_policy.for_each_sub_node("device", [&] (Genode::Xml_node device_node) {
 				try {
@@ -578,7 +585,11 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		}
 
 
-		void upgrade_ram_quota(long quota) { _env_ram.upgrade(quota); }
+		void upgrade_resources(Genode::Session::Resources resources)
+		{
+			_ram_guard.upgrade(resources.ram_quota);
+			_cap_guard.upgrade(resources.cap_quota);
+		}
 
 
 		static void add_config_space(Genode::uint32_t bdf_start,
@@ -981,11 +992,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		}
 
 
-		void _upgrade_session(Session_component *s, const char *args) override
-		{
-			long ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").long_value(0);
-			s->upgrade_ram_quota(ram_quota);
-		}
+		void _upgrade_session(Session_component *s, const char *args) override {
+			s->upgrade_resources(Genode::session_resources_from_args(args)); }
 
 	public:
 
