@@ -16,7 +16,7 @@
 #include <os/session_policy.h>
 
 /* local includes */
-#include <server.h>
+#include "server.h"
 
 
 /***************************
