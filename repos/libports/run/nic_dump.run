@@ -15,14 +15,14 @@ create_boot_directory
 
 proc test_1_config { } {
 	if {[enable_test_1]} { return "
-		[client_config udp 2 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
-		[server_config udp 2 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
+		[client_config udp_client_2 udp 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
+		[server_config udp_server_2 udp 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
 }
 
 proc test_2_config { } {
 	if {[enable_test_2]} { return "
-		[client_config http 1 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
-		[server_config http 1 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
+		[client_config http_client_1 http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
+		[server_config http_server_1 http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
 }
 
 append config {

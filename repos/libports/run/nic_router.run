@@ -17,38 +17,38 @@ create_boot_directory
 
 proc test_1_config { } {
 	if {[enable_test_1]} { return "
-		[client_config udp 1 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
-		[server_config udp 1 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]" }
+		[client_config udp_client_1 udp 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
+		[server_config udp_server_1 udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]" }
 }
 
 proc test_2_config { } {
 	if {[enable_test_2]} { return "
-		[client_config udp 2 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
-		[server_config udp 2 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
+		[client_config udp_client_2 udp 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
+		[server_config udp_server_2 udp 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
 }
 
 proc test_3_config { } {
 	if {[enable_test_3]} { return "
-		[client_config udp 3 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213]
-		[server_config udp 3 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
+		[client_config udp_client_3 udp 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213]
+		[server_config udp_server_3 udp 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
 }
 
 proc test_4_config { } {
 	if {[enable_test_4]} { return "
-		[client_config http 1 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
-		[server_config http 1 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
+		[client_config http_client_1 http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
+		[server_config http_server_1 http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
 }
 
 proc test_5_config { } {
 	if {[enable_test_5]} { return "
-		[client_config http 2 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55]
-		[server_config http 2 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
+		[client_config http_client_2 http 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55]
+		[server_config http_server_2 http 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
 }
 
 proc test_6_config { } {
 	if {[enable_test_6]} { return "
-		[client_config http 3 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
-		[server_config http 3 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
+		[client_config http_client_3 http 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
+		[server_config http_server_3 http 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
 }
 
 append config {

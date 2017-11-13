@@ -71,9 +71,9 @@ proc server_bin { prot } {
 	if {$prot == "udp"}  { return "test-lwip-udp-server" }
 	if {$prot == "http"} { return "test-lwip_httpsrv_static" } }
 
-proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
+proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
 	append result {
-		<start name="} $prot {_client_} $index {" caps="200" priority="-1">
+		<start name="} $name {" caps="200" priority="-1">
 			<binary  name="} [client_bin $prot] {" />
 			<resource name="RAM" quantum="10M"/>
 			<route>
@@ -89,9 +89,9 @@ proc client_config { prot index ip_addr gateway netmask nic srv_port srv_ip } {
 	return $result
 }
 
-proc server_config { prot index ip_addr gateway netmask nic port } {
+proc server_config { name prot ip_addr gateway netmask nic port } {
 	append result {
-		<start name="} $prot {_server_} $index {" caps="200" priority="-1">
+		<start name="} $name {" caps="200" priority="-1">
 			<binary  name="} [server_bin $prot] {" />
 			<resource name="RAM" quantum="10M"/>
 			<route>
