@@ -71,8 +71,10 @@ set config {
 		<config>
 			<target name="nitpicker">
 				<config>
-					<domain name="pointer" layer="1" xray="no" origin="pointer" />
-					<domain name="default" layer="3" />
+					<domain name="pointer" layer="1" xray="no" origin="pointer"
+					        content="client" label="no"/>
+					<domain name="default" layer="3" content="client"
+					        label="no" hover="always" focus="click"/>
 					<policy label_prefix="pointer" domain="pointer"/>
 					<default-policy domain="default"/>
 				</config>

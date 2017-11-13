@@ -17,10 +17,12 @@
 /* Genode includes */
 #include <base/child.h>
 #include <base/service.h>
-
 #include <init/child_policy.h>
-
+#include <os/session_requester.h>
 #include <util/arg_string.h>
+
+/* init private includes */
+#include <init/server.h>
 
 /* GDB monitor includes */
 #include "genode_child_resources.h"
@@ -35,18 +37,65 @@ namespace Gdb_monitor {
 	class App_child;
 }
 
-class Gdb_monitor::App_child : public Child_policy
+class Gdb_monitor::App_child : public Child_policy,
+                               public Async_service::Wakeup,
+                               public Init::Report_update_trigger,
+                               public Init::Routed_service::Ram_accessor,
+                               public Init::Routed_service::Pd_accessor
 {
-	public:
-
-		typedef Registered<Genode::Parent_service> Parent_service;
-		typedef Registry<Parent_service>           Parent_services;
-
 	private:
 
-		enum { STACK_SIZE = 4*1024*sizeof(long) };
+		typedef Registered<Genode::Parent_service> Parent_service;
 
-		Env                                &_env;
+		typedef Registry<Parent_service>           Parent_services;
+		typedef Registry<Init::Routed_service>     Child_services;
+
+		/**
+		 * gdbserver blocks in 'select()', so a separate entrypoint is used.
+		 */
+		struct Local_env : Genode::Env
+		{
+			Genode::Env &genode_env;
+
+			Genode::Entrypoint  local_ep {
+				genode_env, 4*1024*sizeof(addr_t), "target_ep" };
+
+			Local_env(Env &genode_env) : genode_env(genode_env) { }
+
+			Parent &parent()                         { return genode_env.parent(); }
+			Ram_session &ram()                       { return genode_env.ram(); }
+			Cpu_session &cpu()                       { return genode_env.cpu(); }
+			Region_map &rm()                         { return genode_env.rm(); }
+			Pd_session &pd()                         { return genode_env.pd(); }
+			Entrypoint &ep()                         { return local_ep; }
+			Ram_session_capability ram_session_cap() { return genode_env.ram_session_cap(); }
+			Cpu_session_capability cpu_session_cap() { return genode_env.cpu_session_cap(); }
+			Pd_session_capability pd_session_cap()   { return genode_env.pd_session_cap(); }
+			Id_space<Parent::Client> &id_space()     { return genode_env.id_space(); }
+
+			Session_capability session(Parent::Service_name const &service_name,
+			                           Parent::Client::Id id,
+			                           Parent::Session_args const &session_args,
+			                           Affinity             const &affinity)
+			{ return genode_env.session(service_name, id, session_args, affinity); }
+
+			void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args)
+			{ return genode_env.upgrade(id, args); }
+
+			void close(Parent::Client::Id id) { return genode_env.close(id); }
+
+			void exec_static_constructors() override { }
+
+			void reinit(Native_capability::Raw raw) override {
+				genode_env.reinit(raw);
+			}
+
+			void reinit_main_thread(Capability<Region_map> &stack_area_rm) override {
+				genode_env.reinit_main_thread(stack_area_rm);
+			}
+		};
+
+		Local_env                           _env;
 
 		Allocator                          &_alloc;
 
@@ -62,9 +111,8 @@ class Gdb_monitor::App_child : public Child_policy
 		Ram_quota                           _ram_quota;
 		Cap_quota                           _cap_quota;
 
-		Rpc_entrypoint                      _entrypoint;
-
 		Parent_services                     _parent_services;
+		Child_services                      _child_services;
 
 		Init::Child_config                  _child_config;
 
@@ -76,7 +124,12 @@ class Gdb_monitor::App_child : public Child_policy
 
 		Dataspace_pool                      _managed_ds_map;
 
-		Pd_session_component                _pd { _entrypoint, _env, _alloc, _unique_name, _managed_ds_map };
+		Pd_session_component                _pd { _env.ep().rpc_ep(),
+		                                          _env,
+		                                          _alloc,
+		                                          _unique_name,
+		                                          _managed_ds_map };
+
 		Pd_service::Single_session_factory  _pd_factory { _pd };
 		Pd_service                          _pd_service { _pd_factory };
 
@@ -85,6 +138,12 @@ class Gdb_monitor::App_child : public Child_policy
 
 		Local_rom_factory                   _rom_factory;
 		Rom_service                         _rom_service { _rom_factory };
+
+		Genode::Session_requester           _session_requester { _env.ep().rpc_ep(),
+		                                                         _env.ram(),
+		                                                         _env.rm() };
+
+		Init::Server                        _server { _env, _alloc, _child_services, *this };
 
 		Child                              *_child;
 
@@ -104,6 +163,31 @@ class Gdb_monitor::App_child : public Child_policy
 			return service;
 		}
 
+		/**
+		 * Child_service::Wakeup callback
+		 */
+		void wakeup_async_service() override
+		{
+			_session_requester.trigger_update();
+		}
+
+		/**
+		 * Init::Report_update_trigger callback
+		 */
+		void trigger_report_update() override { }
+
+		/**
+		 * Init::Routed_service::Ram_accessor interface
+		 */
+		Ram_session            &ram()           override { return _child->ram(); }
+		Ram_session_capability  ram_cap() const override { return _child->ram_session_cap(); }
+
+		/**
+		 * Init::Routed_service::Pd_accessor interface
+		 */
+		Pd_session            &pd()            override { return _child->pd(); }
+		Pd_session_capability  pd_cap()  const override { return _child->pd_session_cap(); }
+
 	public:
 
 		/**
@@ -122,15 +206,14 @@ class Gdb_monitor::App_child : public Child_policy
 			_unique_name(unique_name),
 			_rm(_env.rm()),
 			_ram_quota(ram_quota), _cap_quota(cap_quota),
-			_entrypoint(&_env.pd(), STACK_SIZE, "GDB monitor entrypoint"),
-			_child_config(env.ram(), _rm, target_node),
-			_config_policy("config", _child_config.dataspace(), &_entrypoint),
+			_child_config(_env.ram(), _rm, target_node),
+			_config_policy("config", _child_config.dataspace(), &_env.ep().rpc_ep()),
 			_unresolved_page_fault_dispatcher(signal_receiver,
 			                                  *this,
 			                                  &App_child::_dispatch_unresolved_page_fault),
-			_cpu_factory(_env, _entrypoint, _alloc, _pd.core_pd_cap(),
+			_cpu_factory(_env, _env.ep().rpc_ep(), _alloc, _pd.core_pd_cap(),
 			             signal_receiver, &_genode_child_resources),
-			_rom_factory(env, _entrypoint, _alloc)
+			_rom_factory(_env, _env.ep().rpc_ep(), _alloc)
 		{
 			_genode_child_resources.region_map_component(&_pd.region_map());
 			_pd.region_map().fault_handler(_unresolved_page_fault_dispatcher);
@@ -138,6 +221,10 @@ class Gdb_monitor::App_child : public Child_policy
 
 		~App_child()
 		{
+			_child_services.for_each([&] (Init::Routed_service &service) {
+				destroy(_alloc, &service);
+			});
+
 			destroy(_alloc, _child);
 		}
 
@@ -148,7 +235,7 @@ class Gdb_monitor::App_child : public Child_policy
 
 		void start()
 		{
-			_child = new (_alloc) Child(_rm, _entrypoint, *this);
+			_child = new (_alloc) Child(_rm, _env.ep().rpc_ep(), *this);
 		}
 
 		/****************************
@@ -161,12 +248,17 @@ class Gdb_monitor::App_child : public Child_policy
 
 		Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
 
+		Id_space<Parent::Server> &server_id_space() override
+		{
+			return _session_requester.id_space();
+		}
+
 		void init(Pd_session &session,
 		          Pd_session_capability cap) override
 		{
 			session.ref_account(_ref_pd_cap);
 
-			_entrypoint.apply(cap, [&] (Pd_session_component *pd) {
+			_env.ep().rpc_ep().apply(cap, [&] (Pd_session_component *pd) {
 				if (pd) {
 					_ref_pd.transfer_quota(pd->core_pd_cap(), _cap_quota);
 					_ref_pd.transfer_quota(pd->core_pd_cap(), _ram_quota);
@@ -182,6 +274,12 @@ class Gdb_monitor::App_child : public Child_policy
 			/* check for config file request */
 			if ((service = _config_policy.resolve_session_request(service_name.string(), args.string())))
 					return *service;
+
+			/* check for "session_requests" ROM request */
+			Genode::Session_label const label(Genode::label_from_args(args.string()));
+			if ((service_name == Genode::Rom_session::service_name()) &&
+			    (label.last_element() == Genode::Session_requester::rom_name()))
+				return _session_requester.service();
 
 			if (service_name == "CPU")
 				return _cpu_service;
@@ -202,11 +300,46 @@ class Gdb_monitor::App_child : public Child_policy
 			return *service;
 		}
 
-		// XXX adjust to API change, need to serve a "session_requests" rom
-		// to the child
-		void announce_service(Service::Name const &name) override
+		void announce_service(Service::Name const &service_name) override
 		{
-			Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+			if (_find_service(_child_services, service_name)) {
+				Genode::warning(name(), ": service ", service_name, " is already registered");
+				return;
+			}
+
+			new (_alloc) Init::Routed_service(_child_services,
+			                                  "target",
+			                                  *this,
+			                                  *this,
+			                                  _session_requester.id_space(),
+			                                  _child->session_factory(),
+			                                  service_name,
+			                                  *this);
+
+			char server_config[4096];
+
+			try {
+				Xml_generator xml(server_config, sizeof(server_config),
+				                  "config", [&] () {
+					_child_services.for_each([&] (Service &service) {
+						xml.node("service", [&] () {
+							xml.attribute("name", service_name);
+							xml.node("default-policy", [&] () {
+								xml.node("child", [&] () {
+									xml.attribute("name", "target");
+								});
+							});
+						});
+					});
+				});
+
+				_server.apply_config(Xml_node(server_config));
+
+			} catch(Xml_generator::Buffer_exceeded &) {
+				error("XML buffer for server configuration exceeded");
+			}
+
+			_env.parent().announce(service_name.string());
 		}
 };
 
