@@ -562,6 +562,18 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	Ipv4_packet &ip = *new (eth.data<void>())
 		Ipv4_packet(eth_size - sizeof(Ethernet_frame));
 
+	/* try handling subnet-local IP packets */
+	if (_ip_config().interface.prefix_matches(ip.dst()) &&
+	    ip.dst() != _router_ip())
+	{
+		/*
+		 * Packet targets IP local to the domain's subnet and doesn't target
+		 * the router. Thus, forward it to all other interfaces of the domain.
+		 */
+		_domain_broadcast(eth, eth_size);
+		return;
+	}
+
 	/* try to route via transport layer rules */
 	try {
 		L3_protocol  const prot      = ip.protocol();
