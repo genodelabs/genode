@@ -403,7 +403,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 void Interface::_release_dhcp_allocation(Dhcp_allocation &allocation)
 {
 	if (_config().verbose()) {
-		log("Release IP allocation: ", allocation, " at ", *this);
+		log("Release DHCP allocation: ", allocation, " at ", *this);
 	}
 	_dhcp_allocations.remove(&allocation);
 }
@@ -420,8 +420,8 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 
 	_dhcp_allocations.insert(&allocation);
 	if (_config().verbose()) {
-		log("Offer IP allocation: ", allocation,
-		                     " at ", *this);
+		log("Offer DHCP allocation: ", allocation,
+		                       " at ", *this);
 	}
 	_send_dhcp_reply(dhcp_srv, eth.src(),
 	                 allocation.ip(),
@@ -485,8 +485,8 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 						allocation.set_bound();
 						allocation.lifetime(dhcp_srv.ip_lease_time());
 						if (_config().verbose()) {
-							log("Bind IP allocation: ", allocation,
-							                    " at ", *this);
+							log("Bind DHCP allocation: ", allocation,
+							                      " at ", *this);
 						}
 						_send_dhcp_reply(dhcp_srv, eth.src(),
 						                 allocation.ip(),
@@ -826,7 +826,7 @@ void Interface::_handle_eth(void              *const  eth_base,
                             size_t             const  eth_size,
                             Packet_descriptor  const &pkt)
 {
-	/* do garbage collection over transport-layer links and IP allocations */
+	/* do garbage collection over transport-layer links and DHCP allocations */
 	_destroy_closed_links<Udp_link>(_closed_udp_links, _alloc);
 	_destroy_closed_links<Tcp_link>(_closed_tcp_links, _alloc);
 	_destroy_released_dhcp_allocations();
@@ -974,7 +974,7 @@ Interface::~Interface()
 	_destroy_links<Tcp_link>(_tcp_links, _closed_tcp_links, _alloc);
 	_destroy_links<Udp_link>(_udp_links, _closed_udp_links, _alloc);
 
-	/* destroy IP allocations */
+	/* destroy DHCP allocations */
 	_destroy_released_dhcp_allocations();
 	while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
 		_dhcp_allocations.remove(allocation);
