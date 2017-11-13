@@ -151,8 +151,8 @@ void Link::dissolve()
 		if (_config.verbose()) {
 			log("Free ", l3_protocol_name(_protocol),
 			    " port ", _server.dst_port(),
-			    " at ", _server.interface(),
-			    " that was used by ", _client.interface());
+			    " at ", _server.interface().domain(),
+			    " that was used by ", _client.interface().domain());
 		}
 	}
 	catch (Pointer<Port_allocator_guard>::Invalid) { }

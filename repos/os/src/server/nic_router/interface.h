@@ -229,13 +229,6 @@ class Net::Interface
 		void send(Ethernet_frame &eth, Genode::size_t const eth_size);
 
 
-		/*********
-		 ** log **
-		 *********/
-
-		void print(Genode::Output &output) const;
-
-
 		/***************
 		 ** Accessors **
 		 ***************/

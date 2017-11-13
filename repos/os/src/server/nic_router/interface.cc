@@ -205,7 +205,7 @@ Interface::_new_link(L3_protocol                   const  protocol,
 			_tcp_links.insert(&link.client());
 			remote_interface._tcp_links.insert(&link.server());
 			if (_config().verbose()) {
-				log("New TCP client link: ", link.client(), " at ", *this);
+				log("New TCP client link: ", link.client(), " at ", _domain);
 				log("New TCP server link: ", link.server(),
 				    " at ", remote_interface._domain);
 			}
@@ -219,7 +219,7 @@ Interface::_new_link(L3_protocol                   const  protocol,
 			_udp_links.insert(&link.client());
 			remote_interface._udp_links.insert(&link.server());
 			if (_config().verbose()) {
-				log("New UDP client link: ", link.client(), " at ", *this);
+				log("New UDP client link: ", link.client(), " at ", _domain);
 				log("New UDP server link: ", link.server(),
 				    " at ", remote_interface._domain);
 			}
@@ -403,7 +403,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 void Interface::_release_dhcp_allocation(Dhcp_allocation &allocation)
 {
 	if (_config().verbose()) {
-		log("Release DHCP allocation: ", allocation, " at ", *this);
+		log("Release DHCP allocation: ", allocation, " at ", _domain);
 	}
 	_dhcp_allocations.remove(&allocation);
 }
@@ -421,7 +421,7 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 	_dhcp_allocations.insert(&allocation);
 	if (_config().verbose()) {
 		log("Offer DHCP allocation: ", allocation,
-		                       " at ", *this);
+		                       " at ", _domain);
 	}
 	_send_dhcp_reply(dhcp_srv, eth.src(),
 	                 allocation.ip(),
@@ -486,7 +486,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 						allocation.lifetime(dhcp_srv.ip_lease_time());
 						if (_config().verbose()) {
 							log("Bind DHCP allocation: ", allocation,
-							                      " at ", *this);
+							                      " at ", _domain);
 						}
 						_send_dhcp_reply(dhcp_srv, eth.src(),
 						                 allocation.ip(),
@@ -1029,9 +1029,3 @@ Configuration &Interface::_config() const { return _domain.config(); }
 
 
 Ipv4_config const &Interface::_ip_config() const { return _domain.ip_config(); }
-
-
-void Interface::print(Output &output) const
-{
-	Genode::print(output, "\"", _domain.name(), "\"");
-}
