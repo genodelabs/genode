@@ -548,6 +548,12 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 }
 
 
+void Interface::_domain_broadcast(Ethernet_frame &eth, size_t eth_size)
+{
+	throw Drop_packet_warn("domain broadcasts not yet supported");
+}
+
+
 void Interface::_handle_ip(Ethernet_frame          &eth,
                            Genode::size_t    const  eth_size,
                            Packet_descriptor const &pkt)
@@ -693,20 +699,23 @@ void Interface::_broadcast_arp_request(Ipv4_address const &ip)
 }
 
 
-void Interface::_handle_arp_reply(Arp_packet &arp)
+void Interface::_handle_arp_reply(Ethernet_frame &eth,
+                                  size_t const    eth_size,
+                                  Arp_packet     &arp)
 {
-	/* do nothing if ARP info already exists */
 	try {
+		/* check wether a matching ARP cache entry already exists */
 		_arp_cache.find_by_ip(arp.src_ip());
 		if (_config().verbose()) {
 			log("ARP entry already exists"); }
-
-		return;
 	}
-	/* create cache entry and continue handling of matching packets */
 	catch (Arp_cache::No_match) {
+
+		/* by now, no matching ARP cache entry exists, so create one */
 		Ipv4_address const ip = arp.src_ip();
 		_arp_cache.new_entry(ip, arp.src_mac());
+
+		/* continue handling of packets that waited for the entry */
 		for (Arp_waiter_list_element *waiter_le = _foreign_arp_waiters.first();
 		     waiter_le; )
 		{
@@ -717,6 +726,15 @@ void Interface::_handle_arp_reply(Arp_packet &arp)
 			destroy(waiter.src()._alloc, &waiter);
 		}
 	}
+	if (_ip_config().interface.prefix_matches(arp.dst_ip()) &&
+	    arp.dst_ip() != _router_ip())
+	{
+		/*
+		 * Packet targets IP local to the domain's subnet and doesn't target
+		 * the router. Thus, forward it to all other interfaces of the domain.
+		 */
+		_domain_broadcast(eth, eth_size);
+	}
 }
 
 
@@ -726,26 +744,10 @@ Ipv4_address const &Interface::_router_ip() const
 }
 
 
-void Interface::_handle_arp_request(Ethernet_frame &eth,
-                                    size_t const    eth_size,
-                                    Arp_packet     &arp)
+void Interface::_send_arp_reply(Ethernet_frame &eth,
+                                size_t const    eth_size,
+                                Arp_packet     &arp)
 {
-	/*
-	 * We handle ARP only if it asks for the routers IP or if the router
-	 * shall forward an ARP to a foreign address as gateway. The second
-	 * is the case if no gateway attribute is specified (so we're the
-	 * gateway) and the address is not of the same subnet like the interface
-	 * attribute.
-	 */
-	if (arp.dst_ip() != _router_ip() &&
-	    (_ip_config().gateway_valid ||
-	     _ip_config().interface.prefix_matches(arp.dst_ip())))
-	{
-		if (_config().verbose()) {
-			log("Ignore ARP request"); }
-
-		return;
-	}
 	/* interchange source and destination MAC and IP addresses */
 	Ipv4_address dst_ip = arp.dst_ip();
 	arp.dst_ip(arp.src_ip());
@@ -761,6 +763,46 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 }
 
 
+void Interface::_handle_arp_request(Ethernet_frame &eth,
+                                    size_t const    eth_size,
+                                    Arp_packet     &arp)
+{
+	if (_ip_config().interface.prefix_matches(arp.dst_ip())) {
+
+		/* ARP request for an IP local to the domain's subnet */
+		if (arp.src_ip() == arp.dst_ip()) {
+
+			/* gratuitous ARP requests are not really necessary */
+			throw Drop_packet_inform("gratuitous ARP request");
+
+		} else if (arp.dst_ip() == _router_ip()) {
+
+			/* ARP request for the routers IP at this domain */
+			_send_arp_reply(eth, eth_size, arp);
+
+		} else {
+
+			/* forward request to all other interfaces of the domain */
+			_domain_broadcast(eth, eth_size);
+		}
+
+	} else {
+
+		/* ARP request for an IP foreign to the domain's subnet */
+		if (_ip_config().gateway_valid) {
+
+			/* leave request up to the gateway of the domain */
+			throw Drop_packet_inform("leave ARP request up to gateway");
+
+		} else {
+
+			/* try to act as gateway for the domain as none is configured */
+			_send_arp_reply(eth, eth_size, arp);
+		}
+	}
+}
+
+
 void Interface::_handle_arp(Ethernet_frame &eth, size_t const eth_size)
 {
 	/* ignore ARP regarding protocols other than IPv4 via ethernet */
@@ -770,7 +812,7 @@ void Interface::_handle_arp(Ethernet_frame &eth, size_t const eth_size)
 		error("ARP for unknown protocol"); }
 
 	switch (arp.opcode()) {
-	case Arp_packet::REPLY:   _handle_arp_reply(arp); break;
+	case Arp_packet::REPLY:   _handle_arp_reply(eth, eth_size, arp);   break;
 	case Arp_packet::REQUEST: _handle_arp_request(eth, eth_size, arp); break;
 	default: error("unknown ARP operation"); }
 }

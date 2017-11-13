@@ -102,11 +102,17 @@ class Net::Interface
 
 		void _handle_arp(Ethernet_frame &eth, Genode::size_t const eth_size);
 
-		void _handle_arp_reply(Arp_packet &arp);
+		void _handle_arp_reply(Ethernet_frame       &eth,
+		                       Genode::size_t const  eth_size,
+		                       Arp_packet           &arp);
 
 		void _handle_arp_request(Ethernet_frame       &eth,
 		                         Genode::size_t const  eth_size,
 		                         Arp_packet           &arp);
+
+		void _send_arp_reply(Ethernet_frame       &eth,
+		                     Genode::size_t const  eth_size,
+		                     Arp_packet           &arp);
 
 		void _handle_dhcp_request(Ethernet_frame &eth,
 		                          Genode::size_t  eth_size,
@@ -132,6 +138,8 @@ class Net::Interface
 		                        Interface              &interface);
 
 		void _broadcast_arp_request(Ipv4_address const &ip);
+
+		void _domain_broadcast(Ethernet_frame &eth, Genode::size_t eth_size);
 
 		void _pass_prot(Ethernet_frame         &eth,
 		                Genode::size_t   const  eth_size,
