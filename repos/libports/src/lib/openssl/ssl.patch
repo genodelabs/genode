@@ -1,0 +1,20 @@
++++ x/ssl/s3_lib.c
+@@ -154,7 +154,7 @@
+ #include "kssl_lcl.h"
+ #ifndef OPENSSL_NO_TLSEXT
+ #ifndef OPENSSL_NO_EC
+-#include "../crypto/ec/ec_lcl.h"
++#include <crypto/ec/ec_lcl.h>
+ #endif /* OPENSSL_NO_EC */
+ #endif /* OPENSSL_NO_TLSEXT */
+ #include <openssl/md5.h>
++++ a/ssl/ssl_cert.c
+@@ -121,7 +121,7 @@
+ # include <sys/types.h>
+ #endif
+ 
+-#include "o_dir.h"
++#include <crypto/o_dir.h>
+ #include <openssl/objects.h>
+ #include <openssl/bio.h>
+ #include <openssl/pem.h>

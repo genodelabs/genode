@@ -38,5 +38,5 @@ src/lib/openssl/x86_64/rc4_md5.s:
 	$(VERBOSE)perl src/lib/openssl/crypto/rc4/asm/rc4-md5-x86_64.pl \
 		src/lib/openssl/crypto/perlasm/x86as.pl > $@
 
-PATCHES   := src/lib/openssl/rand_unix_c.patch
+PATCHES   := $(addprefix src/lib/openssl/,rand_unix_c.patch ssl.patch)
 PATCH_OPT := -p1 -d src/lib/openssl
