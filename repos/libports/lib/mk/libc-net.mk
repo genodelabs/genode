@@ -43,6 +43,6 @@ vpath nslexer.l $(LIBC_NET_DIR)
 nsparser.c: nsparser.y
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)bison -d -p_nsyy $< \
-		--defines=$(LIBC_PORT_DIR)/src/lib/libc/lib/libc/net/nsparser.h --output=$@
+		--defines=nsparser.h --output=$@
 
 vpath nsparser.y $(LIBC_NET_DIR)
