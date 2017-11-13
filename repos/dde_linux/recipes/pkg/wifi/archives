@@ -1,0 +1,5 @@
+_/src/wifi_drv
+_/src/libcrypto
+_/src/libssl
+_/src/vfs_jitterentropy
+_/raw/wifi_firmware
