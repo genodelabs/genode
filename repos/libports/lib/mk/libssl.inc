@@ -14,6 +14,7 @@ SRC_C = s2_meth.c   s2_srvr.c s2_clnt.c  s2_lib.c  s2_enc.c s2_pkt.c \
         bio_ssl.c ssl_err.c kssl.c tls_srp.c t1_reneg.c
 
 INC_DIR += $(LIBSSL_PORT_DIR)/include/openssl
+INC_DIR += $(LIBSSL_PORT_DIR)/src/lib/openssl
 INC_DIR += $(LIBSSL_PORT_DIR)/src/lib/openssl/crypto
 INC_DIR += $(LIBSSL_PORT_DIR)/include
 

@@ -1,1 +1,1 @@
-include $(call select_from_repositories,lib/import/import-libcrypto.mk)
+INC_DIR += $(call select_from_ports,openssl)/include
