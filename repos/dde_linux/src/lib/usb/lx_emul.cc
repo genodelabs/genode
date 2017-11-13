@@ -453,8 +453,6 @@ long find_next_zero_bit_le(const void *addr,
 		if (!(*(unsigned long*)addr & (1L << offset)))
 			return offset;
 
-	Genode::warning("No zero bit findable");
-
 	return offset + size;
 }
 
