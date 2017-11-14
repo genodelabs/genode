@@ -30,11 +30,16 @@ class Genode::Signalled_time_source : public Time_source
 
 		Signal_handler   _signal_handler;
 		Timeout_handler *_handler = nullptr;
+		bool             _irq = false;
 
 		void _handle_timeout()
 		{
 			if (_handler) {
-				_handler->handle_timeout(curr_time()); }
+				_irq = true;
+				Duration time(curr_time());
+				_irq = false;
+				_handler->handle_timeout(time);
+			}
 		}
 
 	public:

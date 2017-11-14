@@ -53,19 +53,27 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
                                           Timeout_handler &handler)
 {
 	_handler = &handler;
-	_timer_irq.ack_irq();
 	unsigned long duration_us = duration.value;
 
-	/* limit timer-interrupt rate */
-	enum { MAX_TIMER_IRQS_PER_SECOND = 4*1000 };
-	if (duration_us < 1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND)
-		duration_us = 1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND;
-
-	if (duration_us > max_timeout().value)
+	/* timeout '0' is trigger to cancel the current pending, if required */
+	if (!duration.value) {
 		duration_us = max_timeout().value;
+		Signal_transmitter(_signal_handler).submit();
+	} else {
+		/* limit timer-interrupt rate */
+		enum { MAX_TIMER_IRQS_PER_SECOND = 4*1000 };
+		if (duration_us < 1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND)
+			duration_us = 1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND;
+
+		if (duration_us > max_timeout().value)
+			duration_us = max_timeout().value;
+	}
 
 	_counter_init_value = (PIT_TICKS_PER_MSEC * duration_us) / 1000;
 	_set_counter(_counter_init_value);
+
+	if (duration.value)
+		_timer_irq.ack_irq();
 }
 
 
@@ -93,6 +101,16 @@ uint32_t Timer::Time_source::_ticks_since_update_one_wrap(uint16_t curr_counter)
 
 
 Duration Timer::Time_source::curr_time()
+{
+	/* read out and update curr time solely if running in context of irq */
+	if (_irq)
+		_curr_time();
+
+	return Duration(Microseconds(_curr_time_us));
+}
+
+
+Duration Timer::Time_source::_curr_time()
 {
 	/* read PIT counter and wrapped status */
 	uint32_t ticks;
