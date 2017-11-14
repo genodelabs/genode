@@ -1,33 +1,20 @@
 LICENSE   := BSD
-VERSION   := git
-DOWNLOADS := rump.git nblibs.git
+VERSION   := cvs
+DOWNLOADS := rump.cvs
 
-URL(rump) := https://github.com/rumpkernel/buildrump.sh.git
-REV(rump) := fd4bdac4ad6357a36b9a0af6abde02bf3bb42232
-DIR(rump) := src/lib/dde_rump
+$(call check_tool, cvs)
 
-URL(nblibs) := https://github.com/rumpkernel/src-netbsd.git
-REV(nblibs) := b71ee7667ea9904c28b089feadc594a62f406bd5
-DIR(nblibs) := src/lib/dde_rump/nblibs
+URL(rump)  := :pserver:anoncvs@anoncvs.netbsd.org:2401/cvsroot
+REV(rump)  := "20141216 2100UTC"
+DIR(rump)  := src/lib/dde_rump
+HASH_INPUT += $(REP_DIR)/rump.list
 
 PATCHES   := $(shell find $(REP_DIR)/patches/*.patch)
 PATCH_OPT := -N -d ${DIR(rump)} -p1
 
-GIT_NETBSD_COMMIT := 0875d49ae93a8101d5321b7a73983daee5c1b581
-NETBSD_SRC        := src/lib/dde_rump/src
-
-
-# checkout NetBSD sources
-default: checkout_src
-checkout_src: $(DOWNLOADS)
-	@$(MSG_PREFIX)"checkout NetBSD src "
-	$(VERBOSE)if [ -d "$(NETBSD_SRC)/.git" ]; then cd $(NETBSD_SRC) && git checkout -f; fi
-	$(VERBOSE)src/lib/dde_rump/checkout.sh git src/lib/dde_rump/src
-	$(VERBOSE)cd $(NETBSD_SRC) && git reset --hard $(GIT_NETBSD_COMMIT)
-	$(VERBOSE)ln -sf ../src/common src/lib/dde_rump/nblibs/common
-
-
-DIRS := include/rump
-DIR_CONTENT(include/rump) := src/lib/dde_rump/src/sys/rump/include/rump/*.h
+%.cvs:
+	@echo "CVS checkout rump ..."
+	$(VERBOSE)cat $(REP_DIR)/rump.list | xargs cvs -d $(URL($*)) -Q -z3 export \
+	-D $(REV($*)) -d $(DIR($*))
 
 # vi: set ft=make :

@@ -21,13 +21,14 @@
 #include <base/attached_rom_dataspace.h>
 
 /**
- * We define our own fs arg structure to fit all sizes, we assume that 'fspec'
- * is the only valid argument and all other fields are unused.
+ * We define our own fs arg structure to fit all sizes used by the different
+ * file system implementations, we assume that 'fspec' * is the only valid
+ * argument and all other fields are unused.
  */
 struct fs_args
 {
 	char *fspec;
-	char  pad[150];
+	char  pad[164];
 
 	fs_args() { Genode::memset(pad, 0, sizeof(pad)); }
 };
@@ -131,7 +132,7 @@ void File_system::mount_fs()
 	    opts |= RUMP_MNT_NOATIME;
 
 	if (root_fd == -42) {
-		root_fd = open("/", O_DIRECTORY | O_RDONLY);
+		root_fd = rump_sys_open("/", O_DIRECTORY | O_RDONLY);
 		if (root_fd == -1) {
 			Genode::error("opening root directory failed");
 			throw Genode::Exception();
@@ -145,7 +146,7 @@ void File_system::mount_fs()
 		throw Genode::Exception();
 	}
 
-	int const mnt_fd = open(GENODE_MOUNT_DIR,  O_DIRECTORY | O_RDONLY);
+	int const mnt_fd = rump_sys_open(GENODE_MOUNT_DIR,  O_DIRECTORY | O_RDONLY);
 	if (mnt_fd == -1) {
 		Genode::error("opening mnt directory failed");
 		throw Genode::Exception();

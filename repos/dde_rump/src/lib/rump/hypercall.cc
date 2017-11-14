@@ -22,7 +22,6 @@
 #include <util/random.h>
 #include <util/string.h>
 
-extern "C" void wait_for_continue();
 enum { SUPPORTED_RUMP_VERSION = 17 };
 
 static bool verbose = false;

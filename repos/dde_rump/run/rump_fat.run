@@ -47,6 +47,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<default caps="100"/>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -56,7 +57,7 @@ append config {
 		<provides><service name="Block"/></provides>
 		<config file="fs.raw" block_size="512"/>
 	</start>
-	<start name="rump_fs">
+	<start name="rump_fs" caps="200">
 		<resource name="RAM" quantum="8M" />
 		<provides><service name="File_system"/></provides>
 		<config fs="msdos"><default-policy root="/" writeable="yes"/></config>

@@ -14,7 +14,7 @@
 extern "C" {
 #include <sys/types.h>
 #include <rump/rumpuser.h>
-#include <elf.h>
+#include <exec_elf.h>
 }
 
 #include <rump/env.h>
@@ -23,8 +23,6 @@ extern "C" {
 #include <base/shared_object.h>
 #include <util/string.h>
 
-
-extern "C" void wait_for_continue();
 
 #ifdef _LP64
 typedef Elf64_Dyn Elf_Dyn;

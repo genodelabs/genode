@@ -1,0 +1,12 @@
+diff --git a/src/usr.bin/config/gram.y b/src/usr.bin/config/gram.y
+index 7e63598..5f9064a 100644
+--- a/src/usr.bin/config/gram.y
++++ b/src/usr.bin/config/gram.y
+@@ -142,6 +142,7 @@ static struct condexpr *mk_cx_or(struct condexpr *, struct condexpr *);
+ 
+ static	void	setmachine(const char *, const char *, struct nvlist *, int);
+ static	void	check_maxpart(void);
++static	void	check_version(void);
+ 
+ static struct loclist *present_loclist(struct loclist *ll);
+ static void app(struct loclist *, struct loclist *);
