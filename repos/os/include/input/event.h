@@ -84,9 +84,21 @@ class Input::Event
 		{ }
 
 		/**
+		 * Return event type
+		 */
+		Type type() const
+		{
+			/* prevent obnoxious events from being processed by clients */
+			if ((_type == PRESS || _type == RELEASE)
+			 && (_code <= KEY_RESERVED || _code >= KEY_UNKNOWN))
+				return INVALID;
+
+			return _type;
+		}
+
+		/**
 		 * Accessors
 		 */
-		Type type() const { return _type; }
 		int  code() const { return _code; }
 		int  ax()   const { return _ax; }
 		int  ay()   const { return _ay; }
