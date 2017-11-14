@@ -92,6 +92,7 @@ struct Ps2::Main
 
 	Main(Genode::Env &env) : _env(env)
 	{
+		_config.sigh(_config_handler);
 		_handle_config();
 
 		env.parent().announce(env.ep().manage(_root));
