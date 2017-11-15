@@ -46,13 +46,26 @@ struct Genode::Color
 
 	bool operator != (Color const &other) const {
 		return !operator == (other); }
+
+	void print(Output &output) const
+	{
+		using Genode::print;
+
+		print(output, Char('#'));
+		print(output, Hex((unsigned char)r, Hex::OMIT_PREFIX, Hex::PAD));
+		print(output, Hex((unsigned char)g, Hex::OMIT_PREFIX, Hex::PAD));
+		print(output, Hex((unsigned char)b, Hex::OMIT_PREFIX, Hex::PAD));
+
+		if (a != 255)
+			print(output, Hex((unsigned char)a, Hex::OMIT_PREFIX, Hex::PAD));
+	}
 };
 
 
 /**
  * Convert ASCII string to Color
  *
- * The ASCII string must have the format '#rrggbb'
+ * The ASCII string must have the format '#rrggbb' or '#rrggbbaa'.
  *
  * \return number of consumed characters, or 0 if the string contains
  *         no valid color
@@ -60,19 +73,26 @@ struct Genode::Color
 inline Genode::size_t Genode::ascii_to(const char *s, Genode::Color &result)
 {
 	/* validate string */
-	if (strlen(s) < 7 || *s != '#') return 0;
+	Genode::size_t const len = strlen(s);
+
+	if (len < 7 || *s != '#') return 0;
 
 	enum { HEX = true };
 
 	for (unsigned i = 0; i < 6; i++)
 		if (!is_digit(s[i + 1], HEX)) return 0;
 
-	int red   = 16*digit(s[1], HEX) + digit(s[2], HEX),
-	    green = 16*digit(s[3], HEX) + digit(s[4], HEX),
-	    blue  = 16*digit(s[5], HEX) + digit(s[6], HEX);
+	int const red   = 16*digit(s[1], HEX) + digit(s[2], HEX),
+	          green = 16*digit(s[3], HEX) + digit(s[4], HEX),
+	          blue  = 16*digit(s[5], HEX) + digit(s[6], HEX);
 
-	result = Color(red, green, blue);
-	return 7;
+	bool const has_alpha = (len >= 9) && is_digit(s[7], HEX) && is_digit(s[8], HEX);
+
+	int const alpha = has_alpha ? 16*digit(s[7], HEX) + digit(s[8], HEX) : 255;
+
+	result = Color(red, green, blue, alpha);
+
+	return has_alpha ? 9 : 7;
 }
 
 #endif /* _INCLUDE__UTIL__COLOR_H_ */
