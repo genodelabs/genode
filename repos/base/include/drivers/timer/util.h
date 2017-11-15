@@ -38,10 +38,10 @@ namespace Genode {
 	RESULT_T timer_ticks_to_us(RESULT_T      const ticks,
 	                           TICS_PER_MS_T const ticks_per_ms)
 	{
-		enum {
+		enum:RESULT_T {
 			HALF_WIDTH = (sizeof(RESULT_T) << 2),
-			MSB_MASK  = ~0UL << HALF_WIDTH,
-			LSB_MASK  = ~0UL >> HALF_WIDTH,
+			MSB_MASK  = ((RESULT_T)~0UL) << HALF_WIDTH,
+			LSB_MASK  = ((RESULT_T)~0UL) >> HALF_WIDTH,
 			MSB_RSHIFT = 10,
 			LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
 		};
