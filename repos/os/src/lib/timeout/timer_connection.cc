@@ -92,7 +92,7 @@ void Timer::Connection::_handle_timeout()
 		_update_real_time();
 	}
 	if (_handler) {
-		_handler->handle_timeout(Duration(Microseconds(us)));
+		_handler->handle_timeout(curr_time());
 	}
 }
 

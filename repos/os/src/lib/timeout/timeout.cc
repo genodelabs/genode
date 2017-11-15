@@ -65,10 +65,9 @@ bool Timeout::Alarm::on_alarm(unsigned)
  ** Alarm_timeout_scheduler **
  *****************************/
 
-void Alarm_timeout_scheduler::handle_timeout(Duration)
+void Alarm_timeout_scheduler::handle_timeout(Duration duration)
 {
-	unsigned long const curr_time_us =
-		_time_source.curr_time().trunc_to_plain_us().value;
+	unsigned long const curr_time_us = duration.trunc_to_plain_us().value;
 
 	_alarm_scheduler.handle(curr_time_us);
 
