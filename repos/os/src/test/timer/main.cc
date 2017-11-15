@@ -37,20 +37,34 @@ struct Lazy_test
 	Signal_handler<Lazy_test> faster_handler { env.ep(), *this,
 	                                           &Lazy_test::handle_faster_timer };
 
+	enum { RUN_TIME_US = 2 * 1000 * 1000, TIMEOUT_US = 50*1000, FACTOR = 2 };
+	unsigned fast = 0;
+	unsigned faster = 0;
+
 	void handle_slow_timer()
 	{
-		log("timeout fired");
+		log("timeout fired - ", fast, "/", faster, "/",
+		    RUN_TIME_US / TIMEOUT_US * FACTOR);
+
+		if (fast)
+			throw Faster_timer_too_slow();
+
 		done.submit();
 	}
 
-	void handle_fast_timer()   { throw Faster_timer_too_slow(); }
+	void handle_fast_timer()   {
+		fast ++;
+		if (faster <= fast)
+			throw Faster_timer_too_slow();
+	}
+
 	void handle_faster_timer() { set_fast_timers(); }
 
 	void set_fast_timers()
 	{
-		enum { TIMEOUT_US = 50*1000 };
 		fast_timer.trigger_once(TIMEOUT_US);
-		faster_timer.trigger_once(TIMEOUT_US/2);
+		faster_timer.trigger_once(TIMEOUT_US/FACTOR);
+		faster ++;
 	}
 
 	Lazy_test(Env &env, Signal_context_capability done) : env(env), done(done)
@@ -60,7 +74,7 @@ struct Lazy_test
 		faster_timer.sigh(faster_handler);
 
 		log("register two-seconds timeout...");
-		slow_timer.trigger_once(2*1000*1000);
+		slow_timer.trigger_once(RUN_TIME_US);
 		set_fast_timers();
 	}
 };
@@ -100,7 +114,7 @@ struct Stress_test
 			timer.trigger_once(us);
 		}
 
-		void dump()
+		void dump(unsigned &starvation, unsigned &rate_violation)
 		{
 			log("timer (period ", us, " us) triggered ", count,
 			    " times (min ", (unsigned)MIN_CNT,
@@ -111,13 +125,13 @@ struct Stress_test
 			if (count < MIN_CNT) {
 				error("triggered less than ", (unsigned)MIN_CNT,
 				      " times");
-				throw Starvation();
+				starvation ++;
 			}
 			/* detect violation of timer rate limitation */
 			if (count > MAX_CNT) {
 				error("triggered more than ", (unsigned)MAX_CNT,
 				      " times");
-				throw Violation_of_timer_rate_limit();
+				rate_violation ++;
 			}
 		}
 
@@ -140,8 +154,19 @@ struct Stress_test
 			log("wait ", count, "/", (unsigned)DURATION_SEC);
 			timer.trigger_once(1000UL * 1000);
 		} else {
+			unsigned starvation = 0;
+			unsigned rate_violation = 0;
+
 			slaves.for_each([&] (Slave &timer) { timer.stop(); });
-			slaves.for_each([&] (Slave &timer) { timer.dump(); });
+			slaves.for_each([&] (Slave &timer) {
+				timer.dump(starvation, rate_violation);
+			});
+
+			if (starvation)
+				throw Starvation();
+			if (rate_violation)
+				throw Violation_of_timer_rate_limit();
+
 			done.submit();
 		}
 	}
