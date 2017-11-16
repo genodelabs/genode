@@ -66,6 +66,7 @@ struct Genode::Duration
 		unsigned long _microseconds { 0 };
 		unsigned long _hours        { 0 };
 
+		void _add_us_less_than_an_hour(unsigned long us);
 		void _raise_hours(unsigned long hours);
 
 	public:

@@ -95,6 +95,149 @@ struct Test
 };
 
 
+struct Duration_test : Test
+{
+	static constexpr char const *brief = "Test operations on durations";
+
+	Duration_test(Env                       &env,
+	              unsigned                  &error_cnt,
+	              Signal_context_capability  done,
+	              unsigned                   id)
+	:
+		Test(env, error_cnt, done, id, brief)
+	{
+		log("tests with common duration values");
+		enum : unsigned long { US_PER_HOUR = 1000UL * 1000 * 60 * 60 };
+
+		/* create durations for corner cases */
+		Duration min (Microseconds(0UL));
+		Duration hour(Microseconds((unsigned long)US_PER_HOUR));
+		Duration max (Microseconds(~0UL));
+		{
+			/* create durations near the corner cases */
+			Duration min_plus_1  (Microseconds(1UL));
+			Duration hour_minus_1(Microseconds((unsigned long)US_PER_HOUR - 1));
+			Duration hour_plus_1 (Microseconds((unsigned long)US_PER_HOUR + 1));
+			Duration max_minus_1 (Microseconds(~0UL - 1));
+
+			/* all must be greater than the minimum */
+			if (min_plus_1   < min) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour_minus_1 < min) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour         < min) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour_plus_1  < min) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max          < min) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max_minus_1  < min) { error(__func__, ":", __LINE__); error_cnt++; }
+
+			/* all must be less than the maximum */
+			if (max < min         ) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max < min_plus_1  ) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max < hour_minus_1) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max < hour        ) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max < hour_plus_1 ) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max < max_minus_1 ) { error(__func__, ":", __LINE__); error_cnt++; }
+
+			/* consistency around one hour */
+			if (hour        < hour_minus_1) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour_plus_1 < hour        ) { error(__func__, ":", __LINE__); error_cnt++; }
+		}
+		/* consistency when we double the values */
+		Duration two_hours = hour;
+		Duration two_max   = max;
+		two_hours += Microseconds((unsigned long)US_PER_HOUR);
+		two_max   += Microseconds(~0UL);
+		if (two_hours < hour) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (two_max   < max)  { error(__func__, ":", __LINE__); error_cnt++; }
+
+		/* create durations near corner cases by increasing after construction */
+		Duration hour_minus_1(Microseconds((unsigned long)US_PER_HOUR - 2));
+		Duration hour_plus_1 (Microseconds((unsigned long)US_PER_HOUR));
+		Duration max_minus_1 (Microseconds(~0UL - 2));
+		Duration max_plus_1  (Microseconds(~0UL));
+		hour_minus_1 += Microseconds(1);
+		hour_plus_1  += Microseconds(1);
+		max_minus_1  += Microseconds(1);
+		max_plus_1   += Microseconds(1);
+
+		/* consistency around corner cases */
+		if (hour        < hour_minus_1) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (hour_plus_1 < hour        ) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (max         < max_minus_1 ) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (max_plus_1  < max         ) { error(__func__, ":", __LINE__); error_cnt++; }
+
+		log("tests near maximum duration value (may take a while)");
+
+		/*
+		 * This is a fast way to get the maximum possible duration
+		 */
+		enum { NR = 12 };
+		Duration duration[NR] = {
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(1UL)),
+			Duration(Microseconds(0UL)),
+			Duration(Microseconds(0UL))
+		};
+		for (unsigned volatile step = 0; NR - step > 2; step++) {
+
+			/*
+			 * We increase all left durations equally, beginning with a big
+			 * step width, until an overflow occurs. Then, we dismiss the
+			 * duration that had the overflow and decrease the step width for
+			 * the next round. With only 3 durations left, we decrease step
+			 * width to 1 and do one more round. So, finally we have only 2
+			 * durations left.
+			 */
+			unsigned volatile duration_id = step;
+			unsigned          nr_left     = NR - step;
+			try {
+				while (1) {
+					for (; duration_id < NR; duration_id++) {
+
+						if      (nr_left  > 4) { duration[duration_id] += Milliseconds(~0UL / (step + 1)); }
+						else if (nr_left == 4) { duration[duration_id] += Milliseconds(1000UL); }
+						else if (nr_left  < 4) { duration[duration_id] += Microseconds(1UL); }
+					}
+					duration_id = step;
+				}
+			}
+			catch (Duration::Overflow) { }
+			log("  step ", step, " done: duration ", duration_id, " dismissed",
+			                          ", durations ", step, "..", NR - 1, " left");
+		}
+
+		/*
+		 * Now, both duration[NR - 2] and duration[NR - 1] contain one less
+		 * than the maximum possible duration value. So, test consistency at
+		 * this corner case.
+		 */
+		duration[NR - 2] += Microseconds(1);
+		if (duration[NR - 2] < duration[NR - 1])        { error(__func__, ":", __LINE__); error_cnt++; }
+		if (duration[NR - 1] < duration[NR - 2]) ; else { error(__func__, ":", __LINE__); error_cnt++; }
+
+		/* test if we really had the expected durations */
+		try {
+			duration[NR - 2] += Microseconds(1);
+			error(__func__, ":", __LINE__); error_cnt++;
+		}
+		catch (Duration::Overflow) { }
+		try {
+			duration[NR - 1] += Microseconds(2);
+			error(__func__, ":", __LINE__); error_cnt++;
+		}
+		catch (Duration::Overflow) { }
+
+		Test::done.submit();
+	}
+};
+
+
 struct Mixed_timeouts : Test
 {
 	static constexpr char const *brief = "schedule multiple timeouts simultaneously";
@@ -608,10 +751,12 @@ struct Main
 {
 	Env                           &env;
 	unsigned                       error_cnt   { 0 };
-	Constructible<Fast_polling>    test_1;
-	Constructible<Mixed_timeouts>  test_2;
+	Constructible<Duration_test>   test_1;
+	Constructible<Fast_polling>    test_2;
+	Constructible<Mixed_timeouts>  test_3;
 	Signal_handler<Main>           test_1_done { env.ep(), *this, &Main::handle_test_1_done };
 	Signal_handler<Main>           test_2_done { env.ep(), *this, &Main::handle_test_2_done };
+	Signal_handler<Main>           test_3_done { env.ep(), *this, &Main::handle_test_3_done };
 
 	Main(Env &env) : env(env)
 	{
@@ -627,6 +772,12 @@ struct Main
 	void handle_test_2_done()
 	{
 		test_2.destruct();
+		test_3.construct(env, error_cnt, test_3_done, 2);
+	}
+
+	void handle_test_3_done()
+	{
+		test_3.destruct();
 		if (error_cnt) {
 			error("test failed because of ", error_cnt, " error(s)");
 			env.parent().exit(-1);

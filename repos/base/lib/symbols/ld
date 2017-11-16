@@ -360,6 +360,7 @@ _ZNK6Genode6Thread10stack_baseEv T
 _ZNK6Genode6Thread4nameEv T
 _ZNK6Genode6Thread9stack_topEv T
 _ZNK6Genode8Duration17trunc_to_plain_usEv T
+_ZNK6Genode8DurationltERS0_ T
 _ZNKSt13bad_exception4whatEv T
 _ZNKSt9exception4whatEv T
 _ZNSt13bad_exceptionD0Ev T

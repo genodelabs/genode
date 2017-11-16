@@ -26,13 +26,30 @@ void Duration::_raise_hours(unsigned long hours)
 }
 
 
+void Duration::_add_us_less_than_an_hour(unsigned long us)
+{
+	unsigned long const us_until_next_hr =
+		(unsigned long)US_PER_HOUR - _microseconds;
+
+	if (us >= us_until_next_hr) {
+		_raise_hours(1);
+		_microseconds = us - us_until_next_hr;
+	} else {
+		_microseconds += us;
+	}
+}
+
+
 void Duration::operator += (Microseconds us)
 {
-	_microseconds += us.value;
-	if (_microseconds > US_PER_HOUR) {
-		_microseconds -= US_PER_HOUR;
-		_raise_hours(1);
+	/* filter out hours if any */
+	if (us.value >= (unsigned long)US_PER_HOUR) {
+		unsigned long const hours = us.value / US_PER_HOUR;
+		_raise_hours(hours);
+		us.value -= hours * US_PER_HOUR;
 	}
+	/* add the rest */
+	_add_us_less_than_an_hour(us.value);
 }
 
 
@@ -45,7 +62,7 @@ void Duration::operator += (Milliseconds ms)
 		ms.value -= hours * MS_PER_HOUR;
 	}
 	/* add the rest as microseconds value */
-	*this += Microseconds(ms.value * US_PER_MS);
+	_add_us_less_than_an_hour(ms.value * US_PER_MS);
 }
 
 
