@@ -14,21 +14,20 @@
 #ifndef _DOMAIN_REGISTRY_
 #define _DOMAIN_REGISTRY_
 
-#include <base/allocator.h>
-#include <base/log.h>
-#include <util/xml_node.h>
-#include <util/color.h>
+#include "types.h"
 
-class Domain_registry
+namespace Nitpicker { class Domain_registry; }
+
+
+class Nitpicker::Domain_registry
 {
 	public:
 
-		class Entry : public Genode::List<Entry>::Element
+		class Entry : public List<Entry>::Element
 		{
 			public:
 
-				typedef Genode::String<64> Name;
-				typedef Genode::Color      Color;
+				typedef String<64> Name;
 
 				enum Label   { LABEL_NO, LABEL_YES };
 				enum Content { CONTENT_CLIENT, CONTENT_TINTED };
@@ -109,31 +108,31 @@ class Domain_registry
 				{
 					int const w = _area.x() > 0
 					            ? _area.x()
-					            : Genode::max(0, (int)phys_screen_area.w() + _area.x());
+					            : max(0, (int)phys_screen_area.w() + _area.x());
 
 					int const h = _area.y() > 0
 					            ? _area.y()
-					            : Genode::max(0, (int)phys_screen_area.h() + _area.y());
+					            : max(0, (int)phys_screen_area.h() + _area.y());
 
 					return Area(w, h);
 				}
 		};
 
-		static Entry::Label _label(Genode::Xml_node domain)
+		static Entry::Label _label(Xml_node domain)
 		{
-			typedef Genode::String<32> Value;
+			typedef String<32> Value;
 			Value const value = domain.attribute_value("label", Value("yes"));
 
 			if (value == "no")  return Entry::LABEL_NO;
 			if (value == "yes") return Entry::LABEL_YES;
 
-			Genode::warning("invalid value of label attribute in <domain>");
+			warning("invalid value of label attribute in <domain>");
 			return Entry::LABEL_YES;
 		}
 
-		static Entry::Content _content(Genode::Xml_node domain)
+		static Entry::Content _content(Xml_node domain)
 		{
-			typedef Genode::String<32> Value;
+			typedef String<32> Value;
 			Value const value = domain.attribute_value("content", Value("tinted"));
 
 			if (value == "client") return Entry::CONTENT_CLIENT;
@@ -142,34 +141,34 @@ class Domain_registry
 			return Entry::CONTENT_TINTED;
 		}
 
-		static Entry::Hover _hover(Genode::Xml_node domain)
+		static Entry::Hover _hover(Xml_node domain)
 		{
-			typedef Genode::String<32> Value;
+			typedef String<32> Value;
 			Value const value = domain.attribute_value("hover", Value("focused"));
 
 			if (value == "focused") return Entry::HOVER_FOCUSED;
 			if (value == "always")  return Entry::HOVER_ALWAYS;
 
-			Genode::warning("invalid value of hover attribute in <domain>");
+			warning("invalid value of hover attribute in <domain>");
 			return Entry::HOVER_FOCUSED;
 		}
 
-		static Entry::Focus _focus(Genode::Xml_node domain)
+		static Entry::Focus _focus(Xml_node domain)
 		{
-			typedef Genode::String<32> Value;
+			typedef String<32> Value;
 			Value const value = domain.attribute_value("focus", Value("none"));
 
 			if (value == "none")      return Entry::FOCUS_NONE;
 			if (value == "click")     return Entry::FOCUS_CLICK;
 			if (value == "transient") return Entry::FOCUS_TRANSIENT;
 
-			Genode::warning("invalid value of focus attribute in <domain>");
+			warning("invalid value of focus attribute in <domain>");
 			return Entry::FOCUS_NONE;
 		}
 
-		static Entry::Origin _origin(Genode::Xml_node domain)
+		static Entry::Origin _origin(Xml_node domain)
 		{
-			typedef Genode::String<32> Value;
+			typedef String<32> Value;
 			Value const value = domain.attribute_value("origin", Value("top_left"));
 
 			if (value == "top_left")     return Entry::ORIGIN_TOP_LEFT;
@@ -178,11 +177,11 @@ class Domain_registry
 			if (value == "bottom_right") return Entry::ORIGIN_BOTTOM_RIGHT;
 			if (value == "pointer")      return Entry::ORIGIN_POINTER;
 
-			Genode::warning("invalid value of origin attribute in <domain>");
+			warning("invalid value of origin attribute in <domain>");
 			return Entry::ORIGIN_BOTTOM_LEFT;
 		}
 
-		void _insert(Genode::Xml_node domain)
+		void _insert(Xml_node domain)
 		{
 			char buf[sizeof(Entry::Name)];
 			buf[0] = 0;
@@ -193,19 +192,19 @@ class Domain_registry
 			} catch (...) { }
 
 			if (!name_defined) {
-				Genode::error("no valid domain name specified");
+				error("no valid domain name specified");
 				return;
 			}
 
 			Entry::Name const name(buf);
 
 			if (lookup(name)) {
-				Genode::error("domain name \"", name, "\" is not unique");
+				error("domain name \"", name, "\" is not unique");
 				return;
 			}
 
 			if (!domain.has_attribute("layer")) {
-				Genode::error("no layer specified for domain \"", name, "\"");
+				error("no layer specified for domain \"", name, "\"");
 				return;
 			}
 
@@ -217,7 +216,7 @@ class Domain_registry
 			Point const area(domain.attribute_value("width",  0L),
 			                 domain.attribute_value("height", 0L));
 
-			Entry::Color const color = domain.attribute_value("color", WHITE);
+			Color const color = domain.attribute_value("color", white());
 
 			_entries.insert(new (_alloc) Entry(name, color, _label(domain),
 			                                   _content(domain), _hover(domain),
@@ -227,12 +226,12 @@ class Domain_registry
 
 	private:
 
-		Genode::List<Entry> _entries;
-		Genode::Allocator  &_alloc;
+		List<Entry> _entries;
+		Allocator  &_alloc;
 
 	public:
 
-		Domain_registry(Genode::Allocator &alloc, Genode::Xml_node config)
+		Domain_registry(Allocator &alloc, Xml_node config)
 		:
 			_alloc(alloc)
 		{
@@ -241,7 +240,7 @@ class Domain_registry
 			if (!config.has_sub_node(type))
 				return;
 
-			Genode::Xml_node domain = config.sub_node(type);
+			Xml_node domain = config.sub_node(type);
 
 			for (;; domain = domain.next(type)) {
 
@@ -256,7 +255,7 @@ class Domain_registry
 		{
 			while (Entry *e = _entries.first()) {
 				_entries.remove(e);
-				Genode::destroy(_alloc, e);
+				destroy(_alloc, e);
 			}
 		}
 

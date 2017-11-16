@@ -18,19 +18,19 @@
 #include <nitpicker_gfx/text_painter.h>
 #include <nitpicker_gfx/texture_painter.h>
 
-typedef Genode::Surface_base::Area    Area;
-typedef Genode::Surface_base::Point   Point;
-typedef Genode::Surface_base::Rect    Rect;
-typedef Genode::Color                 Color;
+/* local includes */
+#include "types.h"
 
-using Genode::Texture_base;
-using Genode::Texture;
+namespace Nitpicker {
+	struct Canvas_base;
+	template <typename PT> class Canvas;
+}
 
 
 /**
  * Pixel-type-independent interface of nitpicker's graphics backend
  */
-struct Canvas_base
+struct Nitpicker::Canvas_base
 {
 	virtual Area size() const = 0;
 
@@ -54,11 +54,11 @@ struct Canvas_base
  * Pixel-type-specific implementation of nitpicker's graphics backend
  */
 template <typename PT>
-class Canvas : public Canvas_base, public Genode::Surface_base::Flusher
+class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 {
 	private:
 
-		Genode::Surface<PT> _surface;
+		Surface<PT> _surface;
 
 	public:
 

@@ -27,23 +27,52 @@ static inline bool _mouse_button(Keycode keycode) {
 		return keycode >= BTN_LEFT && keycode <= BTN_MIDDLE; }
 
 
+/**
+ * Determine number of events that can be merged into one
+ *
+ * \param ev   pointer to first event array element to check
+ * \param max  size of the event array
+ * \return     number of events subjected to merge
+ */
+static unsigned num_consecutive_events(Input::Event const *ev, unsigned max)
+{
+	if (max < 1) return 0;
+	if (ev->type() != Input::Event::MOTION) return 1;
+
+	bool const first_absolute = ev->absolute_motion();
+
+	/* iterate until we get a different event type, start at second */
+	unsigned cnt = 1;
+	for (ev++ ; cnt < max; cnt++, ev++) {
+		if (ev->type() != Input::Event::MOTION) break;
+		if (first_absolute != ev->absolute_motion()) break;
+	}
+	return cnt;
+}
+
+
+/**
+ * Merge consecutive motion events
+ *
+ * \param ev  event array to merge
+ * \param n   number of events to merge
+ * \return    merged motion event
+ */
+static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
+{
+	Input::Event res;
+	for (unsigned i = 0; i < n; i++, ev++)
+		res = Input::Event(Input::Event::MOTION, 0, ev->ax(), ev->ay(),
+		                   res.rx() + ev->rx(), res.ry() + ev->ry());
+	return res;
+}
+
+
 /**************************
  ** User state interface **
  **************************/
 
-User_state::User_state(Global_keys &global_keys, Area view_stack_size)
-:
-	View_stack(view_stack_size, *this), _global_keys(global_keys)
-{ }
-
-
-void User_state::_update_all()
-{
-	update_all_views();
-}
-
-
-void User_state::handle_event(Input::Event ev)
+void User_state::_handle_input_event(Input::Event ev)
 {
 	Input::Keycode     const keycode = ev.keycode();
 	Input::Event::Type const type    = ev.type();
@@ -57,8 +86,8 @@ void User_state::handle_event(Input::Event ev)
 	/* transparently handle absolute and relative motion events */
 	if (type == Event::MOTION) {
 		if ((ev.rx() || ev.ry()) && ev.ax() == 0 && ev.ay() == 0) {
-			ax = Genode::max(0, Genode::min((int)size().w() - 1, ax + ev.rx()));
-			ay = Genode::max(0, Genode::min((int)size().h() - 1, ay + ev.ry()));
+			ax = max(0, min((int)_view_stack.size().w() - 1, ax + ev.rx()));
+			ay = max(0, min((int)_view_stack.size().h() - 1, ay + ev.ry()));
 		} else {
 			ax = ev.ax();
 			ay = ev.ay();
@@ -83,9 +112,11 @@ void User_state::handle_event(Input::Event ev)
 
 	_pointer_pos = Point(ax, ay);
 
+	bool const drag = _key_cnt > 0;
+
 	/* count keys */
-	if (type == Event::PRESS)                   Mode::inc_key_cnt();
-	if (type == Event::RELEASE && Mode::drag()) Mode::dec_key_cnt();
+	if (type == Event::PRESS)           _key_cnt++;
+	if (type == Event::RELEASE && drag) _key_cnt--;
 
 	/* track key states */
 	if (type == Event::PRESS) {
@@ -100,72 +131,52 @@ void User_state::handle_event(Input::Event ev)
 		_key_array.pressed(keycode, false);
 	}
 
-	View const * const pointed_view    = find_view(_pointer_pos);
-	::Session  * const pointed_session = pointed_view ? &pointed_view->session() : 0;
+	View_component const * const pointed_view = _view_stack.find_view(_pointer_pos);
+
+	View_owner * const hovered = pointed_view ? &pointed_view->owner() : 0;
 
 	/*
 	 * Deliver a leave event if pointed-to session changed
 	 */
-	if (_pointed_session && (pointed_session != _pointed_session)) {
+	if (_hovered && (hovered != _hovered)) {
 
 		Input::Event leave_ev(Input::Event::LEAVE, 0, ax, ay, 0, 0);
-		_pointed_session->submit_input_event(leave_ev);
+		_hovered->submit_input_event(leave_ev);
 	}
 
-	_pointed_session = pointed_session;
-
-	/**
-	 * Guard that, when 'enabled' is set to true, performs a whole-screen
-	 * update when leaving the scope
-	 */
-	struct Update_all_guard
-	{
-		User_state  &user_state;
-		bool        update = false;
-
-		Update_all_guard(User_state &user_state)
-		: user_state(user_state) { }
-
-		~Update_all_guard()
-		{
-			if (update)
-				user_state._update_all();
-		}
-	} update_all_guard(*this);
+	_hovered = hovered;
 
 	/*
 	 * Handle start of a key sequence
 	 */
-	if (type == Event::PRESS && (Mode::key_cnt() == 1)) {
+	if (type == Event::PRESS && (_key_cnt == 1)) {
 
-		::Session *global_receiver = nullptr;
+		View_owner *global_receiver = nullptr;
 
 		/* update focused session */
 		if (_mouse_button(keycode)
-		 && _pointed_session
-		 && (_pointed_session != Mode::focused_session())
-		 && (_pointed_session->has_focusable_domain()
-		  || _pointed_session->has_same_domain(Mode::focused_session()))) {
-
-			update_all_guard.update = true;
+		 && _hovered
+		 && (_hovered != _focused)
+		 && (_hovered->has_focusable_domain()
+		  || _hovered->has_same_domain(_focused))) {
 
 			/*
 			 * Notify both the old focused session and the new one.
 			 */
-			if (Mode::focused_session()) {
+			if (_focused) {
 				Input::Event unfocus_ev(Input::Event::FOCUS, 0, ax, ay, 0, 0);
-				Mode::focused_session()->submit_input_event(unfocus_ev);
+				_focused->submit_input_event(unfocus_ev);
 			}
 
-			if (_pointed_session) {
+			if (_hovered) {
 				Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
-				_pointed_session->submit_input_event(focus_ev);
+				_hovered->submit_input_event(focus_ev);
 			}
 
-			if (_pointed_session->has_transient_focusable_domain())
-				global_receiver = _pointed_session;
+			if (_hovered->has_transient_focusable_domain())
+				global_receiver = _hovered;
 			else
-				focused_session(_pointed_session);
+				_focus_view_owner_via_click(*_hovered);
 		}
 
 		/*
@@ -182,18 +193,16 @@ void User_state::handle_event(Input::Event ev)
 			global_receiver = _global_keys.global_receiver(keycode);
 
 		if (global_receiver) {
-			_global_key_sequence    = true;
-			_input_receiver         = global_receiver;
-			update_all_guard.update = true;
+			_global_key_sequence = true;
+			_input_receiver      = global_receiver;
 		}
 
 		/*
 		 * No global rule matched, so the input stream gets directed to the
 		 * focused session or refers to a built-in operation.
 		 */
-		if (!global_receiver) {
-			_input_receiver = Mode::focused_session();
-		}
+		if (!global_receiver)
+			_input_receiver = _focused;
 	}
 
 	/*
@@ -201,18 +210,18 @@ void User_state::handle_event(Input::Event ev)
 	 */
 	if (type == Event::MOTION || type == Event::WHEEL || type == Event::TOUCH) {
 
-		if (Mode::key_cnt() == 0) {
+		if (_key_cnt == 0) {
 
-			if (_pointed_session) {
+			if (_hovered) {
 
 				/*
 				 * Unless the domain of the pointed session is configured to
 				 * always receive hover events, we deliver motion events only
 				 * to the focused domain.
 				 */
-				if (_pointed_session->hover_always()
-				 || _pointed_session->has_same_domain(Mode::focused_session()))
-					_pointed_session->submit_input_event(ev);
+				if (_hovered->hover_always()
+				 || _hovered->has_same_domain(_focused))
+					_hovered->submit_input_event(ev);
 			}
 
 		} else if (_input_receiver)
@@ -225,9 +234,9 @@ void User_state::handle_event(Input::Event ev)
 	 */
 	if ((type == Event::PRESS) && _input_receiver) {
 		if (!_mouse_button(ev.keycode())
-		 || (_pointed_session
-		  && (_pointed_session->has_focusable_domain()
-		   || _pointed_session->has_same_domain(Mode::focused_session()))))
+		 || (_hovered
+		  && (_hovered->has_focusable_domain()
+		   || _hovered->has_same_domain(_focused))))
 			_input_receiver->submit_input_event(ev);
 		else
 			_input_receiver = nullptr;
@@ -245,46 +254,182 @@ void User_state::handle_event(Input::Event ev)
 	/*
 	 * Detect end of global key sequence
 	 */
-	if (ev.type() == Event::RELEASE && (Mode::key_cnt() == 0) && _global_key_sequence) {
-
-		_input_receiver = Mode::focused_session();
-
-		update_all_guard.update = true;
-
+	if (ev.type() == Event::RELEASE && (_key_cnt == 0) && _global_key_sequence) {
+		_input_receiver = _focused;
 		_global_key_sequence = false;
 	}
 }
 
 
-void User_state::report_keystate(Genode::Xml_generator &xml)
+User_state::Handle_input_result
+User_state::handle_input_events(Input::Event const * const ev_buf,
+                                unsigned const num_ev)
 {
-	xml.attribute("count", Mode::key_cnt());
+	Point              const old_pointer_pos    = _pointer_pos;
+	View_owner       * const old_hovered        = _hovered;
+	View_owner const * const old_focused        = _focused;
+	View_owner const * const old_input_receiver = _input_receiver;
+
+	bool user_active = false;
+
+	if (num_ev > 0) {
+		/*
+		 * Take events from input event buffer, merge consecutive motion
+		 * events, and pass result to the user state.
+		 */
+		for (unsigned src_ev_cnt = 0; src_ev_cnt < num_ev; src_ev_cnt++) {
+
+			Input::Event const *e = &ev_buf[src_ev_cnt];
+			Input::Event curr = *e;
+
+			if (e->type() == Input::Event::MOTION) {
+				unsigned n = num_consecutive_events(e, num_ev - src_ev_cnt);
+				curr = merge_motion_events(e, n);
+
+				/* skip merged events */
+				src_ev_cnt += n - 1;
+			}
+
+			/*
+			 * If subsequential relative motion events are merged to
+			 * a zero-motion event, drop it. Otherwise, it would be
+			 * misinterpreted as absolute event pointing to (0, 0).
+			 */
+			if (e->relative_motion() && curr.rx() == 0 && curr.ry() == 0)
+				continue;
+
+			/*
+			 * If we detect a pressed key sometime during the event processing,
+			 * we regard the user as active. This check captures the presence
+			 * of press-release combinations within one batch of input events.
+			 */
+			user_active |= _key_pressed();
+
+			/* pass event to user state */
+			_handle_input_event(curr);
+		}
+	} else {
+		/*
+		 * Besides handling input events, 'user_state.handle_event()' also
+		 * updates the pointed session, which might have changed by other
+		 * means, for example view movement.
+		 */
+		_handle_input_event(Input::Event());
+	}
+
+	/*
+	 * If at least one key is kept pressed, we regard the user as active.
+	 */
+	user_active |= _key_pressed();
+
+	bool key_state_affected = false;
+	for (unsigned i = 0; i < num_ev; i++)
+		key_state_affected |= (ev_buf[i].type() == Input::Event::PRESS) ||
+		                      (ev_buf[i].type() == Input::Event::RELEASE);
+
+	_apply_pending_focus_change();
+
+	return {
+		.pointer_position_changed = _pointer_pos != old_pointer_pos,
+		.hover_changed            = _hovered != old_hovered,
+		.focus_changed            = (_focused != old_focused) ||
+		                            (_input_receiver != old_input_receiver),
+		.key_state_affected       = key_state_affected,
+		.user_active              = user_active,
+		.key_pressed              = _key_pressed()
+	};
+}
+
+
+void User_state::report_keystate(Xml_generator &xml) const
+{
+	xml.attribute("count", _key_cnt);
 	_key_array.report_state(xml);
 }
 
 
-/********************
- ** Mode interface **
- ********************/
-
-void User_state::forget(::Session const &session)
+void User_state::report_pointer_position(Xml_generator &xml) const
 {
-	Mode::forget(session);
+	xml.attribute("xpos", _pointer_pos.x());
+	xml.attribute("ypos", _pointer_pos.y());
+}
 
-	if (_pointed_session == &session) {
-		View * const pointed_view = find_view(_pointer_pos);
-		_pointed_session = pointed_view ? &pointed_view->session() : nullptr;
+
+void User_state::report_hovered_view_owner(Xml_generator &xml) const
+{
+	if (_hovered)
+		_hovered->report(xml);
+}
+
+
+void User_state::report_focused_view_owner(Xml_generator &xml, bool active) const
+{
+	if (_focused) {
+		_focused->report(xml);
+
+		if (active) xml.attribute("active", "yes");
+	}
+}
+
+
+void User_state::forget(View_owner const &owner)
+{
+	_focus.forget(owner);
+
+	if (&owner == _focused)      _focused      = nullptr;
+	if (&owner == _next_focused) _next_focused = nullptr;
+
+	if (_hovered == &owner) {
+		View_component * const pointed_view = _view_stack.find_view(_pointer_pos);
+		_hovered = pointed_view ? &pointed_view->owner() : nullptr;
 	}
 
-	if (_input_receiver == &session)
+	if (_input_receiver == &owner)
 		_input_receiver = nullptr;
 }
 
 
-void User_state::focused_session(::Session *session)
+bool User_state::_focus_change_permitted(View_owner const &caller) const
 {
-	Mode::focused_session(session);
+	/*
+	 * If no session is focused, we allow any client to assign it. This
+	 * is useful for programs such as an initial login window that
+	 * should receive input events without prior manual selection via
+	 * the mouse.
+	 *
+	 * In principle, a client could steal the focus during time between
+	 * a currently focused session gets closed and before the user
+	 * manually picks a new session. However, in practice, the focus
+	 * policy during application startup and exit is managed by a
+	 * window manager that sits between nitpicker and the application.
+	 */
+	if (!_focused)
+		return true;
+
+	/*
+	 * Check if the currently focused session label belongs to a
+	 * session subordinated to the caller, i.e., it originated from
+	 * a child of the caller or from the same process. This is the
+	 * case if the first part of the focused session label is
+	 * identical to the caller's label.
+	 */
+	char const * const focused_label = _focused->label().string();
+	char const * const caller_label  = caller.label().string();
+
+	return strcmp(focused_label, caller_label, strlen(caller_label)) == 0;
+}
+
+
+void User_state::_focus_view_owner_via_click(View_owner &owner)
+{
+	_focus.assign(owner);
+
+	_focused      = &owner;
+	_next_focused = &owner;
+	_focused      = &owner;
+
+	_focus.assign(owner);
 
 	if (!_global_key_sequence)
-		_input_receiver = session;
+		_input_receiver = &owner;
 }

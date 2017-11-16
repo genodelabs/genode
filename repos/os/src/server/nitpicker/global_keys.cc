@@ -13,12 +13,15 @@
 
 /* local includes */
 #include "global_keys.h"
+#include "session_component.h"
+
+using namespace Nitpicker;
 
 
 Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
 {
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
-		if (Genode::strcmp(key_name, Input::key_name((Input::Keycode)i)) == 0)
+		if (strcmp(key_name, Input::key_name((Input::Keycode)i)) == 0)
 			return &_policies[i];
 
 	return 0;
@@ -38,15 +41,15 @@ void Global_keys::apply_config(Xml_node config, Session_list &session_list)
 		for (; ; node = node.next(node_type)) {
 
 			if (!node.has_attribute("name")) {
-				Genode::warning("attribute 'name' missing in <global-key> config node");
+				warning("attribute 'name' missing in <global-key> config node");
 				continue;
 			}
 
-			typedef Genode::String<32> Name;
+			typedef String<32> Name;
 			Name name = node.attribute_value("name", Name());
 			Policy * policy = _lookup_policy(name.string());
 			if (!policy) {
-				Genode::warning("invalid key name \"", name, "\"");
+				warning("invalid key name \"", name, "\"");
 				continue;
 			}
 
@@ -55,12 +58,12 @@ void Global_keys::apply_config(Xml_node config, Session_list &session_list)
 				continue;
 
 			if (!node.has_attribute("label")) {
-				Genode::warning("missing 'label' attribute for key ", name);
+				warning("missing 'label' attribute for key ", name);
 				continue;
 			}
 
 			/* assign policy to matching client session */
-			for (Session *s = session_list.first(); s; s = s->next())
+			for (Session_component *s = session_list.first(); s; s = s->next())
 				if (node.attribute("label").has_value(s->label().string()))
 					policy->client(s);
 		}

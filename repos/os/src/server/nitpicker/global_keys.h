@@ -16,24 +16,24 @@
 
 /* Genode includes */
 #include <input/keycodes.h>
-#include <util/xml_node.h>
 
 /* local includes */
-#include "session.h"
+#include "session_component.h"
 
-class Global_keys
+namespace Nitpicker { class Global_keys; }
+
+
+class Nitpicker::Global_keys
 {
 	private:
 
-		typedef Genode::Xml_node Xml_node;
-
 		struct Policy
 		{
-			Session *_session = nullptr;
+			Session_component *_session = nullptr;
 
 			bool defined() const { return _session != nullptr; }
 
-			void client(Session *s) { _session = s; }
+			void client(Session_component *s) { _session = s; }
 		};
 
 		enum { NUM_POLICIES = Input::KEY_MAX + 1 };
@@ -50,7 +50,7 @@ class Global_keys
 
 	public:
 
-		Session *global_receiver(Input::Keycode key) {
+		Session_component *global_receiver(Input::Keycode key) {
 			return _valid(key) ? _policies[key]._session : 0; }
 
 		void apply_config(Xml_node config, Session_list &session_list);

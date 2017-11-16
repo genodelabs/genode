@@ -14,33 +14,28 @@
 #ifndef _POINTER_ORIGIN_H_
 #define _POINTER_ORIGIN_H_
 
-#include "view.h"
-#include "session.h"
+#include "view_component.h"
+#include "session_component.h"
 
-struct Pointer_origin : Session, View
+namespace Nitpicker { struct Pointer_origin; }
+
+
+struct Nitpicker::Pointer_origin : View_component
 {
-	Pointer_origin()
+	Pointer_origin(View_owner &owner)
 	:
-		Session(Genode::Session_label()),
-		View(*this, View::TRANSPARENT, View::NOT_BACKGROUND, 0)
+		View_component(owner, View_component::TRANSPARENT,
+		                      View_component::NOT_BACKGROUND, 0)
 	{ }
 
 
-	/***********************
-	 ** Session interface **
-	 ***********************/
+	/******************************
+	 ** View_component interface **
+	 ******************************/
 
-	void submit_input_event(Input::Event) override { }
-	void submit_sync() override { }
-
-
-	/********************
-	 ** View interface **
-	 ********************/
-
-	int frame_size(Mode const &) const override { return 0; }
-	void frame(Canvas_base &, Mode const &) const override { }
-	void draw(Canvas_base &, Mode const &) const override { }
+	int  frame_size(Focus const &) const override { return 0; }
+	void frame(Canvas_base &, Focus const &) const override { }
+	void draw(Canvas_base &, Focus const &) const override { }
 };
 
 #endif /* _POINTER_ORIGIN_H_ */

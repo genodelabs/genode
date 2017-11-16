@@ -30,7 +30,10 @@
 
 #include "canvas.h"
 
-class Clip_guard
+namespace Nitpicker { class Clip_guard; }
+
+
+class Nitpicker::Clip_guard
 {
 	private:
 
