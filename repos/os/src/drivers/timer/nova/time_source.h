@@ -28,22 +28,19 @@ class Timer::Time_source : public Threaded_time_source
 {
 	private:
 
-		Genode::addr_t           _sem = ~0UL;
-		unsigned long            _timeout_us = 0;
-		Genode::Trace::Timestamp _tsc_start = Genode::Trace::timestamp();
-		unsigned long            _tsc_khz;
+		Genode::addr_t           _sem        { ~0UL };
+		unsigned long            _timeout_us { 0 };
+		unsigned long            _tsc_khz    { 0 };
+		Duration                 _curr_time  { Microseconds(0) };
+		Genode::Trace::Timestamp _tsc_start  { Genode::Trace::timestamp() };
+		Genode::Trace::Timestamp _tsc_last   { _tsc_start };
 
 		/* 1 / ((us / (1000 * 1000)) * (tsc_khz * 1000)) */
 		enum { TSC_FACTOR = 1000ULL };
 
-		inline Microseconds _tsc_to_us(unsigned long long tsc,
-		                               bool sub_tsc_start = true) const
+		inline Genode::uint64_t _tsc_to_us(Genode::uint64_t tsc) const
 		{
-			if (sub_tsc_start) {
-				return Microseconds((tsc - _tsc_start) /
-				                    (_tsc_khz / TSC_FACTOR));
-			}
-			return Microseconds((tsc) / (_tsc_khz / TSC_FACTOR));
+			return (tsc) / (_tsc_khz / TSC_FACTOR);
 		}
 
 
@@ -62,10 +59,30 @@ class Timer::Time_source : public Threaded_time_source
 		 ** Genode::Time_source **
 		 *************************/
 
-		Microseconds max_timeout() const override { return _tsc_to_us(~0UL); }
-		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
-		Duration curr_time() override {
-			return Duration(_tsc_to_us(Genode::Trace::timestamp())); }
+		void schedule_timeout(Microseconds duration,
+		                      Timeout_handler &handler) override;
+
+		Microseconds max_timeout() const override
+		{
+			unsigned long long const max_us_ull = _tsc_to_us(~0ULL);
+			return max_us_ull > ~0UL ? Microseconds(~0UL) : Microseconds(max_us_ull);
+		}
+
+		Duration curr_time() override
+		{
+			using namespace Genode::Trace;
+
+			Timestamp    const curr_tsc = timestamp();
+			Microseconds const diff(_tsc_to_us(curr_tsc - _tsc_last));
+
+			/* update in irq context or if update rate is below 4000 irq/s */
+			if (_irq || diff.value > 250) {
+				_curr_time += diff;
+				_tsc_last   = curr_tsc;
+			}
+
+			return _curr_time;
+		}
 };
 
 #endif /* _TIME_SOURCE_H_ */
