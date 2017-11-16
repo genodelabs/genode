@@ -1,8 +1,9 @@
 - don't show status messages
 - fix audio/video synchronicity (needs more testing)
+- override requested video mode with size of the framebuffer
 
 +++ src/lib/libav/avplay.c
-@@ -235,7 +235,7 @@
+@@ -240,7 +240,7 @@
  };
  static int seek_by_bytes = -1;
  static int display_disable;
@@ -11,8 +12,25 @@
  static int av_sync_type = AV_SYNC_AUDIO_MASTER;
  static int64_t start_time = AV_NOPTS_VALUE;
  static int64_t duration = AV_NOPTS_VALUE;
-@@ -965,7 +965,7 @@
-                         2 * is->audio_st->codec->channels;
+@@ -902,6 +902,16 @@
+        && is->height== screen->h && screen->h == h)
+         return 0;
+ 
++    /* override geometry with framebuffer size */
++    SDL_Rect **modes = SDL_ListModes(NULL, flags);
++    if (modes == (SDL_Rect**)0) {
++        fprintf(stderr, "SDL: could not get mode list - exiting\n");
++        return -1;
++    }
++
++    w = modes[0]->w;
++    h = modes[0]->h;
++
+ #if defined(__APPLE__) && !SDL_VERSION_ATLEAST(1, 2, 14)
+     /* setting bits_per_pixel = 0 or 32 causes blank video on OS X and older SDL */
+     screen = SDL_SetVideoMode(w, h, 24, flags);
+@@ -962,7 +972,7 @@
+                         av_get_bytes_per_sample(is->sdl_sample_fmt);
      }
      if (bytes_per_sec)
 -        pts -= (double)hw_buf_size / bytes_per_sec;
