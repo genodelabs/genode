@@ -2,7 +2,7 @@ LICENSE   := LGPL
 VERSION   := 0.19.5
 DOWNLOADS := fribidi.archive
 
-URL(fribidi) := http://fribidi.org/download/fribidi-$(VERSION).tar.bz2
+URL(fribidi) := https://download.videolan.org/pub/contrib/fribidi/fribidi-$(VERSION).tar.bz2
 SHA(fribidi) := 58445266df185f7e5109f356c0261d41db39182a
 DIR(fribidi) := src/lib/fribidi/contrib
 
